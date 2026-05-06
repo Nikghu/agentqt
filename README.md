@@ -1,6 +1,24 @@
-# AgentQT
+<div align="center">
 
-**A structured, multi-agent development framework for Claude Code** — bringing deterministic engineering discipline (requirements, traceability, quality gates) to AI-assisted Python/PyQt6 projects.
+```
+ █████╗  ██████╗ ███████╗███╗   ██╗████████╗ ██████╗ ████████╗
+██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝██╔═══██╗╚══██╔══╝
+███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║   ██║   ██║   ██║   
+██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║   ██║▄▄ ██║   ██║   
+██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║   ╚██████╔╝   ██║   
+╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝    ╚══▀▀═╝    ╚═╝   
+```
+
+**A structured, multi-agent development framework for Claude Code**
+
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
+[![PyQt6](https://img.shields.io/badge/PyQt6-6.x-41CD52?style=flat-square&logo=qt&logoColor=white)](https://www.riverbankcomputing.com/software/pyqt/)
+[![Claude Code](https://img.shields.io/badge/Claude_Code-Powered-D97757?style=flat-square)](https://claude.ai/code)
+[![SDLC](https://img.shields.io/badge/SDLC-Waterfall-4A90D9?style=flat-square)](https://en.wikipedia.org/wiki/Waterfall_model)
+
+</div>
+
+---
 
 `us_swing` — a US equity swing trading toolkit built with Python 3.11+ and PyQt6 — is the reference implementation that demonstrates the framework in a real, production-scale project.
 
