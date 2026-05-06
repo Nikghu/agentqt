@@ -15,27 +15,45 @@ Built with Python 3.11+, PyQt6, and MCP (Model Context Protocol) for dual human 
 ## Project Structure
 
 ```
-USMarket_Backtesting/           ← workspace root
-├── AGENT_BOOT.md               # AI agent entry point
-├── process.md                  # Generic dev process (all projects)
-├── skill.md                    # Generic skills inventory
-├── PROMPTS.md                  # Reusable prompt patterns
-├── pyproject.toml              # Build config & dependencies
+usmarket-swing-trading/              ← workspace root
+├── AGENT_BOOT.md                    # AI agent entry point
+├── CLAUDE.md                        # AI team instructions (committed)
+├── pyproject.toml                   # Build config & dependencies
 │
-├── pilot1/                     # Pilot 1 project (active)
-│   ├── idea.md                 #   Vision & roadmap
-│   ├── ALM.md                  #   ALM tool spec
-│   ├── CONTEXT.md              #   Current dev state
-│   ├── DEVLOG.md               #   Session journal
-│   ├── docs/infrastructure/    #   INF tool docs (FO→TRACE)
-│   ├── tests/core/             #   Unit tests
-│   └── data/cache/             #   Local data cache (Parquet)
+├── us_swing/                        # Active project
+│   ├── idea.md                      #   Vision & roadmap
+│   ├── requirements.md              #   Frozen requirements source
+│   ├── CONTEXT.md                   #   Current dev state
+│   ├── DEVLOG.md                    #   Session journal
+│   ├── run_gui.py                   #   GUI launcher
+│   ├── USSwing.spec                 #   PyInstaller build spec
+│   │
+│   ├── docs/                        #   Artifact docs (per tool)
+│   │   ├── infrastructure/          #     INF — data, DB, broker
+│   │   ├── screener/                #     SCR — stock screener
+│   │   ├── analysis/                #     ANA — strategy engine
+│   │   ├── execution/               #     EXE — order execution
+│   │   ├── gui/                     #     GUI — PyQt6 interface
+│   │   └── mcp/                     #     MCP — AI agent protocol
+│   │
+│   ├── src/us_swing/                #   Python package (src layout)
+│   │   ├── analysis/                #     Strategy engine
+│   │   ├── broker/                  #     IBKR client & pacing
+│   │   ├── config/                  #     App settings
+│   │   ├── data/                    #     Market data engine & providers
+│   │   ├── db/                      #     Database manager & schema
+│   │   ├── gui/                     #     PyQt6 panels & main window
+│   │   ├── monitoring/              #     Health, alerts, connectivity
+│   │   ├── screener/                #     Screener framework & strategies
+│   │   ├── universe/                #     S&P 500 universe manager
+│   │   └── user/                    #     User profile manager
+│   │
+│   ├── tests/                       #   pytest suite (mirrors src/)
+│   └── tools/skeleton_extractor/    #   Dev tool — code index generator
 │
-├── us_swing/                   # US Swing project (requirements stage)
-│   └── requirements.md
-│
-├── pilot1/src/usswing/pilot1/core/ # Pilot 1 source code
-└── alm/                        # ALM viewer tool (PyQt6)
+├── alm/                             # ALM traceability viewer (PyQt6)
+├── installer/                       # Windows installer generator
+└── .claude/                         # Claude Code config (agents, rules, hooks)
 ```
 
 ---
@@ -43,10 +61,9 @@ USMarket_Backtesting/           ← workspace root
 ## Quick Start
 
 ```bash
-cd USMarket_Backtesting
 python -m venv .venv
 .venv\Scripts\activate          # Windows
 pip install -e ".[dev]"
-pytest                           # Run tests
-python -m alm                    # Launch ALM viewer
+python us_swing/run_gui.py      # Launch GUI
+python -m pytest us_swing/tests # Run tests
 ```
