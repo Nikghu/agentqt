@@ -137,26 +137,6 @@ These guards prevent the most common source of token waste in multi-agent system
 
 ---
 
-## Productivity Impact
-
-AgentQT turns AI from a fast typist into a disciplined engineering partner — eliminating rework, context loss, and manual process overhead across every session.
-
-### AgentQT vs. How Most Developers Use AI Today
-
-| What Developers Do Today | AgentQT |
-|---|---|
-| Paste code into chat and ask Claude to "fix it" | Prompts are classified and reframed before any file is read — Claude acts on a scoped, structured task |
-| Re-explain the project at the start of every session | Cold-start in under 30 seconds — `AGENT_BOOT.md` + `CONTEXT.md §0` carry full context across sessions |
-| Write code first, requirements never | Requirements (SRD) must be `Approved` before a single line of code is generated |
-| Let Claude read entire files to find one function | `MODULE_MAP.json` index — agents query 20 lines instead of reading 500 |
-| Skip design docs — "it's just a side project" | Every feature has an explicit DD before implementation — reviewable, reusable, auditable |
-| Manually run tests (or skip them) | Test cases written before code; `test-writer` agent implements them with full traceability IDs |
-| No code review | Every file passes through `code-reviewer` or `pyqt-code-reviewer` automatically — no exceptions |
-| No record of why code was written | Every module traces to an FO → SRD → DD chain; `DEVLOG.md` records every decision |
-| Rewrite code when requirements shift | SRD status guard prevents scope creep — changes require an explicit re-approval cycle |
-
----
-
 ## Comparison
 
 | Approach | Traceability | Context Retention | Quality Gates | Token Efficiency | Repeatability |
