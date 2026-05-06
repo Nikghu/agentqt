@@ -139,33 +139,21 @@ These guards prevent the most common source of token waste in multi-agent system
 
 ## Productivity Impact
 
-AgentQT is designed to compress the time between a requirement and working, tested, traceable code — without sacrificing engineering discipline.
+AgentQT turns AI from a fast typist into a disciplined engineering partner — eliminating rework, context loss, and manual process overhead across every session.
 
-### Where Productivity Is Gained
+### AgentQT vs. How Most Developers Use AI Today
 
-**Eliminated rework from context loss.**
-In a standard AI workflow, each new session requires re-explaining the project, its decisions, and its current state — often consuming 30–50% of a session just re-establishing context. `AGENT_BOOT.md` + `CONTEXT.md §0` + `DEVLOG.md` reduce cold-start time to a single read, typically under 30 seconds.
-
-**Eliminated rework from requirement drift.**
-Without a requirements gate, AI-generated code frequently diverges from intent over multiple sessions. The SRD status guard (`Draft → Approved → Implemented → Verified`) means code is only written once — against an approved, stable specification. Rewrites caused by shifting requirements drop significantly.
-
-**Parallelised quality gates.**
-Code review, simplification, and traceability sync happen automatically as part of the pipeline — not as separate manual steps. A developer does not need to remember to run the reviewer, update `TRACE.md`, or write the revision note. These steps are triggered by the commands and hooks.
-
-**Self-documenting codebase.**
-Because every module carries its MD ID and every test carries its UTCD ID, the codebase is always auditable. Finding why a function exists, what requirement it satisfies, and which test covers it takes seconds — not a archaeology session through commit history.
-
-### Productivity by Phase
-
-| Phase | Without AgentQT | With AgentQT |
-|---|---|---|
-| Session startup | 10–20 min re-explaining context | < 1 min — read `CONTEXT.md §0` |
-| Requirement definition | Ad-hoc, often skipped | Structured FO + SRD with status guard |
-| Design | Implicit, in the AI's head | Explicit DD — reviewable, reusable |
-| Code orientation | Read full source files | Query `MODULE_MAP.json` — 20 lines |
-| Code review | Manual or skipped | Automatic — `pyqt-code-reviewer` / `code-reviewer` |
-| Traceability | None | Auto-synced `TRACE.md` at session end |
-| Cross-session continuity | Lost | Persistent via `DEVLOG.md` + `CONTEXT.md` |
+| What Developers Do Today | AgentQT |
+|---|---|
+| Paste code into chat and ask Claude to "fix it" | Prompts are classified and reframed before any file is read — Claude acts on a scoped, structured task |
+| Re-explain the project at the start of every session | Cold-start in under 30 seconds — `AGENT_BOOT.md` + `CONTEXT.md §0` carry full context across sessions |
+| Write code first, requirements never | Requirements (SRD) must be `Approved` before a single line of code is generated |
+| Let Claude read entire files to find one function | `MODULE_MAP.json` index — agents query 20 lines instead of reading 500 |
+| Skip design docs — "it's just a side project" | Every feature has an explicit DD before implementation — reviewable, reusable, auditable |
+| Manually run tests (or skip them) | Test cases written before code; `test-writer` agent implements them with full traceability IDs |
+| No code review | Every file passes through `code-reviewer` or `pyqt-code-reviewer` automatically — no exceptions |
+| No record of why code was written | Every module traces to an FO → SRD → DD chain; `DEVLOG.md` records every decision |
+| Rewrite code when requirements shift | SRD status guard prevents scope creep — changes require an explicit re-approval cycle |
 
 ---
 
