@@ -9,7 +9,15 @@
 
 ## 0. Immediate Next Step
 
-**Current:** Bugfix complete. Resume normal development on next pending feature or phase.
+**Current:** FO-EXE-006 (Intraday Candle Loader Phase 1) complete. All 14 tests pass; code implemented; RN written. Next: FO-EXE-007 (Phase 2 — live 3 m candle formation) or resume SCR Phase 2 multi-provider AI ranking.
+
+**FO-EXE-006 — Intraday Candle Loader Phase 1 — COMPLETE (Session 40, 2026-05-06):**
+- `IntradayCandleLoader(QThread)` delta-fetches 1 m IBKR bars for screened stock list, validates ≥ 390 candles per timeframe (3 m, 5 m, 1 h), persists via `DatabaseManager`
+- Idempotent: re-running on up-to-date symbol inserts 0 rows; failed symbols isolated per-symbol with reason codes
+- `CandleLoadResult` and `SymbolReadiness` dataclasses for progress/completion signals and readiness reporting
+- Files: 1 new source (`execution/intraday_candle_loader.py` MD-EXE-006.001.M01), 1 new `execution/__init__.py`, 1 test file (`test_intraday_candle_loader.py` 14 tests), 1 RN
+- All artifacts updated: FO v1.2.0, SRD v1.2.0 (all SRD-EXE-006 marked Implemented), DD v1.2.0, MD v1.2.0, UTCD v1.2.0 (all tests Pass), TRACE v1.2.0 (FO-EXE-006 Implemented, RN filled)
+- Status: RN-EXE-1.1.0-20260506 written; all phases complete
 
 **ISS-SCR-0001 — Edit Preset Dialog Assign Users Persistence — FIXED (Session 39, 2026-05-05):**
 - Root cause: `_PresetBuilderDialog._on_save()` called `_build_preset_from_ui()` which reconstructed the entire preset, overwriting `assigned_to` with empty list from `AssignUsersWidget`
@@ -261,12 +269,12 @@
 
 | Artifact | File | Status | Notes |
 |---|---|---|---|
-| FO | `docs/execution/FO.md` | Draft v1.1.0 — **revised** | Added: FO-EXE-004 (paper trading), FO-EXE-005 (position states + capital check) |
-| SRD | `docs/execution/SRD.md` | Draft v1.1.0 — **revised** | Added: paper engine SRDs, position state machine, capital check, qty override |
-| DD | `docs/execution/DD.md` | Draft v1.1.0 — **revised** | Added: PaperEngine design, position state FSM, ExecutionRouter |
-| MD | `docs/execution/MD.md` | Draft v1.1.0 — **revised** | Added: paper_engine.py, execution_router.py modules |
-| UTCD | `docs/execution/UTCD.md` | Draft v1.1.0 — **revised** | Added: paper engine tests, state transition tests, capital check tests |
-| TRACE | `docs/execution/TRACE.md` | Draft v1.1.0 — **revised** | Updated counts: FO:5, SRD:28, DD:6, MD:7, UTCD:54 |
+| FO | `docs/execution/FO.md` | Draft v1.2.0 | Added: FO-EXE-006 (intraday candle loader) — 1 complete, 5 draft |
+| SRD | `docs/execution/SRD.md` | Draft v1.2.0 | SRD-EXE-006.001–006 marked Implemented; total: 34 SRDs (6 Implemented, 28 Draft) |
+| DD | `docs/execution/DD.md` | Draft v1.2.0 | DD-EXE-006.001.D01–D02 complete; 8 design items total |
+| MD | `docs/execution/MD.md` | Draft v1.2.0 | MD-EXE-006.001.M01 implemented; 8 modules total (1 Implemented, 7 Draft) |
+| UTCD | `docs/execution/UTCD.md` | Draft v1.2.0 | UT-EXE-006.001.M01.T01–T13 all Pass; 67 total (13 Pass, 54 Draft) |
+| TRACE | `docs/execution/TRACE.md` | Draft v1.2.0 | FO-EXE-006 row complete with Implemented status; RN-EXE-1.1.0-20260506 filled |
 
 ### GUI (NEW — created)
 

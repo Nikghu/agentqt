@@ -1,10 +1,10 @@
 # Design Document — Execution & Risk Management (EXE)
 
 **Document ID:** DD-EXE
-**Version:** 1.1.0
-**Traces To:** SRD-EXE v1.1.0
+**Version:** 1.2.0
+**Traces To:** SRD-EXE v1.2.0
 **Status:** Draft
-**Last Updated:** 2026-03-06
+**Last Updated:** 2026-05-06
 **Project:** US Swing Trading System
 
 ---
@@ -398,3 +398,147 @@ import signal
 shutdown = EmergencyShutdown(...)
 signal.signal(signal.SIGTERM, lambda *_: asyncio.run(shutdown.run("SIGTERM")))
 ```
+
+---
+
+## DD-EXE-006.001.D01 — IntradayCandleLoader Design
+
+**Parent SRD:** SRD-EXE-006.001 — SRD-EXE-006.005
+
+### Public Interface
+
+```python
+@dataclass
+class CandleLoadResult:
+    symbol:  str
+    ok:      bool
+    reason:  str   # '' if ok; error or 'insufficient_candles:3m:312' if failed
+
+class IntradayCandleLoader(QThread):
+    """Background worker: delta-fetches 1m bars and validates intraday candle counts."""
+
+    load_progress  = pyqtSignal(str, int, int)        # symbol, done, total
+    load_complete  = pyqtSignal(list)                  # list[CandleLoadResult]
+
+    def __init__(
+        self,
+        symbols:            list[str],
+        ibkr_client:        IBKRClient,
+        db:                 DatabaseManager,
+        hist_engine:        HistoricalDataEngine,
+        min_candles:        int = 390,
+        full_fetch_days:    int = 65,
+    ) -> None
+
+    def run(self) -> None
+        """QThread entry: iterates symbols, calls _fetch_symbol + _validate."""
+
+    def _fetch_symbol(self, symbol: str) -> None
+        """Delta-fetch 1m bars. Pages across IBKR 30-cal-day limit if full fetch."""
+
+    def _validate_candle_counts(self, symbol: str) -> CandleLoadResult
+        """Aggregate 3m/5m/1h and verify ≥ min_candles each."""
+```
+
+### Data Flow
+
+```
+stock_list_ready event
+        │
+        ▼
+IntradayCandleLoader.load(symbols)           ← QThread.start()
+        │
+        ├─ for each symbol:
+        │      DatabaseManager.get_last_timestamp(symbol, '1m')
+        │            │
+        │            ├─ None   → full fetch (65 trading days, paged)
+        │            └─ ts     → delta fetch (ts → now)
+        │
+        │      IBKRClient.req_historical_data(symbol, '1m', duration)
+        │            │ pacing queue (SRD-INF-001.005)
+        │            ▼
+        │      DatabaseManager.insert_bars(symbol, '1m', bars)   [INSERT OR IGNORE]
+        │
+        │      HistoricalDataEngine.aggregate_timeframe(symbol, '3m')  → count ≥ 390?
+        │      HistoricalDataEngine.aggregate_timeframe(symbol, '5m')  → count ≥ 390?
+        │      HistoricalDataEngine.aggregate_timeframe(symbol, '1h')  → count ≥ 390?
+        │
+        │      emit load_progress(symbol, i, total)
+        │
+        └─ emit load_complete(results)
+```
+
+### IBKR Paging Strategy (Full Fetch)
+
+IBKR limits 1m bar requests to 30 calendar days per call. To obtain 65 trading days:
+
+```
+end_date = today
+pages = ceil(65 × 7/5 ÷ 30)  ≈ 4 pages   [65 trading days ≈ 91 calendar days]
+
+for page in range(pages):
+    duration = "30 D"
+    end_dt   = end_date - (page × 30 calendar days)
+    bars     = ibkr.req_historical_data(symbol, end_dt, duration, '1 min')
+    db.insert_bars(symbol, '1m', bars)
+```
+
+Pages are fetched newest-first; the pacing queue enforces ≤ 50 requests per 10-min window.
+
+### Error Handling
+
+| Exception | Action |
+|---|---|
+| `IBKRPacingError` | caught; symbol added to failed list; reason = `'pacing_error'` |
+| `IBKRHistoricalDataError` | caught; symbol added to failed list; reason = IBKR error message |
+| `DatabaseError` | caught; symbol added to failed list; reason = `'db_write_error'` |
+| All others | caught as `Exception`; symbol added to failed list; reason = repr(e) |
+
+---
+
+## DD-EXE-006.001.D02 — Readiness Report API Design
+
+**Parent SRD:** SRD-EXE-006.006
+
+### Public Interface
+
+```python
+@dataclass
+class SymbolReadiness:
+    symbol:       str
+    candles_3m:   int
+    candles_5m:   int
+    candles_1h:   int
+    last_1m_bar:  datetime | None
+    ready:        bool    # True iff all three counts ≥ min_candles (default 390)
+
+class IntradayCandleLoader:
+    def get_readiness_report(
+        self,
+        symbols: list[str],
+        min_candles: int = 390,
+    ) -> dict[str, SymbolReadiness]
+```
+
+### Query Strategy
+
+For each symbol, three COUNT queries are issued against the aggregated-view or materialized table:
+
+```sql
+-- 3m count
+SELECT COUNT(*) FROM price_1m
+ WHERE symbol = :sym
+   AND datetime >= :cutoff_3m;   -- cutoff = now - 390×3 minutes
+
+-- 5m count  
+SELECT COUNT(*) FROM price_1m
+ WHERE symbol = :sym
+   AND datetime >= :cutoff_5m;
+
+-- 1h count
+SELECT COUNT(*) FROM price_1m
+ WHERE symbol = :sym
+   AND datetime >= :cutoff_1h;
+```
+
+Counts are approximate (assumes continuous bars). For validation, `aggregate_timeframe()` produces the exact count; `get_readiness_report()` uses the fast COUNT path for UI display.

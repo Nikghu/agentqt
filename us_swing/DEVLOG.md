@@ -2,6 +2,15 @@
 
 ---
 
+## [20260506] EXE — Implemented IntradayCandleLoader with delta-fetch and validation
+
+- Type: Feature
+- FO(s): FO-EXE-006
+- Artifacts updated: FO, SRD, DD, MD, UTCD, Code, Tests, RN
+- Decisions: Fresh IB() per QThread run to avoid event-loop conflicts; 4-page IBKR paging (65 trading days) for first fetch; INSERT OR IGNORE for idempotent bar inserts; per-symbol error isolation with reason codes
+
+---
+
 ## [20260505] SCR — Fixed Edit Preset dialog not persisting Assign Users
 
 - Type: Bugfix

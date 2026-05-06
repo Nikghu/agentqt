@@ -1,10 +1,10 @@
 # Software Requirement Document — Execution & Risk Management (EXE)
 
 **Document ID:** SRD-EXE
-**Version:** 1.1.0
-**Traces To:** FO-EXE v1.1.0
+**Version:** 1.2.0
+**Traces To:** FO-EXE v1.2.0
 **Status:** Draft
-**Last Updated:** 2026-03-06
+**Last Updated:** 2026-05-06
 **Project:** US Swing Trading System
 
 ---
@@ -78,3 +78,16 @@
 | SRD-EXE-005.004 | FO-EXE-005 | Must | `RiskManager.can_enter_new(signal, account_state, user_id)` checks: `available_capital = total_equity - sum(open_position_values_for_user)`. Returns True only if the projected position fits within `max_allocation_pct`. | `TradeSignal`, `AccountState`, `user_id` | `bool` | Capital calculation is per-user; each user has independent allocation limits | Draft |
 | SRD-EXE-005.005 | FO-EXE-005 | Must | User quantity override: `ExecutionEngine.submit_signal()` accepts an optional `quantity_override: int | None` parameter. If provided, this quantity is used instead of `RiskManager.calculate_position_size()`. Override must still pass capital availability check. | `quantity_override` int, `TradeSignal` | order with overridden quantity | Override quantity must be > 0; override does not bypass risk validation, only position sizing | Draft |
 | SRD-EXE-005.006 | FO-EXE-005 | Must | Positions with state != CLOSED persist across application restarts. On startup, `PositionTracker.load_from_db(user_id)` restores all non-CLOSED positions. | DB `positions` rows | restored in-memory `PositionTracker` | Must run before `StrategyEngine` begins evaluating signals; reconcile with IBKR positions after loading from DB | Draft |
+
+---
+
+## Section 6: Requirements for FO-EXE-006 — Intraday Candle Readiness (Phase 1: Download)
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-EXE-006.001 | FO-EXE-006 | Must | `IntradayCandleLoader.load(symbols: list[str])` is the single entry point triggered when a screened stock list is available. It orchestrates delta-fetch of 1 m bars for every symbol and persists them via `DatabaseManager.insert_bars()`. Runs in a background thread; emits `load_progress(symbol, done, total)` and `load_complete(failed: list[str])` signals upon completion. | `list[str]` symbols, `IBKRClient`, `DatabaseManager` | 1 m bars in `price_1m`; progress + completion signals | Must not block the calling thread; per-symbol failures must not abort other symbols | Implemented |
+| SRD-EXE-006.002 | FO-EXE-006 | Must | **Delta fetch logic:** `IntradayCandleLoader._fetch_symbol(symbol)` calls `DatabaseManager.get_last_timestamp(symbol, '1m')` to find the last stored bar. If result is None, fetch the full historical window. If a timestamp exists, fetch only bars after that timestamp. Uses `IBKRClient.req_historical_data()` via the pacing queue (SRD-INF-001.005). | symbol, last stored timestamp | new 1 m bars (0 rows if already current); no duplicate inserts | Duplicate prevention: `DatabaseManager.insert_bars()` uses INSERT OR IGNORE; method is idempotent | Implemented |
+| SRD-EXE-006.003 | FO-EXE-006 | Must | **Minimum candle window:** The historical fetch window must be large enough to produce ≥ 390 aggregated candles for each required timeframe: 3 m (requires 1 170 minutes of 1 m bars ≈ 3 trading days), 5 m (1 950 min ≈ 5 days), 1 h (23 400 min ≈ 60 trading days). On first fetch (no prior data), the loader requests **65 trading days** of 1 m bars per symbol to satisfy all three timeframes with a 5-day safety margin. | symbol, target timeframes | sufficient 1 m bar rows to aggregate 390+ candles for 3 m / 5 m / 1 h | IBKR 1 m bar limit: maximum 30 calendar days per request; for 65 trading-days the loader splits into sequential paged requests and concatenates results | Implemented |
+| SRD-EXE-006.004 | FO-EXE-006 | Must | **Post-fetch validation:** After inserting bars for a symbol, `IntradayCandleLoader._validate_candle_counts(symbol)` calls `HistoricalDataEngine.aggregate_timeframe(symbol, tf)` for tf ∈ {`'3m'`, `'5m'`, `'1h'`} and checks that each returns ≥ 390 bars. If any timeframe is short, the symbol is added to `load_complete.failed` list with reason `'insufficient_candles:{tf}:{count}'`. | symbol, `DatabaseManager`, `HistoricalDataEngine` | pass/fail per timeframe; short symbols in failed list | Validation is read-only; does not re-fetch; caller decides whether to retry | Implemented |
+| SRD-EXE-006.005 | FO-EXE-006 | Must | **Per-symbol error isolation:** Any exception raised during `_fetch_symbol()` or `_validate_candle_counts()` (IBKR timeout, pacing error, DB write failure) is caught, the symbol is appended to an internal `_failed` list with the exception message, and processing continues with the next symbol. After all symbols, the failed list is included in the `load_complete` signal payload and logged at WARNING. | exception from IBKR or DB | symbol in failed list; WARNING log entry | Must not re-raise; failed symbols are eligible for manual retry via `load([failed_symbol])` | Implemented |
+| SRD-EXE-006.006 | FO-EXE-006 | Should | `IntradayCandleLoader.get_readiness_report(symbols: list[str]) -> dict[str, dict]` returns a per-symbol dict with keys: `candles_3m`, `candles_5m`, `candles_1h` (int counts), `ready` (bool — True if all three ≥ 390), `last_1m_bar` (datetime or None). Used by the GUI to display candle readiness before market open. | `list[str]` symbols, `DatabaseManager`, `HistoricalDataEngine` | readiness dict | Must complete in < 2 s for ≤ 500 symbols; uses cached count queries, not full bar fetches | Implemented |

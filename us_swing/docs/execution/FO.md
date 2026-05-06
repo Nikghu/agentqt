@@ -1,9 +1,9 @@
 # Functional Objectives — Execution & Risk Management (EXE)
 
 **Document ID:** FO-EXE
-**Version:** 1.1.0
+**Version:** 1.2.0
 **Status:** Draft
-**Last Updated:** 2026-03-06
+**Last Updated:** 2026-05-06
 **Project:** US Swing Trading System
 
 > Traces to: `us_swing/requirements.md` §10, §11, §12, §13, §21.4, §22, §23, §25
@@ -99,3 +99,18 @@
   - `can_enter_new()` returns False when capital utilisation exceeds `max_allocation_pct`.
   - User quantity override is respected: if user enters 300 shares (vs auto-calc of 500), exactly 300 shares are submitted.
   - Position states persist across sessions and are correctly restored on startup.
+
+---
+
+## FO-EXE-006: Intraday Candle Readiness for Execution (Phase 1 — Download)
+
+> Traces to: `requirements.md` §10, §21.4
+
+- The system shall, upon receiving the latest screened stock list, download intraday OHLCV candles (3 m, 5 m, and 1 h timeframes) for every symbol in the list and persist them in the database, ensuring a minimum of **390 candles per timeframe** are available before the next trading session begins.
+- The download shall be **delta-aware**: if candle data already exists for a symbol, only candles for timestamps after the last stored bar shall be fetched; no re-downloading of existing bars.
+- Candles for derived timeframes (5 m, 15 m, 1 h) shall be **aggregated from 1 m source bars** using the `HistoricalDataEngine.aggregate_timeframe()` method defined in INF-003.003; IBKR API calls shall be made only for 1 m bars.
+- **Acceptance Criteria:**
+  - Given a stock list of N symbols and an empty database, after the download job completes, every symbol has ≥ 390 rows in the `price_1m`-derived 3 m, 5 m, and 1 h stores (or equivalent aggregated view).
+  - Given a symbol with 350 existing 3 m bars, the system fetches only the missing bars and brings the count to ≥ 390 without duplicating existing rows.
+  - Given a symbol that fails data fetch (IBKR error, rate-limit, etc.), that symbol is logged as failed and the download continues for remaining symbols.
+  - The download job completes idempotently: running it twice on the same data produces no duplicate rows and no errors.

@@ -1,10 +1,10 @@
 # Module Decomposition — Execution & Risk Management (EXE)
 
 **Document ID:** MD-EXE
-**Version:** 1.1.0
-**Traces To:** SRD-EXE v1.1.0 / DD-EXE v1.1.0
+**Version:** 1.2.0
+**Traces To:** SRD-EXE v1.2.0 / DD-EXE v1.2.0
 **Status:** Draft
-**Last Updated:** 2026-03-06
+**Last Updated:** 2026-05-06
 **Project:** US Swing Trading System
 
 ---
@@ -20,6 +20,7 @@
 | MD-EXE-003.001.M02 | SRD-EXE-003.003–006 | `src/us_swing/execution/emergency.py` | `EmergencyShutdown` — cancel orders, close positions, halt engine, log CRITICAL, write shutdown JSON. Callable via CLI, SIGTERM, or GUI button. | `run(reason: str)` async | `broker/client.py`, `execution_engine.py`, `position_tracker.py`, `analysis/live_engine.py`, `monitoring/alerts.py`, `pathlib` | No | Draft |
 | MD-EXE-004.001.M01 | SRD-EXE-004.001–004 | `src/us_swing/execution/paper_engine.py` | `PaperEngine` — simulated order filling for paper mode. Market orders fill at current price; limit orders fill on price cross. Uses live `DataProvider` for price reference. | `simulate_fill(signal, quantity, order_type) -> PaperFill`, `simulate_exit(symbol) -> PaperFill` | `data/providers/*`, `position_tracker.py`, `db/manager.py`, `data/models.py` | No | Draft |
 | MD-EXE-004.001.M02 | SRD-EXE-004.005 | `src/us_swing/execution/execution_router.py` | `ExecutionRouter` — routes signals to `PaperEngine` or `ExecutionEngine` based on active user's mode. Mode is checked per-signal, not cached. | `route_signal(user_id, signal, **kwargs) -> int \| None` | `execution_engine.py`, `paper_engine.py`, `user/manager.py` | No | Draft |
+| MD-EXE-006.001.M01 | SRD-EXE-006.001–006 | `src/usswing/execution/intraday_candle_loader.py` | `IntradayCandleLoader(QThread)` — delta-fetches 1 m bars from IBKR for a stock list, validates ≥ 390 candles per timeframe (3 m, 5 m, 1 h), persists via `DatabaseManager`, emits progress/completion signals. `CandleLoadResult` and `SymbolReadiness` dataclasses. | `load(symbols) → None` (QThread.start), `get_readiness_report(symbols) -> dict[str, SymbolReadiness]`, signals: `load_progress(str, int, int)`, `load_complete(list[CandleLoadResult])` | `broker/client.py` (IBKRClient), `db/manager.py` (DatabaseManager), `data_engine/engine.py` (HistoricalDataEngine), `PyQt6.QtCore.QThread` | No | Draft |
 
 ---
 
@@ -33,9 +34,11 @@ execution/position_tracker.py ← db/manager.py, data/models.py, threading
 execution/circuit_breaker.py  ← data/models.py, threading
 execution/paper_engine.py     ← data/providers/*, position_tracker.py, db/manager.py
 execution/execution_engine.py ← broker/client.py, risk_manager.py, position_tracker.py, paper_engine.py, db/manager.py
-execution/execution_router.py ← execution_engine.py, paper_engine.py, user/manager.py
-execution/emergency.py        ← broker/client.py, execution_engine.py, position_tracker.py,
-                                 analysis/live_engine.py, monitoring/alerts.py
+execution/execution_router.py        ← execution_engine.py, paper_engine.py, user/manager.py
+execution/emergency.py               ← broker/client.py, execution_engine.py, position_tracker.py,
+                                        analysis/live_engine.py, monitoring/alerts.py
+execution/intraday_candle_loader.py  ← broker/client.py, db/manager.py, data_engine/engine.py,
+                                        PyQt6.QtCore
 ```
 
 ---
@@ -91,5 +94,6 @@ src/us_swing/
     ├── circuit_breaker.py             # MD-EXE-003.001.M01
     ├── emergency.py                   # MD-EXE-003.001.M02
     ├── paper_engine.py                # MD-EXE-004.001.M01
-    └── execution_router.py            # MD-EXE-004.001.M02
+    ├── execution_router.py            # MD-EXE-004.001.M02
+    └── intraday_candle_loader.py      # MD-EXE-006.001.M01
 ```
