@@ -134,6 +134,74 @@ Each agent has a fixed model, a fixed scope, and fires only at the right moment 
 
 ---
 
+## Token Efficiency
+
+Token cost is the real cost of AI-assisted development. AgentQT treats token consumption as a first-class engineering concern — every design decision in the framework has a direct impact on how many tokens a task consumes.
+
+### Tiered Model Routing
+
+Not all tasks require the same intelligence. AgentQT assigns a fixed model to every agent based on the complexity of what it does:
+
+| Tier | Model | Cost | Used For |
+|---|---|---|---|
+| **Lightweight** | Haiku | ~20× cheaper than Opus | Artifact validation, duplicate detection, phase gate checks, session sync |
+| **Standard** | Sonnet | Balanced cost/capability | All code writing, code review, GUI design, test writing, prompt evaluation |
+
+The five cheapest agents in the pipeline — `duplicate-detector`, `artifact-validator`, `phase-gate`, `session-finalizer`, and the banner hook — all run on Haiku. Sonnet only fires when design thinking or code generation is actually required. A full feature pipeline from FO to RN typically invokes Haiku 4–5 times and Sonnet 3–4 times, rather than running every step on the most expensive model available.
+
+### Scoped File Reads
+
+In a typical AI coding session, the model reads entire files to get oriented — even when only one function needs changing. AgentQT eliminates this with two mechanisms:
+
+- **`MODULE_MAP.json`** — a machine-generated index of every class, method signature, and docstring in the codebase. Agents query it via CLI (`skeleton_extractor query --class ClassName`) instead of reading source files. A query returns ~20 lines instead of ~500.
+- **Prompt classification** — `CLAUDE.md §1` defines four prompt classes (Q, N, D, S) with explicit file-read rules per class. A status check (Class N) reads only `CONTEXT.md §0`. A routine bug fix (Class D) reads only the active tool's docs. A cold session start (Class S) reads `AGENT_BOOT.md` once. No class ever reads the entire codebase.
+
+### Agent Invocation Guards
+
+Every agent has explicit rules for when **not** to invoke it — documented in `AGENT_BOOT.md §6`:
+
+- Bug fix on a single module → skip the architect agent entirely
+- Comment-only or doc-only change → skip all agents including `artifact-validator` and `session-finalizer`
+- Refactor within one file → skip architect; run reviewer after
+- `phase-gate` → skip for bug fixes on already-Implemented SRDs
+- `duplicate-detector` → skip when input is an existing artifact ID — anchor already known
+
+These guards prevent the most common source of token waste in multi-agent systems: agents firing on tasks where they add no value.
+
+---
+
+## Productivity Impact
+
+AgentQT is designed to compress the time between a requirement and working, tested, traceable code — without sacrificing engineering discipline.
+
+### Where Productivity Is Gained
+
+**Eliminated rework from context loss.**
+In a standard AI workflow, each new session requires re-explaining the project, its decisions, and its current state — often consuming 30–50% of a session just re-establishing context. `AGENT_BOOT.md` + `CONTEXT.md §0` + `DEVLOG.md` reduce cold-start time to a single read, typically under 30 seconds.
+
+**Eliminated rework from requirement drift.**
+Without a requirements gate, AI-generated code frequently diverges from intent over multiple sessions. The SRD status guard (`Draft → Approved → Implemented → Verified`) means code is only written once — against an approved, stable specification. Rewrites caused by shifting requirements drop significantly.
+
+**Parallelised quality gates.**
+Code review, simplification, and traceability sync happen automatically as part of the pipeline — not as separate manual steps. A developer does not need to remember to run the reviewer, update `TRACE.md`, or write the revision note. These steps are triggered by the commands and hooks.
+
+**Self-documenting codebase.**
+Because every module carries its MD ID and every test carries its UTCD ID, the codebase is always auditable. Finding why a function exists, what requirement it satisfies, and which test covers it takes seconds — not a archaeology session through commit history.
+
+### Productivity by Phase
+
+| Phase | Without AgentQT | With AgentQT |
+|---|---|---|
+| Session startup | 10–20 min re-explaining context | < 1 min — read `CONTEXT.md §0` |
+| Requirement definition | Ad-hoc, often skipped | Structured FO + SRD with status guard |
+| Design | Implicit, in the AI's head | Explicit DD — reviewable, reusable |
+| Code orientation | Read full source files | Query `MODULE_MAP.json` — 20 lines |
+| Code review | Manual or skipped | Automatic — `pyqt-code-reviewer` / `code-reviewer` |
+| Traceability | None | Auto-synced `TRACE.md` at session end |
+| Cross-session continuity | Lost | Persistent via `DEVLOG.md` + `CONTEXT.md` |
+
+---
+
 ## Comparison
 
 | Approach | Traceability | Context Retention | Quality Gates | Token Efficiency | Repeatability |
