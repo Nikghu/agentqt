@@ -1,6 +1,6 @@
 """
 Module: MD-EXE-006.001.M01 — execution/intraday_candle_loader.py
-Parent SRD: SRD-EXE-006.001 — SRD-EXE-006.006
+Parent SRD: SRD-EXE-006.001  # covers SRD-EXE-006.001–006.006
 """
 from __future__ import annotations
 
@@ -21,8 +21,8 @@ log = logging.getLogger(__name__)
 
 _MIN_CANDLES: int = 390
 _IBKR_MAX_CAL_DAYS_PER_PAGE: int = 30
-_FULL_FETCH_CAL_DAYS: int = 91  # 65 trading days ≈ 91 calendar days (65 × 7/5)
-_REQUIRED_TIMEFRAMES: tuple[DerivedTimeframe, ...] = ("3m", "5m", "1h")
+_FULL_FETCH_CAL_DAYS: int = 30  # 21 trading days ≈ 30 calendar days; fits one IBKR page
+_REQUIRED_TIMEFRAMES: tuple[DerivedTimeframe, ...] = ("3m", "15m")
 _SYMBOL_PAUSE_S: float = 0.3
 
 
@@ -41,8 +41,7 @@ class SymbolReadiness:
 
     symbol: str
     candles_3m: int
-    candles_5m: int
-    candles_1h: int
+    candles_15m: int
     last_1m_bar: datetime | None
     ready: bool  # True iff all counts ≥ min_candles
 
@@ -98,7 +97,7 @@ class IntradayCandleLoader(QThread):
         try:
             asyncio.run(self._async_run())
         except Exception as exc:  # noqa: BLE001
-            log.exception("IntradayCandleLoader: unexpected error in run()")
+            log.exception("[Candles] Unexpected error during candle download")
             results: list[CandleLoadResult] = [
                 CandleLoadResult(s, False, repr(exc)) for s in self._symbols
             ]
@@ -110,13 +109,17 @@ class IntradayCandleLoader(QThread):
         try:
             from ib_insync import IB
         except ImportError:
-            log.error("IntradayCandleLoader: ib_insync not installed")
-            self.load_complete.emit(
-                [CandleLoadResult(s, False, "ib_insync_not_installed") for s in self._symbols]
+            log.warning(
+                "[Candles] IBKR library not available — using Yahoo Finance instead"
             )
+            await self._run_yfinance_fallback()
             return
 
         ib = IB()  # type: ignore[no-untyped-call]
+        log.info(
+            "[Candles] Connecting to IBKR at %s:%d …",
+            self._ibkr_host, self._ibkr_port,
+        )
         try:
             await ib.connectAsync(
                 self._ibkr_host,
@@ -125,12 +128,15 @@ class IntradayCandleLoader(QThread):
                 timeout=10,
             )
         except Exception as exc:  # noqa: BLE001
-            log.error("IntradayCandleLoader: IBKR connect failed: %s", exc)
-            self.load_complete.emit(
-                [CandleLoadResult(s, False, f"ibkr_connect_error:{exc}") for s in self._symbols]
+            log.warning(
+                "[Candles] IBKR connection failed (%s) — switching to Yahoo Finance", exc,
             )
+            await self._run_yfinance_fallback()
             return
 
+        log.info(
+            "[Candles] Connected to IBKR — downloading %d stock(s)", len(self._symbols),
+        )
         pacing = PacingQueue()
         results: list[CandleLoadResult] = []
         total = len(self._symbols)
@@ -142,34 +148,98 @@ class IntradayCandleLoader(QThread):
                     result = self._validate_candle_counts(symbol)
                 except Exception as exc:  # noqa: BLE001
                     result = CandleLoadResult(symbol=symbol, ok=False, reason=repr(exc))
-                    log.warning("IntradayCandleLoader: error for %s: %s", symbol, exc)
+                    log.warning("[Candles] Failed to fetch %s: %s", symbol, exc)
                 results.append(result)
                 self.load_progress.emit(symbol, i + 1, total)
                 await asyncio.sleep(_SYMBOL_PAUSE_S)
+            ok_n = sum(1 for r in results if r.ok)
+            log.info(
+                "[Candles] IBKR download complete — %d of %d stock(s) ready", ok_n, total,
+            )
             # Emit before disconnect so load_complete always fires exactly once.
             self.load_complete.emit(results)
         finally:
             try:
                 ib.disconnect()  # type: ignore[no-untyped-call]
             except Exception:  # noqa: BLE001
-                log.warning("IntradayCandleLoader: error during IBKR disconnect (ignored)")
+                log.warning("[Candles] IBKR disconnect warning (ignored)")
+
+    async def _run_yfinance_fallback(self) -> None:
+        """Fetch 1m bars via yfinance when IBKR is unavailable (dev / offline mode).
+
+        yfinance caps 1m data at 7 calendar days (~1950 bars), which is enough
+        to validate 3m (≥390 bars) but not 15m (needs ~15 trading days).
+        Only 3m is validated in this mode.
+        """
+        try:
+            import yfinance  # type: ignore[import-untyped]  # noqa: F401
+        except ImportError:
+            log.error(
+                "[Candles] Yahoo Finance library not installed — candle download unavailable"
+                " (run: pip install yfinance)"
+            )
+            self.load_complete.emit(
+                [CandleLoadResult(s, False, "yfinance_not_installed") for s in self._symbols]
+            )
+            return
+
+        log.info(
+            "[Candles] Downloading %d stock(s) via Yahoo Finance"
+            " (7-day 1m data; only 3m timeframe validated — 15m requires more history)",
+            len(self._symbols),
+        )
+        results: list[CandleLoadResult] = []
+        total = len(self._symbols)
+
+        for i, symbol in enumerate(self._symbols):
+            try:
+                await asyncio.to_thread(self._fetch_symbol_yfinance, symbol)
+                result = self._validate_candle_counts(symbol, timeframes=("3m",))
+            except Exception as exc:  # noqa: BLE001
+                result = CandleLoadResult(symbol=symbol, ok=False, reason=repr(exc))
+                log.warning("[Candles] Failed to fetch %s: %s", symbol, exc)
+            results.append(result)
+            self.load_progress.emit(symbol, i + 1, total)
+
+        ok_n = sum(1 for r in results if r.ok)
+        log.info(
+            "[Candles] Yahoo Finance download complete — %d of %d stock(s) ready (3m validated)",
+            ok_n, total,
+        )
+        self.load_complete.emit(results)
 
     async def _fetch_symbol_async(
         self, ib: Any, pacing: PacingQueue, symbol: str
     ) -> None:
-        """Delta-fetch 1 m bars for *symbol*. Pages when the window > 30 calendar days."""
+        """Delta-fetch 1 m bars for *symbol*. Pages when the window > 30 calendar days.
+
+        If existing data doesn't reach back to the full validation window (e.g. the DB
+        was seeded by yfinance's 7-day cap), a full backfill is performed so that 15m
+        aggregation can meet the minimum candle threshold.
+        """
         now = datetime.now(tz=timezone.utc)
         last = self._db.get_last_timestamp(symbol, "1m")
+        first = self._db.get_first_timestamp(symbol, "1m")
+        window_start = now - timedelta(days=self._full_fetch_cal_days)
 
         if last is None:
+            log.info("[Candles] %s — no local data, fetching %d days of history", symbol, self._full_fetch_cal_days)
+            await self._fetch_paged_async(ib, pacing, symbol, now, self._full_fetch_cal_days)
+        elif first is not None and first > window_start:
+            shallow_days = (now - first).days
+            log.info(
+                "[Candles] %s — local history too short (%d days), backfilling to %d days",
+                symbol, shallow_days, self._full_fetch_cal_days,
+            )
             await self._fetch_paged_async(ib, pacing, symbol, now, self._full_fetch_cal_days)
         else:
             gap_days = max(1, (now - last).days + 1)
+            log.info("[Candles] %s — updating %d day(s) of 1m bars (last saved: %s)", symbol, gap_days, last.date())
             if gap_days <= _IBKR_MAX_CAL_DAYS_PER_PAGE:
                 bars = await self._request_1m_bars(ib, pacing, symbol, now, gap_days)
                 new_bars = [b for b in bars if b.datetime > last]
                 inserted = self._db.insert_bars(symbol, "1m", new_bars)
-                log.debug("Delta fetch %s: +%d bars", symbol, inserted)
+                log.debug("[Candles] %s — saved %d bar(s) to local database", symbol, inserted)
             else:
                 await self._fetch_paged_async(ib, pacing, symbol, now, gap_days)
 
@@ -223,8 +293,62 @@ class IntradayCandleLoader(QThread):
 
     # ── Synchronous helpers ────────────────────────────────────────────────────
 
-    def _validate_candle_counts(self, symbol: str) -> CandleLoadResult:
-        """Aggregate 3 m/5 m/1 h and verify each has ≥ min_candles bars.
+    def _fetch_symbol_yfinance(self, symbol: str) -> None:
+        """Delta-fetch 1 m bars from yfinance (max 7 calendar days lookback).
+
+        Converts America/New_York timestamps to UTC before inserting.
+        Duplicate rows are silently ignored by ``DatabaseManager.insert_bars``.
+        """
+        import yfinance as yf
+
+        last = self._db.get_last_timestamp(symbol, "1m")
+        ticker = yf.Ticker(symbol)
+
+        if last is None:
+            log.info("[Candles] %s — fresh download (7 days of 1m bars)", symbol)
+            df = ticker.history(period="7d", interval="1m")
+        else:
+            now = datetime.now(tz=timezone.utc)
+            gap_days = max(1, min((now - last).days + 1, 7))
+            log.info(
+                "[Candles] %s — updating %d day(s) of 1m bars (last saved: %s)",
+                symbol, gap_days, last.date(),
+            )
+            df = ticker.history(period=f"{gap_days}d", interval="1m")
+
+        if df.empty:
+            log.warning("[Candles] %s — no data returned by Yahoo Finance", symbol)
+            return
+
+        bars: list[OHLCVBar] = []
+        for ts, row in df.iterrows():  # iterrows yields untyped index/Series
+            dt = ts.to_pydatetime()
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            else:
+                dt = dt.astimezone(timezone.utc)
+            if last is not None and dt <= last:
+                continue
+            bars.append(OHLCVBar(
+                symbol=symbol,
+                datetime=dt,
+                open=float(row["Open"]),
+                high=float(row["High"]),
+                low=float(row["Low"]),
+                close=float(row["Close"]),
+                volume=int(row["Volume"]),
+                timeframe="1m",
+            ))
+
+        inserted = self._db.insert_bars(symbol, "1m", bars)
+        log.info("[Candles] %s — saved %d bar(s) to local database", symbol, inserted)
+
+    def _validate_candle_counts(
+        self,
+        symbol: str,
+        timeframes: tuple[DerivedTimeframe, ...] = _REQUIRED_TIMEFRAMES,
+    ) -> CandleLoadResult:
+        """Aggregate timeframes (default: 3m, 15m) and verify each has ≥ min_candles bars.
 
         Fetches stored 1 m bars for the symbol and passes them to
         ``HistoricalDataEngine.aggregate_timeframe`` (pure, no I/O).
@@ -233,14 +357,20 @@ class IntradayCandleLoader(QThread):
         window_start = now - timedelta(days=self._full_fetch_cal_days)
         bars_1m = self._db.fetch_bars(symbol, "1m", window_start, now)
 
-        for tf in _REQUIRED_TIMEFRAMES:
+        counts: dict[str, int] = {}
+        for tf in timeframes:
             agg = self._hist_engine.aggregate_timeframe(symbol, tf, bars_1m)
-            count = len(agg)
-            if count < self._min_candles:
-                reason = f"insufficient_candles:{tf}:{count}"
-                log.warning("Candle validation failed for %s: %s", symbol, reason)
+            counts[tf] = len(agg)
+            if counts[tf] < self._min_candles:
+                reason = f"insufficient_candles:{tf}:{counts[tf]}"
+                log.warning(
+                    "[Candles] %s — not enough history for strategy indicators"
+                    " (%s bars in %s)", symbol, counts[tf], tf,
+                )
                 return CandleLoadResult(symbol=symbol, ok=False, reason=reason)
 
+        counts_str = ", ".join(f"{v} bars {tf}" for tf, v in counts.items())
+        log.info("[Candles] %s — ready (%s)", symbol, counts_str)
         return CandleLoadResult(symbol=symbol, ok=True)
 
     def get_readiness_report(
@@ -250,51 +380,63 @@ class IntradayCandleLoader(QThread):
     ) -> dict[str, SymbolReadiness]:
         """Return a per-symbol readiness dict without triggering any fetches.
 
-        Safe to call from the main thread at any time; reads the DB only.
-        For large lists consider calling this off the main thread — each symbol
-        requires 3 aggregations over up to 91 days of 1 m bars.
-
-        Args:
-            symbols:     Symbols to check (max 500).
-            min_candles: Minimum candle count threshold (default 390).
-
-        Returns:
-            Mapping from symbol to :class:`SymbolReadiness`.
-
-        Raises:
-            ValueError: If ``len(symbols) > 500``.
+        Delegates to :func:`check_candle_readiness` (module-level, thread-safe).
         """
-        if len(symbols) > 500:
-            raise ValueError(
-                f"get_readiness_report: max 500 symbols, got {len(symbols)}"
-            )
-        now = datetime.now(tz=timezone.utc)
-        window_start = now - timedelta(days=self._full_fetch_cal_days)
-        report: dict[str, SymbolReadiness] = {}
-
-        for symbol in symbols:
-            last = self._db.get_last_timestamp(symbol, "1m")
-            bars_1m = self._db.fetch_bars(symbol, "1m", window_start, now)
-
-            counts: dict[str, int] = {}
-            for tf in _REQUIRED_TIMEFRAMES:
-                agg = self._hist_engine.aggregate_timeframe(symbol, tf, bars_1m)
-                counts[tf] = len(agg)
-
-            ready = all(v >= min_candles for v in counts.values())
-            report[symbol] = SymbolReadiness(
-                symbol=symbol,
-                candles_3m=counts["3m"],
-                candles_5m=counts["5m"],
-                candles_1h=counts["1h"],
-                last_1m_bar=last,
-                ready=ready,
-            )
-
-        return report
+        return check_candle_readiness(
+            symbols, self._db, self._hist_engine, min_candles, self._full_fetch_cal_days
+        )
 
 
 # ── Module-level helpers ───────────────────────────────────────────────────────
+
+
+def check_candle_readiness(
+    symbols: list[str],
+    db: DatabaseManager,
+    hist_engine: HistoricalDataEngine,
+    min_candles: int = _MIN_CANDLES,
+    full_fetch_cal_days: int = _FULL_FETCH_CAL_DAYS,
+) -> dict[str, SymbolReadiness]:
+    """Pure DB-read readiness check — safe to call from any thread.
+
+    Does not construct any Qt objects. Intended for use by background workers
+    that need readiness data without instantiating :class:`IntradayCandleLoader`.
+
+    Args:
+        symbols:              Symbols to check (max 500).
+        db:                   Initialised :class:`DatabaseManager`.
+        hist_engine:          Used for ``aggregate_timeframe`` (pure, no I/O).
+        min_candles:          Minimum candle count per timeframe (default 390).
+        full_fetch_cal_days:  Look-back window in calendar days (default 30).
+
+    Returns:
+        Mapping from symbol to :class:`SymbolReadiness`.
+
+    Raises:
+        ValueError: If ``len(symbols) > 500``.
+    """
+    if len(symbols) > 500:
+        raise ValueError(f"check_candle_readiness: max 500 symbols, got {len(symbols)}")
+    now = datetime.now(tz=timezone.utc)
+    window_start = now - timedelta(days=full_fetch_cal_days)
+    report: dict[str, SymbolReadiness] = {}
+    for symbol in symbols:
+        last = db.get_last_timestamp(symbol, "1m")
+        bars_1m = db.fetch_bars(symbol, "1m", window_start, now)
+        counts: dict[str, int] = {}
+        for tf in _REQUIRED_TIMEFRAMES:
+            agg = hist_engine.aggregate_timeframe(symbol, tf, bars_1m)
+            counts[tf] = len(agg)
+        ready = all(v >= min_candles for v in counts.values())
+        report[symbol] = SymbolReadiness(
+            symbol=symbol,
+            candles_3m=counts["3m"],
+            candles_15m=counts["15m"],
+            last_1m_bar=last,
+            ready=ready,
+        )
+    return report
+
 
 def _raw_bar_to_ohlcv(symbol: str, b: Any) -> OHLCVBar:
     """Convert an ib_insync BarData object to :class:`OHLCVBar`."""
@@ -309,7 +451,8 @@ def _raw_bar_to_ohlcv(symbol: str, b: Any) -> OHLCVBar:
     else:
         # date object — should not occur for 1m bars; map to midnight UTC.
         log.warning(
-            "_raw_bar_to_ohlcv: %s returned a date (not datetime) — mapping to midnight UTC", symbol
+            "[Candles] %s — unexpected date format in bar data, treating as midnight UTC",
+            symbol,
         )
         dt = datetime.combine(raw_dt, datetime.min.time(), tzinfo=timezone.utc)
 

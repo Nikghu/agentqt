@@ -6,7 +6,7 @@ app:
   license: assets/license.txt
   name: USSwing
   publisher: USSwing
-  version: 1.0.8
+  version: 1.0.9
 installer:
   generator: inno_setup
   inno_setup_path: C:\Users\Niket32\AppData\Local\Programs\Inno Setup 6\ISCC.exe

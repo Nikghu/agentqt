@@ -1,8 +1,8 @@
 # Unit Test Case Document — Execution & Risk Management (EXE)
 
 **Document ID:** UTCD-EXE
-**Version:** 1.2.0
-**Traces To:** MD-EXE v1.2.0
+**Version:** 1.3.0
+**Traces To:** MD-EXE v1.3.0
 **Status:** Draft
 **Last Updated:** 2026-05-06
 **Project:** US Swing Trading System
@@ -135,8 +135,8 @@
 | UT-EXE-006.001.M01.T01 | MD-EXE-006.001.M01 | Positive | Full fetch for new symbol inserts 1 m bars into DB | Symbol with no prior `price_1m` rows; mock IBKR returns 1 000 1 m bars across 4 paged requests | `DatabaseManager.insert_bars()` called; `price_1m` has 1 000 rows for symbol | Pass |
 | UT-EXE-006.001.M01.T02 | MD-EXE-006.001.M01 | Positive | Delta fetch inserts only bars after last stored timestamp | Symbol with last `price_1m` timestamp = T; mock IBKR returns 50 bars with datetime > T | 50 rows inserted; IBKR request duration covers only period after T | Pass |
 | UT-EXE-006.001.M01.T03 | MD-EXE-006.001.M01 | Negative | Delta fetch is idempotent — re-run inserts 0 duplicate rows | Symbol already up-to-date; IBKR returns 0 new bars | `insert_bars()` called with empty list; row count unchanged; no error | Pass |
-| UT-EXE-006.001.M01.T04 | MD-EXE-006.001.M01 | Positive | Validation passes when all three timeframes have ≥ 390 candles | Symbol with 2 000 1 m bars (≈ 5 trading days worth) in DB; `aggregate_timeframe()` returns counts: 3 m=666, 5 m=400, 1 h=32 ← 1 h < 390, so adjust: use 14 000 bars (≈ 60+ days) | `_validate_candle_counts()` returns `CandleLoadResult(ok=True)` when all counts ≥ 390 | Pass |
-| UT-EXE-006.001.M01.T05 | MD-EXE-006.001.M01 | Negative | Validation fails when a timeframe has < 390 candles | Symbol with only 400 1 m bars; 3 m → 133, 5 m → 80, 1 h → 6 (all < 390) | `_validate_candle_counts()` returns `CandleLoadResult(ok=False, reason='insufficient_candles:3m:133')` | Pass |
+| UT-EXE-006.001.M01.T04 | MD-EXE-006.001.M01 | Positive | Validation passes when both timeframes (3m, 15m) have ≥ 390 candles | Symbol with 8 190 1 m bars (≈ 21 trading days) in DB; `aggregate_timeframe()` returns: 3 m=2 730, 15 m=546 | `_validate_candle_counts()` returns `CandleLoadResult(ok=True)` | Pass |
+| UT-EXE-006.001.M01.T05 | MD-EXE-006.001.M01 | Negative | Validation fails when a timeframe has < 390 candles | Symbol with only 400 1 m bars; 3 m → 133, 15 m → 26 (both < 390) | `_validate_candle_counts()` returns `CandleLoadResult(ok=False, reason='insufficient_candles:3m:133')` | Pass |
 | UT-EXE-006.001.M01.T06 | MD-EXE-006.001.M01 | Negative | IBKR error for one symbol does not abort remaining symbols | 3-symbol list; IBKR raises `IBKRHistoricalDataError` for symbol[1] | symbol[0] and symbol[2] processed successfully; symbol[1] in `load_complete.failed`; WARNING logged | Pass |
 | UT-EXE-006.001.M01.T07 | MD-EXE-006.001.M01 | Positive | `load_complete` signal emitted with full result list | 3 symbols, 1 success + 1 validation fail + 1 IBKR error | `load_complete` fires once; payload is `list[CandleLoadResult]` with 3 items; failed count = 2 | Pass |
 | UT-EXE-006.001.M01.T08 | MD-EXE-006.001.M01 | Positive | `load_progress` signal emitted once per symbol | 5-symbol list | `load_progress` fired 5 times; final call has `done == total == 5` | Pass |
@@ -145,3 +145,76 @@
 | UT-EXE-006.001.M01.T11 | MD-EXE-006.001.M01 | Edge | Full-fetch paging: 65 trading-day window requires multiple IBKR requests | New symbol; full fetch mode | `IBKRClient.req_historical_data()` called ≥ 3 times (pages); all results concatenated before insert | Pass |
 | UT-EXE-006.001.M01.T12 | MD-EXE-006.001.M01 | Negative | `load()` with empty symbol list completes immediately with no DB writes | `symbols=[]` | `load_complete` emitted with empty results list; `insert_bars()` never called | Pass |
 | UT-EXE-006.001.M01.T13 | MD-EXE-006.001.M01 | Negative | Minimum candle window check — IBKR returns fewer bars than 65-day target (truncated history for new listing) | New symbol; IBKR returns only 800 1 m bars (≈ 2 days) for full-fetch window | Symbol included in failed list with reason `'insufficient_candles'`; no exception propagates; remaining symbols continue | Pass |
+
+---
+
+## Module: `execution/live_candle_aggregator.py` — LiveCandleAggregator
+
+> Test file: `tests/execution/test_live_candle_aggregator.py`
+> Fixtures: mock `IBKRClient` (records `subscribe_realtime_bars`/`unsubscribe_realtime_bars` calls + exposes `on_realtime_bar` registration), in-memory SQLite `DatabaseManager`.
+
+### Helper tests (`_floor_3m`, `_is_rth`, `PartialBar.to_ohlcv_bar`)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-007.001.M01.T01 | MD-EXE-007.001.M01 | Positive | `_floor_3m()` floors to correct 3m ET boundary (summer, UTC-4) | `dt_utc = 2026-06-15 13:34:47 UTC` (= 09:34:47 ET) | Returns `2026-06-15 13:33:00 UTC` (= 09:33 ET) | Draft |
+| UT-EXE-007.001.M01.T02 | MD-EXE-007.001.M01 | Edge | `_floor_3m()` correct under winter UTC offset (UTC-5) | `dt_utc = 2026-01-07 14:31:00 UTC` (= 09:31 ET winter) | Returns `2026-01-07 14:30:00 UTC` (= 09:30 ET) | Draft |
+| UT-EXE-007.001.M01.T03 | MD-EXE-007.001.M01 | Positive | `_is_rth()` returns True at 09:30:00 ET on a weekday | `dt_utc` for a Monday at exactly 09:30:00 ET | `True` | Draft |
+| UT-EXE-007.001.M01.T04 | MD-EXE-007.001.M01 | Edge | `_is_rth()` returns False at exactly 16:00:00 ET (upper boundary excluded) | `dt_utc` for Wednesday 16:00:00 ET | `False` | Draft |
+| UT-EXE-007.001.M01.T05 | MD-EXE-007.001.M01 | Edge | `_is_rth()` returns False on Saturday regardless of time | `dt_utc` for Saturday 12:00:00 ET | `False` | Draft |
+| UT-EXE-007.001.M01.T06 | MD-EXE-007.001.M01 | Positive | `PartialBar.to_ohlcv_bar()` returns `OHLCVBar` with `timeframe='3m'` and `datetime == window_start` | `PartialBar(symbol='AAPL', window_start=T, open=100, high=105, low=99, close=103, volume=5000, tick_count=6)` | `OHLCVBar(symbol='AAPL', datetime=T, open=100, high=105, low=99, close=103, volume=5000, timeframe='3m')` | Draft |
+
+### Tick processing — `_on_realtime_bar` (SRD-EXE-007.005)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-007.001.M01.T07 | MD-EXE-007.001.M01 | Positive | First tick for a subscribed symbol creates `PartialBar` with `open == bar.open` and `tick_count == 1` | Aggregator subscribed to `'AAPL'`; one `RealtimeBar(symbol='AAPL', datetime=09:31:00 ET, open=150.0, high=150.5, low=149.8, close=150.2, volume=800)` | `_partials['AAPL'].open == 150.0`, `tick_count == 1` | Draft |
+| UT-EXE-007.001.M01.T08 | MD-EXE-007.001.M01 | Positive | Same-window tick updates high, low, close, volume, tick_count; open is unchanged | Existing `PartialBar(open=150.0, high=150.5, low=149.8, close=150.2, volume=800, tick_count=1)`; second bar arrives in same 3m window: `high=151.0, low=149.5, close=150.8, volume=600` | `high=151.0, low=149.5, close=150.8, volume=1400, tick_count=2, open=150.0` (open unchanged) | Draft |
+| UT-EXE-007.001.M01.T09 | MD-EXE-007.001.M01 | Positive | New-window tick finalises old `PartialBar` and creates a fresh one with correct open | One complete partial bar in window 09:30–09:33; new bar arrives at 09:33:05 ET | `candle_closed` emitted for the 09:30 window; new `PartialBar` created with `window_start=09:33` and `open == new_bar.open` | Draft |
+| UT-EXE-007.001.M01.T10 | MD-EXE-007.001.M01 | Negative | Tick before RTH (08:00 ET) is discarded — no `PartialBar` created, no signal emitted | `RealtimeBar` with `datetime=08:00:05 ET` for subscribed `'AAPL'` | `_partials` remains empty; `candle_updated` NOT emitted | Draft |
+| UT-EXE-007.001.M01.T11 | MD-EXE-007.001.M01 | Negative | Tick after RTH (16:01 ET) discarded; existing `PartialBar` unchanged | Partial bar exists for `'AAPL'`; bar arrives at 16:01:00 ET | `_partials['AAPL']` unchanged (`tick_count` not incremented); no signal emitted | Draft |
+| UT-EXE-007.001.M01.T12 | MD-EXE-007.001.M01 | Negative | Tick for symbol not in `_subscribed` is silently discarded | `'TSLA'` not subscribed; `RealtimeBar` arrives for `'TSLA'` | `_partials` unchanged; `candle_updated` NOT emitted | Draft |
+
+### Signal emission (SRD-EXE-007.003)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-007.001.M01.T13 | MD-EXE-007.001.M01 | Positive | `candle_updated` emitted with correct symbol and `PartialBar` on every RTH tick | Two 5-second bars arrive for `'AAPL'` in same 3m window | `candle_updated` fired twice; second emission's `PartialBar.tick_count == 2` | Draft |
+| UT-EXE-007.001.M01.T14 | MD-EXE-007.001.M01 | Positive | `candle_closed` emitted with correct `OHLCVBar` when 3m boundary crossed | First window complete with 6 ticks; new bar from next window arrives | `candle_closed` emitted once with `OHLCVBar(timeframe='3m', datetime=window_start)`; `candle_updated` also emitted for the new partial | Draft |
+
+### `_close_bar` + DB persistence (SRD-EXE-007.006)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-007.001.M01.T15 | MD-EXE-007.001.M01 | Positive | `_close_bar()` calls `insert_bars(symbol, '3m', [bar])` with the finalised `OHLCVBar` | Partial bar with `window_start=T` closed | `DatabaseManager.insert_bars` called with `timeframe='3m'`; in-memory SQLite `price_3m` contains exactly 1 row for `(symbol, T)` | Draft |
+| UT-EXE-007.001.M01.T16 | MD-EXE-007.001.M01 | Edge | `_close_bar()` is idempotent — second call for same `(symbol, window_start)` inserts 0 rows | `_close_bar()` called twice with identical `PartialBar` | `price_3m` row count for `(symbol, T)` remains 1 (INSERT OR IGNORE); no exception | Draft |
+
+### Dynamic subscription — `set_symbols` (SRD-EXE-007.004)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-007.001.M01.T17 | MD-EXE-007.001.M01 | Positive | `set_symbols()` subscribes new symbols via `subscribe_realtime_bars` | Aggregator has `_subscribed={'AAPL'}`; call `set_symbols(['AAPL', 'MSFT'])` | `subscribe_realtime_bars('MSFT')` called once; `subscribe_realtime_bars('AAPL')` NOT called again | Draft |
+| UT-EXE-007.001.M01.T18 | MD-EXE-007.001.M01 | Positive | `set_symbols()` unsubscribes removed symbols and clears their `PartialBar` | `_subscribed={'AAPL','MSFT'}`; partial bar exists for both; call `set_symbols(['AAPL'])` | `unsubscribe_realtime_bars('MSFT')` called; `_partials` no longer contains `'MSFT'`; `'AAPL'` partial bar intact | Draft |
+| UT-EXE-007.001.M01.T19 | MD-EXE-007.001.M01 | Edge | `set_symbols()` with identical list makes no IBKR calls | `_subscribed={'AAPL'}`; call `set_symbols(['AAPL'])` | Neither `subscribe_realtime_bars` nor `unsubscribe_realtime_bars` called | Draft |
+
+### RTH session-end discard (SRD-EXE-007.007)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-007.001.M01.T20 | MD-EXE-007.001.M01 | Positive | `_check_session_end()` at 16:01 ET clears all partial bars without any DB writes | Two partial bars exist for `'AAPL'` and `'MSFT'`; `_check_session_end()` called with mocked time = 16:01 ET | `_partials` is empty; `insert_bars` NOT called; INFO logged with count `"2 partial bar(s) discarded"` | Draft |
+| UT-EXE-007.001.M01.T21 | MD-EXE-007.001.M01 | Edge | `_check_session_end()` during RTH (13:00 ET) — no action | Partial bars exist; call with mocked time = 13:00 ET | `_partials` unchanged; no log message; no DB write | Draft |
+
+### Disconnect / reconnect (SRD-EXE-007.008)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-007.001.M01.T22 | MD-EXE-007.001.M01 | Positive | `on_disconnect()` clears `_partials` and `_subscribed`; WARNING logged with discard count | Aggregator subscribed to 3 symbols with partial bars for each | `_partials == {}`; `_subscribed == set()`; WARNING log contains `"3 partial bar(s) discarded"`; `insert_bars` NOT called | Draft |
+| UT-EXE-007.001.M01.T23 | MD-EXE-007.001.M01 | Positive | After `on_reconnect(symbols)`, first tick for a symbol creates a fresh `PartialBar` (no residual state) | `on_disconnect()` then `on_reconnect(['AAPL'])`; RTH tick arrives for `'AAPL'` | `subscribe_realtime_bars('AAPL')` called on reconnect; new `PartialBar` created with `tick_count == 1`; no stale data from pre-disconnect session | Draft |
+
+### Schema extension and readiness report integration (SRD-EXE-007.001, SRD-EXE-007.009)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-007.001.M01.T24 | MD-EXE-007.001.M01 | Integration | `price_3m` table created by `create_schema(checkfirst=True)` without error; existing `price_1m` unaffected | In-memory SQLite engine with pre-existing `price_1m` rows; call `create_schema(engine)` | `price_3m` table exists and accepts INSERT; `price_1m` row count unchanged | Draft |
+| UT-EXE-007.001.M01.T25 | MD-EXE-007.001.M01 | Integration | After `candle_closed` persists a 3m bar, `get_readiness_report` returns `candles_3m` = prior count + 1 | `price_3m` has 391 rows for `'AAPL'`; `_close_bar()` inserts 1 more row (new window) | `get_readiness_report(['AAPL']).candles_3m == 392` | Draft |
+| UT-EXE-007.001.M01.T26 | MD-EXE-007.001.M01 | Integration | `get_readiness_report` `candles_3m` reads from `price_3m` not `price_1m` | `price_1m` has 0 rows for `'AAPL'`; `price_3m` has 400 rows for `'AAPL'` | `get_readiness_report(['AAPL']).candles_3m == 400` (not 0) | Draft |

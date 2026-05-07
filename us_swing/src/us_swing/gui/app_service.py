@@ -59,7 +59,11 @@ import socket
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from us_swing.execution.intraday_candle_loader import IntradayCandleLoader
+    from us_swing.universe.store import Sp500Meta
 
 _log = logging.getLogger(__name__)
 
@@ -226,6 +230,47 @@ class _AccountDataWorker(QThread):
         finally:
             if ib.isConnected():
                 ib.disconnect()
+
+
+class _ReadinessWorker(QThread):
+    """Checks intraday candle readiness from the local DB off the main thread.
+
+    Opens its own ``DatabaseManager`` so it never shares a SQLite connection
+    with the ``IntradayCandleLoader`` that starts after this worker completes.
+    Emits ``done`` with ``True`` (enough history) or ``None`` (⟳ — needs fetch)
+    per symbol.
+    """
+
+    done = pyqtSignal(dict)  # dict[str, bool | None]
+
+    def __init__(
+        self,
+        db_path: Path,
+        symbols: list[str],
+        parent: QObject | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self._db_path = db_path
+        self._symbols = symbols
+
+    def run(self) -> None:
+        result: dict[str, bool | None] = {}
+        try:
+            from us_swing.config.settings import DataConfig
+            from us_swing.data.providers.dummy_provider import DummyProvider
+            from us_swing.data.engine import HistoricalDataEngine
+            from us_swing.db.manager import DatabaseManager
+            from us_swing.execution.intraday_candle_loader import check_candle_readiness
+
+            db = DatabaseManager(f"sqlite:///{self._db_path}")
+            db.create_schema()
+            # DummyProvider: aggregate_timeframe is pure computation — no network I/O.
+            hist = HistoricalDataEngine(DummyProvider(), db, DataConfig())
+            report = check_candle_readiness(self._symbols, db, hist)
+            result = {s: (True if r.ready else None) for s, r in report.items()}
+        except Exception:
+            _log.exception("[Candles] Failed to check readiness from local database")
+        self.done.emit(result)
 
 
 class _MarketWatchWorker(QThread):
@@ -963,14 +1008,18 @@ class AppService(QObject):
         # Stores whether the IBKR feed was connected so we can auto-reconnect
         # when connectivity is restored after an outage.
         self._was_feed_connected: bool = False
+        self._mw_log_on_next_fetch: bool = False
         self._net_watcher = NetWatcher(parent=self)
         self._net_watcher.status_changed.connect(self._on_internet_status)
         self._net_watcher.start()
 
         # ── Intraday candle loader (SRD-EXE-006.007 / .008) ──────────────────
-        self._intraday_loader: QThread | None = None
+        self._intraday_loader: IntradayCandleLoader | None = None
+        self._readiness_worker: _ReadinessWorker | None = None
         self._pending_candle_symbols: list[str] | None = None
         self.screener_results_updated.connect(self._on_screener_results_updated)
+        # Trigger candle fetch for any results that were saved from a prior screener run.
+        QTimer.singleShot(0, self._boot_candle_check)
 
     # ── Architecture-level connection status ──────────────────────────────────
 
@@ -1128,31 +1177,70 @@ class AppService(QObject):
 
     # ── Intraday candle auto-fetch (SRD-EXE-006.007 / .008) ──────────────────
 
+    def _boot_candle_check(self) -> None:
+        """Fire candle fetch on startup if saved screener results already exist."""
+        entries = self.get_latest_screener_results()
+        symbols = sorted({e.symbol for e in entries})
+        if not symbols:
+            _log.info("[Candles] No previous screener results found — skipping startup fetch")
+            return
+        _log.info("[Candles] Found %d stock(s) from last screener run — starting candle fetch", len(symbols))
+        self._start_intraday_loader(symbols)
+
     def _on_screener_results_updated(self, entries: list[FilteredStockEntry]) -> None:
         symbols = sorted({e.symbol for e in entries})
         if not symbols:
+            _log.info("[Candles] Screener returned no stocks — skipping candle fetch")
             return
-        if not self._system_cfg.ibkr_enabled:
-            _log.info("Candle auto-fetch skipped — IBKR disabled")
-            return
+        # No ibkr_enabled guard here — the loader tries IBKR first and falls back
+        # to yfinance automatically. Historical candle download must run regardless
+        # of market hours so strategy indicators have data ready at market open.
         self._start_intraday_loader(symbols)
 
     def _start_intraday_loader(self, symbols: list[str]) -> None:
-        if self._intraday_loader is not None and self._intraday_loader.isRunning():
+        loader_busy = self._intraday_loader is not None and self._intraday_loader.isRunning()
+        readiness_busy = (
+            self._readiness_worker is not None and self._readiness_worker.isRunning()
+        )
+        if loader_busy or readiness_busy:
+            if self._pending_candle_symbols is not None:
+                _log.warning(
+                    "[Candles] Previous queued batch (%d stocks) replaced with new batch"
+                    " (%d stocks)",
+                    len(self._pending_candle_symbols), len(symbols),
+                )
             self._pending_candle_symbols = symbols
             _log.warning(
-                "IntradayCandleLoader already running — deferring %d symbols", len(symbols)
+                "[Candles] Download already in progress — %d stock(s) queued for next run",
+                len(symbols),
             )
             return
 
+        # Disconnect the outgoing loader before replacing it so stale signals
+        # from the previous cycle cannot fire into the new one.
+        if self._intraday_loader is not None:
+            try:
+                self._intraday_loader.load_progress.disconnect(self.intraday_load_progress)
+                self._intraday_loader.load_complete.disconnect(self._on_candle_load_complete)
+            except RuntimeError:
+                pass  # already disconnected (e.g. worker finished and cleaned up)
+
+        # Disconnect the outgoing readiness worker for the same reason.
+        if self._readiness_worker is not None:
+            try:
+                self._readiness_worker.done.disconnect()
+            except RuntimeError:
+                pass
+
         from us_swing.config.settings import DataConfig
-        from us_swing.data.dummy_provider import DummyProvider
+        from us_swing.data.providers.dummy_provider import DummyProvider
         from us_swing.data.engine import HistoricalDataEngine
         from us_swing.db.manager import DatabaseManager
         from us_swing.execution.intraday_candle_loader import IntradayCandleLoader
 
         cfg = self._system_cfg
         db = DatabaseManager(f"sqlite:///{_CANDLE_DB_PATH}")
+        db.create_schema()
         hist = HistoricalDataEngine(DummyProvider(), db, DataConfig())
         loader = IntradayCandleLoader(
             symbols=symbols,
@@ -1166,18 +1254,55 @@ class AppService(QObject):
         loader.load_progress.connect(self.intraday_load_progress)
         loader.load_complete.connect(self._on_candle_load_complete)
         self._intraday_loader = loader
-        self.candle_readiness_updated.emit({s: None for s in symbols})
-        _log.info("IntradayCandleLoader started for %d symbols", len(symbols))
-        loader.start()
+
+        # Run the readiness check first (its own DB connection), then start the
+        # loader only after _on_readiness_done fires. This guarantees the initial
+        # ✓/⟳ state always reaches the Candles column before the download begins,
+        # eliminating any signal ordering race between the two workers.
+        # `loader` is captured in the lambda so the callback always starts the
+        # exact loader that was queued here, not whatever self._intraday_loader
+        # happens to point to when the callback fires (TOCTOU fix).
+        readiness_worker = _ReadinessWorker(_CANDLE_DB_PATH, symbols, parent=self)
+        readiness_worker.done.connect(
+            lambda result, _l=loader: self._on_readiness_done(result, _l)
+        )
+        self._readiness_worker = readiness_worker
+        readiness_worker.finished.connect(lambda: setattr(self, "_readiness_worker", None))
+        loader.finished.connect(lambda: setattr(self, "_intraday_loader", None))
+        readiness_worker.start()
+        _log.info("[Candles] Starting download for %d stock(s)", len(symbols))
+
+    def _on_readiness_done(
+        self, result: dict[str, bool | None], loader: IntradayCandleLoader
+    ) -> None:
+        """Receives pre-load DB readiness state and starts the captured loader."""
+        self.candle_readiness_updated.emit(result)
+        ready_n = sum(1 for v in result.values() if v is True)
+        total_n = len(result)
+        _log.info(
+            "[Candles] Pre-download check: %d of %d stock(s) already have sufficient history",
+            ready_n, total_n,
+        )
+        if loader is not self._intraday_loader:
+            _log.warning(
+                "[Candles] Readiness check completed but download batch was already"
+                " replaced — skipping stale start"
+            )
+            return
+        if not loader.isRunning():
+            loader.start()
 
     def _on_candle_load_complete(self, results: list) -> None:
         readiness: dict[str, bool | None] = {r.symbol: r.ok for r in results}
         self.candle_readiness_updated.emit(readiness)
         failed = [r.symbol for r in results if not r.ok]
+        ok_n = len(results) - len(failed)
         if failed:
             _log.warning(
-                "IntradayCandleLoader: %d symbol(s) failed: %s", len(failed), failed
+                "[Candles] %d stock(s) failed to download: %s", len(failed), failed
             )
+        else:
+            _log.info("[Candles] All %d stock(s) are ready for strategy indicators", ok_n)
         pending = self._pending_candle_symbols
         if pending is not None:
             self._pending_candle_symbols = None
@@ -1472,7 +1597,7 @@ class AppService(QObject):
                 item.change_pct = d["change_pct"]
         self.market_watch_updated.emit()
 
-        if getattr(self, "_mw_log_on_next_fetch", False):
+        if self._mw_log_on_next_fetch:
             self._mw_log_on_next_fetch = False
             mkt_status = self._market_status.get("nyse", "closed")
             _status_label = {
@@ -1592,7 +1717,7 @@ class AppService(QObject):
         on first run before the background check completes."""
         return list(self._sp500)
 
-    def get_sp500_meta(self):
+    def get_sp500_meta(self) -> Sp500Meta:
         """Return Sp500Meta (last_fetched, source, count, is_stale)."""
         from us_swing.universe.store import get_meta
         return get_meta()
@@ -1772,6 +1897,80 @@ class AppService(QObject):
             result.append({"time": ts, "open": o, "high": h, "low": l, "close": c, "volume": v})
         return result
 
+    def get_intraday_candles_for_symbol(
+        self,
+        symbol: str,
+        timeframe: str = "3m",
+        limit_1m: int = 10_000,
+    ) -> list[dict[str, Any]]:
+        """Return aggregated intraday OHLCV rows for *symbol* from price_1m.
+
+        Reads 1-minute bars from candles.db and aggregates to *timeframe*
+        (``"3m"`` or ``"15m"``).  Returns an empty list on any error or when
+        no 1m data exists for the symbol.
+
+        Args:
+            symbol:    Ticker symbol (e.g. "AAPL").
+            timeframe: ``"3m"`` or ``"15m"``.
+            limit_1m:  Maximum raw 1m rows to fetch before aggregation.
+
+        Returns:
+            List of dicts with keys: time, open, high, low, close, volume.
+            ``time`` is a Unix timestamp (seconds, UTC) as required by
+            TradingView Lightweight Charts.
+        """
+        _TF_MINUTES: dict[str, int] = {"3m": 3, "15m": 15}
+        minutes = _TF_MINUTES.get(timeframe)
+        if minutes is None or not _CANDLE_DB_PATH.exists():
+            return []
+        try:
+            conn = sqlite3.connect(str(_CANDLE_DB_PATH))
+            rows = conn.execute(
+                "SELECT datetime, open, high, low, close, volume "
+                "FROM price_1m WHERE symbol = ? "
+                "ORDER BY datetime DESC LIMIT ?",
+                (symbol, limit_1m),
+            ).fetchall()
+            conn.close()
+        except Exception:
+            return []
+
+        if not rows:
+            return []
+
+        # Parse and sort ascending
+        parsed: list[tuple[int, float, float, float, float, float]] = []
+        for dt_str, o, h, lo, c, v in reversed(rows):
+            try:
+                dt = datetime.datetime.strptime(dt_str, "%Y-%m-%dT%H:%M:%S").replace(
+                    tzinfo=datetime.timezone.utc
+                )
+                ts = int(dt.timestamp())
+            except ValueError:
+                continue
+            parsed.append((ts, float(o or 0), float(h or 0), float(lo or 0), float(c or 0), float(v or 0)))
+
+        # Bucket 1m bars into target-timeframe groups
+        groups: dict[int, list[tuple[int, float, float, float, float, float]]] = {}
+        for bar in parsed:
+            bucket = (bar[0] // 60) // minutes
+            groups.setdefault(bucket, []).append(bar)
+
+        result: list[dict[str, Any]] = []
+        for bucket in sorted(groups):
+            group = groups[bucket]
+            if len(group) < minutes:
+                continue  # skip incomplete trailing bar
+            result.append({
+                "time":   group[0][0],
+                "open":   group[0][1],
+                "high":   max(b[2] for b in group),
+                "low":    min(b[3] for b in group),
+                "close":  group[-1][4],
+                "volume": sum(b[5] for b in group),
+            })
+        return result
+
     def refresh_candle_db_status(self) -> None:
         """Trigger a background check of the candle database state.
 
@@ -1793,7 +1992,7 @@ class AppService(QObject):
         if not _FAILED_SYMBOLS_PATH.exists():
             return []
         try:
-            data = __import__("json").loads(
+            data = json.loads(
                 _FAILED_SYMBOLS_PATH.read_text(encoding="utf-8")
             )
             return list(data.get("symbols", []))
@@ -2003,7 +2202,7 @@ class AppService(QObject):
             import datetime as _dt
             _FAILED_SYMBOLS_PATH.parent.mkdir(parents=True, exist_ok=True)
             _FAILED_SYMBOLS_PATH.write_text(
-                __import__("json").dumps(
+                json.dumps(
                     {
                         "version": 1,
                         "symbols": self._current_failed,

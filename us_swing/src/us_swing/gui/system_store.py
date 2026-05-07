@@ -28,7 +28,7 @@ class SystemConfig:
     ibkr_port: int       = 7497
     ibkr_system_client_id: int = 10
     ibkr_enabled: bool   = False
-    ibkr_intraday_client_id: int = 11
+    ibkr_intraday_client_id: int = 12
     log_level: str       = "INFO"
     scheduler_enabled: bool = False
     market_open: str     = "09:35"

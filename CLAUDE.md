@@ -47,6 +47,7 @@ The following `.claude/rules/` files are loaded automatically and apply to every
 - `.claude/rules/testing.md` — pytest conventions, UTCD IDs, coverage gates, no DB mocking
 - `.claude/rules/artifact-conventions.md` — FO→SRD→DD→MD→UTCD→Code→RN chain, ID formats, SRD status guard, DoD checklist
 - `.claude/rules/traceability.md` — TRACE.md structure and update rules
+- `.claude/rules/logging.md` — user-facing log message language, level guidelines, `[Topic]` prefix convention
 
 ## Custom Slash Commands
 

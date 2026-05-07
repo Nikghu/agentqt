@@ -10,7 +10,6 @@ Supported backends: SQLite (dev) · PostgreSQL (prod) — selected via
 """
 from __future__ import annotations
 
-import json
 import logging
 from datetime import date, datetime, timezone
 from typing import Any
@@ -92,8 +91,12 @@ class DatabaseManager:
 
     # ── OHLCV bars ────────────────────────────────────────────────────────────
 
+    # SQLite caps bound variables per statement at 999; with 7 columns per bar row
+    # that allows at most 142 rows per execute. Use 100 for a safe margin.
+    _INSERT_BATCH = 100
+
     def insert_bars(self, symbol: str, timeframe: str, bars: list[OHLCVBar]) -> int:
-        """Bulk-insert bars; silently skips duplicates.
+        """Bulk-insert bars in batches; silently skips duplicates.
 
         Returns:
             Number of rows actually inserted.
@@ -113,12 +116,13 @@ class DatabaseManager:
             }
             for b in bars
         ]
+        inserted = 0
         with self._engine.begin() as conn:
-            # INSERT OR IGNORE works on SQLite; insert(...).prefix_with("OR IGNORE")
-            # is SQLAlchemy-dialect-agnostic for the same effect via on conflict.
-            stmt = sa.dialects.sqlite.insert(table).values(rows).on_conflict_do_nothing()  # type: ignore[attr-defined]
-            result = conn.execute(stmt)
-            inserted = result.rowcount if result.rowcount != -1 else len(rows)
+            for i in range(0, len(rows), self._INSERT_BATCH):
+                chunk = rows[i : i + self._INSERT_BATCH]
+                stmt = sa.dialects.sqlite.insert(table).values(chunk).on_conflict_do_nothing()  # type: ignore[attr-defined]
+                result = conn.execute(stmt)
+                inserted += result.rowcount if result.rowcount != -1 else len(chunk)
 
         if inserted < len(rows):
             log.debug(
@@ -165,6 +169,14 @@ class DatabaseManager:
         """Return the latest stored datetime for (symbol, timeframe), or None."""
         table = self._price_table(timeframe)
         stmt = sa.select(sa.func.max(table.c.datetime)).where(table.c.symbol == symbol)
+        with self._engine.connect() as conn:
+            result = conn.execute(stmt).scalar()
+        return _str_to_dt(result) if result else None
+
+    def get_first_timestamp(self, symbol: str, timeframe: str) -> datetime | None:
+        """Return the earliest stored datetime for (symbol, timeframe), or None."""
+        table = self._price_table(timeframe)
+        stmt = sa.select(sa.func.min(table.c.datetime)).where(table.c.symbol == symbol)
         with self._engine.connect() as conn:
             result = conn.execute(stmt).scalar()
         return _str_to_dt(result) if result else None

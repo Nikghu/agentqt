@@ -1,8 +1,8 @@
 # Module Decomposition — Execution & Risk Management (EXE)
 
 **Document ID:** MD-EXE
-**Version:** 1.2.0
-**Traces To:** SRD-EXE v1.2.0 / DD-EXE v1.2.0
+**Version:** 1.3.0
+**Traces To:** SRD-EXE v1.3.0 / DD-EXE v1.3.0
 **Status:** Draft
 **Last Updated:** 2026-05-06
 **Project:** US Swing Trading System
@@ -21,6 +21,18 @@
 | MD-EXE-004.001.M01 | SRD-EXE-004.001–004 | `src/us_swing/execution/paper_engine.py` | `PaperEngine` — simulated order filling for paper mode. Market orders fill at current price; limit orders fill on price cross. Uses live `DataProvider` for price reference. | `simulate_fill(signal, quantity, order_type) -> PaperFill`, `simulate_exit(symbol) -> PaperFill` | `data/providers/*`, `position_tracker.py`, `db/manager.py`, `data/models.py` | No | Draft |
 | MD-EXE-004.001.M02 | SRD-EXE-004.005 | `src/us_swing/execution/execution_router.py` | `ExecutionRouter` — routes signals to `PaperEngine` or `ExecutionEngine` based on active user's mode. Mode is checked per-signal, not cached. | `route_signal(user_id, signal, **kwargs) -> int \| None` | `execution_engine.py`, `paper_engine.py`, `user/manager.py` | No | Draft |
 | MD-EXE-006.001.M01 | SRD-EXE-006.001–006 | `src/usswing/execution/intraday_candle_loader.py` | `IntradayCandleLoader(QThread)` — delta-fetches 1 m bars from IBKR for a stock list, validates ≥ 390 candles per timeframe (3 m, 5 m, 1 h), persists via `DatabaseManager`, emits progress/completion signals. `CandleLoadResult` and `SymbolReadiness` dataclasses. | `load(symbols) → None` (QThread.start), `get_readiness_report(symbols) -> dict[str, SymbolReadiness]`, signals: `load_progress(str, int, int)`, `load_complete(list[CandleLoadResult])` | `broker/client.py` (IBKRClient), `db/manager.py` (DatabaseManager), `data_engine/engine.py` (HistoricalDataEngine), `PyQt6.QtCore.QThread` | No | Draft |
+| MD-EXE-007.001.M01 | SRD-EXE-007.002–008 | `src/us_swing/execution/live_candle_aggregator.py` | `LiveCandleAggregator(QThread)` — subscribes to IBKR 5-second real-time bars, accumulates them into per-symbol `PartialBar` accumulators, closes each 3m window on wall-clock boundary, persists completed bars to `price_3m` via `DatabaseManager`, emits `candle_updated` and `candle_closed` signals. RTH guard (09:30–16:00 ET). `PartialBar` dataclass defined here. | `set_symbols(symbols: list[str]) -> None`, `on_disconnect() -> None`, `on_reconnect(symbols: list[str]) -> None`; signals: `candle_updated(str, object)`, `candle_closed(str, object)` | `broker/client.py` (IBKRClient), `db/manager.py` (DatabaseManager), `data/models.py` (RealtimeBar, OHLCVBar), `zoneinfo`, `threading.Lock`, `PyQt6.QtCore.QThread`, `PyQt6.QtCore.QTimer` | No | Draft |
+
+---
+
+## Cross-Tool Modifications for FO-EXE-007
+
+These existing modules in other tools require targeted changes to support Phase 2. They are not new EXE modules but must be updated as part of the FO-EXE-007 implementation.
+
+| Module ID | File | Change Required | SRD |
+|---|---|---|---|
+| MD-INF-004.001.M02 | `src/us_swing/db/schema.py` | Add `price_3m` SQLAlchemy table, `idx_price_3m_sym_dt` index, and `PRICE_TABLES["3m"]` entry. Additive — `create_schema(checkfirst=True)` handles existing databases with no migration. | SRD-EXE-007.001 |
+| MD-EXE-006.001.M01 | `src/us_swing/execution/intraday_candle_loader.py` | Update `get_readiness_report()`: replace the time-windowed `COUNT(*) FROM price_1m` query for `candles_3m` with `COUNT(*) FROM price_3m WHERE symbol = :sym` (no cutoff; every row is a completed bar). `candles_5m` and `candles_1h` queries are unchanged. | SRD-EXE-007.009 |
 
 ---
 
@@ -39,6 +51,8 @@ execution/emergency.py               ← broker/client.py, execution_engine.py, 
                                         analysis/live_engine.py, monitoring/alerts.py
 execution/intraday_candle_loader.py  ← broker/client.py, db/manager.py, data_engine/engine.py,
                                         PyQt6.QtCore
+execution/live_candle_aggregator.py  ← broker/client.py, db/manager.py, data/models.py,
+                                        zoneinfo, threading, PyQt6.QtCore
 ```
 
 ---
@@ -95,5 +109,6 @@ src/us_swing/
     ├── emergency.py                   # MD-EXE-003.001.M02
     ├── paper_engine.py                # MD-EXE-004.001.M01
     ├── execution_router.py            # MD-EXE-004.001.M02
-    └── intraday_candle_loader.py      # MD-EXE-006.001.M01
+    ├── intraday_candle_loader.py      # MD-EXE-006.001.M01
+    └── live_candle_aggregator.py      # MD-EXE-007.001.M01
 ```

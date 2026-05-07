@@ -1,7 +1,7 @@
 # Functional Objectives — Execution & Risk Management (EXE)
 
 **Document ID:** FO-EXE
-**Version:** 1.2.0
+**Version:** 1.3.0
 **Status:** Draft
 **Last Updated:** 2026-05-06
 **Project:** US Swing Trading System
@@ -106,11 +106,37 @@
 
 > Traces to: `requirements.md` §10, §21.4
 
-- The system shall, upon receiving the latest screened stock list, download intraday OHLCV candles (3 m, 5 m, and 1 h timeframes) for every symbol in the list and persist them in the database, ensuring a minimum of **390 candles per timeframe** are available before the next trading session begins.
+- The system shall, upon receiving the latest screened stock list, download intraday OHLCV candles (1 m source bars, aggregated to 3 m and 15 m) for every symbol in the list and persist them in the database, ensuring a minimum of **390 candles per derived timeframe** are available before the next trading session begins.
 - The download shall be **delta-aware**: if candle data already exists for a symbol, only candles for timestamps after the last stored bar shall be fetched; no re-downloading of existing bars.
-- Candles for derived timeframes (5 m, 15 m, 1 h) shall be **aggregated from 1 m source bars** using the `HistoricalDataEngine.aggregate_timeframe()` method defined in INF-003.003; IBKR API calls shall be made only for 1 m bars.
+- Candles for derived timeframes (3 m, 15 m) shall be **aggregated from 1 m source bars** using the `HistoricalDataEngine.aggregate_timeframe()` method defined in INF-003.003; IBKR API calls shall be made only for 1 m bars.
 - **Acceptance Criteria:**
-  - Given a stock list of N symbols and an empty database, after the download job completes, every symbol has ≥ 390 rows in the `price_1m`-derived 3 m, 5 m, and 1 h stores (or equivalent aggregated view).
+  - Given a stock list of N symbols and an empty database, after the download job completes, every symbol has ≥ 390 rows in the `price_1m`-derived 3 m and 15 m aggregated views.
   - Given a symbol with 350 existing 3 m bars, the system fetches only the missing bars and brings the count to ≥ 390 without duplicating existing rows.
   - Given a symbol that fails data fetch (IBKR error, rate-limit, etc.), that symbol is logged as failed and the download continues for remaining symbols.
   - The download job completes idempotently: running it twice on the same data produces no duplicate rows and no errors.
+
+---
+
+## FO-EXE-007: Live 3m Candle Formation During Trading Hours (Phase 2 — Live Feed)
+
+> Traces to: `requirements.md` §10, §21.4
+> Depends on: FO-EXE-006 (Phase 1 base candles must be present before live feed starts)
+
+- During Regular Trading Hours (RTH: 09:30–16:00 ET, Monday–Friday), the system shall maintain a **live 3m candle** for every symbol in the active screened list by accumulating IBKR real-time 5-second bars (sourced via `IBKRClient.subscribe_realtime_bars()`) into per-symbol partial bars in memory.
+- A **partial bar** tracks `open`, `high`, `low`, `close`, and `volume` for the current 3-minute window. On every incoming 5-second bar the partial bar is updated: `high = max(high, bar.high)`, `low = min(low, bar.low)`, `close = bar.close`, `volume += bar.volume`; `open` is set only on the first tick of a new window.
+- On each **3-minute boundary** (wall-clock aligned to :00/:03/:06/…/:57 ET), the system shall:
+  1. Finalise the completed partial bar as an `OHLCVBar` with `timeframe = '3m'`.
+  2. Persist it to the database via `DatabaseManager.insert_bars()` (idempotent; duplicate timestamps are silently ignored).
+  3. Emit a `candle_closed(symbol: str, bar: OHLCVBar)` PyQt signal to all downstream subscribers (Strategy Engine, GUI Chart Panel).
+- After each 5-second tick update (before the bar closes), the system shall emit a `candle_updated(symbol: str, partial: PartialBar)` signal so the GUI can display a live in-progress candle without waiting for the 3-minute close.
+- The live feed shall subscribe only to symbols in the **current active screened list**. Symbols added or removed from the list shall be subscribed/unsubscribed dynamically without restarting the aggregator.
+- The system shall operate **only within RTH**. Outside RTH the aggregator discards incoming 5-second bars without updating any partial bar or emitting signals. If a partial bar is open at 16:00:00 ET it is discarded (not persisted).
+- On **connection loss** mid-bar, the in-progress partial bar for each symbol is discarded. When the feed reconnects, a fresh partial bar starts on the next 3-minute boundary.
+- The live 3m candles produced by this feature extend the Phase 1 historical base: after a `candle_closed` event, the symbol's 3m candle count increases by 1 and `get_readiness_report()` must reflect the updated count.
+- **Acceptance Criteria:**
+  - At 09:33:00 ET, given 6 received 5-second bars for AAPL since 09:30:00, a `candle_closed` signal fires with a completed `OHLCVBar(symbol='AAPL', timeframe='3m', open=…, high=…, low=…, close=…, volume=…)` and the bar is persisted to the database.
+  - Immediately after a 5-second bar arrives mid-window, a `candle_updated` signal fires with a `PartialBar` reflecting the running OHLC + cumulative volume; no DB write occurs.
+  - Given AAPL is removed from the active screened list at 10:05 ET, no further `candle_closed` or `candle_updated` signals are emitted for AAPL, and the IBKR real-time subscription for AAPL is cancelled.
+  - At 16:00:00 ET an open partial bar is discarded; no `candle_closed` signal fires and no incomplete bar is written to the database.
+  - After a simulated IBKR disconnect at 10:15:30 ET (mid-bar), the in-progress partial bar is cleared; on reconnect at 10:16:45 ET a fresh partial bar starts at the next 3-minute boundary (10:18:00 ET) with no gap row inserted.
+  - Running `get_readiness_report(['AAPL'])` after the 09:33:00 `candle_closed` event returns `candles_3m` = (prior count + 1).
