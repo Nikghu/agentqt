@@ -7,8 +7,16 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from PyQt6.QtCore import QAbstractTableModel, QModelIndex, QSortFilterProxyModel, Qt, pyqtSignal
+from PyQt6.QtCore import (
+    QAbstractTableModel,
+    QModelIndex,
+    QSortFilterProxyModel,
+    Qt,
+    QUrl,
+    pyqtSignal,
+)
 from PyQt6.QtGui import QColor
+from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
@@ -31,7 +39,82 @@ from PyQt6.QtWidgets import (
 from us_swing.data.models import FilteredStockEntry
 from us_swing.gui.app_service import AppService
 from us_swing.gui._types import TradeSignal
+from us_swing.gui.chart_panel import _build_html as _build_chart_html
 from us_swing.gui.theme import C
+
+
+# ── Intraday chart pane (3m + 15m side by side) ───────────────────────────────
+
+class _IntradayChartPane(QWidget):
+    """Shows two intraday TradingView charts (3m and 15m) side by side."""
+
+    def __init__(self, svc: AppService, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._svc = svc
+        self._current_symbol = ""
+
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(0)
+
+        self._hdr = QLabel("Select a stock to view intraday charts")
+        self._hdr.setStyleSheet(
+            f"color:{C.MUTED}; font-size:8pt; padding:4px 10px;"
+            f"background:{C.SURFACE}; border-bottom:1px solid {C.OVERLAY};"
+        )
+        root.addWidget(self._hdr)
+
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter.setHandleWidth(2)
+        splitter.setStyleSheet(f"QSplitter::handle {{ background:{C.OVERLAY}; }}")
+
+        self._web_3m = QWebEngineView()
+        self._web_3m.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self._web_15m = QWebEngineView()
+        self._web_15m.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+        splitter.addWidget(self._web_3m)
+        splitter.addWidget(self._web_15m)
+        splitter.setCollapsible(0, False)
+        splitter.setCollapsible(1, False)
+
+        root.addWidget(splitter, 1)
+        self._show_placeholder()
+
+    def load_symbol(self, symbol: str) -> None:
+        self._current_symbol = symbol
+        self._hdr.setText(f"{symbol}  —  Intraday")
+        self._hdr.setStyleSheet(
+            f"color:{C.TEXT}; font-size:9pt; font-weight:bold; padding:4px 10px;"
+            f"background:{C.SURFACE}; border-bottom:1px solid {C.OVERLAY};"
+        )
+        self._render("3m",  self._web_3m,  symbol)
+        self._render("15m", self._web_15m, symbol)
+
+    def _render(self, tf: str, web: QWebEngineView, symbol: str) -> None:
+        candles = self._svc.get_intraday_candles_for_symbol(symbol, tf)
+        volume_data = [
+            {
+                "time": c["time"],
+                "value": c["volume"],
+                "color": "#26a69a55" if c["close"] >= c["open"] else "#ef535055",
+            }
+            for c in candles
+        ]
+        web.setHtml(_build_chart_html(candles, volume_data, symbol, tf, show_reset_menu=True), QUrl("about:blank"))
+
+    def _show_placeholder(self) -> None:
+        for label, web in [("3m", self._web_3m), ("15m", self._web_15m)]:
+            html = (
+                f'<!DOCTYPE html><html><body style="margin:0;background:{C.BG};'
+                f'display:flex;align-items:center;justify-content:center;'
+                f'height:100vh;font-family:monospace;">'
+                f'<div style="text-align:center;color:{C.OVERLAY2};">'
+                f'<div style="font-size:28px;margin-bottom:8px;">📊</div>'
+                f'<div style="font-size:11px;color:{C.MUTED};">{label.upper()}</div>'
+                f'</div></body></html>'
+            )
+            web.setHtml(html)
 
 
 # ── Single signal row ─────────────────────────────────────────────────────────
@@ -175,13 +258,12 @@ _COL_SCORE    = 1
 _COL_RUN      = 2
 _COL_STYLE    = 3
 _COL_SCREENER = 4
-_COL_CANDLES  = 5
 
 
 class _FilteredStocksModel(QAbstractTableModel):
     """Table model for the filtered stocks left pane."""
 
-    HEADERS = ["Symbol", "Score", "Run", "Style", "Screener", "Candles"]
+    HEADERS = ["Symbol", "Score", "Run", "Style", "Screener"]
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -221,11 +303,6 @@ class _FilteredStocksModel(QAbstractTableModel):
                 return entry.screener_name
             if col == _COL_RUN:
                 return "Auto" if entry.run_type == "scheduled" else "Manual"
-            if col == _COL_CANDLES:
-                state = self._readiness.get(entry.symbol)
-                if state is None and entry.symbol in self._readiness:
-                    return "⟳"
-                return "✓" if state else "—"
 
         if role == Qt.ItemDataRole.ForegroundRole:
             if col == _COL_SYMBOL:
@@ -238,14 +315,13 @@ class _FilteredStocksModel(QAbstractTableModel):
                 return QColor(C.RED)
             if col == _COL_RUN:
                 return QColor(C.TEAL) if entry.run_type == "scheduled" else QColor(C.BLUE)
-            if col == _COL_CANDLES:
-                state = self._readiness.get(entry.symbol)
-                if state is None and entry.symbol in self._readiness:
-                    return QColor(C.YELLOW)
-                return QColor(C.GREEN) if state else QColor(C.MUTED)
+
+        if role == Qt.ItemDataRole.BackgroundRole:
+            if self._readiness.get(entry.symbol) is False:
+                return QColor(180, 60, 60, 70)
 
         if role == Qt.ItemDataRole.TextAlignmentRole:
-            if col in (_COL_SCORE, _COL_RUN, _COL_CANDLES):
+            if col in (_COL_SCORE, _COL_RUN):
                 return Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
             return Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
 
@@ -254,18 +330,17 @@ class _FilteredStocksModel(QAbstractTableModel):
     def set_candle_readiness(self, report: dict[str, bool | None]) -> None:
         self._readiness.update(report)
         if self._rows:
-            top_left = self.createIndex(0, _COL_CANDLES)
-            bot_right = self.createIndex(len(self._rows) - 1, _COL_CANDLES)
-            self.dataChanged.emit(
-                top_left, bot_right,
-                [Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.ForegroundRole],
-            )
+            top_left = self.createIndex(0, 0)
+            bot_right = self.createIndex(len(self._rows) - 1, len(self.HEADERS) - 1)
+            self.dataChanged.emit(top_left, bot_right, [Qt.ItemDataRole.BackgroundRole])
 
 
 # ── Filtered Stocks left pane ─────────────────────────────────────────────────
 
 class _FilteredStocksPane(QWidget):
     """Left panel showing the most recent screener output across all presets."""
+
+    symbol_selected = pyqtSignal(str)  # emitted on row click or auto-select
 
     def __init__(self, svc: AppService, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -320,8 +395,6 @@ class _FilteredStocksPane(QWidget):
         hdrs.setSectionResizeMode(_COL_STYLE,    QHeaderView.ResizeMode.Interactive)
         hdrs.resizeSection(_COL_STYLE, 65)
         hdrs.setSectionResizeMode(_COL_SCREENER, QHeaderView.ResizeMode.Stretch)
-        hdrs.setSectionResizeMode(_COL_CANDLES,  QHeaderView.ResizeMode.Fixed)
-        hdrs.resizeSection(_COL_CANDLES, 58)
 
         # ── Empty state label ─────────────────────────────────────────────────
         self._empty_lbl = QLabel("No screener results yet.\nRun a preset in the Screener tab.")
@@ -341,10 +414,33 @@ class _FilteredStocksPane(QWidget):
         root.addWidget(self._table, 1)
         root.addWidget(self._empty_lbl, 1)
 
+        # ── Selection signal ───────────────────────────────────────────────────
+        sel_model = self._table.selectionModel()
+        assert sel_model is not None
+        sel_model.currentChanged.connect(self._on_current_changed)
+
         # ── Wire up to service ─────────────────────────────────────────────────
         svc.screener_results_updated.connect(self._on_updated)
         svc.candle_readiness_updated.connect(self._on_candle_readiness)
         self._on_updated(svc.get_latest_screener_results())
+
+    def _on_current_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
+        if not current.isValid():
+            return
+        src = self._proxy.mapToSource(current)
+        if not src.isValid() or src.row() >= len(self._model._rows):
+            return
+        self.symbol_selected.emit(self._model._rows[src.row()].symbol)
+
+    def get_top_symbol(self) -> str | None:
+        """Return the symbol of the highest-score row, or None if empty."""
+        idx = self._proxy.index(0, 0)
+        if not idx.isValid():
+            return None
+        src = self._proxy.mapToSource(idx)
+        if not src.isValid() or src.row() >= len(self._model._rows):
+            return None
+        return self._model._rows[src.row()].symbol
 
     def _on_updated(self, entries: list[FilteredStockEntry]) -> None:
         self._all_entries = entries
@@ -368,8 +464,13 @@ class _FilteredStocksPane(QWidget):
         self._count_lbl.setText(f"{count} stock{'s' if count != 1 else ''}")
         self._table.setVisible(count > 0)
         self._empty_lbl.setVisible(count == 0)
+        if count > 0:
+            # Auto-select the highest-score row (proxy row 0 — sorted desc by score)
+            top = self._proxy.index(0, 0)
+            if top.isValid():
+                self._table.setCurrentIndex(top)
 
-    def _on_candle_readiness(self, report: dict) -> None:
+    def _on_candle_readiness(self, report: dict[str, bool | None]) -> None:
         self._model.set_candle_readiness(report)
 
 
@@ -378,9 +479,9 @@ class _FilteredStocksPane(QWidget):
 class ExecutionPanel(QWidget):
     """
     FO-GUI-004 Execution Panel.
-    Shows pending signals with recommended quantities and execute controls.
-    Left pane: filtered stocks from the most recent screener runs.
-    Right pane: pending signals with qty override and execute controls.
+    Left pane: filtered stocks — click any row to load intraday charts.
+    Right pane top: 3m and 15m TradingView charts for the selected stock.
+    Right pane bottom: pending signals with qty override and execute controls.
     """
 
     def __init__(self, demo: AppService, parent: QWidget | None = None) -> None:
@@ -431,25 +532,56 @@ class ExecutionPanel(QWidget):
         self._cb_banner.setWordWrap(True)
         main.addWidget(self._cb_banner)
 
-        # ── Horizontal split: filtered stocks | pending signals ────────────────
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        splitter.setHandleWidth(2)
-        splitter.setStyleSheet(f"QSplitter::handle {{ background: {C.OVERLAY}; }}")
+        # ── Chart pane (created first so we can wire the signal) ───────────────
+        self._chart_pane = _IntradayChartPane(demo)
 
-        splitter.addWidget(_FilteredStocksPane(demo))
-        splitter.addWidget(self._build_right_pane(demo))
-        splitter.setSizes([260, 900])
-        splitter.setCollapsible(0, False)
-        splitter.setCollapsible(1, False)
+        # ── Horizontal split: filtered stocks | right pane ─────────────────────
+        h_splitter = QSplitter(Qt.Orientation.Horizontal)
+        h_splitter.setHandleWidth(2)
+        h_splitter.setStyleSheet(f"QSplitter::handle {{ background: {C.OVERLAY}; }}")
 
-        main.addWidget(splitter, 1)
+        self._left_pane = _FilteredStocksPane(demo)
+        self._left_pane.symbol_selected.connect(self._chart_pane.load_symbol)
+
+        h_splitter.addWidget(self._left_pane)
+        h_splitter.addWidget(self._build_right_pane(demo))
+        h_splitter.setSizes([260, 900])
+        h_splitter.setCollapsible(0, False)
+        h_splitter.setCollapsible(1, False)
+
+        main.addWidget(h_splitter, 1)
+
+        # ── Seed the chart with the highest-score stock if data already exists ──
+        top = self._left_pane.get_top_symbol()
+        if top:
+            self._chart_pane.load_symbol(top)
 
     def _build_right_pane(self, demo: AppService) -> QWidget:
-        """Build the right side: pending signals scroll area + status + demo button."""
+        """Build the right side: intraday charts (top) + pending signals (bottom)."""
         pane = QWidget()
         layout = QVBoxLayout(pane)
         layout.setContentsMargins(6, 0, 0, 0)
-        layout.setSpacing(12)
+        layout.setSpacing(0)
+
+        v_splitter = QSplitter(Qt.Orientation.Vertical)
+        v_splitter.setHandleWidth(2)
+        v_splitter.setStyleSheet(f"QSplitter::handle {{ background: {C.OVERLAY}; }}")
+
+        v_splitter.addWidget(self._chart_pane)
+        v_splitter.addWidget(self._build_signals_pane(demo))
+        v_splitter.setSizes([380, 200])
+        v_splitter.setCollapsible(0, False)
+        v_splitter.setCollapsible(1, False)
+
+        layout.addWidget(v_splitter, 1)
+        return pane
+
+    def _build_signals_pane(self, demo: AppService) -> QWidget:
+        """Build the signals sub-pane: pending signals scroll area + status + demo button."""
+        pane = QWidget()
+        layout = QVBoxLayout(pane)
+        layout.setContentsMargins(0, 8, 0, 0)
+        layout.setSpacing(8)
 
         # Pending signals group
         group = QGroupBox("Pending Signals")

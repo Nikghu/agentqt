@@ -257,8 +257,12 @@ def _find_tws_hwnd() -> int:
         return 0
 
 
-def _winapi_fill(username: str, password: str) -> None:
-    """Type username, Tab, password into whatever window currently has focus."""
+def _winapi_fill(username: str, password: str, tws_hwnd: int) -> str:
+    """Type username, Tab, password into the TWS window identified by tws_hwnd.
+
+    Returns "" on success or an error message string on failure.
+    Aborts immediately if the TWS window loses focus mid-type.
+    """
     try:
         import ctypes
         import time
@@ -266,7 +270,8 @@ def _winapi_fill(username: str, password: str) -> None:
         KEYEVENTF_UNICODE = 0x0004
         KEYEVENTF_KEYUP   = 0x0002
         INPUT_KEYBOARD    = 1
-        VK_TAB            = 0x09
+        VK_TAB    = 0x09
+        VK_RETURN = 0x0D
 
         class _KI(ctypes.Structure):
             _fields_ = [
@@ -286,6 +291,10 @@ def _winapi_fill(username: str, password: str) -> None:
         u32 = ctypes.windll.user32  # type: ignore[attr-defined]
         sz = ctypes.sizeof(_INP)
 
+        def _tws_focused() -> bool:
+            fg = u32.GetForegroundWindow()
+            return bool(fg == tws_hwnd)
+
         def _send_unicode(ch: str) -> None:
             code = ord(ch)
             pair = (_INP * 2)()
@@ -297,8 +306,6 @@ def _winapi_fill(username: str, password: str) -> None:
             pair[1]._iu.ki.dwFlags = KEYEVENTF_UNICODE | KEYEVENTF_KEYUP
             u32.SendInput(2, pair, sz)
 
-        VK_RETURN = 0x0D
-
         def _send_vk(vk: int) -> None:
             pair = (_INP * 2)()
             pair[0].type = INPUT_KEYBOARD
@@ -308,18 +315,34 @@ def _winapi_fill(username: str, password: str) -> None:
             pair[1]._iu.ki.dwFlags = KEYEVENTF_KEYUP
             u32.SendInput(2, pair, sz)
 
+        if not _tws_focused():
+            return "[Credentials] TWS lost focus before typing started."
+
         for ch in username:
+            if not _tws_focused():
+                return "[Credentials] TWS lost focus while typing username — fill cancelled."
             _send_unicode(ch)
             time.sleep(0.02)
+
         _send_vk(VK_TAB)
-        time.sleep(0.8)          # pause between username and password
+        time.sleep(0.5)
+
+        if not _tws_focused():
+            return "[Credentials] TWS lost focus before password — fill cancelled."
+
         for ch in password:
+            if not _tws_focused():
+                return "[Credentials] TWS lost focus while typing password — fill cancelled."
             _send_unicode(ch)
             time.sleep(0.02)
-        time.sleep(2.0)          # 2-second wait before clicking Log In
-        _send_vk(VK_RETURN)      # press Enter to submit the login form
-    except Exception:
-        pass
+
+        time.sleep(1.5)
+        if not _tws_focused():
+            return "[Credentials] TWS lost focus before submitting — fill cancelled."
+        _send_vk(VK_RETURN)
+        return ""
+    except Exception as exc:
+        return f"[Credentials] Unexpected error during fill: {exc}"
 
 
 class _FillWorker(QThread):
@@ -334,6 +357,7 @@ class _FillWorker(QThread):
 
     def run(self) -> None:
         import time
+        import ctypes
 
         hwnd = _find_tws_hwnd()
         if not hwnd:
@@ -342,16 +366,41 @@ class _FillWorker(QThread):
                 "Open TWS and wait for the login form to appear, then click Fill again."
             )
             return
+
+        u32 = ctypes.windll.user32  # type: ignore[attr-defined]
+        u32.ShowWindow(hwnd, 9)  # SW_RESTORE
+
+        # AttachThreadInput lets us bypass Windows foreground-lock protection,
+        # which silently ignores SetForegroundWindow when another app owns focus.
+        cur_fg = u32.GetForegroundWindow()
+        cur_tid = u32.GetWindowThreadProcessId(cur_fg, None)
+        our_tid = ctypes.windll.kernel32.GetCurrentThreadId()  # type: ignore[attr-defined]
+        attached = False
+        if cur_tid and cur_tid != our_tid:
+            attached = bool(u32.AttachThreadInput(our_tid, cur_tid, True))
         try:
-            import ctypes
-            u32 = ctypes.windll.user32  # type: ignore[attr-defined]
-            u32.ShowWindow(hwnd, 9)        # SW_RESTORE
             u32.SetForegroundWindow(hwnd)
         except Exception:
             pass
-        time.sleep(0.8)
-        _winapi_fill(self._username, self._password)
-        self.done.emit("")
+        if attached:
+            u32.AttachThreadInput(our_tid, cur_tid, False)
+
+        # Confirm TWS actually has focus before typing (up to 2 s)
+        deadline = time.time() + 2.0
+        while time.time() < deadline:
+            if u32.GetForegroundWindow() == hwnd:
+                break
+            time.sleep(0.05)
+        else:
+            self.done.emit(
+                "[Credentials] TWS login did not come to front.\n"
+                "Click the TWS window to focus it, then try Fill again."
+            )
+            return
+
+        time.sleep(0.3)
+        error = _winapi_fill(self._username, self._password, hwnd)
+        self.done.emit(error)
 
 
 # Public alias — used by main_window for startup auto-fill.

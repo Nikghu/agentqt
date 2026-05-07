@@ -36,7 +36,13 @@ _RESOURCES = Path(__file__).parent / "resources"
 _LWCHART_JS = _RESOURCES / "lightweight-charts.standalone.production.js"
 
 
-def _build_html(candle_data: list[dict], volume_data: list[dict], symbol: str, timeframe: str) -> str:
+def _build_html(
+    candle_data: list[dict],
+    volume_data: list[dict],
+    symbol: str,
+    timeframe: str,
+    show_reset_menu: bool = False,
+) -> str:
     """Return a self-contained HTML page with a TradingView Lightweight Chart."""
     candle_json = json.dumps(candle_data)
     volume_json = json.dumps(volume_data)
@@ -53,6 +59,70 @@ def _build_html(candle_data: list[dict], volume_data: list[dict], symbol: str, t
         )
 
     title = f"{symbol} — {timeframe.upper()}"
+
+    ctx_menu_css = (
+        f"""  #ctx-menu {{
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    background: {C.SURFACE};
+    border: 1px solid {C.OVERLAY};
+    border-radius: 4px;
+    padding: 4px 0;
+    min-width: 160px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 12px;
+  }}
+  #ctx-menu div {{
+    padding: 6px 14px;
+    color: {C.TEXT};
+    cursor: pointer;
+    white-space: nowrap;
+  }}
+  #ctx-menu div:hover {{
+    background: {C.OVERLAY};
+  }}"""
+    ) if show_reset_menu else ""
+
+    ctx_menu_html = (
+        '<div id="ctx-menu"><div id="ctx-reset">Reset to today</div></div>'
+    ) if show_reset_menu else ""
+
+    ctx_menu_js = (
+        """  // ── Right-click context menu ──────────────────────────────────────────────
+  const ctxMenu = document.getElementById('ctx-menu');
+  function _hideCtx() { ctxMenu.style.display = 'none'; }
+
+  chartEl.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    ctxMenu.style.left = e.clientX + 'px';
+    ctxMenu.style.top  = e.clientY + 'px';
+    ctxMenu.style.display = 'block';
+  });
+  document.getElementById('volume-container').addEventListener('contextmenu', e => {
+    e.preventDefault();
+    ctxMenu.style.left = e.clientX + 'px';
+    ctxMenu.style.top  = e.clientY + 'px';
+    ctxMenu.style.display = 'block';
+  });
+  document.addEventListener('click', _hideCtx);
+  document.addEventListener('contextmenu', e => {
+    if (!chartEl.contains(e.target) && !document.getElementById('volume-container').contains(e.target)) _hideCtx();
+  });
+
+  document.getElementById('ctx-reset').addEventListener('click', () => {
+    _zoomToLastDay();
+    _hideCtx();
+  });
+"""
+    ) if show_reset_menu else ""
+
+    initial_zoom_js = (
+        "_zoomToLastDay();"
+        if show_reset_menu
+        else "chart.timeScale().fitContent();\n  volChart.timeScale().fitContent();"
+    )
 
     return f"""<!DOCTYPE html>
 <html>
@@ -126,6 +196,7 @@ def _build_html(candle_data: list[dict], volume_data: list[dict], symbol: str, t
     text-align: center;
     margin-top: 60px;
   }}
+{ctx_menu_css}
 </style>
 {script_tag}
 </head>
@@ -142,6 +213,7 @@ def _build_html(candle_data: list[dict], volume_data: list[dict], symbol: str, t
 </div>
 <div id="volume-container"></div>
 <div id="no-data">No candle data found for this symbol.</div>
+{ctx_menu_html}
 
 <script>
 (function() {{
@@ -250,10 +322,19 @@ def _build_html(candle_data: list[dict], volume_data: list[dict], symbol: str, t
       `${{d}}  O ${{bar.open.toFixed(2)}}  H ${{bar.high.toFixed(2)}}  L ${{bar.low.toFixed(2)}}  C ${{bar.close.toFixed(2)}}${{vStr}}`;
   }});
 
-  // ── Fit content ────────────────────────────────────────────────────────────
-  chart.timeScale().fitContent();
-  volChart.timeScale().fitContent();
+  // ── Zoom to last trading day ──────────────────────────────────────────────
+  function _zoomToLastDay() {{
+    if (!candleData.length) return;
+    const lastTime = candleData[candleData.length - 1].time;
+    const lastDate = new Date(lastTime * 1000);
+    const startOfDay = Date.UTC(
+      lastDate.getUTCFullYear(), lastDate.getUTCMonth(), lastDate.getUTCDate()
+    ) / 1000;
+    chart.timeScale().setVisibleRange({{ from: startOfDay, to: lastTime + 300 }});
+  }}
+  {initial_zoom_js}
 
+{ctx_menu_js}
   // ── Resize observer ───────────────────────────────────────────────────────
   const ro = new ResizeObserver(() => {{
     chart.applyOptions({{ width: chartEl.clientWidth, height: chartEl.clientHeight }});
