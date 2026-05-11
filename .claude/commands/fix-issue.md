@@ -6,7 +6,7 @@ Example: /project:fix-issue cache.get() — Expected: fetch missing days and mer
 $ARGUMENTS
 
 Steps:
-0. Read `.claude/commands/dev-context.md` — process rules, artifact formats, doc rules
+0. Read `.claude/skills/dev-context.md` — process rules, artifact formats, doc rules
 1. Read the relevant source file and its MD entry in `us_swing/docs/<tool>/MD.md`
 
 1a. SRD dependency check:

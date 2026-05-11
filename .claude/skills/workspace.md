@@ -19,12 +19,17 @@ USMarket_Backtesting/              ← workspace root
 │   ├── settings.json              ← permissions + config
 │   ├── settings.local.json        ← personal permissions (gitignored)
 │   ├── commands/                  ← custom slash commands (/project:<name>)
-│   │   ├── workspace.md           ← this file — folder layout (on demand)
-│   │   ├── dev-context.md         ← process + doc rules (Class D/S)
 │   │   ├── resume.md / new-feature.md / fix-issue.md
 │   │   ├── write-tests.md / refactor.md / review.md
+│   │   ├── rn.md / doc-check.md / auto-feature.md
 │   ├── rules/                     ← modular always-on instruction files
 │   ├── skills/                    ← auto-invoked workflow skills
+│   │   ├── dev-context.md         ← process + doc rules (Class D/S)
+│   │   ├── workspace.md           ← this file — folder layout (on demand)
+│   │   ├── code-writer.md         ← PyQt6 + Python code writing patterns
+│   │   ├── hookify.md             ← hook maintenance skill
+│   │   ├── trace.md               ← TRACE.md sync skill
+│   │   └── pyqt-comment-analyzer.md
 │   └── agents/                    ← subagent personas
 │
 ├── alm/                           ← ALM traceability viewer — see alm/CLAUDE.md

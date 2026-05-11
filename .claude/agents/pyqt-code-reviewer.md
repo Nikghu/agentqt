@@ -14,7 +14,7 @@ model: sonnet
 
 **If CRITICAL or HIGH issues found:** Fix before any further steps. Re-run this reviewer after fixes.
 **If complexity flagged MEDIUM+:** After fixing, invoke `pyqt-code-simplifier`, then re-run this reviewer.
-**If comment issues flagged:** Invoke `/project:pyqt-comment-analyzer` skill (read-only, advisory — not an agent).
+**If comment issues flagged:** Invoke the `pyqt-comment-analyzer` skill (read-only, advisory — not an agent).
 **On clean pass (no CRITICAL/HIGH):** Proceed to `test-writer` if currently in UTCD phase; otherwise done.
 
 ---

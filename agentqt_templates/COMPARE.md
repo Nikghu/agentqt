@@ -16,6 +16,7 @@
 **What's pre-built in the repo:**
 - All 11 agents (`.claude/agents/`)
 - All commands including `/init` (`.claude/commands/`)
+- All skills (`.claude/skills/`)
 - All rules (`.claude/rules/`)
 
 **What `/init` generates:**
@@ -73,7 +74,7 @@
 5. Start building
 
 **Split of work:**
-- Repo carries: agents, commands, rules (framework — never changes per project)
+- Repo carries: agents, commands, skills, rules (framework — never changes per project)
 - `/init` generates: CLAUDE.md, AGENT_BOOT.md, CONTEXT.md, DEVLOG.md, docs structure (project-specific)
 
 **Pros:**

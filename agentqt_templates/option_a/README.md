@@ -82,7 +82,6 @@ Use the commands:
 | `/refactor` | Refactor or enhance a module |
 | `/write-tests` | Write pytest tests from UTCD |
 | `/doc-check` | Audit all artifact docs for consistency |
-| `/trace` | Sync TRACE.md traceability matrix |
 | `/rn` | Write a Revision Note after implementation |
 
 ---
@@ -104,16 +103,22 @@ agentqt/                          ← cloned template
 │   │   ├── pyqt-code-simplifier.md
 │   │   ├── test-writer.md
 │   │   └── code-reviewer.md
-│   ├── commands/                 ← all slash commands
+│   ├── commands/                 ← user-triggered slash commands
 │   │   ├── init.md               ← run this first
 │   │   ├── new-feature.md
 │   │   ├── auto-feature.md
 │   │   ├── fix-issue.md
 │   │   ├── refactor.md
 │   │   ├── write-tests.md
-│   │   ├── trace.md
 │   │   ├── rn.md
 │   │   └── doc-check.md
+│   ├── skills/                   ← auto-invoked workflow skills
+│   │   ├── dev-context.md
+│   │   ├── workspace.md
+│   │   ├── trace.md
+│   │   ├── hookify.md
+│   │   ├── code-writer.md
+│   │   └── pyqt-comment-analyzer.md
 │   └── rules/
 │       ├── artifact-conventions.md
 │       ├── code-style.md

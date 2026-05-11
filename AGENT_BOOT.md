@@ -46,8 +46,9 @@ Classify every prompt before reading any file or invoking any agent:
 
 | Skill | Purpose | Invoke |
 |---|---|---|
-| `/project:pyqt-comment-analyzer` | Comment accuracy and rot detection — advisory, read-only | When `pyqt-code-reviewer` flags comment issues |
-| `/project:hookify` | Scan transcript for hook-worthy patterns, implement approved rules | Explicit user request only — never during dev |
+| `code-writer` | Generic code writing — PyQt6 patterns for GUI files, Python rules for all files | Before writing any new or significantly rewritten source file |
+| `pyqt-comment-analyzer` | Comment accuracy and rot detection — advisory, read-only | When `pyqt-code-reviewer` flags comment issues |
+| `hookify` | Scan transcript for hook-worthy patterns, implement approved rules | Explicit user request only — never during dev |
 
 ---
 
@@ -81,7 +82,7 @@ Incoming prompt
     ├── Step 5: Conditional follow-ups (only on reviewer signal)
     │   ├── CRITICAL or HIGH issues → fix, re-run reviewer
     │   ├── Complexity MEDIUM+ → pyqt-code-simplifier → re-run reviewer
-    │   └── Comment issues flagged → /project:pyqt-comment-analyzer (skill, inline)
+    │   └── Comment issues flagged → /pyqt-comment-analyzer (skill, inline)
     │
     └── Step 6: Tests (only in UTCD phase)
         └── UTCD.md exists and phase is active → test-writer
@@ -147,7 +148,7 @@ These are the most important rules for token efficiency:
 
 ## §7 — Workspace & Project Convention
 
-> Folder tree and project template → read `.claude/commands/workspace.md` only when needed:
+> Folder tree and project template → read `.claude/skills/workspace.md` only when needed:
 > new session (`/project:resume`), architecture review (`/project:review`), or adding a new project/tool.
 > Routine fix/test/refactor tasks do **not** need this.
 
@@ -165,7 +166,7 @@ Modular Python 3.11+ platform for US equity swing trading: Analysis, Screening, 
 
 ## §9 — Dev Process, Doc Rules & Reading Guide
 
-> **Class D/S tasks only:** Read `.claude/commands/dev-context.md` before acting.
+> **Class D/S tasks only:** Read `.claude/skills/dev-context.md` before acting.
 > Contains: artifact chain, ID formats, tool codes, code rules, SRD status guard,
 > compact doc formats, doc read/write rules, scoped reading, priority ladder, and common commands.
 >
@@ -176,7 +177,7 @@ Modular Python 3.11+ platform for US equity swing trading: Analysis, Screening, 
 
 ## §10 — Slash Command Registry
 
-All commands live in `.claude/commands/`. Prompt-evaluator treats these as Class D unless otherwise noted.
+Commands live in `.claude/commands/`; skills live in `.claude/skills/`. Prompt-evaluator treats these as Class D unless otherwise noted.
 
 | Command | Phase trigger | Agent invocations |
 |---|---|---|
@@ -187,11 +188,13 @@ All commands live in `.claude/commands/`. Prompt-evaluator treats these as Class
 | `/project:fix-issue` | Bug → RN | `artifact-validator` after cascade artifact updates; `code-reviewer` or `pyqt-code-reviewer` post-fix; `session-finalizer` at end |
 | `/project:refactor` | Code improvement | `pyqt-code-reviewer` post-edit for GUI files; `code-reviewer` for non-GUI; `session-finalizer` at end |
 | `/project:review` | Pre-implementation architecture | `pyqt-architect` (Sonnet) |
-| `/project:trace` | Manual sync — for ad-hoc phase completions or standalone TRACE repairs | None — doc-only, no code |
 | `/project:rn` | After implementation or fix | None — doc-only, no code |
 | `/project:doc-check` | Anytime — read-only audit | None — never modifies files |
-| `/project:pyqt-comment-analyzer` | When reviewer flags comment issues | None — inline skill, no agent spawn |
-| `/project:hookify` | Periodic hook maintenance | None — inline skill, implements rules via `update-config` |
+| `code-writer` | Before writing any new or significantly rewritten source file | None — inline skill, no agent spawn |
+| `pyqt-comment-analyzer` | When reviewer flags comment issues | None — inline skill, no agent spawn |
+| `trace` | Manual sync — for ad-hoc phase completions or standalone TRACE repairs | None — doc-only, no code |
+| `hookify` | Periodic hook maintenance | None — inline skill, implements rules via `update-config` |
+| `workspace` | Workspace orientation — new session, architecture review, or adding a tool | None — read-only orientation |
 
 **When to use the maintenance trio (`trace`, `rn`, `doc-check`):**
 - `/project:trace` is now only needed for manual TRACE repairs or after commands that don't auto-invoke `session-finalizer` (e.g. `write-tests`, `rn`). For `new-feature`, `fix-issue`, `refactor`, and `auto-feature` — `session-finalizer` handles TRACE sync automatically.

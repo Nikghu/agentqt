@@ -2,6 +2,15 @@
 
 ---
 
+## [20260511] AGT — Introduced skills/ folder; migrated 5 commands to skills; added code-writer skill
+
+- Type: Refactor
+- RN: RN-AGT-1.0.0-20260511
+- Artifacts updated: RN
+- Decisions: commands/ for user-triggered workflows only; skills/ for agent-invoked inline skills; pyqt-comment-analyzer, dev-context, workspace, hookify, trace moved to skills; new code-writer skill embeds PyQt6 + Python patterns inline
+
+---
+
 ## [20260506] EXE — Implemented IntradayCandleLoader with delta-fetch and validation
 
 - Type: Feature
