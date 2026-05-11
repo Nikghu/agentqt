@@ -5,8 +5,8 @@ Example: /project:resume — loads AGENT_BOOT.md, reads CONTEXT.md §0 to surfac
 
 Steps:
 1. Read `AGENT_BOOT.md` (status + pointers)
-2. Read `.claude/commands/workspace.md` (folder layout + project convention)
-3. Read `.claude/commands/dev-context.md` (process rules, doc rules, reading guide)
+2. Read `.claude/skills/workspace.md` (folder layout + project convention)
+3. Read `.claude/skills/dev-context.md` (process rules, doc rules, reading guide)
 4. Read `us_swing/CONTEXT.md` §0 (Immediate Next Step) and §2 (Artifact Status)
 5. Confirm active project: `us_swing`
 6. State the next task from §0 and confirm you are ready to proceed

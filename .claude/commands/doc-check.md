@@ -6,7 +6,7 @@ Example: /project:doc-check SCR — reads all SCR docs, checks ID cross-referenc
 $ARGUMENTS
 
 Steps:
-0. Read `.claude/commands/dev-context.md` — artifact ID formats, SRD status guard rules, TRACE.md column structure
+0. Read `.claude/skills/dev-context.md` — artifact ID formats, SRD status guard rules, TRACE.md column structure
 1. Read all six artifact files for the tool (in this order to build the reference map):
    - `us_swing/docs/<tool>/FO.md`
    - `us_swing/docs/<tool>/SRD.md`

@@ -93,7 +93,7 @@ Skip  : <what NOT to read — e.g., FO.md, SRD.md, idea.md, all other tool docs>
 
 ## Token Optimization Rules
 
-Apply scoped reading — only escalate if the lower level is insufficient. Full priority ladder is in `.claude/commands/dev-context.md` (§ "Requirement Lookup — Priority Ladder"). Summary:
+Apply scoped reading — only escalate if the lower level is insufficient. Full priority ladder is in `.claude/skills/dev-context.md` (§ "Requirement Lookup — Priority Ladder"). Summary:
 
 | Priority | When to read | What |
 |---|---|---|

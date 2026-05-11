@@ -4,8 +4,8 @@ Usage: /project:review <TOOL>
 Example: /project:review SCR — reviewing the Screener docs before starting implementation
 
 Before implementing $ARGUMENTS, read in this order:
-0. `.claude/commands/workspace.md` — folder layout and project convention
-1. `.claude/commands/dev-context.md` — process rules, artifact formats, doc rules
+0. `.claude/skills/workspace.md` — folder layout and project convention
+1. `.claude/skills/dev-context.md` — process rules, artifact formats, doc rules
 2. `us_swing/docs/<tool>/FO.md` — understand objectives
 3. `us_swing/docs/<tool>/SRD.md` — scan `Approved` requirements only (skip `Draft`)
 4. `us_swing/docs/<tool>/MD.md` — list all modules and their file paths

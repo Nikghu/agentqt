@@ -11,7 +11,7 @@ Examples:
 $ARGUMENTS
 
 Steps:
-0. Read `.claude/commands/dev-context.md` — process rules, artifact formats, doc rules
+0. Read `.claude/skills/dev-context.md` — process rules, artifact formats, doc rules
 1. Read the target module(s) and their MD entries
 2. Check TRACE.md to understand what SRD requirements the module implements
 3. Confirm refactor does not break any `Verified` SRD requirements

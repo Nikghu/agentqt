@@ -6,7 +6,7 @@ Example: /project:new-feature SCR "Filter stocks where RSI(14) < 30 AND daily vo
 The system shall $ARGUMENTS
 
 Steps (mandatory order — no skipping):
-0. Read `.claude/commands/dev-context.md` — process rules, artifact formats, doc rules
+0. Read `.claude/skills/dev-context.md` — process rules, artifact formats, doc rules
 0a. Invoke `.claude/agents/duplicate-detector.md` with TOOL + feature description — use the returned anchor FO ID and skip list before proceeding. If a full duplicate is found, stop and report to user.
 1. Read `us_swing/docs/<tool>/FO.md` — understand existing FOs and assign next ID
 2. Write the new FO entry with acceptance criteria
