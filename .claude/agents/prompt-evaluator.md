@@ -15,14 +15,14 @@ You run on Sonnet for higher quality classification and reframing.
 
 ## Step 1 — Classify the Prompt
 
-Use the 4 classes from `AGENT_BOOT.md §1`:
+Classify per the 4 classes defined in `AGENT_BOOT.md §1`. Do not re-derive the table — read §1 if needed.
 
-| Class | Trigger | Files AI should read to execute |
-|---|---|---|
-| **Q** | General question, no project work needed | None |
-| **N** | Status check, "what's next?", navigation | `us_swing/CONTEXT.md §0` only |
-| **D** | Code, docs, tests, bug fix, any dev task | `AGENT_BOOT.md §2–§4` (registry + routing + budget), then active tool docs only |
-| **S** | First prompt of a new session / "resume" | Full `AGENT_BOOT.md` once |
+| Class | Files the main agent should read to execute |
+|---|---|
+| **Q** | None |
+| **N** | `us_swing/CONTEXT.md §0` only |
+| **D** | `AGENT_BOOT.md §2–§4` (registry + routing + budget), then active tool docs only |
+| **S** | Full `AGENT_BOOT.md` once |
 
 ---
 

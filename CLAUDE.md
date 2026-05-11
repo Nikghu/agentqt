@@ -4,7 +4,13 @@
 
 ## Step 1 — Classify Every Prompt First
 
-Silently classify before reading any file:
+Classify before reading any file, then **emit a one-line classification header** as your very first output:
+
+```
+[Class: <Q|N|D|S> · Tool: <TOOL|N/A> · Phase: <Phase|N/A>]
+```
+
+Examples: `[Class: D · Tool: EXE · Phase: Code]` · `[Class: Q · Tool: N/A · Phase: N/A]`
 
 | Class | Trigger | Action |
 |-------|---------|--------|
