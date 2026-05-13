@@ -34,6 +34,32 @@ price_1m = sa.Table(
     sa.PrimaryKeyConstraint("symbol", "datetime"),
 )
 
+price_3m = sa.Table(
+    "price_3m",
+    metadata,
+    sa.Column("symbol",   sa.Text,    nullable=False),
+    sa.Column("datetime", sa.Text,    nullable=False),
+    sa.Column("open",     sa.Float),
+    sa.Column("high",     sa.Float),
+    sa.Column("low",      sa.Float),
+    sa.Column("close",    sa.Float),
+    sa.Column("volume",   sa.Integer),
+    sa.PrimaryKeyConstraint("symbol", "datetime"),
+)
+
+price_15m = sa.Table(
+    "price_15m",
+    metadata,
+    sa.Column("symbol",   sa.Text,    nullable=False),
+    sa.Column("datetime", sa.Text,    nullable=False),
+    sa.Column("open",     sa.Float),
+    sa.Column("high",     sa.Float),
+    sa.Column("low",      sa.Float),
+    sa.Column("close",    sa.Float),
+    sa.Column("volume",   sa.Integer),
+    sa.PrimaryKeyConstraint("symbol", "datetime"),
+)
+
 price_1d = sa.Table(
     "price_1d",
     metadata,
@@ -117,6 +143,8 @@ positions = sa.Table(
 
 _PRICE_INDEXES = [
     sa.Index("idx_price_1m_sym_dt",  price_1m.c.symbol,  price_1m.c.datetime),
+    sa.Index("idx_price_3m_sym_dt",  price_3m.c.symbol,  price_3m.c.datetime),
+    sa.Index("idx_price_15m_sym_dt", price_15m.c.symbol, price_15m.c.datetime),
     sa.Index("idx_price_1d_sym_dt",  price_1d.c.symbol,  price_1d.c.datetime),
     sa.Index("idx_price_1w_sym_dt",  price_1w.c.symbol,  price_1w.c.datetime),
     sa.Index("idx_trades_user_sym",  trades.c.user_id,   trades.c.symbol),
@@ -124,9 +152,11 @@ _PRICE_INDEXES = [
 
 # Map canonical timeframe keys to the corresponding table object.
 PRICE_TABLES: dict[str, sa.Table] = {
-    "1m": price_1m,
-    "1d": price_1d,
-    "1w": price_1w,
+    "1m":  price_1m,
+    "3m":  price_3m,
+    "15m": price_15m,
+    "1d":  price_1d,
+    "1w":  price_1w,
 }
 
 

@@ -217,8 +217,8 @@ def _build_html(
 
 <script>
 (function() {{
-  const candleData = {candle_json};
-  const volumeData = {volume_json};
+  let candleData = {candle_json};
+  let volumeData = {volume_json};
 
   if (!candleData || candleData.length === 0) {{
     document.getElementById('no-data').style.display = 'block';
@@ -463,6 +463,21 @@ def _build_html(
   document.addEventListener('keydown', function(e) {{
     if (e.key === 'Escape') _msClear();
   }});
+
+  // ── Live data update — called from Python via runJavaScript ───────────────
+  // Replaces candle + volume data without reloading the page, so the user's
+  // current zoom / scroll position is preserved.
+  window.updateChartData = function(newCandleData, newVolumeData) {{
+    if (!newCandleData || newCandleData.length === 0) return;
+    const range = chart.timeScale().getVisibleLogicalRange();
+    candleData  = newCandleData;
+    volumeData  = newVolumeData;
+    candleSeries.setData(candleData);
+    volSeries.setData(volumeData);
+    if (range !== null) {{
+      chart.timeScale().setVisibleLogicalRange(range);
+    }}
+  }};
 
 }})();
 </script>

@@ -63,6 +63,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from us_swing.execution.intraday_candle_loader import IntradayCandleLoader
+    from us_swing.execution.live_bar_worker import LiveBarWorker
     from us_swing.universe.store import Sp500Meta
 
 _log = logging.getLogger(__name__)
@@ -940,6 +941,7 @@ class AppService(QObject):
     screener_results_updated  = pyqtSignal(list)           # list[FilteredStockEntry]
     intraday_load_progress    = pyqtSignal(str, int, int)  # symbol, done, total
     candle_readiness_updated  = pyqtSignal(dict)           # dict[str, bool | None]
+    live_bar_data_updated     = pyqtSignal(str)            # symbol — 3m or 15m bar written to DB
 
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
@@ -990,6 +992,10 @@ class AppService(QObject):
         self._wl_timer.setInterval(30_000)      # refresh every 30 s when connected
         self._wl_timer.timeout.connect(self._refresh_watchlist)
 
+        # ── Live bar worker — must be initialised before _refresh_market_status ─
+        self._live_bar_worker: LiveBarWorker | None = None
+        self._filtered_symbols: list[str] = []
+
         # ── Market status (NYSE / NASDAQ) — always running, 60 s tick ────────
         self._market_status: dict[str, str] = {"nyse": "closed", "nasdaq": "closed"}
         self._mkt_status_timer = QTimer(self)
@@ -1017,6 +1023,7 @@ class AppService(QObject):
         self._intraday_loader: IntradayCandleLoader | None = None
         self._readiness_worker: _ReadinessWorker | None = None
         self._pending_candle_symbols: list[str] | None = None
+
         self.screener_results_updated.connect(self._on_screener_results_updated)
         # Trigger candle fetch for any results that were saved from a prior screener run.
         QTimer.singleShot(0, self._boot_candle_check)
@@ -1185,17 +1192,24 @@ class AppService(QObject):
             _log.info("[Candles] No previous screener results found — skipping startup fetch")
             return
         _log.info("[Candles] Found %d stock(s) from last screener run — starting candle fetch", len(symbols))
+        self._filtered_symbols = symbols
         self._start_intraday_loader(symbols)
+        if self._market_status.get("nyse") == "open":
+            self._start_live_bar_worker()
 
     def _on_screener_results_updated(self, entries: list[FilteredStockEntry]) -> None:
         symbols = sorted({e.symbol for e in entries})
         if not symbols:
             _log.info("[Candles] Screener returned no stocks — skipping candle fetch")
             return
+        self._filtered_symbols = symbols
         # No ibkr_enabled guard here — the loader tries IBKR first and falls back
         # to yfinance automatically. Historical candle download must run regardless
         # of market hours so strategy indicators have data ready at market open.
         self._start_intraday_loader(symbols)
+        # Restart live bars with the new symbol list if market is currently open.
+        if self._market_status.get("nyse") == "open":
+            self._start_live_bar_worker()
 
     def _start_intraday_loader(self, symbols: list[str]) -> None:
         loader_busy = self._intraday_loader is not None and self._intraday_loader.isRunning()
@@ -1291,6 +1305,47 @@ class AppService(QObject):
             return
         if not loader.isRunning():
             loader.start()
+
+    # ── Live bar worker (market-hours 5s IBKR → 1m candle feed) ─────────────
+
+    def _start_live_bar_worker(self) -> None:
+        """Start (or restart) the live bar worker for the current filtered symbols."""
+        self._stop_live_bar_worker()
+        if not self._filtered_symbols:
+            return
+        from us_swing.execution.live_bar_worker import LiveBarWorker  # noqa: PLC0415
+        cfg = self._system_cfg
+        worker = LiveBarWorker(
+            symbols=self._filtered_symbols,
+            ibkr_host=cfg.ibkr_host,
+            ibkr_port=cfg.ibkr_port,
+            ibkr_client_id=cfg.ibkr_live_client_id,
+            db_path=str(_CANDLE_DB_PATH),
+            parent=self,
+        )
+        worker.candle_closed.connect(self.live_bar_data_updated)
+        self._live_bar_worker = worker
+        worker.start()
+        _log.info("[Live] Live bar worker started for %d stock(s)", len(self._filtered_symbols))
+
+    def _stop_live_bar_worker(self) -> None:
+        """Stop the running live bar worker (no-op if not running)."""
+        worker = self._live_bar_worker
+        if worker is None:
+            return
+        self._live_bar_worker = None
+        try:
+            worker.candle_closed.disconnect()
+        except (RuntimeError, TypeError):
+            pass
+        try:
+            worker.finished.disconnect()
+        except (RuntimeError, TypeError):
+            pass
+        worker.request_stop()
+        worker.quit()
+        worker.wait(15_000)
+        _log.info("[Live] Live bar worker stopped")
 
     def _on_candle_load_complete(self, results: list) -> None:
         readiness: dict[str, bool | None] = {r.symbol: r.ok for r in results}
@@ -1710,6 +1765,12 @@ class AppService(QObject):
             level = "INFO" if status == "open" else "WARNING" if status == "closed" else "INFO"
             self.log_message.emit(level, f"[Market] {msg}")
 
+        # Live bar worker lifecycle: start on market open, stop on market close.
+        if status == "open" and prev != "open" and self._filtered_symbols:
+            self._start_live_bar_worker()
+        elif status != "open" and prev == "open":
+            self._stop_live_bar_worker()
+
     # ── S&P 500 universe ──────────────────────────────────────────────────────
 
     def get_sp500_universe(self) -> list:
@@ -1903,11 +1964,13 @@ class AppService(QObject):
         timeframe: str = "3m",
         limit_1m: int = 10_000,
     ) -> list[dict[str, Any]]:
-        """Return aggregated intraday OHLCV rows for *symbol* from price_1m.
+        """Return intraday OHLCV rows for *symbol* at the requested timeframe.
 
-        Reads 1-minute bars from candles.db and aggregates to *timeframe*
-        (``"3m"`` or ``"15m"``).  Returns an empty list on any error or when
-        no 1m data exists for the symbol.
+        Native live bars are stored in ``price_3m`` / ``price_15m`` by
+        :class:`LiveBarWorker`. Historical bars are stored in ``price_1m`` by
+        the intraday loader. This method merges both sources: native rows take
+        precedence; 1m bars are aggregated to fill any gaps (typically older
+        history that pre-dates the live feed).
 
         Args:
             symbol:    Ticker symbol (e.g. "AAPL").
@@ -1923,9 +1986,21 @@ class AppService(QObject):
         minutes = _TF_MINUTES.get(timeframe)
         if minutes is None or not _CANDLE_DB_PATH.exists():
             return []
+
+        native_table = f"price_{timeframe}"
+        native_rows: list[tuple] = []
+        agg_rows: list[tuple] = []
         try:
             conn = sqlite3.connect(str(_CANDLE_DB_PATH))
-            rows = conn.execute(
+            try:
+                native_rows = conn.execute(
+                    f"SELECT datetime, open, high, low, close, volume "
+                    f"FROM {native_table} WHERE symbol = ? ORDER BY datetime ASC",
+                    (symbol,),
+                ).fetchall()
+            except sqlite3.OperationalError:
+                native_rows = []  # table may not exist on first run
+            agg_rows = conn.execute(
                 "SELECT datetime, open, high, low, close, volume "
                 "FROM price_1m WHERE symbol = ? "
                 "ORDER BY datetime DESC LIMIT ?",
@@ -1935,12 +2010,11 @@ class AppService(QObject):
         except Exception:
             return []
 
-        if not rows:
-            return []
+        # Index native bars by epoch second so 1m-aggregated bars can be merged in
+        # at the same bucket boundary without producing duplicates.
+        candles_by_ts: dict[int, dict[str, Any]] = {}
 
-        # Parse and sort ascending
-        parsed: list[tuple[int, float, float, float, float, float]] = []
-        for dt_str, o, h, lo, c, v in reversed(rows):
+        for dt_str, o, h, lo, c, v in native_rows:
             try:
                 dt = datetime.datetime.strptime(dt_str, "%Y-%m-%dT%H:%M:%S").replace(
                     tzinfo=datetime.timezone.utc
@@ -1948,28 +2022,49 @@ class AppService(QObject):
                 ts = int(dt.timestamp())
             except ValueError:
                 continue
-            parsed.append((ts, float(o or 0), float(h or 0), float(lo or 0), float(c or 0), float(v or 0)))
+            candles_by_ts[ts] = {
+                "time":   ts,
+                "open":   float(o or 0),
+                "high":   float(h or 0),
+                "low":    float(lo or 0),
+                "close":  float(c or 0),
+                "volume": float(v or 0),
+            }
 
-        # Bucket 1m bars into target-timeframe groups
+        # Aggregate 1m → target timeframe and merge non-overlapping buckets
+        parsed_1m: list[tuple[int, float, float, float, float, float]] = []
+        for dt_str, o, h, lo, c, v in reversed(agg_rows):
+            try:
+                dt = datetime.datetime.strptime(dt_str, "%Y-%m-%dT%H:%M:%S").replace(
+                    tzinfo=datetime.timezone.utc
+                )
+                ts = int(dt.timestamp())
+            except ValueError:
+                continue
+            parsed_1m.append((ts, float(o or 0), float(h or 0), float(lo or 0), float(c or 0), float(v or 0)))
+
         groups: dict[int, list[tuple[int, float, float, float, float, float]]] = {}
-        for bar in parsed:
+        for bar in parsed_1m:
             bucket = (bar[0] // 60) // minutes
             groups.setdefault(bucket, []).append(bar)
 
-        result: list[dict[str, Any]] = []
         for bucket in sorted(groups):
             group = groups[bucket]
             if len(group) < minutes:
                 continue  # skip incomplete trailing bar
-            result.append({
-                "time":   group[0][0],
+            ts = group[0][0]
+            if ts in candles_by_ts:
+                continue  # native bar wins
+            candles_by_ts[ts] = {
+                "time":   ts,
                 "open":   group[0][1],
                 "high":   max(b[2] for b in group),
                 "low":    min(b[3] for b in group),
                 "close":  group[-1][4],
                 "volume": sum(b[5] for b in group),
-            })
-        return result
+            }
+
+        return [candles_by_ts[ts] for ts in sorted(candles_by_ts)]
 
     def refresh_candle_db_status(self) -> None:
         """Trigger a background check of the candle database state.

@@ -148,10 +148,10 @@
 
 ---
 
-## Module: `execution/live_candle_aggregator.py` — LiveCandleAggregator
+## Module: `execution/live_bar_worker.py` — LiveBarWorker
 
-> Test file: `tests/execution/test_live_candle_aggregator.py`
-> Fixtures: mock `IBKRClient` (records `subscribe_realtime_bars`/`unsubscribe_realtime_bars` calls + exposes `on_realtime_bar` registration), in-memory SQLite `DatabaseManager`.
+> Test file: `tests/execution/test_live_bar_worker.py`
+> Fixtures: mock `ib_insync.IB` (records `reqRealTimeBars` calls + fires `updateEvent`), in-memory SQLite for `price_3m`/`price_15m`, `CandleBuilder` instance.
 
 ### Helper tests (`_floor_3m`, `_is_rth`, `PartialBar.to_ohlcv_bar`)
 

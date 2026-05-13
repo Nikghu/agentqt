@@ -4,6 +4,7 @@ FO-GUI-004 Execution Panel: pending signals + override qty + execute entry.
 """
 from __future__ import annotations
 
+import json
 from datetime import datetime
 from typing import Any
 
@@ -12,6 +13,7 @@ from PyQt6.QtCore import (
     QModelIndex,
     QSortFilterProxyModel,
     Qt,
+    QTimer,
     QUrl,
     pyqtSignal,
 )
@@ -44,6 +46,8 @@ from us_swing.gui.theme import C
 
 
 # ── Intraday chart pane (3m + 15m side by side) ───────────────────────────────
+
+_CHART_REFRESH_MS: int = 90_000  # periodic fallback re-render interval
 
 class _IntradayChartPane(QWidget):
     """Shows two intraday TradingView charts (3m and 15m) side by side."""
@@ -81,7 +85,20 @@ class _IntradayChartPane(QWidget):
         root.addWidget(splitter, 1)
         self._show_placeholder()
 
+        # Qt auto-disconnects this when the widget is destroyed (QObject lifetime rule).
+        svc.live_bar_data_updated.connect(self._on_live_bar)
+
+        # Fallback timer: re-render every 90 s regardless of signal (covers
+        # yfinance polling mode where candle_closed fires per-symbol but may
+        # not match _current_symbol on every tick).
+        self._refresh_timer = QTimer(self)
+        self._refresh_timer.setInterval(_CHART_REFRESH_MS)
+        self._refresh_timer.timeout.connect(self._refresh_current)
+        self._refresh_timer.start()
+
     def load_symbol(self, symbol: str) -> None:
+        if symbol == self._current_symbol:
+            return
         self._current_symbol = symbol
         self._hdr.setText(f"{symbol}  —  Intraday")
         self._hdr.setStyleSheet(
@@ -91,17 +108,47 @@ class _IntradayChartPane(QWidget):
         self._render("3m",  self._web_3m,  symbol)
         self._render("15m", self._web_15m, symbol)
 
+    def _on_live_bar(self, symbol: str) -> None:
+        """Push fresh candle data to the chart without reloading the page."""
+        if symbol == self._current_symbol and self._current_symbol:
+            self._update_data("3m",  self._web_3m,  symbol)
+            self._update_data("15m", self._web_15m, symbol)
+
+    def _refresh_current(self) -> None:
+        """Periodic fallback data refresh — preserves zoom via JS injection."""
+        if self._current_symbol:
+            self._update_data("3m",  self._web_3m,  self._current_symbol)
+            self._update_data("15m", self._web_15m, self._current_symbol)
+
     def _render(self, tf: str, web: QWebEngineView, symbol: str) -> None:
+        """Full page load — only called when the selected symbol changes."""
         candles = self._svc.get_intraday_candles_for_symbol(symbol, tf)
-        volume_data = [
+        volume_data = self._to_volume_data(candles)
+        web.setHtml(_build_chart_html(candles, volume_data, symbol, tf, show_reset_menu=True), QUrl("about:blank"))
+
+    def _update_data(self, tf: str, web: QWebEngineView, symbol: str) -> None:
+        """Inject updated candle data into the live chart page via JS."""
+        page = web.page()
+        if page is None:
+            return
+        candles = self._svc.get_intraday_candles_for_symbol(symbol, tf)
+        volume_data = self._to_volume_data(candles)
+        candle_json = json.dumps(candles)
+        volume_json = json.dumps(volume_data)
+        page.runJavaScript(
+            f"if(window.updateChartData){{window.updateChartData({candle_json},{volume_json});}}"
+        )
+
+    @staticmethod
+    def _to_volume_data(candles: list[dict]) -> list[dict]:
+        return [
             {
-                "time": c["time"],
+                "time":  c["time"],
                 "value": c["volume"],
                 "color": "#26a69a55" if c["close"] >= c["open"] else "#ef535055",
             }
             for c in candles
         ]
-        web.setHtml(_build_chart_html(candles, volume_data, symbol, tf, show_reset_menu=True), QUrl("about:blank"))
 
     def _show_placeholder(self) -> None:
         for label, web in [("3m", self._web_3m), ("15m", self._web_15m)]:

@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-07T12:18:58",
+  "generated": "2026-05-12T18:58:02",
   "subfolder": "data",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\data",
   "tool_code": "INF",
@@ -310,7 +310,7 @@
         },
         {
           "name": "RealtimeBar",
-          "docstring": "5-second realtime bar from IBKR (or synthetic from DummyProvider).",
+          "docstring": "Realtime market update \u2014 either a single trade tick (open==high==low==close==pri",
           "class_vars": [
             "symbol: str",
             "datetime: datetime",
@@ -321,7 +321,7 @@
             "volume: int"
           ],
           "line_start": 189,
-          "line_end": 197
+          "line_end": 199
         },
         {
           "name": "UserRecord",
@@ -334,8 +334,8 @@
             "settings_json: str",
             "mode: str"
           ],
-          "line_start": 203,
-          "line_end": 210
+          "line_start": 205,
+          "line_end": 212
         },
         {
           "name": "UserProfile",
@@ -350,8 +350,8 @@
             "strategy_config: dict",
             "screener_config: dict"
           ],
-          "line_start": 214,
-          "line_end": 227
+          "line_start": 216,
+          "line_end": 229
         },
         {
           "name": "RiskConfig",
@@ -364,8 +364,8 @@
             "default_order_type: str",
             "confirm_orders: bool"
           ],
-          "line_start": 231,
-          "line_end": 238
+          "line_start": 233,
+          "line_end": 240
         },
         {
           "name": "ScreenerResult",
@@ -381,8 +381,8 @@
             "breakout_pass: bool",
             "pullback_pass: bool"
           ],
-          "line_start": 244,
-          "line_end": 254
+          "line_start": 246,
+          "line_end": 256
         },
         {
           "name": "FilteredStockEntry",
@@ -396,8 +396,8 @@
             "run_type: str",
             "date: str"
           ],
-          "line_start": 258,
-          "line_end": 270
+          "line_start": 260,
+          "line_end": 272
         },
         {
           "name": "TradeSignal",
@@ -413,8 +413,8 @@
             "recommended_qty: int",
             "generated_at: datetime"
           ],
-          "line_start": 274,
-          "line_end": 284
+          "line_start": 276,
+          "line_end": 286
         },
         {
           "name": "MarketWatchItem",
@@ -426,8 +426,8 @@
             "change_pct: float",
             "prev_close: float"
           ],
-          "line_start": 288,
-          "line_end": 294
+          "line_start": 290,
+          "line_end": 296
         },
         {
           "name": "WatchlistItem",
@@ -446,8 +446,8 @@
             "year_low: float",
             "market_cap: float"
           ],
-          "line_start": 298,
-          "line_end": 311
+          "line_start": 300,
+          "line_end": 313
         }
       ]
     },

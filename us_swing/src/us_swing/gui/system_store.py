@@ -11,7 +11,7 @@ Security note    : This file holds only connectivity config (host, port, log lev
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 # ── Storage path ──────────────────────────────────────────────────────────────
@@ -29,6 +29,7 @@ class SystemConfig:
     ibkr_system_client_id: int = 10
     ibkr_enabled: bool   = False
     ibkr_intraday_client_id: int = 12
+    ibkr_live_client_id: int     = 13
     log_level: str       = "INFO"
     scheduler_enabled: bool = False
     market_open: str     = "09:35"
@@ -53,6 +54,7 @@ def load_system_config() -> SystemConfig:
         cfg.ibkr_system_client_id    = int(data.get("ibkr_system_client_id",    cfg.ibkr_system_client_id))
         cfg.ibkr_enabled             = bool(data.get("ibkr_enabled",            cfg.ibkr_enabled))
         cfg.ibkr_intraday_client_id  = int(data.get("ibkr_intraday_client_id",  cfg.ibkr_intraday_client_id))
+        cfg.ibkr_live_client_id      = int(data.get("ibkr_live_client_id",      cfg.ibkr_live_client_id))
         cfg.log_level              = str(data.get("log_level",              cfg.log_level))
         cfg.scheduler_enabled = bool(data.get("scheduler_enabled", cfg.scheduler_enabled))
         cfg.market_open       = str(data.get("market_open",       cfg.market_open))

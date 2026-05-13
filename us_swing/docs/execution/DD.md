@@ -836,6 +836,7 @@ _on_realtime_bar(symbol, RealtimeBar)
 ## DD-EXE-007.001.D04 — RTH Guard & Session-End Discard
 
 **Parent SRD:** SRD-EXE-007.007
+- **Status:** Approved
 
 ### `_is_rth()` Implementation
 

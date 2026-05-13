@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-07T12:18:58",
+  "generated": "2026-05-12T18:58:02",
   "subfolder": "analysis",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\analysis",
   "tool_code": "ANA",
@@ -11,63 +11,62 @@
       "classes": [
         {
           "name": "CandleBuilder",
-          "docstring": "Aggregates 5-second bars into multi-timeframe OHLCV candles.",
+          "docstring": "Aggregates RealtimeBars into multi-timeframe OHLCV candles.",
           "methods": [
             {
               "name": "__init__",
               "signature": "def __init__(\n        self,\n        timeframes: list[str],\n        on_candle_closed: Callable[[str, str, OHLCVBar], None] | None = None,\n    ) -> None",
-              "line_start": 41,
-              "line_end": 58
+              "line_start": 56,
+              "line_end": 73
             },
             {
               "name": "register_callback",
               "signature": "def register_callback(\n        self, on_candle_closed: Callable[[str, str, OHLCVBar], None]\n    ) -> None",
               "docstring": "Replace the candle-closed callback (e.g. wired in by LiveEngine).",
-              "line_start": 62,
-              "line_end": 66
+              "line_start": 77,
+              "line_end": 81
             },
             {
               "name": "add_bar",
               "signature": "def add_bar(self, bar: RealtimeBar) -> None",
-              "docstring": "Process one 5-second bar, filling gaps and closing completed candles.",
-              "line_start": 68,
-              "line_end": 93
+              "docstring": "Process one bar and close any completed time windows.",
+              "line_start": 83,
+              "line_end": 87
             },
             {
               "name": "get_buffer",
               "signature": "def get_buffer(self, symbol: str, tf: str) -> list[OHLCVBar]",
               "docstring": "Return a copy of the completed candle list for (symbol, tf).",
-              "line_start": 95,
-              "line_end": 97
+              "line_start": 89,
+              "line_end": 91
             },
             {
               "name": "reset",
               "signature": "def reset(self, symbol: str) -> None",
-              "docstring": "Clear all in-progress and completed buffers for *symbol*.",
-              "line_start": 99,
-              "line_end": 103
+              "docstring": "Clear all in-progress and completed state for *symbol*.",
+              "line_start": 93,
+              "line_end": 97
             },
             {
               "name": "_ensure_symbol",
               "signature": "def _ensure_symbol(self, symbol: str) -> None",
-              "line_start": 107,
-              "line_end": 110
+              "line_start": 101,
+              "line_end": 105
             },
             {
               "name": "_process_bar",
               "signature": "def _process_bar(self, bar: RealtimeBar) -> None",
-              "docstring": "Append *bar* to all TF buffers; emit completed candles.",
-              "line_start": 112,
-              "line_end": 124
+              "line_start": 107,
+              "line_end": 130
             },
             {
               "name": "_aggregate",
-              "signature": "def _aggregate(\n        symbol: str, tf: str, bars: list[RealtimeBar]\n    ) -> OHLCVBar",
+              "signature": "def _aggregate(\n        symbol: str, tf: str, bars: list[RealtimeBar], window_start: datetime\n    ) -> OHLCVBar",
               "decorators": [
                 "@staticmethod"
               ],
-              "line_start": 127,
-              "line_end": 139
+              "line_start": 133,
+              "line_end": 145
             },
             {
               "name": "_noop",
@@ -75,16 +74,24 @@
               "decorators": [
                 "@staticmethod"
               ],
-              "line_start": 142,
-              "line_end": 143
+              "line_start": 148,
+              "line_end": 149
             }
           ],
-          "line_start": 31,
-          "line_end": 143
+          "line_start": 38,
+          "line_end": 149
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_floor_to_tf",
+          "signature": "def _floor_to_tf(dt: datetime, tf_secs: int) -> datetime",
+          "docstring": "Floor *dt* to the nearest *tf_secs* boundary (Unix-timestamp aligned).",
+          "line_start": 32,
+          "line_end": 35
         }
       ],
       "constants": [
-        "_BAR_SECONDS = 5",
         "_TF_SECONDS: dict[str, int] = {"
       ]
     },

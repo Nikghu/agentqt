@@ -2,6 +2,15 @@
 
 ---
 
+## [20260513] GUI — Wrote RN-GUI-1.0.0-20260513 for Candle Chart Viewer (FO-GUI-011)
+
+- Type: Documentation
+- RN: RN-GUI-1.0.0-20260513
+- Artifacts updated: RN, TRACE
+- Summary: FO-GUI-011 implementation complete — "📈 Chart" navigation tab with symbol/timeframe/bars toolbar, TradingView Lightweight Charts v5 candlestick + volume histogram, auto-refresh symbol list on tab show, auto-reload on parameter change
+
+---
+
 ## [20260511] AGT — Introduced skills/ folder; migrated 5 commands to skills; added code-writer skill
 
 - Type: Refactor

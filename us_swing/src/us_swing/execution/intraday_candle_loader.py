@@ -26,6 +26,19 @@ _REQUIRED_TIMEFRAMES: tuple[DerivedTimeframe, ...] = ("3m", "15m")
 _SYMBOL_PAUSE_S: float = 0.3
 
 
+def _ensure_utc(dt: datetime) -> datetime:
+    return dt.astimezone(timezone.utc) if dt.tzinfo is not None else dt.replace(tzinfo=timezone.utc)
+
+
+def _build_tf_counts(
+    symbol: str,
+    bars_1m: list[OHLCVBar],
+    timeframes: tuple[DerivedTimeframe, ...],
+    hist_engine: HistoricalDataEngine,
+) -> dict[str, int]:
+    return {tf: len(hist_engine.aggregate_timeframe(symbol, tf, bars_1m)) for tf in timeframes}
+
+
 @dataclass
 class CandleLoadResult:
     """Outcome for a single symbol in the load job."""
@@ -222,15 +235,15 @@ class IntradayCandleLoader(QThread):
         first = self._db.get_first_timestamp(symbol, "1m")
         window_start = now - timedelta(days=self._full_fetch_cal_days)
 
-        if last is None:
-            log.info("[Candles] %s — no local data, fetching %d days of history", symbol, self._full_fetch_cal_days)
-            await self._fetch_paged_async(ib, pacing, symbol, now, self._full_fetch_cal_days)
-        elif first is not None and first > window_start:
-            shallow_days = (now - first).days
-            log.info(
-                "[Candles] %s — local history too short (%d days), backfilling to %d days",
-                symbol, shallow_days, self._full_fetch_cal_days,
-            )
+        if last is None or (first is not None and first > window_start):
+            if last is None:
+                log.info("[Candles] %s — no local data, fetching %d days of history", symbol, self._full_fetch_cal_days)
+            else:
+                shallow_days = (now - first).days
+                log.info(
+                    "[Candles] %s — local history too short (%d days), backfilling to %d days",
+                    symbol, shallow_days, self._full_fetch_cal_days,
+                )
             await self._fetch_paged_async(ib, pacing, symbol, now, self._full_fetch_cal_days)
         else:
             gap_days = max(1, (now - last).days + 1)
@@ -322,11 +335,7 @@ class IntradayCandleLoader(QThread):
 
         bars: list[OHLCVBar] = []
         for ts, row in df.iterrows():  # iterrows yields untyped index/Series
-            dt = ts.to_pydatetime()
-            if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=timezone.utc)
-            else:
-                dt = dt.astimezone(timezone.utc)
+            dt = _ensure_utc(ts.to_pydatetime())
             if last is not None and dt <= last:
                 continue
             bars.append(OHLCVBar(
@@ -356,18 +365,16 @@ class IntradayCandleLoader(QThread):
         now = datetime.now(tz=timezone.utc)
         window_start = now - timedelta(days=self._full_fetch_cal_days)
         bars_1m = self._db.fetch_bars(symbol, "1m", window_start, now)
+        counts = _build_tf_counts(symbol, bars_1m, timeframes, self._hist_engine)
 
-        counts: dict[str, int] = {}
         for tf in timeframes:
-            agg = self._hist_engine.aggregate_timeframe(symbol, tf, bars_1m)
-            counts[tf] = len(agg)
-            if counts[tf] < self._min_candles:
-                reason = f"insufficient_candles:{tf}:{counts[tf]}"
+            n = counts[tf]
+            if n < self._min_candles:
                 log.warning(
                     "[Candles] %s — not enough history for strategy indicators"
-                    " (%s bars in %s)", symbol, counts[tf], tf,
+                    " (%s bars in %s)", symbol, n, tf,
                 )
-                return CandleLoadResult(symbol=symbol, ok=False, reason=reason)
+                return CandleLoadResult(symbol=symbol, ok=False, reason=f"insufficient_candles:{tf}:{n}")
 
         counts_str = ", ".join(f"{v} bars {tf}" for tf, v in counts.items())
         log.info("[Candles] %s — ready (%s)", symbol, counts_str)
@@ -423,10 +430,7 @@ def check_candle_readiness(
     for symbol in symbols:
         last = db.get_last_timestamp(symbol, "1m")
         bars_1m = db.fetch_bars(symbol, "1m", window_start, now)
-        counts: dict[str, int] = {}
-        for tf in _REQUIRED_TIMEFRAMES:
-            agg = hist_engine.aggregate_timeframe(symbol, tf, bars_1m)
-            counts[tf] = len(agg)
+        counts = _build_tf_counts(symbol, bars_1m, _REQUIRED_TIMEFRAMES, hist_engine)
         ready = all(v >= min_candles for v in counts.values())
         report[symbol] = SymbolReadiness(
             symbol=symbol,
@@ -442,12 +446,7 @@ def _raw_bar_to_ohlcv(symbol: str, b: Any) -> OHLCVBar:
     """Convert an ib_insync BarData object to :class:`OHLCVBar`."""
     raw_dt: Any = b.date
     if hasattr(raw_dt, "hour"):
-        # datetime — normalise to UTC regardless of source timezone.
-        dt: datetime = (
-            raw_dt.astimezone(timezone.utc)
-            if raw_dt.tzinfo is not None
-            else raw_dt.replace(tzinfo=timezone.utc)
-        )
+        dt: datetime = _ensure_utc(raw_dt)
     else:
         # date object — should not occur for 1m bars; map to midnight UTC.
         log.warning(

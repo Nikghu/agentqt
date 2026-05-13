@@ -49,6 +49,7 @@ Classify every prompt before reading any file or invoking any agent:
 | `code-writer` | Generic code writing — PyQt6 patterns for GUI files, Python rules for all files | Before writing any new or significantly rewritten source file |
 | `pyqt-comment-analyzer` | Comment accuracy and rot detection — advisory, read-only | When `pyqt-code-reviewer` flags comment issues |
 | `hookify` | Scan transcript for hook-worthy patterns, implement approved rules | Explicit user request only — never during dev |
+| `rag-query` | Semantic DEVLOG search — `python .claude/rag/query.py "<topic>"` surfaces relevant history via vector recall + rerank-2.5 | Ad-hoc historical lookup; automatically used by `/project:resume` |
 
 ---
 
@@ -181,7 +182,7 @@ Commands live in `.claude/commands/`; skills live in `.claude/skills/`. Prompt-e
 
 | Command | Phase trigger | Agent invocations |
 |---|---|---|
-| `/project:resume` | Session start (Class S) | None — read-only orientation |
+| `/project:resume` | Session start (Class S) | None — read-only orientation; RAG context query via `resume_context.py` |
 | `/project:new-feature` | FO → UTCD + implementation | `duplicate-detector` (start); `artifact-validator` after each artifact phase; `pyqt-architect` if GUI; `pyqt-code-writer` + `pyqt-code-reviewer` for GUI; `code-reviewer` for non-GUI; `phase-gate` before code; `session-finalizer` at end |
 | `/project:auto-feature` | FO → RN (fully automated, no gates) | Same as new-feature plus all phases run unattended — skips SRD approval prompt |
 | `/project:write-tests` | UTCD → pytest | `test-writer` |

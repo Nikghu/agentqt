@@ -1,0 +1,10 @@
+{
+  "generated": "2026-05-12T18:58:02",
+  "subfolder": "core",
+  "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\core",
+  "tool_code": null,
+  "files": {
+    "__init__.py": {},
+    "candle_builder.py": {}
+  }
+}
