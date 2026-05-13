@@ -5,6 +5,10 @@ model: haiku
 tools: [Read, Grep, Glob]
 ---
 
+## Output Contract
+
+**Budget:** ≤80 words. Lead with: `Anchor FO: <ID> (new|existing)`. Then one line each for reusable SRD IDs, DD IDs, and the skip list. Skip: scan rationale paragraphs, file path listings, "let me check…" preambles.
+
 ## Triggers
 
 **Invoke when:** Starting a new feature — before writing any FO, SRD, DD, MD, or UTCD entries.

@@ -6,10 +6,13 @@ Application service — single source of truth for GUI state.
 
 Account monitoring mode
 ───────────────────────
-When connected to IBKR (live or paper Gateway), ``_AccountDataWorker`` polls
-account equity, open positions, and unrealized PnL every 30 s.  The four KPI
-cards (Today P&L, Capital Utilised, Open Positions, Account Equity) display
-real data from the connected account.
+When connected to IBKR (live or paper Gateway), a single persistent
+``IBKRSession`` (see ``gui/ibkr_session.py``) holds one ``ib_insync.IB``
+connection for the lifetime of the feed.  Account equity, open positions,
+unrealised PnL, Market Watch quotes, and Watchlist quotes are pushed via
+subscriptions (``reqAccountUpdates`` + ``reqMktData``) — no polling, no
+connect/disconnect cycling.  The four KPI cards reflect real account data
+within ~50 ms of any IBKR push.
 
 Execution is permanently disabled at the tool level — no orders are sent to
 IBKR regardless of the connected account type (live or paper).
@@ -54,9 +57,9 @@ import datetime
 import enum
 import json
 import logging
+import math
 import sqlite3
 import socket
-import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -86,6 +89,7 @@ from us_swing.data.models import (
     UserProfile,
     WatchlistItem,
 )
+from us_swing.gui.ibkr_session import IBKRSession
 from us_swing.gui.system_store import SystemConfig, load_system_config
 from us_swing.gui.user_store import load_users, next_user_id, save_users
 
@@ -112,125 +116,6 @@ class _ConnectWorker(QThread):
             self.succeeded.emit()
         except OSError as exc:
             self.failed.emit(str(exc))
-
-
-class _AccountDataWorker(QThread):
-    """Reads live account state from IBKR (ib_insync) and disconnects.
-
-    Fetches: NetLiquidation (equity), portfolio positions with market value
-    and unrealized PnL.  Uses a dedicated clientId so it doesn't collide
-    with the candle-download connection.
-
-    Execution is NOT performed here — this is read-only account monitoring.
-    """
-
-    done   = pyqtSignal(object, list)   # (AccountState, list[OpenPosition])
-    failed = pyqtSignal(str)
-
-    def __init__(self, host: str, port: int, client_id: int) -> None:
-        super().__init__()
-        self._host      = host
-        self._port      = port
-        self._client_id = client_id
-
-    def run(self) -> None:
-        try:
-            asyncio.run(self._async_run())
-        except Exception as exc:
-            self.failed.emit(str(exc))
-
-    async def _async_run(self) -> None:
-        import math
-
-        try:
-            from ib_insync import IB  # type: ignore[import]
-        except ImportError:
-            self.failed.emit("ib_insync not installed — account data unavailable.")
-            return
-
-        ib = IB()
-        try:
-            await ib.connectAsync(self._host, self._port,
-                                  clientId=self._client_id, timeout=5)
-            await asyncio.sleep(1.5)  # allow accountUpdates subscription to populate
-
-            # ── Account summary ──────────────────────────────────────────────
-            # IBKR returns each tag multiple times — once per currency.
-            # Prefer the BASE row (the broker's display currency); fall back to
-            # the first non-empty value so we always get one number per tag.
-            summary_items = await ib.accountSummaryAsync()
-            tag_vals: dict[str, dict[str, str]] = {}
-            for item in summary_items:
-                tag_vals.setdefault(item.tag, {})[item.currency] = item.value
-
-            def _tag(name: str) -> float:
-                vals = tag_vals.get(name, {})
-                if not vals:
-                    return 0.0
-                raw = vals.get("BASE") or next(iter(vals.values()), "0")
-                try:
-                    return float(raw or 0)
-                except (ValueError, TypeError):
-                    return 0.0
-
-            equity               = _tag("NetLiquidation")
-            # Explicit > 0 check: avoid the `0.0 or equity` falsy trap that
-            # causes sod_equity to equal equity when the tag is missing/zero,
-            # which would make the equity-delta fallback always produce 0.
-            sod_equity_raw       = _tag("PreviousEquityWithLoanValue")
-            sod_equity           = sod_equity_raw if sod_equity_raw > 0.0 else equity
-            excess_liquidity     = _tag("ExcessLiquidity")
-            total_cash_value     = _tag("TotalCashValue")
-            gross_position_value = _tag("GrossPositionValue")
-
-            # ── Portfolio (positions with live market value) ──────────────────
-            portfolio  = ib.portfolio()
-            open_val   = 0.0
-            positions: list[OpenPosition] = []
-
-            for pi in portfolio:
-                qty = int(pi.position)
-                if qty == 0:
-                    continue
-                sym      = pi.contract.symbol
-                avg_cost = pi.averageCost
-                mv       = pi.marketValue
-                ltp      = abs(mv / qty) if qty else 0.0
-
-                open_val  += abs(mv)
-
-                positions.append(OpenPosition(
-                    symbol          = sym,
-                    user_id         = 1,
-                    quantity        = abs(qty),
-                    average_price   = avg_cost,
-                    stop_loss       = 0.0,
-                    target_price    = 0.0,
-                    mode            = "live",
-                    state           = "OPEN",
-                    current_price   = ltp,
-                    strategy_id     = "IBKR",
-                    filled_quantity = abs(qty),
-                    total_quantity  = abs(qty),
-                ))
-
-            acct = AccountState(
-                user_id             = 1,
-                equity              = equity,
-                start_of_day_equity = sod_equity,
-                open_position_value = open_val,
-                daily_pnl           = sum(p.unrealised_pnl for p in positions),
-                excess_liquidity    = excess_liquidity,
-                total_cash_value     = total_cash_value,
-                gross_position_value = gross_position_value,
-            )
-            self.done.emit(acct, positions)
-
-        except Exception as exc:
-            self.failed.emit(str(exc))
-        finally:
-            if ib.isConnected():
-                ib.disconnect()
 
 
 class _ReadinessWorker(QThread):
@@ -274,37 +159,24 @@ class _ReadinessWorker(QThread):
         self.done.emit(result)
 
 
-class _MarketWatchWorker(QThread):
-    """Fetches latest quotes for a list of symbols via yfinance in a background thread."""
-
-    done = pyqtSignal(list)   # list[dict] — one dict per symbol
-
-    def __init__(self, symbols: list[str]) -> None:
-        super().__init__()
-        self._symbols = symbols
-
-    def run(self) -> None:
-        try:
-            import yfinance as yf  # already a project dependency
-            results: list[dict] = []
-            for sym in self._symbols:
-                try:
-                    info = yf.Ticker(sym).fast_info
-                    ltp        = float(getattr(info, "last_price",       0) or 0)
-                    prev_close = float(getattr(info, "previous_close",   0) or 0)
-                    change_pct = ((ltp - prev_close) / prev_close * 100) if prev_close else 0.0
-                    results.append({"symbol": sym, "ltp": ltp,
-                                    "prev_close": prev_close, "change_pct": change_pct})
-                except Exception:
-                    results.append({"symbol": sym, "ltp": 0.0,
-                                    "prev_close": 0.0, "change_pct": 0.0})
-            self.done.emit(results)
-        except Exception:
-            self.done.emit([])
+def _safe_float(v: object) -> float:
+    """Convert v to float, returning 0.0 for None or NaN."""
+    try:
+        x = float(v)  # type: ignore[arg-type]
+        return 0.0 if math.isnan(x) else x
+    except (TypeError, ValueError):
+        return 0.0
 
 
-class _WatchlistQuoteWorker(QThread):
-    """Fetches full quote data for watchlist symbols via yfinance in a background thread."""
+class _MarketWatchYfinanceWorker(QThread):
+    """Fetches quotes via yfinance — used only when the IBKR feed is DISCONNECTED.
+
+    Emits one combined ``list[dict]`` whose row schema is the superset of
+    Market Watch and Watchlist field sets: ``symbol``, ``ltp``, ``prev_close``,
+    ``change``, ``change_pct``, ``day_open``, ``day_high``, ``day_low``,
+    ``volume``, ``year_high``, ``year_low``, ``market_cap``.  Market Watch
+    consumers read only the first four fields; Watchlist consumers read all.
+    """
 
     done = pyqtSignal(list)   # list[dict] — one dict per symbol
 
@@ -315,38 +187,39 @@ class _WatchlistQuoteWorker(QThread):
     def run(self) -> None:
         try:
             import yfinance as yf
-            results: list[dict] = []
-            for sym in self._symbols:
-                try:
-                    fi = yf.Ticker(sym).fast_info
-                    ltp        = float(getattr(fi, "last_price",    0) or 0)
-                    prev_close = float(getattr(fi, "previous_close",0) or 0)
-                    change     = ltp - prev_close
-                    change_pct = (change / prev_close * 100) if prev_close else 0.0
-                    results.append({
-                        "symbol":     sym,
-                        "ltp":        ltp,
-                        "prev_close": prev_close,
-                        "change":     change,
-                        "change_pct": change_pct,
-                        "day_open":   float(getattr(fi, "open",      0) or 0),
-                        "day_high":   float(getattr(fi, "day_high",  0) or 0),
-                        "day_low":    float(getattr(fi, "day_low",   0) or 0),
-                        "volume":     int(getattr(fi, "volume",      0) or 0),
-                        "year_high":  float(getattr(fi, "year_high", 0) or 0),
-                        "year_low":   float(getattr(fi, "year_low",  0) or 0),
-                        "market_cap": float(getattr(fi, "market_cap",0) or 0),
-                    })
-                except Exception:
-                    results.append({
-                        "symbol": sym, "ltp": 0.0, "prev_close": 0.0,
-                        "change": 0.0, "change_pct": 0.0, "day_open": 0.0,
-                        "day_high": 0.0, "day_low": 0.0, "volume": 0,
-                        "year_high": 0.0, "year_low": 0.0, "market_cap": 0.0,
-                    })
-            self.done.emit(results)
-        except Exception:
+        except ImportError:
             self.done.emit([])
+            return
+        results: list[dict[str, Any]] = []
+        for sym in self._symbols:
+            try:
+                fi = yf.Ticker(sym).fast_info
+                ltp        = float(getattr(fi, "last_price",     0) or 0)
+                prev_close = float(getattr(fi, "previous_close", 0) or 0)
+                change     = ltp - prev_close
+                change_pct = (change / prev_close * 100) if prev_close else 0.0
+                results.append({
+                    "symbol":     sym,
+                    "ltp":        ltp,
+                    "prev_close": prev_close,
+                    "change":     change,
+                    "change_pct": change_pct,
+                    "day_open":   float(getattr(fi, "open",       0) or 0),
+                    "day_high":   float(getattr(fi, "day_high",   0) or 0),
+                    "day_low":    float(getattr(fi, "day_low",    0) or 0),
+                    "volume":     int(getattr(fi, "volume",       0) or 0),
+                    "year_high":  float(getattr(fi, "year_high",  0) or 0),
+                    "year_low":   float(getattr(fi, "year_low",   0) or 0),
+                    "market_cap": float(getattr(fi, "market_cap", 0) or 0),
+                })
+            except Exception:
+                results.append({
+                    "symbol": sym, "ltp": 0.0, "prev_close": 0.0,
+                    "change": 0.0, "change_pct": 0.0, "day_open": 0.0,
+                    "day_high": 0.0, "day_low": 0.0, "volume": 0,
+                    "year_high": 0.0, "year_low": 0.0, "market_cap": 0.0,
+                })
+        self.done.emit(results)
 
 
 class _Sp500RefreshWorker(QThread):
@@ -968,29 +841,31 @@ class AppService(QObject):
         self._connection_status = ConnectionStatus.DISCONNECTED
         self._system_cfg        = load_system_config()
 
-        # ── IBKR live account cache (populated when connected) ────────────────
+        # ── IBKR live account cache (populated by IBKRSession when connected) ─
         self._ibkr_acct:      AccountState | None    = None
         self._ibkr_positions: list[OpenPosition]     = []
-        self._acct_worker:    _AccountDataWorker | None = None
 
-        self._acct_timer = QTimer(self)
-        self._acct_timer.setInterval(30_000)   # refresh every 30 s when connected
-        self._acct_timer.timeout.connect(self._refresh_account_data)
+        # ── Persistent IBKR session (FO-GUI-012) ─────────────────────────────
+        # One ib_insync.IB owned by IBKRSession; pushed updates to all monitoring
+        # signals. None while DISCONNECTED.
+        self._ibkr_session: IBKRSession | None = None
 
         # ── Market Watch ─────────────────────────────────────────────────────
         self._watch: list[MarketWatchItem] = [
             MarketWatchItem(w.symbol, w.display_name) for w in _DEFAULT_WATCH
         ]
-        self._watch_timer = QTimer(self)
-        self._watch_timer.setInterval(15_000)   # refresh every 15 s when connected
-        self._watch_timer.timeout.connect(self._refresh_market_watch)
 
         # ── Watchlist ─────────────────────────────────────────────────────────
         self._watchlist: list[WatchlistItem] = []
-        self._wl_worker: _WatchlistQuoteWorker | None = None
-        self._wl_timer = QTimer(self)
-        self._wl_timer.setInterval(30_000)      # refresh every 30 s when connected
-        self._wl_timer.timeout.connect(self._refresh_watchlist)
+        self._wl_quotes: dict[str, dict[str, Any]] = {}
+
+        # ── yfinance fallback timer (active only while DISCONNECTED) ─────────
+        self._yf_worker: _MarketWatchYfinanceWorker | None = None
+        self._yf_oneshot_worker: _MarketWatchYfinanceWorker | None = None
+        self._yf_fallback_timer = QTimer(self)
+        self._yf_fallback_timer.setInterval(30_000)   # 30 s offline poll
+        self._yf_fallback_timer.timeout.connect(self._run_yf_fallback)
+        self._yf_fallback_timer.start()   # start in DISCONNECTED state at boot
 
         # ── Live bar worker — must be initialised before _refresh_market_status ─
         self._live_bar_worker: LiveBarWorker | None = None
@@ -1014,7 +889,6 @@ class AppService(QObject):
         # Stores whether the IBKR feed was connected so we can auto-reconnect
         # when connectivity is restored after an outage.
         self._was_feed_connected: bool = False
-        self._mw_log_on_next_fetch: bool = False
         self._net_watcher = NetWatcher(parent=self)
         self._net_watcher.status_changed.connect(self._on_internet_status)
         self._net_watcher.start()
@@ -1508,44 +1382,97 @@ class AppService(QObject):
         QTimer.singleShot(200, self._attempt_connect)
 
     def disconnect_feed(self) -> None:
-        """Cleanly disconnect from the data feed."""
-        self._acct_timer.stop()
-        self._watch_timer.stop()
-        self._wl_timer.stop()
+        """Cleanly disconnect from the data feed.
+
+        Stops the persistent ``IBKRSession`` (cancels all subscriptions and
+        joins the asyncio thread within 3 s), clears cached account state, and
+        starts the yfinance fallback timer so Market Watch and Watchlist
+        continue to update while DISCONNECTED.
+        """
+        if self._ibkr_session is not None:
+            try:
+                self._ibkr_session.account_ready.disconnect(self._on_session_account_ready)
+                self._ibkr_session.quotes_updated.disconnect(self._on_session_quotes_updated)
+                self._ibkr_session.connection_lost.disconnect(self._on_session_connection_lost)
+                self._ibkr_session.connection_restored.disconnect(self._on_session_connection_restored)
+            except (TypeError, RuntimeError):
+                pass
+            self._ibkr_session.stop()
+            self._ibkr_session = None
+
         self._ibkr_acct      = None
         self._ibkr_positions = []
         self._set_status(ConnectionStatus.DISCONNECTED)
         self.account_updated.emit()
         self.positions_updated.emit()
-        self.log_message.emit("INFO", "[Feed] Data feed disconnected.")
+        self._yf_fallback_timer.start()
+        self._run_yf_fallback()   # immediate first fetch so the UI does not freeze
+        self.log_message.emit("INFO", "[Feed] Data feed disconnected")
 
-    # ── IBKR live account data ────────────────────────────────────────────────
+    # ── IBKR session bridge ───────────────────────────────────────────────────
 
-    def _refresh_account_data(self) -> None:
-        """Spawn _AccountDataWorker to read live equity + positions from IBKR."""
-        if self._connection_status is not ConnectionStatus.CONNECTED:
-            return
-        if self._acct_worker and self._acct_worker.isRunning():
-            return  # previous fetch still in progress
-        client_id = self._system_cfg.ibkr_system_client_id + 1
-        self._acct_worker = _AccountDataWorker(
-            self._system_cfg.ibkr_host, self._system_cfg.ibkr_port, client_id
-        )
-        self._acct_worker.done.connect(self._on_account_data_ready)
-        self._acct_worker.failed.connect(self._on_account_data_failed)
-        self._acct_worker.start()
-
-    def _on_account_data_ready(self, acct: AccountState, positions: list) -> None:
+    def _on_session_account_ready(
+        self, acct: AccountState, positions: list[OpenPosition],
+    ) -> None:
+        """Push-bridge: persistent session reported new account snapshot."""
+        if self._ibkr_session is None:
+            return   # late emission delivered after disconnect_feed
         self._ibkr_acct      = acct
         self._ibkr_positions = list(positions)
         self.account_updated.emit()
         self.positions_updated.emit()
 
-    def _on_account_data_failed(self, reason: str) -> None:
-        self.log_message.emit(
-            "WARNING",
-            f"[Account] Failed to read IBKR account data: {reason}",
-        )
+    def _on_session_quotes_updated(self, rows: list[dict[str, Any]]) -> None:
+        """Push-bridge: persistent session reported new market-data ticks."""
+        if self._ibkr_session is None:
+            return
+        by_sym: dict[str, dict[str, Any]] = {r["symbol"]: r for r in rows}
+
+        # Market Watch
+        for mw_item in self._watch:
+            r = by_sym.get(mw_item.symbol)
+            if r is None:
+                continue
+            mw_item.ltp        = float(r.get("ltp", mw_item.ltp))
+            mw_item.prev_close = float(
+                r.get("previous_close", r.get("prev_close", mw_item.prev_close))
+            )
+            mw_item.change_pct = float(r.get("change_pct", mw_item.change_pct))
+
+        # Watchlist (richer field set; yfinance-only fields stay at last value)
+        for wl_item in self._watchlist:
+            r = by_sym.get(wl_item.symbol)
+            if r is None:
+                continue
+            ltp        = float(r.get("ltp", wl_item.ltp))
+            prev_close = float(r.get("previous_close", r.get("prev_close", wl_item.prev_close)))
+            wl_item.ltp        = ltp
+            wl_item.prev_close = prev_close
+            wl_item.change     = ltp - prev_close
+            wl_item.change_pct = float(r.get("change_pct", wl_item.change_pct))
+            self._wl_quotes[wl_item.symbol] = dict(r)
+
+        # Index carve-out — ^-prefixed symbols in Market Watch never reach IBKR;
+        # fetch them via a one-shot yfinance worker.
+        missing = [it.symbol for it in self._watch
+                   if it.symbol.startswith("^") and it.symbol not in by_sym]
+        if missing:
+            self._spawn_yf_one_shot(missing)
+
+        self.market_watch_updated.emit()
+        self.watchlist_updated.emit()
+
+    def _on_session_connection_lost(self, reason: str) -> None:
+        """Persistent session is reconnecting (or has finally failed)."""
+        if self._ibkr_session is None:
+            return
+        self._set_status(ConnectionStatus.RECONNECTING)
+        self.log_message.emit("WARNING", f"[Feed] Connection lost — {reason}; reconnecting")
+
+    def _on_session_connection_restored(self) -> None:
+        """Persistent session reconnected and resubscribed."""
+        self._set_status(ConnectionStatus.CONNECTED)
+        self.log_message.emit("INFO", "[Feed] Connection restored")
 
     def _attempt_connect(self) -> None:
         """Spawn a background TCP probe; result handled by _on_connect_ok / _on_connect_fail."""
@@ -1562,17 +1489,26 @@ class AppService(QObject):
         self._set_status(ConnectionStatus.CONNECTED)
         self.log_message.emit(
             "INFO",
-            f"[Feed] Connected to IBKR at {host}:{port} — read-only account monitoring active. "
+            f"[Feed] Connected to IBKR at {host}:{port} — push-based monitoring active. "
             "Execution is disabled at tool level.",
         )
-        self._acct_timer.start()
-        self._refresh_account_data()   # immediate first fetch
-        self._watch_timer.start()
-        self._mw_log_on_next_fetch = True   # log symbol data once after connect
-        self._refresh_market_watch()   # immediate first fetch
+        # Stop the offline fallback; the persistent session is now the source.
+        self._yf_fallback_timer.stop()
+        if self._yf_worker is not None:
+            try:
+                self._yf_worker.done.disconnect(self._on_yf_fallback_data)
+            except (TypeError, RuntimeError):
+                pass
+
+        self._ibkr_session = IBKRSession(parent=self)
+        self._ibkr_session.account_ready.connect(self._on_session_account_ready)
+        self._ibkr_session.quotes_updated.connect(self._on_session_quotes_updated)
+        self._ibkr_session.connection_lost.connect(self._on_session_connection_lost)
+        self._ibkr_session.connection_restored.connect(self._on_session_connection_restored)
+        self._ibkr_session.start(host, port, self._system_cfg.ibkr_system_client_id)
+        self._ibkr_session.set_market_watch_symbols([w.symbol for w in self._watch])
         if self._watchlist:
-            self._wl_timer.start()
-            self._refresh_watchlist()
+            self._ibkr_session.set_watchlist_symbols([w.symbol for w in self._watchlist])
 
     def _on_connect_fail(self, reason: str) -> None:
         host = self._system_cfg.ibkr_host
@@ -1624,57 +1560,20 @@ class AppService(QObject):
         return list(self._watch)
 
     def set_market_watch_symbols(self, items: list[tuple[str, str]]) -> None:
-        """Replace watch list.  items = [(symbol, display_name), …] max 3."""
+        """Replace watch list.  items = [(symbol, display_name), …] max 3.
+
+        When the persistent IBKR session is active, forwards the new symbol
+        set to it (delta-applied; overlapping symbols stay subscribed).  When
+        disconnected, triggers an immediate yfinance fallback fetch.
+        """
         self._watch = [
             MarketWatchItem(sym, name) for sym, name in items[:3]
         ]
         self.market_watch_updated.emit()
-        if self._connection_status is ConnectionStatus.CONNECTED:
-            self._refresh_market_watch()
-
-    def _refresh_market_watch(self) -> None:
-        """Fetch latest quotes for all watch symbols via yfinance (non-blocking via QThread)."""
-        if not self._watch:
-            return
-        symbols = [w.symbol for w in self._watch]
-        worker = _MarketWatchWorker(symbols)
-        worker.done.connect(self._on_watch_data)
-        worker.start()
-        self._mw_worker = worker  # keep reference to avoid GC
-
-    def _on_watch_data(self, results: list) -> None:
-        lookup = {r["symbol"]: r for r in results}
-        for item in self._watch:
-            if item.symbol in lookup:
-                d = lookup[item.symbol]
-                item.ltp        = d["ltp"]
-                item.prev_close = d["prev_close"]
-                item.change_pct = d["change_pct"]
-        self.market_watch_updated.emit()
-
-        if self._mw_log_on_next_fetch:
-            self._mw_log_on_next_fetch = False
-            mkt_status = self._market_status.get("nyse", "closed")
-            _status_label = {
-                "open":        "Market OPEN",
-                "pre_market":  "Pre-Market",
-                "after_hours": "After-Hours",
-                "closed":      "Market CLOSED",
-            }
-            status_str = _status_label.get(mkt_status, mkt_status.capitalize())
-            for item in self._watch:
-                if item.ltp:
-                    sign = "+" if item.change_pct >= 0 else ""
-                    ltp_str = f"${item.ltp:,.2f}"
-                    chg_str = f"{sign}{item.change_pct:.2f}%"
-                else:
-                    ltp_str, chg_str = "–", "–"
-                log_level = "INFO" if mkt_status == "open" else "WARNING"
-                self.log_message.emit(
-                    log_level,
-                    f"[Market Watch] {item.display_name:<12} {status_str:<14}"
-                    f"  LTP {ltp_str:>12}   Change {chg_str}",
-                )
+        if self._ibkr_session is not None:
+            self._ibkr_session.set_market_watch_symbols([w.symbol for w in self._watch])
+        elif self._connection_status is not ConnectionStatus.CONNECTED:
+            self._run_yf_fallback()
 
     # ── Watchlist ─────────────────────────────────────────────────────────────
 
@@ -1687,41 +1586,91 @@ class AppService(QObject):
             return
         self._watchlist.append(WatchlistItem(symbol=symbol))
         self.watchlist_updated.emit()
-        if self._connection_status is ConnectionStatus.CONNECTED:
-            self._wl_timer.start()
-            self._refresh_watchlist()
+        if self._ibkr_session is not None:
+            self._ibkr_session.set_watchlist_symbols([w.symbol for w in self._watchlist])
+        elif self._connection_status is not ConnectionStatus.CONNECTED:
+            self._run_yf_fallback()
 
     def remove_from_watchlist(self, symbol: str) -> None:
         self._watchlist = [w for w in self._watchlist if w.symbol != symbol]
-        if not self._watchlist:
-            self._wl_timer.stop()
+        self._wl_quotes.pop(symbol, None)
         self.watchlist_updated.emit()
+        if self._ibkr_session is not None:
+            self._ibkr_session.set_watchlist_symbols([w.symbol for w in self._watchlist])
 
-    def _refresh_watchlist(self) -> None:
-        if not self._watchlist:
+    # ── yfinance fallback (active while DISCONNECTED) ─────────────────────────
+
+    def _run_yf_fallback(self) -> None:
+        """Fetch quotes for Market Watch + Watchlist via yfinance.
+
+        Runs on the 30 s fallback timer while ``connection_status`` is
+        ``DISCONNECTED``.  No-op while the persistent IBKR session is active.
+        """
+        if self._connection_status is ConnectionStatus.CONNECTED:
             return
-        symbols = [w.symbol for w in self._watchlist]
-        worker = _WatchlistQuoteWorker(symbols)
-        worker.done.connect(self._on_watchlist_data)
-        worker.start()
-        self._wl_worker = worker
+        symbols = [w.symbol for w in self._watch] + [w.symbol for w in self._watchlist]
+        if not symbols:
+            return
+        if self._yf_worker is not None and self._yf_worker.isRunning():
+            return
+        if self._yf_worker is not None:
+            try:
+                self._yf_worker.done.disconnect(self._on_yf_fallback_data)
+            except (TypeError, RuntimeError):
+                pass
+        self._yf_worker = _MarketWatchYfinanceWorker(symbols)
+        self._yf_worker.done.connect(self._on_yf_fallback_data)
+        self._yf_worker.start()
 
-    def _on_watchlist_data(self, results: list) -> None:
-        lookup = {r["symbol"]: r for r in results}
-        for item in self._watchlist:
-            if item.symbol in lookup:
-                d = lookup[item.symbol]
-                item.ltp        = d["ltp"]
-                item.prev_close = d["prev_close"]
-                item.change     = d["change"]
-                item.change_pct = d["change_pct"]
-                item.day_open   = d["day_open"]
-                item.day_high   = d["day_high"]
-                item.day_low    = d["day_low"]
-                item.volume     = d["volume"]
-                item.year_high  = d["year_high"]
-                item.year_low   = d["year_low"]
-                item.market_cap = d["market_cap"]
+    def _spawn_yf_one_shot(self, symbols: list[str]) -> None:
+        """Fire-and-forget yfinance fetch for a specific symbol subset.
+
+        Used for the index-symbol carve-out (``^GSPC`` / ``^IXIC`` / ``^DJI``)
+        that the IBKR session cannot serve regardless of connection state.
+        Coalesces back-to-back calls: while a prior one-shot is still running,
+        a new request is dropped (the indices change slowly enough that the
+        next tick from IBKRSession will re-trigger this path anyway).
+        """
+        if not symbols:
+            return
+        if self._yf_oneshot_worker is not None and self._yf_oneshot_worker.isRunning():
+            return
+        if self._yf_oneshot_worker is not None:
+            try:
+                self._yf_oneshot_worker.done.disconnect(self._on_yf_fallback_data)
+            except (TypeError, RuntimeError):
+                pass
+        self._yf_oneshot_worker = _MarketWatchYfinanceWorker(symbols)
+        self._yf_oneshot_worker.done.connect(self._on_yf_fallback_data)
+        self._yf_oneshot_worker.start()
+
+    def _on_yf_fallback_data(self, results: list[dict[str, Any]]) -> None:
+        """Apply yfinance results to Market Watch + Watchlist caches."""
+        lookup: dict[str, dict[str, Any]] = {r["symbol"]: r for r in results}
+        for mw_item in self._watch:
+            d = lookup.get(mw_item.symbol)
+            if d is None:
+                continue
+            mw_item.ltp        = d["ltp"]
+            mw_item.prev_close = d["prev_close"]
+            mw_item.change_pct = d["change_pct"]
+        for wl_item in self._watchlist:
+            d = lookup.get(wl_item.symbol)
+            if d is None:
+                continue
+            wl_item.ltp        = d["ltp"]
+            wl_item.prev_close = d["prev_close"]
+            wl_item.change     = d["change"]
+            wl_item.change_pct = d["change_pct"]
+            wl_item.day_open   = d["day_open"]
+            wl_item.day_high   = d["day_high"]
+            wl_item.day_low    = d["day_low"]
+            wl_item.volume     = d["volume"]
+            wl_item.year_high  = d["year_high"]
+            wl_item.year_low   = d["year_low"]
+            wl_item.market_cap = d["market_cap"]
+            self._wl_quotes[wl_item.symbol] = dict(d)
+        self.market_watch_updated.emit()
         self.watchlist_updated.emit()
 
     # ── Market status ─────────────────────────────────────────────────────────

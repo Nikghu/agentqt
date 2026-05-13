@@ -5,6 +5,10 @@ model: sonnet
 tools: [Read, Write, Edit, Bash, Grep, Glob]
 ---
 
+## Output Contract
+
+**Budget:** ≤120 words. Edits go into files via `Write`/`Edit`. Reply contents: one line per simplification applied (what / where), plus ruff/mypy delta. Skip: before/after code listings (the diff is in the file), narration of refactor rationale, restating reviewer findings.
+
 ## Triggers
 
 **Invoke when:** `pyqt-code-reviewer` verdict includes a complexity finding at MEDIUM or higher severity.

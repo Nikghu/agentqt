@@ -2,6 +2,22 @@
 
 ---
 
+## [20260513] GUI — Persistent IBKR Session replaces polling workers; push-based account/quote subscriptions
+
+- Type: Feature
+- FO(s): FO-GUI-012
+- Artifacts updated: FO, SRD, DD, MD, UTCD, TRACE, RN, Code, Tests
+- Decisions: Replaced 3 polling workers with 1 persistent IBKRSession (QThread + asyncio); account debounce 50 ms, tick coalesce 250 ms; exponential-backoff reconnect FSM with jitter; index filter (^-prefix) in _apply_symbol_delta; yfinance fallback only DISCONNECTED state + one-shot for indices; public signal signatures preserved byte-for-byte
+
+## [20260513] GUI — Applied market timezone from Settings to all TradingView chart panels
+
+- Type: Bugfix
+- FO(s): FO-GUI-011 (enhancement)
+- Artifacts updated: Code (3 files: chart_panel.py, execution_panel.py, screener_panel.py)
+- Decisions: Read market_timezone from AppService.get_system_config() at chart render time; inject into TradingView timeScale config for all 3 chart render sites
+
+---
+
 ## [20260513] EXE — Auto-update wiring + v1.1.0 release (GitHub release + assets)
 
 - Type: Chore

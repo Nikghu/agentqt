@@ -1,10 +1,10 @@
 # Unit Test Case Document — GUI Module (GUI)
 
 **Document ID:** UTCD-GUI
-**Version:** 1.1.0
-**Traces To:** MD-GUI v1.0.0
+**Version:** 1.2.0
+**Traces To:** MD-GUI v1.2.0
 **Status:** Draft
-**Last Updated:** 2026-03-16
+**Last Updated:** 2026-05-13
 **Project:** US Swing Trading System
 
 > Tests written BEFORE implementation per process.md §7.
@@ -92,3 +92,51 @@
 | UT-GUI-007.001.M01.T03 | MD-GUI-007.001.M01 | Unit | Level filter hides lower-priority entries | Buffer: 2 INFO + 1 WARNING; set level combo to WARNING | `_reapply_filter()` renders 1 visible entry | Implemented |
 | UT-GUI-007.001.M01.T04 | MD-GUI-007.001.M01 | Unit | Buffer evicts oldest entries when exceeding `MAX_LINES` | Push `MAX_LINES + 5` messages | `len(panel._buffer) == MAX_LINES` | Implemented |
 | UT-GUI-007.001.M01.T05 | MD-GUI-007.001.M01 | Unit | Pause halts display; Resume flushes buffered entries | Pause; emit 3 messages; Resume | After Resume `_line_count` increases by 3 | Implemented |
+
+---
+
+## Module: `gui/ibkr_session.py` — IBKRSession
+
+> Tests use a `FakeIB` double in `tests/gui/conftest.py` exposing the `ib_insync` event objects (`accountValueEvent`, `pendingTickersEvent`, `disconnectedEvent`) as plain Python `Event` shims, plus stubs for `connectAsync`, `disconnect`, `reqAccountUpdates`, `reqMktData`, `cancelMktData`, `accountValues`, `portfolio`. No live IBKR connection. Asyncio loop spun up via `pytest-asyncio`.
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-012.001.M01.T01 | MD-GUI-012.001.M01 | Positive | `start(host, port, client_id)` boots dedicated QThread, creates asyncio loop, calls `connectAsync` exactly once with the supplied client_id | `session.start("127.0.0.1", 4001, 1)` | `FakeIB.connect_calls == [("127.0.0.1", 4001, 1)]`; `session._session_thread.isRunning() is True` | Skip |
+| UT-GUI-012.001.M01.T02 | MD-GUI-012.001.M01 | Negative | Calling `start()` twice without intervening `stop()` is idempotent — no second thread/connection | `session.start(...)`; `session.start(...)` | `FakeIB.connect_calls.__len__() == 1`; only one `QThread` created | Skip |
+| UT-GUI-012.001.M01.T03 | MD-GUI-012.001.M01 | Positive | `stop()` cancels asyncio tasks, calls `ib.disconnect()`, joins thread within 3 s | After `start`, call `session.stop()` | `FakeIB.disconnect_called is True`; `session._session_thread.isFinished() is True` within 3000 ms | Skip |
+| UT-GUI-012.001.M01.T04 | MD-GUI-012.001.M01 | Edge | `stop()` returns cleanly even if asyncio loop is mid-`asyncio.sleep` in `_reconnect_loop` | Force session into reconnect state, then `stop()` | No `RuntimeError`; thread joins within 3 s; no orphan tasks reported by `asyncio.all_tasks()` | Skip |
+| UT-GUI-012.001.M01.T05 | MD-GUI-012.001.M01 | Positive | `accountValueEvent` fires → after 50 ms `account_ready` signal emits exactly once with built snapshot | Fire `accountValueEvent` 5× in 10 ms | After 100 ms, `account_ready` emission count == 1; payload `AccountState.equity` reflects last value | Pass |
+| UT-GUI-012.001.M01.T06 | MD-GUI-012.001.M01 | Positive | `pendingTickersEvent` fires → after 250 ms `quotes_updated` signal emits exactly once with combined row list | Fire `pendingTickersEvent` 3× in 50 ms with 2 symbols | After 350 ms, `quotes_updated` emission count == 1; payload has `len == 2` and `source=="ibkr"` for each | Pass |
+| UT-GUI-012.001.M01.T07 | MD-GUI-012.001.M01 | Positive | `set_market_watch_symbols(["AAPL","MSFT"])` triggers `reqMktData` for both, none cancelled | After `start`, call `set_market_watch_symbols(["AAPL","MSFT"])` | `FakeIB.req_calls == ["AAPL","MSFT"]`; `cancel_calls == []` | Pass |
+| UT-GUI-012.001.M01.T08 | MD-GUI-012.001.M01 | Positive | Mutating Market Watch symbols issues a delta only — overlapping symbols are not re-subscribed | After subscribing `["AAPL","MSFT"]`, call `set_market_watch_symbols(["AAPL","TSLA"])` | `FakeIB.req_calls == ["AAPL","MSFT","TSLA"]`; `cancel_calls == ["MSFT"]` | Pass |
+| UT-GUI-012.001.M01.T09 | MD-GUI-012.001.M01 | Negative | Index symbols (`^GSPC`, `^IXIC`, `^DJI`) are filtered out inside `_apply_symbol_delta` and never reach `reqMktData` | `set_market_watch_symbols(["^GSPC","AAPL"])` | `FakeIB.req_calls == ["AAPL"]`; `"^GSPC" not in session._tickers` | Pass |
+| UT-GUI-012.001.M01.T10 | MD-GUI-012.001.M01 | Positive | Union of MW and WL drives subscriptions; symbol in both remains subscribed when removed from one set | Set MW=`["AAPL","MSFT"]`, WL=`["AAPL","TSLA"]`; then MW=`["MSFT"]` | After second call: `cancel_calls == []`; `session._tickers.keys() == {"AAPL","MSFT","TSLA"}` | Pass |
+| UT-GUI-012.001.M01.T11 | MD-GUI-012.001.M01 | Positive | `ib.disconnectedEvent` fires → `connection_lost` emits and reconnect loop starts | Fire `disconnectedEvent` after successful `start` | Within 50 ms `connection_lost` emitted once; `session._reconnect_task is not None` | Pass |
+| UT-GUI-012.001.M01.T12 | MD-GUI-012.001.M01 | Positive | Reconnect loop on second attempt succeeds → resubscribes account + all tracked tickers; emits `connection_restored` | Disconnect once; let backoff fire; second `connectAsync` returns success | `connection_restored` emission count == 1; `reqAccountUpdates_calls.__len__() >= 2`; tickers resubscribed | Pass |
+| UT-GUI-012.001.M01.T13 | MD-GUI-012.001.M01 | Negative | After 10 consecutive failed reconnects, session emits final `connection_lost("Max reconnect attempts reached")` and stops its loop | Force `connectAsync` to always raise | Final `connection_lost` payload contains `"Max reconnect"`; `session._stopping is True`; loop stopped | Pass |
+| UT-GUI-012.001.M01.T14 | MD-GUI-012.001.M01 | Performance | Backoff sequence honours base 2 s, cap 30 s, ±20 % jitter | Force 4 failed attempts, capture sleep durations | Each captured delay ∈ `[base*0.8, base*1.2]`; sequence monotonic until cap; 5th attempt ≤ 36 s | Pass |
+| UT-GUI-012.001.M01.T15 | MD-GUI-012.001.M01 | Negative | Account event arriving AFTER `stop()` does NOT emit `account_ready` (SRD-GUI-012.004 robustness) | After `start`, call `stop`; once thread is finished, push `accountValueEvent` synchronously into the fake | `account_ready` emission count remains 0 post-stop; no `RuntimeError` raised | Pass |
+| UT-GUI-012.001.M01.T16 | MD-GUI-012.001.M01 | Negative | Re-applying the SAME symbol set is a no-op — no spurious `reqMktData` or `cancelMktData` calls (SRD-GUI-012.006 idempotence) | After subscribing `["AAPL","MSFT"]`, call `set_market_watch_symbols(["AAPL","MSFT"])` again | `FakeIB.req_calls` unchanged (length stays 2); `cancel_calls == []` | Pass |
+
+---
+
+## Module: `gui/app_service.py` — AppService Bridge (FO-GUI-012 deltas)
+
+> Uses `qtbot` + `FakeIBKRSession` (a `QObject` exposing the same four signals as `IBKRSession`) injected via `monkeypatch` on `app_service.IBKRSession`. No real `ib_insync`, no real network.
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-012.001.M02.T01 | MD-GUI-012.001.M02 | Positive | `_on_session_account_ready` emits `account_updated` and `positions_updated` exactly once each, with `_ibkr_acct` and `_ibkr_positions` updated | After `connect_feed`, fake-session emits `account_ready(acct, [p1,p2])` | `account_updated` emitted once; `positions_updated` emitted once; `svc._ibkr_acct is acct`; `svc._ibkr_positions == [p1,p2]` | Pass |
+| UT-GUI-012.001.M02.T02 | MD-GUI-012.001.M02 | Negative | `account_ready` emission delivered AFTER `disconnect_feed` does NOT re-populate `_ibkr_acct` or re-emit public signals | `connect_feed`; capture slot; `disconnect_feed`; manually invoke slot with stale args | `svc._ibkr_acct is None`; `account_updated` not emitted by the late slot call | Pass |
+| UT-GUI-012.001.M02.T03 | MD-GUI-012.001.M02 | Positive | `_on_session_quotes_updated` partitions rows into MW and WL by membership in `_watch` / `_watchlist` and emits both public signals | Emit `quotes_updated([{AAPL},{MSFT},{TSLA}])` with `_watch=[AAPL]`, `_watchlist=[MSFT,TSLA]` | `market_watch_updated` and `watchlist_updated` each emitted once; `_wl_quotes` has keys `{MSFT,TSLA}` | Pass |
+| UT-GUI-012.001.M02.T04 | MD-GUI-012.001.M02 | Edge | Index-symbol carve-out: `^`-prefixed Market Watch symbol missing from `quotes_updated` triggers a one-shot yfinance fetch | `_watch=[^GSPC,AAPL]`; emit `quotes_updated([{AAPL}])` | `_MarketWatchYfinanceWorker` spawned with `symbols == ["^GSPC"]` | Pass |
+| UT-GUI-012.001.M02.T05 | MD-GUI-012.001.M02 | Positive | `connect_feed` after TCP probe success instantiates `IBKRSession`, wires four signals, calls `start` with `system_cfg.ibkr_system_client_id` | Call `connect_feed`; `_ConnectWorker` reports success | `IBKRSession.start_calls == [("host","port", system_cfg.ibkr_system_client_id)]`; four slot connections present | Pass |
+| UT-GUI-012.001.M02.T06 | MD-GUI-012.001.M02 | Positive | `disconnect_feed` calls `IBKRSession.stop`, disconnects signals, releases reference, starts yfinance fallback timer | After connect, call `disconnect_feed` | `fake_session.stop_called is True`; `svc._ibkr_session is None`; `svc._yf_fallback_timer.isActive() is True` | Pass |
+| UT-GUI-012.001.M02.T07 | MD-GUI-012.001.M02 | Positive | `connection_lost(reason)` from session triggers `_set_status(RECONNECTING)` without dropping the session reference | Emit `connection_lost("socket closed")` from fake session | `svc.connection_status == ConnectionStatus.RECONNECTING`; `svc._ibkr_session is not None` | Pass |
+| UT-GUI-012.001.M02.T08 | MD-GUI-012.001.M02 | Positive | `connection_restored` from session triggers `_set_status(CONNECTED)` | Emit `connection_restored()` | `svc.connection_status == ConnectionStatus.CONNECTED`; `feed_status_changed` emitted with value `"connected"` | Pass |
+| UT-GUI-012.001.M02.T09 | MD-GUI-012.001.M02 | Positive | yfinance fallback worker runs ONLY when `DISCONNECTED`; `_yf_fallback_timer` is stopped while `CONNECTED` | Start CONNECTED → DISCONNECTED → CONNECTED | While DISCONNECTED: `_yf_fallback_timer.isActive() is True`; on re-connect: `_yf_fallback_timer.isActive() is False` | Pass |
+| UT-GUI-012.001.M02.T10 | MD-GUI-012.001.M02 | Positive | `set_market_watch_symbols` and `set_watchlist` forward to `IBKRSession` when CONNECTED | While connected, call `svc.set_market_watch_symbols(["AAPL"])` and `svc.set_watchlist([...])` | `fake_session.set_mw_calls[-1] == ["AAPL"]`; `set_wl_calls[-1] == [...]` | Pass |
+| UT-GUI-012.001.M02.T11 | MD-GUI-012.001.M02 | Negative | `set_market_watch_symbols` does NOT forward to `IBKRSession` when DISCONNECTED (no crash, no AttributeError) | While disconnected, call `svc.set_market_watch_symbols(["AAPL"])` | No exception; `fake_session.set_mw_calls == []`; `_watch` still updated | Pass |
+| UT-GUI-012.001.M02.T12 | MD-GUI-012.001.M02 | Negative | Deleted-identifier sweep: legacy classes/methods/fields are absent from `app_service.py` after refactor | Static grep over `app_service.py` source | Zero matches for `_AccountDataWorker`, `_MarketWatchWorker`, `_WatchlistQuoteWorker`, `_acct_timer`, `_watch_timer`, `_wl_timer`, `_refresh_account_data`, `_refresh_market_watch`, `_refresh_watchlist`, `_mw_log_on_next_fetch` | Pass |
+| UT-GUI-012.001.M02.T13 | MD-GUI-012.001.M02 | Negative | Removed clientId fields are absent from `SystemConfig` dataclass | Inspect `SystemConfig` fields via `dataclasses.fields()` | `"ibkr_mw_client_id" not in field_names`; `"ibkr_wl_client_id" not in field_names`; `"ibkr_system_client_id" in field_names` | Pass |
+| UT-GUI-012.001.M02.T14 | MD-GUI-012.001.M02 | Positive | Public AppService signal signatures remain unchanged (regression guard) | Reflect on `account_updated`, `positions_updated`, `market_watch_updated`, `watchlist_updated`, `feed_status_changed` | Each signal's `signal` attribute matches the pre-refactor reference signature captured in the test fixture | Pass |

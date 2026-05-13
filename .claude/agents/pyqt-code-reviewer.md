@@ -5,6 +5,10 @@ tools: ["Read", "Grep", "Glob", "Bash"]
 model: sonnet
 ---
 
+## Output Contract
+
+**Budget:** ≤150 words when verdict is `APPROVE`. When `BLOCK`, ≤80 words per CRITICAL/HIGH finding; omit MEDIUM/LOW unless the caller asks. Lead with the verdict on line 1. Skip: restating the prompt, severity tables when zero findings, "let me now…" preambles, citing line numbers for code that passed, exhaustive checklist verification reports.
+
 ## Triggers
 
 **Invoke when:** Any PyQt6 `.py` file has been written or modified.

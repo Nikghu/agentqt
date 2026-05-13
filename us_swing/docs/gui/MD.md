@@ -1,10 +1,10 @@
 # Module Decomposition — GUI Module (GUI)
 
 **Document ID:** MD-GUI
-**Version:** 1.1.0
-**Traces To:** SRD-GUI v2.4.0 / DD-GUI v1.3.0
+**Version:** 1.2.0
+**Traces To:** SRD-GUI v2.6.0 / DD-GUI v1.4.0
 **Status:** Draft
-**Last Updated:** 2026-04-09
+**Last Updated:** 2026-05-13
 **Project:** US Swing Trading System
 
 ---
@@ -23,6 +23,8 @@
 | MD-GUI-007.001.M01 | SRD-GUI-007.001–004 | `src/us_swing/gui/log_viewer_panel.py` | `LogViewerPanel(QWidget)` — streaming log display, level/module/symbol filters, error highlighting, buffer management | — (event-driven) | `logging`, `queue`, PyQt6 | No | Implemented |
 | MD-GUI-007.001.M02 | SRD-GUI-007.001 | `src/us_swing/gui/log_bridge.py` | `LogSignalEmitter(QObject)` — QueueHandler → Qt signal bridge for thread-safe log streaming | `new_log_entry` signal | `logging`, `queue`, PyQt6 | No | Implemented |
 | MD-GUI-011.001.M01 | SRD-GUI-011.001–004 | `src/us_swing/gui/chart_panel.py` | `CandleChartPanel(QWidget)` — "📈 Chart" nav tab; symbol/timeframe/bars toolbar; TradingView Lightweight Charts v5 candlestick + volume histogram via `QWebEngineView`; offline JS bundle with CDN fallback | `showEvent()` (auto-refresh) | `AppService`, `PyQt6.QtWebEngineWidgets`, `theme.C`, `json`, `pathlib` | No | Implemented |
+| MD-GUI-012.001.M01 | SRD-GUI-012.001–007, .011 | `src/us_swing/gui/ibkr_session.py` | `IBKRSession(QObject)` — owns one persistent `ib_insync.IB` instance on a dedicated `QThread` asyncio loop; subscribes `reqAccountUpdates` + `reqMktData`; debounces account events (50 ms) and coalesces tick events (250 ms); reconnect state machine with exponential backoff (2–30 s, ±20 % jitter, max 10 attempts); thread-safe `pyqtSignal` bridging to Qt main thread | Signals: `account_ready(AccountState, list[OpenPosition])`, `quotes_updated(list[dict])`, `connection_lost(str)`, `connection_restored()`. Methods: `start(host, port, client_id)`, `stop()`, `set_market_watch_symbols(list[str])`, `set_watchlist_symbols(list[str])` | `ib_insync`, `asyncio`, `PyQt6.QtCore`, `data/models.py` (`AccountState`, `OpenPosition`) | No | Draft |
+| MD-GUI-012.001.M02 | SRD-GUI-012.003, .008–.012 | `src/us_swing/gui/app_service.py` | AppService bridge — owns one `IBKRSession`, wires its signals to existing public `account_updated` / `positions_updated` / `market_watch_updated` / `watchlist_updated` / `feed_status_changed`; deletes legacy `_AccountDataWorker`, `_MarketWatchWorker`, `_WatchlistQuoteWorker`, their three `QTimer`s and refresh methods; adds `_MarketWatchYfinanceWorker(QThread)` used **only** when `DISCONNECTED` (30 s timer) plus index-symbol carve-out path | Bridge slots `_on_session_account_ready`, `_on_session_quotes_updated`, `_on_session_connection_lost`, `_on_session_connection_restored` (private). Public signal contract unchanged. | `gui/ibkr_session.py`, `yfinance`, `PyQt6.QtCore`, existing AppService deps | No | Draft |
 
 ---
 
@@ -42,4 +44,7 @@ gui/log_viewer_panel.py      ← log_bridge.py
 gui/log_bridge.py            ← logging, queue
 gui/chart_panel.py           ← app_service.py, theme.py, PyQt6.QtWebEngineWidgets,
                                 json, pathlib, resources/lightweight-charts.standalone.production.js
+gui/ibkr_session.py          ← ib_insync, asyncio, PyQt6.QtCore, data/models.py
+gui/app_service.py           ← ibkr_session.py (new), yfinance (fallback only),
+                                PyQt6.QtCore, existing deps
 ```

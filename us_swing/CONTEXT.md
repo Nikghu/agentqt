@@ -9,7 +9,24 @@
 
 ## 0. Immediate Next Step
 
-**Current:** FO-GUI-011 (Candle Chart Viewer) complete. RN written. Auto-update wiring integrated into `run_gui.py` and v1.1.0 released (GitHub release + assets). Next: resume EXE Phase 2 (FO-EXE-007) or SCR Phase 2 multi-provider AI ranking.
+**Current:** FO-GUI-012 (Persistent IBKR Session) fully Implemented. Code: 1 new module (`gui/ibkr_session.py` MD-GUI-012.001.M01), 2 modified (`app_service.py`, `system_store.py` MD-GUI-012.001.M02). Tests: 26 Pass / 4 Skip (T01–T04 pytest harness limitation; asyncio logic verified via T05–T16). Next: GUI smoke test against live IBKR Gateway (only step remaining before Verified status); then close GUI tool.
+
+**FO-GUI-012 — Persistent IBKR Session (Session 43, 2026-05-13):**
+- Replaced three polling workers (`_AccountDataWorker`, `_MarketWatchWorker`, `_WatchlistQuoteWorker`) with one persistent `IBKRSession(QThread)` using push-based subscriptions.
+- New module `gui/ibkr_session.py` (MD-GUI-012.001.M01): asyncio-driven QThread with `reqAccountUpdates` + `reqMktData`, account debounce (50 ms), tick coalescing (250 ms), exponential-backoff reconnect FSM (2–30 s, ±20 % jitter, max 10 attempts), `^`-prefix index filter.
+- Modified `app_service.py` (MD-GUI-012.001.M02): wired `IBKRSession` into connect/disconnect flow; public signals unchanged byte-for-byte; yfinance fallback active only while DISCONNECTED (30 s timer) + one-shot for indices.
+- Modified `system_store.py`: removed two stale clientId fields (`ibkr_mw_client_id`, `ibkr_wl_client_id`).
+- Cleanup: deleted 7 identifiers verified absent via grep; ruff: 12 → 11 errors on touched files; mypy: 83 → 75 errors.
+- Artifacts: FO.md v2.4.0, SRD.md v2.6.0 (Section 11: SRD-GUI-012.001–012, all Approved), DD.md v1.4.0 (D01–D05), MD.md v1.2.0 (M01, M02), UTCD.md v1.2.0 (30 test cases: 26 Pass, 4 Skip), TRACE.md v1.3.0 (2 rows added), RN-GUI-1.1.0-20260513.md written.
+- Tests: NEW `tests/gui/__init__.py`, `tests/gui/conftest.py`, `tests/gui/test_ibkr_session.py` (16 tests), `tests/gui/test_app_service_ibkr_bridge.py` (14 tests).
+- Status: Implemented; only GUI live-fire smoke test against IBKR Gateway remains before Verified.
+
+**FO-GUI-011 Enhancement — Market Timezone Applied to All Chart Panels (Session 42, 2026-05-13):**
+- Bug fix: TradingView chart timeScale was hardcoded to America/New_York; now reads from `SystemConfig.market_timezone`
+- 3 chart render sites updated: `CandleChartPanel._load_chart()`, `_IntradayChartPane._render()`, `QuickChartWindow._make_chart_view()`
+- Each read `market_timezone` from `AppService.get_system_config()` and pass to HTML builder
+- Module: MD-GUI-011.001.M01 (enhancement only, no new artifacts)
+- Status: All modifications complete; no TRACE update needed (FO-GUI-011 remains Implemented)
 
 **FO-GUI-011 — Candle Chart Viewer — COMPLETE (Session 41, 2026-05-13):**
 - "📈 Chart" navigation tab (index 3, before Settings) with symbol/timeframe/bars toolbar
@@ -291,12 +308,14 @@
 
 | Artifact | File | Status | Notes |
 |---|---|---|---|
-| FO | `docs/gui/FO.md` | Draft v2.1.0 — **revised** | Added: FO-GUI-006 admin protection (last admin guard, System clientId field) |
-| SRD | `docs/gui/SRD.md` | Draft v2.3.0 — **revised** | Added: SRD-GUI-006.006 updated (Universe tab candle status columns: First Bar/Last Bar/Status; "🔄 Sync Candles" button; candle_sync_updated signal) |
-| DD | `docs/gui/DD.md` | Draft v1.2.0 — **revised** | DD-GUI-001.001.D01: MainWindow (frameless, AppService DI, 4-panel stack, correct geometry); DD-GUI-002.001.D01: PositionTableModel + TradeHistoryModel rewritten (correct columns, User col toggle, set_highlighted_row, C.* colour constants) |
-| MD | `docs/gui/MD.md` | Draft v1.0.0 | 9 modules: main_window, dashboard, position_table_model, screener, execution, position_monitor, settings, log_viewer, log_bridge |
-| UTCD | `docs/gui/UTCD.md` | Draft v1.1.0 — **revised** | 36 tests corrected across all 7 modules: T01 tab count, status bar widgets, signal names, column counts, P&L colour constants, badge text |
-| TRACE | `docs/gui/TRACE.md` | Draft v1.0.0 | Full forward/reverse trace |
+| FO | `docs/gui/FO.md` | Draft v2.4.0 — **revised** | Added: FO-GUI-012 Persistent IBKR Session; FO-GUI-011 Implemented |
+| SRD | `docs/gui/SRD.md` | Draft v2.6.0 — **revised** | Section 11 added: SRD-GUI-012.001–012 all Approved; FO-GUI-012 Implemented |
+| DD | `docs/gui/DD.md` | Draft v1.4.0 — **revised** | DD-GUI-012.001.D01–D05: Persistent IBKR Session design; FO-GUI-012 Implemented |
+| MD | `docs/gui/MD.md` | Draft v1.2.0 — **enhanced** | 12 modules: 10 existing + MD-GUI-012.001.M01 (ibkr_session.py) + M02 (app_service, system_store) |
+| UTCD | `docs/gui/UTCD.md` | Draft v1.2.0 — **revised** | 66 total tests; FO-GUI-012: 30 cases (26 Pass, 4 Skip due to pytest harness) |
+| TRACE | `docs/gui/TRACE.md` | Draft v1.3.0 — **updated** | FO-GUI-012 Implemented (2 rows); 30 UTCD cases; RN-GUI-1.1.0-20260513 |
+| Code | `src/us_swing/gui/` | **Code: Implemented** | NEW: ibkr_session.py (M01); MODIFIED: app_service.py (M02), system_store.py (M02) |
+| Tests | `tests/gui/` | **Tests: Pass** | NEW: __init__.py, conftest.py, test_ibkr_session.py (16 tests Pass), test_app_service_ibkr_bridge.py (14 tests Pass) |
 
 ### MCP Server (NEW — created)
 

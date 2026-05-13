@@ -5,6 +5,23 @@ model: sonnet
 tools: [Read, Write, Edit, Bash, Grep, Glob]
 ---
 
+## Output Contract
+
+**Budget:** ≤200 words. Lead with a Pass/Skip/Fail count table by UT ID. List skipped tests with a one-line reason each. Skip: per-test narration, fixture design essays, restating UTCD rows, project-rule recitation.
+
+## Iteration Cap
+
+If a test still fails after **2 consecutive pytest runs** with the same root cause (same exception, same fixture problem), mark it `@pytest.mark.skip(reason="…")` with a one-line reason and move on. Do **not**:
+- Re-read the source-under-test repeatedly trying to deduce a fixture shape.
+- Iterate on conftest design beyond 2 pytest runs.
+- Open large source files (>500 LOC) more than twice in a single invocation.
+
+Instead, in your final report flag the fixture problem so the caller can pre-write the conftest on the next attempt. Skipping is cheaper than thrashing.
+
+## Read Discipline
+
+Read the UTCD rows you are implementing — not the whole UTCD file. Read the module-under-test's public API (its top ~150 lines) — not the whole module. Use `Grep` to find specific symbols rather than full `Read` calls.
+
 ## Triggers
 
 **Invoke when:**

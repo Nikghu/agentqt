@@ -5,6 +5,10 @@ tools: [Read, Grep, Glob, Bash, Edit, Write]
 model: sonnet
 ---
 
+## Output Contract
+
+**Budget:** ≤400 words of prose plus code skeletons. The skeletons may be longer if the design genuinely requires it. Skip: framing paragraphs ("Now I have enough to produce…", "Let me compile…"), restating the caller's locked decisions, generic PyQt background. If the caller asks for a "short blueprint" or "ADR summary," cap at ≤200 words.
+
 ## Triggers
 
 **Invoke when:**
