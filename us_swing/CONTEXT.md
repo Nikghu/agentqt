@@ -9,7 +9,18 @@
 
 ## 0. Immediate Next Step
 
-**Current:** FO-EXE-006 (Intraday Candle Loader Phase 1) complete. All 14 tests pass; code implemented; RN written. Next: FO-EXE-007 (Phase 2 — live 3 m candle formation) or resume SCR Phase 2 multi-provider AI ranking.
+**Current:** FO-GUI-011 (Candle Chart Viewer) complete. RN written. Next: resume EXE Phase 2 (FO-EXE-007) or SCR Phase 2 multi-provider AI ranking.
+
+**FO-GUI-011 — Candle Chart Viewer — COMPLETE (Session 41, 2026-05-13):**
+- "📈 Chart" navigation tab (index 3, before Settings) with symbol/timeframe/bars toolbar
+- TradingView Lightweight Charts v5 candlestick + volume histogram (80px) via QWebEngineView
+- Symbol dropdown auto-populated from candles.db; auto-refreshes on tab show
+- Supports 1d and 1w timeframes; bar-count limit 20–2000 (default 500)
+- Auto-reload on timeframe/bars parameter change when chart loaded
+- OHLCV crosshair tooltip in header on hover; placeholder state when no data
+- Offline JS bundle from `gui/resources/lightweight-charts.standalone.production.js` with CDN fallback
+- Files: 1 new source (`gui/chart_panel.py` MD-GUI-011.001.M01), 1 RN (RN-GUI-1.0.0-20260513)
+- Status: Implementation complete, RN-GUI-1.0.0-20260513 written; all SRD-GUI-011 requirements Implemented
 
 **FO-EXE-006 — Intraday Candle Loader Phase 1 — COMPLETE (Session 40, 2026-05-06):**
 - `IntradayCandleLoader(QThread)` delta-fetches 1 m IBKR bars for screened stock list, validates ≥ 390 candles per timeframe (3 m, 5 m, 1 h), persists via `DatabaseManager`
