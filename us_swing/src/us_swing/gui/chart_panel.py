@@ -42,6 +42,7 @@ def _build_html(
     symbol: str,
     timeframe: str,
     show_reset_menu: bool = False,
+    timezone: str = "America/New_York",
 ) -> str:
     """Return a self-contained HTML page with a TradingView Lightweight Chart."""
     candle_json = json.dumps(candle_data)
@@ -246,6 +247,7 @@ def _build_html(
       borderColor: '{C.OVERLAY}',
       timeVisible: true,
       secondsVisible: false,
+      timezone: '{timezone}',
     }},
     watermark: {{
       visible: true,
@@ -285,6 +287,7 @@ def _build_html(
     timeScale: {{
       borderColor: '{C.OVERLAY}',
       visible: false,
+      timezone: '{timezone}',
     }},
     handleScroll: false,
     handleScale: false,
@@ -680,7 +683,8 @@ class CandleChartPanel(QWidget):
             for c in candles
         ]
 
-        html = _build_html(candles, volume_data, symbol, timeframe)
+        tz = self._svc.get_system_config().market_timezone
+        html = _build_html(candles, volume_data, symbol, timeframe, timezone=tz)
         self._web.setHtml(html, QUrl("about:blank"))
         self._current_symbol = symbol
         self._current_tf = timeframe

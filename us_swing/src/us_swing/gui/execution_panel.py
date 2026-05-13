@@ -124,7 +124,8 @@ class _IntradayChartPane(QWidget):
         """Full page load — only called when the selected symbol changes."""
         candles = self._svc.get_intraday_candles_for_symbol(symbol, tf)
         volume_data = self._to_volume_data(candles)
-        web.setHtml(_build_chart_html(candles, volume_data, symbol, tf, show_reset_menu=True), QUrl("about:blank"))
+        tz = self._svc.get_system_config().market_timezone
+        web.setHtml(_build_chart_html(candles, volume_data, symbol, tf, show_reset_menu=True, timezone=tz), QUrl("about:blank"))
 
     def _update_data(self, tf: str, web: QWebEngineView, symbol: str) -> None:
         """Inject updated candle data into the live chart page via JS."""
