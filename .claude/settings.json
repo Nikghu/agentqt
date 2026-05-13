@@ -2,6 +2,7 @@
   "permissions": {
     "allow": [
       "Read(us_swing/src/us_swing/**/MODULE_MAP.json)",
+      "Read(VOYAGE_API_KEY)",
       "Bash(python*)",
       "Bash(pytest*)",
       "Bash(ruff*)",
@@ -20,7 +21,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell -NonInteractive -File .claude/hooks/agent-banner.ps1"
+            "command": "powershell -ExecutionPolicy Bypass -NonInteractive -File .claude/hooks/agent-banner.ps1"
           }
         ]
       },
@@ -48,6 +49,11 @@
             "type": "command",
             "command": "python .claude/hooks/refresh_skeleton.py 2>/dev/null || true",
             "statusMessage": "Refreshing skeleton cache..."
+          },
+          {
+            "type": "command",
+            "command": "python .claude/hooks/embed_devlog.py 2>/dev/null || true",
+            "statusMessage": "Syncing DEVLOG embeddings..."
           }
         ]
       }
@@ -59,6 +65,11 @@
             "type": "command",
             "command": "python .claude/hooks/review_reminder.py",
             "statusMessage": "Checking for pending reviews..."
+          },
+          {
+            "type": "command",
+            "command": "echo '{\"systemMessage\":\"📋 Session-finalizer reminder: Before ending, call the session-finalizer agent to sync TRACE.md, update CONTEXT.md §0, and prepend DEVLOG entries. Use: /project:resume or manually call the session-finalizer agent.\"}'",
+            "statusMessage": "Session-finalizer reminder"
           }
         ]
       }
