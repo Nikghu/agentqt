@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-07T12:18:58",
+  "generated": "2026-05-14T17:40:53",
   "subfolder": "execution",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\execution",
   "tool_code": "EXE",
@@ -17,8 +17,8 @@
             "ok: bool",
             "reason: str"
           ],
-          "line_start": 30,
-          "line_end": 35
+          "line_start": 31,
+          "line_end": 36
         },
         {
           "name": "SymbolReadiness",
@@ -30,8 +30,8 @@
             "last_1m_bar: datetime | None",
             "ready: bool"
           ],
-          "line_start": 39,
-          "line_end": 46
+          "line_start": 40,
+          "line_end": 47
         },
         {
           "name": "IntradayCandleLoader",
@@ -39,91 +39,91 @@
           "methods": [
             {
               "name": "__init__",
-              "signature": "def __init__(\n        self,\n        symbols: list[str],\n        ibkr_host: str,\n        ibkr_port: int,\n        ibkr_client_id: int,\n        db: DatabaseManager,\n        hist_engine: HistoricalDataEngine,\n        min_candles: int = _MIN_CANDLES,\n        full_fetch_cal_days: int = _FULL_FETCH_CAL_DAYS,\n        parent: QObject | None = None,\n    ) -> None",
-              "line_start": 71,
-              "line_end": 91
+              "signature": "def __init__(\r\n        self,\r\n        symbols: list[str],\r\n        ibkr_host: str,\r\n        ibkr_port: int,\r\n        ibkr_client_id: int,\r\n        db: DatabaseManager,\r\n        hist_engine: HistoricalDataEngine,\r\n        min_candles: int = _MIN_CANDLES,\r\n        full_fetch_cal_days: int = _FULL_FETCH_CAL_DAYS,\r\n        parent: QObject | None = None,\r\n    ) -> None",
+              "line_start": 72,
+              "line_end": 92
             },
             {
               "name": "run",
               "signature": "def run(self) -> None",
               "docstring": "QThread entry: run the async fetch loop in a fresh event loop.",
-              "line_start": 95,
-              "line_end": 104
+              "line_start": 96,
+              "line_end": 105
             },
             {
               "name": "_async_run",
               "signature": "def _async_run(self) -> None",
-              "line_start": 108,
-              "line_end": 165
+              "line_start": 109,
+              "line_end": 212
             },
             {
               "name": "_run_yfinance_fallback",
               "signature": "def _run_yfinance_fallback(self) -> None",
               "docstring": "Fetch 1m bars via yfinance when IBKR is unavailable (dev / offline mode).",
-              "line_start": 167,
-              "line_end": 209
+              "line_start": 214,
+              "line_end": 256
             },
             {
               "name": "_fetch_symbol_async",
-              "signature": "def _fetch_symbol_async(\n        self, ib: Any, pacing: PacingQueue, symbol: str\n    ) -> None",
+              "signature": "def _fetch_symbol_async(\r\n        self, ib: Any, pacing: PacingQueue, symbol: str\r\n    ) -> None",
               "docstring": "Delta-fetch 1 m bars for *symbol*. Pages when the window > 30 calendar days.",
-              "line_start": 211,
-              "line_end": 244
+              "line_start": 258,
+              "line_end": 291
             },
             {
               "name": "_fetch_paged_async",
-              "signature": "def _fetch_paged_async(\n        self,\n        ib: Any,\n        pacing: PacingQueue,\n        symbol: str,\n        end: datetime,\n        total_cal_days: int,\n    ) -> None",
+              "signature": "def _fetch_paged_async(\r\n        self,\r\n        ib: Any,\r\n        pacing: PacingQueue,\r\n        symbol: str,\r\n        end: datetime,\r\n        total_cal_days: int,\r\n    ) -> None",
               "docstring": "Fetch 1 m bars in \u2264 30-calendar-day pages (IBKR limit), newest-first.",
-              "line_start": 246,
-              "line_end": 268
+              "line_start": 293,
+              "line_end": 315
             },
             {
               "name": "_request_1m_bars",
-              "signature": "def _request_1m_bars(\n        self,\n        ib: Any,\n        pacing: PacingQueue,\n        symbol: str,\n        end_dt: datetime,\n        duration_days: int,\n    ) -> list[OHLCVBar]",
+              "signature": "def _request_1m_bars(\r\n        self,\r\n        ib: Any,\r\n        pacing: PacingQueue,\r\n        symbol: str,\r\n        end_dt: datetime,\r\n        duration_days: int,\r\n    ) -> list[OHLCVBar]",
               "docstring": "Issue one IBKR 1 m-bar request through the pacing queue.",
-              "line_start": 270,
-              "line_end": 292
+              "line_start": 317,
+              "line_end": 339
             },
             {
               "name": "_fetch_symbol_yfinance",
               "signature": "def _fetch_symbol_yfinance(self, symbol: str) -> None",
               "docstring": "Delta-fetch 1 m bars from yfinance (max 7 calendar days lookback).",
-              "line_start": 296,
-              "line_end": 344
+              "line_start": 343,
+              "line_end": 391
             },
             {
               "name": "_validate_candle_counts",
-              "signature": "def _validate_candle_counts(\n        self,\n        symbol: str,\n        timeframes: tuple[DerivedTimeframe, ...] = _REQUIRED_TIMEFRAMES,\n    ) -> CandleLoadResult",
+              "signature": "def _validate_candle_counts(\r\n        self,\r\n        symbol: str,\r\n        timeframes: tuple[DerivedTimeframe, ...] = _REQUIRED_TIMEFRAMES,\r\n    ) -> CandleLoadResult",
               "docstring": "Aggregate timeframes (default: 3m, 15m) and verify each has \u2265 min_candles bars.",
-              "line_start": 346,
-              "line_end": 374
+              "line_start": 393,
+              "line_end": 421
             },
             {
               "name": "get_readiness_report",
-              "signature": "def get_readiness_report(\n        self,\n        symbols: list[str],\n        min_candles: int = _MIN_CANDLES,\n    ) -> dict[str, SymbolReadiness]",
+              "signature": "def get_readiness_report(\r\n        self,\r\n        symbols: list[str],\r\n        min_candles: int = _MIN_CANDLES,\r\n    ) -> dict[str, SymbolReadiness]",
               "docstring": "Return a per-symbol readiness dict without triggering any fetches.",
-              "line_start": 376,
-              "line_end": 387
+              "line_start": 423,
+              "line_end": 434
             }
           ],
-          "line_start": 49,
-          "line_end": 387
+          "line_start": 50,
+          "line_end": 434
         }
       ],
       "top_level_functions": [
         {
           "name": "check_candle_readiness",
-          "signature": "def check_candle_readiness(\n    symbols: list[str],\n    db: DatabaseManager,\n    hist_engine: HistoricalDataEngine,\n    min_candles: int = _MIN_CANDLES,\n    full_fetch_cal_days: int = _FULL_FETCH_CAL_DAYS,\n) -> dict[str, SymbolReadiness]",
+          "signature": "def check_candle_readiness(\r\n    symbols: list[str],\r\n    db: DatabaseManager,\r\n    hist_engine: HistoricalDataEngine,\r\n    min_candles: int = _MIN_CANDLES,\r\n    full_fetch_cal_days: int = _FULL_FETCH_CAL_DAYS,\r\n) -> dict[str, SymbolReadiness]",
           "docstring": "Pure DB-read readiness check \u2014 safe to call from any thread.",
-          "line_start": 393,
-          "line_end": 438
+          "line_start": 440,
+          "line_end": 485
         },
         {
           "name": "_raw_bar_to_ohlcv",
           "signature": "def _raw_bar_to_ohlcv(symbol: str, b: Any) -> OHLCVBar",
           "docstring": "Convert an ib_insync BarData object to :class:`OHLCVBar`.",
-          "line_start": 441,
-          "line_end": 468
+          "line_start": 488,
+          "line_end": 515
         }
       ],
       "constants": [
@@ -131,7 +131,8 @@
         "_IBKR_MAX_CAL_DAYS_PER_PAGE: int = 30",
         "_FULL_FETCH_CAL_DAYS: int = 30",
         "_REQUIRED_TIMEFRAMES: tuple[DerivedTimeframe, ...] = (\"3m\", \"15m\")",
-        "_SYMBOL_PAUSE_S: float = 0.3"
+        "_SYMBOL_PAUSE_S: float = 0.3",
+        "_MAX_CLIENT_ID_RETRIES: int = 5"
       ]
     }
   }

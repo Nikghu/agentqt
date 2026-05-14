@@ -1,6 +1,6 @@
 """
 Module: MD-EXE-006.001.M01 — execution/intraday_candle_loader.py
-Parent SRD: SRD-EXE-006.001  # covers SRD-EXE-006.001–006.006
+Parent SRD: SRD-EXE-006.001  # covers SRD-EXE-006.001–006.006, SRD-EXE-006.010
 """
 from __future__ import annotations
 
@@ -24,6 +24,7 @@ _IBKR_MAX_CAL_DAYS_PER_PAGE: int = 30
 _FULL_FETCH_CAL_DAYS: int = 30  # 21 trading days ≈ 30 calendar days; fits one IBKR page
 _REQUIRED_TIMEFRAMES: tuple[DerivedTimeframe, ...] = ("3m", "15m")
 _SYMBOL_PAUSE_S: float = 0.3
+_MAX_CLIENT_ID_RETRIES: int = 5  # SRD-EXE-006.011
 
 
 @dataclass
@@ -120,16 +121,43 @@ class IntradayCandleLoader(QThread):
             "[Candles] Connecting to IBKR at %s:%d …",
             self._ibkr_host, self._ibkr_port,
         )
-        try:
-            await ib.connectAsync(
-                self._ibkr_host,
-                self._ibkr_port,
-                clientId=self._ibkr_client_id,
-                timeout=10,
-            )
-        except Exception as exc:  # noqa: BLE001
+
+        client_id = self._ibkr_client_id
+        _connect_exc: Exception | None = None
+        for attempt in range(_MAX_CLIENT_ID_RETRIES + 1):
+            _saw_326: list[bool] = [False]
+
+            def _on_connect_error(req_id: int, error_code: int, *_: Any) -> None:
+                if error_code == 326:
+                    _saw_326[0] = True
+
+            ib.errorEvent += _on_connect_error  # type: ignore[operator]
+            try:
+                await ib.connectAsync(
+                    self._ibkr_host,
+                    self._ibkr_port,
+                    clientId=client_id,
+                    timeout=10,
+                )
+                _connect_exc = None
+                break
+            except Exception as exc:  # noqa: BLE001
+                _connect_exc = exc
+                if _saw_326[0] and attempt < _MAX_CLIENT_ID_RETRIES:
+                    log.info(
+                        "[Candles] Client ID %d already in use — trying ID %d",
+                        client_id, client_id + 1,
+                    )
+                    client_id += 1
+                else:
+                    break
+            finally:
+                ib.errorEvent -= _on_connect_error  # type: ignore[operator]
+
+        if _connect_exc is not None:
             log.warning(
-                "[Candles] IBKR connection failed (%s) — switching to Yahoo Finance", exc,
+                "[Candles] IBKR connection failed (%s) — switching to Yahoo Finance",
+                _connect_exc,
             )
             await self._run_yfinance_fallback()
             return
@@ -141,11 +169,29 @@ class IntradayCandleLoader(QThread):
         results: list[CandleLoadResult] = []
         total = len(self._symbols)
 
+        # Capture IBKR error codes per symbol (symbols are processed sequentially).
+        # errorEvent fires asynchronously within the await; the list is checked after
+        # each reqHistoricalDataAsync call returns to detect Error 200 before validation.
+        _ibkr_errors: list[int] = []
+
+        def _on_ib_error(req_id: int, error_code: int, *_: Any) -> None:
+            _ibkr_errors.append(error_code)
+
+        ib.errorEvent += _on_ib_error  # type: ignore[operator]
         try:
             for i, symbol in enumerate(self._symbols):
+                del _ibkr_errors[:]
                 try:
                     await self._fetch_symbol_async(ib, pacing, symbol)
-                    result = self._validate_candle_counts(symbol)
+                    if 200 in _ibkr_errors:
+                        log.info(
+                            "[Candles] %s is not available on US exchanges — skipped", symbol,
+                        )
+                        result = CandleLoadResult(
+                            symbol=symbol, ok=False, reason="EXCHANGE_UNAVAILABLE"
+                        )
+                    else:
+                        result = self._validate_candle_counts(symbol)
                 except Exception as exc:  # noqa: BLE001
                     result = CandleLoadResult(symbol=symbol, ok=False, reason=repr(exc))
                     log.warning("[Candles] Failed to fetch %s: %s", symbol, exc)
@@ -159,6 +205,7 @@ class IntradayCandleLoader(QThread):
             # Emit before disconnect so load_complete always fires exactly once.
             self.load_complete.emit(results)
         finally:
+            ib.errorEvent -= _on_ib_error  # type: ignore[operator]
             try:
                 ib.disconnect()  # type: ignore[no-untyped-call]
             except Exception:  # noqa: BLE001
