@@ -1,10 +1,10 @@
 # Module Decomposition — GUI Module (GUI)
 
 **Document ID:** MD-GUI
-**Version:** 1.1.0
-**Traces To:** SRD-GUI v2.4.0 / DD-GUI v1.3.0
+**Version:** 1.2.0
+**Traces To:** SRD-GUI v2.6.0 / DD-GUI v1.3.0
 **Status:** Draft
-**Last Updated:** 2026-04-09
+**Last Updated:** 2026-05-14
 **Project:** US Swing Trading System
 
 ---
@@ -18,6 +18,7 @@
 | MD-GUI-002.001.M02 | SRD-GUI-002.001–002 | `src/us_swing/gui/position_table_model.py` | `PositionTableModel(QAbstractTableModel)` — data model for position table with colour-coded P&L and state | `refresh()`, `data()`, `rowCount()`, `columnCount()` | `execution/position_tracker.py`, PyQt6 | No | Implemented |
 | MD-GUI-003.001.M01 | SRD-GUI-003.001–005 | `src/us_swing/gui/screener_panel.py` | `ScreenerPanel(QWidget)` — filter toggles, parameter controls, run button, results table, add-to-watchlist | — (event-driven) | `screener/engine.py`, `screener/config.py`, `user/manager.py`, PyQt6 | No | Approved |
 | MD-GUI-004.001.M01 | SRD-GUI-004.001–006 | `src/us_swing/gui/execution_panel.py` | `ExecutionPanel(QWidget)` — entry rows with override qty, execute button, paper/live toggle, exit controls, circuit breaker banner | — (event-driven) | `execution/execution_router.py`, `execution/risk_manager.py`, `execution/position_tracker.py`, `user/manager.py`, PyQt6 | No | Implemented |
+| MD-GUI-004.001.M02 | SRD-GUI-004.009 | `src/us_swing/gui/app_service.py` | `_IBKRLiveSession(QThread)` — persistent IBKR market-data session; owns IB() in a dedicated asyncio event loop; `subscribe_symbols` / `unsubscribe_symbols` are thread-safe via `run_coroutine_threadsafe`; emits `price_tick(symbol, price)` per tick; auto-reconnects with exponential backoff | `subscribe_symbols(set[str])`, `unsubscribe_symbols(set[str])`, `request_stop()`, `price_tick` signal | `ib_insync`, `asyncio`, PyQt6 | No | Implemented |
 | MD-GUI-005.001.M01 | SRD-GUI-005.001–004 | `src/us_swing/gui/position_monitor_panel.py` | `PositionMonitorPanel(QWidget)` — carry-over positions, state colour coding, capital indicator, can-enter badge | `refresh()` | `execution/position_tracker.py`, `execution/risk_manager.py`, PyQt6 | No | Implemented |
 | MD-GUI-006.001.M01 | SRD-GUI-006.001–005 | `src/us_swing/gui/settings_panel.py` | `SettingsPanel(QWidget)` — sub-tabs for Users, Risk, Strategies, Screeners, System config | — (event-driven) | `user/manager.py`, `config/settings.py`, `db/manager.py`, PyQt6 | No | Implemented |
 | MD-GUI-007.001.M01 | SRD-GUI-007.001–004 | `src/us_swing/gui/log_viewer_panel.py` | `LogViewerPanel(QWidget)` — streaming log display, level/module/symbol filters, error highlighting, buffer management | — (event-driven) | `logging`, `queue`, PyQt6 | No | Implemented |

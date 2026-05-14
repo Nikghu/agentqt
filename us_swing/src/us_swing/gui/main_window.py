@@ -709,6 +709,7 @@ class MainWindow(QMainWindow):
         if worker is not None and hasattr(worker, "isRunning") and worker.isRunning():  # type: ignore[union-attr]
             worker.quit()   # type: ignore[union-attr]
             worker.wait(6000)  # type: ignore[union-attr]
+        self._demo.shutdown()
         settings = QSettings("USSwing", "MainWindow")
         settings.setValue("geometry", self.saveGeometry())
         super().closeEvent(event)  # type: ignore[arg-type]

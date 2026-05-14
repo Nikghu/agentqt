@@ -1,5 +1,5 @@
-"""Module: MD-GUI-000.002 — app_service.py
-Parent SRD: SRD-GUI-000.001, SRD-GUI-008.001–SRD-GUI-008.004,
+"""Module: MD-GUI-000.002, MD-GUI-004.001.M02 — app_service.py
+Parent SRD: SRD-GUI-000.001, SRD-GUI-004.009, SRD-GUI-008.001–SRD-GUI-008.004,
             SRD-GUI-006.011–SRD-GUI-006.014
 
 Application service — single source of truth for GUI state.
@@ -13,6 +13,16 @@ real data from the connected account.
 
 Execution is permanently disabled at the tool level — no orders are sent to
 IBKR regardless of the connected account type (live or paper).
+
+Live position price streaming
+──────────────────────────────
+``_IBKRLiveSession`` owns a persistent ``IB()`` instance in a dedicated
+QThread / asyncio event loop.  On each ``pendingTickersEvent`` it emits
+``price_tick(symbol, price)`` which ``_on_live_price`` uses to update
+``current_price`` on all matching open positions (IBKR + paper) and emit
+``positions_updated``.  Subscriptions are synced on every account-data
+refresh via ``_sync_live_subscriptions``.  The session auto-reconnects on
+disconnect with exponential back-off (1 s → 30 s cap).
 
 Paper trading (algo-side simulation)
 ─────────────────────────────────────
@@ -56,6 +66,7 @@ import json
 import logging
 import sqlite3
 import socket
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -346,6 +357,178 @@ class _WatchlistQuoteWorker(QThread):
             self.done.emit(results)
         except Exception:
             self.done.emit([])
+
+
+class _IBKRLiveSession(QThread):
+    """Persistent IBKR connection for streaming live market-data ticks.
+
+    Owns a single long-lived IB() in a dedicated asyncio event loop so the
+    Qt main thread is never blocked.  Reconnects automatically on disconnect
+    with exponential back-off (1 s → 30 s cap).
+
+    Thread-safety:
+    - ``_stop_event`` is a ``threading.Event`` — safe to set from any thread.
+    - ``request_stop`` also calls ``loop.call_soon_threadsafe(loop.stop)`` to
+      interrupt any in-progress ``connectAsync`` immediately rather than waiting
+      for the 0.2 s poll boundary.
+    - ``subscribe_symbols`` / ``unsubscribe_symbols`` post coroutines into the
+      running loop via ``asyncio.run_coroutine_threadsafe``.
+    - ``price_tick`` / ``session_connected`` are cross-thread Qt signals —
+      PyQt6 marshals them to the main thread automatically.
+    """
+
+    price_tick        = pyqtSignal(str, float)  # (symbol, last_price)
+    session_connected    = pyqtSignal()
+    session_disconnected = pyqtSignal()
+
+    _MAX_BACKOFF = 30.0
+
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        client_id: int,
+        parent: QObject | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self._host       = host
+        self._port       = port
+        self._client_id  = client_id
+        self._stop_event = threading.Event()
+        self._loop: asyncio.AbstractEventLoop | None = None
+        self._ib: Any = None              # ib_insync.IB — set inside run()
+        self._ticker_map: dict[str, Any] = {}  # symbol → ib_insync.Ticker
+        self._dead_symbols: set[str] = set()   # symbols that returned Error 200 — never re-subscribed
+
+    # ── Public API — safe to call from the Qt main thread ────────────────────
+
+    def request_stop(self) -> None:
+        self._stop_event.set()
+        loop = self._loop
+        if loop and loop.is_running():
+            loop.call_soon_threadsafe(loop.stop)
+
+    def subscribe_symbols(self, symbols: set[str]) -> None:
+        loop = self._loop
+        if loop and loop.is_running():
+            asyncio.run_coroutine_threadsafe(
+                self._do_subscribe(frozenset(symbols)), loop
+            )
+
+    def unsubscribe_symbols(self, symbols: set[str]) -> None:
+        loop = self._loop
+        if loop and loop.is_running():
+            asyncio.run_coroutine_threadsafe(
+                self._do_unsubscribe(frozenset(symbols)), loop
+            )
+
+    # ── QThread entry point ───────────────────────────────────────────────────
+
+    def run(self) -> None:
+        self._loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self._loop)
+        try:
+            self._loop.run_until_complete(self._main())
+        except RuntimeError:
+            pass  # loop.stop() called from request_stop() during connectAsync
+        finally:
+            self._loop.close()
+            asyncio.set_event_loop(None)
+            self._loop = None
+
+    # ── Internal async machinery ──────────────────────────────────────────────
+
+    async def _main(self) -> None:
+        try:
+            from ib_insync import IB  # type: ignore[import]
+        except ImportError:
+            _log.warning("[Feed] ib_insync not installed — live price streaming unavailable")
+            return
+
+        self._ib = IB()
+        backoff = 1.0
+
+        while not self._stop_event.is_set():
+            try:
+                await self._ib.connectAsync(
+                    self._host, self._port,
+                    clientId=self._client_id, timeout=10,
+                )
+                backoff = 1.0
+                self._ib.pendingTickersEvent += self._on_pending_tickers
+                self._ib.errorEvent += self._on_mkt_error  # type: ignore[operator]
+                self.session_connected.emit()
+
+                while self._ib.isConnected() and not self._stop_event.is_set():
+                    await asyncio.sleep(0.2)
+
+                self._ib.pendingTickersEvent -= self._on_pending_tickers
+                self._ib.errorEvent -= self._on_mkt_error  # type: ignore[operator]
+                self._ticker_map.clear()
+                self.session_disconnected.emit()
+
+            except Exception:
+                self.session_disconnected.emit()
+
+            if self._stop_event.is_set():
+                break
+            await asyncio.sleep(backoff)
+            backoff = min(backoff * 2, self._MAX_BACKOFF)
+
+        if self._ib and self._ib.isConnected():
+            self._ib.disconnect()
+
+    def _on_pending_tickers(self, tickers: Any) -> None:
+        # Called on the asyncio event-loop thread (not the Qt main thread).
+        # Only emit the cross-thread signal here — do not access Qt objects directly.
+        for ticker in tickers:
+            contract = getattr(ticker, "contract", None)
+            if contract is None:
+                continue
+            sym = getattr(contract, "symbol", None)
+            if not sym:
+                continue
+            price = getattr(ticker, "last", None)
+            if price and price > 0:
+                self.price_tick.emit(sym, float(price))
+
+    def _on_mkt_error(self, req_id: int, error_code: int, *_: Any) -> None:
+        # Called on the asyncio event-loop thread. Safe to mutate _ticker_map here.
+        if error_code != 200:
+            return
+        sym = next(
+            (s for s, t in list(self._ticker_map.items()) if getattr(t, "reqId", -1) == req_id),
+            None,
+        )
+        if sym is None:
+            return
+        _log.info("[Feed] %s is not available on US exchanges — price streaming skipped", sym)
+        ticker = self._ticker_map.pop(sym, None)
+        if ticker is not None:
+            contract = getattr(ticker, "contract", None)
+            if contract is not None and self._ib:
+                self._ib.cancelMktData(contract)
+        self._dead_symbols.add(sym)
+
+    async def _do_subscribe(self, symbols: frozenset[str]) -> None:
+        if not self._ib or not self._ib.isConnected():
+            return
+        try:
+            from ib_insync import Stock  # type: ignore[import]
+        except ImportError:
+            return
+        for sym in symbols - set(self._ticker_map) - self._dead_symbols:
+            contract = Stock(sym, "SMART", "USD")
+            self._ticker_map[sym] = self._ib.reqMktData(contract, "", False, False)
+
+    async def _do_unsubscribe(self, symbols: frozenset[str]) -> None:
+        if not self._ib or not self._ib.isConnected():
+            return
+        for sym in list(symbols & set(self._ticker_map)):
+            ticker = self._ticker_map.pop(sym)
+            contract = getattr(ticker, "contract", None)
+            if contract is not None:
+                self._ib.cancelMktData(contract)
 
 
 class _Sp500RefreshWorker(QThread):
@@ -940,6 +1123,7 @@ class AppService(QObject):
     screener_results_updated  = pyqtSignal(list)           # list[FilteredStockEntry]
     intraday_load_progress    = pyqtSignal(str, int, int)  # symbol, done, total
     candle_readiness_updated  = pyqtSignal(dict)           # dict[str, bool | None]
+    exchange_unavail_updated  = pyqtSignal(object)         # set[str]
 
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
@@ -949,6 +1133,7 @@ class AppService(QObject):
         self._scr_results: list[ScreenerResult] = []
         self._signals:     list[TradeSignal]   = []
         self._current_failed: list[str]        = []  # per-download failure accumulator
+        self._exchange_unavailable_symbols: set[str] = set()
 
         users = load_users()
         if not users:
@@ -987,8 +1172,17 @@ class AppService(QObject):
         self._watchlist: list[WatchlistItem] = []
         self._wl_worker: _WatchlistQuoteWorker | None = None
         self._wl_timer = QTimer(self)
-        self._wl_timer.setInterval(30_000)      # refresh every 30 s when connected
+        self._wl_timer.setInterval(30_000)      # refresh every 30 s (yfinance, internet-only)
         self._wl_timer.timeout.connect(self._refresh_watchlist)
+
+        # ── IBKR live market-data streaming session ──────────────────────────
+        self._live_session: _IBKRLiveSession | None = None
+        self._subscribed_symbols: set[str] = set()
+        self._pending_prices: dict[str, float] = {}
+        self._price_flush_timer = QTimer(self)
+        self._price_flush_timer.setInterval(500)
+        self._price_flush_timer.setSingleShot(True)
+        self._price_flush_timer.timeout.connect(self._flush_pending_prices)
 
         # ── Market status (NYSE / NASDAQ) — always running, 60 s tick ────────
         self._market_status: dict[str, str] = {"nyse": "closed", "nasdaq": "closed"}
@@ -1295,18 +1489,34 @@ class AppService(QObject):
     def _on_candle_load_complete(self, results: list) -> None:
         readiness: dict[str, bool | None] = {r.symbol: r.ok for r in results}
         self.candle_readiness_updated.emit(readiness)
-        failed = [r.symbol for r in results if not r.ok]
-        ok_n = len(results) - len(failed)
+
+        unavail = {r.symbol for r in results if r.reason == "EXCHANGE_UNAVAILABLE"}
+        if unavail != self._exchange_unavailable_symbols:
+            self._exchange_unavailable_symbols = unavail
+            self.exchange_unavail_updated.emit(unavail)
+
+        failed = [r.symbol for r in results if not r.ok and r.reason != "EXCHANGE_UNAVAILABLE"]
+        ok_n = len(results) - len(failed) - len(unavail)
+        if unavail:
+            _log.info("[Candles] %d position(s) skipped — not on US exchanges", len(unavail))
         if failed:
             _log.warning(
                 "[Candles] %d stock(s) failed to download: %s", len(failed), failed
             )
-        else:
+        elif not unavail:
             _log.info("[Candles] All %d stock(s) are ready for strategy indicators", ok_n)
         pending = self._pending_candle_symbols
         if pending is not None:
             self._pending_candle_symbols = None
             self._start_intraday_loader(pending)
+
+    def shutdown(self) -> None:
+        """Stop background threads before app exit to avoid QThread destroy warnings."""
+        self._stop_live_session()
+        for thread in (self._readiness_worker, self._intraday_loader):
+            if thread is not None and thread.isRunning():
+                thread.quit()
+                thread.wait(5000)
 
     def get_pending_signals(self, user_id: int | None = None) -> list[TradeSignal]:
         return list(self._signals)
@@ -1456,7 +1666,7 @@ class AppService(QObject):
         """Cleanly disconnect from the data feed."""
         self._acct_timer.stop()
         self._watch_timer.stop()
-        self._wl_timer.stop()
+        self._stop_live_session()
         self._ibkr_acct      = None
         self._ibkr_positions = []
         self._set_status(ConnectionStatus.DISCONNECTED)
@@ -1481,8 +1691,9 @@ class AppService(QObject):
         self._acct_worker.start()
 
     def _on_account_data_ready(self, acct: AccountState, positions: list) -> None:
-        self._ibkr_acct      = acct
+        self._ibkr_acct = acct
         self._ibkr_positions = list(positions)
+        self._sync_live_subscriptions()
         self.account_updated.emit()
         self.positions_updated.emit()
 
@@ -1510,6 +1721,7 @@ class AppService(QObject):
             f"[Feed] Connected to IBKR at {host}:{port} — read-only account monitoring active. "
             "Execution is disabled at tool level.",
         )
+        self._start_live_session()
         self._acct_timer.start()
         self._refresh_account_data()   # immediate first fetch
         self._watch_timer.start()
@@ -1538,6 +1750,91 @@ class AppService(QObject):
     def is_internet_online(self) -> bool:
         """Return current internet reachability (last-known probe result)."""
         return self._net_watcher.is_online()
+
+    def _start_live_session(self) -> None:
+        if self._live_session and self._live_session.isRunning():
+            return
+        client_id = self._system_cfg.ibkr_system_client_id + 2
+        self._live_session = _IBKRLiveSession(
+            self._system_cfg.ibkr_host,
+            self._system_cfg.ibkr_port,
+            client_id,
+            self,
+        )
+        self._live_session.price_tick.connect(self._on_live_price)
+        self._live_session.session_connected.connect(self._on_session_connected)
+        self._live_session.start()
+
+    def _stop_live_session(self) -> None:
+        if self._live_session:
+            # Disconnect signals before stopping so no callbacks fire after cleanup.
+            self._live_session.price_tick.disconnect()
+            self._live_session.session_connected.disconnect()
+            self._live_session.request_stop()   # sets stop_event + wakes loop
+            self._live_session.wait(3000)        # loop.stop() makes this near-instant
+            self._live_session = None
+        self._subscribed_symbols.clear()
+        self._price_flush_timer.stop()
+
+    def _sync_live_subscriptions(self) -> None:
+        """Diff open-position and watchlist symbols against the current subscription set and update."""
+        if not self._live_session or not self._live_session.isRunning():
+            return
+        wanted: set[str] = (
+            {p.symbol for p in self._ibkr_positions}
+            | {p.symbol for p in self._positions if p.state != "CLOSED"}
+            | {w.symbol for w in self._watchlist}
+        )
+        to_sub   = wanted - self._subscribed_symbols
+        to_unsub = self._subscribed_symbols - wanted
+        if to_sub:
+            self._live_session.subscribe_symbols(to_sub)
+            self._subscribed_symbols |= to_sub
+        if to_unsub:
+            self._live_session.unsubscribe_symbols(to_unsub)
+            self._subscribed_symbols -= to_unsub
+
+    def _on_session_connected(self) -> None:
+        self.log_message.emit("INFO", "[Feed] Position prices streaming live")
+        # The IB session's ticker_map was cleared on the previous disconnect, so
+        # reset our subscription tracking and re-subscribe all current positions.
+        self._subscribed_symbols.clear()
+        self._sync_live_subscriptions()
+
+    def _on_live_price(self, symbol: str, price: float) -> None:
+        # Buffer incoming ticks and flush to positions at most every 500 ms
+        # to avoid repainting the positions table on every individual tick.
+        self._pending_prices[symbol] = price
+        if not self._price_flush_timer.isActive():
+            self._price_flush_timer.start()
+
+    def _flush_pending_prices(self) -> None:
+        if not self._pending_prices:
+            return
+        prices = self._pending_prices
+        self._pending_prices = {}
+        updated = False
+        for p in self._positions:
+            if p.state != "CLOSED" and p.symbol in prices:
+                p.current_price = prices[p.symbol]
+                updated = True
+        for p in self._ibkr_positions:
+            if p.symbol in prices:
+                p.current_price = prices[p.symbol]
+                updated = True
+        if updated:
+            self.positions_updated.emit()
+        wl_updated = False
+        for item in self._watchlist:
+            if item.symbol in prices:
+                item.ltp = prices[item.symbol]
+                item.change = item.ltp - item.prev_close
+                item.change_pct = (
+                    (item.change / item.prev_close * 100) if item.prev_close else 0.0
+                )
+                wl_updated = True
+        if wl_updated:
+            self.watchlist_updated.emit()
 
     def _on_internet_status(self, online: bool) -> None:
         """Called by NetWatcher when reachability flips."""
@@ -1632,15 +1929,17 @@ class AppService(QObject):
             return
         self._watchlist.append(WatchlistItem(symbol=symbol))
         self.watchlist_updated.emit()
-        if self._connection_status is ConnectionStatus.CONNECTED:
+        if not self._wl_timer.isActive():
             self._wl_timer.start()
-            self._refresh_watchlist()
+        self._refresh_watchlist()
+        self._sync_live_subscriptions()
 
     def remove_from_watchlist(self, symbol: str) -> None:
         self._watchlist = [w for w in self._watchlist if w.symbol != symbol]
         if not self._watchlist:
             self._wl_timer.stop()
         self.watchlist_updated.emit()
+        self._sync_live_subscriptions()
 
     def _refresh_watchlist(self) -> None:
         if not self._watchlist:

@@ -32,8 +32,28 @@ def _run_updater() -> None:
         pass
 
 
+def _patch_ib_del() -> None:
+    # IB.__del__ calls disconnect() during GC, which fails if the asyncio event loop
+    # is already closed (harmless but noisy on Windows ProactorEventLoop).
+    try:
+        import ib_insync
+        _orig = ib_insync.IB.__del__
+
+        def _safe_del(self: ib_insync.IB) -> None:
+            try:
+                _orig(self)
+            except Exception:
+                pass
+
+        ib_insync.IB.__del__ = _safe_del  # type: ignore[method-assign]
+    except Exception:
+        pass
+
+
 def _cmd_gui() -> None:
     import os
+
+    _patch_ib_del()
 
     # Suppress Chromium DirectComposition warning on GPUs that don't support
     # IDCompositionDevice4 (harmless, but floods the console on some Windows setups).
