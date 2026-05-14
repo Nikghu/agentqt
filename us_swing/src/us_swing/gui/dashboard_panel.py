@@ -1,6 +1,6 @@
 """
 Module: MD-GUI-002.001.M01 — dashboard_panel.py
-Parent SRD: SRD-GUI-002.001 – SRD-GUI-002.005
+Parent SRD: SRD-GUI-002.001 – SRD-GUI-002.008
 
 Dashboard: TIKR-style KPI cards · open positions table · capital bar · trade history.
 """
@@ -8,11 +8,14 @@ from __future__ import annotations
 
 import datetime
 
-from PyQt6.QtCore import QAbstractTableModel, QModelIndex, Qt
+import logging
+
+from PyQt6.QtCore import QAbstractTableModel, QModelIndex, QStringListModel, Qt
 from PyQt6.QtGui import QColor, QFont, QTextCursor
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
+    QCompleter,
     QDialog,
     QDoubleSpinBox,
     QFrame,
@@ -40,6 +43,8 @@ from us_swing.gui._types import AccountState, OpenPosition
 from us_swing.gui.position_table_model import PositionTableModel, TradeHistoryModel
 from us_swing.gui.theme import C
 from us_swing.data.models import WatchlistItem
+
+_log = logging.getLogger(__name__)
 
 
 # ── Shared dialog stylesheet ──────────────────────────────────────────────────
@@ -912,6 +917,18 @@ class _WatchlistTab(QWidget):
         super().__init__(parent)
         self._svc = svc
 
+        # ── S&P 500 symbol set (loaded once; used for validation + completer) ──
+        self._sp500: frozenset[str] = frozenset()
+        try:
+            from us_swing.universe import store as _store  # lazy import
+            records = _store.load_sp500()
+            if records:
+                self._sp500 = frozenset(r.symbol.upper() for r in records)
+            else:
+                _log.warning("[Watchlist] S&P 500 universe unavailable — symbol filter disabled")
+        except Exception:
+            _log.warning("[Watchlist] S&P 500 universe unavailable — symbol filter disabled")
+
         # ── Toolbar ───────────────────────────────────────────────────────────
         self._sym_input = QLineEdit()
         self._sym_input.setPlaceholderText("Symbol (e.g. AAPL)…")
@@ -923,6 +940,12 @@ class _WatchlistTab(QWidget):
             f" min-height:28px; max-height:28px; font-size:9pt; outline:none; }}"
             f"QLineEdit:focus {{ border:1px solid {C.BLUE}; outline:none; }}"
         )
+        if self._sp500:
+            _completer_model = QStringListModel(sorted(self._sp500))
+            _completer = QCompleter(_completer_model, self._sym_input)
+            _completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+            _completer.setCompletionMode(QCompleter.CompletionMode.InlineCompletion)
+            self._sym_input.setCompleter(_completer)
         self._sym_input.returnPressed.connect(self._on_add)
 
         def _wl_btn_qss(bg: str, bd: str, fg: str, fw: str, hv: str) -> str:
@@ -1017,11 +1040,24 @@ class _WatchlistTab(QWidget):
 
     def add_symbol(self, symbol: str) -> None:
         """Public API — called by DashboardPanel.on_watchlist_add."""
-        self._svc.add_to_watchlist(symbol)
+        sym = symbol.strip().upper()
+        if self._sp500 and sym not in self._sp500:
+            QMessageBox.warning(
+                self, "Not in S&P 500",
+                "Only S&P 500 stocks can be added to the watchlist.",
+            )
+            return
+        self._svc.add_to_watchlist(sym)
 
     def _on_add(self) -> None:
         sym = self._sym_input.text().strip().upper()
         if not sym:
+            return
+        if self._sp500 and sym not in self._sp500:
+            QMessageBox.warning(
+                self, "Not in S&P 500",
+                "Only S&P 500 stocks can be added to the watchlist.",
+            )
             return
         self._svc.add_to_watchlist(sym)
         self._sym_input.clear()
@@ -1276,6 +1312,7 @@ class DashboardPanel(QWidget):
         demo.account_updated.connect(self._refresh_account)
         demo.viewing_changed.connect(self._refresh_positions)
         demo.viewing_changed.connect(self._refresh_account)
+        demo.exchange_unavail_updated.connect(self._pos_model.set_exchange_unavailable)
         self._on_scope_changed()   # initialise User column & column widths for current scope
         self._refresh_positions()
         self._refresh_account()
@@ -1314,7 +1351,7 @@ class DashboardPanel(QWidget):
         self._card_pos.set_value(str(len(positions)), C.BLUE)
         n = len(positions)
         self._pos_status_lbl.setText(
-            f"{n} open position{'s' if n != 1 else ''}  ·  prices update every 2s"
+            f"{n} open position{'s' if n != 1 else ''}  ·  prices streaming live"
         )
         self._sq_all_btn.setEnabled(n > 0)
 

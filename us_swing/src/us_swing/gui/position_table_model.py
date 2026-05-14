@@ -32,6 +32,7 @@ class PositionTableModel(QAbstractTableModel):
         self._show_user: bool = False
         self._user_labels: dict[int, str] = {}
         self._highlighted_row: int = -1
+        self._exchange_unavailable: set[str] = set()
 
     @property
     def COLUMNS(self) -> list[str]:
@@ -42,6 +43,12 @@ class PositionTableModel(QAbstractTableModel):
         self.beginResetModel()
         self._show_user  = show
         self._user_labels = user_labels or {}
+        self.endResetModel()
+
+    def set_exchange_unavailable(self, symbols: set[str]) -> None:
+        """Mark symbols whose contracts are not available on US exchanges."""
+        self.beginResetModel()
+        self._exchange_unavailable = symbols
         self.endResetModel()
 
     def refresh(self, positions: list[OpenPosition]) -> None:
@@ -96,7 +103,14 @@ class PositionTableModel(QAbstractTableModel):
         if role == Qt.ItemDataRole.ForegroundRole:
             if index.row() == self._highlighted_row:
                 return QColor(C.RED)
+            if pos.symbol in self._exchange_unavailable:
+                return QColor(C.MUTED)
             return self._foreground(pos, col)
+
+        if role == Qt.ItemDataRole.ToolTipRole:
+            if pos.symbol in self._exchange_unavailable:
+                return "Not available on US exchanges — candle data unavailable."
+            return None
 
         if role == Qt.ItemDataRole.TextAlignmentRole:
             # right-align numeric columns (shift by 1 when user col visible)

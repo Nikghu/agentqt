@@ -540,8 +540,10 @@ class ExecutionPanel(QWidget):
         h_splitter.setHandleWidth(2)
         h_splitter.setStyleSheet(f"QSplitter::handle {{ background: {C.OVERLAY}; }}")
 
+        self._selected_symbol: str = ""
         self._left_pane = _FilteredStocksPane(demo)
-        self._left_pane.symbol_selected.connect(self._chart_pane.load_symbol)
+        self._left_pane.symbol_selected.connect(self._on_symbol_selected)
+        demo.candle_readiness_updated.connect(self._on_candle_data_ready)
 
         h_splitter.addWidget(self._left_pane)
         h_splitter.addWidget(self._build_right_pane(demo))
@@ -554,7 +556,7 @@ class ExecutionPanel(QWidget):
         # ── Seed the chart with the highest-score stock if data already exists ──
         top = self._left_pane.get_top_symbol()
         if top:
-            self._chart_pane.load_symbol(top)
+            self._on_symbol_selected(top)
 
     def _build_right_pane(self, demo: AppService) -> QWidget:
         """Build the right side: intraday charts (top) + pending signals (bottom)."""
@@ -647,6 +649,14 @@ class ExecutionPanel(QWidget):
     def _toggle_cb(self) -> None:
         self._cb_active = not self._cb_active
         self.on_circuit_breaker(self._cb_active)
+
+    def _on_symbol_selected(self, symbol: str) -> None:
+        self._selected_symbol = symbol
+        self._chart_pane.load_symbol(symbol)
+
+    def _on_candle_data_ready(self, _: dict[str, bool | None]) -> None:
+        if self._selected_symbol:
+            self._chart_pane.load_symbol(self._selected_symbol)
 
     def on_circuit_breaker(self, active: bool) -> None:
         """Enable/disable all entry buttons and show banner."""

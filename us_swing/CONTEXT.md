@@ -9,7 +9,7 @@
 
 ## 0. Immediate Next Step
 
-**Current:** FO-EXE-006 (Intraday Candle Loader Phase 1) complete. All 14 tests pass; code implemented; RN written. Next: FO-EXE-007 (Phase 2 — live 3 m candle formation) or resume SCR Phase 2 multi-provider AI ranking.
+**Current:** FO-GUI-002 SRD-GUI-002.008 (S&P 500 Symbol Gate for Watchlist Search) implemented — `_WatchlistTab.__init__` loads S&P 500 set via `usswing.universe.store.load_sp500()` into `self._sp500: frozenset[str]`; attaches case-insensitive `QCompleter`; validates symbol against set in `_on_add()` and `add_symbol()`, shows `QMessageBox.warning` if not in S&P 500; graceful fallback if universe unavailable. Code passes ruff + mypy. No UTCD tests this session (code-only). Next: Write UTCD tests for SRD-GUI-002.008, or resume EXE Phase 2 (FO-EXE-007 — 3-minute candle formation) or SCR Phase 2 (multi-provider AI ranking).
 
 **FO-EXE-006 — Intraday Candle Loader Phase 1 — COMPLETE (Session 40, 2026-05-06):**
 - `IntradayCandleLoader(QThread)` delta-fetches 1 m IBKR bars for screened stock list, validates ≥ 390 candles per timeframe (3 m, 5 m, 1 h), persists via `DatabaseManager`
@@ -281,9 +281,9 @@
 | Artifact | File | Status | Notes |
 |---|---|---|---|
 | FO | `docs/gui/FO.md` | Draft v2.1.0 — **revised** | Added: FO-GUI-006 admin protection (last admin guard, System clientId field) |
-| SRD | `docs/gui/SRD.md` | Draft v2.3.0 — **revised** | Added: SRD-GUI-006.006 updated (Universe tab candle status columns: First Bar/Last Bar/Status; "🔄 Sync Candles" button; candle_sync_updated signal) |
+| SRD | `docs/gui/SRD.md` | Draft v2.8.0 — **revised** | Added: SRD-GUI-002.008 (S&P 500 symbol gate for watchlist search — status: Implemented); previous: SRD-GUI-004.009 (IBKR live position prices via persistent streaming session — status: Approved). Total 34 SRDs across 10 FOs. |
 | DD | `docs/gui/DD.md` | Draft v1.2.0 — **revised** | DD-GUI-001.001.D01: MainWindow (frameless, AppService DI, 4-panel stack, correct geometry); DD-GUI-002.001.D01: PositionTableModel + TradeHistoryModel rewritten (correct columns, User col toggle, set_highlighted_row, C.* colour constants) |
-| MD | `docs/gui/MD.md` | Draft v1.0.0 | 9 modules: main_window, dashboard, position_table_model, screener, execution, position_monitor, settings, log_viewer, log_bridge |
+| MD | `docs/gui/MD.md` | Draft v1.2.0 — **revised** | Added: MD-GUI-004.001.M02 (_IBKRLiveSession, status: Implemented); total 10 modules with 1 Implemented. |
 | UTCD | `docs/gui/UTCD.md` | Draft v1.1.0 — **revised** | 36 tests corrected across all 7 modules: T01 tab count, status bar widgets, signal names, column counts, P&L colour constants, badge text |
 | TRACE | `docs/gui/TRACE.md` | Draft v1.0.0 | Full forward/reverse trace |
 

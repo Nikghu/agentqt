@@ -10,7 +10,7 @@ if not os.path.exists(PENDING):
     sys.exit(0)
 
 with open(PENDING) as fh:
-    files = [ln.strip() for ln in fh if ln.strip()]
+    files = list(dict.fromkeys(ln.strip() for ln in fh if ln.strip()))  # dedup, preserve order
 
 os.remove(PENDING)
 
@@ -22,7 +22,7 @@ non_gui = [fp for fp in files if fp not in gui]
 
 parts: list[str] = []
 if gui:
-    parts.append(f"PyQt6 files modified ({', '.join(gui)}) — invoke pyqt6-code-reviewer")
+    parts.append(f"PyQt6 files modified ({', '.join(gui)}) — invoke pyqt-code-reviewer")
 if non_gui:
     parts.append(f"Non-GUI Python files modified ({', '.join(non_gui)}) — invoke code-reviewer")
 

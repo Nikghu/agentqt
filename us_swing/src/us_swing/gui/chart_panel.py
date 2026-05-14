@@ -124,6 +124,27 @@ def _build_html(
         else "chart.timeScale().fitContent();\n  volChart.timeScale().fitContent();"
     )
 
+    # Intraday charts (3m, 15m, …) need ET localisation; daily/weekly do not.
+    is_intraday = timeframe.lower().endswith("m")
+    localization_block = (
+        "    localization: {\n"
+        "      timeFormatter: (time) => {\n"
+        "        return new Date(time * 1000).toLocaleTimeString('en-US', {\n"
+        "          timeZone: 'America/New_York',\n"
+        "          hour: '2-digit',\n"
+        "          minute: '2-digit',\n"
+        "          hour12: false,\n"
+        "        });\n"
+        "      },\n"
+        "    },\n"
+    ) if is_intraday else ""
+    crosshair_date_js = (
+        "const _cd = new Date(param.time * 1000);\n"
+        "    const d = _cd.toLocaleDateString('en-CA', { timeZone: 'America/New_York' })"
+        " + '  ' + _cd.toLocaleTimeString('en-US', { timeZone: 'America/New_York',"
+        " hour: '2-digit', minute: '2-digit', hour12: false }) + ' ET';"
+    ) if is_intraday else "const d = new Date(param.time * 1000).toISOString().slice(0,10);"
+
     return f"""<!DOCTYPE html>
 <html>
 <head>
@@ -255,7 +276,7 @@ def _build_html(
       color: '{C.OVERLAY2}',
       text: 'US Swing | {title}',
     }},
-  }});
+{localization_block}  }});
 
   const candleSeries = chart.addSeries(LightweightCharts.CandlestickSeries, {{
     upColor:   '#26a69a',
@@ -315,7 +336,7 @@ def _build_html(
     }}
     const bar = param.seriesData.get(candleSeries);
     if (!bar) return;
-    const d = new Date(param.time * 1000).toISOString().slice(0,10);
+    {crosshair_date_js}
     const vol = param.seriesData.get(volSeries);
     const vStr = vol ? (' · Vol ' + Math.round(vol.value).toLocaleString()) : '';
     document.getElementById('bar-info').textContent =

@@ -2,6 +2,24 @@
 
 ---
 
+## [20260514] GUI — S&P 500 symbol gate for watchlist search
+
+- Type: Feature
+- FO(s): FO-GUI-002
+- Artifacts updated: SRD, Code
+- Decisions: None
+
+---
+
+## [20260514] GUI — Replaced position price polling with IBKR streaming session
+
+- Type: Feature
+- FO(s): FO-GUI-004
+- Artifacts updated: SRD, MD, Code
+- Decisions: _IBKRLiveSession(QThread) with dedicated asyncio event loop; thread-safe subscribe/unsubscribe via run_coroutine_threadsafe; 500ms price buffering to avoid per-tick UI repaints; auto-reconnect with exponential backoff (1s–30s); client ID: ibkr_system_client_id + 2
+
+---
+
 ## [20260506] EXE — Implemented IntradayCandleLoader with delta-fetch and validation
 
 - Type: Feature

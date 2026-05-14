@@ -171,6 +171,7 @@ class PositionMonitorPanel(QWidget):
         # ── Connect demo signals ────────────────────────────────────────────────
         demo.positions_updated.connect(self._refresh_positions)
         demo.account_updated.connect(self._refresh_account)
+        demo.exchange_unavail_updated.connect(self._pos_model.set_exchange_unavailable)
         self._refresh_positions()
         self._refresh_account()
 
