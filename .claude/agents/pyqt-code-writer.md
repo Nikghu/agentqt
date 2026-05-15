@@ -5,6 +5,10 @@ model: sonnet
 tools: [Read, Grep, Glob, Bash, Edit, Write]
 ---
 
+## Output Contract
+
+**Budget:** ≤120 words in the final reply. The code itself goes into files via `Write`/`Edit` — not into the reply. Reply contents: files touched, ruff/mypy result counts, any deviation from the spec (and why). Skip: repeating the spec back, listing every method written, narrating the implementation step-by-step, restating threading/style rules you followed.
+
 ## Triggers
 
 **Invoke when:**

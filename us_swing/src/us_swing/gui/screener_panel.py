@@ -572,7 +572,8 @@ class QuickChartWindow(QWidget):
                 }
                 for c in candles
             ]
-            html = _build_chart_html(candles, volume_data, symbol, timeframe)
+            tz = self._svc.get_system_config().market_timezone
+            html = _build_chart_html(candles, volume_data, symbol, timeframe, timezone=tz)
             web.setHtml(html, QUrl("about:blank"))
         else:
             web.setHtml(

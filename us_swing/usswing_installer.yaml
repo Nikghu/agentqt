@@ -6,7 +6,7 @@ app:
   license: assets/license.txt
   name: USSwing
   publisher: USSwing
-  version: 1.0.9
+  version: 1.1.0
 installer:
   generator: inno_setup
   inno_setup_path: C:\Users\Niket32\AppData\Local\Programs\Inno Setup 6\ISCC.exe
@@ -36,7 +36,7 @@ update:
   check_url: ''
   enabled: true
   github_asset_pattern: _Setup.exe
-  github_repo: Nikghu/usswing
+  github_repo: Nikghu/agentqt
   interval_hours: 24
   verify_checksum: true
   verify_signature: false

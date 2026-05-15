@@ -6,20 +6,16 @@ Example: /project:new-feature SCR "Filter stocks where RSI(14) < 30 AND daily vo
 The system shall $ARGUMENTS
 
 Steps (mandatory order — no skipping):
-0. Read `.claude/commands/dev-context.md` — process rules, artifact formats, doc rules
+0. Read `.claude/skills/dev-context.md` — process rules, artifact formats, doc rules
 0a. Invoke `.claude/agents/duplicate-detector.md` with TOOL + feature description — use the returned anchor FO ID and skip list before proceeding. If a full duplicate is found, stop and report to user.
 1. Read `us_swing/docs/<tool>/FO.md` — understand existing FOs and assign next ID
 2. Write the new FO entry with acceptance criteria
-2a. Invoke `.claude/agents/artifact-validator.md` — Phase: FO, IDs: new FO ID. Must return GO before continuing.
 3. Decompose into SRD requirements (status: Draft)
-3a. Invoke `.claude/agents/artifact-validator.md` — Phase: SRD, IDs: new SRD IDs. Must return GO before continuing.
 4. Write DD design items
    4a. If tool is `GUI` and the implementation path is not already specified in the DD: invoke `.claude/agents/pyqt-architect.md` to produce the design blueprint (files, signal flow, build order, widget layout). Covers both feature-level and new-tool scope.
-4b. Invoke `.claude/agents/artifact-validator.md` — Phase: DD, IDs: new DD IDs. Must return GO before continuing.
 5. Define MD modules with file paths and public API
-5a. Invoke `.claude/agents/artifact-validator.md` — Phase: MD, IDs: new MD IDs. Must return GO before continuing.
 6. Write UTCD test cases (before any code)
-6a. Invoke `.claude/agents/artifact-validator.md` — Phase: UTCD, IDs: new UT IDs. Must return GO before continuing.
+6a. Invoke `.claude/agents/artifact-validator.md` ONCE — TOOL + PHASES: `FO,SRD,DD,MD,UTCD` + IDs (all new IDs across phases). Must return GO before continuing. If BLOCKED: fix the listed IDs, then re-run with PHASES limited to the fixed phase(s).
 7. Present artifact summary and await user approval of SRDs before implementing
 7a. Once user approves — invoke `.claude/agents/phase-gate.md` with TOOL + FO ID. Must return GO before writing any code.
 8. Once phase-gate returns GO — implement:

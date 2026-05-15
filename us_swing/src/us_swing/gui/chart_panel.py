@@ -42,6 +42,7 @@ def _build_html(
     symbol: str,
     timeframe: str,
     show_reset_menu: bool = False,
+    timezone: str = "America/New_York",
 ) -> str:
     """Return a self-contained HTML page with a TradingView Lightweight Chart."""
     candle_json = json.dumps(candle_data)
@@ -238,8 +239,8 @@ def _build_html(
 
 <script>
 (function() {{
-  const candleData = {candle_json};
-  const volumeData = {volume_json};
+  let candleData = {candle_json};
+  let volumeData = {volume_json};
 
   if (!candleData || candleData.length === 0) {{
     document.getElementById('no-data').style.display = 'block';
@@ -267,6 +268,7 @@ def _build_html(
       borderColor: '{C.OVERLAY}',
       timeVisible: true,
       secondsVisible: false,
+      timezone: '{timezone}',
     }},
     watermark: {{
       visible: true,
@@ -306,6 +308,7 @@ def _build_html(
     timeScale: {{
       borderColor: '{C.OVERLAY}',
       visible: false,
+      timezone: '{timezone}',
     }},
     handleScroll: false,
     handleScale: false,
@@ -484,6 +487,21 @@ def _build_html(
   document.addEventListener('keydown', function(e) {{
     if (e.key === 'Escape') _msClear();
   }});
+
+  // ── Live data update — called from Python via runJavaScript ───────────────
+  // Replaces candle + volume data without reloading the page, so the user's
+  // current zoom / scroll position is preserved.
+  window.updateChartData = function(newCandleData, newVolumeData) {{
+    if (!newCandleData || newCandleData.length === 0) return;
+    const range = chart.timeScale().getVisibleLogicalRange();
+    candleData  = newCandleData;
+    volumeData  = newVolumeData;
+    candleSeries.setData(candleData);
+    volSeries.setData(volumeData);
+    if (range !== null) {{
+      chart.timeScale().setVisibleLogicalRange(range);
+    }}
+  }};
 
 }})();
 </script>
@@ -686,7 +704,8 @@ class CandleChartPanel(QWidget):
             for c in candles
         ]
 
-        html = _build_html(candles, volume_data, symbol, timeframe)
+        tz = self._svc.get_system_config().market_timezone
+        html = _build_html(candles, volume_data, symbol, timeframe, timezone=tz)
         self._web.setHtml(html, QUrl("about:blank"))
         self._current_symbol = symbol
         self._current_tf = timeframe

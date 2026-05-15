@@ -6,7 +6,7 @@ Example: /project:rn EXE 1.0.0 — produces RN-EXE-1.0.0-20260423.md in us_swing
 $ARGUMENTS
 
 Steps:
-0. Read `.claude/commands/dev-context.md` — RN ID format and storage location
+0. Read `.claude/skills/dev-context.md` — RN ID format and storage location
 1. Determine today's date (use `currentDate` from context). Compose the RN ID: `RN-<TOOL>-<version>-<YYYYMMDD>`
 2. Read `us_swing/docs/<tool>/TRACE.md` — identify all rows with status `Implemented` or `Verified` that do not yet have an RN entry
 3. Read the latest entry in `us_swing/DEVLOG.md` — extract the list of modules changed in the current work session

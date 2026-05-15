@@ -5,6 +5,10 @@ model: haiku
 tools: [Read, Write, Edit, Grep, Glob]
 ---
 
+## Output Contract
+
+**Budget:** ≤80 words. Lead with `SESSION FINALIZED` on line 1. Then one line per file touched (TRACE / CONTEXT / DEVLOG). Skip: restating the summary the caller provided, listing every TRACE column updated, mock progress reports.
+
 ## Triggers
 
 **Invoke when:** A feature, bug fix, or refactor session has completed all artifact and code work and the session needs to be closed out.

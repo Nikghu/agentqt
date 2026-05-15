@@ -65,7 +65,7 @@ Print a one-line note: `Resuming from Phase <N> — skipping Phases 0–<N-1>.` 
    - One-sentence testable outcome (non-technical, user-visible)
    - 2–4 acceptance criteria
    - Status: `Approved`
-6. Invoke `.claude/agents/artifact-validator.md` — Phase: FO. Must return GO before continuing.
+6. (Validator deferred — runs once after all phases written, see Phase 5a.)
 
 ---
 
@@ -75,7 +75,6 @@ Print a one-line note: `Resuming from Phase <N> — skipping Phases 0–<N-1>.` 
 8. Write all SRD rows to `us_swing/docs/<TOOL>/SRD.md` using the compact table format:
    `| ID | Parent FO | Priority | Description | Inputs | Outputs | Constraints |`
 9. **Immediately set every new SRD status to `Approved`** — do not leave any row in `Draft`.
-10. Invoke `.claude/agents/artifact-validator.md` — Phase: SRD. Must return GO before continuing.
 
 ---
 
@@ -84,7 +83,6 @@ Print a one-line note: `Resuming from Phase <N> — skipping Phases 0–<N-1>.` 
 11. For each SRD, write one or more `DD-<TOOL>-NNN.NNN.DNN` design items to `us_swing/docs/<TOOL>/DD.md`.
 12. Each DD item covers: component, interface signature, data flow, external dependencies.
 13. **If TOOL is `GUI`:** spawn `pyqt-architect` agent with the FO + SRD summary. Use its output as the DD blueprint. Apply the frameless-window pattern and `C.BTN_H` / `C.INPUT_H` constants.
-14. Invoke `.claude/agents/artifact-validator.md` — Phase: DD. Must return GO before continuing.
 
 ---
 
@@ -94,7 +92,6 @@ Print a one-line note: `Resuming from Phase <N> — skipping Phases 0–<N-1>.` 
 16. Write all MD rows to `us_swing/docs/<TOOL>/MD.md` using compact table format:
     `| ID | Parent SRD | File Path | Responsibility | Public API | Deps | MCP Exposed |`
 17. File paths follow `us_swing/src/usswing/<tool>/` layout.
-18. Invoke `.claude/agents/artifact-validator.md` — Phase: MD. Must return GO before continuing.
 
 ---
 
@@ -105,15 +102,16 @@ Print a one-line note: `Resuming from Phase <N> — skipping Phases 0–<N-1>.` 
 21. Write all UT rows to `us_swing/docs/<TOOL>/UTCD.md` using compact table format:
     `| ID | Module | Type | Objective | Input | Expected Output | Status |`
 22. All new rows start with `Status: Not Run`.
-23. Invoke `.claude/agents/artifact-validator.md` — Phase: UTCD. Must return GO before continuing.
 
 ---
 
-### Phase 5a — Pre-Code Phase Gate
+### Phase 5a — Validator + Pre-Code Phase Gate
 
+23. Invoke `.claude/agents/artifact-validator.md` ONCE — TOOL + PHASES: `FO,SRD,DD,MD,UTCD` + IDs (all new IDs across phases). Must return GO before continuing.
+    - If BLOCKED: fix the listed IDs, then re-invoke validator with PHASES limited to the fixed phase(s).
 24. Invoke `.claude/agents/phase-gate.md` with TOOL + FO ID.
     - If GO: proceed to Phase 6.
-    - If BLOCKED: fix all listed blockers, re-run the relevant `artifact-validator`, then re-run `phase-gate` until GO.
+    - If BLOCKED: fix all listed blockers, then re-run `phase-gate` until GO.
 
 ---
 

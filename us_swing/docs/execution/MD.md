@@ -21,7 +21,7 @@
 | MD-EXE-004.001.M01 | SRD-EXE-004.001–004 | `src/us_swing/execution/paper_engine.py` | `PaperEngine` — simulated order filling for paper mode. Market orders fill at current price; limit orders fill on price cross. Uses live `DataProvider` for price reference. | `simulate_fill(signal, quantity, order_type) -> PaperFill`, `simulate_exit(symbol) -> PaperFill` | `data/providers/*`, `position_tracker.py`, `db/manager.py`, `data/models.py` | No | Draft |
 | MD-EXE-004.001.M02 | SRD-EXE-004.005 | `src/us_swing/execution/execution_router.py` | `ExecutionRouter` — routes signals to `PaperEngine` or `ExecutionEngine` based on active user's mode. Mode is checked per-signal, not cached. | `route_signal(user_id, signal, **kwargs) -> int \| None` | `execution_engine.py`, `paper_engine.py`, `user/manager.py` | No | Draft |
 | MD-EXE-006.001.M01 | SRD-EXE-006.001–006 | `src/usswing/execution/intraday_candle_loader.py` | `IntradayCandleLoader(QThread)` — delta-fetches 1 m bars from IBKR for a stock list, validates ≥ 390 candles per timeframe (3 m, 5 m, 1 h), persists via `DatabaseManager`, emits progress/completion signals. `CandleLoadResult` and `SymbolReadiness` dataclasses. | `load(symbols) → None` (QThread.start), `get_readiness_report(symbols) -> dict[str, SymbolReadiness]`, signals: `load_progress(str, int, int)`, `load_complete(list[CandleLoadResult])` | `broker/client.py` (IBKRClient), `db/manager.py` (DatabaseManager), `data_engine/engine.py` (HistoricalDataEngine), `PyQt6.QtCore.QThread` | No | Draft |
-| MD-EXE-007.001.M01 | SRD-EXE-007.002–008 | `src/us_swing/execution/live_candle_aggregator.py` | `LiveCandleAggregator(QThread)` — subscribes to IBKR 5-second real-time bars, accumulates them into per-symbol `PartialBar` accumulators, closes each 3m window on wall-clock boundary, persists completed bars to `price_3m` via `DatabaseManager`, emits `candle_updated` and `candle_closed` signals. RTH guard (09:30–16:00 ET). `PartialBar` dataclass defined here. | `set_symbols(symbols: list[str]) -> None`, `on_disconnect() -> None`, `on_reconnect(symbols: list[str]) -> None`; signals: `candle_updated(str, object)`, `candle_closed(str, object)` | `broker/client.py` (IBKRClient), `db/manager.py` (DatabaseManager), `data/models.py` (RealtimeBar, OHLCVBar), `zoneinfo`, `threading.Lock`, `PyQt6.QtCore.QThread`, `PyQt6.QtCore.QTimer` | No | Draft |
+| MD-EXE-007.001.M01 | SRD-EXE-007.003–008 | `src/us_swing/execution/live_bar_worker.py` | `LiveBarWorker(QThread)` — subscribes to IBKR tick-by-tick trade data via `reqTickByTick('Last', numberOfTicks=0)`, applies RTH guard per tick, converts each trade to `RealtimeBar(open=high=low=close=price, volume=size)`, delegates aggregation to `CandleBuilder` (3m + 15m time-based windows), persists completed bars to `price_3m` / `price_15m` via raw SQLite INSERT OR IGNORE, emits `candle_closed(str)` signal. Falls back to yfinance 60s polling when IBKR is unavailable. | `request_stop() -> None`; signal: `candle_closed(str)` | `analysis/candle_builder.py` (CandleBuilder), `data/models.py` (RealtimeBar, OHLCVBar), `PyQt6.QtCore.QThread`, `asyncio`, `sqlite3`, `zoneinfo`, `ib_insync` (optional), `yfinance` (optional fallback) | No | Draft |
 
 ---
 
@@ -51,8 +51,8 @@ execution/emergency.py               ← broker/client.py, execution_engine.py, 
                                         analysis/live_engine.py, monitoring/alerts.py
 execution/intraday_candle_loader.py  ← broker/client.py, db/manager.py, data_engine/engine.py,
                                         PyQt6.QtCore
-execution/live_candle_aggregator.py  ← broker/client.py, db/manager.py, data/models.py,
-                                        zoneinfo, threading, PyQt6.QtCore
+execution/live_bar_worker.py         ← analysis/candle_builder.py, data/models.py,
+                                        PyQt6.QtCore, asyncio, sqlite3, ib_insync (opt), yfinance (opt)
 ```
 
 ---
@@ -110,5 +110,5 @@ src/us_swing/
     ├── paper_engine.py                # MD-EXE-004.001.M01
     ├── execution_router.py            # MD-EXE-004.001.M02
     ├── intraday_candle_loader.py      # MD-EXE-006.001.M01
-    └── live_candle_aggregator.py      # MD-EXE-007.001.M01
+    └── live_bar_worker.py             # MD-EXE-007.001.M01
 ```

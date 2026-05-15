@@ -2,21 +2,45 @@
 
 ---
 
-## [20260514] GUI — S&P 500 symbol gate for watchlist search
+## [20260513] GUI — Persistent IBKR Session replaces polling workers; push-based account/quote subscriptions
 
 - Type: Feature
-- FO(s): FO-GUI-002
-- Artifacts updated: SRD, Code
-- Decisions: None
+- FO(s): FO-GUI-012
+- Artifacts updated: FO, SRD, DD, MD, UTCD, TRACE, RN, Code, Tests
+- Decisions: Replaced 3 polling workers with 1 persistent IBKRSession (QThread + asyncio); account debounce 50 ms, tick coalesce 250 ms; exponential-backoff reconnect FSM with jitter; index filter (^-prefix) in _apply_symbol_delta; yfinance fallback only DISCONNECTED state + one-shot for indices; public signal signatures preserved byte-for-byte
+
+## [20260513] GUI — Applied market timezone from Settings to all TradingView chart panels
+
+- Type: Bugfix
+- FO(s): FO-GUI-011 (enhancement)
+- Artifacts updated: Code (3 files: chart_panel.py, execution_panel.py, screener_panel.py)
+- Decisions: Read market_timezone from AppService.get_system_config() at chart render time; inject into TradingView timeScale config for all 3 chart render sites
 
 ---
 
-## [20260514] GUI — Replaced position price polling with IBKR streaming session
+## [20260513] EXE — Auto-update wiring + v1.1.0 release (GitHub release + assets)
 
-- Type: Feature
-- FO(s): FO-GUI-004
-- Artifacts updated: SRD, MD, Code
-- Decisions: _IBKRLiveSession(QThread) with dedicated asyncio event loop; thread-safe subscribe/unsubscribe via run_coroutine_threadsafe; 500ms price buffering to avoid per-tick UI repaints; auto-reconnect with exponential backoff (1s–30s); client ID: ibkr_system_client_id + 2
+- Type: Chore
+- Artifacts updated: run_gui.py (updater_stub integration), usswing_installer.yaml (github_repo fix), .claude/commands/push-updates.md (new slash command), CLAUDE.md (slash command entry), updater_manifest.json (v1.1.0 URLs)
+- Decisions: Auto-check-for-updates at GUI startup; GitHub release hosting at Nikghu/agentqt; `/project:push-updates` slash command automates tag creation and asset upload
+
+---
+
+## [20260513] GUI — Wrote RN-GUI-1.0.0-20260513 for Candle Chart Viewer (FO-GUI-011)
+
+- Type: Documentation
+- RN: RN-GUI-1.0.0-20260513
+- Artifacts updated: RN, TRACE
+- Summary: FO-GUI-011 implementation complete — "📈 Chart" navigation tab with symbol/timeframe/bars toolbar, TradingView Lightweight Charts v5 candlestick + volume histogram, auto-refresh symbol list on tab show, auto-reload on parameter change
+
+---
+
+## [20260511] AGT — Introduced skills/ folder; migrated 5 commands to skills; added code-writer skill
+
+- Type: Refactor
+- RN: RN-AGT-1.0.0-20260511
+- Artifacts updated: RN
+- Decisions: commands/ for user-triggered workflows only; skills/ for agent-invoked inline skills; pyqt-comment-analyzer, dev-context, workspace, hookify, trace moved to skills; new code-writer skill embeds PyQt6 + Python patterns inline
 
 ---
 

@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-14T17:40:53",
+  "generated": "2026-05-12T18:58:02",
   "subfolder": "db",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\db",
   "tool_code": "INF",
@@ -196,15 +196,15 @@
           "name": "create_schema",
           "signature": "def create_schema(engine: sa.Engine) -> None",
           "docstring": "Create all tables and indexes if they do not already exist.",
-          "line_start": 135,
-          "line_end": 137
+          "line_start": 165,
+          "line_end": 167
         },
         {
           "name": "drop_schema",
           "signature": "def drop_schema(engine: sa.Engine) -> None",
           "docstring": "Drop all tables (test use only).",
-          "line_start": 140,
-          "line_end": 142
+          "line_start": 170,
+          "line_end": 172
         }
       ],
       "constants": [

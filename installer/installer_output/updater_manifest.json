@@ -1,8 +1,8 @@
 {
-  "version": "1.0.8",
+  "version": "1.1.0",
   "description": "",
-  "sha256": "deaf5dedc5e77cf6b2c00d95ac167e89bd1a821f98763f1cb2dd1f5fcb905fe1",
-  "download_url": "",
+  "sha256": "d6bd1b71d8ccf1a93d619d42ffa0e5e9f76553299a392ce35312d8529124a715",
+  "download_url": "https://github.com/Nikghu/agentqt/releases/download/v1.1.0/USSwing_1.1.0_Setup.exe",
   "signature_url": "",
-  "release_notes": ""
+  "release_notes": "USSwing v1.1.0"
 }

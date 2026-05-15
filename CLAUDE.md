@@ -61,7 +61,7 @@ Available via `/project:<name>`:
 
 | Command | Purpose |
 |---|---|
-| `/project:resume` | Resume session — loads AGENT_BOOT + CONTEXT §0 |
+| `/project:resume` | Resume session — loads AGENT_BOOT + CONTEXT §0 + RAG history query |
 | `/project:write-tests` | Implement UTCD tests for a module |
 | `/project:new-feature` | Start new feature from FO through UTCD |
 | `/project:auto-feature` | Fully automated FO → RN pipeline — no human gates, SRD approval auto-set |
@@ -71,6 +71,10 @@ Available via `/project:<name>`:
 | `/project:trace` | Sync TRACE.md after any phase completes — fills all FO→RN columns |
 | `/project:rn` | Draft and write a Revision Note for a tool after implementation or fix |
 | `/project:doc-check` | Read-only consistency check across all tool docs — IDs, cross-refs, SRD status guard |
+| `/project:hookify` | Scan conversation for PyQt6 behavior patterns and write hook rules to settings.json — periodic maintenance only |
+| `/project:workspace` | Load full workspace folder orientation — tree, layout, conventions |
+| `/project:pyqt-comment-analyzer` | Analyze PyQt6 comments for accuracy and comment rot — advisory only, invoke when pyqt-code-reviewer flags comments |
+| `/project:push-updates` | Publish a GitHub release after building the installer — creates tag, uploads .exe + .sha256, patches manifest |
 
 ## Maintenance
 

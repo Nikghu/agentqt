@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-14T17:40:53",
+  "generated": "2026-05-12T18:58:02",
   "subfolder": "execution",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\execution",
   "tool_code": "EXE",
@@ -17,8 +17,8 @@
             "ok: bool",
             "reason: str"
           ],
-          "line_start": 31,
-          "line_end": 36
+          "line_start": 43,
+          "line_end": 48
         },
         {
           "name": "SymbolReadiness",
@@ -30,8 +30,8 @@
             "last_1m_bar: datetime | None",
             "ready: bool"
           ],
-          "line_start": 40,
-          "line_end": 47
+          "line_start": 52,
+          "line_end": 59
         },
         {
           "name": "IntradayCandleLoader",
@@ -39,91 +39,103 @@
           "methods": [
             {
               "name": "__init__",
-              "signature": "def __init__(\r\n        self,\r\n        symbols: list[str],\r\n        ibkr_host: str,\r\n        ibkr_port: int,\r\n        ibkr_client_id: int,\r\n        db: DatabaseManager,\r\n        hist_engine: HistoricalDataEngine,\r\n        min_candles: int = _MIN_CANDLES,\r\n        full_fetch_cal_days: int = _FULL_FETCH_CAL_DAYS,\r\n        parent: QObject | None = None,\r\n    ) -> None",
-              "line_start": 72,
-              "line_end": 92
+              "signature": "def __init__(\n        self,\n        symbols: list[str],\n        ibkr_host: str,\n        ibkr_port: int,\n        ibkr_client_id: int,\n        db: DatabaseManager,\n        hist_engine: HistoricalDataEngine,\n        min_candles: int = _MIN_CANDLES,\n        full_fetch_cal_days: int = _FULL_FETCH_CAL_DAYS,\n        parent: QObject | None = None,\n    ) -> None",
+              "line_start": 84,
+              "line_end": 104
             },
             {
               "name": "run",
               "signature": "def run(self) -> None",
               "docstring": "QThread entry: run the async fetch loop in a fresh event loop.",
-              "line_start": 96,
-              "line_end": 105
+              "line_start": 108,
+              "line_end": 117
             },
             {
               "name": "_async_run",
               "signature": "def _async_run(self) -> None",
-              "line_start": 109,
-              "line_end": 212
+              "line_start": 121,
+              "line_end": 178
             },
             {
               "name": "_run_yfinance_fallback",
               "signature": "def _run_yfinance_fallback(self) -> None",
               "docstring": "Fetch 1m bars via yfinance when IBKR is unavailable (dev / offline mode).",
-              "line_start": 214,
-              "line_end": 256
+              "line_start": 180,
+              "line_end": 222
             },
             {
               "name": "_fetch_symbol_async",
-              "signature": "def _fetch_symbol_async(\r\n        self, ib: Any, pacing: PacingQueue, symbol: str\r\n    ) -> None",
+              "signature": "def _fetch_symbol_async(\n        self, ib: Any, pacing: PacingQueue, symbol: str\n    ) -> None",
               "docstring": "Delta-fetch 1 m bars for *symbol*. Pages when the window > 30 calendar days.",
-              "line_start": 258,
-              "line_end": 291
+              "line_start": 224,
+              "line_end": 257
             },
             {
               "name": "_fetch_paged_async",
-              "signature": "def _fetch_paged_async(\r\n        self,\r\n        ib: Any,\r\n        pacing: PacingQueue,\r\n        symbol: str,\r\n        end: datetime,\r\n        total_cal_days: int,\r\n    ) -> None",
+              "signature": "def _fetch_paged_async(\n        self,\n        ib: Any,\n        pacing: PacingQueue,\n        symbol: str,\n        end: datetime,\n        total_cal_days: int,\n    ) -> None",
               "docstring": "Fetch 1 m bars in \u2264 30-calendar-day pages (IBKR limit), newest-first.",
-              "line_start": 293,
-              "line_end": 315
+              "line_start": 259,
+              "line_end": 281
             },
             {
               "name": "_request_1m_bars",
-              "signature": "def _request_1m_bars(\r\n        self,\r\n        ib: Any,\r\n        pacing: PacingQueue,\r\n        symbol: str,\r\n        end_dt: datetime,\r\n        duration_days: int,\r\n    ) -> list[OHLCVBar]",
+              "signature": "def _request_1m_bars(\n        self,\n        ib: Any,\n        pacing: PacingQueue,\n        symbol: str,\n        end_dt: datetime,\n        duration_days: int,\n    ) -> list[OHLCVBar]",
               "docstring": "Issue one IBKR 1 m-bar request through the pacing queue.",
-              "line_start": 317,
-              "line_end": 339
+              "line_start": 283,
+              "line_end": 305
             },
             {
               "name": "_fetch_symbol_yfinance",
               "signature": "def _fetch_symbol_yfinance(self, symbol: str) -> None",
               "docstring": "Delta-fetch 1 m bars from yfinance (max 7 calendar days lookback).",
-              "line_start": 343,
-              "line_end": 391
+              "line_start": 309,
+              "line_end": 353
             },
             {
               "name": "_validate_candle_counts",
-              "signature": "def _validate_candle_counts(\r\n        self,\r\n        symbol: str,\r\n        timeframes: tuple[DerivedTimeframe, ...] = _REQUIRED_TIMEFRAMES,\r\n    ) -> CandleLoadResult",
+              "signature": "def _validate_candle_counts(\n        self,\n        symbol: str,\n        timeframes: tuple[DerivedTimeframe, ...] = _REQUIRED_TIMEFRAMES,\n    ) -> CandleLoadResult",
               "docstring": "Aggregate timeframes (default: 3m, 15m) and verify each has \u2265 min_candles bars.",
-              "line_start": 393,
-              "line_end": 421
+              "line_start": 355,
+              "line_end": 381
             },
             {
               "name": "get_readiness_report",
-              "signature": "def get_readiness_report(\r\n        self,\r\n        symbols: list[str],\r\n        min_candles: int = _MIN_CANDLES,\r\n    ) -> dict[str, SymbolReadiness]",
+              "signature": "def get_readiness_report(\n        self,\n        symbols: list[str],\n        min_candles: int = _MIN_CANDLES,\n    ) -> dict[str, SymbolReadiness]",
               "docstring": "Return a per-symbol readiness dict without triggering any fetches.",
-              "line_start": 423,
-              "line_end": 434
+              "line_start": 383,
+              "line_end": 394
             }
           ],
-          "line_start": 50,
-          "line_end": 434
+          "line_start": 62,
+          "line_end": 394
         }
       ],
       "top_level_functions": [
         {
+          "name": "_ensure_utc",
+          "signature": "def _ensure_utc(dt: datetime) -> datetime",
+          "line_start": 29,
+          "line_end": 30
+        },
+        {
+          "name": "_build_tf_counts",
+          "signature": "def _build_tf_counts(\n    symbol: str,\n    bars_1m: list[OHLCVBar],\n    timeframes: tuple[DerivedTimeframe, ...],\n    hist_engine: HistoricalDataEngine,\n) -> dict[str, int]",
+          "line_start": 33,
+          "line_end": 39
+        },
+        {
           "name": "check_candle_readiness",
-          "signature": "def check_candle_readiness(\r\n    symbols: list[str],\r\n    db: DatabaseManager,\r\n    hist_engine: HistoricalDataEngine,\r\n    min_candles: int = _MIN_CANDLES,\r\n    full_fetch_cal_days: int = _FULL_FETCH_CAL_DAYS,\r\n) -> dict[str, SymbolReadiness]",
+          "signature": "def check_candle_readiness(\n    symbols: list[str],\n    db: DatabaseManager,\n    hist_engine: HistoricalDataEngine,\n    min_candles: int = _MIN_CANDLES,\n    full_fetch_cal_days: int = _FULL_FETCH_CAL_DAYS,\n) -> dict[str, SymbolReadiness]",
           "docstring": "Pure DB-read readiness check \u2014 safe to call from any thread.",
-          "line_start": 440,
-          "line_end": 485
+          "line_start": 400,
+          "line_end": 442
         },
         {
           "name": "_raw_bar_to_ohlcv",
           "signature": "def _raw_bar_to_ohlcv(symbol: str, b: Any) -> OHLCVBar",
           "docstring": "Convert an ib_insync BarData object to :class:`OHLCVBar`.",
-          "line_start": 488,
-          "line_end": 515
+          "line_start": 445,
+          "line_end": 467
         }
       ],
       "constants": [
@@ -131,8 +143,147 @@
         "_IBKR_MAX_CAL_DAYS_PER_PAGE: int = 30",
         "_FULL_FETCH_CAL_DAYS: int = 30",
         "_REQUIRED_TIMEFRAMES: tuple[DerivedTimeframe, ...] = (\"3m\", \"15m\")",
-        "_SYMBOL_PAUSE_S: float = 0.3",
-        "_MAX_CLIENT_ID_RETRIES: int = 5"
+        "_SYMBOL_PAUSE_S: float = 0.3"
+      ]
+    },
+    "live_bar_worker.py": {
+      "module_id": "MD-EXE-007.001.M01",
+      "srd_id": "SRD-EXE-007.003",
+      "classes": [
+        {
+          "name": "LiveBarWorker",
+          "docstring": "Subscribes to IBKR 5-second real-time bars and builds 3m + 15m candles.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(\n        self,\n        symbols: list[str],\n        ibkr_host: str,\n        ibkr_port: int,\n        ibkr_client_id: int,\n        db_path: str,\n        parent: QObject | None = None,\n    ) -> None",
+              "line_start": 72,
+              "line_end": 94
+            },
+            {
+              "name": "run",
+              "signature": "def run(self) -> None",
+              "docstring": "QThread entry: run the async subscription loop in a fresh event loop.",
+              "line_start": 98,
+              "line_end": 103
+            },
+            {
+              "name": "request_stop",
+              "signature": "def request_stop(self) -> None",
+              "docstring": "Signal the worker to stop; safe to call from any thread.",
+              "line_start": 105,
+              "line_end": 120
+            },
+            {
+              "name": "set_symbols",
+              "signature": "def set_symbols(self, symbols: list[str]) -> None",
+              "docstring": "Update live real-time bar subscriptions without restarting the worker.",
+              "line_start": 122,
+              "line_end": 136
+            },
+            {
+              "name": "_apply_symbol_update",
+              "signature": "def _apply_symbol_update(self, new_set: set[str]) -> None",
+              "docstring": "Add/remove real-time bar subscriptions \u2014 must run on the worker event loop.",
+              "line_start": 140,
+              "line_end": 180
+            },
+            {
+              "name": "_async_run",
+              "signature": "def _async_run(self) -> None",
+              "line_start": 182,
+              "line_end": 277
+            },
+            {
+              "name": "_make_bar_handler",
+              "signature": "def _make_bar_handler(self, symbol: str, builder: CandleBuilder) -> Any",
+              "docstring": "Return an ib_insync updateEvent closure for ``reqRealTimeBars`` on *symbol*.",
+              "line_start": 279,
+              "line_end": 309
+            },
+            {
+              "name": "_on_candle_closed",
+              "signature": "def _on_candle_closed(self, symbol: str, tf: str, bar: OHLCVBar) -> None",
+              "line_start": 311,
+              "line_end": 321
+            },
+            {
+              "name": "_write_rows",
+              "signature": "def _write_rows(\n        self, tf: str, rows: list[tuple[str, str, float, float, float, float, int]]\n    ) -> int",
+              "docstring": "Bulk-insert pre-filtered rows into price_<tf>. Returns attempted row count.",
+              "line_start": 323,
+              "line_end": 341
+            },
+            {
+              "name": "_write_bar",
+              "signature": "def _write_bar(self, symbol: str, tf: str, bar: OHLCVBar) -> None",
+              "line_start": 343,
+              "line_end": 350
+            },
+            {
+              "name": "_run_yfinance",
+              "signature": "def _run_yfinance(self) -> None",
+              "line_start": 354,
+              "line_end": 377
+            },
+            {
+              "name": "_poll_yfinance_once",
+              "signature": "def _poll_yfinance_once(self) -> None",
+              "docstring": "Batch-download all symbols for both timeframes in two HTTP calls.",
+              "line_start": 379,
+              "line_end": 425
+            },
+            {
+              "name": "_write_yfinance_direct",
+              "signature": "def _write_yfinance_direct(self, symbol: str, df: Any, tf: str) -> int",
+              "docstring": "Insert each row of *df* as a candle in price_<tf>. Returns row count.",
+              "line_start": 427,
+              "line_end": 444
+            },
+            {
+              "name": "_write_yfinance_aggregated",
+              "signature": "def _write_yfinance_aggregated(\n        self, symbol: str, df_1m: Any, tf: str, group_minutes: int\n    ) -> int",
+              "docstring": "Aggregate 1m rows into *group_minutes* buckets, write completed buckets.",
+              "line_start": 446,
+              "line_end": 486
+            },
+            {
+              "name": "_get_last_ts",
+              "signature": "def _get_last_ts(self, symbol: str, tf: str) -> datetime | None",
+              "line_start": 488,
+              "line_end": 501
+            }
+          ],
+          "line_start": 48,
+          "line_end": 501
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_ensure_utc",
+          "signature": "def _ensure_utc(dt: datetime) -> datetime",
+          "line_start": 35,
+          "line_end": 36
+        },
+        {
+          "name": "_is_rth",
+          "signature": "def _is_rth(dt: datetime) -> bool",
+          "docstring": "Return True iff *dt* falls inside US Regular Trading Hours (weekdays 09:30\u201316:00",
+          "line_start": 39,
+          "line_end": 45
+        }
+      ],
+      "constants": [
+        "_YFINANCE_POLL_SECS: int = 60",
+        "_CONNECT_TIMEOUT: int = 10",
+        "_ET = ZoneInfo(\"America/New_York\")",
+        "_LIVE_TIMEFRAMES: tuple[str, ...] = (\"3m\", \"15m\")",
+        "_RTH_OPEN  = _dtime(9, 30)",
+        "_RTH_CLOSE = _dtime(16, 0)",
+        "_SUB_BATCH_SIZE: int = 10",
+        "_SUB_BATCH_PAUSE: float = 0.20",
+        "_FALLBACK_THRESHOLD: float = 0.90",
+        "_NO_PERM_CODES: frozenset[int] = frozenset({162, 200, 354, 420, 10089, 10189})"
       ]
     }
   }

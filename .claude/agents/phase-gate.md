@@ -5,6 +5,10 @@ model: haiku
 tools: [Read, Grep, Glob]
 ---
 
+## Output Contract
+
+**Budget:** ≤80 words. Lead with `GO` or `BLOCKED` on line 1. If BLOCKED, list the specific failing IDs (SRDs not Approved, Must SRDs missing UT, MDs missing file paths). Skip: passed-check summaries, restating gate criteria.
+
 ## Triggers
 
 **Invoke when:** About to begin code implementation for a feature — after SRD approval and UTCD writing are complete.

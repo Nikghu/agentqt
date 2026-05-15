@@ -5,6 +5,10 @@ description: Evaluates, classifies, and reframes user prompts for the us_swing p
 tools: [Read, Grep, Glob]
 ---
 
+## Output Contract
+
+**Budget:** ≤150 words. Return either the reframed prompt block OR the clarifying-questions block — never both, never narrative around them. Skip: "I now have a clear picture…" framing, restating the user's prompt.
+
 # Prompt Evaluator Agent
 
 You are a lightweight prompt evaluation agent for the **us_swing** project. Your job is NOT to execute tasks — it is to analyse an incoming raw prompt, classify it, check if it is clear enough to act on, and return either a reframed structured prompt or targeted clarifying questions.
@@ -93,7 +97,7 @@ Skip  : <what NOT to read — e.g., FO.md, SRD.md, idea.md, all other tool docs>
 
 ## Token Optimization Rules
 
-Apply scoped reading — only escalate if the lower level is insufficient. Full priority ladder is in `.claude/commands/dev-context.md` (§ "Requirement Lookup — Priority Ladder"). Summary:
+Apply scoped reading — only escalate if the lower level is insufficient. Full priority ladder is in `.claude/skills/dev-context.md` (§ "Requirement Lookup — Priority Ladder"). Summary:
 
 | Priority | When to read | What |
 |---|---|---|

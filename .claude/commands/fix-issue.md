@@ -6,7 +6,7 @@ Example: /project:fix-issue cache.get() — Expected: fetch missing days and mer
 $ARGUMENTS
 
 Steps:
-0. Read `.claude/commands/dev-context.md` — process rules, artifact formats, doc rules
+0. Read `.claude/skills/dev-context.md` — process rules, artifact formats, doc rules
 1. Read the relevant source file and its MD entry in `us_swing/docs/<tool>/MD.md`
 
 1a. SRD dependency check:
@@ -25,7 +25,7 @@ Steps:
     - Read `us_swing/docs/<tool>/DD.md` — update any DD item that described the incorrect behaviour.
     - Read `us_swing/docs/<tool>/UTCD.md` — update any test case whose Expected Output was written against the wrong behaviour. Mark updated rows `Status: Not Run`.
     - Complete all artifact updates before touching any source code.
-    - Invoke `.claude/agents/artifact-validator.md` for each artifact phase updated (SRD / DD / UTCD). All must return GO before proceeding.
+    - Invoke `.claude/agents/artifact-validator.md` ONCE — TOOL + PHASES: list of updated phases (e.g. `SRD,DD,UTCD`) + IDs of updated rows. Must return GO before proceeding.
 
 2. Read existing tests in `us_swing/tests/<tool>/test_<module>.py`
 3. Reproduce the issue by tracing the code path

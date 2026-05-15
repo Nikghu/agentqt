@@ -187,7 +187,9 @@ class IBKRFill:
 
 @dataclass
 class RealtimeBar:
-    """5-second realtime bar from IBKR (or synthetic from DummyProvider)."""
+    """Realtime market update — either a single trade tick (open==high==low==close==price)
+    or a pre-aggregated bar (e.g. 5-second bar from IBKR reqRealTimeBars).
+    ``CandleBuilder`` accepts both forms transparently."""
     symbol:   str
     datetime: datetime
     open:     float

@@ -87,7 +87,7 @@ From your `idea.md` and `requirements.md`:
 | `<project>/DEVLOG.md` | Development log (newest entry always at top) |
 | `<project>/docs/<tool>/` | One docs folder per tool — FO, SRD, DD, MD, UTCD, TRACE stubs |
 
-The `.claude/` directory (agents, commands, rules) is **pre-built** — no generation
+The `.claude/` directory (agents, commands, skills, rules) is **pre-built** — no generation
 needed. It is the same for every AgentQt project.
 
 ---
@@ -109,16 +109,22 @@ agentqt/                             ← your project root after clone
 │   │   ├── pyqt-code-simplifier.md — complexity reduction (on reviewer signal only)
 │   │   ├── test-writer.md          — writes pytest tests from UTCD
 │   │   └── code-reviewer.md        — reviews every non-GUI Python file
-│   ├── commands/
+│   ├── commands/                    ← user-triggered slash commands
 │   │   ├── init.md                  ← run this first, generates project scaffold
 │   │   ├── new-feature.md
 │   │   ├── auto-feature.md
 │   │   ├── fix-issue.md
 │   │   ├── refactor.md
 │   │   ├── write-tests.md
-│   │   ├── trace.md
 │   │   ├── rn.md
 │   │   └── doc-check.md
+│   ├── skills/                      ← auto-invoked workflow skills
+│   │   ├── dev-context.md
+│   │   ├── workspace.md
+│   │   ├── trace.md
+│   │   ├── hookify.md
+│   │   ├── code-writer.md
+│   │   └── pyqt-comment-analyzer.md
 │   └── rules/
 │       ├── artifact-conventions.md  — FO→RN chain, ID formats, SRD status guard
 │       ├── code-style.md            — ruff, mypy, PyQt6 widget sizing, file headers
@@ -152,7 +158,6 @@ agentqt/                             ← your project root after clone
 | `/refactor` | Code | Safe refactor with post-review gate |
 | `/write-tests` | UTCD → pytest | Write tests from UTCD document |
 | `/doc-check` | Anytime | Read-only audit of all artifact docs |
-| `/trace` | Anytime | Manual sync of TRACE.md |
 | `/rn` | Post-impl | Write Revision Note after a feature or fix |
 
 ---

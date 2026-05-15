@@ -5,6 +5,10 @@ model: sonnet
 tools: [Read, Grep, Glob, Bash]
 ---
 
+## Output Contract
+
+**Budget:** ≤150 words when verdict is `APPROVE`. When `BLOCK`, ≤80 words per CRITICAL/HIGH finding; omit MEDIUM/LOW unless the caller asks. Lead with the verdict on line 1. Skip: restating the prompt, severity tables when zero findings, "let me now…" preambles, citing line numbers for code that passed.
+
 ## Triggers
 
 **Invoke when:** A non-GUI Python file (infrastructure, screener, analysis, execution, MCP, core) has been written or modified.

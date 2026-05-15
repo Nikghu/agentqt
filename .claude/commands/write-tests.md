@@ -6,7 +6,7 @@ Example: /project:write-tests INF broker/client.py — implement all UTCD tests 
 **Agent:** Delegate to `.claude/agents/test-writer.md` (Sonnet) — it enforces UTCD traceability, UT ID docstrings, and fixture conventions automatically.
 
 Steps:
-0. Read `.claude/commands/dev-context.md` — process rules, artifact formats, doc rules
+0. Read `.claude/skills/dev-context.md` — process rules, artifact formats, doc rules
 1. Read `us_swing/docs/<tool>/UTCD.md` — section for the specified module
 2. Read the source file at `us_swing/src/usswing/<tool>/<module>.py`
 3. Invoke `test-writer` agent to write all test cases to `us_swing/tests/<tool>/test_<module>.py`

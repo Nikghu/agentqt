@@ -1,10 +1,10 @@
 # Functional Overview — GUI Module (GUI)
 
 **Document ID:** FO-GUI
-**Version:** 2.3.0
+**Version:** 2.4.0
 **Traces To:** requirements.md §21, §22, §23.3, §24, §25, §28.1, §29.1, §32
 **Status:** Draft
-**Last Updated:** 2026-05-06
+**Last Updated:** 2026-05-13
 **Project:** US Swing Trading System
 
 ---
@@ -280,3 +280,32 @@ The chart viewer shall:
 5. Candle and volume time-scales remain synchronised during pan and zoom.
 6. A "No data" placeholder is shown (instead of an empty chart) when the queried symbol/timeframe has no rows in the database.
 7. The bundled `lightweight-charts.standalone.production.js` is used when present; CDN fallback is used only when the bundle is missing.
+
+---
+
+## FO-GUI-012: Persistent IBKR Session
+**Status:** Draft
+**Priority:** Must
+**Source:** Architectural fix — eliminate connect/disconnect cycling on IBKR Gateway
+
+The system shall maintain a single persistent `ib_insync.IB` session for the lifetime of the IBKR feed connection. Account state, portfolio positions, Market Watch quotes, and Watchlist quotes shall be delivered by push-based subscriptions (`reqAccountUpdates`, `reqMktData`) rather than by repeated short-lived poll workers. Per-tick connect / authenticate / subscribe / disconnect cycling — currently producing rapid client-id churn on IBKR Gateway and risking "too many clients" throttling — shall be eliminated for monitoring traffic.
+
+The persistent session shall be owned by a new `IBKRSession` module under `gui/`. `AppService` shall hold one reference to it and bridge its asyncio-thread signals onto the existing public Qt signals so no panel-level code is impacted.
+
+### Scope Boundary
+
+- **In scope (consolidated onto persistent session):** account / portfolio updates (replaces `_AccountDataWorker`), Market Watch quotes (replaces `_MarketWatchWorker`), Watchlist quotes (replaces the watchlist worker).
+- **Out of scope (remain isolated as today):** candle download worker (intentional isolation per SRD-GUI-006.012), live-bar worker (already long-lived), execution path (read-only architecture unchanged).
+
+### Acceptance Criteria
+
+1. While the feed is `CONNECTED`, exactly one `ib_insync.IB` socket connection exists for monitoring traffic (account + Market Watch + Watchlist). Verifiable by inspecting open IBKR clientIds during a 10-minute session — no churn, no transient clientIds.
+2. Account equity, portfolio positions, Market Watch LTPs, and Watchlist LTPs reach the GUI within 2 seconds of an IBKR push under normal operation; no GUI polling timer drives these updates.
+3. Public `AppService` signals `account_updated`, `positions_updated`, `market_watch_updated`, `watchlist_updated`, and `feed_status_changed` retain their existing signatures byte-for-byte; no panel code requires modification.
+4. `disconnect_feed()` cleanly cancels every active subscription and tears down the persistent session; reconnecting via `connect_feed()` re-establishes the session and re-subscribes the current Market Watch + Watchlist symbol sets within 5 seconds.
+5. On an unexpected socket drop, the session shall transition `feed_status_changed` to `RECONNECTING`, attempt reconnect with backoff, and on success resubscribe transparently — no panel code observes a partial-state outage other than the standard status transition.
+6. When `DISCONNECTED`, Market Watch and Watchlist quotes fall back to the existing yfinance path with unchanged semantics; no quote-source regression is introduced for offline use.
+7. The Market Watch and Watchlist symbol sets are mutable at runtime: editing them while `CONNECTED` cancels stale subscriptions and creates new ones without dropping unaffected symbols.
+8. The persistent session uses one dedicated `clientId` (the existing system clientId); the legacy `clientId + 1`, `ibkr_mw_client_id`, and `ibkr_wl_client_id` allocations are removed wherever they are no longer referenced.
+9. The candle download worker and the live-bar worker continue to use their own isolated clientIds and connection lifecycles; this feature shall not alter their behaviour.
+10. All deleted legacy code (`_AccountDataWorker`, `_MarketWatchWorker`, the watchlist worker, their timers, refresh handlers, and orphaned config keys) is removed in full — no commented-out blocks, "removed" placeholders, or backwards-compatibility shims remain.

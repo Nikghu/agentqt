@@ -1,12 +1,12 @@
 Sync the TRACE.md traceability matrix for a tool after any phase completes.
 
-Usage: /project:trace <TOOL>
-Example: /project:trace EXE — reads all EXE artifact docs, fills missing cells in TRACE.md (FO→SRD→DD→MD→UT→Status→RN), and reports every row added or updated
+Usage: /trace <TOOL>
+Example: /trace EXE — reads all EXE artifact docs, fills missing cells in TRACE.md (FO→SRD→DD→MD→UT→Status→RN), and reports every row added or updated
 
 $ARGUMENTS
 
 Steps:
-0. Read `.claude/commands/dev-context.md` — artifact ID formats and TRACE.md column structure
+0. Read `.claude/skills/dev-context.md` — artifact ID formats and TRACE.md column structure
 1. Read `us_swing/docs/<tool>/TRACE.md` — capture current state; note which rows exist and which cells are empty
 2. Read `us_swing/docs/<tool>/FO.md` — collect all FO IDs
 3. Read `us_swing/docs/<tool>/SRD.md` — map each SRD to its parent FO; note status
