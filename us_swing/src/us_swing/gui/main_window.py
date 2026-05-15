@@ -14,14 +14,14 @@ Layout:
 from __future__ import annotations
 
 import logging
+import math
 
-from PyQt6.QtCore import QPoint, QSettings, QTimer, Qt
+from PyQt6.QtCore import QPoint, QPointF, QRectF, QSettings, QTimer, Qt
 
 _log = logging.getLogger(__name__)
-from PyQt6.QtGui import QCursor
+from PyQt6.QtGui import QColor, QCursor, QFont, QPainter, QPainterPath, QPen
 from PyQt6.QtWidgets import (
     QApplication,
-    QComboBox,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -40,7 +40,7 @@ from us_swing.gui.execution_panel import ExecutionPanel
 from us_swing.gui.screener_panel import ScreenerPanel
 from us_swing.gui.settings_panel import SettingsPanel
 from us_swing.gui.system_store import load_system_config
-from us_swing.gui.theme import C
+from us_swing.gui.theme import C, load_theme_id
 
 
 # ── Horizontal nav tab button ──────────────────────────────────────────────────
@@ -57,6 +57,145 @@ class _TabBtn(QPushButton):
         self.setFixedHeight(38)
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
+
+
+# ── Feed connect toggle ────────────────────────────────────────────────────────
+
+class _FeedToggle(QPushButton):
+    """
+    Pill-shaped feed connect/disconnect toggle with animated LED indicator.
+
+    Three states
+    ────────────
+    IDLE        gray pill  — "Connect Feed"
+    CONNECTING  amber pill — "Connecting…" (LED breathes)
+    CONNECTED   green pill — "Live Feed"   (LED glows)
+    """
+
+    IDLE       = "idle"
+    CONNECTING = "connecting"
+    CONNECTED  = "connected"
+
+    # (bg, border, led, text) hex per state
+    _COL: dict[str, tuple[str, str, str, str]] = {
+        IDLE:       ("#181824", "#45475a", "#565870", "#7f849c"),
+        CONNECTING: ("#1e1505", "#c8860a", "#f5a623", "#f5a623"),
+        CONNECTED:  ("#071810", "#1a7840", "#2dbd6e", "#2dbd6e"),
+    }
+    _LABEL: dict[str, str] = {
+        IDLE:       "Connect",
+        CONNECTING: "Connecting…",
+        CONNECTED:  "Live Feed",
+    }
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._state      = self.IDLE
+        self._led_alpha  = 1.0
+        self._pulse_phi  = 0.0
+        self._hovered    = False
+
+        self._pulse_timer = QTimer(self)
+        self._pulse_timer.setInterval(40)
+        self._pulse_timer.timeout.connect(self._tick)
+
+        self.setFixedSize(100, 28)
+        self.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.setStyleSheet("")   # opt out of global QSS entirely
+
+    # ── Public API ─────────────────────────────────────────────────────────────
+
+    def set_state(self, state: str) -> None:
+        self._state = state
+        if state == self.CONNECTING:
+            self._pulse_phi = 0.0
+            self._pulse_timer.start()
+            self.setEnabled(False)
+        else:
+            self._pulse_timer.stop()
+            self._led_alpha = 1.0
+            self.setEnabled(True)
+        self.update()
+
+    # ── Events ─────────────────────────────────────────────────────────────────
+
+    def enterEvent(self, event: object) -> None:  # type: ignore[override]
+        self._hovered = True
+        self.update()
+
+    def leaveEvent(self, event: object) -> None:  # type: ignore[override]
+        self._hovered = False
+        self.update()
+
+    def _tick(self) -> None:
+        self._pulse_phi = (self._pulse_phi + 0.16) % (2 * math.pi)
+        self._led_alpha = 0.20 + 0.80 * (0.5 + 0.5 * math.sin(self._pulse_phi))
+        self.update()
+
+    # ── Paint ──────────────────────────────────────────────────────────────────
+
+    def paintEvent(self, event: object) -> None:  # type: ignore[override]
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        w = float(self.width())
+        h = float(self.height())
+        r = h / 2.0
+
+        bg_h, bd_h, led_h, txt_h = self._COL[self._state]
+        bg  = QColor(bg_h)
+        bd  = QColor(bd_h)
+        led = QColor(led_h)
+        txt = QColor(txt_h)
+
+        if self._hovered and self._state == self.IDLE:
+            if load_theme_id() == "vscode":
+                bd  = QColor("#9d9d9d")
+                txt = QColor("#d4d4d4")
+            else:
+                bd  = QColor("#6e7aff")
+                txt = QColor("#b0b8ff")
+
+        # ── Pill shell ─────────────────────────────────────────────────────
+        shell = QPainterPath()
+        shell.addRoundedRect(QRectF(0.5, 0.5, w - 1.0, h - 1.0), r, r)
+        p.fillPath(shell, bg)
+        p.setPen(QPen(bd, 1.0))
+        p.drawPath(shell)
+
+        # ── LED ────────────────────────────────────────────────────────────
+        led_r  = 4.0
+        led_cx = r          # horizontally centred in the left "cap"
+        led_cy = h / 2.0
+
+        if self._state == self.CONNECTED:
+            # soft outer glow ring
+            glow = QColor(led_h)
+            glow.setAlphaF(0.22)
+            p.setPen(Qt.PenStyle.NoPen)
+            p.setBrush(glow)
+            p.drawEllipse(QPointF(led_cx, led_cy), led_r + 3.0, led_r + 3.0)
+
+        core = QColor(led)
+        core.setAlphaF(self._led_alpha)
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(core)
+        p.drawEllipse(QPointF(led_cx, led_cy), led_r, led_r)
+
+        # ── Label ──────────────────────────────────────────────────────────
+        font = QFont("Segoe UI", 8)
+        font.setWeight(QFont.Weight.Bold)
+        p.setFont(font)
+        p.setPen(txt)
+        tx = led_cx + led_r + 8.0
+        p.drawText(
+            QRectF(tx, 0.0, w - tx - 8.0, h),
+            Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
+            self._LABEL[self._state],
+        )
+
+        p.end()
 
 
 # ── Draggable top bar ──────────────────────────────────────────────────────────
@@ -85,7 +224,7 @@ class _TitleBar(QWidget):
         row.setSpacing(0)
 
         # ── Brand ───────────────────────────────────────────────────────
-        brand = QLabel("◈  Swing Trading Terminal")
+        brand = QLabel("Swing Trading Terminal")
         brand.setObjectName("top_brand")
         row.addWidget(brand)
 
@@ -108,54 +247,12 @@ class _TitleBar(QWidget):
 
         row.addStretch(1)          # push remaining right
 
-        # ── Admin badge ────────────────────────────────────────────────
-        admin_badge = QLabel("🔐 ADMIN")
-        admin_badge.setFixedHeight(24)
-        admin_badge.setStyleSheet(
-            f"color:{C.YELLOW};background:{C.YELLOW}18;border:1px solid {C.YELLOW}55;"
-            f"border-radius:6px;padding:0px 10px;font-size:7pt;font-weight:bold;"
-        )
-        row.addSpacing(8)
-        row.addWidget(admin_badge)
-
-        # ── Scope selector combo ───────────────────────────────────────
-        _scope_lbl = QLabel("Scope:")
-        _scope_lbl.setStyleSheet(f"color:{C.MUTED}; font-size:8pt; padding-left:10px; padding-right:4px;")
-        self._scope_combo = QComboBox()
-        self._scope_combo.setFixedWidth(160)
-        self._scope_combo.setStyleSheet(
-            f"QComboBox {{ background:{C.SURFACE}; color:{C.TEXT}; border:1px solid {C.OVERLAY};"
-            f"  border-radius:4px; padding:2px 6px; font-size:8pt; outline:none; }}"
-            f"QComboBox:focus {{ border:1px solid {C.BLUE}; outline:none; }}"
-            f"QComboBox::drop-down {{ border:none; }}"
-            f"QComboBox QAbstractItemView {{ background:{C.SURFACE}; color:{C.TEXT}; "
-            f"  selection-background-color:{C.OVERLAY}; }}"
-        )
-        self._scope_combo.addItem("🌐  All Users", userData=None)
         self._svc = svc
-        for u in svc.get_users():
-            dot = "🔴" if u.mode == "live" else "🔵"
-            self._scope_combo.addItem(f"{dot}  {u.username} · {u.mode.upper()}", userData=u.user_id)
-        self._scope_combo.currentIndexChanged.connect(self._on_scope_changed)
-        row.addWidget(_scope_lbl)
-        row.addWidget(self._scope_combo)
 
         # ── Connect / Disconnect feed toggle ──────────────────────────────
         row.addSpacing(8)
-        self._feed_btn = QPushButton("Connect Feed")
-        self._feed_btn.setObjectName("feed_btn_disconnected")
-        self._feed_btn.setFixedSize(140, 26)
-        self._feed_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self._feed_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self._feed_btn.setStyleSheet(
-            f"QPushButton {{ background:{C.SURFACE}; color:{C.TEXT}; "
-            f"border:1px solid {C.OVERLAY}; border-radius:5px; "
-            f"font-size:8pt; padding: 0 10px; }}"
-            f"QPushButton:hover {{ border-color:{C.BLUE}; color:{C.BLUE}; }}"
-            f"QPushButton:disabled {{ color:{C.MUTED}; border-color:{C.OVERLAY}; }}"
-        )
+        self._feed_btn = _FeedToggle(self)
         self._feed_btn.clicked.connect(self._on_feed_btn_clicked)
-        row.addSpacing(4)
         row.addWidget(self._feed_btn)
         svc.feed_status_changed.connect(self._on_feed_status_changed)
         row.addSpacing(8)
@@ -200,10 +297,6 @@ class _TitleBar(QWidget):
         for b in (self._btn_min, self._btn_max, self._btn_cls):
             wf.addWidget(b, alignment=Qt.AlignmentFlag.AlignVCenter)
         row.addWidget(win_frame, alignment=Qt.AlignmentFlag.AlignVCenter)
-    def _on_scope_changed(self, idx: int) -> None:
-        uid = self._scope_combo.itemData(idx)
-        self._svc.set_viewing_uid(uid)
-
     def _on_feed_btn_clicked(self) -> None:
         status = self._svc.connection_status
         if status == ConnectionStatus.CONNECTED:
@@ -219,24 +312,12 @@ class _TitleBar(QWidget):
             self._svc.connect_feed()
 
     def _on_feed_status_changed(self, status_str: str) -> None:
-        def _style(border: str, bg: str, fg: str) -> str:
-            return (
-                f"QPushButton {{ border-radius:5px; font-size:8pt; padding: 0 10px; "
-                f"border:1px solid {border}; background:{bg}; color:{fg}; }}"
-                f"QPushButton:disabled {{ color:{C.MUTED}; border-color:{C.OVERLAY}; background:{C.SURFACE}; }}"
-            )
         if status_str == "connected":
-            self._feed_btn.setText("🟢  Connected")
-            self._feed_btn.setEnabled(True)
-            self._feed_btn.setStyleSheet(_style(C.GREEN + "88", C.GREEN + "18", C.GREEN))
+            self._feed_btn.set_state(_FeedToggle.CONNECTED)
         elif status_str == "reconnecting":
-            self._feed_btn.setText("⟳  Connecting…")
-            self._feed_btn.setEnabled(False)
-            self._feed_btn.setStyleSheet(_style(C.YELLOW + "88", C.YELLOW + "18", C.YELLOW))
+            self._feed_btn.set_state(_FeedToggle.CONNECTING)
         else:
-            self._feed_btn.setText("Connect Feed")
-            self._feed_btn.setEnabled(True)
-            self._feed_btn.setStyleSheet(_style(C.OVERLAY, C.SURFACE, C.TEXT))
+            self._feed_btn.set_state(_FeedToggle.IDLE)
     # ── Drag to move ──────────────────────────────────────────────────────────
 
     def mousePressEvent(self, ev):  # type: ignore[override]
@@ -270,14 +351,6 @@ class _TitleBar(QWidget):
 
     # ── Data refresh ──────────────────────────────────────────────────────────
 
-    def refresh_scope_combo(self) -> None:
-        """Sync combo selection if scope was changed programmatically."""
-        uid = self._svc.get_viewing_uid()
-        for i in range(self._scope_combo.count()):
-            if self._scope_combo.itemData(i) == uid:
-                self._scope_combo.setCurrentIndex(i)
-                break
-
 
 # ── Admin Context Bar ─────────────────────────────────────────────────────────────
 
@@ -293,12 +366,6 @@ class _AdminContextBar(QWidget):
         self._demo = svc
         self.setObjectName("admin_ctx_bar")
         self.setFixedHeight(28)
-        self.setStyleSheet(
-            f"QWidget#admin_ctx_bar {{"
-            f"  background:{C.SURFACE};"
-            f"  border-bottom: 1px solid {C.OVERLAY};"
-            f"}}"
-        )
 
         row = QHBoxLayout(self)
         row.setContentsMargins(14, 0, 14, 0)
@@ -471,18 +538,18 @@ class MainWindow(QMainWindow):
         self._status = self.statusBar()
         self._status.setSizeGripEnabled(False)
         self._sb_conn    = QLabel("●  Internet: Checking…")
-        self._sb_conn.setStyleSheet(f"color:{C.MUTED};padding:0 8px;")
+        self._sb_conn.setStyleSheet(f"background:transparent;color:{C.MUTED};padding:0 8px;")
         self._sb_session = QLabel("SESSION: LIVE READ-ONLY")
-        self._sb_session.setStyleSheet(f"color:{C.YELLOW};padding:0 8px;font-size:8pt;")
+        self._sb_session.setStyleSheet(f"background:transparent;color:{C.YELLOW};padding:0 8px;font-size:8pt;")
         self._sb_exe     = QLabel("EXE: DISABLED")
-        self._sb_exe.setStyleSheet(f"color:{C.BLUE};padding:0 8px;font-size:8pt;")
+        self._sb_exe.setStyleSheet(f"background:transparent;color:{C.BLUE};padding:0 8px;font-size:8pt;")
         for w in (self._sb_conn, _sep(), self._sb_session, _sep(), self._sb_exe):
             self._status.addWidget(w)
         # NYSE / NASDAQ market status — right side of status bar
         self._sb_nyse   = QLabel("⬤  NYSE")
         self._sb_nasdaq = QLabel("⬤  NASDAQ")
         for pill in (self._sb_nyse, self._sb_nasdaq):
-            pill.setStyleSheet(f"color:{C.MUTED};padding:0 10px;font-size:8pt;")
+            pill.setStyleSheet(f"background:transparent;color:{C.MUTED};padding:0 10px;font-size:8pt;")
             self._status.addPermanentWidget(pill)
 
         # ── Root widget ────────────────────────────────────────────────────────
@@ -538,10 +605,10 @@ class MainWindow(QMainWindow):
         """Update the status-bar internet pill when connectivity flips."""
         if online:
             self._sb_conn.setText("●  Internet: Online")
-            self._sb_conn.setStyleSheet(f"color:{C.GREEN};padding:0 8px;")
+            self._sb_conn.setStyleSheet(f"background:transparent;color:{C.GREEN};padding:0 8px;")
         else:
             self._sb_conn.setText("●  Internet: Offline")
-            self._sb_conn.setStyleSheet(f"color:{C.RED};padding:0 8px;")
+            self._sb_conn.setStyleSheet(f"background:transparent;color:{C.RED};padding:0 8px;")
 
     def _on_market_status(self) -> None:
         """Update NYSE / NASDAQ status bar pills from AppService market status."""
@@ -561,7 +628,7 @@ class MainWindow(QMainWindow):
         for pill, key in ((self._sb_nyse, "nyse"), (self._sb_nasdaq, "nasdaq")):
             s = status.get(key, "closed")
             colour = _colour_map.get(s, C.MUTED)
-            pill.setStyleSheet(f"color:{colour};padding:0 10px;font-size:8pt;")
+            pill.setStyleSheet(f"background:transparent;color:{colour};padding:0 10px;font-size:8pt;")
             pill.setToolTip(_tip_map.get(s, ""))
 
     def _on_db_status_updated(self, info: object) -> None:
@@ -719,7 +786,7 @@ class MainWindow(QMainWindow):
 
 def _sep() -> QLabel:
     lbl = QLabel("│")
-    lbl.setStyleSheet(f"color:{C.OVERLAY2};padding:0 2px;")
+    lbl.setStyleSheet(f"background:transparent;color:{C.OVERLAY2};padding:0 2px;")
     return lbl
 
 

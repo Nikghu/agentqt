@@ -63,14 +63,14 @@ def _cmd_gui() -> None:
 
     from us_swing.gui.app_service import AppService
     from us_swing.gui.main_window import MainWindow
-    from us_swing.gui.theme import QSS
+    from us_swing.gui import theme as _theme
 
     threading.Thread(target=_run_updater, daemon=True).start()
 
     app = QApplication(sys.argv)
     app.setApplicationName("US Swing Trader")
     app.setOrganizationName("USSwing")
-    app.setStyleSheet(QSS)
+    app.setStyleSheet(_theme.THEMES.get(_theme.load_theme_id(), _theme.QSS))
 
     svc    = AppService()
     window = MainWindow(svc)

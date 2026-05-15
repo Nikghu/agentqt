@@ -10,7 +10,7 @@ import datetime
 
 import logging
 
-from PyQt6.QtCore import QAbstractTableModel, QModelIndex, QStringListModel, Qt
+from PyQt6.QtCore import QAbstractTableModel, QEvent, QModelIndex, QStringListModel, Qt
 from PyQt6.QtGui import QColor, QFont, QTextCursor
 from PyQt6.QtWidgets import (
     QCheckBox,
@@ -41,7 +41,7 @@ from us_swing.gui.log_viewer_panel import _html_entry
 from us_swing.gui.app_service import AppService
 from us_swing.gui._types import AccountState, OpenPosition
 from us_swing.gui.position_table_model import PositionTableModel, TradeHistoryModel
-from us_swing.gui.theme import C
+from us_swing.gui.theme import C, load_theme_id
 from us_swing.data.models import WatchlistItem
 
 _log = logging.getLogger(__name__)
@@ -934,12 +934,6 @@ class _WatchlistTab(QWidget):
         self._sym_input.setPlaceholderText("Symbol (e.g. AAPL)…")
         self._sym_input.setFixedWidth(160)
         self._sym_input.setMaxLength(12)
-        self._sym_input.setStyleSheet(
-            f"QLineEdit {{ background:{C.OVERLAY}; border:1px solid {C.OVERLAY2};"
-            f" border-radius:4px; color:{C.TEXT}; padding:0 8px;"
-            f" min-height:28px; max-height:28px; font-size:9pt; outline:none; }}"
-            f"QLineEdit:focus {{ border:1px solid {C.BLUE}; outline:none; }}"
-        )
         if self._sp500:
             _completer_model = QStringListModel(sorted(self._sp500))
             _completer = QCompleter(_completer_model, self._sym_input)
@@ -948,37 +942,19 @@ class _WatchlistTab(QWidget):
             self._sym_input.setCompleter(_completer)
         self._sym_input.returnPressed.connect(self._on_add)
 
-        def _wl_btn_qss(bg: str, bd: str, fg: str, fw: str, hv: str) -> str:
-            return (
-                f"QPushButton {{ background:{bg}; border:1px solid {bd}; color:{fg};"
-                f" font-weight:{fw}; border-radius:4px;"
-                f" padding:0 12px; min-height:28px; max-height:28px; font-size:9pt; }}"
-                f"QPushButton:hover {{ background:{hv}; }}"
-                f"QPushButton:disabled {{ color:{C.MUTED}; background:{C.OVERLAY}44;"
-                f" border-color:{C.OVERLAY}; }}"
-                f"QPushButton:focus {{ outline: none; }}"
-            )
-
         self._add_btn = QPushButton("➕  Add")
+        self._add_btn.setObjectName("btn_green")
         self._add_btn.setFixedWidth(110)
-        self._add_btn.setStyleSheet(
-            _wl_btn_qss("#1a2d45", C.BLUE, C.BLUE, "bold", "#1e3658")
-        )
         self._add_btn.clicked.connect(self._on_add)
 
         self._remove_btn = QPushButton("🗑  Remove")
+        self._remove_btn.setObjectName("btn_remove")
         self._remove_btn.setFixedWidth(110)
-        self._remove_btn.setStyleSheet(
-            _wl_btn_qss("#331a1a", C.RED, C.RED, "normal", "#3d2222")
-        )
         self._remove_btn.setEnabled(False)
         self._remove_btn.clicked.connect(self._on_remove)
 
         self._refresh_btn = QPushButton("⟳  Refresh")
         self._refresh_btn.setFixedWidth(110)
-        self._refresh_btn.setStyleSheet(
-            _wl_btn_qss(C.OVERLAY, C.OVERLAY2, C.TEXT, "normal", C.OVERLAY2)
-        )
         self._refresh_btn.clicked.connect(self._on_manual_refresh)
 
         self._status_lbl = QLabel("No symbols in watchlist")
@@ -1120,19 +1096,16 @@ class DashboardPanel(QWidget):
             cards_row.addWidget(card)
 
         # ── Admin user-scope pill strip ──────────────────────────────────────────────
-        scope_strip = QWidget()
-        scope_strip.setObjectName("scope_strip")
-        scope_strip.setStyleSheet(
-            f"QWidget#scope_strip {{ background:{C.SURFACE}; border:1px solid {C.OVERLAY};"
-            f" border-radius:4px; }}"
-        )
-        scope_strip.setFixedHeight(32)
-        ss_row = QHBoxLayout(scope_strip)
+        self._scope_strip = QWidget()
+        self._scope_strip.setObjectName("scope_strip")
+        self._scope_strip.setFixedHeight(32)
+        ss_row = QHBoxLayout(self._scope_strip)
         ss_row.setContentsMargins(8, 0, 8, 0)
         ss_row.setSpacing(4)
-        scope_lbl = QLabel("👥  View:")
-        scope_lbl.setStyleSheet(f"color:{C.MUTED}; font-size:8pt; font-weight:bold;")
-        ss_row.addWidget(scope_lbl)
+        self._scope_lbl = QLabel("👥  View:")
+        self._scope_lbl.setFixedHeight(20)
+        self._scope_lbl.setStyleSheet("font-size:8pt; font-weight:bold;")
+        ss_row.addWidget(self._scope_lbl)
 
         self._scope_pills: dict[object, QPushButton] = {}  # uid:None | int -> button
         users = demo.get_users()
@@ -1141,14 +1114,7 @@ class DashboardPanel(QWidget):
             btn = QPushButton(label)
             btn.setCheckable(True)
             btn.setAutoExclusive(True)
-            btn.setFixedHeight(22)
-            btn.setStyleSheet(
-                f"QPushButton {{ background:transparent; color:{C.MUTED}; border:1px solid {C.OVERLAY};"
-                f" border-radius:10px; padding:0 10px; font-size:8pt; }}"
-                f"QPushButton:checked {{ background:{C.BLUE}33; color:{C.BLUE};"
-                f" border:1px solid {C.BLUE}; font-weight:bold; }}"
-                f"QPushButton:focus {{ outline: none; }}"
-            )
+            btn.setFixedHeight(20)
             if first:
                 btn.setChecked(True)
             btn.clicked.connect(lambda _c, u=uid: demo.set_viewing_uid(u))
@@ -1159,6 +1125,7 @@ class DashboardPanel(QWidget):
         for u in users:
             self._scope_pills[u.user_id] = _make_pill(f"🔵 {u.username}", u.user_id)
         ss_row.addStretch()
+        self._restyle_scope_strip()
 
         demo.viewing_changed.connect(self._on_scope_changed)
 
@@ -1179,11 +1146,8 @@ class DashboardPanel(QWidget):
 
         # ── Position action toolbar ────────────────────────────────────────────
         self._sq_all_btn = QPushButton("⚡  Square Off All")
+        self._sq_all_btn.setObjectName("danger_btn")
         self._sq_all_btn.setToolTip("Close all open positions at market price")
-        self._sq_all_btn.setStyleSheet(
-            f"background:{C.RED}22; color:{C.RED}; border:1px solid {C.RED}66;"
-            f"border-radius:4px; padding:4px 12px; font-weight:bold;"
-        )
         self._pos_status_lbl = QLabel("Double-click a row to manage")
         self._pos_status_lbl.setStyleSheet(f"color:{C.MUTED}; font-size:8pt;")
 
@@ -1263,7 +1227,7 @@ class DashboardPanel(QWidget):
         self._pause_btn.clicked.connect(self._toggle_log_pause)
 
         self._clear_btn = QPushButton("🗑  Clear")
-        self._clear_btn.setFixedWidth(80)
+        self._clear_btn.setFixedWidth(90)
         self._clear_btn.clicked.connect(self._clear_log)
 
         filter_row = QHBoxLayout()
@@ -1286,10 +1250,6 @@ class DashboardPanel(QWidget):
         _lf.setStyleHint(QFont.StyleHint.Monospace)
         self._log_view.setFont(_lf)
         self._log_view.setFixedHeight(180)
-        self._log_view.setStyleSheet(
-            f"QTextEdit {{ background:{C.SURFACE}; color:{C.TEXT};"
-            f" border:1px solid {C.OVERLAY}; border-radius:4px; outline:none; }}"
-        )
 
         self._log_count_lbl = QLabel("0 entries")
         self._log_count_lbl.setStyleSheet(f"color: {C.MUTED}; font-size: 8pt;")
@@ -1301,7 +1261,7 @@ class DashboardPanel(QWidget):
         main.setSpacing(10)
         main.setContentsMargins(14, 14, 14, 14)
         main.addLayout(cards_row)
-        main.addWidget(scope_strip)
+        main.addWidget(self._scope_strip)
         main.addWidget(self._dash_tabs, 1)
         main.addLayout(filter_row)
         main.addWidget(self._log_view)
@@ -1316,6 +1276,46 @@ class DashboardPanel(QWidget):
         self._on_scope_changed()   # initialise User column & column widths for current scope
         self._refresh_positions()
         self._refresh_account()
+
+    # ── Theme-aware scope strip ───────────────────────────────────────────────────────
+
+    def changeEvent(self, event: QEvent) -> None:
+        super().changeEvent(event)
+        if event.type() == QEvent.Type.StyleChange:
+            self._restyle_scope_strip()
+
+    def _restyle_scope_strip(self) -> None:
+        _is_vs = load_theme_id() == "vscode"
+        _ss_bg  = "#252526" if _is_vs else C.SURFACE
+        _ss_brd = "#454545" if _is_vs else C.OVERLAY
+        _pill_mu = "#6d6d6d" if _is_vs else C.MUTED
+        _pill_ov = "#2d2d2d" if _is_vs else C.OVERLAY
+        self._scope_strip.setStyleSheet(
+            f"QWidget#scope_strip {{ background:{_ss_bg}; border:1px solid {_ss_brd};"
+            f" border-radius:4px; }}"
+        )
+        self._scope_lbl.setStyleSheet(
+            f"color:{_pill_mu}; font-size:8pt; font-weight:bold;"
+        )
+        if _is_vs:
+            pill_qss = (
+                f"QPushButton {{ background:transparent; color:{_pill_mu}; border:1px solid {_pill_ov};"
+                f" border-radius:10px; padding:0 10px; font-size:8pt; }}"
+                f"QPushButton:checked {{ background:#3a3d41; color:#ffffff;"
+                f" border:1px solid #9d9d9d; font-weight:bold; }}"
+                f"QPushButton:focus {{ outline: none; }}"
+            )
+        else:
+            _pill_bl = C.BLUE
+            pill_qss = (
+                f"QPushButton {{ background:transparent; color:{_pill_mu}; border:1px solid {_pill_ov};"
+                f" border-radius:10px; padding:0 10px; font-size:8pt; }}"
+                f"QPushButton:checked {{ background:{_pill_bl}33; color:{_pill_bl};"
+                f" border:1px solid {_pill_bl}; font-weight:bold; }}"
+                f"QPushButton:focus {{ outline: none; }}"
+            )
+        for btn in self._scope_pills.values():
+            btn.setStyleSheet(pill_qss)
 
     # ── Scope pill sync ───────────────────────────────────────────────────────────────
 

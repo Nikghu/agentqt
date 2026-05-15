@@ -407,11 +407,41 @@ class _SystemTab(QWidget):
         btn_row.addWidget(self._sched_btn)
         btn_row.addWidget(save_btn)
 
+        # ── Theme group ────────────────────────────────────────────────────────
+        from us_swing.gui import theme as _theme
+        theme_box = QGroupBox("Theme")
+        theme_row = QHBoxLayout(theme_box)
+        theme_row.setContentsMargins(12, 8, 12, 8)
+        theme_row.setSpacing(8)
+
+        self._btn_mocha  = QPushButton("Mocha (Default)")
+        self._btn_mocha.setCheckable(True)
+        self._btn_mocha.setFixedWidth(140)
+        self._btn_vscode = QPushButton("VS Code Dark")
+        self._btn_vscode.setCheckable(True)
+        self._btn_vscode.setFixedWidth(140)
+
+        current_theme = _theme.load_theme_id()
+        self._btn_mocha.setChecked(current_theme == "mocha")
+        self._btn_vscode.setChecked(current_theme == "vscode")
+
+        self._btn_mocha.clicked.connect(lambda: self._on_theme("mocha"))
+        self._btn_vscode.clicked.connect(lambda: self._on_theme("vscode"))
+
+        theme_row.addWidget(self._btn_mocha)
+        theme_row.addWidget(self._btn_vscode)
+        theme_row.addStretch()
+
+        theme_wrapper = QHBoxLayout()
+        theme_wrapper.setContentsMargins(20, 12, 20, 0)
+        theme_wrapper.addWidget(theme_box)
+
         # ── Main layout ────────────────────────────────────────────────────────
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addLayout(form)
         layout.addLayout(btn_row)
+        layout.addLayout(theme_wrapper)
         layout.addStretch()
 
     # ── Helpers ────────────────────────────────────────────────────────────────
@@ -440,6 +470,13 @@ class _SystemTab(QWidget):
         )
         self._demo.save_system_config(cfg)
         self._save_note.setText("✔  Settings saved")
+
+    def _on_theme(self, theme_id: str) -> None:
+        from us_swing.gui import theme as _theme
+        _theme.save_theme_id(theme_id)
+        _theme.apply_theme(theme_id)
+        self._btn_mocha.setChecked(theme_id == "mocha")
+        self._btn_vscode.setChecked(theme_id == "vscode")
 
 
 # ── Universe Tab ─────────────────────────────────────────────────────────────

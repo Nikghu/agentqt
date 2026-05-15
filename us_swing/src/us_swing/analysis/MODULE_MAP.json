@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-12T18:58:02",
+  "generated": "2026-05-15T13:49:10",
   "subfolder": "analysis",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\analysis",
   "tool_code": "ANA",
@@ -15,13 +15,13 @@
           "methods": [
             {
               "name": "__init__",
-              "signature": "def __init__(\n        self,\n        timeframes: list[str],\n        on_candle_closed: Callable[[str, str, OHLCVBar], None] | None = None,\n    ) -> None",
+              "signature": "def __init__(\r\n        self,\r\n        timeframes: list[str],\r\n        on_candle_closed: Callable[[str, str, OHLCVBar], None] | None = None,\r\n    ) -> None",
               "line_start": 56,
               "line_end": 73
             },
             {
               "name": "register_callback",
-              "signature": "def register_callback(\n        self, on_candle_closed: Callable[[str, str, OHLCVBar], None]\n    ) -> None",
+              "signature": "def register_callback(\r\n        self, on_candle_closed: Callable[[str, str, OHLCVBar], None]\r\n    ) -> None",
               "docstring": "Replace the candle-closed callback (e.g. wired in by LiveEngine).",
               "line_start": 77,
               "line_end": 81
@@ -61,7 +61,7 @@
             },
             {
               "name": "_aggregate",
-              "signature": "def _aggregate(\n        symbol: str, tf: str, bars: list[RealtimeBar], window_start: datetime\n    ) -> OHLCVBar",
+              "signature": "def _aggregate(\r\n        symbol: str, tf: str, bars: list[RealtimeBar], window_start: datetime\r\n    ) -> OHLCVBar",
               "decorators": [
                 "@staticmethod"
               ],

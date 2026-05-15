@@ -7,7 +7,7 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Any
 
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import QEvent, Qt, QTimer
 from PyQt6.QtGui import QFont, QTextOption
 from PyQt6.QtWidgets import (
     QFrame,
@@ -22,13 +22,50 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from us_swing.gui.theme import C
+from us_swing.gui.theme import C, load_theme_id
 
 if TYPE_CHECKING:
     from us_swing.screener.storage import AITranscriptTurn  # noqa: F401
 
-# Catppuccin Mocha blue-tinted user bubble background — matches filter_chip[active]
-_USER_BG = "#1a2d45"
+# VS Code Dark palette for transcript cards (mirrors _VS in theme.py)
+_VSD = {
+    "blue":    "#007acc",
+    "green":   "#4ec9b0",
+    "yellow":  "#cca700",
+    "muted":   "#6d6d6d",
+    "bg":      "#1e1e1e",
+    "surface": "#252526",
+    "ovl2":    "#454545",
+    "user_bg": "#2a2d2e",
+}
+
+
+def _build_role_styles(vs: bool) -> dict[str, tuple[str, str, str, str]]:
+    """Return role-style map for the active theme.
+
+    Each entry: (display_text, avatar_color, card_bg, border_css).
+    """
+    if vs:
+        b, g, y, mu = _VSD["blue"], _VSD["green"], _VSD["yellow"], _VSD["muted"]
+        bg, sf, ov2 = _VSD["bg"], _VSD["surface"], _VSD["ovl2"]
+        return {
+            "user":        ("USER",      b,  _VSD["user_bg"], f"border: 1px solid {ov2}; border-radius: 4px;"),
+            "assistant":   ("ASSISTANT", g,  sf,              f"border: 1px solid {ov2}; border-radius: 4px;"),
+            "system":      ("SYSTEM",    mu, bg,              f"border: 1px dashed {ov2}; border-radius: 4px;"),
+            "tool_result": ("TOOL",      y,  bg,
+                            f"border-left: 4px solid {y};"
+                            " border-top: none; border-right: none; border-bottom: none;"
+                            " border-radius: 0px;"),
+        }
+    return {
+        "user":        ("USER",      C.BLUE,   "#1a2d45",  f"border: 1px solid {C.BLUE};    border-radius: 8px;"),
+        "assistant":   ("ASSISTANT", C.GREEN,  C.SURFACE,  f"border: 1px solid {C.OVERLAY}; border-radius: 8px;"),
+        "system":      ("SYSTEM",    C.MUTED,  C.BG,       f"border: 1px dashed {C.OVERLAY}; border-radius: 8px;"),
+        "tool_result": ("TOOL",      C.YELLOW, C.BG,
+                        f"border-left: 4px solid {C.YELLOW};"
+                        " border-top: none; border-right: none; border-bottom: none;"
+                        " border-radius: 0px;"),
+    }
 
 
 def _screening_results_html(content: str) -> str | None:
@@ -86,38 +123,6 @@ def _screening_results_html(content: str) -> str | None:
 class _TurnBlock(QFrame):
     """Renders a single conversation turn as a styled chat card."""
 
-    # role -> (display_text, avatar_color, card_bg, border_css)
-    _ROLE_STYLE: dict[str, tuple[str, str, str, str]] = {
-        "user": (
-            "USER",
-            C.BLUE,
-            _USER_BG,
-            f"border: 1px solid {C.BLUE}; border-radius: 8px;",
-        ),
-        "assistant": (
-            "ASSISTANT",
-            C.GREEN,
-            C.SURFACE,
-            f"border: 1px solid {C.OVERLAY}; border-radius: 8px;",
-        ),
-        "system": (
-            "SYSTEM",
-            C.MUTED,
-            C.BG,
-            f"border: 1px dashed {C.OVERLAY}; border-radius: 8px;",
-        ),
-        "tool_result": (
-            "TOOL",
-            C.YELLOW,
-            C.BG,
-            (
-                f"border-left: 4px solid {C.YELLOW};"
-                " border-top: none; border-right: none; border-bottom: none;"
-                " border-radius: 0px;"
-            ),
-        ),
-    }
-
     def __init__(self, turn: Any, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("turn_block")
@@ -131,9 +136,18 @@ class _TurnBlock(QFrame):
         received_at: str | None = getattr(turn, "received_at", None)
         response_time_ms: int = getattr(turn, "response_time_ms", 0)
 
-        display_text, avatar_color, card_bg, border_css = self._ROLE_STYLE.get(
+        _is_vs = load_theme_id() == "vscode"
+        _styles = _build_role_styles(_is_vs)
+        _focus_blue = _VSD["blue"] if _is_vs else C.BLUE
+        _unknown_bg  = _VSD["bg"]   if _is_vs else C.BG
+        _unknown_ov  = _VSD["ovl2"] if _is_vs else C.OVERLAY
+        _unknown_mu  = _VSD["muted"] if _is_vs else C.MUTED
+        _unknown_r   = "4px" if _is_vs else "8px"
+
+        display_text, avatar_color, card_bg, border_css = _styles.get(
             role,
-            ("UNKNOWN", C.MUTED, C.BG, f"border: 1px solid {C.OVERLAY}; border-radius: 8px;"),
+            ("UNKNOWN", _unknown_mu, _unknown_bg,
+             f"border: 1px solid {_unknown_ov}; border-radius: {_unknown_r};"),
         )
 
         is_system = role == "system"
@@ -276,9 +290,6 @@ class _TurnBlock(QFrame):
                 )
                 text_edit.setStyleSheet(
                     f"QTextEdit {{"
-                    f"  background: {C.SURFACE};"
-                    f"  color: {C.TEXT};"
-                    f"  border: 1px solid {C.OVERLAY};"
                     f"  border-radius: 4px;"
                     f"  font-family: 'Consolas', 'Courier New', monospace;"
                     f"  font-size: 9pt;"
@@ -286,7 +297,7 @@ class _TurnBlock(QFrame):
                     f"}}"
                     f"QTextEdit:focus {{"
                     f"  outline: none;"
-                    f"  border: 1px solid {C.BLUE};"
+                    f"  border: 1px solid {_focus_blue};"
                     f"}}"
                 )
                 if html:
@@ -306,9 +317,6 @@ class _TurnBlock(QFrame):
             )
             text_edit.setStyleSheet(
                 f"QTextEdit {{"
-                f"  background: {C.SURFACE};"
-                f"  color: {C.TEXT};"
-                f"  border: 1px solid {C.OVERLAY};"
                 f"  border-radius: 4px;"
                 f"  font-family: 'Consolas', 'Courier New', monospace;"
                 f"  font-size: 9pt;"
@@ -316,7 +324,7 @@ class _TurnBlock(QFrame):
                 f"}}"
                 f"QTextEdit:focus {{"
                 f"  outline: none;"
-                f"  border: 1px solid {C.BLUE};"
+                f"  border: 1px solid {_focus_blue};"
                 f"}}"
             )
             text_edit.setPlainText(content)
@@ -384,7 +392,26 @@ class AITranscriptPanel(QWidget):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        self._last_turns: list[Any] = []
+        self._last_cost_in: float = 0.0
+        self._last_cost_out: float = 0.0
+        self._style_reload_pending: bool = False
         self._build_ui()
+
+    # ------------------------------------------------------------------
+    def changeEvent(self, event: QEvent) -> None:
+        super().changeEvent(event)
+        if (
+            event.type() == QEvent.Type.StyleChange
+            and self._last_turns
+            and not self._style_reload_pending
+        ):
+            self._style_reload_pending = True
+            QTimer.singleShot(0, self._reload_for_theme)
+
+    def _reload_for_theme(self) -> None:
+        self._style_reload_pending = False
+        self.load_transcript(self._last_turns, self._last_cost_in, self._last_cost_out)
 
     # ------------------------------------------------------------------
     def _build_ui(self) -> None:
@@ -394,12 +421,7 @@ class AITranscriptPanel(QWidget):
 
         # ── header bar ──────────────────────────────────────────
         header_bar = QFrame()
-        header_bar.setStyleSheet(
-            f"QFrame {{"
-            f"  background: {C.SURFACE};"
-            f"  border-top: 1px solid {C.OVERLAY};"
-            f"}}"
-        )
+        header_bar.setObjectName("transcript_header_bar")
         header_layout = QHBoxLayout(header_bar)
         header_layout.setContentsMargins(8, 4, 12, 4)
         header_layout.setSpacing(8)
@@ -434,12 +456,11 @@ class AITranscriptPanel(QWidget):
         )
         self._scroll.setFrameShape(QFrame.Shape.NoFrame)
         self._scroll.setStyleSheet(
-            f"QScrollArea {{ background: {C.BG}; border: none; }}"
-            f"QWidget {{ background: {C.BG}; }}"
+            "QScrollArea { background: transparent; border: none; }"
         )
 
         self._turns_container = QWidget()
-        self._turns_container.setStyleSheet(f"background: {C.BG};")
+        self._turns_container.setStyleSheet("background: transparent;")
         self._turns_layout = QVBoxLayout(self._turns_container)
         self._turns_layout.setContentsMargins(8, 8, 8, 8)
         self._turns_layout.setSpacing(4)
@@ -462,6 +483,9 @@ class AITranscriptPanel(QWidget):
             cost_per_1k_in: Cost in USD per 1 000 input tokens.
             cost_per_1k_out: Cost in USD per 1 000 output tokens.
         """
+        self._last_turns = list(turns)
+        self._last_cost_in = cost_per_1k_in
+        self._last_cost_out = cost_per_1k_out
         self._clear_turns()
 
         total_in = sum(getattr(t, "tokens_input", 0) for t in turns)
@@ -528,6 +552,9 @@ class AITranscriptPanel(QWidget):
 
     def clear(self) -> None:
         """Remove all _TurnBlock widgets and reset summary label."""
+        self._last_turns = []
+        self._last_cost_in = 0.0
+        self._last_cost_out = 0.0
         self._clear_turns()
         self._update_summary("")
 
