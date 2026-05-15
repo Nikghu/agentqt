@@ -814,6 +814,7 @@ class AppService(QObject):
     screener_results_updated  = pyqtSignal(list)           # list[FilteredStockEntry]
     intraday_load_progress    = pyqtSignal(str, int, int)  # symbol, done, total
     candle_readiness_updated  = pyqtSignal(dict)           # dict[str, bool | None]
+    exchange_unavail_updated  = pyqtSignal(object)         # set[str]
     live_bar_data_updated     = pyqtSignal(str)            # symbol — 3m or 15m bar written to DB
 
     def __init__(self, parent: QObject | None = None) -> None:
@@ -824,6 +825,7 @@ class AppService(QObject):
         self._scr_results: list[ScreenerResult] = []
         self._signals:     list[TradeSignal]   = []
         self._current_failed: list[str]        = []  # per-download failure accumulator
+        self._exchange_unavailable_symbols: set[str] = set()
 
         users = load_users()
         if not users:
@@ -1224,8 +1226,16 @@ class AppService(QObject):
     def _on_candle_load_complete(self, results: list) -> None:
         readiness: dict[str, bool | None] = {r.symbol: r.ok for r in results}
         self.candle_readiness_updated.emit(readiness)
-        failed = [r.symbol for r in results if not r.ok]
-        ok_n = len(results) - len(failed)
+
+        unavail = {r.symbol for r in results if r.reason == "EXCHANGE_UNAVAILABLE"}
+        if unavail != self._exchange_unavailable_symbols:
+            self._exchange_unavailable_symbols = unavail
+            self.exchange_unavail_updated.emit(unavail)
+
+        failed = [r.symbol for r in results if not r.ok and r.reason != "EXCHANGE_UNAVAILABLE"]
+        ok_n = len(results) - len(failed) - len(unavail)
+        if unavail:
+            _log.info("[Candles] %d position(s) skipped — not on US exchanges", len(unavail))
         if failed:
             _log.warning(
                 "[Candles] %d stock(s) failed to download: %s", len(failed), failed
