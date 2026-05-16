@@ -516,6 +516,9 @@ class MainWindow(QMainWindow):
             self._chart_panel, self._settings_panel,
         ]
 
+        self._settings_panel.theme_changed.connect(self._chart_panel.refresh_theme)
+        self._settings_panel.theme_changed.connect(self._execution_panel.refresh_theme)
+
         # ── Stacked content ────────────────────────────────────────────────────
         self._stack = QStackedWidget()
         for p in panels:
@@ -537,19 +540,22 @@ class MainWindow(QMainWindow):
         # ── Status bar widgets ─────────────────────────────────────────────────
         self._status = self.statusBar()
         self._status.setSizeGripEnabled(False)
+        _sb_qss      = "background:transparent;color:#ffffff;font-weight:bold;padding:0 8px;"
+        _sb_qss_sm   = "background:transparent;color:#ffffff;font-weight:bold;padding:0 8px;font-size:8pt;"
+        _sb_pill_qss = "background:transparent;color:#ffffff;font-weight:bold;padding:0 10px;font-size:8pt;"
         self._sb_conn    = QLabel("●  Internet: Checking…")
-        self._sb_conn.setStyleSheet(f"background:transparent;color:{C.MUTED};padding:0 8px;")
+        self._sb_conn.setStyleSheet(_sb_qss)
         self._sb_session = QLabel("SESSION: LIVE READ-ONLY")
-        self._sb_session.setStyleSheet(f"background:transparent;color:{C.YELLOW};padding:0 8px;font-size:8pt;")
+        self._sb_session.setStyleSheet(_sb_qss_sm)
         self._sb_exe     = QLabel("EXE: DISABLED")
-        self._sb_exe.setStyleSheet(f"background:transparent;color:{C.BLUE};padding:0 8px;font-size:8pt;")
+        self._sb_exe.setStyleSheet(_sb_qss_sm)
         for w in (self._sb_conn, _sep(), self._sb_session, _sep(), self._sb_exe):
             self._status.addWidget(w)
         # NYSE / NASDAQ market status — right side of status bar
         self._sb_nyse   = QLabel("⬤  NYSE")
         self._sb_nasdaq = QLabel("⬤  NASDAQ")
         for pill in (self._sb_nyse, self._sb_nasdaq):
-            pill.setStyleSheet(f"background:transparent;color:{C.MUTED};padding:0 10px;font-size:8pt;")
+            pill.setStyleSheet(_sb_pill_qss)
             self._status.addPermanentWidget(pill)
 
         # ── Root widget ────────────────────────────────────────────────────────
@@ -605,19 +611,11 @@ class MainWindow(QMainWindow):
         """Update the status-bar internet pill when connectivity flips."""
         if online:
             self._sb_conn.setText("●  Internet: Online")
-            self._sb_conn.setStyleSheet(f"background:transparent;color:{C.GREEN};padding:0 8px;")
         else:
             self._sb_conn.setText("●  Internet: Offline")
-            self._sb_conn.setStyleSheet(f"background:transparent;color:{C.RED};padding:0 8px;")
 
     def _on_market_status(self) -> None:
         """Update NYSE / NASDAQ status bar pills from AppService market status."""
-        _colour_map = {
-            "open":        C.GREEN,
-            "pre_market":  C.ORANGE,
-            "after_hours": C.YELLOW,
-            "closed":      C.MUTED,
-        }
         _tip_map = {
             "open":        "Regular Trading Hours  09:30 – 16:00 ET",
             "pre_market":  "Pre-Market Session  04:00 – 09:30 ET",
@@ -627,8 +625,6 @@ class MainWindow(QMainWindow):
         status = self._demo.get_market_status()
         for pill, key in ((self._sb_nyse, "nyse"), (self._sb_nasdaq, "nasdaq")):
             s = status.get(key, "closed")
-            colour = _colour_map.get(s, C.MUTED)
-            pill.setStyleSheet(f"background:transparent;color:{colour};padding:0 10px;font-size:8pt;")
             pill.setToolTip(_tip_map.get(s, ""))
 
     def _on_db_status_updated(self, info: object) -> None:

@@ -29,7 +29,7 @@ from PyQt6.QtWidgets import (
 )
 
 from us_swing.gui.app_service import AppService
-from us_swing.gui.theme import C
+from us_swing.gui.theme import C, active_palette, load_theme_id
 
 # Path to the bundled Lightweight Charts JS (downloaded once at install time)
 _RESOURCES = Path(__file__).parent / "resources"
@@ -45,6 +45,7 @@ def _build_html(
     timezone: str = "America/New_York",
 ) -> str:
     """Return a self-contained HTML page with a TradingView Lightweight Chart."""
+    ct = active_palette()
     candle_json = json.dumps(candle_data)
     volume_json = json.dumps(volume_data)
 
@@ -66,8 +67,8 @@ def _build_html(
     display: none;
     position: fixed;
     z-index: 9999;
-    background: {C.SURFACE};
-    border: 1px solid {C.OVERLAY};
+    background: {ct.SURFACE};
+    border: 1px solid {ct.OVERLAY};
     border-radius: 4px;
     padding: 4px 0;
     min-width: 160px;
@@ -77,12 +78,12 @@ def _build_html(
   }}
   #ctx-menu div {{
     padding: 6px 14px;
-    color: {C.TEXT};
+    color: {ct.TEXT};
     cursor: pointer;
     white-space: nowrap;
   }}
   #ctx-menu div:hover {{
-    background: {C.OVERLAY};
+    background: {ct.OVERLAY};
   }}"""
     ) if show_reset_menu else ""
 
@@ -153,8 +154,8 @@ def _build_html(
 <style>
   * {{ margin:0; padding:0; box-sizing:border-box; }}
   body {{
-    background: {C.BG};
-    color: {C.TEXT};
+    background: {ct.BG};
+    color: {ct.TEXT};
     font-family: 'Consolas', 'Monaco', monospace;
     display: flex;
     flex-direction: column;
@@ -163,14 +164,14 @@ def _build_html(
   }}
   #header {{
     padding: 6px 12px;
-    background: {C.SURFACE};
-    border-bottom: 1px solid {C.OVERLAY};
+    background: {ct.SURFACE};
+    border-bottom: 1px solid {ct.OVERLAY};
     font-size: 11px;
-    color: {C.MUTED};
+    color: {ct.MUTED};
     letter-spacing: 0.5px;
   }}
   #header span {{
-    color: {C.TEXT};
+    color: {ct.TEXT};
     font-weight: bold;
     font-size: 13px;
     margin-right: 12px;
@@ -197,7 +198,7 @@ def _build_html(
   #measure-label {{
     display: none;
     position: absolute;
-    background: {C.SURFACE};
+    background: {ct.SURFACE};
     border: 1px solid #ffffff33;
     border-radius: 4px;
     padding: 3px 8px;
@@ -209,11 +210,11 @@ def _build_html(
   }}
   #volume-container {{
     height: 80px;
-    background: {C.BG};
+    background: {ct.BG};
   }}
   #no-data {{
     display: none;
-    color: {C.MUTED};
+    color: {ct.MUTED};
     font-size: 14px;
     text-align: center;
     margin-top: 60px;
@@ -251,21 +252,21 @@ def _build_html(
   const chartEl = document.getElementById('chart-container');
   const chart = LightweightCharts.createChart(chartEl, {{
     layout: {{
-      background: {{ color: '{C.BG}' }},
-      textColor: '{C.TEXT}',
+      background: {{ color: '{ct.BG}' }},
+      textColor: '{ct.TEXT}',
     }},
     grid: {{
-      vertLines: {{ color: '{C.OVERLAY}' }},
-      horzLines: {{ color: '{C.OVERLAY}' }},
+      vertLines: {{ color: '{ct.OVERLAY}' }},
+      horzLines: {{ color: '{ct.OVERLAY}' }},
     }},
     crosshair: {{
       mode: LightweightCharts.CrosshairMode.Normal,
     }},
     rightPriceScale: {{
-      borderColor: '{C.OVERLAY}',
+      borderColor: '{ct.OVERLAY}',
     }},
     timeScale: {{
-      borderColor: '{C.OVERLAY}',
+      borderColor: '{ct.OVERLAY}',
       timeVisible: true,
       secondsVisible: false,
       timezone: '{timezone}',
@@ -275,7 +276,7 @@ def _build_html(
       fontSize: 18,
       horzAlign: 'left',
       vertAlign: 'bottom',
-      color: '{C.OVERLAY2}',
+      color: '{ct.OVERLAY2}',
       text: 'US Swing | {title}',
     }},
 {localization_block}  }});
@@ -294,19 +295,19 @@ def _build_html(
   const volEl = document.getElementById('volume-container');
   const volChart = LightweightCharts.createChart(volEl, {{
     layout: {{
-      background: {{ color: '{C.BG}' }},
-      textColor: '{C.MUTED}',
+      background: {{ color: '{ct.BG}' }},
+      textColor: '{ct.MUTED}',
     }},
     grid: {{
       vertLines: {{ color: 'transparent' }},
-      horzLines: {{ color: '{C.OVERLAY}' }},
+      horzLines: {{ color: '{ct.OVERLAY}' }},
     }},
     rightPriceScale: {{
-      borderColor: '{C.OVERLAY}',
+      borderColor: '{ct.OVERLAY}',
       scaleMargins: {{ top: 0.1, bottom: 0 }},
     }},
     timeScale: {{
-      borderColor: '{C.OVERLAY}',
+      borderColor: '{ct.OVERLAY}',
       visible: false,
       timezone: '{timezone}',
     }},
@@ -537,114 +538,69 @@ class CandleChartPanel(QWidget):
         root.setSpacing(0)
 
         # ── Toolbar ───────────────────────────────────────────────────────────
-        toolbar = QWidget()
-        toolbar.setFixedHeight(44)
-        toolbar.setStyleSheet(
-            f"background:{C.SURFACE}; border-bottom:1px solid {C.OVERLAY};"
-        )
-        trow = QHBoxLayout(toolbar)
+        self._toolbar = QWidget()
+        self._toolbar.setFixedHeight(44)
+        trow = QHBoxLayout(self._toolbar)
         trow.setContentsMargins(12, 0, 12, 0)
         trow.setSpacing(10)
 
-        lbl = QLabel("Symbol:")
-        lbl.setStyleSheet(f"color:{C.MUTED}; font-size:8pt;")
-        trow.addWidget(lbl)
+        self._sym_lbl = QLabel("Symbol:")
+        trow.addWidget(self._sym_lbl)
 
         self._sym_combo = QComboBox()
         self._sym_combo.setFixedWidth(120)
         self._sym_combo.setEditable(True)
         self._sym_combo.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
-        self._sym_combo.setStyleSheet(
-            f"QComboBox {{ background:{C.BG}; color:{C.TEXT}; border:1px solid {C.OVERLAY};"
-            f" border-radius:4px; padding:2px 6px; font-size:8pt; outline:none; }}"
-            f"QComboBox:focus {{ border:1px solid {C.BLUE}; outline:none; }}"
-            f"QComboBox::drop-down {{ border:none; }}"
-            f"QComboBox QAbstractItemView {{ background:{C.SURFACE}; color:{C.TEXT};"
-            f" selection-background-color:{C.OVERLAY}; }}"
-        )
         # Autocomplete: case-insensitive contains match on all DB symbols
         self._sym_completer = QCompleter(self)
         self._sym_completer.setFilterMode(Qt.MatchFlag.MatchContains)
         self._sym_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self._sym_completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
         self._sym_completer.setMaxVisibleItems(12)
-        self._sym_completer.popup().setStyleSheet(
-            f"QAbstractItemView {{ background:{C.SURFACE}; color:{C.TEXT};"
-            f" border:1px solid {C.OVERLAY}; selection-background-color:{C.OVERLAY};"
-            f" font-size:8pt; }}"
-        )
         self._sym_combo.setCompleter(self._sym_completer)
         trow.addWidget(self._sym_combo)
 
-        tf_lbl = QLabel("Timeframe:")
-        tf_lbl.setStyleSheet(f"color:{C.MUTED}; font-size:8pt;")
-        trow.addWidget(tf_lbl)
+        self._tf_lbl = QLabel("Timeframe:")
+        trow.addWidget(self._tf_lbl)
 
         self._tf_combo = QComboBox()
         self._tf_combo.setFixedWidth(70)
         self._tf_combo.addItems(["1d", "1w"])
-        self._tf_combo.setStyleSheet(
-            f"QComboBox {{ background:{C.BG}; color:{C.TEXT}; border:1px solid {C.OVERLAY};"
-            f" border-radius:4px; padding:2px 6px; font-size:8pt; outline:none; }}"
-            f"QComboBox:focus {{ border:1px solid {C.BLUE}; outline:none; }}"
-            f"QComboBox::drop-down {{ border:none; }}"
-            f"QComboBox QAbstractItemView {{ background:{C.SURFACE}; color:{C.TEXT};"
-            f" selection-background-color:{C.OVERLAY}; }}"
-        )
         trow.addWidget(self._tf_combo)
 
-        bars_lbl = QLabel("Bars:")
-        bars_lbl.setStyleSheet(f"color:{C.MUTED}; font-size:8pt;")
-        trow.addWidget(bars_lbl)
+        self._bars_lbl = QLabel("Bars:")
+        trow.addWidget(self._bars_lbl)
 
         self._limit_spin = QSpinBox()
         self._limit_spin.setRange(20, 2000)
         self._limit_spin.setValue(500)
         self._limit_spin.setSingleStep(50)
         self._limit_spin.setFixedWidth(70)
-        self._limit_spin.setStyleSheet(
-            f"QSpinBox {{ background:{C.BG}; color:{C.TEXT}; border:1px solid {C.OVERLAY};"
-            f" border-radius:4px; padding:2px 6px; font-size:8pt; outline:none; }}"
-            f"QSpinBox:focus {{ border:1px solid {C.BLUE}; outline:none; }}"
-        )
         trow.addWidget(self._limit_spin)
 
         self._load_btn = QPushButton("Load Chart")
         self._load_btn.setFixedHeight(28)
-        self._load_btn.setStyleSheet(
-            f"QPushButton {{ background:{C.BLUE}22; color:{C.BLUE}; border:1px solid {C.BLUE}55;"
-            f" border-radius:5px; padding:0 14px; font-size:8pt; }}"
-            f"QPushButton:hover {{ background:{C.BLUE}44; }}"
-            f"QPushButton:pressed {{ background:{C.BLUE}66; }}"
-            f"QPushButton:focus {{ outline: none; }}"
-        )
         self._load_btn.clicked.connect(self._on_load)
         trow.addWidget(self._load_btn)
 
         trow.addStretch()
 
         self._status_lbl = QLabel("Select a symbol and click Load Chart")
-        self._status_lbl.setStyleSheet(f"color:{C.MUTED}; font-size:8pt;")
         trow.addWidget(self._status_lbl)
 
         self._refresh_btn = QPushButton("↺ Refresh List")
         self._refresh_btn.setFixedHeight(26)
-        self._refresh_btn.setStyleSheet(
-            f"QPushButton {{ background:transparent; color:{C.MUTED}; border:1px solid {C.OVERLAY};"
-            f" border-radius:4px; padding:0 8px; font-size:7pt; }}"
-            f"QPushButton:hover {{ color:{C.TEXT}; border-color:{C.TEXT}; }}"
-            f"QPushButton:focus {{ outline: none; }}"
-        )
         self._refresh_btn.clicked.connect(self._refresh_symbol_list)
         trow.addWidget(self._refresh_btn)
 
-        root.addWidget(toolbar)
+        root.addWidget(self._toolbar)
 
         # ── WebEngine view ─────────────────────────────────────────────────────
         self._web = QWebEngineView()
         self._web.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self._web.setStyleSheet(f"background:{C.BG};")
         root.addWidget(self._web, 1)
+
+        self._apply_toolbar_styles()
 
         # Show placeholder on first load
         self._show_placeholder()
@@ -687,6 +643,74 @@ class CandleChartPanel(QWidget):
         if self._current_symbol:
             self._on_load()
 
+    def _apply_toolbar_styles(self) -> None:
+        ct = active_palette()
+        is_vs = load_theme_id() == "vscode"
+
+        self._toolbar.setStyleSheet(
+            f"background:{ct.SURFACE}; border-bottom:1px solid {ct.OVERLAY};"
+        )
+        self._sym_lbl.setStyleSheet(f"color:{ct.MUTED}; font-size:8pt;")
+        self._tf_lbl.setStyleSheet(f"color:{ct.MUTED}; font-size:8pt;")
+        self._bars_lbl.setStyleSheet(f"color:{ct.MUTED}; font-size:8pt;")
+
+        focus_border = ct.OVERLAY2 if is_vs else ct.BLUE
+        _combo_qss = (
+            f"QComboBox {{ background:{ct.BG}; color:{ct.TEXT}; border:1px solid {ct.OVERLAY};"
+            f" border-radius:4px; padding:2px 6px; font-size:8pt; outline:none; }}"
+            f"QComboBox:focus {{ border:1px solid {focus_border}; outline:none; }}"
+            f"QComboBox::drop-down {{ border:none; }}"
+            f"QComboBox QAbstractItemView {{ background:{ct.SURFACE}; color:{ct.TEXT};"
+            f" border:1px solid {ct.OVERLAY}; outline:none;"
+            f" selection-background-color:{ct.OVERLAY}; selection-color:{ct.TEXT}; }}"
+        )
+        self._sym_combo.setStyleSheet(_combo_qss)
+        self._tf_combo.setStyleSheet(_combo_qss)
+        self._sym_completer.popup().setStyleSheet(
+            f"QAbstractItemView {{ background:{ct.SURFACE}; color:{ct.TEXT};"
+            f" border:1px solid {ct.OVERLAY}; selection-background-color:{ct.OVERLAY};"
+            f" selection-color:{ct.TEXT}; font-size:8pt; }}"
+        )
+        self._limit_spin.setStyleSheet(
+            f"QSpinBox {{ background:{ct.BG}; color:{ct.TEXT}; border:1px solid {ct.OVERLAY};"
+            f" border-radius:4px; padding:2px 6px; font-size:8pt; outline:none; }}"
+            f"QSpinBox:focus {{ border:1px solid {focus_border}; outline:none; }}"
+        )
+
+        if is_vs:
+            self._load_btn.setStyleSheet(
+                f"QPushButton {{ background:{ct.OVERLAY}; color:{ct.TEXT};"
+                f" border:1px solid {ct.OVERLAY2}; border-radius:5px; padding:0 14px; font-size:8pt; }}"
+                f"QPushButton:hover {{ background:{ct.OVERLAY2}; color:#ffffff; }}"
+                f"QPushButton:pressed {{ background:{ct.OVERLAY2}; }}"
+                f"QPushButton:focus {{ outline: none; }}"
+            )
+        else:
+            self._load_btn.setStyleSheet(
+                f"QPushButton {{ background:{ct.BLUE}22; color:{ct.BLUE}; border:1px solid {ct.BLUE}55;"
+                f" border-radius:5px; padding:0 14px; font-size:8pt; }}"
+                f"QPushButton:hover {{ background:{ct.BLUE}44; }}"
+                f"QPushButton:pressed {{ background:{ct.BLUE}66; }}"
+                f"QPushButton:focus {{ outline: none; }}"
+            )
+
+        self._status_lbl.setStyleSheet(f"color:{ct.MUTED}; font-size:8pt;")
+        self._refresh_btn.setStyleSheet(
+            f"QPushButton {{ background:transparent; color:{ct.MUTED}; border:1px solid {ct.OVERLAY};"
+            f" border-radius:4px; padding:0 8px; font-size:7pt; }}"
+            f"QPushButton:hover {{ color:{ct.TEXT}; border-color:{ct.TEXT}; }}"
+            f"QPushButton:focus {{ outline: none; }}"
+        )
+        self._web.setStyleSheet(f"background:{ct.BG};")
+
+    def refresh_theme(self, _theme_id: str = "") -> None:
+        """Re-render the chart HTML with the newly active theme colours."""
+        self._apply_toolbar_styles()
+        if self._current_symbol:
+            self._on_load()
+        else:
+            self._show_placeholder()
+
     def _load_chart(self, symbol: str, timeframe: str, limit: int) -> None:
         self._status_lbl.setText(f"Loading {symbol} ({timeframe.upper()})…")
         candles = self._svc.get_candles_for_symbol(symbol, timeframe, limit)
@@ -714,13 +738,14 @@ class CandleChartPanel(QWidget):
         )
 
     def _show_placeholder(self) -> None:
+        ct = active_palette()
         placeholder = f"""<!DOCTYPE html><html><body style="
-          margin:0; background:{C.BG}; display:flex; align-items:center;
+          margin:0; background:{ct.BG}; display:flex; align-items:center;
           justify-content:center; height:100vh; font-family:monospace;">
-          <div style="text-align:center; color:{C.OVERLAY2};">
+          <div style="text-align:center; color:{ct.OVERLAY2};">
             <div style="font-size:48px; margin-bottom:16px;">📈</div>
-            <div style="font-size:16px; color:{C.MUTED};">Select a symbol and click <b style="color:{C.TEXT}">Load Chart</b></div>
-            <div style="font-size:11px; margin-top:8px; color:{C.OVERLAY2};">
+            <div style="font-size:16px; color:{ct.MUTED};">Select a symbol and click <b style="color:{ct.TEXT}">Load Chart</b></div>
+            <div style="font-size:11px; margin-top:8px; color:{ct.OVERLAY2};">
               Powered by TradingView Lightweight Charts (Apache 2.0)
             </div>
           </div>
@@ -728,14 +753,15 @@ class CandleChartPanel(QWidget):
         self._web.setHtml(placeholder)
 
     def _show_no_data(self, symbol: str, timeframe: str) -> None:
+        ct = active_palette()
         html = f"""<!DOCTYPE html><html><body style="
-          margin:0; background:{C.BG}; display:flex; align-items:center;
+          margin:0; background:{ct.BG}; display:flex; align-items:center;
           justify-content:center; height:100vh; font-family:monospace;">
-          <div style="text-align:center; color:{C.OVERLAY2};">
+          <div style="text-align:center; color:{ct.OVERLAY2};">
             <div style="font-size:36px; margin-bottom:12px;">⚠</div>
-            <div style="font-size:14px; color:{C.MUTED};">
-              No <b style="color:{C.TEXT}">{timeframe.upper()}</b> data found for
-              <b style="color:{C.YELLOW}">{symbol}</b>
+            <div style="font-size:14px; color:{ct.MUTED};">
+              No <b style="color:{ct.TEXT}">{timeframe.upper()}</b> data found for
+              <b style="color:{ct.YELLOW}">{symbol}</b>
             </div>
             <div style="font-size:11px; margin-top:8px;">
               Download candle data from Settings → Database.

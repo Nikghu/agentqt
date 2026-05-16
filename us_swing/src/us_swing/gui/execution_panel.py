@@ -42,7 +42,7 @@ from us_swing.data.models import FilteredStockEntry
 from us_swing.gui.app_service import AppService
 from us_swing.gui._types import TradeSignal
 from us_swing.gui.chart_panel import _build_html as _build_chart_html
-from us_swing.gui.theme import C
+from us_swing.gui.theme import C, active_palette
 
 
 # ── Intraday chart pane (3m + 15m side by side) ───────────────────────────────
@@ -62,27 +62,24 @@ class _IntradayChartPane(QWidget):
         root.setSpacing(0)
 
         self._hdr = QLabel("Select a stock to view intraday charts")
-        self._hdr.setStyleSheet(
-            f"color:{C.MUTED}; font-size:8pt; padding:4px 10px;"
-            f"background:{C.SURFACE}; border-bottom:1px solid {C.OVERLAY};"
-        )
+        self._apply_hdr_style(active=False)
         root.addWidget(self._hdr)
 
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        splitter.setHandleWidth(2)
-        splitter.setStyleSheet(f"QSplitter::handle {{ background:{C.OVERLAY}; }}")
+        self._splitter = QSplitter(Qt.Orientation.Horizontal)
+        self._splitter.setHandleWidth(2)
+        self._apply_splitter_style()
 
         self._web_3m = QWebEngineView()
         self._web_3m.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self._web_15m = QWebEngineView()
         self._web_15m.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
-        splitter.addWidget(self._web_3m)
-        splitter.addWidget(self._web_15m)
-        splitter.setCollapsible(0, False)
-        splitter.setCollapsible(1, False)
+        self._splitter.addWidget(self._web_3m)
+        self._splitter.addWidget(self._web_15m)
+        self._splitter.setCollapsible(0, False)
+        self._splitter.setCollapsible(1, False)
 
-        root.addWidget(splitter, 1)
+        root.addWidget(self._splitter, 1)
         self._show_placeholder()
 
         # Qt auto-disconnects this when the widget is destroyed (QObject lifetime rule).
@@ -101,10 +98,7 @@ class _IntradayChartPane(QWidget):
             return
         self._current_symbol = symbol
         self._hdr.setText(f"{symbol}  —  Intraday")
-        self._hdr.setStyleSheet(
-            f"color:{C.TEXT}; font-size:9pt; font-weight:bold; padding:4px 10px;"
-            f"background:{C.SURFACE}; border-bottom:1px solid {C.OVERLAY};"
-        )
+        self._apply_hdr_style(active=True)
         self._render("3m",  self._web_3m,  symbol)
         self._render("15m", self._web_15m, symbol)
 
@@ -152,17 +146,46 @@ class _IntradayChartPane(QWidget):
         ]
 
     def _show_placeholder(self) -> None:
+        ct = active_palette()
         for label, web in [("3m", self._web_3m), ("15m", self._web_15m)]:
             html = (
-                f'<!DOCTYPE html><html><body style="margin:0;background:{C.BG};'
+                f'<!DOCTYPE html><html><body style="margin:0;background:{ct.BG};'
                 f'display:flex;align-items:center;justify-content:center;'
                 f'height:100vh;font-family:monospace;">'
-                f'<div style="text-align:center;color:{C.OVERLAY2};">'
+                f'<div style="text-align:center;color:{ct.OVERLAY2};">'
                 f'<div style="font-size:28px;margin-bottom:8px;">📊</div>'
-                f'<div style="font-size:11px;color:{C.MUTED};">{label.upper()}</div>'
+                f'<div style="font-size:11px;color:{ct.MUTED};">{label.upper()}</div>'
                 f'</div></body></html>'
             )
             web.setHtml(html)
+
+    def _apply_hdr_style(self, *, active: bool) -> None:
+        ct = active_palette()
+        if active:
+            self._hdr.setStyleSheet(
+                f"color:{ct.TEXT}; font-size:9pt; font-weight:bold; padding:4px 10px;"
+                f"background:{ct.SURFACE}; border-bottom:1px solid {ct.OVERLAY};"
+            )
+        else:
+            self._hdr.setStyleSheet(
+                f"color:{ct.MUTED}; font-size:8pt; padding:4px 10px;"
+                f"background:{ct.SURFACE}; border-bottom:1px solid {ct.OVERLAY};"
+            )
+
+    def _apply_splitter_style(self) -> None:
+        ct = active_palette()
+        self._splitter.setStyleSheet(f"QSplitter::handle {{ background:{ct.OVERLAY}; }}")
+
+    def refresh_theme(self, _theme_id: str = "") -> None:
+        """Re-apply Qt styles and re-render chart HTML for the active theme."""
+        self._apply_splitter_style()
+        active = bool(self._current_symbol)
+        self._apply_hdr_style(active=active)
+        if active:
+            self._render("3m",  self._web_3m,  self._current_symbol)
+            self._render("15m", self._web_15m, self._current_symbol)
+        else:
+            self._show_placeholder()
 
 
 # ── Single signal row ─────────────────────────────────────────────────────────
@@ -586,7 +609,8 @@ class ExecutionPanel(QWidget):
         # ── Horizontal split: filtered stocks | right pane ─────────────────────
         h_splitter = QSplitter(Qt.Orientation.Horizontal)
         h_splitter.setHandleWidth(2)
-        h_splitter.setStyleSheet(f"QSplitter::handle {{ background: {C.OVERLAY}; }}")
+        h_splitter.setStyleSheet(f"QSplitter::handle {{ background: {active_palette().OVERLAY}; }}")
+        self._h_splitter = h_splitter
 
         self._selected_symbol: str = ""
         self._left_pane = _FilteredStocksPane(demo)
@@ -613,17 +637,17 @@ class ExecutionPanel(QWidget):
         layout.setContentsMargins(6, 0, 0, 0)
         layout.setSpacing(0)
 
-        v_splitter = QSplitter(Qt.Orientation.Vertical)
-        v_splitter.setHandleWidth(2)
-        v_splitter.setStyleSheet(f"QSplitter::handle {{ background: {C.OVERLAY}; }}")
+        self._v_splitter = QSplitter(Qt.Orientation.Vertical)
+        self._v_splitter.setHandleWidth(2)
+        self._v_splitter.setStyleSheet(f"QSplitter::handle {{ background: {active_palette().OVERLAY}; }}")
 
-        v_splitter.addWidget(self._chart_pane)
-        v_splitter.addWidget(self._build_signals_pane(demo))
-        v_splitter.setSizes([380, 200])
-        v_splitter.setCollapsible(0, False)
-        v_splitter.setCollapsible(1, False)
+        self._v_splitter.addWidget(self._chart_pane)
+        self._v_splitter.addWidget(self._build_signals_pane(demo))
+        self._v_splitter.setSizes([380, 200])
+        self._v_splitter.setCollapsible(0, False)
+        self._v_splitter.setCollapsible(1, False)
 
-        layout.addWidget(v_splitter, 1)
+        layout.addWidget(self._v_splitter, 1)
         return pane
 
     def _build_signals_pane(self, demo: AppService) -> QWidget:
@@ -714,3 +738,10 @@ class ExecutionPanel(QWidget):
             row.set_circuit_breaker(active)
         if active:
             self._demo.log_message.emit("WARNING", "Circuit breaker activated — entries disabled")
+
+    def refresh_theme(self, _theme_id: str = "") -> None:
+        """Re-apply splitter styles and delegate chart refresh for the active theme."""
+        ct = active_palette()
+        self._h_splitter.setStyleSheet(f"QSplitter::handle {{ background: {ct.OVERLAY}; }}")
+        self._v_splitter.setStyleSheet(f"QSplitter::handle {{ background: {ct.OVERLAY}; }}")
+        self._chart_pane.refresh_theme()
