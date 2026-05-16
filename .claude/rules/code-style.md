@@ -48,6 +48,14 @@ Parent SRD: SRD-<TOOL>-NNN.NNN
 """
 ```
 
+## General Style
+
+- No inline comments unless the logic is genuinely non-obvious — well-named identifiers should make comments unnecessary
+- Prefer small, single-responsibility functions; if a function needs a comment to explain what it does, it should probably be split
+- Reuse existing utilities before writing new ones — check `core/` and the current module first
+- Follow existing patterns in the codebase before inventing new abstractions
+- Scalability over brevity, but never over-engineer prematurely — three similar lines beats a premature abstraction
+
 ## Function & Class Standards
 
 - Type annotations required on all public functions and methods
