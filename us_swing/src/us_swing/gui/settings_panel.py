@@ -7,7 +7,7 @@ from __future__ import annotations
 import datetime
 import json
 
-from PyQt6.QtCore import Qt, QDate
+from PyQt6.QtCore import Qt, QDate, pyqtSignal
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import (
     QAbstractItemView,
@@ -38,7 +38,7 @@ from PyQt6.QtWidgets import (
 from us_swing.gui.app_service import AppService
 from us_swing.data.models import RiskConfig, UserProfile
 from us_swing.gui.system_store import SystemConfig
-from us_swing.gui.theme import C
+from us_swing.gui.theme import C, active_palette, load_theme_id
 
 
 # ── User dialog ───────────────────────────────────────────────────────────────
@@ -347,6 +347,8 @@ class _StrategiesTab(QWidget):
 # ── System sub-tab ────────────────────────────────────────────────────────────
 
 class _SystemTab(QWidget):
+    theme_changed = pyqtSignal(str)
+
     def __init__(self, demo: AppService, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._demo = demo
@@ -487,6 +489,7 @@ class _SystemTab(QWidget):
         _theme.apply_theme(theme_id)
         self._btn_mocha.setChecked(theme_id == "mocha")
         self._btn_vscode.setChecked(theme_id == "vscode")
+        self.theme_changed.emit(theme_id)
 
 
 # ── Universe Tab ─────────────────────────────────────────────────────────────
@@ -649,8 +652,8 @@ function render(resort=true){{
       if(ci===1)  return `<td class="sym" ${{style}}>${{r[1]}}</td>`;
       if(ci===4)  return `<td class="cap" ${{style}}>${{fc(r[4])}}</td>`;
       if(ci===5)  return `<td class="name" ${{style}}>${{r[5]}}</td>`;
-      if(ci===6){{const st=r[7];const cl=st==='current'?'#a6e3a1':st==='stale'?'#f9e2af':'#f38ba8';const ic=st==='current'?'✔':st==='stale'?'⚠':'✘';return `<td style="width:${{w}}px;max-width:${{w}}px;color:${{cl}};font-size:13px;text-align:center">${{ic}}</td>`;}}
-      if(ci===7){{const dt=r[6];const st=r[7];const cl=st==='current'?'#a6e3a1':st==='stale'?'#f9e2af':'#f38ba8';return `<td style="width:${{w}}px;max-width:${{w}}px;color:${{cl}};text-align:center">${{dt||'—'}}</td>`;}}
+      if(ci===6){{const st=r[7];const cl=st==='current'?'{st_ok}':st==='stale'?'{st_warn}':'{st_err}';const ic=st==='current'?'✔':st==='stale'?'⚠':'✘';return `<td style="width:${{w}}px;max-width:${{w}}px;color:${{cl}};font-size:13px;text-align:center">${{ic}}</td>`;}}
+      if(ci===7){{const dt=r[6];const st=r[7];const cl=st==='current'?'{st_ok}':st==='stale'?'{st_warn}':'{st_err}';return `<td style="width:${{w}}px;max-width:${{w}}px;color:${{cl}};text-align:center">${{dt||'—'}}</td>`;}}
       return `<td ${{style}}>${{r[di]}}</td>`;
     }}).join('');
     const rc=r[7]==='current'?'':r[7]==='stale'?' class="stale"':' class="missing"';
@@ -694,19 +697,23 @@ def _build_universe_html(
          *_sym_status(r.symbol)]
         for i, r in enumerate(records)
     ]
+    ct = active_palette()
     return _UNIVERSE_HTML.format(
         data=json.dumps(data),
-        bg="#1e1e2e",
-        fg="#cdd6f4",
-        hdr_bg="#313244",
-        hdr_fg="#89b4fa",
-        hdr_hover="#45475a",
-        border="#45475a",
-        accent="#89b4fa",
-        row_odd="#181825",
-        row_even="#1e1e2e",
-        row_hover="#313244",
-        sym_fg="#a6e3a1",
+        bg=ct.BG,
+        fg=ct.TEXT,
+        hdr_bg=ct.SURFACE,
+        hdr_fg=ct.TEXT,
+        hdr_hover=ct.OVERLAY,
+        border=ct.OVERLAY2,
+        accent=ct.BLUE,
+        row_odd=ct.SURFACE,
+        row_even=ct.BG,
+        row_hover=ct.OVERLAY,
+        sym_fg=ct.GREEN,
+        st_ok=ct.GREEN,
+        st_warn=ct.YELLOW,
+        st_err=ct.RED,
     )
 
 
@@ -723,7 +730,7 @@ class _UniverseTab(QWidget):
 
         # ── Meta bar ──────────────────────────────────────────────────────────
         self._meta_label = QLabel("Loading…")
-        self._meta_label.setStyleSheet(f"color: {C.SUBTEXT}; font-size: 9pt;")
+        self._meta_label.setStyleSheet(f"color: {active_palette().SUBTEXT}; font-size: 9pt;")
 
         refresh_btn = QPushButton("🔄  Refresh")
         refresh_btn.setObjectName("run_btn")
@@ -742,7 +749,7 @@ class _UniverseTab(QWidget):
 
         # ── Web view ──────────────────────────────────────────────────────────
         self._web = QWebEngineView()
-        self._web.setHtml("<body style='background:#1e1e2e'></body>")
+        self._web.setHtml(f"<body style='background:{active_palette().BG}'></body>")
 
         # ── Layout ────────────────────────────────────────────────────────────
         layout = QVBoxLayout(self)
@@ -776,6 +783,10 @@ class _UniverseTab(QWidget):
     def _on_refresh(self) -> None:
         self._meta_label.setText("Refreshing from Wikipedia…")
         self._svc.refresh_sp500_universe()
+
+    def refresh_theme(self, _theme_id: str = "") -> None:
+        self._meta_label.setStyleSheet(f"color: {active_palette().SUBTEXT}; font-size: 9pt;")
+        self._load_from_cache()
 
 
 # ── Database tab ─────────────────────────────────────────────────────────────
@@ -1257,17 +1268,23 @@ class SettingsPanel(QWidget):
     FO-GUI-006 Settings Panel — 5 sub-tabs.
     """
 
+    theme_changed = pyqtSignal(str)
+
     def __init__(self, demo: AppService, parent: QWidget | None = None) -> None:
         super().__init__(parent)
 
-        self._db_tab = _DatabaseTab(demo)
+        self._db_tab       = _DatabaseTab(demo)
+        self._sys_tab      = _SystemTab(demo)
+        self._universe_tab = _UniverseTab(demo)
+        self._sys_tab.theme_changed.connect(self.theme_changed)
+        self._sys_tab.theme_changed.connect(self._universe_tab.refresh_theme)
 
         tabs = QTabWidget()
-        tabs.addTab(_UsersTab(demo),    "Users")
-        tabs.addTab(_StrategiesTab(),   "Strategies")
-        tabs.addTab(_SystemTab(demo),   "System")
-        tabs.addTab(_UniverseTab(demo), "Universe")
-        tabs.addTab(self._db_tab,       "Database")
+        tabs.addTab(_UsersTab(demo),       "Users")
+        tabs.addTab(_StrategiesTab(),      "Strategies")
+        tabs.addTab(self._sys_tab,         "System")
+        tabs.addTab(self._universe_tab,    "Universe")
+        tabs.addTab(self._db_tab,          "Database")
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)

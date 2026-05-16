@@ -858,15 +858,15 @@ QPushButton#close_btn {{
 }}
 QPushButton#close_btn:hover {{ background: #3d2222; }}
 QPushButton#run_btn {{
-    background: #1a2535;
-    border: 1px solid {_VS.BLUE};
-    color: {_VS.BLUE};
+    background: {_VS.OVERLAY};
+    border: 1px solid {_VS.OVERLAY2};
+    color: {_VS.TEXT};
     font-weight: bold;
     padding: 0 24px;
     min-height: {C.BTN_H}px;
     max-height: {C.BTN_H}px;
 }}
-QPushButton#run_btn:hover {{ background: #1e2e40; }}
+QPushButton#run_btn:hover {{ background: {_VS.OVERLAY2}; color: #ffffff; }}
 QPushButton#run_btn:disabled {{ color: {_VS.MUTED}; background: {_VS.OVERLAY}; border-color: {_VS.OVERLAY2}; }}
 QPushButton#add_btn {{
     background: #291a2e;
