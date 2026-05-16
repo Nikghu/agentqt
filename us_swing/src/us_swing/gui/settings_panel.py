@@ -38,7 +38,7 @@ from PyQt6.QtWidgets import (
 from us_swing.gui.app_service import AppService
 from us_swing.data.models import RiskConfig, UserProfile
 from us_swing.gui.system_store import SystemConfig
-from us_swing.gui.theme import C, active_palette, load_theme_id
+from us_swing.gui.theme import C, active_palette, colors
 
 
 # ── User dialog ───────────────────────────────────────────────────────────────
@@ -1004,8 +1004,9 @@ class _DatabaseTab(QWidget):
 
     def _on_refresh_status(self) -> None:
         self._badge.setText("Checking…")
+        _badge_fg = colors()["badge_text_dark"]
         self._badge.setStyleSheet(
-            f"background: {C.SUBTEXT}; color: #1e1e2e; border-radius: 4px;"
+            f"background: {C.SUBTEXT}; color: {_badge_fg}; border-radius: 4px;"
             "font-weight: bold; padding: 2px 10px;"
         )
         self._build_btn.setEnabled(False)
@@ -1025,8 +1026,9 @@ class _DatabaseTab(QWidget):
         }
         color, label = _badge_styles[info.status]
         self._badge.setText(f"  {label}  ")
+        _badge_fg = colors()["badge_text_dark"]
         self._badge.setStyleSheet(
-            f"background: {color}; color: #1e1e2e; border-radius: 4px;"
+            f"background: {color}; color: {_badge_fg}; border-radius: 4px;"
             "font-weight: bold; padding: 2px 10px;"
         )
 

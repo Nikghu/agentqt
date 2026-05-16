@@ -41,7 +41,7 @@ from us_swing.gui.log_viewer_panel import _html_entry
 from us_swing.gui.app_service import AppService
 from us_swing.gui._types import AccountState, OpenPosition
 from us_swing.gui.position_table_model import PositionTableModel, TradeHistoryModel
-from us_swing.gui.theme import C, load_theme_id
+from us_swing.gui.theme import C, colors
 from us_swing.data.models import WatchlistItem
 
 _log = logging.getLogger(__name__)
@@ -1285,11 +1285,14 @@ class DashboardPanel(QWidget):
             self._restyle_scope_strip()
 
     def _restyle_scope_strip(self) -> None:
-        _is_vs = load_theme_id() == "vscode"
-        _ss_bg  = "#252526" if _is_vs else C.SURFACE
-        _ss_brd = "#454545" if _is_vs else C.OVERLAY
-        _pill_mu = "#6d6d6d" if _is_vs else C.MUTED
-        _pill_ov = "#2d2d2d" if _is_vs else C.OVERLAY
+        _tc = colors()
+        _ss_bg  = _tc["scope_strip_bg"]
+        _ss_brd = _tc["scope_strip_border"]
+        _pill_mu = _tc["scope_pill_muted"]
+        _pill_ov = _tc["scope_pill_border"]
+        _pill_ck_bg = _tc["scope_pill_checked_bg"]
+        _pill_ck_fg = _tc["scope_pill_checked_fg"]
+        _pill_ck_bd = _tc["scope_pill_checked_bd"]
         self._scope_strip.setStyleSheet(
             f"QWidget#scope_strip {{ background:{_ss_bg}; border:1px solid {_ss_brd};"
             f" border-radius:4px; }}"
@@ -1297,23 +1300,13 @@ class DashboardPanel(QWidget):
         self._scope_lbl.setStyleSheet(
             f"color:{_pill_mu}; font-size:8pt; font-weight:bold;"
         )
-        if _is_vs:
-            pill_qss = (
-                f"QPushButton {{ background:transparent; color:{_pill_mu}; border:1px solid {_pill_ov};"
-                f" border-radius:10px; padding:0 10px; font-size:8pt; }}"
-                f"QPushButton:checked {{ background:#3a3d41; color:#ffffff;"
-                f" border:1px solid #9d9d9d; font-weight:bold; }}"
-                f"QPushButton:focus {{ outline: none; }}"
-            )
-        else:
-            _pill_bl = C.BLUE
-            pill_qss = (
-                f"QPushButton {{ background:transparent; color:{_pill_mu}; border:1px solid {_pill_ov};"
-                f" border-radius:10px; padding:0 10px; font-size:8pt; }}"
-                f"QPushButton:checked {{ background:{_pill_bl}33; color:{_pill_bl};"
-                f" border:1px solid {_pill_bl}; font-weight:bold; }}"
-                f"QPushButton:focus {{ outline: none; }}"
-            )
+        pill_qss = (
+            f"QPushButton {{ background:transparent; color:{_pill_mu}; border:1px solid {_pill_ov};"
+            f" border-radius:10px; padding:0 10px; font-size:8pt; }}"
+            f"QPushButton:checked {{ background:{_pill_ck_bg}; color:{_pill_ck_fg};"
+            f" border:1px solid {_pill_ck_bd}; font-weight:bold; }}"
+            f"QPushButton:focus {{ outline: none; }}"
+        )
         for btn in self._scope_pills.values():
             btn.setStyleSheet(pill_qss)
 

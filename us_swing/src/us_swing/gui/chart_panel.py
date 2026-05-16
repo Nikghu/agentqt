@@ -29,7 +29,7 @@ from PyQt6.QtWidgets import (
 )
 
 from us_swing.gui.app_service import AppService
-from us_swing.gui.theme import C, active_palette, load_theme_id
+from us_swing.gui.theme import active_palette, colors, load_theme_id
 
 # Path to the bundled Lightweight Charts JS (downloaded once at install time)
 _RESOURCES = Path(__file__).parent / "resources"
@@ -719,11 +719,14 @@ class CandleChartPanel(QWidget):
             self._show_no_data(symbol, timeframe)
             return
 
+        _tc = colors()
+        _vol_up = _tc["candle_up_volume"]
+        _vol_dn = _tc["candle_down_volume"]
         volume_data = [
             {
                 "time": c["time"],
                 "value": c["volume"],
-                "color": "#26a69a55" if c["close"] >= c["open"] else "#ef535055",
+                "color": _vol_up if c["close"] >= c["open"] else _vol_dn,
             }
             for c in candles
         ]
