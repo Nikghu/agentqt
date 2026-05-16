@@ -79,7 +79,7 @@ from PyQt6.QtWidgets import (
 from us_swing.gui.ai_transcript_panel import AITranscriptPanel
 from us_swing.gui.app_service import AppService
 from us_swing.gui.chart_panel import _build_html as _build_chart_html
-from us_swing.gui.theme import C, active_palette
+from us_swing.gui.theme import C, active_palette, colors
 from us_swing.screener.screeners import _api_key_store
 from us_swing.screener.storage import INPUT_COST_PER_1K, OUTPUT_COST_PER_1K
 from us_swing.screener.screeners._cloud_ai_models import (
@@ -207,7 +207,7 @@ class _ResultsModel(QAbstractTableModel):
                 if r.score >= 0.70:
                     return QColor(C.PNL_POS_BG)
                 if r.score >= 0.40:
-                    return QColor("#2e2a14")
+                    return QColor(colors()["score_cell_warning_bg"])
                 return QColor(C.PNL_NEG_BG)
             return None
 
@@ -402,9 +402,10 @@ class QuickChartWindow(QWidget):
 
         self.setWindowTitle("Quick Chart Viewer")
         self.resize(960, 640)
+        _ap = active_palette()
         self.setStyleSheet(
-            f"QWidget#qcw_root {{ background: {C.BG};"
-            f" border: 1px solid {C.OVERLAY2}; }}"
+            f"QWidget#qcw_root {{ background: {_ap.BG};"
+            f" border: 1px solid {_ap.OVERLAY2}; }}"
         )
 
         root_widget = QWidget()
@@ -425,26 +426,27 @@ class QuickChartWindow(QWidget):
         self._tabs.setTabsClosable(False)
         self._tabs.setMovable(True)
         self._tabs.setStyleSheet(
-            f"QTabWidget::pane {{ border: none; background: {C.BG}; }}"
+            f"QTabWidget::pane {{ border: none; background: {_ap.BG}; }}"
             f"QTabBar::tab {{"
-            f"  background: {C.SURFACE}; color: {C.SUBTEXT};"
-            f"  border: 1px solid {C.OVERLAY}; border-bottom: none;"
+            f"  background: {_ap.SURFACE}; color: {_ap.SUBTEXT};"
+            f"  border: 1px solid {_ap.OVERLAY}; border-bottom: none;"
             f"  padding: 5px 14px; font-size: 8pt; margin-right: 2px; }}"
             f"QTabBar::tab:selected {{"
-            f"  background: {C.BG}; color: {C.TEXT}; border-color: {C.OVERLAY2}; }}"
-            f"QTabBar::tab:hover:!selected {{ background: {C.OVERLAY}; }}"
+            f"  background: {_ap.BG}; color: {_ap.TEXT}; border-color: {_ap.OVERLAY2}; }}"
+            f"QTabBar::tab:hover:!selected {{ background: {_ap.OVERLAY}; }}"
         )
         self._layout.addWidget(self._tabs, 1)
 
     # ── Title bar ─────────────────────────────────────────────────────────────
 
     def _make_title_bar(self) -> QFrame:
+        _ap = active_palette()
         bar = QFrame()
         bar.setObjectName("qcw_title")
         bar.setFixedHeight(38)
         bar.setStyleSheet(
-            f"QFrame#qcw_title {{ background: {C.SURFACE};"
-            f" border-bottom: 1px solid {C.OVERLAY}; }}"
+            f"QFrame#qcw_title {{ background: {_ap.SURFACE};"
+            f" border-bottom: 1px solid {_ap.OVERLAY}; }}"
         )
         hl = QHBoxLayout(bar)
         hl.setContentsMargins(14, 0, 6, 0)
@@ -454,7 +456,7 @@ class QuickChartWindow(QWidget):
         icon.setStyleSheet("background: transparent; font-size: 13px;")
         title_lbl = QLabel("  Quick Chart Viewer")
         title_lbl.setStyleSheet(
-            f"color: {C.TEXT}; font-size: 9pt; font-weight: bold; background: transparent;"
+            f"color: {_ap.TEXT}; font-size: 9pt; font-weight: bold; background: transparent;"
         )
         hl.addWidget(icon)
         hl.addWidget(title_lbl)
@@ -467,17 +469,17 @@ class QuickChartWindow(QWidget):
             "QPushButton:hover {{ background: {hover}; color: white; }}"
         )
         min_btn = QPushButton("−")
-        min_btn.setStyleSheet(_wc.format(fg=C.SUBTEXT, hover=C.OVERLAY2))
+        min_btn.setStyleSheet(_wc.format(fg=_ap.SUBTEXT, hover=_ap.OVERLAY2))
         min_btn.setToolTip("Minimize")
         min_btn.clicked.connect(self.showMinimized)
 
         self._max_btn = QPushButton("□")
-        self._max_btn.setStyleSheet(_wc.format(fg=C.SUBTEXT, hover=C.OVERLAY2))
+        self._max_btn.setStyleSheet(_wc.format(fg=_ap.SUBTEXT, hover=_ap.OVERLAY2))
         self._max_btn.setToolTip("Maximize")
         self._max_btn.clicked.connect(self._toggle_maximize)
 
         close_btn = QPushButton("✕")
-        close_btn.setStyleSheet(_wc.format(fg=C.SUBTEXT, hover="#c0392b"))
+        close_btn.setStyleSheet(_wc.format(fg=_ap.SUBTEXT, hover="#c0392b"))
         close_btn.setToolTip("Close")
         close_btn.clicked.connect(self.close)
 
@@ -541,11 +543,12 @@ class QuickChartWindow(QWidget):
         content_widget = self._tabs.widget(tab_idx)
         btn = QPushButton("×")
         btn.setFixedSize(18, 18)
+        _close_hover_bg = colors()["filter_close_hover_bg"]
         btn.setStyleSheet(
             f"QPushButton {{ background: transparent; color: {C.SUBTEXT};"
             f" border: none; font-size: 13px; border-radius: 3px;"
             f" padding: 0; line-height: 18px; }}"
-            f"QPushButton:hover {{ background: #c0392b88; color: white; }}"
+            f"QPushButton:hover {{ background: {_close_hover_bg}; color: white; }}"
         )
         btn.clicked.connect(lambda _checked=False, w=content_widget: self._close_tab_for_widget(w))
         self._tabs.tabBar().setTabButton(tab_idx, QTabBar.ButtonPosition.RightSide, btn)
@@ -560,15 +563,19 @@ class QuickChartWindow(QWidget):
         super().closeEvent(event)
 
     def _make_chart_view(self, symbol: str, timeframe: str) -> QWebEngineView:
+        _ap = active_palette()
         web = QWebEngineView()
-        web.setStyleSheet(f"background: {C.BG};")
+        web.setStyleSheet(f"background: {_ap.BG};")
         candles = self._svc.get_candles_for_symbol(symbol, timeframe, 500)
         if candles:
+            _tc = colors()
+            _vol_up = _tc["candle_up_volume"]
+            _vol_dn = _tc["candle_down_volume"]
             volume_data = [
                 {
                     "time": c["time"],
                     "value": c["volume"],
-                    "color": "#26a69a55" if c["close"] >= c["open"] else "#ef535055",
+                    "color": _vol_up if c["close"] >= c["open"] else _vol_dn,
                 }
                 for c in candles
             ]
@@ -577,12 +584,12 @@ class QuickChartWindow(QWidget):
             web.setHtml(html, QUrl("about:blank"))
         else:
             web.setHtml(
-                f"""<!DOCTYPE html><html><body style="margin:0;background:{C.BG};
+                f"""<!DOCTYPE html><html><body style="margin:0;background:{_ap.BG};
                 display:flex;align-items:center;justify-content:center;height:100vh;
                 font-family:monospace;">
-                <div style="text-align:center;color:{C.MUTED};">
+                <div style="text-align:center;color:{_ap.MUTED};">
                   <div style="font-size:36px;margin-bottom:12px;">⚠</div>
-                  <div>No candle data for <b style="color:{C.YELLOW}">{symbol}</b>
+                  <div>No candle data for <b style="color:{_ap.YELLOW}">{symbol}</b>
                   ({timeframe.upper()})</div>
                   <div style="font-size:11px;margin-top:8px;">
                     Download data from Settings → Database.</div>
@@ -1556,7 +1563,8 @@ class _UserTag(QWidget):
     ) -> None:
         super().__init__(parent)
         self._user_id = user_id
-        bg = "#1a2d1a" if valid else "#2d1a1a"
+        _tc = colors()
+        bg = _tc["validator_pass_bg"] if valid else _tc["validator_fail_bg"]
         fg = C.GREEN   if valid else C.RED
 
         lbl = QLabel(label or user_id)
@@ -3241,16 +3249,17 @@ class ScreenerPanel(QWidget):
         return rows
 
     def _update_mode_badge(self, mode: str) -> None:
+        _tc = colors()
         if mode == "scheduled":
             self._mode_badge.setText("Auto")
             self._mode_badge.setStyleSheet(
-                f"color:{C.TEAL};background:#12302e;border:1px solid {C.TEAL};"
+                f"color:{C.TEAL};background:{_tc['mode_auto_bg']};border:1px solid {C.TEAL};"
                 "border-radius:8px;padding:2px 8px;font-size:7pt;font-weight:bold;"
             )
         else:
             self._mode_badge.setText("Manual")
             self._mode_badge.setStyleSheet(
-                f"color:{C.BLUE};background:#1a2d45;border:1px solid {C.BLUE};"
+                f"color:{C.BLUE};background:{_tc['mode_manual_bg']};border:1px solid {C.BLUE};"
                 "border-radius:8px;padding:2px 8px;font-size:7pt;font-weight:bold;"
             )
         self._mode_badge.setVisible(True)

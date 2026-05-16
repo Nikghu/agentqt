@@ -42,7 +42,7 @@ from us_swing.data.models import FilteredStockEntry
 from us_swing.gui.app_service import AppService
 from us_swing.gui._types import TradeSignal
 from us_swing.gui.chart_panel import _build_html as _build_chart_html
-from us_swing.gui.theme import C, active_palette
+from us_swing.gui.theme import C, active_palette, colors
 
 
 # ── Intraday chart pane (3m + 15m side by side) ───────────────────────────────
@@ -136,11 +136,14 @@ class _IntradayChartPane(QWidget):
 
     @staticmethod
     def _to_volume_data(candles: list[dict]) -> list[dict]:
+        _tc = colors()
+        _vol_up = _tc["candle_up_volume"]
+        _vol_dn = _tc["candle_down_volume"]
         return [
             {
                 "time":  c["time"],
                 "value": c["volume"],
-                "color": "#26a69a55" if c["close"] >= c["open"] else "#ef535055",
+                "color": _vol_up if c["close"] >= c["open"] else _vol_dn,
             }
             for c in candles
         ]

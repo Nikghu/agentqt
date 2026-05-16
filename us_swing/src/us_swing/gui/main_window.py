@@ -40,7 +40,7 @@ from us_swing.gui.execution_panel import ExecutionPanel
 from us_swing.gui.screener_panel import ScreenerPanel
 from us_swing.gui.settings_panel import SettingsPanel
 from us_swing.gui.system_store import load_system_config
-from us_swing.gui.theme import C, load_theme_id
+from us_swing.gui.theme import C, colors
 
 
 # ── Horizontal nav tab button ──────────────────────────────────────────────────
@@ -150,12 +150,9 @@ class _FeedToggle(QPushButton):
         txt = QColor(txt_h)
 
         if self._hovered and self._state == self.IDLE:
-            if load_theme_id() == "vscode":
-                bd  = QColor("#9d9d9d")
-                txt = QColor("#d4d4d4")
-            else:
-                bd  = QColor("#6e7aff")
-                txt = QColor("#b0b8ff")
+            _c = colors()
+            bd  = QColor(_c["feed_hover_border"])
+            txt = QColor(_c["feed_hover_text"])
 
         # ── Pill shell ─────────────────────────────────────────────────────
         shell = QPainterPath()
@@ -544,7 +541,7 @@ class MainWindow(QMainWindow):
         _sb_qss_sm   = "background:transparent;color:#ffffff;font-weight:bold;padding:0 8px;font-size:8pt;"
         _sb_pill_qss = "background:transparent;color:#ffffff;font-weight:bold;padding:0 10px;font-size:8pt;"
         self._sb_conn    = QLabel("●  Internet: Checking…")
-        self._sb_conn.setStyleSheet(_sb_qss)
+        self._sb_conn.setStyleSheet(_sb_qss_sm)
         self._sb_session = QLabel("SESSION: LIVE READ-ONLY")
         self._sb_session.setStyleSheet(_sb_qss_sm)
         self._sb_exe     = QLabel("EXE: DISABLED")
