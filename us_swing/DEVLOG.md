@@ -2,18 +2,14 @@
 
 ---
 
-## [20260518] EXE — FO-EXE-009 + FO-EXE-010 Intraday Monitoring Session lifecycle — tests + RN — COMPLETE
+## [20260518] EXE — FO-EXE-009 + FO-EXE-010 Intraday Monitoring Session lifecycle — COMPLETE
 
-- Type: Feature (completion of work begun in Session 43)
-- Artifacts updated:
-  - Tests: `tests/core/monitoring_session/` (conftest + 7 unit test files), `tests/integration/conftest.py` + `test_lifecycle_e2e.py` — 66 cases per UTCD, written by `test-writer` agent in one batched call
-  - Source fix: `_service.reconcile_preopen` now adds `ReconcileError("X","invariant_violation",1)` per SRD-EXE-010.003 when ledger ENTERED ≠ open system positions (previously logged only)
-  - Status: 18 SRDs Approved → Implemented; UTCD entries Draft → Pass (65 pass + 2 skip for blocked-on-FO-EXE-001/002); TRACE rows for FO-EXE-009/010 flipped to Implemented with RN=RN-EXE-1.3.0-20260518
-  - Doc versions: SRD v1.6.0 → v1.6.1, UTCD v1.5.0 → v1.5.1, TRACE v1.3.0 → v1.4.0
-  - New: `docs/execution/revisions/RN-EXE-1.3.0-20260518.md`
-- Branch: `feature/fo-exe-009-monitoring-session` — two commits: `ca1d0db0` (foundation), `69dd20c7` (test suite + spec fix). Ready to push and open PR.
-- Summary:
-  Translated 66 UTCD entries into runnable pytest under `tests/core/monitoring_session/` and `tests/integration/`. Pre-wrote conftest with engine/seed_user/seed_price/event_collector fixtures, then delegated to test-writer agent for the 8 test files in one batched call. Suite came back 65 pass / 2 skip on first run, with one flagged source-vs-spec discrepancy: SRD-EXE-010.003 requires per-symbol `ReconcileError("X","invariant_violation",1)` for invariant mismatches, but the implementation only logged the aggregate via `check_invariant()`. Fixed source to match SRD (added the per-symbol error loop in `reconcile_preopen`) and tightened T17 to assert the error entry. Then flipped all 18 SRDs to Implemented, mapped UTCD entries to Pass, synced TRACE Status column, wrote RN-EXE-1.3.0-20260518. The two skipped tests (`UT-EXE-001.001.M02.T08/T09`) cover the `handle_order_fill` routing seam which depends on FO-EXE-001/002 ExecutionEngine — that work is the natural next pickup. Feature is functionally complete; only branch push + PR creation remain.
+- Type: Feature (completion of work begun Session 43)
+- Tests: 66 UTCD cases translated via `test-writer` — 65 pass / 2 skip (skips blocked on FO-EXE-001/002 ExecutionEngine, stubbed for ID traceability)
+- Source fix during test phase: `_service.reconcile_preopen` adds per-symbol `ReconcileError(...,"invariant_violation",...)` per SRD-EXE-010.003 (previously log-only); T17 tightened to assert it
+- Status: 18 SRDs Approved → Implemented; UTCD Draft → Pass; TRACE Status → Implemented with RN=RN-EXE-1.3.0-20260518; doc bumps SRD 1.6.1 / UTCD 1.5.1 / TRACE 1.4.0
+- New: `docs/execution/revisions/RN-EXE-1.3.0-20260518.md`; `tests/core/monitoring_session/` (conftest + 7 unit files); `tests/integration/test_lifecycle_e2e.py`
+- Branch `feature/fo-exe-009-monitoring-session` pushed; PR [#9](https://github.com/Nikghu/agentqt/pull/9) open; 3 commits (`ca1d0db0`, `69dd20c7`, `add16c21`)
 
 ---
 
