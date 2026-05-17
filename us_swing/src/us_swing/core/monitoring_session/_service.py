@@ -365,6 +365,17 @@ class MonitoringSessionService:
             errors:     list[ReconcileError] = []
             now_iso = self._clock().isoformat()
 
+            # SRD-EXE-010.003 — per-symbol invariant violation reporting.
+            # Symbols where the ledger and positions views disagree get a
+            # `ReconcileError("X","invariant_violation",1)` row in the report
+            # (logging only is not sufficient — operators audit via the report).
+            for symbol in sorted(entered ^ keep.carryover):
+                errors.append(ReconcileError(symbol, "invariant_violation", 1))
+                log.error(
+                    "[Lifecycle] Invariant violation during reconcile: symbol=%s",
+                    symbol,
+                )
+
             for symbol in sorted(evict):
                 # Per-symbol retry-once on transient OperationalError.
                 last_exc: Exception | None = None

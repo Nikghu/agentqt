@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-16T18:42:06",
+  "generated": "2026-05-17T04:38:16",
   "subfolder": "core",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\core",
   "tool_code": "EXE",
@@ -681,11 +681,11 @@
               "signature": "def reconcile_preopen(self, today: date) -> ReconcileReport",
               "docstring": "Pre-open candle DB reconciliation.  Single-flight, idempotent.",
               "line_start": 334,
-              "line_end": 428
+              "line_end": 439
             }
           ],
           "line_start": 64,
-          "line_end": 428
+          "line_end": 439
         }
       ],
       "top_level_functions": [
