@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-17T04:38:16",
+  "generated": "2026-05-18T17:26:44",
   "subfolder": "core",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\core",
   "tool_code": "EXE",
@@ -10,14 +10,14 @@
       "top_level_functions": [
         {
           "name": "build_default_service",
-          "signature": "def build_default_service(\n    engine: Engine,\n    *,\n    today_provider: Callable[[], date] | None                  = None,\n    clock: Callable[[], datetime] | None                       = None,\n    filtered_provider: Callable[[date], frozenset[str]] | None = None,\n) -> tuple[MonitoringQuery, MonitoringCommand, MonitoringEventBus]",
+          "signature": "def build_default_service(\r\n    engine: Engine,\r\n    *,\r\n    today_provider: Callable[[], date] | None                  = None,\r\n    clock: Callable[[], datetime] | None                       = None,\r\n    filtered_provider: Callable[[date], frozenset[str]] | None = None,\r\n) -> tuple[MonitoringQuery, MonitoringCommand, MonitoringEventBus]",
           "docstring": "Wire up a default ``MonitoringSessionService`` with an in-process event bus.",
           "line_start": 50,
           "line_end": 91
         },
         {
           "name": "build_scheduler",
-          "signature": "def build_scheduler(\n    command: MonitoringCommand,\n    bus: MonitoringEventBus,\n    cron_register: Callable[[str, Callable[[], None]], None],\n    *,\n    clock: Callable[[], datetime] | None      = None,\n    today_provider: Callable[[], date] | None = None,\n) -> _ReconcileScheduler",
+          "signature": "def build_scheduler(\r\n    command: MonitoringCommand,\r\n    bus: MonitoringEventBus,\r\n    cron_register: Callable[[str, Callable[[], None]], None],\r\n    *,\r\n    clock: Callable[[], datetime] | None      = None,\r\n    today_provider: Callable[[], date] | None = None,\r\n) -> _ReconcileScheduler",
           "docstring": "Construct the pre-open reconcile scheduler.",
           "line_start": 94,
           "line_end": 113
@@ -285,7 +285,7 @@
             },
             {
               "name": "subscribe",
-              "signature": "def subscribe(\n        self,\n        event_type: type,\n        handler: Callable[[Any], None],\n    ) -> Subscription",
+              "signature": "def subscribe(\r\n        self,\r\n        event_type: type,\r\n        handler: Callable[[Any], None],\r\n    ) -> Subscription",
               "line_start": 145,
               "line_end": 152
             },
@@ -297,7 +297,7 @@
             },
             {
               "name": "_unregister",
-              "signature": "def _unregister(\n        self,\n        event_type: type,\n        handler: Callable[[Any], None],\n    ) -> None",
+              "signature": "def _unregister(\r\n        self,\r\n        event_type: type,\r\n        handler: Callable[[Any], None],\r\n    ) -> None",
               "line_start": 168,
               "line_end": 177
             }
@@ -331,7 +331,7 @@
           "methods": [
             {
               "name": "subscribe",
-              "signature": "def subscribe(\n        self,\n        event_type: type,\n        handler: Callable[[Any], None],\n    ) -> Subscription",
+              "signature": "def subscribe(\r\n        self,\r\n        event_type: type,\r\n        handler: Callable[[Any], None],\r\n    ) -> Subscription",
               "line_start": 36,
               "line_end": 40
             },
@@ -369,13 +369,13 @@
             },
             {
               "name": "session_for",
-              "signature": "def session_for(\n        self,\n        session_date: date,\n        symbol: str,\n    ) -> MonitoringSessionRow | None",
+              "signature": "def session_for(\r\n        self,\r\n        session_date: date,\r\n        symbol: str,\r\n    ) -> MonitoringSessionRow | None",
               "line_start": 55,
               "line_end": 59
             },
             {
               "name": "history",
-              "signature": "def history(\n        self,\n        symbol: str,\n        days: int = 30,\n    ) -> tuple[MonitoringSessionRow, ...]",
+              "signature": "def history(\r\n        self,\r\n        symbol: str,\r\n        days: int = 30,\r\n    ) -> tuple[MonitoringSessionRow, ...]",
               "line_start": 61,
               "line_end": 65
             },
@@ -433,27 +433,27 @@
             },
             {
               "name": "insert_monitoring_rows",
-              "signature": "def insert_monitoring_rows(\n        self,\n        session_date: date,\n        preset_id: str,\n        run_timestamp: str,\n        symbols: Sequence[str],\n    ) -> tuple[str, ...]",
+              "signature": "def insert_monitoring_rows(\r\n        self,\r\n        session_date: date,\r\n        preset_id: str,\r\n        run_timestamp: str,\r\n        symbols: Sequence[str],\r\n    ) -> tuple[str, ...]",
               "docstring": "Insert one MONITORING row per symbol for *session_date*.",
               "line_start": 59,
               "line_end": 101
             },
             {
               "name": "fetch_earliest_open_monitoring_row",
-              "signature": "def fetch_earliest_open_monitoring_row(\n        self,\n        symbol: str,\n    ) -> MonitoringSessionRow | None",
+              "signature": "def fetch_earliest_open_monitoring_row(\r\n        self,\r\n        symbol: str,\r\n    ) -> MonitoringSessionRow | None",
               "docstring": "Earliest ``MONITORING`` row for *symbol* across all session_dates.",
               "line_start": 103,
               "line_end": 119
             },
             {
               "name": "transition_to_entered",
-              "signature": "def transition_to_entered(\n        self,\n        session_date: str,\n        symbol: str,\n        entered_at: str,\n        trade_id: str,\n    ) -> None",
+              "signature": "def transition_to_entered(\r\n        self,\r\n        session_date: str,\r\n        symbol: str,\r\n        entered_at: str,\r\n        trade_id: str,\r\n    ) -> None",
               "line_start": 121,
               "line_end": 140
             },
             {
               "name": "transition_to_exited",
-              "signature": "def transition_to_exited(\n        self,\n        session_date: str,\n        symbol: str,\n        exited_at: str,\n    ) -> None",
+              "signature": "def transition_to_exited(\r\n        self,\r\n        session_date: str,\r\n        symbol: str,\r\n        exited_at: str,\r\n    ) -> None",
               "line_start": 142,
               "line_end": 159
             },
@@ -466,20 +466,20 @@
             },
             {
               "name": "evict_symbol_atomic",
-              "signature": "def evict_symbol_atomic(\n        self,\n        symbol: str,\n        today: date,\n        evicted_at: str,\n    ) -> tuple[str, ...]",
+              "signature": "def evict_symbol_atomic(\r\n        self,\r\n        symbol: str,\r\n        today: date,\r\n        evicted_at: str,\r\n    ) -> tuple[str, ...]",
               "docstring": "Single transaction: DELETE from every price_* table for *symbol*",
               "line_start": 175,
               "line_end": 220
             },
             {
               "name": "fetch_history",
-              "signature": "def fetch_history(\n        self,\n        symbol: str,\n        days: int = 30,\n    ) -> tuple[MonitoringSessionRow, ...]",
+              "signature": "def fetch_history(\r\n        self,\r\n        symbol: str,\r\n        days: int = 30,\r\n    ) -> tuple[MonitoringSessionRow, ...]",
               "line_start": 224,
               "line_end": 240
             },
             {
               "name": "fetch_session",
-              "signature": "def fetch_session(\n        self,\n        session_date: date,\n        symbol: str,\n    ) -> MonitoringSessionRow | None",
+              "signature": "def fetch_session(\r\n        self,\r\n        session_date: date,\r\n        symbol: str,\r\n    ) -> MonitoringSessionRow | None",
               "line_start": 242,
               "line_end": 253
             },
@@ -518,13 +518,13 @@
             },
             {
               "name": "insert_trade_with_anchor",
-              "signature": "def insert_trade_with_anchor(\n        self,\n        trade_id: str,\n        user_id: int,\n        symbol: str,\n        side: Side,\n        qty: int,\n        price: float,\n        fill_time: str,\n        origin: TradeOrigin,\n        anchor_session_date: str | None,\n    ) -> None",
+              "signature": "def insert_trade_with_anchor(\r\n        self,\r\n        trade_id: str,\r\n        user_id: int,\r\n        symbol: str,\r\n        side: Side,\r\n        qty: int,\r\n        price: float,\r\n        fill_time: str,\r\n        origin: TradeOrigin,\r\n        anchor_session_date: str | None,\r\n    ) -> None",
               "line_start": 306,
               "line_end": 337
             },
             {
               "name": "upsert_position_with_anchor",
-              "signature": "def upsert_position_with_anchor(\n        self,\n        user_id: int,\n        symbol: str,\n        side: Side,\n        fill_qty: int,\n        fill_price: float,\n        origin: TradeOrigin,\n        anchor_session_date: str | None,\n    ) -> PositionSnapshot",
+              "signature": "def upsert_position_with_anchor(\r\n        self,\r\n        user_id: int,\r\n        symbol: str,\r\n        side: Side,\r\n        fill_qty: int,\r\n        fill_price: float,\r\n        origin: TradeOrigin,\r\n        anchor_session_date: str | None,\r\n    ) -> PositionSnapshot",
               "docstring": "Apply a fill to the ``positions`` row for (user_id, symbol).",
               "line_start": 339,
               "line_end": 448
@@ -562,7 +562,7 @@
           "methods": [
             {
               "name": "__init__",
-              "signature": "def __init__(\n        self,\n        command: MonitoringCommand,\n        bus: MonitoringEventBus,\n        cron_register: Callable[[str, Callable[[], None]], None],\n        *,\n        clock: Callable[[], datetime] | None      = None,\n        today_provider: Callable[[], date] | None = None,\n    ) -> None",
+              "signature": "def __init__(\r\n        self,\r\n        command: MonitoringCommand,\r\n        bus: MonitoringEventBus,\r\n        cron_register: Callable[[str, Callable[[], None]], None],\r\n        *,\r\n        clock: Callable[[], datetime] | None      = None,\r\n        today_provider: Callable[[], date] | None = None,\r\n    ) -> None",
               "line_start": 43,
               "line_end": 58
             },
@@ -622,7 +622,7 @@
           "methods": [
             {
               "name": "__init__",
-              "signature": "def __init__(\n        self,\n        repo: MonitoringRepository,\n        bus: MonitoringEventBus,\n        *,\n        clock: Callable[[], datetime] | None             = None,\n        today_provider: Callable[[], date] | None        = None,\n        filtered_provider: Callable[[date], frozenset[str]] | None = None,\n    ) -> None",
+              "signature": "def __init__(\r\n        self,\r\n        repo: MonitoringRepository,\r\n        bus: MonitoringEventBus,\r\n        *,\r\n        clock: Callable[[], datetime] | None             = None,\r\n        today_provider: Callable[[], date] | None        = None,\r\n        filtered_provider: Callable[[date], frozenset[str]] | None = None,\r\n    ) -> None",
               "line_start": 72,
               "line_end": 91
             },
@@ -646,13 +646,13 @@
             },
             {
               "name": "session_for",
-              "signature": "def session_for(\n        self,\n        session_date: date,\n        symbol: str,\n    ) -> MonitoringSessionRow | None",
+              "signature": "def session_for(\r\n        self,\r\n        session_date: date,\r\n        symbol: str,\r\n    ) -> MonitoringSessionRow | None",
               "line_start": 109,
               "line_end": 114
             },
             {
               "name": "history",
-              "signature": "def history(\n        self,\n        symbol: str,\n        days: int = 30,\n    ) -> tuple[MonitoringSessionRow, ...]",
+              "signature": "def history(\r\n        self,\r\n        symbol: str,\r\n        days: int = 30,\r\n    ) -> tuple[MonitoringSessionRow, ...]",
               "line_start": 116,
               "line_end": 121
             },

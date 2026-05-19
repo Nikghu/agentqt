@@ -3,7 +3,7 @@
 **Document ID:** TRACE-EXE
 **Version:** 1.4.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-05-18
+**Last Updated:** 2026-05-19
 
 ---
 
@@ -20,7 +20,7 @@
 | FO-EXE-004 | SRD-EXE-004.005 | DD-EXE-004.001.D01 | MD-EXE-004.001.M02 | T01–T03 | `execution/execution_router.py` | Draft | Pending |
 | FO-EXE-005 | SRD-EXE-005.001–003, 005.006 | DD-EXE-005.001.D01 | MD-EXE-002.001.M01 | 005.001.T01–T09 | `execution/position_tracker.py` | Draft | Pending |
 | FO-EXE-006 | SRD-EXE-006.001–006 | DD-EXE-006.001.D01–D02 | MD-EXE-006.001.M01 | UT-EXE-006.001.M01.T01–T13 | `execution/intraday_candle_loader.py` | Implemented | RN-EXE-1.1.0-20260506 |
-| FO-EXE-008 | SRD-EXE-008.001–006 | DD-EXE-008.001.D01 | MD-EXE-008.001.M01 | UT-EXE-008.001.M01.T01–T16 | `execution/live_tick_worker.py` | Implemented | RN-EXE-1.2.0-20260515 |
+| FO-EXE-008 | SRD-EXE-008.001–006 | DD-EXE-008.001.D01 | MD-EXE-008.001.M01 | UT-EXE-008.001.M01.T01–T16 | `execution/live_tick_worker.py` | Implemented | RN-EXE-1.3.1-20260519 |
 | FO-EXE-009 | SRD-EXE-009.001–012 | DD-EXE-009.001.D01–D02, 009.002.D01–D02, 009.003.D01 | MD-EXE-009.001.M01–M03, 009.002.M01–M03 | UT-EXE-009.001.M01.T01–T04, 009.001.M02.T01–T03, 009.001.M03.T01–T06, 009.002.M01.T01–T14, 009.002.M02.T01–T21, 009.002.M03.T01–T04; IT-EXE-009.001–005 | `core/monitoring_session/{_dto,_enums,_protocols,_events,_repository,_service}.py`, `core/monitoring_session/__init__.py` | Implemented | RN-EXE-1.3.0-20260518 |
 | FO-EXE-010 | SRD-EXE-010.001–006 | DD-EXE-010.001.D01, 010.002.D01, 010.003.D01 | MD-EXE-010.001.M01 | UT-EXE-010.001.M01.T01–T05; IT-EXE-010.001–002 | `core/monitoring_session/_scheduler.py` | Implemented | RN-EXE-1.3.0-20260518 |
 

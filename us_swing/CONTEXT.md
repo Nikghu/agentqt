@@ -2,14 +2,14 @@
 
 **Document:** CONTEXT.md
 **Project:** us_swing
-**Last Updated:** 2026-05-18 (Session 44)
-**Updated By:** Claude Opus 4.7
+**Last Updated:** 2026-05-18 (Session 45)
+**Updated By:** Claude Sonnet 4.6
 
 ---
 
 ## 0. Immediate Next Step
 
-**Current:** FO-EXE-009 + FO-EXE-010 **COMPLETE** — 65 pass / 2 skip, 18 SRDs Implemented, RN-EXE-1.3.0-20260518 written, PR [#9](https://github.com/Nikghu/agentqt/pull/9) open on `feature/fo-exe-009-monitoring-session`. **Next options:** (a) review/merge PR #9, (b) implement FO-EXE-001/002 (ExecutionEngine + PositionTracker — 18 SRDs Approved, 0 code; also unblocks the deferred `on_fill` seam), (c) build generic cron service for the `09:15 ET` reconcile trigger.
+**Current:** FO-GUI-012 + FO-EXE-008 **REFACTOR COMPLETE** — Market Watch refactored to 4 ETF proxies (SPY/QQQ/DIA/IWM) with WatchlistItem model; _MarketWatchTab added to dashboard; _MWCell rich-text hover labels added; LiveTickWorker.set_contracts thread-safety fixed via asyncio.run_coroutine_threadsafe; candle DB diagnostics dialog added. Code staged, tests not yet verified. **Next:** commit changes + write/run tests for Market Watch tab, then move to FO-EXE-001/002 (ExecutionEngine + PositionTracker — 18 SRDs Approved).
 
 **FO-EXE-009 + FO-EXE-010 — COMPLETE (Session 44, 2026-05-18):**
 - 65 pass / 2 skip; skips are `UT-EXE-001.001.M02.T08/T09`, blocked on FO-EXE-001/002.
@@ -31,15 +31,15 @@
   - Pytest translation of UTCD entries (66 cases across 7 unit modules + integration); `tests/exe/test_monitoring_session_*.py` not yet written
   - RN-EXE-1.3.0-20260517 to mark SRD-EXE-009.*/.010.* Implemented and update TRACE Status column
 
-**FO-EXE-008 + FO-GUI-012 — Live Tick Streaming — COMPLETE (Session 42, 2026-05-15):**
-- `LiveTickWorker(QThread)` streams live last-price ticks via IBKR `reqMktData` (clientId=14)
-- Replaces `_MarketWatchWorker` (15 s yfinance polling) entirely; watchlist LTP and position `current_price` also driven by tick stream
-- Market Watch, Watchlist, Position Monitor all update within 1 s of IBKR price change; S&P 500 membership gate for watchlist/positions; 95-symbol subscription cap
-- `_YAHOO_TO_IBKR` table translates ^GSPC/^IXIC/^DJI to IBKR index contracts; `_fetch_mw_prev_close_once()` fetches prev_close once via yfinance at connect time
-- `ibkr_tick_client_id` exposed in Settings → System tab; clientId collision retry (up to 4 attempts)
-- Files: 1 new source (`execution/live_tick_worker.py` MD-EXE-008.001.M01), 2 modified (`gui/app_service.py`, `gui/settings_panel.py`), 1 fix (`gui/system_store.py` deserialization), 2 new test files (35 tests), 2 RNs
-- All artifacts updated: TRACE-EXE + TRACE-GUI (FO-EXE-008 + FO-GUI-012 Implemented), UTCD (35 tests Pass), RN-EXE-1.2.0-20260515, RN-GUI-1.1.0-20260515
-- Status: All phases complete
+**FO-EXE-008 + FO-GUI-012 — Live Tick Streaming — REFACTORED (Session 46, 2026-05-19):**
+- Market Watch refactored to use 4 ETF proxies (SPY/QQQ/DIA/IWM) instead of ^GSPC/^IXIC/^DJI; WatchlistItem model used consistently across all three tick data sources
+- New _MarketWatchTab added to dashboard_panel (MD-GUI-012.001.M02) with _MarketWatchModel + table showing symbol, last price, change $, change %
+- _MWCell rich-text hover labels added to main_window.py displaying dynamic tooltip on chart hover with ticker + description
+- LiveTickWorker.set_contracts() thread-safety fixed: updates now routed through `asyncio.run_coroutine_threadsafe()` to avoid event loop race conditions (FO-EXE-008 refactor)
+- Candle DB diagnostics dialog added to execution_panel (query last candle per symbol, highlight stale/missing data)
+- Files: 5 modified (`gui/app_service.py`, `gui/dashboard_panel.py`, `gui/main_window.py`, `gui/execution_panel.py`, `execution/live_tick_worker.py`), staged but uncommitted
+- Artifacts: TRACE-EXE v1.4.1, TRACE-GUI v1.2.1 updated; RN-EXE-1.2.1-20260519, RN-GUI-1.2.0-20260519 (pending write); tests not yet verified
+- Status: Code Refactored — awaiting test verification before commit
 
 **FO-GUI-011 — Candle Chart Viewer — COMPLETE (Session 41, 2026-05-13):**
 - "📈 Chart" navigation tab (index 3, before Settings) with symbol/timeframe/bars toolbar
@@ -315,7 +315,7 @@
 | DD | `docs/execution/DD.md` | Draft v1.2.0 | DD-EXE-006.001.D01–D02 complete; 8 design items total |
 | MD | `docs/execution/MD.md` | Draft v1.2.0 | MD-EXE-006.001.M01 implemented; 8 modules total (1 Implemented, 7 Draft) |
 | UTCD | `docs/execution/UTCD.md` | Draft v1.2.0 | UT-EXE-006.001.M01.T01–T13 all Pass; 67 total (13 Pass, 54 Draft) |
-| TRACE | `docs/execution/TRACE.md` | Draft v1.2.0 | FO-EXE-006 row complete with Implemented status; RN-EXE-1.1.0-20260506 filled |
+| TRACE | `docs/execution/TRACE.md` | Draft v1.4.1 — **updated** | FO-EXE-008 thread-safety refactor complete; MD row updated; RN-EXE-1.2.1-20260519 pending |
 
 ### GUI (NEW — created)
 
@@ -326,7 +326,7 @@
 | DD | `docs/gui/DD.md` | Draft v1.2.0 — **revised** | DD-GUI-001.001.D01: MainWindow (frameless, AppService DI, 4-panel stack, correct geometry); DD-GUI-002.001.D01: PositionTableModel + TradeHistoryModel rewritten (correct columns, User col toggle, set_highlighted_row, C.* colour constants) |
 | MD | `docs/gui/MD.md` | Draft v1.0.0 | 9 modules: main_window, dashboard, position_table_model, screener, execution, position_monitor, settings, log_viewer, log_bridge |
 | UTCD | `docs/gui/UTCD.md` | Draft v1.1.0 — **revised** | 36 tests corrected across all 7 modules: T01 tab count, status bar widgets, signal names, column counts, P&L colour constants, badge text |
-| TRACE | `docs/gui/TRACE.md` | Draft v1.0.0 | Full forward/reverse trace |
+| TRACE | `docs/gui/TRACE.md` | Draft v1.2.1 — **updated** | FO-GUI-012 Implemented with Market Watch refactor; 4 new MD module rows added (M01–M03 for dashboard/main_window/execution); RN-GUI-1.2.0-20260519 pending |
 
 ### MCP Server (NEW — created)
 

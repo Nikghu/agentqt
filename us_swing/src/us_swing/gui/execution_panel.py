@@ -5,23 +5,27 @@ FO-GUI-004 Execution Panel: pending signals + override qty + execute entry.
 from __future__ import annotations
 
 import json
+import sqlite3
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 from PyQt6.QtCore import (
     QAbstractTableModel,
     QModelIndex,
+    QPoint,
     QSortFilterProxyModel,
     Qt,
     QTimer,
     QUrl,
     pyqtSignal,
 )
-from PyQt6.QtGui import QColor
+from PyQt6.QtGui import QColor, QMouseEvent
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
+    QDialog,
     QFrame,
     QGroupBox,
     QHBoxLayout,
@@ -34,6 +38,8 @@ from PyQt6.QtWidgets import (
     QSpinBox,
     QSplitter,
     QTableView,
+    QTableWidget,
+    QTableWidgetItem,
     QVBoxLayout,
     QWidget,
 )
@@ -43,6 +49,245 @@ from us_swing.gui.app_service import AppService
 from us_swing.gui._types import TradeSignal
 from us_swing.gui.chart_panel import _build_html as _build_chart_html
 from us_swing.gui.theme import C, active_palette, colors
+
+
+# ── Temporary diagnostics flag — set False to hide the DB Info button ────────
+
+_SHOW_DB_DIAGNOSTICS: bool = True
+_INTRADAY_DB_PATH: Path = Path.home() / ".usswing" / "candles.db"
+
+
+# ── Diagnostics title bar ─────────────────────────────────────────────────────
+
+class _DiagTitleBar(QWidget):
+    """Minimal drag+close title bar for the candle DB diagnostics dialog."""
+
+    _BTN = (
+        "QPushButton {{ background: transparent; color: {fg}; border: none;"
+        " font-size: 14px; min-width: 32px; max-width: 32px;"
+        " min-height: 28px; max-height: 28px; border-radius: 4px; }}"
+        "QPushButton:hover {{ background: {hover}; }}"
+    )
+
+    def __init__(self, title: str, window: QDialog) -> None:
+        super().__init__(window)
+        self._win = window
+        self._drag = QPoint()
+        self.setObjectName("title_bar")
+        self.setFixedHeight(40)
+
+        row = QHBoxLayout(self)
+        row.setContentsMargins(12, 0, 4, 0)
+        row.setSpacing(0)
+
+        lbl = QLabel(title)
+        lbl.setObjectName("top_brand")
+        row.addWidget(lbl)
+        row.addStretch()
+
+        cls_btn = QPushButton("✕")
+        cls_btn.setStyleSheet(self._BTN.format(fg=C.SUBTEXT, hover="#c0392b"))
+        cls_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        cls_btn.clicked.connect(window.close)
+        row.addWidget(cls_btn)
+
+    def mousePressEvent(self, ev: QMouseEvent) -> None:  # type: ignore[override]
+        if ev.button() == Qt.MouseButton.LeftButton:
+            self._drag = ev.globalPosition().toPoint() - self._win.frameGeometry().topLeft()
+        super().mousePressEvent(ev)
+
+    def mouseMoveEvent(self, ev: QMouseEvent) -> None:  # type: ignore[override]
+        if ev.buttons() & Qt.MouseButton.LeftButton and not self._drag.isNull():
+            self._win.move(ev.globalPosition().toPoint() - self._drag)
+        super().mouseMoveEvent(ev)
+
+
+# ── Candle DB diagnostics dialog ──────────────────────────────────────────────
+
+class _CandleDbDiagDialog(QDialog):
+    """Temporary diagnostic — per-symbol intraday candle DB row counts and date ranges."""
+
+    def __init__(self, svc: AppService, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._svc = svc
+        self.setWindowTitle("Candle DB Info")
+        self.setMinimumSize(860, 520)
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
+
+        root = QVBoxLayout(self)
+        root.setSpacing(0)
+        root.setContentsMargins(0, 0, 0, 0)
+
+        root.addWidget(_DiagTitleBar("Candle DB — Intraday Stats", self))
+
+        body = QWidget()
+        bl = QVBoxLayout(body)
+        bl.setContentsMargins(16, 12, 16, 16)
+        bl.setSpacing(10)
+
+        self._summary = QLabel("")
+        self._summary.setStyleSheet(f"color: {C.MUTED}; font-size: 9pt;")
+        bl.addWidget(self._summary)
+
+        self._tbl = QTableWidget()
+        self._tbl.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self._tbl.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self._tbl.setAlternatingRowColors(True)
+        self._tbl.setWordWrap(False)
+        self._tbl.setShowGrid(False)
+        vh = self._tbl.verticalHeader()
+        if vh:
+            vh.setVisible(False)
+        bl.addWidget(self._tbl, 1)
+
+        btn_row = QHBoxLayout()
+        clear_btn = QPushButton("Clear Old Data")
+        clear_btn.setObjectName("danger_btn")
+        clear_btn.setFixedWidth(130)
+        clear_btn.clicked.connect(self._clear_old_data)
+        refresh_btn = QPushButton("Refresh")
+        refresh_btn.setFixedWidth(90)
+        refresh_btn.clicked.connect(self._load)
+        btn_row.addStretch()
+        btn_row.addWidget(clear_btn)
+        btn_row.addWidget(refresh_btn)
+        bl.addLayout(btn_row)
+
+        root.addWidget(body, 1)
+        self._load()
+
+    def _load(self) -> None:
+        if not _INTRADAY_DB_PATH.exists():
+            self._summary.setText(f"No candle database found at {_INTRADAY_DB_PATH}")
+            self._tbl.setRowCount(0)
+            return
+        try:
+            conn = sqlite3.connect(str(_INTRADAY_DB_PATH))
+            data = self._query(conn)
+            conn.close()
+            self._populate(data)
+        except Exception as exc:
+            self._summary.setText(f"Error reading DB: {exc}")
+
+    @staticmethod
+    def _query(
+        conn: sqlite3.Connection,
+    ) -> dict[str, dict[str, tuple[int, str | None, str | None]]]:
+        result: dict[str, dict[str, tuple[int, str | None, str | None]]] = {}
+        for tf, tbl in (("1m", "price_1m"), ("3m", "price_3m"), ("15m", "price_15m")):
+            try:
+                rows = conn.execute(
+                    f"SELECT symbol, COUNT(*), MIN(datetime), MAX(datetime)"  # noqa: S608
+                    f" FROM {tbl} GROUP BY symbol ORDER BY symbol"
+                ).fetchall()
+            except sqlite3.OperationalError:
+                continue
+            for symbol, count, first, last in rows:
+                result.setdefault(symbol, {})[tf] = (int(count), first, last)
+        return result
+
+    def _populate(
+        self, data: dict[str, dict[str, tuple[int, str | None, str | None]]]
+    ) -> None:
+        total_1m = sum(v.get("1m", (0,))[0] for v in data.values())
+        total_3m = sum(v.get("3m", (0,))[0] for v in data.values())
+        total_15m = sum(v.get("15m", (0,))[0] for v in data.values())
+        self._summary.setText(
+            f"{len(data)} symbol(s)  —  "
+            f"1m: {total_1m:,} rows  |  3m: {total_3m:,} rows  |  15m: {total_15m:,} rows"
+        )
+
+        headers = ["Symbol", "1m rows", "3m rows", "15m rows", "First bar (1m)", "Last bar (1m)"]
+        self._tbl.setColumnCount(len(headers))
+        self._tbl.setHorizontalHeaderLabels(headers)
+        self._tbl.setRowCount(len(data))
+
+        for row_i, (symbol, tfs) in enumerate(sorted(data.items())):
+            r1m = tfs.get("1m", (0, None, None))
+            r3m = tfs.get("3m", (0, None, None))
+            r15m = tfs.get("15m", (0, None, None))
+            first = (r1m[1] or "")[:16]
+            last = (r1m[2] or "")[:16]
+
+            vals = [symbol, str(r1m[0]), str(r3m[0]), str(r15m[0]), first, last]
+            for col, val in enumerate(vals):
+                item = QTableWidgetItem(val)
+                align = (
+                    Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+                    if col == 0
+                    else Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
+                )
+                item.setTextAlignment(int(align))
+                if col == 0:
+                    item.setForeground(QColor(C.BLUE))
+                self._tbl.setItem(row_i, col, item)
+
+        hdr = self._tbl.horizontalHeader()
+        if hdr:
+            hdr.setSectionResizeMode(0, QHeaderView.ResizeMode.Interactive)
+            hdr.resizeSection(0, 80)
+            for c in range(1, len(headers)):
+                hdr.setSectionResizeMode(c, QHeaderView.ResizeMode.Stretch)
+
+    def _clear_old_data(self) -> None:
+        """Delete intraday candle rows for symbols not in the watch list or open positions."""
+        keep: set[str] = {e.symbol for e in self._svc.get_latest_screener_results()}
+        keep |= {p.symbol for p in self._svc.get_positions()}
+
+        if not _INTRADAY_DB_PATH.exists():
+            QMessageBox.information(self, "Candle DB", "No database found.")
+            return
+
+        try:
+            conn = sqlite3.connect(str(_INTRADAY_DB_PATH))
+            data = self._query(conn)
+            conn.close()
+        except Exception as exc:
+            QMessageBox.warning(self, "Error", f"Could not read DB: {exc}")
+            return
+
+        all_syms = set(data.keys())
+        delete_syms = all_syms - keep
+        keep_in_db = all_syms & keep
+
+        if not delete_syms:
+            QMessageBox.information(
+                self, "Candle DB",
+                "Nothing to delete — all symbols are already in the watch list or open positions.",
+            )
+            return
+
+        ret = QMessageBox.question(
+            self, "Confirm Delete",
+            f"Delete intraday candle data for {len(delete_syms)} symbol(s)?\n\n"
+            f"Keep:    {len(keep_in_db)} symbol(s)  (watch list + open positions)\n"
+            f"Delete:  {len(delete_syms)} symbol(s)\n\n"
+            f"This cannot be undone.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if ret != QMessageBox.StandardButton.Yes:
+            return
+
+        try:
+            conn = sqlite3.connect(str(_INTRADAY_DB_PATH))
+            placeholders = ",".join("?" * len(delete_syms))
+            syms = list(delete_syms)
+            for tbl in ("price_1m", "price_3m", "price_15m"):
+                try:
+                    conn.execute(
+                        f"DELETE FROM {tbl} WHERE symbol IN ({placeholders})",  # noqa: S608
+                        syms,
+                    )
+                except sqlite3.OperationalError:
+                    pass
+            conn.commit()
+            conn.close()
+        except Exception as exc:
+            QMessageBox.warning(self, "Error", f"Delete failed: {exc}")
+            return
+
+        self._load()
 
 
 # ── Intraday chart pane (3m + 15m side by side) ───────────────────────────────
@@ -691,13 +936,18 @@ class ExecutionPanel(QWidget):
         self._status_lbl.setStyleSheet(f"color: {C.MUTED}; font-size: 9pt;")
         layout.addWidget(self._status_lbl)
 
-        # Demo CB toggle
+        # Demo CB toggle + optional diagnostics button
         self._cb_toggle = QPushButton("Demo: Toggle Circuit Breaker")
         self._cb_toggle.setObjectName("danger_btn")
         self._cb_toggle.setFixedWidth(240)
         self._cb_toggle.clicked.connect(self._toggle_cb)
         cb_row = QHBoxLayout()
         cb_row.addStretch()
+        if _SHOW_DB_DIAGNOSTICS:
+            diag_btn = QPushButton("Candle DB")
+            diag_btn.setFixedWidth(100)
+            diag_btn.clicked.connect(lambda: _CandleDbDiagDialog(self._demo, self).exec())
+            cb_row.addWidget(diag_btn)
         cb_row.addWidget(self._cb_toggle)
         layout.addLayout(cb_row)
 
