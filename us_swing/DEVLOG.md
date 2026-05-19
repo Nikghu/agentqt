@@ -2,6 +2,20 @@
 
 ---
 
+## [20260519] RN-GUI-1.2.0 written — Market Watch ETF proxy redesign + _MarketWatchTab + _MWCell
+## [20260519] RN-EXE-1.3.1 written — LiveTickWorker set_contracts thread-safety fix (asyncio.run_coroutine_threadsafe)
+
+---
+
+## [20260519] GUI+EXE — FO-GUI-012 + FO-EXE-008 Market Watch refactor + thread-safety fix
+
+- Type: Refactor
+- FO(s): FO-GUI-012, FO-EXE-008
+- Artifacts updated: live_tick_worker.py (asyncio.run_coroutine_threadsafe routing), app_service.py (Market Watch 4 ETF proxies), dashboard_panel.py (new _MarketWatchTab + _MarketWatchModel), main_window.py (_MWCell rich-text hover labels), execution_panel.py (candle DB diagnostics), TRACE-GUI v1.2.1, TRACE-EXE v1.4.1, CONTEXT.md §0/§2, pending RN-GUI-1.2.0-20260519 + RN-EXE-1.2.1-20260519
+- Decisions: Market Watch proxies changed from ^GSPC/^IXIC/^DJI to SPY/QQQ/DIA/IWM for better LTP availability; LiveTickWorker thread-safety uses asyncio.run_coroutine_threadsafe to avoid race on set_contracts call; Dashboard Market Watch display moved from app_service to dedicated panel tab with table model
+
+---
+
 ## [20260518] EXE — FO-EXE-009 + FO-EXE-010 Intraday Monitoring Session lifecycle — COMPLETE
 
 - Type: Feature (completion of work begun Session 43)
