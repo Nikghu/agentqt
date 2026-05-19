@@ -8,7 +8,6 @@ import asyncio
 import logging
 import math
 import threading
-import time
 from typing import Any
 
 from PyQt6.QtCore import QObject, QThread, pyqtSignal
@@ -50,8 +49,9 @@ class LiveTickWorker(QThread):
         self._port       = port
         self._client_id  = client_id
         self._stop_event = threading.Event()
-        self._lock       = threading.RLock()  # re-entrant: set_contracts may call _subscribe_batch while held
+        self._lock       = threading.RLock()
         self._ib: Any    = None
+        self._loop: asyncio.AbstractEventLoop | None = None
         # All four dicts guarded by _lock:
         self._active:       dict[str, Any] = {}  # tag → Contract
         self._tickers:      dict[str, Any] = {}  # tag → Ticker
@@ -76,47 +76,25 @@ class LiveTickWorker(QThread):
     def set_contracts(self, contracts: dict[str, Any]) -> None:
         """Update live reqMktData subscriptions.
 
-        Diffs against the current subscription set, cancels removed contracts,
-        and subscribes new ones in batches.  Thread-safe; may be called from
-        any thread.  Blocks the calling thread for up to 200 ms per 10-symbol
-        batch while IBKR subscriptions are paced.
+        Thread-safe.  When called from the Qt main thread (after initial connect),
+        schedules the diff+subscribe work on the asyncio event loop via
+        run_coroutine_threadsafe so that ib.reqMktData() runs in the correct thread.
 
         Args:
             contracts: Complete desired set of {tag: Contract} pairs.
         """
         ib = self._ib
         if ib is None:
-            # Not yet connected — store for initial subscription after connect
+            # Not yet connected — queue for initial subscription after connect
             with self._lock:
                 self._active = dict(contracts)
             return
 
-        with self._lock:
-            current_tags = set(self._active)
-            new_tags     = set(contracts)
-            to_remove    = current_tags - new_tags
-            to_add       = new_tags    - current_tags
-
-            for tag in to_remove:
-                ticker = self._tickers.pop(tag, None)
-                if ticker is not None:
-                    try:
-                        ib.cancelMktData(ticker.contract)
-                    except Exception:
-                        pass
-                self._active.pop(tag, None)
-
-            batch: list[tuple[str, Any]] = []
-            for tag in to_add:
-                batch.append((tag, contracts[tag]))
-                if len(batch) == _SUB_BATCH:
-                    self._subscribe_batch(ib, batch)
-                    time.sleep(_SUB_PAUSE)
-                    batch.clear()
-            if batch:
-                self._subscribe_batch(ib, batch)
-
-            self._active = dict(contracts)
+        loop = self._loop
+        if loop is not None and loop.is_running():
+            asyncio.run_coroutine_threadsafe(
+                self._apply_contracts(ib, dict(contracts)), loop
+            )
 
     # ── IBKR async path ───────────────────────────────────────────────────────
 
@@ -133,19 +111,18 @@ class LiveTickWorker(QThread):
         if not connected:
             return
 
-        self._ib = ib
+        self._ib   = ib
+        self._loop = asyncio.get_running_loop()
         log.info("[Tick] Connected to IBKR (clientId=%d)", self._client_id)
         ib.pendingTickersEvent += self._on_pending_tickers
         ib.errorEvent          += self._on_ibkr_error
 
         # Subscribe any contracts queued before the loop connected.
-        # Run in an executor so time.sleep inside set_contracts does not stall
-        # the asyncio event loop (avoids 200 ms dead-time per batch of 10).
         with self._lock:
             initial = dict(self._active)
+            self._active.clear()
         if initial:
-            loop = asyncio.get_running_loop()
-            await loop.run_in_executor(None, self.set_contracts, initial)
+            await self._apply_contracts(ib, initial)
 
         try:
             while not self._stop_event.is_set() and ib.isConnected():
@@ -168,6 +145,42 @@ class LiveTickWorker(QThread):
             log.warning("[Tick] IBKR connection dropped — tick streaming ended")
         else:
             log.info("[Tick] Tick worker stopped")
+
+    async def _apply_contracts(self, ib: Any, contracts: dict[str, Any]) -> None:
+        """Diff subscriptions and apply changes; uses asyncio.sleep for pacing.
+
+        Must run in the asyncio event loop so ib.reqMktData() executes in the
+        correct thread context.
+        """
+        with self._lock:
+            current_tags = set(self._active)
+            new_tags     = set(contracts)
+            to_remove    = current_tags - new_tags
+            to_add       = new_tags    - current_tags
+
+            for tag in to_remove:
+                ticker = self._tickers.pop(tag, None)
+                if ticker is not None:
+                    try:
+                        ib.cancelMktData(ticker.contract)
+                    except Exception:
+                        pass
+                self._active.pop(tag, None)
+
+        batch: list[tuple[str, Any]] = []
+        for tag in to_add:
+            batch.append((tag, contracts[tag]))
+            if len(batch) == _SUB_BATCH:
+                with self._lock:
+                    self._subscribe_batch(ib, batch)
+                await asyncio.sleep(_SUB_PAUSE)
+                batch.clear()
+        if batch:
+            with self._lock:
+                self._subscribe_batch(ib, batch)
+
+        with self._lock:
+            self._active = dict(contracts)
 
     async def _connect_with_retry(self, ib: Any) -> bool:
         """Attempt IBKR connect with clientId collision retry (SRD-EXE-008.006).
@@ -225,19 +238,24 @@ class LiveTickWorker(QThread):
 
     def _on_pending_tickers(self, tickers: Any) -> None:
         """Handle ib_insync pendingTickersEvent — emit tick_price for valid prices."""
+        with self._lock:
+            reverse: dict[int, str] = {id(t): tag for tag, t in self._tickers.items()}
+
         for ticker in tickers:
-            req_id = getattr(ticker, "reqId", None)
-            with self._lock:
-                tag: str | None = self._reqid_to_tag.get(req_id) if req_id is not None else None
-                if tag is None:
-                    # Lazy fallback via conId (conId may have been 0 at subscription time)
-                    con_id = getattr(ticker.contract, "conId", 0)
-                    if con_id:
-                        tag = self._tag_by_conid.get(con_id)
+            tag = reverse.get(id(ticker))
             if tag is None:
                 continue
 
+            # Backfill conId map lazily so _on_ibkr_error can clean up correctly
+            con_id = getattr(ticker.contract, "conId", 0)
+            if con_id:
+                with self._lock:
+                    self._tag_by_conid.setdefault(con_id, tag)
+
+            # last → bid (IBKR reports index level as bid for IND contracts) → close
             price: float = getattr(ticker, "last", float("nan"))
+            if math.isnan(price) or price <= 0:
+                price = getattr(ticker, "bid", float("nan"))
             if math.isnan(price) or price <= 0:
                 price = getattr(ticker, "close", float("nan"))
             if math.isnan(price) or price <= 0:
@@ -251,13 +269,16 @@ class LiveTickWorker(QThread):
             if req_id > 0:
                 with self._lock:
                     tag = self._reqid_to_tag.get(req_id)
-                if tag is not None:
-                    log.warning("[Tick] IBKR warning %d for %s: %s", code, tag, msg)
+                label = tag or f"req#{req_id}"
+                log.warning("[Tick] IBKR warning %d for %s: %s", code, label, msg)
             return
 
         with self._lock:
             tag = self._reqid_to_tag.pop(req_id, None)
             if tag is None:
+                # reqId not in our map (ib_insync doesn't expose Ticker.reqId) —
+                # log so the user can see the rejection in the log panel
+                log.warning("[Tick] IBKR error %d for req#%d: %s", code, req_id, msg)
                 return
             self._tickers.pop(tag, None)
             self._active.pop(tag, None)

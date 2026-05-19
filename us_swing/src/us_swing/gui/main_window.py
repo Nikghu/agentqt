@@ -16,7 +16,7 @@ from __future__ import annotations
 import logging
 import math
 
-from PyQt6.QtCore import QPoint, QPointF, QRectF, QSettings, QTimer, Qt
+from PyQt6.QtCore import QEvent, QPoint, QPointF, QRectF, QSettings, QTimer, Qt
 
 _log = logging.getLogger(__name__)
 from PyQt6.QtGui import QColor, QCursor, QFont, QPainter, QPainterPath, QPen
@@ -40,7 +40,55 @@ from us_swing.gui.execution_panel import ExecutionPanel
 from us_swing.gui.screener_panel import ScreenerPanel
 from us_swing.gui.settings_panel import SettingsPanel
 from us_swing.gui.system_store import load_system_config
-from us_swing.gui.theme import C, colors
+from us_swing.gui.theme import C, active_palette, colors
+
+
+# ── Market Watch cell ─────────────────────────────────────────────────────────
+
+class _MWCell(QLabel):
+    """Single Market Watch entry — name highlights on hover like a nav tab."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setTextFormat(Qt.TextFormat.RichText)
+        self.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self._hovered = False
+        self._name = ""
+        self._ltp: float = 0.0
+        self._change_pct: float = 0.0
+        self._has_data = False
+
+    def update_data(self, name: str, ltp: float, change_pct: float) -> None:
+        self._name = name
+        self._ltp = ltp
+        self._change_pct = change_pct
+        self._has_data = ltp > 0
+        self._render()
+
+    def enterEvent(self, event: object) -> None:
+        self._hovered = True
+        self._render()
+
+    def leaveEvent(self, event: object) -> None:
+        self._hovered = False
+        self._render()
+
+    def _render(self) -> None:
+        _T = active_palette()
+        name_color = _T.TEXT if self._hovered else _T.MUTED
+        if self._has_data:
+            color = _T.GREEN if self._change_pct >= 0 else _T.RED
+            sign = "+" if self._change_pct >= 0 else ""
+            self.setText(
+                f"<span style='color:{name_color};font-size:7pt;letter-spacing:0.5px'>{self._name}</span>"
+                f"&nbsp;&nbsp;<span style='color:{color};font-size:9pt;font-weight:bold'>{self._ltp:,.2f}</span>"
+                f"&nbsp;<span style='color:{color};font-size:7pt'>{sign}{self._change_pct:.2f}%</span>"
+            )
+        else:
+            self.setText(
+                f"<span style='color:{name_color};font-size:7pt;letter-spacing:0.5px'>{self._name}</span>"
+                f"&nbsp;&nbsp;<span style='color:{_T.OVERLAY2};font-size:9pt'>—</span>"
+            )
 
 
 # ── Horizontal nav tab button ──────────────────────────────────────────────────
@@ -368,40 +416,8 @@ class _AdminContextBar(QWidget):
         row.setContentsMargins(14, 0, 14, 0)
         row.setSpacing(0)
 
-        # ── Market Watch (leftmost) ────────────────────────────────────────────
-        mw_hdr = QLabel("MARKET WATCH")
-        mw_hdr.setStyleSheet(
-            f"color:{C.MUTED}; font-size:7pt; letter-spacing:1px;"
-            f" font-weight:bold; padding-right:10px;"
-        )
-        row.addWidget(mw_hdr)
-
-        self._mw_cells: list[dict] = []
-        for _ in range(3):
-            name_lbl = QLabel("–")
-            name_lbl.setStyleSheet(
-                f"color:{C.MUTED}; font-size:7pt; font-weight:bold; padding-right:4px;"
-            )
-            ltp_lbl = QLabel("–")
-            ltp_lbl.setStyleSheet(
-                f"color:{C.TEXT}; font-size:8pt; font-weight:bold; padding-right:3px;"
-            )
-            chg_lbl = QLabel("–")
-            chg_lbl.setStyleSheet(
-                f"color:{C.MUTED}; font-size:8pt; padding-right:18px;"
-            )
-            row.addWidget(name_lbl)
-            row.addWidget(ltp_lbl)
-            row.addWidget(chg_lbl)
-            self._mw_cells.append({"name": name_lbl, "ltp": ltp_lbl, "chg": chg_lbl})
-
-        _mw_sep = QLabel("│")
-        _mw_sep.setStyleSheet(f"color:{C.OVERLAY2}; padding: 0 8px;")
-        row.addWidget(_mw_sep)
-
         # ── Scope icon + items ───────────────────────────────────────────────
         self._scope_icon = QLabel()
-        self._scope_icon.setStyleSheet(f"color:{C.YELLOW}; font-size:8pt; font-weight:bold; padding-right:6px;")
         row.addWidget(self._scope_icon)
 
         self._items: dict[str, QLabel] = {}
@@ -410,16 +426,33 @@ class _AdminContextBar(QWidget):
         for key in ("scope", "risk", "mode", "ibkr"):
             if self._items:  # divider before each (except first)
                 d = QLabel("·")
-                d.setStyleSheet(f"color:{C.OVERLAY2}; padding: 0 10px;")
                 row.addWidget(d)
                 self._dividers.append(d)
             lbl = QLabel()
-            lbl.setStyleSheet(f"color:{C.TEXT}; font-size:8pt;")
             row.addWidget(lbl)
             self._items[key] = lbl
 
         row.addStretch()
 
+        # ── Market Watch (right side) ─────────────────────────────────────────
+        self._mw_sep = QLabel("│")
+        row.addWidget(self._mw_sep)
+
+        self._mw_cells: list[_MWCell] = []
+        self._mw_cell_divs: list[QLabel] = []
+        self._mw_sym_names = dict(svc.get_mw_symbol_names())
+        for sym in self._mw_sym_names:
+            if self._mw_cells:
+                div = QLabel("│")
+                row.addWidget(div)
+                self._mw_cell_divs.append(div)
+            cell = _MWCell()
+            cell.setObjectName(f"mw_{sym}")
+            cell.update_data(self._mw_sym_names[sym], 0.0, 0.0)
+            row.addWidget(cell)
+            self._mw_cells.append(cell)
+
+        self._apply_static_styles()
         svc.viewing_changed.connect(self.refresh)
         svc.positions_updated.connect(self.refresh)
         svc.account_updated.connect(self.refresh)
@@ -427,33 +460,46 @@ class _AdminContextBar(QWidget):
         self._refresh_mw()
         self.refresh()
 
+    def _apply_static_styles(self) -> None:
+        _T = active_palette()
+        self._scope_icon.setStyleSheet(
+            f"color:{_T.YELLOW}; font-size:8pt; font-weight:bold; padding-right:6px;"
+        )
+        for d in self._dividers:
+            d.setStyleSheet(f"color:{_T.OVERLAY2}; padding: 0 10px;")
+        for lbl in self._items.values():
+            lbl.setStyleSheet(f"color:{_T.TEXT}; font-size:8pt;")
+        self._mw_sep.setStyleSheet(f"color:{_T.OVERLAY2}; padding: 0 10px;")
+        for div in self._mw_cell_divs:
+            div.setStyleSheet(f"color:{_T.OVERLAY2}; padding: 0 8px;")
+        for cell in self._mw_cells:
+            cell.setStyleSheet("font-size:8pt;")
+
+    def changeEvent(self, event: QEvent | None) -> None:
+        super().changeEvent(event)
+        if event is not None and event.type() == QEvent.Type.StyleChange:
+            self._apply_static_styles()
+            self.refresh()
+
     def _refresh_mw(self) -> None:
-        items = self._demo.get_market_watch()
+        items = self._demo.get_market_watch_items()
         for i, cell in enumerate(self._mw_cells):
-            if i < len(items):
-                it = items[i]
-                color = C.GREEN if it.change_pct >= 0 else C.RED
-                sign  = "+" if it.change_pct >= 0 else ""
-                cell["name"].setText(it.display_name)
-                cell["ltp"].setText(f"${it.ltp:,.2f}" if it.ltp else "–")
-                cell["chg"].setText(f"{sign}{it.change_pct:.2f}%" if it.ltp else "–")
-                cell["chg"].setStyleSheet(
-                    f"color:{color}; font-size:8pt; padding-right:16px;"
-                )
-            else:
-                cell["name"].setText("–")
-                cell["ltp"].setText("–")
-                cell["chg"].setText("–")
+            if i >= len(items):
+                break
+            it = items[i]
+            name = self._mw_sym_names.get(it.symbol, it.symbol)
+            cell.update_data(name, it.ltp, it.change_pct)
 
     def refresh(self) -> None:
+        _T = active_palette()
         uid   = self._demo.get_viewing_uid()
         users = self._demo.get_users()
 
         if uid is None:
             self._scope_icon.setText("🌐")
             self._items["scope"].setText(
-                f"<b style='color:{C.YELLOW}'>ALL USERS</b>"
-                f"  <span style='color:{C.MUTED};font-size:7pt'>{len(users)} accounts</span>"
+                f"<b style='color:{_T.YELLOW}'>ALL USERS</b>"
+                f"  <span style='color:{_T.MUTED};font-size:7pt'>{len(users)} accounts</span>"
             )
             for k in ("risk", "mode", "ibkr"):
                 self._items[k].hide()
@@ -461,15 +507,15 @@ class _AdminContextBar(QWidget):
             u = self._demo.get_user_by_id(uid)
             if not u:
                 return
-            mode_clr = C.RED if u.mode == "live" else C.BLUE
+            mode_clr = _T.RED if u.mode == "live" else _T.BLUE
             self._scope_icon.setText("👤")
-            self._items["scope"].setText(f"<b style='color:{C.BLUE}'>{u.username}</b>")
+            self._items["scope"].setText(f"<b style='color:{_T.BLUE}'>{u.username}</b>")
             self._items["risk"].setText(
-                f"<span style='color:{C.MUTED}'>Risk/Trade</span>  <b>{u.risk_config.risk_per_trade_pct:.1f}%</b>"
+                f"<span style='color:{_T.MUTED}'>Risk/Trade</span>  <b>{u.risk_config.risk_per_trade_pct:.1f}%</b>"
             )
             self._items["mode"].setText(f"<b style='color:{mode_clr}'>{u.mode.upper()}</b>")
             self._items["ibkr"].setText(
-                f"<span style='color:{C.MUTED}'>IBKR</span>  <b>#{u.ibkr_client_id}</b>"
+                f"<span style='color:{_T.MUTED}'>IBKR</span>  <b>#{u.ibkr_client_id}</b>"
             )
             for k in ("risk", "mode", "ibkr"):
                 self._items[k].show()

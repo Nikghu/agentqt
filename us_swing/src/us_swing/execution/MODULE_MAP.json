@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-16T15:20:14",
+  "generated": "2026-05-18T17:26:44",
   "subfolder": "execution",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\execution",
   "tool_code": "EXE",
@@ -298,7 +298,7 @@
             {
               "name": "__init__",
               "signature": "def __init__(\n        self,\n        host: str,\n        port: int,\n        client_id: int,\n        parent: QObject | None = None,\n    ) -> None",
-              "line_start": 41,
+              "line_start": 40,
               "line_end": 59
             },
             {
@@ -320,46 +320,53 @@
               "signature": "def set_contracts(self, contracts: dict[str, Any]) -> None",
               "docstring": "Update live reqMktData subscriptions.",
               "line_start": 76,
-              "line_end": 119
+              "line_end": 97
             },
             {
               "name": "_async_run",
               "signature": "def _async_run(self) -> None",
               "docstring": "Async main loop: connect, subscribe initial contracts, wait for ticks.",
-              "line_start": 123,
-              "line_end": 170
+              "line_start": 101,
+              "line_end": 147
+            },
+            {
+              "name": "_apply_contracts",
+              "signature": "def _apply_contracts(self, ib: Any, contracts: dict[str, Any]) -> None",
+              "docstring": "Diff subscriptions and apply changes; uses asyncio.sleep for pacing.",
+              "line_start": 149,
+              "line_end": 183
             },
             {
               "name": "_connect_with_retry",
               "signature": "def _connect_with_retry(self, ib: Any) -> bool",
               "docstring": "Attempt IBKR connect with clientId collision retry (SRD-EXE-008.006).",
-              "line_start": 172,
-              "line_end": 206
+              "line_start": 185,
+              "line_end": 219
             },
             {
               "name": "_subscribe_batch",
               "signature": "def _subscribe_batch(self, ib: Any, batch: list[tuple[str, Any]]) -> None",
               "docstring": "Subscribe a batch of (tag, contract) pairs via reqMktData.",
-              "line_start": 208,
-              "line_end": 224
+              "line_start": 221,
+              "line_end": 237
             },
             {
               "name": "_on_pending_tickers",
               "signature": "def _on_pending_tickers(self, tickers: Any) -> None",
               "docstring": "Handle ib_insync pendingTickersEvent \u2014 emit tick_price for valid prices.",
-              "line_start": 226,
-              "line_end": 246
+              "line_start": 239,
+              "line_end": 264
             },
             {
               "name": "_on_ibkr_error",
               "signature": "def _on_ibkr_error(self, req_id: int, code: int, msg: str, *_: Any) -> None",
               "docstring": "Handle ib_insync errorEvent \u2014 manage fatal subscription errors.",
-              "line_start": 248,
-              "line_end": 267
+              "line_start": 266,
+              "line_end": 288
             }
           ],
-          "line_start": 24,
-          "line_end": 267
+          "line_start": 23,
+          "line_end": 288
         }
       ],
       "constants": [

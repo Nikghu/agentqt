@@ -908,6 +908,150 @@ class _WatchlistModel(QAbstractTableModel):
             case _:  return ""
 
 
+# ── Market Watch table model ──────────────────────────────────────────────────
+
+class _MarketWatchModel(QAbstractTableModel):
+    """QAbstractTableModel for the Market Watch tab.
+
+    Columns: Symbol | Name | Price | Change | Chg % | Open | High | Low | Volume
+    """
+
+    _COLS = ["Symbol", "Name", "Price", "Change", "Chg %", "Open", "High", "Low", "Volume"]
+
+    def __init__(self, names: dict[str, str], parent=None) -> None:
+        super().__init__(parent)
+        self._rows: list[WatchlistItem] = []
+        self._names = names
+
+    def refresh(self, items: list[WatchlistItem]) -> None:
+        self.beginResetModel()
+        self._rows = list(items)
+        self.endResetModel()
+
+    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
+        return len(self._rows)
+
+    def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
+        return len(self._COLS)
+
+    def headerData(self, section: int, orientation: Qt.Orientation,
+                   role: int = Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
+            return self._COLS[section]
+        return None
+
+    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole):
+        if not index.isValid() or index.row() >= len(self._rows):
+            return None
+        item = self._rows[index.row()]
+        col = index.column()
+
+        if role == Qt.ItemDataRole.DisplayRole:
+            return self._display(item, col)
+
+        if role == Qt.ItemDataRole.ForegroundRole:
+            if col in (3, 4):
+                if item.change_pct > 0:
+                    return QColor(C.GREEN)
+                if item.change_pct < 0:
+                    return QColor(C.RED)
+                return QColor(C.MUTED)
+            if col == 2 and item.ltp:
+                return QColor(C.GREEN) if item.change_pct >= 0 else QColor(C.RED)
+
+        if role == Qt.ItemDataRole.TextAlignmentRole:
+            if col <= 1:
+                return Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+            return Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+
+        return None
+
+    def _display(self, item: WatchlistItem, col: int) -> str:
+        def _p(v: float) -> str:
+            return f"{v:,.2f}" if v else "—"
+
+        def _vol(v: int) -> str:
+            if not v:
+                return "—"
+            if v >= 1_000_000:
+                return f"{v / 1_000_000:.1f}M"
+            if v >= 1_000:
+                return f"{v / 1_000:.1f}K"
+            return str(v)
+
+        match col:
+            case 0: return item.symbol
+            case 1: return self._names.get(item.symbol, item.symbol)
+            case 2: return f"{item.ltp:,.2f}" if item.ltp else "—"
+            case 3:
+                if item.change == 0 and not item.ltp:
+                    return "—"
+                sign = "+" if item.change >= 0 else ""
+                return f"{sign}{item.change:.2f}"
+            case 4:
+                if item.change_pct == 0 and not item.ltp:
+                    return "—"
+                sign = "+" if item.change_pct >= 0 else ""
+                return f"{sign}{item.change_pct:.2f}%"
+            case 5: return _p(item.day_open)
+            case 6: return _p(item.day_high)
+            case 7: return _p(item.day_low)
+            case 8: return _vol(item.volume)
+            case _: return ""
+
+
+# ── Market Watch tab widget ───────────────────────────────────────────────────
+
+class _MarketWatchTab(QWidget):
+    """Market Watch tab: fixed index ETFs (SPY/QQQ/DIA/IWM) with live prices."""
+
+    def __init__(self, svc: AppService, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._svc = svc
+
+        names = dict(svc.get_mw_symbol_names())
+
+        self._model = _MarketWatchModel(names)
+        self._view = QTableView()
+        self._view.setModel(self._model)
+        self._view.setAlternatingRowColors(True)
+        self._view.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
+        self._view.setSelectionMode(QTableView.SelectionMode.SingleSelection)
+        self._view.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
+        self._view.horizontalHeader().setStretchLastSection(True)
+        self._view.verticalHeader().setVisible(False)
+        self._view.setSortingEnabled(False)
+
+        _col_widths = {0: 70, 1: 120, 2: 90, 3: 90, 4: 80, 5: 90, 6: 90, 7: 90}
+        h = self._view.horizontalHeader()
+        for col, w in _col_widths.items():
+            h.resizeSection(col, w)
+            h.setSectionResizeMode(col, QHeaderView.ResizeMode.Interactive)
+        h.setSectionResizeMode(8, QHeaderView.ResizeMode.Stretch)
+
+        self._updated_lbl = QLabel("")
+        self._updated_lbl.setStyleSheet(f"color:{C.MUTED}; font-size:8pt;")
+
+        bottom_bar = QHBoxLayout()
+        bottom_bar.addWidget(self._updated_lbl)
+        bottom_bar.addStretch()
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(4, 8, 4, 8)
+        layout.setSpacing(6)
+        layout.addWidget(self._view)
+        layout.addLayout(bottom_bar)
+
+        svc.market_watch_updated.connect(self._on_data_updated)
+        self._on_data_updated()
+
+    def _on_data_updated(self) -> None:
+        items = self._svc.get_market_watch_items()
+        self._model.refresh(items)
+        now = datetime.datetime.now().strftime("%H:%M:%S")
+        self._updated_lbl.setText(f"Updated {now}")
+
+
 # ── Watchlist tab widget ──────────────────────────────────────────────────────
 
 class _WatchlistTab(QWidget):
@@ -1188,12 +1332,16 @@ class DashboardPanel(QWidget):
         # ── Watchlist tab ──────────────────────────────────────────────────────
         self._watchlist_tab = _WatchlistTab(demo)
 
-        # ── QTabWidget: Positions | Trade History | Watchlist ──────────────────
+        # ── Market Watch tab ───────────────────────────────────────────────────
+        self._mw_tab = _MarketWatchTab(demo)
+
+        # ── QTabWidget: Positions | Trade History | Watchlist | Market Watch ──
         self._dash_tabs = QTabWidget()
         self._dash_tabs.setObjectName("dash_tabs")
         self._dash_tabs.addTab(pos_tab,              "📋  Open Positions")
         self._dash_tabs.addTab(hist_tab,             "📜  Trade History")
         self._dash_tabs.addTab(self._watchlist_tab,  "👁  Watchlist")
+        self._dash_tabs.addTab(self._mw_tab,         "📊  Market Watch")
 
         # ── Live log feed (right panel) ────────────────────────────────────────
         # ── Embedded log section ──────────────────────────────────────────────
