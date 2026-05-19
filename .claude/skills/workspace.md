@@ -22,6 +22,7 @@ USMarket_Backtesting/              ← workspace root
 │   │   ├── resume.md / new-feature.md / fix-issue.md
 │   │   ├── write-tests.md / refactor.md / review.md
 │   │   ├── rn.md / doc-check.md / auto-feature.md
+│   │   ├── finish.md              ← session close: RN + TRACE + CONTEXT + DEVLOG + optional Git PR
 │   ├── rules/                     ← modular always-on instruction files
 │   ├── skills/                    ← auto-invoked workflow skills
 │   │   ├── dev-context.md         ← process + doc rules (Class D/S)

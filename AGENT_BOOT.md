@@ -29,7 +29,7 @@ Classify every prompt before reading any file or invoking any agent:
 | `duplicate-detector` | Haiku | Semantic FO→SRD→DD scan before writing any artifact — returns anchor FO ID and skip list | Start of `new-feature` and `auto-feature` |
 | `artifact-validator` | Haiku | Checks ID chains, parent references, and numbering gaps after each artifact-write phase — returns GO/NO-GO | After every FO/SRD/DD/MD/UTCD write in `new-feature`, `auto-feature`, `fix-issue` |
 | `phase-gate` | Haiku | Pre-code readiness check — verifies all SRDs Approved, UTCD complete for Must-priority SRDs, MD file paths defined | Before Phase 6 (code) in `new-feature` and `auto-feature` |
-| `session-finalizer` | Haiku | Syncs TRACE.md, updates CONTEXT.md §0, prepends DEVLOG entry at session end | Final step of `new-feature`, `auto-feature`, `fix-issue`, `refactor` |
+| `session-finalizer` | Haiku | Writes RN, syncs TRACE.md, updates CONTEXT.md §0, prepends DEVLOG entry at session end | Final step of `new-feature`, `auto-feature`, `fix-issue`, `refactor`; invoked by `/project:finish` |
 
 **Implementation agents (Sonnet — code writing and review):**
 
@@ -192,8 +192,9 @@ Commands live in `.claude/commands/`; skills live in `.claude/skills/`. Prompt-e
 | `/project:write-tests` | UTCD → pytest | `test-writer` |
 | `/project:fix-issue` | Bug → RN | `artifact-validator` after cascade artifact updates; `code-reviewer` or `pyqt-code-reviewer` post-fix; `session-finalizer` at end |
 | `/project:refactor` | Code improvement | `pyqt-code-reviewer` post-edit for GUI files; `code-reviewer` for non-GUI; `session-finalizer` at end |
+| `/project:finish` | Session close: RN + TRACE + CONTEXT + DEVLOG + optional Git PR | `session-finalizer` (handles all four steps); git flow runs inline if user confirms |
 | `/project:review` | Pre-implementation architecture | `pyqt-architect` (Sonnet) |
-| `/project:rn` | After implementation or fix | None — doc-only, no code |
+| `/project:rn` | Standalone RN only — use when session-finalizer was already run or skipped | None — doc-only, no code |
 | `/project:doc-check` | Anytime — read-only audit | None — never modifies files |
 | `code-writer` | Before writing any new or significantly rewritten source file | None — inline skill, no agent spawn |
 | `pyqt-comment-analyzer` | When reviewer flags comment issues | None — inline skill, no agent spawn |
@@ -201,7 +202,10 @@ Commands live in `.claude/commands/`; skills live in `.claude/skills/`. Prompt-e
 | `hookify` | Periodic hook maintenance | None — inline skill, implements rules via `update-config` |
 | `workspace` | Workspace orientation — new session, architecture review, or adding a tool | None — read-only orientation |
 
-**When to use the maintenance trio (`trace`, `rn`, `doc-check`):**
-- `/project:trace` is now only needed for manual TRACE repairs or after commands that don't auto-invoke `session-finalizer` (e.g. `write-tests`, `rn`). For `new-feature`, `fix-issue`, `refactor`, and `auto-feature` — `session-finalizer` handles TRACE sync automatically.
-- Run `/project:rn <TOOL> <version>` once a logical block of work is complete (e.g. all SRDs for an FO are Implemented)
-- Run `/project:doc-check <TOOL>` before starting a new FO on a tool to verify prior artifacts are clean
+**Session close — preferred path:**
+- `/project:finish <TOOL> <version>` — the single end-of-session command. Writes the RN, syncs TRACE, updates CONTEXT and DEVLOG, then offers a Git branch → PR → merge flow. Use this at the end of every feature, fix, or refactor session.
+
+**Maintenance fallbacks (`trace`, `rn`, `doc-check`) — use only when `finish` was skipped or partial:**
+- `/project:trace` — manual TRACE repair only; or after `write-tests` / `rn` runs that don't auto-invoke `session-finalizer`
+- `/project:rn <TOOL> <version>` — standalone RN when `session-finalizer` has already been run or skipped this session
+- `/project:doc-check <TOOL>` — read-only audit before starting a new FO on a tool
