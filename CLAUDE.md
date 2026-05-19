@@ -67,6 +67,7 @@ Available via `/project:<name>`:
 | `/project:auto-feature` | Fully automated FO → RN pipeline — no human gates, SRD approval auto-set |
 | `/project:fix-issue` | Diagnose and fix a bug with full artifact trail |
 | `/project:refactor` | Refactor or enhance a module safely |
+| `/project:finish` | Close the session — writes RN, syncs TRACE + CONTEXT + DEVLOG, optional Git PR → merge |
 | `/project:review` | Architecture review before implementing a tool |
 | `/project:trace` | Sync TRACE.md after any phase completes — fills all FO→RN columns |
 | `/project:rn` | Draft and write a Revision Note for a tool after implementation or fix |
