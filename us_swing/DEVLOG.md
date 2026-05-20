@@ -2,6 +2,28 @@
 
 ---
 
+## [20260520] GUI — Strategy Builder Dialog enhanced (prototype, no FO)
+
+- Type: Feature
+- FO(s): N/A (Phase-1 prototype — FO-GUI-013 to be created)
+- Files: `gui/strategy_builder_dialog.py` (untracked → committed), `gui/execution_panel.py`
+- Changes:
+  - Trade Type: QCheckBox replaced with QComboBox ["Intraday", "Positional"]
+  - Strategy Type field removed from Strategy Info page
+  - Quantity renamed Capital Max; QSpinBox range 5–100%, step 5%, default 25%
+  - Symbol QLineEdit replaced with S&P 500 scope picker (All/Include/Exclude, searchable MatchContains completer, QListWidget with Add/Remove)
+  - Risk page added: Target + Stop Loss sections each with enable checkbox, Type combo (Fixed/Trailing), and QDoubleSpinBox % value; controls disabled until checkbox ticked
+  - Risk nav icon: shield-with-exclamation SVG added to _NAV_SVG
+  - StrategyConfig: removed symbol/quantity; added symbol_mode, symbols_include, symbols_exclude, target_enabled, target_type, target_value, stoploss_enabled, stoploss_type, stoploss_value
+  - execution_panel.py _STRAT_COLS and _refresh_table updated for new field names
+
+---
+
+## [20260519] RN-INF-1.0.1 written — suppress ib_insync INFO logs in logging_setup.py
+## [20260519] RN-GUI-1.2.1 written — pin TWS login window on top during credential fill
+
+---
+
 ## [20260519] RN-GUI-1.2.0 written — Market Watch ETF proxy redesign + _MarketWatchTab + _MWCell
 ## [20260519] RN-EXE-1.3.1 written — LiveTickWorker set_contracts thread-safety fix (asyncio.run_coroutine_threadsafe)
 

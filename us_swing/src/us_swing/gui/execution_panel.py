@@ -37,6 +37,7 @@ from PyQt6.QtWidgets import (
     QSizePolicy,
     QSpinBox,
     QSplitter,
+    QTabWidget,
     QTableView,
     QTableWidget,
     QTableWidgetItem,
@@ -48,6 +49,12 @@ from us_swing.data.models import FilteredStockEntry
 from us_swing.gui.app_service import AppService
 from us_swing.gui._types import TradeSignal
 from us_swing.gui.chart_panel import _build_html as _build_chart_html
+from us_swing.gui.strategy_builder_dialog import (
+    StrategyBuilderDialog,
+    StrategyConfig,
+    load_strategies,
+    save_strategies,
+)
 from us_swing.gui.theme import C, active_palette, colors
 
 
@@ -55,6 +62,186 @@ from us_swing.gui.theme import C, active_palette, colors
 
 _SHOW_DB_DIAGNOSTICS: bool = True
 _INTRADAY_DB_PATH: Path = Path.home() / ".usswing" / "candles.db"
+
+_STRAT_COLS = ["Name", "Strategy", "Scope", "Mode", "Capital", "Start", "End", "Status"]
+
+_STATUS_COLORS: dict[str, str] = {
+    "Inactive":   C.MUTED,
+    "Active":     C.GREEN,
+    "UnderEntry": C.BLUE,
+    "Running":    C.TEAL,
+    "SquareOff":  C.ORANGE,
+}
+
+
+# ── Strategy Table Pane ───────────────────────────────────────────────────────
+
+class _StrategyTablePane(QWidget):
+    """Strategy Builder tab — shows all configured strategies and an Add button."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._configs: list[StrategyConfig] = load_strategies()
+
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 6, 0, 0)
+        root.setSpacing(6)
+
+        # ── Header row ─────────────────────────────────────────────────────────
+        hdr = QHBoxLayout()
+        title_lbl = QLabel("STRATEGY EXECUTOR")
+        title_lbl.setStyleSheet(
+            f"color: {C.MUTED}; font-size: 7pt; font-weight: bold; letter-spacing: 2px;"
+        )
+        add_btn = QPushButton("+ Add Strategy")
+        add_btn.setFixedHeight(C.BTN_H)
+        add_btn.setFixedWidth(130)
+        add_btn.clicked.connect(self._on_add)
+        hdr.addWidget(title_lbl)
+        hdr.addStretch()
+        hdr.addWidget(add_btn)
+        root.addLayout(hdr)
+
+        # ── Table ──────────────────────────────────────────────────────────────
+        self._table = QTableWidget()
+        self._table.setColumnCount(len(_STRAT_COLS))
+        self._table.setHorizontalHeaderLabels(_STRAT_COLS)
+        self._table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self._table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self._table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self._table.setAlternatingRowColors(True)
+        self._table.setShowGrid(False)
+        self._table.setWordWrap(False)
+        vh = self._table.verticalHeader()
+        if vh:
+            vh.setVisible(False)
+        hh = self._table.horizontalHeader()
+        if hh:
+            hh.setStretchLastSection(True)
+            hh.setSectionResizeMode(0, QHeaderView.ResizeMode.Interactive)
+            hh.resizeSection(0, 130)
+            hh.setSectionResizeMode(1, QHeaderView.ResizeMode.Interactive)
+            hh.resizeSection(1, 100)
+            hh.setSectionResizeMode(2, QHeaderView.ResizeMode.Interactive)
+            hh.resizeSection(2, 70)
+            hh.setSectionResizeMode(3, QHeaderView.ResizeMode.Interactive)
+            hh.resizeSection(3, 70)
+            hh.setSectionResizeMode(4, QHeaderView.ResizeMode.Interactive)
+            hh.resizeSection(4, 45)
+            hh.setSectionResizeMode(5, QHeaderView.ResizeMode.Interactive)
+            hh.resizeSection(5, 52)
+            hh.setSectionResizeMode(6, QHeaderView.ResizeMode.Interactive)
+            hh.resizeSection(6, 52)
+        root.addWidget(self._table, 1)
+
+        # ── Action buttons ─────────────────────────────────────────────────────
+        act_row = QHBoxLayout()
+        act_row.setSpacing(6)
+        edit_btn = QPushButton("Edit")
+        edit_btn.setFixedHeight(C.BTN_H)
+        edit_btn.setFixedWidth(80)
+        edit_btn.clicked.connect(self._on_edit)
+        del_btn = QPushButton("Delete")
+        del_btn.setObjectName("danger_btn")
+        del_btn.setFixedHeight(C.BTN_H)
+        del_btn.setFixedWidth(80)
+        del_btn.clicked.connect(self._on_delete)
+        act_row.addStretch()
+        act_row.addWidget(edit_btn)
+        act_row.addWidget(del_btn)
+        root.addLayout(act_row)
+
+        self._refresh_table()
+
+    # ── Slots ─────────────────────────────────────────────────────────────────
+
+    def _on_add(self) -> None:
+        existing_names = {c.name for c in self._configs}
+        dlg = StrategyBuilderDialog(self, existing_names=existing_names)
+        dlg.strategy_saved.connect(self._append_config)
+        dlg.exec()
+
+    def _on_edit(self) -> None:
+        row = self._table.currentRow()
+        if row < 0 or row >= len(self._configs):
+            return
+        original = self._configs[row]
+        existing_names = {c.name for c in self._configs}
+
+        dlg = StrategyBuilderDialog(self, existing=original, existing_names=existing_names)
+
+        def _on_saved(cfg: StrategyConfig) -> None:
+            self._configs[row] = cfg
+            save_strategies(self._configs)
+            self._refresh_table()
+
+        dlg.strategy_saved.connect(_on_saved)
+        dlg.exec()
+
+    def _on_delete(self) -> None:
+        row = self._table.currentRow()
+        if row < 0 or row >= len(self._configs):
+            return
+        cfg = self._configs[row]
+        ret = QMessageBox.question(
+            self,
+            "Delete Strategy",
+            f"Delete strategy '{cfg.name}'?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if ret == QMessageBox.StandardButton.Yes:
+            self._configs.pop(row)
+            save_strategies(self._configs)
+            self._refresh_table()
+
+    def _append_config(self, cfg: StrategyConfig) -> None:
+        self._configs.append(cfg)
+        save_strategies(self._configs)
+        self._refresh_table()
+
+    def update_signal_status(self, name: str, signal: dict) -> None:
+        """Refresh the live Strategy_Signal for a named config and repaint."""
+        for cfg in self._configs:
+            if cfg.name == name:
+                cfg.strategy_signal.update(signal)
+                break
+        self._refresh_table()
+
+    # ── Helpers ───────────────────────────────────────────────────────────────
+
+    def _refresh_table(self) -> None:
+        self._table.setRowCount(0)
+        for cfg in self._configs:
+            row = self._table.rowCount()
+            self._table.insertRow(row)
+            stype_display = cfg.strategy_type.replace("_", " ").upper()
+            status = cfg.strategy_signal.get("Status", "Inactive")
+            values = [
+                cfg.name,
+                stype_display,
+                {
+                    "all": "All S&P 500",
+                    "include": f"Include ({len(cfg.symbols_include)})",
+                    "exclude": f"Exclude ({len(cfg.symbols_exclude)})",
+                }.get(cfg.symbol_mode, cfg.symbol_mode),
+                cfg.mode.capitalize(),
+                f"{cfg.capital_max} %",
+                cfg.start_time,
+                cfg.end_time,
+                status,
+            ]
+            for col, val in enumerate(values):
+                item = QTableWidgetItem(val)
+                align = Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
+                if col == 0:
+                    align = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+                item.setTextAlignment(int(align))
+                if col == 0:
+                    item.setForeground(QColor(C.BLUE))
+                elif col == 7:
+                    item.setForeground(QColor(_STATUS_COLORS.get(val, C.MUTED)))
+                self._table.setItem(row, col, item)
 
 
 # ── Diagnostics title bar ─────────────────────────────────────────────────────
@@ -879,7 +1066,7 @@ class ExecutionPanel(QWidget):
             self._on_symbol_selected(top)
 
     def _build_right_pane(self, demo: AppService) -> QWidget:
-        """Build the right side: intraday charts (top) + pending signals (bottom)."""
+        """Build the right side: intraday charts (top) + tabbed bottom pane."""
         pane = QWidget()
         layout = QVBoxLayout(pane)
         layout.setContentsMargins(6, 0, 0, 0)
@@ -890,13 +1077,37 @@ class ExecutionPanel(QWidget):
         self._v_splitter.setStyleSheet(f"QSplitter::handle {{ background: {active_palette().OVERLAY}; }}")
 
         self._v_splitter.addWidget(self._chart_pane)
-        self._v_splitter.addWidget(self._build_signals_pane(demo))
-        self._v_splitter.setSizes([380, 200])
+        self._v_splitter.addWidget(self._build_bottom_tabs(demo))
+        self._v_splitter.setSizes([380, 260])
         self._v_splitter.setCollapsible(0, False)
         self._v_splitter.setCollapsible(1, False)
 
         layout.addWidget(self._v_splitter, 1)
         return pane
+
+    def _build_bottom_tabs(self, demo: AppService) -> QTabWidget:
+        """Tabbed bottom pane: Pending Signals | Strategy Builder."""
+        ct = active_palette()
+        tabs = QTabWidget()
+        tabs.setStyleSheet(
+            f"QTabBar::tab {{"
+            f"  color: {ct.TEXT}; background: {ct.SURFACE};"
+            f"  border: 1px solid {ct.OVERLAY}; border-bottom: none;"
+            f"  padding: 5px 14px; font-size: 9pt;"
+            f"}}"
+            f"QTabBar::tab:selected {{"
+            f"  background: {ct.BG}; color: {ct.BLUE};"
+            f"  border-bottom: 1px solid {ct.BG};"
+            f"}}"
+            f"QTabBar::tab:hover:!selected {{ background: {ct.OVERLAY}; }}"
+            f"QTabWidget::pane {{"
+            f"  border: 1px solid {ct.OVERLAY}; border-top: 1px solid {ct.OVERLAY};"
+            f"}}"
+        )
+        tabs.addTab(self._build_signals_pane(demo), "Pending Signals")
+        self._strategy_pane = _StrategyTablePane()
+        tabs.addTab(self._strategy_pane, "Strategy Builder")
+        return tabs
 
     def _build_signals_pane(self, demo: AppService) -> QWidget:
         """Build the signals sub-pane: pending signals scroll area + status + demo button."""

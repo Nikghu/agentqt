@@ -2,14 +2,14 @@
 
 **Document:** CONTEXT.md
 **Project:** us_swing
-**Last Updated:** 2026-05-18 (Session 45)
+**Last Updated:** 2026-05-20 (Session 47)
 **Updated By:** Claude Sonnet 4.6
 
 ---
 
 ## 0. Immediate Next Step
 
-**Current:** FO-GUI-012 + FO-EXE-008 **REFACTOR COMPLETE** — Market Watch refactored to 4 ETF proxies (SPY/QQQ/DIA/IWM) with WatchlistItem model; _MarketWatchTab added to dashboard; _MWCell rich-text hover labels added; LiveTickWorker.set_contracts thread-safety fixed via asyncio.run_coroutine_threadsafe; candle DB diagnostics dialog added. Code staged, tests not yet verified. **Next:** commit changes + write/run tests for Market Watch tab, then move to FO-EXE-001/002 (ExecutionEngine + PositionTracker — 18 SRDs Approved).
+**Current:** Strategy Builder Dialog (Phase-1 prototype) **ENHANCED** — Trade Type selector (Intraday/Positional), Capital Max % spinner (renamed from Quantity), S&P 500 scope picker (All/Include/Exclude with searchable completer), Risk page (Target + Stop Loss with Fixed/Trailing type and % value, shield nav icon), StrategyConfig dataclass updated, execution_panel.py fixed for removed symbol/quantity fields. Code committed. **No FO assigned yet — create FO-GUI-013 (Strategy Builder) to formalise artifact chain.** **Next:** FO-EXE-001/002 (ExecutionEngine + PositionTracker — 18 SRDs Approved).
 
 **FO-EXE-009 + FO-EXE-010 — COMPLETE (Session 44, 2026-05-18):**
 - 65 pass / 2 skip; skips are `UT-EXE-001.001.M02.T08/T09`, blocked on FO-EXE-001/002.
