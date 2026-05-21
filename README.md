@@ -146,10 +146,6 @@ These guards prevent the most common source of token waste in multi-agent system
 | `CLAUDE.md` + memory | Partial | Good | Ad-hoc | Moderate | Moderate |
 | **AgentQT** | Full FO→RN | Persistent + structured | Automated, multi-stage | Optimized by tier | High |
 
-**Rating: 9 / 10**
-
-AgentQT scores 9/10 for solo and small-team projects lasting more than a few weeks: the AI never loses context, requirements are enforced before code is written, every module is traceable, and token costs are managed by tier routing. The one point deducted is for onboarding cost — 11 agents, 12 commands, 4 rule files, and a skeleton extractor is a real investment that only pays off on projects with depth and longevity.
-
 ---
 
 ## Reference Implementation — `us_swing`
