@@ -14,7 +14,7 @@
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![PyQt6](https://img.shields.io/badge/PyQt6-6.x-41CD52?style=flat-square&logo=qt&logoColor=white)](https://www.riverbankcomputing.com/software/pyqt/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-Powered-D97757?style=flat-square)](https://claude.ai/code)
-[![SDLC](https://img.shields.io/badge/SDLC-Waterfall-4A90D9?style=flat-square)](https://en.wikipedia.org/wiki/Waterfall_model)
+[![Spec-Driven](https://img.shields.io/badge/SDLC-Spec--Driven-4A90D9?style=flat-square)](#the-artifact-chain)
 
 </div>
 
@@ -26,23 +26,15 @@
 
 ## What Is AgentQT?
 
-AgentQT is a full development operating system built on top of Claude Code — but its foundations are not new. They are borrowed directly from decades of proven software engineering practice.
+AgentQT is a spec-driven development framework built on top of Claude Code. The core discipline: every feature follows a requirements → design → test → code pipeline, with each phase producing a document that the next phase depends on, and automated agents that enforce the chain rather than relying on human memory or discipline.
 
-### Built on Industry-Standard Engineering Principles
+### Spec-Driven Development with Enforced Traceability
 
-AgentQT encodes the Waterfall SDLC — one of the most proven and widely adopted models in enterprise and safety-critical software engineering — directly into Claude's workflow.
+Most AI-assisted development breaks down not because the model can't code, but because requirements drift, context is lost between sessions, and there is no audit trail from intent to implementation. AgentQT makes requirements-first development mechanical rather than aspirational.
 
-**Waterfall SDLC (Software Development Life Cycle)**
+Every feature follows a fixed phase sequence:
 
-The Waterfall model — defined in the 1970s and still the backbone of regulated, safety-critical, and enterprise software — divides development into sequential, non-overlapping phases where each phase must be completed and signed off before the next begins. Every requirement, design decision, and test case is documented before code is written, creating a clear audit trail from business objective to deployed software.
-
-```
-Requirements → System Design → Implementation → Testing → Deployment → Maintenance
-```
-
-AgentQT maps this model directly onto every feature:
-
-| Waterfall Phase | AgentQT Artifact | Enforced By |
+| Phase | AgentQT Artifact | Enforced By |
 |---|---|---|
 | Requirements | FO + SRD (Functional Objective + Software Requirements) | SRD status guard — code blocked until `Approved` |
 | System Design | DD (Design Document) | `artifact-validator` checks parent references |
@@ -52,11 +44,11 @@ AgentQT maps this model directly onto every feature:
 | Verification | Tests pass ≥ 80% coverage | Coverage gate in CI |
 | Release | RN (Revision Note) | Produced after every implementation block |
 
-The key discipline borrowed from Waterfall: **no phase can be skipped, and each phase produces a document that the next phase depends on.** The `phase-gate` agent enforces this mechanically — it will block code generation if any upstream artifact is missing or unapproved.
+No phase can be skipped. Each phase produces a document the next phase depends on. The `phase-gate` agent enforces this mechanically — it blocks code generation if any upstream artifact is missing or unapproved.
 
-### What AgentQT Adds on Top
+### What AgentQT Adds
 
-The Waterfall model was designed for human teams following paper-based processes. AgentQT makes it executable by an AI agent:
+Spec-driven development has always existed on paper. AgentQT makes it executable by an AI agent:
 
 - **11 specialized sub-agents** enforce each phase gate automatically — no human has to remember the process
 - **12 slash commands** run full pipelines (FO through Revision Note) in one invocation
@@ -150,7 +142,9 @@ These guards prevent the most common source of token waste in multi-agent system
 
 ## Reference Implementation — `us_swing`
 
-`us_swing` is a production-scale US equity swing trading platform built entirely using AgentQT. It demonstrates every framework feature across a 6-tool architecture:
+`us_swing` is a US equity swing trading platform built entirely using AgentQT — the proof-of-concept that drove every framework decision. It covers data ingestion from IBKR and Yahoo Finance, a multi-factor stock screener, strategy execution, and a PyQt6 desktop GUI, across a 6-tool architecture with 100+ specified test cases. The artifact chain has been run end-to-end on every feature; the screener alone has 128 UTCD test cases written before the first line of implementation.
+
+This is a single-developer project at an early but non-trivial stage. The framework is load-bearing here, not decorative — context retention across sessions and SRD status gating have been the two most practically useful parts. The rest is still being validated.
 
 ```
 agentqt/
