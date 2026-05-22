@@ -1,11 +1,13 @@
 ﻿# Unit Test Case Document â€” GUI Module (GUI)
 
 **Document ID:** UTCD-GUI
-**Version:** 1.2.0
-**Traces To:** MD-GUI v1.2.0
+**Version:** 1.3.0
+**Traces To:** MD-GUI v1.3.0
 **Status:** Draft
-**Last Updated:** 2026-05-16
+**Last Updated:** 2026-05-22
 **Project:** US Swing Trading System
+
+> v1.3.0: UTCD-GUI-013 (Strategy Builder Dialog, 22 tests) and UTCD-GUI-014 (Active Cycles Panel, 24 tests) added.
 
 > Tests written BEFORE implementation per process.md Â§7.
 > GUI tests use `pytest-qt` (`qtbot` fixture) for widget testing.
@@ -151,3 +153,82 @@
 | UT-GUI-012.001.M01.T16 | MD-GUI-004.001.M01 | Negative | Position `current_price` is NOT cleared on disconnect | `_positions` has `OpenPosition(current_price=185.0)`; call `svc.disconnect_feed()` | `pos.current_price == 185.0` (unchanged) | Pass |
 | UT-GUI-012.001.M01.T17 | MD-GUI-004.001.M01 | Negative | Watchlist ltp is NOT cleared on disconnect | `_watchlist` has item with `ltp=180.0`; call `svc.disconnect_feed()` | `item["ltp"] == 180.0` (unchanged) | Pass |
 
+---
+
+## Module: `gui/strategy_builder_dialog.py` — StrategyBuilderDialog (FO-GUI-013)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-013.001.M01.T01 | MD-GUI-013.001.M01 | Unit | Dialog opens with 5 nav entries in the tree | `StrategyBuilderDialog([], None)` | `_nav_tree.topLevelItemCount() == 5`; labels match Strategy Info / Triggers / Scheduler / Execution / Risk | Not Run |
+| UT-GUI-013.001.M01.T02 | MD-GUI-013.001.M01 | Unit | Selecting a nav entry switches the stacked page | Click "Triggers" nav item | `_page_stack.currentIndex() == _PAGE_TRIGGER` | Not Run |
+| UT-GUI-013.001.M01.T03 | MD-GUI-013.001.M01 | Negative | Saving with blank Name is blocked with inline error | Leave Name empty, click Save | `saved` signal not emitted; inline error label visible with text containing "name" | Not Run |
+| UT-GUI-013.001.M01.T04 | MD-GUI-013.001.M01 | Negative | Saving with a duplicate name (case-insensitive) is blocked | Registry has `[StrategyConfig(name="boss_ema")]`; set Name = "BOSS_EMA"; click Save | `saved` not emitted; inline error mentions "unique" or "exists" | Not Run |
+| UT-GUI-013.001.M01.T05 | MD-GUI-013.001.M01 | Positive | "Include Only" scope reveals stock picker | Set scope combo to "Include Only" | `_picker_panel.isVisible() == True` | Not Run |
+| UT-GUI-013.001.M01.T06 | MD-GUI-013.001.M01 | Positive | Picker symbols save into `symbols_include` for `include_only` scope | Add `["AAPL", "MSFT"]`; set scope `include_only`; Save | Saved `StrategyConfig.symbols_include == ["AAPL","MSFT"]`; `symbols_exclude == []` | Not Run |
+| UT-GUI-013.001.M01.T07 | MD-GUI-013.001.M01 | Positive | Capital Max accepts 5–100 step 5, default 25 | Inspect spinbox properties | `minimum=5`, `maximum=100`, `singleStep=5`, `value=25` | Not Run |
+| UT-GUI-013.001.M01.T08 | MD-GUI-013.001.M01 | Edge | Capital Max cannot be set below 5 | `_capital_spin.setValue(2)` | `_capital_spin.value() == 5` (clamped) | Not Run |
+| UT-GUI-013.001.M01.T09 | MD-GUI-013.001.M01 | Positive | Trigger builder reveals relop pill only after Condition 1 is set | Initially empty; set `_cond1_fn = "RSI('Spot', 14, '3m')"`; call `_rebuild_chain()` | `_relop.isVisible() == True`; `_add_c2.isVisible() == True` | Not Run |
+| UT-GUI-013.001.M01.T10 | MD-GUI-013.001.M01 | Positive | Compile appends `(c1) op (c2)` to buffer with logical join | Both conds set; click Compile twice with logop OR | Buffer text = `"(c1a) > (c2a) OR (c1b) < (c2b)"` | Not Run |
+| UT-GUI-013.001.M01.T11 | MD-GUI-013.001.M01 | Negative | Pressing Entry with empty compiled buffer shows inline error | Click Entry while buffer is empty | `entry_condition` unchanged; inline error visible | Not Run |
+| UT-GUI-013.001.M01.T12 | MD-GUI-013.001.M01 | Positive | Entry button copies buffer to `entry_condition` and clears buffer | Buffer = `"(RSI('Spot', 14, '3m')) > (Number(30))"`; click Entry | `entry_condition` equals buffer text; `_output.toPlainText() == ""` | Not Run |
+| UT-GUI-013.001.M01.T13 | MD-GUI-013.001.M01 | Edge | Indicator expression with dropdown args is single-quoted; numeric args are bare | Build `RSI` with Symbol Type='Spot', Length=14, Timeframe='3m' | Resulting expression: `"RSI('Spot', 14, '3m')"` | Not Run |
+| UT-GUI-013.001.M01.T14 | MD-GUI-013.001.M01 | Negative | Empty editbox parameter blocks Add in condition selector | Leave "RSI Length" blank; click Add | `condition_built` signal not emitted; inline error visible | Not Run |
+| UT-GUI-013.001.M01.T15 | MD-GUI-013.001.M01 | Positive | Scheduler defaults: 09:30 / 15:30 ET, today / today+6mo, Mon–Fri all checked | Open fresh dialog | `_start_time == 09:30`; `_end_time == 15:30`; `_start_date == today`; `_end_date == today+6mo`; all 5 day pills checked | Not Run |
+| UT-GUI-013.001.M01.T16 | MD-GUI-013.001.M01 | Negative | Save blocked when `end_time <= start_time` | Set start=15:30, end=09:30; click Save | `saved` not emitted; inline error mentions "time" | Not Run |
+| UT-GUI-013.001.M01.T17 | MD-GUI-013.001.M01 | Positive | Target spinbox is disabled until Target enable checkbox is ticked | Inspect Target page on open | `_target_value.isEnabled() == False`; tick checkbox → True | Not Run |
+| UT-GUI-013.001.M01.T18 | MD-GUI-013.001.M01 | Positive | `load_strategies()` returns empty list when file is missing | `_STRATEGIES_PATH` does not exist | `load_strategies() == []` | Not Run |
+| UT-GUI-013.001.M01.T19 | MD-GUI-013.001.M01 | Negative | `load_strategies()` returns empty list on malformed JSON | Write `"not valid json"` to file | `load_strategies() == []`; no exception raised | Not Run |
+| UT-GUI-013.001.M01.T20 | MD-GUI-013.001.M01 | Positive | `load_strategies()` forces `Status='Inactive'` on every record | File has record with `strategy_signal.Status='Running'` | Loaded record has `strategy_signal['Status'] == 'Inactive'` and `Running_Symbols == []` | Not Run |
+| UT-GUI-013.001.M01.T21 | MD-GUI-013.001.M01 | Positive | `commit()` overwrites existing record by case-insensitive name | Registry `[cfg(name="boss_ema")]`; commit `cfg(name="BOSS_EMA")` | Registry length stays 1; record replaced | Not Run |
+| UT-GUI-013.001.M01.T22 | MD-GUI-013.001.M01 | Positive | `save_strategies()` writes via temp-file + atomic replace | Stub `Path.replace`; call `save_strategies([cfg])` | `Path.replace` called once with `.tmp` → final path; final file exists | Not Run |
+
+---
+
+## Module: `gui/active_cycles_model.py` — _ActiveCyclesModel (FO-GUI-014)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-014.001.M02.T01 | MD-GUI-014.001.M02 | Unit | Empty model has 0 rows, 14 columns | Construct with empty query + empty store | `rowCount() == 0`; `columnCount() == 14` | Not Run |
+| UT-GUI-014.001.M02.T02 | MD-GUI-014.001.M02 | Positive | `on_pending_added(signal)` inserts one row with state=PENDING | Call with `TradeSignal(ENTRY, AAPL, boss_ema, qty=25)` | `rowCount() == 1`; row state="PENDING"; symbol="AAPL"; qty=25 | Not Run |
+| UT-GUI-014.001.M02.T03 | MD-GUI-014.001.M02 | Positive | `on_cycle_opened(snap)` inserts one OPEN row | `CycleSnapshot(cycle_id=1, state="OPEN", symbol="AAPL", entry_price=182.5, entry_qty=25)` | `rowCount() == 1`; row state="OPEN"; entry=182.5 | Not Run |
+| UT-GUI-014.001.M02.T04 | MD-GUI-014.001.M02 | Positive | `on_cycle_updated` mutates only LTP/PnL/Trail columns, emits contiguous dataChanged | Existing OPEN row; updated snap with new ltp/pnl/trail | `dataChanged.emit` called once with column range covering [LTP, TRAIL]; STATE/SYMBOL untouched | Not Run |
+| UT-GUI-014.001.M02.T05 | MD-GUI-014.001.M02 | Negative | `on_cycle_updated` for unknown cycle_id is a no-op | Call with `cycle_id=999` not in `_by_key` | No row inserted; no `dataChanged` emitted | Not Run |
+| UT-GUI-014.001.M02.T06 | MD-GUI-014.001.M02 | Positive | Positive PnL cell uses green tinted background + green foreground | Row with `pnl_usd=62.50` | `BackgroundRole == C.PNL_POS_BG`; `ForegroundRole == C.GREEN` | Not Run |
+| UT-GUI-014.001.M02.T07 | MD-GUI-014.001.M02 | Positive | Negative PnL cell uses red tinted background + red foreground | Row with `pnl_usd=-15.00` | `BackgroundRole == C.PNL_NEG_BG`; `ForegroundRole == C.RED` | Not Run |
+| UT-GUI-014.001.M02.T08 | MD-GUI-014.001.M02 | Positive | `on_cycle_closed` removes the matching row | Existing OPEN row for cycle_id=1; call `on_cycle_closed(snap)` | `rowCount() == 0`; `removeRows` emitted | Not Run |
+| UT-GUI-014.001.M02.T09 | MD-GUI-014.001.M02 | Positive | `on_pending_removed` removes the matching pending row | Existing PENDING row; call `on_pending_removed(signal_id)` | `rowCount() == 0`; `removeRows` emitted | Not Run |
+| UT-GUI-014.001.M02.T10 | MD-GUI-014.001.M02 | Positive | `set_scope(uid)` filters rows to that user; "All Users" shows all | 3 rows for users {1,2,3}; `set_scope(2)` | `rowCount() == 1`; row's user_id == 2 | Not Run |
+
+---
+
+## Module: `gui/active_cycles_panel.py` — ActiveCyclesPanel & _RowActionsDelegate (FO-GUI-014)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-014.001.M01.T01 | MD-GUI-014.001.M01 | Unit | Panel renders empty placeholder when row count is zero | Empty model | `_table.isHidden() == True`; `_empty_label.isVisible() == True` | Not Run |
+| UT-GUI-014.001.M01.T02 | MD-GUI-014.001.M01 | Positive | Adding a pending signal hides empty state and shows table | `on_pending_added(signal)` | `_table.isVisible() == True`; `_empty_label.isHidden() == True` | Not Run |
+| UT-GUI-014.001.M01.T03 | MD-GUI-014.001.M01 | Positive | Clicking Execute opens confirmation dialog | Click rect for "Execute" button on a PENDING row | A `QMessageBox` is shown with text containing `"BUY"` and symbol | Not Run |
+| UT-GUI-014.001.M01.T04 | MD-GUI-014.001.M01 | Positive | Confirming Execute calls `pending_store.execute(signal_id)` and flips state to OPENING optimistically | Mock store; click Execute, click Yes on dialog | `pending_store.execute` called with signal_id; row state flips to "OPENING" within 100 ms | Not Run |
+| UT-GUI-014.001.M01.T05 | MD-GUI-014.001.M01 | Positive | Dismiss button calls `pending_store.dismiss(id)` and removes row | Click `[✕]` on PENDING row | `pending_store.dismiss` called; `rowCount()` decreases by 1 | Not Run |
+| UT-GUI-014.001.M01.T06 | MD-GUI-014.001.M01 | Positive | `[Edit Risk ▼]` expands inline editor row below | Click on OPEN row | New synthetic row inserted at `parent_row+1`; `setIndexWidget` called with `_RiskEditorWidget` | Not Run |
+| UT-GUI-014.001.M01.T07 | MD-GUI-014.001.M01 | Positive | Opening a second editor collapses the first | Editor open for cycle 1; click Edit Risk on cycle 2 | Synthetic row for cycle 1 removed; new editor row for cycle 2 | Not Run |
+| UT-GUI-014.001.M01.T08 | MD-GUI-014.001.M01 | Positive | `[Close]` opens confirmation showing PnL estimate | Click Close on OPEN row with `entry=182.5`, `ltp=185.0`, `qty=25` | Dialog text contains `"+$62.50"` (or formatted equivalent) | Not Run |
+| UT-GUI-014.001.M01.T09 | MD-GUI-014.001.M01 | Positive | Confirming Close flips row to CLOSING optimistically | Click Yes on close confirmation | Row state="CLOSING"; `ExecutionEngine.exit_position(cycle_id, reason='manual')` called | Not Run |
+| UT-GUI-014.001.M01.T10 | MD-GUI-014.001.M01 | Negative | `[Execute]` is visually disabled when circuit breaker is active | `app_service.circuit_breaker_active = True`; trigger paint | Delegate paints Execute with muted colour; click is swallowed (no action) | Not Run |
+| UT-GUI-014.001.M01.T11 | MD-GUI-014.001.M01 | Positive | `[Close]` remains enabled when circuit breaker is active | `circuit_breaker_active = True`; click Close on OPEN row | Close confirmation dialog opens normally | Not Run |
+| UT-GUI-014.001.M01.T12 | MD-GUI-014.001.M01 | Positive | Scope change triggers re-query and User column hide/show | Construct with All-Users scope; switch to single-user | `set_columnHidden(Col.USER, True)` called; rows filtered to that user | Not Run |
+| UT-GUI-014.001.M01.T13 | MD-GUI-014.001.M01 | Edge | Editor auto-dismisses when its cycle's `CycleClosed` arrives | Editor open for cycle 1; emit `CycleClosed(cycle_id=1)` | Synthetic row removed; `_expanded_cycle_id is None`; DEBUG log emitted | Not Run |
+
+---
+
+## Module: `gui/risk_editor_widget.py` — _RiskEditorWidget (FO-GUI-014)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-014.001.M03.T01 | MD-GUI-014.001.M03 | Unit | Widget initializes spinboxes from supplied snapshot | `CycleSnapshot(hard_stop_loss=179, target_price=189, trailing_offset=2.5, trailing_mode="$", current_price=185)` | `_hsl.value()==179`; `_target.value()==189`; `_trail_offset.value()==2.5`; `_trail_mode.currentText()=="$"` | Not Run |
+| UT-GUI-014.001.M03.T02 | MD-GUI-014.001.M03 | Positive | HSL spinbox max equals snapshot's `current_price` | snap with `current_price=185.40` | `_hsl.maximum() == 185.40` | Not Run |
+| UT-GUI-014.001.M03.T03 | MD-GUI-014.001.M03 | Positive | Target spinbox min equals snapshot's `current_price` | snap with `current_price=185.40` | `_target.minimum() == 185.40` | Not Run |
+| UT-GUI-014.001.M03.T04 | MD-GUI-014.001.M03 | Edge | Trail offset spinbox min is 0.01 | Inspect on construction | `_trail_offset.minimum() == 0.01` | Not Run |
+| UT-GUI-014.001.M03.T05 | MD-GUI-014.001.M03 | Positive | Save emits diff-only fields when nothing changed | Open with snap; click Save without edits | `cancelled` emitted with cycle_id; `saved` NOT emitted | Not Run |
+| UT-GUI-014.001.M03.T06 | MD-GUI-014.001.M03 | Positive | Save emits only changed fields | Open with snap; change HSL only; click Save | `saved.emit(cycle_id, {"hard_stop_loss": new_value})`; no other keys in dict | Not Run |
+| UT-GUI-014.001.M03.T07 | MD-GUI-014.001.M03 | Positive | `show_error(msg)` displays error label and clears on field edit | Call `show_error("HSL too high")`; then edit `_hsl` | Error label visible after `show_error`; hidden after edit | Not Run |

@@ -1,11 +1,13 @@
 # Module Decomposition — Execution & Risk Management (EXE)
 
 **Document ID:** MD-EXE
-**Version:** 1.5.0
-**Traces To:** SRD-EXE v1.6.0 / DD-EXE v1.5.0
+**Version:** 1.6.0
+**Traces To:** SRD-EXE v1.7.0 / DD-EXE v1.7.0
 **Status:** Draft
-**Last Updated:** 2026-05-16
+**Last Updated:** 2026-05-22
 **Project:** US Swing Trading System
+
+> v1.6.0: MD-EXE-011.* (Strategy Engine, 7 modules) and MD-EXE-012.* (Trade Cycle Ledger, 6 modules) added.
 
 ---
 
@@ -161,3 +163,70 @@ src/us_swing/
 ```
 
 > **Note:** `core/` is a new top-level package introduced by this feature. It hosts cross-tool shared services per `.claude/rules/code-style.md` ("Shared cross-cutting code goes in `src/usswing/core/` — never duplicate across tools"). Subsequent cross-tool services (future Intraday Strategy Execution, Backtesting) will live as sibling subpackages under `core/`.
+
+---
+
+## FO-EXE-011 — Strategy Engine Modules
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP | Status |
+|---|---|---|---|---|---|---|---|
+| MD-EXE-011.001.M01 | SRD-EXE-011.001 — .003, .013 | `src/us_swing/execution/strategy_engine/_engine.py` | `StrategyEngine(QThread)` — owns asyncio loop, registry, signal queue; subscribes to `candle_closed`; orchestrates `_router_loop`, `_end_time_watcher_loop`, `_emergency_drain_loop` | `start()`, `request_stop()`, `emergency_stop()`, `reload_registry()` | `_context`, `_router`, `_evaluator`, `_events`, `_signals`, `PyQt6.QtCore.QThread`, `asyncio` | No | Approved |
+| MD-EXE-011.001.M02 | SRD-EXE-011.002, .004, .005, .007, .010 | `src/us_swing/execution/strategy_engine/_context.py` | `_StrategyContext` dataclass + `_CycleState(StrEnum)` — symbol-scope filter, schedule guard, per-`(strategy,symbol)` cycle state, `asyncio.Lock` map | `_StrategyContext.accepts(symbol)`, `lock_for(symbol)`, `state(symbol)`; `_CycleState` enum | `dataclasses`, `enum`, `asyncio`, FO-GUI-013 `StrategyConfig` | No | Approved |
+| MD-EXE-011.001.M03 | SRD-EXE-011.006 | `src/us_swing/execution/strategy_engine/_evaluator.py` | `ConditionEvaluator` — tokenizer + recursive-descent parser + `FUNCTION_MAP` of 14 indicators; stateless; evaluates expression against candle dict | `evaluate(expr, candles, symbol) -> bool` | `pandas`, `numpy`, `talib`, `re` | No | Approved |
+| MD-EXE-011.001.M04 | SRD-EXE-011.008, .009, .011, .012 | `src/us_swing/execution/strategy_engine/_router.py` | Signal-queue consumer + Mode/auto_trade dispatch; calls `RiskManager.validate()` and `ExecutionRouter.submit()` for auto path or `PendingSignalStore.add()` for manual path; owns `_end_time_watcher_loop` | `_router_loop()`, `_force_exit(ctx, symbol, reason)` (coroutines, internal) | `risk_manager`, `execution_router`, `pending_signal_store`, `_signals`, `_events` | No | Approved |
+| MD-EXE-011.001.M05 | SRD-EXE-011.015 | `src/us_swing/execution/strategy_engine/_events.py` | Sealed `StrategyEvent` union: `StrategyEntered`, `StrategyExited`, `StrategySquaredOff`, `StrategyErrored`, `StrategySignalDropped`, `StrategySignalPending`; each frozen `@dataclass(slots=True)` with `schema_version: int = 1` | Event class constructors | `dataclasses`, FO-EXE-009 event bus | No | Approved |
+| MD-EXE-011.001.M06 | SRD-EXE-011.008 | `src/us_swing/execution/strategy_engine/_signals.py` | `TradeSignal` frozen dataclass — payload pushed onto the engine queue (`action`, `symbol`, `strategy_id`, `entry_price`, `stop_loss`, `target`, `qty_recommended`, `reason`) | `TradeSignal(...)` constructor; `Action` `StrEnum` (`ENTRY`/`EXIT`) | `dataclasses`, `enum` | No | Approved |
+| MD-EXE-011.001.M07 | SRD-EXE-011.001 — .015 | `src/us_swing/execution/strategy_engine/__init__.py` | Public surface — re-exports `StrategyEngine`, `StrategyEvent` union members, `TradeSignal`, `Action`. Concrete internals (`_context`, `_router`, `_evaluator`) NOT re-exported. Explicit `__all__`. | `StrategyEngine`, event classes, `TradeSignal`, `Action` | All internal `_*` modules | No | Approved |
+
+### Cross-Module Modifications for FO-EXE-011
+
+| Module ID | File | Change Required | SRD |
+|---|---|---|---|
+| MD-EXE-001.001.M01 | `src/us_swing/execution/risk_manager.py` | Add `can_allocate(strategy_id, capital_max_pct, entry_price, qty) -> CanAllocateResult` method per-strategy capital cap check used at signal-emit time. | SRD-EXE-011.011 |
+| — | `src/us_swing/execution/pending_signal_store.py` | **NEW** — `PendingSignalStore`: in-memory `dict[str, TradeSignal]` keyed by `signal_id`, with `add()`, `dismiss()`, `execute()`, `list()`, signals `pending_signal_added(signal)` / `pending_signal_removed(signal_id)`. Consumed by FO-GUI-014 Active Cycles Panel. | SRD-EXE-011.009 |
+| MD-GUI-013.001.M01 | `src/us_swing/gui/strategy_builder_dialog.py` | `load_strategies()` / `save_strategies()` and the `commit()` helper are re-used by the engine for `strategy_signal` runtime writeback. No code change — engine imports the same module. | SRD-EXE-011.014 |
+
+---
+
+## FO-EXE-012 — Trade Cycle Ledger Modules
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP | Status |
+|---|---|---|---|---|---|---|---|
+| MD-EXE-012.001.M01 | SRD-EXE-012.001 | `src/us_swing/execution/trade_cycle/_schema.py` | `trade_cycles` SQLAlchemy Table + composite indexes (`idx_trade_cycles_state_symbol`, `idx_trade_cycles_strategy_symbol_state`); re-exported through `db/schema.py` | Module-level `trade_cycles` Table, index objects | `sqlalchemy`, `db/schema.metadata` | No | Approved |
+| MD-EXE-012.001.M02 | SRD-EXE-012.010, .011 | `src/us_swing/execution/trade_cycle/_dto.py` | `CycleSnapshot` frozen `@dataclass(slots=True)` with `schema_version: int = 1`; enum frozensets (`CYCLE_STATES`, `EXIT_REASONS`, `TARGET_TYPES`, `STOPLOSS_TYPES`, `TRAILING_MODES`); validation helpers used by repository | `CycleSnapshot`, frozenset constants, `validate_state()`, `validate_exit_reason()` | `dataclasses`, `enum` | No | Approved |
+| MD-EXE-012.001.M03 | SRD-EXE-012.012 | `src/us_swing/execution/trade_cycle/_events.py` | Sealed `TradeCycleEvent` union: `CycleOpened`, `CycleUpdated`, `ExitTrigger`, `CycleClosing`, `CycleClosed`, `CycleAborted`, `RiskUpdated`; all frozen dataclasses with `schema_version: int = 1` | Event class constructors | `_dto`, `dataclasses`, FO-EXE-009 event bus | No | Approved |
+| MD-EXE-012.002.M01 | SRD-EXE-012.003, .007 — .010, .013 | `src/us_swing/execution/trade_cycle/_repository.py` | `TradeCycleRepository` — only file under `trade_cycle/` permitted to import SQLAlchemy. Same-tx duplicate-open guard, compare-and-swap `update_state`, allowed-transitions dict | `open_cycles()`, `cycle(id)`, `history(...)`, `find_open(strategy_id, symbol)`, `find_by_entry_order(id)`, `insert_open(row)`, `update_live(id, fields)`, `update_state(id, new_state)`, `update_risk(id, fields)`, `close(id, exit_fields)`, `abort(id, reason)` | `sqlalchemy`, `_schema`, `_dto`, `datetime` | No | Approved |
+| MD-EXE-012.002.M02 | SRD-EXE-012.002 — .009, .011, .013 | `src/us_swing/execution/trade_cycle/_service.py` | `TradeCycleService` — owns `_TickAccumulator` map, subscribes to `LiveTickWorker.tick_price` (FO-EXE-008), receives FO-EXE-002 fill events, runs throttle + flush + exit-trigger evaluation, publishes `TradeCycleEvent` payloads | `on_entry_fill(fill)`, `on_exit_fill(fill)`, `on_entry_failed(id, reason)`, `update_risk(id, **fields)`, `reload() -> int`, `start()`, `stop()` | `_repository`, `_events`, `_dto`, FO-EXE-009 bus, FO-EXE-008 tick worker, `asyncio`, `datetime`, `logging` | No | Approved |
+| MD-EXE-012.002.M03 | SRD-EXE-012.002, .010, .011, .012 | `src/us_swing/execution/trade_cycle/__init__.py` | Public surface — re-exports `TradeCycleQuery`, `TradeCycleCommand`, `MonitoringEventBus` re-use, `CycleSnapshot`, all `TradeCycleEvent` classes, `build_default_service(engine, bus, tick_worker) -> tuple[Query, Command]`. Concrete `_service.py` / `_repository.py` NOT re-exported. | `build_default_service(...)`, public types | All internal `_*` modules | No | Approved |
+
+### Cross-Module Modifications for FO-EXE-012
+
+| Module ID | File | Change Required | SRD |
+|---|---|---|---|
+| MD-INF-004.001.M02 | `src/us_swing/db/schema.py` | Import `trade_cycles` Table from `execution/trade_cycle/_schema.py` and register so `create_schema(checkfirst=True)` picks it up on startup. Additive, no migration. | SRD-EXE-012.001 |
+| MD-EXE-001.001.M02 | `src/us_swing/execution/execution_engine.py` | Subscribe to `ExitTrigger` events; on receive call `submit_market_sell(symbol, qty, user_id, cycle_id, reason_tag)`. On entry-fill and exit-fill events, call `TradeCycleCommand.on_entry_fill(fill)` / `on_exit_fill(fill)` respectively. | SRD-EXE-012.003, .006, .007 |
+| MD-EXE-008.001.M01 | `src/us_swing/execution/live_tick_worker.py` | `TradeCycleService` calls `LiveTickWorker.set_contracts(...)` on cycle open/close to add/remove the symbol. No code change to `LiveTickWorker`; pattern matches existing FO-GUI-012 reconciliation. | SRD-EXE-012.005 |
+
+---
+
+## File Tree for FO-EXE-011 + FO-EXE-012
+
+```
+us_swing/src/us_swing/execution/
+├── strategy_engine/
+│   ├── __init__.py                       # MD-EXE-011.001.M07
+│   ├── _engine.py                        # MD-EXE-011.001.M01
+│   ├── _context.py                       # MD-EXE-011.001.M02
+│   ├── _evaluator.py                     # MD-EXE-011.001.M03
+│   ├── _router.py                        # MD-EXE-011.001.M04
+│   ├── _events.py                        # MD-EXE-011.001.M05
+│   └── _signals.py                       # MD-EXE-011.001.M06
+├── trade_cycle/
+│   ├── __init__.py                       # MD-EXE-012.002.M03
+│   ├── _schema.py                        # MD-EXE-012.001.M01
+│   ├── _dto.py                           # MD-EXE-012.001.M02
+│   ├── _events.py                        # MD-EXE-012.001.M03
+│   ├── _repository.py                    # MD-EXE-012.002.M01
+│   └── _service.py                       # MD-EXE-012.002.M02
+└── pending_signal_store.py               # NEW (MD-EXE-011 cross-cut)
+```

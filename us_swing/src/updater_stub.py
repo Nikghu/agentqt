@@ -26,7 +26,7 @@ import sys
 import tempfile
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable, NamedTuple
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
@@ -42,103 +42,109 @@ _GITHUB_API = "https://api.github.com"
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
-def check_for_updates(interactive: bool = True) -> None:
-    """
-    Check for a newer version via GitHub Releases or a custom manifest URL.
+class UpdateInfo(NamedTuple):
+    """Describes an available update; returned by check_update_available()."""
+    cfg: dict[str, Any]
+    remote_version: str
+    download_url: str
+    expected_sha256: str
+    sig_url: str
 
-    If a new version is available the update installer is downloaded,
-    its SHA-256 checksum (and optionally its RSA-PSS signature) is verified,
-    and the installer is launched silently.  The running process then exits
-    so the installer can overwrite files.
 
-    updater_config.json keys
-    ------------------------
-    enabled              bool   — master switch
-    current_version      str    — e.g. "1.0.0"
-    interval_hours       int    — how often to poll (default 24)
-    verify_checksum      bool   — verify SHA-256 before installing (default true)
-    verify_signature     bool   — verify RSA-PSS signature (default false)
+def check_update_available() -> UpdateInfo | None:
+    """Return UpdateInfo if a newer version exists on the configured source, else None.
 
-    GitHub mode (preferred):
-    github_repo          str    — "owner/repo"
-    github_asset_pattern str    — substring match on release asset filename
-                                  (default "_Setup.exe")
-
-    Custom manifest mode (when github_repo is empty):
-    check_url            str    — https:// URL returning the manifest JSON
-
-    Args:
-        interactive: When True, sys.exit(0) is called after launching the
-                     installer.  Set False in headless/service contexts.
+    Stamps the check time immediately so rapid restarts do not re-poll GitHub.
     """
     cfg = _load_config()
     if not cfg.get("enabled", False):
-        return
-
+        return None
     interval_secs = cfg.get("interval_hours", 24) * 3600
     if not _is_check_due(interval_secs):
-        return
+        return None
     _stamp_check_time()
-
     github_repo: str = cfg.get("github_repo", "").strip()
-    if github_repo:
-        manifest = _fetch_github_manifest(github_repo, cfg)
-    else:
-        manifest = _fetch_custom_manifest(cfg)
-
+    manifest = _fetch_github_manifest(github_repo, cfg) if github_repo else _fetch_custom_manifest(cfg)
     if manifest is None:
-        return
-
+        return None
     remote_version: str = manifest.get("version", "")
     current_version: str = cfg.get("current_version", "0.0.0")
     if _ver(remote_version) <= _ver(current_version):
-        return  # already up to date
-
+        return None
     download_url: str = manifest.get("download_url", "")
     if not _https_only(download_url):
         log.warning("Updater: download_url must use https — skipping.")
-        return
+        return None
+    return UpdateInfo(
+        cfg=cfg,
+        remote_version=remote_version,
+        download_url=download_url,
+        expected_sha256=manifest.get("sha256", ""),
+        sig_url=manifest.get("signature_url", ""),
+    )
 
-    expected_sha256: str = manifest.get("sha256", "")
 
-    with tempfile.TemporaryDirectory() as tmp:
-        installer = Path(tmp) / f"update_{remote_version}_setup.exe"
+def download_and_verify_update(
+    info: UpdateInfo,
+    progress_cb: Callable[[int, int], None] | None = None,
+) -> Path:
+    """Download, verify, and copy the installer to a stable temp path.
 
+    Args:
+        info: Update descriptor from check_update_available().
+        progress_cb: Optional callback(received_bytes, total_bytes) for progress.
+
+    Returns:
+        Path to the verified installer ready to launch.
+
+    Raises:
+        ValueError: On checksum or signature mismatch.
+        Exception: On network or I/O failure.
+    """
+    stable = Path(tempfile.gettempdir()) / f"usswing_update_{info.remote_version}_setup.exe"
+    tmp_dir = Path(tempfile.mkdtemp())
+    installer = tmp_dir / f"update_{info.remote_version}_setup.exe"
+    try:
+        _download(info.download_url, installer, progress_cb=progress_cb)
+        if info.cfg.get("verify_checksum", True) and info.expected_sha256:
+            if _sha256(installer) != info.expected_sha256:
+                raise ValueError("SHA-256 checksum mismatch — installer may be corrupt")
+        if info.cfg.get("verify_signature", False) and info.sig_url:
+            if not _https_only(info.sig_url):
+                raise ValueError("Signature URL must use HTTPS")
+            sig_file = tmp_dir / "update.sig"
+            _download(info.sig_url, sig_file)
+            if not _verify_rsa(installer, sig_file.read_bytes()):
+                raise ValueError("RSA signature invalid — installer rejected")
+        shutil.copy2(installer, stable)
+    finally:
         try:
-            _download(download_url, installer)
-        except Exception as exc:
-            log.warning("Updater: download failed: %s", exc)
-            return
+            shutil.rmtree(tmp_dir)
+        except OSError:
+            pass
+    return stable
 
-        # Integrity check
-        if cfg.get("verify_checksum", True) and expected_sha256:
-            if _sha256(installer) != expected_sha256:
-                log.error("Updater: SHA-256 mismatch — aborting update.")
-                return
 
-        # Optional RSA-PSS signature verification
-        sig_url: str = manifest.get("signature_url", "")
-        if cfg.get("verify_signature", False) and sig_url:
-            if not _https_only(sig_url):
-                log.warning("Updater: signature_url must use https — skipping.")
-                return
-            sig_file = Path(tmp) / "update.sig"
-            try:
-                _download(sig_url, sig_file)
-                if not _verify_rsa(installer, sig_file.read_bytes()):
-                    log.error("Updater: RSA signature invalid — aborting update.")
-                    return
-            except Exception as exc:
-                log.error("Updater: signature verification error: %s — aborting.", exc)
-                return
+def check_for_updates(interactive: bool = True) -> None:
+    """Headless update check — no GUI. Blocks until download completes if an update exists.
 
-        # Launch installer silently; it will restart the application
-        subprocess.Popen(  # noqa: S603 — path comes from verified download
-            [str(installer), "/SILENT", "/NORESTART"],
-            creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,
-        )
-        if interactive:
-            sys.exit(0)
+    Args:
+        interactive: When True, sys.exit(0) is called after launching the installer.
+    """
+    info = check_update_available()
+    if info is None:
+        return
+    try:
+        stable = download_and_verify_update(info)
+    except Exception as exc:
+        log.warning("Updater: update failed: %s", exc)
+        return
+    subprocess.Popen(  # noqa: S603 — path comes from verified download
+        [str(stable), "/SILENT", "/NORESTART"],
+        creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,
+    )
+    if interactive:
+        sys.exit(0)
 
 
 # ── GitHub Releases mode ──────────────────────────────────────────────────────
@@ -271,11 +277,22 @@ def _fetch_raw(url: str, timeout: int = 10) -> str:
         return resp.read().decode("utf-8").strip()
 
 
-def _download(url: str, dest: Path, timeout: int = 120) -> None:
+def _download(
+    url: str,
+    dest: Path,
+    timeout: int = 120,
+    progress_cb: Callable[[int, int], None] | None = None,
+) -> None:
     ctx = ssl.create_default_context()
     req = Request(url, headers={"User-Agent": "updater-stub/1.0"})
     with urlopen(req, timeout=timeout, context=ctx) as resp, dest.open("wb") as out:  # type: ignore[call-arg]
-        shutil.copyfileobj(resp, out)
+        total = int(resp.headers.get("Content-Length") or 0)
+        received = 0
+        for chunk in iter(lambda: resp.read(65_536), b""):
+            out.write(chunk)
+            received += len(chunk)
+            if progress_cb is not None:
+                progress_cb(received, total)
 
 
 def _sha256(path: Path) -> str:

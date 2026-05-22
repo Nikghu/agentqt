@@ -1,10 +1,10 @@
 # Functional Overview — GUI Module (GUI)
 
 **Document ID:** FO-GUI
-**Version:** 2.4.0
+**Version:** 2.6.0
 **Traces To:** requirements.md §21, §22, §23.3, §24, §25, §28.1, §29.1, §32
 **Status:** Draft
-**Last Updated:** 2026-05-15
+**Last Updated:** 2026-05-22
 **Project:** US Swing Trading System
 
 ---
@@ -330,3 +330,133 @@ Static metadata fields (day_open, day_high, day_low, year_high, year_low, volume
 5. A non-S&P 500 symbol open in the Position Monitor receives no tick subscription; its current_price is updated by the 30-second `_AccountDataWorker` poll as before.
 6. A user-entered Market Watch symbol with no entry in the index translation map (e.g., a custom ticker) is not subscribed and displays `"–"` without error.
 7. Changing `ibkr_tick_client_id` in Settings and reconnecting the feed starts a new `LiveTickWorker` with the updated clientId.
+
+---
+
+## FO-GUI-013: Strategy Builder Dialog (Add / Edit Strategy)
+
+**Status:** Approved
+**Priority:** Must
+**Depends on:** FO-GUI-004 (Execution Panel hosts the launcher)
+**Precedes:** FO-EXE-011 (Strategy Engine consumes the produced `StrategyConfig`)
+**Source:** Strategy authoring workflow
+
+The system shall provide a modal **Strategy Builder dialog** that lets the administrator define and edit a strategy configuration across five pages. The dialog is the sole authoring surface for strategy definitions and produces a `StrategyConfig` record consumed by the Strategy Engine (FO-EXE-011). It is launched from the Execution Panel via an Add Strategy button (new) or an Edit action (existing).
+
+### Layout
+Frameless modal with a left-side navigation tree and a right-side stacked content panel. Nav entries in order: **Strategy Info · Triggers · Scheduler · Execution · Risk**. Switching nav entries preserves in-progress edits.
+
+### Page 1 — Strategy Info
+- **Name** — required, unique within the registry
+- **Symbol Scope** — `All S&P 500` / `Include Only` / `Exclude These`; non-`All` reveals a per-symbol picker (search-completer + add/remove list)
+- **Mode** — `Disabled` / `Manual` / `Auto` (semantics owned by FO-EXE-011)
+- **Capital Max** — integer percentage of available capital allocated to this strategy
+
+### Page 2 — Triggers
+Progressive condition builder. The user chains two indicator expressions with a relational operator and a logical operator, presses **Compile**, then assigns the compiled clause to **Entry** or **Exit**. Multiple compiled clauses join with `AND` / `OR`. Supported indicators: `Number`, `PNL`, `VWAP`, `Price`, `RSI`, `ADX`, `EMA`, `SUPERTREND`, `SWING`, `MACD`, `BOS_Engulfing`, `BOSS_EMA`, `BOSS_ADX`, `BOSS_SMT`. Each indicator's parameter form is rendered from a static catalogue (parameter name, widget type, value domain).
+
+### Page 3 — Scheduler
+- **Time Range** — `start_time` / `end_time` (HH:mm, defaults 09:30 / 15:30)
+- **Date Range** — `start_date` / `end_date` (defaults today and today + 6 months)
+- **Days of Week** — Mon–Fri toggle pills, all enabled by default
+
+### Page 4 — Execution
+- **Auto Trade** — boolean flag for automatic order submission
+- **Trade Type** — `Intraday` / `Positional`
+
+### Page 5 — Risk
+- **Target** — enable flag, type (`Fixed` / `Trailing`), value (% of entry)
+- **Stop Loss** — enable flag, type (`Fixed` / `Trailing`), value (% of entry)
+
+### Persistence
+Configurations are persisted to a strategy registry on disk (current location: `~/.usswing/strategies.json`; FO-EXE-011 may migrate the registry into `candles.db`). Each record contains the five-page settings plus a `strategy_signal` runtime block (status, executed quantity, order timestamps) initialized to inactive. Saving by an existing `name` overwrites; a new `name` appends. Editing populates every field from the persisted record; closing without saving discards changes.
+
+### Acceptance Criteria
+1. Strategy name is required; saving with a blank name is blocked with an inline error.
+2. Symbol scope `Include Only` / `Exclude These` reveals the per-symbol picker; the saved record stores the list in `symbols_include` or `symbols_exclude`. `All S&P 500` leaves both lists empty.
+3. The trigger builder reveals its next element only after the previous is set: Condition 1 → relational operator → Condition 2 → logical operator → Compile.
+4. **Compile** appends the new clause to the read-only compiled-conditions buffer joined by the chosen logical operator (`AND` / `OR`).
+5. **Entry** / **Exit** assign the compiled buffer to the corresponding slot and clear the buffer; pressing either with an empty buffer surfaces an inline error.
+6. Each saved indicator expression is a parseable function-call string `INDICATOR(param1, 'param2', …)` — dropdown values single-quoted, editbox values bare.
+7. Target and stop-loss Type combo + Value spinbox are disabled until their enable checkbox is ticked.
+8. **Capital Max** accepts integer percentages 5–100 inclusive, stepped by 5, default 25.
+9. `strategy_signal.Status` is forcibly reset to `Inactive` on every load from disk — no strategy resumes a running state from persistence alone.
+10. The `StrategyConfig` field set produced by the dialog is the contract consumed by FO-EXE-011; the canonical schema is owned by the downstream SRD.
+
+---
+
+## FO-GUI-014: Active Cycles Panel (Pending Signals + Open Trades)
+
+**Status:** Approved
+**Priority:** Must
+**Depends on:** FO-EXE-011 (pending-signal store + `StrategyEvent`), FO-EXE-012 (`TradeCycleEvent`, `TradeCycleQuery`, `TradeCycleCommand`)
+**Supersedes:** FO-GUI-004 "Pending Signals" pane (right pane only — the left "Filtered Stocks" pane is unchanged)
+**Source:** Trader requirement — one panel that shows the full Entry→Exit lifecycle of every active swing trade with live PnL, hard stop, target, trailing stop.
+
+The system shall provide an **Active Cycles Panel** that replaces the right pane of the Execution Panel (FO-GUI-004) with a single unified table tracking every `(strategy_id, symbol)` pair currently in motion — from the moment a Manual-mode signal lands in the pending-signal store, through entry-order in flight, open position with live PnL, through exit-order in flight, until the cycle closes and the row drops out. Each row carries a State badge, identity columns (entry time, symbol, strategy), live market columns (LTP, PnL), risk columns (hard stop / target / trailing stop), and a context-appropriate action set. The panel owns no business logic — it consumes events from FO-EXE-011 and FO-EXE-012 and emits user-action signals back to those services.
+
+### State Badges
+
+| Badge | Source | Source state | Visual |
+|---|---|---|---|
+| `PENDING` | FO-EXE-011 pending-signal store | Signal awaiting user execution (Manual mode or `auto_trade=False`) | Amber |
+| `OPENING` | FO-EXE-012 cycle | `state=OPENING` (entry order in flight) | Blue spinner |
+| `OPEN` | FO-EXE-012 cycle | `state=OPEN` (position live, ticks updating) | Green |
+| `CLOSING` | FO-EXE-012 cycle | `state=CLOSING` (exit order in flight) | Orange spinner |
+
+`ABORTED` and `CLOSED` cycles drop out of the panel within 1 second of their terminal event; closed-cycle history lives on the Dashboard Trade History tab.
+
+### Columns
+
+| Column | PENDING | OPENING | OPEN | CLOSING |
+|---|---|---|---|---|
+| **State** | badge | badge | badge | badge |
+| **Time** | signal time | signal time | entry fill time | entry fill time |
+| **Symbol** | shown | shown | shown | shown |
+| **Strategy** | `strategy_id` | `strategy_id` | `strategy_id` | `strategy_id` |
+| **Qty** | recommended | submitted | filled | filled |
+| **Entry $** | est. | est. | actual `entry_price` | actual `entry_price` |
+| **LTP** | — | live | live | live |
+| **PnL $ / %** | — | live (mark) | live | live |
+| **Hard Stop** | from `StrategyConfig` | snapshot | editable | editable (read-only during fill) |
+| **Target** | from `StrategyConfig` | snapshot | editable | editable (read-only during fill) |
+| **Trail** | — | snapshot | live `trailing_stop_level` | live |
+| **Actions** | `[Execute]` `[✕]` | spinner | `[Edit Risk ▼]` `[Close]` | spinner |
+
+### Actions
+
+| Control | State allowed | Effect |
+|---|---|---|
+| `[Execute]` | PENDING only | Opens confirmation dialog; on confirm, sends pending signal to `ExecutionRouter` via FO-EXE-011 command surface; row transitions to `OPENING` on order submission |
+| `[✕] Dismiss` | PENDING only | Removes signal from pending-signal store; logs `[Execution] User dismissed signal for {symbol}` at INFO; row disappears |
+| `[Edit Risk ▼]` | OPEN only | Expands inline editor for `hard_stop_loss`, `target_price`, `trailing_offset`, `trailing_mode`; on Save invokes `TradeCycleCommand.update_risk(cycle_id, …)`; invariant violations from FO-EXE-012 §10 surface as inline error |
+| `[Close]` | OPEN only | Opens confirmation dialog with current LTP and estimated PnL; on confirm, emits `manual_close(cycle_id)` to FO-EXE-002; row transitions to `CLOSING` |
+
+### Requirements
+
+1. **Single unified table.** The panel shall render one table with rows representing every active state (`PENDING` / `OPENING` / `OPEN` / `CLOSING`) for any `(strategy_id, symbol)` pair, sorted newest-first by Time.
+2. **Event subscriptions.** The panel shall subscribe to: `pending_signal_added`, `pending_signal_removed` from FO-EXE-011, and `CycleOpened`, `CycleUpdated`, `CycleClosing`, `CycleClosed`, `CycleAborted`, `RiskUpdated` from FO-EXE-012. Each event triggers an incremental row mutation; no full table re-render.
+3. **Live tick rendering.** `CycleUpdated` payloads (≥ 500 ms throttle from the ledger) update LTP, PnL $/%, trailing-stop level, and effective-stop columns in place. PnL cells are colour-coded green for positive, red for negative.
+4. **PENDING → OPENING transition.** When the user clicks `[Execute]` on a PENDING row and the confirmation is accepted, the panel sends the signal to the FO-EXE-011 command surface and shows an OPENING badge until the matching `CycleOpened` event arrives, at which point the badge flips to OPEN.
+5. **OPEN row expand.** Clicking `[Edit Risk ▼]` on an OPEN row reveals an inline editor under the row with editable `hard_stop_loss`, `target_price`, `trailing_offset`, `trailing_mode` (`$` / `%`) controls and Save / Cancel buttons. Save invokes `TradeCycleCommand.update_risk()`; an `invariant_violation` error is rendered inline without closing the editor.
+6. **Risk-edit invariants.** The editor's spinboxes shall pre-validate locally per FO-EXE-012 §10: HSL spinbox max = current LTP; Target spinbox min = current LTP; trailing offset min = 0.01. The server-side check remains authoritative.
+7. **`[Close]` confirmation.** The close dialog shall display `Close position? Submit SELL {qty} × {symbol} @ MKT — Entry ${entry_price} · Current ~${LTP} · Est. P&L: {pnl}`. On confirm the row transitions to CLOSING immediately (optimistic UI); a `CycleClosed` event removes the row, or a fill-reject restores it to OPEN.
+8. **Terminal row removal.** On `CycleClosed` or `CycleAborted` for any row, the row shall disappear from the table within 1 second of event receipt; a brief fade-out animation is acceptable but not required.
+9. **Empty state.** When the table contains zero rows the panel shall render a placeholder ("No active cycles — pending signals and open positions appear here") with no actions.
+10. **No business logic.** No panel module shall compute PnL, evaluate exit conditions, or apply risk edits locally. Every mutation flows through `TradeCycleCommand` / FO-EXE-011 command surfaces. The panel is a renderer + action emitter.
+11. **Scope sync.** When the global admin Scope (FO-GUI-001) changes, the table re-queries `TradeCycleQuery.open_cycles()` and the pending-signal store, filtering to the selected user. The "All Users" scope shows every user's cycles with a prepended `User` column.
+12. **Circuit breaker behaviour.** When `circuit_breaker_active = True` (FO-EXE-003), `[Execute]` is disabled on every PENDING row with tooltip `Circuit breaker active — no new entries`; `[Close]` and `[Edit Risk ▼]` remain enabled so the trader can manage existing positions.
+
+### Acceptance Criteria
+
+1. A new pending signal for `(boss_ema, AAPL)` from FO-EXE-011 inserts exactly one new row with State badge `PENDING`, Strategy `boss_ema`, Symbol `AAPL`, the recommended Qty, est. Entry from the signal's payload, and `[Execute]` / `[✕]` buttons in the Actions cell.
+2. Clicking `[✕]` on that PENDING row removes the row, dispatches the dismiss command to FO-EXE-011, and emits one INFO log `[Execution] User dismissed signal for AAPL`.
+3. Clicking `[Execute]` opens a confirmation dialog showing `Submit BUY {qty} × AAPL @ MKT?`; on confirm, the row's badge flips to `OPENING` within 100 ms (optimistic), then to `OPEN` when `CycleOpened` arrives.
+4. With an OPEN cycle at `entry_price=$182.50, qty=25`, a `CycleUpdated` event carrying `current_price=185.00, current_pnl_usd=62.50, trailing_stop_level=182.50` updates the row's LTP cell to `185.00`, PnL cell to `+$62.50` (green), and Trail cell to `182.50` within the next paint cycle.
+5. Clicking `[Edit Risk ▼]` on the OPEN AAPL row reveals an inline editor; setting `hard_stop_loss=$200` (above current `$185.00`) and clicking Save renders an inline error "HSL cannot exceed current price" and leaves the row's HSL unchanged.
+6. Setting `hard_stop_loss=$184.50` and clicking Save invokes `update_risk(cycle_id, hard_sl=184.50)`, returns successfully, the editor closes, and the row's Hard Stop cell shows `184.50`.
+7. Clicking `[Close]` on the OPEN AAPL row shows a confirmation dialog with current LTP and estimated PnL; on confirm the row's badge flips to `CLOSING` immediately and `[Close]` / `[Edit Risk ▼]` are replaced by a spinner.
+8. A `CycleClosed(cycle_id, …)` event for the AAPL cycle removes the row within 1 second; the table updates to show one fewer row.
+9. With `circuit_breaker_active = True`, every PENDING row's `[Execute]` button is disabled with the tooltip text; `[Close]` and `[Edit Risk ▼]` on existing OPEN rows remain enabled.
+10. With the global Scope switched from "All Users" to a specific user, the table re-queries and renders only that user's pending signals and open cycles; the prepended User column is hidden.
+11. With zero rows in any state, the panel renders the empty-state placeholder; no row container is drawn.

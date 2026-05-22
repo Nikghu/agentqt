@@ -1,11 +1,13 @@
 # Module Decomposition — GUI Module (GUI)
 
 **Document ID:** MD-GUI
-**Version:** 1.2.0
-**Traces To:** SRD-GUI v2.6.0 / DD-GUI v1.4.0
+**Version:** 1.3.0
+**Traces To:** SRD-GUI v2.8.0 / DD-GUI v1.6.0
 **Status:** Draft
-**Last Updated:** 2026-05-15
+**Last Updated:** 2026-05-22
 **Project:** US Swing Trading System
+
+> v1.3.0: MD-GUI-013.* (Strategy Builder Dialog, 1 module) and MD-GUI-014.* (Active Cycles Panel, 3 modules) added.
 
 ---
 
@@ -59,3 +61,48 @@ gui/app_service.py (FO-GUI-012 additions)
                                 universe/store.py (load_sp500),
                                 ib_insync (Contract)
 ```
+
+---
+
+## FO-GUI-013 — Strategy Builder Dialog Modules
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP | Status |
+|---|---|---|---|---|---|---|---|
+| MD-GUI-013.001.M01 | SRD-GUI-013.001 — .014 | `src/us_swing/gui/strategy_builder_dialog.py` | `StrategyBuilderDialog(QDialog)` — frameless modal wizard with 5 pages (Info, Triggers, Scheduler, Execution, Risk); owns indicator catalogue, `StrategyConfig` dataclass, `load_strategies()`/`save_strategies()` registry I/O, `commit()` helper; embeds `_ConditionSelectorDialog`, `_CondBubble`, `_StrategyInfoPage`, `_TriggersPage`, `_SchedulerPage`, `_SettingsPage`, `_RiskPage` | `StrategyBuilderDialog(registry, editing=None, parent=None)`, signal `saved(StrategyConfig)`; module-level `load_strategies() -> list[StrategyConfig]`, `save_strategies(configs)`, `commit(registry, cfg) -> list[StrategyConfig]`, `StrategyConfig` dataclass | `PyQt6` (`QDialog`, `QTreeWidget`, `QStackedWidget`, `QFormLayout`, `QComboBox`, `QLineEdit`, `QSpinBox`, `QDoubleSpinBox`, `QDateEdit`, `QTimeEdit`, `QCheckBox`, `QPushButton`, `QListWidget`), `theme.C`, `universe/store.py` (`load_sp500`), `dataclasses`, `json`, `pathlib` | No | Approved |
+
+### Cross-Module Modifications for FO-GUI-013
+
+| Module ID | File | Change Required | SRD |
+|---|---|---|---|
+| MD-GUI-004.001.M01 | `src/us_swing/gui/execution_panel.py` | Add an "Add Strategy" button and an "Edit" action on the strategy table that instantiate `StrategyBuilderDialog(registry, editing=…)` and connect its `saved` signal to refresh the strategy table. | SRD-GUI-013.001 |
+
+---
+
+## FO-GUI-014 — Active Cycles Panel Modules
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP | Status |
+|---|---|---|---|---|---|---|---|
+| MD-GUI-014.001.M01 | SRD-GUI-014.001, .003 — .005, .008 — .012 | `src/us_swing/gui/active_cycles_panel.py` | `ActiveCyclesPanel(QWidget)` — replaces right pane of `_ExecutionPanel`; owns `QTableView`, `_ActiveCyclesModel`, `_RowActionsDelegate`; subscribes to FO-EXE-011 pending-signal signals and FO-EXE-012 `TradeCycleEvent` bus via Qt-queued relay; hosts confirmation dialogs (Execute, Close); manages empty-state placeholder, scope sync, circuit-breaker delegate flag, inline-editor expand/collapse via `setSpan` + `setIndexWidget` | `ActiveCyclesPanel(cycle_query, cycle_cmd, pending_store, app_service, parent=None)`, `set_scope(user_id)` | `_active_cycles_model`, `_risk_editor_widget`, `PyQt6` (`QWidget`, `QTableView`, `QStyledItemDelegate`, `QTimer`, `QMessageBox`), `theme.C`, FO-EXE-011 `PendingSignalStore`, FO-EXE-012 `TradeCycleQuery`/`TradeCycleCommand`, `AppService` | No | Approved |
+| MD-GUI-014.001.M02 | SRD-GUI-014.002, .004 | `src/us_swing/gui/active_cycles_model.py` | `_ActiveCyclesModel(QAbstractTableModel)` — unified row store for PENDING + cycle rows; `_Row` dataclass, `Col` IntEnum, `_by_key` index map; incremental `on_pending_*`/`on_cycle_*` handlers; contiguous-range `dataChanged` emission; cell formatting for state badge, PnL coloring; editor-row helpers (`_insert_editor_row`, `_remove_editor_row`) | `_ActiveCyclesModel(query, pending_store)`, `refresh()`, `on_pending_added(signal)`, `on_pending_removed(id)`, `on_cycle_opened(snap)`, `on_cycle_updated(snap)`, `on_cycle_state(snap)`, `on_cycle_closed(snap)`, `on_cycle_aborted(snap)`, `set_scope(uid)` | `PyQt6.QtCore.QAbstractTableModel`, `theme.C`, FO-EXE-012 `CycleSnapshot`, FO-EXE-011 `TradeSignal`, `dataclasses`, `enum.IntEnum` | No | Approved |
+| MD-GUI-014.001.M03 | SRD-GUI-014.007 | `src/us_swing/gui/risk_editor_widget.py` | `_RiskEditorWidget(QWidget)` — inline editor for HSL / Target / Trail mode / Trail offset bound to a `CycleSnapshot`; spinbox ranges anchored to `snap.current_price` for local pre-validation; emits `saved(cycle_id, fields)` / `cancelled(cycle_id)`; renders inline error on `InvariantViolation` from server | `_RiskEditorWidget(snap)`, signals `saved(int, dict)` / `cancelled(int)`, method `show_error(msg)` | `PyQt6` (`QWidget`, `QDoubleSpinBox`, `QComboBox`, `QPushButton`, `QLabel`), `theme.C`, FO-EXE-012 `CycleSnapshot` | No | Approved |
+
+### Cross-Module Modifications for FO-GUI-014
+
+| Module ID | File | Change Required | SRD |
+|---|---|---|---|
+| MD-GUI-004.001.M01 | `src/us_swing/gui/execution_panel.py` | Remove the existing "Pending Signals" right pane widget tree. Replace with `ActiveCyclesPanel` inside the same `QSplitter` slot. Left "Filtered Stocks" pane unchanged. | SRD-GUI-014.001 |
+| MD-GUI-004.001.M01 | `src/us_swing/gui/app_service.py` | Wire FO-EXE-011 `PendingSignalStore` and FO-EXE-012 `TradeCycleService` into AppService construction; expose `cycle_query`, `cycle_cmd`, `pending_store` properties consumed by `ActiveCyclesPanel`. Forward `circuit_breaker_changed(bool)` (FO-EXE-003) so the delegate's button-paint can react. | SRD-GUI-014.012 |
+
+---
+
+## File Tree for FO-GUI-013 + FO-GUI-014
+
+```
+us_swing/src/us_swing/gui/
+├── strategy_builder_dialog.py            # MD-GUI-013.001.M01 (existing — working prototype)
+├── active_cycles_panel.py                # MD-GUI-014.001.M01 (NEW)
+├── active_cycles_model.py                # MD-GUI-014.001.M02 (NEW)
+└── risk_editor_widget.py                 # MD-GUI-014.001.M03 (NEW)
+```
+
+> The Strategy Builder Dialog is already implemented as a single file (~1620 lines). Splitting into per-page submodules is a future refactor; the working prototype's monolithic layout is retained for this FO. The Active Cycles Panel is split into three files from the start because the model + delegate + editor benefit from clear file boundaries for testing.

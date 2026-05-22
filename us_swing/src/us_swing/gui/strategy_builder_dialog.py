@@ -322,7 +322,12 @@ def load_strategies() -> list[StrategyConfig]:
     try:
         raw: list[dict] = json.loads(_STRATEGIES_PATH.read_text(encoding="utf-8"))
         valid_keys = {f.name for f in fields(StrategyConfig)}
-        return [StrategyConfig(**{k: v for k, v in r.items() if k in valid_keys}) for r in raw]
+        configs = [StrategyConfig(**{k: v for k, v in r.items() if k in valid_keys}) for r in raw]
+        for cfg in configs:
+            if cfg.strategy_signal.get("Status") != "Inactive":
+                cfg.strategy_signal["Status"] = "Inactive"
+                cfg.strategy_signal["Running_Symbols"] = []
+        return configs
     except Exception:
         return []
 
