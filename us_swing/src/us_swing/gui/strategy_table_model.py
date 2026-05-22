@@ -13,25 +13,26 @@ from PyQt6.QtWidgets import QStyle, QStyleOptionViewItem, QStyledItemDelegate, Q
 from us_swing.gui.strategy_builder_dialog import StrategyConfig
 from us_swing.gui.theme import C
 
-COL_STATUS     = 0
-COL_NAME       = 1
-COL_EDIT       = 2
-COL_DELETE     = 3
-COL_SCOPE      = 4
-COL_MODE       = 5
-COL_CAPITAL    = 6
-COL_START      = 7
-COL_END        = 8
-COL_TRADE_TYPE    = 9
-COL_START_DATE    = 10
-COL_END_DATE      = 11
-COL_TARGET        = 12
-COL_TARGET_TYPE   = 13
-COL_STOPLOSS      = 14
-COL_STOPLOSS_TYPE = 15
+COL_STATUS        = 0
+COL_RUN           = 1
+COL_NAME          = 2
+COL_EDIT          = 3
+COL_DELETE        = 4
+COL_SCOPE         = 5
+COL_MODE          = 6
+COL_CAPITAL       = 7
+COL_START         = 8
+COL_END           = 9
+COL_TRADE_TYPE    = 10
+COL_START_DATE    = 11
+COL_END_DATE      = 12
+COL_TARGET        = 13
+COL_TARGET_TYPE   = 14
+COL_STOPLOSS      = 15
+COL_STOPLOSS_TYPE = 16
 
 COLUMNS: list[str] = [
-    "Status", "Name", "Edit", "Delete", "Scope", "Mode", "Capital",
+    "Status", "Run", "Name", "Edit", "Delete", "Scope", "Mode", "Capital",
     "Start", "End", "Trade Type", "Start Date", "End Date",
     "Target", "Target Type", "Stop Loss", "StopLoss Type",
 ]
@@ -82,7 +83,7 @@ class StrategyTableModel(QAbstractTableModel):
         cfg = self._rows[index.row()]
         col = index.column()
 
-        if col in (COL_EDIT, COL_DELETE):
+        if col in (COL_RUN, COL_EDIT, COL_DELETE):
             return None
 
         if role == Qt.ItemDataRole.DisplayRole:

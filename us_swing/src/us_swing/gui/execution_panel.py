@@ -56,6 +56,7 @@ from us_swing.gui.strategy_builder_dialog import (
     load_strategies,
     save_strategies,
 )
+from us_swing.execution.strategy_runner import StrategyRunWorker, _apply_scope
 from us_swing.gui.strategy_table_model import (
     COL_CAPITAL,
     COL_DELETE,
@@ -64,6 +65,7 @@ from us_swing.gui.strategy_table_model import (
     COL_END_DATE,
     COL_MODE,
     COL_NAME,
+    COL_RUN,
     COL_SCOPE,
     COL_START,
     COL_START_DATE,
@@ -145,9 +147,11 @@ def _cell_icon(kind: str, color_hex: str) -> QIcon:
 class _StrategyTablePane(QWidget):
     """Strategy Builder tab — all configured strategies with inline edit and delete."""
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, demo: AppService, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        self._demo = demo
         self._configs: list[StrategyConfig] = load_strategies()
+        self._run_workers: dict[str, StrategyRunWorker] = {}
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 6, 0, 0)
@@ -199,6 +203,7 @@ class _StrategyTablePane(QWidget):
             hh.setStretchLastSection(False)
             for col, width, mode in [
                 (COL_STATUS,      110, QHeaderView.ResizeMode.Interactive),
+                (COL_RUN,          34, QHeaderView.ResizeMode.Fixed),
                 (COL_NAME,        130, QHeaderView.ResizeMode.Interactive),
                 (COL_EDIT,         42, QHeaderView.ResizeMode.Fixed),
                 (COL_DELETE,       62, QHeaderView.ResizeMode.Fixed),
@@ -233,6 +238,17 @@ class _StrategyTablePane(QWidget):
         ct = active_palette()
         for proxy_row in range(self._proxy.rowCount()):
             src_row = self._proxy.mapToSource(self._proxy.index(proxy_row, 0)).row()
+            cfg = self._configs[src_row]
+            status = cfg.strategy_signal.get("Status", "Inactive")
+            is_live = status in ("Active", "Running")
+            self._view.setIndexWidget(
+                self._proxy.index(proxy_row, COL_RUN),
+                self._make_run_btn(
+                    "■" if is_live else "▶",
+                    ct.RED if is_live else ct.GREEN,
+                    lambda _, r=src_row: self._on_run(r),
+                ),
+            )
             self._view.setIndexWidget(
                 self._proxy.index(proxy_row, COL_EDIT),
                 self._make_cell_btn("edit", ct.BLUE, lambda _, r=src_row: self._on_edit(r)),
@@ -241,6 +257,17 @@ class _StrategyTablePane(QWidget):
                 self._proxy.index(proxy_row, COL_DELETE),
                 self._make_cell_btn("delete", ct.RED, lambda _, r=src_row: self._on_delete(r)),
             )
+
+    @staticmethod
+    def _make_run_btn(icon_char: str, color: str, slot: Any) -> QPushButton:
+        btn = QPushButton(icon_char)
+        btn.setFixedHeight(C.BTN_H)
+        btn.setFixedWidth(C.BTN_H)
+        btn.setToolTip("Start strategy" if icon_char == "▶" else "Stop strategy")
+        btn.setStyleSheet(_CELL_BTN_SS.format(border=color, fg=color))
+        btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        btn.clicked.connect(slot)
+        return btn
 
     @staticmethod
     def _make_cell_btn(kind: str, color: str, slot: Any) -> QPushButton:
@@ -297,6 +324,58 @@ class _StrategyTablePane(QWidget):
         self._configs.append(cfg)
         save_strategies(self._configs)
         self._refresh_table()
+
+    def _on_run(self, src_row: int) -> None:
+        if src_row < 0 or src_row >= len(self._configs):
+            return
+        cfg = self._configs[src_row]
+        current_status = cfg.strategy_signal.get("Status", "Inactive")
+        if current_status == "Inactive":
+            cfg.strategy_signal["Status"] = "Active"
+            cfg.strategy_signal["Running_Symbols"] = []
+            save_strategies(self._configs)
+            self._start_worker(src_row, cfg)
+            self._refresh_table()
+        else:
+            self._stop_worker(cfg.name)
+            cfg.strategy_signal["Status"] = "Inactive"
+            cfg.strategy_signal["Running_Symbols"] = []
+            save_strategies(self._configs)
+            self._refresh_table()
+
+    def _start_worker(self, _src_row: int, cfg: StrategyConfig) -> None:
+        demo = self._demo
+
+        def _get_syms() -> list[str]:
+            entries = demo.get_latest_screener_results()
+            return _apply_scope([e.symbol for e in entries], cfg)
+
+        worker = StrategyRunWorker(cfg, _get_syms, parent=self)
+        worker.status_changed.connect(self._on_worker_status)
+        worker.symbols_changed.connect(self._on_worker_symbols)
+        worker.start()
+        self._run_workers[cfg.name] = worker
+
+    def _stop_worker(self, name: str) -> None:
+        worker = self._run_workers.pop(name, None)
+        if worker is not None:
+            worker.request_stop()
+            worker.wait(2000)
+
+    def _on_worker_status(self, name: str, new_status: str) -> None:
+        for cfg in self._configs:
+            if cfg.name == name:
+                cfg.strategy_signal["Status"] = new_status
+                save_strategies(self._configs)
+                break
+        self._refresh_table()
+
+    def _on_worker_symbols(self, name: str, symbols: list[str]) -> None:
+        for cfg in self._configs:
+            if cfg.name == name:
+                cfg.strategy_signal["Running_Symbols"] = symbols
+                save_strategies(self._configs)
+                break
 
     def update_signal_status(self, name: str, signal: dict[str, Any]) -> None:
         """Refresh the live strategy signal for a named config and repaint."""
@@ -1140,7 +1219,8 @@ class ExecutionPanel(QWidget):
         self._v_splitter.setStyleSheet(f"QSplitter::handle {{ background: {active_palette().OVERLAY}; }}")
 
         self._v_splitter.addWidget(self._chart_pane)
-        self._v_splitter.addWidget(self._build_bottom_tabs(demo))
+        self._bottom_tabs = self._build_bottom_tabs(demo)
+        self._v_splitter.addWidget(self._bottom_tabs)
         self._v_splitter.setSizes([380, 260])
         self._v_splitter.setCollapsible(0, False)
         self._v_splitter.setCollapsible(1, False)
@@ -1148,11 +1228,10 @@ class ExecutionPanel(QWidget):
         layout.addWidget(self._v_splitter, 1)
         return pane
 
-    def _build_bottom_tabs(self, demo: AppService) -> QTabWidget:
-        """Tabbed bottom pane: Pending Signals | Strategy Builder."""
+    @staticmethod
+    def _tab_qss() -> str:
         ct = active_palette()
-        tabs = QTabWidget()
-        tabs.setStyleSheet(
+        return (
             f"QTabBar::tab {{"
             f"  color: {ct.TEXT}; background: {ct.SURFACE};"
             f"  border: 1px solid {ct.OVERLAY}; border-bottom: none;"
@@ -1167,8 +1246,13 @@ class ExecutionPanel(QWidget):
             f"  border: 1px solid {ct.OVERLAY}; border-top: 1px solid {ct.OVERLAY};"
             f"}}"
         )
+
+    def _build_bottom_tabs(self, demo: AppService) -> QTabWidget:
+        """Tabbed bottom pane: Pending Signals | Strategy Builder."""
+        tabs = QTabWidget()
+        tabs.setStyleSheet(self._tab_qss())
         tabs.addTab(self._build_signals_pane(demo), "Pending Signals")
-        self._strategy_pane = _StrategyTablePane()
+        self._strategy_pane = _StrategyTablePane(demo)
         tabs.addTab(self._strategy_pane, "Strategy Builder")
         return tabs
 
@@ -1202,7 +1286,7 @@ class ExecutionPanel(QWidget):
         scroll = QScrollArea()
         scroll.setWidget(group)
         scroll.setWidgetResizable(True)
-        scroll.setStyleSheet(f"QScrollArea {{ border: none; background: {C.BG}; }}")
+        scroll.setStyleSheet("QScrollArea { border: none; }")
         layout.addWidget(scroll, 1)
 
         # Status line
@@ -1271,4 +1355,5 @@ class ExecutionPanel(QWidget):
         ct = active_palette()
         self._h_splitter.setStyleSheet(f"QSplitter::handle {{ background: {ct.OVERLAY}; }}")
         self._v_splitter.setStyleSheet(f"QSplitter::handle {{ background: {ct.OVERLAY}; }}")
+        self._bottom_tabs.setStyleSheet(self._tab_qss())
         self._chart_pane.refresh_theme()
