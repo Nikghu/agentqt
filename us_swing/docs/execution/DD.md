@@ -1,11 +1,14 @@
 # Design Document — Execution & Risk Management (EXE)
 
 **Document ID:** DD-EXE
-**Version:** 1.5.0
-**Traces To:** SRD-EXE v1.6.0
+**Version:** 1.7.0
+**Traces To:** SRD-EXE v1.7.0
 **Status:** Draft
-**Last Updated:** 2026-05-16
+**Last Updated:** 2026-05-22
 **Project:** US Swing Trading System
+
+> v1.7.0: DD-EXE-012.* added — Trade Cycle Ledger (table DDL, repository, tick throttle, exit-trigger emission).
+> v1.6.0: DD-EXE-011.* added — Strategy Engine (threading layout, `_StrategyContext`, `ConditionEvaluator`, mode router).
 
 ---
 
@@ -1930,3 +1933,731 @@ The `origin` resolution uses `signal.strategy_id` for the immediate implementati
 5. `LiveBarWorker.start()` only after reconcile completes (or is confirmed not needed for today)
 
 Step 3's `maybe_run_on_startup()` is synchronous to enforce the ordering. If the user opens the app mid-session, reconcile completes before any tick subscription begins — preventing the brief window where evicted symbols could re-acquire ticks.
+
+---
+
+## DD-EXE-011.001.D01 — Threading, asyncio Layout & Lifecycle
+
+**Parent SRD:** SRD-EXE-011.001 — SRD-EXE-011.003, .013
+**Status:** Approved
+
+### Package Layout
+
+```
+us_swing/src/us_swing/execution/strategy_engine/
+├── __init__.py            # public re-exports: StrategyEngine, StrategyEvent union
+├── _engine.py             # StrategyEngine(QThread) + asyncio bootstrap
+├── _context.py            # _StrategyContext dataclass + _CycleState enum
+├── _evaluator.py          # ConditionEvaluator (tokenizer + parser + indicators)
+├── _router.py             # signal-queue consumer + Mode/auto_trade dispatch
+├── _events.py             # sealed StrategyEvent union
+└── _signals.py            # TradeSignal frozen dataclass
+```
+
+No module under this package imports `PyQt6` — checked by `import_path_guard` in tests.
+
+### Thread / Loop Topology
+
+```
+GUI thread                                     QThread (StrategyEngine)
+──────────                                     ──────────────────────────
+AppService                                     asyncio.run(_async_run())
+  ├─ candle_closed signal  ─── pyqtSignal ──►  _on_candle_closed (slot)
+  │                                              └─ asyncio.run_coroutine_threadsafe(
+  │                                                     _fanout(symbol, bar), loop)
+  ├─ tick_price (FO-EXE-008) ─ pyqtSignal ──►  (not consumed here; FO-EXE-012)
+  └─ engine.emergency_stop()  ─ direct call ─►  _on_emergency_stop (re-entrant)
+                                                 └─ event-loop call_soon_threadsafe
+```
+
+### Top-Level Coroutine Tree
+
+```python
+async def _async_run(self) -> None:
+    self._queue: asyncio.Queue[TradeSignal] = asyncio.Queue(maxsize=512)
+    self._registry: dict[str, _StrategyContext] = await self._load_registry()
+    await asyncio.gather(
+        self._router_loop(),                 # consumes self._queue
+        self._end_time_watcher_loop(),       # 30 s tick, forces EXIT at end_time
+        self._emergency_drain_loop(),        # awakens on _emergency_active = True
+    )
+```
+
+`_fanout(symbol, bar)` is NOT a long-running coroutine — it is scheduled fresh per bar-close event and awaits `asyncio.gather(*per_ctx_tasks)`, then exits. Per-context coroutines are lightweight (a single `_evaluate` call each); no per-strategy long-running task.
+
+### Lifecycle
+
+| Method | Thread | Effect |
+|---|---|---|
+| `start()` | caller | Inherited `QThread.start()`; spawns event-loop thread |
+| `request_stop()` | caller | `call_soon_threadsafe(self._stop_event.set)`; loop unwinds; `quit()` + `wait()` |
+| `emergency_stop()` | caller | Synchronous: enqueues EXIT per `Running` cycle, sets `_emergency_active`, blocks on `_quiesced_event` |
+| `reload_registry()` | caller | Diffs new vs old contexts on the loop; adds/removes safely |
+
+### Signal Wiring
+
+| AppService signal | Engine slot | Notes |
+|---|---|---|
+| `candle_closed(symbol)` | `_on_candle_closed` | Slot re-enters asyncio via `run_coroutine_threadsafe` |
+| `order_fill(fill_event)` (FO-EXE-002) | `_on_order_fill` | Drives `UnderEntry → Running` / `UnderExit → SquareOff` |
+| `order_reject(reject_event)` (FO-EXE-002) | `_on_order_reject` | Rolls back to prior state |
+| `circuit_breaker_changed(bool)` (FO-EXE-003) | `_on_circuit_breaker` | Suspends evaluation while True |
+
+---
+
+## DD-EXE-011.002.D01 — `_StrategyContext` & Per-Cycle State Machine
+
+**Parent SRD:** SRD-EXE-011.002, .004, .005, .007
+**Status:** Approved
+
+### Cycle State Enum
+
+```python
+class _CycleState(StrEnum):
+    INACTIVE    = "Inactive"
+    ACTIVE      = "Active"
+    UNDER_ENTRY = "UnderEntry"
+    RUNNING     = "Running"
+    UNDER_EXIT  = "UnderExit"
+    SQUARE_OFF  = "SquareOff"
+```
+
+### Context Dataclass
+
+```python
+@dataclass
+class _StrategyContext:
+    cfg:               StrategyConfig                          # snapshot at load time
+    cycles:            dict[str, _CycleState] = field(default_factory=dict)
+    cycle_locks:       dict[str, asyncio.Lock] = field(default_factory=dict)
+    last_entry_signal: dict[str, TradeSignal | None] = field(default_factory=dict)
+
+    @property
+    def name(self) -> str: return self.cfg.name
+
+    def accepts(self, symbol: str) -> bool:
+        m = self.cfg.symbol_mode
+        if m == "all":           return True
+        if m == "include_only":  return symbol in self.cfg.symbols_include
+        if m == "exclude_these": return symbol not in self.cfg.symbols_exclude
+        return False
+
+    def lock_for(self, symbol: str) -> asyncio.Lock:
+        return self.cycle_locks.setdefault(symbol, asyncio.Lock())
+
+    def state(self, symbol: str) -> _CycleState:
+        return self.cycles.get(symbol, _CycleState.ACTIVE)
+```
+
+### Transition Table
+
+| From → To | Trigger | Side effect |
+|---|---|---|
+| `ACTIVE` → `UNDER_ENTRY` | `entry_condition` True; capital cap OK | Enqueue `TradeSignal(ENTRY)`; persist `Order_Entry_Status='pending'` |
+| `UNDER_ENTRY` → `RUNNING` | `order_fill(entry)` | Persist `Status='Running'`, `Order_Entry_Timestamp`, `Executed_Quantity` |
+| `UNDER_ENTRY` → `ACTIVE` | `order_reject(entry)` | Persist `Order_Entry_Status='rejected'`; DEBUG log |
+| `RUNNING` → `UNDER_EXIT` | `exit_condition` True OR `ExitTrigger` from FO-EXE-012 OR `end_time` reached OR `emergency_stop()` | Enqueue `TradeSignal(EXIT, reason=…)`; persist `Order_Exit_Status='pending'` |
+| `UNDER_EXIT` → `SQUARE_OFF` | `order_fill(exit)` | Persist `Status='SquareOff'`, `Order_Exit_Timestamp` |
+| `UNDER_EXIT` → `RUNNING` | `order_reject(exit)` | Persist `Order_Exit_Status='rejected'` |
+| `SQUARE_OFF` → `ACTIVE` | Next session window opens | Reset `cycles[symbol]` (or delete entry) |
+| any → `INACTIVE` | `cfg.mode = 'disabled'` OR outside schedule | No order activity; preserves any open `RUNNING` per FO-EXE-011 §4 (positions are handled by FO-EXE-012, not closed by mode switch) |
+
+### Lock Granularity
+
+One `asyncio.Lock` per `(strategy_id, symbol)` — held only across the read-state → mutate-state critical section in `_evaluate` and `_on_order_*`. The lock is NOT held while awaiting `RiskManager.can_allocate()` or `queue.put()` to avoid head-of-line blocking.
+
+### Duplicate-Signal Suppression
+
+```python
+async def _maybe_emit_entry(ctx, symbol, signal):
+    async with ctx.lock_for(symbol):
+        s = ctx.state(symbol)
+        if s in (UNDER_ENTRY, RUNNING, UNDER_EXIT):
+            log.debug("[Strategy] %s %s duplicate ENTRY suppressed", ctx.name, symbol)
+            return
+        ctx.cycles[symbol] = UNDER_ENTRY
+        ctx.last_entry_signal[symbol] = signal
+    await self._queue.put(signal)               # outside the lock
+```
+
+---
+
+## DD-EXE-011.006.D01 — `ConditionEvaluator` Class Breakdown
+
+**Parent SRD:** SRD-EXE-011.006
+**Status:** Approved
+
+### Class Layout
+
+```python
+class ConditionEvaluator:
+    """
+    Parses and evaluates the FO-GUI-013 expression grammar against candle data.
+    Stateless across calls; can be shared by all contexts.
+    """
+
+    FUNCTION_MAP: ClassVar[dict[str, Callable]] = {
+        "Number":        _fn_number,
+        "PNL":           _fn_pnl,
+        "VWAP":          _fn_vwap,
+        "Price":         _fn_price,
+        "RSI":           _fn_rsi,
+        "ADX":           _fn_adx,
+        "EMA":           _fn_ema,
+        "SUPERTREND":    _fn_supertrend,
+        "SWING":         _fn_swing,
+        "MACD":          _fn_macd,
+        "BOS_Engulfing": _fn_bos_engulfing,
+        "BOSS_EMA":      _fn_boss_ema,
+        "BOSS_ADX":      _fn_boss_adx,
+        "BOSS_SMT":      _fn_boss_smt,
+    }
+
+    def evaluate(self,
+                 expr: str,
+                 candles: dict[str, pd.DataFrame],
+                 symbol: str) -> bool:
+        tokens = self._tokenize(expr)
+        ast    = self._parse(tokens)
+        return bool(self._eval(ast, candles, symbol))
+```
+
+### Three-Pass Pipeline
+
+```
+expression string
+      │
+      ▼  _tokenize() — single regex with named groups
+[NUMBER, IDENT, STRING, OP, COMMA, LPAREN, RPAREN, AND, OR]
+      │
+      ▼  _parse() — recursive descent
+        parse_or → parse_and → parse_comparison → parse_term
+                                                  └─ NUMBER | STRING | function_call | '(' expression ')'
+{type: 'BIN_OP'|'FUNC'|'NUMBER'|'STRING', ...} AST
+      │
+      ▼  _eval(ast, candles, symbol) — post-order
+bool
+```
+
+### AST Node Schemas
+
+```python
+# AST is a dict — no class hierarchy needed
+BinOpNode = dict[str, Any]    # {'type': 'BIN_OP', 'op': str, 'left': Node, 'right': Node}
+FuncNode  = dict[str, Any]    # {'type': 'FUNC',   'name': str, 'args': list[Node]}
+NumNode   = dict[str, Any]    # {'type': 'NUMBER', 'value': int | float}
+StrNode   = dict[str, Any]    # {'type': 'STRING', 'value': str}
+```
+
+### Indicator Function Signature
+
+Every indicator function in `FUNCTION_MAP` follows a fixed signature:
+
+```python
+def _fn_<name>(args: list[Any], candles: dict[str, pd.DataFrame], symbol: str) -> float | bool:
+    # args[i] is already a primitive (int/float/str) — strings are unquoted by the tokenizer
+    ...
+```
+
+Args are validated by arity at parse time (each indicator declares its expected arg count in a sibling dict `_ARITY: dict[str, int]`). Arity mismatch raises `EvaluatorError` with the offending expression.
+
+### Reuse from Legacy `TaEvaluator.py`
+
+The legacy file already implements tokenizer + parser correctly. Port plan:
+1. Lift `tokenize()`, `parse()`, `parse_or/_and/_comparison/_term/_arg_list` verbatim into `_evaluator.py` as private methods.
+2. Replace per-indicator method bodies with `pandas_ta` calls fed by the `candles[timeframe]` DataFrame for `symbol` (legacy code uses a different broker-data shape).
+3. Drop the `Index`, `Underlying_Type`, `Symbol Type` ('Spot'/'RSP') indirection — US Swing is equities-only, the `Symbol Type` parameter is informational and ignored by indicators.
+4. Drop `convert_time_code_v1` — timeframe strings (`'1m'`, `'3m'`, …) stay as DataFrame keys; no conversion to seconds.
+
+### Caching
+
+The evaluator does NOT cache indicator results across calls. Indicator values are computed once per `evaluate()` call from the supplied candles dict. Candle DataFrames are reused — the engine passes the same reference to every context evaluating that symbol on a given bar close, so pandas-internal vectorization is the only optimization needed.
+
+---
+
+## DD-EXE-011.009.D01 — Mode + Auto-Trade Router
+
+**Parent SRD:** SRD-EXE-011.008 — SRD-EXE-011.011
+**Status:** Approved
+
+### Decision Matrix
+
+| `cfg.mode` | `cfg.auto_trade` | Destination |
+|---|---|---|
+| `manual` | * | `PendingSignalStore.add(signal)` |
+| `auto` | `False` | `PendingSignalStore.add(signal)` |
+| `auto` | `True` | `RiskManager.validate()` → `ExecutionRouter.submit()` |
+| `disabled` | * | Context not loaded; never reaches router |
+
+### Router Coroutine
+
+```python
+async def _router_loop(self) -> None:
+    while not self._stop_event.is_set():
+        signal = await self._queue.get()
+        try:
+            ctx = self._registry[signal.strategy_id]
+            if ctx.cfg.mode == "manual" or not ctx.cfg.auto_trade:
+                self._pending_store.add(signal)              # FO-EXE-011 §7 + §11
+                self._bus.publish(StrategySignalPending(signal))
+            else:
+                result = await self._risk.validate(signal)
+                if not result.ok:
+                    await self._reject_locally(ctx, signal, reason=result.reason)
+                    self._bus.publish(StrategySignalDropped(signal, result.reason))
+                    continue
+                await self._router.submit(signal, qty=result.qty)
+        finally:
+            self._queue.task_done()
+```
+
+### Capital Cap Path
+
+`RiskManager.can_allocate()` is checked at signal *emission* (`_maybe_emit_entry`, DD-EXE-011.002), BEFORE the signal lands on the queue. A cap-fail there suppresses the signal and rolls the cycle back to `ACTIVE` with a `StrategySignalDropped(reason='capital_cap')` event — never enters the router. This keeps the router's contract simple: every dequeued signal is already capital-eligible.
+
+`RiskManager.validate()` inside the router is the broader pre-submission check (max position size, circuit breaker, daily loss limit). A failure there logs WARNING and emits `StrategySignalDropped`.
+
+### Reject / Rollback Flow
+
+```
+Submit → ExecutionRouter
+            │
+   ┌────────┴────────┐
+   ▼                 ▼
+order_fill        order_reject
+   │                 │
+   ▼                 ▼
+ctx.cycles[sym]   ctx.cycles[sym]
+ = RUNNING         = ACTIVE
+                  + StrategyErrored event
+```
+
+### End-Time Watcher
+
+```python
+async def _end_time_watcher_loop(self) -> None:
+    while not self._stop_event.is_set():
+        await asyncio.sleep(30)
+        now_et = datetime.now(ZoneInfo("America/New_York"))
+        for ctx in self._registry.values():
+            if ctx.cfg.trade_type != "Intraday":
+                continue
+            if now_et.time() < parse_time(ctx.cfg.end_time):
+                continue
+            for symbol, state in list(ctx.cycles.items()):
+                if state == _CycleState.RUNNING:
+                    await self._force_exit(ctx, symbol, reason="end_time")
+```
+
+`_force_exit()` reuses the standard exit path — same queue, same router — but bypasses `exit_condition` evaluation. Positional strategies skip this loop entirely.
+
+### Emergency Stop
+
+```python
+def emergency_stop(self) -> None:
+    """Synchronous; blocks until every Running position reaches SquareOff."""
+    fut = asyncio.run_coroutine_threadsafe(self._do_emergency_stop(), self._loop)
+    fut.result(timeout=120)                                  # blocks
+
+async def _do_emergency_stop(self) -> None:
+    self._emergency_active = True
+    for ctx in self._registry.values():
+        for symbol, state in list(ctx.cycles.items()):
+            if state == _CycleState.RUNNING:
+                await self._force_exit(ctx, symbol, reason="emergency")
+    await self._wait_all_quiesced()                          # awaits every UNDER_EXIT → SQUARE_OFF
+    self._emergency_active = False
+```
+
+While `_emergency_active` is True, `_fanout()` short-circuits — no new entry evaluation, no new exit evaluation beyond what's already in flight.
+
+---
+
+## DD-EXE-012.001.D01 — Table DDL & Schema Migration
+
+**Parent SRD:** SRD-EXE-012.001
+**Status:** Approved
+
+### Package Layout
+
+```
+us_swing/src/us_swing/execution/trade_cycle/
+├── __init__.py          # public re-exports: TradeCycleQuery, TradeCycleCommand, build_default_service
+├── _schema.py           # SQLAlchemy Table definition (re-exported via db/schema.py)
+├── _repository.py       # DB access layer (no business logic)
+├── _service.py          # lifecycle + tick-update + exit-trigger
+├── _dto.py              # CycleSnapshot frozen dataclass + invariants
+└── _events.py           # sealed TradeCycleEvent union
+```
+
+No `PyQt6` import anywhere under this package.
+
+### `trade_cycles` Table
+
+```python
+trade_cycles = sa.Table(
+    "trade_cycles", metadata,
+    sa.Column("cycle_id",                sa.Integer, primary_key=True, autoincrement=True),
+    # Identity
+    sa.Column("strategy_id",             sa.Text,    nullable=False),
+    sa.Column("symbol",                  sa.Text,    nullable=False),
+    sa.Column("user_id",                 sa.Integer, nullable=False),
+    sa.Column("monitoring_session_date", sa.Text,    nullable=False),     # FK → monitoring_session.session_date
+    # Entry
+    sa.Column("entry_time",              sa.Text,    nullable=False),     # ISO UTC
+    sa.Column("entry_price",             sa.Float,   nullable=False),
+    sa.Column("entry_qty",               sa.Integer, nullable=False),
+    sa.Column("entry_order_id",          sa.Text,    nullable=False, unique=True),
+    # Risk-snapshot (frozen at entry)
+    sa.Column("hard_stop_loss",          sa.Float,   nullable=False),
+    sa.Column("target_price",            sa.Float),                       # null when target disabled
+    sa.Column("target_type",             sa.Text,    nullable=False),     # 'fixed' | 'trailing'
+    sa.Column("stoploss_type",           sa.Text,    nullable=False),
+    sa.Column("trailing_mode",           sa.Text),                        # '$' | '%' — null when disabled
+    sa.Column("trailing_offset",         sa.Float),                       # null when disabled
+    # Live
+    sa.Column("current_price",           sa.Float),
+    sa.Column("current_pnl_usd",         sa.Float),
+    sa.Column("current_pnl_pct",         sa.Float),
+    sa.Column("highest_price_seen",      sa.Float),
+    sa.Column("trailing_stop_level",     sa.Float),
+    sa.Column("effective_stop",          sa.Float),
+    sa.Column("last_updated_at",         sa.Text),
+    # Exit
+    sa.Column("exit_time",               sa.Text),
+    sa.Column("exit_price",              sa.Float),
+    sa.Column("exit_qty",                sa.Integer),
+    sa.Column("exit_order_id",           sa.Text, unique=True),
+    sa.Column("exit_reason",             sa.Text),                        # see enum below
+    # Outcome
+    sa.Column("realized_pnl_usd",        sa.Float),
+    sa.Column("realized_pnl_pct",        sa.Float),
+    sa.Column("state",                   sa.Text, nullable=False,
+              server_default="OPENING"),                                  # see state machine
+    sa.Column("opened_at",               sa.Text, nullable=False),
+    sa.Column("closed_at",               sa.Text),
+)
+
+sa.Index("idx_trade_cycles_state_symbol", trade_cycles.c.state, trade_cycles.c.symbol)
+sa.Index("idx_trade_cycles_strategy_symbol_state",
+         trade_cycles.c.strategy_id, trade_cycles.c.symbol, trade_cycles.c.state)
+```
+
+### Enums (string literals, validated by repository on write)
+
+```python
+CYCLE_STATES   = frozenset({"OPENING", "OPEN", "CLOSING", "CLOSED", "ABORTED"})
+EXIT_REASONS   = frozenset({"strategy", "hard_sl", "target", "trailing_sl",
+                             "end_time", "manual", "emergency"})
+TARGET_TYPES   = frozenset({"fixed", "trailing"})
+STOPLOSS_TYPES = frozenset({"fixed", "trailing"})
+TRAILING_MODES = frozenset({"$", "%"})
+```
+
+Each repository write that touches one of these columns asserts membership; SQLite enforces nothing here — validation is application-side.
+
+### Migration
+
+Pure additive: `create_schema(engine, checkfirst=True)` in `db/schema.py` already runs on every startup. The table appears on first run; existing databases are unaffected. No `migrate_lifecycle_columns()` entry needed.
+
+---
+
+## DD-EXE-012.002.D01 — `_repository.py` — Query & Mutation Methods
+
+**Parent SRD:** SRD-EXE-012.003, .007, .008, .009, .010, .013
+**Status:** Approved
+
+### Snapshot DTO
+
+```python
+@dataclass(frozen=True, slots=True)
+class CycleSnapshot:
+    schema_version:    int = 1
+    cycle_id:          int = 0
+    strategy_id:       str = ""
+    symbol:            str = ""
+    user_id:           int = 0
+    state:             str = "OPENING"
+    entry_time:        str = ""
+    entry_price:       float = 0.0
+    entry_qty:         int   = 0
+    hard_stop_loss:    float = 0.0
+    target_price:      float | None = None
+    target_type:       str = "fixed"
+    stoploss_type:     str = "fixed"
+    trailing_mode:     str | None = None
+    trailing_offset:   float | None = None
+    current_price:     float | None = None
+    current_pnl_usd:   float | None = None
+    current_pnl_pct:   float | None = None
+    highest_price_seen: float | None = None
+    trailing_stop_level: float | None = None
+    effective_stop:    float | None = None
+    exit_time:         str | None = None
+    exit_price:        float | None = None
+    exit_qty:          int | None = None
+    exit_reason:       str | None = None
+    realized_pnl_usd:  float | None = None
+    realized_pnl_pct:  float | None = None
+```
+
+### Repository Class
+
+```python
+class TradeCycleRepository:
+    def __init__(self, engine: sa.Engine) -> None:
+        self._engine = engine
+
+    # ── Queries ───────────────────────────────────────────────────────────
+    def open_cycles(self) -> tuple[CycleSnapshot, ...]: ...
+    def cycle(self, cycle_id: int) -> CycleSnapshot | None: ...
+    def history(self, *, symbol: str | None = None,
+                strategy_id: str | None = None,
+                days: int = 30) -> tuple[CycleSnapshot, ...]: ...
+    def find_open(self, strategy_id: str, symbol: str) -> CycleSnapshot | None: ...
+    def find_by_entry_order(self, entry_order_id: str) -> CycleSnapshot | None: ...
+
+    # ── Mutations ─────────────────────────────────────────────────────────
+    def insert_open(self, *, row: dict) -> CycleSnapshot: ...           # OPENING → OPEN
+    def update_live(self, cycle_id: int, *, fields: dict) -> None: ...  # tick-driven; no event
+    def update_state(self, cycle_id: int, new_state: str) -> CycleSnapshot: ...
+    def update_risk(self, cycle_id: int, *, fields: dict) -> CycleSnapshot: ...
+    def close(self, cycle_id: int, *, exit_fields: dict) -> CycleSnapshot: ...
+    def abort(self, cycle_id: int, reason: str) -> CycleSnapshot: ...
+```
+
+### Transaction Boundaries
+
+| Method | Tx | Why |
+|---|---|---|
+| `open_cycles()` / `cycle()` / `history()` / `find_*()` | autocommit | read-only, single SELECT |
+| `insert_open()` | one tx | INSERT + same-tx `find_open` invariant check (defence vs FO-EXE-012 §9) |
+| `update_live()` | autocommit | single UPDATE; batched at service layer via tick throttle |
+| `update_state()` / `update_risk()` / `close()` / `abort()` | one tx | UPDATE + same-tx SELECT to return fresh `CycleSnapshot` |
+
+### Duplicate-Open Guard
+
+`insert_open()` runs inside a tx with `SELECT … FROM trade_cycles WHERE strategy_id=? AND symbol=? AND state IN ('OPENING','OPEN','CLOSING')` — if it returns a row, raises `DuplicateOpenCycleError` and rolls back. Guarantees the FO-EXE-012 §8 invariant under concurrent writers.
+
+### State Machine (DB-Level)
+
+| From → To | Repository method | Required field changes |
+|---|---|---|
+| (none) → `OPENING` | `insert_open(state='OPENING')` (only on signal-emit path; common path inserts as `OPEN` directly via `on_entry_fill`) | — |
+| `OPENING` → `OPEN` | `update_state(cycle_id, "OPEN")` | — |
+| `OPENING` → `ABORTED` | `abort(cycle_id, reason)` | `exit_reason`, `closed_at` |
+| `OPEN` → `CLOSING` | `update_state(cycle_id, "CLOSING")` | — |
+| `CLOSING` → `CLOSED` | `close(cycle_id, exit_fields=…)` | all exit fields + `realized_pnl_*` + `closed_at` |
+| `CLOSING` → `OPEN` | `update_state(cycle_id, "OPEN")` | rollback on exit reject |
+
+`update_state` rejects illegal transitions (e.g., `CLOSED` → anything) with `InvalidStateTransitionError`. Allowed-transitions dict is a module constant in `_repository.py`.
+
+---
+
+## DD-EXE-012.005.D01 — Tick Throttle & Live Update Engine
+
+**Parent SRD:** SRD-EXE-012.005
+**Status:** Approved
+
+### Per-Cycle Throttle State
+
+The service maintains a small in-memory accumulator per open cycle so tick updates batch without losing the latest tick.
+
+```python
+@dataclass
+class _TickAccumulator:
+    symbol:           str
+    cycle_id:         int
+    latest_price:     float
+    highest_seen:     float
+    last_persist_at:  float       # monotonic seconds
+    dirty:            bool        # at least one tick since last persist
+    flush_handle:     asyncio.TimerHandle | None = None
+
+_THROTTLE_MS = 500
+```
+
+### Tick Path
+
+```python
+def _on_tick(self, symbol: str, price: float) -> None:
+    """Called from LiveTickWorker on the GUI thread; bounces into the service loop."""
+    asyncio.run_coroutine_threadsafe(self._handle_tick(symbol, price), self._loop)
+
+async def _handle_tick(self, symbol: str, price: float) -> None:
+    for acc in self._accs_for_symbol(symbol):                     # 0..N (usually 0 or 1)
+        if price > acc.highest_seen:
+            acc.highest_seen = price
+        acc.latest_price = price
+        acc.dirty        = True
+        now = self._loop.time()
+        elapsed = (now - acc.last_persist_at) * 1000
+        if elapsed >= _THROTTLE_MS:
+            await self._flush(acc)
+        elif acc.flush_handle is None:
+            delay = (_THROTTLE_MS - elapsed) / 1000
+            acc.flush_handle = self._loop.call_later(delay,
+                lambda a=acc: asyncio.create_task(self._flush(a)))
+```
+
+### Flush Path
+
+```python
+async def _flush(self, acc: _TickAccumulator) -> None:
+    if not acc.dirty:
+        return
+    snap = self._repo.cycle(acc.cycle_id)
+    if snap is None or snap.state not in ("OPEN", "CLOSING"):
+        return                                                    # cycle closed concurrently
+    live = self._compute_live(snap, acc.latest_price, acc.highest_seen)
+    self._repo.update_live(acc.cycle_id, fields=live)
+    acc.last_persist_at = self._loop.time()
+    acc.dirty           = False
+    acc.flush_handle    = None
+    fresh = self._repo.cycle(acc.cycle_id)
+    self._bus.publish(CycleUpdated(snapshot=fresh, schema_version=1))
+    self._check_exit_triggers(fresh, acc.latest_price)            # DD-EXE-012.006.D01
+```
+
+### Live-Field Computation
+
+```python
+def _compute_live(self, snap: CycleSnapshot, price: float, highest: float) -> dict:
+    pnl_usd = (price - snap.entry_price) * snap.entry_qty
+    pnl_pct = (price - snap.entry_price) / snap.entry_price * 100.0
+
+    if snap.trailing_mode == "$":
+        trail = highest - (snap.trailing_offset or 0.0)
+    elif snap.trailing_mode == "%":
+        trail = highest * (1.0 - (snap.trailing_offset or 0.0) / 100.0)
+    else:
+        trail = None
+
+    # Trailing only moves up: never below prior recorded level
+    if trail is not None and snap.trailing_stop_level is not None:
+        trail = max(trail, snap.trailing_stop_level)
+
+    effective = max(snap.hard_stop_loss, trail) if trail is not None else snap.hard_stop_loss
+
+    return {
+        "current_price":       price,
+        "current_pnl_usd":     pnl_usd,
+        "current_pnl_pct":     pnl_pct,
+        "highest_price_seen":  highest,
+        "trailing_stop_level": trail,
+        "effective_stop":      effective,
+        "last_updated_at":     datetime.now(timezone.utc).isoformat(),
+    }
+```
+
+### Throttle Properties
+
+- **Last-tick-wins:** the accumulator always holds the newest price; intermediate ticks coalesce.
+- **No starvation:** the trailing `call_later` guarantees a flush within `_THROTTLE_MS` even if no further ticks arrive.
+- **Single-writer per cycle:** `_flush` is the only path that writes `update_live`; no per-cycle DB locks needed.
+- **Skip on terminal state:** the inside-`_flush` re-fetch is the race guard against an exit-fill confirming between tick receipt and flush.
+
+### Lifecycle of `_TickAccumulator`
+
+| Event | Effect |
+|---|---|
+| `on_entry_fill` opens a cycle | Insert a new `_TickAccumulator` keyed on `cycle_id`; subscribe symbol to `LiveTickWorker` if not already |
+| `CycleClosed` / `CycleAborted` | Remove the accumulator; cancel pending `flush_handle`; unsubscribe symbol if no other cycle holds it |
+| Service shutdown | Flush all dirty accumulators synchronously, then discard |
+
+---
+
+## DD-EXE-012.006.D01 — Exit Trigger Emission & ExecutionRouter Handoff
+
+**Parent SRD:** SRD-EXE-012.006
+**Status:** Approved
+
+### Trigger Evaluation Order
+
+After every successful `_flush`, the service checks exit conditions in fixed precedence:
+
+```
+1. price ≥ target_price                  → reason='target'
+2. price ≤ effective_stop                → reason='trailing_sl' if trailing was the floor,
+                                            else 'hard_sl'
+3. neither                               → no trigger
+```
+
+Target wins ties against effective_stop because a position that simultaneously crosses both is more likely profitable (gap-up + drag); preferring target avoids a paradoxical loss-exit on a profitable bar.
+
+### Trigger Method
+
+```python
+def _check_exit_triggers(self, snap: CycleSnapshot, price: float) -> None:
+    if snap.state != "OPEN":
+        return                                              # already closing; one-shot
+    reason: str | None = None
+
+    if snap.target_price is not None and price >= snap.target_price:
+        reason = "target"
+    elif snap.effective_stop is not None and price <= snap.effective_stop:
+        reason = ("trailing_sl"
+                  if (snap.trailing_stop_level is not None
+                      and snap.trailing_stop_level >= snap.hard_stop_loss
+                      and price <= snap.trailing_stop_level)
+                  else "hard_sl")
+
+    if reason is None:
+        return
+    self._repo.update_state(snap.cycle_id, "CLOSING")
+    self._bus.publish(ExitTrigger(cycle_id=snap.cycle_id,
+                                   symbol=snap.symbol,
+                                   reason=reason,
+                                   trigger_price=price,
+                                   schema_version=1))
+```
+
+### One-Shot Guarantee
+
+The `state != "OPEN"` early return is the one-shot guard. Once the state has flipped to `CLOSING`, subsequent ticks that still satisfy the trigger conditions emit nothing. `update_state` is implemented as `UPDATE … WHERE state='OPEN'` (compare-and-swap pattern); concurrent triggers from a near-simultaneous tick and a strategy-driven exit are mutually exclusive — only one of them flips the state, only one `ExitTrigger` fires.
+
+### Event Payload
+
+```python
+@dataclass(frozen=True, slots=True)
+class ExitTrigger:
+    cycle_id:       int
+    symbol:         str
+    reason:         str             # 'target' | 'hard_sl' | 'trailing_sl'
+    trigger_price:  float
+    schema_version: int = 1
+```
+
+`ExitTrigger` is the only event emitted by the trade-cycle service that has business-logic side effects elsewhere — every other event is informational for the GUI.
+
+### FO-EXE-002 Handoff
+
+`ExecutionEngine` subscribes to the bus and consumes `ExitTrigger`:
+
+```python
+def _on_exit_trigger(self, evt: ExitTrigger) -> None:
+    snap = self._cycle_query.cycle(evt.cycle_id)
+    if snap is None or snap.state != "CLOSING":
+        return                                              # stale event
+    self.submit_market_sell(
+        symbol     = snap.symbol,
+        qty        = snap.entry_qty,
+        user_id    = snap.user_id,
+        cycle_id   = snap.cycle_id,
+        reason_tag = evt.reason,
+    )
+```
+
+The fill confirmation for that SELL flows back through `on_exit_fill` in the service, which calls `repo.close(cycle_id, …)` and publishes `CycleClosed`.
+
+### Bypass of Mode / auto_trade
+
+Tick-driven exits fire regardless of the originating strategy's `Mode` or `auto_trade` — they are safety floors, not strategy decisions. The router (DD-EXE-011.009.D01) is not involved in this exit path; the service hands directly to `ExecutionEngine`.
+
+### Failure Modes
+
+| Failure | Behaviour |
+|---|---|
+| `ExitTrigger` published but no broker submission within 5 s | `ExecutionEngine` is the sole owner of submission timeouts; cycle remains `CLOSING` and the next tick re-emits no event (one-shot) |
+| Broker rejects SELL | `ExecutionEngine` emits `order_reject`; service moves cycle `CLOSING` → `OPEN` via `update_state` and logs WARNING `[Cycle] {cycle_id} exit rejected — re-arming triggers` |
+| Subsequent tick still satisfies trigger after rollback | A fresh `ExitTrigger` fires (state is back to `OPEN`, one-shot guard cleared) |

@@ -1,9 +1,9 @@
 # Functional Objectives — Execution & Risk Management (EXE)
 
 **Document ID:** FO-EXE
-**Version:** 1.5.0
+**Version:** 1.7.0
 **Status:** Draft
-**Last Updated:** 2026-05-16
+**Last Updated:** 2026-05-22
 **Project:** US Swing Trading System
 
 > Traces to: `us_swing/requirements.md` §10, §11, §12, §13, §21.4, §22, §23, §25
@@ -291,3 +291,140 @@ Once per trading day, before the live feed subscribes for that day, the system s
 8. **Logging.** Every reconcile invocation emits exactly one INFO log line with prefix `[Lifecycle]` summarising `filtered_n`, `carryover_n`, `skipped_n`, `evicted_n`, and `duration_ms`. Eviction errors emit one WARNING log line per failed symbol, also `[Lifecycle]`-prefixed.
 
 9. **Live feed alignment.** Immediately after `reconcile_preopen(T)` completes, the symbol set passed to `LiveBarWorker.set_symbols(...)` equals `MonitoringQuery.keep_set(T).filtered ∪ MonitoringQuery.keep_set(T).carryover`; no evicted symbol appears in that set.
+
+---
+
+## FO-EXE-011: Strategy Engine — Concurrent Evaluation & Mode Routing
+
+**Status:** Approved
+**Priority:** Must
+**Depends on:** FO-GUI-013 (`StrategyConfig` contract), FO-EXE-007 (live 3m candle stream), FO-EXE-001 (`RiskManager` + `ExecutionRouter`), FO-EXE-009 (monitoring session ledger)
+**Source:** Strategy execution architecture; behaviour scan of legacy `StrategyExecutor.py` + `TaEvaluator.py`
+
+The system shall provide a **Strategy Engine** that loads every enabled `StrategyConfig` produced by the Strategy Builder dialog (FO-GUI-013) and evaluates them concurrently on each 3m candle close. The engine owns no order-placement logic — it produces `TradeSignal` events that are dispatched by `Mode` and `auto_trade` either to a Manual pending-signal store (consumed by the Pending Signal Panel) or directly to `ExecutionRouter` (FO-EXE-001). The engine is GUI-free and runs in its own thread; consumers receive sealed `StrategyEvent` payloads through an event bus. Pyramiding and multi-leg "Trade 1 / Trade 2" semantics from the legacy reference implementation are **out of scope** — every (`strategy_id`, `symbol`) pair has at most one open Entry → Exit cycle at a time.
+
+### Per-Strategy / Per-Symbol State Machine
+
+| State | Set when | Engine action |
+|---|---|---|
+| `Inactive` | Mode = `Disabled` OR outside schedule window | No evaluation |
+| `Active` | Inside schedule, no open cycle for `(strategy, symbol)` | Evaluate `entry_condition` only |
+| `UnderEntry` | Entry signal queued, fill not confirmed | Suspend re-evaluation |
+| `Running` | Entry fill confirmed; position open | Evaluate `exit_condition` only |
+| `UnderExit` | Exit signal queued, fill not confirmed | Suspend re-evaluation |
+| `SquareOff` | Exit fill confirmed OR end-time / emergency triggered | Reset to `Active` on next session window |
+
+### Requirements
+
+1. **Registry load.** On startup the engine shall read every record from the strategy registry (FO-GUI-013), instantiate one in-memory `_StrategyContext` for each record whose `Mode != Disabled`, and force `strategy_signal.Status = Active` regardless of the persisted value.
+2. **Bar-close trigger.** The engine shall subscribe to `candle_closed(symbol, bar)` (FO-EXE-007) and on every emission schedule a concurrent evaluation of every `_StrategyContext` whose symbol-scope filter accepts `symbol`.
+3. **Symbol-scope filter.** `All S&P 500` accepts every screened symbol; `Include Only` accepts only symbols in `symbols_include`; `Exclude These` accepts every screened symbol except those in `symbols_exclude`. The filter is evaluated before any candle read.
+4. **Schedule guard.** A strategy evaluates only when current wall-clock is within `start_time…end_time`, current date is within `start_date…end_date`, and current weekday is in the configured `days` list. Outside the window the state remains `Inactive`.
+5. **Expression evaluator.** The engine shall include a reusable `ConditionEvaluator` that parses and evaluates the function-call grammar emitted by FO-GUI-013 — `INDICATOR(arg, 'arg', …)`, comparison operators `> < >= <= == !=`, logical `AND` / `OR`, parenthesised sub-expressions — against the active candle window for the evaluated symbol. The indicator function set shall equal the FO-GUI-013 catalogue.
+6. **Signal emission.** When `entry_condition` evaluates `True` in state `Active` the engine shall emit a `TradeSignal(action=ENTRY, symbol, strategy_id, …)` and transition to `UnderEntry`. When `exit_condition` evaluates `True` in state `Running` it shall emit `TradeSignal(action=EXIT, …)` and transition to `UnderExit`. Signals are pushed onto a single shared FIFO queue.
+7. **Mode + auto-trade routing.** The queue consumer shall dispatch each signal by the owning strategy's `(Mode, auto_trade)` pair: `(Auto, True)` → `RiskManager.validate()` then `ExecutionRouter.submit()` immediately, no confirmation; `(Manual, *)` or `(Auto, False)` → Manual pending-signal store, awaiting user confirmation in the Pending Signal Panel.
+8. **No pyramiding.** A second ENTRY signal for a `(strategy_id, symbol)` pair already in `UnderEntry` / `Running` / `UnderExit` shall be silently dropped and logged at DEBUG. Scale-in is not supported in this FO.
+9. **Capital cap.** Before emitting any ENTRY signal the engine shall consult `RiskManager.can_allocate(strategy_id, capital_max_pct)` and drop the signal (no state transition, WARNING log with the dropped symbol and reason) if the strategy's current allocated capital plus this entry would breach its `capital_max` percent of available equity.
+10. **End-time SquareOff.** When current time crosses `end_time` for a strategy with `trade_type = Intraday` that holds any `Running` symbol, the engine shall emit a forced `TradeSignal(action=EXIT, reason='end_time')` per such symbol and transition each to `SquareOff`. For `trade_type = Positional` open positions are retained across the session boundary.
+11. **Emergency stop.** The engine shall expose `emergency_stop()` that synchronously enqueues an EXIT for every `Running` symbol across every strategy and blocks all further evaluation until every position confirms `SquareOff`.
+12. **Status persistence.** Every state transition shall write back to the registry's `strategy_signal` block (`Status`, `Execution_Time`, `Executed_Quantity`, `Pending_Quantity`, `Order_Entry_Status`, `Order_Entry_Timestamp`, `Order_Exit_Status`, `Order_Exit_Timestamp`) so the GUI can render live status without polling.
+13. **GUI isolation.** No engine module shall import from `PyQt6`. State changes are surfaced through a sealed `StrategyEvent` union (`StrategyEntered`, `StrategyExited`, `StrategySquaredOff`, `StrategyErrored`, `StrategySignalDropped`) on the same event-bus surface defined in FO-EXE-009. The GUI bridges events into Qt signals at its own boundary.
+14. **Concurrency safety.** Per-`(strategy_id, symbol)` state mutations shall be guarded so that concurrent bar-close callbacks for the same pair queue rather than interleave; the order queue shall be single-consumer FIFO; the engine shall scale to ≥ 50 enabled strategies × ≥ 500 active symbols without blocking the live-bar feed.
+
+### Acceptance Criteria
+
+1. Loading a registry containing `[S1: Mode=Auto, S2: Mode=Manual, S3: Mode=Disabled]` instantiates exactly two `_StrategyContext` objects (S1, S2) and forces `strategy_signal.Status = Active` on both.
+2. A `candle_closed("AAPL", bar)` emission triggers evaluation of every enabled strategy whose symbol-scope filter accepts `AAPL`; for a 50-strategy / 500-symbol active set the full fan-out completes within 200 ms on a 4-core machine.
+3. Given `entry_condition = "RSI('Spot', 14, '3m') < 30"` and a candle batch where RSI(14,3m) = 27.4, the evaluator returns `True` and one `TradeSignal(ENTRY, AAPL, …)` is emitted; the same expression on a batch with RSI = 55.0 emits no signal.
+4. A strategy in state `UnderEntry` whose `entry_condition` re-meets on the next bar emits no second signal and produces exactly one DEBUG log line.
+5. An ENTRY signal from `(Mode=Manual, auto_trade=*)` lands in the pending-signal store and is NOT submitted to `ExecutionRouter`. An ENTRY signal from `(Mode=Auto, auto_trade=True)` reaches `ExecutionRouter.submit()` within 50 ms of evaluation completion.
+6. An ENTRY signal from `(Mode=Auto, auto_trade=False)` is forced into the Manual pending store regardless of `Mode`.
+7. Three strategies in `Mode=Auto` for the same symbol with `capital_max = [25%, 25%, 60%]` all trigger on the same bar; with available equity covering 100% only the first two are accepted, the third is dropped at `RiskManager.can_allocate()` with `StrategySignalDropped` published and no state transition.
+8. With wall-clock 15:31 ET and a `(Mode=Auto, trade_type=Intraday, end_time=15:30)` strategy holding an open AAPL `Running` position, within 1 s a forced EXIT signal with `reason='end_time'` is emitted and the state transitions to `SquareOff`.
+9. With three strategies holding five total `Running` positions, calling `emergency_stop()` enqueues five EXIT signals before the method returns and no new ENTRY signal fires until every position confirms `SquareOff`.
+10. After an ENTRY fill confirmation, the registry record for the strategy shows `strategy_signal.Status = Running`, `Order_Entry_Status = success`, and `Order_Entry_Timestamp = <ISO timestamp>` without any GUI reload.
+11. Importing every module under `src/us_swing/execution/strategy_engine/` raises no `PyQt6` import; a headless test process consumes `StrategyEvent` payloads off the event bus without a Qt installation.
+
+---
+
+## FO-EXE-012: Trade Cycle Ledger — Live Per-Cycle State & Persistence
+
+**Status:** Approved
+**Priority:** Must
+**Depends on:** FO-EXE-002 (fill events), FO-EXE-008 (`LiveTickWorker`), FO-EXE-009 (monitoring session, event bus), FO-EXE-011 (Strategy Engine ENTRY/EXIT signals)
+**Source:** Trader requirement — every Entry→Exit cycle must be visible end-to-end (entry time, strategy, symbol, entry LTP, quantity, live PnL, hard stop, target, trailing stop) and persisted to DB.
+
+The system shall provide a **Trade Cycle Ledger** that records every Entry→Exit cycle for a `(strategy_id, symbol)` pair as a single append-only row. A cycle row opens on entry-fill confirmation, live-updates on every tick / bar for the symbol, and closes on exit-fill confirmation. The ledger is the single source of truth for the Active Cycles Panel (FO-GUI-014) and for cross-session cycle audit. The HSL / target / trailing-stop configuration carried in `StrategyConfig.target_*` and `StrategyConfig.stoploss_*` (FO-GUI-013) is materialized into the cycle row at entry time and managed per-cycle from then on — global strategy-config edits do not retroactively change open cycles' risk parameters.
+
+### Cycle State Machine
+
+| State | Set when | Transition |
+|---|---|---|
+| `OPENING` | Entry signal accepted by RiskManager, order in flight | → `OPEN` on entry-fill confirmation; → `ABORTED` on entry-reject / fill-timeout |
+| `OPEN` | Entry fill confirmed; live tick / bar updates ongoing | → `CLOSING` on any exit trigger (strategy / HSL / target / trailing / manual / end-time / emergency) |
+| `CLOSING` | Exit order in flight | → `CLOSED` on exit-fill confirmation; → `OPEN` on exit-reject |
+| `CLOSED` | Exit fill confirmed; realized PnL frozen | terminal |
+| `ABORTED` | Entry order never filled | terminal |
+
+### Requirements
+
+1. **Ledger table.** The system shall provide a `trade_cycles` SQLite table keyed on auto-increment `cycle_id`, with columns:
+   - **Identity:** `strategy_id`, `symbol`, `user_id`, `monitoring_session_date` (FK to FO-EXE-009 anchor)
+   - **Entry:** `entry_time` (ISO UTC), `entry_price`, `entry_qty`, `entry_order_id`
+   - **Risk-config snapshot (frozen at entry, sourced from FO-GUI-013):** `hard_stop_loss`, `target_price`, `target_type` (`Fixed`/`Trailing`), `stoploss_type` (`Fixed`/`Trailing`), `trailing_mode` (`$`/`%`), `trailing_offset`
+   - **Live state:** `current_price`, `current_pnl_usd`, `current_pnl_pct`, `highest_price_seen`, `trailing_stop_level`, `effective_stop`, `last_updated_at`
+   - **Exit:** `exit_time`, `exit_price`, `exit_qty`, `exit_order_id`, `exit_reason` ∈ {`strategy`, `hard_sl`, `target`, `trailing_sl`, `end_time`, `manual`, `emergency`}
+   - **Outcome:** `realized_pnl_usd`, `realized_pnl_pct`, `state` (one of the state-machine values), `opened_at`, `closed_at`
+
+2. **Open on entry fill.** On every entry-fill confirmation event (from FO-EXE-002) the ledger shall insert one `trade_cycles` row in state `OPEN`, materializing risk-config columns from the originating `StrategyConfig` snapshot. The row links to the broker `positions` row via `entry_order_id` and to the monitoring session via `monitoring_session_date`.
+
+3. **Risk-config immutability.** Once a cycle row is in `OPENING` / `OPEN` / `CLOSING`, edits to the originating `StrategyConfig` shall NOT modify that row's risk-config columns. Per-cycle risk edits are made through `update_risk()` on the ledger itself (req 10), never through `StrategyConfig`.
+
+4. **Live tick update.** On every `tick_price(symbol, price)` event (FO-EXE-008) for a symbol with a cycle in state `OPEN` or `CLOSING`, the ledger shall recompute:
+   - `current_price = price`
+   - `current_pnl_usd = (price − entry_price) × entry_qty`
+   - `current_pnl_pct = (price − entry_price) / entry_price × 100`
+   - `highest_price_seen = max(highest_price_seen, price)`
+   - If trailing is enabled: `trailing_stop_level = highest_price_seen − trailing_offset` (in `$` mode) or `highest_price_seen × (1 − trailing_offset / 100)` (in `%` mode); trailing only moves up.
+   - `effective_stop = max(hard_stop_loss, trailing_stop_level)`
+   - Updates are persisted on a ≥ 500 ms throttle and a `CycleUpdated(cycle_id, …)` event is published.
+
+5. **Tick-driven exit trigger.** On every tick update, if `price ≤ effective_stop` the ledger shall emit `ExitTrigger(cycle_id, reason='hard_sl' or 'trailing_sl')`. If `price ≥ target_price` it shall emit `ExitTrigger(cycle_id, reason='target')`. These triggers fire regardless of strategy `Mode` or `auto_trade` and are consumed by FO-EXE-002 which submits the SELL order. The cycle transitions `OPEN` → `CLOSING` on emit.
+
+6. **Close on exit fill.** On exit-fill confirmation the ledger shall transition the cycle to `CLOSED`, set `exit_time`, `exit_price`, `exit_qty`, `exit_reason`, freeze `realized_pnl_usd = (exit_price − entry_price) × exit_qty` and `realized_pnl_pct`, and publish `CycleClosed(cycle_id, …)`.
+
+7. **Abort on entry failure.** If the entry order is rejected by the broker or its fill confirmation times out, the cycle transitions `OPENING` → `ABORTED`, `exit_reason` is set accordingly, and `CycleAborted(cycle_id, …)` is published. No live update loop attaches.
+
+8. **One open cycle per pair.** The ledger shall enforce that at most one cycle row per `(strategy_id, symbol)` is in `OPENING` / `OPEN` / `CLOSING` at any time. A second open attempt is rejected with a duplicate-open-cycle error. This is a defence-in-depth check; the engine prevents this at FO-EXE-011 §8.
+
+9. **Read API.** A Protocol-typed `TradeCycleQuery` surface shall expose:
+   - `open_cycles() -> tuple[CycleSnapshot, ...]` — every cycle in `OPENING` / `OPEN` / `CLOSING`
+   - `cycle(cycle_id) -> CycleSnapshot | None`
+   - `history(symbol=None, strategy_id=None, days=N) -> tuple[CycleSnapshot, ...]` — closed cycles
+   Return values are immutable frozen `@dataclass(slots=True)` containers carrying `schema_version: int`, matching the FO-EXE-009 DTO convention.
+
+10. **Write API.** A Protocol-typed `TradeCycleCommand` surface, consumed only by FO-EXE-002 and the Active Cycles Panel:
+    - `on_entry_fill(fill: FillEvent) -> CycleSnapshot` — idempotent on `entry_order_id`
+    - `on_exit_fill(fill: FillEvent) -> CycleSnapshot` — idempotent on `exit_order_id`
+    - `on_entry_failed(cycle_id, reason) -> CycleSnapshot`
+    - `update_risk(cycle_id, hard_sl=None, target=None, trailing_offset=None, trailing_mode=None) -> CycleSnapshot` — invariants enforced: HSL must be ≤ `current_price`; target must be ≥ `current_price`; `trailing_offset` must be > 0. Invariant violations raise; no partial mutation.
+
+11. **Event bus.** All state changes shall publish a sealed `TradeCycleEvent` union: `CycleOpened`, `CycleUpdated`, `ExitTrigger`, `CycleClosing`, `CycleClosed`, `CycleAborted`, `RiskUpdated`. The bus shares the infrastructure defined in FO-EXE-009.
+
+12. **Cross-session persistence.** On EOD shutdown the ledger shall flush every non-terminal cycle row. On startup it shall reload every row in `OPENING` / `OPEN` / `CLOSING`, re-attach each to the live tick stream, and resume the update loop. Reload is idempotent across multiple startups.
+
+13. **GUI isolation.** No ledger module shall import from `PyQt6`. Consumers receive `TradeCycleEvent` payloads via the same headless event-bus surface used in FO-EXE-009; the GUI bridges to Qt signals at its own boundary.
+
+### Acceptance Criteria
+
+1. An entry-fill confirmation for `(strategy=boss_ema, AAPL, qty=25, price=$182.50)` creates exactly one `trade_cycles` row with `state=OPEN`, `entry_time` and `entry_price` populated, risk-config columns equal to the originating `StrategyConfig.target_*` / `stoploss_*` values at fill time, and publishes one `CycleOpened` event.
+2. With an open AAPL cycle at `entry_price=$182.50`, `hard_stop_loss=$179.00`, `trailing_mode='$', trailing_offset=$2.50`, on receiving `tick_price("AAPL", 185.00)` the row shows `current_price=185.00`, `current_pnl_usd=62.50`, `highest_price_seen=185.00`, `trailing_stop_level=182.50`, `effective_stop=182.50`, and exactly one `CycleUpdated` event is published within the 500 ms throttle window.
+3. Continuing (2), after a tick sequence `[188.00, 187.40]` the row shows `highest_price_seen=188.00`, `trailing_stop_level=185.50` (unchanged by the 187.40 tick — trailing only moves up), `effective_stop=185.50`.
+4. Continuing (3), a `tick_price("AAPL", 185.40)` (`185.40 ≤ 185.50`) publishes exactly one `ExitTrigger(cycle_id, reason='trailing_sl')` event and the cycle transitions to `CLOSING`.
+5. Editing `StrategyConfig` for `boss_ema` to a new `stoploss_value` via FO-GUI-013 does NOT change any open cycle row's `hard_stop_loss`; the change applies only to cycles opened after the edit.
+6. `update_risk(cycle_id, hard_sl=$200.00)` while `current_price=$185.40` raises an invariant-violation error ("HSL cannot exceed current price") and no row mutation occurs.
+7. Calling `on_entry_fill(fill)` twice with the same `entry_order_id` produces exactly one cycle row; the second call returns the existing row.
+8. On EOD shutdown with two `OPEN` cycles, restarting the application reloads both rows with `state=OPEN`, re-attaches each to the tick stream, and emits `CycleUpdated` on the next tick.
+9. An exit fill at `exit_price=$187.80` for the AAPL cycle (`entry_price=$182.50, qty=25`) freezes `realized_pnl_usd=132.50`, `realized_pnl_pct≈2.90`, sets `state=CLOSED`, publishes exactly one `CycleClosed` event, and removes the cycle from `open_cycles()`.
+10. With one open cycle for `(boss_ema, AAPL)`, calling `on_entry_fill(...)` for a new fill on `(boss_ema, AAPL)` raises a duplicate-open-cycle error and no second row is inserted.
+11. Importing every module under `src/us_swing/execution/trade_cycle/` raises no `PyQt6` import; a headless process consumes `TradeCycleEvent` payloads off the bus without a Qt installation.

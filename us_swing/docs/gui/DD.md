@@ -1,11 +1,14 @@
 # Design Document — GUI Module (GUI)
 
 **Document ID:** DD-GUI
-**Version:** 1.4.0
-**Traces To:** SRD-GUI v2.6.0
+**Version:** 1.6.0
+**Traces To:** SRD-GUI v2.8.0
 **Status:** Draft
-**Last Updated:** 2026-05-15
+**Last Updated:** 2026-05-22
 **Project:** US Swing Trading System
+
+> v1.6.0: DD-GUI-014.* added — Active Cycles Panel (view-model, delegate, inline risk editor).
+> v1.5.0: DD-GUI-013.* added — Strategy Builder Dialog (shell, schema, trigger builder, persistence).
 
 ---
 
@@ -617,3 +620,660 @@ The System tab already exposes `ibkr_system_client_id`, `ibkr_intraday_client_id
 | "Tick Data Client ID" | `QSpinBox` | 1–999 | 14 |
 
 The spinbox is bound to `SystemConfig.ibkr_tick_client_id`. Changes take effect on the next IBKR reconnect (existing behaviour for all connection params). No immediate restart of `LiveTickWorker` on change — consistent with how other clientId fields behave.
+
+---
+
+## DD-GUI-013.001.D01 — Dialog Shell, Navigation & Validation Flow
+
+**Parent SRD:** SRD-GUI-013.001
+**Status:** Approved
+
+### Class Hierarchy
+
+```python
+class StrategyBuilderDialog(QDialog):
+    saved = pyqtSignal(StrategyConfig)        # emitted on successful Save
+
+    def __init__(self, registry: list[StrategyConfig], editing: StrategyConfig | None,
+                 parent: QWidget | None = None) -> None: ...
+
+    def _on_save(self) -> None: ...           # collects every page, validates, emits saved
+    def _on_cancel(self) -> None: ...         # discards, calls reject()
+
+class _NavTree(QTreeWidget): ...              # 5 nav items, fixed width 160 px
+class _PageStack(QStackedWidget): ...
+class _TitleBar(QWidget): ...                 # close-only, drag-to-move
+```
+
+Pages are private widgets instantiated once in `__init__`: `_StrategyInfoPage`, `_TriggersPage`, `_SchedulerPage`, `_SettingsPage`, `_RiskPage` (already exist in the working prototype — no rewrite).
+
+### Page Index Constants
+
+```python
+_PAGE_STRATEGY_INFO = 0
+_PAGE_TRIGGER       = 1
+_PAGE_SCHEDULER     = 2
+_PAGE_EXECUTION     = 3
+_PAGE_RISK          = 4
+```
+
+### Save Pipeline
+
+```
+_on_save():
+    cfg = _collect()                        # gather values from every page
+    err = _validate(cfg, registry, editing)
+    if err is not None:
+        _show_inline_error(err)             # red label below nav tree
+        return
+    self.saved.emit(cfg)
+    self.accept()
+```
+
+`_validate` runs in order: name non-empty → name uniqueness (case-insensitive vs `registry`, excluding `editing.name` when editing) → schedule sanity (`end_time > start_time`, `end_date >= start_date`). First failure short-circuits.
+
+### Dimensions
+
+| Element | Value |
+|---|---|
+| Dialog min size | `820 × 560` |
+| Dialog default size | `880 × 600` |
+| Nav-tree width | `160 px` (fixed) |
+| Save / Cancel button height | `C.BTN_H` |
+
+---
+
+## DD-GUI-013.002.D01 — StrategyConfig Schema
+
+**Parent SRD:** SRD-GUI-013.002
+**Status:** Approved
+
+### Dataclass
+
+```python
+@dataclass
+class StrategyConfig:
+    name:               str
+    mode:               str                      # 'disabled' | 'manual' | 'auto'
+    capital_max:        int                      # 5..100, step 5
+    start_time:         str                      # 'HH:MM'
+    end_time:           str                      # 'HH:MM'
+    start_date:         str                      # 'YYYY-MM-DD'
+    end_date:           str                      # 'YYYY-MM-DD'
+    days:               list[str]                # subset of Mon..Fri
+    entry_condition:    str                      # compiled expression
+    exit_condition:     str                      # compiled expression
+    strategy_type:      str = ''                 # legacy preset id; '' for custom
+    symbol_mode:        str = 'all'              # 'all' | 'include_only' | 'exclude_these'
+    symbols_include:    list[str] = field(default_factory=list)
+    symbols_exclude:    list[str] = field(default_factory=list)
+    target_enabled:     bool   = False
+    target_type:        str    = 'fixed'         # 'fixed' | 'trailing'
+    target_value:       float  = 2.0             # percent
+    stoploss_enabled:   bool   = False
+    stoploss_type:      str    = 'fixed'
+    stoploss_value:     float  = 1.0
+    auto_trade:         bool   = False
+    trade_type:         str    = 'Intraday'      # 'Intraday' | 'Positional'
+    strategy_signal:    dict   = field(default_factory=_default_signal)
+
+
+def _default_signal() -> dict:
+    return {
+        'Status':                'Inactive',
+        'Execution_Time':        'None',
+        'Executed_Quantity':     0,
+        'Pending_Quantity':      0,
+        'Order_Entry_Status':    'None',
+        'Order_Entry_Timestamp': None,
+        'Order_Exit_Status':     'None',
+        'Order_Exit_Timestamp':  None,
+    }
+```
+
+### Serialization Contract
+
+Save: `json.dumps([asdict(c) for c in configs], indent=2)`.
+Load: filter incoming dict keys by `{f.name for f in fields(StrategyConfig)}` before constructing — drops legacy / unknown keys silently.
+
+No `schema_version` field on this dataclass for now; future schema changes will be additive (new field with default) which the key-filter pattern handles cleanly. A breaking change introduces `schema_version` at that time.
+
+---
+
+## DD-GUI-013.007.D01 — Trigger Builder State Machine & Expression Grammar
+
+**Parent SRD:** SRD-GUI-013.007 — SRD-GUI-013.009
+**Status:** Approved
+
+### Chain State Machine
+
+`_TriggersPage` holds two slots `_cond1_fn` and `_cond2_fn` (initially `""`). The visible chain is regenerated by `_rebuild_chain()` after every state mutation. The implicit state is `(bool(_cond1_fn), bool(_cond2_fn))`:
+
+| State | Visible chain (left → right) |
+|---|---|
+| `(False, False)` | `[+ Add Condition 1]` |
+| `(True, False)` | `[bubble: cond1] [relop ▾] [+ Add Condition 2]` |
+| `(True, True)` | `[bubble: cond1] [relop ▾] [bubble: cond2] [logop ▾]` |
+
+Compile is only enabled in `(True, True)`. Clearing cond1 also clears cond2 (cascading reset). Clearing cond2 keeps cond1.
+
+### Compile Algorithm
+
+```
+on_compile():
+    clause = f"({_cond1_fn}) {relop.text} ({_cond2_fn})"
+    logop  = {'&': 'AND', '||': 'OR'}[logop_combo.text]
+    if buffer.is_empty:
+        buffer.set(clause)
+    else:
+        buffer.set(f"{buffer.text} {logop} {clause}")
+    _cond1_fn = ""
+    _cond2_fn = ""
+    _rebuild_chain()                       # state returns to (False, False)
+```
+
+### Assign Algorithm
+
+```
+on_entry():
+    if buffer.is_empty:
+        show_inline_error("Compile a condition first.")
+        return
+    entry_condition = buffer.text
+    buffer.clear()
+
+on_exit():       # symmetric, writes exit_condition
+```
+
+### Expression Grammar (EBNF)
+
+This grammar is the contract consumed by FO-EXE-011's `ConditionEvaluator`:
+
+```
+expression   ::= or_expr
+or_expr      ::= and_expr ( 'OR'  and_expr )*
+and_expr     ::= comparison ( 'AND' comparison )*
+comparison   ::= term ( ('>' | '<' | '>=' | '<=' | '==' | '!=') term )?
+term         ::= NUMBER | STRING | function_call | '(' expression ')'
+function_call ::= INDICATOR_NAME '(' arg_list ')'
+arg_list     ::= arg ( ',' arg )*
+arg          ::= NUMBER | STRING
+INDICATOR_NAME ::= one of the 15 catalogue names
+STRING       ::= "'" [^']* "'"
+NUMBER       ::= -? digit+ ('.' digit+)?
+```
+
+### Condition Selector Output
+
+`_ConditionSelectorDialog._on_add()` builds the function-call string:
+
+```python
+parts = []
+for pname, w in self._inputs.items():
+    if isinstance(w, QLineEdit):
+        parts.append(w.text().strip())         # bare numeric
+    elif isinstance(w, QComboBox):
+        parts.append(f"'{w.currentText()}'")   # single-quoted string
+fn = f"{indicator.name}({', '.join(parts)})"
+```
+
+Empty `QLineEdit` blocks Add with an inline error before emission.
+
+---
+
+## DD-GUI-013.013.D01 — Persistence I/O
+
+**Parent SRD:** SRD-GUI-013.013 — SRD-GUI-013.014
+**Status:** Approved
+
+### Path
+
+```python
+_STRATEGIES_PATH: Path = Path.home() / ".usswing" / "strategies.json"
+```
+
+### Load
+
+```python
+def load_strategies() -> list[StrategyConfig]:
+    if not _STRATEGIES_PATH.exists():
+        return []
+    try:
+        raw = json.loads(_STRATEGIES_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []                              # silent recovery — corrupt file = empty list
+    valid_keys = {f.name for f in fields(StrategyConfig)}
+    out: list[StrategyConfig] = []
+    for r in raw:
+        cfg = StrategyConfig(**{k: v for k, v in r.items() if k in valid_keys})
+        cfg.strategy_signal['Status'] = 'Inactive'
+        cfg.strategy_signal['Running_Symbols'] = []
+        out.append(cfg)
+    return out
+```
+
+### Save (atomic)
+
+```python
+def save_strategies(configs: list[StrategyConfig]) -> None:
+    _STRATEGIES_PATH.parent.mkdir(parents=True, exist_ok=True)
+    tmp = _STRATEGIES_PATH.with_suffix('.tmp')
+    tmp.write_text(
+        json.dumps([asdict(c) for c in configs], indent=2),
+        encoding='utf-8',
+    )
+    tmp.replace(_STRATEGIES_PATH)              # atomic on Win/macOS/Linux
+```
+
+### Overwrite / Append by Name
+
+`save_strategies()` writes the entire list verbatim — there is no per-record write API. `StrategyBuilderDialog._on_save()` therefore performs the overwrite/append decision in memory before calling `save_strategies()`:
+
+```python
+def commit(self, registry: list[StrategyConfig], cfg: StrategyConfig) -> list[StrategyConfig]:
+    for i, existing in enumerate(registry):
+        if existing.name.casefold() == cfg.name.casefold():
+            registry[i] = cfg                  # overwrite
+            return registry
+    registry.append(cfg)                       # append
+    return registry
+```
+
+The same `commit()` helper is reused by the FO-EXE-011 engine when it writes back `strategy_signal` runtime state, so save semantics stay consistent across writers.
+
+---
+
+## DD-GUI-014.002.D01 — `_ActiveCyclesModel` View-Model
+
+**Parent SRD:** SRD-GUI-014.001 — SRD-GUI-014.004, SRD-GUI-014.011
+**Status:** Approved
+
+### Row DTO
+
+The model holds a list of `_Row` instances — a unified representation that handles both PENDING (from `PendingSignalStore`) and live cycles (from `TradeCycleQuery`).
+
+```python
+@dataclass
+class _Row:
+    kind:         str               # 'pending' | 'cycle'
+    key:          str               # signal_id (pending) | f"cycle:{cycle_id}" (cycle)
+    state:        str               # 'PENDING' | 'OPENING' | 'OPEN' | 'CLOSING'
+    time:         str               # signal-emit time or entry_time, formatted "HH:MM:SS"
+    symbol:       str
+    strategy:     str
+    qty:          int
+    entry_price:  float | None      # est. for pending; actual for cycle
+    ltp:          float | None
+    pnl_usd:      float | None
+    pnl_pct:      float | None
+    hard_stop:    float | None
+    target:       float | None
+    trail:        float | None
+    user_id:      int
+    # raw payloads kept for callbacks
+    signal:       TradeSignal | None = None       # only for pending rows
+    cycle_id:     int | None = None               # only for cycle rows
+```
+
+### Column Layout
+
+```python
+class Col(IntEnum):
+    USER       = 0       # only visible in All-Users scope
+    STATE      = 1
+    TIME       = 2
+    SYMBOL     = 3
+    STRATEGY   = 4
+    QTY        = 5
+    ENTRY      = 6
+    LTP        = 7
+    PNL_USD    = 8
+    PNL_PCT    = 9
+    HARD_STOP  = 10
+    TARGET     = 11
+    TRAIL      = 12
+    ACTIONS    = 13
+```
+
+The User column is hidden via `QTableView.setColumnHidden(Col.USER, True)` when scope is single-user; this avoids reshaping the model on scope change. `headerData()` returns "User" for `Col.USER` regardless of visibility.
+
+### Public API
+
+```python
+class _ActiveCyclesModel(QAbstractTableModel):
+    def __init__(self, query: TradeCycleQuery,
+                 pending_store: PendingSignalStore,
+                 parent: QObject | None = None) -> None: ...
+
+    # Bulk
+    def refresh(self) -> None: ...                 # re-queries open_cycles + pending; full reset
+
+    # Incremental — called from event slots
+    def on_pending_added(self, signal: TradeSignal) -> None: ...
+    def on_pending_removed(self, signal_id: str) -> None: ...
+    def on_cycle_opened(self, snap: CycleSnapshot) -> None: ...
+    def on_cycle_updated(self, snap: CycleSnapshot) -> None: ...
+    def on_cycle_state(self, snap: CycleSnapshot) -> None: ...   # CycleClosing / RiskUpdated
+    def on_cycle_closed(self, snap: CycleSnapshot) -> None: ...
+    def on_cycle_aborted(self, snap: CycleSnapshot) -> None: ...
+
+    # Scope
+    def set_scope(self, user_id: int | None) -> None: ...        # filters rows in place
+```
+
+### Index Map
+
+```python
+self._by_key: dict[str, int] = {}                  # row key → row index
+```
+
+Maintained by every incremental method. All mutations go through three private helpers:
+
+```python
+def _insert_row(self, row: _Row) -> None: ...          # beginInsertRows / endInsertRows
+def _update_row(self, key: str, row: _Row) -> None: ... # emits dataChanged on changed columns only
+def _remove_row(self, key: str) -> None: ...           # beginRemoveRows / endRemoveRows
+```
+
+### Incremental Update Path
+
+```python
+def on_cycle_updated(self, snap: CycleSnapshot) -> None:
+    key = f"cycle:{snap.cycle_id}"
+    idx = self._by_key.get(key)
+    if idx is None:
+        return                                         # cycle was closed/aborted before this tick arrived
+    row = self._rows[idx]
+    changed_cols: list[int] = []
+    if row.ltp != snap.current_price:
+        row.ltp = snap.current_price; changed_cols.append(Col.LTP)
+    if row.pnl_usd != snap.current_pnl_usd:
+        row.pnl_usd = snap.current_pnl_usd; changed_cols.append(Col.PNL_USD)
+    if row.pnl_pct != snap.current_pnl_pct:
+        row.pnl_pct = snap.current_pnl_pct; changed_cols.append(Col.PNL_PCT)
+    if row.trail != snap.trailing_stop_level:
+        row.trail = snap.trailing_stop_level; changed_cols.append(Col.TRAIL)
+    if not changed_cols:
+        return
+    left  = self.index(idx, min(changed_cols))
+    right = self.index(idx, max(changed_cols))
+    self.dataChanged.emit(left, right)
+```
+
+Emits a single `dataChanged` covering only the contiguous changed-column range to minimise repaint cost during high-frequency ticks.
+
+### Cell Formatting
+
+| Column | `Qt.DisplayRole` format | `Qt.BackgroundRole` | `Qt.ForegroundRole` |
+|---|---|---|---|
+| `STATE` | badge text (PENDING / OPENING / …) | `C.AMBER` / `C.BLUE` / `C.GREEN` / `C.ORANGE` (tinted) | `C.BG` |
+| `LTP` / `ENTRY` / `HARD_STOP` / `TARGET` / `TRAIL` | `"$%.2f"` (or "—" when None) | — | — |
+| `PNL_USD` | `"+$%.2f"` / `"-$%.2f"` | green/red tint | `C.GREEN` / `C.RED` |
+| `PNL_PCT` | `"+%.2f%%"` / `"-%.2f%%"` | — | `C.GREEN` / `C.RED` |
+| `ACTIONS` | empty (delegate paints) | — | — |
+
+`Qt.UserRole` returns the `_Row` (used by the delegate). `Qt.UserRole+1` returns the row's `state` for fast lookups during paint.
+
+### Thread Bridging
+
+Service events arrive on the event-bus worker thread. The panel installs Qt cross-thread relay slots on construction:
+
+```python
+self._bridge_signal = pyqtSignal(object)                 # any TradeCycleEvent
+bus.subscribe(lambda evt: self._bridge_signal.emit(evt))
+self._bridge_signal.connect(self._dispatch_event, Qt.QueuedConnection)
+```
+
+`_dispatch_event` runs on the GUI thread and routes by event type to the model's `on_*` methods. The model itself touches no thread primitives — Qt's queued connection guarantees GUI-thread delivery.
+
+---
+
+## DD-GUI-014.002.D02 — `_RowActionsDelegate`
+
+**Parent SRD:** SRD-GUI-014.005, SRD-GUI-014.006, SRD-GUI-014.008, SRD-GUI-014.012
+**Status:** Approved
+
+### State → Button Set
+
+| Row state | Visible buttons | Geometry (right-anchored, 6 px gap) |
+|---|---|---|
+| `PENDING` | `[Execute]` (82 px) · `[✕]` (28 px) | 28 px height, vertically centred |
+| `OPENING` | indeterminate spinner (16 px) | centred |
+| `OPEN` | `[Edit Risk ▼]` (96 px) · `[Close]` (68 px) | as above |
+| `CLOSING` | indeterminate spinner | centred |
+
+### Class Skeleton
+
+```python
+class _RowActionsDelegate(QStyledItemDelegate):
+    execute_clicked      = pyqtSignal(str)               # signal_id
+    dismiss_clicked      = pyqtSignal(str)               # signal_id
+    edit_risk_clicked    = pyqtSignal(int)               # cycle_id (toggles expand)
+    close_clicked        = pyqtSignal(int)               # cycle_id
+
+    def __init__(self,
+                 cb_state_provider: Callable[[], bool],   # AppService.circuit_breaker_active
+                 parent: QObject | None = None) -> None: ...
+
+    def paint(self, painter: QPainter,
+              option: QStyleOptionViewItem,
+              index: QModelIndex) -> None: ...
+    def editorEvent(self, event, model, option, index) -> bool: ...
+    def sizeHint(self, option, index) -> QSize: ...
+```
+
+### Hit-Test Geometry
+
+The delegate stores per-row button rects in a per-paint-cycle dict:
+
+```python
+self._hit_rects: dict[QModelIndex, list[tuple[str, QRect]]] = {}
+```
+
+`paint()` computes rects from `option.rect` right-anchored layout, stores them, then draws. `editorEvent()` tests `MouseButtonRelease` against the stored rects and emits the appropriate signal.
+
+### Paint Algorithm (pseudo-code)
+
+```python
+def paint(self, p, opt, idx):
+    row    = idx.data(Qt.UserRole)
+    state  = row.state
+    cb_on  = self._cb_provider()                      # circuit-breaker flag
+
+    p.save()
+    p.setRenderHint(QPainter.Antialiasing)
+
+    # Background — alternating row tint already painted by view; nothing here.
+    btns: list[tuple[str, str, QColor]] = []          # (id, label, accent)
+
+    if state == "PENDING":
+        exec_disabled = cb_on
+        btns.append(("execute", "Execute",
+                     C.MUTED if exec_disabled else C.GREEN))
+        btns.append(("dismiss", "✕", C.MUTED))
+    elif state == "OPEN":
+        btns.append(("edit",  "Edit Risk ▼", C.BLUE))
+        btns.append(("close", "Close",       C.RED))
+    elif state in ("OPENING", "CLOSING"):
+        self._draw_spinner(p, opt.rect)               # tick angle from a panel-wide QTimer
+        p.restore()
+        return
+
+    rects = self._layout_buttons(opt.rect, btns)
+    self._hit_rects[idx] = list(zip([b[0] for b in btns], rects))
+    for (bid, label, accent), rect in zip(btns, rects):
+        disabled = (bid == "execute" and cb_on)
+        self._draw_button(p, rect, label, accent, disabled)
+
+    p.restore()
+```
+
+`_draw_button` paints a rounded rect (radius 4), 1-px border in the accent colour, label in either `C.TEXT` or `C.MUTED` based on `disabled`. Hover tracking is handled by the delegate's `QStyle.State_MouseOver` test on `opt.state`.
+
+### Click Routing
+
+```python
+def editorEvent(self, event, model, option, index):
+    if event.type() != QEvent.MouseButtonRelease:
+        return False
+    pos = event.pos()
+    for bid, rect in self._hit_rects.get(index, []):
+        if not rect.contains(pos):
+            continue
+        if bid == "execute":
+            if self._cb_provider():
+                return True                            # disabled — swallow click
+            row = index.data(Qt.UserRole)
+            self.execute_clicked.emit(row.signal.signal_id)
+        elif bid == "dismiss":
+            row = index.data(Qt.UserRole)
+            self.dismiss_clicked.emit(row.signal.signal_id)
+        elif bid == "edit":
+            self.edit_risk_clicked.emit(index.data(Qt.UserRole).cycle_id)
+        elif bid == "close":
+            self.close_clicked.emit(index.data(Qt.UserRole).cycle_id)
+        return True
+    return False
+```
+
+### Tooltip on Disabled `[Execute]`
+
+```python
+def helpEvent(self, event, view, option, index):
+    if event.type() == QEvent.ToolTip and self._cb_provider():
+        row = index.data(Qt.UserRole)
+        if row.state == "PENDING":
+            QToolTip.showText(event.globalPos(),
+                              "Circuit breaker active — no new entries", view)
+            return True
+    return super().helpEvent(event, view, option, index)
+```
+
+### Spinner
+
+A panel-owned `QTimer` ticks every 50 ms while any OPENING / CLOSING row exists; on each tick it invalidates only the action-cells of those rows via `model.dataChanged.emit(idx, idx, [Qt.DisplayRole])`. Stops automatically when no spinning rows remain.
+
+---
+
+## DD-GUI-014.007.D01 — Inline Risk Editor
+
+**Parent SRD:** SRD-GUI-014.007
+**Status:** Approved
+
+### Expand Mechanism
+
+The panel uses `QTableView.setSpan` to merge the editor row across all visible columns. On `edit_risk_clicked(cycle_id)` from the delegate:
+
+```python
+def _on_edit_risk(self, cycle_id: int) -> None:
+    if self._expanded_cycle_id == cycle_id:
+        self._collapse_editor()
+        return
+    if self._expanded_cycle_id is not None:
+        self._collapse_editor()
+    self._expand_editor(cycle_id)
+```
+
+`_expand_editor(cycle_id)` inserts a synthetic row directly below the parent cycle row (via `_ActiveCyclesModel._insert_editor_row(cycle_id)`) and embeds a `_RiskEditorWidget` via `QTableView.setIndexWidget()`. Only one editor is open at a time; opening another collapses the first.
+
+### `_RiskEditorWidget`
+
+```python
+class _RiskEditorWidget(QWidget):
+    saved     = pyqtSignal(int, dict)        # cycle_id, fields-to-update
+    cancelled = pyqtSignal(int)
+
+    def __init__(self, snap: CycleSnapshot, parent: QWidget | None = None) -> None: ...
+
+    def show_error(self, message: str) -> None: ...   # called by panel on InvariantViolation
+```
+
+Constructed from the current `CycleSnapshot` (passed in by the panel from `TradeCycleQuery.cycle(cycle_id)`).
+
+### Layout
+
+```
+┌─ Edit Risk — AAPL (cycle 1042) ──────────────────────────────────────────────┐
+│                                                                              │
+│  Hard Stop   [ 179.00 ↑↓ ]      Target    [ 189.00 ↑↓ ]                     │
+│  Trail Mode  [ $ ▾ ]   Trail Offset  [ 2.50 ↑↓ ]                            │
+│                                                                              │
+│  [ inline error label — hidden by default, red text ]                        │
+│                                                                              │
+│  [Save]  [Cancel]                                                            │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+| Control | Type | Range (anchored to `snap.current_price`) | Step | Decimals |
+|---|---|---|---|---|
+| Hard Stop | `QDoubleSpinBox` | `0.01 .. current_price` | 0.05 | 2 |
+| Target | `QDoubleSpinBox` | `current_price .. 1_000_000` | 0.05 | 2 |
+| Trail Mode | `QComboBox` | `$` / `%` | — | — |
+| Trail Offset | `QDoubleSpinBox` | `0.01 .. 999.99` | 0.05 | 2 |
+
+The spinbox range bounds enforce FO-EXE-012 §10 invariants locally: HSL cannot be set above current_price; target cannot be below; trail offset cannot be zero. The user gets immediate visual feedback (spinbox clamps) before Save is even pressed.
+
+### Save Flow
+
+```python
+def _on_save(self) -> None:
+    fields = self._collect_changed_fields(self._snap)        # only diff vs snapshot
+    if not fields:
+        self.cancelled.emit(self._snap.cycle_id)
+        return
+    self.saved.emit(self._snap.cycle_id, fields)
+```
+
+The panel handles `saved`:
+
+```python
+def _on_editor_saved(self, cycle_id: int, fields: dict) -> None:
+    try:
+        snap = self._cycle_cmd.update_risk(cycle_id, **fields)
+    except InvariantViolation as e:
+        self._editor.show_error(str(e))                      # keep editor open
+        return
+    self._collapse_editor()
+    # The CycleUpdated event from update_risk drives the row repaint;
+    # no manual model update needed here.
+```
+
+### Inline Error Rendering
+
+```python
+def show_error(self, message: str) -> None:
+    self._err_lbl.setText(message)
+    self._err_lbl.setVisible(True)
+    self._err_lbl.setStyleSheet(f"color: {C.RED}; font-size: 9pt;")
+    # auto-clear on next field edit
+    for w in (self._hsl, self._target, self._trail_offset, self._trail_mode):
+        w.valueChanged.connect(self._clear_error) if hasattr(w, "valueChanged") \
+            else w.currentTextChanged.connect(self._clear_error)
+```
+
+### Collapse / Cleanup
+
+```python
+def _collapse_editor(self) -> None:
+    if self._expanded_cycle_id is None:
+        return
+    self._model._remove_editor_row(self._expanded_cycle_id)
+    self._editor.deleteLater()
+    self._editor = None
+    self._expanded_cycle_id = None
+```
+
+Editor row removal is synchronous so a subsequent `_expand_editor` for a different cycle never sees a stale embedded widget. `deleteLater` prevents reentrancy if Save was triggered by a keypress that is still propagating.
+
+### Race with Cycle Closure
+
+If a `CycleClosed` event arrives for the cycle whose editor is open:
+
+```python
+def on_cycle_closed(self, snap: CycleSnapshot) -> None:
+    self._model.on_cycle_closed(snap)
+    if snap.cycle_id == self._expanded_cycle_id:
+        self._collapse_editor()                              # silently dismiss editor
+```
+
+No confirmation is shown — the cycle's already gone; the editor was about to fail anyway. The panel logs DEBUG `[Panel] editor auto-dismissed for closed cycle {id}`.
