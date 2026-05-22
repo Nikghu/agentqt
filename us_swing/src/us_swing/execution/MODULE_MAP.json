@@ -1,10 +1,13 @@
 {
-  "generated": "2026-05-21T07:41:33",
+  "generated": "2026-05-22T13:42:01",
   "subfolder": "execution",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\execution",
   "tool_code": "EXE",
   "files": {
-    "__init__.py": {},
+    "__init__.py": {
+      "module_id": "MD-EXE-011.001.M07",
+      "srd_id": "SRD-EXE-011.001"
+    },
     "intraday_candle_loader.py": {
       "module_id": "MD-EXE-006.001.M01",
       "srd_id": "SRD-EXE-006.001",
@@ -374,6 +377,1085 @@
         "_SUB_PAUSE: float = 0.20",
         "_CONNECT_TIMEOUT: int = 10",
         "_FATAL_CODES: frozenset[int] = frozenset({200, 354, 420})"
+      ]
+    },
+    "pending_signal_store.py": {
+      "srd_id": "SRD-EXE-011.009",
+      "classes": [
+        {
+          "name": "PendingSignalStore",
+          "docstring": "Thread-safe in-memory store of `TradeSignal`s awaiting user action.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, parent: QObject | None = None) -> None",
+              "line_start": 25,
+              "line_end": 28
+            },
+            {
+              "name": "add",
+              "signature": "def add(self, signal: TradeSignal) -> None",
+              "line_start": 30,
+              "line_end": 35
+            },
+            {
+              "name": "dismiss",
+              "signature": "def dismiss(self, signal_id: str) -> TradeSignal | None",
+              "line_start": 37,
+              "line_end": 42
+            },
+            {
+              "name": "execute",
+              "signature": "def execute(self, signal_id: str) -> TradeSignal | None",
+              "line_start": 44,
+              "line_end": 49
+            },
+            {
+              "name": "list",
+              "signature": "def list(self) -> tuple[TradeSignal, ...]",
+              "line_start": 51,
+              "line_end": 53
+            },
+            {
+              "name": "__len__",
+              "signature": "def __len__(self) -> int",
+              "line_start": 55,
+              "line_end": 57
+            }
+          ],
+          "line_start": 14,
+          "line_end": 57
+        }
+      ]
+    },
+    "_context.py": {
+      "module_id": "MD-EXE-011.001.M02",
+      "srd_id": "SRD-EXE-011.002",
+      "classes": [
+        {
+          "name": "_CycleState",
+          "line_start": 33,
+          "line_end": 39
+        },
+        {
+          "name": "_StrategyContext",
+          "class_vars": [
+            "cfg: StrategyConfig",
+            "cycles: dict[str, _CycleState]",
+            "cycle_locks: dict[str, asyncio.Lock]",
+            "last_entry_signal: dict[str, TradeSignal | None]"
+          ],
+          "methods": [
+            {
+              "name": "name",
+              "signature": "def name(self) -> str",
+              "decorators": [
+                "@property"
+              ],
+              "line_start": 59,
+              "line_end": 60
+            },
+            {
+              "name": "accepts",
+              "signature": "def accepts(self, symbol: str) -> bool",
+              "line_start": 62,
+              "line_end": 70
+            },
+            {
+              "name": "within_schedule",
+              "signature": "def within_schedule(self, now_et: datetime | None = None) -> bool",
+              "line_start": 72,
+              "line_end": 93
+            },
+            {
+              "name": "lock_for",
+              "signature": "def lock_for(self, symbol: str) -> asyncio.Lock",
+              "line_start": 95,
+              "line_end": 100
+            },
+            {
+              "name": "state",
+              "signature": "def state(self, symbol: str) -> _CycleState",
+              "line_start": 102,
+              "line_end": 103
+            }
+          ],
+          "line_start": 52,
+          "line_end": 103
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_parse_hhmm",
+          "signature": "def _parse_hhmm(text: str) -> time",
+          "line_start": 42,
+          "line_end": 44
+        },
+        {
+          "name": "_parse_date",
+          "signature": "def _parse_date(text: str) -> date",
+          "line_start": 47,
+          "line_end": 48
+        }
+      ],
+      "constants": [
+        "_ET = ZoneInfo(\"America/New_York\")",
+        "_DAY_NAMES = ("
+      ]
+    },
+    "_engine.py": {
+      "module_id": "MD-EXE-011.001.M01",
+      "srd_id": "SRD-EXE-011.001",
+      "classes": [
+        {
+          "name": "StrategyEngine",
+          "docstring": "QThread-hosted asyncio engine that drives strategy evaluation.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(\n        self,\n        *,\n        registry_loader: Callable[[], list[StrategyConfig]],\n        registry_saver: Callable[[list[StrategyConfig]], None],\n        candles_provider: Callable[[str], dict[str, pd.DataFrame]],\n        bar_provider: Callable[[str, str], OHLCVBar | None],\n        risk: RiskValidator,\n        submitter: ExecutionSubmitter,\n        pending: PendingSignalSink,\n        bus: EventBus,\n        primary_timeframe: str = \"3m\",\n        parent: QObject | None = None,\n    ) -> None",
+              "line_start": 59,
+              "line_end": 90
+            },
+            {
+              "name": "run",
+              "signature": "def run(self) -> None",
+              "line_start": 94,
+              "line_end": 101
+            },
+            {
+              "name": "_async_run",
+              "signature": "def _async_run(self) -> None",
+              "line_start": 103,
+              "line_end": 123
+            },
+            {
+              "name": "_load_registry",
+              "signature": "def _load_registry(self) -> dict[str, _StrategyContext]",
+              "line_start": 127,
+              "line_end": 134
+            },
+            {
+              "name": "on_candle_closed",
+              "signature": "def on_candle_closed(self, symbol: str) -> None",
+              "decorators": [
+                "@pyqtSlot(str)"
+              ],
+              "line_start": 139,
+              "line_end": 142
+            },
+            {
+              "name": "on_order_fill",
+              "signature": "def on_order_fill(self, fill: FillEvent) -> None",
+              "decorators": [
+                "@pyqtSlot(object)"
+              ],
+              "line_start": 145,
+              "line_end": 149
+            },
+            {
+              "name": "on_order_reject",
+              "signature": "def on_order_reject(self, reject: RejectEvent) -> None",
+              "decorators": [
+                "@pyqtSlot(object)"
+              ],
+              "line_start": 152,
+              "line_end": 156
+            },
+            {
+              "name": "on_circuit_breaker",
+              "signature": "def on_circuit_breaker(self, active: bool) -> None",
+              "decorators": [
+                "@pyqtSlot(bool)"
+              ],
+              "line_start": 159,
+              "line_end": 160
+            },
+            {
+              "name": "on_pending_dismissed",
+              "signature": "def on_pending_dismissed(self, strategy_id: str, symbol: str) -> None",
+              "docstring": "User dismissed a pending signal \u2014 roll back UnderEntry/UnderExit.",
+              "decorators": [
+                "@pyqtSlot(str, str)"
+              ],
+              "line_start": 163,
+              "line_end": 167
+            },
+            {
+              "name": "_rollback_dismissed",
+              "signature": "def _rollback_dismissed(self, strategy_id: str, symbol: str) -> None",
+              "line_start": 169,
+              "line_end": 178
+            },
+            {
+              "name": "_fanout",
+              "signature": "def _fanout(self, symbol: str) -> None",
+              "line_start": 182,
+              "line_end": 203
+            },
+            {
+              "name": "_schedule_persist",
+              "signature": "def _schedule_persist(self, strategy_id: str) -> None",
+              "line_start": 207,
+              "line_end": 220
+            },
+            {
+              "name": "_flush_persist",
+              "signature": "def _flush_persist(self) -> None",
+              "line_start": 222,
+              "line_end": 237
+            },
+            {
+              "name": "request_stop",
+              "signature": "def request_stop(self) -> None",
+              "docstring": "Signal both router loops to exit; quits the QThread after they unwind.",
+              "line_start": 241,
+              "line_end": 245
+            },
+            {
+              "name": "emergency_stop",
+              "signature": "def emergency_stop(self, timeout: float = 120.0) -> None",
+              "docstring": "Block until every Running symbol reaches SquareOff.",
+              "line_start": 247,
+              "line_end": 255
+            },
+            {
+              "name": "reload_registry",
+              "signature": "def reload_registry(self) -> None",
+              "docstring": "Re-load configurations from disk; diff and patch contexts in-place.",
+              "line_start": 257,
+              "line_end": 261
+            },
+            {
+              "name": "_reload_registry_locked",
+              "signature": "def _reload_registry_locked(self) -> None",
+              "line_start": 263,
+              "line_end": 285
+            },
+            {
+              "name": "registry",
+              "signature": "def registry(self) -> dict[str, _StrategyContext]",
+              "decorators": [
+                "@property"
+              ],
+              "line_start": 290,
+              "line_end": 291
+            },
+            {
+              "name": "router",
+              "signature": "def router(self) -> _Router | None",
+              "decorators": [
+                "@property"
+              ],
+              "line_start": 294,
+              "line_end": 295
+            }
+          ],
+          "line_start": 47,
+          "line_end": 295
+        }
+      ],
+      "constants": [
+        "_WRITEBACK_DEBOUNCE_S = 0.25"
+      ]
+    },
+    "_evaluator.py": {
+      "module_id": "MD-EXE-011.001.M03",
+      "srd_id": "SRD-EXE-011.006",
+      "classes": [
+        {
+          "name": "EvaluatorError",
+          "docstring": "Raised on tokenizer / parser / arity / evaluation failures.",
+          "line_start": 16,
+          "line_end": 17
+        },
+        {
+          "name": "_Parser",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, tokens: list[tuple[str, Any]]) -> None",
+              "line_start": 66,
+              "line_end": 68
+            },
+            {
+              "name": "parse",
+              "signature": "def parse(self) -> dict[str, Any]",
+              "line_start": 70,
+              "line_end": 74
+            },
+            {
+              "name": "_current",
+              "signature": "def _current(self) -> tuple[str, Any] | None",
+              "line_start": 76,
+              "line_end": 77
+            },
+            {
+              "name": "_eat",
+              "signature": "def _eat(self, kind: str | None = None) -> tuple[str, Any]",
+              "line_start": 79,
+              "line_end": 86
+            },
+            {
+              "name": "_or_expr",
+              "signature": "def _or_expr(self) -> dict[str, Any]",
+              "line_start": 88,
+              "line_end": 94
+            },
+            {
+              "name": "_and_expr",
+              "signature": "def _and_expr(self) -> dict[str, Any]",
+              "line_start": 96,
+              "line_end": 102
+            },
+            {
+              "name": "_comparison",
+              "signature": "def _comparison(self) -> dict[str, Any]",
+              "line_start": 104,
+              "line_end": 111
+            },
+            {
+              "name": "_term",
+              "signature": "def _term(self) -> dict[str, Any]",
+              "line_start": 113,
+              "line_end": 138
+            },
+            {
+              "name": "_arg_list",
+              "signature": "def _arg_list(self) -> list[dict[str, Any]]",
+              "line_start": 140,
+              "line_end": 148
+            }
+          ],
+          "line_start": 65,
+          "line_end": 148
+        },
+        {
+          "name": "ConditionEvaluator",
+          "docstring": "Parses and evaluates an FO-GUI-013 trigger expression against candles.",
+          "class_vars": [
+            "FUNCTION_MAP: ClassVar[dict[str, _IndicatorFn]]"
+          ],
+          "methods": [
+            {
+              "name": "evaluate",
+              "signature": "def evaluate(\n        self,\n        expr: str,\n        candles: dict[str, pd.DataFrame],\n        symbol: str,\n    ) -> bool",
+              "line_start": 352,
+              "line_end": 359
+            },
+            {
+              "name": "_eval",
+              "signature": "def _eval(\n        self,\n        node: dict[str, Any],\n        candles: dict[str, pd.DataFrame],\n        symbol: str,\n    ) -> float | bool",
+              "line_start": 363,
+              "line_end": 388
+            },
+            {
+              "name": "_apply_op",
+              "signature": "def _apply_op(\n        op: str,\n        left: float | bool,\n        right: float | bool,\n    ) -> float | bool",
+              "decorators": [
+                "@staticmethod"
+              ],
+              "line_start": 391,
+              "line_end": 414
+            }
+          ],
+          "line_start": 332,
+          "line_end": 414
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_tokenize",
+          "signature": "def _tokenize(expr: str) -> list[tuple[str, Any]]",
+          "line_start": 39,
+          "line_end": 60
+        },
+        {
+          "name": "_require_args",
+          "signature": "def _require_args(name: str, args: list[Any], expected: int) -> None",
+          "line_start": 153,
+          "line_end": 157
+        },
+        {
+          "name": "_frame_for_tf",
+          "signature": "def _frame_for_tf(candles: dict[str, pd.DataFrame], tf: str) -> pd.DataFrame",
+          "line_start": 160,
+          "line_end": 164
+        },
+        {
+          "name": "_last",
+          "signature": "def _last(series: pd.Series) -> float",
+          "line_start": 167,
+          "line_end": 171
+        },
+        {
+          "name": "_to_f64",
+          "signature": "def _to_f64(series: pd.Series) -> np.ndarray",
+          "line_start": 174,
+          "line_end": 175
+        },
+        {
+          "name": "_last_arr",
+          "signature": "def _last_arr(arr: np.ndarray) -> float",
+          "line_start": 178,
+          "line_end": 182
+        },
+        {
+          "name": "_fn_number",
+          "signature": "def _fn_number(args: list[Any], _c: dict[str, pd.DataFrame], _s: str) -> float",
+          "line_start": 187,
+          "line_end": 189
+        },
+        {
+          "name": "_fn_pnl",
+          "signature": "def _fn_pnl(args: list[Any], _c: dict[str, pd.DataFrame], _s: str) -> float",
+          "line_start": 192,
+          "line_end": 194
+        },
+        {
+          "name": "_fn_price",
+          "signature": "def _fn_price(args: list[Any], c: dict[str, pd.DataFrame], _s: str) -> float",
+          "line_start": 197,
+          "line_end": 204
+        },
+        {
+          "name": "_fn_vwap",
+          "signature": "def _fn_vwap(args: list[Any], c: dict[str, pd.DataFrame], _s: str) -> float",
+          "line_start": 207,
+          "line_end": 215
+        },
+        {
+          "name": "_fn_rsi",
+          "signature": "def _fn_rsi(args: list[Any], c: dict[str, pd.DataFrame], _s: str) -> float",
+          "line_start": 218,
+          "line_end": 222
+        },
+        {
+          "name": "_fn_adx",
+          "signature": "def _fn_adx(args: list[Any], c: dict[str, pd.DataFrame], _s: str) -> float",
+          "line_start": 225,
+          "line_end": 236
+        },
+        {
+          "name": "_fn_ema",
+          "signature": "def _fn_ema(args: list[Any], c: dict[str, pd.DataFrame], _s: str) -> float",
+          "line_start": 239,
+          "line_end": 243
+        },
+        {
+          "name": "_supertrend_direction",
+          "signature": "def _supertrend_direction(df: pd.DataFrame, length: int, factor: float) -> float",
+          "docstring": "Supertrend direction (+1 uptrend, -1 downtrend) for the last bar.",
+          "line_start": 246,
+          "line_end": 267
+        },
+        {
+          "name": "_fn_supertrend",
+          "signature": "def _fn_supertrend(args: list[Any], c: dict[str, pd.DataFrame], _s: str) -> float",
+          "line_start": 270,
+          "line_end": 274
+        },
+        {
+          "name": "_fn_swing",
+          "signature": "def _fn_swing(args: list[Any], c: dict[str, pd.DataFrame], _s: str) -> float",
+          "line_start": 277,
+          "line_end": 292
+        },
+        {
+          "name": "_fn_macd",
+          "signature": "def _fn_macd(args: list[Any], c: dict[str, pd.DataFrame], _s: str) -> float",
+          "line_start": 295,
+          "line_end": 305
+        },
+        {
+          "name": "_fn_bos_engulfing",
+          "signature": "def _fn_bos_engulfing(args: list[Any], _c: dict[str, pd.DataFrame], _s: str) -> float",
+          "line_start": 310,
+          "line_end": 312
+        },
+        {
+          "name": "_fn_boss_ema",
+          "signature": "def _fn_boss_ema(args: list[Any], _c: dict[str, pd.DataFrame], _s: str) -> float",
+          "line_start": 315,
+          "line_end": 317
+        },
+        {
+          "name": "_fn_boss_adx",
+          "signature": "def _fn_boss_adx(args: list[Any], _c: dict[str, pd.DataFrame], _s: str) -> float",
+          "line_start": 320,
+          "line_end": 322
+        },
+        {
+          "name": "_fn_boss_smt",
+          "signature": "def _fn_boss_smt(args: list[Any], _c: dict[str, pd.DataFrame], _s: str) -> float",
+          "line_start": 325,
+          "line_end": 327
+        }
+      ],
+      "constants": [
+        "_TOKEN_SPEC: tuple[tuple[str, str], ...] = (",
+        "_TOKEN_RE = re.compile(\"|\".join(f\"(?P<{n}>{p})\" for n, p in _TOKEN_SPEC))"
+      ]
+    },
+    "_events.py": {
+      "module_id": "MD-EXE-011.001.M05",
+      "srd_id": "SRD-EXE-011.015",
+      "classes": [
+        {
+          "name": "StrategyEntered",
+          "class_vars": [
+            "strategy_id: str",
+            "symbol: str",
+            "entry_price: float",
+            "qty: int",
+            "schema_version: int"
+          ],
+          "line_start": 14,
+          "line_end": 19
+        },
+        {
+          "name": "StrategyExited",
+          "class_vars": [
+            "strategy_id: str",
+            "symbol: str",
+            "exit_price: float",
+            "qty: int",
+            "reason: str",
+            "schema_version: int"
+          ],
+          "line_start": 23,
+          "line_end": 29
+        },
+        {
+          "name": "StrategySquaredOff",
+          "class_vars": [
+            "strategy_id: str",
+            "symbol: str",
+            "reason: str",
+            "schema_version: int"
+          ],
+          "line_start": 33,
+          "line_end": 37
+        },
+        {
+          "name": "StrategyErrored",
+          "class_vars": [
+            "strategy_id: str",
+            "symbol: str | None",
+            "message: str",
+            "schema_version: int"
+          ],
+          "line_start": 41,
+          "line_end": 45
+        },
+        {
+          "name": "StrategySignalDropped",
+          "class_vars": [
+            "signal: TradeSignal",
+            "reason: str",
+            "schema_version: int"
+          ],
+          "line_start": 49,
+          "line_end": 52
+        },
+        {
+          "name": "StrategySignalPending",
+          "class_vars": [
+            "signal: TradeSignal",
+            "schema_version: int"
+          ],
+          "line_start": 56,
+          "line_end": 58
+        }
+      ]
+    },
+    "_protocols.py": {
+      "module_id": "MD-EXE-011.001.M04",
+      "srd_id": "SRD-EXE-011.008",
+      "classes": [
+        {
+          "name": "ValidationResult",
+          "class_vars": [
+            "ok: bool",
+            "reason: str",
+            "qty: int",
+            "schema_version: int"
+          ],
+          "line_start": 19,
+          "line_end": 23
+        },
+        {
+          "name": "CanAllocateResult",
+          "class_vars": [
+            "ok: bool",
+            "reason: str",
+            "schema_version: int"
+          ],
+          "line_start": 27,
+          "line_end": 30
+        },
+        {
+          "name": "RiskValidator",
+          "docstring": "Synchronous risk gate consumed by the router.",
+          "methods": [
+            {
+              "name": "validate",
+              "signature": "def validate(self, signal: TradeSignal) -> ValidationResult",
+              "line_start": 36,
+              "line_end": 36
+            },
+            {
+              "name": "can_allocate",
+              "signature": "def can_allocate(self, strategy_id: str, capital_max_pct: int) -> CanAllocateResult",
+              "line_start": 37,
+              "line_end": 37
+            }
+          ],
+          "line_start": 33,
+          "line_end": 37
+        },
+        {
+          "name": "ExecutionSubmitter",
+          "docstring": "Synchronous broker-side dispatch. Returns an order id or None on rejection.",
+          "methods": [
+            {
+              "name": "submit",
+              "signature": "def submit(self, signal: TradeSignal, qty: int) -> int | None",
+              "line_start": 43,
+              "line_end": 43
+            }
+          ],
+          "line_start": 40,
+          "line_end": 43
+        },
+        {
+          "name": "EventBus",
+          "docstring": "Minimal publish-only surface; consumers attach via the FO-EXE-009 bus.",
+          "methods": [
+            {
+              "name": "publish",
+              "signature": "def publish(self, event: StrategyEvent) -> None",
+              "line_start": 49,
+              "line_end": 49
+            }
+          ],
+          "line_start": 46,
+          "line_end": 49
+        },
+        {
+          "name": "FillEvent",
+          "docstring": "Broker fill payload routed in from FO-EXE-002.",
+          "class_vars": [
+            "strategy_id: str",
+            "symbol: str",
+            "is_entry: bool",
+            "fill_price: float",
+            "fill_qty: int",
+            "order_id: int",
+            "schema_version: int"
+          ],
+          "line_start": 53,
+          "line_end": 66
+        },
+        {
+          "name": "RejectEvent",
+          "docstring": "Broker reject payload routed in from FO-EXE-002.",
+          "class_vars": [
+            "strategy_id: str",
+            "symbol: str",
+            "is_entry: bool",
+            "reason: str",
+            "schema_version: int"
+          ],
+          "line_start": 70,
+          "line_end": 77
+        }
+      ]
+    },
+    "_router.py": {
+      "module_id": "MD-EXE-011.001.M04",
+      "srd_id": "SRD-EXE-011.008",
+      "classes": [
+        {
+          "name": "_Router",
+          "docstring": "Signal-queue consumer + per-bar evaluation + watchdog loops.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(\n        self,\n        *,\n        queue: asyncio.Queue[TradeSignal],\n        registry: dict[str, _StrategyContext],\n        evaluator: ConditionEvaluator,\n        risk: RiskValidator,\n        submitter: ExecutionSubmitter,\n        pending: PendingSignalSink,\n        bus: EventBus,\n        clock: Callable[[], datetime] | None = None,\n    ) -> None",
+              "line_start": 57,
+              "line_end": 80
+            },
+            {
+              "name": "request_stop",
+              "signature": "def request_stop(self) -> None",
+              "line_start": 84,
+              "line_end": 85
+            },
+            {
+              "name": "evaluate",
+              "signature": "def evaluate(\n        self,\n        ctx: _StrategyContext,\n        symbol: str,\n        candles: dict[str, pd.DataFrame],\n        bar: OHLCVBar,\n    ) -> None",
+              "docstring": "Evaluate a single context's entry/exit conditions on a bar close.",
+              "line_start": 89,
+              "line_end": 176
+            },
+            {
+              "name": "run_router_loop",
+              "signature": "def run_router_loop(self) -> None",
+              "line_start": 180,
+              "line_end": 199
+            },
+            {
+              "name": "_dispatch",
+              "signature": "def _dispatch(self, signal: TradeSignal) -> None",
+              "line_start": 201,
+              "line_end": 228
+            },
+            {
+              "name": "_rollback",
+              "signature": "def _rollback(self, ctx: _StrategyContext, symbol: str, action: Action) -> None",
+              "docstring": "Revert an Under* state to its prior non-blocking state on dispatch reject.",
+              "line_start": 230,
+              "line_end": 237
+            },
+            {
+              "name": "on_order_fill",
+              "signature": "def on_order_fill(self, fill: FillEvent) -> None",
+              "line_start": 241,
+              "line_end": 266
+            },
+            {
+              "name": "on_order_reject",
+              "signature": "def on_order_reject(self, reject: RejectEvent) -> None",
+              "line_start": 268,
+              "line_end": 285
+            },
+            {
+              "name": "run_end_time_watcher",
+              "signature": "def run_end_time_watcher(self) -> None",
+              "line_start": 289,
+              "line_end": 297
+            },
+            {
+              "name": "_sweep_end_times",
+              "signature": "def _sweep_end_times(self) -> None",
+              "line_start": 299,
+              "line_end": 309
+            },
+            {
+              "name": "_force_exit",
+              "signature": "def _force_exit(\n        self,\n        ctx: _StrategyContext,\n        symbol: str,\n        *,\n        reason: str,\n    ) -> None",
+              "line_start": 311,
+              "line_end": 332
+            },
+            {
+              "name": "emergency_stop",
+              "signature": "def emergency_stop(self) -> None",
+              "docstring": "Force exit every Running symbol, then block until everything quiesces.",
+              "line_start": 336,
+              "line_end": 346
+            },
+            {
+              "name": "_build_entry_signal",
+              "signature": "def _build_entry_signal(\n        self,\n        ctx: _StrategyContext,\n        symbol: str,\n        bar: OHLCVBar,\n    ) -> TradeSignal",
+              "line_start": 350,
+              "line_end": 370
+            },
+            {
+              "name": "_maybe_signal_quiesced",
+              "signature": "def _maybe_signal_quiesced(self) -> None",
+              "docstring": "Mark the quiesced event when no strategy has work in flight.",
+              "line_start": 372,
+              "line_end": 378
+            }
+          ],
+          "line_start": 50,
+          "line_end": 378
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_parse_hhmm",
+          "signature": "def _parse_hhmm(text: str) -> time",
+          "line_start": 45,
+          "line_end": 47
+        }
+      ],
+      "constants": [
+        "_ET = ZoneInfo(\"America/New_York\")",
+        "_END_TIME_TICK_S = 30.0"
+      ]
+    },
+    "_signals.py": {
+      "module_id": "MD-EXE-011.001.M06",
+      "srd_id": "SRD-EXE-011.008",
+      "classes": [
+        {
+          "name": "Action",
+          "line_start": 13,
+          "line_end": 15
+        },
+        {
+          "name": "TradeSignal",
+          "class_vars": [
+            "action: Action",
+            "symbol: str",
+            "strategy_id: str",
+            "entry_price: float | None",
+            "stop_loss: float | None",
+            "target: float | None",
+            "qty_recommended: int",
+            "reason: str | None",
+            "signal_id: str",
+            "schema_version: int"
+          ],
+          "line_start": 23,
+          "line_end": 33
+        },
+        {
+          "name": "PendingSignalSink",
+          "docstring": "Narrow sink interface used by the engine router; concrete",
+          "methods": [
+            {
+              "name": "add",
+              "signature": "def add(self, signal: TradeSignal) -> None",
+              "line_start": 40,
+              "line_end": 40
+            }
+          ],
+          "line_start": 36,
+          "line_end": 40
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_new_signal_id",
+          "signature": "def _new_signal_id() -> str",
+          "line_start": 18,
+          "line_end": 19
+        }
+      ]
+    },
+    "strategy_runner.py": {
+      "module_id": "MD-EXE-010.001.M01",
+      "srd_id": "SRD-EXE-010.001",
+      "classes": [
+        {
+          "name": "_TokKind",
+          "line_start": 29,
+          "line_end": 37
+        },
+        {
+          "name": "_Token",
+          "class_vars": [
+            "kind: _TokKind",
+            "value: str"
+          ],
+          "line_start": 41,
+          "line_end": 43
+        },
+        {
+          "name": "_IndicatorNode",
+          "class_vars": [
+            "name: str",
+            "timeframe: str",
+            "period: int"
+          ],
+          "line_start": 84,
+          "line_end": 87
+        },
+        {
+          "name": "_CompareNode",
+          "class_vars": [
+            "left: _IndicatorNode | float",
+            "op: str",
+            "right: _IndicatorNode | float"
+          ],
+          "line_start": 91,
+          "line_end": 94
+        },
+        {
+          "name": "_LogicalNode",
+          "class_vars": [
+            "op: str",
+            "clauses: tuple[_CompareNode, ...]"
+          ],
+          "line_start": 98,
+          "line_end": 100
+        },
+        {
+          "name": "_Parser",
+          "docstring": "Minimal recursive-descent parser for indicator condition expressions.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, tokens: list[_Token]) -> None",
+              "line_start": 115,
+              "line_end": 117
+            },
+            {
+              "name": "_peek",
+              "signature": "def _peek(self) -> _Token | None",
+              "line_start": 119,
+              "line_end": 120
+            },
+            {
+              "name": "_consume",
+              "signature": "def _consume(self, kind: _TokKind) -> _Token",
+              "line_start": 122,
+              "line_end": 129
+            },
+            {
+              "name": "_parse_indicator",
+              "signature": "def _parse_indicator(self) -> _IndicatorNode",
+              "line_start": 131,
+              "line_end": 142
+            },
+            {
+              "name": "_parse_operand",
+              "signature": "def _parse_operand(self) -> _IndicatorNode | float",
+              "line_start": 144,
+              "line_end": 153
+            },
+            {
+              "name": "_parse_clause",
+              "signature": "def _parse_clause(self) -> _CompareNode",
+              "line_start": 155,
+              "line_end": 159
+            },
+            {
+              "name": "parse",
+              "signature": "def parse(self) -> _LogicalNode",
+              "line_start": 161,
+              "line_end": 178
+            }
+          ],
+          "line_start": 105,
+          "line_end": 178
+        },
+        {
+          "name": "ConditionEvaluator",
+          "docstring": "Parse and evaluate a free-form indicator expression for a single symbol.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, db_path: Path = _INTRADAY_DB_PATH) -> None",
+              "line_start": 256,
+              "line_end": 257
+            },
+            {
+              "name": "evaluate",
+              "signature": "def evaluate(self, symbol: str, expression: str) -> bool",
+              "line_start": 259,
+              "line_end": 269
+            },
+            {
+              "name": "_eval",
+              "signature": "def _eval(self, symbol: str, expression: str) -> bool",
+              "line_start": 271,
+              "line_end": 295
+            },
+            {
+              "name": "_resolve",
+              "signature": "def _resolve(operand: _IndicatorNode | float, bar_cache: dict[str, list[OHLCVBar]]) -> float",
+              "decorators": [
+                "@staticmethod"
+              ],
+              "line_start": 298,
+              "line_end": 302
+            }
+          ],
+          "line_start": 253,
+          "line_end": 302
+        },
+        {
+          "name": "StrategyRunWorker",
+          "docstring": "Background polling thread that drives the Active \u2192 Running \u2192 Active state machin",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(\n        self,\n        config: Any,\n        get_filtered_symbols: Callable[[], list[str]],\n        db_path: Path = _INTRADAY_DB_PATH,\n        poll_interval_ms: int = _POLL_INTERVAL_MS,\n        parent: QObject | None = None,\n    ) -> None",
+              "line_start": 325,
+              "line_end": 339
+            },
+            {
+              "name": "run",
+              "signature": "def run(self) -> None",
+              "line_start": 341,
+              "line_end": 346
+            },
+            {
+              "name": "_tick",
+              "signature": "def _tick(self) -> None",
+              "line_start": 348,
+              "line_end": 352
+            },
+            {
+              "name": "_check_entry",
+              "signature": "def _check_entry(self) -> None",
+              "line_start": 354,
+              "line_end": 371
+            },
+            {
+              "name": "_check_exit",
+              "signature": "def _check_exit(self) -> None",
+              "line_start": 373,
+              "line_end": 390
+            },
+            {
+              "name": "_sleep_interruptible",
+              "signature": "def _sleep_interruptible(self, ms: int) -> None",
+              "line_start": 392,
+              "line_end": 396
+            },
+            {
+              "name": "request_stop",
+              "signature": "def request_stop(self) -> None",
+              "line_start": 398,
+              "line_end": 399
+            }
+          ],
+          "line_start": 319,
+          "line_end": 399
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_tokenize",
+          "signature": "def _tokenize(expr: str) -> list[_Token]",
+          "line_start": 58,
+          "line_end": 78
+        },
+        {
+          "name": "_load_bars",
+          "signature": "def _load_bars(\n    symbol: str,\n    timeframe: str,\n    db_path: Path,\n    limit: int = 200,\n) -> list[OHLCVBar]",
+          "line_start": 183,
+          "line_end": 218
+        },
+        {
+          "name": "_compute_indicator",
+          "signature": "def _compute_indicator(bars: list[OHLCVBar], node: _IndicatorNode) -> float",
+          "line_start": 223,
+          "line_end": 234
+        },
+        {
+          "name": "_eval_op",
+          "signature": "def _eval_op(lv: float, op: str, rv: float) -> bool",
+          "line_start": 237,
+          "line_end": 248
+        },
+        {
+          "name": "_apply_scope",
+          "signature": "def _apply_scope(all_symbols: list[str], config: Any) -> list[str]",
+          "line_start": 307,
+          "line_end": 314
+        }
+      ],
+      "constants": [
+        "_INTRADAY_DB_PATH: Path = Path.home() / \".usswing\" / \"candles.db\"",
+        "_POLL_INTERVAL_MS: int = 30_000",
+        "_TF_TABLE: dict[str, str] = {\"3m\": \"price_3m\", \"15m\": \"price_15m\"}",
+        "_TOKEN_RE = re.compile("
       ]
     }
   }
