@@ -20,6 +20,7 @@ dependencies = [
     "apscheduler>=3.10",
     "keyring>=24.0",
     "openai>=1.40",
+    "ta-lib>=0.6.0",
 ]
 
 [project.optional-dependencies]
