@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import json
 import sys
-import threading
 from pathlib import Path
 
 
@@ -22,14 +21,6 @@ def _setup_logging() -> None:
     from us_swing.monitoring.logging_setup import configure_logging
     level = os.environ.get("LOG_LEVEL", "INFO")
     configure_logging(_LOG_DIR, level=level)
-
-
-def _run_updater() -> None:
-    try:
-        from updater_stub import check_for_updates  # type: ignore[import]
-        check_for_updates(interactive=True)
-    except Exception:
-        pass
 
 
 def _patch_ib_del() -> None:
@@ -65,12 +56,16 @@ def _cmd_gui() -> None:
     from us_swing.gui.main_window import MainWindow
     from us_swing.gui import theme as _theme
 
-    threading.Thread(target=_run_updater, daemon=True).start()
-
     app = QApplication(sys.argv)
     app.setApplicationName("US Swing Trader")
     app.setOrganizationName("USSwing")
     app.setStyleSheet(_theme.THEMES.get(_theme.load_theme_id(), _theme.QSS))
+
+    try:
+        from update_dialog import check_for_updates_gui  # type: ignore[import]
+        check_for_updates_gui()
+    except Exception:
+        pass
 
     svc    = AppService()
     window = MainWindow(svc)
