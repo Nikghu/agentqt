@@ -173,6 +173,15 @@ _PRICE_INDEXES = [
     sa.Index("idx_monitoring_session_symbol", monitoring_session.c.symbol),
 ]
 
+# SRD-EXE-012.001 — trade-cycle ledger; the Table object is defined in
+# execution/trade_cycle/_schema.py but registered on this metadata.  We
+# import it lazily inside create_schema() to avoid pulling the execution
+# package's heavy transitive deps during db/schema import.
+
+
+def _register_trade_cycle_schema() -> None:
+    from us_swing.execution.trade_cycle import _schema as _trade_cycle_schema  # noqa: F401
+
 # Map canonical timeframe keys to the corresponding table object.
 PRICE_TABLES: dict[str, sa.Table] = {
     "1m":  price_1m,
@@ -215,6 +224,7 @@ def migrate_lifecycle_columns(engine: sa.Engine) -> None:
 def create_schema(engine: sa.Engine) -> None:
     """Create all tables and indexes if they do not already exist, then run
     additive lifecycle-column migrations for existing databases."""
+    _register_trade_cycle_schema()
     metadata.create_all(engine, checkfirst=True)
     migrate_lifecycle_columns(engine)
 

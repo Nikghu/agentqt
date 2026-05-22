@@ -1,12 +1,21 @@
 {
-  "generated": "2026-05-22T13:42:01",
+  "generated": "2026-05-22T16:25:18",
   "subfolder": "execution",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\execution",
   "tool_code": "EXE",
   "files": {
     "__init__.py": {
-      "module_id": "MD-EXE-011.001.M07",
-      "srd_id": "SRD-EXE-011.001"
+      "module_id": "MD-EXE-012.002.M03",
+      "srd_id": "SRD-EXE-012.002",
+      "top_level_functions": [
+        {
+          "name": "build_default_service",
+          "signature": "def build_default_service(\n    engine: Engine,\n    bus: MonitoringEventBus,\n    *,\n    set_active_symbols: Callable[[frozenset[str]], None] | None = None,\n    clock: Callable[[], datetime] | None                        = None,\n) -> tuple[TradeCycleQuery, TradeCycleCommand]",
+          "docstring": "Wire up a ``TradeCycleService`` against ``engine`` and ``bus``.",
+          "line_start": 50,
+          "line_end": 85
+        }
+      ]
     },
     "intraday_candle_loader.py": {
       "module_id": "MD-EXE-006.001.M01",
@@ -513,7 +522,7 @@
           "methods": [
             {
               "name": "__init__",
-              "signature": "def __init__(\n        self,\n        *,\n        registry_loader: Callable[[], list[StrategyConfig]],\n        registry_saver: Callable[[list[StrategyConfig]], None],\n        candles_provider: Callable[[str], dict[str, pd.DataFrame]],\n        bar_provider: Callable[[str, str], OHLCVBar | None],\n        risk: RiskValidator,\n        submitter: ExecutionSubmitter,\n        pending: PendingSignalSink,\n        bus: EventBus,\n        primary_timeframe: str = \"3m\",\n        parent: QObject | None = None,\n    ) -> None",
+              "signature": "def __init__(\r\n        self,\r\n        *,\r\n        registry_loader: Callable[[], list[StrategyConfig]],\r\n        registry_saver: Callable[[list[StrategyConfig]], None],\r\n        candles_provider: Callable[[str], dict[str, pd.DataFrame]],\r\n        bar_provider: Callable[[str, str], OHLCVBar | None],\r\n        risk: RiskValidator,\r\n        submitter: ExecutionSubmitter,\r\n        pending: PendingSignalSink,\r\n        bus: EventBus,\r\n        primary_timeframe: str = \"3m\",\r\n        parent: QObject | None = None,\r\n    ) -> None",
               "line_start": 59,
               "line_end": 90
             },
@@ -739,19 +748,19 @@
           "methods": [
             {
               "name": "evaluate",
-              "signature": "def evaluate(\n        self,\n        expr: str,\n        candles: dict[str, pd.DataFrame],\n        symbol: str,\n    ) -> bool",
+              "signature": "def evaluate(\r\n        self,\r\n        expr: str,\r\n        candles: dict[str, pd.DataFrame],\r\n        symbol: str,\r\n    ) -> bool",
               "line_start": 352,
               "line_end": 359
             },
             {
               "name": "_eval",
-              "signature": "def _eval(\n        self,\n        node: dict[str, Any],\n        candles: dict[str, pd.DataFrame],\n        symbol: str,\n    ) -> float | bool",
+              "signature": "def _eval(\r\n        self,\r\n        node: dict[str, Any],\r\n        candles: dict[str, pd.DataFrame],\r\n        symbol: str,\r\n    ) -> float | bool",
               "line_start": 363,
               "line_end": 388
             },
             {
               "name": "_apply_op",
-              "signature": "def _apply_op(\n        op: str,\n        left: float | bool,\n        right: float | bool,\n    ) -> float | bool",
+              "signature": "def _apply_op(\r\n        op: str,\r\n        left: float | bool,\r\n        right: float | bool,\r\n    ) -> float | bool",
               "decorators": [
                 "@staticmethod"
               ],
@@ -898,177 +907,160 @@
       ]
     },
     "_events.py": {
-      "module_id": "MD-EXE-011.001.M05",
-      "srd_id": "SRD-EXE-011.015",
+      "module_id": "MD-EXE-012.001.M03",
+      "srd_id": "SRD-EXE-012.012",
       "classes": [
         {
-          "name": "StrategyEntered",
+          "name": "CycleOpened",
           "class_vars": [
-            "strategy_id: str",
+            "cycle_id: int",
             "symbol: str",
-            "entry_price: float",
-            "qty: int",
+            "strategy_id: str",
+            "snapshot: CycleSnapshot",
             "schema_version: int"
           ],
-          "line_start": 14,
-          "line_end": 19
+          "line_start": 19,
+          "line_end": 24
         },
         {
-          "name": "StrategyExited",
+          "name": "CycleUpdated",
           "class_vars": [
-            "strategy_id: str",
+            "cycle_id: int",
             "symbol: str",
-            "exit_price: float",
-            "qty: int",
+            "snapshot: CycleSnapshot",
+            "schema_version: int"
+          ],
+          "line_start": 28,
+          "line_end": 32
+        },
+        {
+          "name": "ExitTrigger",
+          "class_vars": [
+            "cycle_id: int",
+            "symbol: str",
+            "reason: str",
+            "trigger_price: float",
+            "schema_version: int"
+          ],
+          "line_start": 36,
+          "line_end": 41
+        },
+        {
+          "name": "CycleClosing",
+          "class_vars": [
+            "cycle_id: int",
+            "symbol: str",
             "reason: str",
             "schema_version: int"
           ],
-          "line_start": 23,
-          "line_end": 29
+          "line_start": 45,
+          "line_end": 49
         },
         {
-          "name": "StrategySquaredOff",
+          "name": "CycleClosed",
           "class_vars": [
-            "strategy_id: str",
+            "cycle_id: int",
+            "symbol: str",
+            "exit_reason: str",
+            "realized_pnl_usd: float",
+            "realized_pnl_pct: float",
+            "snapshot: CycleSnapshot",
+            "schema_version: int"
+          ],
+          "line_start": 53,
+          "line_end": 60
+        },
+        {
+          "name": "CycleAborted",
+          "class_vars": [
+            "cycle_id: int",
             "symbol: str",
             "reason: str",
             "schema_version: int"
           ],
-          "line_start": 33,
-          "line_end": 37
+          "line_start": 64,
+          "line_end": 68
         },
         {
-          "name": "StrategyErrored",
+          "name": "RiskUpdated",
           "class_vars": [
-            "strategy_id: str",
-            "symbol: str | None",
-            "message: str",
+            "cycle_id: int",
+            "symbol: str",
+            "snapshot: CycleSnapshot",
             "schema_version: int"
           ],
-          "line_start": 41,
-          "line_end": 45
-        },
-        {
-          "name": "StrategySignalDropped",
-          "class_vars": [
-            "signal: TradeSignal",
-            "reason: str",
-            "schema_version: int"
-          ],
-          "line_start": 49,
-          "line_end": 52
-        },
-        {
-          "name": "StrategySignalPending",
-          "class_vars": [
-            "signal: TradeSignal",
-            "schema_version: int"
-          ],
-          "line_start": 56,
-          "line_end": 58
+          "line_start": 72,
+          "line_end": 76
         }
       ]
     },
     "_protocols.py": {
-      "module_id": "MD-EXE-011.001.M04",
-      "srd_id": "SRD-EXE-011.008",
+      "module_id": "MD-EXE-012.002.M02",
+      "srd_id": "SRD-EXE-012.010",
       "classes": [
         {
-          "name": "ValidationResult",
-          "class_vars": [
-            "ok: bool",
-            "reason: str",
-            "qty: int",
-            "schema_version: int"
-          ],
-          "line_start": 19,
-          "line_end": 23
-        },
-        {
-          "name": "CanAllocateResult",
-          "class_vars": [
-            "ok: bool",
-            "reason: str",
-            "schema_version: int"
-          ],
-          "line_start": 27,
-          "line_end": 30
-        },
-        {
-          "name": "RiskValidator",
-          "docstring": "Synchronous risk gate consumed by the router.",
+          "name": "TradeCycleQuery",
+          "docstring": "Read-only side of the service.  Cheap, side-effect-free, thread-safe.",
           "methods": [
             {
-              "name": "validate",
-              "signature": "def validate(self, signal: TradeSignal) -> ValidationResult",
-              "line_start": 36,
-              "line_end": 36
+              "name": "open_cycles",
+              "signature": "def open_cycles(self) -> tuple[CycleSnapshot, ...]",
+              "line_start": 21,
+              "line_end": 21
             },
             {
-              "name": "can_allocate",
-              "signature": "def can_allocate(self, strategy_id: str, capital_max_pct: int) -> CanAllocateResult",
-              "line_start": 37,
-              "line_end": 37
+              "name": "cycle",
+              "signature": "def cycle(self, cycle_id: int) -> CycleSnapshot | None",
+              "line_start": 23,
+              "line_end": 23
+            },
+            {
+              "name": "history",
+              "signature": "def history(\n        self,\n        *,\n        symbol: str | None      = None,\n        strategy_id: str | None = None,\n        days: int               = 30,\n    ) -> tuple[CycleSnapshot, ...]",
+              "line_start": 25,
+              "line_end": 31
             }
           ],
-          "line_start": 33,
-          "line_end": 37
+          "line_start": 18,
+          "line_end": 31
         },
         {
-          "name": "ExecutionSubmitter",
-          "docstring": "Synchronous broker-side dispatch. Returns an order id or None on rejection.",
+          "name": "TradeCycleCommand",
+          "docstring": "Mutating side of the service.",
           "methods": [
             {
-              "name": "submit",
-              "signature": "def submit(self, signal: TradeSignal, qty: int) -> int | None",
-              "line_start": 43,
-              "line_end": 43
-            }
-          ],
-          "line_start": 40,
-          "line_end": 43
-        },
-        {
-          "name": "EventBus",
-          "docstring": "Minimal publish-only surface; consumers attach via the FO-EXE-009 bus.",
-          "methods": [
+              "name": "on_entry_fill",
+              "signature": "def on_entry_fill(\n        self,\n        *,\n        strategy_id:     str,\n        symbol:          str,\n        user_id:         int,\n        entry_order_id:  str,\n        entry_price:     float,\n        entry_qty:       int,\n        fill_time:       str,\n        hard_stop_loss:  float,\n        target_price:    float | None,\n        target_type:     str,\n        stoploss_type:   str,\n        trailing_mode:   str | None,\n        trailing_offset: float | None,\n        monitoring_session_date: str,\n    ) -> CycleSnapshot",
+              "line_start": 44,
+              "line_end": 61
+            },
             {
-              "name": "publish",
-              "signature": "def publish(self, event: StrategyEvent) -> None",
-              "line_start": 49,
-              "line_end": 49
+              "name": "on_exit_fill",
+              "signature": "def on_exit_fill(\n        self,\n        *,\n        exit_order_id: str,\n        exit_price:    float,\n        exit_qty:      int,\n        exit_time:     str,\n        exit_reason:   str,\n    ) -> CycleSnapshot",
+              "line_start": 63,
+              "line_end": 71
+            },
+            {
+              "name": "on_entry_failed",
+              "signature": "def on_entry_failed(self, cycle_id: int, reason: str) -> CycleSnapshot",
+              "line_start": 73,
+              "line_end": 73
+            },
+            {
+              "name": "update_risk",
+              "signature": "def update_risk(\n        self,\n        cycle_id: int,\n        *,\n        hard_sl:         float | None = None,\n        target:          float | None = None,\n        trailing_offset: float | None = None,\n        trailing_mode:   str | None   = None,\n    ) -> CycleSnapshot",
+              "line_start": 75,
+              "line_end": 83
+            },
+            {
+              "name": "reload",
+              "signature": "def reload(self) -> None",
+              "line_start": 85,
+              "line_end": 85
             }
           ],
-          "line_start": 46,
-          "line_end": 49
-        },
-        {
-          "name": "FillEvent",
-          "docstring": "Broker fill payload routed in from FO-EXE-002.",
-          "class_vars": [
-            "strategy_id: str",
-            "symbol: str",
-            "is_entry: bool",
-            "fill_price: float",
-            "fill_qty: int",
-            "order_id: int",
-            "schema_version: int"
-          ],
-          "line_start": 53,
-          "line_end": 66
-        },
-        {
-          "name": "RejectEvent",
-          "docstring": "Broker reject payload routed in from FO-EXE-002.",
-          "class_vars": [
-            "strategy_id: str",
-            "symbol: str",
-            "is_entry: bool",
-            "reason: str",
-            "schema_version: int"
-          ],
-          "line_start": 70,
-          "line_end": 77
+          "line_start": 35,
+          "line_end": 85
         }
       ]
     },
@@ -1082,7 +1074,7 @@
           "methods": [
             {
               "name": "__init__",
-              "signature": "def __init__(\n        self,\n        *,\n        queue: asyncio.Queue[TradeSignal],\n        registry: dict[str, _StrategyContext],\n        evaluator: ConditionEvaluator,\n        risk: RiskValidator,\n        submitter: ExecutionSubmitter,\n        pending: PendingSignalSink,\n        bus: EventBus,\n        clock: Callable[[], datetime] | None = None,\n    ) -> None",
+              "signature": "def __init__(\r\n        self,\r\n        *,\r\n        queue: asyncio.Queue[TradeSignal],\r\n        registry: dict[str, _StrategyContext],\r\n        evaluator: ConditionEvaluator,\r\n        risk: RiskValidator,\r\n        submitter: ExecutionSubmitter,\r\n        pending: PendingSignalSink,\r\n        bus: EventBus,\r\n        clock: Callable[[], datetime] | None = None,\r\n    ) -> None",
               "line_start": 57,
               "line_end": 80
             },
@@ -1094,7 +1086,7 @@
             },
             {
               "name": "evaluate",
-              "signature": "def evaluate(\n        self,\n        ctx: _StrategyContext,\n        symbol: str,\n        candles: dict[str, pd.DataFrame],\n        bar: OHLCVBar,\n    ) -> None",
+              "signature": "def evaluate(\r\n        self,\r\n        ctx: _StrategyContext,\r\n        symbol: str,\r\n        candles: dict[str, pd.DataFrame],\r\n        bar: OHLCVBar,\r\n    ) -> None",
               "docstring": "Evaluate a single context's entry/exit conditions on a bar close.",
               "line_start": 89,
               "line_end": 176
@@ -1144,7 +1136,7 @@
             },
             {
               "name": "_force_exit",
-              "signature": "def _force_exit(\n        self,\n        ctx: _StrategyContext,\n        symbol: str,\n        *,\n        reason: str,\n    ) -> None",
+              "signature": "def _force_exit(\r\n        self,\r\n        ctx: _StrategyContext,\r\n        symbol: str,\r\n        *,\r\n        reason: str,\r\n    ) -> None",
               "line_start": 311,
               "line_end": 332
             },
@@ -1157,7 +1149,7 @@
             },
             {
               "name": "_build_entry_signal",
-              "signature": "def _build_entry_signal(\n        self,\n        ctx: _StrategyContext,\n        symbol: str,\n        bar: OHLCVBar,\n    ) -> TradeSignal",
+              "signature": "def _build_entry_signal(\r\n        self,\r\n        ctx: _StrategyContext,\r\n        symbol: str,\r\n        bar: OHLCVBar,\r\n    ) -> TradeSignal",
               "line_start": 350,
               "line_end": 370
             },
@@ -1374,7 +1366,7 @@
           "methods": [
             {
               "name": "__init__",
-              "signature": "def __init__(\n        self,\n        config: Any,\n        get_filtered_symbols: Callable[[], list[str]],\n        db_path: Path = _INTRADAY_DB_PATH,\n        poll_interval_ms: int = _POLL_INTERVAL_MS,\n        parent: QObject | None = None,\n    ) -> None",
+              "signature": "def __init__(\r\n        self,\r\n        config: Any,\r\n        get_filtered_symbols: Callable[[], list[str]],\r\n        db_path: Path = _INTRADAY_DB_PATH,\r\n        poll_interval_ms: int = _POLL_INTERVAL_MS,\r\n        parent: QObject | None = None,\r\n    ) -> None",
               "line_start": 325,
               "line_end": 339
             },
@@ -1428,7 +1420,7 @@
         },
         {
           "name": "_load_bars",
-          "signature": "def _load_bars(\n    symbol: str,\n    timeframe: str,\n    db_path: Path,\n    limit: int = 200,\n) -> list[OHLCVBar]",
+          "signature": "def _load_bars(\r\n    symbol: str,\r\n    timeframe: str,\r\n    db_path: Path,\r\n    limit: int = 200,\r\n) -> list[OHLCVBar]",
           "line_start": 183,
           "line_end": 218
         },
@@ -1456,6 +1448,422 @@
         "_POLL_INTERVAL_MS: int = 30_000",
         "_TF_TABLE: dict[str, str] = {\"3m\": \"price_3m\", \"15m\": \"price_15m\"}",
         "_TOKEN_RE = re.compile("
+      ]
+    },
+    "_dto.py": {
+      "module_id": "MD-EXE-012.001.M02",
+      "srd_id": "SRD-EXE-012.010",
+      "classes": [
+        {
+          "name": "CycleSnapshot",
+          "docstring": "Immutable read view of a ``trade_cycles`` row.",
+          "class_vars": [
+            "schema_version: int",
+            "cycle_id: int",
+            "strategy_id: str",
+            "symbol: str",
+            "user_id: int",
+            "monitoring_session_date: str",
+            "state: str",
+            "entry_time: str",
+            "entry_price: float",
+            "entry_qty: int",
+            "entry_order_id: str",
+            "hard_stop_loss: float",
+            "target_price: float | None",
+            "target_type: str",
+            "stoploss_type: str",
+            "trailing_mode: str | None",
+            "trailing_offset: float | None",
+            "current_price: float | None",
+            "current_pnl_usd: float | None",
+            "current_pnl_pct: float | None",
+            "highest_price_seen: float | None",
+            "trailing_stop_level: float | None",
+            "effective_stop: float | None",
+            "last_updated_at: str | None",
+            "exit_time: str | None",
+            "exit_price: float | None",
+            "exit_qty: int | None",
+            "exit_order_id: str | None",
+            "exit_reason: str | None",
+            "realized_pnl_usd: float | None",
+            "realized_pnl_pct: float | None",
+            "opened_at: str",
+            "closed_at: str | None"
+          ],
+          "line_start": 28,
+          "line_end": 63
+        },
+        {
+          "name": "InvariantViolation",
+          "docstring": "Raised by ``update_risk`` when the requested edit fails validation.",
+          "line_start": 66,
+          "line_end": 67
+        },
+        {
+          "name": "InvalidStateTransitionError",
+          "docstring": "Raised by the repository when an illegal state move is requested.",
+          "line_start": 70,
+          "line_end": 71
+        },
+        {
+          "name": "DuplicateOpenCycleError",
+          "docstring": "Raised by ``insert_open`` when a non-terminal cycle already exists",
+          "line_start": 74,
+          "line_end": 76
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "validate_state",
+          "signature": "def validate_state(value: str) -> str",
+          "line_start": 79,
+          "line_end": 82
+        },
+        {
+          "name": "validate_exit_reason",
+          "signature": "def validate_exit_reason(value: str) -> str",
+          "line_start": 85,
+          "line_end": 88
+        },
+        {
+          "name": "validate_target_type",
+          "signature": "def validate_target_type(value: str) -> str",
+          "line_start": 91,
+          "line_end": 94
+        },
+        {
+          "name": "validate_stoploss_type",
+          "signature": "def validate_stoploss_type(value: str) -> str",
+          "line_start": 97,
+          "line_end": 100
+        },
+        {
+          "name": "validate_trailing_mode",
+          "signature": "def validate_trailing_mode(value: str | None) -> str | None",
+          "line_start": 103,
+          "line_end": 108
+        }
+      ],
+      "constants": [
+        "CYCLE_STATES:   frozenset[str] = frozenset({\"OPENING\", \"OPEN\", \"CLOSING\", \"CLOSED\", \"ABORTED\"})",
+        "EXIT_REASONS:   frozenset[str] = frozenset({",
+        "TARGET_TYPES:   frozenset[str] = frozenset({\"fixed\", \"trailing\"})",
+        "STOPLOSS_TYPES: frozenset[str] = frozenset({\"fixed\", \"trailing\"})",
+        "TRAILING_MODES: frozenset[str] = frozenset({\"$\", \"%\"})",
+        "NON_TERMINAL_STATES: frozenset[str] = frozenset({\"OPENING\", \"OPEN\", \"CLOSING\"})",
+        "TERMINAL_STATES:     frozenset[str] = frozenset({\"CLOSED\", \"ABORTED\"})"
+      ]
+    },
+    "_repository.py": {
+      "module_id": "MD-EXE-012.002.M01",
+      "srd_id": "SRD-EXE-012.003",
+      "classes": [
+        {
+          "name": "TradeCycleRepository",
+          "docstring": "SQLAlchemy-backed repository for the ``trade_cycles`` ledger.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, engine: Engine) -> None",
+              "line_start": 86,
+              "line_end": 87
+            },
+            {
+              "name": "open_cycles",
+              "signature": "def open_cycles(self) -> tuple[CycleSnapshot, ...]",
+              "line_start": 91,
+              "line_end": 99
+            },
+            {
+              "name": "cycle",
+              "signature": "def cycle(self, cycle_id: int) -> CycleSnapshot | None",
+              "line_start": 101,
+              "line_end": 105
+            },
+            {
+              "name": "history",
+              "signature": "def history(\n        self,\n        *,\n        symbol: str | None      = None,\n        strategy_id: str | None = None,\n        days: int               = 30,\n    ) -> tuple[CycleSnapshot, ...]",
+              "line_start": 107,
+              "line_end": 127
+            },
+            {
+              "name": "find_open",
+              "signature": "def find_open(self, strategy_id: str, symbol: str) -> CycleSnapshot | None",
+              "line_start": 129,
+              "line_end": 141
+            },
+            {
+              "name": "find_by_entry_order",
+              "signature": "def find_by_entry_order(self, entry_order_id: str) -> CycleSnapshot | None",
+              "line_start": 143,
+              "line_end": 149
+            },
+            {
+              "name": "find_by_exit_order",
+              "signature": "def find_by_exit_order(self, exit_order_id: str) -> CycleSnapshot | None",
+              "line_start": 151,
+              "line_end": 157
+            },
+            {
+              "name": "insert_open",
+              "signature": "def insert_open(self, *, row: dict[str, Any]) -> CycleSnapshot",
+              "docstring": "Insert a new cycle row.",
+              "line_start": 161,
+              "line_end": 191
+            },
+            {
+              "name": "update_live",
+              "signature": "def update_live(self, cycle_id: int, *, fields: dict[str, Any]) -> None",
+              "docstring": "Persist live tick-driven fields without emitting an event.",
+              "line_start": 193,
+              "line_end": 202
+            },
+            {
+              "name": "update_state",
+              "signature": "def update_state(self, cycle_id: int, new_state: str) -> CycleSnapshot",
+              "docstring": "Atomic compare-and-swap state transition.",
+              "line_start": 204,
+              "line_end": 237
+            },
+            {
+              "name": "update_risk",
+              "signature": "def update_risk(\n        self,\n        cycle_id: int,\n        *,\n        fields: dict[str, Any],\n    ) -> CycleSnapshot",
+              "line_start": 239,
+              "line_end": 261
+            },
+            {
+              "name": "close",
+              "signature": "def close(\n        self,\n        cycle_id: int,\n        *,\n        exit_fields: dict[str, Any],\n    ) -> CycleSnapshot",
+              "docstring": "Finalise a CLOSING cycle into CLOSED.",
+              "line_start": 263,
+              "line_end": 296
+            },
+            {
+              "name": "abort",
+              "signature": "def abort(self, cycle_id: int, reason: str) -> CycleSnapshot",
+              "line_start": 298,
+              "line_end": 322
+            }
+          ],
+          "line_start": 83,
+          "line_end": 322
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_utcnow_iso",
+          "signature": "def _utcnow_iso() -> str",
+          "line_start": 42,
+          "line_end": 43
+        },
+        {
+          "name": "_row_to_snapshot",
+          "signature": "def _row_to_snapshot(row: RowMapping) -> CycleSnapshot",
+          "line_start": 46,
+          "line_end": 80
+        }
+      ],
+      "constants": [
+        "_ALLOWED_TRANSITIONS: dict[str, frozenset[str]] = {"
+      ]
+    },
+    "_schema.py": {
+      "module_id": "MD-EXE-012.001.M01",
+      "srd_id": "SRD-EXE-012.001"
+    },
+    "_service.py": {
+      "module_id": "MD-EXE-012.002.M02",
+      "srd_id": "SRD-EXE-012.002",
+      "classes": [
+        {
+          "name": "_TickAccumulator",
+          "class_vars": [
+            "cycle_id: int",
+            "symbol: str",
+            "latest_price: float",
+            "highest_seen: float",
+            "last_persist_at: float",
+            "dirty: bool",
+            "flush_handle: asyncio.TimerHandle | None",
+            "closing: bool"
+          ],
+          "line_start": 50,
+          "line_end": 58
+        },
+        {
+          "name": "TradeCycleService",
+          "docstring": "Live trade-cycle ledger service.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(\n        self,\n        *,\n        repo: TradeCycleRepository,\n        bus: MonitoringEventBus,\n        set_active_symbols: Callable[[frozenset[str]], None] | None = None,\n        clock: Callable[[], datetime] | None                        = None,\n    ) -> None",
+              "line_start": 73,
+              "line_end": 93
+            },
+            {
+              "name": "start",
+              "signature": "def start(self) -> None",
+              "docstring": "Spin up the background asyncio loop.  Idempotent.",
+              "line_start": 97,
+              "line_end": 123
+            },
+            {
+              "name": "stop",
+              "signature": "def stop(self) -> None",
+              "docstring": "Flush dirty accumulators and tear down the background loop.",
+              "line_start": 125,
+              "line_end": 140
+            },
+            {
+              "name": "open_cycles",
+              "signature": "def open_cycles(self) -> tuple[CycleSnapshot, ...]",
+              "line_start": 144,
+              "line_end": 145
+            },
+            {
+              "name": "cycle",
+              "signature": "def cycle(self, cycle_id: int) -> CycleSnapshot | None",
+              "line_start": 147,
+              "line_end": 148
+            },
+            {
+              "name": "history",
+              "signature": "def history(\n        self,\n        *,\n        symbol: str | None      = None,\n        strategy_id: str | None = None,\n        days: int               = 30,\n    ) -> tuple[CycleSnapshot, ...]",
+              "line_start": 150,
+              "line_end": 157
+            },
+            {
+              "name": "on_entry_fill",
+              "signature": "def on_entry_fill(\n        self,\n        *,\n        strategy_id:     str,\n        symbol:          str,\n        user_id:         int,\n        entry_order_id:  str,\n        entry_price:     float,\n        entry_qty:       int,\n        fill_time:       str,\n        hard_stop_loss:  float,\n        target_price:    float | None,\n        target_type:     str,\n        stoploss_type:   str,\n        trailing_mode:   str | None,\n        trailing_offset: float | None,\n        monitoring_session_date: str,\n    ) -> CycleSnapshot",
+              "docstring": "Open a new cycle on the broker fill of an entry order.",
+              "line_start": 161,
+              "line_end": 231
+            },
+            {
+              "name": "on_exit_fill",
+              "signature": "def on_exit_fill(\n        self,\n        *,\n        exit_order_id: str,\n        exit_price:    float,\n        exit_qty:      int,\n        exit_time:     str,\n        exit_reason:   str,\n    ) -> CycleSnapshot",
+              "docstring": "Close a cycle on the broker fill of an exit order.",
+              "line_start": 233,
+              "line_end": 271
+            },
+            {
+              "name": "close_cycle_by_id",
+              "signature": "def close_cycle_by_id(\n        self,\n        cycle_id: int,\n        *,\n        exit_order_id: str,\n        exit_price:    float,\n        exit_qty:      int,\n        exit_time:     str,\n        exit_reason:   str,\n    ) -> CycleSnapshot",
+              "docstring": "Close a specific cycle by id (preferred path for ExecutionEngine).",
+              "line_start": 273,
+              "line_end": 294
+            },
+            {
+              "name": "_close_cycle",
+              "signature": "def _close_cycle(\n        self,\n        *,\n        cycle_id:      int,\n        exit_order_id: str,\n        exit_price:    float,\n        exit_qty:      int,\n        exit_time:     str,\n        exit_reason:   str,\n    ) -> CycleSnapshot",
+              "line_start": 296,
+              "line_end": 353
+            },
+            {
+              "name": "on_entry_failed",
+              "signature": "def on_entry_failed(self, cycle_id: int, reason: str) -> CycleSnapshot",
+              "docstring": "Abort an OPENING cycle when the entry order is rejected.",
+              "line_start": 355,
+              "line_end": 366
+            },
+            {
+              "name": "update_risk",
+              "signature": "def update_risk(\n        self,\n        cycle_id: int,\n        *,\n        hard_sl:         float | None = None,\n        target:          float | None = None,\n        trailing_offset: float | None = None,\n        trailing_mode:   str | None   = None,\n    ) -> CycleSnapshot",
+              "docstring": "Per-cycle risk-snapshot mutation.",
+              "line_start": 368,
+              "line_end": 422
+            },
+            {
+              "name": "reload",
+              "signature": "def reload(self) -> None",
+              "docstring": "Re-attach tick accumulators for every non-terminal row on startup.",
+              "line_start": 426,
+              "line_end": 440
+            },
+            {
+              "name": "on_tick",
+              "signature": "def on_tick(self, symbol: str, price: float) -> None",
+              "docstring": "Thread-safe entry point \u2014 called from the LiveTickWorker thread.",
+              "line_start": 444,
+              "line_end": 454
+            },
+            {
+              "name": "_handle_tick",
+              "signature": "def _handle_tick(self, symbol: str, price: float) -> None",
+              "line_start": 456,
+              "line_end": 475
+            },
+            {
+              "name": "_schedule_flush",
+              "signature": "def _schedule_flush(self, acc: _TickAccumulator) -> None",
+              "line_start": 477,
+              "line_end": 478
+            },
+            {
+              "name": "_flush",
+              "signature": "def _flush(self, acc: _TickAccumulator) -> None",
+              "line_start": 480,
+              "line_end": 507
+            },
+            {
+              "name": "_drain_all",
+              "signature": "def _drain_all(self) -> None",
+              "line_start": 509,
+              "line_end": 516
+            },
+            {
+              "name": "_compute_live",
+              "signature": "def _compute_live(\n        self,\n        snap: CycleSnapshot,\n        price: float,\n        highest: float,\n    ) -> dict[str, Any]",
+              "line_start": 520,
+              "line_end": 555
+            },
+            {
+              "name": "_check_exit_triggers",
+              "signature": "def _check_exit_triggers(self, snap: CycleSnapshot, price: float) -> None",
+              "line_start": 559,
+              "line_end": 592
+            },
+            {
+              "name": "_attach_accumulator",
+              "signature": "def _attach_accumulator(self, snap: CycleSnapshot) -> None",
+              "line_start": 596,
+              "line_end": 607
+            },
+            {
+              "name": "_detach_accumulator",
+              "signature": "def _detach_accumulator(self, cycle_id: int) -> None",
+              "line_start": 609,
+              "line_end": 622
+            },
+            {
+              "name": "_refresh_active_symbols_locked",
+              "signature": "def _refresh_active_symbols_locked(self) -> None",
+              "line_start": 624,
+              "line_end": 629
+            }
+          ],
+          "line_start": 65,
+          "line_end": 629
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_utcnow_iso",
+          "signature": "def _utcnow_iso() -> str",
+          "line_start": 61,
+          "line_end": 62
+        },
+        {
+          "name": "_validate_state_set",
+          "signature": "def _validate_state_set(states: Iterable[str]) -> None",
+          "line_start": 632,
+          "line_end": 635
+        }
+      ],
+      "constants": [
+        "_THROTTLE_MS = 500"
       ]
     }
   }
