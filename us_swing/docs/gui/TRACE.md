@@ -1,9 +1,9 @@
 # Traceability Matrix — GUI Module (GUI)
 
 **Document ID:** TRACE-GUI
-**Version:** 1.2.2
+**Version:** 1.3.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-05-21
+**Last Updated:** 2026-05-23
 
 ---
 
@@ -23,6 +23,9 @@
 | FO-GUI-007 | SRD-GUI-007.001 | DD-GUI-007.001.D01 | MD-GUI-007.001.M02 | T01 | `gui/log_bridge.py` | Draft |
 | FO-GUI-011 | SRD-GUI-011.001–004 | DD-GUI-011.001.D01 | MD-GUI-011.001.M01 | — | `gui/chart_panel.py` | Implemented | RN-GUI-1.0.0-20260513 |
 | FO-GUI-012 | SRD-GUI-012.001–007 | DD-GUI-012.001.D01 | MD-GUI-012.001.M01–M03 | UT-GUI-012.001.M01.T01–T19 | `gui/app_service.py`, `gui/dashboard_panel.py`, `gui/main_window.py`, `gui/execution_panel.py` | Implemented | RN-GUI-1.2.0-20260519 |
+| FO-GUI-014 | SRD-GUI-014.001, .003–.005, .008–.012 | DD-GUI-014.002.D01 | MD-GUI-014.001.M01 | UT-GUI-014.001.M01.T01–T15 | `gui/active_cycles_panel.py` | Approved | — |
+| FO-GUI-014 | SRD-GUI-014.002, .004 | DD-GUI-014.002.D01 | MD-GUI-014.001.M02 | UT-GUI-014.001.M02.T01–T11 | `gui/active_cycles_model.py` | Approved | — |
+| FO-GUI-014 | SRD-GUI-014.007 | DD-GUI-014.007.D01 | MD-GUI-014.001.M03 | — | `gui/risk_editor_widget.py` | Approved | — |
 
 ---
 
@@ -45,6 +48,9 @@
 | `gui/chart_panel.py` | MD-GUI-011.001.M01 | SRD-GUI-011.001–004 | FO-GUI-011 |
 | `gui/app_service.py` (tick integration) | MD-GUI-004.001.M01 | SRD-GUI-012.001–007 | FO-GUI-012 |
 | `gui/settings_panel.py` (tick client id) | MD-GUI-006.001.M01 | SRD-GUI-012.007 | FO-GUI-012 |
+| `gui/active_cycles_panel.py` | MD-GUI-014.001.M01 | SRD-GUI-014.001, .003–.005, .008–.012 | FO-GUI-014 |
+| `gui/active_cycles_model.py` | MD-GUI-014.001.M02 | SRD-GUI-014.002, .004 | FO-GUI-014 |
+| `gui/risk_editor_widget.py` | MD-GUI-014.001.M03 | SRD-GUI-014.007 | FO-GUI-014 |
 
 ---
 
@@ -52,9 +58,9 @@
 
 | Artifact | Total Items | Draft | Approved | Implemented | Verified |
 |---|---|---|---|---|---|
-| FO | 9 | 8 | 0 | 1 | 0 |
-| SRD | 41 | 34 | 0 | 7 | 0 |
-| DD | 6 | 5 | 0 | 1 | 0 |
-| MD | 12 | 10 | 0 | 2 | 0 |
-| UTCD | 55 | 36 | 0 | 19 | 0 |
-| Code | 12 files | — | — | 2 | 0 |
+| FO | 10 | 8 | 1 | 1 | 0 |
+| SRD | 53 | 34 | 12 | 7 | 0 |
+| DD | 9 | 5 | 3 | 1 | 0 |
+| MD | 15 | 10 | 3 | 2 | 0 |
+| UTCD | 81 | 62 | 0 | 19 | 0 |
+| Code | 15 files | — | — | 2 | 0 |

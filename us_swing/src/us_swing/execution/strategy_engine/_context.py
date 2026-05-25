@@ -63,9 +63,9 @@ class _StrategyContext:
         mode = self.cfg.symbol_mode
         if mode == "all":
             return True
-        if mode == "include_only":
+        if mode == "include":
             return symbol in self.cfg.symbols_include
-        if mode == "exclude_these":
+        if mode == "exclude":
             return symbol not in self.cfg.symbols_exclude
         return False
 

@@ -128,3 +128,22 @@
   - Given `DATA_PROVIDER = "ibkr"`, the system uses the real IBKR API for data fetching.
   - Switching providers requires only a config change — no code modification.
   - `DummyProvider.req_historical_data()` returns valid `OHLCVBar` objects with realistic synthetic values.
+
+---
+
+## FO-INF-008: Internet Connectivity Monitoring
+- **Status:** Implemented
+
+> Traces to: `requirements.md` §27
+
+- The system shall continuously monitor internet reachability via a background TCP probe and expose the current state to all consumers through a single `AppService` signal.
+- A `NetWatcher` component shall probe `8.8.8.8:53` every 15 s (configurable) and emit `status_changed(bool)` only when reachability flips.
+- `AppService` shall re-emit the flip as `internet_status_changed(bool)` and provide a synchronous `is_internet_online() -> bool` accessor.
+- On connectivity loss the system shall log a warning and record whether the IBKR data feed was active at the time.
+- On connectivity restore the system shall log an info message and, if the data feed was active at the time of loss and is still disconnected, automatically attempt to reconnect.
+- The main-window status bar shall display a real-time internet-status pill (Online / Offline / Checking…) driven by the signal.
+- **Acceptance Criteria:**
+  - The probe fires in a background thread — the GUI thread is never blocked.
+  - `status_changed` is emitted at most once per reachability flip, not on every probe tick.
+  - Auto-reconnect does not trigger if the user had manually disconnected before the outage.
+  - The status-bar pill updates within one probe cycle of a state change.

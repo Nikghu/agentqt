@@ -143,6 +143,11 @@ class StrategyEngine(QThread):
 
     @pyqtSlot(object)
     def on_order_fill(self, fill: FillEvent) -> None:
+        if self._loop is None:
+            return
+        self._loop.call_soon_threadsafe(self._apply_fill, fill)
+
+    def _apply_fill(self, fill: FillEvent) -> None:
         if self._router is None:
             return
         self._router.on_order_fill(fill)
@@ -150,6 +155,11 @@ class StrategyEngine(QThread):
 
     @pyqtSlot(object)
     def on_order_reject(self, reject: RejectEvent) -> None:
+        if self._loop is None:
+            return
+        self._loop.call_soon_threadsafe(self._apply_reject, reject)
+
+    def _apply_reject(self, reject: RejectEvent) -> None:
         if self._router is None:
             return
         self._router.on_order_reject(reject)
@@ -182,12 +192,13 @@ class StrategyEngine(QThread):
     async def _fanout(self, symbol: str) -> None:
         if self._router is None or self._cb_active:
             return
-        bar = self._bar_provider(symbol, self._primary_tf)
+        loop = asyncio.get_running_loop()
+        bar = await loop.run_in_executor(None, self._bar_provider, symbol, self._primary_tf)
         if bar is None:
             log.debug("[Strategy] fan-out: no bar available for %s/%s",
                       symbol, self._primary_tf)
             return
-        candles = self._candles_provider(symbol)
+        candles = await loop.run_in_executor(None, self._candles_provider, symbol)
         if not candles:
             return
         accepting = [

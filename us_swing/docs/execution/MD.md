@@ -198,6 +198,7 @@ src/us_swing/
 | MD-EXE-012.002.M01 | SRD-EXE-012.003, .007 — .010, .013 | `src/us_swing/execution/trade_cycle/_repository.py` | `TradeCycleRepository` — only file under `trade_cycle/` permitted to import SQLAlchemy. Same-tx duplicate-open guard, compare-and-swap `update_state`, allowed-transitions dict | `open_cycles()`, `cycle(id)`, `history(...)`, `find_open(strategy_id, symbol)`, `find_by_entry_order(id)`, `insert_open(row)`, `update_live(id, fields)`, `update_state(id, new_state)`, `update_risk(id, fields)`, `close(id, exit_fields)`, `abort(id, reason)` | `sqlalchemy`, `_schema`, `_dto`, `datetime` | No | Approved |
 | MD-EXE-012.002.M02 | SRD-EXE-012.002 — .009, .011, .013 | `src/us_swing/execution/trade_cycle/_service.py` | `TradeCycleService` — owns `_TickAccumulator` map, subscribes to `LiveTickWorker.tick_price` (FO-EXE-008), receives FO-EXE-002 fill events, runs throttle + flush + exit-trigger evaluation, publishes `TradeCycleEvent` payloads | `on_entry_fill(fill)`, `on_exit_fill(fill)`, `on_entry_failed(id, reason)`, `update_risk(id, **fields)`, `reload() -> int`, `start()`, `stop()` | `_repository`, `_events`, `_dto`, FO-EXE-009 bus, FO-EXE-008 tick worker, `asyncio`, `datetime`, `logging` | No | Approved |
 | MD-EXE-012.002.M03 | SRD-EXE-012.002, .010, .011, .012 | `src/us_swing/execution/trade_cycle/__init__.py` | Public surface — re-exports `TradeCycleQuery`, `TradeCycleCommand`, `MonitoringEventBus` re-use, `CycleSnapshot`, all `TradeCycleEvent` classes, `build_default_service(engine, bus, tick_worker) -> tuple[Query, Command]`. Concrete `_service.py` / `_repository.py` NOT re-exported. | `build_default_service(...)`, public types | All internal `_*` modules | No | Approved |
+| MD-EXE-012.002.M04 | SRD-EXE-012.010, .011 | `src/us_swing/execution/trade_cycle/_protocols.py` | `TradeCycleQuery` + `TradeCycleCommand` Protocols — CQRS-lite read/write split; `@runtime_checkable` for test doubles. Added during implementation to keep the concrete `_service.py` swappable. | `TradeCycleQuery`, `TradeCycleCommand` | `typing.Protocol`, `_dto` | No | Approved |
 
 ### Cross-Module Modifications for FO-EXE-012
 
@@ -226,6 +227,7 @@ us_swing/src/us_swing/execution/
 │   ├── _schema.py                        # MD-EXE-012.001.M01
 │   ├── _dto.py                           # MD-EXE-012.001.M02
 │   ├── _events.py                        # MD-EXE-012.001.M03
+│   ├── _protocols.py                     # MD-EXE-012.002.M04
 │   ├── _repository.py                    # MD-EXE-012.002.M01
 │   └── _service.py                       # MD-EXE-012.002.M02
 └── pending_signal_store.py               # NEW (MD-EXE-011 cross-cut)

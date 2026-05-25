@@ -9,7 +9,7 @@
 
 ## 0. Immediate Next Step
 
-**Current:** Strategy Builder Dialog (Phase-1 prototype) — 7 new executor table columns added (Trade Type, Start Date, End Date, Target, Target Type, Stop Loss, Stop Loss Type) with conditional display and 1-based row numbers. **No FO assigned yet — create FO-GUI-013 (Strategy Builder) to formalise artifact chain** (SRD/DD/MD/UTCD → Code → Tests → RN). Once FO-GUI-013 is approved, implement remaining UI polish and wiring before moving to execution logic. **Next:** FO-EXE-001/002 (ExecutionEngine + PositionTracker — 18 SRDs Approved).
+**Current:** FO-EXE-011 & FO-EXE-012 Test Suite Complete (Session 49, 2026-05-25) — **67 tests pass** across Strategy Engine (38 tests, 5 modules) and Trade Cycle Ledger (29 tests, 3 modules). All acceptance criteria verified. Multi-threaded SQLite fixed (StaticPool + check_same_thread=False). RN-EXE-1.6.0-20260525 written; TRACE updated to Verified; branch ready for PR. **Next:** Address deferred FO-EXE-009/010 integration seams (on-fill routing in ExecutionEngine.handle_order_fill → MonitoringCommand.on_fill, cron scheduler registration for 09:15 ET reconcile, GUI lifecycle_bridge.py module for event-to-signal bridging), then move to FO-EXE-001/002 implementation (ExecutionEngine + PositionTracker — 18 SRDs Approved, foundation for all live trading).
 
 **FO-EXE-009 + FO-EXE-010 — COMPLETE (Session 44, 2026-05-18):**
 - 65 pass / 2 skip; skips are `UT-EXE-001.001.M02.T08/T09`, blocked on FO-EXE-001/002.
@@ -310,12 +310,12 @@
 
 | Artifact | File | Status | Notes |
 |---|---|---|---|
-| FO | `docs/execution/FO.md` | Draft v1.2.0 | Added: FO-EXE-006 (intraday candle loader) — 1 complete, 5 draft |
-| SRD | `docs/execution/SRD.md` | Draft v1.2.0 | SRD-EXE-006.001–006 marked Implemented; total: 34 SRDs (6 Implemented, 28 Draft) |
-| DD | `docs/execution/DD.md` | Draft v1.2.0 | DD-EXE-006.001.D01–D02 complete; 8 design items total |
-| MD | `docs/execution/MD.md` | Draft v1.2.0 | MD-EXE-006.001.M01 implemented; 8 modules total (1 Implemented, 7 Draft) |
-| UTCD | `docs/execution/UTCD.md` | Draft v1.2.0 | UT-EXE-006.001.M01.T01–T13 all Pass; 67 total (13 Pass, 54 Draft) |
-| TRACE | `docs/execution/TRACE.md` | Draft v1.4.1 — **updated** | FO-EXE-008 thread-safety refactor complete; MD row updated; RN-EXE-1.2.1-20260519 pending |
+| FO | `docs/execution/FO.md` | Draft v1.7.0 | Updated: FO-EXE-011 (Strategy Engine) and FO-EXE-012 (Trade Cycle Ledger) both Approved |
+| SRD | `docs/execution/SRD.md` | Draft v1.7.0 | Sections 11–12 added; total: 85 SRDs (25 Implemented, 60 Draft/Approved) |
+| DD | `docs/execution/DD.md` | Draft v1.7.0 | DD-EXE-011.* (4 designs) and DD-EXE-012.* (2 designs) added; 21 items total |
+| MD | `docs/execution/MD.md` | Draft v1.6.0 | MD-EXE-011.* (4 modules) and MD-EXE-012.* (5 modules) added; 26 modules total |
+| UTCD | `docs/execution/UTCD.md` | Draft v1.2.0 | Tests for FO-EXE-011/012 pending write; 142 total cases specified |
+| TRACE | `docs/execution/TRACE.md` | Draft v1.5.0 — **updated** | FO-EXE-011 and FO-EXE-012 rows added; both marked Implemented; pending RNs |
 
 ### GUI (NEW — created)
 

@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-22T13:42:01",
+  "generated": "2026-05-24T13:14:13",
   "subfolder": "db",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\db",
   "tool_code": "INF",
@@ -193,25 +193,31 @@
       "srd_id": "SRD-INF-004.001",
       "top_level_functions": [
         {
+          "name": "_register_trade_cycle_schema",
+          "signature": "def _register_trade_cycle_schema() -> None",
+          "line_start": 182,
+          "line_end": 183
+        },
+        {
           "name": "migrate_lifecycle_columns",
           "signature": "def migrate_lifecycle_columns(engine: sa.Engine) -> None",
           "docstring": "Add monitoring-session lifecycle columns to ``trades`` and ``positions``",
-          "line_start": 199,
-          "line_end": 212
+          "line_start": 208,
+          "line_end": 221
         },
         {
           "name": "create_schema",
           "signature": "def create_schema(engine: sa.Engine) -> None",
           "docstring": "Create all tables and indexes if they do not already exist, then run",
-          "line_start": 215,
-          "line_end": 219
+          "line_start": 224,
+          "line_end": 229
         },
         {
           "name": "drop_schema",
           "signature": "def drop_schema(engine: sa.Engine) -> None",
           "docstring": "Drop all tables (test use only).",
-          "line_start": 222,
-          "line_end": 224
+          "line_start": 232,
+          "line_end": 234
         }
       ],
       "constants": [

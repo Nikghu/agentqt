@@ -1,4 +1,4 @@
-"""Module: MD-SCR-007.001.M14 — screener/utils.py
+"""Module: MD-SCR-003.001.M14 — screener/utils.py
 Parent SRD: SRD-SCR-003.001, SRD-SCR-010.001–004
 
 Shared utilities: PreFilter (price, volume, halted checks),

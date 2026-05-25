@@ -27,6 +27,7 @@ Common drift to avoid — these patterns violate the rule:
 - `**Topic header:** Long explanation...` inside a table cell.
 - Embedded `INSERT INTO ...` / `def foo(): ...` blocks in an SRD row.
 - Restating the same constraint in Description, Constraints, and Notes.
+- Multiple comma-separated IDs in a Parent cell — one Parent ID per row, always.
 
 ## ID Formats
 
@@ -53,11 +54,13 @@ Common drift to avoid — these patterns violate the rule:
 
 **Only `Approved` SRDs may be implemented.** After implementation, set status → `Implemented`.
 
+Before writing any SRD row, verify its parent `FO-<TOOL>-NNN` heading already exists in `FO.md` — create it first if missing.
+
 ## Document Storage Locations
 
 | Artifact | Location |
 |---|---|
-| FO, SRD, DD, MD, UTCD, TRACE | `us_swing/docs/<tool>/` |
+| FO, SRD, DD, MD, UTCD, TRACE | `us_swing/docs/<tool>/` — rows in `<tool>/MD.md` must only carry IDs matching that tool's code (e.g. only `MD-EXE-*` in `execution/MD.md`); cross-tool impacts go in a plain-text note, not as ID rows |
 | Revision Notes | `us_swing/docs/<tool>/revisions/RN-<TOOL>-VER-DATE.md` |
 | Issue Reports | `us_swing/docs/<tool>/issues/ISS-<TOOL>-NNNN.md` |
 | Source code | `us_swing/src/usswing/<tool>/` |

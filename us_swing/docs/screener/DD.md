@@ -1,13 +1,15 @@
 # Design Document — Screener (SCR)
 
 **Document ID:** DD-SCR
-**Version:** 2.1.0
+**Version:** 2.1.1
 **Traces To:** SRD-SCR v2.1.0
 **Status:** Draft
-**Last Updated:** 2026-04-25
+**Last Updated:** 2026-05-23
 **Project:** US Swing Trading System
 
 ---
+
+# FO-SCR-001 — Preset Model & Data Structures
 
 ## DD-SCR-001.001.D01 — Preset Data Model & Serialization
 - **Status:** Approved
@@ -91,6 +93,48 @@ class Preset:
 - **Round-trip guarantee:** `Preset.from_dict(preset.to_dict())` produces equal instance
 
 ---
+
+## DD-SCR-001.009.D01 — trading_styles Field in Preset
+- **Status:** Draft
+
+**Parent SRD:** SRD-SCR-001.009
+
+### Dataclass Amendment
+
+`trading_styles` is added to the `Preset` dataclass between `enabled` and `created_at`:
+
+```python
+@dataclass
+class Preset:
+    ...
+    trading_styles: list[Literal["swing", "day", "position"]] = field(default_factory=list)
+    ...
+```
+
+### Validation
+
+`Preset.validate()` gains one additional check:
+
+```python
+_VALID_STYLES: frozenset[str] = frozenset({"swing", "day", "position"})
+
+def validate(self) -> None:
+    # ... existing checks ...
+    unknown = set(self.trading_styles) - _VALID_STYLES
+    if unknown:
+        raise PresetValidationError(f"Unknown trading styles: {unknown!r}")
+```
+
+### Serialization
+
+- `to_dict()` emits `"trading_styles": ["swing", "day"]` (list of strings; empty list when untagged)
+- `from_dict()` reads `data.get("trading_styles", [])` — backward-compatible with existing JSON files that lack the field
+
+Round-trip: `Preset.from_dict(p.to_dict()).trading_styles == p.trading_styles` guaranteed.
+
+---
+
+# FO-SCR-002 — Plugin-Based Screener Architecture
 
 ## DD-SCR-002.001.D01 — Screener Plugin Architecture
 - **Status:** Approved
@@ -231,6 +275,8 @@ class LLMClaudeScreener(Screener):
 ```
 
 ---
+
+# FO-SCR-003 — Three-Stage Execution Pipeline
 
 ## DD-SCR-003.001.D01 — Three-Stage Execution Pipeline
 - **Status:** Approved
@@ -405,6 +451,8 @@ class PresetExecutor:
 ```
 
 ---
+
+# FO-SCR-004 — Hybrid Execution Modes
 
 ## DD-SCR-004.001.D01 — PresetManager & Permissions
 - **Status:** Approved
@@ -622,6 +670,8 @@ class PresetManager:
 
 ---
 
+# FO-SCR-005 — Preset Management & Permissions
+
 ## DD-SCR-005.001.D01 — ScreenerScheduler
 - **Status:** Approved
 
@@ -701,6 +751,51 @@ class ScreenerScheduler:
 ```
 
 ---
+
+## DD-SCR-005.004.D01 — style_filter Parameter on PresetManager List Methods
+- **Status:** Draft
+
+**Parent SRD:** SRD-SCR-005.004
+
+### Method Signatures
+
+```python
+def list_admin_presets(
+    self, style_filter: str | None = None
+) -> list[Preset]: ...
+
+def list_user_presets(
+    self, user_id: str, style_filter: str | None = None
+) -> list[Preset]: ...
+```
+
+### Filter Logic
+
+Extracted into a private helper to avoid duplication:
+
+```python
+_VALID_STYLE_FILTERS: frozenset[str] = frozenset({"swing", "day", "position"})
+
+def _apply_style_filter(
+    self, presets: list[Preset], style_filter: str | None
+) -> list[Preset]:
+    if style_filter is None:
+        return presets
+    if style_filter not in _VALID_STYLE_FILTERS:
+        raise ValueError(f"Unknown style_filter: {style_filter!r}")
+    return [
+        p for p in presets
+        if not p.trading_styles or style_filter in p.trading_styles
+    ]
+```
+
+**Rule:** An empty `trading_styles` list always passes the filter (untagged preset = visible regardless of selected style).
+
+Both `list_admin_presets` and `list_user_presets` call `_apply_style_filter` as their last step, after assembling the full preset list.
+
+---
+
+# FO-SCR-006 — LLM Ranking & Result Persistence
 
 ## DD-SCR-006.001.D01 — Result Storage & LLM Integration
 - **Status:** Approved
@@ -886,6 +981,8 @@ class APIUsageTracker:
 
 ---
 
+# FO-SCR-007 — GUI Preset Builder
+
 ## DD-SCR-007.001.D01 — GUI Architecture
 - **Status:** Approved
 
@@ -903,89 +1000,6 @@ class APIUsageTracker:
   - Validation on save
 - **Historical Results Selector:** Date picker (last 30 days with results)
 - **Export CSV:** Download results table to file
-
----
-
-## DD-SCR-001.009.D01 — trading_styles Field in Preset
-- **Status:** Draft
-
-**Parent SRD:** SRD-SCR-001.009
-
-### Dataclass Amendment
-
-`trading_styles` is added to the `Preset` dataclass between `enabled` and `created_at`:
-
-```python
-@dataclass
-class Preset:
-    ...
-    trading_styles: list[Literal["swing", "day", "position"]] = field(default_factory=list)
-    ...
-```
-
-### Validation
-
-`Preset.validate()` gains one additional check:
-
-```python
-_VALID_STYLES: frozenset[str] = frozenset({"swing", "day", "position"})
-
-def validate(self) -> None:
-    # ... existing checks ...
-    unknown = set(self.trading_styles) - _VALID_STYLES
-    if unknown:
-        raise PresetValidationError(f"Unknown trading styles: {unknown!r}")
-```
-
-### Serialization
-
-- `to_dict()` emits `"trading_styles": ["swing", "day"]` (list of strings; empty list when untagged)
-- `from_dict()` reads `data.get("trading_styles", [])` — backward-compatible with existing JSON files that lack the field
-
-Round-trip: `Preset.from_dict(p.to_dict()).trading_styles == p.trading_styles` guaranteed.
-
----
-
-## DD-SCR-005.004.D01 — style_filter Parameter on PresetManager List Methods
-- **Status:** Draft
-
-**Parent SRD:** SRD-SCR-005.004
-
-### Method Signatures
-
-```python
-def list_admin_presets(
-    self, style_filter: str | None = None
-) -> list[Preset]: ...
-
-def list_user_presets(
-    self, user_id: str, style_filter: str | None = None
-) -> list[Preset]: ...
-```
-
-### Filter Logic
-
-Extracted into a private helper to avoid duplication:
-
-```python
-_VALID_STYLE_FILTERS: frozenset[str] = frozenset({"swing", "day", "position"})
-
-def _apply_style_filter(
-    self, presets: list[Preset], style_filter: str | None
-) -> list[Preset]:
-    if style_filter is None:
-        return presets
-    if style_filter not in _VALID_STYLE_FILTERS:
-        raise ValueError(f"Unknown style_filter: {style_filter!r}")
-    return [
-        p for p in presets
-        if not p.trading_styles or style_filter in p.trading_styles
-    ]
-```
-
-**Rule:** An empty `trading_styles` list always passes the filter (untagged preset = visible regardless of selected style).
-
-Both `list_admin_presets` and `list_user_presets` call `_apply_style_filter` as their last step, after assembling the full preset list.
 
 ---
 
@@ -1180,6 +1194,8 @@ No live user-ID lookup against a user database. An invalid or unknown user ID re
 
 ---
 
+# FO-SCR-008 — Module Architecture
+
 ## DD-SCR-008.001.D01 — Module Decomposition Summary
 - **Status:** Approved
 
@@ -1200,9 +1216,7 @@ No live user-ID lookup against a user database. An invalid or unknown user ID re
 | `screener/gui/screener_panel.py` | Screener Panel tab (incl. style filter dropdown) | `ScreenerPanel` |
 | `screener/gui/preset_builder.py` | Preset Builder modal (incl. style checkboxes, assign users) | `PresetBuilderPanel`, `AssignUsersWidget` |
 
----
-
-## Module Dependency Graph
+### Module Dependency Graph
 
 ```
 screener/preset.py
@@ -1240,6 +1254,8 @@ screener/utils.py
 ```
 
 ---
+
+# FO-SCR-011 — AI-Assisted Stock Ranking (Phase 1)
 
 ## DD-SCR-011.001.D21 — AI Stock Ranking with Tool-Augmented Reasoning (Phase 1)
 - **Status:** Approved

@@ -77,9 +77,10 @@
 | D01 — PresetManager | CRUD + permissions | M12 (manager.py) | 1 |
 | D01 — Scheduler | Cron scheduling | M11 (scheduler.py) | 1 |
 | D01 — Result Storage | File I/O, caching, cost tracking | M13 (storage.py) | 1 |
-| D01 — LLM Integration | Claude API ranking | M06 (llm_claude.py) | 1 |
+| D01 — LLM Integration | Claude API ranking | M06 (cloud_ai.py) | 1 |
+| D01 — RS Calculations | RS line, RS rank, BenchmarkDataUnavailableError | M04 (indicator.py) | 1 |
 | D01 — GUI Architecture | Preset builder panel | (deferred) | 0 |
-| — | Screener Plugins | M04 (indicator), M05 (ml), M06 (llm), M07–09 (optional) | 6 |
+| — | Screener Plugins | M04 (indicator), M05 (ml), M06 (cloud_ai), M07–09 (optional) | 6 |
 | — | Package Integration | M15 (__init__.py) | 1 |
 | **Total** | — | — | **15** |
 
@@ -94,7 +95,7 @@
 | M03: registry.py | test_registry.py | 6 | 1 | 7 |
 | M04: indicator.py | test_indicator_screener.py | 8 | 2 | 10 |
 | M05: ml.py | test_ml_screener.py | 5 | 1 | 6 |
-| M06: llm_claude.py | test_llm_claude_screener.py | 10 | 3 | 13 |
+| M06: cloud_ai.py | test_llm_claude_screener.py | 10 | 3 | 13 |
 | M10: executor.py | test_executor.py | 20 | 5 | 25 |
 | M11: scheduler.py | test_scheduler.py | 6 | 1 | 7 |
 | M12: manager.py | test_manager.py | 20 | 3 | 23 |
@@ -158,9 +159,9 @@ FO-002
   │   │   ├─ MD-SCR-M05: src/screener/screeners/ml.py
   │   │   │   └─ UT: test_ml_screener.py T01–T05
   │   │   └─ IT: test_integration.py T03 (weighted with ML)
-  ├─ SRD-002.005: LLMClaudeScreener (for ranking)
-  │   ├─ DD-SCR-002.001: class LLMClaudeScreener(Screener)
-  │   │   ├─ MD-SCR-M06: src/screener/screeners/llm_claude.py
+  ├─ SRD-002.005: CloudAIScreener (for ranking)
+  │   ├─ DD-SCR-002.001: class CloudAIScreener(Screener)
+  │   │   ├─ MD-SCR-M06: src/us_swing/screener/screeners/cloud_ai.py
   │   │   │   └─ UT: test_llm_claude_screener.py T01–T10
   │   │   └─ IT: test_integration.py T07–T09 (LLM ranking workflows)
   ├─ SRD-002.006–008: LLMLocal, PriceAction, MCP (optional stubs)
@@ -227,7 +228,7 @@ FO-005
 FO-006
   ├─ SRD-006.001: batch_features() (feature extraction)
   │   ├─ DD-SCR-006.001: class FeatureCache
-  │   │   ├─ MD-SCR-M06: src/screener/screeners/llm_claude.py
+  │   │   ├─ MD-SCR-M06: src/us_swing/screener/screeners/cloud_ai.py
   │   │   │   └─ UT: test_llm_claude_screener.py T01–T02
   ├─ SRD-006.002–003: Feature caching (24h TTL)
   │   ├─ DD-SCR-006.001: class FeatureCache
@@ -304,6 +305,41 @@ FO-009
 
 ---
 
+### FO-SCR-010: Relative Strength vs Benchmark
+
+```
+FO-010
+  ├─ SRD-012.001: RS line per symbol (stock_close / spy_close, normalised to 1.0)
+  │   ├─ DD-SCR-002.001: compute_rs_line() in IndicatorScreener
+  │   │   ├─ MD-SCR-002.001.M04: src/us_swing/screener/screeners/indicator.py
+  │   │   │   └─ UT: test_indicator_screener.py T01–T08
+  ├─ SRD-012.002: RS percentile rank — universe-wide 252d return, scipy percentileofscore
+  │   ├─ DD-SCR-002.001: compute_rs_rank() in IndicatorScreener
+  │   │   ├─ MD-SCR-002.001.M04: src/us_swing/screener/screeners/indicator.py
+  │   │   │   └─ UT: test_indicator_screener.py T01–T08
+  ├─ SRD-012.003: rs_min_percentile + rs_slope_days config params; backward-compat defaults
+  │   ├─ DD-SCR-002.001: IndicatorScreener config schema extension
+  │   │   └─ MD-SCR-002.001.M04: src/us_swing/screener/screeners/indicator.py
+  ├─ SRD-012.004: BenchmarkDataUnavailableError — raised when SPY bars absent
+  │   ├─ DD-SCR-002.001: BenchmarkDataUnavailableError definition in indicator.py
+  │   │   └─ MD-SCR-002.001.M04: src/us_swing/screener/screeners/indicator.py
+  ├─ SRD-012.005: RS rank computed once per run (vectorised numpy/pandas; <2 s for 500 symbols)
+  │   ├─ DD-SCR-002.001: vectorised RS rank batch computation
+  │   │   └─ MD-SCR-002.001.M04: src/us_swing/screener/screeners/indicator.py
+```
+
+### FO-SCR-010 Coverage Summary
+
+| SRD | DD | MD | UT File | Tests | Status |
+|---|---|---|---|---|---|
+| SRD-012.001 | DD-SCR-002.001 | M04 | test_indicator_screener.py | T01–T08 | Draft |
+| SRD-012.002 | DD-SCR-002.001 | M04 | test_indicator_screener.py | T01–T08 | Draft |
+| SRD-012.003 | DD-SCR-002.001 | M04 | test_indicator_screener.py | T01–T08 | Draft |
+| SRD-012.004 | DD-SCR-002.001 | M04 | test_indicator_screener.py | T01–T08 | Draft |
+| SRD-012.005 | DD-SCR-002.001 | M04 | test_indicator_screener.py | T01–T08 | Draft |
+
+---
+
 ## Test Coverage Summary
 
 | Category | Count | Coverage % | Status |
@@ -360,7 +396,7 @@ FO-011
   │   │   │   └─ UT: test_preset.py T17–T20
   ├─ SRD-013.002: get_candle_data tool schema
   │   └─ DD-SCR-011.001.D21 (provider-agnostic schema)
-  │       └─ MD-SCR-002.003.M06: src/us_swing/screener/screeners/llm_claude.py
+  │       └─ MD-SCR-002.003.M06: src/us_swing/screener/screeners/cloud_ai.py
   │           └─ UT: test_llm_claude_screener.py T11
   ├─ SRD-013.003: CandleToolExecutor
   │   ├─ DD-SCR-011.001.D21
@@ -371,7 +407,7 @@ FO-011
   │       └─ UT: test_tool_executor.py T03
   ├─ SRD-013.005: multi-turn tool_use loop
   │   ├─ DD-SCR-011.001.D21
-  │   │   ├─ MD-SCR-002.003.M06: src/us_swing/screener/screeners/llm_claude.py
+  │   │   ├─ MD-SCR-002.003.M06: src/us_swing/screener/screeners/cloud_ai.py
   │   │   │   └─ UT: test_llm_claude_screener.py T11–T15
   ├─ SRD-013.006: PresetExecutor passes db + passing_symbols + ai_query/ai_model
   │   ├─ DD-SCR-011.001.D21

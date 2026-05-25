@@ -1,6 +1,6 @@
 """
-Strategy Builder Dialog — create and edit strategy executor configurations.
-Pending MD assignment (requirements skipped for Phase 1 prototype).
+Module: MD-GUI-013.001.M01 — StrategyBuilderDialog
+Parent SRD: SRD-GUI-013.001
 """
 from __future__ import annotations
 
@@ -651,7 +651,7 @@ class _CondBubble(QWidget):
         )
 
         x_btn = QPushButton("×")
-        x_btn.setFixedSize(16, 16)
+        x_btn.setFixedWidth(16)
         x_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         x_btn.setStyleSheet(
             f"QPushButton {{ background: transparent; color: {P.MUTED}; border: none;"
@@ -887,7 +887,7 @@ class _SchedulerPage(QScrollArea):
             btn = QPushButton(_DAY_LABELS[day])
             btn.setCheckable(True)
             btn.setChecked(True)
-            btn.setFixedSize(62, C.BTN_H)
+            btn.setFixedWidth(62)
             btn.setStyleSheet(_day_pill_ss())
             self._day_checks[day] = btn
             days_row.addWidget(btn)
@@ -924,12 +924,12 @@ class _TriggersPage(QWidget):
 
         self._relop = QComboBox()
         self._relop.addItems([">", "<", ">=", "<=", "==", "!="])
-        self._relop.setFixedSize(44, 28)
+        self._relop.setFixedWidth(44)
         self._relop.setStyleSheet(_pill_ss)
 
         self._logical = QComboBox()
         self._logical.addItems(["&", "||"])
-        self._logical.setFixedSize(44, 28)
+        self._logical.setFixedWidth(44)
         self._logical.setStyleSheet(_pill_ss)
 
         # Persistent add buttons
@@ -1043,7 +1043,7 @@ class _TriggersPage(QWidget):
     def _make_plus_btn(tooltip: str = "") -> QPushButton:
         P = active_palette()
         btn = QPushButton()
-        btn.setFixedSize(44, 28)
+        btn.setFixedWidth(44)
         btn.setIconSize(QSize(14, 14))
         btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         btn.setToolTip(tooltip)

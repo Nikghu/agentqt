@@ -76,6 +76,16 @@
 | UT-INF-004.001.M01.T04 | MD-INF-004.001.M01 | Edge | `get_last_timestamp()` returns `None` if no data | Empty table | `None` | Draft |
 | UT-INF-004.001.M01.T05 | MD-INF-004.001.M01 | Unit | `fetch_bars()` respects date range boundaries | 10 bars; request bars [T3, T7] | Returns exactly bars T3 through T7 | Draft |
 | UT-INF-004.001.M01.T06 | MD-INF-004.001.M01 | Unit | `upsert_position()` + `delete_position()` round-trip | Insert AAPL position; delete it | `fetch_open_positions()` returns empty list | Draft |
+| UT-INF-004.001.M01.T20 | MD-INF-004.001.M01 | Unit | `migrate_lifecycle_columns` adds the 4 new columns when absent | Fresh DB missing all 4 columns | `PRAGMA table_info(trades)` shows `trade_origin`, `monitoring_session_date`; `PRAGMA table_info(positions)` shows `origin`, `anchor_session_date` | Pass |
+| UT-INF-004.001.M01.T21 | MD-INF-004.001.M01 | Unit | `migrate_lifecycle_columns` is idempotent | Run T20 twice | Second call produces no `ALTER TABLE` execution; column count unchanged | Pass |
+
+---
+
+## Module: `db/schema.py` — DatabaseSchema
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-INF-004.001.M02.T05 | MD-INF-004.001.M02 | Unit | `create_schema(checkfirst=True)` provisions `monitoring_session` table and indexes | Fresh engine; call `create_schema` | Table exists; both indexes (`idx_monitoring_session_state`, `idx_monitoring_session_symbol`) present | Pass |
 
 ---
 

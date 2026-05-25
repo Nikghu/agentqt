@@ -206,6 +206,7 @@ QLabel#top_brand {
     padding: 0 4px 0 8px;
 }
 QLabel#user_chip  { color: #cdd6f4;   font-size: 8pt; padding: 0 4px; }
+QLabel#risk_err_lbl { color: #f38ba8; font-size: 9pt; }
 
 /* ── Horizontal tab nav (inside title bar) ────────────────── */
 QPushButton#tab_btn {
@@ -704,6 +705,7 @@ QLabel#top_brand {
     padding: 0 4px 0 8px;
 }
 QLabel#user_chip  { color: #d4d4d4; font-size: 8pt; padding: 0 4px; }
+QLabel#risk_err_lbl { color: #f44747; font-size: 9pt; }
 
 /* ── Horizontal tab nav (inside title bar) ────────────────── */
 QPushButton#tab_btn {

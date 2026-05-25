@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-22T13:42:01",
+  "generated": "2026-05-24T13:14:13",
   "subfolder": "data",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\data",
   "tool_code": "INF",
@@ -411,10 +411,11 @@
             "stop_loss: float",
             "target_price: float",
             "recommended_qty: int",
-            "generated_at: datetime"
+            "generated_at: datetime",
+            "signal_id: str"
           ],
           "line_start": 276,
-          "line_end": 286
+          "line_end": 287
         },
         {
           "name": "MarketWatchItem",
@@ -426,8 +427,8 @@
             "change_pct: float",
             "prev_close: float"
           ],
-          "line_start": 290,
-          "line_end": 296
+          "line_start": 291,
+          "line_end": 297
         },
         {
           "name": "WatchlistItem",
@@ -446,8 +447,8 @@
             "year_low: float",
             "market_cap: float"
           ],
-          "line_start": 300,
-          "line_end": 313
+          "line_start": 301,
+          "line_end": 314
         }
       ]
     },

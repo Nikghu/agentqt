@@ -1,6 +1,6 @@
 """
-Module: MD-GUI-004 — execution_panel.py
-FO-GUI-004 Execution Panel: pending signals + override qty + execute entry.
+Module: MD-GUI-004.001.M01 — ExecutionPanel
+Parent SRD: SRD-GUI-004.001
 """
 from __future__ import annotations
 
@@ -56,7 +56,6 @@ from us_swing.gui.strategy_builder_dialog import (
     load_strategies,
     save_strategies,
 )
-from us_swing.execution.strategy_runner import StrategyRunWorker, _apply_scope
 from us_swing.gui.strategy_table_model import (
     COL_CAPITAL,
     COL_DELETE,
@@ -86,13 +85,14 @@ from us_swing.gui.theme import C, active_palette, colors
 _SHOW_DB_DIAGNOSTICS: bool = True
 _INTRADAY_DB_PATH: Path = Path.home() / ".usswing" / "candles.db"
 
-_CELL_BTN_SS = (
-    "QPushButton {{ background: transparent; border: 1px solid {border};"
-    " border-radius: 3px; color: {fg}; font-size: 8pt;"
-    " min-height: 20px; max-height: 20px; outline: none; }}"
-    "QPushButton:hover {{ background: {fg}22; border-color: {fg}; }}"
-    "QPushButton:focus {{ outline: none; }}"
-)
+def _cell_btn_ss(border: str, fg: str) -> str:
+    return (
+        f"QPushButton {{ background: transparent; border: 1px solid {border};"
+        f" border-radius: 3px; color: {fg}; font-size: 8pt;"
+        f" min-height: {C.BTN_H_SM}px; max-height: {C.BTN_H_SM}px; outline: none; }}"
+        f"QPushButton:hover {{ background: {fg}22; border-color: {fg}; }}"
+        f"QPushButton:focus {{ outline: none; }}"
+    )
 
 _CELL_ICON_BTN_SS = (
     "QPushButton {{ background: transparent; border: 1px solid transparent;"
@@ -103,7 +103,7 @@ _CELL_ICON_BTN_SS = (
 
 
 def _cell_icon(kind: str, color_hex: str) -> QIcon:
-    """Draw a 14×14 pencil (edit) or trash-can (delete) icon for table cell buttons."""
+    """Draw a 14×14 icon for table cell buttons: pencil, trash-can, play triangle, or stop square."""
     SIZE = 14
     pm = QPixmap(SIZE, SIZE)
     pm.fill(Qt.GlobalColor.transparent)
@@ -126,6 +126,17 @@ def _cell_icon(kind: str, color_hex: str) -> QIcon:
         # Eraser cap — small semi-transparent rect at the top
         painter.setBrush(QColor(c.red(), c.green(), c.blue(), 170))
         painter.drawRect(9, 1, 4, 2)
+    elif kind == "run":
+        # Play triangle — pointing right, centered
+        path = QPainterPath()
+        path.moveTo(3.0, 1.5)
+        path.lineTo(12.0, 7.0)
+        path.lineTo(3.0, 12.5)
+        path.closeSubpath()
+        painter.drawPath(path)
+    elif kind == "stop":
+        # Stop square — filled rounded rect, centered
+        painter.drawRoundedRect(2, 2, 10, 10, 2, 2)
     else:
         # Trash handle
         painter.drawRoundedRect(5, 1, 4, 2, 1, 1)
@@ -151,7 +162,7 @@ class _StrategyTablePane(QWidget):
         super().__init__(parent)
         self._demo = demo
         self._configs: list[StrategyConfig] = load_strategies()
-        self._run_workers: dict[str, StrategyRunWorker] = {}
+        demo.strategy_status_changed.connect(self._on_engine_status)
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 6, 0, 0)
@@ -203,7 +214,7 @@ class _StrategyTablePane(QWidget):
             hh.setStretchLastSection(False)
             for col, width, mode in [
                 (COL_STATUS,      110, QHeaderView.ResizeMode.Interactive),
-                (COL_RUN,          34, QHeaderView.ResizeMode.Fixed),
+                (COL_RUN,          42, QHeaderView.ResizeMode.Fixed),
                 (COL_NAME,        130, QHeaderView.ResizeMode.Interactive),
                 (COL_EDIT,         42, QHeaderView.ResizeMode.Fixed),
                 (COL_DELETE,       62, QHeaderView.ResizeMode.Fixed),
@@ -260,11 +271,13 @@ class _StrategyTablePane(QWidget):
 
     @staticmethod
     def _make_run_btn(icon_char: str, color: str, slot: Any) -> QPushButton:
-        btn = QPushButton(icon_char)
-        btn.setFixedHeight(C.BTN_H)
-        btn.setFixedWidth(C.BTN_H)
-        btn.setToolTip("Start strategy" if icon_char == "▶" else "Stop strategy")
-        btn.setStyleSheet(_CELL_BTN_SS.format(border=color, fg=color))
+        ct = active_palette()
+        kind = "run" if icon_char == "▶" else "stop"
+        btn = QPushButton()
+        btn.setIcon(_cell_icon(kind, color))
+        btn.setIconSize(QSize(14, 14))
+        btn.setToolTip("Start strategy" if kind == "run" else "Stop strategy")
+        btn.setStyleSheet(_CELL_ICON_BTN_SS.format(fg=color, hover_bg=ct.OVERLAY))
         btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         btn.clicked.connect(slot)
         return btn
@@ -332,50 +345,21 @@ class _StrategyTablePane(QWidget):
         current_status = cfg.strategy_signal.get("Status", "Inactive")
         if current_status == "Inactive":
             cfg.strategy_signal["Status"] = "Active"
-            cfg.strategy_signal["Running_Symbols"] = []
-            save_strategies(self._configs)
-            self._start_worker(src_row, cfg)
-            self._refresh_table()
+            cfg.mode = "manual"
         else:
-            self._stop_worker(cfg.name)
             cfg.strategy_signal["Status"] = "Inactive"
-            cfg.strategy_signal["Running_Symbols"] = []
-            save_strategies(self._configs)
-            self._refresh_table()
+            cfg.mode = "disabled"
+        save_strategies(self._configs)
+        self._demo.reload_strategy_registry()
+        self._refresh_table()
 
-    def _start_worker(self, _src_row: int, cfg: StrategyConfig) -> None:
-        demo = self._demo
-
-        def _get_syms() -> list[str]:
-            entries = demo.get_latest_screener_results()
-            return _apply_scope([e.symbol for e in entries], cfg)
-
-        worker = StrategyRunWorker(cfg, _get_syms, parent=self)
-        worker.status_changed.connect(self._on_worker_status)
-        worker.symbols_changed.connect(self._on_worker_symbols)
-        worker.start()
-        self._run_workers[cfg.name] = worker
-
-    def _stop_worker(self, name: str) -> None:
-        worker = self._run_workers.pop(name, None)
-        if worker is not None:
-            worker.request_stop()
-            worker.wait(2000)
-
-    def _on_worker_status(self, name: str, new_status: str) -> None:
+    def _on_engine_status(self, strategy_name: str, new_status: str) -> None:
         for cfg in self._configs:
-            if cfg.name == name:
+            if cfg.name == strategy_name:
                 cfg.strategy_signal["Status"] = new_status
                 save_strategies(self._configs)
                 break
         self._refresh_table()
-
-    def _on_worker_symbols(self, name: str, symbols: list[str]) -> None:
-        for cfg in self._configs:
-            if cfg.name == name:
-                cfg.strategy_signal["Running_Symbols"] = symbols
-                save_strategies(self._configs)
-                break
 
     def update_signal_status(self, name: str, signal: dict[str, Any]) -> None:
         """Refresh the live strategy signal for a named config and repaint."""
@@ -880,7 +864,6 @@ class _SignalRow(QFrame):
             self.execute_requested.emit(self._signal, qty)
             self.setEnabled(False)
             self._exec_btn.setText("✔  Submitted")
-            self._exec_btn.setStyleSheet(f"color: {C.MUTED};")
 
     def _get_target_user_label(self) -> str:
         """Return the label of the target user selected in the Execution panel combo."""
@@ -1106,14 +1089,12 @@ class _FilteredStocksPane(QWidget):
         self._filter_by_date()
 
     def _filter_by_date(self) -> None:
-        visible = [e for e in self._all_entries if e.date == self._current_date]
-        self._model.load(visible)
-        count = len(visible)
+        self._model.load(self._all_entries)
+        count = len(self._all_entries)
         self._count_lbl.setText(f"{count} stock{'s' if count != 1 else ''}")
         self._table.setVisible(count > 0)
         self._empty_lbl.setVisible(count == 0)
         if count > 0:
-            # Auto-select the highest-score row (proxy row 0 — sorted desc by score)
             top = self._proxy.index(0, 0)
             if top.isValid():
                 self._table.setCurrentIndex(top)
@@ -1265,23 +1246,15 @@ class ExecutionPanel(QWidget):
 
         # Pending signals group
         group = QGroupBox("Pending Signals")
-        group_layout = QVBoxLayout(group)
-        group_layout.setSpacing(10)
+        self._signals_group_layout = QVBoxLayout(group)
+        self._signals_group_layout.setSpacing(10)
 
-        signals = demo.get_pending_signals()
         self._signal_rows: list[_SignalRow] = []
-        if signals:
-            mode = demo.get_active_user().mode
-            for sig in signals:
-                row = _SignalRow(sig, mode)
-                row.execute_requested.connect(self._on_execute)
-                self._signal_rows.append(row)
-                group_layout.addWidget(row)
-        else:
-            no_sig = QLabel("No pending signals at this time.")
-            no_sig.setStyleSheet(f"color: {C.MUTED}; padding: 20px;")
-            no_sig.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            group_layout.addWidget(no_sig)
+        self._status_lbl = QLabel("")
+        self._status_lbl.setStyleSheet(f"color: {C.MUTED}; font-size: 9pt;")
+
+        self._refresh_signals_pane()
+        demo.pending_signals_updated.connect(self._on_signals_updated)
 
         scroll = QScrollArea()
         scroll.setWidget(group)
@@ -1289,9 +1262,6 @@ class ExecutionPanel(QWidget):
         scroll.setStyleSheet("QScrollArea { border: none; }")
         layout.addWidget(scroll, 1)
 
-        # Status line
-        self._status_lbl = QLabel(f"{len(signals)} signal(s) pending — review and execute above")
-        self._status_lbl.setStyleSheet(f"color: {C.MUTED}; font-size: 9pt;")
         layout.addWidget(self._status_lbl)
 
         # Demo CB toggle + optional diagnostics button
@@ -1310,6 +1280,31 @@ class ExecutionPanel(QWidget):
         layout.addLayout(cb_row)
 
         return pane
+
+    def _refresh_signals_pane(self) -> None:
+        while self._signals_group_layout.count():
+            item = self._signals_group_layout.takeAt(0)
+            if item is not None:
+                w = item.widget()
+                if w:
+                    w.deleteLater()
+        self._signal_rows.clear()
+        signals = self._demo.get_pending_signals()
+        mode = self._demo.get_active_user().mode
+        for sig in signals:
+            row = _SignalRow(sig, mode)
+            row.execute_requested.connect(self._on_execute)
+            self._signal_rows.append(row)
+            self._signals_group_layout.addWidget(row)
+        if not signals:
+            lbl = QLabel("No pending signals at this time.")
+            lbl.setStyleSheet(f"color: {C.MUTED}; padding: 20px;")
+            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self._signals_group_layout.addWidget(lbl)
+        self._status_lbl.setText(f"{len(signals)} signal(s) pending — review and execute above")
+
+    def _on_signals_updated(self) -> None:
+        self._refresh_signals_pane()
 
     # ── Slots ─────────────────────────────────────────────────────────────────
 

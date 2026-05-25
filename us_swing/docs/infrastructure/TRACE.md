@@ -15,8 +15,8 @@
 | FO-INF-001 | SRD-INF-001.005 | DD-INF-001.001.D01 | MD-INF-001.001.M02 | T01–T04 | `broker/pacing.py` | Draft | — |
 | FO-INF-002 | SRD-INF-002.001–004 | DD-INF-002.001.D01 | MD-INF-002.001.M01 | T01–T04 | `universe/manager.py` | Draft | — |
 | FO-INF-003 | SRD-INF-003.001–005 | DD-INF-003.001.D01 | MD-INF-003.001.M01 | T01–T05 | `data_engine/engine.py` | Draft | — |
-| FO-INF-004 | SRD-INF-004.001–006 | DD-INF-004.001.D01 | MD-INF-004.001.M01 | T01–T06 | `db/manager.py` | Draft | — |
-| FO-INF-004 | SRD-INF-004.001–002 | DD-INF-004.001.D01 | MD-INF-004.001.M02 | — | `db/schema.py` | Draft | — |
+| FO-INF-004 | SRD-INF-004.001–006 | DD-INF-004.001.D01 | MD-INF-004.001.M01 | T01–T06, T20–T21 | `db/manager.py` | Draft | — |
+| FO-INF-004 | SRD-INF-004.001–002 | DD-INF-004.001.D01 | MD-INF-004.001.M02 | T05 | `db/schema.py` | Draft | — |
 | FO-INF-001–005 | SRD-INF-001.001 | — | MD-INF-004.001.M03 | — | `data/models.py` | Draft | — |
 | FO-INF-005 | SRD-INF-005.001–002 | DD-INF-005.001.D01 | MD-INF-005.001.M01 | T01–T02 | `monitoring/logging_setup.py` | Draft | RN-INF-1.0.1-20260519 |
 | FO-INF-005 | SRD-INF-005.003 | DD-INF-005.001.D01 | MD-INF-005.001.M02 | T01–T02 | `monitoring/alerts.py` | Draft | — |
@@ -57,5 +57,5 @@
 | SRD | 35 | 35 | 0 | 0 | 0 |
 | DD | 7 | 7 | 0 | 0 | 0 |
 | MD | 14 | 14 | 0 | 0 | 0 |
-| UTCD | 38 | 38 | 0 | 0 | 0 |
+| UTCD | 41 | 35 | 0 | 0 | 3 |
 | Code | 14 files | — | — | 0 | 0 |

@@ -61,6 +61,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import pandas as pd
+
 if TYPE_CHECKING:
     from us_swing.execution.intraday_candle_loader import IntradayCandleLoader
     from us_swing.execution.live_bar_worker import LiveBarWorker
@@ -73,11 +75,11 @@ from PyQt6.QtCore import QObject, QThread, QTimer, pyqtSignal
 
 from us_swing.data.market_calendar import ET as _ET, get_exchange_status as _get_exchange_status
 from us_swing.monitoring.connectivity import NetWatcher
-
 from us_swing.data.models import (
     AccountState,
     ConnectionStatus,
     FilteredStockEntry,
+    OHLCVBar,
     OpenPosition,
     RiskConfig,
     ScreenerResult,
@@ -961,6 +963,8 @@ class AppService(QObject):
     candle_readiness_updated  = pyqtSignal(dict)           # dict[str, bool | None]
     exchange_unavail_updated  = pyqtSignal(object)         # set[str]
     live_bar_data_updated     = pyqtSignal(str)            # symbol — 3m or 15m bar written to DB
+    pending_signals_updated   = pyqtSignal()               # pending signal list changed
+    strategy_status_changed   = pyqtSignal(str, str)       # (strategy_name, new_status)
 
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
@@ -1055,6 +1059,35 @@ class AppService(QObject):
         self.screener_results_updated.connect(self._on_screener_results_updated)
         # Trigger candle fetch for any results that were saved from a prior screener run.
         QTimer.singleShot(0, self._boot_candle_check)
+
+        # ── Strategy Engine ───────────────────────────────────────────────────
+        from us_swing.execution.pending_signal_store import PendingSignalStore
+        from us_swing.execution.risk_validator import PassthroughRiskValidator
+        from us_swing.execution.event_bus import QtEventBus
+        from us_swing.execution.paper_broker import PaperBroker
+        from us_swing.execution.strategy_engine._engine import StrategyEngine
+        from us_swing.gui.strategy_builder_dialog import load_strategies, save_strategies
+
+        self._pending_store = PendingSignalStore(self)
+        self._pending_store.pending_signal_added.connect(lambda _: self.pending_signals_updated.emit())
+        self._pending_store.pending_signal_removed.connect(lambda _: self.pending_signals_updated.emit())
+
+        self._event_bus = QtEventBus(self)
+        self._paper_broker = PaperBroker(on_fill=self._on_paper_fill)
+        self._strategy_engine = StrategyEngine(
+            registry_loader=load_strategies,
+            registry_saver=save_strategies,
+            candles_provider=self._get_candles_df,
+            bar_provider=self._get_latest_bar,
+            risk=PassthroughRiskValidator(),
+            submitter=self._paper_broker,
+            pending=self._pending_store,
+            bus=self._event_bus,
+            parent=self,
+        )
+        self._strategy_engine.start()
+        self._event_bus.event_published.connect(self._on_strategy_event)
+        self.live_bar_data_updated.connect(self._strategy_engine.on_candle_closed)
 
     # ── Architecture-level connection status ──────────────────────────────────
 
@@ -1524,8 +1557,64 @@ class AppService(QObject):
             self._pending_candle_symbols = None
             self._start_intraday_loader(pending)
 
+    def _get_candles_df(self, symbol: str) -> dict[str, pd.DataFrame]:
+        """Load 3m and 15m bars for *symbol* from the intraday candle DB."""
+        _tf_table = {"3m": "price_3m", "15m": "price_15m"}
+        if not _CANDLE_DB_PATH.exists():
+            return {}
+        result: dict[str, pd.DataFrame] = {}
+        try:
+            with sqlite3.connect(str(_CANDLE_DB_PATH)) as conn:
+                for tf, table in _tf_table.items():
+                    cur = conn.execute(
+                        f"SELECT datetime, open, high, low, close, volume"  # noqa: S608
+                        f" FROM {table} WHERE symbol = ?"
+                        f" ORDER BY datetime ASC LIMIT 200",
+                        (symbol,),
+                    )
+                    rows = cur.fetchall()
+                    if rows:
+                        result[tf] = pd.DataFrame(
+                            rows,
+                            columns=["datetime", "open", "high", "low", "close", "volume"],
+                        )
+        except Exception:
+            _log.warning("[Strategy] Failed to load candle frames for %s", symbol)
+        return result
+
+    def _get_latest_bar(self, symbol: str, tf: str) -> OHLCVBar | None:
+        """Return the most recent bar for *symbol* at *tf* from the intraday DB."""
+        _tf_table = {"3m": "price_3m", "15m": "price_15m"}
+        table = _tf_table.get(tf)
+        if table is None or not _CANDLE_DB_PATH.exists():
+            return None
+        try:
+            with sqlite3.connect(str(_CANDLE_DB_PATH)) as conn:
+                cur = conn.execute(
+                    f"SELECT symbol, datetime, open, high, low, close, volume"  # noqa: S608
+                    f" FROM {table} WHERE symbol = ? ORDER BY datetime DESC LIMIT 1",
+                    (symbol,),
+                )
+                row = cur.fetchone()
+            if row is None:
+                return None
+            return OHLCVBar(
+                symbol=row[0],
+                datetime=row[1],
+                open=float(row[2]),
+                high=float(row[3]),
+                low=float(row[4]),
+                close=float(row[5]),
+                volume=int(row[6]),
+                timeframe=tf,
+            )
+        except Exception:
+            _log.warning("[Strategy] Failed to load latest bar for %s (%s)", symbol, tf)
+            return None
+
     def get_pending_signals(self, user_id: int | None = None) -> list[TradeSignal]:
-        return list(self._signals)
+        from us_swing.execution.signal_bridge import engine_to_gui
+        return [engine_to_gui(s) for s in self._pending_store.list()]
 
     # ── Position mutations ────────────────────────────────────────────────────
 
@@ -1586,19 +1675,40 @@ class AppService(QObject):
                 return
 
     def execute_signal(self, signal: TradeSignal, quantity: int) -> int:
-        """Simulate an order locally (execution disabled at tool level — no IBKR call).
+        """Route the pending signal through PaperBroker and return its order ID."""
+        eng_sig = self._pending_store.execute(signal.signal_id)
+        if eng_sig is None:
+            self.log_message.emit(
+                "WARNING",
+                f"[Strategy] Signal {signal.signal_id} not found in pending store",
+            )
+            return -1
+        order_id = self._paper_broker.submit(eng_sig, quantity) or -1
+        return order_id
 
-        Returns a locally-generated placeholder order ID.
-        Paper mode: algo-side simulation only; no orders reach the broker.
-        """
-        order_id = random.randint(10_000, 99_999)
+    def reload_strategy_registry(self) -> None:
+        """Reload strategy configurations from disk into the running engine."""
+        self._strategy_engine.reload_registry()
+
+    def _on_paper_fill(self, fill: object) -> None:
+        from us_swing.execution.strategy_engine._protocols import FillEvent
+        if not isinstance(fill, FillEvent):
+            return
+        self._strategy_engine.on_order_fill(fill)
         self.log_message.emit(
             "INFO",
-            f"[ALGO-PAPER] Order simulated locally: {signal.symbol}  {signal.side}"
-            f"  qty={quantity}  strategy={signal.strategy_id}  order_id={order_id}"
-            "  (execution disabled — not sent to broker)",
+            f"[Strategy] Paper fill confirmed: {fill.symbol}  "
+            f"{'entry' if fill.is_entry else 'exit'}  "
+            f"qty={fill.fill_qty}  price={fill.fill_price:.2f}  order={fill.order_id}",
         )
-        return order_id
+        self.positions_updated.emit()
+
+    def _on_strategy_event(self, event: object) -> None:
+        from us_swing.execution.strategy_engine._events import StrategyEntered, StrategyExited
+        if isinstance(event, StrategyEntered):
+            self.strategy_status_changed.emit(event.strategy_id, "Running")
+        elif isinstance(event, StrategyExited):
+            self.strategy_status_changed.emit(event.strategy_id, "Active")
 
     # ── User CRUD ─────────────────────────────────────────────────────────────
 
