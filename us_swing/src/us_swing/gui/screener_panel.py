@@ -2635,6 +2635,7 @@ class ScreenerPanel(QWidget):
 
         # ── DB status subscription (SRD-SCR-004.007) ──────────────────────
         demo.candle_db_status_changed.connect(self._on_db_status_changed)
+        demo.market_status_updated.connect(self._maybe_auto_run)
 
         # ── Build UI ───────────────────────────────────────────────────────
         toolbar      = self._build_toolbar()
@@ -3025,7 +3026,7 @@ class ScreenerPanel(QWidget):
     def _maybe_auto_run(self) -> None:
         """Auto-run today's screener (SRD-SCR-004.007).
 
-        Fires when: flag ON, DB CURRENT, worker idle.
+        Fires when: flag ON, 09:00–09:30 ET window, DB CURRENT, no pending resume checkpoint, worker idle.
         Candidates: all presets (admin + user) where assigned_to is non-empty.
         Skips any preset that already has a scheduled result for today.
         Multiple candidates are queued and drained one at a time.
@@ -3037,9 +3038,16 @@ class ScreenerPanel(QWidget):
             return
         if self._worker is not None and self._worker.isRunning():
             return
+        import datetime as _dt
+        from us_swing.data.market_calendar import ET as _ET
+        _now = _dt.datetime.now(_ET).time()
+        if not (_dt.time(9, 0) <= _now < _dt.time(9, 30)):
+            return
         try:
             from us_swing.gui.app_service import CandleDbStatus
             if self._db_info is None or self._db_info.status != CandleDbStatus.CURRENT:
+                return
+            if self._demo.has_candle_checkpoint():
                 return
         except Exception:  # noqa: BLE001
             return
