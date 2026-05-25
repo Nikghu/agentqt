@@ -4,7 +4,7 @@
 **Version:** 1.6.0
 **Traces To:** MD-EXE v1.6.0
 **Status:** Draft
-**Last Updated:** 2026-05-22
+**Last Updated:** 2026-05-25
 **Project:** US Swing Trading System
 
 > v1.6.0: UTCD-EXE-011 (Strategy Engine, 30 tests) and UTCD-EXE-012 (Trade Cycle Ledger, 25 tests) added.
@@ -406,13 +406,13 @@
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
 |---|---|---|---|---|---|---|
-| UT-EXE-011.001.M01.T01 | MD-EXE-011.001.M01 | Unit | Engine starts asyncio loop on QThread.start | Construct `StrategyEngine(...)`; call `start()` | `isRunning() == True`; `_loop` is a running `AbstractEventLoop` | Not Run |
-| UT-EXE-011.001.M01.T02 | MD-EXE-011.001.M01 | Positive | Registry load instantiates contexts only for `mode != 'disabled'` | Stub registry with `[Auto, Manual, Disabled]` | `len(engine._registry) == 2`; both contexts have `strategy_signal.Status == 'Active'` | Not Run |
-| UT-EXE-011.001.M01.T03 | MD-EXE-011.001.M01 | Positive | `_on_candle_closed` triggers fan-out across accepting contexts | 3 contexts all accepting AAPL; emit `candle_closed("AAPL", bar)` | `_evaluate` invoked 3 times within 200 ms; concurrent via `asyncio.gather` | Not Run |
-| UT-EXE-011.001.M01.T04 | MD-EXE-011.001.M01 | Performance | Fan-out completes ≤ 200 ms for 50 strategies × 500 active symbols | Seed 50 contexts; emit `candle_closed` for one symbol | `_fanout` completion latency < 200 ms (measured on 4-core CI) | Not Run |
-| UT-EXE-011.001.M01.T05 | MD-EXE-011.001.M01 | Positive | `request_stop()` unwinds loop and joins thread within 3 s | Start engine; call `request_stop()` | `isRunning() == False` within 3 s; no leaked tasks | Not Run |
-| UT-EXE-011.001.M01.T06 | MD-EXE-011.001.M01 | Edge | No `PyQt6` import in any business-logic module (`_signals`, `_events`, `_context`, `_evaluator`, `_router`, `_protocols`); `_engine.py` is the explicit Qt boundary and is allowed | Import each business-logic module and scan its module-level globals | None of the six business-logic modules has any name bound from `PyQt6.*` | Not Run |
-| UT-EXE-011.001.M01.T07 | MD-EXE-011.001.M01 | Negative | `request_stop()` called before `start()` is a safe no-op | Construct engine; call `request_stop()` without prior `start()` | No exception raised; `isRunning() == False`; engine remains in a fresh constructable state | Not Run |
+| UT-EXE-011.001.M01.T01 | MD-EXE-011.001.M01 | Unit | Engine starts asyncio loop on QThread.start | Construct `StrategyEngine(...)`; call `start()` | `isRunning() == True`; `_loop` is a running `AbstractEventLoop` | Pass |
+| UT-EXE-011.001.M01.T02 | MD-EXE-011.001.M01 | Positive | Registry load instantiates contexts only for `mode != 'disabled'` | Stub registry with `[Auto, Manual, Disabled]` | `len(engine._registry) == 2`; both contexts have `strategy_signal.Status == 'Active'` | Pass |
+| UT-EXE-011.001.M01.T03 | MD-EXE-011.001.M01 | Positive | `_on_candle_closed` triggers fan-out across accepting contexts | 3 contexts all accepting AAPL; emit `candle_closed("AAPL", bar)` | `_evaluate` invoked 3 times within 200 ms; concurrent via `asyncio.gather` | Pass |
+| UT-EXE-011.001.M01.T04 | MD-EXE-011.001.M01 | Performance | Fan-out completes ≤ 200 ms for 50 strategies × 500 active symbols | Seed 50 contexts; emit `candle_closed` for one symbol | `_fanout` completion latency < 200 ms (measured on 4-core CI) | Pass |
+| UT-EXE-011.001.M01.T05 | MD-EXE-011.001.M01 | Positive | `request_stop()` unwinds loop and joins thread within 3 s | Start engine; call `request_stop()` | `isRunning() == False` within 3 s; no leaked tasks | Pass |
+| UT-EXE-011.001.M01.T06 | MD-EXE-011.001.M01 | Edge | No `PyQt6` import in any business-logic module (`_signals`, `_events`, `_context`, `_evaluator`, `_router`, `_protocols`); `_engine.py` is the explicit Qt boundary and is allowed | Import each business-logic module and scan its module-level globals | None of the six business-logic modules has any name bound from `PyQt6.*` | Pass |
+| UT-EXE-011.001.M01.T07 | MD-EXE-011.001.M01 | Negative | `request_stop()` called before `start()` is a safe no-op | Construct engine; call `request_stop()` without prior `start()` | No exception raised; `isRunning() == False`; engine remains in a fresh constructable state | Pass |
 
 ---
 
@@ -420,15 +420,15 @@
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
 |---|---|---|---|---|---|---|
-| UT-EXE-011.001.M02.T01 | MD-EXE-011.001.M02 | Positive | `accepts()` returns True for every symbol in `all` mode | `cfg.symbol_mode="all"`; query any symbol | Returns True | Not Run |
-| UT-EXE-011.001.M02.T02 | MD-EXE-011.001.M02 | Positive | `include_only` accepts only listed symbols | `symbols_include=["AAPL"]`; query AAPL and MSFT | True for AAPL, False for MSFT | Not Run |
-| UT-EXE-011.001.M02.T03 | MD-EXE-011.001.M02 | Positive | `exclude_these` accepts every symbol except listed | `symbols_exclude=["TSLA"]`; query TSLA and NVDA | False for TSLA, True for NVDA | Not Run |
-| UT-EXE-011.001.M02.T04 | MD-EXE-011.001.M02 | Positive | Schedule guard returns False outside `start_time..end_time` | `start=09:30, end=15:30`; query at 08:00 ET | Returns False; context state stays `Inactive` | Not Run |
-| UT-EXE-011.001.M02.T05 | MD-EXE-011.001.M02 | Edge | Schedule guard returns True at exactly `start_time`, False at exactly `end_time` | Query at 09:30:00 and 15:30:00 ET | True at start, False at end (half-open interval) | Not Run |
-| UT-EXE-011.001.M02.T06 | MD-EXE-011.001.M02 | Positive | Schedule guard rejects weekend day | Day = Saturday | Returns False | Not Run |
-| UT-EXE-011.001.M02.T07 | MD-EXE-011.001.M02 | Positive | Default cycle state for unknown symbol is `Active` | Empty `ctx.cycles`; query AAPL | Returns `_CycleState.ACTIVE` | Not Run |
-| UT-EXE-011.001.M02.T08 | MD-EXE-011.001.M02 | Positive | Per-(symbol) lock is reused on second call | `ctx.lock_for("AAPL")` twice | Same `asyncio.Lock` instance returned | Not Run |
-| UT-EXE-011.001.M02.T09 | MD-EXE-011.001.M02 | Negative | Empty `load_strategies()` result yields zero contexts and no fan-out activity | Stub `load_strategies()` to return `[]`; start engine; emit `candle_closed("AAPL", bar)` | `len(engine._registry) == 0`; no `_evaluate` calls; no `StrategyEvent` published | Not Run |
+| UT-EXE-011.001.M02.T01 | MD-EXE-011.001.M02 | Positive | `accepts()` returns True for every symbol in `all` mode | `cfg.symbol_mode="all"`; query any symbol | Returns True | Pass |
+| UT-EXE-011.001.M02.T02 | MD-EXE-011.001.M02 | Positive | `include_only` accepts only listed symbols | `symbols_include=["AAPL"]`; query AAPL and MSFT | True for AAPL, False for MSFT | Pass |
+| UT-EXE-011.001.M02.T03 | MD-EXE-011.001.M02 | Positive | `exclude_these` accepts every symbol except listed | `symbols_exclude=["TSLA"]`; query TSLA and NVDA | False for TSLA, True for NVDA | Pass |
+| UT-EXE-011.001.M02.T04 | MD-EXE-011.001.M02 | Positive | Schedule guard returns False outside `start_time..end_time` | `start=09:30, end=15:30`; query at 08:00 ET | Returns False; context state stays `Inactive` | Pass |
+| UT-EXE-011.001.M02.T05 | MD-EXE-011.001.M02 | Edge | Schedule guard returns True at exactly `start_time`, False at exactly `end_time` | Query at 09:30:00 and 15:30:00 ET | True at start, False at end (half-open interval) | Pass |
+| UT-EXE-011.001.M02.T06 | MD-EXE-011.001.M02 | Positive | Schedule guard rejects weekend day | Day = Saturday | Returns False | Pass |
+| UT-EXE-011.001.M02.T07 | MD-EXE-011.001.M02 | Positive | Default cycle state for unknown symbol is `Active` | Empty `ctx.cycles`; query AAPL | Returns `_CycleState.ACTIVE` | Pass |
+| UT-EXE-011.001.M02.T08 | MD-EXE-011.001.M02 | Positive | Per-(symbol) lock is reused on second call | `ctx.lock_for("AAPL")` twice | Same `asyncio.Lock` instance returned | Pass |
+| UT-EXE-011.001.M02.T09 | MD-EXE-011.001.M02 | Negative | Empty `load_strategies()` result yields zero contexts and no fan-out activity | Stub `load_strategies()` to return `[]`; start engine; emit `candle_closed("AAPL", bar)` | `len(engine._registry) == 0`; no `_evaluate` calls; no `StrategyEvent` published | Pass |
 
 ---
 
@@ -436,15 +436,15 @@
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
 |---|---|---|---|---|---|---|
-| UT-EXE-011.001.M03.T01 | MD-EXE-011.001.M03 | Positive | Tokenizer produces correct token sequence for a comparison expression | `"RSI('Spot', 14, '3m') < 30"` | Tokens: IDENT, LPAREN, STRING, COMMA, NUMBER, COMMA, STRING, RPAREN, OP, NUMBER | Not Run |
-| UT-EXE-011.001.M03.T02 | MD-EXE-011.001.M03 | Positive | Parser builds correct AST for `A AND B OR C` (AND binds tighter) | `"Price('Spot','close','3m') > 100 AND RSI('Spot',14,'3m') < 30 OR Number(1) == Number(0)"` | Top-level OR with left=AND-node, right=comparison | Not Run |
-| UT-EXE-011.001.M03.T03 | MD-EXE-011.001.M03 | Negative | Tokenizer raises on unrecognised character | `"RSI(14) ~~ 30"` | `RuntimeError` mentioning unexpected token | Not Run |
-| UT-EXE-011.001.M03.T04 | MD-EXE-011.001.M03 | Positive | RSI indicator returns expected value for known DataFrame | Pre-computed `pandas_ta.rsi(close, length=14)` → 27.4 | `_fn_rsi([14, "3m"], candles, "AAPL")` returns ≈ 27.4 | Not Run |
-| UT-EXE-011.001.M03.T05 | MD-EXE-011.001.M03 | Positive | End-to-end `evaluate()` returns True when condition holds | `"RSI('Spot', 14, '3m') < 30"`; candles where RSI≈27.4 | Returns True | Not Run |
-| UT-EXE-011.001.M03.T06 | MD-EXE-011.001.M03 | Negative | `evaluate()` returns False when condition fails | Same expression; candles where RSI≈55 | Returns False | Not Run |
-| UT-EXE-011.001.M03.T07 | MD-EXE-011.001.M03 | Negative | Arity mismatch raises `EvaluatorError` | `"RSI(14)"` (RSI requires 3 args per catalogue) | `EvaluatorError` mentioning arity | Not Run |
-| UT-EXE-011.001.M03.T08 | MD-EXE-011.001.M03 | Positive | `FUNCTION_MAP` contains all 14 indicator names from the FO-GUI-013 catalogue | Inspect map keys | `set(FUNCTION_MAP.keys()) == FO_GUI_013_CATALOGUE` | Not Run |
-| UT-EXE-011.001.M03.T09 | MD-EXE-011.001.M03 | Edge | Parentheses correctly override AND/OR precedence | `"(A OR B) AND C"` | Top-level AND with left=OR-node | Not Run |
+| UT-EXE-011.001.M03.T01 | MD-EXE-011.001.M03 | Positive | Tokenizer produces correct token sequence for a comparison expression | `"RSI('Spot', 14, '3m') < 30"` | Tokens: IDENT, LPAREN, STRING, COMMA, NUMBER, COMMA, STRING, RPAREN, OP, NUMBER | Pass |
+| UT-EXE-011.001.M03.T02 | MD-EXE-011.001.M03 | Positive | Parser builds correct AST for `A AND B OR C` (AND binds tighter) | `"Price('Spot','close','3m') > 100 AND RSI('Spot',14,'3m') < 30 OR Number(1) == Number(0)"` | Top-level OR with left=AND-node, right=comparison | Pass |
+| UT-EXE-011.001.M03.T03 | MD-EXE-011.001.M03 | Negative | Tokenizer raises on unrecognised character | `"RSI(14) ~~ 30"` | `RuntimeError` mentioning unexpected token | Pass |
+| UT-EXE-011.001.M03.T04 | MD-EXE-011.001.M03 | Positive | RSI indicator returns expected value for known DataFrame | Pre-computed `pandas_ta.rsi(close, length=14)` → 27.4 | `_fn_rsi([14, "3m"], candles, "AAPL")` returns ≈ 27.4 | Pass |
+| UT-EXE-011.001.M03.T05 | MD-EXE-011.001.M03 | Positive | End-to-end `evaluate()` returns True when condition holds | `"RSI('Spot', 14, '3m') < 30"`; candles where RSI≈27.4 | Returns True | Pass |
+| UT-EXE-011.001.M03.T06 | MD-EXE-011.001.M03 | Negative | `evaluate()` returns False when condition fails | Same expression; candles where RSI≈55 | Returns False | Pass |
+| UT-EXE-011.001.M03.T07 | MD-EXE-011.001.M03 | Negative | Arity mismatch raises `EvaluatorError` | `"RSI(14)"` (RSI requires 3 args per catalogue) | `EvaluatorError` mentioning arity | Pass |
+| UT-EXE-011.001.M03.T08 | MD-EXE-011.001.M03 | Positive | `FUNCTION_MAP` contains all 14 indicator names from the FO-GUI-013 catalogue | Inspect map keys | `set(FUNCTION_MAP.keys()) == FO_GUI_013_CATALOGUE` | Pass |
+| UT-EXE-011.001.M03.T09 | MD-EXE-011.001.M03 | Edge | Parentheses correctly override AND/OR precedence | `"(A OR B) AND C"` | Top-level AND with left=OR-node | Pass |
 
 ---
 
@@ -452,16 +452,16 @@
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
 |---|---|---|---|---|---|---|
-| UT-EXE-011.001.M04.T01 | MD-EXE-011.001.M04 | Positive | `(auto, True)` signal → RiskManager.validate then ExecutionRouter.submit | Enqueue ENTRY signal; ctx mode=auto, auto_trade=True | `RiskManager.validate` called once; on pass, `ExecutionRouter.submit` called within 50 ms | Not Run |
-| UT-EXE-011.001.M04.T02 | MD-EXE-011.001.M04 | Positive | `(manual, *)` signal → PendingSignalStore.add | ctx mode=manual; enqueue ENTRY | `PendingSignalStore.add(signal)` called once; `ExecutionRouter.submit` NOT called | Not Run |
-| UT-EXE-011.001.M04.T03 | MD-EXE-011.001.M04 | Positive | `(auto, False)` signal → PendingSignalStore.add (forced) | ctx mode=auto, auto_trade=False | `PendingSignalStore.add` called; `submit` NOT called | Not Run |
-| UT-EXE-011.001.M04.T04 | MD-EXE-011.001.M04 | Negative | Duplicate ENTRY for `(strategy, symbol)` already UnderEntry is suppressed | Pre-set cycle to UnderEntry; emit ENTRY signal | No new signal enqueued; one DEBUG log emitted | Not Run |
-| UT-EXE-011.001.M04.T05 | MD-EXE-011.001.M04 | Positive | Capital-cap rejection drops signal and publishes `StrategySignalDropped` | RiskManager.can_allocate returns `(ok=False, reason="capital_cap")` | Signal not enqueued; one `StrategySignalDropped(reason="capital_cap")` event on bus | Not Run |
-| UT-EXE-011.001.M04.T06 | MD-EXE-011.001.M04 | Positive | End-time SquareOff fires within 30 s of crossing `end_time` for Intraday cycles | Mock wall-clock to 15:31; cycle `end_time=15:30, trade_type=Intraday, state=Running` | Within 30 s: forced EXIT signal with `reason='end_time'`; state→SquareOff | Not Run |
-| UT-EXE-011.001.M04.T07 | MD-EXE-011.001.M04 | Negative | Positional strategies do NOT receive end-time SquareOff | Same as T06 but `trade_type=Positional` | No EXIT signal; state remains Running | Not Run |
-| UT-EXE-011.001.M04.T08 | MD-EXE-011.001.M04 | Positive | `emergency_stop()` enqueues EXIT for every Running symbol and blocks until SquareOff | 3 strategies, 5 Running symbols total | 5 EXIT signals enqueued before method returns; method blocks until all 5 reach SquareOff | Not Run |
-| UT-EXE-011.001.M04.T09 | MD-EXE-011.001.M04 | Positive | Status writeback persists state transitions to registry | Cycle ACTIVE → UnderEntry → Running | `save_strategies` called; persisted `strategy_signal.Status == 'Running'`, `Order_Entry_Status='success'`, `Order_Entry_Timestamp` set | Not Run |
-| UT-EXE-011.001.M04.T10 | MD-EXE-011.001.M04 | Edge | order_reject(entry) rolls cycle UnderEntry → Active | Pre-set UnderEntry; emit `order_reject` | State → Active; `Order_Entry_Status='rejected'`; DEBUG log | Not Run |
+| UT-EXE-011.001.M04.T01 | MD-EXE-011.001.M04 | Positive | `(auto, True)` signal → RiskManager.validate then ExecutionRouter.submit | Enqueue ENTRY signal; ctx mode=auto, auto_trade=True | `RiskManager.validate` called once; on pass, `ExecutionRouter.submit` called within 50 ms | Pass |
+| UT-EXE-011.001.M04.T02 | MD-EXE-011.001.M04 | Positive | `(manual, *)` signal → PendingSignalStore.add | ctx mode=manual; enqueue ENTRY | `PendingSignalStore.add(signal)` called once; `ExecutionRouter.submit` NOT called | Pass |
+| UT-EXE-011.001.M04.T03 | MD-EXE-011.001.M04 | Positive | `(auto, False)` signal → PendingSignalStore.add (forced) | ctx mode=auto, auto_trade=False | `PendingSignalStore.add` called; `submit` NOT called | Pass |
+| UT-EXE-011.001.M04.T04 | MD-EXE-011.001.M04 | Negative | Duplicate ENTRY for `(strategy, symbol)` already UnderEntry is suppressed | Pre-set cycle to UnderEntry; emit ENTRY signal | No new signal enqueued; one DEBUG log emitted | Pass |
+| UT-EXE-011.001.M04.T05 | MD-EXE-011.001.M04 | Positive | Capital-cap rejection drops signal and publishes `StrategySignalDropped` | RiskManager.can_allocate returns `(ok=False, reason="capital_cap")` | Signal not enqueued; one `StrategySignalDropped(reason="capital_cap")` event on bus | Pass |
+| UT-EXE-011.001.M04.T06 | MD-EXE-011.001.M04 | Positive | End-time SquareOff fires within 30 s of crossing `end_time` for Intraday cycles | Mock wall-clock to 15:31; cycle `end_time=15:30, trade_type=Intraday, state=Running` | Within 30 s: forced EXIT signal with `reason='end_time'`; state→SquareOff | Pass |
+| UT-EXE-011.001.M04.T07 | MD-EXE-011.001.M04 | Negative | Positional strategies do NOT receive end-time SquareOff | Same as T06 but `trade_type=Positional` | No EXIT signal; state remains Running | Pass |
+| UT-EXE-011.001.M04.T08 | MD-EXE-011.001.M04 | Positive | `emergency_stop()` enqueues EXIT for every Running symbol and blocks until SquareOff | 3 strategies, 5 Running symbols total | 5 EXIT signals enqueued before method returns; method blocks until all 5 reach SquareOff | Pass |
+| UT-EXE-011.001.M04.T09 | MD-EXE-011.001.M04 | Positive | Status writeback persists state transitions to registry | Cycle ACTIVE → UnderEntry → Running | `save_strategies` called; persisted `strategy_signal.Status == 'Running'`, `Order_Entry_Status='success'`, `Order_Entry_Timestamp` set | Pass |
+| UT-EXE-011.001.M04.T10 | MD-EXE-011.001.M04 | Edge | order_reject(entry) rolls cycle UnderEntry → Active | Pre-set UnderEntry; emit `order_reject` | State → Active; `Order_Entry_Status='rejected'`; DEBUG log | Pass |
 
 ---
 
@@ -469,9 +469,9 @@
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
 |---|---|---|---|---|---|---|
-| UT-EXE-011.001.M05.T01 | MD-EXE-011.001.M05 | Unit | Every `StrategyEvent` subclass is frozen and slots-based | Inspect each dataclass | `__frozen__ == True`; `__slots__` present | Not Run |
-| UT-EXE-011.001.M05.T02 | MD-EXE-011.001.M05 | Positive | Every event carries `schema_version: int = 1` | Construct each event with no version arg | `evt.schema_version == 1` | Not Run |
-| UT-EXE-011.001.M05.T03 | MD-EXE-011.001.M05 | Negative | Mutating a frozen event raises `FrozenInstanceError` | `evt.symbol = "X"` | Raises `dataclasses.FrozenInstanceError` | Not Run |
+| UT-EXE-011.001.M05.T01 | MD-EXE-011.001.M05 | Unit | Every `StrategyEvent` subclass is frozen and slots-based | Inspect each dataclass | `__frozen__ == True`; `__slots__` present | Pass |
+| UT-EXE-011.001.M05.T02 | MD-EXE-011.001.M05 | Positive | Every event carries `schema_version: int = 1` | Construct each event with no version arg | `evt.schema_version == 1` | Pass |
+| UT-EXE-011.001.M05.T03 | MD-EXE-011.001.M05 | Negative | Mutating a frozen event raises `FrozenInstanceError` | `evt.symbol = "X"` | Raises `dataclasses.FrozenInstanceError` | Pass |
 
 ---
 
@@ -479,10 +479,10 @@
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
 |---|---|---|---|---|---|---|
-| UT-EXE-012.001.M01.T01 | MD-EXE-012.001.M01 | Unit | `trade_cycles` table created with all expected columns | Run `create_schema(engine, checkfirst=True)` on in-memory SQLite | `inspect(engine).has_table("trade_cycles") == True`; columns present include all 6 groups | Not Run |
-| UT-EXE-012.001.M01.T02 | MD-EXE-012.001.M01 | Unit | Composite indexes exist | Inspect engine | `idx_trade_cycles_state_symbol` and `idx_trade_cycles_strategy_symbol_state` both present | Not Run |
-| UT-EXE-012.001.M02.T01 | MD-EXE-012.001.M02 | Unit | `CycleSnapshot` is frozen with `schema_version=1` default | Construct `CycleSnapshot()` | `snap.schema_version == 1`; mutation raises `FrozenInstanceError` | Not Run |
-| UT-EXE-012.001.M02.T02 | MD-EXE-012.001.M02 | Unit | Enum frozensets match SRD enumeration | Inspect constants | `CYCLE_STATES == {"OPENING","OPEN","CLOSING","CLOSED","ABORTED"}`; `EXIT_REASONS` has 7 entries | Not Run |
+| UT-EXE-012.001.M01.T01 | MD-EXE-012.001.M01 | Unit | `trade_cycles` table created with all expected columns | Run `create_schema(engine, checkfirst=True)` on in-memory SQLite | `inspect(engine).has_table("trade_cycles") == True`; columns present include all 6 groups | Pass |
+| UT-EXE-012.001.M01.T02 | MD-EXE-012.001.M01 | Unit | Composite indexes exist | Inspect engine | `idx_trade_cycles_state_symbol` and `idx_trade_cycles_strategy_symbol_state` both present | Pass |
+| UT-EXE-012.001.M02.T01 | MD-EXE-012.001.M02 | Unit | `CycleSnapshot` is frozen with `schema_version=1` default | Construct `CycleSnapshot()` | `snap.schema_version == 1`; mutation raises `FrozenInstanceError` | Pass |
+| UT-EXE-012.001.M02.T02 | MD-EXE-012.001.M02 | Unit | Enum frozensets match SRD enumeration | Inspect constants | `CYCLE_STATES == {"OPENING","OPEN","CLOSING","CLOSED","ABORTED"}`; `EXIT_REASONS` has 7 entries | Pass |
 
 ---
 
@@ -490,16 +490,16 @@
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
 |---|---|---|---|---|---|---|
-| UT-EXE-012.002.M01.T01 | MD-EXE-012.002.M01 | Positive | `insert_open` inserts one row and returns matching `CycleSnapshot` | Valid row dict for `(boss_ema, AAPL, qty=25)` | One new row in `trade_cycles`; returned snap has `state="OPEN"`, fields populated | Not Run |
-| UT-EXE-012.002.M01.T02 | MD-EXE-012.002.M01 | Negative | Duplicate-open guard raises `DuplicateOpenCycleError` | Existing OPEN row for `(boss_ema, AAPL)`; call `insert_open` for same pair | Raises `DuplicateOpenCycleError`; no second row inserted | Not Run |
-| UT-EXE-012.002.M01.T03 | MD-EXE-012.002.M01 | Positive | `update_live` updates only live-state columns | Existing OPEN row; call `update_live(id, fields={"current_price": 185, ...})` | `current_price`, `current_pnl_usd`, `effective_stop` updated; entry/risk columns untouched | Not Run |
-| UT-EXE-012.002.M01.T04 | MD-EXE-012.002.M01 | Positive | `update_state` compare-and-swap succeeds when current state matches | Row in OPEN; call `update_state(id, "CLOSING")` | Row state="CLOSING"; method returns updated snapshot | Not Run |
-| UT-EXE-012.002.M01.T05 | MD-EXE-012.002.M01 | Negative | `update_state` rejects illegal transition CLOSED → OPENING | Row in CLOSED state | Raises `InvalidStateTransitionError`; no row mutation | Not Run |
-| UT-EXE-012.002.M01.T06 | MD-EXE-012.002.M01 | Positive | `close()` sets exit fields and freezes realized PnL | Row OPEN (`entry_price=182.5, qty=25`); call with `exit_price=187.8` | `realized_pnl_usd == 132.5` (±0.01); state="CLOSED" | Not Run |
-| UT-EXE-012.002.M01.T07 | MD-EXE-012.002.M01 | Positive | `abort()` transitions OPENING → ABORTED | Row OPENING; call `abort(id, "broker_reject")` | state="ABORTED"; `exit_reason="broker_reject"`; `closed_at` set | Not Run |
-| UT-EXE-012.002.M01.T08 | MD-EXE-012.002.M01 | Positive | `open_cycles()` returns only rows in OPENING/OPEN/CLOSING | Mix of states in DB | Returned tuple includes only non-terminal cycles | Not Run |
-| UT-EXE-012.002.M01.T09 | MD-EXE-012.002.M01 | Positive | `find_by_entry_order` returns matching row | Insert row with `entry_order_id="ord123"`; query | Returns matching `CycleSnapshot` | Not Run |
-| UT-EXE-012.002.M01.T10 | MD-EXE-012.002.M01 | Edge | `history(days=7)` excludes rows older than 7 days | Insert rows with `closed_at` 5 and 10 days ago | Only the 5-day row returned | Not Run |
+| UT-EXE-012.002.M01.T01 | MD-EXE-012.002.M01 | Positive | `insert_open` inserts one row and returns matching `CycleSnapshot` | Valid row dict for `(boss_ema, AAPL, qty=25)` | One new row in `trade_cycles`; returned snap has `state="OPEN"`, fields populated | Pass |
+| UT-EXE-012.002.M01.T02 | MD-EXE-012.002.M01 | Negative | Duplicate-open guard raises `DuplicateOpenCycleError` | Existing OPEN row for `(boss_ema, AAPL)`; call `insert_open` for same pair | Raises `DuplicateOpenCycleError`; no second row inserted | Pass |
+| UT-EXE-012.002.M01.T03 | MD-EXE-012.002.M01 | Positive | `update_live` updates only live-state columns | Existing OPEN row; call `update_live(id, fields={"current_price": 185, ...})` | `current_price`, `current_pnl_usd`, `effective_stop` updated; entry/risk columns untouched | Pass |
+| UT-EXE-012.002.M01.T04 | MD-EXE-012.002.M01 | Positive | `update_state` compare-and-swap succeeds when current state matches | Row in OPEN; call `update_state(id, "CLOSING")` | Row state="CLOSING"; method returns updated snapshot | Pass |
+| UT-EXE-012.002.M01.T05 | MD-EXE-012.002.M01 | Negative | `update_state` rejects illegal transition CLOSED → OPENING | Row in CLOSED state | Raises `InvalidStateTransitionError`; no row mutation | Pass |
+| UT-EXE-012.002.M01.T06 | MD-EXE-012.002.M01 | Positive | `close()` sets exit fields and freezes realized PnL | Row OPEN (`entry_price=182.5, qty=25`); call with `exit_price=187.8` | `realized_pnl_usd == 132.5` (±0.01); state="CLOSED" | Pass |
+| UT-EXE-012.002.M01.T07 | MD-EXE-012.002.M01 | Positive | `abort()` transitions OPENING → ABORTED | Row OPENING; call `abort(id, "broker_reject")` | state="ABORTED"; `exit_reason="broker_reject"`; `closed_at` set | Pass |
+| UT-EXE-012.002.M01.T08 | MD-EXE-012.002.M01 | Positive | `open_cycles()` returns only rows in OPENING/OPEN/CLOSING | Mix of states in DB | Returned tuple includes only non-terminal cycles | Pass |
+| UT-EXE-012.002.M01.T09 | MD-EXE-012.002.M01 | Positive | `find_by_entry_order` returns matching row | Insert row with `entry_order_id="ord123"`; query | Returns matching `CycleSnapshot` | Pass |
+| UT-EXE-012.002.M01.T10 | MD-EXE-012.002.M01 | Edge | `history(days=7)` excludes rows older than 7 days | Insert rows with `closed_at` 5 and 10 days ago | Only the 5-day row returned | Pass |
 
 ---
 
@@ -507,19 +507,19 @@
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
 |---|---|---|---|---|---|---|
-| UT-EXE-012.002.M02.T01 | MD-EXE-012.002.M02 | Positive | `on_entry_fill` opens cycle and publishes `CycleOpened` | `FillEvent(entry_order_id="ord1", symbol="AAPL", qty=25, price=182.5)` | New row in DB; exactly one `CycleOpened` event on bus | Not Run |
-| UT-EXE-012.002.M02.T02 | MD-EXE-012.002.M02 | Positive | `on_entry_fill` is idempotent on `entry_order_id` | Call twice with same fill event | One row in DB; second call returns existing snapshot; only one `CycleOpened` event | Not Run |
-| UT-EXE-012.002.M02.T03 | MD-EXE-012.002.M02 | Positive | Tick updates trailing stop only upward | Sequence `[185, 188, 187.40]` for cycle with `entry=182.5, offset=$2.5` | After 188: `trailing_stop_level=185.5`; after 187.40: unchanged at 185.5 | Not Run |
-| UT-EXE-012.002.M02.T04 | MD-EXE-012.002.M02 | Positive | `effective_stop = max(hard_sl, trailing)` | `hard_sl=179, trailing_level=185.5` | `effective_stop == 185.5` | Not Run |
-| UT-EXE-012.002.M02.T05 | MD-EXE-012.002.M02 | Positive | Tick at `price ≤ effective_stop` publishes `ExitTrigger(trailing_sl)` | Tick at 185.40 when `effective_stop=185.5` and trailing was the floor | Exactly one `ExitTrigger(reason="trailing_sl")` event; cycle state="CLOSING" | Not Run |
-| UT-EXE-012.002.M02.T06 | MD-EXE-012.002.M02 | Positive | Tick at `price ≥ target_price` publishes `ExitTrigger(target)` | Tick at 192 when target=190 | One `ExitTrigger(reason="target")` event; cycle state="CLOSING" | Not Run |
-| UT-EXE-012.002.M02.T07 | MD-EXE-012.002.M02 | Edge | Tick satisfying both target and stop emits target (precedence) | Cycle with `target=185`, `effective_stop=185`; tick at 185 | One `ExitTrigger(reason="target")` event | Not Run |
-| UT-EXE-012.002.M02.T08 | MD-EXE-012.002.M02 | Negative | Second tick after CLOSING does not emit a second `ExitTrigger` | Tick triggers exit (state→CLOSING); second tick at same price | Zero additional `ExitTrigger` events | Not Run |
-| UT-EXE-012.002.M02.T09 | MD-EXE-012.002.M02 | Performance | Tick throttle limits persist rate to ≤ 1 per 500 ms per cycle | Emit 100 ticks within 1 s for one cycle | `update_live` called ≤ 3 times; last tick's price reflected in DB | Not Run |
-| UT-EXE-012.002.M02.T10 | MD-EXE-012.002.M02 | Positive | `update_risk(hard_sl=valid)` succeeds and publishes `RiskUpdated` | Open cycle with `current_price=185.4`; call `update_risk(id, hard_sl=184.5)` | `hard_stop_loss=184.5`; one `RiskUpdated` event | Not Run |
-| UT-EXE-012.002.M02.T11 | MD-EXE-012.002.M02 | Negative | `update_risk(hard_sl > current_price)` raises `InvariantViolation` | Open cycle `current_price=185.4`; call with `hard_sl=200` | Raises `InvariantViolation`; row unchanged | Not Run |
-| UT-EXE-012.002.M02.T12 | MD-EXE-012.002.M02 | Negative | `update_risk(target < current_price)` raises `InvariantViolation` | Open cycle `current_price=185.4`; call with `target=180` | Raises `InvariantViolation`; row unchanged | Not Run |
-| UT-EXE-012.002.M02.T13 | MD-EXE-012.002.M02 | Positive | `on_exit_fill` freezes realized PnL and removes accumulator | Open cycle; emit `FillEvent(exit_order_id="ord2", exit_price=187.8)` | `realized_pnl_usd=132.5`; state="CLOSED"; accumulator removed; one `CycleClosed` event | Not Run |
-| UT-EXE-012.002.M02.T14 | MD-EXE-012.002.M02 | Positive | `reload()` re-attaches OPEN cycles after restart | Insert 2 OPEN rows directly into DB; construct new service; call `reload()` | Both accumulators created; tick subscription requested for both symbols | Not Run |
-| UT-EXE-012.002.M02.T15 | MD-EXE-012.002.M02 | Edge | No `PyQt6` import anywhere under `trade_cycle/` | Scan loaded module set after import | No `PyQt6` modules attributable to `trade_cycle/` | Not Run |
+| UT-EXE-012.002.M02.T01 | MD-EXE-012.002.M02 | Positive | `on_entry_fill` opens cycle and publishes `CycleOpened` | `FillEvent(entry_order_id="ord1", symbol="AAPL", qty=25, price=182.5)` | New row in DB; exactly one `CycleOpened` event on bus | Pass |
+| UT-EXE-012.002.M02.T02 | MD-EXE-012.002.M02 | Positive | `on_entry_fill` is idempotent on `entry_order_id` | Call twice with same fill event | One row in DB; second call returns existing snapshot; only one `CycleOpened` event | Pass |
+| UT-EXE-012.002.M02.T03 | MD-EXE-012.002.M02 | Positive | Tick updates trailing stop only upward | Sequence `[185, 188, 187.40]` for cycle with `entry=182.5, offset=$2.5` | After 188: `trailing_stop_level=185.5`; after 187.40: unchanged at 185.5 | Pass |
+| UT-EXE-012.002.M02.T04 | MD-EXE-012.002.M02 | Positive | `effective_stop = max(hard_sl, trailing)` | `hard_sl=179, trailing_level=185.5` | `effective_stop == 185.5` | Pass |
+| UT-EXE-012.002.M02.T05 | MD-EXE-012.002.M02 | Positive | Tick at `price ≤ effective_stop` publishes `ExitTrigger(trailing_sl)` | Tick at 185.40 when `effective_stop=185.5` and trailing was the floor | Exactly one `ExitTrigger(reason="trailing_sl")` event; cycle state="CLOSING" | Pass |
+| UT-EXE-012.002.M02.T06 | MD-EXE-012.002.M02 | Positive | Tick at `price ≥ target_price` publishes `ExitTrigger(target)` | Tick at 192 when target=190 | One `ExitTrigger(reason="target")` event; cycle state="CLOSING" | Pass |
+| UT-EXE-012.002.M02.T07 | MD-EXE-012.002.M02 | Edge | Tick satisfying both target and stop emits target (precedence) | Cycle with `target=185`, `effective_stop=185`; tick at 185 | One `ExitTrigger(reason="target")` event | Pass |
+| UT-EXE-012.002.M02.T08 | MD-EXE-012.002.M02 | Negative | Second tick after CLOSING does not emit a second `ExitTrigger` | Tick triggers exit (state→CLOSING); second tick at same price | Zero additional `ExitTrigger` events | Pass |
+| UT-EXE-012.002.M02.T09 | MD-EXE-012.002.M02 | Performance | Tick throttle limits persist rate to ≤ 1 per 500 ms per cycle | Emit 100 ticks within 1 s for one cycle | `update_live` called ≤ 3 times; last tick's price reflected in DB | Pass |
+| UT-EXE-012.002.M02.T10 | MD-EXE-012.002.M02 | Positive | `update_risk(hard_sl=valid)` succeeds and publishes `RiskUpdated` | Open cycle with `current_price=185.4`; call `update_risk(id, hard_sl=184.5)` | `hard_stop_loss=184.5`; one `RiskUpdated` event | Pass |
+| UT-EXE-012.002.M02.T11 | MD-EXE-012.002.M02 | Negative | `update_risk(hard_sl > current_price)` raises `InvariantViolation` | Open cycle `current_price=185.4`; call with `hard_sl=200` | Raises `InvariantViolation`; row unchanged | Pass |
+| UT-EXE-012.002.M02.T12 | MD-EXE-012.002.M02 | Negative | `update_risk(target < current_price)` raises `InvariantViolation` | Open cycle `current_price=185.4`; call with `target=180` | Raises `InvariantViolation`; row unchanged | Pass |
+| UT-EXE-012.002.M02.T13 | MD-EXE-012.002.M02 | Positive | `on_exit_fill` freezes realized PnL and removes accumulator | Open cycle; emit `FillEvent(exit_order_id="ord2", exit_price=187.8)` | `realized_pnl_usd=132.5`; state="CLOSED"; accumulator removed; one `CycleClosed` event | Pass |
+| UT-EXE-012.002.M02.T14 | MD-EXE-012.002.M02 | Positive | `reload()` re-attaches OPEN cycles after restart | Insert 2 OPEN rows directly into DB; construct new service; call `reload()` | Both accumulators created; tick subscription requested for both symbols | Pass |
+| UT-EXE-012.002.M02.T15 | MD-EXE-012.002.M02 | Edge | No `PyQt6` import anywhere under `trade_cycle/` | Scan loaded module set after import | No `PyQt6` modules attributable to `trade_cycle/` | Pass |
 | IT-EXE-010.002 | integration | Positive | History survives eviction | After IT-EXE-009.001 completes | `query.history("B", days=7)` returns at least one row with `lifecycle_state='EVICTED'`; `SELECT * FROM price_1m WHERE symbol='B'` is empty | Pass |

@@ -65,6 +65,7 @@ gui/app_service.py (FO-GUI-012 additions)
 ---
 
 ## FO-GUI-013 — Strategy Builder Dialog Modules
+- **Status:** Approved
 
 | ID | Parent SRD | File | Responsibility | Public API | Deps | MCP | Status |
 |---|---|---|---|---|---|---|---|

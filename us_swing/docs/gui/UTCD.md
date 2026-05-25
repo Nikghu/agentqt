@@ -198,6 +198,9 @@
 | UT-GUI-014.001.M02.T08 | MD-GUI-014.001.M02 | Positive | `on_cycle_closed` removes the matching row | Existing OPEN row for cycle_id=1; call `on_cycle_closed(snap)` | `rowCount() == 0`; `removeRows` emitted | Not Run |
 | UT-GUI-014.001.M02.T09 | MD-GUI-014.001.M02 | Positive | `on_pending_removed` removes the matching pending row | Existing PENDING row; call `on_pending_removed(signal_id)` | `rowCount() == 0`; `removeRows` emitted | Not Run |
 | UT-GUI-014.001.M02.T10 | MD-GUI-014.001.M02 | Positive | `set_scope(uid)` filters rows to that user; "All Users" shows all | 3 rows for users {1,2,3}; `set_scope(2)` | `rowCount() == 1`; row's user_id == 2 | Not Run |
+| UT-GUI-014.001.M02.T11 | MD-GUI-014.001.M02 | Negative | Event payload arriving for a stale/unknown pending signal_id is a no-op (covers SRD-GUI-014.003) | Call `on_pending_removed("missing-id")` with no matching row in `_by_key` | No exception raised; no `removeRows` emitted; `rowCount()` unchanged | Not Run |
+| UT-GUI-014.001.M02.T12 | MD-GUI-014.001.M02 | Negative | `on_cycle_closed(snap)` for an unknown cycle_id is a no-op (covers SRD-GUI-014.009) | `cycle_id=999` not in `_by_key` | No `removeRows` emitted; `rowCount()` unchanged; no exception | Not Run |
+| UT-GUI-014.001.M02.T13 | MD-GUI-014.001.M02 | Negative | `set_scope(uid)` to a user with zero matching rows yields empty model (covers SRD-GUI-014.011) | 3 rows for users {1,2,3}; `set_scope(99)` | `rowCount() == 0`; no rows visible | Not Run |
 
 ---
 
@@ -218,6 +221,10 @@
 | UT-GUI-014.001.M01.T11 | MD-GUI-014.001.M01 | Positive | `[Close]` remains enabled when circuit breaker is active | `circuit_breaker_active = True`; click Close on OPEN row | Close confirmation dialog opens normally | Not Run |
 | UT-GUI-014.001.M01.T12 | MD-GUI-014.001.M01 | Positive | Scope change triggers re-query and User column hide/show | Construct with All-Users scope; switch to single-user | `set_columnHidden(Col.USER, True)` called; rows filtered to that user | Not Run |
 | UT-GUI-014.001.M01.T13 | MD-GUI-014.001.M01 | Edge | Editor auto-dismisses when its cycle's `CycleClosed` arrives | Editor open for cycle 1; emit `CycleClosed(cycle_id=1)` | Synthetic row removed; `_expanded_cycle_id is None`; DEBUG log emitted | Not Run |
+| UT-GUI-014.001.M01.T14 | MD-GUI-014.001.M01 | Negative | Cancel on the Execute confirmation dialog does NOT submit (covers SRD-GUI-014.005) | Click `[Execute]` on PENDING row; click Cancel on `QMessageBox` | `pending_store.execute` NOT called; row stays state=`PENDING`; no optimistic transition fires | Not Run |
+| UT-GUI-014.001.M01.T15 | MD-GUI-014.001.M01 | Negative | Dismissing a signal whose row is already gone is a no-op (covers SRD-GUI-014.006) | Row removed by an earlier `on_pending_removed`; click `[✕]` (handled stale) OR call `pending_store.dismiss` for a missing id | `pending_store.dismiss` returns `None`; no exception; `rowCount()` unchanged | Not Run |
+| UT-GUI-014.001.M01.T16 | MD-GUI-014.001.M01 | Negative | Cancel on the Close confirmation dialog does NOT submit (covers SRD-GUI-014.008) | Click `[Close]` on OPEN row; click Cancel on `QMessageBox` | `ExecutionEngine.exit_position` NOT called; row stays state=`OPEN`; no optimistic flip to `CLOSING` | Not Run |
+| UT-GUI-014.001.M01.T17 | MD-GUI-014.001.M01 | Negative | Empty-state placeholder is hidden when at least one row exists (covers SRD-GUI-014.010) | Insert one row via `on_pending_added(signal)` | `_empty_label.isVisible() == False`; `_table.isVisible() == True` | Not Run |
 
 ---
 
@@ -232,3 +239,4 @@
 | UT-GUI-014.001.M03.T05 | MD-GUI-014.001.M03 | Positive | Save emits diff-only fields when nothing changed | Open with snap; click Save without edits | `cancelled` emitted with cycle_id; `saved` NOT emitted | Not Run |
 | UT-GUI-014.001.M03.T06 | MD-GUI-014.001.M03 | Positive | Save emits only changed fields | Open with snap; change HSL only; click Save | `saved.emit(cycle_id, {"hard_stop_loss": new_value})`; no other keys in dict | Not Run |
 | UT-GUI-014.001.M03.T07 | MD-GUI-014.001.M03 | Positive | `show_error(msg)` displays error label and clears on field edit | Call `show_error("HSL too high")`; then edit `_hsl` | Error label visible after `show_error`; hidden after edit | Not Run |
+| UT-GUI-014.001.M03.T08 | MD-GUI-014.001.M03 | Negative | Cancel button discards in-progress edits and emits no `saved` signal (covers SRD-GUI-014.007 mutation rollback) | Open editor with snap (`hsl=179`); change `_hsl` to `178`; click Cancel | `cancelled` emitted with cycle_id; `saved` NOT emitted; no call to `update_risk` | Not Run |

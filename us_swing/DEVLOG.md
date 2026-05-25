@@ -2,6 +2,24 @@
 
 ---
 
+## [20260525] EXE — FO-EXE-011 & FO-EXE-012 Test Suite Complete (67 tests pass)
+
+- Type: Feature
+- FO(s): FO-EXE-011, FO-EXE-012
+- RN: RN-EXE-1.6.0-20260525
+- Artifacts updated: UTCD (last updated 2026-05-25), TRACE (FO-EXE-011/012 → Verified), RN written, CONTEXT §0, DEVLOG
+- Decisions: Multi-threaded SQLite tests fixed via StaticPool + check_same_thread=False; Strategy Engine concurrent evaluation proven to scale 50 strategies × 500 symbols in 200 ms; Trade Cycle Ledger tick/bar updates throttled at 500 ms per FO spec; branch feat/trade-cycle-ledger ready for PR
+
+---
+
+## [20260525] EXE — FO-EXE-011 & FO-EXE-012 Implementation Complete
+
+- Type: Feature
+- FO(s): FO-EXE-011, FO-EXE-012
+- RN: Pending (tests not yet written)
+- Artifacts updated: DD, MD, UTCD, Code, TRACE, CONTEXT
+- Decisions: Strategy Engine uses concurrent evaluation per-candle with mode-based dispatch (auto-true → immediate execution, manual/auto-false → pending store); Trade Cycle Ledger persists per-cycle state snapshot with immutable risk-config at entry time; both features are GUI-free and use sealed event unions for cross-module communication
+
 ## [20260521] GUI — Strategy Executor table columns refactored (prototype, no FO)
 
 - Type: Refactor

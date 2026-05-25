@@ -1,16 +1,18 @@
 # Design Document — Execution & Risk Management (EXE)
 
 **Document ID:** DD-EXE
-**Version:** 1.7.0
+**Version:** 1.7.1
 **Traces To:** SRD-EXE v1.7.0
 **Status:** Draft
-**Last Updated:** 2026-05-22
+**Last Updated:** 2026-05-23
 **Project:** US Swing Trading System
 
 > v1.7.0: DD-EXE-012.* added — Trade Cycle Ledger (table DDL, repository, tick throttle, exit-trigger emission).
 > v1.6.0: DD-EXE-011.* added — Strategy Engine (threading layout, `_StrategyContext`, `ConditionEvaluator`, mode router).
 
 ---
+
+# FO-EXE-001 — Risk-Controlled Order Submission
 
 ## DD-EXE-001.001.D01 — RiskManager Interface Design
 
@@ -153,6 +155,8 @@ handle_order_fill(fill):
 
 ---
 
+# FO-EXE-002 — Position Tracking & Exit Execution
+
 ## DD-EXE-002.001.D01 — PositionTracker Design
 
 **Parent SRD:** SRD-EXE-002.001 — SRD-EXE-002.005
@@ -192,6 +196,76 @@ class PositionTracker:
 `PositionTracker` uses `threading.RLock` for all mutations. Readers (`has_open`, `get_all`) acquire the same lock to ensure consistency. The internal dict is keyed by `(user_id, symbol)` tuple.
 
 ---
+
+# FO-EXE-003 — Daily Loss Circuit Breaker & Emergency Controls
+
+## DD-EXE-003.001.D01 — Circuit Breaker & Emergency Shutdown Design
+
+**Parent SRD:** SRD-EXE-003.001 — SRD-EXE-003.006
+
+### Public Interface
+
+```python
+class DailyPnLTracker:
+    def add(pnl: float) -> None
+    def reset() -> None               # called at market open each day
+    @property
+    def daily_pnl(self) -> float
+
+class CircuitBreaker:
+    def __init__(config: RiskConfig) -> None
+    def check(daily_pnl: float, start_of_day_equity: float) -> bool
+
+class EmergencyShutdown:
+    def __init__(
+        client: IBKRClient,
+        position_tracker: PositionTracker,
+        live_engine: LiveEngine,
+        db: DatabaseManager,
+    ) -> None
+
+    async def run(reason: str) -> None
+```
+
+### EmergencyShutdown Sequence
+
+```
+EmergencyShutdown.run(reason):
+    1. set circuit_breaker_active = True   [atomic flag]
+    2. await IBKRClient.cancel_all_orders()
+    3. for symbol in PositionTracker.get_all():
+           await ExecutionEngine.exit_position(symbol)
+    4. await LiveEngine.stop()
+    5. log CRITICAL: f"Emergency shutdown: {reason}"
+    6. AlertDispatcher.send(CRITICAL, reason)
+    7. write shutdown summary → logs/shutdown_{timestamp}.json
+    8. sys.exit(1)
+```
+
+### Shutdown Summary JSON Schema
+
+```json
+{
+  "timestamp": "2026-03-05T15:45:00Z",
+  "trigger": "daily_loss_limit",
+  "positions_closed": ["AAPL", "MSFT"],
+  "daily_pnl": -2000.50,
+  "ibkr_errors": [],
+  "duration_seconds": 8.2
+}
+```
+
+### Kill-Switch Registration (main.py)
+
+```python
+import signal
+shutdown = EmergencyShutdown(...)
+signal.signal(signal.SIGTERM, lambda *_: asyncio.run(shutdown.run("SIGTERM")))
+```
+
+---
+
+# FO-EXE-004 — Paper Trading Mode
 
 ## DD-EXE-004.001.D01 — PaperEngine Design
 
@@ -259,6 +333,8 @@ class ExecutionRouter:
 ```
 
 ---
+
+# FO-EXE-005 — Position State Machine & Capital Availability Check
 
 ## DD-EXE-005.001.D01 — Position State Machine Design
 
@@ -338,71 +414,7 @@ def load_from_db(self, user_id: int):
 
 ---
 
-## DD-EXE-003.001.D01 — Circuit Breaker & Emergency Shutdown Design
-
-**Parent SRD:** SRD-EXE-003.001 — SRD-EXE-003.006
-
-### Public Interface
-
-```python
-class DailyPnLTracker:
-    def add(pnl: float) -> None
-    def reset() -> None               # called at market open each day
-    @property
-    def daily_pnl(self) -> float
-
-class CircuitBreaker:
-    def __init__(config: RiskConfig) -> None
-    def check(daily_pnl: float, start_of_day_equity: float) -> bool
-
-class EmergencyShutdown:
-    def __init__(
-        client: IBKRClient,
-        position_tracker: PositionTracker,
-        live_engine: LiveEngine,
-        db: DatabaseManager,
-    ) -> None
-
-    async def run(reason: str) -> None
-```
-
-### EmergencyShutdown Sequence
-
-```
-EmergencyShutdown.run(reason):
-    1. set circuit_breaker_active = True   [atomic flag]
-    2. await IBKRClient.cancel_all_orders()
-    3. for symbol in PositionTracker.get_all():
-           await ExecutionEngine.exit_position(symbol)
-    4. await LiveEngine.stop()
-    5. log CRITICAL: f"Emergency shutdown: {reason}"
-    6. AlertDispatcher.send(CRITICAL, reason)
-    7. write shutdown summary → logs/shutdown_{timestamp}.json
-    8. sys.exit(1)
-```
-
-### Shutdown Summary JSON Schema
-
-```json
-{
-  "timestamp": "2026-03-05T15:45:00Z",
-  "trigger": "daily_loss_limit",
-  "positions_closed": ["AAPL", "MSFT"],
-  "daily_pnl": -2000.50,
-  "ibkr_errors": [],
-  "duration_seconds": 8.2
-}
-```
-
-### Kill-Switch Registration (main.py)
-
-```python
-import signal
-shutdown = EmergencyShutdown(...)
-signal.signal(signal.SIGTERM, lambda *_: asyncio.run(shutdown.run("SIGTERM")))
-```
-
----
+# FO-EXE-006 — Intraday Candle Readiness for Execution
 
 ## DD-EXE-006.001.D01 — IntradayCandleLoader Design
 
@@ -536,6 +548,8 @@ SELECT COUNT(*) FROM price_1m
 Counts are approximate (assumes continuous bars). For validation, `aggregate_timeframe()` produces the exact count; `get_readiness_report()` uses the fast COUNT path for UI display.
 
 ---
+
+# FO-EXE-007 — Live 3m Candle Formation During Trading Hours
 
 ## DD-EXE-007.001.D01 — `price_3m` Schema Extension
 
@@ -953,6 +967,8 @@ For `candles_15m`, the existing time-windowed COUNT on `price_1m` is unchanged �
 
 ---
 
+# FO-EXE-008 — Live Market Data Tick Worker
+
 ## DD-EXE-008.001.D01 — LiveTickWorker Internal Architecture
 
 **Parent SRD:** SRD-EXE-008.001, SRD-EXE-008.003, SRD-EXE-008.005, SRD-EXE-008.006
@@ -1123,6 +1139,8 @@ def _on_ibkr_error(self, reqId: int, code: int, msg: str,
 | `ticker.last` and `ticker.close` both NaN | Signal suppressed; handler called again on next price update |
 
 ---
+
+# FO-EXE-009 — Intraday Monitoring Session Ledger & Lifecycle
 
 ## DD-EXE-009.001.D01 — Schema Additions & Idempotent Migration
 
@@ -1683,6 +1701,8 @@ These two tests live in `tests/core/` and run on every CI invocation.
 
 ---
 
+# FO-EXE-010 — Pre-Open Candle DB Reconciliation
+
 ## DD-EXE-010.001.D01 — Reconciliation Algorithm
 
 **Parent SRD:** SRD-EXE-010.001, SRD-EXE-010.002, SRD-EXE-010.003, SRD-EXE-010.005
@@ -1935,6 +1955,8 @@ The `origin` resolution uses `signal.strategy_id` for the immediate implementati
 Step 3's `maybe_run_on_startup()` is synchronous to enforce the ordering. If the user opens the app mid-session, reconcile completes before any tick subscription begins — preventing the brief window where evicted symbols could re-acquire ticks.
 
 ---
+
+# FO-EXE-011 — Strategy Engine — Concurrent Evaluation & Mode Routing
 
 ## DD-EXE-011.001.D01 — Threading, asyncio Layout & Lifecycle
 
@@ -2272,6 +2294,8 @@ async def _do_emergency_stop(self) -> None:
 While `_emergency_active` is True, `_fanout()` short-circuits — no new entry evaluation, no new exit evaluation beyond what's already in flight.
 
 ---
+
+# FO-EXE-012 — Trade Cycle Ledger — Live Per-Cycle State & Persistence
 
 ## DD-EXE-012.001.D01 — Table DDL & Schema Migration
 

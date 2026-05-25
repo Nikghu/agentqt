@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-22T16:25:18",
+  "generated": "2026-05-24T13:14:13",
   "subfolder": "screener",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\screener",
   "tool_code": "SCR",
@@ -1413,7 +1413,7 @@
       ]
     },
     "utils.py": {
-      "module_id": "MD-SCR-007.001.M14",
+      "module_id": "MD-SCR-003.001.M14",
       "srd_id": "SRD-SCR-003.001",
       "classes": [
         {
