@@ -267,6 +267,7 @@ class ALMMainWindow(QMainWindow):
         self._current_node: ALMNode | None = None
         self._thread: QThread | None = None
         self._worker: _LoadWorker | None = None
+        self._pending_restore: tuple[set[str], str | None] | None = None
 
         self.setWindowTitle("ALM Viewer")
         self.setMinimumSize(1100, 720)
@@ -595,6 +596,12 @@ class ALMMainWindow(QMainWindow):
             self._toast_notify("No docs folder loaded", kind="err")
             return
 
+        # Preserve tree state across manual refresh (save-triggered reloads set
+        # _pending_restore themselves before calling _load, so don't overwrite).
+        if self._nodes and self._pending_restore is None:
+            current_id = self._current_node.id if self._current_node else None
+            self._pending_restore = (self._save_tree_state(), current_id)
+
         if self._thread and self._thread.isRunning():
             self._thread.quit()
             self._thread.wait(500)
@@ -623,7 +630,7 @@ class ALMMainWindow(QMainWindow):
         self._rebuild_tree()
 
         # Restore tree expansion + selection if a save triggered the reload
-        pending = getattr(self, "_pending_restore", None)
+        pending = self._pending_restore
         if pending is not None:
             expanded, select_id = pending
             self._pending_restore = None

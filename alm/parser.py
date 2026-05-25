@@ -40,6 +40,17 @@ _PARENT_RE = re.compile(
     r'\*\*Parent\s+(?:FO|SRD|DD|MD|Module):\*\*\s*([\w.-]+)', re.IGNORECASE
 )
 
+# Folder name → canonical 3-letter tool code.
+# Used to skip cross-tool reference rows (e.g. MD-INF-* inside execution/MD.md).
+_FOLDER_CODE: dict[str, str] = {
+    "infrastructure": "INF",
+    "screener":       "SCR",
+    "analysis":       "ANA",
+    "execution":      "EXE",
+    "gui":            "GUI",
+    "mcp":            "MCP",
+}
+
 # Status → colour used by the tree widget
 STATUS_COLOUR: dict[str, str] = {
     "approved":    "#4caf50",
@@ -118,10 +129,18 @@ def _parse_file(path: Path, tool: str) -> list[ALMNode]:
 
     # Parse table-row-format nodes (SRD.md / MD.md style).
     # Columns: | ID | Parent | col2 | Description/Responsibility | ... | Status |
+    folder_code = _FOLDER_CODE.get(tool, "")
     for m in _TABLE_ROW_RE.finditer(text):
         node_id = m.group(1)
         if node_id in seen_ids:
             continue  # already captured as a heading node
+
+        # Skip cross-tool reference rows: an ID whose embedded tool code
+        # (e.g. "INF" in MD-INF-004.001.M02) differs from this folder is a
+        # reference, not a definition — it is already defined in its home tool.
+        parts = node_id.split("-")
+        if folder_code and len(parts) >= 2 and parts[1] != folder_code:
+            continue
 
         rest = m.group(2)
         cells = [c.strip() for c in rest.split("|")]
@@ -135,7 +154,7 @@ def _parse_file(path: Path, tool: str) -> list[ALMNode]:
         # Column 0 (after ID) = parent.  May be a range like 'SRD-GUI-001.001–004';
         # take the first token up to whitespace or dash-family characters.
         parent_raw = cells[0]
-        parent_token = re.split(r'[\s\u2013\u2014]', parent_raw)[0]
+        parent_token = re.split(r'[\s\u2013\u2014]', parent_raw)[0].rstrip(',.;:')
         # Only use it if it actually looks like a traceable ID
         parent_id = parent_token if re.match(r'^(?:FO|SRD|DD|MD|UT)-', parent_token) else ""
 
