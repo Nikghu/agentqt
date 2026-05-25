@@ -284,6 +284,7 @@ class TradeSignal:
     target_price:    float    = 0.0
     recommended_qty: int      = 0
     generated_at:    datetime = field(default_factory=datetime.now)
+    signal_id:       str      = ""
 
 
 @dataclass

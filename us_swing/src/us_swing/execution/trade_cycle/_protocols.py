@@ -1,5 +1,5 @@
 """
-Module: MD-EXE-012.002.M02 — execution/trade_cycle/_protocols.py
+Module: MD-EXE-012.002.M04 — execution/trade_cycle/_protocols.py
 Parent SRD: SRD-EXE-012.010, SRD-EXE-012.011
 
 CQRS-lite Protocols separating the read surface (``TradeCycleQuery``)
