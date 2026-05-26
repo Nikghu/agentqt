@@ -1,6 +1,6 @@
 """
 Module: MD-GUI-006 — settings_panel.py
-FO-GUI-006 Settings Panel: 5 sub-tabs — Users, Risk, Strategies, Screeners, System.
+FO-GUI-006 Settings Panel: sub-tabs — Users, System, Universe, Database.
 """
 from __future__ import annotations
 
@@ -309,39 +309,6 @@ class _RiskTab(QWidget):
 
     def _on_save(self) -> None:
         self._note.setText("✔  Settings saved (demo mode — will persist to real backend)")
-
-
-# ── Strategies sub-tab ────────────────────────────────────────────────────────
-
-class _StrategiesTab(QWidget):
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(12)
-
-        for name, default_params in [
-            ("BREAKOUT", {"atr_multiplier": 1.5, "lookback_days": 20, "volume_mult": 1.3}),
-            ("PULLBACK",  {"rsi_min": 30.0, "rsi_max": 55.0, "ma_period": 50}),
-        ]:
-            grp = QGroupBox(name)
-            grp_layout = QFormLayout(grp)
-            grp_layout.setSpacing(8)
-
-            chk = QCheckBox("Enabled")
-            chk.setChecked(True)
-            grp_layout.addRow("", chk)
-
-            for param, val in default_params.items():
-                spin = QDoubleSpinBox()
-                spin.setRange(0, 1000)
-                spin.setValue(val)
-                spin.setDecimals(1)
-                grp_layout.addRow(f"{param.replace('_', ' ').title()}:", spin)
-
-            layout.addWidget(grp)
-
-        layout.addStretch()
 
 
 # ── System sub-tab ────────────────────────────────────────────────────────────
@@ -1283,7 +1250,6 @@ class SettingsPanel(QWidget):
 
         tabs = QTabWidget()
         tabs.addTab(_UsersTab(demo),       "Users")
-        tabs.addTab(_StrategiesTab(),      "Strategies")
         tabs.addTab(self._sys_tab,         "System")
         tabs.addTab(self._universe_tab,    "Universe")
         tabs.addTab(self._db_tab,          "Database")

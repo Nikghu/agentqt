@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-26T07:15:27",
+  "generated": "2026-05-26T08:09:46",
   "subfolder": "execution",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\execution",
   "tool_code": "EXE",
@@ -47,13 +47,13 @@
           "methods": [
             {
               "name": "__init__",
-              "signature": "def __init__(\n        self,\n        ibkr: IBKRClient,\n        risk: RiskManager,\n        tracker: PositionTracker,\n        db: DatabaseManager,\n        on_fill: Callable[[FillEvent], None],\n        user_id: int,\n        loop: asyncio.AbstractEventLoop | None = None,\n        timeout: float = 2.0,\n    ) -> None",
+              "signature": "def __init__(\r\n        self,\r\n        ibkr: IBKRClient,\r\n        risk: RiskManager,\r\n        tracker: PositionTracker,\r\n        db: DatabaseManager,\r\n        on_fill: Callable[[FillEvent], None],\r\n        user_id: int,\r\n        loop: asyncio.AbstractEventLoop | None = None,\r\n        timeout: float = 2.0,\r\n    ) -> None",
               "line_start": 35,
               "line_end": 57
             },
             {
               "name": "submit_signal",
-              "signature": "def submit_signal(\n        self,\n        signal: TradeSignal,\n        account_state: AccountState,\n        quantity_override: int | None = None,\n    ) -> int | None",
+              "signature": "def submit_signal(\r\n        self,\r\n        signal: TradeSignal,\r\n        account_state: AccountState,\r\n        quantity_override: int | None = None,\r\n    ) -> int | None",
               "docstring": "Validate, size, and submit a single signal to IBKR.",
               "line_start": 61,
               "line_end": 117
@@ -107,7 +107,7 @@
           "methods": [
             {
               "name": "__init__",
-              "signature": "def __init__(\n        self,\n        paper: PaperEngine,\n        live: ExecutionEngine,\n        mode_provider: Callable[[], str],\n    ) -> None",
+              "signature": "def __init__(\r\n        self,\r\n        paper: PaperEngine,\r\n        live: ExecutionEngine,\r\n        mode_provider: Callable[[], str],\r\n    ) -> None",
               "line_start": 17,
               "line_end": 25
             },
@@ -120,7 +120,7 @@
             },
             {
               "name": "route_signal",
-              "signature": "def route_signal(\n        self,\n        user_id: int,\n        signal: TradeSignal,\n        qty: int = 0,\n    ) -> int | None",
+              "signature": "def route_signal(\r\n        self,\r\n        user_id: int,\r\n        signal: TradeSignal,\r\n        qty: int = 0,\r\n    ) -> int | None",
               "docstring": "Explicit-user-id variant for future multi-user expansion.",
               "line_start": 33,
               "line_end": 40
@@ -553,20 +553,20 @@
           "methods": [
             {
               "name": "__init__",
-              "signature": "def __init__(\n        self,\n        db: DatabaseManager,\n        price_provider: Callable[[str], float | None],\n        on_fill: Callable[[FillEvent], None],\n        user_id: int,\n    ) -> None",
+              "signature": "def __init__(\r\n        self,\r\n        db: DatabaseManager,\r\n        price_provider: Callable[[str], float | None],\r\n        on_fill: Callable[[FillEvent], None],\r\n        user_id: int,\r\n    ) -> None",
               "line_start": 35,
               "line_end": 46
             },
             {
               "name": "simulate_fill",
-              "signature": "def simulate_fill(\n        self,\n        signal: TradeSignal,\n        quantity: int,\n        order_type: str = \"MKT\",\n    ) -> PaperFill | None",
+              "signature": "def simulate_fill(\r\n        self,\r\n        signal: TradeSignal,\r\n        quantity: int,\r\n        order_type: str = \"MKT\",\r\n    ) -> PaperFill | None",
               "docstring": "Simulate an entry fill; returns None if limit condition not met.",
               "line_start": 50,
               "line_end": 122
             },
             {
               "name": "simulate_exit",
-              "signature": "def simulate_exit(\n        self,\n        symbol: str,\n        quantity: int,\n        strategy_id: str,\n        entry_trade_id: str,\n        entry_price: float = 0.0,\n    ) -> PaperFill",
+              "signature": "def simulate_exit(\r\n        self,\r\n        symbol: str,\r\n        quantity: int,\r\n        strategy_id: str,\r\n        entry_trade_id: str,\r\n        entry_price: float = 0.0,\r\n    ) -> PaperFill",
               "docstring": "Simulate an exit fill at current market price; updates trade PnL in DB.",
               "line_start": 124,
               "line_end": 167
@@ -670,7 +670,7 @@
             },
             {
               "name": "update_state",
-              "signature": "def update_state(\n        self,\n        user_id: int,\n        symbol: str,\n        new_state: PositionState,\n        filled_qty: int | None = None,\n    ) -> None",
+              "signature": "def update_state(\r\n        self,\r\n        user_id: int,\r\n        symbol: str,\r\n        new_state: PositionState,\r\n        filled_qty: int | None = None,\r\n    ) -> None",
               "docstring": "Validate and apply a state transition; update DB.",
               "line_start": 55,
               "line_end": 74
@@ -697,7 +697,7 @@
             },
             {
               "name": "reconcile",
-              "signature": "def reconcile(\n        self,\n        ibkr_positions: list[IBKRPosition],\n        user_id: int = 0,\n    ) -> list[str]",
+              "signature": "def reconcile(\r\n        self,\r\n        ibkr_positions: list[IBKRPosition],\r\n        user_id: int = 0,\r\n    ) -> list[str]",
               "docstring": "Adopt IBKR positions absent from local DB; log WARNING per adopted symbol.",
               "line_start": 107,
               "line_end": 131
@@ -721,7 +721,7 @@
           "methods": [
             {
               "name": "__init__",
-              "signature": "def __init__(\n        self,\n        config: RiskConfig,\n        account_provider: Callable[[], AccountState],\n        cb_state_provider: Callable[[], bool],\n        user_id: int,\n        tracker: PositionTracker | None = None,\n    ) -> None",
+              "signature": "def __init__(\r\n        self,\r\n        config: RiskConfig,\r\n        account_provider: Callable[[], AccountState],\r\n        cb_state_provider: Callable[[], bool],\r\n        user_id: int,\r\n        tracker: PositionTracker | None = None,\r\n    ) -> None",
               "line_start": 28,
               "line_end": 40
             },
@@ -741,21 +741,21 @@
             },
             {
               "name": "validate_signal",
-              "signature": "def validate_signal(\n        self,\n        signal: TradeSignal,\n        account_state: AccountState,\n        cb_active: bool,\n    ) -> ValidationResult",
+              "signature": "def validate_signal(\r\n        self,\r\n        signal: TradeSignal,\r\n        account_state: AccountState,\r\n        cb_active: bool,\r\n    ) -> ValidationResult",
               "docstring": "Three-check gate; synchronous, no IBKR calls.",
               "line_start": 74,
               "line_end": 108
             },
             {
               "name": "calculate_position_size",
-              "signature": "def calculate_position_size(\n        self,\n        signal: TradeSignal,\n        account_state: AccountState,\n    ) -> int",
+              "signature": "def calculate_position_size(\r\n        self,\r\n        signal: TradeSignal,\r\n        account_state: AccountState,\r\n    ) -> int",
               "docstring": "floor(equity*risk_pct / risk_per_share), capped at max_position_value/entry.",
               "line_start": 110,
               "line_end": 124
             },
             {
               "name": "can_enter_new",
-              "signature": "def can_enter_new(\n        self,\n        signal: TradeSignal,\n        account_state: AccountState,\n        user_id: int,\n    ) -> bool",
+              "signature": "def can_enter_new(\r\n        self,\r\n        signal: TradeSignal,\r\n        account_state: AccountState,\r\n        user_id: int,\r\n    ) -> bool",
               "docstring": "True if projected position fits within user's max_allocation_pct.",
               "line_start": 126,
               "line_end": 141
@@ -1129,14 +1129,14 @@
             {
               "name": "evaluate",
               "signature": "def evaluate(\r\n        self,\r\n        expr: str,\r\n        candles: dict[str, pd.DataFrame],\r\n        symbol: str,\r\n    ) -> bool",
-              "line_start": 352,
-              "line_end": 359
+              "line_start": 327,
+              "line_end": 334
             },
             {
               "name": "_eval",
               "signature": "def _eval(\r\n        self,\r\n        node: dict[str, Any],\r\n        candles: dict[str, pd.DataFrame],\r\n        symbol: str,\r\n    ) -> float | bool",
-              "line_start": 363,
-              "line_end": 388
+              "line_start": 338,
+              "line_end": 363
             },
             {
               "name": "_apply_op",
@@ -1144,12 +1144,12 @@
               "decorators": [
                 "@staticmethod"
               ],
-              "line_start": 391,
-              "line_end": 414
+              "line_start": 366,
+              "line_end": 389
             }
           ],
-          "line_start": 332,
-          "line_end": 414
+          "line_start": 311,
+          "line_end": 389
         }
       ],
       "top_level_functions": [
@@ -1255,30 +1255,6 @@
           "signature": "def _fn_macd(args: list[Any], c: dict[str, pd.DataFrame], _s: str) -> float",
           "line_start": 295,
           "line_end": 305
-        },
-        {
-          "name": "_fn_bos_engulfing",
-          "signature": "def _fn_bos_engulfing(args: list[Any], _c: dict[str, pd.DataFrame], _s: str) -> float",
-          "line_start": 310,
-          "line_end": 312
-        },
-        {
-          "name": "_fn_boss_ema",
-          "signature": "def _fn_boss_ema(args: list[Any], _c: dict[str, pd.DataFrame], _s: str) -> float",
-          "line_start": 315,
-          "line_end": 317
-        },
-        {
-          "name": "_fn_boss_adx",
-          "signature": "def _fn_boss_adx(args: list[Any], _c: dict[str, pd.DataFrame], _s: str) -> float",
-          "line_start": 320,
-          "line_end": 322
-        },
-        {
-          "name": "_fn_boss_smt",
-          "signature": "def _fn_boss_smt(args: list[Any], _c: dict[str, pd.DataFrame], _s: str) -> float",
-          "line_start": 325,
-          "line_end": 327
         }
       ],
       "constants": [

@@ -48,14 +48,14 @@ _INDICATOR_DATA: list[dict] = [
     {
         "name": "PNL",
         "parameters": [
-            {"name": "Timeframe", "Type": "DropDown", "Datatype": ["1m", "3m", "5m"]},
+            {"name": "Timeframe", "Type": "DropDown", "Datatype": ["3m", "15m"]},
         ],
     },
     {
         "name": "VWAP",
         "parameters": [
             {"name": "Symbol Type", "Type": "DropDown", "Datatype": ["Spot", "RSP"]},
-            {"name": "Timeframe", "Type": "DropDown", "Datatype": ["1m", "3m", "5m"]},
+            {"name": "Timeframe", "Type": "DropDown", "Datatype": ["3m", "15m"]},
         ],
     },
     {
@@ -71,7 +71,7 @@ _INDICATOR_DATA: list[dict] = [
             {
                 "name": "Timeframe",
                 "Type": "DropDown",
-                "Datatype": ["1m", "3m", "5m", "15m", "1h", "1d"],
+                "Datatype": ["3m", "15m"],
             },
         ],
     },
@@ -83,7 +83,7 @@ _INDICATOR_DATA: list[dict] = [
             {
                 "name": "Timeframe",
                 "Type": "DropDown",
-                "Datatype": ["1m", "3m", "5m", "15m", "1h", "1d"],
+                "Datatype": ["3m", "15m"],
             },
         ],
     },
@@ -95,7 +95,7 @@ _INDICATOR_DATA: list[dict] = [
             {
                 "name": "Timeframe",
                 "Type": "DropDown",
-                "Datatype": ["1m", "3m", "5m", "15m", "1h", "1d"],
+                "Datatype": ["3m", "15m"],
             },
         ],
     },
@@ -107,7 +107,7 @@ _INDICATOR_DATA: list[dict] = [
             {
                 "name": "Timeframe",
                 "Type": "DropDown",
-                "Datatype": ["1m", "3m", "5m", "15m", "1h", "1d"],
+                "Datatype": ["3m", "15m"],
             },
         ],
     },
@@ -125,7 +125,7 @@ _INDICATOR_DATA: list[dict] = [
             {
                 "name": "Timeframe",
                 "Type": "DropDown",
-                "Datatype": ["1m", "3m", "5m", "15m", "1h", "1d"],
+                "Datatype": ["3m", "15m"],
             },
         ],
     },
@@ -144,7 +144,7 @@ _INDICATOR_DATA: list[dict] = [
             {
                 "name": "Timeframe",
                 "Type": "DropDown",
-                "Datatype": ["1m", "3m", "5m", "15m", "1h", "1d"],
+                "Datatype": ["3m", "15m"],
             },
         ],
     },
@@ -158,94 +158,7 @@ _INDICATOR_DATA: list[dict] = [
             {
                 "name": "Timeframe",
                 "Type": "DropDown",
-                "Datatype": ["1m", "3m", "5m", "15m", "1h", "1d"],
-            },
-        ],
-    },
-    {
-        "name": "BOS_Engulfing",
-        "parameters": [
-            {"name": "Symbol Type", "Type": "DropDown", "Datatype": ["Spot", "RSP"]},
-            {
-                "name": "HTF",
-                "Type": "DropDown",
-                "Datatype": ["1m", "3m", "5m", "15m", "1h", "1d"],
-            },
-            {
-                "name": "LTF",
-                "Type": "DropDown",
-                "Datatype": ["1m", "3m", "5m", "15m", "1h", "1d"],
-            },
-        ],
-    },
-    {
-        "name": "BOSS_EMA",
-        "parameters": [
-            {"name": "Symbol Type", "Type": "DropDown", "Datatype": ["Spot", "RSP"]},
-            {"name": "Swing lookback", "Type": "EditBox", "Datatype": "int"},
-            {"name": "Max SL", "Type": "EditBox", "Datatype": "float"},
-            {"name": "Min SL", "Type": "EditBox", "Datatype": "float"},
-            {
-                "name": "HTF",
-                "Type": "DropDown",
-                "Datatype": ["1m", "3m", "5m", "15m", "1h", "1d"],
-            },
-            {
-                "name": "LTF",
-                "Type": "DropDown",
-                "Datatype": ["1m", "3m", "5m", "15m", "1h", "1d"],
-            },
-        ],
-    },
-    {
-        "name": "BOSS_ADX",
-        "parameters": [
-            {"name": "Symbol Type", "Type": "DropDown", "Datatype": ["Spot", "RSP"]},
-            {"name": "Swing lookback", "Type": "EditBox", "Datatype": "int"},
-            {"name": "Max SL", "Type": "EditBox", "Datatype": "float"},
-            {"name": "Min SL", "Type": "EditBox", "Datatype": "float"},
-            {"name": "Max REV", "Type": "EditBox", "Datatype": "float"},
-            {"name": "Min REV", "Type": "EditBox", "Datatype": "float"},
-            {
-                "name": "HTF",
-                "Type": "DropDown",
-                "Datatype": ["1m", "3m", "5m", "15m", "1h", "1d"],
-            },
-            {
-                "name": "LTF",
-                "Type": "DropDown",
-                "Datatype": ["1m", "3m", "5m", "15m", "1h", "1d"],
-            },
-            {
-                "name": "VTF",
-                "Type": "DropDown",
-                "Datatype": ["1m", "3m", "5m", "15m", "1h", "1d"],
-            },
-        ],
-    },
-    {
-        "name": "BOSS_SMT",
-        "parameters": [
-            {"name": "Symbol Type", "Type": "DropDown", "Datatype": ["Spot", "RSP"]},
-            {"name": "Swing lookback", "Type": "EditBox", "Datatype": "int"},
-            {"name": "Max SL", "Type": "EditBox", "Datatype": "float"},
-            {"name": "Min SL", "Type": "EditBox", "Datatype": "float"},
-            {"name": "Max REV", "Type": "EditBox", "Datatype": "float"},
-            {"name": "Min REV", "Type": "EditBox", "Datatype": "float"},
-            {
-                "name": "HTF",
-                "Type": "DropDown",
-                "Datatype": ["1m", "3m", "5m", "15m", "1h", "1d"],
-            },
-            {
-                "name": "LTF",
-                "Type": "DropDown",
-                "Datatype": ["1m", "3m", "5m", "15m", "1h", "1d"],
-            },
-            {
-                "name": "VTF",
-                "Type": "DropDown",
-                "Datatype": ["1m", "3m", "5m", "15m", "1h", "1d"],
+                "Datatype": ["3m", "15m"],
             },
         ],
     },

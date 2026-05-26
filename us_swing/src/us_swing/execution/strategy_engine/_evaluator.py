@@ -305,27 +305,6 @@ def _fn_macd(args: list[Any], c: dict[str, pd.DataFrame], _s: str) -> float:
     return _last_arr(hist)
 
 
-# Reserved for follow-up implementation — return 0.0 so comparisons evaluate
-# without crashing while leaving an obvious "never fires" signal.
-def _fn_bos_engulfing(args: list[Any], _c: dict[str, pd.DataFrame], _s: str) -> float:
-    _require_args("BOS_Engulfing", args, 3)
-    return 0.0
-
-
-def _fn_boss_ema(args: list[Any], _c: dict[str, pd.DataFrame], _s: str) -> float:
-    _require_args("BOSS_EMA", args, 6)
-    return 0.0
-
-
-def _fn_boss_adx(args: list[Any], _c: dict[str, pd.DataFrame], _s: str) -> float:
-    _require_args("BOSS_ADX", args, 9)
-    return 0.0
-
-
-def _fn_boss_smt(args: list[Any], _c: dict[str, pd.DataFrame], _s: str) -> float:
-    _require_args("BOSS_SMT", args, 9)
-    return 0.0
-
 
 # ── Public class ──────────────────────────────────────────────────────────────
 
@@ -343,10 +322,6 @@ class ConditionEvaluator:
         "SUPERTREND": _fn_supertrend,
         "SWING": _fn_swing,
         "MACD": _fn_macd,
-        "BOS_Engulfing": _fn_bos_engulfing,
-        "BOSS_EMA": _fn_boss_ema,
-        "BOSS_ADX": _fn_boss_adx,
-        "BOSS_SMT": _fn_boss_smt,
     }
 
     def evaluate(

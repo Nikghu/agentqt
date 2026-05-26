@@ -9,7 +9,7 @@
 
 ## 0. Immediate Next Step
 
-**Current:** FO-EXE-001/002/004/005 Core Execution Stack Complete (Session 50, 2026-05-26) — **45 tests pass** across 5 new modules: `RiskManager`, `PositionTracker`, `PaperEngine`, `ExecutionRouter`, `ExecutionEngine`. ruff + mypy --strict clean. 22 SRDs → Implemented, 43 UTCD → Pass. RN-EXE-1.7.0-20260526 written. **Next:** Wire `ExecutionRouter` into `AppService` (replace `_Router`'s `PaperBroker` stub with `ExecutionRouter`), connect `MonitoringCommand.on_fill` seam in `ExecutionEngine.handle_order_fill`, then implement FO-EXE-003 (CircuitBreaker + EmergencyShutdown).
+**Current:** FO-EXE-001/002/004/005 Core Execution Stack Complete (Session 50, 2026-05-26) — **45 tests pass** across 5 new modules: `RiskManager`, `PositionTracker`, `PaperEngine`, `ExecutionRouter`, `ExecutionEngine`. ruff + mypy --strict clean. 22 SRDs → Implemented, 43 UTCD → Pass. RN-EXE-1.7.0-20260526 written. Code-style polish applied to `_evaluator.py`, `settings_panel.py`, `strategy_builder_dialog.py`; TODO planning document cleaned up. **Next:** Wire `ExecutionRouter` into `AppService` (replace `_Router`'s `PaperBroker` stub with `ExecutionRouter`), connect `MonitoringCommand.on_fill` seam in `ExecutionEngine.handle_order_fill`, then implement FO-EXE-003 (CircuitBreaker + EmergencyShutdown).
 
 **FO-EXE-009 + FO-EXE-010 — COMPLETE (Session 44, 2026-05-18):**
 - 65 pass / 2 skip; skips are `UT-EXE-001.001.M02.T08/T09`, blocked on FO-EXE-001/002.
