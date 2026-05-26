@@ -2,6 +2,17 @@
 
 ---
 
+## [20260526] Code Polish & Cleanup — Post-session refinements
+
+- Type: Refactor
+- FO(s): N/A (code polish)
+- RN: None (existing RN-EXE-1.7.0-20260526 remains current)
+- Artifacts updated: CONTEXT §0 (acknowledged polish), DEVLOG
+- Changes: Minor code-style refinements to `execution/strategy_engine/_evaluator.py`, `gui/settings_panel.py`, `gui/strategy_builder_dialog.py`; deleted planning document `docs/execution/TODO_EXE_001_002.md`
+- Status: Cleanup only; no functional changes or new features
+
+---
+
 ## [20260526] EXE — FO-EXE-001/002/004/005 Core Execution Stack (45 tests pass)
 
 - Type: Feature
