@@ -2,6 +2,26 @@
 
 ---
 
+## [20260527] EXE — Strategy Lifecycle Refactor & Trade Cycle Integration
+
+- Type: Refactor + Bugfix
+- FO(s): FO-EXE-011, FO-EXE-012
+- RN: RN-EXE-1.8.0-20260527
+- Artifacts updated: StrategyEngine (_engine.py, _context.py, _router.py), AppService, StrategyConfig (strategy_builder_dialog.py), StrategyTableModel, new PendingSignalsTableModel; 7 source files modified, 1 new file created
+- Decisions:
+  - Cadence-driven 1s tick loop in engine (independent of bar-close) for reliable strategy evaluation
+  - Strategy persistence model: saved Status is source of truth; no auto-promotion on restart
+  - Trade cycle ledger as single source of truth for open positions and live PnL (integrated TradeCycleService)
+  - Stop button gated by open-position check; Force Exit required before allowing Stop
+  - Running badge visual override when open cycles exist despite Inactive status
+- Key Bugs Fixed:
+  - Entry re-firing on restart (Status reset on startup → loaded from saved state)
+  - Cannot stop strategy with open positions (added position check gate + warning)
+  - Stalled positions block next entry (trade_cycles enforces 1:1 open pair limit)
+- Status: All 67 tests pass (38 FO-EXE-011 unit + 29 FO-EXE-012 unit); ruff + mypy --strict clean; 2 files (pending_signals_table_model, updated TRACE) ready for merge
+
+---
+
 ## [20260526] Code Polish & Cleanup — Post-session refinements
 
 - Type: Refactor

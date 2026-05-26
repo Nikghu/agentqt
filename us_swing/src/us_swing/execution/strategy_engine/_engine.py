@@ -12,7 +12,9 @@ import asyncio
 import logging
 import time as _time
 from collections.abc import Callable
+from datetime import datetime
 from typing import TYPE_CHECKING
+from zoneinfo import ZoneInfo
 
 from PyQt6.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 
@@ -42,6 +44,8 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 _WRITEBACK_DEBOUNCE_S = 0.25
+_TICK_INTERVAL_S = 1.0
+_ET = ZoneInfo("America/New_York")
 
 
 class StrategyEngine(QThread):
@@ -67,6 +71,8 @@ class StrategyEngine(QThread):
         submitter: ExecutionSubmitter,
         pending: PendingSignalSink,
         bus: EventBus,
+        symbols_provider: Callable[[], list[str]] | None = None,
+        cycle_loader: Callable[[], dict[str, dict[str, str]]] | None = None,
         primary_timeframe: str = "3m",
         parent: QObject | None = None,
     ) -> None:
@@ -79,6 +85,8 @@ class StrategyEngine(QThread):
         self._submitter = submitter
         self._pending = pending
         self._bus = bus
+        self._symbols_provider = symbols_provider or (lambda: [])
+        self._cycle_loader = cycle_loader or (lambda: {})
         self._primary_tf = primary_timeframe
 
         self._loop: asyncio.AbstractEventLoop | None = None
@@ -120,17 +128,137 @@ class StrategyEngine(QThread):
         await asyncio.gather(
             self._router.run_router_loop(),
             self._router.run_end_time_watcher(),
+            self._strategy_tick_loop(),
         )
+
+    # ── Periodic evaluation tick (cadence-driven, not bar-driven) ────────────
+
+    async def _strategy_tick_loop(self) -> None:
+        """Wake every second and evaluate any strategy whose cadence is due.
+
+        Independent of the candle-close fan-out so exit conditions still fire
+        when no new bars are arriving (e.g. IBKR disconnected, market closed,
+        or user changed the exit expression mid-run).
+        """
+        assert self._router is not None
+        router = self._router
+        while not router.stop_requested():
+            try:
+                await asyncio.sleep(_TICK_INTERVAL_S)
+            except asyncio.CancelledError:
+                return
+            if self._cb_active:
+                continue
+            now = datetime.now(_ET)
+            for ctx in list(self._registry.values()):
+                if not ctx.within_schedule(now):
+                    continue
+                if not self._is_time_to_evaluate(ctx, now):
+                    continue
+                ctx.last_eval_at = now
+                try:
+                    await self._evaluate_ctx(ctx, now)
+                except Exception:
+                    log.exception("[Strategy] tick eval crashed for %s", ctx.name)
+
+    async def _evaluate_ctx(self, ctx: _StrategyContext, _now: datetime) -> None:
+        """Fan out one evaluation pass for *ctx* across the candidate universe.
+
+        When the strategy's user-visible Status is ``Inactive`` (e.g. fresh
+        boot before the user has clicked Run), no entry checks fire — but
+        already-tracked symbols are still evaluated so exit monitoring of
+        restored positions stays alive across restarts.
+        """
+        assert self._router is not None
+        status = ctx.cfg.strategy_signal.get("Status", "Inactive")
+        if status == "Inactive":
+            candidates: set[str] = set(ctx.cycles.keys())
+        else:
+            try:
+                universe = list(self._symbols_provider())
+            except Exception:
+                log.exception("[Strategy] symbols_provider failed")
+                universe = []
+            candidates = set(universe) | set(ctx.cycles.keys())
+        in_scope = [s for s in candidates if ctx.accepts(s)]
+        if not in_scope:
+            return
+        loop = asyncio.get_running_loop()
+        for symbol in in_scope:
+            bar = await loop.run_in_executor(None, self._bar_provider, symbol, self._primary_tf)
+            if bar is None:
+                continue
+            candles = await loop.run_in_executor(None, self._candles_provider, symbol)
+            if not candles:
+                continue
+            await self._router.evaluate(ctx, symbol, candles, bar)
+
+    @staticmethod
+    def _is_time_to_evaluate(ctx: _StrategyContext, now: datetime) -> bool:
+        """Port of legacy is_time_to_evaluate logic (minute_close + execution_rate_sec).
+
+        - First call (last_eval_at None) always fires.
+        - minute_close > 0: only fires on minute-boundary cycles, after the
+          delay-from-boundary, once per cycle.
+        - minute_close == 0: pure rate-based — fires when execution_rate_sec
+          have elapsed since the last fire.
+        """
+        minute_close = max(0, int(getattr(ctx.cfg, "minute_close", 1)))
+        rate_sec = max(0, int(getattr(ctx.cfg, "execution_rate_sec", 1)))
+        last = ctx.last_eval_at
+        if last is None:
+            return True
+        if last.tzinfo is None:
+            last = last.replace(tzinfo=_ET)
+
+        if minute_close > 0:
+            total_min = now.hour * 60 + now.minute
+            if total_min % minute_close != 0:
+                return False
+            window_s = minute_close * 60
+            delay = rate_sec if rate_sec < window_s else 0
+            if now.second < delay:
+                return False
+            cur_cycle = total_min // minute_close
+            last_total_min = last.hour * 60 + last.minute
+            last_cycle = last_total_min // minute_close
+            if cur_cycle == last_cycle and now.date() == last.date():
+                return False
+            return True
+
+        if rate_sec <= 0:
+            return True
+        return (now - last).total_seconds() >= rate_sec
 
     # ── Registry load ────────────────────────────────────────────────────────
 
     def _load_registry(self) -> dict[str, _StrategyContext]:
+        """Build the in-memory registry from disk + restore RUNNING cycles.
+
+        Status is NOT force-set here — neither to "Active" (would bypass
+        manual Run) nor to "Running" (would also bypass it, because the
+        evaluate gate keys off Status).  ``load_strategies()`` already
+        resets every Status to ``Inactive`` on each boot, so the engine
+        only checks exit conditions for restored cycles until the user
+        clicks ▶.  The GUI Executor table applies its own visual
+        ``running_override`` so the user still sees a Running badge for
+        strategies with open positions.
+        """
+        try:
+            open_cycles = self._cycle_loader()
+        except Exception:
+            log.exception("[Strategy] cycle_loader failed; starting with empty cycles")
+            open_cycles = {}
+
         out: dict[str, _StrategyContext] = {}
         for cfg in self._registry_loader():
             if cfg.mode == "disabled":
                 continue
-            cfg.strategy_signal["Status"] = "Active"
-            out[cfg.name] = _StrategyContext(cfg=cfg)
+            ctx = _StrategyContext(cfg=cfg)
+            sym_states = open_cycles.get(cfg.name, {})
+            for symbol in sym_states:
+                ctx.cycles[symbol] = _CycleState.RUNNING
+            out[cfg.name] = ctx
         return out
 
     # ── Qt slots (called from AppService thread) ─────────────────────────────
@@ -280,11 +408,13 @@ class StrategyEngine(QThread):
                 del self._registry[name]
 
         # Add new contexts; refresh cfg pointer on existing ones.
+        # Status is preserved from disk (load_strategies / user toggle) — never
+        # forced here, so a freshly-saved Manual strategy stays Inactive until
+        # the user clicks Run.
         for name, cfg in new_cfgs.items():
             if name in self._registry:
                 self._registry[name].cfg = cfg
             else:
-                cfg.strategy_signal["Status"] = "Active"
                 self._registry[name] = _StrategyContext(cfg=cfg)
 
         # Publish a synthetic event so listeners can refresh.

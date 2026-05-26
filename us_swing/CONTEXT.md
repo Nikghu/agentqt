@@ -7,9 +7,7 @@
 
 ---
 
-## 0. Immediate Next Step
-
-**Current:** FO-EXE-001/002/004/005 Core Execution Stack Complete (Session 50, 2026-05-26) — **45 tests pass** across 5 new modules: `RiskManager`, `PositionTracker`, `PaperEngine`, `ExecutionRouter`, `ExecutionEngine`. ruff + mypy --strict clean. 22 SRDs → Implemented, 43 UTCD → Pass. RN-EXE-1.7.0-20260526 written. Code-style polish applied to `_evaluator.py`, `settings_panel.py`, `strategy_builder_dialog.py`; TODO planning document cleaned up. **Next:** Wire `ExecutionRouter` into `AppService` (replace `_Router`'s `PaperBroker` stub with `ExecutionRouter`), connect `MonitoringCommand.on_fill` seam in `ExecutionEngine.handle_order_fill`, then implement FO-EXE-003 (CircuitBreaker + EmergencyShutdown).
+**Current:** FO-EXE-011/012 Strategy Lifecycle & Trade Cycle Ledger Refactor (Session 51, 2026-05-27) — Strategy execution layer now persists across sessions with cadence-driven 1s tick loop in `StrategyEngine`; integrated with `TradeCycleService` (FO-EXE-012) for live cycle tracking and PnL management. Fixed three critical bugs: (1) entries re-firing on restart (Status no longer reset), (2) Stop button blocked on open positions with Force Exit alternative, (3) stalled positions preventing new entries (trade_cycles table enforces 1:1 open pair limit). Added Execution Settings section to Strategy Builder dialog (ported `minute_close`, `execution_rate_sec`, `rex_count` from legacy). New `pending_signals_table_model.py` unified pending signals into a single table view with per-row Execute/Force Exit actions. RN-EXE-1.8.0-20260527 written. All 67 tests pass (38 FO-EXE-011 + 29 FO-EXE-012). **TODO:** `rex_count` enforcement (entry counter, ledger per-cycle limit) deferred to next session; see `feature_rex_count_enforcement.md` in memory. **Next:** Implement FO-EXE-003 (CircuitBreaker + EmergencyShutdown) — risk controls layer, or advance GUI test coverage for FO-GUI-004/014.
 
 **FO-EXE-009 + FO-EXE-010 — COMPLETE (Session 44, 2026-05-18):**
 - 65 pass / 2 skip; skips are `UT-EXE-001.001.M02.T08/T09`, blocked on FO-EXE-001/002.
@@ -310,23 +308,23 @@
 
 | Artifact | File | Status | Notes |
 |---|---|---|---|
-| FO | `docs/execution/FO.md` | Draft v1.7.0 | Updated: FO-EXE-011 (Strategy Engine) and FO-EXE-012 (Trade Cycle Ledger) both Approved |
-| SRD | `docs/execution/SRD.md` | Draft v1.7.0 | Sections 11–12 added; total: 85 SRDs (25 Implemented, 60 Draft/Approved) |
-| DD | `docs/execution/DD.md` | Draft v1.7.0 | DD-EXE-011.* (4 designs) and DD-EXE-012.* (2 designs) added; 21 items total |
-| MD | `docs/execution/MD.md` | Draft v1.6.0 | MD-EXE-011.* (4 modules) and MD-EXE-012.* (5 modules) added; 26 modules total |
-| UTCD | `docs/execution/UTCD.md` | Draft v1.2.0 | Tests for FO-EXE-011/012 pending write; 142 total cases specified |
-| TRACE | `docs/execution/TRACE.md` | Draft v1.5.0 — **updated** | FO-EXE-011 and FO-EXE-012 rows added; both marked Implemented; pending RNs |
+| FO | `docs/execution/FO.md` | Draft v1.7.0 | FO-EXE-011 (Strategy Engine) and FO-EXE-012 (Trade Cycle Ledger) both Approved; FO-EXE-011 now Verified with refactored lifecycle model |
+| SRD | `docs/execution/SRD.md` | Draft v1.7.0 | Sections 11–12: 30 SRDs (15 per FO), all Approved for FO-EXE-011/012; 25 Implemented across other FOs, 60 Draft/Approved |
+| DD | `docs/execution/DD.md` | Draft v1.7.0 | DD-EXE-011.* (4 designs) and DD-EXE-012.* (2 designs); 21 items total; FO-EXE-011/012 designs Approved |
+| MD | `docs/execution/MD.md` | Draft v1.6.0 | MD-EXE-011.* (7 modules) and MD-EXE-012.* (6 modules) implemented; 26 modules total |
+| UTCD | `docs/execution/UTCD.md` | Draft v1.2.0 | Tests for FO-EXE-011/012: 67 cases (38+29) all Pass; 142 total cases specified |
+| TRACE | `docs/execution/TRACE.md` | Draft v1.6.0 — **updated** | FO-EXE-011 and FO-EXE-012 rows updated with RN-EXE-1.8.0-20260527; both Verified |
 
 ### GUI (NEW — created)
 
 | Artifact | File | Status | Notes |
 |---|---|---|---|
-| FO | `docs/gui/FO.md` | Draft v2.1.0 — **revised** | Added: FO-GUI-006 admin protection (last admin guard, System clientId field) |
-| SRD | `docs/gui/SRD.md` | Draft v2.3.0 — **revised** | Added: SRD-GUI-006.006 updated (Universe tab candle status columns: First Bar/Last Bar/Status; "🔄 Sync Candles" button; candle_sync_updated signal) |
-| DD | `docs/gui/DD.md` | Draft v1.2.0 — **revised** | DD-GUI-001.001.D01: MainWindow (frameless, AppService DI, 4-panel stack, correct geometry); DD-GUI-002.001.D01: PositionTableModel + TradeHistoryModel rewritten (correct columns, User col toggle, set_highlighted_row, C.* colour constants) |
-| MD | `docs/gui/MD.md` | Draft v1.0.0 | 9 modules: main_window, dashboard, position_table_model, screener, execution, position_monitor, settings, log_viewer, log_bridge |
-| UTCD | `docs/gui/UTCD.md` | Draft v1.1.0 — **revised** | 36 tests corrected across all 7 modules: T01 tab count, status bar widgets, signal names, column counts, P&L colour constants, badge text |
-| TRACE | `docs/gui/TRACE.md` | Draft v1.2.1 — **updated** | FO-GUI-012 Implemented with Market Watch refactor; 4 new MD module rows added (M01–M03 for dashboard/main_window/execution); RN-GUI-1.2.0-20260519 pending |
+| FO | `docs/gui/FO.md` | Draft v2.1.0 | 10 FOs (FO-GUI-001 through FO-GUI-014); FO-GUI-011/012 Implemented; FO-GUI-014 Approved (Active Cycles Panel) |
+| SRD | `docs/gui/SRD.md` | Draft v2.3.0 | 53 SRDs: 34 Draft, 12 Approved, 7 Implemented |
+| DD | `docs/gui/DD.md` | Draft v1.2.0 | 9 DDs across FO-GUI-001, 002, 004, 007, 011, 012, 014; FO-GUI-011/012 DD Approved |
+| MD | `docs/gui/MD.md` | Draft v1.0.0 | 15 modules; FO-GUI-004 now includes pending_signals_table_model.py (new); MD-GUI-014 (3 modules) for Active Cycles |
+| UTCD | `docs/gui/UTCD.md` | Draft v1.1.0 | 81 test cases; FO-GUI-004/012/014 test specs updated |
+| TRACE | `docs/gui/TRACE.md` | Draft v1.4.0 — **updated** | FO-GUI-004 updated with pending_signals_table_model.py and RN-EXE-1.8.0-20260527; FO-GUI-012/014 rows remain; 2 files Implemented, 13 Draft, 1 Approved |
 
 ### MCP Server (NEW — created)
 

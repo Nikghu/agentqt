@@ -54,6 +54,7 @@ class _StrategyContext:
     cycles: dict[str, _CycleState] = field(default_factory=dict)
     cycle_locks: dict[str, asyncio.Lock] = field(default_factory=dict)
     last_entry_signal: dict[str, TradeSignal | None] = field(default_factory=dict)
+    last_eval_at: datetime | None = None
 
     @property
     def name(self) -> str:

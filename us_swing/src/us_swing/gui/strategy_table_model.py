@@ -52,11 +52,32 @@ class StrategyTableModel(QAbstractTableModel):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._rows: list[StrategyConfig] = []
+        self._running_override: set[str] = set()
 
-    def load(self, configs: list[StrategyConfig]) -> None:
+    def load(
+        self,
+        configs: list[StrategyConfig],
+        running_override: set[str] | None = None,
+    ) -> None:
+        """Reload rows.
+
+        *running_override* — strategy names whose Status column should
+        visually render as ``Running`` regardless of the cfg value.  Used
+        on boot to surface restored open positions without mutating the
+        underlying ``StrategyConfig`` (which would mislead the play/stop
+        button into thinking the strategy is armed).
+        """
         self.beginResetModel()
         self._rows = list(configs)
+        self._running_override = set(running_override or set())
         self.endResetModel()
+
+    def status_for(self, cfg: StrategyConfig) -> str:
+        """Return the visual status — overridden to ``Running`` if the
+        strategy has open positions, otherwise the raw cfg value."""
+        if cfg.name in self._running_override:
+            return "Running"
+        return str(cfg.strategy_signal.get("Status", "Inactive"))
 
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
         return 0 if parent.isValid() else len(self._rows)
@@ -87,14 +108,15 @@ class StrategyTableModel(QAbstractTableModel):
             return None
 
         if role == Qt.ItemDataRole.DisplayRole:
+            if col == COL_STATUS:
+                return self.status_for(cfg)
             return _cell_text(cfg, col)
 
         if role == Qt.ItemDataRole.ForegroundRole:
             if col == COL_NAME:
                 return QColor(C.BLUE)
             if col == COL_STATUS:
-                s: str = str(cfg.strategy_signal.get("Status", "Inactive"))
-                return QColor(STATUS_COLORS.get(s, C.MUTED))
+                return QColor(STATUS_COLORS.get(self.status_for(cfg), C.MUTED))
 
         if role == Qt.ItemDataRole.TextAlignmentRole:
             if col == COL_NAME:
