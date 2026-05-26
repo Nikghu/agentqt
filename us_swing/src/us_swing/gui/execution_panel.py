@@ -27,16 +27,12 @@ from PyQt6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
     QDialog,
-    QFrame,
-    QGroupBox,
     QHBoxLayout,
     QHeaderView,
     QLabel,
     QMessageBox,
     QPushButton,
-    QScrollArea,
     QSizePolicy,
-    QSpinBox,
     QSplitter,
     QTabWidget,
     QTableView,
@@ -50,6 +46,23 @@ from us_swing.data.models import FilteredStockEntry
 from us_swing.gui.app_service import AppService
 from us_swing.gui._types import TradeSignal
 from us_swing.gui.chart_panel import _build_html as _build_chart_html
+from us_swing.gui.pending_signals_table_model import (
+    COL_ACTION   as PS_COL_ACTION,
+    COL_CURRENT  as PS_COL_CURRENT,
+    COL_ENTRY    as PS_COL_ENTRY,
+    COL_PNL      as PS_COL_PNL,
+    COL_QTY      as PS_COL_QTY,
+    COL_SIDE     as PS_COL_SIDE,
+    COL_STATUS   as PS_COL_STATUS,
+    COL_STOP     as PS_COL_STOP,
+    COL_STRATEGY as PS_COL_STRATEGY,
+    COL_SYMBOL   as PS_COL_SYMBOL,
+    COL_TARGET   as PS_COL_TARGET,
+    KIND_EXITED,
+    KIND_PENDING_ENTRY,
+    KIND_RUNNING,
+    PendingSignalsTableModel,
+)
 from us_swing.gui.strategy_builder_dialog import (
     StrategyBuilderDialog,
     StrategyConfig,
@@ -242,7 +255,8 @@ class _StrategyTablePane(QWidget):
     # ── Data helpers ──────────────────────────────────────────────────────────
 
     def _refresh_table(self) -> None:
-        self._model.load(self._configs)
+        running_override = self._demo.get_strategies_with_open_cycles()
+        self._model.load(self._configs, running_override=running_override)
         self._reinject_row_widgets()
 
     def _reinject_row_widgets(self) -> None:
@@ -312,6 +326,7 @@ class _StrategyTablePane(QWidget):
         def _on_saved(cfg: StrategyConfig) -> None:
             self._configs[src_row] = cfg
             save_strategies(self._configs)
+            self._demo.reload_strategy_registry()
             self._refresh_table()
 
         dlg.strategy_saved.connect(_on_saved)
@@ -339,16 +354,38 @@ class _StrategyTablePane(QWidget):
         self._refresh_table()
 
     def _on_run(self, src_row: int) -> None:
+        """Play/Stop toggle.
+
+        Play: Status Inactive → Active.  ``mode`` is untouched (it's the
+        strategy's persistent configuration, not the runtime arming flag).
+
+        Stop: Active/Running → Inactive, but ONLY if the strategy has no
+        open trade cycles.  Otherwise show a blocking warning and refuse —
+        the user must close all positions via Force Exit in the Pending
+        Signals table before the strategy can be stopped.
+        """
         if src_row < 0 or src_row >= len(self._configs):
             return
         cfg = self._configs[src_row]
         current_status = cfg.strategy_signal.get("Status", "Inactive")
+
         if current_status == "Inactive":
             cfg.strategy_signal["Status"] = "Active"
-            cfg.mode = "manual"
         else:
+            open_syms = self._demo.get_open_symbols_for_strategy(cfg.name)
+            if open_syms:
+                sym_list = "\n  • ".join(open_syms)
+                QMessageBox.warning(
+                    self,
+                    "Cannot Stop Strategy",
+                    f"Strategy '{cfg.name}' has {len(open_syms)} open position"
+                    f"{'s' if len(open_syms) != 1 else ''}:\n\n  • {sym_list}\n\n"
+                    f"Please close them via the Force Exit button in the "
+                    f"Pending Signals table before stopping the strategy.",
+                )
+                return
             cfg.strategy_signal["Status"] = "Inactive"
-            cfg.mode = "disabled"
+
         save_strategies(self._configs)
         self._demo.reload_strategy_registry()
         self._refresh_table()
@@ -749,137 +786,6 @@ class _IntradayChartPane(QWidget):
             self._show_placeholder()
 
 
-# ── Single signal row ─────────────────────────────────────────────────────────
-
-class _SignalRow(QFrame):
-    """One row in the signal list: symbol label, stats, quantity override, execute."""
-
-    execute_requested = pyqtSignal(object, int)  # (TradeSignal, qty)
-
-    def __init__(self, signal: TradeSignal, mode: str, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self._signal   = signal
-        self._mode     = mode
-        self._original_qty = signal.recommended_qty
-
-        self.setFrameShape(QFrame.Shape.Box)
-        self.setStyleSheet(f"QFrame {{ border: 1px solid {C.OVERLAY}; border-radius: 6px; }}")
-
-        # ── Labels ─────────────────────────────────────────────────────────────
-        sym = QLabel(signal.symbol)
-        sym.setStyleSheet(f"color: {C.BLUE}; font-size: 13pt; font-weight: bold; border: none;")
-
-        strat = QLabel(signal.strategy_id)
-        strat.setStyleSheet(f"color: {C.MUTED}; font-size: 8pt; border: none;")
-
-        status_badge = QLabel("⬤  READY")
-        status_badge.setStyleSheet(f"color: {C.GREEN}; font-weight: bold; font-size: 9pt; border: none;")
-
-        price_lbl = QLabel(f"Entry: {signal.entry_price:.2f}")
-        stop_lbl  = QLabel(f"Stop: {signal.stop_loss:.2f}")
-        tgt_lbl   = QLabel(f"Target: {signal.target_price:.2f}")
-        rr_val    = (signal.target_price - signal.entry_price) / (signal.entry_price - signal.stop_loss)
-        rr_lbl    = QLabel(f"R/R: {rr_val:.1f}×")
-        for lbl in (price_lbl, stop_lbl, tgt_lbl, rr_lbl):
-            lbl.setStyleSheet(f"color: {C.TEXT}; font-size: 9pt; border: none;")
-        rr_lbl.setStyleSheet(f"color: {C.YELLOW}; font-weight: bold; font-size: 9pt; border: none;")
-
-        # Info column
-        info_col = QVBoxLayout()
-        info_col.setSpacing(2)
-        info_col.addWidget(sym)
-        info_col.addWidget(strat)
-        info_col.addWidget(status_badge)
-
-        # Price column
-        price_col = QVBoxLayout()
-        price_col.setSpacing(2)
-        price_col.addWidget(price_lbl)
-        price_col.addWidget(stop_lbl)
-        price_col.addWidget(tgt_lbl)
-        price_col.addWidget(rr_lbl)
-
-        # Quantity column
-        rec_lbl = QLabel("Rec. Qty")
-        rec_lbl.setStyleSheet(f"color: {C.MUTED}; font-size: 8pt; border: none;")
-        self._spin = QSpinBox()
-        self._spin.setRange(1, 10_000)
-        self._spin.setValue(signal.recommended_qty)
-        self._spin.setFixedWidth(90)
-        self._override_lbl = QLabel("")
-        self._override_lbl.setStyleSheet(f"color: {C.ORANGE}; font-size: 8pt; border: none;")
-        self._spin.valueChanged.connect(self._on_qty_changed)
-
-        qty_col = QVBoxLayout()
-        qty_col.setSpacing(2)
-        qty_col.addWidget(rec_lbl)
-        qty_col.addWidget(self._spin)
-        qty_col.addWidget(self._override_lbl)
-
-        # Execute button
-        self._exec_btn = QPushButton(f"Execute  {signal.side}")
-        self._exec_btn.setObjectName("buy_btn")
-        self._exec_btn.setMinimumWidth(120)
-        self._exec_btn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        self._exec_btn.clicked.connect(self._on_execute)
-
-        # Row layout
-        row = QHBoxLayout(self)
-        row.setContentsMargins(14, 10, 14, 10)
-        row.setSpacing(24)
-        row.addLayout(info_col)
-        row.addLayout(price_col)
-        row.addStretch()
-        row.addLayout(qty_col)
-        row.addWidget(self._exec_btn)
-
-    # ── Slots ─────────────────────────────────────────────────────────────────
-
-    def _on_qty_changed(self, value: int) -> None:
-        if value != self._original_qty:
-            self._override_lbl.setText("(overridden)")
-        else:
-            self._override_lbl.setText("")
-
-    def _on_execute(self) -> None:
-        qty    = self._spin.value()
-        symbol = self._signal.symbol
-        price  = self._signal.entry_price
-        mode   = self._mode.upper()
-        target_lbl = self._get_target_user_label()
-        executing_for = f"<br><span style='color:{C.YELLOW}; font-size:8pt;'>🔐 Admin · Executing for: {target_lbl}</span>" if target_lbl else ""
-        msg    = (
-            f"Submit <b>{self._signal.side}</b> order for <b>{symbol}</b>?<br><br>"
-            f"Qty: {qty}&nbsp;&nbsp; Entry: {price:.2f}&nbsp;&nbsp; Mode: {mode}"
-            f"{executing_for}"
-        )
-        dlg = QMessageBox(self)
-        dlg.setWindowTitle("Confirm Order")
-        dlg.setIcon(QMessageBox.Icon.Question)
-        dlg.setText(msg)
-        dlg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-        dlg.setDefaultButton(QMessageBox.StandardButton.Yes)
-        ret = dlg.exec()
-        if ret == QMessageBox.StandardButton.Yes:
-            self.execute_requested.emit(self._signal, qty)
-            self.setEnabled(False)
-            self._exec_btn.setText("✔  Submitted")
-
-    def _get_target_user_label(self) -> str:
-        """Return the label of the target user selected in the Execution panel combo."""
-        w = self.parent()
-        while w is not None:
-            if isinstance(w, ExecutionPanel):
-                idx = w._exec_user_combo.currentIndex()
-                return w._exec_user_combo.itemText(idx)
-            w = w.parent()
-        return ""
-
-    def set_circuit_breaker(self, active: bool) -> None:
-        self._exec_btn.setEnabled(not active)
-
-    def refresh_mode(self, mode: str) -> None:
-        self._mode = mode
 
 
 # ── Filtered Stocks table model ───────────────────────────────────────────────
@@ -1238,33 +1144,70 @@ class ExecutionPanel(QWidget):
         return tabs
 
     def _build_signals_pane(self, demo: AppService) -> QWidget:
-        """Build the signals sub-pane: pending signals scroll area + status + demo button."""
+        """Build the signals sub-pane: unified pending + running table, status, demo button."""
+        ct = active_palette()
         pane = QWidget()
         layout = QVBoxLayout(pane)
         layout.setContentsMargins(0, 8, 0, 0)
         layout.setSpacing(8)
 
-        # Pending signals group
-        group = QGroupBox("Pending Signals")
-        self._signals_group_layout = QVBoxLayout(group)
-        self._signals_group_layout.setSpacing(10)
+        hdr = QLabel("PENDING SIGNALS & ACTIVE POSITIONS")
+        hdr.setStyleSheet(
+            f"color: {C.MUTED}; font-size: 7pt; font-weight: bold; letter-spacing: 2px;"
+        )
+        layout.addWidget(hdr)
 
-        self._signal_rows: list[_SignalRow] = []
+        # ── Unified table view ────────────────────────────────────────────────
+        self._signals_model = PendingSignalsTableModel(self)
+        self._signals_view = QTableView()
+        self._signals_view.setModel(self._signals_model)
+        self._signals_view.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self._signals_view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self._signals_view.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self._signals_view.setAlternatingRowColors(True)
+        self._signals_view.setShowGrid(False)
+        self._signals_view.setWordWrap(False)
+        self._signals_view.setStyleSheet(
+            f"QTableCornerButton::section {{ background: {ct.BG}; border: none; }}"
+        )
+
+        vh = self._signals_view.verticalHeader()
+        if vh:
+            vh.setVisible(False)
+            vh.setDefaultSectionSize(C.BTN_H_SM + 4)
+
+        hh = self._signals_view.horizontalHeader()
+        if hh:
+            hh.setStretchLastSection(False)
+            for col, width, mode in [
+                (PS_COL_STATUS,    110, QHeaderView.ResizeMode.Interactive),
+                (PS_COL_STRATEGY,  120, QHeaderView.ResizeMode.Interactive),
+                (PS_COL_SYMBOL,     70, QHeaderView.ResizeMode.Interactive),
+                (PS_COL_SIDE,       55, QHeaderView.ResizeMode.Interactive),
+                (PS_COL_ENTRY,      70, QHeaderView.ResizeMode.Interactive),
+                (PS_COL_STOP,       70, QHeaderView.ResizeMode.Interactive),
+                (PS_COL_TARGET,     70, QHeaderView.ResizeMode.Interactive),
+                (PS_COL_CURRENT,    70, QHeaderView.ResizeMode.Interactive),
+                (PS_COL_PNL,        80, QHeaderView.ResizeMode.Interactive),
+                (PS_COL_QTY,        55, QHeaderView.ResizeMode.Interactive),
+                (PS_COL_ACTION,    110, QHeaderView.ResizeMode.Fixed),
+            ]:
+                hh.setSectionResizeMode(col, mode)
+                hh.resizeSection(col, width)
+
+        layout.addWidget(self._signals_view, 1)
+
+        # ── Empty-state overlay label (shown when table is empty) ─────────────
+        self._signals_empty_lbl = QLabel("No pending signals or open positions.")
+        self._signals_empty_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._signals_empty_lbl.setStyleSheet(f"color: {C.MUTED}; padding: 12px;")
+        layout.addWidget(self._signals_empty_lbl)
+
+        # ── Status line + demo CB toggle ──────────────────────────────────────
         self._status_lbl = QLabel("")
         self._status_lbl.setStyleSheet(f"color: {C.MUTED}; font-size: 9pt;")
-
-        self._refresh_signals_pane()
-        demo.pending_signals_updated.connect(self._on_signals_updated)
-
-        scroll = QScrollArea()
-        scroll.setWidget(group)
-        scroll.setWidgetResizable(True)
-        scroll.setStyleSheet("QScrollArea { border: none; }")
-        layout.addWidget(scroll, 1)
-
         layout.addWidget(self._status_lbl)
 
-        # Demo CB toggle + optional diagnostics button
         self._cb_toggle = QPushButton("Demo: Toggle Circuit Breaker")
         self._cb_toggle.setObjectName("danger_btn")
         self._cb_toggle.setFixedWidth(240)
@@ -1279,32 +1222,68 @@ class ExecutionPanel(QWidget):
         cb_row.addWidget(self._cb_toggle)
         layout.addLayout(cb_row)
 
+        demo.pending_signals_updated.connect(self._refresh_signals_pane)
+        demo.positions_updated.connect(self._refresh_signals_pane)
+        self._refresh_signals_pane()
+
         return pane
 
     def _refresh_signals_pane(self) -> None:
-        while self._signals_group_layout.count():
-            item = self._signals_group_layout.takeAt(0)
-            if item is not None:
-                w = item.widget()
-                if w:
-                    w.deleteLater()
-        self._signal_rows.clear()
-        signals = self._demo.get_pending_signals()
-        mode = self._demo.get_active_user().mode
-        for sig in signals:
-            row = _SignalRow(sig, mode)
-            row.execute_requested.connect(self._on_execute)
-            self._signal_rows.append(row)
-            self._signals_group_layout.addWidget(row)
-        if not signals:
-            lbl = QLabel("No pending signals at this time.")
-            lbl.setStyleSheet(f"color: {C.MUTED}; padding: 20px;")
-            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self._signals_group_layout.addWidget(lbl)
-        self._status_lbl.setText(f"{len(signals)} signal(s) pending — review and execute above")
+        """Reload pending + running + today's exited rows into the model."""
+        pending = self._demo.get_pending_signals()
+        running = self._demo.get_active_strategy_positions()
+        exited  = self._demo.get_recent_closed_cycles()
+        self._signals_model.load(
+            pending, running, self._demo.get_latest_close, exited=exited
+        )
+        self._inject_action_buttons()
+        total = len(pending) + len(running) + len(exited)
+        self._signals_view.setVisible(total > 0)
+        self._signals_empty_lbl.setVisible(total == 0)
+        self._status_lbl.setText(
+            f"{len(pending)} pending · {len(running)} running · "
+            f"{len(exited)} exited today"
+        )
+        self._status_lbl.setStyleSheet(f"color: {C.MUTED}; font-size: 9pt;")
 
-    def _on_signals_updated(self) -> None:
-        self._refresh_signals_pane()
+    def _inject_action_buttons(self) -> None:
+        """Place an Execute / Force Exit button into each row's Action column.
+
+        EXITED rows show no button — they're informational only and roll off
+        in the next day's pre-open cleanup.
+        """
+        for row_idx in range(self._signals_model.rowCount()):
+            r = self._signals_model.row_at(row_idx)
+            if r is None:
+                continue
+            idx = self._signals_model.index(row_idx, PS_COL_ACTION)
+            if r.kind == KIND_EXITED:
+                self._signals_view.setIndexWidget(idx, None)
+                continue
+            if r.kind == KIND_RUNNING:
+                btn = self._make_force_exit_btn(r.payload)
+            else:
+                btn = self._make_pending_action_btn(r)
+                if self._cb_active and r.kind == KIND_PENDING_ENTRY:
+                    btn.setEnabled(False)
+            self._signals_view.setIndexWidget(idx, btn)
+
+    def _make_pending_action_btn(self, row: Any) -> QPushButton:
+        ct = active_palette()
+        fg = ct.GREEN if row.side == "BUY" else ct.RED
+        btn = QPushButton(f"Execute {row.side}")
+        btn.setStyleSheet(_cell_btn_ss(fg, fg))
+        btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        btn.clicked.connect(lambda _, payload=row.payload: self._on_table_execute(payload))
+        return btn
+
+    def _make_force_exit_btn(self, pos: Any) -> QPushButton:
+        ct = active_palette()
+        btn = QPushButton("Force Exit")
+        btn.setStyleSheet(_cell_btn_ss(ct.RED, ct.RED))
+        btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        btn.clicked.connect(lambda _, p=pos: self._on_table_force_exit(p))
+        return btn
 
     # ── Slots ─────────────────────────────────────────────────────────────────
 
@@ -1316,11 +1295,54 @@ class ExecutionPanel(QWidget):
                 self._exec_user_combo.setCurrentIndex(i)
                 break
 
-    def _on_execute(self, signal: TradeSignal, qty: int) -> None:
+    def _on_table_execute(self, signal: TradeSignal) -> None:
+        """User clicked Execute on a pending row — confirm and submit."""
+        qty = max(1, signal.recommended_qty)
+        mode = self._demo.get_active_user().mode.upper()
+        msg = (
+            f"Submit <b>{signal.side}</b> order for <b>{signal.symbol}</b>?<br><br>"
+            f"Qty: {qty}&nbsp;&nbsp; Entry: {signal.entry_price:.2f}"
+            f"&nbsp;&nbsp; Mode: {mode}"
+        )
+        dlg = QMessageBox(self)
+        dlg.setWindowTitle("Confirm Order")
+        dlg.setIcon(QMessageBox.Icon.Question)
+        dlg.setText(msg)
+        dlg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        dlg.setDefaultButton(QMessageBox.StandardButton.Yes)
+        if dlg.exec() != QMessageBox.StandardButton.Yes:
+            return
         order_id = self._demo.execute_signal(signal, qty)
         self._status_lbl.setText(
-            f"✔  Order #{order_id} submitted for {signal.symbol} × {qty}  —  "
-            f"check Log Viewer for details"
+            f"✔  Order #{order_id} submitted for {signal.symbol} × {qty}"
+        )
+        self._status_lbl.setStyleSheet(f"color: {C.GREEN}; font-size: 9pt;")
+
+    def _on_table_force_exit(self, pos: Any) -> None:
+        """User clicked Force Exit on a running row — confirm and submit market exit."""
+        last = self._demo.get_latest_close(pos.symbol, "3m")
+        cur_str = f"{last:.2f}" if last is not None else "market"
+        msg = (
+            f"Manually exit <b>{pos.symbol}</b> from strategy "
+            f"<b>{pos.strategy_id}</b>?<br><br>"
+            f"Qty: {pos.quantity}&nbsp;&nbsp; Entry: {pos.average_price:.2f}"
+            f"&nbsp;&nbsp; Exit @ {cur_str}"
+        )
+        dlg = QMessageBox(self)
+        dlg.setWindowTitle("Confirm Force Exit")
+        dlg.setIcon(QMessageBox.Icon.Warning)
+        dlg.setText(msg)
+        dlg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        dlg.setDefaultButton(QMessageBox.StandardButton.No)
+        if dlg.exec() != QMessageBox.StandardButton.Yes:
+            return
+        order_id = self._demo.force_exit_position(pos.strategy_id, pos.symbol)
+        if order_id is None:
+            self._status_lbl.setText(f"⚠  No open cycle found for {pos.symbol}")
+            self._status_lbl.setStyleSheet(f"color: {C.ORANGE}; font-size: 9pt;")
+            return
+        self._status_lbl.setText(
+            f"✔  Force exit submitted for {pos.symbol} × {pos.quantity}"
         )
         self._status_lbl.setStyleSheet(f"color: {C.GREEN}; font-size: 9pt;")
 
@@ -1337,11 +1359,11 @@ class ExecutionPanel(QWidget):
             self._chart_pane.load_symbol(self._selected_symbol)
 
     def on_circuit_breaker(self, active: bool) -> None:
-        """Enable/disable all entry buttons and show banner."""
+        """Disable pending-entry buttons in the signals table and show banner."""
         self._cb_active = active
         self._cb_banner.setVisible(active)
-        for row in self._signal_rows:
-            row.set_circuit_breaker(active)
+        # Re-inject so disabled state takes effect on existing rows
+        self._inject_action_buttons()
         if active:
             self._demo.log_message.emit("WARNING", "Circuit breaker activated — entries disabled")
 

@@ -84,6 +84,9 @@ class _Router:
     def request_stop(self) -> None:
         self._stop_event.set()
 
+    def stop_requested(self) -> bool:
+        return self._stop_event.is_set()
+
     # ── Per-bar evaluation (called from engine fan-out) ──────────────────────
 
     async def evaluate(
@@ -160,6 +163,7 @@ class _Router:
                     action=Action.EXIT,
                     symbol=symbol,
                     strategy_id=ctx.name,
+                    entry_price=float(bar.close),
                     reason="strategy",
                 )
                 ctx.cycles[symbol] = _CycleState.UNDER_EXIT

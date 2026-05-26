@@ -1048,17 +1048,41 @@ class AppService(QObject):
         self._pending_candle_symbols: list[str] | None = None
 
         # ── Monitoring session lifecycle (FO-EXE-009 / FO-EXE-010) ───────────
-        # Service is lazy-built on first screener-results signal so a fresh
-        # install with no candle DB yet does not eagerly create the file.
+        # Service is built eagerly here so the SQLAlchemy engine + event bus
+        # are available for the FO-EXE-012 trade-cycle service below.  The
+        # lifecycle service itself is otherwise dormant until screener
+        # results arrive.
+        self._db_engine:           Any                = None
         self._lifecycle_query:     MonitoringQuery    | None = None
         self._lifecycle_command:   MonitoringCommand  | None = None
         self._lifecycle_bus:       MonitoringEventBus | None = None
         self._lifecycle_scheduler: Any                | None = None
         self._lifecycle_last_run:  datetime.date      | None = None
+        self._tc_query:            Any                = None
+        self._tc_command:          Any                = None
 
         self.screener_results_updated.connect(self._on_screener_results_updated)
         # Trigger candle fetch for any results that were saved from a prior screener run.
         QTimer.singleShot(0, self._boot_candle_check)
+
+        # Eagerly build engine + bus + trade-cycle service before strategy engine.
+        # _on_paper_fill needs the trade-cycle command to persist entries.
+        if self._ensure_lifecycle_service():
+            try:
+                from us_swing.execution.trade_cycle import (
+                    build_default_service as build_tc_service,
+                )
+                self._tc_query, self._tc_command = build_tc_service(
+                    self._db_engine,
+                    self._lifecycle_bus,
+                )
+                # Background loop for tick-driven trail-stop bookkeeping.
+                self._tc_command.start()
+                # Re-attach accumulators for any cycles that survived restart.
+                self._tc_command.reload()
+                _log.info("[TradeCycle] Service ready")
+            except Exception:
+                _log.exception("[TradeCycle] Service init failed")
 
         # ── Strategy Engine ───────────────────────────────────────────────────
         from us_swing.execution.pending_signal_store import PendingSignalStore
@@ -1067,6 +1091,9 @@ class AppService(QObject):
         from us_swing.execution.paper_broker import PaperBroker
         from us_swing.execution.strategy_engine._engine import StrategyEngine
         from us_swing.gui.strategy_builder_dialog import load_strategies, save_strategies
+
+        # Restore positions + trade history from the trade-cycle ledger.
+        self._rehydrate_positions_from_cycles()
 
         self._pending_store = PendingSignalStore(self)
         self._pending_store.pending_signal_added.connect(lambda _: self.pending_signals_updated.emit())
@@ -1083,6 +1110,8 @@ class AppService(QObject):
             submitter=self._paper_broker,
             pending=self._pending_store,
             bus=self._event_bus,
+            symbols_provider=lambda: list(self._filtered_symbols),
+            cycle_loader=self._build_cycle_index,
             parent=self,
         )
         self._strategy_engine.start()
@@ -1293,7 +1322,11 @@ class AppService(QObject):
 
     def _ensure_lifecycle_service(self) -> bool:
         """Lazily construct the lifecycle service + scheduler.  Returns True if
-        the service is available, False if the candle DB cannot be opened."""
+        the service is available, False if the candle DB cannot be opened.
+
+        Also stores ``self._db_engine`` so callers (e.g. the trade-cycle
+        service) can attach to the same SQLAlchemy engine + event bus.
+        """
         if self._lifecycle_command is not None:
             return True
         try:
@@ -1318,6 +1351,7 @@ class AppService(QObject):
         except Exception as exc:
             _log.warning("[Lifecycle] Service init failed: %r", exc)
             return False
+        self._db_engine           = engine
         self._lifecycle_query     = query
         self._lifecycle_command   = command
         self._lifecycle_bus       = bus
@@ -1695,6 +1729,14 @@ class AppService(QObject):
         if not isinstance(fill, FillEvent):
             return
         self._strategy_engine.on_order_fill(fill)
+
+        now    = datetime.datetime.now()
+        now_iso = now.strftime("%Y-%m-%dT%H:%M:%S")
+        if fill.is_entry:
+            self._record_paper_entry(fill, now, now_iso)
+        else:
+            self._record_paper_exit(fill, now, now_iso)
+
         self.log_message.emit(
             "INFO",
             f"[Strategy] Paper fill confirmed: {fill.symbol}  "
@@ -1702,6 +1744,323 @@ class AppService(QObject):
             f"qty={fill.fill_qty}  price={fill.fill_price:.2f}  order={fill.order_id}",
         )
         self.positions_updated.emit()
+
+    def _record_paper_entry(
+        self,
+        fill: Any,
+        now: datetime.datetime,
+        now_iso: str,
+    ) -> None:
+        """Persist an entry fill via TradeCycleService and update in-memory state."""
+        cfg = self._strategy_cfg(fill.strategy_id)
+        target_enabled = bool(getattr(cfg, "target_enabled", False)) if cfg else False
+        sl_enabled     = bool(getattr(cfg, "stoploss_enabled", False)) if cfg else False
+        target_pct     = float(getattr(cfg, "target_value", 0.0)) if cfg else 0.0
+        sl_pct         = float(getattr(cfg, "stoploss_value", 0.0)) if cfg else 0.0
+        target_type    = (getattr(cfg, "target_type", "fixed") if cfg else "fixed") or "fixed"
+        stoploss_type  = (getattr(cfg, "stoploss_type", "fixed") if cfg else "fixed") or "fixed"
+
+        target_price: float | None = (
+            fill.fill_price * (1.0 + target_pct / 100.0) if target_enabled else None
+        )
+        hard_sl: float = (
+            fill.fill_price * (1.0 - sl_pct / 100.0) if sl_enabled else 0.0
+        )
+
+        if self._tc_command is not None:
+            try:
+                self._tc_command.on_entry_fill(
+                    strategy_id             = fill.strategy_id,
+                    symbol                  = fill.symbol,
+                    user_id                 = self._active_uid,
+                    entry_order_id          = str(fill.order_id),
+                    entry_price             = float(fill.fill_price),
+                    entry_qty               = int(fill.fill_qty),
+                    fill_time               = now_iso,
+                    hard_stop_loss          = hard_sl,
+                    target_price            = target_price,
+                    target_type             = target_type,
+                    stoploss_type           = stoploss_type,
+                    trailing_mode           = None,
+                    trailing_offset         = None,
+                    monitoring_session_date = now.strftime("%Y-%m-%d"),
+                )
+            except Exception:
+                _log.exception("[TradeCycle] on_entry_fill failed for %s", fill.symbol)
+
+        pos = OpenPosition(
+            symbol          = fill.symbol,
+            user_id         = self._active_uid,
+            quantity        = fill.fill_qty,
+            average_price   = fill.fill_price,
+            stop_loss       = hard_sl,
+            target_price    = target_price or 0.0,
+            mode            = "paper",
+            state           = "OPEN",
+            current_price   = fill.fill_price,
+            strategy_id     = fill.strategy_id,
+            filled_quantity = fill.fill_qty,
+            total_quantity  = fill.fill_qty,
+            trade_id        = str(fill.order_id),
+            entry_time      = now,
+        )
+        self._positions.append(pos)
+        self._trades.append(TradeRecord(
+            trade_id    = str(fill.order_id),
+            user_id     = self._active_uid,
+            symbol      = fill.symbol,
+            side        = "BUY",
+            quantity    = fill.fill_qty,
+            entry_price = fill.fill_price,
+            mode        = "paper",
+            strategy_id = fill.strategy_id,
+            entry_time  = now,
+            status      = "FILLED",
+        ))
+
+    def _record_paper_exit(
+        self,
+        fill: Any,
+        now: datetime.datetime,
+        now_iso: str,
+    ) -> None:
+        """Close the matching open cycle via TradeCycleService and update in-memory state."""
+        if self._tc_query is not None and self._tc_command is not None:
+            snap = next(
+                (
+                    s for s in self._tc_query.open_cycles()
+                    if s.strategy_id == fill.strategy_id and s.symbol == fill.symbol
+                ),
+                None,
+            )
+            if snap is not None:
+                try:
+                    self._tc_command.close_cycle_by_id(
+                        cycle_id      = snap.cycle_id,
+                        exit_order_id = str(fill.order_id),
+                        exit_price    = float(fill.fill_price),
+                        exit_qty      = int(fill.fill_qty),
+                        exit_time     = now_iso,
+                        exit_reason   = "manual",
+                    )
+                except Exception:
+                    _log.exception("[TradeCycle] close_cycle_by_id failed for %s", fill.symbol)
+
+        for p in self._positions:
+            if (p.symbol == fill.symbol
+                    and p.strategy_id == fill.strategy_id
+                    and p.state == "OPEN"):
+                p.state         = "CLOSED"
+                p.current_price = fill.fill_price
+                break
+        for t in reversed(self._trades):
+            if (t.symbol == fill.symbol
+                    and t.strategy_id == fill.strategy_id
+                    and t.exit_price is None):
+                t.exit_price = fill.fill_price
+                t.exit_time  = now
+                t.pnl        = (fill.fill_price - t.entry_price) * t.quantity
+                t.status     = "CLOSED"
+                break
+
+    def _strategy_cfg(self, name: str) -> Any:
+        """Return the live StrategyConfig for *name*, or None."""
+        ctx = self._strategy_engine.registry.get(name) if hasattr(self, "_strategy_engine") else None
+        return ctx.cfg if ctx is not None else None
+
+    def _rehydrate_positions_from_cycles(self) -> None:
+        """Restore _positions and _trades from the trade_cycles ledger on boot.
+
+        Open cycles → OpenPosition rows for the Pending Signals table.
+        Recent history (open + closed) → TradeRecord rows for Trade History.
+        """
+        if self._tc_query is None:
+            return
+        try:
+            open_snaps = self._tc_query.open_cycles()
+            hist_snaps = self._tc_query.history(days=30)
+        except Exception:
+            _log.exception("[TradeCycle] Failed to load cycles on boot")
+            return
+        if not open_snaps and not hist_snaps:
+            return
+
+        from datetime import datetime as _dt
+        def _parse_iso(s: str | None) -> datetime.datetime | None:
+            if not s:
+                return None
+            try:
+                return _dt.fromisoformat(s)
+            except Exception:
+                return None
+
+        seen_trade_ids: set[str] = set()
+        for snap in hist_snaps:
+            tid = snap.entry_order_id or f"cyc-{snap.cycle_id}"
+            if tid in seen_trade_ids:
+                continue
+            seen_trade_ids.add(tid)
+            entry_dt = _parse_iso(snap.entry_time) or datetime.datetime.now()
+            exit_dt  = _parse_iso(snap.exit_time)
+            self._trades.append(TradeRecord(
+                trade_id    = tid,
+                user_id     = snap.user_id or self._active_uid,
+                symbol      = snap.symbol,
+                side        = "BUY",
+                quantity    = snap.entry_qty,
+                entry_price = snap.entry_price,
+                mode        = "paper",
+                strategy_id = snap.strategy_id,
+                entry_time  = entry_dt,
+                exit_price  = snap.exit_price,
+                exit_time   = exit_dt,
+                pnl         = snap.realized_pnl_usd,
+                status      = "CLOSED" if snap.state in ("CLOSED", "ABORTED") else "FILLED",
+            ))
+
+        for snap in open_snaps:
+            entry_dt = _parse_iso(snap.entry_time) or datetime.datetime.now()
+            self._positions.append(OpenPosition(
+                symbol          = snap.symbol,
+                user_id         = snap.user_id or self._active_uid,
+                quantity        = snap.entry_qty,
+                average_price   = snap.entry_price,
+                stop_loss       = snap.hard_stop_loss,
+                target_price    = snap.target_price or 0.0,
+                mode            = "paper",
+                state           = "OPEN",
+                current_price   = snap.current_price or snap.entry_price,
+                strategy_id     = snap.strategy_id,
+                filled_quantity = snap.entry_qty,
+                total_quantity  = snap.entry_qty,
+                trade_id        = snap.entry_order_id or f"cyc-{snap.cycle_id}",
+                entry_time      = entry_dt,
+            ))
+        _log.info(
+            "[TradeCycle] Restored %d open, %d historical cycle(s)",
+            len(open_snaps), len(hist_snaps),
+        )
+
+    def get_active_strategy_positions(self) -> list[OpenPosition]:
+        """Paper-mode positions currently OPEN — feeds the Pending Signals table."""
+        return [p for p in self._positions if p.mode == "paper" and p.state == "OPEN"]
+
+    def get_open_symbols_for_strategy(self, name: str) -> list[str]:
+        """Return sorted list of symbols holding an open cycle under *name*.
+
+        Consumed by the Stop button gate — if non-empty, the user must
+        close the positions manually via Force Exit before the strategy
+        can transition back to Inactive.
+        """
+        if self._tc_query is None:
+            return []
+        try:
+            return sorted(
+                s.symbol for s in self._tc_query.open_cycles()
+                if s.strategy_id == name
+            )
+        except Exception:
+            _log.exception("[TradeCycle] open-symbols lookup failed for %s", name)
+            return []
+
+    def get_strategies_with_open_cycles(self) -> set[str]:
+        """Strategy names that currently hold at least one open trade cycle.
+
+        Consumed by the Strategy Executor to surface a "Running" badge for
+        strategies that have restored positions even though their saved
+        Status is "Inactive" (the engine deliberately leaves it Inactive
+        on boot so entry checks stay gated behind the user's Run click).
+        """
+        if self._tc_query is None:
+            return set()
+        try:
+            return {s.strategy_id for s in self._tc_query.open_cycles()}
+        except Exception:
+            _log.exception("[TradeCycle] Failed to query strategies with open cycles")
+            return set()
+
+    def _build_cycle_index(self) -> dict[str, dict[str, str]]:
+        """Return ``{strategy: {symbol: 'RUNNING'}}`` for engine boot restoration.
+
+        The strategy engine calls this in ``_load_registry`` so each
+        ``_StrategyContext`` is rehydrated with the per-symbol RUNNING state
+        of any open cycle still persisted in the trade-cycle ledger.
+        """
+        out: dict[str, dict[str, str]] = {}
+        if self._tc_query is None:
+            return out
+        try:
+            for snap in self._tc_query.open_cycles():
+                out.setdefault(snap.strategy_id, {})[snap.symbol] = "RUNNING"
+        except Exception:
+            _log.exception("[TradeCycle] Failed to build cycle index for engine boot")
+        return out
+
+    def get_latest_close(self, symbol: str, tf: str = "3m") -> float | None:
+        """Return the latest closing price for *symbol* at *tf*, or None."""
+        bar = self._get_latest_bar(symbol, tf)
+        return float(bar.close) if bar is not None else None
+
+    def get_recent_closed_cycles(self) -> list:
+        """Cycles closed today — stay visible in the Pending Signals table
+        until the next-day pre-open cleanup.
+
+        "Today" is the local calendar day of the machine, matching the
+        timestamp written by ``_on_paper_fill``.
+        """
+        if self._tc_query is None:
+            return []
+        today = datetime.datetime.now().date()
+        try:
+            cycles = self._tc_query.history(days=2)
+        except Exception:
+            _log.exception("[TradeCycle] Failed to load recent closed cycles")
+            return []
+        out = []
+        for c in cycles:
+            if c.state != "CLOSED" or not c.exit_time:
+                continue
+            try:
+                d = datetime.datetime.fromisoformat(c.exit_time).date()
+            except Exception:
+                continue
+            if d == today:
+                out.append(c)
+        return out
+
+    def force_exit_position(self, strategy: str, symbol: str) -> int | None:
+        """User-initiated paper exit for a running strategy position.
+
+        Looks up the open cycle via TradeCycleService, builds an exit
+        ``TradeSignal`` carrying the latest close as its fill price, and
+        submits it through ``PaperBroker``.  Returns the simulated order id,
+        or None if no open cycle exists for the pair.
+        """
+        if self._tc_query is None:
+            return None
+        snap = next(
+            (
+                s for s in self._tc_query.open_cycles()
+                if s.strategy_id == strategy and s.symbol == symbol
+            ),
+            None,
+        )
+        if snap is None:
+            return None
+        last_close = self.get_latest_close(symbol, "3m")
+        exit_price = last_close if last_close is not None else snap.entry_price
+        from us_swing.execution.strategy_engine._signals import (
+            Action,
+            TradeSignal as EngineSignal,
+        )
+        eng_sig = EngineSignal(
+            action      = Action.EXIT,
+            symbol      = symbol,
+            strategy_id = strategy,
+            entry_price = float(exit_price),
+            reason      = "manual_force_exit",
+        )
+        return self._paper_broker.submit(eng_sig, int(snap.entry_qty))
 
     def _on_strategy_event(self, event: object) -> None:
         from us_swing.execution.strategy_engine._events import StrategyEntered, StrategyExited

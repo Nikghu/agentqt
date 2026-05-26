@@ -213,6 +213,9 @@ class StrategyConfig:
     stoploss_value: float = 1.0
     auto_trade: bool = False
     trade_type: str = "Intraday"
+    minute_close: int = 1
+    execution_rate_sec: int = 1
+    rex_count: int = 0
     strategy_signal: dict = field(
         default_factory=lambda: {
             "Status": "Inactive",
@@ -230,16 +233,18 @@ class StrategyConfig:
 # ── Persistence ───────────────────────────────────────────────────────────────
 
 def load_strategies() -> list[StrategyConfig]:
+    """Read all configured strategies from disk.
+
+    Saved Status is trusted verbatim — strategies remain Active/Running
+    across sessions and days until the user explicitly stops them.  Stop
+    is gated by open-position check at the GUI layer.
+    """
     if not _STRATEGIES_PATH.exists():
         return []
     try:
         raw: list[dict] = json.loads(_STRATEGIES_PATH.read_text(encoding="utf-8"))
         valid_keys = {f.name for f in fields(StrategyConfig)}
         configs = [StrategyConfig(**{k: v for k, v in r.items() if k in valid_keys}) for r in raw]
-        for cfg in configs:
-            if cfg.strategy_signal.get("Status") != "Inactive":
-                cfg.strategy_signal["Status"] = "Inactive"
-                cfg.strategy_signal["Running_Symbols"] = []
         return configs
     except Exception:
         return []
@@ -1104,7 +1109,7 @@ class _TriggersPage(QWidget):
 # ── Page: Settings ────────────────────────────────────────────────────────────
 
 class _SettingsPage(QScrollArea):
-    """Execution settings — auto trade mode, trade type."""
+    """Execution settings — auto trade mode, trade type, evaluation cadence."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -1132,6 +1137,51 @@ class _SettingsPage(QScrollArea):
         exec_form.addRow("Trade Type:", self._trade_type_combo)
 
         bl.addLayout(exec_form)
+
+        bl.addWidget(_section_label("EXECUTION SETTINGS"))
+
+        cadence_form = QFormLayout()
+        cadence_form.setSpacing(12)
+        cadence_form.setContentsMargins(0, 0, 0, 0)
+
+        self._minute_close = QSpinBox()
+        self._minute_close.setRange(0, 1440)
+        self._minute_close.setValue(1)
+        self._minute_close.setFixedHeight(C.INPUT_H)
+        self._minute_close.setFixedWidth(160)
+        self._minute_close.setStyleSheet(_spin_ss())
+        self._minute_close.setToolTip(
+            "Evaluation cadence in minutes. 0 = use Rate/Delay only.\n"
+            "Example: 1 = every minute boundary; 5 = every 5-min boundary."
+        )
+        cadence_form.addRow("Minute Close:", self._minute_close)
+
+        self._exec_rate = QSpinBox()
+        self._exec_rate.setRange(0, 3600)
+        self._exec_rate.setValue(1)
+        self._exec_rate.setSuffix(" s")
+        self._exec_rate.setFixedHeight(C.INPUT_H)
+        self._exec_rate.setFixedWidth(160)
+        self._exec_rate.setStyleSheet(_spin_ss())
+        self._exec_rate.setToolTip(
+            "Delay-after-boundary in seconds when Minute Close > 0.\n"
+            "When Minute Close = 0, this is the pure polling interval."
+        )
+        cadence_form.addRow("Rate/Delay in Sec:", self._exec_rate)
+
+        self._rex_count = QSpinBox()
+        self._rex_count.setRange(0, 100)
+        self._rex_count.setValue(0)
+        self._rex_count.setFixedHeight(C.INPUT_H)
+        self._rex_count.setFixedWidth(160)
+        self._rex_count.setStyleSheet(_spin_ss())
+        self._rex_count.setToolTip(
+            "Re-execution count: how many times the same symbol may re-enter\n"
+            "after a strategy exit within the same trading session. 0 = no re-entry."
+        )
+        cadence_form.addRow("Rex Count:", self._rex_count)
+
+        bl.addLayout(cadence_form)
         bl.addStretch()
         self.setWidget(body)
 
@@ -1452,6 +1502,9 @@ class StrategyBuilderDialog(QDialog):
         e = self._exec_page
         e._auto_trade.setChecked(cfg.auto_trade)
         e._trade_type_combo.setCurrentText(cfg.trade_type)
+        e._minute_close.setValue(cfg.minute_close)
+        e._exec_rate.setValue(cfg.execution_rate_sec)
+        e._rex_count.setValue(cfg.rex_count)
 
         r = self._risk_page
         r._target_enabled.setChecked(cfg.target_enabled)
@@ -1487,11 +1540,17 @@ class StrategyBuilderDialog(QDialog):
         sc = self._sched_page
         e = self._exec_page
         r = self._risk_page
+
+        # New strategies: Auto mode starts Active (no user gating required),
+        # Manual mode starts Inactive (must Play).  Edits preserve the live
+        # strategy_signal so Running cycles keep their state.
+        new_mode = i._mode_combo.currentText().lower()
+        initial_status = "Active" if new_mode == "auto" else "Inactive"
         existing_signal: dict = (
             self._existing.strategy_signal
             if self._existing is not None
             else {
-                "Status": "Inactive",
+                "Status": initial_status,
                 "Execution_Time": "None",
                 "Executed_Quantity": 0,
                 "Pending_Quantity": 0,
@@ -1519,6 +1578,9 @@ class StrategyBuilderDialog(QDialog):
             exit_condition=exit_,
             auto_trade=e._auto_trade.isChecked(),
             trade_type=e._trade_type_combo.currentText(),
+            minute_close=e._minute_close.value(),
+            execution_rate_sec=e._exec_rate.value(),
+            rex_count=e._rex_count.value(),
             target_enabled=r._target_enabled.isChecked(),
             target_type=r._target_type.currentText().lower(),
             target_value=r._target_value.value(),
