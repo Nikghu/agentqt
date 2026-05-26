@@ -2,6 +2,18 @@
 
 ---
 
+## [20260526] EXE — FO-EXE-001/002/004/005 Core Execution Stack (45 tests pass)
+
+- Type: Feature
+- FO(s): FO-EXE-001, FO-EXE-002, FO-EXE-004, FO-EXE-005
+- RN: RN-EXE-1.7.0-20260526
+- Artifacts updated: SRD (22 rows → Implemented), MD (5 rows → Implemented), UTCD (43 rows → Pass), TRACE (7 rows updated), exceptions.py, data/models.py, CONTEXT §0, DEVLOG
+- New files: risk_manager.py, position_tracker.py, paper_engine.py, execution_router.py, execution_engine.py + 5 test files
+- Decisions: PaperEngine writes both trades+positions rows for SRD-EXE-004.002 compliance; validate_signal computes qty internally for capital check; ExecutionEngine.submit fires-and-forgets via asyncio.ensure_future; trade_id on OpenPosition is in-memory-only (not persisted)
+- Deferred: AppService wiring (ExecutionRouter replacing PaperBroker stub), MonitoringCommand.on_fill seam, FO-EXE-003
+
+---
+
 ## [20260525] EXE — FO-EXE-011 & FO-EXE-012 Test Suite Complete (67 tests pass)
 
 - Type: Feature

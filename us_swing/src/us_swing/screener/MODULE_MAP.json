@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-24T13:14:13",
+  "generated": "2026-05-26T07:15:27",
   "subfolder": "screener",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\screener",
   "tool_code": "SCR",
@@ -1422,13 +1422,13 @@
           "methods": [
             {
               "name": "__init__",
-              "signature": "def __init__(\n        self,\n        min_price: float = _MIN_PRICE,\n        min_volume: int = _MIN_VOLUME,\n    ) -> None",
+              "signature": "def __init__(\r\n        self,\r\n        min_price: float = _MIN_PRICE,\r\n        min_volume: int = _MIN_VOLUME,\r\n    ) -> None",
               "line_start": 41,
               "line_end": 47
             },
             {
               "name": "apply",
-              "signature": "def apply(\n        self,\n        symbols: list[str],\n        bars: dict[str, list[Any]],\n    ) -> list[str]",
+              "signature": "def apply(\r\n        self,\r\n        symbols: list[str],\r\n        bars: dict[str, list[Any]],\r\n    ) -> list[str]",
               "docstring": "Filter *symbols* against price and volume thresholds.",
               "line_start": 49,
               "line_end": 75
@@ -1441,7 +1441,7 @@
       "top_level_functions": [
         {
           "name": "parallel_execute",
-          "signature": "def parallel_execute(\n    fn: Callable[[_T], _R],\n    items: list[_T],\n    max_workers: int = 4,\n) -> list[_R]",
+          "signature": "def parallel_execute(\r\n    fn: Callable[[_T], _R],\r\n    items: list[_T],\r\n    max_workers: int = 4,\r\n) -> list[_R]",
           "docstring": "Execute *fn* over *items* in a thread pool and return results in order.",
           "line_start": 78,
           "line_end": 96

@@ -71,3 +71,6 @@ us_swing/usswing_installer.yaml
 *.log
 *.tmp
 *.temp
+
+# ─── Local / Scratch ──────────────────────────────────────────────────────────
+local/
