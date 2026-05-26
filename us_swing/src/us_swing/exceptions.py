@@ -49,6 +49,14 @@ class ConfirmationRequiredError(USSwingError):
     """Switching to live mode requires an explicit confirmation token."""
 
 
+class OrderSubmissionError(USSwingError):
+    """IBKR order submission failed or timed out."""
+
+
+class InvalidStateTransitionError(USSwingError):
+    """Attempted an illegal position state transition."""
+
+
 class LiveModeDisabledError(USSwingError):
     """Live mode is administratively disabled in the current configuration.
 

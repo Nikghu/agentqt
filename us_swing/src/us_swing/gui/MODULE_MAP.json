@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-24T13:14:13",
+  "generated": "2026-05-26T07:15:27",
   "subfolder": "gui",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\gui",
   "tool_code": "GUI",
@@ -250,7 +250,7 @@
           "methods": [
             {
               "name": "__init__",
-              "signature": "def __init__(\n        self,\n        query: TradeCycleQuery,\n        pending_store: PendingSignalStore,\n        parent: QObject | None = None,\n    ) -> None",
+              "signature": "def __init__(\r\n        self,\r\n        query: TradeCycleQuery,\r\n        pending_store: PendingSignalStore,\r\n        parent: QObject | None = None,\r\n    ) -> None",
               "line_start": 98,
               "line_end": 109
             },
@@ -385,7 +385,7 @@
             },
             {
               "name": "headerData",
-              "signature": "def headerData(\n        self,\n        section: int,\n        orientation: Qt.Orientation,\n        role: int = Qt.ItemDataRole.DisplayRole,\n    ) -> Any",
+              "signature": "def headerData(\r\n        self,\r\n        section: int,\r\n        orientation: Qt.Orientation,\r\n        role: int = Qt.ItemDataRole.DisplayRole,\r\n    ) -> Any",
               "line_start": 312,
               "line_end": 322
             },
@@ -468,19 +468,19 @@
           "methods": [
             {
               "name": "__init__",
-              "signature": "def __init__(\n        self,\n        cb_state_provider: Callable[[], bool],\n        parent: QWidget | None = None,\n    ) -> None",
+              "signature": "def __init__(\r\n        self,\r\n        cb_state_provider: Callable[[], bool],\r\n        parent: QWidget | None = None,\r\n    ) -> None",
               "line_start": 72,
               "line_end": 79
             },
             {
               "name": "paint",
-              "signature": "def paint(\n        self,\n        painter: QPainter,\n        option: QStyleOptionViewItem,\n        index: QModelIndex,\n    ) -> None",
+              "signature": "def paint(\r\n        self,\r\n        painter: QPainter,\r\n        option: QStyleOptionViewItem,\r\n        index: QModelIndex,\r\n    ) -> None",
               "line_start": 83,
               "line_end": 128
             },
             {
               "name": "_draw_button",
-              "signature": "def _draw_button(\n        self,\n        p: QPainter,\n        rect: QRect,\n        label: str,\n        accent_hex: str,\n        disabled: bool,\n    ) -> None",
+              "signature": "def _draw_button(\r\n        self,\r\n        p: QPainter,\r\n        rect: QRect,\r\n        label: str,\r\n        accent_hex: str,\r\n        disabled: bool,\r\n    ) -> None",
               "line_start": 130,
               "line_end": 144
             },
@@ -504,13 +504,13 @@
             },
             {
               "name": "editorEvent",
-              "signature": "def editorEvent(\n        self,\n        event: QEvent,\n        model: Any,\n        option: QStyleOptionViewItem,\n        index: QModelIndex,\n    ) -> bool",
+              "signature": "def editorEvent(\r\n        self,\r\n        event: QEvent,\r\n        model: Any,\r\n        option: QStyleOptionViewItem,\r\n        index: QModelIndex,\r\n    ) -> bool",
               "line_start": 174,
               "line_end": 210
             },
             {
               "name": "helpEvent",
-              "signature": "def helpEvent(\n        self,\n        event: QEvent,\n        view: Any,\n        option: QStyleOptionViewItem,\n        index: QModelIndex,\n    ) -> bool",
+              "signature": "def helpEvent(\r\n        self,\r\n        event: QEvent,\r\n        view: Any,\r\n        option: QStyleOptionViewItem,\r\n        index: QModelIndex,\r\n    ) -> bool",
               "line_start": 212,
               "line_end": 232
             }
@@ -524,7 +524,7 @@
           "methods": [
             {
               "name": "__init__",
-              "signature": "def __init__(\n        self,\n        *,\n        cycle_query: TradeCycleQuery,\n        cycle_cmd: TradeCycleCommand,\n        pending_store: PendingSignalStore,\n        app_service: Any,\n        exit_executor: Callable[[int, str], None],\n        parent: QWidget | None = None,\n    ) -> None",
+              "signature": "def __init__(\r\n        self,\r\n        *,\r\n        cycle_query: TradeCycleQuery,\r\n        cycle_cmd: TradeCycleCommand,\r\n        pending_store: PendingSignalStore,\r\n        app_service: Any,\r\n        exit_executor: Callable[[int, str], None],\r\n        parent: QWidget | None = None,\r\n    ) -> None",
               "line_start": 254,
               "line_end": 333
             },

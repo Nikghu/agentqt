@@ -123,6 +123,7 @@ class OpenPosition(PositionRecord):
     total_quantity:  int      = 0
     current_price:   float    = 0.0
     strategy_id:     str      = ""
+    trade_id:        str      = ""
     entry_time:      datetime = field(default_factory=datetime.now)
 
     @property
