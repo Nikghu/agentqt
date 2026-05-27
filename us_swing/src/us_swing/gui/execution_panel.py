@@ -21,7 +21,7 @@ from PyQt6.QtCore import (
     QUrl,
     pyqtSignal,
 )
-from PyQt6.QtGui import QColor, QIcon, QMouseEvent, QPainter, QPainterPath, QPixmap
+from PyQt6.QtGui import QColor, QIcon, QMouseEvent, QPainter, QPainterPath, QPen, QPixmap
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import (
     QAbstractItemView,
@@ -43,6 +43,7 @@ from PyQt6.QtWidgets import (
 )
 
 from us_swing.data.models import FilteredStockEntry
+from us_swing.gui.active_cycles_panel import ActiveCyclesPanel
 from us_swing.gui.app_service import AppService
 from us_swing.gui._types import TradeSignal
 from us_swing.gui.chart_panel import _build_html as _build_chart_html
@@ -77,6 +78,7 @@ from us_swing.gui.strategy_table_model import (
     COL_END_DATE,
     COL_MODE,
     COL_NAME,
+    COL_RESET,
     COL_RUN,
     COL_SCOPE,
     COL_START,
@@ -150,6 +152,18 @@ def _cell_icon(kind: str, color_hex: str) -> QIcon:
     elif kind == "stop":
         # Stop square — filled rounded rect, centered
         painter.drawRoundedRect(2, 2, 10, 10, 2, 2)
+    elif kind == "reset":
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.setPen(QPen(c, 1.6))
+        painter.drawArc(2, 2, 10, 10, 60 * 16, 260 * 16)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(c)
+        head = QPainterPath()
+        head.moveTo(11.5, 5.0)
+        head.lineTo(13.5, 2.0)
+        head.lineTo(9.5, 2.5)
+        head.closeSubpath()
+        painter.drawPath(head)
     else:
         # Trash handle
         painter.drawRoundedRect(5, 1, 4, 2, 1, 1)
@@ -231,6 +245,7 @@ class _StrategyTablePane(QWidget):
                 (COL_NAME,        130, QHeaderView.ResizeMode.Interactive),
                 (COL_EDIT,         42, QHeaderView.ResizeMode.Fixed),
                 (COL_DELETE,       62, QHeaderView.ResizeMode.Fixed),
+                (COL_RESET,        42, QHeaderView.ResizeMode.Fixed),
                 (COL_SCOPE,        90, QHeaderView.ResizeMode.Interactive),
                 (COL_MODE,         70, QHeaderView.ResizeMode.Interactive),
                 (COL_CAPITAL,      60, QHeaderView.ResizeMode.Interactive),
@@ -282,6 +297,10 @@ class _StrategyTablePane(QWidget):
                 self._proxy.index(proxy_row, COL_DELETE),
                 self._make_cell_btn("delete", ct.RED, lambda _, r=src_row: self._on_delete(r)),
             )
+            self._view.setIndexWidget(
+                self._proxy.index(proxy_row, COL_RESET),
+                self._make_cell_btn("reset", ct.ORANGE, lambda _, r=src_row: self._on_reset(r)),
+            )
 
     @staticmethod
     def _make_run_btn(icon_char: str, color: str, slot: Any) -> QPushButton:
@@ -302,7 +321,8 @@ class _StrategyTablePane(QWidget):
         btn = QPushButton()
         btn.setIcon(_cell_icon(kind, color))
         btn.setIconSize(QSize(14, 14))
-        btn.setToolTip("Edit" if kind == "edit" else "Delete")
+        tip = {"edit": "Edit", "delete": "Delete", "reset": "Reset rex counters"}.get(kind, kind.title())
+        btn.setToolTip(tip)
         btn.setStyleSheet(_CELL_ICON_BTN_SS.format(fg=color, hover_bg=ct.OVERLAY))
         btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         btn.clicked.connect(slot)
@@ -346,7 +366,47 @@ class _StrategyTablePane(QWidget):
         if ret == QMessageBox.StandardButton.Yes:
             self._configs.pop(src_row)
             save_strategies(self._configs)
+            repo = getattr(self._demo, "rex_counters", None)
+            if repo is not None:
+                try:
+                    repo.reset(cfg.name)
+                except Exception:
+                    pass
             self._refresh_table()
+
+    def _on_reset(self, src_row: int) -> None:
+        if src_row < 0 or src_row >= len(self._configs):
+            return
+        cfg = self._configs[src_row]
+        repo = getattr(self._demo, "rex_counters", None)
+        if repo is None:
+            QMessageBox.warning(
+                self,
+                "Reset unavailable",
+                "Rex counter repository is not initialized — restart the app and try again.",
+            )
+            return
+        ret = QMessageBox.question(
+            self,
+            "Reset Strategy",
+            f"Reset rex counters for '{cfg.name}'?\n\n"
+            "This clears the per-stock re-entry budget so the strategy can take fresh entries.\n"
+            "Open positions are NOT affected.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if ret != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            deleted = repo.reset(cfg.name)
+        except Exception as exc:
+            QMessageBox.critical(self, "Reset failed", f"Could not reset counters:\n{exc}")
+            return
+        QMessageBox.information(
+            self,
+            "Reset complete",
+            f"Cleared {deleted} rex counter row(s) for '{cfg.name}'.",
+        )
 
     def _append_config(self, cfg: StrategyConfig) -> None:
         self._configs.append(cfg)
@@ -1135,13 +1195,65 @@ class ExecutionPanel(QWidget):
         )
 
     def _build_bottom_tabs(self, demo: AppService) -> QTabWidget:
-        """Tabbed bottom pane: Pending Signals | Strategy Builder."""
+        """Tabbed bottom pane: Active Trades | Strategy Builder."""
         tabs = QTabWidget()
         tabs.setStyleSheet(self._tab_qss())
-        tabs.addTab(self._build_signals_pane(demo), "Pending Signals")
+        tabs.addTab(self._build_active_trades_pane(demo), "Active Trades")
         self._strategy_pane = _StrategyTablePane(demo)
         tabs.addTab(self._strategy_pane, "Strategy Builder")
         return tabs
+
+    def _build_active_trades_pane(self, demo: AppService) -> QWidget:
+        """SRD-GUI-014.001 — Active Trades pane wrapping `ActiveCyclesPanel`."""
+        pane = QWidget()
+        layout = QVBoxLayout(pane)
+        layout.setContentsMargins(0, 8, 0, 0)
+        layout.setSpacing(8)
+
+        hdr = QLabel("ACTIVE TRADES")
+        hdr.setStyleSheet(
+            f"color: {C.MUTED}; font-size: 7pt; font-weight: bold; letter-spacing: 2px;"
+        )
+        layout.addWidget(hdr)
+
+        def _exit_by_cycle_id(cycle_id: int, reason: str) -> None:
+            cycle_query = getattr(demo, "cycle_query", None)
+            if cycle_query is None:
+                return
+            snap = cycle_query.cycle(cycle_id)
+            if snap is None:
+                return
+            demo.force_exit_position(snap.strategy_id, snap.symbol)
+
+        self._active_trades_panel = ActiveCyclesPanel(
+            cycle_query=demo.cycle_query,
+            cycle_cmd=demo.cycle_cmd,
+            pending_store=demo.pending_store,
+            app_service=demo,
+            exit_executor=_exit_by_cycle_id,
+            parent=pane,
+        )
+        layout.addWidget(self._active_trades_panel, 1)
+
+        self._status_lbl = QLabel("")
+        self._status_lbl.setStyleSheet(f"color: {C.MUTED}; font-size: 9pt;")
+        layout.addWidget(self._status_lbl)
+
+        self._cb_toggle = QPushButton("Demo: Toggle Circuit Breaker")
+        self._cb_toggle.setObjectName("danger_btn")
+        self._cb_toggle.setFixedWidth(240)
+        self._cb_toggle.clicked.connect(self._toggle_cb)
+        cb_row = QHBoxLayout()
+        cb_row.addStretch()
+        if _SHOW_DB_DIAGNOSTICS:
+            diag_btn = QPushButton("Candle DB")
+            diag_btn.setFixedWidth(100)
+            diag_btn.clicked.connect(lambda: _CandleDbDiagDialog(self._demo, self).exec())
+            cb_row.addWidget(diag_btn)
+        cb_row.addWidget(self._cb_toggle)
+        layout.addLayout(cb_row)
+
+        return pane
 
     def _build_signals_pane(self, demo: AppService) -> QWidget:
         """Build the signals sub-pane: unified pending + running table, status, demo button."""
@@ -1362,8 +1474,9 @@ class ExecutionPanel(QWidget):
         """Disable pending-entry buttons in the signals table and show banner."""
         self._cb_active = active
         self._cb_banner.setVisible(active)
-        # Re-inject so disabled state takes effect on existing rows
-        self._inject_action_buttons()
+        # Legacy signals pane is dormant; ActiveCyclesPanel handles its own delegate state.
+        if hasattr(self, "_signals_view"):
+            self._inject_action_buttons()
         if active:
             self._demo.log_message.emit("WARNING", "Circuit breaker activated — entries disabled")
 

@@ -20,7 +20,8 @@ from us_swing.execution.strategy_engine._events import (
     StrategySignalPending,
     StrategySquaredOff,
 )
-from us_swing.execution.strategy_engine._protocols import CanAllocateResult, RejectEvent, ValidationResult
+from us_swing.execution.strategy_engine._protocols import CanAllocateResult, FillEvent, RejectEvent, ValidationResult
+from us_swing.execution.strategy_engine._rex_counter import RexCounterRepository
 from us_swing.execution.strategy_engine._router import _Router
 from us_swing.execution.strategy_engine._signals import Action, TradeSignal
 from us_swing.data.models import OHLCVBar
@@ -49,6 +50,7 @@ class _Cfg:
     stoploss_value: float = 1.0
     target_enabled: bool = False
     target_value: float = 2.0
+    rex_count: int = 0
     strategy_signal: dict[str, Any] = field(default_factory=lambda: {"Status": "Active"})
 
 
@@ -70,6 +72,7 @@ def _make_router(
     clock: Any = None,
     risk_ok: bool = True,
     can_allocate_ok: bool = True,
+    rex_counters: RexCounterRepository | None = None,
 ) -> tuple[_Router, asyncio.Queue[TradeSignal], MagicMock, MagicMock, MagicMock, MagicMock, dict[str, _StrategyContext]]:
     c = cfg or _Cfg()
     ctx = _StrategyContext(cfg=c)  # type: ignore[arg-type]
@@ -92,6 +95,7 @@ def _make_router(
         submitter=submitter,
         pending=pending,
         bus=bus,
+        rex_counters=rex_counters,
         clock=clock,
     )
     return router, queue, risk, submitter, pending, bus, registry
@@ -303,3 +307,197 @@ def test_on_order_reject_rolls_back_under_entry_to_active() -> None:
     router.on_order_reject(reject)
 
     assert ctx.cycles["AAPL"] == _CycleState.ACTIVE
+
+
+# ── Rex counter gate + decrement (SRD-EXE-011.017, .018) ─────────────────────
+
+def _candles_3m() -> "dict[str, Any]":
+    import pandas as pd
+    return {
+        "3m": pd.DataFrame({
+            "open": [150.0], "high": [151.0], "low": [149.0],
+            "close": [150.0], "volume": [1_000_000],
+        })
+    }
+
+
+def _fresh_rex_repo() -> RexCounterRepository:
+    import sqlalchemy as sa
+    return RexCounterRepository(sa.create_engine("sqlite:///:memory:", future=True))
+
+
+@pytest.mark.asyncio
+async def test_rex_gate_blocks_entry_when_counter_negative(caplog: Any) -> None:
+    """UT-EXE-011.001.M04.T11: rex_limit gate drops entry when remaining < 0."""
+    import logging
+    repo = _fresh_rex_repo()
+    cfg = _Cfg(rex_count=5)  # type: ignore[call-arg]
+    repo.decrement(cfg.name, "AAPL", init_value=0)  # forces remaining=-1
+    router, queue, risk, submitter, pending, bus, registry = _make_router(
+        cfg=cfg, clock=_scheduled_clock, rex_counters=repo,
+    )
+    ctx = list(registry.values())[0]
+    bar = _make_bar()
+
+    with caplog.at_level(logging.INFO):
+        await router.evaluate(ctx, "AAPL", _candles_3m(), bar)
+
+    assert queue.empty()
+    bus.publish.assert_called_once()
+    published = bus.publish.call_args[0][0]
+    assert isinstance(published, StrategySignalDropped)
+    assert published.reason == "rex_limit"
+    assert any("rex limit reached" in r.message.lower() for r in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_rex_gate_allows_entry_when_counter_absent() -> None:
+    """UT-EXE-011.001.M04.T12: gate allows entry when counter row is missing (first ever)."""
+    repo = _fresh_rex_repo()
+    cfg = _Cfg(rex_count=5)  # type: ignore[call-arg]
+    router, queue, risk, submitter, pending, bus, registry = _make_router(
+        cfg=cfg, clock=_scheduled_clock, rex_counters=repo,
+    )
+    ctx = list(registry.values())[0]
+    bar = _make_bar()
+
+    await router.evaluate(ctx, "AAPL", _candles_3m(), bar)
+
+    assert not queue.empty()
+    assert ctx.cycles["AAPL"] == _CycleState.UNDER_ENTRY
+
+
+@pytest.mark.asyncio
+async def test_rex_gate_allows_entry_when_counter_zero() -> None:
+    """UT-EXE-011.001.M04.T13: gate allows entry when remaining == 0 (final allowed entry)."""
+    repo = _fresh_rex_repo()
+    cfg = _Cfg(rex_count=5)  # type: ignore[call-arg]
+    repo.decrement(cfg.name, "AAPL", init_value=1)  # remaining=0
+    router, queue, risk, submitter, pending, bus, registry = _make_router(
+        cfg=cfg, clock=_scheduled_clock, rex_counters=repo,
+    )
+    ctx = list(registry.values())[0]
+    bar = _make_bar()
+
+    await router.evaluate(ctx, "AAPL", _candles_3m(), bar)
+
+    assert not queue.empty()
+    assert ctx.cycles["AAPL"] == _CycleState.UNDER_ENTRY
+
+
+def test_on_order_fill_entry_decrements_counter() -> None:
+    """UT-EXE-011.001.M04.T14: on_order_fill(entry) calls decrement with cfg.rex_count."""
+    repo = _fresh_rex_repo()
+    cfg = _Cfg(rex_count=5)  # type: ignore[call-arg]
+    router, _q, _r, _s, _p, _b, registry = _make_router(
+        cfg=cfg, clock=_scheduled_clock, rex_counters=repo,
+    )
+    fill = FillEvent(
+        strategy_id=cfg.name,
+        symbol="AAPL",
+        is_entry=True,
+        fill_price=150.0,
+        fill_qty=10,
+        order_id="ord-1",
+    )
+    router.on_order_fill(fill)
+    assert repo.get(cfg.name, "AAPL") == 4
+
+
+@pytest.mark.asyncio
+async def test_rex_blocked_drop_does_not_change_cycle_state() -> None:
+    """UT-EXE-011.001.M04.T15: rex-blocked entry does not mutate cycle state."""
+    repo = _fresh_rex_repo()
+    cfg = _Cfg(rex_count=5)  # type: ignore[call-arg]
+    repo.decrement(cfg.name, "AAPL", init_value=0)  # remaining=-1
+    router, queue, risk, submitter, pending, bus, registry = _make_router(
+        cfg=cfg, clock=_scheduled_clock, rex_counters=repo,
+    )
+    ctx = list(registry.values())[0]
+    bar = _make_bar()
+    assert ctx.state("AAPL") == _CycleState.ACTIVE
+
+    await router.evaluate(ctx, "AAPL", _candles_3m(), bar)
+
+    assert ctx.state("AAPL") == _CycleState.ACTIVE
+    assert queue.empty()
+
+
+def test_rex_count_zero_allows_first_blocks_second() -> None:
+    """UT-EXE-011.001.M04.T16: rex_count=0 → first entry allowed, second blocked."""
+    repo = _fresh_rex_repo()
+    cfg = _Cfg(rex_count=0)  # type: ignore[call-arg]
+    router, _q, _r, _s, _p, _b, registry = _make_router(
+        cfg=cfg, clock=_scheduled_clock, rex_counters=repo,
+    )
+    # First entry: no row exists yet → allowed
+    assert repo.get(cfg.name, "AAPL") is None
+    # Simulate the fill from the first entry
+    fill = FillEvent(
+        strategy_id=cfg.name,
+        symbol="AAPL",
+        is_entry=True,
+        fill_price=150.0,
+        fill_qty=10,
+        order_id="ord-1",
+    )
+    router.on_order_fill(fill)
+    # After first fill, remaining = 0 - 1 = -1 → second entry blocked by gate
+    assert repo.get(cfg.name, "AAPL") == -1
+
+
+@pytest.mark.asyncio
+async def test_rex_full_lifecycle_with_reset() -> None:
+    """UT-EXE-011.001.M04.T17: end-to-end — rex_count=2 yields 3 entries, blocks the 4th, reset re-enables.
+
+    Walks gate → fill → decrement repeatedly, then reset → counter cleared → gate allows again.
+    Verifies the live integration of `_router.evaluate` + `_router.on_order_fill`
+    + `RexCounterRepository.{get,decrement,reset}`.
+    """
+    repo = _fresh_rex_repo()
+    cfg = _Cfg(rex_count=2)  # 2 re-entries beyond first → 3 entries total
+    router, queue, _r, _s, _p, bus, registry = _make_router(
+        cfg=cfg, clock=_scheduled_clock, rex_counters=repo,
+    )
+    ctx = list(registry.values())[0]
+    bar = _make_bar()
+
+    async def _simulate_one_entry(order_id: str) -> bool:
+        """Run evaluate; if signal enqueued, drain it and simulate a fill.
+        Returns True if the entry was accepted, False if rex-blocked."""
+        bus.reset_mock()
+        ctx.cycles["AAPL"] = _CycleState.ACTIVE
+        await router.evaluate(ctx, "AAPL", _candles_3m(), bar)
+        if queue.empty():
+            return False  # rex-blocked
+        await queue.get()
+        fill = FillEvent(
+            strategy_id=cfg.name, symbol="AAPL", is_entry=True,
+            fill_price=150.0, fill_qty=10, order_id=order_id,
+        )
+        router.on_order_fill(fill)
+        return True
+
+    # Three entries should succeed: counter goes None → 1 → 0 → -1
+    assert await _simulate_one_entry("ord-1") is True
+    assert repo.get(cfg.name, "AAPL") == 1
+    assert await _simulate_one_entry("ord-2") is True
+    assert repo.get(cfg.name, "AAPL") == 0
+    assert await _simulate_one_entry("ord-3") is True
+    assert repo.get(cfg.name, "AAPL") == -1
+
+    # Fourth attempt should be rex-blocked
+    assert await _simulate_one_entry("ord-4") is False
+    drops = [c for c in bus.publish.call_args_list
+             if isinstance(c[1].get("signal") or c[0][0], StrategySignalDropped)]
+    assert any(
+        getattr(arg[0][0], "reason", None) == "rex_limit"
+        for arg in [c for c in bus.publish.call_args_list]
+    )
+
+    # Reset Strategy → counter cleared → next entry allowed again
+    deleted = repo.reset(cfg.name)
+    assert deleted == 1
+    assert repo.get(cfg.name, "AAPL") is None
+    assert await _simulate_one_entry("ord-5") is True
+    assert repo.get(cfg.name, "AAPL") == 1

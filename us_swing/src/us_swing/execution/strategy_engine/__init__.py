@@ -1,6 +1,6 @@
 """
 Module: MD-EXE-011.001.M07 — Strategy Engine public surface
-Parent SRD: SRD-EXE-011.001 — SRD-EXE-011.015
+Parent SRD: SRD-EXE-011.001 — SRD-EXE-011.019
 """
 from __future__ import annotations
 
@@ -25,6 +25,7 @@ from ._protocols import (
     RiskValidator,
     ValidationResult,
 )
+from ._rex_counter import RexCounterRepository
 from ._signals import Action, PendingSignalSink, TradeSignal
 
 __all__ = [
@@ -37,6 +38,7 @@ __all__ = [
     "FillEvent",
     "PendingSignalSink",
     "RejectEvent",
+    "RexCounterRepository",
     "RiskValidator",
     "StrategyEngine",
     "StrategyEntered",

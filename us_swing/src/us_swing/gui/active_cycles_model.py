@@ -1,6 +1,6 @@
 """
 Module: MD-GUI-014.001.M02 — _ActiveCyclesModel
-Parent SRD: SRD-GUI-014.002, .004, .009, .011
+Parent SRD: SRD-GUI-014.002, .004, .009, .011, .013
 
 Unified table model for both PENDING signals (from FO-EXE-011's
 PendingSignalStore) and live cycle rows (from FO-EXE-012's
@@ -21,7 +21,7 @@ from us_swing.gui.theme import C
 
 if TYPE_CHECKING:
     from us_swing.execution.pending_signal_store import PendingSignalStore
-    from us_swing.execution.strategy_engine import TradeSignal
+    from us_swing.execution.strategy_engine import RexCounterRepository, TradeSignal
     from us_swing.execution.trade_cycle import CycleSnapshot, TradeCycleQuery
 
 
@@ -39,7 +39,8 @@ class Col(IntEnum):
     HARD_STOP = 10
     TARGET    = 11
     TRAIL     = 12
-    ACTIONS   = 13
+    REX       = 13
+    ACTIONS   = 14
 
 
 _HEADERS: dict[int, str] = {
@@ -56,6 +57,7 @@ _HEADERS: dict[int, str] = {
     Col.HARD_STOP: "Hard Stop",
     Col.TARGET:    "Target",
     Col.TRAIL:     "Trail",
+    Col.REX:       "Rex",
     Col.ACTIONS:   "",
 }
 
@@ -88,6 +90,7 @@ class _Row:
     signal:          TradeSignal | None = None
     cycle_id:        int | None   = None
     parent_cycle_id: int | None   = None
+    rex_remaining:   int | None   = None
 
 
 def _now_hms() -> str:
@@ -100,10 +103,12 @@ class _ActiveCyclesModel(QAbstractTableModel):
         query: TradeCycleQuery,
         pending_store: PendingSignalStore,
         parent: QObject | None = None,
+        rex_counters: RexCounterRepository | None = None,
     ) -> None:
         super().__init__(parent)
         self._query = query
         self._pending = pending_store
+        self._rex_counters = rex_counters
         self._rows: list[_Row] = []
         self._by_key: dict[str, int] = {}
         self._scope_user_id: int | None = None  # None = All Users
@@ -279,6 +284,7 @@ class _ActiveCyclesModel(QAbstractTableModel):
             hard_stop=signal.stop_loss,
             target=signal.target,
             signal=signal,
+            rex_remaining=self._fetch_rex(signal.strategy_id, signal.symbol),
         )
 
     def _row_from_snap(self, snap: CycleSnapshot) -> _Row:
@@ -299,7 +305,27 @@ class _ActiveCyclesModel(QAbstractTableModel):
             trail=snap.trailing_stop_level,
             user_id=snap.user_id,
             cycle_id=snap.cycle_id,
+            rex_remaining=self._fetch_rex(snap.strategy_id, snap.symbol),
         )
+
+    def _fetch_rex(self, strategy_id: str, symbol: str) -> int | None:
+        if self._rex_counters is None or not strategy_id or not symbol:
+            return None
+        try:
+            return self._rex_counters.get(strategy_id, symbol)
+        except Exception:
+            return None
+
+    def on_strategy_entered(self, strategy_id: str, symbol: str) -> None:
+        """Refresh the cached rex_remaining for any row matching (strategy, symbol)."""
+        new_value = self._fetch_rex(strategy_id, symbol)
+        for idx, row in enumerate(self._rows):
+            if row.strategy == strategy_id and row.symbol == symbol:
+                row.rex_remaining = new_value
+                cell = self.index(idx, Col.REX)
+                self.dataChanged.emit(cell, cell, [Qt.ItemDataRole.DisplayRole,
+                                                   Qt.ItemDataRole.ForegroundRole,
+                                                   Qt.ItemDataRole.ToolTipRole])
 
     # ── Qt model API ─────────────────────────────────────────────────────
 
@@ -341,6 +367,9 @@ class _ActiveCyclesModel(QAbstractTableModel):
             return self._background(row, c)
         if role == Qt.ItemDataRole.ForegroundRole:
             return self._foreground(row, c)
+        if role == Qt.ItemDataRole.ToolTipRole:
+            if c == Col.REX and row.rex_remaining is not None and row.rex_remaining < 0:
+                return "Rex limit reached — Reset Strategy to re-enable entries"
         return None
 
     def _display(self, row: _Row, col: int) -> Any:
@@ -370,6 +399,8 @@ class _ActiveCyclesModel(QAbstractTableModel):
             return self._fmt_money(row.target)
         if col == Col.TRAIL:
             return self._fmt_money(row.trail)
+        if col == Col.REX:
+            return "—" if row.rex_remaining is None else str(row.rex_remaining)
         return ""
 
     @staticmethod
@@ -404,6 +435,10 @@ class _ActiveCyclesModel(QAbstractTableModel):
     def _foreground(self, row: _Row, col: int) -> QColor | None:
         if col == Col.STATE:
             return QColor(C.BG)
+        if col == Col.REX:
+            if row.rex_remaining is not None and row.rex_remaining < 0:
+                return QColor(C.MUTED)
+            return None
         if col in (Col.PNL_USD, Col.PNL_PCT):
             v = row.pnl_usd if col == Col.PNL_USD else row.pnl_pct
             if v is None:

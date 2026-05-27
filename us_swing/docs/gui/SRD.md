@@ -6,6 +6,8 @@
 **Status:** Draft
 **Last Updated:** 2026-05-22
 > v2.8.0: Section 13 added — SRD-GUI-014.001–012 for Active Cycles Panel (FO-GUI-014).
+> v2.9.0: SRD-GUI-013.015 (Reset Strategy action) and SRD-GUI-014.013 (Rex column) added for rex_count enforcement.
+> v2.10.0: SRD-GUI-014.014 (AppService event_stream adapter) added for Active Trades panel rollout.
 > v2.7.0: Section 12 added — SRD-GUI-013.001–014 for Strategy Builder Dialog (FO-GUI-013).
 > v2.6.0: Section 11 added — SRD-GUI-012.001–007 for Live Streaming Price Display (FO-GUI-012).
 > v2.5.0: SRD-GUI-004.006–008 added — Filtered Stocks pane, FilteredStockEntry model, AppService cross-tool bridge (FO-GUI-004).
@@ -188,6 +190,7 @@
 | SRD-GUI-013.012 | FO-GUI-013 | Must | `Target` and `Stop Loss` each have an enable `QCheckBox`, a Type `QComboBox` (`Fixed` / `Trailing`), and a Value `QDoubleSpinBox` (range 0.1–100.0, step 0.5, suffix `%`). Type and Value are disabled until the enable checkbox is ticked. | user input | `target_*`, `stoploss_*` | Enable-checkbox `toggled` signal wired to controls' `setEnabled` | Approved |
 | SRD-GUI-013.013 | FO-GUI-013 | Must | `load_strategies()` reads `~/.usswing/strategies.json`, deserializes each record into a `StrategyConfig` (unknown keys dropped), and forces `strategy_signal['Status'] = 'Inactive'` and `Running_Symbols = []` on every record before returning. | registry on disk | `list[StrategyConfig]` | UTF-8 encoded; returns `[]` on missing file or parse error | Approved |
 | SRD-GUI-013.014 | FO-GUI-013 | Must | `save_strategies(configs)` writes the full list as pretty-printed JSON to `~/.usswing/strategies.json`. Saving a record whose `name` matches an existing record overwrites it; an unmatched `name` appends. | in-memory list | disk file | Parent dir created via `mkdir(parents=True, exist_ok=True)`; atomic via temp-file + replace | Approved |
+| SRD-GUI-013.015 | FO-GUI-013 | Must | A Reset icon next to Edit / Delete / Run on each `_StrategyTablePane` row opens a `QMessageBox` confirmation ("Reset rex counters for {strategy_name}?") and on confirm calls `RexCounterRepository.reset(strategy_id)` which deletes every counter row for that strategy. | Click + confirm | Counter rows deleted | OPEN trade cycles are not touched; the action only clears the future-entry budget | Approved |
 
 ---
 
@@ -207,3 +210,5 @@
 | SRD-GUI-014.010 | FO-GUI-014 | Must | When `rowCount() == 0`, the `QTableView` is hidden and an empty-state `QLabel` ("No active cycles — pending signals and open positions appear here") is shown. | Row count | Placeholder shown | Visibility toggled in `rowCountChanged` handler | Approved |
 | SRD-GUI-014.011 | FO-GUI-014 | Must | Panel reacts to `AppService.viewing_changed`: re-queries `TradeCycleQuery.open_cycles()` and `PendingSignalStore.list()` filtered to the new scope. "All Users" scope prepends a User column (mirroring `PositionTableModel.set_show_user`). | `viewing_changed` | Table refreshed | Single-user scope hides User column | Approved |
 | SRD-GUI-014.012 | FO-GUI-014 | Must | While `AppService.circuit_breaker_active == True`, the `_RowActionsDelegate` paints `[Execute]` disabled with tooltip `Circuit breaker active — no new entries`; `[Close]` and `[Edit Risk ▼]` on OPEN rows remain enabled. | `circuit_breaker_active` | Action cells repainted | Reacts to `circuit_breaker_changed` signal from FO-EXE-003 | Approved |
+| SRD-GUI-014.013 | FO-GUI-014 | Must | `_ActiveCyclesModel` gains a `Rex` column rendering the current `RexCounterRepository.get(strategy_id, symbol)` value for every row (PENDING / OPENING / OPEN / CLOSING); a value of `-1` paints dimmed with tooltip `Rex limit reached — Reset Strategy to re-enable entries`. | Row data | Painted cell | Column queries the repository on row insert and on `StrategyEntered` events; no in-memory cache | Approved |
+| SRD-GUI-014.014 | FO-GUI-014 | Must | `AppService.event_stream` exposes a `_AppEventStream` adapter with single-callback `subscribe(handler)` API that bridges `_lifecycle_bus` (typed `MonitoringEventBus`) and `_event_bus` (Qt `event_published`) into one sink; `ActiveCyclesPanel` subscribes via this adapter rather than directly to either bus. | constructor | adapter instance | Forwards every event from either source to every subscriber; subscriber exceptions logged but do not affect other subscribers; ordering not guaranteed across the two buses | Approved |

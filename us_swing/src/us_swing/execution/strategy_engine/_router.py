@@ -1,6 +1,6 @@
 """
 Module: MD-EXE-011.001.M04 — Signal queue consumer + dispatch + watchdog
-Parent SRD: SRD-EXE-011.008 — SRD-EXE-011.013
+Parent SRD: SRD-EXE-011.008 — SRD-EXE-011.013, SRD-EXE-011.017, SRD-EXE-011.018
 """
 from __future__ import annotations
 
@@ -23,6 +23,7 @@ from ._events import (
     StrategySignalPending,
     StrategySquaredOff,
 )
+from ._rex_counter import RexCounterRepository
 from ._signals import Action, PendingSignalSink, TradeSignal
 
 if TYPE_CHECKING:
@@ -64,6 +65,7 @@ class _Router:
         submitter: ExecutionSubmitter,
         pending: PendingSignalSink,
         bus: EventBus,
+        rex_counters: RexCounterRepository | None = None,
         clock: Callable[[], datetime] | None = None,
     ) -> None:
         self._queue = queue
@@ -73,6 +75,7 @@ class _Router:
         self._submitter = submitter
         self._pending = pending
         self._bus = bus
+        self._rex_counters = rex_counters
         self._clock = clock or (lambda: datetime.now(_ET))
         self._stop_event = asyncio.Event()
         self._emergency_active = False
@@ -128,6 +131,17 @@ class _Router:
                     return
                 if not fired:
                     return
+
+                if self._rex_counters is not None:
+                    remaining = self._rex_counters.get(ctx.name, symbol)
+                    if remaining is not None and remaining < 0:
+                        signal_pre = self._build_entry_signal(ctx, symbol, bar)
+                        self._bus.publish(
+                            StrategySignalDropped(signal=signal_pre, reason="rex_limit")
+                        )
+                        log.info("[Strategy] %s ENTRY blocked for %s — rex limit reached",
+                                 ctx.name, symbol)
+                        return
 
                 cap = self._risk.can_allocate(ctx.name, ctx.cfg.capital_max)
                 if not cap.ok:
@@ -256,6 +270,12 @@ class _Router:
                     qty=fill.fill_qty,
                 )
             )
+            if self._rex_counters is not None:
+                self._rex_counters.decrement(
+                    fill.strategy_id,
+                    fill.symbol,
+                    init_value=ctx.cfg.rex_count,
+                )
         else:
             ctx.cycles[fill.symbol] = _CycleState.SQUARE_OFF
             self._bus.publish(

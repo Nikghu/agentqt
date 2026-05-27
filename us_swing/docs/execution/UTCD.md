@@ -1,12 +1,13 @@
 ﻿# Unit Test Case Document â€” Execution & Risk Management (EXE)
 
 **Document ID:** UTCD-EXE
-**Version:** 1.6.0
-**Traces To:** MD-EXE v1.6.0
+**Version:** 1.7.0
+**Traces To:** MD-EXE v1.7.0
 **Status:** Draft
-**Last Updated:** 2026-05-25
+**Last Updated:** 2026-05-27
 **Project:** US Swing Trading System
 
+> v1.7.0: UT-EXE-011.001.M08.* (RexCounterRepository, 8 tests) and UT-EXE-011.001.M04.T11–T16 (rex_count gate + decrement, 6 tests) added.
 > v1.6.0: UTCD-EXE-011 (Strategy Engine, 30 tests) and UTCD-EXE-012 (Trade Cycle Ledger, 25 tests) added.
 
 > Tests written BEFORE implementation per process.md Â§7.
@@ -461,7 +462,28 @@
 | UT-EXE-011.001.M04.T07 | MD-EXE-011.001.M04 | Negative | Positional strategies do NOT receive end-time SquareOff | Same as T06 but `trade_type=Positional` | No EXIT signal; state remains Running | Pass |
 | UT-EXE-011.001.M04.T08 | MD-EXE-011.001.M04 | Positive | `emergency_stop()` enqueues EXIT for every Running symbol and blocks until SquareOff | 3 strategies, 5 Running symbols total | 5 EXIT signals enqueued before method returns; method blocks until all 5 reach SquareOff | Pass |
 | UT-EXE-011.001.M04.T09 | MD-EXE-011.001.M04 | Positive | Status writeback persists state transitions to registry | Cycle ACTIVE → UnderEntry → Running | `save_strategies` called; persisted `strategy_signal.Status == 'Running'`, `Order_Entry_Status='success'`, `Order_Entry_Timestamp` set | Pass |
-| UT-EXE-011.001.M04.T10 | MD-EXE-011.001.M04 | Edge | order_reject(entry) rolls cycle UnderEntry → Active | Pre-set UnderEntry; emit `order_reject` | State → Active; `Order_Entry_Status='rejected'`; DEBUG log | Pass |
+| UT-EXE-011.001.M04.T10 | MD-EXE-011.001.M04 | Edge | order_reject(entry) rolls cycle UnderEntry → Active | Pre-set UnderEntry; emit `order_reject` | State → Active; `Order_Entry_Status='rejected'`; DEBUG log | Not Run |
+| UT-EXE-011.001.M04.T11 | MD-EXE-011.001.M04 | Positive | Rex gate blocks ENTRY when counter `remaining < 0` | Pre-seed counter with `remaining=-1`; entry_condition fires for (S1, AAPL) | No signal enqueued; one `StrategySignalDropped(reason='rex_limit')` event; INFO log `Rex limit reached` | Not Run |
+| UT-EXE-011.001.M04.T12 | MD-EXE-011.001.M04 | Positive | Rex gate allows ENTRY when counter absent (first ever entry) | Empty counter table; entry_condition fires for (S1, AAPL) with `cfg.rex_count=5` | Signal enqueued normally; cycle → UnderEntry | Not Run |
+| UT-EXE-011.001.M04.T13 | MD-EXE-011.001.M04 | Positive | Rex gate allows ENTRY when `remaining >= 0` | Pre-seed counter with `remaining=0`; entry_condition fires | Signal enqueued; cycle → UnderEntry | Not Run |
+| UT-EXE-011.001.M04.T14 | MD-EXE-011.001.M04 | Positive | `on_order_fill(entry)` calls `RexCounterRepository.decrement` after publishing `StrategyEntered` | `cfg.rex_count=5`; first fill | `decrement(S1, AAPL, init_value=5)` invoked once; event publish order: `StrategyEntered` then decrement | Not Run |
+| UT-EXE-011.001.M04.T15 | MD-EXE-011.001.M04 | Negative | Rex-blocked drop does NOT mutate cycle state | Pre-set ACTIVE state; gate drops signal | Cycle stays ACTIVE; no UnderEntry transition; no writeback to `strategy_signal` | Not Run |
+| UT-EXE-011.001.M04.T16 | MD-EXE-011.001.M04 | Edge | `cfg.rex_count=0` → exactly one entry allowed, second blocked | First entry: empty counter → allow → after fill remaining=-1. Second entry attempt | First entry succeeds; second `StrategySignalDropped(reason='rex_limit')` | Not Run |
+
+---
+
+## Module: `execution/strategy_engine/_rex_counter.py` — RexCounterRepository (FO-EXE-011)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-011.001.M08.T01 | MD-EXE-011.001.M08 | Unit | `strategy_rex_counters` table created on first repository use | Construct `RexCounterRepository(engine)` against in-memory SQLite; call any method | `inspect(engine).has_table("strategy_rex_counters") == True`; columns: `strategy_id`, `symbol`, `remaining`, `last_updated` | Not Run |
+| UT-EXE-011.001.M08.T02 | MD-EXE-011.001.M08 | Positive | `get()` returns `None` when row absent | Empty table; call `get("S1", "AAPL")` | Returns `None` | Not Run |
+| UT-EXE-011.001.M08.T03 | MD-EXE-011.001.M08 | Positive | `decrement()` on missing row inserts with `remaining = init_value - 1` | Empty table; call `decrement("S1", "AAPL", init_value=5)` | Returns `4`; subsequent `get("S1","AAPL")` returns `4`; `last_updated` set | Not Run |
+| UT-EXE-011.001.M08.T04 | MD-EXE-011.001.M08 | Positive | `decrement()` on existing row sets `remaining -= 1` | Pre-seed `(S1, AAPL, remaining=3)`; call `decrement("S1", "AAPL", init_value=5)` | Returns `2`; row now has `remaining=2`; `init_value` ignored when row exists | Not Run |
+| UT-EXE-011.001.M08.T05 | MD-EXE-011.001.M08 | Positive | `reset("S1")` deletes every row for that strategy, returns count | Seed 3 rows for S1 and 2 rows for S2; call `reset("S1")` | Returns `3`; S1 rows gone; S2 rows untouched | Not Run |
+| UT-EXE-011.001.M08.T06 | MD-EXE-011.001.M08 | Edge | `reset("S1")` returns `0` when no rows exist | Empty table; call `reset("S1")` | Returns `0`; no exception | Not Run |
+| UT-EXE-011.001.M08.T07 | MD-EXE-011.001.M08 | Negative | `get()` on a different `strategy_id` returns `None` | Seed `(S1, AAPL, 4)`; call `get("S2", "AAPL")` | Returns `None` | Not Run |
+| UT-EXE-011.001.M08.T08 | MD-EXE-011.001.M08 | Edge | Counter survives "restart" (new repository instance on same engine) | Seed row, dispose repository, construct new `RexCounterRepository(engine)`, query | New instance returns the same `remaining` value | Not Run |
 
 ---
 
