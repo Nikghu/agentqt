@@ -18,21 +18,22 @@ COL_RUN           = 1
 COL_NAME          = 2
 COL_EDIT          = 3
 COL_DELETE        = 4
-COL_SCOPE         = 5
-COL_MODE          = 6
-COL_CAPITAL       = 7
-COL_START         = 8
-COL_END           = 9
-COL_TRADE_TYPE    = 10
-COL_START_DATE    = 11
-COL_END_DATE      = 12
-COL_TARGET        = 13
-COL_TARGET_TYPE   = 14
-COL_STOPLOSS      = 15
-COL_STOPLOSS_TYPE = 16
+COL_RESET         = 5
+COL_SCOPE         = 6
+COL_MODE          = 7
+COL_CAPITAL       = 8
+COL_START         = 9
+COL_END           = 10
+COL_TRADE_TYPE    = 11
+COL_START_DATE    = 12
+COL_END_DATE      = 13
+COL_TARGET        = 14
+COL_TARGET_TYPE   = 15
+COL_STOPLOSS      = 16
+COL_STOPLOSS_TYPE = 17
 
 COLUMNS: list[str] = [
-    "Status", "Run", "Name", "Edit", "Delete", "Scope", "Mode", "Capital",
+    "Status", "Run", "Name", "Edit", "Delete", "Reset", "Scope", "Mode", "Capital",
     "Start", "End", "Trade Type", "Start Date", "End Date",
     "Target", "Target Type", "Stop Loss", "StopLoss Type",
 ]
@@ -104,7 +105,7 @@ class StrategyTableModel(QAbstractTableModel):
         cfg = self._rows[index.row()]
         col = index.column()
 
-        if col in (COL_RUN, COL_EDIT, COL_DELETE):
+        if col in (COL_RUN, COL_EDIT, COL_DELETE, COL_RESET):
             return None
 
         if role == Qt.ItemDataRole.DisplayRole:

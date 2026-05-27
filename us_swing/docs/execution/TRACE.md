@@ -1,9 +1,9 @@
 # Traceability Matrix — Execution & Risk Management (EXE)
 
 **Document ID:** TRACE-EXE
-**Version:** 1.6.0
+**Version:** 1.7.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-05-26
+**Last Updated:** 2026-05-27
 
 ---
 
@@ -23,7 +23,9 @@
 | FO-EXE-008 | SRD-EXE-008.001–006 | DD-EXE-008.001.D01 | MD-EXE-008.001.M01 | UT-EXE-008.001.M01.T01–T16 | `execution/live_tick_worker.py` | Implemented | RN-EXE-1.3.1-20260519 |
 | FO-EXE-009 | SRD-EXE-009.001–012 | DD-EXE-009.001.D01–D02, 009.002.D01–D02, 009.003.D01 | MD-EXE-009.001.M01–M03, 009.002.M01–M03 | UT-EXE-009.001.M01.T01–T04, 009.001.M02.T01–T03, 009.001.M03.T01–T06, 009.002.M01.T01–T14, 009.002.M02.T01–T21, 009.002.M03.T01–T04; IT-EXE-009.001–005 | `core/monitoring_session/{_dto,_enums,_protocols,_events,_repository,_service}.py`, `core/monitoring_session/__init__.py` | Implemented | RN-EXE-1.3.0-20260518 |
 | FO-EXE-010 | SRD-EXE-010.001–006 | DD-EXE-010.001.D01, 010.002.D01, 010.003.D01 | MD-EXE-010.001.M01 | UT-EXE-010.001.M01.T01–T05; IT-EXE-010.001–002 | `core/monitoring_session/_scheduler.py` | Implemented | RN-EXE-1.3.0-20260518 |
-| FO-EXE-011 | SRD-EXE-011.001–015 | DD-EXE-011.001.D01–D04 | MD-EXE-011.001.M01–M07 | UT-EXE-011.001.M01–M07.T01–T38 | `execution/strategy_engine/{_engine,_context,_evaluator,__init__}.py` | Verified | RN-EXE-1.8.0-20260527 |
+| FO-EXE-011 | SRD-EXE-011.001–019 | DD-EXE-011.001.D01–D04, DD-EXE-011.016.D01 | MD-EXE-011.001.M01–M08 | UT-EXE-011.001.M01–M08.T01–T52 | `execution/strategy_engine/{_engine,_context,_evaluator,_router,_rex_counter,__init__}.py` | Implemented | RN-EXE-1.9.0-20260527 |
+| FO-GUI-013 | SRD-GUI-013.015 | — | MD-GUI-004.001.M01 | — | `gui/execution_panel.py`, `gui/strategy_builder_dialog.py` | Implemented | RN-EXE-1.9.0-20260527 |
+| FO-GUI-014 | SRD-GUI-014.013 | — | MD-GUI-014.001.M02 | — | `gui/active_cycles_model.py`, `gui/active_cycles_panel.py` | Implemented | RN-EXE-1.9.0-20260527 |
 | FO-EXE-012 | SRD-EXE-012.001–013 | DD-EXE-012.001.D01–D02 | MD-EXE-012.001.M01–M06 | UT-EXE-012.001.M01–M06.T01–T29 | `execution/trade_cycle/{_schema,_repository,_service,_protocols,__init__}.py` | Verified | RN-EXE-1.8.0-20260527 |
 
 ---
@@ -52,6 +54,7 @@
 | `execution/strategy_engine/_context.py` | MD-EXE-011.001.M02 | SRD-EXE-011.004–007 | FO-EXE-011 |
 | `execution/strategy_engine/_evaluator.py` | MD-EXE-011.001.M03 | SRD-EXE-011.006 | FO-EXE-011 |
 | `execution/strategy_engine/__init__.py` | MD-EXE-011.001.M04 | SRD-EXE-011.001, 013 | FO-EXE-011 |
+| `execution/strategy_engine/_rex_counter.py` | MD-EXE-011.001.M08 | SRD-EXE-011.016–019 | FO-EXE-011 |
 | `execution/trade_cycle/_schema.py` | MD-EXE-012.001.M01 | SRD-EXE-012.001 | FO-EXE-012 |
 | `execution/trade_cycle/_repository.py` | MD-EXE-012.001.M02 | SRD-EXE-012.002, 004–009 | FO-EXE-012 |
 | `execution/trade_cycle/_service.py` | MD-EXE-012.001.M03 | SRD-EXE-012.002–013 | FO-EXE-012 |

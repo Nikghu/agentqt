@@ -389,6 +389,7 @@ Configurations are persisted to a strategy registry on disk (current location: `
 
 **Status:** Approved
 **Priority:** Must
+**User-facing label:** "Active Trades" (the term "cycle" is internal/code only)
 **Depends on:** FO-EXE-011 (pending-signal store + `StrategyEvent`), FO-EXE-012 (`TradeCycleEvent`, `TradeCycleQuery`, `TradeCycleCommand`)
 **Supersedes:** FO-GUI-004 "Pending Signals" pane (right pane only — the left "Filtered Stocks" pane is unchanged)
 **Source:** Trader requirement — one panel that shows the full Entry→Exit lifecycle of every active swing trade with live PnL, hard stop, target, trailing stop.

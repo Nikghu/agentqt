@@ -1,12 +1,14 @@
 # Module Decomposition — GUI Module (GUI)
 
 **Document ID:** MD-GUI
-**Version:** 1.3.0
-**Traces To:** SRD-GUI v2.8.0 / DD-GUI v1.6.0
+**Version:** 1.5.0
+**Traces To:** SRD-GUI v2.10.0 / DD-GUI v1.6.0
 **Status:** Draft
-**Last Updated:** 2026-05-22
+**Last Updated:** 2026-05-27
 **Project:** US Swing Trading System
 
+> v1.5.0: Cross-module rows added for SRD-GUI-014.014 (AppService event_stream + ActiveCyclesPanel wired into _ExecutionPanel as "Active Trades" tab).
+> v1.4.0: Cross-module rows added for SRD-GUI-013.015 (Reset Strategy action) and SRD-GUI-014.013 (Rex column).
 > v1.3.0: MD-GUI-013.* (Strategy Builder Dialog, 1 module) and MD-GUI-014.* (Active Cycles Panel, 3 modules) added.
 
 ---
@@ -76,6 +78,7 @@ gui/app_service.py (FO-GUI-012 additions)
 | Module ID | File | Change Required | SRD |
 |---|---|---|---|
 | MD-GUI-004.001.M01 | `src/us_swing/gui/execution_panel.py` | Add an "Add Strategy" button and an "Edit" action on the strategy table that instantiate `StrategyBuilderDialog(registry, editing=…)` and connect its `saved` signal to refresh the strategy table. | SRD-GUI-013.001 |
+| MD-GUI-004.001.M01 | `src/us_swing/gui/execution_panel.py` | Add a Reset icon to each `_StrategyTablePane` row that opens a `QMessageBox` confirmation and on confirm calls `app.rex_counters.reset(strategy_id)`. Wire `app.rex_counters` from `AppService`. Update the `rex_count` `QSpinBox` tooltip in `_SettingsPage` to "Re-execution count: extra entries per stock beyond the first (0 = first entry only)". | SRD-GUI-013.015 |
 
 ---
 
@@ -91,8 +94,11 @@ gui/app_service.py (FO-GUI-012 additions)
 
 | Module ID | File | Change Required | SRD |
 |---|---|---|---|
-| MD-GUI-004.001.M01 | `src/us_swing/gui/execution_panel.py` | Remove the existing "Pending Signals" right pane widget tree. Replace with `ActiveCyclesPanel` inside the same `QSplitter` slot. Left "Filtered Stocks" pane unchanged. | SRD-GUI-014.001 |
+| MD-GUI-004.001.M01 | `src/us_swing/gui/execution_panel.py` | Replace the "Pending Signals" bottom tab construction in `_build_bottom_tabs` with `_build_active_trades_pane` returning an `ActiveCyclesPanel`. Tab label "Active Trades". Legacy `_build_signals_pane` / `_refresh_signals_pane` / `_inject_action_buttons` remain dormant in the file for Phase 2 removal. | SRD-GUI-014.001 |
+| MD-GUI-004.001.M01 | `src/us_swing/gui/app_service.py` | Construct `_AppEventStream(lifecycle_bus, strategy_bus)` after engine start; expose `event_stream`, `cycle_query`, `cycle_cmd`, `pending_store` as `@property` accessors consumed by `ActiveCyclesPanel`. | SRD-GUI-014.014 |
 | MD-GUI-004.001.M01 | `src/us_swing/gui/app_service.py` | Wire FO-EXE-011 `PendingSignalStore` and FO-EXE-012 `TradeCycleService` into AppService construction; expose `cycle_query`, `cycle_cmd`, `pending_store` properties consumed by `ActiveCyclesPanel`. Forward `circuit_breaker_changed(bool)` (FO-EXE-003) so the delegate's button-paint can react. | SRD-GUI-014.012 |
+| MD-GUI-014.001.M02 | `src/us_swing/gui/active_cycles_model.py` | Add `Col.REX` to the column enum + header label "Rex"; cell `data()` queries `app.rex_counters.get(strategy_id, symbol)`, renders the integer (or `cfg.rex_count` when `None`); a value `< 0` paints dimmed (`ForegroundRole = C.MUTED`) with `ToolTipRole = "Rex limit reached — Reset Strategy to re-enable entries"`. Refresh on `on_cycle_opened` and `on_pending_added`. | SRD-GUI-014.013 |
+| MD-GUI-004.001.M01 | `src/us_swing/gui/app_service.py` | Expose `rex_counters: RexCounterRepository` constructed once in `AppService.__init__` from the shared `self._db_engine`. Consumed by `_StrategyTablePane` (Reset action, SRD-GUI-013.015) and `_ActiveCyclesModel` (Rex column, SRD-GUI-014.013). | SRD-GUI-013.015, SRD-GUI-014.013 |
 
 ---
 

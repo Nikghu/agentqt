@@ -1,12 +1,13 @@
 ﻿# Module Decomposition — Execution & Risk Management (EXE)
 
 **Document ID:** MD-EXE
-**Version:** 1.6.0
-**Traces To:** SRD-EXE v1.7.0 / DD-EXE v1.7.0
+**Version:** 1.7.0
+**Traces To:** SRD-EXE v1.8.0 / DD-EXE v1.8.0
 **Status:** Draft
-**Last Updated:** 2026-05-22
+**Last Updated:** 2026-05-27
 **Project:** US Swing Trading System
 
+> v1.7.0: MD-EXE-011.001.M08 added — `_rex_counter.py` (rex_count enforcement).
 > v1.6.0: MD-EXE-011.* (Strategy Engine, 7 modules) and MD-EXE-012.* (Trade Cycle Ledger, 6 modules) added.
 
 ---
@@ -176,7 +177,8 @@ src/us_swing/
 | MD-EXE-011.001.M04 | SRD-EXE-011.008, .009, .011, .012 | `src/us_swing/execution/strategy_engine/_router.py` | Signal-queue consumer + Mode/auto_trade dispatch; calls `RiskManager.validate()` and `ExecutionRouter.submit()` for auto path or `PendingSignalStore.add()` for manual path; owns `_end_time_watcher_loop` | `_router_loop()`, `_force_exit(ctx, symbol, reason)` (coroutines, internal) | `risk_manager`, `execution_router`, `pending_signal_store`, `_signals`, `_events` | No | Approved |
 | MD-EXE-011.001.M05 | SRD-EXE-011.015 | `src/us_swing/execution/strategy_engine/_events.py` | Sealed `StrategyEvent` union: `StrategyEntered`, `StrategyExited`, `StrategySquaredOff`, `StrategyErrored`, `StrategySignalDropped`, `StrategySignalPending`; each frozen `@dataclass(slots=True)` with `schema_version: int = 1` | Event class constructors | `dataclasses`, FO-EXE-009 event bus | No | Approved |
 | MD-EXE-011.001.M06 | SRD-EXE-011.008 | `src/us_swing/execution/strategy_engine/_signals.py` | `TradeSignal` frozen dataclass — payload pushed onto the engine queue (`action`, `symbol`, `strategy_id`, `entry_price`, `stop_loss`, `target`, `qty_recommended`, `reason`) | `TradeSignal(...)` constructor; `Action` `StrEnum` (`ENTRY`/`EXIT`) | `dataclasses`, `enum` | No | Approved |
-| MD-EXE-011.001.M07 | SRD-EXE-011.001 — .015 | `src/us_swing/execution/strategy_engine/__init__.py` | Public surface — re-exports `StrategyEngine`, `StrategyEvent` union members, `TradeSignal`, `Action`. Concrete internals (`_context`, `_router`, `_evaluator`) NOT re-exported. Explicit `__all__`. | `StrategyEngine`, event classes, `TradeSignal`, `Action` | All internal `_*` modules | No | Approved |
+| MD-EXE-011.001.M07 | SRD-EXE-011.001 — .015 | `src/us_swing/execution/strategy_engine/__init__.py` | Public surface — re-exports `StrategyEngine`, `StrategyEvent` union members, `TradeSignal`, `Action`, `RexCounterRepository`. Concrete internals (`_context`, `_router`, `_evaluator`) NOT re-exported. Explicit `__all__`. | `StrategyEngine`, event classes, `TradeSignal`, `Action`, `RexCounterRepository` | All internal `_*` modules | No | Approved |
+| MD-EXE-011.001.M08 | SRD-EXE-011.016 — .019 | `src/us_swing/execution/strategy_engine/_rex_counter.py` | `RexCounterRepository` — owns `strategy_rex_counters` table (DDL on first use), provides `get`/`decrement`/`reset` over (strategy_id, symbol) keyed rows in `candles.db`. Stateless; one SQLAlchemy `Engine` injected. | `RexCounterRepository(engine)`, `.get(strategy_id, symbol) -> int \| None`, `.decrement(strategy_id, symbol, *, init_value) -> int`, `.reset(strategy_id) -> int` | `sqlalchemy`, `datetime` | No | Approved |
 
 ### Cross-Module Modifications for FO-EXE-011
 
@@ -221,7 +223,8 @@ us_swing/src/us_swing/execution/
 │   ├── _evaluator.py                     # MD-EXE-011.001.M03
 │   ├── _router.py                        # MD-EXE-011.001.M04
 │   ├── _events.py                        # MD-EXE-011.001.M05
-│   └── _signals.py                       # MD-EXE-011.001.M06
+│   ├── _signals.py                       # MD-EXE-011.001.M06
+│   └── _rex_counter.py                   # MD-EXE-011.001.M08
 ├── trade_cycle/
 │   ├── __init__.py                       # MD-EXE-012.002.M03
 │   ├── _schema.py                        # MD-EXE-012.001.M01

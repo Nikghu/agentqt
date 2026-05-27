@@ -32,6 +32,7 @@ from us_swing.execution.strategy_engine._protocols import (
     RejectEvent,
     RiskValidator,
 )
+from us_swing.execution.strategy_engine._rex_counter import RexCounterRepository
 from us_swing.execution.strategy_engine._router import _Router
 from us_swing.execution.strategy_engine._signals import PendingSignalSink, TradeSignal
 
@@ -71,6 +72,7 @@ class StrategyEngine(QThread):
         submitter: ExecutionSubmitter,
         pending: PendingSignalSink,
         bus: EventBus,
+        rex_counters: RexCounterRepository | None = None,
         symbols_provider: Callable[[], list[str]] | None = None,
         cycle_loader: Callable[[], dict[str, dict[str, str]]] | None = None,
         primary_timeframe: str = "3m",
@@ -85,6 +87,7 @@ class StrategyEngine(QThread):
         self._submitter = submitter
         self._pending = pending
         self._bus = bus
+        self._rex_counters = rex_counters
         self._symbols_provider = symbols_provider or (lambda: [])
         self._cycle_loader = cycle_loader or (lambda: {})
         self._primary_tf = primary_timeframe
@@ -121,6 +124,7 @@ class StrategyEngine(QThread):
             submitter=self._submitter,
             pending=self._pending,
             bus=self._bus,
+            rex_counters=self._rex_counters,
         )
         self.started_ok.emit()
         log.info("[Strategy] engine ready — %d active strateg(ies)", len(self._registry))

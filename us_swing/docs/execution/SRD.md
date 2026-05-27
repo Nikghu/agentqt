@@ -1,13 +1,14 @@
 ﻿# Software Requirement Document — Execution & Risk Management (EXE)
 
 **Document ID:** SRD-EXE
-**Version:** 1.7.0
+**Version:** 1.8.0
 **Traces To:** FO-EXE v1.7.0
 **Status:** Draft
-**Last Updated:** 2026-05-22
+**Last Updated:** 2026-05-27
 **Project:** US Swing Trading System
 
 > v1.7.0: Sections 11 + 12 added — SRD-EXE-011.001–015 (Strategy Engine) and SRD-EXE-012.001–013 (Trade Cycle Ledger).
+> v1.8.0: SRD-EXE-011.016–019 added — per-symbol re-execution counter (rex_count enforcement).
 
 ---
 
@@ -179,6 +180,10 @@
 | SRD-EXE-011.013 | FO-EXE-011 | Must | `emergency_stop()` is synchronous: it enqueues an EXIT signal for every `Running` symbol across every context, sets `_emergency_active = True` blocking further evaluation, and returns only when all those positions have reached `SquareOff`. | external call | all positions exited; engine quiesced | Method must block the caller; reuses the standard order-queue path | Approved |
 | SRD-EXE-011.014 | FO-EXE-011 | Must | Every state transition writes back to `strategy_signal` on the in-memory context and persists via `save_strategies(registry)`: `Status`, `Execution_Time`, `Executed_Quantity`, `Pending_Quantity`, `Order_Entry_Status`, `Order_Entry_Timestamp`, `Order_Exit_Status`, `Order_Exit_Timestamp`. | state transition | updated `strategies.json` | Persist debounced to ≥ 250 ms per strategy to avoid disk thrash | Approved |
 | SRD-EXE-011.015 | FO-EXE-011 | Must | `StrategyEvent` is a sealed union `StrategyEntered \| StrategyExited \| StrategySquaredOff \| StrategyErrored \| StrategySignalDropped`, each a frozen `@dataclass(slots=True)` with `schema_version: int`. Published on the FO-EXE-009 event bus. | state transition | event published | No engine module imports `PyQt6`; GUI bridges via Qt signals at its own boundary | Approved |
+| SRD-EXE-011.016 | FO-EXE-011 | Must | `RexCounterRepository` in `execution/strategy_engine/_rex_counter.py` owns CRUD on a sibling `strategy_rex_counters` table in `candles.db` keyed by `(strategy_id, symbol)`, storing `remaining: int` and `last_updated: TIMESTAMP`. | repository ops | row state | Table created on first use; no FK to `trade_cycles`; reset by `delete(strategy_id)` | Approved |
+| SRD-EXE-011.017 | FO-EXE-011 | Must | In `_router.evaluate()` Active branch, after `entry_condition` fires and before the capital-cap check, the engine reads `RexCounterRepository.get(strategy_id, symbol)` and drops the signal when the stored value is `< 0`, publishing `StrategySignalDropped(signal, reason='rex_limit')`. | candle close | accept or drop | Missing row treated as `remaining = cfg.rex_count`; no state mutation on drop | Approved |
+| SRD-EXE-011.018 | FO-EXE-011 | Must | `_router.on_order_fill()` entry branch calls `RexCounterRepository.decrement(strategy_id, symbol, init_value=ctx.cfg.rex_count)` immediately after publishing `StrategyEntered`; a missing row is inserted with `remaining = cfg.rex_count - 1`, an existing row decrements `remaining` by 1. | `FillEvent` (entry) | row updated | Idempotent on duplicate fill events for the same `entry_order_id` (see SRD-EXE-012.003) | Approved |
+| SRD-EXE-011.019 | FO-EXE-011 | Must | Counter state survives engine restart because rows live in `candles.db`; the repository is queried lazily on each evaluation rather than eagerly loaded into `_StrategyContext`. | engine restart | rows preserved | No in-memory cache between calls — lookup cost is one indexed SELECT per evaluation | Approved |
 
 ---
 

@@ -59,6 +59,7 @@ import socket
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
@@ -112,6 +113,44 @@ class _ScreenerLifecycleAdapter:
     preset_id:     str
     run_timestamp: str
     results:       dict[str, dict[str, Any]]
+
+
+class _AppEventStream:
+    """SRD-GUI-014.014 — single-callback sink that bridges typed lifecycle bus
+    + Qt strategy bus into one ``subscribe(handler)`` API for the Active Trades panel.
+    """
+
+    __slots__ = ("_subscribers", "__weakref__")
+
+    def __init__(self, *, lifecycle_bus: Any, strategy_bus: Any) -> None:
+        self._subscribers: list[Callable[[object], None]] = []
+
+        if lifecycle_bus is not None:
+            from us_swing.execution.trade_cycle import (
+                CycleAborted,
+                CycleClosed,
+                CycleClosing,
+                CycleOpened,
+                CycleUpdated,
+                RiskUpdated,
+            )
+            for evt_type in (CycleOpened, CycleUpdated, CycleClosing,
+                             CycleClosed, CycleAborted, RiskUpdated):
+                lifecycle_bus.subscribe(evt_type, self._forward)
+
+        if strategy_bus is not None and hasattr(strategy_bus, "event_published"):
+            strategy_bus.event_published.connect(self._forward)
+
+    def subscribe(self, handler: Callable[[object], None]) -> None:
+        self._subscribers.append(handler)
+
+    def _forward(self, event: object) -> None:
+        for handler in list(self._subscribers):
+            try:
+                handler(event)
+            except Exception:
+                _log.exception("[EventStream] subscriber raised on %s",
+                               type(event).__name__)
 
 
 # ── Default screener filter definitions (configuration, not data) ─────────────
@@ -1060,6 +1099,7 @@ class AppService(QObject):
         self._lifecycle_last_run:  datetime.date      | None = None
         self._tc_query:            Any                = None
         self._tc_command:          Any                = None
+        self._rex_counters:        Any                = None
 
         self.screener_results_updated.connect(self._on_screener_results_updated)
         # Trigger candle fetch for any results that were saved from a prior screener run.
@@ -1083,6 +1123,13 @@ class AppService(QObject):
                 _log.info("[TradeCycle] Service ready")
             except Exception:
                 _log.exception("[TradeCycle] Service init failed")
+
+            try:
+                from us_swing.execution.strategy_engine import RexCounterRepository
+                self._rex_counters = RexCounterRepository(self._db_engine)
+                _log.info("[Strategy] Rex counter repository ready")
+            except Exception:
+                _log.exception("[Strategy] Rex counter init failed")
 
         # ── Strategy Engine ───────────────────────────────────────────────────
         from us_swing.execution.pending_signal_store import PendingSignalStore
@@ -1110,6 +1157,7 @@ class AppService(QObject):
             submitter=self._paper_broker,
             pending=self._pending_store,
             bus=self._event_bus,
+            rex_counters=self._rex_counters,
             symbols_provider=lambda: list(self._filtered_symbols),
             cycle_loader=self._build_cycle_index,
             parent=self,
@@ -1118,7 +1166,37 @@ class AppService(QObject):
         self._event_bus.event_published.connect(self._on_strategy_event)
         self.live_bar_data_updated.connect(self._strategy_engine.on_candle_closed)
 
+        self._event_stream = _AppEventStream(
+            lifecycle_bus=self._lifecycle_bus,
+            strategy_bus=self._event_bus,
+        )
+
     # ── Architecture-level connection status ──────────────────────────────────
+
+    @property
+    def rex_counters(self) -> Any:
+        """`RexCounterRepository` exposing per-(strategy, symbol) re-execution counters."""
+        return self._rex_counters
+
+    @property
+    def event_stream(self) -> "_AppEventStream":
+        """Unified single-callback event sink for the Active Trades panel (SRD-GUI-014.014)."""
+        return self._event_stream
+
+    @property
+    def cycle_query(self) -> Any:
+        """FO-EXE-012 `TradeCycleQuery` for live cycle reads."""
+        return self._tc_query
+
+    @property
+    def cycle_cmd(self) -> Any:
+        """FO-EXE-012 `TradeCycleCommand` for live cycle mutations."""
+        return self._tc_command
+
+    @property
+    def pending_store(self) -> Any:
+        """FO-EXE-011 `PendingSignalStore` for awaiting-user-action signals."""
+        return self._pending_store
 
     @property
     def connection_status(self) -> ConnectionStatus:

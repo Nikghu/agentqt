@@ -35,6 +35,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from us_swing.execution.strategy_engine import StrategyEntered
 from us_swing.execution.trade_cycle import (
     CycleAborted,
     CycleClosed,
@@ -272,7 +273,12 @@ class ActiveCyclesPanel(QWidget):
         self._editor: _RiskEditorWidget | None = None
 
         # ── Widgets ──────────────────────────────────────────────────────
-        self._model = _ActiveCyclesModel(cycle_query, pending_store, parent=self)
+        self._model = _ActiveCyclesModel(
+            cycle_query,
+            pending_store,
+            parent=self,
+            rex_counters=getattr(app_service, "rex_counters", None),
+        )
         self._table = QTableView(self)
         self._table.setModel(self._model)
         self._table.setShowGrid(False)
@@ -314,9 +320,9 @@ class ActiveCyclesPanel(QWidget):
         self._pending.pending_signal_removed.connect(self._model.on_pending_removed)
 
         self._bridge_event.connect(self._dispatch_event, Qt.ConnectionType.QueuedConnection)
-        bus = getattr(self._app, "event_bus", None)
-        if bus is not None and hasattr(bus, "subscribe"):
-            bus.subscribe(self._bridge_event.emit)
+        stream = getattr(self._app, "event_stream", None)
+        if stream is not None and hasattr(stream, "subscribe"):
+            stream.subscribe(self._bridge_event.emit)
 
         if hasattr(self._app, "viewing_changed"):
             self._app.viewing_changed.connect(self._on_viewing_changed)
@@ -358,6 +364,8 @@ class ActiveCyclesPanel(QWidget):
                 self._collapse_editor()
         elif isinstance(evt, RiskUpdated):
             self._model.on_cycle_updated(evt.snapshot)
+        elif isinstance(evt, StrategyEntered):
+            self._model.on_strategy_entered(evt.strategy_id, evt.symbol)
         # else: unknown event types are intentionally ignored
 
     # ── Action handlers ──────────────────────────────────────────────────

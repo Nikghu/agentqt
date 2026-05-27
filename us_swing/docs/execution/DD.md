@@ -1,12 +1,13 @@
 # Design Document — Execution & Risk Management (EXE)
 
 **Document ID:** DD-EXE
-**Version:** 1.7.1
-**Traces To:** SRD-EXE v1.7.0
+**Version:** 1.8.0
+**Traces To:** SRD-EXE v1.8.0
 **Status:** Draft
-**Last Updated:** 2026-05-23
+**Last Updated:** 2026-05-27
 **Project:** US Swing Trading System
 
+> v1.8.0: DD-EXE-011.016.D01 added — Per-Symbol Re-Execution Counter (rex_count enforcement).
 > v1.7.0: DD-EXE-012.* added — Trade Cycle Ledger (table DDL, repository, tick throttle, exit-trigger emission).
 > v1.6.0: DD-EXE-011.* added — Strategy Engine (threading layout, `_StrategyContext`, `ConditionEvaluator`, mode router).
 
@@ -2292,6 +2293,105 @@ async def _do_emergency_stop(self) -> None:
 ```
 
 While `_emergency_active` is True, `_fanout()` short-circuits — no new entry evaluation, no new exit evaluation beyond what's already in flight.
+
+---
+
+## DD-EXE-011.016.D01 — Per-Symbol Re-Execution Counter (Rex Counter)
+
+**Parent SRD:** SRD-EXE-011.016 — SRD-EXE-011.019
+**Status:** Approved
+
+### Semantic
+
+`StrategyConfig.rex_count` is the number of *re-entries* a symbol may take under a strategy beyond its first entry. Total entries allowed per `(strategy_id, symbol)` = `rex_count + 1`. Default `rex_count = 0` therefore permits one entry then locks out further entries until a user-initiated Reset Strategy action.
+
+The counter is stored as `remaining: int`, initialized to `cfg.rex_count`, decremented by 1 after every confirmed entry fill. The entry gate blocks when `remaining < 0` (equivalently `remaining == -1` after the final allowed entry has decremented it).
+
+| `cfg.rex_count` | Counter walk | Total entries |
+|---|---|---|
+| 0 | 0 → -1 | 1 |
+| 1 | 1 → 0 → -1 | 2 |
+| 5 | 5 → 4 → 3 → 2 → 1 → 0 → -1 | 6 |
+| N | N → … → 0 → -1 | N + 1 |
+
+### Table DDL
+
+```sql
+CREATE TABLE IF NOT EXISTS strategy_rex_counters (
+    strategy_id   TEXT      NOT NULL,
+    symbol        TEXT      NOT NULL,
+    remaining     INTEGER   NOT NULL,
+    last_updated  TIMESTAMP NOT NULL,
+    PRIMARY KEY (strategy_id, symbol)
+);
+CREATE INDEX IF NOT EXISTS ix_rex_strategy ON strategy_rex_counters (strategy_id);
+```
+
+The table lives in the same SQLite file (`~/.usswing/candles.db`) as `trade_cycles`. No foreign-key constraints — counters are independent of cycle state so that a Reset Strategy never has to consider open positions.
+
+### `RexCounterRepository` Interface
+
+```python
+class RexCounterRepository:
+    def __init__(self, engine: Engine) -> None: ...
+
+    def get(self, strategy_id: str, symbol: str) -> int | None:
+        """Return stored `remaining`, or None when the row is absent."""
+
+    def decrement(self, strategy_id: str, symbol: str, *, init_value: int) -> int:
+        """Insert with `init_value - 1` if missing, else `remaining -= 1`.
+        Returns the new `remaining` value."""
+
+    def reset(self, strategy_id: str) -> int:
+        """DELETE all rows for `strategy_id`. Returns deleted row count."""
+```
+
+`get()` returning `None` is treated by callers as `remaining = cfg.rex_count` (first-evaluation case). `decrement()` is the only writer; the engine never UPDATEs `remaining` to a specific value other than via decrement, keeping the data flow append-only-ish.
+
+### Entry Gate Integration in `_router.evaluate()`
+
+The gate is placed **after** `entry_condition` fires (the expensive AST evaluation) and **before** the capital-cap check, so a blocked entry still surfaces a `StrategySignalDropped` payload with a meaningful `entry_price` for the GUI log:
+
+```python
+# inside _CycleState.ACTIVE branch, after `if not fired: return`
+remaining = self._rex_counters.get(ctx.name, symbol)
+if remaining is not None and remaining < 0:
+    signal_pre = self._build_entry_signal(ctx, symbol, bar)
+    self._bus.publish(
+        StrategySignalDropped(signal=signal_pre, reason="rex_limit")
+    )
+    log.info("[Strategy] %s ENTRY blocked for %s — rex limit reached", ctx.name, symbol)
+    return
+
+# … existing capital-cap check follows …
+```
+
+A `None` return (no row yet) skips the gate — the symbol is on its first ever entry under this strategy. No state mutation happens on a rex-blocked drop; the cycle stays in `ACTIVE` and re-evaluation continues on subsequent bars (the gate will keep dropping).
+
+### Counter Decrement on Entry Fill
+
+Decrement runs inside `_router.on_order_fill()` after the `StrategyEntered` event is published:
+
+```python
+if fill.is_entry:
+    ctx.cycles[fill.symbol] = _CycleState.RUNNING
+    self._bus.publish(StrategyEntered(...))
+    self._rex_counters.decrement(
+        fill.strategy_id, fill.symbol, init_value=ctx.cfg.rex_count
+    )
+```
+
+Placement after the event publish keeps the counter mutation off the GUI's critical path. The decrement is idempotent on duplicate fill events because `trade_cycles` enforces uniqueness on `entry_order_id` (SRD-EXE-012.003) — a duplicate fill never reaches `on_order_fill` twice for the same order.
+
+### Reset Strategy Flow
+
+`RexCounterRepository.reset(strategy_id)` is the only public surface for clearing counters. It is invoked from the GUI Reset icon (SRD-GUI-013.015) after a `QMessageBox` confirmation. The reset is one DELETE statement and is independent of any in-flight cycles — OPEN positions remain open, only the future-entry budget is cleared.
+
+### Cross-Restart Correctness
+
+Because the repository is queried lazily on every entry evaluation (no in-memory cache), counter state survives an engine restart automatically. A symbol that hit its limit yesterday remains locked today until the user explicitly resets.
+
+Performance: one indexed SELECT per entry-condition firing. With ≥ 50 strategies × ≥ 500 symbols × 5 entries/day this is < 125 k SELECTs/day on a local SQLite file — negligible compared to the candle-write workload.
 
 ---
 

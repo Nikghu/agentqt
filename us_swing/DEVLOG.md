@@ -2,6 +2,24 @@
 
 ---
 
+## [20260527] EXE + GUI — Per-Symbol Re-Execution Counter (rex_count enforcement)
+
+- Type: Feature
+- FO(s): FO-EXE-011, FO-GUI-013, FO-GUI-014
+- RN: RN-EXE-1.9.0-20260527
+- Artifacts updated: SRD (4 rows), DD (1 row), MD (5 rows), TRACE (2 tools), CONTEXT §0, DEVLOG
+- Decisions:
+  - Sibling `strategy_rex_counters` table in candles.db for persistence across restarts
+  - Lazy evaluation (no eager cache) — query fresh on each signal evaluation
+  - Semantic: `rex_count = N` → N+1 total entries allowed; counter walks N → -1 (blocked at < 0)
+  - Reset action per-row in strategy table with confirmation dialog
+  - Active Cycles Rex column refreshed via `StrategyEntered` event (targeted, not full model refresh)
+- Code: 1 new module (_rex_counter.py), 5 modified (EXE: _engine, _router; GUI: execution_panel, strategy_builder_dialog, active_cycles_model, active_cycles_panel)
+- Tests: 25 pass (8 repository CRUD + 7 router lifecycle); 12 pre-existing unrelated failures left as-is
+- Memory: `feature_rex_count_enforcement.md` → Implemented; `feature_active_trades_panel_rollout.md` (NEW) documents 5-step rollout plan with pre-rollout gap list
+
+---
+
 ## [20260527] EXE — Strategy Lifecycle Refactor & Trade Cycle Integration
 
 - Type: Refactor + Bugfix

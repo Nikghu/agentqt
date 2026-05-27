@@ -1176,8 +1176,9 @@ class _SettingsPage(QScrollArea):
         self._rex_count.setFixedWidth(160)
         self._rex_count.setStyleSheet(_spin_ss())
         self._rex_count.setToolTip(
-            "Re-execution count: how many times the same symbol may re-enter\n"
-            "after a strategy exit within the same trading session. 0 = no re-entry."
+            "Re-execution count: extra entries per stock beyond the first.\n"
+            "Default 0 = first entry only. 5 = first entry plus 5 re-entries.\n"
+            "Use Reset Strategy to clear counters and re-enable entries."
         )
         cadence_form.addRow("Rex Count:", self._rex_count)
 
