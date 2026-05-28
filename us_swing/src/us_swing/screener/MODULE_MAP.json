@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-26T19:03:07",
+  "generated": "2026-05-28T18:09:31",
   "subfolder": "screener",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\screener",
   "tool_code": "SCR",
@@ -97,66 +97,66 @@
           "methods": [
             {
               "name": "__init__",
-              "signature": "def __init__(\n        self,\n        db: Any = None,\n        app_service: Any = None,\n        preset_manager: Any = None,\n        storage: ScreenerResultsStorage | None = None,\n        registry: ScreenerRegistry | None = None,\n        max_workers: int = 4,\n    ) -> None",
+              "signature": "def __init__(\r\n        self,\r\n        db: Any = None,\r\n        app_service: Any = None,\r\n        preset_manager: Any = None,\r\n        storage: ScreenerResultsStorage | None = None,\r\n        registry: ScreenerRegistry | None = None,\r\n        max_workers: int = 4,\r\n    ) -> None",
               "line_start": 41,
               "line_end": 56
             },
             {
               "name": "run_preset",
-              "signature": "def run_preset(\n        self,\n        preset_id: str,\n        user_id: str,\n        manual: bool = True,\n        *,\n        symbols: list[str] | None = None,\n        bars: dict[str, list[Any]] | None = None,\n        preset: Preset | None = None,\n    ) -> ScreenerRunResult",
+              "signature": "def run_preset(\r\n        self,\r\n        preset_id: str,\r\n        user_id: str,\r\n        manual: bool = True,\r\n        *,\r\n        symbols: list[str] | None = None,\r\n        bars: dict[str, list[Any]] | None = None,\r\n        preset: Preset | None = None,\r\n    ) -> ScreenerRunResult",
               "docstring": "Execute a preset and persist the result.",
               "line_start": 62,
               "line_end": 173
             },
             {
               "name": "_run_stage2",
-              "signature": "def _run_stage2(\n        self,\n        preset: Preset,\n        symbols: list[str],\n        bars: dict[str, list[Any]],\n    ) -> dict[str, dict[str, tuple[bool, float]]]",
+              "signature": "def _run_stage2(\r\n        self,\r\n        preset: Preset,\r\n        symbols: list[str],\r\n        bars: dict[str, list[Any]],\r\n    ) -> dict[str, dict[str, tuple[bool, float]]]",
               "docstring": "Call every enabled screener and collect per-symbol (passed, score).",
               "line_start": 179,
               "line_end": 228
             },
             {
               "name": "_combine_results",
-              "signature": "def _combine_results(\n        self,\n        preset: Preset,\n        stage2: dict[str, dict[str, tuple[bool, float]]],\n        symbols: list[str],\n    ) -> dict[str, dict[str, Any]]",
+              "signature": "def _combine_results(\r\n        self,\r\n        preset: Preset,\r\n        stage2: dict[str, dict[str, tuple[bool, float]]],\r\n        symbols: list[str],\r\n    ) -> dict[str, dict[str, Any]]",
               "line_start": 234,
               "line_end": 242
             },
             {
               "name": "_composite_logic",
-              "signature": "def _composite_logic(\n        self,\n        preset: Preset,\n        stage2: dict[str, dict[str, tuple[bool, float]]],\n        symbols: list[str],\n    ) -> dict[str, dict[str, Any]]",
+              "signature": "def _composite_logic(\r\n        self,\r\n        preset: Preset,\r\n        stage2: dict[str, dict[str, tuple[bool, float]]],\r\n        symbols: list[str],\r\n    ) -> dict[str, dict[str, Any]]",
               "docstring": "Symbol passes if ANY group passes (groups are OR-ed together).",
               "line_start": 244,
               "line_end": 282
             },
             {
               "name": "_weighted_logic",
-              "signature": "def _weighted_logic(\n        self,\n        preset: Preset,\n        stage2: dict[str, dict[str, tuple[bool, float]]],\n        symbols: list[str],\n    ) -> dict[str, dict[str, Any]]",
+              "signature": "def _weighted_logic(\r\n        self,\r\n        preset: Preset,\r\n        stage2: dict[str, dict[str, tuple[bool, float]]],\r\n        symbols: list[str],\r\n    ) -> dict[str, dict[str, Any]]",
               "docstring": "Score = \u03a3(score_i \u00d7 weight_i) / \u03a3(weights) for enabled screeners.",
               "line_start": 284,
               "line_end": 307
             },
             {
               "name": "_run_stage3",
-              "signature": "def _run_stage3(\n        self,\n        preset: Preset,\n        combined: dict[str, dict[str, Any]],\n        bars: dict[str, list[Any]],\n    ) -> tuple[dict[str, dict[str, Any]], list[AITranscriptTurn]]",
+              "signature": "def _run_stage3(\r\n        self,\r\n        preset: Preset,\r\n        combined: dict[str, dict[str, Any]],\r\n        bars: dict[str, list[Any]],\r\n    ) -> tuple[dict[str, dict[str, Any]], list[AITranscriptTurn]]",
               "docstring": "Re-rank Stage 2 passing symbols with CloudAIScreener.",
               "line_start": 313,
-              "line_end": 374
+              "line_end": 378
             },
             {
               "name": "_get_registry",
               "signature": "def _get_registry(self) -> ScreenerRegistry",
-              "line_start": 380,
-              "line_end": 381
+              "line_start": 384,
+              "line_end": 385
             },
             {
               "name": "_get_storage",
               "signature": "def _get_storage(self) -> ScreenerResultsStorage",
-              "line_start": 383,
-              "line_end": 384
+              "line_start": 387,
+              "line_end": 388
             }
           ],
           "line_start": 27,
-          "line_end": 384
+          "line_end": 388
         }
       ]
     },
@@ -664,15 +664,15 @@
         {
           "name": "load",
           "signature": "def load() -> str",
-          "docstring": "Return the stored key, or fall back to the env var, or empty string.",
+          "docstring": "Return the stored key: env var takes priority, then keychain, then empty string.",
           "line_start": 40,
-          "line_end": 48
+          "line_end": 50
         },
         {
           "name": "has_key",
           "signature": "def has_key() -> bool",
-          "line_start": 51,
-          "line_end": 52
+          "line_start": 53,
+          "line_end": 54
         }
       ],
       "constants": [
@@ -814,13 +814,13 @@
             },
             {
               "name": "batch_features",
-              "signature": "def batch_features(\n        self,\n        symbols: list[str],\n        bars: dict[str, list[OHLCVBar]],\n    ) -> dict[str, dict[str, Any]]",
+              "signature": "def batch_features(\r\n        self,\r\n        symbols: list[str],\r\n        bars: dict[str, list[OHLCVBar]],\r\n    ) -> dict[str, dict[str, Any]]",
               "line_start": 359,
               "line_end": 369
             },
             {
               "name": "apply",
-              "signature": "def apply(\n        self,\n        symbols: list[str],\n        bars: dict[str, list[OHLCVBar]],\n        config: dict[str, Any],\n    ) -> dict[str, tuple[bool, float]]",
+              "signature": "def apply(\r\n        self,\r\n        symbols: list[str],\r\n        bars: dict[str, list[OHLCVBar]],\r\n        config: dict[str, Any],\r\n    ) -> dict[str, tuple[bool, float]]",
               "line_start": 375,
               "line_end": 386
             },
@@ -839,15 +839,15 @@
             },
             {
               "name": "_apply_legacy",
-              "signature": "def _apply_legacy(\n        self,\n        symbols: list[str],\n        bars: dict[str, list[OHLCVBar]],\n        config: dict[str, Any],\n    ) -> dict[str, tuple[bool, float]]",
+              "signature": "def _apply_legacy(\r\n        self,\r\n        symbols: list[str],\r\n        bars: dict[str, list[OHLCVBar]],\r\n        config: dict[str, Any],\r\n    ) -> dict[str, tuple[bool, float]]",
               "line_start": 439,
-              "line_end": 520
+              "line_end": 538
             },
             {
               "name": "_apply_with_tools",
-              "signature": "def _apply_with_tools(\n        self,\n        symbols: list[str],\n        bars: dict[str, list[OHLCVBar]],\n        config: dict[str, Any],\n        ai_query: str,\n    ) -> dict[str, tuple[bool, float]]",
-              "line_start": 526,
-              "line_end": 650
+              "signature": "def _apply_with_tools(\r\n        self,\r\n        symbols: list[str],\r\n        bars: dict[str, list[OHLCVBar]],\r\n        config: dict[str, Any],\r\n        ai_query: str,\r\n    ) -> dict[str, tuple[bool, float]]",
+              "line_start": 544,
+              "line_end": 684
             },
             {
               "name": "_tool_display",
@@ -855,31 +855,31 @@
               "decorators": [
                 "@staticmethod"
               ],
-              "line_start": 657,
-              "line_end": 665
+              "line_start": 691,
+              "line_end": 699
             },
             {
               "name": "_append_tool_round",
-              "signature": "def _append_tool_round(\n        self,\n        messages: list[dict[str, Any]],\n        choice: Any,\n        tool_executor: CandleToolExecutor,\n    ) -> list[tuple[str, str, dict[str, Any]]]",
+              "signature": "def _append_tool_round(\r\n        self,\r\n        messages: list[dict[str, Any]],\r\n        choice: Any,\r\n        tool_executor: CandleToolExecutor,\r\n    ) -> list[tuple[str, str, dict[str, Any]]]",
               "docstring": "Append the assistant's tool-call message + each tool's result.",
-              "line_start": 667,
-              "line_end": 698
+              "line_start": 701,
+              "line_end": 732
             },
             {
               "name": "_parse_ranking",
-              "signature": "def _parse_ranking(\n        self,\n        text: str,\n        symbols: list[str],\n        fallback: dict[str, tuple[bool, float]],\n    ) -> dict[str, tuple[bool, float]]",
-              "line_start": 704,
-              "line_end": 731
+              "signature": "def _parse_ranking(\r\n        self,\r\n        text: str,\r\n        symbols: list[str],\r\n        fallback: dict[str, tuple[bool, float]],\r\n    ) -> dict[str, tuple[bool, float]]",
+              "line_start": 738,
+              "line_end": 765
             },
             {
               "name": "_track_usage",
               "signature": "def _track_usage(self, response: Any) -> None",
-              "line_start": 733,
-              "line_end": 754
+              "line_start": 767,
+              "line_end": 788
             }
           ],
           "line_start": 338,
-          "line_end": 754
+          "line_end": 788
         }
       ],
       "top_level_functions": [
@@ -904,7 +904,7 @@
         },
         {
           "name": "_find_swings",
-          "signature": "def _find_swings(\n    bars: list[_BarProto],\n    *,\n    use_high:   bool,\n    neighbors:  int   = _SWING_N,\n    max_pts:    int   = _SWING_MAX,\n    atr_filter: float = 0.0,\n) -> list[dict[str, Any]]",
+          "signature": "def _find_swings(\r\n    bars: list[_BarProto],\r\n    *,\r\n    use_high:   bool,\r\n    neighbors:  int   = _SWING_N,\r\n    max_pts:    int   = _SWING_MAX,\r\n    atr_filter: float = 0.0,\r\n) -> list[dict[str, Any]]",
           "docstring": "Return the ``max_pts`` most-recent swing pivot points.",
           "line_start": 145,
           "line_end": 178
@@ -924,22 +924,22 @@
         },
         {
           "name": "_scores_to_results",
-          "signature": "def _scores_to_results(\n    symbols: list[str], raw_scores: dict[str, float],\n) -> dict[str, tuple[bool, float]]",
-          "line_start": 761,
-          "line_end": 771
+          "signature": "def _scores_to_results(\r\n    symbols: list[str], raw_scores: dict[str, float],\r\n) -> dict[str, tuple[bool, float]]",
+          "line_start": 795,
+          "line_end": 805
         },
         {
           "name": "_strip_codefence",
           "signature": "def _strip_codefence(text: str) -> str",
           "docstring": "Strip ``` fences and any leading prose before the JSON value.",
-          "line_start": 774,
-          "line_end": 793
+          "line_start": 808,
+          "line_end": 827
         },
         {
           "name": "_truncate_words",
           "signature": "def _truncate_words(text: str, max_words: int) -> str",
-          "line_start": 796,
-          "line_end": 800
+          "line_start": 830,
+          "line_end": 834
         }
       ],
       "constants": [

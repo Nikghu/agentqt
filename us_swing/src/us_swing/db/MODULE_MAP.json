@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-26T19:03:07",
+  "generated": "2026-05-28T18:09:31",
   "subfolder": "db",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\db",
   "tool_code": "INF",
@@ -92,59 +92,60 @@
               "line_end": 238
             },
             {
-              "name": "update_trade_exit",
-              "signature": "def update_trade_exit(\r\n        self,\r\n        trade_id: str,\r\n        exit_time: datetime,\r\n        exit_price: float,\r\n        pnl: float,\r\n    ) -> None",
+              "name": "update_trade_fill",
+              "signature": "def update_trade_fill(\r\n        self,\r\n        trade_id: str,\r\n        filled_quantity: int,\r\n        order_state: str,\r\n        exit_time: datetime | None = None,\r\n        exit_price: float | None = None,\r\n    ) -> None",
+              "docstring": "Record a broker fill on a `trades` row (SRD-EXE-014.004).",
               "line_start": 240,
-              "line_end": 257
+              "line_end": 268
             },
             {
               "name": "upsert_position",
               "signature": "def upsert_position(self, pos: PositionRecord) -> None",
-              "line_start": 261,
-              "line_end": 278
+              "line_start": 272,
+              "line_end": 288
             },
             {
               "name": "delete_position",
               "signature": "def delete_position(self, user_id: int, symbol: str) -> None",
-              "line_start": 280,
-              "line_end": 287
+              "line_start": 290,
+              "line_end": 297
             },
             {
               "name": "fetch_open_positions",
               "signature": "def fetch_open_positions(self, user_id: int) -> list[PositionRecord]",
-              "line_start": 289,
-              "line_end": 309
+              "line_start": 299,
+              "line_end": 319
             },
             {
               "name": "insert_user",
               "signature": "def insert_user(self, user: UserRecord) -> int",
               "docstring": "Insert a new user row and return the auto-generated user_id.",
-              "line_start": 313,
-              "line_end": 324
+              "line_start": 323,
+              "line_end": 334
             },
             {
               "name": "fetch_user",
               "signature": "def fetch_user(self, user_id: int) -> UserRecord | None",
-              "line_start": 326,
-              "line_end": 332
+              "line_start": 336,
+              "line_end": 342
             },
             {
               "name": "update_user",
               "signature": "def update_user(self, user_id: int, **fields: Any) -> None",
-              "line_start": 334,
-              "line_end": 344
+              "line_start": 344,
+              "line_end": 354
             },
             {
               "name": "delete_user",
               "signature": "def delete_user(self, user_id: int) -> None",
-              "line_start": 346,
-              "line_end": 349
+              "line_start": 356,
+              "line_end": 359
             },
             {
               "name": "fetch_all_users",
               "signature": "def fetch_all_users(self) -> list[UserRecord]",
-              "line_start": 351,
-              "line_end": 354
+              "line_start": 361,
+              "line_end": 364
             },
             {
               "name": "_price_table",
@@ -152,8 +153,8 @@
               "decorators": [
                 "@staticmethod"
               ],
-              "line_start": 359,
-              "line_end": 366
+              "line_start": 369,
+              "line_end": 376
             },
             {
               "name": "_row_to_user_record",
@@ -161,12 +162,12 @@
               "decorators": [
                 "@staticmethod"
               ],
-              "line_start": 369,
-              "line_end": 377
+              "line_start": 379,
+              "line_end": 387
             }
           ],
           "line_start": 54,
-          "line_end": 377
+          "line_end": 387
         }
       ],
       "top_level_functions": [
@@ -195,35 +196,37 @@
         {
           "name": "_register_trade_cycle_schema",
           "signature": "def _register_trade_cycle_schema() -> None",
-          "line_start": 182,
-          "line_end": 183
+          "line_start": 183,
+          "line_end": 184
         },
         {
           "name": "migrate_lifecycle_columns",
           "signature": "def migrate_lifecycle_columns(engine: sa.Engine) -> None",
-          "docstring": "Add monitoring-session lifecycle columns to ``trades`` and ``positions``",
-          "line_start": 208,
-          "line_end": 221
+          "docstring": "Add monitoring-session + order-state lifecycle columns and drop the",
+          "line_start": 228,
+          "line_end": 265
         },
         {
           "name": "create_schema",
           "signature": "def create_schema(engine: sa.Engine) -> None",
           "docstring": "Create all tables and indexes if they do not already exist, then run",
-          "line_start": 224,
-          "line_end": 229
+          "line_start": 268,
+          "line_end": 273
         },
         {
           "name": "drop_schema",
           "signature": "def drop_schema(engine: sa.Engine) -> None",
           "docstring": "Drop all tables (test use only).",
-          "line_start": 232,
-          "line_end": 234
+          "line_start": 276,
+          "line_end": 278
         }
       ],
       "constants": [
         "_PRICE_INDEXES = [",
         "PRICE_TABLES: dict[str, sa.Table] = {",
-        "_LIFECYCLE_COLUMN_ADDITIONS: tuple[tuple[str, str, str], ...] = ("
+        "_LIFECYCLE_COLUMN_ADDITIONS: tuple[tuple[str, str, str], ...] = (",
+        "_LIFECYCLE_COLUMN_REMOVALS: tuple[tuple[str, str], ...] = (",
+        "_STATUS_TO_ORDER_STATE_BACKFILL: tuple[tuple[str, str], ...] = ("
       ]
     }
   }

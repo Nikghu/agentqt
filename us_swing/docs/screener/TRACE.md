@@ -444,12 +444,14 @@ FO-011
 |---|---|---|---|---|---|
 | SRD-014.001 | — | M13 (storage.py) | test_storage.py | — | Approved |
 | SRD-014.002 | — | M13 (storage.py) | test_storage.py | — | Approved |
-| SRD-014.003 | — | M06 (cloud_ai.py) | test_llm_claude_screener.py | — | Approved |
+| SRD-014.003 | — | M06 (cloud_ai.py) | test_executor.py | T23 | Implemented |
 | SRD-014.004 | — | MD-SCR-014.004.M22 (ai_transcript_panel.py) | (deferred Phase 5) | — | Approved |
 | SRD-014.005 | — | MD-SCR-014.004.M22 (ai_transcript_panel.py) | (deferred Phase 5) | — | Approved |
-| SRD-014.006 | — | M16 (screener_panel.py) | (deferred Phase 5) | — | Approved |
+| SRD-014.006 | — | M16 (screener_panel.py) | test_executor.py | T23 | Implemented |
 | SRD-014.007 | — | M16 (screener_panel.py) | (deferred Phase 5) | — | Approved |
 | SRD-014.008 | — | MD-SCR-014.008.M20 (ai_model_store.py) | (pending) | — | Implemented |
+
+**Note (2026-05-27, ISS-SCR-0002):** SRD-014.003 and SRD-014.006 marked Implemented after fixing the blank-transcript-panel regression — see RN-SCR-2.1.1-20260527.
 
 ---
 

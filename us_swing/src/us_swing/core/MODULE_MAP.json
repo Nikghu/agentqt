@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-26T19:03:07",
+  "generated": "2026-05-28T18:09:31",
   "subfolder": "core",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\core",
   "tool_code": "EXE",
@@ -501,37 +501,37 @@
               "signature": "def open_system_position_symbols(self) -> frozenset[str]",
               "docstring": "Symbols of all currently-open system positions across users.",
               "line_start": 276,
-              "line_end": 283
+              "line_end": 286
             },
             {
               "name": "has_open_system_position",
               "signature": "def has_open_system_position(self, symbol: str) -> bool",
-              "line_start": 285,
-              "line_end": 292
+              "line_start": 288,
+              "line_end": 295
             },
             {
               "name": "position_anchor",
               "signature": "def position_anchor(self, symbol: str) -> str | None",
               "docstring": "Anchor session date for the open system position, if any.",
-              "line_start": 294,
-              "line_end": 302
+              "line_start": 297,
+              "line_end": 305
             },
             {
               "name": "insert_trade_with_anchor",
               "signature": "def insert_trade_with_anchor(\r\n        self,\r\n        trade_id: str,\r\n        user_id: int,\r\n        symbol: str,\r\n        side: Side,\r\n        qty: int,\r\n        price: float,\r\n        fill_time: str,\r\n        origin: TradeOrigin,\r\n        anchor_session_date: str | None,\r\n    ) -> None",
-              "line_start": 306,
-              "line_end": 337
+              "line_start": 309,
+              "line_end": 340
             },
             {
               "name": "upsert_position_with_anchor",
               "signature": "def upsert_position_with_anchor(\r\n        self,\r\n        user_id: int,\r\n        symbol: str,\r\n        side: Side,\r\n        fill_qty: int,\r\n        fill_price: float,\r\n        origin: TradeOrigin,\r\n        anchor_session_date: str | None,\r\n    ) -> PositionSnapshot",
               "docstring": "Apply a fill to the ``positions`` row for (user_id, symbol).",
-              "line_start": 339,
-              "line_end": 448
+              "line_start": 342,
+              "line_end": 446
             }
           ],
           "line_start": 50,
-          "line_end": 448
+          "line_end": 446
         }
       ],
       "top_level_functions": [
