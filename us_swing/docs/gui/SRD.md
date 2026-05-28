@@ -1,13 +1,14 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.8.0
+**Version:** 2.11.0
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
-**Last Updated:** 2026-05-22
-> v2.8.0: Section 13 added — SRD-GUI-014.001–012 for Active Cycles Panel (FO-GUI-014).
-> v2.9.0: SRD-GUI-013.015 (Reset Strategy action) and SRD-GUI-014.013 (Rex column) added for rex_count enforcement.
+**Last Updated:** 2026-05-28
+> v2.11.0: SRD-GUI-002.005 marked Reopen — Trade History columns now show `Order State` and `Filled` per FO-EXE-014; `Entry`, `Exit`, and `P&L` columns removed (P&L lives on the Dashboard KPI cards and inside `trade_cycles`).
 > v2.10.0: SRD-GUI-014.014 (AppService event_stream adapter) added for Active Trades panel rollout.
+> v2.9.0: SRD-GUI-013.015 (Reset Strategy action) and SRD-GUI-014.013 (Rex column) added for rex_count enforcement.
+> v2.8.0: Section 13 added — SRD-GUI-014.001–012 for Active Cycles Panel (FO-GUI-014).
 > v2.7.0: Section 12 added — SRD-GUI-013.001–014 for Strategy Builder Dialog (FO-GUI-013).
 > v2.6.0: Section 11 added — SRD-GUI-012.001–007 for Live Streaming Price Display (FO-GUI-012).
 > v2.5.0: SRD-GUI-004.006–008 added — Filtered Stocks pane, FilteredStockEntry model, AppService cross-tool bridge (FO-GUI-004).
@@ -48,7 +49,7 @@
 | SRD-GUI-002.002 | FO-GUI-002 | Must | A scope pill strip (32px) sits in the dashboard. Pills: `🌐 All` + one per user (🔴/🔵 by mode). Click calls `AppService.set_viewing_uid()`. Pills auto-sync on `viewing_changed`. | User click / `viewing_changed` | Scope changed; pill highlight updated | Pills use `setAutoExclusive(True)` | Implemented |
 | SRD-GUI-002.003 | FO-GUI-002 | Must | Unrealised P&L column uses `BackgroundRole` (green/red tinted bg) and `ForegroundRole` (green/red text). | P&L value | Coloured cell | Implemented in `PositionTableModel._background/_foreground` | Implemented |
 | SRD-GUI-002.004 | FO-GUI-002 | Must | KPI cards (P&L, equity, positions, capital) reflect current scope's data. Updates on `account_updated` and `viewing_changed`. | Signal events | Refreshed cards | Same refresh path for all scopes | Implemented |
-| SRD-GUI-002.005 | FO-GUI-002 | Must | Trade history `QTableView` backed by `TradeHistoryModel`. Columns: Date & Time, Symbol, Side, Qty, Entry, Exit, P&L, Strategy, Mode. Optional "User" prefix column in All-Users scope. Sorted descending by entry time. | `viewing_changed` | Filtered history table | Sorted via `TradeHistoryModel.refresh()` | Implemented |
+| SRD-GUI-002.005 | FO-GUI-002 | Must | Trade history `QTableView` backed by `TradeHistoryModel`. Columns: Date & Time, Symbol, Side, Qty, Filled, Avg Price, Order State, Strategy, Mode. Optional "User" prefix column in All-Users scope. Sorted descending by entry time. No P&L column — P&L lives on KPI cards / `trade_cycles`. | `viewing_changed` | Filtered history table | Order State cell renders coloured badge per `BuyOrderState` / `SellOrderState` value | Reopen |
 | SRD-GUI-002.006 | FO-GUI-002 | Must | "Manage Selected" action opens `_ExitPositionDialog` (frameless dialog, 580×540 min). Dialog has 4 tabs: Market Exit, Limit Exit, Scale Out, Stop/Trail. Admin attribution banner shown when acting on another user's position. | User interaction | Exit/update action on position | `user_id` taken from position row, not viewing scope | Implemented |
 
 ---
