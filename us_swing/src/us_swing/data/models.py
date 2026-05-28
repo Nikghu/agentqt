@@ -14,6 +14,10 @@ from __future__ import annotations
 import enum
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import TYPE_CHECKING, Union
+
+if TYPE_CHECKING:
+    from us_swing.execution._enums import ExecutionEnums
 
 
 # ── Enumerations ──────────────────────────────────────────────────────────────
@@ -23,15 +27,6 @@ class ConnectionStatus(enum.Enum):
     CONNECTED    = "connected"
     DISCONNECTED = "disconnected"
     RECONNECTING = "reconnecting"
-
-
-class PositionState(enum.Enum):
-    """Lifecycle state of an open position."""
-    NEW           = "NEW"
-    PARTIAL_ENTRY = "PARTIAL_ENTRY"
-    OPEN          = "OPEN"
-    PARTIAL_EXIT  = "PARTIAL_EXIT"
-    CLOSED        = "CLOSED"
 
 
 class TradingMode(enum.Enum):
@@ -101,7 +96,10 @@ class AccountState:
 
 @dataclass
 class PositionRecord:
-    """Persisted position row (maps 1:1 to the ``positions`` DB table)."""
+    """Persisted position row (maps 1:1 to the ``positions`` DB table).
+
+    Open/closed status is derived: ``quantity > 0`` ⇒ open (SRD-EXE-005.001).
+    """
     symbol:        str
     user_id:       int
     quantity:      int
@@ -109,7 +107,6 @@ class PositionRecord:
     stop_loss:     float
     target_price:  float
     mode:          str                   # TradingMode value
-    state:         str                   # PositionState value
     trailing_stop: float = 0.0
 
 
@@ -147,22 +144,34 @@ class OpenPosition(PositionRecord):
 
 # ── Trades ────────────────────────────────────────────────────────────────────
 
+OrderState = Union[
+    "ExecutionEnums.BuyOrderState",
+    "ExecutionEnums.SellOrderState",
+    str,
+]
+
+
 @dataclass
 class TradeRecord:
-    """Completed or in-flight trade (maps to the ``trades`` DB table)."""
-    trade_id:    str
-    user_id:     int
-    symbol:      str
-    side:        str          # "BUY" | "SELL"
-    quantity:    int
-    entry_price: float
-    mode:        str          # TradingMode value
-    strategy_id: str
-    entry_time:  datetime
-    exit_price:  float | None = None
-    exit_time:   datetime | None = None
-    pnl:         float | None = None
-    status:      str          = "SUBMITTED"
+    """Completed or in-flight trade (maps to the ``trades`` DB table).
+
+    ``order_state`` holds the value of ``BuyOrderState`` for ``side='BUY'``
+    rows and ``SellOrderState`` for ``side='SELL'`` rows (SRD-EXE-014.002).
+    ``filled_quantity`` tracks cumulative fills against ``quantity``.
+    """
+    trade_id:        str
+    user_id:         int
+    symbol:          str
+    side:            str          # "BUY" | "SELL"
+    quantity:        int
+    entry_price:     float
+    mode:            str          # TradingMode value
+    strategy_id:     str
+    entry_time:      datetime
+    exit_price:      float | None = None
+    exit_time:       datetime | None = None
+    order_state:     OrderState   = "NEW"
+    filled_quantity: int          = 0
 
 
 # ── IBKR-specific types ───────────────────────────────────────────────────────
@@ -271,6 +280,7 @@ class FilteredStockEntry:
     screener_name:  str
     run_type:       str   # "manual" | "scheduled"
     date:           str   # YYYY-MM-DD
+    time:           str = ""   # HH:MM (local time), empty for legacy entries
 
 
 @dataclass

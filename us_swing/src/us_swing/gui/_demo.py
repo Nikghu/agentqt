@@ -45,51 +45,51 @@ _POSITIONS: list[OpenPosition] = [
         symbol="AAPL", user_id=1, quantity=200, filled_quantity=200, total_quantity=200,
         average_price=182.50, current_price=187.30, stop_loss=178.00, target_price=195.00,
         strategy_id="BREAKOUT", entry_time=_now - timedelta(days=2),
-        state="OPEN", mode="live",
+        mode="live",
     ),
     OpenPosition(
-        symbol="MSFT", user_id=1, quantity=150, filled_quantity=100, total_quantity=150,
+        symbol="MSFT", user_id=1, quantity=100, filled_quantity=100, total_quantity=150,
         average_price=415.00, current_price=418.75, stop_loss=405.00, target_price=435.00,
         strategy_id="PULLBACK", entry_time=_now - timedelta(days=1),
-        state="PARTIAL_ENTRY", mode="live",
+        mode="live",
     ),
     OpenPosition(
         symbol="NVDA", user_id=1, quantity=80, filled_quantity=80, total_quantity=80,
         average_price=875.00, current_price=856.40, stop_loss=850.00, target_price=920.00,
         strategy_id="BREAKOUT", entry_time=_now - timedelta(days=3),
-        state="OPEN", mode="live",
+        mode="live",
     ),
     OpenPosition(
-        symbol="GOOGL", user_id=1, quantity=100, filled_quantity=60, total_quantity=100,
+        symbol="GOOGL", user_id=1, quantity=40, filled_quantity=40, total_quantity=100,
         average_price=178.00, current_price=176.50, stop_loss=172.00, target_price=188.00,
         strategy_id="PULLBACK", entry_time=_now - timedelta(hours=4),
-        state="PARTIAL_EXIT", mode="live",
+        mode="live",
     ),
     # ── Bob (user_id=2, PAPER) ─────────────────────────────────────────────────
     OpenPosition(
         symbol="TSLA", user_id=2, quantity=50, filled_quantity=50, total_quantity=50,
         average_price=162.00, current_price=168.40, stop_loss=155.00, target_price=182.00,
         strategy_id="BREAKOUT", entry_time=_now - timedelta(days=1),
-        state="OPEN", mode="paper",
+        mode="paper",
     ),
     OpenPosition(
         symbol="AMZN", user_id=2, quantity=80, filled_quantity=80, total_quantity=80,
         average_price=188.50, current_price=185.20, stop_loss=182.00, target_price=200.00,
         strategy_id="PULLBACK", entry_time=_now - timedelta(hours=6),
-        state="OPEN", mode="paper",
+        mode="paper",
     ),
     # ── Carol (user_id=3, PAPER) ───────────────────────────────────────────────
     OpenPosition(
         symbol="SPY", user_id=3, quantity=100, filled_quantity=100, total_quantity=100,
         average_price=495.00, current_price=498.80, stop_loss=488.00, target_price=510.00,
         strategy_id="BREAKOUT", entry_time=_now - timedelta(days=2),
-        state="OPEN", mode="paper",
+        mode="paper",
     ),
     OpenPosition(
-        symbol="QQQ", user_id=3, quantity=60, filled_quantity=40, total_quantity=60,
+        symbol="QQQ", user_id=3, quantity=40, filled_quantity=40, total_quantity=60,
         average_price=420.00, current_price=425.30, stop_loss=413.00, target_price=440.00,
         strategy_id="PULLBACK", entry_time=_now - timedelta(hours=3),
-        state="PARTIAL_ENTRY", mode="paper",
+        mode="paper",
     ),
 ]
 
@@ -98,41 +98,41 @@ _TRADES: list[TradeRecord] = [
     TradeRecord(trade_id="1001", user_id=1, symbol="META",  side="BUY", quantity=120,
                 entry_price=505.00, mode="live", strategy_id="BREAKOUT",
                 entry_time=_now - timedelta(days=1),  exit_time=_now - timedelta(hours=2),
-                exit_price=521.30, pnl=1956.00,  status="CLOSED"),
+                exit_price=521.30, order_state="FILLED", filled_quantity=120),
     TradeRecord(trade_id="1002", user_id=1, symbol="AMZN",  side="BUY", quantity=50,
                 entry_price=188.50, mode="live", strategy_id="PULLBACK",
                 entry_time=_now - timedelta(hours=6),  exit_time=_now - timedelta(hours=1),
-                exit_price=192.10, pnl=180.00,   status="CLOSED"),
+                exit_price=192.10, order_state="FILLED", filled_quantity=50),
     TradeRecord(trade_id="1003", user_id=1, symbol="TSLA",  side="BUY", quantity=75,
                 entry_price=175.80, mode="live", strategy_id="BREAKOUT",
                 entry_time=_now - timedelta(hours=5),  exit_time=_now - timedelta(minutes=45),
-                exit_price=169.40, pnl=-480.00,  status="CLOSED"),
+                exit_price=169.40, order_state="FILLED", filled_quantity=75),
     TradeRecord(trade_id="1004", user_id=1, symbol="NFLX",  side="BUY", quantity=40,
                 entry_price=634.00, mode="live", strategy_id="PULLBACK",
                 entry_time=_now - timedelta(hours=3),  exit_time=_now - timedelta(minutes=30),
-                exit_price=642.50, pnl=340.00,   status="CLOSED"),
+                exit_price=642.50, order_state="FILLED", filled_quantity=40),
     TradeRecord(trade_id="1005", user_id=1, symbol="CRM",   side="BUY", quantity=60,
                 entry_price=305.00, mode="live", strategy_id="BREAKOUT",
                 entry_time=_now - timedelta(hours=2),  exit_time=_now - timedelta(minutes=15),
-                exit_price=298.00, pnl=-420.00,  status="CLOSED"),
+                exit_price=298.00, order_state="FILLED", filled_quantity=60),
     # Bob
     TradeRecord(trade_id="2001", user_id=2, symbol="AAPL",  side="BUY", quantity=30,
                 entry_price=178.00, mode="paper", strategy_id="BREAKOUT",
                 entry_time=_now - timedelta(hours=8),  exit_time=_now - timedelta(hours=3),
-                exit_price=185.50, pnl=225.00,   status="CLOSED"),
+                exit_price=185.50, order_state="FILLED", filled_quantity=30),
     TradeRecord(trade_id="2002", user_id=2, symbol="META",  side="BUY", quantity=20,
                 entry_price=498.00, mode="paper", strategy_id="PULLBACK",
                 entry_time=_now - timedelta(hours=5),  exit_time=_now - timedelta(hours=1),
-                exit_price=489.00, pnl=-180.00,  status="CLOSED"),
+                exit_price=489.00, order_state="FILLED", filled_quantity=20),
     # Carol
     TradeRecord(trade_id="3001", user_id=3, symbol="MSFT",  side="BUY", quantity=25,
                 entry_price=408.00, mode="paper", strategy_id="BREAKOUT",
                 entry_time=_now - timedelta(days=1),   exit_time=_now - timedelta(hours=5),
-                exit_price=419.50, pnl=287.50,   status="CLOSED"),
+                exit_price=419.50, order_state="FILLED", filled_quantity=25),
     TradeRecord(trade_id="3002", user_id=3, symbol="NVDA",  side="BUY", quantity=15,
                 entry_price=860.00, mode="paper", strategy_id="PULLBACK",
                 entry_time=_now - timedelta(hours=4),  exit_time=_now - timedelta(hours=2),
-                exit_price=872.00, pnl=180.00,   status="CLOSED"),
+                exit_price=872.00, order_state="FILLED", filled_quantity=15),
 ]
 
 _SIGNALS: list[TradeSignal] = [
@@ -277,8 +277,8 @@ class DemoService(QObject):
     def close_position(self, symbol: str, user_id: int | None = None) -> None:
         uid = user_id if user_id is not None else self._active_uid
         for p in self._positions:
-            if p.symbol == symbol and p.user_id == uid and p.state != "CLOSED":
-                p.state = "CLOSED"
+            if p.symbol == symbol and p.user_id == uid and p.quantity > 0:
+                p.quantity = 0
                 pnl = p.unrealised_pnl
                 u = self.get_user_by_id(uid)
                 uname = u.username if u else f"user#{uid}"
@@ -295,16 +295,12 @@ class DemoService(QObject):
         """Partially close a position by reducing quantity and booking partial PnL."""
         uid = user_id if user_id is not None else self._active_uid
         for p in self._positions:
-            if p.symbol == symbol and p.user_id == uid and p.state != "CLOSED":
+            if p.symbol == symbol and p.user_id == uid and p.quantity > 0:
                 qty = min(qty, p.quantity)
                 pnl = (p.current_price - p.average_price) * qty
                 p.quantity -= qty
                 p.filled_quantity = p.quantity
                 p.total_quantity  = p.quantity
-                if p.quantity <= 0:
-                    p.state = "CLOSED"
-                else:
-                    p.state = "PARTIAL_EXIT"
                 self.log_message.emit(
                     "INFO",
                     f"Partial close: {symbol}  closed={qty}  remaining={p.quantity}  "
@@ -320,7 +316,7 @@ class DemoService(QObject):
         """Update stop loss (fixed or trailing) for a position."""
         uid = user_id if user_id is not None else self._active_uid
         for p in self._positions:
-            if p.symbol == symbol and p.user_id == uid and p.state != "CLOSED":
+            if p.symbol == symbol and p.user_id == uid and p.quantity > 0:
                 old_sl = p.stop_loss
                 p.stop_loss = price
                 if trailing:
@@ -434,7 +430,7 @@ class DemoService(QObject):
     def _update_prices(self) -> None:
         changed = False
         for pos in self._positions:
-            if pos.state == "CLOSED":
+            if pos.quantity <= 0:
                 continue
             pct = random.gauss(0, 0.003)   # ±0.3% std per tick
             pos.current_price = round(pos.current_price * (1 + pct), 2)

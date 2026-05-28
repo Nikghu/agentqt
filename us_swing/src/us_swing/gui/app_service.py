@@ -1746,8 +1746,8 @@ class AppService(QObject):
     def close_position(self, symbol: str, user_id: int | None = None) -> None:
         uid = user_id if user_id is not None else self._active_uid
         for p in self._positions:
-            if p.symbol == symbol and p.user_id == uid and p.state != "CLOSED":
-                p.state = "CLOSED"
+            if p.symbol == symbol and p.user_id == uid and p.quantity > 0:
+                p.quantity = 0
                 pnl = p.unrealised_pnl
                 u = self.get_user_by_id(uid)
                 self.log_message.emit(
@@ -1762,13 +1762,12 @@ class AppService(QObject):
     def partial_close_position(self, symbol: str, qty: int, user_id: int | None = None) -> None:
         uid = user_id if user_id is not None else self._active_uid
         for p in self._positions:
-            if p.symbol == symbol and p.user_id == uid and p.state != "CLOSED":
+            if p.symbol == symbol and p.user_id == uid and p.quantity > 0:
                 qty = min(qty, p.quantity)
                 pnl = (p.current_price - p.average_price) * qty
                 p.quantity        -= qty
                 p.filled_quantity  = p.quantity
                 p.total_quantity   = p.quantity
-                p.state            = "CLOSED" if p.quantity <= 0 else "PARTIAL_EXIT"
                 self.log_message.emit(
                     "INFO",
                     f"Partial close: {symbol}  closed={qty}"
@@ -1897,16 +1896,17 @@ class AppService(QObject):
         )
         self._positions.append(pos)
         self._trades.append(TradeRecord(
-            trade_id    = str(fill.order_id),
-            user_id     = self._active_uid,
-            symbol      = fill.symbol,
-            side        = "BUY",
-            quantity    = fill.fill_qty,
-            entry_price = fill.fill_price,
-            mode        = "paper",
-            strategy_id = fill.strategy_id,
-            entry_time  = now,
-            status      = "FILLED",
+            trade_id        = str(fill.order_id),
+            user_id         = self._active_uid,
+            symbol          = fill.symbol,
+            side            = "BUY",
+            quantity        = fill.fill_qty,
+            entry_price     = fill.fill_price,
+            mode            = "paper",
+            strategy_id     = fill.strategy_id,
+            entry_time      = now,
+            order_state     = "FILLED",
+            filled_quantity = fill.fill_qty,
         ))
 
     def _record_paper_exit(
@@ -1940,18 +1940,18 @@ class AppService(QObject):
         for p in self._positions:
             if (p.symbol == fill.symbol
                     and p.strategy_id == fill.strategy_id
-                    and p.state == "OPEN"):
-                p.state         = "CLOSED"
+                    and p.quantity > 0):
+                p.quantity      = 0
                 p.current_price = fill.fill_price
                 break
         for t in reversed(self._trades):
             if (t.symbol == fill.symbol
                     and t.strategy_id == fill.strategy_id
                     and t.exit_price is None):
-                t.exit_price = fill.fill_price
-                t.exit_time  = now
-                t.pnl        = (fill.fill_price - t.entry_price) * t.quantity
-                t.status     = "CLOSED"
+                t.exit_price      = fill.fill_price
+                t.exit_time       = now
+                t.order_state     = "FILLED"
+                t.filled_quantity = t.quantity
                 break
 
     def _strategy_cfg(self, name: str) -> Any:
@@ -1994,19 +1994,19 @@ class AppService(QObject):
             entry_dt = _parse_iso(snap.entry_time) or datetime.datetime.now()
             exit_dt  = _parse_iso(snap.exit_time)
             self._trades.append(TradeRecord(
-                trade_id    = tid,
-                user_id     = snap.user_id or self._active_uid,
-                symbol      = snap.symbol,
-                side        = "BUY",
-                quantity    = snap.entry_qty,
-                entry_price = snap.entry_price,
-                mode        = "paper",
-                strategy_id = snap.strategy_id,
-                entry_time  = entry_dt,
-                exit_price  = snap.exit_price,
-                exit_time   = exit_dt,
-                pnl         = snap.realized_pnl_usd,
-                status      = "CLOSED" if snap.state in ("CLOSED", "ABORTED") else "FILLED",
+                trade_id        = tid,
+                user_id         = snap.user_id or self._active_uid,
+                symbol          = snap.symbol,
+                side            = "BUY",
+                quantity        = snap.entry_qty,
+                entry_price     = snap.entry_price,
+                mode            = "paper",
+                strategy_id     = snap.strategy_id,
+                entry_time      = entry_dt,
+                exit_price      = snap.exit_price,
+                exit_time       = exit_dt,
+                order_state     = "FILLED",
+                filled_quantity = snap.entry_qty,
             ))
 
         for snap in open_snaps:
@@ -2019,7 +2019,6 @@ class AppService(QObject):
                 stop_loss       = snap.hard_stop_loss,
                 target_price    = snap.target_price or 0.0,
                 mode            = "paper",
-                state           = "OPEN",
                 current_price   = snap.current_price or snap.entry_price,
                 strategy_id     = snap.strategy_id,
                 filled_quantity = snap.entry_qty,
@@ -2033,8 +2032,8 @@ class AppService(QObject):
         )
 
     def get_active_strategy_positions(self) -> list[OpenPosition]:
-        """Paper-mode positions currently OPEN — feeds the Pending Signals table."""
-        return [p for p in self._positions if p.mode == "paper" and p.state == "OPEN"]
+        """Paper-mode positions currently open (qty > 0) — feeds the Pending Signals table."""
+        return [p for p in self._positions if p.mode == "paper" and p.quantity > 0]
 
     def get_open_symbols_for_strategy(self, name: str) -> list[str]:
         """Return sorted list of symbols holding an open cycle under *name*.

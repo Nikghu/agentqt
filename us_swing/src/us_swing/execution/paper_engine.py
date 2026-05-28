@@ -9,8 +9,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
-from us_swing.data.models import OpenPosition, PositionState, TradeRecord
+from us_swing.data.models import OpenPosition, TradeRecord
 from us_swing.db.manager import DatabaseManager
+from us_swing.execution._enums import ExecutionEnums
 from us_swing.execution.strategy_engine._protocols import FillEvent
 from us_swing.execution.strategy_engine._signals import TradeSignal
 
@@ -82,7 +83,8 @@ class PaperEngine:
             mode="paper",
             strategy_id=signal.strategy_id,
             entry_time=now,
-            status="FILLED",
+            order_state=ExecutionEnums.BuyOrderState.FILLED.value,
+            filled_quantity=quantity,
         )
         self._db.insert_trade(trade)
 
@@ -94,7 +96,6 @@ class PaperEngine:
             stop_loss=signal.stop_loss or 0.0,
             target_price=signal.target or 0.0,
             mode="paper",
-            state=PositionState.OPEN.value,
             strategy_id=signal.strategy_id,
             trade_id=str(order_id),
             entry_time=now,
@@ -137,13 +138,12 @@ class PaperEngine:
         self._next_id -= 1
         now = datetime.now(tz=timezone.utc)
 
-        pnl = (fill_price - entry_price) * quantity
-
-        self._db.update_trade_exit(
+        self._db.update_trade_fill(
             trade_id=entry_trade_id,
+            filled_quantity=quantity,
+            order_state=ExecutionEnums.SellOrderState.FILLED.value,
             exit_time=now,
             exit_price=fill_price,
-            pnl=pnl,
         )
 
         fill = PaperFill(

@@ -16,11 +16,11 @@ from us_swing.data.models import (
     AccountState,
     IBKRFill,
     OpenPosition,
-    PositionState,
     TradeRecord,
 )
 from us_swing.db.manager import DatabaseManager
 from us_swing.exceptions import OrderSubmissionError
+from us_swing.execution._enums import ExecutionEnums
 from us_swing.execution.position_tracker import PositionTracker
 from us_swing.execution.risk_manager import RiskManager
 from us_swing.execution.strategy_engine._protocols import FillEvent
@@ -109,7 +109,8 @@ class ExecutionEngine:
             mode="live",
             strategy_id=signal.strategy_id,
             entry_time=now,
-            status="SUBMITTED",
+            order_state=ExecutionEnums.BuyOrderState.NEW.value,
+            filled_quantity=0,
         )
         self._db.insert_trade(trade)
         self._pending[order_id] = str(order_id)
@@ -146,7 +147,8 @@ class ExecutionEngine:
                 mode="live",
                 strategy_id=signal.strategy_id,
                 entry_time=now,
-                status="SUBMITTED",
+                order_state=ExecutionEnums.BuyOrderState.NEW.value,
+                filled_quantity=0,
             )
             self._db.insert_trade(trade)
             self._pending[order_id] = str(order_id)
@@ -156,7 +158,12 @@ class ExecutionEngine:
     # ── Fill handling ─────────────────────────────────────────────────────────
 
     def handle_order_fill(self, fill: IBKRFill) -> None:
-        """Process an IBKR fill callback: create or close positions."""
+        """Process an IBKR fill callback (SRD-EXE-014.004).
+
+        For an entry fill: register the position and advance the BUY
+        `trades.order_state` to FILLED / PARTIAL_FILLED.  For an exit fill:
+        decrement the position and advance the SELL `trades.order_state`.
+        """
         trade_id = self._pending.get(fill.order_id, str(fill.order_id))
         is_entry = not self._tracker.has_open(self._user_id, fill.symbol)
 
@@ -169,18 +176,22 @@ class ExecutionEngine:
                 stop_loss=0.0,
                 target_price=0.0,
                 mode="live",
-                state=PositionState.OPEN.value,
                 trade_id=trade_id,
             )
             self._tracker.open(pos)
+            self._db.update_trade_fill(
+                trade_id=trade_id,
+                filled_quantity=fill.filled_quantity,
+                order_state=ExecutionEnums.BuyOrderState.FILLED.value,
+            )
         else:
             closed = self._tracker.close(self._user_id, fill.symbol)
-            pnl = (fill.fill_price - closed.average_price) * fill.filled_quantity
-            self._db.update_trade_exit(
+            self._db.update_trade_fill(
                 trade_id=closed.trade_id or trade_id,
+                filled_quantity=fill.filled_quantity,
+                order_state=ExecutionEnums.SellOrderState.FILLED.value,
                 exit_time=fill.fill_time,
                 exit_price=fill.fill_price,
-                pnl=pnl,
             )
 
         self._on_fill(
