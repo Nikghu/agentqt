@@ -54,6 +54,11 @@
             "type": "command",
             "command": "python .claude/hooks/embed_devlog.py 2>/dev/null || true",
             "statusMessage": "Syncing DEVLOG embeddings..."
+          },
+          {
+            "type": "command",
+            "command": "python .claude/hooks/embed_docs.py 2>/dev/null || true",
+            "statusMessage": "Syncing docs embeddings..."
           }
         ]
       }
@@ -63,12 +68,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python .claude/hooks/review_reminder.py",
+            "command": "powershell -c \"& python (Join-Path (git rev-parse --show-toplevel) '.claude/hooks/review_reminder.py')\"",
             "statusMessage": "Checking for pending reviews..."
           },
           {
             "type": "command",
-            "command": "echo '{\"systemMessage\":\"📋 Session-finalizer reminder: Before ending, call the session-finalizer agent to sync TRACE.md, update CONTEXT.md §0, and prepend DEVLOG entries. Use: /project:resume or manually call the session-finalizer agent.\"}'",
+            "command": "echo '{\"systemMessage\":\"📋 Session-finalizer reminder: Before ending, call the session-finalizer agent to sync TRACE.md, update CONTEXT.md §0, and prepend DEVLOG entries.\"}'",
             "statusMessage": "Session-finalizer reminder"
           }
         ]

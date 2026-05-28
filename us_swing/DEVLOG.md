@@ -2,6 +2,51 @@
 
 ---
 
+## [20260527] EXE + GUI — Active Trades Panel Phase-2 Fixes (user_id, row#, qty, button style, persistent rows)
+
+- Type: Feature + Bugfix
+- FO(s): FO-EXE-011, FO-GUI-014
+- RN: RN-EXE-1.10.0-20260527
+- Artifacts updated: SRD-EXE 1.8→1.10 (added SRD-EXE-011.020), TRACE-EXE 1.7→1.8, TRACE-GUI 1.5→1.6, CONTEXT §0, DEVLOG, memory `feature_active_trades_panel_rollout.md`
+- Source of fix: user screenshot annotations during manual testing — 5 highlighted defects
+- Defects fixed:
+  - **USER column empty** — added `TradeSignal.user_id` field (schema_version 1→2); injected `user_id_provider=lambda: self._active_uid` through `StrategyEngine` → `_Router`; model `_row_from_pending` propagates `signal.user_id`; new `_lookup_user_name` helper on panel resolves display_name via `AppService.get_user_by_id`
+  - **No row numbering** — `Col.NUM` added at index 0 (shifted all subsequent col indices +1); `data()` returns `str(r + 1)` for the NUM column; column width fixed at 32 px
+  - **QTY defaulted to 0** — `_build_entry_signal` now passes `qty_recommended=1`; `_row_from_pending` falls back to 1 if signal qty is 0
+  - **Execute / Dismiss overlap + style mismatch** — `_RowActionsDelegate` redrawn with 26×22 icon-glyph buttons (▶ ✕ ✎ ■) replacing the 80+60 px text labels; Actions column fixed at 88 px via `setSectionResizeMode(Fixed)`
+  - **Row disappears on Execute / Dismiss** — `PendingSignalStore.dismiss()` and `execute()` now emit dedicated `pending_signal_dismissed` / `pending_signal_executed` signals instead of `pending_signal_removed`; model's `on_pending_dismissed` transitions row state to `DISMISSED` in-place; existing `set_row_state(signal_id, "OPENING")` call in `_on_execute_clicked` now works because the row is no longer removed by the store; `DISMISSED` added to `_STATE_BG` (muted) and delegate skips action buttons for that state
+- Code: 7 modified
+  - `execution/strategy_engine/_signals.py` (TradeSignal: +user_id, schema_version 1→2)
+  - `execution/strategy_engine/_router.py` (user_id_provider param; user_id threaded into all signal construction sites; qty_recommended=1)
+  - `execution/strategy_engine/_engine.py` (user_id_provider param; forwards to _Router)
+  - `execution/pending_signal_store.py` (new dismissed/executed signals; dismiss/execute no longer fire removed)
+  - `gui/active_cycles_model.py` (NUM column; DISMISSED state; user_name_provider; on_pending_dismissed slot; pending row carries user_id + qty fallback)
+  - `gui/active_cycles_panel.py` (wired new signals + user_name_provider; fixed column widths; icon-glyph button delegate)
+  - `gui/app_service.py` (user_id_provider lambda; wired new pending signals to pending_signals_updated)
+- Tests: 3 new (UT-EXE-011.001.M04.T18–T20) appended to `tests/execution/test_strategy_router.py` — entry user_id, default qty, forced-exit user_id. `talib` not installed locally so the suite errors at collection time; existing CI environment is unaffected.
+- TRACE: new FO-EXE-011 row for SRD-EXE-011.020 added; FO-GUI-014 rows reassigned RN-EXE-1.9.0 → RN-EXE-1.10.0
+
+---
+
+## [20260527] SCR + GUI — Fix Blank AI Transcript Panel on Stage 3 Fallback
+
+- Type: Bugfix
+- Issue: ISS-SCR-0002
+- FO(s): FO-SCR-012
+- RN: RN-SCR-2.1.1-20260527
+- SRDs: SRD-SCR-014.003, SRD-SCR-014.006 — code diverged, no SRD edits
+- Root cause: `_refresh_transcript_visibility` only checked `enable_llm_ranking`, ignoring "AND transcript non-empty" clause of SRD-014.006; `CloudAIScreener` discarded the in-progress transcript on every fallback path, so users saw an empty panel after API errors / agentic max-turns / JSON parse failures
+- Fix:
+  - `AITranscriptPanel.has_turns()` — new predicate over `_last_turns`
+  - `_refresh_transcript_visibility` — hide when transcript empty OR LLM disabled
+  - `CloudAIScreener._apply_legacy` / `_apply_with_tools` — assign `self.last_transcript` early; append explanatory `system` turn on each fallback branch
+  - `PresetExecutor._run_stage3` — capture `llm.last_transcript` even when `llm.apply()` raises
+- Code: 4 modified (`gui/screener_panel.py`, `gui/ai_transcript_panel.py`, `screener/screeners/cloud_ai.py`, `screener/executor.py`)
+- Tests: 23/23 executor tests pass; new `UT-SCR-003.001.M10.T23` added
+- TRACE: SRD-014.003 + SRD-014.006 → Implemented (linked to T23)
+
+---
+
 ## [20260527] EXE + GUI — Per-Symbol Re-Execution Counter (rex_count enforcement)
 
 - Type: Feature

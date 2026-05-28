@@ -19,9 +19,9 @@ USMarket_Backtesting/              ← workspace root
 │   ├── settings.json              ← permissions + config
 │   ├── settings.local.json        ← personal permissions (gitignored)
 │   ├── commands/                  ← custom slash commands (/project:<name>)
-│   │   ├── resume.md / new-feature.md / fix-issue.md
-│   │   ├── write-tests.md / refactor.md / review.md
-│   │   ├── rn.md / doc-check.md / auto-feature.md
+│   │   ├── new-feature.md / fix-issue.md / refactor.md
+│   │   ├── write-tests.md / review.md / rn.md
+│   │   ├── doc-check.md / auto-feature.md
 │   │   ├── finish.md              ← session close: RN + TRACE + CONTEXT + DEVLOG + optional Git PR
 │   ├── rules/                     ← modular always-on instruction files
 │   ├── skills/                    ← auto-invoked workflow skills

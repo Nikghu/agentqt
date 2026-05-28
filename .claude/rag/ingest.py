@@ -80,30 +80,20 @@ def embed_texts(texts: list[str], batch_size: int = 5) -> list[list[float]]:
     """
     Send texts to Voyage API in small batches to respect rate limits.
 
-    Free-tier limits (no payment method): 3 RPM, 10K TPM.
-    Batch of 5 entries with a 25s pause stays safely within both limits.
-    Adding a payment method on dashboard.voyageai.com unlocks standard limits
-    (free tokens are still fully applied even with a card on file).
+    Paid tier — no meaningful rate limit; batch size 32 for efficiency.
     """
-    import time
-
     vc = voyageai.Client(api_key=os.environ["VOYAGE_API_KEY"])
     all_embeddings: list[list[float]] = []
 
+    batch_size = 32  # paid tier
     for i in range(0, len(texts), batch_size):
         batch = texts[i : i + batch_size]
         batch_num = i // batch_size + 1
         total_batches = (len(texts) + batch_size - 1) // batch_size
         print(f"    Batch {batch_num}/{total_batches} ({len(batch)} entries) ...", end=" ")
-
         result = vc.embed(batch, model=MODEL, input_type=INPUT_TYPE)
         all_embeddings.extend(result.embeddings)
         print("done")
-
-        # Pause between batches to stay within 3 RPM free-tier limit.
-        # Skip pause after the last batch.
-        if i + batch_size < len(texts):
-            time.sleep(22)
 
     return all_embeddings
 
