@@ -9,7 +9,6 @@ Can also be run manually: python .claude/rag/embed_new.py
 
 import os
 import re
-import time
 import uuid
 from pathlib import Path
 
@@ -122,15 +121,13 @@ def main() -> None:
     print(f"[RAG] Embedding {len(new_entries)} new DEVLOG entry(s) ...")
 
     vc = voyageai.Client(api_key=api_key)
-    batch_size = 5
+    batch_size = 32  # paid tier — no meaningful rate limit
 
     all_embeddings: list[list[float]] = []
     for i in range(0, len(new_entries), batch_size):
         batch = new_entries[i : i + batch_size]
         result = vc.embed([e["text"] for e in batch], model=MODEL, input_type="document")
         all_embeddings.extend(result.embeddings)
-        if i + batch_size < len(new_entries):
-            time.sleep(22)
 
     dim = len(all_embeddings[0])
     ensure_collection(qclient, dim)

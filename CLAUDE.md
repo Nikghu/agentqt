@@ -61,7 +61,6 @@ Available via `/project:<name>`:
 
 | Command | Purpose |
 |---|---|
-| `/project:resume` | Resume session — loads AGENT_BOOT + CONTEXT §0 + RAG history query |
 | `/project:write-tests` | Implement UTCD tests for a module |
 | `/project:new-feature` | Start new feature from FO through UTCD |
 | `/project:auto-feature` | Fully automated FO → RN pipeline — no human gates, SRD approval auto-set |
