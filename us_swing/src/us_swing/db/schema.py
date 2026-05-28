@@ -117,10 +117,11 @@ trades = sa.Table(
     sa.Column("exit_time",               sa.Text),
     sa.Column("exit_price",              sa.Float),
     sa.Column("quantity",                sa.Integer),
-    sa.Column("pnl",                     sa.Float),
     sa.Column("strategy_id",             sa.Text),
     sa.Column("mode",                    sa.Text,    nullable=False, server_default="paper"),
-    sa.Column("status",                  sa.Text,    server_default="SUBMITTED"),
+    # SRD-EXE-014.001 — broker-order state per side; replaces legacy `status`.
+    sa.Column("order_state",             sa.Text,    nullable=False, server_default="NEW"),
+    sa.Column("filled_quantity",         sa.Integer, nullable=False, server_default="0"),
     sa.Column("trade_origin",            sa.Text),                                       # SRD-EXE-009.002
     sa.Column("monitoring_session_date", sa.Text),                                       # SRD-EXE-009.002
 )
@@ -128,6 +129,7 @@ trades = sa.Table(
 positions = sa.Table(
     "positions",
     metadata,
+    # SRD-EXE-005.001 — open/closed derived from quantity > 0; no `state` column.
     sa.Column("symbol",              sa.Text,    nullable=False),
     sa.Column("user_id",             sa.Integer, sa.ForeignKey("users.user_id"), nullable=False),
     sa.Column("quantity",            sa.Integer),
@@ -136,7 +138,6 @@ positions = sa.Table(
     sa.Column("target_price",        sa.Float),
     sa.Column("trailing_stop",       sa.Float),
     sa.Column("mode",                sa.Text,    nullable=False, server_default="paper"),
-    sa.Column("state",               sa.Text,    nullable=False, server_default="NEW"),
     sa.Column("origin",              sa.Text),                                           # SRD-EXE-009.003
     sa.Column("anchor_session_date", sa.Text),                                           # SRD-EXE-009.003
     sa.PrimaryKeyConstraint("user_id", "symbol"),
@@ -194,23 +195,44 @@ PRICE_TABLES: dict[str, sa.Table] = {
 
 # ── Schema lifecycle ──────────────────────────────────────────────────────────
 
-# SRD-EXE-009.002 / .003 — columns added by feature FO-EXE-009 to existing tables.
+# SRD-EXE-009.002 / .003 — columns added by feature FO-EXE-009.
+# SRD-EXE-014.001     — `order_state` + `filled_quantity` added by Phase 3.
 # Applied on app start via idempotent PRAGMA + ALTER TABLE; declared above so
 # fresh DBs receive them through `create_schema()`.
 _LIFECYCLE_COLUMN_ADDITIONS: tuple[tuple[str, str, str], ...] = (
     ("trades",    "trade_origin",            "TEXT"),
     ("trades",    "monitoring_session_date", "TEXT"),
+    ("trades",    "order_state",             "TEXT NOT NULL DEFAULT 'NEW'"),
+    ("trades",    "filled_quantity",         "INTEGER NOT NULL DEFAULT 0"),
     ("positions", "origin",                  "TEXT"),
     ("positions", "anchor_session_date",     "TEXT"),
 )
 
+# SRD-EXE-014.001 — columns dropped by Phase 3 once `order_state` is backfilled.
+_LIFECYCLE_COLUMN_REMOVALS: tuple[tuple[str, str], ...] = (
+    ("trades",    "status"),
+    ("trades",    "pnl"),
+    ("positions", "state"),
+)
+
+# Backfill map from the legacy `trades.status` text values to the new
+# `BuyOrderState` / `SellOrderState` strings.  Applied once, right after
+# `order_state` is added but before `status` is dropped.
+_STATUS_TO_ORDER_STATE_BACKFILL: tuple[tuple[str, str], ...] = (
+    ("SUBMITTED", "NEW"),
+    ("FILLED",    "FILLED"),
+    ("CLOSED",    "FILLED"),
+)
+
 
 def migrate_lifecycle_columns(engine: sa.Engine) -> None:
-    """Add monitoring-session lifecycle columns to ``trades`` and ``positions``
-    when they are missing.  Safe to run on every app start — a no-op once
-    columns are present.
+    """Add monitoring-session + order-state lifecycle columns and drop the
+    legacy `status` / `pnl` / `positions.state` columns once `order_state`
+    is populated.  Safe to run on every app start — a no-op once the schema
+    has converged.
     """
     with engine.begin() as conn:
+        added_order_state = False
         for table_name, column_name, sql_type in _LIFECYCLE_COLUMN_ADDITIONS:
             rows = conn.execute(sa.text(f"PRAGMA table_info({table_name})")).mappings()
             existing = {row["name"] for row in rows}
@@ -218,6 +240,28 @@ def migrate_lifecycle_columns(engine: sa.Engine) -> None:
                 continue
             conn.execute(
                 sa.text(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {sql_type}")
+            )
+            if table_name == "trades" and column_name == "order_state":
+                added_order_state = True
+
+        if added_order_state:
+            cols = conn.execute(sa.text("PRAGMA table_info(trades)")).mappings()
+            if "status" in {row["name"] for row in cols}:
+                for legacy, new_value in _STATUS_TO_ORDER_STATE_BACKFILL:
+                    conn.execute(
+                        sa.text(
+                            "UPDATE trades SET order_state = :new "
+                            "WHERE status = :old AND order_state = 'NEW'"
+                        ),
+                        {"new": new_value, "old": legacy},
+                    )
+
+        for table_name, column_name in _LIFECYCLE_COLUMN_REMOVALS:
+            rows = conn.execute(sa.text(f"PRAGMA table_info({table_name})")).mappings()
+            if column_name not in {row["name"] for row in rows}:
+                continue
+            conn.execute(
+                sa.text(f"ALTER TABLE {table_name} DROP COLUMN {column_name}")
             )
 
 
