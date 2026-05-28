@@ -1,8 +1,8 @@
 ﻿# Software Requirement Document — Execution & Risk Management (EXE)
 
 **Document ID:** SRD-EXE
-**Version:** 1.13.0
-**Traces To:** FO-EXE v1.8.0
+**Version:** 1.14.0
+**Traces To:** FO-EXE v1.9.0
 **Status:** Draft
 **Last Updated:** 2026-05-28
 **Project:** US Swing Trading System
@@ -14,6 +14,7 @@
 > v1.11.0: Section 13 added — SRD-EXE-013.001–.008 (Strategy Run Lifecycle). SRD-EXE-011.001 and SRD-EXE-011.007 marked Reopen.
 > v1.12.0: SRD-EXE-013.001–.008 + SRD-EXE-011.001 + SRD-EXE-011.007 marked Implemented (Final_Execution.md Phase 1).
 > v1.13.0: SRD-EXE-012.010/.011 marked Implemented after Phase 2 — `CycleSnapshot.state` typed as `ExecutionEnums.TradeCycleState`; `TradeCycleState.is_terminal()`/`is_non_terminal()` helpers added; `CYCLE_STATES`/`NON_TERMINAL_STATES`/`TERMINAL_STATES` frozensets removed.
+> v1.14.0: Section 14 added — SRD-EXE-014.001–.008 (Broker Order State Machine). SRD-EXE-005.001/.002/.003 marked Reopen — `PositionState` removed; `positions.state` column dropped; open/closed derived from `quantity > 0`.
 
 ---
 
@@ -80,9 +81,9 @@
 
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
-| SRD-EXE-005.001 | FO-EXE-005 | Must | `OpenPosition.state` field tracks position lifecycle: `NEW` (order submitted), `PARTIAL_ENTRY` (partial fill on entry), `OPEN` (entry fully filled), `PARTIAL_EXIT` (partial fill on exit), `CLOSED` (fully exited). State stored in `positions.state` column. | fill events | updated `state` | State transitions must be strictly ordered; invalid transitions (e.g., CLOSED → OPEN) raise `InvalidStateTransitionError` | Implemented |
-| SRD-EXE-005.002 | FO-EXE-005 | Must | On partial entry fill: update `positions.quantity` to partial amount, set `state = 'PARTIAL_ENTRY'`. On subsequent fill that completes entry: update quantity to full amount, set `state = 'OPEN'`. | partial fill event | updated position | Partial fill amounts are cumulative; track `filled_quantity` vs `total_quantity` | Implemented |
-| SRD-EXE-005.003 | FO-EXE-005 | Must | On partial exit fill: update `positions.quantity` to remaining amount, set `state = 'PARTIAL_EXIT'`. On full exit: set `state = 'CLOSED'`, record final P&L. | exit fill event | updated position | Partial exit P&L = `(exit_price − avg_entry) × partial_quantity` | Implemented |
+| SRD-EXE-005.001 | FO-EXE-005 | Must | Position open/closed status is derived: `open ⇔ positions.quantity > 0`. The `PositionState` enum and the `positions.state` column are removed; broker-order progress lives on `trades.order_state` per FO-EXE-014. | fill events | derived `open` flag | No separate state column; `PositionTracker.has_open(user_id, symbol)` returns `quantity > 0` | Reopen |
+| SRD-EXE-005.002 | FO-EXE-005 | Must | On partial entry fill: increment `positions.quantity` by the fill quantity. The owning `trades` row is updated to `order_state='PARTIAL_FILLED'` and `filled_quantity` is bumped per FO-EXE-014. | partial fill event | updated position | Cumulative; multiple partial fills sum into `positions.quantity` | Reopen |
+| SRD-EXE-005.003 | FO-EXE-005 | Must | On partial exit fill: decrement `positions.quantity` by the fill quantity. The owning SELL `trades` row is updated to `order_state='PARTIAL_FILLED'` and `filled_quantity` is bumped; full exit leaves `positions.quantity = 0`. | exit fill event | updated position | Cycle realized PnL persists in `trade_cycles.realized_pnl_usd`, not on `trades` | Reopen |
 | SRD-EXE-005.004 | FO-EXE-005 | Must | `RiskManager.can_enter_new(signal, account_state, user_id)` checks: `available_capital = total_equity - sum(open_position_values_for_user)`. Returns True only if the projected position fits within `max_allocation_pct`. | `TradeSignal`, `AccountState`, `user_id` | `bool` | Capital calculation is per-user; each user has independent allocation limits | Implemented |
 | SRD-EXE-005.005 | FO-EXE-005 | Must | User quantity override: `ExecutionEngine.submit_signal()` accepts an optional `quantity_override: int | None` parameter. If provided, this quantity is used instead of `RiskManager.calculate_position_size()`. Override must still pass capital availability check. | `quantity_override` int, `TradeSignal` | order with overridden quantity | Override quantity must be > 0; override does not bypass risk validation, only position sizing | Implemented |
 | SRD-EXE-005.006 | FO-EXE-005 | Must | Positions with state != CLOSED persist across application restarts. On startup, `PositionTracker.load_from_db(user_id)` restores all non-CLOSED positions. | DB `positions` rows | restored in-memory `PositionTracker` | Must run before `StrategyEngine` begins evaluating signals; reconcile with IBKR positions after loading from DB | Implemented |
@@ -225,3 +226,18 @@
 | SRD-EXE-013.006 | FO-EXE-013 | Must | `RUNNING` with an open cycle in `TradeCycleState.OPEN` evaluates exit condition only. | candle close, `has_open_cycle = True` | `TradeSignal(EXIT)` if true | No entry evaluation while cycle is open | Implemented |
 | SRD-EXE-013.007 | FO-EXE-013 | Must | `SQUARING_OFF` emits only forced EXIT signals; no ENTRY signals. | candle close during `SQUARING_OFF` | forced EXIT signals only | Guard applied before entry-condition evaluation | Implemented |
 | SRD-EXE-013.008 | FO-EXE-013 | Must | On registry load, map legacy `Status` values: `"Inactive"` → `STOPPED`; `"Active"` or `"Running"` → `RUNNING`; remove old `Status` key. | registry file load | `run_state` field populated | Idempotent: if `run_state` already present, skip | Implemented |
+
+---
+
+## Section 14: Requirements for FO-EXE-014 — Broker Order State Machine
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-EXE-014.001 | FO-EXE-014 | Must | `trades` table carries `order_state TEXT NOT NULL DEFAULT 'NEW'` and `filled_quantity INTEGER NOT NULL DEFAULT 0`. The legacy `status` and `pnl` columns are dropped. `positions.state` is dropped. | `db/schema.py` migration | new columns; old columns removed | Migration is idempotent via PRAGMA-guarded ALTER; backfill maps `status='SUBMITTED'→'NEW'`, `'FILLED'→'FILLED'`, `'CLOSED'→'FILLED'` | Implemented |
+| SRD-EXE-014.002 | FO-EXE-014 | Must | `TradeRecord` dataclass exposes `order_state: BuyOrderState \| SellOrderState` and `filled_quantity: int`; the `status` and `pnl` fields are removed. Pylance / mypy `--strict` typing enforced via `Union[ExecutionEnums.BuyOrderState, ExecutionEnums.SellOrderState]`. | `data/models.py` | typed dataclass | StrEnum auto-serialises to the column string value on insert | Implemented |
+| SRD-EXE-014.003 | FO-EXE-014 | Must | `ExecutionEngine.submit_order()` writes the initial `trades` row with `order_state=NEW` and `filled_quantity=0` for the order's side (`BuyOrderState.NEW` for BUY, `SellOrderState.NEW` for SELL). | submitted order | new `trades` row | Insert must complete before broker order ID is returned to the caller | Implemented |
+| SRD-EXE-014.004 | FO-EXE-014 | Must | `ExecutionEngine.handle_order_fill(fill_event)` updates the matching `trades` row: `filled_quantity += fill.quantity`; `order_state = FILLED` when `filled_quantity == total_quantity` else `PARTIAL_FILLED`. The `positions` row is updated per SRD-EXE-005.002 / .003. | broker fill event | updated `trades` + `positions` | One DB transaction per fill; idempotent on duplicate `(broker_order_id, fill_seq)` | Implemented |
+| SRD-EXE-014.005 | FO-EXE-014 | Must | Broker rejection routed through `ExecutionEngine.handle_order_reject(reject_event)` sets `order_state = REJECTED` on the `trades` row; for an OPENING trade cycle this triggers `TradeCycleCommand.on_entry_failed(cycle_id, reason='broker_reject')` which transitions the cycle to ABORTED. | broker reject event | `trades.order_state='REJECTED'` + `CycleAborted` | `filled_quantity` stays 0 on REJECTED | Draft |
+| SRD-EXE-014.006 | FO-EXE-014 | Must | Broker cancel routed through `ExecutionEngine.handle_order_cancel(cancel_event)` sets `order_state = CANCELLED` on the `trades` row; `filled_quantity` is preserved at whatever the broker reported before the cancel; the owning cycle stays in its current state. | broker cancel event | `trades.order_state='CANCELLED'` | A SELL cancelled after partial fill keeps the cycle OPEN with `positions.quantity = entry_qty - filled` | Draft |
+| SRD-EXE-014.007 | FO-EXE-014 | Must | `TradeCycleService.on_entry_fill` transitions OPENING → OPEN only when the BUY `trades.order_state` reaches `BuyOrderState.FILLED`; PARTIAL_FILLED holds the cycle in OPENING. | fill event sequence | OPEN cycle only at fully filled BUY | Strict mode per Final_Execution.md §5.3.3 default — eager open is out of scope | Draft |
+| SRD-EXE-014.008 | FO-EXE-014 | Must | `core/monitoring_session/_service.on_fill(side, order_state, qty)` consumes `(side, order_state)` to drive `LifecycleState` transitions: first `BuyOrderState.FILLED` (with `qty > 0`) flips a MONITORING row to ENTERED; `SellOrderState.FILLED` that drives `positions.quantity → 0` flips ENTERED to EXITED. | fill event from EXE | LifecycleState transition | Single entry point; no other module mutates LifecycleState | Draft |

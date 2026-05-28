@@ -274,19 +274,22 @@ class MonitoringRepository:
     # ── Position queries ─────────────────────────────────────────────────────
 
     def open_system_position_symbols(self) -> frozenset[str]:
-        """Symbols of all currently-open system positions across users."""
+        """Symbols of all currently-open system positions across users.
+
+        SRD-EXE-005.001 — "open" derived from quantity > 0.
+        """
         stmt = sa.select(positions.c.symbol).where(
-            positions.c.state  != "CLOSED",
-            positions.c.origin == TradeOrigin.SYSTEM.value,
+            positions.c.quantity > 0,
+            positions.c.origin   == TradeOrigin.SYSTEM.value,
         )
         with self._engine.connect() as conn:
             return frozenset(r[0] for r in conn.execute(stmt))
 
     def has_open_system_position(self, symbol: str) -> bool:
         stmt = sa.select(sa.func.count()).select_from(positions).where(
-            positions.c.symbol == symbol,
-            positions.c.state  != "CLOSED",
-            positions.c.origin == TradeOrigin.SYSTEM.value,
+            positions.c.symbol   == symbol,
+            positions.c.quantity > 0,
+            positions.c.origin   == TradeOrigin.SYSTEM.value,
         )
         with self._engine.connect() as conn:
             return (conn.execute(stmt).scalar() or 0) > 0
@@ -294,9 +297,9 @@ class MonitoringRepository:
     def position_anchor(self, symbol: str) -> str | None:
         """Anchor session date for the open system position, if any."""
         stmt = sa.select(positions.c.anchor_session_date).where(
-            positions.c.symbol == symbol,
-            positions.c.state  != "CLOSED",
-            positions.c.origin == TradeOrigin.SYSTEM.value,
+            positions.c.symbol   == symbol,
+            positions.c.quantity > 0,
+            positions.c.origin   == TradeOrigin.SYSTEM.value,
         )
         with self._engine.connect() as conn:
             return conn.execute(stmt).scalar()
@@ -327,10 +330,10 @@ class MonitoringRepository:
                     exit_time               = fill_time if side is Side.SELL else None,
                     exit_price              = price     if side is Side.SELL else None,
                     quantity                = qty,
-                    pnl                     = None,
                     strategy_id             = None,
                     mode                    = "paper",
-                    status                  = "SUBMITTED",
+                    order_state             = "FILLED",
+                    filled_quantity         = qty,
                     trade_origin            = origin.value,
                     monitoring_session_date = anchor_session_date,
                 )
@@ -363,7 +366,6 @@ class MonitoringRepository:
                 # Fresh position — must be a BUY for system fills.
                 new_qty   = fill_qty if side is Side.BUY else -fill_qty
                 avg_price = fill_price
-                state     = "OPEN" if side is Side.BUY else "CLOSED"
                 conn.execute(
                     positions.insert().values(
                         symbol              = symbol,
@@ -374,7 +376,6 @@ class MonitoringRepository:
                         target_price        = None,
                         trailing_stop       = None,
                         mode                = "paper",
-                        state               = state,
                         origin              = origin.value,
                         anchor_session_date = anchor_session_date,
                     )
@@ -383,7 +384,7 @@ class MonitoringRepository:
                     symbol              = symbol,
                     quantity            = new_qty,
                     average_price       = avg_price,
-                    state               = state,
+                    state               = "OPEN" if new_qty > 0 else "CLOSED",
                     origin              = origin,
                     anchor_session_date = anchor_session_date,
                 )
@@ -400,11 +401,9 @@ class MonitoringRepository:
                     )
                 else:
                     avg_price = fill_price
-                state = "OPEN"
             else:
                 new_qty   = prev_qty - fill_qty
                 avg_price = prev_price
-                state     = "CLOSED" if new_qty <= 0 else "PARTIAL_EXIT"
                 if new_qty < 0:
                     log.warning(
                         "[Lifecycle] Over-sell for %s: prev=%d sold=%d",
@@ -427,7 +426,6 @@ class MonitoringRepository:
                 .values(
                     quantity            = new_qty,
                     average_price       = avg_price,
-                    state               = state,
                     origin              = origin_value,
                     anchor_session_date = anchor,
                 )
@@ -441,7 +439,7 @@ class MonitoringRepository:
                 symbol              = symbol,
                 quantity            = new_qty,
                 average_price       = avg_price,
-                state               = state,
+                state               = "OPEN" if new_qty > 0 else "CLOSED",
                 origin              = TradeOrigin(origin_value),
                 anchor_session_date = anchor,
                 realised_pnl        = realised_pnl,

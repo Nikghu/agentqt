@@ -359,7 +359,7 @@ def test_evict_symbol_atomic_rollback_on_failure(
 def test_open_system_position_symbols_returns_only_system_open(
     engine: Engine, seed_user: int
 ) -> None:
-    """UT-EXE-009.002.M01.T11: open_system_position_symbols returns only system, non-CLOSED positions."""
+    """UT-EXE-009.002.M01.T11: open_system_position_symbols returns only system rows with qty > 0."""
     repo = MonitoringRepository(engine)
 
     with engine.begin() as conn:
@@ -367,11 +367,11 @@ def test_open_system_position_symbols_returns_only_system_open(
             positions.insert(),
             [
                 dict(symbol="A", user_id=1, quantity=100, average_price=50.0,
-                     state="OPEN", mode="paper", origin="system"),
-                dict(symbol="B", user_id=1, quantity=100, average_price=50.0,
-                     state="CLOSED", mode="paper", origin="system"),
+                     mode="paper", origin="system"),
+                dict(symbol="B", user_id=1, quantity=0,   average_price=50.0,
+                     mode="paper", origin="system"),
                 dict(symbol="C", user_id=1, quantity=100, average_price=50.0,
-                     state="OPEN", mode="paper", origin="manual"),
+                     mode="paper", origin="manual"),
             ],
         )
 
@@ -396,7 +396,6 @@ def test_open_system_position_symbols_excludes_null_origin(
                 user_id=1,
                 quantity=100,
                 average_price=50.0,
-                state="OPEN",
                 mode="paper",
                 origin=None,
             )

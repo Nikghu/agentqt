@@ -7,23 +7,18 @@ from __future__ import annotations
 import logging
 import threading
 
-from us_swing.data.models import IBKRPosition, OpenPosition, PositionState
+from us_swing.data.models import IBKRPosition, OpenPosition
 from us_swing.db.manager import DatabaseManager
-from us_swing.exceptions import InvalidStateTransitionError
 
 log = logging.getLogger(__name__)
 
-_VALID_TRANSITIONS: dict[PositionState, set[PositionState]] = {
-    PositionState.NEW:           {PositionState.PARTIAL_ENTRY, PositionState.OPEN},
-    PositionState.PARTIAL_ENTRY: {PositionState.PARTIAL_ENTRY, PositionState.OPEN},
-    PositionState.OPEN:          {PositionState.PARTIAL_EXIT, PositionState.CLOSED},
-    PositionState.PARTIAL_EXIT:  {PositionState.PARTIAL_EXIT, PositionState.CLOSED},
-    PositionState.CLOSED:        set(),
-}
-
 
 class PositionTracker:
-    """Thread-safe in-memory position store mirrored to the DB."""
+    """Thread-safe in-memory position store mirrored to the DB.
+
+    Open/closed status is derived: a position is open iff ``quantity > 0``
+    (SRD-EXE-005.001).  Broker-order progress lives on ``trades.order_state``.
+    """
 
     def __init__(self, db: DatabaseManager) -> None:
         self._db = db
@@ -33,7 +28,7 @@ class PositionTracker:
     # ── Mutating operations ───────────────────────────────────────────────────
 
     def open(self, pos: OpenPosition) -> None:
-        """Register a new position (state=NEW) and upsert to DB."""
+        """Register a new position and upsert to DB."""
         with self._lock:
             self._positions[(pos.user_id, pos.symbol)] = pos
             self._db.upsert_position(pos)
@@ -52,32 +47,35 @@ class PositionTracker:
             pos.stop_loss = new_stop
             self._db.upsert_position(pos)
 
-    def update_state(
+    def apply_fill(
         self,
         user_id: int,
         symbol: str,
-        new_state: PositionState,
+        delta_qty: int,
         filled_qty: int | None = None,
     ) -> None:
-        """Validate and apply a state transition; update DB."""
+        """Apply a fill delta to a tracked position (SRD-EXE-005.002 / .003).
+
+        ``delta_qty`` is positive for BUY fills, negative for SELL fills.
+        The DB row is removed once cumulative ``quantity`` drops to zero.
+        """
         with self._lock:
             pos = self._positions[(user_id, symbol)]
-            current = PositionState(pos.state)
-            allowed = _VALID_TRANSITIONS[current]
-            if new_state not in allowed:
-                raise InvalidStateTransitionError(
-                    f"Invalid transition {current.value} → {new_state.value} for {symbol}"
-                )
-            pos.state = new_state.value
+            pos.quantity += delta_qty
             if filled_qty is not None:
                 pos.filled_quantity = filled_qty
-            self._db.upsert_position(pos)
+            if pos.quantity <= 0:
+                self._positions.pop((user_id, symbol), None)
+                self._db.delete_position(user_id, symbol)
+            else:
+                self._db.upsert_position(pos)
 
     # ── Query operations ──────────────────────────────────────────────────────
 
     def has_open(self, user_id: int, symbol: str) -> bool:
         with self._lock:
-            return (user_id, symbol) in self._positions
+            pos = self._positions.get((user_id, symbol))
+            return pos is not None and pos.quantity > 0
 
     def get_all(self, user_id: int | None = None) -> list[OpenPosition]:
         """Return all positions; pass user_id to filter to a single user."""
@@ -87,7 +85,7 @@ class PositionTracker:
             return [p for (uid, _), p in self._positions.items() if uid == user_id]
 
     def load_from_db(self, user_id: int) -> None:
-        """Restore non-CLOSED positions from DB on application startup."""
+        """Restore open positions (quantity > 0) from DB on application startup."""
         records = self._db.fetch_open_positions(user_id)
         with self._lock:
             for r in records:
@@ -99,7 +97,6 @@ class PositionTracker:
                     stop_loss=r.stop_loss,
                     target_price=r.target_price,
                     mode=r.mode,
-                    state=r.state,
                     trailing_stop=r.trailing_stop,
                 )
                 self._positions[(user_id, r.symbol)] = pos
@@ -122,7 +119,6 @@ class PositionTracker:
                         stop_loss=0.0,
                         target_price=0.0,
                         mode="live",
-                        state=PositionState.OPEN.value,
                     )
                     self._positions[(user_id, ibkr_pos.symbol)] = pos
                     self._db.upsert_position(pos)

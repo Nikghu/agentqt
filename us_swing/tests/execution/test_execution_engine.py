@@ -14,9 +14,9 @@ from us_swing.data.models import (
     AccountState,
     IBKRFill,
     OpenPosition,
-    PositionState,
     RiskConfig,
 )
+from us_swing.execution._enums import ExecutionEnums
 from us_swing.db.manager import DatabaseManager
 from us_swing.db.schema import create_schema as _create_schema, trades
 from us_swing.exceptions import OrderSubmissionError
@@ -203,13 +203,13 @@ def test_handle_fill_entry_creates_open_position(db: DatabaseManager):
     ee.handle_order_fill(fill)
     assert ee._tracker.has_open(1, "AAPL")
     pos = ee._tracker.get_all(1)[0]
-    assert pos.state == PositionState.OPEN.value
+    assert pos.quantity == 500
     assert len(fills) == 1
     assert fills[0].is_entry is True
 
 
-def test_handle_fill_exit_updates_pnl(db: DatabaseManager, engine):
-    """UT-EXE-001.001.M02.T06: handle_order_fill() on exit fill updates trade PnL."""
+def test_handle_fill_exit_records_order_state(db: DatabaseManager, engine):
+    """UT-EXE-001.001.M02.T06: handle_order_fill() on exit fill stamps order_state=FILLED."""
     ibkr = _mock_ibkr()
     fills: list[FillEvent] = []
     ee = _engine_under_test(db, ibkr, fills=fills)
@@ -227,7 +227,8 @@ def test_handle_fill_exit_updates_pnl(db: DatabaseManager, engine):
         mode="live",
         strategy_id="s1",
         entry_time=now,
-        status="SUBMITTED",
+        order_state=ExecutionEnums.BuyOrderState.NEW.value,
+        filled_quantity=0,
     )
     db.insert_trade(trade)
     pos = OpenPosition(
@@ -238,7 +239,6 @@ def test_handle_fill_exit_updates_pnl(db: DatabaseManager, engine):
         stop_loss=48.0,
         target_price=55.0,
         mode="live",
-        state=PositionState.OPEN.value,
         trade_id="100",
     )
     ee._tracker.open(pos)
@@ -257,7 +257,9 @@ def test_handle_fill_exit_updates_pnl(db: DatabaseManager, engine):
     with engine.connect() as conn:
         row = conn.execute(sa.select(trades).where(trades.c.trade_id == "100")).mappings().first()
     assert row is not None
-    assert row["pnl"] == pytest.approx(2500.0)
+    assert row["order_state"]     == "FILLED"
+    assert row["filled_quantity"] == 500
+    assert row["exit_price"]      == pytest.approx(55.0)
 
 
 # ── exit_position ─────────────────────────────────────────────────────────────
@@ -276,7 +278,6 @@ def test_exit_position_submits_sell(db: DatabaseManager):
         stop_loss=48.0,
         target_price=55.0,
         mode="live",
-        state=PositionState.OPEN.value,
     )
     ee._tracker.open(pos)
 

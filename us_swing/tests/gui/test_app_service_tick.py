@@ -35,7 +35,6 @@ def _make_open_position(symbol: str, current_price: float = 180.0) -> OpenPositi
         stop_loss=160.0,
         target_price=200.0,
         mode="live",
-        state="OPEN",
         current_price=current_price,
         strategy_id="IBKR",
         filled_quantity=10,

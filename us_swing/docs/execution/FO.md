@@ -1,12 +1,13 @@
 # Functional Objectives — Execution & Risk Management (EXE)
 
 **Document ID:** FO-EXE
-**Version:** 1.8.0
+**Version:** 1.9.0
 **Status:** Draft
 **Last Updated:** 2026-05-28
 **Project:** US Swing Trading System
 
 > Traces to: `us_swing/requirements.md` §10, §11, §12, §13, §21.4, §22, §23, §25
+> v1.9.0: FO-EXE-014 added — Broker Order State Machine (Final_Execution.md Phase 3 split of `PositionState` into `BuyOrderState` + `SellOrderState`; `trades.pnl` and `positions.state` removed).
 
 ---
 
@@ -452,3 +453,24 @@ Each `StrategyConfig` record shall have a persisted `run_state` field typed as `
 5. A strategy in `RUNNING` with no open cycle for `(strategy_id, symbol)` evaluates `entry_condition` only.
 6. A strategy in `RUNNING` with an open cycle for `(strategy_id, symbol)` in `TradeCycleState.OPEN` evaluates `exit_condition` only.
 7. A strategy in `SQUARING_OFF` emits no new `ENTRY` signals; only forced `EXIT` signals for existing open cycles are emitted.
+
+---
+
+## FO-EXE-014: Broker Order State Machine
+
+**Status:** Draft
+**Priority:** Must
+**Depends on:** FO-EXE-001 (order submission), FO-EXE-002 (fill events), FO-EXE-013 (`ExecutionEnums` container)
+**Source:** Final_Execution.md Phase 3 — split `PositionState` into two side-scoped broker-order enums; surface per-order state on the Trade History panel; remove the redundant `pnl` column from the trade row (the canonical PnL surface is `trade_cycles.realized_pnl_usd`).
+
+Every order submitted to the broker shall carry its own state machine on the `trades` row, typed as `ExecutionEnums.BuyOrderState` for `side='BUY'` rows and `ExecutionEnums.SellOrderState` for `side='SELL'` rows. The two enums share the identical shape `NEW → PARTIAL_FILLED → FILLED` with terminal `REJECTED` and `CANCELLED` branches. The legacy `PositionState` (NEW / PARTIAL_ENTRY / OPEN / PARTIAL_EXIT / CLOSED) is removed: position openness is derived from `positions.quantity > 0`, eliminating dual-axis ambiguity. Trade History shows one row per BUY or SELL with the current order state and filled-quantity figure — no derived P&L column (P&L lives on the Dashboard KPI cards and inside `trade_cycles`).
+
+### Acceptance Criteria
+
+1. Submitting a BUY market order creates exactly one `trades` row with `side='BUY'`, `order_state='NEW'`, `filled_quantity=0`.
+2. A partial broker fill for that BUY updates the same row to `order_state='PARTIAL_FILLED'`; subsequent fill completing the order sets `order_state='FILLED'` and `filled_quantity` equal to the originally submitted quantity.
+3. A broker-side rejection (no fills) transitions the row to `order_state='REJECTED'` with `filled_quantity=0`; the owning trade cycle moves `OPENING → ABORTED`.
+4. A broker-side cancel after a partial fill transitions the row to `order_state='CANCELLED'` while preserving the partial `filled_quantity` value; the position retains the partial quantity.
+5. SELL orders follow the identical state machine via `SellOrderState`; a `CANCELLED` SELL after partial fill leaves the owning cycle in `OPEN` with the remaining unsold quantity.
+6. Trade History panel renders one row per `trades` record with columns `Date & Time · Symbol · Side · Qty · Filled · Avg Price · Order State · Strategy · Mode`. No P&L column is shown.
+7. The `positions` table no longer carries a `state` column; consumers derive open/closed from `quantity > 0`.

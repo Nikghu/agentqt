@@ -220,40 +220,51 @@ class DatabaseManager:
 
     def insert_trade(self, trade: TradeRecord) -> None:
         row: dict[str, Any] = {
-            "trade_id":    trade.trade_id,
-            "user_id":     trade.user_id,
-            "symbol":      trade.symbol,
-            "side":        trade.side,
-            "entry_time":  _dt_to_str(trade.entry_time),
-            "entry_price": trade.entry_price,
-            "exit_time":   _dt_to_str(trade.exit_time) if trade.exit_time else None,
-            "exit_price":  trade.exit_price,
-            "quantity":    trade.quantity,
-            "pnl":         trade.pnl,
-            "strategy_id": trade.strategy_id,
-            "mode":        trade.mode,
-            "status":      trade.status,
+            "trade_id":        trade.trade_id,
+            "user_id":         trade.user_id,
+            "symbol":          trade.symbol,
+            "side":            trade.side,
+            "entry_time":      _dt_to_str(trade.entry_time),
+            "entry_price":     trade.entry_price,
+            "exit_time":       _dt_to_str(trade.exit_time) if trade.exit_time else None,
+            "exit_price":      trade.exit_price,
+            "quantity":        trade.quantity,
+            "strategy_id":     trade.strategy_id,
+            "mode":            trade.mode,
+            "order_state":     str(trade.order_state),
+            "filled_quantity": trade.filled_quantity,
         }
         with self._engine.begin() as conn:
             conn.execute(trades.insert().values(**row))
 
-    def update_trade_exit(
+    def update_trade_fill(
         self,
         trade_id: str,
-        exit_time: datetime,
-        exit_price: float,
-        pnl: float,
+        filled_quantity: int,
+        order_state: str,
+        exit_time: datetime | None = None,
+        exit_price: float | None = None,
     ) -> None:
+        """Record a broker fill on a `trades` row (SRD-EXE-014.004).
+
+        For BUY fills, pass only `filled_quantity` + `order_state`.  For SELL
+        fills (closing the position), also pass `exit_time` + `exit_price`.
+        Realized PnL is owned by `trade_cycles.realized_pnl_usd`; no PnL is
+        written to `trades`.
+        """
+        values: dict[str, Any] = {
+            "order_state":     order_state,
+            "filled_quantity": filled_quantity,
+        }
+        if exit_time is not None:
+            values["exit_time"] = _dt_to_str(exit_time)
+        if exit_price is not None:
+            values["exit_price"] = exit_price
         with self._engine.begin() as conn:
             conn.execute(
                 trades.update()
                 .where(trades.c.trade_id == trade_id)
-                .values(
-                    exit_time=_dt_to_str(exit_time),
-                    exit_price=exit_price,
-                    pnl=pnl,
-                    status="CLOSED",
-                )
+                .values(**values)
             )
 
     # ── Positions ─────────────────────────────────────────────────────────────
@@ -268,7 +279,6 @@ class DatabaseManager:
             "target_price":  pos.target_price,
             "trailing_stop": pos.trailing_stop,
             "mode":          pos.mode,
-            "state":         pos.state,
         }
         with self._engine.begin() as conn:
             stmt = sa.dialects.sqlite.insert(positions).values(**row).on_conflict_do_update(  # type: ignore[attr-defined]
@@ -287,9 +297,10 @@ class DatabaseManager:
             )
 
     def fetch_open_positions(self, user_id: int) -> list[PositionRecord]:
+        # SRD-EXE-005.001 — "open" derived from quantity > 0; no state column.
         stmt = sa.select(positions).where(
-            positions.c.user_id == user_id,
-            positions.c.state   != "CLOSED",
+            positions.c.user_id  == user_id,
+            positions.c.quantity > 0,
         )
         with self._engine.connect() as conn:
             rows = conn.execute(stmt).mappings().all()
@@ -303,7 +314,6 @@ class DatabaseManager:
                 target_price  = r["target_price"],
                 trailing_stop = r["trailing_stop"],
                 mode          = r["mode"],
-                state         = r["state"],
             )
             for r in rows
         ]

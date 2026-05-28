@@ -141,7 +141,7 @@ class PositionTableModel(QAbstractTableModel):
                 return f"{pct:+.2f}%"
             case 6: return f"${pos.stop_loss:,.2f}"
             case 7: return f"${pos.target_price:,.2f}"
-            case 8: return pos.state
+            case 8: return "OPEN" if pos.quantity > 0 else "CLOSED"
         return ""
 
     def _background(self, pos: OpenPosition, col: int) -> QColor | None:
@@ -149,14 +149,7 @@ class PositionTableModel(QAbstractTableModel):
         if base_col == 4:
             return QColor(C.PNL_POS_BG) if pos.unrealised_pnl >= 0 else QColor(C.PNL_NEG_BG)
         if base_col == 8:
-            state_bg = {
-                "NEW":           "#2a2a2a",
-                "PARTIAL_ENTRY": "#332b00",
-                "OPEN":          "#1a3326",
-                "PARTIAL_EXIT":  "#332500",
-                "CLOSED":        "#1a1a1a",
-            }
-            return QColor(state_bg.get(pos.state, C.SURFACE))
+            return QColor("#1a3326" if pos.quantity > 0 else "#1a1a1a")
         return None
 
     def _foreground(self, pos: OpenPosition, col: int) -> QColor | None:
@@ -166,14 +159,7 @@ class PositionTableModel(QAbstractTableModel):
         if base_col == 5:
             return QColor(C.GREEN) if pos.pnl_pct >= 0 else QColor(C.RED)
         if base_col == 8:
-            state_fg = {
-                "NEW":           C.STATE_NEW,
-                "PARTIAL_ENTRY": C.STATE_PARTIAL_ENTRY,
-                "OPEN":          C.STATE_OPEN,
-                "PARTIAL_EXIT":  C.STATE_PARTIAL_EXIT,
-                "CLOSED":        C.STATE_CLOSED,
-            }
-            return QColor(state_fg.get(pos.state, C.TEXT))
+            return QColor(C.STATE_OPEN if pos.quantity > 0 else C.STATE_CLOSED)
         return None
 
 
@@ -181,13 +167,29 @@ class PositionTableModel(QAbstractTableModel):
 
 class TradeHistoryModel(QAbstractTableModel):
     """
-    Model: [User] | Time | Symbol | Side | Qty | Entry | Exit | P&L | Strategy | Mode
+    Trade-row model (SRD-GUI-002.005 / SRD-EXE-014.002).
+
+    Columns: [User] | Date & Time | Symbol | Side | Qty | Filled | Avg Price
+             | Order State | Strategy | Mode
+
     The User column is optional — shown only in admin All-Users scope.
-    SRD-GUI-002.004
+    P&L is intentionally omitted; realized PnL lives on Dashboard KPI cards
+    and inside ``trade_cycles.realized_pnl_usd`` (FO-EXE-012).
     """
 
-    _BASE_COLS = ["Date & Time", "Symbol", "Side", "Qty", "Entry", "Exit", "P&L", "Strategy", "Mode"]
+    _BASE_COLS = [
+        "Date & Time", "Symbol", "Side", "Qty", "Filled",
+        "Avg Price", "Order State", "Strategy", "Mode",
+    ]
     _USER_COL  = ["User"]
+
+    _ORDER_STATE_BG: dict[str, str] = {
+        "NEW":            "#2a2a2a",
+        "PARTIAL_FILLED": "#332b00",
+        "FILLED":         "#1a3326",
+        "REJECTED":       "#3a0a0a",
+        "CANCELLED":      "#1a1a1a",
+    }
 
     def __init__(self, parent: Any = None) -> None:
         super().__init__(parent)
@@ -239,31 +241,26 @@ class TradeHistoryModel(QAbstractTableModel):
                 case 1: return t.symbol
                 case 2: return t.side
                 case 3: return str(t.quantity)
-                case 4: return f"${t.entry_price:.2f}"
-                case 5: return f"${t.exit_price:.2f}" if t.exit_price else "—"
-                case 6:
-                    if t.pnl is None:
-                        return "—"
-                    return f"+${t.pnl:,.2f}" if t.pnl >= 0 else f"-${abs(t.pnl):,.2f}"
+                case 4: return str(t.filled_quantity)
+                case 5: return f"${t.entry_price:.2f}"
+                case 6: return str(t.order_state)
                 case 7: return t.strategy_id
                 case 8: return t.mode.upper()
             return ""
 
         if role == Qt.ItemDataRole.BackgroundRole:
-            if base_col == 6 and t.pnl is not None:
-                return QColor(C.PNL_POS_BG) if t.pnl >= 0 else QColor(C.PNL_NEG_BG)
+            if base_col == 6:
+                return QColor(self._ORDER_STATE_BG.get(str(t.order_state), C.SURFACE))
             return None
 
         if role == Qt.ItemDataRole.ForegroundRole:
-            if base_col == 6 and t.pnl is not None:
-                return QColor(C.GREEN) if t.pnl >= 0 else QColor(C.RED)
             if base_col == 2:
                 return QColor(C.GREEN) if t.side == "BUY" else QColor(C.RED)
             return None
 
         if role == Qt.ItemDataRole.TextAlignmentRole:
             shift = 1 if self._show_user else 0
-            if col in [shift + c for c in (3, 4, 5, 6)]:
+            if col in [shift + c for c in (3, 4, 5)]:
                 return Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
             return Qt.AlignmentFlag.AlignCenter
 
