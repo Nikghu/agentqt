@@ -19,17 +19,17 @@ from sqlalchemy import Engine
 
 from us_swing.core.monitoring_session import MonitoringEventBus
 from us_swing.execution.trade_cycle._dto import (
-    CYCLE_STATES,
     EXIT_REASONS,
-    NON_TERMINAL_STATES,
+    NON_TERMINAL_STATE_VALUES,
     STOPLOSS_TYPES,
     TARGET_TYPES,
-    TERMINAL_STATES,
+    TERMINAL_STATE_VALUES,
     TRAILING_MODES,
     CycleSnapshot,
     DuplicateOpenCycleError,
     InvalidStateTransitionError,
     InvariantViolation,
+    TradeCycleState,
 )
 from us_swing.execution.trade_cycle._events import (
     CycleAborted,
@@ -101,9 +101,9 @@ __all__ = [
     "InvariantViolation",
     "InvalidStateTransitionError",
     "DuplicateOpenCycleError",
-    "CYCLE_STATES",
-    "NON_TERMINAL_STATES",
-    "TERMINAL_STATES",
+    "TradeCycleState",
+    "NON_TERMINAL_STATE_VALUES",
+    "TERMINAL_STATE_VALUES",
     "EXIT_REASONS",
     "TARGET_TYPES",
     "STOPLOSS_TYPES",

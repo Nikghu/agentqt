@@ -1,7 +1,7 @@
 ﻿# Software Requirement Document — Execution & Risk Management (EXE)
 
 **Document ID:** SRD-EXE
-**Version:** 1.12.0
+**Version:** 1.13.0
 **Traces To:** FO-EXE v1.8.0
 **Status:** Draft
 **Last Updated:** 2026-05-28
@@ -13,6 +13,7 @@
 > v1.10.0: SRD-EXE-011.020 added — `TradeSignal.user_id` propagation from active user via engine `user_id_provider`.
 > v1.11.0: Section 13 added — SRD-EXE-013.001–.008 (Strategy Run Lifecycle). SRD-EXE-011.001 and SRD-EXE-011.007 marked Reopen.
 > v1.12.0: SRD-EXE-013.001–.008 + SRD-EXE-011.001 + SRD-EXE-011.007 marked Implemented (Final_Execution.md Phase 1).
+> v1.13.0: SRD-EXE-012.010/.011 marked Implemented after Phase 2 — `CycleSnapshot.state` typed as `ExecutionEnums.TradeCycleState`; `TradeCycleState.is_terminal()`/`is_non_terminal()` helpers added; `CYCLE_STATES`/`NON_TERMINAL_STATES`/`TERMINAL_STATES` frozensets removed.
 
 ---
 
@@ -205,8 +206,8 @@
 | SRD-EXE-012.007 | FO-EXE-012 | Must | `on_exit_fill(fill)` transitions the cycle to `CLOSED`, sets `exit_time`, `exit_price`, `exit_qty`, `exit_reason`, freezes `realized_pnl_usd = (exit_price − entry_price) × exit_qty` and `realized_pnl_pct`, publishes `CycleClosed`. | `FillEvent` | row updated + `CycleClosed` | Idempotent on `exit_order_id`: duplicate call returns existing row | Approved |
 | SRD-EXE-012.008 | FO-EXE-012 | Must | `on_entry_failed(cycle_id, reason)` transitions an `OPENING` cycle to `ABORTED`, sets `exit_reason` to the reason string, and publishes `CycleAborted`. No tick subscription is attached. | `cycle_id`, reason string | row updated + `CycleAborted` | Only callable while state == `OPENING`; later states raise `InvalidStateTransitionError` | Approved |
 | SRD-EXE-012.009 | FO-EXE-012 | Must | Before inserting on `on_entry_fill`, the service shall query for any existing row with the same `(strategy_id, symbol)` in `OPENING` / `OPEN` / `CLOSING` and raise `DuplicateOpenCycleError` if found. | new entry fill | insert or raise | Defence-in-depth: FO-EXE-011 §10 already prevents this at signal emission | Approved |
-| SRD-EXE-012.010 | FO-EXE-012 | Must | `TradeCycleQuery` Protocol exposes `open_cycles() -> tuple[CycleSnapshot, ...]`, `cycle(cycle_id) -> CycleSnapshot \| None`, and `history(symbol=None, strategy_id=None, days=N) -> tuple[CycleSnapshot, ...]`. `CycleSnapshot` is a frozen `@dataclass(slots=True)` with `schema_version: int`. | query call | snapshot tuple | All returns are immutable; thread-safe; no DB locks held across return | Approved |
-| SRD-EXE-012.011 | FO-EXE-012 | Must | `TradeCycleCommand.update_risk(cycle_id, hard_sl=None, target=None, trailing_offset=None, trailing_mode=None)` validates: `hard_sl ≤ current_price`, `target ≥ current_price`, `trailing_offset > 0`. Any failure raises `InvariantViolation` with no partial mutation. | edit payload | updated row + `RiskUpdated` | Validation before write; failed call returns unchanged snapshot | Approved |
+| SRD-EXE-012.010 | FO-EXE-012 | Must | `TradeCycleQuery` Protocol exposes `open_cycles()`, `cycle(cycle_id)`, `history(symbol=None, strategy_id=None, days=N)`, `has_open_cycle(strategy_id, symbol)`, `open_cycles_for_strategy(strategy_id)`. `CycleSnapshot.state: ExecutionEnums.TradeCycleState` (typed StrEnum, Phase 2). | query call | snapshot tuple | All returns are immutable; thread-safe; no DB locks held across return | Implemented |
+| SRD-EXE-012.011 | FO-EXE-012 | Must | `TradeCycleCommand.update_risk(cycle_id, hard_sl=None, target=None, trailing_offset=None, trailing_mode=None)` validates: `hard_sl ≤ current_price`, `target ≥ current_price`, `trailing_offset > 0`. Any failure raises `InvariantViolation` with no partial mutation. Non-terminal-state guard derived from `TradeCycleState.is_non_terminal()`. | edit payload | updated row + `RiskUpdated` | Validation before write; failed call returns unchanged snapshot | Implemented |
 | SRD-EXE-012.012 | FO-EXE-012 | Must | `TradeCycleEvent` is a sealed union `CycleOpened \| CycleUpdated \| ExitTrigger \| CycleClosing \| CycleClosed \| CycleAborted \| RiskUpdated`, each a frozen `@dataclass(slots=True)` with `schema_version: int`. Published on the FO-EXE-009 event bus. | state change | event published | No `PyQt6` import in `trade_cycle/` package | Approved |
 | SRD-EXE-012.013 | FO-EXE-012 | Must | On startup, `TradeCycleService.reload()` queries every row in `OPENING` / `OPEN` / `CLOSING`, re-attaches each cycle's symbol to the live tick stream via `LiveTickWorker.set_contracts()`, and resumes the update loop. Subsequent reload calls are no-ops (idempotent). | startup or restart | non-terminal rows reattached | Reload must complete before `LiveBarWorker.start()` is called | Approved |
 

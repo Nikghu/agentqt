@@ -2,26 +2,27 @@
 Module: MD-EXE-012.001.M02 — execution/trade_cycle/_dto.py
 Parent SRD: SRD-EXE-012.010, SRD-EXE-012.011
 
-Frozen, slotted, version-stamped DTOs and enum frozensets shared across
-the ``trade_cycle`` package boundary.  Validation helpers are used by
-``_repository`` and ``_service`` to fail fast on invalid string-enum
-values; SQLite enforces nothing here.
+Frozen, slotted, version-stamped DTOs and enum validation helpers shared
+across the ``trade_cycle`` package boundary.  Cycle-state values are
+typed as ``ExecutionEnums.TradeCycleState`` (Phase 2); the remaining
+string vocabularies (exit reasons, target / stoploss / trailing modes)
+keep their frozenset form pending Phase 3.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-CYCLE_STATES:   frozenset[str] = frozenset({"OPENING", "OPEN", "CLOSING", "CLOSED", "ABORTED"})
+from us_swing.execution import ExecutionEnums
+
+TradeCycleState = ExecutionEnums.TradeCycleState
+
 EXIT_REASONS:   frozenset[str] = frozenset({
     "strategy", "hard_sl", "target", "trailing_sl",
-    "end_time", "manual", "emergency",
+    "end_time", "manual", "emergency", "squaring_off",
 })
 TARGET_TYPES:   frozenset[str] = frozenset({"fixed", "trailing"})
 STOPLOSS_TYPES: frozenset[str] = frozenset({"fixed", "trailing"})
 TRAILING_MODES: frozenset[str] = frozenset({"$", "%"})
-
-NON_TERMINAL_STATES: frozenset[str] = frozenset({"OPENING", "OPEN", "CLOSING"})
-TERMINAL_STATES:     frozenset[str] = frozenset({"CLOSED", "ABORTED"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -34,7 +35,7 @@ class CycleSnapshot:
     symbol:              str   = ""
     user_id:             int   = 0
     monitoring_session_date: str = ""
-    state:               str   = "OPENING"
+    state:               TradeCycleState = TradeCycleState.OPENING
     entry_time:          str   = ""
     entry_price:         float = 0.0
     entry_qty:           int   = 0
@@ -76,10 +77,20 @@ class DuplicateOpenCycleError(RuntimeError):
     for the same ``(strategy_id, symbol)`` pair."""
 
 
-def validate_state(value: str) -> str:
-    if value not in CYCLE_STATES:
-        raise ValueError(f"unknown cycle state: {value!r}")
-    return value
+def coerce_state(value: TradeCycleState | str) -> TradeCycleState:
+    """Validate and coerce a state value to ``TradeCycleState``.
+
+    Accepts an enum member or its string value.  Raises ``ValueError`` on
+    any unknown input.
+    """
+    if isinstance(value, TradeCycleState):
+        return value
+    return TradeCycleState(value)
+
+
+def validate_state(value: TradeCycleState | str) -> str:
+    """Legacy helper retained for repository callers.  Returns the wire string."""
+    return coerce_state(value).value
 
 
 def validate_exit_reason(value: str) -> str:
@@ -108,18 +119,30 @@ def validate_trailing_mode(value: str | None) -> str | None:
     return value
 
 
+_NON_TERMINAL = tuple(
+    s.value for s in TradeCycleState if s.is_non_terminal()
+)
+_TERMINAL = tuple(
+    s.value for s in TradeCycleState if s.is_terminal()
+)
+
+NON_TERMINAL_STATE_VALUES: tuple[str, ...] = _NON_TERMINAL
+TERMINAL_STATE_VALUES:     tuple[str, ...] = _TERMINAL
+
+
 __all__ = [
     "CycleSnapshot",
-    "CYCLE_STATES",
+    "TradeCycleState",
     "EXIT_REASONS",
     "TARGET_TYPES",
     "STOPLOSS_TYPES",
     "TRAILING_MODES",
-    "NON_TERMINAL_STATES",
-    "TERMINAL_STATES",
+    "NON_TERMINAL_STATE_VALUES",
+    "TERMINAL_STATE_VALUES",
     "InvariantViolation",
     "InvalidStateTransitionError",
     "DuplicateOpenCycleError",
+    "coerce_state",
     "validate_state",
     "validate_exit_reason",
     "validate_target_type",

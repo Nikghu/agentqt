@@ -34,6 +34,12 @@ class ExecutionEnums:
         CLOSED = "CLOSED"
         ABORTED = "ABORTED"
 
+        def is_terminal(self) -> bool:
+            return self.value in ("CLOSED", "ABORTED")
+
+        def is_non_terminal(self) -> bool:
+            return not self.is_terminal()
+
     class BuyOrderState(StrEnum):
         """Per BUY order to broker, persisted in trades.order_state for side='BUY'."""
 

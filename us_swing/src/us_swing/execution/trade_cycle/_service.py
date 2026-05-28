@@ -20,12 +20,12 @@ from typing import Any, Callable, Iterable
 
 from us_swing.core.monitoring_session import MonitoringEventBus
 from us_swing.execution.trade_cycle._dto import (
-    CYCLE_STATES,
-    NON_TERMINAL_STATES,
     CycleSnapshot,
     DuplicateOpenCycleError,
     InvalidStateTransitionError,
     InvariantViolation,
+    TradeCycleState,
+    coerce_state,
     validate_stoploss_type,
     validate_target_type,
     validate_trailing_mode,
@@ -213,7 +213,7 @@ class TradeCycleService:
             "current_price":           entry_price,
             "highest_price_seen":      entry_price,
             "effective_stop":          hard_stop_loss,
-            "state":                   "OPEN",
+            "state":                   TradeCycleState.OPEN.value,
         }
         try:
             snap = self._repo.insert_open(row=row)
@@ -312,13 +312,13 @@ class TradeCycleService:
         snap = self._repo.cycle(cycle_id)
         if snap is None:
             raise InvalidStateTransitionError(f"cycle {cycle_id} not found")
-        if snap.state not in ("OPEN", "CLOSING"):
+        if snap.state not in (TradeCycleState.OPEN, TradeCycleState.CLOSING):
             raise InvalidStateTransitionError(
-                f"cannot close cycle {cycle_id} from state {snap.state!r}"
+                f"cannot close cycle {cycle_id} from state {snap.state.value!r}"
             )
 
-        if snap.state == "OPEN":
-            self._repo.update_state(cycle_id, "CLOSING")
+        if snap.state is TradeCycleState.OPEN:
+            self._repo.update_state(cycle_id, TradeCycleState.CLOSING)
             self._bus.publish(CycleClosing(
                 cycle_id = cycle_id,
                 symbol   = snap.symbol,
@@ -388,9 +388,9 @@ class TradeCycleService:
         snap = self._repo.cycle(cycle_id)
         if snap is None:
             raise InvalidStateTransitionError(f"cycle {cycle_id} not found")
-        if snap.state not in NON_TERMINAL_STATES:
+        if not snap.state.is_non_terminal():
             raise InvariantViolation(
-                f"cannot edit risk on cycle {cycle_id} in state {snap.state!r}"
+                f"cannot edit risk on cycle {cycle_id} in state {snap.state.value!r}"
             )
 
         current_price = snap.current_price if snap.current_price is not None else snap.entry_price
@@ -487,7 +487,7 @@ class TradeCycleService:
         if not acc.dirty:
             return
         snap = self._repo.cycle(acc.cycle_id)
-        if snap is None or snap.state not in ("OPEN", "CLOSING"):
+        if snap is None or snap.state not in (TradeCycleState.OPEN, TradeCycleState.CLOSING):
             with self._accs_lock:
                 self._detach_accumulator(acc.cycle_id)
             return
@@ -563,7 +563,7 @@ class TradeCycleService:
     # ── Exit-trigger evaluation ──────────────────────────────────────────────
 
     def _check_exit_triggers(self, snap: CycleSnapshot, price: float) -> None:
-        if snap.state != "OPEN":
+        if snap.state is not TradeCycleState.OPEN:
             return
         reason: str | None = None
 
@@ -581,7 +581,7 @@ class TradeCycleService:
             return
 
         try:
-            self._repo.update_state(snap.cycle_id, "CLOSING")
+            self._repo.update_state(snap.cycle_id, TradeCycleState.CLOSING)
         except InvalidStateTransitionError:
             return
 
@@ -607,7 +607,7 @@ class TradeCycleService:
             highest_seen    = snap.highest_price_seen or snap.entry_price,
             last_persist_at = 0.0,
             dirty           = False,
-            closing         = (snap.state == "CLOSING"),
+            closing         = (snap.state is TradeCycleState.CLOSING),
         )
         self._accs[snap.cycle_id] = acc
         self._accs_by_sym.setdefault(snap.symbol, set()).add(snap.cycle_id)
@@ -637,8 +637,7 @@ class TradeCycleService:
 
 def _validate_state_set(states: Iterable[str]) -> None:
     for s in states:
-        if s not in CYCLE_STATES:
-            raise ValueError(f"unknown state: {s!r}")
+        coerce_state(s)
 
 
 __all__ = [

@@ -18,10 +18,12 @@ from sqlalchemy import Engine
 from sqlalchemy.engine import RowMapping
 
 from us_swing.execution.trade_cycle._dto import (
-    NON_TERMINAL_STATES,
+    NON_TERMINAL_STATE_VALUES,
     CycleSnapshot,
     DuplicateOpenCycleError,
     InvalidStateTransitionError,
+    TradeCycleState,
+    coerce_state,
     validate_exit_reason,
     validate_state,
 )
@@ -30,12 +32,12 @@ from us_swing.execution.trade_cycle._schema import trade_cycles
 log = logging.getLogger(__name__)
 
 
-_ALLOWED_TRANSITIONS: dict[str, frozenset[str]] = {
-    "OPENING": frozenset({"OPEN", "ABORTED"}),
-    "OPEN":    frozenset({"CLOSING"}),
-    "CLOSING": frozenset({"CLOSED", "OPEN"}),
-    "CLOSED":  frozenset(),
-    "ABORTED": frozenset(),
+_ALLOWED_TRANSITIONS: dict[TradeCycleState, frozenset[TradeCycleState]] = {
+    TradeCycleState.OPENING: frozenset({TradeCycleState.OPEN, TradeCycleState.ABORTED}),
+    TradeCycleState.OPEN:    frozenset({TradeCycleState.CLOSING}),
+    TradeCycleState.CLOSING: frozenset({TradeCycleState.CLOSED, TradeCycleState.OPEN}),
+    TradeCycleState.CLOSED:  frozenset(),
+    TradeCycleState.ABORTED: frozenset(),
 }
 
 
@@ -50,7 +52,7 @@ def _row_to_snapshot(row: RowMapping) -> CycleSnapshot:
         symbol                  = row["symbol"],
         user_id                 = int(row["user_id"]),
         monitoring_session_date = row["monitoring_session_date"],
-        state                   = row["state"],
+        state                   = coerce_state(row["state"]),
         entry_time              = row["entry_time"],
         entry_price             = float(row["entry_price"]),
         entry_qty               = int(row["entry_qty"]),
@@ -91,7 +93,7 @@ class TradeCycleRepository:
     def open_cycles(self) -> tuple[CycleSnapshot, ...]:
         stmt = (
             sa.select(trade_cycles)
-            .where(trade_cycles.c.state.in_(tuple(NON_TERMINAL_STATES)))
+            .where(trade_cycles.c.state.in_(NON_TERMINAL_STATE_VALUES))
             .order_by(trade_cycles.c.cycle_id.asc())
         )
         with self._engine.connect() as conn:
@@ -132,7 +134,7 @@ class TradeCycleRepository:
             .where(
                 trade_cycles.c.strategy_id == strategy_id,
                 trade_cycles.c.symbol      == symbol,
-                trade_cycles.c.state.in_(tuple(NON_TERMINAL_STATES)),
+                trade_cycles.c.state.in_(NON_TERMINAL_STATE_VALUES),
             )
             .limit(1)
         )
@@ -144,7 +146,7 @@ class TradeCycleRepository:
             sa.select(trade_cycles)
             .where(
                 trade_cycles.c.strategy_id == strategy_id,
-                trade_cycles.c.state.in_(tuple(NON_TERMINAL_STATES)),
+                trade_cycles.c.state.in_(NON_TERMINAL_STATE_VALUES),
             )
             .order_by(trade_cycles.c.cycle_id.asc())
         )
@@ -158,7 +160,7 @@ class TradeCycleRepository:
             .where(
                 trade_cycles.c.strategy_id == strategy_id,
                 trade_cycles.c.symbol      == symbol,
-                trade_cycles.c.state.in_(tuple(NON_TERMINAL_STATES)),
+                trade_cycles.c.state.in_(NON_TERMINAL_STATE_VALUES),
             )
             .limit(1)
         )
@@ -202,7 +204,7 @@ class TradeCycleRepository:
             dup_q = sa.select(trade_cycles.c.cycle_id).where(
                 trade_cycles.c.strategy_id == strategy_id,
                 trade_cycles.c.symbol      == symbol,
-                trade_cycles.c.state.in_(tuple(NON_TERMINAL_STATES)),
+                trade_cycles.c.state.in_(NON_TERMINAL_STATE_VALUES),
             )
             if conn.execute(dup_q).first() is not None:
                 raise DuplicateOpenCycleError(
@@ -227,30 +229,31 @@ class TradeCycleRepository:
                 .values(**fields)
             )
 
-    def update_state(self, cycle_id: int, new_state: str) -> CycleSnapshot:
+    def update_state(self, cycle_id: int, new_state: TradeCycleState | str) -> CycleSnapshot:
         """Atomic compare-and-swap state transition.
 
         Raises :class:`InvalidStateTransitionError` if the current state
         does not permit moving to ``new_state``.
         """
-        validate_state(new_state)
+        new = coerce_state(new_state)
         with self._engine.begin() as conn:
-            current = conn.execute(
+            current_raw = conn.execute(
                 sa.select(trade_cycles.c.state).where(trade_cycles.c.cycle_id == cycle_id)
             ).scalar()
-            if current is None:
+            if current_raw is None:
                 raise InvalidStateTransitionError(f"cycle {cycle_id} not found")
-            if new_state not in _ALLOWED_TRANSITIONS.get(current, frozenset()):
+            current = coerce_state(current_raw)
+            if new not in _ALLOWED_TRANSITIONS.get(current, frozenset()):
                 raise InvalidStateTransitionError(
-                    f"illegal transition {current!r} -> {new_state!r} for cycle {cycle_id}"
+                    f"illegal transition {current.value!r} -> {new.value!r} for cycle {cycle_id}"
                 )
             result = conn.execute(
                 trade_cycles.update()
                 .where(
                     trade_cycles.c.cycle_id == cycle_id,
-                    trade_cycles.c.state    == current,
+                    trade_cycles.c.state    == current.value,
                 )
-                .values(state=new_state)
+                .values(state=new.value)
             )
             if (result.rowcount or 0) == 0:
                 raise InvalidStateTransitionError(
@@ -299,16 +302,17 @@ class TradeCycleRepository:
         """
         validate_exit_reason(exit_fields["exit_reason"])
         exit_fields.setdefault("closed_at", _utcnow_iso())
-        exit_fields["state"] = "CLOSED"
+        exit_fields["state"] = TradeCycleState.CLOSED.value
         with self._engine.begin() as conn:
-            current = conn.execute(
+            current_raw = conn.execute(
                 sa.select(trade_cycles.c.state).where(trade_cycles.c.cycle_id == cycle_id)
             ).scalar()
-            if current is None:
+            if current_raw is None:
                 raise InvalidStateTransitionError(f"cycle {cycle_id} not found")
-            if current not in ("CLOSING", "OPEN"):
+            current = coerce_state(current_raw)
+            if current not in (TradeCycleState.CLOSING, TradeCycleState.OPEN):
                 raise InvalidStateTransitionError(
-                    f"cannot close cycle {cycle_id} from state {current!r}"
+                    f"cannot close cycle {cycle_id} from state {current.value!r}"
                 )
             conn.execute(
                 trade_cycles.update()
@@ -323,20 +327,21 @@ class TradeCycleRepository:
 
     def abort(self, cycle_id: int, reason: str) -> CycleSnapshot:
         with self._engine.begin() as conn:
-            current = conn.execute(
+            current_raw = conn.execute(
                 sa.select(trade_cycles.c.state).where(trade_cycles.c.cycle_id == cycle_id)
             ).scalar()
-            if current is None:
+            if current_raw is None:
                 raise InvalidStateTransitionError(f"cycle {cycle_id} not found")
-            if current != "OPENING":
+            current = coerce_state(current_raw)
+            if current is not TradeCycleState.OPENING:
                 raise InvalidStateTransitionError(
-                    f"cannot abort cycle {cycle_id} from state {current!r}"
+                    f"cannot abort cycle {cycle_id} from state {current.value!r}"
                 )
             conn.execute(
                 trade_cycles.update()
                 .where(trade_cycles.c.cycle_id == cycle_id)
                 .values(
-                    state       = "ABORTED",
+                    state       = TradeCycleState.ABORTED.value,
                     exit_reason = reason,
                     closed_at   = _utcnow_iso(),
                 )
