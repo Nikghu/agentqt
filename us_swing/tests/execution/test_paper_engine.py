@@ -122,7 +122,9 @@ def test_paper_pnl_matches_live(db: DatabaseManager):
             sa2.select(trades).where(trades.c.trade_id == entry_trade_id)
         ).mappings().first()
     assert row is not None
-    assert row["pnl"] == pytest.approx(2500.0)
+    assert row["order_state"]     == "FILLED"
+    assert row["filled_quantity"] == 500
+    assert row["exit_price"]      == pytest.approx(55.0)
 
 
 def test_paper_order_ids_are_negative(db: DatabaseManager):

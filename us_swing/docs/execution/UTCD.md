@@ -1,12 +1,13 @@
 ﻿# Unit Test Case Document â€” Execution & Risk Management (EXE)
 
 **Document ID:** UTCD-EXE
-**Version:** 1.7.0
+**Version:** 1.8.0
 **Traces To:** MD-EXE v1.7.0
 **Status:** Draft
-**Last Updated:** 2026-05-27
+**Last Updated:** 2026-05-28
 **Project:** US Swing Trading System
 
+> v1.8.0: UT-EXE-014.001.M01.T01–T06 added — BuyOrderState / SellOrderState broker-order state machine + legacy `status` backfill (Final_Execution.md Phase 3).
 > v1.7.0: UT-EXE-011.001.M08.* (RexCounterRepository, 8 tests) and UT-EXE-011.001.M04.T11–T16 (rex_count gate + decrement, 6 tests) added.
 > v1.6.0: UTCD-EXE-011 (Strategy Engine, 30 tests) and UTCD-EXE-012 (Trade Cycle Ledger, 25 tests) added.
 
@@ -545,3 +546,16 @@
 | UT-EXE-012.002.M02.T14 | MD-EXE-012.002.M02 | Positive | `reload()` re-attaches OPEN cycles after restart | Insert 2 OPEN rows directly into DB; construct new service; call `reload()` | Both accumulators created; tick subscription requested for both symbols | Pass |
 | UT-EXE-012.002.M02.T15 | MD-EXE-012.002.M02 | Edge | No `PyQt6` import anywhere under `trade_cycle/` | Scan loaded module set after import | No `PyQt6` modules attributable to `trade_cycle/` | Pass |
 | IT-EXE-010.002 | integration | Positive | History survives eviction | After IT-EXE-009.001 completes | `query.history("B", days=7)` returns at least one row with `lifecycle_state='EVICTED'`; `SELECT * FROM price_1m WHERE symbol='B'` is empty | Pass |
+
+---
+
+## Module: `db/manager.py` + `db/schema.py` — Broker order state machine (FO-EXE-014)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-014.001.M01.T01 | MD-EXE-001.001.M02 | Positive | BUY NEW → PARTIAL_FILLED → FILLED transitions persist on `trades` row | `insert_trade(side='BUY', order_state='NEW')` then two `update_trade_fill` calls | Row's `order_state` advances NEW→PARTIAL_FILLED→FILLED; `filled_quantity` grows to total | Pass |
+| UT-EXE-014.001.M01.T02 | MD-EXE-001.001.M02 | Negative | Broker rejection leaves `filled_quantity = 0` | `update_trade_fill(order_state='REJECTED', filled_quantity=0)` after insert | Row's `order_state='REJECTED'` and `filled_quantity=0` | Pass |
+| UT-EXE-014.001.M01.T03 | MD-EXE-001.001.M02 | Edge | BUY CANCELLED after partial fill preserves partial `filled_quantity` | Partial fill → CANCELLED for same BUY trade | `order_state='CANCELLED'`, `filled_quantity` retains the partial value | Pass |
+| UT-EXE-014.001.M01.T04 | MD-EXE-001.001.M02 | Positive | SELL FILLED writes `exit_time` + `exit_price` | `update_trade_fill(order_state='FILLED', exit_time, exit_price)` on SELL trade | Row's `order_state='FILLED'`, `filled_quantity=qty`, `exit_price` set | Pass |
+| UT-EXE-014.001.M01.T05 | MD-EXE-001.001.M02 | Edge | SELL CANCELLED after partial fill leaves cycle quantity partially executed | Partial SELL fill → CANCELLED | `order_state='CANCELLED'`, `filled_quantity` partial; downstream cycle stays OPEN | Pass |
+| UT-EXE-014.001.M01.T06 | MD-INF-004.001.M02 | Positive | Legacy `status` values backfill into `order_state` during migration | Pre-Phase-3 trades table seeded with `status='SUBMITTED'/'FILLED'/'CLOSED'`; run `migrate_lifecycle_columns()` | `order_state` mapped to `NEW`/`FILLED`/`FILLED`; legacy `status`/`pnl`/`positions.state` columns dropped | Pass |

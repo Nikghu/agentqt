@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pytest
 
-from us_swing.data.models import AccountState, OpenPosition, PositionState, RiskConfig
+from us_swing.data.models import AccountState, OpenPosition, RiskConfig
 from us_swing.execution.position_tracker import PositionTracker
 from us_swing.execution.risk_manager import RiskManager
 from us_swing.execution.strategy_engine._signals import Action, TradeSignal
@@ -192,7 +192,6 @@ def test_can_enter_new_false(db: DatabaseManager):
         stop_loss=48.0,
         target_price=55.0,
         mode="live",
-        state=PositionState.OPEN.value,
     )
     tracker.open(pos)
     rm = _manager(tracker=tracker, equity=100_000.0)
@@ -214,7 +213,6 @@ def test_can_enter_new_scoped_per_user(db: DatabaseManager):
         stop_loss=98.0,
         target_price=105.0,
         mode="live",
-        state=PositionState.OPEN.value,
     )
     tracker.open(pos)
     rm1 = _manager(tracker=tracker, equity=100_000.0)

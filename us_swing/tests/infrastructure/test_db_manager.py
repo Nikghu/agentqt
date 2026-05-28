@@ -83,7 +83,7 @@ def test_T06_upsert_and_delete_position_round_trip(in_memory_db: DatabaseManager
     pos = PositionRecord(
         symbol="AAPL", user_id=1, quantity=50,
         average_price=150.0, stop_loss=140.0, target_price=170.0,
-        mode="paper", state="OPEN",
+        mode="paper",
     )
     in_memory_db.upsert_position(pos)
     assert len(in_memory_db.fetch_open_positions(1)) == 1

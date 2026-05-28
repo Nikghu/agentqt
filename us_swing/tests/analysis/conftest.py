@@ -103,6 +103,5 @@ def make_open_position(
         stop_loss=stop_loss,
         target_price=target_price,
         mode="paper",
-        state="OPEN",
         trailing_stop=trailing_stop,
     )

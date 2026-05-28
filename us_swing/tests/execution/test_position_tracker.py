@@ -1,14 +1,19 @@
-"""Tests for execution/position_tracker.py — PositionTracker."""
+"""Tests for execution/position_tracker.py — PositionTracker.
+
+Phase-3 refactor (Final_Execution.md §5.3): the legacy 5-state PositionState
+machine was removed; open/closed is derived from ``quantity > 0``.
+Per-side broker-order progress is now on ``trades.order_state``
+(see ``test_order_state_machine.py``).
+"""
 from __future__ import annotations
 
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 
-from us_swing.data.models import IBKRPosition, OpenPosition, PositionState
+from us_swing.data.models import IBKRPosition, OpenPosition
 from us_swing.db.manager import DatabaseManager
 from us_swing.db.schema import create_schema as _create_schema
-from us_swing.exceptions import InvalidStateTransitionError
 from us_swing.execution.position_tracker import PositionTracker
 
 
@@ -42,7 +47,6 @@ def _pos(
     user_id: int = 1,
     qty: int = 500,
     price: float = 50.0,
-    state: str = PositionState.NEW.value,
 ) -> OpenPosition:
     return OpenPosition(
         symbol=symbol,
@@ -52,7 +56,6 @@ def _pos(
         stop_loss=48.0,
         target_price=55.0,
         mode="live",
-        state=state,
     )
 
 
@@ -98,93 +101,55 @@ def test_reconcile_adopts_ibkr_position(tracker: PositionTracker, caplog):
     assert any("MSFT" in r.message for r in caplog.records)
 
 
-# ── state machine ─────────────────────────────────────────────────────────────
+# ── Quantity-derived openness (replaces legacy PositionState tests) ──────────
 
-def test_new_position_starts_in_new_state(tracker: PositionTracker):
-    """UT-EXE-005.001.M01.T01: New position starts in state NEW."""
-    tracker.open(_pos())
+def test_open_position_has_positive_quantity(tracker: PositionTracker):
+    """UT-EXE-005.001.M01.T01: A registered position with qty>0 is open."""
+    tracker.open(_pos(qty=500))
     pos = tracker.get_all(user_id=1)[0]
-    assert pos.state == PositionState.NEW.value
+    assert pos.quantity > 0
+    assert tracker.has_open(1, "AAPL") is True
 
 
-def test_new_to_partial_entry(tracker: PositionTracker):
-    """UT-EXE-005.001.M01.T02: Partial entry fill transitions NEW → PARTIAL_ENTRY."""
-    tracker.open(_pos())
-    tracker.update_state(1, "AAPL", PositionState.PARTIAL_ENTRY, filled_qty=200)
+def test_apply_partial_entry_fill(tracker: PositionTracker):
+    """UT-EXE-005.001.M01.T02: Partial entry fill bumps quantity + filled_quantity."""
+    tracker.open(_pos(qty=200))
+    tracker.apply_fill(1, "AAPL", delta_qty=200, filled_qty=200)
     pos = tracker.get_all(user_id=1)[0]
-    assert pos.state == PositionState.PARTIAL_ENTRY.value
+    assert pos.quantity == 400
     assert pos.filled_quantity == 200
 
 
-def test_new_to_open(tracker: PositionTracker):
-    """UT-EXE-005.001.M01.T03: Full entry fill transitions NEW → OPEN."""
-    tracker.open(_pos())
-    tracker.update_state(1, "AAPL", PositionState.OPEN, filled_qty=500)
+def test_apply_full_entry_fill_then_partial_exit(tracker: PositionTracker):
+    """UT-EXE-005.001.M01.T03: Full entry then partial exit decrements quantity."""
+    tracker.open(_pos(qty=500))
+    tracker.apply_fill(1, "AAPL", delta_qty=-300)
     pos = tracker.get_all(user_id=1)[0]
-    assert pos.state == PositionState.OPEN.value
-    assert pos.filled_quantity == 500
+    assert pos.quantity == 200
+    assert tracker.has_open(1, "AAPL") is True
 
 
-def test_partial_entry_to_open(tracker: PositionTracker):
-    """UT-EXE-005.001.M01.T04: PARTIAL_ENTRY → OPEN on final fill."""
-    tracker.open(_pos())
-    tracker.update_state(1, "AAPL", PositionState.PARTIAL_ENTRY, filled_qty=200)
-    tracker.update_state(1, "AAPL", PositionState.OPEN, filled_qty=500)
-    pos = tracker.get_all(user_id=1)[0]
-    assert pos.state == PositionState.OPEN.value
-    assert pos.filled_quantity == 500
+def test_full_exit_drops_position(tracker: PositionTracker):
+    """UT-EXE-005.001.M01.T04: Final SELL fill drives quantity to 0 and removes the position."""
+    tracker.open(_pos(qty=500))
+    tracker.apply_fill(1, "AAPL", delta_qty=-500)
+    assert tracker.has_open(1, "AAPL") is False
+    assert tracker.get_all(user_id=1) == []
 
 
-def test_open_to_partial_exit(tracker: PositionTracker):
-    """UT-EXE-005.001.M01.T05: OPEN → PARTIAL_EXIT on partial exit."""
-    tracker.open(_pos())
-    tracker.update_state(1, "AAPL", PositionState.OPEN, filled_qty=500)
-    tracker.update_state(1, "AAPL", PositionState.PARTIAL_EXIT, filled_qty=300)
-    pos = tracker.get_all(user_id=1)[0]
-    assert pos.state == PositionState.PARTIAL_EXIT.value
-
-
-def test_partial_exit_to_closed(tracker: PositionTracker):
-    """UT-EXE-005.001.M01.T06: PARTIAL_EXIT → CLOSED on final exit."""
-    tracker.open(_pos())
-    tracker.update_state(1, "AAPL", PositionState.OPEN, filled_qty=500)
-    tracker.update_state(1, "AAPL", PositionState.PARTIAL_EXIT, filled_qty=300)
-    tracker.update_state(1, "AAPL", PositionState.CLOSED, filled_qty=500)
-    pos = tracker.get_all(user_id=1)[0]
-    assert pos.state == PositionState.CLOSED.value
-
-
-def test_invalid_closed_to_open_raises(tracker: PositionTracker):
-    """UT-EXE-005.001.M01.T07: Invalid transition CLOSED → OPEN raises error."""
-    tracker.open(_pos())
-    tracker.update_state(1, "AAPL", PositionState.OPEN)
-    tracker.update_state(1, "AAPL", PositionState.CLOSED)
-    with pytest.raises(InvalidStateTransitionError):
-        tracker.update_state(1, "AAPL", PositionState.OPEN)
-
-
-def test_invalid_new_to_partial_exit_raises(tracker: PositionTracker):
-    """UT-EXE-005.001.M01.T08: Invalid transition NEW → PARTIAL_EXIT raises error."""
-    tracker.open(_pos())
-    with pytest.raises(InvalidStateTransitionError):
-        tracker.update_state(1, "AAPL", PositionState.PARTIAL_EXIT)
-
-
-def test_load_from_db_restores_open_positions(
+def test_load_from_db_restores_only_open_positions(
     tracker: PositionTracker, db: DatabaseManager
 ):
-    """UT-EXE-005.001.M01.T09: load_from_db() restores non-CLOSED positions."""
-    # Persist 2 OPEN and 1 CLOSED positions directly via DB
-    for symbol, state in [("AAPL", "OPEN"), ("MSFT", "OPEN"), ("GOOG", "CLOSED")]:
+    """UT-EXE-005.001.M01.T05: load_from_db() restores only qty>0 positions."""
+    for symbol, qty in [("AAPL", 100), ("MSFT", 100), ("GOOG", 0)]:
         pos = OpenPosition(
             symbol=symbol,
             user_id=1,
-            quantity=100,
+            quantity=qty,
             average_price=50.0,
             stop_loss=48.0,
             target_price=55.0,
             mode="live",
-            state=state,
         )
         db.upsert_position(pos)
 
