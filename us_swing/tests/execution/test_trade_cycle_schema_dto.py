@@ -12,9 +12,10 @@ from sqlalchemy import inspect
 
 from us_swing.db.schema import create_schema
 from us_swing.execution.trade_cycle._dto import (
-    CYCLE_STATES,
     EXIT_REASONS,
     CycleSnapshot,
+    TradeCycleState,
+    coerce_state,
 )
 
 
@@ -55,11 +56,35 @@ def test_cycle_snapshot_frozen_schema_version_1() -> None:
         snap.schema_version = 99  # type: ignore[misc]
 
 
-def test_enum_frozensets_match_srd() -> None:
-    """UT-EXE-012.001.M02.T02: CYCLE_STATES has 5 entries; EXIT_REASONS has exactly 7 entries."""
-    assert CYCLE_STATES == frozenset({"OPENING", "OPEN", "CLOSING", "CLOSED", "ABORTED"})
-    assert EXIT_REASONS == frozenset({
+def test_cycle_state_enum_values_match_srd() -> None:
+    """UT-EXE-012.001.M02.T02: TradeCycleState enum has 5 members with the expected wire values."""
+    values = {s.value for s in TradeCycleState}
+    assert values == {"OPENING", "OPEN", "CLOSING", "CLOSED", "ABORTED"}
+
+
+def test_exit_reasons_match_srd() -> None:
+    """UT-EXE-012.001.M02.T03: EXIT_REASONS includes all 8 reason strings (squaring_off added Phase 1)."""
+    expected = {
         "strategy", "hard_sl", "target", "trailing_sl",
-        "end_time", "manual", "emergency",
-    })
-    assert len(EXIT_REASONS) == 7
+        "end_time", "manual", "emergency", "squaring_off",
+    }
+    assert EXIT_REASONS == expected
+
+
+def test_trade_cycle_state_terminal_helpers() -> None:
+    """UT-EXE-012.001.M02.T04: is_terminal()/is_non_terminal() classify correctly."""
+    assert TradeCycleState.CLOSED.is_terminal() is True
+    assert TradeCycleState.ABORTED.is_terminal() is True
+    assert TradeCycleState.OPENING.is_terminal() is False
+    assert TradeCycleState.OPEN.is_terminal() is False
+    assert TradeCycleState.CLOSING.is_terminal() is False
+    assert TradeCycleState.OPENING.is_non_terminal() is True
+    assert TradeCycleState.CLOSED.is_non_terminal() is False
+
+
+def test_coerce_state_rejects_unknown() -> None:
+    """UT-EXE-012.001.M02.T05: coerce_state raises ValueError on unknown wire value."""
+    assert coerce_state("OPEN") is TradeCycleState.OPEN
+    assert coerce_state(TradeCycleState.OPENING) is TradeCycleState.OPENING
+    with pytest.raises(ValueError):
+        coerce_state("BOGUS_STATE")

@@ -30,6 +30,12 @@ class TradeCycleQuery(Protocol):
         days: int               = 30,
     ) -> tuple[CycleSnapshot, ...]: ...
 
+    def has_open_cycle(self, strategy_id: str, symbol: str) -> bool: ...
+
+    def open_cycles_for_strategy(
+        self, strategy_id: str
+    ) -> tuple[CycleSnapshot, ...]: ...
+
 
 @runtime_checkable
 class TradeCycleCommand(Protocol):

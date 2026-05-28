@@ -1,20 +1,19 @@
 """
-Module: MD-EXE-011.001.M02 — _StrategyContext & _CycleState
-Parent SRD: SRD-EXE-011.002, .004, .005, .007, .010
+Module: MD-EXE-011.001.M02 — _StrategyContext + StrategyRunState plumbing
+Parent SRD: SRD-EXE-011.002, .004, .005, .010, SRD-EXE-013.001 — .008
 """
 from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
 from datetime import date, datetime, time
-from enum import StrEnum
 from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
+from us_swing.execution import ExecutionEnums
+
 if TYPE_CHECKING:
     from us_swing.gui.strategy_builder_dialog import StrategyConfig
-
-    from ._signals import TradeSignal
 
 
 _ET = ZoneInfo("America/New_York")
@@ -30,15 +29,6 @@ _DAY_NAMES = (
 )
 
 
-class _CycleState(StrEnum):
-    INACTIVE = "Inactive"
-    ACTIVE = "Active"
-    UNDER_ENTRY = "UnderEntry"
-    RUNNING = "Running"
-    UNDER_EXIT = "UnderExit"
-    SQUARE_OFF = "SquareOff"
-
-
 def _parse_hhmm(text: str) -> time:
     hh, mm = text.split(":")
     return time(int(hh), int(mm))
@@ -51,9 +41,9 @@ def _parse_date(text: str) -> date:
 @dataclass
 class _StrategyContext:
     cfg: StrategyConfig
-    cycles: dict[str, _CycleState] = field(default_factory=dict)
+    run_state: ExecutionEnums.StrategyRunState = ExecutionEnums.StrategyRunState.STOPPED
+    in_flight: set[str] = field(default_factory=set)
     cycle_locks: dict[str, asyncio.Lock] = field(default_factory=dict)
-    last_entry_signal: dict[str, TradeSignal | None] = field(default_factory=dict)
     last_eval_at: datetime | None = None
 
     @property
@@ -99,6 +89,3 @@ class _StrategyContext:
             lock = asyncio.Lock()
             self.cycle_locks[symbol] = lock
         return lock
-
-    def state(self, symbol: str) -> _CycleState:
-        return self.cycles.get(symbol, _CycleState.ACTIVE)

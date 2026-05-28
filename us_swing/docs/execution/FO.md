@@ -1,9 +1,9 @@
 # Functional Objectives — Execution & Risk Management (EXE)
 
 **Document ID:** FO-EXE
-**Version:** 1.7.0
+**Version:** 1.8.0
 **Status:** Draft
-**Last Updated:** 2026-05-22
+**Last Updated:** 2026-05-28
 **Project:** US Swing Trading System
 
 > Traces to: `us_swing/requirements.md` §10, §11, §12, §13, §21.4, §22, §23, §25
@@ -428,3 +428,27 @@ The system shall provide a **Trade Cycle Ledger** that records every Entry→Exi
 9. An exit fill at `exit_price=$187.80` for the AAPL cycle (`entry_price=$182.50, qty=25`) freezes `realized_pnl_usd=132.50`, `realized_pnl_pct≈2.90`, sets `state=CLOSED`, publishes exactly one `CycleClosed` event, and removes the cycle from `open_cycles()`.
 10. With one open cycle for `(boss_ema, AAPL)`, calling `on_entry_fill(...)` for a new fill on `(boss_ema, AAPL)` raises a duplicate-open-cycle error and no second row is inserted.
 11. Importing every module under `src/us_swing/execution/trade_cycle/` raises no `PyQt6` import; a headless process consumes `TradeCycleEvent` payloads off the bus without a Qt installation.
+
+---
+
+## FO-EXE-013: Strategy Run Lifecycle
+
+**Status:** Approved
+**Priority:** Must
+**Depends on:** FO-EXE-011 (Strategy Engine), FO-EXE-012 (Trade Cycle Ledger)
+**Source:** Final_Execution.md Phase 1 — consolidate `_CycleState` into `ExecutionEnums.StrategyRunState`; trust persisted state on load (decision log #3)
+
+Each `StrategyConfig` record shall have a persisted `run_state` field typed as `ExecutionEnums.StrategyRunState` (`STOPPED` / `RUNNING` / `SQUARING_OFF`). The engine derives evaluation behaviour from `(run_state, TradeCycleLedger.has_open_cycle(strategy_id, symbol))` — no separate per-symbol state enum (`_CycleState`) is required.
+
+- The system shall persist `run_state` to the strategy registry on every state transition so the state survives application restarts.
+- Migration on first load: `"Inactive"` → `STOPPED`; `"Active"` or `"Running"` → `RUNNING`. The legacy `Status` key is replaced by `run_state`.
+
+### Acceptance Criteria
+
+1. Pressing ▶ Play on a `STOPPED` strategy sets `run_state = RUNNING`, persists to the registry, and the state survives an application restart.
+2. Pressing ■ Stop on a `RUNNING` strategy with no open cycles transitions `run_state` to `STOPPED` immediately.
+3. Pressing ■ Stop on a `RUNNING` strategy with one or more open cycles transitions `run_state` to `SQUARING_OFF`; the engine emits a forced EXIT signal for every open cycle; when the last open cycle reaches a terminal state (`CLOSED` or `ABORTED`), `run_state` auto-transitions to `STOPPED`.
+4. A strategy in `STOPPED` produces zero `TradeSignal` events regardless of candle-close or tick events.
+5. A strategy in `RUNNING` with no open cycle for `(strategy_id, symbol)` evaluates `entry_condition` only.
+6. A strategy in `RUNNING` with an open cycle for `(strategy_id, symbol)` in `TradeCycleState.OPEN` evaluates `exit_condition` only.
+7. A strategy in `SQUARING_OFF` emits no new `ENTRY` signals; only forced `EXIT` signals for existing open cycles are emitted.

@@ -279,8 +279,8 @@ class _StrategyTablePane(QWidget):
         for proxy_row in range(self._proxy.rowCount()):
             src_row = self._proxy.mapToSource(self._proxy.index(proxy_row, 0)).row()
             cfg = self._configs[src_row]
-            status = cfg.strategy_signal.get("Status", "Inactive")
-            is_live = status in ("Active", "Running")
+            run_state = cfg.strategy_signal.get("run_state", "STOPPED")
+            is_live = run_state in ("RUNNING", "SQUARING_OFF")
             self._view.setIndexWidget(
                 self._proxy.index(proxy_row, COL_RUN),
                 self._make_run_btn(
@@ -416,44 +416,54 @@ class _StrategyTablePane(QWidget):
     def _on_run(self, src_row: int) -> None:
         """Play/Stop toggle.
 
-        Play: Status Inactive → Active.  ``mode`` is untouched (it's the
-        strategy's persistent configuration, not the runtime arming flag).
+        Play (STOPPED → RUNNING): arms evaluation immediately.
 
-        Stop: Active/Running → Inactive, but ONLY if the strategy has no
-        open trade cycles.  Otherwise show a blocking warning and refuse —
-        the user must close all positions via Force Exit in the Pending
-        Signals table before the strategy can be stopped.
+        Stop (RUNNING → STOPPED or SQUARING_OFF):
+        - With no open cycles: transitions to STOPPED immediately.
+        - With one or more open cycles: transitions to SQUARING_OFF; the
+          engine emits forced EXITs for each open cycle and auto-transitions
+          to STOPPED when the last cycle closes (FO-EXE-013 AC#3).
         """
         if src_row < 0 or src_row >= len(self._configs):
             return
         cfg = self._configs[src_row]
-        current_status = cfg.strategy_signal.get("Status", "Inactive")
+        current = cfg.strategy_signal.get("run_state", "STOPPED")
 
-        if current_status == "Inactive":
-            cfg.strategy_signal["Status"] = "Active"
+        if current == "STOPPED":
+            cfg.strategy_signal["run_state"] = "RUNNING"
+            new_state = "RUNNING"
+        elif current == "SQUARING_OFF":
+            return
         else:
             open_syms = self._demo.get_open_symbols_for_strategy(cfg.name)
             if open_syms:
-                sym_list = "\n  • ".join(open_syms)
-                QMessageBox.warning(
-                    self,
-                    "Cannot Stop Strategy",
-                    f"Strategy '{cfg.name}' has {len(open_syms)} open position"
-                    f"{'s' if len(open_syms) != 1 else ''}:\n\n  • {sym_list}\n\n"
-                    f"Please close them via the Force Exit button in the "
-                    f"Pending Signals table before stopping the strategy.",
-                )
-                return
-            cfg.strategy_signal["Status"] = "Inactive"
+                cfg.strategy_signal["run_state"] = "SQUARING_OFF"
+                new_state = "SQUARING_OFF"
+            else:
+                cfg.strategy_signal["run_state"] = "STOPPED"
+                new_state = "STOPPED"
 
+        cfg.strategy_signal.pop("Status", None)
         save_strategies(self._configs)
+        self._notify_engine_run_state(cfg.name, new_state)
         self._demo.reload_strategy_registry()
         self._refresh_table()
+
+    def _notify_engine_run_state(self, strategy_id: str, new_state: str) -> None:
+        engine = getattr(self._demo, "_strategy_engine", None)
+        if engine is None:
+            return
+        try:
+            from us_swing.execution import ExecutionEnums
+            engine.set_run_state(strategy_id, ExecutionEnums.StrategyRunState(new_state))
+        except Exception:
+            pass
 
     def _on_engine_status(self, strategy_name: str, new_status: str) -> None:
         for cfg in self._configs:
             if cfg.name == strategy_name:
-                cfg.strategy_signal["Status"] = new_status
+                cfg.strategy_signal["run_state"] = new_status
+                cfg.strategy_signal.pop("Status", None)
                 save_strategies(self._configs)
                 break
         self._refresh_table()
@@ -951,16 +961,27 @@ class _FilteredStocksPane(QWidget):
         hdr_lbl.setStyleSheet(
             f"color: {C.MUTED}; font-size: 7pt; font-weight: bold; letter-spacing: 2px;"
         )
+        _meta_qss = f"color: {C.MUTED}; font-size: 8pt;"
         self._date_lbl = QLabel("")
-        self._date_lbl.setStyleSheet(f"color: {C.MUTED}; font-size: 8pt;")
+        self._date_lbl.setStyleSheet(_meta_qss)
+        self._time_lbl = QLabel("")
+        self._time_lbl.setStyleSheet(_meta_qss)
         self._count_lbl = QLabel("")
-        self._count_lbl.setStyleSheet(f"color: {C.MUTED}; font-size: 8pt;")
+        self._count_lbl.setStyleSheet(_meta_qss)
+
+        self._date_time_sep = QLabel(" - ")
+        self._date_time_sep.setStyleSheet(_meta_qss)
+        self._time_count_sep = QLabel(" - ")
+        self._time_count_sep.setStyleSheet(_meta_qss)
 
         hdr_row = QHBoxLayout()
         hdr_row.setContentsMargins(0, 0, 0, 0)
         hdr_row.addWidget(hdr_lbl)
         hdr_row.addStretch()
         hdr_row.addWidget(self._date_lbl)
+        hdr_row.addWidget(self._date_time_sep)
+        hdr_row.addWidget(self._time_lbl)
+        hdr_row.addWidget(self._time_count_sep)
         hdr_row.addWidget(self._count_lbl)
 
         # ── Table ──────────────────────────────────────────────────────────────
@@ -1045,19 +1066,31 @@ class _FilteredStocksPane(QWidget):
         if not dates:
             self._current_date = ""
             self._date_lbl.setText("")
+            self._time_lbl.setText("")
             self._count_lbl.setText("")
+            self._date_time_sep.setVisible(False)
+            self._time_count_sep.setVisible(False)
             self._table.setVisible(False)
             self._empty_lbl.setVisible(True)
             return
         self._current_date = dates[0]
-        formatted = datetime.strptime(self._current_date, "%Y-%m-%d").strftime("%d %b %Y")
-        self._date_lbl.setText(formatted)
+        self._date_lbl.setText(
+            datetime.strptime(self._current_date, "%Y-%m-%d").strftime("%d %b %Y")
+        )
+        latest_time = max(
+            (e.time for e in entries if e.date == self._current_date and e.time),
+            default="",
+        )
+        self._time_lbl.setText(latest_time)
+        self._time_lbl.setVisible(bool(latest_time))
+        self._date_time_sep.setVisible(bool(latest_time))
+        self._time_count_sep.setVisible(True)
         self._filter_by_date()
 
     def _filter_by_date(self) -> None:
         self._model.load(self._all_entries)
         count = len(self._all_entries)
-        self._count_lbl.setText(f"{count} stock{'s' if count != 1 else ''}")
+        self._count_lbl.setText(f"{count} Stock{'s' if count != 1 else ''}")
         self._table.setVisible(count > 0)
         self._empty_lbl.setVisible(count == 0)
         if count > 0:

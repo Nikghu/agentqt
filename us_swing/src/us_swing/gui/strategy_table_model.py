@@ -39,12 +39,22 @@ COLUMNS: list[str] = [
 ]
 
 STATUS_COLORS: dict[str, str] = {
-    "Inactive":   C.MUTED,
-    "Active":     C.GREEN,
-    "UnderEntry": C.BLUE,
-    "Running":    C.TEAL,
-    "SquareOff":  C.ORANGE,
+    "STOPPED":      C.MUTED,
+    "RUNNING":      C.TEAL,
+    "SQUARING_OFF": C.ORANGE,
 }
+
+
+def _run_state(cfg: StrategyConfig) -> str:
+    """Read ``run_state`` from the strategy signal dict, falling back to legacy ``Status``."""
+    sig = cfg.strategy_signal
+    raw = sig.get("run_state")
+    if isinstance(raw, str) and raw:
+        return raw
+    legacy = sig.get("Status", "Inactive")
+    if legacy in ("Active", "Running"):
+        return "RUNNING"
+    return "STOPPED"
 
 
 class StrategyTableModel(QAbstractTableModel):
@@ -74,11 +84,11 @@ class StrategyTableModel(QAbstractTableModel):
         self.endResetModel()
 
     def status_for(self, cfg: StrategyConfig) -> str:
-        """Return the visual status — overridden to ``Running`` if the
-        strategy has open positions, otherwise the raw cfg value."""
+        """Return the visual status — overridden to ``RUNNING`` if the
+        strategy has open positions, otherwise the raw ``run_state`` value."""
         if cfg.name in self._running_override:
-            return "Running"
-        return str(cfg.strategy_signal.get("Status", "Inactive"))
+            return "RUNNING"
+        return _run_state(cfg)
 
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
         return 0 if parent.isValid() else len(self._rows)
@@ -118,6 +128,7 @@ class StrategyTableModel(QAbstractTableModel):
                 return QColor(C.BLUE)
             if col == COL_STATUS:
                 return QColor(STATUS_COLORS.get(self.status_for(cfg), C.MUTED))
+        return None
 
         if role == Qt.ItemDataRole.TextAlignmentRole:
             if col == COL_NAME:
@@ -131,7 +142,7 @@ class StrategyTableModel(QAbstractTableModel):
 
 
 def _cell_text(cfg: StrategyConfig, col: int) -> str:
-    status: str = str(cfg.strategy_signal.get("Status", "Inactive"))
+    status: str = _run_state(cfg)
     if col == COL_NAME:
         return cfg.name
     if col == COL_SCOPE:
@@ -182,7 +193,7 @@ class StatusBadgeDelegate(QStyledItemDelegate):
             super().paint(painter, option, index)
             return
 
-        status: str = str(index.data(Qt.ItemDataRole.DisplayRole) or "Inactive")
+        status: str = str(index.data(Qt.ItemDataRole.DisplayRole) or "STOPPED")
         color = QColor(STATUS_COLORS.get(status, C.MUTED))
 
         painter.save()

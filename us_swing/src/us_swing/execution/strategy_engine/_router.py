@@ -1,6 +1,7 @@
 """
 Module: MD-EXE-011.001.M04 — Signal queue consumer + dispatch + watchdog
-Parent SRD: SRD-EXE-011.008 — SRD-EXE-011.013, SRD-EXE-011.017, SRD-EXE-011.018
+Parent SRD: SRD-EXE-011.008 — SRD-EXE-011.013, SRD-EXE-011.017, SRD-EXE-011.018,
+           SRD-EXE-013.001 — .008
 """
 from __future__ import annotations
 
@@ -13,7 +14,9 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 
-from ._context import _CycleState, _StrategyContext
+from us_swing.execution import ExecutionEnums
+
+from ._context import _StrategyContext
 from ._evaluator import ConditionEvaluator, EvaluatorError
 from ._events import (
     StrategyEntered,
@@ -28,6 +31,7 @@ from ._signals import Action, PendingSignalSink, TradeSignal
 
 if TYPE_CHECKING:
     from us_swing.data.models import OHLCVBar
+    from us_swing.execution.trade_cycle._protocols import TradeCycleQuery
 
     from ._protocols import (
         EventBus,
@@ -67,6 +71,8 @@ class _Router:
         bus: EventBus,
         rex_counters: RexCounterRepository | None = None,
         clock: Callable[[], datetime] | None = None,
+        user_id_provider: Callable[[], int] | None = None,
+        cycle_query: TradeCycleQuery | None = None,
     ) -> None:
         self._queue = queue
         self._registry = registry
@@ -77,6 +83,8 @@ class _Router:
         self._bus = bus
         self._rex_counters = rex_counters
         self._clock = clock or (lambda: datetime.now(_ET))
+        self._user_id_provider = user_id_provider or (lambda: 0)
+        self._cycle_query = cycle_query
         self._stop_event = asyncio.Event()
         self._emergency_active = False
         self._quiesced_event = asyncio.Event()
@@ -89,6 +97,18 @@ class _Router:
 
     def stop_requested(self) -> bool:
         return self._stop_event.is_set()
+
+    # ── Derivation helpers ───────────────────────────────────────────────────
+
+    def _has_open_cycle(self, strategy_id: str, symbol: str) -> bool:
+        if self._cycle_query is None:
+            return False
+        return self._cycle_query.has_open_cycle(strategy_id, symbol)
+
+    def _open_cycle_symbols(self, strategy_id: str) -> list[str]:
+        if self._cycle_query is None:
+            return []
+        return [s.symbol for s in self._cycle_query.open_cycles_for_strategy(strategy_id)]
 
     # ── Per-bar evaluation (called from engine fan-out) ──────────────────────
 
@@ -106,6 +126,10 @@ class _Router:
         """
         if self._emergency_active:
             return
+        if ctx.run_state is ExecutionEnums.StrategyRunState.STOPPED:
+            return
+        if ctx.run_state is ExecutionEnums.StrategyRunState.SQUARING_OFF:
+            return
         if not ctx.within_schedule(self._clock()):
             return
         if not ctx.accepts(symbol):
@@ -115,9 +139,40 @@ class _Router:
         signal: TradeSignal | None = None
 
         async with ctx.lock_for(symbol):
-            state = ctx.state(symbol)
+            if symbol in ctx.in_flight:
+                log.debug("[Strategy] %s %s duplicate signal suppressed (in flight)",
+                          ctx.name, symbol)
+                return
 
-            if state == _CycleState.ACTIVE:
+            has_open = self._has_open_cycle(ctx.name, symbol)
+
+            if has_open:
+                if not ctx.cfg.exit_condition:
+                    return
+                try:
+                    fired = self._evaluator.evaluate(ctx.cfg.exit_condition, candles, symbol)
+                except EvaluatorError as exc:
+                    log.warning("[Strategy] %s exit-expr failed for %s: %s",
+                                ctx.name, symbol, exc)
+                    self._bus.publish(
+                        StrategyErrored(strategy_id=ctx.name, symbol=symbol, message=str(exc))
+                    )
+                    return
+                if not fired:
+                    return
+
+                signal = TradeSignal(
+                    action=Action.EXIT,
+                    symbol=symbol,
+                    strategy_id=ctx.name,
+                    entry_price=float(bar.close),
+                    reason="strategy",
+                    user_id=self._user_id_provider(),
+                )
+                ctx.in_flight.add(symbol)
+                action = Action.EXIT
+
+            else:
                 if not ctx.cfg.entry_condition:
                     return
                 try:
@@ -154,40 +209,8 @@ class _Router:
                     return
 
                 signal = self._build_entry_signal(ctx, symbol, bar)
-                ctx.cycles[symbol] = _CycleState.UNDER_ENTRY
-                ctx.last_entry_signal[symbol] = signal
+                ctx.in_flight.add(symbol)
                 action = Action.ENTRY
-
-            elif state == _CycleState.RUNNING:
-                if not ctx.cfg.exit_condition:
-                    return
-                try:
-                    fired = self._evaluator.evaluate(ctx.cfg.exit_condition, candles, symbol)
-                except EvaluatorError as exc:
-                    log.warning("[Strategy] %s exit-expr failed for %s: %s",
-                                ctx.name, symbol, exc)
-                    self._bus.publish(
-                        StrategyErrored(strategy_id=ctx.name, symbol=symbol, message=str(exc))
-                    )
-                    return
-                if not fired:
-                    return
-
-                signal = TradeSignal(
-                    action=Action.EXIT,
-                    symbol=symbol,
-                    strategy_id=ctx.name,
-                    entry_price=float(bar.close),
-                    reason="strategy",
-                )
-                ctx.cycles[symbol] = _CycleState.UNDER_EXIT
-                action = Action.EXIT
-            else:
-                # Duplicate suppression: signal already in-flight or quiescing.
-                if state in (_CycleState.UNDER_ENTRY, _CycleState.UNDER_EXIT):
-                    log.debug("[Strategy] %s %s duplicate signal suppressed (state=%s)",
-                              ctx.name, symbol, state)
-                return
 
         if signal is not None and action is not None:
             self._quiesced_event.clear()
@@ -235,7 +258,7 @@ class _Router:
             self._bus.publish(
                 StrategySignalDropped(signal=signal, reason=result.reason or "risk_reject")
             )
-            await self._rollback(ctx, signal.symbol, signal.action)
+            await self._rollback(ctx, signal.symbol)
             return
 
         order_id = self._submitter.submit(signal, result.qty)
@@ -243,15 +266,12 @@ class _Router:
             self._bus.publish(
                 StrategySignalDropped(signal=signal, reason="submitter_returned_none")
             )
-            await self._rollback(ctx, signal.symbol, signal.action)
+            await self._rollback(ctx, signal.symbol)
 
-    async def _rollback(self, ctx: _StrategyContext, symbol: str, action: Action) -> None:
-        """Revert an Under* state to its prior non-blocking state on dispatch reject."""
+    async def _rollback(self, ctx: _StrategyContext, symbol: str) -> None:
+        """Clear the in-flight flag when a dispatch is rejected."""
         async with ctx.lock_for(symbol):
-            if action == Action.ENTRY and ctx.state(symbol) == _CycleState.UNDER_ENTRY:
-                ctx.cycles[symbol] = _CycleState.ACTIVE
-            elif action == Action.EXIT and ctx.state(symbol) == _CycleState.UNDER_EXIT:
-                ctx.cycles[symbol] = _CycleState.RUNNING
+            ctx.in_flight.discard(symbol)
         self._maybe_signal_quiesced()
 
     # ── Fill / reject hooks (called from engine Qt slots) ────────────────────
@@ -260,8 +280,8 @@ class _Router:
         ctx = self._registry.get(fill.strategy_id)
         if ctx is None:
             return
+        ctx.in_flight.discard(fill.symbol)
         if fill.is_entry:
-            ctx.cycles[fill.symbol] = _CycleState.RUNNING
             self._bus.publish(
                 StrategyEntered(
                     strategy_id=fill.strategy_id,
@@ -277,7 +297,6 @@ class _Router:
                     init_value=ctx.cfg.rex_count,
                 )
         else:
-            ctx.cycles[fill.symbol] = _CycleState.SQUARE_OFF
             self._bus.publish(
                 StrategyExited(
                     strategy_id=fill.strategy_id,
@@ -293,10 +312,7 @@ class _Router:
         ctx = self._registry.get(reject.strategy_id)
         if ctx is None:
             return
-        prior = (
-            _CycleState.ACTIVE if reject.is_entry else _CycleState.RUNNING
-        )
-        ctx.cycles[reject.symbol] = prior
+        ctx.in_flight.discard(reject.symbol)
         self._bus.publish(
             StrategyErrored(
                 strategy_id=reject.strategy_id,
@@ -304,8 +320,8 @@ class _Router:
                 message=f"order_reject: {reject.reason}",
             )
         )
-        log.debug("[Strategy] %s %s order rejected — %s (rolled back to %s)",
-                  reject.strategy_id, reject.symbol, reject.reason, prior)
+        log.debug("[Strategy] %s %s order rejected — %s",
+                  reject.strategy_id, reject.symbol, reject.reason)
         self._maybe_signal_quiesced()
 
     # ── End-time watcher ─────────────────────────────────────────────────────
@@ -328,9 +344,8 @@ class _Router:
             end_t = _parse_hhmm(ctx.cfg.end_time)
             if now_et.time() < end_t:
                 continue
-            for symbol, state in list(ctx.cycles.items()):
-                if state == _CycleState.RUNNING:
-                    await self._force_exit(ctx, symbol, reason="end_time")
+            for symbol in self._open_cycle_symbols(ctx.name):
+                await self._force_exit(ctx, symbol, reason="end_time")
 
     async def _force_exit(
         self,
@@ -340,15 +355,18 @@ class _Router:
         reason: str,
     ) -> None:
         async with ctx.lock_for(symbol):
-            if ctx.state(symbol) != _CycleState.RUNNING:
+            if symbol in ctx.in_flight:
+                return
+            if not self._has_open_cycle(ctx.name, symbol):
                 return
             signal = TradeSignal(
                 action=Action.EXIT,
                 symbol=symbol,
                 strategy_id=ctx.name,
                 reason=reason,
+                user_id=self._user_id_provider(),
             )
-            ctx.cycles[symbol] = _CycleState.UNDER_EXIT
+            ctx.in_flight.add(symbol)
         self._quiesced_event.clear()
         await self._queue.put(signal)
         self._bus.publish(
@@ -358,16 +376,27 @@ class _Router:
     # ── Emergency stop ───────────────────────────────────────────────────────
 
     async def emergency_stop(self) -> None:
-        """Force exit every Running symbol, then block until everything quiesces."""
+        """Force exit every open cycle across every strategy, then block until quiesced."""
         self._emergency_active = True
         try:
             for ctx in list(self._registry.values()):
-                for symbol, state in list(ctx.cycles.items()):
-                    if state == _CycleState.RUNNING:
-                        await self._force_exit(ctx, symbol, reason="emergency")
+                for symbol in self._open_cycle_symbols(ctx.name):
+                    await self._force_exit(ctx, symbol, reason="emergency")
             await self._quiesced_event.wait()
         finally:
             self._emergency_active = False
+
+    async def squaring_off_exit(self, ctx: _StrategyContext) -> int:
+        """Enqueue forced EXIT signals for every open cycle of *ctx*.
+
+        Returns the number of exits enqueued.  Called when the user
+        transitions a strategy from RUNNING → SQUARING_OFF.
+        """
+        count = 0
+        for symbol in self._open_cycle_symbols(ctx.name):
+            await self._force_exit(ctx, symbol, reason="squaring_off")
+            count += 1
+        return count
 
     # ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -391,12 +420,13 @@ class _Router:
             entry_price=entry_price,
             stop_loss=stop_loss,
             target=target,
+            qty_recommended=1,
+            user_id=self._user_id_provider(),
         )
 
     def _maybe_signal_quiesced(self) -> None:
-        """Mark the quiesced event when no strategy has work in flight."""
+        """Mark the quiesced event when no strategy has any signal in flight."""
         for ctx in self._registry.values():
-            for state in ctx.cycles.values():
-                if state in (_CycleState.UNDER_ENTRY, _CycleState.UNDER_EXIT):
-                    return
+            if ctx.in_flight:
+                return
         self._quiesced_event.set()

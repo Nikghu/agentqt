@@ -1,12 +1,13 @@
 ﻿# Module Decomposition — Execution & Risk Management (EXE)
 
 **Document ID:** MD-EXE
-**Version:** 1.7.0
-**Traces To:** SRD-EXE v1.8.0 / DD-EXE v1.8.0
+**Version:** 1.8.0
+**Traces To:** SRD-EXE v1.11.0 / DD-EXE v1.9.0
 **Status:** Draft
-**Last Updated:** 2026-05-27
+**Last Updated:** 2026-05-28
 **Project:** US Swing Trading System
 
+> v1.8.0: MD-EXE-011.001.M02 updated — `_CycleState` replaced by `StrategyRunState` (Phase 1 target).
 > v1.7.0: MD-EXE-011.001.M08 added — `_rex_counter.py` (rex_count enforcement).
 > v1.6.0: MD-EXE-011.* (Strategy Engine, 7 modules) and MD-EXE-012.* (Trade Cycle Ledger, 6 modules) added.
 
@@ -172,7 +173,7 @@ src/us_swing/
 | ID | Parent SRD | File | Responsibility | Public API | Deps | MCP | Status |
 |---|---|---|---|---|---|---|---|
 | MD-EXE-011.001.M01 | SRD-EXE-011.001 — .003, .013 | `src/us_swing/execution/strategy_engine/_engine.py` | `StrategyEngine(QThread)` — owns asyncio loop, registry, signal queue; subscribes to `candle_closed`; orchestrates `_router_loop`, `_end_time_watcher_loop`, `_emergency_drain_loop` | `start()`, `request_stop()`, `emergency_stop()`, `reload_registry()` | `_context`, `_router`, `_evaluator`, `_events`, `_signals`, `PyQt6.QtCore.QThread`, `asyncio` | No | Approved |
-| MD-EXE-011.001.M02 | SRD-EXE-011.002, .004, .005, .007, .010 | `src/us_swing/execution/strategy_engine/_context.py` | `_StrategyContext` dataclass + `_CycleState(StrEnum)` — symbol-scope filter, schedule guard, per-`(strategy,symbol)` cycle state, `asyncio.Lock` map | `_StrategyContext.accepts(symbol)`, `lock_for(symbol)`, `state(symbol)`; `_CycleState` enum | `dataclasses`, `enum`, `asyncio`, FO-GUI-013 `StrategyConfig` | No | Approved |
+| MD-EXE-011.001.M02 | SRD-EXE-011.002, .004, .005, .010, SRD-EXE-013.001–.008 | `src/us_swing/execution/strategy_engine/_context.py` | `_StrategyContext` dataclass — symbol-scope filter, schedule guard, `run_state: ExecutionEnums.StrategyRunState`, `asyncio.Lock` map; `_CycleState` removed (Phase 1) | `_StrategyContext.accepts(symbol)`, `lock_for(symbol)`, `run_state` field | `dataclasses`, `enum`, `asyncio`, FO-GUI-013 `StrategyConfig`, `ExecutionEnums` | No | Approved |
 | MD-EXE-011.001.M03 | SRD-EXE-011.006 | `src/us_swing/execution/strategy_engine/_evaluator.py` | `ConditionEvaluator` — tokenizer + recursive-descent parser + `FUNCTION_MAP` of 14 indicators; stateless; evaluates expression against candle dict | `evaluate(expr, candles, symbol) -> bool` | `pandas`, `numpy`, `talib`, `re` | No | Approved |
 | MD-EXE-011.001.M04 | SRD-EXE-011.008, .009, .011, .012 | `src/us_swing/execution/strategy_engine/_router.py` | Signal-queue consumer + Mode/auto_trade dispatch; calls `RiskManager.validate()` and `ExecutionRouter.submit()` for auto path or `PendingSignalStore.add()` for manual path; owns `_end_time_watcher_loop` | `_router_loop()`, `_force_exit(ctx, symbol, reason)` (coroutines, internal) | `risk_manager`, `execution_router`, `pending_signal_store`, `_signals`, `_events` | No | Approved |
 | MD-EXE-011.001.M05 | SRD-EXE-011.015 | `src/us_swing/execution/strategy_engine/_events.py` | Sealed `StrategyEvent` union: `StrategyEntered`, `StrategyExited`, `StrategySquaredOff`, `StrategyErrored`, `StrategySignalDropped`, `StrategySignalPending`; each frozen `@dataclass(slots=True)` with `schema_version: int = 1` | Event class constructors | `dataclasses`, FO-EXE-009 event bus | No | Approved |

@@ -4,7 +4,7 @@ Parent SRD: SRD-EXE-011.001 — SRD-EXE-011.019
 """
 from __future__ import annotations
 
-from ._context import _CycleState, _StrategyContext
+from ._context import _StrategyContext
 from ._engine import StrategyEngine
 from ._evaluator import ConditionEvaluator, EvaluatorError
 from ._events import (
@@ -50,6 +50,5 @@ __all__ = [
     "StrategySquaredOff",
     "TradeSignal",
     "ValidationResult",
-    "_CycleState",
     "_StrategyContext",
 ]

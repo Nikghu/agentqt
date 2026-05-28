@@ -1,14 +1,19 @@
 ﻿# Software Requirement Document — Execution & Risk Management (EXE)
 
 **Document ID:** SRD-EXE
-**Version:** 1.8.0
-**Traces To:** FO-EXE v1.7.0
+**Version:** 1.13.0
+**Traces To:** FO-EXE v1.8.0
 **Status:** Draft
-**Last Updated:** 2026-05-27
+**Last Updated:** 2026-05-28
 **Project:** US Swing Trading System
 
 > v1.7.0: Sections 11 + 12 added — SRD-EXE-011.001–015 (Strategy Engine) and SRD-EXE-012.001–013 (Trade Cycle Ledger).
 > v1.8.0: SRD-EXE-011.016–019 added — per-symbol re-execution counter (rex_count enforcement).
+> v1.9.0: rex_count enforcement implemented and verified.
+> v1.10.0: SRD-EXE-011.020 added — `TradeSignal.user_id` propagation from active user via engine `user_id_provider`.
+> v1.11.0: Section 13 added — SRD-EXE-013.001–.008 (Strategy Run Lifecycle). SRD-EXE-011.001 and SRD-EXE-011.007 marked Reopen.
+> v1.12.0: SRD-EXE-013.001–.008 + SRD-EXE-011.001 + SRD-EXE-011.007 marked Implemented (Final_Execution.md Phase 1).
+> v1.13.0: SRD-EXE-012.010/.011 marked Implemented after Phase 2 — `CycleSnapshot.state` typed as `ExecutionEnums.TradeCycleState`; `TradeCycleState.is_terminal()`/`is_non_terminal()` helpers added; `CYCLE_STATES`/`NON_TERMINAL_STATES`/`TERMINAL_STATES` frozensets removed.
 
 ---
 
@@ -165,13 +170,13 @@
 
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
-| SRD-EXE-011.001 | FO-EXE-011 | Must | `StrategyEngine(QThread)` in `execution/strategy_engine/_engine.py` runs a dedicated `asyncio` loop launched via `asyncio.run()` in `QThread.run()`. Owns the `_StrategyContext` registry, the `ConditionEvaluator`, and the order-queue consumer task. | `host` / `port` / IBKR not needed | engine instance | No `PyQt6` imports inside `strategy_engine/` package | Approved |
+| SRD-EXE-011.001 | FO-EXE-011 | Must | `StrategyEngine(QThread)` in `execution/strategy_engine/_engine.py` runs a dedicated `asyncio` loop launched via `asyncio.run()` in `QThread.run()`. Owns the `_StrategyContext` registry, the `ConditionEvaluator`, and the order-queue consumer task. Persisted `run_state` is trusted verbatim on load. | `host` / `port` / IBKR not needed | engine instance | No `PyQt6` imports inside `strategy_engine/` package | Implemented |
 | SRD-EXE-011.002 | FO-EXE-011 | Must | `_load_registry()` calls `gui.strategy_builder_dialog.load_strategies()`, instantiates one `_StrategyContext` per record whose `mode != 'disabled'`, and writes `strategy_signal['Status'] = 'Active'` on each context. | startup | `dict[str, _StrategyContext]` keyed by strategy `name` | Disabled records skipped entirely; not loaded into memory | Approved |
 | SRD-EXE-011.003 | FO-EXE-011 | Must | `_on_candle_closed(symbol, bar)` is wired to FO-EXE-007's `candle_closed` signal; on each emission it schedules an `asyncio.gather()` of `_evaluate(ctx, symbol, bar)` for every `_StrategyContext` whose symbol-scope filter accepts `symbol`. | `(symbol, OHLCVBar)` | fan-out of per-context coroutines | Coroutines never block the live-bar callback thread | Approved |
 | SRD-EXE-011.004 | FO-EXE-011 | Must | `_StrategyContext.accepts(symbol)` returns True for `symbol_mode='all'`, returns `symbol in symbols_include` for `include_only`, and returns `symbol not in symbols_exclude` for `exclude_these`. | `symbol`, context | bool | Filter evaluated before any candle read | Approved |
 | SRD-EXE-011.005 | FO-EXE-011 | Must | `_within_schedule(ctx, now_et)` returns True when `now_et.time()` is in `[start_time, end_time)`, `now_et.date()` is in `[start_date, end_date]`, and `now_et.strftime('%A')` is in `ctx.days`. Outside the window the context stays `Inactive` and `_evaluate` returns immediately. | context, current ET datetime | bool | Uses `zoneinfo.ZoneInfo("America/New_York")` | Approved |
 | SRD-EXE-011.006 | FO-EXE-011 | Must | `ConditionEvaluator` parses the FO-GUI-013 grammar via tokenizer → recursive-descent AST (parse_or → parse_and → parse_comparison → parse_term) and evaluates against a `dict[str, pd.DataFrame]` of candles keyed by timeframe. The `FUNCTION_MAP` exposes all 14 indicators from the FO-GUI-013 catalogue. | expression string, candles | bool | Indicator function set must equal the FO-GUI-013 catalogue exactly | Approved |
-| SRD-EXE-011.007 | FO-EXE-011 | Must | Per `(strategy_id, symbol)` state stored in `ctx.cycles: dict[str, _CycleState]` with values `Active` / `UnderEntry` / `Running` / `UnderExit` / `SquareOff` / `Inactive`. Transitions: signal emit → `Under*`; fill confirmation → `Running` or `SquareOff`; reject → previous state. | state, event | new state | Mutations guarded by an `asyncio.Lock` per `(strategy_id, symbol)` | Approved |
+| SRD-EXE-011.007 | FO-EXE-011 | Must | Per-symbol evaluation gate derived from `(ctx.run_state, TradeCycleQuery.has_open_cycle)`. Duplicate signal suppression uses an `in_flight: set[str]` on `_StrategyContext`; `_CycleState` removed (Phase 1). | state, event | gate decision | Mutations guarded by an `asyncio.Lock` per `(strategy_id, symbol)` | Implemented |
 | SRD-EXE-011.008 | FO-EXE-011 | Must | `_evaluate(ctx, symbol, bar)` evaluates `entry_condition` only when state = `Active` and `exit_condition` only when state = `Running`. A True result enqueues a `TradeSignal(action, symbol, strategy_id, …)` to a shared `asyncio.Queue` and transitions to `UnderEntry` / `UnderExit`. | context, symbol, bar | `TradeSignal` enqueued | Single shared FIFO queue across all strategies; one consumer task | Approved |
 | SRD-EXE-011.009 | FO-EXE-011 | Must | The queue consumer dispatches by `(ctx.mode, ctx.auto_trade)`: `(auto, True)` → `RiskManager.validate()` then `ExecutionRouter.submit()`; `(manual, *)` or `(auto, False)` → `PendingSignalStore.add(signal)`. | dequeued signal | order submitted OR pending row inserted | Auto+True path must reach `ExecutionRouter.submit()` within 50 ms of dequeue | Approved |
 | SRD-EXE-011.010 | FO-EXE-011 | Must | A second ENTRY signal for a `(strategy_id, symbol)` pair already in `UnderEntry` / `Running` / `UnderExit` is dropped before enqueue with one DEBUG log `[Strategy] {strategy} {symbol} duplicate ENTRY suppressed`. | second signal | dropped + DEBUG log | No state mutation; no `StrategyEvent` published | Approved |
@@ -184,6 +189,7 @@
 | SRD-EXE-011.017 | FO-EXE-011 | Must | In `_router.evaluate()` Active branch, after `entry_condition` fires and before the capital-cap check, the engine reads `RexCounterRepository.get(strategy_id, symbol)` and drops the signal when the stored value is `< 0`, publishing `StrategySignalDropped(signal, reason='rex_limit')`. | candle close | accept or drop | Missing row treated as `remaining = cfg.rex_count`; no state mutation on drop | Approved |
 | SRD-EXE-011.018 | FO-EXE-011 | Must | `_router.on_order_fill()` entry branch calls `RexCounterRepository.decrement(strategy_id, symbol, init_value=ctx.cfg.rex_count)` immediately after publishing `StrategyEntered`; a missing row is inserted with `remaining = cfg.rex_count - 1`, an existing row decrements `remaining` by 1. | `FillEvent` (entry) | row updated | Idempotent on duplicate fill events for the same `entry_order_id` (see SRD-EXE-012.003) | Approved |
 | SRD-EXE-011.019 | FO-EXE-011 | Must | Counter state survives engine restart because rows live in `candles.db`; the repository is queried lazily on each evaluation rather than eagerly loaded into `_StrategyContext`. | engine restart | rows preserved | No in-memory cache between calls — lookup cost is one indexed SELECT per evaluation | Approved |
+| SRD-EXE-011.020 | FO-EXE-011 | Must | `TradeSignal` carries a `user_id: int` field populated by `_router._build_entry_signal()` (and every EXIT-signal construction site) from an injected `user_id_provider: Callable[[], int]`. `StrategyEngine.__init__` accepts the provider and forwards it to `_Router`; `AppService` wires it to `lambda: self._active_uid`. Default `user_id=0` indicates "no active user" (engine started without a UI). | candle close / engine init | populated `signal.user_id` | `TradeSignal.schema_version` bumped to `2`; default `qty_recommended` raised from `0` to `1` so manual-mode pending rows render with a non-zero minimum quantity for testing | Approved |
 
 ---
 
@@ -200,7 +206,22 @@
 | SRD-EXE-012.007 | FO-EXE-012 | Must | `on_exit_fill(fill)` transitions the cycle to `CLOSED`, sets `exit_time`, `exit_price`, `exit_qty`, `exit_reason`, freezes `realized_pnl_usd = (exit_price − entry_price) × exit_qty` and `realized_pnl_pct`, publishes `CycleClosed`. | `FillEvent` | row updated + `CycleClosed` | Idempotent on `exit_order_id`: duplicate call returns existing row | Approved |
 | SRD-EXE-012.008 | FO-EXE-012 | Must | `on_entry_failed(cycle_id, reason)` transitions an `OPENING` cycle to `ABORTED`, sets `exit_reason` to the reason string, and publishes `CycleAborted`. No tick subscription is attached. | `cycle_id`, reason string | row updated + `CycleAborted` | Only callable while state == `OPENING`; later states raise `InvalidStateTransitionError` | Approved |
 | SRD-EXE-012.009 | FO-EXE-012 | Must | Before inserting on `on_entry_fill`, the service shall query for any existing row with the same `(strategy_id, symbol)` in `OPENING` / `OPEN` / `CLOSING` and raise `DuplicateOpenCycleError` if found. | new entry fill | insert or raise | Defence-in-depth: FO-EXE-011 §10 already prevents this at signal emission | Approved |
-| SRD-EXE-012.010 | FO-EXE-012 | Must | `TradeCycleQuery` Protocol exposes `open_cycles() -> tuple[CycleSnapshot, ...]`, `cycle(cycle_id) -> CycleSnapshot \| None`, and `history(symbol=None, strategy_id=None, days=N) -> tuple[CycleSnapshot, ...]`. `CycleSnapshot` is a frozen `@dataclass(slots=True)` with `schema_version: int`. | query call | snapshot tuple | All returns are immutable; thread-safe; no DB locks held across return | Approved |
-| SRD-EXE-012.011 | FO-EXE-012 | Must | `TradeCycleCommand.update_risk(cycle_id, hard_sl=None, target=None, trailing_offset=None, trailing_mode=None)` validates: `hard_sl ≤ current_price`, `target ≥ current_price`, `trailing_offset > 0`. Any failure raises `InvariantViolation` with no partial mutation. | edit payload | updated row + `RiskUpdated` | Validation before write; failed call returns unchanged snapshot | Approved |
+| SRD-EXE-012.010 | FO-EXE-012 | Must | `TradeCycleQuery` Protocol exposes `open_cycles()`, `cycle(cycle_id)`, `history(symbol=None, strategy_id=None, days=N)`, `has_open_cycle(strategy_id, symbol)`, `open_cycles_for_strategy(strategy_id)`. `CycleSnapshot.state: ExecutionEnums.TradeCycleState` (typed StrEnum, Phase 2). | query call | snapshot tuple | All returns are immutable; thread-safe; no DB locks held across return | Implemented |
+| SRD-EXE-012.011 | FO-EXE-012 | Must | `TradeCycleCommand.update_risk(cycle_id, hard_sl=None, target=None, trailing_offset=None, trailing_mode=None)` validates: `hard_sl ≤ current_price`, `target ≥ current_price`, `trailing_offset > 0`. Any failure raises `InvariantViolation` with no partial mutation. Non-terminal-state guard derived from `TradeCycleState.is_non_terminal()`. | edit payload | updated row + `RiskUpdated` | Validation before write; failed call returns unchanged snapshot | Implemented |
 | SRD-EXE-012.012 | FO-EXE-012 | Must | `TradeCycleEvent` is a sealed union `CycleOpened \| CycleUpdated \| ExitTrigger \| CycleClosing \| CycleClosed \| CycleAborted \| RiskUpdated`, each a frozen `@dataclass(slots=True)` with `schema_version: int`. Published on the FO-EXE-009 event bus. | state change | event published | No `PyQt6` import in `trade_cycle/` package | Approved |
 | SRD-EXE-012.013 | FO-EXE-012 | Must | On startup, `TradeCycleService.reload()` queries every row in `OPENING` / `OPEN` / `CLOSING`, re-attaches each cycle's symbol to the live tick stream via `LiveTickWorker.set_contracts()`, and resumes the update loop. Subsequent reload calls are no-ops (idempotent). | startup or restart | non-terminal rows reattached | Reload must complete before `LiveBarWorker.start()` is called | Approved |
+
+---
+
+## Section 13: Requirements for FO-EXE-013 — Strategy Run Lifecycle
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-EXE-013.001 | FO-EXE-013 | Must | ▶ Play sets `run_state = RUNNING` and persists to registry; state survives restart. | user ▶ Play action | updated registry | Persist within 250 ms of action | Implemented |
+| SRD-EXE-013.002 | FO-EXE-013 | Must | ■ Stop with no open cycles sets `run_state = STOPPED` immediately. | user ■ Stop, no open cycles | updated registry | Synchronous transition | Implemented |
+| SRD-EXE-013.003 | FO-EXE-013 | Must | ■ Stop with open cycles sets `run_state = SQUARING_OFF`; engine emits forced EXIT per open cycle; auto-transitions to `STOPPED` when last cycle is terminal. | user ■ Stop, open cycles present | EXIT signals; eventual `STOPPED` | No new ENTRY signals during `SQUARING_OFF` | Implemented |
+| SRD-EXE-013.004 | FO-EXE-013 | Must | `STOPPED` blocks all `TradeSignal` emission regardless of candle-close or tick events. | candle close or tick | no signal emitted | Short-circuit before any indicator evaluation | Implemented |
+| SRD-EXE-013.005 | FO-EXE-013 | Must | `RUNNING` with no open cycle for `(strategy_id, symbol)` evaluates entry condition only. | candle close, `has_open_cycle = False` | `TradeSignal(ENTRY)` if true | Derived from `TradeCycleLedger.has_open_cycle()` | Implemented |
+| SRD-EXE-013.006 | FO-EXE-013 | Must | `RUNNING` with an open cycle in `TradeCycleState.OPEN` evaluates exit condition only. | candle close, `has_open_cycle = True` | `TradeSignal(EXIT)` if true | No entry evaluation while cycle is open | Implemented |
+| SRD-EXE-013.007 | FO-EXE-013 | Must | `SQUARING_OFF` emits only forced EXIT signals; no ENTRY signals. | candle close during `SQUARING_OFF` | forced EXIT signals only | Guard applied before entry-condition evaluation | Implemented |
+| SRD-EXE-013.008 | FO-EXE-013 | Must | On registry load, map legacy `Status` values: `"Inactive"` → `STOPPED`; `"Active"` or `"Running"` → `RUNNING`; remove old `Status` key. | registry file load | `run_state` field populated | Idempotent: if `run_state` already present, skip | Implemented |
