@@ -218,7 +218,7 @@ class StrategyConfig:
     rex_count: int = 0
     strategy_signal: dict = field(
         default_factory=lambda: {
-            "Status": "Inactive",
+            "run_state": "STOPPED",
             "Execution_Time": "None",
             "Executed_Quantity": 0,
             "Pending_Quantity": 0,
@@ -232,19 +232,41 @@ class StrategyConfig:
 
 # ── Persistence ───────────────────────────────────────────────────────────────
 
+def _migrate_strategy_signal(sig: dict) -> dict:
+    """Promote legacy ``Status`` to ``run_state`` (SRD-EXE-013.008).
+
+    Idempotent — if ``run_state`` is already present the dict is returned
+    untouched.  Otherwise:
+      - ``"Active"`` or ``"Running"`` → ``"RUNNING"``
+      - ``"Inactive"`` or missing    → ``"STOPPED"``
+    The legacy ``Status`` key is removed.
+    """
+    if "run_state" in sig:
+        sig.pop("Status", None)
+        return sig
+    status = sig.get("Status", "Inactive")
+    sig["run_state"] = "RUNNING" if status in ("Active", "Running") else "STOPPED"
+    sig.pop("Status", None)
+    return sig
+
+
 def load_strategies() -> list[StrategyConfig]:
     """Read all configured strategies from disk.
 
-    Saved Status is trusted verbatim — strategies remain Active/Running
-    across sessions and days until the user explicitly stops them.  Stop
-    is gated by open-position check at the GUI layer.
+    The persisted ``run_state`` is trusted verbatim — strategies remain
+    RUNNING across sessions and days until the user explicitly stops them.
+    Legacy ``Status`` values are migrated to ``run_state`` on first load.
     """
     if not _STRATEGIES_PATH.exists():
         return []
     try:
         raw: list[dict] = json.loads(_STRATEGIES_PATH.read_text(encoding="utf-8"))
         valid_keys = {f.name for f in fields(StrategyConfig)}
-        configs = [StrategyConfig(**{k: v for k, v in r.items() if k in valid_keys}) for r in raw]
+        configs: list[StrategyConfig] = []
+        for r in raw:
+            cfg = StrategyConfig(**{k: v for k, v in r.items() if k in valid_keys})
+            _migrate_strategy_signal(cfg.strategy_signal)
+            configs.append(cfg)
         return configs
     except Exception:
         return []

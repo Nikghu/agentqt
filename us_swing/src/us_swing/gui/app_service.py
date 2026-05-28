@@ -1145,6 +1145,8 @@ class AppService(QObject):
         self._pending_store = PendingSignalStore(self)
         self._pending_store.pending_signal_added.connect(lambda _: self.pending_signals_updated.emit())
         self._pending_store.pending_signal_removed.connect(lambda _: self.pending_signals_updated.emit())
+        self._pending_store.pending_signal_dismissed.connect(lambda _: self.pending_signals_updated.emit())
+        self._pending_store.pending_signal_executed.connect(lambda _: self.pending_signals_updated.emit())
 
         self._event_bus = QtEventBus(self)
         self._paper_broker = PaperBroker(on_fill=self._on_paper_fill)
@@ -1159,7 +1161,8 @@ class AppService(QObject):
             bus=self._event_bus,
             rex_counters=self._rex_counters,
             symbols_provider=lambda: list(self._filtered_symbols),
-            cycle_loader=self._build_cycle_index,
+            cycle_query=self._tc_query,
+            user_id_provider=lambda: self._active_uid,
             parent=self,
         )
         self._strategy_engine.start()
@@ -1323,6 +1326,15 @@ class AppService(QObject):
             styles: list[str] = list(p.trading_styles) if p else []
             users: list[str] = list(p.assigned_to) if p else []
 
+            # Convert UTC run_timestamp to local HH:MM for display.
+            try:
+                _dt_utc = datetime.datetime.strptime(
+                    result.run_timestamp, "%Y-%m-%dT%H:%M:%SZ"
+                ).replace(tzinfo=datetime.timezone.utc)
+                run_time = _dt_utc.astimezone().strftime("%H:%M")
+            except (ValueError, AttributeError):
+                run_time = ""
+
             for sym, data in result.results.items():
                 if not data.get("passed", True):
                     continue
@@ -1335,6 +1347,7 @@ class AppService(QObject):
                     screener_name=name,
                     run_type=result.execution_mode,
                     date=result.date,
+                    time=run_time,
                 )
                 if sym not in best or score > best[sym].score:
                     best[sym] = entry

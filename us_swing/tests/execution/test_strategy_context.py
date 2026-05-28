@@ -1,6 +1,6 @@
 """
 Module: MD-EXE-011.001.M02 — tests
-Parent SRD: SRD-EXE-011.002, .004, .005, .007, .010
+Parent SRD: SRD-EXE-011.002, .004, .005, .010, SRD-EXE-013.001 — .008
 """
 from __future__ import annotations
 
@@ -10,9 +10,8 @@ from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
-import pytest
-
-from us_swing.execution.strategy_engine._context import _CycleState, _StrategyContext
+from us_swing.execution import ExecutionEnums
+from us_swing.execution.strategy_engine._context import _StrategyContext
 
 _ET = ZoneInfo("America/New_York")
 
@@ -38,7 +37,7 @@ class _Cfg:
     stoploss_value: float = 1.0
     target_enabled: bool = False
     target_value: float = 2.0
-    strategy_signal: dict[str, Any] = field(default_factory=lambda: {"Status": "Active"})
+    strategy_signal: dict[str, Any] = field(default_factory=lambda: {"run_state": "RUNNING"})
 
 
 def _ctx(**kwargs: Any) -> _StrategyContext:
@@ -89,10 +88,10 @@ def test_within_schedule_false_on_saturday() -> None:
     assert ctx.within_schedule(saturday) is False
 
 
-def test_state_unknown_symbol_returns_active() -> None:
-    """UT-EXE-011.001.M02.T07: state(unknown_symbol) → _CycleState.ACTIVE."""
+def test_default_run_state_is_stopped() -> None:
+    """UT-EXE-011.001.M02.T07: default run_state is STOPPED."""
     ctx = _ctx()
-    assert ctx.state("UNKNOWN") == _CycleState.ACTIVE
+    assert ctx.run_state is ExecutionEnums.StrategyRunState.STOPPED
 
 
 def test_lock_for_same_symbol_returns_same_instance() -> None:
@@ -102,3 +101,9 @@ def test_lock_for_same_symbol_returns_same_instance() -> None:
     lock2 = ctx.lock_for("AAPL")
     assert lock1 is lock2
     assert isinstance(lock1, asyncio.Lock)
+
+
+def test_in_flight_set_default_empty() -> None:
+    """UT-EXE-011.001.M02.T09: default in_flight set is empty."""
+    ctx = _ctx()
+    assert ctx.in_flight == set()

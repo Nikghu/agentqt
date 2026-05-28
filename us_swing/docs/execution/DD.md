@@ -1,12 +1,13 @@
 # Design Document — Execution & Risk Management (EXE)
 
 **Document ID:** DD-EXE
-**Version:** 1.8.0
-**Traces To:** SRD-EXE v1.8.0
+**Version:** 1.9.0
+**Traces To:** SRD-EXE v1.11.0
 **Status:** Draft
-**Last Updated:** 2026-05-27
+**Last Updated:** 2026-05-28
 **Project:** US Swing Trading System
 
+> v1.9.0: DD-EXE-013.001.D01 added — Strategy Run Lifecycle engine evaluation decision tree.
 > v1.8.0: DD-EXE-011.016.D01 added — Per-Symbol Re-Execution Counter (rex_count enforcement).
 > v1.7.0: DD-EXE-012.* added — Trade Cycle Ledger (table DDL, repository, tick throttle, exit-trigger emission).
 > v1.6.0: DD-EXE-011.* added — Strategy Engine (threading layout, `_StrategyContext`, `ConditionEvaluator`, mode router).
@@ -2785,3 +2786,96 @@ Tick-driven exits fire regardless of the originating strategy's `Mode` or `auto_
 | `ExitTrigger` published but no broker submission within 5 s | `ExecutionEngine` is the sole owner of submission timeouts; cycle remains `CLOSING` and the next tick re-emits no event (one-shot) |
 | Broker rejects SELL | `ExecutionEngine` emits `order_reject`; service moves cycle `CLOSING` → `OPEN` via `update_state` and logs WARNING `[Cycle] {cycle_id} exit rejected — re-arming triggers` |
 | Subsequent tick still satisfies trigger after rollback | A fresh `ExitTrigger` fires (state is back to `OPEN`, one-shot guard cleared) |
+
+---
+
+# FO-EXE-013 — Strategy Run Lifecycle
+
+## DD-EXE-013.001.D01 — Engine Evaluation Decision Tree & StrategyRunState Rollout
+
+**Parent SRD:** SRD-EXE-013.001 — SRD-EXE-013.008
+**Status:** Draft
+
+### Evaluation Decision Tree (per strategy × per symbol × per bar-close)
+
+```python
+async def _evaluate(ctx: _StrategyContext, symbol: str, bar: OHLCVBar) -> None:
+    # Gate 1: run-state (replaces _CycleState check)
+    if ctx.run_state == StrategyRunState.STOPPED:
+        return                                         # SRD-EXE-013.004
+
+    if ctx.run_state == StrategyRunState.SQUARING_OFF:
+        return                                         # SRD-EXE-013.007 — forced EXITs handled by _squaring_off_loop
+
+    # Gate 2: schedule guard (unchanged)
+    if not _within_schedule(ctx, now_et()):
+        return
+
+    # Gate 3: has-open-cycle query (replaces ctx.cycles[symbol] lookup)
+    has_open = self._cycle_query.has_open_cycle(ctx.cfg.strategy_id, symbol)
+
+    if has_open:
+        await self._maybe_emit_exit(ctx, symbol, bar)  # SRD-EXE-013.006
+    else:
+        await self._maybe_emit_entry(ctx, symbol, bar) # SRD-EXE-013.005
+```
+
+`has_open_cycle(strategy_id, symbol)` returns `True` for any cycle in `OPENING`, `OPEN`, or `CLOSING`.
+
+### SQUARING_OFF → STOPPED Auto-Transition
+
+```python
+async def _squaring_off_loop(self) -> None:
+    while not self._stop_event.is_set():
+        await asyncio.sleep(2)
+        for ctx in self._registry.values():
+            if ctx.run_state != StrategyRunState.SQUARING_OFF:
+                continue
+            if self._cycle_query.open_cycles_for_strategy(ctx.cfg.strategy_id):
+                continue
+            ctx.run_state = StrategyRunState.STOPPED
+            self._persist_run_state(ctx)
+            self._bus.publish(StrategyRunStateChanged(
+                strategy_id=ctx.cfg.strategy_id,
+                new_state=StrategyRunState.STOPPED,
+            ))
+            log.info("[Strategy] %s auto-stopped — all cycles closed", ctx.cfg.name)
+```
+
+`open_cycles_for_strategy` queries `trade_cycles` for rows in `OPENING` / `OPEN` / `CLOSING` with the given `strategy_id`.
+
+### _CycleState → StrategyRunState Equivalence Table
+
+| Old `_CycleState` | Equivalent derivation |
+|---|---|
+| `INACTIVE` | `run_state == STOPPED` |
+| `ACTIVE` | `run_state == RUNNING` and `has_open_cycle == False` |
+| `UNDER_ENTRY` | `run_state == RUNNING` and cycle in `TradeCycleState.OPENING` |
+| `RUNNING` | `run_state == RUNNING` and cycle in `TradeCycleState.OPEN` |
+| `UNDER_EXIT` | `run_state == RUNNING` and cycle in `TradeCycleState.CLOSING` |
+| `SQUARE_OFF` | `run_state == SQUARING_OFF` |
+
+### Run-State Persistence
+
+```python
+def _persist_run_state(self, ctx: _StrategyContext) -> None:
+    ctx.cfg.strategy_signal["run_state"] = ctx.run_state.value
+    save_strategies(self._registry_path, ...)
+```
+
+Debounced to ≥ 250 ms per strategy — same guard as `strategy_signal` writeback in SRD-EXE-011.014.
+
+### Legacy Status Migration in `_load_registry()`
+
+```python
+def _migrate_run_state(record: dict) -> StrategyRunState:
+    sig = record.get("strategy_signal", {})
+    if "run_state" in sig:
+        return StrategyRunState(sig["run_state"])   # already migrated
+    status = sig.get("Status", "Inactive")
+    if status in ("Active", "Running"):
+        return StrategyRunState.RUNNING
+    return StrategyRunState.STOPPED
+```
+
+Resolves the FO-EXE-011 §1 contradiction (force `Active` on load vs trust verbatim): **trust verbatim wins** (decision log #3). On first load, legacy values are mapped once and `run_state` replaces `Status` in the persisted file.

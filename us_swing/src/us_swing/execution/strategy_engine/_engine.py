@@ -1,6 +1,6 @@
 """
 Module: MD-EXE-011.001.M01 — StrategyEngine (Qt + asyncio bridge)
-Parent SRD: SRD-EXE-011.001 — .003, .013, .014
+Parent SRD: SRD-EXE-011.001 — .003, .013, .014, SRD-EXE-013.001 — .008
 
 This is the only file under `strategy_engine/` permitted to import PyQt6
 — it is the explicit boundary between the Qt-driven AppService world and
@@ -18,7 +18,8 @@ from zoneinfo import ZoneInfo
 
 from PyQt6.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 
-from us_swing.execution.strategy_engine._context import _CycleState, _StrategyContext
+from us_swing.execution import ExecutionEnums
+from us_swing.execution.strategy_engine._context import _StrategyContext
 from us_swing.execution.strategy_engine._evaluator import ConditionEvaluator
 from us_swing.execution.strategy_engine._events import (
     StrategyEntered,
@@ -40,13 +41,35 @@ if TYPE_CHECKING:
     import pandas as pd
 
     from us_swing.data.models import OHLCVBar
+    from us_swing.execution.trade_cycle._protocols import TradeCycleQuery
     from us_swing.gui.strategy_builder_dialog import StrategyConfig
 
 log = logging.getLogger(__name__)
 
 _WRITEBACK_DEBOUNCE_S = 0.25
 _TICK_INTERVAL_S = 1.0
+_SQUARING_OFF_POLL_S = 2.0
 _ET = ZoneInfo("America/New_York")
+
+_StrategyRunState = ExecutionEnums.StrategyRunState
+
+
+def _migrate_run_state(record_signal: dict[str, object]) -> _StrategyRunState:
+    """Read or derive ``StrategyRunState`` from a legacy ``strategy_signal`` dict.
+
+    Idempotent: if ``run_state`` is already populated, returns it verbatim.
+    Otherwise maps legacy ``Status`` values per SRD-EXE-013.008.
+    """
+    raw = record_signal.get("run_state")
+    if isinstance(raw, str):
+        try:
+            return _StrategyRunState(raw)
+        except ValueError:
+            pass
+    status = record_signal.get("Status", "Inactive")
+    if status in ("Active", "Running"):
+        return _StrategyRunState.RUNNING
+    return _StrategyRunState.STOPPED
 
 
 class StrategyEngine(QThread):
@@ -60,6 +83,7 @@ class StrategyEngine(QThread):
 
     started_ok = pyqtSignal()
     stopped = pyqtSignal()
+    run_state_changed = pyqtSignal(str, str)  # strategy_id, new_state
 
     def __init__(
         self,
@@ -74,7 +98,8 @@ class StrategyEngine(QThread):
         bus: EventBus,
         rex_counters: RexCounterRepository | None = None,
         symbols_provider: Callable[[], list[str]] | None = None,
-        cycle_loader: Callable[[], dict[str, dict[str, str]]] | None = None,
+        cycle_query: TradeCycleQuery | None = None,
+        user_id_provider: Callable[[], int] | None = None,
         primary_timeframe: str = "3m",
         parent: QObject | None = None,
     ) -> None:
@@ -89,7 +114,8 @@ class StrategyEngine(QThread):
         self._bus = bus
         self._rex_counters = rex_counters
         self._symbols_provider = symbols_provider or (lambda: [])
-        self._cycle_loader = cycle_loader or (lambda: {})
+        self._cycle_query = cycle_query
+        self._user_id_provider = user_id_provider or (lambda: 0)
         self._primary_tf = primary_timeframe
 
         self._loop: asyncio.AbstractEventLoop | None = None
@@ -125,6 +151,8 @@ class StrategyEngine(QThread):
             pending=self._pending,
             bus=self._bus,
             rex_counters=self._rex_counters,
+            user_id_provider=self._user_id_provider,
+            cycle_query=self._cycle_query,
         )
         self.started_ok.emit()
         log.info("[Strategy] engine ready — %d active strateg(ies)", len(self._registry))
@@ -133,6 +161,7 @@ class StrategyEngine(QThread):
             self._router.run_router_loop(),
             self._router.run_end_time_watcher(),
             self._strategy_tick_loop(),
+            self._squaring_off_loop(),
         )
 
     # ── Periodic evaluation tick (cadence-driven, not bar-driven) ────────────
@@ -155,6 +184,8 @@ class StrategyEngine(QThread):
                 continue
             now = datetime.now(_ET)
             for ctx in list(self._registry.values()):
+                if ctx.run_state is not _StrategyRunState.RUNNING:
+                    continue
                 if not ctx.within_schedule(now):
                     continue
                 if not self._is_time_to_evaluate(ctx, now):
@@ -168,22 +199,26 @@ class StrategyEngine(QThread):
     async def _evaluate_ctx(self, ctx: _StrategyContext, _now: datetime) -> None:
         """Fan out one evaluation pass for *ctx* across the candidate universe.
 
-        When the strategy's user-visible Status is ``Inactive`` (e.g. fresh
-        boot before the user has clicked Run), no entry checks fire — but
-        already-tracked symbols are still evaluated so exit monitoring of
-        restored positions stays alive across restarts.
+        Candidates are the union of the screened universe and the symbols that
+        currently have an open cycle for this strategy — the latter ensures
+        exit evaluation continues even when the symbol has dropped out of the
+        screener.
         """
         assert self._router is not None
-        status = ctx.cfg.strategy_signal.get("Status", "Inactive")
-        if status == "Inactive":
-            candidates: set[str] = set(ctx.cycles.keys())
-        else:
+        try:
+            universe = list(self._symbols_provider())
+        except Exception:
+            log.exception("[Strategy] symbols_provider failed")
+            universe = []
+        open_syms: list[str] = []
+        if self._cycle_query is not None:
             try:
-                universe = list(self._symbols_provider())
+                open_syms = [
+                    s.symbol for s in self._cycle_query.open_cycles_for_strategy(ctx.name)
+                ]
             except Exception:
-                log.exception("[Strategy] symbols_provider failed")
-                universe = []
-            candidates = set(universe) | set(ctx.cycles.keys())
+                log.exception("[Strategy] cycle_query.open_cycles_for_strategy failed")
+        candidates = set(universe) | set(open_syms)
         in_scope = [s for s in candidates if ctx.accepts(s)]
         if not in_scope:
             return
@@ -234,35 +269,58 @@ class StrategyEngine(QThread):
             return True
         return (now - last).total_seconds() >= rate_sec
 
+    # ── SQUARING_OFF auto-transition loop ────────────────────────────────────
+
+    async def _squaring_off_loop(self) -> None:
+        """Poll for strategies in SQUARING_OFF whose last cycle has closed.
+
+        When a SQUARING_OFF strategy has no remaining open cycles in the
+        ledger, transition it to STOPPED and persist.  Per SRD-EXE-013.003.
+        """
+        assert self._router is not None
+        router = self._router
+        while not router.stop_requested():
+            try:
+                await asyncio.sleep(_SQUARING_OFF_POLL_S)
+            except asyncio.CancelledError:
+                return
+            for ctx in list(self._registry.values()):
+                if ctx.run_state is not _StrategyRunState.SQUARING_OFF:
+                    continue
+                if self._cycle_query is None:
+                    continue
+                try:
+                    open_cycles = self._cycle_query.open_cycles_for_strategy(ctx.name)
+                except Exception:
+                    log.exception(
+                        "[Strategy] open_cycles_for_strategy failed for %s", ctx.name
+                    )
+                    continue
+                if open_cycles:
+                    continue
+                ctx.run_state = _StrategyRunState.STOPPED
+                self._schedule_persist(ctx.name)
+                self.run_state_changed.emit(ctx.name, ctx.run_state.value)
+                log.info("[Strategy] %s auto-stopped — all cycles closed", ctx.name)
+
     # ── Registry load ────────────────────────────────────────────────────────
 
     def _load_registry(self) -> dict[str, _StrategyContext]:
-        """Build the in-memory registry from disk + restore RUNNING cycles.
+        """Build the in-memory registry from disk, deriving ``run_state``.
 
-        Status is NOT force-set here — neither to "Active" (would bypass
-        manual Run) nor to "Running" (would also bypass it, because the
-        evaluate gate keys off Status).  ``load_strategies()`` already
-        resets every Status to ``Inactive`` on each boot, so the engine
-        only checks exit conditions for restored cycles until the user
-        clicks ▶.  The GUI Executor table applies its own visual
-        ``running_override`` so the user still sees a Running badge for
-        strategies with open positions.
+        Per SRD-EXE-013.008 the legacy ``Status`` key is migrated to
+        ``run_state`` on first load.  ``trust verbatim`` resolves the prior
+        FO-EXE-011 §1 contradiction — a strategy that was RUNNING at the
+        previous shutdown comes back up RUNNING.
         """
-        try:
-            open_cycles = self._cycle_loader()
-        except Exception:
-            log.exception("[Strategy] cycle_loader failed; starting with empty cycles")
-            open_cycles = {}
-
         out: dict[str, _StrategyContext] = {}
         for cfg in self._registry_loader():
             if cfg.mode == "disabled":
                 continue
-            ctx = _StrategyContext(cfg=cfg)
-            sym_states = open_cycles.get(cfg.name, {})
-            for symbol in sym_states:
-                ctx.cycles[symbol] = _CycleState.RUNNING
-            out[cfg.name] = ctx
+            run_state = _migrate_run_state(cfg.strategy_signal)
+            cfg.strategy_signal["run_state"] = run_state.value
+            cfg.strategy_signal.pop("Status", None)
+            out[cfg.name] = _StrategyContext(cfg=cfg, run_state=run_state)
         return out
 
     # ── Qt slots (called from AppService thread) ─────────────────────────────
@@ -303,7 +361,7 @@ class StrategyEngine(QThread):
 
     @pyqtSlot(str, str)
     def on_pending_dismissed(self, strategy_id: str, symbol: str) -> None:
-        """User dismissed a pending signal — roll back UnderEntry/UnderExit."""
+        """User dismissed a pending signal — clear the in-flight flag."""
         if self._loop is None:
             return
         self._loop.call_soon_threadsafe(self._rollback_dismissed, strategy_id, symbol)
@@ -312,12 +370,35 @@ class StrategyEngine(QThread):
         ctx = self._registry.get(strategy_id)
         if ctx is None:
             return
-        state = ctx.state(symbol)
-        if state == _CycleState.UNDER_ENTRY:
-            ctx.cycles[symbol] = _CycleState.ACTIVE
-        elif state == _CycleState.UNDER_EXIT:
-            ctx.cycles[symbol] = _CycleState.RUNNING
+        ctx.in_flight.discard(symbol)
         self._schedule_persist(strategy_id)
+
+    # ── Strategy lifecycle (called from GUI Play/Stop) ───────────────────────
+
+    def set_run_state(self, strategy_id: str, new_state: _StrategyRunState) -> None:
+        """Transition a strategy's ``run_state``.
+
+        Per FO-EXE-013:
+        - RUNNING → STOPPED: immediate, allowed only when no open cycles.
+        - RUNNING → SQUARING_OFF: enqueues forced EXIT per open cycle; the
+          background loop auto-transitions to STOPPED once cycles drain.
+        - STOPPED → RUNNING: arms evaluation.
+        """
+        if self._loop is None:
+            return
+        self._loop.call_soon_threadsafe(self._apply_run_state, strategy_id, new_state)
+
+    def _apply_run_state(self, strategy_id: str, new_state: _StrategyRunState) -> None:
+        ctx = self._registry.get(strategy_id)
+        if ctx is None or self._router is None:
+            return
+        previous = ctx.run_state
+        ctx.run_state = new_state
+        self._schedule_persist(strategy_id)
+        self.run_state_changed.emit(strategy_id, new_state.value)
+        log.info("[Strategy] %s run_state %s → %s", ctx.name, previous.value, new_state.value)
+        if new_state is _StrategyRunState.SQUARING_OFF:
+            asyncio.create_task(self._router.squaring_off_exit(ctx))
 
     # ── Fan-out ──────────────────────────────────────────────────────────────
 
@@ -366,10 +447,8 @@ class StrategyEngine(QThread):
         try:
             cfgs = [ctx.cfg for ctx in self._registry.values()]
             for ctx in self._registry.values():
-                primary_state = next(
-                    iter(ctx.cycles.values()), _CycleState.ACTIVE
-                )
-                ctx.cfg.strategy_signal["Status"] = primary_state.value
+                ctx.cfg.strategy_signal["run_state"] = ctx.run_state.value
+                ctx.cfg.strategy_signal.pop("Status", None)
             self._registry_saver(cfgs)
             now = _time.monotonic()
             for sid in self._registry:
@@ -411,15 +490,18 @@ class StrategyEngine(QThread):
             if name not in new_cfgs:
                 del self._registry[name]
 
-        # Add new contexts; refresh cfg pointer on existing ones.
-        # Status is preserved from disk (load_strategies / user toggle) — never
-        # forced here, so a freshly-saved Manual strategy stays Inactive until
-        # the user clicks Run.
+        # Add new contexts; refresh cfg pointer on existing ones.  Run-state
+        # is preserved from disk (load_strategies / user toggle) — never
+        # forced here.
         for name, cfg in new_cfgs.items():
             if name in self._registry:
                 self._registry[name].cfg = cfg
+                self._registry[name].run_state = _migrate_run_state(cfg.strategy_signal)
             else:
-                self._registry[name] = _StrategyContext(cfg=cfg)
+                run_state = _migrate_run_state(cfg.strategy_signal)
+                cfg.strategy_signal["run_state"] = run_state.value
+                cfg.strategy_signal.pop("Status", None)
+                self._registry[name] = _StrategyContext(cfg=cfg, run_state=run_state)
 
         # Publish a synthetic event so listeners can refresh.
         for name in new_cfgs:

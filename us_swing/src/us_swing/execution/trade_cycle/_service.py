@@ -156,6 +156,12 @@ class TradeCycleService:
     ) -> tuple[CycleSnapshot, ...]:
         return self._repo.history(symbol=symbol, strategy_id=strategy_id, days=days)
 
+    def has_open_cycle(self, strategy_id: str, symbol: str) -> bool:
+        return self._repo.has_open_cycle(strategy_id, symbol)
+
+    def open_cycles_for_strategy(self, strategy_id: str) -> tuple[CycleSnapshot, ...]:
+        return self._repo.open_cycles_for_strategy(strategy_id)
+
     # ── Command surface (TradeCycleCommand) ──────────────────────────────────
 
     def on_entry_fill(

@@ -47,7 +47,7 @@ class _Cfg:
     stoploss_value: float = 1.0
     target_enabled: bool = False
     target_value: float = 2.0
-    strategy_signal: dict[str, Any] = field(default_factory=lambda: {"Status": "Active"})
+    strategy_signal: dict[str, Any] = field(default_factory=lambda: {"run_state": "RUNNING"})
 
 
 def _make_risk() -> MagicMock:
@@ -97,7 +97,9 @@ def test_engine_starts_and_emits_started_ok(qtbot: QtBot) -> None:
 
 
 def test_registry_load_skips_disabled(qtbot: QtBot) -> None:
-    """UT-EXE-011.001.M01.T02: Registry load skips mode=='disabled'; active ones have Status=='Active'."""
+    """UT-EXE-011.001.M01.T02: Registry load skips mode=='disabled'; run_state migrated from cfg."""
+    from us_swing.execution import ExecutionEnums
+
     cfgs = [
         _Cfg(name="auto_strat", mode="auto"),
         _Cfg(name="manual_strat", mode="manual"),
@@ -110,7 +112,8 @@ def test_registry_load_skips_disabled(qtbot: QtBot) -> None:
     assert len(engine.registry) == 2
     assert "disabled_strat" not in engine.registry
     for ctx in engine.registry.values():
-        assert ctx.cfg.strategy_signal["Status"] == "Active"
+        assert ctx.run_state is ExecutionEnums.StrategyRunState.RUNNING
+        assert ctx.cfg.strategy_signal["run_state"] == "RUNNING"
 
     engine.request_stop()
     qtbot.waitSignal(engine.stopped, timeout=3500)

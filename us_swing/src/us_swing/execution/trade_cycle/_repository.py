@@ -126,6 +126,32 @@ class TradeCycleRepository:
             rows = conn.execute(stmt).mappings().all()
         return tuple(_row_to_snapshot(r) for r in rows)
 
+    def has_open_cycle(self, strategy_id: str, symbol: str) -> bool:
+        stmt = (
+            sa.select(sa.literal(1))
+            .where(
+                trade_cycles.c.strategy_id == strategy_id,
+                trade_cycles.c.symbol      == symbol,
+                trade_cycles.c.state.in_(tuple(NON_TERMINAL_STATES)),
+            )
+            .limit(1)
+        )
+        with self._engine.connect() as conn:
+            return conn.execute(stmt).first() is not None
+
+    def open_cycles_for_strategy(self, strategy_id: str) -> tuple[CycleSnapshot, ...]:
+        stmt = (
+            sa.select(trade_cycles)
+            .where(
+                trade_cycles.c.strategy_id == strategy_id,
+                trade_cycles.c.state.in_(tuple(NON_TERMINAL_STATES)),
+            )
+            .order_by(trade_cycles.c.cycle_id.asc())
+        )
+        with self._engine.connect() as conn:
+            rows = conn.execute(stmt).mappings().all()
+        return tuple(_row_to_snapshot(r) for r in rows)
+
     def find_open(self, strategy_id: str, symbol: str) -> CycleSnapshot | None:
         stmt = (
             sa.select(trade_cycles)
