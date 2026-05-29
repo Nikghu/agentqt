@@ -20,10 +20,15 @@ from us_swing.core.monitoring_session._dto import (
     MonitoringSessionRow,
     PositionSnapshot,
 )
-from us_swing.core.monitoring_session._enums import LifecycleState, Side, TradeOrigin
+from us_swing.core.monitoring_session._enums import Side, TradeOrigin
 from us_swing.db.schema import monitoring_session, positions, trades
+from us_swing.execution import ExecutionEnums
 
 log = logging.getLogger(__name__)
+
+# Module-local handle for the canonical lifecycle enum (single source of truth
+# is ExecutionEnums — SRD-EXE-009.012).
+_LifecycleState = ExecutionEnums.LifecycleState
 
 _PRICE_TABLES_FOR_EVICTION: tuple[str, ...] = ("price_1m", "price_3m", "price_15m")
 
@@ -39,7 +44,7 @@ def _row_to_session(row: sa.engine.RowMapping) -> MonitoringSessionRow:
         preset_id       = row["preset_id"],
         run_timestamp   = row["run_timestamp"],
         added_at        = row["added_at"],
-        lifecycle_state = LifecycleState(row["lifecycle_state"]),
+        lifecycle_state = _LifecycleState(row["lifecycle_state"]),
         entered_at      = row["entered_at"],
         exited_at       = row["exited_at"],
         evicted_at      = row["evicted_at"],
@@ -80,7 +85,7 @@ class MonitoringRepository:
                 "preset_id":       preset_id,
                 "run_timestamp":   run_timestamp,
                 "added_at":        added_at,
-                "lifecycle_state": LifecycleState.MONITORING.value,
+                "lifecycle_state": _LifecycleState.MONITORING.value,
             }
             for s in symbols
         ]
@@ -109,7 +114,7 @@ class MonitoringRepository:
             sa.select(monitoring_session)
             .where(
                 monitoring_session.c.symbol          == symbol,
-                monitoring_session.c.lifecycle_state == LifecycleState.MONITORING.value,
+                monitoring_session.c.lifecycle_state == _LifecycleState.MONITORING.value,
             )
             .order_by(monitoring_session.c.session_date.asc())
             .limit(1)
@@ -133,7 +138,7 @@ class MonitoringRepository:
                     monitoring_session.c.symbol       == symbol,
                 )
                 .values(
-                    lifecycle_state=LifecycleState.ENTERED.value,
+                    lifecycle_state=_LifecycleState.ENTERED.value,
                     entered_at=entered_at,
                     trade_id=trade_id,
                 )
@@ -153,7 +158,7 @@ class MonitoringRepository:
                     monitoring_session.c.symbol       == symbol,
                 )
                 .values(
-                    lifecycle_state=LifecycleState.EXITED.value,
+                    lifecycle_state=_LifecycleState.EXITED.value,
                     exited_at=exited_at,
                 )
             )
@@ -166,9 +171,9 @@ class MonitoringRepository:
                 monitoring_session.update()
                 .where(
                     monitoring_session.c.session_date    < today_s,
-                    monitoring_session.c.lifecycle_state == LifecycleState.MONITORING.value,
+                    monitoring_session.c.lifecycle_state == _LifecycleState.MONITORING.value,
                 )
-                .values(lifecycle_state=LifecycleState.SKIPPED.value)
+                .values(lifecycle_state=_LifecycleState.SKIPPED.value)
             )
         return int(result.rowcount or 0)
 
@@ -197,7 +202,7 @@ class MonitoringRepository:
                     monitoring_session.c.symbol == symbol,
                     monitoring_session.c.session_date < today_s,
                     monitoring_session.c.lifecycle_state.in_(
-                        (LifecycleState.SKIPPED.value, LifecycleState.MONITORING.value)
+                        (_LifecycleState.SKIPPED.value, _LifecycleState.MONITORING.value)
                     ),
                 )
             ).all()
@@ -209,11 +214,11 @@ class MonitoringRepository:
                         monitoring_session.c.symbol == symbol,
                         monitoring_session.c.session_date < today_s,
                         monitoring_session.c.lifecycle_state.in_(
-                            (LifecycleState.SKIPPED.value, LifecycleState.MONITORING.value)
+                            (_LifecycleState.SKIPPED.value, _LifecycleState.MONITORING.value)
                         ),
                     )
                     .values(
-                        lifecycle_state=LifecycleState.EVICTED.value,
+                        lifecycle_state=_LifecycleState.EVICTED.value,
                         evicted_at=evicted_at,
                     )
                 )
@@ -254,7 +259,7 @@ class MonitoringRepository:
 
     def entered_symbols(self) -> frozenset[str]:
         stmt = sa.select(monitoring_session.c.symbol).where(
-            monitoring_session.c.lifecycle_state == LifecycleState.ENTERED.value
+            monitoring_session.c.lifecycle_state == _LifecycleState.ENTERED.value
         )
         with self._engine.connect() as conn:
             return frozenset(r[0] for r in conn.execute(stmt))
@@ -265,7 +270,7 @@ class MonitoringRepository:
         stmt = sa.select(monitoring_session.c.symbol.distinct()).where(
             monitoring_session.c.session_date < today.isoformat(),
             monitoring_session.c.lifecycle_state.in_(
-                (LifecycleState.MONITORING.value, LifecycleState.SKIPPED.value)
+                (_LifecycleState.MONITORING.value, _LifecycleState.SKIPPED.value)
             ),
         )
         with self._engine.connect() as conn:

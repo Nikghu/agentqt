@@ -2,6 +2,28 @@
 
 ---
 
+## [20260529] EXE — Final_Execution.md Phase 4: LifecycleState internalisation (state-enum consolidation COMPLETE)
+
+- Type: Refactor
+- FO(s): FO-EXE-009
+- RN: RN-EXE-1.15.0-20260529
+- Phase: Final_Execution.md §5.4 — final phase of the 5-phase state-enum consolidation (Phases 0–4 now complete)
+- Artifacts updated: SRD-EXE-009.012 cycled Reopen→Implemented (text unchanged), UTCD +T22, TRACE-EXE 1.9→1.10, CONTEXT §0, DEVLOG
+- Summary: `LifecycleState` moved out of `core/monitoring_session/_enums.py`; `ExecutionEnums.LifecycleState` is the single source of truth. Internal importers (`_repository` via module-local `_LifecycleState` alias, `_dto`) reference it directly; `__init__.py` re-exports it (kept in `__all__`) so the public path and `MonitoringSessionRow` DTO contract are unchanged — zero test-import churn.
+- Qt-free conflict resolved: SRD-EXE-009.012 mandates `core/monitoring_session/` be Qt-free, but `execution/__init__.py` eagerly imported two PyQt6 QThread workers, so importing `ExecutionEnums` from core would have dragged PyQt6 into the headless layer at runtime (passing the static CI grep but defeating its intent). The workers are now lazily loaded via a PEP 562 `__getattr__`; `import us_swing.execution` is Qt-free. Near-zero blast radius — `app_service.py` already imports the workers from their submodules; `__all__` + a TYPE_CHECKING block preserve the public API and static types.
+- Code: 5 files
+  - `execution/__init__.py` (PEP 562 lazy workers; `ExecutionEnums` stays eager)
+  - `core/monitoring_session/_enums.py` (deleted duplicate `LifecycleState`; kept `TradeOrigin`/`Side`)
+  - `core/monitoring_session/_repository.py` (import `ExecutionEnums`; `_LifecycleState` alias; 15 call sites)
+  - `core/monitoring_session/_dto.py` (`lifecycle_state: ExecutionEnums.LifecycleState`)
+  - `core/monitoring_session/__init__.py` (`LifecycleState = ExecutionEnums.LifecycleState` re-export)
+  - `_service.py` audited — no change (ENTERED/EXITED already driven by `on_fill()`; SKIPPED/EVICTED reconciler-driven)
+- Tests: UT-EXE-009.002.M02.T22 (NEW, passing) — ENTERED ledger set == open system position set across enter/enter/exit fills. Qt-free runtime proof: importing `us_swing.core.monitoring_session` leaves PyQt6 out of `sys.modules`. ruff + mypy --strict clean on all changed files.
+- Deferred (unchanged): SRD-EXE-014.008 — `on_fill` consuming a typed `order_state` parameter (FillEvent has none today); coupled with the deferred broker reject/cancel paths (SRD-EXE-014.005/.006) under FO-EXE-001. The lifecycle transition is already fill-driven, so the behavioural §5.4.5 acceptance holds.
+- Pre-existing failures (NOT from Phase 4; verified failing on clean HEAD; also in RN-EXE-1.14.0): `test_fetch_history_includes_evicted` + `test_it_010_002_history_survives_eviction` (`days=7` cutoff `now−7d=2026-05-22` excludes the `2026-05-14` fixture); `test_intraday_candle_loader.py` + `test_live_tick_worker.py` (mock/env); 9 `tests/execution/*` collection errors (`talib` native lib not installed locally).
+
+---
+
 ## [20260527] EXE + GUI — Active Trades Panel Phase-2 Fixes (user_id, row#, qty, button style, persistent rows)
 
 - Type: Feature + Bugfix

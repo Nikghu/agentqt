@@ -11,7 +11,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 
-from us_swing.core.monitoring_session._enums import LifecycleState, Side, TradeOrigin
+from us_swing.core.monitoring_session._enums import Side, TradeOrigin
+from us_swing.execution import ExecutionEnums
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,7 +53,7 @@ class MonitoringSessionRow:
     preset_id:       str
     run_timestamp:   str             # ISO-8601 UTC
     added_at:        str             # ISO-8601 UTC
-    lifecycle_state: LifecycleState
+    lifecycle_state: ExecutionEnums.LifecycleState
     entered_at:      str | None      = None
     exited_at:       str | None      = None
     evicted_at:      str | None      = None

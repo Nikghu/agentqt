@@ -353,6 +353,7 @@
 | UT-EXE-009.002.M02.T19 | MD-EXE-009.002.M02 | Edge | Per-symbol failure isolates other symbols | Two SKIPPED-not-in-keep-set symbols; patch `evict_symbol_atomic` to fail permanently on first only | Failed symbol in `errors`; second symbol successfully evicted; one `SymbolEvicted` event | Pass |
 | UT-EXE-009.002.M02.T20 | MD-EXE-009.002.M02 | Edge | Retry-once on transient `OperationalError` succeeds on second attempt | Patch `evict_symbol_atomic` to raise `OperationalError` first call, succeed second call | Symbol evicted; no entry in `errors`; ~200 ms back-off observed | Pass |
 | UT-EXE-009.002.M02.T21 | MD-EXE-009.002.M02 | Positive | `ReconcileReport` carries expected counts and INFO log emitted | Run T15 | `filtered_n==2, carryover_n==1, skipped_n>=2, evicted_n==2`; `duration_ms > 0`; exactly one INFO log with `[Lifecycle]` topic | Pass |
+| UT-EXE-009.002.M02.T22 | MD-EXE-009.002.M02 | Positive | ENTERED-ledger set equals open system position set after each fill (Phase 4 invariant) | Enter A and B via system BUY, then close A via full SELL | `check_invariant().ok is True` at each quiescent point; open positions `{A,B}` then `{B}`; A finalised EXITED | Pass |
 
 ---
 
