@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from typing import Protocol, runtime_checkable
 
+from us_swing.execution._enums import ExecutionEnums
 from us_swing.execution.trade_cycle._dto import CycleSnapshot
 
 
@@ -64,6 +65,7 @@ class TradeCycleCommand(Protocol):
         trailing_mode:   str | None,
         trailing_offset: float | None,
         monitoring_session_date: str,
+        order_state:     ExecutionEnums.BuyOrderState = ExecutionEnums.BuyOrderState.FILLED,
     ) -> CycleSnapshot: ...
 
     def on_exit_fill(

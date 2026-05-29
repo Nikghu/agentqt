@@ -1,7 +1,7 @@
 # Traceability Matrix — Execution & Risk Management (EXE)
 
 **Document ID:** TRACE-EXE
-**Version:** 1.10.0
+**Version:** 1.11.0
 **Project:** US Swing Trading System
 **Last Updated:** 2026-05-29
 
@@ -29,6 +29,7 @@
 | FO-GUI-014 | SRD-GUI-014.013 | — | MD-GUI-014.001.M02 | — | `gui/active_cycles_model.py`, `gui/active_cycles_panel.py` | Implemented | RN-EXE-1.9.0-20260527 |
 | FO-EXE-012 | SRD-EXE-012.001–013 | DD-EXE-012.001.D01–D02 | MD-EXE-012.001.M01–M06 | UT-EXE-012.001.M01–M06.T01–T29 | `execution/trade_cycle/{_schema,_repository,_service,_protocols,__init__}.py` | Verified | RN-EXE-1.8.0-20260527 |
 | FO-EXE-014 | SRD-EXE-014.001–004 | — | MD-INF-004.001.M02, MD-INF-004.001.M03, MD-EXE-001.001.M02, MD-EXE-002.001.M01, MD-EXE-004.001.M01 | UT-EXE-014.001.M01.T01–T06 | `db/schema.py`, `db/manager.py`, `data/models.py`, `execution/execution_engine.py`, `execution/paper_engine.py`, `execution/position_tracker.py`, `gui/position_table_model.py` | Implemented | RN-EXE-1.14.0-20260528 |
+| FO-EXE-014 | SRD-EXE-014.005–008 | — | MD-EXE-001.001.M02, MD-EXE-012.002.M02, MD-EXE-009.002.M02 | UT-EXE-014.005.M01.T01, 014.006.M01.T02, 014.007.M01.T01–T03, 014.008.M01.T01–T05 | `data/models.py`, `execution/execution_engine.py`, `execution/trade_cycle/{_service,_protocols}.py`, `core/monitoring_session/{_dto,_service}.py` | Implemented | RN-EXE-1.16.0-20260529 |
 | FO-EXE-005 | SRD-EXE-005.001–003 (Reopen) | DD-EXE-005.001.D01 | MD-EXE-002.001.M01 | UT-EXE-005.001.M01.T01–T05 | `execution/position_tracker.py` | Reopen | RN-EXE-1.14.0-20260528 |
 
 ---

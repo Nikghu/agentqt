@@ -72,6 +72,7 @@ class FillEvent:
     price:          float
     fill_time:      str              # ISO-8601 UTC
     origin:         TradeOrigin
+    order_state:    ExecutionEnums.BuyOrderState | ExecutionEnums.SellOrderState | None = None
     user_id:        int              = 0
     schema_version: int              = 1
 

@@ -560,3 +560,34 @@
 | UT-EXE-014.001.M01.T04 | MD-EXE-001.001.M02 | Positive | SELL FILLED writes `exit_time` + `exit_price` | `update_trade_fill(order_state='FILLED', exit_time, exit_price)` on SELL trade | Row's `order_state='FILLED'`, `filled_quantity=qty`, `exit_price` set | Pass |
 | UT-EXE-014.001.M01.T05 | MD-EXE-001.001.M02 | Edge | SELL CANCELLED after partial fill leaves cycle quantity partially executed | Partial SELL fill → CANCELLED | `order_state='CANCELLED'`, `filled_quantity` partial; downstream cycle stays OPEN | Pass |
 | UT-EXE-014.001.M01.T06 | MD-INF-004.001.M02 | Positive | Legacy `status` values backfill into `order_state` during migration | Pre-Phase-3 trades table seeded with `status='SUBMITTED'/'FILLED'/'CLOSED'`; run `migrate_lifecycle_columns()` | `order_state` mapped to `NEW`/`FILLED`/`FILLED`; legacy `status`/`pnl`/`positions.state` columns dropped | Pass |
+
+---
+
+## Module: `execution/execution_engine.py` — broker reject / cancel handlers (FO-EXE-014)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-014.005.M01.T01 | MD-EXE-001.001.M02 | Positive | `handle_order_reject` stamps REJECTED with zero fill and signals the cycle abort | Seed NEW BUY trade; call `handle_order_reject(IBKRReject)` with an injected abort callback | `trades.order_state='REJECTED'`, `filled_quantity=0`; abort callback invoked with `(trade_id, 'broker_reject')` | Pass |
+| UT-EXE-014.006.M01.T02 | MD-EXE-001.001.M02 | Edge | `handle_order_cancel` stamps CANCELLED and preserves the partial fill | Seed PARTIAL_FILLED SELL trade (filled 40); call `handle_order_cancel(IBKRCancel(filled_quantity=40))` | `trades.order_state='CANCELLED'`, `filled_quantity=40`; cycle untouched | Pass |
+
+---
+
+## Module: `execution/trade_cycle/_service.py` — OPENING-hold on partial entry (FO-EXE-014)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-014.007.M01.T01 | MD-EXE-012.002.M02 | Positive | A FILLED entry fill opens the cycle directly in OPEN | `on_entry_fill(order_state=FILLED)` | `CycleSnapshot.state == OPEN` | Pass |
+| UT-EXE-014.007.M01.T02 | MD-EXE-012.002.M02 | Edge | A PARTIAL_FILLED entry fill holds the cycle in OPENING | `on_entry_fill(order_state=PARTIAL_FILLED)` | `state == OPENING`; one `CycleOpened`, no `CycleUpdated` | Pass |
+| UT-EXE-014.007.M01.T03 | MD-EXE-012.002.M02 | Positive | The FILLED fill completing a held partial advances OPENING → OPEN | partial `on_entry_fill` then FILLED `on_entry_fill` with the same `entry_order_id` | same `cycle_id`; `state == OPEN`; one `CycleUpdated` | Pass |
+
+---
+
+## Module: `core/monitoring_session/_service.py` — order-state-gated lifecycle (FO-EXE-014)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-014.008.M01.T01 | MD-EXE-009.002.M02 | Positive | A fully FILLED system BUY flips MONITORING → ENTERED | `on_fill(BUY, order_state=FILLED, qty>0)` on a MONITORING symbol | ledger row ENTERED; `SymbolEnteredPosition` published | Pass |
+| UT-EXE-014.008.M01.T02 | MD-EXE-009.002.M02 | Negative | A PARTIAL_FILLED entry BUY leaves the row MONITORING | `on_fill(BUY, order_state=PARTIAL_FILLED)` | row stays MONITORING; no `SymbolEnteredPosition`; `SymbolPositionScaled` published | Pass |
+| UT-EXE-014.008.M01.T03 | MD-EXE-009.002.M02 | Positive | The FILLED fill completing a partial entry flips MONITORING → ENTERED | partial BUY then FILLED BUY for the same symbol | row ENTERED; `SymbolEnteredPosition` published | Pass |
+| UT-EXE-014.008.M01.T04 | MD-EXE-009.002.M02 | Positive | A FILLED SELL that closes the position flips ENTERED → EXITED | FILLED BUY then FILLED SELL that drives quantity to 0 | row EXITED; `SymbolExitedPosition` published | Pass |
+| UT-EXE-014.008.M01.T05 | MD-EXE-009.002.M02 | Negative | A SELL not fully FILLED does not flip ENTERED → EXITED | FILLED BUY then PARTIAL_FILLED SELL of the full quantity | row stays ENTERED; no `SymbolExitedPosition` | Pass |

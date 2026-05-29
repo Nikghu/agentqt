@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-29T06:21:24",
+  "generated": "2026-05-29T13:18:39",
   "subfolder": "data",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\data",
   "tool_code": "INF",
@@ -303,6 +303,28 @@
           "line_end": 195
         },
         {
+          "name": "IBKRReject",
+          "docstring": "Broker rejection of a submitted order (SRD-EXE-014.005).",
+          "class_vars": [
+            "order_id: int",
+            "symbol: str",
+            "reason: str"
+          ],
+          "line_start": 199,
+          "line_end": 203
+        },
+        {
+          "name": "IBKRCancel",
+          "docstring": "Broker cancellation of a submitted order (SRD-EXE-014.006).",
+          "class_vars": [
+            "order_id: int",
+            "symbol: str",
+            "filled_quantity: int"
+          ],
+          "line_start": 207,
+          "line_end": 215
+        },
+        {
           "name": "RealtimeBar",
           "docstring": "Realtime market update \u2014 either a single trade tick (open==high==low==close==pri",
           "class_vars": [
@@ -314,8 +336,8 @@
             "close: float",
             "volume: int"
           ],
-          "line_start": 199,
-          "line_end": 209
+          "line_start": 219,
+          "line_end": 229
         },
         {
           "name": "UserRecord",
@@ -328,8 +350,8 @@
             "settings_json: str",
             "mode: str"
           ],
-          "line_start": 215,
-          "line_end": 222
+          "line_start": 235,
+          "line_end": 242
         },
         {
           "name": "UserProfile",
@@ -344,8 +366,8 @@
             "strategy_config: dict",
             "screener_config: dict"
           ],
-          "line_start": 226,
-          "line_end": 239
+          "line_start": 246,
+          "line_end": 259
         },
         {
           "name": "RiskConfig",
@@ -358,8 +380,8 @@
             "default_order_type: str",
             "confirm_orders: bool"
           ],
-          "line_start": 243,
-          "line_end": 250
+          "line_start": 263,
+          "line_end": 270
         },
         {
           "name": "ScreenerResult",
@@ -375,8 +397,8 @@
             "breakout_pass: bool",
             "pullback_pass: bool"
           ],
-          "line_start": 256,
-          "line_end": 266
+          "line_start": 276,
+          "line_end": 286
         },
         {
           "name": "FilteredStockEntry",
@@ -391,8 +413,8 @@
             "date: str",
             "time: str"
           ],
-          "line_start": 270,
-          "line_end": 283
+          "line_start": 290,
+          "line_end": 303
         },
         {
           "name": "TradeSignal",
@@ -409,8 +431,8 @@
             "generated_at: datetime",
             "signal_id: str"
           ],
-          "line_start": 287,
-          "line_end": 298
+          "line_start": 307,
+          "line_end": 318
         },
         {
           "name": "MarketWatchItem",
@@ -422,8 +444,8 @@
             "change_pct: float",
             "prev_close: float"
           ],
-          "line_start": 302,
-          "line_end": 308
+          "line_start": 322,
+          "line_end": 328
         },
         {
           "name": "WatchlistItem",
@@ -442,8 +464,8 @@
             "year_low: float",
             "market_cap: float"
           ],
-          "line_start": 312,
-          "line_end": 325
+          "line_start": 332,
+          "line_end": 345
         }
       ]
     },

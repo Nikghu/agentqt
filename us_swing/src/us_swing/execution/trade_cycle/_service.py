@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 from typing import Any, Callable, Iterable
 
 from us_swing.core.monitoring_session import MonitoringEventBus
+from us_swing.execution._enums import ExecutionEnums
 from us_swing.execution.trade_cycle._dto import (
     CycleSnapshot,
     DuplicateOpenCycleError,
@@ -181,14 +182,27 @@ class TradeCycleService:
         trailing_mode:   str | None,
         trailing_offset: float | None,
         monitoring_session_date: str,
+        order_state:     ExecutionEnums.BuyOrderState = ExecutionEnums.BuyOrderState.FILLED,
     ) -> CycleSnapshot:
-        """Open a new cycle on the broker fill of an entry order.
+        """Open a cycle on the broker fill of an entry order.
 
-        Idempotent on ``entry_order_id`` — a duplicate call returns the
-        existing snapshot.
+        SRD-EXE-014.007 — a ``PARTIAL_FILLED`` fill holds the cycle in
+        ``OPENING``; a ``FILLED`` fill opens it (``OPENING -> OPEN`` when a
+        cycle was held from an earlier partial, otherwise a fresh ``OPEN``).
+        Idempotent on ``entry_order_id``.
         """
+        is_filled = order_state == ExecutionEnums.BuyOrderState.FILLED
+
         existing = self._repo.find_by_entry_order(entry_order_id)
         if existing is not None:
+            if is_filled and existing.state == TradeCycleState.OPENING:
+                snap = self._repo.update_state(existing.cycle_id, TradeCycleState.OPEN)
+                self._bus.publish(CycleUpdated(
+                    cycle_id = snap.cycle_id,
+                    symbol   = snap.symbol,
+                    snapshot = snap,
+                ))
+                return snap
             return existing
 
         validate_target_type(target_type)
@@ -213,7 +227,9 @@ class TradeCycleService:
             "current_price":           entry_price,
             "highest_price_seen":      entry_price,
             "effective_stop":          hard_stop_loss,
-            "state":                   TradeCycleState.OPEN.value,
+            "state":                   (
+                TradeCycleState.OPEN if is_filled else TradeCycleState.OPENING
+            ).value,
         }
         try:
             snap = self._repo.insert_open(row=row)

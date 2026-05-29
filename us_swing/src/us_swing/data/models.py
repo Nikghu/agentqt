@@ -196,6 +196,26 @@ class IBKRFill:
 
 
 @dataclass
+class IBKRReject:
+    """Broker rejection of a submitted order (SRD-EXE-014.005)."""
+    order_id: int
+    symbol:   str
+    reason:   str
+
+
+@dataclass
+class IBKRCancel:
+    """Broker cancellation of a submitted order (SRD-EXE-014.006).
+
+    ``filled_quantity`` is whatever the broker reported filled before the
+    cancel took effect (0 if none).
+    """
+    order_id:        int
+    symbol:          str
+    filled_quantity: int = 0
+
+
+@dataclass
 class RealtimeBar:
     """Realtime market update — either a single trade tick (open==high==low==close==price)
     or a pre-aggregated bar (e.g. 5-second bar from IBKR reqRealTimeBars).

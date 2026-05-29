@@ -1,7 +1,7 @@
 """Tests for MD-EXE-009.002.M01 — core/monitoring_session/_repository.py."""
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from typing import Callable
 
 import pytest
@@ -446,17 +446,21 @@ def test_entered_symbols_equals_open_system_positions_after_fill(
 def test_fetch_history_includes_evicted(engine: Engine, seed_user: int) -> None:
     """UT-EXE-009.002.M01.T14: fetch_history(symbol, days) returns ledger rows including EVICTED."""
     repo = MonitoringRepository(engine)
+    # Dates are relative to today so the row's session_date stays inside
+    # fetch_history()'s rolling `days=7` window, measured against the real clock.
+    yesterday = date.today() - timedelta(days=1)
+    today = date.today()
     repo.insert_monitoring_rows(
-        session_date=_YESTERDAY,
+        session_date=yesterday,
         preset_id="p",
         run_timestamp="ts",
         symbols=["B"],
     )
-    repo.bulk_skip_stale_monitoring(_TODAY)
+    repo.bulk_skip_stale_monitoring(today)
     repo.evict_symbol_atomic(
         symbol="B",
-        today=_TODAY,
-        evicted_at="2026-05-15T09:00:00Z",
+        today=today,
+        evicted_at=f"{today.isoformat()}T09:00:00Z",
     )
 
     history = repo.fetch_history("B", days=7)

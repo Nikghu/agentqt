@@ -14,13 +14,15 @@ import sqlalchemy as sa
 from sqlalchemy.pool import StaticPool
 
 from us_swing.db.schema import create_schema
+from us_swing.execution._enums import ExecutionEnums
 from us_swing.execution.trade_cycle._dto import (
     InvariantViolation,
-    InvalidStateTransitionError,
+    TradeCycleState,
 )
 from us_swing.execution.trade_cycle._events import (
     CycleClosed,
     CycleOpened,
+    CycleUpdated,
     ExitTrigger,
     RiskUpdated,
 )
@@ -124,6 +126,47 @@ def test_on_entry_fill_idempotent_on_entry_order_id(
     snap2 = svc.on_entry_fill(**_entry_kwargs())
     assert snap1.cycle_id == snap2.cycle_id
     assert len(_published_of(bus, CycleOpened)) == 1
+
+
+def test_on_entry_fill_filled_opens_cycle(
+    svc: TradeCycleService, bus: MagicMock
+) -> None:
+    """UT-EXE-014.007.M01.T01: A FILLED entry fill opens the cycle directly in OPEN."""
+    snap = svc.on_entry_fill(
+        **_entry_kwargs(order_state=ExecutionEnums.BuyOrderState.FILLED)
+    )
+    assert snap.state == TradeCycleState.OPEN
+
+
+def test_on_entry_fill_partial_holds_opening(
+    svc: TradeCycleService, bus: MagicMock
+) -> None:
+    """UT-EXE-014.007.M01.T02: A PARTIAL_FILLED entry fill holds the cycle in OPENING."""
+    snap = svc.on_entry_fill(
+        **_entry_kwargs(order_state=ExecutionEnums.BuyOrderState.PARTIAL_FILLED)
+    )
+    assert snap.state == TradeCycleState.OPENING
+    assert len(_published_of(bus, CycleOpened)) == 1
+    assert len(_published_of(bus, CycleUpdated)) == 0
+
+
+def test_on_entry_fill_partial_then_filled_transitions_to_open(
+    svc: TradeCycleService, bus: MagicMock
+) -> None:
+    """UT-EXE-014.007.M01.T03: The FILLED fill completing a held partial advances OPENING -> OPEN."""
+    held = svc.on_entry_fill(
+        **_entry_kwargs(order_state=ExecutionEnums.BuyOrderState.PARTIAL_FILLED)
+    )
+    assert held.state == TradeCycleState.OPENING
+
+    opened = svc.on_entry_fill(
+        **_entry_kwargs(order_state=ExecutionEnums.BuyOrderState.FILLED)
+    )
+    assert opened.cycle_id == held.cycle_id
+    assert opened.state == TradeCycleState.OPEN
+    updates = _published_of(bus, CycleUpdated)
+    assert len(updates) == 1
+    assert updates[0].cycle_id == held.cycle_id
 
 
 def test_tick_updates_trailing_stop_only_upward(svc: TradeCycleService) -> None:

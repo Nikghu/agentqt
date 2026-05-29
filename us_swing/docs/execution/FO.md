@@ -458,7 +458,7 @@ Each `StrategyConfig` record shall have a persisted `run_state` field typed as `
 
 ## FO-EXE-014: Broker Order State Machine
 
-**Status:** Draft
+**Status:** Approved
 **Priority:** Must
 **Depends on:** FO-EXE-001 (order submission), FO-EXE-002 (fill events), FO-EXE-013 (`ExecutionEnums` container)
 **Source:** Final_Execution.md Phase 3 — split `PositionState` into two side-scoped broker-order enums; surface per-order state on the Trade History panel; remove the redundant `pnl` column from the trade row (the canonical PnL surface is `trade_cycles.realized_pnl_usd`).
