@@ -24,7 +24,6 @@ from us_swing.core.monitoring_session._dto import (
     ReconcileReport,
 )
 from us_swing.core.monitoring_session._enums import (
-    LifecycleState,
     Side,
     TradeOrigin,
 )
@@ -45,6 +44,12 @@ from us_swing.core.monitoring_session._protocols import (
     Subscription,
 )
 from us_swing.core.monitoring_session._scheduler import _ReconcileScheduler
+from us_swing.execution import ExecutionEnums
+
+# Re-exported from the canonical ExecutionEnums container — the monitoring
+# ledger's public DTO surface (MonitoringSessionRow.lifecycle_state) is typed
+# against it.  See SRD-EXE-009.012.
+LifecycleState = ExecutionEnums.LifecycleState
 
 
 def build_default_service(

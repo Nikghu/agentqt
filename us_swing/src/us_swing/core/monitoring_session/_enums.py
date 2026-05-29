@@ -7,14 +7,6 @@ from __future__ import annotations
 from enum import Enum
 
 
-class LifecycleState(str, Enum):
-    MONITORING = "MONITORING"
-    ENTERED    = "ENTERED"
-    SKIPPED    = "SKIPPED"
-    EVICTED    = "EVICTED"
-    EXITED     = "EXITED"
-
-
 class TradeOrigin(str, Enum):
     SYSTEM = "system"
     MANUAL = "manual"

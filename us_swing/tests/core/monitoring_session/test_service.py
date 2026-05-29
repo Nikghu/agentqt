@@ -753,3 +753,41 @@ def test_reconcile_report_counts_and_info_log(
         if r.levelno == logging.INFO and "[Lifecycle]" in r.message
     ]
     assert len(info_lifecycle) == 1
+
+
+# ── UT-EXE-009.002.M02.T22 ──────────────────────────────────────────────────
+
+
+def test_entered_set_equals_open_positions_through_fills(
+    build_service: Callable[..., tuple[MonitoringQuery, MonitoringCommand, MonitoringEventBus]],
+    make_screener_result: Callable[..., object],
+    seed_user: int,
+) -> None:
+    """UT-EXE-009.002.M02.T22: ENTERED ledger set equals open system positions across a fill sequence."""
+    query, cmd, bus = build_service(today=_T0)
+    cmd.on_screener_results(make_screener_result(passed=["A", "B"]))
+
+    # Before any fill: nothing entered, no open positions, invariant holds.
+    assert query.open_system_positions() == frozenset()
+    assert query.check_invariant().ok is True
+
+    # First system BUY fill per symbol drives MONITORING -> ENTERED.
+    cmd.on_fill(_buy_fill("A", trade_id="ta", qty=100))
+    cmd.on_fill(_buy_fill("B", trade_id="tb", qty=100))
+
+    row_a = query.session_for(_T0, "A")
+    row_b = query.session_for(_T0, "B")
+    assert row_a is not None and row_a.lifecycle_state == LifecycleState.ENTERED
+    assert row_b is not None and row_b.lifecycle_state == LifecycleState.ENTERED
+    assert query.open_system_positions() == frozenset({"A", "B"})
+    assert query.check_invariant().ok is True
+
+    # Closing SELL on A drives ENTERED -> EXITED; A leaves both sets together.
+    cmd.on_fill(_sell_fill("A", trade_id="ta2", qty=100))
+
+    row_a_after = query.session_for(_T0, "A")
+    assert row_a_after is not None and row_a_after.lifecycle_state == LifecycleState.EXITED
+    assert query.open_system_positions() == frozenset({"B"})
+    report = query.check_invariant()
+    assert report.ok is True
+    assert report.only_in_a == () and report.only_in_b == ()
