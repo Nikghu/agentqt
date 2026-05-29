@@ -38,14 +38,16 @@ def save(api_key: str) -> None:
 
 
 def load() -> str:
-    """Return the stored key, or fall back to the env var, or empty string."""
+    """Return the stored key: env var takes priority, then keychain, then empty string."""
+    if env_key := os.environ.get(ENV_API_KEY, ""):
+        return env_key
     try:
         import keyring  # type: ignore[import-untyped]
         if (key := keyring.get_password(_SERVICE, _USER)):
             return key
     except Exception as exc:
         _log.debug("keyring backend unavailable: %s", exc)
-    return os.environ.get(ENV_API_KEY, "")
+    return ""
 
 
 def has_key() -> bool:

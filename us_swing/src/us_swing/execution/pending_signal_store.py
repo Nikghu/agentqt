@@ -21,6 +21,8 @@ class PendingSignalStore(QObject):
 
     pending_signal_added = pyqtSignal(object)
     pending_signal_removed = pyqtSignal(str)
+    pending_signal_dismissed = pyqtSignal(str)
+    pending_signal_executed = pyqtSignal(str)
 
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
@@ -38,14 +40,14 @@ class PendingSignalStore(QObject):
         with self._lock:
             sig = self._signals.pop(signal_id, None)
         if sig is not None:
-            self.pending_signal_removed.emit(signal_id)
+            self.pending_signal_dismissed.emit(signal_id)
         return sig
 
     def execute(self, signal_id: str) -> TradeSignal | None:
         with self._lock:
             sig = self._signals.pop(signal_id, None)
         if sig is not None:
-            self.pending_signal_removed.emit(signal_id)
+            self.pending_signal_executed.emit(signal_id)
         return sig
 
     def list(self) -> tuple[TradeSignal, ...]:

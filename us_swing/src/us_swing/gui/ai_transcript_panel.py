@@ -558,6 +558,10 @@ class AITranscriptPanel(QWidget):
         self._clear_turns()
         self._update_summary("")
 
+    def has_turns(self) -> bool:
+        """Return True if at least one transcript turn is currently loaded."""
+        return bool(self._last_turns)
+
     # ------------------------------------------------------------------
     def _clear_turns(self) -> None:
         """Remove all wrapper layouts and their children from the turns layout.

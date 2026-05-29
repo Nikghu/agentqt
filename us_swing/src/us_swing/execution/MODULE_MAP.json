@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-28T18:09:31",
+  "generated": "2026-05-29T06:21:24",
   "subfolder": "execution",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\execution",
   "tool_code": "EXE",
@@ -682,7 +682,7 @@
             },
             {
               "name": "apply_fill",
-              "signature": "def apply_fill(\n        self,\n        user_id: int,\n        symbol: str,\n        delta_qty: int,\n        filled_qty: int | None = None,\n    ) -> None",
+              "signature": "def apply_fill(\r\n        self,\r\n        user_id: int,\r\n        symbol: str,\r\n        delta_qty: int,\r\n        filled_qty: int | None = None,\r\n    ) -> None",
               "docstring": "Apply a fill delta to a tracked position (SRD-EXE-005.002 / .003).",
               "line_start": 50,
               "line_end": 71
@@ -709,7 +709,7 @@
             },
             {
               "name": "reconcile",
-              "signature": "def reconcile(\n        self,\n        ibkr_positions: list[IBKRPosition],\n        user_id: int = 0,\n    ) -> list[str]",
+              "signature": "def reconcile(\r\n        self,\r\n        ibkr_positions: list[IBKRPosition],\r\n        user_id: int = 0,\r\n    ) -> list[str]",
               "docstring": "Adopt IBKR positions absent from local DB; log WARNING per adopted symbol.",
               "line_start": 104,
               "line_end": 127

@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-28T18:09:31",
+  "generated": "2026-05-29T06:21:24",
   "subfolder": "core",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\core",
   "tool_code": "EXE",
@@ -12,15 +12,15 @@
           "name": "build_default_service",
           "signature": "def build_default_service(\r\n    engine: Engine,\r\n    *,\r\n    today_provider: Callable[[], date] | None                  = None,\r\n    clock: Callable[[], datetime] | None                       = None,\r\n    filtered_provider: Callable[[date], frozenset[str]] | None = None,\r\n) -> tuple[MonitoringQuery, MonitoringCommand, MonitoringEventBus]",
           "docstring": "Wire up a default ``MonitoringSessionService`` with an in-process event bus.",
-          "line_start": 50,
-          "line_end": 91
+          "line_start": 55,
+          "line_end": 96
         },
         {
           "name": "build_scheduler",
           "signature": "def build_scheduler(\r\n    command: MonitoringCommand,\r\n    bus: MonitoringEventBus,\r\n    cron_register: Callable[[str, Callable[[], None]], None],\r\n    *,\r\n    clock: Callable[[], datetime] | None      = None,\r\n    today_provider: Callable[[], date] | None = None,\r\n) -> _ReconcileScheduler",
           "docstring": "Construct the pre-open reconcile scheduler.",
-          "line_start": 94,
-          "line_end": 113
+          "line_start": 99,
+          "line_end": 118
         }
       ]
     },
@@ -38,8 +38,8 @@
             "as_of: date",
             "schema_version: int"
           ],
-          "line_start": 18,
-          "line_end": 24
+          "line_start": 19,
+          "line_end": 25
         },
         {
           "name": "ReconcileError",
@@ -48,8 +48,8 @@
             "message: str",
             "schema_version: int"
           ],
-          "line_start": 28,
-          "line_end": 31
+          "line_start": 29,
+          "line_end": 32
         },
         {
           "name": "ReconcileReport",
@@ -63,8 +63,8 @@
             "errors: tuple[ReconcileError, ...]",
             "schema_version: int"
           ],
-          "line_start": 35,
-          "line_end": 43
+          "line_start": 36,
+          "line_end": 44
         },
         {
           "name": "MonitoringSessionRow",
@@ -75,15 +75,15 @@
             "preset_id: str",
             "run_timestamp: str",
             "added_at: str",
-            "lifecycle_state: LifecycleState",
+            "lifecycle_state: ExecutionEnums.LifecycleState",
             "entered_at: str | None",
             "exited_at: str | None",
             "evicted_at: str | None",
             "trade_id: str | None",
             "schema_version: int"
           ],
-          "line_start": 47,
-          "line_end": 60
+          "line_start": 48,
+          "line_end": 61
         },
         {
           "name": "FillEvent",
@@ -99,8 +99,8 @@
             "user_id: int",
             "schema_version: int"
           ],
-          "line_start": 64,
-          "line_end": 75
+          "line_start": 65,
+          "line_end": 76
         },
         {
           "name": "InvariantReport",
@@ -111,8 +111,8 @@
             "only_in_b: tuple[str, ...]",
             "schema_version: int"
           ],
-          "line_start": 79,
-          "line_end": 85
+          "line_start": 80,
+          "line_end": 86
         },
         {
           "name": "PositionSnapshot",
@@ -127,8 +127,8 @@
             "realised_pnl: float",
             "schema_version: int"
           ],
-          "line_start": 89,
-          "line_end": 100
+          "line_start": 90,
+          "line_end": 101
         }
       ]
     },
@@ -137,19 +137,14 @@
       "srd_id": "SRD-EXE-009.012",
       "classes": [
         {
-          "name": "LifecycleState",
-          "line_start": 10,
-          "line_end": 15
-        },
-        {
           "name": "TradeOrigin",
-          "line_start": 18,
-          "line_end": 20
+          "line_start": 10,
+          "line_end": 12
         },
         {
           "name": "Side",
-          "line_start": 23,
-          "line_end": 25
+          "line_start": 15,
+          "line_end": 17
         }
       ]
     },
@@ -428,124 +423,124 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, engine: Engine) -> None",
-              "line_start": 54,
-              "line_end": 55
+              "line_start": 59,
+              "line_end": 60
             },
             {
               "name": "insert_monitoring_rows",
               "signature": "def insert_monitoring_rows(\r\n        self,\r\n        session_date: date,\r\n        preset_id: str,\r\n        run_timestamp: str,\r\n        symbols: Sequence[str],\r\n    ) -> tuple[str, ...]",
               "docstring": "Insert one MONITORING row per symbol for *session_date*.",
-              "line_start": 59,
-              "line_end": 101
+              "line_start": 64,
+              "line_end": 106
             },
             {
               "name": "fetch_earliest_open_monitoring_row",
               "signature": "def fetch_earliest_open_monitoring_row(\r\n        self,\r\n        symbol: str,\r\n    ) -> MonitoringSessionRow | None",
               "docstring": "Earliest ``MONITORING`` row for *symbol* across all session_dates.",
-              "line_start": 103,
-              "line_end": 119
+              "line_start": 108,
+              "line_end": 124
             },
             {
               "name": "transition_to_entered",
               "signature": "def transition_to_entered(\r\n        self,\r\n        session_date: str,\r\n        symbol: str,\r\n        entered_at: str,\r\n        trade_id: str,\r\n    ) -> None",
-              "line_start": 121,
-              "line_end": 140
+              "line_start": 126,
+              "line_end": 145
             },
             {
               "name": "transition_to_exited",
               "signature": "def transition_to_exited(\r\n        self,\r\n        session_date: str,\r\n        symbol: str,\r\n        exited_at: str,\r\n    ) -> None",
-              "line_start": 142,
-              "line_end": 159
+              "line_start": 147,
+              "line_end": 164
             },
             {
               "name": "bulk_skip_stale_monitoring",
               "signature": "def bulk_skip_stale_monitoring(self, today: date) -> int",
               "docstring": "Flip prior-day MONITORING rows to SKIPPED.  Returns row count.",
-              "line_start": 161,
-              "line_end": 173
+              "line_start": 166,
+              "line_end": 178
             },
             {
               "name": "evict_symbol_atomic",
               "signature": "def evict_symbol_atomic(\r\n        self,\r\n        symbol: str,\r\n        today: date,\r\n        evicted_at: str,\r\n    ) -> tuple[str, ...]",
               "docstring": "Single transaction: DELETE from every price_* table for *symbol*",
-              "line_start": 175,
-              "line_end": 220
+              "line_start": 180,
+              "line_end": 225
             },
             {
               "name": "fetch_history",
               "signature": "def fetch_history(\r\n        self,\r\n        symbol: str,\r\n        days: int = 30,\r\n    ) -> tuple[MonitoringSessionRow, ...]",
-              "line_start": 224,
-              "line_end": 240
+              "line_start": 229,
+              "line_end": 245
             },
             {
               "name": "fetch_session",
               "signature": "def fetch_session(\r\n        self,\r\n        session_date: date,\r\n        symbol: str,\r\n    ) -> MonitoringSessionRow | None",
-              "line_start": 242,
-              "line_end": 253
+              "line_start": 247,
+              "line_end": 258
             },
             {
               "name": "entered_symbols",
               "signature": "def entered_symbols(self) -> frozenset[str]",
-              "line_start": 255,
-              "line_end": 260
+              "line_start": 260,
+              "line_end": 265
             },
             {
               "name": "stale_lifecycle_symbols",
               "signature": "def stale_lifecycle_symbols(self, today: date) -> frozenset[str]",
               "docstring": "Symbols with at least one prior-day MONITORING or SKIPPED row \u2014",
-              "line_start": 262,
-              "line_end": 272
+              "line_start": 267,
+              "line_end": 277
             },
             {
               "name": "open_system_position_symbols",
               "signature": "def open_system_position_symbols(self) -> frozenset[str]",
               "docstring": "Symbols of all currently-open system positions across users.",
-              "line_start": 276,
-              "line_end": 286
+              "line_start": 281,
+              "line_end": 291
             },
             {
               "name": "has_open_system_position",
               "signature": "def has_open_system_position(self, symbol: str) -> bool",
-              "line_start": 288,
-              "line_end": 295
+              "line_start": 293,
+              "line_end": 300
             },
             {
               "name": "position_anchor",
               "signature": "def position_anchor(self, symbol: str) -> str | None",
               "docstring": "Anchor session date for the open system position, if any.",
-              "line_start": 297,
-              "line_end": 305
+              "line_start": 302,
+              "line_end": 310
             },
             {
               "name": "insert_trade_with_anchor",
               "signature": "def insert_trade_with_anchor(\r\n        self,\r\n        trade_id: str,\r\n        user_id: int,\r\n        symbol: str,\r\n        side: Side,\r\n        qty: int,\r\n        price: float,\r\n        fill_time: str,\r\n        origin: TradeOrigin,\r\n        anchor_session_date: str | None,\r\n    ) -> None",
-              "line_start": 309,
-              "line_end": 340
+              "line_start": 314,
+              "line_end": 345
             },
             {
               "name": "upsert_position_with_anchor",
               "signature": "def upsert_position_with_anchor(\r\n        self,\r\n        user_id: int,\r\n        symbol: str,\r\n        side: Side,\r\n        fill_qty: int,\r\n        fill_price: float,\r\n        origin: TradeOrigin,\r\n        anchor_session_date: str | None,\r\n    ) -> PositionSnapshot",
               "docstring": "Apply a fill to the ``positions`` row for (user_id, symbol).",
-              "line_start": 342,
-              "line_end": 446
+              "line_start": 347,
+              "line_end": 451
             }
           ],
-          "line_start": 50,
-          "line_end": 446
+          "line_start": 55,
+          "line_end": 451
         }
       ],
       "top_level_functions": [
         {
           "name": "_utcnow_iso",
           "signature": "def _utcnow_iso() -> str",
-          "line_start": 31,
-          "line_end": 32
+          "line_start": 36,
+          "line_end": 37
         },
         {
           "name": "_row_to_session",
           "signature": "def _row_to_session(row: sa.engine.RowMapping) -> MonitoringSessionRow",
-          "line_start": 35,
-          "line_end": 47
+          "line_start": 40,
+          "line_end": 52
         }
       ],
       "constants": [

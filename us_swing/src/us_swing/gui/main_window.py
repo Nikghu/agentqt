@@ -15,11 +15,12 @@ from __future__ import annotations
 
 import logging
 import math
+from pathlib import Path
 
 from PyQt6.QtCore import QEvent, QPoint, QPointF, QRectF, QSettings, QTimer, Qt
 
 _log = logging.getLogger(__name__)
-from PyQt6.QtGui import QColor, QCursor, QFont, QPainter, QPainterPath, QPen
+from PyQt6.QtGui import QColor, QCursor, QFont, QPainter, QPainterPath, QPen, QPixmap
 from PyQt6.QtWidgets import (
     QApplication,
     QFrame,
@@ -267,6 +268,17 @@ class _TitleBar(QWidget):
         row = QHBoxLayout(self)
         row.setContentsMargins(8, 0, 0, 0)
         row.setSpacing(0)
+
+        # ── Logo ────────────────────────────────────────────────────────
+        _logo_path = Path(__file__).parent.parent.parent.parent / "assets" / "logo.png"
+        logo = QLabel()
+        logo.setFixedSize(24, 24)
+        pix = QPixmap(str(_logo_path))
+        if not pix.isNull():
+            logo.setPixmap(pix.scaled(24, 24, Qt.AspectRatioMode.KeepAspectRatio,
+                                      Qt.TransformationMode.SmoothTransformation))
+        row.addWidget(logo)
+        row.addSpacing(6)
 
         # ── Brand ───────────────────────────────────────────────────────
         brand = QLabel("Swing Trading Terminal")

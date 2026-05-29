@@ -20,7 +20,7 @@ from us_swing.screener.preset import (
     ScreenerRef,
 )
 from us_swing.screener.registry import ScreenerRegistry
-from us_swing.screener.storage import ScreenerResultsStorage, ScreenerRunResult
+from us_swing.screener.storage import AITranscriptTurn, ScreenerResultsStorage, ScreenerRunResult
 
 from .conftest import make_bars, make_composite_preset, make_weighted_preset
 
@@ -780,3 +780,49 @@ def test_ai_reasoning_merged_into_results(tmp_path: Path):
 
     for sym, data in result.results.items():
         assert data.get("ai_reasoning") == llm.last_reasoning[sym]
+
+
+# ---------------------------------------------------------------------------
+# T23 — Stage 3 LLM exception → partial transcript preserved from the screener
+#       (ISS-SCR-0001 regression; SRD-SCR-014.003 / SRD-SCR-014.006)
+# ---------------------------------------------------------------------------
+
+def test_stage3_llm_exception_preserves_partial_transcript(tmp_path: Path):
+    """UT-SCR-003.001.M10.T23"""
+    partial = [
+        AITranscriptTurn(role="system", content="prompt"),
+        AITranscriptTurn(role="user", content="analysing AAPL"),
+    ]
+    ind = _make_screener()
+    llm = MagicMock()
+
+    def _apply(_syms: list[str], _bars: dict, _cfg: dict) -> dict:
+        llm.last_transcript = list(partial)
+        raise TimeoutError("LLM timed out")
+
+    llm.apply.side_effect = _apply
+    llm.last_reasoning = {}
+
+    registry = ScreenerRegistry()
+    registry.register("ind_p", lambda: ind)
+    registry.register("llm_claude_ranking", lambda: llm)
+
+    refs = [ScreenerRef(screener_id="ind_p", enabled=True, weight=1.0)]
+    preset = Preset(
+        id="partial",
+        name="Partial",
+        preset_type=PresetType.WEIGHTED,
+        screeners=refs,
+        threshold=0.5,
+        enable_llm_ranking=True,
+        top_n=5,
+    )
+    executor = PresetExecutor(
+        preset_manager=_mock_preset_manager(preset),
+        storage=_mock_storage(tmp_path),
+        registry=registry,
+    )
+    result = executor.run_preset("partial", "u", symbols=SYMBOLS_3, bars=BARS_3)
+
+    assert len(result.ai_transcript) == 2
+    assert [t.role for t in result.ai_transcript] == ["system", "user"]

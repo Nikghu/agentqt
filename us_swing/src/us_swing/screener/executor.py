@@ -326,23 +326,27 @@ class PresetExecutor:
         if not passing:
             return combined, []
 
+        llm = registry.get("llm_claude_ranking")
+        top_n: int = preset.top_n or len(passing)
+        llm_config: dict[str, Any] = {
+            "top_n":            top_n,
+            "ai_query":         preset.ai_query,
+            "ai_model":         preset.ai_model,
+            "db":               self._db,
+            "passing_symbols":  set(passing),
+        }
         try:
-            llm = registry.get("llm_claude_ranking")
-            top_n: int = preset.top_n or len(passing)
-            llm_config: dict[str, Any] = {
-                "top_n":            top_n,
-                "ai_query":         preset.ai_query,
-                "ai_model":         preset.ai_model,
-                "db":               self._db,
-                "passing_symbols":  set(passing),
-            }
             ranked = llm.apply(passing, bars, llm_config)
         except Exception as exc:
             _log.warning(
                 "Stage 3 LLM error (%s) — falling back to Stage 2 results.",
                 type(exc).__name__,
             )
-            return combined, []
+            raw_transcript = getattr(llm, "last_transcript", None)
+            partial: list[AITranscriptTurn] = (
+                raw_transcript if isinstance(raw_transcript, list) else []
+            )
+            return combined, partial
 
         # Capture side-channels (SRD-SCR-013.007, SRD-SCR-014.003).
         raw_reasoning = getattr(llm, "last_reasoning", None)

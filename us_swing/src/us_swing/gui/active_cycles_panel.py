@@ -55,8 +55,11 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
-_ACTIONS_W = 200
-_BTN_GAP = 6
+_ACTIONS_W = 88
+_NUM_W = 32
+_BTN_W = 26
+_BTN_H = 22
+_BTN_GAP = 4
 
 
 # ── Row Actions Delegate ─────────────────────────────────────────────────────
@@ -107,13 +110,13 @@ class _RowActionsDelegate(QStyledItemDelegate):
             painter.restore()
             return
 
-        buttons: list[tuple[str, str, str]] = []  # (id, label, accent_hex)
+        buttons: list[tuple[str, str, str]] = []  # (id, glyph, accent_hex)
         if state == "PENDING":
-            buttons.append(("execute", "Execute", C.GREEN if not cb_on else C.MUTED))
-            buttons.append(("dismiss", "Dismiss", C.MUTED))
+            buttons.append(("execute", "▶", C.GREEN if not cb_on else C.MUTED))
+            buttons.append(("dismiss", "✕", C.MUTED))
         elif state == "OPEN":
-            buttons.append(("edit",  "Edit Risk", C.BLUE))
-            buttons.append(("close", "Close",     C.RED))
+            buttons.append(("edit",  "✎", C.BLUE))
+            buttons.append(("close", "■", C.RED))
         else:
             painter.restore()
             return
@@ -122,9 +125,9 @@ class _RowActionsDelegate(QStyledItemDelegate):
         key = (index.row(), index.column())
         self._hit_rects[key] = [(b[0], r) for b, r in zip(buttons, rects)]
 
-        for (bid, label, accent), rect in zip(buttons, rects):
+        for (bid, glyph, accent), rect in zip(buttons, rects):
             disabled = bid == "execute" and cb_on
-            self._draw_button(painter, rect, label, accent, disabled)
+            self._draw_button(painter, rect, glyph, accent, disabled)
 
         painter.restore()
 
@@ -132,17 +135,17 @@ class _RowActionsDelegate(QStyledItemDelegate):
         self,
         p: QPainter,
         rect: QRect,
-        label: str,
+        glyph: str,
         accent_hex: str,
         disabled: bool,
     ) -> None:
-        pen = QPen(QColor(accent_hex))
+        fg = QColor(C.MUTED) if disabled else QColor(accent_hex)
+        pen = QPen(fg)
         pen.setWidth(1)
         p.setPen(pen)
         p.setBrush(Qt.BrushStyle.NoBrush)
         p.drawRoundedRect(rect, 4, 4)
-        p.setPen(QColor(C.MUTED if disabled else C.TEXT))
-        p.drawText(rect, int(Qt.AlignmentFlag.AlignCenter), label)
+        p.drawText(rect, int(Qt.AlignmentFlag.AlignCenter), glyph)
 
     def _draw_spinner(self, p: QPainter, rect: QRect, state: str) -> None:
         p.setPen(QColor(C.MUTED))
@@ -153,21 +156,17 @@ class _RowActionsDelegate(QStyledItemDelegate):
         out: list[QRect] = []
         if n == 0:
             return out
-        cell_w = max(cell.width() - 12, 0)
-        # Two-button layout: 80 px + 60 px when both present; else single fills.
-        widths = [80, 60] if n == 2 else [min(120, cell_w)]
-        widths = widths[:n]
-        total = sum(widths) + (n - 1) * _BTN_GAP
+        total = n * _BTN_W + (n - 1) * _BTN_GAP
         x = cell.right() - 6 - total
-        y = cell.top() + (cell.height() - C.BTN_H_SM) // 2
-        for w in widths:
-            out.append(QRect(x, y, w, C.BTN_H_SM))
-            x += w + _BTN_GAP
+        y = cell.top() + (cell.height() - _BTN_H) // 2
+        for _ in range(n):
+            out.append(QRect(x, y, _BTN_W, _BTN_H))
+            x += _BTN_W + _BTN_GAP
         return out
 
     def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex) -> QSize:
         if index.column() == Col.ACTIONS:
-            return QSize(_ACTIONS_W, C.BTN_H_SM + 8)
+            return QSize(_ACTIONS_W, _BTN_H + 8)
         return super().sizeHint(option, index)
 
     # ── Click routing ────────────────────────────────────────────────────
@@ -278,6 +277,7 @@ class ActiveCyclesPanel(QWidget):
             pending_store,
             parent=self,
             rex_counters=getattr(app_service, "rex_counters", None),
+            user_name_provider=self._lookup_user_name,
         )
         self._table = QTableView(self)
         self._table.setModel(self._model)
@@ -286,9 +286,12 @@ class ActiveCyclesPanel(QWidget):
         self._table.setSelectionMode(QTableView.SelectionMode.NoSelection)
         self._table.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
         self._table.verticalHeader().setVisible(False)
-        self._table.horizontalHeader().setSectionResizeMode(
-            QHeaderView.ResizeMode.Interactive
-        )
+        header = self._table.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        header.setSectionResizeMode(int(Col.NUM), QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(int(Col.ACTIONS), QHeaderView.ResizeMode.Fixed)
+        self._table.setColumnWidth(int(Col.NUM), _NUM_W)
+        self._table.setColumnWidth(int(Col.ACTIONS), _ACTIONS_W)
         self._table.setMouseTracking(True)
 
         self._delegate = _RowActionsDelegate(
@@ -318,6 +321,7 @@ class ActiveCyclesPanel(QWidget):
 
         self._pending.pending_signal_added.connect(self._model.on_pending_added)
         self._pending.pending_signal_removed.connect(self._model.on_pending_removed)
+        self._pending.pending_signal_dismissed.connect(self._model.on_pending_dismissed)
 
         self._bridge_event.connect(self._dispatch_event, Qt.ConnectionType.QueuedConnection)
         stream = getattr(self._app, "event_stream", None)
@@ -499,6 +503,20 @@ class ActiveCyclesPanel(QWidget):
         self._empty_label.setVisible(empty)
 
     # ── Helpers ──────────────────────────────────────────────────────────
+
+    def _lookup_user_name(self, user_id: int) -> str:
+        if not user_id:
+            return ""
+        getter = getattr(self._app, "get_user_by_id", None)
+        if getter is None:
+            return ""
+        try:
+            profile = getter(user_id)
+        except Exception:
+            return ""
+        if profile is None:
+            return ""
+        return str(getattr(profile, "display_name", "") or getattr(profile, "username", ""))
 
     def _confirm(self, title: str, text: str) -> bool:
         box = QMessageBox(self)

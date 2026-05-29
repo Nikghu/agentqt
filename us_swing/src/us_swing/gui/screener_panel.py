@@ -3148,10 +3148,7 @@ class ScreenerPanel(QWidget):
         self._display_result(result)
 
         # Notify Execution panel so its Filtered Stocks pane refreshes immediately
-        try:
-            self._svc.notify_screener_results_updated()
-        except Exception:  # noqa: BLE001
-            pass
+        self._demo.notify_screener_results_updated()
 
         # Drain auto-run queue: start next assigned preset if any remain
         if self._auto_run_queue:
@@ -3167,13 +3164,16 @@ class ScreenerPanel(QWidget):
     # ── Display helpers ───────────────────────────────────────────────────
 
     def _refresh_transcript_visibility(self) -> None:
-        """Show the transcript panel only when the active preset uses LLM ranking."""
+        """Show the transcript panel only when the active preset uses LLM ranking
+        AND a non-empty transcript is loaded (SRD-SCR-014.006)."""
         llm_enabled = bool(getattr(self._selected_preset, "enable_llm_ranking", False))
         if not llm_enabled:
             self._transcript_panel.setVisible(False)
             self._transcript_panel.clear()
-        else:
+        elif self._transcript_panel.has_turns():
             self._transcript_panel.setVisible(True)
+        else:
+            self._transcript_panel.setVisible(False)
 
     def _display_result(self, result: Any) -> None:
         """Populate the results table from a ScreenerRunResult."""
