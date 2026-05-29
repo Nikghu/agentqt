@@ -9,6 +9,7 @@ model itself touches no thread primitives.
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import IntEnum
@@ -26,24 +27,26 @@ if TYPE_CHECKING:
 
 
 class Col(IntEnum):
-    USER      = 0
-    STATE     = 1
-    TIME      = 2
-    SYMBOL    = 3
-    STRATEGY  = 4
-    QTY       = 5
-    ENTRY     = 6
-    LTP       = 7
-    PNL_USD   = 8
-    PNL_PCT   = 9
-    HARD_STOP = 10
-    TARGET    = 11
-    TRAIL     = 12
-    REX       = 13
-    ACTIONS   = 14
+    NUM       = 0
+    USER      = 1
+    STATE     = 2
+    TIME      = 3
+    SYMBOL    = 4
+    STRATEGY  = 5
+    QTY       = 6
+    ENTRY     = 7
+    LTP       = 8
+    PNL_USD   = 9
+    PNL_PCT   = 10
+    HARD_STOP = 11
+    TARGET    = 12
+    TRAIL     = 13
+    REX       = 14
+    ACTIONS   = 15
 
 
 _HEADERS: dict[int, str] = {
+    Col.NUM:       "#",
     Col.USER:      "User",
     Col.STATE:     "State",
     Col.TIME:      "Time",
@@ -63,10 +66,11 @@ _HEADERS: dict[int, str] = {
 
 
 _STATE_BG: dict[str, str] = {
-    "PENDING":  C.ORANGE,
-    "OPENING":  C.BLUE,
-    "OPEN":     C.GREEN,
-    "CLOSING":  C.ORANGE,
+    "PENDING":   C.ORANGE,
+    "OPENING":   C.BLUE,
+    "OPEN":      C.GREEN,
+    "CLOSING":   C.ORANGE,
+    "DISMISSED": C.MUTED,
 }
 
 
@@ -104,11 +108,13 @@ class _ActiveCyclesModel(QAbstractTableModel):
         pending_store: PendingSignalStore,
         parent: QObject | None = None,
         rex_counters: RexCounterRepository | None = None,
+        user_name_provider: Callable[[int], str] | None = None,
     ) -> None:
         super().__init__(parent)
         self._query = query
         self._pending = pending_store
         self._rex_counters = rex_counters
+        self._user_name_provider = user_name_provider or (lambda uid: "")
         self._rows: list[_Row] = []
         self._by_key: dict[str, int] = {}
         self._scope_user_id: int | None = None  # None = All Users
@@ -137,6 +143,9 @@ class _ActiveCyclesModel(QAbstractTableModel):
 
     def on_pending_removed(self, signal_id: str) -> None:
         self._remove_row(signal_id)
+
+    def on_pending_dismissed(self, signal_id: str) -> None:
+        self.set_row_state(signal_id, "DISMISSED")
 
     def on_cycle_opened(self, snap: CycleSnapshot) -> None:
         row = self._row_from_snap(snap)
@@ -279,10 +288,11 @@ class _ActiveCyclesModel(QAbstractTableModel):
             time=_now_hms(),
             symbol=signal.symbol,
             strategy=signal.strategy_id,
-            qty=signal.qty_recommended,
+            qty=signal.qty_recommended or 1,
             entry_price=signal.entry_price,
             hard_stop=signal.stop_loss,
             target=signal.target,
+            user_id=signal.user_id,
             signal=signal,
             rex_remaining=self._fetch_rex(signal.strategy_id, signal.symbol),
         )
@@ -362,6 +372,8 @@ class _ActiveCyclesModel(QAbstractTableModel):
         if row.kind == "editor":
             return None
         if role == Qt.ItemDataRole.DisplayRole:
+            if c == Col.NUM:
+                return str(r + 1)
             return self._display(row, c)
         if role == Qt.ItemDataRole.BackgroundRole:
             return self._background(row, c)
@@ -374,7 +386,10 @@ class _ActiveCyclesModel(QAbstractTableModel):
 
     def _display(self, row: _Row, col: int) -> Any:
         if col == Col.USER:
-            return str(row.user_id) if row.user_id else ""
+            if not row.user_id:
+                return ""
+            name = self._user_name_provider(row.user_id)
+            return name if name else str(row.user_id)
         if col == Col.STATE:
             return row.state
         if col == Col.TIME:

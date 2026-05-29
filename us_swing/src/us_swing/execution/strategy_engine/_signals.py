@@ -28,9 +28,10 @@ class TradeSignal:
     stop_loss: float | None = None
     target: float | None = None
     qty_recommended: int = 0
+    user_id: int = 0
     reason: str | None = None
     signal_id: str = field(default_factory=_new_signal_id)
-    schema_version: int = 1
+    schema_version: int = 2
 
 
 class PendingSignalSink(Protocol):

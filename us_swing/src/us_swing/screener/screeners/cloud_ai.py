@@ -454,14 +454,24 @@ class CloudAIScreener:
             f"score in [0.0, 1.0]. Example: {{\"AAPL\": 0.82, \"MSFT\": 0.61}}"
         )
         fallback = {sym: (True, 0.0) for sym in symbols}
+        t_sent = datetime.now(timezone.utc)
+        sent_iso = t_sent.strftime("%Y-%m-%dT%H:%M:%SZ")
+        _user_summary = f"Analysing technical data for: {', '.join(symbols)}"
+        self.last_transcript = [
+            AITranscriptTurn(role="user", content=_user_summary, sent_at=sent_iso),
+        ]
 
         try:
             client = self._make_client()
         except Exception as exc:
             _log.warning("CloudAIScreener: client init failed (%s) — fallback.", type(exc).__name__)
+            self.last_transcript.append(AITranscriptTurn(
+                role="system",
+                content=f"AI ranking unavailable: client init failed ({type(exc).__name__}). "
+                        f"Falling back to Stage 2 results.",
+            ))
             return fallback
 
-        t_sent = datetime.now(timezone.utc)
         t0_ns = time.monotonic_ns()
         try:
             response = self._call_with_retry(
@@ -475,6 +485,11 @@ class CloudAIScreener:
                 "CloudAIScreener: API error (%s) — fallback to pass-all.",
                 type(exc).__name__,
             )
+            self.last_transcript.append(AITranscriptTurn(
+                role="system",
+                content=f"AI ranking unavailable: API error ({type(exc).__name__}). "
+                        f"Falling back to Stage 2 results.",
+            ))
             return fallback
         t_recv = datetime.now(timezone.utc)
         # Includes retry backoff sleep on 429s; reflects wall-clock wait, not pure server latency.
@@ -482,39 +497,42 @@ class CloudAIScreener:
 
         self._track_usage(response)
 
-        sent_iso = t_sent.strftime("%Y-%m-%dT%H:%M:%SZ")
         recv_iso = t_recv.strftime("%Y-%m-%dT%H:%M:%SZ")
         usage = getattr(response, "usage", None)
         try:
             raw_text = response.choices[0].message.content or ""
         except (IndexError, AttributeError):
             _log.warning("CloudAIScreener: could not read response content — fallback.")
-            _user_summary = f"Analysing technical data for: {', '.join(symbols)}"
-            self.last_transcript = [
-                AITranscriptTurn(role="user", content=_user_summary, sent_at=sent_iso),
-                AITranscriptTurn(role="assistant", content="",
-                                 received_at=recv_iso, response_time_ms=elapsed_ms),
-            ]
+            self.last_transcript.append(AITranscriptTurn(
+                role="assistant", content="",
+                received_at=recv_iso, response_time_ms=elapsed_ms,
+            ))
+            self.last_transcript.append(AITranscriptTurn(
+                role="system",
+                content="AI ranking unavailable: response had no readable content. "
+                        "Falling back to Stage 2 results.",
+            ))
             return fallback
         _log.debug("CloudAIScreener: raw response text: %r", raw_text)
-        _user_summary = f"Analysing technical data for: {', '.join(symbols)}"
-        self.last_transcript = [
-            AITranscriptTurn(role="user", content=_user_summary, sent_at=sent_iso),
-            AITranscriptTurn(
-                role="assistant",
-                content=_strip_codefence(raw_text),
-                tokens_input=getattr(usage, "prompt_tokens", 0) if usage else 0,
-                tokens_output=getattr(usage, "completion_tokens", 0) if usage else 0,
-                received_at=recv_iso,
-                response_time_ms=elapsed_ms,
-            ),
-        ]
+        self.last_transcript.append(AITranscriptTurn(
+            role="assistant",
+            content=_strip_codefence(raw_text),
+            tokens_input=getattr(usage, "prompt_tokens", 0) if usage else 0,
+            tokens_output=getattr(usage, "completion_tokens", 0) if usage else 0,
+            received_at=recv_iso,
+            response_time_ms=elapsed_ms,
+        ))
         try:
             raw_scores = json.loads(_strip_codefence(raw_text))
         except json.JSONDecodeError:
             _log.warning(
                 "CloudAIScreener: could not parse response JSON — raw text: %r", raw_text,
             )
+            self.last_transcript.append(AITranscriptTurn(
+                role="system",
+                content="AI ranking unavailable: response was not valid JSON. "
+                        "Falling back to Stage 2 results.",
+            ))
             return fallback
 
         return _scores_to_results(symbols, raw_scores)
@@ -570,6 +588,7 @@ class CloudAIScreener:
                 sent_at=t_user.strftime("%Y-%m-%dT%H:%M:%SZ"),
             ),
         ]
+        self.last_transcript = transcript
         fallback = {sym: (True, 0.0) for sym in symbols}
 
         try:
@@ -577,6 +596,11 @@ class CloudAIScreener:
         except Exception as exc:
             _log.warning("CloudAIScreener: client init failed (%s) — fallback.",
                          type(exc).__name__)
+            transcript.append(AITranscriptTurn(
+                role="system",
+                content=f"AI ranking unavailable: client init failed ({type(exc).__name__}). "
+                        f"Falling back to Stage 2 results.",
+            ))
             return fallback
 
         final_text = ""
@@ -596,6 +620,11 @@ class CloudAIScreener:
                     "CloudAIScreener: API error (%s) on turn %d — fallback.",
                     type(exc).__name__, turn,
                 )
+                transcript.append(AITranscriptTurn(
+                    role="system",
+                    content=f"AI ranking unavailable: API error ({type(exc).__name__}) "
+                            f"on turn {turn + 1}. Falling back to Stage 2 results.",
+                ))
                 return fallback
             t_recv = datetime.now(timezone.utc)
             # Includes retry backoff sleep on 429s; reflects wall-clock wait, not pure server latency.
@@ -644,9 +673,14 @@ class CloudAIScreener:
         else:
             _log.warning("CloudAIScreener: agentic loop exceeded %d turns — fallback.",
                          _AGENTIC_MAX_TURNS)
+            transcript.append(AITranscriptTurn(
+                role="system",
+                content=f"AI ranking unavailable: agentic loop exceeded "
+                        f"{_AGENTIC_MAX_TURNS} turns without a final answer. "
+                        f"Falling back to Stage 2 results.",
+            ))
             return fallback
 
-        self.last_transcript = transcript
         return self._parse_ranking(final_text, symbols, fallback)
 
     # ------------------------------------------------------------------
