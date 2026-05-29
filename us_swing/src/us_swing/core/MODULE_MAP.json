@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-29T06:21:24",
+  "generated": "2026-05-29T13:18:39",
   "subfolder": "core",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\core",
   "tool_code": "EXE",
@@ -96,11 +96,12 @@
             "price: float",
             "fill_time: str",
             "origin: TradeOrigin",
+            "order_state: ExecutionEnums.BuyOrderState | ExecutionEnums.SellOrderState | None",
             "user_id: int",
             "schema_version: int"
           ],
           "line_start": 65,
-          "line_end": 76
+          "line_end": 77
         },
         {
           "name": "InvariantReport",
@@ -111,8 +112,8 @@
             "only_in_b: tuple[str, ...]",
             "schema_version: int"
           ],
-          "line_start": 80,
-          "line_end": 86
+          "line_start": 81,
+          "line_end": 87
         },
         {
           "name": "PositionSnapshot",
@@ -127,8 +128,8 @@
             "realised_pnl: float",
             "schema_version: int"
           ],
-          "line_start": 90,
-          "line_end": 101
+          "line_start": 91,
+          "line_end": 102
         }
       ]
     },
@@ -618,77 +619,84 @@
             {
               "name": "__init__",
               "signature": "def __init__(\r\n        self,\r\n        repo: MonitoringRepository,\r\n        bus: MonitoringEventBus,\r\n        *,\r\n        clock: Callable[[], datetime] | None             = None,\r\n        today_provider: Callable[[], date] | None        = None,\r\n        filtered_provider: Callable[[date], frozenset[str]] | None = None,\r\n    ) -> None",
-              "line_start": 72,
-              "line_end": 91
+              "line_start": 87,
+              "line_end": 106
             },
             {
               "name": "keep_set",
               "signature": "def keep_set(self, today: date) -> KeepSet",
-              "line_start": 95,
-              "line_end": 101
+              "line_start": 110,
+              "line_end": 116
             },
             {
               "name": "open_system_positions",
               "signature": "def open_system_positions(self) -> frozenset[str]",
-              "line_start": 103,
-              "line_end": 104
+              "line_start": 118,
+              "line_end": 119
             },
             {
               "name": "has_open_system_position",
               "signature": "def has_open_system_position(self, symbol: str) -> bool",
-              "line_start": 106,
-              "line_end": 107
+              "line_start": 121,
+              "line_end": 122
             },
             {
               "name": "session_for",
               "signature": "def session_for(\r\n        self,\r\n        session_date: date,\r\n        symbol: str,\r\n    ) -> MonitoringSessionRow | None",
-              "line_start": 109,
-              "line_end": 114
+              "line_start": 124,
+              "line_end": 129
             },
             {
               "name": "history",
               "signature": "def history(\r\n        self,\r\n        symbol: str,\r\n        days: int = 30,\r\n    ) -> tuple[MonitoringSessionRow, ...]",
-              "line_start": 116,
-              "line_end": 121
+              "line_start": 131,
+              "line_end": 136
             },
             {
               "name": "check_invariant",
               "signature": "def check_invariant(self) -> InvariantReport",
-              "line_start": 123,
-              "line_end": 138
+              "line_start": 138,
+              "line_end": 153
             },
             {
               "name": "on_screener_results",
               "signature": "def on_screener_results(self, result: Any) -> KeepSet",
               "docstring": "Insert MONITORING rows for today's passing screener symbols.",
-              "line_start": 142,
-              "line_end": 177
+              "line_start": 157,
+              "line_end": 192
             },
             {
               "name": "on_fill",
               "signature": "def on_fill(self, fill: FillEvent) -> None",
               "docstring": "Route a fill through the lifecycle state machine.",
-              "line_start": 179,
-              "line_end": 332
+              "line_start": 194,
+              "line_end": 389
             },
             {
               "name": "reconcile_preopen",
               "signature": "def reconcile_preopen(self, today: date) -> ReconcileReport",
               "docstring": "Pre-open candle DB reconciliation.  Single-flight, idempotent.",
-              "line_start": 334,
-              "line_end": 439
+              "line_start": 391,
+              "line_end": 496
             }
           ],
-          "line_start": 64,
-          "line_end": 439
+          "line_start": 79,
+          "line_end": 496
         }
       ],
       "top_level_functions": [
         {
+          "name": "_is_complete_fill",
+          "signature": "def _is_complete_fill(\r\n    order_state: ExecutionEnums.BuyOrderState | ExecutionEnums.SellOrderState | None,\r\n) -> bool",
+          "docstring": "Whether a fill fully completes its order, advancing lifecycle state.",
+          "line_start": 48,
+          "line_end": 59
+        },
+        {
           "name": "_today_et",
           "signature": "def _today_et() -> date",
-          "line_start": 47,
-          "line_end": 48
+          "line_start": 62,
+          "line_end": 63
         }
       ],
       "constants": [

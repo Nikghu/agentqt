@@ -14,7 +14,9 @@ from typing import Any
 from us_swing.broker.client import IBKRClient
 from us_swing.data.models import (
     AccountState,
+    IBKRCancel,
     IBKRFill,
+    IBKRReject,
     OpenPosition,
     TradeRecord,
 )
@@ -42,12 +44,14 @@ class ExecutionEngine:
         user_id: int,
         loop: asyncio.AbstractEventLoop | None = None,
         timeout: float = 2.0,
+        on_order_failed: Callable[[str, str], None] | None = None,
     ) -> None:
         self._ibkr = ibkr
         self._risk = risk
         self._tracker = tracker
         self._db = db
         self._on_fill = on_fill
+        self._on_order_failed = on_order_failed
         self._user_id = user_id
         self._loop = loop
         self._timeout = timeout
@@ -203,6 +207,42 @@ class ExecutionEngine:
                 fill_qty=fill.filled_quantity,
                 order_id=fill.order_id,
             )
+        )
+
+    def handle_order_reject(self, reject: IBKRReject) -> None:
+        """Process an IBKR order rejection (SRD-EXE-014.005).
+
+        Stamps the ``trades`` row REJECTED with zero fill and signals the
+        owning trade cycle to abort.  The cycle's ``OPENING -> ABORTED``
+        transition is performed by ``TradeCycleCommand.on_entry_failed`` via
+        the injected ``on_order_failed`` callback.
+        """
+        trade_id = self._pending.get(reject.order_id, str(reject.order_id))
+        self._db.update_trade_fill(
+            trade_id=trade_id,
+            filled_quantity=0,
+            order_state=ExecutionEnums.BuyOrderState.REJECTED.value,
+        )
+        log.warning("[Execution] Order rejected for %s: %s", reject.symbol, reject.reason)
+        if self._on_order_failed is not None:
+            self._on_order_failed(trade_id, "broker_reject")
+
+    def handle_order_cancel(self, cancel: IBKRCancel) -> None:
+        """Process an IBKR order cancellation (SRD-EXE-014.006).
+
+        Stamps the ``trades`` row CANCELLED, preserving the partial
+        ``filled_quantity`` the broker reported.  The owning cycle keeps its
+        current state — a partial fill that already advanced it stays put.
+        """
+        trade_id = self._pending.get(cancel.order_id, str(cancel.order_id))
+        self._db.update_trade_fill(
+            trade_id=trade_id,
+            filled_quantity=cancel.filled_quantity,
+            order_state=ExecutionEnums.BuyOrderState.CANCELLED.value,
+        )
+        log.info(
+            "[Execution] Order cancelled for %s with %d share(s) filled",
+            cancel.symbol, cancel.filled_quantity,
         )
 
     # ── Exit ──────────────────────────────────────────────────────────────────

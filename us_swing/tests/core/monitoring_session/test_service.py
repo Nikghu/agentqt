@@ -30,6 +30,7 @@ from us_swing.core.monitoring_session import (
     build_default_service,
 )
 from us_swing.db.schema import monitoring_session
+from us_swing.execution import ExecutionEnums
 
 
 _T0 = date(2026, 5, 14)   # "yesterday"
@@ -45,6 +46,7 @@ def _buy_fill(
     price: float = 50.0,
     origin: TradeOrigin = TradeOrigin.SYSTEM,
     user_id: int = 1,
+    order_state: ExecutionEnums.BuyOrderState | None = None,
 ) -> FillEvent:
     return FillEvent(
         symbol=symbol,
@@ -55,6 +57,7 @@ def _buy_fill(
         fill_time="2026-05-14T14:00:00Z",
         origin=origin,
         user_id=user_id,
+        order_state=order_state,
     )
 
 
@@ -65,6 +68,7 @@ def _sell_fill(
     price: float = 55.0,
     origin: TradeOrigin = TradeOrigin.SYSTEM,
     user_id: int = 1,
+    order_state: ExecutionEnums.SellOrderState | None = None,
 ) -> FillEvent:
     return FillEvent(
         symbol=symbol,
@@ -75,6 +79,7 @@ def _sell_fill(
         fill_time="2026-05-14T15:00:00Z",
         origin=origin,
         user_id=user_id,
+        order_state=order_state,
     )
 
 
@@ -791,3 +796,113 @@ def test_entered_set_equals_open_positions_through_fills(
     report = query.check_invariant()
     assert report.ok is True
     assert report.only_in_a == () and report.only_in_b == ()
+
+
+# ── SRD-EXE-014.008 — order-state-gated lifecycle transitions ────────────────
+
+
+def test_filled_buy_flips_monitoring_to_entered(
+    build_service: Callable[..., tuple[MonitoringQuery, MonitoringCommand, MonitoringEventBus]],
+    make_screener_result: Callable[..., object],
+    event_collector: Callable[[MonitoringEventBus], list],
+    seed_user: int,
+) -> None:
+    """UT-EXE-014.008.M01.T01: A fully FILLED system BUY flips MONITORING -> ENTERED."""
+    query, cmd, bus = build_service(today=_T0)
+    events = event_collector(bus)
+
+    cmd.on_screener_results(make_screener_result(passed=["A"]))
+    cmd.on_fill(_buy_fill("A", trade_id="t1", qty=100,
+                          order_state=ExecutionEnums.BuyOrderState.FILLED))
+
+    row = query.session_for(_T0, "A")
+    assert row is not None
+    assert row.lifecycle_state == LifecycleState.ENTERED
+    assert any(isinstance(e, SymbolEnteredPosition) for e in events)
+
+
+def test_partial_buy_holds_monitoring(
+    build_service: Callable[..., tuple[MonitoringQuery, MonitoringCommand, MonitoringEventBus]],
+    make_screener_result: Callable[..., object],
+    event_collector: Callable[[MonitoringEventBus], list],
+    seed_user: int,
+) -> None:
+    """UT-EXE-014.008.M01.T02: A PARTIAL_FILLED entry BUY records the position but leaves the row MONITORING."""
+    query, cmd, bus = build_service(today=_T0)
+    events = event_collector(bus)
+
+    cmd.on_screener_results(make_screener_result(passed=["A"]))
+    cmd.on_fill(_buy_fill("A", trade_id="t1", qty=40,
+                          order_state=ExecutionEnums.BuyOrderState.PARTIAL_FILLED))
+
+    row = query.session_for(_T0, "A")
+    assert row is not None
+    assert row.lifecycle_state == LifecycleState.MONITORING
+    assert not any(isinstance(e, SymbolEnteredPosition) for e in events)
+    assert any(isinstance(e, SymbolPositionScaled) for e in events)
+
+
+def test_partial_then_filled_buy_enters(
+    build_service: Callable[..., tuple[MonitoringQuery, MonitoringCommand, MonitoringEventBus]],
+    make_screener_result: Callable[..., object],
+    event_collector: Callable[[MonitoringEventBus], list],
+    seed_user: int,
+) -> None:
+    """UT-EXE-014.008.M01.T03: The FILLED fill that completes a partial entry flips MONITORING -> ENTERED."""
+    query, cmd, bus = build_service(today=_T0)
+    events = event_collector(bus)
+
+    cmd.on_screener_results(make_screener_result(passed=["A"]))
+    cmd.on_fill(_buy_fill("A", trade_id="t1", qty=40,
+                          order_state=ExecutionEnums.BuyOrderState.PARTIAL_FILLED))
+    cmd.on_fill(_buy_fill("A", trade_id="t2", qty=60,
+                          order_state=ExecutionEnums.BuyOrderState.FILLED))
+
+    row = query.session_for(_T0, "A")
+    assert row is not None
+    assert row.lifecycle_state == LifecycleState.ENTERED
+    assert any(isinstance(e, SymbolEnteredPosition) for e in events)
+
+
+def test_filled_sell_closing_flips_to_exited(
+    build_service: Callable[..., tuple[MonitoringQuery, MonitoringCommand, MonitoringEventBus]],
+    make_screener_result: Callable[..., object],
+    event_collector: Callable[[MonitoringEventBus], list],
+    seed_user: int,
+) -> None:
+    """UT-EXE-014.008.M01.T04: A fully FILLED SELL that closes the position flips ENTERED -> EXITED."""
+    query, cmd, bus = build_service(today=_T0)
+    events = event_collector(bus)
+
+    cmd.on_screener_results(make_screener_result(passed=["A"]))
+    cmd.on_fill(_buy_fill("A", trade_id="t1", qty=100,
+                          order_state=ExecutionEnums.BuyOrderState.FILLED))
+    cmd.on_fill(_sell_fill("A", trade_id="t2", qty=100,
+                           order_state=ExecutionEnums.SellOrderState.FILLED))
+
+    row = query.session_for(_T0, "A")
+    assert row is not None
+    assert row.lifecycle_state == LifecycleState.EXITED
+    assert any(isinstance(e, SymbolExitedPosition) for e in events)
+
+
+def test_unfilled_sell_does_not_exit_even_when_quantity_zero(
+    build_service: Callable[..., tuple[MonitoringQuery, MonitoringCommand, MonitoringEventBus]],
+    make_screener_result: Callable[..., object],
+    event_collector: Callable[[MonitoringEventBus], list],
+    seed_user: int,
+) -> None:
+    """UT-EXE-014.008.M01.T05: A SELL whose order is not fully FILLED does not flip ENTERED -> EXITED."""
+    query, cmd, bus = build_service(today=_T0)
+    events = event_collector(bus)
+
+    cmd.on_screener_results(make_screener_result(passed=["A"]))
+    cmd.on_fill(_buy_fill("A", trade_id="t1", qty=100,
+                          order_state=ExecutionEnums.BuyOrderState.FILLED))
+    cmd.on_fill(_sell_fill("A", trade_id="t2", qty=100,
+                           order_state=ExecutionEnums.SellOrderState.PARTIAL_FILLED))
+
+    row = query.session_for(_T0, "A")
+    assert row is not None
+    assert row.lifecycle_state == LifecycleState.ENTERED
+    assert not any(isinstance(e, SymbolExitedPosition) for e in events)

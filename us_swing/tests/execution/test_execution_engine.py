@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timezone
+from typing import Callable
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -12,7 +13,9 @@ import sqlalchemy as sa
 
 from us_swing.data.models import (
     AccountState,
+    IBKRCancel,
     IBKRFill,
+    IBKRReject,
     OpenPosition,
     RiskConfig,
 )
@@ -87,6 +90,7 @@ def _engine_under_test(
     risk: RiskManager | None = None,
     fills: list[FillEvent] | None = None,
     timeout: float = 2.0,
+    on_order_failed: Callable[[str, str], None] | None = None,
 ) -> ExecutionEngine:
     tracker = PositionTracker(db)
     fill_list: list[FillEvent] = fills if fills is not None else []
@@ -101,6 +105,7 @@ def _engine_under_test(
         user_id=1,
         loop=loop,
         timeout=timeout,
+        on_order_failed=on_order_failed,
     )
     return ee
 
@@ -260,6 +265,79 @@ def test_handle_fill_exit_records_order_state(db: DatabaseManager, engine):
     assert row["order_state"]     == "FILLED"
     assert row["filled_quantity"] == 500
     assert row["exit_price"]      == pytest.approx(55.0)
+
+
+# ── handle_order_reject / handle_order_cancel ──────────────────────────────────
+
+def test_handle_order_reject_sets_rejected_and_signals_abort(
+    db: DatabaseManager, engine
+) -> None:
+    """UT-EXE-014.005.M01.T01: handle_order_reject stamps REJECTED with zero fill and signals abort."""
+    from us_swing.data.models import TradeRecord
+    failed: list[tuple[str, str]] = []
+    ibkr = _mock_ibkr()
+    ee = _engine_under_test(
+        db, ibkr,
+        on_order_failed=lambda tid, reason: failed.append((tid, reason)),
+    )
+    db.insert_trade(TradeRecord(
+        trade_id="100",
+        user_id=1,
+        symbol="AAPL",
+        side="BUY",
+        quantity=100,
+        entry_price=50.0,
+        mode="live",
+        strategy_id="s1",
+        entry_time=datetime.now(tz=timezone.utc),
+        order_state=ExecutionEnums.BuyOrderState.NEW.value,
+        filled_quantity=0,
+    ))
+    ee._pending[100] = "100"
+
+    ee.handle_order_reject(
+        IBKRReject(order_id=100, symbol="AAPL", reason="insufficient margin")
+    )
+
+    with engine.connect() as conn:
+        row = conn.execute(sa.select(trades).where(trades.c.trade_id == "100")).mappings().first()
+    assert row is not None
+    assert row["order_state"]     == "REJECTED"
+    assert row["filled_quantity"] == 0
+    assert failed == [("100", "broker_reject")]
+
+
+def test_handle_order_cancel_preserves_partial_fill(
+    db: DatabaseManager, engine
+) -> None:
+    """UT-EXE-014.006.M01.T02: handle_order_cancel stamps CANCELLED and preserves the partial filled_quantity."""
+    from us_swing.data.models import TradeRecord
+    ibkr = _mock_ibkr()
+    ee = _engine_under_test(db, ibkr)
+    db.insert_trade(TradeRecord(
+        trade_id="200",
+        user_id=1,
+        symbol="MSFT",
+        side="SELL",
+        quantity=100,
+        entry_price=300.0,
+        mode="live",
+        strategy_id="s1",
+        entry_time=datetime.now(tz=timezone.utc),
+        order_state=ExecutionEnums.SellOrderState.PARTIAL_FILLED.value,
+        filled_quantity=40,
+    ))
+    ee._pending[200] = "200"
+
+    ee.handle_order_cancel(
+        IBKRCancel(order_id=200, symbol="MSFT", filled_quantity=40)
+    )
+
+    with engine.connect() as conn:
+        row = conn.execute(sa.select(trades).where(trades.c.trade_id == "200")).mappings().first()
+    assert row is not None
+    assert row["order_state"]     == "CANCELLED"
+    assert row["filled_quantity"] == 40
 
 
 # ── exit_position ─────────────────────────────────────────────────────────────

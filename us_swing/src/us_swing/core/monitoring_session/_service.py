@@ -37,11 +37,26 @@ from us_swing.core.monitoring_session._events import (
 )
 from us_swing.core.monitoring_session._protocols import MonitoringEventBus
 from us_swing.core.monitoring_session._repository import MonitoringRepository
+from us_swing.execution import ExecutionEnums
 
 log = logging.getLogger(__name__)
 
 _NY = ZoneInfo("America/New_York")
 _RETRY_BACKOFF_S = 0.20
+
+
+def _is_complete_fill(
+    order_state: ExecutionEnums.BuyOrderState | ExecutionEnums.SellOrderState | None,
+) -> bool:
+    """Whether a fill fully completes its order, advancing lifecycle state.
+
+    ``None`` (legacy callers without an order-state) counts as complete, so
+    existing system and manual fills keep their pre-SRD-EXE-014.008 behaviour.
+    """
+    return order_state is None or order_state in (
+        ExecutionEnums.BuyOrderState.FILLED,
+        ExecutionEnums.SellOrderState.FILLED,
+    )
 
 
 def _today_et() -> date:
@@ -237,12 +252,17 @@ class MonitoringSessionService:
                     return
 
                 anchor_date = anchor.session_date
-                self._repo.transition_to_entered(
-                    session_date = anchor_date,
-                    symbol       = fill.symbol,
-                    entered_at   = fill.fill_time,
-                    trade_id     = fill.trade_id,
-                )
+                # SRD-EXE-014.008 — only a fully FILLED entry order flips the
+                # ledger MONITORING -> ENTERED; a partial fill records the
+                # position but the symbol stays MONITORING until it completes.
+                entry_complete = _is_complete_fill(fill.order_state)
+                if entry_complete:
+                    self._repo.transition_to_entered(
+                        session_date = anchor_date,
+                        symbol       = fill.symbol,
+                        entered_at   = fill.fill_time,
+                        trade_id     = fill.trade_id,
+                    )
                 self._repo.insert_trade_with_anchor(
                     trade_id            = fill.trade_id,
                     user_id             = fill.user_id,
@@ -254,7 +274,7 @@ class MonitoringSessionService:
                     origin              = TradeOrigin.SYSTEM,
                     anchor_session_date = anchor_date,
                 )
-                self._repo.upsert_position_with_anchor(
+                snap = self._repo.upsert_position_with_anchor(
                     user_id             = fill.user_id,
                     symbol              = fill.symbol,
                     side                = fill.side,
@@ -263,16 +283,30 @@ class MonitoringSessionService:
                     origin              = TradeOrigin.SYSTEM,
                     anchor_session_date = anchor_date,
                 )
-                self._bus.publish(SymbolEnteredPosition(
-                    event_id            = uuid4().hex,
-                    occurred_at         = self._clock().isoformat(),
-                    symbol              = fill.symbol,
-                    anchor_session_date = anchor_date,
-                    trade_id            = fill.trade_id,
-                    fill_qty            = fill.qty,
-                    fill_time           = fill.fill_time,
-                    schema_version      = 1,
-                ))
+                if entry_complete:
+                    self._bus.publish(SymbolEnteredPosition(
+                        event_id            = uuid4().hex,
+                        occurred_at         = self._clock().isoformat(),
+                        symbol              = fill.symbol,
+                        anchor_session_date = anchor_date,
+                        trade_id            = fill.trade_id,
+                        fill_qty            = fill.qty,
+                        fill_time           = fill.fill_time,
+                        schema_version      = 1,
+                    ))
+                else:
+                    self._bus.publish(SymbolPositionScaled(
+                        event_id            = uuid4().hex,
+                        occurred_at         = self._clock().isoformat(),
+                        symbol              = fill.symbol,
+                        anchor_session_date = anchor_date,
+                        trade_id            = fill.trade_id,
+                        side                = fill.side,
+                        fill_qty            = fill.qty,
+                        new_position_state  = snap.state,
+                        fill_time           = fill.fill_time,
+                        schema_version      = 1,
+                    ))
                 return
 
             # has_open == True — scale-in, scale-out, or closing fill.
@@ -298,7 +332,30 @@ class MonitoringSessionService:
                 anchor_session_date = open_anchor,
             )
 
-            if snap.state == "CLOSED":
+            # SRD-EXE-014.008 — a BUY that completes a previously partial entry
+            # flips the still-MONITORING ledger row to ENTERED.
+            if fill.side is Side.BUY and _is_complete_fill(fill.order_state):
+                pending = self._repo.fetch_earliest_open_monitoring_row(fill.symbol)
+                if pending is not None:
+                    self._repo.transition_to_entered(
+                        session_date = pending.session_date,
+                        symbol       = fill.symbol,
+                        entered_at   = fill.fill_time,
+                        trade_id     = fill.trade_id,
+                    )
+                    self._bus.publish(SymbolEnteredPosition(
+                        event_id            = uuid4().hex,
+                        occurred_at         = self._clock().isoformat(),
+                        symbol              = fill.symbol,
+                        anchor_session_date = pending.session_date,
+                        trade_id            = fill.trade_id,
+                        fill_qty            = fill.qty,
+                        fill_time           = fill.fill_time,
+                        schema_version      = 1,
+                    ))
+                    return
+
+            if snap.state == "CLOSED" and _is_complete_fill(fill.order_state):
                 # SRD-EXE-009.007 — exit transition.
                 if open_anchor is not None:
                     self._repo.transition_to_exited(

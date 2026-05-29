@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import pytest
-from datetime import date
+from datetime import date, timedelta
 from typing import Callable
 
 from sqlalchemy import Engine, text
@@ -383,14 +383,18 @@ def test_it_010_002_history_survives_eviction(
     seed_user: int,
 ) -> None:
     """IT-EXE-010.002: History survives eviction — ledger row preserved, price rows deleted."""
-    query0, cmd0, bus0 = build_service(today=_T0, filtered={"B"})
+    # Dates are relative to today so the EVICTED row's session_date stays inside
+    # history()'s rolling `days=7` window, which is measured against the real clock.
+    t0 = date.today() - timedelta(days=2)   # day-1
+    t1 = t0 + timedelta(days=1)             # day-2
+    query0, cmd0, bus0 = build_service(today=t0, filtered={"B"})
     cmd0.on_screener_results(
-        make_screener_result(passed=["B"], run_timestamp="2026-05-14T13:30:00Z")
+        make_screener_result(passed=["B"], run_timestamp=f"{t0.isoformat()}T13:30:00Z")
     )
     seed_price("B", 3)
 
-    query1, cmd1, bus1 = build_service(today=_T1, filtered=set())
-    cmd1.reconcile_preopen(_T1)
+    query1, cmd1, bus1 = build_service(today=t1, filtered=set())
+    cmd1.reconcile_preopen(t1)
 
     # History must include at least one EVICTED row for B.
     history = query1.history("B", days=7)

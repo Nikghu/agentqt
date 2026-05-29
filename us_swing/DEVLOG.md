@@ -2,6 +2,20 @@
 
 ---
 
+## [20260529] EXE — FO-EXE-014 completion: broker reject/cancel + OPENING-hold + order-state-gated lifecycle
+
+- Type: Feature
+- FO(s): FO-EXE-014
+- RN: RN-EXE-1.16.0-20260529
+- Artifacts updated: SRD-EXE-014.005–.008 Approved→Implemented, UTCD +10 cases, TRACE-EXE 1.10→1.11, CONTEXT §0, DEVLOG
+- Summary: Implemented the four remaining FO-EXE-014 SRDs (set Approved by the user this session) at the component level. `.005`/`.006`: `ExecutionEngine.handle_order_reject` (REJECTED + zero fill + cycle-abort signal via a new injected `on_order_failed` callback) and `handle_order_cancel` (CANCELLED + preserved partial `filled_quantity`); new `IBKRReject`/`IBKRCancel` DTOs. `.007`: `TradeCycleService.on_entry_fill` gained `order_state` — PARTIAL_FILLED holds OPENING, FILLED opens (OPENING→OPEN publishes CycleUpdated). `.008`: monitoring `FillEvent` gained optional `order_state`; `on_fill` gates ENTERED/EXITED on a fully FILLED order (None preserves prior behaviour).
+- Code: 6 source files — `data/models.py`, `execution/execution_engine.py`, `execution/trade_cycle/{_service,_protocols}.py`, `core/monitoring_session/{_dto,_service}.py`.
+- Tests: 10 new UTCD cases pass; suites green — monitoring_session (66), trade_cycle service (18), execution_engine (12), lifecycle e2e. ruff + mypy --strict clean on changed modules.
+- Also: landed the deferred date-decay test fix (history fixtures now relative to `date.today()`). Installed `TA-Lib 0.6.8` (wheel) to run the EXE suite — unmasked 12 pre-existing failures in candle-loader/tick-worker/strategy-evaluator (confirmed failing identically on a stashed clean HEAD; unrelated to this change).
+- Deferred → FO-EXE-003: engine `handle_order_fill` PARTIAL-vs-FILLED computation (feeds `.004`'s trades-row, not `on_entry_fill`); `app_service` production wiring (live reject/cancel routing, `on_fill` order_state feed, `on_order_failed → on_entry_failed(cycle_id)` map).
+
+---
+
 ## [20260529] EXE — Final_Execution.md Phase 4: LifecycleState internalisation (state-enum consolidation COMPLETE)
 
 - Type: Refactor
