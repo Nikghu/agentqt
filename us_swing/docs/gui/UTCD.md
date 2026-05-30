@@ -1,10 +1,10 @@
 ﻿# Unit Test Case Document â€” GUI Module (GUI)
 
 **Document ID:** UTCD-GUI
-**Version:** 1.3.0
+**Version:** 1.3.1
 **Traces To:** MD-GUI v1.3.0
 **Status:** Draft
-**Last Updated:** 2026-05-22
+**Last Updated:** 2026-05-29
 **Project:** US Swing Trading System
 
 > v1.3.0: UTCD-GUI-013 (Strategy Builder Dialog, 22 tests) and UTCD-GUI-014 (Active Cycles Panel, 24 tests) added.
@@ -59,6 +59,8 @@
 | UT-GUI-004.001.M01.T03 | MD-GUI-004.001.M01 | Unit | Override qty spinbox minimum is 1 | Attempt to set value to 0 | `_spin.value() == 1` (clamped by `setRange(1, 10_000)`) | Implemented |
 | UT-GUI-004.001.M01.T04 | MD-GUI-004.001.M01 | Unit | Circuit breaker disables all execute buttons and shows banner | `panel.on_circuit_breaker(True)` | All `_SignalRow._exec_btn.isEnabled() == False`; `_cb_banner.isVisible() == True` | Implemented |
 | UT-GUI-004.001.M01.T05 | MD-GUI-004.001.M01 | Unit | `viewing_changed` syncs Execute-for combo to current scope | `svc.set_viewing_uid(user_id)` | `_exec_user_combo` index matches `user_id` entry | Implemented |
+| UT-GUI-004.001.M01.T06 | MD-GUI-004.001.M01 | Positive | `_on_run()` on SQUARING_OFF with no open cycles forces run_state to STOPPED and saves | `run_state="SQUARING_OFF"`; `get_open_symbols_for_strategy` returns `[]`; call `_on_run(0)` | `cfg.strategy_signal["run_state"] == "STOPPED"`; `save_strategies` called once | Pass |
+| UT-GUI-004.001.M01.T07 | MD-GUI-004.001.M01 | Negative | `_on_run()` on SQUARING_OFF with open cycles leaves state unchanged and does not save | `run_state="SQUARING_OFF"`; `get_open_symbols_for_strategy` returns `["AAPL","MSFT"]`; call `_on_run(0)` | `cfg.strategy_signal["run_state"] == "SQUARING_OFF"`; `save_strategies` not called | Pass |
 
 ---
 

@@ -149,6 +149,9 @@
 | UT-EXE-006.001.M01.T11 | MD-EXE-006.001.M01 | Edge | Full-fetch paging: 65 trading-day window requires multiple IBKR requests | New symbol; full fetch mode | `IBKRClient.req_historical_data()` called â‰¥ 3 times (pages); all results concatenated before insert | Pass |
 | UT-EXE-006.001.M01.T12 | MD-EXE-006.001.M01 | Negative | `load()` with empty symbol list completes immediately with no DB writes | `symbols=[]` | `load_complete` emitted with empty results list; `insert_bars()` never called | Pass |
 | UT-EXE-006.001.M01.T13 | MD-EXE-006.001.M01 | Negative | Minimum candle window check â€” IBKR returns fewer bars than 65-day target (truncated history for new listing) | New symbol; IBKR returns only 800 1 m bars (â‰ˆ 2 days) for full-fetch window | Symbol included in failed list with reason `'insufficient_candles'`; no exception propagates; remaining symbols continue | Pass |
+| UT-EXE-006.001.M01.T14 | MD-EXE-006.001.M01 | Positive | `load_execution_frames` derives 3m and 15m by aggregating `price_1m` when the physical `price_3m`/`price_15m` tables are empty (SRD-EXE-006.010) | candles.db with 900 contiguous 1 m bars for SYM; empty `price_3m`/`price_15m` | dict contains `'3m'` (~300 bars) and `'15m'` (~60 bars) non-empty frames with columns datetime/open/high/low/close/volume | Pass |
+| UT-EXE-006.001.M01.T15 | MD-EXE-006.001.M01 | Positive | A live `price_3m` bar is merged over the aggregated history and de-duplicated by timestamp, live value winning | 1 m history for SYM plus one `price_3m` row at an already-aggregated timestamp with a distinct close | merged 3m frame holds that timestamp exactly once and carries the live close | Pass |
+| UT-EXE-006.001.M01.T16 | MD-EXE-006.001.M01 | Negative | No 1 m and no live bars yields an empty result rather than an error | empty candles.db for SYM | `load_execution_frames` returns `{}`; `load_latest_execution_bar` returns `None` | Pass |
 
 ---
 
@@ -184,14 +187,11 @@
 | ID | Module | Type | Objective | Input | Expected Output | Status |
 |---|---|---|---|---|---|---|
 | UT-EXE-007.001.M01.T13 | MD-EXE-007.001.M01 | Positive | `candle_updated` emitted with correct symbol and `PartialBar` on every RTH tick | Two 5-second bars arrive for `'AAPL'` in same 3m window | `candle_updated` fired twice; second emission's `PartialBar.tick_count == 2` | Draft |
-| UT-EXE-007.001.M01.T14 | MD-EXE-007.001.M01 | Positive | `candle_closed` emitted with correct `OHLCVBar` when 3m boundary crossed | First window complete with 6 ticks; new bar from next window arrives | `candle_closed` emitted once with `OHLCVBar(timeframe='3m', datetime=window_start)`; `candle_updated` also emitted for the new partial | Draft |
 
 ### `_close_bar` + DB persistence (SRD-EXE-007.006)
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
 |---|---|---|---|---|---|---|
-| UT-EXE-007.001.M01.T15 | MD-EXE-007.001.M01 | Positive | `_close_bar()` calls `insert_bars(symbol, '3m', [bar])` with the finalised `OHLCVBar` | Partial bar with `window_start=T` closed | `DatabaseManager.insert_bars` called with `timeframe='3m'`; in-memory SQLite `price_3m` contains exactly 1 row for `(symbol, T)` | Draft |
-| UT-EXE-007.001.M01.T16 | MD-EXE-007.001.M01 | Edge | `_close_bar()` is idempotent â€” second call for same `(symbol, window_start)` inserts 0 rows | `_close_bar()` called twice with identical `PartialBar` | `price_3m` row count for `(symbol, T)` remains 1 (INSERT OR IGNORE); no exception | Draft |
 
 ### Dynamic subscription â€” `set_symbols` (SRD-EXE-007.004)
 
@@ -233,7 +233,6 @@
 |---|---|---|---|---|---|---|
 | UT-EXE-008.001.M01.T01 | MD-EXE-008.001.M01 | Positive | `LiveTickWorker` is a `QThread` subclass with `tick_price` and `subscription_failed` signals | `LiveTickWorker("127.0.0.1", 7497, 14)` | `isinstance(w, QThread) is True`; `hasattr(w, "tick_price") and hasattr(w, "subscription_failed")` | Pass |
 | UT-EXE-008.001.M01.T02 | MD-EXE-008.001.M01 | Negative | Worker not started â€” no `tick_price` emitted when `_on_pending_tickers` is called directly | Instantiate worker (do not call `start()`); call `_on_pending_tickers({mock_ticker})` | `tick_price` signal not emitted (no running event loop; `_tag_by_conid` is empty) | Pass |
-| UT-EXE-008.001.M01.T16 | MD-EXE-008.001.M01 | Negative | `live_tick_worker` module imports no GUI or DB module at module level | `import us_swing.execution.live_tick_worker`; inspect `sys.modules` | No `PyQt6.QtWidgets`, `gui`, or `db` module present in `sys.modules` as a side-effect of the import | Pass |
 
 ### set_contracts() reconciliation (SRD-EXE-008.002)
 
@@ -270,8 +269,6 @@
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
 |---|---|---|---|---|---|---|
-| UT-EXE-008.001.M01.T14 | MD-EXE-008.001.M01 | Positive | IBKR error 326 on first connect â†’ retry with clientId+1 succeeds; WARNING logged | Mock `ib.connectAsync` to fail with 326 once then succeed; `initial_client_id=14` | Second connect attempt uses clientId=15; WARNING contains "ClientId 14 in use"; worker not stopped | Pass |
-| UT-EXE-008.001.M01.T15 | MD-EXE-008.001.M01 | Negative | 4 consecutive error 326 â†’ logs ERROR; thread exits; no `tick_price` emitted | Mock `ib.connectAsync` to always fail with 326 | `log.error` called with message containing "Cannot connect"; thread exits; `tick_price` never emitted | Pass |
 
 ---
 
@@ -324,7 +321,6 @@
 | UT-EXE-009.002.M01.T11 | MD-EXE-009.002.M01 | Positive | `open_system_position_symbols` returns only system, non-CLOSED positions | Positions: A (system, OPEN), B (system, CLOSED), C (manual, OPEN) | Returned frozenset == `frozenset({"A"})` | Pass |
 | UT-EXE-009.002.M01.T12 | MD-EXE-009.002.M01 | Negative | `open_system_position_symbols` excludes legacy NULL-origin rows | Positions: D (origin=NULL, OPEN) | "D" not in returned set | Pass |
 | UT-EXE-009.002.M01.T13 | MD-EXE-009.002.M01 | Edge | `entered_symbols` equals `open_system_position_symbols` after fill round-trip | Apply T06 + corresponding `upsert_position_with_anchor` | Both queries return the same frozenset | Pass |
-| UT-EXE-009.002.M01.T14 | MD-EXE-009.002.M01 | Positive | `fetch_history(symbol, days)` returns ledger rows including EVICTED | Symbol "B" with one EVICTED row from 7 days ago | Returned tuple contains the EVICTED row with `evicted_at` populated | Pass |
 
 ---
 
