@@ -423,6 +423,10 @@ class _StrategyTablePane(QWidget):
         - With one or more open cycles: transitions to SQUARING_OFF; the
           engine emits forced EXITs for each open cycle and auto-transitions
           to STOPPED when the last cycle closes (FO-EXE-013 AC#3).
+
+        Stop while SQUARING_OFF: forces STOPPED once no open cycles remain
+        (or the cycle ledger is absent), so a strategy can never be locked
+        into the squaring-off badge; stays SQUARING_OFF while cycles remain.
         """
         if src_row < 0 or src_row >= len(self._configs):
             return
@@ -433,7 +437,10 @@ class _StrategyTablePane(QWidget):
             cfg.strategy_signal["run_state"] = "RUNNING"
             new_state = "RUNNING"
         elif current == "SQUARING_OFF":
-            return
+            if self._demo.get_open_symbols_for_strategy(cfg.name):
+                return
+            cfg.strategy_signal["run_state"] = "STOPPED"
+            new_state = "STOPPED"
         else:
             open_syms = self._demo.get_open_symbols_for_strategy(cfg.name)
             if open_syms:

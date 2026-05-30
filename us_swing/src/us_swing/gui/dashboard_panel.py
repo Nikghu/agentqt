@@ -228,7 +228,7 @@ class _ExitPositionDialog(QDialog):
         sym_lbl = QLabel(f"<b style='color:{C.BLUE};font-size:13pt'>{pos.symbol}</b>")
         sym_lbl.setTextFormat(Qt.TextFormat.RichText)
 
-        state_badge = QLabel(pos.state)
+        state_badge = QLabel("OPEN" if pos.quantity > 0 else "CLOSED")
         state_badge.setStyleSheet(
             f"background:{C.OVERLAY}; color:{C.TEXT};"
             f"border-radius:4px; padding:2px 8px; font-size:8pt; font-weight:bold;"

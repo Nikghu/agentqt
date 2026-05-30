@@ -551,6 +551,67 @@ Counts are approximate (assumes continuous bars). For validation, `aggregate_tim
 
 ---
 
+## DD-EXE-006.010.D01 — Execution Candle Read-Path (Aggregate-on-Read)
+
+**Parent SRD:** SRD-EXE-006.010
+
+**Problem.** The strategy engine evaluates conditions against a
+`dict[str, pd.DataFrame]` of candles keyed by timeframe (SRD-EXE-011.006),
+supplied by `AppService._get_candles_df(symbol)` (candles_provider) and
+`AppService._get_latest_bar(symbol, tf)` (bar_provider). The original code read
+only the materialised `price_3m` / `price_15m` tables, which are written **only**
+by the FO-EXE-007 live feed (RTH, a few bars at a time). Phase 1 (FO-EXE-006)
+downloads deep 1 m history into `price_1m` but never persists derived 3 m / 15 m
+bars — `_validate_candle_counts` aggregates them only to count for the readiness
+gate, then discards them. Outside a long live session the engine therefore sees
+far fewer bars than an indicator needs (e.g. RSI(14) on 3 m needs at least 15
+bars, otherwise it returns NaN, the condition never fires, and no signal is
+enqueued).
+
+**Design.** Surface 3 m / 15 m by aggregating `price_1m` on read, merged with any
+live `price_{tf}` rows. `price_1m` is the single source of truth for historical
+depth; the live tables become a freshness cache. Reuses the pure
+`HistoricalDataEngine.aggregate_timeframe` already used by validation.
+
+New module-level functions in `execution/intraday_candle_loader.py`:
+
+```
+assemble_execution_bars(db, hist, symbol, tf, lookback_days=30) -> list[OHLCVBar]
+    now          = utcnow()
+    window_start = now - lookback_days
+    bars_1m      = db.fetch_bars(symbol, "1m", window_start, now)
+    derived      = hist.aggregate_timeframe(symbol, tf, bars_1m) if bars_1m else []
+    live         = db.fetch_bars(symbol, tf, window_start, now)
+    return _merge_bars(derived, live)        # union by datetime, live wins, asc
+
+load_execution_frames(db, hist, symbol, timeframes=("3m","15m")) -> dict[str, pd.DataFrame]
+    {tf: _bars_to_frame(bars) for tf in timeframes if (bars := assemble_execution_bars(...))}
+
+load_latest_execution_bar(db, hist, symbol, tf) -> OHLCVBar | None
+    None when tf not in ("3m","15m"); else last of assemble_execution_bars(...) or None
+```
+
+`_merge_bars` de-duplicates on `bar.datetime` (live overrides derived for the
+same timestamp) and returns ascending order. `_bars_to_frame` builds the columns
+the evaluator consumes: `datetime, open, high, low, close, volume`.
+
+**Window.** `lookback_days = 30` (= `_FULL_FETCH_CAL_DAYS`, approximately 21
+trading days) yields at least 390 bars for both 3 m and 15 m (SRD-EXE-006.003)
+and matches the download window, so all stored depth is used.
+
+**Cross-tool wiring (`gui/app_service.py`).** `_get_candles_df` /
+`_get_latest_bar` become thin wrappers over the new functions, using a
+lazily-constructed, cached `(DatabaseManager, HistoricalDataEngine)` pair built
+once over `candles.db` with a `DummyProvider` (aggregation is pure — no provider
+I/O). Caching avoids per-tick engine construction; the SQLAlchemy engine is
+thread-safe for the executor-thread calls.
+
+**Cost.** Approximately 21 trading days of 1 m (~8 k rows) aggregated per symbol
+per tick; single-pass linear, under 10 ms — acceptable for the per-minute
+evaluation cadence over the screened set.
+
+---
+
 # FO-EXE-007 — Live 3m Candle Formation During Trading Hours
 
 ## DD-EXE-007.001.D01 — `price_3m` Schema Extension

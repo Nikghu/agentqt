@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+import pandas as pd
 from PyQt6.QtCore import QObject, QThread, pyqtSignal
 
 from us_swing.broker.pacing import PacingQueue
@@ -38,6 +39,96 @@ def _build_tf_counts(
     hist_engine: HistoricalDataEngine,
 ) -> dict[str, int]:
     return {tf: len(hist_engine.aggregate_timeframe(symbol, tf, bars_1m)) for tf in timeframes}
+
+
+def _merge_bars(derived: list[OHLCVBar], live: list[OHLCVBar]) -> list[OHLCVBar]:
+    """Union two bar lists by timestamp; live bars win on conflict, sorted ascending."""
+    by_dt: dict[datetime, OHLCVBar] = {b.datetime: b for b in derived}
+    for bar in live:
+        by_dt[bar.datetime] = bar
+    return [by_dt[dt] for dt in sorted(by_dt)]
+
+
+def _bars_to_frame(bars: list[OHLCVBar]) -> pd.DataFrame:
+    """Build the OHLCV frame consumed by ``ConditionEvaluator`` (SRD-EXE-011.006)."""
+    return pd.DataFrame(
+        {
+            "datetime": [b.datetime for b in bars],
+            "open": [b.open for b in bars],
+            "high": [b.high for b in bars],
+            "low": [b.low for b in bars],
+            "close": [b.close for b in bars],
+            "volume": [b.volume for b in bars],
+        }
+    )
+
+
+def assemble_execution_bars(
+    db: DatabaseManager,
+    hist_engine: HistoricalDataEngine,
+    symbol: str,
+    tf: DerivedTimeframe,
+    lookback_days: int = _FULL_FETCH_CAL_DAYS,
+) -> list[OHLCVBar]:
+    """Assemble a derived-timeframe bar series for strategy evaluation (SRD-EXE-006.010).
+
+    Aggregates stored 1m bars (the source of truth for historical depth) and
+    merges any live ``price_{tf}`` bars already materialised by the live feed.
+
+    Args:
+        db: Candle database handle.
+        hist_engine: Provides the pure ``aggregate_timeframe`` helper.
+        symbol: Ticker symbol.
+        tf: Target derived timeframe (e.g. ``'3m'`` or ``'15m'``).
+        lookback_days: Calendar-day window of 1m history to aggregate.
+
+    Returns:
+        Merged bars sorted ascending by datetime; empty when no source has data.
+    """
+    now = datetime.now(tz=timezone.utc)
+    window_start = now - timedelta(days=lookback_days)
+    bars_1m = db.fetch_bars(symbol, "1m", window_start, now)
+    derived = hist_engine.aggregate_timeframe(symbol, tf, bars_1m) if bars_1m else []
+    live = db.fetch_bars(symbol, tf, window_start, now)
+    return _merge_bars(derived, live)
+
+
+def load_execution_frames(
+    db: DatabaseManager,
+    hist_engine: HistoricalDataEngine,
+    symbol: str,
+    timeframes: tuple[DerivedTimeframe, ...] = _REQUIRED_TIMEFRAMES,
+    lookback_days: int = _FULL_FETCH_CAL_DAYS,
+) -> dict[str, pd.DataFrame]:
+    """Return ``{timeframe: frame}`` for strategy evaluation (SRD-EXE-006.010).
+
+    A timeframe is omitted when neither aggregated 1m history nor live bars
+    exist for it.
+    """
+    frames: dict[str, pd.DataFrame] = {}
+    for tf in timeframes:
+        bars = assemble_execution_bars(db, hist_engine, symbol, tf, lookback_days)
+        if bars:
+            frames[tf] = _bars_to_frame(bars)
+    return frames
+
+
+def load_latest_execution_bar(
+    db: DatabaseManager,
+    hist_engine: HistoricalDataEngine,
+    symbol: str,
+    tf: str,
+    lookback_days: int = _FULL_FETCH_CAL_DAYS,
+) -> OHLCVBar | None:
+    """Return the most recent merged bar for ``(symbol, tf)`` or ``None`` (SRD-EXE-006.010).
+
+    ``None`` when *tf* is not a supported derived timeframe or no bars exist.
+    """
+    for derived_tf in _REQUIRED_TIMEFRAMES:
+        if derived_tf == tf:
+            bars = assemble_execution_bars(db, hist_engine, symbol, derived_tf, lookback_days)
+            return bars[-1] if bars else None
+    return None
 
 
 @dataclass

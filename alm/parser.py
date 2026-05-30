@@ -40,6 +40,16 @@ _PARENT_RE = re.compile(
     r'\*\*Parent\s+(?:FO|SRD|DD|MD|Module):\*\*\s*([\w.-]+)', re.IGNORECASE
 )
 
+# File name → primary artifact doc type.
+# Headings in a file whose ID type differs are section organizers, not definitions.
+_FILE_DOC_TYPE: dict[str, str] = {
+    "FO.md":   "FO",
+    "SRD.md":  "SRD",
+    "DD.md":   "DD",
+    "MD.md":   "MD",
+    "UTCD.md": "UT",
+}
+
 # Folder name → canonical 3-letter tool code.
 # Used to skip cross-tool reference rows (e.g. MD-INF-* inside execution/MD.md).
 _FOLDER_CODE: dict[str, str] = {
@@ -98,10 +108,16 @@ def _parse_file(path: Path, tool: str) -> list[ALMNode]:
     matches = list(_HEADING_RE.finditer(text))
     nodes: list[ALMNode] = []
     seen_ids: set[str] = set()
+    expected_type = _FILE_DOC_TYPE.get(path.name, "")
 
     for i, m in enumerate(matches):
         node_id = m.group(1)
         title = m.group(2).strip()
+
+        # Skip headings that use a different artifact type — they are section
+        # organizers (e.g. "# FO-EXE-001 — Title" inside DD.md), not definitions.
+        if expected_type and node_id.split("-")[0] != expected_type:
+            continue
 
         body_start = m.end()
         body_end = matches[i + 1].start() if i + 1 < len(matches) else len(text)

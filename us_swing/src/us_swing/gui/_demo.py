@@ -231,8 +231,8 @@ class DemoService(QObject):
         """user_id=None → use viewing context (None=all, int=specific)."""
         uid = user_id if user_id is not None else self._viewing_uid
         if uid is None:
-            return [p for p in self._positions if p.state != "CLOSED"]
-        return [p for p in self._positions if p.user_id == uid and p.state != "CLOSED"]
+            return [p for p in self._positions if p.quantity > 0]
+        return [p for p in self._positions if p.user_id == uid and p.quantity > 0]
 
     def get_all_trades(self, user_id: int | None = None) -> list[TradeRecord]:
         uid = user_id if user_id is not None else self._viewing_uid
@@ -470,5 +470,5 @@ def _copy_pos(p: OpenPosition) -> OpenPosition:
         average_price=p.average_price, current_price=p.current_price,
         stop_loss=p.stop_loss, target_price=p.target_price,
         strategy_id=p.strategy_id, entry_time=p.entry_time,
-        state=p.state, mode=p.mode,
+        mode=p.mode,
     )

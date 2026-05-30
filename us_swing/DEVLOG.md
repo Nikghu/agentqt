@@ -2,6 +2,23 @@
 
 ---
 
+## [20260530] EXE + GUI — Two critical fixes (candle read-path, SQUARING_OFF state)
+
+- Type: Bugfix
+- FO(s): FO-EXE-006, FO-GUI-004
+- RN: RN-EXE-1.5.1-20260530, RN-GUI-1.2.3-20260529
+- Artifacts updated: SRD, DD, MD, UTCD, Code, Tests, RN
+- Decisions: Aggregate-on-read pattern; force STOPPED state when no cycles remain
+
+---
+
+## 2026-05-30 — Session 57: ISS-EXE-0001 — Strategy Executor Candle Read-Path Fix
+
+**What changed:** Fixed the strategy executor producing no ENTRY signals. Root cause: the candle read-path (`AppService._get_candles_df` / `_get_latest_bar`) read only the live-fed `price_3m`/`price_15m` tables, which hold only a few bars; the deep `price_1m` history that FO-EXE-006 downloads was never surfaced, so indicators like RSI(14) on 3m got fewer than 15 bars, returned NaN, and no signal fired. Added SRD-EXE-006.010 + DD-EXE-006.010.D01 and implemented aggregate-on-read: new `assemble_execution_bars` / `load_execution_frames` / `load_latest_execution_bar` in `intraday_candle_loader.py` derive 3m/15m from `price_1m` (via `HistoricalDataEngine.aggregate_timeframe`) merged with live bars; `app_service.py` wrappers use a cached DB + aggregation engine. UT-EXE-006.001.M01.T14-T16 (4 cases) pass; ruff + mypy clean on changed code. Resolves ISS-EXE-0001 / RN-EXE-1.5.1-20260530.
+
+**Why:** When Phase 2 (FO-EXE-007) added physical 3m/15m tables for the live feed, the strategy engine's consumer was wired to those sparse tables instead of the 1m-derived history, leaving strategies blind outside an active RTH session.
+
+
 ## [20260529] EXE — FO-EXE-014 completion: broker reject/cancel + OPENING-hold + order-state-gated lifecycle
 
 - Type: Feature

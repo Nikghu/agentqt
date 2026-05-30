@@ -270,7 +270,6 @@ class _AccountDataWorker(QThread):
                     stop_loss       = 0.0,
                     target_price    = 0.0,
                     mode            = "live",
-                    state           = "OPEN",
                     current_price   = ltp,
                     strategy_id     = "IBKR",
                     filled_quantity = abs(qty),
@@ -1085,6 +1084,7 @@ class AppService(QObject):
         self._intraday_loader: IntradayCandleLoader | None = None
         self._readiness_worker: _ReadinessWorker | None = None
         self._pending_candle_symbols: list[str] | None = None
+        self._exec_candle_src: tuple[DatabaseManager, HistoricalDataEngine] | None = None
 
         # ── Monitoring session lifecycle (FO-EXE-009 / FO-EXE-010) ───────────
         # Service is built eagerly here so the SQLAlchemy engine + event bus
@@ -1244,8 +1244,8 @@ class AppService(QObject):
             return list(self._ibkr_positions)
         uid = user_id if user_id is not None else self._viewing_uid
         if uid is None:
-            return [p for p in self._positions if p.state != "CLOSED"]
-        return [p for p in self._positions if p.user_id == uid and p.state != "CLOSED"]
+            return [p for p in self._positions if p.quantity > 0]
+        return [p for p in self._positions if p.user_id == uid and p.quantity > 0]
 
     def get_all_trades(self, user_id: int | None = None) -> list[TradeRecord]:
         uid = user_id if user_id is not None else self._viewing_uid
@@ -1682,57 +1682,53 @@ class AppService(QObject):
             self._pending_candle_symbols = None
             self._start_intraday_loader(pending)
 
-    def _get_candles_df(self, symbol: str) -> dict[str, pd.DataFrame]:
-        """Load 3m and 15m bars for *symbol* from the intraday candle DB."""
-        _tf_table = {"3m": "price_3m", "15m": "price_15m"}
+    def _execution_candle_source(
+        self,
+    ) -> tuple[DatabaseManager, HistoricalDataEngine] | None:
+        """Lazily build and cache the candle DB handle + aggregation engine.
+
+        Returns None when the candle database does not yet exist. The
+        aggregation engine uses a ``DummyProvider`` because
+        ``aggregate_timeframe`` is pure and performs no provider I/O.
+        """
         if not _CANDLE_DB_PATH.exists():
+            return None
+        if self._exec_candle_src is None:
+            from us_swing.config.settings import DataConfig
+            from us_swing.data.engine import HistoricalDataEngine
+            from us_swing.data.providers.dummy_provider import DummyProvider
+            from us_swing.db.manager import DatabaseManager
+            db = DatabaseManager(f"sqlite:///{_CANDLE_DB_PATH}")
+            self._exec_candle_src = (db, HistoricalDataEngine(DummyProvider(), db, DataConfig()))
+        return self._exec_candle_src
+
+    def _get_candles_df(self, symbol: str) -> dict[str, pd.DataFrame]:
+        """Build 3m/15m frames for *symbol* for strategy evaluation.
+
+        Derives historical depth by aggregating stored 1m bars and merges any
+        live 3m/15m bars (SRD-EXE-006.010), so strategies have full history
+        without an active live session.
+        """
+        from us_swing.execution.intraday_candle_loader import load_execution_frames
+        src = self._execution_candle_source()
+        if src is None:
             return {}
-        result: dict[str, pd.DataFrame] = {}
+        db, hist = src
         try:
-            with sqlite3.connect(str(_CANDLE_DB_PATH)) as conn:
-                for tf, table in _tf_table.items():
-                    cur = conn.execute(
-                        f"SELECT datetime, open, high, low, close, volume"  # noqa: S608
-                        f" FROM {table} WHERE symbol = ?"
-                        f" ORDER BY datetime ASC LIMIT 200",
-                        (symbol,),
-                    )
-                    rows = cur.fetchall()
-                    if rows:
-                        result[tf] = pd.DataFrame(
-                            rows,
-                            columns=["datetime", "open", "high", "low", "close", "volume"],
-                        )
+            return load_execution_frames(db, hist, symbol)
         except Exception:
             _log.warning("[Strategy] Failed to load candle frames for %s", symbol)
-        return result
+            return {}
 
     def _get_latest_bar(self, symbol: str, tf: str) -> OHLCVBar | None:
-        """Return the most recent bar for *symbol* at *tf* from the intraday DB."""
-        _tf_table = {"3m": "price_3m", "15m": "price_15m"}
-        table = _tf_table.get(tf)
-        if table is None or not _CANDLE_DB_PATH.exists():
+        """Return the most recent merged bar for *symbol* at *tf* (SRD-EXE-006.010)."""
+        from us_swing.execution.intraday_candle_loader import load_latest_execution_bar
+        src = self._execution_candle_source()
+        if src is None:
             return None
+        db, hist = src
         try:
-            with sqlite3.connect(str(_CANDLE_DB_PATH)) as conn:
-                cur = conn.execute(
-                    f"SELECT symbol, datetime, open, high, low, close, volume"  # noqa: S608
-                    f" FROM {table} WHERE symbol = ? ORDER BY datetime DESC LIMIT 1",
-                    (symbol,),
-                )
-                row = cur.fetchone()
-            if row is None:
-                return None
-            return OHLCVBar(
-                symbol=row[0],
-                datetime=row[1],
-                open=float(row[2]),
-                high=float(row[3]),
-                low=float(row[4]),
-                close=float(row[5]),
-                volume=int(row[6]),
-                timeframe=tf,
-            )
+            return load_latest_execution_bar(db, hist, symbol, tf)
         except Exception:
             _log.warning("[Strategy] Failed to load latest bar for %s (%s)", symbol, tf)
             return None
@@ -1781,7 +1777,7 @@ class AppService(QObject):
                       trailing: bool = False, trail_by: str = "", trail_val: float = 0.0) -> None:
         uid = user_id if user_id is not None else self._active_uid
         for p in self._positions:
-            if p.symbol == symbol and p.user_id == uid and p.state != "CLOSED":
+            if p.symbol == symbol and p.user_id == uid and p.quantity > 0:
                 old_sl    = p.stop_loss
                 p.stop_loss = price
                 if trailing:
@@ -1886,7 +1882,6 @@ class AppService(QObject):
             stop_loss       = hard_sl,
             target_price    = target_price or 0.0,
             mode            = "paper",
-            state           = "OPEN",
             current_price   = fill.fill_price,
             strategy_id     = fill.strategy_id,
             filled_quantity = fill.fill_qty,
