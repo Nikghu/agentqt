@@ -128,6 +128,25 @@ class TradeCycleRepository:
             rows = conn.execute(stmt).mappings().all()
         return tuple(_row_to_snapshot(r) for r in rows)
 
+    def closed_between(self, start_iso: str, end_iso: str) -> tuple[CycleSnapshot, ...]:
+        """Cycles that reached CLOSED with ``closed_at`` in [start, end).
+
+        Bounds are UTC ISO strings; the caller converts the desired local
+        (e.g. ET) day window to UTC before calling.
+        """
+        stmt = (
+            sa.select(trade_cycles)
+            .where(
+                trade_cycles.c.state    == TradeCycleState.CLOSED.value,
+                trade_cycles.c.closed_at >= start_iso,
+                trade_cycles.c.closed_at <  end_iso,
+            )
+            .order_by(trade_cycles.c.cycle_id.asc())
+        )
+        with self._engine.connect() as conn:
+            rows = conn.execute(stmt).mappings().all()
+        return tuple(_row_to_snapshot(r) for r in rows)
+
     def has_open_cycle(self, strategy_id: str, symbol: str) -> bool:
         stmt = (
             sa.select(sa.literal(1))

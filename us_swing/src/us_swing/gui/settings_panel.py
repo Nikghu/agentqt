@@ -37,7 +37,6 @@ from PyQt6.QtWidgets import (
 
 from us_swing.gui.app_service import AppService
 from us_swing.data.models import RiskConfig, UserProfile
-from us_swing.gui.system_store import SystemConfig
 from us_swing.gui.theme import C, active_palette, colors
 
 
@@ -270,8 +269,11 @@ class _RiskTab(QWidget):
 
         def _spin(lo, hi, val, dec=1, suffix=""):
             s = QDoubleSpinBox()
-            s.setRange(lo, hi); s.setDecimals(dec); s.setValue(val)
-            if suffix: s.setSuffix(suffix)
+            s.setRange(lo, hi)
+            s.setDecimals(dec)
+            s.setValue(val)
+            if suffix:
+                s.setSuffix(suffix)
             return s
 
         rc = user.risk_config
@@ -414,15 +416,52 @@ class _SystemTab(QWidget):
         theme_wrapper.setContentsMargins(20, 12, 20, 0)
         theme_wrapper.addWidget(theme_box)
 
+        # ── Diagnostics group ────────────────────────────────────────────────────
+        diag_box = QGroupBox("Diagnostics")
+        diag_row = QHBoxLayout(diag_box)
+        diag_row.setContentsMargins(12, 8, 12, 8)
+        diag_row.setSpacing(8)
+
+        self._candle_db_btn = QPushButton("Candle DB")
+        self._candle_db_btn.setFixedWidth(120)
+        self._candle_db_btn.clicked.connect(self._on_candle_db)
+
+        self._cb_toggle = QPushButton()
+        self._cb_toggle.setObjectName("danger_btn")
+        self._cb_toggle.setFixedWidth(200)
+        self._cb_toggle.clicked.connect(self._on_toggle_cb)
+        self._refresh_cb_label()
+        self._demo.circuit_breaker_changed.connect(lambda _a: self._refresh_cb_label())
+
+        diag_row.addWidget(self._candle_db_btn)
+        diag_row.addWidget(self._cb_toggle)
+        diag_row.addStretch()
+
+        diag_wrapper = QHBoxLayout()
+        diag_wrapper.setContentsMargins(20, 12, 20, 0)
+        diag_wrapper.addWidget(diag_box)
+
         # ── Main layout ────────────────────────────────────────────────────────
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addLayout(form)
         layout.addLayout(btn_row)
         layout.addLayout(theme_wrapper)
+        layout.addLayout(diag_wrapper)
         layout.addStretch()
 
     # ── Helpers ────────────────────────────────────────────────────────────────
+
+    def _refresh_cb_label(self) -> None:
+        active = self._demo.circuit_breaker_active
+        self._cb_toggle.setText("Reset Circuit Breaker" if active else "Trip Circuit Breaker")
+
+    def _on_toggle_cb(self) -> None:
+        self._demo.set_circuit_breaker(not self._demo.circuit_breaker_active)
+
+    def _on_candle_db(self) -> None:
+        from us_swing.gui.execution_panel import _CandleDbDiagDialog
+        _CandleDbDiagDialog(self._demo, self).exec()
 
     def _refresh_sched_btn_label(self) -> None:
         from us_swing.gui.scheduler_store import load_scheduler_config, load_usswing_config

@@ -5,6 +5,7 @@ Parent SRD: SRD-EXE-011.010
 from __future__ import annotations
 
 import logging
+import time
 from typing import Callable
 
 from us_swing.execution.strategy_engine._protocols import FillEvent
@@ -18,7 +19,12 @@ class PaperBroker:
 
     def __init__(self, on_fill: Callable[[FillEvent], None]) -> None:
         self._on_fill = on_fill
-        self._next_order_id = 10_001
+        # Seed from epoch milliseconds so order ids stay unique across app
+        # restarts.  A fixed base reset to the same value each session, so
+        # ids collided with prior sessions' rows and the unique
+        # entry/exit_order_id guard in trade_cycles wrongly matched an old
+        # cycle — silently skipping the close.
+        self._next_order_id = int(time.time() * 1000)
 
     def submit(self, signal: TradeSignal, qty: int) -> int | None:
         order_id = self._next_order_id

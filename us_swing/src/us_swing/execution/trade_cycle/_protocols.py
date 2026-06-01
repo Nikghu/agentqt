@@ -37,6 +37,10 @@ class TradeCycleQuery(Protocol):
         self, strategy_id: str
     ) -> tuple[CycleSnapshot, ...]: ...
 
+    def closed_between(
+        self, start_iso: str, end_iso: str
+    ) -> tuple[CycleSnapshot, ...]: ...
+
 
 @runtime_checkable
 class TradeCycleCommand(Protocol):
@@ -76,6 +80,7 @@ class TradeCycleCommand(Protocol):
         exit_qty:      int,
         exit_time:     str,
         exit_reason:   str,
+        order_state:   ExecutionEnums.SellOrderState = ExecutionEnums.SellOrderState.FILLED,
     ) -> CycleSnapshot: ...
 
     def on_entry_failed(self, cycle_id: int, reason: str) -> CycleSnapshot: ...
