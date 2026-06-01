@@ -355,6 +355,65 @@ def test_on_exit_fill_closes_cycle_and_publishes_cycle_closed(
     assert len(closed_events) == 1
 
 
+def _exit_kwargs(**overrides: Any) -> dict[str, Any]:
+    kw: dict[str, Any] = {
+        "exit_order_id": "exit-100",
+        "exit_price":    187.8,
+        "exit_qty":      25,
+        "exit_time":     "2026-05-25T10:00:00",
+        "exit_reason":   "target",
+    }
+    kw.update(overrides)
+    return kw
+
+
+def test_exit_fill_filled_finalises_closed(
+    svc: TradeCycleService, bus: MagicMock
+) -> None:
+    """UT-EXE-014.007.M02.T01: A FILLED sell finalises the cycle CLOSED."""
+    snap = svc.on_entry_fill(**_entry_kwargs())
+    closed = svc.close_cycle_by_id(
+        snap.cycle_id,
+        **_exit_kwargs(order_state=ExecutionEnums.SellOrderState.FILLED),
+    )
+    assert closed.state == TradeCycleState.CLOSED
+    assert snap.cycle_id not in svc._accs
+
+
+def test_exit_fill_partial_holds_closing(
+    svc: TradeCycleService, bus: MagicMock
+) -> None:
+    """UT-EXE-014.007.M02.T02: A PARTIAL_FILLED sell holds the cycle in CLOSING (not CLOSED)."""
+    snap = svc.on_entry_fill(**_entry_kwargs())
+    held = svc.close_cycle_by_id(
+        snap.cycle_id,
+        **_exit_kwargs(order_state=ExecutionEnums.SellOrderState.PARTIAL_FILLED),
+    )
+    assert held.state == TradeCycleState.CLOSING
+    assert len(_published_of(bus, CycleClosed)) == 0
+
+
+def test_exit_fill_partial_then_filled_finalises_closed(
+    svc: TradeCycleService, bus: MagicMock
+) -> None:
+    """UT-EXE-014.007.M02.T03: The FILLED sell completing a held partial advances CLOSING -> CLOSED."""
+    snap = svc.on_entry_fill(**_entry_kwargs())
+
+    held = svc.close_cycle_by_id(
+        snap.cycle_id,
+        **_exit_kwargs(order_state=ExecutionEnums.SellOrderState.PARTIAL_FILLED),
+    )
+    assert held.state == TradeCycleState.CLOSING
+
+    closed = svc.close_cycle_by_id(
+        snap.cycle_id,
+        **_exit_kwargs(order_state=ExecutionEnums.SellOrderState.FILLED),
+    )
+    assert closed.cycle_id == snap.cycle_id
+    assert closed.state == TradeCycleState.CLOSED
+    assert len(_published_of(bus, CycleClosed)) == 1
+
+
 def test_reload_reattaches_open_cycles_after_restart(
     mem_engine: sa.Engine, bus: MagicMock
 ) -> None:

@@ -11,13 +11,15 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from enum import IntEnum
 from typing import TYPE_CHECKING, Any
+from zoneinfo import ZoneInfo
 
 from PyQt6.QtCore import QAbstractTableModel, QModelIndex, QObject, Qt
 from PyQt6.QtGui import QColor
 
+from us_swing.data.market_calendar import ET
 from us_swing.gui.theme import C
 
 if TYPE_CHECKING:
@@ -70,8 +72,23 @@ _STATE_BG: dict[str, str] = {
     "OPENING":   C.BLUE,
     "OPEN":      C.GREEN,
     "CLOSING":   C.ORANGE,
+    "CLOSED":    C.MUTED,
     "DISMISSED": C.MUTED,
 }
+
+_TERMINAL_STATES = ("CLOSED", "ABORTED")
+
+
+def _today_et_bounds_utc() -> tuple[str, str]:
+    """Return [start, end) UTC ISO strings spanning the current ET calendar day."""
+    now_et   = datetime.now(ET)
+    start_et = now_et.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_et   = start_et + timedelta(days=1)
+    fmt      = "%Y-%m-%dT%H:%M:%S"
+    return (
+        start_et.astimezone(timezone.utc).strftime(fmt),
+        end_et.astimezone(timezone.utc).strftime(fmt),
+    )
 
 
 @dataclass
@@ -97,10 +114,6 @@ class _Row:
     rex_remaining:   int | None   = None
 
 
-def _now_hms() -> str:
-    return datetime.now(timezone.utc).strftime("%H:%M:%S")
-
-
 class _ActiveCyclesModel(QAbstractTableModel):
     def __init__(
         self,
@@ -109,24 +122,49 @@ class _ActiveCyclesModel(QAbstractTableModel):
         parent: QObject | None = None,
         rex_counters: RexCounterRepository | None = None,
         user_name_provider: Callable[[int], str] | None = None,
+        tz_provider: Callable[[], str] | None = None,
     ) -> None:
         super().__init__(parent)
         self._query = query
         self._pending = pending_store
         self._rex_counters = rex_counters
         self._user_name_provider = user_name_provider or (lambda uid: "")
+        self._tz_provider = tz_provider or (lambda: "US/Eastern")
         self._rows: list[_Row] = []
         self._by_key: dict[str, int] = {}
         self._scope_user_id: int | None = None  # None = All Users
+
+    def _market_tz(self) -> ZoneInfo:
+        try:
+            return ZoneInfo(self._tz_provider())
+        except Exception:
+            return ZoneInfo("US/Eastern")
+
+    def _fmt_market_hms(self, value: str | datetime | None) -> str:
+        """Format a timestamp as HH:MM:SS in the user's Market Timezone.
+
+        Stored times are naive (machine-local); ``astimezone`` presumes the
+        system zone for naive values and converts to the market zone.
+        """
+        if not value:
+            return ""
+        try:
+            dt = value if isinstance(value, datetime) else datetime.fromisoformat(value)
+        except ValueError:
+            return str(value)[-8:]
+        return dt.astimezone(self._market_tz()).strftime("%H:%M:%S")
 
     # ── Bulk refresh ─────────────────────────────────────────────────────
 
     def refresh(self) -> None:
         self.beginResetModel()
+        start_iso, end_iso = _today_et_bounds_utc()
         self._rows = [
             r for r in (
                 [self._row_from_pending(s) for s in self._pending.list()] +
-                [self._row_from_snap(c) for c in self._query.open_cycles()]
+                [self._row_from_snap(c) for c in self._query.open_cycles()] +
+                [self._row_from_snap(c)
+                 for c in self._query.closed_between(start_iso, end_iso)]
             )
             if self._in_scope(r)
         ]
@@ -198,7 +236,23 @@ class _ActiveCyclesModel(QAbstractTableModel):
         )
 
     def on_cycle_closed(self, snap: CycleSnapshot) -> None:
-        self._remove_row(f"cycle:{snap.cycle_id}")
+        # Keep the row visible as CLOSED for the rest of the trading day;
+        # the next refresh drops it once closed_at is no longer "today".
+        idx = self._by_key.get(f"cycle:{snap.cycle_id}")
+        if idx is None:
+            row = self._row_from_snap(snap)
+            if self._in_scope(row):
+                self._insert_row(row)
+            return
+        row = self._rows[idx]
+        row.state   = snap.state
+        row.ltp     = snap.exit_price
+        row.pnl_usd = snap.realized_pnl_usd
+        row.pnl_pct = snap.realized_pnl_pct
+        self.dataChanged.emit(
+            self.index(idx, Col.STATE),
+            self.index(idx, Col.ACTIONS),
+        )
 
     def on_cycle_aborted(self, snap: CycleSnapshot) -> None:
         self._remove_row(f"cycle:{snap.cycle_id}")
@@ -285,7 +339,7 @@ class _ActiveCyclesModel(QAbstractTableModel):
             kind="pending",
             key=signal.signal_id,
             state="PENDING",
-            time=_now_hms(),
+            time=self._fmt_market_hms(datetime.now()),
             symbol=signal.symbol,
             strategy=signal.strategy_id,
             qty=signal.qty_recommended or 1,
@@ -298,18 +352,19 @@ class _ActiveCyclesModel(QAbstractTableModel):
         )
 
     def _row_from_snap(self, snap: CycleSnapshot) -> _Row:
+        terminal = snap.state in _TERMINAL_STATES
         return _Row(
             kind="cycle",
             key=f"cycle:{snap.cycle_id}",
             state=snap.state,
-            time=snap.entry_time[-8:] if snap.entry_time else "",
+            time=self._fmt_market_hms(snap.entry_time),
             symbol=snap.symbol,
             strategy=snap.strategy_id,
             qty=snap.entry_qty,
             entry_price=snap.entry_price,
-            ltp=snap.current_price,
-            pnl_usd=snap.current_pnl_usd,
-            pnl_pct=snap.current_pnl_pct,
+            ltp=snap.exit_price if terminal else snap.current_price,
+            pnl_usd=snap.realized_pnl_usd if terminal else snap.current_pnl_usd,
+            pnl_pct=snap.realized_pnl_pct if terminal else snap.current_pnl_pct,
             hard_stop=snap.hard_stop_loss,
             target=snap.target_price,
             trail=snap.trailing_stop_level,
@@ -437,9 +492,7 @@ class _ActiveCyclesModel(QAbstractTableModel):
         return f"{sign}{abs(v):.2f}%"
 
     def _background(self, row: _Row, col: int) -> QColor | None:
-        if col == Col.STATE:
-            hex_code = _STATE_BG.get(row.state)
-            return QColor(hex_code) if hex_code else None
+        # Col.STATE is fully painted by _RowActionsDelegate (pill + buttons).
         if col in (Col.PNL_USD, Col.PNL_PCT):
             v = row.pnl_usd if col == Col.PNL_USD else row.pnl_pct
             if v is None:
@@ -448,8 +501,6 @@ class _ActiveCyclesModel(QAbstractTableModel):
         return None
 
     def _foreground(self, row: _Row, col: int) -> QColor | None:
-        if col == Col.STATE:
-            return QColor(C.BG)
         if col == Col.REX:
             if row.rex_remaining is not None and row.rex_remaining < 0:
                 return QColor(C.MUTED)

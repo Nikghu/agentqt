@@ -2,6 +2,36 @@
 
 ---
 
+## [20260602] EXE + GUI — Active Trades lifecycle end-to-end + UI polish (Session 58)
+
+- Type: Bugfix + Enhancement (paper-mode trade lifecycle, GUI)
+- FO(s): FO-EXE-011, FO-EXE-012, FO-EXE-013, FO-EXE-014, FO-GUI-014
+- RN: pending (deferred — rapid iterative session)
+- Artifacts updated: Code, Tests (+3 UTCD), CONTEXT §0, DEVLOG, TODO (T8)
+- Files: `gui/{active_cycles_panel,active_cycles_model,execution_panel,settings_panel,app_service}.py`, `execution/paper_broker.py`, `execution/trade_cycle/{_service,_repository,_protocols}.py`, `tests/execution/test_trade_cycle_service.py`
+
+**What changed:**
+- **Entry path:** panel routes Execute through one injected `execute_executor` (=`AppService.execute_signal`); removed the fabricated optimistic OPENING flip; wired `pending_signal_executed → on_pending_removed`. Fixes pending signals stranded in OPENING with no DB row.
+- **Startup load:** model seeds from `open_cycles()` (the `set_scope(None)` no-op had skipped `refresh()`); added `AppService.viewing_uid` property; USER column always shown. Open trades now persist in Active Trades across restarts.
+- **Live PnL + auto-subscribe:** live tick feed wired into `TradeCycleService.on_tick` + `set_active_symbols` callback so open-cycle symbols are force-subscribed (ungated/untrimmable). PnL = (LTP − entry) × qty.
+- **Auto-close:** subscribed `ExitTrigger` on the bus → SELL submit marshaled to the GUI thread via a queued signal → `force_exit_position(reason)`; the real exit reason (target/hard_sl/trailing_sl) is threaded through `_record_paper_exit`.
+- **PaperBroker order IDs** seeded from epoch-ms — fixes cross-restart `10001` reuse that made `find_by_exit_order` match a stale cycle and strand a manual close in CLOSING.
+- **Manual close:** removed the no-rollback optimistic CLOSING flip (now event-driven via `CycleClosing`/`CycleClosed`).
+- **Trade History:** SELL rows now recorded at runtime and on boot rehydration (was BUY-only).
+- **SellOrderState gate:** `on_exit_fill`/`close_cycle_by_id` gained `order_state`; PARTIAL holds CLOSING, FILLED finalizes CLOSED — symmetric with the BuyOrderState entry gate. +3 tests `UT-EXE-014.007.M02.T01–T03` (21 pass).
+- **CLOSED-today** rows persist in Active Trades via repo `closed_between` + ET-day bounds + terminal-aware realized PnL.
+- **UI:** state pill + action buttons moved into the STATE cell (fixed pill width, ACTIONS column hidden); removed duplicate "ACTIVE TRADES" label; bottom tabs restyled with icons (selected uses palette TEXT → white in VS-dark); TIME column shown in the Settings→System Market Timezone; Play/Stop icon synced to effective `StrategyRunState`.
+- **Circuit breaker** promoted to `AppService` (`circuit_breaker_active` + `circuit_breaker_changed` + `set_circuit_breaker`); toggle + Candle DB moved to Settings→System — also activates the previously-dead Active Trades CB gating.
+- **Strategy Builder:** removed "STRATEGY EXECUTOR" label, Add Strategy moved to the bottom, "#" row-number header.
+
+**Why:** A screenshot-driven review of the paper-mode Active Trades workflow surfaced a chain of lifecycle gaps (no submit, no PnL, no auto-close, no SELL history, stranded states) plus UI/UX rough edges. Each was fixed at the correct seam (single submit path, tick→service wiring, bus-driven close, unique order IDs, event-driven row state).
+
+**Deferred:** Revision Notes (RN-EXE / RN-GUI) + SRD/TRACE sync for this batch; partial-quantity accounting (TODO T8); FO-EXE-003 (CircuitBreaker + EmergencyShutdown).
+
+**Notes:** ruff clean on all edited modules (`app_service.py` retains 16 unrelated pre-existing warnings). Patched the venv copy of `ib_insync._onSocketDisconnected(msg='')` for a local ibapi/ib_insync version skew — not part of the repo.
+
+---
+
 ## [20260530] EXE + GUI — Two critical fixes (candle read-path, SQUARING_OFF state)
 
 - Type: Bugfix

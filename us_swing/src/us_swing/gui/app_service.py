@@ -1003,6 +1003,8 @@ class AppService(QObject):
     live_bar_data_updated     = pyqtSignal(str)            # symbol — 3m or 15m bar written to DB
     pending_signals_updated   = pyqtSignal()               # pending signal list changed
     strategy_status_changed   = pyqtSignal(str, str)       # (strategy_name, new_status)
+    circuit_breaker_changed   = pyqtSignal(bool)           # True = breaker tripped (entries blocked)
+    _auto_exit_requested      = pyqtSignal(int, str)       # (cycle_id, reason) — cross-thread marshal
 
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
@@ -1026,6 +1028,7 @@ class AppService(QObject):
         self._users      = users
         self._active_uid = self._users[0].user_id
         self._viewing_uid: int | None = None
+        self._circuit_breaker_active = False
 
         self._connection_status = ConnectionStatus.DISCONNECTED
         self._system_cfg        = load_system_config()
@@ -1052,6 +1055,8 @@ class AppService(QObject):
         # ── Live tick worker (FO-GUI-012) ─────────────────────────────────────
         self._tick_worker: LiveTickWorker | None = None
         self._sp500_cache: set[str] = set()   # S&P 500 symbols, populated lazily
+        self._cycle_symbols: frozenset[str] = frozenset()  # symbols of open trade cycles
+        self._pending_exit_reason: str = "manual"          # reason carried into the next exit fill
 
         # ── Live bar worker — must be initialised before _refresh_market_status ─
         self._live_bar_worker: LiveBarWorker | None = None
@@ -1115,11 +1120,17 @@ class AppService(QObject):
                 self._tc_query, self._tc_command = build_tc_service(
                     self._db_engine,
                     self._lifecycle_bus,
+                    set_active_symbols=self._on_cycle_symbols_changed,
                 )
                 # Background loop for tick-driven trail-stop bookkeeping.
                 self._tc_command.start()
                 # Re-attach accumulators for any cycles that survived restart.
                 self._tc_command.reload()
+                # Auto-exit: target/SL/trailing triggers fire on the cycle
+                # background thread; marshal the SELL submit to the GUI thread.
+                from us_swing.execution.trade_cycle import ExitTrigger
+                self._auto_exit_requested.connect(self._handle_auto_exit)
+                self._lifecycle_bus.subscribe(ExitTrigger, self._on_exit_trigger)
                 _log.info("[TradeCycle] Service ready")
             except Exception:
                 _log.exception("[TradeCycle] Service init failed")
@@ -1226,6 +1237,11 @@ class AppService(QObject):
         self.account_updated.emit()
 
     def get_viewing_uid(self) -> int | None:
+        return self._viewing_uid
+
+    @property
+    def viewing_uid(self) -> int | None:
+        """Admin viewing scope; ``None`` = aggregate all users."""
         return self._viewing_uid
 
     def get_user_by_id(self, uid: int) -> UserProfile | None:
@@ -1911,6 +1927,8 @@ class AppService(QObject):
         now_iso: str,
     ) -> None:
         """Close the matching open cycle via TradeCycleService and update in-memory state."""
+        exit_reason = self._pending_exit_reason
+        self._pending_exit_reason = "manual"
         if self._tc_query is not None and self._tc_command is not None:
             snap = next(
                 (
@@ -1927,7 +1945,7 @@ class AppService(QObject):
                         exit_price    = float(fill.fill_price),
                         exit_qty      = int(fill.fill_qty),
                         exit_time     = now_iso,
-                        exit_reason   = "manual",
+                        exit_reason   = exit_reason,
                     )
                 except Exception:
                     _log.exception("[TradeCycle] close_cycle_by_id failed for %s", fill.symbol)
@@ -1945,9 +1963,24 @@ class AppService(QObject):
                     and t.exit_price is None):
                 t.exit_price      = fill.fill_price
                 t.exit_time       = now
-                t.order_state     = "FILLED"
-                t.filled_quantity = t.quantity
                 break
+
+        # Trade History shows one row per broker order (FO-EXE-014); record the
+        # SELL as its own row.  The model reads entry_price/entry_time for the
+        # Avg Price / Date & Time columns, so the exit fill goes there.
+        self._trades.append(TradeRecord(
+            trade_id        = str(fill.order_id),
+            user_id         = self._active_uid,
+            symbol          = fill.symbol,
+            side            = "SELL",
+            quantity        = fill.fill_qty,
+            entry_price     = fill.fill_price,
+            mode            = "paper",
+            strategy_id     = fill.strategy_id,
+            entry_time      = now,
+            order_state     = "FILLED",
+            filled_quantity = fill.fill_qty,
+        ))
 
     def _strategy_cfg(self, name: str) -> Any:
         """Return the live StrategyConfig for *name*, or None."""
@@ -2003,6 +2036,22 @@ class AppService(QObject):
                 order_state     = "FILLED",
                 filled_quantity = snap.entry_qty,
             ))
+            # Closed cycle → restore its SELL row too (one row per order).
+            if snap.exit_order_id or snap.exit_time:
+                exit_qty = snap.exit_qty or snap.entry_qty
+                self._trades.append(TradeRecord(
+                    trade_id        = snap.exit_order_id or f"cyc-{snap.cycle_id}-sell",
+                    user_id         = snap.user_id or self._active_uid,
+                    symbol          = snap.symbol,
+                    side            = "SELL",
+                    quantity        = exit_qty,
+                    entry_price     = snap.exit_price or 0.0,
+                    mode            = "paper",
+                    strategy_id     = snap.strategy_id,
+                    entry_time      = exit_dt or entry_dt,
+                    order_state     = "FILLED",
+                    filled_quantity = exit_qty,
+                ))
 
         for snap in open_snaps:
             entry_dt = _parse_iso(snap.entry_time) or datetime.datetime.now()
@@ -2113,13 +2162,17 @@ class AppService(QObject):
                 out.append(c)
         return out
 
-    def force_exit_position(self, strategy: str, symbol: str) -> int | None:
-        """User-initiated paper exit for a running strategy position.
+    def force_exit_position(
+        self, strategy: str, symbol: str, reason: str = "manual",
+    ) -> int | None:
+        """User- or trigger-initiated paper exit for a running strategy position.
 
         Looks up the open cycle via TradeCycleService, builds an exit
         ``TradeSignal`` carrying the latest close as its fill price, and
-        submits it through ``PaperBroker``.  Returns the simulated order id,
-        or None if no open cycle exists for the pair.
+        submits it through ``PaperBroker``.  ``reason`` is carried into the
+        resulting exit fill so the closed cycle records the real exit cause
+        (target / hard_sl / trailing_sl / manual).  Returns the simulated
+        order id, or None if no open cycle exists for the pair.
         """
         if self._tc_query is None:
             return None
@@ -2145,6 +2198,7 @@ class AppService(QObject):
             entry_price = float(exit_price),
             reason      = "manual_force_exit",
         )
+        self._pending_exit_reason = reason
         return self._paper_broker.submit(eng_sig, int(snap.entry_qty))
 
     def _on_strategy_event(self, event: object) -> None:
@@ -2192,6 +2246,23 @@ class AppService(QObject):
 
     def get_system_config(self) -> SystemConfig:
         return self._system_cfg
+
+    @property
+    def circuit_breaker_active(self) -> bool:
+        """True when the circuit breaker is tripped — new entries are blocked."""
+        return self._circuit_breaker_active
+
+    def set_circuit_breaker(self, active: bool) -> None:
+        """Trip or reset the circuit breaker and notify listeners."""
+        if self._circuit_breaker_active == active:
+            return
+        self._circuit_breaker_active = active
+        self.circuit_breaker_changed.emit(active)
+        self.log_message.emit(
+            "WARNING" if active else "INFO",
+            "[Risk] Circuit breaker activated — new entries blocked"
+            if active else "[Risk] Circuit breaker reset — entries re-enabled",
+        )
 
     def save_system_config(self, cfg: SystemConfig) -> None:
         from us_swing.gui.system_store import save_system_config
@@ -2311,6 +2382,7 @@ class AppService(QObject):
             )
             tw.tick_price.connect(self._on_watchlist_tick)
             tw.tick_price.connect(self._on_position_tick)
+            tw.tick_price.connect(self._on_cycle_tick)
             tw.subscription_failed.connect(self._on_tick_sub_failed)
             tw.start()
             self._tick_worker = tw
@@ -2464,6 +2536,14 @@ class AppService(QObject):
             if c is not None:
                 contracts[item.symbol] = c
 
+        # Open trade-cycle symbols — always subscribed (ungated, untrimmable);
+        # live LTP/PnL and exit evaluation depend on their ticks.
+        for sym in self._cycle_symbols:
+            if sym not in contracts:
+                c = _make_stk_contract(sym)
+                if c is not None:
+                    contracts[sym] = c
+
         # Ensure S&P 500 cache is populated
         if not self._sp500_cache and self._sp500:
             self._sp500_cache = {r.symbol for r in self._sp500}
@@ -2516,6 +2596,49 @@ class AppService(QObject):
                     item.change_pct = item.change / prev * 100
                 self.watchlist_updated.emit()
                 return
+
+    def _on_cycle_symbols_changed(self, symbols: frozenset[str]) -> None:
+        """Open trade-cycle symbols changed — re-sync tick subscriptions.
+
+        Invoked by TradeCycleService whenever a cycle opens, closes, or is
+        reloaded on startup.  Open cycles are real positions we entered, so
+        their symbols must always be subscribed for live LTP/PnL.
+        """
+        if symbols == self._cycle_symbols:
+            return
+        self._cycle_symbols = symbols
+        self._sync_tick_subscriptions()
+
+    def _on_cycle_tick(self, tag: str, price: float) -> None:
+        """Forward live ticks to the trade-cycle service for PnL + exit evaluation."""
+        if self._tc_command is not None:
+            self._tc_command.on_tick(tag, price)
+
+    def _on_exit_trigger(self, evt: object) -> None:
+        """Bus subscriber for ExitTrigger — runs on the cycle background thread.
+
+        Marshals the auto-exit onto the GUI thread via a queued signal so the
+        SELL submit and DB writes happen on the main thread.
+        """
+        from us_swing.execution.trade_cycle import ExitTrigger
+        if isinstance(evt, ExitTrigger):
+            self._auto_exit_requested.emit(evt.cycle_id, evt.reason)
+
+    def _handle_auto_exit(self, cycle_id: int, reason: str) -> None:
+        """Submit the SELL for a cycle that hit a target/SL/trailing trigger (GUI thread)."""
+        if self._tc_query is None:
+            return
+        snap = self._tc_query.cycle(cycle_id)
+        if snap is None:
+            return
+        order_id = self.force_exit_position(snap.strategy_id, snap.symbol, reason=reason)
+        if order_id is None:
+            _log.warning("[TradeCycle] Auto-exit found no open cycle for %s", snap.symbol)
+            return
+        self.log_message.emit(
+            "INFO",
+            f"[Execution] Auto-exit ({reason}) submitted for {snap.symbol}",
+        )
 
     def _on_position_tick(self, tag: str, price: float) -> None:
         """Update open position current_price from tick stream (SRD-GUI-012.005)."""

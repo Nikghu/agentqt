@@ -24,6 +24,7 @@ from PyQt6.QtCore import (
 from PyQt6.QtGui import QColor, QIcon, QMouseEvent, QPainter, QPainterPath, QPen, QPixmap
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import (
+    QAbstractButton,
     QAbstractItemView,
     QComboBox,
     QDialog,
@@ -195,21 +196,6 @@ class _StrategyTablePane(QWidget):
         root.setContentsMargins(0, 6, 0, 0)
         root.setSpacing(6)
 
-        # ── Header ─────────────────────────────────────────────────────────────
-        hdr = QHBoxLayout()
-        title_lbl = QLabel("STRATEGY EXECUTOR")
-        title_lbl.setStyleSheet(
-            f"color: {C.MUTED}; font-size: 7pt; font-weight: bold; letter-spacing: 2px;"
-        )
-        add_btn = QPushButton("+ Add Strategy")
-        add_btn.setFixedHeight(C.BTN_H)
-        add_btn.setFixedWidth(130)
-        add_btn.clicked.connect(self._on_add)
-        hdr.addWidget(title_lbl)
-        hdr.addStretch()
-        hdr.addWidget(add_btn)
-        root.addLayout(hdr)
-
         # ── Model + proxy ──────────────────────────────────────────────────────
         self._model = StrategyTableModel(self)
         self._proxy = QSortFilterProxyModel(self)
@@ -263,8 +249,23 @@ class _StrategyTablePane(QWidget):
                 if mode != QHeaderView.ResizeMode.Stretch:
                     hh.resizeSection(col, width)
 
+        # Label the vertical-header corner cell as the row-number column.
+        corner = self._view.findChild(QAbstractButton)
+        if corner is not None:
+            corner.setText("#")
+
         self._proxy.layoutChanged.connect(lambda: self._reinject_row_widgets())
         root.addWidget(self._view, 1)
+
+        add_btn = QPushButton("+ Add Strategy")
+        add_btn.setFixedHeight(C.BTN_H)
+        add_btn.setFixedWidth(130)
+        add_btn.clicked.connect(self._on_add)
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
+        btn_row.addWidget(add_btn)
+        root.addLayout(btn_row)
+
         self._refresh_table()
 
     # ── Data helpers ──────────────────────────────────────────────────────────
@@ -279,8 +280,10 @@ class _StrategyTablePane(QWidget):
         for proxy_row in range(self._proxy.rowCount()):
             src_row = self._proxy.mapToSource(self._proxy.index(proxy_row, 0)).row()
             cfg = self._configs[src_row]
-            run_state = cfg.strategy_signal.get("run_state", "STOPPED")
-            is_live = run_state in ("RUNNING", "SQUARING_OFF")
+            # Use the effective state (same source as the STATUS badge) so the
+            # Play/Stop icon never disagrees with the badge.
+            state = self._model.status_for(cfg)
+            is_live = state in ("RUNNING", "SQUARING_OFF")
             self._view.setIndexWidget(
                 self._proxy.index(proxy_row, COL_RUN),
                 self._make_run_btn(
@@ -431,7 +434,9 @@ class _StrategyTablePane(QWidget):
         if src_row < 0 or src_row >= len(self._configs):
             return
         cfg = self._configs[src_row]
-        current = cfg.strategy_signal.get("run_state", "STOPPED")
+        # Effective state (badge source) so a Stop icon always performs a stop,
+        # even when RUNNING is forced by an open cycle.
+        current = self._model.status_for(cfg)
 
         if current == "STOPPED":
             cfg.strategy_signal["run_state"] = "RUNNING"
@@ -1166,6 +1171,8 @@ class ExecutionPanel(QWidget):
         self._cb_banner.setVisible(False)
         self._cb_banner.setWordWrap(True)
         main.addWidget(self._cb_banner)
+        # Circuit breaker now lives on AppService (toggled from Settings → System).
+        demo.circuit_breaker_changed.connect(self.on_circuit_breaker)
 
         # ── Chart pane (created first so we can wire the signal) ───────────────
         self._chart_pane = _IntradayChartPane(demo)
@@ -1220,28 +1227,33 @@ class ExecutionPanel(QWidget):
         ct = active_palette()
         return (
             f"QTabBar::tab {{"
-            f"  color: {ct.TEXT}; background: {ct.SURFACE};"
-            f"  border: 1px solid {ct.OVERLAY}; border-bottom: none;"
-            f"  padding: 5px 14px; font-size: 9pt;"
+            f"  background: {ct.SURFACE}; color: {ct.MUTED};"
+            f"  padding: 6px 16px; border: 1px solid {ct.OVERLAY}; border-bottom: none;"
+            f"  border-top-left-radius: 4px; border-top-right-radius: 4px;"
+            f"  margin-right: 2px; font-size: 9pt;"
             f"}}"
             f"QTabBar::tab:selected {{"
-            f"  background: {ct.BG}; color: {ct.BLUE};"
-            f"  border-bottom: 1px solid {ct.BG};"
+            f"  background: {ct.BG}; color: {ct.TEXT};"
+            f"  border-bottom: 2px solid {ct.TEXT}; font-weight: bold;"
             f"}}"
             f"QTabBar::tab:hover:!selected {{ background: {ct.OVERLAY}; }}"
-            f"QTabWidget::pane {{"
-            f"  border: 1px solid {ct.OVERLAY}; border-top: 1px solid {ct.OVERLAY};"
-            f"}}"
+            f"QTabWidget::pane {{ border: 1px solid {ct.OVERLAY}; background: {ct.BG}; }}"
         )
 
     def _build_bottom_tabs(self, demo: AppService) -> QTabWidget:
         """Tabbed bottom pane: Active Trades | Strategy Builder."""
         tabs = QTabWidget()
         tabs.setStyleSheet(self._tab_qss())
-        tabs.addTab(self._build_active_trades_pane(demo), "Active Trades")
-        self._strategy_pane = _StrategyTablePane(demo)
-        tabs.addTab(self._strategy_pane, "Strategy Builder")
+        tabs.addTab(self._build_active_trades_pane(demo), "📈  Active Trades")
+        tabs.addTab(self._build_strategy_tab(demo), "🛠  Strategy Builder")
         return tabs
+
+    def _build_strategy_tab(self, demo: AppService) -> QWidget:
+        """Strategy Builder pane. (Candle DB + circuit-breaker live in Settings → System.)"""
+        self._strategy_pane = _StrategyTablePane(demo)
+        # Retained off-screen for the dormant legacy signals view's status text.
+        self._status_lbl = QLabel()
+        return self._strategy_pane
 
     def _build_active_trades_pane(self, demo: AppService) -> QWidget:
         """SRD-GUI-014.001 — Active Trades pane wrapping `ActiveCyclesPanel`."""
@@ -1249,12 +1261,6 @@ class ExecutionPanel(QWidget):
         layout = QVBoxLayout(pane)
         layout.setContentsMargins(0, 8, 0, 0)
         layout.setSpacing(8)
-
-        hdr = QLabel("ACTIVE TRADES")
-        hdr.setStyleSheet(
-            f"color: {C.MUTED}; font-size: 7pt; font-weight: bold; letter-spacing: 2px;"
-        )
-        layout.addWidget(hdr)
 
         def _exit_by_cycle_id(cycle_id: int, reason: str) -> None:
             cycle_query = getattr(demo, "cycle_query", None)
@@ -1271,27 +1277,10 @@ class ExecutionPanel(QWidget):
             pending_store=demo.pending_store,
             app_service=demo,
             exit_executor=_exit_by_cycle_id,
+            execute_executor=demo.execute_signal,
             parent=pane,
         )
         layout.addWidget(self._active_trades_panel, 1)
-
-        self._status_lbl = QLabel("")
-        self._status_lbl.setStyleSheet(f"color: {C.MUTED}; font-size: 9pt;")
-        layout.addWidget(self._status_lbl)
-
-        self._cb_toggle = QPushButton("Demo: Toggle Circuit Breaker")
-        self._cb_toggle.setObjectName("danger_btn")
-        self._cb_toggle.setFixedWidth(240)
-        self._cb_toggle.clicked.connect(self._toggle_cb)
-        cb_row = QHBoxLayout()
-        cb_row.addStretch()
-        if _SHOW_DB_DIAGNOSTICS:
-            diag_btn = QPushButton("Candle DB")
-            diag_btn.setFixedWidth(100)
-            diag_btn.clicked.connect(lambda: _CandleDbDiagDialog(self._demo, self).exec())
-            cb_row.addWidget(diag_btn)
-        cb_row.addWidget(self._cb_toggle)
-        layout.addLayout(cb_row)
 
         return pane
 
@@ -1497,10 +1486,6 @@ class ExecutionPanel(QWidget):
             f"✔  Force exit submitted for {pos.symbol} × {pos.quantity}"
         )
         self._status_lbl.setStyleSheet(f"color: {C.GREEN}; font-size: 9pt;")
-
-    def _toggle_cb(self) -> None:
-        self._cb_active = not self._cb_active
-        self.on_circuit_breaker(self._cb_active)
 
     def _on_symbol_selected(self, symbol: str) -> None:
         self._selected_symbol = symbol

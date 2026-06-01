@@ -160,6 +160,9 @@ class TradeCycleService:
     def has_open_cycle(self, strategy_id: str, symbol: str) -> bool:
         return self._repo.has_open_cycle(strategy_id, symbol)
 
+    def closed_between(self, start_iso: str, end_iso: str) -> tuple[CycleSnapshot, ...]:
+        return self._repo.closed_between(start_iso, end_iso)
+
     def open_cycles_for_strategy(self, strategy_id: str) -> tuple[CycleSnapshot, ...]:
         return self._repo.open_cycles_for_strategy(strategy_id)
 
@@ -260,16 +263,29 @@ class TradeCycleService:
         exit_qty:      int,
         exit_time:     str,
         exit_reason:   str,
+        order_state:   ExecutionEnums.SellOrderState = ExecutionEnums.SellOrderState.FILLED,
     ) -> CycleSnapshot:
-        """Close a cycle on the broker fill of an exit order.
+        """Advance a cycle on the broker fill of an exit order.
 
-        Idempotent on ``exit_order_id`` — a duplicate call returns the
-        existing snapshot.  The cycle must currently be in OPEN or
-        CLOSING (CLOSING is the normal path; OPEN supports a manual /
-        emergency exit that bypassed the trigger).
+        SRD-EXE-014.007 (sell side) — a ``PARTIAL_FILLED`` sell holds the
+        cycle in ``CLOSING``; a ``FILLED`` sell finalises it
+        (``CLOSING -> CLOSED``).  Mirrors the ``BuyOrderState`` entry gate.
+        Idempotent on ``exit_order_id``.  The cycle must be OPEN or CLOSING
+        (OPEN supports a manual / emergency exit that bypassed the trigger).
         """
-        existing = self._repo.find_by_exit_order(exit_order_id)
+        is_filled = order_state == ExecutionEnums.SellOrderState.FILLED
+        existing  = self._repo.find_by_exit_order(exit_order_id)
         if existing is not None:
+            if is_filled and existing.state == TradeCycleState.CLOSING:
+                return self._close_cycle(
+                    cycle_id      = existing.cycle_id,
+                    exit_order_id = exit_order_id,
+                    exit_price    = exit_price,
+                    exit_qty      = exit_qty,
+                    exit_time     = exit_time,
+                    exit_reason   = exit_reason,
+                    order_state   = order_state,
+                )
             return existing
 
         target = next(
@@ -290,6 +306,7 @@ class TradeCycleService:
             exit_qty      = exit_qty,
             exit_time     = exit_time,
             exit_reason   = exit_reason,
+            order_state   = order_state,
         )
 
     def close_cycle_by_id(
@@ -301,11 +318,19 @@ class TradeCycleService:
         exit_qty:      int,
         exit_time:     str,
         exit_reason:   str,
+        order_state:   ExecutionEnums.SellOrderState = ExecutionEnums.SellOrderState.FILLED,
     ) -> CycleSnapshot:
-        """Close a specific cycle by id (preferred path for ExecutionEngine)."""
-        existing = self._repo.find_by_exit_order(exit_order_id)
+        """Advance a specific cycle by id (preferred path for ExecutionEngine).
+
+        Same ``SellOrderState`` gate as :meth:`on_exit_fill`.
+        """
+        is_filled = order_state == ExecutionEnums.SellOrderState.FILLED
+        existing  = self._repo.find_by_exit_order(exit_order_id)
         if existing is not None:
-            return existing
+            if is_filled and existing.state == TradeCycleState.CLOSING:
+                cycle_id = existing.cycle_id
+            else:
+                return existing
         return self._close_cycle(
             cycle_id      = cycle_id,
             exit_order_id = exit_order_id,
@@ -313,6 +338,7 @@ class TradeCycleService:
             exit_qty      = exit_qty,
             exit_time     = exit_time,
             exit_reason   = exit_reason,
+            order_state   = order_state,
         )
 
     def _close_cycle(
@@ -324,6 +350,7 @@ class TradeCycleService:
         exit_qty:      int,
         exit_time:     str,
         exit_reason:   str,
+        order_state:   ExecutionEnums.SellOrderState,
     ) -> CycleSnapshot:
         snap = self._repo.cycle(cycle_id)
         if snap is None:
@@ -340,6 +367,15 @@ class TradeCycleService:
                 symbol   = snap.symbol,
                 reason   = exit_reason,
             ))
+
+        # SellOrderState gate: a partial sell holds the cycle in CLOSING; only
+        # a FILLED sell finalises CLOSING -> CLOSED (symmetric with the
+        # BuyOrderState entry gate that holds OPENING until FILLED).
+        if order_state != ExecutionEnums.SellOrderState.FILLED:
+            self._repo.update_live(cycle_id, fields={"exit_order_id": exit_order_id})
+            held = self._repo.cycle(cycle_id)
+            assert held is not None
+            return held
 
         realized_pnl_usd = (exit_price - snap.entry_price) * exit_qty
         realized_pnl_pct = (
