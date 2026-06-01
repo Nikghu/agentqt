@@ -1,6 +1,7 @@
 # USMarket Swing Trading Toolkit — Claude Instructions
 
 **Active project:** `us_swing`. Do NOT work on `pilot1` unless explicitly directed.
+**ToDo Backlog:** Maintain the running task list in `us_swing/TODO.md` — add/close rows each session; keep descriptions ≤50 words with module + priority.
 
 ## Step 1 — Classify Every Prompt First
 
