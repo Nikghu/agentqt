@@ -1,9 +1,9 @@
 # Traceability Matrix — Execution & Risk Management (EXE)
 
 **Document ID:** TRACE-EXE
-**Version:** 1.12.0
+**Version:** 1.13.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-05-30
+**Last Updated:** 2026-06-02
 
 ---
 
@@ -28,9 +28,9 @@
 | FO-EXE-011 | SRD-EXE-011.020 | — | MD-EXE-011.001.M01, M04, M06, M09 | UT-EXE-011.001.M04.T18–T20 | `execution/strategy_engine/{_engine,_router,_signals}.py`, `execution/pending_signal_store.py` | Implemented | RN-EXE-1.10.0-20260527 |
 | FO-GUI-013 | SRD-GUI-013.015 | — | MD-GUI-004.001.M01 | — | `gui/execution_panel.py`, `gui/strategy_builder_dialog.py` | Implemented | RN-EXE-1.9.0-20260527 |
 | FO-GUI-014 | SRD-GUI-014.013 | — | MD-GUI-014.001.M02 | — | `gui/active_cycles_model.py`, `gui/active_cycles_panel.py` | Implemented | RN-EXE-1.9.0-20260527 |
-| FO-EXE-012 | SRD-EXE-012.001–013 | DD-EXE-012.001.D01–D02 | MD-EXE-012.001.M01–M06 | UT-EXE-012.001.M01–M06.T01–T29 | `execution/trade_cycle/{_schema,_repository,_service,_protocols,__init__}.py` | Verified | RN-EXE-1.8.0-20260527 |
+| FO-EXE-012 | SRD-EXE-012.001–013 | DD-EXE-012.001.D01–D02 | MD-EXE-012.001.M01–M06 | UT-EXE-012.001.M01–M06.T01–T29 | `execution/trade_cycle/{_schema,_repository,_service,_protocols,__init__}.py` | Verified | RN-EXE-1.8.0-20260527, RN-EXE-1.17.0-20260602 |
 | FO-EXE-014 | SRD-EXE-014.001–004 | — | MD-INF-004.001.M02, MD-INF-004.001.M03, MD-EXE-001.001.M02, MD-EXE-002.001.M01, MD-EXE-004.001.M01 | UT-EXE-014.001.M01.T01–T06 | `db/schema.py`, `db/manager.py`, `data/models.py`, `execution/execution_engine.py`, `execution/paper_engine.py`, `execution/position_tracker.py`, `gui/position_table_model.py` | Implemented | RN-EXE-1.14.0-20260528 |
-| FO-EXE-014 | SRD-EXE-014.005–008 | — | MD-EXE-001.001.M02, MD-EXE-012.002.M02, MD-EXE-009.002.M02 | UT-EXE-014.005.M01.T01, 014.006.M01.T02, 014.007.M01.T01–T03, 014.008.M01.T01–T05 | `data/models.py`, `execution/execution_engine.py`, `execution/trade_cycle/{_service,_protocols}.py`, `core/monitoring_session/{_dto,_service}.py` | Implemented | RN-EXE-1.16.0-20260529 |
+| FO-EXE-014 | SRD-EXE-014.005–008 | — | MD-EXE-001.001.M02, MD-EXE-012.002.M02, MD-EXE-009.002.M02 | UT-EXE-014.005.M01.T01, 014.006.M01.T02, 014.007.M01.T01–T03, 014.007.M02.T01–T03, 014.008.M01.T01–T05 | `data/models.py`, `execution/execution_engine.py`, `execution/trade_cycle/{_service,_protocols}.py`, `core/monitoring_session/{_dto,_service}.py` | Implemented | RN-EXE-1.16.0-20260529, RN-EXE-1.17.0-20260602 |
 | FO-EXE-005 | SRD-EXE-005.001–003 (Reopen) | DD-EXE-005.001.D01 | MD-EXE-002.001.M01 | UT-EXE-005.001.M01.T01–T05 | `execution/position_tracker.py` | Reopen | RN-EXE-1.14.0-20260528 |
 
 ---
@@ -76,5 +76,5 @@
 | SRD | 85 | 54 | 6 | 25 | 0 |
 | DD | 21 | 17 | 2 | 2 | 0 |
 | MD | 26 | 20 | 1 | 5 | 0 |
-| UTCD | 142 | 49 | 13 | 80 | 0 |
+| UTCD | 145 | 49 | 13 | 83 | 0 |
 | Code | 26 files | — | — | 11 | 0 |
