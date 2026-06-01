@@ -16,7 +16,13 @@ dependencies = [
     "PyQt6>=6.5",
     "PyQt6-WebEngine>=6.5",
     "sqlalchemy>=2.0",
-    "ib_insync>=0.9.86",
+    # IBKR API. 0.9.86 is ib_insync's final release — pin it and its `eventkit`
+    # transitive (source of the socket `disconnected` signal) for reproducibility.
+    # NOTE: a disconnect-handler arg mismatch is patched at runtime in
+    # ib_insync/client.py (`_onSocketDisconnected(msg='')`); the durable fix is
+    # migrating to the maintained `ib_async` fork.
+    "ib_insync==0.9.86",
+    "eventkit==1.0.3",
     "apscheduler>=3.10",
     "keyring>=24.0",
     "openai>=1.40",
