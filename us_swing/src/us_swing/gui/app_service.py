@@ -16,9 +16,11 @@ IBKR regardless of the connected account type (live or paper).
 
 Paper trading (algo-side simulation)
 ─────────────────────────────────────
-When a user's ``mode = 'paper'``, ``execute_signal()`` simulates fills locally
-without contacting the broker.  This is an **algo-tool paper mode**, not IBKR
-Paper Trading — position records are written locally with ``mode='paper'``.
+In paper mode the ``StrategyEngine`` submits orders through ``PaperBroker``,
+which fills them synchronously at the signal price without contacting IBKR.
+Each fill calls back into ``_on_paper_fill()``, which records the entry/exit
+into the ``trade_cycles`` ledger and updates ``positions`` with ``mode='paper'``.
+This is an **algo-tool paper mode**, not IBKR Paper Trading.
 
 Replaces the demo data backend.  All data accessors return real (initially
 empty) data; positions and trades populate once a feed connection is
@@ -1002,7 +1004,7 @@ class AppService(QObject):
     exchange_unavail_updated  = pyqtSignal(object)         # set[str]
     live_bar_data_updated     = pyqtSignal(str)            # symbol — 3m or 15m bar written to DB
     pending_signals_updated   = pyqtSignal()               # pending signal list changed
-    strategy_status_changed   = pyqtSignal(str, str)       # (strategy_name, new_status)
+    strategy_status_changed   = pyqtSignal(str, str)       # (strategy_name, "entered"|"exited") — refresh nudge
     circuit_breaker_changed   = pyqtSignal(bool)           # True = breaker tripped (entries blocked)
     _auto_exit_requested      = pyqtSignal(int, str)       # (cycle_id, reason) — cross-thread marshal
 
@@ -1096,6 +1098,7 @@ class AppService(QObject):
         # are available for the FO-EXE-012 trade-cycle service below.  The
         # lifecycle service itself is otherwise dormant until screener
         # results arrive.
+        self._db:                  Any                = None
         self._db_engine:           Any                = None
         self._lifecycle_query:     MonitoringQuery    | None = None
         self._lifecycle_command:   MonitoringCommand  | None = None
@@ -1105,6 +1108,13 @@ class AppService(QObject):
         self._tc_query:            Any                = None
         self._tc_command:          Any                = None
         self._rex_counters:        Any                = None
+        # Order pipeline (Broker_fix Phase 5): SimBroker → OrderIngestion via
+        # the BrokerAdapter submitter.  Falls back to PaperBroker if the DB /
+        # trade-cycle service is unavailable.
+        self._broker:              Any                = None
+        self._order_ingestion:     Any                = None
+        self._broker_adapter:      Any                = None
+        self._submitter:           Any                = None
 
         self.screener_results_updated.connect(self._on_screener_results_updated)
         # Trigger candle fetch for any results that were saved from a prior screener run.
@@ -1146,7 +1156,6 @@ class AppService(QObject):
         from us_swing.execution.pending_signal_store import PendingSignalStore
         from us_swing.execution.risk_validator import PassthroughRiskValidator
         from us_swing.execution.event_bus import QtEventBus
-        from us_swing.execution.paper_broker import PaperBroker
         from us_swing.execution.strategy_engine._engine import StrategyEngine
         from us_swing.gui.strategy_builder_dialog import load_strategies, save_strategies
 
@@ -1160,14 +1169,51 @@ class AppService(QObject):
         self._pending_store.pending_signal_executed.connect(lambda _: self.pending_signals_updated.emit())
 
         self._event_bus = QtEventBus(self)
-        self._paper_broker = PaperBroker(on_fill=self._on_paper_fill)
+
+        # Order submitter: the new broker pipeline when the DB + trade-cycle
+        # service are available; otherwise the legacy in-memory PaperBroker so
+        # the app still runs without a candle DB.
+        if self._db is not None and self._tc_command is not None:
+            from us_swing.execution.broker_adapter import BrokerAdapter
+            from us_swing.execution.broker_factory import build_broker
+            from us_swing.execution.order_ingestion import OrderIngestion
+
+            # Mode + broker are hard-coded until the Settings UI lands; the
+            # factory already routes live/IBKR so only these two values change.
+            self._broker = build_broker(
+                mode="paper",
+                broker_name="IBKR",
+                scheduler=self._schedule_on_engine_loop,
+                live_client_provider=self._live_order_client,
+            )
+            self._order_ingestion = OrderIngestion(
+                ledger=self._db,
+                fill_sink=lambda fill: self._strategy_engine.on_order_fill(fill),
+                cycles=self._tc_command,
+            )
+            self._broker_adapter = BrokerAdapter(
+                broker=self._broker,
+                ingestion=self._order_ingestion,
+                config_provider=self._strategy_cfg,
+                user_id_provider=lambda: self._active_uid,
+                session_date_provider=lambda: datetime.datetime.now().strftime("%Y-%m-%d"),
+                mode_provider=lambda: "paper",            # Phase 6 wires real user mode
+                exit_reason_provider=lambda: self._pending_exit_reason,
+                on_event=self._on_order_event_gui,
+            )
+            self._submitter = self._broker_adapter
+            _log.info("[Orders] Broker pipeline ready (SimBroker → trades ledger)")
+        else:
+            self._submitter = None
+            _log.error("[Orders] Order submission unavailable — trade-cycle service or database not ready")
+
         self._strategy_engine = StrategyEngine(
             registry_loader=load_strategies,
             registry_saver=save_strategies,
             candles_provider=self._get_candles_df,
             bar_provider=self._get_latest_bar,
             risk=PassthroughRiskValidator(),
-            submitter=self._paper_broker,
+            submitter=self._submitter,
             pending=self._pending_store,
             bus=self._event_bus,
             rex_counters=self._rex_counters,
@@ -1437,15 +1483,17 @@ class AppService(QObject):
         if self._lifecycle_command is not None:
             return True
         try:
-            from sqlalchemy import create_engine
-            from us_swing.db.schema import create_schema
+            from us_swing.db.manager import DatabaseManager
         except Exception as exc:                                      # pragma: no cover
             _log.warning("[Lifecycle] Unable to import DB layer: %r", exc)
             return False
         try:
             _CANDLE_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-            engine = create_engine(f"sqlite:///{_CANDLE_DB_PATH}", future=True)
-            create_schema(engine)
+            # One DatabaseManager owns the engine; the trade-cycle service and the
+            # order-ingestion ledger both share it (no second connection).
+            self._db = DatabaseManager(f"sqlite:///{_CANDLE_DB_PATH}")
+            self._db.create_schema()
+            engine = self._db.engine
             query, command, bus = build_default_service(
                 engine,
                 filtered_provider = self._lifecycle_filtered_provider,
@@ -1819,168 +1867,64 @@ class AppService(QObject):
                 f"[Strategy] Signal {signal.signal_id} not found in pending store",
             )
             return -1
-        order_id = self._paper_broker.submit(eng_sig, quantity) or -1
+        if self._submitter is None:
+            _log.error("[Orders] Cannot submit signal — order submission is unavailable")
+            return -1
+        order_id = self._submitter.submit(eng_sig, quantity) or -1
         return order_id
 
     def reload_strategy_registry(self) -> None:
         """Reload strategy configurations from disk into the running engine."""
         self._strategy_engine.reload_registry()
 
-    def _on_paper_fill(self, fill: object) -> None:
-        from us_swing.execution.strategy_engine._protocols import FillEvent
-        if not isinstance(fill, FillEvent):
-            return
-        self._strategy_engine.on_order_fill(fill)
+    def _live_order_client(self) -> Any:
+        """Return the connected order client for live trading.
 
-        now    = datetime.datetime.now()
-        now_iso = now.strftime("%Y-%m-%dT%H:%M:%S")
-        if fill.is_entry:
-            self._record_paper_entry(fill, now, now_iso)
+        Live IBKR ordering is not connected yet (paper-only phase); the broker
+        factory only calls this when ``mode='live'``, so it raises a clear error
+        until live wiring is added.
+        """
+        raise RuntimeError(
+            "Live order routing is not connected yet — the app is in paper mode"
+        )
+
+    def _schedule_on_engine_loop(self, callback: Callable[[], None]) -> None:
+        """Scheduler for ``SimBroker``: defer a simulated fill onto the engine's
+        asyncio loop so it lands after ``place_order`` / ``on_order_accepted``
+        returns, no matter which thread submitted the order."""
+        engine = getattr(self, "_strategy_engine", None)
+        loop = engine.loop if engine is not None else None
+        if loop is not None and loop.is_running():
+            loop.call_soon_threadsafe(callback)
         else:
-            self._record_paper_exit(fill, now, now_iso)
+            callback()
 
-        self.log_message.emit(
-            "INFO",
-            f"[Strategy] Paper fill confirmed: {fill.symbol}  "
-            f"{'entry' if fill.is_entry else 'exit'}  "
-            f"qty={fill.fill_qty}  price={fill.fill_price:.2f}  order={fill.order_id}",
-        )
+    def _on_order_event_gui(self, event: object) -> None:
+        """Refresh GUI position / trade state from the cycle ledger after a
+        broker order event.  Runs on the engine loop thread; the Qt signals
+        marshal the refresh to the GUI thread."""
+        from us_swing.broker.broker import OrderEvent, OrderStatus
+        if not isinstance(event, OrderEvent):
+            return
+        if event.status not in (
+            OrderStatus.FILLED,
+            OrderStatus.PARTIAL_FILLED,
+            OrderStatus.CANCELLED,
+            OrderStatus.REJECTED,
+        ):
+            return
+        try:
+            self._rehydrate_positions_from_cycles()
+        except Exception:
+            _log.exception("[Orders] Failed to refresh positions after order event")
         self.positions_updated.emit()
-
-    def _record_paper_entry(
-        self,
-        fill: Any,
-        now: datetime.datetime,
-        now_iso: str,
-    ) -> None:
-        """Persist an entry fill via TradeCycleService and update in-memory state."""
-        cfg = self._strategy_cfg(fill.strategy_id)
-        target_enabled = bool(getattr(cfg, "target_enabled", False)) if cfg else False
-        sl_enabled     = bool(getattr(cfg, "stoploss_enabled", False)) if cfg else False
-        target_pct     = float(getattr(cfg, "target_value", 0.0)) if cfg else 0.0
-        sl_pct         = float(getattr(cfg, "stoploss_value", 0.0)) if cfg else 0.0
-        target_type    = (getattr(cfg, "target_type", "fixed") if cfg else "fixed") or "fixed"
-        stoploss_type  = (getattr(cfg, "stoploss_type", "fixed") if cfg else "fixed") or "fixed"
-
-        target_price: float | None = (
-            fill.fill_price * (1.0 + target_pct / 100.0) if target_enabled else None
-        )
-        hard_sl: float = (
-            fill.fill_price * (1.0 - sl_pct / 100.0) if sl_enabled else 0.0
-        )
-
-        if self._tc_command is not None:
-            try:
-                self._tc_command.on_entry_fill(
-                    strategy_id             = fill.strategy_id,
-                    symbol                  = fill.symbol,
-                    user_id                 = self._active_uid,
-                    entry_order_id          = str(fill.order_id),
-                    entry_price             = float(fill.fill_price),
-                    entry_qty               = int(fill.fill_qty),
-                    fill_time               = now_iso,
-                    hard_stop_loss          = hard_sl,
-                    target_price            = target_price,
-                    target_type             = target_type,
-                    stoploss_type           = stoploss_type,
-                    trailing_mode           = None,
-                    trailing_offset         = None,
-                    monitoring_session_date = now.strftime("%Y-%m-%d"),
-                )
-            except Exception:
-                _log.exception("[TradeCycle] on_entry_fill failed for %s", fill.symbol)
-
-        pos = OpenPosition(
-            symbol          = fill.symbol,
-            user_id         = self._active_uid,
-            quantity        = fill.fill_qty,
-            average_price   = fill.fill_price,
-            stop_loss       = hard_sl,
-            target_price    = target_price or 0.0,
-            mode            = "paper",
-            current_price   = fill.fill_price,
-            strategy_id     = fill.strategy_id,
-            filled_quantity = fill.fill_qty,
-            total_quantity  = fill.fill_qty,
-            trade_id        = str(fill.order_id),
-            entry_time      = now,
-        )
-        self._positions.append(pos)
-        self._trades.append(TradeRecord(
-            trade_id        = str(fill.order_id),
-            user_id         = self._active_uid,
-            symbol          = fill.symbol,
-            side            = "BUY",
-            quantity        = fill.fill_qty,
-            entry_price     = fill.fill_price,
-            mode            = "paper",
-            strategy_id     = fill.strategy_id,
-            entry_time      = now,
-            order_state     = "FILLED",
-            filled_quantity = fill.fill_qty,
-        ))
-
-    def _record_paper_exit(
-        self,
-        fill: Any,
-        now: datetime.datetime,
-        now_iso: str,
-    ) -> None:
-        """Close the matching open cycle via TradeCycleService and update in-memory state."""
-        exit_reason = self._pending_exit_reason
-        self._pending_exit_reason = "manual"
-        if self._tc_query is not None and self._tc_command is not None:
-            snap = next(
-                (
-                    s for s in self._tc_query.open_cycles()
-                    if s.strategy_id == fill.strategy_id and s.symbol == fill.symbol
-                ),
-                None,
+        self.pending_signals_updated.emit()
+        if event.status is OrderStatus.FILLED:
+            self.log_message.emit(
+                "INFO",
+                f"[Orders] Fill confirmed: {event.filled_quantity} share(s) "
+                f"at {event.fill_price or 0.0:.2f}",
             )
-            if snap is not None:
-                try:
-                    self._tc_command.close_cycle_by_id(
-                        cycle_id      = snap.cycle_id,
-                        exit_order_id = str(fill.order_id),
-                        exit_price    = float(fill.fill_price),
-                        exit_qty      = int(fill.fill_qty),
-                        exit_time     = now_iso,
-                        exit_reason   = exit_reason,
-                    )
-                except Exception:
-                    _log.exception("[TradeCycle] close_cycle_by_id failed for %s", fill.symbol)
-
-        for p in self._positions:
-            if (p.symbol == fill.symbol
-                    and p.strategy_id == fill.strategy_id
-                    and p.quantity > 0):
-                p.quantity      = 0
-                p.current_price = fill.fill_price
-                break
-        for t in reversed(self._trades):
-            if (t.symbol == fill.symbol
-                    and t.strategy_id == fill.strategy_id
-                    and t.exit_price is None):
-                t.exit_price      = fill.fill_price
-                t.exit_time       = now
-                break
-
-        # Trade History shows one row per broker order (FO-EXE-014); record the
-        # SELL as its own row.  The model reads entry_price/entry_time for the
-        # Avg Price / Date & Time columns, so the exit fill goes there.
-        self._trades.append(TradeRecord(
-            trade_id        = str(fill.order_id),
-            user_id         = self._active_uid,
-            symbol          = fill.symbol,
-            side            = "SELL",
-            quantity        = fill.fill_qty,
-            entry_price     = fill.fill_price,
-            mode            = "paper",
-            strategy_id     = fill.strategy_id,
-            entry_time      = now,
-            order_state     = "FILLED",
-            filled_quantity = fill.fill_qty,
-        ))
 
     def _strategy_cfg(self, name: str) -> Any:
         """Return the live StrategyConfig for *name*, or None."""
@@ -2100,9 +2044,9 @@ class AppService(QObject):
     def get_strategies_with_open_cycles(self) -> set[str]:
         """Strategy names that currently hold at least one open trade cycle.
 
-        Consumed by the Strategy Executor to surface a "Running" badge for
+        Consumed by the Strategy Executor to surface a RUNNING badge for
         strategies that have restored positions even though their saved
-        Status is "Inactive" (the engine deliberately leaves it Inactive
+        run_state is STOPPED (the engine deliberately leaves it STOPPED
         on boot so entry checks stay gated behind the user's Run click).
         """
         if self._tc_query is None:
@@ -2186,7 +2130,12 @@ class AppService(QObject):
         if snap is None:
             return None
         last_close = self.get_latest_close(symbol, "3m")
-        exit_price = last_close if last_close is not None else snap.entry_price
+        if last_close is not None:
+            exit_price = last_close
+        elif snap.current_price is not None and snap.current_price > 0:
+            exit_price = snap.current_price
+        else:
+            exit_price = snap.entry_price
         from us_swing.execution.strategy_engine._signals import (
             Action,
             TradeSignal as EngineSignal,
@@ -2199,14 +2148,24 @@ class AppService(QObject):
             reason      = "manual_force_exit",
         )
         self._pending_exit_reason = reason
-        return self._paper_broker.submit(eng_sig, int(snap.entry_qty))
+        if self._submitter is None:
+            _log.error("[Orders] Cannot submit exit order — order submission is unavailable")
+            return -1
+        return self._submitter.submit(eng_sig, int(snap.entry_qty))
 
     def _on_strategy_event(self, event: object) -> None:
+        """Re-broadcast a position entry/exit as a refresh nudge.
+
+        The payload is a plain ``"entered"`` / ``"exited"`` descriptor — the
+        Strategy Executor derives the RUNNING badge live from open cycles and
+        ignores this string. It must never carry the legacy ``"Active"`` /
+        ``"Running"`` vocabulary, which is not a valid ``StrategyRunState``.
+        """
         from us_swing.execution.strategy_engine._events import StrategyEntered, StrategyExited
         if isinstance(event, StrategyEntered):
-            self.strategy_status_changed.emit(event.strategy_id, "Running")
+            self.strategy_status_changed.emit(event.strategy_id, "entered")
         elif isinstance(event, StrategyExited):
-            self.strategy_status_changed.emit(event.strategy_id, "Active")
+            self.strategy_status_changed.emit(event.strategy_id, "exited")
 
     # ── User CRUD ─────────────────────────────────────────────────────────────
 
