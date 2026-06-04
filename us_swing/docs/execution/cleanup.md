@@ -140,8 +140,8 @@ root).
 | 1 | app_service: drop PaperBroker fallback | ☑ | d2b0f1b9 |
 | 2 | app_service: delete `_on_paper_fill`/`_record_paper_*` | ☑ | 15f42847 |
 | 3 | delete `paper_broker.py` | ☑ | 50797512 |
-| 4a | delete `execution_router.py` (+ test) | ☐ | |
-| 4b | delete `paper_engine.py` (+ test) | ☐ | |
+| 4a | delete `execution_router.py` (+ test) | ☑ | 3eb5b8a9 |
+| 4b | delete `paper_engine.py` (+ test) | ☑ | b83638d5 |
 | 5 | delete `execution_engine.py` (+ test) | ☐ | |
 | 6 | delete `position_tracker.py` (+ test); fix `risk_manager` | ☐ | |
 | 7 | repoint `health.py` + remove MonitoringSession position writers | ☐ | |
