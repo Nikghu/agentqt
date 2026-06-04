@@ -417,14 +417,9 @@ def test_migrate_lifecycle_columns_adds_columns() -> None:
         cols_trades = {
             r[1] for r in conn.execute(text("PRAGMA table_info(trades)")).all()
         }
-        cols_positions = {
-            r[1] for r in conn.execute(text("PRAGMA table_info(positions)")).all()
-        }
 
     assert "trade_origin" in cols_trades
     assert "monitoring_session_date" in cols_trades
-    assert "origin" in cols_positions
-    assert "anchor_session_date" in cols_positions
     eng.dispose()
 
 

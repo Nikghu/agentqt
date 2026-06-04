@@ -18,7 +18,6 @@ import sqlalchemy as sa
 
 from us_swing.data.models import (
     OHLCVBar,
-    PositionRecord,
     TradeRecord,
     UniverseRecord,
     UserRecord,
@@ -27,7 +26,6 @@ from us_swing.db.schema import (
     PRICE_TABLES,
     create_schema,
     drop_schema,
-    positions,
     trades,
     universe,
     users,
@@ -283,56 +281,6 @@ class DatabaseManager:
                 .values(**values)
             )
 
-    # ── Positions ─────────────────────────────────────────────────────────────
-
-    def upsert_position(self, pos: PositionRecord) -> None:
-        row = {
-            "symbol":        pos.symbol,
-            "user_id":       pos.user_id,
-            "quantity":      pos.quantity,
-            "average_price": pos.average_price,
-            "stop_loss":     pos.stop_loss,
-            "target_price":  pos.target_price,
-            "trailing_stop": pos.trailing_stop,
-            "mode":          pos.mode,
-        }
-        with self._engine.begin() as conn:
-            stmt = sa.dialects.sqlite.insert(positions).values(**row).on_conflict_do_update(  # type: ignore[attr-defined]
-                index_elements=["user_id", "symbol"],
-                set_={k: v for k, v in row.items() if k not in ("user_id", "symbol")},
-            )
-            conn.execute(stmt)
-
-    def delete_position(self, user_id: int, symbol: str) -> None:
-        with self._engine.begin() as conn:
-            conn.execute(
-                positions.delete().where(
-                    positions.c.user_id == user_id,
-                    positions.c.symbol  == symbol,
-                )
-            )
-
-    def fetch_open_positions(self, user_id: int) -> list[PositionRecord]:
-        # SRD-EXE-005.001 — "open" derived from quantity > 0; no state column.
-        stmt = sa.select(positions).where(
-            positions.c.user_id  == user_id,
-            positions.c.quantity > 0,
-        )
-        with self._engine.connect() as conn:
-            rows = conn.execute(stmt).mappings().all()
-        return [
-            PositionRecord(
-                symbol        = r["symbol"],
-                user_id       = r["user_id"],
-                quantity      = r["quantity"],
-                average_price = r["average_price"],
-                stop_loss     = r["stop_loss"],
-                target_price  = r["target_price"],
-                trailing_stop = r["trailing_stop"],
-                mode          = r["mode"],
-            )
-            for r in rows
-        ]
 
     # ── Users ─────────────────────────────────────────────────────────────────
 
