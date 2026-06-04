@@ -9,11 +9,10 @@ import sqlalchemy as sa
 from sqlalchemy import Engine, text
 
 from us_swing.core.monitoring_session._repository import MonitoringRepository
-from us_swing.core.monitoring_session import LifecycleState, TradeOrigin
+from us_swing.core.monitoring_session import LifecycleState
 from us_swing.db.schema import (
     create_schema,
     migrate_lifecycle_columns,
-    positions,
 )
 
 
@@ -356,88 +355,17 @@ def test_evict_symbol_atomic_rollback_on_failure(
 # ── UT-EXE-009.002.M01.T11 ──────────────────────────────────────────────────
 
 
-def test_open_system_position_symbols_returns_only_system_open(
-    engine: Engine, seed_user: int
+def test_open_system_position_symbols_returns_open_cycle_symbols(
+    engine: Engine, open_cycle: Callable[..., None], seed_user: int
 ) -> None:
-    """UT-EXE-009.002.M01.T11: open_system_position_symbols returns only system rows with qty > 0."""
+    """open_system_position_symbols returns symbols of non-terminal trade_cycles (FO-EXE-016)."""
     repo = MonitoringRepository(engine)
-
-    with engine.begin() as conn:
-        conn.execute(
-            positions.insert(),
-            [
-                dict(symbol="A", user_id=1, quantity=100, average_price=50.0,
-                     mode="paper", origin="system"),
-                dict(symbol="B", user_id=1, quantity=0,   average_price=50.0,
-                     mode="paper", origin="system"),
-                dict(symbol="C", user_id=1, quantity=100, average_price=50.0,
-                     mode="paper", origin="manual"),
-            ],
-        )
+    open_cycle("A", "oc-a", state="OPEN")
+    open_cycle("B", "oc-b", state="CLOSED")
 
     result = repo.open_system_position_symbols()
 
     assert result == frozenset({"A"})
-
-
-# ── UT-EXE-009.002.M01.T12 ──────────────────────────────────────────────────
-
-
-def test_open_system_position_symbols_excludes_null_origin(
-    engine: Engine, seed_user: int
-) -> None:
-    """UT-EXE-009.002.M01.T12: open_system_position_symbols excludes legacy NULL-origin rows."""
-    repo = MonitoringRepository(engine)
-
-    with engine.begin() as conn:
-        conn.execute(
-            positions.insert().values(
-                symbol="D",
-                user_id=1,
-                quantity=100,
-                average_price=50.0,
-                mode="paper",
-                origin=None,
-            )
-        )
-
-    result = repo.open_system_position_symbols()
-
-    assert "D" not in result
-
-
-# ── UT-EXE-009.002.M01.T13 ──────────────────────────────────────────────────
-
-
-def test_entered_symbols_equals_open_system_positions_after_fill(
-    engine: Engine, seed_user: int
-) -> None:
-    """UT-EXE-009.002.M01.T13: entered_symbols equals open_system_position_symbols after fill round-trip."""
-    repo = MonitoringRepository(engine)
-
-    repo.insert_monitoring_rows(
-        session_date=_TODAY,
-        preset_id="p",
-        run_timestamp="ts",
-        symbols=["A"],
-    )
-    repo.transition_to_entered(
-        session_date=_TODAY_S,
-        symbol="A",
-        entered_at="2026-05-15T14:00:00Z",
-        trade_id="t1",
-    )
-    repo.upsert_position_with_anchor(
-        user_id=1,
-        symbol="A",
-        side=__import__("us_swing.core.monitoring_session._enums", fromlist=["Side"]).Side.BUY,
-        fill_qty=100,
-        fill_price=50.0,
-        origin=TradeOrigin.SYSTEM,
-        anchor_session_date=_TODAY_S,
-    )
-
-    assert repo.entered_symbols() == repo.open_system_position_symbols()
 
 
 # ── UT-EXE-009.002.M01.T14 ──────────────────────────────────────────────────

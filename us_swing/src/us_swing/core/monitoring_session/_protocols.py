@@ -11,7 +11,6 @@ from datetime import date
 from typing import Any, Callable, Protocol, TypeVar, runtime_checkable
 
 from us_swing.core.monitoring_session._dto import (
-    FillEvent,
     InvariantReport,
     KeepSet,
     MonitoringSessionRow,
@@ -50,8 +49,6 @@ class MonitoringQuery(Protocol):
 
     def open_system_positions(self) -> frozenset[str]: ...
 
-    def has_open_system_position(self, symbol: str) -> bool: ...
-
     def session_for(
         self,
         session_date: date,
@@ -74,6 +71,8 @@ class MonitoringCommand(Protocol):
 
     def on_screener_results(self, result: Any) -> KeepSet: ...
 
-    def on_fill(self, fill: FillEvent) -> None: ...
+    def mark_entered(self, symbol: str, entered_at: str, trade_id: str) -> None: ...
+
+    def mark_exited(self, symbol: str, exited_at: str) -> None: ...
 
     def reconcile_preopen(self, today: date) -> ReconcileReport: ...

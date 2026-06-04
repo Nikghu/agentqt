@@ -51,6 +51,15 @@ class TradeLedger(Protocol):
 FillSink = Callable[[FillEvent], None]
 
 
+class LifecycleSink(Protocol):
+    """Narrow monitoring-lifecycle surface (`MonitoringCommand`) used to flip the
+    `MONITORING → ENTERED → EXITED` ledger from live fills (FO-EXE-016)."""
+
+    def mark_entered(self, symbol: str, entered_at: str, trade_id: str) -> None: ...
+
+    def mark_exited(self, symbol: str, exited_at: str) -> None: ...
+
+
 @dataclass(frozen=True, slots=True)
 class OrderContext:
     """Everything ingestion needs about an order, captured at acceptance.
@@ -89,10 +98,12 @@ class OrderIngestion:
         ledger: TradeLedger,
         fill_sink: FillSink,
         cycles: TradeCycleCommand,
+        lifecycle: LifecycleSink | None = None,
     ) -> None:
         self._ledger = ledger
         self._fill_sink = fill_sink
         self._cycles = cycles
+        self._lifecycle = lifecycle
         self._context: dict[str, OrderContext] = {}
 
     def on_order_accepted(self, ctx: OrderContext) -> None:
@@ -175,6 +186,15 @@ class OrderIngestion:
             self._open_cycle(ctx, event, now)
         else:
             self._close_cycle(ctx, event, now)
+
+        # FO-EXE-016 — a completed fill drives the monitoring-session ledger:
+        # entry FILLED → ENTERED, closing exit FILLED → EXITED.  Partial fills
+        # leave the ledger state unchanged.
+        if self._lifecycle is not None and event.status is OrderStatus.FILLED:
+            if ctx.is_entry:
+                self._lifecycle.mark_entered(ctx.symbol, _iso(now), ctx.broker_order_id)
+            else:
+                self._lifecycle.mark_exited(ctx.symbol, _iso(now))
 
         if event.status is OrderStatus.FILLED:
             self._context.pop(event.broker_order_id, None)

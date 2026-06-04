@@ -16,12 +16,8 @@ from typing import Sequence
 import sqlalchemy as sa
 from sqlalchemy import Engine
 
-from us_swing.core.monitoring_session._dto import (
-    MonitoringSessionRow,
-    PositionSnapshot,
-)
-from us_swing.core.monitoring_session._enums import Side, TradeOrigin
-from us_swing.db.schema import monitoring_session, positions, trades
+from us_swing.core.monitoring_session._dto import MonitoringSessionRow
+from us_swing.db.schema import monitoring_session
 from us_swing.execution import ExecutionEnums
 
 log = logging.getLogger(__name__)
@@ -276,176 +272,33 @@ class MonitoringRepository:
         with self._engine.connect() as conn:
             return frozenset(r[0] for r in conn.execute(stmt))
 
-    # ── Position queries ─────────────────────────────────────────────────────
+    # ── Position queries (trade_cycles is the live surface, FO-EXE-016) ───────
 
     def open_system_position_symbols(self) -> frozenset[str]:
-        """Symbols of all currently-open system positions across users.
+        """Symbols with a currently-open trade cycle.
 
-        SRD-EXE-005.001 — "open" derived from quantity > 0.
+        ``trade_cycles`` replaced the retired ``positions`` table as the live
+        position surface. Queried by table name so ``core/`` need not import the
+        execution-owned schema (same pattern as ``health.py``).
         """
-        stmt = sa.select(positions.c.symbol).where(
-            positions.c.quantity > 0,
-            positions.c.origin   == TradeOrigin.SYSTEM.value,
+        stmt = sa.text(
+            "SELECT DISTINCT symbol FROM trade_cycles "
+            "WHERE state NOT IN ('CLOSED', 'ABORTED')"
         )
         with self._engine.connect() as conn:
             return frozenset(r[0] for r in conn.execute(stmt))
 
-    def has_open_system_position(self, symbol: str) -> bool:
-        stmt = sa.select(sa.func.count()).select_from(positions).where(
-            positions.c.symbol   == symbol,
-            positions.c.quantity > 0,
-            positions.c.origin   == TradeOrigin.SYSTEM.value,
+    def fetch_entered_row(self, symbol: str) -> MonitoringSessionRow | None:
+        """Most-recent ``ENTERED`` ledger row for *symbol*, if any."""
+        stmt = (
+            sa.select(monitoring_session)
+            .where(
+                monitoring_session.c.symbol          == symbol,
+                monitoring_session.c.lifecycle_state == _LifecycleState.ENTERED.value,
+            )
+            .order_by(monitoring_session.c.session_date.desc())
+            .limit(1)
         )
         with self._engine.connect() as conn:
-            return (conn.execute(stmt).scalar() or 0) > 0
-
-    def position_anchor(self, symbol: str) -> str | None:
-        """Anchor session date for the open system position, if any."""
-        stmt = sa.select(positions.c.anchor_session_date).where(
-            positions.c.symbol   == symbol,
-            positions.c.quantity > 0,
-            positions.c.origin   == TradeOrigin.SYSTEM.value,
-        )
-        with self._engine.connect() as conn:
-            return conn.execute(stmt).scalar()
-
-    # ── Trade + position writes ──────────────────────────────────────────────
-
-    def insert_trade_with_anchor(
-        self,
-        trade_id: str,
-        user_id: int,
-        symbol: str,
-        side: Side,
-        qty: int,
-        price: float,
-        fill_time: str,
-        origin: TradeOrigin,
-        anchor_session_date: str | None,
-    ) -> None:
-        with self._engine.begin() as conn:
-            conn.execute(
-                trades.insert().values(
-                    trade_id                = trade_id,
-                    user_id                 = user_id,
-                    symbol                  = symbol,
-                    side                    = side.value,
-                    entry_time              = fill_time if side is Side.BUY else None,
-                    entry_price             = price     if side is Side.BUY else None,
-                    exit_time               = fill_time if side is Side.SELL else None,
-                    exit_price              = price     if side is Side.SELL else None,
-                    quantity                = qty,
-                    strategy_id             = None,
-                    mode                    = "paper",
-                    order_state             = "FILLED",
-                    filled_quantity         = qty,
-                    trade_origin            = origin.value,
-                    monitoring_session_date = anchor_session_date,
-                )
-            )
-
-    def upsert_position_with_anchor(
-        self,
-        user_id: int,
-        symbol: str,
-        side: Side,
-        fill_qty: int,
-        fill_price: float,
-        origin: TradeOrigin,
-        anchor_session_date: str | None,
-    ) -> PositionSnapshot:
-        """Apply a fill to the ``positions`` row for (user_id, symbol).
-
-        Computes the post-fill snapshot inside the same transaction so the
-        caller can detect a closing fill (``state == 'CLOSED'``).
-        """
-        with self._engine.begin() as conn:
-            existing = conn.execute(
-                sa.select(positions).where(
-                    positions.c.user_id == user_id,
-                    positions.c.symbol  == symbol,
-                )
-            ).mappings().first()
-
-            if existing is None:
-                # Fresh position — must be a BUY for system fills.
-                new_qty   = fill_qty if side is Side.BUY else -fill_qty
-                avg_price = fill_price
-                conn.execute(
-                    positions.insert().values(
-                        symbol              = symbol,
-                        user_id             = user_id,
-                        quantity            = new_qty,
-                        average_price       = avg_price,
-                        stop_loss           = None,
-                        target_price        = None,
-                        trailing_stop       = None,
-                        mode                = "paper",
-                        origin              = origin.value,
-                        anchor_session_date = anchor_session_date,
-                    )
-                )
-                return PositionSnapshot(
-                    symbol              = symbol,
-                    quantity            = new_qty,
-                    average_price       = avg_price,
-                    state               = "OPEN" if new_qty > 0 else "CLOSED",
-                    origin              = origin,
-                    anchor_session_date = anchor_session_date,
-                )
-
-            prev_qty   = int(existing["quantity"] or 0)
-            prev_price = float(existing["average_price"] or 0.0)
-
-            if side is Side.BUY:
-                new_qty = prev_qty + fill_qty
-                # Weighted-average entry price across BUY fills.
-                if new_qty > 0:
-                    avg_price = (
-                        (prev_qty * prev_price + fill_qty * fill_price) / new_qty
-                    )
-                else:
-                    avg_price = fill_price
-            else:
-                new_qty   = prev_qty - fill_qty
-                avg_price = prev_price
-                if new_qty < 0:
-                    log.warning(
-                        "[Lifecycle] Over-sell for %s: prev=%d sold=%d",
-                        symbol, prev_qty, fill_qty,
-                    )
-
-            anchor = (
-                existing["anchor_session_date"]
-                if existing["anchor_session_date"] is not None
-                else anchor_session_date
-            )
-            origin_value = existing["origin"] or origin.value
-
-            conn.execute(
-                positions.update()
-                .where(
-                    positions.c.user_id == user_id,
-                    positions.c.symbol  == symbol,
-                )
-                .values(
-                    quantity            = new_qty,
-                    average_price       = avg_price,
-                    origin              = origin_value,
-                    anchor_session_date = anchor,
-                )
-            )
-
-            realised_pnl = 0.0
-            if side is Side.SELL and prev_qty > 0:
-                realised_pnl = (fill_price - prev_price) * fill_qty
-
-            return PositionSnapshot(
-                symbol              = symbol,
-                quantity            = new_qty,
-                average_price       = avg_price,
-                state               = "OPEN" if new_qty > 0 else "CLOSED",
-                origin              = TradeOrigin(origin_value),
-                anchor_session_date = anchor,
-                realised_pnl        = realised_pnl,
-            )
+            row = conn.execute(stmt).mappings().first()
+        return _row_to_session(row) if row else None

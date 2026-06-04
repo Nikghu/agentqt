@@ -10,77 +10,26 @@ from unittest.mock import patch
 
 import pytest
 import sqlalchemy as sa
-from sqlalchemy import Engine, text
+from sqlalchemy import Engine
 
 from us_swing.core.monitoring_session import (
-    FillEvent,
     LifecycleState,
     MonitoringCommand,
     MonitoringEventBus,
     MonitoringQuery,
     ReconcileError,
     ReconcileReport,
-    Side,
-    SymbolEnteredPosition,
     SymbolEvicted,
-    SymbolExitedPosition,
-    SymbolPositionScaled,
     SymbolStartedMonitoring,
-    TradeOrigin,
     build_default_service,
 )
 from us_swing.db.schema import monitoring_session
-from us_swing.execution import ExecutionEnums
 
 
 _T0 = date(2026, 5, 14)   # "yesterday"
 _T1 = date(2026, 5, 15)   # "today"
 _T0_S = _T0.isoformat()
 _T1_S = _T1.isoformat()
-
-
-def _buy_fill(
-    symbol: str = "A",
-    trade_id: str = "t1",
-    qty: int = 100,
-    price: float = 50.0,
-    origin: TradeOrigin = TradeOrigin.SYSTEM,
-    user_id: int = 1,
-    order_state: ExecutionEnums.BuyOrderState | None = None,
-) -> FillEvent:
-    return FillEvent(
-        symbol=symbol,
-        trade_id=trade_id,
-        side=Side.BUY,
-        qty=qty,
-        price=price,
-        fill_time="2026-05-14T14:00:00Z",
-        origin=origin,
-        user_id=user_id,
-        order_state=order_state,
-    )
-
-
-def _sell_fill(
-    symbol: str = "A",
-    trade_id: str = "t2",
-    qty: int = 100,
-    price: float = 55.0,
-    origin: TradeOrigin = TradeOrigin.SYSTEM,
-    user_id: int = 1,
-    order_state: ExecutionEnums.SellOrderState | None = None,
-) -> FillEvent:
-    return FillEvent(
-        symbol=symbol,
-        trade_id=trade_id,
-        side=Side.SELL,
-        qty=qty,
-        price=price,
-        fill_time="2026-05-14T15:00:00Z",
-        origin=origin,
-        user_id=user_id,
-        order_state=order_state,
-    )
 
 
 # ── UT-EXE-009.002.M02.T01 ──────────────────────────────────────────────────
@@ -147,185 +96,51 @@ def test_on_screener_results_ignores_failed_symbols(
     assert events == []
 
 
-# ── UT-EXE-009.002.M02.T04 ──────────────────────────────────────────────────
+# ── FO-EXE-016 — ingestion-driven lifecycle seam ────────────────────────────
 
 
-def test_first_system_buy_transitions_monitoring_to_entered(
-    engine: Engine,
+def test_mark_entered_flips_monitoring_to_entered(
     build_service: Callable[..., tuple[MonitoringQuery, MonitoringCommand, MonitoringEventBus]],
     make_screener_result: Callable[..., object],
-    event_collector: Callable[[MonitoringEventBus], list],
     seed_user: int,
 ) -> None:
-    """UT-EXE-009.002.M02.T04: First system BUY fill flips earliest MONITORING row -> ENTERED + anchor + event."""
+    """mark_entered flips the earliest open MONITORING row to ENTERED."""
     query, cmd, bus = build_service(today=_T0)
-    events = event_collector(bus)
-
     cmd.on_screener_results(make_screener_result(passed=["A"]))
-    cmd.on_fill(_buy_fill("A", trade_id="t1", qty=100))
 
-    entered_evts = [e for e in events if isinstance(e, SymbolEnteredPosition)]
-    assert len(entered_evts) == 1
-    assert entered_evts[0].symbol == "A"
-    assert entered_evts[0].anchor_session_date == _T0_S
-
-    row = query.session_for(_T0, "A")
-    assert row is not None
-    assert row.lifecycle_state == LifecycleState.ENTERED
-
-    with engine.connect() as conn:
-        anchor = conn.execute(
-            text("SELECT anchor_session_date FROM positions WHERE symbol='A'")
-        ).scalar()
-    assert anchor == _T0_S
-
-
-# ── UT-EXE-009.002.M02.T05 ──────────────────────────────────────────────────
-
-
-def test_scale_in_buy_publishes_scaled_event(
-    build_service: Callable[..., tuple[MonitoringQuery, MonitoringCommand, MonitoringEventBus]],
-    make_screener_result: Callable[..., object],
-    event_collector: Callable[[MonitoringEventBus], list],
-    seed_user: int,
-) -> None:
-    """UT-EXE-009.002.M02.T05: Scale-in BUY leaves ledger unchanged, publishes SymbolPositionScaled."""
-    query, cmd, bus = build_service(today=_T0)
-    events = event_collector(bus)
-
-    cmd.on_screener_results(make_screener_result(passed=["A"]))
-    cmd.on_fill(_buy_fill("A", trade_id="t1", qty=100))
-    cmd.on_fill(_buy_fill("A", trade_id="t2", qty=50))
-
-    scaled_evts = [e for e in events if isinstance(e, SymbolPositionScaled)]
-    assert len(scaled_evts) == 1
-    assert scaled_evts[0].symbol == "A"
+    cmd.mark_entered("A", "2026-05-14T14:00:00Z", "t1")
 
     row = query.session_for(_T0, "A")
     assert row is not None
     assert row.lifecycle_state == LifecycleState.ENTERED
 
 
-# ── UT-EXE-009.002.M02.T06 ──────────────────────────────────────────────────
-
-
-def test_partial_sell_leaves_ledger_entered(
+def test_mark_entered_is_noop_without_monitoring_row(
     build_service: Callable[..., tuple[MonitoringQuery, MonitoringCommand, MonitoringEventBus]],
-    make_screener_result: Callable[..., object],
-    event_collector: Callable[[MonitoringEventBus], list],
     seed_user: int,
 ) -> None:
-    """UT-EXE-009.002.M02.T06: Partial SELL leaves ledger state unchanged, publishes SymbolPositionScaled."""
+    """mark_entered is a no-op when the symbol has no open MONITORING row."""
     query, cmd, bus = build_service(today=_T0)
-    events = event_collector(bus)
-
-    cmd.on_screener_results(make_screener_result(passed=["A"]))
-    cmd.on_fill(_buy_fill("A", trade_id="t1", qty=150))
-    cmd.on_fill(_sell_fill("A", trade_id="t2", qty=70))
-
-    scaled_evts = [e for e in events if isinstance(e, SymbolPositionScaled)]
-    assert len(scaled_evts) == 1
-
-    row = query.session_for(_T0, "A")
-    assert row is not None
-    assert row.lifecycle_state == LifecycleState.ENTERED
+    cmd.mark_entered("UNKNOWN", "2026-05-14T14:00:00Z", "t1")
+    assert query.session_for(_T0, "UNKNOWN") is None
 
 
-# ── UT-EXE-009.002.M02.T07 ──────────────────────────────────────────────────
-
-
-def test_closing_sell_flips_ledger_to_exited(
+def test_mark_exited_flips_entered_to_exited(
     build_service: Callable[..., tuple[MonitoringQuery, MonitoringCommand, MonitoringEventBus]],
     make_screener_result: Callable[..., object],
-    event_collector: Callable[[MonitoringEventBus], list],
     seed_user: int,
 ) -> None:
-    """UT-EXE-009.002.M02.T07: Closing SELL flips ledger -> EXITED, publishes SymbolExitedPosition."""
+    """mark_exited flips an ENTERED row to EXITED on cycle close."""
     query, cmd, bus = build_service(today=_T0)
-    events = event_collector(bus)
-
     cmd.on_screener_results(make_screener_result(passed=["A"]))
-    cmd.on_fill(_buy_fill("A", trade_id="t1", qty=80))
-    cmd.on_fill(_sell_fill("A", trade_id="t2", qty=80))
+    cmd.mark_entered("A", "2026-05-14T14:00:00Z", "t1")
 
-    exited_evts = [e for e in events if isinstance(e, SymbolExitedPosition)]
-    assert len(exited_evts) == 1
+    cmd.mark_exited("A", "2026-05-14T15:00:00Z")
 
     row = query.session_for(_T0, "A")
     assert row is not None
     assert row.lifecycle_state == LifecycleState.EXITED
     assert row.exited_at is not None
-
-
-# ── UT-EXE-009.002.M02.T08 ──────────────────────────────────────────────────
-
-
-def test_manual_fill_is_ledger_noop(
-    engine: Engine,
-    build_service: Callable[..., tuple[MonitoringQuery, MonitoringCommand, MonitoringEventBus]],
-    make_screener_result: Callable[..., object],
-    event_collector: Callable[[MonitoringEventBus], list],
-    seed_user: int,
-) -> None:
-    """UT-EXE-009.002.M02.T08: Manual-origin fill is a ledger no-op."""
-    query, cmd, bus = build_service(today=_T0)
-    events = event_collector(bus)
-
-    cmd.on_screener_results(make_screener_result(passed=["A"]))
-    row_before = query.session_for(_T0, "A")
-
-    cmd.on_fill(_buy_fill("A", trade_id="tm1", origin=TradeOrigin.MANUAL))
-
-    # Ledger row must not have changed.
-    row_after = query.session_for(_T0, "A")
-    assert row_before is not None
-    assert row_after is not None
-    assert row_after.lifecycle_state == row_before.lifecycle_state
-
-    # No lifecycle events published.
-    lifecycle_evts = [
-        e for e in events
-        if isinstance(e, (SymbolEnteredPosition, SymbolPositionScaled, SymbolExitedPosition))
-    ]
-    assert lifecycle_evts == []
-
-    # But the trade row must have been inserted.
-    with engine.connect() as conn:
-        cnt = conn.execute(
-            text("SELECT COUNT(*) FROM trades WHERE trade_origin='manual'")
-        ).scalar()
-    assert cnt == 1
-
-
-# ── UT-EXE-009.002.M02.T09 ──────────────────────────────────────────────────
-
-
-def test_system_buy_with_no_monitoring_row_logs_error(
-    engine: Engine,
-    build_service: Callable[..., tuple[MonitoringQuery, MonitoringCommand, MonitoringEventBus]],
-    event_collector: Callable[[MonitoringEventBus], list],
-    seed_user: int,
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    """UT-EXE-009.002.M02.T09: System BUY with no MONITORING row logs ERROR and defensively records trade."""
-    query, cmd, bus = build_service(today=_T0)
-    events = event_collector(bus)
-
-    with caplog.at_level(logging.ERROR):
-        cmd.on_fill(_buy_fill("UNKNOWN", trade_id="t1"))
-
-    assert any("[Lifecycle]" in r.message for r in caplog.records if r.levelno == logging.ERROR)
-
-    # Trade must have been inserted with monitoring_session_date=NULL.
-    with engine.connect() as conn:
-        row = conn.execute(
-            text("SELECT monitoring_session_date FROM trades WHERE symbol='UNKNOWN'")
-        ).first()
-    assert row is not None
-    assert row[0] is None
-
-    # No lifecycle event published.
-    assert not any(isinstance(e, SymbolEnteredPosition) for e in events)
 
 
 # ── UT-EXE-009.002.M02.T10 ──────────────────────────────────────────────────
@@ -342,7 +157,7 @@ def test_duplicate_filter_creates_new_monitoring_row(
     query0, cmd0, bus0 = build_service(today=_T0)
     event_collector(bus0)
     cmd0.on_screener_results(make_screener_result(passed=["A"], run_timestamp="2026-05-14T13:30:00Z"))
-    cmd0.on_fill(_buy_fill("A", trade_id="t1"))
+    cmd0.mark_entered("A", "2026-05-14T14:00:00Z", "t1")
 
     row_t0 = query0.session_for(_T0, "A")
     assert row_t0 is not None
@@ -374,13 +189,14 @@ def test_duplicate_filter_creates_new_monitoring_row(
 def test_keep_set_returns_filtered_and_carryover(
     build_service: Callable[..., tuple[MonitoringQuery, MonitoringCommand, MonitoringEventBus]],
     make_screener_result: Callable[..., object],
+    open_cycle: Callable[..., None],
     seed_user: int,
 ) -> None:
     """UT-EXE-009.002.M02.T11: keep_set(today) returns filtered | carryover."""
-    # T0: establish open system position for C.
+    # T0: establish an open trade cycle for C (the live position surface).
     query0, cmd0, bus0 = build_service(today=_T0, filtered={"C"})
     cmd0.on_screener_results(make_screener_result(passed=["C"], run_timestamp="2026-05-14T13:30:00Z"))
-    cmd0.on_fill(_buy_fill("C", trade_id="tc1"))
+    open_cycle("C")
 
     # T1: screener returns [A, B]; carryover should include C.
     query1, cmd1, bus1 = build_service(today=_T1, filtered={"A", "B"})
@@ -411,12 +227,14 @@ def test_keep_set_empty_filtered_when_no_screener_run(
 def test_check_invariant_ok_when_ledger_matches_positions(
     build_service: Callable[..., tuple[MonitoringQuery, MonitoringCommand, MonitoringEventBus]],
     make_screener_result: Callable[..., object],
+    open_cycle: Callable[..., None],
     seed_user: int,
 ) -> None:
-    """UT-EXE-009.002.M02.T13: check_invariant() returns ok=True when ledger and positions agree."""
+    """UT-EXE-009.002.M02.T13: check_invariant() returns ok=True when ledger and open cycles agree."""
     query, cmd, bus = build_service(today=_T0)
     cmd.on_screener_results(make_screener_result(passed=["A"]))
-    cmd.on_fill(_buy_fill("A", trade_id="t1"))
+    cmd.mark_entered("A", "2026-05-14T14:00:00Z", "t1")
+    open_cycle("A")
 
     report = query.check_invariant()
 
@@ -466,6 +284,7 @@ def test_reconcile_preopen_evicts_stale_non_keepset(
     make_screener_result: Callable[..., object],
     event_collector: Callable[[MonitoringEventBus], list],
     seed_price: Callable[[str, int], None],
+    open_cycle: Callable[..., None],
     seed_user: int,
 ) -> None:
     """UT-EXE-009.002.M02.T15: reconcile_preopen evicts SKIPPED-not-in-keep-set, retains the rest."""
@@ -475,7 +294,8 @@ def test_reconcile_preopen_evicts_stale_non_keepset(
     cmd0.on_screener_results(
         make_screener_result(passed=["A", "B", "C"], run_timestamp="2026-05-14T13:30:00Z")
     )
-    cmd0.on_fill(_buy_fill("A", trade_id="t1"))
+    cmd0.mark_entered("A", "2026-05-14T14:00:00Z", "t1")
+    open_cycle("A")
 
     seed_price("B", 3)
     seed_price("C", 3)
@@ -727,6 +547,7 @@ def test_reconcile_report_counts_and_info_log(
     make_screener_result: Callable[..., object],
     event_collector: Callable[[MonitoringEventBus], list],
     seed_price: Callable[[str, int], None],
+    open_cycle: Callable[..., None],
     seed_user: int,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -736,7 +557,8 @@ def test_reconcile_report_counts_and_info_log(
     cmd0.on_screener_results(
         make_screener_result(passed=["A", "B", "C"], run_timestamp="2026-05-14T13:30:00Z")
     )
-    cmd0.on_fill(_buy_fill("A", trade_id="t1"))
+    cmd0.mark_entered("A", "2026-05-14T14:00:00Z", "t1")
+    open_cycle("A")
     seed_price("B", 2)
     seed_price("C", 2)
 
@@ -760,149 +582,5 @@ def test_reconcile_report_counts_and_info_log(
     assert len(info_lifecycle) == 1
 
 
-# ── UT-EXE-009.002.M02.T22 ──────────────────────────────────────────────────
-
-
-def test_entered_set_equals_open_positions_through_fills(
-    build_service: Callable[..., tuple[MonitoringQuery, MonitoringCommand, MonitoringEventBus]],
-    make_screener_result: Callable[..., object],
-    seed_user: int,
-) -> None:
-    """UT-EXE-009.002.M02.T22: ENTERED ledger set equals open system positions across a fill sequence."""
-    query, cmd, bus = build_service(today=_T0)
-    cmd.on_screener_results(make_screener_result(passed=["A", "B"]))
-
-    # Before any fill: nothing entered, no open positions, invariant holds.
-    assert query.open_system_positions() == frozenset()
-    assert query.check_invariant().ok is True
-
-    # First system BUY fill per symbol drives MONITORING -> ENTERED.
-    cmd.on_fill(_buy_fill("A", trade_id="ta", qty=100))
-    cmd.on_fill(_buy_fill("B", trade_id="tb", qty=100))
-
-    row_a = query.session_for(_T0, "A")
-    row_b = query.session_for(_T0, "B")
-    assert row_a is not None and row_a.lifecycle_state == LifecycleState.ENTERED
-    assert row_b is not None and row_b.lifecycle_state == LifecycleState.ENTERED
-    assert query.open_system_positions() == frozenset({"A", "B"})
-    assert query.check_invariant().ok is True
-
-    # Closing SELL on A drives ENTERED -> EXITED; A leaves both sets together.
-    cmd.on_fill(_sell_fill("A", trade_id="ta2", qty=100))
-
-    row_a_after = query.session_for(_T0, "A")
-    assert row_a_after is not None and row_a_after.lifecycle_state == LifecycleState.EXITED
-    assert query.open_system_positions() == frozenset({"B"})
-    report = query.check_invariant()
-    assert report.ok is True
-    assert report.only_in_a == () and report.only_in_b == ()
-
-
-# ── SRD-EXE-014.008 — order-state-gated lifecycle transitions ────────────────
-
-
-def test_filled_buy_flips_monitoring_to_entered(
-    build_service: Callable[..., tuple[MonitoringQuery, MonitoringCommand, MonitoringEventBus]],
-    make_screener_result: Callable[..., object],
-    event_collector: Callable[[MonitoringEventBus], list],
-    seed_user: int,
-) -> None:
-    """UT-EXE-014.008.M01.T01: A fully FILLED system BUY flips MONITORING -> ENTERED."""
-    query, cmd, bus = build_service(today=_T0)
-    events = event_collector(bus)
-
-    cmd.on_screener_results(make_screener_result(passed=["A"]))
-    cmd.on_fill(_buy_fill("A", trade_id="t1", qty=100,
-                          order_state=ExecutionEnums.BuyOrderState.FILLED))
-
-    row = query.session_for(_T0, "A")
-    assert row is not None
-    assert row.lifecycle_state == LifecycleState.ENTERED
-    assert any(isinstance(e, SymbolEnteredPosition) for e in events)
-
-
-def test_partial_buy_holds_monitoring(
-    build_service: Callable[..., tuple[MonitoringQuery, MonitoringCommand, MonitoringEventBus]],
-    make_screener_result: Callable[..., object],
-    event_collector: Callable[[MonitoringEventBus], list],
-    seed_user: int,
-) -> None:
-    """UT-EXE-014.008.M01.T02: A PARTIAL_FILLED entry BUY records the position but leaves the row MONITORING."""
-    query, cmd, bus = build_service(today=_T0)
-    events = event_collector(bus)
-
-    cmd.on_screener_results(make_screener_result(passed=["A"]))
-    cmd.on_fill(_buy_fill("A", trade_id="t1", qty=40,
-                          order_state=ExecutionEnums.BuyOrderState.PARTIAL_FILLED))
-
-    row = query.session_for(_T0, "A")
-    assert row is not None
-    assert row.lifecycle_state == LifecycleState.MONITORING
-    assert not any(isinstance(e, SymbolEnteredPosition) for e in events)
-    assert any(isinstance(e, SymbolPositionScaled) for e in events)
-
-
-def test_partial_then_filled_buy_enters(
-    build_service: Callable[..., tuple[MonitoringQuery, MonitoringCommand, MonitoringEventBus]],
-    make_screener_result: Callable[..., object],
-    event_collector: Callable[[MonitoringEventBus], list],
-    seed_user: int,
-) -> None:
-    """UT-EXE-014.008.M01.T03: The FILLED fill that completes a partial entry flips MONITORING -> ENTERED."""
-    query, cmd, bus = build_service(today=_T0)
-    events = event_collector(bus)
-
-    cmd.on_screener_results(make_screener_result(passed=["A"]))
-    cmd.on_fill(_buy_fill("A", trade_id="t1", qty=40,
-                          order_state=ExecutionEnums.BuyOrderState.PARTIAL_FILLED))
-    cmd.on_fill(_buy_fill("A", trade_id="t2", qty=60,
-                          order_state=ExecutionEnums.BuyOrderState.FILLED))
-
-    row = query.session_for(_T0, "A")
-    assert row is not None
-    assert row.lifecycle_state == LifecycleState.ENTERED
-    assert any(isinstance(e, SymbolEnteredPosition) for e in events)
-
-
-def test_filled_sell_closing_flips_to_exited(
-    build_service: Callable[..., tuple[MonitoringQuery, MonitoringCommand, MonitoringEventBus]],
-    make_screener_result: Callable[..., object],
-    event_collector: Callable[[MonitoringEventBus], list],
-    seed_user: int,
-) -> None:
-    """UT-EXE-014.008.M01.T04: A fully FILLED SELL that closes the position flips ENTERED -> EXITED."""
-    query, cmd, bus = build_service(today=_T0)
-    events = event_collector(bus)
-
-    cmd.on_screener_results(make_screener_result(passed=["A"]))
-    cmd.on_fill(_buy_fill("A", trade_id="t1", qty=100,
-                          order_state=ExecutionEnums.BuyOrderState.FILLED))
-    cmd.on_fill(_sell_fill("A", trade_id="t2", qty=100,
-                           order_state=ExecutionEnums.SellOrderState.FILLED))
-
-    row = query.session_for(_T0, "A")
-    assert row is not None
-    assert row.lifecycle_state == LifecycleState.EXITED
-    assert any(isinstance(e, SymbolExitedPosition) for e in events)
-
-
-def test_unfilled_sell_does_not_exit_even_when_quantity_zero(
-    build_service: Callable[..., tuple[MonitoringQuery, MonitoringCommand, MonitoringEventBus]],
-    make_screener_result: Callable[..., object],
-    event_collector: Callable[[MonitoringEventBus], list],
-    seed_user: int,
-) -> None:
-    """UT-EXE-014.008.M01.T05: A SELL whose order is not fully FILLED does not flip ENTERED -> EXITED."""
-    query, cmd, bus = build_service(today=_T0)
-    events = event_collector(bus)
-
-    cmd.on_screener_results(make_screener_result(passed=["A"]))
-    cmd.on_fill(_buy_fill("A", trade_id="t1", qty=100,
-                          order_state=ExecutionEnums.BuyOrderState.FILLED))
-    cmd.on_fill(_sell_fill("A", trade_id="t2", qty=100,
-                           order_state=ExecutionEnums.SellOrderState.PARTIAL_FILLED))
-
-    row = query.session_for(_T0, "A")
-    assert row is not None
-    assert row.lifecycle_state == LifecycleState.ENTERED
-    assert not any(isinstance(e, SymbolExitedPosition) for e in events)
+# ── Order-state-gated lifecycle (SRD-EXE-014.008) now lives in OrderIngestion
+# (FO-EXE-016); partial-vs-filled gating is covered by the ingestion-layer tests.
