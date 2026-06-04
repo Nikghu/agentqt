@@ -57,7 +57,7 @@ class _Cfg:
     target_enabled: bool = False
     target_value: float = 2.0
     rex_count: int = 0
-    strategy_signal: dict[str, Any] = field(default_factory=lambda: {"run_state": "RUNNING"})
+    run_state: str = "RUNNING"
 
 
 class _FakeCycleQuery:

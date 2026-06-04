@@ -439,23 +439,16 @@ class _StrategyTablePane(QWidget):
         current = self._model.status_for(cfg)
 
         if current == "STOPPED":
-            cfg.strategy_signal["run_state"] = "RUNNING"
             new_state = "RUNNING"
         elif current == "SQUARING_OFF":
             if self._demo.get_open_symbols_for_strategy(cfg.name):
                 return
-            cfg.strategy_signal["run_state"] = "STOPPED"
             new_state = "STOPPED"
         else:
             open_syms = self._demo.get_open_symbols_for_strategy(cfg.name)
-            if open_syms:
-                cfg.strategy_signal["run_state"] = "SQUARING_OFF"
-                new_state = "SQUARING_OFF"
-            else:
-                cfg.strategy_signal["run_state"] = "STOPPED"
-                new_state = "STOPPED"
+            new_state = "SQUARING_OFF" if open_syms else "STOPPED"
 
-        cfg.strategy_signal.pop("Status", None)
+        cfg.run_state = new_state
         save_strategies(self._configs)
         self._notify_engine_run_state(cfg.name, new_state)
         self._demo.reload_strategy_registry()
@@ -472,20 +465,14 @@ class _StrategyTablePane(QWidget):
             pass
 
     def _on_engine_status(self, strategy_name: str, new_status: str) -> None:
-        for cfg in self._configs:
-            if cfg.name == strategy_name:
-                cfg.strategy_signal["run_state"] = new_status
-                cfg.strategy_signal.pop("Status", None)
-                save_strategies(self._configs)
-                break
-        self._refresh_table()
+        """A strategy entered or exited a position.
 
-    def update_signal_status(self, name: str, signal: dict[str, Any]) -> None:
-        """Refresh the live strategy signal for a named config and repaint."""
-        for cfg in self._configs:
-            if cfg.name == name:
-                cfg.strategy_signal.update(signal)
-                break
+        The RUNNING badge is derived live from open cycles in
+        ``_refresh_table`` (via ``running_override``), so we only refresh
+        here. ``run_state`` must never be overwritten with the legacy
+        ``"Active"`` / ``"Running"`` vocabulary — those are not valid
+        ``StrategyRunState`` values and corrupt the persisted column.
+        """
         self._refresh_table()
 
 

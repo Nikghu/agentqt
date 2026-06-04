@@ -7,7 +7,8 @@ QAbstractTableModel implementations for positions and trade history.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Callable
+from zoneinfo import ZoneInfo
 
 from PyQt6.QtCore import QAbstractTableModel, QModelIndex, Qt
 from PyQt6.QtGui import QColor
@@ -191,11 +192,22 @@ class TradeHistoryModel(QAbstractTableModel):
         "CANCELLED":      "#1a1a1a",
     }
 
-    def __init__(self, parent: Any = None) -> None:
+    def __init__(
+        self,
+        parent: Any = None,
+        tz_provider: Callable[[], str] | None = None,
+    ) -> None:
         super().__init__(parent)
         self._rows: list[TradeRecord] = []
         self._show_user: bool = False
         self._user_labels: dict[int, str] = {}
+        self._tz_provider = tz_provider or (lambda: "US/Eastern")
+
+    def _market_tz(self) -> ZoneInfo:
+        try:
+            return ZoneInfo(self._tz_provider())
+        except Exception:
+            return ZoneInfo("US/Eastern")
 
     @property
     def COLUMNS(self) -> list[str]:
@@ -237,7 +249,7 @@ class TradeHistoryModel(QAbstractTableModel):
             if self._show_user and col == 0:
                 return self._user_labels.get(t.user_id, f"#{t.user_id}")
             match base_col:
-                case 0: return t.entry_time.strftime("%m/%d  %H:%M")
+                case 0: return t.entry_time.astimezone(self._market_tz()).strftime("%b %d, %H:%M")
                 case 1: return t.symbol
                 case 2: return t.side
                 case 3: return str(t.quantity)

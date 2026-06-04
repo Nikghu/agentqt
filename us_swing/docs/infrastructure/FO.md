@@ -1,13 +1,14 @@
 # Functional Objectives — Infrastructure (INF)
 
 **Document ID:** FO-INF
-**Version:** 1.3.0
+**Version:** 1.4.0
 **Status:** Draft
-**Last Updated:** 2026-03-17
+**Last Updated:** 2026-06-04
 **Project:** US Swing Trading System
 
 > Traces to: `us_swing/requirements.md` §2, §4, §5, §6, §7, §11, §12, §13, §22, §24, §26
 > v1.3.0 changes: FO-INF-002 candle metadata; FO-INF-003 history extended to 2 years + candle sync.
+> v1.4.0 changes: FO-INF-009 added — Pluggable Broker Abstraction (Broker_fix.md Phases 1/3/4).
 
 ---
 
@@ -147,3 +148,24 @@
   - `status_changed` is emitted at most once per reachability flip, not on every probe tick.
   - Auto-reconnect does not trigger if the user had manually disconnected before the outage.
   - The status-bar pill updates within one probe cycle of a state change.
+
+---
+
+## FO-INF-009: Pluggable Broker Abstraction
+- **Status:** Implemented
+
+> Traces to: `docs/execution/Broker_fix.md` (Phases 1, 3, 4)
+> Depends on: FO-INF-001 (IBKR transport `IBKRClient`)
+
+- The system shall expose order execution behind a universal `Broker` interface so any broker (simulated or live) is interchangeable without changing execution logic.
+- The broker layer shall be a self-contained INF plugin: it shall import **nothing** from the execution tool and shall speak only neutral broker types (`OrderRequest` in, `OrderEvent` out).
+- Order submission shall be acceptance-only: `place_order` returns a broker order id immediately; fills and rejections shall arrive asynchronously via subscribed `OrderEvent` callbacks, mirroring real-broker behaviour.
+- Two concrete brokers shall implement the interface:
+  - **`SimBroker`** (`broker/sim.py`) — a mock exchange with a configurable fill model (price source, latency, partial fills) able to emit `REJECTED` / `PARTIAL_FILLED` / `CANCELLED` on demand for functionality testing.
+  - **`IBKRBroker`** (`broker/ibkr.py`) — wraps the existing `IBKRClient` transport and bridges IBKR `orderStatus` / `execDetails` into `OrderEvent`s.
+- `OrderStatus` member values shall mirror `ExecutionEnums.BuyOrderState` / `SellOrderState` exactly so the execution-side adapter maps them 1:1.
+- **Acceptance Criteria:**
+  - `broker/` has no import from `us_swing.execution.*`.
+  - A single broker contract-test suite, run against both `SimBroker` and `IBKRBroker`, asserts identical `OrderEvent` sequences for identical `OrderRequest` inputs.
+  - Switching `Sim → IBKR` requires no change below the broker boundary — only the adapter's selection.
+  - `place_order` returns before any fill event is delivered.

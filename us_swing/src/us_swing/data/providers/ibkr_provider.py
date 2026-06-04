@@ -10,9 +10,15 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from datetime import datetime
+from typing import TYPE_CHECKING
 
-from us_swing.broker.client import IBKRClient
 from us_swing.data.models import OHLCVBar, RealtimeBar
+
+if TYPE_CHECKING:
+    # Imported for typing only — a runtime import here forms a circular import
+    # (broker.client → data.models → data/__init__ → providers → broker.client)
+    # that breaks importing the broker package first.
+    from us_swing.broker.client import IBKRClient
 
 _log = logging.getLogger(__name__)
 

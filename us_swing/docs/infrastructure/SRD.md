@@ -1,11 +1,13 @@
 # Software Requirement Document — Infrastructure (INF)
 
 **Document ID:** SRD-INF
-**Version:** 1.4.0
-**Traces To:** FO-INF v1.3.0
+**Version:** 1.5.0
+**Traces To:** FO-INF v1.4.0
 **Status:** Draft
-**Last Updated:** 2026-03-17
+**Last Updated:** 2026-06-04
 **Project:** US Swing Trading System
+
+> v1.5.0: Section 9 added — SRD-INF-009.001–.006 (Pluggable Broker Abstraction; Broker_fix.md Phases 1/3/4).
 
 ---
 
@@ -127,3 +129,17 @@
 | SRD-INF-008.003 | FO-INF-008 | Must | When internet drops (`status_changed(False)`): emit `log_message("WARNING", "[Network] ⚠  Internet connection lost — market data paused.")` to the GUI Live Log panel. Record whether the IBKR feed was active at the time (`_was_feed_connected`). | connectivity drop event | WARNING in Live Log | Message must appear in the Live Log within one probe cycle | Implemented |
 | SRD-INF-008.004 | FO-INF-008 | Must | When internet is restored (`status_changed(True)`): emit `log_message("INFO", "[Network] Internet connectivity restored.")`. If `_was_feed_connected` is True and feed is currently disconnected, automatically call `connect_feed()` and log `"[Network] Reconnecting data feed automatically…"`. | connectivity restore event | INFO in Live Log + optional auto-reconnect | Auto-reconnect must not trigger if user had manually disconnected before the outage | Implemented |
 | SRD-INF-008.005 | FO-INF-008 | Must | Main window status bar leftmost pill shows internet status: `⬤  Internet: Online` (green, `C.GREEN`) when reachable; `⬤  Internet: Offline` (red, `C.RED`) when unreachable; `⬤  Internet: Checking…` (muted) until first probe completes. Updated via `svc.internet_status_changed` signal. | `internet_status_changed(bool)` | status bar pill colour + text | Replaces the former IBKR feed connection pill | Implemented |
+
+---
+
+## Section 9: Requirements for FO-INF-009 — Pluggable Broker Abstraction
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-INF-009.001 | FO-INF-009 | Must | Universal `Broker` ABC in `broker/broker.py` exposes `place_order(OrderRequest) -> str` (acceptance only) and `cancel_order(broker_order_id)`; provides `on_event(callback)` registration and `_emit(OrderEvent)` dispatch for asynchronous fill reporting. | `OrderRequest` | broker order id + later `OrderEvent`s | Module imports nothing from `us_swing.execution.*`; `place_order` returns before any fill event is emitted | Implemented |
+| SRD-INF-009.002 | FO-INF-009 | Must | Neutral frozen DTOs: `OrderRequest(client_ref, symbol, side, quantity, order_type, limit_price)` and `OrderEvent(broker_order_id, client_ref, status, filled_quantity, fill_price, reason)`. `client_ref` is echoed unchanged on every event so the adapter matches fills to the originating order. | caller fields | `@dataclass(frozen, slots)` containers | Each DTO carries `schema_version: int`; `limit_price` required only when `order_type=LIMIT`; `OrderRequest.reference_price` is an advisory price simulated brokers fill at | Implemented |
+| SRD-INF-009.003 | FO-INF-009 | Must | Broker-native enums `OrderSide` (BUY/SELL), `OrderType` (MARKET/LIMIT), `OrderStatus` (NEW/PARTIAL_FILLED/FILLED/REJECTED/CANCELLED). `OrderStatus` values mirror `ExecutionEnums.BuyOrderState`/`SellOrderState` exactly. | — | `StrEnum` definitions | Values must stay string-identical to the execution enums so the adapter maps 1:1 with no lookup table | Implemented |
+| SRD-INF-009.004 | FO-INF-009 | Must | `SimBroker` (`broker/sim.py`) implements `Broker` with an internal order book and a configurable fill model (price source, latency, partial fills). Emits lifecycle `OrderEvent`s asynchronously — never a synchronous fill inside `place_order`. | `OrderRequest` | async `OrderEvent` stream | Must support injecting `REJECTED` / `PARTIAL_FILLED` / `CANCELLED` for functionality testing; order ids unique across app restarts | Implemented |
+| SRD-INF-009.005 | FO-INF-009 | Must | `IBKRBroker` (`broker/ibkr.py`) implements `Broker` over an `OrderGateway` seam; maps IBKR order statuses (`Filled`/`Submitted`+partial/`Inactive`/`Cancelled`) onto `OrderStatus` and emits `OrderEvent`s. Live binding `IBKRClientGateway` wraps `IBKRClient` (added `ib` accessor) and builds ib_insync orders. | `OrderRequest` | async `OrderEvent` stream | Status mapping unit-tested via a fake gateway; `IBKRClientGateway` is live-only (`# pragma: no cover`), reuses `IBKRClient` transport | Implemented |
+| SRD-INF-009.006 | FO-INF-009 | Must | A single broker contract-test suite runs identical `OrderRequest` scenarios against both brokers and asserts identical `OrderEvent` sequences (states, filled quantities, terminal status). | `OrderRequest` scenarios | pass/fail per broker | Both `SimBroker` and `IBKRBroker` must pass the same suite to be declared interchangeable. Suite `tests/broker/test_broker_contract.py` parametrized over `BROKER_FACTORIES`; both brokers pass the shared fixture scenarios plus per-broker mapping cases — 16 cases green | Implemented |
+

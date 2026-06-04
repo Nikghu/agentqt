@@ -1,11 +1,13 @@
 # Design Document — Infrastructure (INF)
 
 **Document ID:** DD-INF
-**Version:** 1.1.0
-**Traces To:** SRD-INF v1.1.0
+**Version:** 1.2.0
+**Traces To:** SRD-INF v1.5.0
 **Status:** Draft
-**Last Updated:** 2026-03-06
+**Last Updated:** 2026-06-04
 **Project:** US Swing Trading System
+
+> v1.2.0: DD-INF-009.* added — Pluggable Broker Abstraction (universal Broker contract, SimBroker fill model, IBKRBroker event bridge).
 
 ---
 
@@ -432,3 +434,164 @@ def create_provider(config: AppConfig) -> DataProvider:
         case _:
             raise ConfigurationError(f"Unknown provider: {config.data_provider}")
 ```
+
+---
+
+## DD-INF-009.001.D01 — Universal Broker Contract
+
+**Parent SRD:** SRD-INF-009.001 — SRD-INF-009.003
+- **Status:** Approved
+
+The broker layer is a self-contained INF plugin. It imports nothing from
+`us_swing.execution.*`; it speaks only neutral types. Data flows both ways
+(orders down, events up) but the import dependency points one way only
+(execution → broker). The broker reports fills by calling listeners it does
+not own (`_emit`); the execution-side adapter is the listener.
+
+### Neutral DTOs & enums (`broker/broker.py`)
+
+```python
+class OrderSide(StrEnum):   BUY="BUY";  SELL="SELL"
+class OrderType(StrEnum):   MARKET="MARKET"; LIMIT="LIMIT"
+class OrderStatus(StrEnum):
+    # Values are string-identical to ExecutionEnums.Buy/SellOrderState so the
+    # adapter maps 1:1 with no lookup table.
+    NEW; PARTIAL_FILLED; FILLED; REJECTED; CANCELLED
+
+@dataclass(frozen=True, slots=True)
+class OrderRequest:
+    client_ref: str          # caller correlation id (e.g. signal_id), echoed back
+    symbol: str
+    side: OrderSide
+    quantity: int
+    order_type: OrderType = OrderType.MARKET
+    limit_price: float | None = None       # required only when order_type == LIMIT
+    reference_price: float | None = None   # advisory; SimBroker fills here, live ignores
+
+@dataclass(frozen=True, slots=True)
+class OrderEvent:
+    broker_order_id: str
+    client_ref: str
+    status: OrderStatus
+    filled_quantity: int = 0
+    fill_price: float | None = None
+    reason: str | None = None            # set on REJECTED / CANCELLED
+    schema_version: int = 1
+```
+
+### Broker ABC
+
+```python
+class Broker(ABC):
+    def __init__(self) -> None:
+        self._event_callbacks: list[OrderEventCallback] = []
+
+    def on_event(self, callback) -> None:   # adapter subscribes here
+        self._event_callbacks.append(callback)
+
+    def _emit(self, event: OrderEvent) -> None:    # subclasses report progress
+        for cb in self._event_callbacks: cb(event)
+
+    @abstractmethod
+    def place_order(self, request: OrderRequest) -> str:
+        """Acceptance only — returns broker order id BEFORE any fill.
+        Fills arrive later as OrderEvents via on_event callbacks."""
+
+    @abstractmethod
+    def cancel_order(self, broker_order_id: str) -> None: ...
+```
+
+**Lifecycle contract.** `place_order` must return before any `OrderEvent` for
+that order is emitted. The minimal happy path is `NEW` (persisted on accept by
+the ingestion side) → `FILLED`. Partial sequences emit `PARTIAL_FILLED`
+(cumulative `filled_quantity`) before `FILLED`. Terminal states are `FILLED`,
+`REJECTED`, `CANCELLED`.
+
+---
+
+## DD-INF-009.004.D01 — SimBroker Fill Model
+
+**Parent SRD:** SRD-INF-009.004
+
+```python
+class SimBroker(Broker):
+    """Mock exchange. Accepts orders into an in-memory book, then emits
+    lifecycle events asynchronously — never a synchronous fill in place_order."""
+
+    def __init__(self, fill_model: FillModel) -> None:
+        super().__init__()
+        self._book: dict[str, OrderRequest] = {}
+        self._fill = fill_model
+        self._next_id = int(time.time() * 1000)   # unique across restarts
+
+    def place_order(self, request: OrderRequest) -> str:
+        oid = str(self._next_id); self._next_id += 1
+        self._book[oid] = request
+        # schedule async resolution on the running loop; do NOT fill inline
+        loop.call_soon(self._resolve, oid)
+        return oid
+```
+
+**FillModel** is injectable and decides: fill price (signal price / next-bar
+open / configurable slippage), timing (immediate-async / next-bar), and split
+(single fill vs N partials). A test-only model can force `REJECTED` /
+`PARTIAL_FILLED` / `CANCELLED` to exercise the ingestion paths. Each resolution
+step calls `self._emit(OrderEvent(...))`.
+
+---
+
+## DD-INF-009.005.D01 — IBKRBroker Event Bridge
+
+**Parent SRD:** SRD-INF-009.005
+
+`IBKRBroker` holds no ib_insync logic. It depends on an `OrderGateway` seam that
+delivers IBKR-native `IbkrOrderUpdate`s; the broker only translates the request
+to a submission and maps IBKR statuses onto `OrderStatus`. This keeps the
+testable logic free of ib_insync and lets the contract suite drive it with a
+fake gateway.
+
+```python
+@dataclass(frozen=True, slots=True)
+class IbkrOrderUpdate:
+    broker_order_id: str
+    status: str            # raw ib_insync status, e.g. "Filled"
+    filled: int
+    avg_fill_price: float
+    reason: str = ""
+
+class OrderGateway(Protocol):
+    def submit(symbol, side, quantity, order_type, limit_price) -> str: ...
+    def cancel(broker_order_id: str) -> None: ...
+    def on_status(callback: Callable[[IbkrOrderUpdate], None]) -> None: ...
+
+class IBKRBroker(Broker):
+    def __init__(self, gateway: OrderGateway) -> None:
+        super().__init__()
+        self._gateway = gateway
+        self._client_ref: dict[str, str] = {}    # broker_order_id -> client_ref
+        gateway.on_status(self._on_update)
+
+    def place_order(self, request):
+        oid = self._gateway.submit(request.symbol, request.side.value,
+                                   request.quantity, request.order_type.value,
+                                   request.limit_price)
+        self._client_ref[oid] = request.client_ref
+        return oid
+```
+
+### Status mapping (the IBKR-specific logic)
+
+| IBKR status | filled | → OrderStatus |
+|---|---|---|
+| `Filled` | — | `FILLED` |
+| `Submitted` / `PreSubmitted` | > 0 | `PARTIAL_FILLED` |
+| `Submitted` / `PreSubmitted` | 0 | *(no event — acknowledgement)* |
+| `Inactive` | — | `REJECTED` |
+| `Cancelled` / `ApiCancelled` / `PendingCancel` | — | `CANCELLED` |
+
+On a mapped status `_on_update` looks up the `client_ref` and `_emit`s an
+`OrderEvent`, dropping context on a terminal status. The production
+`IBKRClientGateway` wraps `IBKRClient` (via the new `ib` accessor), builds the
+ib_insync `Stock` + `Market`/`Limit` order, and wires `trade.statusEvent` →
+`IbkrOrderUpdate`; it is live-only (`# pragma: no cover`). Both brokers pass the
+same contract suite (SRD-INF-009.006).

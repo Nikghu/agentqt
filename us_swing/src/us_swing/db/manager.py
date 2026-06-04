@@ -79,6 +79,16 @@ class DatabaseManager:
         )
         log.info("DatabaseManager initialised: %s", database_url)
 
+    @property
+    def engine(self) -> sa.Engine:
+        """The underlying SQLAlchemy engine.
+
+        Exposed so callers that need the raw engine (e.g. the trade-cycle
+        service factory) can share this manager's single connection pool
+        instead of opening a second engine on the same database.
+        """
+        return self._engine
+
     # ── Schema ────────────────────────────────────────────────────────────────
 
     def create_schema(self) -> None:
@@ -244,18 +254,24 @@ class DatabaseManager:
         order_state: str,
         exit_time: datetime | None = None,
         exit_price: float | None = None,
+        entry_price: float | None = None,
+        entry_time: datetime | None = None,
     ) -> None:
         """Record a broker fill on a `trades` row (SRD-EXE-014.004).
 
-        For BUY fills, pass only `filled_quantity` + `order_state`.  For SELL
-        fills (closing the position), also pass `exit_time` + `exit_price`.
-        Realized PnL is owned by `trade_cycles.realized_pnl_usd`; no PnL is
-        written to `trades`.
+        For BUY fills, pass `entry_price` + `entry_time` to stamp the actual
+        fill onto the row inserted at acceptance.  For SELL fills (closing the
+        position), pass `exit_time` + `exit_price`.  Realized PnL is owned by
+        `trade_cycles.realized_pnl_usd`; no PnL is written to `trades`.
         """
         values: dict[str, Any] = {
             "order_state":     order_state,
             "filled_quantity": filled_quantity,
         }
+        if entry_time is not None:
+            values["entry_time"] = _dt_to_str(entry_time)
+        if entry_price is not None:
+            values["entry_price"] = entry_price
         if exit_time is not None:
             values["exit_time"] = _dt_to_str(exit_time)
         if exit_price is not None:

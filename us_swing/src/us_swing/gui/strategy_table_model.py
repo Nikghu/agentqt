@@ -46,15 +46,8 @@ STATUS_COLORS: dict[str, str] = {
 
 
 def _run_state(cfg: StrategyConfig) -> str:
-    """Read ``run_state`` from the strategy signal dict, falling back to legacy ``Status``."""
-    sig = cfg.strategy_signal
-    raw = sig.get("run_state")
-    if isinstance(raw, str) and raw:
-        return raw
-    legacy = sig.get("Status", "Inactive")
-    if legacy in ("Active", "Running"):
-        return "RUNNING"
-    return "STOPPED"
+    """Return the strategy's persisted ``run_state``."""
+    return cfg.run_state or "STOPPED"
 
 
 class StrategyTableModel(QAbstractTableModel):

@@ -1,13 +1,14 @@
 # Functional Objectives — Execution & Risk Management (EXE)
 
 **Document ID:** FO-EXE
-**Version:** 1.9.0
+**Version:** 1.10.0
 **Status:** Draft
-**Last Updated:** 2026-05-28
+**Last Updated:** 2026-06-04
 **Project:** US Swing Trading System
 
 > Traces to: `us_swing/requirements.md` §10, §11, §12, §13, §21.4, §22, §23, §25
 > v1.9.0: FO-EXE-014 added — Broker Order State Machine (Final_Execution.md Phase 3 split of `PositionState` into `BuyOrderState` + `SellOrderState`; `trades.pnl` and `positions.state` removed).
+> v1.10.0: FO-EXE-015 added — Broker-Agnostic Order Ingestion & Adapter (Broker_fix.md Phases 2/5/6).
 
 ---
 
@@ -474,3 +475,23 @@ Every order submitted to the broker shall carry its own state machine on the `tr
 5. SELL orders follow the identical state machine via `SellOrderState`; a `CANCELLED` SELL after partial fill leaves the owning cycle in `OPEN` with the remaining unsold quantity.
 6. Trade History panel renders one row per `trades` record with columns `Date & Time · Symbol · Side · Qty · Filled · Avg Price · Order State · Strategy · Mode`. No P&L column is shown.
 7. The `positions` table no longer carries a `state` column; consumers derive open/closed from `quantity > 0`.
+
+---
+
+## FO-EXE-015: Broker-Agnostic Order Ingestion & Adapter
+
+**Status:** Approved
+**Priority:** Must
+**Depends on:** FO-INF-009 (Broker plugin interface), FO-EXE-014 (`trades` order-state machine), FO-EXE-012 (Trade Cycle Ledger), FO-EXE-011 (Strategy Engine signals)
+**Source:** `docs/execution/Broker_fix.md` (Phases 2, 5, 6)
+
+Every order — paper included — shall flow through one broker-agnostic pipeline that persists the complete trade path (`trades` → `trade_cycles` → `positions`). A `BrokerAdapter` on the execution side shall translate the engine's `TradeSignal` into the broker's neutral `OrderRequest`, select the active broker (`SimBroker` vs `IBKRBroker`) per user/system mode, route submission/cancellation, and forward inbound `OrderEvent`s into the ingestion pipeline. The current paper bypass — where `PaperBroker` fabricates a synchronous fill and `app_service._on_paper_fill` writes only `trade_cycles` — shall be removed: paper orders shall populate `trades` exactly like live orders. Once the adapter and ingestion are live, the legacy `ExecutionEngine`, `PaperEngine`, and `PaperBroker` shall be retired.
+
+### Acceptance Criteria
+
+1. A paper ENTRY signal produces exactly one `trades` row (`order_state='NEW'`, `trade_id` = broker order id) before any fill, identical in shape to a live order.
+2. A broker `OrderEvent` fill advances the same `trades` row via `update_trade_fill`, feeds the engine `on_order_fill`, and advances the owning `trade_cycles` row in one path. (`trade_cycles` is the live-position surface; the legacy `positions` table is retired in Phase 6.)
+3. Downstream ingestion contains no branch on broker type — `SimBroker` and `IBKRBroker` events are handled by identical code.
+4. `BrokerAdapter` selects the broker from `users.mode` (+ a system-level switch) and is the only execution component that references a concrete broker.
+5. After cutover, `ExecutionEngine`, `PaperEngine`, `PaperBroker`, and the paper-only `app_service` fill methods are deleted; no production code path writes `trade_cycles` without first writing `trades`.
+6. Broker `OrderStatus` maps onto `BuyOrderState`/`SellOrderState` by order side with no value translation.
