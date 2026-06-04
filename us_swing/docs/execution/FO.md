@@ -1,7 +1,7 @@
 # Functional Objectives — Execution & Risk Management (EXE)
 
 **Document ID:** FO-EXE
-**Version:** 1.10.0
+**Version:** 1.11.0
 **Status:** Draft
 **Last Updated:** 2026-06-04
 **Project:** US Swing Trading System
@@ -9,6 +9,7 @@
 > Traces to: `us_swing/requirements.md` §10, §11, §12, §13, §21.4, §22, §23, §25
 > v1.9.0: FO-EXE-014 added — Broker Order State Machine (Final_Execution.md Phase 3 split of `PositionState` into `BuyOrderState` + `SellOrderState`; `trades.pnl` and `positions.state` removed).
 > v1.10.0: FO-EXE-015 added — Broker-Agnostic Order Ingestion & Adapter (Broker_fix.md Phases 2/5/6).
+> v1.11.0: FO-EXE-016 added — Retire `positions` table; drive the monitoring-session Lifecycle from `OrderIngestion` fills (supersedes cleanup.md Steps 7B–8).
 
 ---
 
@@ -495,3 +496,29 @@ Every order — paper included — shall flow through one broker-agnostic pipeli
 4. `BrokerAdapter` selects the broker from `users.mode` (+ a system-level switch) and is the only execution component that references a concrete broker.
 5. After cutover, `ExecutionEngine`, `PaperEngine`, `PaperBroker`, and the paper-only `app_service` fill methods are deleted; no production code path writes `trade_cycles` without first writing `trades`.
 6. Broker `OrderStatus` maps onto `BuyOrderState`/`SellOrderState` by order side with no value translation.
+
+---
+
+## FO-EXE-016: Retire `positions` Table; OrderIngestion-Driven Monitoring Lifecycle
+
+**Status:** Approved
+**Priority:** Must
+**Depends on:** FO-EXE-015 (Order Ingestion & Adapter), FO-EXE-012 (Trade Cycle Ledger), FO-EXE-009 (Monitoring-Session Lifecycle), FO-EXE-014 (`trades` order-state machine)
+**Source:** Reconciles `docs/execution/cleanup.md` (Steps 7B–8) with `docs/execution/Final_Execution.md` (§2.5–2.6). Supersedes cleanup.md Steps 7B–8.
+
+- The system shall make `trade_cycles` the single source of open-position data; the legacy `positions` table is no longer needed because `trade_cycles` already records every open position.
+- The system shall drive the monitoring-session Lifecycle transitions `ENTERED` (on entry fill) and `EXITED` (on exit fill) from `OrderIngestion` fill events — wiring the currently-unwired seam (`app_service` order-fill TODO) — instead of the dead `MonitoringCommand.on_fill` hook.
+- The `MONITORING` Lifecycle state shall continue to originate from the screener path (`on_screener_results` → `monitoring_session` ledger); this FO does not change how `MONITORING` is created.
+- The system shall remove the `positions`-table writer `upsert_position_with_anchor` and the `positions`-only readers (`has_open_system_position`, `position_anchor`) from the monitoring repository, while retaining the ledger-transition methods (`transition_to_entered`, `transition_to_exited`).
+- The system shall repoint every remaining live reader of open positions to `trade_cycles`: `open_system_position_symbols` (screener carryover / invariant) and any health/diagnostic count.
+- After cutover the system shall drop the `positions` `sa.Table`, its `DatabaseManager` methods (`upsert_position`, `delete_position`, `fetch_open_positions`), and its lifecycle-migration column entries; existing `trades` / `trade_cycles` audit rows are retained.
+- The system shall preserve the Lifecycle behaviour described in `Final_Execution.md` §2.6 (the 3-day scenario): a completed entry fill flips `MONITORING → ENTERED`; a completed exit fill flips `ENTERED → EXITED`.
+
+### Acceptance Criteria
+
+1. A completed entry fill arriving via `OrderIngestion` flips the symbol's `monitoring_session` ledger row from `MONITORING` to `ENTERED` (no dependence on `MonitoringCommand.on_fill`).
+2. A completed exit fill flips the same ledger row from `ENTERED` to `EXITED`.
+3. The screener carryover (`open_system_position_symbols`) returns symbols that have a non-terminal `trade_cycle`, with no read of the `positions` table.
+4. Grep of the codebase shows zero references to the `positions` `sa.Table`, `upsert_position`, `delete_position`, or `fetch_open_positions` outside migration history.
+5. Dropping the `positions` table leaves the app importable and the full test suite at its pre-existing failure baseline (no new failures).
+6. The `monitoring_session` ledger-transition methods (`transition_to_entered` / `transition_to_exited`) remain and are exercised by the ingestion-driven path.

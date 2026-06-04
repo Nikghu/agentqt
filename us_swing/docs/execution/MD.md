@@ -1,12 +1,13 @@
 ﻿# Module Decomposition — Execution & Risk Management (EXE)
 
 **Document ID:** MD-EXE
-**Version:** 1.8.0
-**Traces To:** SRD-EXE v1.11.0 / DD-EXE v1.9.0
+**Version:** 1.9.0
+**Traces To:** SRD-EXE v1.16.0 / DD-EXE v1.11.0
 **Status:** Draft
-**Last Updated:** 2026-05-28
+**Last Updated:** 2026-06-04
 **Project:** US Swing Trading System
 
+> v1.9.0: MD-EXE-016.* added — ingestion-driven monitoring-lifecycle seam, `trade_cycles` carryover repoint, `positions` table drop.
 > v1.8.0: MD-EXE-011.001.M02 updated — `_CycleState` replaced by `StrategyRunState` (Phase 1 target).
 > v1.7.0: MD-EXE-011.001.M08 added — `_rex_counter.py` (rex_count enforcement).
 > v1.6.0: MD-EXE-011.* (Strategy Engine, 7 modules) and MD-EXE-012.* (Trade Cycle Ledger, 6 modules) added.
@@ -236,3 +237,28 @@ us_swing/src/us_swing/execution/
 │   └── _service.py                       # MD-EXE-012.002.M02
 └── pending_signal_store.py               # NEW (MD-EXE-011 cross-cut)
 ```
+
+---
+
+## Module Modifications for FO-EXE-016
+
+Retire the `positions` table and drive the monitoring lifecycle from the live
+ingestion path. All entries are changes to existing files — no new module file.
+Implementation order is top-to-bottom: the seam + repoint (M01–M04) land and go
+green **before** the table drop (M05–M06).
+
+| Module ID | File | Change Required | SRD |
+|---|---|---|---|
+| MD-EXE-016.001.M01 | `src/us_swing/core/monitoring_session/_service.py` | Add `mark_entered(symbol, entered_at, trade_id)` and `mark_exited(symbol, exited_at)` — thin, idempotent ledger flips wrapping `transition_to_entered`/`transition_to_exited`. Remove the dead `on_fill` method and the now-orphaned `has_open_system_position` query method. | SRD-EXE-016.001, SRD-EXE-016.002, SRD-EXE-016.005 |
+| MD-EXE-016.001.M02 | `src/us_swing/execution/order_ingestion.py` | Add optional `lifecycle` dependency. In `on_order_event`, after the cycle advance: completed entry fill → `lifecycle.mark_entered(...)`; exit fill that closes the cycle → `lifecycle.mark_exited(...)`. No-op when `lifecycle is None`. | SRD-EXE-016.001, SRD-EXE-016.002 |
+| MD-EXE-016.001.M03 | `src/us_swing/gui/app_service.py` | Construct `OrderIngestion(..., lifecycle=self._lifecycle_command)`; sink stays `None` if the lifecycle service is unavailable. | SRD-EXE-016.001, SRD-EXE-016.002 |
+| MD-EXE-016.003.M04 | `src/us_swing/core/monitoring_session/_repository.py` | Repoint `open_system_position_symbols` to a `trade_cycles` query by table name (`state NOT IN CLOSED/ABORTED`). Add `fetch_entered_row(symbol)`. Remove `upsert_position_with_anchor`, `has_open_system_position`, `position_anchor`, and the `positions` import. | SRD-EXE-016.003, SRD-EXE-016.004 |
+| MD-EXE-016.006.M05 | `src/us_swing/db/schema.py` | Delete the `positions` `sa.Table` + its index; remove `positions` from `_LIFECYCLE_COLUMN_ADDITIONS`/`_LIFECYCLE_COLUMN_REMOVALS`; add a one-time `DROP TABLE IF EXISTS positions` to the lifecycle migration. | SRD-EXE-016.006 |
+| MD-EXE-016.006.M06 | `src/us_swing/db/manager.py` | Delete `upsert_position`, `delete_position`, `fetch_open_positions` (and `PositionRecord` if no caller survives a grep). | SRD-EXE-016.006 |
+
+**Test impact (not separate MD rows):** delete the dead `on_fill` cases in
+`tests/core/monitoring_session/test_service.py`; repoint/trim the
+`open_system_position_symbols` / `position_anchor` / writer cases in
+`test_repository.py`; update `tests/integration/test_lifecycle_e2e.py` and db-manager
+tests that assert against `positions`; add seam tests for `mark_entered`/`mark_exited`
+driven through `OrderIngestion`.

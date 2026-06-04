@@ -83,6 +83,27 @@ def seed_price(engine: Engine) -> Callable[[str, int], None]:
     return _seed
 
 
+@pytest.fixture
+def open_cycle(engine: Engine) -> Callable[..., None]:
+    """Insert a ``trade_cycles`` row for *symbol* — the live position surface
+    that replaced the retired ``positions`` table (FO-EXE-016)."""
+    def _open(symbol: str, order_id: str | None = None, state: str = "OPEN") -> None:
+        oid = order_id or f"oc-{symbol}"
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    "INSERT INTO trade_cycles (strategy_id, symbol, user_id, "
+                    "monitoring_session_date, entry_time, entry_price, entry_qty, "
+                    "entry_order_id, hard_stop_loss, target_type, stoploss_type, "
+                    "state, opened_at) VALUES "
+                    "('s', :sym, 1, '2026-05-14', '2026-05-14T14:00:00Z', 50.0, 100, "
+                    ":oid, 48.0, 'fixed', 'fixed', :st, '2026-05-14T14:00:00Z')"
+                ),
+                {"sym": symbol, "oid": oid, "st": state},
+            )
+    return _open
+
+
 @dataclass(frozen=True)
 class _ScreenerResultAdapter:
     """Duck-typed stand-in for ``screener.storage.ScreenerRunResult`` —

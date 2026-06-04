@@ -1190,6 +1190,7 @@ class AppService(QObject):
                 ledger=self._db,
                 fill_sink=lambda fill: self._strategy_engine.on_order_fill(fill),
                 cycles=self._tc_command,
+                lifecycle=self._lifecycle_command,
             )
             self._broker_adapter = BrokerAdapter(
                 broker=self._broker,

@@ -8,14 +8,11 @@ from typing import Callable
 from sqlalchemy import Engine, text
 
 from us_swing.core.monitoring_session import (
-    FillEvent,
     LifecycleState,
     MonitoringCommand,
     MonitoringEventBus,
     MonitoringQuery,
-    Side,
     SymbolEvicted,
-    TradeOrigin,
 )
 
 _T0 = date(2026, 5, 14)   # yesterday / day-1
@@ -24,42 +21,23 @@ _T0_S = _T0.isoformat()
 _T1_S = _T1.isoformat()
 
 
-def _buy(
-    symbol: str,
-    trade_id: str,
-    qty: int = 100,
-    price: float = 50.0,
-    user_id: int = 1,
-) -> FillEvent:
-    return FillEvent(
-        symbol=symbol,
-        trade_id=trade_id,
-        side=Side.BUY,
-        qty=qty,
-        price=price,
-        fill_time=f"{_T0_S}T14:00:00Z",
-        origin=TradeOrigin.SYSTEM,
-        user_id=user_id,
-    )
-
-
-def _sell(
-    symbol: str,
-    trade_id: str,
-    qty: int = 100,
-    price: float = 55.0,
-    user_id: int = 1,
-) -> FillEvent:
-    return FillEvent(
-        symbol=symbol,
-        trade_id=trade_id,
-        side=Side.SELL,
-        qty=qty,
-        price=price,
-        fill_time=f"{_T0_S}T15:00:00Z",
-        origin=TradeOrigin.SYSTEM,
-        user_id=user_id,
-    )
+def _enter(cmd: MonitoringCommand, engine: Engine, symbol: str, trade_id: str) -> None:
+    """Drive a symbol to ENTERED the FO-EXE-016 way: flip the ledger row and
+    open a matching trade cycle (the live position surface)."""
+    cmd.mark_entered(symbol, f"{_T0_S}T14:00:00Z", trade_id)
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                "INSERT INTO trade_cycles (strategy_id, symbol, user_id, "
+                "monitoring_session_date, entry_time, entry_price, entry_qty, "
+                "entry_order_id, hard_stop_loss, target_type, stoploss_type, "
+                "state, opened_at) VALUES "
+                "('s', :sym, 1, :anchor, :ts, 50.0, 100, :oid, 48.0, 'fixed', "
+                "'fixed', 'OPEN', :ts)"
+            ),
+            {"sym": symbol, "oid": f"oc-{trade_id}", "anchor": _T0_S,
+             "ts": f"{_T0_S}T14:00:00Z"},
+        )
 
 
 # ── IT-EXE-009.001 ───────────────────────────────────────────────────────────
@@ -81,7 +59,7 @@ def test_it_009_001_full_happy_path(
     cmd0.on_screener_results(
         make_screener_result(passed=["A", "B", "C"], run_timestamp="2026-05-14T13:30:00Z")
     )
-    cmd0.on_fill(_buy("A", "t1"))
+    _enter(cmd0, engine, "A", "t1")
 
     seed_price("B", 3)
     seed_price("C", 3)
@@ -156,7 +134,7 @@ def test_it_009_002_carryover_position_retention(
     cmd0.on_screener_results(
         make_screener_result(passed=["A"], run_timestamp="2026-05-14T13:30:00Z")
     )
-    cmd0.on_fill(_buy("A", "t1"))
+    _enter(cmd0, engine, "A", "t1")
     seed_price("A", 3)
 
     # T: screener does NOT include A; A's position is still open.
@@ -201,7 +179,7 @@ def test_it_009_003_duplicate_filter_case(
     cmd0.on_screener_results(
         make_screener_result(passed=["A"], run_timestamp="2026-05-14T13:30:00Z")
     )
-    cmd0.on_fill(_buy("A", "t1"))
+    _enter(cmd0, engine, "A", "t1")
     seed_price("A", 3)
 
     # T: A re-emitted by screener.
@@ -234,53 +212,8 @@ def test_it_009_003_duplicate_filter_case(
     assert cnt > 0
 
 
-# ── IT-EXE-009.004 ───────────────────────────────────────────────────────────
-
-
-def test_it_009_004_scale_in_across_days_carries_anchor_forward(
-    engine: Engine,
-    build_service: Callable[..., tuple[MonitoringQuery, MonitoringCommand, MonitoringEventBus]],
-    make_screener_result: Callable[..., object],
-    seed_user: int,
-) -> None:
-    """IT-EXE-009.004: Scale-in across days carries the anchor forward."""
-    # T-1: system BUY 100 A.
-    query0, cmd0, bus0 = build_service(today=_T0, filtered={"A"})
-    cmd0.on_screener_results(
-        make_screener_result(passed=["A"], run_timestamp="2026-05-14T13:30:00Z")
-    )
-    cmd0.on_fill(_buy("A", "t1", qty=100))
-
-    # T: system BUY 50 more A (scale-in).
-    scale_fill = FillEvent(
-        symbol="A",
-        trade_id="t2",
-        side=Side.BUY,
-        qty=50,
-        price=52.0,
-        fill_time=f"{_T1_S}T14:00:00Z",
-        origin=TradeOrigin.SYSTEM,
-        user_id=1,
-    )
-    # Use the same service instance — both fills go through the same engine.
-    cmd0.on_fill(scale_fill)
-
-    with engine.connect() as conn:
-        trade_rows = conn.execute(
-            text("SELECT trade_id, monitoring_session_date FROM trades WHERE symbol='A' ORDER BY trade_id")
-        ).all()
-
-    assert len(trade_rows) == 2
-    # Both trades must have the T-1 anchor.
-    for row in trade_rows:
-        assert row[1] == _T0_S, (
-            f"Trade {row[0]} has anchor {row[1]!r}, expected {_T0_S!r}"
-        )
-
-    # Ledger row (T-1, A) stays ENTERED.
-    row_t0 = query0.session_for(_T0, "A")
-    assert row_t0 is not None
-    assert row_t0.lifecycle_state == LifecycleState.ENTERED
+# ── IT-EXE-009.004 (scale-in anchor carry-forward) removed under FO-EXE-016 —
+#    trade-row anchoring was an on_fill behaviour; trade_cycles owns scale-in now.
 
 
 # ── IT-EXE-009.005 ───────────────────────────────────────────────────────────
@@ -304,7 +237,7 @@ def test_it_009_005_invariant_holds_across_full_flow(
     report = query0.check_invariant()
     assert report.ok is True
 
-    cmd0.on_fill(_buy("A", "t1"))
+    _enter(cmd0, engine, "A", "t1")
 
     # After entering A — invariant holds (A in ledger ENTERED AND in positions).
     report = query0.check_invariant()
@@ -339,7 +272,7 @@ def test_it_010_001_evicted_symbol_never_reaches_set_symbols(
     cmd0.on_screener_results(
         make_screener_result(passed=["A", "B", "C"], run_timestamp="2026-05-14T13:30:00Z")
     )
-    cmd0.on_fill(_buy("A", "t1"))
+    _enter(cmd0, engine, "A", "t1")
     seed_price("B", 2)
     seed_price("C", 2)
 

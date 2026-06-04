@@ -249,13 +249,9 @@ def test_migration_backfills_legacy_status_into_order_state():
         cols_trades = {
             r["name"] for r in conn.execute(sa.text("PRAGMA table_info(trades)")).mappings()
         }
-        cols_positions = {
-            r["name"] for r in conn.execute(sa.text("PRAGMA table_info(positions)")).mappings()
-        }
 
     assert rows == {"L1": "NEW", "L2": "FILLED", "L3": "FILLED"}
     assert "status" not in cols_trades
     assert "pnl"    not in cols_trades
-    assert "state"  not in cols_positions
     assert "order_state"     in cols_trades
     assert "filled_quantity" in cols_trades

@@ -6,9 +6,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-import pytest
-
-from us_swing.data.models import OHLCVBar, PositionRecord
+from us_swing.data.models import OHLCVBar
 from us_swing.db.manager import DatabaseManager
 
 
@@ -78,15 +76,5 @@ def test_T05_fetch_bars_respects_date_range(in_memory_db: DatabaseManager) -> No
     assert fetched[-1].datetime == bars[6].datetime
 
 
-def test_T06_upsert_and_delete_position_round_trip(in_memory_db: DatabaseManager) -> None:
-    """UT-INF-004.001.M01.T06 — upsert_position + delete_position → empty open positions."""
-    pos = PositionRecord(
-        symbol="AAPL", user_id=1, quantity=50,
-        average_price=150.0, stop_loss=140.0, target_price=170.0,
-        mode="paper",
-    )
-    in_memory_db.upsert_position(pos)
-    assert len(in_memory_db.fetch_open_positions(1)) == 1
-
-    in_memory_db.delete_position(user_id=1, symbol="AAPL")
-    assert in_memory_db.fetch_open_positions(1) == []
+# UT-INF-004.001.M01.T06 (positions upsert/delete round-trip) removed under
+# FO-EXE-016 — the positions table is retired; trade_cycles owns open positions.

@@ -144,9 +144,16 @@ root).
 | 4b | delete `paper_engine.py` (+ test) | ☑ | b83638d5 |
 | 5 | delete `execution_engine.py` (+ test) | ☑ | 16c6f3b4 |
 | 6 | delete `position_tracker.py` (+ test); fix `risk_manager` | ☑ | 92aa76eb |
-| 7 | repoint `health.py` + remove MonitoringSession position writers | ☐ | |
-| 8 | drop `positions` table + DatabaseManager methods + migration | ☐ | |
-| 9 | docs / TRACE / RN; SRD-EXE-015.006 → Implemented | ☐ | |
+| 7A | repoint `health.py` open-position count → `trade_cycles` | ☑ | 044219a2 (PR #33) |
+| 7B | remove MonitoringSession position writers | ⊘ | superseded by FO-EXE-016 |
+| 8 | drop `positions` table + DatabaseManager methods + migration | ⊘ | superseded by FO-EXE-016 |
+| 9 | docs / TRACE / RN; SRD-EXE-015.006 → Implemented | ☑ | RN-EXE-1.18.0 |
+
+> **Steps 7B & 8 superseded (2026-06-04).** Investigation showed the MonitoringSession
+> `on_fill` writers are the designed Lifecycle hook in `Final_Execution.md` §2.5–2.6,
+> not dead legacy. Re-scoped as **FO-EXE-016** (retire `positions`; drive the
+> `MONITORING → ENTERED → EXITED` ledger from `OrderIngestion` fills), which delivers
+> the positions-table removal properly. See `FO.md` / `SRD.md` §16.
 
 ---
 

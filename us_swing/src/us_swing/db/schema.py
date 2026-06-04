@@ -126,23 +126,6 @@ trades = sa.Table(
     sa.Column("monitoring_session_date", sa.Text),                                       # SRD-EXE-009.002
 )
 
-positions = sa.Table(
-    "positions",
-    metadata,
-    # SRD-EXE-005.001 — open/closed derived from quantity > 0; no `state` column.
-    sa.Column("symbol",              sa.Text,    nullable=False),
-    sa.Column("user_id",             sa.Integer, sa.ForeignKey("users.user_id"), nullable=False),
-    sa.Column("quantity",            sa.Integer),
-    sa.Column("average_price",       sa.Float),
-    sa.Column("stop_loss",           sa.Float),
-    sa.Column("target_price",        sa.Float),
-    sa.Column("trailing_stop",       sa.Float),
-    sa.Column("mode",                sa.Text,    nullable=False, server_default="paper"),
-    sa.Column("origin",              sa.Text),                                           # SRD-EXE-009.003
-    sa.Column("anchor_session_date", sa.Text),                                           # SRD-EXE-009.003
-    sa.PrimaryKeyConstraint("user_id", "symbol"),
-)
-
 # SRD-EXE-009.001 — Intraday monitoring session ledger.
 monitoring_session = sa.Table(
     "monitoring_session",
@@ -204,15 +187,12 @@ _LIFECYCLE_COLUMN_ADDITIONS: tuple[tuple[str, str, str], ...] = (
     ("trades",    "monitoring_session_date", "TEXT"),
     ("trades",    "order_state",             "TEXT NOT NULL DEFAULT 'NEW'"),
     ("trades",    "filled_quantity",         "INTEGER NOT NULL DEFAULT 0"),
-    ("positions", "origin",                  "TEXT"),
-    ("positions", "anchor_session_date",     "TEXT"),
 )
 
 # SRD-EXE-014.001 — columns dropped by Phase 3 once `order_state` is backfilled.
 _LIFECYCLE_COLUMN_REMOVALS: tuple[tuple[str, str], ...] = (
     ("trades",    "status"),
     ("trades",    "pnl"),
-    ("positions", "state"),
 )
 
 # Backfill map from the legacy `trades.status` text values to the new
@@ -226,12 +206,17 @@ _STATUS_TO_ORDER_STATE_BACKFILL: tuple[tuple[str, str], ...] = (
 
 
 def migrate_lifecycle_columns(engine: sa.Engine) -> None:
-    """Add monitoring-session + order-state lifecycle columns and drop the
-    legacy `status` / `pnl` / `positions.state` columns once `order_state`
-    is populated.  Safe to run on every app start — a no-op once the schema
-    has converged.
+    """Add monitoring-session + order-state lifecycle columns, drop the legacy
+    `status` / `pnl` columns once `order_state` is populated, and drop the
+    retired `positions` table (FO-EXE-016 — `trade_cycles` is the single
+    open-position surface).  Safe to run on every app start — a no-op once the
+    schema has converged.
     """
     with engine.begin() as conn:
+        # FO-EXE-016 — retire the legacy positions table; trade_cycles owns
+        # open positions now.  Idempotent: a no-op once the table is gone.
+        conn.execute(sa.text("DROP TABLE IF EXISTS positions"))
+
         added_order_state = False
         for table_name, column_name, sql_type in _LIFECYCLE_COLUMN_ADDITIONS:
             rows = conn.execute(sa.text(f"PRAGMA table_info({table_name})")).mappings()
