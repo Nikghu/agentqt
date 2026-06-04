@@ -1,8 +1,8 @@
 ﻿# Software Requirement Document — Execution & Risk Management (EXE)
 
 **Document ID:** SRD-EXE
-**Version:** 1.15.0
-**Traces To:** FO-EXE v1.10.0
+**Version:** 1.16.0
+**Traces To:** FO-EXE v1.11.0
 **Status:** Draft
 **Last Updated:** 2026-06-04
 **Project:** US Swing Trading System
@@ -16,6 +16,7 @@
 > v1.13.0: SRD-EXE-012.010/.011 marked Implemented after Phase 2 — `CycleSnapshot.state` typed as `ExecutionEnums.TradeCycleState`; `TradeCycleState.is_terminal()`/`is_non_terminal()` helpers added; `CYCLE_STATES`/`NON_TERMINAL_STATES`/`TERMINAL_STATES` frozensets removed.
 > v1.14.0: Section 14 added — SRD-EXE-014.001–.008 (Broker Order State Machine). SRD-EXE-005.001/.002/.003 marked Reopen — `PositionState` removed; `positions.state` column dropped; open/closed derived from `quantity > 0`.
 > v1.15.0: Section 15 added — SRD-EXE-015.001–.006 (Broker-Agnostic Order Ingestion & Adapter; Broker_fix.md Phases 2/5/6).
+> v1.16.0: Section 16 added — SRD-EXE-016.001–.006 (Retire `positions` table; OrderIngestion-driven monitoring lifecycle; supersedes cleanup.md Steps 7B–8).
 
 ---
 
@@ -256,3 +257,16 @@
 | SRD-EXE-015.004 | FO-EXE-015 | Must | `build_broker(mode, broker_name)` (`execution/broker_factory.py`) routes paper → `SimBroker`, live → name-keyed registry (`IBKR` → `IBKRBroker`). Wired into `app_service`. | `(mode, broker_name)` | bound broker + event subscription | Routing + registry done; `app_service` passes hard-coded `paper`/`IBKR` — reading the values from `users.mode`/Settings is the deferred GUI step | Partial |
 | SRD-EXE-015.005 | FO-EXE-015 | Must | The pipeline maps broker `OrderStatus` onto `BuyOrderState` (BUY) / `SellOrderState` (SELL) by order side, relying on identical member values — no lookup table. | `OrderEvent.status`, side | `trades.order_state` value | Mapping must fail loudly (raise) if a status value has no matching execution-enum member | Implemented |
 | SRD-EXE-015.006 | FO-EXE-015 | Must | Once the adapter and ingestion are verified live, `ExecutionEngine`, `PaperEngine`, `PaperBroker`, and the paper-only `app_service` methods (`_on_paper_fill`, `_record_paper_entry`, `_record_paper_exit`) are removed. | legacy modules | deleted code | Existing `trades`/`trade_cycles` audit rows retained; removal gated on contract tests passing | Approved |
+
+---
+
+## Section 16: Requirements for FO-EXE-016 — Retire `positions` Table; OrderIngestion-Driven Monitoring Lifecycle
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-EXE-016.001 | FO-EXE-016 | Must | On a completed entry fill, `OrderIngestion` advances the symbol's `monitoring_session` ledger row `MONITORING → ENTERED` via `transition_to_entered`. | completed entry `OrderEvent` | ledger row `ENTERED` | Only a fully-filled entry transitions; a partial entry leaves the row `MONITORING` (SRD-EXE-014.008) | Approved |
+| SRD-EXE-016.002 | FO-EXE-016 | Must | On a completed exit fill, `OrderIngestion` advances the same ledger row `ENTERED → EXITED` via `transition_to_exited`. | completed exit `OrderEvent` | ledger row `EXITED` | Fires only when the owning `trade_cycle` reaches `CLOSED` | Approved |
+| SRD-EXE-016.003 | FO-EXE-016 | Must | `open_system_position_symbols` returns the symbols of all non-terminal `trade_cycles`, reading no `positions` data. | none | `frozenset[str]` of open symbols | Queries `trade_cycles` by table name (`state NOT IN CLOSED/ABORTED`); no execution-schema import inside `core/` | Approved |
+| SRD-EXE-016.004 | FO-EXE-016 | Must | The monitoring repository drops `upsert_position_with_anchor`, `has_open_system_position`, and `position_anchor`, and removes the `positions` import; ledger-transition methods are retained. | none | slimmer `MonitoringRepository` | `transition_to_entered`/`transition_to_exited` and `insert_trade_with_anchor` behaviour preserved as needed by the seam | Approved |
+| SRD-EXE-016.005 | FO-EXE-016 | Must | The unwired `MonitoringCommand.on_fill` hook is removed; its lifecycle role is served by the ingestion seam (016.001/.002). | none | `on_fill` deleted; dead tests removed | `MONITORING` creation via `on_screener_results` is unchanged | Approved |
+| SRD-EXE-016.006 | FO-EXE-016 | Must | The `positions` `sa.Table`, the `DatabaseManager` methods `upsert_position`/`delete_position`/`fetch_open_positions`, and the `positions` lifecycle-migration column entries are removed. | schema + manager | dropped table + methods | Existing `trades`/`trade_cycles` rows retained; done as an isolated migration commit | Approved |

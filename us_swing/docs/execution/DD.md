@@ -1,12 +1,13 @@
 # Design Document — Execution & Risk Management (EXE)
 
 **Document ID:** DD-EXE
-**Version:** 1.10.0
-**Traces To:** SRD-EXE v1.15.0
+**Version:** 1.11.0
+**Traces To:** SRD-EXE v1.16.0
 **Status:** Draft
 **Last Updated:** 2026-06-04
 **Project:** US Swing Trading System
 
+> v1.11.0: DD-EXE-016.* added — ingestion-driven monitoring-lifecycle seam, `trade_cycles` carryover repoint, `positions` table drop.
 > v1.10.0: DD-EXE-015.* added — BrokerAdapter (translation/selection/routing) + broker-agnostic Order Ingestion pipeline.
 > v1.9.0: DD-EXE-013.001.D01 added — Strategy Run Lifecycle engine evaluation decision tree.
 > v1.8.0: DD-EXE-011.016.D01 added — Per-Symbol Re-Execution Counter (rex_count enforcement).
@@ -3049,3 +3050,119 @@ def _to_order_state(side: OrderSide, status: OrderStatus) -> str:
 uses to recover strategy/symbol/side and to correlate an `OrderEvent` back to
 its order. `trades.trade_id == broker_order_id` keeps the order ledger joined to
 `trade_cycles.entry_order_id` / `exit_order_id`, which already store that id.
+
+---
+
+# FO-EXE-016 — Retire `positions` Table; OrderIngestion-Driven Monitoring Lifecycle
+
+## DD-EXE-016.001.D01 — Ingestion → Monitoring-Lifecycle Seam
+
+**Parent SRD:** SRD-EXE-016.001, SRD-EXE-016.002, SRD-EXE-016.005
+
+The `MONITORING → ENTERED → EXITED` ledger lives in the `monitoring_session`
+table and is created (`MONITORING`) by the screener path (`on_screener_results`)
+— unchanged. The two later transitions move off the dead `MonitoringCommand.on_fill`
+hook and onto the live `OrderIngestion` fill path.
+
+`OrderIngestion` already advances `trades`, the strategy engine, and `trade_cycles`
+on each `OrderEvent`. We add an **optional, narrow lifecycle sink** — it performs
+only the ledger transition; it never touches `positions` or `trades` (those belong
+to ingestion). Two new thin `MonitoringCommand` methods wrap the existing
+repository transitions:
+
+```python
+# core/monitoring_session/_service.py  (MonitoringCommand)
+def mark_entered(self, symbol: str, entered_at: str, trade_id: str) -> None:
+    """Flip the symbol's earliest open MONITORING row to ENTERED (idempotent)."""
+    row = self._repo.fetch_earliest_open_monitoring_row(symbol)
+    if row is None:
+        return                       # no ledger row (e.g. unscreened manual trade)
+    self._repo.transition_to_entered(
+        session_date=row.session_date, symbol=symbol,
+        entered_at=entered_at, trade_id=trade_id,
+    )
+
+def mark_exited(self, symbol: str, exited_at: str) -> None:
+    """Flip the symbol's ENTERED row to EXITED on cycle close (idempotent)."""
+    row = self._repo.fetch_entered_row(symbol)   # existing/derivable lookup
+    if row is None:
+        return
+    self._repo.transition_to_exited(
+        session_date=row.session_date, symbol=symbol, exited_at=exited_at,
+    )
+```
+
+`OrderIngestion` gains an optional `lifecycle` dependency and calls it **after**
+the cycle advance, gated on fill completion and direction:
+
+```python
+# execution/order_ingestion.py — inside on_order_event, after cycle advance
+if self._lifecycle is not None:
+    if is_entry and _is_complete_fill(order_state):
+        self._lifecycle.mark_entered(symbol, fill_time, ev.broker_order_id)
+    elif (not is_entry) and cycle_now_closed:
+        self._lifecycle.mark_exited(symbol, fill_time)
+```
+
+`cycle_now_closed` is read from the `TradeCycleCommand` result already produced in
+the same handler (the cycle reaches `CLOSED` on a completing exit fill). Both marks
+are **idempotent** — re-delivery of an event must not double-transition (the ledger
+transition methods already no-op when the target state is reached).
+
+**Wiring (`app_service`):** `OrderIngestion(...)` is constructed with
+`lifecycle=self._lifecycle_command` (the `MonitoringCommand` from
+`build_default_service`). When the lifecycle service is unavailable the sink stays
+`None` and ingestion behaves exactly as today.
+
+## DD-EXE-016.003.D01 — Carryover Repoint to `trade_cycles`
+
+**Parent SRD:** SRD-EXE-016.003, SRD-EXE-016.004
+
+`MonitoringRepository.open_system_position_symbols` stops reading `positions` and
+returns the symbols of all non-terminal `trade_cycles`. `core/` must not import the
+execution-owned `trade_cycles` table object (layering), so the query is by table
+name on the shared engine — the same pattern used by `health.py`:
+
+```python
+# core/monitoring_session/_repository.py
+def open_system_position_symbols(self) -> frozenset[str]:
+    stmt = sa.text(
+        "SELECT DISTINCT symbol FROM trade_cycles "
+        "WHERE state NOT IN ('CLOSED', 'ABORTED')"
+    )
+    with self._engine.connect() as conn:
+        return frozenset(r[0] for r in conn.execute(stmt))
+```
+
+The engine is shared (`app_service` builds one `DatabaseManager`; the trade-cycle
+service and the monitoring service use its engine), so `trade_cycles` is always in
+the same database. Removed from the repository (each was read/written only by the
+retired `on_fill`): `upsert_position_with_anchor`, `has_open_system_position`,
+`position_anchor`, and the `positions` import. The `MonitoringQuery` surface drops
+`has_open_system_position` (no external caller); `open_system_positions` survives,
+now delegating to the repointed `open_system_position_symbols`.
+
+## DD-EXE-016.006.D01 — Drop the `positions` Table
+
+**Parent SRD:** SRD-EXE-016.006
+
+Done **last**, alone in its own commit, only after the seam (016.001) and the
+repoint (016.003) are merged and green — at that point nothing reads or writes
+`positions`.
+
+- **`db/schema.py`:** delete the `positions = sa.Table(...)` definition and its
+  index; remove `positions` from `_LIFECYCLE_COLUMN_ADDITIONS` /
+  `_LIFECYCLE_COLUMN_REMOVALS`. Add a one-time `DROP TABLE IF EXISTS positions` to
+  the lifecycle migration so existing databases shed the table (fresh DBs simply
+  never create it once it leaves the metadata).
+- **`db/manager.py`:** delete `upsert_position`, `delete_position`,
+  `fetch_open_positions`. `PositionRecord` (data model) may remain unused or be
+  removed in the same pass if no caller survives a grep.
+- **Tests:** update `tests/integration/test_lifecycle_e2e.py` and the monitoring /
+  db-manager tests that assert against `positions`; delete the dead `on_fill` tests
+  in `tests/core/monitoring_session/test_service.py` and the `positions`-writer /
+  `position_anchor` / `has_open_system_position` cases in `test_repository.py`.
+
+**Acceptance gate:** a grep for the `positions` `sa.Table`, `upsert_position`,
+`delete_position`, or `fetch_open_positions` returns nothing outside migration
+history (SRD-EXE-016.006 AC #4), the app imports, and the suite stays at baseline.
