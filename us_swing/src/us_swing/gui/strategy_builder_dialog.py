@@ -4,10 +4,6 @@ Parent SRD: SRD-GUI-013.001
 """
 from __future__ import annotations
 
-import json
-from dataclasses import asdict, dataclass, field, fields
-from pathlib import Path
-
 from PyQt6.QtCore import QByteArray, QDate, QPoint, QSize, Qt, QTime, pyqtSignal
 from PyQt6.QtGui import QColor, QDoubleValidator, QIcon, QIntValidator, QMouseEvent, QPainter, QPen, QPixmap
 from PyQt6.QtSvg import QSvgRenderer
@@ -184,100 +180,12 @@ _DAY_LABELS: dict[str, str] = {
     "Thursday": "TH", "Friday": "FR",
 }
 
-_STRATEGIES_PATH: Path = Path.home() / ".usswing" / "strategies.json"
-
-
-# ── Data model ────────────────────────────────────────────────────────────────
-
-@dataclass
-class StrategyConfig:
-    name: str
-    mode: str
-    capital_max: int
-    start_time: str
-    end_time: str
-    start_date: str
-    end_date: str
-    days: list[str]
-    entry_condition: str
-    exit_condition: str
-    strategy_type: str = ""
-    symbol_mode: str = "all"
-    symbols_include: list[str] = field(default_factory=list)
-    symbols_exclude: list[str] = field(default_factory=list)
-    target_enabled: bool = False
-    target_type: str = "fixed"
-    target_value: float = 2.0
-    stoploss_enabled: bool = False
-    stoploss_type: str = "fixed"
-    stoploss_value: float = 1.0
-    auto_trade: bool = False
-    trade_type: str = "Intraday"
-    minute_close: int = 1
-    execution_rate_sec: int = 1
-    rex_count: int = 0
-    strategy_signal: dict = field(
-        default_factory=lambda: {
-            "run_state": "STOPPED",
-            "Execution_Time": "None",
-            "Executed_Quantity": 0,
-            "Pending_Quantity": 0,
-            "Order_Entry_Status": "None",
-            "Order_Entry_Timestamp": None,
-            "Order_Exit_Status": "None",
-            "Order_Exit_Timestamp": None,
-        }
-    )
-
-
-# ── Persistence ───────────────────────────────────────────────────────────────
-
-def _migrate_strategy_signal(sig: dict) -> dict:
-    """Promote legacy ``Status`` to ``run_state`` (SRD-EXE-013.008).
-
-    Idempotent — if ``run_state`` is already present the dict is returned
-    untouched.  Otherwise:
-      - ``"Active"`` or ``"Running"`` → ``"RUNNING"``
-      - ``"Inactive"`` or missing    → ``"STOPPED"``
-    The legacy ``Status`` key is removed.
-    """
-    if "run_state" in sig:
-        sig.pop("Status", None)
-        return sig
-    status = sig.get("Status", "Inactive")
-    sig["run_state"] = "RUNNING" if status in ("Active", "Running") else "STOPPED"
-    sig.pop("Status", None)
-    return sig
-
-
-def load_strategies() -> list[StrategyConfig]:
-    """Read all configured strategies from disk.
-
-    The persisted ``run_state`` is trusted verbatim — strategies remain
-    RUNNING across sessions and days until the user explicitly stops them.
-    Legacy ``Status`` values are migrated to ``run_state`` on first load.
-    """
-    if not _STRATEGIES_PATH.exists():
-        return []
-    try:
-        raw: list[dict] = json.loads(_STRATEGIES_PATH.read_text(encoding="utf-8"))
-        valid_keys = {f.name for f in fields(StrategyConfig)}
-        configs: list[StrategyConfig] = []
-        for r in raw:
-            cfg = StrategyConfig(**{k: v for k, v in r.items() if k in valid_keys})
-            _migrate_strategy_signal(cfg.strategy_signal)
-            configs.append(cfg)
-        return configs
-    except Exception:
-        return []
-
-
-def save_strategies(configs: list[StrategyConfig]) -> None:
-    _STRATEGIES_PATH.parent.mkdir(parents=True, exist_ok=True)
-    _STRATEGIES_PATH.write_text(
-        json.dumps([asdict(c) for c in configs], indent=2),
-        encoding="utf-8",
-    )
+# StrategyConfig and its persistence now live in ``strategy_store`` (DB-backed).
+# Re-exported here so existing ``from strategy_builder_dialog import ...`` callers
+# keep working unchanged.
+from us_swing.gui.strategy_store import StrategyConfig as StrategyConfig  # noqa: E402
+from us_swing.gui.strategy_store import load_strategies as load_strategies  # noqa: E402
+from us_swing.gui.strategy_store import save_strategies as save_strategies  # noqa: E402
 
 
 # ── Shared helpers ─────────────────────────────────────────────────────────────
@@ -1564,24 +1472,13 @@ class StrategyBuilderDialog(QDialog):
         e = self._exec_page
         r = self._risk_page
 
-        # New strategies: Auto mode starts Active (no user gating required),
-        # Manual mode starts Inactive (must Play).  Edits preserve the live
-        # strategy_signal so Running cycles keep their state.
+        # Edits preserve the live run_state so Running cycles keep their state.
+        # New strategies: Auto mode arms immediately, Manual waits for Play.
         new_mode = i._mode_combo.currentText().lower()
-        initial_status = "Active" if new_mode == "auto" else "Inactive"
-        existing_signal: dict = (
-            self._existing.strategy_signal
+        run_state = (
+            self._existing.run_state
             if self._existing is not None
-            else {
-                "Status": initial_status,
-                "Execution_Time": "None",
-                "Executed_Quantity": 0,
-                "Pending_Quantity": 0,
-                "Order_Entry_Status": "None",
-                "Order_Entry_Timestamp": None,
-                "Order_Exit_Status": "None",
-                "Order_Exit_Timestamp": None,
-            }
+            else ("RUNNING" if new_mode == "auto" else "STOPPED")
         )
 
         cfg = StrategyConfig(
@@ -1610,7 +1507,7 @@ class StrategyBuilderDialog(QDialog):
             stoploss_enabled=r._sl_enabled.isChecked(),
             stoploss_type=r._sl_type.currentText().lower(),
             stoploss_value=r._sl_value.value(),
-            strategy_signal=existing_signal,
+            run_state=run_state,
         )
 
         self._err_lbl.setText("")

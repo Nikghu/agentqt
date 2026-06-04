@@ -47,7 +47,7 @@ class _Cfg:
     stoploss_value: float = 1.0
     target_enabled: bool = False
     target_value: float = 2.0
-    strategy_signal: dict[str, Any] = field(default_factory=lambda: {"run_state": "RUNNING"})
+    run_state: str = "RUNNING"
 
 
 def _make_risk() -> MagicMock:
@@ -113,7 +113,7 @@ def test_registry_load_skips_disabled(qtbot: QtBot) -> None:
     assert "disabled_strat" not in engine.registry
     for ctx in engine.registry.values():
         assert ctx.run_state is ExecutionEnums.StrategyRunState.RUNNING
-        assert ctx.cfg.strategy_signal["run_state"] == "RUNNING"
+        assert ctx.cfg.run_state == "RUNNING"
 
     engine.request_stop()
     qtbot.waitSignal(engine.stopped, timeout=3500)

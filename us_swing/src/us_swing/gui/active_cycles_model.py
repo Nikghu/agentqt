@@ -140,19 +140,20 @@ class _ActiveCyclesModel(QAbstractTableModel):
         except Exception:
             return ZoneInfo("US/Eastern")
 
-    def _fmt_market_hms(self, value: str | datetime | None) -> str:
-        """Format a timestamp as HH:MM:SS in the user's Market Timezone.
+    def _fmt_market_time(self, value: str | datetime | None) -> str:
+        """Format a timestamp as ``Mon DD, HH:MM`` in the user's Market Timezone.
 
-        Stored times are naive (machine-local); ``astimezone`` presumes the
-        system zone for naive values and converts to the market zone.
+        Swing positions can be held across days, so the date is shown alongside
+        the time. Stored times are naive (machine-local); ``astimezone``
+        presumes the system zone for naive values and converts to the market zone.
         """
         if not value:
             return ""
         try:
             dt = value if isinstance(value, datetime) else datetime.fromisoformat(value)
         except ValueError:
-            return str(value)[-8:]
-        return dt.astimezone(self._market_tz()).strftime("%H:%M:%S")
+            return str(value)
+        return dt.astimezone(self._market_tz()).strftime("%b %d, %H:%M")
 
     # ── Bulk refresh ─────────────────────────────────────────────────────
 
@@ -339,7 +340,7 @@ class _ActiveCyclesModel(QAbstractTableModel):
             kind="pending",
             key=signal.signal_id,
             state="PENDING",
-            time=self._fmt_market_hms(datetime.now()),
+            time=self._fmt_market_time(datetime.now()),
             symbol=signal.symbol,
             strategy=signal.strategy_id,
             qty=signal.qty_recommended or 1,
@@ -357,7 +358,7 @@ class _ActiveCyclesModel(QAbstractTableModel):
             kind="cycle",
             key=f"cycle:{snap.cycle_id}",
             state=snap.state,
-            time=self._fmt_market_hms(snap.entry_time),
+            time=self._fmt_market_time(snap.entry_time),
             symbol=snap.symbol,
             strategy=snap.strategy_id,
             qty=snap.entry_qty,

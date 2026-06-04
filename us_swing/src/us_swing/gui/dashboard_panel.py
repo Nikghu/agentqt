@@ -9,6 +9,7 @@ from __future__ import annotations
 import datetime
 
 import logging
+from zoneinfo import ZoneInfo
 
 from PyQt6.QtCore import QAbstractTableModel, QEvent, QModelIndex, QStringListModel, Qt
 from PyQt6.QtGui import QColor, QFont, QTextCursor
@@ -1313,7 +1314,9 @@ class DashboardPanel(QWidget):
         pos_tab_layout.addLayout(pos_toolbar)
 
         # ── Trade history table (History tab) ─────────────────────────────────
-        self._hist_model = TradeHistoryModel()
+        self._hist_model = TradeHistoryModel(
+            tz_provider=lambda: self._demo.get_system_config().market_timezone
+        )
         self._hist_view  = QTableView()
         self._hist_view.setModel(self._hist_model)
         self._hist_view.setAlternatingRowColors(True)
@@ -1604,7 +1607,15 @@ class DashboardPanel(QWidget):
 
 
     def _refresh_trades(self) -> None:
-        trades = self._demo.get_all_trades()
+        try:
+            tz = ZoneInfo(self._demo.get_system_config().market_timezone)
+        except Exception:
+            tz = ZoneInfo("US/Eastern")
+        today = datetime.datetime.now(tz).date()
+        trades = [
+            t for t in self._demo.get_all_trades()
+            if t.entry_time.astimezone(tz).date() == today
+        ]
         self._hist_model.refresh(trades)
 
     def _on_log_message(self, level: str, message: str) -> None:

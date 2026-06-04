@@ -1,10 +1,10 @@
 ﻿# Software Requirement Document — Execution & Risk Management (EXE)
 
 **Document ID:** SRD-EXE
-**Version:** 1.14.0
-**Traces To:** FO-EXE v1.9.0
+**Version:** 1.15.0
+**Traces To:** FO-EXE v1.10.0
 **Status:** Draft
-**Last Updated:** 2026-05-28
+**Last Updated:** 2026-06-04
 **Project:** US Swing Trading System
 
 > v1.7.0: Sections 11 + 12 added — SRD-EXE-011.001–015 (Strategy Engine) and SRD-EXE-012.001–013 (Trade Cycle Ledger).
@@ -15,6 +15,7 @@
 > v1.12.0: SRD-EXE-013.001–.008 + SRD-EXE-011.001 + SRD-EXE-011.007 marked Implemented (Final_Execution.md Phase 1).
 > v1.13.0: SRD-EXE-012.010/.011 marked Implemented after Phase 2 — `CycleSnapshot.state` typed as `ExecutionEnums.TradeCycleState`; `TradeCycleState.is_terminal()`/`is_non_terminal()` helpers added; `CYCLE_STATES`/`NON_TERMINAL_STATES`/`TERMINAL_STATES` frozensets removed.
 > v1.14.0: Section 14 added — SRD-EXE-014.001–.008 (Broker Order State Machine). SRD-EXE-005.001/.002/.003 marked Reopen — `PositionState` removed; `positions.state` column dropped; open/closed derived from `quantity > 0`.
+> v1.15.0: Section 15 added — SRD-EXE-015.001–.006 (Broker-Agnostic Order Ingestion & Adapter; Broker_fix.md Phases 2/5/6).
 
 ---
 
@@ -242,3 +243,16 @@
 | SRD-EXE-014.006 | FO-EXE-014 | Must | Broker cancel routed through `ExecutionEngine.handle_order_cancel(cancel_event)` sets `order_state = CANCELLED` on the `trades` row; `filled_quantity` is preserved at whatever the broker reported before the cancel; the owning cycle stays in its current state. | broker cancel event | `trades.order_state='CANCELLED'` | A SELL cancelled after partial fill keeps the cycle OPEN with `positions.quantity = entry_qty - filled` | Implemented |
 | SRD-EXE-014.007 | FO-EXE-014 | Must | `TradeCycleService.on_entry_fill` transitions OPENING → OPEN only when the BUY `trades.order_state` reaches `BuyOrderState.FILLED`; PARTIAL_FILLED holds the cycle in OPENING. | fill event sequence | OPEN cycle only at fully filled BUY | Strict mode per Final_Execution.md §5.3.3 default — eager open is out of scope | Implemented |
 | SRD-EXE-014.008 | FO-EXE-014 | Must | `core/monitoring_session/_service.on_fill(side, order_state, qty)` consumes `(side, order_state)` to drive `LifecycleState` transitions: first `BuyOrderState.FILLED` (with `qty > 0`) flips a MONITORING row to ENTERED; `SellOrderState.FILLED` that drives `positions.quantity → 0` flips ENTERED to EXITED. | fill event from EXE | LifecycleState transition | Single entry point; no other module mutates LifecycleState | Implemented |
+
+---
+
+## Section 15: Requirements for FO-EXE-015 — Broker-Agnostic Order Ingestion & Adapter
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-EXE-015.001 | FO-EXE-015 | Must | `BrokerAdapter` (`execution/broker_adapter.py`) translates a `TradeSignal` into a broker `OrderRequest` (signal_id → `client_ref`), calls `Broker.place_order`, and returns the broker order id to the router. Wired into `app_service` as the `submitter`, replacing `PaperBroker`. | `TradeSignal`, qty | `OrderRequest` + broker order id | Adapter is the only execution component importing a concrete broker; preserves `ExecutionSubmitter.submit` signature for the router | Implemented |
+| SRD-EXE-015.002 | FO-EXE-015 | Must | On order acceptance the ingestion pipeline inserts one `trades` row with `trade_id = broker_order_id`, `order_state = NEW`, `filled_quantity = 0`, for both paper and live orders. | accepted order | new `trades` row | Paper orders are no longer bypassed; insert completes before fill events are processed | Implemented |
+| SRD-EXE-015.003 | FO-EXE-015 | Must | On each inbound `OrderEvent` the pipeline calls `update_trade_fill` (advancing `order_state` + `filled_quantity`), feeds `strategy_engine.on_order_fill(FillEvent)`, and advances the owning `trade_cycles` row via `TradeCycleCommand`. | `OrderEvent` | updated `trades` + `trade_cycles` | One broker-agnostic handler; no branch on broker type. `trade_cycles` is the single live-position surface — the legacy `positions` table is written only by unwired legacy code and is retired in Phase 6 (no positions-table write here) | Implemented |
+| SRD-EXE-015.004 | FO-EXE-015 | Must | `build_broker(mode, broker_name)` (`execution/broker_factory.py`) routes paper → `SimBroker`, live → name-keyed registry (`IBKR` → `IBKRBroker`). Wired into `app_service`. | `(mode, broker_name)` | bound broker + event subscription | Routing + registry done; `app_service` passes hard-coded `paper`/`IBKR` — reading the values from `users.mode`/Settings is the deferred GUI step | Partial |
+| SRD-EXE-015.005 | FO-EXE-015 | Must | The pipeline maps broker `OrderStatus` onto `BuyOrderState` (BUY) / `SellOrderState` (SELL) by order side, relying on identical member values — no lookup table. | `OrderEvent.status`, side | `trades.order_state` value | Mapping must fail loudly (raise) if a status value has no matching execution-enum member | Implemented |
+| SRD-EXE-015.006 | FO-EXE-015 | Must | Once the adapter and ingestion are verified live, `ExecutionEngine`, `PaperEngine`, `PaperBroker`, and the paper-only `app_service` methods (`_on_paper_fill`, `_record_paper_entry`, `_record_paper_exit`) are removed. | legacy modules | deleted code | Existing `trades`/`trade_cycles` audit rows retained; removal gated on contract tests passing | Approved |

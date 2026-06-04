@@ -1,12 +1,13 @@
 # Design Document — Execution & Risk Management (EXE)
 
 **Document ID:** DD-EXE
-**Version:** 1.9.0
-**Traces To:** SRD-EXE v1.11.0
+**Version:** 1.10.0
+**Traces To:** SRD-EXE v1.15.0
 **Status:** Draft
-**Last Updated:** 2026-05-28
+**Last Updated:** 2026-06-04
 **Project:** US Swing Trading System
 
+> v1.10.0: DD-EXE-015.* added — BrokerAdapter (translation/selection/routing) + broker-agnostic Order Ingestion pipeline.
 > v1.9.0: DD-EXE-013.001.D01 added — Strategy Run Lifecycle engine evaluation decision tree.
 > v1.8.0: DD-EXE-011.016.D01 added — Per-Symbol Re-Execution Counter (rex_count enforcement).
 > v1.7.0: DD-EXE-012.* added — Trade Cycle Ledger (table DDL, repository, tick throttle, exit-trigger emission).
@@ -2940,3 +2941,111 @@ def _migrate_run_state(record: dict) -> StrategyRunState:
 ```
 
 Resolves the FO-EXE-011 §1 contradiction (force `Active` on load vs trust verbatim): **trust verbatim wins** (decision log #3). On first load, legacy values are mapped once and `run_state` replaces `Status` in the persisted file.
+
+---
+
+## DD-EXE-015.001.D01 — BrokerAdapter (translation, selection, routing)
+
+**Parent SRD:** SRD-EXE-015.001, SRD-EXE-015.004
+
+The adapter is the only execution component that knows a concrete broker. It
+satisfies the existing `ExecutionSubmitter.submit(signal, qty) -> int | None`
+surface so the router (`_router.py:264`) is unchanged, while underneath it
+speaks the neutral broker contract.
+
+```python
+class BrokerAdapter:
+    def __init__(self, broker: Broker, ingestion: OrderIngestion) -> None:
+        self._broker = broker
+        self._ingestion = ingestion
+        broker.on_event(self._on_broker_event)     # Broker -> Execution channel
+
+    # ── ExecutionSubmitter surface (called by the router) ──
+    def submit(self, signal: TradeSignal, qty: int) -> int | None:
+        req = OrderRequest(
+            client_ref = signal.signal_id,
+            symbol     = signal.symbol,
+            side       = OrderSide.BUY if signal.action is Action.ENTRY else OrderSide.SELL,
+            quantity   = qty,
+            order_type = OrderType.MARKET,
+        )
+        oid = self._broker.place_order(req)         # acceptance only
+        self._ingestion.on_order_accepted(req, oid) # writes trades(NEW)
+        return int(oid)
+
+    # ── Broker -> Execution (async fills) ──
+    def _on_broker_event(self, event: OrderEvent) -> None:
+        self._ingestion.on_order_event(event)
+```
+
+**Selection** (SRD-EXE-015.004): a factory builds the adapter with `SimBroker`
+or `IBKRBroker` from `users.mode` plus a system-level switch. `SimBroker` is
+always constructible for per-user dry-run regardless of system mode. No
+separate factory module — selection lives here at construction.
+
+**Threading.** IBKR events arrive on the ib_insync loop; the adapter marshals
+`_on_broker_event` onto the engine loop via `call_soon_threadsafe` (the same
+pattern `StrategyEngine.on_order_fill` already uses).
+
+---
+
+## DD-EXE-015.002.D01 — Order Ingestion Pipeline
+
+**Parent SRD:** SRD-EXE-015.002, SRD-EXE-015.003, SRD-EXE-015.005
+
+One broker-agnostic component owns all persistence. It contains **no branch on
+broker type** — `SimBroker` and `IBKRBroker` events run identical code. This is
+the piece that ends the paper bypass: paper orders now write `trades` exactly
+like live orders.
+
+```python
+class OrderIngestion:
+    def on_order_accepted(self, req: OrderRequest, broker_order_id: str) -> None:
+        # SRD-EXE-015.002 — trade_id == broker order id, state NEW, no bypass
+        self._db.insert_trade(TradeRecord(
+            trade_id        = broker_order_id,
+            symbol          = req.symbol,
+            side            = req.side.value,
+            quantity        = req.quantity,
+            order_state     = _to_order_state(req.side, OrderStatus.NEW),
+            filled_quantity = 0,
+            ...,
+        ))
+
+    def on_order_event(self, ev: OrderEvent) -> None:
+        # SRD-EXE-015.003 — advance trades, feed engine, advance cycle + position
+        self._db.update_trade_fill(
+            trade_id        = ev.broker_order_id,
+            filled_quantity = ev.filled_quantity,
+            order_state     = _to_order_state(_side_of(ev), ev.status),
+            exit_time       = now if _is_exit(ev) else None,
+            exit_price      = ev.fill_price if _is_exit(ev) else None,
+        )
+        self._engine.on_order_fill(FillEvent(
+            strategy_id = _strategy_of(ev.client_ref),
+            symbol      = _symbol_of(ev.client_ref),
+            is_entry    = _is_entry(ev),
+            fill_price  = ev.fill_price or 0.0,
+            fill_qty    = ev.filled_quantity,
+            order_id    = int(ev.broker_order_id),
+        ))
+        # trade_cycles advances off the same FillEvent (FO-EXE-012); it is the
+        # single live-position surface — the legacy positions table is retired
+        # in Phase 6, so ingestion does not write it.
+```
+
+### Status mapping (SRD-EXE-015.005)
+
+```python
+def _to_order_state(side: OrderSide, status: OrderStatus) -> str:
+    enum = E.BuyOrderState if side is OrderSide.BUY else E.SellOrderState
+    try:
+        return enum(status.value).value     # 1:1 — values are identical
+    except ValueError:
+        raise BrokerStatusError(f"No execution state for {status!r}")  # fail loud
+```
+
+`client_ref` (the originating `signal.signal_id`) is the join key the pipeline
+uses to recover strategy/symbol/side and to correlate an `OrderEvent` back to
+its order. `trades.trade_id == broker_order_id` keeps the order ledger joined to
+`trade_cycles.entry_order_id` / `exit_order_id`, which already store that id.

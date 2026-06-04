@@ -20,7 +20,6 @@ from us_swing.broker.pacing import PacingQueue
 from us_swing.data.models import (
     AccountState,
     ConnectionStatus,
-    IBKRFill,
     IBKRPosition,
     OHLCVBar,
     RealtimeBar,
@@ -111,6 +110,16 @@ class IBKRClient:
 
     def is_connected(self) -> bool:
         return self._connected and self._ib is not None and self._ib.isConnected()
+
+    @property
+    def ib(self) -> Any:
+        """The underlying ``ib_insync.IB`` instance (None until connected).
+
+        Exposed so the broker-execution layer (``broker/ibkr.py``) can place
+        orders and subscribe to order-status events without duplicating the
+        connection wrapper.
+        """
+        return self._ib
 
     # ── Status observable ─────────────────────────────────────────────────────
 

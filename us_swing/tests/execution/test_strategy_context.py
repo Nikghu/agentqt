@@ -37,7 +37,7 @@ class _Cfg:
     stoploss_value: float = 1.0
     target_enabled: bool = False
     target_value: float = 2.0
-    strategy_signal: dict[str, Any] = field(default_factory=lambda: {"run_state": "RUNNING"})
+    run_state: str = "RUNNING"
 
 
 def _ctx(**kwargs: Any) -> _StrategyContext:

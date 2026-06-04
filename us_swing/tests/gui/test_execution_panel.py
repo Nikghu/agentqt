@@ -39,7 +39,7 @@ def _squaring_off_cfg(name: str = "TESTING") -> StrategyConfig:
         entry_condition="",
         exit_condition="",
     )
-    cfg.strategy_signal["run_state"] = "SQUARING_OFF"
+    cfg.run_state = "SQUARING_OFF"
     return cfg
 
 
@@ -101,7 +101,7 @@ class TestOnRunSquaringOff:
 
         pane._on_run(0)
 
-        assert cfg.strategy_signal["run_state"] == "STOPPED"
+        assert cfg.run_state == "STOPPED"
         mock_save.assert_called_once()
 
     def test_stays_squaring_off_when_cycles_remain(self, pane_with_cycles):
@@ -110,5 +110,5 @@ class TestOnRunSquaringOff:
 
         pane._on_run(0)
 
-        assert cfg.strategy_signal["run_state"] == "SQUARING_OFF"
+        assert cfg.run_state == "SQUARING_OFF"
         mock_save.assert_not_called()

@@ -54,22 +54,17 @@ _ET = ZoneInfo("America/New_York")
 _StrategyRunState = ExecutionEnums.StrategyRunState
 
 
-def _migrate_run_state(record_signal: dict[str, object]) -> _StrategyRunState:
-    """Read or derive ``StrategyRunState`` from a legacy ``strategy_signal`` dict.
+def _parse_run_state(raw: str) -> _StrategyRunState:
+    """Convert a persisted ``run_state`` string into the enum.
 
-    Idempotent: if ``run_state`` is already populated, returns it verbatim.
-    Otherwise maps legacy ``Status`` values per SRD-EXE-013.008.
+    ``run_state`` is now a first-class field on ``StrategyConfig`` (DB-backed),
+    trusted verbatim per SRD-EXE-013.008. An unrecognised value falls back to
+    STOPPED.
     """
-    raw = record_signal.get("run_state")
-    if isinstance(raw, str):
-        try:
-            return _StrategyRunState(raw)
-        except ValueError:
-            pass
-    status = record_signal.get("Status", "Inactive")
-    if status in ("Active", "Running"):
-        return _StrategyRunState.RUNNING
-    return _StrategyRunState.STOPPED
+    try:
+        return _StrategyRunState(raw)
+    except ValueError:
+        return _StrategyRunState.STOPPED
 
 
 class StrategyEngine(QThread):
@@ -306,20 +301,17 @@ class StrategyEngine(QThread):
     # ── Registry load ────────────────────────────────────────────────────────
 
     def _load_registry(self) -> dict[str, _StrategyContext]:
-        """Build the in-memory registry from disk, deriving ``run_state``.
+        """Build the in-memory registry from disk, reading ``run_state``.
 
-        Per SRD-EXE-013.008 the legacy ``Status`` key is migrated to
-        ``run_state`` on first load.  ``trust verbatim`` resolves the prior
-        FO-EXE-011 §1 contradiction — a strategy that was RUNNING at the
-        previous shutdown comes back up RUNNING.
+        Per SRD-EXE-013.008 the persisted ``run_state`` is trusted verbatim,
+        resolving the prior FO-EXE-011 §1 contradiction — a strategy that was
+        RUNNING at the previous shutdown comes back up RUNNING.
         """
         out: dict[str, _StrategyContext] = {}
         for cfg in self._registry_loader():
             if cfg.mode == "disabled":
                 continue
-            run_state = _migrate_run_state(cfg.strategy_signal)
-            cfg.strategy_signal["run_state"] = run_state.value
-            cfg.strategy_signal.pop("Status", None)
+            run_state = _parse_run_state(cfg.run_state)
             out[cfg.name] = _StrategyContext(cfg=cfg, run_state=run_state)
         return out
 
@@ -330,6 +322,16 @@ class StrategyEngine(QThread):
         if self._loop is None or self._router is None or self._cb_active:
             return
         asyncio.run_coroutine_threadsafe(self._fanout(symbol), self._loop)
+
+    @property
+    def loop(self) -> asyncio.AbstractEventLoop | None:
+        """The engine's running asyncio loop, or None before ``start()``.
+
+        Exposed so the broker layer can schedule simulated fills onto the
+        engine loop via ``call_soon_threadsafe`` from any thread, preserving
+        the accept-then-fill ordering.
+        """
+        return self._loop
 
     @pyqtSlot(object)
     def on_order_fill(self, fill: FillEvent) -> None:
@@ -447,8 +449,7 @@ class StrategyEngine(QThread):
         try:
             cfgs = [ctx.cfg for ctx in self._registry.values()]
             for ctx in self._registry.values():
-                ctx.cfg.strategy_signal["run_state"] = ctx.run_state.value
-                ctx.cfg.strategy_signal.pop("Status", None)
+                ctx.cfg.run_state = ctx.run_state.value
             self._registry_saver(cfgs)
             now = _time.monotonic()
             for sid in self._registry:
@@ -496,11 +497,9 @@ class StrategyEngine(QThread):
         for name, cfg in new_cfgs.items():
             if name in self._registry:
                 self._registry[name].cfg = cfg
-                self._registry[name].run_state = _migrate_run_state(cfg.strategy_signal)
+                self._registry[name].run_state = _parse_run_state(cfg.run_state)
             else:
-                run_state = _migrate_run_state(cfg.strategy_signal)
-                cfg.strategy_signal["run_state"] = run_state.value
-                cfg.strategy_signal.pop("Status", None)
+                run_state = _parse_run_state(cfg.run_state)
                 self._registry[name] = _StrategyContext(cfg=cfg, run_state=run_state)
 
         # Publish a synthetic event so listeners can refresh.
