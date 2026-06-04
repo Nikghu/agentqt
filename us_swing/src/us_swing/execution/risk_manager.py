@@ -6,20 +6,23 @@ from __future__ import annotations
 
 import logging
 import math
-from collections.abc import Callable
-from typing import TYPE_CHECKING
+from collections.abc import Callable, Sequence
+from typing import Protocol
 
-from us_swing.data.models import AccountState, RiskConfig
+from us_swing.data.models import AccountState, OpenPosition, RiskConfig
 from us_swing.execution.strategy_engine._protocols import (
     CanAllocateResult,
     ValidationResult,
 )
 from us_swing.execution.strategy_engine._signals import TradeSignal
 
-if TYPE_CHECKING:
-    from us_swing.execution.position_tracker import PositionTracker
-
 log = logging.getLogger(__name__)
+
+
+class _PositionSource(Protocol):
+    """Minimal read interface RiskManager needs for capital checks."""
+
+    def get_all(self, user_id: int) -> Sequence[OpenPosition]: ...
 
 
 class RiskManager:
@@ -31,7 +34,7 @@ class RiskManager:
         account_provider: Callable[[], AccountState],
         cb_state_provider: Callable[[], bool],
         user_id: int,
-        tracker: PositionTracker | None = None,
+        tracker: _PositionSource | None = None,
     ) -> None:
         self._config = config
         self._account_provider = account_provider
