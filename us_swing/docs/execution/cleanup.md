@@ -142,8 +142,8 @@ root).
 | 3 | delete `paper_broker.py` | ☑ | 50797512 |
 | 4a | delete `execution_router.py` (+ test) | ☑ | 3eb5b8a9 |
 | 4b | delete `paper_engine.py` (+ test) | ☑ | b83638d5 |
-| 5 | delete `execution_engine.py` (+ test) | ☐ | |
-| 6 | delete `position_tracker.py` (+ test); fix `risk_manager` | ☐ | |
+| 5 | delete `execution_engine.py` (+ test) | ☑ | 16c6f3b4 |
+| 6 | delete `position_tracker.py` (+ test); fix `risk_manager` | ☑ | 92aa76eb |
 | 7 | repoint `health.py` + remove MonitoringSession position writers | ☐ | |
 | 8 | drop `positions` table + DatabaseManager methods + migration | ☐ | |
 | 9 | docs / TRACE / RN; SRD-EXE-015.006 → Implemented | ☐ | |
