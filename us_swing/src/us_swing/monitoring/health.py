@@ -72,10 +72,7 @@ class HealthCheck:
             return False, {}
         try:
             universe = self._db.fetch_universe()
-            all_users = self._db.fetch_all_users()
-            open_pos = sum(
-                len(self._db.fetch_open_positions(u.user_id)) for u in all_users
-            )
+            open_pos = self._count_open_cycles()
             last_update = self._db.get_last_timestamp("SPY", "1d")  # proxy metric
             return True, {
                 "universe_count": len(universe),
@@ -85,3 +82,16 @@ class HealthCheck:
         except Exception:
             log.warning("HealthCheck: DB check failed")
             return False, {}
+
+    def _count_open_cycles(self) -> int:
+        """Count non-terminal trade_cycles — the live open-position surface."""
+        from sqlalchemy import text
+
+        with self._db.engine.connect() as conn:
+            count = conn.execute(
+                text(
+                    "SELECT COUNT(*) FROM trade_cycles "
+                    "WHERE state NOT IN ('CLOSED', 'ABORTED')"
+                )
+            ).scalar()
+        return int(count or 0)
