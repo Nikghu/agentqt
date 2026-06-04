@@ -2,6 +2,26 @@
 
 ---
 
+## [20260604] EXE + INF — Broker-legacy cleanup close-out + FO-EXE-016 (retire positions table) (Session 59)
+
+- Type: Refactor (legacy removal) + Feature (FO-EXE-016) + delivery-gap fix
+- FO(s): FO-EXE-015 (cleanup), FO-EXE-016 (new); supersedes cleanup.md Steps 7B–8
+- RN: RN-EXE-1.18.0-20260604
+- Artifacts updated: FO, SRD, DD, MD, Code, Tests, TRACE, RN, cleanup.md, CONTEXT §0, DEVLOG
+- PRs: #30, #31, #32, #33, #34 (all merged to main)
+
+**What changed:**
+- **Broker legacy cleanup (cleanup.md Steps 1–6, PRs #30/#32).** Removed the dead paper path end-to-end: `app_service` PaperBroker fallback + `_on_paper_fill`/`_record_paper_entry`/`_record_paper_exit`, then `paper_broker.py`, `execution_router.py`, `paper_engine.py`, `execution_engine.py`, `position_tracker.py` (+ their tests). De-coupled `risk_manager` from the concrete `PositionTracker` via a local `_PositionSource` Protocol (`test_risk_manager` uses a `_FakeTracker`). Caught a plan-order bug: `execution_router` imports `PaperEngine`, so the router (the real top leaf) had to be deleted before PaperEngine — `cleanup.md` Step 4/5 order corrected.
+- **Delivery-gap fix (PR #31).** Found the whole broker-abstraction + a strategy-store refactor were code-complete in the working tree but never committed; cleanup PR #30 merged an `app_service` importing those untracked modules → `main` was briefly broken. Delivered the full consistent snapshot (the two features were entangled in `_engine.py`).
+- **Health repoint (Step 7A, PR #33).** `HealthCheck._check_db` counts non-terminal `trade_cycles` instead of reading the `positions` table.
+- **FO-EXE-016 (PR #34).** Re-scoped cleanup Steps 7B–8 into a proper feature after finding `on_fill` is the *designed* Lifecycle hook in `Final_Execution.md` §2.5–2.6, not dead legacy. Replaced the unwired `MonitoringCommand.on_fill` with thin idempotent `mark_entered`/`mark_exited`; `OrderIngestion` drives them on a FILLED entry/closing-exit (optional `LifecycleSink`, wired in `app_service`). `open_system_position_symbols` now reads non-terminal `trade_cycles` by table name (no `positions` read, no execution-schema import in `core/`). Dropped the `positions` `sa.Table`, the 3 `DatabaseManager` methods, and the migration entries; added an idempotent `DROP TABLE IF EXISTS positions`. `MONITORING` still comes from the screener (unchanged); `PositionRecord`/`OpenPosition` data models kept for the GUI IBKR portfolio.
+
+**Verification:** full suite held at the pre-existing 32-failure baseline across every step; ruff clean, no new mypy errors. Manual GUI paper-trade verify PASSED (entry→exit round-trip through the new pipeline, confirmed via `~/.usswing/logs/us_swing_2026-06-04.log`).
+
+**Deferred (DoD debt):** formal UTCD rows for FO-EXE-016 (per user direction; behaviour covered by migrated/added pytest cases). Lesson logged: inspect the staged index before the first commit of a session (PR #30 swept two pre-staged deletions).
+
+---
+
 ## [20260602] EXE + GUI — Active Trades lifecycle end-to-end + UI polish (Session 58)
 
 - Type: Bugfix + Enhancement (paper-mode trade lifecycle, GUI)
