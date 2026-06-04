@@ -4,7 +4,6 @@ from __future__ import annotations
 import pytest
 
 from us_swing.data.models import AccountState, OpenPosition, RiskConfig
-from us_swing.execution.position_tracker import PositionTracker
 from us_swing.execution.risk_manager import RiskManager
 from us_swing.execution.strategy_engine._signals import Action, TradeSignal
 
@@ -12,6 +11,20 @@ from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 from us_swing.db.schema import create_schema as _create_schema
 from us_swing.db.manager import DatabaseManager
+
+
+class _FakeTracker:
+    """In-memory stand-in for the retired PositionTracker; RiskManager only
+    needs ``get_all(user_id)`` for capital checks."""
+
+    def __init__(self) -> None:
+        self._positions: list[OpenPosition] = []
+
+    def open(self, pos: OpenPosition) -> None:
+        self._positions.append(pos)
+
+    def get_all(self, user_id: int) -> list[OpenPosition]:
+        return [p for p in self._positions if p.user_id == user_id]
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -74,7 +87,7 @@ def _manager(
     equity: float = 100_000.0,
     deployed: float = 0.0,
     cb: bool = False,
-    tracker: PositionTracker | None = None,
+    tracker: _FakeTracker | None = None,
 ) -> RiskManager:
     cfg = config or _config()
     account = _account(equity=equity, deployed=deployed)
@@ -172,7 +185,7 @@ def test_validate_signal_rejects_circuit_breaker():
 
 def test_can_enter_new_true(db: DatabaseManager):
     """UT-EXE-005.004.M01.T01: can_enter_new() returns True when capital available."""
-    tracker = PositionTracker(db)
+    tracker = _FakeTracker()
     rm = _manager(tracker=tracker, equity=100_000.0)
     # open_value=$20k, new_required=$10k, allowed=50k → True
     account = _account(equity=100_000.0, deployed=20_000.0)
@@ -182,7 +195,7 @@ def test_can_enter_new_true(db: DatabaseManager):
 
 def test_can_enter_new_false(db: DatabaseManager):
     """UT-EXE-005.004.M01.T02: can_enter_new() returns False when capital exhausted."""
-    tracker = PositionTracker(db)
+    tracker = _FakeTracker()
     # Add existing position worth $45k
     pos = OpenPosition(
         symbol="MSFT",
@@ -203,7 +216,7 @@ def test_can_enter_new_false(db: DatabaseManager):
 
 def test_can_enter_new_scoped_per_user(db: DatabaseManager):
     """UT-EXE-005.004.M01.T03: can_enter_new() scoped per user_id."""
-    tracker = PositionTracker(db)
+    tracker = _FakeTracker()
     # user1 has $40k deployed
     pos = OpenPosition(
         symbol="GOOGL",
