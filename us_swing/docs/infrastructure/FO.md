@@ -66,7 +66,7 @@
 - **Status:** Approved
 
 - The system shall use **PostgreSQL** in production and **SQLite** in development as the database backend, selectable via configuration.
-- The database schema shall include: `universe`, `price_1m`, `price_1d`, `price_1w`, `watchlist`, `trades`, `positions`, `users` tables (as defined in `requirements.md` §7).
+- The database schema shall include: `universe`, `price_1m`, `price_1d`, `price_1w`, `trades`, `users` tables (as defined in `requirements.md` §7). (`watchlist` retired — GUI in-memory only; `positions` retired — FO-EXE-016.)
 - All price tables shall have a compound index on `(symbol, datetime)` to ensure sub-second query performance for any single symbol's time-series.
 - The database layer shall expose a clean repository interface (insert, fetch-range, get-last-timestamp, upsert) that is backend-agnostic.
 - All write operations shall be performed on dedicated worker threads to avoid blocking the broker event loop.

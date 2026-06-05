@@ -11,7 +11,7 @@ Supported backends: SQLite (dev) · PostgreSQL (prod) — selected via
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from typing import Any
 
 import sqlalchemy as sa
@@ -29,7 +29,6 @@ from us_swing.db.schema import (
     trades,
     universe,
     users,
-    watchlist,
 )
 from us_swing.exceptions import ConfigurationError, DatabaseError
 
@@ -209,20 +208,6 @@ class DatabaseManager:
         with self._engine.connect() as conn:
             rows = conn.execute(sa.select(universe)).mappings().all()
         return [UniverseRecord(symbol=r["symbol"], name=r["name"], sector=r["sector"]) for r in rows]
-
-    # ── Watchlist ─────────────────────────────────────────────────────────────
-
-    def upsert_watchlist(self, symbols: list[str], dt: date) -> None:
-        date_str = dt.isoformat()
-        rows = [{"date": date_str, "symbol": s} for s in symbols]
-        with self._engine.begin() as conn:
-            stmt = sa.dialects.sqlite.insert(watchlist).values(rows).on_conflict_do_nothing()  # type: ignore[attr-defined]
-            conn.execute(stmt)
-
-    def fetch_watchlist(self, dt: date) -> list[str]:
-        stmt = sa.select(watchlist.c.symbol).where(watchlist.c.date == dt.isoformat())
-        with self._engine.connect() as conn:
-            return [r[0] for r in conn.execute(stmt)]
 
     # ── Trades ────────────────────────────────────────────────────────────────
 

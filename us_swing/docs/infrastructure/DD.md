@@ -202,10 +202,6 @@ class DatabaseManager:
     def upsert_universe(records: list[UniverseRecord]) -> None
     def fetch_universe() -> list[UniverseRecord]
 
-    # Watchlist
-    def upsert_watchlist(symbols: list[str], date: date) -> None
-    def fetch_watchlist(date: date) -> list[str]
-
     # Trades / Positions
     def insert_trade(trade: TradeRecord) -> None
     def update_trade_exit(trade_id: int, exit_time: datetime, exit_price: float, pnl: float) -> None
@@ -238,11 +234,8 @@ CREATE TABLE IF NOT EXISTS price_1m (
 );
 -- price_1d, price_1w: identical structure
 
-CREATE TABLE IF NOT EXISTS watchlist (
-    date   TEXT NOT NULL,
-    symbol TEXT NOT NULL,
-    PRIMARY KEY (date, symbol)
-);
+-- watchlist table retired: GUI watchlist is in-memory only (dropped via
+-- idempotent DROP TABLE IF EXISTS in migrate_lifecycle_columns).
 
 CREATE TABLE IF NOT EXISTS users (
     user_id         INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -3,7 +3,7 @@
 **Document ID:** TRACE-INF
 **Version:** 1.1.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-05-19
+**Last Updated:** 2026-06-05
 
 ---
 
