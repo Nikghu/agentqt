@@ -86,14 +86,6 @@ price_1w = sa.Table(
     sa.PrimaryKeyConstraint("symbol", "datetime"),
 )
 
-watchlist = sa.Table(
-    "watchlist",
-    metadata,
-    sa.Column("date",   sa.Text, nullable=False),
-    sa.Column("symbol", sa.Text, nullable=False),
-    sa.PrimaryKeyConstraint("date", "symbol"),
-)
-
 users = sa.Table(
     "users",
     metadata,
@@ -208,14 +200,18 @@ _STATUS_TO_ORDER_STATE_BACKFILL: tuple[tuple[str, str], ...] = (
 def migrate_lifecycle_columns(engine: sa.Engine) -> None:
     """Add monitoring-session + order-state lifecycle columns, drop the legacy
     `status` / `pnl` columns once `order_state` is populated, and drop the
-    retired `positions` table (FO-EXE-016 — `trade_cycles` is the single
-    open-position surface).  Safe to run on every app start — a no-op once the
-    schema has converged.
+    retired `positions` + `watchlist` tables (FO-EXE-016 — `trade_cycles` is the
+    single open-position surface; the watchlist is GUI in-memory only).  Safe to
+    run on every app start — a no-op once the schema has converged.
     """
     with engine.begin() as conn:
         # FO-EXE-016 — retire the legacy positions table; trade_cycles owns
         # open positions now.  Idempotent: a no-op once the table is gone.
         conn.execute(sa.text("DROP TABLE IF EXISTS positions"))
+
+        # SRD-INF-004.001 — drop the orphaned watchlist table; the GUI watchlist
+        # is in-memory only and never read from the DB.  Idempotent.
+        conn.execute(sa.text("DROP TABLE IF EXISTS watchlist"))
 
         added_order_state = False
         for table_name, column_name, sql_type in _LIFECYCLE_COLUMN_ADDITIONS:

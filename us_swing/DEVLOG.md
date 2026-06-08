@@ -2,6 +2,18 @@
 
 ---
 
+## [20260608] EXE — Orphaned lifecycle-ledger hotfix (FO-EXE-009/010) (Session 60)
+
+- Type: Bugfix
+- FO(s): FO-EXE-009, FO-EXE-010
+- RN: RN-EXE-1.19.0-20260608
+- Artifacts updated: SRD (behavior change), MD (new factory), Code, Tests, TRACE, RN
+- Decisions: Terminal-event projection pattern at composition root (decoupled ledger from cycle); self-healing reconciliation (heal stranded rows instead of fail)
+
+**What changed:** Fixed the orphaned ENTERED lifecycle-ledger row bug observed live for symbol SATS on 2026-06-08. Trade cycles closing via non-FILLED exit (partial fill, abort, or manual close) did not flip the ledger state, leaving symbols ENTERED but with no open position — next pre-open reconcile flagged invariant violation and halted. (1) Added `wire_cycle_ledger_projection(bus, command, terminal_event_types, *, clock=None)` factory to `core/monitoring_session/__init__.py` — composition-root helper that wires a stateless event handler to terminal trade-cycle events and calls `mark_exited()` on each. (2) Modified `reconcile_preopen()` in `_service.py`: orphaned ENTERED rows (entered but no open cycle) are now self-healed to EXITED and logged as warnings instead of reported as fatal invariant violations. (3) Wired in `gui/app_service.py`. Test coverage: UT-EXE-009.002.M02.T17 rewritten (heal instead of report) + 3 new positive/edge cases; 79 pass. ruff + mypy --strict clean on core files.
+
+---
+
 ## [20260604] EXE + INF — Broker-legacy cleanup close-out + FO-EXE-016 (retire positions table) (Session 59)
 
 - Type: Refactor (legacy removal) + Feature (FO-EXE-016) + delivery-gap fix
