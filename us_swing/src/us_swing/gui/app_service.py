@@ -103,6 +103,7 @@ from us_swing.core.monitoring_session import (
     ReconcileCompleted,
     build_default_service,
     build_scheduler,
+    wire_cycle_ledger_projection,
 )
 
 
@@ -1513,6 +1514,13 @@ class AppService(QObject):
         self._lifecycle_bus       = bus
         self._lifecycle_scheduler = scheduler
         bus.subscribe(ReconcileCompleted, self._on_lifecycle_reconcile_completed)
+        # Project terminal trade-cycle events onto the lifecycle ledger so a
+        # symbol's ENTERED row is always flipped to EXITED when its cycle ends,
+        # regardless of how it closed. A non-FILLED / 0-share exit and aborts
+        # bypass OrderIngestion's own mark_exited, which is what stranded the
+        # ledger and produced orphaned ENTERED rows.
+        from us_swing.execution.trade_cycle import CycleAborted, CycleClosed
+        wire_cycle_ledger_projection(bus, command, (CycleClosed, CycleAborted))
         _log.info("[Lifecycle] Monitoring session service ready")
         return True
 

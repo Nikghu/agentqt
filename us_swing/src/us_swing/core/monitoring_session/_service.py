@@ -234,11 +234,24 @@ class MonitoringSessionService:
             errors:     list[ReconcileError] = []
             now_iso = self._clock().isoformat()
 
-            # SRD-EXE-010.003 — per-symbol invariant violation reporting.
-            # Symbols where the ledger and positions views disagree get a
-            # `ReconcileError("X","invariant_violation",1)` row in the report
-            # (logging only is not sufficient — operators audit via the report).
-            for symbol in sorted(entered ^ keep.carryover):
+            # SRD-EXE-010.003 — per-symbol invariant reporting plus self-heal.
+            # A symbol marked ENTERED with no open trade cycle is an orphaned
+            # ledger row (e.g. a non-FILLED / 0-share close that never drove
+            # mark_exited) — flip it to EXITED. The reverse case, an open cycle
+            # with no ENTERED row, cannot be healed safely, so it stays a
+            # reported violation for operator audit.
+            stranded_entered = entered - keep.carryover
+            orphan_open      = keep.carryover - entered
+            healed: list[str] = []
+            for symbol in sorted(stranded_entered):
+                self.mark_exited(symbol, now_iso)
+                healed.append(symbol)
+                log.warning(
+                    "[Lifecycle] Healed an orphaned trade record for %s — "
+                    "no open position, marking it closed",
+                    symbol,
+                )
+            for symbol in sorted(orphan_open):
                 errors.append(ReconcileError(symbol, "invariant_violation", 1))
                 log.error(
                     "[Lifecycle] Invariant violation during reconcile: symbol=%s",
@@ -292,9 +305,9 @@ class MonitoringSessionService:
             )
             log.info(
                 "[Lifecycle] Reconcile complete — %d filtered, %d carryover, "
-                "%d marked skipped, %d evicted in %d ms",
+                "%d marked skipped, %d evicted, %d healed in %d ms",
                 report.filtered_n, report.carryover_n, report.skipped_n,
-                report.evicted_n, report.duration_ms,
+                report.evicted_n, len(healed), report.duration_ms,
             )
             self._bus.publish(ReconcileCompleted(
                 event_id       = uuid4().hex,

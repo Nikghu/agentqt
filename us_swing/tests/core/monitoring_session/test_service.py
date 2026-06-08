@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
+from dataclasses import dataclass
 from datetime import date
 from typing import Callable
 from unittest.mock import patch
@@ -22,6 +23,7 @@ from us_swing.core.monitoring_session import (
     SymbolEvicted,
     SymbolStartedMonitoring,
     build_default_service,
+    wire_cycle_ledger_projection,
 )
 from us_swing.db.schema import monitoring_session
 
@@ -356,12 +358,12 @@ def test_invariant_violation_aborts_symbol_eviction(
     seed_price: Callable[[str, int], None],
     seed_user: int,
 ) -> None:
-    """UT-EXE-009.002.M02.T17: Invariant violation aborts that symbol's eviction."""
-    # Force X into ENTERED state without a position to create an invariant breach.
+    """UT-EXE-009.002.M02.T17: reconcile self-heals an ENTERED row with no open cycle."""
+    # Force X into ENTERED state without a position to create an orphaned row.
     query0, cmd0, bus0 = build_service(today=_T0, filtered={"X"})
     cmd0.on_screener_results(make_screener_result(passed=["X"], run_timestamp="2026-05-14T13:30:00Z"))
 
-    # Manually transition to ENTERED (without upsert_position) to create the breach.
+    # Manually transition to ENTERED (without an open cycle) to create the breach.
     with engine.begin() as conn:
         conn.execute(
             monitoring_session.update()
@@ -374,16 +376,72 @@ def test_invariant_violation_aborts_symbol_eviction(
 
     seed_price("X", 2)
 
-    # SRD-EXE-010.003 — reconcile must detect the asymmetric case
-    # (X in `entered_symbols` but not in `open_system_position_symbols`) and
-    # add a `ReconcileError("X","invariant_violation",1)` to the report.
-    # X's price rows stay intact because R3 protects it from the evict set.
-
+    # SRD-EXE-010.003 — reconcile detects the asymmetric case (X in
+    # `entered_symbols` but not in `open_system_position_symbols`) and heals it
+    # by flipping the orphaned ENTERED row to EXITED, rather than reporting an
+    # error. X is not evicted in this run.
     query1, cmd1, bus1 = build_service(today=_T1, filtered=set())
     report = cmd1.reconcile_preopen(_T1)
 
     assert "X" not in report.evicted_symbols
-    assert ReconcileError("X", "invariant_violation", 1) in report.errors
+    assert ReconcileError("X", "invariant_violation", 1) not in report.errors
+    healed_row = query1.session_for(_T0, "X")
+    assert healed_row is not None
+    assert healed_row.lifecycle_state is LifecycleState.EXITED
+
+
+# ── UT-EXE-009.002.M02.T17b ─────────────────────────────────────────────────
+
+
+def test_reconcile_reports_open_cycle_without_ledger_row(
+    build_service: Callable[..., tuple[MonitoringQuery, MonitoringCommand, MonitoringEventBus]],
+    open_cycle: Callable[..., None],
+    seed_user: int,
+) -> None:
+    """UT-EXE-009.002.M02.T17b: open cycle with no ENTERED ledger row stays a reported violation."""
+    # Y has an open trade cycle but no ENTERED ledger row — the un-healable case.
+    open_cycle("Y")
+
+    query1, cmd1, bus1 = build_service(today=_T1, filtered=set())
+    report = cmd1.reconcile_preopen(_T1)
+
+    assert ReconcileError("Y", "invariant_violation", 1) in report.errors
+
+
+# ── UT-EXE-009.002.M02.T17c ─────────────────────────────────────────────────
+
+
+@dataclass
+class _FakeTerminalEvent:
+    symbol: str
+
+
+def test_cycle_ledger_projection_flips_entered_to_exited(
+    build_service: Callable[..., tuple[MonitoringQuery, MonitoringCommand, MonitoringEventBus]],
+    make_screener_result: Callable[..., object],
+    seed_user: int,
+) -> None:
+    """UT-EXE-009.002.M02.T17c: a terminal cycle event projects ENTERED → EXITED."""
+    query, cmd, bus = build_service(today=_T0, filtered={"A"})
+    cmd.on_screener_results(make_screener_result(passed=["A"], run_timestamp="2026-05-14T13:30:00Z"))
+    cmd.mark_entered("A", "2026-05-14T14:00:00Z", "t1")
+    assert query.session_for(_T0, "A").lifecycle_state is LifecycleState.ENTERED
+
+    wire_cycle_ledger_projection(bus, cmd, (_FakeTerminalEvent,))
+    bus.publish(_FakeTerminalEvent("A"))
+
+    assert query.session_for(_T0, "A").lifecycle_state is LifecycleState.EXITED
+
+
+def test_cycle_ledger_projection_is_noop_without_entered_row(
+    build_service: Callable[..., tuple[MonitoringQuery, MonitoringCommand, MonitoringEventBus]],
+    seed_user: int,
+) -> None:
+    """UT-EXE-009.002.M02.T17d: projection is a safe no-op for an unknown symbol."""
+    query, cmd, bus = build_service(today=_T0)
+    wire_cycle_ledger_projection(bus, cmd, (_FakeTerminalEvent,))
+    bus.publish(_FakeTerminalEvent("UNKNOWN"))  # must not raise
+    assert query.session_for(_T0, "UNKNOWN") is None
 
 
 # ── UT-EXE-009.002.M02.T18 ──────────────────────────────────────────────────

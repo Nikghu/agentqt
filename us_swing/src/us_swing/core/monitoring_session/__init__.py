@@ -96,6 +96,41 @@ def build_default_service(
     return svc, svc, bus
 
 
+def wire_cycle_ledger_projection(
+    bus: MonitoringEventBus,
+    command: MonitoringCommand,
+    terminal_event_types: tuple[type, ...],
+    *,
+    clock: Callable[[], datetime] | None = None,
+) -> None:
+    """Flip a symbol's ledger row to EXITED whenever its trade cycle ends.
+
+    Wired at the composition root. ``terminal_event_types`` are the trade-cycle
+    terminal event classes (``CycleClosed`` / ``CycleAborted``), injected so this
+    package stays ignorant of the ``execution`` tool. Each event must carry a
+    ``symbol`` attribute. ``mark_exited`` is a no-op when no ENTERED row exists,
+    so the projection is idempotent and safe for manual/unscreened trades — it
+    only ever closes a ledger row that the position store has already ended,
+    which is what prevents orphaned ENTERED rows.
+
+    Args:
+        bus: The shared in-process lifecycle event bus.
+        command: The monitoring command surface to drive.
+        terminal_event_types: Trade-cycle event classes that mean "cycle ended".
+        clock: Override for the exit-timestamp clock (tests).
+    """
+    now = clock or (lambda: datetime.now())
+
+    def _handler(event: object) -> None:
+        symbol = getattr(event, "symbol", None)
+        if symbol is None:
+            return
+        command.mark_exited(symbol, now().isoformat(timespec="seconds"))
+
+    for event_type in terminal_event_types:
+        bus.subscribe(event_type, _handler)
+
+
 def build_scheduler(
     command: MonitoringCommand,
     bus: MonitoringEventBus,
@@ -148,4 +183,5 @@ __all__ = [
     # Factories
     "build_default_service",
     "build_scheduler",
+    "wire_cycle_ledger_projection",
 ]
