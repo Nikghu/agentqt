@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-09T14:39:04",
+  "generated": "2026-06-09T15:16:31",
   "subfolder": "core",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\core",
   "tool_code": "EXE",
@@ -16,11 +16,18 @@
           "line_end": 96
         },
         {
+          "name": "wire_cycle_ledger_projection",
+          "signature": "def wire_cycle_ledger_projection(\r\n    bus: MonitoringEventBus,\r\n    command: MonitoringCommand,\r\n    terminal_event_types: tuple[type, ...],\r\n    *,\r\n    clock: Callable[[], datetime] | None = None,\r\n) -> None",
+          "docstring": "Flip a symbol's ledger row to EXITED whenever its trade cycle ends.",
+          "line_start": 99,
+          "line_end": 131
+        },
+        {
           "name": "build_scheduler",
           "signature": "def build_scheduler(\r\n    command: MonitoringCommand,\r\n    bus: MonitoringEventBus,\r\n    cron_register: Callable[[str, Callable[[], None]], None],\r\n    *,\r\n    clock: Callable[[], datetime] | None      = None,\r\n    today_provider: Callable[[], date] | None = None,\r\n) -> _ReconcileScheduler",
           "docstring": "Construct the pre-open reconcile scheduler.",
-          "line_start": 99,
-          "line_end": 118
+          "line_start": 134,
+          "line_end": 153
         }
       ]
     },
@@ -659,11 +666,11 @@
               "signature": "def reconcile_preopen(self, today: date) -> ReconcileReport",
               "docstring": "Pre-open candle DB reconciliation.  Single-flight, idempotent.",
               "line_start": 203,
-              "line_end": 308
+              "line_end": 317
             }
           ],
           "line_start": 59,
-          "line_end": 308
+          "line_end": 317
         }
       ],
       "top_level_functions": [

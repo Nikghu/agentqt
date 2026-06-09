@@ -2,6 +2,16 @@
 
 ---
 
+## [20260609] EXE — ISS-EXE-0003 self-healed orphan ledger row logged at ERROR (Session 61)
+
+- Type: Bugfix (log level)
+- FO(s): FO-EXE-009/010
+- RN: RN-EXE-1.20.1-20260609
+- Artifacts updated: Code (1 module), Tests (1 new case T17e), ISS report, RN, TRACE, CONTEXT §0, DEVLOG
+- Decisions: Removed the reconcile summary ERROR block that fired for the healable orphan-ENTERED case; per-symbol logging already does WARNING (healed) / ERROR (un-healable orphan_open). Cosmetic — no data impact (the row was correctly self-healed).
+
+---
+
 ## [20260609] EXE — FO-EXE-017 Absolute Capital Allocation, Capital-Max Sizing & Advisory Risk Warnings (Session 61)
 
 - Type: Feature (full FO→SRD→DD→MD→UTCD→Code→Tests→RN chain)

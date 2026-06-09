@@ -390,6 +390,40 @@ def test_invariant_violation_aborts_symbol_eviction(
     assert healed_row.lifecycle_state is LifecycleState.EXITED
 
 
+# ── UT-EXE-009.002.M02.T17e ─────────────────────────────────────────────────
+
+
+def test_healable_orphan_logs_no_error(
+    engine: Engine,
+    build_service: Callable[..., tuple[MonitoringQuery, MonitoringCommand, MonitoringEventBus]],
+    make_screener_result: Callable[..., object],
+    seed_price: Callable[[str, int], None],
+    seed_user: int,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """UT-EXE-009.002.M02.T17e: a self-healed orphan logs WARNING, never ERROR."""
+    query0, cmd0, bus0 = build_service(today=_T0, filtered={"X"})
+    cmd0.on_screener_results(make_screener_result(passed=["X"], run_timestamp="2026-05-14T13:30:00Z"))
+    with engine.begin() as conn:
+        conn.execute(
+            monitoring_session.update()
+            .where(
+                monitoring_session.c.session_date == _T0_S,
+                monitoring_session.c.symbol == "X",
+            )
+            .values(lifecycle_state=LifecycleState.ENTERED.value, entered_at="2026-05-14T14:00:00Z")
+        )
+    seed_price("X", 2)
+
+    query1, cmd1, bus1 = build_service(today=_T1, filtered=set())
+    with caplog.at_level(logging.WARNING):
+        cmd1.reconcile_preopen(_T1)
+
+    assert not [r for r in caplog.records if r.levelno >= logging.ERROR]
+    assert any("Healed an orphaned" in r.message for r in caplog.records
+               if r.levelno == logging.WARNING)
+
+
 # ── UT-EXE-009.002.M02.T17b ─────────────────────────────────────────────────
 
 
