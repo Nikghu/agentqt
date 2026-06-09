@@ -221,14 +221,10 @@ class MonitoringSessionService:
             stale   = self._repo.stale_lifecycle_symbols(today)
             evict   = stale - keep.filtered - keep.carryover - entered
 
-            # Defensive invariant check — flag mismatches but still evict the
-            # symbols that ARE safe to evict.
-            if entered != keep.carryover:
-                inv = self.check_invariant()
-                log.error(
-                    "[Lifecycle] Invariant mismatch during reconcile: only_in_a=%s only_in_b=%s",
-                    inv.only_in_a, inv.only_in_b,
-                )
+            # Mismatches are logged per-symbol below: a stranded ENTERED row is a
+            # WARNING (self-healed), an open cycle with no ledger row is an ERROR
+            # (operator audit). No summary ERROR here — it fired even for the
+            # healable case and was contradicted one step later by the heal.
 
             evicted_ok: list[str] = []
             errors:     list[ReconcileError] = []
