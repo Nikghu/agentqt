@@ -7,7 +7,7 @@
 - Type: Feature (full FO→SRD→DD→MD→UTCD→Code→Tests→RN chain)
 - FO(s): FO-EXE-017 (refines FO-EXE-001/005/011)
 - RN: RN-EXE-1.20.0-20260609
-- Artifacts updated: FO, SRD (EXE 017.001–014 Implemented; GUI-014.013 Reopen), DD, MD, UTCD (22 tests Pass), Code (12 modules), Tests (2 new files), TRACE, RN, CONTEXT §0, DEVLOG, TODO
+- Artifacts updated: FO, SRD (EXE 017.001–014 Implemented; GUI-014.013 Reopen), DD, MD, UTCD (22 tests Pass), Code (13 modules), Tests (2 new files), TRACE, RN, CONTEXT §0, DEVLOG, TODO
 - Decisions:
   - Max Capital is absolute `$` (`max_capital_value`), not `%`; sizing driven by strategy Capital Max, not risk-per-trade
   - Max Position / Risk-per-trade / Max Daily Loss are advisory (warn-only); only circuit breaker + per-strategy capital cap block
@@ -15,7 +15,19 @@
   - Rex auto-resets on STOPPED→RUNNING; display shows remaining re-entries (never negative), pending duplicate suppressed
   - `RiskWarning` added to the `StrategyEvent` union (not `_protocols.py`); `RiskManager` ctor back-compatible (`effective_capital_provider` defaults to equity)
 - Tests: 22 new pass; full execution+gui 204 pass / 21 pre-existing failures (verified identical with changes stashed); ruff + mypy --strict clean on changed files
-- Not yet committed
+- Merged via PR #37 (also carried the pre-existing Session-60 ISS-EXE-0002 work; its RN renumbered 1.19.0→1.19.1 to avoid collision with main's PR #36 RN-1.19.0)
+
+---
+
+## [20260608] EXE — Orphaned lifecycle-ledger hotfix (FO-EXE-009/010) (Session 60)
+
+- Type: Bugfix
+- FO(s): FO-EXE-009, FO-EXE-010
+- RN: RN-EXE-1.19.0-20260608
+- Artifacts updated: SRD (behavior change), MD (new factory), Code, Tests, TRACE, RN
+- Decisions: Terminal-event projection pattern at composition root (decoupled ledger from cycle); self-healing reconciliation (heal stranded rows instead of fail)
+
+**What changed:** Fixed the orphaned ENTERED lifecycle-ledger row bug observed live for symbol SATS on 2026-06-08. Trade cycles closing via non-FILLED exit (partial fill, abort, or manual close) did not flip the ledger state, leaving symbols ENTERED but with no open position — next pre-open reconcile flagged invariant violation and halted. (1) Added `wire_cycle_ledger_projection(bus, command, terminal_event_types, *, clock=None)` factory to `core/monitoring_session/__init__.py` — composition-root helper that wires a stateless event handler to terminal trade-cycle events and calls `mark_exited()` on each. (2) Modified `reconcile_preopen()` in `_service.py`: orphaned ENTERED rows (entered but no open cycle) are now self-healed to EXITED and logged as warnings instead of reported as fatal invariant violations. (3) Wired in `gui/app_service.py`. Test coverage: UT-EXE-009.002.M02.T17 rewritten (heal instead of report) + 3 new positive/edge cases; 79 pass. ruff + mypy --strict clean on core files.
 
 ---
 
@@ -23,9 +35,10 @@
 
 - Type: Bugfix
 - FO(s): FO-EXE-015
-- RN: RN-EXE-1.19.0-20260608
+- RN: RN-EXE-1.19.1-20260608 (renumbered from 1.19.0 to avoid collision with PR #36's orphaned-ledger RN-1.19.0)
 - Artifacts updated: Code (3 modules), Tests (1 regression test), ISS report, RN, TRACE, CONTEXT §0, DEVLOG
 - Decisions: Context keyed by `client_ref` (signal_id) instead of broker_order_id; registered before placement (thread-agnostic); idempotent `insert_trade` tolerates fill-before-acceptance race
+- Landed via PR #37 (was uncommitted in the working tree, carried in with FO-EXE-017)
 
 ---
 
