@@ -8,6 +8,7 @@ Covers SRD-GUI-012.001 through SRD-GUI-012.007.
 from __future__ import annotations
 
 import logging
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, patch, call
 
@@ -451,3 +452,108 @@ class TestDisconnectBehavior:
             svc.disconnect_feed()
 
         assert item.ltp == 180.0
+
+
+# ---------------------------------------------------------------------------
+# Trade History rehydration — duplicate guard (FO-EXE-016)
+# ---------------------------------------------------------------------------
+
+def _make_closed_cycle_snapshot(symbol: str = "SATS", cycle_id: int = 1) -> SimpleNamespace:
+    return SimpleNamespace(
+        cycle_id=cycle_id,
+        symbol=symbol,
+        user_id=1,
+        strategy_id="SUPERTREND",
+        entry_order_id=f"buy-{cycle_id}",
+        entry_qty=1,
+        entry_price=113.84,
+        entry_time="2026-06-08T09:30:00",
+        exit_order_id=f"sell-{cycle_id}",
+        exit_qty=1,
+        exit_price=113.84,
+        exit_time="2026-06-08T09:33:00",
+        hard_stop_loss=110.0,
+        target_price=120.0,
+        current_price=113.84,
+    )
+
+
+class TestRehydrateDedup:
+    def test_repeated_rehydrate_does_not_duplicate_trade_history(self, svc):
+        """UT-EXE-016.001.M02.T01: rehydrate rebuilds Trade History instead of appending duplicates."""
+        snap = _make_closed_cycle_snapshot()
+        tc_query = MagicMock()
+        tc_query.open_cycles.return_value = []
+        tc_query.history.return_value = [snap]
+        svc._tc_query = tc_query
+
+        svc._rehydrate_positions_from_cycles()
+        first = len(svc._trades)
+        # Runs again on the next order event — must not accumulate.
+        svc._rehydrate_positions_from_cycles()
+        svc._rehydrate_positions_from_cycles()
+
+        assert first == 2  # one BUY row + one SELL row for the closed cycle
+        assert len(svc._trades) == first
+
+    def test_repeated_rehydrate_does_not_duplicate_open_positions(self, svc):
+        """UT-EXE-016.001.M02.T02: repeated rehydrate does not duplicate open positions."""
+        snap = _make_closed_cycle_snapshot(symbol="V", cycle_id=2)
+        tc_query = MagicMock()
+        tc_query.open_cycles.return_value = [snap]
+        tc_query.history.return_value = []
+        svc._tc_query = tc_query
+
+        svc._rehydrate_positions_from_cycles()
+        svc._rehydrate_positions_from_cycles()
+
+        assert len([p for p in svc._positions if p.symbol == "V"]) == 1
+
+
+class TestFillConfirmedLog:
+    def test_fill_confirmed_log_includes_symbol(self, svc):
+        """UT-EXE-016.001.M02.T03: fill-confirmed log resolves and includes the stock symbol."""
+        from us_swing.broker.broker import OrderEvent, OrderStatus
+
+        snap = _make_closed_cycle_snapshot(symbol="SATS", cycle_id=1)  # exit_order_id="sell-1"
+        tc_query = MagicMock()
+        tc_query.open_cycles.return_value = []
+        tc_query.history.return_value = [snap]
+        svc._tc_query = tc_query
+
+        messages: list[str] = []
+        svc.log_message.connect(lambda _level, msg: messages.append(msg))
+
+        event = OrderEvent(
+            broker_order_id="sell-1",
+            client_ref="r",
+            status=OrderStatus.FILLED,
+            filled_quantity=1,
+            fill_price=113.84,
+        )
+        svc._on_order_event_gui(event)
+
+        assert any("SATS" in m and "fill confirmed" in m for m in messages)
+
+    def test_fill_confirmed_log_falls_back_when_symbol_unknown(self, svc):
+        """UT-EXE-016.001.M02.T04: fill-confirmed log falls back gracefully for an unknown order id."""
+        from us_swing.broker.broker import OrderEvent, OrderStatus
+
+        tc_query = MagicMock()
+        tc_query.open_cycles.return_value = []
+        tc_query.history.return_value = []
+        svc._tc_query = tc_query
+
+        messages: list[str] = []
+        svc.log_message.connect(lambda _level, msg: messages.append(msg))
+
+        event = OrderEvent(
+            broker_order_id="unknown-999",
+            client_ref="r",
+            status=OrderStatus.FILLED,
+            filled_quantity=1,
+            fill_price=67.91,
+        )
+        svc._on_order_event_gui(event)
+
+        assert any("fill confirmed" in m for m in messages)

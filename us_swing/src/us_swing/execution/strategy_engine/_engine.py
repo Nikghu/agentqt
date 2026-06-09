@@ -95,6 +95,7 @@ class StrategyEngine(QThread):
         symbols_provider: Callable[[], list[str]] | None = None,
         cycle_query: TradeCycleQuery | None = None,
         user_id_provider: Callable[[], int] | None = None,
+        effective_capital_provider: Callable[[], float] | None = None,
         primary_timeframe: str = "3m",
         parent: QObject | None = None,
     ) -> None:
@@ -111,6 +112,7 @@ class StrategyEngine(QThread):
         self._symbols_provider = symbols_provider or (lambda: [])
         self._cycle_query = cycle_query
         self._user_id_provider = user_id_provider or (lambda: 0)
+        self._effective_capital_provider = effective_capital_provider
         self._primary_tf = primary_timeframe
 
         self._loop: asyncio.AbstractEventLoop | None = None
@@ -148,6 +150,7 @@ class StrategyEngine(QThread):
             rex_counters=self._rex_counters,
             user_id_provider=self._user_id_provider,
             cycle_query=self._cycle_query,
+            effective_capital_provider=self._effective_capital_provider,
         )
         self.started_ok.emit()
         log.info("[Strategy] engine ready — %d active strateg(ies)", len(self._registry))
@@ -399,6 +402,11 @@ class StrategyEngine(QThread):
         self._schedule_persist(strategy_id)
         self.run_state_changed.emit(strategy_id, new_state.value)
         log.info("[Strategy] %s run_state %s → %s", ctx.name, previous.value, new_state.value)
+        if (previous is _StrategyRunState.STOPPED
+                and new_state is _StrategyRunState.RUNNING
+                and self._rex_counters is not None):
+            deleted = self._rex_counters.reset(strategy_id)
+            log.info("[Strategy] %s started — reset %d rex counter(s)", ctx.name, deleted)
         if new_state is _StrategyRunState.SQUARING_OFF:
             asyncio.create_task(self._router.squaring_off_exit(ctx))
 

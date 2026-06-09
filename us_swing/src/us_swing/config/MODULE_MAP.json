@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-04T12:40:04",
+  "generated": "2026-06-09T14:39:04",
   "subfolder": "config",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\config",
   "tool_code": "INF",
@@ -47,7 +47,7 @@
           "class_vars": [
             "risk_per_trade_pct: float",
             "max_position_value: float",
-            "max_allocation_pct: float",
+            "max_capital_value: float",
             "max_daily_loss_pct: float",
             "default_order_type: str"
           ],

@@ -471,8 +471,22 @@ class _ActiveCyclesModel(QAbstractTableModel):
         if col == Col.TRAIL:
             return self._fmt_money(row.trail)
         if col == Col.REX:
-            return "—" if row.rex_remaining is None else str(row.rex_remaining)
+            return self._rex_display(row)
         return ""
+
+    def _rex_display(self, row: _Row) -> str:
+        """Remaining re-entries: never negative; hide a pending duplicate's
+        shared counter when the same (strategy, symbol) already has a live cycle.
+        """
+        if row.rex_remaining is None:
+            return "—"
+        if row.kind == "pending":
+            for other in self._rows:
+                if (other is not row and other.kind == "cycle"
+                        and other.strategy == row.strategy
+                        and other.symbol == row.symbol):
+                    return "—"
+        return str(max(0, row.rex_remaining))
 
     @staticmethod
     def _fmt_money(v: float | None) -> str:

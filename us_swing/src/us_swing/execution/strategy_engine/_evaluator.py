@@ -243,35 +243,52 @@ def _fn_ema(args: list[Any], c: dict[str, pd.DataFrame], _s: str) -> float:
     return _last_arr(talib.EMA(_to_f64(df["close"]), timeperiod=int(period)))
 
 
-def _supertrend_direction(df: pd.DataFrame, length: int, factor: float) -> float:
-    """Supertrend direction (+1 uptrend, -1 downtrend) for the last bar.
+def _supertrend_value(df: pd.DataFrame, length: int, factor: float) -> float:
+    """Supertrend line value (price) for the last bar.
 
-    Built on top of `talib.ATR` since TA-Lib does not ship a Supertrend primitive.
+    Ports TradingView's classic `ta.supertrend`: hl2-based bands with
+    carry-forward locking, returning the active band — the lower band while in
+    an uptrend, the upper band while in a downtrend. Built on `talib.ATR`
+    (Wilder smoothing, matching TradingView) since TA-Lib has no Supertrend
+    primitive.
     """
     high = _to_f64(df["high"])
     low = _to_f64(df["low"])
     close = _to_f64(df["close"])
     atr = talib.ATR(high, low, close, timeperiod=length)
     hl2 = (high + low) / 2.0
-    upper = hl2 + factor * atr
-    lower = hl2 - factor * atr
+    basic_upper = hl2 + factor * atr
+    basic_lower = hl2 - factor * atr
 
+    n = len(df)
+    final_upper = basic_upper.copy()
+    final_lower = basic_lower.copy()
     direction = 1
-    for i in range(1, len(df)):
-        if np.isnan(upper[i - 1]) or np.isnan(lower[i - 1]):
+    for i in range(1, n):
+        if np.isnan(atr[i - 1]):
             continue
-        if close[i] > upper[i - 1]:
+        final_lower[i] = (
+            max(basic_lower[i], final_lower[i - 1])
+            if close[i - 1] > final_lower[i - 1]
+            else basic_lower[i]
+        )
+        final_upper[i] = (
+            min(basic_upper[i], final_upper[i - 1])
+            if close[i - 1] < final_upper[i - 1]
+            else basic_upper[i]
+        )
+        if direction == -1 and close[i] > final_upper[i - 1]:
             direction = 1
-        elif close[i] < lower[i - 1]:
+        elif direction == 1 and close[i] < final_lower[i - 1]:
             direction = -1
-    return float(direction)
+    return float(final_lower[-1] if direction == 1 else final_upper[-1])
 
 
 def _fn_supertrend(args: list[Any], c: dict[str, pd.DataFrame], _s: str) -> float:
     _require_args("SUPERTREND", args, 5)
     _symbol_type, atr_length, factor, _abs_dev, tf = args
     df = _frame_for_tf(c, str(tf))
-    return _supertrend_direction(df, int(atr_length), float(factor))
+    return _supertrend_value(df, int(atr_length), float(factor))
 
 
 def _fn_swing(args: list[Any], c: dict[str, pd.DataFrame], _s: str) -> float:

@@ -1,12 +1,13 @@
 ﻿# Module Decomposition — Execution & Risk Management (EXE)
 
 **Document ID:** MD-EXE
-**Version:** 1.9.0
-**Traces To:** SRD-EXE v1.16.0 / DD-EXE v1.11.0
+**Version:** 1.10.0
+**Traces To:** SRD-EXE v1.17.0 / DD-EXE v1.12.0
 **Status:** Draft
-**Last Updated:** 2026-06-04
+**Last Updated:** 2026-06-09
 **Project:** US Swing Trading System
 
+> v1.10.0: MD-EXE-017.* added — absolute capital budget, capital-max sizing, advisory risk warnings, rex auto-reset + display fix.
 > v1.9.0: MD-EXE-016.* added — ingestion-driven monitoring-lifecycle seam, `trade_cycles` carryover repoint, `positions` table drop.
 > v1.8.0: MD-EXE-011.001.M02 updated — `_CycleState` replaced by `StrategyRunState` (Phase 1 target).
 > v1.7.0: MD-EXE-011.001.M08 added — `_rex_counter.py` (rex_count enforcement).
@@ -262,3 +263,26 @@ green **before** the table drop (M05–M06).
 `test_repository.py`; update `tests/integration/test_lifecycle_e2e.py` and db-manager
 tests that assert against `positions`; add seam tests for `mark_entered`/`mark_exited`
 driven through `OrderIngestion`.
+
+---
+
+## Module Modifications for FO-EXE-017
+
+Absolute per-user capital budget, capital-max position sizing, advisory (non-blocking)
+risk warnings, and the rex auto-reset + display fix. All entries change existing files.
+Implementation order: data migration (M06–M07) → risk core (M01–M02) → router/engine
+wiring (M03–M04) → app wiring (M09) → GUI surfaces (M05, M08).
+
+| Module ID | File | Change Required | SRD |
+|---|---|---|---|
+| MD-EXE-017.001.M01 | `src/us_swing/execution/risk_manager.py` | Add `size_for_strategy(entry_price, capital_max_pct, effective_capital) -> int`. Switch `can_allocate` limit basis from `account.equity` to effective capital. Make `validate_signal` advisory for max-position / risk-per-trade (no `ok=False`); keep circuit-breaker blocking. Add `effective_capital_provider` ctor arg (defaults to `account.equity`). Publish `RiskWarning` on advisory breaches. | SRD-EXE-017.003, .005, .006 |
+| MD-EXE-017.002.M02 | `src/us_swing/execution/strategy_engine/_protocols.py` | Add frozen `RiskWarning(schema_version, kind, symbol, message)` DTO to the event union consumed by the bus. | SRD-EXE-017.006 |
+| MD-EXE-017.003.M03 | `src/us_swing/execution/strategy_engine/_router.py` | In `evaluate` Active branch, after the rex gate: size via `size_for_strategy`; drop with `StrategySignalDropped(reason='capital_insufficient')` + WARNING when `qty<1`; then budget-based `can_allocate`. In `_build_entry_signal`, set `qty_recommended` to the sized qty instead of `1`. | SRD-EXE-017.004, .009 |
+| MD-EXE-017.004.M04 | `src/us_swing/execution/strategy_engine/_engine.py` | In `_apply_run_state`, on `STOPPED → RUNNING` call `self._rex_counters.reset(strategy_id)` (guarded for `None`) and log the reset count. No reset on pause. | SRD-EXE-017.010 |
+| MD-EXE-017.006.M06 | `src/us_swing/data/models.py` + `src/us_swing/config/settings.py` | Replace `RiskConfig.max_allocation_pct: float` with `max_capital_value: float = 2000.0`. | SRD-EXE-017.014 |
+| MD-EXE-017.007.M07 | `src/us_swing/gui/user_store.py` + `src/us_swing/user/manager.py` | Serialize/deserialize `max_capital_value`; one-time load migration (drop legacy `max_allocation_pct`, fall back to default + INFO log); update `_default_settings_json`. | SRD-EXE-017.014 |
+| MD-EXE-017.008.M08 | `src/us_swing/gui/settings_panel.py` | Change "Max capital" spinbox from `%` to `$` (prefix `$ `, dollar range/step); bind to `max_capital_value` in build + `get_profile`. | SRD-EXE-017.012 |
+| MD-EXE-017.009.M09 | `src/us_swing/gui/app_service.py` | Replace `PassthroughRiskValidator()` with `RiskManager`. Add `_effective_capital` accessor; resolve it (paper = budget, fed to paper `AccountState.equity`; live = reconcile vs `total_cash_value` once in `_on_account_data_ready`, warn + 90%). Add `_cycle_position_source` adapter (`open_cycles → OpenPosition`). Aggregate daily loss → advisory `RiskWarning` with one-per-crossing latch. Bridge `RiskWarning` to a debounced pop-up + Live Log. | SRD-EXE-017.001, .002, .007, .008, .013 |
+| MD-EXE-017.011.M05 | `src/us_swing/gui/active_cycles_model.py` | Rex column `data()` for `Col.REX`: render `max(0, remaining)` (no negative); when a row is PENDING and another row for the same `(strategy, symbol)` is non-terminal, render `—`. Stored values untouched; gate still uses raw `< 0`. | SRD-EXE-017.011 |
+
+**Test impact (not separate MD rows):** add unit tests for `size_for_strategy` (incl. `qty<1` → 0) and budget-based `can_allocate`; advisory-path tests asserting `validate` returns `ok=True` while publishing `RiskWarning`; daily-loss aggregation + latch tests; a rex-reset test driving `STOPPED→RUNNING` through `_apply_run_state`; a `RiskConfig` migration test (legacy JSON → `max_capital_value`); a Rex-display test (exhausted shows `0`, pending duplicate shows `—`).

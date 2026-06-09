@@ -969,6 +969,33 @@ _MW_SYMBOLS: list[tuple[str, str]] = [
 ]
 
 
+# ── Risk position source ──────────────────────────────────────────────────────
+
+class _CyclePositionSource:
+    """Adapts open `trade_cycles` to the `RiskManager` position-source protocol."""
+
+    def __init__(self, query: Any) -> None:
+        self._query = query
+
+    def get_all(self, user_id: int) -> list[OpenPosition]:
+        if self._query is None:
+            return []
+        return [
+            OpenPosition(
+                symbol        = c.symbol,
+                user_id       = c.user_id,
+                quantity      = c.entry_qty,
+                average_price = c.entry_price,
+                stop_loss     = c.hard_stop_loss,
+                target_price  = c.target_price or 0.0,
+                mode          = "paper",
+                strategy_id   = c.strategy_id,
+            )
+            for c in self._query.open_cycles()
+            if c.user_id == user_id
+        ]
+
+
 # ── Application Service ───────────────────────────────────────────────────────
 
 class AppService(QObject):
@@ -1006,6 +1033,7 @@ class AppService(QObject):
     pending_signals_updated   = pyqtSignal()               # pending signal list changed
     strategy_status_changed   = pyqtSignal(str, str)       # (strategy_name, "entered"|"exited") — refresh nudge
     circuit_breaker_changed   = pyqtSignal(bool)           # True = breaker tripped (entries blocked)
+    risk_warning_raised       = pyqtSignal(str, str)       # (kind, message) — advisory, non-blocking
     _auto_exit_requested      = pyqtSignal(int, str)       # (cycle_id, reason) — cross-thread marshal
 
     def __init__(self, parent: QObject | None = None) -> None:
@@ -1031,6 +1059,8 @@ class AppService(QObject):
         self._active_uid = self._users[0].user_id
         self._viewing_uid: int | None = None
         self._circuit_breaker_active = False
+        self._effective_capital_cache: float = 0.0
+        self._daily_loss_warned = False
 
         self._connection_status = ConnectionStatus.DISCONNECTED
         self._system_cfg        = load_system_config()
@@ -1154,7 +1184,6 @@ class AppService(QObject):
 
         # ── Strategy Engine ───────────────────────────────────────────────────
         from us_swing.execution.pending_signal_store import PendingSignalStore
-        from us_swing.execution.risk_validator import PassthroughRiskValidator
         from us_swing.execution.event_bus import QtEventBus
         from us_swing.execution.strategy_engine._engine import StrategyEngine
         from us_swing.gui.strategy_builder_dialog import load_strategies, save_strategies
@@ -1208,12 +1237,24 @@ class AppService(QObject):
             self._submitter = None
             _log.error("[Orders] Order submission unavailable — trade-cycle service or database not ready")
 
+        from us_swing.execution.risk_manager import RiskManager
+        self._cycle_position_source = _CyclePositionSource(self._tc_query)
+        self._risk_manager = RiskManager(
+            config=self.get_active_user().risk_config,
+            account_provider=lambda: self.get_account_state(self._active_uid),
+            cb_state_provider=lambda: self._circuit_breaker_active,
+            user_id=self._active_uid,
+            tracker=self._cycle_position_source,
+            effective_capital_provider=self.effective_capital,
+            warning_sink=lambda w: self._event_bus.publish(w),
+        )
+
         self._strategy_engine = StrategyEngine(
             registry_loader=load_strategies,
             registry_saver=save_strategies,
             candles_provider=self._get_candles_df,
             bar_provider=self._get_latest_bar,
-            risk=PassthroughRiskValidator(),
+            risk=self._risk_manager,
             submitter=self._submitter,
             pending=self._pending_store,
             bus=self._event_bus,
@@ -1221,6 +1262,7 @@ class AppService(QObject):
             symbols_provider=lambda: list(self._filtered_symbols),
             cycle_query=self._tc_query,
             user_id_provider=lambda: self._active_uid,
+            effective_capital_provider=self.effective_capital,
             parent=self,
         )
         self._strategy_engine.start()
@@ -1320,14 +1362,38 @@ class AppService(QObject):
         uid = user_id if user_id is not None else self._viewing_uid
         if self._ibkr_acct is not None:
             return self._ibkr_acct
-        # Disconnected — return zeros until IBKR data arrives
+        # Paper / disconnected — seed equity from the user's absolute Max Capital
+        # so capital sizing and checks have a budget to work against.
+        budget = self._user_max_capital(uid)
         return AccountState(
             user_id             = uid or 0,
-            equity              = 0.0,
-            start_of_day_equity = 0.0,
+            equity              = budget,
+            start_of_day_equity = budget,
             open_position_value = 0.0,
             daily_pnl           = 0.0,
+            total_cash_value    = budget,
         )
+
+    def _user_max_capital(self, uid: int | None) -> float:
+        user = next((u for u in self._users if u.user_id == uid), None)
+        if user is None and self._users:
+            user = self._users[0]
+        return user.risk_config.max_capital_value if user is not None else 0.0
+
+    def effective_capital(self) -> float:
+        """Per-user dollar budget for sizing (FO-EXE-017).
+
+        Paper uses the stored Max Capital. Live caps it at 90% of broker cash
+        when Max Capital exceeds available cash; the stored setting is unchanged.
+        """
+        cap = self._user_max_capital(self._active_uid)
+        user = self.get_active_user()
+        if user.mode != "live" or self._ibkr_acct is None:
+            return cap
+        cash = self._ibkr_acct.total_cash_value
+        if cap > cash:
+            return 0.9 * cash
+        return cap
 
     def get_users(self) -> list[UserProfile]:
         return list(self._users)
@@ -1921,9 +1987,22 @@ class AppService(QObject):
         self.positions_updated.emit()
         self.pending_signals_updated.emit()
         if event.status is OrderStatus.FILLED:
+            # OrderEvent carries no symbol or side; resolve them from the
+            # just-rebuilt display lists by matching the broker order id (the
+            # trades ledger row carries the BUY/SELL side).
+            trade = next(
+                (t for t in self._trades if t.trade_id == event.broker_order_id),
+                None,
+            )
+            symbol = (trade.symbol if trade is not None else None) or next(
+                (p.symbol for p in self._positions if p.trade_id == event.broker_order_id),
+                None,
+            )
+            side = trade.side.capitalize() if trade is not None else ""
+            subject = " ".join(part for part in (symbol or "Order", side) if part)
             self.log_message.emit(
                 "INFO",
-                f"[Orders] Fill confirmed: {event.filled_quantity} share(s) "
+                f"[Orders] {subject} fill confirmed: {event.filled_quantity} share(s) "
                 f"at {event.fill_price or 0.0:.2f}",
             )
 
@@ -1946,6 +2025,10 @@ class AppService(QObject):
         except Exception:
             _log.exception("[TradeCycle] Failed to load cycles on boot")
             return
+        # Rebuild, do not append: this runs on every order event, so the display
+        # lists must be cleared first or each closed cycle is re-added every time.
+        self._trades.clear()
+        self._positions.clear()
         if not open_snaps and not hist_snaps:
             return
 
@@ -2162,11 +2245,20 @@ class AppService(QObject):
         ignores this string. It must never carry the legacy ``"Active"`` /
         ``"Running"`` vocabulary, which is not a valid ``StrategyRunState``.
         """
-        from us_swing.execution.strategy_engine._events import StrategyEntered, StrategyExited
+        from us_swing.execution.strategy_engine._events import (
+            RiskWarning,
+            StrategyEntered,
+            StrategyExited,
+        )
         if isinstance(event, StrategyEntered):
             self.strategy_status_changed.emit(event.strategy_id, "entered")
+            self._check_daily_loss()
         elif isinstance(event, StrategyExited):
             self.strategy_status_changed.emit(event.strategy_id, "exited")
+            self._check_daily_loss()
+        elif isinstance(event, RiskWarning):
+            self.log_message.emit("WARNING", event.message)
+            self.risk_warning_raised.emit(event.kind, event.message)
 
     # ── User CRUD ─────────────────────────────────────────────────────────────
 
@@ -2298,11 +2390,54 @@ class AppService(QObject):
         self._acct_worker.start()
 
     def _on_account_data_ready(self, acct: AccountState, positions: list) -> None:
+        first_fetch = self._ibkr_acct is None
         self._ibkr_acct      = acct
         self._ibkr_positions = list(positions)
+        if first_fetch:
+            self._reconcile_live_capital(acct)
         self.account_updated.emit()
         self.positions_updated.emit()
         self._sync_tick_subscriptions()   # update position price subscriptions
+        self._check_daily_loss()
+
+    def _reconcile_live_capital(self, acct: AccountState) -> None:
+        """Warn once per connect if Max Capital exceeds broker cash (FO-EXE-017)."""
+        user = self.get_active_user()
+        if user.mode != "live":
+            return
+        cap = user.risk_config.max_capital_value
+        cash = acct.total_cash_value
+        if cap > cash:
+            self.log_message.emit(
+                "WARNING",
+                f"[Risk] Max Capital (${cap:.0f}) exceeds broker cash (${cash:.0f}) "
+                f"— using ${0.9 * cash:.0f} for trading",
+            )
+
+    def _check_daily_loss(self) -> None:
+        """Advisory aggregate daily-loss warning across all active trades."""
+        if self._tc_query is None:
+            return
+        acct = self.get_account_state(self._active_uid)
+        threshold = -self.get_active_user().risk_config.max_daily_loss_pct / 100.0 \
+            * acct.start_of_day_equity
+        if threshold == 0.0:
+            return
+        open_loss = sum(c.current_pnl_usd or 0.0 for c in self._tc_query.open_cycles())
+        start = datetime.datetime.now().strftime("%Y-%m-%dT00:00:00")
+        end = datetime.datetime.now().strftime("%Y-%m-%dT23:59:59")
+        closed_loss = sum(c.realized_pnl_usd or 0.0
+                          for c in self._tc_query.closed_between(start, end))
+        day_pnl = open_loss + closed_loss
+        if day_pnl <= threshold:
+            if not self._daily_loss_warned:
+                self._daily_loss_warned = True
+                msg = (f"[Risk] Daily loss ${day_pnl:.0f} has crossed your "
+                       f"max daily loss limit")
+                self.log_message.emit("WARNING", msg)
+                self.risk_warning_raised.emit("daily_loss", msg)
+        else:
+            self._daily_loss_warned = False
 
     def _on_account_data_failed(self, reason: str) -> None:
         self.log_message.emit(

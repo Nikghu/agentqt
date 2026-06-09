@@ -1,12 +1,13 @@
 # Design Document — Execution & Risk Management (EXE)
 
 **Document ID:** DD-EXE
-**Version:** 1.11.0
-**Traces To:** SRD-EXE v1.16.0
+**Version:** 1.12.0
+**Traces To:** SRD-EXE v1.17.0
 **Status:** Draft
-**Last Updated:** 2026-06-04
+**Last Updated:** 2026-06-09
 **Project:** US Swing Trading System
 
+> v1.12.0: DD-EXE-017.* added — effective-capital resolution, capital-max sizing, blocking-vs-advisory risk split, daily-loss aggregation, rex auto-reset on start + display fix.
 > v1.11.0: DD-EXE-016.* added — ingestion-driven monitoring-lifecycle seam, `trade_cycles` carryover repoint, `positions` table drop.
 > v1.10.0: DD-EXE-015.* added — BrokerAdapter (translation/selection/routing) + broker-agnostic Order Ingestion pipeline.
 > v1.9.0: DD-EXE-013.001.D01 added — Strategy Run Lifecycle engine evaluation decision tree.
@@ -3166,3 +3167,228 @@ repoint (016.003) are merged and green — at that point nothing reads or writes
 **Acceptance gate:** a grep for the `positions` `sa.Table`, `upsert_position`,
 `delete_position`, or `fetch_open_positions` returns nothing outside migration
 history (SRD-EXE-016.006 AC #4), the app imports, and the suite stays at baseline.
+
+---
+
+# FO-EXE-017 — Absolute Capital Allocation, Capital-Max Sizing & Advisory Risk Warnings
+
+## DD-EXE-017.001.D01 — `RiskConfig` Migration & Effective-Capital Resolution
+
+**Parent SRD:** SRD-EXE-017.001, SRD-EXE-017.002, SRD-EXE-017.014
+
+### Data-model change
+
+`RiskConfig.max_allocation_pct: float` (percent) is replaced by
+`max_capital_value: float` (absolute dollars). The same edit lands in both
+`data/models.py` and `config/settings.py`, and in the JSON (de)serializers
+`gui/user_store.py::_to_dict`/`_from_dict` and `user/manager.py::_default_settings_json`.
+
+```python
+# data/models.py  (and config/settings.py mirror)
+@dataclass
+class RiskConfig:
+    risk_per_trade_pct: float = 1.0
+    max_position_value: float = 10_000.0
+    max_capital_value:  float = 2_000.0   # was: max_allocation_pct = 50.0
+    max_daily_loss_pct: float = 2.0
+    default_order_type: str   = "MKT"
+    confirm_orders:     bool  = True
+```
+
+**One-time migration on load** (`user_store._from_dict`): if the persisted JSON
+still carries `max_allocation_pct` and no `max_capital_value`, drop the percent key
+and fall back to the default `max_capital_value` (a percent of an unknown equity
+cannot be converted to dollars deterministically, so we do not attempt a numeric
+port — we log one INFO line per migrated user).
+
+### Effective capital
+
+A single provider resolves the dollar budget used by every sizing/cap check. It
+lives on `AppService` and is injected into `RiskManager` as `account_provider`
+already exists; we add a sibling `effective_capital_provider`:
+
+```python
+def effective_capital(user: UserProfile, acct: AccountState, mode: str) -> float:
+    cap = user.risk_config.max_capital_value
+    if mode == "paper":
+        return cap
+    cash = acct.total_cash_value
+    if cap > cash:
+        log.warning("[Risk] Max Capital ($%.0f) exceeds broker cash ($%.0f) — using $%.0f",
+                    cap, cash, 0.9 * cash)
+        return 0.9 * cash
+    return cap
+```
+
+- Paper: budget = stored `max_capital_value`; this is also fed to
+  `AccountState.equity` for paper so existing equity-based displays stay coherent.
+- Live: reconcile runs **once per connect** (in the account-ready slot,
+  `app_service._on_account_data_ready`), not per signal. The 90%-of-cash result is
+  cached as `self._effective_capital` and read synchronously by the engine.
+- The stored setting is never mutated — only the runtime value differs.
+
+## DD-EXE-017.003.D01 — Capital-Max Position Sizing
+
+**Parent SRD:** SRD-EXE-017.003, SRD-EXE-017.004, SRD-EXE-017.009
+
+Replaces the fixed `qty_recommended=1` in `_router._build_entry_signal` and the
+risk-per-trade formula of SRD-EXE-001.002 for the entry path.
+
+```python
+def size_for_strategy(entry_price: float, capital_max_pct: int,
+                      effective_capital: float) -> int:
+    if entry_price <= 0:
+        return 0
+    budget = effective_capital * capital_max_pct / 100.0
+    return math.floor(budget / entry_price)
+```
+
+`_build_entry_signal` calls this with the owning `ctx.cfg.capital_max` and the
+cached effective capital, then:
+
+```
+qty = size_for_strategy(entry_price, ctx.cfg.capital_max, eff_cap)
+if qty < 1:
+    publish StrategySignalDropped(signal, reason="capital_insufficient")
+    log.warning("[Strategy] %s Capital Max insufficient for entry on %s", ctx.name, symbol)
+    return            # no in_flight add, no enqueue
+signal.qty_recommended = qty
+```
+
+Worked example (AC #1): eff_cap=$2000, capital_max=25% → budget=$500, entry=$96 →
+`floor(500/96)=5`, position value `$480 ≤ $500`. Entry=$520 → `floor(500/520)=0`
+→ dropped with the insufficient-capital warning (AC #2).
+
+**Ordering in the Active branch of `_router.evaluate`:** entry fires → rex gate
+(unchanged) → **size** (new; drops on `qty<1`) → `can_allocate` (now budget-based)
+→ build signal with sized qty → enqueue.
+
+## DD-EXE-017.005.D01 — Capital Cap (blocking) vs Advisory Warnings
+
+**Parent SRD:** SRD-EXE-017.005, SRD-EXE-017.006
+
+`can_allocate` switches its limit basis from `account.equity` to the effective
+budget:
+
+```python
+def can_allocate(self, strategy_id, capital_max_pct) -> CanAllocateResult:
+    if self._tracker is None:
+        return CanAllocateResult(ok=True)
+    limit = self._effective_capital() * capital_max_pct / 100.0   # was account.equity * pct/100
+    deployed = sum(p.average_price * p.quantity
+                   for p in self._tracker.get_all(self._user_id)
+                   if p.strategy_id == strategy_id)
+    ok = deployed < limit
+    return CanAllocateResult(ok=ok, reason=None if ok else f"strategy {strategy_id!r} at capital limit")
+```
+
+**`validate_signal` becomes advisory for the three non-capital limits.** The
+circuit-breaker check still blocks. Max-position and allocation breaches no longer
+flip `ok=False`; instead they raise advisory events:
+
+```python
+@dataclass(frozen=True, slots=True)
+class RiskWarning:
+    schema_version: int
+    kind: str          # "max_position" | "risk_per_trade" | "daily_loss"
+    symbol: str
+    message: str
+```
+
+`RiskManager.validate()` returns `ValidationResult(ok=True, qty=...)` for these
+cases but publishes one `RiskWarning` per breach onto the FO-EXE-009 bus. The GUI
+bridges `RiskWarning` to a debounced pop-up + Live Log line (SRD-EXE-017.013); no
+order is blocked, resized, or closed.
+
+## DD-EXE-017.007.D01 — Daily-Loss Aggregation
+
+**Parent SRD:** SRD-EXE-017.007
+
+The day's loss is the **sum across all active cycles** of realised + unrealised
+PnL for the user, sourced from `TradeCycleQuery.open_cycles()` live fields plus the
+day's closed cycles (`closed_between(start_of_day, now)`):
+
+```python
+day_pnl = sum(c.realized_pnl_usd for c in closed_today) \
+        + sum(c.unrealized_pnl_usd for c in open_cycles)
+threshold = -user.risk_config.max_daily_loss_pct / 100.0 * acct.start_of_day_equity
+if day_pnl <= threshold and not self._daily_loss_warned:
+    publish RiskWarning(kind="daily_loss", symbol="*", message=...)
+    self._daily_loss_warned = True   # one warning per crossing
+```
+
+A `_daily_loss_warned` latch is reset at start-of-day (or when PnL recovers above a
+small hysteresis band) so the user gets one warning per crossing, not one per tick.
+This is advisory only — it does **not** trigger the FO-EXE-003 circuit breaker.
+
+## DD-EXE-017.008.D01 — Wiring `RiskManager` into `app_service`
+
+**Parent SRD:** SRD-EXE-017.008
+
+Replace the `PassthroughRiskValidator()` at `app_service.py:1216`:
+
+```python
+from us_swing.execution.risk_manager import RiskManager
+risk = RiskManager(
+    config=self.get_active_user().risk_config,
+    account_provider=lambda: self.get_account_state(self._active_uid),
+    cb_state_provider=lambda: self._circuit_breaker_active,
+    user_id=self._active_uid,
+    tracker=self._cycle_position_source,   # open trade_cycles → OpenPosition view
+)
+```
+
+`_cycle_position_source` is a thin `_PositionSource` adapter over
+`TradeCycleQuery.open_cycles()` exposing `get_all(user_id) -> Sequence[OpenPosition]`
+with `strategy_id`, `average_price`, `quantity` populated from each open cycle. The
+`RiskManager` is also given the `effective_capital` accessor (constructor gains an
+`effective_capital_provider` callable; defaults to `account.equity` to preserve the
+existing unit tests).
+
+## DD-EXE-017.010.D01 — Rex Auto-Reset on Start & Display Fix
+
+**Parent SRD:** SRD-EXE-017.010, SRD-EXE-017.011
+
+### Auto-reset on STOPPED → RUNNING
+
+`_engine._apply_run_state` resets the strategy's counters on the start edge only.
+The engine already holds `self._rex_counters`:
+
+```python
+def _apply_run_state(self, strategy_id, new_state):
+    ctx = self._registry.get(strategy_id)
+    ...
+    previous = ctx.run_state
+    ctx.run_state = new_state
+    if (previous is _StrategyRunState.STOPPED
+            and new_state is _StrategyRunState.RUNNING
+            and self._rex_counters is not None):
+        deleted = self._rex_counters.reset(strategy_id)
+        log.info("[Strategy] %s started — reset %d rex counter(s)", ctx.name, deleted)
+    ...
+```
+
+`reset()` deletes the rows; the lazy `get()`/`decrement()` path re-creates them at
+`rex_count` on the next entry, so deletion == reset to the configured budget. Pause
+(`RUNNING → STOPPED`) deliberately does **not** reset. The run-end-date rollover
+reaches STOPPED then RUNNING on the user's next start, so it is covered by the same
+edge. The manual "Reset rex counters" action (SRD-GUI-013.015) is retained.
+
+### Display fix (root cause of the `-1` report)
+
+Two display defects in `gui/active_cycles_model.py`:
+
+1. **Negative render.** The Rex cell shows the raw stored `remaining`, which is
+   `-1` once a `(strategy, symbol)` is exhausted. Change the display to
+   *remaining re-entries* = `max(0, remaining)`; an exhausted pair shows `0`, not
+   `-1`. The blocking gate still uses the raw stored value (`< 0`), so behaviour is
+   unchanged — only the painted text changes.
+2. **Cross-row leakage.** The counter is keyed by `(strategy, symbol)` and shared
+   across rows, so a PENDING row for a symbol that already has an OPEN cycle inherits
+   the open row's exhausted value (rows 5–7 in the user's screenshot). A pending
+   signal that is not itself the entry that consumed the budget shall render `—`
+   rather than the shared exhausted count: when a row is PENDING **and** another row
+   for the same `(strategy, symbol)` is already non-terminal, suppress the Rex value
+   for the pending row.
+
+Stored values are untouched in both fixes; only `data()` for `Col.REX` changes.

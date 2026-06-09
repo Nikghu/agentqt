@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-05T07:17:41",
+  "generated": "2026-06-09T14:39:04",
   "subfolder": "db",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\db",
   "tool_code": "INF",
@@ -16,8 +16,8 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, database_url: str) -> None",
-              "line_start": 60,
-              "line_end": 77
+              "line_start": 61,
+              "line_end": 78
             },
             {
               "name": "engine",
@@ -26,106 +26,119 @@
               "decorators": [
                 "@property"
               ],
-              "line_start": 80,
-              "line_end": 87
+              "line_start": 81,
+              "line_end": 88
             },
             {
               "name": "create_schema",
               "signature": "def create_schema(self) -> None",
-              "line_start": 91,
-              "line_end": 93
+              "line_start": 92,
+              "line_end": 94
             },
             {
               "name": "drop_schema",
               "signature": "def drop_schema(self) -> None",
               "docstring": "Drop all tables.  Test use only \u2014 irreversible.",
-              "line_start": 95,
-              "line_end": 97
+              "line_start": 96,
+              "line_end": 98
             },
             {
               "name": "insert_bars",
               "signature": "def insert_bars(self, symbol: str, timeframe: str, bars: list[OHLCVBar]) -> int",
               "docstring": "Bulk-insert bars in batches; silently skips duplicates.",
-              "line_start": 105,
-              "line_end": 139
+              "line_start": 106,
+              "line_end": 140
             },
             {
               "name": "fetch_bars",
               "signature": "def fetch_bars(\r\n        self,\r\n        symbol: str,\r\n        timeframe: str,\r\n        start: datetime,\r\n        end: datetime,\r\n    ) -> list[OHLCVBar]",
               "docstring": "Return bars in [start, end] inclusive, ordered by datetime.",
-              "line_start": 141,
-              "line_end": 173
+              "line_start": 142,
+              "line_end": 174
             },
             {
               "name": "get_last_timestamp",
               "signature": "def get_last_timestamp(self, symbol: str, timeframe: str) -> datetime | None",
               "docstring": "Return the latest stored datetime for (symbol, timeframe), or None.",
-              "line_start": 175,
-              "line_end": 181
+              "line_start": 176,
+              "line_end": 182
             },
             {
               "name": "get_first_timestamp",
               "signature": "def get_first_timestamp(self, symbol: str, timeframe: str) -> datetime | None",
               "docstring": "Return the earliest stored datetime for (symbol, timeframe), or None.",
-              "line_start": 183,
-              "line_end": 189
+              "line_start": 184,
+              "line_end": 190
             },
             {
               "name": "upsert_universe",
               "signature": "def upsert_universe(self, records: list[UniverseRecord]) -> None",
               "docstring": "Insert-or-update universe records by symbol.",
-              "line_start": 193,
-              "line_end": 205
+              "line_start": 194,
+              "line_end": 206
             },
             {
               "name": "fetch_universe",
               "signature": "def fetch_universe(self) -> list[UniverseRecord]",
-              "line_start": 207,
-              "line_end": 210
+              "line_start": 208,
+              "line_end": 211
+            },
+            {
+              "name": "upsert_watchlist",
+              "signature": "def upsert_watchlist(self, symbols: list[str], dt: date) -> None",
+              "line_start": 215,
+              "line_end": 220
+            },
+            {
+              "name": "fetch_watchlist",
+              "signature": "def fetch_watchlist(self, dt: date) -> list[str]",
+              "line_start": 222,
+              "line_end": 225
             },
             {
               "name": "insert_trade",
               "signature": "def insert_trade(self, trade: TradeRecord) -> None",
-              "line_start": 214,
-              "line_end": 231
+              "docstring": "Insert the `trades` row for an accepted order.",
+              "line_start": 229,
+              "line_end": 253
             },
             {
               "name": "update_trade_fill",
               "signature": "def update_trade_fill(\r\n        self,\r\n        trade_id: str,\r\n        filled_quantity: int,\r\n        order_state: str,\r\n        exit_time: datetime | None = None,\r\n        exit_price: float | None = None,\r\n        entry_price: float | None = None,\r\n        entry_time: datetime | None = None,\r\n    ) -> None",
               "docstring": "Record a broker fill on a `trades` row (SRD-EXE-014.004).",
-              "line_start": 233,
-              "line_end": 267
+              "line_start": 255,
+              "line_end": 289
             },
             {
               "name": "insert_user",
               "signature": "def insert_user(self, user: UserRecord) -> int",
               "docstring": "Insert a new user row and return the auto-generated user_id.",
-              "line_start": 272,
-              "line_end": 283
+              "line_start": 294,
+              "line_end": 305
             },
             {
               "name": "fetch_user",
               "signature": "def fetch_user(self, user_id: int) -> UserRecord | None",
-              "line_start": 285,
-              "line_end": 291
+              "line_start": 307,
+              "line_end": 313
             },
             {
               "name": "update_user",
               "signature": "def update_user(self, user_id: int, **fields: Any) -> None",
-              "line_start": 293,
-              "line_end": 303
+              "line_start": 315,
+              "line_end": 325
             },
             {
               "name": "delete_user",
               "signature": "def delete_user(self, user_id: int) -> None",
-              "line_start": 305,
-              "line_end": 308
+              "line_start": 327,
+              "line_end": 330
             },
             {
               "name": "fetch_all_users",
               "signature": "def fetch_all_users(self) -> list[UserRecord]",
-              "line_start": 310,
-              "line_end": 313
+              "line_start": 332,
+              "line_end": 335
             },
             {
               "name": "_price_table",
@@ -133,8 +146,8 @@
               "decorators": [
                 "@staticmethod"
               ],
-              "line_start": 318,
-              "line_end": 325
+              "line_start": 340,
+              "line_end": 347
             },
             {
               "name": "_row_to_user_record",
@@ -142,26 +155,26 @@
               "decorators": [
                 "@staticmethod"
               ],
-              "line_start": 328,
-              "line_end": 336
+              "line_start": 350,
+              "line_end": 358
             }
           ],
-          "line_start": 51,
-          "line_end": 336
+          "line_start": 52,
+          "line_end": 358
         }
       ],
       "top_level_functions": [
         {
           "name": "_dt_to_str",
           "signature": "def _dt_to_str(dt: datetime) -> str",
-          "line_start": 43,
-          "line_end": 44
+          "line_start": 44,
+          "line_end": 45
         },
         {
           "name": "_str_to_dt",
           "signature": "def _str_to_dt(s: str) -> datetime",
-          "line_start": 47,
-          "line_end": 48
+          "line_start": 48,
+          "line_end": 49
         }
       ],
       "constants": [
@@ -176,29 +189,29 @@
         {
           "name": "_register_trade_cycle_schema",
           "signature": "def _register_trade_cycle_schema() -> None",
-          "line_start": 158,
-          "line_end": 159
+          "line_start": 166,
+          "line_end": 167
         },
         {
           "name": "migrate_lifecycle_columns",
           "signature": "def migrate_lifecycle_columns(engine: sa.Engine) -> None",
           "docstring": "Add monitoring-session + order-state lifecycle columns, drop the legacy",
-          "line_start": 200,
-          "line_end": 246
+          "line_start": 208,
+          "line_end": 250
         },
         {
           "name": "create_schema",
           "signature": "def create_schema(engine: sa.Engine) -> None",
           "docstring": "Create all tables and indexes if they do not already exist, then run",
-          "line_start": 249,
-          "line_end": 254
+          "line_start": 253,
+          "line_end": 258
         },
         {
           "name": "drop_schema",
           "signature": "def drop_schema(engine: sa.Engine) -> None",
           "docstring": "Drop all tables (test use only).",
-          "line_start": 257,
-          "line_end": 259
+          "line_start": 261,
+          "line_end": 263
         }
       ],
       "constants": [

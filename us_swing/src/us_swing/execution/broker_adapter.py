@@ -68,10 +68,17 @@ class BrokerAdapter:
             order_type=OrderType.MARKET,
             reference_price=signal.entry_price,
         )
-        broker_order_id = self._broker.place_order(request)
-        self._ingestion.on_order_accepted(
-            self._build_context(signal, qty, side, is_entry, broker_order_id)
-        )
+        # Register the context BEFORE placing the order: the broker may deliver
+        # the fill on another thread before this call returns, and the fill path
+        # must already be able to resolve it (keyed by client_ref = signal_id).
+        self._ingestion.register(self._build_context(signal, qty, side, is_entry))
+        try:
+            broker_order_id = self._broker.place_order(request)
+        except Exception:
+            # Placement failed — drop the registered context so it does not leak.
+            self._ingestion.discard(signal.signal_id)
+            raise
+        self._ingestion.on_order_accepted(signal.signal_id, broker_order_id)
         return int(broker_order_id)
 
     # ── Broker → execution (asynchronous fills) ──────────────────────────────
@@ -89,14 +96,13 @@ class BrokerAdapter:
         qty: int,
         side: OrderSide,
         is_entry: bool,
-        broker_order_id: str,
     ) -> OrderContext:
         price = signal.entry_price or 0.0
         hard_sl, target_price, target_type, stoploss_type = self._entry_risk(
             self._config_provider(signal.strategy_id) if is_entry else None, price
         )
         return OrderContext(
-            broker_order_id=broker_order_id,
+            broker_order_id="",  # backfilled at on_order_accepted once the broker assigns it
             signal_id=signal.signal_id,
             strategy_id=signal.strategy_id,
             user_id=self._user_id_provider(),

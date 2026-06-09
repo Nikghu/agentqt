@@ -264,7 +264,7 @@ class RiskConfig:
     """Per-user risk parameters (parsed from ``settings_json``)."""
     risk_per_trade_pct: float = 1.0
     max_position_value: float = 10_000.0
-    max_allocation_pct: float = 50.0
+    max_capital_value:  float = 2_000.0
     max_daily_loss_pct: float = 2.0
     default_order_type: str   = "MKT"
     confirm_orders:     bool  = True

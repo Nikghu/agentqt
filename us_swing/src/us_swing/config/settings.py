@@ -49,7 +49,7 @@ class UniverseConfig:
 class RiskConfig:
     risk_per_trade_pct: float = 1.0
     max_position_value: float = 10_000.0
-    max_allocation_pct: float = 50.0
+    max_capital_value:  float = 2_000.0
     max_daily_loss_pct: float = 2.0
     default_order_type: str = "MKT"
 
@@ -108,7 +108,7 @@ def _apply_toml(cfg: AppConfig, path: Path) -> None:
     r = raw.get("risk", {})
     cfg.risk.risk_per_trade_pct = float(r.get("risk_per_trade_pct", cfg.risk.risk_per_trade_pct))
     cfg.risk.max_position_value = float(r.get("max_position_value", cfg.risk.max_position_value))
-    cfg.risk.max_allocation_pct = float(r.get("max_allocation_pct", cfg.risk.max_allocation_pct))
+    cfg.risk.max_capital_value = float(r.get("max_capital_value", cfg.risk.max_capital_value))
     cfg.risk.max_daily_loss_pct = float(r.get("max_daily_loss_pct", cfg.risk.max_daily_loss_pct))
     cfg.risk.default_order_type = str(r.get("default_order_type", cfg.risk.default_order_type))
 

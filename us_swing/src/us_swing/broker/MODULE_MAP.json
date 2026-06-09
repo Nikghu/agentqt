@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-04T12:40:04",
+  "generated": "2026-06-09T14:39:04",
   "subfolder": "broker",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\broker",
   "tool_code": "INF",
@@ -293,7 +293,7 @@
           "methods": [
             {
               "name": "submit",
-              "signature": "def submit(\n        self,\n        symbol: str,\n        side: str,\n        quantity: int,\n        order_type: str,\n        limit_price: float | None,\n    ) -> str",
+              "signature": "def submit(\r\n        self,\r\n        symbol: str,\r\n        side: str,\r\n        quantity: int,\r\n        order_type: str,\r\n        limit_price: float | None,\r\n    ) -> str",
               "line_start": 53,
               "line_end": 60
             },
@@ -372,7 +372,7 @@
             },
             {
               "name": "submit",
-              "signature": "def submit(  # pragma: no cover - requires a live IBKR connection\n        self,\n        symbol: str,\n        side: str,\n        quantity: int,\n        order_type: str,\n        limit_price: float | None,\n    ) -> str",
+              "signature": "def submit(  # pragma: no cover - requires a live IBKR connection\r\n        self,\r\n        symbol: str,\r\n        side: str,\r\n        quantity: int,\r\n        order_type: str,\r\n        limit_price: float | None,\r\n    ) -> str",
               "line_start": 140,
               "line_end": 159
             },
@@ -384,7 +384,7 @@
             },
             {
               "name": "_make_handler",
-              "signature": "def _make_handler(  # pragma: no cover\n        self, broker_order_id: str\n    ) -> Callable[[object], None]",
+              "signature": "def _make_handler(  # pragma: no cover\r\n        self, broker_order_id: str\r\n    ) -> Callable[[object], None]",
               "line_start": 167,
               "line_end": 181
             },
@@ -531,7 +531,7 @@
           "methods": [
             {
               "name": "__init__",
-              "signature": "def __init__(\n        self,\n        fill_model: FillModel | None = None,\n        *,\n        scheduler: Scheduler | None = None,\n    ) -> None",
+              "signature": "def __init__(\r\n        self,\r\n        fill_model: FillModel | None = None,\r\n        *,\r\n        scheduler: Scheduler | None = None,\r\n    ) -> None",
               "line_start": 117,
               "line_end": 129
             },

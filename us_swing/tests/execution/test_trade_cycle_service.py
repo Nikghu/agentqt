@@ -20,6 +20,7 @@ from us_swing.execution.trade_cycle._dto import (
     TradeCycleState,
 )
 from us_swing.execution.trade_cycle._events import (
+    CycleAborted,
     CycleClosed,
     CycleOpened,
     CycleUpdated,
@@ -446,6 +447,35 @@ def test_reload_reattaches_open_cycles_after_restart(
         assert "MSFT" in new_svc._accs_by_sym
     finally:
         new_svc.stop()
+
+
+def test_abort_entry_order_aborts_opening_cycle(
+    svc: TradeCycleService, bus: MagicMock
+) -> None:
+    """UT-EXE-012.002.M02.T16: abort_entry_order aborts a partial-filled OPENING cycle on reject."""
+    held = svc.on_entry_fill(
+        **_entry_kwargs(order_state=ExecutionEnums.BuyOrderState.PARTIAL_FILLED)
+    )
+    assert held.state == TradeCycleState.OPENING
+
+    snap = svc.abort_entry_order("ord-001", "broker_reject")
+
+    assert snap is not None
+    assert snap.state == TradeCycleState.ABORTED
+    aborted = _published_of(bus, CycleAborted)
+    assert len(aborted) == 1
+    assert aborted[0].cycle_id == held.cycle_id
+    assert aborted[0].reason == "broker_reject"
+
+
+def test_abort_entry_order_no_cycle_is_noop(
+    svc: TradeCycleService, bus: MagicMock
+) -> None:
+    """UT-EXE-012.002.M02.T17: abort_entry_order is a no-op when no cycle was opened."""
+    snap = svc.abort_entry_order("never-filled", "broker_reject")
+
+    assert snap is None
+    assert _published_of(bus, CycleAborted) == []
 
 
 def test_no_pyqt6_import_under_trade_cycle() -> None:

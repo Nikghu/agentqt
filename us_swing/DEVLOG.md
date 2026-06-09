@@ -2,6 +2,33 @@
 
 ---
 
+## [20260609] EXE — FO-EXE-017 Absolute Capital Allocation, Capital-Max Sizing & Advisory Risk Warnings (Session 61)
+
+- Type: Feature (full FO→SRD→DD→MD→UTCD→Code→Tests→RN chain)
+- FO(s): FO-EXE-017 (refines FO-EXE-001/005/011)
+- RN: RN-EXE-1.20.0-20260609
+- Artifacts updated: FO, SRD (EXE 017.001–014 Implemented; GUI-014.013 Reopen), DD, MD, UTCD (22 tests Pass), Code (12 modules), Tests (2 new files), TRACE, RN, CONTEXT §0, DEVLOG, TODO
+- Decisions:
+  - Max Capital is absolute `$` (`max_capital_value`), not `%`; sizing driven by strategy Capital Max, not risk-per-trade
+  - Max Position / Risk-per-trade / Max Daily Loss are advisory (warn-only); only circuit breaker + per-strategy capital cap block
+  - Live: Max Capital > broker cash → warn + use 90% of cash; stored setting never mutated
+  - Rex auto-resets on STOPPED→RUNNING; display shows remaining re-entries (never negative), pending duplicate suppressed
+  - `RiskWarning` added to the `StrategyEvent` union (not `_protocols.py`); `RiskManager` ctor back-compatible (`effective_capital_provider` defaults to equity)
+- Tests: 22 new pass; full execution+gui 204 pass / 21 pre-existing failures (verified identical with changes stashed); ruff + mypy --strict clean on changed files
+- Not yet committed
+
+---
+
+## [20260608] EXE — ISS-EXE-0002 manual-order fill race fix (Session 60)
+
+- Type: Bugfix
+- FO(s): FO-EXE-015
+- RN: RN-EXE-1.19.0-20260608
+- Artifacts updated: Code (3 modules), Tests (1 regression test), ISS report, RN, TRACE, CONTEXT §0, DEVLOG
+- Decisions: Context keyed by `client_ref` (signal_id) instead of broker_order_id; registered before placement (thread-agnostic); idempotent `insert_trade` tolerates fill-before-acceptance race
+
+---
+
 ## [20260604] EXE + INF — Broker-legacy cleanup close-out + FO-EXE-016 (retire positions table) (Session 59)
 
 - Type: Refactor (legacy removal) + Feature (FO-EXE-016) + delivery-gap fix
