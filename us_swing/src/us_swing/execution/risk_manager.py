@@ -1,6 +1,7 @@
 """
-Module: MD-EXE-001.001.M01 — RiskManager
-Parent SRD: SRD-EXE-001.001, SRD-EXE-001.002, SRD-EXE-005.004
+Module: MD-EXE-001.001.M01 / MD-EXE-017.001.M01 — RiskManager
+Parent SRD: SRD-EXE-001.001, SRD-EXE-001.002, SRD-EXE-005.004,
+            SRD-EXE-017.003, SRD-EXE-017.005, SRD-EXE-017.006
 """
 from __future__ import annotations
 
@@ -10,6 +11,7 @@ from collections.abc import Callable, Sequence
 from typing import Protocol
 
 from us_swing.data.models import AccountState, OpenPosition, RiskConfig
+from us_swing.execution.strategy_engine._events import RiskWarning
 from us_swing.execution.strategy_engine._protocols import (
     CanAllocateResult,
     ValidationResult,
@@ -35,31 +37,61 @@ class RiskManager:
         cb_state_provider: Callable[[], bool],
         user_id: int,
         tracker: _PositionSource | None = None,
+        effective_capital_provider: Callable[[], float] | None = None,
+        warning_sink: Callable[[RiskWarning], None] | None = None,
     ) -> None:
         self._config = config
         self._account_provider = account_provider
         self._cb_state_provider = cb_state_provider
         self._user_id = user_id
         self._tracker = tracker
+        self._effective_capital_provider = effective_capital_provider
+        self._warning_sink = warning_sink
+
+    # ── Internal helpers ──────────────────────────────────────────────────────
+
+    def _effective_capital(self) -> float:
+        """Per-user dollar budget; falls back to account equity when unset."""
+        if self._effective_capital_provider is not None:
+            return self._effective_capital_provider()
+        return self._account_provider().equity
+
+    def _emit_warning(self, kind: str, symbol: str, message: str) -> None:
+        if self._warning_sink is not None:
+            self._warning_sink(RiskWarning(kind=kind, symbol=symbol, message=message))
+
+    @staticmethod
+    def size_for_strategy(
+        entry_price: float,
+        capital_max_pct: int,
+        effective_capital: float,
+    ) -> int:
+        """Share count so that `entry_price × qty ≤ effective_capital × pct/100`."""
+        if entry_price <= 0:
+            return 0
+        budget = effective_capital * capital_max_pct / 100.0
+        return math.floor(budget / entry_price)
 
     # ── RiskValidator protocol ────────────────────────────────────────────────
 
     def validate(self, signal: TradeSignal) -> ValidationResult:
-        """Full gate: resolves account + CB state, validates, computes qty."""
+        """Final gate: only the circuit breaker blocks; other limits are advisory.
+
+        The submission quantity is the capital-max-sized `qty_recommended` set by
+        the router (FO-EXE-017), not the legacy risk-per-trade formula.
+        """
         account = self._account_provider()
         cb_active = self._cb_state_provider()
         result = self.validate_signal(signal, account, cb_active)
         if not result.ok:
             return result
-        qty = self.calculate_position_size(signal, account)
-        return ValidationResult(ok=True, qty=qty)
+        return ValidationResult(ok=True, qty=signal.qty_recommended or 0)
 
     def can_allocate(self, strategy_id: str, capital_max_pct: int) -> CanAllocateResult:
-        """Check if a strategy has room under its per-strategy capital cap."""
+        """Blocking per-strategy cap measured against the absolute capital budget."""
         if self._tracker is None:
             return CanAllocateResult(ok=True)
-        account = self._account_provider()
-        limit = account.equity * capital_max_pct / 100
+        limit = self._effective_capital() * capital_max_pct / 100.0
         deployed = sum(
             p.average_price * p.quantity
             for p in self._tracker.get_all(self._user_id)
@@ -80,33 +112,32 @@ class RiskManager:
         account_state: AccountState,
         cb_active: bool,
     ) -> ValidationResult:
-        """Three-check gate; synchronous, no IBKR calls."""
+        """Only the circuit breaker blocks; max-position and risk-per-trade warn."""
         if cb_active:
             return ValidationResult(ok=False, reason="circuit breaker active")
 
         entry = signal.entry_price or 0.0
-        qty = self.calculate_position_size(signal, account_state)
+        qty = signal.qty_recommended or 0
         proposed = entry * qty
 
         if proposed > self._config.max_position_value:
-            return ValidationResult(
-                ok=False,
-                reason=(
-                    f"position value {proposed:.2f} exceeds limit"
-                    f" {self._config.max_position_value:.2f}"
-                ),
+            self._emit_warning(
+                "max_position",
+                signal.symbol,
+                f"[Risk] {signal.symbol} position ${proposed:.0f} exceeds max position "
+                f"${self._config.max_position_value:.0f}",
             )
 
-        deployed = account_state.open_position_value
-        allowed = account_state.equity * self._config.max_allocation_pct / 100
-        if deployed + proposed > allowed:
-            return ValidationResult(
-                ok=False,
-                reason=(
-                    f"capital allocation limit: deployed {deployed:.2f} + required"
-                    f" {proposed:.2f} > allowed {allowed:.2f}"
-                ),
-            )
+        stop = signal.stop_loss or 0.0
+        if entry > 0 and stop > 0 and account_state.equity > 0:
+            risk_pct = abs(entry - stop) * qty / account_state.equity * 100.0
+            if risk_pct > self._config.risk_per_trade_pct:
+                self._emit_warning(
+                    "risk_per_trade",
+                    signal.symbol,
+                    f"[Risk] {signal.symbol} trade risk {risk_pct:.1f}% exceeds limit "
+                    f"{self._config.risk_per_trade_pct:.1f}%",
+                )
 
         return ValidationResult(ok=True)
 
@@ -132,7 +163,7 @@ class RiskManager:
         account_state: AccountState,
         user_id: int,
     ) -> bool:
-        """True if projected position fits within user's max_allocation_pct."""
+        """True if the projected position fits within the absolute capital budget."""
         entry = signal.entry_price or 0.0
         if entry <= 0:
             return False
@@ -140,5 +171,4 @@ class RiskManager:
         required = entry * qty
         positions = self._tracker.get_all(user_id) if self._tracker else []
         deployed = sum(p.average_price * p.quantity for p in positions)
-        allowed = account_state.equity * self._config.max_allocation_pct / 100
-        return deployed + required <= allowed
+        return deployed + required <= self._effective_capital()

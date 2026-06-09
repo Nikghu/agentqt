@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import math
 from collections.abc import Callable
 from datetime import datetime, time
 from typing import TYPE_CHECKING
@@ -73,6 +74,7 @@ class _Router:
         clock: Callable[[], datetime] | None = None,
         user_id_provider: Callable[[], int] | None = None,
         cycle_query: TradeCycleQuery | None = None,
+        effective_capital_provider: Callable[[], float] | None = None,
     ) -> None:
         self._queue = queue
         self._registry = registry
@@ -85,6 +87,7 @@ class _Router:
         self._clock = clock or (lambda: datetime.now(_ET))
         self._user_id_provider = user_id_provider or (lambda: 0)
         self._cycle_query = cycle_query
+        self._effective_capital_provider = effective_capital_provider
         self._stop_event = asyncio.Event()
         self._emergency_active = False
         self._quiesced_event = asyncio.Event()
@@ -198,9 +201,19 @@ class _Router:
                                  ctx.name, symbol)
                         return
 
+                qty = self._size_entry(ctx, float(bar.close))
+                if qty < 1:
+                    signal_pre = self._build_entry_signal(ctx, symbol, bar)
+                    self._bus.publish(
+                        StrategySignalDropped(signal=signal_pre, reason="capital_insufficient")
+                    )
+                    log.warning("[Strategy] %s Capital Max insufficient for entry on %s",
+                                ctx.name, symbol)
+                    return
+
                 cap = self._risk.can_allocate(ctx.name, ctx.cfg.capital_max)
                 if not cap.ok:
-                    signal_pre = self._build_entry_signal(ctx, symbol, bar)
+                    signal_pre = self._build_entry_signal(ctx, symbol, bar, qty=qty)
                     self._bus.publish(
                         StrategySignalDropped(signal=signal_pre, reason=cap.reason or "capital_cap")
                     )
@@ -208,7 +221,7 @@ class _Router:
                                 ctx.name, symbol, cap.reason or "capital_cap")
                     return
 
-                signal = self._build_entry_signal(ctx, symbol, bar)
+                signal = self._build_entry_signal(ctx, symbol, bar, qty=qty)
                 ctx.in_flight.add(symbol)
                 action = Action.ENTRY
 
@@ -400,11 +413,21 @@ class _Router:
 
     # ── Helpers ──────────────────────────────────────────────────────────────
 
+    def _size_entry(self, ctx: _StrategyContext, entry_price: float) -> int:
+        """Capital-max share count; legacy `1` when no capital budget is wired."""
+        if self._effective_capital_provider is None:
+            return 1
+        if entry_price <= 0:
+            return 0
+        budget = self._effective_capital_provider() * ctx.cfg.capital_max / 100.0
+        return math.floor(budget / entry_price)
+
     def _build_entry_signal(
         self,
         ctx: _StrategyContext,
         symbol: str,
         bar: OHLCVBar,
+        qty: int = 1,
     ) -> TradeSignal:
         entry_price = float(bar.close)
         stop_loss: float | None = None
@@ -420,7 +443,7 @@ class _Router:
             entry_price=entry_price,
             stop_loss=stop_loss,
             target=target,
-            qty_recommended=1,
+            qty_recommended=qty,
             user_id=self._user_id_provider(),
         )
 

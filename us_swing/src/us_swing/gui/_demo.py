@@ -27,13 +27,13 @@ from us_swing.gui.system_store import SystemConfig, load_system_config
 
 _USERS: list[UserProfile] = [
     UserProfile(1, "Alice", "Alice", 101, "paper",
-                risk_config=RiskConfig(risk_per_trade_pct=1.0, max_allocation_pct=50.0),
+                risk_config=RiskConfig(risk_per_trade_pct=1.0, max_capital_value=4_000.0),
                 strategy_config={}, screener_config={}),
     UserProfile(2, "Bob",   "Bob",   102, "paper",
-                risk_config=RiskConfig(risk_per_trade_pct=1.5, max_allocation_pct=40.0),
+                risk_config=RiskConfig(risk_per_trade_pct=1.5, max_capital_value=3_000.0),
                 strategy_config={}, screener_config={}),
     UserProfile(3, "Carol", "Carol", 103, "paper",
-                risk_config=RiskConfig(risk_per_trade_pct=0.5, max_allocation_pct=30.0),
+                risk_config=RiskConfig(risk_per_trade_pct=0.5, max_capital_value=2_000.0),
                 strategy_config={}, screener_config={}),
 ]
 

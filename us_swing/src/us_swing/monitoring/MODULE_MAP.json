@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-04T12:40:05",
+  "generated": "2026-06-09T14:39:04",
   "subfolder": "monitoring",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\monitoring",
   "tool_code": "INF",
@@ -164,11 +164,18 @@
               "name": "_check_db",
               "signature": "def _check_db(self) -> tuple[bool, dict[str, Any]]",
               "line_start": 70,
-              "line_end": 87
+              "line_end": 84
+            },
+            {
+              "name": "_count_open_cycles",
+              "signature": "def _count_open_cycles(self) -> int",
+              "docstring": "Count non-terminal trade_cycles \u2014 the live open-position surface.",
+              "line_start": 86,
+              "line_end": 97
             }
           ],
           "line_start": 16,
-          "line_end": 87
+          "line_end": 97
         }
       ]
     },

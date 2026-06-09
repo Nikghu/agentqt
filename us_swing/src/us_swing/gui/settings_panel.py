@@ -87,10 +87,11 @@ class _UserDialog(QDialog):
         self._max_pos.setSingleStep(1_000)
         self._max_pos.setValue(rc.max_position_value)
         self._max_cap    = QDoubleSpinBox()
-        self._max_cap.setRange(5.0, 100.0)
+        self._max_cap.setRange(100.0, 1_000_000.0)
         self._max_cap.setDecimals(0)
-        self._max_cap.setSuffix(" %")
-        self._max_cap.setValue(rc.max_allocation_pct)
+        self._max_cap.setPrefix("$ ")
+        self._max_cap.setSingleStep(500)
+        self._max_cap.setValue(rc.max_capital_value)
         self._max_loss   = QDoubleSpinBox()
         self._max_loss.setRange(0.5, 10.0)
         self._max_loss.setDecimals(1)
@@ -130,7 +131,7 @@ class _UserDialog(QDialog):
             risk_config     = RiskConfig(
                 risk_per_trade_pct = self._risk.value(),
                 max_position_value = self._max_pos.value(),
-                max_allocation_pct = self._max_cap.value(),
+                max_capital_value  = self._max_cap.value(),
                 max_daily_loss_pct = self._max_loss.value(),
                 default_order_type = self._order_type.currentText(),
                 confirm_orders     = self._confirm.isChecked(),
@@ -150,7 +151,7 @@ class _UsersTab(QWidget):
         self._table = QTableWidget(0, 11)
         self._table.setHorizontalHeaderLabels([
             "ID", "Username", "Display Name", "IBKR ID", "Mode",
-            "Risk %", "Max Capital %", "Max Position", "Max Daily Loss", "Default Order", "Order Confirm",
+            "Risk %", "Max Capital $", "Max Position", "Max Daily Loss", "Default Order", "Order Confirm",
         ])
         self._table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self._table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
@@ -163,7 +164,7 @@ class _UsersTab(QWidget):
         self._table.setColumnWidth(3, 70)   # IBKR ID
         self._table.setColumnWidth(4, 60)   # Mode
         self._table.setColumnWidth(5, 65)   # Risk %
-        self._table.setColumnWidth(6, 100)  # Max Capital %
+        self._table.setColumnWidth(6, 100)  # Max Capital $
         self._table.setColumnWidth(7, 110)  # Max Position
         self._table.setColumnWidth(8, 105)  # Max Daily Loss
         self._table.setColumnWidth(9, 100)  # Default Order
@@ -205,7 +206,7 @@ class _UsersTab(QWidget):
                 str(u.ibkr_client_id),
                 u.mode,
                 f"{rc.risk_per_trade_pct:.1f}%",
-                f"{rc.max_allocation_pct:.0f}%",
+                f"${rc.max_capital_value:,.0f}",
                 f"${rc.max_position_value:,.0f}",
                 f"{rc.max_daily_loss_pct:.1f}%",
                 rc.default_order_type,
@@ -279,7 +280,7 @@ class _RiskTab(QWidget):
         rc = user.risk_config
         self._risk      = _spin(0.1, 10.0, rc.risk_per_trade_pct, suffix=" %")
         self._max_pos   = _spin(1000, 500_000, rc.max_position_value, dec=0, suffix=" $")
-        self._max_cap   = _spin(5, 100, rc.max_allocation_pct, suffix=" %")
+        self._max_cap   = _spin(100, 1_000_000, rc.max_capital_value, dec=0, suffix=" $")
         self._max_loss  = _spin(0.5, 10.0, rc.max_daily_loss_pct, suffix=" %")
         self._ord_type  = QComboBox()
         self._ord_type.addItems(["MKT", "LMT", "MOO", "LOO"])
@@ -289,7 +290,7 @@ class _RiskTab(QWidget):
 
         form.addRow("Risk per trade:",         self._risk)
         form.addRow("Max single position:",    self._max_pos)
-        form.addRow("Max capital deployed:",   self._max_cap)
+        form.addRow("Max capital:",            self._max_cap)
         form.addRow("Max daily loss:",         self._max_loss)
         form.addRow("Default order type:",     self._ord_type)
         form.addRow("",                        self._confirm)

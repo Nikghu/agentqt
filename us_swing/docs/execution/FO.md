@@ -1,15 +1,16 @@
 # Functional Objectives — Execution & Risk Management (EXE)
 
 **Document ID:** FO-EXE
-**Version:** 1.11.0
+**Version:** 1.12.0
 **Status:** Draft
-**Last Updated:** 2026-06-04
+**Last Updated:** 2026-06-09
 **Project:** US Swing Trading System
 
 > Traces to: `us_swing/requirements.md` §10, §11, §12, §13, §21.4, §22, §23, §25
 > v1.9.0: FO-EXE-014 added — Broker Order State Machine (Final_Execution.md Phase 3 split of `PositionState` into `BuyOrderState` + `SellOrderState`; `trades.pnl` and `positions.state` removed).
 > v1.10.0: FO-EXE-015 added — Broker-Agnostic Order Ingestion & Adapter (Broker_fix.md Phases 2/5/6).
 > v1.11.0: FO-EXE-016 added — Retire `positions` table; drive the monitoring-session Lifecycle from `OrderIngestion` fills (supersedes cleanup.md Steps 7B–8).
+> v1.12.0: FO-EXE-017 added — Absolute Capital Allocation, Capital-Max Position Sizing & Advisory Risk Warnings (refines FO-EXE-001, FO-EXE-005, FO-EXE-011).
 
 ---
 
@@ -522,3 +523,56 @@ Every order — paper included — shall flow through one broker-agnostic pipeli
 4. Grep of the codebase shows zero references to the `positions` `sa.Table`, `upsert_position`, `delete_position`, or `fetch_open_positions` outside migration history.
 5. Dropping the `positions` table leaves the app importable and the full test suite at its pre-existing failure baseline (no new failures).
 6. The `monitoring_session` ledger-transition methods (`transition_to_entered` / `transition_to_exited`) remain and are exercised by the ingestion-driven path.
+
+---
+
+## FO-EXE-017: Absolute Capital Allocation, Capital-Max Position Sizing & Advisory Risk Warnings
+
+**Status:** Approved
+**Priority:** Must
+**Depends on:** FO-EXE-001 (Risk-Controlled Order Submission), FO-EXE-005 (Capital Availability Check), FO-EXE-011 (Strategy Engine capital cap via `can_allocate`), FO-GUI-013 (`StrategyConfig` contract)
+**Source:** User session 2026-06-09 — replace percentage-of-equity capital model with an absolute per-user dollar budget; size positions from each strategy's Capital Max; downgrade non-capital risk limits from blocking to advisory.
+**Refines:** FO-EXE-001 (position-size formula), FO-EXE-005 (`can_enter_new` semantics), FO-EXE-011 req 9 (`can_allocate` basis). Where this FO conflicts with the percentage-allocation wording in those FOs, this FO governs.
+**Cross-tool impact (notes, not EXE IDs):** GUI — Settings "Max capital" field changes from `%` to `$` (FO-GUI Settings panel). INF/data — `RiskConfig.max_allocation_pct` (%) is replaced by `max_capital_value` ($) in `data/models.py`, `config/settings.py`, `gui/user_store.py`, `user/manager.py`, with a settings-JSON migration.
+
+### Absolute per-user capital budget
+
+- The system shall treat each user's **Max Capital** as an absolute dollar amount (e.g. `$2,000`), not a percentage of equity.
+- In **paper** mode the system shall use Max Capital as the account's starting equity for all capital and sizing checks.
+- In **live** mode the system shall compare Max Capital against the broker's Available Cash on connect; when Max Capital exceeds Available Cash it shall emit one LIVE-LOG warning that the user does not have enough money for the configured user-level budget, and use an **effective capital of 90% of Available Cash** for sizing, while leaving the stored Max Capital setting unchanged.
+- When Max Capital is within Available Cash the effective capital shall equal the stored Max Capital.
+
+### Capital-max position sizing (per strategy, per stock)
+
+- For each ENTRY the system shall size quantity from the owning strategy's **Capital Max** percentage of effective capital: `strategy_budget = effective_capital × capital_max_pct / 100`.
+- The system shall compute `qty = floor(strategy_budget / entry_price)` so that `entry_price × qty ≤ strategy_budget`; total position for that entry shall not exceed `strategy_budget`.
+- When `qty < 1` (entry price exceeds the strategy budget) the system shall **not enter**, and shall emit a LIVE-LOG warning that Capital Max is insufficient for entry for that symbol.
+- The sum of open-position value for a strategy shall remain at or below that strategy's `strategy_budget` (capital cap is a **blocking** control).
+
+### Single entry per stock per strategy
+
+- The system shall allow at most one open position per `(strategy, symbol)` pair; a second ENTRY for an already-open pair shall be suppressed (existing FO-EXE-011 behaviour, retained).
+- The same symbol may be entered concurrently by a **different** strategy, each bounded by its own Capital Max budget.
+
+### Advisory (non-blocking) risk warnings
+
+- **Max Position**, **Risk per trade**, and **Max Daily Loss** shall be **advisory only** — breaching any of them shall raise a LIVE-LOG warning and a GUI pop-up, and shall **not** block, resize, or close any order.
+- Max Position shall be treated as a **per-trade** dollar ceiling for the warning.
+- The Max Daily Loss warning shall be evaluated against the **aggregate loss of all currently active trades** (combined unrealised plus realised loss for the day), not a single position.
+
+### Re-entry (Rex) counter
+
+- A strategy's **Rex Count** shall define how many additional entries beyond the first are allowed for each `(strategy, symbol)` pair over the strategy's run: `rex_count = 0` permits exactly one entry per stock; `rex_count = 3` permits four entries (each an entered-then-exited cycle).
+- The system shall decrement the counter by one on each entry fill and block further entries for that pair once the remaining count would go below zero.
+- On a strategy stop-and-restart (or run-end-date rollover) the system shall reset every Rex counter for that strategy to the user-configured Rex Count.
+- The GUI shall display the **remaining re-entries** for a pair clearly; an exhausted counter shall not render as a negative number, and a pending signal for a stock shall not display another row's exhausted counter.
+
+### Acceptance Criteria
+
+1. Paper user with Max Capital `$2,000` and a strategy at Capital Max `25%` receives an entry signal at `$96.00` → `strategy_budget = $500`, `qty = floor(500/96) = 5`, position value `$480 ≤ $500`.
+2. Same user, entry price `$520` (> `$500` budget) → no order is placed and a LIVE-LOG "Capital Max insufficient for entry" warning is emitted.
+3. Live user with Max Capital `$5,000` but broker Available Cash `$3,000` → one LIVE-LOG warning is emitted and sizing uses effective capital `$2,700` (90% of `$3,000`); the stored Max Capital remains `$5,000`.
+4. A trade whose value exceeds Max Position, or a day whose aggregate active-trade loss exceeds Max Daily Loss, produces a LIVE-LOG warning and a pop-up but no order is blocked, resized, or closed.
+5. AAPL open under strategy "SUPERTREND" blocks a second SUPERTREND entry for AAPL, but a second strategy may still enter AAPL within its own Capital Max budget.
+6. With `rex_count = 0`, a stock can be entered once; after exit, a new entry for the same `(strategy, symbol)` is blocked. With `rex_count = 3`, four entry/exit cycles are allowed, the fifth is blocked.
+7. On a strategy `STOPPED → RUNNING` transition the Rex counter for every symbol of that strategy is reset to the configured value (currently only a manual "Reset rex counters" action does this; the start transition shall trigger it automatically), and the Active Trades Rex column shows no negative values and no cross-row leakage onto pending signals.

@@ -35,6 +35,15 @@ class _ManualScheduler:
             self._queue.pop(0)()
 
 
+class _ImmediateScheduler:
+    """Runs the deferred fill synchronously *inside* ``place_order`` — i.e.
+    before ``submit`` reaches ``on_order_accepted``.  Reproduces the cross-thread
+    race where the broker delivers a fill ahead of the acceptance step."""
+
+    def __call__(self, callback: Callable[[], None]) -> None:
+        callback()
+
+
 @dataclass
 class _StubConfig:
     target_enabled: bool = True
@@ -152,3 +161,39 @@ def test_exit_signal_closes_cycle() -> None:
 
     assert _trade_row(mgr, str(order_id))[0] == "FILLED"
     assert cycles.calls == [("exit", "target")]
+
+
+def test_fill_arriving_before_acceptance_is_not_dropped() -> None:
+    """Regression: a fill delivered before ``on_order_accepted`` must still be
+    ingested — context is keyed by client_ref and registered before placement,
+    so the order is never seen as "unknown" and the cycle still opens."""
+    mgr = _make_db()
+    cycles = _StubCycles()
+    engine_fills: list[object] = []
+    ingestion = OrderIngestion(ledger=mgr, fill_sink=engine_fills.append, cycles=cycles)
+    adapter = BrokerAdapter(
+        # ImmediateScheduler fires the fill inside place_order — before the
+        # acceptance insert — which is exactly the dropped-fill race condition.
+        broker=SimBroker(ImmediateFillModel(), scheduler=_ImmediateScheduler()),
+        ingestion=ingestion,
+        config_provider=lambda _sid: _StubConfig(),
+        user_id_provider=lambda: 1,
+        session_date_provider=lambda: "2026-06-04",
+    )
+
+    signal = TradeSignal(
+        action=Action.ENTRY,
+        symbol="AAPL",
+        strategy_id="S1",
+        entry_price=100.0,
+        qty_recommended=10,
+        user_id=1,
+    )
+    order_id = adapter.submit(signal, 10)
+
+    state, filled, entry_price = _trade_row(mgr, str(order_id))
+    assert state == "FILLED"
+    assert filled == 10
+    assert entry_price == 100.0
+    assert len(engine_fills) == 1
+    assert cycles.calls == [("entry", 95.0)]

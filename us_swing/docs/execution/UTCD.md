@@ -1,12 +1,13 @@
 ﻿# Unit Test Case Document â€” Execution & Risk Management (EXE)
 
 **Document ID:** UTCD-EXE
-**Version:** 1.8.0
-**Traces To:** MD-EXE v1.7.0
+**Version:** 1.9.0
+**Traces To:** MD-EXE v1.10.0
 **Status:** Draft
-**Last Updated:** 2026-05-28
+**Last Updated:** 2026-06-09
 **Project:** US Swing Trading System
 
+> v1.9.0: UT-EXE-017.* added (22 tests) — capital-max sizing, advisory risk split, capital-insufficient drop, rex auto-reset, rex display fix, RiskConfig migration, effective-capital + daily-loss aggregation (FO-EXE-017).
 > v1.8.0: UT-EXE-014.001.M01.T01–T06 added — BuyOrderState / SellOrderState broker-order state machine + legacy `status` backfill (Final_Execution.md Phase 3).
 > v1.7.0: UT-EXE-011.001.M08.* (RexCounterRepository, 8 tests) and UT-EXE-011.001.M04.T11–T16 (rex_count gate + decrement, 6 tests) added.
 > v1.6.0: UTCD-EXE-011 (Strategy Engine, 30 tests) and UTCD-EXE-012 (Trade Cycle Ledger, 25 tests) added.
@@ -587,3 +588,67 @@
 | UT-EXE-014.008.M01.T03 | MD-EXE-009.002.M02 | Positive | The FILLED fill completing a partial entry flips MONITORING → ENTERED | partial BUY then FILLED BUY for the same symbol | row ENTERED; `SymbolEnteredPosition` published | Pass |
 | UT-EXE-014.008.M01.T04 | MD-EXE-009.002.M02 | Positive | A FILLED SELL that closes the position flips ENTERED → EXITED | FILLED BUY then FILLED SELL that drives quantity to 0 | row EXITED; `SymbolExitedPosition` published | Pass |
 | UT-EXE-014.008.M01.T05 | MD-EXE-009.002.M02 | Negative | A SELL not fully FILLED does not flip ENTERED → EXITED | FILLED BUY then PARTIAL_FILLED SELL of the full quantity | row stays ENTERED; no `SymbolExitedPosition` | Pass |
+
+---
+
+## Module: `execution/risk_manager.py` — Capital-max sizing & advisory split (FO-EXE-017)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-017.003.M01.T01 | MD-EXE-017.001.M01 | Positive | `size_for_strategy` standard case | eff_cap=$2000; capital_max=25%; entry=$96 | `5` (budget $500 / 96 → floor 5; value $480 ≤ $500) | Pass |
+| UT-EXE-017.003.M01.T02 | MD-EXE-017.001.M01 | Edge | Sizing at exact budget boundary | eff_cap=$2000; capital_max=25%; entry=$100 | `5` (value $500 = budget, allowed) | Pass |
+| UT-EXE-017.003.M01.T03 | MD-EXE-017.001.M01 | Negative | Entry price exceeds whole budget → no shares | eff_cap=$2000; capital_max=25%; entry=$520 | `0` | Pass |
+| UT-EXE-017.003.M01.T04 | MD-EXE-017.001.M01 | Negative | Non-positive entry price | eff_cap=$2000; capital_max=25%; entry=$0 | `0` | Pass |
+| UT-EXE-017.005.M01.T05 | MD-EXE-017.001.M01 | Positive | `can_allocate` room under budget | budget $500; strategy deployed $300 | `CanAllocateResult(ok=True)` | Pass |
+| UT-EXE-017.005.M01.T06 | MD-EXE-017.001.M01 | Negative | `can_allocate` at/over budget blocks | budget $500; strategy deployed $500 | `CanAllocateResult(ok=False, reason='…capital limit')` | Pass |
+| UT-EXE-017.006.M01.T07 | MD-EXE-017.001.M01 | Positive | Max-position breach is advisory, not blocking | `validate` with proposed value > `max_position_value` | `ValidationResult(ok=True, qty>0)`; one `RiskWarning(kind='max_position')` published | Pass |
+| UT-EXE-017.006.M01.T08 | MD-EXE-017.001.M01 | Negative | Circuit breaker still blocks | `validate` with `cb_active=True` | `ValidationResult(ok=False, reason='circuit breaker active')`; no order | Pass |
+
+---
+
+## Module: `execution/strategy_engine/_router.py` — Capital-insufficient drop & sized signal (FO-EXE-017)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-017.004.M03.T01 | MD-EXE-017.003.M03 | Negative | Entry dropped when sized qty < 1 | Active branch, entry fires, `size_for_strategy → 0` | `StrategySignalDropped(reason='capital_insufficient')`; no enqueue; no `in_flight` add; WARNING logged | Pass |
+| UT-EXE-017.009.M03.T02 | MD-EXE-017.003.M03 | Positive | Built entry signal carries sized qty | `_build_entry_signal` with eff_cap=$2000, capital_max=25%, entry=$96 | `signal.qty_recommended == 5` (not `1`) | Pass |
+
+---
+
+## Module: `execution/strategy_engine/_engine.py` — Rex auto-reset on start (FO-EXE-017)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-017.010.M04.T01 | MD-EXE-017.004.M04 | Positive | Start transition resets rex counters | `_apply_run_state(sid, RUNNING)` with previous `STOPPED` | `RexCounterRepository.reset(sid)` called once; INFO logged | Pass |
+| UT-EXE-017.010.M04.T02 | MD-EXE-017.004.M04 | Negative | Pause does not reset | `_apply_run_state(sid, STOPPED)` with previous `RUNNING` | `reset` not called | Pass |
+
+---
+
+## Module: `gui/active_cycles_model.py` — Rex display fix (FO-EXE-017)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-017.011.M05.T01 | MD-EXE-017.011.M05 | Positive | Exhausted counter renders 0, not -1 | row with stored `remaining = -1` | Rex cell text == `"0"` | Pass |
+| UT-EXE-017.011.M05.T02 | MD-EXE-017.011.M05 | Positive | Positive remaining renders verbatim | row with stored `remaining = 2` | Rex cell text == `"2"` | Pass |
+| UT-EXE-017.011.M05.T03 | MD-EXE-017.011.M05 | Edge | Pending duplicate suppresses shared count | PENDING row for `(SUPERTREND, CVS)` while an OPEN row exists for same pair | Rex cell text == `"—"` | Pass |
+
+---
+
+## Module: `gui/user_store.py` + `data/models.py` — RiskConfig migration (FO-EXE-017)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-017.014.M07.T01 | MD-EXE-017.007.M07 | Positive | Legacy JSON migrates to absolute capital | settings JSON with `max_allocation_pct=50.0`, no `max_capital_value` | `RiskConfig.max_capital_value == 2000.0` (default); no `max_allocation_pct` attribute; INFO logged | Pass |
+| UT-EXE-017.014.M07.T02 | MD-EXE-017.007.M07 | Positive | Round-trip of new field | `RiskConfig(max_capital_value=3500.0)` → `_to_dict` → `_from_dict` | restored `max_capital_value == 3500.0` | Pass |
+
+---
+
+## Module: `gui/app_service.py` — Effective capital & daily-loss aggregation (FO-EXE-017)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-017.001.M09.T01 | MD-EXE-017.009.M09 | Positive | Paper budget = stored Max Capital | paper user, `max_capital_value=$2000` | `effective_capital == 2000.0` | Pass |
+| UT-EXE-017.001.M09.T02 | MD-EXE-017.009.M09 | Positive | Live budget within cash kept as-is | live, cap=$3000, `total_cash_value=$5000` | `effective_capital == 3000.0`; no warning | Pass |
+| UT-EXE-017.002.M09.T03 | MD-EXE-017.009.M09 | Negative | Live budget over cash falls to 90% + warns | live, cap=$5000, `total_cash_value=$3000` | `effective_capital == 2700.0`; one `[Risk]` WARNING; stored cap still $5000 | Pass |
+| UT-EXE-017.007.M09.T04 | MD-EXE-017.009.M09 | Positive | Aggregate active-trade loss crosses threshold | open+closed cycles summing to −$2100; threshold −$2000 | one `RiskWarning(kind='daily_loss')`; no order blocked | Pass |
+| UT-EXE-017.007.M09.T05 | MD-EXE-017.009.M09 | Negative | Within threshold, and no duplicate warnings | day PnL −$500 (threshold −$2000); then a second tick still below | no `RiskWarning`; latch emits at most one per crossing | Pass |

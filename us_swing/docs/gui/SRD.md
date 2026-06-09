@@ -1,10 +1,11 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.11.0
+**Version:** 2.12.0
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
-**Last Updated:** 2026-05-28
+**Last Updated:** 2026-06-09
+> v2.12.0: SRD-GUI-014.013 marked Reopen — Rex column `-1` display superseded by SRD-EXE-017.011 (FO-EXE-017: show remaining re-entries, never negative, no cross-row leakage).
 > v2.11.0: SRD-GUI-002.005 marked Reopen — Trade History columns now show `Order State` and `Filled` per FO-EXE-014; `Entry`, `Exit`, and `P&L` columns removed (P&L lives on the Dashboard KPI cards and inside `trade_cycles`).
 > v2.10.0: SRD-GUI-014.014 (AppService event_stream adapter) added for Active Trades panel rollout.
 > v2.9.0: SRD-GUI-013.015 (Reset Strategy action) and SRD-GUI-014.013 (Rex column) added for rex_count enforcement.
@@ -211,5 +212,5 @@
 | SRD-GUI-014.010 | FO-GUI-014 | Must | When `rowCount() == 0`, the `QTableView` is hidden and an empty-state `QLabel` ("No active cycles — pending signals and open positions appear here") is shown. | Row count | Placeholder shown | Visibility toggled in `rowCountChanged` handler | Approved |
 | SRD-GUI-014.011 | FO-GUI-014 | Must | Panel reacts to `AppService.viewing_changed`: re-queries `TradeCycleQuery.open_cycles()` and `PendingSignalStore.list()` filtered to the new scope. "All Users" scope prepends a User column (mirroring `PositionTableModel.set_show_user`). | `viewing_changed` | Table refreshed | Single-user scope hides User column | Approved |
 | SRD-GUI-014.012 | FO-GUI-014 | Must | While `AppService.circuit_breaker_active == True`, the `_RowActionsDelegate` paints `[Execute]` disabled with tooltip `Circuit breaker active — no new entries`; `[Close]` and `[Edit Risk ▼]` on OPEN rows remain enabled. | `circuit_breaker_active` | Action cells repainted | Reacts to `circuit_breaker_changed` signal from FO-EXE-003 | Approved |
-| SRD-GUI-014.013 | FO-GUI-014 | Must | `_ActiveCyclesModel` gains a `Rex` column rendering the current `RexCounterRepository.get(strategy_id, symbol)` value for every row (PENDING / OPENING / OPEN / CLOSING); a value of `-1` paints dimmed with tooltip `Rex limit reached — Reset Strategy to re-enable entries`. | Row data | Painted cell | Column queries the repository on row insert and on `StrategyEntered` events; no in-memory cache | Approved |
+| SRD-GUI-014.013 | FO-GUI-014 | Must | `_ActiveCyclesModel` gains a `Rex` column rendering the current `RexCounterRepository.get(strategy_id, symbol)` value for every row (PENDING / OPENING / OPEN / CLOSING); a value of `-1` paints dimmed with tooltip `Rex limit reached — Reset Strategy to re-enable entries`. | Row data | Painted cell | Column queries the repository on row insert and on `StrategyEntered` events; no in-memory cache. **Reopen:** the `-1` display is superseded by SRD-EXE-017.011 (show remaining re-entries, never negative; no cross-row leakage onto pending signals). | Reopen |
 | SRD-GUI-014.014 | FO-GUI-014 | Must | `AppService.event_stream` exposes a `_AppEventStream` adapter with single-callback `subscribe(handler)` API that bridges `_lifecycle_bus` (typed `MonitoringEventBus`) and `_event_bus` (Qt `event_published`) into one sink; `ActiveCyclesPanel` subscribes via this adapter rather than directly to either bus. | constructor | adapter instance | Forwards every event from either source to every subscriber; subscriber exceptions logged but do not affect other subscribers; ordering not guaranteed across the two buses | Approved |

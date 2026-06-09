@@ -73,12 +73,12 @@ def _signal(
 def _config(
     risk_pct: float = 1.0,
     max_pos: float = 10_000.0,
-    max_alloc: float = 50.0,
+    max_cap: float = 2_000.0,
 ) -> RiskConfig:
     return RiskConfig(
         risk_per_trade_pct=risk_pct,
         max_position_value=max_pos,
-        max_allocation_pct=max_alloc,
+        max_capital_value=max_cap,
     )
 
 
@@ -88,6 +88,7 @@ def _manager(
     deployed: float = 0.0,
     cb: bool = False,
     tracker: _FakeTracker | None = None,
+    effective_capital: float | None = None,
 ) -> RiskManager:
     cfg = config or _config()
     account = _account(equity=equity, deployed=deployed)
@@ -97,6 +98,9 @@ def _manager(
         cb_state_provider=lambda: cb,
         user_id=1,
         tracker=tracker,
+        effective_capital_provider=(
+            (lambda: effective_capital) if effective_capital is not None else None
+        ),
     )
 
 
@@ -156,21 +160,18 @@ def test_position_size_zero_risk_per_share():
 # ── validate_signal ───────────────────────────────────────────────────────────
 
 def test_validate_signal_passes():
-    """UT-EXE-001.001.M01.T03: validate_signal passes when deployment within limit."""
-    # deployed=$20k, equity=$100k, max_pct=50% → allowed=$50k
-    # new_required = 200 * $50 = $10k; 20k+10k=30k <= 50k → pass
+    """UT-EXE-001.001.M01.T03: validate_signal passes for a normal signal."""
     rm = _manager(deployed=20_000.0)
     result = rm.validate_signal(_signal(), _account(deployed=20_000.0), cb_active=False)
     assert result.ok is True
 
 
-def test_validate_signal_rejects_capital_exhausted():
-    """UT-EXE-001.001.M01.T04: validate_signal rejects when deployment exceeds limit."""
-    # deployed=$48k, required=$10k → 58k > 50k → reject
+def test_validate_signal_capital_is_advisory():
+    """UT-EXE-017.006.M01.T07: capital/position limits no longer block (advisory)."""
+    # Even a huge deployment does not reject — only the circuit breaker blocks.
     rm = _manager(deployed=48_000.0)
     result = rm.validate_signal(_signal(), _account(deployed=48_000.0), cb_active=False)
-    assert result.ok is False
-    assert "capital allocation" in result.reason
+    assert result.ok is True
 
 
 def test_validate_signal_rejects_circuit_breaker():
@@ -207,8 +208,8 @@ def test_can_enter_new_false(db: DatabaseManager):
         mode="live",
     )
     tracker.open(pos)
-    rm = _manager(tracker=tracker, equity=100_000.0)
-    # Deployed=$45k, new_required=$10k → 55k > 50k → False
+    # Budget capped at $50k via effective_capital; deployed $45k + $10k = $55k > $50k
+    rm = _manager(tracker=tracker, equity=100_000.0, effective_capital=50_000.0)
     account = _account(equity=100_000.0, deployed=45_000.0)
     result = rm.can_enter_new(_signal(), account, user_id=1)
     assert result is False

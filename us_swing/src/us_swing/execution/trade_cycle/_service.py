@@ -410,6 +410,20 @@ class TradeCycleService:
         ))
         return closed
 
+    def abort_entry_order(self, entry_order_id: str, reason: str) -> CycleSnapshot | None:
+        """Abort the OPENING cycle owning a rejected entry order.
+
+        Resolves the cycle by ``entry_order_id`` and aborts it when it is still
+        OPENING (the partial-fill-then-reject case).  Returns ``None`` without
+        side effects when no cycle was opened — a reject before any fill leaves
+        nothing to abort — or when the cycle has already left OPENING.
+        Idempotent, so ingestion may call it on every reject.
+        """
+        existing = self._repo.find_by_entry_order(entry_order_id)
+        if existing is None or existing.state != TradeCycleState.OPENING:
+            return None
+        return self.on_entry_failed(existing.cycle_id, reason)
+
     def on_entry_failed(self, cycle_id: int, reason: str) -> CycleSnapshot:
         """Abort an OPENING cycle when the entry order is rejected."""
         snap = self._repo.abort(cycle_id, reason)

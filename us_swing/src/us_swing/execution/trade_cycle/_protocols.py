@@ -83,6 +83,10 @@ class TradeCycleCommand(Protocol):
         order_state:   ExecutionEnums.SellOrderState = ExecutionEnums.SellOrderState.FILLED,
     ) -> CycleSnapshot: ...
 
+    def abort_entry_order(
+        self, entry_order_id: str, reason: str
+    ) -> CycleSnapshot | None: ...
+
     def on_entry_failed(self, cycle_id: int, reason: str) -> CycleSnapshot: ...
 
     def update_risk(

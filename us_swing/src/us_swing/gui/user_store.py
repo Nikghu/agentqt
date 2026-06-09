@@ -16,9 +16,12 @@ Security note    : UserProfile contains only trading-config values (no passwords
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 
 from us_swing.data.models import RiskConfig, UserProfile
+
+log = logging.getLogger(__name__)
 
 # ── Storage path ──────────────────────────────────────────────────────────────
 
@@ -38,7 +41,7 @@ def _to_dict(u: UserProfile) -> dict:
         "mode":               u.mode,
         "risk_per_trade_pct": rc.risk_per_trade_pct,
         "max_position_value": rc.max_position_value,
-        "max_allocation_pct": rc.max_allocation_pct,
+        "max_capital_value":  rc.max_capital_value,
         "max_daily_loss_pct": rc.max_daily_loss_pct,
         "default_order_type": rc.default_order_type,
         "confirm_orders":     rc.confirm_orders,
@@ -46,10 +49,15 @@ def _to_dict(u: UserProfile) -> dict:
 
 
 def _from_dict(d: dict) -> UserProfile:
+    if "max_capital_value" not in d and "max_allocation_pct" in d:
+        log.info(
+            "[Settings] Migrated user '%s' to absolute Max Capital ($%.0f)",
+            d.get("username", d.get("user_id", "?")), 2_000.0,
+        )
     risk = RiskConfig(
         risk_per_trade_pct = float(d.get("risk_per_trade_pct",  1.0)),
         max_position_value = float(d.get("max_position_value",  10_000.0)),
-        max_allocation_pct = float(d.get("max_allocation_pct",  50.0)),
+        max_capital_value  = float(d.get("max_capital_value",   2_000.0)),
         max_daily_loss_pct = float(d.get("max_daily_loss_pct",  2.0)),
         default_order_type = str(d.get("default_order_type",    "MKT")),
         confirm_orders     = bool(d.get("confirm_orders",        True)),

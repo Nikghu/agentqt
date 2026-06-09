@@ -632,6 +632,8 @@ class MainWindow(QMainWindow):
         svc.internet_status_changed.connect(self._on_internet_status_changed)
         svc.market_status_updated.connect(self._on_market_status)
         svc.candle_db_status_changed.connect(self._on_db_status_updated)
+        svc.risk_warning_raised.connect(self._on_risk_warning)
+        self._risk_warning_last: dict[str, float] = {}
         self._refresh_status()
         self._on_market_status()
 
@@ -661,6 +663,28 @@ class MainWindow(QMainWindow):
 
     def _refresh_status(self) -> None:
         pass
+
+    def _on_risk_warning(self, kind: str, message: str) -> None:
+        """Show a non-blocking advisory pop-up for a risk-limit breach (FO-EXE-017).
+
+        Debounced per kind (30 s) so a stream of breaches cannot storm the user.
+        Advisory only — never blocks, resizes, or closes an order.
+        """
+        import time
+        from PyQt6.QtWidgets import QMessageBox
+
+        now = time.monotonic()
+        if now - self._risk_warning_last.get(kind, 0.0) < 30.0:
+            return
+        self._risk_warning_last[kind] = now
+
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Warning)
+        box.setWindowTitle("Risk Warning")
+        box.setText(message)
+        box.setStandardButtons(QMessageBox.StandardButton.Ok)
+        box.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        box.show()
 
     def _on_internet_status_changed(self, online: bool) -> None:
         """Update the status-bar internet pill when connectivity flips."""

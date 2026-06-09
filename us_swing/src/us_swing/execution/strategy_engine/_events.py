@@ -58,6 +58,20 @@ class StrategySignalPending:
     schema_version: int = 1
 
 
+@dataclass(frozen=True, slots=True)
+class RiskWarning:
+    """Advisory (non-blocking) risk-limit breach surfaced to the user.
+
+    `kind` is one of ``"max_position"``, ``"risk_per_trade"``, ``"daily_loss"``.
+    Publishing this never blocks, resizes, or closes an order.
+    """
+
+    kind: str
+    symbol: str
+    message: str
+    schema_version: int = 1
+
+
 StrategyEvent = Union[
     StrategyEntered,
     StrategyExited,
@@ -65,4 +79,5 @@ StrategyEvent = Union[
     StrategyErrored,
     StrategySignalDropped,
     StrategySignalPending,
+    RiskWarning,
 ]

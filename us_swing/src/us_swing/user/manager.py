@@ -11,7 +11,7 @@ import json
 import logging
 from typing import Any
 
-from us_swing.config.settings import AppConfig, RiskConfig
+from us_swing.config.settings import AppConfig
 from us_swing.data.models import RiskConfig as ModelRiskConfig
 from us_swing.data.models import UserProfile, UserRecord
 from us_swing.db.manager import DatabaseManager
@@ -189,7 +189,7 @@ class UserManager:
         risk = ModelRiskConfig(
             risk_per_trade_pct = float(risk_raw.get("risk_per_trade_pct", 1.0)),
             max_position_value = float(risk_raw.get("max_position_value", 10_000.0)),
-            max_allocation_pct = float(risk_raw.get("max_allocation_pct", 50.0)),
+            max_capital_value  = float(risk_raw.get("max_capital_value", 2_000.0)),
             max_daily_loss_pct = float(risk_raw.get("max_daily_loss_pct", 2.0)),
             default_order_type = str(risk_raw.get("default_order_type", "MKT")),
             confirm_orders     = bool(risk_raw.get("confirm_orders", True)),
@@ -212,7 +212,7 @@ def _default_settings_json() -> dict:
         "risk_config": {
             "risk_per_trade_pct": 1.0,
             "max_position_value": 10_000.0,
-            "max_allocation_pct": 50.0,
+            "max_capital_value":  2_000.0,
             "max_daily_loss_pct": 2.0,
             "default_order_type": "MKT",
             "confirm_orders":     True,
