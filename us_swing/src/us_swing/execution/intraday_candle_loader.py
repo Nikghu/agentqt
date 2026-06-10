@@ -1,6 +1,6 @@
 """
 Module: MD-EXE-006.001.M01 — execution/intraday_candle_loader.py
-Parent SRD: SRD-EXE-006.001  # covers SRD-EXE-006.001–006.006, SRD-EXE-006.010
+Parent SRD: SRD-EXE-006.001  # covers SRD-EXE-006.001–006.006, SRD-EXE-006.010, SRD-EXE-006.012
 """
 from __future__ import annotations
 
@@ -24,6 +24,8 @@ _MIN_CANDLES: int = 390
 _IBKR_MAX_CAL_DAYS_PER_PAGE: int = 30
 _FULL_FETCH_CAL_DAYS: int = 30  # 21 trading days ≈ 30 calendar days; fits one IBKR page
 _REQUIRED_TIMEFRAMES: tuple[DerivedTimeframe, ...] = ("3m", "15m")
+_STORED_TIMEFRAMES: tuple[str, ...] = ("1d", "1w")  # SRD-EXE-006.012
+_STORED_LOOKBACK_CAL_DAYS: int = 400  # ~1 yr: ≥ 250 daily / ≥ 52 weekly closed bars
 _SYMBOL_PAUSE_S: float = 0.3
 _MAX_CLIENT_ID_RETRIES: int = 5  # SRD-EXE-006.011
 
@@ -93,6 +95,38 @@ def assemble_execution_bars(
     return _merge_bars(derived, live)
 
 
+def load_stored_frames(
+    db: DatabaseManager,
+    symbol: str,
+    timeframes: tuple[str, ...] = _STORED_TIMEFRAMES,
+    lookback_days: int = _STORED_LOOKBACK_CAL_DAYS,
+) -> dict[str, pd.DataFrame]:
+    """Return ``{timeframe: frame}`` of stored daily/weekly closed bars (SRD-EXE-006.012).
+
+    Reads completed ``price_1d`` / ``price_1w`` bars downloaded pre-market for the
+    screener directly from the candle database — no aggregation and no live merge,
+    since these timeframes are stored, not derived from 1m. A timeframe is omitted
+    when no bars exist for it.
+
+    Args:
+        db: Candle database handle.
+        symbol: Ticker symbol.
+        timeframes: Stored timeframes to load (default: ``'1d'``, ``'1w'``).
+        lookback_days: Calendar-day window of stored bars to read.
+
+    Returns:
+        ``{timeframe: frame}`` of closed bars per timeframe; empty when none exist.
+    """
+    now = datetime.now(tz=timezone.utc)
+    window_start = now - timedelta(days=lookback_days)
+    frames: dict[str, pd.DataFrame] = {}
+    for tf in timeframes:
+        bars = db.fetch_bars(symbol, tf, window_start, now)
+        if bars:
+            frames[tf] = _bars_to_frame(bars)
+    return frames
+
+
 def load_execution_frames(
     db: DatabaseManager,
     hist_engine: HistoricalDataEngine,
@@ -100,16 +134,19 @@ def load_execution_frames(
     timeframes: tuple[DerivedTimeframe, ...] = _REQUIRED_TIMEFRAMES,
     lookback_days: int = _FULL_FETCH_CAL_DAYS,
 ) -> dict[str, pd.DataFrame]:
-    """Return ``{timeframe: frame}`` for strategy evaluation (SRD-EXE-006.010).
+    """Return ``{timeframe: frame}`` for strategy evaluation (SRD-EXE-006.010, .012).
 
-    A timeframe is omitted when neither aggregated 1m history nor live bars
-    exist for it.
+    Intraday timeframes (3m, 15m) are aggregated from 1m history and merged with
+    any live bars; stored daily/weekly closed bars (SRD-EXE-006.012) are added so
+    entry and exit conditions can reference 1d / 1w. A timeframe is omitted when no
+    source has data for it.
     """
     frames: dict[str, pd.DataFrame] = {}
     for tf in timeframes:
         bars = assemble_execution_bars(db, hist_engine, symbol, tf, lookback_days)
         if bars:
             frames[tf] = _bars_to_frame(bars)
+    frames.update(load_stored_frames(db, symbol))
     return frames
 
 

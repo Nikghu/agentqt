@@ -2,6 +2,32 @@
 
 ---
 
+## [20260610] EXE — FO-EXE-006.012 daily/weekly closed bars for strategy conditions
+
+- Type: Refactor
+- FO(s): FO-EXE-006
+- RN: RN-EXE-1.21.0-20260610
+- Artifacts updated: SRD, DD, MD, UTCD, Code, TRACE, RN
+- Decisions: Closed bars only (no live aggregation); 1d/1w fetched via DB reads, merged in load_execution_frames
+
+---
+
+## [20260610] Release v1.1.7 + in-app version label + single-source version (Session 62)
+
+- Type: Release + Feature (GUI) + Build tooling
+- FO(s): N/A (release/ops + small GUI add)
+- RN: none (no SRD/FO chain; minor GUI label + local build-config change)
+- Artifacts updated: Code (`us_swing/__init__.py`, `gui/main_window.py`, `gui/theme.py`), local-only (`installer/config.py`, `usswing_installer.yaml`), CONTEXT §0, DEVLOG
+- PR: #39 (merged) — title-bar version label
+- Decisions:
+  - `__version__` in `us_swing/__init__.py` is the single source of truth for the app version (baked into every build, shown in the title bar)
+  - Installer reads the version from `__init__.py` by text-parse (no `us_swing` import — installer must not depend on the package); YAML `version:` removed
+  - `installer/` + `usswing_installer.yaml` are gitignored → the installer change is machine-local and not in any PR; must be re-applied on other build machines
+  - Published GitHub release `v1.1.7` (tag + `.exe` + `.sha256` + manifest patch); deleted old `v1.1.6` release/tag
+  - Reverted a stray pre-session `_router.py` change (two `[Strategy]` entry/exit log lines)
+
+---
+
 ## [20260609] EXE — ISS-EXE-0003 self-healed orphan ledger row logged at ERROR (Session 61)
 
 - Type: Bugfix (log level)
