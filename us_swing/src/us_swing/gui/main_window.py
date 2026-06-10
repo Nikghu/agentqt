@@ -33,6 +33,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from us_swing import __version__
 from us_swing.data.models import ConnectionStatus
 from us_swing.gui.app_service import AppService
 from us_swing.gui.chart_panel import CandleChartPanel
@@ -284,6 +285,11 @@ class _TitleBar(QWidget):
         brand = QLabel("Swing Trading Terminal")
         brand.setObjectName("top_brand")
         row.addWidget(brand)
+
+        version = QLabel(f"v{__version__}")
+        version.setObjectName("top_version")
+        version.setToolTip("Installed version")
+        row.addWidget(version)
 
         _vdiv(row)
 
