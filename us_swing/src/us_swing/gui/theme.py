@@ -205,6 +205,7 @@ QLabel#top_brand {
     letter-spacing: 1px;
     padding: 0 4px 0 8px;
 }
+QLabel#top_version { color: #6c7086; font-size: 8pt; padding: 0 6px 0 0; }
 QLabel#user_chip  { color: #cdd6f4;   font-size: 8pt; padding: 0 4px; }
 QLabel#risk_err_lbl { color: #f38ba8; font-size: 9pt; }
 
@@ -704,6 +705,7 @@ QLabel#top_brand {
     letter-spacing: 1px;
     padding: 0 4px 0 8px;
 }
+QLabel#top_version { color: #8a8a8a; font-size: 8pt; padding: 0 6px 0 0; }
 QLabel#user_chip  { color: #d4d4d4; font-size: 8pt; padding: 0 4px; }
 QLabel#risk_err_lbl { color: #f44747; font-size: 9pt; }
 
