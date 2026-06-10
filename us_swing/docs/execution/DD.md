@@ -615,6 +615,53 @@ evaluation cadence over the screened set.
 
 ---
 
+## DD-EXE-006.012.D01 — Daily / Weekly Stored Frames in Execution Provider
+
+**Parent SRD:** SRD-EXE-006.012
+
+**Problem.** Entry conditions can lean on the screener (a daily/weekly filter) to
+pre-select stocks, but exit has no screener — it sees only the intraday frames
+(3m, 15m) that `load_execution_frames` returned. So a strategy could never exit
+on a daily/weekly condition (e.g. "close below the daily Supertrend").
+
+**Design.** Daily (1d) and weekly (1w) bars are already downloaded pre-market for
+the screener and stored in the `price_1d` / `price_1w` tables. Unlike 3m/15m,
+they are **stored, not derived from 1m** — so they must be read with
+`db.fetch_bars(symbol, tf, …)` directly, *not* `aggregate_timeframe`.
+
+New module-level function in `execution/intraday_candle_loader.py`:
+
+```
+load_stored_frames(db, symbol, timeframes=("1d","1w"), lookback_days=400) -> dict[str, pd.DataFrame]
+    now          = utcnow()
+    window_start = now - lookback_days
+    {tf: _bars_to_frame(bars) for tf in timeframes if (bars := db.fetch_bars(symbol, tf, window_start, now))}
+
+load_execution_frames(...)                       # unchanged 3m/15m build, then:
+    frames.update(load_stored_frames(db, symbol))
+```
+
+**Closed bars only.** No aggregation, no live merge, no synthetic current-day
+bar. `price_1d` / `price_1w` already hold only completed bars (the pre-market
+download stops at the last closed session/week), so `Price('current', …, '1d')`
+resolves to the last closed daily candle. This keeps daily/weekly indicators
+deterministic and matches the decision recorded for SRD-EXE-006.012.
+
+**Window.** `lookback_days = 400` (≈ one calendar year) guarantees ≥ 250 daily
+and ≥ 52 weekly closed bars — enough depth for any reasonable indicator period.
+
+**Evaluator / router impact: none.** `ConditionEvaluator._frame_for_tf` is
+timeframe-agnostic and `_Router.evaluate` passes the same `candles` dict to both
+the entry and exit branch, so surfacing 1d/1w in that dict enables both paths
+with no engine, router, or evaluator change.
+
+**GUI (`gui/strategy_builder_dialog.py`).** Each indicator's `Timeframe`
+dropdown `Datatype` list extends from `["3m","15m"]` to `["3m","15m","1d","1w"]`.
+The selected value flows verbatim into the generated expression string
+(e.g. `RSI('Stock', 14, '1d')`), which the evaluator already understands.
+
+---
+
 # FO-EXE-007 — Live 3m Candle Formation During Trading Hours
 
 ## DD-EXE-007.001.D01 — `price_3m` Schema Extension

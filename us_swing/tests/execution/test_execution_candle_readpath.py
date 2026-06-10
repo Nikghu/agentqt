@@ -16,9 +16,30 @@ from us_swing.execution.intraday_candle_loader import (
     assemble_execution_bars,
     load_execution_frames,
     load_latest_execution_bar,
+    load_stored_frames,
 )
 
 _SYM = "SYM"
+
+
+def _periodic_bars(symbol: str, tf: str, count: int, step_days: int) -> list[OHLCVBar]:
+    """Stored daily/weekly bars ending a few days ago, spaced ``step_days`` apart."""
+    end = (dt.datetime.now(tz=dt.timezone.utc) - dt.timedelta(days=3)).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    return [
+        OHLCVBar(
+            symbol=symbol,
+            datetime=end - dt.timedelta(days=step_days * (count - 1 - i)),
+            open=10.0,
+            high=11.0,
+            low=9.0,
+            close=10.0 + i * 0.1,
+            volume=1000,
+            timeframe=tf,
+        )
+        for i in range(count)
+    ]
 
 
 def _make(tmp_path) -> tuple[DatabaseManager, HistoricalDataEngine]:
@@ -91,6 +112,46 @@ def test_empty_sources_return_empty(tmp_path):
     assert load_execution_frames(db, hist, _SYM) == {}
     assert load_latest_execution_bar(db, hist, _SYM, "3m") is None
     assert load_latest_execution_bar(db, hist, _SYM, "1d") is None
+
+
+def test_stored_daily_weekly_frames(tmp_path):
+    """UT-EXE-006.001.M01.T17: 1d/1w read from stored tables without aggregation."""
+    db, _hist = _make(tmp_path)
+    db.insert_bars(_SYM, "1d", _periodic_bars(_SYM, "1d", 60, step_days=1))
+    db.insert_bars(_SYM, "1w", _periodic_bars(_SYM, "1w", 10, step_days=7))
+
+    frames = load_stored_frames(db, _SYM)
+
+    assert set(frames) == {"1d", "1w"}
+    assert len(frames["1d"]) == 60
+    assert len(frames["1w"]) == 10
+    assert list(frames["1d"].columns) == [
+        "datetime", "open", "high", "low", "close", "volume"
+    ]
+
+
+def test_execution_frames_include_daily_weekly(tmp_path):
+    """UT-EXE-006.001.M01.T18: load_execution_frames merges 1d/1w with 3m/15m."""
+    db, hist = _make(tmp_path)
+    db.insert_bars(_SYM, "1m", _one_minute_bars(_SYM, 900))
+    db.insert_bars(_SYM, "1d", _periodic_bars(_SYM, "1d", 60, step_days=1))
+    db.insert_bars(_SYM, "1w", _periodic_bars(_SYM, "1w", 10, step_days=7))
+
+    frames = load_execution_frames(db, hist, _SYM)
+
+    assert {"3m", "15m", "1d", "1w"} <= set(frames)
+    assert len(frames["1d"]) == 60
+    assert len(frames["1w"]) == 10
+
+
+def test_missing_daily_weekly_omitted(tmp_path):
+    """UT-EXE-006.001.M01.T19: absent 1d/1w tables omit those keys without error."""
+    db, hist = _make(tmp_path)
+    db.insert_bars(_SYM, "1m", _one_minute_bars(_SYM, 900))
+
+    frames = load_execution_frames(db, hist, _SYM)
+
+    assert set(frames) == {"3m", "15m"}
 
 
 def test_latest_bar_returns_most_recent(tmp_path):
