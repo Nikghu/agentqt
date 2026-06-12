@@ -20,7 +20,7 @@ from typing import Any
 
 from us_swing.broker.broker import Broker
 from us_swing.broker.ibkr import IBKRBroker, IBKRClientGateway
-from us_swing.broker.sim import Scheduler, SimBroker
+from us_swing.broker.sim import PriceProvider, Scheduler, SimBroker
 
 # Live broker name → builder.  The builder receives a connected order client
 # (e.g. an ``IBKRClient``) and returns a :class:`Broker`.
@@ -35,6 +35,7 @@ def build_broker(
     broker_name: str,
     scheduler: Scheduler,
     live_client_provider: Callable[[], Any] | None = None,
+    price_provider: PriceProvider | None = None,
 ) -> Broker:
     """Return the broker for ``mode``/``broker_name``.
 
@@ -44,13 +45,15 @@ def build_broker(
         scheduler: Async scheduler for the simulated broker's deferred fills.
         live_client_provider: Returns the connected order client; required and
             called only for live mode.
+        price_provider: Resolves a symbol's current live market price for the
+            simulated broker's fills (SRD-INF-009.007); paper mode only.
 
     Raises:
         ValueError: If a live ``broker_name`` is not registered.
         RuntimeError: If live mode is requested without a connection.
     """
     if mode == "paper":
-        return SimBroker(scheduler=scheduler)
+        return SimBroker(scheduler=scheduler, price_provider=price_provider)
     builder = LIVE_BROKERS.get(broker_name)
     if builder is None:
         raise ValueError(

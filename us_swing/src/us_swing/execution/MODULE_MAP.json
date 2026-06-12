@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-10T10:25:19",
+  "generated": "2026-06-12T06:20:12",
   "subfolder": "execution",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\execution",
   "tool_code": "EXE",
@@ -83,10 +83,10 @@
       "top_level_functions": [
         {
           "name": "build_broker",
-          "signature": "def build_broker(\r\n    *,\r\n    mode: str,\r\n    broker_name: str,\r\n    scheduler: Scheduler,\r\n    live_client_provider: Callable[[], Any] | None = None,\r\n) -> Broker",
+          "signature": "def build_broker(\r\n    *,\r\n    mode: str,\r\n    broker_name: str,\r\n    scheduler: Scheduler,\r\n    live_client_provider: Callable[[], Any] | None = None,\r\n    price_provider: PriceProvider | None = None,\r\n) -> Broker",
           "docstring": "Return the broker for ``mode``/``broker_name``.",
           "line_start": 32,
-          "line_end": 63
+          "line_end": 66
         }
       ],
       "constants": [
@@ -750,12 +750,12 @@
             {
               "name": "get_all",
               "signature": "def get_all(self, user_id: int) -> Sequence[OpenPosition]",
-              "line_start": 27,
-              "line_end": 27
+              "line_start": 28,
+              "line_end": 28
             }
           ],
-          "line_start": 24,
-          "line_end": 27
+          "line_start": 25,
+          "line_end": 28
         },
         {
           "name": "RiskManager",
@@ -764,21 +764,21 @@
             {
               "name": "__init__",
               "signature": "def __init__(\r\n        self,\r\n        config: RiskConfig,\r\n        account_provider: Callable[[], AccountState],\r\n        cb_state_provider: Callable[[], bool],\r\n        user_id: int,\r\n        tracker: _PositionSource | None = None,\r\n        effective_capital_provider: Callable[[], float] | None = None,\r\n        warning_sink: Callable[[RiskWarning], None] | None = None,\r\n    ) -> None",
-              "line_start": 33,
-              "line_end": 49
+              "line_start": 34,
+              "line_end": 51
             },
             {
               "name": "_effective_capital",
               "signature": "def _effective_capital(self) -> float",
               "docstring": "Per-user dollar budget; falls back to account equity when unset.",
-              "line_start": 53,
-              "line_end": 57
+              "line_start": 55,
+              "line_end": 59
             },
             {
               "name": "_emit_warning",
               "signature": "def _emit_warning(self, kind: str, symbol: str, message: str) -> None",
-              "line_start": 59,
-              "line_end": 61
+              "line_start": 61,
+              "line_end": 63
             },
             {
               "name": "size_for_strategy",
@@ -787,47 +787,61 @@
               "decorators": [
                 "@staticmethod"
               ],
-              "line_start": 64,
-              "line_end": 73
+              "line_start": 66,
+              "line_end": 75
             },
             {
               "name": "validate",
               "signature": "def validate(self, signal: TradeSignal) -> ValidationResult",
               "docstring": "Final gate: only the circuit breaker blocks; other limits are advisory.",
-              "line_start": 77,
-              "line_end": 88
+              "line_start": 79,
+              "line_end": 90
+            },
+            {
+              "name": "margin_available",
+              "signature": "def margin_available(self) -> float",
+              "docstring": "Remaining budget across all strategies: capital \u2212 deployed \u2212 reservations.",
+              "line_start": 92,
+              "line_end": 106
+            },
+            {
+              "name": "reserve",
+              "signature": "def reserve(self, strategy_id: str, symbol: str, value: float) -> None",
+              "docstring": "Hold projected entry value so same-bar entries cannot over-commit.",
+              "line_start": 108,
+              "line_end": 110
+            },
+            {
+              "name": "release",
+              "signature": "def release(self, strategy_id: str, symbol: str) -> None",
+              "docstring": "Drop a reservation on fill, reject, or rollback (idempotent).",
+              "line_start": 112,
+              "line_end": 114
             },
             {
               "name": "can_allocate",
               "signature": "def can_allocate(self, strategy_id: str, capital_max_pct: int) -> CanAllocateResult",
               "docstring": "Blocking per-strategy cap measured against the absolute capital budget.",
-              "line_start": 90,
-              "line_end": 105
+              "line_start": 116,
+              "line_end": 131
             },
             {
               "name": "validate_signal",
               "signature": "def validate_signal(\r\n        self,\r\n        signal: TradeSignal,\r\n        account_state: AccountState,\r\n        cb_active: bool,\r\n    ) -> ValidationResult",
               "docstring": "Only the circuit breaker blocks; max-position and risk-per-trade warn.",
-              "line_start": 109,
-              "line_end": 142
+              "line_start": 135,
+              "line_end": 168
             },
             {
               "name": "calculate_position_size",
               "signature": "def calculate_position_size(\r\n        self,\r\n        signal: TradeSignal,\r\n        account_state: AccountState,\r\n    ) -> int",
               "docstring": "floor(equity*risk_pct / risk_per_share), capped at max_position_value/entry.",
-              "line_start": 144,
-              "line_end": 158
-            },
-            {
-              "name": "can_enter_new",
-              "signature": "def can_enter_new(\r\n        self,\r\n        signal: TradeSignal,\r\n        account_state: AccountState,\r\n        user_id: int,\r\n    ) -> bool",
-              "docstring": "True if the projected position fits within the absolute capital budget.",
-              "line_start": 160,
-              "line_end": 174
+              "line_start": 170,
+              "line_end": 184
             }
           ],
-          "line_start": 30,
-          "line_end": 174
+          "line_start": 31,
+          "line_end": 184
         }
       ]
     },
@@ -881,7 +895,9 @@
             "run_state: ExecutionEnums.StrategyRunState",
             "in_flight: set[str]",
             "cycle_locks: dict[str, asyncio.Lock]",
-            "last_eval_at: datetime | None"
+            "last_eval_at: datetime | None",
+            "capital_warned: bool",
+            "margin_warned: bool"
           ],
           "methods": [
             {
@@ -890,30 +906,30 @@
               "decorators": [
                 "@property"
               ],
-              "line_start": 50,
-              "line_end": 51
+              "line_start": 52,
+              "line_end": 53
             },
             {
               "name": "accepts",
               "signature": "def accepts(self, symbol: str) -> bool",
-              "line_start": 53,
-              "line_end": 61
+              "line_start": 55,
+              "line_end": 63
             },
             {
               "name": "within_schedule",
               "signature": "def within_schedule(self, now_et: datetime | None = None) -> bool",
-              "line_start": 63,
-              "line_end": 84
+              "line_start": 65,
+              "line_end": 86
             },
             {
               "name": "lock_for",
               "signature": "def lock_for(self, symbol: str) -> asyncio.Lock",
-              "line_start": 86,
-              "line_end": 91
+              "line_start": 88,
+              "line_end": 93
             }
           ],
           "line_start": 42,
-          "line_end": 91
+          "line_end": 93
         }
       ],
       "top_level_functions": [
@@ -1654,98 +1670,112 @@
               "line_end": 114
             },
             {
+              "name": "_open_cycle_qty",
+              "signature": "def _open_cycle_qty(self, strategy_id: str, symbol: str) -> int",
+              "docstring": "Held quantity of the open cycle for (strategy, symbol), or 0 (SRD-EXE-011.021).",
+              "line_start": 116,
+              "line_end": 123
+            },
+            {
+              "name": "_open_cycle_price",
+              "signature": "def _open_cycle_price(self, strategy_id: str, symbol: str) -> float | None",
+              "docstring": "Last known price of the open cycle, as a paper-fill reference (SRD-EXE-011.022).",
+              "line_start": 125,
+              "line_end": 139
+            },
+            {
               "name": "evaluate",
               "signature": "def evaluate(\r\n        self,\r\n        ctx: _StrategyContext,\r\n        symbol: str,\r\n        candles: dict[str, pd.DataFrame],\r\n        bar: OHLCVBar,\r\n    ) -> None",
               "docstring": "Evaluate a single context's entry/exit conditions on a bar close.",
-              "line_start": 118,
-              "line_end": 230
+              "line_start": 143,
+              "line_end": 286
             },
             {
               "name": "run_router_loop",
               "signature": "def run_router_loop(self) -> None",
-              "line_start": 234,
-              "line_end": 253
+              "line_start": 290,
+              "line_end": 309
             },
             {
               "name": "_dispatch",
               "signature": "def _dispatch(self, signal: TradeSignal) -> None",
-              "line_start": 255,
-              "line_end": 282
+              "line_start": 311,
+              "line_end": 338
             },
             {
               "name": "_rollback",
               "signature": "def _rollback(self, ctx: _StrategyContext, symbol: str) -> None",
-              "docstring": "Clear the in-flight flag when a dispatch is rejected.",
-              "line_start": 284,
-              "line_end": 288
+              "docstring": "Clear the in-flight flag and free the capital reservation on a rejected dispatch",
+              "line_start": 340,
+              "line_end": 345
             },
             {
               "name": "on_order_fill",
               "signature": "def on_order_fill(self, fill: FillEvent) -> None",
-              "line_start": 292,
-              "line_end": 322
+              "line_start": 349,
+              "line_end": 382
             },
             {
               "name": "on_order_reject",
               "signature": "def on_order_reject(self, reject: RejectEvent) -> None",
-              "line_start": 324,
-              "line_end": 338
+              "line_start": 384,
+              "line_end": 399
             },
             {
               "name": "run_end_time_watcher",
               "signature": "def run_end_time_watcher(self) -> None",
-              "line_start": 342,
-              "line_end": 350
+              "line_start": 403,
+              "line_end": 411
             },
             {
               "name": "_sweep_end_times",
               "signature": "def _sweep_end_times(self) -> None",
-              "line_start": 352,
-              "line_end": 361
+              "line_start": 413,
+              "line_end": 422
             },
             {
               "name": "_force_exit",
               "signature": "def _force_exit(\r\n        self,\r\n        ctx: _StrategyContext,\r\n        symbol: str,\r\n        *,\r\n        reason: str,\r\n    ) -> None",
-              "line_start": 363,
-              "line_end": 387
+              "line_start": 424,
+              "line_end": 450
             },
             {
               "name": "emergency_stop",
               "signature": "def emergency_stop(self) -> None",
               "docstring": "Force exit every open cycle across every strategy, then block until quiesced.",
-              "line_start": 391,
-              "line_end": 400
+              "line_start": 454,
+              "line_end": 463
             },
             {
               "name": "squaring_off_exit",
               "signature": "def squaring_off_exit(self, ctx: _StrategyContext) -> int",
               "docstring": "Enqueue forced EXIT signals for every open cycle of *ctx*.",
-              "line_start": 402,
-              "line_end": 412
+              "line_start": 465,
+              "line_end": 475
             },
             {
               "name": "_size_entry",
               "signature": "def _size_entry(self, ctx: _StrategyContext, entry_price: float) -> int",
               "docstring": "Capital-max share count; legacy `1` when no capital budget is wired.",
-              "line_start": 416,
-              "line_end": 423
+              "line_start": 479,
+              "line_end": 486
             },
             {
               "name": "_build_entry_signal",
               "signature": "def _build_entry_signal(\r\n        self,\r\n        ctx: _StrategyContext,\r\n        symbol: str,\r\n        bar: OHLCVBar,\r\n        qty: int = 1,\r\n    ) -> TradeSignal",
-              "line_start": 425,
-              "line_end": 448
+              "line_start": 488,
+              "line_end": 511
             },
             {
               "name": "_maybe_signal_quiesced",
               "signature": "def _maybe_signal_quiesced(self) -> None",
               "docstring": "Mark the quiesced event when no strategy has any signal in flight.",
-              "line_start": 450,
-              "line_end": 455
+              "line_start": 513,
+              "line_end": 518
             }
           ],
           "line_start": 56,
-          "line_end": 455
+          "line_end": 518
         }
       ],
       "top_level_functions": [
@@ -2167,100 +2197,100 @@
               "name": "_close_cycle",
               "signature": "def _close_cycle(\r\n        self,\r\n        *,\r\n        cycle_id:      int,\r\n        exit_order_id: str,\r\n        exit_price:    float,\r\n        exit_qty:      int,\r\n        exit_time:     str,\r\n        exit_reason:   str,\r\n        order_state:   ExecutionEnums.SellOrderState,\r\n    ) -> CycleSnapshot",
               "line_start": 344,
-              "line_end": 411
+              "line_end": 415
             },
             {
               "name": "abort_entry_order",
               "signature": "def abort_entry_order(self, entry_order_id: str, reason: str) -> CycleSnapshot | None",
               "docstring": "Abort the OPENING cycle owning a rejected entry order.",
-              "line_start": 413,
-              "line_end": 425
+              "line_start": 417,
+              "line_end": 429
             },
             {
               "name": "on_entry_failed",
               "signature": "def on_entry_failed(self, cycle_id: int, reason: str) -> CycleSnapshot",
               "docstring": "Abort an OPENING cycle when the entry order is rejected.",
-              "line_start": 427,
-              "line_end": 438
+              "line_start": 431,
+              "line_end": 442
             },
             {
               "name": "update_risk",
               "signature": "def update_risk(\r\n        self,\r\n        cycle_id: int,\r\n        *,\r\n        hard_sl:         float | None = None,\r\n        target:          float | None = None,\r\n        trailing_offset: float | None = None,\r\n        trailing_mode:   str | None   = None,\r\n    ) -> CycleSnapshot",
               "docstring": "Per-cycle risk-snapshot mutation.",
-              "line_start": 440,
-              "line_end": 494
+              "line_start": 444,
+              "line_end": 498
             },
             {
               "name": "reload",
               "signature": "def reload(self) -> None",
               "docstring": "Re-attach tick accumulators for every non-terminal row on startup.",
-              "line_start": 498,
-              "line_end": 512
+              "line_start": 502,
+              "line_end": 516
             },
             {
               "name": "on_tick",
               "signature": "def on_tick(self, symbol: str, price: float) -> None",
               "docstring": "Thread-safe entry point \u2014 called from the LiveTickWorker thread.",
-              "line_start": 516,
-              "line_end": 526
+              "line_start": 520,
+              "line_end": 530
             },
             {
               "name": "_handle_tick",
               "signature": "def _handle_tick(self, symbol: str, price: float) -> None",
-              "line_start": 528,
-              "line_end": 547
+              "line_start": 532,
+              "line_end": 551
             },
             {
               "name": "_schedule_flush",
               "signature": "def _schedule_flush(self, acc: _TickAccumulator) -> None",
-              "line_start": 549,
-              "line_end": 550
+              "line_start": 553,
+              "line_end": 554
             },
             {
               "name": "_flush",
               "signature": "def _flush(self, acc: _TickAccumulator) -> None",
-              "line_start": 552,
-              "line_end": 579
+              "line_start": 556,
+              "line_end": 583
             },
             {
               "name": "_drain_all",
               "signature": "def _drain_all(self) -> None",
-              "line_start": 581,
-              "line_end": 588
+              "line_start": 585,
+              "line_end": 592
             },
             {
               "name": "_compute_live",
               "signature": "def _compute_live(\r\n        self,\r\n        snap: CycleSnapshot,\r\n        price: float,\r\n        highest: float,\r\n    ) -> dict[str, Any]",
-              "line_start": 592,
-              "line_end": 627
+              "line_start": 596,
+              "line_end": 631
             },
             {
               "name": "_check_exit_triggers",
               "signature": "def _check_exit_triggers(self, snap: CycleSnapshot, price: float) -> None",
-              "line_start": 631,
-              "line_end": 664
+              "line_start": 635,
+              "line_end": 668
             },
             {
               "name": "_attach_accumulator",
               "signature": "def _attach_accumulator(self, snap: CycleSnapshot) -> None",
-              "line_start": 668,
-              "line_end": 679
+              "line_start": 672,
+              "line_end": 683
             },
             {
               "name": "_detach_accumulator",
               "signature": "def _detach_accumulator(self, cycle_id: int) -> None",
-              "line_start": 681,
-              "line_end": 694
+              "line_start": 685,
+              "line_end": 698
             },
             {
               "name": "_refresh_active_symbols_locked",
               "signature": "def _refresh_active_symbols_locked(self) -> None",
-              "line_start": 696,
-              "line_end": 701
+              "line_start": 700,
+              "line_end": 705
             }
           ],
           "line_start": 66,
-          "line_end": 701
+          "line_end": 705
         }
       ],
       "top_level_functions": [
@@ -2273,8 +2303,8 @@
         {
           "name": "_validate_state_set",
           "signature": "def _validate_state_set(states: Iterable[str]) -> None",
-          "line_start": 704,
-          "line_end": 706
+          "line_start": 708,
+          "line_end": 710
         }
       ],
       "constants": [

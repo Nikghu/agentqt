@@ -12,7 +12,14 @@ from collections.abc import Callable
 
 import pytest
 
-from us_swing.broker.broker import Broker, OrderEvent, OrderRequest, OrderSide, OrderStatus
+from us_swing.broker.broker import (
+    Broker,
+    OrderEvent,
+    OrderRequest,
+    OrderSide,
+    OrderStatus,
+    OrderType,
+)
 from us_swing.broker.ibkr import IBKRBroker, IbkrOrderUpdate
 from us_swing.broker.sim import ImmediateFillModel, ScriptedFillModel, SimBroker
 
@@ -204,6 +211,60 @@ def test_sell_side_slippage() -> None:
     )
     scheduler.pump()
     assert events[0].fill_price == pytest.approx(99.0)
+
+
+# ── Live-price provider (SRD-INF-009.007) ─────────────────────────────────────
+
+def _sim_with_provider(
+    provider: Callable[[str], float | None],
+) -> tuple[SimBroker, _ManualScheduler]:
+    scheduler = _ManualScheduler()
+    return SimBroker(ImmediateFillModel(), scheduler=scheduler, price_provider=provider), scheduler
+
+
+def test_market_order_fills_at_provider_price() -> None:
+    """UT-INF-009.004.M01.T01: a market order fills at the provider's live price, not the reference."""
+    broker, scheduler = _sim_with_provider(lambda _s: 191.3)
+    events = _collect(broker)
+    broker.place_order(_market_buy(qty=10, ref=50.0))
+    scheduler.pump()
+    assert events[0].fill_price == pytest.approx(191.3)
+
+
+def test_market_order_falls_back_to_reference_when_no_live_price() -> None:
+    """UT-INF-009.004.M01.T02: with no live price, the fill uses the reference price."""
+    broker, scheduler = _sim_with_provider(lambda _s: None)
+    events = _collect(broker)
+    broker.place_order(_market_buy(qty=10, ref=50.0))
+    scheduler.pump()
+    assert events[0].fill_price == pytest.approx(50.0)
+
+
+def test_market_order_rejects_non_positive_provider_price() -> None:
+    """UT-INF-009.004.M01.T03: a non-positive provider price falls back to the reference price."""
+    broker, scheduler = _sim_with_provider(lambda _s: 0.0)
+    events = _collect(broker)
+    broker.place_order(_market_buy(qty=10, ref=50.0))
+    scheduler.pump()
+    assert events[0].fill_price == pytest.approx(50.0)
+
+
+def test_limit_order_ignores_provider() -> None:
+    """UT-INF-009.004.M01.T04: a limit order fills at its limit price, ignoring the provider."""
+    broker, scheduler = _sim_with_provider(lambda _s: 191.3)
+    events = _collect(broker)
+    broker.place_order(
+        OrderRequest(
+            client_ref="sig-lmt",
+            symbol="AAPL",
+            side=OrderSide.BUY,
+            quantity=10,
+            order_type=OrderType.LIMIT,
+            limit_price=48.0,
+        )
+    )
+    scheduler.pump()
+    assert events[0].fill_price == pytest.approx(48.0)
 
 
 # ── IBKR status mapping (SRD-INF-009.005) ─────────────────────────────────────

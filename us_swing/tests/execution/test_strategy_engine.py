@@ -54,6 +54,7 @@ def _make_risk() -> MagicMock:
     risk = MagicMock()
     risk.validate.return_value = ValidationResult(ok=True, qty=10)
     risk.can_allocate.return_value = CanAllocateResult(ok=True)
+    risk.margin_available.return_value = 1_000_000.0
     return risk
 
 

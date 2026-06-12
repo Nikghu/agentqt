@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-09T15:16:31",
+  "generated": "2026-06-12T06:20:12",
   "subfolder": "broker",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\broker",
   "tool_code": "INF",
@@ -474,12 +474,12 @@
             {
               "name": "plan",
               "signature": "def plan(self, request: OrderRequest, broker_order_id: str) -> list[OrderEvent]",
-              "line_start": 46,
-              "line_end": 46
+              "line_start": 50,
+              "line_end": 50
             }
           ],
-          "line_start": 43,
-          "line_end": 46
+          "line_start": 47,
+          "line_end": 50
         },
         {
           "name": "ImmediateFillModel",
@@ -491,12 +491,12 @@
             {
               "name": "plan",
               "signature": "def plan(self, request: OrderRequest, broker_order_id: str) -> list[OrderEvent]",
-              "line_start": 67,
-              "line_end": 76
+              "line_start": 71,
+              "line_end": 80
             }
           ],
-          "line_start": 58,
-          "line_end": 76
+          "line_start": 62,
+          "line_end": 80
         },
         {
           "name": "ScriptedFillModel",
@@ -509,12 +509,12 @@
             {
               "name": "plan",
               "signature": "def plan(self, request: OrderRequest, broker_order_id: str) -> list[OrderEvent]",
-              "line_start": 90,
-              "line_end": 105
+              "line_start": 94,
+              "line_end": 109
             }
           ],
-          "line_start": 80,
-          "line_end": 105
+          "line_start": 84,
+          "line_end": 109
         },
         {
           "name": "_PendingOrder",
@@ -522,8 +522,8 @@
             "request: OrderRequest",
             "plan: list[OrderEvent]"
           ],
-          "line_start": 109,
-          "line_end": 111
+          "line_start": 113,
+          "line_end": 115
         },
         {
           "name": "SimBroker",
@@ -531,37 +531,44 @@
           "methods": [
             {
               "name": "__init__",
-              "signature": "def __init__(\r\n        self,\r\n        fill_model: FillModel | None = None,\r\n        *,\r\n        scheduler: Scheduler | None = None,\r\n    ) -> None",
-              "line_start": 117,
-              "line_end": 129
+              "signature": "def __init__(\r\n        self,\r\n        fill_model: FillModel | None = None,\r\n        *,\r\n        scheduler: Scheduler | None = None,\r\n        price_provider: PriceProvider | None = None,\r\n    ) -> None",
+              "line_start": 121,
+              "line_end": 135
             },
             {
               "name": "place_order",
               "signature": "def place_order(self, request: OrderRequest) -> str",
-              "line_start": 131,
-              "line_end": 137
+              "line_start": 137,
+              "line_end": 144
+            },
+            {
+              "name": "_with_market_price",
+              "signature": "def _with_market_price(self, request: OrderRequest) -> OrderRequest",
+              "docstring": "Fill a MARKET order at the live market price like a real broker.",
+              "line_start": 146,
+              "line_end": 159
             },
             {
               "name": "cancel_order",
               "signature": "def cancel_order(self, broker_order_id: str) -> None",
-              "line_start": 139,
-              "line_end": 141
+              "line_start": 161,
+              "line_end": 163
             },
             {
               "name": "_resolve",
               "signature": "def _resolve(self, broker_order_id: str) -> None",
-              "line_start": 143,
-              "line_end": 161
+              "line_start": 165,
+              "line_end": 183
             },
             {
               "name": "_finish",
               "signature": "def _finish(self, broker_order_id: str) -> None",
-              "line_start": 163,
-              "line_end": 165
+              "line_start": 185,
+              "line_end": 187
             }
           ],
-          "line_start": 114,
-          "line_end": 165
+          "line_start": 118,
+          "line_end": 187
         }
       ],
       "top_level_functions": [
@@ -569,14 +576,14 @@
           "name": "_loop_soon",
           "signature": "def _loop_soon(callback: Callable[[], None]) -> None",
           "docstring": "Default scheduler \u2014 run the callback on the next iteration of the",
-          "line_start": 37,
-          "line_end": 40
+          "line_start": 41,
+          "line_end": 44
         },
         {
           "name": "_fill_price",
           "signature": "def _fill_price(request: OrderRequest, slippage: float) -> float",
-          "line_start": 49,
-          "line_end": 54
+          "line_start": 53,
+          "line_end": 58
         }
       ]
     }

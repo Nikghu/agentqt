@@ -1,7 +1,8 @@
 """
-Module: MD-EXE-001.001.M01 / MD-EXE-017.001.M01 — RiskManager
+Module: MD-EXE-001.001.M01 / MD-EXE-017.001.M01 / MD-EXE-017.012.M10 — RiskManager
 Parent SRD: SRD-EXE-001.001, SRD-EXE-001.002, SRD-EXE-005.004,
-            SRD-EXE-017.003, SRD-EXE-017.005, SRD-EXE-017.006
+            SRD-EXE-017.003, SRD-EXE-017.005, SRD-EXE-017.006,
+            SRD-EXE-017.015, SRD-EXE-017.017
 """
 from __future__ import annotations
 
@@ -47,6 +48,7 @@ class RiskManager:
         self._tracker = tracker
         self._effective_capital_provider = effective_capital_provider
         self._warning_sink = warning_sink
+        self._reservations: dict[tuple[str, str], float] = {}
 
     # ── Internal helpers ──────────────────────────────────────────────────────
 
@@ -86,6 +88,30 @@ class RiskManager:
         if not result.ok:
             return result
         return ValidationResult(ok=True, qty=signal.qty_recommended or 0)
+
+    def margin_available(self) -> float:
+        """Remaining budget across all strategies: capital − deployed − reservations.
+
+        Deployed value is read live from the open-cycle tracker, so an EXIT fill
+        frees margin on the next call without any event plumbing. Reservations
+        cover the enqueue→fill window (SRD-EXE-017.017). Never negative.
+        """
+        deployed = 0.0
+        if self._tracker is not None:
+            deployed = sum(
+                p.average_price * p.quantity
+                for p in self._tracker.get_all(self._user_id)
+            )
+        reserved = sum(self._reservations.values())
+        return max(0.0, self._effective_capital() - deployed - reserved)
+
+    def reserve(self, strategy_id: str, symbol: str, value: float) -> None:
+        """Hold projected entry value so same-bar entries cannot over-commit."""
+        self._reservations[(strategy_id, symbol)] = value
+
+    def release(self, strategy_id: str, symbol: str) -> None:
+        """Drop a reservation on fill, reject, or rollback (idempotent)."""
+        self._reservations.pop((strategy_id, symbol), None)
 
     def can_allocate(self, strategy_id: str, capital_max_pct: int) -> CanAllocateResult:
         """Blocking per-strategy cap measured against the absolute capital budget."""
@@ -157,18 +183,3 @@ class RiskManager:
         cap = math.floor(self._config.max_position_value / entry)
         return min(formula_qty, cap)
 
-    def can_enter_new(
-        self,
-        signal: TradeSignal,
-        account_state: AccountState,
-        user_id: int,
-    ) -> bool:
-        """True if the projected position fits within the absolute capital budget."""
-        entry = signal.entry_price or 0.0
-        if entry <= 0:
-            return False
-        qty = self.calculate_position_size(signal, account_state)
-        required = entry * qty
-        positions = self._tracker.get_all(user_id) if self._tracker else []
-        deployed = sum(p.average_price * p.quantity for p in positions)
-        return deployed + required <= self._effective_capital()

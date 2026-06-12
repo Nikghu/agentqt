@@ -1,10 +1,11 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.12.0
+**Version:** 2.13.0
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
-**Last Updated:** 2026-06-09
+**Last Updated:** 2026-06-12
+> v2.13.0: SRD-GUI-000.006 added — `_AdminContextBar` capital cell (Max Capital · Margin Available); mirrors SRD-EXE-017.021.
 > v2.12.0: SRD-GUI-014.013 marked Reopen — Rex column `-1` display superseded by SRD-EXE-017.011 (FO-EXE-017: show remaining re-entries, never negative, no cross-row leakage).
 > v2.11.0: SRD-GUI-002.005 marked Reopen — Trade History columns now show `Order State` and `Filled` per FO-EXE-014; `Entry`, `Exit`, and `P&L` columns removed (P&L lives on the Dashboard KPI cards and inside `trade_cycles`).
 > v2.10.0: SRD-GUI-014.014 (AppService event_stream adapter) added for Active Trades panel rollout.
@@ -28,6 +29,7 @@
 | SRD-GUI-000.003 | FO-GUI-000 | Must | `_AdminContextBar` is a 28px strip below the accent line. All-Users scope: user count, total equity, combined P&L, open position count. Single-user scope: username, equity, day P&L, open positions, risk %, mode, IBKR client ID. | `viewing_changed`, `positions_updated`, `account_updated` | Rendered context strip | Updates within 1 s of signal | Implemented |
 | SRD-GUI-000.004 | FO-GUI-000 | Must | A `🔐 ADMIN` badge (yellow) appears in `_TitleBar` to the left of the "Scope:" label, right of the nav tabs stretch. | App launch | Badge rendered | Non-interactive; always visible | Implemented |
 | SRD-GUI-000.005 | FO-GUI-000 | Must | All position mutations carry the `user_id` of the position row, not the viewing scope. | Admin action | Mutation targets correct user | Correct when admin views All-Users scope | Implemented |
+| SRD-GUI-000.006 | FO-GUI-000 | Must | In single-user scope `_AdminContextBar` shows a capital cell `Cap $X · Avail $Y` from `AppService.effective_capital()` and `margin_available()`; green when `Y > 0`, red otherwise. Mirrors SRD-EXE-017.021. | `account_updated` | Rendered capital cell | Display-only; hidden in All-Users scope | Approved |
 
 ---
 
@@ -214,3 +216,4 @@
 | SRD-GUI-014.012 | FO-GUI-014 | Must | While `AppService.circuit_breaker_active == True`, the `_RowActionsDelegate` paints `[Execute]` disabled with tooltip `Circuit breaker active — no new entries`; `[Close]` and `[Edit Risk ▼]` on OPEN rows remain enabled. | `circuit_breaker_active` | Action cells repainted | Reacts to `circuit_breaker_changed` signal from FO-EXE-003 | Approved |
 | SRD-GUI-014.013 | FO-GUI-014 | Must | `_ActiveCyclesModel` gains a `Rex` column rendering the current `RexCounterRepository.get(strategy_id, symbol)` value for every row (PENDING / OPENING / OPEN / CLOSING); a value of `-1` paints dimmed with tooltip `Rex limit reached — Reset Strategy to re-enable entries`. | Row data | Painted cell | Column queries the repository on row insert and on `StrategyEntered` events; no in-memory cache. **Reopen:** the `-1` display is superseded by SRD-EXE-017.011 (show remaining re-entries, never negative; no cross-row leakage onto pending signals). | Reopen |
 | SRD-GUI-014.014 | FO-GUI-014 | Must | `AppService.event_stream` exposes a `_AppEventStream` adapter with single-callback `subscribe(handler)` API that bridges `_lifecycle_bus` (typed `MonitoringEventBus`) and `_event_bus` (Qt `event_published`) into one sink; `ActiveCyclesPanel` subscribes via this adapter rather than directly to either bus. | constructor | adapter instance | Forwards every event from either source to every subscriber; subscriber exceptions logged but do not affect other subscribers; ordering not guaranteed across the two buses | Approved |
+| SRD-GUI-014.015 | FO-GUI-014 | Must | The PENDING-row action reflects the signal direction: the `[Execute]` confirm dialog reads `Submit {Buy\|Sell} {qty} × {symbol} @ MKT?` — `Sell` for `Action.EXIT`, `Buy` for `Action.ENTRY` — and the `▶` Execute button paints `C.RED` for an exit and `C.GREEN` for an entry (`C.MUTED` while the circuit breaker is active). `qty` is the signal's `qty_recommended` (now the real position size for exits — SRD-EXE-011.021). | pending row render / execute click | direction-correct dialog verb + button colour | Refines SRD-GUI-014.005 (was hardcoded `BUY`); colour read from `row.signal.action` in `_RowActionsDelegate` | Implemented |

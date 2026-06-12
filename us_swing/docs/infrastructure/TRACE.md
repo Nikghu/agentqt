@@ -1,9 +1,9 @@
 # Traceability Matrix — Infrastructure (INF)
 
 **Document ID:** TRACE-INF
-**Version:** 1.1.0
+**Version:** 1.2.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-05-19
+**Last Updated:** 2026-06-12
 
 ---
 
@@ -25,6 +25,7 @@
 | FO-INF-006 | SRD-INF-006.001–007 | DD-INF-006.001.D01 | MD-INF-006.001.M01 | T01–T09 | `user/manager.py` | Draft | — |
 | FO-INF-007 | SRD-INF-007.001–002 | DD-INF-007.001.D01 | MD-INF-007.001.M01 | — | `data/providers/ibkr_provider.py` | Draft | — |
 | FO-INF-007 | SRD-INF-007.003, 005 | DD-INF-007.001.D01 | MD-INF-007.001.M02 | T01–T04 | `data/providers/dummy_provider.py` | Draft | — |
+| FO-INF-009 | SRD-INF-009.007 | — | MD-INF-009.004.M01 | UT-INF-009.004.M01.T01–T04 | `broker/sim.py` | Implemented | RN-INF-1.1.0-20260612 |
 
 ---
 
@@ -34,6 +35,7 @@
 |---|---|---|---|
 | `broker/client.py` | MD-INF-001.001.M01 | SRD-INF-001.001–005 | FO-INF-001 |
 | `broker/pacing.py` | MD-INF-001.001.M02 | SRD-INF-001.005 | FO-INF-001 |
+| `broker/sim.py` | MD-INF-009.004.M01 | SRD-INF-009.004, .007 | FO-INF-009 |
 | `universe/manager.py` | MD-INF-002.001.M01 | SRD-INF-002.001–004 | FO-INF-002 |
 | `data_engine/engine.py` | MD-INF-003.001.M01 | SRD-INF-003.001–005 | FO-INF-003 |
 | `db/manager.py` | MD-INF-004.001.M01 | SRD-INF-004.001–006 | FO-INF-004 |

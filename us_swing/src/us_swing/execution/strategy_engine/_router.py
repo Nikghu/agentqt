@@ -1,7 +1,7 @@
 """
 Module: MD-EXE-011.001.M04 — Signal queue consumer + dispatch + watchdog
 Parent SRD: SRD-EXE-011.008 — SRD-EXE-011.013, SRD-EXE-011.017, SRD-EXE-011.018,
-           SRD-EXE-013.001 — .008
+           SRD-EXE-011.021, SRD-EXE-011.022, SRD-EXE-013.001 — .008
 """
 from __future__ import annotations
 
@@ -113,6 +113,31 @@ class _Router:
             return []
         return [s.symbol for s in self._cycle_query.open_cycles_for_strategy(strategy_id)]
 
+    def _open_cycle_qty(self, strategy_id: str, symbol: str) -> int:
+        """Held quantity of the open cycle for (strategy, symbol), or 0 (SRD-EXE-011.021)."""
+        if self._cycle_query is None:
+            return 0
+        for snap in self._cycle_query.open_cycles_for_strategy(strategy_id):
+            if snap.symbol == symbol:
+                return snap.entry_qty
+        return 0
+
+    def _open_cycle_price(self, strategy_id: str, symbol: str) -> float | None:
+        """Last known price of the open cycle, as a paper-fill reference (SRD-EXE-011.022).
+
+        Forced exits have no bar, so without this a paper fill would default to
+        $0. Uses ``current_price`` only when it is a real positive tick, else
+        falls back to the (always positive) ``entry_price``. Live MARKET orders
+        ignore the reference price.
+        """
+        if self._cycle_query is None:
+            return None
+        for snap in self._cycle_query.open_cycles_for_strategy(strategy_id):
+            if snap.symbol == symbol:
+                last = snap.current_price
+                return last if last is not None and last > 0 else snap.entry_price
+        return None
+
     # ── Per-bar evaluation (called from engine fan-out) ──────────────────────
 
     async def evaluate(
@@ -169,6 +194,7 @@ class _Router:
                     symbol=symbol,
                     strategy_id=ctx.name,
                     entry_price=float(bar.close),
+                    qty_recommended=self._open_cycle_qty(ctx.name, symbol),
                     reason="strategy",
                     user_id=self._user_id_provider(),
                 )
@@ -217,11 +243,41 @@ class _Router:
                     self._bus.publish(
                         StrategySignalDropped(signal=signal_pre, reason=cap.reason or "capital_cap")
                     )
-                    log.warning("[Strategy] %s ENTRY dropped for %s — %s",
-                                ctx.name, symbol, cap.reason or "capital_cap")
+                    # Edge-triggered: warn once when the strategy first hits its
+                    # capital cap, then stay quiet until capital frees up — avoids
+                    # one warning per symbol on every tick.
+                    if not ctx.capital_warned:
+                        ctx.capital_warned = True
+                        log.warning("[Strategy] %s paused new entries — %s",
+                                    ctx.name, cap.reason or "capital cap reached")
+                    else:
+                        log.debug("[Strategy] %s ENTRY dropped for %s — %s",
+                                  ctx.name, symbol, cap.reason or "capital_cap")
                     return
 
+                ctx.capital_warned = False
+
+                price = float(bar.close)
+                margin_qty = math.floor(self._risk.margin_available() / price) if price > 0 else 0
+                if margin_qty < qty:
+                    qty = margin_qty
+                if qty < 1:
+                    signal_pre = self._build_entry_signal(ctx, symbol, bar)
+                    self._bus.publish(
+                        StrategySignalDropped(signal=signal_pre, reason="margin_exhausted")
+                    )
+                    if not ctx.margin_warned:
+                        ctx.margin_warned = True
+                        log.warning("[Strategy] %s paused new entries — Margin Available exhausted",
+                                    ctx.name)
+                    else:
+                        log.debug("[Strategy] %s ENTRY dropped for %s — margin exhausted",
+                                  ctx.name, symbol)
+                    return
+
+                ctx.margin_warned = False
                 signal = self._build_entry_signal(ctx, symbol, bar, qty=qty)
+                self._risk.reserve(ctx.name, symbol, qty * price)
                 ctx.in_flight.add(symbol)
                 action = Action.ENTRY
 
@@ -282,9 +338,10 @@ class _Router:
             await self._rollback(ctx, signal.symbol)
 
     async def _rollback(self, ctx: _StrategyContext, symbol: str) -> None:
-        """Clear the in-flight flag when a dispatch is rejected."""
+        """Clear the in-flight flag and free the capital reservation on a rejected dispatch."""
         async with ctx.lock_for(symbol):
             ctx.in_flight.discard(symbol)
+        self._risk.release(ctx.name, symbol)
         self._maybe_signal_quiesced()
 
     # ── Fill / reject hooks (called from engine Qt slots) ────────────────────
@@ -295,6 +352,7 @@ class _Router:
             return
         ctx.in_flight.discard(fill.symbol)
         if fill.is_entry:
+            self._risk.release(fill.strategy_id, fill.symbol)
             self._bus.publish(
                 StrategyEntered(
                     strategy_id=fill.strategy_id,
@@ -310,6 +368,8 @@ class _Router:
                     init_value=ctx.cfg.rex_count,
                 )
         else:
+            # An exit frees capital — allow the next capped episode to warn again.
+            ctx.capital_warned = False
             self._bus.publish(
                 StrategyExited(
                     strategy_id=fill.strategy_id,
@@ -326,6 +386,7 @@ class _Router:
         if ctx is None:
             return
         ctx.in_flight.discard(reject.symbol)
+        self._risk.release(reject.strategy_id, reject.symbol)
         self._bus.publish(
             StrategyErrored(
                 strategy_id=reject.strategy_id,
@@ -376,6 +437,8 @@ class _Router:
                 action=Action.EXIT,
                 symbol=symbol,
                 strategy_id=ctx.name,
+                entry_price=self._open_cycle_price(ctx.name, symbol),
+                qty_recommended=self._open_cycle_qty(ctx.name, symbol),
                 reason=reason,
                 user_id=self._user_id_provider(),
             )

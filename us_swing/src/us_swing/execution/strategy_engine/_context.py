@@ -45,6 +45,8 @@ class _StrategyContext:
     in_flight: set[str] = field(default_factory=set)
     cycle_locks: dict[str, asyncio.Lock] = field(default_factory=dict)
     last_eval_at: datetime | None = None
+    capital_warned: bool = False
+    margin_warned: bool = False
 
     @property
     def name(self) -> str:

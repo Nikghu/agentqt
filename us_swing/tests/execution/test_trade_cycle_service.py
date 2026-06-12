@@ -356,6 +356,27 @@ def test_on_exit_fill_closes_cycle_and_publishes_cycle_closed(
     assert len(closed_events) == 1
 
 
+def test_on_exit_fill_realized_pnl_uses_held_entry_qty(
+    svc: TradeCycleService, bus: MagicMock
+) -> None:
+    """UT-EXE-012.002.M02.T18: realized PnL multiplies by held entry_qty, not a divergent exit_qty."""
+    snap = svc.on_entry_fill(**_entry_kwargs())  # entry_price=182.5, entry_qty=25
+    svc._repo.update_state(snap.cycle_id, "CLOSING")
+
+    closed = svc.close_cycle_by_id(
+        snap.cycle_id,
+        exit_order_id="exit-002",
+        exit_price=187.8,
+        exit_qty=1,  # broker mis-reports the final fill as 1 share
+        exit_time="2026-05-25T10:00:00",
+        exit_reason="target",
+    )
+
+    assert closed.state == "CLOSED"
+    # (187.8 - 182.5) * 25 held shares == 132.5, NOT * 1 == 5.3
+    assert closed.realized_pnl_usd == pytest.approx(132.5, abs=0.01)
+
+
 def _exit_kwargs(**overrides: Any) -> dict[str, Any]:
     kw: dict[str, Any] = {
         "exit_order_id": "exit-100",

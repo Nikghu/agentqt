@@ -1,10 +1,10 @@
 # Unit Test Case Document — Infrastructure (INF)
 
 **Document ID:** UTCD-INF
-**Version:** 1.1.0
+**Version:** 1.2.0
 **Traces To:** MD-INF v1.1.0
 **Status:** Draft
-**Last Updated:** 2026-03-06
+**Last Updated:** 2026-06-12
 **Project:** US Swing Trading System
 
 > Tests written BEFORE implementation per process.md §7.
@@ -17,6 +17,19 @@
 |---|---|
 | Type | Unit / Integration / Edge |
 | Expected Output | What must be true for the test to PASS |
+
+---
+
+## Module: `broker/sim.py` — SimBroker
+
+> The full broker contract suite lives in `tests/broker/test_broker_contract.py` (SRD-INF-009.004/.006); only the live-price-provider cases (SRD-INF-009.007) are tracked as IDs here.
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-INF-009.004.M01.T01 | MD-INF-009.004.M01 | Positive | MARKET order fills at the price provider's live price, not the request's reference (SRD-INF-009.007, ISS-INF-0002) | `SimBroker(price_provider=lambda s: 191.3)`; market buy `reference_price=50.0` | `OrderEvent.fill_price == 191.3` | Pass |
+| UT-INF-009.004.M01.T02 | MD-INF-009.004.M01 | Negative | Falls back to `reference_price` when the provider returns no live price | `price_provider=lambda s: None`; market buy `reference_price=50.0` | `OrderEvent.fill_price == 50.0` | Pass |
+| UT-INF-009.004.M01.T03 | MD-INF-009.004.M01 | Edge | Non-positive (`0.0`) provider price falls back to `reference_price` | `price_provider=lambda s: 0.0`; market buy `reference_price=50.0` | `OrderEvent.fill_price == 50.0` | Pass |
+| UT-INF-009.004.M01.T04 | MD-INF-009.004.M01 | Edge | LIMIT order ignores the provider and fills at `limit_price` | `price_provider=lambda s: 191.3`; limit buy `limit_price=48.0` | `OrderEvent.fill_price == 48.0` | Pass |
 
 ---
 

@@ -2,6 +2,66 @@
 
 ---
 
+## [20260612] EXE — FO-EXE-017 global Margin Available ceiling: cross-strategy budget gate, in-flight reservation, paper open-value fix, User View capital cell
+
+- Type: Feature
+- FO(s): FO-EXE-017, FO-GUI-000
+- RN: RN-EXE-1.25.0-20260612
+- Artifacts updated: SRD, DD, MD, UTCD, Code, TRACE, RN
+- Decisions: margin derived (never stored) = effective_capital − all-strategy deployed − in-flight reservations; reservation ledger on RiskManager (released on fill/reject/rollback) fixes same-bar over-commit; entry qty clamped to remaining margin; paper open_position_value summed from open cycles; removed dead can_enter_new (3 tests converted to margin_available)
+
+---
+
+## [20260612] INF — ISS-INF-0002 paper broker now fills MARKET orders at live market price via an injected provider
+
+- Type: Bugfix
+- FO(s): FO-INF-009
+- RN: RN-INF-1.1.0-20260612
+- Artifacts updated: SRD, UTCD, Code, TRACE, RN
+- Decisions: SimBroker gains injectable price_provider for live fills; app_service feeds it from tick-price map (lock-guarded); falls back to reference_price when provider absent/non-positive
+
+---
+
+## [20260612] EXE — ISS-EXE-0006 forced exits now carry open cycle's last price so paper fills no longer record $0 exit
+
+- Type: Bugfix
+- FO(s): FO-EXE-011
+- RN: RN-EXE-1.24.0-20260612
+- Artifacts updated: SRD, MD, UTCD, Code, TRACE, RN
+- Decisions: New SRD-EXE-011.022 added (Approved → Implemented); explicit positive-value guard (not truthiness check) prevents 0.0 tick reintroduction per code review
+
+---
+
+## [20260612] EXE — ISS-EXE-0005 closed-cycle realized P&L multiplied by held entry_qty instead of divergent exit_qty
+
+- Type: Bugfix
+- FO(s): FO-EXE-012
+- RN: RN-EXE-1.23.0-20260612
+- Artifacts updated: SRD, UTCD, Code, TRACE
+- Decisions: SRD-EXE-012.007 formula corrected in same session (Approved → Implemented); existing wrong P&L values in test DB not backfilled (acceptable during testing phase)
+
+---
+
+## [20260610] EXE, GUI — ISS-EXE-0004 pending EXIT signals showed wrong qty / verb / button colour
+
+- Type: Bugfix
+- FO(s): FO-EXE-011, FO-GUI-014
+- RN: RN-EXE-1.22.0-20260610
+- Artifacts updated: SRD, MD, UTCD, Code, TRACE, RN
+- Decisions: None
+
+---
+
+## [20260610] INF — ISS-INF-0001 auto-updater 24-hour throttle race condition fix
+
+- Type: Bugfix
+- FO(s): N/A (shared updater utility; no SRD/FO chain)
+- RN: RN-INF-1.0.2-20260610
+- Artifacts updated: Code, Tests, RN
+- Decisions: Stamp throttle post-fetch only; raise failure log to WARNING
+
+---
+
 ## [20260610] EXE — FO-EXE-006.012 daily/weekly closed bars for strategy conditions
 
 - Type: Refactor

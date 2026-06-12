@@ -15,11 +15,10 @@ from __future__ import annotations
 
 import logging
 import math
+import sys
 from pathlib import Path
 
 from PyQt6.QtCore import QEvent, QPoint, QPointF, QRectF, QSettings, QTimer, Qt
-
-_log = logging.getLogger(__name__)
 from PyQt6.QtGui import QColor, QCursor, QFont, QPainter, QPainterPath, QPen, QPixmap
 from PyQt6.QtWidgets import (
     QApplication,
@@ -43,6 +42,19 @@ from us_swing.gui.screener_panel import ScreenerPanel
 from us_swing.gui.settings_panel import SettingsPanel
 from us_swing.gui.system_store import load_system_config
 from us_swing.gui.theme import C, active_palette, colors
+
+_log = logging.getLogger(__name__)
+
+
+def _asset_path(name: str) -> Path:
+    """Resolve a bundled asset, working both from source and a frozen exe.
+
+    In a PyInstaller build the assets folder is unpacked under ``sys._MEIPASS``;
+    from source it sits four levels up from this module (the package root).
+    """
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        return Path(sys._MEIPASS) / "assets" / name
+    return Path(__file__).parent.parent.parent.parent / "assets" / name
 
 
 # ── Market Watch cell ─────────────────────────────────────────────────────────
@@ -271,7 +283,7 @@ class _TitleBar(QWidget):
         row.setSpacing(0)
 
         # ── Logo ────────────────────────────────────────────────────────
-        _logo_path = Path(__file__).parent.parent.parent.parent / "assets" / "logo.png"
+        _logo_path = _asset_path("logo.png")
         logo = QLabel()
         logo.setFixedSize(24, 24)
         pix = QPixmap(str(_logo_path))
@@ -441,7 +453,7 @@ class _AdminContextBar(QWidget):
         self._items: dict[str, QLabel] = {}
         self._dividers: list[QLabel] = []
 
-        for key in ("scope", "risk", "mode", "ibkr"):
+        for key in ("scope", "risk", "capital", "mode", "ibkr"):
             if self._items:  # divider before each (except first)
                 d = QLabel("·")
                 row.addWidget(d)
@@ -519,7 +531,7 @@ class _AdminContextBar(QWidget):
                 f"<b style='color:{_T.YELLOW}'>ALL USERS</b>"
                 f"  <span style='color:{_T.MUTED};font-size:7pt'>{len(users)} accounts</span>"
             )
-            for k in ("risk", "mode", "ibkr"):
+            for k in ("risk", "capital", "mode", "ibkr"):
                 self._items[k].hide()
         else:
             u = self._demo.get_user_by_id(uid)
@@ -535,7 +547,15 @@ class _AdminContextBar(QWidget):
             self._items["ibkr"].setText(
                 f"<span style='color:{_T.MUTED}'>IBKR</span>  <b>#{u.ibkr_client_id}</b>"
             )
-            for k in ("risk", "mode", "ibkr"):
+            cap = self._demo.effective_capital()
+            avail = self._demo.margin_available()
+            avail_clr = _T.GREEN if avail > 0 else _T.RED
+            self._items["capital"].setText(
+                f"<span style='color:{_T.MUTED}'>Cap</span>  <b>${cap:,.0f}</b>"
+                f"  <span style='color:{_T.MUTED}'>Avail</span>  "
+                f"<b style='color:{avail_clr}'>${avail:,.0f}</b>"
+            )
+            for k in ("risk", "capital", "mode", "ibkr"):
                 self._items[k].show()
 
         for lbl in self._items.values():

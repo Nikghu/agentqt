@@ -125,6 +125,44 @@ def test_effective_capital_live_over_cash_uses_90pct(qtbot: QtBot) -> None:
     assert svc.get_active_user().risk_config.max_capital_value == 5_000.0
 
 
+# ── paper open-position value + margin_available ──────────────────────────────
+
+class _FakeCycleSource:
+    def __init__(self, positions: list[object]) -> None:
+        self._positions = positions
+
+    def get_all(self, user_id: int) -> list[object]:
+        return self._positions
+
+
+def test_paper_open_position_value_summed(qtbot: QtBot) -> None:
+    """UT-EXE-017.019.M14.T01: paper open_position_value sums the open cycles."""
+    svc = _svc(1, [_paper_user()])
+    svc._cycle_position_source = _FakeCycleSource([          # type: ignore[attr-defined]
+        MagicMock(average_price=100.0, quantity=5),   # $500
+        MagicMock(average_price=80.0, quantity=10),   # $800
+    ])
+    assert svc.get_account_state(1).open_position_value == 1_300.0
+
+
+def test_app_margin_available_nets_deployed(qtbot: QtBot) -> None:
+    """UT-EXE-017.021.M14.T02: AppService.margin_available nets deployed value."""
+    svc = _svc(1, [_paper_user()])
+    svc._cycle_position_source = _FakeCycleSource([          # type: ignore[attr-defined]
+        MagicMock(average_price=100.0, quantity=13),  # $1300
+    ])
+    assert svc.margin_available() == 700.0
+
+
+def test_app_margin_available_floors_zero(qtbot: QtBot) -> None:
+    """UT-EXE-017.021.M14.T03: margin floors at zero when over-deployed."""
+    svc = _svc(1, [_paper_user()])
+    svc._cycle_position_source = _FakeCycleSource([          # type: ignore[attr-defined]
+        MagicMock(average_price=100.0, quantity=25),  # $2500
+    ])
+    assert svc.margin_available() == 0.0
+
+
 class _FakeQuery:
     def __init__(self, open_pnl: float, closed_pnl: float) -> None:
         self._open = [MagicMock(current_pnl_usd=open_pnl)]

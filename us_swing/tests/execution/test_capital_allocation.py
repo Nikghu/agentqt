@@ -88,6 +88,39 @@ def test_can_allocate_at_budget_blocks() -> None:
     assert "capital limit" in result.reason
 
 
+# ── margin_available + reservation ledger ─────────────────────────────────────
+
+def test_margin_available_nets_all_strategy_deployed() -> None:
+    """UT-EXE-017.015.M10.T01: margin = budget − deployed across all strategies."""
+    p1 = MagicMock(strategy_id="s1", average_price=100.0, quantity=5)   # $500
+    p2 = MagicMock(strategy_id="s2", average_price=70.0, quantity=10)   # $700
+    rm = _rm(2_000.0, [p1, p2])
+    assert rm.margin_available() == 800.0
+
+
+def test_margin_available_floors_at_zero() -> None:
+    """UT-EXE-017.015.M10.T02: deployed over budget floors margin at zero."""
+    p = MagicMock(strategy_id="s1", average_price=100.0, quantity=21)   # $2100
+    rm = _rm(2_000.0, [p])
+    assert rm.margin_available() == 0.0
+
+
+def test_reservation_reduces_margin() -> None:
+    """UT-EXE-017.017.M10.T03: an active reservation lowers margin."""
+    rm = _rm(2_000.0, [])
+    rm.reserve("s1", "AAPL", 500.0)
+    assert rm.margin_available() == 1_500.0
+
+
+def test_release_restores_margin_idempotent() -> None:
+    """UT-EXE-017.017.M10.T04: release frees margin and is idempotent."""
+    rm = _rm(2_000.0, [])
+    rm.reserve("s1", "AAPL", 500.0)
+    rm.release("s1", "AAPL")
+    rm.release("s1", "AAPL")  # second release must not raise
+    assert rm.margin_available() == 2_000.0
+
+
 # ── advisory validate ─────────────────────────────────────────────────────────
 
 def test_validate_advisory_max_position_warns_not_blocks() -> None:
@@ -183,6 +216,7 @@ def _router(effective: float) -> tuple[_Router, asyncio.Queue[TradeSignal], Magi
     risk = MagicMock()
     from us_swing.execution.strategy_engine._protocols import CanAllocateResult
     risk.can_allocate.return_value = CanAllocateResult(ok=True)
+    risk.margin_available.return_value = effective
     bus = MagicMock()
     router = _Router(
         queue=queue, registry=registry, evaluator=ConditionEvaluator(),
@@ -215,6 +249,43 @@ async def test_router_builds_sized_entry_signal() -> None:
     await router.evaluate(ctx, "CVS", _candles(96.0), _bar(96.0))
     signal = await asyncio.wait_for(queue.get(), timeout=1.0)
     assert signal.qty_recommended == 5
+
+
+@pytest.mark.asyncio
+async def test_router_clamps_entry_to_margin() -> None:
+    """UT-EXE-017.018.M12.T01: entry qty clamped to remaining margin."""
+    router, queue, _bus, registry = _router(effective=2_000.0)  # strategy slice = 5 @ $96
+    router._risk.margin_available.return_value = 300.0          # only 3 shares fit
+    ctx = list(registry.values())[0]
+    await router.evaluate(ctx, "CVS", _candles(96.0), _bar(96.0))
+    signal = await asyncio.wait_for(queue.get(), timeout=1.0)
+    assert signal.qty_recommended == 3
+    router._risk.reserve.assert_called_once_with(ctx.name, "CVS", 3 * 96.0)
+
+
+@pytest.mark.asyncio
+async def test_router_drops_entry_when_margin_exhausted() -> None:
+    """UT-EXE-017.016.M12.T02: margin below entry price → dropped margin_exhausted."""
+    router, queue, bus, registry = _router(effective=2_000.0)
+    router._risk.margin_available.return_value = 50.0          # < $96
+    ctx = list(registry.values())[0]
+    await router.evaluate(ctx, "CVS", _candles(96.0), _bar(96.0))
+    assert queue.empty()
+    assert "CVS" not in ctx.in_flight
+    dropped = [c.args[0] for c in bus.publish.call_args_list
+               if isinstance(c.args[0], StrategySignalDropped)]
+    assert any(d.reason == "margin_exhausted" for d in dropped)
+
+
+def test_router_releases_reservation_on_entry_fill() -> None:
+    """UT-EXE-017.017.M12.T03: an entry fill releases the reservation."""
+    from us_swing.execution.strategy_engine._protocols import FillEvent
+    router, _queue, _bus, registry = _router(effective=2_000.0)
+    sid = list(registry.keys())[0]
+    fill = FillEvent(strategy_id=sid, symbol="CVS", is_entry=True,
+                     fill_price=96.0, fill_qty=5, order_id=1)
+    router.on_order_fill(fill)
+    router._risk.release.assert_called_once_with(sid, "CVS")
 
 
 # ── engine rex auto-reset on start ────────────────────────────────────────────

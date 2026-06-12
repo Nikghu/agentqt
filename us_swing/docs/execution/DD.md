@@ -1,12 +1,13 @@
 # Design Document — Execution & Risk Management (EXE)
 
 **Document ID:** DD-EXE
-**Version:** 1.12.0
-**Traces To:** SRD-EXE v1.17.0
+**Version:** 1.13.0
+**Traces To:** SRD-EXE v1.19.0
 **Status:** Draft
-**Last Updated:** 2026-06-09
+**Last Updated:** 2026-06-12
 **Project:** US Swing Trading System
 
+> v1.13.0: DD-EXE-017.015–.021 added — global Margin Available ceiling, in-flight reservation ledger, per-entry margin clamp, paper open-position-value fix, live margin-drift reconcile, and User View capital/margin cells.
 > v1.12.0: DD-EXE-017.* added — effective-capital resolution, capital-max sizing, blocking-vs-advisory risk split, daily-loss aggregation, rex auto-reset on start + display fix.
 > v1.11.0: DD-EXE-016.* added — ingestion-driven monitoring-lifecycle seam, `trade_cycles` carryover repoint, `positions` table drop.
 > v1.10.0: DD-EXE-015.* added — BrokerAdapter (translation/selection/routing) + broker-agnostic Order Ingestion pipeline.
@@ -3439,3 +3440,150 @@ Two display defects in `gui/active_cycles_model.py`:
    for the pending row.
 
 Stored values are untouched in both fixes; only `data()` for `Col.REX` changes.
+
+## DD-EXE-017.015.D01 — Margin Available Model & In-Flight Reservation Ledger
+
+**Parent SRD:** SRD-EXE-017.015, SRD-EXE-017.016, SRD-EXE-017.017
+
+`can_allocate` enforces a *per-strategy* slice but nothing enforced the *global*
+ceiling: total deployed across all strategies of a user must not exceed
+`effective_capital`. The unused `can_enter_new` attempted this but was never
+wired. We replace it with a single derived accessor plus a small reservation
+ledger on `RiskManager`.
+
+### Derived margin (never stored)
+
+```python
+def margin_available(self) -> float:
+    deployed = 0.0
+    if self._tracker is not None:
+        deployed = sum(
+            p.average_price * p.quantity
+            for p in self._tracker.get_all(self._user_id)
+        )
+    reserved = sum(self._reservations.values())
+    return max(0.0, self._effective_capital() - deployed - reserved)
+```
+
+`deployed` is sourced from the same open-cycle tracker `can_allocate` already
+uses, so an EXIT fill that removes a cycle frees margin automatically on the next
+call — no event plumbing. Margin is computed on demand, so there is no stored
+field that can drift.
+
+### Reservation ledger (same-bar race fix)
+
+Two symbols of the same strategy can clear the gate on one bar before either
+fills, because the open-cycle tracker only reflects *filled* positions. A
+`dict[(strategy_id, symbol), float]` reserves the projected entry value the
+moment the router commits to an ENTRY, so the second symbol's
+`margin_available()` already nets it out:
+
+```python
+def reserve(self, strategy_id: str, symbol: str, value: float) -> None:
+    self._reservations[(strategy_id, symbol)] = value
+
+def release(self, strategy_id: str, symbol: str) -> None:
+    self._reservations.pop((strategy_id, symbol), None)
+```
+
+The ledger lives only in memory and is authoritative only for the
+enqueue→fill window. Release happens on entry fill (the cycle now counts in
+`deployed`), on reject, and on rollback — see DD-EXE-017.018.D01. Because the
+engine runs on a single asyncio loop, the read-gate→reserve sequence in
+`evaluate` is atomic (no `await` between), so no lock is needed.
+
+`RiskValidator` (protocol) gains `margin_available()`, `reserve()`, and
+`release()`; `RiskManager` implements them. `__init__` initialises
+`self._reservations: dict[tuple[str, str], float] = {}`.
+
+## DD-EXE-017.018.D01 — Per-Entry Margin Clamp & Router Wiring
+
+**Parent SRD:** SRD-EXE-017.016, SRD-EXE-017.018
+
+In `_Router.evaluate`, after the existing strategy-slice sizing (`_size_entry`)
+and the per-strategy `can_allocate` gate, the entry quantity is clamped to the
+global margin and reserved:
+
+```python
+price = float(bar.close)
+margin_qty = math.floor(self._risk.margin_available() / price) if price > 0 else 0
+if margin_qty < qty:
+    qty = margin_qty
+if qty < 1:
+    self._bus.publish(StrategySignalDropped(signal=signal_pre, reason="margin_exhausted"))
+    if not ctx.margin_warned:
+        ctx.margin_warned = True
+        log.warning("[Strategy] %s paused new entries — Margin Available exhausted", ctx.name)
+    return
+ctx.margin_warned = False
+signal = self._build_entry_signal(ctx, symbol, bar, qty=qty)
+self._risk.reserve(ctx.name, symbol, qty * price)
+ctx.in_flight.add(symbol)
+```
+
+`ctx.margin_warned` is a new edge-trigger flag on `_StrategyContext` (mirrors the
+existing `capital_warned`): one WARNING when the strategy first hits the global
+ceiling, then quiet until margin frees up.
+
+**Release points.** The reservation is cleared in three places so it never
+leaks: `on_order_fill` when `fill.is_entry` (the cycle now counts), `_rollback`
+(dispatch rejected or submitter returned `None`), and `on_order_reject`. All
+three call `self._risk.release(strategy_id, symbol)`; release is idempotent
+(`pop(..., None)`), so calling it for an exit or an unreserved symbol is safe.
+
+A manual/pending signal keeps its reservation until it is filled or rejected,
+matching SRD-EXE-017.017 ("pending entry signals" reserve capital).
+
+## DD-EXE-017.019.D01 — Paper Open-Position-Value & `AppService.margin_available`
+
+**Parent SRD:** SRD-EXE-017.019, SRD-EXE-017.021
+
+`get_account_state` hardcoded `open_position_value = 0.0` in paper/disconnected
+mode, so the account-level available capital and the GUI capital indicator were
+always wrong. It now sums the user's open cycles from the existing
+`_CyclePositionSource`:
+
+```python
+src = getattr(self, "_cycle_position_source", None)
+open_val = (
+    sum(p.average_price * p.quantity for p in src.get_all(uid or 0))
+    if src is not None else 0.0
+)
+```
+
+The live (IBKR) branch is untouched — it already reports broker market value.
+A thin `AppService.margin_available()` reuses the same sum so the GUI and the
+engine agree on one definition:
+
+```python
+def margin_available(self) -> float:
+    src = getattr(self, "_cycle_position_source", None)
+    deployed = sum(p.average_price * p.quantity for p in src.get_all(self._active_uid)) \
+        if src is not None else 0.0
+    return max(0.0, self.effective_capital() - deployed)
+```
+
+This view is fill-based (it does not subtract router reservations); reservations
+are an engine-internal concern and need not show in the user's headline figure.
+
+## DD-EXE-017.020.D01 — Live Margin-Drift Reconcile
+
+**Parent SRD:** SRD-EXE-017.020
+
+On each live account-data refresh (`_on_account_data_ready`), live mode compares
+the system's `margin_available()` against broker cash and emits one advisory
+`RiskWarning(kind='margin_drift')` when the gap exceeds a small tolerance. A
+latch flag (`self._margin_drift_warned`) debounces it to one warning per
+crossing; paper mode returns immediately. The warning never blocks an order — it
+flows through the same advisory bridge as the other `RiskWarning` events
+(SRD-EXE-017.013).
+
+## DD-EXE-017.021.D01 — User View Capital / Margin Cells
+
+**Parent SRD:** SRD-EXE-017.021
+
+`_AdminContextBar` gains a `capital` item rendering `Cap $X · Avail $Y`, where
+`X = svc.effective_capital()` and `Y = svc.margin_available()`. It refreshes on
+the existing `account_updated` signal (already connected) and paints green when
+`Y > 0`, red otherwise. Single-user scope only; the All-Users aggregate scope
+keeps its existing summary. Display-only — no gating.
