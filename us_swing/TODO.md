@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-06-09 (Session 61)
+**Last Updated:** 2026-06-12 (Session 67)
 
 ---
 
@@ -19,4 +19,6 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T7 | Lifecycle `insert_trade_with_anchor` hardcodes `trades.strategy_id=None` and `mode="paper"` — live trades mis-tagged. Thread real strategy_id + mode through. | `core/monitoring_session/_repository.py` | Medium | Open |
 | T8 | Partial-quantity accounting for cycles. Buy/Sell `PARTIAL_FILLED` only hold state (OPENING/CLOSING); qty not split (sell 40 of 100 → 60 residual). NOTE: `OrderEvent.filled_quantity` is **cumulative per order id** (`broker.py:90`, sim/ibkr confirmed) — **overwrite** within an order, never `+=`; drive state off cumulative vs `entry_qty`. Multi-order-per-cycle (N order ids) needs a one-cycle→many-orders link + SUM — do single-order overwrite first, multi-order as follow-up. Ref Final_Execution §5.3.5. | `execution/trade_cycle/` | Medium | Open |
 | T10 | FO-EXE-017 advisory pop-up — `MainWindow._on_risk_warning` connects `risk_warning_raised` to a debounced (30 s/kind) non-blocking `QMessageBox` (SRD-EXE-017.013). | `gui/main_window.py` | Medium | Done |
+| T11 | FO-EXE-017 global Margin Available ceiling — `margin_available()`, in-flight reservation ledger, per-entry clamp, paper open-value fix, live drift advisory, User View capital cell. SRD-EXE-017.015–.021 + SRD-GUI-000.006 Implemented; RN-EXE-1.25.0; merged PR #41. | `execution/`, `gui/` | High | Done |
+| T12 | No pytest-qt render test for the `_AdminContextBar` capital cell (SRD-GUI-000.006). Underlying `margin_available`/`effective_capital` logic is covered; add a GUI smoke test. | `gui/main_window.py` | Low | Open |
 | T9 | Reject path didn't abort the cycle — fixed. Added `TradeCycleService.abort_entry_order`; `OrderIngestion` REJECTED branch now aborts a partial-filled OPENING cycle. SRD-EXE-014.005 corrected (was naming the removed `ExecutionEngine.handle_order_reject`). Note: entry-only by design — exit reject must keep the cycle OPEN (you still hold the stock); the partial-sell-then-reject residual case is left to T8. | `execution/order_ingestion.py`, `execution/trade_cycle/_service.py` | High | Done |
