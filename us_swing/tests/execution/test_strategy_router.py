@@ -65,6 +65,9 @@ class _FakeCycleQuery:
 
     def __init__(self) -> None:
         self.open_pairs: set[tuple[str, str]] = set()
+        self.qty_by_pair: dict[tuple[str, str], int] = {}
+        self.entry_price_by_pair: dict[tuple[str, str], float] = {}
+        self.current_price_by_pair: dict[tuple[str, str], float | None] = {}
 
     def has_open_cycle(self, strategy_id: str, symbol: str) -> bool:
         return (strategy_id, symbol) in self.open_pairs
@@ -76,6 +79,9 @@ class _FakeCycleQuery:
                 snap = MagicMock()
                 snap.symbol = sym
                 snap.strategy_id = sid
+                snap.entry_qty = self.qty_by_pair.get((sid, sym), 0)
+                snap.entry_price = self.entry_price_by_pair.get((sid, sym), 0.0)
+                snap.current_price = self.current_price_by_pair.get((sid, sym))
                 snaps.append(snap)
         return tuple(snaps)
 
@@ -118,6 +124,7 @@ def _make_router(
     risk = MagicMock()
     risk.validate.return_value = ValidationResult(ok=risk_ok, qty=10, reason="risk_reject" if not risk_ok else "")
     risk.can_allocate.return_value = CanAllocateResult(ok=can_allocate_ok, reason="cap" if not can_allocate_ok else "")
+    risk.margin_available.return_value = 1_000_000.0
     submitter = MagicMock()
     submitter.submit.return_value = 42
     pending = MagicMock()
@@ -245,6 +252,46 @@ async def test_can_allocate_fails_publishes_signal_dropped() -> None:
 
 
 @pytest.mark.asyncio
+async def test_capital_cap_warning_is_edge_triggered(caplog: Any) -> None:
+    """UT-EXE-011.001.M04.T26: capital-cap WARNING logs once per capped episode, not per tick."""
+    import logging
+    router, _q, _r, _s, _p, _bus, registry, _cq = _make_router(
+        clock=_scheduled_clock, can_allocate_ok=False
+    )
+    ctx = list(registry.values())[0]
+    bar = _make_bar()
+    import pandas as pd
+    candles: dict[str, pd.DataFrame] = {
+        "3m": pd.DataFrame({"open": [150.0], "high": [151.0], "low": [149.0], "close": [150.0], "volume": [1_000_000]})
+    }
+
+    def _warns() -> list[Any]:
+        return [
+            r for r in caplog.records
+            if r.levelno == logging.WARNING and "paused new entries" in r.message
+        ]
+
+    with caplog.at_level(logging.WARNING):
+        for sym in ("AAPL", "MSFT", "AAPL"):
+            await router.evaluate(ctx, sym, candles, bar)
+
+    assert ctx.capital_warned is True
+    assert len(_warns()) == 1
+
+    # An exit fill frees capital → the next capped episode is allowed to warn again.
+    router.on_order_fill(
+        FillEvent(strategy_id=ctx.name, symbol="AAPL", is_entry=False,
+                  fill_price=150.0, fill_qty=10, order_id=7)
+    )
+    assert ctx.capital_warned is False
+
+    with caplog.at_level(logging.WARNING):
+        await router.evaluate(ctx, "AAPL", candles, bar)
+
+    assert len(_warns()) == 2
+
+
+@pytest.mark.asyncio
 async def test_end_time_sweep_force_exits_intraday_open_cycle() -> None:
     """UT-EXE-011.001.M04.T06: Intraday past end_time → _force_exit fires for symbol with open cycle."""
     past_end = datetime(2026, 5, 19, 16, 0, tzinfo=_ET)
@@ -260,6 +307,100 @@ async def test_end_time_sweep_force_exits_intraday_open_cycle() -> None:
     bus.publish.assert_called_once()
     published = bus.publish.call_args[0][0]
     assert isinstance(published, StrategySquaredOff)
+
+
+@pytest.mark.asyncio
+async def test_exit_signal_carries_open_cycle_qty() -> None:
+    """UT-EXE-011.001.M04.T21: SRD-EXE-011.021 — strategy exit qty_recommended = open cycle entry_qty."""
+    cq = _FakeCycleQuery()
+    cq.open_pairs.add(("test_strat", "AAPL"))
+    cq.qty_by_pair[("test_strat", "AAPL")] = 7
+    router, queue, _risk, _sub, _pend, _bus, registry, _cq = _make_router(
+        clock=_scheduled_clock, cycle_query=cq
+    )
+    ctx = registry["test_strat"]
+
+    await router.evaluate(ctx, "AAPL", {}, _make_bar("AAPL"))
+
+    signal = await asyncio.wait_for(queue.get(), timeout=1.0)
+    assert signal.action == Action.EXIT
+    assert signal.qty_recommended == 7
+
+
+@pytest.mark.asyncio
+async def test_forced_exit_carries_open_cycle_qty() -> None:
+    """UT-EXE-011.001.M04.T22: SRD-EXE-011.021 — forced (end-time) exit also carries entry_qty."""
+    past_end = datetime(2026, 5, 19, 16, 0, tzinfo=_ET)
+    cq = _FakeCycleQuery()
+    router, queue, _risk, _sub, _pend, _bus, registry, _cq = _make_router(clock=lambda: past_end, cycle_query=cq)
+    ctx = list(registry.values())[0]
+    cq.open_pairs.add((ctx.name, "AAPL"))
+    cq.qty_by_pair[(ctx.name, "AAPL")] = 5
+
+    await router._sweep_end_times()
+
+    signal = queue.get_nowait()
+    assert signal.action == Action.EXIT
+    assert signal.qty_recommended == 5
+
+
+@pytest.mark.asyncio
+async def test_forced_exit_carries_open_cycle_price() -> None:
+    """UT-EXE-011.001.M04.T27: SRD-EXE-011.022 — forced exit carries the cycle's last price."""
+    past_end = datetime(2026, 5, 19, 16, 0, tzinfo=_ET)
+    cq = _FakeCycleQuery()
+    router, queue, _risk, _sub, _pend, _bus, registry, _cq = _make_router(
+        clock=lambda: past_end, cycle_query=cq
+    )
+    ctx = list(registry.values())[0]
+    cq.open_pairs.add((ctx.name, "AAPL"))
+    cq.current_price_by_pair[(ctx.name, "AAPL")] = 191.3
+
+    await router._sweep_end_times()
+
+    signal = queue.get_nowait()
+    assert signal.action == Action.EXIT
+    assert signal.entry_price == 191.3
+
+
+@pytest.mark.asyncio
+async def test_forced_exit_price_falls_back_to_entry_price() -> None:
+    """UT-EXE-011.001.M04.T28: SRD-EXE-011.022 — fall back to entry_price when current_price is unset."""
+    past_end = datetime(2026, 5, 19, 16, 0, tzinfo=_ET)
+    cq = _FakeCycleQuery()
+    router, queue, _risk, _sub, _pend, _bus, registry, _cq = _make_router(
+        clock=lambda: past_end, cycle_query=cq
+    )
+    ctx = list(registry.values())[0]
+    cq.open_pairs.add((ctx.name, "AAPL"))
+    cq.entry_price_by_pair[(ctx.name, "AAPL")] = 182.5
+    cq.current_price_by_pair[(ctx.name, "AAPL")] = None
+
+    await router._sweep_end_times()
+
+    signal = queue.get_nowait()
+    assert signal.action == Action.EXIT
+    assert signal.entry_price == 182.5
+
+
+@pytest.mark.asyncio
+async def test_forced_exit_price_rejects_non_positive_tick() -> None:
+    """UT-EXE-011.001.M04.T29: SRD-EXE-011.022 — a 0.0 current_price falls back to entry_price."""
+    past_end = datetime(2026, 5, 19, 16, 0, tzinfo=_ET)
+    cq = _FakeCycleQuery()
+    router, queue, _risk, _sub, _pend, _bus, registry, _cq = _make_router(
+        clock=lambda: past_end, cycle_query=cq
+    )
+    ctx = list(registry.values())[0]
+    cq.open_pairs.add((ctx.name, "AAPL"))
+    cq.entry_price_by_pair[(ctx.name, "AAPL")] = 182.5
+    cq.current_price_by_pair[(ctx.name, "AAPL")] = 0.0
+
+    await router._sweep_end_times()
+
+    signal = queue.get_nowait()
+    assert signal.action == Action.EXIT
+    assert signal.entry_price == 182.5
 
 
 @pytest.mark.asyncio
@@ -530,6 +671,7 @@ def _make_router_with_uid(uid: int) -> tuple[_Router, asyncio.Queue[TradeSignal]
     risk = MagicMock()
     risk.validate.return_value = ValidationResult(ok=True, qty=10, reason="")
     risk.can_allocate.return_value = CanAllocateResult(ok=True, reason="")
+    risk.margin_available.return_value = 1_000_000.0
     cq = _FakeCycleQuery()
     router = _Router(
         queue=queue,

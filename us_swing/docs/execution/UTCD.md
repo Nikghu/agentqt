@@ -1,12 +1,13 @@
 ﻿# Unit Test Case Document â€” Execution & Risk Management (EXE)
 
 **Document ID:** UTCD-EXE
-**Version:** 1.9.0
-**Traces To:** MD-EXE v1.10.0
+**Version:** 1.11.0
+**Traces To:** MD-EXE v1.11.0
 **Status:** Draft
-**Last Updated:** 2026-06-09
+**Last Updated:** 2026-06-12
 **Project:** US Swing Trading System
 
+> v1.11.0: UT-EXE-017.015–.021 added (10 tests) — `margin_available` + reservation ledger, router margin clamp/gate/release, paper open-position-value, AppService margin.
 > v1.9.0: UT-EXE-017.* added (22 tests) — capital-max sizing, advisory risk split, capital-insufficient drop, rex auto-reset, rex display fix, RiskConfig migration, effective-capital + daily-loss aggregation (FO-EXE-017).
 > v1.8.0: UT-EXE-014.001.M01.T01–T06 added — BuyOrderState / SellOrderState broker-order state machine + legacy `status` backfill (Final_Execution.md Phase 3).
 > v1.7.0: UT-EXE-011.001.M08.* (RexCounterRepository, 8 tests) and UT-EXE-011.001.M04.T11–T16 (rex_count gate + decrement, 6 tests) added.
@@ -471,6 +472,11 @@
 | UT-EXE-011.001.M04.T14 | MD-EXE-011.001.M04 | Positive | `on_order_fill(entry)` calls `RexCounterRepository.decrement` after publishing `StrategyEntered` | `cfg.rex_count=5`; first fill | `decrement(S1, AAPL, init_value=5)` invoked once; event publish order: `StrategyEntered` then decrement | Not Run |
 | UT-EXE-011.001.M04.T15 | MD-EXE-011.001.M04 | Negative | Rex-blocked drop does NOT mutate cycle state | Pre-set ACTIVE state; gate drops signal | Cycle stays ACTIVE; no UnderEntry transition; no writeback to `strategy_signal` | Not Run |
 | UT-EXE-011.001.M04.T16 | MD-EXE-011.001.M04 | Edge | `cfg.rex_count=0` → exactly one entry allowed, second blocked | First entry: empty counter → allow → after fill remaining=-1. Second entry attempt | First entry succeeds; second `StrategySignalDropped(reason='rex_limit')` | Not Run |
+| UT-EXE-011.001.M04.T21 | MD-EXE-011.001.M04 | Positive | Strategy exit signal carries the open cycle's held quantity (SRD-EXE-011.021) | Open cycle (test_strat, AAPL) with `entry_qty=7`; exit condition fires | Enqueued signal has `action=EXIT` and `qty_recommended=7` | Pass |
+| UT-EXE-011.001.M04.T22 | MD-EXE-011.001.M04 | Positive | Forced end-time exit also carries the open cycle's quantity (SRD-EXE-011.021) | Open cycle (test_strat, AAPL) with `entry_qty=5`; clock past end_time; `_sweep_end_times` | Enqueued signal has `action=EXIT` and `qty_recommended=5` | Pass |
+| UT-EXE-011.001.M04.T27 | MD-EXE-011.001.M04 | Positive | Forced exit signal carries the open cycle's last price as a fill reference (SRD-EXE-011.022, ISS-EXE-0006) | Open cycle (test_strat, AAPL) `current_price=191.3`; clock past end_time; `_sweep_end_times` | Enqueued EXIT signal has `entry_price == 191.3`, not `None` | Pass |
+| UT-EXE-011.001.M04.T28 | MD-EXE-011.001.M04 | Edge | Forced exit price falls back to `entry_price` when `current_price` is unset (SRD-EXE-011.022) | Open cycle with `current_price=None, entry_price=182.5`; clock past end_time; `_sweep_end_times` | Enqueued EXIT signal has `entry_price == 182.5` | Pass |
+| UT-EXE-011.001.M04.T29 | MD-EXE-011.001.M04 | Edge | Forced exit price falls back to `entry_price` when `current_price` is a non-positive `0.0` tick (SRD-EXE-011.022) | Open cycle with `current_price=0.0, entry_price=182.5`; clock past end_time; `_sweep_end_times` | Enqueued EXIT signal has `entry_price == 182.5`, not `0.0` | Pass |
 
 ---
 
@@ -546,6 +552,9 @@
 | UT-EXE-012.002.M02.T13 | MD-EXE-012.002.M02 | Positive | `on_exit_fill` freezes realized PnL and removes accumulator | Open cycle; emit `FillEvent(exit_order_id="ord2", exit_price=187.8)` | `realized_pnl_usd=132.5`; state="CLOSED"; accumulator removed; one `CycleClosed` event | Pass |
 | UT-EXE-012.002.M02.T14 | MD-EXE-012.002.M02 | Positive | `reload()` re-attaches OPEN cycles after restart | Insert 2 OPEN rows directly into DB; construct new service; call `reload()` | Both accumulators created; tick subscription requested for both symbols | Pass |
 | UT-EXE-012.002.M02.T15 | MD-EXE-012.002.M02 | Edge | No `PyQt6` import anywhere under `trade_cycle/` | Scan loaded module set after import | No `PyQt6` modules attributable to `trade_cycle/` | Pass |
+| UT-EXE-012.002.M02.T16 | MD-EXE-012.002.M02 | Positive | `abort_entry_order` aborts a partial-filled `OPENING` cycle on broker reject | Open cycle as `PARTIAL_FILLED` (`OPENING`); call `abort_entry_order("ord-001", "broker_reject")` | state="ABORTED"; one `CycleAborted` with matching cycle_id and reason | Pass |
+| UT-EXE-012.002.M02.T17 | MD-EXE-012.002.M02 | Negative | `abort_entry_order` is a no-op when no cycle was opened | Call `abort_entry_order("never-filled", "broker_reject")` with no matching cycle | Returns `None`; zero `CycleAborted` events | Pass |
+| UT-EXE-012.002.M02.T18 | MD-EXE-012.002.M02 | Negative | Realized PnL uses held `entry_qty`, not a divergent sell-fill `exit_qty` (SRD-EXE-012.007, ISS-EXE-0005) | Open cycle (`entry_price=182.5, entry_qty=25`); `close_cycle_by_id(exit_price=187.8, exit_qty=1)` | `realized_pnl_usd == 132.5` (25 shares), not `5.3` (1 share); state="CLOSED" | Pass |
 | IT-EXE-010.002 | integration | Positive | History survives eviction | After IT-EXE-009.001 completes | `query.history("B", days=7)` returns at least one row with `lifecycle_state='EVICTED'`; `SELECT * FROM price_1m WHERE symbol='B'` is empty | Pass |
 
 ---
@@ -606,6 +615,10 @@
 | UT-EXE-017.005.M01.T06 | MD-EXE-017.001.M01 | Negative | `can_allocate` at/over budget blocks | budget $500; strategy deployed $500 | `CanAllocateResult(ok=False, reason='…capital limit')` | Pass |
 | UT-EXE-017.006.M01.T07 | MD-EXE-017.001.M01 | Positive | Max-position breach is advisory, not blocking | `validate` with proposed value > `max_position_value` | `ValidationResult(ok=True, qty>0)`; one `RiskWarning(kind='max_position')` published | Pass |
 | UT-EXE-017.006.M01.T08 | MD-EXE-017.001.M01 | Negative | Circuit breaker still blocks | `validate` with `cb_active=True` | `ValidationResult(ok=False, reason='circuit breaker active')`; no order | Pass |
+| UT-EXE-017.015.M10.T01 | MD-EXE-017.012.M10 | Positive | `margin_available` = budget − all-strategy deployed | eff_cap=$2000; two cycles across strategies worth $1200 total | `800.0` | Pass |
+| UT-EXE-017.015.M10.T02 | MD-EXE-017.012.M10 | Edge | Deployed at/over budget floors at zero | eff_cap=$2000; deployed $2100 | `0.0` | Pass |
+| UT-EXE-017.017.M10.T03 | MD-EXE-017.012.M10 | Positive | A reservation reduces margin | eff_cap=$2000; deployed $0; reserve('S','AAPL',500) | `margin_available == 1500.0` | Pass |
+| UT-EXE-017.017.M10.T04 | MD-EXE-017.012.M10 | Positive | Release restores margin (idempotent) | after T03, `release('S','AAPL')` then `release` again | `margin_available == 2000.0`; no error | Pass |
 
 ---
 
@@ -615,6 +628,9 @@
 |---|---|---|---|---|---|---|
 | UT-EXE-017.004.M03.T01 | MD-EXE-017.003.M03 | Negative | Entry dropped when sized qty < 1 | Active branch, entry fires, `size_for_strategy → 0` | `StrategySignalDropped(reason='capital_insufficient')`; no enqueue; no `in_flight` add; WARNING logged | Pass |
 | UT-EXE-017.009.M03.T02 | MD-EXE-017.003.M03 | Positive | Built entry signal carries sized qty | `_build_entry_signal` with eff_cap=$2000, capital_max=25%, entry=$96 | `signal.qty_recommended == 5` (not `1`) | Pass |
+| UT-EXE-017.018.M12.T01 | MD-EXE-017.014.M12 | Edge | Entry qty clamped to remaining margin | strategy slice sizes 10 sh; `margin_available` only covers 4 sh | enqueued `qty_recommended == 4`; `reserve` called with `4×price` | Pass |
+| UT-EXE-017.016.M12.T02 | MD-EXE-017.014.M12 | Negative | Entry dropped when margin exhausted | `margin_available` < entry price | `StrategySignalDropped(reason='margin_exhausted')`; no enqueue; edge WARNING once | Pass |
+| UT-EXE-017.017.M12.T03 | MD-EXE-017.014.M12 | Positive | Entry fill releases the reservation | commit reserves, then `on_order_fill(is_entry=True)` | `release(strategy,symbol)` called; margin returns to filled-based value | Pass |
 
 ---
 
@@ -655,3 +671,6 @@
 | UT-EXE-017.002.M09.T03 | MD-EXE-017.009.M09 | Negative | Live budget over cash falls to 90% + warns | live, cap=$5000, `total_cash_value=$3000` | `effective_capital == 2700.0`; one `[Risk]` WARNING; stored cap still $5000 | Pass |
 | UT-EXE-017.007.M09.T04 | MD-EXE-017.009.M09 | Positive | Aggregate active-trade loss crosses threshold | open+closed cycles summing to −$2100; threshold −$2000 | one `RiskWarning(kind='daily_loss')`; no order blocked | Pass |
 | UT-EXE-017.007.M09.T05 | MD-EXE-017.009.M09 | Negative | Within threshold, and no duplicate warnings | day PnL −$500 (threshold −$2000); then a second tick still below | no `RiskWarning`; latch emits at most one per crossing | Pass |
+| UT-EXE-017.019.M14.T01 | MD-EXE-017.016.M14 | Positive | Paper `open_position_value` summed from open cycles | paper user; two open cycles worth $1300 total | `get_account_state().open_position_value == 1300.0` | Pass |
+| UT-EXE-017.021.M14.T02 | MD-EXE-017.016.M14 | Positive | `AppService.margin_available` nets deployed | eff_cap=$2000; deployed $1300 | `margin_available() == 700.0` | Pass |
+| UT-EXE-017.021.M14.T03 | MD-EXE-017.016.M14 | Edge | Margin floors at zero when over-deployed | eff_cap=$2000; deployed $2500 | `margin_available() == 0.0` | Pass |

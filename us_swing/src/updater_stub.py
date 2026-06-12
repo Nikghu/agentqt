@@ -54,7 +54,9 @@ class UpdateInfo(NamedTuple):
 def check_update_available() -> UpdateInfo | None:
     """Return UpdateInfo if a newer version exists on the configured source, else None.
 
-    Stamps the check time immediately so rapid restarts do not re-poll GitHub.
+    The check time is stamped only after the update source actually answers, so a
+    failed poll (rate limit, network, SSL) retries on the next launch instead of
+    silently suppressing checks for the whole interval.
     """
     cfg = _load_config()
     if not cfg.get("enabled", False):
@@ -62,11 +64,13 @@ def check_update_available() -> UpdateInfo | None:
     interval_secs = cfg.get("interval_hours", 24) * 3600
     if not _is_check_due(interval_secs):
         return None
-    _stamp_check_time()
     github_repo: str = cfg.get("github_repo", "").strip()
     manifest = _fetch_github_manifest(github_repo, cfg) if github_repo else _fetch_custom_manifest(cfg)
     if manifest is None:
+        # Source was unreachable — do not stamp, so the next launch retries instead
+        # of going silent for the full interval.
         return None
+    _stamp_check_time()
     remote_version: str = manifest.get("version", "")
     current_version: str = cfg.get("current_version", "0.0.0")
     if _ver(remote_version) <= _ver(current_version):
@@ -167,7 +171,7 @@ def _fetch_github_manifest(
         # GitHub API requires a User-Agent header
         release = _fetch_json(api_url, user_agent="updater-stub/1.0")
     except Exception as exc:
-        log.debug("Updater(GitHub): releases/latest fetch failed: %s", exc)
+        log.warning("Updater(GitHub): releases/latest fetch failed: %s", exc)
         return None
 
     tag: str = release.get("tag_name", "").lstrip("v")

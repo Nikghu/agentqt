@@ -1,13 +1,14 @@
 # Software Requirement Document — Infrastructure (INF)
 
 **Document ID:** SRD-INF
-**Version:** 1.5.0
+**Version:** 1.6.0
 **Traces To:** FO-INF v1.4.0
 **Status:** Draft
-**Last Updated:** 2026-06-04
+**Last Updated:** 2026-06-12
 **Project:** US Swing Trading System
 
 > v1.5.0: Section 9 added — SRD-INF-009.001–.006 (Pluggable Broker Abstraction; Broker_fix.md Phases 1/3/4).
+> v1.6.0: SRD-INF-009.007 added (ISS-INF-0002) — SimBroker fills MARKET orders at an injected live-price provider so paper fills mirror a real broker instead of echoing a caller-supplied reference price.
 
 ---
 
@@ -142,4 +143,5 @@
 | SRD-INF-009.004 | FO-INF-009 | Must | `SimBroker` (`broker/sim.py`) implements `Broker` with an internal order book and a configurable fill model (price source, latency, partial fills). Emits lifecycle `OrderEvent`s asynchronously — never a synchronous fill inside `place_order`. | `OrderRequest` | async `OrderEvent` stream | Must support injecting `REJECTED` / `PARTIAL_FILLED` / `CANCELLED` for functionality testing; order ids unique across app restarts | Implemented |
 | SRD-INF-009.005 | FO-INF-009 | Must | `IBKRBroker` (`broker/ibkr.py`) implements `Broker` over an `OrderGateway` seam; maps IBKR order statuses (`Filled`/`Submitted`+partial/`Inactive`/`Cancelled`) onto `OrderStatus` and emits `OrderEvent`s. Live binding `IBKRClientGateway` wraps `IBKRClient` (added `ib` accessor) and builds ib_insync orders. | `OrderRequest` | async `OrderEvent` stream | Status mapping unit-tested via a fake gateway; `IBKRClientGateway` is live-only (`# pragma: no cover`), reuses `IBKRClient` transport | Implemented |
 | SRD-INF-009.006 | FO-INF-009 | Must | A single broker contract-test suite runs identical `OrderRequest` scenarios against both brokers and asserts identical `OrderEvent` sequences (states, filled quantities, terminal status). | `OrderRequest` scenarios | pass/fail per broker | Both `SimBroker` and `IBKRBroker` must pass the same suite to be declared interchangeable. Suite `tests/broker/test_broker_contract.py` parametrized over `BROKER_FACTORIES`; both brokers pass the shared fixture scenarios plus per-broker mapping cases — 16 cases green | Implemented |
+| SRD-INF-009.007 | FO-INF-009 | Must | `SimBroker` accepts an injectable `price_provider(symbol) -> float \| None` and fills a MARKET order at the provider's current live market price — like a real broker — rather than the caller's advisory `reference_price`. LIMIT orders still fill at `limit_price`. | `OrderRequest` + live price | `OrderEvent.fill_price` at the live market price | Falls back to `reference_price` (then $0) only when the provider is absent or returns a non-positive price; aligns paper fills with live fills and with SRD-EXE-004.004 (paper uses live market data, no synthetic price) | Implemented |
 

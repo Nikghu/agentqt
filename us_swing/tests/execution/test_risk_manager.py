@@ -182,54 +182,41 @@ def test_validate_signal_rejects_circuit_breaker():
     assert "circuit breaker" in result.reason
 
 
-# ── can_enter_new ─────────────────────────────────────────────────────────────
+# ── margin_available (replaces the retired can_enter_new) ─────────────────────
 
-def test_can_enter_new_true(db: DatabaseManager):
-    """UT-EXE-005.004.M01.T01: can_enter_new() returns True when capital available."""
+def test_margin_available_with_room(db: DatabaseManager):
+    """UT-EXE-017.015.M10.T01: margin_available = budget − deployed across cycles."""
     tracker = _FakeTracker()
+    pos = OpenPosition(
+        symbol="MSFT", user_id=1, quantity=400, average_price=50.0,
+        stop_loss=48.0, target_price=55.0, mode="live",
+    )  # $20k deployed
+    tracker.open(pos)
     rm = _manager(tracker=tracker, equity=100_000.0)
-    # open_value=$20k, new_required=$10k, allowed=50k → True
-    account = _account(equity=100_000.0, deployed=20_000.0)
-    result = rm.can_enter_new(_signal(), account, user_id=1)
-    assert result is True
+    assert rm.margin_available() == 80_000.0
 
 
-def test_can_enter_new_false(db: DatabaseManager):
-    """UT-EXE-005.004.M01.T02: can_enter_new() returns False when capital exhausted."""
+def test_margin_available_exhausted(db: DatabaseManager):
+    """UT-EXE-017.015.M10.T02: margin floors at zero when deployed nears the budget."""
     tracker = _FakeTracker()
-    # Add existing position worth $45k
     pos = OpenPosition(
-        symbol="MSFT",
-        user_id=1,
-        quantity=900,
-        average_price=50.0,
-        stop_loss=48.0,
-        target_price=55.0,
-        mode="live",
-    )
+        symbol="MSFT", user_id=1, quantity=900, average_price=50.0,
+        stop_loss=48.0, target_price=55.0, mode="live",
+    )  # $45k deployed
     tracker.open(pos)
-    # Budget capped at $50k via effective_capital; deployed $45k + $10k = $55k > $50k
     rm = _manager(tracker=tracker, equity=100_000.0, effective_capital=50_000.0)
-    account = _account(equity=100_000.0, deployed=45_000.0)
-    result = rm.can_enter_new(_signal(), account, user_id=1)
-    assert result is False
+    assert rm.margin_available() == 5_000.0
 
 
-def test_can_enter_new_scoped_per_user(db: DatabaseManager):
-    """UT-EXE-005.004.M01.T03: can_enter_new() scoped per user_id."""
+def test_margin_available_scoped_per_user(db: DatabaseManager):
+    """UT-EXE-017.017.M10: margin_available is scoped to the manager's user_id."""
     tracker = _FakeTracker()
-    # user1 has $40k deployed
     pos = OpenPosition(
-        symbol="GOOGL",
-        user_id=1,
-        quantity=400,
-        average_price=100.0,
-        stop_loss=98.0,
-        target_price=105.0,
-        mode="live",
-    )
+        symbol="GOOGL", user_id=1, quantity=400, average_price=100.0,
+        stop_loss=98.0, target_price=105.0, mode="live",
+    )  # $40k deployed for user 1 only
     tracker.open(pos)
-    rm1 = _manager(tracker=tracker, equity=100_000.0)
+    rm1 = _manager(tracker=tracker, equity=100_000.0)  # user_id=1
     rm2 = RiskManager(
         config=_config(),
         account_provider=lambda: _account(equity=100_000.0),
@@ -237,10 +224,5 @@ def test_can_enter_new_scoped_per_user(db: DatabaseManager):
         user_id=2,
         tracker=tracker,
     )
-    # user1: deployed=40k, required=$10k → 50k == limit → False (strict >, not >=)
-    account1 = _account(equity=100_000.0, deployed=40_000.0)
-    # With $40k deployed and new $10k required, 50k <= 50k → True
-    assert rm1.can_enter_new(_signal(), account1, user_id=1) is True
-    # user2: no positions, $10k required → True
-    account2 = _account(equity=100_000.0)
-    assert rm2.can_enter_new(_signal(), account2, user_id=2) is True
+    assert rm1.margin_available() == 60_000.0    # 100k − 40k (user 1 position)
+    assert rm2.margin_available() == 100_000.0   # user 2 has no positions

@@ -377,7 +377,11 @@ class TradeCycleService:
             assert held is not None
             return held
 
-        realized_pnl_usd = (exit_price - snap.entry_price) * exit_qty
+        # A cycle only reaches CLOSED on a FILLED full-position sell, so the
+        # realized quantity is the held entry_qty — never the sell fill's
+        # reported exit_qty, which can under-count when a broker reports the
+        # final fill incrementally rather than cumulatively (SRD-EXE-012.007).
+        realized_pnl_usd = (exit_price - snap.entry_price) * snap.entry_qty
         realized_pnl_pct = (
             (exit_price - snap.entry_price) / snap.entry_price * 100.0
             if snap.entry_price else 0.0

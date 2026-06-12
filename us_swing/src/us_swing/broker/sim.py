@@ -1,5 +1,5 @@
 """Module: MD-INF-009.004.M01 — broker/sim.py
-Parent SRD: SRD-INF-009.004
+Parent SRD: SRD-INF-009.004, SRD-INF-009.007
 
 Simulated broker — a mock exchange that behaves like a real broker behind the
 universal :class:`Broker` contract (Broker_fix.md Phase 3).
@@ -19,7 +19,7 @@ from __future__ import annotations
 import asyncio
 import time
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Protocol
 
 from us_swing.broker.broker import (
@@ -28,7 +28,11 @@ from us_swing.broker.broker import (
     OrderRequest,
     OrderSide,
     OrderStatus,
+    OrderType,
 )
+
+# Resolves the current live market price for a symbol, or None if unknown.
+PriceProvider = Callable[[str], "float | None"]
 
 # A scheduler defers a callback so it runs after ``place_order`` has returned.
 Scheduler = Callable[[Callable[[], None]], None]
@@ -119,10 +123,12 @@ class SimBroker(Broker):
         fill_model: FillModel | None = None,
         *,
         scheduler: Scheduler | None = None,
+        price_provider: PriceProvider | None = None,
     ) -> None:
         super().__init__()
         self._fill_model = fill_model or ImmediateFillModel()
         self._schedule = scheduler or _loop_soon
+        self._price_provider = price_provider
         # Seed from epoch milliseconds so order ids stay unique across restarts.
         self._next_id = int(time.time() * 1000)
         self._open: dict[str, _PendingOrder] = {}
@@ -131,10 +137,26 @@ class SimBroker(Broker):
     def place_order(self, request: OrderRequest) -> str:
         broker_order_id = str(self._next_id)
         self._next_id += 1
-        plan = self._fill_model.plan(request, broker_order_id)
-        self._open[broker_order_id] = _PendingOrder(request=request, plan=plan)
+        priced = self._with_market_price(request)
+        plan = self._fill_model.plan(priced, broker_order_id)
+        self._open[broker_order_id] = _PendingOrder(request=priced, plan=plan)
         self._schedule(lambda: self._resolve(broker_order_id))
         return broker_order_id
+
+    def _with_market_price(self, request: OrderRequest) -> OrderRequest:
+        """Fill a MARKET order at the live market price like a real broker.
+
+        Resolves the current price from the injected provider and overrides the
+        caller's advisory ``reference_price`` with it (SRD-INF-009.007). Falls
+        back to the original ``reference_price`` when there is no provider or it
+        reports no positive price; LIMIT orders are returned unchanged.
+        """
+        if self._price_provider is None or request.order_type is not OrderType.MARKET:
+            return request
+        live = self._price_provider(request.symbol)
+        if live is None or live <= 0:
+            return request
+        return replace(request, reference_price=live)
 
     def cancel_order(self, broker_order_id: str) -> None:
         if broker_order_id in self._open:
@@ -168,6 +190,7 @@ class SimBroker(Broker):
 __all__ = [
     "FillModel",
     "ImmediateFillModel",
+    "PriceProvider",
     "ScriptedFillModel",
     "Scheduler",
     "SimBroker",

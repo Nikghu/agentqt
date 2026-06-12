@@ -58,6 +58,7 @@ import json
 import logging
 import sqlite3
 import socket
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -1062,6 +1063,8 @@ class AppService(QObject):
         self._circuit_breaker_active = False
         self._effective_capital_cache: float = 0.0
         self._daily_loss_warned = False
+        self._margin_drift_warned = False
+        self._cycle_position_source: Any = None
 
         self._connection_status = ConnectionStatus.DISCONNECTED
         self._system_cfg        = load_system_config()
@@ -1200,6 +1203,13 @@ class AppService(QObject):
 
         self._event_bus = QtEventBus(self)
 
+        # Latest live tick price per symbol — the SimBroker fills paper market
+        # orders at this market price instead of a caller-supplied reference
+        # (SRD-INF-009.007). Written on the GUI thread from the tick signal and
+        # read on the engine thread inside place_order, so guard both with a lock.
+        self._last_tick_price: dict[str, float] = {}
+        self._last_tick_price_lock = threading.Lock()
+
         # Order submitter: the new broker pipeline when the DB + trade-cycle
         # service are available; otherwise the legacy in-memory PaperBroker so
         # the app still runs without a candle DB.
@@ -1215,6 +1225,7 @@ class AppService(QObject):
                 broker_name="IBKR",
                 scheduler=self._schedule_on_engine_loop,
                 live_client_provider=self._live_order_client,
+                price_provider=self._market_price_for,
             )
             self._order_ingestion = OrderIngestion(
                 ledger=self._db,
@@ -1370,10 +1381,21 @@ class AppService(QObject):
             user_id             = uid or 0,
             equity              = budget,
             start_of_day_equity = budget,
-            open_position_value = 0.0,
+            open_position_value = self._open_position_value(uid),
             daily_pnl           = 0.0,
             total_cash_value    = budget,
         )
+
+    def _open_position_value(self, uid: int | None) -> float:
+        """Deployed capital across the user's open cycles (entry price × qty)."""
+        src = getattr(self, "_cycle_position_source", None)
+        if src is None:
+            return 0.0
+        return sum(p.average_price * p.quantity for p in src.get_all(uid or 0))
+
+    def margin_available(self) -> float:
+        """Remaining budget = effective capital − deployed open-position value."""
+        return max(0.0, self.effective_capital() - self._open_position_value(self._active_uid))
 
     def _user_max_capital(self, uid: int | None) -> float:
         user = next((u for u in self._users if u.user_id == uid), None)
@@ -2407,6 +2429,7 @@ class AppService(QObject):
         self.positions_updated.emit()
         self._sync_tick_subscriptions()   # update position price subscriptions
         self._check_daily_loss()
+        self._reconcile_margin_drift(acct)
 
     def _reconcile_live_capital(self, acct: AccountState) -> None:
         """Warn once per connect if Max Capital exceeds broker cash (FO-EXE-017)."""
@@ -2421,6 +2444,22 @@ class AppService(QObject):
                 f"[Risk] Max Capital (${cap:.0f}) exceeds broker cash (${cash:.0f}) "
                 f"— using ${0.9 * cash:.0f} for trading",
             )
+
+    def _reconcile_margin_drift(self, acct: AccountState) -> None:
+        """Advisory: warn once when system margin diverges from live broker cash."""
+        if self.get_active_user().mode != "live":
+            return
+        gap = abs(self.margin_available() - acct.total_cash_value)
+        tolerance = max(1.0, 0.01 * self.effective_capital())
+        if gap > tolerance:
+            if not self._margin_drift_warned:
+                self._margin_drift_warned = True
+                msg = (f"[Risk] Margin Available (${self.margin_available():.0f}) differs "
+                       f"from broker cash (${acct.total_cash_value:.0f})")
+                self.log_message.emit("WARNING", msg)
+                self.risk_warning_raised.emit("margin_drift", msg)
+        else:
+            self._margin_drift_warned = False
 
     def _check_daily_loss(self) -> None:
         """Advisory aggregate daily-loss warning across all active trades."""
@@ -2483,6 +2522,7 @@ class AppService(QObject):
                 client_id=self._system_cfg.ibkr_tick_client_id,
                 parent=self,
             )
+            tw.tick_price.connect(self._record_market_price)
             tw.tick_price.connect(self._on_watchlist_tick)
             tw.tick_price.connect(self._on_position_tick)
             tw.tick_price.connect(self._on_cycle_tick)
@@ -2742,6 +2782,23 @@ class AppService(QObject):
             "INFO",
             f"[Execution] Auto-exit ({reason}) submitted for {snap.symbol}",
         )
+
+    def _record_market_price(self, tag: str, price: float) -> None:
+        """Cache the latest live price per symbol for SimBroker fills (SRD-INF-009.007).
+
+        Runs on the GUI thread via the tick signal's queued delivery.
+        """
+        if price > 0:
+            with self._last_tick_price_lock:
+                self._last_tick_price[tag] = price
+
+    def _market_price_for(self, symbol: str) -> float | None:
+        """Latest live price for *symbol*, or None — the SimBroker's price provider.
+
+        Called on the engine thread inside ``place_order``; reads under the lock.
+        """
+        with self._last_tick_price_lock:
+            return self._last_tick_price.get(symbol)
 
     def _on_position_tick(self, tag: str, price: float) -> None:
         """Update open position current_price from tick stream (SRD-GUI-012.005)."""

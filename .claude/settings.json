@@ -21,7 +21,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell -ExecutionPolicy Bypass -NonInteractive -File .claude/hooks/agent-banner.ps1"
+            "command": "powershell -ExecutionPolicy Bypass -NonInteractive -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/agent-banner.ps1\""
           }
         ]
       },

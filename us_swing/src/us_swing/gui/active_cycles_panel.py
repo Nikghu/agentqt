@@ -16,18 +16,22 @@ from typing import TYPE_CHECKING, Any, Callable
 from PyQt6.QtCore import (
     QEvent,
     QModelIndex,
+    QPoint,
     QRect,
     QSize,
     Qt,
     pyqtSignal,
     pyqtSlot,
 )
-from PyQt6.QtGui import QColor, QMouseEvent, QPainter, QPen
+from PyQt6.QtGui import QColor, QCursor, QMouseEvent, QPainter, QPen
 from PyQt6.QtWidgets import (
     QApplication,
+    QDialog,
+    QFrame,
+    QHBoxLayout,
     QHeaderView,
     QLabel,
-    QMessageBox,
+    QPushButton,
     QStyle,
     QStyledItemDelegate,
     QStyleOptionViewItem,
@@ -37,7 +41,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from us_swing.execution.strategy_engine import StrategyEntered
+from us_swing.execution.strategy_engine import Action, StrategyEntered
 from us_swing.execution.trade_cycle import (
     CycleAborted,
     CycleClosed,
@@ -137,7 +141,12 @@ class _RowActionsDelegate(QStyledItemDelegate):
         key = (index.row(), index.column())
         buttons: list[tuple[str, str, str]] = []  # (id, glyph, accent_hex)
         if state == "PENDING":
-            buttons.append(("execute", "▶", C.GREEN if not cb_on else C.MUTED))
+            is_exit = row_data.signal is not None and row_data.signal.action == Action.EXIT
+            if cb_on:
+                exec_accent = C.MUTED
+            else:
+                exec_accent = C.RED if is_exit else C.GREEN
+            buttons.append(("execute", "▶", exec_accent))
             buttons.append(("dismiss", "✕", C.MUTED))
         elif state == "OPEN":
             buttons.append(("edit",  "✎", C.BLUE))
@@ -248,6 +257,149 @@ class _RowActionsDelegate(QStyledItemDelegate):
                 )
                 return True
         return super().helpEvent(event, view, option, index)
+
+
+# ── Confirmation Dialog ──────────────────────────────────────────────────────
+
+
+class _ConfirmDialog(QDialog):
+    """Frameless, themed confirm dialog matching the app's design language.
+
+    Replaces the native ``QMessageBox`` for trade actions. The first line of
+    ``text`` is shown as the headline; the remaining lines render as muted
+    detail. Returns ``True`` only when the primary button is pressed.
+    """
+
+    def __init__(
+        self,
+        title: str,
+        text: str,
+        *,
+        confirm_text: str = "Confirm",
+        accent: str | None = None,
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+        accent = accent or C.BLUE
+        self._drag_pos = QPoint()
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
+        self.setModal(True)
+        self.setMinimumWidth(380)
+
+        headline, _, detail = text.partition("\n")
+
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(0)
+
+        root.addWidget(self._build_title_bar(title))
+
+        card = QFrame()
+        card.setObjectName("confirm_card")
+        card.setStyleSheet(
+            f"#confirm_card {{ background: {C.BG}; "
+            f"border-left: 3px solid {accent}; }}"
+        )
+        body = QVBoxLayout(card)
+        body.setContentsMargins(22, 20, 22, 12)
+        body.setSpacing(8)
+
+        head_lbl = QLabel(headline)
+        head_lbl.setWordWrap(True)
+        head_lbl.setStyleSheet(
+            f"color: {C.TEXT}; font-size: 11pt; font-weight: 600; background: transparent;"
+        )
+        body.addWidget(head_lbl)
+
+        if detail.strip():
+            detail_lbl = QLabel(detail.strip())
+            detail_lbl.setWordWrap(True)
+            detail_lbl.setStyleSheet(
+                f"color: {C.MUTED}; font-size: 9pt; background: transparent;"
+            )
+            body.addWidget(detail_lbl)
+
+        root.addWidget(card, 1)
+        root.addWidget(self._build_button_row(confirm_text, accent))
+
+    def _build_title_bar(self, title: str) -> QWidget:
+        bar = QWidget()
+        bar.setObjectName("title_bar")
+        bar.setFixedHeight(38)
+        bar.setStyleSheet(f"#title_bar {{ background: {C.SURFACE}; }}")
+        row = QHBoxLayout(bar)
+        row.setContentsMargins(14, 0, 6, 0)
+        row.setSpacing(0)
+
+        lbl = QLabel(title)
+        lbl.setStyleSheet(
+            f"color: {C.SUBTEXT}; font-size: 9pt; font-weight: bold; "
+            f"letter-spacing: 1px; background: transparent;"
+        )
+        row.addWidget(lbl)
+        row.addStretch()
+
+        close = QPushButton("✕")
+        close.setFixedSize(30, 26)
+        close.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        close.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        close.setStyleSheet(
+            f"QPushButton {{ background: transparent; color: {C.SUBTEXT}; border: none;"
+            f" font-size: 12px; border-radius: 4px; outline: none; }}"
+            f"QPushButton:hover {{ background: #c0392b; color: white; }}"
+        )
+        close.clicked.connect(self.reject)
+        row.addWidget(close)
+        return bar
+
+    def _build_button_row(self, confirm_text: str, accent: str) -> QWidget:
+        wrap = QWidget()
+        wrap.setStyleSheet(f"background: {C.BG};")
+        row = QHBoxLayout(wrap)
+        row.setContentsMargins(22, 4, 22, 18)
+        row.setSpacing(10)
+        row.addStretch()
+
+        cancel = QPushButton("Cancel")
+        cancel.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        cancel.setFixedWidth(96)
+        cancel.setStyleSheet(
+            f"QPushButton {{ background: {C.OVERLAY}; color: {C.TEXT}; border: none;"
+            f" border-radius: 5px; font-size: 9pt; outline: none; }}"
+            f"QPushButton:hover {{ background: {C.OVERLAY2}; }}"
+            f"QPushButton:focus {{ outline: none; }}"
+        )
+        cancel.clicked.connect(self.reject)
+
+        confirm = QPushButton(confirm_text)
+        confirm.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        confirm.setFixedWidth(118)
+        confirm.setDefault(True)
+        confirm.setStyleSheet(
+            f"QPushButton {{ background: {accent}; color: {C.SURFACE}; border: none;"
+            f" border-radius: 5px; font-size: 9pt; font-weight: bold; outline: none; }}"
+            f"QPushButton:hover {{ background: {accent}; color: {C.BG}; }}"
+            f"QPushButton:focus {{ outline: none; }}"
+        )
+        confirm.clicked.connect(self.accept)
+
+        row.addWidget(cancel)
+        row.addWidget(confirm)
+        return wrap
+
+    def mousePressEvent(self, ev: QMouseEvent | None) -> None:
+        if ev is not None and ev.button() == Qt.MouseButton.LeftButton:
+            self._drag_pos = ev.globalPosition().toPoint() - self.frameGeometry().topLeft()
+        super().mousePressEvent(ev)
+
+    def mouseMoveEvent(self, ev: QMouseEvent | None) -> None:
+        if (
+            ev is not None
+            and ev.buttons() & Qt.MouseButton.LeftButton
+            and not self._drag_pos.isNull()
+        ):
+            self.move(ev.globalPosition().toPoint() - self._drag_pos)
+        super().mouseMoveEvent(ev)
 
 
 # ── Active Cycles Panel ──────────────────────────────────────────────────────
@@ -411,13 +563,20 @@ class ActiveCyclesPanel(QWidget):
         if sig is None:
             return
         qty = sig.qty_recommended or 0
+        is_exit = sig.action == Action.EXIT
+        verb = "Sell" if is_exit else "Buy"
         text = (
-            f"Submit BUY {qty} × {sig.symbol} @ MKT?\n"
-            f"Entry ~${sig.entry_price or 0.0:.2f}  ·  "
-            f"Stop ${sig.stop_loss or 0.0:.2f}  ·  "
+            f"Submit {verb} {qty} × {sig.symbol} @ MKT?\n"
+            f"Entry ~${sig.entry_price or 0.0:.2f}   ·   "
+            f"Stop ${sig.stop_loss or 0.0:.2f}   ·   "
             f"Target ${sig.target or 0.0:.2f}"
         )
-        if not self._confirm("Execute pending signal", text):
+        if not self._confirm(
+            "EXECUTE SIGNAL",
+            text,
+            confirm_text=f"{verb} {sig.symbol}",
+            accent=C.RED if is_exit else C.GREEN,
+        ):
             return
         # Route through the single broker-submit path; the pending row is
         # removed via pending_signal_executed and the cycle row is inserted
@@ -449,12 +608,16 @@ class ActiveCyclesPanel(QWidget):
         pnl = snap.current_pnl_usd if snap.current_pnl_usd is not None else 0.0
         sign = "+" if pnl >= 0 else "-"
         text = (
-            f"Close position?\n"
-            f"Submit SELL {snap.entry_qty} × {snap.symbol} @ MKT\n"
-            f"Entry ${snap.entry_price:.2f}  ·  Current ~${ltp:.2f}  ·  "
+            f"Close position — Sell {snap.entry_qty} × {snap.symbol} @ MKT?\n"
+            f"Entry ${snap.entry_price:.2f}   ·   Current ~${ltp:.2f}   ·   "
             f"Est. P&L: {sign}${abs(pnl):.2f}"
         )
-        if not self._confirm("Close cycle", text):
+        if not self._confirm(
+            "CLOSE POSITION",
+            text,
+            confirm_text="Close Position",
+            accent=C.RED,
+        ):
             return
         # No optimistic flip: the CLOSING/CLOSED row state is driven by the
         # authoritative CycleClosing/CycleClosed events.  A failed or no-op
@@ -563,15 +726,18 @@ class ActiveCyclesPanel(QWidget):
         except Exception:
             return "US/Eastern"
 
-    def _confirm(self, title: str, text: str) -> bool:
-        box = QMessageBox(self)
-        box.setWindowTitle(title)
-        box.setText(text)
-        box.setStandardButtons(
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel
+    def _confirm(
+        self,
+        title: str,
+        text: str,
+        *,
+        confirm_text: str = "Confirm",
+        accent: str | None = None,
+    ) -> bool:
+        dlg = _ConfirmDialog(
+            title, text, confirm_text=confirm_text, accent=accent, parent=self
         )
-        box.setDefaultButton(QMessageBox.StandardButton.Cancel)
-        return box.exec() == QMessageBox.StandardButton.Yes
+        return dlg.exec() == QDialog.DialogCode.Accepted
 
     # ── Test helpers ─────────────────────────────────────────────────────
 
