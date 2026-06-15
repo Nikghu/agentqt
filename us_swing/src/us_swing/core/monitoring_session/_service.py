@@ -169,13 +169,19 @@ class MonitoringSessionService:
         )
 
     def mark_entered(self, symbol: str, entered_at: str, trade_id: str) -> None:
-        """Flip the symbol's earliest open MONITORING row to ENTERED.
+        """Flip the symbol's open MONITORING row to ENTERED, or re-arm on re-entry.
 
-        FO-EXE-016 — driven by a completed entry fill from `OrderIngestion`.
-        Idempotent; a no-op when the symbol has no open MONITORING row (e.g. an
-        unscreened manual trade).
+        FO-EXE-016 — driven by a completed entry fill from `OrderIngestion`. A
+        first entry advances the earliest open MONITORING row. A same-day
+        re-entry (the symbol was already entered then exited, leaving the row
+        EXITED) re-arms the most-recent EXITED row back to ENTERED, so the
+        re-opened position keeps a matching ledger record and reconcile does not
+        flag it (SRD-EXE-016.007). Idempotent; a no-op when the symbol has no
+        MONITORING and no EXITED row (e.g. an unscreened manual trade).
         """
         row = self._repo.fetch_earliest_open_monitoring_row(symbol)
+        if row is None:
+            row = self._repo.fetch_latest_exited_row(symbol)
         if row is None:
             return
         self._repo.transition_to_entered(

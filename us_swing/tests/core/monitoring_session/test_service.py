@@ -145,6 +145,36 @@ def test_mark_exited_flips_entered_to_exited(
     assert row.exited_at is not None
 
 
+def test_mark_entered_rearms_same_day_exited_row(
+    build_service: Callable[..., tuple[MonitoringQuery, MonitoringCommand, MonitoringEventBus]],
+    make_screener_result: Callable[..., object],
+    seed_user: int,
+) -> None:
+    """UT-EXE-016.007.M01.T01: a same-day re-entry re-arms an EXITED row back to ENTERED."""
+    query, cmd, bus = build_service(today=_T0)
+    cmd.on_screener_results(make_screener_result(passed=["A"]))
+    cmd.mark_entered("A", "2026-05-14T14:00:00Z", "t1")
+    cmd.mark_exited("A", "2026-05-14T15:00:00Z")
+
+    cmd.mark_entered("A", "2026-05-14T16:00:00Z", "t2")
+
+    row = query.session_for(_T0, "A")
+    assert row is not None
+    assert row.lifecycle_state == LifecycleState.ENTERED
+    assert row.trade_id == "t2"
+    assert row.exited_at is None
+
+
+def test_mark_entered_noop_without_monitoring_or_exited_row(
+    build_service: Callable[..., tuple[MonitoringQuery, MonitoringCommand, MonitoringEventBus]],
+    seed_user: int,
+) -> None:
+    """UT-EXE-016.007.M01.T02: mark_entered is a no-op when no MONITORING or EXITED row exists."""
+    query, cmd, bus = build_service(today=_T0)
+    cmd.mark_entered("UNKNOWN", "2026-05-14T14:00:00Z", "t1")
+    assert query.session_for(_T0, "UNKNOWN") is None
+
+
 # ── UT-EXE-009.002.M02.T10 ──────────────────────────────────────────────────
 
 

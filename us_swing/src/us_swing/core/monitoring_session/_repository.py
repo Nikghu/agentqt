@@ -136,6 +136,7 @@ class MonitoringRepository:
                 .values(
                     lifecycle_state=_LifecycleState.ENTERED.value,
                     entered_at=entered_at,
+                    exited_at=None,
                     trade_id=trade_id,
                 )
             )
@@ -295,6 +296,26 @@ class MonitoringRepository:
             .where(
                 monitoring_session.c.symbol          == symbol,
                 monitoring_session.c.lifecycle_state == _LifecycleState.ENTERED.value,
+            )
+            .order_by(monitoring_session.c.session_date.desc())
+            .limit(1)
+        )
+        with self._engine.connect() as conn:
+            row = conn.execute(stmt).mappings().first()
+        return _row_to_session(row) if row else None
+
+    def fetch_latest_exited_row(self, symbol: str) -> MonitoringSessionRow | None:
+        """Most-recent ``EXITED`` ledger row for *symbol*, if any.
+
+        The re-arm target for a same-day re-entry: after a symbol is entered and
+        exited in the same session its only ledger row is ``EXITED``, so a second
+        entry has no open ``MONITORING`` row to advance (SRD-EXE-016.007).
+        """
+        stmt = (
+            sa.select(monitoring_session)
+            .where(
+                monitoring_session.c.symbol          == symbol,
+                monitoring_session.c.lifecycle_state == _LifecycleState.EXITED.value,
             )
             .order_by(monitoring_session.c.session_date.desc())
             .limit(1)
