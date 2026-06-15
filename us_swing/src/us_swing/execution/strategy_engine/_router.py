@@ -223,63 +223,90 @@ class _Router:
                         self._bus.publish(
                             StrategySignalDropped(signal=signal_pre, reason="rex_limit")
                         )
-                        log.info("[Strategy] %s ENTRY blocked for %s — rex limit reached",
-                                 ctx.name, symbol)
+                        # Edge-triggered: a rex-exhausted symbol re-fires its entry
+                        # condition every tick; log once per episode, then stay quiet
+                        # until the counter is reset (self-clears below).
+                        if symbol not in ctx.rex_warned:
+                            ctx.rex_warned.add(symbol)
+                            log.info("[Strategy] %s ENTRY blocked for %s — rex limit reached",
+                                     ctx.name, symbol)
+                        else:
+                            log.debug("[Strategy] %s ENTRY blocked for %s — rex limit reached",
+                                      ctx.name, symbol)
                         return
+                    ctx.rex_warned.discard(symbol)
 
                 qty = self._size_entry(ctx, float(bar.close))
-                if qty < 1:
-                    signal_pre = self._build_entry_signal(ctx, symbol, bar)
-                    self._bus.publish(
-                        StrategySignalDropped(signal=signal_pre, reason="capital_insufficient")
-                    )
-                    log.warning("[Strategy] %s Capital Max insufficient for entry on %s",
-                                ctx.name, symbol)
-                    return
+                is_manual = ctx.cfg.mode == "manual" or not ctx.cfg.auto_trade
 
-                cap = self._risk.can_allocate(ctx.name, ctx.cfg.capital_max)
-                if not cap.ok:
-                    signal_pre = self._build_entry_signal(ctx, symbol, bar, qty=qty)
-                    self._bus.publish(
-                        StrategySignalDropped(signal=signal_pre, reason=cap.reason or "capital_cap")
-                    )
-                    # Edge-triggered: warn once when the strategy first hits its
-                    # capital cap, then stay quiet until capital frees up — avoids
-                    # one warning per symbol on every tick.
-                    if not ctx.capital_warned:
-                        ctx.capital_warned = True
-                        log.warning("[Strategy] %s paused new entries — %s",
-                                    ctx.name, cap.reason or "capital cap reached")
-                    else:
-                        log.debug("[Strategy] %s ENTRY dropped for %s — %s",
-                                  ctx.name, symbol, cap.reason or "capital_cap")
-                    return
+                if is_manual:
+                    # Manual strategy: surface the entry as a pending signal so
+                    # the user decides which of several satisfied stocks to take.
+                    # No capital/margin block, no reservation, and no per-tick
+                    # warning — affordability is enforced at the confirm popup
+                    # (SRD-EXE-017.022). Capital frozen only when the user
+                    # confirms the trade, never while it sits pending.
+                    signal = self._build_entry_signal(ctx, symbol, bar, qty=max(qty, 1))
+                    ctx.in_flight.add(symbol)
+                    action = Action.ENTRY
+                else:
+                    # Auto-trade: no human will confirm, so the capital and margin
+                    # ceilings must block here. Drops are edge-triggered — one
+                    # warning per crossing, not one per tick.
+                    if qty < 1:
+                        signal_pre = self._build_entry_signal(ctx, symbol, bar)
+                        self._bus.publish(
+                            StrategySignalDropped(signal=signal_pre, reason="capital_insufficient")
+                        )
+                        if not ctx.capital_warned:
+                            ctx.capital_warned = True
+                            log.warning("[Strategy] %s Capital Max insufficient for entry on %s",
+                                        ctx.name, symbol)
+                        else:
+                            log.debug("[Strategy] %s ENTRY dropped for %s — capital insufficient",
+                                      ctx.name, symbol)
+                        return
 
-                ctx.capital_warned = False
+                    cap = self._risk.can_allocate(ctx.name, ctx.cfg.capital_max)
+                    if not cap.ok:
+                        signal_pre = self._build_entry_signal(ctx, symbol, bar, qty=qty)
+                        self._bus.publish(
+                            StrategySignalDropped(signal=signal_pre, reason=cap.reason or "capital_cap")
+                        )
+                        if not ctx.capital_warned:
+                            ctx.capital_warned = True
+                            log.warning("[Strategy] %s paused new entries — %s",
+                                        ctx.name, cap.reason or "capital cap reached")
+                        else:
+                            log.debug("[Strategy] %s ENTRY dropped for %s — %s",
+                                      ctx.name, symbol, cap.reason or "capital_cap")
+                        return
 
-                price = float(bar.close)
-                margin_qty = math.floor(self._risk.margin_available() / price) if price > 0 else 0
-                if margin_qty < qty:
-                    qty = margin_qty
-                if qty < 1:
-                    signal_pre = self._build_entry_signal(ctx, symbol, bar)
-                    self._bus.publish(
-                        StrategySignalDropped(signal=signal_pre, reason="margin_exhausted")
-                    )
-                    if not ctx.margin_warned:
-                        ctx.margin_warned = True
-                        log.warning("[Strategy] %s paused new entries — Margin Available exhausted",
-                                    ctx.name)
-                    else:
-                        log.debug("[Strategy] %s ENTRY dropped for %s — margin exhausted",
-                                  ctx.name, symbol)
-                    return
+                    ctx.capital_warned = False
 
-                ctx.margin_warned = False
-                signal = self._build_entry_signal(ctx, symbol, bar, qty=qty)
-                self._risk.reserve(ctx.name, symbol, qty * price)
-                ctx.in_flight.add(symbol)
-                action = Action.ENTRY
+                    price = float(bar.close)
+                    margin_qty = math.floor(self._risk.margin_available() / price) if price > 0 else 0
+                    if margin_qty < qty:
+                        qty = margin_qty
+                    if qty < 1:
+                        signal_pre = self._build_entry_signal(ctx, symbol, bar)
+                        self._bus.publish(
+                            StrategySignalDropped(signal=signal_pre, reason="margin_exhausted")
+                        )
+                        if not ctx.margin_warned:
+                            ctx.margin_warned = True
+                            log.warning("[Strategy] %s paused new entries — Margin Available exhausted",
+                                        ctx.name)
+                        else:
+                            log.debug("[Strategy] %s ENTRY dropped for %s — margin exhausted",
+                                      ctx.name, symbol)
+                        return
+
+                    ctx.margin_warned = False
+                    signal = self._build_entry_signal(ctx, symbol, bar, qty=qty)
+                    self._risk.reserve(ctx.name, symbol, qty * price)
+                    ctx.in_flight.add(symbol)
+                    action = Action.ENTRY
 
         if signal is not None and action is not None:
             self._quiesced_event.clear()

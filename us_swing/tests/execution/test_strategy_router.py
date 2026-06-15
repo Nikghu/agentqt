@@ -252,6 +252,33 @@ async def test_can_allocate_fails_publishes_signal_dropped() -> None:
 
 
 @pytest.mark.asyncio
+async def test_manual_entry_bypasses_capital_and_margin_gate() -> None:
+    """UT-EXE-011.001.M04.T30: a manual strategy surfaces the entry as pending even
+    when capital cap fails and margin is zero — no block, no reservation (SRD-EXE-017.022)."""
+    cfg = _Cfg(mode="manual")
+    router, queue, risk, submitter, pending, _bus, registry, _cq = _make_router(
+        cfg=cfg, clock=_scheduled_clock, can_allocate_ok=False
+    )
+    risk.margin_available.return_value = 0.0
+    ctx = list(registry.values())[0]
+    bar = _make_bar()
+    import pandas as pd
+    candles: dict[str, pd.DataFrame] = {
+        "3m": pd.DataFrame({"open": [150.0], "high": [151.0], "low": [149.0], "close": [150.0], "volume": [1_000_000]})
+    }
+
+    await router.evaluate(ctx, "AAPL", candles, bar)
+    signal = await asyncio.wait_for(queue.get(), timeout=1.0)
+    await router._dispatch(signal)
+
+    assert signal.qty_recommended >= 1
+    pending.add.assert_called_once()
+    submitter.submit.assert_not_called()
+    risk.reserve.assert_not_called()
+    risk.can_allocate.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_capital_cap_warning_is_edge_triggered(caplog: Any) -> None:
     """UT-EXE-011.001.M04.T26: capital-cap WARNING logs once per capped episode, not per tick."""
     import logging
@@ -520,6 +547,33 @@ async def test_rex_gate_blocks_entry_when_counter_negative(caplog: Any) -> None:
     assert isinstance(published, StrategySignalDropped)
     assert published.reason == "rex_limit"
     assert any("rex limit reached" in r.message.lower() for r in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_rex_block_log_is_edge_triggered(caplog: Any) -> None:
+    """UT-EXE-011.001.M04.T31: a rex-exhausted symbol logs the INFO block once, not per tick."""
+    import logging
+    repo = _fresh_rex_repo()
+    cfg = _Cfg(rex_count=5)
+    repo.decrement(cfg.name, "AAPL", init_value=0)  # forces remaining=-1
+    router, _q, _r, _s, _p, _bus, registry, _cq = _make_router(
+        cfg=cfg, clock=_scheduled_clock, rex_counters=repo,
+    )
+    ctx = list(registry.values())[0]
+    bar = _make_bar()
+
+    def _infos() -> list[Any]:
+        return [
+            r for r in caplog.records
+            if r.levelno == logging.INFO and "rex limit reached" in r.message.lower()
+        ]
+
+    with caplog.at_level(logging.INFO):
+        for _ in range(3):
+            await router.evaluate(ctx, "AAPL", _candles_3m(), bar)
+
+    assert "AAPL" in ctx.rex_warned
+    assert len(_infos()) == 1
 
 
 @pytest.mark.asyncio

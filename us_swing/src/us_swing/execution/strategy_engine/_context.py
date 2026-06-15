@@ -47,6 +47,7 @@ class _StrategyContext:
     last_eval_at: datetime | None = None
     capital_warned: bool = False
     margin_warned: bool = False
+    rex_warned: set[str] = field(default_factory=set)
 
     @property
     def name(self) -> str:
