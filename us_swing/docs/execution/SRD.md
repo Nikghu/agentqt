@@ -1,7 +1,7 @@
 ﻿# Software Requirement Document — Execution & Risk Management (EXE)
 
 **Document ID:** SRD-EXE
-**Version:** 1.19.0
+**Version:** 1.20.0
 **Traces To:** FO-EXE v1.12.0
 **Status:** Draft
 **Last Updated:** 2026-06-12
@@ -21,6 +21,7 @@
 > v1.17.1: SRD-EXE-012.007 corrected (ISS-EXE-0005) — realized PnL multiplies by held `entry_qty`, not the sell fill's reported `exit_qty`, which over-/under-counted shares when the two diverged.
 > v1.18.0: SRD-EXE-011.022 added (ISS-EXE-0006) — forced EXIT signals carry the open cycle's last price so paper fills do not record a $0 exit.
 > v1.19.0: SRD-EXE-017.015–.021 added (Draft) — global Margin Available ceiling across all strategies, in-flight reservation, per-entry margin clamp, paper open-position-value fix, live margin-drift reconcile, and Max Capital / Margin Available in the User View.
+> v1.20.0: SRD-EXE-016.007 added (Approved, ISS-EXE-0008) — `mark_entered` re-arms a same-day `EXITED` ledger row back to `ENTERED` so a same-day re-entry no longer leaves an orphaned open cycle that the reconcile flags as an invariant violation.
 
 ---
 
@@ -249,7 +250,7 @@
 | SRD-EXE-014.004 | FO-EXE-014 | Must | `ExecutionEngine.handle_order_fill(fill_event)` updates the matching `trades` row: `filled_quantity += fill.quantity`; `order_state = FILLED` when `filled_quantity == total_quantity` else `PARTIAL_FILLED`. The `positions` row is updated per SRD-EXE-005.002 / .003. | broker fill event | updated `trades` + `positions` | One DB transaction per fill; idempotent on duplicate `(broker_order_id, fill_seq)` | Implemented |
 | SRD-EXE-014.005 | FO-EXE-014 | Must | Broker rejection is handled in `OrderIngestion.on_order_event` (broker-agnostic, FO-EXE-015): it sets `order_state = REJECTED` on the `trades` row, then for an entry order calls `TradeCycleCommand.abort_entry_order(entry_order_id, 'broker_reject')`, which aborts the owning OPENING cycle to ABORTED and is a no-op when no cycle was opened. | broker reject event | `trades.order_state='REJECTED'`; `CycleAborted` when an OPENING cycle exists | `filled_quantity` reflects shares filled before the reject (0 if rejected before any fill) | Implemented |
 | SRD-EXE-014.006 | FO-EXE-014 | Must | Broker cancel routed through `ExecutionEngine.handle_order_cancel(cancel_event)` sets `order_state = CANCELLED` on the `trades` row; `filled_quantity` is preserved at whatever the broker reported before the cancel; the owning cycle stays in its current state. | broker cancel event | `trades.order_state='CANCELLED'` | A SELL cancelled after partial fill keeps the cycle OPEN with `positions.quantity = entry_qty - filled` | Implemented |
-| SRD-EXE-014.007 | FO-EXE-014 | Must | `TradeCycleService.on_entry_fill` transitions OPENING → OPEN only when the BUY `trades.order_state` reaches `BuyOrderState.FILLED`; PARTIAL_FILLED holds the cycle in OPENING. | fill event sequence | OPEN cycle only at fully filled BUY | Strict mode per Final_Execution.md §5.3.3 default — eager open is out of scope | Implemented |
+| SRD-EXE-014.007 | FO-EXE-014 | Must | `TradeCycleService.on_entry_fill` transitions OPENING → OPEN only when the BUY `trades.order_state` reaches `BuyOrderState.FILLED`; PARTIAL_FILLED holds the cycle in OPENING. On the sell side, `on_exit_fill` resolves its target cycle by `(strategy_id, symbol)` — unique among open cycles — never by the oldest open cycle lacking an exit order id (ISS-EXE-0007). | fill event sequence | OPEN cycle only at fully filled BUY; exit closes the matching position | Strict mode per Final_Execution.md §5.3.3 default — eager open is out of scope | Implemented |
 | SRD-EXE-014.008 | FO-EXE-014 | Must | `core/monitoring_session/_service.on_fill(side, order_state, qty)` consumes `(side, order_state)` to drive `LifecycleState` transitions: first `BuyOrderState.FILLED` (with `qty > 0`) flips a MONITORING row to ENTERED; `SellOrderState.FILLED` that drives `positions.quantity → 0` flips ENTERED to EXITED. | fill event from EXE | LifecycleState transition | Single entry point; no other module mutates LifecycleState | Implemented |
 
 ---
@@ -277,6 +278,7 @@
 | SRD-EXE-016.004 | FO-EXE-016 | Must | The monitoring repository drops `upsert_position_with_anchor`, `has_open_system_position`, and `position_anchor`, and removes the `positions` import; ledger-transition methods are retained. | none | slimmer `MonitoringRepository` | `transition_to_entered`/`transition_to_exited` and `insert_trade_with_anchor` behaviour preserved as needed by the seam | Implemented |
 | SRD-EXE-016.005 | FO-EXE-016 | Must | The unwired `MonitoringCommand.on_fill` hook is removed; its lifecycle role is served by the ingestion seam (016.001/.002). | none | `on_fill` deleted; dead tests removed | `MONITORING` creation via `on_screener_results` is unchanged | Implemented |
 | SRD-EXE-016.006 | FO-EXE-016 | Must | The `positions` `sa.Table`, the `DatabaseManager` methods `upsert_position`/`delete_position`/`fetch_open_positions`, and the `positions` lifecycle-migration column entries are removed. | schema + manager | dropped table + methods | Existing `trades`/`trade_cycles` rows retained; done as an isolated migration commit | Implemented |
+| SRD-EXE-016.007 | FO-EXE-016 | Must | On a completed entry fill for a symbol with no open `MONITORING` row, `mark_entered` re-arms the symbol's most-recent `EXITED` ledger row back to `ENTERED` (clearing `exited_at`) so a same-day re-entry keeps a matching ledger record. | completed entry `OrderEvent`, symbol already round-tripped today | re-armed `ENTERED` row | No-op when the symbol has no `MONITORING` and no `EXITED` row; keeps reconcile invariant (open position ⇒ `ENTERED` row) | Approved |
 
 ---
 
@@ -308,3 +310,4 @@
 | SRD-EXE-017.019 | FO-EXE-017 | Must | `get_account_state` sets `open_position_value` by summing `entry_price × qty` over the user's open cycles instead of the hardcoded `0.0`, so paper-mode margin and the GUI capital indicator are correct. | open cycles | populated `AccountState` | Paper and disconnected modes only; live IBKR value is left untouched | Approved |
 | SRD-EXE-017.020 | FO-EXE-017 | Should | After each live fill the system compares `margin_available()` against broker cash and emits one advisory `RiskWarning(kind='margin_drift')` when they differ beyond a tolerance. | live fill, broker cash | advisory `RiskWarning` | Live mode only (paper exempt); debounced to one warning per crossing, never blocks | Approved |
 | SRD-EXE-017.021 | FO-EXE-017 | Must | (GUI surface) The User View `_AdminContextBar` shows Max Capital and Margin Available, refreshed on `account_updated`; green when margin `> 0`, red otherwise. | `account_updated` signal | context-bar cells | Display-only; reads `effective_capital()` and `margin_available()`; mirror GUI row added to `gui/SRD.md` | Approved |
+| SRD-EXE-017.022 | FO-EXE-017 | Must | A manual strategy (`mode == "manual"` or `auto_trade` off) surfaces a fired entry as a PENDING signal regardless of capital/margin — the engine does not block, reserve, or log a per-tick warning for it; the user picks which satisfied stock to take. An auto-trade strategy still blocks at the engine on capital cap / Margin Available exhaustion (one edge-triggered warning per crossing). | entry condition fires | pending signal (manual) or gated drop (auto) | Capital frozen only on user confirm, never while pending; affordability enforced at the confirm popup | Implemented |

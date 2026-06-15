@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-12T06:20:12",
+  "generated": "2026-06-12T17:31:13",
   "subfolder": "core",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\core",
   "tool_code": "EXE",
@@ -452,70 +452,77 @@
               "name": "transition_to_entered",
               "signature": "def transition_to_entered(\r\n        self,\r\n        session_date: str,\r\n        symbol: str,\r\n        entered_at: str,\r\n        trade_id: str,\r\n    ) -> None",
               "line_start": 122,
-              "line_end": 141
+              "line_end": 142
             },
             {
               "name": "transition_to_exited",
               "signature": "def transition_to_exited(\r\n        self,\r\n        session_date: str,\r\n        symbol: str,\r\n        exited_at: str,\r\n    ) -> None",
-              "line_start": 143,
-              "line_end": 160
+              "line_start": 144,
+              "line_end": 161
             },
             {
               "name": "bulk_skip_stale_monitoring",
               "signature": "def bulk_skip_stale_monitoring(self, today: date) -> int",
               "docstring": "Flip prior-day MONITORING rows to SKIPPED.  Returns row count.",
-              "line_start": 162,
-              "line_end": 174
+              "line_start": 163,
+              "line_end": 175
             },
             {
               "name": "evict_symbol_atomic",
               "signature": "def evict_symbol_atomic(\r\n        self,\r\n        symbol: str,\r\n        today: date,\r\n        evicted_at: str,\r\n    ) -> tuple[str, ...]",
               "docstring": "Single transaction: DELETE from every price_* table for *symbol*",
-              "line_start": 176,
-              "line_end": 221
+              "line_start": 177,
+              "line_end": 222
             },
             {
               "name": "fetch_history",
               "signature": "def fetch_history(\r\n        self,\r\n        symbol: str,\r\n        days: int = 30,\r\n    ) -> tuple[MonitoringSessionRow, ...]",
-              "line_start": 225,
-              "line_end": 241
+              "line_start": 226,
+              "line_end": 242
             },
             {
               "name": "fetch_session",
               "signature": "def fetch_session(\r\n        self,\r\n        session_date: date,\r\n        symbol: str,\r\n    ) -> MonitoringSessionRow | None",
-              "line_start": 243,
-              "line_end": 254
+              "line_start": 244,
+              "line_end": 255
             },
             {
               "name": "entered_symbols",
               "signature": "def entered_symbols(self) -> frozenset[str]",
-              "line_start": 256,
-              "line_end": 261
+              "line_start": 257,
+              "line_end": 262
             },
             {
               "name": "stale_lifecycle_symbols",
               "signature": "def stale_lifecycle_symbols(self, today: date) -> frozenset[str]",
               "docstring": "Symbols with at least one prior-day MONITORING or SKIPPED row \u2014",
-              "line_start": 263,
-              "line_end": 273
+              "line_start": 264,
+              "line_end": 274
             },
             {
               "name": "open_system_position_symbols",
               "signature": "def open_system_position_symbols(self) -> frozenset[str]",
               "docstring": "Symbols with a currently-open trade cycle.",
-              "line_start": 277,
-              "line_end": 289
+              "line_start": 278,
+              "line_end": 290
             },
             {
               "name": "fetch_entered_row",
               "signature": "def fetch_entered_row(self, symbol: str) -> MonitoringSessionRow | None",
               "docstring": "Most-recent ``ENTERED`` ledger row for *symbol*, if any.",
-              "line_start": 291,
-              "line_end": 304
+              "line_start": 292,
+              "line_end": 305
+            },
+            {
+              "name": "fetch_latest_exited_row",
+              "signature": "def fetch_latest_exited_row(self, symbol: str) -> MonitoringSessionRow | None",
+              "docstring": "Most-recent ``EXITED`` ledger row for *symbol*, if any.",
+              "line_start": 307,
+              "line_end": 325
             }
           ],
           "line_start": 51,
-          "line_end": 304
+          "line_end": 325
         }
       ],
       "top_level_functions": [
@@ -650,27 +657,27 @@
             {
               "name": "mark_entered",
               "signature": "def mark_entered(self, symbol: str, entered_at: str, trade_id: str) -> None",
-              "docstring": "Flip the symbol's earliest open MONITORING row to ENTERED.",
+              "docstring": "Flip the symbol's open MONITORING row to ENTERED, or re-arm on re-entry.",
               "line_start": 171,
-              "line_end": 186
+              "line_end": 192
             },
             {
               "name": "mark_exited",
               "signature": "def mark_exited(self, symbol: str, exited_at: str) -> None",
               "docstring": "Flip the symbol's ENTERED row to EXITED on cycle close.",
-              "line_start": 188,
-              "line_end": 201
+              "line_start": 194,
+              "line_end": 207
             },
             {
               "name": "reconcile_preopen",
               "signature": "def reconcile_preopen(self, today: date) -> ReconcileReport",
               "docstring": "Pre-open candle DB reconciliation.  Single-flight, idempotent.",
-              "line_start": 203,
-              "line_end": 317
+              "line_start": 209,
+              "line_end": 323
             }
           ],
           "line_start": 59,
-          "line_end": 317
+          "line_end": 323
         }
       ],
       "top_level_functions": [

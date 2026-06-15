@@ -1033,6 +1033,7 @@ class AppService(QObject):
     exchange_unavail_updated  = pyqtSignal(object)         # set[str]
     live_bar_data_updated     = pyqtSignal(str)            # symbol — 3m or 15m bar written to DB
     pending_signals_updated   = pyqtSignal()               # pending signal list changed
+    pending_tick              = pyqtSignal(str, float)      # (symbol, price) — live LTP for pending rows
     strategy_status_changed   = pyqtSignal(str, str)       # (strategy_name, "entered"|"exited") — refresh nudge
     circuit_breaker_changed   = pyqtSignal(bool)           # True = breaker tripped (entries blocked)
     risk_warning_raised       = pyqtSignal(str, str)       # (kind, message) — advisory, non-blocking
@@ -1200,6 +1201,12 @@ class AppService(QObject):
         self._pending_store.pending_signal_removed.connect(lambda _: self.pending_signals_updated.emit())
         self._pending_store.pending_signal_dismissed.connect(lambda _: self.pending_signals_updated.emit())
         self._pending_store.pending_signal_executed.connect(lambda _: self.pending_signals_updated.emit())
+        # A pending symbol needs a live tick so its row shows an LTP and the
+        # MARKET entry fills at the real price, not the frozen signal price.
+        self._pending_store.pending_signal_added.connect(lambda _: self._sync_tick_subscriptions())
+        self._pending_store.pending_signal_removed.connect(lambda _: self._sync_tick_subscriptions())
+        self._pending_store.pending_signal_dismissed.connect(lambda _: self._sync_tick_subscriptions())
+        self._pending_store.pending_signal_executed.connect(lambda _: self._sync_tick_subscriptions())
 
         self._event_bus = QtEventBus(self)
 
@@ -2526,6 +2533,7 @@ class AppService(QObject):
             tw.tick_price.connect(self._on_watchlist_tick)
             tw.tick_price.connect(self._on_position_tick)
             tw.tick_price.connect(self._on_cycle_tick)
+            tw.tick_price.connect(self.pending_tick)
             tw.subscription_failed.connect(self._on_tick_sub_failed)
             tw.start()
             self._tick_worker = tw
@@ -2686,6 +2694,14 @@ class AppService(QObject):
                 c = _make_stk_contract(sym)
                 if c is not None:
                     contracts[sym] = c
+
+        # Pending-signal symbols — subscribed (ungated) so the pending row shows
+        # a live LTP and the MARKET entry fills at the real price on execute.
+        for sig in self._pending_store.list():
+            if sig.symbol not in contracts:
+                c = _make_stk_contract(sig.symbol)
+                if c is not None:
+                    contracts[sig.symbol] = c
 
         # Ensure S&P 500 cache is populated
         if not self._sp500_cache and self._sp500:

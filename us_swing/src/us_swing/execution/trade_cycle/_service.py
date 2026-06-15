@@ -259,6 +259,8 @@ class TradeCycleService:
         self,
         *,
         exit_order_id: str,
+        symbol:        str,
+        strategy_id:   str,
         exit_price:    float,
         exit_qty:      int,
         exit_time:     str,
@@ -272,6 +274,11 @@ class TradeCycleService:
         (``CLOSING -> CLOSED``).  Mirrors the ``BuyOrderState`` entry gate.
         Idempotent on ``exit_order_id``.  The cycle must be OPEN or CLOSING
         (OPEN supports a manual / emergency exit that bypassed the trigger).
+
+        The exit's cycle is resolved by ``(strategy_id, symbol)`` — which is
+        unique among open cycles (enforced by ``DuplicateOpenCycleError``) — so
+        a fill always closes the position it was raised for, never the oldest
+        open cycle that happens to lack an exit order id (ISS-EXE-0007).
         """
         is_filled = order_state == ExecutionEnums.SellOrderState.FILLED
         existing  = self._repo.find_by_exit_order(exit_order_id)
@@ -289,15 +296,17 @@ class TradeCycleService:
             return existing
 
         target = next(
-            (c for c in self._repo.open_cycles() if c.exit_order_id is None),
+            (
+                c for c in self._repo.open_cycles()
+                if c.exit_order_id is None
+                and c.strategy_id == strategy_id and c.symbol == symbol
+            ),
             None,
         )
-        # The router/ExecutionEngine knows which cycle the SELL belongs to and
-        # is expected to call on_exit_fill via cycle_id; we keep this lookup
-        # as a guard for tests that do not pre-stamp the order id.
         if target is None:
             raise InvalidStateTransitionError(
-                f"no open cycle accepts exit_order_id={exit_order_id!r}"
+                f"no open {strategy_id}/{symbol} cycle accepts "
+                f"exit_order_id={exit_order_id!r}"
             )
         return self._close_cycle(
             cycle_id      = target.cycle_id,

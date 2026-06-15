@@ -377,6 +377,34 @@ def test_on_exit_fill_realized_pnl_uses_held_entry_qty(
     assert closed.realized_pnl_usd == pytest.approx(132.5, abs=0.01)
 
 
+def test_on_exit_fill_closes_the_matching_symbol_not_the_oldest(
+    svc: TradeCycleService,
+) -> None:
+    """UT-EXE-014.007.M02.T19: with two open cycles, an exit fill closes the
+    cycle matching (strategy_id, symbol) — not the oldest open cycle (ISS-EXE-0007)."""
+    older = svc.on_entry_fill(
+        **_entry_kwargs(symbol="QCOM", entry_order_id="ord-q", entry_price=202.95, entry_qty=2)
+    )
+    newer = svc.on_entry_fill(
+        **_entry_kwargs(symbol="PCG", entry_order_id="ord-p", entry_price=16.96, entry_qty=16)
+    )
+
+    closed = svc.on_exit_fill(
+        exit_order_id="exit-pcg",
+        symbol="PCG",
+        strategy_id="boss_ema",
+        exit_price=16.96,
+        exit_qty=16,
+        exit_time="2026-05-25T10:00:00",
+        exit_reason="manual",
+    )
+
+    assert closed.cycle_id == newer.cycle_id
+    assert closed.symbol == "PCG"
+    assert svc._repo.cycle(older.cycle_id).state == TradeCycleState.OPEN
+    assert svc._repo.cycle(older.cycle_id).exit_price is None
+
+
 def _exit_kwargs(**overrides: Any) -> dict[str, Any]:
     kw: dict[str, Any] = {
         "exit_order_id": "exit-100",

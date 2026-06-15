@@ -38,13 +38,14 @@ class Col(IntEnum):
     QTY       = 6
     ENTRY     = 7
     LTP       = 8
-    PNL_USD   = 9
-    PNL_PCT   = 10
-    HARD_STOP = 11
-    TARGET    = 12
-    TRAIL     = 13
-    REX       = 14
-    ACTIONS   = 15
+    EXIT      = 9
+    PNL_USD   = 10
+    PNL_PCT   = 11
+    HARD_STOP = 12
+    TARGET    = 13
+    TRAIL     = 14
+    REX       = 15
+    ACTIONS   = 16
 
 
 _HEADERS: dict[int, str] = {
@@ -57,6 +58,7 @@ _HEADERS: dict[int, str] = {
     Col.QTY:       "Qty",
     Col.ENTRY:     "Entry $",
     Col.LTP:       "LTP",
+    Col.EXIT:      "Exit $",
     Col.PNL_USD:   "PnL $",
     Col.PNL_PCT:   "PnL %",
     Col.HARD_STOP: "Hard Stop",
@@ -102,6 +104,7 @@ class _Row:
     qty:             int          = 0
     entry_price:     float | None = None
     ltp:             float | None = None
+    exit_price:      float | None = None
     pnl_usd:         float | None = None
     pnl_pct:         float | None = None
     hard_stop:       float | None = None
@@ -186,6 +189,19 @@ class _ActiveCyclesModel(QAbstractTableModel):
     def on_pending_dismissed(self, signal_id: str) -> None:
         self.set_row_state(signal_id, "DISMISSED")
 
+    def on_pending_tick(self, symbol: str, price: float) -> None:
+        """Drive the live LTP for every PENDING row matching *symbol*.
+
+        Pending rows have no cycle yet, so they are not covered by
+        ``on_cycle_updated``; their last price arrives straight from the tick
+        stream until the user executes and a cycle takes over.
+        """
+        for idx, row in enumerate(self._rows):
+            if row.kind == "pending" and row.symbol == symbol and row.ltp != price:
+                row.ltp = price
+                cell = self.index(idx, Col.LTP)
+                self.dataChanged.emit(cell, cell)
+
     def on_cycle_opened(self, snap: CycleSnapshot) -> None:
         row = self._row_from_snap(snap)
         if not self._in_scope(row):
@@ -246,10 +262,11 @@ class _ActiveCyclesModel(QAbstractTableModel):
                 self._insert_row(row)
             return
         row = self._rows[idx]
-        row.state   = snap.state
-        row.ltp     = snap.exit_price
-        row.pnl_usd = snap.realized_pnl_usd
-        row.pnl_pct = snap.realized_pnl_pct
+        row.state      = snap.state
+        row.ltp        = snap.exit_price
+        row.exit_price = snap.exit_price
+        row.pnl_usd    = snap.realized_pnl_usd
+        row.pnl_pct    = snap.realized_pnl_pct
         self.dataChanged.emit(
             self.index(idx, Col.STATE),
             self.index(idx, Col.ACTIONS),
@@ -344,7 +361,7 @@ class _ActiveCyclesModel(QAbstractTableModel):
             symbol=signal.symbol,
             strategy=signal.strategy_id,
             qty=signal.qty_recommended or 1,
-            entry_price=signal.entry_price,
+            entry_price=None,
             hard_stop=signal.stop_loss,
             target=signal.target,
             user_id=signal.user_id,
@@ -364,6 +381,7 @@ class _ActiveCyclesModel(QAbstractTableModel):
             qty=snap.entry_qty,
             entry_price=snap.entry_price,
             ltp=snap.exit_price if terminal else snap.current_price,
+            exit_price=snap.exit_price if terminal else None,
             pnl_usd=snap.realized_pnl_usd if terminal else snap.current_pnl_usd,
             pnl_pct=snap.realized_pnl_pct if terminal else snap.current_pnl_pct,
             hard_stop=snap.hard_stop_loss,
@@ -460,6 +478,8 @@ class _ActiveCyclesModel(QAbstractTableModel):
             return self._fmt_money(row.entry_price)
         if col == Col.LTP:
             return self._fmt_money(row.ltp)
+        if col == Col.EXIT:
+            return self._fmt_money(row.exit_price)
         if col == Col.PNL_USD:
             return self._fmt_pnl_usd(row.pnl_usd)
         if col == Col.PNL_PCT:

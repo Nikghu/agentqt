@@ -294,6 +294,8 @@ class OrderIngestion:
         try:
             self._cycles.on_exit_fill(
                 exit_order_id=ctx.broker_order_id,
+                symbol=ctx.symbol,
+                strategy_id=ctx.strategy_id,
                 exit_price=event.fill_price or 0.0,
                 exit_qty=event.filled_quantity,
                 exit_time=_iso(now),

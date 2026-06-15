@@ -277,6 +277,8 @@ class _ConfirmDialog(QDialog):
         *,
         confirm_text: str = "Confirm",
         accent: str | None = None,
+        confirm_enabled: bool = True,
+        warning: str | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -320,7 +322,10 @@ class _ConfirmDialog(QDialog):
             body.addWidget(detail_lbl)
 
         root.addWidget(card, 1)
-        root.addWidget(self._build_button_row(confirm_text, accent))
+        root.addWidget(self._build_button_row(confirm_text, accent, confirm_enabled))
+
+        if warning:
+            root.addWidget(self._build_warning_banner(warning))
 
     def _build_title_bar(self, title: str) -> QWidget:
         bar = QWidget()
@@ -345,14 +350,17 @@ class _ConfirmDialog(QDialog):
         close.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         close.setStyleSheet(
             f"QPushButton {{ background: transparent; color: {C.SUBTEXT}; border: none;"
-            f" font-size: 12px; border-radius: 4px; outline: none; }}"
-            f"QPushButton:hover {{ background: #c0392b; color: white; }}"
+            f" padding: 0; font-size: 13px; font-weight: bold; min-height: 26px;"
+            f" max-height: 26px; border-radius: 4px; outline: none; }}"
+            f"QPushButton:hover {{ background: #c0392b; color: #ffffff; }}"
         )
         close.clicked.connect(self.reject)
         row.addWidget(close)
         return bar
 
-    def _build_button_row(self, confirm_text: str, accent: str) -> QWidget:
+    def _build_button_row(
+        self, confirm_text: str, accent: str, confirm_enabled: bool = True
+    ) -> QWidget:
         wrap = QWidget()
         wrap.setStyleSheet(f"background: {C.BG};")
         row = QHBoxLayout(wrap)
@@ -372,19 +380,49 @@ class _ConfirmDialog(QDialog):
         cancel.clicked.connect(self.reject)
 
         confirm = QPushButton(confirm_text)
-        confirm.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         confirm.setFixedWidth(118)
-        confirm.setDefault(True)
-        confirm.setStyleSheet(
-            f"QPushButton {{ background: {accent}; color: {C.SURFACE}; border: none;"
-            f" border-radius: 5px; font-size: 9pt; font-weight: bold; outline: none; }}"
-            f"QPushButton:hover {{ background: {accent}; color: {C.BG}; }}"
-            f"QPushButton:focus {{ outline: none; }}"
-        )
-        confirm.clicked.connect(self.accept)
+        confirm.setEnabled(confirm_enabled)
+        if confirm_enabled:
+            confirm.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+            confirm.setDefault(True)
+            confirm.setStyleSheet(
+                f"QPushButton {{ background: {accent}; color: {C.SURFACE}; border: none;"
+                f" border-radius: 5px; font-size: 9pt; font-weight: bold; outline: none; }}"
+                f"QPushButton:hover {{ background: {accent}; color: {C.BG}; }}"
+                f"QPushButton:focus {{ outline: none; }}"
+            )
+            confirm.clicked.connect(self.accept)
+        else:
+            confirm.setStyleSheet(
+                f"QPushButton {{ background: {C.OVERLAY}; color: {C.MUTED}; border: none;"
+                f" border-radius: 5px; font-size: 9pt; font-weight: bold; outline: none; }}"
+            )
 
         row.addWidget(cancel)
         row.addWidget(confirm)
+        return wrap
+
+    def _build_warning_banner(self, warning: str) -> QWidget:
+        wrap = QWidget()
+        wrap.setStyleSheet(f"background: {C.BG};")
+        row = QHBoxLayout(wrap)
+        row.setContentsMargins(22, 0, 22, 14)
+        row.setSpacing(6)
+
+        icon = QLabel("⚠")
+        icon.setAlignment(Qt.AlignmentFlag.AlignTop)
+        icon.setStyleSheet(
+            f"color: {C.RED}; font-size: 9pt; background: transparent;"
+        )
+
+        text = QLabel(warning)
+        text.setWordWrap(True)
+        text.setStyleSheet(
+            f"color: {C.MUTED}; font-size: 8pt; background: transparent;"
+        )
+
+        row.addWidget(icon)
+        row.addWidget(text, 1)
         return wrap
 
     def mousePressEvent(self, ev: QMouseEvent | None) -> None:
@@ -502,6 +540,9 @@ class ActiveCyclesPanel(QWidget):
         self._pending.pending_signal_dismissed.connect(self._model.on_pending_dismissed)
         self._pending.pending_signal_executed.connect(self._model.on_pending_removed)
 
+        if hasattr(self._app, "pending_tick"):
+            self._app.pending_tick.connect(self._model.on_pending_tick)
+
         self._bridge_event.connect(self._dispatch_event, Qt.ConnectionType.QueuedConnection)
         stream = getattr(self._app, "event_stream", None)
         if stream is not None and hasattr(stream, "subscribe"):
@@ -567,15 +608,19 @@ class ActiveCyclesPanel(QWidget):
         verb = "Sell" if is_exit else "Buy"
         text = (
             f"Submit {verb} {qty} × {sig.symbol} @ MKT?\n"
-            f"Entry ~${sig.entry_price or 0.0:.2f}   ·   "
+            f"Entry at live market   ·   "
             f"Stop ${sig.stop_loss or 0.0:.2f}   ·   "
             f"Target ${sig.target or 0.0:.2f}"
         )
+        # A BUY needs free margin; a SELL frees capital and is never blocked.
+        confirm_enabled, warning = self._affordability(sig, qty) if not is_exit else (True, None)
         if not self._confirm(
             "EXECUTE SIGNAL",
             text,
             confirm_text=f"{verb} {sig.symbol}",
             accent=C.RED if is_exit else C.GREEN,
+            confirm_enabled=confirm_enabled,
+            warning=warning,
         ):
             return
         # Route through the single broker-submit path; the pending row is
@@ -733,11 +778,38 @@ class ActiveCyclesPanel(QWidget):
         *,
         confirm_text: str = "Confirm",
         accent: str | None = None,
+        confirm_enabled: bool = True,
+        warning: str | None = None,
     ) -> bool:
         dlg = _ConfirmDialog(
-            title, text, confirm_text=confirm_text, accent=accent, parent=self
+            title, text, confirm_text=confirm_text, accent=accent,
+            confirm_enabled=confirm_enabled, warning=warning, parent=self,
         )
         return dlg.exec() == QDialog.DialogCode.Accepted
+
+    def _affordability(self, sig: TradeSignal, qty: int) -> tuple[bool, str | None]:
+        """Block the BUY confirm when global Margin Available can't cover it.
+
+        Margin Available is the real free cash across all strategies; a manual
+        entry can override the per-strategy Capital Max but never the global
+        ceiling (SRD-EXE-017.022). Returns (confirm_enabled, warning_text).
+        """
+        margin_fn = getattr(self._app, "margin_available", None)
+        if margin_fn is None or qty <= 0:
+            return True, None
+        price = getattr(self._app, "_market_price_for", lambda _s: None)(sig.symbol)
+        if not price or price <= 0:
+            price = sig.entry_price or 0.0
+        if price <= 0:
+            return True, None
+        margin = float(margin_fn())
+        needed = qty * price
+        if needed <= margin:
+            return True, None
+        return False, (
+            f"Insufficient buying power for {qty} × {sig.symbol} — "
+            f"needs ${needed:,.2f}, you have ${margin:,.2f}"
+        )
 
     # ── Test helpers ─────────────────────────────────────────────────────
 

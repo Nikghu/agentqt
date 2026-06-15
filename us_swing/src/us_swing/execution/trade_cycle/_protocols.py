@@ -76,6 +76,8 @@ class TradeCycleCommand(Protocol):
         self,
         *,
         exit_order_id: str,
+        symbol:        str,
+        strategy_id:   str,
         exit_price:    float,
         exit_qty:      int,
         exit_time:     str,

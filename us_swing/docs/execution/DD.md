@@ -1,12 +1,13 @@
 # Design Document — Execution & Risk Management (EXE)
 
 **Document ID:** DD-EXE
-**Version:** 1.13.0
-**Traces To:** SRD-EXE v1.19.0
+**Version:** 1.14.0
+**Traces To:** SRD-EXE v1.20.0
 **Status:** Draft
 **Last Updated:** 2026-06-12
 **Project:** US Swing Trading System
 
+> v1.14.0: DD-EXE-016.007.D01 added (ISS-EXE-0008) — `mark_entered` re-arms a same-day `EXITED` ledger row back to `ENTERED` to keep the reconcile invariant on a same-day re-entry.
 > v1.13.0: DD-EXE-017.015–.021 added — global Margin Available ceiling, in-flight reservation ledger, per-entry margin clamp, paper open-position-value fix, live margin-drift reconcile, and User View capital/margin cells.
 > v1.12.0: DD-EXE-017.* added — effective-capital resolution, capital-max sizing, blocking-vs-advisory risk split, daily-loss aggregation, rex auto-reset on start + display fix.
 > v1.11.0: DD-EXE-016.* added — ingestion-driven monitoring-lifecycle seam, `trade_cycles` carryover repoint, `positions` table drop.
@@ -3162,6 +3163,43 @@ transition methods already no-op when the target state is reached).
 `lifecycle=self._lifecycle_command` (the `MonitoringCommand` from
 `build_default_service`). When the lifecycle service is unavailable the sink stays
 `None` and ingestion behaves exactly as today.
+
+## DD-EXE-016.007.D01 — Same-Day Re-Entry Re-Arm
+
+**Parent SRD:** SRD-EXE-016.007
+
+The `monitoring_session` ledger holds one row per `(session_date, symbol)`. The
+original `mark_entered` only looked for an **open `MONITORING`** row
+(`fetch_earliest_open_monitoring_row`). That breaks on a same-day re-entry: once a
+symbol is entered and then exited in the same session, its only row for today is
+already `EXITED`, so the lookup returns `None` and `mark_entered` silently no-ops.
+The re-opened `trade_cycle` is then left with no `ENTERED` ledger row, and the
+daily reconcile reports it as `invariant_violation` (open position with no ledger
+record) — the symptom seen for CCL and SW on 2026-06-12 (ISS-EXE-0008).
+
+Fix — `mark_entered` falls back to re-arming the most-recent `EXITED` row when no
+open `MONITORING` row exists:
+
+```python
+def mark_entered(self, symbol: str, entered_at: str, trade_id: str) -> None:
+    row = self._repo.fetch_earliest_open_monitoring_row(symbol)
+    if row is None:
+        # Same-day re-entry: a prior round-trip left the row EXITED — re-arm it.
+        row = self._repo.fetch_latest_exited_row(symbol)
+    if row is None:
+        return                       # no ledger row (e.g. unscreened manual trade)
+    self._repo.transition_to_entered(
+        session_date=row.session_date, symbol=symbol,
+        entered_at=entered_at, trade_id=trade_id,
+    )
+```
+
+`fetch_latest_exited_row(symbol)` selects the symbol's `EXITED` rows ordered by
+`session_date DESC LIMIT 1`. `transition_to_entered` additionally clears `exited_at`
+(sets it `NULL`) so a re-armed row does not carry a stale exit timestamp; on the
+normal `MONITORING → ENTERED` path `exited_at` is already `NULL`, so this is a no-op
+there. The method stays idempotent and remains a no-op for a symbol that has neither
+a `MONITORING` nor an `EXITED` row.
 
 ## DD-EXE-016.003.D01 — Carryover Repoint to `trade_cycles`
 
