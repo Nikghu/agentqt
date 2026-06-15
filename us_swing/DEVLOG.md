@@ -2,6 +2,45 @@
 
 ---
 
+## [20260612] EXE — Same-day re-entry fix: `mark_entered` re-arms exited ledger rows (ISS-EXE-0008)
+
+- Type: Bugfix
+- FO(s): FO-EXE-016
+- RN: RN-EXE-1.28.0-20260612
+- Artifacts updated: SRD, DD, MD, UTCD, Code, Issues, TRACE, RN
+
+---
+
+## [20260612] EXE+GUI — Manual strategies monitor entries regardless of capital; affordability moved to the confirm popup (SRD-EXE-017.022)
+
+- Type: Refactor (user-directed behaviour change)
+- FO(s): FO-EXE-017, FO-GUI-014
+- RN: RN-EXE-1.27.0-20260612
+- Artifacts updated: SRD (EXE + GUI), UTCD, Code, TRACE, RN
+- Decisions: engine no longer drops/spams when a manual strategy can't fund an entry — it surfaces a PENDING signal so the user picks among satisfied stocks; no capital freeze while pending (reserve only on confirm). Confirm popup disables the BUY Enter button + red warning when global Margin Available can't cover qty×live price (per-strategy Capital Max can be overridden manually). Auto-trade still hard-gated at the engine, now edge-triggered (one warning per crossing). Also made the rex-limit block log edge-triggered (new `ctx.rex_warned` set) — it was logging `ENTRY blocked … rex limit reached` at INFO every tick for each exhausted symbol. New UT-EXE-011.001.M04.T30 + T31.
+
+---
+
+## [20260612] EXE — ISS-EXE-0007 exit fill closed the WRONG open position; now resolves the cycle by (strategy_id, symbol)
+
+- Type: Bugfix (Critical)
+- FO(s): FO-EXE-014
+- RN: RN-EXE-1.26.0-20260612
+- Artifacts updated: SRD, UTCD, Code, TRACE, RN, ISS
+- Decisions: `on_exit_fill` matched "first open cycle with no exit_order_id" — with >1 open cycle it closed the oldest, applying the clicked symbol's price to the wrong position (DB: QCOM closed at PCG's $16.965, PNL −$371.97). Now takes symbol+strategy_id and matches the unique open cycle for that pair (DuplicateOpenCycleError invariant); ingestion passes ctx.symbol/strategy_id; protocol updated. Regression UT-EXE-014.007.M02.T19. Also fixes the auto target/SL/trailing exit path. Historical QCOM row left as-is pending user decision.
+
+---
+
+## [20260612] GUI — Active Trades: blank pending Entry, live LTP via tick subscription, new Exit $ column (uncommitted)
+
+- Type: Bugfix
+- FO(s): FO-GUI-014
+- RN: (folded into session; SRD-GUI-014.002/.004/.005 amended)
+- Artifacts updated: SRD, Code
+- Decisions: pending symbols now tick-subscribed so the MARKET entry fills at the live price (no PNL jump) and the pending row shows a live LTP; Entry shown blank while pending; Exit $ column after LTP. SimBroker already snapshots the live price into the fill, so no manual entry-copy needed.
+
+---
+
 ## [20260612] EXE — FO-EXE-017 global Margin Available ceiling: cross-strategy budget gate, in-flight reservation, paper open-value fix, User View capital cell
 
 - Type: Feature

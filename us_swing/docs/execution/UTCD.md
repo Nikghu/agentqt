@@ -1,12 +1,13 @@
 ﻿# Unit Test Case Document â€” Execution & Risk Management (EXE)
 
 **Document ID:** UTCD-EXE
-**Version:** 1.11.0
-**Traces To:** MD-EXE v1.11.0
+**Version:** 1.12.0
+**Traces To:** MD-EXE v1.12.0
 **Status:** Draft
 **Last Updated:** 2026-06-12
 **Project:** US Swing Trading System
 
+> v1.12.0: UT-EXE-016.007.M01.T01/.T02 added (2 tests, ISS-EXE-0008) — same-day re-entry re-arms an EXITED ledger row back to ENTERED.
 > v1.11.0: UT-EXE-017.015–.021 added (10 tests) — `margin_available` + reservation ledger, router margin clamp/gate/release, paper open-position-value, AppService margin.
 > v1.9.0: UT-EXE-017.* added (22 tests) — capital-max sizing, advisory risk split, capital-insufficient drop, rex auto-reset, rex display fix, RiskConfig migration, effective-capital + daily-loss aggregation (FO-EXE-017).
 > v1.8.0: UT-EXE-014.001.M01.T01–T06 added — BuyOrderState / SellOrderState broker-order state machine + legacy `status` backfill (Final_Execution.md Phase 3).
@@ -358,6 +359,15 @@
 
 ---
 
+## Module: `core/monitoring_session/_service.py` — Same-Day Re-Entry Re-Arm (FO-EXE-016)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-016.007.M01.T01 | MD-EXE-016.001.M01 | Positive | `mark_entered` re-arms a same-day EXITED row back to ENTERED | Symbol A screened today, then `mark_entered`→`mark_exited`; then `mark_entered("A", t2, "t2")` | Row (today, A) → ENTERED; `trade_id == "t2"`; `exited_at is None` | Pass |
+| UT-EXE-016.007.M01.T02 | MD-EXE-016.001.M01 | Negative | `mark_entered` stays a no-op when the symbol has no MONITORING and no EXITED row | Empty ledger; `mark_entered("UNKNOWN", t1, "t1")` | No row created; `session_for(today, "UNKNOWN") is None` | Pass |
+
+---
+
 ## Module: `core/monitoring_session/__init__.py` — Public Surface
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
@@ -588,6 +598,7 @@
 | UT-EXE-014.007.M01.T01 | MD-EXE-012.002.M02 | Positive | A FILLED entry fill opens the cycle directly in OPEN | `on_entry_fill(order_state=FILLED)` | `CycleSnapshot.state == OPEN` | Pass |
 | UT-EXE-014.007.M01.T02 | MD-EXE-012.002.M02 | Edge | A PARTIAL_FILLED entry fill holds the cycle in OPENING | `on_entry_fill(order_state=PARTIAL_FILLED)` | `state == OPENING`; one `CycleOpened`, no `CycleUpdated` | Pass |
 | UT-EXE-014.007.M01.T03 | MD-EXE-012.002.M02 | Positive | The FILLED fill completing a held partial advances OPENING → OPEN | partial `on_entry_fill` then FILLED `on_entry_fill` with the same `entry_order_id` | same `cycle_id`; `state == OPEN`; one `CycleUpdated` | Pass |
+| UT-EXE-014.007.M02.T19 | MD-EXE-012.002.M02 | Negative | With two open cycles, an exit fill closes the cycle matching (strategy_id, symbol), not the oldest (ISS-EXE-0007) | open QCOM then PCG; `on_exit_fill(symbol=PCG)` | PCG cycle CLOSED; QCOM stays OPEN with no exit price | Pass |
 
 ---
 

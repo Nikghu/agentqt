@@ -1,12 +1,13 @@
 ﻿# Module Decomposition — Execution & Risk Management (EXE)
 
 **Document ID:** MD-EXE
-**Version:** 1.11.0
-**Traces To:** SRD-EXE v1.19.0 / DD-EXE v1.13.0
+**Version:** 1.12.0
+**Traces To:** SRD-EXE v1.20.0 / DD-EXE v1.14.0
 **Status:** Draft
 **Last Updated:** 2026-06-12
 **Project:** US Swing Trading System
 
+> v1.12.0: MD-EXE-016.001.M01 + MD-EXE-016.003.M04 updated (ISS-EXE-0008) — same-day re-entry re-arm: `mark_entered` falls back to `fetch_latest_exited_row`; `transition_to_entered` clears `exited_at`.
 > v1.11.0: MD-EXE-017.012–.017 added — global Margin Available accessor + reservation ledger, `RiskValidator` protocol additions, router margin clamp/reservation, `margin_warned` flag, AppService paper open-value + margin + live drift, User View capital cell.
 > v1.10.0: MD-EXE-017.* added — absolute capital budget, capital-max sizing, advisory risk warnings, rex auto-reset + display fix.
 > v1.9.0: MD-EXE-016.* added — ingestion-driven monitoring-lifecycle seam, `trade_cycles` carryover repoint, `positions` table drop.
@@ -251,10 +252,10 @@ green **before** the table drop (M05–M06).
 
 | Module ID | File | Change Required | SRD |
 |---|---|---|---|
-| MD-EXE-016.001.M01 | `src/us_swing/core/monitoring_session/_service.py` | Add `mark_entered(symbol, entered_at, trade_id)` and `mark_exited(symbol, exited_at)` — thin, idempotent ledger flips wrapping `transition_to_entered`/`transition_to_exited`. Remove the dead `on_fill` method and the now-orphaned `has_open_system_position` query method. | SRD-EXE-016.001, SRD-EXE-016.002, SRD-EXE-016.005 |
+| MD-EXE-016.001.M01 | `src/us_swing/core/monitoring_session/_service.py` | Add `mark_entered(symbol, entered_at, trade_id)` and `mark_exited(symbol, exited_at)` — thin, idempotent ledger flips wrapping `transition_to_entered`/`transition_to_exited`. `mark_entered` falls back to re-arming the latest `EXITED` row when no open `MONITORING` row exists (same-day re-entry). Remove the dead `on_fill` method and the now-orphaned `has_open_system_position` query method. | SRD-EXE-016.001, SRD-EXE-016.002, SRD-EXE-016.005, SRD-EXE-016.007 |
 | MD-EXE-016.001.M02 | `src/us_swing/execution/order_ingestion.py` | Add optional `lifecycle` dependency. In `on_order_event`, after the cycle advance: completed entry fill → `lifecycle.mark_entered(...)`; exit fill that closes the cycle → `lifecycle.mark_exited(...)`. No-op when `lifecycle is None`. | SRD-EXE-016.001, SRD-EXE-016.002 |
 | MD-EXE-016.001.M03 | `src/us_swing/gui/app_service.py` | Construct `OrderIngestion(..., lifecycle=self._lifecycle_command)`; sink stays `None` if the lifecycle service is unavailable. | SRD-EXE-016.001, SRD-EXE-016.002 |
-| MD-EXE-016.003.M04 | `src/us_swing/core/monitoring_session/_repository.py` | Repoint `open_system_position_symbols` to a `trade_cycles` query by table name (`state NOT IN CLOSED/ABORTED`). Add `fetch_entered_row(symbol)`. Remove `upsert_position_with_anchor`, `has_open_system_position`, `position_anchor`, and the `positions` import. | SRD-EXE-016.003, SRD-EXE-016.004 |
+| MD-EXE-016.003.M04 | `src/us_swing/core/monitoring_session/_repository.py` | Repoint `open_system_position_symbols` to a `trade_cycles` query by table name (`state NOT IN CLOSED/ABORTED`). Add `fetch_entered_row(symbol)` and `fetch_latest_exited_row(symbol)` (re-arm target); `transition_to_entered` clears `exited_at`. Remove `upsert_position_with_anchor`, `has_open_system_position`, `position_anchor`, and the `positions` import. | SRD-EXE-016.003, SRD-EXE-016.004, SRD-EXE-016.007 |
 | MD-EXE-016.006.M05 | `src/us_swing/db/schema.py` | Delete the `positions` `sa.Table` + its index; remove `positions` from `_LIFECYCLE_COLUMN_ADDITIONS`/`_LIFECYCLE_COLUMN_REMOVALS`; add a one-time `DROP TABLE IF EXISTS positions` to the lifecycle migration. | SRD-EXE-016.006 |
 | MD-EXE-016.006.M06 | `src/us_swing/db/manager.py` | Delete `upsert_position`, `delete_position`, `fetch_open_positions` (and `PositionRecord` if no caller survives a grep). | SRD-EXE-016.006 |
 
