@@ -8,7 +8,7 @@ import threading
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
-from us_swing.execution.strategy_engine import TradeSignal
+from us_swing.execution.strategy_engine import Action, TradeSignal
 
 
 class PendingSignalStore(QObject):
@@ -49,6 +49,37 @@ class PendingSignalStore(QObject):
         if sig is not None:
             self.pending_signal_executed.emit(signal_id)
         return sig
+
+    def dismiss_for(
+        self, strategy_id: str, symbol: str, action: Action
+    ) -> list[str]:
+        """Dismiss every pending signal matching ``(strategy_id, symbol, action)``.
+
+        Invalidates a stale signal when the position it targets is closed by
+        another route (force-exit, tick exit, square-off), so the user cannot
+        execute a duplicate exit for an already-closed position (ISS-EXE-0010,
+        SRD-EXE-011.024).
+
+        Args:
+            strategy_id: Owning strategy of the signals to drop.
+            symbol: Ticker of the signals to drop.
+            action: Signal action to match (e.g. ``Action.EXIT``).
+
+        Returns:
+            The signal ids that were removed.
+        """
+        with self._lock:
+            ids = [
+                sid for sid, s in self._signals.items()
+                if s.strategy_id == strategy_id
+                and s.symbol == symbol
+                and s.action == action
+            ]
+            for sid in ids:
+                self._signals.pop(sid, None)
+        for sid in ids:
+            self.pending_signal_dismissed.emit(sid)
+        return ids
 
     def list(self) -> tuple[TradeSignal, ...]:
         with self._lock:

@@ -1,9 +1,9 @@
 # Traceability Matrix — Execution & Risk Management (EXE)
 
 **Document ID:** TRACE-EXE
-**Version:** 1.18.0
+**Version:** 1.19.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-06-12 (Session 68)
+**Last Updated:** 2026-06-17 (Session 71, ISS-EXE-0010)
 
 ---
 
@@ -22,6 +22,7 @@
 | FO-EXE-006 | SRD-EXE-006.001–006 | DD-EXE-006.001.D01–D02 | MD-EXE-006.001.M01 | UT-EXE-006.001.M01.T01–T13 | `execution/intraday_candle_loader.py` | Implemented | RN-EXE-1.1.0-20260506 |
 | FO-EXE-006 | SRD-EXE-006.010 | DD-EXE-006.010.D01 | MD-EXE-006.001.M01 | UT-EXE-006.001.M01.T14, T15, T16 | `execution/intraday_candle_loader.py` | Implemented | RN-EXE-1.5.1-20260530 |
 | FO-EXE-006 | SRD-EXE-006.012 | DD-EXE-006.012.D01 | MD-EXE-006.001.M01 | UT-EXE-006.001.M01.T17, T18, T19 | `execution/intraday_candle_loader.py`, `gui/strategy_builder_dialog.py` | Implemented | RN-EXE-1.21.0-20260610 |
+| FO-EXE-006 | SRD-EXE-006.013 | DD-EXE-006.013.D01 | MD-EXE-006.013.M01 | UT-EXE-006.013.M01.T01–T04 | `gui/app_service.py` | Implemented | RN-EXE-1.29.0-20260616 |
 | FO-EXE-008 | SRD-EXE-008.001–006 | DD-EXE-008.001.D01 | MD-EXE-008.001.M01 | UT-EXE-008.001.M01.T01–T16 | `execution/live_tick_worker.py` | Implemented | RN-EXE-1.3.1-20260519 |
 | FO-EXE-009 | SRD-EXE-009.001–012 | DD-EXE-009.001.D01–D02, 009.002.D01–D02, 009.003.D01 | MD-EXE-009.001.M01–M03, 009.002.M01–M03 | UT-EXE-009.001.M01.T01–T04, 009.001.M02.T01–T03, 009.001.M03.T01–T06, 009.002.M01.T01–T14, 009.002.M02.T01–T22, 009.002.M02.T17–T17d, 009.002.M03.T01–T04; IT-EXE-009.001–005 | `core/monitoring_session/{_dto,_enums,_protocols,_events,_repository,_service}.py`, `core/monitoring_session/__init__.py` | Implemented | RN-EXE-1.3.0-20260518, RN-EXE-1.15.0-20260529, RN-EXE-1.19.0-20260608, RN-EXE-1.20.1-20260609 (ISS-EXE-0003 log level) |
 | FO-EXE-010 | SRD-EXE-010.001–006 | DD-EXE-010.001.D01, 010.002.D01, 010.003.D01 | MD-EXE-010.001.M01 | UT-EXE-010.001.M01.T01–T05; IT-EXE-010.001–002 | `core/monitoring_session/_scheduler.py` | Implemented | RN-EXE-1.3.0-20260518, RN-EXE-1.19.0-20260608 |
@@ -29,6 +30,10 @@
 | FO-EXE-011 | SRD-EXE-011.020 | — | MD-EXE-011.001.M01, M04, M06, M09 | UT-EXE-011.001.M04.T18–T20 | `execution/strategy_engine/{_engine,_router,_signals}.py`, `execution/pending_signal_store.py` | Implemented | RN-EXE-1.10.0-20260527 |
 | FO-EXE-011 | SRD-EXE-011.021 | — | MD-EXE-011.001.M04 | UT-EXE-011.001.M04.T21, T22 | `execution/strategy_engine/_router.py` | Implemented | RN-EXE-1.22.0-20260610 |
 | FO-EXE-011 | SRD-EXE-011.022 | — | MD-EXE-011.001.M04 | UT-EXE-011.001.M04.T27, T28, T29 | `execution/strategy_engine/_router.py` | Implemented | RN-EXE-1.24.0-20260612 |
+| FO-EXE-011 | SRD-EXE-011.023 | DD-EXE-011.023.D01 | MD-EXE-011.001.M03 | UT-EXE-011.001.M03.T10–T13 | `execution/strategy_engine/_evaluator.py` | Implemented | RN-EXE-1.29.0-20260616 |
+| FO-EXE-011 | SRD-EXE-011.024 | DD-EXE-011.024.D01 | MD-EXE-011.024.M01 | UT-EXE-011.024.M01.T01–T04 | `execution/pending_signal_store.py`, `gui/app_service.py` | Implemented | RN-EXE-1.30.0-20260617 |
+| FO-EXE-011 | SRD-EXE-011.025 | — | MD-EXE-011.024.M01 | UT-EXE-011.025.M01.T01–T02 | `gui/app_service.py` | Implemented | RN-EXE-1.30.0-20260617 |
+| FO-EXE-012 | SRD-EXE-012.014 | — | MD-EXE-012.002.M02 | UT-EXE-012.002.M02.T19 | `execution/trade_cycle/_service.py`, `execution/trade_cycle/_protocols.py` | Implemented | RN-EXE-1.30.0-20260617 |
 | FO-GUI-013 | SRD-GUI-013.015 | — | MD-GUI-004.001.M01 | — | `gui/execution_panel.py`, `gui/strategy_builder_dialog.py` | Implemented | RN-EXE-1.9.0-20260527 |
 | FO-GUI-014 | SRD-GUI-014.013 | — | MD-GUI-014.001.M02 | — | `gui/active_cycles_model.py`, `gui/active_cycles_panel.py` | Implemented | RN-EXE-1.9.0-20260527 |
 | FO-EXE-012 | SRD-EXE-012.001–013 | DD-EXE-012.001.D01–D02 | MD-EXE-012.001.M01–M06 | UT-EXE-012.001.M01–M06.T01–T29, 012.002.M02.T18 | `execution/trade_cycle/{_schema,_repository,_service,_protocols,__init__}.py` | Verified (012.007 re-Implemented v1.23.0) | RN-EXE-1.8.0-20260527, RN-EXE-1.17.0-20260602, RN-EXE-1.23.0-20260612 |
@@ -66,7 +71,8 @@
 | `core/monitoring_session/_scheduler.py` | MD-EXE-010.001.M01 | SRD-EXE-010.004 | FO-EXE-010 |
 | `execution/strategy_engine/_engine.py` | MD-EXE-011.001.M01 | SRD-EXE-011.001–003, 007–015 | FO-EXE-011 |
 | `execution/strategy_engine/_context.py` | MD-EXE-011.001.M02 | SRD-EXE-011.004–007 | FO-EXE-011 |
-| `execution/strategy_engine/_evaluator.py` | MD-EXE-011.001.M03 | SRD-EXE-011.006 | FO-EXE-011 |
+| `execution/strategy_engine/_evaluator.py` | MD-EXE-011.001.M03 | SRD-EXE-011.006, 011.023 | FO-EXE-011 |
+| `gui/app_service.py` (cycle-open candle arming) | MD-EXE-006.013.M01 | SRD-EXE-006.013 | FO-EXE-006 |
 | `execution/strategy_engine/__init__.py` | MD-EXE-011.001.M04 | SRD-EXE-011.001, 013, 021 | FO-EXE-011 |
 | `execution/strategy_engine/_router.py` | MD-EXE-011.001.M04 | SRD-EXE-011.021, 022 | FO-EXE-011 |
 | `execution/strategy_engine/_rex_counter.py` | MD-EXE-011.001.M08 | SRD-EXE-011.016–019 | FO-EXE-011 |
@@ -83,8 +89,8 @@
 | Artifact | Total Items | Draft | Approved | Implemented | Verified |
 |---|---|---|---|---|---|
 | FO | 12 | 8 | 1 | 3 | 0 |
-| SRD | 99 | 54 | 6 | 39 | 0 |
-| DD | 27 | 23 | 2 | 2 | 0 |
-| MD | 36 | 30 | 1 | 5 | 0 |
-| UTCD | 167 | 49 | 13 | 105 | 0 |
-| Code | 26 files | — | — | 11 | 0 |
+| SRD | 101 | 54 | 6 | 41 | 0 |
+| DD | 29 | 23 | 2 | 4 | 0 |
+| MD | 37 | 30 | 1 | 6 | 0 |
+| UTCD | 175 | 49 | 13 | 113 | 0 |
+| Code | 27 files | — | — | 12 | 0 |

@@ -2,6 +2,26 @@
 
 ---
 
+## [20260617] EXE — Duplicate exit guard: three-layer fix for stale pending signals (ISS-EXE-0010)
+
+- Type: Bugfix
+- FO(s): FO-EXE-011, FO-EXE-012
+- RN: RN-EXE-1.30.0-20260617
+- Artifacts updated: SRD, DD, MD, UTCD, Code, Issues, TRACE, RN
+- Decisions: Position closed via force-exit ■ left a stale pending exit ► signal live; executing it on the now-closed position crashed the engine. Three independent guards prevent re-occurrence: (1) `PendingSignalStore.dismiss_for(strategy_id, symbol, action)` called on `CycleClosed` event (AppService subscribes); (2) `execute_signal` validates pending EXIT targets an OPEN cycle, rejects with WARNING if not; (3) `on_exit_fill` catches `InvalidStateTransitionError` on orphan/duplicate fills, logs WARNING, returns `None` instead of crashing. New SRD-EXE-011.024/.025, SRD-EXE-012.014; DD-EXE-011.024.D01; MD-EXE-011.024.M01, MD-EXE-012.002.M02 scope extended; 7 new UT cases (all Pass). ruff + mypy clean.
+
+---
+
+## [20260616] EXE — Candle-arming on cycle-open + NaN indicator guard (ISS-EXE-0009)
+
+- Type: Bugfix
+- FO(s): FO-EXE-006, FO-EXE-011
+- RN: RN-EXE-1.29.0-20260616
+- Artifacts updated: SRD, DD, MD, UTCD, Code, TRACE, RN
+- Decisions: Position opened manually off-screen never exited because its candle frames (3m/15m) were empty — historical download + live subscription only armed at startup/screener/reconcile, never on cycle-open. ATR/RSI/SUPERTREND returned NaN; `price < NaN` read as false; exit never fired. Fix: (1) `AppService._on_cycle_symbols_changed` now computes just-opened symbols not in `_filtered_symbols`, emits queued `_arm_candle_feeds_requested`, GUI slot calls `_start_intraday_loader` (idempotent delta-fetch) and `LiveBarWorker.set_symbols`; (2) `_eval` FUNC branch raises `EvaluatorError` on NaN indicator (surfaces instead of silently false). New SRD-EXE-006.013, SRD-EXE-011.023; DD-EXE-006.013.D01; MD-EXE-006.013.M01; 8 new UT cases (all Pass). ruff + mypy clean.
+
+---
+
 ## [20260612] EXE — Same-day re-entry fix: `mark_entered` re-arms exited ledger rows (ISS-EXE-0008)
 
 - Type: Bugfix

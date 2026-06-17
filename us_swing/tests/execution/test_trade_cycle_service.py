@@ -405,6 +405,25 @@ def test_on_exit_fill_closes_the_matching_symbol_not_the_oldest(
     assert svc._repo.cycle(older.cycle_id).exit_price is None
 
 
+def test_on_exit_fill_orphan_returns_none_without_raising(
+    svc: TradeCycleService, bus: MagicMock
+) -> None:
+    """UT-EXE-012.002.M02.T19: an exit fill matching no open cycle returns None,
+    does not raise, and closes nothing (duplicate/orphan exit, ISS-EXE-0010)."""
+    result = svc.on_exit_fill(
+        exit_order_id="orphan-1",
+        symbol="TER",
+        strategy_id="SUPERTREND",
+        exit_price=100.0,
+        exit_qty=1,
+        exit_time="2026-06-16T23:28:29",
+        exit_reason="manual",
+    )
+
+    assert result is None
+    assert _published_of(bus, CycleClosed) == []
+
+
 def _exit_kwargs(**overrides: Any) -> dict[str, Any]:
     kw: dict[str, Any] = {
         "exit_order_id": "exit-100",

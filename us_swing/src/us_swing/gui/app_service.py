@@ -1038,6 +1038,8 @@ class AppService(QObject):
     circuit_breaker_changed   = pyqtSignal(bool)           # True = breaker tripped (entries blocked)
     risk_warning_raised       = pyqtSignal(str, str)       # (kind, message) — advisory, non-blocking
     _auto_exit_requested      = pyqtSignal(int, str)       # (cycle_id, reason) — cross-thread marshal
+    _arm_candle_feeds_requested = pyqtSignal(object)       # list[str] — cross-thread marshal (ISS-EXE-0009)
+    _clear_pending_exits_requested = pyqtSignal(str, str)  # (strategy_id, symbol) — marshal (ISS-EXE-0010)
 
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
@@ -1175,6 +1177,10 @@ class AppService(QObject):
                 # background thread; marshal the SELL submit to the GUI thread.
                 from us_swing.execution.trade_cycle import ExitTrigger
                 self._auto_exit_requested.connect(self._handle_auto_exit)
+                # Cycle-open candle-feed arming: _on_cycle_symbols_changed fires
+                # on the cycle background thread; marshal the loader + live-bar
+                # resubscribe to the GUI thread (ISS-EXE-0009).
+                self._arm_candle_feeds_requested.connect(self._arm_candle_feeds)
                 self._lifecycle_bus.subscribe(ExitTrigger, self._on_exit_trigger)
                 _log.info("[TradeCycle] Service ready")
             except Exception:
@@ -1207,6 +1213,15 @@ class AppService(QObject):
         self._pending_store.pending_signal_removed.connect(lambda _: self._sync_tick_subscriptions())
         self._pending_store.pending_signal_dismissed.connect(lambda _: self._sync_tick_subscriptions())
         self._pending_store.pending_signal_executed.connect(lambda _: self._sync_tick_subscriptions())
+
+        # A position closed by any route (force-exit, tick exit, square-off) must
+        # drop any stale pending exit signal so the user cannot fire a duplicate
+        # exit from the Active Trades ► button (ISS-EXE-0010). CycleClosed fires on
+        # the cycle thread; marshal the clear to the GUI thread.
+        if self._lifecycle_bus is not None:
+            from us_swing.execution.trade_cycle import CycleClosed
+            self._clear_pending_exits_requested.connect(self._clear_pending_exits)
+            self._lifecycle_bus.subscribe(CycleClosed, self._on_cycle_closed_clear_pending)
 
         self._event_bus = QtEventBus(self)
 
@@ -1964,6 +1979,25 @@ class AppService(QObject):
 
     def execute_signal(self, signal: TradeSignal, quantity: int) -> int:
         """Route the pending signal through PaperBroker and return its order ID."""
+        from us_swing.execution.strategy_engine import Action, TradeSignal as EngineSignal
+        from us_swing.execution.trade_cycle import TradeCycleState
+        if (
+            isinstance(signal, EngineSignal)
+            and signal.action == Action.EXIT
+            and self._tc_query is not None
+            and not any(
+                s.strategy_id == signal.strategy_id
+                and s.symbol == signal.symbol
+                and s.state is TradeCycleState.OPEN
+                for s in self._tc_query.open_cycles()
+            )
+        ):
+            self._pending_store.dismiss(signal.signal_id)
+            self.log_message.emit(
+                "WARNING",
+                f"[Strategy] Exit signal for {signal.symbol} ignored — position already closed or exiting",
+            )
+            return -1
         eng_sig = self._pending_store.execute(signal.signal_id)
         if eng_sig is None:
             self.log_message.emit(
@@ -2762,11 +2796,38 @@ class AppService(QObject):
         Invoked by TradeCycleService whenever a cycle opens, closes, or is
         reloaded on startup.  Open cycles are real positions we entered, so
         their symbols must always be subscribed for live LTP/PnL.
+
+        Newly-open symbols that are not already in the screened/keep set get
+        their candle feeds armed too (download + live bars), so a held position
+        always has data for indicator evaluation (ISS-EXE-0009). The arming is
+        marshalled to the GUI thread because this callback fires on the
+        trade-cycle background thread.
         """
         if symbols == self._cycle_symbols:
             return
+        new_syms = symbols - self._cycle_symbols
         self._cycle_symbols = symbols
         self._sync_tick_subscriptions()
+        uncovered = sorted(s for s in new_syms if s not in self._filtered_symbols)
+        if uncovered:
+            self._arm_candle_feeds_requested.emit(uncovered)
+
+    def _arm_candle_feeds(self, uncovered: list[str]) -> None:
+        """Arm historical + live candle feeds for newly-open symbols (ISS-EXE-0009).
+
+        Runs on the GUI thread (queued from `_on_cycle_symbols_changed`). Unions
+        the symbols into the keep set, starts an idempotent delta-fetch download,
+        and extends the live-bar subscription when a worker is running — mirroring
+        the tick-feed guarantee for open positions.
+        """
+        fresh = [s for s in uncovered if s not in self._filtered_symbols]
+        if not fresh:
+            return
+        self._filtered_symbols = sorted(set(self._filtered_symbols) | set(fresh))
+        _log.info("[Candles] Arming candle feeds for %d held symbol(s)", len(fresh))
+        self._start_intraday_loader(fresh)
+        if self._live_bar_worker is not None and self._live_bar_worker.isRunning():
+            self._live_bar_worker.set_symbols(self._filtered_symbols)
 
     def _on_cycle_tick(self, tag: str, price: float) -> None:
         """Forward live ticks to the trade-cycle service for PnL + exit evaluation."""
@@ -2798,6 +2859,28 @@ class AppService(QObject):
             "INFO",
             f"[Execution] Auto-exit ({reason}) submitted for {snap.symbol}",
         )
+
+    def _on_cycle_closed_clear_pending(self, evt: object) -> None:
+        """Bus subscriber for CycleClosed — runs on the cycle background thread.
+
+        Marshals the closed cycle's ``(strategy, symbol)`` to the GUI thread so
+        any stale pending exit signal is dropped on the main thread (ISS-EXE-0010).
+        """
+        from us_swing.execution.trade_cycle import CycleClosed
+        if isinstance(evt, CycleClosed):
+            self._clear_pending_exits_requested.emit(evt.snapshot.strategy_id, evt.symbol)
+
+    def _clear_pending_exits(self, strategy_id: str, symbol: str) -> None:
+        """Drop any pending exit signal for a position that just closed (GUI thread)."""
+        if self._pending_store is None:
+            return
+        from us_swing.execution.strategy_engine import Action
+        removed = self._pending_store.dismiss_for(strategy_id, symbol, Action.EXIT)
+        if removed:
+            _log.info(
+                "[Strategy] Cleared %d stale exit signal(s) for %s — position already closed",
+                len(removed), symbol,
+            )
 
     def _record_market_price(self, tag: str, price: float) -> None:
         """Cache the latest live price per symbol for SimBroker fills (SRD-INF-009.007).

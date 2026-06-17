@@ -1,12 +1,13 @@
 # Design Document — Execution & Risk Management (EXE)
 
 **Document ID:** DD-EXE
-**Version:** 1.14.0
-**Traces To:** SRD-EXE v1.20.0
+**Version:** 1.16.0
+**Traces To:** SRD-EXE v1.21.0
 **Status:** Draft
-**Last Updated:** 2026-06-12
+**Last Updated:** 2026-06-17
 **Project:** US Swing Trading System
 
+> v1.15.0: DD-EXE-006.013.D01 + DD-EXE-011.023.D01 added (ISS-EXE-0009) — opening a trade cycle marshals candle-feed arming (historical download + live-bar subscription) for its symbol; and the `ConditionEvaluator` FUNC choke point raises `EvaluatorError` on a NaN indicator result so an un-computable exit surfaces instead of reading as false.
 > v1.14.0: DD-EXE-016.007.D01 added (ISS-EXE-0008) — `mark_entered` re-arms a same-day `EXITED` ledger row back to `ENTERED` to keep the reconcile invariant on a same-day re-entry.
 > v1.13.0: DD-EXE-017.015–.021 added — global Margin Available ceiling, in-flight reservation ledger, per-entry margin clamp, paper open-position-value fix, live margin-drift reconcile, and User View capital/margin cells.
 > v1.12.0: DD-EXE-017.* added — effective-capital resolution, capital-max sizing, blocking-vs-advisory risk split, daily-loss aggregation, rex auto-reset on start + display fix.
@@ -661,6 +662,71 @@ with no engine, router, or evaluator change.
 dropdown `Datatype` list extends from `["3m","15m"]` to `["3m","15m","1d","1w"]`.
 The selected value flows verbatim into the generated expression string
 (e.g. `RSI('Stock', 14, '1d')`), which the evaluator already understands.
+
+---
+
+## DD-EXE-006.013.D01 — Arm Candle Feeds on Cycle-Open
+
+**Parent SRD:** SRD-EXE-006.013
+
+**Problem (ISS-EXE-0009).** The historical download (`IntradayCandleLoader`) and the
+live 3m/15m subscription (`LiveBarWorker.set_symbols`) are only (re)computed at three
+moments — startup (`_boot_candle_check`), a screener run (`_on_screener_results_updated`),
+and a reconcile (`_on_lifecycle_reconcile_completed`, see SRD-EXE-010.006). Opening a
+position is **not** one of them. When a cycle opens, `AppService._on_cycle_symbols_changed`
+fires but only re-syncs the **tick** feed (`_sync_tick_subscriptions`). So a symbol entered
+intraday that is not in the current screened set (e.g. a manual off-screen Buy) is held and
+evaluated by the engine (`_evaluate_ctx` includes open-cycle symbols), but its candle frame
+from `load_execution_frames` is empty/sparse → indicators degrade and the exit never fires
+until a later trigger re-downloads it (typically the next restart).
+
+**Design.** Make opening a position arm the candle feeds, symmetric with the tick path. The
+candle feeds are owned by Qt `QThread` objects, and `_on_cycle_symbols_changed` is invoked
+from the `TradeCycleService` background thread (via its `set_active_symbols` callback), so the
+arming is marshalled onto the GUI thread with a queued signal — the same pattern used by
+`_auto_exit_requested` for broker submits.
+
+```
+# new Qt signal on AppService
+_arm_candle_feeds_requested = pyqtSignal(object)   # list[str] of newly-open symbols
+
+_on_cycle_symbols_changed(symbols):                # may run on the TC background thread
+    if symbols == self._cycle_symbols: return
+    new_syms = symbols - self._cycle_symbols       # just-opened symbols
+    self._cycle_symbols = symbols
+    self._sync_tick_subscriptions()                # unchanged (tick feed)
+    uncovered = [s for s in new_syms if s not in self._filtered_symbols]
+    if uncovered:
+        self._arm_candle_feeds_requested.emit(sorted(uncovered))   # → GUI thread
+
+# connected once in __init__ (queued → runs on GUI thread)
+_arm_candle_feeds(uncovered: list[str]):           # GUI thread
+    self._filtered_symbols = sorted(set(self._filtered_symbols) | set(uncovered))
+    self._start_intraday_loader(uncovered)         # delta-fetch 1m history (idempotent)
+    if self._live_bar_worker is not None and self._live_bar_worker.isRunning():
+        self._live_bar_worker.set_symbols(self._filtered_symbols)
+```
+
+**Why these calls are safe to repeat.**
+- `_start_intraday_loader` already serialises concurrent runs (SRD-EXE-006.008 — a run in
+  progress queues the new batch) and the 1m fetch is delta-aware/idempotent (SRD-EXE-006.002),
+  so re-arming an already-downloaded symbol inserts zero rows.
+- `LiveBarWorker.set_symbols` diffs against its current subscription set, so passing the full
+  `_filtered_symbols` only adds the new symbols' real-time bars and cancels nothing held.
+
+**Edge cases.**
+- *Market closed / no live worker* — still run the historical download so the frame is ready;
+  skip `set_symbols` when no worker is running (mirrors `_on_lifecycle_reconcile_completed`).
+- *Symbol already covered* (screened, or carryover folded in at a prior trigger) → `uncovered`
+  is empty → no-op.
+- *Symbol leaves the screen later* — it stays in `_filtered_symbols` via the carryover union
+  at the next screener/reconcile (`keep = filtered ∪ carryover`), so it is not dropped while
+  the cycle is open; on cycle-close the next reconcile evicts it normally.
+
+**Relationship to SRD-EXE-010.006.** That requirement performs the same
+`filtered ∪ carryover → loader + LiveBarWorker` handoff but only on `ReconcileCompleted`. This
+DD adds the missing **cycle-open** trigger so the guarantee holds the instant a position opens,
+not only at the next reconcile.
 
 ---
 
@@ -2509,6 +2575,61 @@ Performance: one indexed SELECT per entry-condition firing. With ≥ 50 strategi
 
 ---
 
+## DD-EXE-011.023.D01 — Fail Loudly on Un-evaluable Indicators (NaN guard)
+
+**Parent SRD:** SRD-EXE-011.023
+
+**Problem (ISS-EXE-0009).** Indicators that lack enough bars return `NaN` rather than raising.
+`Price()` already raises `EvaluatorError` on too few bars (`abs(idx) > len(df)`), but the
+TA-Lib-backed indicators do not: `talib.ATR/RSI/ADX/EMA/MACD` return a NaN array when the
+series is shorter than the period, `_last_arr` passes the `NaN` through, and
+`_supertrend_value` returns a `NaN`-derived band. In `_apply_op` any comparison against `NaN`
+(`price < NaN`, `rsi > 30`) is `False`, so an un-computable **exit** silently reads as "do not
+exit" — no error, no log, no signal. This is why the 16-June Supertrend exit never fired on a
+symbol with no downloaded history.
+
+**Design.** Treat a `NaN` indicator result as *undefined*, not *false*, at a single choke
+point — the `FUNC` branch of `ConditionEvaluator._eval`. Every indicator flows through here, so
+one guard covers `SUPERTREND`, `RSI`, `ADX`, `EMA`, `MACD`, `VWAP`, etc.
+
+```python
+# ConditionEvaluator._eval, FUNC branch
+if kind == "FUNC":
+    fn = self.FUNCTION_MAP.get(node["name"])
+    if fn is None:
+        raise EvaluatorError(f"Unknown indicator {node['name']!r}")
+    resolved = [self._eval(a, candles, symbol) for a in node["args"]]
+    result = fn(resolved, candles, symbol)
+    if isinstance(result, float) and math.isnan(result):
+        raise EvaluatorError(
+            f"{node['name']}: insufficient bars to compute (NaN)"
+        )
+    return result
+```
+
+**Why the choke point, not each `_fn_*`.** Centralising the check means new indicators inherit
+the guard automatically and no individual function has to special-case NaN. `Number` and `PNL`
+return finite floats, so they are never affected. `Price()` keeps its own explicit
+insufficient-bars raise (clearer message, fires before the comparison).
+
+**Downstream behaviour — already correct.** `_Router.evaluate` already wraps both the entry and
+exit calls in `try/except EvaluatorError` (`_router.py:181-188` exit, `:207-215` entry): it logs
+`WARNING "[Strategy] <name> exit-expr failed for <symbol>: <msg>"`, publishes `StrategyErrored`,
+and returns. So an un-evaluable exit now produces a **visible WARNING** (and an event the GUI can
+surface) instead of silently evaluating false. No router change is needed — only the evaluator
+stops hiding the NaN.
+
+**Interplay with DD-EXE-006.013.D01.** Part A removes the *cause* (held positions always have
+candle data, so the indicator can compute). Part B is the *safety net* that makes any remaining
+data gap loud rather than silent. With both in place, a missed exit can no longer happen without
+a log line.
+
+**Note — not "force an exit".** The guard does not turn an un-computable exit into a SELL; it
+surfaces the condition as un-evaluable and skips that pass (SRD-EXE-011.023). The position stays
+open with a logged warning, which is the safe, observable outcome.
+
+---
+
 # FO-EXE-012 — Trade Cycle Ledger — Live Per-Cycle State & Persistence
 
 ## DD-EXE-012.001.D01 — Table DDL & Schema Migration
@@ -3625,3 +3746,52 @@ flows through the same advisory bridge as the other `RiskWarning` events
 the existing `account_updated` signal (already connected) and paints green when
 `Y > 0`, red otherwise. Single-user scope only; the All-Users aggregate scope
 keeps its existing summary. Display-only — no gating.
+
+---
+
+## DD-EXE-011.024.D01 — Single-Exit Guards Across Dual Exit Routes (ISS-EXE-0010)
+
+**Parent SRD:** SRD-EXE-011.024, SRD-EXE-011.025, SRD-EXE-012.014
+
+### Problem
+
+An open position can be exited by more than one route, and the routes do not
+coordinate:
+
+- **Pending ► (manual confirm):** a strategy-condition exit parks in
+  `PendingSignalStore`; the user later executes it via `execute_signal`.
+- **Force-exit ■ / tick / square-off:** `force_exit_position` (and the router
+  `_force_exit`) submit directly.
+
+`open_cycles()` / `has_open_cycle()` treat `CLOSING` as still open, and the only
+"exit already submitted" marker (`exit_order_id is None`) is checked at the sink
+(`on_exit_fill`), never at submission. So a position closed by the ■ route leaves
+its pending ► live; executing it places a second SELL → an orphan exit fill →
+`InvalidStateTransitionError` (logged ERROR). Observed for TER on 2026-06-16.
+
+### Design — three layered guards
+
+1. **Clear the stale pending exit (front).** `PendingSignalStore.dismiss_for(
+   strategy_id, symbol, action)` removes every matching signal. `AppService`
+   subscribes to `CycleClosed` (fires for every close route, carries
+   `snapshot.strategy_id`); the handler marshals `(strategy_id, symbol)` to the
+   GUI thread via `_clear_pending_exits_requested` and calls `dismiss_for(..,
+   Action.EXIT)`. The ► disappears the moment the position closes.
+
+2. **Reject a stale execute (gate).** `execute_signal` drops an `EXIT` signal with
+   a WARNING and submits nothing when no cycle for `(strategy, symbol)` is strictly
+   `OPEN`. The check is `OPEN`-only — a `CLOSING` cycle already has an exit in
+   flight. This does not affect `force_exit_position`, which must still run on a
+   `CLOSING` cycle for the tick auto-exit path (`_check_exit_triggers` pre-moves the
+   cycle to `CLOSING` before submitting).
+
+3. **Soak an orphan fill (back stop).** `on_exit_fill` logs a `[Orders]` WARNING
+   and returns `None` when a fill matches neither a known `exit_order_id` nor an
+   open cycle, instead of raising `InvalidStateTransitionError`. Genuine bad-state
+   transitions inside `_close_cycle` still raise.
+
+### Threading
+
+`CycleClosed` is published on the cycle/engine thread. Clearing pending signals
+touches Qt signals, so it is marshalled to the GUI thread with a queued
+`pyqtSignal(str, str)`, mirroring the ISS-EXE-0009 candle-arming marshal.

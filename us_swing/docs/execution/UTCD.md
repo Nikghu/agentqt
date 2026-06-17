@@ -1,12 +1,13 @@
 ﻿# Unit Test Case Document â€” Execution & Risk Management (EXE)
 
 **Document ID:** UTCD-EXE
-**Version:** 1.12.0
-**Traces To:** MD-EXE v1.12.0
+**Version:** 1.14.0
+**Traces To:** MD-EXE v1.13.0
 **Status:** Draft
-**Last Updated:** 2026-06-12
+**Last Updated:** 2026-06-17
 **Project:** US Swing Trading System
 
+> v1.13.0: UT-EXE-006.013.M01.T01–T04 (4 tests) + UT-EXE-011.001.M03.T10–T13 (4 tests) added (ISS-EXE-0009) — cycle-open candle-feed arming; ATR/indicator NaN guard raises `EvaluatorError` instead of silently reading false.
 > v1.12.0: UT-EXE-016.007.M01.T01/.T02 added (2 tests, ISS-EXE-0008) — same-day re-entry re-arms an EXITED ledger row back to ENTERED.
 > v1.11.0: UT-EXE-017.015–.021 added (10 tests) — `margin_available` + reservation ledger, router margin clamp/gate/release, paper open-position-value, AppService margin.
 > v1.9.0: UT-EXE-017.* added (22 tests) — capital-max sizing, advisory risk split, capital-insufficient drop, rex auto-reset, rex display fix, RiskConfig migration, effective-capital + daily-loss aggregation (FO-EXE-017).
@@ -158,6 +159,17 @@
 | UT-EXE-006.001.M01.T17 | MD-EXE-006.001.M01 | Positive | `load_stored_frames` reads stored daily/weekly closed bars directly without aggregation (SRD-EXE-006.012) | candles.db with 60 `price_1d` and 10 `price_1w` rows for SYM; empty `price_1m` | dict contains non-empty `'1d'` (60 bars) and `'1w'` (10 bars) frames with columns datetime/open/high/low/close/volume | Pass |
 | UT-EXE-006.001.M01.T18 | MD-EXE-006.001.M01 | Positive | `load_execution_frames` merges stored 1d/1w alongside aggregated 3m/15m (SRD-EXE-006.012) | candles.db with 900 `price_1m` bars plus 60 `price_1d` and 10 `price_1w` rows for SYM | dict keys include `'3m'`, `'15m'`, `'1d'`, `'1w'`; 1d/1w frames carry the stored bars unaggregated | Pass |
 | UT-EXE-006.001.M01.T19 | MD-EXE-006.001.M01 | Negative | Missing stored daily/weekly bars omit 1d/1w without error (SRD-EXE-006.012) | candles.db with 900 `price_1m` bars but no `price_1d`/`price_1w` rows for SYM | dict contains `'3m'`/`'15m'` only; `'1d'`/`'1w'` absent; no exception | Pass |
+
+---
+
+## Module: `gui/app_service.py` — Cycle-Open Candle Feed Arming (FO-EXE-006, ISS-EXE-0009)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-006.013.M01.T01 | MD-EXE-006.013.M01 | Positive | Opening a cycle for an off-screen symbol arms both candle feeds | `_filtered_symbols=["AAA"]`; cycle opens for `"ZZZ"` → `_on_cycle_symbols_changed({"ZZZ"})` (with `_arm_candle_feeds` invoked) | `"ZZZ"` added to `_filtered_symbols`; `_start_intraday_loader` called with `["ZZZ"]`; `LiveBarWorker.set_symbols` called with a set containing `"ZZZ"` | Pass |
+| UT-EXE-006.013.M01.T02 | MD-EXE-006.013.M01 | Negative | A just-opened symbol already covered is a no-op | `_filtered_symbols=["ZZZ"]`; cycle opens for `"ZZZ"` | `uncovered` empty → `_arm_candle_feeds_requested` not emitted; `_start_intraday_loader` not called; `set_symbols` not re-called for arming | Pass |
+| UT-EXE-006.013.M01.T03 | MD-EXE-006.013.M01 | Edge | No live bar worker running → download still armed, no crash | `_live_bar_worker=None`; cycle opens for off-screen `"ZZZ"` | `_start_intraday_loader(["ZZZ"])` called; `set_symbols` skipped; no exception | Pass |
+| UT-EXE-006.013.M01.T04 | MD-EXE-006.013.M01 | Positive | Arming is marshalled off the TradeCycle thread | `_on_cycle_symbols_changed({"ZZZ"})` invoked from a non-GUI thread | `_arm_candle_feeds_requested` emitted exactly once with `["ZZZ"]`; `_sync_tick_subscriptions` still called (tick feed unchanged) | Pass |
 
 ---
 
@@ -459,6 +471,10 @@
 | UT-EXE-011.001.M03.T07 | MD-EXE-011.001.M03 | Negative | Arity mismatch raises `EvaluatorError` | `"RSI(14)"` (RSI requires 3 args per catalogue) | `EvaluatorError` mentioning arity | Pass |
 | UT-EXE-011.001.M03.T08 | MD-EXE-011.001.M03 | Positive | `FUNCTION_MAP` contains all 14 indicator names from the FO-GUI-013 catalogue | Inspect map keys | `set(FUNCTION_MAP.keys()) == FO_GUI_013_CATALOGUE` | Pass |
 | UT-EXE-011.001.M03.T09 | MD-EXE-011.001.M03 | Edge | Parentheses correctly override AND/OR precedence | `"(A OR B) AND C"` | Top-level AND with left=OR-node | Pass |
+| UT-EXE-011.001.M03.T10 | MD-EXE-011.001.M03 | Negative | `SUPERTREND` on fewer bars than its ATR period raises `EvaluatorError`, not a NaN value (ISS-EXE-0009) | candles where `'3m'` has 5 bars; `"close('3m') < SUPERTREND('Stock',10,3,0,'3m')"` | `evaluate()` raises `EvaluatorError` mentioning insufficient bars / NaN — never returns `False` | Pass |
+| UT-EXE-011.001.M03.T11 | MD-EXE-011.001.M03 | Negative | A NaN indicator result is surfaced, not silently compared false | candles too short for `RSI(14)`; `"RSI('Stock',14,'3m') < 30"` | `evaluate()` raises `EvaluatorError` (NaN guard at FUNC choke point); does not return `False` | Pass |
+| UT-EXE-011.001.M03.T12 | MD-EXE-011.001.M03 | Positive | A finite indicator result passes the guard unchanged | candles with ≥ 30 bars; `"RSI('Stock',14,'3m') < 30"` where RSI≈27 | `evaluate()` returns `True`; no `EvaluatorError` raised | Pass |
+| UT-EXE-011.001.M03.T13 | MD-EXE-011.001.M03 | Edge | Guard is generic — a short `EMA` also raises rather than returning NaN | candles with 3 bars; `"close('3m') > EMA('Stock',50,'3m')"` | `evaluate()` raises `EvaluatorError`; no silent `False` | Pass |
 
 ---
 
@@ -515,6 +531,19 @@
 
 ---
 
+## Module: `pending_signal_store.py` & `app_service.py` — duplicate-exit guards (FO-EXE-011, ISS-EXE-0010)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-011.024.M01.T01 | MD-EXE-011.024.M01 | Positive | `dismiss_for` removes the matching EXIT signal and emits dismissed | Add EXIT(SUPERTREND, PRU); call `dismiss_for("SUPERTREND","PRU",EXIT)` | Returns its id; store empty; `pending_signal_dismissed` emitted | Pass |
+| UT-EXE-011.024.M01.T02 | MD-EXE-011.024.M01 | Negative | `dismiss_for` ignores other symbol/strategy/action | Add ENTRY(PRU), EXIT(TER), EXIT(OTHER,PRU); call `dismiss_for("SUPERTREND","PRU",EXIT)` | Returns `[]`; all 3 signals remain | Pass |
+| UT-EXE-011.024.M01.T03 | MD-EXE-011.024.M01 | Positive | A closed cycle clears matching pending exits | Call `_clear_pending_exits("SUPERTREND","PRU")` | `dismiss_for("SUPERTREND","PRU",EXIT)` invoked | Pass |
+| UT-EXE-011.024.M01.T04 | MD-EXE-011.024.M01 | Positive | `CycleClosed` marshals (strategy, symbol) to the GUI-thread clear signal | Publish `CycleClosed(symbol=PRU, snapshot.strategy_id=SUPERTREND)` | `_clear_pending_exits_requested` emits `("SUPERTREND","PRU")` | Pass |
+| UT-EXE-011.025.M01.T01 | MD-EXE-011.024.M01 | Negative | Executing an exit with no OPEN cycle drops it, no submit | `execute_signal(EXIT PRU)` with `open_cycles()==[]` | Returns `-1`; signal dismissed; submitter not called | Pass |
+| UT-EXE-011.025.M01.T02 | MD-EXE-011.024.M01 | Positive | An exit with a matching OPEN cycle submits normally | `execute_signal(EXIT PRU)` with an OPEN PRU cycle | Returns the order id; submitter called once | Pass |
+
+---
+
 ## Module: `execution/trade_cycle/_schema.py` & `_dto.py` (FO-EXE-012)
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
@@ -565,6 +594,7 @@
 | UT-EXE-012.002.M02.T16 | MD-EXE-012.002.M02 | Positive | `abort_entry_order` aborts a partial-filled `OPENING` cycle on broker reject | Open cycle as `PARTIAL_FILLED` (`OPENING`); call `abort_entry_order("ord-001", "broker_reject")` | state="ABORTED"; one `CycleAborted` with matching cycle_id and reason | Pass |
 | UT-EXE-012.002.M02.T17 | MD-EXE-012.002.M02 | Negative | `abort_entry_order` is a no-op when no cycle was opened | Call `abort_entry_order("never-filled", "broker_reject")` with no matching cycle | Returns `None`; zero `CycleAborted` events | Pass |
 | UT-EXE-012.002.M02.T18 | MD-EXE-012.002.M02 | Negative | Realized PnL uses held `entry_qty`, not a divergent sell-fill `exit_qty` (SRD-EXE-012.007, ISS-EXE-0005) | Open cycle (`entry_price=182.5, entry_qty=25`); `close_cycle_by_id(exit_price=187.8, exit_qty=1)` | `realized_pnl_usd == 132.5` (25 shares), not `5.3` (1 share); state="CLOSED" | Pass |
+| UT-EXE-012.002.M02.T19 | MD-EXE-012.002.M02 | Negative | An exit fill matching no open cycle returns `None` and does not raise (SRD-EXE-012.014, ISS-EXE-0010) | No open TER cycle; `on_exit_fill(symbol=TER, exit_order_id="orphan-1")` | Returns `None`; no `CycleClosed` published; no `InvalidStateTransitionError` | Pass |
 | IT-EXE-010.002 | integration | Positive | History survives eviction | After IT-EXE-009.001 completes | `query.history("B", days=7)` returns at least one row with `lifecycle_state='EVICTED'`; `SELECT * FROM price_1m WHERE symbol='B'` is empty | Pass |
 
 ---

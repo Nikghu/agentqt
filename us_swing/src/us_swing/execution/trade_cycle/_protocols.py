@@ -83,7 +83,7 @@ class TradeCycleCommand(Protocol):
         exit_time:     str,
         exit_reason:   str,
         order_state:   ExecutionEnums.SellOrderState = ExecutionEnums.SellOrderState.FILLED,
-    ) -> CycleSnapshot: ...
+    ) -> CycleSnapshot | None: ...
 
     def abort_entry_order(
         self, entry_order_id: str, reason: str
