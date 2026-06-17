@@ -4,6 +4,7 @@ Parent SRD: SRD-EXE-011.006
 """
 from __future__ import annotations
 
+import math
 import re
 from collections.abc import Callable
 from typing import Any, ClassVar, cast
@@ -369,7 +370,16 @@ class ConditionEvaluator:
             if fn is None:
                 raise EvaluatorError(f"Unknown indicator {node['name']!r}")
             resolved_args = [self._eval(a, candles, symbol) for a in node["args"]]
-            return fn(resolved_args, candles, symbol)
+            result = fn(resolved_args, candles, symbol)
+            # An indicator that lacks enough bars returns NaN (e.g. talib.ATR
+            # over a short series). Surface it as un-evaluable rather than let a
+            # NaN comparison silently read False and hide a missed exit
+            # (ISS-EXE-0009, SRD-EXE-011.023).
+            if isinstance(result, float) and math.isnan(result):
+                raise EvaluatorError(
+                    f"{node['name']}: insufficient bars to compute (NaN)"
+                )
+            return result
         if kind == "BIN_OP":
             op = node["op"]
             left = self._eval(node["left"], candles, symbol)

@@ -119,3 +119,45 @@ def test_parse_grouped_or_and_produces_top_level_and() -> None:
     assert ast["type"] == "BIN_OP"
     assert ast["op"] == "AND"
     assert ast["left"]["op"] == "OR"
+
+
+def _short_candles(n: int = 5) -> dict[str, pd.DataFrame]:
+    closes = np.linspace(100.0, 98.0, n)
+    df = pd.DataFrame({
+        "open": closes,
+        "high": closes + 0.5,
+        "low": closes - 0.5,
+        "close": closes,
+        "volume": np.full(n, 1_000_000),
+    })
+    return {"3m": df}
+
+
+def test_supertrend_insufficient_bars_raises() -> None:
+    """UT-EXE-011.001.M03.T10: short SUPERTREND raises EvaluatorError, not NaN→False."""
+    evaluator = ConditionEvaluator()
+    expr = "Price('Stock', 'current', 'close', '3m') < SUPERTREND('Stock', 10, 3, 0, '3m')"
+    with pytest.raises(EvaluatorError):
+        evaluator.evaluate(expr, _short_candles(5), "AAA")
+
+
+def test_short_rsi_surfaced_not_false() -> None:
+    """UT-EXE-011.001.M03.T11: a NaN RSI surfaces as EvaluatorError, not a silent False."""
+    evaluator = ConditionEvaluator()
+    with pytest.raises(EvaluatorError):
+        evaluator.evaluate("RSI('Stock', 14, '3m') < 30", _short_candles(5), "AAA")
+
+
+def test_finite_indicator_passes_guard() -> None:
+    """UT-EXE-011.001.M03.T12: a finite indicator result passes the guard unchanged."""
+    evaluator = ConditionEvaluator()
+    assert evaluator.evaluate(
+        "RSI('Stock', 14, '3m') < 30", _declining_candles(50), "AAA"
+    ) is True
+
+
+def test_short_ema_raises_generic_guard() -> None:
+    """UT-EXE-011.001.M03.T13: the guard is generic — a short EMA raises rather than NaN."""
+    evaluator = ConditionEvaluator()
+    with pytest.raises(EvaluatorError):
+        evaluator.evaluate("EMA('Stock', 50, '3m') > 0", _short_candles(3), "AAA")

@@ -331,13 +331,25 @@ class _ActiveCyclesModel(QAbstractTableModel):
 
     # ── Internal helpers ─────────────────────────────────────────────────
 
+    def _sort_rank(self, row: _Row) -> int:
+        if row.kind == "pending":
+            return 0
+        if row.state in _TERMINAL_STATES:
+            return 2
+        return 1
+
     def _insert_row(self, row: _Row) -> None:
         if row.key in self._by_key:
             return
-        n = len(self._rows)
-        self.beginInsertRows(QModelIndex(), n, n)
-        self._rows.append(row)
-        self._by_key[row.key] = n
+        rank = self._sort_rank(row)
+        pos = len(self._rows)
+        for i, existing in enumerate(self._rows):
+            if self._sort_rank(existing) > rank:
+                pos = i
+                break
+        self.beginInsertRows(QModelIndex(), pos, pos)
+        self._rows.insert(pos, row)
+        self._rebuild_index()
         self.endInsertRows()
 
     def _remove_row(self, key: str) -> None:

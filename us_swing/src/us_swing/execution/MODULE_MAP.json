@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-12T17:31:13",
+  "generated": "2026-06-17T06:42:52",
   "subfolder": "execution",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\execution",
   "tool_code": "EXE",
@@ -722,20 +722,27 @@
               "line_end": 51
             },
             {
+              "name": "dismiss_for",
+              "signature": "def dismiss_for(\r\n        self, strategy_id: str, symbol: str, action: Action\r\n    ) -> list[str]",
+              "docstring": "Dismiss every pending signal matching ``(strategy_id, symbol, action)``.",
+              "line_start": 53,
+              "line_end": 82
+            },
+            {
               "name": "list",
               "signature": "def list(self) -> tuple[TradeSignal, ...]",
-              "line_start": 53,
-              "line_end": 55
+              "line_start": 84,
+              "line_end": 86
             },
             {
               "name": "__len__",
               "signature": "def __len__(self) -> int",
-              "line_start": 57,
-              "line_end": 59
+              "line_start": 88,
+              "line_end": 90
             }
           ],
           "line_start": 14,
-          "line_end": 59
+          "line_end": 90
         }
       ]
     },
@@ -1194,8 +1201,8 @@
         {
           "name": "EvaluatorError",
           "docstring": "Raised on tokenizer / parser / arity / evaluation failures.",
-          "line_start": 16,
-          "line_end": 17
+          "line_start": 17,
+          "line_end": 18
         },
         {
           "name": "_Parser",
@@ -1203,60 +1210,60 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, tokens: list[tuple[str, Any]]) -> None",
-              "line_start": 66,
-              "line_end": 68
+              "line_start": 67,
+              "line_end": 69
             },
             {
               "name": "parse",
               "signature": "def parse(self) -> dict[str, Any]",
-              "line_start": 70,
-              "line_end": 74
+              "line_start": 71,
+              "line_end": 75
             },
             {
               "name": "_current",
               "signature": "def _current(self) -> tuple[str, Any] | None",
-              "line_start": 76,
-              "line_end": 77
+              "line_start": 77,
+              "line_end": 78
             },
             {
               "name": "_eat",
               "signature": "def _eat(self, kind: str | None = None) -> tuple[str, Any]",
-              "line_start": 79,
-              "line_end": 86
+              "line_start": 80,
+              "line_end": 87
             },
             {
               "name": "_or_expr",
               "signature": "def _or_expr(self) -> dict[str, Any]",
-              "line_start": 88,
-              "line_end": 94
+              "line_start": 89,
+              "line_end": 95
             },
             {
               "name": "_and_expr",
               "signature": "def _and_expr(self) -> dict[str, Any]",
-              "line_start": 96,
-              "line_end": 102
+              "line_start": 97,
+              "line_end": 103
             },
             {
               "name": "_comparison",
               "signature": "def _comparison(self) -> dict[str, Any]",
-              "line_start": 104,
-              "line_end": 111
+              "line_start": 105,
+              "line_end": 112
             },
             {
               "name": "_term",
               "signature": "def _term(self) -> dict[str, Any]",
-              "line_start": 113,
-              "line_end": 138
+              "line_start": 114,
+              "line_end": 139
             },
             {
               "name": "_arg_list",
               "signature": "def _arg_list(self) -> list[dict[str, Any]]",
-              "line_start": 140,
-              "line_end": 148
+              "line_start": 141,
+              "line_end": 149
             }
           ],
-          "line_start": 65,
-          "line_end": 148
+          "line_start": 66,
+          "line_end": 149
         },
         {
           "name": "ConditionEvaluator",
@@ -1268,14 +1275,14 @@
             {
               "name": "evaluate",
               "signature": "def evaluate(\r\n        self,\r\n        expr: str,\r\n        candles: dict[str, pd.DataFrame],\r\n        symbol: str,\r\n    ) -> bool",
-              "line_start": 344,
-              "line_end": 351
+              "line_start": 345,
+              "line_end": 352
             },
             {
               "name": "_eval",
               "signature": "def _eval(\r\n        self,\r\n        node: dict[str, Any],\r\n        candles: dict[str, pd.DataFrame],\r\n        symbol: str,\r\n    ) -> float | bool",
-              "line_start": 355,
-              "line_end": 380
+              "line_start": 356,
+              "line_end": 390
             },
             {
               "name": "_apply_op",
@@ -1283,117 +1290,117 @@
               "decorators": [
                 "@staticmethod"
               ],
-              "line_start": 383,
-              "line_end": 406
+              "line_start": 393,
+              "line_end": 416
             }
           ],
-          "line_start": 328,
-          "line_end": 406
+          "line_start": 329,
+          "line_end": 416
         }
       ],
       "top_level_functions": [
         {
           "name": "_tokenize",
           "signature": "def _tokenize(expr: str) -> list[tuple[str, Any]]",
-          "line_start": 39,
-          "line_end": 60
+          "line_start": 40,
+          "line_end": 61
         },
         {
           "name": "_require_args",
           "signature": "def _require_args(name: str, args: list[Any], expected: int) -> None",
-          "line_start": 153,
-          "line_end": 157
+          "line_start": 154,
+          "line_end": 158
         },
         {
           "name": "_frame_for_tf",
           "signature": "def _frame_for_tf(candles: dict[str, pd.DataFrame], tf: str) -> pd.DataFrame",
-          "line_start": 160,
-          "line_end": 164
+          "line_start": 161,
+          "line_end": 165
         },
         {
           "name": "_last",
           "signature": "def _last(series: pd.Series) -> float",
-          "line_start": 167,
-          "line_end": 171
+          "line_start": 168,
+          "line_end": 172
         },
         {
           "name": "_to_f64",
           "signature": "def _to_f64(series: pd.Series) -> np.ndarray",
-          "line_start": 174,
-          "line_end": 175
+          "line_start": 175,
+          "line_end": 176
         },
         {
           "name": "_last_arr",
           "signature": "def _last_arr(arr: np.ndarray) -> float",
-          "line_start": 178,
-          "line_end": 182
+          "line_start": 179,
+          "line_end": 183
         },
         {
           "name": "_fn_number",
           "signature": "def _fn_number(args: list[Any], _c: dict[str, pd.DataFrame], _s: str) -> float",
-          "line_start": 187,
-          "line_end": 189
+          "line_start": 188,
+          "line_end": 190
         },
         {
           "name": "_fn_pnl",
           "signature": "def _fn_pnl(args: list[Any], _c: dict[str, pd.DataFrame], _s: str) -> float",
-          "line_start": 192,
-          "line_end": 194
+          "line_start": 193,
+          "line_end": 195
         },
         {
           "name": "_fn_price",
           "signature": "def _fn_price(args: list[Any], c: dict[str, pd.DataFrame], _s: str) -> float",
-          "line_start": 197,
-          "line_end": 204
+          "line_start": 198,
+          "line_end": 205
         },
         {
           "name": "_fn_vwap",
           "signature": "def _fn_vwap(args: list[Any], c: dict[str, pd.DataFrame], _s: str) -> float",
-          "line_start": 207,
-          "line_end": 215
+          "line_start": 208,
+          "line_end": 216
         },
         {
           "name": "_fn_rsi",
           "signature": "def _fn_rsi(args: list[Any], c: dict[str, pd.DataFrame], _s: str) -> float",
-          "line_start": 218,
-          "line_end": 222
+          "line_start": 219,
+          "line_end": 223
         },
         {
           "name": "_fn_adx",
           "signature": "def _fn_adx(args: list[Any], c: dict[str, pd.DataFrame], _s: str) -> float",
-          "line_start": 225,
-          "line_end": 236
+          "line_start": 226,
+          "line_end": 237
         },
         {
           "name": "_fn_ema",
           "signature": "def _fn_ema(args: list[Any], c: dict[str, pd.DataFrame], _s: str) -> float",
-          "line_start": 239,
-          "line_end": 243
+          "line_start": 240,
+          "line_end": 244
         },
         {
           "name": "_supertrend_value",
           "signature": "def _supertrend_value(df: pd.DataFrame, length: int, factor: float) -> float",
           "docstring": "Supertrend line value (price) for the last bar.",
-          "line_start": 246,
-          "line_end": 284
+          "line_start": 247,
+          "line_end": 285
         },
         {
           "name": "_fn_supertrend",
           "signature": "def _fn_supertrend(args: list[Any], c: dict[str, pd.DataFrame], _s: str) -> float",
-          "line_start": 287,
-          "line_end": 291
+          "line_start": 288,
+          "line_end": 292
         },
         {
           "name": "_fn_swing",
           "signature": "def _fn_swing(args: list[Any], c: dict[str, pd.DataFrame], _s: str) -> float",
-          "line_start": 294,
-          "line_end": 309
+          "line_start": 295,
+          "line_end": 310
         },
         {
           "name": "_fn_macd",
           "signature": "def _fn_macd(args: list[Any], c: dict[str, pd.DataFrame], _s: str) -> float",
-          "line_start": 312,
-          "line_end": 322
+          "line_start": 313,
+          "line_end": 323
         }
       ],
       "constants": [
@@ -1549,7 +1556,7 @@
             },
             {
               "name": "on_exit_fill",
-              "signature": "def on_exit_fill(\r\n        self,\r\n        *,\r\n        exit_order_id: str,\r\n        symbol:        str,\r\n        strategy_id:   str,\r\n        exit_price:    float,\r\n        exit_qty:      int,\r\n        exit_time:     str,\r\n        exit_reason:   str,\r\n        order_state:   ExecutionEnums.SellOrderState = ExecutionEnums.SellOrderState.FILLED,\r\n    ) -> CycleSnapshot",
+              "signature": "def on_exit_fill(\r\n        self,\r\n        *,\r\n        exit_order_id: str,\r\n        symbol:        str,\r\n        strategy_id:   str,\r\n        exit_price:    float,\r\n        exit_qty:      int,\r\n        exit_time:     str,\r\n        exit_reason:   str,\r\n        order_state:   ExecutionEnums.SellOrderState = ExecutionEnums.SellOrderState.FILLED,\r\n    ) -> CycleSnapshot | None",
               "line_start": 75,
               "line_end": 86
             },
@@ -2182,116 +2189,116 @@
             },
             {
               "name": "on_exit_fill",
-              "signature": "def on_exit_fill(\r\n        self,\r\n        *,\r\n        exit_order_id: str,\r\n        symbol:        str,\r\n        strategy_id:   str,\r\n        exit_price:    float,\r\n        exit_qty:      int,\r\n        exit_time:     str,\r\n        exit_reason:   str,\r\n        order_state:   ExecutionEnums.SellOrderState = ExecutionEnums.SellOrderState.FILLED,\r\n    ) -> CycleSnapshot",
+              "signature": "def on_exit_fill(\r\n        self,\r\n        *,\r\n        exit_order_id: str,\r\n        symbol:        str,\r\n        strategy_id:   str,\r\n        exit_price:    float,\r\n        exit_qty:      int,\r\n        exit_time:     str,\r\n        exit_reason:   str,\r\n        order_state:   ExecutionEnums.SellOrderState = ExecutionEnums.SellOrderState.FILLED,\r\n    ) -> CycleSnapshot | None",
               "docstring": "Advance a cycle on the broker fill of an exit order.",
               "line_start": 258,
-              "line_end": 319
+              "line_end": 325
             },
             {
               "name": "close_cycle_by_id",
               "signature": "def close_cycle_by_id(\r\n        self,\r\n        cycle_id: int,\r\n        *,\r\n        exit_order_id: str,\r\n        exit_price:    float,\r\n        exit_qty:      int,\r\n        exit_time:     str,\r\n        exit_reason:   str,\r\n        order_state:   ExecutionEnums.SellOrderState = ExecutionEnums.SellOrderState.FILLED,\r\n    ) -> CycleSnapshot",
               "docstring": "Advance a specific cycle by id (preferred path for ExecutionEngine).",
-              "line_start": 321,
-              "line_end": 351
+              "line_start": 327,
+              "line_end": 357
             },
             {
               "name": "_close_cycle",
               "signature": "def _close_cycle(\r\n        self,\r\n        *,\r\n        cycle_id:      int,\r\n        exit_order_id: str,\r\n        exit_price:    float,\r\n        exit_qty:      int,\r\n        exit_time:     str,\r\n        exit_reason:   str,\r\n        order_state:   ExecutionEnums.SellOrderState,\r\n    ) -> CycleSnapshot",
-              "line_start": 353,
-              "line_end": 424
+              "line_start": 359,
+              "line_end": 430
             },
             {
               "name": "abort_entry_order",
               "signature": "def abort_entry_order(self, entry_order_id: str, reason: str) -> CycleSnapshot | None",
               "docstring": "Abort the OPENING cycle owning a rejected entry order.",
-              "line_start": 426,
-              "line_end": 438
+              "line_start": 432,
+              "line_end": 444
             },
             {
               "name": "on_entry_failed",
               "signature": "def on_entry_failed(self, cycle_id: int, reason: str) -> CycleSnapshot",
               "docstring": "Abort an OPENING cycle when the entry order is rejected.",
-              "line_start": 440,
-              "line_end": 451
+              "line_start": 446,
+              "line_end": 457
             },
             {
               "name": "update_risk",
               "signature": "def update_risk(\r\n        self,\r\n        cycle_id: int,\r\n        *,\r\n        hard_sl:         float | None = None,\r\n        target:          float | None = None,\r\n        trailing_offset: float | None = None,\r\n        trailing_mode:   str | None   = None,\r\n    ) -> CycleSnapshot",
               "docstring": "Per-cycle risk-snapshot mutation.",
-              "line_start": 453,
-              "line_end": 507
+              "line_start": 459,
+              "line_end": 513
             },
             {
               "name": "reload",
               "signature": "def reload(self) -> None",
               "docstring": "Re-attach tick accumulators for every non-terminal row on startup.",
-              "line_start": 511,
-              "line_end": 525
+              "line_start": 517,
+              "line_end": 531
             },
             {
               "name": "on_tick",
               "signature": "def on_tick(self, symbol: str, price: float) -> None",
               "docstring": "Thread-safe entry point \u2014 called from the LiveTickWorker thread.",
-              "line_start": 529,
-              "line_end": 539
+              "line_start": 535,
+              "line_end": 545
             },
             {
               "name": "_handle_tick",
               "signature": "def _handle_tick(self, symbol: str, price: float) -> None",
-              "line_start": 541,
-              "line_end": 560
+              "line_start": 547,
+              "line_end": 566
             },
             {
               "name": "_schedule_flush",
               "signature": "def _schedule_flush(self, acc: _TickAccumulator) -> None",
-              "line_start": 562,
-              "line_end": 563
+              "line_start": 568,
+              "line_end": 569
             },
             {
               "name": "_flush",
               "signature": "def _flush(self, acc: _TickAccumulator) -> None",
-              "line_start": 565,
-              "line_end": 592
+              "line_start": 571,
+              "line_end": 598
             },
             {
               "name": "_drain_all",
               "signature": "def _drain_all(self) -> None",
-              "line_start": 594,
-              "line_end": 601
+              "line_start": 600,
+              "line_end": 607
             },
             {
               "name": "_compute_live",
               "signature": "def _compute_live(\r\n        self,\r\n        snap: CycleSnapshot,\r\n        price: float,\r\n        highest: float,\r\n    ) -> dict[str, Any]",
-              "line_start": 605,
-              "line_end": 640
+              "line_start": 611,
+              "line_end": 646
             },
             {
               "name": "_check_exit_triggers",
               "signature": "def _check_exit_triggers(self, snap: CycleSnapshot, price: float) -> None",
-              "line_start": 644,
-              "line_end": 677
+              "line_start": 650,
+              "line_end": 683
             },
             {
               "name": "_attach_accumulator",
               "signature": "def _attach_accumulator(self, snap: CycleSnapshot) -> None",
-              "line_start": 681,
-              "line_end": 692
+              "line_start": 687,
+              "line_end": 698
             },
             {
               "name": "_detach_accumulator",
               "signature": "def _detach_accumulator(self, cycle_id: int) -> None",
-              "line_start": 694,
-              "line_end": 707
+              "line_start": 700,
+              "line_end": 713
             },
             {
               "name": "_refresh_active_symbols_locked",
               "signature": "def _refresh_active_symbols_locked(self) -> None",
-              "line_start": 709,
-              "line_end": 714
+              "line_start": 715,
+              "line_end": 720
             }
           ],
           "line_start": 66,
-          "line_end": 714
+          "line_end": 720
         }
       ],
       "top_level_functions": [
@@ -2304,8 +2311,8 @@
         {
           "name": "_validate_state_set",
           "signature": "def _validate_state_set(states: Iterable[str]) -> None",
-          "line_start": 717,
-          "line_end": 719
+          "line_start": 723,
+          "line_end": 725
         }
       ],
       "constants": [

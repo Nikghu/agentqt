@@ -266,7 +266,7 @@ class TradeCycleService:
         exit_time:     str,
         exit_reason:   str,
         order_state:   ExecutionEnums.SellOrderState = ExecutionEnums.SellOrderState.FILLED,
-    ) -> CycleSnapshot:
+    ) -> CycleSnapshot | None:
         """Advance a cycle on the broker fill of an exit order.
 
         SRD-EXE-014.007 (sell side) — a ``PARTIAL_FILLED`` sell holds the
@@ -279,6 +279,11 @@ class TradeCycleService:
         unique among open cycles (enforced by ``DuplicateOpenCycleError``) — so
         a fill always closes the position it was raised for, never the oldest
         open cycle that happens to lack an exit order id (ISS-EXE-0007).
+
+        A fill that matches no open cycle (a duplicate or orphan exit, e.g. a
+        second exit order for a position already closed by another route) is
+        logged and ignored, returning ``None`` rather than raising
+        (ISS-EXE-0010, SRD-EXE-012.014).
         """
         is_filled = order_state == ExecutionEnums.SellOrderState.FILLED
         existing  = self._repo.find_by_exit_order(exit_order_id)
@@ -304,10 +309,11 @@ class TradeCycleService:
             None,
         )
         if target is None:
-            raise InvalidStateTransitionError(
-                f"no open {strategy_id}/{symbol} cycle accepts "
-                f"exit_order_id={exit_order_id!r}"
+            log.warning(
+                "[Orders] Ignoring a duplicate exit fill for %s — the position is already closed",
+                symbol,
             )
+            return None
         return self._close_cycle(
             cycle_id      = target.cycle_id,
             exit_order_id = exit_order_id,
