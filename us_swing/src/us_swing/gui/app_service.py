@@ -634,6 +634,33 @@ class _CandleDbStatusWorker(QThread):
             self.failed.emit(str(exc))
 
 
+# ── Background worker: intraday chart read ───────────────────────────────────
+
+class _IntradayCandleWorker(QThread):
+    """Reads intraday candles off the GUI thread for the chart pane.
+
+    Wraps :meth:`AppService.get_intraday_candles_for_symbol` so the heavy
+    SQLite read + Python aggregation never blocks the Qt event loop. Emits the
+    requesting ``symbol`` and ``timeframe`` back with the result so the chart
+    pane can drop a result that arrived after the user switched symbols.
+    """
+
+    done = pyqtSignal(str, str, object)   # symbol, timeframe, list[dict]
+
+    def __init__(self, svc: AppService, symbol: str, timeframe: str) -> None:
+        super().__init__()
+        self._svc = svc
+        self._symbol = symbol
+        self._timeframe = timeframe
+
+    def run(self) -> None:
+        try:
+            candles = self._svc.get_intraday_candles_for_symbol(self._symbol, self._timeframe)
+        except Exception:
+            candles = []
+        self.done.emit(self._symbol, self._timeframe, candles)
+
+
 # ── Background worker: download candles ──────────────────────────────────────
 
 class _CandleDownloadWorker(QThread):

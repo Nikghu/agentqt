@@ -45,7 +45,7 @@ from PyQt6.QtWidgets import (
 
 from us_swing.data.models import FilteredStockEntry
 from us_swing.gui.active_cycles_panel import ActiveCyclesPanel
-from us_swing.gui.app_service import AppService
+from us_swing.gui.app_service import AppService, _IntradayCandleWorker
 from us_swing.gui._types import TradeSignal
 from us_swing.gui.chart_panel import _build_html as _build_chart_html
 from us_swing.gui.pending_signals_table_model import (
@@ -721,6 +721,12 @@ class _IntradayChartPane(QWidget):
         self._svc = svc
         self._current_symbol = ""
 
+        # One in-flight candle read per timeframe; a request that arrives while
+        # a read is running is held in _pending and run when the current one
+        # finishes (latest request wins — older pending requests are dropped).
+        self._workers: dict[str, _IntradayCandleWorker | None] = {"3m": None, "15m": None}
+        self._pending: dict[str, tuple[str, str]] = {}   # tf -> (symbol, mode)
+
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
@@ -763,34 +769,74 @@ class _IntradayChartPane(QWidget):
         self._current_symbol = symbol
         self._hdr.setText(f"{symbol}  —  Intraday")
         self._apply_hdr_style(active=True)
-        self._render("3m",  self._web_3m,  symbol)
-        self._render("15m", self._web_15m, symbol)
+        self._request_candles("3m",  symbol, "render")
+        self._request_candles("15m", symbol, "render")
 
     def _on_live_bar(self, symbol: str) -> None:
         """Push fresh candle data to the chart without reloading the page."""
         if symbol == self._current_symbol and self._current_symbol:
-            self._update_data("3m",  self._web_3m,  symbol)
-            self._update_data("15m", self._web_15m, symbol)
+            self._request_candles("3m",  symbol, "update")
+            self._request_candles("15m", symbol, "update")
 
     def _refresh_current(self) -> None:
         """Periodic fallback data refresh — preserves zoom via JS injection."""
         if self._current_symbol:
-            self._update_data("3m",  self._web_3m,  self._current_symbol)
-            self._update_data("15m", self._web_15m, self._current_symbol)
+            self._request_candles("3m",  self._current_symbol, "update")
+            self._request_candles("15m", self._current_symbol, "update")
 
-    def _render(self, tf: str, web: QWebEngineView, symbol: str) -> None:
+    def _request_candles(self, tf: str, symbol: str, mode: str) -> None:
+        """Dispatch an off-thread candle read so the GUI thread never blocks.
+
+        ``mode`` is ``"render"`` (full page load on symbol change) or
+        ``"update"`` (JS data injection on live bar / timer). While a read for
+        *tf* is already running the request is held in ``_pending`` and run
+        when that read finishes; a pending full render is never downgraded to
+        an update for the same symbol.
+        """
+        if self._workers.get(tf) is not None:
+            prev = self._pending.get(tf)
+            if prev is not None and prev[0] == symbol and prev[1] == "render" and mode == "update":
+                return
+            self._pending[tf] = (symbol, mode)
+            return
+        self._start_worker(tf, symbol, mode)
+
+    def _start_worker(self, tf: str, symbol: str, mode: str) -> None:
+        worker = _IntradayCandleWorker(self._svc, symbol, tf)
+        worker.done.connect(
+            lambda s, t, candles, m=mode: self._on_candles_ready(s, t, candles, m)
+        )
+        worker.finished.connect(lambda t=tf: self._on_worker_finished(t))
+        self._workers[tf] = worker
+        worker.start()
+
+    def _on_worker_finished(self, tf: str) -> None:
+        self._workers[tf] = None
+        pending = self._pending.pop(tf, None)
+        if pending is not None:
+            symbol, mode = pending
+            self._start_worker(tf, symbol, mode)
+
+    def _on_candles_ready(self, symbol: str, tf: str, candles: list[dict], mode: str) -> None:
+        if symbol != self._current_symbol:
+            return   # user switched symbols while the read was in flight
+        web = self._web_3m if tf == "3m" else self._web_15m
+        if mode == "render":
+            self._render(tf, web, symbol, candles)
+        else:
+            self._update_data(tf, web, candles)
+
+    def _render(self, tf: str, web: QWebEngineView, symbol: str, candles: list[dict]) -> None:
         """Full page load — only called when the selected symbol changes."""
-        candles = self._svc.get_intraday_candles_for_symbol(symbol, tf)
         volume_data = self._to_volume_data(candles)
         tz = self._svc.get_system_config().market_timezone
         web.setHtml(_build_chart_html(candles, volume_data, symbol, tf, show_reset_menu=True, timezone=tz), QUrl("about:blank"))
 
-    def _update_data(self, tf: str, web: QWebEngineView, symbol: str) -> None:
+    def _update_data(self, tf: str, web: QWebEngineView, candles: list[dict]) -> None:
         """Inject updated candle data into the live chart page via JS."""
         page = web.page()
         if page is None:
             return
-        candles = self._svc.get_intraday_candles_for_symbol(symbol, tf)
         volume_data = self._to_volume_data(candles)
         candle_json = json.dumps(candles)
         volume_json = json.dumps(volume_data)
@@ -849,8 +895,8 @@ class _IntradayChartPane(QWidget):
         active = bool(self._current_symbol)
         self._apply_hdr_style(active=active)
         if active:
-            self._render("3m",  self._web_3m,  self._current_symbol)
-            self._render("15m", self._web_15m, self._current_symbol)
+            self._request_candles("3m",  self._current_symbol, "render")
+            self._request_candles("15m", self._current_symbol, "render")
         else:
             self._show_placeholder()
 
