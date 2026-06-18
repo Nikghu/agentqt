@@ -33,7 +33,7 @@ from urllib.request import Request, urlopen
 log = logging.getLogger("updater")
 
 _CONFIG_FILE = Path(sys.executable).parent / "updater_config.json"
-_LAST_CHECK_FILE = Path(sys.executable).parent / ".last_update_check"
+_LAST_CHECK_FILE = Path.home() / ".usswing" / ".last_update_check"
 _PUBLIC_KEY_FILE = Path(sys.executable).parent / "update_public.pem"
 
 # GitHub API base — kept as a constant so it is easy to audit
@@ -54,9 +54,10 @@ class UpdateInfo(NamedTuple):
 def check_update_available() -> UpdateInfo | None:
     """Return UpdateInfo if a newer version exists on the configured source, else None.
 
-    The check time is stamped only after the update source actually answers, so a
-    failed poll (rate limit, network, SSL) retries on the next launch instead of
-    silently suppressing checks for the whole interval.
+    The check time is stamped as soon as the interval is due, before polling, so a
+    failed poll (rate limit, network, SSL) does not re-poll on every launch — that
+    would burn through GitHub's hourly request cap and lock the updater into a 403
+    loop. A transient failure simply waits until the next interval.
     """
     cfg = _load_config()
     if not cfg.get("enabled", False):
@@ -64,13 +65,11 @@ def check_update_available() -> UpdateInfo | None:
     interval_secs = cfg.get("interval_hours", 24) * 3600
     if not _is_check_due(interval_secs):
         return None
+    _stamp_check_time()
     github_repo: str = cfg.get("github_repo", "").strip()
     manifest = _fetch_github_manifest(github_repo, cfg) if github_repo else _fetch_custom_manifest(cfg)
     if manifest is None:
-        # Source was unreachable — do not stamp, so the next launch retries instead
-        # of going silent for the full interval.
         return None
-    _stamp_check_time()
     remote_version: str = manifest.get("version", "")
     current_version: str = cfg.get("current_version", "0.0.0")
     if _ver(remote_version) <= _ver(current_version):
@@ -255,6 +254,7 @@ def _is_check_due(interval_secs: float) -> bool:
 
 def _stamp_check_time() -> None:
     try:
+        _LAST_CHECK_FILE.parent.mkdir(parents=True, exist_ok=True)
         _LAST_CHECK_FILE.write_text(str(time.time()))
     except OSError:
         pass
