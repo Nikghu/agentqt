@@ -687,7 +687,7 @@ class ActiveCyclesPanel(QWidget):
         editor.cancelled.connect(self._on_editor_cancelled)
         self._table.setSpan(editor_row, 0, 1, len(Col))
         self._table.setIndexWidget(self._model.index(editor_row, 0), editor)
-        self._table.setRowHeight(editor_row, 120)
+        self._table.setRowHeight(editor_row, 60)
         self._editor = editor
         self._expanded_cycle_id = cycle_id
 

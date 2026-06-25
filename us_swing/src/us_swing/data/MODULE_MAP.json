@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-17T15:03:30",
+  "generated": "2026-06-25T18:12:00",
   "subfolder": "data",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\data",
   "tool_code": "INF",
@@ -100,8 +100,8 @@
           "name": "get_exchange_status",
           "signature": "def get_exchange_status(now_et: datetime.datetime) -> str",
           "docstring": "Return the current US equity market session state.",
-          "line_start": 38,
-          "line_end": 58
+          "line_start": 39,
+          "line_end": 59
         }
       ],
       "constants": [

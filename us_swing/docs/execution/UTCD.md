@@ -595,6 +595,7 @@
 | UT-EXE-012.002.M02.T17 | MD-EXE-012.002.M02 | Negative | `abort_entry_order` is a no-op when no cycle was opened | Call `abort_entry_order("never-filled", "broker_reject")` with no matching cycle | Returns `None`; zero `CycleAborted` events | Pass |
 | UT-EXE-012.002.M02.T18 | MD-EXE-012.002.M02 | Negative | Realized PnL uses held `entry_qty`, not a divergent sell-fill `exit_qty` (SRD-EXE-012.007, ISS-EXE-0005) | Open cycle (`entry_price=182.5, entry_qty=25`); `close_cycle_by_id(exit_price=187.8, exit_qty=1)` | `realized_pnl_usd == 132.5` (25 shares), not `5.3` (1 share); state="CLOSED" | Pass |
 | UT-EXE-012.002.M02.T19 | MD-EXE-012.002.M02 | Negative | An exit fill matching no open cycle returns `None` and does not raise (SRD-EXE-012.014, ISS-EXE-0010) | No open TER cycle; `on_exit_fill(symbol=TER, exit_order_id="orphan-1")` | Returns `None`; no `CycleClosed` published; no `InvalidStateTransitionError` | Pass |
+| UT-EXE-012.002.M02.T20 | MD-EXE-012.002.M02 | Positive | `update_risk(trailing_mode="")` disables trailing — live calc keeps no trailing stop | Open cycle with `trailing_mode="$"`, offset 2.5; tick to 188 (trailing 185.5); `update_risk(trailing_mode="")`; tick to 190 | `trailing_stop_level is None` after the empty-mode update | Pass |
 | IT-EXE-010.002 | integration | Positive | History survives eviction | After IT-EXE-009.001 completes | `query.history("B", days=7)` returns at least one row with `lifecycle_state='EVICTED'`; `SELECT * FROM price_1m WHERE symbol='B'` is empty | Pass |
 
 ---

@@ -331,6 +331,26 @@ def test_update_risk_target_below_current_price_raises(svc: TradeCycleService) -
         svc.update_risk(snap.cycle_id, target=180.0)
 
 
+def test_update_risk_empty_mode_disables_trailing(
+    svc: TradeCycleService,
+) -> None:
+    """UT-EXE-012.002.M02.T20: update_risk(trailing_mode="") turns trailing off — live calc drops the trailing stop."""
+    snap = svc.on_entry_fill(**_entry_kwargs(
+        hard_stop_loss=179.0,
+        trailing_mode="$",
+        trailing_offset=2.5,
+        target_price=None,
+    ))
+    _tick_and_flush(svc, snap.cycle_id, "AAPL", 188.0)
+    assert svc.cycle(snap.cycle_id).trailing_stop_level == pytest.approx(185.5)  # type: ignore[union-attr]
+
+    updated = svc.update_risk(snap.cycle_id, trailing_mode="")
+    assert updated.trailing_mode == ""
+
+    _tick_and_flush(svc, snap.cycle_id, "AAPL", 190.0)
+    assert svc.cycle(snap.cycle_id).trailing_stop_level is None  # type: ignore[union-attr]
+
+
 def test_on_exit_fill_closes_cycle_and_publishes_cycle_closed(
     svc: TradeCycleService, bus: MagicMock
 ) -> None:

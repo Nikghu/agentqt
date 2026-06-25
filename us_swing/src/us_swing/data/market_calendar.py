@@ -28,6 +28,7 @@ NYSE_HOLIDAYS: frozenset[tuple[int, int]] = frozenset([
     (2,  16),  # Presidents' Day
     (4,  3),   # Good Friday
     (5,  25),  # Memorial Day
+    (6,  19),  # Juneteenth National Independence Day
     (7,  3),   # Independence Day (observed — Jul 4 is Saturday)
     (9,  7),   # Labor Day
     (11, 26),  # Thanksgiving Day

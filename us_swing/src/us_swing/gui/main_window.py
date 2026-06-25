@@ -869,6 +869,16 @@ class MainWindow(QMainWindow):
     # ── Lifecycle ──────────────────────────────────────────────────────────────
 
     def closeEvent(self, event: object) -> None:  # type: ignore[override]
+        from PyQt6.QtWidgets import QMessageBox
+        ret = QMessageBox.question(
+            self, "Close Terminal",
+            "Close Swing Trading Terminal?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if ret != QMessageBox.StandardButton.Yes:
+            event.ignore()  # type: ignore[attr-defined]
+            return
         if self._feed_retry_timer is not None:
             self._feed_retry_timer.stop()
         if self._auto_fill_timer is not None:

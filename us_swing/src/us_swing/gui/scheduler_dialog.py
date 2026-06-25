@@ -36,12 +36,16 @@ from PyQt6.QtWidgets import (
 )
 
 from us_swing.gui.scheduler_store import (
+    CloseConfig,
     SchedulerConfig,
     USSwingConfig,
+    delete_close_config,
     delete_scheduler_config,
     delete_usswing_config,
+    load_close_config,
     load_scheduler_config,
     load_usswing_config,
+    save_close_config,
     save_scheduler_config,
     save_usswing_config,
 )
@@ -166,6 +170,29 @@ def create_ibkr_task(cfg: SchedulerConfig, password: str = "") -> tuple[bool, st
 
 def delete_task(task_name: str) -> tuple[bool, str]:
     return _run_schtasks("/delete", "/tn", task_name, "/f")
+
+
+def _create_close_task(
+    task_name: str,
+    image_name: str,
+    close_time: str,
+    days: str,
+) -> tuple[bool, str]:
+    tr = f"taskkill /IM {image_name} /F"
+    base = ["/create", "/tn", task_name, "/tr", tr, "/st", close_time, "/f"]
+    if days == "weekdays":
+        return _run_schtasks(*base, "/sc", "weekly", "/d", "MON,TUE,WED,THU,FRI")
+    return _run_schtasks(*base, "/sc", "daily")
+
+
+def create_usswing_close_task(cfg: USSwingConfig, close_time: str) -> tuple[bool, str]:
+    image = Path(cfg.exe_path).name or "USSwing.exe"
+    return _create_close_task(f"{cfg.task_name}_Close", image, close_time, cfg.days)
+
+
+def create_ibkr_close_task(cfg: SchedulerConfig, close_time: str) -> tuple[bool, str]:
+    image = Path(cfg.exe_path).name or "tws.exe"
+    return _create_close_task(f"{cfg.task_name}_Close", image, close_time, cfg.days)
 
 
 # ── Path status label helper ──────────────────────────────────────────────────
@@ -510,6 +537,7 @@ class SchedulerDialog(QDialog):
 
         self._existing_usswing = load_usswing_config()
         self._existing_ibkr    = load_scheduler_config()
+        self._existing_close   = load_close_config()
         self._ibkr_path_auto   = False
         self._fill_worker: _FillWorker | None = None
 
@@ -519,6 +547,7 @@ class SchedulerDialog(QDialog):
             self._populate_ibkr(self._existing_ibkr)
         else:
             self._detect_tws()
+        self._populate_close(self._existing_close)
 
     # ── UI construction ───────────────────────────────────────────────────────
 
@@ -536,6 +565,7 @@ class SchedulerDialog(QDialog):
 
         body_layout.addWidget(self._build_usswing_group())
         body_layout.addWidget(self._build_ibkr_group())
+        body_layout.addWidget(self._build_close_group())
         body_layout.addWidget(self._build_note())
         body_layout.addLayout(self._build_buttons())
 
@@ -691,6 +721,35 @@ class SchedulerDialog(QDialog):
 
         return grp
 
+    def _build_close_group(self) -> QGroupBox:
+        grp = QGroupBox("Auto Close")
+        v = QVBoxLayout(grp)
+        v.setSpacing(6)
+
+        self._close_enabled = QCheckBox("Close both apps automatically at")
+        self._close_enabled.toggled.connect(self._on_close_toggled)
+
+        self._close_time = QTimeEdit()
+        self._close_time.setDisplayFormat("hh:mm AP")
+        self._close_time.setTime(QTime(16, 30))
+        self._close_time.setFixedWidth(110)
+        self._close_time.setEnabled(False)
+
+        row = QHBoxLayout()
+        row.setSpacing(8)
+        row.addWidget(self._close_enabled)
+        row.addWidget(self._close_time)
+        row.addStretch()
+        v.addLayout(row)
+
+        note = QLabel(
+            "Force-closes USSwing and Trader Workstation at this time so they don't stay open."
+        )
+        note.setWordWrap(True)
+        note.setStyleSheet(f"color: {C.SUBTEXT}; font-size: 8pt;")
+        v.addWidget(note)
+        return grp
+
     def _build_note(self) -> QLabel:
         note = QLabel(
             "ℹ  Tasks launch as your Windows user account.  "
@@ -702,7 +761,7 @@ class SchedulerDialog(QDialog):
         return note
 
     def _build_buttons(self) -> QHBoxLayout:
-        has_any = bool(self._existing_usswing or self._existing_ibkr)
+        has_any = bool(self._existing_usswing or self._existing_ibkr or self._existing_close.enabled)
         action_label = "📅  Update Tasks" if has_any else "📅  Add Tasks"
 
         self._remove_btn = QPushButton("🗑  Remove All Tasks")
@@ -758,6 +817,15 @@ class SchedulerDialog(QDialog):
             if stored_pwd:
                 self._ibkr_pwd.setText(stored_pwd)
 
+    def _populate_close(self, cfg: CloseConfig) -> None:
+        self._close_enabled.setChecked(cfg.enabled)
+        self._close_time.setEnabled(cfg.enabled)
+        try:
+            h, m = cfg.close_time.split(":")
+            self._close_time.setTime(QTime(int(h), int(m)))
+        except ValueError:
+            pass
+
     def _detect_tws(self) -> None:
         found = find_tws_exe()
         self._set_ibkr_path(found or "", auto=found is not None)
@@ -770,6 +838,9 @@ class SchedulerDialog(QDialog):
         _update_status_label(self._ibkr_detect_lbl, path or None)
 
     # ── Slots ─────────────────────────────────────────────────────────────────
+
+    def _on_close_toggled(self, checked: bool) -> None:
+        self._close_time.setEnabled(checked)
 
     def _on_us_browse(self) -> None:
         start = str(Path(r"C:\Program Files (x86)\USSwing"))
@@ -792,6 +863,11 @@ class SchedulerDialog(QDialog):
     def _on_add_or_update(self) -> None:
         us_cfg   = self._collect_usswing()
         ibkr_cfg = self._collect_ibkr()
+
+        # Close tasks act on the same apps regardless of whether the launch task
+        # is (re)created this round, so capture targets before the not-found flow.
+        us_close_target   = us_cfg
+        ibkr_close_target = ibkr_cfg
 
         if us_cfg is None and ibkr_cfg is None:
             QMessageBox.warning(
@@ -852,6 +928,30 @@ class SchedulerDialog(QDialog):
             else:
                 errors.append(f"IBKR task failed:\n{msg}")
 
+        # ── Auto-close tasks ──
+        close_cfg = self._collect_close()
+        us_close_name   = (self._us_task_name.text().strip()   or "USSwing_App")  + "_Close"
+        ibkr_close_name = (self._ibkr_task_name.text().strip() or "USSwing_IBKR") + "_Close"
+        if close_cfg.enabled:
+            if us_close_target is not None:
+                ok, msg = create_usswing_close_task(us_close_target, close_cfg.close_time)
+                if ok:
+                    created.append(f"• {us_close_name} (auto-close)")
+                else:
+                    errors.append(f"USSwing close task failed:\n{msg}")
+            if ibkr_close_target is not None:
+                ok, msg = create_ibkr_close_task(ibkr_close_target, close_cfg.close_time)
+                if ok:
+                    created.append(f"• {ibkr_close_name} (auto-close)")
+                else:
+                    errors.append(f"IBKR close task failed:\n{msg}")
+        elif self._existing_close.enabled:
+            # Auto-close was turned off — remove any close tasks created earlier.
+            delete_task(us_close_name)
+            delete_task(ibkr_close_name)
+        save_close_config(close_cfg)
+        self._existing_close = close_cfg
+
         if created:
             QMessageBox.information(
                 self, "Tasks Scheduled",
@@ -900,6 +1000,13 @@ class SchedulerDialog(QDialog):
             else:
                 errors.append(f"IBKR task: {msg}")
 
+        if self._existing_close.enabled:
+            us_close   = (self._us_task_name.text().strip()   or "USSwing_App")  + "_Close"
+            ibkr_close = (self._ibkr_task_name.text().strip() or "USSwing_IBKR") + "_Close"
+            delete_task(us_close)
+            delete_task(ibkr_close)
+        delete_close_config()
+
         if errors:
             QMessageBox.critical(self, "Removal Failed", "\n".join(errors))
         else:
@@ -932,6 +1039,13 @@ class SchedulerDialog(QDialog):
             days="weekdays" if self._ibkr_days.currentIndex() == 0 else "daily",
             ibkr_username=self._ibkr_user.text().strip(),
             auto_login=self._ibkr_auto_login.isChecked(),
+        )
+
+    def _collect_close(self) -> CloseConfig:
+        t = self._close_time.time()
+        return CloseConfig(
+            enabled=self._close_enabled.isChecked(),
+            close_time=f"{t.hour():02d}:{t.minute():02d}",
         )
 
     # ── Credential helpers ────────────────────────────────────────────────────

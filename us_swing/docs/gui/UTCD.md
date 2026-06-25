@@ -87,6 +87,19 @@
 
 ---
 
+## Module: `gui/scheduler_dialog.py` / `gui/scheduler_store.py` — Windows Task Scheduler (Auto Close)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-000.003.T01 | MD-GUI-000.003 | Unit | Missing close section returns disabled default | `load_close_config()` on empty store | `enabled is False`; `close_time == "16:30"` | Pass |
+| UT-GUI-000.003.T02 | MD-GUI-000.003 | Unit | Saved close config round-trips through JSON | `save_close_config(CloseConfig(True, "23:00"))` then load | Loaded `enabled is True`; `close_time == "23:00"` | Pass |
+| UT-GUI-000.003.T03 | MD-GUI-000.003 | Unit | Delete reverts close config to default | Save, then `delete_close_config()`; load | `enabled is False` | Pass |
+| UT-GUI-000.003.T04 | MD-GUI-000.003 | Unit | Saving close config leaves usswing section intact | Save usswing + close configs | usswing `task_name` and close `close_time` both preserved | Pass |
+| UT-GUI-000.004.T01 | MD-GUI-000.004 | Unit | USSwing close task force-kills exe on weekdays | `create_usswing_close_task(cfg, "16:30")` | schtasks args include `USSwing_App_Close`, `taskkill /IM USSwing.exe /F`, `weekly`, `MON,TUE,WED,THU,FRI` | Pass |
+| UT-GUI-000.004.T02 | MD-GUI-000.004 | Unit | IBKR close task uses tws image and daily schedule | `create_ibkr_close_task(cfg, "23:00")` | schtasks args include `USSwing_IBKR_Close`, `taskkill /IM tws.exe /F`, `daily` | Pass |
+
+---
+
 ## Module: `gui/log_viewer_panel.py` â€” Log Viewer
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
@@ -242,3 +255,5 @@
 | UT-GUI-014.001.M03.T06 | MD-GUI-014.001.M03 | Positive | Save emits only changed fields | Open with snap; change HSL only; click Save | `saved.emit(cycle_id, {"hard_stop_loss": new_value})`; no other keys in dict | Not Run |
 | UT-GUI-014.001.M03.T07 | MD-GUI-014.001.M03 | Positive | `show_error(msg)` displays error label and clears on field edit | Call `show_error("HSL too high")`; then edit `_hsl` | Error label visible after `show_error`; hidden after edit | Not Run |
 | UT-GUI-014.001.M03.T08 | MD-GUI-014.001.M03 | Negative | Cancel button discards in-progress edits and emits no `saved` signal (covers SRD-GUI-014.007 mutation rollback) | Open editor with snap (`hsl=179`); change `_hsl` to `178`; click Cancel | `cancelled` emitted with cycle_id; `saved` NOT emitted; no call to `update_risk` | Not Run |
+| UT-GUI-014.001.M03.T09 | MD-GUI-014.001.M03 | Positive | Trail mode dropdown shows "Off" selected when the cycle has no trailing | Open editor with `trailing_mode=None` | `_trail_mode.currentText() == "Off"` | Pass |
+| UT-GUI-014.001.M03.T10 | MD-GUI-014.001.M03 | Positive | Switching a trailing cycle to "Off" saves an empty trailing mode | Open with `trailing_mode="$"`; set dropdown to "Off"; collect fields | `_collect_changed_fields()["trailing_mode"] == ""` | Pass |
