@@ -112,7 +112,7 @@ def validate_stoploss_type(value: str) -> str:
 
 
 def validate_trailing_mode(value: str | None) -> str | None:
-    if value is None:
+    if value is None or value == "":
         return None
     if value not in TRAILING_MODES:
         raise ValueError(f"unknown trailing_mode: {value!r}")

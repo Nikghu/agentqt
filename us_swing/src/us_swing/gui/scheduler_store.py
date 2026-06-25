@@ -38,6 +38,13 @@ class SchedulerConfig:
     auto_login:    bool = False
 
 
+@dataclass
+class CloseConfig:
+    """Shared auto-close config for both scheduled apps."""
+    enabled:    bool = False
+    close_time: str  = "16:30"
+
+
 # ── Load ──────────────────────────────────────────────────────────────────────
 
 def _load_raw() -> dict[str, object]:
@@ -85,6 +92,17 @@ def load_scheduler_config() -> SchedulerConfig | None:
     return cfg
 
 
+def load_close_config() -> CloseConfig:
+    """Return the saved shared auto-close config, or defaults if unset."""
+    raw = _load_raw()
+    section = raw.get("close")
+    cfg = CloseConfig()
+    if isinstance(section, dict):
+        cfg.enabled    = bool(section.get("enabled",    cfg.enabled))
+        cfg.close_time = str(section.get("close_time",  cfg.close_time))
+    return cfg
+
+
 # ── Save / Delete ─────────────────────────────────────────────────────────────
 
 def _save_raw(data: dict[str, object]) -> None:
@@ -105,6 +123,18 @@ def save_scheduler_config(cfg: SchedulerConfig) -> None:
     raw = _load_raw()
     raw.pop("task_name", None)   # remove old flat-key format if present
     raw["ibkr"] = asdict(cfg)
+    _save_raw(raw)
+
+
+def save_close_config(cfg: CloseConfig) -> None:
+    raw = _load_raw()
+    raw["close"] = asdict(cfg)
+    _save_raw(raw)
+
+
+def delete_close_config() -> None:
+    raw = _load_raw()
+    raw.pop("close", None)
     _save_raw(raw)
 
 

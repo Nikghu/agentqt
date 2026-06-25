@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-17T15:03:30",
+  "generated": "2026-06-25T18:12:00",
   "subfolder": "gui",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\gui",
   "tool_code": "GUI",
@@ -3796,11 +3796,11 @@
               "name": "closeEvent",
               "signature": "def closeEvent(self, event: object) -> None",
               "line_start": 871,
-              "line_end": 883
+              "line_end": 893
             }
           ],
           "line_start": 567,
-          "line_end": 883
+          "line_end": 893
         }
       ],
       "top_level_functions": [
@@ -3814,15 +3814,15 @@
         {
           "name": "_sep",
           "signature": "def _sep() -> QLabel",
-          "line_start": 888,
-          "line_end": 891
+          "line_start": 898,
+          "line_end": 901
         },
         {
           "name": "_vdiv",
           "signature": "def _vdiv(layout: QHBoxLayout) -> None",
           "docstring": "Insert a subtle vertical divider into a horizontal layout.",
-          "line_start": 894,
-          "line_end": 900
+          "line_start": 904,
+          "line_end": 910
         }
       ]
     },
@@ -4179,14 +4179,14 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, snap: CycleSnapshot, parent: QWidget | None = None) -> None",
-              "line_start": 36,
-              "line_end": 115
+              "line_start": 37,
+              "line_end": 113
             },
             {
               "name": "show_error",
               "signature": "def show_error(self, msg: str) -> None",
-              "line_start": 119,
-              "line_end": 121
+              "line_start": 117,
+              "line_end": 119
             },
             {
               "name": "cycle_id",
@@ -4194,36 +4194,36 @@
               "decorators": [
                 "@property"
               ],
-              "line_start": 124,
-              "line_end": 125
+              "line_start": 122,
+              "line_end": 123
             },
             {
               "name": "_clear_error",
               "signature": "def _clear_error(self, *_: Any) -> None",
-              "line_start": 129,
-              "line_end": 132
+              "line_start": 127,
+              "line_end": 130
             },
             {
               "name": "_collect_changed_fields",
               "signature": "def _collect_changed_fields(self) -> dict[str, Any]",
-              "line_start": 134,
-              "line_end": 151
+              "line_start": 132,
+              "line_end": 150
             },
             {
               "name": "_on_save",
               "signature": "def _on_save(self) -> None",
-              "line_start": 153,
-              "line_end": 158
+              "line_start": 152,
+              "line_end": 157
             },
             {
               "name": "_on_cancel",
               "signature": "def _on_cancel(self) -> None",
-              "line_start": 160,
-              "line_end": 161
+              "line_start": 159,
+              "line_end": 160
             }
           ],
-          "line_start": 29,
-          "line_end": 161
+          "line_start": 30,
+          "line_end": 160
         }
       ]
     },
@@ -4240,18 +4240,18 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, username: str, password: str, parent: QObject | None = None) -> None",
-              "line_start": 353,
-              "line_end": 356
+              "line_start": 380,
+              "line_end": 383
             },
             {
               "name": "run",
               "signature": "def run(self) -> None",
-              "line_start": 358,
-              "line_end": 407
+              "line_start": 385,
+              "line_end": 434
             }
           ],
-          "line_start": 348,
-          "line_end": 407
+          "line_start": 375,
+          "line_end": 434
         },
         {
           "name": "_DialogTitleBar",
@@ -4260,36 +4260,36 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, title: str, window: QDialog, parent: QWidget | None = None) -> None",
-              "line_start": 426,
-              "line_end": 468
+              "line_start": 453,
+              "line_end": 495
             },
             {
               "name": "mousePressEvent",
               "signature": "def mousePressEvent(self, ev)",
-              "line_start": 470,
-              "line_end": 473
+              "line_start": 497,
+              "line_end": 500
             },
             {
               "name": "mouseMoveEvent",
               "signature": "def mouseMoveEvent(self, ev)",
-              "line_start": 475,
-              "line_end": 478
+              "line_start": 502,
+              "line_end": 505
             },
             {
               "name": "mouseDoubleClickEvent",
               "signature": "def mouseDoubleClickEvent(self, ev)",
-              "line_start": 480,
-              "line_end": 483
+              "line_start": 507,
+              "line_end": 510
             },
             {
               "name": "_toggle_max",
               "signature": "def _toggle_max(self) -> None",
-              "line_start": 485,
-              "line_end": 497
+              "line_start": 512,
+              "line_end": 524
             }
           ],
-          "line_start": 416,
-          "line_end": 497
+          "line_start": 443,
+          "line_end": 524
         },
         {
           "name": "SchedulerDialog",
@@ -4298,126 +4298,150 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, parent: QWidget | None = None) -> None",
-              "line_start": 505,
-              "line_end": 521
+              "line_start": 532,
+              "line_end": 550
             },
             {
               "name": "_build_ui",
               "signature": "def _build_ui(self) -> None",
-              "line_start": 525,
-              "line_end": 542
+              "line_start": 554,
+              "line_end": 572
             },
             {
               "name": "_build_usswing_group",
               "signature": "def _build_usswing_group(self) -> QGroupBox",
-              "line_start": 544,
-              "line_end": 585
+              "line_start": 574,
+              "line_end": 615
             },
             {
               "name": "_build_ibkr_group",
               "signature": "def _build_ibkr_group(self) -> QGroupBox",
-              "line_start": 587,
-              "line_end": 692
+              "line_start": 617,
+              "line_end": 722
+            },
+            {
+              "name": "_build_close_group",
+              "signature": "def _build_close_group(self) -> QGroupBox",
+              "line_start": 724,
+              "line_end": 751
             },
             {
               "name": "_build_note",
               "signature": "def _build_note(self) -> QLabel",
-              "line_start": 694,
-              "line_end": 702
+              "line_start": 753,
+              "line_end": 761
             },
             {
               "name": "_build_buttons",
               "signature": "def _build_buttons(self) -> QHBoxLayout",
-              "line_start": 704,
-              "line_end": 726
+              "line_start": 763,
+              "line_end": 785
             },
             {
               "name": "_populate_usswing",
               "signature": "def _populate_usswing(self, cfg: USSwingConfig | None) -> None",
-              "line_start": 730,
-              "line_end": 743
+              "line_start": 789,
+              "line_end": 802
             },
             {
               "name": "_populate_ibkr",
               "signature": "def _populate_ibkr(self, cfg: SchedulerConfig) -> None",
-              "line_start": 745,
-              "line_end": 759
+              "line_start": 804,
+              "line_end": 818
+            },
+            {
+              "name": "_populate_close",
+              "signature": "def _populate_close(self, cfg: CloseConfig) -> None",
+              "line_start": 820,
+              "line_end": 827
             },
             {
               "name": "_detect_tws",
               "signature": "def _detect_tws(self) -> None",
-              "line_start": 761,
-              "line_end": 763
+              "line_start": 829,
+              "line_end": 831
             },
             {
               "name": "_set_ibkr_path",
               "signature": "def _set_ibkr_path(self, path: str, *, auto: bool) -> None",
-              "line_start": 765,
-              "line_end": 770
+              "line_start": 833,
+              "line_end": 838
+            },
+            {
+              "name": "_on_close_toggled",
+              "signature": "def _on_close_toggled(self, checked: bool) -> None",
+              "line_start": 842,
+              "line_end": 843
             },
             {
               "name": "_on_us_browse",
               "signature": "def _on_us_browse(self) -> None",
-              "line_start": 774,
-              "line_end": 782
+              "line_start": 845,
+              "line_end": 853
             },
             {
               "name": "_on_ibkr_browse",
               "signature": "def _on_ibkr_browse(self) -> None",
-              "line_start": 784,
-              "line_end": 790
+              "line_start": 855,
+              "line_end": 861
             },
             {
               "name": "_on_add_or_update",
               "signature": "def _on_add_or_update(self) -> None",
-              "line_start": 792,
-              "line_end": 869
+              "line_start": 863,
+              "line_end": 969
             },
             {
               "name": "_on_remove",
               "signature": "def _on_remove(self) -> None",
-              "line_start": 871,
-              "line_end": 907
+              "line_start": 971,
+              "line_end": 1014
             },
             {
               "name": "_collect_usswing",
               "signature": "def _collect_usswing(self) -> USSwingConfig | None",
-              "line_start": 911,
-              "line_end": 921
+              "line_start": 1018,
+              "line_end": 1028
             },
             {
               "name": "_collect_ibkr",
               "signature": "def _collect_ibkr(self) -> SchedulerConfig | None",
-              "line_start": 923,
-              "line_end": 935
+              "line_start": 1030,
+              "line_end": 1042
+            },
+            {
+              "name": "_collect_close",
+              "signature": "def _collect_close(self) -> CloseConfig",
+              "line_start": 1044,
+              "line_end": 1049
             },
             {
               "name": "_on_eye_toggled",
               "signature": "def _on_eye_toggled(self, checked: bool) -> None",
-              "line_start": 939,
-              "line_end": 942
+              "line_start": 1053,
+              "line_end": 1056
             },
             {
               "name": "_on_save_credentials",
               "signature": "def _on_save_credentials(self) -> None",
-              "line_start": 944,
-              "line_end": 972
+              "line_start": 1058,
+              "line_end": 1086
             },
             {
               "name": "_on_fill_tws",
               "signature": "def _on_fill_tws(self) -> None",
-              "line_start": 976,
-              "line_end": 988
+              "line_start": 1090,
+              "line_end": 1102
             },
             {
               "name": "_on_fill_done",
               "signature": "def _on_fill_done(self, error: str) -> None",
-              "line_start": 990,
-              "line_end": 1000
+              "line_start": 1104,
+              "line_end": 1114
             }
           ],
-          "line_start": 502,
-          "line_end": 1000
+          "line_start": 529,
+          "line_end": 1114
         }
       ],
       "top_level_functions": [
@@ -4425,90 +4449,108 @@
           "name": "_registry_tws",
           "signature": "def _registry_tws() -> str | None",
           "docstring": "Try to read the TWS install path from the Windows registry.",
-          "line_start": 60,
-          "line_end": 83
+          "line_start": 64,
+          "line_end": 87
         },
         {
           "name": "find_tws_exe",
           "signature": "def find_tws_exe() -> str | None",
           "docstring": "Return the best-guess path to tws.exe, or None.",
-          "line_start": 86,
-          "line_end": 117
+          "line_start": 90,
+          "line_end": 121
         },
         {
           "name": "_run_schtasks",
           "signature": "def _run_schtasks(*args: str) -> tuple[bool, str]",
           "docstring": "Run schtasks.exe with the given arguments. Returns (success, message).",
-          "line_start": 122,
-          "line_end": 139
+          "line_start": 126,
+          "line_end": 143
         },
         {
           "name": "_create_schtask",
           "signature": "def _create_schtask(\r\n    task_name: str,\r\n    exe_path: str,\r\n    launch_time: str,\r\n    days: str,\r\n    extra_args: str = \"\",\r\n) -> tuple[bool, str]",
-          "line_start": 142,
-          "line_end": 153
+          "line_start": 146,
+          "line_end": 157
         },
         {
           "name": "create_usswing_task",
           "signature": "def create_usswing_task(cfg: USSwingConfig) -> tuple[bool, str]",
-          "line_start": 156,
-          "line_end": 157
+          "line_start": 160,
+          "line_end": 161
         },
         {
           "name": "create_ibkr_task",
           "signature": "def create_ibkr_task(cfg: SchedulerConfig, password: str = \"\") -> tuple[bool, str]",
-          "line_start": 160,
-          "line_end": 164
+          "line_start": 164,
+          "line_end": 168
         },
         {
           "name": "delete_task",
           "signature": "def delete_task(task_name: str) -> tuple[bool, str]",
-          "line_start": 167,
-          "line_end": 168
+          "line_start": 171,
+          "line_end": 172
+        },
+        {
+          "name": "_create_close_task",
+          "signature": "def _create_close_task(\r\n    task_name: str,\r\n    image_name: str,\r\n    close_time: str,\r\n    days: str,\r\n) -> tuple[bool, str]",
+          "line_start": 175,
+          "line_end": 185
+        },
+        {
+          "name": "create_usswing_close_task",
+          "signature": "def create_usswing_close_task(cfg: USSwingConfig, close_time: str) -> tuple[bool, str]",
+          "line_start": 188,
+          "line_end": 190
+        },
+        {
+          "name": "create_ibkr_close_task",
+          "signature": "def create_ibkr_close_task(cfg: SchedulerConfig, close_time: str) -> tuple[bool, str]",
+          "line_start": 193,
+          "line_end": 195
         },
         {
           "name": "_make_status_label",
           "signature": "def _make_status_label() -> QLabel",
-          "line_start": 173,
-          "line_end": 176
+          "line_start": 200,
+          "line_end": 203
         },
         {
           "name": "_update_status_label",
           "signature": "def _update_status_label(lbl: QLabel, path: str | None) -> None",
-          "line_start": 179,
-          "line_end": 188
+          "line_start": 206,
+          "line_end": 215
         },
         {
           "name": "_save_ibkr_password",
           "signature": "def _save_ibkr_password(username: str, password: str) -> bool",
-          "line_start": 196,
-          "line_end": 204
+          "line_start": 223,
+          "line_end": 231
         },
         {
           "name": "_load_ibkr_password",
           "signature": "def _load_ibkr_password(username: str) -> str",
-          "line_start": 207,
-          "line_end": 214
+          "line_start": 234,
+          "line_end": 241
         },
         {
           "name": "_delete_ibkr_password",
           "signature": "def _delete_ibkr_password(username: str) -> None",
-          "line_start": 221,
-          "line_end": 228
+          "line_start": 248,
+          "line_end": 255
         },
         {
           "name": "_find_tws_hwnd",
           "signature": "def _find_tws_hwnd() -> int",
           "docstring": "Return HWND of the first visible top-level window whose title looks like TWS log",
-          "line_start": 233,
-          "line_end": 257
+          "line_start": 260,
+          "line_end": 284
         },
         {
           "name": "_winapi_fill",
           "signature": "def _winapi_fill(username: str, password: str, tws_hwnd: int) -> str",
           "docstring": "Type username, Tab, password into the TWS window identified by tws_hwnd.",
-          "line_start": 260,
-          "line_end": 345
+          "line_start": 287,
+          "line_end": 372
         }
       ],
       "constants": [
@@ -4544,58 +4586,87 @@
           ],
           "line_start": 31,
           "line_end": 38
+        },
+        {
+          "name": "CloseConfig",
+          "docstring": "Shared auto-close config for both scheduled apps.",
+          "class_vars": [
+            "enabled: bool",
+            "close_time: str"
+          ],
+          "line_start": 42,
+          "line_end": 45
         }
       ],
       "top_level_functions": [
         {
           "name": "_load_raw",
           "signature": "def _load_raw() -> dict[str, object]",
-          "line_start": 43,
-          "line_end": 50
+          "line_start": 50,
+          "line_end": 57
         },
         {
           "name": "load_usswing_config",
           "signature": "def load_usswing_config() -> USSwingConfig | None",
           "docstring": "Return saved USSwing config, or None if not yet configured.",
-          "line_start": 53,
-          "line_end": 64
+          "line_start": 60,
+          "line_end": 71
         },
         {
           "name": "load_scheduler_config",
           "signature": "def load_scheduler_config() -> SchedulerConfig | None",
           "docstring": "Return saved IBKR config, or None if not yet configured.",
-          "line_start": 67,
-          "line_end": 85
+          "line_start": 74,
+          "line_end": 92
+        },
+        {
+          "name": "load_close_config",
+          "signature": "def load_close_config() -> CloseConfig",
+          "docstring": "Return the saved shared auto-close config, or defaults if unset.",
+          "line_start": 95,
+          "line_end": 103
         },
         {
           "name": "_save_raw",
           "signature": "def _save_raw(data: dict[str, object]) -> None",
-          "line_start": 90,
-          "line_end": 94
+          "line_start": 108,
+          "line_end": 112
         },
         {
           "name": "save_usswing_config",
           "signature": "def save_usswing_config(cfg: USSwingConfig) -> None",
-          "line_start": 97,
-          "line_end": 101
+          "line_start": 115,
+          "line_end": 119
         },
         {
           "name": "save_scheduler_config",
           "signature": "def save_scheduler_config(cfg: SchedulerConfig) -> None",
-          "line_start": 104,
-          "line_end": 108
+          "line_start": 122,
+          "line_end": 126
+        },
+        {
+          "name": "save_close_config",
+          "signature": "def save_close_config(cfg: CloseConfig) -> None",
+          "line_start": 129,
+          "line_end": 132
+        },
+        {
+          "name": "delete_close_config",
+          "signature": "def delete_close_config() -> None",
+          "line_start": 135,
+          "line_end": 138
         },
         {
           "name": "delete_usswing_config",
           "signature": "def delete_usswing_config() -> None",
-          "line_start": 111,
-          "line_end": 114
+          "line_start": 141,
+          "line_end": 144
         },
         {
           "name": "delete_scheduler_config",
           "signature": "def delete_scheduler_config() -> None",
-          "line_start": 117,
-          "line_end": 121
+          "line_start": 147,
+          "line_end": 151
         }
       ],
       "constants": [
