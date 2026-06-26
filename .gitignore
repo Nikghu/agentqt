@@ -65,7 +65,6 @@ CLAUDE.local.md
 
 # ─── Installer (local only — not for public repo) ────────────────────────────
 installer/
-us_swing/usswing_installer.yaml
 
 # ─── Logs & Temp ──────────────────────────────────────────────────────────────
 *.log
