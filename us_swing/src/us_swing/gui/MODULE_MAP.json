@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-25T18:12:00",
+  "generated": "2026-06-26T08:24:57",
   "subfolder": "gui",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\gui",
   "tool_code": "GUI",
@@ -3498,36 +3498,36 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, parent: QWidget | None = None) -> None",
-              "line_start": 65,
-              "line_end": 73
+              "line_start": 66,
+              "line_end": 74
             },
             {
               "name": "update_data",
               "signature": "def update_data(self, name: str, ltp: float, change_pct: float) -> None",
-              "line_start": 75,
-              "line_end": 80
+              "line_start": 76,
+              "line_end": 81
             },
             {
               "name": "enterEvent",
               "signature": "def enterEvent(self, event: object) -> None",
-              "line_start": 82,
-              "line_end": 84
+              "line_start": 83,
+              "line_end": 85
             },
             {
               "name": "leaveEvent",
               "signature": "def leaveEvent(self, event: object) -> None",
-              "line_start": 86,
-              "line_end": 88
+              "line_start": 87,
+              "line_end": 89
             },
             {
               "name": "_render",
               "signature": "def _render(self) -> None",
-              "line_start": 90,
-              "line_end": 105
+              "line_start": 91,
+              "line_end": 106
             }
           ],
-          "line_start": 62,
-          "line_end": 105
+          "line_start": 63,
+          "line_end": 106
         },
         {
           "name": "_TabBtn",
@@ -3536,12 +3536,12 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, icon: str, label: str, parent: QWidget | None = None) -> None",
-              "line_start": 113,
-              "line_end": 120
+              "line_start": 114,
+              "line_end": 121
             }
           ],
-          "line_start": 110,
-          "line_end": 120
+          "line_start": 111,
+          "line_end": 121
         },
         {
           "name": "_FeedToggle",
@@ -3554,42 +3554,42 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, parent: QWidget | None = None) -> None",
-              "line_start": 153,
-              "line_end": 167
+              "line_start": 154,
+              "line_end": 168
             },
             {
               "name": "set_state",
               "signature": "def set_state(self, state: str) -> None",
-              "line_start": 171,
-              "line_end": 181
+              "line_start": 172,
+              "line_end": 182
             },
             {
               "name": "enterEvent",
               "signature": "def enterEvent(self, event: object) -> None",
-              "line_start": 185,
-              "line_end": 187
+              "line_start": 186,
+              "line_end": 188
             },
             {
               "name": "leaveEvent",
               "signature": "def leaveEvent(self, event: object) -> None",
-              "line_start": 189,
-              "line_end": 191
+              "line_start": 190,
+              "line_end": 192
             },
             {
               "name": "_tick",
               "signature": "def _tick(self) -> None",
-              "line_start": 193,
-              "line_end": 196
+              "line_start": 194,
+              "line_end": 197
             },
             {
               "name": "paintEvent",
               "signature": "def paintEvent(self, event: object) -> None",
-              "line_start": 200,
-              "line_end": 257
+              "line_start": 201,
+              "line_end": 258
             }
           ],
-          "line_start": 126,
-          "line_end": 257
+          "line_start": 127,
+          "line_end": 258
         },
         {
           "name": "_TitleBar",
@@ -3598,48 +3598,80 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, svc: AppService, window: QMainWindow,\r\n                 panels: list[QWidget], stack: QStackedWidget,\r\n                 parent: QWidget | None = None) -> None",
-              "line_start": 269,
-              "line_end": 374
+              "line_start": 270,
+              "line_end": 375
             },
             {
               "name": "_on_feed_btn_clicked",
               "signature": "def _on_feed_btn_clicked(self) -> None",
-              "line_start": 375,
-              "line_end": 387
+              "line_start": 376,
+              "line_end": 388
             },
             {
               "name": "_on_feed_status_changed",
               "signature": "def _on_feed_status_changed(self, status_str: str) -> None",
-              "line_start": 389,
-              "line_end": 395
+              "line_start": 390,
+              "line_end": 396
             },
             {
               "name": "mousePressEvent",
               "signature": "def mousePressEvent(self, ev)",
-              "line_start": 398,
-              "line_end": 401
+              "line_start": 399,
+              "line_end": 402
             },
             {
               "name": "mouseMoveEvent",
               "signature": "def mouseMoveEvent(self, ev)",
-              "line_start": 403,
-              "line_end": 406
+              "line_start": 404,
+              "line_end": 407
             },
             {
               "name": "mouseDoubleClickEvent",
               "signature": "def mouseDoubleClickEvent(self, ev)",
-              "line_start": 408,
-              "line_end": 411
+              "line_start": 409,
+              "line_end": 412
             },
             {
               "name": "_toggle_max",
               "signature": "def _toggle_max(self) -> None",
-              "line_start": 413,
-              "line_end": 425
+              "line_start": 414,
+              "line_end": 426
             }
           ],
-          "line_start": 262,
-          "line_end": 427
+          "line_start": 263,
+          "line_end": 428
+        },
+        {
+          "name": "_ConfirmDialog",
+          "docstring": "Frameless yes/no confirmation styled to match the terminal title bar.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, title: str, message: str, confirm_label: str,\r\n                 parent: QWidget | None = None) -> None",
+              "line_start": 447,
+              "line_end": 492
+            },
+            {
+              "name": "_build_title_bar",
+              "signature": "def _build_title_bar(self, title: str) -> QWidget",
+              "line_start": 494,
+              "line_end": 515
+            },
+            {
+              "name": "mousePressEvent",
+              "signature": "def mousePressEvent(self, ev)",
+              "line_start": 517,
+              "line_end": 520
+            },
+            {
+              "name": "mouseMoveEvent",
+              "signature": "def mouseMoveEvent(self, ev)",
+              "line_start": 522,
+              "line_end": 525
+            }
+          ],
+          "line_start": 433,
+          "line_end": 525
         },
         {
           "name": "_AdminContextBar",
@@ -3648,36 +3680,36 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, svc: AppService, parent: QWidget | None = None) -> None",
-              "line_start": 439,
-              "line_end": 491
+              "line_start": 537,
+              "line_end": 589
             },
             {
               "name": "_apply_static_styles",
               "signature": "def _apply_static_styles(self) -> None",
-              "line_start": 493,
-              "line_end": 506
+              "line_start": 591,
+              "line_end": 604
             },
             {
               "name": "changeEvent",
               "signature": "def changeEvent(self, event: QEvent | None) -> None",
-              "line_start": 508,
-              "line_end": 512
+              "line_start": 606,
+              "line_end": 610
             },
             {
               "name": "_refresh_mw",
               "signature": "def _refresh_mw(self) -> None",
-              "line_start": 514,
-              "line_end": 521
+              "line_start": 612,
+              "line_end": 619
             },
             {
               "name": "refresh",
               "signature": "def refresh(self) -> None",
-              "line_start": 523,
-              "line_end": 562
+              "line_start": 621,
+              "line_end": 660
             }
           ],
-          "line_start": 432,
-          "line_end": 562
+          "line_start": 530,
+          "line_end": 660
         },
         {
           "name": "MainWindow",
@@ -3686,121 +3718,121 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, svc: AppService, parent: QWidget | None = None) -> None",
-              "line_start": 570,
-              "line_end": 686
+              "line_start": 668,
+              "line_end": 784
             },
             {
               "name": "_refresh_status",
               "signature": "def _refresh_status(self) -> None",
-              "line_start": 690,
-              "line_end": 691
+              "line_start": 788,
+              "line_end": 789
             },
             {
               "name": "_on_risk_warning",
               "signature": "def _on_risk_warning(self, kind: str, message: str) -> None",
               "docstring": "Show a non-blocking advisory pop-up for a risk-limit breach (FO-EXE-017).",
-              "line_start": 693,
-              "line_end": 713
+              "line_start": 791,
+              "line_end": 811
             },
             {
               "name": "_on_internet_status_changed",
               "signature": "def _on_internet_status_changed(self, online: bool) -> None",
               "docstring": "Update the status-bar internet pill when connectivity flips.",
-              "line_start": 715,
-              "line_end": 720
+              "line_start": 813,
+              "line_end": 818
             },
             {
               "name": "_on_market_status",
               "signature": "def _on_market_status(self) -> None",
               "docstring": "Update NYSE / NASDAQ status bar pills from AppService market status.",
-              "line_start": 722,
-              "line_end": 733
+              "line_start": 820,
+              "line_end": 831
             },
             {
               "name": "_on_db_status_updated",
               "signature": "def _on_db_status_updated(self, info: object) -> None",
               "docstring": "Store latest database info for use during auto-connect.",
-              "line_start": 735,
-              "line_end": 737
+              "line_start": 833,
+              "line_end": 835
             },
             {
               "name": "on_circuit_breaker",
               "signature": "def on_circuit_breaker(self, active: bool) -> None",
-              "line_start": 739,
-              "line_end": 740
+              "line_start": 837,
+              "line_end": 838
             },
             {
               "name": "_on_watchlist_add",
               "signature": "def _on_watchlist_add(self, symbol: str) -> None",
               "docstring": "Screener 'Add to Watchlist' \u2014 forward to dashboard for now.",
-              "line_start": 742,
-              "line_end": 744
+              "line_start": 840,
+              "line_end": 842
             },
             {
               "name": "_start_feed_auto_connect",
               "signature": "def _start_feed_auto_connect(self) -> None",
               "docstring": "Start scheduler auto-connect: react immediately via signal, retry every 60s if n",
-              "line_start": 746,
-              "line_end": 752
+              "line_start": 844,
+              "line_end": 850
             },
             {
               "name": "_on_scheduler_feed_status",
               "signature": "def _on_scheduler_feed_status(self, status: str) -> None",
               "docstring": "Fires immediately when feed status changes during auto-connect.",
-              "line_start": 754,
-              "line_end": 763
+              "line_start": 852,
+              "line_end": 861
             },
             {
               "name": "_schedule_next_retry",
               "signature": "def _schedule_next_retry(self) -> None",
               "docstring": "Schedule a retry attempt in 60 seconds.",
-              "line_start": 765,
-              "line_end": 772
+              "line_start": 863,
+              "line_end": 870
             },
             {
               "name": "_on_feed_retry_tick",
               "signature": "def _on_feed_retry_tick(self) -> None",
               "docstring": "Retry feed connection every 60 seconds (up to 10 attempts).",
-              "line_start": 774,
-              "line_end": 792
+              "line_start": 872,
+              "line_end": 890
             },
             {
               "name": "_trigger_fill_delta_if_partial",
               "signature": "def _trigger_fill_delta_if_partial(self) -> None",
               "docstring": "Trigger fill delta if the database status is PARTIAL.",
-              "line_start": 794,
-              "line_end": 800
+              "line_start": 892,
+              "line_end": 898
             },
             {
               "name": "_maybe_start_auto_fill_tws",
               "signature": "def _maybe_start_auto_fill_tws(self) -> None",
               "docstring": "If Auto Fill Credential is enabled, load stored credentials and schedule the fir",
-              "line_start": 804,
-              "line_end": 826
+              "line_start": 902,
+              "line_end": 924
             },
             {
               "name": "_attempt_auto_fill_tws",
               "signature": "def _attempt_auto_fill_tws(self) -> None",
               "docstring": "Spawn a FillWorker to type IBKR credentials into the TWS login window.",
-              "line_start": 828,
-              "line_end": 847
+              "line_start": 926,
+              "line_end": 945
             },
             {
               "name": "_on_auto_fill_done",
               "signature": "def _on_auto_fill_done(self, error: str) -> None",
               "docstring": "Handle fill result: log success or schedule retry on TWS-not-found.",
-              "line_start": 849,
-              "line_end": 867
+              "line_start": 947,
+              "line_end": 965
             },
             {
               "name": "closeEvent",
               "signature": "def closeEvent(self, event: object) -> None",
-              "line_start": 871,
-              "line_end": 893
+              "line_start": 969,
+              "line_end": 990
             }
           ],
-          "line_start": 567,
-          "line_end": 893
+          "line_start": 665,
+          "line_end": 990
         }
       ],
       "top_level_functions": [
@@ -3808,21 +3840,21 @@
           "name": "_asset_path",
           "signature": "def _asset_path(name: str) -> Path",
           "docstring": "Resolve a bundled asset, working both from source and a frozen exe.",
-          "line_start": 49,
-          "line_end": 57
+          "line_start": 50,
+          "line_end": 58
         },
         {
           "name": "_sep",
           "signature": "def _sep() -> QLabel",
-          "line_start": 898,
-          "line_end": 901
+          "line_start": 995,
+          "line_end": 998
         },
         {
           "name": "_vdiv",
           "signature": "def _vdiv(layout: QHBoxLayout) -> None",
           "docstring": "Insert a subtle vertical divider into a horizontal layout.",
-          "line_start": 904,
-          "line_end": 910
+          "line_start": 1001,
+          "line_end": 1007
         }
       ]
     },
@@ -4758,11 +4790,11 @@
               "name": "run",
               "signature": "def run(self) -> None",
               "line_start": 259,
-              "line_end": 342
+              "line_end": 352
             }
           ],
           "line_start": 235,
-          "line_end": 342
+          "line_end": 352
         },
         {
           "name": "_ModelValidateWorker",
@@ -4770,18 +4802,18 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, model_id: str, parent: Any = None) -> None",
-              "line_start": 350,
-              "line_end": 352
+              "line_start": 360,
+              "line_end": 362
             },
             {
               "name": "run",
               "signature": "def run(self) -> None",
-              "line_start": 354,
-              "line_end": 357
+              "line_start": 364,
+              "line_end": 367
             }
           ],
-          "line_start": 347,
-          "line_end": 357
+          "line_start": 357,
+          "line_end": 367
         },
         {
           "name": "_ChartButtonDelegate",
@@ -4790,18 +4822,18 @@
             {
               "name": "paint",
               "signature": "def paint(self, painter: QPainter, option: Any, index: Any) -> None",
-              "line_start": 365,
-              "line_end": 381
+              "line_start": 375,
+              "line_end": 391
             },
             {
               "name": "sizeHint",
               "signature": "def sizeHint(self, option: Any, index: Any) -> QSize",
-              "line_start": 383,
-              "line_end": 384
+              "line_start": 393,
+              "line_end": 394
             }
           ],
-          "line_start": 362,
-          "line_end": 384
+          "line_start": 372,
+          "line_end": 394
         },
         {
           "name": "QuickChartWindow",
@@ -4810,74 +4842,74 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, svc: AppService, parent: QWidget | None = None) -> None",
-              "line_start": 397,
-              "line_end": 438
+              "line_start": 407,
+              "line_end": 448
             },
             {
               "name": "_make_title_bar",
               "signature": "def _make_title_bar(self) -> QFrame",
-              "line_start": 442,
-              "line_end": 491
+              "line_start": 452,
+              "line_end": 501
             },
             {
               "name": "_toggle_maximize",
               "signature": "def _toggle_maximize(self) -> None",
-              "line_start": 493,
-              "line_end": 502
+              "line_start": 503,
+              "line_end": 512
             },
             {
               "name": "mousePressEvent",
               "signature": "def mousePressEvent(self, event: Any) -> None",
-              "line_start": 506,
-              "line_end": 512
+              "line_start": 516,
+              "line_end": 522
             },
             {
               "name": "mouseMoveEvent",
               "signature": "def mouseMoveEvent(self, event: Any) -> None",
-              "line_start": 514,
-              "line_end": 519
+              "line_start": 524,
+              "line_end": 529
             },
             {
               "name": "mouseReleaseEvent",
               "signature": "def mouseReleaseEvent(self, event: Any) -> None",
-              "line_start": 521,
-              "line_end": 523
+              "line_start": 531,
+              "line_end": 533
             },
             {
               "name": "open_symbol",
               "signature": "def open_symbol(self, symbol: str, timeframe: str = \"1d\") -> None",
               "docstring": "Switch to an existing tab for *symbol*, or create a new one.",
-              "line_start": 527,
-              "line_end": 536
+              "line_start": 537,
+              "line_end": 546
             },
             {
               "name": "_attach_close_btn",
               "signature": "def _attach_close_btn(self, tab_idx: int) -> None",
               "docstring": "Add a visible custom \u00d7 button to the right side of a tab.",
-              "line_start": 538,
-              "line_end": 554
+              "line_start": 548,
+              "line_end": 564
             },
             {
               "name": "_close_tab_for_widget",
               "signature": "def _close_tab_for_widget(self, widget: QWidget) -> None",
-              "line_start": 556,
-              "line_end": 559
+              "line_start": 566,
+              "line_end": 569
             },
             {
               "name": "closeEvent",
               "signature": "def closeEvent(self, event: Any) -> None",
-              "line_start": 561,
-              "line_end": 563
+              "line_start": 571,
+              "line_end": 573
             },
             {
               "name": "_make_chart_view",
               "signature": "def _make_chart_view(self, symbol: str, timeframe: str) -> QWebEngineView",
-              "line_start": 565,
-              "line_end": 598
+              "line_start": 575,
+              "line_end": 608
             }
           ],
-          "line_start": 389,
-          "line_end": 598
+          "line_start": 399,
+          "line_end": 608
         },
         {
           "name": "_FramelessDialog",
@@ -4886,48 +4918,48 @@
             {
               "name": "__init__",
               "signature": "def __init__(\r\n        self,\r\n        title: str,\r\n        min_width: int = 420,\r\n        min_height: int = 0,\r\n        extra_qss: str = \"\",\r\n        parent: QWidget | None = None,\r\n    ) -> None",
-              "line_start": 688,
-              "line_end": 719
+              "line_start": 698,
+              "line_end": 729
             },
             {
               "name": "content_layout",
               "signature": "def content_layout(self) -> QVBoxLayout",
-              "line_start": 721,
-              "line_end": 722
+              "line_start": 731,
+              "line_end": 732
             },
             {
               "name": "_make_title_bar",
               "signature": "def _make_title_bar(self, title: str) -> QFrame",
-              "line_start": 724,
-              "line_end": 763
+              "line_start": 734,
+              "line_end": 773
             },
             {
               "name": "_toggle_maximize",
               "signature": "def _toggle_maximize(self) -> None",
-              "line_start": 765,
-              "line_end": 774
+              "line_start": 775,
+              "line_end": 784
             },
             {
               "name": "mousePressEvent",
               "signature": "def mousePressEvent(self, event: Any) -> None",
-              "line_start": 776,
-              "line_end": 782
+              "line_start": 786,
+              "line_end": 792
             },
             {
               "name": "mouseMoveEvent",
               "signature": "def mouseMoveEvent(self, event: Any) -> None",
-              "line_start": 784,
-              "line_end": 789
+              "line_start": 794,
+              "line_end": 799
             },
             {
               "name": "mouseReleaseEvent",
               "signature": "def mouseReleaseEvent(self, event: Any) -> None",
-              "line_start": 791,
-              "line_end": 793
+              "line_start": 801,
+              "line_end": 803
             }
           ],
-          "line_start": 685,
-          "line_end": 793
+          "line_start": 695,
+          "line_end": 803
         },
         {
           "name": "_IndicatorConfigDialog",
@@ -4936,19 +4968,19 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, config: dict | None = None, parent: QWidget | None = None) -> None",
-              "line_start": 801,
-              "line_end": 955
+              "line_start": 811,
+              "line_end": 965
             },
             {
               "name": "get_config",
               "signature": "def get_config(self) -> dict",
               "docstring": "Return full IndicatorScreener config dict from current widget values.",
-              "line_start": 957,
-              "line_end": 991
+              "line_start": 967,
+              "line_end": 1001
             }
           ],
-          "line_start": 798,
-          "line_end": 991
+          "line_start": 808,
+          "line_end": 1001
         },
         {
           "name": "_PriceActionConfigDialog",
@@ -4957,18 +4989,18 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, config: dict | None = None, parent: QWidget | None = None) -> None",
-              "line_start": 1029,
-              "line_end": 1166
+              "line_start": 1039,
+              "line_end": 1176
             },
             {
               "name": "get_config",
               "signature": "def get_config(self) -> dict",
-              "line_start": 1168,
-              "line_end": 1193
+              "line_start": 1178,
+              "line_end": 1203
             }
           ],
-          "line_start": 1026,
-          "line_end": 1193
+          "line_start": 1036,
+          "line_end": 1203
         },
         {
           "name": "_GroupWidget",
@@ -4977,102 +5009,102 @@
             {
               "name": "__init__",
               "signature": "def __init__(\r\n        self,\r\n        group_id: str,\r\n        logic: str = \"AND\",\r\n        screener_ids: list[str] | None = None,\r\n        configs: dict[str, dict] | None = None,\r\n        parent: QWidget | None = None,\r\n    ) -> None",
-              "line_start": 1207,
-              "line_end": 1320
+              "line_start": 1217,
+              "line_end": 1330
             },
             {
               "name": "_apply_logic_style",
               "signature": "def _apply_logic_style(self) -> None",
-              "line_start": 1324,
-              "line_end": 1336
+              "line_start": 1334,
+              "line_end": 1346
             },
             {
               "name": "_toggle_logic",
               "signature": "def _toggle_logic(self) -> None",
-              "line_start": 1338,
-              "line_end": 1341
+              "line_start": 1348,
+              "line_end": 1351
             },
             {
               "name": "_on_list_changed",
               "signature": "def _on_list_changed(self) -> None",
-              "line_start": 1343,
-              "line_end": 1345
+              "line_start": 1353,
+              "line_end": 1355
             },
             {
               "name": "_sync_empty_state",
               "signature": "def _sync_empty_state(self) -> None",
-              "line_start": 1347,
-              "line_end": 1350
+              "line_start": 1357,
+              "line_end": 1360
             },
             {
               "name": "_on_selection_changed",
               "signature": "def _on_selection_changed(self) -> None",
-              "line_start": 1352,
-              "line_end": 1357
+              "line_start": 1362,
+              "line_end": 1367
             },
             {
               "name": "_on_configure",
               "signature": "def _on_configure(self) -> None",
-              "line_start": 1359,
-              "line_end": 1367
+              "line_start": 1369,
+              "line_end": 1377
             },
             {
               "name": "_on_add_screener",
               "signature": "def _on_add_screener(self) -> None",
-              "line_start": 1369,
-              "line_end": 1391
+              "line_start": 1379,
+              "line_end": 1401
             },
             {
               "name": "_list_ctx_menu",
               "signature": "def _list_ctx_menu(self, pos: Any) -> None",
-              "line_start": 1393,
-              "line_end": 1415
+              "line_start": 1403,
+              "line_end": 1425
             },
             {
               "name": "_open_indicator_config",
               "signature": "def _open_indicator_config(self, sid: str) -> None",
-              "line_start": 1417,
-              "line_end": 1421
+              "line_start": 1427,
+              "line_end": 1431
             },
             {
               "name": "_open_price_action_config",
               "signature": "def _open_price_action_config(self, sid: str) -> None",
-              "line_start": 1423,
-              "line_end": 1427
+              "line_start": 1433,
+              "line_end": 1437
             },
             {
               "name": "_add_item",
               "signature": "def _add_item(self, sid: str) -> None",
-              "line_start": 1429,
-              "line_end": 1434
+              "line_start": 1439,
+              "line_end": 1444
             },
             {
               "name": "screener_ids",
               "signature": "def screener_ids(self) -> list[str]",
-              "line_start": 1438,
-              "line_end": 1442
+              "line_start": 1448,
+              "line_end": 1452
             },
             {
               "name": "screener_configs",
               "signature": "def screener_configs(self) -> dict[str, dict]",
-              "line_start": 1444,
-              "line_end": 1445
+              "line_start": 1454,
+              "line_end": 1455
             },
             {
               "name": "logic",
               "signature": "def logic(self) -> str",
-              "line_start": 1447,
-              "line_end": 1448
+              "line_start": 1457,
+              "line_end": 1458
             },
             {
               "name": "group_id",
               "signature": "def group_id(self) -> str",
-              "line_start": 1450,
-              "line_end": 1451
+              "line_start": 1460,
+              "line_end": 1461
             }
           ],
-          "line_start": 1198,
-          "line_end": 1451
+          "line_start": 1208,
+          "line_end": 1461
         },
         {
           "name": "_WeightedRow",
@@ -5081,36 +5113,36 @@
             {
               "name": "__init__",
               "signature": "def __init__(\r\n        self,\r\n        sid: str,\r\n        weight: float = 0.0,\r\n        config: dict | None = None,\r\n        parent: QWidget | None = None,\r\n    ) -> None",
-              "line_start": 1462,
-              "line_end": 1530
+              "line_start": 1472,
+              "line_end": 1540
             },
             {
               "name": "screener_id",
               "signature": "def screener_id(self) -> str",
-              "line_start": 1532,
-              "line_end": 1533
+              "line_start": 1542,
+              "line_end": 1543
             },
             {
               "name": "weight",
               "signature": "def weight(self) -> float",
-              "line_start": 1535,
-              "line_end": 1536
+              "line_start": 1545,
+              "line_end": 1546
             },
             {
               "name": "config",
               "signature": "def config(self) -> dict",
-              "line_start": 1538,
-              "line_end": 1539
+              "line_start": 1548,
+              "line_end": 1549
             },
             {
               "name": "_open_config",
               "signature": "def _open_config(self) -> None",
-              "line_start": 1541,
-              "line_end": 1547
+              "line_start": 1551,
+              "line_end": 1557
             }
           ],
-          "line_start": 1456,
-          "line_end": 1547
+          "line_start": 1466,
+          "line_end": 1557
         },
         {
           "name": "_UserTag",
@@ -5119,12 +5151,12 @@
             {
               "name": "__init__",
               "signature": "def __init__(\r\n        self,\r\n        user_id: str,\r\n        label: str | None = None,\r\n        valid: bool = True,\r\n        parent: QWidget | None = None,\r\n    ) -> None",
-              "line_start": 1557,
-              "line_end": 1592
+              "line_start": 1567,
+              "line_end": 1602
             }
           ],
-          "line_start": 1552,
-          "line_end": 1592
+          "line_start": 1562,
+          "line_end": 1602
         },
         {
           "name": "_UserPickerDialog",
@@ -5133,18 +5165,18 @@
             {
               "name": "__init__",
               "signature": "def __init__(\r\n        self,\r\n        all_users: list[Any],\r\n        already_assigned: set[str],\r\n        parent: QWidget | None = None,\r\n    ) -> None",
-              "line_start": 1598,
-              "line_end": 1660
+              "line_start": 1608,
+              "line_end": 1670
             },
             {
               "name": "selected_ids",
               "signature": "def selected_ids(self) -> set[str]",
-              "line_start": 1662,
-              "line_end": 1663
+              "line_start": 1672,
+              "line_end": 1673
             }
           ],
-          "line_start": 1595,
-          "line_end": 1663
+          "line_start": 1605,
+          "line_end": 1673
         },
         {
           "name": "_AssignUsersWidget",
@@ -5153,42 +5185,42 @@
             {
               "name": "__init__",
               "signature": "def __init__(\r\n        self,\r\n        preset_id: str,\r\n        mgr: Any,\r\n        requestor_id: str,\r\n        parent: QWidget | None = None,\r\n    ) -> None",
-              "line_start": 1669,
-              "line_end": 1706
+              "line_start": 1679,
+              "line_end": 1716
             },
             {
               "name": "load_existing",
               "signature": "def load_existing(self, user_ids: list[str]) -> None",
-              "line_start": 1708,
-              "line_end": 1710
+              "line_start": 1718,
+              "line_end": 1720
             },
             {
               "name": "_on_open_picker",
               "signature": "def _on_open_picker(self) -> None",
-              "line_start": 1712,
-              "line_end": 1731
+              "line_start": 1722,
+              "line_end": 1741
             },
             {
               "name": "_on_remove",
               "signature": "def _on_remove(self, uid: str) -> None",
-              "line_start": 1733,
-              "line_end": 1744
+              "line_start": 1743,
+              "line_end": 1754
             },
             {
               "name": "selected_ids",
               "signature": "def selected_ids(self) -> list[str]",
-              "line_start": 1746,
-              "line_end": 1747
+              "line_start": 1756,
+              "line_end": 1757
             },
             {
               "name": "_insert_tag",
               "signature": "def _insert_tag(self, uid: str) -> None",
-              "line_start": 1749,
-              "line_end": 1755
+              "line_start": 1759,
+              "line_end": 1765
             }
           ],
-          "line_start": 1666,
-          "line_end": 1755
+          "line_start": 1676,
+          "line_end": 1765
         },
         {
           "name": "_PresetBuilderDialog",
@@ -5197,130 +5229,130 @@
             {
               "name": "__init__",
               "signature": "def __init__(\r\n        self,\r\n        mgr: Any,\r\n        user_id: str,\r\n        preset: Any = None,          # None = create new; Preset = edit\r\n        parent: QWidget | None = None,\r\n    ) -> None",
-              "line_start": 1768,
-              "line_end": 2011
+              "line_start": 1778,
+              "line_end": 2021
             },
             {
               "name": "_build_composite_area",
               "signature": "def _build_composite_area(self) -> QWidget",
-              "line_start": 2015,
-              "line_end": 2042
+              "line_start": 2025,
+              "line_end": 2052
             },
             {
               "name": "_add_group",
               "signature": "def _add_group(\r\n        self,\r\n        gid: str | None = None,\r\n        logic: str = \"AND\",\r\n        screener_ids: list[str] | None = None,\r\n        configs: dict[str, dict] | None = None,\r\n    ) -> _GroupWidget",
-              "line_start": 2044,
-              "line_end": 2061
+              "line_start": 2054,
+              "line_end": 2071
             },
             {
               "name": "_on_remove_group",
               "signature": "def _on_remove_group(self, gid: str) -> None",
-              "line_start": 2063,
-              "line_end": 2069
+              "line_start": 2073,
+              "line_end": 2079
             },
             {
               "name": "_build_weighted_area",
               "signature": "def _build_weighted_area(self) -> QWidget",
-              "line_start": 2073,
-              "line_end": 2121
+              "line_start": 2083,
+              "line_end": 2131
             },
             {
               "name": "_add_weighted_row",
               "signature": "def _add_weighted_row(self, sid: str, weight: float = 0.0, config: dict | None = None) -> None",
-              "line_start": 2123,
-              "line_end": 2130
+              "line_start": 2133,
+              "line_end": 2140
             },
             {
               "name": "_on_remove_weighted_row",
               "signature": "def _on_remove_weighted_row(self, row: _WeightedRow) -> None",
-              "line_start": 2132,
-              "line_end": 2136
+              "line_start": 2142,
+              "line_end": 2146
             },
             {
               "name": "_on_add_weighted_screener",
               "signature": "def _on_add_weighted_screener(self) -> None",
-              "line_start": 2138,
-              "line_end": 2159
+              "line_start": 2148,
+              "line_end": 2169
             },
             {
               "name": "_normalize_weights",
               "signature": "def _normalize_weights(self) -> None",
-              "line_start": 2161,
-              "line_end": 2168
+              "line_start": 2171,
+              "line_end": 2178
             },
             {
               "name": "_on_type_changed",
               "signature": "def _on_type_changed(self, btn_id: int, checked: bool) -> None",
-              "line_start": 2172,
-              "line_end": 2176
+              "line_start": 2182,
+              "line_end": 2186
             },
             {
               "name": "_is_composite",
               "signature": "def _is_composite(self) -> bool",
-              "line_start": 2178,
-              "line_end": 2179
+              "line_start": 2188,
+              "line_end": 2189
             },
             {
               "name": "_refresh_preview",
               "signature": "def _refresh_preview(self) -> None",
-              "line_start": 2183,
-              "line_end": 2206
+              "line_start": 2193,
+              "line_end": 2216
             },
             {
               "name": "_collect_trading_styles",
               "signature": "def _collect_trading_styles(self) -> list[str]",
-              "line_start": 2210,
-              "line_end": 2211
+              "line_start": 2220,
+              "line_end": 2221
             },
             {
               "name": "_populate_from_preset",
               "signature": "def _populate_from_preset(self, preset: Any) -> None",
-              "line_start": 2213,
-              "line_end": 2250
+              "line_start": 2223,
+              "line_end": 2260
             },
             {
               "name": "_build_preset_from_ui",
               "signature": "def _build_preset_from_ui(self, preset_id: str | None = None) -> Any",
-              "line_start": 2254,
-              "line_end": 2318
+              "line_start": 2264,
+              "line_end": 2328
             },
             {
               "name": "_validate",
               "signature": "def _validate(self) -> str | None",
               "docstring": "Return error message string if invalid, else None.",
-              "line_start": 2320,
-              "line_end": 2333
+              "line_start": 2330,
+              "line_end": 2343
             },
             {
               "name": "_on_save",
               "signature": "def _on_save(self) -> None",
-              "line_start": 2335,
-              "line_end": 2367
+              "line_start": 2345,
+              "line_end": 2377
             },
             {
               "name": "_on_save_as",
               "signature": "def _on_save_as(self) -> None",
               "docstring": "Save a clone with a new name.",
-              "line_start": 2369,
-              "line_end": 2382
+              "line_start": 2379,
+              "line_end": 2392
             },
             {
               "name": "_on_model_text_changed",
               "signature": "def _on_model_text_changed(self) -> None",
-              "line_start": 2386,
-              "line_end": 2387
+              "line_start": 2396,
+              "line_end": 2397
             },
             {
               "name": "_on_validate_model",
               "signature": "def _on_validate_model(self) -> None",
-              "line_start": 2389,
-              "line_end": 2402
+              "line_start": 2399,
+              "line_end": 2412
             },
             {
               "name": "_on_validate_done",
               "signature": "def _on_validate_done(self, ok: bool, message: str) -> None",
-              "line_start": 2404,
-              "line_end": 2413
+              "line_start": 2414,
+              "line_end": 2423
             },
             {
               "name": "_lbl",
@@ -5328,18 +5360,18 @@
               "decorators": [
                 "@staticmethod"
               ],
-              "line_start": 2416,
-              "line_end": 2419
+              "line_start": 2426,
+              "line_end": 2429
             },
             {
               "name": "preset_id",
               "signature": "def preset_id(self) -> str | None",
-              "line_start": 2421,
-              "line_end": 2422
+              "line_start": 2431,
+              "line_end": 2432
             }
           ],
-          "line_start": 1758,
-          "line_end": 2422
+          "line_start": 1768,
+          "line_end": 2432
         },
         {
           "name": "_NewPresetDialog",
@@ -5348,8 +5380,8 @@
             {
               "name": "__init__",
               "signature": "def __init__(\r\n        self,\r\n        mgr: Any,\r\n        user_id: str,\r\n        parent: QWidget | None = None,\r\n    ) -> None",
-              "line_start": 2430,
-              "line_end": 2535
+              "line_start": 2440,
+              "line_end": 2545
             },
             {
               "name": "_label",
@@ -5357,24 +5389,24 @@
               "decorators": [
                 "@staticmethod"
               ],
-              "line_start": 2540,
-              "line_end": 2543
+              "line_start": 2550,
+              "line_end": 2553
             },
             {
               "name": "preset_id",
               "signature": "def preset_id(self) -> str | None",
-              "line_start": 2545,
-              "line_end": 2546
+              "line_start": 2555,
+              "line_end": 2556
             },
             {
               "name": "_on_save",
               "signature": "def _on_save(self) -> None",
-              "line_start": 2550,
-              "line_end": 2601
+              "line_start": 2560,
+              "line_end": 2611
             }
           ],
-          "line_start": 2427,
-          "line_end": 2601
+          "line_start": 2437,
+          "line_end": 2611
         },
         {
           "name": "ScreenerPanel",
@@ -5383,56 +5415,56 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, demo: AppService, parent: QWidget | None = None) -> None",
-              "line_start": 2616,
-              "line_end": 2657
+              "line_start": 2626,
+              "line_end": 2667
             },
             {
               "name": "_init_backend",
               "signature": "def _init_backend(self) -> None",
-              "line_start": 2661,
-              "line_end": 2669
+              "line_start": 2671,
+              "line_end": 2679
             },
             {
               "name": "_build_toolbar",
               "signature": "def _build_toolbar(self) -> QFrame",
-              "line_start": 2673,
-              "line_end": 2750
+              "line_start": 2683,
+              "line_end": 2760
             },
             {
               "name": "_build_left_pane",
               "signature": "def _build_left_pane(self) -> QFrame",
-              "line_start": 2754,
-              "line_end": 2814
+              "line_start": 2764,
+              "line_end": 2824
             },
             {
               "name": "_build_right_pane",
               "signature": "def _build_right_pane(self) -> QWidget",
-              "line_start": 2818,
-              "line_end": 2885
+              "line_start": 2828,
+              "line_end": 2895
             },
             {
               "name": "_on_style_filter_changed",
               "signature": "def _on_style_filter_changed(self) -> None",
-              "line_start": 2889,
-              "line_end": 2890
+              "line_start": 2899,
+              "line_end": 2900
             },
             {
               "name": "_populate_preset_list",
               "signature": "def _populate_preset_list(self) -> None",
-              "line_start": 2892,
-              "line_end": 2924
+              "line_start": 2902,
+              "line_end": 2934
             },
             {
               "name": "_add_section_header",
               "signature": "def _add_section_header(self, text: str) -> None",
-              "line_start": 2926,
-              "line_end": 2932
+              "line_start": 2936,
+              "line_end": 2942
             },
             {
               "name": "_add_preset_item",
               "signature": "def _add_preset_item(self, preset: Any) -> None",
-              "line_start": 2934,
-              "line_end": 2939
+              "line_start": 2944,
+              "line_end": 2949
             },
             {
               "name": "_section_font",
@@ -5440,197 +5472,197 @@
               "decorators": [
                 "@staticmethod"
               ],
-              "line_start": 2942,
-              "line_end": 2946
+              "line_start": 2952,
+              "line_end": 2956
             },
             {
               "name": "_on_preset_clicked",
               "signature": "def _on_preset_clicked(self, item: QListWidgetItem) -> None",
-              "line_start": 2950,
-              "line_end": 2967
+              "line_start": 2960,
+              "line_end": 2977
             },
             {
               "name": "_refresh_date_nav",
               "signature": "def _refresh_date_nav(self) -> None",
-              "line_start": 2969,
-              "line_end": 2991
+              "line_start": 2979,
+              "line_end": 3001
             },
             {
               "name": "_update_date_display",
               "signature": "def _update_date_display(self) -> None",
-              "line_start": 2993,
-              "line_end": 3002
+              "line_start": 3003,
+              "line_end": 3012
             },
             {
               "name": "_navigate_date",
               "signature": "def _navigate_date(self, delta: int) -> None",
-              "line_start": 3004,
-              "line_end": 3009
+              "line_start": 3014,
+              "line_end": 3019
             },
             {
               "name": "_load_result_for_current_date",
               "signature": "def _load_result_for_current_date(self) -> None",
-              "line_start": 3011,
-              "line_end": 3019
+              "line_start": 3021,
+              "line_end": 3029
             },
             {
               "name": "_on_db_status_changed",
               "signature": "def _on_db_status_changed(self, info: Any) -> None",
               "docstring": "Cache latest CandleDbInfo and fire auto-run if DB just became CURRENT.",
-              "line_start": 3021,
-              "line_end": 3024
+              "line_start": 3031,
+              "line_end": 3034
             },
             {
               "name": "_maybe_auto_run",
               "signature": "def _maybe_auto_run(self) -> None",
               "docstring": "Auto-run today's screener (SRD-SCR-004.007).",
-              "line_start": 3026,
-              "line_end": 3079
+              "line_start": 3036,
+              "line_end": 3089
             },
             {
               "name": "_run_preset",
               "signature": "def _run_preset(self) -> None",
-              "line_start": 3083,
-              "line_end": 3084
+              "line_start": 3093,
+              "line_end": 3094
             },
             {
               "name": "_run_preset_as",
               "signature": "def _run_preset_as(self, preset_id: str | None = None, manual: bool = True) -> None",
-              "line_start": 3086,
-              "line_end": 3112
+              "line_start": 3096,
+              "line_end": 3122
             },
             {
               "name": "_select_preset_in_list",
               "signature": "def _select_preset_in_list(self, preset_id: str) -> None",
               "docstring": "Programmatically select a preset in the left list without re-triggering auto-run",
-              "line_start": 3114,
-              "line_end": 3132
+              "line_start": 3124,
+              "line_end": 3142
             },
             {
               "name": "_on_run_finished",
               "signature": "def _on_run_finished(self, result: Any) -> None",
-              "line_start": 3134,
-              "line_end": 3156
+              "line_start": 3144,
+              "line_end": 3166
             },
             {
               "name": "_on_run_failed",
               "signature": "def _on_run_failed(self, reason: str) -> None",
-              "line_start": 3158,
-              "line_end": 3162
+              "line_start": 3168,
+              "line_end": 3172
             },
             {
               "name": "_refresh_transcript_visibility",
               "signature": "def _refresh_transcript_visibility(self) -> None",
               "docstring": "Show the transcript panel only when the active preset uses LLM ranking",
-              "line_start": 3166,
-              "line_end": 3176
+              "line_start": 3176,
+              "line_end": 3186
             },
             {
               "name": "_display_result",
               "signature": "def _display_result(self, result: Any) -> None",
               "docstring": "Populate the results table from a ScreenerRunResult.",
-              "line_start": 3178,
-              "line_end": 3207
+              "line_start": 3188,
+              "line_end": 3217
             },
             {
               "name": "_build_rows",
               "signature": "def _build_rows(self, result: Any) -> list[_Row]",
-              "line_start": 3209,
-              "line_end": 3257
+              "line_start": 3219,
+              "line_end": 3267
             },
             {
               "name": "_update_mode_badge",
               "signature": "def _update_mode_badge(self, mode: str) -> None",
-              "line_start": 3259,
-              "line_end": 3273
+              "line_start": 3269,
+              "line_end": 3283
             },
             {
               "name": "_show_table",
               "signature": "def _show_table(self, *, has_data: bool) -> None",
-              "line_start": 3275,
-              "line_end": 3277
+              "line_start": 3285,
+              "line_end": 3287
             },
             {
               "name": "_show_empty",
               "signature": "def _show_empty(self, message: str = \"Select a preset from the list\\nand click \u25b6 Run Now\") -> None",
-              "line_start": 3279,
-              "line_end": 3283
+              "line_start": 3289,
+              "line_end": 3293
             },
             {
               "name": "_show_error",
               "signature": "def _show_error(self, reason: str) -> None",
-              "line_start": 3285,
-              "line_end": 3289
+              "line_start": 3295,
+              "line_end": 3299
             },
             {
               "name": "_on_preset_context_menu",
               "signature": "def _on_preset_context_menu(self, pos: Any) -> None",
-              "line_start": 3293,
-              "line_end": 3302
+              "line_start": 3303,
+              "line_end": 3312
             },
             {
               "name": "_on_edit_preset",
               "signature": "def _on_edit_preset(self) -> None",
-              "line_start": 3304,
-              "line_end": 3323
+              "line_start": 3314,
+              "line_end": 3333
             },
             {
               "name": "_on_duplicate_preset",
               "signature": "def _on_duplicate_preset(self) -> None",
-              "line_start": 3325,
-              "line_end": 3347
+              "line_start": 3335,
+              "line_end": 3357
             },
             {
               "name": "_on_delete_preset",
               "signature": "def _on_delete_preset(self) -> None",
-              "line_start": 3349,
-              "line_end": 3378
+              "line_start": 3359,
+              "line_end": 3388
             },
             {
               "name": "_on_new_preset",
               "signature": "def _on_new_preset(self) -> None",
-              "line_start": 3382,
-              "line_end": 3391
+              "line_start": 3392,
+              "line_end": 3401
             },
             {
               "name": "_select_preset_by_id",
               "signature": "def _select_preset_by_id(self, preset_id: str) -> None",
-              "line_start": 3393,
-              "line_end": 3399
-            },
-            {
-              "name": "_on_table_clicked",
-              "signature": "def _on_table_clicked(self, proxy_index: QModelIndex) -> None",
               "line_start": 3403,
               "line_end": 3409
             },
             {
+              "name": "_on_table_clicked",
+              "signature": "def _on_table_clicked(self, proxy_index: QModelIndex) -> None",
+              "line_start": 3413,
+              "line_end": 3419
+            },
+            {
               "name": "_open_quick_chart",
               "signature": "def _open_quick_chart(self, symbol: str) -> None",
-              "line_start": 3411,
-              "line_end": 3417
+              "line_start": 3421,
+              "line_end": 3427
             },
             {
               "name": "_on_selection",
               "signature": "def _on_selection(self) -> None",
-              "line_start": 3421,
-              "line_end": 3423
+              "line_start": 3431,
+              "line_end": 3433
             },
             {
               "name": "_on_add_watchlist",
               "signature": "def _on_add_watchlist(self) -> None",
-              "line_start": 3425,
-              "line_end": 3434
+              "line_start": 3435,
+              "line_end": 3444
             },
             {
               "name": "_export_csv",
               "signature": "def _export_csv(self) -> None",
-              "line_start": 3438,
-              "line_end": 3459
+              "line_start": 3448,
+              "line_end": 3469
             }
           ],
-          "line_start": 2606,
-          "line_end": 3459
+          "line_start": 2616,
+          "line_end": 3469
         }
       ],
       "top_level_functions": [
@@ -5638,22 +5670,22 @@
           "name": "_format_indicator_config",
           "signature": "def _format_indicator_config(config: dict) -> str",
           "docstring": "Return a compact one-line summary of an IndicatorScreener config dict.",
-          "line_start": 622,
-          "line_end": 671
+          "line_start": 632,
+          "line_end": 681
         },
         {
           "name": "_hdivider",
           "signature": "def _hdivider() -> QFrame",
           "docstring": "Thin horizontal rule used between sections in config dialogs.",
-          "line_start": 674,
-          "line_end": 680
+          "line_start": 684,
+          "line_end": 690
         },
         {
           "name": "_format_price_action_config",
           "signature": "def _format_price_action_config(config: dict) -> str",
           "docstring": "Return a compact one-line summary of a PriceActionScreener config dict.",
-          "line_start": 1013,
-          "line_end": 1023
+          "line_start": 1023,
+          "line_end": 1033
         }
       ],
       "constants": [
@@ -5768,53 +5800,77 @@
               "name": "__init__",
               "signature": "def __init__(self, demo: AppService, parent: QWidget | None = None) -> None",
               "line_start": 322,
-              "line_end": 452
+              "line_end": 475
             },
             {
               "name": "_refresh_cb_label",
               "signature": "def _refresh_cb_label(self) -> None",
-              "line_start": 456,
-              "line_end": 458
+              "line_start": 479,
+              "line_end": 481
             },
             {
               "name": "_on_toggle_cb",
               "signature": "def _on_toggle_cb(self) -> None",
-              "line_start": 460,
-              "line_end": 461
+              "line_start": 483,
+              "line_end": 484
             },
             {
               "name": "_on_candle_db",
               "signature": "def _on_candle_db(self) -> None",
-              "line_start": 463,
-              "line_end": 465
+              "line_start": 486,
+              "line_end": 488
+            },
+            {
+              "name": "_on_check_updates",
+              "signature": "def _on_check_updates(self) -> None",
+              "line_start": 490,
+              "line_end": 501
+            },
+            {
+              "name": "_on_update_found",
+              "signature": "def _on_update_found(self, info: object) -> None",
+              "line_start": 503,
+              "line_end": 510
+            },
+            {
+              "name": "_on_update_up_to_date",
+              "signature": "def _on_update_up_to_date(self) -> None",
+              "line_start": 512,
+              "line_end": 514
+            },
+            {
+              "name": "_on_update_failed",
+              "signature": "def _on_update_failed(self, msg: str) -> None",
+              "line_start": 516,
+              "line_end": 519
             },
             {
               "name": "_refresh_sched_btn_label",
               "signature": "def _refresh_sched_btn_label(self) -> None",
-              "line_start": 467,
-              "line_end": 470
+              "line_start": 521,
+              "line_end": 524
             },
             {
               "name": "_on_scheduler",
               "signature": "def _on_scheduler(self) -> None",
-              "line_start": 472,
-              "line_end": 476
+              "line_start": 526,
+              "line_end": 530
             },
             {
               "name": "_on_save",
               "signature": "def _on_save(self) -> None",
-              "line_start": 478,
-              "line_end": 491
+              "line_start": 532,
+              "line_end": 545
             },
             {
               "name": "_on_theme",
               "signature": "def _on_theme(self, theme_id: str) -> None",
-              "line_start": 493,
-              "line_end": 499
+              "line_start": 547,
+              "line_end": 553
             }
           ],
           "line_start": 319,
-          "line_end": 499
+          "line_end": 553
         },
         {
           "name": "_UniverseTab",
@@ -5823,36 +5879,36 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, svc: AppService, parent: QWidget | None = None) -> None",
-              "line_start": 734,
-              "line_end": 771
+              "line_start": 788,
+              "line_end": 825
             },
             {
               "name": "_load_from_cache",
               "signature": "def _load_from_cache(self) -> None",
-              "line_start": 775,
-              "line_end": 784
+              "line_start": 829,
+              "line_end": 838
             },
             {
               "name": "_push_filters",
               "signature": "def _push_filters(self) -> None",
-              "line_start": 786,
-              "line_end": 788
+              "line_start": 840,
+              "line_end": 842
             },
             {
               "name": "_on_refresh",
               "signature": "def _on_refresh(self) -> None",
-              "line_start": 790,
-              "line_end": 792
+              "line_start": 844,
+              "line_end": 846
             },
             {
               "name": "refresh_theme",
               "signature": "def refresh_theme(self, _theme_id: str = \"\") -> None",
-              "line_start": 794,
-              "line_end": 796
+              "line_start": 848,
+              "line_end": 850
             }
           ],
-          "line_start": 727,
-          "line_end": 796
+          "line_start": 781,
+          "line_end": 850
         },
         {
           "name": "_DatabaseTab",
@@ -5861,116 +5917,116 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, svc: AppService, parent: QWidget | None = None) -> None",
-              "line_start": 809,
-              "line_end": 1008
+              "line_start": 863,
+              "line_end": 1062
             },
             {
               "name": "_on_refresh_status",
               "signature": "def _on_refresh_status(self) -> None",
-              "line_start": 1012,
-              "line_end": 1020
+              "line_start": 1066,
+              "line_end": 1074
             },
             {
               "name": "_on_status_loaded",
               "signature": "def _on_status_loaded(self, info: object) -> None",
-              "line_start": 1022,
-              "line_end": 1085
+              "line_start": 1076,
+              "line_end": 1139
             },
             {
               "name": "_on_build_clicked",
               "signature": "def _on_build_clicked(self) -> None",
-              "line_start": 1087,
-              "line_end": 1116
+              "line_start": 1141,
+              "line_end": 1170
             },
             {
               "name": "_on_cancel",
               "signature": "def _on_cancel(self) -> None",
-              "line_start": 1118,
-              "line_end": 1121
+              "line_start": 1172,
+              "line_end": 1175
             },
             {
               "name": "_on_progress",
               "signature": "def _on_progress(self, symbol: str, done: int, total: int) -> None",
-              "line_start": 1123,
-              "line_end": 1129
+              "line_start": 1177,
+              "line_end": 1183
             },
             {
               "name": "_on_finished",
               "signature": "def _on_finished(self, inserted_1d: int, inserted_1w: int) -> None",
-              "line_start": 1131,
-              "line_end": 1138
+              "line_start": 1185,
+              "line_end": 1192
             },
             {
               "name": "_on_failed",
               "signature": "def _on_failed(self, reason: str) -> None",
-              "line_start": 1140,
-              "line_end": 1143
+              "line_start": 1194,
+              "line_end": 1197
             },
             {
               "name": "_on_paused",
               "signature": "def _on_paused(self, reason: str) -> None",
               "docstring": "Called when IBKR disconnects mid-download (SRD-GUI-006.014).",
-              "line_start": 1145,
-              "line_end": 1149
+              "line_start": 1199,
+              "line_end": 1203
             },
             {
               "name": "_on_symbol_failed",
               "signature": "def _on_symbol_failed(self, symbol: str, reason: str) -> None",
               "docstring": "Increment live fail counter in progress section (SRD-GUI-006.016).",
-              "line_start": 1151,
-              "line_end": 1158
+              "line_start": 1205,
+              "line_end": 1212
             },
             {
               "name": "_on_failures_ready",
               "signature": "def _on_failures_ready(self, symbols: object) -> None",
               "docstring": "Show/hide discrepancy panel after download finishes (SRD-GUI-006.016).",
-              "line_start": 1160,
-              "line_end": 1169
+              "line_start": 1214,
+              "line_end": 1223
             },
             {
               "name": "_on_fix_discrepancies",
               "signature": "def _on_fix_discrepancies(self) -> None",
               "docstring": "Re-download only failed symbols (SRD-GUI-006.016).",
-              "line_start": 1171,
-              "line_end": 1195
+              "line_start": 1225,
+              "line_end": 1249
             },
             {
               "name": "_on_reset_db",
               "signature": "def _on_reset_db(self) -> None",
               "docstring": "Confirm and reset the candle database (delete + recreate empty schema).",
-              "line_start": 1197,
-              "line_end": 1221
+              "line_start": 1251,
+              "line_end": 1275
             },
             {
               "name": "_show_discrepancies",
               "signature": "def _show_discrepancies(self, symbols: list[str]) -> None",
               "docstring": "Populate and show the discrepancy group.",
-              "line_start": 1225,
-              "line_end": 1235
+              "line_start": 1279,
+              "line_end": 1289
             },
             {
               "name": "_load_persisted_failures",
               "signature": "def _load_persisted_failures(self) -> None",
               "docstring": "Restore failed-symbols panel from disk on startup (SRD-GUI-006.016).",
-              "line_start": 1237,
-              "line_end": 1242
+              "line_start": 1291,
+              "line_end": 1296
             },
             {
               "name": "_apply_checkpoint_state",
               "signature": "def _apply_checkpoint_state(self) -> None",
               "docstring": "Show '\u25b6 Resume Download' if a checkpoint exists; restore normal label otherwise.",
-              "line_start": 1244,
-              "line_end": 1254
+              "line_start": 1298,
+              "line_end": 1308
             },
             {
               "name": "_set_downloading",
               "signature": "def _set_downloading(self, active: bool) -> None",
-              "line_start": 1256,
-              "line_end": 1270
+              "line_start": 1310,
+              "line_end": 1324
             }
           ],
-          "line_start": 801,
-          "line_end": 1270
+          "line_start": 855,
+          "line_end": 1324
         },
         {
           "name": "SettingsPanel",
@@ -5979,19 +6035,19 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, demo: AppService, parent: QWidget | None = None) -> None",
-              "line_start": 1282,
-              "line_end": 1299
+              "line_start": 1336,
+              "line_end": 1353
             },
             {
               "name": "trigger_fill_delta",
               "signature": "def trigger_fill_delta(self) -> None",
               "docstring": "Programmatically invoke fill delta \u2014 identical to clicking the button manually.",
-              "line_start": 1301,
-              "line_end": 1303
+              "line_start": 1355,
+              "line_end": 1357
             }
           ],
-          "line_start": 1275,
-          "line_end": 1303
+          "line_start": 1329,
+          "line_end": 1357
         }
       ],
       "top_level_functions": [
@@ -5999,8 +6055,8 @@
           "name": "_build_universe_html",
           "signature": "def _build_universe_html(\r\n    records: list,\r\n    coverage: \"dict[str, str | None] | None\" = None,\r\n    last_trading_day: str | None = None,\r\n) -> str",
           "docstring": "Serialize records to an HTML page with all data embedded as JSON.",
-          "line_start": 677,
-          "line_end": 724
+          "line_start": 731,
+          "line_end": 778
         }
       ],
       "constants": [
@@ -6683,46 +6739,46 @@
             {
               "name": "__getattr__",
               "signature": "def __getattr__(self, name: str) -> Any",
-              "line_start": 1216,
-              "line_end": 1217
+              "line_start": 1222,
+              "line_end": 1223
             }
           ],
-          "line_start": 1208,
-          "line_end": 1217
+          "line_start": 1214,
+          "line_end": 1223
         }
       ],
       "top_level_functions": [
         {
           "name": "load_theme_id",
           "signature": "def load_theme_id() -> str",
-          "line_start": 1183,
-          "line_end": 1188
+          "line_start": 1189,
+          "line_end": 1194
         },
         {
           "name": "save_theme_id",
           "signature": "def save_theme_id(theme_id: str) -> None",
-          "line_start": 1191,
-          "line_end": 1193
+          "line_start": 1197,
+          "line_end": 1199
         },
         {
           "name": "apply_theme",
           "signature": "def apply_theme(theme_id: str) -> None",
-          "line_start": 1196,
-          "line_end": 1200
+          "line_start": 1202,
+          "line_end": 1206
         },
         {
           "name": "active_palette",
           "signature": "def active_palette() -> type",
           "docstring": "Return the active theme's colour token class (_MOCHA or _VS).",
-          "line_start": 1203,
-          "line_end": 1205
+          "line_start": 1209,
+          "line_end": 1211
         },
         {
           "name": "colors",
           "signature": "def colors() -> dict[str, str]",
           "docstring": "Runtime colour roles for the active theme.",
-          "line_start": 1223,
-          "line_end": 1233
+          "line_start": 1229,
+          "line_end": 1239
         }
       ],
       "constants": [

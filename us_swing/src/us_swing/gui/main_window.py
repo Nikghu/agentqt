@@ -22,6 +22,7 @@ from PyQt6.QtCore import QEvent, QPoint, QPointF, QRectF, QSettings, QTimer, Qt
 from PyQt6.QtGui import QColor, QCursor, QFont, QPainter, QPainterPath, QPen, QPixmap
 from PyQt6.QtWidgets import (
     QApplication,
+    QDialog,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -425,6 +426,103 @@ class _TitleBar(QWidget):
             self._maximised = True
 
     # ── Data refresh ──────────────────────────────────────────────────────────
+
+
+# ── Confirmation Dialog ───────────────────────────────────────────────────────────
+
+class _ConfirmDialog(QDialog):
+    """Frameless yes/no confirmation styled to match the terminal title bar.
+
+    Replaces the native QMessageBox so confirmations share the app's
+    frameless look instead of the default OS dialog chrome.
+    """
+
+    _WC = (
+        "QPushButton {{ background: transparent; color: {fg}; border: none;"
+        " font-size: 14px; min-width: 32px; max-width: 32px;"
+        " min-height: 28px; max-height: 28px; border-radius: 4px; }}"
+        "QPushButton:hover {{ background: {hover}; color: white; }}"
+    )
+
+    def __init__(self, title: str, message: str, confirm_label: str,
+                 parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._drag_pos = QPoint()
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
+        self.setModal(True)
+        self.setMinimumWidth(380)
+        self.setStyleSheet(
+            f"QDialog {{ background: {C.BG}; border: 1px solid {C.OVERLAY}; }}"
+            f"QLabel {{ background: transparent; }}"
+        )
+
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(0)
+        root.addWidget(self._build_title_bar(title))
+
+        body = QWidget()
+        col = QVBoxLayout(body)
+        col.setContentsMargins(20, 20, 20, 16)
+        col.setSpacing(20)
+
+        msg = QLabel(message)
+        msg.setWordWrap(True)
+        col.addWidget(msg)
+
+        btn_row = QHBoxLayout()
+        btn_row.setSpacing(8)
+        btn_row.addStretch(1)
+
+        self._btn_cancel = QPushButton("Cancel")
+        self._btn_cancel.setFixedWidth(96)
+        self._btn_cancel.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self._btn_cancel.setDefault(True)
+        self._btn_cancel.clicked.connect(self.reject)
+
+        self._btn_confirm = QPushButton(confirm_label)
+        self._btn_confirm.setObjectName("close_btn")
+        self._btn_confirm.setFixedWidth(140)
+        self._btn_confirm.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self._btn_confirm.clicked.connect(self.accept)
+
+        btn_row.addWidget(self._btn_cancel)
+        btn_row.addWidget(self._btn_confirm)
+        col.addLayout(btn_row)
+        root.addWidget(body)
+
+    def _build_title_bar(self, title: str) -> QWidget:
+        bar = QWidget()
+        bar.setObjectName("title_bar")
+        bar.setStyleSheet("QWidget#title_bar { border-bottom: none; }")
+        bar.setFixedHeight(40)
+        row = QHBoxLayout(bar)
+        row.setContentsMargins(12, 0, 4, 0)
+        row.setSpacing(0)
+
+        lbl = QLabel(title)
+        lbl.setObjectName("top_brand")
+        row.addWidget(lbl)
+        row.addStretch(1)
+
+        btn_cls = QPushButton("✕")
+        btn_cls.setStyleSheet(self._WC.format(fg=C.SUBTEXT, hover="#c0392b"))
+        btn_cls.setToolTip("Close")
+        btn_cls.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        btn_cls.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        btn_cls.clicked.connect(self.reject)
+        row.addWidget(btn_cls)
+        return bar
+
+    def mousePressEvent(self, ev):  # type: ignore[override]
+        if ev.button() == Qt.MouseButton.LeftButton:
+            self._drag_pos = ev.globalPosition().toPoint() - self.frameGeometry().topLeft()
+        super().mousePressEvent(ev)
+
+    def mouseMoveEvent(self, ev):  # type: ignore[override]
+        if ev.buttons() & Qt.MouseButton.LeftButton and not self._drag_pos.isNull():
+            self.move(ev.globalPosition().toPoint() - self._drag_pos)
+        super().mouseMoveEvent(ev)
 
 
 # ── Admin Context Bar ─────────────────────────────────────────────────────────────
@@ -869,14 +967,13 @@ class MainWindow(QMainWindow):
     # ── Lifecycle ──────────────────────────────────────────────────────────────
 
     def closeEvent(self, event: object) -> None:  # type: ignore[override]
-        from PyQt6.QtWidgets import QMessageBox
-        ret = QMessageBox.question(
-            self, "Close Terminal",
-            "Close Swing Trading Terminal?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
+        dlg = _ConfirmDialog(
+            "Close Terminal",
+            "Are you sure you want to close the Swing Trading Terminal?",
+            "Close Terminal",
+            self,
         )
-        if ret != QMessageBox.StandardButton.Yes:
+        if dlg.exec() != QDialog.DialogCode.Accepted:
             event.ignore()  # type: ignore[attr-defined]
             return
         if self._feed_retry_timer is not None:

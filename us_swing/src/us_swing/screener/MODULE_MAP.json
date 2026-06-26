@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-25T18:12:00",
+  "generated": "2026-06-26T08:24:57",
   "subfolder": "screener",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\screener",
   "tool_code": "SCR",
@@ -97,67 +97,71 @@
           "methods": [
             {
               "name": "__init__",
-              "signature": "def __init__(\r\n        self,\r\n        db: Any = None,\r\n        app_service: Any = None,\r\n        preset_manager: Any = None,\r\n        storage: ScreenerResultsStorage | None = None,\r\n        registry: ScreenerRegistry | None = None,\r\n        max_workers: int = 4,\r\n    ) -> None",
-              "line_start": 41,
-              "line_end": 56
+              "signature": "def __init__(\r\n        self,\r\n        db: Any = None,\r\n        app_service: Any = None,\r\n        preset_manager: Any = None,\r\n        storage: ScreenerResultsStorage | None = None,\r\n        registry: ScreenerRegistry | None = None,\r\n        max_workers: int = 4,\r\n        notify: Callable[[str, str], None] | None = None,\r\n    ) -> None",
+              "line_start": 50,
+              "line_end": 67
             },
             {
               "name": "run_preset",
-              "signature": "def run_preset(\r\n        self,\r\n        preset_id: str,\r\n        user_id: str,\r\n        manual: bool = True,\r\n        *,\r\n        symbols: list[str] | None = None,\r\n        bars: dict[str, list[Any]] | None = None,\r\n        preset: Preset | None = None,\r\n    ) -> ScreenerRunResult",
+              "signature": "def run_preset(\r\n        self,\r\n        preset_id: str,\r\n        user_id: str,\r\n        manual: bool = True,\r\n        *,\r\n        symbols: list[str] | None = None,\r\n        bars: dict[str, list[Any]] | None = None,\r\n        preset: Preset | None = None,\r\n        market_caps: dict[str, float] | None = None,\r\n    ) -> ScreenerRunResult",
               "docstring": "Execute a preset and persist the result.",
-              "line_start": 62,
-              "line_end": 173
+              "line_start": 73,
+              "line_end": 189
             },
             {
               "name": "_run_stage2",
               "signature": "def _run_stage2(\r\n        self,\r\n        preset: Preset,\r\n        symbols: list[str],\r\n        bars: dict[str, list[Any]],\r\n    ) -> dict[str, dict[str, tuple[bool, float]]]",
               "docstring": "Call every enabled screener and collect per-symbol (passed, score).",
-              "line_start": 179,
-              "line_end": 228
+              "line_start": 195,
+              "line_end": 244
             },
             {
               "name": "_combine_results",
               "signature": "def _combine_results(\r\n        self,\r\n        preset: Preset,\r\n        stage2: dict[str, dict[str, tuple[bool, float]]],\r\n        symbols: list[str],\r\n    ) -> dict[str, dict[str, Any]]",
-              "line_start": 234,
-              "line_end": 242
+              "line_start": 250,
+              "line_end": 258
             },
             {
               "name": "_composite_logic",
               "signature": "def _composite_logic(\r\n        self,\r\n        preset: Preset,\r\n        stage2: dict[str, dict[str, tuple[bool, float]]],\r\n        symbols: list[str],\r\n    ) -> dict[str, dict[str, Any]]",
               "docstring": "Symbol passes if ANY group passes (groups are OR-ed together).",
-              "line_start": 244,
-              "line_end": 282
+              "line_start": 260,
+              "line_end": 298
             },
             {
               "name": "_weighted_logic",
               "signature": "def _weighted_logic(\r\n        self,\r\n        preset: Preset,\r\n        stage2: dict[str, dict[str, tuple[bool, float]]],\r\n        symbols: list[str],\r\n    ) -> dict[str, dict[str, Any]]",
               "docstring": "Score = \u03a3(score_i \u00d7 weight_i) / \u03a3(weights) for enabled screeners.",
-              "line_start": 284,
-              "line_end": 307
+              "line_start": 300,
+              "line_end": 323
             },
             {
               "name": "_run_stage3",
-              "signature": "def _run_stage3(\r\n        self,\r\n        preset: Preset,\r\n        combined: dict[str, dict[str, Any]],\r\n        bars: dict[str, list[Any]],\r\n    ) -> tuple[dict[str, dict[str, Any]], list[AITranscriptTurn]]",
+              "signature": "def _run_stage3(\r\n        self,\r\n        preset: Preset,\r\n        combined: dict[str, dict[str, Any]],\r\n        bars: dict[str, list[Any]],\r\n        market_caps: dict[str, float] | None = None,\r\n    ) -> tuple[dict[str, dict[str, Any]], list[AITranscriptTurn]]",
               "docstring": "Re-rank Stage 2 passing symbols with CloudAIScreener.",
-              "line_start": 313,
-              "line_end": 378
+              "line_start": 329,
+              "line_end": 416
             },
             {
               "name": "_get_registry",
               "signature": "def _get_registry(self) -> ScreenerRegistry",
-              "line_start": 384,
-              "line_end": 385
+              "line_start": 422,
+              "line_end": 423
             },
             {
               "name": "_get_storage",
               "signature": "def _get_storage(self) -> ScreenerResultsStorage",
-              "line_start": 387,
-              "line_end": 388
+              "line_start": 425,
+              "line_end": 426
             }
           ],
-          "line_start": 27,
-          "line_end": 388
+          "line_start": 32,
+          "line_end": 426
         }
+      ],
+      "constants": [
+        "_AI_MAX_INPUT: Final[int] = 20",
+        "_AI_TOP_BY_CAP: Final[int] = 10"
       ]
     },
     "manager.py": {

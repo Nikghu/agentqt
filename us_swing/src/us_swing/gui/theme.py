@@ -198,6 +198,9 @@ QWidget#title_bar {
     background: #11111b;
     border-bottom: 1px solid #313244;
 }
+QWidget#dlg_title_bar {
+    background: #1e1e2e;
+}
 QLabel#top_brand {
     color: #89b4fa;
     font-size: 9pt;
@@ -697,6 +700,9 @@ QMainWindow, QDialog, QWidget {
 QWidget#title_bar {
     background: #161616;
     border-bottom: 1px solid #d4d4d4;
+}
+QWidget#dlg_title_bar {
+    background: #1e1e1e;
 }
 QLabel#top_brand {
     color: #ffffff;

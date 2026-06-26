@@ -267,6 +267,14 @@ class _PresetRunWorker(QThread):
             sp500      = [r.symbol for r in universe] if universe else []
             symbols    = [s for s in sp500 if s in db_symbols] if db_symbols else sp500
 
+            # Market cap per symbol — lets Stage 3 pick the top stocks when the
+            # AI input cap is exceeded.
+            market_caps = {
+                r.symbol: r.market_cap
+                for r in (universe or [])
+                if getattr(r, "market_cap", None) is not None
+            }
+
             if not symbols:
                 self.failed.emit(
                     "No candle data found in the database.\n"
@@ -329,6 +337,7 @@ class _PresetRunWorker(QThread):
                 preset_manager=self._mgr,
                 storage=self._storage,
                 max_workers=4,
+                notify=self._svc.log_message.emit,
             )
             result = executor.run_preset(
                 preset_id=self._preset_id,
@@ -336,6 +345,7 @@ class _PresetRunWorker(QThread):
                 manual=self._manual,
                 symbols=symbols,
                 bars=bars,
+                market_caps=market_caps,
             )
             self.finished.emit(result)
         except Exception as exc:  # noqa: BLE001
@@ -723,7 +733,7 @@ class _FramelessDialog(QDialog):
 
     def _make_title_bar(self, title: str) -> QFrame:
         bar = QFrame()
-        bar.setObjectName("title_bar")
+        bar.setObjectName("dlg_title_bar")
         bar.setFixedHeight(38)
         hl = QHBoxLayout(bar)
         hl.setContentsMargins(14, 0, 6, 0)

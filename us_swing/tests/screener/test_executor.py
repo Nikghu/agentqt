@@ -826,3 +826,102 @@ def test_stage3_llm_exception_preserves_partial_transcript(tmp_path: Path):
 
     assert len(result.ai_transcript) == 2
     assert [t.role for t in result.ai_transcript] == ["system", "user"]
+
+
+# ---------------------------------------------------------------------------
+# T24 — Stage 3 input cap: >20 passing symbols trimmed to top 10 by market cap
+# ---------------------------------------------------------------------------
+
+def test_stage3_input_capped_to_top_by_market_cap(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture,
+):
+    """UT-SCR-003.001.M10.T24: Stage 3 sends at most the top 10 by market cap."""
+    symbols = [f"SYM{i:02d}" for i in range(25)]
+    bars = {s: make_bars(s, n=50, seed=i) for i, s in enumerate(symbols)}
+    # Descending caps: SYM00 largest ... SYM24 smallest.
+    market_caps = {s: float(len(symbols) - i) for i, s in enumerate(symbols)}
+    top10 = {f"SYM{i:02d}" for i in range(10)}
+
+    ind = _make_screener()
+    llm = MagicMock()
+    llm.apply.side_effect = lambda syms, b, cfg: {s: (True, 0.7) for s in syms}
+    llm.last_reasoning = {}
+
+    registry = ScreenerRegistry()
+    registry.register("ind_cap", lambda: ind)
+    registry.register("llm_claude_ranking", lambda: llm)
+
+    preset = Preset(
+        id="cap",
+        name="Cap",
+        preset_type=PresetType.WEIGHTED,
+        screeners=[ScreenerRef(screener_id="ind_cap", enabled=True, weight=1.0)],
+        threshold=0.5,
+        enable_llm_ranking=True,
+        top_n=10,
+        ai_query="rank these",
+    )
+    notify = MagicMock()
+    executor = PresetExecutor(
+        db=MagicMock(),
+        preset_manager=_mock_preset_manager(preset),
+        storage=_mock_storage(tmp_path),
+        registry=registry,
+        notify=notify,
+    )
+    with caplog.at_level(logging.WARNING):
+        result = executor.run_preset(
+            "cap", "u", symbols=symbols, bars=bars, market_caps=market_caps,
+        )
+
+    sent = llm.apply.call_args[0][0]
+    assert len(sent) == 10
+    assert set(sent) == top10
+    # Symbols outside the top 10 by market cap are dropped from the passing set.
+    assert set(result.results) == top10
+    assert "Stage 3 does not support more than 20" in caplog.text
+    # The cap notice is surfaced to the user via the notify callback.
+    notify.assert_called_once()
+    level, msg = notify.call_args[0]
+    assert level == "WARNING"
+    assert "top 10 by market cap" in msg
+
+
+# ---------------------------------------------------------------------------
+# T25 — Stage 3 input cap not applied when 20 or fewer symbols pass
+# ---------------------------------------------------------------------------
+
+def test_stage3_no_cap_when_within_limit(tmp_path: Path):
+    """UT-SCR-003.001.M10.T25: All passing symbols sent when count <= 20."""
+    symbols = [f"SYM{i:02d}" for i in range(20)]
+    bars = {s: make_bars(s, n=50, seed=i) for i, s in enumerate(symbols)}
+
+    ind = _make_screener()
+    llm = MagicMock()
+    llm.apply.side_effect = lambda syms, b, cfg: {s: (True, 0.7) for s in syms}
+    llm.last_reasoning = {}
+
+    registry = ScreenerRegistry()
+    registry.register("ind_nocap", lambda: ind)
+    registry.register("llm_claude_ranking", lambda: llm)
+
+    preset = Preset(
+        id="nocap",
+        name="NoCap",
+        preset_type=PresetType.WEIGHTED,
+        screeners=[ScreenerRef(screener_id="ind_nocap", enabled=True, weight=1.0)],
+        threshold=0.5,
+        enable_llm_ranking=True,
+        top_n=20,
+        ai_query="rank these",
+    )
+    executor = PresetExecutor(
+        db=MagicMock(),
+        preset_manager=_mock_preset_manager(preset),
+        storage=_mock_storage(tmp_path),
+        registry=registry,
+    )
+    executor.run_preset("nocap", "u", symbols=symbols, bars=bars)
+
+    sent = llm.apply.call_args[0][0]
+    assert len(sent) == 20

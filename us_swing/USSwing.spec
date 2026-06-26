@@ -5,7 +5,7 @@ a = Analysis(
     ['run_gui.py'],
     pathex=['src'],
     binaries=[],
-    datas=[('assets', 'assets')],
+    datas=[],
     hiddenimports=['talib.stream'],
     hookspath=[],
     hooksconfig={},
