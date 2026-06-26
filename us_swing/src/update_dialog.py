@@ -18,6 +18,25 @@ from PyQt6.QtWidgets import (
 from updater_stub import UpdateInfo, check_update_available, download_and_verify_update
 
 
+class _CheckWorker(QThread):
+    """Runs the update check off the GUI thread so the network call never freezes the UI."""
+
+    found: pyqtSignal = pyqtSignal(object)  # emits UpdateInfo
+    up_to_date: pyqtSignal = pyqtSignal()
+    failed: pyqtSignal = pyqtSignal(str)
+
+    def run(self) -> None:
+        try:
+            info = check_update_available(force=True)
+        except Exception as exc:
+            self.failed.emit(str(exc))
+            return
+        if info is None:
+            self.up_to_date.emit()
+        else:
+            self.found.emit(info)
+
+
 class _DownloadWorker(QThread):
     progress: pyqtSignal = pyqtSignal(int, int)
     finished: pyqtSignal = pyqtSignal(str)

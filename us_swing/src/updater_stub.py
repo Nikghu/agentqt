@@ -51,20 +51,26 @@ class UpdateInfo(NamedTuple):
     sig_url: str
 
 
-def check_update_available() -> UpdateInfo | None:
+def check_update_available(force: bool = False) -> UpdateInfo | None:
     """Return UpdateInfo if a newer version exists on the configured source, else None.
 
     The check time is stamped as soon as the interval is due, before polling, so a
     failed poll (rate limit, network, SSL) does not re-poll on every launch — that
     would burn through GitHub's hourly request cap and lock the updater into a 403
     loop. A transient failure simply waits until the next interval.
+
+    Args:
+        force: When True, ignore the 24-hour throttle and poll immediately. Used by
+            the in-app "Check for Updates" button so the user is never blocked by a
+            check that ran before the new release was published.
     """
     cfg = _load_config()
     if not cfg.get("enabled", False):
         return None
-    interval_secs = cfg.get("interval_hours", 24) * 3600
-    if not _is_check_due(interval_secs):
-        return None
+    if not force:
+        interval_secs = cfg.get("interval_hours", 24) * 3600
+        if not _is_check_due(interval_secs):
+            return None
     _stamp_check_time()
     github_repo: str = cfg.get("github_repo", "").strip()
     manifest = _fetch_github_manifest(github_repo, cfg) if github_repo else _fetch_custom_manifest(cfg)

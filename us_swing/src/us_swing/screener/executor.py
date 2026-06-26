@@ -13,7 +13,7 @@ import concurrent.futures
 import logging
 import time
 from datetime import datetime, timezone
-from typing import Any, Callable
+from typing import Any, Callable, Final
 
 from us_swing.screener.base import PresetAccessDenied, ScreenerExecutionError
 from us_swing.screener.preset import GroupLogic, Preset, PresetType
@@ -22,6 +22,11 @@ from us_swing.screener.storage import AITranscriptTurn, ScreenerResultsStorage, 
 from us_swing.screener.utils import PreFilter
 
 _log = logging.getLogger(__name__)
+
+# Stage 3 input cap: the AI analyses at most _AI_MAX_INPUT stocks per run.
+# When more pass Stage 2, only the top _AI_TOP_BY_CAP by market cap are sent.
+_AI_MAX_INPUT: Final[int] = 20
+_AI_TOP_BY_CAP: Final[int] = 10
 
 
 class PresetExecutor:
@@ -36,6 +41,10 @@ class PresetExecutor:
 
     ``on_complete`` — optional callback invoked with the ScreenerRunResult after
     every successful run.
+
+    ``notify`` — optional ``(level, message)`` callback for user-facing messages
+    (e.g. the GUI log panel). Used to surface pipeline notices that would
+    otherwise only reach the log file.
     """
 
     def __init__(
@@ -46,6 +55,7 @@ class PresetExecutor:
         storage: ScreenerResultsStorage | None = None,
         registry: ScreenerRegistry | None = None,
         max_workers: int = 4,
+        notify: Callable[[str, str], None] | None = None,
     ) -> None:
         self._db = db  # Any: duck-typed — must expose fetch_bars(symbols) -> dict
         self._app_service = app_service
@@ -53,6 +63,7 @@ class PresetExecutor:
         self._storage = storage
         self._registry = registry
         self._max_workers = max_workers
+        self._notify = notify
         self.on_complete: Callable[[ScreenerRunResult], None] | None = None
 
     # ------------------------------------------------------------------
@@ -68,6 +79,7 @@ class PresetExecutor:
         symbols: list[str] | None = None,
         bars: dict[str, list[Any]] | None = None,
         preset: Preset | None = None,
+        market_caps: dict[str, float] | None = None,
     ) -> ScreenerRunResult:
         """Execute a preset and persist the result.
 
@@ -78,6 +90,8 @@ class PresetExecutor:
             symbols:   Override universe symbols (useful in tests).
             bars:      Override bar data (useful in tests).
             preset:    Inject a Preset directly, bypassing preset_manager.
+            market_caps: Per-symbol market cap (USD), used to pick the top
+                         symbols when Stage 3 exceeds its input cap.
 
         Returns:
             ScreenerRunResult with only the passing symbols.
@@ -125,7 +139,9 @@ class PresetExecutor:
         # --- Stage 3: LLM ranking (optional) ------------------------------
         ai_transcript: list[AITranscriptTurn] = []
         if preset.enable_llm_ranking:
-            combined, ai_transcript = self._run_stage3(preset, combined, bars)
+            combined, ai_transcript = self._run_stage3(
+                preset, combined, bars, market_caps,
+            )
 
         # --- Enrich passing symbols with per-filter details ----------------
         registry = self._get_registry()
@@ -315,16 +331,39 @@ class PresetExecutor:
         preset: Preset,
         combined: dict[str, dict[str, Any]],
         bars: dict[str, list[Any]],
+        market_caps: dict[str, float] | None = None,
     ) -> tuple[dict[str, dict[str, Any]], list[AITranscriptTurn]]:
         """Re-rank Stage 2 passing symbols with CloudAIScreener.
 
         Returns (merged_combined, ai_transcript). On any error falls back to
         Stage 2 results with an empty transcript and logs a WARNING.
+
+        Input cap: the AI analyses at most ``_AI_MAX_INPUT`` stocks. When more
+        pass Stage 2, only the top ``_AI_TOP_BY_CAP`` by market cap are sent;
+        the rest are dropped from the passing set.
         """
         registry = self._get_registry()
-        passing = [sym for sym, d in combined.items() if d.get("passed", False)]
+        result = dict(combined)
+        passing = [sym for sym, d in result.items() if d.get("passed", False)]
         if not passing:
-            return combined, []
+            return result, []
+
+        if len(passing) > _AI_MAX_INPUT:
+            caps = market_caps or {}
+            passing = sorted(
+                passing, key=lambda s: caps.get(s, 0.0), reverse=True,
+            )[:_AI_TOP_BY_CAP]
+            kept = set(passing)
+            for sym, d in result.items():
+                if d.get("passed", False) and sym not in kept:
+                    result[sym] = {**d, "passed": False}
+            notice = (
+                f"[Screener] Stage 3 does not support more than {_AI_MAX_INPUT} "
+                f"stocks for analysis — showing the top {_AI_TOP_BY_CAP} by market cap"
+            )
+            _log.warning(notice)
+            if self._notify is not None:
+                self._notify("WARNING", notice)
 
         llm = registry.get("llm_claude_ranking")
         top_n: int = preset.top_n or len(passing)
@@ -346,7 +385,7 @@ class PresetExecutor:
             partial: list[AITranscriptTurn] = (
                 raw_transcript if isinstance(raw_transcript, list) else []
             )
-            return combined, partial
+            return result, partial
 
         # Capture side-channels (SRD-SCR-013.007, SRD-SCR-014.003).
         raw_reasoning = getattr(llm, "last_reasoning", None)
@@ -356,8 +395,7 @@ class PresetExecutor:
             raw_transcript if isinstance(raw_transcript, list) else []
         )
 
-        # Merge ranked scores back into combined
-        result = dict(combined)
+        # Merge ranked scores back into result
         for sym, (passed, score) in ranked.items():
             if sym in result:
                 result[sym] = {

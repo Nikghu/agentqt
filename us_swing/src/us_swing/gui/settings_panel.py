@@ -442,6 +442,28 @@ class _SystemTab(QWidget):
         diag_wrapper.setContentsMargins(20, 12, 20, 0)
         diag_wrapper.addWidget(diag_box)
 
+        # ── Updates group ────────────────────────────────────────────────────────
+        update_box = QGroupBox("Updates")
+        update_row = QHBoxLayout(update_box)
+        update_row.setContentsMargins(12, 8, 12, 8)
+        update_row.setSpacing(8)
+
+        self._update_btn = QPushButton("Check for Updates")
+        self._update_btn.setFixedWidth(160)
+        self._update_btn.clicked.connect(self._on_check_updates)
+
+        self._update_note = QLabel("")
+        self._update_note.setStyleSheet(f"color: {C.GREEN}; font-size: 9pt;")
+        self._update_worker: object | None = None
+
+        update_row.addWidget(self._update_btn)
+        update_row.addWidget(self._update_note)
+        update_row.addStretch()
+
+        update_wrapper = QHBoxLayout()
+        update_wrapper.setContentsMargins(20, 12, 20, 0)
+        update_wrapper.addWidget(update_box)
+
         # ── Main layout ────────────────────────────────────────────────────────
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -449,6 +471,7 @@ class _SystemTab(QWidget):
         layout.addLayout(btn_row)
         layout.addLayout(theme_wrapper)
         layout.addLayout(diag_wrapper)
+        layout.addLayout(update_wrapper)
         layout.addStretch()
 
     # ── Helpers ────────────────────────────────────────────────────────────────
@@ -463,6 +486,37 @@ class _SystemTab(QWidget):
     def _on_candle_db(self) -> None:
         from us_swing.gui.execution_panel import _CandleDbDiagDialog
         _CandleDbDiagDialog(self._demo, self).exec()
+
+    def _on_check_updates(self) -> None:
+        from update_dialog import _CheckWorker  # type: ignore[import]
+
+        self._update_btn.setEnabled(False)
+        self._update_note.setStyleSheet(f"color: {C.GREEN}; font-size: 9pt;")
+        self._update_note.setText("Checking for updates…")
+        worker = _CheckWorker()
+        worker.found.connect(self._on_update_found)
+        worker.up_to_date.connect(self._on_update_up_to_date)
+        worker.failed.connect(self._on_update_failed)
+        worker.start()
+        self._update_worker = worker
+
+    def _on_update_found(self, info: object) -> None:
+        from update_dialog import _UpdateDialog  # type: ignore[import]
+        from updater_stub import UpdateInfo  # type: ignore[import]
+
+        self._update_btn.setEnabled(True)
+        self._update_note.setText("")
+        if isinstance(info, UpdateInfo):
+            _UpdateDialog(info).exec()
+
+    def _on_update_up_to_date(self) -> None:
+        self._update_btn.setEnabled(True)
+        self._update_note.setText("You're on the latest version")
+
+    def _on_update_failed(self, msg: str) -> None:
+        self._update_btn.setEnabled(True)
+        self._update_note.setStyleSheet(f"color: {C.RED}; font-size: 9pt;")
+        self._update_note.setText(f"Could not check for updates — {msg}")
 
     def _refresh_sched_btn_label(self) -> None:
         from us_swing.gui.scheduler_store import load_scheduler_config, load_usswing_config
