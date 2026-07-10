@@ -57,6 +57,7 @@ class StrategyConfig:
     minute_close: int = 1
     execution_rate_sec: int = 1
     rex_count: int = 0
+    per_trade_pct: int = 100
     run_state: str = "STOPPED"
 
 
@@ -68,6 +69,7 @@ strategies = sa.Table(
     sa.Column("name",               sa.Text,    primary_key=True),
     sa.Column("mode",               sa.Text,    nullable=False, server_default="manual"),
     sa.Column("capital_max",        sa.Integer, nullable=False, server_default="0"),
+    sa.Column("per_trade_pct",      sa.Integer, nullable=False, server_default="100"),
     sa.Column("start_time",         sa.Text,    nullable=False),
     sa.Column("end_time",           sa.Text,    nullable=False),
     sa.Column("start_date",         sa.Text,    nullable=False),
@@ -108,7 +110,28 @@ def _engine() -> Engine:
         _DB_PATH.parent.mkdir(parents=True, exist_ok=True)
         _engine_cache = create_engine(f"sqlite:///{_DB_PATH}", future=True)
         strategies.create(_engine_cache, checkfirst=True)
+        _migrate_columns(_engine_cache)
     return _engine_cache
+
+
+# SRD-EXE-017.023 — additive columns for existing strategy databases; legacy
+# rows back-fill to the column default so saved strategies keep their behaviour.
+_COLUMN_ADDITIONS: tuple[tuple[str, str], ...] = (
+    ("per_trade_pct", "INTEGER NOT NULL DEFAULT 100"),
+)
+
+
+def _migrate_columns(engine: Engine) -> None:
+    with engine.begin() as conn:
+        existing = {
+            row["name"]
+            for row in conn.execute(sa.text("PRAGMA table_info(strategies)")).mappings()
+        }
+        for name, sql_type in _COLUMN_ADDITIONS:
+            if name not in existing:
+                conn.execute(
+                    sa.text(f"ALTER TABLE strategies ADD COLUMN {name} {sql_type}")
+                )
 
 
 def _utcnow_iso() -> str:

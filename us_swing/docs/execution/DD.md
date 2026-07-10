@@ -3470,6 +3470,46 @@ Worked example (AC #1): eff_cap=$2000, capital_max=25% → budget=$500, entry=$9
 (unchanged) → **size** (new; drops on `qty<1`) → `can_allocate` (now budget-based)
 → build signal with sized qty → enqueue.
 
+## DD-EXE-017.024.D01 — Two-Level Capital: Strategy Allocation vs Per-Trade Size
+
+**Parent SRD:** SRD-EXE-017.023, SRD-EXE-017.024, SRD-EXE-017.025
+
+`capital_max` originally did two jobs at once: it sized each trade *and* capped
+the strategy total. Because `_size_entry` sized one trade to the whole
+`capital_max` slice, `can_allocate` (which caps the strategy at the same slice)
+blocked the second entry — every strategy was stuck at a single open position.
+
+The fix separates the two jobs:
+
+- **`capital_max`** is now read purely as the **strategy allocation** — the
+  strategy's budget cap. `can_allocate` is unchanged and keeps enforcing it.
+- **`per_trade_pct`** (new, default 100) is the **size of each trade** as a
+  percentage of that allocation. Only `_size_entry` changes:
+
+```python
+budget = effective_capital * ctx.cfg.capital_max * ctx.cfg.per_trade_pct / 10000.0
+qty = math.floor(budget / entry_price)        # entry_price > 0
+```
+
+A strategy can therefore open up to `floor(100 / per_trade_pct)` concurrent
+positions (on distinct symbols) before its allocation cap or the global
+`margin_available()` backstop (DD-EXE-017.018.D01) stops it.
+
+Worked example: eff_cap=$2000, `capital_max=40%` → allocation $800;
+`per_trade_pct=25%` → each trade $200 → up to 4 concurrent trades. With
+`per_trade_pct=100` the slice is the full $800 → one trade, identical to
+SRD-EXE-017.003 (back-compat for existing strategies).
+
+**Persistence & migration:** `StrategyConfig.per_trade_pct: int = 100` with a
+matching `strategies.per_trade_pct INTEGER NOT NULL DEFAULT 100` column added by
+the additive `_LIFECYCLE_COLUMN_ADDITIONS` migration; existing rows back-fill to
+100, so saved strategies keep one-trade-per-allocation behaviour until edited.
+
+**GUI:** the strategy builder shows "Strategy Allocation" and "Per-Trade Size"
+spinboxes plus a live read-only hint (budget $, per-trade $, max trades) derived
+from the user's Max Capital (passed in from `execution_panel`); when Max Capital
+is 0 the hint falls back to percentages and trade count only.
+
 ## DD-EXE-017.005.D01 — Capital Cap (blocking) vs Advisory Warnings
 
 **Parent SRD:** SRD-EXE-017.005, SRD-EXE-017.006

@@ -525,8 +525,9 @@ class _CondBubble(QWidget):
 class _StrategyInfoPage(QScrollArea):
     """Strategy name, scope, mode and capital allocation."""
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, max_capital: float = 0.0, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        self._max_capital = max_capital
         self.setWidgetResizable(True)
         self.setStyleSheet("QScrollArea { border: none; }")
 
@@ -566,7 +567,25 @@ class _StrategyInfoPage(QScrollArea):
         self._capital_spin.setSuffix(" %")
         self._capital_spin.setFixedHeight(C.INPUT_H)
         self._capital_spin.setStyleSheet(_spin_ss())
-        form.addRow("Capital Max:", self._capital_spin)
+        form.addRow("Strategy Allocation:", self._capital_spin)
+
+        self._pertrade_spin = QSpinBox()
+        self._pertrade_spin.setRange(5, 100)
+        self._pertrade_spin.setSingleStep(5)
+        self._pertrade_spin.setValue(100)
+        self._pertrade_spin.setSuffix(" %")
+        self._pertrade_spin.setFixedHeight(C.INPUT_H)
+        self._pertrade_spin.setStyleSheet(_spin_ss())
+        form.addRow("Per-Trade Size:", self._pertrade_spin)
+
+        self._capital_hint = QLabel()
+        self._capital_hint.setWordWrap(True)
+        self._capital_hint.setStyleSheet(f"color: {active_palette().MUTED}; font-size: 11px;")
+        form.addRow("", self._capital_hint)
+
+        self._capital_spin.valueChanged.connect(self._update_capital_hint)
+        self._pertrade_spin.valueChanged.connect(self._update_capital_hint)
+        self._update_capital_hint()
 
         bl.addLayout(form)
 
@@ -634,6 +653,24 @@ class _StrategyInfoPage(QScrollArea):
     def _remove_stock(self) -> None:
         for item in self._stock_list.selectedItems():
             self._stock_list.takeItem(self._stock_list.row(item))
+
+    def _update_capital_hint(self) -> None:
+        """Live preview of the budget, per-trade dollars, and trade count."""
+        alloc = self._capital_spin.value()
+        per_trade = self._pertrade_spin.value()
+        max_trades = max(1, 100 // per_trade)
+        if self._max_capital > 0:
+            budget = self._max_capital * alloc / 100.0
+            per_trade_dollar = budget * per_trade / 100.0
+            self._capital_hint.setText(
+                f"Budget ${budget:,.0f} · ~${per_trade_dollar:,.0f} per trade "
+                f"· up to {max_trades} trade(s)"
+            )
+        else:
+            self._capital_hint.setText(
+                f"Each trade uses {per_trade}% of this strategy's allocation "
+                f"· up to {max_trades} trade(s)"
+            )
 
 
 # ── Page: Scheduler ───────────────────────────────────────────────────────────
@@ -1234,11 +1271,13 @@ class StrategyBuilderDialog(QDialog):
         parent: QWidget | None = None,
         existing: StrategyConfig | None = None,
         existing_names: set[str] | None = None,
+        max_capital: float = 0.0,
     ) -> None:
         super().__init__(parent)
         self._existing = existing
         self._existing_names = existing_names or set()
         self._edit_mode = existing is not None
+        self._max_capital = max_capital
 
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
         self.setMinimumSize(780, 480)
@@ -1336,7 +1375,7 @@ class StrategyBuilderDialog(QDialog):
 
         # Stacked pages (order matches _PAGE_* constants)
         self._stack = QStackedWidget()
-        self._info_page = _StrategyInfoPage()
+        self._info_page = _StrategyInfoPage(self._max_capital)
         self._triggers_page = _TriggersPage()
         self._sched_page = _SchedulerPage()
         self._exec_page = _SettingsPage()
@@ -1418,6 +1457,7 @@ class StrategyBuilderDialog(QDialog):
             i._stock_list.addItem(s)
         i._mode_combo.setCurrentText(cfg.mode.capitalize())
         i._capital_spin.setValue(cfg.capital_max)
+        i._pertrade_spin.setValue(cfg.per_trade_pct)
 
         sc = self._sched_page
         sc._start_time.setTime(QTime.fromString(cfg.start_time, "HH:mm"))
@@ -1489,6 +1529,7 @@ class StrategyBuilderDialog(QDialog):
             symbols_exclude=[i._stock_list.item(r).text() for r in range(i._stock_list.count())] if i._symbol_mode.currentIndex() == 2 else [],
             mode=i._mode_combo.currentText().lower(),
             capital_max=i._capital_spin.value(),
+            per_trade_pct=i._pertrade_spin.value(),
             start_time=sc._start_time.time().toString("HH:mm"),
             end_time=sc._end_time.time().toString("HH:mm"),
             start_date=sc._start_date.date().toString("yyyy-MM-dd"),

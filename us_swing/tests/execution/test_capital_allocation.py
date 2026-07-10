@@ -174,6 +174,7 @@ class _Cfg:
     trade_type: str = "Intraday"
     auto_trade: bool = True
     capital_max: int = 25
+    per_trade_pct: int = 100
     entry_condition: str = "Number(1) == Number(1)"
     exit_condition: str = "Number(1) == Number(1)"
     stoploss_enabled: bool = False
