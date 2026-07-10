@@ -2,6 +2,46 @@
 
 ---
 
+## [20260710] INF+GUI — Per-event toggles, day-end delivery, P&L fix (FO-INF-010)
+
+- Type: Feature + Fix (follow-up)
+- FO(s): FO-INF-010
+- RN: RN-INF-1.5.0-20260710
+- Artifacts updated: SRD (.006/.010 already Implemented), MD (M04 +.006, M09 extended), UTCD (M04.T07–09, M07.T03, M08.T06–07, M09.T01–03), Code, TRACE, RN
+- Decisions: Closed the three remaining Telegram follow-ups. (1) Per-event toggles enforced — `NotificationDispatcher.dispatch` drops any event whose `event_kind` is toggled off (unknown kind defaults on); factory passes `config.event_toggles`. Three flat `UserProfile` bools (default True) round-trip via `user_store`; `_build_notification_config` maps them into `notifications.events`; Settings "Notify on:" row with three checkboxes. (2) Day-end at market close — `_refresh_market_status` calls new guarded `_maybe_publish_day_end` when status is `after_hours` (16:00–20:00 ET, trading days only); `_day_end_sent_date` guard sends once/day, not consumed until the worker is up; in-app only, app must be open (user's choice). (3) Fixed `unrealized_pnl` (always 0.0) → `p.unrealised_pnl`. Known interaction: Send Test fires ToolStartedEvent, so "Tool started" off drops the test — user told, decision deferred. Tests: +9 (4 dispatcher/factory, 2 user_store, 3 new day-end) = 36 pass; ruff + mypy --strict clean on touched files. 9 tick-test failures are pre-existing on clean HEAD (Yahoo data leak), not caused here. Committed on a scoped `feat(inf)` branch + PR.
+
+---
+
+## [20260709] INF+GUI — Inbound two-way Telegram commands (FO-INF-010)
+
+- Type: Feature
+- FO(s): FO-INF-010
+- RN: RN-INF-1.4.0-20260709
+- Artifacts updated: FO, SRD (.009 + .012–.015), DD (D01), MD (M10/M11), UTCD (M10/M11), Code, TRACE, RN
+- Decisions: Implemented the reserved inbound seam as 7 read-only commands (`/help`, `/status`, `/pnl`, `/positions`, `/signals`, `/screener`, `/cycles`). User confirmed: auto-approve SRDs + GUI-thread marshalling. `core/notifications/_inbound.py` = `TelegramPoller` (long-poll `getUpdates`, offset tracking, reuses the worker's httpx client, enabled-only) + `CommandRouter` (parse/normalize, static help, unknown→hint, handler error→plain apology). Chat auth (SRD-.013): only the configured chat is answered; others dropped + logged `[Notify]`. New `CommandPort` Protocol (core seam, no GUI import) + `build_command_poller` factory. `gui/telegram_commands.py` `TelegramCommandBridge(QObject)` marshals each query to the GUI thread via a queued signal + `Future` (poller stays free through `run_in_executor`; same-thread fast path); formats existing `AppService` reads. Worker hosts the poller alongside the dispatcher; `app_service` builds + injects the bridge. Dropped the speculative `CommandChannel` Protocol (dead code). Used the real `p.unrealised_pnl` property (noted the pre-existing `unrealized_pnl` getattr-default bug in `_publish_day_end_pnl`, left untouched). Tests: 11 new pass (8 router/poller + 3 bridge); 35 total no regressions; ruff clean; mypy --strict clean on the 5 new/changed non-app_service files. Not committed (working tree has unrelated pre-existing changes) — scoped `feat(inf)` PR is next. Follow-up: per-event toggles (parsed but not enforced; no Settings UI yet).
+
+---
+
+## [20260709] INF+GUI — Telegram notifications wired into the app (FO-INF-010)
+
+- Type: Feature (wiring)
+- FO(s): FO-INF-010
+- RN: RN-INF-1.3.0-20260709
+- Artifacts updated: SRD (.010/.011), MD (M08/M09), UTCD (M08), Code, TRACE, RN
+- Decisions: Wired the notification library into the running app so messages actually send. No app-wide asyncio loop (Qt/QThread), so the async dispatcher runs in a new `NotificationWorker(QThread)` with its own loop + one `httpx.AsyncClient`; GUI producers `publish_event` marshals via `call_soon_threadsafe`. Bot token → OS keychain (`gui/telegram_token_store.py`), never `users.json` (secret rule); enable flag + chat id on `UserProfile` + user_store round-trip. Emit points in `AppService`: startup→ToolStarted, `_on_screener_results_updated`→ScreenerApproved(symbols), `_refresh_market_status` open→closed→DayEndPnL. New System-Settings Telegram section (enable, masked token, chat id, Send Test); save reconfigures live. Startup guarded so notifications never block boot. pyproject mypy override for untyped keyring. Tests: 5 gui + 22 notifications pass; ruff/mypy clean on new modules. E2E needs the user's real bot token/chat (Send Test button is the hand-off). Follow-ups: inbound commands (.009), per-event UI toggles, scheduled day-end.
+
+---
+
+## [20260709] INF — Telegram Notification Integration: full FO→RN chain (FO-INF-010)
+
+- Type: Feature
+- FO(s): FO-INF-010
+- RN: RN-INF-1.2.0-20260709
+- Artifacts updated: FO, SRD, DD, MD, UTCD, Code, TRACE, RN
+- Decisions: Scalable outbound notification service in new package `core/notifications/` (in `core/` so SCR/EXE/INF emit via a shared bus, no cross-tool imports; mirrors `core/monitoring_session/` CQRS-lite). Kept separate from FO-INF-005's log-level `AlertDispatcher` — these are business events. Open/closed spine: frozen `NotificationEvent` variants (`ToolStartedEvent`, `ScreenerApprovedEvent`, `DayEndPnLEvent`) + `FormatterRegistry`, so a new notification = new frozen subclass + one `register()` call, never a dispatcher edit. `NotificationChannel`/`NotificationBus` Protocols; `TelegramChannel` first impl (Bot API over HTTP via injected `httpx.AsyncClient`, no SDK). `NotificationDispatcher`: bus-subscribe, render, non-blocking enqueue, worker with per-chat rate limit + bounded retry + per-channel failure isolation (never crashes caller), logged `[Notify]`. Per-user `NotificationConfig` from `settings_json` (FO-INF-006); half-configured Telegram reads as disabled. `build_default_dispatcher` factory (disabled → zero channels, publish no-op). SRD-INF-010.009 (inbound `CommandChannel`/`CommandRouter`) Approved but documented-only, not implemented. Added `httpx>=0.27` to pyproject. Tests: 22 passed; ruff clean; mypy --strict clean (7 files). Follow-up: producer wiring (AppService→bus.publish), run dispatcher loop, GUI bot-token field, inbound commands.
+
+---
+
 ## [20260617] EXE — Duplicate exit guard: three-layer fix for stale pending signals (ISS-EXE-0010)
 
 - Type: Bugfix

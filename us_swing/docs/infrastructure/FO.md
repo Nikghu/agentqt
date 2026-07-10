@@ -1,14 +1,15 @@
 # Functional Objectives — Infrastructure (INF)
 
 **Document ID:** FO-INF
-**Version:** 1.4.0
+**Version:** 1.5.0
 **Status:** Draft
-**Last Updated:** 2026-06-04
+**Last Updated:** 2026-07-09
 **Project:** US Swing Trading System
 
 > Traces to: `us_swing/requirements.md` §2, §4, §5, §6, §7, §11, §12, §13, §22, §24, §26
 > v1.3.0 changes: FO-INF-002 candle metadata; FO-INF-003 history extended to 2 years + candle sync.
 > v1.4.0 changes: FO-INF-009 added — Pluggable Broker Abstraction (Broker_fix.md Phases 1/3/4).
+> v1.5.0 changes: FO-INF-010 added — Telegram Notification Integration (scalable business-event notification service).
 
 ---
 
@@ -169,3 +170,32 @@
   - A single broker contract-test suite, run against both `SimBroker` and `IBKRBroker`, asserts identical `OrderEvent` sequences for identical `OrderRequest` inputs.
   - Switching `Sim → IBKR` requires no change below the broker boundary — only the adapter's selection.
   - `place_order` returns before any fill event is delivered.
+
+---
+
+## FO-INF-010: Telegram Notification Integration
+- **Status:** Draft
+
+> Traces to: `us_swing/requirements.md` §5 (monitoring/alerts, extended)
+> Distinct from FO-INF-005: this is a business-event notification service, not a log-level alert output.
+
+- The system shall push a notification when the tool starts up.
+- The system shall push a notification when the user approves a screener run, including the filtered stock names.
+- The system shall push a day-end profit-and-loss summary notification at market close.
+- The system shall abstract every delivery destination behind a pluggable `NotificationChannel` interface so Telegram is one implementation among future channels (email, Slack, SMS).
+- The system shall deliver Telegram messages via the Telegram Bot API over HTTP, using a per-user bot token and chat id.
+- The system shall allow new notification event types to be added without modifying existing channel or dispatcher code.
+- The system shall store each user's notification settings (channel enable flag, bot token, chat id, per-event toggles) in the existing per-user `settings_json`, not a separate configuration store.
+- The system shall isolate delivery failures so that a failing channel never blocks other channels and never crashes the code that raised the event.
+- The system shall let the screener, execution, and infrastructure tools raise notification events through a shared event bus without importing the notification internals.
+- The system shall accept inbound two-way bot commands over Telegram, letting the user query live app state from their chat.
+- The system shall answer seven read-only commands — `/help`, `/status`, `/pnl`, `/positions`, `/signals`, `/screener`, `/cycles` — and reply with a help hint to any unknown command.
+- The system shall honor inbound commands only from the user's configured chat id and ignore messages from any other chat.
+- **Acceptance Criteria:**
+  - Given a configured Telegram bot token and chat id, starting the tool delivers a "tool started" message to the user's Telegram chat.
+  - Given an approved screener run of 12 stocks, the user receives one Telegram message listing the 12 filtered stock names.
+  - Given an invalid bot token, the delivery failure is logged under `[Notify]` and no exception propagates to the caller.
+  - Adding a new notification event type requires only a new event class and a formatter registration — no edit to the dispatcher or any existing channel.
+  - Two users with different bot tokens each receive notifications only in their own chat.
+  - Given a configured chat, sending `/pnl` returns the current profit-and-loss summary; sending `/help` returns the list of available commands.
+  - A command sent from a chat other than the configured one receives no reply and is logged under `[Notify]`.

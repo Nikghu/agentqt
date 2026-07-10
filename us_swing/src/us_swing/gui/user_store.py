@@ -45,6 +45,11 @@ def _to_dict(u: UserProfile) -> dict:
         "max_daily_loss_pct": rc.max_daily_loss_pct,
         "default_order_type": rc.default_order_type,
         "confirm_orders":     rc.confirm_orders,
+        "telegram_enabled":   u.telegram_enabled,
+        "telegram_chat_id":   u.telegram_chat_id,
+        "notify_tool_started":      u.notify_tool_started,
+        "notify_screener_approved": u.notify_screener_approved,
+        "notify_day_end_pnl":       u.notify_day_end_pnl,
     }
 
 
@@ -71,6 +76,11 @@ def _from_dict(d: dict) -> UserProfile:
         risk_config     = risk,
         strategy_config = {},
         screener_config = {},
+        telegram_enabled = bool(d.get("telegram_enabled", False)),
+        telegram_chat_id = str(d.get("telegram_chat_id", "")),
+        notify_tool_started      = bool(d.get("notify_tool_started",      True)),
+        notify_screener_approved = bool(d.get("notify_screener_approved", True)),
+        notify_day_end_pnl       = bool(d.get("notify_day_end_pnl",       True)),
     )
 
 
