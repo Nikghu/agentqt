@@ -335,7 +335,9 @@ class _StrategyTablePane(QWidget):
 
     def _on_add(self) -> None:
         existing_names = {c.name for c in self._configs}
-        dlg = StrategyBuilderDialog(self, existing_names=existing_names)
+        dlg = StrategyBuilderDialog(
+            self, existing_names=existing_names, max_capital=self._demo.effective_capital()
+        )
         dlg.strategy_saved.connect(self._append_config)
         dlg.exec()
 
@@ -344,7 +346,10 @@ class _StrategyTablePane(QWidget):
             return
         original = self._configs[src_row]
         existing_names = {c.name for c in self._configs}
-        dlg = StrategyBuilderDialog(self, existing=original, existing_names=existing_names)
+        dlg = StrategyBuilderDialog(
+            self, existing=original, existing_names=existing_names,
+            max_capital=self._demo.effective_capital(),
+        )
 
         def _on_saved(cfg: StrategyConfig) -> None:
             self._configs[src_row] = cfg

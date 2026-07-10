@@ -504,12 +504,23 @@ class _Router:
     # ── Helpers ──────────────────────────────────────────────────────────────
 
     def _size_entry(self, ctx: _StrategyContext, entry_price: float) -> int:
-        """Capital-max share count; legacy `1` when no capital budget is wired."""
+        """Per-trade share count; legacy `1` when no capital budget is wired.
+
+        Each trade is sized to `per_trade_pct` of the strategy's allocation
+        (`capital_max`), so a strategy may hold up to ``floor(100 / per_trade_pct)``
+        concurrent positions before its allocation cap (`can_allocate`) or the
+        global `margin_available()` backstop stops it (SRD-EXE-017.024).
+        """
         if self._effective_capital_provider is None:
             return 1
         if entry_price <= 0:
             return 0
-        budget = self._effective_capital_provider() * ctx.cfg.capital_max / 100.0
+        budget = (
+            self._effective_capital_provider()
+            * ctx.cfg.capital_max
+            * ctx.cfg.per_trade_pct
+            / 10000.0
+        )
         return math.floor(budget / entry_price)
 
     def _build_entry_signal(

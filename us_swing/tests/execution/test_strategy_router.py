@@ -50,6 +50,7 @@ class _Cfg:
     trade_type: str = "Intraday"
     auto_trade: bool = True
     capital_max: int = 10
+    per_trade_pct: int = 100
     entry_condition: str = "Number(1) == Number(1)"
     exit_condition: str = "Number(1) == Number(1)"
     stoploss_enabled: bool = False
@@ -115,6 +116,7 @@ def _make_router(
     can_allocate_ok: bool = True,
     rex_counters: RexCounterRepository | None = None,
     cycle_query: _FakeCycleQuery | None = None,
+    eff_cap: float | None = None,
 ) -> tuple[_Router, asyncio.Queue[TradeSignal], MagicMock, MagicMock, MagicMock, MagicMock, dict[str, _StrategyContext], _FakeCycleQuery]:
     c = cfg or _Cfg()
     ctx = _StrategyContext(cfg=c, run_state=_RUNNING)  # type: ignore[arg-type]
@@ -143,6 +145,7 @@ def _make_router(
         rex_counters=rex_counters,
         clock=clock,
         cycle_query=cq,
+        effective_capital_provider=(lambda: eff_cap) if eff_cap is not None else None,
     )
     return router, queue, risk, submitter, pending, bus, registry, cq
 
@@ -873,3 +876,43 @@ async def test_squaring_off_exit_enqueues_forced_exit_per_open_cycle() -> None:
     assert {s.symbol for s in sigs} == {"AAPL", "MSFT"}
     assert all(s.action == Action.EXIT for s in sigs)
     assert all(s.reason == "squaring_off" for s in sigs)
+
+
+# ── Per-trade sizing (FO-EXE-017: Strategy Allocation × Per-Trade Size) ────────
+
+def test_size_entry_per_trade_fraction_of_allocation() -> None:
+    """UT-EXE-017.024.M03.T04: per-trade size = allocation × per_trade_pct."""
+    cfg = _Cfg(capital_max=40, per_trade_pct=25)
+    router, _q, _r, _s, _p, _b, registry, _cq = _make_router(cfg=cfg, eff_cap=2_000.0)
+    ctx = list(registry.values())[0]
+    # budget = 2000 × 40% × 25% = $200 → floor(200/100) = 2 shares
+    assert router._size_entry(ctx, 100.0) == 2
+
+
+def test_size_entry_full_per_trade_matches_legacy_allocation() -> None:
+    """UT-EXE-017.024.M03.T05: per_trade_pct=100 reproduces full-allocation sizing."""
+    cfg = _Cfg(capital_max=25, per_trade_pct=100)
+    router, _q, _r, _s, _p, _b, registry, _cq = _make_router(cfg=cfg, eff_cap=2_000.0)
+    ctx = list(registry.values())[0]
+    # budget = 2000 × 25% × 100% = $500 → floor(500/96) = 5 shares
+    assert router._size_entry(ctx, 96.0) == 5
+
+
+def test_size_entry_smaller_per_trade_leaves_allocation_room() -> None:
+    """UT-EXE-017.024.M03.T06: a 25% per-trade slice fits four times inside a 100% allocation."""
+    cfg = _Cfg(capital_max=100, per_trade_pct=25)
+    router, _q, _r, _s, _p, _b, registry, _cq = _make_router(cfg=cfg, eff_cap=2_000.0)
+    ctx = list(registry.values())[0]
+    per_trade_value = router._size_entry(ctx, 100.0) * 100.0  # 5 sh × $100 = $500
+    allocation_budget = 2_000.0 * cfg.capital_max / 100.0      # $2000
+    assert per_trade_value == 500.0
+    assert int(allocation_budget // per_trade_value) == 4
+
+
+def test_size_entry_per_trade_slice_too_small_returns_zero() -> None:
+    """UT-EXE-017.024.M03.T07: a per-trade slice below one share returns 0 (router drops)."""
+    cfg = _Cfg(capital_max=5, per_trade_pct=5)
+    router, _q, _r, _s, _p, _b, registry, _cq = _make_router(cfg=cfg, eff_cap=2_000.0)
+    ctx = list(registry.values())[0]
+    # budget = 2000 × 5% × 5% = $5 → floor(5/100) = 0
+    assert router._size_entry(ctx, 100.0) == 0

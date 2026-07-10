@@ -41,6 +41,7 @@ class _Cfg:
     trade_type: str = "Intraday"
     auto_trade: bool = True
     capital_max: int = 10
+    per_trade_pct: int = 100
     entry_condition: str = ""
     exit_condition: str = ""
     stoploss_enabled: bool = False
