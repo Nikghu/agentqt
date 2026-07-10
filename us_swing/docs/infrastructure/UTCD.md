@@ -256,6 +256,7 @@
 | UT-INF-010.001.M10.T06 | MD-INF-010.001.M10 | Negative | A handler that raises yields a plain apology, not a stack trace | Fake port whose `status()` raises; `route("/status")` | Reply is a plain apology; no exception propagates | Pass |
 | UT-INF-010.001.M10.T07 | MD-INF-010.001.M10 | Positive | Poller handles an authorized update, replies, and advances the offset | Fake transport returns one `/help` update from the configured chat | Reply sent via `sendMessage`; next `getUpdates` uses `offset = update_id + 1` | Pass |
 | UT-INF-010.001.M10.T08 | MD-INF-010.001.M10 | Negative | A message from an unauthorized chat is ignored and unanswered | Update whose chat id differs from the configured one | No `sendMessage`; offset still advances | Pass |
+| UT-INF-010.001.M10.T09 | MD-INF-010.001.M10 | Positive | Poller registers its command menu with Telegram on start | `_register_commands()` against a fake transport | One `setMyCommands` POST carrying the 7 commands with descriptions | Pass |
 
 ---
 

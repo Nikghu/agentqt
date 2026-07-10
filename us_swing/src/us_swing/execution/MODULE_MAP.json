@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-26T08:24:57",
+  "generated": "2026-07-10T12:22:15",
   "subfolder": "execution",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\execution",
   "tool_code": "EXE",
@@ -1764,26 +1764,26 @@
             {
               "name": "_size_entry",
               "signature": "def _size_entry(self, ctx: _StrategyContext, entry_price: float) -> int",
-              "docstring": "Capital-max share count; legacy `1` when no capital budget is wired.",
+              "docstring": "Per-trade share count; legacy `1` when no capital budget is wired.",
               "line_start": 506,
-              "line_end": 513
+              "line_end": 524
             },
             {
               "name": "_build_entry_signal",
               "signature": "def _build_entry_signal(\r\n        self,\r\n        ctx: _StrategyContext,\r\n        symbol: str,\r\n        bar: OHLCVBar,\r\n        qty: int = 1,\r\n    ) -> TradeSignal",
-              "line_start": 515,
-              "line_end": 538
+              "line_start": 526,
+              "line_end": 549
             },
             {
               "name": "_maybe_signal_quiesced",
               "signature": "def _maybe_signal_quiesced(self) -> None",
               "docstring": "Mark the quiesced event when no strategy has any signal in flight.",
-              "line_start": 540,
-              "line_end": 545
+              "line_start": 551,
+              "line_end": 556
             }
           ],
           "line_start": 56,
-          "line_end": 545
+          "line_end": 556
         }
       ],
       "top_level_functions": [

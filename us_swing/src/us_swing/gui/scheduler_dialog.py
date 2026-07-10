@@ -257,12 +257,54 @@ def _delete_ibkr_password(username: str) -> None:
 
 # ── TWS auto-fill helpers (Windows only, TEMP) ───────────────────────────────
 
+_u32_configured = False
+
+
+def _user32():  # type: ignore[no-untyped-def]
+    """Return ``user32`` with its window-handle prototypes configured for 64-bit.
+
+    Without explicit ``argtypes``/``restype`` ctypes marshals a 64-bit ``HWND``
+    through a default 32-bit C ``int`` and raises ``OverflowError`` ("int too
+    long to convert"); returned handles are likewise truncated, so a
+    ``GetForegroundWindow() == hwnd`` check never matches. Configuring the
+    prototypes once (process-wide, idempotent) makes every call handle-safe.
+    """
+    import ctypes
+    from ctypes import wintypes
+
+    global _u32_configured
+    u32 = ctypes.windll.user32  # type: ignore[attr-defined]
+    if _u32_configured:
+        return u32
+    h = wintypes.HWND
+    u32.GetWindowTextLengthW.argtypes = [h]
+    u32.GetWindowTextLengthW.restype = ctypes.c_int
+    u32.GetWindowTextW.argtypes = [h, wintypes.LPWSTR, ctypes.c_int]
+    u32.GetWindowTextW.restype = ctypes.c_int
+    u32.GetForegroundWindow.argtypes = []
+    u32.GetForegroundWindow.restype = h
+    u32.ShowWindow.argtypes = [h, ctypes.c_int]
+    u32.ShowWindow.restype = wintypes.BOOL
+    u32.SetWindowPos.argtypes = [
+        h, h, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_uint
+    ]
+    u32.SetWindowPos.restype = wintypes.BOOL
+    u32.SetForegroundWindow.argtypes = [h]
+    u32.SetForegroundWindow.restype = wintypes.BOOL
+    u32.GetWindowThreadProcessId.argtypes = [h, ctypes.POINTER(wintypes.DWORD)]
+    u32.GetWindowThreadProcessId.restype = wintypes.DWORD
+    u32.AttachThreadInput.argtypes = [wintypes.DWORD, wintypes.DWORD, wintypes.BOOL]
+    u32.AttachThreadInput.restype = wintypes.BOOL
+    _u32_configured = True
+    return u32
+
+
 def _find_tws_hwnd() -> int:
     """Return HWND of the first visible top-level window whose title looks like TWS login."""
     try:
         import ctypes
         import ctypes.wintypes
-        u32 = ctypes.windll.user32  # type: ignore[attr-defined]
+        u32 = _user32()
         result: list[int] = [0]
         keywords = ("login", "trader workstation", "ib gateway")
 
@@ -315,7 +357,7 @@ def _winapi_fill(username: str, password: str, tws_hwnd: int) -> str:
         class _INP(ctypes.Structure):
             _fields_ = [("type", ctypes.c_ulong), ("_iu", _IU)]
 
-        u32 = ctypes.windll.user32  # type: ignore[attr-defined]
+        u32 = _user32()
         sz = ctypes.sizeof(_INP)
 
         def _tws_focused() -> bool:
@@ -394,7 +436,7 @@ class _FillWorker(QThread):
             )
             return
 
-        u32 = ctypes.windll.user32  # type: ignore[attr-defined]
+        u32 = _user32()
         u32.ShowWindow(hwnd, 9)  # SW_RESTORE
         _SWP_NO_MOVE_SIZE = 0x0003  # SWP_NOMOVE | SWP_NOSIZE
         u32.SetWindowPos(hwnd, -1, 0, 0, 0, 0, _SWP_NO_MOVE_SIZE)  # HWND_TOPMOST

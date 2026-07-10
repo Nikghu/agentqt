@@ -10,6 +10,7 @@ the only seam to live app state.
 from __future__ import annotations
 
 import asyncio
+import html
 import logging
 from typing import Any, Callable
 
@@ -20,15 +21,21 @@ from us_swing.core.notifications._telegram import _API_BASE
 
 log = logging.getLogger(__name__)
 
-_HELP_TEXT = (
-    "Available commands:\n"
-    "/status — feed and market session\n"
-    "/pnl — profit and loss summary\n"
-    "/positions — open positions\n"
-    "/signals — pending trade signals\n"
-    "/screener — latest screener results\n"
-    "/cycles — open and recently closed trades\n"
-    "/help — this list"
+# Single source of truth for the inbound commands: drives both the /help reply
+# and the setMyCommands registration, so the in-app help and the Telegram command
+# menu can never drift apart.
+_COMMANDS: tuple[tuple[str, str], ...] = (
+    ("status", "Feed and market session"),
+    ("pnl", "Profit and loss summary"),
+    ("positions", "Open positions"),
+    ("signals", "Pending trade signals"),
+    ("screener", "Latest screener results"),
+    ("cycles", "Open and recently closed trades"),
+    ("help", "Show this list of commands"),
+)
+
+_HELP_TEXT = "🤖 <b>USSwing Bot</b>\n\n" + "\n".join(
+    f"/{name} — {desc.lower()}" for name, desc in _COMMANDS
 )
 
 
@@ -74,7 +81,8 @@ class CommandRouter:
             return _HELP_TEXT
         handler = self._table.get(command)
         if handler is None:
-            return f"Unknown command /{command} — send /help for the list of commands"
+            safe = html.escape(command, quote=False)
+            return f"Unknown command /{safe} — send /help for the list of commands"
         try:
             return handler()
         except Exception:
@@ -102,6 +110,7 @@ class TelegramPoller:
 
     async def run(self) -> None:
         """Poll forever, handling each batch of updates. Runs until cancelled."""
+        await self._register_commands()
         offset = 0
         while True:
             try:
@@ -132,6 +141,21 @@ class TelegramPoller:
                 await self._send(reply)
         return offset
 
+    async def _register_commands(self) -> None:
+        """Publish the command list to Telegram so the chat shows a command menu.
+
+        Best-effort: on failure the user only misses the tap-to-run menu and
+        autocomplete, so it is logged and never stops the poll loop.
+        """
+        url = f"{_API_BASE}/bot{self._bot_token}/setMyCommands"
+        commands = [{"command": name, "description": desc} for name, desc in _COMMANDS]
+        try:
+            response = await self._http.post(url, json={"commands": commands})
+            response.raise_for_status()
+            log.info("[Notify] Registered %d Telegram command(s)", len(commands))
+        except Exception:
+            log.warning("[Notify] Could not register the Telegram command menu")
+
     async def _get_updates(self, offset: int) -> list[dict[str, Any]]:
         url = f"{_API_BASE}/bot{self._bot_token}/getUpdates"
         response = await self._http.get(
@@ -148,6 +172,6 @@ class TelegramPoller:
         url = f"{_API_BASE}/bot{self._bot_token}/sendMessage"
         response = await self._http.post(
             url,
-            json={"chat_id": self._chat_id, "text": text},
+            json={"chat_id": self._chat_id, "text": text, "parse_mode": "HTML"},
         )
         response.raise_for_status()

@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-26T08:24:57",
+  "generated": "2026-07-10T12:22:15",
   "subfolder": "data",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\data",
   "tool_code": "INF",
@@ -364,10 +364,15 @@
             "mode: str",
             "risk_config: \"RiskConfig\"",
             "strategy_config: dict",
-            "screener_config: dict"
+            "screener_config: dict",
+            "telegram_enabled: bool",
+            "telegram_chat_id: str",
+            "notify_tool_started: bool",
+            "notify_screener_approved: bool",
+            "notify_day_end_pnl: bool"
           ],
           "line_start": 246,
-          "line_end": 259
+          "line_end": 264
         },
         {
           "name": "RiskConfig",
@@ -380,8 +385,8 @@
             "default_order_type: str",
             "confirm_orders: bool"
           ],
-          "line_start": 263,
-          "line_end": 270
+          "line_start": 268,
+          "line_end": 275
         },
         {
           "name": "ScreenerResult",
@@ -397,8 +402,8 @@
             "breakout_pass: bool",
             "pullback_pass: bool"
           ],
-          "line_start": 276,
-          "line_end": 286
+          "line_start": 281,
+          "line_end": 291
         },
         {
           "name": "FilteredStockEntry",
@@ -413,8 +418,8 @@
             "date: str",
             "time: str"
           ],
-          "line_start": 290,
-          "line_end": 303
+          "line_start": 295,
+          "line_end": 308
         },
         {
           "name": "TradeSignal",
@@ -431,8 +436,8 @@
             "generated_at: datetime",
             "signal_id: str"
           ],
-          "line_start": 307,
-          "line_end": 318
+          "line_start": 312,
+          "line_end": 323
         },
         {
           "name": "MarketWatchItem",
@@ -444,8 +449,8 @@
             "change_pct: float",
             "prev_close: float"
           ],
-          "line_start": 322,
-          "line_end": 328
+          "line_start": 327,
+          "line_end": 333
         },
         {
           "name": "WatchlistItem",
@@ -464,8 +469,8 @@
             "year_low: float",
             "market_cap: float"
           ],
-          "line_start": 332,
-          "line_end": 345
+          "line_start": 337,
+          "line_end": 350
         }
       ]
     },

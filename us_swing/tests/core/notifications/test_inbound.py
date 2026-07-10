@@ -1,6 +1,8 @@
 """Unit tests for inbound Telegram commands (MD-INF-010.001.M10)."""
 from __future__ import annotations
 
+import json
+
 import httpx
 
 from us_swing.core.notifications import CommandRouter, TelegramPoller
@@ -112,6 +114,21 @@ async def test_authorized_update_replies_and_advances_offset():
     assert next_offset == 42
     assert len(sent) == 1
     assert sent[0].url.path.endswith("/sendMessage")
+    assert json.loads(sent[0].content)["parse_mode"] == "HTML"
+
+
+async def test_register_commands_posts_setmycommands():
+    """UT-INF-010.001.M10.T09: the poller registers its command menu with Telegram."""
+    sent: list[httpx.Request] = []
+    poller = _poller(sent)
+    await poller._register_commands()
+    assert len(sent) == 1
+    request = sent[0]
+    assert request.url.path.endswith("/setMyCommands")
+    body = json.loads(request.content)
+    names = [c["command"] for c in body["commands"]]
+    assert names == ["status", "pnl", "positions", "signals", "screener", "cycles", "help"]
+    assert all(c["description"] for c in body["commands"])
 
 
 async def test_unauthorized_chat_ignored(caplog):

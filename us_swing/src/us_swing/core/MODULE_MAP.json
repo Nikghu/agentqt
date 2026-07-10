@@ -1,142 +1,64 @@
 {
-  "generated": "2026-06-26T08:24:57",
+  "generated": "2026-07-10T12:22:15",
   "subfolder": "core",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\core",
   "tool_code": "EXE",
   "files": {
     "__init__.py": {
-      "module_id": "MD-EXE-009.002.M03",
-      "srd_id": "SRD-EXE-009.010",
+      "module_id": "MD-INF-010.001.M07",
+      "srd_id": "SRD-INF-010.008",
       "top_level_functions": [
         {
-          "name": "build_default_service",
-          "signature": "def build_default_service(\r\n    engine: Engine,\r\n    *,\r\n    today_provider: Callable[[], date] | None                  = None,\r\n    clock: Callable[[], datetime] | None                       = None,\r\n    filtered_provider: Callable[[date], frozenset[str]] | None = None,\r\n) -> tuple[MonitoringQuery, MonitoringCommand, MonitoringEventBus]",
-          "docstring": "Wire up a default ``MonitoringSessionService`` with an in-process event bus.",
-          "line_start": 55,
+          "name": "build_default_dispatcher",
+          "signature": "def build_default_dispatcher(\r\n    config: NotificationConfig,\r\n    *,\r\n    http: httpx.AsyncClient | None = None,\r\n    registry: FormatterRegistry | None = None,\r\n    bus: NotificationBus | None = None,\r\n) -> tuple[NotificationDispatcher, NotificationBus]",
+          "docstring": "Wire a dispatcher and bus from a user's notification config.",
+          "line_start": 38,
+          "line_end": 72
+        },
+        {
+          "name": "build_command_poller",
+          "signature": "def build_command_poller(\r\n    config: NotificationConfig,\r\n    http: httpx.AsyncClient,\r\n    port: CommandPort | None,\r\n) -> TelegramPoller | None",
+          "docstring": "Build the inbound command poller, or ``None`` when it cannot run.",
+          "line_start": 75,
           "line_end": 96
-        },
-        {
-          "name": "wire_cycle_ledger_projection",
-          "signature": "def wire_cycle_ledger_projection(\r\n    bus: MonitoringEventBus,\r\n    command: MonitoringCommand,\r\n    terminal_event_types: tuple[type, ...],\r\n    *,\r\n    clock: Callable[[], datetime] | None = None,\r\n) -> None",
-          "docstring": "Flip a symbol's ledger row to EXITED whenever its trade cycle ends.",
-          "line_start": 99,
-          "line_end": 131
-        },
-        {
-          "name": "build_scheduler",
-          "signature": "def build_scheduler(\r\n    command: MonitoringCommand,\r\n    bus: MonitoringEventBus,\r\n    cron_register: Callable[[str, Callable[[], None]], None],\r\n    *,\r\n    clock: Callable[[], datetime] | None      = None,\r\n    today_provider: Callable[[], date] | None = None,\r\n) -> _ReconcileScheduler",
-          "docstring": "Construct the pre-open reconcile scheduler.",
-          "line_start": 134,
-          "line_end": 153
         }
       ]
     },
     "candle_builder.py": {},
     "_dto.py": {
-      "module_id": "MD-EXE-009.001.M01",
-      "srd_id": "SRD-EXE-009.012",
+      "module_id": "MD-INF-010.001.M06",
+      "srd_id": "SRD-INF-010.006",
       "classes": [
         {
-          "name": "KeepSet",
-          "docstring": "Authoritative answer to 'which symbols should have candles today'.",
+          "name": "NotificationMessage",
+          "docstring": "A rendered, channel-ready message. ``event_kind`` is the source event's",
           "class_vars": [
-            "filtered: frozenset[str]",
-            "carryover: frozenset[str]",
-            "as_of: date",
-            "schema_version: int"
+            "text: str",
+            "event_kind: str"
           ],
-          "line_start": 19,
-          "line_end": 25
+          "line_start": 16,
+          "line_end": 21
         },
         {
-          "name": "ReconcileError",
+          "name": "NotificationConfig",
+          "docstring": "Per-user notification settings parsed from ``settings_json``.",
           "class_vars": [
-            "symbol: str",
-            "message: str",
-            "schema_version: int"
+            "telegram_enabled: bool",
+            "bot_token: str",
+            "chat_id: str",
+            "event_toggles: Mapping[str, bool]"
           ],
-          "line_start": 29,
-          "line_end": 32
-        },
+          "line_start": 25,
+          "line_end": 31
+        }
+      ],
+      "top_level_functions": [
         {
-          "name": "ReconcileReport",
-          "class_vars": [
-            "filtered_n: int",
-            "carryover_n: int",
-            "skipped_n: int",
-            "evicted_n: int",
-            "evicted_symbols: tuple[str, ...]",
-            "duration_ms: int",
-            "errors: tuple[ReconcileError, ...]",
-            "schema_version: int"
-          ],
-          "line_start": 36,
-          "line_end": 44
-        },
-        {
-          "name": "MonitoringSessionRow",
-          "docstring": "One row of the ledger.  Mirrors the ``monitoring_session`` table.",
-          "class_vars": [
-            "session_date: str",
-            "symbol: str",
-            "preset_id: str",
-            "run_timestamp: str",
-            "added_at: str",
-            "lifecycle_state: ExecutionEnums.LifecycleState",
-            "entered_at: str | None",
-            "exited_at: str | None",
-            "evicted_at: str | None",
-            "trade_id: str | None",
-            "schema_version: int"
-          ],
-          "line_start": 48,
+          "name": "load_config",
+          "signature": "def load_config(settings_json: Mapping[str, Any]) -> NotificationConfig",
+          "docstring": "Parse a user's ``settings_json`` into a :class:`NotificationConfig`.",
+          "line_start": 34,
           "line_end": 61
-        },
-        {
-          "name": "FillEvent",
-          "docstring": "Order-fill payload routed to ``MonitoringCommand.on_fill``.",
-          "class_vars": [
-            "symbol: str",
-            "trade_id: str",
-            "side: Side",
-            "qty: int",
-            "price: float",
-            "fill_time: str",
-            "origin: TradeOrigin",
-            "order_state: ExecutionEnums.BuyOrderState | ExecutionEnums.SellOrderState | None",
-            "user_id: int",
-            "schema_version: int"
-          ],
-          "line_start": 65,
-          "line_end": 77
-        },
-        {
-          "name": "InvariantReport",
-          "docstring": "Result of `MonitoringQuery.check_invariant()`.",
-          "class_vars": [
-            "ok: bool",
-            "only_in_a: tuple[str, ...]",
-            "only_in_b: tuple[str, ...]",
-            "schema_version: int"
-          ],
-          "line_start": 81,
-          "line_end": 87
-        },
-        {
-          "name": "PositionSnapshot",
-          "docstring": "Post-fill view of a position, returned by the repository so the service",
-          "class_vars": [
-            "symbol: str",
-            "quantity: int",
-            "average_price: float",
-            "state: str",
-            "origin: TradeOrigin",
-            "anchor_session_date: str | None",
-            "realised_pnl: float",
-            "schema_version: int"
-          ],
-          "line_start": 91,
-          "line_end": 102
         }
       ]
     },
@@ -157,266 +79,175 @@
       ]
     },
     "_events.py": {
-      "module_id": "MD-EXE-009.001.M03",
-      "srd_id": "SRD-EXE-009.011",
+      "module_id": "MD-INF-010.001.M01",
+      "srd_id": "SRD-INF-010.001",
       "classes": [
         {
-          "name": "SymbolStartedMonitoring",
+          "name": "NotificationEvent",
+          "docstring": "Base for every notification. Carries a timestamp and a schema version so",
           "class_vars": [
-            "event_id: str",
-            "occurred_at: str",
-            "symbol: str",
-            "session_date: str",
-            "preset_id: str",
-            "run_timestamp: str",
+            "occurred_at: datetime",
             "schema_version: int"
           ],
-          "line_start": 30,
-          "line_end": 37
+          "line_start": 29,
+          "line_end": 34
         },
         {
-          "name": "SymbolEnteredPosition",
+          "name": "ToolStartedEvent",
           "class_vars": [
-            "event_id: str",
-            "occurred_at: str",
-            "symbol: str",
-            "anchor_session_date: str",
-            "trade_id: str",
-            "fill_qty: int",
-            "fill_time: str",
-            "schema_version: int"
+            "app_version: str"
           ],
-          "line_start": 41,
-          "line_end": 49
+          "line_start": 38,
+          "line_end": 39
         },
         {
-          "name": "SymbolPositionScaled",
+          "name": "ScreenerApprovedEvent",
           "class_vars": [
-            "event_id: str",
-            "occurred_at: str",
-            "symbol: str",
-            "anchor_session_date: str",
-            "trade_id: str",
-            "side: Side",
-            "fill_qty: int",
-            "new_position_state: str",
-            "fill_time: str",
-            "schema_version: int"
+            "symbols: tuple[str, ...]",
+            "run_id: str"
           ],
-          "line_start": 53,
-          "line_end": 63
+          "line_start": 43,
+          "line_end": 45
         },
         {
-          "name": "SymbolExitedPosition",
+          "name": "DayEndPnLEvent",
           "class_vars": [
-            "event_id: str",
-            "occurred_at: str",
-            "symbol: str",
-            "anchor_session_date: str",
-            "exit_trade_id: str",
-            "exit_time: str",
-            "realised_pnl: float",
-            "schema_version: int"
+            "realized: float",
+            "unrealized: float",
+            "trade_count: int"
           ],
-          "line_start": 67,
-          "line_end": 75
-        },
-        {
-          "name": "SymbolSkipped",
-          "class_vars": [
-            "event_id: str",
-            "occurred_at: str",
-            "symbol: str",
-            "session_date: str",
-            "schema_version: int"
-          ],
-          "line_start": 79,
-          "line_end": 84
-        },
-        {
-          "name": "SymbolEvicted",
-          "class_vars": [
-            "event_id: str",
-            "occurred_at: str",
-            "symbol: str",
-            "evicted_session_dates: tuple[str, ...]",
-            "schema_version: int"
-          ],
-          "line_start": 88,
-          "line_end": 93
-        },
-        {
-          "name": "ReconcileCompleted",
-          "class_vars": [
-            "event_id: str",
-            "occurred_at: str",
-            "report: ReconcileReport",
-            "schema_version: int"
-          ],
-          "line_start": 97,
-          "line_end": 101
-        },
-        {
-          "name": "_SubscriptionHandle",
-          "docstring": "Concrete ``Subscription`` returned by :class:`_InProcessBus`.",
-          "class_vars": [
-            "_bus: \"_InProcessBus\"",
-            "_event_type: type",
-            "_handler: Callable[[Any], None]",
-            "_alive: bool"
-          ],
-          "methods": [
-            {
-              "name": "cancel",
-              "signature": "def cancel(self) -> None",
-              "line_start": 126,
-              "line_end": 130
-            }
-          ],
-          "line_start": 118,
-          "line_end": 130
+          "line_start": 49,
+          "line_end": 52
         },
         {
           "name": "_InProcessBus",
-          "docstring": "Single-process synchronous event bus.",
+          "docstring": "Single-process synchronous bus. ``publish`` invokes handlers on the",
           "methods": [
             {
               "name": "__init__",
               "signature": "def __init__(self) -> None",
-              "line_start": 141,
-              "line_end": 143
+              "line_start": 65,
+              "line_end": 67
             },
             {
               "name": "subscribe",
-              "signature": "def subscribe(\r\n        self,\r\n        event_type: type,\r\n        handler: Callable[[Any], None],\r\n    ) -> Subscription",
-              "line_start": 145,
-              "line_end": 152
+              "signature": "def subscribe(self, handler: Callable[[Any], None]) -> None",
+              "line_start": 69,
+              "line_end": 71
             },
             {
               "name": "publish",
               "signature": "def publish(self, event: Any) -> None",
-              "line_start": 154,
-              "line_end": 166
-            },
-            {
-              "name": "_unregister",
-              "signature": "def _unregister(\r\n        self,\r\n        event_type: type,\r\n        handler: Callable[[Any], None],\r\n    ) -> None",
-              "line_start": 168,
-              "line_end": 177
+              "line_start": 73,
+              "line_end": 85
             }
           ],
-          "line_start": 133,
-          "line_end": 177
+          "line_start": 60,
+          "line_end": 85
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_now",
+          "signature": "def _now() -> datetime",
+          "line_start": 22,
+          "line_end": 23
         }
       ]
     },
     "_protocols.py": {
-      "module_id": "MD-EXE-009.001.M02",
-      "srd_id": "SRD-EXE-009.010",
+      "module_id": "MD-INF-010.001.M02",
+      "srd_id": "SRD-INF-010.002",
       "classes": [
         {
-          "name": "Subscription",
-          "docstring": "Handle returned by ``MonitoringEventBus.subscribe``.",
+          "name": "NotificationChannel",
+          "docstring": "A delivery destination. Telegram is the first implementation; email,",
+          "class_vars": [
+            "name: str"
+          ],
           "methods": [
             {
-              "name": "cancel",
-              "signature": "def cancel(self) -> None",
-              "line_start": 28,
-              "line_end": 28
+              "name": "send",
+              "signature": "def send(self, message: NotificationMessage) -> None",
+              "docstring": "Deliver one rendered message. May raise on transport failure \u2014 the",
+              "line_start": 23,
+              "line_end": 26
             }
           ],
-          "line_start": 25,
-          "line_end": 28
+          "line_start": 17,
+          "line_end": 26
         },
         {
-          "name": "MonitoringEventBus",
-          "docstring": "Synchronous in-process publish/subscribe surface for lifecycle events.",
+          "name": "NotificationBus",
+          "docstring": "Publish/subscribe seam between event producers and the dispatcher.",
           "methods": [
             {
               "name": "subscribe",
-              "signature": "def subscribe(\r\n        self,\r\n        event_type: type,\r\n        handler: Callable[[Any], None],\r\n    ) -> Subscription",
-              "line_start": 35,
-              "line_end": 39
+              "signature": "def subscribe(self, handler: Callable[[Any], None]) -> None",
+              "docstring": "Register a handler invoked for every published event.",
+              "line_start": 36,
+              "line_end": 38
             },
             {
               "name": "publish",
               "signature": "def publish(self, event: Any) -> None",
-              "line_start": 41,
-              "line_end": 41
+              "docstring": "Deliver an event to all subscribers. Never raises to the caller.",
+              "line_start": 40,
+              "line_end": 42
             }
           ],
-          "line_start": 32,
-          "line_end": 41
+          "line_start": 30,
+          "line_end": 42
         },
         {
-          "name": "MonitoringQuery",
-          "docstring": "Read-only side of the service.  Cheap, side-effect-free, thread-safe.",
+          "name": "CommandPort",
+          "docstring": "Read-only query surface backing the inbound bot commands.",
           "methods": [
             {
-              "name": "keep_set",
-              "signature": "def keep_set(self, today: date) -> KeepSet",
-              "line_start": 48,
-              "line_end": 48
+              "name": "status",
+              "signature": "def status(self) -> str",
+              "docstring": "Feed connection and market-session summary.",
+              "line_start": 53,
+              "line_end": 55
             },
             {
-              "name": "open_system_positions",
-              "signature": "def open_system_positions(self) -> frozenset[str]",
-              "line_start": 50,
-              "line_end": 50
+              "name": "pnl",
+              "signature": "def pnl(self) -> str",
+              "docstring": "Realized and unrealized profit-and-loss summary.",
+              "line_start": 57,
+              "line_end": 59
             },
             {
-              "name": "session_for",
-              "signature": "def session_for(\r\n        self,\r\n        session_date: date,\r\n        symbol: str,\r\n    ) -> MonitoringSessionRow | None",
-              "line_start": 52,
-              "line_end": 56
+              "name": "positions",
+              "signature": "def positions(self) -> str",
+              "docstring": "Currently open positions.",
+              "line_start": 61,
+              "line_end": 63
             },
             {
-              "name": "history",
-              "signature": "def history(\r\n        self,\r\n        symbol: str,\r\n        days: int = 30,\r\n    ) -> tuple[MonitoringSessionRow, ...]",
-              "line_start": 58,
-              "line_end": 62
+              "name": "signals",
+              "signature": "def signals(self) -> str",
+              "docstring": "Pending trade signals awaiting review.",
+              "line_start": 65,
+              "line_end": 67
             },
             {
-              "name": "check_invariant",
-              "signature": "def check_invariant(self) -> InvariantReport",
-              "line_start": 64,
-              "line_end": 64
+              "name": "screener",
+              "signature": "def screener(self) -> str",
+              "docstring": "Latest screener results.",
+              "line_start": 69,
+              "line_end": 71
+            },
+            {
+              "name": "cycles",
+              "signature": "def cycles(self) -> str",
+              "docstring": "Open and recently closed trade cycles.",
+              "line_start": 73,
+              "line_end": 75
             }
           ],
-          "line_start": 45,
-          "line_end": 64
-        },
-        {
-          "name": "MonitoringCommand",
-          "docstring": "Mutating side of the service.  Called only by the order pipeline,",
-          "methods": [
-            {
-              "name": "on_screener_results",
-              "signature": "def on_screener_results(self, result: Any) -> KeepSet",
-              "line_start": 72,
-              "line_end": 72
-            },
-            {
-              "name": "mark_entered",
-              "signature": "def mark_entered(self, symbol: str, entered_at: str, trade_id: str) -> None",
-              "line_start": 74,
-              "line_end": 74
-            },
-            {
-              "name": "mark_exited",
-              "signature": "def mark_exited(self, symbol: str, exited_at: str) -> None",
-              "line_start": 76,
-              "line_end": 76
-            },
-            {
-              "name": "reconcile_preopen",
-              "signature": "def reconcile_preopen(self, today: date) -> ReconcileReport",
-              "line_start": 78,
-              "line_end": 78
-            }
-          ],
-          "line_start": 68,
-          "line_end": 78
+          "line_start": 46,
+          "line_end": 75
         }
       ]
     },
@@ -692,6 +523,255 @@
         "_NY = ZoneInfo(\"America/New_York\")",
         "_RETRY_BACKOFF_S = 0.20",
         "_SKIPPED_REPORT = ReconcileReport("
+      ]
+    },
+    "_dispatcher.py": {
+      "module_id": "MD-INF-010.001.M04",
+      "srd_id": "SRD-INF-010.004",
+      "classes": [
+        {
+          "name": "NotificationDispatcher",
+          "docstring": "Renders events and delivers them to channels with isolation + retry.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(\r\n        self,\r\n        bus: NotificationBus,\r\n        channels: Iterable[NotificationChannel],\r\n        registry: FormatterRegistry,\r\n        *,\r\n        event_toggles: Mapping[str, bool] | None = None,\r\n        max_retries: int = 2,\r\n        min_interval_s: float = 1.0,\r\n        backoff_base_s: float = 0.5,\r\n        sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,\r\n        monotonic: Callable[[], float] = time.monotonic,\r\n    ) -> None",
+              "line_start": 27,
+              "line_end": 50
+            },
+            {
+              "name": "channels",
+              "signature": "def channels(self) -> tuple[NotificationChannel, ...]",
+              "decorators": [
+                "@property"
+              ],
+              "line_start": 53,
+              "line_end": 54
+            },
+            {
+              "name": "queue_size",
+              "signature": "def queue_size(self) -> int",
+              "decorators": [
+                "@property"
+              ],
+              "line_start": 57,
+              "line_end": 58
+            },
+            {
+              "name": "dispatch",
+              "signature": "def dispatch(self, event: object) -> None",
+              "docstring": "Render an event and enqueue it. Never raises to the producer \u2014 a",
+              "line_start": 60,
+              "line_end": 73
+            },
+            {
+              "name": "run",
+              "signature": "def run(self) -> None",
+              "docstring": "Worker loop: drain the queue and deliver each message.",
+              "line_start": 75,
+              "line_end": 82
+            },
+            {
+              "name": "deliver",
+              "signature": "def deliver(self, message: NotificationMessage) -> None",
+              "docstring": "Fan one message out to every channel, isolating each failure.",
+              "line_start": 84,
+              "line_end": 91
+            },
+            {
+              "name": "_rate_limit",
+              "signature": "def _rate_limit(self, channel_name: str) -> None",
+              "line_start": 93,
+              "line_end": 101
+            },
+            {
+              "name": "_send_with_retry",
+              "signature": "def _send_with_retry(\r\n        self,\r\n        channel: NotificationChannel,\r\n        message: NotificationMessage,\r\n    ) -> None",
+              "line_start": 103,
+              "line_end": 116
+            }
+          ],
+          "line_start": 24,
+          "line_end": 116
+        }
+      ]
+    },
+    "_formatters.py": {
+      "module_id": "MD-INF-010.001.M05",
+      "srd_id": "SRD-INF-010.005",
+      "classes": [
+        {
+          "name": "FormatterRegistry",
+          "docstring": "Registry of per-event-type message formatters.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self) -> None",
+              "line_start": 27,
+              "line_end": 28
+            },
+            {
+              "name": "register",
+              "signature": "def register(self, event_type: type, formatter: Formatter) -> None",
+              "docstring": "Register the formatter used to render ``event_type``.",
+              "line_start": 30,
+              "line_end": 32
+            },
+            {
+              "name": "render",
+              "signature": "def render(self, event: NotificationEvent) -> NotificationMessage",
+              "docstring": "Render ``event`` into a channel-ready message.",
+              "line_start": 34,
+              "line_end": 46
+            }
+          ],
+          "line_start": 24,
+          "line_end": 46
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_fmt_tool_started",
+          "signature": "def _fmt_tool_started(event: NotificationEvent) -> NotificationMessage",
+          "line_start": 49,
+          "line_end": 55
+        },
+        {
+          "name": "_fmt_screener_approved",
+          "signature": "def _fmt_screener_approved(event: NotificationEvent) -> NotificationMessage",
+          "line_start": 58,
+          "line_end": 64
+        },
+        {
+          "name": "_fmt_day_end_pnl",
+          "signature": "def _fmt_day_end_pnl(event: NotificationEvent) -> NotificationMessage",
+          "line_start": 67,
+          "line_end": 75
+        },
+        {
+          "name": "default_registry",
+          "signature": "def default_registry() -> FormatterRegistry",
+          "docstring": "Build a registry pre-populated with the built-in event formatters.",
+          "line_start": 78,
+          "line_end": 84
+        }
+      ]
+    },
+    "_inbound.py": {
+      "module_id": "MD-INF-010.001.M10",
+      "srd_id": "SRD-INF-010.012",
+      "classes": [
+        {
+          "name": "CommandRouter",
+          "docstring": "Maps a parsed command to a :class:`CommandPort` query and returns a reply.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, port: CommandPort) -> None",
+              "line_start": 61,
+              "line_end": 69
+            },
+            {
+              "name": "route",
+              "signature": "def route(self, text: str) -> str | None",
+              "docstring": "Return the reply for a message, or ``None`` if it is not a command.",
+              "line_start": 71,
+              "line_end": 90
+            }
+          ],
+          "line_start": 56,
+          "line_end": 90
+        },
+        {
+          "name": "TelegramPoller",
+          "docstring": "Long-polls Telegram ``getUpdates`` and answers authorized commands.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(\r\n        self,\r\n        bot_token: str,\r\n        chat_id: str,\r\n        http: httpx.AsyncClient,\r\n        router: CommandRouter,\r\n        *,\r\n        poll_timeout_s: int = 25,\r\n    ) -> None",
+              "line_start": 96,
+              "line_end": 109
+            },
+            {
+              "name": "run",
+              "signature": "def run(self) -> None",
+              "docstring": "Poll forever, handling each batch of updates. Runs until cancelled.",
+              "line_start": 111,
+              "line_end": 124
+            },
+            {
+              "name": "_process",
+              "signature": "def _process(self, updates: list[dict[str, Any]], offset: int) -> int",
+              "docstring": "Handle a batch of updates and return the next offset to request.",
+              "line_start": 126,
+              "line_end": 142
+            },
+            {
+              "name": "_register_commands",
+              "signature": "def _register_commands(self) -> None",
+              "docstring": "Publish the command list to Telegram so the chat shows a command menu.",
+              "line_start": 144,
+              "line_end": 157
+            },
+            {
+              "name": "_get_updates",
+              "signature": "def _get_updates(self, offset: int) -> list[dict[str, Any]]",
+              "line_start": 159,
+              "line_end": 169
+            },
+            {
+              "name": "_send",
+              "signature": "def _send(self, text: str) -> None",
+              "line_start": 171,
+              "line_end": 177
+            }
+          ],
+          "line_start": 93,
+          "line_end": 177
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_parse_command",
+          "signature": "def _parse_command(text: str) -> str | None",
+          "docstring": "Extract the normalized command name from a message.",
+          "line_start": 42,
+          "line_end": 53
+        }
+      ],
+      "constants": [
+        "_COMMANDS: tuple[tuple[str, str], ...] = (",
+        "_HELP_TEXT = \"\ud83e\udd16 <b>USSwing Bot</b>\\n\\n\" + \"\\n\".join("
+      ]
+    },
+    "_telegram.py": {
+      "module_id": "MD-INF-010.001.M03",
+      "srd_id": "SRD-INF-010.003",
+      "classes": [
+        {
+          "name": "TelegramChannel",
+          "docstring": "Sends notifications to one Telegram chat via ``sendMessage``.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, bot_token: str, chat_id: str, http: httpx.AsyncClient) -> None",
+              "line_start": 23,
+              "line_end": 26
+            },
+            {
+              "name": "send",
+              "signature": "def send(self, message: NotificationMessage) -> None",
+              "docstring": "POST the message text to the configured chat.",
+              "line_start": 28,
+              "line_end": 39
+            }
+          ],
+          "line_start": 18,
+          "line_end": 39
+        }
+      ],
+      "constants": [
+        "_API_BASE = \"https://api.telegram.org\""
       ]
     }
   }

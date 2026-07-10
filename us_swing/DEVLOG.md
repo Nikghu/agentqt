@@ -2,6 +2,16 @@
 
 ---
 
+## [20260710] INF+GUI — Telegram bot polish + scheduler crash fix (FO-INF-010, release)
+
+- Type: Enhancement + Fix
+- FO(s): FO-INF-010
+- RN: RN-INF-1.6.0-20260710
+- Artifacts updated: MD (M10 note), UTCD (M10.T09), Code, RN, CONTEXT, DEVLOG
+- Decisions: Pre-release polish of the Telegram bot plus a Windows crash fix, bundled for release. (1) `setMyCommands` registration via `TelegramPoller._register_commands` on poll start (best-effort); single `_COMMANDS` source of truth drives `/help` + registration. (2) All command replies now HTML (`parse_mode`): bold titles, 🟢/🔴 dots, monospace `<pre>` tables, everything `html.escape`d. (3) `/screener` enriched — ranked by score, top-10 (+"…more"), each stock shows score + last price + day %change (one `get_candles_bulk` round-trip, "—" when no data) + preset name + as-of header. (4) Scheduler `gui/scheduler_dialog.py` TWS window-finder no longer crashes on 64-bit HWNDs — new `_user32()` sets proper ctypes `argtypes`/`restype`; verified live on Windows. Tests: 49 notification+telegram pass (2 new); ruff + mypy --strict clean. Released on `release/telegram-polish-scheduler-fix` branch + PR (merged, branch deleted). Follow-up: outbound event messages still plain text.
+
+---
+
 ## [20260710] INF+GUI — Per-event toggles, day-end delivery, P&L fix (FO-INF-010)
 
 - Type: Feature + Fix (follow-up)
