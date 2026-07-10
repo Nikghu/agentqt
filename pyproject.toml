@@ -27,6 +27,7 @@ dependencies = [
     "keyring>=24.0",
     "openai>=1.40",
     "ta-lib>=0.6.0",
+    "httpx>=0.27",
 ]
 
 [project.optional-dependencies]
@@ -53,3 +54,7 @@ line-length = 99
 [tool.mypy]
 strict = true
 python_version = "3.11"
+
+[[tool.mypy.overrides]]
+module = "keyring"
+ignore_missing_imports = true

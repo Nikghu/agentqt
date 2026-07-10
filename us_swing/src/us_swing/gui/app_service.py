@@ -71,6 +71,7 @@ if TYPE_CHECKING:
     from us_swing.execution.intraday_candle_loader import IntradayCandleLoader
     from us_swing.execution.live_bar_worker import LiveBarWorker
     from us_swing.execution.live_tick_worker import LiveTickWorker
+    from us_swing.gui.telegram_commands import TelegramCommandBridge
     from us_swing.universe.store import Sp500Meta
 
 _log = logging.getLogger(__name__)
@@ -106,6 +107,15 @@ from us_swing.core.monitoring_session import (
     build_scheduler,
     wire_cycle_ledger_projection,
 )
+from us_swing.core.notifications import (
+    DayEndPnLEvent,
+    NotificationConfig,
+    ScreenerApprovedEvent,
+    ToolStartedEvent,
+    load_config,
+)
+from us_swing.gui import telegram_token_store
+from us_swing.gui.notification_worker import NotificationWorker
 
 
 @dataclass(frozen=True)
@@ -1128,6 +1138,11 @@ class AppService(QObject):
         self._live_bar_worker: LiveBarWorker | None = None
         self._filtered_symbols: list[str] = []
 
+        # ── Telegram notifications (FO-INF-010) ──────────────────────────────
+        self._notif_worker: NotificationWorker | None = None
+        self._cmd_bridge: TelegramCommandBridge | None = None
+        self._day_end_sent_date: datetime.date | None = None
+
         # ── Market status (NYSE / NASDAQ) — always running, 60 s tick ────────
         self._market_status: dict[str, str] = {"nyse": "closed", "nasdaq": "closed"}
         self._mkt_status_timer = QTimer(self)
@@ -1135,6 +1150,8 @@ class AppService(QObject):
         self._mkt_status_timer.timeout.connect(self._refresh_market_status)
         self._mkt_status_timer.start()
         self._refresh_market_status()   # immediate first check
+
+        self._start_notifications()
 
         # ── S&P 500 universe — check cache on startup ─────────────────────────
         # Runs in a deferred QTimer so the GUI is visible before any network I/O.
@@ -1603,6 +1620,8 @@ class AppService(QObject):
         # Restart live bars with the new symbol list if market is currently open.
         if self._market_status.get("nyse") == "open":
             self._start_live_bar_worker()
+        # FO-INF-010 — notify the user of the freshly approved screener list.
+        self.publish_notification(ScreenerApprovedEvent(symbols=tuple(symbols)))
 
     # ── Monitoring session lifecycle wiring (FO-EXE-009 / FO-EXE-010) ────────
     #
@@ -2984,6 +3003,101 @@ class AppService(QObject):
             self._start_live_bar_worker()
         elif status != "open" and prev == "open":
             self._stop_live_bar_worker()
+
+        # Day-end P&L: once per trading day, during the after-hours window
+        # (16:00–20:00 ET). after_hours only occurs on real trading days, so
+        # weekends and holidays are excluded automatically.
+        if status == "after_hours":
+            self._maybe_publish_day_end(now_et.date())
+
+    # ── Telegram notifications (FO-INF-010) ──────────────────────────────────
+
+    def _build_notification_config(self) -> NotificationConfig:
+        """Assemble the active user's notification config (token from keychain)."""
+        user  = self.get_active_user()
+        token = telegram_token_store.load(user.user_id)
+        return load_config({
+            "notifications": {
+                "telegram": {
+                    "enabled":   user.telegram_enabled,
+                    "bot_token": token,
+                    "chat_id":   user.telegram_chat_id,
+                },
+                "events": {
+                    "ToolStartedEvent":      user.notify_tool_started,
+                    "ScreenerApprovedEvent": user.notify_screener_approved,
+                    "DayEndPnLEvent":        user.notify_day_end_pnl,
+                },
+            }
+        })
+
+    def _start_notifications(self, announce: bool = True) -> None:
+        try:
+            from us_swing.gui.telegram_commands import TelegramCommandBridge
+            config = self._build_notification_config()
+            self._cmd_bridge = TelegramCommandBridge(self)
+            worker = NotificationWorker(config, command_port=self._cmd_bridge)
+            if announce:
+                worker.ready.connect(self._on_notifications_ready)
+            self._notif_worker = worker
+            worker.start()
+        except Exception as exc:
+            _log.warning("[Notify] Could not start notification service: %r", exc)
+
+    def _on_notifications_ready(self) -> None:
+        from us_swing import __version__
+        self.publish_notification(ToolStartedEvent(app_version=__version__))
+
+    def publish_notification(self, event: object) -> None:
+        """Hand an event to the notification worker (no-op if not running)."""
+        worker = self._notif_worker
+        if worker is not None:
+            worker.publish_event(event)
+
+    def reconfigure_notifications(self) -> None:
+        """Rebuild the worker after a settings change; does not re-announce startup."""
+        old = self._notif_worker
+        self._notif_worker = None
+        if old is not None:
+            old.shutdown()
+        self._start_notifications(announce=False)
+
+    def send_test_notification(self) -> None:
+        """Publish a message immediately so the user can confirm delivery works."""
+        from us_swing import __version__
+        self.publish_notification(ToolStartedEvent(app_version=f"{__version__} (test)"))
+
+    def shutdown_notifications(self) -> None:
+        worker = self._notif_worker
+        self._notif_worker = None
+        if worker is not None:
+            worker.shutdown()
+
+    def _maybe_publish_day_end(self, today: datetime.date) -> None:
+        """Send the day-end summary at most once per trading day.
+
+        Skips until the notification worker is running so the summary is never
+        lost during startup; the guard is only marked once a send is attempted.
+        """
+        if self._day_end_sent_date == today:
+            return
+        if self._notif_worker is None:
+            return
+        self._day_end_sent_date = today
+        self._publish_day_end_pnl()
+
+    def _publish_day_end_pnl(self) -> None:
+        try:
+            acct       = self.get_account_state(self._active_uid)
+            positions  = self.get_positions(self._active_uid)
+            unrealized = sum(float(p.unrealised_pnl) for p in positions)
+            self.publish_notification(DayEndPnLEvent(
+                realized=acct.daily_pnl,
+                unrealized=unrealized,
+                trade_count=len(positions),
+            ))
+        except Exception as exc:
+            _log.warning("[Notify] Could not build day-end P&L summary: %r", exc)
 
     # ── S&P 500 universe ──────────────────────────────────────────────────────
 

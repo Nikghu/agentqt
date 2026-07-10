@@ -1,13 +1,17 @@
 # Unit Test Case Document — Infrastructure (INF)
 
 **Document ID:** UTCD-INF
-**Version:** 1.2.0
-**Traces To:** MD-INF v1.1.0
+**Version:** 1.6.0
+**Traces To:** MD-INF v1.4.0
 **Status:** Draft
-**Last Updated:** 2026-06-12
+**Last Updated:** 2026-07-10
 **Project:** US Swing Trading System
 
 > Tests written BEFORE implementation per process.md §7.
+> v1.3.0: notification-service cases added (MD-INF-010.001.M01–M07).
+> v1.4.0: keychain token store + user-store persistence cases added (MD-INF-010.001.M08).
+> v1.5.0: inbound command cases added (MD-INF-010.001.M10 router/poller, M11 GUI bridge).
+> v1.6.0: per-event toggle enforcement (M04.T07–09, M07.T03), toggle persistence (M08.T06–07), day-end trigger (M09.T01–03).
 
 ---
 
@@ -138,3 +142,127 @@
 | UT-INF-007.001.M02.T02 | MD-INF-007.001.M02 | Unit | Generated bars satisfy OHLCV constraints | Any request | For each bar: `low <= open`, `low <= close`, `high >= open`, `high >= close`, `volume >= 0` | Draft |
 | UT-INF-007.001.M02.T03 | MD-INF-007.001.M02 | Unit | Same seed produces identical bars | Two calls with seed=42 | Both return identical `list[OHLCVBar]` | Draft |
 | UT-INF-007.001.M02.T04 | MD-INF-007.001.M02 | Edge | `subscribe_realtime_bars()` emits bars via callback | Subscribe and wait 10s | At least 1 bar received via `on_realtime_bar` callback | Draft |
+
+---
+
+## Module: `core/notifications/_events.py` — Events & Bus
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-INF-010.001.M01.T01 | MD-INF-010.001.M01 | Positive | `ScreenerApprovedEvent` stores its symbols and carries `schema_version` | `ScreenerApprovedEvent(symbols=("AAPL","MSFT"))` | `event.symbols == ("AAPL","MSFT")`; `event.schema_version == 1` | Pass |
+| UT-INF-010.001.M01.T02 | MD-INF-010.001.M01 | Negative | Event is frozen — mutation is rejected | Set `event.symbols = ()` on a built event | `FrozenInstanceError` raised | Pass |
+| UT-INF-010.001.M01.T03 | MD-INF-010.001.M01 | Positive | Bus `publish` calls a subscribed handler with the event | Subscribe handler; publish a `ToolStartedEvent` | Handler invoked once with that event | Pass |
+| UT-INF-010.001.M01.T04 | MD-INF-010.001.M01 | Edge | A raising handler is isolated — sibling still runs, no exception propagates | Two handlers, first raises; publish event | Second handler still called; `publish` returns without raising | Pass |
+
+---
+
+## Module: `core/notifications/_protocols.py` — Channel Protocol
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-INF-010.001.M02.T01 | MD-INF-010.001.M02 | Positive | `TelegramChannel` structurally satisfies `NotificationChannel` | `isinstance(telegram, NotificationChannel)` | `True` | Pass |
+| UT-INF-010.001.M02.T02 | MD-INF-010.001.M02 | Negative | An object without `send` does not satisfy the Protocol | `isinstance(object(), NotificationChannel)` | `False` | Pass |
+
+---
+
+## Module: `core/notifications/_telegram.py` — TelegramChannel
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-INF-010.001.M03.T01 | MD-INF-010.001.M03 | Positive | `send` POSTs `sendMessage` with chat id and text | `TelegramChannel(token, chat_id, mock_client)`; send a message | Request URL ends `/bot<token>/sendMessage`; body has `chat_id` + `text` | Pass |
+| UT-INF-010.001.M03.T02 | MD-INF-010.001.M03 | Negative | A non-2xx Telegram response raises so the dispatcher can catch it | Mock client returns HTTP 400 | Exception raised from `send` | Pass |
+
+---
+
+## Module: `core/notifications/_dispatcher.py` — NotificationDispatcher
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-INF-010.001.M04.T01 | MD-INF-010.001.M04 | Positive | An event is rendered and delivered to an enabled channel | Dispatcher with one recording channel; deliver a `ToolStartedEvent` | Channel received one message with non-empty text | Pass |
+| UT-INF-010.001.M04.T02 | MD-INF-010.001.M04 | Edge | One channel failing does not stop another and does not propagate | Two channels, first always raises; deliver a message | Second channel still received the message; no exception propagates | Pass |
+| UT-INF-010.001.M04.T03 | MD-INF-010.001.M04 | Positive | A channel failing once then succeeding is retried and delivers | Channel raises on first send, succeeds on second; `max_retries=1` | Message eventually delivered; two send attempts made | Pass |
+| UT-INF-010.001.M04.T04 | MD-INF-010.001.M04 | Negative | Retries exhausted are logged, not raised | Channel always raises; `max_retries=1` | No exception propagates; failure logged under `[Notify]` | Pass |
+| UT-INF-010.001.M04.T05 | MD-INF-010.001.M04 | Positive | `dispatch` enqueues without blocking the caller | Call `dispatch(event)` (no worker running) | Returns immediately; internal queue size is 1 | Pass |
+| UT-INF-010.001.M04.T06 | MD-INF-010.001.M04 | Negative | `dispatch` of an event with no formatter is swallowed, not raised | Registry without a formatter for the event type | `dispatch` returns without raising; failure logged | Pass |
+| UT-INF-010.001.M04.T07 | MD-INF-010.001.M04 | Negative | An event whose kind is toggled off is dropped before enqueue | Dispatcher with `event_toggles={"ToolStartedEvent": False}`; dispatch one | Queue size stays 0 | Pass |
+| UT-INF-010.001.M04.T08 | MD-INF-010.001.M04 | Positive | An event whose kind is toggled on is enqueued | Dispatcher with `event_toggles={"ToolStartedEvent": True}`; dispatch one | Queue size is 1 | Pass |
+| UT-INF-010.001.M04.T09 | MD-INF-010.001.M04 | Edge | An event kind absent from the toggle map defaults to on | Dispatcher with a map covering only another kind; dispatch the uncovered one | Queue size is 1 | Pass |
+
+---
+
+## Module: `core/notifications/_formatters.py` — FormatterRegistry
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-INF-010.001.M05.T01 | MD-INF-010.001.M05 | Positive | Default registry renders `ScreenerApprovedEvent` listing the symbols | `render(ScreenerApprovedEvent(symbols=("AAPL","MSFT")))` | Message text contains `AAPL` and `MSFT` | Pass |
+| UT-INF-010.001.M05.T02 | MD-INF-010.001.M05 | Negative | Rendering an unregistered event type raises a clear error | `render(event)` for a type with no formatter | `KeyError` raised naming the missing type | Pass |
+| UT-INF-010.001.M05.T03 | MD-INF-010.001.M05 | Positive | A newly registered event type renders without touching existing formatters | Register formatter for a new event class; render it | Correct message returned; existing renders still work | Pass |
+
+---
+
+## Module: `core/notifications/_dto.py` — Config
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-INF-010.001.M06.T01 | MD-INF-010.001.M06 | Positive | `load_config` parses telegram settings and per-event toggles | `settings_json` with enabled telegram + token + chat id | `NotificationConfig(telegram_enabled=True, bot_token=…, chat_id=…)` | Pass |
+| UT-INF-010.001.M06.T02 | MD-INF-010.001.M06 | Edge | Missing `notifications` key yields a disabled config, no crash | `settings_json = {}` | `telegram_enabled == False`; no exception | Pass |
+| UT-INF-010.001.M06.T03 | MD-INF-010.001.M06 | Negative | Enabled telegram with a blank token is treated as disabled | enabled True but `bot_token=""` | `telegram_enabled == False` | Pass |
+
+---
+
+## Module: `core/notifications/__init__.py` — Factory & Publish
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-INF-010.001.M07.T01 | MD-INF-010.001.M07 | Positive | Factory with telegram enabled builds a dispatcher wired with a Telegram channel | `build_default_dispatcher(enabled config, http)` | Dispatcher has one channel | Pass |
+| UT-INF-010.001.M07.T02 | MD-INF-010.001.M07 | Negative | Factory with telegram disabled builds a dispatcher with no channels; publish is a safe no-op | `build_default_dispatcher(disabled config)`; publish an event | Zero channels; `publish` does not raise | Pass |
+| UT-INF-010.001.M07.T03 | MD-INF-010.001.M07 | Positive | Factory passes `event_toggles` through so a toggled-off event is dropped end-to-end | Enabled config with `event_toggles={"ToolStartedEvent": False}`; publish one | Queue size stays 0 | Pass |
+
+---
+
+## Module: `gui/telegram_token_store.py` + `gui/user_store.py` — Settings persistence
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-INF-010.001.M08.T01 | MD-INF-010.001.M08 | Positive | A saved bot token round-trips per user | `save(7, "secret-token")` then `load(7)` | `"secret-token"` | Pass |
+| UT-INF-010.001.M08.T02 | MD-INF-010.001.M08 | Negative | An unset user's token loads as empty | `load(999)` on empty store | `""` | Pass |
+| UT-INF-010.001.M08.T03 | MD-INF-010.001.M08 | Edge | Saving a blank token clears the stored entry | `save(7, "x")` then `save(7, "")`; `load(7)` | `""` | Pass |
+| UT-INF-010.001.M08.T04 | MD-INF-010.001.M08 | Positive | `telegram_enabled` + `telegram_chat_id` survive user-store round-trip | `_to_dict`→`_from_dict` of a user with the fields set | fields preserved | Pass |
+| UT-INF-010.001.M08.T05 | MD-INF-010.001.M08 | Edge | Legacy records without telegram fields default to off | `_from_dict` of a dict missing the fields | `telegram_enabled=False`, `telegram_chat_id=""` | Pass |
+| UT-INF-010.001.M08.T06 | MD-INF-010.001.M08 | Positive | Per-event notify toggles survive user-store round-trip | `_to_dict`→`_from_dict` of a user with mixed toggle values | three `notify_*` fields preserved | Pass |
+| UT-INF-010.001.M08.T07 | MD-INF-010.001.M08 | Edge | Legacy records without toggle fields default all on | `_from_dict` of a dict missing the toggle fields | three `notify_*` fields are True | Pass |
+
+---
+
+## Module: `gui/app_service.py` — Day-end P&L trigger
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-INF-010.001.M09.T01 | MD-INF-010.001.M09 | Positive | The day-end summary is sent at most once per trading day | Call `_maybe_publish_day_end` twice with the same date | Exactly one publish; guard date set | Pass |
+| UT-INF-010.001.M09.T02 | MD-INF-010.001.M09 | Positive | A new trading day sends a fresh summary | Call `_maybe_publish_day_end` for two consecutive dates | Two publishes | Pass |
+| UT-INF-010.001.M09.T03 | MD-INF-010.001.M09 | Edge | Nothing sent and guard not consumed before the notification worker starts | Call with `_notif_worker=None` | No publish; guard date still `None` | Pass |
+
+---
+
+## Module: `core/notifications/_inbound.py` — Command router & poller
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-INF-010.001.M10.T01 | MD-INF-010.001.M10 | Positive | Router dispatches `/pnl` to the port and returns its reply | Router over a fake port; `route("/pnl")` | Port `pnl()` called once; its text returned | Pass |
+| UT-INF-010.001.M10.T02 | MD-INF-010.001.M10 | Positive | `/help` returns the list of all seven commands | `route("/help")` | Text lists `/status`, `/pnl`, `/positions`, `/signals`, `/screener`, `/cycles`, `/help` | Pass |
+| UT-INF-010.001.M10.T03 | MD-INF-010.001.M10 | Negative | An unknown command returns a help hint, not an error | `route("/foo")` | Reply names `/foo` and points to `/help`; no exception | Pass |
+| UT-INF-010.001.M10.T04 | MD-INF-010.001.M10 | Edge | Plain non-command text is ignored | `route("hello there")` | Returns `None` | Pass |
+| UT-INF-010.001.M10.T05 | MD-INF-010.001.M10 | Edge | A trailing `@botname` and case are normalized before dispatch | `route("/PnL@usswing_bot")` | Port `pnl()` called; its text returned | Pass |
+| UT-INF-010.001.M10.T06 | MD-INF-010.001.M10 | Negative | A handler that raises yields a plain apology, not a stack trace | Fake port whose `status()` raises; `route("/status")` | Reply is a plain apology; no exception propagates | Pass |
+| UT-INF-010.001.M10.T07 | MD-INF-010.001.M10 | Positive | Poller handles an authorized update, replies, and advances the offset | Fake transport returns one `/help` update from the configured chat | Reply sent via `sendMessage`; next `getUpdates` uses `offset = update_id + 1` | Pass |
+| UT-INF-010.001.M10.T08 | MD-INF-010.001.M10 | Negative | A message from an unauthorized chat is ignored and unanswered | Update whose chat id differs from the configured one | No `sendMessage`; offset still advances | Pass |
+
+---
+
+## Module: `gui/telegram_commands.py` — Command bridge
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-INF-010.001.M11.T01 | MD-INF-010.001.M11 | Positive | Bridge structurally satisfies `CommandPort` | `isinstance(bridge, CommandPort)` | `True` | Pass |
+| UT-INF-010.001.M11.T02 | MD-INF-010.001.M11 | Positive | `positions()` formats the open positions from `AppService` | Fake app with two open positions; call `positions()` on the GUI thread | Text names both symbols and the count | Pass |
+| UT-INF-010.001.M11.T03 | MD-INF-010.001.M11 | Edge | `pnl()` reports zero cleanly when there are no positions | Fake app with flat account and no positions | Text shows realized and unrealized P&L without error | Pass |

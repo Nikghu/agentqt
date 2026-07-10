@@ -1,13 +1,14 @@
 # Design Document — Infrastructure (INF)
 
 **Document ID:** DD-INF
-**Version:** 1.2.0
-**Traces To:** SRD-INF v1.5.0
+**Version:** 1.3.0
+**Traces To:** SRD-INF v1.7.0
 **Status:** Draft
-**Last Updated:** 2026-06-04
+**Last Updated:** 2026-07-09
 **Project:** US Swing Trading System
 
 > v1.2.0: DD-INF-009.* added — Pluggable Broker Abstraction (universal Broker contract, SimBroker fill model, IBKRBroker event bridge).
+> v1.3.0: DD-INF-010.001.D01 added — Notification Service Architecture (pluggable channels, event bus, formatter registry, Telegram channel, reserved inbound seam).
 
 ---
 
@@ -595,3 +596,261 @@ On a mapped status `_on_update` looks up the `client_ref` and `_emit`s an
 ib_insync `Stock` + `Market`/`Limit` order, and wires `trade.statusEvent` →
 `IbkrOrderUpdate`; it is live-only (`# pragma: no cover`). Both brokers pass the
 same contract suite (SRD-INF-009.006).
+
+---
+
+## DD-INF-010.001.D01 — Notification Service Architecture
+
+**Parent SRD:** SRD-INF-010.001 — SRD-INF-010.015
+- **Status:** Draft
+
+Home: `src/us_swing/core/notifications/`. It lives in `core/` (not under a tool)
+because the screener, execution, and infrastructure tools all raise events into
+it, and `code-style.md` forbids direct cross-tool imports — shared services go
+through `core/`. The shape mirrors the existing `core/monitoring_session/`
+CQRS-lite pattern: frozen DTOs, `Protocol`-typed seams, a lightweight event bus,
+no ABCs. It is a **business-event** service — distinct from FO-INF-005's
+`AlertDispatcher`, which carries log-level WARNING+ alerts. The two are kept
+separate on purpose; a business event (screener approved, day-end PnL) is not a
+log record.
+
+### Data flow
+
+```
+Producer (SCR/EXE/INF)         core/notifications/
+   publish(event) ─────────────▶ NotificationBus
+                                     │  (fan-in of events)
+                                     ▼
+                                 NotificationDispatcher
+                                   1. format via registry
+                                   2. for each enabled channel: enqueue
+                                   3. per-channel failure isolated + logged
+                                     │
+                                     ▼  NotificationMessage
+                                 NotificationChannel (Protocol)
+                                   • TelegramChannel   ← only impl this phase
+                                   • Email/Slack/SMS   ← future, register only
+```
+
+Import direction is one-way: producers depend on the bus + event DTOs only; they
+never see the dispatcher or any channel. Adding a channel or an event type never
+edits an existing file — this is the open/closed spine the feature is built for.
+
+### Events — extensible frozen DTOs (`events.py`)
+
+```python
+@dataclass(frozen=True, slots=True)
+class NotificationEvent:
+    occurred_at: datetime
+    schema_version: int = 1
+
+@dataclass(frozen=True, slots=True)
+class ToolStartedEvent(NotificationEvent):
+    app_version: str = ""
+
+@dataclass(frozen=True, slots=True)
+class ScreenerApprovedEvent(NotificationEvent):
+    symbols: tuple[str, ...] = ()      # filtered stock names
+    run_id: str = ""
+
+@dataclass(frozen=True, slots=True)
+class DayEndPnLEvent(NotificationEvent):
+    realized: float = 0.0
+    unrealized: float = 0.0
+    trade_count: int = 0
+```
+
+A new notification is a new frozen subclass here plus one formatter registration
+(below). Nothing in the dispatcher, bus, or channels changes.
+
+### Message + channel Protocol (`channel.py`)
+
+```python
+@dataclass(frozen=True, slots=True)
+class NotificationMessage:
+    text: str
+    event_kind: str            # type name, for per-event routing/toggles
+
+class NotificationChannel(Protocol):
+    name: str
+    async def send(self, message: NotificationMessage) -> None: ...
+```
+
+### TelegramChannel (`telegram_channel.py`)
+
+```python
+class TelegramChannel:
+    """First concrete channel. Telegram Bot API over HTTP — no heavy SDK."""
+    name = "telegram"
+
+    def __init__(self, bot_token: str, chat_id: str, http: httpx.AsyncClient) -> None: ...
+
+    async def send(self, message: NotificationMessage) -> None:
+        # POST https://api.telegram.org/bot<token>/sendMessage
+        #   json={"chat_id": self._chat_id, "text": message.text}
+        # raises on transport error; dispatcher isolates + logs it
+```
+
+### Formatter registry (`formatters.py`)
+
+```python
+Formatter = Callable[[NotificationEvent], NotificationMessage]
+_REGISTRY: dict[type[NotificationEvent], Formatter] = {}
+
+def register(event_type: type[NotificationEvent]) -> Callable[[Formatter], Formatter]:
+    def deco(fn: Formatter) -> Formatter:
+        _REGISTRY[event_type] = fn
+        return fn
+    return deco
+
+def render(event: NotificationEvent) -> NotificationMessage:
+    return _REGISTRY[type(event)](event)
+
+@register(ScreenerApprovedEvent)
+def _fmt_screener(e: ScreenerApprovedEvent) -> NotificationMessage:
+    names = ", ".join(e.symbols)
+    return NotificationMessage(f"[Screener] Approved {len(e.symbols)} stock(s): {names}",
+                               event_kind="ScreenerApprovedEvent")
+```
+
+### Dispatcher + delivery (`dispatcher.py`)
+
+```python
+class NotificationDispatcher:
+    def __init__(self, bus: NotificationBus, channels: list[NotificationChannel]) -> None:
+        self._channels = channels
+        self._queue: asyncio.Queue[NotificationMessage] = asyncio.Queue()
+        bus.subscribe(self._on_event)
+
+    def _on_event(self, event: NotificationEvent) -> None:
+        self._queue.put_nowait(render(event))       # producer never blocks
+
+    async def _worker(self) -> None:
+        while True:
+            msg = await self._queue.get()
+            for ch in self._channels:
+                try:
+                    await self._rate_limit(ch)
+                    await self._send_with_retry(ch, msg)
+                except Exception:                     # isolate: one channel's failure
+                    log.exception("[Notify] Delivery to %s failed", ch.name)
+```
+
+Delivery guarantees (SRD-INF-010.004/.007): the producer only enqueues — it never
+blocks and never sees a channel error. The worker paces per chat (Telegram allows
+roughly one message per second per chat) and retries with bounded backoff before
+giving up and logging under `[Notify]`.
+
+### Config — reuse the per-user profile (`config.py`)
+
+Settings live in the existing `UserProfile.settings_json` (FO-INF-006), under a
+`notifications` key — no parallel store:
+
+```json
+{
+  "notifications": {
+    "telegram": { "enabled": true, "bot_token": "…", "chat_id": "…" },
+    "events": { "ToolStartedEvent": true, "ScreenerApprovedEvent": true, "DayEndPnLEvent": true }
+  }
+}
+```
+
+```python
+@dataclass(frozen=True, slots=True)
+class NotificationConfig:
+    telegram_enabled: bool
+    bot_token: str
+    chat_id: str
+    event_toggles: Mapping[str, bool]
+
+def load_config(settings_json: Mapping[str, Any]) -> NotificationConfig: ...
+```
+
+Two users with different tokens each build their own `TelegramChannel`, so
+notifications land only in that user's chat (FO-INF-010 acceptance criterion).
+
+### Inbound two-way commands (`_inbound.py`) — SRD-INF-010.012–.015
+
+Two-way commands are the mirror image of outbound: an inbound Telegram message
+becomes a command that is routed to a read-only handler and answered. The same
+per-user bot token and the worker's shared `httpx` client feed both the outbound
+`TelegramChannel` and the inbound receiver — no new configuration.
+
+**Receive — long-poll, not webhook (SRD-INF-010.012).** A desktop app has no public
+URL, so webhooks are out. `TelegramPoller` calls `getUpdates` with a long timeout on
+the notification loop and tracks `offset = last_update_id + 1` so each message is
+handled exactly once. It runs only when Telegram is enabled.
+
+```python
+class TelegramPoller:
+    def __init__(self, bot_token, chat_id, http, router, *, poll_timeout_s=25): ...
+
+    async def run(self) -> None:
+        offset = 0
+        while True:
+            for update in await self._get_updates(offset):
+                offset = update["update_id"] + 1
+                msg  = update.get("message") or {}
+                text = (msg.get("text") or "").strip()
+                sender = str((msg.get("chat") or {}).get("id", ""))
+                if sender != self._chat_id:                 # SRD-INF-010.013
+                    log.warning("[Notify] Ignoring command from unauthorized chat")
+                    continue
+                reply = await loop.run_in_executor(None, self._router.route, text)
+                if reply:
+                    await self._send(reply)
+```
+
+**Authorize (SRD-INF-010.013).** Only the configured `chat_id` is honored; every other
+sender is dropped and logged. The bot never answers or leaks state to an unconfigured
+chat.
+
+**Route (SRD-INF-010.014).** `CommandRouter` parses the leading token (strips `/` and a
+trailing `@botname`, lowercases), then dispatches through a table. `/help` is static;
+unknown commands return a help hint; a handler error returns a plain apology (never a
+stack trace). All seven commands are read-only.
+
+```python
+class CommandRouter:
+    def __init__(self, port: CommandPort) -> None:
+        self._table = {
+            "status": port.status, "pnl": port.pnl, "positions": port.positions,
+            "signals": port.signals, "screener": port.screener, "cycles": port.cycles,
+        }
+    def route(self, text: str) -> str | None:
+        cmd = self._parse(text)                 # None for non-command text -> ignore
+        if cmd is None:            return None
+        if cmd == "help":          return self._help_text()
+        handler = self._table.get(cmd)
+        if handler is None:        return f"Unknown command /{cmd}. Send /help for the list."
+        try:    return handler()
+        except Exception:  log.exception("[Notify] Command /%s failed", cmd);  return "Sorry, that command failed."
+```
+
+**Query port + thread safety (SRD-INF-010.015).** The router depends only on a
+`CommandPort` Protocol of six read methods returning ready text; it never imports the
+GUI. The poller runs on the notification thread, but app state lives on the GUI thread,
+so the GUI adapter marshals each call onto the GUI thread with a blocking queued
+signal and a `concurrent.futures.Future`, keeping the asyncio loop free via
+`run_in_executor`.
+
+```python
+class CommandPort(Protocol):                    # core seam, no GUI import
+    def status(self) -> str: ...
+    def pnl(self) -> str: ...
+    def positions(self) -> str: ...
+    def signals(self) -> str: ...
+    def screener(self) -> str: ...
+    def cycles(self) -> str: ...
+
+class TelegramCommandBridge(QObject):           # gui/telegram_commands.py — GUI thread
+    _request = pyqtSignal(str, object)          # (slot_name, Future) -> queued to GUI thread
+    def status(self) -> str: return self._call("status")   # called from notif executor thread
+    def _call(self, slot: str) -> str:
+        fut: Future[str] = Future(); self._request.emit(slot, fut); return fut.result(timeout=10)
+```
+
+The bridge reuses existing `AppService` reads: `/status` → `get_feed_status` +
+`get_market_status`; `/pnl` → `get_account_state`; `/positions` → `get_positions`;
+`/signals` → `get_pending_signals`; `/screener` → `get_latest_screener_results`;
+`/cycles` → `get_recent_closed_cycles` + `get_strategies_with_open_cycles`.

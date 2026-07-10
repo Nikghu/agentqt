@@ -464,6 +464,62 @@ class _SystemTab(QWidget):
         update_wrapper.setContentsMargins(20, 12, 20, 0)
         update_wrapper.addWidget(update_box)
 
+        # ── Telegram Notifications group (FO-INF-010) ────────────────────────────
+        from us_swing.gui import telegram_token_store
+        _active = self._demo.get_active_user()
+
+        tg_box  = QGroupBox("Telegram Notifications")
+        tg_form = QFormLayout(tg_box)
+        tg_form.setContentsMargins(12, 8, 12, 8)
+        tg_form.setSpacing(8)
+
+        self._tg_enabled = QCheckBox("Enable notifications")
+        self._tg_enabled.setChecked(_active.telegram_enabled)
+        self._tg_token = QLineEdit(telegram_token_store.load(_active.user_id))
+        self._tg_token.setEchoMode(QLineEdit.EchoMode.Password)
+        self._tg_token.setFixedWidth(260)
+        self._tg_chat = QLineEdit(_active.telegram_chat_id)
+        self._tg_chat.setFixedWidth(260)
+
+        self._tg_ev_tool = QCheckBox("Tool started")
+        self._tg_ev_tool.setChecked(_active.notify_tool_started)
+        self._tg_ev_screener = QCheckBox("Screener approved")
+        self._tg_ev_screener.setChecked(_active.notify_screener_approved)
+        self._tg_ev_pnl = QCheckBox("Day-end profit and loss")
+        self._tg_ev_pnl.setChecked(_active.notify_day_end_pnl)
+
+        tg_events = QVBoxLayout()
+        tg_events.setSpacing(4)
+        tg_events.addWidget(self._tg_ev_tool)
+        tg_events.addWidget(self._tg_ev_screener)
+        tg_events.addWidget(self._tg_ev_pnl)
+
+        self._tg_note = QLabel("")
+        self._tg_note.setStyleSheet(f"color: {C.GREEN}; font-size: 9pt;")
+        self._tg_test = QPushButton("Send Test")
+        self._tg_test.setFixedWidth(120)
+        self._tg_test.clicked.connect(self._on_test_telegram)
+        tg_save = QPushButton("💾  Save")
+        tg_save.setObjectName("run_btn")
+        tg_save.setFixedWidth(120)
+        tg_save.clicked.connect(self._on_save_telegram)
+
+        tg_btn_row = QHBoxLayout()
+        tg_btn_row.addWidget(self._tg_note)
+        tg_btn_row.addStretch()
+        tg_btn_row.addWidget(self._tg_test)
+        tg_btn_row.addWidget(tg_save)
+
+        tg_form.addRow("", self._tg_enabled)
+        tg_form.addRow("Bot Token:", self._tg_token)
+        tg_form.addRow("Chat ID:",   self._tg_chat)
+        tg_form.addRow("Notify on:", tg_events)
+        tg_form.addRow(tg_btn_row)
+
+        telegram_wrapper = QHBoxLayout()
+        telegram_wrapper.setContentsMargins(20, 12, 20, 0)
+        telegram_wrapper.addWidget(tg_box)
+
         # ── Main layout ────────────────────────────────────────────────────────
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -472,6 +528,7 @@ class _SystemTab(QWidget):
         layout.addLayout(theme_wrapper)
         layout.addLayout(diag_wrapper)
         layout.addLayout(update_wrapper)
+        layout.addLayout(telegram_wrapper)
         layout.addStretch()
 
     # ── Helpers ────────────────────────────────────────────────────────────────
@@ -543,6 +600,23 @@ class _SystemTab(QWidget):
         )
         self._demo.save_system_config(cfg)
         self._save_note.setText("✔  Settings saved")
+
+    def _on_save_telegram(self) -> None:
+        from us_swing.gui import telegram_token_store
+        user = self._demo.get_active_user()
+        telegram_token_store.save(user.user_id, self._tg_token.text().strip())
+        user.telegram_enabled = self._tg_enabled.isChecked()
+        user.telegram_chat_id = self._tg_chat.text().strip()
+        user.notify_tool_started      = self._tg_ev_tool.isChecked()
+        user.notify_screener_approved = self._tg_ev_screener.isChecked()
+        user.notify_day_end_pnl       = self._tg_ev_pnl.isChecked()
+        self._demo.update_user(user)
+        self._demo.reconfigure_notifications()
+        self._tg_note.setText("✔  Telegram settings saved")
+
+    def _on_test_telegram(self) -> None:
+        self._demo.send_test_notification()
+        self._tg_note.setText("✔  Test message sent")
 
     def _on_theme(self, theme_id: str) -> None:
         from us_swing.gui import theme as _theme

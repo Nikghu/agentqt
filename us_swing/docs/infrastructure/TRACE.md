@@ -1,9 +1,9 @@
 # Traceability Matrix — Infrastructure (INF)
 
 **Document ID:** TRACE-INF
-**Version:** 1.2.0
+**Version:** 1.4.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-06-12
+**Last Updated:** 2026-07-10
 
 ---
 
@@ -26,6 +26,10 @@
 | FO-INF-007 | SRD-INF-007.001–002 | DD-INF-007.001.D01 | MD-INF-007.001.M01 | — | `data/providers/ibkr_provider.py` | Draft | — |
 | FO-INF-007 | SRD-INF-007.003, 005 | DD-INF-007.001.D01 | MD-INF-007.001.M02 | T01–T04 | `data/providers/dummy_provider.py` | Draft | — |
 | FO-INF-009 | SRD-INF-009.007 | — | MD-INF-009.004.M01 | UT-INF-009.004.M01.T01–T04 | `broker/sim.py` | Implemented | RN-INF-1.1.0-20260612 |
+| FO-INF-010 | SRD-INF-010.001–008 | DD-INF-010.001.D01 | MD-INF-010.001.M01–M07 | UT-INF-010.001.M01–M07.* | `core/notifications/` | Implemented | RN-INF-1.2.0-20260709 |
+| FO-INF-010 | SRD-INF-010.010–011 | DD-INF-010.001.D01 | MD-INF-010.001.M08–M09 | UT-INF-010.001.M08.* | `gui/telegram_token_store.py`, `gui/notification_worker.py` | Implemented | RN-INF-1.3.0-20260709 |
+| FO-INF-010 | SRD-INF-010.009, .012–.015 | DD-INF-010.001.D01 | MD-INF-010.001.M10–M11 | UT-INF-010.001.M10.*, M11.* | `core/notifications/_inbound.py`, `gui/telegram_commands.py` | Implemented | RN-INF-1.4.0-20260709 |
+| FO-INF-010 | SRD-INF-010.006, .010 | DD-INF-010.001.D01 | MD-INF-010.001.M04, M09 | UT-INF-010.001.M04.T07–09, M07.T03, M08.T06–07, M09.T01–03 | `core/notifications/_dispatcher.py`, `gui/app_service.py`, `gui/settings_panel.py`, `gui/user_store.py`, `data/models.py` | Implemented | RN-INF-1.5.0-20260710 |
 
 ---
 
@@ -48,6 +52,17 @@
 | `user/manager.py` | MD-INF-006.001.M01 | SRD-INF-006.001–007 | FO-INF-006 |
 | `data/providers/ibkr_provider.py` | MD-INF-007.001.M01 | SRD-INF-007.001–002 | FO-INF-007 |
 | `data/providers/dummy_provider.py` | MD-INF-007.001.M02 | SRD-INF-007.003, 005 | FO-INF-007 |
+| `core/notifications/_events.py` | MD-INF-010.001.M01 | SRD-INF-010.001 | FO-INF-010 |
+| `core/notifications/_protocols.py` | MD-INF-010.001.M02 | SRD-INF-010.002, .014 | FO-INF-010 |
+| `core/notifications/_telegram.py` | MD-INF-010.001.M03 | SRD-INF-010.003 | FO-INF-010 |
+| `core/notifications/_dispatcher.py` | MD-INF-010.001.M04 | SRD-INF-010.004, .006, .007 | FO-INF-010 |
+| `core/notifications/_formatters.py` | MD-INF-010.001.M05 | SRD-INF-010.005 | FO-INF-010 |
+| `core/notifications/_dto.py` | MD-INF-010.001.M06 | SRD-INF-010.006 | FO-INF-010 |
+| `core/notifications/__init__.py` | MD-INF-010.001.M07 | SRD-INF-010.008 | FO-INF-010 |
+| `gui/telegram_token_store.py` | MD-INF-010.001.M08 | SRD-INF-010.011 | FO-INF-010 |
+| `gui/notification_worker.py` | MD-INF-010.001.M09 | SRD-INF-010.004, .010, .012 | FO-INF-010 |
+| `core/notifications/_inbound.py` | MD-INF-010.001.M10 | SRD-INF-010.012, .013, .014 | FO-INF-010 |
+| `gui/telegram_commands.py` | MD-INF-010.001.M11 | SRD-INF-010.015 | FO-INF-010 |
 
 ---
 
@@ -55,9 +70,11 @@
 
 | Artifact | Total Items | Draft | Approved | Implemented | Verified |
 |---|---|---|---|---|---|
-| FO | 7 | 7 | 0 | 0 | 0 |
-| SRD | 35 | 35 | 0 | 0 | 0 |
-| DD | 7 | 7 | 0 | 0 | 0 |
-| MD | 14 | 14 | 0 | 0 | 0 |
-| UTCD | 41 | 35 | 0 | 0 | 3 |
-| Code | 14 files | — | — | 0 | 0 |
+| FO | 8 | 8 | 0 | 0 | 0 |
+| SRD | 50 | 35 | 0 | 15 | 0 |
+| DD | 8 | 8 | 0 | 0 | 0 |
+| MD | 25 | 14 | 7 | 4 | 0 |
+| UTCD | 79 | 35 | 0 | 0 | 3 |
+| Code | 25 files | — | — | 11 | 0 |
+
+> UTCD note: the 38 FO-INF-010 cases (`UT-INF-010.001.M01–M11.*`) are all `Pass`.

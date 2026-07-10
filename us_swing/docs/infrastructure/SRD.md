@@ -1,14 +1,17 @@
 # Software Requirement Document — Infrastructure (INF)
 
 **Document ID:** SRD-INF
-**Version:** 1.6.0
-**Traces To:** FO-INF v1.4.0
+**Version:** 1.9.0
+**Traces To:** FO-INF v1.5.0
 **Status:** Draft
-**Last Updated:** 2026-06-12
+**Last Updated:** 2026-07-09
 **Project:** US Swing Trading System
 
 > v1.5.0: Section 9 added — SRD-INF-009.001–.006 (Pluggable Broker Abstraction; Broker_fix.md Phases 1/3/4).
 > v1.6.0: SRD-INF-009.007 added (ISS-INF-0002) — SimBroker fills MARKET orders at an injected live-price provider so paper fills mirror a real broker instead of echoing a caller-supplied reference price.
+> v1.7.0: Section 10 added — SRD-INF-010.001–.009 (Telegram Notification Integration; scalable business-event notification service).
+> v1.8.0: SRD-INF-010.010 (producer emit points) + .011 (bot token in OS keychain) added for the app wiring.
+> v1.9.0: SRD-INF-010.012–.015 added — inbound two-way Telegram commands (long-poll receiver, chat authorization, 7 read-only command handlers, GUI-thread query adapter); .009 now Implemented.
 
 ---
 
@@ -144,4 +147,28 @@
 | SRD-INF-009.005 | FO-INF-009 | Must | `IBKRBroker` (`broker/ibkr.py`) implements `Broker` over an `OrderGateway` seam; maps IBKR order statuses (`Filled`/`Submitted`+partial/`Inactive`/`Cancelled`) onto `OrderStatus` and emits `OrderEvent`s. Live binding `IBKRClientGateway` wraps `IBKRClient` (added `ib` accessor) and builds ib_insync orders. | `OrderRequest` | async `OrderEvent` stream | Status mapping unit-tested via a fake gateway; `IBKRClientGateway` is live-only (`# pragma: no cover`), reuses `IBKRClient` transport | Implemented |
 | SRD-INF-009.006 | FO-INF-009 | Must | A single broker contract-test suite runs identical `OrderRequest` scenarios against both brokers and asserts identical `OrderEvent` sequences (states, filled quantities, terminal status). | `OrderRequest` scenarios | pass/fail per broker | Both `SimBroker` and `IBKRBroker` must pass the same suite to be declared interchangeable. Suite `tests/broker/test_broker_contract.py` parametrized over `BROKER_FACTORIES`; both brokers pass the shared fixture scenarios plus per-broker mapping cases — 16 cases green | Implemented |
 | SRD-INF-009.007 | FO-INF-009 | Must | `SimBroker` accepts an injectable `price_provider(symbol) -> float \| None` and fills a MARKET order at the provider's current live market price — like a real broker — rather than the caller's advisory `reference_price`. LIMIT orders still fill at `limit_price`. | `OrderRequest` + live price | `OrderEvent.fill_price` at the live market price | Falls back to `reference_price` (then $0) only when the provider is absent or returns a non-positive price; aligns paper fills with live fills and with SRD-EXE-004.004 (paper uses live market data, no synthetic price) | Implemented |
+
+---
+
+## Section 10: Requirements for FO-INF-010 — Telegram Notification Integration
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-INF-010.001 | FO-INF-010 | Must | Frozen `NotificationEvent` DTO variants in `core/notifications/` — `ToolStartedEvent`, `ScreenerApprovedEvent(symbols)`, `DayEndPnLEvent(...)` — each carrying `occurred_at` and `schema_version`. | producer call | frozen event object | New event type is a new frozen dataclass only; existing variants unchanged | Implemented |
+| SRD-INF-010.002 | FO-INF-010 | Must | `NotificationChannel` Protocol exposes `async send(message)`; the dispatcher treats every channel through this interface so channels are interchangeable. | `NotificationMessage` | delivery side-effect | One channel's failure must not block or crash other channels or the caller | Implemented |
+| SRD-INF-010.003 | FO-INF-010 | Must | `TelegramChannel` implements `NotificationChannel` and delivers messages via the Telegram Bot API over HTTP using a per-user bot token and chat id. | rendered message, bot token, chat id | HTTP POST to Telegram | Uses `httpx`; no heavy Telegram SDK dependency | Implemented |
+| SRD-INF-010.004 | FO-INF-010 | Must | `NotificationDispatcher` subscribes to the notification event bus, renders each event, and fans it out to every enabled channel. | published events | per-channel `send` calls | Failures are caught per channel and logged; dispatcher never raises to the producer | Implemented |
+| SRD-INF-010.005 | FO-INF-010 | Must | `MessageFormatterRegistry` maps event type to a formatter that renders the user-facing message text. | `NotificationEvent` | `NotificationMessage` | Adding a new event's message is a registration; the dispatcher is never edited for a new event | Implemented |
+| SRD-INF-010.006 | FO-INF-010 | Must | Per-user notification settings live in the existing `settings_json` under a `notifications` key: channel enable flag, bot token, chat id, and per-event toggles, loaded into a frozen `NotificationConfig`. | user profile `settings_json` | `NotificationConfig` | Must reuse the FO-INF-006 profile store; no separate config mechanism | Implemented |
+| SRD-INF-010.007 | FO-INF-010 | Must | Delivery runs through an internal async queue and worker with bounded retry-with-backoff and a per-chat rate limit. | queued messages | paced, retried delivery | Producers never block; retries capped; messages logged under the `[Notify]` topic | Implemented |
+| SRD-INF-010.008 | FO-INF-010 | Must | A publish API lets the screener, execution, and infrastructure tools raise notification events through the shared bus. | producer event | event on the bus | Producers import only the bus and event DTOs from `core/`, never dispatcher or channel internals | Implemented |
+| SRD-INF-010.009 | FO-INF-010 | Should | The inbound `CommandChannel` Protocol and `CommandRouter` seam is implemented for two-way bot commands. | inbound message | routed command handler | Realised by SRD-INF-010.012–.015 | Implemented |
+| SRD-INF-010.010 | FO-INF-010 | Must | `AppService` publishes events at three points: tool startup (`ToolStartedEvent`), fresh screener results (`ScreenerApprovedEvent` with filtered symbols), and the market open→closed transition (`DayEndPnLEvent`). | app lifecycle + market status | events published to the notification bus | Boot reloads of prior screener results must not fire an approval; publishing is best-effort and never blocks the caller | Implemented |
+| SRD-INF-010.011 | FO-INF-010 | Must | The Telegram bot token is stored in the OS keychain (`keyring`), keyed per user; the non-secret enable flag and chat id are stored in the user store. | user settings input | token in keychain; flags in user store | Secret token must never be written to `users.json` (per the user-store credential rule); chat id and enable flag may be | Implemented |
+| SRD-INF-010.012 | FO-INF-010 | Must | An inbound receiver long-polls the Telegram Bot API `getUpdates` on the notification loop, tracking the update offset so each message is handled once. | Telegram updates | routed replies | Reuses the per-user bot token and the worker's shared `httpx` client; runs only when Telegram is enabled | Implemented |
+| SRD-INF-010.013 | FO-INF-010 | Must | Only messages from the configured chat id are honored; a message from any other chat is ignored and logged under `[Notify]`. | inbound message | reply or silent drop | The bot must never answer or leak data to an unconfigured chat | Implemented |
+| SRD-INF-010.014 | FO-INF-010 | Must | `CommandRouter` maps seven read-only commands — `/help`, `/status`, `/pnl`, `/positions`, `/signals`, `/screener`, `/cycles` — to a `CommandPort` query and returns a reply; an unknown command returns a help hint. | command text | reply text or none | Commands are read-only; a handler error returns a plain apology, never a stack trace | Implemented |
+| SRD-INF-010.015 | FO-INF-010 | Must | The GUI `CommandPort` adapter answers each query on the GUI thread via a blocking queued call so command handlers reuse existing `AppService` reads safely off the notification thread. | `CommandPort` call from notification thread | reply text computed on GUI thread | Must not read `AppService` or DB state directly from the notification thread | Implemented |
+
+---
 

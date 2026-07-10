@@ -257,6 +257,11 @@ class UserProfile:
     risk_config:     "RiskConfig"
     strategy_config: dict         # parsed from settings_json["strategy_config"]
     screener_config: dict         # parsed from settings_json["screener_config"]
+    telegram_enabled: bool = False  # send Telegram notifications for this user
+    telegram_chat_id: str  = ""     # Telegram chat id (token lives in the OS keychain)
+    notify_tool_started:      bool = True  # per-event toggle: tool startup message
+    notify_screener_approved: bool = True  # per-event toggle: screener approval message
+    notify_day_end_pnl:       bool = True  # per-event toggle: day-end P&L message
 
 
 @dataclass
