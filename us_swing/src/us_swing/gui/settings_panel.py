@@ -233,7 +233,10 @@ class _UsersTab(QWidget):
     def _on_new(self) -> None:
         dlg = _UserDialog(parent=self)
         if dlg.exec() == QDialog.DialogCode.Accepted:
-            self._demo.add_user(dlg.get_profile())
+            profile = dlg.get_profile()
+            if not self._confirm_live(profile.mode, "paper"):
+                return
+            self._demo.add_user(profile)
 
     def _on_edit(self) -> None:
         user = self._get_selected_user()
@@ -241,7 +244,42 @@ class _UsersTab(QWidget):
             return
         dlg = _UserDialog(user, parent=self)
         if dlg.exec() == QDialog.DialogCode.Accepted:
-            self._demo.update_user(dlg.get_profile())
+            profile = dlg.get_profile()
+            if not self._confirm_live(profile.mode, user.mode):
+                return
+            self._demo.update_user(profile)
+            if profile.mode != user.mode:
+                QMessageBox.information(
+                    self, "Restart Required",
+                    "Restart the tool for the new trading mode to take effect.",
+                )
+
+    def _confirm_live(self, new_mode: str, old_mode: str) -> bool:
+        """Gate a switch into live mode.  Returns False to cancel the save.
+
+        Live routes real orders to whichever account is logged into TWS, so it
+        needs both the config gate and an explicit confirmation.
+        """
+        if new_mode != "live" or old_mode == "live":
+            return True
+        if not self._demo.live_mode_enabled():
+            QMessageBox.warning(
+                self, "Live Mode Disabled",
+                "Live trading is disabled for this build.\n\n"
+                "Set the environment variable USSWING_LIVE_MODE=true, or add "
+                "'live_mode_enabled = true' to us_swing.toml, then restart.",
+            )
+            return False
+        ret = QMessageBox.warning(
+            self, "Enable Live Trading",
+            "Live mode sends real orders to whichever account is logged into "
+            "Trader Workstation.\n\n"
+            "If TWS holds a funded account, these orders trade real money.\n\n"
+            "Continue?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        return ret == QMessageBox.StandardButton.Yes
 
     def _on_delete(self) -> None:
         user = self._get_selected_user()

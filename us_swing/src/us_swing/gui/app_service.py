@@ -1116,6 +1116,7 @@ class AppService(QObject):
         self._ibkr_positions: list[OpenPosition]     = []
         self._acct_worker:    _AccountDataWorker | None = None
         self._order_connection: IBKROrderConnection | None = None
+        self._broker_fallback_message: str | None = None
 
         self._acct_timer = QTimer(self)
         self._acct_timer.setInterval(30_000)   # refresh every 30 s when connected
@@ -1301,10 +1302,14 @@ class AppService(QObject):
                     price_provider=self._market_price_for,
                 )
             except (BrokerConnectionError, RuntimeError, ValueError) as exc:
-                _log.error(
-                    "[Orders] Live order routing unavailable — using simulated "
-                    "orders instead: %s", exc,
+                message = (
+                    f"[Orders] Live order routing unavailable — orders are "
+                    f"simulated, not sent to IBKR: {exc}"
                 )
+                _log.error(message)
+                # The log panel connects after __init__, so defer the message
+                # rather than emitting into a signal nobody is listening on.
+                self._broker_fallback_message = message
                 self._broker = build_broker(
                     mode="paper",
                     broker_name="IBKR",
@@ -2405,6 +2410,19 @@ class AppService(QObject):
             self.risk_warning_raised.emit(event.kind, event.message)
 
     # ── User CRUD ─────────────────────────────────────────────────────────────
+
+    def flush_broker_fallback_message(self) -> None:
+        """Report a failed live-broker start once the log panel is listening."""
+        message = self._broker_fallback_message
+        self._broker_fallback_message = None
+        if message is not None:
+            self.log_message.emit("ERROR", message)
+
+    def live_mode_enabled(self) -> bool:
+        """Whether this build permits switching a user into live mode."""
+        from us_swing.config.settings import load_config
+
+        return load_config().live_mode_enabled
 
     def add_user(self, profile: UserProfile) -> UserProfile:
         new_profile = UserProfile(

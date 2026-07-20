@@ -1,5 +1,8 @@
-"""Module: MD-EXE-015.003.M02 — execution/ibkr_order_connection.py
+"""Module: execution/ibkr_order_connection.py
 Parent SRD: SRD-EXE-015.004
+
+Note: no MD module ID yet — MD.md has no MD-EXE-015.003 section, so the sibling
+broker_factory.py header is undocumented too.  Both need an MD row adding.
 
 Dedicated IBKR connection for live order routing.
 
@@ -22,6 +25,9 @@ from us_swing.broker.client import IBKRClient
 from us_swing.exceptions import BrokerConnectionError
 
 _log = logging.getLogger(__name__)
+
+# How long shutdown waits for TWS to acknowledge the logout.
+_DISCONNECT_TIMEOUT_S = 5.0
 
 
 class IBKROrderConnection:
@@ -53,7 +59,10 @@ class IBKROrderConnection:
             )
             self._thread.start()
 
-        if not self._ready.wait(timeout=self._timeout + 5.0):
+        # IBKRClient.connect spends up to `timeout` on the socket and another
+        # `timeout` on the account probe, so wait for both before giving up —
+        # a premature timeout would strand a connected session on this client id.
+        if not self._ready.wait(timeout=2 * self._timeout + 5.0):
             raise BrokerConnectionError(
                 f"IBKR order connection to {self._host}:{self._port} did not respond"
             )
@@ -68,7 +77,13 @@ class IBKROrderConnection:
         loop = self._loop
         if loop is None or not loop.is_running():
             return
-        asyncio.run_coroutine_threadsafe(self._client.disconnect(), loop)
+        # Wait for the logout to complete before stopping the loop, otherwise
+        # TWS sees a dropped socket instead of a clean disconnect.
+        future = asyncio.run_coroutine_threadsafe(self._client.disconnect(), loop)
+        try:
+            future.result(timeout=_DISCONNECT_TIMEOUT_S)
+        except Exception as exc:  # noqa: BLE001 - shutdown is best-effort
+            _log.warning("[Orders] Live order connection did not close cleanly: %s", exc)
         loop.call_soon_threadsafe(loop.stop)
 
     def _run(self) -> None:

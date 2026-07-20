@@ -75,10 +75,10 @@ class AppConfig:
     risk: RiskConfig = field(default_factory=RiskConfig)
     log: LogConfig = field(default_factory=LogConfig)
     database: DatabaseConfig = field(default_factory=DatabaseConfig)
-    # Guards UserManager.switch_mode() to 'live'. Enabled so IBKR order routing
-    # can be exercised against a TWS paper account; 'live' means "route to real
+    # Gates switching a user to 'live'. Ships off; set 'live_mode_enabled = true'
+    # in us_swing.toml to route orders to TWS. Note 'live' means "send to real
     # TWS", not "real money" — the account logged into TWS decides that.
-    live_mode_enabled: bool = True
+    live_mode_enabled: bool = False
 
 
 # ── Loaders ───────────────────────────────────────────────────────────────────
