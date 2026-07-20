@@ -68,6 +68,7 @@ from typing import TYPE_CHECKING, Any
 import pandas as pd
 
 if TYPE_CHECKING:
+    from us_swing.execution.ibkr_order_connection import IBKROrderConnection
     from us_swing.execution.intraday_candle_loader import IntradayCandleLoader
     from us_swing.execution.live_bar_worker import LiveBarWorker
     from us_swing.execution.live_tick_worker import LiveTickWorker
@@ -93,6 +94,7 @@ from us_swing.data.models import (
     UserProfile,
     WatchlistItem,
 )
+from us_swing.exceptions import BrokerConnectionError
 from us_swing.gui.system_store import SystemConfig, load_system_config
 from us_swing.gui.user_store import load_users, next_user_id, save_users
 
@@ -1113,6 +1115,7 @@ class AppService(QObject):
         self._ibkr_acct:      AccountState | None    = None
         self._ibkr_positions: list[OpenPosition]     = []
         self._acct_worker:    _AccountDataWorker | None = None
+        self._order_connection: IBKROrderConnection | None = None
 
         self._acct_timer = QTimer(self)
         self._acct_timer.setInterval(30_000)   # refresh every 30 s when connected
@@ -1284,15 +1287,30 @@ class AppService(QObject):
             from us_swing.execution.broker_factory import build_broker
             from us_swing.execution.order_ingestion import OrderIngestion
 
-            # Mode + broker are hard-coded until the Settings UI lands; the
-            # factory already routes live/IBKR so only these two values change.
-            self._broker = build_broker(
-                mode="paper",
-                broker_name="IBKR",
-                scheduler=self._schedule_on_engine_loop,
-                live_client_provider=self._live_order_client,
-                price_provider=self._market_price_for,
-            )
+            # Live mode routes real orders to whichever TWS is running — an
+            # IBKR paper account if that is what is logged in.  A refused or
+            # absent TWS must not stop the app booting, so fall back to the
+            # simulated broker with a loud message.
+            mode = self._users[0].mode
+            try:
+                self._broker = build_broker(
+                    mode=mode,
+                    broker_name="IBKR",
+                    scheduler=self._schedule_on_engine_loop,
+                    live_client_provider=self._live_order_client,
+                    price_provider=self._market_price_for,
+                )
+            except (BrokerConnectionError, RuntimeError, ValueError) as exc:
+                _log.error(
+                    "[Orders] Live order routing unavailable — using simulated "
+                    "orders instead: %s", exc,
+                )
+                self._broker = build_broker(
+                    mode="paper",
+                    broker_name="IBKR",
+                    scheduler=self._schedule_on_engine_loop,
+                    price_provider=self._market_price_for,
+                )
             self._order_ingestion = OrderIngestion(
                 ledger=self._db,
                 fill_sink=lambda fill: self._strategy_engine.on_order_fill(fill),
@@ -2064,13 +2082,22 @@ class AppService(QObject):
     def _live_order_client(self) -> Any:
         """Return the connected order client for live trading.
 
-        Live IBKR ordering is not connected yet (paper-only phase); the broker
-        factory only calls this when ``mode='live'``, so it raises a clear error
-        until live wiring is added.
+        Called by the broker factory only when the active user is in live mode.
+        Opens a dedicated IBKR connection under its own client id so order
+        routing is independent of the tick, candle and account connections.
+
+        Raises:
+            BrokerConnectionError: If TWS is not reachable.
         """
-        raise RuntimeError(
-            "Live order routing is not connected yet — the app is in paper mode"
-        )
+        from us_swing.execution.ibkr_order_connection import IBKROrderConnection
+
+        if self._order_connection is None:
+            self._order_connection = IBKROrderConnection(
+                host=self._system_cfg.ibkr_host,
+                port=self._system_cfg.ibkr_port,
+                client_id=self._system_cfg.ibkr_order_client_id,
+            )
+        return self._order_connection.connect()
 
     def _schedule_on_engine_loop(self, callback: Callable[[], None]) -> None:
         """Scheduler for ``SimBroker``: defer a simulated fill onto the engine's
@@ -3072,6 +3099,13 @@ class AppService(QObject):
         self._notif_worker = None
         if worker is not None:
             worker.shutdown()
+
+    def shutdown_order_connection(self) -> None:
+        """Disconnect live order routing.  No-op when never connected."""
+        connection = self._order_connection
+        self._order_connection = None
+        if connection is not None:
+            connection.close()
 
     def _maybe_publish_day_end(self, today: datetime.date) -> None:
         """Send the day-end summary at most once per trading day.

@@ -75,9 +75,10 @@ class AppConfig:
     risk: RiskConfig = field(default_factory=RiskConfig)
     log: LogConfig = field(default_factory=LogConfig)
     database: DatabaseConfig = field(default_factory=DatabaseConfig)
-    # Phase 0: paper-only. Set to True only when IBKR live connectivity is
-    # certified and tested. Guards UserManager.switch_mode() to 'live'.
-    live_mode_enabled: bool = False
+    # Guards UserManager.switch_mode() to 'live'. Enabled so IBKR order routing
+    # can be exercised against a TWS paper account; 'live' means "route to real
+    # TWS", not "real money" — the account logged into TWS decides that.
+    live_mode_enabled: bool = True
 
 
 # ── Loaders ───────────────────────────────────────────────────────────────────

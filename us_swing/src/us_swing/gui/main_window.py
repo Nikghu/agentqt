@@ -986,6 +986,7 @@ class MainWindow(QMainWindow):
             worker.wait(6000)  # type: ignore[union-attr]
         self._demo._stop_live_bar_worker()
         self._demo.shutdown_notifications()
+        self._demo.shutdown_order_connection()
         settings = QSettings("USSwing", "MainWindow")
         settings.setValue("geometry", self.saveGeometry())
         super().closeEvent(event)  # type: ignore[arg-type]

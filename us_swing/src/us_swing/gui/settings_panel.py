@@ -60,9 +60,9 @@ class _UserDialog(QDialog):
         self._ibkr_id.setRange(1, 99999)
         self._ibkr_id.setValue(user.ibkr_client_id if user else 100)
         self._mode       = QComboBox()
-        self._mode.addItems(["paper"])
+        self._mode.addItems(["paper", "live"])
         if user:
-            self._mode.setCurrentText(user.mode if user.mode == "paper" else "paper")
+            self._mode.setCurrentText(user.mode if user.mode in ("paper", "live") else "paper")
 
         form.addRow("Username:",         self._username)
         form.addRow("Display Name:",     self._display)

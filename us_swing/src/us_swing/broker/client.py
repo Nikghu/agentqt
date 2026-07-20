@@ -54,6 +54,7 @@ class IBKRClient:
         self._pacing = PacingQueue()
         self._status_callbacks: list[Callable[[ConnectionStatus], None]] = []
         self._realtime_callbacks: list[Callable[[RealtimeBar], None]] = []
+        self._loop: asyncio.AbstractEventLoop | None = None
 
     # ── Connection lifecycle ──────────────────────────────────────────────────
 
@@ -78,6 +79,7 @@ class IBKRClient:
             ) from exc
 
         self._ib = IB()
+        self._loop = asyncio.get_running_loop()
         self._ib.disconnectedEvent += self._on_disconnect
 
         try:
@@ -120,6 +122,15 @@ class IBKRClient:
         connection wrapper.
         """
         return self._ib
+
+    @property
+    def loop(self) -> asyncio.AbstractEventLoop | None:
+        """The event loop this client connected on (None until connected).
+
+        ``ib_insync`` is bound to the loop that created its connection, so any
+        caller on another thread must marshal onto this loop.
+        """
+        return self._loop
 
     # ── Status observable ─────────────────────────────────────────────────────
 
