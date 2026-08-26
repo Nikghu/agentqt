@@ -1,11 +1,13 @@
 # Module Decomposition — GUI Module (GUI)
 
 **Document ID:** MD-GUI
-**Version:** 1.5.0
+**Version:** 1.6.0
 **Traces To:** SRD-GUI v2.10.0 / DD-GUI v1.6.0
 **Status:** Draft
-**Last Updated:** 2026-05-27
+**Last Updated:** 2026-08-26
 **Project:** US Swing Trading System
+
+> v1.6.0: MD-GUI-004.001.M01 extended — live tick worker watchdog in AppService (SRD-GUI-012.008–009).
 
 > v1.5.0: Cross-module rows added for SRD-GUI-014.014 (AppService event_stream + ActiveCyclesPanel wired into _ExecutionPanel as "Active Trades" tab).
 > v1.4.0: Cross-module rows added for SRD-GUI-013.015 (Reset Strategy action) and SRD-GUI-014.013 (Rex column).
@@ -37,6 +39,7 @@ FO-GUI-012 modifies existing modules rather than creating new files. The new `Li
 | Module ID | File | Change Required | SRD |
 |---|---|---|---|
 | MD-GUI-004.001.M01 | `src/us_swing/gui/app_service.py` | Add `LiveTickWorker` lifecycle (`_on_connect_ok`, `disconnect_feed`); add `_sync_tick_subscriptions()`; add `_on_mktwatch_tick`, `_on_watchlist_tick`, `_on_position_tick`, `_on_tick_sub_failed` slots; add `_YAHOO_TO_IBKR` constant and `_make_stk_contract()` helper; add `_watch_prev_close` and `_sp500_cache` attributes; add one-shot `_fetch_mw_prev_close_once()`; remove `_MarketWatchWorker`, `_watch_timer`, `_refresh_market_watch()`, `_on_watch_data()`, `_mw_worker`; remove `_wl_timer` repeating-poll path (keep one-shot load). | SRD-GUI-012.001–007 |
+| MD-GUI-004.001.M01 | `src/us_swing/gui/app_service.py` | Add the tick watchdog: `_tick_watchdog` QTimer plus `_start_tick_worker()`, `_on_tick_worker_finished()`, `_check_tick_health()`, `_warn_if_ticks_stale()`; stamp `_last_tick_at` in `_record_market_price`; stop the watchdog in `disconnect_feed`; emit tick failures to the GUI log panel from `_on_tick_sub_failed`. `live_tick_worker.py` is unchanged. | SRD-GUI-012.008–009 |
 | MD-GUI-006.001.M01 | `src/us_swing/gui/settings_panel.py` | Add "Tick Data Client ID" `QSpinBox` row to System tab, bound to `SystemConfig.ibkr_tick_client_id`. Follows same pattern as existing clientId spinboxes. | SRD-GUI-012.001 |
 | — | `src/us_swing/gui/system_store.py` | Add `ibkr_tick_client_id: int = 14` field to `SystemConfig` dataclass. No migration needed — default value handles missing key on first load. | SRD-GUI-012.001 |
 

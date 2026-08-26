@@ -61,6 +61,7 @@ import socket
 import threading
 import time
 from dataclasses import dataclass
+from functools import partial
 from pathlib import Path
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
@@ -980,6 +981,8 @@ _DEFAULT_PAPER_EQUITY: float = 100_000.0
 
 # Yahoo Finance notation → ETF proxy for IBKR tick subscriptions.
 _MAX_TICK_SUBS: int = 95  # leave headroom below IBKR's ~100-line L1 limit
+_TICK_WATCHDOG_MS: int = 30_000   # how often the tick worker is checked for a silent death
+_TICK_STALE_S: float   = 90.0     # quiet period that earns a log warning while the market is open
 
 
 def _make_stk_contract(symbol: str) -> Any:
@@ -1134,6 +1137,13 @@ class AppService(QObject):
 
         # ── Live tick worker (FO-GUI-012) ─────────────────────────────────────
         self._tick_worker: LiveTickWorker | None = None
+        self._last_tick_at: float | None = None   # monotonic clock of the most recent tick
+        self._tick_restart_logged = False         # one warning per outage, not per check
+        self._tick_stale_logged   = False         # one warning per quiet spell
+
+        self._tick_watchdog = QTimer(self)
+        self._tick_watchdog.setInterval(_TICK_WATCHDOG_MS)
+        self._tick_watchdog.timeout.connect(self._check_tick_health)
         self._sp500_cache: set[str] = set()   # S&P 500 symbols, populated lazily
         self._cycle_symbols: frozenset[str] = frozenset()  # symbols of open trade cycles
         self._pending_exit_reason: str = "manual"          # reason carried into the next exit fill
@@ -2510,6 +2520,7 @@ class AppService(QObject):
     def disconnect_feed(self) -> None:
         """Cleanly disconnect from the data feed."""
         self._acct_timer.stop()
+        self._tick_watchdog.stop()
         # Stop live tick worker
         tw = self._tick_worker
         if tw is not None:
@@ -2517,6 +2528,7 @@ class AppService(QObject):
             try:
                 tw.tick_price.disconnect()
                 tw.subscription_failed.disconnect()
+                tw.finished.disconnect()
             except (RuntimeError, TypeError):
                 pass
             tw.request_stop()
@@ -2646,23 +2658,8 @@ class AppService(QObject):
         self._refresh_account_data()   # immediate first fetch
 
         # Start live tick worker (FO-GUI-012)
-        if self._tick_worker is None:
-            from us_swing.execution.live_tick_worker import LiveTickWorker  # noqa: PLC0415
-            tw = LiveTickWorker(
-                host=host,
-                port=port,
-                client_id=self._system_cfg.ibkr_tick_client_id,
-                parent=self,
-            )
-            tw.tick_price.connect(self._record_market_price)
-            tw.tick_price.connect(self._on_watchlist_tick)
-            tw.tick_price.connect(self._on_position_tick)
-            tw.tick_price.connect(self._on_cycle_tick)
-            tw.tick_price.connect(self.pending_tick)
-            tw.subscription_failed.connect(self._on_tick_sub_failed)
-            tw.start()
-            self._tick_worker = tw
-            _log.info("[Tick] Live tick streaming started (clientId=%d)", self._system_cfg.ibkr_tick_client_id)
+        self._start_tick_worker()
+        self._tick_watchdog.start()
 
         self._sync_tick_subscriptions()
         self._refresh_mw_quotes()
@@ -2979,6 +2976,7 @@ class AppService(QObject):
         Runs on the GUI thread via the tick signal's queued delivery.
         """
         if price > 0:
+            self._last_tick_at = time.monotonic()
             with self._last_tick_price_lock:
                 self._last_tick_price[tag] = price
 
@@ -3001,6 +2999,90 @@ class AppService(QObject):
     def _on_tick_sub_failed(self, tag: str, code: int) -> None:
         """Handle LiveTickWorker subscription_failed signal."""
         _log.warning("[Tick] Subscription rejected for %s (IBKR code %d)", tag, code)
+        self.log_message.emit(
+            "WARNING",
+            f"[Feed] Live price unavailable for {tag} — IBKR refused the data request",
+        )
+
+    def _start_tick_worker(self) -> None:
+        """Create and start the live tick worker unless one is already running."""
+        if self._tick_worker is not None:
+            return
+
+        from us_swing.execution.live_tick_worker import LiveTickWorker  # noqa: PLC0415
+
+        tw = LiveTickWorker(
+            host=self._system_cfg.ibkr_host,
+            port=self._system_cfg.ibkr_port,
+            client_id=self._system_cfg.ibkr_tick_client_id,
+            parent=self,
+        )
+        tw.tick_price.connect(self._record_market_price)
+        tw.tick_price.connect(self._on_watchlist_tick)
+        tw.tick_price.connect(self._on_position_tick)
+        tw.tick_price.connect(self._on_cycle_tick)
+        tw.tick_price.connect(self.pending_tick)
+        tw.subscription_failed.connect(self._on_tick_sub_failed)
+        tw.finished.connect(partial(self._on_tick_worker_finished, tw))
+        tw.start()
+        self._tick_worker = tw
+        _log.info("[Tick] Live tick streaming started (clientId=%d)",
+                  self._system_cfg.ibkr_tick_client_id)
+
+    def _on_tick_worker_finished(self, tw: LiveTickWorker) -> None:
+        """Release a finished worker so a fresh one can take its place.
+
+        Fires for a clean stop and for an unexpected exit alike.  ``disconnect_feed``
+        clears the attribute before it quits the thread, so the identity check keeps
+        a newer worker from being dropped by a late signal from the old one.
+        """
+        if tw is not self._tick_worker:
+            return
+        self._tick_worker = None
+        tw.deleteLater()
+
+    def _check_tick_health(self) -> None:
+        """Restart the tick worker when it has died while the feed is still connected.
+
+        A refused IBKR handshake ends the worker's event loop, so the thread finishes
+        and live prices stop for the rest of the session.  Only a finished thread
+        triggers a restart — silence on its own is reported but never acted on, so a
+        quiet market cannot cause a reconnect.
+        """
+        if self._connection_status is not ConnectionStatus.CONNECTED:
+            return
+
+        tw = self._tick_worker
+        if tw is not None and not tw.isFinished():
+            self._tick_restart_logged = False
+            self._warn_if_ticks_stale()
+            return
+
+        self._tick_worker = None
+        if not self._tick_restart_logged:
+            self._tick_restart_logged = True
+            self.log_message.emit(
+                "WARNING", "[Feed] Live prices stopped — reconnecting to IBKR",
+            )
+        self._start_tick_worker()
+
+    def _warn_if_ticks_stale(self) -> None:
+        """Warn once when a running worker stops delivering ticks in market hours."""
+        if self.get_market_status().get("nyse") != "open":
+            self._tick_stale_logged = False
+            return
+
+        last = self._last_tick_at
+        if last is not None and (time.monotonic() - last) < _TICK_STALE_S:
+            self._tick_stale_logged = False
+            return
+
+        if not self._tick_stale_logged:
+            self._tick_stale_logged = True
+            self.log_message.emit(
+                "WARNING",
+                "[Feed] No live price updates for over a minute while the market is open",
+            )
 
     # ── Market status ─────────────────────────────────────────────────────────
 

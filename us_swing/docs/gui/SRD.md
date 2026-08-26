@@ -1,10 +1,11 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.13.0
+**Version:** 2.14.0
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
-**Last Updated:** 2026-06-12
+**Last Updated:** 2026-08-26
+> v2.14.0: SRD-GUI-012.008–009 added — live tick worker watchdog and GUI-visible tick failures (FO-GUI-012).
 > v2.13.0: SRD-GUI-000.006 added — `_AdminContextBar` capital cell (Max Capital · Margin Available); mirrors SRD-EXE-017.021.
 > v2.12.0: SRD-GUI-014.013 marked Reopen — Rex column `-1` display superseded by SRD-EXE-017.011 (FO-EXE-017: show remaining re-entries, never negative, no cross-row leakage).
 > v2.11.0: SRD-GUI-002.005 marked Reopen — Trade History columns now show `Order State` and `Filled` per FO-EXE-014; `Entry`, `Exit`, and `P&L` columns removed (P&L lives on the Dashboard KPI cards and inside `trade_cycles`).
@@ -174,6 +175,8 @@
 | SRD-GUI-012.005 | FO-GUI-012 | Must | **Position current_price streaming — `_on_position_tick(tag: str, price: float) -> None`:** Iterates `self._positions: list[OpenPosition]` and updates `.current_price = price` for each entry whose `.symbol == tag`. Emits `self.positions_updated`. `_AccountDataWorker` 30-second poll continues unchanged for equity, P&L, and position metadata; only `current_price` is overridden by the tick stream. For symbols not subscribed (non-S&P 500), `_AccountDataWorker` remains the sole price source (no behaviour change). | `tick_price(tag, price)` signal | Matching `OpenPosition.current_price` updated; `positions_updated` emitted | If no open position matches `tag`: no-op (symbol may belong to Market Watch or Watchlist, both handled by other slots) | Approved |
 | SRD-GUI-012.006 | FO-GUI-012 | Must | **`_sync_tick_subscriptions() -> None`:** Builds the full contract dict to pass to `LiveTickWorker.set_contracts()`. Content: (1) Market Watch contracts — `{tag: contract for tag, contract in _YAHOO_TO_IBKR.items() if tag in [item.symbol for item in self._watch]}`; (2) Watchlist contracts — `{sym: _make_stk_contract(sym) for sym in self._watchlist_symbols if sym in _sp500_set()}`; (3) Position contracts — `{pos.symbol: _make_stk_contract(pos.symbol) for pos in self._positions if pos.symbol in _sp500_set() and pos.state != "CLOSED"}`. `_make_stk_contract(sym)` returns `Contract(symbol=sym, secType="STK", exchange="SMART", currency="USD")`. `_sp500_set()` returns a cached `frozenset[str]` of S&P 500 symbols from the last `load_sp500()` result (refreshed whenever `sp500_updated` fires). Called on worker start, on watchlist change, and on `positions_updated` when position count changes. | Current state of `_watch`, `_watchlist_symbols`, `_positions` | `LiveTickWorker.set_contracts()` called with merged contract dict | Total subscription count must be checked: if > 95 (near IBKR 100-line limit), log WARNING and trim position contracts first (watchlist and Market Watch take priority) | Approved |
 | SRD-GUI-012.007 | FO-GUI-012 | Must | **Disconnect price behaviour:** When `disconnect_feed()` is called, in addition to stopping `_tick_worker`, AppService sets each `MarketWatchItem.ltp = None` and `change_pct = None` in `self._watch`, then emits `market_watch_updated`. This causes the Market Watch strip to display `"–"` cells (existing `_AdminContextBar._refresh_mw()` already handles `None` ltp as `"–"`). Position and watchlist prices are **not** cleared — they retain their last streamed value, consistent with the existing `_AccountDataWorker` behaviour on disconnect. | `disconnect_feed()` call | Market Watch shows `"–"`; position and watchlist LTPs retain last known value | Do not call `yfinance` on disconnect; clearing only happens for Market Watch strip | Approved |
+| SRD-GUI-012.008 | FO-GUI-012 | Must | A 30-second watchdog restarts `LiveTickWorker` when its thread has finished while the feed is still connected, so a refused IBKR handshake cannot end tick streaming for the rest of the session. | watchdog timer tick | replacement worker started; one warning logged per outage | Restart fires only on a finished thread; tick silence is reported but never triggers a reconnect; skipped unless connection status is `CONNECTED` | Implemented |
+| SRD-GUI-012.009 | FO-GUI-012 | Should | Tick subscription rejections and tick outages are surfaced in the GUI log panel, not only the log file. | `subscription_failed` signal, watchdog | `log_message` WARNING entries | One warning per outage, not per check; no error codes or internal names in user-facing text | Implemented |
 
 ---
 

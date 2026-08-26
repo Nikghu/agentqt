@@ -1,11 +1,13 @@
 ﻿# Unit Test Case Document â€” GUI Module (GUI)
 
 **Document ID:** UTCD-GUI
-**Version:** 1.3.1
+**Version:** 1.4.0
 **Traces To:** MD-GUI v1.3.0
 **Status:** Draft
-**Last Updated:** 2026-05-29
+**Last Updated:** 2026-08-26
 **Project:** US Swing Trading System
+
+> v1.4.0: UT-GUI-012.001.M01.T20–T28 added — live tick worker watchdog (SRD-GUI-012.008–009).
 
 > v1.3.0: UTCD-GUI-013 (Strategy Builder Dialog, 22 tests) and UTCD-GUI-014 (Active Cycles Panel, 24 tests) added.
 
@@ -167,6 +169,20 @@
 | UT-GUI-012.001.M01.T15 | MD-GUI-004.001.M01 | Positive | `disconnect_feed()` sets all `_watch` item `ltp=None` and emits `market_watch_updated` | `_watch` has 3 items with non-None ltp; call `svc.disconnect_feed()` | All items have `ltp is None`; `market_watch_updated` emitted | Pass |
 | UT-GUI-012.001.M01.T16 | MD-GUI-004.001.M01 | Negative | Position `current_price` is NOT cleared on disconnect | `_positions` has `OpenPosition(current_price=185.0)`; call `svc.disconnect_feed()` | `pos.current_price == 185.0` (unchanged) | Pass |
 | UT-GUI-012.001.M01.T17 | MD-GUI-004.001.M01 | Negative | Watchlist ltp is NOT cleared on disconnect | `_watchlist` has item with `ltp=180.0`; call `svc.disconnect_feed()` | `item["ltp"] == 180.0` (unchanged) | Pass |
+
+### Tick worker watchdog (SRD-GUI-012.008–009)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-012.001.M01.T20 | MD-GUI-004.001.M01 | Positive | Watchdog restarts the worker when its thread has finished | `_tick_worker` is a finished worker; status CONNECTED; call `_check_tick_health()` | A new `LiveTickWorker` is built and started; `_tick_worker` points at it | Pass |
+| UT-GUI-012.001.M01.T21 | MD-GUI-004.001.M01 | Edge | Outage warning is logged once, not on every watchdog check | Two consecutive checks with a finished worker each time | Exactly one `Live prices stopped` message emitted | Pass |
+| UT-GUI-012.001.M01.T22 | MD-GUI-004.001.M01 | Negative | A running worker is never restarted | `_tick_worker.isFinished()` returns False; call `_check_tick_health()` | No worker constructed; `_tick_worker` unchanged | Pass |
+| UT-GUI-012.001.M01.T23 | MD-GUI-004.001.M01 | Negative | Watchdog does nothing while the feed is disconnected | status DISCONNECTED and `_tick_worker` is None; call `_check_tick_health()` | No worker constructed; `_tick_worker` stays None | Pass |
+| UT-GUI-012.001.M01.T24 | MD-GUI-004.001.M01 | Positive | `finished` releases the current worker for replacement | Call `_on_tick_worker_finished(tw)` where `tw is _tick_worker` | `_tick_worker` is None; `deleteLater()` called once | Pass |
+| UT-GUI-012.001.M01.T25 | MD-GUI-004.001.M01 | Negative | A late `finished` signal does not drop a newer worker | Call `_on_tick_worker_finished(old)` while `_tick_worker` holds a newer worker | `_tick_worker` still holds the newer worker; its `deleteLater()` not called | Pass |
+| UT-GUI-012.001.M01.T26 | MD-GUI-004.001.M01 | Edge | Tick silence is reported but never triggers a reconnect | Running worker, `_last_tick_at` None, market open; call `_check_tick_health()` | `No live price updates` warning emitted; no worker constructed | Pass |
+| UT-GUI-012.001.M01.T27 | MD-GUI-004.001.M01 | Negative | Overnight silence raises no warning | Running worker, `_last_tick_at` None, market closed; call `_check_tick_health()` | No `No live price updates` message emitted | Pass |
+| UT-GUI-012.001.M01.T28 | MD-GUI-004.001.M01 | Positive | A fresh tick re-arms the stale warning for the next outage | `_tick_stale_logged` True, `_last_tick_at` just now, market open | `_tick_stale_logged` reset to False | Pass |
 
 ---
 
