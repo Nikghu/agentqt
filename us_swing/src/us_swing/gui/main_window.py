@@ -698,6 +698,9 @@ class MainWindow(QMainWindow):
         self._settings_panel.theme_changed.connect(self._chart_panel.refresh_theme)
         self._settings_panel.theme_changed.connect(self._execution_panel.refresh_theme)
 
+        # The log panel is listening now, so a failed live-broker start can surface.
+        svc.flush_broker_fallback_message()
+
         # ── Stacked content ────────────────────────────────────────────────────
         self._stack = QStackedWidget()
         for p in panels:
@@ -986,6 +989,7 @@ class MainWindow(QMainWindow):
             worker.wait(6000)  # type: ignore[union-attr]
         self._demo._stop_live_bar_worker()
         self._demo.shutdown_notifications()
+        self._demo.shutdown_order_connection()
         settings = QSettings("USSwing", "MainWindow")
         settings.setValue("geometry", self.saveGeometry())
         super().closeEvent(event)  # type: ignore[arg-type]

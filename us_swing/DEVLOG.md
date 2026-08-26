@@ -2,6 +2,16 @@
 
 ---
 
+## [20260826] GUI — Live tick worker watchdog: LiveTickWorker no longer dies once (FO-GUI-012, bugfix)
+
+- Type: Bugfix
+- FO(s): FO-GUI-012 (with FO-EXE-008)
+- RN: RN-GUI-1.4.0-20260826
+- Artifacts updated: SRD (v2.14.0, .008–009), MD (v1.6.0), UTCD (v1.4.0, T20–T28), TRACE (v1.10.0), Code, Tests, RN, CONTEXT, DEVLOG
+- Decisions: User reported blank Market Watch prices and an OPEN HOOD cycle with LTP frozen at entry. Traced in `~/.usswing/logs/`: TWS had the API port open but refused every handshake with error 10141 (paper-trading disclaimer not accepted), so `LiveTickWorker`'s loop returned and its QThread finished. It was never rebuilt — `_on_connect_ok` guarded creation with `if self._tick_worker is None` and only `disconnect_feed()` cleared that attribute; the feed retry loop also stops on a TCP probe rather than a proven API handshake, so `_on_connect_ok` never fired again. Prices stayed dead for the full 80-minute session even after IBKR became reachable at 18:47. Fix is entirely in `gui/app_service.py` — a 30 s `_tick_watchdog` restarts the worker when `isFinished()` and the feed is still CONNECTED; creation extracted to `_start_tick_worker()`; `finished` → `_on_tick_worker_finished(tw)` via `partial` with an identity guard so a late signal cannot drop a newer worker; `_last_tick_at` stamped per tick with a warn-only stale check (restarting on silence was rejected — reconnect churn risk); tick failures now reach the GUI log panel. `live_tick_worker.py` deliberately untouched, so SRD-EXE-008.006 needed no reopen. `reqMarketDataType(3)` rejected — per-client global setting, would degrade a live account to delayed prices. Tests: 9 new (T20–T28) pass; gui+execution+broker 21 failed / 298 passed, the 21 matching the documented pre-existing baseline and verified identical against clean HEAD; ruff and mypy --strict clean on every changed line. Verified live: TWS killed at 21:29:24, five watchdog attempts, `[Tick] Connected to IBKR` at 21:31:52 — full recovery in 2 min 28 s with no app restart. Follow-up: `_connect_with_retry` returns on `TimeoutError` before the clientId-increment retry runs (SRD-EXE-008.006), masked by the watchdog.
+
+---
+
 ## [20260710] INF+GUI — Telegram bot polish + scheduler crash fix (FO-INF-010, release)
 
 - Type: Enhancement + Fix

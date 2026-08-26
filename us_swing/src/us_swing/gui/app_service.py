@@ -61,6 +61,7 @@ import socket
 import threading
 import time
 from dataclasses import dataclass
+from functools import partial
 from pathlib import Path
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
@@ -68,6 +69,7 @@ from typing import TYPE_CHECKING, Any
 import pandas as pd
 
 if TYPE_CHECKING:
+    from us_swing.execution.ibkr_order_connection import IBKROrderConnection
     from us_swing.execution.intraday_candle_loader import IntradayCandleLoader
     from us_swing.execution.live_bar_worker import LiveBarWorker
     from us_swing.execution.live_tick_worker import LiveTickWorker
@@ -93,6 +95,7 @@ from us_swing.data.models import (
     UserProfile,
     WatchlistItem,
 )
+from us_swing.exceptions import BrokerConnectionError
 from us_swing.gui.system_store import SystemConfig, load_system_config
 from us_swing.gui.user_store import load_users, next_user_id, save_users
 
@@ -978,6 +981,8 @@ _DEFAULT_PAPER_EQUITY: float = 100_000.0
 
 # Yahoo Finance notation → ETF proxy for IBKR tick subscriptions.
 _MAX_TICK_SUBS: int = 95  # leave headroom below IBKR's ~100-line L1 limit
+_TICK_WATCHDOG_MS: int = 30_000   # how often the tick worker is checked for a silent death
+_TICK_STALE_S: float   = 90.0     # quiet period that earns a log warning while the market is open
 
 
 def _make_stk_contract(symbol: str) -> Any:
@@ -1113,6 +1118,8 @@ class AppService(QObject):
         self._ibkr_acct:      AccountState | None    = None
         self._ibkr_positions: list[OpenPosition]     = []
         self._acct_worker:    _AccountDataWorker | None = None
+        self._order_connection: IBKROrderConnection | None = None
+        self._broker_fallback_message: str | None = None
 
         self._acct_timer = QTimer(self)
         self._acct_timer.setInterval(30_000)   # refresh every 30 s when connected
@@ -1130,6 +1137,13 @@ class AppService(QObject):
 
         # ── Live tick worker (FO-GUI-012) ─────────────────────────────────────
         self._tick_worker: LiveTickWorker | None = None
+        self._last_tick_at: float | None = None   # monotonic clock of the most recent tick
+        self._tick_restart_logged = False         # one warning per outage, not per check
+        self._tick_stale_logged   = False         # one warning per quiet spell
+
+        self._tick_watchdog = QTimer(self)
+        self._tick_watchdog.setInterval(_TICK_WATCHDOG_MS)
+        self._tick_watchdog.timeout.connect(self._check_tick_health)
         self._sp500_cache: set[str] = set()   # S&P 500 symbols, populated lazily
         self._cycle_symbols: frozenset[str] = frozenset()  # symbols of open trade cycles
         self._pending_exit_reason: str = "manual"          # reason carried into the next exit fill
@@ -1284,15 +1298,34 @@ class AppService(QObject):
             from us_swing.execution.broker_factory import build_broker
             from us_swing.execution.order_ingestion import OrderIngestion
 
-            # Mode + broker are hard-coded until the Settings UI lands; the
-            # factory already routes live/IBKR so only these two values change.
-            self._broker = build_broker(
-                mode="paper",
-                broker_name="IBKR",
-                scheduler=self._schedule_on_engine_loop,
-                live_client_provider=self._live_order_client,
-                price_provider=self._market_price_for,
-            )
+            # Live mode routes real orders to whichever TWS is running — an
+            # IBKR paper account if that is what is logged in.  A refused or
+            # absent TWS must not stop the app booting, so fall back to the
+            # simulated broker with a loud message.
+            mode = self._users[0].mode
+            try:
+                self._broker = build_broker(
+                    mode=mode,
+                    broker_name="IBKR",
+                    scheduler=self._schedule_on_engine_loop,
+                    live_client_provider=self._live_order_client,
+                    price_provider=self._market_price_for,
+                )
+            except (BrokerConnectionError, RuntimeError, ValueError) as exc:
+                message = (
+                    f"[Orders] Live order routing unavailable — orders are "
+                    f"simulated, not sent to IBKR: {exc}"
+                )
+                _log.error(message)
+                # The log panel connects after __init__, so defer the message
+                # rather than emitting into a signal nobody is listening on.
+                self._broker_fallback_message = message
+                self._broker = build_broker(
+                    mode="paper",
+                    broker_name="IBKR",
+                    scheduler=self._schedule_on_engine_loop,
+                    price_provider=self._market_price_for,
+                )
             self._order_ingestion = OrderIngestion(
                 ledger=self._db,
                 fill_sink=lambda fill: self._strategy_engine.on_order_fill(fill),
@@ -2064,13 +2097,22 @@ class AppService(QObject):
     def _live_order_client(self) -> Any:
         """Return the connected order client for live trading.
 
-        Live IBKR ordering is not connected yet (paper-only phase); the broker
-        factory only calls this when ``mode='live'``, so it raises a clear error
-        until live wiring is added.
+        Called by the broker factory only when the active user is in live mode.
+        Opens a dedicated IBKR connection under its own client id so order
+        routing is independent of the tick, candle and account connections.
+
+        Raises:
+            BrokerConnectionError: If TWS is not reachable.
         """
-        raise RuntimeError(
-            "Live order routing is not connected yet — the app is in paper mode"
-        )
+        from us_swing.execution.ibkr_order_connection import IBKROrderConnection
+
+        if self._order_connection is None:
+            self._order_connection = IBKROrderConnection(
+                host=self._system_cfg.ibkr_host,
+                port=self._system_cfg.ibkr_port,
+                client_id=self._system_cfg.ibkr_order_client_id,
+            )
+        return self._order_connection.connect()
 
     def _schedule_on_engine_loop(self, callback: Callable[[], None]) -> None:
         """Scheduler for ``SimBroker``: defer a simulated fill onto the engine's
@@ -2379,6 +2421,19 @@ class AppService(QObject):
 
     # ── User CRUD ─────────────────────────────────────────────────────────────
 
+    def flush_broker_fallback_message(self) -> None:
+        """Report a failed live-broker start once the log panel is listening."""
+        message = self._broker_fallback_message
+        self._broker_fallback_message = None
+        if message is not None:
+            self.log_message.emit("ERROR", message)
+
+    def live_mode_enabled(self) -> bool:
+        """Whether this build permits switching a user into live mode."""
+        from us_swing.config.settings import load_config
+
+        return load_config().live_mode_enabled
+
     def add_user(self, profile: UserProfile) -> UserProfile:
         new_profile = UserProfile(
             user_id         = next_user_id(self._users),
@@ -2465,6 +2520,7 @@ class AppService(QObject):
     def disconnect_feed(self) -> None:
         """Cleanly disconnect from the data feed."""
         self._acct_timer.stop()
+        self._tick_watchdog.stop()
         # Stop live tick worker
         tw = self._tick_worker
         if tw is not None:
@@ -2472,6 +2528,7 @@ class AppService(QObject):
             try:
                 tw.tick_price.disconnect()
                 tw.subscription_failed.disconnect()
+                tw.finished.disconnect()
             except (RuntimeError, TypeError):
                 pass
             tw.request_stop()
@@ -2601,23 +2658,8 @@ class AppService(QObject):
         self._refresh_account_data()   # immediate first fetch
 
         # Start live tick worker (FO-GUI-012)
-        if self._tick_worker is None:
-            from us_swing.execution.live_tick_worker import LiveTickWorker  # noqa: PLC0415
-            tw = LiveTickWorker(
-                host=host,
-                port=port,
-                client_id=self._system_cfg.ibkr_tick_client_id,
-                parent=self,
-            )
-            tw.tick_price.connect(self._record_market_price)
-            tw.tick_price.connect(self._on_watchlist_tick)
-            tw.tick_price.connect(self._on_position_tick)
-            tw.tick_price.connect(self._on_cycle_tick)
-            tw.tick_price.connect(self.pending_tick)
-            tw.subscription_failed.connect(self._on_tick_sub_failed)
-            tw.start()
-            self._tick_worker = tw
-            _log.info("[Tick] Live tick streaming started (clientId=%d)", self._system_cfg.ibkr_tick_client_id)
+        self._start_tick_worker()
+        self._tick_watchdog.start()
 
         self._sync_tick_subscriptions()
         self._refresh_mw_quotes()
@@ -2934,6 +2976,7 @@ class AppService(QObject):
         Runs on the GUI thread via the tick signal's queued delivery.
         """
         if price > 0:
+            self._last_tick_at = time.monotonic()
             with self._last_tick_price_lock:
                 self._last_tick_price[tag] = price
 
@@ -2956,6 +2999,90 @@ class AppService(QObject):
     def _on_tick_sub_failed(self, tag: str, code: int) -> None:
         """Handle LiveTickWorker subscription_failed signal."""
         _log.warning("[Tick] Subscription rejected for %s (IBKR code %d)", tag, code)
+        self.log_message.emit(
+            "WARNING",
+            f"[Feed] Live price unavailable for {tag} — IBKR refused the data request",
+        )
+
+    def _start_tick_worker(self) -> None:
+        """Create and start the live tick worker unless one is already running."""
+        if self._tick_worker is not None:
+            return
+
+        from us_swing.execution.live_tick_worker import LiveTickWorker  # noqa: PLC0415
+
+        tw = LiveTickWorker(
+            host=self._system_cfg.ibkr_host,
+            port=self._system_cfg.ibkr_port,
+            client_id=self._system_cfg.ibkr_tick_client_id,
+            parent=self,
+        )
+        tw.tick_price.connect(self._record_market_price)
+        tw.tick_price.connect(self._on_watchlist_tick)
+        tw.tick_price.connect(self._on_position_tick)
+        tw.tick_price.connect(self._on_cycle_tick)
+        tw.tick_price.connect(self.pending_tick)
+        tw.subscription_failed.connect(self._on_tick_sub_failed)
+        tw.finished.connect(partial(self._on_tick_worker_finished, tw))
+        tw.start()
+        self._tick_worker = tw
+        _log.info("[Tick] Live tick streaming started (clientId=%d)",
+                  self._system_cfg.ibkr_tick_client_id)
+
+    def _on_tick_worker_finished(self, tw: LiveTickWorker) -> None:
+        """Release a finished worker so a fresh one can take its place.
+
+        Fires for a clean stop and for an unexpected exit alike.  ``disconnect_feed``
+        clears the attribute before it quits the thread, so the identity check keeps
+        a newer worker from being dropped by a late signal from the old one.
+        """
+        if tw is not self._tick_worker:
+            return
+        self._tick_worker = None
+        tw.deleteLater()
+
+    def _check_tick_health(self) -> None:
+        """Restart the tick worker when it has died while the feed is still connected.
+
+        A refused IBKR handshake ends the worker's event loop, so the thread finishes
+        and live prices stop for the rest of the session.  Only a finished thread
+        triggers a restart — silence on its own is reported but never acted on, so a
+        quiet market cannot cause a reconnect.
+        """
+        if self._connection_status is not ConnectionStatus.CONNECTED:
+            return
+
+        tw = self._tick_worker
+        if tw is not None and not tw.isFinished():
+            self._tick_restart_logged = False
+            self._warn_if_ticks_stale()
+            return
+
+        self._tick_worker = None
+        if not self._tick_restart_logged:
+            self._tick_restart_logged = True
+            self.log_message.emit(
+                "WARNING", "[Feed] Live prices stopped — reconnecting to IBKR",
+            )
+        self._start_tick_worker()
+
+    def _warn_if_ticks_stale(self) -> None:
+        """Warn once when a running worker stops delivering ticks in market hours."""
+        if self.get_market_status().get("nyse") != "open":
+            self._tick_stale_logged = False
+            return
+
+        last = self._last_tick_at
+        if last is not None and (time.monotonic() - last) < _TICK_STALE_S:
+            self._tick_stale_logged = False
+            return
+
+        if not self._tick_stale_logged:
+            self._tick_stale_logged = True
+            self.log_message.emit(
+                "WARNING",
+                "[Feed] No live price updates for over a minute while the market is open",
+            )
 
     # ── Market status ─────────────────────────────────────────────────────────
 
@@ -3072,6 +3199,13 @@ class AppService(QObject):
         self._notif_worker = None
         if worker is not None:
             worker.shutdown()
+
+    def shutdown_order_connection(self) -> None:
+        """Disconnect live order routing.  No-op when never connected."""
+        connection = self._order_connection
+        self._order_connection = None
+        if connection is not None:
+            connection.close()
 
     def _maybe_publish_day_end(self, today: datetime.date) -> None:
         """Send the day-end summary at most once per trading day.

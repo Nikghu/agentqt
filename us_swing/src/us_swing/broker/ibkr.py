@@ -17,9 +17,11 @@ the mapping and event emission are proven identical to ``SimBroker``.
 """
 from __future__ import annotations
 
+import asyncio
+import concurrent.futures
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol, TypeVar
 
 from us_swing.broker.broker import (
     Broker,
@@ -66,6 +68,11 @@ class OrderGateway(Protocol):
 
 # IBKR statuses that finish an order — context is dropped once one arrives.
 _TERMINAL = (OrderStatus.FILLED, OrderStatus.REJECTED, OrderStatus.CANCELLED)
+
+# Longest a caller thread waits for TWS to accept a placement or cancellation.
+_ORDER_TIMEOUT_S = 10.0
+
+_T = TypeVar("_T")
 
 
 class IBKRBroker(Broker):
@@ -145,6 +152,23 @@ class IBKRClientGateway:
         order_type: str,
         limit_price: float | None,
     ) -> str:
+        return self._on_client_loop(
+            lambda: self._place(symbol, side, quantity, order_type, limit_price)
+        )
+
+    def cancel(self, broker_order_id: str) -> None:  # pragma: no cover
+        self._on_client_loop(lambda: self._cancel(broker_order_id))
+
+    # ── ib_insync calls — always run on the client's own loop ─────────────────
+
+    def _place(  # pragma: no cover
+        self,
+        symbol: str,
+        side: str,
+        quantity: int,
+        order_type: str,
+        limit_price: float | None,
+    ) -> str:
         from ib_insync import LimitOrder, MarketOrder, Stock
 
         contract = Stock(symbol, "SMART", "USD")
@@ -158,11 +182,37 @@ class IBKRClientGateway:
         trade.statusEvent += self._make_handler(broker_order_id)
         return broker_order_id
 
-    def cancel(self, broker_order_id: str) -> None:  # pragma: no cover
+    def _cancel(self, broker_order_id: str) -> None:  # pragma: no cover
         for trade in self._client.ib.trades():
             if str(trade.order.orderId) == broker_order_id:
                 self._client.ib.cancelOrder(trade.order)
                 return
+
+    def _on_client_loop(self, fn: Callable[[], _T]) -> _T:  # pragma: no cover
+        """Run ``fn`` on the loop owning the ib_insync connection and wait.
+
+        Orders are submitted from the GUI thread (manual execute) and from the
+        engine thread (strategy signals), but ib_insync may only be touched on
+        its own loop.  Already on that loop, call straight through.
+        """
+        loop = self._client.loop
+        if loop is None:
+            return fn()
+        try:
+            if asyncio.get_running_loop() is loop:
+                return fn()
+        except RuntimeError:
+            pass
+        future: concurrent.futures.Future[_T] = concurrent.futures.Future()
+
+        def _run() -> None:
+            try:
+                future.set_result(fn())
+            except BaseException as exc:  # noqa: BLE001 - relayed to the caller
+                future.set_exception(exc)
+
+        loop.call_soon_threadsafe(_run)
+        return future.result(timeout=_ORDER_TIMEOUT_S)
 
     def _make_handler(  # pragma: no cover
         self, broker_order_id: str

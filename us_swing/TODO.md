@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-07-09 (Session 73)
+**Last Updated:** 2026-08-26 (Session 76)
 
 ---
 
@@ -27,3 +27,4 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T16 | FO-INF-010 per-event toggles DONE (RN-INF-1.5.0) — dispatcher drops toggled-off events; 3 `UserProfile` bools + Settings "Notify on:" switches. Also added guarded once-per-day day-end at market close. Open interaction: Send Test fires ToolStartedEvent, so "Tool started" off drops the test — pending user decision. | `core/notifications/`, `gui/settings_panel.py`, `gui/app_service.py` | Medium | Done |
 | T17 | Fixed (RN-INF-1.5.0): `AppService._publish_day_end_pnl` now reads `p.unrealised_pnl` (British) instead of the never-present `unrealized_pnl` → day-end unrealised P&L is correct. | `gui/app_service.py` | Low | Done |
 | T9 | Reject path didn't abort the cycle — fixed. Added `TradeCycleService.abort_entry_order`; `OrderIngestion` REJECTED branch now aborts a partial-filled OPENING cycle. SRD-EXE-014.005 corrected (was naming the removed `ExecutionEngine.handle_order_reject`). Note: entry-only by design — exit reject must keep the cycle OPEN (you still hold the stock); the partial-sell-then-reject residual case is left to T8. | `execution/order_ingestion.py`, `execution/trade_cycle/_service.py` | High | Done |
+| T18 | `LiveTickWorker._connect_with_retry` catches `TimeoutError` in its generic `except` and returns before the clientId-increment retry runs, so SRD-EXE-008.006 never fires on that path. Masked by the new watchdog (RN-GUI-1.4.0). | `execution/live_tick_worker.py` | Low | Open |
