@@ -255,21 +255,13 @@ class _UsersTab(QWidget):
                 )
 
     def _confirm_live(self, new_mode: str, old_mode: str) -> bool:
-        """Gate a switch into live mode.  Returns False to cancel the save.
+        """Warn before a switch into live mode.  Returns False to cancel the save.
 
-        Live routes real orders to whichever account is logged into TWS, so it
-        needs both the config gate and an explicit confirmation.
+        Live routes real orders to whichever account is logged into TWS, so the
+        user gets an explicit confirmation before it is enabled.
         """
         if new_mode != "live" or old_mode == "live":
             return True
-        if not self._demo.live_mode_enabled():
-            QMessageBox.warning(
-                self, "Live Mode Disabled",
-                "Live trading is disabled for this build.\n\n"
-                "Set the environment variable USSWING_LIVE_MODE=true, or add "
-                "'live_mode_enabled = true' to us_swing.toml, then restart.",
-            )
-            return False
         ret = QMessageBox.warning(
             self, "Enable Live Trading",
             "Live mode sends real orders to whichever account is logged into "

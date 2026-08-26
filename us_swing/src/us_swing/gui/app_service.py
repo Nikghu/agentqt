@@ -2428,12 +2428,6 @@ class AppService(QObject):
         if message is not None:
             self.log_message.emit("ERROR", message)
 
-    def live_mode_enabled(self) -> bool:
-        """Whether this build permits switching a user into live mode."""
-        from us_swing.config.settings import load_config
-
-        return load_config().live_mode_enabled
-
     def add_user(self, profile: UserProfile) -> UserProfile:
         new_profile = UserProfile(
             user_id         = next_user_id(self._users),
