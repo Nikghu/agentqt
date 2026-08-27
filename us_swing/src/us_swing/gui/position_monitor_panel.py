@@ -196,6 +196,18 @@ class PositionMonitorPanel(QWidget):
         )
 
     def _on_close(self) -> None:
+        from PyQt6.QtWidgets import QMessageBox
+        if self._demo.live_mutations_blocked():
+            QMessageBox.information(
+                self, "Not Available in Live Mode",
+                "Closing a position from here is not available while the active user "
+                "is in live mode.<br><br>"
+                "This control only updates the on-screen position — it never sends an "
+                "order to the broker, so the position would stay open.<br><br>"
+                "Use the stop button on the <b>Active Trades</b> tab, which sends a "
+                "real exit order.",
+            )
+            return
         rows = self._pos_view.selectionModel().selectedRows()
         if not rows:
             return
@@ -204,7 +216,6 @@ class PositionMonitorPanel(QWidget):
         if row >= len(positions):
             return
         symbol = positions[row].symbol
-        from PyQt6.QtWidgets import QMessageBox
         ret = QMessageBox.question(
             self,
             "Close Position",
