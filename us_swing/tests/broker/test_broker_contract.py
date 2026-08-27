@@ -307,3 +307,73 @@ def test_ibkr_cancel() -> None:
     broker.cancel_order(order_id)
     scheduler.pump()
     assert [e.status for e in events] == [OrderStatus.CANCELLED]
+
+
+# ── Sim ≡ IBKR reject feedback (SRD-EXE-015.005) ─────────────────────────────
+#
+# The equivalence gate for Phase 1: a reject or cancel from either broker must
+# reach the strategy engine as the same RejectEvent, so the symbol is released
+# whichever broker is behind the adapter.
+
+def _ingestion_over(broker: Broker):
+    """Wire a real-DB OrderIngestion behind *broker*; returns the reject list."""
+    import os
+    import tempfile
+
+    from us_swing.db.manager import DatabaseManager
+    from us_swing.db.schema import create_schema
+    from us_swing.execution.order_ingestion import OrderContext, OrderIngestion
+    from us_swing.execution.strategy_engine._protocols import RejectEvent
+
+    path = os.path.join(tempfile.mkdtemp(), "contract.db")
+    mgr = DatabaseManager("sqlite:///" + path.replace(os.sep, "/"))
+    create_schema(mgr._engine)
+
+    class _Cycles:
+        def on_entry_fill(self, **k: object) -> None: ...
+        def on_exit_fill(self, **k: object) -> None: ...
+        def on_entry_failed(self, *a: object, **k: object) -> None: ...
+        def abort_entry_order(self, *a: object, **k: object) -> None: ...
+        def update_risk(self, *a: object, **k: object) -> None: ...
+        def reload(self) -> None: ...
+
+    rejects: list[RejectEvent] = []
+    ingestion = OrderIngestion(
+        ledger=mgr, fill_sink=lambda _f: None, reject_sink=rejects.append, cycles=_Cycles(),
+    )
+    ingestion.register(OrderContext(
+        broker_order_id="", signal_id="sig-1", strategy_id="SUPERTREND", user_id=1,
+        symbol="AAPL", side=OrderSide.BUY, is_entry=True, quantity=10, intended_price=50.0,
+    ))
+    broker.on_event(ingestion.on_order_event)
+    return rejects
+
+
+@pytest.mark.parametrize("factory", [
+    pytest.param(lambda: _sim(ScriptedFillModel(steps=((OrderStatus.REJECTED, 0),))), id="sim"),
+    pytest.param(lambda: _ibkr([("Inactive", 0, 0.0)]), id="ibkr"),
+])
+def test_reject_reaches_the_engine_identically(factory) -> None:  # type: ignore[no-untyped-def]
+    """UT-EXE-015.005.M01.T14: Sim and IBKR rejects yield the same RejectEvent."""
+    broker, scheduler = factory()
+    rejects = _ingestion_over(broker)
+
+    broker.place_order(_market_buy())
+    scheduler.pump()
+
+    assert len(rejects) == 1
+    ev = rejects[0]
+    assert (ev.strategy_id, ev.symbol, ev.is_entry) == ("SUPERTREND", "AAPL", True)
+    assert ev.reason
+
+
+def test_cancel_reaches_the_engine() -> None:
+    """UT-EXE-015.005.M01.T15: a cancel releases the symbol the same way."""
+    broker, scheduler = _sim(ImmediateFillModel())
+    rejects = _ingestion_over(broker)
+
+    order_id = broker.place_order(_market_buy())
+    broker.cancel_order(order_id)
+    scheduler.pump()
+
+    assert [r.reason for r in rejects] == ["cancelled"]

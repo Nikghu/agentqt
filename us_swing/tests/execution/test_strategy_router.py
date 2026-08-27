@@ -916,3 +916,59 @@ def test_size_entry_per_trade_slice_too_small_returns_zero() -> None:
     ctx = list(registry.values())[0]
     # budget = 2000 × 5% × 5% = $5 → floor(5/100) = 0
     assert router._size_entry(ctx, 100.0) == 0
+
+
+# ── Submit-failure rollback (SRD-EXE-015.005) ────────────────────────────────
+#
+# A dispatch that raises used to only log. The symbol stayed in_flight with its
+# capital reserved and no broker event was ever coming to clear it, so the
+# strategy could not trade that symbol again for the rest of the session.
+
+async def _pump_one(router: _Router, queue: asyncio.Queue[TradeSignal],
+                    signal: TradeSignal) -> None:
+    """Run the router loop just long enough to consume *signal*."""
+    task = asyncio.create_task(router.run_router_loop())
+    await queue.put(signal)
+    await queue.join()
+    router.request_stop()
+    await asyncio.wait_for(task, timeout=2.0)
+
+
+@pytest.mark.asyncio
+async def test_dispatch_exception_rolls_back_in_flight() -> None:
+    """UT-EXE-015.005.M04.T11: a submitter that raises clears the in-flight flag."""
+    router, queue, risk, submitter, _p, _b, registry, _cq = _make_router(clock=_scheduled_clock)
+    ctx = registry["test_strat"]
+    ctx.in_flight.add("AAPL")
+    submitter.submit.side_effect = RuntimeError("TWS stalled")
+
+    await _pump_one(router, queue, TradeSignal(
+        action=Action.ENTRY, symbol="AAPL", strategy_id="test_strat", entry_price=150.0,
+    ))
+
+    assert "AAPL" not in ctx.in_flight
+
+
+@pytest.mark.asyncio
+async def test_dispatch_exception_releases_the_capital_reservation() -> None:
+    """UT-EXE-015.005.M04.T12: a submitter that raises frees the reservation."""
+    router, queue, risk, submitter, _p, _b, registry, _cq = _make_router(clock=_scheduled_clock)
+    registry["test_strat"].in_flight.add("AAPL")
+    submitter.submit.side_effect = RuntimeError("TWS stalled")
+
+    await _pump_one(router, queue, TradeSignal(
+        action=Action.ENTRY, symbol="AAPL", strategy_id="test_strat", entry_price=150.0,
+    ))
+
+    risk.release.assert_called_once_with("test_strat", "AAPL")
+
+
+@pytest.mark.asyncio
+async def test_dispatch_exception_for_unknown_strategy_does_not_crash() -> None:
+    """UT-EXE-015.005.M04.T13: a signal for a strategy no longer registered is safe."""
+    router, queue, _r, submitter, _p, _b, _registry, _cq = _make_router(clock=_scheduled_clock)
+    submitter.submit.side_effect = RuntimeError("TWS stalled")
+
+    await _pump_one(router, queue, TradeSignal(
+        action=Action.ENTRY, symbol="AAPL", strategy_id="gone", entry_price=150.0,
+    ))
