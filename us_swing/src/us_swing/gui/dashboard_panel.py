@@ -1519,7 +1519,23 @@ class DashboardPanel(QWidget):
         else:
             self._pos_status_lbl.setText("Double-click a row to manage")
 
+    def _live_mode_blocked(self, action: str) -> bool:
+        """Explain why an unrouted position edit is unavailable in live mode."""
+        if not self._demo.live_mutations_blocked():
+            return False
+        QMessageBox.information(
+            self, "Not Available in Live Mode",
+            f"{action} is not available while the active user is in live mode.<br><br>"
+            "This control only updates the on-screen position — it never sends an "
+            "order to the broker, so the position would stay open.<br><br>"
+            "Use the stop button on the <b>Active Trades</b> tab, which sends a real "
+            "exit order.",
+        )
+        return True
+
     def _on_square_off_all(self) -> None:
+        if self._live_mode_blocked("Square Off All"):
+            return
         positions = self._demo.get_positions()
         if not positions:
             return
@@ -1537,6 +1553,8 @@ class DashboardPanel(QWidget):
                 self._demo.close_position(pos.symbol, pos.user_id)
 
     def _on_manage_selected(self) -> None:
+        if self._live_mode_blocked("Managing a position"):
+            return
         rows = self._pos_view.selectionModel().selectedRows()
         if not rows:
             return

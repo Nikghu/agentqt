@@ -73,6 +73,7 @@ if TYPE_CHECKING:
     from us_swing.execution.intraday_candle_loader import IntradayCandleLoader
     from us_swing.execution.live_bar_worker import LiveBarWorker
     from us_swing.execution.live_tick_worker import LiveTickWorker
+    from us_swing.execution.trade_cycle import CycleSnapshot
     from us_swing.gui.telegram_commands import TelegramCommandBridge
     from us_swing.universe.store import Sp500Meta
 
@@ -2001,7 +2002,31 @@ class AppService(QObject):
 
     # ── Position mutations ────────────────────────────────────────────────────
 
+    def live_mutations_blocked(self) -> bool:
+        """Whether unrouted position edits must be refused for the active user.
+
+        ``close_position``, ``partial_close_position`` and ``set_stop_loss`` only
+        mutate the in-memory position list — they never reach the broker and never
+        write to the trade-cycle ledger.  In paper mode that is merely misleading;
+        in live mode it would show a position as closed while the broker still
+        holds it, so they are refused until the actions are properly routed.
+        """
+        return bool(self._users) and self.get_active_user().mode == "live"
+
+    def _refuse_live_mutation(self, action: str) -> bool:
+        """Block an unrouted position edit in live mode.  True when refused."""
+        if not self.live_mutations_blocked():
+            return False
+        self.log_message.emit(
+            "WARNING",
+            f"[Orders] {action} is not available in live mode — use the stop button "
+            f"on the Active Trades tab, which sends a real exit order",
+        )
+        return True
+
     def close_position(self, symbol: str, user_id: int | None = None) -> None:
+        if self._refuse_live_mutation("Closing a position from the dashboard"):
+            return
         uid = user_id if user_id is not None else self._active_uid
         for p in self._positions:
             if p.symbol == symbol and p.user_id == uid and p.quantity > 0:
@@ -2018,6 +2043,8 @@ class AppService(QObject):
                 return
 
     def partial_close_position(self, symbol: str, qty: int, user_id: int | None = None) -> None:
+        if self._refuse_live_mutation("Partly closing a position from the dashboard"):
+            return
         uid = user_id if user_id is not None else self._active_uid
         for p in self._positions:
             if p.symbol == symbol and p.user_id == uid and p.quantity > 0:
@@ -2037,6 +2064,8 @@ class AppService(QObject):
 
     def set_stop_loss(self, symbol: str, price: float, user_id: int | None = None,
                       trailing: bool = False, trail_by: str = "", trail_val: float = 0.0) -> None:
+        if self._refuse_live_mutation("Setting a stop loss from the dashboard"):
+            return
         uid = user_id if user_id is not None else self._active_uid
         for p in self._positions:
             if p.symbol == symbol and p.user_id == uid and p.quantity > 0:
@@ -2349,17 +2378,41 @@ class AppService(QObject):
                 out.append(c)
         return out
 
+    def force_exit_cycle(self, cycle_id: int, reason: str = "manual") -> int | None:
+        """Exit one specific open cycle, resolved by its own id.
+
+        Preferred wherever the caller already knows which cycle it means.  A
+        partial ``(strategy, symbol)`` lookup takes the first match, which exits
+        the wrong position when one strategy holds two cycles on a symbol
+        (ISS-EXE-0007).
+
+        Args:
+            cycle_id: Primary key of the cycle to exit.
+            reason: Exit cause carried into the resulting fill.
+
+        Returns:
+            The submitted order id, None when no open cycle carries that id, or
+            -1 when order submission is unavailable.
+        """
+        if self._tc_query is None:
+            return None
+        snap = next(
+            (s for s in self._tc_query.open_cycles() if s.cycle_id == cycle_id),
+            None,
+        )
+        if snap is None:
+            return None
+        return self._submit_cycle_exit(snap, reason)
+
     def force_exit_position(
         self, strategy: str, symbol: str, reason: str = "manual",
     ) -> int | None:
-        """User- or trigger-initiated paper exit for a running strategy position.
+        """Exit the open cycle for *strategy* and *symbol*.
 
-        Looks up the open cycle via TradeCycleService, builds an exit
-        ``TradeSignal`` carrying the latest close as its fill price, and
-        submits it through ``PaperBroker``.  ``reason`` is carried into the
-        resulting exit fill so the closed cycle records the real exit cause
-        (target / hard_sl / trailing_sl / manual).  Returns the simulated
-        order id, or None if no open cycle exists for the pair.
+        Kept for callers that hold no cycle id.  Prefer :meth:`force_exit_cycle`
+        whenever the id is known — this resolves on a partial key and takes the
+        first match.  Returns the submitted order id, None if no open cycle
+        exists for the pair, or -1 when order submission is unavailable.
         """
         if self._tc_query is None:
             return None
@@ -2372,7 +2425,15 @@ class AppService(QObject):
         )
         if snap is None:
             return None
-        last_close = self.get_latest_close(symbol, "3m")
+        return self._submit_cycle_exit(snap, reason)
+
+    def _submit_cycle_exit(self, snap: CycleSnapshot, reason: str) -> int | None:
+        """Build and submit the exit order for an already-resolved open cycle.
+
+        ``reason`` is carried into the resulting exit fill so the closed cycle
+        records the real exit cause (target / hard_sl / trailing_sl / manual).
+        """
+        last_close = self.get_latest_close(snap.symbol, "3m")
         if last_close is not None:
             exit_price = last_close
         elif snap.current_price is not None and snap.current_price > 0:
@@ -2385,8 +2446,8 @@ class AppService(QObject):
         )
         eng_sig = EngineSignal(
             action      = Action.EXIT,
-            symbol      = symbol,
-            strategy_id = strategy,
+            symbol      = snap.symbol,
+            strategy_id = snap.strategy_id,
             entry_price = float(exit_price),
             reason      = "manual_force_exit",
         )
@@ -2933,7 +2994,7 @@ class AppService(QObject):
         snap = self._tc_query.cycle(cycle_id)
         if snap is None:
             return
-        order_id = self.force_exit_position(snap.strategy_id, snap.symbol, reason=reason)
+        order_id = self.force_exit_cycle(cycle_id, reason=reason)
         if order_id is None:
             _log.warning("[TradeCycle] Auto-exit found no open cycle for %s", snap.symbol)
             return

@@ -1301,13 +1301,7 @@ class ExecutionPanel(QWidget):
         layout.setSpacing(8)
 
         def _exit_by_cycle_id(cycle_id: int, reason: str) -> None:
-            cycle_query = getattr(demo, "cycle_query", None)
-            if cycle_query is None:
-                return
-            snap = cycle_query.cycle(cycle_id)
-            if snap is None:
-                return
-            demo.force_exit_position(snap.strategy_id, snap.symbol)
+            demo.force_exit_cycle(cycle_id, reason)
 
         self._active_trades_panel = ActiveCyclesPanel(
             cycle_query=demo.cycle_query,
