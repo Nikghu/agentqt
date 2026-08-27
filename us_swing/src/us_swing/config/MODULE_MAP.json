@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-10T12:22:15",
+  "generated": "2026-08-26T16:27:13",
   "subfolder": "config",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\config",
   "tool_code": "INF",
@@ -85,7 +85,7 @@
             "live_mode_enabled: bool"
           ],
           "line_start": 71,
-          "line_end": 80
+          "line_end": 81
         }
       ],
       "top_level_functions": [
@@ -93,22 +93,22 @@
           "name": "_apply_toml",
           "signature": "def _apply_toml(cfg: AppConfig, path: Path) -> None",
           "docstring": "Overlay cfg in-place from a TOML file (best-effort; ignores unknown keys).",
-          "line_start": 85,
-          "line_end": 125
+          "line_start": 86,
+          "line_end": 126
         },
         {
           "name": "_apply_env",
           "signature": "def _apply_env(cfg: AppConfig) -> None",
           "docstring": "Overlay cfg in-place from ``USSWING_*`` environment variables.",
-          "line_start": 128,
-          "line_end": 145
+          "line_start": 129,
+          "line_end": 146
         },
         {
           "name": "load_config",
           "signature": "def load_config(toml_path: Path | None = None) -> AppConfig",
           "docstring": "Build ``AppConfig`` from defaults \u2192 TOML \u2192 environment variables.",
-          "line_start": 148,
-          "line_end": 165
+          "line_start": 149,
+          "line_end": 166
         }
       ]
     }

@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-10T12:22:15",
+  "generated": "2026-08-26T16:27:13",
   "subfolder": "broker",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\broker",
   "tool_code": "INF",
@@ -119,26 +119,26 @@
               "name": "__init__",
               "signature": "def __init__(self, max_reconnect_attempts: int = 10) -> None",
               "line_start": 50,
-              "line_end": 56
+              "line_end": 57
             },
             {
               "name": "connect",
               "signature": "def connect(\r\n        self,\r\n        host: str,\r\n        port: int,\r\n        client_id: int,\r\n        timeout: float = 5.0,\r\n    ) -> None",
               "docstring": "Connect to IBKR and validate with an account-summary probe.",
-              "line_start": 60,
-              "line_end": 104
+              "line_start": 61,
+              "line_end": 106
             },
             {
               "name": "disconnect",
               "signature": "def disconnect(self) -> None",
-              "line_start": 106,
-              "line_end": 109
+              "line_start": 108,
+              "line_end": 111
             },
             {
               "name": "is_connected",
               "signature": "def is_connected(self) -> bool",
-              "line_start": 111,
-              "line_end": 112
+              "line_start": 113,
+              "line_end": 114
             },
             {
               "name": "ib",
@@ -147,100 +147,110 @@
               "decorators": [
                 "@property"
               ],
-              "line_start": 115,
-              "line_end": 122
+              "line_start": 117,
+              "line_end": 124
+            },
+            {
+              "name": "loop",
+              "signature": "def loop(self) -> asyncio.AbstractEventLoop | None",
+              "docstring": "The event loop this client connected on (None until connected).",
+              "decorators": [
+                "@property"
+              ],
+              "line_start": 127,
+              "line_end": 133
             },
             {
               "name": "on_status_change",
               "signature": "def on_status_change(self, callback: Callable[[ConnectionStatus], None]) -> None",
               "docstring": "Register a callback invoked on every connection state change.",
-              "line_start": 126,
-              "line_end": 128
+              "line_start": 137,
+              "line_end": 139
             },
             {
               "name": "req_historical_data",
               "signature": "def req_historical_data(\r\n        self,\r\n        symbol: str,\r\n        end_datetime: datetime,\r\n        duration: str,\r\n        bar_size: str,\r\n    ) -> list[OHLCVBar]",
               "docstring": "Fetch historical bars through the pacing queue.",
-              "line_start": 132,
-              "line_end": 178
+              "line_start": 143,
+              "line_end": 189
             },
             {
               "name": "subscribe_realtime_bars",
               "signature": "def subscribe_realtime_bars(self, symbol: str, bar_size: int = 5) -> None",
-              "line_start": 182,
-              "line_end": 186
+              "line_start": 193,
+              "line_end": 197
             },
             {
               "name": "unsubscribe_realtime_bars",
               "signature": "def unsubscribe_realtime_bars(self, symbol: str) -> None",
-              "line_start": 188,
-              "line_end": 190
+              "line_start": 199,
+              "line_end": 201
             },
             {
               "name": "on_realtime_bar",
               "signature": "def on_realtime_bar(self, callback: Callable[[RealtimeBar], None]) -> None",
-              "line_start": 192,
-              "line_end": 193
+              "line_start": 203,
+              "line_end": 204
             },
             {
               "name": "place_order",
               "signature": "def place_order(self, contract: Any, order: Any) -> int",
-              "line_start": 197,
-              "line_end": 200
-            },
-            {
-              "name": "cancel_order",
-              "signature": "def cancel_order(self, order_id: int) -> None",
-              "line_start": 202,
-              "line_end": 206
-            },
-            {
-              "name": "cancel_all_orders",
-              "signature": "def cancel_all_orders(self) -> None",
               "line_start": 208,
               "line_end": 211
             },
             {
+              "name": "cancel_order",
+              "signature": "def cancel_order(self, order_id: int) -> None",
+              "line_start": 213,
+              "line_end": 217
+            },
+            {
+              "name": "cancel_all_orders",
+              "signature": "def cancel_all_orders(self) -> None",
+              "line_start": 219,
+              "line_end": 222
+            },
+            {
               "name": "close_all_positions",
               "signature": "def close_all_positions(self) -> None",
-              "line_start": 213,
-              "line_end": 223
+              "line_start": 224,
+              "line_end": 234
             },
             {
               "name": "get_account_summary",
               "signature": "def get_account_summary(self) -> AccountState",
-              "line_start": 227,
-              "line_end": 241
+              "line_start": 238,
+              "line_end": 252
             },
             {
               "name": "get_open_positions",
               "signature": "def get_open_positions(self) -> list[IBKRPosition]",
-              "line_start": 243,
-              "line_end": 253
+              "line_start": 254,
+              "line_end": 264
             },
             {
               "name": "_on_disconnect",
               "signature": "def _on_disconnect(self) -> None",
-              "line_start": 257,
-              "line_end": 262
+              "line_start": 268,
+              "line_end": 273
             },
             {
               "name": "_reconnect_loop",
               "signature": "def _reconnect_loop(self) -> None",
-              "line_start": 264,
-              "line_end": 283
+              "line_start": 275,
+              "line_end": 294
             },
             {
               "name": "_emit_status",
               "signature": "def _emit_status(self, status: ConnectionStatus) -> None",
-              "line_start": 285,
-              "line_end": 290
+              "line_start": 296,
+              "line_end": 301
             },
             {
               "name": "_on_realtime_bar",
               "signature": "def _on_realtime_bar(self, symbol: str, bar: Any) -> None",
-              "line_start": 292,
-              "line_end": 306
+              "line_start": 303,
+              "line_end": 317
             },
             {
               "name": "_bar_size_to_tf",
@@ -248,12 +258,12 @@
               "decorators": [
                 "@staticmethod"
               ],
-              "line_start": 309,
-              "line_end": 315
+              "line_start": 320,
+              "line_end": 326
             }
           ],
           "line_start": 43,
-          "line_end": 315
+          "line_end": 326
         }
       ],
       "top_level_functions": [
@@ -284,8 +294,8 @@
             "avg_fill_price: float",
             "reason: str"
           ],
-          "line_start": 36,
-          "line_end": 43
+          "line_start": 38,
+          "line_end": 45
         },
         {
           "name": "OrderGateway",
@@ -294,24 +304,24 @@
             {
               "name": "submit",
               "signature": "def submit(\r\n        self,\r\n        symbol: str,\r\n        side: str,\r\n        quantity: int,\r\n        order_type: str,\r\n        limit_price: float | None,\r\n    ) -> str",
-              "line_start": 53,
-              "line_end": 60
+              "line_start": 55,
+              "line_end": 62
             },
             {
               "name": "cancel",
               "signature": "def cancel(self, broker_order_id: str) -> None",
-              "line_start": 62,
-              "line_end": 62
+              "line_start": 64,
+              "line_end": 64
             },
             {
               "name": "on_status",
               "signature": "def on_status(self, callback: Callable[[IbkrOrderUpdate], None]) -> None",
-              "line_start": 64,
-              "line_end": 64
+              "line_start": 66,
+              "line_end": 66
             }
           ],
-          "line_start": 46,
-          "line_end": 64
+          "line_start": 48,
+          "line_end": 66
         },
         {
           "name": "IBKRBroker",
@@ -320,26 +330,26 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, gateway: OrderGateway) -> None",
-              "line_start": 74,
-              "line_end": 78
+              "line_start": 81,
+              "line_end": 85
             },
             {
               "name": "place_order",
               "signature": "def place_order(self, request: OrderRequest) -> str",
-              "line_start": 80,
-              "line_end": 89
+              "line_start": 87,
+              "line_end": 96
             },
             {
               "name": "cancel_order",
               "signature": "def cancel_order(self, broker_order_id: str) -> None",
-              "line_start": 91,
-              "line_end": 92
+              "line_start": 98,
+              "line_end": 99
             },
             {
               "name": "_on_update",
               "signature": "def _on_update(self, update: IbkrOrderUpdate) -> None",
-              "line_start": 94,
-              "line_end": 110
+              "line_start": 101,
+              "line_end": 117
             },
             {
               "name": "_map_status",
@@ -347,12 +357,12 @@
               "decorators": [
                 "@staticmethod"
               ],
-              "line_start": 113,
-              "line_end": 123
+              "line_start": 120,
+              "line_end": 130
             }
           ],
-          "line_start": 71,
-          "line_end": 123
+          "line_start": 78,
+          "line_end": 130
         },
         {
           "name": "IBKRClientGateway",
@@ -361,46 +371,67 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, client: IBKRClient) -> None",
-              "line_start": 133,
-              "line_end": 135
+              "line_start": 140,
+              "line_end": 142
             },
             {
               "name": "on_status",
               "signature": "def on_status(self, callback: Callable[[IbkrOrderUpdate], None]) -> None",
-              "line_start": 137,
-              "line_end": 138
+              "line_start": 144,
+              "line_end": 145
             },
             {
               "name": "submit",
               "signature": "def submit(  # pragma: no cover - requires a live IBKR connection\r\n        self,\r\n        symbol: str,\r\n        side: str,\r\n        quantity: int,\r\n        order_type: str,\r\n        limit_price: float | None,\r\n    ) -> str",
-              "line_start": 140,
-              "line_end": 159
+              "line_start": 147,
+              "line_end": 157
             },
             {
               "name": "cancel",
               "signature": "def cancel(self, broker_order_id: str) -> None",
-              "line_start": 161,
-              "line_end": 165
+              "line_start": 159,
+              "line_end": 160
+            },
+            {
+              "name": "_place",
+              "signature": "def _place(  # pragma: no cover\r\n        self,\r\n        symbol: str,\r\n        side: str,\r\n        quantity: int,\r\n        order_type: str,\r\n        limit_price: float | None,\r\n    ) -> str",
+              "line_start": 164,
+              "line_end": 183
+            },
+            {
+              "name": "_cancel",
+              "signature": "def _cancel(self, broker_order_id: str) -> None",
+              "line_start": 185,
+              "line_end": 189
+            },
+            {
+              "name": "_on_client_loop",
+              "signature": "def _on_client_loop(self, fn: Callable[[], _T]) -> _T",
+              "docstring": "Run ``fn`` on the loop owning the ib_insync connection and wait.",
+              "line_start": 191,
+              "line_end": 215
             },
             {
               "name": "_make_handler",
               "signature": "def _make_handler(  # pragma: no cover\r\n        self, broker_order_id: str\r\n    ) -> Callable[[object], None]",
-              "line_start": 167,
-              "line_end": 181
+              "line_start": 217,
+              "line_end": 231
             },
             {
               "name": "_dispatch",
               "signature": "def _dispatch(self, update: IbkrOrderUpdate) -> None",
-              "line_start": 183,
-              "line_end": 185
+              "line_start": 233,
+              "line_end": 235
             }
           ],
-          "line_start": 126,
-          "line_end": 185
+          "line_start": 133,
+          "line_end": 235
         }
       ],
       "constants": [
-        "_TERMINAL = (OrderStatus.FILLED, OrderStatus.REJECTED, OrderStatus.CANCELLED)"
+        "_TERMINAL = (OrderStatus.FILLED, OrderStatus.REJECTED, OrderStatus.CANCELLED)",
+        "_ORDER_TIMEOUT_S = 10.0",
+        "_T = TypeVar(\"_T\")"
       ]
     },
     "pacing.py": {

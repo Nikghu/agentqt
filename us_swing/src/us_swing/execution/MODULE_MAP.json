@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-10T12:22:15",
+  "generated": "2026-08-26T16:27:13",
   "subfolder": "execution",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\execution",
   "tool_code": "EXE",
@@ -111,6 +111,54 @@
           "line_start": 16,
           "line_end": 23
         }
+      ]
+    },
+    "ibkr_order_connection.py": {
+      "srd_id": "SRD-EXE-015.004",
+      "classes": [
+        {
+          "name": "IBKROrderConnection",
+          "docstring": "Owns the order-routing IBKR connection and the loop it runs on.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, host: str, port: int, client_id: int, timeout: float = 10.0) -> None",
+              "line_start": 36,
+              "line_end": 45
+            },
+            {
+              "name": "connect",
+              "signature": "def connect(self) -> IBKRClient",
+              "docstring": "Start the connection thread and block until IBKR accepts or refuses.",
+              "line_start": 47,
+              "line_end": 73
+            },
+            {
+              "name": "close",
+              "signature": "def close(self) -> None",
+              "docstring": "Disconnect and stop the loop.  Safe to call when never connected.",
+              "line_start": 75,
+              "line_end": 87
+            },
+            {
+              "name": "_run",
+              "signature": "def _run(self) -> None",
+              "line_start": 89,
+              "line_end": 100
+            },
+            {
+              "name": "_connect_once",
+              "signature": "def _connect_once(self) -> None",
+              "line_start": 102,
+              "line_end": 110
+            }
+          ],
+          "line_start": 33,
+          "line_end": 110
+        }
+      ],
+      "constants": [
+        "_DISCONNECT_TIMEOUT_S = 5.0"
       ]
     },
     "intraday_candle_loader.py": {

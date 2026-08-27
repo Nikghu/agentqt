@@ -727,12 +727,7 @@ class MainWindow(QMainWindow):
         _sb_pill_qss = "background:transparent;color:#ffffff;font-weight:bold;padding:0 10px;font-size:8pt;"
         self._sb_conn    = QLabel("●  Internet: Checking…")
         self._sb_conn.setStyleSheet(_sb_qss_sm)
-        self._sb_session = QLabel("SESSION: LIVE READ-ONLY")
-        self._sb_session.setStyleSheet(_sb_qss_sm)
-        self._sb_exe     = QLabel("EXE: DISABLED")
-        self._sb_exe.setStyleSheet(_sb_qss_sm)
-        for w in (self._sb_conn, _sep(), self._sb_session, _sep(), self._sb_exe):
-            self._status.addWidget(w)
+        self._status.addWidget(self._sb_conn)
         # NYSE / NASDAQ market status — right side of status bar
         self._sb_nyse   = QLabel("⬤  NYSE")
         self._sb_nasdaq = QLabel("⬤  NASDAQ")
@@ -996,12 +991,6 @@ class MainWindow(QMainWindow):
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
-
-def _sep() -> QLabel:
-    lbl = QLabel("│")
-    lbl.setStyleSheet(f"background:transparent;color:{C.OVERLAY2};padding:0 2px;")
-    return lbl
-
 
 def _vdiv(layout: QHBoxLayout) -> None:
     """Insert a subtle vertical divider into a horizontal layout."""
