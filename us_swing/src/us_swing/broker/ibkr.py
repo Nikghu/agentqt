@@ -23,6 +23,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Protocol, TypeVar
 
+from us_swing.exceptions import BrokerConnectionError
 from us_swing.broker.broker import (
     Broker,
     OrderEvent,
@@ -218,7 +219,19 @@ class IBKRClientGateway:
         if update is not None:
             self._dispatch(update)
 
-    def submit(  # pragma: no cover - requires a live IBKR connection
+    def _require_live(self) -> None:
+        """Refuse to touch the socket when the order connection is down.
+
+        Raising lets the router's rollback clear the symbol and release its
+        capital reservation.  Placing into a dead socket instead would leave the
+        signal in flight with no broker event ever coming back to free it.
+        """
+        if not self._client.is_connected():
+            raise BrokerConnectionError(
+                "IBKR order connection is not live — the order was not sent"
+            )
+
+    def submit(
         self,
         symbol: str,
         side: str,
@@ -226,12 +239,16 @@ class IBKRClientGateway:
         order_type: str,
         limit_price: float | None,
     ) -> str:
-        return self._on_client_loop(
+        self._require_live()
+        return self._on_client_loop(  # pragma: no cover - needs a live connection
             lambda: self._place(symbol, side, quantity, order_type, limit_price)
         )
 
-    def cancel(self, broker_order_id: str) -> None:  # pragma: no cover
-        self._on_client_loop(lambda: self._cancel(broker_order_id))
+    def cancel(self, broker_order_id: str) -> None:
+        self._require_live()
+        self._on_client_loop(  # pragma: no cover - needs a live connection
+            lambda: self._cancel(broker_order_id)
+        )
 
     # ── ib_insync calls — always run on the client's own loop ─────────────────
 

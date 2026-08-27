@@ -238,3 +238,49 @@ Verified: 18 new tests pass; gui+execution+broker **21 failed / 316 passed**, th
 being the unchanged pre-existing baseline. `ruff` per-file counts unchanged against HEAD
 (`app_service` 19, `dashboard_panel` 38, `position_monitor_panel` 11; both test files
 clean). `mypy --strict` error count on `app_service.py` unchanged at 38.
+
+
+---
+
+## Phase 4 — liveness gate (code half complete, live run pending)
+
+| Plan item | State |
+|---|---|
+| `is_live()` on `IBKROrderConnection` | Done |
+| Refuse placement / cancel when the socket is down | Done — `IBKRClientGateway._require_live` raises `BrokerConnectionError` |
+| Dedicated order client id, distinct from the rest | Verified — 10 system / 12 intraday / 13 live / 14 tick / **15 order** |
+| Port 7497 | Verified — `SystemConfig.ibkr_port` default |
+| Boot fallback to SimBroker on connect failure | Verified unchanged |
+| Route `placeOrder` through `PacingQueue` | **Not done — deliberately.** See below |
+| Live TWS-paper smoke test | Pending — needs a manual run |
+
+### Why orders are not routed through `PacingQueue`
+
+The plan says to pace placements through the client's existing `PacingQueue`.
+Doing that would be actively harmful:
+
+1. **Wrong limit.** `broker/pacing.py` documents itself as *"the IBKR
+   historical-data pacing limit: ≤ 50 requests per 600-second rolling window"*,
+   and its `acquire()` docstring says it "must be awaited before every
+   `req_historical_data()` call". Order placement is governed by a different and
+   far more permissive rule (message rate per second), not the historical-data
+   window.
+2. **It would delay stop-losses.** After 50 orders in ten minutes the 51st would
+   *block*, busy-waiting in 0.5 s sleeps until a slot frees. An exit order
+   carrying a stop loss could be held for minutes. That is a worse hazard than
+   the burst it is meant to prevent.
+3. **Structurally incompatible.** `acquire()` is `async`; the gateway's `_place`
+   is synchronous, running on the client's loop via `_on_client_loop`.
+
+If order-rate limiting is genuinely wanted later it needs its own limiter sized
+to IBKR's order rules, never this one. Recorded rather than silently skipped.
+
+### Liveness gate — why it raises rather than returns
+
+`_require_live` raises `BrokerConnectionError` (reused; it already means
+"connection could not be established or validated", and is only caught around
+`build_broker` construction, never around placement). The router's
+dispatch-exception handler catches `Exception` and rolls back, so a refused
+placement clears `in_flight` and releases the capital reservation — the Phase 1
+path. Returning a sentinel instead would leave the signal in flight with no
+broker event ever coming to free it.

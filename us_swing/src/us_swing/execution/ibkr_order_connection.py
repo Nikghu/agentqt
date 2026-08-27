@@ -44,6 +44,14 @@ class IBKROrderConnection:
         self._error: BaseException | None = None
         self._thread: threading.Thread | None = None
 
+    def is_live(self) -> bool:
+        """Whether the order socket is currently up.
+
+        Checked before every placement so a reconnect in progress refuses the
+        order outright instead of dropping it into a dead socket.
+        """
+        return self._client.is_connected()
+
     def connect(self) -> IBKRClient:
         """Start the connection thread and block until IBKR accepts or refuses.
 

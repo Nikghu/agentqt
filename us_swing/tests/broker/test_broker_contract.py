@@ -488,3 +488,44 @@ class TestReasonFromTrade:
 
         assert _reason_from_trade(SimpleNamespace(log=[])) == ""
         assert _reason_from_trade(SimpleNamespace()) == ""
+
+
+# ── Liveness gate (SRD-EXE-015.004, Phase 4) ─────────────────────────────────
+
+class TestLivenessGate:
+    """A placement into a dead socket leaves the signal in flight forever.
+
+    Raising instead lets the router's rollback clear the symbol and release its
+    capital (Phase 1).
+    """
+
+    @staticmethod
+    def _gateway(connected: bool):  # type: ignore[no-untyped-def]
+        from types import SimpleNamespace
+
+        from us_swing.broker.ibkr import IBKRClientGateway
+
+        client = SimpleNamespace(is_connected=lambda: connected)
+        return IBKRClientGateway(client)  # type: ignore[arg-type]
+
+    def test_submit_refuses_when_the_connection_is_down(self) -> None:
+        """UT-EXE-015.004.M01.T29: a dead socket raises instead of silently dropping."""
+        from us_swing.exceptions import BrokerConnectionError
+
+        gateway = self._gateway(connected=False)
+
+        with pytest.raises(BrokerConnectionError, match="not live"):
+            gateway.submit("AAPL", "BUY", 10, "MARKET", None)
+
+    def test_cancel_refuses_when_the_connection_is_down(self) -> None:
+        """UT-EXE-015.004.M01.T30: cancelling into a dead socket also raises."""
+        from us_swing.exceptions import BrokerConnectionError
+
+        gateway = self._gateway(connected=False)
+
+        with pytest.raises(BrokerConnectionError):
+            gateway.cancel("7000")
+
+    def test_constructing_a_gateway_needs_no_connection(self) -> None:
+        """UT-EXE-015.004.M01.T31: construction stays inert — see the __init__ note."""
+        self._gateway(connected=False)  # must not raise
