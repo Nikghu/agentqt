@@ -1019,8 +1019,9 @@ _MW_SYMBOLS: list[tuple[str, str]] = [
 class _CyclePositionSource:
     """Adapts open `trade_cycles` to the `RiskManager` position-source protocol."""
 
-    def __init__(self, query: Any) -> None:
+    def __init__(self, query: Any, mode_provider: Callable[[], str]) -> None:
         self._query = query
+        self._mode_provider = mode_provider
 
     def get_all(self, user_id: int) -> list[OpenPosition]:
         if self._query is None:
@@ -1033,7 +1034,7 @@ class _CyclePositionSource:
                 average_price = c.entry_price,
                 stop_loss     = c.hard_stop_loss,
                 target_price  = c.target_price or 0.0,
-                mode          = "paper",
+                mode          = self._mode_provider(),
                 strategy_id   = c.strategy_id,
             )
             for c in self._query.open_cycles()
@@ -1340,7 +1341,7 @@ class AppService(QObject):
                 config_provider=self._strategy_cfg,
                 user_id_provider=lambda: self._active_uid,
                 session_date_provider=lambda: datetime.datetime.now().strftime("%Y-%m-%d"),
-                mode_provider=lambda: "paper",            # Phase 6 wires real user mode
+                mode_provider=lambda: self.get_active_user().mode,
                 exit_reason_provider=lambda: self._pending_exit_reason,
                 on_event=self._on_order_event_gui,
             )
@@ -1351,7 +1352,9 @@ class AppService(QObject):
             _log.error("[Orders] Order submission unavailable — trade-cycle service or database not ready")
 
         from us_swing.execution.risk_manager import RiskManager
-        self._cycle_position_source = _CyclePositionSource(self._tc_query)
+        self._cycle_position_source = _CyclePositionSource(
+            self._tc_query, lambda: self.get_active_user().mode
+        )
         self._risk_manager = RiskManager(
             config=self.get_active_user().risk_config,
             account_provider=lambda: self.get_account_state(self._active_uid),
@@ -2208,6 +2211,9 @@ class AppService(QObject):
         """
         if self._tc_query is None:
             return
+        # Rehydrated rows must carry the real mode, not a hardcoded "paper" —
+        # the account poller tags live rows "live", and the two have to agree.
+        user_mode = self.get_active_user().mode
         try:
             open_snaps = self._tc_query.open_cycles()
             hist_snaps = self._tc_query.history(days=30)
@@ -2245,7 +2251,7 @@ class AppService(QObject):
                 side            = "BUY",
                 quantity        = snap.entry_qty,
                 entry_price     = snap.entry_price,
-                mode            = "paper",
+                mode            = user_mode,
                 strategy_id     = snap.strategy_id,
                 entry_time      = entry_dt,
                 exit_price      = snap.exit_price,
@@ -2263,7 +2269,7 @@ class AppService(QObject):
                     side            = "SELL",
                     quantity        = exit_qty,
                     entry_price     = snap.exit_price or 0.0,
-                    mode            = "paper",
+                    mode            = user_mode,
                     strategy_id     = snap.strategy_id,
                     entry_time      = exit_dt or entry_dt,
                     order_state     = "FILLED",
@@ -2279,7 +2285,7 @@ class AppService(QObject):
                 average_price   = snap.entry_price,
                 stop_loss       = snap.hard_stop_loss,
                 target_price    = snap.target_price or 0.0,
-                mode            = "paper",
+                mode            = user_mode,
                 current_price   = snap.current_price or snap.entry_price,
                 strategy_id     = snap.strategy_id,
                 filled_quantity = snap.entry_qty,
@@ -2293,8 +2299,13 @@ class AppService(QObject):
         )
 
     def get_active_strategy_positions(self) -> list[OpenPosition]:
-        """Paper-mode positions currently open (qty > 0) — feeds the Pending Signals table."""
-        return [p for p in self._positions if p.mode == "paper" and p.quantity > 0]
+        """Open positions (qty > 0) for the active user's mode.
+
+        Filtering on a hardcoded ``"paper"`` hid every live position once the
+        rehydrate path started stamping the real mode.
+        """
+        user_mode = self.get_active_user().mode
+        return [p for p in self._positions if p.mode == user_mode and p.quantity > 0]
 
     def get_open_symbols_for_strategy(self, name: str) -> list[str]:
         """Return sorted list of symbols holding an open cycle under *name*.
