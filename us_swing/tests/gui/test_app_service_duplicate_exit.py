@@ -43,6 +43,11 @@ def _exit_signal(symbol: str = "PRU", strategy: str = "SUPERTREND"):
     return TradeSignal(action=Action.EXIT, symbol=symbol, strategy_id=strategy)
 
 
+def _entry_signal(symbol: str = "PRU", strategy: str = "SUPERTREND"):
+    from us_swing.execution.strategy_engine import Action, TradeSignal
+    return TradeSignal(action=Action.ENTRY, symbol=symbol, strategy_id=strategy)
+
+
 def _open_snap(symbol: str, strategy: str):
     from us_swing.execution.trade_cycle import TradeCycleState
     snap = MagicMock()
@@ -109,3 +114,82 @@ class TestClearPendingOnClose:
         svc._on_cycle_closed_clear_pending(evt)
 
         assert captured == [("SUPERTREND", "PRU")]
+
+
+class TestDuplicateEntryGuard:
+    """A second cycle on one strategy+stock leaves an automatic exit short.
+
+    ``_router._open_cycle_qty`` sizes the sell from the first matching cycle, so
+    two cycles of 10 and 5 sell 10 and silently leave 5 held.  The auto path
+    already refuses a duplicate entry; the manual button must too.
+    """
+
+    def test_entry_refused_when_the_strategy_already_holds_it(self, svc):
+        """UT-EXE-014.007.M01.T13: a manual entry on a held stock is dropped, no submit."""
+        sig = _entry_signal()
+        svc._pending_store = MagicMock()
+        svc._submitter = MagicMock()
+        svc._tc_query = MagicMock()
+        svc._tc_query.has_open_cycle.return_value = True
+
+        result = svc.execute_signal(sig, 5)
+
+        assert result == -1
+        svc._tc_query.has_open_cycle.assert_called_once_with("SUPERTREND", "PRU")
+        svc._pending_store.dismiss.assert_called_once_with(sig.signal_id)
+        svc._submitter.submit.assert_not_called()
+
+    def test_refusal_says_why(self, svc):
+        """UT-EXE-014.007.M01.T14: the block is explained, never silent."""
+        sig = _entry_signal()
+        messages: list[str] = []
+        svc.log_message.connect(lambda _lvl, msg: messages.append(msg))
+        svc._pending_store = MagicMock()
+        svc._submitter = MagicMock()
+        svc._tc_query = MagicMock()
+        svc._tc_query.has_open_cycle.return_value = True
+
+        svc.execute_signal(sig, 5)
+
+        assert any("already holds this stock" in m for m in messages)
+
+    def test_entry_submits_when_the_stock_is_not_held(self, svc):
+        """UT-EXE-014.007.M01.T15: a normal first entry is unaffected."""
+        sig = _entry_signal()
+        svc._tc_query = MagicMock()
+        svc._tc_query.has_open_cycle.return_value = False
+        svc._pending_store = MagicMock()
+        svc._pending_store.execute.return_value = sig
+        svc._submitter = MagicMock()
+        svc._submitter.submit.return_value = 888
+
+        result = svc.execute_signal(sig, 5)
+
+        assert result == 888
+        svc._submitter.submit.assert_called_once()
+
+    def test_a_different_strategy_on_the_same_stock_is_allowed(self, svc):
+        """UT-EXE-014.007.M01.T16: the guard keys on strategy and symbol, not symbol alone."""
+        sig = _entry_signal(strategy="BOSS_EMA")
+        svc._tc_query = MagicMock()
+        svc._tc_query.has_open_cycle.return_value = False   # different strategy → not held
+        svc._pending_store = MagicMock()
+        svc._pending_store.execute.return_value = sig
+        svc._submitter = MagicMock()
+        svc._submitter.submit.return_value = 999
+
+        assert svc.execute_signal(sig, 5) == 999
+        svc._tc_query.has_open_cycle.assert_called_once_with("BOSS_EMA", "PRU")
+
+    def test_exit_is_unaffected_by_the_entry_guard(self, svc):
+        """UT-EXE-014.007.M01.T17: exits still resolve through their own guard."""
+        sig = _exit_signal()
+        svc._tc_query = MagicMock()
+        svc._tc_query.open_cycles.return_value = [_open_snap("PRU", "SUPERTREND")]
+        svc._pending_store = MagicMock()
+        svc._pending_store.execute.return_value = sig
+        svc._submitter = MagicMock()
+        svc._submitter.submit.return_value = 777
+
+        assert svc.execute_signal(sig, 4) == 777
+        svc._tc_query.has_open_cycle.assert_not_called()

@@ -1,6 +1,6 @@
 # T15 — Record-Resolution Audit (Phase 0 hard gate)
 
-**Status:** Phase 0 complete — F1–F3 applied, mutators guarded; F4 held; F5 deferred
+**Status:** Complete — F1–F4 applied, mutators guarded; F5 deferred
 **Date:** 2026-08-27
 **Scope:** `execution/`, `broker/`, `gui/app_service.py`, `gui/execution_panel.py`
 **Gate:** must be green before any live order (Phase 4)
@@ -189,17 +189,26 @@ misleading and should carry a follow-up.
 | A4 — dead code | **Closed as won't-fix** (F3) |
 | A5 confirmed holding | Done |
 | Dashboard mutators disabled in live | **Done** — Phase 0 item 2 |
-| F4 ENTRY guard | **Held** — awaiting the behaviour-change decision |
+| F4 ENTRY guard | **Done** — `execute_signal` refuses a held stock |
 | F5 DB constraint | Deferred |
 
 **Phase 0 as specified is COMPLETE.** Both items are done: the T15 audit is green and
 its fixes are applied, and the unrouted dashboard mutators are blocked in live mode.
 
-**One known risk remains open by decision — F4.** `SRD-EXE-014.007` states the exit
-resolves by `(strategy_id, symbol)`, *"unique among open cycles"*. Nothing enforces
-that: the manual-execute path can still open a second cycle on the same pair, which is
-the only way to reach the wrong-record behaviour A1–A3 just closed downstream. Acceptable
-while testing on a paper account; should be closed before real money.
+**F4 is now closed too.** `SRD-EXE-014.007` states the exit resolves by
+`(strategy_id, symbol)`, *"unique among open cycles"*. `execute_signal` now enforces it:
+a manual ENTRY on a stock the strategy already holds is refused and explained, matching
+the guard the automatic path has always had.
+
+The concrete harm this prevents: with two open cycles of 10 and 5 on one pair,
+`_router._open_cycle_qty` sizes an automatic exit from the **first** cycle it finds, so a
+target or stop hit sells 10 and silently leaves 5 held. The Active Trades stop button is
+unaffected — since F1 it exits by cycle id.
+
+Reachability was narrow but real. `order_ingestion.on_order_event` calls `fill_sink`
+(which clears `in_flight`) *before* `_open_cycle` writes the row, so there is a window
+where the symbol is unlocked and the cycle does not yet exist. A bar evaluated in that
+gap passes both router guards.
 
 ## Phase 0 item 2 — how it was blocked
 

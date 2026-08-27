@@ -120,10 +120,12 @@ plus the `trades` query from step 2.
 
 ---
 
-## Known open risk before real money
+## Known risks
 
-**F4 in the T15 audit is still held by decision.** `execute_signal` guards EXIT
-but not ENTRY, so a manual execute can open a second cycle on a
-`(strategy, symbol)` pair that already has one. `SRD-EXE-014.007` asserts that
-pair is "unique among open cycles" and nothing enforces it. Acceptable on a paper
-account; close it before trading real money.
+**F4 is closed** (2026-08-27). `execute_signal` now refuses a manual ENTRY on a
+stock the strategy already holds, so the single-open-cycle invariant
+`SRD-EXE-014.007` assumes is finally enforced on both paths.
+
+Still open, both deferred by the plan itself: dashboard order routing (Phase 5),
+reconnect-mid-order resync (Phase 6), startup reconciliation (Phase 8), and
+FO-EXE-003 (circuit breaker + emergency shutdown).

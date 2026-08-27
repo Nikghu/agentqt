@@ -2110,6 +2110,24 @@ class AppService(QObject):
                 f"[Strategy] Exit signal for {signal.symbol} ignored — position already closed or exiting",
             )
             return -1
+        # A second cycle on one strategy+stock breaks every downstream consumer:
+        # an automatic exit sizes its sell from the first cycle it finds and
+        # silently leaves the rest held (SRD-EXE-014.007 assumes the pair is
+        # unique among open cycles).  The auto path already refuses this; the
+        # manual button has to as well.
+        if (
+            isinstance(signal, EngineSignal)
+            and signal.action == Action.ENTRY
+            and self._tc_query is not None
+            and self._tc_query.has_open_cycle(signal.strategy_id, signal.symbol)
+        ):
+            self._pending_store.dismiss(signal.signal_id)
+            self.log_message.emit(
+                "WARNING",
+                f"[Strategy] Entry signal for {signal.symbol} ignored — "
+                f"{signal.strategy_id} already holds this stock",
+            )
+            return -1
         eng_sig = self._pending_store.execute(signal.signal_id)
         if eng_sig is None:
             self.log_message.emit(
