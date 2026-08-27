@@ -45,9 +45,13 @@ def _make_contract(con_id: int = 123, symbol: str = "AAPL") -> MagicMock:
 
 
 def _make_ticker(con_id: int = 123, last: float = 150.0, close: float = 149.5,
-                 req_id: int | None = 1) -> MagicMock:
+                 req_id: int | None = 1, bid: float = float("nan")) -> MagicMock:
     ticker = MagicMock()
     ticker.last = last
+    # IBKR reports an index level as bid, so it sits between last and close in
+    # the fallback chain.  Must be a real number — a bare MagicMock reaches the
+    # `price <= 0` comparison and raises.
+    ticker.bid = bid
     ticker.close = close
     ticker.reqId = req_id
     ticker.contract = MagicMock()
@@ -117,77 +121,76 @@ def test_no_gui_or_db_side_effects_on_import():
 # SRD-EXE-008.002 — set_contracts
 # ---------------------------------------------------------------------------
 
-def test_set_contracts_subscribes_and_tracks(qapp: Any):
-    """UT-EXE-008.002.M01.T03: set_contracts subscribes new contract and records it in _active."""
+# ``set_contracts`` only routes: it queues when the loop is not up yet and
+# otherwise marshals onto the ib_insync loop.  The subscribe/cancel diff itself
+# lives in ``_apply_contracts``, which these tests drive directly.
+
+def test_set_contracts_queues_before_the_loop_is_up(qapp: Any):
+    """UT-EXE-008.002.M01.T03a: contracts set before connect are held for later."""
+    w = _make_worker()
+    contract = _make_contract(con_id=123, symbol="AAPL")
+
+    w.set_contracts({"AAPL": contract})
+
+    assert w._active == {"AAPL": contract}
+
+
+async def test_apply_contracts_subscribes_and_tracks(qapp: Any):
+    """UT-EXE-008.002.M01.T03: a new contract is subscribed and recorded in _active."""
     w = _make_worker()
     mock_ib = _make_mock_ib(con_id=123, req_id=1)
-    w._ib = mock_ib
 
     contract = _make_contract(con_id=123, symbol="AAPL")
-    w.set_contracts({"AAPL": contract})
+    await w._apply_contracts(mock_ib, {"AAPL": contract})
 
     assert mock_ib.reqMktData.call_count == 1
     assert "AAPL" in w._active
 
 
-def test_set_contracts_empty_cancels_all(qapp: Any):
-    """UT-EXE-008.002.M01.T04: set_contracts({}) cancels existing subscription and clears _active."""
+async def test_apply_contracts_empty_cancels_all(qapp: Any):
+    """UT-EXE-008.002.M01.T04: an empty set cancels the subscription and clears _active."""
     w = _make_worker()
     mock_ib = _make_mock_ib(con_id=123, req_id=1)
-    w._ib = mock_ib
 
     contract = _make_contract(con_id=123)
-    w.set_contracts({"AAPL": contract})
-
-    # Now cancel by passing empty dict
-    w.set_contracts({})
+    await w._apply_contracts(mock_ib, {"AAPL": contract})
+    await w._apply_contracts(mock_ib, {})
 
     assert mock_ib.cancelMktData.call_count == 1
     assert w._active == {}
 
 
-def test_set_contracts_idempotent_no_double_subscribe(qapp: Any):
-    """UT-EXE-008.002.M01.T05: set_contracts with same symbol twice does not double-subscribe."""
+async def test_apply_contracts_idempotent_no_double_subscribe(qapp: Any):
+    """UT-EXE-008.002.M01.T05: the same symbol twice does not double-subscribe."""
     w = _make_worker()
     mock_ib = _make_mock_ib(con_id=123, req_id=1)
-    w._ib = mock_ib
 
     contract = _make_contract(con_id=123)
-    w.set_contracts({"AAPL": contract})
-    w.set_contracts({"AAPL": contract})
+    await w._apply_contracts(mock_ib, {"AAPL": contract})
+    await w._apply_contracts(mock_ib, {"AAPL": contract})
 
     assert mock_ib.reqMktData.call_count == 1
 
 
-def test_set_contracts_15_symbols_sleeps_once(qapp: Any):
-    """UT-EXE-008.002.M01.T06: 15 contracts triggers exactly one sleep(0.20) after first batch of 10."""
+async def test_apply_contracts_15_symbols_pauses_once(qapp: Any):
+    """UT-EXE-008.002.M01.T06: 15 contracts pace as one batch of 10, a pause, then 5."""
     w = _make_worker()
     mock_ib = MagicMock()
-    w._ib = mock_ib
 
-    def make_ticker(tag: str) -> MagicMock:
+    def make_ticker(*_a: Any, **_kw: Any) -> MagicMock:
         t = MagicMock()
         t.contract = MagicMock()
         t.contract.conId = 0
         t.reqId = None
         return t
 
-    mock_ib.reqMktData.side_effect = lambda *a, **kw: make_ticker("")
-
+    mock_ib.reqMktData.side_effect = make_ticker
     contracts = {f"SYM{i}": _make_contract(con_id=i) for i in range(15)}
 
-    # Patch time.sleep on the directly-loaded module object (bypasses package namespace)
-    import time as _time_mod
-    original_sleep = _mod.time.sleep
-    mock_sleep = MagicMock()
-    _mod.time.sleep = mock_sleep
-    try:
-        w.set_contracts(contracts)
-    finally:
-        _mod.time.sleep = original_sleep
+    with patch.object(_mod.asyncio, "sleep", new=AsyncMock()) as mock_sleep:
+        await w._apply_contracts(mock_ib, contracts)
 
-    assert mock_sleep.call_count == 1
-    mock_sleep.assert_called_once_with(0.20)
+    mock_sleep.assert_awaited_once_with(_mod._SUB_PAUSE)
     assert mock_ib.reqMktData.call_count == 15
 
 
@@ -198,9 +201,8 @@ def test_set_contracts_15_symbols_sleeps_once(qapp: Any):
 def test_on_pending_tickers_emits_last_price(qapp: Any):
     """UT-EXE-008.003.M01.T07: _on_pending_tickers emits tick_price with last price when valid."""
     w = _make_worker()
-    w._tag_by_conid = {123: "AAPL"}
     ticker = _make_ticker(con_id=123, last=150.0, req_id=None)
-    ticker.reqId = None  # force conId path
+    w._tickers = {"AAPL": ticker}   # resolution is by ticker identity
 
     received: list[tuple[str, float]] = []
     w.tick_price.connect(lambda tag, price: received.append((tag, price)))
@@ -213,9 +215,8 @@ def test_on_pending_tickers_emits_last_price(qapp: Any):
 def test_on_pending_tickers_falls_back_to_close(qapp: Any):
     """UT-EXE-008.003.M01.T08: _on_pending_tickers emits close price when last is NaN."""
     w = _make_worker()
-    w._tag_by_conid = {123: "AAPL"}
     ticker = _make_ticker(con_id=123, last=float("nan"), close=149.5, req_id=None)
-    ticker.reqId = None
+    w._tickers = {"AAPL": ticker}
 
     received: list[tuple[str, float]] = []
     w.tick_price.connect(lambda tag, price: received.append((tag, price)))
@@ -228,9 +229,8 @@ def test_on_pending_tickers_falls_back_to_close(qapp: Any):
 def test_on_pending_tickers_no_emit_when_both_nan(qapp: Any):
     """UT-EXE-008.003.M01.T09: _on_pending_tickers emits nothing when last and close are both NaN."""
     w = _make_worker()
-    w._tag_by_conid = {123: "AAPL"}
     ticker = _make_ticker(con_id=123, last=float("nan"), close=float("nan"), req_id=None)
-    ticker.reqId = None
+    w._tickers = {"AAPL": ticker}
 
     received: list[tuple[str, float]] = []
     w.tick_price.connect(lambda tag, price: received.append((tag, price)))
@@ -366,3 +366,17 @@ async def test_connect_with_retry_fails_after_all_attempts(caplog: Any):
 
     assert result is False
     assert any("Cannot connect" in r.message for r in caplog.records)
+
+
+def test_on_pending_tickers_falls_back_to_bid(qapp: Any):
+    """UT-EXE-008.003.M01.T10: an index reports its level as bid, not last."""
+    w = _make_worker()
+    ticker = _make_ticker(con_id=123, last=float("nan"), bid=5200.0, close=5190.0)
+    w._tickers = {"^GSPC": ticker}
+
+    received: list[tuple[str, float]] = []
+    w.tick_price.connect(lambda tag, price: received.append((tag, price)))
+
+    w._on_pending_tickers({ticker})
+
+    assert received == [("^GSPC", 5200.0)]

@@ -41,6 +41,16 @@ from us_swing.execution.intraday_candle_loader import (
 _UTC = timezone.utc
 _BASE_DT = datetime(2026, 1, 2, 14, 30, tzinfo=_UTC)  # arbitrary market time
 
+
+def _recent_now() -> datetime:
+    """Anchor candle data inside the loader's 30-day rolling window.
+
+    ``_validate_candle_counts`` fetches ``[now - 30d, now]``, so bars written at
+    a fixed calendar date silently fall out of range once that date ages past
+    the window and every count reads zero.
+    """
+    return datetime.now(tz=_UTC).replace(second=0, microsecond=0)
+
 # SQLite SQLITE_MAX_VARIABLE_NUMBER = 999; price tables have 7 columns.
 _SQLITE_BATCH = 142  # floor(999 / 7)
 
@@ -321,13 +331,13 @@ def test_validate_candle_counts_passes_when_sufficient(
     """UT-EXE-006.001.M01.T04: Validation passes when all three timeframes have >= 390 candles.
 
     To produce >= 390 complete 1h candles we need >= 390 * 60 = 23 400 1m bars
-    in contiguous groups of 60. We insert 24 000 bars to ensure all three
-    timeframe windows (3m, 5m, 1h) have >= 390 complete bars.
+    The binding timeframe is 15m, so >= 390 complete 15m candles needs
+    390 * 15 = 5 850 1m bars.  6 000 covers both required windows with margin.
     """
-    now = datetime(2026, 3, 1, 16, 0, tzinfo=_UTC)
-    # 24 000 bars = 400 complete 1h candles, 4 800 complete 5m candles, 8 000 complete 3m candles.
+    now = _recent_now()
+    # 6 000 bars = 400 complete 15m candles and 2 000 complete 3m candles.
     # Insert in SQLite-safe batches (SQLite variable limit = 999; 7 cols × 142 = 994 < 999).
-    bars = _make_1m_bars("AAPL", 24_000, now - timedelta(minutes=24_000))
+    bars = _make_1m_bars("AAPL", 6_000, now - timedelta(minutes=6_000))
     _insert_bars_batched(db, "AAPL", bars)
 
     ldr = IntradayCandleLoader(
@@ -358,11 +368,11 @@ def test_validate_candle_counts_fails_when_insufficient(
 ) -> None:
     """UT-EXE-006.001.M01.T05: Validation fails when a timeframe has < 390 candles.
 
-    Symbol has only 400 1m bars; 3m → 133, 5m → 80, 1h → 6 (all < 390).
+    Symbol has only 400 1m bars; 3m → 133, 15m → 26 (both < 390).
     _validate_candle_counts() must return CandleLoadResult(ok=False) with
     reason containing 'insufficient_candles'.
     """
-    now = datetime(2026, 3, 1, 16, 0, tzinfo=_UTC)
+    now = _recent_now()
     bars = _make_1m_bars("AAPL", 400, now - timedelta(minutes=400))
     db.insert_bars("AAPL", "1m", bars)
 
@@ -398,10 +408,10 @@ def test_ibkr_error_one_symbol_does_not_abort_others(
     symbol[0] (AAPL) and symbol[2] (GOOG) are processed; MSFT is in failed list.
     """
     # Pre-seed AAPL and GOOG with 70 contiguous 1m bars — enough to produce at
-    # least 1 complete candle for each of 3m/5m/1h (1h needs 60 bars).
+    # least 1 complete candle for each of 3m/15m (15m needs 15 bars).
     # min_candles=1 means even a single complete bar per timeframe satisfies validation.
     # MSFT is NOT pre-seeded so it goes through the full-paged fetch where it raises.
-    now = datetime(2026, 3, 1, 16, 0, tzinfo=_UTC)
+    now = _recent_now()
     for sym in ("AAPL", "GOOG"):
         seed = _make_1m_bars(sym, 70, now - timedelta(minutes=70))
         _insert_bars_batched(db, sym, seed)
@@ -468,12 +478,12 @@ def test_load_complete_signal_emitted_with_full_result_list(
     load_complete fires once; payload is list[CandleLoadResult] with 3 items;
     failed count == 2.
     """
-    now = datetime(2026, 3, 1, 16, 0, tzinfo=_UTC)
+    now = _recent_now()
 
-    # Pre-seed AAPL with 24 000 bars — enough to pass validation (≥ 390 for 1h).
+    # Pre-seed AAPL with 6 000 bars — enough to pass validation (≥ 390 for 15m).
     # Pre-seed MSFT and GOOG with a few recent bars so they use the delta path
     # (1 IBKR call each) rather than 4-page full fetch.
-    aapl_bars = _make_1m_bars("AAPL", 24_000, now - timedelta(minutes=24_000))
+    aapl_bars = _make_1m_bars("AAPL", 6_000, now - timedelta(minutes=6_000))
     _insert_bars_batched(db, "AAPL", aapl_bars)
     for sym in ("MSFT", "GOOG"):
         seed = _make_1m_bars(sym, 3, now - timedelta(minutes=3))
@@ -570,11 +580,11 @@ def test_get_readiness_report_ready_true_when_sufficient(
 ) -> None:
     """UT-EXE-006.001.M01.T09: get_readiness_report() returns ready=True when all counts >= 390.
 
-    DB has 24 000 1m bars for AAPL (>= 60 trading days worth).
+    DB has 6 000 1m bars for AAPL — comfortably past the 15m threshold.
     report['AAPL'].ready must be True; candles_3m >= 390.
     """
-    now = datetime(2026, 3, 1, 16, 0, tzinfo=_UTC)
-    bars = _make_1m_bars("AAPL", 24_000, now - timedelta(minutes=24_000))
+    now = _recent_now()
+    bars = _make_1m_bars("AAPL", 6_000, now - timedelta(minutes=6_000))
     _insert_bars_batched(db, "AAPL", bars)
 
     ldr = IntradayCandleLoader(
@@ -594,8 +604,7 @@ def test_get_readiness_report_ready_true_when_sufficient(
     assert isinstance(r, SymbolReadiness)
     assert r.ready is True
     assert r.candles_3m >= 390
-    assert r.candles_5m >= 390
-    assert r.candles_1h >= 390
+    assert r.candles_15m >= 390
 
 
 # ---------------------------------------------------------------------------
@@ -611,7 +620,7 @@ def test_get_readiness_report_ready_false_when_insufficient(
 
     DB has only 300 1m bars for MSFT. At least one candle count < 390.
     """
-    now = datetime(2026, 3, 1, 16, 0, tzinfo=_UTC)
+    now = _recent_now()
     bars = _make_1m_bars("MSFT", 300, now - timedelta(minutes=300))
     db.insert_bars("MSFT", "1m", bars)
 
@@ -630,7 +639,7 @@ def test_get_readiness_report_ready_false_when_insufficient(
     assert "MSFT" in report
     r = report["MSFT"]
     assert r.ready is False
-    counts = [r.candles_3m, r.candles_5m, r.candles_1h]
+    counts = [r.candles_3m, r.candles_15m]
     assert any(c < 390 for c in counts)
 
 
