@@ -1,10 +1,11 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.14.0
+**Version:** 2.15.0
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-08-26
+> v2.15.0: SRD-GUI-013.006 corrected — catalogue is 10 indicators, not 15. The four BOSS/BOS entries were stubs removed in `d6c4f4db`; the row had also always miscounted its own list of 14 as 15. Reopened and re-implemented on user authority (2026-08-27).
 > v2.14.0: SRD-GUI-012.008–009 added — live tick worker watchdog and GUI-visible tick failures (FO-GUI-012).
 > v2.13.0: SRD-GUI-000.006 added — `_AdminContextBar` capital cell (Max Capital · Margin Available); mirrors SRD-EXE-017.021.
 > v2.12.0: SRD-GUI-014.013 marked Reopen — Rex column `-1` display superseded by SRD-EXE-017.011 (FO-EXE-017: show remaining re-entries, never negative, no cross-row leakage).
@@ -189,7 +190,7 @@
 | SRD-GUI-013.003 | FO-GUI-013 | Must | `Name` is a required `QLineEdit`; Save is blocked with an inline error when empty. Names are compared case-insensitive for uniqueness against the registry. | user input | validation pass/fail | Whitespace trimmed before uniqueness check | Approved |
 | SRD-GUI-013.004 | FO-GUI-013 | Must | `Symbol Scope` `QComboBox` carries `All S&P 500` / `Include Only` / `Exclude These`. Non-`All` selection reveals a stock-picker (search-completer combo + add/remove `QListWidget`); the saved record stores chosen symbols in `symbols_include` or `symbols_exclude`. | scope choice, symbol picks | `symbol_mode`, list field | Picker source = `load_sp500()`; `All` selection leaves both lists empty | Approved |
 | SRD-GUI-013.005 | FO-GUI-013 | Must | `Mode` `QComboBox` carries `Disabled` / `Manual` / `Auto`. `Capital Max` `QSpinBox` accepts 5–100 inclusive, step 5, default 25, suffix `%`. | user input | `mode`, `capital_max` | Mode semantics owned by FO-EXE-011; spinbox cannot go below 5 | Approved |
-| SRD-GUI-013.006 | FO-GUI-013 | Must | The trigger builder loads a static catalogue of 15 indicators (`Number`, `PNL`, `VWAP`, `Price`, `RSI`, `ADX`, `EMA`, `SUPERTREND`, `SWING`, `MACD`, `BOS_Engulfing`, `BOSS_EMA`, `BOSS_ADX`, `BOSS_SMT`) with parameter specs. Selecting an indicator rebuilds the parameter form from the spec (EditBox → `QLineEdit` with int/float validator; DropDown → `QComboBox`). | indicator selection | rendered parameter form | Old widgets `deleteLater()` before rebuild; catalogue is module-level constant | Approved |
+| SRD-GUI-013.006 | FO-GUI-013 | Must | The trigger builder loads a static catalogue of 10 indicators (`Number`, `PNL`, `VWAP`, `Price`, `RSI`, `ADX`, `EMA`, `SUPERTREND`, `SWING`, `MACD`) with parameter specs. Selecting an indicator rebuilds the parameter form from the spec (EditBox → `QLineEdit` with int/float validator; DropDown → `QComboBox`). | indicator selection | rendered parameter form | Old widgets `deleteLater()` before rebuild; catalogue is module-level constant | Approved |
 | SRD-GUI-013.007 | FO-GUI-013 | Must | The chain row reveals its next element only after the previous is set: Condition 1 → relational operator (`>`, `<`, `>=`, `<=`, `==`, `!=`) → Condition 2 → logical operator (`AND`, `OR`) → Compile. Each Condition slot is filled via a `_ConditionSelectorDialog` popup. | user interactions | chain state | Chain rebuilt by `_rebuild_chain()` on every state change | Approved |
 | SRD-GUI-013.008 | FO-GUI-013 | Must | Pressing Compile appends `({cond1}) {relop} ({cond2})` to a read-only compiled-conditions buffer, joined to prior clauses with the chosen logical operator. Pressing Entry / Exit copies the buffer to `entry_condition` / `exit_condition` and clears the buffer; either with an empty buffer raises an inline error. | Compile / Entry / Exit clicks | `entry_condition` / `exit_condition` | Buffer is a `QTextEdit` set read-only | Approved |
 | SRD-GUI-013.009 | FO-GUI-013 | Must | Each indicator expression saved into a Condition slot is a parseable function-call string `INDICATOR(arg1, 'arg2', ...)`, with dropdown values single-quoted and editbox numeric values bare. Empty parameter values block Add with an inline error. | indicator parameters | expression string | Grammar must match the FO-EXE-011 `ConditionEvaluator` | Approved |
