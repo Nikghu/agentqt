@@ -101,12 +101,16 @@ def test_evaluate_rsi_wrong_arity_raises_evaluator_error() -> None:
         evaluator.evaluate("RSI(14) < 30", candles, "AAPL")
 
 
-def test_function_map_has_exactly_14_keys() -> None:
-    """UT-EXE-011.001.M03.T08: FUNCTION_MAP keys == exactly the 14 documented names."""
+def test_function_map_has_exactly_10_keys() -> None:
+    """UT-EXE-011.001.M03.T08: FUNCTION_MAP keys == exactly the 10 implemented names.
+
+    The four BOSS/BOS entries were stubs and were removed in d6c4f4db; the
+    Strategy Builder offers the same 10, so no strategy can reference a missing
+    indicator.
+    """
     expected = {
         "Number", "PNL", "VWAP", "Price", "RSI", "ADX", "EMA",
-        "SUPERTREND", "SWING", "MACD", "BOS_Engulfing",
-        "BOSS_EMA", "BOSS_ADX", "BOSS_SMT",
+        "SUPERTREND", "SWING", "MACD",
     }
     assert set(ConditionEvaluator.FUNCTION_MAP.keys()) == expected
 

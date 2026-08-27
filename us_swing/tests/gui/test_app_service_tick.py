@@ -16,7 +16,6 @@ import pytest
 from PyQt6.QtCore import QObject
 
 from us_swing.data.models import (
-    MarketWatchItem,
     OpenPosition,
     RiskConfig,
     WatchlistItem,
@@ -77,8 +76,9 @@ def svc(qapp):
         service = AppService()
 
         # Restore real _watch so we can manipulate it in tests
-        service._watch = [MarketWatchItem("^GSPC", "S&P 500")]
-        service._watch_prev_close = {}
+        # Market Watch is now four ETFs held as WatchlistItem rows on _mw_items,
+        # not Yahoo index symbols on _watch.
+        service._mw_items = [WatchlistItem(symbol="SPY")]
         service._watchlist = []
         service._ibkr_positions = []
         service._tick_worker = None
@@ -121,7 +121,7 @@ class TestWorkerLifecycle:
                 patch.object(svc, "_set_status"),
                 patch.object(svc, "_acct_timer"),
                 patch.object(svc, "_refresh_account_data"),
-                patch.object(svc, "_fetch_mw_prev_close_once"),
+                patch.object(svc, "_refresh_mw_quotes"),
                 patch.object(svc, "_sync_tick_subscriptions"),
                 patch.object(svc, "_refresh_watchlist"),
             ):
@@ -155,7 +155,7 @@ class TestWorkerLifecycle:
                 patch.object(svc, "_set_status"),
                 patch.object(svc, "_acct_timer"),
                 patch.object(svc, "_refresh_account_data"),
-                patch.object(svc, "_fetch_mw_prev_close_once"),
+                patch.object(svc, "_refresh_mw_quotes"),
                 patch.object(svc, "_sync_tick_subscriptions"),
                 patch.object(svc, "_refresh_watchlist"),
             ):
@@ -185,35 +185,30 @@ class TestWorkerLifecycle:
 # ---------------------------------------------------------------------------
 
 class TestSymbolTranslation:
-    def test_sync_translates_gspc_to_ibkr_index(self, svc, mock_tick_worker):
-        """UT-GUI-012.002.M01.T04: ^GSPC maps to Index contract with symbol SPX, exchange CBOE."""
+    """Market Watch tracks four ETFs as ordinary stock contracts.
+
+    The old Yahoo-index mapping (^GSPC → SPX on CBOE) is gone: index contracts
+    need a market-data subscription most accounts lack, so SPY/QQQ/DIA/IWM are
+    used instead and go through the same `_make_stk_contract` path as any stock.
+    """
+
+    def test_sync_subscribes_market_watch_etfs(self, svc, mock_tick_worker):
+        """UT-GUI-012.002.M01.T04: Market Watch symbols are subscribed as stock contracts."""
         svc._tick_worker = mock_tick_worker
-        svc._watch = [MarketWatchItem("^GSPC", "S&P 500")]
-
-        mock_ind = MagicMock()
-        mock_ind.symbol = "SPX"
-        mock_ind.exchange = "CBOE"
-
-        with patch("us_swing.gui.app_service._make_ind_contract", return_value=mock_ind):
-            svc._sync_tick_subscriptions()
-
-        mock_tick_worker.set_contracts.assert_called_once()
-        contracts: dict[str, Any] = mock_tick_worker.set_contracts.call_args[0][0]
-        assert "^GSPC" in contracts
-        contract = contracts["^GSPC"]
-        assert contract.symbol == "SPX"
-        assert contract.exchange == "CBOE"
-
-    def test_sync_skips_unknown_yahoo_symbol(self, svc, mock_tick_worker):
-        """UT-GUI-012.002.M01.T05: ^CUSTOM not in _YAHOO_TO_IBKR is excluded from contracts."""
-        svc._tick_worker = mock_tick_worker
-        svc._watch = [MarketWatchItem("^CUSTOM", "Custom")]
+        svc._mw_items = [WatchlistItem(symbol="SPY"), WatchlistItem(symbol="QQQ")]
 
         svc._sync_tick_subscriptions()
 
         mock_tick_worker.set_contracts.assert_called_once()
         contracts: dict[str, Any] = mock_tick_worker.set_contracts.call_args[0][0]
-        assert "^CUSTOM" not in contracts
+        assert {"SPY", "QQQ"} <= set(contracts)
+        assert contracts["SPY"].symbol == "SPY"
+
+    def test_sync_is_a_no_op_without_a_worker(self, svc):
+        """UT-GUI-012.002.M01.T05: syncing before connect does nothing and does not raise."""
+        svc._tick_worker = None
+
+        svc._sync_tick_subscriptions()   # must not raise
 
 
 # ---------------------------------------------------------------------------
@@ -221,43 +216,51 @@ class TestSymbolTranslation:
 # ---------------------------------------------------------------------------
 
 class TestMarketWatchTick:
-    def test_on_mktwatch_tick_updates_ltp_and_change_pct(self, svc):
-        """UT-GUI-012.003.M01.T06: tick updates ltp and computes change_pct when prev_close set."""
-        svc._watch = [MarketWatchItem("^GSPC", "S&P 500")]
-        svc._watch_prev_close = {"^GSPC": 5100.0}
+    """Market Watch ticks arrive through `_on_watchlist_tick`.
+
+    The separate `_on_mktwatch_tick` slot was folded into it: both surfaces hold
+    `WatchlistItem` rows and compute change the same way, off `item.prev_close`
+    rather than a side dict.
+    """
+
+    def test_tick_updates_ltp_and_change_pct(self, svc):
+        """UT-GUI-012.003.M01.T06: a tick sets ltp and computes change against prev_close."""
+        item = WatchlistItem(symbol="SPY")
+        item.prev_close = 500.0
+        svc._mw_items = [item]
         emitted: list[bool] = []
         svc.market_watch_updated.connect(lambda: emitted.append(True))
 
-        svc._on_mktwatch_tick("^GSPC", 5200.0)
+        svc._on_watchlist_tick("SPY", 510.0)
 
-        item = svc._watch[0]
-        assert item.ltp == 5200.0
-        assert item.change_pct == pytest.approx((5200.0 - 5100.0) / 5100.0 * 100, rel=1e-3)
+        assert item.ltp == 510.0
+        assert item.change_pct == pytest.approx((510.0 - 500.0) / 500.0 * 100, rel=1e-3)
         assert emitted
 
-    def test_on_mktwatch_tick_no_prev_close_sets_none(self, svc):
-        """UT-GUI-012.003.M01.T07: tick with empty prev_close dict sets change_pct=None."""
-        svc._watch = [MarketWatchItem("^GSPC", "S&P 500")]
-        svc._watch_prev_close = {}
+    def test_tick_without_prev_close_leaves_change_unset(self, svc):
+        """UT-GUI-012.003.M01.T07: with no prev_close the price still updates, change does not."""
+        item = WatchlistItem(symbol="SPY")
+        item.prev_close = 0.0
+        svc._mw_items = [item]
         emitted: list[bool] = []
         svc.market_watch_updated.connect(lambda: emitted.append(True))
 
-        svc._on_mktwatch_tick("^GSPC", 5200.0)
+        svc._on_watchlist_tick("SPY", 510.0)
 
-        item = svc._watch[0]
-        assert item.ltp == 5200.0
-        assert item.change_pct is None
+        assert item.ltp == 510.0
+        assert item.change_pct == 0.0, "change must stay at its default without a prev_close"
         assert emitted
 
-    def test_on_mktwatch_tick_unknown_tag_no_emit(self, svc):
-        """UT-GUI-012.003.M01.T08: tick for unknown tag does not emit market_watch_updated."""
-        svc._watch = [MarketWatchItem("^GSPC", "S&P 500")]
+    def test_unknown_tag_emits_nothing(self, svc):
+        """UT-GUI-012.003.M01.T08: a tick for an untracked symbol updates nothing."""
+        svc._mw_items = [WatchlistItem(symbol="SPY")]
+        svc._watchlist = []
         emitted: list[bool] = []
         svc.market_watch_updated.connect(lambda: emitted.append(True))
 
-        svc._on_mktwatch_tick("UNKNOWN_TAG", 100.0)
+        svc._on_watchlist_tick("UNKNOWN_TAG", 100.0)
 
-        assert not emitted
+        assert emitted == []
 
 
 # ---------------------------------------------------------------------------
@@ -332,9 +335,9 @@ class TestPositionTick:
 
 class TestSubscriptionSync:
     def test_sync_includes_mw_watchlist_and_positions(self, svc, mock_tick_worker):
-        """UT-GUI-012.006.M01.T13: sync includes MW index, S&P 500 watchlist, and S&P 500 position."""
+        """UT-GUI-012.006.M01.T13: sync includes Market Watch, S&P 500 watchlist and position."""
         svc._tick_worker = mock_tick_worker
-        svc._watch = [MarketWatchItem("^GSPC", "S&P 500")]
+        svc._mw_items = [WatchlistItem(symbol="SPY")]
         svc._sp500_cache = {"AAPL", "MSFT"}
         svc._watchlist = [WatchlistItem(symbol="AAPL")]
         svc._ibkr_positions = [_make_open_position("MSFT")]
@@ -348,17 +351,17 @@ class TestSubscriptionSync:
             svc._sync_tick_subscriptions()
 
         contracts: dict[str, Any] = mock_tick_worker.set_contracts.call_args[0][0]
-        assert "^GSPC" in contracts
+        assert "SPY" in contracts
         assert "AAPL" in contracts
         assert "MSFT" in contracts
 
     def test_sync_caps_at_95_trims_positions_logs_warning(self, svc, mock_tick_worker, caplog):
-        """UT-GUI-012.006.M01.T14: 100-contract scenario caps at 95, warns, keeps MW and watchlist."""
+        """UT-GUI-012.006.M01.T14: 100 contracts cap at 95, warn, and keep Market Watch + watchlist."""
         svc._tick_worker = mock_tick_worker
 
-        # 3 MW indices (all in _YAHOO_TO_IBKR)
-        mw_symbols = ["^GSPC", "^IXIC", "^DJI"]
-        svc._watch = [MarketWatchItem(s, s) for s in mw_symbols]
+        # 3 Market Watch ETFs
+        mw_symbols = ["SPY", "QQQ", "DIA"]
+        svc._mw_items = [WatchlistItem(symbol=s) for s in mw_symbols]
 
         # 30 S&P 500 watchlist
         wl_symbols = [f"WL{i:02d}" for i in range(30)]
@@ -403,11 +406,11 @@ class TestDisconnectBehavior:
     def test_disconnect_clears_market_watch_ltp(self, svc, mock_tick_worker):
         """UT-GUI-012.007.M01.T15: disconnect_feed clears ltp on all MW items and emits."""
         items = [
-            MarketWatchItem("^GSPC", "S&P 500", ltp=5200.0),
-            MarketWatchItem("^IXIC", "NASDAQ",  ltp=18000.0),
-            MarketWatchItem("^DJI",  "DJIA",    ltp=40000.0),
+            WatchlistItem(symbol="SPY", ltp=5200.0),
+            WatchlistItem(symbol="QQQ", ltp=18000.0),
+            WatchlistItem(symbol="DIA", ltp=40000.0),
         ]
-        svc._watch = items
+        svc._mw_items = items
         svc._tick_worker = mock_tick_worker
         emitted: list[bool] = []
         svc.market_watch_updated.connect(lambda: emitted.append(True))
@@ -419,7 +422,10 @@ class TestDisconnectBehavior:
             svc.disconnect_feed()
 
         for item in items:
-            assert item.ltp is None
+            # WatchlistItem carries numeric defaults, so the panel renders "–"
+            # from a zeroed row rather than from None.
+            assert item.ltp == 0.0
+            assert item.change_pct == 0.0
         assert emitted
 
     def test_disconnect_does_not_clear_position_price(self, svc, mock_tick_worker):
