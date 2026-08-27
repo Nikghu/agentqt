@@ -377,3 +377,114 @@ def test_cancel_reaches_the_engine() -> None:
     scheduler.pump()
 
     assert [r.reason for r in rejects] == ["cancelled"]
+
+
+# ── IBKR status-mapping correctness (SRD-INF-009.005, Phase 3) ───────────────
+
+def test_pending_cancel_is_not_terminal() -> None:
+    """UT-INF-009.005.M01.T10: a cancel that loses the race still fills correctly.
+
+    ``PendingCancel`` is a request in progress, not an outcome.  Treating it as
+    terminal dropped the client_ref, so the real ``Filled`` that followed arrived
+    with no reference and was discarded by ingestion.
+    """
+    broker, scheduler = _ibkr([("PendingCancel", 0, 0.0), ("Filled", 10, 50.0)])
+    events = _collect(broker)
+
+    broker.place_order(_market_buy())
+    scheduler.pump()
+
+    assert [e.status for e in events] == [OrderStatus.FILLED]
+    assert events[0].client_ref == "sig-1", "client_ref was dropped before the fill"
+    assert events[0].filled_quantity == 10
+
+
+def test_pending_cancel_then_cancelled_still_cancels() -> None:
+    """UT-INF-009.005.M01.T11: the normal cancel sequence is unaffected."""
+    broker, scheduler = _ibkr([("PendingCancel", 0, 0.0), ("Cancelled", 0, 0.0)])
+    events = _collect(broker)
+
+    broker.place_order(_market_buy())
+    scheduler.pump()
+
+    assert [e.status for e in events] == [OrderStatus.CANCELLED]
+
+
+def test_inactive_carries_the_reason() -> None:
+    """UT-INF-009.005.M01.T12: a rejection reports why, not an empty string."""
+    scheduler = _ManualScheduler()
+    gateway = _FakeGateway(scheduler, [])
+    broker = IBKRBroker(gateway)
+    events = _collect(broker)
+
+    broker.place_order(_market_buy())
+    gateway._callback(  # type: ignore[misc]
+        IbkrOrderUpdate("7000", "Inactive", 0, 0.0, reason="margin exceeded")
+    )
+
+    assert [e.status for e in events] == [OrderStatus.REJECTED]
+    assert events[0].reason == "margin exceeded"
+
+
+class TestErrorEventMapping:
+    """The reqId filter and code map — the correctness point of Phase 3."""
+
+    def test_margin_reject_maps_to_inactive(self) -> None:
+        """UT-INF-009.005.M01.T13: error 201 becomes a rejection carrying its text."""
+        from us_swing.broker.ibkr import _error_to_update
+
+        update = _error_to_update("7000", 201, "Order rejected - insufficient margin")
+
+        assert update is not None
+        assert update.status == "Inactive"
+        assert update.reason == "Order rejected - insufficient margin"
+        assert IBKRBroker._map_status(update) is OrderStatus.REJECTED
+
+    def test_duplicate_order_id_maps_to_inactive(self) -> None:
+        """UT-INF-009.005.M01.T14: error 103 is a rejection, not a warning."""
+        from us_swing.broker.ibkr import _error_to_update
+
+        update = _error_to_update("7000", 103, "Duplicate order id")
+
+        assert update is not None
+        assert IBKRBroker._map_status(update) is OrderStatus.REJECTED
+
+    def test_cancel_confirmation_maps_to_cancelled(self) -> None:
+        """UT-INF-009.005.M01.T15: error 202 is the cancel confirmation."""
+        from us_swing.broker.ibkr import _error_to_update
+
+        update = _error_to_update("7000", 202, "Order cancelled")
+
+        assert update is not None
+        assert IBKRBroker._map_status(update) is OrderStatus.CANCELLED
+
+    def test_noise_codes_are_ignored(self) -> None:
+        """UT-INF-009.005.M01.T16: warnings must never reject a live order."""
+        from us_swing.broker.ibkr import _error_to_update
+
+        for code in (399, 2104, 2106, 2158, 2109):
+            assert _error_to_update("7000", code, "notice") is None, f"code {code} rejected"
+
+
+class TestReasonFromTrade:
+    def test_takes_the_newest_log_message(self) -> None:
+        """UT-INF-009.005.M01.T17: the latest transition explains the status."""
+        from types import SimpleNamespace
+
+        from us_swing.broker.ibkr import _reason_from_trade
+
+        trade = SimpleNamespace(log=[
+            SimpleNamespace(message="Submitted"),
+            SimpleNamespace(message="Order rejected - insufficient margin"),
+        ])
+
+        assert _reason_from_trade(trade) == "Order rejected - insufficient margin"
+
+    def test_empty_log_is_the_empty_string(self) -> None:
+        """UT-INF-009.005.M01.T18: no log entries means no reason, not a crash."""
+        from types import SimpleNamespace
+
+        from us_swing.broker.ibkr import _reason_from_trade
+
+        assert _reason_from_trade(SimpleNamespace(log=[])) == ""
+        assert _reason_from_trade(SimpleNamespace()) == ""
