@@ -353,7 +353,7 @@ Frameless modal with a left-side navigation tree and a right-side stacked conten
 - **Capital Max** — integer percentage of available capital allocated to this strategy
 
 ### Page 2 — Triggers
-Progressive condition builder. The user chains two indicator expressions with a relational operator and a logical operator, presses **Compile**, then assigns the compiled clause to **Entry** or **Exit**. Multiple compiled clauses join with `AND` / `OR`. Supported indicators: `Number`, `PNL`, `VWAP`, `Price`, `RSI`, `ADX`, `EMA`, `SUPERTREND`, `SWING`, `MACD`, `BOS_Engulfing`, `BOSS_EMA`, `BOSS_ADX`, `BOSS_SMT`. Each indicator's parameter form is rendered from a static catalogue (parameter name, widget type, value domain).
+Progressive condition builder. The user chains two indicator expressions with a relational operator and a logical operator, presses **Compile**, then assigns the compiled clause to **Entry** or **Exit**. Multiple compiled clauses join with `AND` / `OR`. Supported indicators: `Number`, `PNL`, `VWAP`, `Price`, `RSI`, `ADX`, `EMA`, `SUPERTREND`, `SWING`, `MACD`. Each indicator's parameter form is rendered from a static catalogue (parameter name, widget type, value domain).
 
 ### Page 3 — Scheduler
 - **Time Range** — `start_time` / `end_time` (HH:mm, defaults 09:30 / 15:30)

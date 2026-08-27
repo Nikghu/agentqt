@@ -2310,10 +2310,6 @@ class ConditionEvaluator:
         "SUPERTREND":    _fn_supertrend,
         "SWING":         _fn_swing,
         "MACD":          _fn_macd,
-        "BOS_Engulfing": _fn_bos_engulfing,
-        "BOSS_EMA":      _fn_boss_ema,
-        "BOSS_ADX":      _fn_boss_adx,
-        "BOSS_SMT":      _fn_boss_smt,
     }
 
     def evaluate(self,
