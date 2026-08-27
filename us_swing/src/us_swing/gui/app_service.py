@@ -1330,6 +1330,7 @@ class AppService(QObject):
             self._order_ingestion = OrderIngestion(
                 ledger=self._db,
                 fill_sink=lambda fill: self._strategy_engine.on_order_fill(fill),
+                reject_sink=lambda rej: self._strategy_engine.on_order_reject(rej),
                 cycles=self._tc_command,
                 lifecycle=self._lifecycle_command,
             )

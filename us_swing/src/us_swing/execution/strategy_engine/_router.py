@@ -332,6 +332,11 @@ class _Router:
                         message=str(exc),
                     )
                 )
+                # A submit that raised leaves the symbol in_flight with its
+                # capital reserved and no broker event coming to clear it.
+                ctx = self._registry.get(signal.strategy_id)
+                if ctx is not None:
+                    await self._rollback(ctx, signal.symbol)
             finally:
                 self._queue.task_done()
 

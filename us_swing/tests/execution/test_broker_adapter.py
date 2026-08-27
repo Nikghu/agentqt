@@ -98,7 +98,8 @@ def test_entry_signal_flows_through_to_trades_and_cycle() -> None:
     broker_events: list[object] = []
     scheduler = _ManualScheduler()
 
-    ingestion = OrderIngestion(ledger=mgr, fill_sink=engine_fills.append, cycles=cycles)
+    ingestion = OrderIngestion(ledger=mgr, fill_sink=engine_fills.append,
+                               reject_sink=lambda _r: None, cycles=cycles)
     adapter = BrokerAdapter(
         broker=SimBroker(ImmediateFillModel(), scheduler=scheduler),
         ingestion=ingestion,
@@ -139,7 +140,8 @@ def test_exit_signal_closes_cycle() -> None:
     mgr = _make_db()
     cycles = _StubCycles()
     scheduler = _ManualScheduler()
-    ingestion = OrderIngestion(ledger=mgr, fill_sink=lambda _f: None, cycles=cycles)
+    ingestion = OrderIngestion(ledger=mgr, fill_sink=lambda _f: None,
+                               reject_sink=lambda _r: None, cycles=cycles)
     adapter = BrokerAdapter(
         broker=SimBroker(ImmediateFillModel(), scheduler=scheduler),
         ingestion=ingestion,
@@ -170,7 +172,8 @@ def test_fill_arriving_before_acceptance_is_not_dropped() -> None:
     mgr = _make_db()
     cycles = _StubCycles()
     engine_fills: list[object] = []
-    ingestion = OrderIngestion(ledger=mgr, fill_sink=engine_fills.append, cycles=cycles)
+    ingestion = OrderIngestion(ledger=mgr, fill_sink=engine_fills.append,
+                               reject_sink=lambda _r: None, cycles=cycles)
     adapter = BrokerAdapter(
         # ImmediateScheduler fires the fill inside place_order — before the
         # acceptance insert — which is exactly the dropped-fill race condition.

@@ -24,7 +24,7 @@ from typing import Protocol
 from us_swing.broker.broker import OrderEvent, OrderSide, OrderStatus
 from us_swing.data.models import TradeRecord
 from us_swing.execution._enums import ExecutionEnums as E
-from us_swing.execution.strategy_engine._protocols import FillEvent
+from us_swing.execution.strategy_engine._protocols import FillEvent, RejectEvent
 from us_swing.execution.trade_cycle._protocols import TradeCycleCommand
 
 log = logging.getLogger(__name__)
@@ -52,6 +52,7 @@ class TradeLedger(Protocol):
 
 
 FillSink = Callable[[FillEvent], None]
+RejectSink = Callable[[RejectEvent], None]
 
 
 class LifecycleSink(Protocol):
@@ -102,11 +103,13 @@ class OrderIngestion:
         *,
         ledger: TradeLedger,
         fill_sink: FillSink,
+        reject_sink: RejectSink,
         cycles: TradeCycleCommand,
         lifecycle: LifecycleSink | None = None,
     ) -> None:
         self._ledger = ledger
         self._fill_sink = fill_sink
+        self._reject_sink = reject_sink
         self._cycles = cycles
         self._lifecycle = lifecycle
         # Keyed by ``client_ref`` (signal_id), not ``broker_order_id``: the
@@ -195,12 +198,15 @@ class OrderIngestion:
 
         if event.status is OrderStatus.REJECTED:
             log.warning("[Orders] Order rejected — %s", event.reason or "no reason given")
+            # An exit reject must leave the cycle OPEN — the stock is still held,
+            # so the exit has to stay retryable.  Only an entry aborts.
             if ctx.is_entry:
                 try:
                     self._cycles.abort_entry_order(ctx.broker_order_id, "broker_reject")
                 except Exception:
                     log.exception("[Orders] Could not abort the trade cycle for %s", ctx.symbol)
             self._forget(client_ref)
+            self._notify_reject(ctx, event.reason or "broker_reject")
             return
         if event.status is OrderStatus.CANCELLED:
             log.info(
@@ -208,6 +214,7 @@ class OrderIngestion:
                 event.filled_quantity,
             )
             self._forget(client_ref)
+            self._notify_reject(ctx, "cancelled")
             return
 
         self._fill_sink(
@@ -241,6 +248,26 @@ class OrderIngestion:
     def _forget(self, client_ref: str) -> None:
         with self._lock:
             self._context.pop(client_ref, None)
+
+    def _notify_reject(self, ctx: OrderContext, reason: str) -> None:
+        """Tell the engine an order ended without filling — SRD-EXE-015.005.
+
+        Without this the symbol stays in ``in_flight`` and its capital stays
+        reserved for the rest of the session, so the strategy can never trade it
+        again.  Called after ``_forget`` so a sink raising during shutdown cannot
+        strand the context.
+        """
+        try:
+            self._reject_sink(
+                RejectEvent(
+                    strategy_id=ctx.strategy_id,
+                    symbol=ctx.symbol,
+                    is_entry=ctx.is_entry,
+                    reason=reason,
+                )
+            )
+        except Exception:
+            log.exception("[Orders] Could not notify the strategy about %s", ctx.symbol)
 
     def _new_trade_record(self, ctx: OrderContext) -> TradeRecord:
         """Build the NEW-state `trades` row for *ctx* (idempotent on insert)."""
@@ -323,6 +350,7 @@ def _iso(moment: datetime) -> str:
 __all__ = [
     "BrokerStatusError",
     "FillSink",
+    "RejectSink",
     "OrderContext",
     "OrderIngestion",
     "TradeLedger",
