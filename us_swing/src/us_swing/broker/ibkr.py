@@ -69,6 +69,47 @@ class OrderGateway(Protocol):
 # IBKR statuses that finish an order — context is dropped once one arrives.
 _TERMINAL = (OrderStatus.FILLED, OrderStatus.REJECTED, OrderStatus.CANCELLED)
 
+# Order-scoped IBKR error codes that decide an order's fate, mapped onto the raw
+# ib_insync status strings ``_map_status`` already understands.  Anything absent
+# here is a warning (399 order message, 2104/2106/2158 data-farm notices) and
+# must never reject a live order.
+_ERROR_STATUS: dict[int, str] = {
+    103: "Inactive",    # duplicate order id
+    201: "Inactive",    # order rejected — errorString carries the reason
+    202: "Cancelled",   # order cancelled
+}
+
+
+def _error_to_update(order_id: str, code: int, message: str) -> IbkrOrderUpdate | None:
+    """Map an order-scoped IBKR error onto an order update, or None to ignore.
+
+    ``trade.statusEvent`` never fires for a margin or risk rejection — TWS
+    reports those only through ``errorEvent`` — so without this the order sits
+    in flight forever.
+    """
+    status = _ERROR_STATUS.get(code)
+    if status is None:
+        return None
+    return IbkrOrderUpdate(
+        broker_order_id=order_id,
+        status=status,
+        filled=0,
+        avg_fill_price=0.0,
+        reason=message,
+    )
+
+
+def _reason_from_trade(trade: Any) -> str:
+    """Best available human reason for a trade's current status.
+
+    ib_insync appends a ``TradeLogEntry`` per transition; the newest message is
+    the one that explains a rejection.  Falls back to the empty string.
+    """
+    entries = getattr(trade, "log", None) or []
+    if not entries:
+        return ""
+    return str(getattr(entries[-1], "message", "") or "")
+
 # Longest a caller thread waits for TWS to accept a placement or cancellation.
 _ORDER_TIMEOUT_S = 10.0
 
@@ -121,7 +162,11 @@ class IBKRBroker(Broker):
         status = update.status
         if status == "Filled":
             return OrderStatus.FILLED
-        if status in ("Cancelled", "ApiCancelled", "PendingCancel"):
+        # "PendingCancel" is deliberately absent: it is a request in progress,
+        # not an outcome.  Treating it as terminal drops the client_ref, so a
+        # cancel that loses the race and fills anyway arrives unattributable and
+        # is discarded by ingestion.  Held as ack-only until a true terminal.
+        if status in ("Cancelled", "ApiCancelled"):
             return OrderStatus.CANCELLED
         if status == "Inactive":
             return OrderStatus.REJECTED
@@ -140,9 +185,38 @@ class IBKRClientGateway:
     def __init__(self, client: IBKRClient) -> None:
         self._client = client
         self._callbacks: list[Callable[[IbkrOrderUpdate], None]] = []
+        # Order ids this gateway placed.  errorEvent is account-wide, so an
+        # error for someone else's order — or a non-order error, which carries
+        # reqId -1 — must never be attributed to one of ours.
+        self._order_ids: set[str] = set()
+        self._error_hooked = False
 
     def on_status(self, callback: Callable[[IbkrOrderUpdate], None]) -> None:
         self._callbacks.append(callback)
+
+    def _hook_errors(self) -> None:  # pragma: no cover - requires a live connection
+        """Subscribe to ``errorEvent`` once, on the first placement.
+
+        Deferred rather than done in ``__init__`` so constructing a gateway never
+        requires a connected client.  ``build_broker`` runs inside a try/except
+        that falls back to the simulated broker, so a constructor reaching into a
+        half-built client would silently downgrade live routing to paper.
+        """
+        if self._error_hooked:
+            return
+        self._client.ib.errorEvent += self._on_error
+        self._error_hooked = True
+
+    def _on_error(  # pragma: no cover - requires a live IBKR connection
+        self, req_id: int, code: int, message: str, *_: Any
+    ) -> None:
+        """Turn an order-scoped IBKR error into an order update."""
+        order_id = str(req_id)
+        if order_id not in self._order_ids:
+            return
+        update = _error_to_update(order_id, code, message)
+        if update is not None:
+            self._dispatch(update)
 
     def submit(  # pragma: no cover - requires a live IBKR connection
         self,
@@ -171,6 +245,7 @@ class IBKRClientGateway:
     ) -> str:
         from ib_insync import LimitOrder, MarketOrder, Stock
 
+        self._hook_errors()
         contract = Stock(symbol, "SMART", "USD")
         order: Any = (
             LimitOrder(side, quantity, limit_price if limit_price is not None else 0.0)
@@ -179,6 +254,7 @@ class IBKRClientGateway:
         )
         trade = self._client.ib.placeOrder(contract, order)
         broker_order_id = str(trade.order.orderId)
+        self._order_ids.add(broker_order_id)
         trade.statusEvent += self._make_handler(broker_order_id)
         return broker_order_id
 
@@ -225,6 +301,7 @@ class IBKRClientGateway:
                     status=str(status.status),
                     filled=int(trade.filled()),  # type: ignore[attr-defined]
                     avg_fill_price=float(status.avgFillPrice or 0.0),
+                    reason=_reason_from_trade(trade),
                 )
             )
 
