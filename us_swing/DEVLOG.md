@@ -2,6 +2,17 @@
 
 ---
 
+## [20260827] EXE+INF+GUI — IBKR live execution Phases 1–4, F4 guard, 21-test revival (bugfix)
+
+- Type: Bugfix
+- FO(s): FO-EXE-015, FO-EXE-014, FO-EXE-011, FO-EXE-008, FO-INF-009, FO-GUI-012
+- RN: RN-EXE-1.32.0-20260827
+- Artifacts updated: TRACE (v1.20.0, 4 rows), RN, Code, Tests, CONTEXT, DEVLOG
+- PRs: #60 Phase 1, #61 Phase 2, #62 Phase 3, #63 Phase 4, #64 F4, #65 tests
+- Decisions: Closed the rest of `IBKR_Live_Execution_Plan.md`. One through-line — an order that did not fill cleanly stranded its symbol `in_flight` with capital reserved, four different ways. **Phase 1:** `RejectEvent` had a fully-built consumer chain (`engine.on_order_reject` → `router.on_order_reject` → discard `in_flight`, `risk.release`) and **zero producers**. Added a required `reject_sink` and `_notify_reject()`, plus rollback on the router's dispatch exception. Two deliberate deviations from the plan: one sink rather than the specified reject+cancel pair (both would have been identical lambdas onto the same handler), and required rather than optional, since an unwired optional sink silently does nothing — precisely the failure being fixed. **Phase 2:** four hardcoded `"paper"` values replaced; `mode_provider` fixes the ledger end-to-end since it feeds `OrderContext.mode` → `TradeRecord.mode`. Two literals kept on purpose (first-run default, SimBroker fallback). TODO T7 closed rather than actioned — `insert_trade_with_anchor` no longer exists anywhere. **Phase 3:** three faults — `PendingCancel` treated as terminal popped `client_ref`, so a cancel that lost the race and filled arrived unattributable and was discarded, meaning shares moved at IBKR while the app recorded nothing; margin rejects reach TWS clients only via `errorEvent`, which nothing watched, so Phase 1's path existed but no event travelled it; and `reason` was hardcoded empty. Codes 103/201 → reject, 202 → cancel, everything else ignored because `errorEvent` is account-wide chatter. Pure helpers extracted so the reqId filter carries coverage without TWS. A first attempt subscribed in `__init__` and `test_broker_factory` caught it — that mattered, because `build_broker` runs inside a try/except that would have swallowed it and silently downgraded live routing to paper. **Phase 4:** `_require_live()` raises before touching the socket, feeding Phase 1's rollback. Order pacing deliberately skipped — `PacingQueue` is the historical-data limiter (50/600 s) and would block a stop-loss exit for minutes. **F4:** manual ENTRY on a held stock now refused; the harm was `_open_cycle_qty` taking the first match so an auto-exit sold 10 and left 5. Reachable via the `fill_sink`-before-`_open_cycle` window. Confirmed there is no manual add-to-position feature. **Tests:** all 21 stale failures revived — none was a broken feature, every one asserted against a moved API, so Market Watch, tick subscription and the candle loader had no working coverage. Found the candle tests were fast *because* broken (empty fetch → trivial aggregation) and that the 24 000-bar fixture was sized for the removed 1h timeframe; 6 000 covers 15m, 92 s → 28 s. Suite now **380 passed, 0 failed** (was 357/21). Outstanding: Phase 4 live smoke test NOT RUN (deferred, runbook committed), F5 DB constraint, N1 silent cancel no-op, N2 account-wide helpers, `_users[0].mode` multi-user caveat, SRD-GUI-013.006 documenting 15 indicators where 10 exist.
+
+---
+
 ## [20260826] GUI — Live tick worker watchdog: LiveTickWorker no longer dies once (FO-GUI-012, bugfix)
 
 - Type: Bugfix
