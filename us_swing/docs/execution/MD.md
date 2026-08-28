@@ -309,3 +309,13 @@ wiring (M03–M04) → app wiring (M09) → GUI surfaces (M05, M08).
 **Cross-tool surfaces (GUI tool — see `gui/MD.md`):** `gui/strategy_store.py` adds `StrategyConfig.per_trade_pct: int = 100`, the `strategies.per_trade_pct` column, and the additive `_migrate_columns` `ALTER TABLE` for existing databases; `gui/strategy_builder_dialog.py` adds the Strategy Allocation + Per-Trade Size spinboxes and live hint; `gui/execution_panel.py` passes the user's Max Capital into the dialog (SRD-EXE-017.023/.025).
 
 **Test impact (not separate MD rows):** add unit tests for `size_for_strategy` (incl. `qty<1` → 0) and budget-based `can_allocate`; advisory-path tests asserting `validate` returns `ok=True` while publishing `RiskWarning`; daily-loss aggregation + latch tests; a rex-reset test driving `STOPPED→RUNNING` through `_apply_run_state`; a `RiskConfig` migration test (legacy JSON → `max_capital_value`); a Rex-display test (exhausted shows `0`, pending duplicate shows `—`).
+
+## Module Modifications for FO-EXE-015
+
+The liveness gate raises before touching a dead socket, and the router rolls that
+back. The two GUI order paths called the submitter bare, so the exception reached
+the Qt slot instead.
+
+| Module ID | File | Change Required | SRD |
+|---|---|---|---|
+| MD-EXE-015.004.M01 | `src/us_swing/gui/app_service.py` | Guard both GUI submit paths (`execute_signal`, `_submit_cycle_exit`) with try/except: log a `[Orders]` message, re-add the popped signal to the pending store, return -1. | SRD-EXE-015.004 |

@@ -2138,7 +2138,20 @@ class AppService(QObject):
         if self._submitter is None:
             _log.error("[Orders] Cannot submit signal — order submission is unavailable")
             return -1
-        order_id = self._submitter.submit(eng_sig, quantity) or -1
+        try:
+            order_id = self._submitter.submit(eng_sig, quantity) or -1
+        except Exception as exc:
+            # A live submit can fail before the broker ever sees it (TWS down,
+            # placement timeout).  The signal was already popped from the store,
+            # so put it back — otherwise the row vanishes and the user cannot
+            # retry once TWS is up again.
+            self._pending_store.add(eng_sig)
+            _log.exception("[Orders] Could not submit the order for %s", signal.symbol)
+            self.log_message.emit(
+                "ERROR",
+                f"[Orders] Order for {signal.symbol} was not sent — {exc}",
+            )
+            return -1
         return order_id
 
     def reload_strategy_registry(self) -> None:
@@ -2485,7 +2498,15 @@ class AppService(QObject):
         if self._submitter is None:
             _log.error("[Orders] Cannot submit exit order — order submission is unavailable")
             return -1
-        return self._submitter.submit(eng_sig, int(snap.entry_qty))
+        try:
+            return self._submitter.submit(eng_sig, int(snap.entry_qty))
+        except Exception as exc:
+            _log.exception("[Orders] Could not submit the exit order for %s", snap.symbol)
+            self.log_message.emit(
+                "ERROR",
+                f"[Orders] Exit order for {snap.symbol} was not sent — {exc}",
+            )
+            return -1
 
     def _on_strategy_event(self, event: object) -> None:
         """Re-broadcast a position entry/exit as a refresh nudge.
