@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-08-27 (Session 77)
+**Last Updated:** 2026-08-28 (Session 78)
 
 ---
 
@@ -28,3 +28,7 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T17 | Fixed (RN-INF-1.5.0): `AppService._publish_day_end_pnl` now reads `p.unrealised_pnl` (British) instead of the never-present `unrealized_pnl` → day-end unrealised P&L is correct. | `gui/app_service.py` | Low | Done |
 | T9 | Reject path didn't abort the cycle — fixed. Added `TradeCycleService.abort_entry_order`; `OrderIngestion` REJECTED branch now aborts a partial-filled OPENING cycle. SRD-EXE-014.005 corrected (was naming the removed `ExecutionEngine.handle_order_reject`). Note: entry-only by design — exit reject must keep the cycle OPEN (you still hold the stock); the partial-sell-then-reject residual case is left to T8. | `execution/order_ingestion.py`, `execution/trade_cycle/_service.py` | High | Done |
 | T18 | `LiveTickWorker._connect_with_retry` catches `TimeoutError` in its generic `except` and returns before the clientId-increment retry runs, so SRD-EXE-008.006 never fires on that path. Masked by the new watchdog (RN-GUI-1.4.0). | `execution/live_tick_worker.py` | Low | Open |
+| T19 | **Run the Phase 4 live smoke test** on DU7078110 (`docs/execution/Phase4_Live_Smoke_Test.md`) — 5 steps, 1 share, manual only. All code gaps now closed; this is the last gate before real-money use. | `broker/ibkr.py` | High | Open |
+| T20 | `_submit_cycle_exit` sets `_pending_exit_reason` before submitting; a failed submit leaves a stale reason a later unrelated exit fill can pick up. Clear it in the except block. | `gui/app_service.py` | Low | Open |
+| T21 | `cancel_order` has no production caller — the CANCELLED ingestion branch only fires on a manual TWS cancel, so the path is effectively untested. Decide: wire a cancel action or record as unreachable. | `broker/ibkr.py` | Low | Open |
+| T22 | `IBKRClientGateway._order_ids` is never pruned; a late error on a finished order logs a spurious "unknown order" warning. Drop the id on a terminal status. | `broker/ibkr.py` | Low | Open |

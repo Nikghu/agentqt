@@ -2,6 +2,17 @@
 
 ---
 
+## [20260828] EXE+GUI — IBKR live-readiness review + GUI submit-failure guard (FO-EXE-015, bugfix)
+
+- Type: Review + Bugfix
+- FO(s): FO-EXE-015
+- RN: RN-EXE-1.32.1-20260828
+- Artifacts updated: MD (new FO-EXE-015 section, M01), UTCD (T32–T36), TRACE (v1.20.1), RN, Code, Tests, CONTEXT, DEVLOG
+- PRs: #68
+- Decisions: User asked whether the IBKR live implementation is ready to test deeply on paper. Reviewed the whole live path against `IBKR_Live_Execution_Plan.md` rather than trusting the RN — every Phase 0–4 change is genuinely in the code (reject/cancel sinks, router rollback, mode threading, `PendingCancel` no longer terminal, `errorEvent` with the reqId filter, `_require_live`, order client id 15, dashboard mutators blocked). `broker/` and `execution/` are ruff-clean and mypy-clean; the 19 ruff hits are all pre-existing `app_service.py` noise. Full suite 717 passed / 11 failed, every failure in `analysis/test_candle_builder.py` or `screener/test_preset.py` — none on the execution path. **One real gap found.** The liveness gate raises `BrokerConnectionError` and `BrokerAdapter.submit` deliberately re-raises (`broker_adapter.py:77-80`); the router catches it and rolls back, but both **GUI** order paths called the submitter bare — `execute_signal:2141` and `_submit_cycle_exit:2488` — so the exception reached the Qt slot at `execution_panel.py:1488`. Compounding it, `execute_signal` calls `_pending_store.execute()` *before* submitting and `PendingSignalStore` has only `add`/`dismiss`/`execute`, no restore, so a failed submit silently lost the pending row and the user could not retry. This is precisely step 5 of `Phase4_Live_Smoke_Test.md` (kill TWS mid-flight), which the runbook says should show a clean message. Both paths now catch, `log.exception`, emit a user-facing `[Orders]` message and return `-1`; `execute_signal` re-adds the popped signal. **Left alone on purpose:** `_submit_cycle_exit` sets `_pending_exit_reason` before submitting, so a failed submit leaves a stale reason that a later unrelated exit fill could pick up — real but separate from this guard, surfaced to the user rather than fixed silently. Three other observations recorded, none actioned: `cancel_order` has no production caller anywhere, so the CANCELLED ingestion branch only fires on a manual TWS cancel and is effectively untested; `_order_ids` in `IBKRClientGateway` is never pruned, so a late error on a finished order logs an "unknown order" warning (noise, not harm); the broker is built once from `_users[0].mode` rather than the active user, but `settings_panel.py:254` already warns "Restart the tool for the new trading mode to take effect", so single-user is safe. Tests: 5 new in `tests/gui/test_app_service_submit_guard.py` (`UT-EXE-015.004.M01.T32–T36`), covering both paths raising, the re-add, and both happy paths; gui+execution+broker **385 passed**. ruff findings unchanged from baseline; mypy --strict clean on the edited regions. Merged as PR #68, branch deleted. Outstanding: **Phase 4 live smoke test on DU7078110 still NOT RUN** — this was the last code gap before it; plus the stale `_pending_exit_reason`, silent cancel no-op, F5 DB constraint, and the deferred Phases 5/6/8 + FO-EXE-003.
+
+---
+
 ## [20260827] EXE+INF+GUI — IBKR live execution Phases 1–4, F4 guard, 21-test revival (bugfix)
 
 - Type: Bugfix
