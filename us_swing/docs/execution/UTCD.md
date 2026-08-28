@@ -720,3 +720,8 @@
 | UT-EXE-017.019.M14.T01 | MD-EXE-017.016.M14 | Positive | Paper `open_position_value` summed from open cycles | paper user; two open cycles worth $1300 total | `get_account_state().open_position_value == 1300.0` | Pass |
 | UT-EXE-017.021.M14.T02 | MD-EXE-017.016.M14 | Positive | `AppService.margin_available` nets deployed | eff_cap=$2000; deployed $1300 | `margin_available() == 700.0` | Pass |
 | UT-EXE-017.021.M14.T03 | MD-EXE-017.016.M14 | Edge | Margin floors at zero when over-deployed | eff_cap=$2000; deployed $2500 | `margin_available() == 0.0` | Pass |
+| UT-EXE-015.004.M01.T32 | MD-EXE-015.004.M01 | Negative | Submit raising never escapes into the Qt slot | live entry signal; submitter raises `BrokerConnectionError` | `execute_signal` returns -1, no exception propagates | Pass |
+| UT-EXE-015.004.M01.T33 | MD-EXE-015.004.M01 | Negative | A failed submit returns the signal to the pending store | same as T32 | `pending_store.add` called once with the popped signal | Pass |
+| UT-EXE-015.004.M01.T34 | MD-EXE-015.004.M01 | Positive | A healthy submit is unchanged | submitter returns order id 77 | returns 77; `pending_store.add` never called | Pass |
+| UT-EXE-015.004.M01.T35 | MD-EXE-015.004.M01 | Negative | Force-exit into a dead socket reports instead of raising | open cycle; submitter raises `BrokerConnectionError` | `_submit_cycle_exit` returns -1, no exception propagates | Pass |
+| UT-EXE-015.004.M01.T36 | MD-EXE-015.004.M01 | Positive | A healthy exit submit is unchanged | submitter returns order id 91 | `_submit_cycle_exit` returns 91 | Pass |
