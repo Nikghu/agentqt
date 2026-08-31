@@ -174,6 +174,29 @@ class TestCancelFeedback:
 
         assert cycles.aborted == []
 
+    def test_fill_after_a_cancel_is_not_lost(self) -> None:
+        """UT-EXE-015.005.M01.T11: TWS can cancel an order and fill it moments later.
+
+        The cancel used to forget the order, so the fill that followed arrived
+        for an unknown order and was discarded — the stock was held with nothing
+        in the app to show for it.
+        """
+        mgr, ingestion, _cycles, rejects, fills = _wire(is_entry=True)
+
+        ingestion.on_order_event(_event(OrderStatus.CANCELLED))
+        ingestion.on_order_event(_event(OrderStatus.FILLED, filled=16))
+
+        assert len(rejects) == 1, "the cancel must still release the symbol"
+        assert len(fills) == 1, "the late fill was dropped"
+
+        with mgr._engine.connect() as conn:
+            filled = conn.execute(
+                sa.select(trades.c.filled_quantity).where(trades.c.trade_id == "1001")
+            ).scalar_one()
+        assert filled == 16
+        assert ingestion._context == {}, "the fill must release the context"
+
+
 
 class TestSinkFailureIsContained:
     def test_a_raising_sink_does_not_break_ingestion(self) -> None:

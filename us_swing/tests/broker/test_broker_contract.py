@@ -399,6 +399,25 @@ def test_pending_cancel_is_not_terminal() -> None:
     assert events[0].filled_quantity == 10
 
 
+def test_cancelled_then_filled_keeps_the_client_ref() -> None:
+    """UT-INF-009.005.M01.T19: a fill arriving after a cancel is still attributable.
+
+    TWS cancelled a live order (error 10349, an order preset rewriting the TIF)
+    and filled it two seconds later.  The reference was dropped on the cancel, so
+    the fill arrived unattributable and was discarded — the stock was held with
+    nothing in the app to show for it.
+    """
+    broker, scheduler = _ibkr([("Cancelled", 0, 0.0), ("Filled", 16, 30.95)])
+    events = _collect(broker)
+
+    broker.place_order(_market_buy())
+    scheduler.pump()
+
+    assert [e.status for e in events] == [OrderStatus.CANCELLED, OrderStatus.FILLED]
+    assert events[1].client_ref == "sig-1", "client_ref was dropped on the cancel"
+    assert events[1].filled_quantity == 16
+
+
 def test_pending_cancel_then_cancelled_still_cancels() -> None:
     """UT-INF-009.005.M01.T11: the normal cancel sequence is unaffected."""
     broker, scheduler = _ibkr([("PendingCancel", 0, 0.0), ("Cancelled", 0, 0.0)])

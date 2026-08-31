@@ -209,11 +209,14 @@ class OrderIngestion:
             self._notify_reject(ctx, event.reason or "broker_reject")
             return
         if event.status is OrderStatus.CANCELLED:
-            log.info(
-                "[Orders] Order cancelled with %d share(s) filled",
-                event.filled_quantity,
+            log.warning(
+                "[Orders] %s %s cancelled by the broker with %d share(s) filled",
+                ctx.symbol, ctx.side.value, event.filled_quantity,
             )
-            self._forget(client_ref)
+            # The context is deliberately kept.  TWS can cancel an order and fill
+            # it moments later; forgetting here made that fill unattributable, so
+            # the stock was held with nothing in the app to show it.  A later fill
+            # lands on the branches below and clears the context itself.
             self._notify_reject(ctx, "cancelled")
             return
 
