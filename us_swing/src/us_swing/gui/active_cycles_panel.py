@@ -523,9 +523,13 @@ class ActiveCyclesPanel(QWidget):
         self._empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._empty_label.setStyleSheet(f"color: {C.MUTED}; padding: 24px;")
 
+        self._mode_badge = QLabel(self)
+        self._mode_badge.setObjectName("mode_badge")
+
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
+        root.addWidget(self._build_mode_bar())
         root.addWidget(self._table)
         root.addWidget(self._empty_label)
 
@@ -726,6 +730,48 @@ class ActiveCyclesPanel(QWidget):
         new_uid = getattr(self._app, "viewing_uid", None)
         self._model.set_scope(new_uid)
         self._refresh_user_column()
+        self._refresh_mode_badge()
+
+    def _build_mode_bar(self) -> QWidget:
+        """Thin strip above the table carrying the order-routing badge."""
+        bar = QWidget(self)
+        bar.setObjectName("mode_bar")
+        bar.setStyleSheet(f"#mode_bar {{ background: {C.SURFACE}; }}")
+        row = QHBoxLayout(bar)
+        row.setContentsMargins(8, 4, 8, 4)
+        row.addWidget(self._mode_badge)
+        row.addStretch()
+        self._refresh_mode_badge()
+        return bar
+
+    def _refresh_mode_badge(self) -> None:
+        """Show where orders from this tab actually go.
+
+        The badge follows the *active* user, not the viewing scope: the broker is
+        built once at startup from that user's mode, so it is the only thing that
+        decides whether an order reaches IBKR. An admin viewing another user's
+        rows is still routing through their own broker.
+        """
+        if self._app is None or not hasattr(self._app, "get_active_user"):
+            self._mode_badge.hide()
+            return
+        try:
+            live = self._app.get_active_user().mode == "live"
+        except Exception:
+            self._mode_badge.hide()
+            return
+        label = "LIVE" if live else "PAPER"
+        colour = C.RED if live else C.BLUE
+        self._mode_badge.setText(f"●  {label}")
+        self._mode_badge.setStyleSheet(
+            f"color: {colour}; font-size: 8pt; font-weight: bold; letter-spacing: 1px;"
+        )
+        self._mode_badge.setToolTip(
+            "Orders from this tab are sent to IBKR through TWS"
+            if live else
+            "Orders from this tab are simulated inside the tool and never reach a broker"
+        )
+        self._mode_badge.show()
 
     @pyqtSlot(bool)
     def _on_circuit_breaker_changed(self, _active: bool) -> None:
