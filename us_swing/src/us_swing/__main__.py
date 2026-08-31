@@ -18,9 +18,14 @@ _LOG_DIR = Path.home() / ".usswing" / "logs"
 def _setup_logging() -> None:
     """Initialise file + stderr logging before anything else starts."""
     import os
+    from us_swing.gui.system_store import load_system_config
     from us_swing.monitoring.logging_setup import configure_logging
     level = os.environ.get("LOG_LEVEL", "INFO")
-    configure_logging(_LOG_DIR, level=level)
+    configure_logging(
+        _LOG_DIR,
+        level=level,
+        timezone=load_system_config().market_timezone,
+    )
 
 
 def _patch_ib_del() -> None:

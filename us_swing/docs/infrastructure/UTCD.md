@@ -112,6 +112,8 @@
 |---|---|---|---|---|---|---|
 | UT-INF-005.001.M01.T01 | MD-INF-005.001.M01 | Unit | `configure_logging()` creates rotating file handler | Call `configure_logging(log_dir, "INFO")` | A `TimedRotatingFileHandler` is attached to root logger | Draft |
 | UT-INF-005.001.M01.T02 | MD-INF-005.001.M01 | Unit | Global `sys.excepthook` logs uncaught exception | Manually call `sys.excepthook` with a `ValueError` | CRITICAL entry appears in log with full traceback | Draft |
+| UT-INF-005.001.M01.T03 | MD-INF-005.001.M01 | Positive | Log timestamps use the configured market timezone | Format a record fixed at 16:35:45 UTC with zone `US/Eastern` | Stamp reads `2026-08-31T12:35:45-0400`, never a bare `Z` | Pass |
+| UT-INF-005.001.M01.T04 | MD-INF-005.001.M01 | Negative | An unusable timezone name falls back to the local zone | Resolve `"Not/AZone"` and `None` | Local zone returned; no exception raised | Pass |
 | UT-INF-005.001.M02.T01 | MD-INF-005.001.M02 | Unit | `AlertDispatcher.send()` appends to alerts.log | Send WARNING alert | `logs/alerts.log` contains the message | Draft |
 | UT-INF-005.001.M02.T02 | MD-INF-005.001.M02 | Edge | Webhook failure does not crash dispatcher | Configure bad URL; send alert | WARNING logged about webhook failure; no exception propagates | Draft |
 | UT-INF-005.001.M03.T01 | MD-INF-005.001.M03 | Unit | `HealthCheck.report()` returns expected keys | Mock broker connected, DB reachable | Dict has keys: `broker_connected`, `last_update`, `universe_count`, `open_positions`, `db_reachable` | Draft |
