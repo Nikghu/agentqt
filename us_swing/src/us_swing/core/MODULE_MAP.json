@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-27T12:48:58",
+  "generated": "2026-09-04T08:12:00",
   "subfolder": "core",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\core",
   "tool_code": "EXE",
@@ -772,6 +772,19 @@
       ],
       "constants": [
         "_API_BASE = \"https://api.telegram.org\""
+      ]
+    },
+    "symbols.py": {
+      "module_id": "MD-INF-007.001.M03",
+      "srd_id": "SRD-INF-007.006",
+      "top_level_functions": [
+        {
+          "name": "yahoo_symbol",
+          "signature": "def yahoo_symbol(symbol: str) -> str",
+          "docstring": "Return *symbol* in Yahoo Finance notation (BRK.B \u2192 BRK-B).",
+          "line_start": 15,
+          "line_end": 22
+        }
       ]
     }
   }

@@ -90,7 +90,7 @@ than failing the reset.
 
 ## Verification
 
-`tests/gui/test_app_service_reset_candle_db.py` — 6 cases (UT-GUI-006.018.M01.T01–T06):
+`tests/gui/test_app_service_reset_candle_db.py` — 6 cases (UT-GUI-006.001.M01.T05–T06):
 reset succeeds while a second connection is open (the original crash); trading tables
 survive; intraday candles survive; the file is never unlinked; checkpoint and failed-symbols
 files are removed and the status refresh fires; a missing table is recreated empty.
@@ -107,7 +107,7 @@ files are removed and the status refresh fires; a missing table is recreated emp
 | `gui/settings_panel.py` | Slot exception guard + reworded dialog | Done |
 | `tests/gui/test_app_service_reset_candle_db.py` | New regression suite | Done |
 | SRD-GUI-006.018 | New row covering crash-safe reset semantics and the preserved tables | Approved by user 2026-09-04 → Implemented |
-| UTCD (GUI) | UT-GUI-006.018.M01.T01–T06 rows | Updated |
+| UTCD (GUI) | UT-GUI-006.001.M01.T05–T06 rows | Updated |
 | TRACE (GUI) | SRD-GUI-006.018 row → test + RN references | Updated |
 
 ## Notes

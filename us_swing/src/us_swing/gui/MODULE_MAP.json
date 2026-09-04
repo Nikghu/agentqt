@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-04T07:26:13",
+  "generated": "2026-09-04T08:12:00",
   "subfolder": "gui",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\gui",
   "tool_code": "GUI",
@@ -1058,7 +1058,7 @@
           "methods": [
             {
               "name": "__init__",
-              "signature": "def __init__(\n        self,\n        db_path: Path,\n        symbols: list[str],\n        parent: QObject | None = None,\n    ) -> None",
+              "signature": "def __init__(\r\n        self,\r\n        db_path: Path,\r\n        symbols: list[str],\r\n        parent: QObject | None = None,\r\n    ) -> None",
               "line_start": 327,
               "line_end": 335
             },
@@ -1181,7 +1181,7 @@
           "methods": [
             {
               "name": "__init__",
-              "signature": "def __init__(\n        self,\n        symbols:          list[str],\n        start_date:       datetime.date,\n        end_date:         datetime.date,\n        mode:             str,   # \"full\" | \"delta\"\n        ibkr_host:        str,\n        ibkr_port:        int,\n        ibkr_client_id:   int,\n        benchmark_symbol: str = \"SPY\",\n    ) -> None",
+              "signature": "def __init__(\r\n        self,\r\n        symbols:          list[str],\r\n        start_date:       datetime.date,\r\n        end_date:         datetime.date,\r\n        mode:             str,   # \"full\" | \"delta\"\r\n        ibkr_host:        str,\r\n        ibkr_port:        int,\r\n        ibkr_client_id:   int,\r\n        benchmark_symbol: str = \"SPY\",\r\n    ) -> None",
               "line_start": 718,
               "line_end": 738
             },
@@ -1494,7 +1494,7 @@
             },
             {
               "name": "_on_readiness_done",
-              "signature": "def _on_readiness_done(\n        self, result: dict[str, bool | None], loader: IntradayCandleLoader\n    ) -> None",
+              "signature": "def _on_readiness_done(\r\n        self, result: dict[str, bool | None], loader: IntradayCandleLoader\r\n    ) -> None",
               "docstring": "Receives pre-load DB readiness state and starts the captured loader.",
               "line_start": 1884,
               "line_end": 1902
@@ -1528,7 +1528,7 @@
             },
             {
               "name": "_execution_candle_source",
-              "signature": "def _execution_candle_source(\n        self,\n    ) -> tuple[DatabaseManager, HistoricalDataEngine] | None",
+              "signature": "def _execution_candle_source(\r\n        self,\r\n    ) -> tuple[DatabaseManager, HistoricalDataEngine] | None",
               "docstring": "Lazily build and cache the candle DB handle + aggregation engine.",
               "line_start": 1983,
               "line_end": 2001
@@ -1581,7 +1581,7 @@
             },
             {
               "name": "set_stop_loss",
-              "signature": "def set_stop_loss(self, symbol: str, price: float, user_id: int | None = None,\n                      trailing: bool = False, trail_by: str = \"\", trail_val: float = 0.0) -> None",
+              "signature": "def set_stop_loss(self, symbol: str, price: float, user_id: int | None = None,\r\n                      trailing: bool = False, trail_by: str = \"\", trail_val: float = 0.0) -> None",
               "line_start": 2100,
               "line_end": 2121
             },
@@ -1685,7 +1685,7 @@
             },
             {
               "name": "force_exit_position",
-              "signature": "def force_exit_position(\n        self, strategy: str, symbol: str, reason: str = \"manual\",\n    ) -> int | None",
+              "signature": "def force_exit_position(\r\n        self, strategy: str, symbol: str, reason: str = \"manual\",\r\n    ) -> int | None",
               "docstring": "Exit the open cycle for *strategy* and *symbol*.",
               "line_start": 2481,
               "line_end": 2502
@@ -2175,21 +2175,21 @@
             },
             {
               "name": "get_candles_bulk",
-              "signature": "def get_candles_bulk(\n        self,\n        symbols: list[str],\n        timeframe: str = \"1d\",\n        limit: int = 200,\n    ) -> \"dict[str, list[dict]]\"",
+              "signature": "def get_candles_bulk(\r\n        self,\r\n        symbols: list[str],\r\n        timeframe: str = \"1d\",\r\n        limit: int = 200,\r\n    ) -> \"dict[str, list[dict]]\"",
               "docstring": "Bulk-fetch OHLCV for multiple symbols in one DB round-trip.",
               "line_start": 3479,
               "line_end": 3517
             },
             {
               "name": "get_candles_for_symbol",
-              "signature": "def get_candles_for_symbol(\n        self,\n        symbol: str,\n        timeframe: str = \"1d\",\n        limit: int = 500,\n    ) -> list[dict]",
+              "signature": "def get_candles_for_symbol(\r\n        self,\r\n        symbol: str,\r\n        timeframe: str = \"1d\",\r\n        limit: int = 500,\r\n    ) -> list[dict]",
               "docstring": "Return OHLCV rows for *symbol* from candles.db.",
               "line_start": 3519,
               "line_end": 3561
             },
             {
               "name": "get_intraday_candles_for_symbol",
-              "signature": "def get_intraday_candles_for_symbol(\n        self,\n        symbol: str,\n        timeframe: str = \"3m\",\n        limit_1m: int = 10_000,\n    ) -> list[dict[str, Any]]",
+              "signature": "def get_intraday_candles_for_symbol(\r\n        self,\r\n        symbol: str,\r\n        timeframe: str = \"3m\",\r\n        limit_1m: int = 10_000,\r\n    ) -> list[dict[str, Any]]",
               "docstring": "Return intraday OHLCV rows for *symbol* at the requested timeframe.",
               "line_start": 3563,
               "line_end": 3669
@@ -2238,7 +2238,7 @@
             },
             {
               "name": "start_candle_download",
-              "signature": "def start_candle_download(\n        self,\n        start_date: datetime.date,\n        mode: str = \"full\",\n        symbols: \"list[str] | None\" = None,\n    ) -> None",
+              "signature": "def start_candle_download(\r\n        self,\r\n        start_date: datetime.date,\r\n        mode: str = \"full\",\r\n        symbols: \"list[str] | None\" = None,\r\n    ) -> None",
               "docstring": "Start (or resume) a candle download.",
               "line_start": 3744,
               "line_end": 3853
@@ -2323,7 +2323,7 @@
         },
         {
           "name": "_save_checkpoint",
-          "signature": "def _save_checkpoint(\n    start_date: datetime.date,\n    end_date: datetime.date,\n    mode: str,\n    symbols_done: list[str],\n    symbols_todo: list[str],\n) -> None",
+          "signature": "def _save_checkpoint(\r\n    start_date: datetime.date,\r\n    end_date: datetime.date,\r\n    mode: str,\r\n    symbols_done: list[str],\r\n    symbols_todo: list[str],\r\n) -> None",
           "docstring": "Persist download progress to checkpoint file.",
           "line_start": 511,
           "line_end": 529
@@ -2344,7 +2344,7 @@
         },
         {
           "name": "_verify_resume_symbols",
-          "signature": "def _verify_resume_symbols(\n    symbols_done: list[str],\n    end_date: datetime.date,\n) -> list[str]",
+          "signature": "def _verify_resume_symbols(\r\n    symbols_done: list[str],\r\n    end_date: datetime.date,\r\n) -> list[str]",
           "docstring": "Check the last N completed symbols against the DB.",
           "line_start": 557,
           "line_end": 586
@@ -6272,7 +6272,7 @@
       "top_level_functions": [
         {
           "name": "_build_universe_html",
-          "signature": "def _build_universe_html(\n    records: list,\n    coverage: \"dict[str, str | None] | None\" = None,\n    last_trading_day: str | None = None,\n) -> str",
+          "signature": "def _build_universe_html(\r\n    records: list,\r\n    coverage: \"dict[str, str | None] | None\" = None,\r\n    last_trading_day: str | None = None,\r\n) -> str",
           "docstring": "Serialize records to an HTML page with all data embedded as JSON.",
           "line_start": 838,
           "line_end": 885

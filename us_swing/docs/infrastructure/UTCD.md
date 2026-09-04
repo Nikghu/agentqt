@@ -147,6 +147,18 @@
 
 ---
 
+## Module: `core/symbols.py` — Vendor symbol notation
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-INF-007.001.M03.T01 | MD-INF-007.001.M03 | Positive | Dots become hyphens; other symbols are unchanged | `BRK.B`, `BF.B`, `AAPL`, `''` | `BRK-B`, `BF-B`, `AAPL`, `''` | Pass |
+| UT-INF-007.001.M03.T02 | MD-INF-007.001.M03 | Edge | Converting an already-converted symbol is a no-op | `yahoo_symbol('BRK-B')` | `BRK-B` | Pass |
+| UT-INF-007.001.M03.T03 | MD-INF-007.001.M03 | Negative | Market-watch quotes look up the vendor symbol, emit the canonical one | `_WatchlistQuoteWorker(['BRK.B']).run()` | `yfinance.Ticker` called with `BRK-B`; emitted row keyed `BRK.B` | Pass |
+| UT-INF-007.001.M03.T04 | MD-INF-007.001.M03 | Negative | Universe market caps look up the vendor symbol | `_fetch_market_caps(['BRK.B'])` | `yfinance.Ticker` called with `BRK-B`; result keyed `BRK.B` | Pass |
+| UT-INF-007.001.M03.T05 | MD-INF-007.001.M03 | Negative | The live batch download sends and reads the vendor symbol | `_poll_yfinance_once()` with `['BRK.B', 'AAPL']` | `yfinance.download` called with `['BRK-B', 'AAPL']` for both timeframes | Pass |
+
+---
+
 ## Module: `core/notifications/_events.py` — Events & Bus
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |

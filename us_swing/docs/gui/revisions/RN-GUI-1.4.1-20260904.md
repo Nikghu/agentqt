@@ -78,7 +78,7 @@ all. Anyone relying on it to clear intraday candles must add those tables to
 ## Verification
 
 `tests/gui/test_app_service_reset_candle_db.py` — 6 new cases
-(UT-GUI-006.018.M01.T01–T06): reset succeeds while a second connection is open (the original
+(UT-GUI-006.001.M01.T05–T06): reset succeeds while a second connection is open (the original
 crash); trading tables survive; intraday candles survive; the file is never unlinked;
 ancillary files are cleared and the status refresh fires; a missing table is recreated empty.
 

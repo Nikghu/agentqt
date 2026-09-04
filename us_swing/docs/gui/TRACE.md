@@ -21,7 +21,7 @@
 | FO-GUI-006 | SRD-GUI-006.001–005 | — | MD-GUI-006.001.M01 | T01–T04 | `gui/settings_panel.py` | Draft | RN-GUI-1.3.0-20260602 |
 | FO-GUI-006 | SRD-GUI-006.005 | — | MD-GUI-000.004 | — | `gui/scheduler_dialog.py` | Draft | RN-GUI-1.2.1-20260519 |
 | FO-GUI-006 | SRD-GUI-006.017 | — | MD-GUI-000.003, MD-GUI-000.004 | UT-GUI-000.003.T01–T04, UT-GUI-000.004.T01–T02 | `gui/scheduler_store.py`, `gui/scheduler_dialog.py` | Implemented | RN-GUI-1.3.2-20260625 |
-| FO-GUI-006 | SRD-GUI-006.018 | — | MD-GUI-006.001.M01 | UT-GUI-006.018.M01.T01–T06 | `gui/app_service.py`, `gui/settings_panel.py` | Implemented | RN-GUI-1.4.1-20260904 |
+| FO-GUI-006 | SRD-GUI-006.018 | — | MD-GUI-006.001.M01 | UT-GUI-006.001.M01.T05–T06 | `gui/app_service.py`, `gui/settings_panel.py` | Implemented | RN-GUI-1.4.1-20260904 |
 | FO-GUI-007 | SRD-GUI-007.001–004 | DD-GUI-007.001.D01 | MD-GUI-007.001.M01 | T01–T04 | `gui/log_viewer_panel.py` | Draft |
 | FO-GUI-007 | SRD-GUI-007.001 | DD-GUI-007.001.D01 | MD-GUI-007.001.M02 | T01 | `gui/log_bridge.py` | Draft |
 | FO-GUI-011 | SRD-GUI-011.001–004 | DD-GUI-011.001.D01 | MD-GUI-011.001.M01 | — | `gui/chart_panel.py` | Implemented | RN-GUI-1.0.0-20260513 |

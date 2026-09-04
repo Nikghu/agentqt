@@ -68,6 +68,8 @@ from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
+from us_swing.core.symbols import yahoo_symbol
+
 if TYPE_CHECKING:
     from us_swing.execution.ibkr_order_connection import IBKROrderConnection
     from us_swing.execution.intraday_candle_loader import IntradayCandleLoader
@@ -369,7 +371,7 @@ class _WatchlistQuoteWorker(QThread):
             results: list[dict] = []
             for sym in self._symbols:
                 try:
-                    fi = yf.Ticker(sym).fast_info
+                    fi = yf.Ticker(yahoo_symbol(sym)).fast_info
                     ltp        = float(getattr(fi, "last_price",    0) or 0)
                     prev_close = float(getattr(fi, "previous_close",0) or 0)
                     change     = ltp - prev_close

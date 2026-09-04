@@ -79,7 +79,7 @@ class _StubService:
 
 
 def test_reset_survives_an_open_connection(candle_db: Path) -> None:
-    """UT-GUI-006.018.M01.T01: Reset succeeds while the database is held open.
+    """UT-GUI-006.001.M01.T05: Reset succeeds while the database is held open.
 
     Reproduces the Windows PermissionError (WinError 32) crash: another live
     connection on candles.db must not stop the reset.
@@ -96,7 +96,7 @@ def test_reset_survives_an_open_connection(candle_db: Path) -> None:
 
 
 def test_reset_keeps_trading_tables(candle_db: Path) -> None:
-    """UT-GUI-006.018.M01.T02: Reset clears candles but keeps trades and strategies."""
+    """UT-GUI-006.001.M01.T06: Reset clears candles but keeps trades and strategies."""
     _reset(_StubService())
 
     assert _count(candle_db, "price_1d") == 0
@@ -106,14 +106,14 @@ def test_reset_keeps_trading_tables(candle_db: Path) -> None:
 
 
 def test_reset_keeps_intraday_candles(candle_db: Path) -> None:
-    """UT-GUI-006.018.M01.T03: Reset leaves the intraday price tables untouched."""
+    """UT-GUI-006.001.M01.T07: Reset leaves the intraday price tables untouched."""
     _reset(_StubService())
 
     assert _count(candle_db, "price_1m") == 1
 
 
 def test_reset_keeps_the_database_file(candle_db: Path) -> None:
-    """UT-GUI-006.018.M01.T04: The database file is never unlinked by a reset."""
+    """UT-GUI-006.001.M01.T08: The database file is never unlinked by a reset."""
     _reset(_StubService())
 
     assert candle_db.exists()
@@ -122,7 +122,7 @@ def test_reset_keeps_the_database_file(candle_db: Path) -> None:
 def test_reset_clears_ancillary_files_and_refreshes(
     candle_db: Path, tmp_path: Path
 ) -> None:
-    """UT-GUI-006.018.M01.T05: Reset removes checkpoint plus failed-symbols, then refreshes."""
+    """UT-GUI-006.001.M01.T09: Reset removes checkpoint plus failed-symbols, then refreshes."""
     (tmp_path / "checkpoint.json").write_text("{}", encoding="utf-8")
     (tmp_path / "failed.json").write_text("{}", encoding="utf-8")
 
@@ -137,7 +137,7 @@ def test_reset_clears_ancillary_files_and_refreshes(
 
 def test_reset_recreates_missing_candle_tables(tmp_path: Path,
                                                monkeypatch: pytest.MonkeyPatch) -> None:
-    """UT-GUI-006.018.M01.T06: Reset on a fresh path creates empty candle tables."""
+    """UT-GUI-006.001.M01.T10: Reset on a fresh path creates empty candle tables."""
     db_path = tmp_path / "candles.db"
     monkeypatch.setattr(svc_mod, "_CANDLE_DB_PATH", db_path)
     monkeypatch.setattr(svc_mod, "_CHECKPOINT_PATH", tmp_path / "checkpoint.json")

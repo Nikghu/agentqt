@@ -14,6 +14,7 @@ import pandas as pd
 from PyQt6.QtCore import QObject, QThread, pyqtSignal
 
 from us_swing.broker.pacing import PacingQueue
+from us_swing.core.symbols import yahoo_symbol
 from us_swing.data.engine import DerivedTimeframe, HistoricalDataEngine
 from us_swing.data.models import OHLCVBar
 from us_swing.db.manager import DatabaseManager
@@ -32,14 +33,6 @@ _MAX_CLIENT_ID_RETRIES: int = 5  # SRD-EXE-006.011
 
 def _ensure_utc(dt: datetime) -> datetime:
     return dt.astimezone(timezone.utc) if dt.tzinfo is not None else dt.replace(tzinfo=timezone.utc)
-
-
-def _yahoo_symbol(symbol: str) -> str:
-    """Return *symbol* in Yahoo Finance's class-share notation (BRK.B → BRK-B).
-
-    Only the lookup key changes; stored rows stay keyed on the dotted symbol.
-    """
-    return symbol.replace(".", "-")
 
 
 def _build_tf_counts(
@@ -498,7 +491,7 @@ class IntradayCandleLoader(QThread):
         import yfinance as yf
 
         last = self._db.get_last_timestamp(symbol, "1m")
-        ticker = yf.Ticker(_yahoo_symbol(symbol))
+        ticker = yf.Ticker(yahoo_symbol(symbol))
 
         if last is None:
             log.info("[Candles] %s — fresh download (7 days of 1m bars)", symbol)
