@@ -14,6 +14,7 @@ from zoneinfo import ZoneInfo
 from PyQt6.QtCore import QObject, QThread, pyqtSignal
 
 from us_swing.core.candle_builder import CandleBuilder
+from us_swing.core.symbols import yahoo_symbol
 from us_swing.data.models import OHLCVBar, RealtimeBar
 
 log = logging.getLogger(__name__)
@@ -390,7 +391,8 @@ class LiveBarWorker(QThread):
         ]:
             try:
                 df_all = yf.download(
-                    symbols, period=period, interval=interval,
+                    [yahoo_symbol(s) for s in symbols],
+                    period=period, interval=interval,
                     group_by="ticker", auto_adjust=True,
                     progress=False, threads=True,
                 )
@@ -404,10 +406,13 @@ class LiveBarWorker(QThread):
                     return
                 try:
                     if multi:
+                        # The frame is keyed by the symbols as sent, so the
+                        # lookup converts too; writes below stay dotted.
+                        vendor_sym = yahoo_symbol(symbol)
                         top = df_all.columns.get_level_values(0)
-                        if symbol not in top:
+                        if vendor_sym not in top:
                             continue
-                        df = df_all[symbol].dropna(how="all")
+                        df = df_all[vendor_sym].dropna(how="all")
                     else:
                         df = df_all.dropna(how="all")
                     if df.empty:

@@ -121,6 +121,7 @@
 | SRD-INF-007.003 | FO-INF-007 | Must | `DummyProvider` implements `DataProvider` returning synthetic OHLCV bars: random-walk price series with configurable seed, realistic volume distribution, correct timestamps. | config: seed, base_price, volatility | `list[OHLCVBar]` with valid structure | Bars must pass the same validation as real bars; `open <= high`, `low <= close`, `volume >= 0` | Approved |
 | SRD-INF-007.004 | FO-INF-007 | Must | Provider selection via config key `DATA_PROVIDER`. `HistoricalDataEngine` receives a `DataProvider` instance (not `IBKRClient` directly) via dependency injection. | config `DATA_PROVIDER` | correct provider instantiated | Factory function: `create_provider(config) -> DataProvider` | Approved |
 | SRD-INF-007.005 | FO-INF-007 | Should | `DummyProvider` supports `subscribe_realtime_bars()` by emitting synthetic 5-second bars on a timer for testing live engine without IBKR. | symbol, bar_size | periodic synthetic bars via callback | Timer interval configurable; default 5 seconds; bars generated from random walk continuation | Approved |
+| SRD-INF-007.006 | FO-INF-007 | Must | Every outbound market-data call converts the canonical dotted symbol into the vendor's class-share notation; stored rows, logs and lookups keep the dotted form. | canonical symbol (e.g. `BRK.B`) | vendor symbol (Yahoo `BRK-B`, IBKR `BRK B`) | Conversion is per-call and never persisted; a vendor without class shares is unaffected (ISS-EXE-0012) | Implemented |
 
 ---
 

@@ -68,6 +68,8 @@ from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
+from us_swing.core.symbols import yahoo_symbol
+
 if TYPE_CHECKING:
     from us_swing.execution.ibkr_order_connection import IBKROrderConnection
     from us_swing.execution.intraday_candle_loader import IntradayCandleLoader
@@ -369,7 +371,7 @@ class _WatchlistQuoteWorker(QThread):
             results: list[dict] = []
             for sym in self._symbols:
                 try:
-                    fi = yf.Ticker(sym).fast_info
+                    fi = yf.Ticker(yahoo_symbol(sym)).fast_info
                     ltp        = float(getattr(fi, "last_price",    0) or 0)
                     prev_close = float(getattr(fi, "previous_close",0) or 0)
                     change     = ltp - prev_close
@@ -469,6 +471,23 @@ def _compute_last_trading_day() -> datetime.date:
             return candidate
         candidate -= datetime.timedelta(days=1)
     return candidate   # fallback (shouldn't reach)
+
+
+# Tables cleared by a candle reset.  The intraday tables (price_1m / price_3m /
+# price_15m) and the trading tables in the same file are deliberately excluded.
+_RESETTABLE_CANDLE_TABLES: tuple[str, ...] = ("price_1d", "price_1w")
+
+
+def _reclaim_sqlite_space(conn: sqlite3.Connection) -> None:
+    """Run VACUUM, tolerating a lock held by another connection on the same file.
+
+    Reclaiming disk space is a bonus, not part of the reset contract, so a
+    concurrent reader must not turn the whole reset into a failure.
+    """
+    try:
+        conn.execute("VACUUM")
+    except sqlite3.OperationalError as exc:
+        _log.warning("[CandleDB] Could not compact the database file (%s)", exc)
 
 
 def _ensure_candle_tables(conn: sqlite3.Connection) -> None:
@@ -1860,7 +1879,7 @@ class AppService(QObject):
         )
         self._readiness_worker = readiness_worker
         readiness_worker.finished.connect(lambda: setattr(self, "_readiness_worker", None))
-        loader.finished.connect(lambda: setattr(self, "_intraday_loader", None))
+        loader.finished.connect(lambda _l=loader: self._on_intraday_loader_finished(_l))
         readiness_worker.start()
         _log.info("[Candles] Starting download for %d stock(s)", len(symbols))
 
@@ -1944,10 +1963,24 @@ class AppService(QObject):
             )
         else:
             _log.info("[Candles] All %d stock(s) are ready for strategy indicators", ok_n)
+
+    def _on_intraday_loader_finished(self, loader: IntradayCandleLoader) -> None:
+        """Release the finished loader and start any batch queued while it ran.
+
+        The queue is drained here rather than in ``_on_candle_load_complete``:
+        that signal is emitted from inside the worker's ``run()``, so the thread
+        is still alive when the slot executes and ``_start_intraday_loader``
+        would re-queue the same batch instead of starting it — leaving those
+        symbols with no 1m history for the rest of the session (ISS-EXE-0011).
+        """
+        if self._intraday_loader is loader:
+            self._intraday_loader = None
         pending = self._pending_candle_symbols
-        if pending is not None:
-            self._pending_candle_symbols = None
-            self._start_intraday_loader(pending)
+        if pending is None:
+            return
+        self._pending_candle_symbols = None
+        _log.info("[Candles] Starting queued download for %d stock(s)", len(pending))
+        self._start_intraday_loader(pending)
 
     def _execution_candle_source(
         self,
@@ -3674,7 +3707,13 @@ class AppService(QObject):
         _FAILED_SYMBOLS_PATH.unlink(missing_ok=True)
 
     def reset_candle_db(self) -> None:
-        """Delete the candle DB and all ancillary files, then recreate empty tables.
+        """Clear the daily and weekly candle tables in place, plus ancillary files.
+
+        Rows are deleted rather than the database file unlinked: the file is held
+        open for the lifetime of the app by :attr:`_db` and by the strategy,
+        rex-counter and live-bar components, so Windows refuses to remove it.  It
+        also carries the trade cycles, trades and strategies, which a candle reset
+        must leave untouched.
 
         Stops any running download first.  After completion emits
         ``candle_db_status_changed`` so the UI refreshes automatically.
@@ -3682,20 +3721,23 @@ class AppService(QObject):
         # Stop any in-progress download
         self.stop_candle_download()
 
-        # Delete DB and ancillary files
-        _CANDLE_DB_PATH.unlink(missing_ok=True)
         _delete_checkpoint()
         _FAILED_SYMBOLS_PATH.unlink(missing_ok=True)
 
-        # Recreate empty schema
         _CANDLE_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
         conn = sqlite3.connect(str(_CANDLE_DB_PATH))
-        _ensure_candle_tables(conn)
-        conn.close()
+        try:
+            _ensure_candle_tables(conn)
+            for tbl in _RESETTABLE_CANDLE_TABLES:
+                conn.execute(f"DELETE FROM {tbl}")
+            conn.commit()
+            _reclaim_sqlite_space(conn)
+        finally:
+            conn.close()
 
         self.log_message.emit(
             "INFO",
-            "[CandleDB] Database reset — all candle data deleted and schema recreated.",
+            "[CandleDB] Daily and weekly candles cleared — trades and strategies kept",
         )
 
         # Refresh status so UI reflects the now-empty DB

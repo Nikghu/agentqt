@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import datetime
 import json
+import logging
 
 from PyQt6.QtCore import Qt, QDate, pyqtSignal
 from PyQt6.QtWebEngineWidgets import QWebEngineView
@@ -38,6 +39,8 @@ from PyQt6.QtWidgets import (
 from us_swing.gui.app_service import AppService
 from us_swing.data.models import RiskConfig, UserProfile
 from us_swing.gui.theme import C, active_palette, colors
+
+_log = logging.getLogger(__name__)
 
 
 # ── User dialog ───────────────────────────────────────────────────────────────
@@ -1353,12 +1356,14 @@ class _DatabaseTab(QWidget):
         self._set_downloading(True)
 
     def _on_reset_db(self) -> None:
-        """Confirm and reset the candle database (delete + recreate empty schema)."""
+        """Confirm and clear the daily and weekly candle tables."""
         reply = QMessageBox.warning(
             self,
             "Reset Candle Database",
-            "This will permanently delete ALL candle data and cannot be undone.\n\n"
-            "A full re-download from IBKR will be required afterwards.\n\n"
+            "This will permanently delete all daily and weekly candles "
+            "and cannot be undone.\n\n"
+            "A full re-download from IBKR will be required afterwards. "
+            "Your trades, cycles and strategies are kept.\n\n"
             "Are you sure you want to reset the database?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
             QMessageBox.StandardButton.Cancel,
@@ -1373,10 +1378,20 @@ class _DatabaseTab(QWidget):
         self._disc_failed_symbols = []
         self._fail_count_lbl.hide()
 
-        self._svc.reset_candle_db()
-
-        self._reset_db_btn.setEnabled(True)
-        self._reset_db_btn.setText("🗑  Reset Database")
+        try:
+            self._svc.reset_candle_db()
+        except Exception as exc:
+            _log.exception("[CandleDB] Database reset failed")
+            QMessageBox.critical(
+                self,
+                "Reset Failed",
+                "The candle database could not be reset.\n\n"
+                f"{exc}\n\n"
+                "Close any other program using the database and try again.",
+            )
+        finally:
+            self._reset_db_btn.setEnabled(True)
+            self._reset_db_btn.setText("🗑  Reset Database")
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 

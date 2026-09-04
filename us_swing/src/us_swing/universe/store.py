@@ -216,9 +216,11 @@ def _fetch_market_caps(symbols: list[str]) -> dict[str, float | None]:
     import yfinance as yf
     from concurrent.futures import ThreadPoolExecutor
 
+    from us_swing.core.symbols import yahoo_symbol
+
     def _one(sym: str) -> tuple[str, float | None]:
         try:
-            mc = yf.Ticker(sym).fast_info.market_cap
+            mc = yf.Ticker(yahoo_symbol(sym)).fast_info.market_cap
             return sym, float(mc) if mc else None
         except Exception:
             return sym, None

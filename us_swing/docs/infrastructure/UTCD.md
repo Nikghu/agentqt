@@ -112,6 +112,8 @@
 |---|---|---|---|---|---|---|
 | UT-INF-005.001.M01.T01 | MD-INF-005.001.M01 | Unit | `configure_logging()` creates rotating file handler | Call `configure_logging(log_dir, "INFO")` | A `TimedRotatingFileHandler` is attached to root logger | Draft |
 | UT-INF-005.001.M01.T02 | MD-INF-005.001.M01 | Unit | Global `sys.excepthook` logs uncaught exception | Manually call `sys.excepthook` with a `ValueError` | CRITICAL entry appears in log with full traceback | Draft |
+| UT-INF-005.001.M01.T03 | MD-INF-005.001.M01 | Positive | Log timestamps use the configured market timezone | Format a record fixed at 16:35:45 UTC with zone `US/Eastern` | Stamp reads `2026-08-31T12:35:45-0400`, never a bare `Z` | Pass |
+| UT-INF-005.001.M01.T04 | MD-INF-005.001.M01 | Negative | An unusable timezone name falls back to the local zone | Resolve `"Not/AZone"` and `None` | Local zone returned; no exception raised | Pass |
 | UT-INF-005.001.M02.T01 | MD-INF-005.001.M02 | Unit | `AlertDispatcher.send()` appends to alerts.log | Send WARNING alert | `logs/alerts.log` contains the message | Draft |
 | UT-INF-005.001.M02.T02 | MD-INF-005.001.M02 | Edge | Webhook failure does not crash dispatcher | Configure bad URL; send alert | WARNING logged about webhook failure; no exception propagates | Draft |
 | UT-INF-005.001.M03.T01 | MD-INF-005.001.M03 | Unit | `HealthCheck.report()` returns expected keys | Mock broker connected, DB reachable | Dict has keys: `broker_connected`, `last_update`, `universe_count`, `open_positions`, `db_reachable` | Draft |
@@ -142,6 +144,18 @@
 | UT-INF-007.001.M02.T02 | MD-INF-007.001.M02 | Unit | Generated bars satisfy OHLCV constraints | Any request | For each bar: `low <= open`, `low <= close`, `high >= open`, `high >= close`, `volume >= 0` | Draft |
 | UT-INF-007.001.M02.T03 | MD-INF-007.001.M02 | Unit | Same seed produces identical bars | Two calls with seed=42 | Both return identical `list[OHLCVBar]` | Draft |
 | UT-INF-007.001.M02.T04 | MD-INF-007.001.M02 | Edge | `subscribe_realtime_bars()` emits bars via callback | Subscribe and wait 10s | At least 1 bar received via `on_realtime_bar` callback | Draft |
+
+---
+
+## Module: `core/symbols.py` — Vendor symbol notation
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-INF-007.001.M03.T01 | MD-INF-007.001.M03 | Positive | Dots become hyphens; other symbols are unchanged | `BRK.B`, `BF.B`, `AAPL`, `''` | `BRK-B`, `BF-B`, `AAPL`, `''` | Pass |
+| UT-INF-007.001.M03.T02 | MD-INF-007.001.M03 | Edge | Converting an already-converted symbol is a no-op | `yahoo_symbol('BRK-B')` | `BRK-B` | Pass |
+| UT-INF-007.001.M03.T03 | MD-INF-007.001.M03 | Negative | Market-watch quotes look up the vendor symbol, emit the canonical one | `_WatchlistQuoteWorker(['BRK.B']).run()` | `yfinance.Ticker` called with `BRK-B`; emitted row keyed `BRK.B` | Pass |
+| UT-INF-007.001.M03.T04 | MD-INF-007.001.M03 | Negative | Universe market caps look up the vendor symbol | `_fetch_market_caps(['BRK.B'])` | `yfinance.Ticker` called with `BRK-B`; result keyed `BRK.B` | Pass |
+| UT-INF-007.001.M03.T05 | MD-INF-007.001.M03 | Negative | The live batch download sends and reads the vendor symbol | `_poll_yfinance_once()` with `['BRK.B', 'AAPL']` | `yfinance.download` called with `['BRK-B', 'AAPL']` for both timeframes | Pass |
 
 ---
 

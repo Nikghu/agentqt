@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import concurrent.futures
+from collections import OrderedDict
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Protocol, TypeVar
@@ -67,8 +68,13 @@ class OrderGateway(Protocol):
     def on_status(self, callback: Callable[[IbkrOrderUpdate], None]) -> None: ...
 
 
-# IBKR statuses that finish an order — context is dropped once one arrives.
+# IBKR statuses that finish an order.  The client reference is retired rather
+# than dropped: TWS can cancel an order and still fill it moments later, and a
+# fill nobody can attribute is a position the app never sees.
 _TERMINAL = (OrderStatus.FILLED, OrderStatus.REJECTED, OrderStatus.CANCELLED)
+
+# How many finished orders keep their client reference for late updates.
+_RETIRED_LIMIT = 256
 
 # Order-scoped IBKR error codes that decide an order's fate, mapped onto the raw
 # ib_insync status strings ``_map_status`` already understands.  Anything absent
@@ -124,6 +130,7 @@ class IBKRBroker(Broker):
         super().__init__()
         self._gateway = gateway
         self._client_ref: dict[str, str] = {}
+        self._retired_ref: OrderedDict[str, str] = OrderedDict()
         gateway.on_status(self._on_update)
 
     def place_order(self, request: OrderRequest) -> str:
@@ -148,7 +155,7 @@ class IBKRBroker(Broker):
         self._emit(
             OrderEvent(
                 broker_order_id=update.broker_order_id,
-                client_ref=self._client_ref.get(update.broker_order_id, ""),
+                client_ref=self._ref_for(update.broker_order_id),
                 status=status,
                 filled_quantity=update.filled,
                 fill_price=update.avg_fill_price if is_fill else None,
@@ -156,7 +163,24 @@ class IBKRBroker(Broker):
             )
         )
         if status in _TERMINAL:
-            self._client_ref.pop(update.broker_order_id, None)
+            self._retire(update.broker_order_id)
+
+    def _ref_for(self, broker_order_id: str) -> str:
+        """Client reference for *broker_order_id*, live orders first."""
+        live = self._client_ref.get(broker_order_id)
+        if live is not None:
+            return live
+        return self._retired_ref.get(broker_order_id, "")
+
+    def _retire(self, broker_order_id: str) -> None:
+        """Move a finished order's reference aside so late updates still map."""
+        ref = self._client_ref.pop(broker_order_id, None)
+        if ref is None:
+            return
+        self._retired_ref[broker_order_id] = ref
+        self._retired_ref.move_to_end(broker_order_id)
+        while len(self._retired_ref) > _RETIRED_LIMIT:
+            self._retired_ref.popitem(last=False)
 
     @staticmethod
     def _map_status(update: IbkrOrderUpdate) -> OrderStatus | None:
@@ -269,6 +293,9 @@ class IBKRClientGateway:
             if order_type == "LIMIT"
             else MarketOrder(side, quantity)
         )
+        # Pin the time-in-force.  Left unset, a TWS order preset rewrites it and
+        # TWS reports the order cancelled (error 10349) even as it goes on to fill.
+        order.tif = "DAY"
         trade = self._client.ib.placeOrder(contract, order)
         broker_order_id = str(trade.order.orderId)
         self._order_ids.add(broker_order_id)

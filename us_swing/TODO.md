@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-08-28 (Session 78)
+**Last Updated:** 2026-09-04 (Session 79)
 
 ---
 
@@ -33,3 +33,9 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T21 | `cancel_order` has no production caller — the CANCELLED ingestion branch only fires on a manual TWS cancel, so the path is effectively untested. Decide: wire a cancel action or record as unreachable. | `broker/ibkr.py` | Low | Open |
 | T22 | `IBKRClientGateway._order_ids` is never pruned; a late error on a finished order logs a spurious "unknown order" warning. Drop the id on a terminal status. | `broker/ibkr.py` | Low | Open |
 | T23 | Per-strategy paper/live routing — plan written at `docs/execution/Strategy_Routing_Plan.md`, 5 phases. **Gated on T19** (Phase 4 smoke test). Bundles the F5 unique index into its Phase 1 migration. | `execution/`, `gui/` | Medium | Open |
+| T24 | ISS-EXE-0011 fixed (RN-EXE-1.32.2) — candle-loader deferred batch now drains on `QThread.finished`, not `load_complete`. **Needs user:** set SRD-EXE-006.008 to `Reopen` so its text, UTCD T01–T06 and TRACE row can be corrected. | `gui/app_service.py` | High | Open |
+| T25 | `[Strategy] entry-expr failed` logs every evaluation cycle with no dedupe and names neither timeframe nor bar count. Add once-per-(strategy, symbol, reason) throttle + include tf and bar count. | `execution/strategy_engine/_router.py` | Low | Open |
+| T26 | ISS-GUI-0001 fixed (RN-GUI-1.4.1) — Reset Database clears `price_1d`/`price_1w` in place instead of unlinking the open file. **Closed** — user approved `SRD-GUI-006.018` on 2026-09-04; now Implemented. | `gui/app_service.py`, `gui/settings_panel.py` | Medium | Closed |
+| T27 | **Closed** (ISS-INF-0003, RN-INF-1.7.0) — `yahoo_symbol()` now lives in `core/symbols.py` and all four Yahoo call sites convert. `SRD-INF-007.006` approved by user 2026-09-04, now Implemented. | `core/`, `gui/`, `execution/`, `universe/` | Medium | Closed |
+| T28 | `DatabaseManager` has no `dispose()`/`close()`. Not needed today, but any feature that must replace `candles.db` on Windows will need one. | `db/manager.py` | Low | Open |
+| T29 | IBKR notation (`.` → ` `) is still copy-pasted at `intraday_candle_loader.py:470`, `live_bar_worker.py:242`, `universe/store.py:193`. Fold into `core/symbols.py` beside `yahoo_symbol()`. | `core/`, `execution/`, `universe/` | Low | Open |
