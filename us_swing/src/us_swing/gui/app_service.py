@@ -471,6 +471,23 @@ def _compute_last_trading_day() -> datetime.date:
     return candidate   # fallback (shouldn't reach)
 
 
+# Tables cleared by a candle reset.  The intraday tables (price_1m / price_3m /
+# price_15m) and the trading tables in the same file are deliberately excluded.
+_RESETTABLE_CANDLE_TABLES: tuple[str, ...] = ("price_1d", "price_1w")
+
+
+def _reclaim_sqlite_space(conn: sqlite3.Connection) -> None:
+    """Run VACUUM, tolerating a lock held by another connection on the same file.
+
+    Reclaiming disk space is a bonus, not part of the reset contract, so a
+    concurrent reader must not turn the whole reset into a failure.
+    """
+    try:
+        conn.execute("VACUUM")
+    except sqlite3.OperationalError as exc:
+        _log.warning("[CandleDB] Could not compact the database file (%s)", exc)
+
+
 def _ensure_candle_tables(conn: sqlite3.Connection) -> None:
     """Create price_1d and price_1w tables if they don't exist."""
     for tbl in ("price_1d", "price_1w"):
@@ -3688,7 +3705,13 @@ class AppService(QObject):
         _FAILED_SYMBOLS_PATH.unlink(missing_ok=True)
 
     def reset_candle_db(self) -> None:
-        """Delete the candle DB and all ancillary files, then recreate empty tables.
+        """Clear the daily and weekly candle tables in place, plus ancillary files.
+
+        Rows are deleted rather than the database file unlinked: the file is held
+        open for the lifetime of the app by :attr:`_db` and by the strategy,
+        rex-counter and live-bar components, so Windows refuses to remove it.  It
+        also carries the trade cycles, trades and strategies, which a candle reset
+        must leave untouched.
 
         Stops any running download first.  After completion emits
         ``candle_db_status_changed`` so the UI refreshes automatically.
@@ -3696,20 +3719,23 @@ class AppService(QObject):
         # Stop any in-progress download
         self.stop_candle_download()
 
-        # Delete DB and ancillary files
-        _CANDLE_DB_PATH.unlink(missing_ok=True)
         _delete_checkpoint()
         _FAILED_SYMBOLS_PATH.unlink(missing_ok=True)
 
-        # Recreate empty schema
         _CANDLE_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
         conn = sqlite3.connect(str(_CANDLE_DB_PATH))
-        _ensure_candle_tables(conn)
-        conn.close()
+        try:
+            _ensure_candle_tables(conn)
+            for tbl in _RESETTABLE_CANDLE_TABLES:
+                conn.execute(f"DELETE FROM {tbl}")
+            conn.commit()
+            _reclaim_sqlite_space(conn)
+        finally:
+            conn.close()
 
         self.log_message.emit(
             "INFO",
-            "[CandleDB] Database reset — all candle data deleted and schema recreated.",
+            "[CandleDB] Daily and weekly candles cleared — trades and strategies kept",
         )
 
         # Refresh status so UI reflects the now-empty DB

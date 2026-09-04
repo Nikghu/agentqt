@@ -86,6 +86,12 @@
 | UT-GUI-006.001.M01.T02 | MD-GUI-006.001.M01 | Unit | New user dialog calls `AppService.add_user()` | Fill `_UserDialog` and click OK | `svc.add_user()` called once; `users_changed` triggers table refresh | Implemented |
 | UT-GUI-006.001.M01.T03 | MD-GUI-006.001.M01 | Unit | Delete user blocked when `AppService.delete_user()` returns error | Select user; click Delete; confirm | Warning `QMessageBox` shown; user remains in table | Implemented |
 | UT-GUI-006.001.M01.T04 | MD-GUI-006.001.M01 | Unit | Universe tab meta label shows constituent count | `svc.get_sp500_universe()` returns 503 records | `_meta_label.text()` contains `"503 constituents"` | Implemented |
+| UT-GUI-006.018.M01.T01 | MD-GUI-006.001.M01 | Negative | Candle reset succeeds while another connection holds the database open | Open a second `sqlite3` connection on candles.db, then reset | No exception; `price_1d` and `price_1w` are empty (ISS-GUI-0001) | Pass |
+| UT-GUI-006.018.M01.T02 | MD-GUI-006.001.M01 | Positive | Candle reset keeps the trading tables in the same file | DB with rows in price_1d, price_1w, trade_cycles, strategies | Candle tables empty; `trade_cycles` and `strategies` rows retained | Pass |
+| UT-GUI-006.018.M01.T03 | MD-GUI-006.001.M01 | Positive | Candle reset leaves the intraday price tables untouched | DB with one `price_1m` row | `price_1m` still has 1 row after reset | Pass |
+| UT-GUI-006.018.M01.T04 | MD-GUI-006.001.M01 | Edge | Candle reset never unlinks the database file | Existing candles.db | File still exists after reset | Pass |
+| UT-GUI-006.018.M01.T05 | MD-GUI-006.001.M01 | Positive | Candle reset clears ancillary files and refreshes status | Checkpoint and failed-symbols files present | Both files deleted; download stopped; status refresh called | Pass |
+| UT-GUI-006.018.M01.T06 | MD-GUI-006.001.M01 | Edge | Candle reset on a fresh path creates empty candle tables | No candles.db at the configured path | `price_1d` and `price_1w` exist and are empty | Pass |
 
 ---
 
