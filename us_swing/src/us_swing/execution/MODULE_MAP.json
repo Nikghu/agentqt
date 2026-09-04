@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-27T12:48:58",
+  "generated": "2026-09-04T07:26:13",
   "subfolder": "execution",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\execution",
   "tool_code": "EXE",
@@ -127,34 +127,41 @@
               "line_end": 45
             },
             {
+              "name": "is_live",
+              "signature": "def is_live(self) -> bool",
+              "docstring": "Whether the order socket is currently up.",
+              "line_start": 47,
+              "line_end": 53
+            },
+            {
               "name": "connect",
               "signature": "def connect(self) -> IBKRClient",
               "docstring": "Start the connection thread and block until IBKR accepts or refuses.",
-              "line_start": 47,
-              "line_end": 73
+              "line_start": 55,
+              "line_end": 81
             },
             {
               "name": "close",
               "signature": "def close(self) -> None",
               "docstring": "Disconnect and stop the loop.  Safe to call when never connected.",
-              "line_start": 75,
-              "line_end": 87
+              "line_start": 83,
+              "line_end": 95
             },
             {
               "name": "_run",
               "signature": "def _run(self) -> None",
-              "line_start": 89,
-              "line_end": 100
+              "line_start": 97,
+              "line_end": 108
             },
             {
               "name": "_connect_once",
               "signature": "def _connect_once(self) -> None",
-              "line_start": 102,
-              "line_end": 110
+              "line_start": 110,
+              "line_end": 118
             }
           ],
           "line_start": 33,
-          "line_end": 110
+          "line_end": 118
         }
       ],
       "constants": [
@@ -173,8 +180,8 @@
             "ok: bool",
             "reason: str"
           ],
-          "line_start": 172,
-          "line_end": 177
+          "line_start": 180,
+          "line_end": 185
         },
         {
           "name": "SymbolReadiness",
@@ -186,8 +193,8 @@
             "last_1m_bar: datetime | None",
             "ready: bool"
           ],
-          "line_start": 181,
-          "line_end": 188
+          "line_start": 189,
+          "line_end": 196
         },
         {
           "name": "IntradayCandleLoader",
@@ -196,74 +203,74 @@
             {
               "name": "__init__",
               "signature": "def __init__(\r\n        self,\r\n        symbols: list[str],\r\n        ibkr_host: str,\r\n        ibkr_port: int,\r\n        ibkr_client_id: int,\r\n        db: DatabaseManager,\r\n        hist_engine: HistoricalDataEngine,\r\n        min_candles: int = _MIN_CANDLES,\r\n        full_fetch_cal_days: int = _FULL_FETCH_CAL_DAYS,\r\n        parent: QObject | None = None,\r\n    ) -> None",
-              "line_start": 213,
-              "line_end": 233
+              "line_start": 221,
+              "line_end": 241
             },
             {
               "name": "run",
               "signature": "def run(self) -> None",
               "docstring": "QThread entry: run the async fetch loop in a fresh event loop.",
-              "line_start": 237,
-              "line_end": 246
+              "line_start": 245,
+              "line_end": 254
             },
             {
               "name": "_async_run",
               "signature": "def _async_run(self) -> None",
-              "line_start": 250,
-              "line_end": 353
+              "line_start": 258,
+              "line_end": 361
             },
             {
               "name": "_run_yfinance_fallback",
               "signature": "def _run_yfinance_fallback(self) -> None",
               "docstring": "Fetch 1m bars via yfinance when IBKR is unavailable (dev / offline mode).",
-              "line_start": 355,
-              "line_end": 397
+              "line_start": 363,
+              "line_end": 405
             },
             {
               "name": "_fetch_symbol_async",
               "signature": "def _fetch_symbol_async(\r\n        self, ib: Any, pacing: PacingQueue, symbol: str\r\n    ) -> None",
               "docstring": "Delta-fetch 1 m bars for *symbol*. Pages when the window > 30 calendar days.",
-              "line_start": 399,
-              "line_end": 432
+              "line_start": 407,
+              "line_end": 440
             },
             {
               "name": "_fetch_paged_async",
               "signature": "def _fetch_paged_async(\r\n        self,\r\n        ib: Any,\r\n        pacing: PacingQueue,\r\n        symbol: str,\r\n        end: datetime,\r\n        total_cal_days: int,\r\n    ) -> None",
               "docstring": "Fetch 1 m bars in \u2264 30-calendar-day pages (IBKR limit), newest-first.",
-              "line_start": 434,
-              "line_end": 456
+              "line_start": 442,
+              "line_end": 464
             },
             {
               "name": "_request_1m_bars",
               "signature": "def _request_1m_bars(\r\n        self,\r\n        ib: Any,\r\n        pacing: PacingQueue,\r\n        symbol: str,\r\n        end_dt: datetime,\r\n        duration_days: int,\r\n    ) -> list[OHLCVBar]",
               "docstring": "Issue one IBKR 1 m-bar request through the pacing queue.",
-              "line_start": 458,
-              "line_end": 480
+              "line_start": 466,
+              "line_end": 488
             },
             {
               "name": "_fetch_symbol_yfinance",
               "signature": "def _fetch_symbol_yfinance(self, symbol: str) -> None",
               "docstring": "Delta-fetch 1 m bars from yfinance (max 7 calendar days lookback).",
-              "line_start": 484,
-              "line_end": 528
+              "line_start": 492,
+              "line_end": 536
             },
             {
               "name": "_validate_candle_counts",
               "signature": "def _validate_candle_counts(\r\n        self,\r\n        symbol: str,\r\n        timeframes: tuple[DerivedTimeframe, ...] = _REQUIRED_TIMEFRAMES,\r\n    ) -> CandleLoadResult",
               "docstring": "Aggregate timeframes (default: 3m, 15m) and verify each has \u2265 min_candles bars.",
-              "line_start": 530,
-              "line_end": 556
+              "line_start": 538,
+              "line_end": 564
             },
             {
               "name": "get_readiness_report",
               "signature": "def get_readiness_report(\r\n        self,\r\n        symbols: list[str],\r\n        min_candles: int = _MIN_CANDLES,\r\n    ) -> dict[str, SymbolReadiness]",
               "docstring": "Return a per-symbol readiness dict without triggering any fetches.",
-              "line_start": 558,
-              "line_end": 569
+              "line_start": 566,
+              "line_end": 577
             }
           ],
-          "line_start": 191,
-          "line_end": 569
+          "line_start": 199,
+          "line_end": 577
         }
       ],
       "top_level_functions": [
@@ -274,66 +281,73 @@
           "line_end": 34
         },
         {
+          "name": "_yahoo_symbol",
+          "signature": "def _yahoo_symbol(symbol: str) -> str",
+          "docstring": "Return *symbol* in Yahoo Finance's class-share notation (BRK.B \u2192 BRK-B).",
+          "line_start": 37,
+          "line_end": 42
+        },
+        {
           "name": "_build_tf_counts",
           "signature": "def _build_tf_counts(\r\n    symbol: str,\r\n    bars_1m: list[OHLCVBar],\r\n    timeframes: tuple[DerivedTimeframe, ...],\r\n    hist_engine: HistoricalDataEngine,\r\n) -> dict[str, int]",
-          "line_start": 37,
-          "line_end": 43
+          "line_start": 45,
+          "line_end": 51
         },
         {
           "name": "_merge_bars",
           "signature": "def _merge_bars(derived: list[OHLCVBar], live: list[OHLCVBar]) -> list[OHLCVBar]",
           "docstring": "Union two bar lists by timestamp; live bars win on conflict, sorted ascending.",
-          "line_start": 46,
-          "line_end": 51
+          "line_start": 54,
+          "line_end": 59
         },
         {
           "name": "_bars_to_frame",
           "signature": "def _bars_to_frame(bars: list[OHLCVBar]) -> pd.DataFrame",
           "docstring": "Build the OHLCV frame consumed by ``ConditionEvaluator`` (SRD-EXE-011.006).",
-          "line_start": 54,
-          "line_end": 65
+          "line_start": 62,
+          "line_end": 73
         },
         {
           "name": "assemble_execution_bars",
           "signature": "def assemble_execution_bars(\r\n    db: DatabaseManager,\r\n    hist_engine: HistoricalDataEngine,\r\n    symbol: str,\r\n    tf: DerivedTimeframe,\r\n    lookback_days: int = _FULL_FETCH_CAL_DAYS,\r\n) -> list[OHLCVBar]",
           "docstring": "Assemble a derived-timeframe bar series for strategy evaluation (SRD-EXE-006.010",
-          "line_start": 68,
-          "line_end": 95
+          "line_start": 76,
+          "line_end": 103
         },
         {
           "name": "load_stored_frames",
           "signature": "def load_stored_frames(\r\n    db: DatabaseManager,\r\n    symbol: str,\r\n    timeframes: tuple[str, ...] = _STORED_TIMEFRAMES,\r\n    lookback_days: int = _STORED_LOOKBACK_CAL_DAYS,\r\n) -> dict[str, pd.DataFrame]",
           "docstring": "Return ``{timeframe: frame}`` of stored daily/weekly closed bars (SRD-EXE-006.01",
-          "line_start": 98,
-          "line_end": 127
+          "line_start": 106,
+          "line_end": 135
         },
         {
           "name": "load_execution_frames",
           "signature": "def load_execution_frames(\r\n    db: DatabaseManager,\r\n    hist_engine: HistoricalDataEngine,\r\n    symbol: str,\r\n    timeframes: tuple[DerivedTimeframe, ...] = _REQUIRED_TIMEFRAMES,\r\n    lookback_days: int = _FULL_FETCH_CAL_DAYS,\r\n) -> dict[str, pd.DataFrame]",
           "docstring": "Return ``{timeframe: frame}`` for strategy evaluation (SRD-EXE-006.010, .012).",
-          "line_start": 130,
-          "line_end": 150
+          "line_start": 138,
+          "line_end": 158
         },
         {
           "name": "load_latest_execution_bar",
           "signature": "def load_latest_execution_bar(\r\n    db: DatabaseManager,\r\n    hist_engine: HistoricalDataEngine,\r\n    symbol: str,\r\n    tf: str,\r\n    lookback_days: int = _FULL_FETCH_CAL_DAYS,\r\n) -> OHLCVBar | None",
           "docstring": "Return the most recent merged bar for ``(symbol, tf)`` or ``None`` (SRD-EXE-006.",
-          "line_start": 153,
-          "line_end": 168
+          "line_start": 161,
+          "line_end": 176
         },
         {
           "name": "check_candle_readiness",
           "signature": "def check_candle_readiness(\r\n    symbols: list[str],\r\n    db: DatabaseManager,\r\n    hist_engine: HistoricalDataEngine,\r\n    min_candles: int = _MIN_CANDLES,\r\n    full_fetch_cal_days: int = _FULL_FETCH_CAL_DAYS,\r\n) -> dict[str, SymbolReadiness]",
           "docstring": "Pure DB-read readiness check \u2014 safe to call from any thread.",
-          "line_start": 575,
-          "line_end": 617
+          "line_start": 583,
+          "line_end": 625
         },
         {
           "name": "_raw_bar_to_ohlcv",
           "signature": "def _raw_bar_to_ohlcv(symbol: str, b: Any) -> OHLCVBar",
           "docstring": "Convert an ib_insync BarData object to :class:`OHLCVBar`.",
-          "line_start": 620,
-          "line_end": 642
+          "line_start": 628,
+          "line_end": 650
         }
       ],
       "constants": [
@@ -688,39 +702,39 @@
               "signature": "def on_order_event(self, event: OrderEvent) -> None",
               "docstring": "Advance the `trades` ledger and drive the cycle \u2014 SRD-EXE-015.003.",
               "line_start": 157,
-              "line_end": 246
+              "line_end": 249
             },
             {
               "name": "_forget",
               "signature": "def _forget(self, client_ref: str) -> None",
-              "line_start": 248,
-              "line_end": 250
+              "line_start": 251,
+              "line_end": 253
             },
             {
               "name": "_notify_reject",
               "signature": "def _notify_reject(self, ctx: OrderContext, reason: str) -> None",
               "docstring": "Tell the engine an order ended without filling \u2014 SRD-EXE-015.005.",
-              "line_start": 252,
-              "line_end": 270
+              "line_start": 255,
+              "line_end": 273
             },
             {
               "name": "_new_trade_record",
               "signature": "def _new_trade_record(self, ctx: OrderContext) -> TradeRecord",
               "docstring": "Build the NEW-state `trades` row for *ctx* (idempotent on insert).",
-              "line_start": 272,
-              "line_end": 286
+              "line_start": 275,
+              "line_end": 289
             },
             {
               "name": "_open_cycle",
               "signature": "def _open_cycle(self, ctx: OrderContext, event: OrderEvent, now: datetime) -> None",
-              "line_start": 288,
-              "line_end": 313
+              "line_start": 291,
+              "line_end": 316
             },
             {
               "name": "_close_cycle",
               "signature": "def _close_cycle(self, ctx: OrderContext, event: OrderEvent, now: datetime) -> None",
-              "line_start": 315,
-              "line_end": 333
+              "line_start": 318,
+              "line_end": 336
             },
             {
               "name": "_order_state",
@@ -728,20 +742,20 @@
               "decorators": [
                 "@staticmethod"
               ],
-              "line_start": 336,
-              "line_end": 343
+              "line_start": 339,
+              "line_end": 346
             }
           ],
           "line_start": 98,
-          "line_end": 343
+          "line_end": 346
         }
       ],
       "top_level_functions": [
         {
           "name": "_iso",
           "signature": "def _iso(moment: datetime) -> str",
-          "line_start": 346,
-          "line_end": 347
+          "line_start": 349,
+          "line_end": 350
         }
       ]
     },

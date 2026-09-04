@@ -819,3 +819,47 @@ def test_get_readiness_report_raises_for_too_many_symbols(
     oversized = [f"SYM{i:04d}" for i in range(501)]
     with pytest.raises(ValueError, match="max 500"):
         ldr.get_readiness_report(oversized)
+
+
+# ---------------------------------------------------------------------------
+# T20 — Yahoo Finance lookup uses hyphen notation for class shares (ISS-EXE-0012)
+# ---------------------------------------------------------------------------
+
+
+def test_yfinance_dotted_symbol_uses_hyphen_lookup(
+    loader: IntradayCandleLoader,
+) -> None:
+    """UT-EXE-006.001.M01.T20: Yahoo lookup converts BRK.B to BRK-B.
+
+    Yahoo Finance keys class shares with a hyphen; passing the dotted symbol
+    returns an empty frame ("possibly delisted") for every such stock.
+    """
+    import pandas as pd
+
+    ticker_cls = MagicMock()
+    ticker_cls.return_value.history.return_value = pd.DataFrame()
+
+    with patch("yfinance.Ticker", ticker_cls):
+        loader._fetch_symbol_yfinance("BRK.B")
+
+    ticker_cls.assert_called_once_with("BRK-B")
+
+
+# ---------------------------------------------------------------------------
+# T21 — Plain symbols are passed to Yahoo Finance unchanged
+# ---------------------------------------------------------------------------
+
+
+def test_yfinance_plain_symbol_unchanged(
+    loader: IntradayCandleLoader,
+) -> None:
+    """UT-EXE-006.001.M01.T21: A symbol without a dot reaches Yahoo unchanged."""
+    import pandas as pd
+
+    ticker_cls = MagicMock()
+    ticker_cls.return_value.history.return_value = pd.DataFrame()
+
+    with patch("yfinance.Ticker", ticker_cls):
+        loader._fetch_symbol_yfinance("AAPL")
+
+    ticker_cls.assert_called_once_with("AAPL")

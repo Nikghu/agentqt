@@ -2,6 +2,18 @@
 
 ---
 
+## [20260904] GUI+EXE — Reset-Database crash + Yahoo dotted-symbol fallback (ISS-GUI-0001, ISS-EXE-0012, bugfix)
+
+- Type: Bugfix
+- FO(s): FO-GUI-006, FO-EXE-006
+- RN: RN-GUI-1.4.1-20260904, RN-EXE-1.32.3-20260904
+- Artifacts updated: ISS (GUI-0001 first GUI issue, EXE-0012), SRD (new GUI-006.018, Draft), UTCD (UT-GUI-006.011.M01.T01-T06, UT-EXE-006.001.M01.T20-T21), TRACE (GUI v1.10.1, EXE v1.20.2), RN, Code, Tests, TODO (T26-T28), CONTEXT, DEVLOG
+- Decisions: User pasted a crash log and asked what caused it. Four messages in it, two real bugs. (a) The DirectComposition line is a harmless Chromium GPU warning; the `QThread: Destroyed` line is fallout from the crash, not a separate defect. (b) **Reset Database** crashed on `PermissionError [WinError 32]` because `reset_candle_db()` unlinked `~/.usswing/candles.db` while the SQLAlchemy engine (`app_service.py:1690`), strategy store, rex counter repo, live bar worker and execution panel all hold it open. Querying the live database exposed the larger fault: the same file holds 133 trade cycles, 268 trades, 88 rex counters and 2 strategies, so a successful unlink would have destroyed them — the Windows lock is the only reason it never did, and the confirm dialog only ever promised to delete candles. Asked the user to pick the reset scope; they chose **daily + weekly only**. Reset now issues `DELETE FROM price_1d / price_1w` in place, keeps trading and intraday tables, never touches the file, and treats `VACUUM` as best-effort so a concurrent reader downgrades to a warning. `_on_reset_db` wrapped in try/except/finally — errors log and raise a `QMessageBox.critical`, the button is always restored, dialog reworded to match the narrower scope. (c) `BRK.B` returned "possibly delisted" from the Yahoo fallback because `_fetch_symbol_yfinance()` passed the canonical dotted symbol to `yf.Ticker`; Yahoo keys class shares with a hyphen. New `_yahoo_symbol()` converts the lookup key only, so stored rows stay dotted and no migration is needed. Deliberately did not fix the three other Yahoo call sites carrying the same defect (`app_service.py:372`, `live_bar_worker.py:392`, `universe/store.py:221`) — logged as TODO T27 with a suggestion to move the helper into `core/`.
+- Verification: 8 new tests (6 GUI reset, 2 EXE symbol). Reproduced `WinError 32` directly on the machine to confirm T01 is a real guard, and confirmed T20 fails against pre-fix code. 141 passed across `tests/gui/` + `tests/execution/test_intraday_candle_loader.py`. ruff 21 findings and mypy 313 (GUI) / 18 (EXE) errors — all identical to the HEAD baseline, none introduced. 11 pre-existing failures in `tests/analysis/test_candle_builder.py` and `tests/screener/test_preset.py` plus a collection error in `tests/screener/test_llm_claude_screener.py` were verified present at HEAD and left alone.
+- Open: `SRD-GUI-006.018` is Draft and needs user approval — no SRD governs the Reset button today (TODO T26). `DatabaseManager` still has no `dispose()`/`close()` (TODO T28).
+
+---
+
 ## [20260828] EXE+GUI — IBKR live-readiness review + GUI submit-failure guard (FO-EXE-015, bugfix)
 
 - Type: Review + Bugfix

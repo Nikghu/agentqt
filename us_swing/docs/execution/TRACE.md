@@ -1,9 +1,9 @@
 # Traceability Matrix — Execution & Risk Management (EXE)
 
 **Document ID:** TRACE-EXE
-**Version:** 1.20.1
+**Version:** 1.20.2
 **Project:** US Swing Trading System
-**Last Updated:** 2026-08-28 (Session 78, GUI submit-failure guard)
+**Last Updated:** 2026-09-04 (Session 79, Yahoo dotted-symbol fix)
 
 ---
 
@@ -19,7 +19,7 @@
 | FO-EXE-004 | SRD-EXE-004.001–004 | DD-EXE-004.001.D01 | MD-EXE-004.001.M01 | T01–T07 | `execution/paper_engine.py` | Implemented | RN-EXE-1.7.0-20260526 |
 | FO-EXE-004 | SRD-EXE-004.005 | DD-EXE-004.001.D01 | MD-EXE-004.001.M02 | T01–T03 | `execution/execution_router.py` | Implemented | RN-EXE-1.7.0-20260526 |
 | FO-EXE-005 | SRD-EXE-005.001–003, 005.006 | DD-EXE-005.001.D01 | MD-EXE-002.001.M01 | 005.001.T01–T09 | `execution/position_tracker.py` | Implemented | RN-EXE-1.7.0-20260526 |
-| FO-EXE-006 | SRD-EXE-006.001–006 | DD-EXE-006.001.D01–D02 | MD-EXE-006.001.M01 | UT-EXE-006.001.M01.T01–T13 | `execution/intraday_candle_loader.py` | Implemented | RN-EXE-1.1.0-20260506 |
+| FO-EXE-006 | SRD-EXE-006.001–006 | DD-EXE-006.001.D01–D02 | MD-EXE-006.001.M01 | UT-EXE-006.001.M01.T01–T21 | `execution/intraday_candle_loader.py` | Implemented | RN-EXE-1.1.0-20260506, RN-EXE-1.32.3-20260904 |
 | FO-EXE-006 | SRD-EXE-006.010 | DD-EXE-006.010.D01 | MD-EXE-006.001.M01 | UT-EXE-006.001.M01.T14, T15, T16 | `execution/intraday_candle_loader.py` | Implemented | RN-EXE-1.5.1-20260530 |
 | FO-EXE-006 | SRD-EXE-006.012 | DD-EXE-006.012.D01 | MD-EXE-006.001.M01 | UT-EXE-006.001.M01.T17, T18, T19 | `execution/intraday_candle_loader.py`, `gui/strategy_builder_dialog.py` | Implemented | RN-EXE-1.21.0-20260610 |
 | FO-EXE-006 | SRD-EXE-006.013 | DD-EXE-006.013.D01 | MD-EXE-006.013.M01 | UT-EXE-006.013.M01.T01–T04 | `gui/app_service.py` | Implemented | RN-EXE-1.29.0-20260616 |

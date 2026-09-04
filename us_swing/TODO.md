@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-08-28 (Session 78)
+**Last Updated:** 2026-09-04 (Session 79)
 
 ---
 
@@ -35,3 +35,6 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T23 | Per-strategy paper/live routing — plan written at `docs/execution/Strategy_Routing_Plan.md`, 5 phases. **Gated on T19** (Phase 4 smoke test). Bundles the F5 unique index into its Phase 1 migration. | `execution/`, `gui/` | Medium | Open |
 | T24 | ISS-EXE-0011 fixed (RN-EXE-1.32.2) — candle-loader deferred batch now drains on `QThread.finished`, not `load_complete`. **Needs user:** set SRD-EXE-006.008 to `Reopen` so its text, UTCD T01–T06 and TRACE row can be corrected. | `gui/app_service.py` | High | Open |
 | T25 | `[Strategy] entry-expr failed` logs every evaluation cycle with no dedupe and names neither timeframe nor bar count. Add once-per-(strategy, symbol, reason) throttle + include tf and bar count. | `execution/strategy_engine/_router.py` | Low | Open |
+| T26 | ISS-GUI-0001 fixed (RN-GUI-1.4.1) — Reset Database clears `price_1d`/`price_1w` in place instead of unlinking the open file. **Needs user:** approve new `SRD-GUI-006.018` (currently Draft). | `gui/app_service.py`, `gui/settings_panel.py` | Medium | Open |
+| T27 | Three Yahoo call sites still pass dotted symbols (`app_service.py:372`, `live_bar_worker.py:392`, `universe/store.py:221`), so BRK.B / BF.B silently return nothing. Move `_yahoo_symbol()` to `core/` and apply at all four. | `gui/`, `execution/`, `universe/` | Medium | Open |
+| T28 | `DatabaseManager` has no `dispose()`/`close()`. Not needed today, but any feature that must replace `candles.db` on Windows will need one. | `db/manager.py` | Low | Open |

@@ -159,6 +159,8 @@
 | UT-EXE-006.001.M01.T17 | MD-EXE-006.001.M01 | Positive | `load_stored_frames` reads stored daily/weekly closed bars directly without aggregation (SRD-EXE-006.012) | candles.db with 60 `price_1d` and 10 `price_1w` rows for SYM; empty `price_1m` | dict contains non-empty `'1d'` (60 bars) and `'1w'` (10 bars) frames with columns datetime/open/high/low/close/volume | Pass |
 | UT-EXE-006.001.M01.T18 | MD-EXE-006.001.M01 | Positive | `load_execution_frames` merges stored 1d/1w alongside aggregated 3m/15m (SRD-EXE-006.012) | candles.db with 900 `price_1m` bars plus 60 `price_1d` and 10 `price_1w` rows for SYM | dict keys include `'3m'`, `'15m'`, `'1d'`, `'1w'`; 1d/1w frames carry the stored bars unaggregated | Pass |
 | UT-EXE-006.001.M01.T19 | MD-EXE-006.001.M01 | Negative | Missing stored daily/weekly bars omit 1d/1w without error (SRD-EXE-006.012) | candles.db with 900 `price_1m` bars but no `price_1d`/`price_1w` rows for SYM | dict contains `'3m'`/`'15m'` only; `'1d'`/`'1w'` absent; no exception | Pass |
+| UT-EXE-006.001.M01.T20 | MD-EXE-006.001.M01 | Negative | Yahoo Finance lookup converts a dotted class share to hyphen notation | `_fetch_symbol_yfinance('BRK.B')` with `yfinance.Ticker` patched | `yfinance.Ticker` called once with `'BRK-B'` (ISS-EXE-0012) | Pass |
+| UT-EXE-006.001.M01.T21 | MD-EXE-006.001.M01 | Positive | A symbol without a dot reaches Yahoo Finance unchanged | `_fetch_symbol_yfinance('AAPL')` with `yfinance.Ticker` patched | `yfinance.Ticker` called once with `'AAPL'` | Pass |
 
 ---
 
