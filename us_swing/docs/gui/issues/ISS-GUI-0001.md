@@ -106,15 +106,15 @@ files are removed and the status refresh fires; a missing table is recreated emp
 | `gui/app_service.py` | In-place row deletion replaces file unlink | Done |
 | `gui/settings_panel.py` | Slot exception guard + reworded dialog | Done |
 | `tests/gui/test_app_service_reset_candle_db.py` | New regression suite | Done |
-| SRD-GUI-006.018 | New row covering crash-safe reset semantics and the preserved tables | **Draft — needs user `Approved`** |
-| UTCD (GUI) | UT-GUI-006.018.M01.T01–T06 rows | Pending SRD approval |
+| SRD-GUI-006.018 | New row covering crash-safe reset semantics and the preserved tables | Approved by user 2026-09-04 → Implemented |
+| UTCD (GUI) | UT-GUI-006.018.M01.T01–T06 rows | Updated |
 | TRACE (GUI) | SRD-GUI-006.018 row → test + RN references | Updated |
 
 ## Notes
 
-- No SRD governs the Reset Database button today. SRD-GUI-006.011 covers only the status
-  card and its refresh, not the destructive path. A Draft row is proposed; per the SRD status
-  guard the agent cannot approve it.
+- No SRD governed the Reset Database button before this issue. SRD-GUI-006.011 covers only
+  the status card and its refresh, not the destructive path. SRD-GUI-006.018 was written to
+  close that gap, approved by the user on 2026-09-04, and is now Implemented.
 - `DatabaseManager` still exposes no `dispose()` / `close()`. Nothing in this fix needs one,
   since the reset no longer requires releasing the file handle, but any future feature that
   truly must replace the file will need it (INF, `MD-INF-004.001.M01`).

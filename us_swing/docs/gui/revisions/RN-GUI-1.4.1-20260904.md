@@ -96,9 +96,9 @@ unrelated to this change.
 
 ## Follow-ups
 
-- **SRD-GUI-006.018 is Draft and needs user approval.** It is the new row covering crash-safe
-  reset and the preserved tables; no SRD governed the Reset button before it, and the agent
-  may not set `Approved`.
+- **SRD-GUI-006.018 approved by the user on 2026-09-04 and set to `Implemented`.** It is the
+  new row covering crash-safe reset and the preserved tables; no SRD governed the Reset
+  button before it.
 - `DatabaseManager` exposes no `dispose()` / `close()`. Not needed by this fix, but any
   future feature that must genuinely replace the database file will need one
   (INF, `MD-INF-004.001.M01`).
