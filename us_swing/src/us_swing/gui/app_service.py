@@ -1860,7 +1860,7 @@ class AppService(QObject):
         )
         self._readiness_worker = readiness_worker
         readiness_worker.finished.connect(lambda: setattr(self, "_readiness_worker", None))
-        loader.finished.connect(lambda: setattr(self, "_intraday_loader", None))
+        loader.finished.connect(lambda _l=loader: self._on_intraday_loader_finished(_l))
         readiness_worker.start()
         _log.info("[Candles] Starting download for %d stock(s)", len(symbols))
 
@@ -1944,10 +1944,24 @@ class AppService(QObject):
             )
         else:
             _log.info("[Candles] All %d stock(s) are ready for strategy indicators", ok_n)
+
+    def _on_intraday_loader_finished(self, loader: IntradayCandleLoader) -> None:
+        """Release the finished loader and start any batch queued while it ran.
+
+        The queue is drained here rather than in ``_on_candle_load_complete``:
+        that signal is emitted from inside the worker's ``run()``, so the thread
+        is still alive when the slot executes and ``_start_intraday_loader``
+        would re-queue the same batch instead of starting it — leaving those
+        symbols with no 1m history for the rest of the session (ISS-EXE-0011).
+        """
+        if self._intraday_loader is loader:
+            self._intraday_loader = None
         pending = self._pending_candle_symbols
-        if pending is not None:
-            self._pending_candle_symbols = None
-            self._start_intraday_loader(pending)
+        if pending is None:
+            return
+        self._pending_candle_symbols = None
+        _log.info("[Candles] Starting queued download for %d stock(s)", len(pending))
+        self._start_intraday_loader(pending)
 
     def _execution_candle_source(
         self,
