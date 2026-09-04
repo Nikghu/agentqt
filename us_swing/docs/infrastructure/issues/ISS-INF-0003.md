@@ -71,8 +71,8 @@ pre-fix code.
 
 | Artifact | Change | Status |
 |---|---|---|
-| SRD-INF-007.006 | New row — outbound calls use vendor notation, stored rows stay canonical | **Draft — needs user `Approved`** |
-| MD-INF-007.001.M03 | New module row for `core/symbols.py` | Draft |
+| SRD-INF-007.006 | New row — outbound calls use vendor notation, stored rows stay canonical | Approved by user 2026-09-04 → Implemented |
+| MD-INF-007.001.M03 | New module row for `core/symbols.py` | Implemented |
 | UTCD (INF) | UT-INF-007.001.M03.T01–T05 | Updated |
 | TRACE (INF) | FO-INF-007 forward + reverse rows | Updated |
 | `core/symbols.py` | New shared helper | Done |

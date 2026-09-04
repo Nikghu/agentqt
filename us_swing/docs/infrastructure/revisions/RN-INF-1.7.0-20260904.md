@@ -72,8 +72,8 @@ The 11 pre-existing failures in `tests/analysis/test_candle_builder.py` and
 
 ## Follow-ups
 
-- **SRD-INF-007.006 is Draft and needs user approval.** `MD-INF-007.001.M03` and the TRACE row
-  follow its status.
+- **SRD-INF-007.006 approved by the user on 2026-09-04 and set to `Implemented`.**
+  `MD-INF-007.001.M03` and the TRACE row follow it.
 - The IBKR conversion (`.` → ` `) is still duplicated at `intraday_candle_loader.py:470`,
   `live_bar_worker.py:242` and `universe/store.py:193`. Folding it in next to `yahoo_symbol()`
   is the obvious next step; no bug depends on it today, so it was not bundled in here.

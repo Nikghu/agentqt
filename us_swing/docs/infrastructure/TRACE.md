@@ -3,7 +3,7 @@
 **Document ID:** TRACE-INF
 **Version:** 1.5.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-09-04 (Session 79, vendor symbol notation)
+**Last Updated:** 2026-09-04 (Session 79, SRD-INF-007.006 approved)
 
 ---
 
@@ -25,7 +25,7 @@
 | FO-INF-006 | SRD-INF-006.001–007 | DD-INF-006.001.D01 | MD-INF-006.001.M01 | T01–T09 | `user/manager.py` | Draft | — |
 | FO-INF-007 | SRD-INF-007.001–002 | DD-INF-007.001.D01 | MD-INF-007.001.M01 | — | `data/providers/ibkr_provider.py` | Draft | — |
 | FO-INF-007 | SRD-INF-007.003, 005 | DD-INF-007.001.D01 | MD-INF-007.001.M02 | T01–T04 | `data/providers/dummy_provider.py` | Draft | — |
-| FO-INF-007 | SRD-INF-007.006 | — | MD-INF-007.001.M03 | UT-INF-007.001.M03.T01–T05 | `core/symbols.py` | Draft | RN-INF-1.7.0-20260904 |
+| FO-INF-007 | SRD-INF-007.006 | — | MD-INF-007.001.M03 | UT-INF-007.001.M03.T01–T05 | `core/symbols.py` | Implemented | RN-INF-1.7.0-20260904 |
 | FO-INF-009 | SRD-INF-009.007 | — | MD-INF-009.004.M01 | UT-INF-009.004.M01.T01–T04 | `broker/sim.py` | Implemented | RN-INF-1.1.0-20260612 |
 | FO-INF-010 | SRD-INF-010.001–008 | DD-INF-010.001.D01 | MD-INF-010.001.M01–M07 | UT-INF-010.001.M01–M07.* | `core/notifications/` | Implemented | RN-INF-1.2.0-20260709 |
 | FO-INF-010 | SRD-INF-010.010–011 | DD-INF-010.001.D01 | MD-INF-010.001.M08–M09 | UT-INF-010.001.M08.* | `gui/telegram_token_store.py`, `gui/notification_worker.py` | Implemented | RN-INF-1.3.0-20260709 |
