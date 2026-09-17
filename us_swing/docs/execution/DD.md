@@ -1,12 +1,13 @@
 # Design Document — Execution & Risk Management (EXE)
 
 **Document ID:** DD-EXE
-**Version:** 1.16.0
-**Traces To:** SRD-EXE v1.21.0
+**Version:** 1.17.0
+**Traces To:** SRD-EXE v1.24.0
 **Status:** Draft
-**Last Updated:** 2026-06-17
+**Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.17.0: DD-EXE-018.001/.003/.006/.007/.012/.013.D01 added — Short Trade Direction: stored direction, shared side and risk-level helpers, order-state by entry/exit, direction-aware cycle maths, opposite-direction guard, signed position P&L.
 > v1.15.0: DD-EXE-006.013.D01 + DD-EXE-011.023.D01 added (ISS-EXE-0009) — opening a trade cycle marshals candle-feed arming (historical download + live-bar subscription) for its symbol; and the `ConditionEvaluator` FUNC choke point raises `EvaluatorError` on a NaN indicator result so an un-computable exit surfaces instead of reading as false.
 > v1.14.0: DD-EXE-016.007.D01 added (ISS-EXE-0008) — `mark_entered` re-arms a same-day `EXITED` ledger row back to `ENTERED` to keep the reconcile invariant on a same-day re-entry.
 > v1.13.0: DD-EXE-017.015–.021 added — global Margin Available ceiling, in-flight reservation ledger, per-entry margin clamp, paper open-position-value fix, live margin-drift reconcile, and User View capital/margin cells.
@@ -3831,3 +3832,191 @@ its pending ► live; executing it places a second SELL → an orphan exit fill 
 `CycleClosed` is published on the cycle/engine thread. Clearing pending signals
 touches Qt signals, so it is marshalled to the GUI thread with a queued
 `pyqtSignal(str, str)`, mirroring the ISS-EXE-0009 candle-arming marshal.
+
+## DD-EXE-018.001.D01 — Direction Storage & Migration
+
+**Parent SRD:** SRD-EXE-018.001, SRD-EXE-018.002
+
+`ExecutionEnums` gains a nested `TradeDirection(StrEnum)` with `LONG = "LONG"` and
+`SHORT = "SHORT"`. It sits beside `BuyOrderState` / `SellOrderState` so `data/models.py`,
+`execution/` and `gui/` all import it from the same place.
+
+**Strategy.** `gui/strategy_store.py`:
+
+- `StrategyConfig.direction: str = "LONG"`.
+- `strategies` table: `sa.Column("direction", sa.Text, nullable=False, server_default="LONG")`.
+- `_COLUMN_ADDITIONS` gains `("direction", "TEXT NOT NULL DEFAULT 'LONG'")`, so old databases
+  pick it up on first open and every legacy row reads `LONG`.
+- On load, a value that is not `LONG` / `SHORT` logs
+  `[Strategy] Unknown trade direction for %s — using Long` and is replaced by `LONG`.
+
+**Trade cycle.** `trade_cycle/_schema.py` adds `sa.Column("direction", sa.Text,
+nullable=False, server_default="LONG")`. `db/schema.py::_LIFECYCLE_COLUMN_ADDITIONS` gains
+`("trade_cycles", "direction", "TEXT NOT NULL DEFAULT 'LONG'")`. `CycleSnapshot` gets
+`direction: str = "LONG"` and `_repository._row_to_snapshot` maps it.
+
+`TradeCycleService.on_entry_fill(...)` takes a new keyword `direction: str = "LONG"`
+and writes it in `insert_open`. No later write path touches the column.
+
+## DD-EXE-018.003.D01 — Shared Side & Risk-Level Helpers
+
+**Parent SRD:** SRD-EXE-018.003, SRD-EXE-018.004, SRD-EXE-018.005
+
+New module `execution/direction.py`. Nothing else may derive the side or the levels:
+
+```python
+def order_side(direction: str, is_entry: bool) -> OrderSide:
+    long_ = direction != ExecutionEnums.TradeDirection.SHORT
+    return OrderSide.BUY if is_entry == long_ else OrderSide.SELL
+
+def risk_levels(
+    direction: str, price: float,
+    stoploss_enabled: bool, stoploss_pct: float,
+    target_enabled: bool, target_pct: float,
+) -> tuple[float | None, float | None]:
+    sign = -1.0 if direction == ExecutionEnums.TradeDirection.SHORT else 1.0
+    stop = price * (1.0 - sign * stoploss_pct / 100.0) if stoploss_enabled else None
+    target = price * (1.0 + sign * target_pct / 100.0) if target_enabled else None
+    return stop, target
+```
+
+**Wiring.**
+
+| Call site | Change |
+|---|---|
+| `_router._build_entry_signal` | `stop_loss, target = risk_levels(ctx.cfg.direction, entry_price, ...)` |
+| `TradeSignal` (`_signals.py`) | New field `direction: str = "LONG"`. The router sets it from `ctx.cfg.direction` on entry and from the open cycle's `direction` on exit. |
+| `BrokerAdapter.submit` | `side = order_side(signal.direction, is_entry)` |
+| `BrokerAdapter._entry_risk` | Uses `risk_levels`; a `None` stop is stored as `0.0` as today (disabled) |
+| `OrderContext` | New field `direction: str`; `OrderIngestion` passes it to `on_entry_fill` |
+| `signal_bridge.engine_to_gui` | `side = order_side(ts.direction, ts.action is Action.ENTRY).value` |
+
+Exit signals always take direction from the cycle. Editing a strategy therefore never
+changes how an already-open trade is closed.
+
+## DD-EXE-018.006.D01 — Order-State Enum by Entry/Exit
+
+**Parent SRD:** SRD-EXE-018.006
+
+`OrderIngestion._order_state(side, status)` becomes `_order_state(is_entry, status)`:
+entry orders use `BuyOrderState`, exit orders use `SellOrderState`. The `REJECTED`,
+`FILLED` and `PARTIAL_FILLED` branches at `order_ingestion.py:293/320` already branch on
+`ctx.is_entry`, so only the helper and its two callers change. Both enums have
+identical string values, so existing `trades.order_state` rows need no rewrite. The
+enum docstrings change from "per BUY/SELL order" to "per entry/exit order".
+
+## DD-EXE-018.007.D01 — Direction-Aware Trade-Cycle Maths
+
+**Parent SRD:** SRD-EXE-018.007, SRD-EXE-018.008, SRD-EXE-018.009, SRD-EXE-018.010, SRD-EXE-018.011
+
+`_TickAccumulator` gains `short: bool`, set from `snap.direction` in
+`_attach_accumulator`. `highest_seen` keeps its name but holds the **best** price seen:
+the highest for LONG and the lowest for SHORT. The tick update becomes:
+
+```python
+if (price < acc.highest_seen) if acc.short else (price > acc.highest_seen):
+    acc.highest_seen = price
+```
+
+**`_compute_live`** (`best` = accumulator best price):
+
+```python
+sign = -1.0 if short else 1.0
+pnl_usd = sign * (price - entry) * qty
+pnl_pct = sign * (price - entry) / entry * 100.0 if entry else 0.0
+
+if trailing_mode == "$":
+    trail = best + offset if short else best - offset
+elif trailing_mode == "%":
+    trail = best * (1 + offset / 100) if short else best * (1 - offset / 100)
+else:
+    trail = None
+if trail is not None and prev_trail is not None:
+    trail = min(trail, prev_trail) if short else max(trail, prev_trail)
+
+hard = hard_stop_loss if hard_stop_loss > 0 else None   # 0.0 = disabled
+candidates = [v for v in (hard, trail) if v is not None]
+effective = (min(candidates) if short else max(candidates)) if candidates else None
+```
+
+As built, the LONG branch keeps the original code unchanged (`max(hard, trail)`, or the
+hard stop alone): a `0.0` hard stop already loses to any trail under `max`, and a lone
+`0.0` stop can never trigger because the price is never `≤ 0`. The SHORT exit checks live
+in `_short_exit_reason`, so the LONG checks are also untouched.
+For SHORT, treating `0.0` as disabled matters: without it `price ≥ 0.0` would exit on
+the first tick.
+
+**`_check_exit_triggers`:**
+
+| Check | LONG | SHORT |
+|---|---|---|
+| target | `price >= target` | `price <= target` |
+| stop | `price <= effective` | `price >= effective` |
+| reason `trailing_sl` | trail set, trail `>=` hard, `price <= trail` | trail set, hard disabled or trail `<=` hard, `price >= trail` |
+
+**Realized P&L** in `_close_cycle`: `sign * (exit - entry) * entry_qty`, and the same
+`sign` on the percentage.
+
+**`update_risk` invariants** (`_service.py:483-489`): for SHORT, raise `InvariantViolation`
+when `hard_sl < current_price` or `target > current_price`. The messages use `≥` / `≤`
+to match. The LONG branch is unchanged.
+
+## DD-EXE-018.012.D01 — Opposite-Direction Conflict Guard
+
+**Parent SRD:** SRD-EXE-018.012, SRD-EXE-018.014
+
+IBKR keeps one net position per contract, so LONG 10 plus SHORT 10 on the same symbol
+would show as flat. That would break both cycles' exits.
+
+`_Router._direction_conflict(symbol, direction) -> bool` returns `True` when either:
+
+1. `self._cycle_query.open_cycles()` has a non-terminal cycle for `symbol`, owned by the
+   current user, whose `direction != direction`; or
+2. any other `_StrategyContext` in `self._registry` has `symbol in ctx.in_flight` and
+   `ctx.cfg.direction != direction`.
+
+It runs in `evaluate`'s Active branch after the rex gate and before sizing. A conflict
+publishes `StrategySignalDropped(signal, reason="direction_conflict")` and logs, once
+per `(strategy, symbol)` crossing (flag `ctx.conflict_warned: set[str]`):
+
+`[Strategy] %s skipped %s — another strategy holds the opposite trade on this stock`
+
+`AppService.execute_signal` calls the same check (exposed as
+`StrategyEngine.has_direction_conflict(symbol, direction)`) before submitting a pending
+ENTRY. That wrapper runs the check on the engine loop with `run_coroutine_threadsafe`,
+because `in_flight` belongs to that loop; if the loop does not answer within 2 s the
+entry counts as conflicting and one WARNING is logged. On conflict it logs the same message and returns `-1` before the signal is popped,
+so it stays in the pending store and the user can retry.
+
+Sizing, `can_allocate`, `margin_available()` and `reserve()` are direction-neutral:
+they use `entry_price × qty` either way, which is decision D4. No code change; tests only.
+
+## DD-EXE-018.013.D01 — Signed Position P&L & Short Reject Message
+
+**Parent SRD:** SRD-EXE-018.013, SRD-EXE-018.015
+
+`data/models.py::OpenPosition` gains `direction: str = "LONG"`:
+
+```python
+@property
+def unrealised_pnl(self) -> float:
+    sign = -1.0 if self.direction == "SHORT" else 1.0
+    return sign * (self.current_price - self.average_price) * self.quantity
+```
+
+`pnl_pct` uses the same sign. Builders:
+
+| Builder | Direction source |
+|---|---|
+| `app_service._cycle_position_source` (line ~1049) | `c.direction` |
+| `app_service` cycle restore / fill path (line ~2345) | `snap.direction` |
+| `app_service` IBKR portfolio (line ~285) | `"SHORT" if qty < 0 else "LONG"`; quantity stays `abs(qty)` |
+
+This keeps the dashboard KPI, the daily-loss advisory (SRD-EXE-017.007) and the Telegram
+day-end P&L correct without changing them.
+
+**Short reject.** In the `REJECTED` branch of `OrderIngestion.on_order_event`, when
+`ctx.is_entry` and `ctx.direction == "SHORT"`, log WARNING
+`[Orders] Short sale for %s was rejected by the broker` before the existing
+`abort_entry_order` call. Nothing else changes: the cycle aborts and the reservation is
+released as it is today. `SimBroker` never rejects on direction (D6).

@@ -1,12 +1,13 @@
 ﻿# Module Decomposition — Execution & Risk Management (EXE)
 
 **Document ID:** MD-EXE
-**Version:** 1.14.0
-**Traces To:** SRD-EXE v1.21.0 / DD-EXE v1.15.0
+**Version:** 1.15.0
+**Traces To:** SRD-EXE v1.24.0 / DD-EXE v1.17.0
 **Status:** Draft
-**Last Updated:** 2026-06-17
+**Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.15.0: MD-EXE-018.001.M01–018.012.M10 added — Short Trade Direction (FO-EXE-018): direction enum and storage, new `execution/direction.py` helpers, engine/adapter/ingestion wiring, direction-aware cycle maths, signed position P&L, pending-execute conflict check.
 > v1.13.0: MD-EXE-006.013.M01 added + MD-EXE-011.001.M03 updated (ISS-EXE-0009) — opening a trade cycle arms candle feeds for its symbol in `app_service.py`; `_evaluator.py` raises `EvaluatorError` on a NaN indicator result.
 > v1.12.0: MD-EXE-016.001.M01 + MD-EXE-016.003.M04 updated (ISS-EXE-0008) — same-day re-entry re-arm: `mark_entered` falls back to `fetch_latest_exited_row`; `transition_to_entered` clears `exited_at`.
 > v1.11.0: MD-EXE-017.012–.017 added — global Margin Available accessor + reservation ledger, `RiskValidator` protocol additions, router margin clamp/reservation, `margin_warned` flag, AppService paper open-value + margin + live drift, User View capital cell.
@@ -319,3 +320,30 @@ the Qt slot instead.
 | Module ID | File | Change Required | SRD |
 |---|---|---|---|
 | MD-EXE-015.004.M01 | `src/us_swing/gui/app_service.py` | Guard both GUI submit paths (`execute_signal`, `_submit_cycle_exit`) with try/except: log a `[Orders]` message, re-add the popped signal to the pending store, return -1. | SRD-EXE-015.004 |
+
+## Module Modifications for FO-EXE-018
+
+Short Trade Direction. One new file (`execution/direction.py`); every other entry changes an
+existing file. Implementation order: storage (M01–M03) → helpers (M04) → engine / adapter /
+ingestion (M05–M07) → cycle maths (M08) → positions + app wiring (M09–M10).
+
+| Module ID | File | Change Required | SRD |
+|---|---|---|---|
+| MD-EXE-018.001.M01 | `src/us_swing/execution/_enums.py` | Add nested `TradeDirection(StrEnum)` with `LONG` / `SHORT`. Reword `BuyOrderState` / `SellOrderState` docstrings to "per entry / exit order". | SRD-EXE-018.001, .002 |
+| MD-EXE-018.001.M02 | `src/us_swing/gui/strategy_store.py` | Add `StrategyConfig.direction = "LONG"`, the `strategies.direction` column, the `_COLUMN_ADDITIONS` entry, and the unknown-value fallback with one warning on load. | SRD-EXE-018.001 |
+| MD-EXE-018.002.M03 | `src/us_swing/execution/trade_cycle/{_schema,_dto,_repository}.py` + `src/us_swing/db/schema.py` | Add the `trade_cycles.direction` column, `CycleSnapshot.direction`, the `_row_to_snapshot` mapping, `insert_open` write, and the `_LIFECYCLE_COLUMN_ADDITIONS` entry. | SRD-EXE-018.002 |
+| MD-EXE-018.003.M04 | `src/us_swing/execution/direction.py` (new) | `order_side(direction, is_entry) -> OrderSide` and `risk_levels(direction, price, stoploss_enabled, stoploss_pct, target_enabled, target_pct) -> tuple[float \| None, float \| None]`. | SRD-EXE-018.003, .004 |
+| MD-EXE-018.005.M05 | `src/us_swing/execution/strategy_engine/{_signals,_router,_context,_engine}.py` | `TradeSignal.direction`; `_build_entry_signal` uses `risk_levels` and sets direction; exit signals take direction from the open cycle; `_direction_conflict` gate with `direction_conflict` drop and `conflict_warned` edge flag; `StrategyEngine.has_direction_conflict(symbol, direction)`. | SRD-EXE-018.005, .012, .014 |
+| MD-EXE-018.005.M06 | `src/us_swing/execution/broker_adapter.py` + `src/us_swing/execution/signal_bridge.py` | Side from `order_side`; `_entry_risk` uses `risk_levels`; `OrderContext.direction` set from the signal. | SRD-EXE-018.005 |
+| MD-EXE-018.006.M07 | `src/us_swing/execution/order_ingestion.py` | `OrderContext.direction`; `_order_state(is_entry, status)`; pass direction to `on_entry_fill`; short-reject WARNING before `abort_entry_order`. | SRD-EXE-018.005, .006, .015 |
+| MD-EXE-018.007.M08 | `src/us_swing/execution/trade_cycle/{_service,_protocols}.py` | `on_entry_fill(direction=...)`; `_TickAccumulator.short` and best-price update; direction-aware `_compute_live`, `_check_exit_triggers`, realized P&L and `update_risk` invariants; hard stop `≤ 0` treated as disabled. | SRD-EXE-018.002, .007, .008, .009, .010, .011 |
+| MD-EXE-018.013.M09 | `src/us_swing/data/models.py` | `OpenPosition.direction = "LONG"`; signed `unrealised_pnl` and `pnl_pct`. | SRD-EXE-018.013 |
+| MD-EXE-018.012.M10 | `src/us_swing/gui/app_service.py` | `execute_signal` runs `has_direction_conflict` before a pending ENTRY submit (log, re-add to pending store, return -1); cycle-derived and IBKR-portfolio `OpenPosition` builders set direction (negative IBKR quantity → `SHORT`). | SRD-EXE-018.012, .013 |
+
+**Cross-tool surfaces (GUI tool — see `gui/MD.md`):** Strategy Builder Direction selector and
+edit lock, strategy table Direction column, Active Trades Side column and confirm verbs,
+and risk-editor ranges (SRD-GUI-013.016–.019, SRD-GUI-014.016–.018).
+
+**Test impact (beyond UTCD rows):** one integration test in `tests/integration/` that drives a
+full SHORT cycle through `SimBroker` (entry SELL → target exit BUY → realized P&L) and the
+same cycle hitting the hard stop.

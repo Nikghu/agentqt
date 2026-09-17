@@ -50,6 +50,7 @@ def _snap(cycle_id: int, symbol: str = "QCOM", strategy: str = "SUPERTREND",
         entry_price   = entry_price,
         entry_qty     = entry_qty,
         current_price = None,
+        direction     = "LONG",
     )
 
 

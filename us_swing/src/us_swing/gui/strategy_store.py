@@ -15,6 +15,7 @@ in a single TEXT column each; promote to a child table only if a query like
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass, field, fields
 from datetime import datetime, timezone
 from pathlib import Path
@@ -24,6 +25,9 @@ import sqlalchemy as sa
 from sqlalchemy import Engine, create_engine
 
 from us_swing.db.schema import metadata
+from us_swing.execution._enums import ExecutionEnums
+
+log = logging.getLogger(__name__)
 
 _DB_PATH: Path = Path.home() / ".usswing" / "candles.db"
 
@@ -59,6 +63,7 @@ class StrategyConfig:
     rex_count: int = 0
     per_trade_pct: int = 100
     run_state: str = "STOPPED"
+    direction: str = "LONG"
 
 
 # ── Schema ────────────────────────────────────────────────────────────────────
@@ -93,6 +98,7 @@ strategies = sa.Table(
     sa.Column("execution_rate_sec", sa.Integer, nullable=False, server_default="1"),
     sa.Column("rex_count",          sa.Integer, nullable=False, server_default="0"),
     sa.Column("run_state",          sa.Text,    nullable=False, server_default="STOPPED"),
+    sa.Column("direction",          sa.Text,    nullable=False, server_default="LONG"),
     sa.Column("updated_at",         sa.Text,    nullable=False),
 )
 
@@ -114,10 +120,12 @@ def _engine() -> Engine:
     return _engine_cache
 
 
-# SRD-EXE-017.023 — additive columns for existing strategy databases; legacy
-# rows back-fill to the column default so saved strategies keep their behaviour.
+# SRD-EXE-017.023 / SRD-EXE-018.001 — additive columns for existing strategy
+# databases; legacy rows back-fill to the column default so saved strategies
+# keep their behaviour.
 _COLUMN_ADDITIONS: tuple[tuple[str, str], ...] = (
     ("per_trade_pct", "INTEGER NOT NULL DEFAULT 100"),
+    ("direction", "TEXT NOT NULL DEFAULT 'LONG'"),
 )
 
 
@@ -153,6 +161,9 @@ def _row_to_cfg(row: sa.Row[Any]) -> StrategyConfig:
     data.pop("updated_at", None)
     for key in _LIST_FIELDS:
         data[key] = json.loads(data[key]) if data.get(key) else []
+    if data.get("direction") not in set(ExecutionEnums.TradeDirection):
+        log.warning("[Strategy] Unknown trade direction for %s — using Long", data.get("name"))
+        data["direction"] = ExecutionEnums.TradeDirection.LONG.value
     valid = {f.name for f in fields(StrategyConfig)}
     return StrategyConfig(**{k: v for k, v in data.items() if k in valid})
 

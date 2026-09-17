@@ -57,6 +57,7 @@ class _TickAccumulator:
     dirty:           bool  = False
     flush_handle:    asyncio.TimerHandle | None = None
     closing:         bool  = field(default=False)
+    short:           bool  = False
 
 
 def _utcnow_iso() -> str:
@@ -186,6 +187,7 @@ class TradeCycleService:
         trailing_offset: float | None,
         monitoring_session_date: str,
         order_state:     ExecutionEnums.BuyOrderState = ExecutionEnums.BuyOrderState.FILLED,
+        direction:       str = "LONG",
     ) -> CycleSnapshot:
         """Open a cycle on the broker fill of an entry order.
 
@@ -230,6 +232,7 @@ class TradeCycleService:
             "current_price":           entry_price,
             "highest_price_seen":      entry_price,
             "effective_stop":          hard_stop_loss,
+            "direction":               direction,
             "state":                   (
                 TradeCycleState.OPEN if is_filled else TradeCycleState.OPENING
             ).value,
@@ -396,9 +399,10 @@ class TradeCycleService:
         # realized quantity is the held entry_qty — never the sell fill's
         # reported exit_qty, which can under-count when a broker reports the
         # final fill incrementally rather than cumulatively (SRD-EXE-012.007).
-        realized_pnl_usd = (exit_price - snap.entry_price) * snap.entry_qty
+        sign = -1.0 if snap.direction == ExecutionEnums.TradeDirection.SHORT else 1.0
+        realized_pnl_usd = sign * (exit_price - snap.entry_price) * snap.entry_qty
         realized_pnl_pct = (
-            (exit_price - snap.entry_price) / snap.entry_price * 100.0
+            sign * (exit_price - snap.entry_price) / snap.entry_price * 100.0
             if snap.entry_price else 0.0
         )
 
@@ -480,14 +484,24 @@ class TradeCycleService:
 
         current_price = snap.current_price if snap.current_price is not None else snap.entry_price
 
-        if hard_sl is not None and hard_sl > current_price:
-            raise InvariantViolation(
-                f"hard_sl ({hard_sl}) must be ≤ current_price ({current_price})"
-            )
-        if target is not None and target < current_price:
-            raise InvariantViolation(
-                f"target ({target}) must be ≥ current_price ({current_price})"
-            )
+        if snap.direction == ExecutionEnums.TradeDirection.SHORT:
+            if hard_sl is not None and hard_sl < current_price:
+                raise InvariantViolation(
+                    f"hard_sl ({hard_sl}) must be ≥ current_price ({current_price})"
+                )
+            if target is not None and target > current_price:
+                raise InvariantViolation(
+                    f"target ({target}) must be ≤ current_price ({current_price})"
+                )
+        else:
+            if hard_sl is not None and hard_sl > current_price:
+                raise InvariantViolation(
+                    f"hard_sl ({hard_sl}) must be ≤ current_price ({current_price})"
+                )
+            if target is not None and target < current_price:
+                raise InvariantViolation(
+                    f"target ({target}) must be ≥ current_price ({current_price})"
+                )
         if trailing_offset is not None and trailing_offset <= 0:
             raise InvariantViolation(
                 f"trailing_offset ({trailing_offset}) must be > 0"
@@ -552,7 +566,8 @@ class TradeCycleService:
                 acc = self._accs.get(cycle_id)
                 if acc is None or acc.closing:
                     continue
-                if price > acc.highest_seen:
+                # SHORT tracks the lowest price seen in the same field (SRD-EXE-018.008).
+                if (price < acc.highest_seen) if acc.short else (price > acc.highest_seen):
                     acc.highest_seen = price
                 acc.latest_price = price
                 acc.dirty        = True
@@ -614,23 +629,39 @@ class TradeCycleService:
         price: float,
         highest: float,
     ) -> dict[str, Any]:
-        pnl_usd = (price - snap.entry_price) * snap.entry_qty
+        # ``highest`` is the best price seen: the lowest for a SHORT (SRD-EXE-018.008).
+        short = snap.direction == ExecutionEnums.TradeDirection.SHORT
+        sign = -1.0 if short else 1.0
+        pnl_usd = sign * (price - snap.entry_price) * snap.entry_qty
         pnl_pct = (
-            (price - snap.entry_price) / snap.entry_price * 100.0
+            sign * (price - snap.entry_price) / snap.entry_price * 100.0
             if snap.entry_price else 0.0
         )
 
+        offset = snap.trailing_offset or 0.0
         if snap.trailing_mode == "$":
-            trail: float | None = highest - (snap.trailing_offset or 0.0)
+            trail: float | None = highest + offset if short else highest - offset
         elif snap.trailing_mode == "%":
-            trail = highest * (1.0 - (snap.trailing_offset or 0.0) / 100.0)
+            trail = (
+                highest * (1.0 + offset / 100.0) if short
+                else highest * (1.0 - offset / 100.0)
+            )
         else:
             trail = None
 
         if trail is not None and snap.trailing_stop_level is not None:
-            trail = max(trail, snap.trailing_stop_level)
+            if short:
+                trail = min(trail, snap.trailing_stop_level)
+            else:
+                trail = max(trail, snap.trailing_stop_level)
 
-        if trail is not None:
+        effective: float | None
+        if short:
+            # A hard stop of 0.0 means "no stop"; without this guard every tick
+            # would satisfy ``price >= 0.0`` and close the trade at once.
+            stops = [s for s in (snap.hard_stop_loss, trail) if s is not None and s > 0]
+            effective = min(stops) if stops else None
+        elif trail is not None:
             effective = max(snap.hard_stop_loss, trail)
         else:
             effective = snap.hard_stop_loss
@@ -652,7 +683,9 @@ class TradeCycleService:
             return
         reason: str | None = None
 
-        if snap.target_price is not None and price >= snap.target_price:
+        if snap.direction == ExecutionEnums.TradeDirection.SHORT:
+            reason = self._short_exit_reason(snap, price)
+        elif snap.target_price is not None and price >= snap.target_price:
             reason = "target"
         elif snap.effective_stop is not None and price <= snap.effective_stop:
             if (snap.trailing_stop_level is not None
@@ -682,6 +715,20 @@ class TradeCycleService:
             trigger_price = price,
         ))
 
+    @staticmethod
+    def _short_exit_reason(snap: CycleSnapshot, price: float) -> str | None:
+        """SHORT exit checks: target below, stops above (SRD-EXE-018.009)."""
+        if snap.target_price is not None and price <= snap.target_price:
+            return "target"
+        stop = snap.effective_stop
+        if stop is None or stop <= 0 or price < stop:
+            return None
+        trail = snap.trailing_stop_level
+        hard_on = snap.hard_stop_loss > 0
+        if trail is not None and (not hard_on or trail <= snap.hard_stop_loss) and price >= trail:
+            return "trailing_sl"
+        return "hard_sl"
+
     # ── Accumulator bookkeeping ──────────────────────────────────────────────
 
     def _attach_accumulator(self, snap: CycleSnapshot) -> None:
@@ -693,6 +740,7 @@ class TradeCycleService:
             last_persist_at = 0.0,
             dirty           = False,
             closing         = (snap.state is TradeCycleState.CLOSING),
+            short           = (snap.direction == ExecutionEnums.TradeDirection.SHORT),
         )
         self._accs[snap.cycle_id] = acc
         self._accs_by_sym.setdefault(snap.symbol, set()).add(snap.cycle_id)

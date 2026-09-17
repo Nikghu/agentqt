@@ -93,6 +93,7 @@ class OrderContext:
     trailing_offset: float | None = None
     monitoring_session_date: str = ""
     exit_reason: str = "manual"
+    direction: str = "LONG"
 
 
 class OrderIngestion:
@@ -179,7 +180,7 @@ class OrderIngestion:
         # insert across threads; insert_trade is idempotent (INSERT OR IGNORE).
         self._ledger.insert_trade(self._new_trade_record(ctx))
 
-        order_state = self._order_state(ctx.side, event.status)
+        order_state = self._order_state(ctx.is_entry, event.status)
         is_exit_fill = (not ctx.is_entry) and event.status in (
             OrderStatus.FILLED,
             OrderStatus.PARTIAL_FILLED,
@@ -201,6 +202,8 @@ class OrderIngestion:
             # An exit reject must leave the cycle OPEN — the stock is still held,
             # so the exit has to stay retryable.  Only an entry aborts.
             if ctx.is_entry:
+                if ctx.direction == E.TradeDirection.SHORT:
+                    log.warning("[Orders] Short sale for %s was rejected by the broker", ctx.symbol)
                 try:
                     self._cycles.abort_entry_order(ctx.broker_order_id, "broker_reject")
                 except Exception:
@@ -284,7 +287,7 @@ class OrderIngestion:
             mode=ctx.mode,
             strategy_id=ctx.strategy_id,
             entry_time=datetime.now(),
-            order_state=self._order_state(ctx.side, OrderStatus.NEW),
+            order_state=self._order_state(ctx.is_entry, OrderStatus.NEW),
             filled_quantity=0,
         )
 
@@ -311,6 +314,7 @@ class OrderIngestion:
                 trailing_offset=ctx.trailing_offset,
                 monitoring_session_date=ctx.monitoring_session_date,
                 order_state=buy_state,
+                direction=ctx.direction,
             )
         except Exception:
             log.exception("[Orders] Could not open the trade cycle for %s", ctx.symbol)
@@ -336,8 +340,8 @@ class OrderIngestion:
             log.exception("[Orders] Could not close the trade cycle for %s", ctx.symbol)
 
     @staticmethod
-    def _order_state(side: OrderSide, status: OrderStatus) -> str:
-        enum = E.BuyOrderState if side is OrderSide.BUY else E.SellOrderState
+    def _order_state(is_entry: bool, status: OrderStatus) -> str:
+        enum = E.BuyOrderState if is_entry else E.SellOrderState
         try:
             return enum(status.value).value
         except ValueError as exc:

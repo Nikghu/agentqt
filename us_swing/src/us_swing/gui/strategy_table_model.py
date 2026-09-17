@@ -25,16 +25,17 @@ COL_CAPITAL       = 8
 COL_START         = 9
 COL_END           = 10
 COL_TRADE_TYPE    = 11
-COL_START_DATE    = 12
-COL_END_DATE      = 13
-COL_TARGET        = 14
-COL_TARGET_TYPE   = 15
-COL_STOPLOSS      = 16
-COL_STOPLOSS_TYPE = 17
+COL_DIRECTION     = 12
+COL_START_DATE    = 13
+COL_END_DATE      = 14
+COL_TARGET        = 15
+COL_TARGET_TYPE   = 16
+COL_STOPLOSS      = 17
+COL_STOPLOSS_TYPE = 18
 
 COLUMNS: list[str] = [
     "Status", "Run", "Name", "Edit", "Delete", "Reset", "Scope", "Mode", "Capital",
-    "Start", "End", "Trade Type", "Start Date", "End Date",
+    "Start", "End", "Trade Type", "Direction", "Start Date", "End Date",
     "Target", "Target Type", "Stop Loss", "StopLoss Type",
 ]
 
@@ -154,6 +155,8 @@ def _cell_text(cfg: StrategyConfig, col: int) -> str:
         return cfg.end_time
     if col == COL_TRADE_TYPE:
         return cfg.trade_type
+    if col == COL_DIRECTION:
+        return "Short" if cfg.direction == "SHORT" else "Long"
     if col == COL_START_DATE:
         return cfg.start_date
     if col == COL_END_DATE:

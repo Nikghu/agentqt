@@ -122,16 +122,21 @@ class OpenPosition(PositionRecord):
     strategy_id:     str      = ""
     trade_id:        str      = ""
     entry_time:      datetime = field(default_factory=datetime.now)
+    direction:       str      = "LONG"   # SRD-EXE-018.013; quantity stays positive
+
+    @property
+    def _sign(self) -> float:
+        return -1.0 if self.direction == "SHORT" else 1.0
 
     @property
     def unrealised_pnl(self) -> float:
-        return (self.current_price - self.average_price) * self.quantity
+        return self._sign * (self.current_price - self.average_price) * self.quantity
 
     @property
     def pnl_pct(self) -> float:
         if self.average_price == 0:
             return 0.0
-        return (self.current_price - self.average_price) / self.average_price * 100
+        return self._sign * (self.current_price - self.average_price) / self.average_price * 100
 
     @property
     def days_held(self) -> int:

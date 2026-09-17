@@ -40,17 +40,29 @@ class _RiskEditorWidget(QWidget):
         self._cycle_id = snap.cycle_id
 
         anchor = snap.current_price if snap.current_price is not None else snap.entry_price
+        short = snap.direction == "SHORT"
 
         # ── Spinboxes ────────────────────────────────────────────────────
         self._hsl = QDoubleSpinBox()
-        self._hsl.setRange(0.01, max(0.01, anchor))
+        if short:
+            self._hsl.setRange(anchor, 1_000_000.0)
+        else:
+            self._hsl.setRange(0.01, max(0.01, anchor))
         self._hsl.setSingleStep(0.05)
         self._hsl.setDecimals(2)
         self._hsl.setPrefix("$")
         self._hsl.setValue(snap.hard_stop_loss if snap.hard_stop_loss is not None else 0.01)
+        # A Short with no stop shows the price as the stop; saving untouched must not
+        # add that stop, or the next tick would close the trade (SRD-GUI-014.018).
+        self._hsl_placeholder = (
+            self._hsl.value() if short and snap.hard_stop_loss <= 0 else None
+        )
 
         self._target = QDoubleSpinBox()
-        self._target.setRange(anchor, 1_000_000.0)
+        if short:
+            self._target.setRange(0.01, max(0.01, anchor))
+        else:
+            self._target.setRange(anchor, 1_000_000.0)
         self._target.setSingleStep(0.05)
         self._target.setDecimals(2)
         self._target.setPrefix("$")
@@ -132,7 +144,14 @@ class _RiskEditorWidget(QWidget):
     def _collect_changed_fields(self) -> dict[str, Any]:
         snap = self._snap
         out: dict[str, Any] = {}
-        if snap.hard_stop_loss is None or abs(self._hsl.value() - snap.hard_stop_loss) > 1e-9:
+        hsl_untouched = (
+            self._hsl_placeholder is not None
+            and abs(self._hsl.value() - self._hsl_placeholder) <= 1e-9
+        )
+        hsl_changed = (
+            snap.hard_stop_loss is None or abs(self._hsl.value() - snap.hard_stop_loss) > 1e-9
+        )
+        if hsl_changed and not hsl_untouched:
             out["hard_sl"] = float(self._hsl.value())
         target_changed = (
             snap.target_price is None

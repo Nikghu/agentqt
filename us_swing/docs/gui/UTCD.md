@@ -1,11 +1,13 @@
 ﻿# Unit Test Case Document â€” GUI Module (GUI)
 
 **Document ID:** UTCD-GUI
-**Version:** 1.4.0
-**Traces To:** MD-GUI v1.3.0
+**Version:** 1.5.0
+**Traces To:** MD-GUI v1.7.0
 **Status:** Draft
-**Last Updated:** 2026-08-26
+**Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
+
+> v1.5.0: UT-GUI-013.016–.019 and UT-GUI-014.016–.018 added (22 tests) — Short Trade Direction GUI surfaces (FO-EXE-018).
 
 > v1.4.0: UT-GUI-012.001.M01.T20–T28 added — live tick worker watchdog (SRD-GUI-012.008–009).
 
@@ -279,3 +281,53 @@
 | UT-GUI-014.001.M03.T08 | MD-GUI-014.001.M03 | Negative | Cancel button discards in-progress edits and emits no `saved` signal (covers SRD-GUI-014.007 mutation rollback) | Open editor with snap (`hsl=179`); change `_hsl` to `178`; click Cancel | `cancelled` emitted with cycle_id; `saved` NOT emitted; no call to `update_risk` | Not Run |
 | UT-GUI-014.001.M03.T09 | MD-GUI-014.001.M03 | Positive | Trail mode dropdown shows "Off" selected when the cycle has no trailing | Open editor with `trailing_mode=None` | `_trail_mode.currentText() == "Off"` | Pass |
 | UT-GUI-014.001.M03.T10 | MD-GUI-014.001.M03 | Positive | Switching a trailing cycle to "Off" saves an empty trailing mode | Open with `trailing_mode="$"`; set dropdown to "Off"; collect fields | `_collect_changed_fields()["trailing_mode"] == ""` | Pass |
+
+---
+
+## Module: `gui/strategy_builder_dialog.py` — Direction selector (FO-EXE-018)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-013.016.M01.T01 | MD-GUI-013.001.M01 | Positive | New strategy defaults to Long | open Add dialog | `_direction_combo.currentData() == "LONG"` | Pass |
+| UT-GUI-013.016.M01.T02 | MD-GUI-013.001.M01 | Positive | Short choice is saved | fill required fields; pick `Short`; Save | emitted `StrategyConfig.direction == "SHORT"` | Pass |
+| UT-GUI-013.016.M01.T03 | MD-GUI-013.001.M01 | Positive | Edit loads stored direction | open Edit with `cfg.direction="SHORT"` | combo shows `Short` | Pass |
+| UT-GUI-013.017.M01.T04 | MD-GUI-013.001.M01 | Negative | Direction locked while trades are open | open Edit with `has_open_trades=True` | combo disabled; tooltip `Close open trades before changing direction`; other fields enabled | Pass |
+| UT-GUI-013.017.M01.T05 | MD-GUI-013.001.M01 | Positive | Direction editable with no open trades | open Edit with `has_open_trades=False` | combo enabled | Pass |
+| UT-GUI-013.018.M01.T06 | MD-GUI-013.001.M01 | Positive | No-stop note for Short | pick `Short`; stop loss off | amber note visible; Save still emits `saved` | Pass |
+| UT-GUI-013.018.M01.T07 | MD-GUI-013.001.M01 | Negative | No note when stop is on or Long | Short + stop on; then Long + stop off | note hidden in both cases | Pass |
+| UT-GUI-013.016.M01.T08 | MD-GUI-013.001.M01 | Negative | Unknown stored direction shows Long | open Edit with `cfg.direction="SIDEWAYS"`; Save | combo shows `Long`; saved `direction == "LONG"` | Pass |
+
+---
+
+## Module: `gui/strategy_table_model.py` — Direction column (FO-EXE-018)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-013.019.M02.T01 | MD-GUI-004.001.M02 | Positive | Direction column shows Short | model loaded with one `direction="SHORT"` config | `headerData(COL_DIRECTION) == "Direction"`; cell `"Short"` | Pass |
+| UT-GUI-013.019.M02.T02 | MD-GUI-004.001.M02 | Edge | Legacy config shows Long | config without an explicit direction | cell `"Long"` | Pass |
+
+---
+
+## Module: `gui/active_cycles_model.py` & `gui/active_cycles_panel.py` — Direction in Active Trades (FO-EXE-018)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-014.016.M02.T01 | MD-GUI-014.001.M02 | Positive | Short cycle row shows red Short | `on_cycle_opened(snap(direction="SHORT"))` | Side cell `"Short"`; foreground `C.RED` | Pass |
+| UT-GUI-014.016.M02.T02 | MD-GUI-014.001.M02 | Positive | Pending Long row shows green Long | `on_pending_added(signal(direction="LONG"))` | Side cell `"Long"`; foreground `C.GREEN` | Pass |
+| UT-GUI-014.016.M02.T03 | MD-GUI-014.001.M02 | Negative | Unknown direction never shows blank or Short | `on_cycle_opened(snap(direction=""))` | Side cell `"Long"`; foreground `C.GREEN` | Pass |
+| UT-GUI-014.017.M01.T01 | MD-GUI-014.001.M01 | Positive | Short entry confirm says Sell short | Execute on pending SHORT ENTRY row | dialog text starts `Submit Sell short`; affordability check called | Pass |
+| UT-GUI-014.017.M01.T02 | MD-GUI-014.001.M01 | Positive | Short exit confirm says Buy to cover | Execute on pending SHORT EXIT row | dialog text starts `Submit Buy to cover`; affordability check not called | Pass |
+| UT-GUI-014.017.M01.T03 | MD-GUI-014.001.M01 | Positive | Close on Short cycle says Buy to cover | Close on OPEN SHORT row, entry 100, ltp 97, qty 10 | text contains `Buy to cover 10 × ` and `+$30.00` | Pass |
+| UT-GUI-014.017.M01.T04 | MD-GUI-014.001.M01 | Negative | Short entry blocked when margin is short | pending SHORT ENTRY; `margin_available()` below qty × price | confirm button disabled; red warning shown | Pass |
+| UT-GUI-014.017.M01.T05 | MD-GUI-014.001.M01 | Edge | Long verbs unchanged | Execute on LONG ENTRY; Close on OPEN LONG | `Buy` and `Sell` | Pass |
+
+---
+
+## Module: `gui/risk_editor_widget.py` — Short ranges (FO-EXE-018)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-014.018.M03.T01 | MD-GUI-014.001.M03 | Positive | Short ranges flip around price | snap `direction="SHORT"`, `current_price=100` | `_hsl.minimum() == 100`; `_target.maximum() == 100` | Pass |
+| UT-GUI-014.018.M03.T02 | MD-GUI-014.001.M03 | Negative | Short stop cannot go below price | same snap; `_hsl.setValue(95)` | `_hsl.value() == 100` | Pass |
+| UT-GUI-014.018.M03.T03 | MD-GUI-014.001.M03 | Edge | Long ranges unchanged | snap `direction="LONG"`, `current_price=100` | `_hsl.maximum() == 100`; `_target.minimum() == 100` | Pass |
+| UT-GUI-014.018.M03.T04 | MD-GUI-014.001.M03 | Negative | Saving a Short with no stop adds no stop | snap `direction="SHORT"`, `hard_stop_loss=0.0`; collect fields, then set stop 105 | first collect has no `hard_sl`; after edit `hard_sl == 105` | Pass |

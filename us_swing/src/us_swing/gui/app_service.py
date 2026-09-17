@@ -294,6 +294,7 @@ class _AccountDataWorker(QThread):
                     strategy_id     = "IBKR",
                     filled_quantity = abs(qty),
                     total_quantity  = abs(qty),
+                    direction       = "SHORT" if qty < 0 else "LONG",
                 ))
 
             acct = AccountState(
@@ -1055,6 +1056,7 @@ class _CyclePositionSource:
                 target_price  = c.target_price or 0.0,
                 mode          = self._mode_provider(),
                 strategy_id   = c.strategy_id,
+                direction     = c.direction,
             )
             for c in self._query.open_cycles()
             if c.user_id == user_id
@@ -2161,6 +2163,20 @@ class AppService(QObject):
                 f"{signal.strategy_id} already holds this stock",
             )
             return -1
+        # The broker nets one position per stock, so a pending entry must not
+        # open against an opposite trade already held or in flight
+        # (SRD-EXE-018.012).  The signal stays pending so the user can retry.
+        if (
+            isinstance(signal, EngineSignal)
+            and signal.action == Action.ENTRY
+            and self._strategy_engine.has_direction_conflict(signal.symbol, signal.direction)
+        ):
+            self.log_message.emit(
+                "WARNING",
+                f"[Strategy] {signal.strategy_id} skipped {signal.symbol} — "
+                "another strategy holds the opposite trade on this stock",
+            )
+            return -1
         eng_sig = self._pending_store.execute(signal.signal_id)
         if eng_sig is None:
             self.log_message.emit(
@@ -2356,6 +2372,7 @@ class AppService(QObject):
                 total_quantity  = snap.entry_qty,
                 trade_id        = snap.entry_order_id or f"cyc-{snap.cycle_id}",
                 entry_time      = entry_dt,
+                direction       = snap.direction,
             ))
         _log.info(
             "[TradeCycle] Restored %d open, %d historical cycle(s)",
@@ -2526,6 +2543,7 @@ class AppService(QObject):
             strategy_id = snap.strategy_id,
             entry_price = float(exit_price),
             reason      = "manual_force_exit",
+            direction   = snap.direction,
         )
         self._pending_exit_reason = reason
         if self._submitter is None:

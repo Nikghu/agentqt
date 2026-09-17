@@ -1,10 +1,10 @@
 ﻿# Software Requirement Document — Execution & Risk Management (EXE)
 
 **Document ID:** SRD-EXE
-**Version:** 1.23.2
-**Traces To:** FO-EXE v1.12.0
+**Version:** 1.24.4
+**Traces To:** FO-EXE v1.13.0
 **Status:** Draft
-**Last Updated:** 2026-07-10
+**Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
 > v1.7.0: Sections 11 + 12 added — SRD-EXE-011.001–015 (Strategy Engine) and SRD-EXE-012.001–013 (Trade Cycle Ledger).
@@ -27,6 +27,11 @@
 > v1.23.0: SRD-EXE-017.023/.024/.025 added (Approved, ISS-EXE-0011) — split the single per-strategy `Capital Max` into a strategy allocation (its budget cap) and a per-trade size (`per_trade_pct`, % of that allocation), so one strategy can open multiple concurrent positions up to `floor(100/per_trade_pct)` instead of being stuck at one. Refines SRD-EXE-017.003/.005/.009/.018.
 > v1.23.1: SRD-EXE-017.026 added (Approved) — makes explicit that Strategy Allocation is a non-reserved ceiling: a STOPPED strategy with no open positions frees its whole share to the shared pool; only live/in-flight positions consume Margin Available.
 > v1.23.2: SRD-EXE-017.023–.026 Approved → Implemented after code shipped and verified (73 execution tests pass, incl. UT-EXE-017.024.M03.T04–T07); RN-EXE-1.31.0-20260710.
+> v1.24.0: Section 18 added — SRD-EXE-018.001–.015 (Draft, FO-EXE-018 Short Trade Direction): stored strategy/cycle direction, shared side and risk-level helpers, direction-aware P&L, trailing stop, exit triggers and risk invariants, opposite-direction conflict guard, signed position P&L.
+> v1.24.1: SRD-EXE-018.001–.015 Draft → Approved by user (2026-09-17).
+> v1.24.2: SRD-EXE-018.001 Approved → Implemented (P1: strategy direction column + migration + fallback). SRD-EXE-018.002–.004 storage and helpers landed in P1 but stay Approved until P2/P3 wire them in.
+> v1.24.3: SRD-EXE-018.002–.006, .012, .014, .015 Approved → Implemented (P2: direction wired through router, broker adapter, order ingestion and cycle open; opposite-direction guard at engine and pending execute).
+> v1.24.4: SRD-EXE-018.007–.011 and .013 Approved → Implemented (P3: direction-aware live/realized P&L, SHORT trailing stop and exit triggers, risk-edit invariants, signed OpenPosition P&L). All SRD-EXE-018 rows now Implemented.
 
 ---
 
@@ -325,3 +330,28 @@
 | SRD-EXE-017.024 | FO-EXE-017 | Must | The per-entry sizing slice becomes `effective_capital × capital_max/100 × per_trade_pct/100`; `_router._size_entry` multiplies the strategy allocation by `per_trade_pct/100`. `can_allocate` keeps capping the strategy at its full allocation (`capital_max`), so a strategy may open up to `floor(100/per_trade_pct)` concurrent positions until its allocation cap or `margin_available()` is reached. With `per_trade_pct=100` the result equals SRD-EXE-017.003. | allocation %, per-trade %, price | `int` shares per trade | Refines SRD-EXE-017.003/.005/.009/.018; global `margin_available()` stays the hard backstop | Implemented |
 | SRD-EXE-017.025 | FO-EXE-017 | Must | (GUI surface) The strategy builder replaces the single "Capital Max" spinbox with "Strategy Allocation" (% of Max Capital) and "Per-Trade Size" (% of allocation) spinboxes plus a live read-only hint showing dollar budget, per-trade dollars, and maximum trade count from the user's Max Capital. | user edit | two persisted percentages + hint | `gui/strategy_builder_dialog.py`; Max Capital passed from `gui/execution_panel.py`; hint shows percentages only when Max Capital is 0 | Implemented |
 | SRD-EXE-017.026 | FO-EXE-017 | Should | Strategy Allocation (`capital_max`) is a non-reserved ceiling — only live open positions and in-flight entries consume `margin_available()`, never a strategy's unused allocation. A `STOPPED` strategy holding no open positions frees its whole share to the shared pool, and its allocation applies again only after it returns to `RUNNING`; positions it still holds keep counting until they close. | run_state, open cycles | shared-pool margin | Emergent invariant over SRD-EXE-013.004 + SRD-EXE-017.015; covered by their tests, no new gate | Implemented |
+
+---
+
+## Section 18: Requirements for FO-EXE-018 — Short Trade Direction
+
+> Refines: SRD-EXE-011.008 (entry risk levels), SRD-EXE-012.007 (realized PnL sign), SRD-EXE-014.002 (order-state enum chosen by entry/exit), SRD-EXE-017.022 (margin check applies to every entry, not every BUY).
+> Cross-tool (not EXE IDs): Strategy Builder Direction selector, strategy table column, Active Trades labels, confirm verbs and risk-editor ranges — see `gui/SRD.md` SRD-GUI-013.016–.019 and SRD-GUI-014.016–.018.
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-EXE-018.001 | FO-EXE-018 | Must | `StrategyConfig` gains `direction: str` (`LONG` / `SHORT`, default `LONG`), persisted in a `strategies.direction` column added by additive migration. | strategy config | persisted field | Legacy rows read as `LONG`; unknown values rejected at load with a warning and treated as `LONG` | Implemented |
+| SRD-EXE-018.002 | FO-EXE-018 | Must | `trade_cycles` gains a `direction` column and `CycleSnapshot.direction`, written once when the entry fill opens the cycle. | entry `OrderContext` | stored cycle direction | Additive migration, default `LONG`; never changed after open | Implemented |
+| SRD-EXE-018.003 | FO-EXE-018 | Must | One shared helper maps `(direction, is_entry)` to the order side: LONG entry BUY / exit SELL, SHORT entry SELL / exit BUY. | direction, entry flag | `OrderSide` | Single source of truth; no other module derives side from action | Implemented |
+| SRD-EXE-018.004 | FO-EXE-018 | Must | One shared helper computes stop and target from direction, reference price and strategy percentages; SHORT puts the stop above and the target below the price. | direction, price, config | stop, target | Disabled stop or target returns `None`; used by the router and the broker adapter | Implemented |
+| SRD-EXE-018.005 | FO-EXE-018 | Must | `_build_entry_signal` and `BrokerAdapter` use the helpers from .003 and .004, and `OrderContext` carries the strategy direction to the cycle. | entry / exit signal | direction-correct order + context | Exit direction comes from the open cycle, not the current strategy config | Implemented |
+| SRD-EXE-018.006 | FO-EXE-018 | Must | `OrderIngestion` selects the buy/sell order-state enum by entry/exit (entry → `BuyOrderState`, exit → `SellOrderState`), not by order side. | order event, context | order-state value | Both enums share values, so stored `trades.order_state` strings are unchanged | Implemented |
+| SRD-EXE-018.007 | FO-EXE-018 | Must | Live P&L on a SHORT cycle is `(entry − price) × qty` and `(entry − price) / entry × 100`. | tick price, cycle | `current_pnl_usd`, `current_pnl_pct` | LONG formula unchanged | Implemented |
+| SRD-EXE-018.008 | FO-EXE-018 | Must | A SHORT cycle stores its lowest seen price in `highest_price_seen`, trails at `low + offset` (or `low × (1 + %)`), ratchets only downward, and uses the lower of hard stop and trail as its effective stop. | tick price, cycle | trailing + effective stop | A hard stop `≤ 0` counts as disabled for both directions | Implemented |
+| SRD-EXE-018.009 | FO-EXE-018 | Must | A SHORT cycle exits on target when `price ≤ target` and on stop when `price ≥ effective stop`, with the same `target` / `hard_sl` / `trailing_sl` reasons. | tick price, cycle | `ExitTrigger` | Disabled stop never triggers; LONG checks unchanged | Implemented |
+| SRD-EXE-018.010 | FO-EXE-018 | Must | Realized P&L on a closed SHORT cycle is `(entry − exit) × entry_qty` and `(entry − exit) / entry × 100`. | exit fill, cycle | `realized_pnl_usd`, `realized_pnl_pct` | Uses held `entry_qty` as in SRD-EXE-012.007 | Implemented |
+| SRD-EXE-018.011 | FO-EXE-018 | Must | `update_risk` on a SHORT cycle requires `hard_sl ≥ current price` and `target ≤ current price`, raising `InvariantViolation` otherwise. | risk edit, cycle | updated risk or error | LONG invariants unchanged | Implemented |
+| SRD-EXE-018.012 | FO-EXE-018 | Must | The router drops an ENTRY when the user has a non-terminal cycle or in-flight entry on the same symbol with the opposite direction under any strategy, publishing `StrategySignalDropped(reason='direction_conflict')` and one edge-triggered warning. | entry signal, open cycles | dropped signal + WARNING | Same check runs again when a pending entry is executed | Implemented |
+| SRD-EXE-018.013 | FO-EXE-018 | Must | `OpenPosition` gains `direction`; `unrealised_pnl` and `pnl_pct` are signed by it; cycle-derived positions copy the cycle direction and IBKR portfolio rows with negative quantity map to `SHORT`. | cycles, broker portfolio | signed position P&L | Quantity stays positive; margin math unchanged (D4) | Implemented |
+| SRD-EXE-018.014 | FO-EXE-018 | Must | A SHORT entry is sized, allocation-capped and margin-reserved exactly like a LONG entry of the same price and quantity. | entry signal | sized, reserved entry | No extra short-margin model in v1 (D4) | Implemented |
+| SRD-EXE-018.015 | FO-EXE-018 | Should | A rejected SHORT entry aborts the opening cycle through the existing reject path and logs `[Orders] Short sale for {symbol} was rejected by the broker`. | broker reject event | aborted cycle + WARNING | No pre-trade borrow check in v1 (D5); paper never rejects (D6) | Implemented |

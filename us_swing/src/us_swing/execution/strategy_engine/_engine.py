@@ -469,6 +469,34 @@ class StrategyEngine(QThread):
 
     # ── Sync lifecycle wrappers (called from AppService thread) ──────────────
 
+    def has_direction_conflict(
+        self, symbol: str, direction: str, timeout: float = 2.0
+    ) -> bool:
+        """True when an entry in *direction* on *symbol* would net against an
+        opposite trade already held or in flight (SRD-EXE-018.012).
+
+        The check reads ``in_flight`` sets owned by the engine loop, so it runs
+        on that loop.  If the loop does not answer in time the entry is treated
+        as conflicting — not sending an order is the safe outcome.
+        """
+        router = self._router
+        if router is None:
+            return False
+        if self._loop is None:
+            return router.has_direction_conflict(symbol, direction)
+
+        async def _check() -> bool:
+            return router.has_direction_conflict(symbol, direction)
+
+        fut = asyncio.run_coroutine_threadsafe(_check(), self._loop)
+        try:
+            return fut.result(timeout=timeout)
+        except TimeoutError:
+            fut.cancel()
+            log.warning("[Strategy] Could not check open trades for %s in time — entry not sent",
+                        symbol)
+            return True
+
     def request_stop(self) -> None:
         """Signal both router loops to exit; quits the QThread after they unwind."""
         if self._loop is None or self._router is None:

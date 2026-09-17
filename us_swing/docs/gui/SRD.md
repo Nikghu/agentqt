@@ -1,10 +1,13 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.15.0
+**Version:** 2.16.2
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
-**Last Updated:** 2026-08-26
+**Last Updated:** 2026-09-17
+> v2.16.2: SRD-GUI-013.016–.019 and SRD-GUI-014.016–.018 Approved → Implemented (P4 of FO-EXE-018).
+> v2.16.1: SRD-GUI-013.016–.019 and SRD-GUI-014.016–.018 Draft → Approved by user (2026-09-17).
+> v2.16.0: SRD-GUI-013.016–.019 and SRD-GUI-014.016–.018 added (Draft) — Short Trade Direction GUI surfaces for FO-EXE-018: Direction selector and edit lock, no-stop warning, strategy table column, Active Trades Side column, direction-aware confirm verbs and margin gate, Short risk-editor ranges.
 > v2.15.0: SRD-GUI-013.006 corrected — catalogue is 10 indicators, not 15. The four BOSS/BOS entries were stubs removed in `d6c4f4db`; the row had also always miscounted its own list of 14 as 15. Reopened and re-implemented on user authority (2026-08-27).
 > v2.14.0: SRD-GUI-012.008–009 added — live tick worker watchdog and GUI-visible tick failures (FO-GUI-012).
 > v2.13.0: SRD-GUI-000.006 added — `_AdminContextBar` capital cell (Max Capital · Margin Available); mirrors SRD-EXE-017.021.
@@ -201,6 +204,10 @@
 | SRD-GUI-013.013 | FO-GUI-013 | Must | `load_strategies()` reads `~/.usswing/strategies.json`, deserializes each record into a `StrategyConfig` (unknown keys dropped), and forces `strategy_signal['Status'] = 'Inactive'` and `Running_Symbols = []` on every record before returning. | registry on disk | `list[StrategyConfig]` | UTF-8 encoded; returns `[]` on missing file or parse error | Approved |
 | SRD-GUI-013.014 | FO-GUI-013 | Must | `save_strategies(configs)` writes the full list as pretty-printed JSON to `~/.usswing/strategies.json`. Saving a record whose `name` matches an existing record overwrites it; an unmatched `name` appends. | in-memory list | disk file | Parent dir created via `mkdir(parents=True, exist_ok=True)`; atomic via temp-file + replace | Approved |
 | SRD-GUI-013.015 | FO-GUI-013 | Must | A Reset icon next to Edit / Delete / Run on each `_StrategyTablePane` row opens a `QMessageBox` confirmation ("Reset rex counters for {strategy_name}?") and on confirm calls `RexCounterRepository.reset(strategy_id)` which deletes every counter row for that strategy. | Click + confirm | Counter rows deleted | OPEN trade cycles are not touched; the action only clears the future-entry budget | Approved |
+| SRD-GUI-013.016 | FO-GUI-013 | Must | A `Direction` `QComboBox` with `Long` / `Short` sits beside `Trade Type` and writes `StrategyConfig.direction` (`LONG` / `SHORT`); a new strategy defaults to `Long` and Edit loads the stored value. | user input | `direction` | Storage owned by SRD-EXE-018.001; standard `C.INPUT_H` height and focus-outline rule | Implemented |
+| SRD-GUI-013.017 | FO-GUI-013 | Must | When editing a strategy that has open or opening trades, the `Direction` combo is disabled with tooltip `Close open trades before changing direction`. | Edit click, open-cycle check | disabled combo | Other fields stay editable; new strategies are never locked | Implemented |
+| SRD-GUI-013.018 | FO-GUI-013 | Should | When `Direction` is `Short` and Stop Loss is off, the Risk page shows an amber note `Short trades have no loss limit without a stop loss`; Save is still allowed. | direction, stop-loss toggle | inline note | Non-blocking; hides as soon as either condition changes | Implemented |
+| SRD-GUI-013.019 | FO-GUI-013 | Should | The Strategy Executor table shows a `Direction` column with `Long` / `Short` for each strategy. | `StrategyConfig` | table cell | Display-only; column placed beside Trade Type | Implemented |
 
 ---
 
@@ -223,3 +230,6 @@
 | SRD-GUI-014.013 | FO-GUI-014 | Must | `_ActiveCyclesModel` gains a `Rex` column rendering the current `RexCounterRepository.get(strategy_id, symbol)` value for every row (PENDING / OPENING / OPEN / CLOSING); a value of `-1` paints dimmed with tooltip `Rex limit reached — Reset Strategy to re-enable entries`. | Row data | Painted cell | Column queries the repository on row insert and on `StrategyEntered` events; no in-memory cache. **Reopen:** the `-1` display is superseded by SRD-EXE-017.011 (show remaining re-entries, never negative; no cross-row leakage onto pending signals). | Reopen |
 | SRD-GUI-014.014 | FO-GUI-014 | Must | `AppService.event_stream` exposes a `_AppEventStream` adapter with single-callback `subscribe(handler)` API that bridges `_lifecycle_bus` (typed `MonitoringEventBus`) and `_event_bus` (Qt `event_published`) into one sink; `ActiveCyclesPanel` subscribes via this adapter rather than directly to either bus. | constructor | adapter instance | Forwards every event from either source to every subscriber; subscriber exceptions logged but do not affect other subscribers; ordering not guaranteed across the two buses | Approved |
 | SRD-GUI-014.015 | FO-GUI-014 | Must | The PENDING-row action reflects the signal direction: the `[Execute]` confirm dialog reads `Submit {Buy\|Sell} {qty} × {symbol} @ MKT?` — `Sell` for `Action.EXIT`, `Buy` for `Action.ENTRY` — and the `▶` Execute button paints `C.RED` for an exit and `C.GREEN` for an entry (`C.MUTED` while the circuit breaker is active). `qty` is the signal's `qty_recommended` (now the real position size for exits — SRD-EXE-011.021). | pending row render / execute click | direction-correct dialog verb + button colour | Refines SRD-GUI-014.005 (was hardcoded `BUY`); colour read from `row.signal.action` in `_RowActionsDelegate` | Implemented |
+| SRD-GUI-014.016 | FO-GUI-014 | Must | `_ActiveCyclesModel` adds a `Side` column showing `Long` (green) or `Short` (red) for every row, read from the pending signal or the cycle snapshot. | row data | painted cell | Legacy rows without direction show `Long` | Implemented |
+| SRD-GUI-014.017 | FO-GUI-014 | Must | Execute and Close confirmations take their verb from direction and action — Long entry `Buy`, Long exit `Sell`, Short entry `Sell short`, Short exit `Buy to cover` — and the Margin Available check applies to every entry and never to an exit. | row direction, action | dialog text, affordability gate | Refines SRD-GUI-014.005, .008 and .015 (which assume BUY = entry) | Implemented |
+| SRD-GUI-014.018 | FO-GUI-014 | Must | For a Short cycle the inline risk editor limits Hard Stop to `≥ current price` and Target to `≤ current price`. | cycle snapshot | spinbox ranges | Mirrors SRD-EXE-018.011; Long ranges unchanged (SRD-GUI-014.007) | Implemented |

@@ -46,6 +46,7 @@ trade_cycles = sa.Table(
     sa.Column("realized_pnl_usd",        sa.Float),
     sa.Column("realized_pnl_pct",        sa.Float),
     sa.Column("state",                   sa.Text, nullable=False, server_default="OPENING"),
+    sa.Column("direction",               sa.Text, nullable=False, server_default="LONG"),
     sa.Column("opened_at",               sa.Text, nullable=False),
     sa.Column("closed_at",               sa.Text),
 )

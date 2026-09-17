@@ -481,6 +481,7 @@ def _make_closed_cycle_snapshot(symbol: str = "SATS", cycle_id: int = 1) -> Simp
         hard_stop_loss=110.0,
         target_price=120.0,
         current_price=113.84,
+        direction="LONG",
     )
 
 

@@ -36,6 +36,7 @@ class CycleSnapshot:
     user_id:             int   = 0
     monitoring_session_date: str = ""
     state:               TradeCycleState = TradeCycleState.OPENING
+    direction:           str   = "LONG"
     entry_time:          str   = ""
     entry_price:         float = 0.0
     entry_qty:           int   = 0

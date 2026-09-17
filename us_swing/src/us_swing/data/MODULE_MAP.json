@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-27T12:48:58",
+  "generated": "2026-09-17T17:54:15",
   "subfolder": "data",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\data",
   "tool_code": "INF",
@@ -213,17 +213,27 @@
             "current_price: float",
             "strategy_id: str",
             "trade_id: str",
-            "entry_time: datetime"
+            "entry_time: datetime",
+            "direction: str"
           ],
           "methods": [
+            {
+              "name": "_sign",
+              "signature": "def _sign(self) -> float",
+              "decorators": [
+                "@property"
+              ],
+              "line_start": 128,
+              "line_end": 129
+            },
             {
               "name": "unrealised_pnl",
               "signature": "def unrealised_pnl(self) -> float",
               "decorators": [
                 "@property"
               ],
-              "line_start": 127,
-              "line_end": 128
+              "line_start": 132,
+              "line_end": 133
             },
             {
               "name": "pnl_pct",
@@ -231,8 +241,8 @@
               "decorators": [
                 "@property"
               ],
-              "line_start": 131,
-              "line_end": 134
+              "line_start": 136,
+              "line_end": 139
             },
             {
               "name": "days_held",
@@ -240,8 +250,8 @@
               "decorators": [
                 "@property"
               ],
-              "line_start": 137,
-              "line_end": 138
+              "line_start": 142,
+              "line_end": 143
             },
             {
               "name": "position_value",
@@ -249,12 +259,12 @@
               "decorators": [
                 "@property"
               ],
-              "line_start": 141,
-              "line_end": 142
+              "line_start": 146,
+              "line_end": 147
             }
           ],
           "line_start": 114,
-          "line_end": 142
+          "line_end": 147
         },
         {
           "name": "TradeRecord",
@@ -274,8 +284,8 @@
             "order_state: OrderState",
             "filled_quantity: int"
           ],
-          "line_start": 155,
-          "line_end": 174
+          "line_start": 160,
+          "line_end": 179
         },
         {
           "name": "IBKRPosition",
@@ -286,8 +296,8 @@
             "average_price: float",
             "market_value: float"
           ],
-          "line_start": 180,
-          "line_end": 185
+          "line_start": 185,
+          "line_end": 190
         },
         {
           "name": "IBKRFill",
@@ -299,8 +309,8 @@
             "fill_price: float",
             "fill_time: datetime"
           ],
-          "line_start": 189,
-          "line_end": 195
+          "line_start": 194,
+          "line_end": 200
         },
         {
           "name": "IBKRReject",
@@ -310,8 +320,8 @@
             "symbol: str",
             "reason: str"
           ],
-          "line_start": 199,
-          "line_end": 203
+          "line_start": 204,
+          "line_end": 208
         },
         {
           "name": "IBKRCancel",
@@ -321,8 +331,8 @@
             "symbol: str",
             "filled_quantity: int"
           ],
-          "line_start": 207,
-          "line_end": 215
+          "line_start": 212,
+          "line_end": 220
         },
         {
           "name": "RealtimeBar",
@@ -336,8 +346,8 @@
             "close: float",
             "volume: int"
           ],
-          "line_start": 219,
-          "line_end": 229
+          "line_start": 224,
+          "line_end": 234
         },
         {
           "name": "UserRecord",
@@ -350,8 +360,8 @@
             "settings_json: str",
             "mode: str"
           ],
-          "line_start": 235,
-          "line_end": 242
+          "line_start": 240,
+          "line_end": 247
         },
         {
           "name": "UserProfile",
@@ -371,8 +381,8 @@
             "notify_screener_approved: bool",
             "notify_day_end_pnl: bool"
           ],
-          "line_start": 246,
-          "line_end": 264
+          "line_start": 251,
+          "line_end": 269
         },
         {
           "name": "RiskConfig",
@@ -385,8 +395,8 @@
             "default_order_type: str",
             "confirm_orders: bool"
           ],
-          "line_start": 268,
-          "line_end": 275
+          "line_start": 273,
+          "line_end": 280
         },
         {
           "name": "ScreenerResult",
@@ -402,8 +412,8 @@
             "breakout_pass: bool",
             "pullback_pass: bool"
           ],
-          "line_start": 281,
-          "line_end": 291
+          "line_start": 286,
+          "line_end": 296
         },
         {
           "name": "FilteredStockEntry",
@@ -418,8 +428,8 @@
             "date: str",
             "time: str"
           ],
-          "line_start": 295,
-          "line_end": 308
+          "line_start": 300,
+          "line_end": 313
         },
         {
           "name": "TradeSignal",
@@ -436,8 +446,8 @@
             "generated_at: datetime",
             "signal_id: str"
           ],
-          "line_start": 312,
-          "line_end": 323
+          "line_start": 317,
+          "line_end": 328
         },
         {
           "name": "MarketWatchItem",
@@ -449,8 +459,8 @@
             "change_pct: float",
             "prev_close: float"
           ],
-          "line_start": 327,
-          "line_end": 333
+          "line_start": 332,
+          "line_end": 338
         },
         {
           "name": "WatchlistItem",
@@ -469,8 +479,8 @@
             "year_low: float",
             "market_cap: float"
           ],
-          "line_start": 337,
-          "line_end": 350
+          "line_start": 342,
+          "line_end": 355
         }
       ]
     },

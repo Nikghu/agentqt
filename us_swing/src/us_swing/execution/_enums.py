@@ -73,5 +73,11 @@ class ExecutionEnums:
         ENTRY = "entry"
         EXIT = "exit"
 
+    class TradeDirection(StrEnum):
+        """Long or short, fixed per strategy and per trade cycle (SRD-EXE-018.001)."""
+
+        LONG = "LONG"
+        SHORT = "SHORT"
+
 
 __all__ = ["ExecutionEnums"]

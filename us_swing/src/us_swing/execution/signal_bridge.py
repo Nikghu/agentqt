@@ -5,6 +5,7 @@ Parent SRD: SRD-EXE-011.009
 from __future__ import annotations
 
 from us_swing.data.models import TradeSignal as GuiTradeSignal
+from us_swing.execution.direction import order_side
 from us_swing.execution.strategy_engine._signals import Action
 from us_swing.execution.strategy_engine._signals import TradeSignal as EngineSignal
 
@@ -13,7 +14,7 @@ def engine_to_gui(ts: EngineSignal) -> GuiTradeSignal:
     """Convert an engine TradeSignal to the GUI TradeSignal model."""
     return GuiTradeSignal(
         symbol=ts.symbol,
-        side="BUY" if ts.action == Action.ENTRY else "SELL",
+        side=order_side(ts.direction, ts.action == Action.ENTRY).value,
         strategy_id=ts.strategy_id,
         score=0.0,
         entry_price=ts.entry_price or 0.0,

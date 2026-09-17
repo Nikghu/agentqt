@@ -53,6 +53,7 @@ def _row_to_snapshot(row: RowMapping) -> CycleSnapshot:
         user_id                 = int(row["user_id"]),
         monitoring_session_date = row["monitoring_session_date"],
         state                   = coerce_state(row["state"]),
+        direction               = row["direction"],
         entry_time              = row["entry_time"],
         entry_price             = float(row["entry_price"]),
         entry_qty               = int(row["entry_qty"]),

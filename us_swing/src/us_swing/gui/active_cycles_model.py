@@ -34,18 +34,19 @@ class Col(IntEnum):
     STATE     = 2
     TIME      = 3
     SYMBOL    = 4
-    STRATEGY  = 5
-    QTY       = 6
-    ENTRY     = 7
-    LTP       = 8
-    EXIT      = 9
-    PNL_USD   = 10
-    PNL_PCT   = 11
-    HARD_STOP = 12
-    TARGET    = 13
-    TRAIL     = 14
-    REX       = 15
-    ACTIONS   = 16
+    SIDE      = 5
+    STRATEGY  = 6
+    QTY       = 7
+    ENTRY     = 8
+    LTP       = 9
+    EXIT      = 10
+    PNL_USD   = 11
+    PNL_PCT   = 12
+    HARD_STOP = 13
+    TARGET    = 14
+    TRAIL     = 15
+    REX       = 16
+    ACTIONS   = 17
 
 
 _HEADERS: dict[int, str] = {
@@ -54,6 +55,7 @@ _HEADERS: dict[int, str] = {
     Col.STATE:     "State",
     Col.TIME:      "Time",
     Col.SYMBOL:    "Symbol",
+    Col.SIDE:      "Side",
     Col.STRATEGY:  "Strategy",
     Col.QTY:       "Qty",
     Col.ENTRY:     "Entry $",
@@ -115,6 +117,7 @@ class _Row:
     cycle_id:        int | None   = None
     parent_cycle_id: int | None   = None
     rex_remaining:   int | None   = None
+    direction:       str          = "LONG"
 
 
 class _ActiveCyclesModel(QAbstractTableModel):
@@ -379,6 +382,7 @@ class _ActiveCyclesModel(QAbstractTableModel):
             user_id=signal.user_id,
             signal=signal,
             rex_remaining=self._fetch_rex(signal.strategy_id, signal.symbol),
+            direction=signal.direction,
         )
 
     def _row_from_snap(self, snap: CycleSnapshot) -> _Row:
@@ -402,6 +406,7 @@ class _ActiveCyclesModel(QAbstractTableModel):
             user_id=snap.user_id,
             cycle_id=snap.cycle_id,
             rex_remaining=self._fetch_rex(snap.strategy_id, snap.symbol),
+            direction=snap.direction,
         )
 
     def _fetch_rex(self, strategy_id: str, symbol: str) -> int | None:
@@ -482,6 +487,8 @@ class _ActiveCyclesModel(QAbstractTableModel):
             return row.time
         if col == Col.SYMBOL:
             return row.symbol
+        if col == Col.SIDE:
+            return "Short" if row.direction == "SHORT" else "Long"
         if col == Col.STRATEGY:
             return row.strategy
         if col == Col.QTY:
@@ -548,6 +555,8 @@ class _ActiveCyclesModel(QAbstractTableModel):
         return None
 
     def _foreground(self, row: _Row, col: int) -> QColor | None:
+        if col == Col.SIDE:
+            return QColor(C.RED) if row.direction == "SHORT" else QColor(C.GREEN)
         if col == Col.REX:
             if row.rex_remaining is not None and row.rex_remaining < 0:
                 return QColor(C.MUTED)

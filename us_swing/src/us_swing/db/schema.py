@@ -180,6 +180,7 @@ PRICE_TABLES: dict[str, sa.Table] = {
 
 # SRD-EXE-009.002 / .003 — columns added by feature FO-EXE-009.
 # SRD-EXE-014.001     — `order_state` + `filled_quantity` added by Phase 3.
+# SRD-EXE-018.002     — `trade_cycles.direction`; legacy cycles read as LONG.
 # Applied on app start via idempotent PRAGMA + ALTER TABLE; declared above so
 # fresh DBs receive them through `create_schema()`.
 _LIFECYCLE_COLUMN_ADDITIONS: tuple[tuple[str, str, str], ...] = (
@@ -187,6 +188,7 @@ _LIFECYCLE_COLUMN_ADDITIONS: tuple[tuple[str, str, str], ...] = (
     ("trades",    "monitoring_session_date", "TEXT"),
     ("trades",    "order_state",             "TEXT NOT NULL DEFAULT 'NEW'"),
     ("trades",    "filled_quantity",         "INTEGER NOT NULL DEFAULT 0"),
+    ("trade_cycles", "direction",            "TEXT NOT NULL DEFAULT 'LONG'"),
 )
 
 # SRD-EXE-014.001 — columns dropped by Phase 3 once `order_state` is backfilled.
@@ -221,7 +223,7 @@ def migrate_lifecycle_columns(engine: sa.Engine) -> None:
         for table_name, column_name, sql_type in _LIFECYCLE_COLUMN_ADDITIONS:
             rows = conn.execute(sa.text(f"PRAGMA table_info({table_name})")).mappings()
             existing = {row["name"] for row in rows}
-            if column_name in existing:
+            if not existing or column_name in existing:
                 continue
             conn.execute(
                 sa.text(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {sql_type}")

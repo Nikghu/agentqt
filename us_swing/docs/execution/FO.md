@@ -1,9 +1,9 @@
 # Functional Objectives — Execution & Risk Management (EXE)
 
 **Document ID:** FO-EXE
-**Version:** 1.12.0
+**Version:** 1.13.0
 **Status:** Draft
-**Last Updated:** 2026-06-09
+**Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
 > Traces to: `us_swing/requirements.md` §10, §11, §12, §13, §21.4, §22, §23, §25
@@ -11,6 +11,7 @@
 > v1.10.0: FO-EXE-015 added — Broker-Agnostic Order Ingestion & Adapter (Broker_fix.md Phases 2/5/6).
 > v1.11.0: FO-EXE-016 added — Retire `positions` table; drive the monitoring-session Lifecycle from `OrderIngestion` fills (supersedes cleanup.md Steps 7B–8).
 > v1.12.0: FO-EXE-017 added — Absolute Capital Allocation, Capital-Max Position Sizing & Advisory Risk Warnings (refines FO-EXE-001, FO-EXE-005, FO-EXE-011).
+> v1.13.0: FO-EXE-018 added — Short Trade Direction: Long / Short per strategy with direction-aware order side, risk levels, trailing stop, P&L and an opposite-direction conflict guard (refines FO-EXE-011, FO-EXE-012, FO-EXE-014).
 
 ---
 
@@ -576,3 +577,51 @@ Every order — paper included — shall flow through one broker-agnostic pipeli
 5. AAPL open under strategy "SUPERTREND" blocks a second SUPERTREND entry for AAPL, but a second strategy may still enter AAPL within its own Capital Max budget.
 6. With `rex_count = 0`, a stock can be entered once; after exit, a new entry for the same `(strategy, symbol)` is blocked. With `rex_count = 3`, four entry/exit cycles are allowed, the fifth is blocked.
 7. On a strategy `STOPPED → RUNNING` transition the Rex counter for every symbol of that strategy is reset to the configured value (currently only a manual "Reset rex counters" action does this; the start transition shall trigger it automatically), and the Active Trades Rex column shows no negative values and no cross-row leakage onto pending signals.
+
+---
+
+## FO-EXE-018: Short Trade Direction (Long / Short per Strategy)
+
+**Status:** Draft
+**Priority:** Must
+**Depends on:** FO-EXE-011 (Strategy Engine), FO-EXE-012 (Trade Cycle Ledger), FO-EXE-014 (Broker Order State Machine), FO-EXE-015 (Order Ingestion & Adapter), FO-EXE-017 (Capital & Margin), FO-GUI-013 (`StrategyConfig` contract)
+**Source:** User session 2026-09-17 — let the user choose Long or Short when creating a strategy; plan `docs/execution/Short_Trade_plan.md` (decisions D1–D7 approved).
+**Refines:** FO-EXE-011 (entry signal risk levels), FO-EXE-012 (live/realized P&L, trailing stop, exit triggers, risk-edit invariants), FO-EXE-014 (order-state enum chosen by entry/exit, not by side). Where this FO conflicts with long-only wording in those FOs, this FO governs.
+**Cross-tool impact (notes, not EXE IDs):** GUI — Strategy Builder Direction selector, strategy table column, Active Trades direction labels, confirm verbs and risk-editor ranges (see `gui/SRD.md` FO-GUI-013 / FO-GUI-014). INF/data — `OpenPosition` gains a direction so its unrealised P&L is signed correctly.
+
+### Direction model
+
+- Each strategy shall carry one **direction**, `LONG` or `SHORT`; existing strategies shall read as `LONG`.
+- Each trade cycle shall store the direction it was opened with; an open cycle shall keep that direction even if the strategy is later edited.
+- The order side shall be derived from direction and action: LONG enters with BUY and exits with SELL; SHORT enters with SELL (sell short) and exits with BUY (buy to cover).
+- No component shall infer "entry" or "exit" from the order side alone.
+
+### Risk levels and exits
+
+- For a SHORT entry the stop loss shall sit **above** the entry price and the target **below** it, using the same percentage settings as a LONG.
+- For a SHORT cycle the target exit shall fire when price falls to or below the target, and the stop exit when price rises to or above the effective stop.
+- For a SHORT cycle the trailing stop shall follow the **lowest** price seen and may only move down.
+- A disabled stop loss shall never trigger an exit for either direction.
+- Manual risk edits shall be validated against the direction: for SHORT, stop ≥ current price and target ≤ current price.
+
+### Profit and loss
+
+- SHORT live and realized P&L shall be `(entry − price) × qty`, so a falling price shows profit.
+- Positions derived from cycles or from the broker portfolio shall carry direction so dashboard and daily-loss figures are signed correctly.
+
+### Conflict and capital rules
+
+- The system shall block an entry when the same user already holds, or is opening, the opposite direction on the same symbol under any strategy, because the broker nets them into one position.
+- A SHORT entry shall consume Margin Available and the strategy allocation exactly like a LONG of the same size.
+- Paper mode shall allow every short; live mode shall rely on the broker to reject a short that cannot be borrowed, using the existing reject path.
+
+### Acceptance Criteria
+
+1. A SHORT strategy with Stop Loss 2% and Target 4% fires at `$100.00` → a SELL order is placed with hard stop `$102.00` and target `$96.00`.
+2. That cycle's price falls to `$96.00` → target exit places a BUY for the held qty; realized P&L for 10 shares is `+$40.00`.
+3. That cycle's price rises to `$102.00` → hard-stop exit places a BUY; realized P&L for 10 shares is `−$20.00`.
+4. A SHORT cycle with a `$1.00` trailing offset sees a low of `$95.00` → trailing stop is `$96.00`; a later rise to `$96.00` exits with reason `trailing_sl`.
+5. A SHORT strategy with Stop Loss disabled never exits on stop, whatever the price.
+6. Strategy A holds AAPL LONG; strategy B fires a SHORT entry on AAPL → the entry is dropped with one warning and no order is placed.
+7. Existing strategies and trade cycles created before this change load as LONG and behave exactly as before.
+8. A live SHORT entry rejected by IBKR (not borrowable) aborts the opening cycle and logs one user-readable warning.
