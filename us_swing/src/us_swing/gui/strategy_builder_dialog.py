@@ -1107,8 +1107,9 @@ class _SettingsPage(QScrollArea):
         self._direction_combo.addItem("Long", "LONG")
         self._direction_combo.addItem("Short", "SHORT")
         self._direction_combo.setFixedWidth(160)
-        self._direction_combo.setStyleSheet("QComboBox { outline: none; } QComboBox:focus { outline: none; }")
         exec_form.addRow("Direction:", self._direction_combo)
+        self._direction_combo.currentIndexChanged.connect(self._paint_direction)
+        self._paint_direction()
 
         bl.addLayout(exec_form)
 
@@ -1159,6 +1160,14 @@ class _SettingsPage(QScrollArea):
         bl.addLayout(cadence_form)
         bl.addStretch()
         self.setWidget(body)
+
+    def _paint_direction(self) -> None:
+        """Colour the Direction text by side — green for Long, red for Short."""
+        colour = C.RED if self._direction_combo.currentData() == "SHORT" else C.GREEN
+        self._direction_combo.setStyleSheet(
+            f"QComboBox {{ color: {colour}; outline: none; }}"
+            f" QComboBox:focus {{ color: {colour}; outline: none; }}"
+        )
 
 
 # ── Page: Risk ────────────────────────────────────────────────────────────────

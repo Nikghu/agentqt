@@ -7,7 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
-> v1.5.0: UT-GUI-013.016–.019 and UT-GUI-014.016–.018 added (22 tests) — Short Trade Direction GUI surfaces (FO-EXE-018).
+> v1.5.0: UT-GUI-013.016–.019 and UT-GUI-014.016–.018 added (23 tests) — Short Trade Direction GUI surfaces (FO-EXE-018).
 
 > v1.4.0: UT-GUI-012.001.M01.T20–T28 added — live tick worker watchdog (SRD-GUI-012.008–009).
 
@@ -296,6 +296,7 @@
 | UT-GUI-013.018.M01.T06 | MD-GUI-013.001.M01 | Positive | No-stop note for Short | pick `Short`; stop loss off | amber note visible; Save still emits `saved` | Pass |
 | UT-GUI-013.018.M01.T07 | MD-GUI-013.001.M01 | Negative | No note when stop is on or Long | Short + stop on; then Long + stop off | note hidden in both cases | Pass |
 | UT-GUI-013.016.M01.T08 | MD-GUI-013.001.M01 | Negative | Unknown stored direction shows Long | open Edit with `cfg.direction="SIDEWAYS"`; Save | combo shows `Long`; saved `direction == "LONG"` | Pass |
+| UT-GUI-013.020.M01.T01 | MD-GUI-013.001.M01 | Positive | Direction text is coloured by side | new dialog; switch Short then back to Long | stylesheet carries green, then red only, then green | Pass |
 
 ---
 

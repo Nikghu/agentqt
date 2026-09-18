@@ -84,6 +84,21 @@ def test_edit_loads_stored_direction(qtbot: QtBot) -> None:
     assert dlg._exec_page._direction_combo.currentText() == "Short"
 
 
+def test_direction_text_is_coloured_by_side(qtbot: QtBot) -> None:
+    """UT-GUI-013.020.M01.T01: the Direction box reads green for Long and red for Short."""
+    dlg = _dialog(qtbot)
+    combo = dlg._exec_page._direction_combo
+
+    assert C.GREEN in combo.styleSheet()
+
+    combo.setCurrentIndex(combo.findData("SHORT"))
+    assert C.RED in combo.styleSheet()
+    assert C.GREEN not in combo.styleSheet()
+
+    combo.setCurrentIndex(combo.findData("LONG"))
+    assert C.GREEN in combo.styleSheet()
+
+
 def test_direction_locked_while_trades_open(qtbot: QtBot) -> None:
     """UT-GUI-013.017.M01.T04: with open trades the Direction combo is disabled; other fields are not."""
     dlg = _dialog(qtbot, existing=_cfg(), existing_names={"FADE"}, has_open_trades=True)

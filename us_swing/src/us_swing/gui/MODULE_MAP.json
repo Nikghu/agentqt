@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-17T17:54:15",
+  "generated": "2026-09-18T12:00:58",
   "subfolder": "gui",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\gui",
   "tool_code": "GUI",
@@ -6546,11 +6546,18 @@
               "name": "__init__",
               "signature": "def __init__(self, parent: QWidget | None = None) -> None",
               "line_start": 1081,
-              "line_end": 1161
+              "line_end": 1162
+            },
+            {
+              "name": "_paint_direction",
+              "signature": "def _paint_direction(self) -> None",
+              "docstring": "Colour the Direction text by side \u2014 green for Long, red for Short.",
+              "line_start": 1164,
+              "line_end": 1170
             }
           ],
           "line_start": 1078,
-          "line_end": 1161
+          "line_end": 1170
         },
         {
           "name": "_RiskPage",
@@ -6559,12 +6566,12 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, parent: QWidget | None = None) -> None",
-              "line_start": 1169,
-              "line_end": 1253
+              "line_start": 1178,
+              "line_end": 1262
             }
           ],
-          "line_start": 1166,
-          "line_end": 1253
+          "line_start": 1175,
+          "line_end": 1262
         },
         {
           "name": "StrategyBuilderDialog",
@@ -6573,43 +6580,43 @@
             {
               "name": "__init__",
               "signature": "def __init__(\r\n        self,\r\n        parent: QWidget | None = None,\r\n        existing: StrategyConfig | None = None,\r\n        existing_names: set[str] | None = None,\r\n        max_capital: float = 0.0,\r\n        has_open_trades: bool = False,\r\n    ) -> None",
-              "line_start": 1284,
-              "line_end": 1457
+              "line_start": 1293,
+              "line_end": 1466
             },
             {
               "name": "_on_nav_changed",
               "signature": "def _on_nav_changed(self, current: QTreeWidgetItem, _prev: QTreeWidgetItem) -> None",
-              "line_start": 1461,
-              "line_end": 1464
+              "line_start": 1470,
+              "line_end": 1473
             },
             {
               "name": "_update_short_note",
               "signature": "def _update_short_note(self) -> None",
               "docstring": "Show the no-stop note for a Short strategy without a stop loss (SRD-GUI-013.018)",
-              "line_start": 1466,
-              "line_end": 1469
+              "line_start": 1475,
+              "line_end": 1478
             },
             {
               "name": "_go_to",
               "signature": "def _go_to(self, page_idx: int) -> None",
-              "line_start": 1471,
-              "line_end": 1475
+              "line_start": 1480,
+              "line_end": 1484
             },
             {
               "name": "_populate",
               "signature": "def _populate(self, cfg: StrategyConfig) -> None",
-              "line_start": 1479,
-              "line_end": 1517
+              "line_start": 1488,
+              "line_end": 1526
             },
             {
               "name": "_on_save",
               "signature": "def _on_save(self) -> None",
-              "line_start": 1521,
-              "line_end": 1588
+              "line_start": 1530,
+              "line_end": 1597
             }
           ],
-          "line_start": 1279,
-          "line_end": 1588
+          "line_start": 1288,
+          "line_end": 1597
         }
       ],
       "top_level_functions": [
@@ -6677,14 +6684,14 @@
         {
           "name": "_nav_ss",
           "signature": "def _nav_ss() -> str",
-          "line_start": 1264,
-          "line_end": 1270
+          "line_start": 1273,
+          "line_end": 1279
         },
         {
           "name": "_nav_item",
           "signature": "def _nav_item(label: str) -> QTreeWidgetItem",
-          "line_start": 1273,
-          "line_end": 1276
+          "line_start": 1282,
+          "line_end": 1285
         }
       ],
       "constants": [

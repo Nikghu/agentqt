@@ -1,10 +1,11 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.16.2
+**Version:** 2.17.0
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.17.0: SRD-GUI-013.020 added (Draft) — Direction combo text coloured by side (user request, 2026-09-18).
 > v2.16.2: SRD-GUI-013.016–.019 and SRD-GUI-014.016–.018 Approved → Implemented (P4 of FO-EXE-018).
 > v2.16.1: SRD-GUI-013.016–.019 and SRD-GUI-014.016–.018 Draft → Approved by user (2026-09-17).
 > v2.16.0: SRD-GUI-013.016–.019 and SRD-GUI-014.016–.018 added (Draft) — Short Trade Direction GUI surfaces for FO-EXE-018: Direction selector and edit lock, no-stop warning, strategy table column, Active Trades Side column, direction-aware confirm verbs and margin gate, Short risk-editor ranges.
@@ -208,6 +209,7 @@
 | SRD-GUI-013.017 | FO-GUI-013 | Must | When editing a strategy that has open or opening trades, the `Direction` combo is disabled with tooltip `Close open trades before changing direction`. | Edit click, open-cycle check | disabled combo | Other fields stay editable; new strategies are never locked | Implemented |
 | SRD-GUI-013.018 | FO-GUI-013 | Should | When `Direction` is `Short` and Stop Loss is off, the Risk page shows an amber note `Short trades have no loss limit without a stop loss`; Save is still allowed. | direction, stop-loss toggle | inline note | Non-blocking; hides as soon as either condition changes | Implemented |
 | SRD-GUI-013.019 | FO-GUI-013 | Should | The Strategy Executor table shows a `Direction` column with `Long` / `Short` for each strategy. | `StrategyConfig` | table cell | Display-only; column placed beside Trade Type | Implemented |
+| SRD-GUI-013.020 | FO-GUI-013 | Should | The Direction combo paints its text green for `Long` and red for `Short`, repainted on every change of selection. | direction choice | coloured combo text | Display-only; inline stylesheet carries `outline: none` in the base and `:focus` rules | Draft |
 
 ---
 
