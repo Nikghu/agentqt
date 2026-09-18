@@ -2388,6 +2388,23 @@ class AppService(QObject):
         user_mode = self.get_active_user().mode
         return [p for p in self._positions if p.mode == user_mode and p.quantity > 0]
 
+    def has_live_or_pending_trades(self, name: str) -> bool:
+        """True when *name* holds an open trade or has a signal awaiting the user.
+
+        Gates the Direction field in the Strategy Builder: a trade already taken
+        keeps the side it was opened with, and a waiting signal was built for the
+        side that fired it (SRD-GUI-013.021).
+        """
+        if self.get_open_symbols_for_strategy(name):
+            return True
+        if self._pending_store is None:
+            return False
+        try:
+            return any(s.strategy_id == name for s in self._pending_store.list())
+        except Exception:
+            _log.exception("[Strategy] Pending-signal lookup failed for %s", name)
+            return False
+
     def get_open_symbols_for_strategy(self, name: str) -> list[str]:
         """Return sorted list of symbols holding an open cycle under *name*.
 

@@ -63,3 +63,34 @@ def test_cycle_position_copies_direction() -> None:
     (pos,) = _CyclePositionSource(query, lambda: "paper").get_all(1)
 
     assert pos.direction == "SHORT"
+
+
+class _Svc:
+    """AppService methods under test, over stub collaborators."""
+
+    def __init__(self, open_symbols: list[str], pending: list[Any]) -> None:
+        from us_swing.gui.app_service import AppService
+
+        self._open = open_symbols
+        self._pending_store = SimpleNamespace(list=lambda: pending)
+        self.get_open_symbols_for_strategy = lambda _name: self._open
+        self.has_live_or_pending_trades = AppService.has_live_or_pending_trades.__get__(self)
+
+
+def _pending(strategy: str) -> Any:
+    return SimpleNamespace(strategy_id=strategy, symbol="AAPL")
+
+
+def test_open_trade_locks_direction() -> None:
+    """UT-GUI-013.021.M01.T01: a strategy holding an open trade reports live trades."""
+    assert _Svc(["AAPL"], []).has_live_or_pending_trades("FADE") is True
+
+
+def test_pending_signal_locks_direction() -> None:
+    """UT-GUI-013.021.M01.T02: a waiting signal counts even with no open trade."""
+    assert _Svc([], [_pending("FADE")]).has_live_or_pending_trades("FADE") is True
+
+
+def test_other_strategys_signal_does_not_lock() -> None:
+    """UT-GUI-013.021.M01.T03: another strategy's signal leaves the field editable."""
+    assert _Svc([], [_pending("RIDE")]).has_live_or_pending_trades("FADE") is False

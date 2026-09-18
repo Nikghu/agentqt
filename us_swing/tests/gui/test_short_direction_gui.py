@@ -104,7 +104,9 @@ def test_direction_locked_while_trades_open(qtbot: QtBot) -> None:
     dlg = _dialog(qtbot, existing=_cfg(), existing_names={"FADE"}, has_open_trades=True)
     combo = dlg._exec_page._direction_combo
     assert not combo.isEnabled()
-    assert combo.toolTip() == "Close open trades before changing direction"
+    assert combo.toolTip() == (
+        "Close open trades and clear pending signals before changing direction"
+    )
     assert dlg._exec_page._trade_type_combo.isEnabled()
 
 

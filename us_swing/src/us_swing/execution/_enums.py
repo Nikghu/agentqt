@@ -41,7 +41,11 @@ class ExecutionEnums:
             return not self.is_terminal()
 
     class BuyOrderState(StrEnum):
-        """Per BUY order to broker, persisted in trades.order_state for side='BUY'."""
+        """Per entry order to broker, persisted in trades.order_state (SRD-EXE-018.006).
+
+        A long entry is a BUY and a short entry a SELL; the state set is chosen by
+        entry/exit, never by the order side.
+        """
 
         NEW = "NEW"
         PARTIAL_FILLED = "PARTIAL_FILLED"
@@ -50,7 +54,10 @@ class ExecutionEnums:
         CANCELLED = "CANCELLED"
 
     class SellOrderState(StrEnum):
-        """Per SELL order to broker, persisted in trades.order_state for side='SELL'."""
+        """Per exit order to broker, persisted in trades.order_state (SRD-EXE-018.006).
+
+        A long exit is a SELL and a short exit a BUY.
+        """
 
         NEW = "NEW"
         PARTIAL_FILLED = "PARTIAL_FILLED"

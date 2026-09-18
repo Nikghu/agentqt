@@ -1459,7 +1459,9 @@ class StrategyBuilderDialog(QDialog):
         # SRD-GUI-013.017 — an open trade keeps the direction it was opened with.
         if has_open_trades:
             self._exec_page._direction_combo.setEnabled(False)
-            self._exec_page._direction_combo.setToolTip("Close open trades before changing direction")
+            self._exec_page._direction_combo.setToolTip(
+                "Close open trades and clear pending signals before changing direction"
+            )
 
         self._exec_page._direction_combo.currentIndexChanged.connect(self._update_short_note)
         self._risk_page._sl_enabled.toggled.connect(self._update_short_note)

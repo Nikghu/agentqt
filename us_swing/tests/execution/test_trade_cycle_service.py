@@ -5,6 +5,7 @@ Parent SRD: SRD-EXE-012.002, .003, .004, .005, .006, .007, .008, .009, .011, .01
 from __future__ import annotations
 
 import asyncio
+import logging
 import sys
 from typing import Any
 from unittest.mock import MagicMock
@@ -777,3 +778,38 @@ def test_reloaded_short_cycle_tracks_the_low(mem_engine: sa.Engine, bus: MagicMo
         assert fresh.trailing_stop_level == pytest.approx(96.0)
     finally:
         service.stop()
+
+
+def test_silent_feed_warns_once_per_outage(
+    svc: TradeCycleService, caplog: pytest.LogCaptureFixture
+) -> None:
+    """UT-EXE-018.016.M08.T01: an open trade with no prices warns once, and again only after prices resume."""
+    import time as _time
+
+    snap = _short(svc)
+    acc = svc._accs[snap.cycle_id]
+    acc.last_tick_at = _time.monotonic() - 300.0
+
+    with caplog.at_level(logging.WARNING):
+        svc._check_tick_silence()
+        svc._check_tick_silence()
+
+    warnings = [r.getMessage() for r in caplog.records if r.levelname == "WARNING"]
+    assert len(warnings) == 1
+    assert warnings[0].startswith("[Cycle] No price updates for AAPL")
+
+    _tick_and_flush(svc, snap.cycle_id, "AAPL", 99.0)
+    assert svc._accs[snap.cycle_id].silence_warned is False
+
+
+def test_fresh_feed_never_warns(
+    svc: TradeCycleService, caplog: pytest.LogCaptureFixture
+) -> None:
+    """UT-EXE-018.016.M08.T02: a trade receiving prices raises no feed warning."""
+    snap = _short(svc)
+    _tick_and_flush(svc, snap.cycle_id, "AAPL", 99.0)
+
+    with caplog.at_level(logging.WARNING):
+        svc._check_tick_silence()
+
+    assert [r for r in caplog.records if r.levelname == "WARNING"] == []

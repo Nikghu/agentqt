@@ -351,7 +351,7 @@ class _StrategyTablePane(QWidget):
         dlg = StrategyBuilderDialog(
             self, existing=original, existing_names=existing_names,
             max_capital=self._demo.effective_capital(),
-            has_open_trades=bool(self._demo.get_open_symbols_for_strategy(original.name)),
+            has_open_trades=bool(self._demo.has_live_or_pending_trades(original.name)),
         )
 
         def _on_saved(cfg: StrategyConfig) -> None:

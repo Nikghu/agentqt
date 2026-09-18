@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import threading
+import time as _time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Callable, Iterable
@@ -46,6 +47,11 @@ log = logging.getLogger(__name__)
 
 _THROTTLE_MS = 500
 
+# A stop or target is only checked when a price arrives, so a silent feed means an
+# open trade is unguarded — a short most of all, since its loss has no floor.
+_WATCHDOG_EVERY_S = 30.0
+_TICK_SILENCE_S   = 120.0
+
 
 @dataclass
 class _TickAccumulator:
@@ -58,6 +64,8 @@ class _TickAccumulator:
     flush_handle:    asyncio.TimerHandle | None = None
     closing:         bool  = field(default=False)
     short:           bool  = False
+    last_tick_at:    float = 0.0
+    silence_warned:  bool  = False
 
 
 def _utcnow_iso() -> str:
@@ -93,6 +101,7 @@ class TradeCycleService:
         self._thread:  threading.Thread | None          = None
         self._started                                   = False
         self._reload_done                               = False
+        self._watchdog: asyncio.Task[None] | None       = None
 
     # ── Service lifecycle ────────────────────────────────────────────────────
 
@@ -123,6 +132,8 @@ class TradeCycleService:
         self._thread.start()
         ready.wait(timeout=2.0)
         self._started = True
+        if self._loop is not None:
+            self._loop.call_soon_threadsafe(self._arm_watchdog)
 
     def stop(self) -> None:
         """Flush dirty accumulators and tear down the background loop."""
@@ -544,6 +555,43 @@ class TradeCycleService:
             self._refresh_active_symbols_locked()
         self._reload_done = True
 
+    # ── Feed watchdog ────────────────────────────────────────────────────────
+
+    def _arm_watchdog(self) -> None:
+        if self._watchdog is None or self._watchdog.done():
+            self._watchdog = asyncio.ensure_future(self._watchdog_loop())
+
+    async def _watchdog_loop(self) -> None:
+        while True:
+            await asyncio.sleep(_WATCHDOG_EVERY_S)
+            try:
+                self._check_tick_silence()
+            except Exception:
+                log.exception("[Cycle] Price-feed check failed")
+
+    def _check_tick_silence(self) -> None:
+        """Warn once per outage when an open trade stops receiving prices.
+
+        Stops and targets are evaluated on the tick path, so a silent feed leaves
+        the trade unguarded until prices resume (SRD-EXE-018.016).
+        """
+        now = _time.monotonic()
+        with self._accs_lock:
+            stale = [
+                acc for acc in self._accs.values()
+                if not acc.silence_warned
+                and acc.last_tick_at > 0.0
+                and now - acc.last_tick_at >= _TICK_SILENCE_S
+            ]
+            for acc in stale:
+                acc.silence_warned = True
+        for acc in stale:
+            log.warning(
+                "[Cycle] No price updates for %s in %d minute(s) — "
+                "stop loss and target are not being checked",
+                acc.symbol, int((now - acc.last_tick_at) // 60),
+            )
+
     # ── Tick path (bridge entry) ─────────────────────────────────────────────
 
     def on_tick(self, symbol: str, price: float) -> None:
@@ -569,6 +617,8 @@ class TradeCycleService:
                 # SHORT tracks the lowest price seen in the same field (SRD-EXE-018.008).
                 if (price < acc.highest_seen) if acc.short else (price > acc.highest_seen):
                     acc.highest_seen = price
+                acc.last_tick_at   = _time.monotonic()
+                acc.silence_warned = False
                 acc.latest_price = price
                 acc.dirty        = True
             loop    = asyncio.get_running_loop()
@@ -741,6 +791,7 @@ class TradeCycleService:
             dirty           = False,
             closing         = (snap.state is TradeCycleState.CLOSING),
             short           = (snap.direction == ExecutionEnums.TradeDirection.SHORT),
+            last_tick_at    = _time.monotonic(),
         )
         self._accs[snap.cycle_id] = acc
         self._accs_by_sym.setdefault(snap.symbol, set()).add(snap.cycle_id)

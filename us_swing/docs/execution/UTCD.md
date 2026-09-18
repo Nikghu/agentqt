@@ -7,7 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
-> v1.15.0: UT-EXE-018.* added (52 tests, FO-EXE-018 Short Trade Direction) — direction storage, side and risk-level helpers, conflict guard, direction-aware order placement and ingestion, SHORT P&L / trailing / exit triggers / risk invariants, signed position P&L.
+> v1.15.0: UT-EXE-018.* added (54 tests, FO-EXE-018 Short Trade Direction) — direction storage, side and risk-level helpers, conflict guard, direction-aware order placement and ingestion, SHORT P&L / trailing / exit triggers / risk invariants, signed position P&L.
 
 > v1.13.0: UT-EXE-006.013.M01.T01–T04 (4 tests) + UT-EXE-011.001.M03.T10–T13 (4 tests) added (ISS-EXE-0009) — cycle-open candle-feed arming; ATR/indicator NaN guard raises `EvaluatorError` instead of silently reading false.
 > v1.12.0: UT-EXE-016.007.M01.T01/.T02 added (2 tests, ISS-EXE-0008) — same-day re-entry re-arms an EXITED ledger row back to ENTERED.
@@ -823,6 +823,8 @@
 | UT-EXE-018.011.M08.T15 | MD-EXE-018.007.M08 | Negative | SHORT target above price rejected | SHORT, current 100; `update_risk(target=101)` | `InvariantViolation`; stored target unchanged | Pass |
 | UT-EXE-018.007.M08.T16 | MD-EXE-018.007.M08 | Edge | LONG behaviour unchanged | LONG entry 100 × 10, hard 98, target 104, trail `$` 1; ticks 103, 102 | P&L +20 at 102; trail 102; `ExitTrigger(reason="trailing_sl")` — same as before this change | Pass |
 | UT-EXE-018.008.M08.T17 | MD-EXE-018.007.M08 | Edge | Reloaded SHORT cycle still trails the low | stored SHORT cycle with `highest_price_seen=None`, trail `$` 1; new service `reload()`; tick 95 | `highest_price_seen == 95.0`; `trailing_stop_level == 96.0` | Pass |
+| UT-EXE-018.016.M08.T01 | MD-EXE-018.007.M08 | Positive | Silent feed warns once per outage | open cycle, last tick 5 minutes ago; check twice, then a fresh tick | one `[Cycle]` WARNING; warning flag cleared by the tick | Pass |
+| UT-EXE-018.016.M08.T02 | MD-EXE-018.007.M08 | Negative | A live feed never warns | open cycle ticked just now; run the check | no WARNING | Pass |
 
 ---
 
