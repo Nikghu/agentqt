@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-18T12:00:58",
+  "generated": "2026-09-18T12:03:22",
   "subfolder": "gui",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\gui",
   "tool_code": "GUI",
@@ -6860,17 +6860,17 @@
               "name": "data",
               "signature": "def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Any",
               "line_start": 106,
-              "line_end": 132
+              "line_end": 134
             },
             {
               "name": "config_at",
               "signature": "def config_at(self, row: int) -> StrategyConfig",
-              "line_start": 134,
-              "line_end": 135
+              "line_start": 136,
+              "line_end": 137
             }
           ],
           "line_start": 54,
-          "line_end": 135
+          "line_end": 137
         },
         {
           "name": "StatusBadgeDelegate",
@@ -6879,12 +6879,12 @@
             {
               "name": "paint",
               "signature": "def paint(\r\n        self,\r\n        painter: QPainter | None,\r\n        option: QStyleOptionViewItem,\r\n        index: QModelIndex,\r\n    ) -> None",
-              "line_start": 180,
-              "line_end": 222
+              "line_start": 182,
+              "line_end": 224
             }
           ],
-          "line_start": 177,
-          "line_end": 222
+          "line_start": 179,
+          "line_end": 224
         }
       ],
       "top_level_functions": [
@@ -6898,8 +6898,8 @@
         {
           "name": "_cell_text",
           "signature": "def _cell_text(cfg: StrategyConfig, col: int) -> str",
-          "line_start": 138,
-          "line_end": 174
+          "line_start": 140,
+          "line_end": 176
         }
       ],
       "constants": [

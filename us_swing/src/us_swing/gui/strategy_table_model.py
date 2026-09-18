@@ -122,6 +122,8 @@ class StrategyTableModel(QAbstractTableModel):
                 return QColor(C.BLUE)
             if col == COL_STATUS:
                 return QColor(STATUS_COLORS.get(self.status_for(cfg), C.MUTED))
+            if col == COL_DIRECTION:
+                return QColor(C.RED if cfg.direction == "SHORT" else C.GREEN)
         return None
 
         if role == Qt.ItemDataRole.TextAlignmentRole:

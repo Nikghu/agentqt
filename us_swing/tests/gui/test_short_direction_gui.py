@@ -169,6 +169,20 @@ def test_legacy_config_shows_long(qtbot: QtBot) -> None:
     assert model.data(model.index(0, COL_DIRECTION)) == "Long"
 
 
+def test_direction_column_is_coloured_by_side(qtbot: QtBot) -> None:
+    """UT-GUI-013.020.M02.T02: the Direction column reads green for Long and red for Short."""
+    model = StrategyTableModel()
+    model.load([_cfg(direction="SHORT"), _cfg(name="RIDE", direction="LONG")])
+
+    def _colour(row: int) -> str:
+        return model.data(
+            model.index(row, COL_DIRECTION), Qt.ItemDataRole.ForegroundRole
+        ).name()
+
+    assert _colour(0) == C.RED.lower()
+    assert _colour(1) == C.GREEN.lower()
+
+
 # ── Active Trades model (SRD-GUI-014.016) ─────────────────────────────────────
 
 

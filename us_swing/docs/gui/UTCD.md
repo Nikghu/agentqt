@@ -7,7 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
-> v1.5.0: UT-GUI-013.016–.019 and UT-GUI-014.016–.018 added (23 tests) — Short Trade Direction GUI surfaces (FO-EXE-018).
+> v1.5.0: UT-GUI-013.016–.019 and UT-GUI-014.016–.018 added (24 tests) — Short Trade Direction GUI surfaces (FO-EXE-018).
 
 > v1.4.0: UT-GUI-012.001.M01.T20–T28 added — live tick worker watchdog (SRD-GUI-012.008–009).
 
@@ -306,6 +306,7 @@
 |---|---|---|---|---|---|---|
 | UT-GUI-013.019.M02.T01 | MD-GUI-004.001.M02 | Positive | Direction column shows Short | model loaded with one `direction="SHORT"` config | `headerData(COL_DIRECTION) == "Direction"`; cell `"Short"` | Pass |
 | UT-GUI-013.019.M02.T02 | MD-GUI-004.001.M02 | Edge | Legacy config shows Long | config without an explicit direction | cell `"Long"` | Pass |
+| UT-GUI-013.020.M02.T02 | MD-GUI-004.001.M02 | Positive | Direction column is coloured by side | rows for a SHORT and a LONG strategy | foreground red for Short, green for Long | Pass |
 
 ---
 
