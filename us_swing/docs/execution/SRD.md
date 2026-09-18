@@ -1,7 +1,7 @@
 ﻿# Software Requirement Document — Execution & Risk Management (EXE)
 
 **Document ID:** SRD-EXE
-**Version:** 1.25.0
+**Version:** 1.25.1
 **Traces To:** FO-EXE v1.13.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
@@ -33,6 +33,7 @@
 > v1.24.3: SRD-EXE-018.002–.006, .012, .014, .015 Approved → Implemented (P2: direction wired through router, broker adapter, order ingestion and cycle open; opposite-direction guard at engine and pending execute).
 > v1.24.4: SRD-EXE-018.007–.011 and .013 Approved → Implemented (P3: direction-aware live/realized P&L, SHORT trailing stop and exit triggers, risk-edit invariants, signed OpenPosition P&L). All SRD-EXE-018 rows now Implemented.
 > v1.25.0: SRD-EXE-018.016 added (Draft) — price-feed silence warning for open cycles (deep-review finding, 2026-09-18).
+> v1.25.1: SRD-EXE-018.016 approved by user (2026-09-18) and set to Implemented — code and tests shipped with the requirement.
 
 ---
 
@@ -356,4 +357,4 @@
 | SRD-EXE-018.013 | FO-EXE-018 | Must | `OpenPosition` gains `direction`; `unrealised_pnl` and `pnl_pct` are signed by it; cycle-derived positions copy the cycle direction and IBKR portfolio rows with negative quantity map to `SHORT`. | cycles, broker portfolio | signed position P&L | Quantity stays positive; margin math unchanged (D4) | Implemented |
 | SRD-EXE-018.014 | FO-EXE-018 | Must | A SHORT entry is sized, allocation-capped and margin-reserved exactly like a LONG entry of the same price and quantity. | entry signal | sized, reserved entry | No extra short-margin model in v1 (D4) | Implemented |
 | SRD-EXE-018.015 | FO-EXE-018 | Should | A rejected SHORT entry aborts the opening cycle through the existing reject path and logs `[Orders] Short sale for {symbol} was rejected by the broker`. | broker reject event | aborted cycle + WARNING | No pre-trade borrow check in v1 (D5); paper never rejects (D6) | Implemented |
-| SRD-EXE-018.016 | FO-EXE-018 | Should | A cycle whose symbol has received no price for 2 minutes logs one WARNING that its stop loss and target are not being checked; the next price clears the warning. | tick times of open cycles | one WARNING per outage | Checked every 30 s on the cycle loop; edge-triggered per cycle; applies to both directions, and matters most for a short, whose loss has no floor | Draft |
+| SRD-EXE-018.016 | FO-EXE-018 | Should | A cycle whose symbol has received no price for 2 minutes logs one WARNING that its stop loss and target are not being checked; the next price clears the warning. | tick times of open cycles | one WARNING per outage | Checked every 30 s on the cycle loop; edge-triggered per cycle; applies to both directions, and matters most for a short, whose loss has no floor | Implemented |

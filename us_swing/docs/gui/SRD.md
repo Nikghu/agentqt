@@ -1,10 +1,11 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.18.0
+**Version:** 2.18.1
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.18.1: SRD-GUI-013.021 approved by user (2026-09-18) and set to Implemented.
 > v2.18.0: SRD-GUI-013.021 added (Draft) — a pending signal also locks the Direction field (deep-review finding, 2026-09-18).
 > v2.17.0: SRD-GUI-013.020 added (Draft) — Direction text coloured by side in the builder combo and the strategy table column (user request, 2026-09-18).
 > v2.16.2: SRD-GUI-013.016–.019 and SRD-GUI-014.016–.018 Approved → Implemented (P4 of FO-EXE-018).
@@ -211,7 +212,7 @@
 | SRD-GUI-013.018 | FO-GUI-013 | Should | When `Direction` is `Short` and Stop Loss is off, the Risk page shows an amber note `Short trades have no loss limit without a stop loss`; Save is still allowed. | direction, stop-loss toggle | inline note | Non-blocking; hides as soon as either condition changes | Implemented |
 | SRD-GUI-013.019 | FO-GUI-013 | Should | The Strategy Executor table shows a `Direction` column with `Long` / `Short` for each strategy. | `StrategyConfig` | table cell | Display-only; column placed beside Trade Type | Implemented |
 | SRD-GUI-013.020 | FO-GUI-013 | Should | Direction reads green for `Long` and red for `Short` in both the Strategy Builder combo (repainted on every change of selection) and the Strategy Executor `Direction` column. | direction choice / strategy row | coloured text | Display-only; the combo stylesheet carries `outline: none` in the base and `:focus` rules | Draft |
-| SRD-GUI-013.021 | FO-GUI-013 | Must | A signal awaiting the user also locks the Direction field, not only an open trade; the tooltip reads `Close open trades and clear pending signals before changing direction`. | open cycles + pending signals of the strategy | disabled combo | Refines SRD-GUI-013.017; a waiting signal already carries the side that fired it | Draft |
+| SRD-GUI-013.021 | FO-GUI-013 | Must | A signal awaiting the user also locks the Direction field, not only an open trade; the tooltip reads `Close open trades and clear pending signals before changing direction`. | open cycles + pending signals of the strategy | disabled combo | Refines SRD-GUI-013.017; a waiting signal already carries the side that fired it | Implemented |
 
 ---
 
