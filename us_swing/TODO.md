@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-10-16 (Session 81)
+**Last Updated:** 2026-10-16 (Session 82)
 
 ---
 
@@ -40,3 +40,5 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T28 | `DatabaseManager` has no `dispose()`/`close()`. Not needed today, but any feature that must replace `candles.db` on Windows will need one. | `db/manager.py` | Low | Open |
 | T29 | IBKR notation (`.` → ` `) is still copy-pasted at `intraday_candle_loader.py:470`, `live_bar_worker.py:242`, `universe/store.py:193`. Fold into `core/symbols.py` beside `yahoo_symbol()`. | `core/`, `execution/`, `universe/` | Low | Open |
 | T30 | Short trade direction — Long/Short choice per strategy (flipped side, SL/target, trailing, P&L, GUI). Plan at `docs/execution/Short_Trade_plan.md`, 16 change points, 6 phases. All 25 SRDs Implemented; SimBroker E2E and RN done; PR #72 open. **Next:** manual IBKR paper check of one live short, then merge. | `execution/`, `gui/` | High | Open |
+| T31 | `entry_time` is stored in local (India) time while `opened_at` is UTC. Pick one convention and make the two columns match, so cycle times compare correctly. | `execution/trade_cycle` | Low | Open |
+| T32 | `pending_signals_table_model` classifies rows by `sig.side == "BUY"`, so a short entry would show as an exit. Fix only if the pane is revived; it has no caller today (ISS-GUI-0002 NIT 3). | `gui/pending_signals_table_model.py` | Low | Open |

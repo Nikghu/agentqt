@@ -2308,6 +2308,9 @@ class AppService(QObject):
             return
 
         from datetime import datetime as _dt
+
+        from us_swing.execution.direction import order_side
+
         def _parse_iso(s: str | None) -> datetime.datetime | None:
             if not s:
                 return None
@@ -2328,7 +2331,7 @@ class AppService(QObject):
                 trade_id        = tid,
                 user_id         = snap.user_id or self._active_uid,
                 symbol          = snap.symbol,
-                side            = "BUY",
+                side            = order_side(snap.direction, is_entry=True).value,
                 quantity        = snap.entry_qty,
                 entry_price     = snap.entry_price,
                 mode            = user_mode,
@@ -2339,14 +2342,14 @@ class AppService(QObject):
                 order_state     = "FILLED",
                 filled_quantity = snap.entry_qty,
             ))
-            # Closed cycle → restore its SELL row too (one row per order).
+            # Closed cycle → restore its exit row too (one row per order).
             if snap.exit_order_id or snap.exit_time:
                 exit_qty = snap.exit_qty or snap.entry_qty
                 self._trades.append(TradeRecord(
                     trade_id        = snap.exit_order_id or f"cyc-{snap.cycle_id}-sell",
                     user_id         = snap.user_id or self._active_uid,
                     symbol          = snap.symbol,
-                    side            = "SELL",
+                    side            = order_side(snap.direction, is_entry=False).value,
                     quantity        = exit_qty,
                     entry_price     = snap.exit_price or 0.0,
                     mode            = user_mode,

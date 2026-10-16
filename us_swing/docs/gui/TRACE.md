@@ -1,9 +1,9 @@
 # Traceability Matrix — GUI Module (GUI)
 
 **Document ID:** TRACE-GUI
-**Version:** 1.12.0
+**Version:** 1.12.1
 **Project:** US Swing Trading System
-**Last Updated:** 2026-09-17 (Session 80, FO-EXE-018 Short Trade Direction GUI implemented)
+**Last Updated:** 2026-10-16 (Session 82, ISS-GUI-0002 Trade History side for shorts)
 
 ---
 
@@ -34,6 +34,7 @@
 | FO-GUI-014 | SRD-GUI-014.015 | — | MD-GUI-014.001.M01 | — | `gui/active_cycles_panel.py` | Implemented | RN-EXE-1.22.0-20260610 |
 | FO-GUI-013 | SRD-GUI-013.016–.021 | DD-GUI-013.016.D01 | MD-GUI-013.001.M01, MD-GUI-004.001.M01, MD-GUI-004.001.M02 | UT-GUI-013.016–.018.M01.T01–08, .020.M01.T01, .021.M01.T01–03, .019.M02.T01–02, .020.M02.T02 | `gui/strategy_builder_dialog.py`, `gui/execution_panel.py`, `gui/strategy_table_model.py` | Implemented | RN-GUI-1.5.0-20260917 (.020/.021 pending RN) |
 | FO-GUI-014 | SRD-GUI-014.016–.018 | DD-GUI-014.016.D01 | MD-GUI-014.001.M01–M03 | UT-GUI-014.016.M02.T01–03, .017.M01.T01–05, .018.M03.T01–04 | `gui/active_cycles_model.py`, `gui/active_cycles_panel.py`, `gui/risk_editor_widget.py` | Implemented | RN-GUI-1.5.0-20260917 |
+| FO-GUI-002 | SRD-GUI-002.005 (Reopen; fix conforms to SRD-EXE-018.003) | — | MD-GUI-004.001.M01 | UT-GUI-002.005.M01.T01–T03 | `gui/app_service.py` | Implemented (ISS-GUI-0002 fix only; SRD stays Reopen) | RN-GUI-1.5.1-20261016 |
 
 ---
 
@@ -57,6 +58,7 @@
 | `gui/chart_panel.py` | MD-GUI-011.001.M01 | SRD-GUI-011.001–004 | FO-GUI-011 |
 | `gui/app_service.py` (tick integration) | MD-GUI-004.001.M01 | SRD-GUI-012.001–007 | FO-GUI-012 |
 | `gui/app_service.py` (tick watchdog) | MD-GUI-004.001.M01 | SRD-GUI-012.008–009 | FO-GUI-012 |
+| `gui/app_service.py` (Trade History side) | MD-GUI-004.001.M01 | SRD-GUI-002.005 | FO-GUI-002 |
 | `gui/settings_panel.py` (tick client id) | MD-GUI-006.001.M01 | SRD-GUI-012.007 | FO-GUI-012 |
 | `gui/active_cycles_panel.py` | MD-GUI-014.001.M01 | SRD-GUI-014.001, .003–.005, .008–.012 | FO-GUI-014 |
 | `gui/active_cycles_model.py` | MD-GUI-014.001.M02 | SRD-GUI-014.002, .004 | FO-GUI-014 |

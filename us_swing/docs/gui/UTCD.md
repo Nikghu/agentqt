@@ -1,11 +1,13 @@
 ﻿# Unit Test Case Document â€” GUI Module (GUI)
 
 **Document ID:** UTCD-GUI
-**Version:** 1.5.0
+**Version:** 1.5.1
 **Traces To:** MD-GUI v1.7.0
 **Status:** Draft
-**Last Updated:** 2026-09-17
+**Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
+
+> v1.5.1: UT-GUI-002.005.M01.T01–T03 added — Trade History side follows trade direction (ISS-GUI-0002).
 
 > v1.5.0: UT-GUI-013.016–.019 and UT-GUI-014.016–.018 added (27 tests) — Short Trade Direction GUI surfaces (FO-EXE-018).
 
@@ -336,3 +338,13 @@
 | UT-GUI-014.018.M03.T02 | MD-GUI-014.001.M03 | Negative | Short stop cannot go below price | same snap; `_hsl.setValue(95)` | `_hsl.value() == 100` | Pass |
 | UT-GUI-014.018.M03.T03 | MD-GUI-014.001.M03 | Edge | Long ranges unchanged | snap `direction="LONG"`, `current_price=100` | `_hsl.maximum() == 100`; `_target.minimum() == 100` | Pass |
 | UT-GUI-014.018.M03.T04 | MD-GUI-014.001.M03 | Negative | Saving a Short with no stop adds no stop | snap `direction="SHORT"`, `hard_stop_loss=0.0`; collect fields, then set stop 105 | first collect has no `hard_sl`; after edit `hard_sl == 105` | Pass |
+
+---
+
+## Module: `gui/app_service.py` — Trade History side (FO-EXE-018, ISS-GUI-0002)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-002.005.M01.T01 | MD-GUI-004.001.M01 | Positive | Closed short shows SELL entry and BUY cover | history snap `direction="SHORT"`, closed | entry row `SELL`; exit row `BUY` | Pass |
+| UT-GUI-002.005.M01.T02 | MD-GUI-004.001.M01 | Edge | Closed long unchanged | history snap `direction="LONG"`, closed | entry row `BUY`; exit row `SELL` | Pass |
+| UT-GUI-002.005.M01.T03 | MD-GUI-004.001.M01 | Negative | Short entry fill log names a Sell | short snap; `FILLED` event for its entry order | log starts `[Orders] KVUE Sell fill confirmed` | Pass |

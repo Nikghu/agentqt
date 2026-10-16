@@ -50,7 +50,9 @@ def _set_mode(svc, mode: str) -> None:
     svc._active_uid = 1
 
 
-def _snap(symbol: str = "AAPL", closed: bool = False) -> SimpleNamespace:
+def _snap(
+    symbol: str = "AAPL", closed: bool = False, direction: str = "LONG",
+) -> SimpleNamespace:
     """A CycleSnapshot stand-in carrying the fields rehydrate reads."""
     return SimpleNamespace(
         cycle_id        = 1,
@@ -68,7 +70,7 @@ def _snap(symbol: str = "AAPL", closed: bool = False) -> SimpleNamespace:
         exit_time       = "2026-08-27T11:00:00" if closed else None,
         exit_price      = 105.0 if closed else None,
         exit_qty        = 10 if closed else None,
-        direction       = "LONG",
+        direction       = direction,
     )
 
 
@@ -107,6 +109,44 @@ class TestRehydrateStampsRealMode:
 
         assert len(svc._trades) == 2, "expected a BUY and a SELL row"
         assert {t.mode for t in svc._trades} == {"live"}
+
+
+class TestRehydrateSideFollowsDirection:
+    def test_short_cycle_rows_are_sell_then_buy(self, svc):
+        """UT-GUI-002.005.M01.T01: a closed short shows a SELL entry and a BUY cover."""
+        _set_mode(svc, "paper")
+        _wire_query(svc, hist_snaps=[_snap(closed=True, direction="SHORT")])
+
+        svc._rehydrate_positions_from_cycles()
+
+        sides = {t.trade_id: t.side for t in svc._trades}
+        assert sides == {"ord-1": "SELL", "ord-2": "BUY"}
+
+    def test_long_cycle_rows_are_unchanged(self, svc):
+        """UT-GUI-002.005.M01.T02: a closed long still shows BUY then SELL."""
+        _set_mode(svc, "paper")
+        _wire_query(svc, hist_snaps=[_snap(closed=True)])
+
+        svc._rehydrate_positions_from_cycles()
+
+        sides = {t.trade_id: t.side for t in svc._trades}
+        assert sides == {"ord-1": "BUY", "ord-2": "SELL"}
+
+    def test_short_entry_fill_log_says_sell(self, svc):
+        """UT-GUI-002.005.M01.T03: the fill log names a short entry a Sell."""
+        from us_swing.broker.broker import OrderEvent, OrderStatus
+
+        _set_mode(svc, "paper")
+        _wire_query(svc, hist_snaps=[_snap(symbol="KVUE", direction="SHORT")])
+        messages: list[str] = []
+        svc.log_message.connect(lambda _level, text: messages.append(text))
+
+        svc._on_order_event_gui(OrderEvent(
+            broker_order_id="ord-1", client_ref="c-1", status=OrderStatus.FILLED,
+            filled_quantity=105, fill_price=18.87,
+        ))
+
+        assert any(m.startswith("[Orders] KVUE Sell fill confirmed") for m in messages), messages
 
 
 class TestActivePositionFilter:
