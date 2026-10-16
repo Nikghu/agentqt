@@ -2,6 +2,19 @@
 
 ---
 
+## [20261016] GUI — Trade History side for short trades (ISS-GUI-0002, bugfix)
+
+- Type: Bugfix
+- FO(s): FO-GUI-002, FO-EXE-018
+- RN: RN-GUI-1.5.1-20261016
+- Artifacts updated: Code (`gui/app_service.py`), Tests (3 new cases), UTCD (GUI, UT-GUI-002.005.M01.T01–T03), TRACE (GUI v1.12.1), ISS (ISS-GUI-0002), RN, TODO (T31, T32), CONTEXT, DEVLOG
+- Decisions: `_rehydrate_positions_from_cycles` now takes the Trade History side from `execution/direction.py` `order_side()`, the same helper the order path uses (SRD-EXE-018.003). No SRD changed. Review (pyqt-code-reviewer): APPROVE. NIT 3 left alone: `pending_signals_table_model.py` classifies by `sig.side == "BUY"`, so a short entry would show as an exit there; that pane has no caller, so it is unused today (TODO T32).
+- Verification: 3 new tests, T01 and T03 failed before the fix (T03 reproduced the user's log line). gui+execution+broker 485 passed; ruff 19 and mypy --strict 37, identical to baseline.
+- Housekeeping (2026-10-16): v1.4.0 released on GitHub (PR #73 bump, tag v1.4.0); old v1.3.0 and v1.3.1 releases and tags deleted at user request. All 164 `trade_cycles`, 330 `trades` and 119 `strategy_rex_counters` rows deleted from `~/.usswing/candles.db` at user request, after a backup to `candles_backup_20261016_before_trade_clear.db` (9 June cycles had corrupt exit data from ISS-EXE-0007).
+- Open: the KVUE short opened 2026-10-16 has no stop loss (`ST_AUTO` has stop loss off), flagged to user. Manual IBKR paper check still open (TODO T30).
+
+---
+
 ## [20260918] EXE+GUI — Short Trade follow-ups: side colours, stale-price warning, Direction lock (FO-EXE-018, feature)
 
 - Type: Feature follow-up
