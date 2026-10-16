@@ -119,3 +119,44 @@ class TestCycleExitSubmitFailure:
 
         with patch.object(svc, "get_latest_close", return_value=11.0):
             assert svc._submit_cycle_exit(_open_snap(), "manual") == 91
+
+
+class TestExecuteSignalDirectionConflict:
+    def test_pending_short_entry_blocked_by_open_long(self, svc):
+        """UT-EXE-018.012.M10.T03: a pending SHORT entry is not sent while the opposite trade is held."""
+        from us_swing.execution.strategy_engine import Action, TradeSignal
+
+        sig = TradeSignal(action=Action.ENTRY, symbol="AAPL", strategy_id="FADE", direction="SHORT")
+        svc._tc_query = MagicMock()
+        svc._tc_query.has_open_cycle.return_value = False
+        svc._strategy_engine = MagicMock()
+        svc._strategy_engine.has_direction_conflict.return_value = True
+        svc._pending_store = MagicMock()
+        svc._submitter = MagicMock()
+        messages: list[tuple[str, str]] = []
+        svc.log_message.connect(lambda lvl, msg: messages.append((lvl, msg)))
+
+        assert svc.execute_signal(sig, 10) == -1
+
+        svc._strategy_engine.has_direction_conflict.assert_called_once_with("AAPL", "SHORT")
+        svc._submitter.submit.assert_not_called()
+        svc._pending_store.execute.assert_not_called()
+        svc._pending_store.dismiss.assert_not_called()
+        assert [lvl for lvl, _msg in messages] == ["WARNING"]
+
+    def test_pending_short_entry_without_conflict_submits(self, svc):
+        """UT-EXE-018.012.M10.T04: a pending SHORT entry with no opposite trade is submitted."""
+        from us_swing.execution.strategy_engine import Action, TradeSignal
+
+        sig = TradeSignal(action=Action.ENTRY, symbol="AAPL", strategy_id="FADE", direction="SHORT")
+        svc._tc_query = MagicMock()
+        svc._tc_query.has_open_cycle.return_value = False
+        svc._strategy_engine = MagicMock()
+        svc._strategy_engine.has_direction_conflict.return_value = False
+        svc._pending_store = MagicMock()
+        svc._pending_store.execute.return_value = sig
+        svc._submitter = MagicMock()
+        svc._submitter.submit.return_value = 88
+
+        assert svc.execute_signal(sig, 10) == 88
+        svc._submitter.submit.assert_called_once_with(sig, 10)

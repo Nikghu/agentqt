@@ -16,6 +16,7 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 
 from us_swing.execution import ExecutionEnums
+from us_swing.execution.direction import risk_levels
 
 from ._context import _StrategyContext
 from ._evaluator import ConditionEvaluator, EvaluatorError
@@ -113,6 +114,31 @@ class _Router:
             return []
         return [s.symbol for s in self._cycle_query.open_cycles_for_strategy(strategy_id)]
 
+    def _open_cycle_direction(self, strategy_id: str, symbol: str) -> str:
+        """Direction the open cycle was entered with (SRD-EXE-018.005)."""
+        if self._cycle_query is None:
+            return ExecutionEnums.TradeDirection.LONG.value
+        for snap in self._cycle_query.open_cycles_for_strategy(strategy_id):
+            if snap.symbol == symbol:
+                return str(snap.direction)
+        return ExecutionEnums.TradeDirection.LONG.value
+
+    def has_direction_conflict(self, symbol: str, direction: str) -> bool:
+        """True when the user holds or is opening the opposite trade on *symbol*.
+
+        The broker nets one position per stock, so a LONG and a SHORT on the
+        same symbol cannot both exist (SRD-EXE-018.012).
+        """
+        if self._cycle_query is not None:
+            uid = self._user_id_provider()
+            for snap in self._cycle_query.open_cycles():
+                if snap.symbol == symbol and snap.user_id == uid and snap.direction != direction:
+                    return True
+        return any(
+            symbol in other.in_flight and other.cfg.direction != direction
+            for other in list(self._registry.values())
+        )
+
     def _open_cycle_qty(self, strategy_id: str, symbol: str) -> int:
         """Held quantity of the open cycle for (strategy, symbol), or 0 (SRD-EXE-011.021)."""
         if self._cycle_query is None:
@@ -197,6 +223,7 @@ class _Router:
                     qty_recommended=self._open_cycle_qty(ctx.name, symbol),
                     reason="strategy",
                     user_id=self._user_id_provider(),
+                    direction=self._open_cycle_direction(ctx.name, symbol),
                 )
                 ctx.in_flight.add(symbol)
                 action = Action.EXIT
@@ -235,6 +262,24 @@ class _Router:
                                       ctx.name, symbol)
                         return
                     ctx.rex_warned.discard(symbol)
+
+                if self.has_direction_conflict(symbol, ctx.cfg.direction):
+                    signal_pre = self._build_entry_signal(ctx, symbol, bar)
+                    self._bus.publish(
+                        StrategySignalDropped(signal=signal_pre, reason="direction_conflict")
+                    )
+                    if symbol not in ctx.conflict_warned:
+                        ctx.conflict_warned.add(symbol)
+                        log.warning(
+                            "[Strategy] %s skipped %s — another strategy holds the "
+                            "opposite trade on this stock",
+                            ctx.name, symbol,
+                        )
+                    else:
+                        log.debug("[Strategy] %s ENTRY blocked for %s — opposite trade held",
+                                  ctx.name, symbol)
+                    return
+                ctx.conflict_warned.discard(symbol)
 
                 qty = self._size_entry(ctx, float(bar.close))
                 is_manual = ctx.cfg.mode == "manual" or not ctx.cfg.auto_trade
@@ -473,6 +518,7 @@ class _Router:
                 qty_recommended=self._open_cycle_qty(ctx.name, symbol),
                 reason=reason,
                 user_id=self._user_id_provider(),
+                direction=self._open_cycle_direction(ctx.name, symbol),
             )
             ctx.in_flight.add(symbol)
         self._quiesced_event.clear()
@@ -536,12 +582,14 @@ class _Router:
         qty: int = 1,
     ) -> TradeSignal:
         entry_price = float(bar.close)
-        stop_loss: float | None = None
-        target: float | None = None
-        if ctx.cfg.stoploss_enabled:
-            stop_loss = entry_price * (1.0 - ctx.cfg.stoploss_value / 100.0)
-        if ctx.cfg.target_enabled:
-            target = entry_price * (1.0 + ctx.cfg.target_value / 100.0)
+        stop_loss, target = risk_levels(
+            ctx.cfg.direction,
+            entry_price,
+            ctx.cfg.stoploss_enabled,
+            ctx.cfg.stoploss_value,
+            ctx.cfg.target_enabled,
+            ctx.cfg.target_value,
+        )
         return TradeSignal(
             action=Action.ENTRY,
             symbol=symbol,
@@ -551,6 +599,7 @@ class _Router:
             target=target,
             qty_recommended=qty,
             user_id=self._user_id_provider(),
+            direction=ctx.cfg.direction,
         )
 
     def _maybe_signal_quiesced(self) -> None:

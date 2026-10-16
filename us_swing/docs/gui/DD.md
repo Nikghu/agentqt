@@ -1,12 +1,13 @@
 # Design Document — GUI Module (GUI)
 
 **Document ID:** DD-GUI
-**Version:** 1.6.0
-**Traces To:** SRD-GUI v2.8.0
+**Version:** 1.7.0
+**Traces To:** SRD-GUI v2.16.0
 **Status:** Draft
-**Last Updated:** 2026-05-22
+**Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.7.0: DD-GUI-013.016.D01 + DD-GUI-014.016.D01 added — Short Trade Direction: Direction selector, edit lock, no-stop note, strategy table column, Active Trades Side column, direction-aware verbs, Short risk-editor ranges.
 > v1.6.0: DD-GUI-014.* added — Active Cycles Panel (view-model, delegate, inline risk editor).
 > v1.5.0: DD-GUI-013.* added — Strategy Builder Dialog (shell, schema, trigger builder, persistence).
 
@@ -1277,3 +1278,79 @@ def on_cycle_closed(self, snap: CycleSnapshot) -> None:
 ```
 
 No confirmation is shown — the cycle's already gone; the editor was about to fail anyway. The panel logs DEBUG `[Panel] editor auto-dismissed for closed cycle {id}`.
+
+## DD-GUI-013.016.D01 — Strategy Direction Selector
+
+**Parent SRD:** SRD-GUI-013.016, SRD-GUI-013.017, SRD-GUI-013.018, SRD-GUI-013.019
+
+**Selector.** In `_SettingsPage` (execution form, beside `_trade_type_combo`):
+
+```python
+self._direction_combo = QComboBox()
+self._direction_combo.addItem("Long", "LONG")
+self._direction_combo.addItem("Short", "SHORT")
+self._direction_combo.setFixedWidth(160)
+self._direction_combo.setStyleSheet("QComboBox { outline: none; } QComboBox:focus { outline: none; }")
+exec_form.addRow("Direction:", self._direction_combo)
+```
+
+Load: `setCurrentIndex(findData(cfg.direction))`, falling back to index 0. Save:
+`direction=self._direction_combo.currentData()`.
+
+**Edit lock.** `StrategyBuilderDialog.__init__` gains `has_open_trades: bool = False`.
+`_StrategyTablePane._on_edit` computes it as
+`bool(app.get_open_symbols_for_strategy(name))`, which covers every non-terminal cycle
+(OPENING, OPEN, CLOSING). Pending signals do not lock the field: they hold no position. When `True`, the combo is disabled and gets the tooltip from SRD-GUI-013.017.
+The Add path always passes `False`.
+
+**No-stop note.** The Risk page owns an amber `QLabel` (`C.YELLOW`), hidden by default.
+`_update_short_note()` is connected to `_direction_combo.currentIndexChanged` and the
+stop-loss enable `toggled` signal. It shows the label when
+`direction == "SHORT" and not stoploss_enabled`. Save is never blocked. The two pages
+reach each other through the dialog, which wires the signals after building both pages.
+
+**Strategy table.** `strategy_table_model.py` adds `COL_DIRECTION` directly after
+`COL_TRADE_TYPE`, shifting the later column constants by one. Header `Direction`; cell
+`"Short" if cfg.direction == "SHORT" else "Long"`. `execution_panel.py` reads the
+constants by name, so only the constant block changes.
+
+## DD-GUI-014.016.D01 — Direction in Active Trades
+
+**Parent SRD:** SRD-GUI-014.016, SRD-GUI-014.017, SRD-GUI-014.018
+
+**Side column.** `Col` gains `SIDE` directly after `SYMBOL` (header `Side`). `_Row` gains
+`direction: str = "LONG"`, filled from `signal.direction` in `on_pending_added` and from
+`snap.direction` in the cycle handlers. `data()` returns `Long` / `Short`; `ForegroundRole`
+is `C.GREEN` for Long and `C.RED` for Short. Columns are addressed through `Col`, so the
+delegate and the span logic need no change.
+
+**Verbs.** A module-level helper in `active_cycles_panel.py`:
+
+```python
+def _order_verb(direction: str, is_exit: bool) -> str:
+    if direction == "SHORT":
+        return "Buy to cover" if is_exit else "Sell short"
+    return "Sell" if is_exit else "Buy"
+```
+
+| Handler | Change |
+|---|---|
+| `_on_execute_clicked` | `verb = _order_verb(sig.direction, is_exit)`; affordability runs when `not is_exit`, which is already the rule. Only the comment changes to "an entry needs free margin; an exit never is blocked". |
+| `_on_close_clicked` | Text becomes `Close position — {verb} {qty} × {symbol} @ MKT?` with `verb = _order_verb(snap.direction, True)`; the P&L estimate uses `snap.current_pnl_usd`, which is already signed by FO-EXE-018. |
+| confirm button | `confirm_text=f"{verb} {symbol}"`; accent colour still follows action (red exit / green entry). |
+
+**Risk editor ranges.** `_RiskEditorWidget.__init__` branches on `snap.direction`:
+
+| Spinbox | Long (unchanged) | Short |
+|---|---|---|
+| Hard Stop | `setRange(0.01, anchor)` | `setRange(anchor, 1_000_000.0)` |
+| Target | `setRange(anchor, 1_000_000.0)` | `setRange(0.01, anchor)` |
+
+The server check in `update_risk` (SRD-EXE-018.011) stays authoritative.
+
+**Short with no stop.** A Short cycle whose `hard_stop_loss` is `0.0` shows the current
+price in the Hard Stop box (the lowest value its range allows). The widget remembers that
+placeholder in `_hsl_placeholder`; `_collect_changed_fields` leaves `hard_sl` out while the
+value is still the placeholder. Otherwise a plain Save would add a stop at the current
+price, and the next tick would close the trade.
+

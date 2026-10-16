@@ -1,11 +1,13 @@
 # Module Decomposition — GUI Module (GUI)
 
 **Document ID:** MD-GUI
-**Version:** 1.6.0
-**Traces To:** SRD-GUI v2.10.0 / DD-GUI v1.6.0
+**Version:** 1.7.0
+**Traces To:** SRD-GUI v2.16.0 / DD-GUI v1.7.0
 **Status:** Draft
-**Last Updated:** 2026-08-26
+**Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
+
+> v1.7.0: Cross-module rows added for SRD-GUI-013.016–.019 and SRD-GUI-014.016–.018 — Short Trade Direction (FO-EXE-018) GUI surfaces.
 
 > v1.6.0: MD-GUI-004.001.M01 extended — live tick worker watchdog in AppService (SRD-GUI-012.008–009).
 
@@ -82,6 +84,9 @@ gui/app_service.py (FO-GUI-012 additions)
 |---|---|---|---|
 | MD-GUI-004.001.M01 | `src/us_swing/gui/execution_panel.py` | Add an "Add Strategy" button and an "Edit" action on the strategy table that instantiate `StrategyBuilderDialog(registry, editing=…)` and connect its `saved` signal to refresh the strategy table. | SRD-GUI-013.001 |
 | MD-GUI-004.001.M01 | `src/us_swing/gui/execution_panel.py` | Add a Reset icon to each `_StrategyTablePane` row that opens a `QMessageBox` confirmation and on confirm calls `app.rex_counters.reset(strategy_id)`. Wire `app.rex_counters` from `AppService`. Update the `rex_count` `QSpinBox` tooltip in `_SettingsPage` to "Re-execution count: extra entries per stock beyond the first (0 = first entry only)". | SRD-GUI-013.015 |
+| MD-GUI-013.001.M01 | `src/us_swing/gui/strategy_builder_dialog.py` | Add `_direction_combo` (Long / Short) to the execution form with load/save of `direction`; `has_open_trades` ctor flag disables it with a tooltip; amber no-stop note on the Risk page driven by direction + stop-loss toggle; `_paint_direction` colours the combo text green / red. | SRD-GUI-013.016, .017, .018, .020 |
+| MD-GUI-004.001.M01 | `src/us_swing/gui/execution_panel.py` + `src/us_swing/gui/app_service.py` | Pass `has_open_trades` to `StrategyBuilderDialog` on Edit from the new `AppService.has_live_or_pending_trades(name)`, which covers open cycles and signals awaiting the user. | SRD-GUI-013.017, .021 |
+| MD-GUI-004.001.M02 | `src/us_swing/gui/strategy_table_model.py` | Add `COL_DIRECTION` after `COL_TRADE_TYPE` (later constants shift by one) with header `Direction`, `Long` / `Short` cell text and a green / red foreground. | SRD-GUI-013.019, .020 |
 
 ---
 
@@ -102,6 +107,9 @@ gui/app_service.py (FO-GUI-012 additions)
 | MD-GUI-004.001.M01 | `src/us_swing/gui/app_service.py` | Wire FO-EXE-011 `PendingSignalStore` and FO-EXE-012 `TradeCycleService` into AppService construction; expose `cycle_query`, `cycle_cmd`, `pending_store` properties consumed by `ActiveCyclesPanel`. Forward `circuit_breaker_changed(bool)` (FO-EXE-003) so the delegate's button-paint can react. | SRD-GUI-014.012 |
 | MD-GUI-014.001.M02 | `src/us_swing/gui/active_cycles_model.py` | Add `Col.REX` to the column enum + header label "Rex"; cell `data()` queries `app.rex_counters.get(strategy_id, symbol)`, renders the integer (or `cfg.rex_count` when `None`); a value `< 0` paints dimmed (`ForegroundRole = C.MUTED`) with `ToolTipRole = "Rex limit reached — Reset Strategy to re-enable entries"`. Refresh on `on_cycle_opened` and `on_pending_added`. | SRD-GUI-014.013 |
 | MD-GUI-004.001.M01 | `src/us_swing/gui/app_service.py` | Expose `rex_counters: RexCounterRepository` constructed once in `AppService.__init__` from the shared `self._db_engine`. Consumed by `_StrategyTablePane` (Reset action, SRD-GUI-013.015) and `_ActiveCyclesModel` (Rex column, SRD-GUI-014.013). | SRD-GUI-013.015, SRD-GUI-014.013 |
+| MD-GUI-014.001.M02 | `src/us_swing/gui/active_cycles_model.py` | Add `Col.SIDE` after `Col.SYMBOL` and `_Row.direction`, filled from the pending signal or cycle snapshot; green `Long` / red `Short` cell. | SRD-GUI-014.016 |
+| MD-GUI-014.001.M01 | `src/us_swing/gui/active_cycles_panel.py` | Add `_order_verb(direction, is_exit)`; use it in the Execute and Close confirmations and button text; margin check stays entry-only. | SRD-GUI-014.017 |
+| MD-GUI-014.001.M03 | `src/us_swing/gui/risk_editor_widget.py` | Swap the Hard Stop and Target spinbox ranges around the current price for a Short cycle. | SRD-GUI-014.018 |
 
 ---
 

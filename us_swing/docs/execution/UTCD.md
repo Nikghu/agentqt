@@ -1,11 +1,13 @@
 ﻿# Unit Test Case Document â€” Execution & Risk Management (EXE)
 
 **Document ID:** UTCD-EXE
-**Version:** 1.14.0
-**Traces To:** MD-EXE v1.13.0
+**Version:** 1.15.0
+**Traces To:** MD-EXE v1.15.0
 **Status:** Draft
-**Last Updated:** 2026-06-17
+**Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
+
+> v1.15.0: UT-EXE-018.* added (54 tests, FO-EXE-018 Short Trade Direction) — direction storage, side and risk-level helpers, conflict guard, direction-aware order placement and ingestion, SHORT P&L / trailing / exit triggers / risk invariants, signed position P&L.
 
 > v1.13.0: UT-EXE-006.013.M01.T01–T04 (4 tests) + UT-EXE-011.001.M03.T10–T13 (4 tests) added (ISS-EXE-0009) — cycle-open candle-feed arming; ATR/indicator NaN guard raises `EvaluatorError` instead of silently reading false.
 > v1.12.0: UT-EXE-016.007.M01.T01/.T02 added (2 tests, ISS-EXE-0008) — same-day re-entry re-arms an EXITED ledger row back to ENTERED.
@@ -727,3 +729,120 @@
 | UT-EXE-015.004.M01.T34 | MD-EXE-015.004.M01 | Positive | A healthy submit is unchanged | submitter returns order id 77 | returns 77; `pending_store.add` never called | Pass |
 | UT-EXE-015.004.M01.T35 | MD-EXE-015.004.M01 | Negative | Force-exit into a dead socket reports instead of raising | open cycle; submitter raises `BrokerConnectionError` | `_submit_cycle_exit` returns -1, no exception propagates | Pass |
 | UT-EXE-015.004.M01.T36 | MD-EXE-015.004.M01 | Positive | A healthy exit submit is unchanged | submitter returns order id 91 | `_submit_cycle_exit` returns 91 | Pass |
+
+---
+
+## Module: `gui/strategy_store.py` — Strategy direction storage (FO-EXE-018)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-018.001.M02.T01 | MD-EXE-018.001.M02 | Positive | SHORT direction round-trips | save `StrategyConfig(direction="SHORT")`; reload | loaded `direction == "SHORT"` | Pass |
+| UT-EXE-018.001.M02.T02 | MD-EXE-018.001.M02 | Positive | Legacy table migrates to LONG | strategies table without `direction` column holding one row; open store | column added; row loads with `direction == "LONG"` | Pass |
+| UT-EXE-018.001.M02.T03 | MD-EXE-018.001.M02 | Negative | Unknown direction falls back to LONG | stored `direction = "SIDEWAYS"`; load | `direction == "LONG"`; one `[Strategy]` WARNING | Pass |
+
+---
+
+## Module: `execution/trade_cycle/_repository.py` — Cycle direction storage (FO-EXE-018)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-018.002.M03.T01 | MD-EXE-018.002.M03 | Positive | Open cycle stores SHORT | `insert_open(..., direction="SHORT")` on in-memory SQLite | `cycle(id).direction == "SHORT"` | Pass |
+| UT-EXE-018.002.M03.T02 | MD-EXE-018.002.M03 | Positive | Legacy cycle table migrates to LONG | `trade_cycles` without `direction` holding an OPEN row; run schema migration | column added; snapshot `direction == "LONG"` | Pass |
+| UT-EXE-018.002.M03.T03 | MD-EXE-018.002.M03 | Negative | Later writes never change direction | SHORT cycle; `update_live`, `update_risk`, `close` | `direction` still `"SHORT"` after each call | Pass |
+
+---
+
+## Module: `execution/direction.py` — Side & risk-level helpers (FO-EXE-018)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-018.003.M04.T01 | MD-EXE-018.003.M04 | Positive | LONG side mapping | `order_side("LONG", True)`, `order_side("LONG", False)` | `BUY`, `SELL` | Pass |
+| UT-EXE-018.003.M04.T02 | MD-EXE-018.003.M04 | Positive | SHORT side mapping | `order_side("SHORT", True)`, `order_side("SHORT", False)` | `SELL`, `BUY` | Pass |
+| UT-EXE-018.004.M04.T03 | MD-EXE-018.003.M04 | Positive | LONG levels | `risk_levels("LONG", 100, True, 2, True, 4)` | `(98.0, 104.0)` | Pass |
+| UT-EXE-018.004.M04.T04 | MD-EXE-018.003.M04 | Positive | SHORT levels flip | `risk_levels("SHORT", 100, True, 2, True, 4)` | `(102.0, 96.0)` | Pass |
+| UT-EXE-018.004.M04.T05 | MD-EXE-018.003.M04 | Negative | Disabled levels return None | `risk_levels("SHORT", 100, False, 2, False, 4)` | `(None, None)` | Pass |
+
+---
+
+## Module: `execution/strategy_engine/_router.py` — Direction signals & conflict guard (FO-EXE-018)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-018.005.M05.T01 | MD-EXE-018.005.M05 | Positive | SHORT entry signal carries direction and flipped levels | SHORT strategy, SL 2%, target 4%; entry fires at bar close 100 | `TradeSignal(action=ENTRY, direction="SHORT", stop_loss=102.0, target=96.0)` | Pass |
+| UT-EXE-018.005.M05.T02 | MD-EXE-018.005.M05 | Edge | Exit direction comes from the cycle | open SHORT cycle; strategy config edited to LONG; exit condition fires | EXIT signal `direction == "SHORT"` | Pass |
+| UT-EXE-018.012.M05.T03 | MD-EXE-018.005.M05 | Negative | Opposite open cycle blocks entry | strategy A OPEN LONG cycle on AAPL; strategy B (SHORT) entry fires on AAPL | `StrategySignalDropped(reason="direction_conflict")`; submitter not called; one WARNING | Pass |
+| UT-EXE-018.012.M05.T04 | MD-EXE-018.005.M05 | Positive | Same direction on same stock is allowed | strategy A OPEN LONG on AAPL; strategy B (LONG) entry fires on AAPL | entry submitted | Pass |
+| UT-EXE-018.012.M05.T05 | MD-EXE-018.005.M05 | Edge | Opposite in-flight entry blocks entry | strategy B has AAPL in `in_flight` (SHORT); strategy A (LONG) entry fires on AAPL | dropped with `direction_conflict` | Pass |
+| UT-EXE-018.012.M05.T06 | MD-EXE-018.005.M05 | Negative | Conflict warns once per crossing | T03 setup; entry condition fires on 3 bars | 3 drops; exactly 1 WARNING | Pass |
+| UT-EXE-018.014.M05.T07 | MD-EXE-018.005.M05 | Positive | SHORT sized and reserved like LONG | eff capital $2000, allocation 25%, per-trade 100%; SHORT entry at $96 | qty 5; `reserve(strategy, symbol, 480.0)` called | Pass |
+| UT-EXE-018.014.M05.T08 | MD-EXE-018.005.M05 | Negative | SHORT entry blocked by margin like LONG | `margin_available()` = $50; SHORT entry at $96 | `StrategySignalDropped(reason="margin_exhausted")`; no order; no reservation | Pass |
+| UT-EXE-018.012.M05.T09 | MD-EXE-018.005.M05 | Positive | Engine conflict check runs on the engine loop | engine loop running in a thread; router has an opposite in-flight entry | `has_direction_conflict` returns True | Pass |
+| UT-EXE-018.012.M05.T10 | MD-EXE-018.005.M05 | Negative | Unresponsive engine loop blocks the entry | engine loop created but not running; `timeout=0.05` | returns True; one `[Strategy]` WARNING | Pass |
+
+---
+
+## Module: `execution/broker_adapter.py` — Direction-aware order placement (FO-EXE-018)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-018.005.M06.T01 | MD-EXE-018.005.M06 | Positive | SHORT entry places SELL | SHORT ENTRY signal at 100, SL 2%, target 4%; `submit(signal, 10)` | `OrderRequest.side == SELL`; context `direction="SHORT"`, `hard_stop_loss=102.0`, `target_price=96.0` | Pass |
+| UT-EXE-018.005.M06.T02 | MD-EXE-018.005.M06 | Positive | SHORT exit places BUY | SHORT EXIT signal; `submit(signal, 10)` | `OrderRequest.side == BUY` | Pass |
+| UT-EXE-018.005.M06.T03 | MD-EXE-018.005.M06 | Negative | LONG orders unchanged | LONG ENTRY then LONG EXIT | sides `BUY` then `SELL`; LONG levels 98 / 104 | Pass |
+
+---
+
+## Module: `execution/order_ingestion.py` — Order state by entry/exit & short reject (FO-EXE-018)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-018.006.M07.T01 | MD-EXE-018.006.M07 | Positive | SHORT entry uses entry order states | SHORT entry (SELL) receives PARTIAL_FILLED then FILLED | trade `order_state` values from `BuyOrderState`; cycle OPENING then OPEN with `direction="SHORT"` | Pass |
+| UT-EXE-018.006.M07.T02 | MD-EXE-018.006.M07 | Positive | SHORT exit uses exit order states | SHORT exit (BUY) receives FILLED | `SellOrderState.FILLED` gate closes the cycle | Pass |
+| UT-EXE-018.015.M07.T03 | MD-EXE-018.006.M07 | Negative | Rejected SHORT entry aborts with message | SHORT entry order receives REJECTED | cycle aborted; WARNING `[Orders] Short sale for AAPL was rejected by the broker` | Pass |
+| UT-EXE-018.015.M07.T04 | MD-EXE-018.006.M07 | Negative | Rejected LONG entry has no short message | LONG entry order receives REJECTED | cycle aborted; no "Short sale" WARNING | Pass |
+
+---
+
+## Module: `execution/trade_cycle/_service.py` — Direction-aware cycle maths (FO-EXE-018)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-018.007.M08.T01 | MD-EXE-018.007.M08 | Positive | SHORT live profit when price falls | SHORT entry 100 × 10; tick 97 | `current_pnl_usd == 30.0`; `current_pnl_pct == 3.0` | Pass |
+| UT-EXE-018.007.M08.T02 | MD-EXE-018.007.M08 | Negative | SHORT live loss when price rises | SHORT entry 100 × 10; tick 103 | `current_pnl_usd == -30.0` | Pass |
+| UT-EXE-018.008.M08.T03 | MD-EXE-018.007.M08 | Positive | SHORT $ trail follows the low | SHORT entry 100, hard stop 102, trail `$` 1.0; ticks 98, 95 | `highest_price_seen == 95.0`; `trailing_stop_level == 96.0`; `effective_stop == 96.0` | Pass |
+| UT-EXE-018.008.M08.T04 | MD-EXE-018.007.M08 | Negative | SHORT trail never moves up | after T03, tick 95.8 | `trailing_stop_level` stays `96.0`; `highest_price_seen` stays `95.0` | Pass |
+| UT-EXE-018.008.M08.T05 | MD-EXE-018.007.M08 | Positive | SHORT % trail | SHORT entry 100, trail `%` 1.0; tick 95 | `trailing_stop_level == 95.95` | Pass |
+| UT-EXE-018.008.M08.T06 | MD-EXE-018.007.M08 | Edge | Disabled stop never exits a SHORT | SHORT entry 100, `hard_stop_loss=0.0`, no trail, no target; ticks 150, 500 | `effective_stop is None`; no `ExitTrigger` | Pass |
+| UT-EXE-018.009.M08.T07 | MD-EXE-018.007.M08 | Positive | SHORT target exit | SHORT, target 96; tick 96 | `ExitTrigger(reason="target")` | Pass |
+| UT-EXE-018.009.M08.T08 | MD-EXE-018.007.M08 | Positive | SHORT hard-stop exit | SHORT, hard stop 102; tick 102 | `ExitTrigger(reason="hard_sl")` | Pass |
+| UT-EXE-018.009.M08.T09 | MD-EXE-018.007.M08 | Positive | SHORT trailing exit | T03 state (trail 96, hard 102); tick 96.2 | `ExitTrigger(reason="trailing_sl")` | Pass |
+| UT-EXE-018.009.M08.T10 | MD-EXE-018.007.M08 | Negative | No SHORT exit between stop and target | SHORT, hard 102, target 96; tick 99 | no `ExitTrigger`; state stays OPEN | Pass |
+| UT-EXE-018.010.M08.T11 | MD-EXE-018.007.M08 | Positive | SHORT realized profit | SHORT entry 100 × 10; exit fill 96 | `realized_pnl_usd == 40.0`; `realized_pnl_pct == 4.0` | Pass |
+| UT-EXE-018.010.M08.T12 | MD-EXE-018.007.M08 | Negative | SHORT realized loss | SHORT entry 100 × 10; exit fill 102 | `realized_pnl_usd == -20.0`; `realized_pnl_pct == -2.0` | Pass |
+| UT-EXE-018.011.M08.T13 | MD-EXE-018.007.M08 | Positive | Valid SHORT risk edit | SHORT, current 100; `update_risk(hard_sl=104, target=94)` | saved; no error | Pass |
+| UT-EXE-018.011.M08.T14 | MD-EXE-018.007.M08 | Negative | SHORT stop below price rejected | SHORT, current 100; `update_risk(hard_sl=99)` | `InvariantViolation`; stored stop unchanged | Pass |
+| UT-EXE-018.011.M08.T15 | MD-EXE-018.007.M08 | Negative | SHORT target above price rejected | SHORT, current 100; `update_risk(target=101)` | `InvariantViolation`; stored target unchanged | Pass |
+| UT-EXE-018.007.M08.T16 | MD-EXE-018.007.M08 | Edge | LONG behaviour unchanged | LONG entry 100 × 10, hard 98, target 104, trail `$` 1; ticks 103, 102 | P&L +20 at 102; trail 102; `ExitTrigger(reason="trailing_sl")` — same as before this change | Pass |
+| UT-EXE-018.008.M08.T17 | MD-EXE-018.007.M08 | Edge | Reloaded SHORT cycle still trails the low | stored SHORT cycle with `highest_price_seen=None`, trail `$` 1; new service `reload()`; tick 95 | `highest_price_seen == 95.0`; `trailing_stop_level == 96.0` | Pass |
+| UT-EXE-018.016.M08.T01 | MD-EXE-018.007.M08 | Positive | Silent feed warns once per outage | open cycle, last tick 5 minutes ago; check twice, then a fresh tick | one `[Cycle]` WARNING; warning flag cleared by the tick | Pass |
+| UT-EXE-018.016.M08.T02 | MD-EXE-018.007.M08 | Negative | A live feed never warns | open cycle ticked just now; run the check | no WARNING | Pass |
+
+---
+
+## Module: `data/models.py` — Signed position P&L (FO-EXE-018)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-018.013.M09.T01 | MD-EXE-018.013.M09 | Positive | SHORT position profit | `OpenPosition(direction="SHORT", average_price=100, current_price=97, quantity=10)` | `unrealised_pnl == 30.0`; `pnl_pct == 3.0` | Pass |
+| UT-EXE-018.013.M09.T02 | MD-EXE-018.013.M09 | Negative | SHORT position loss | same with `current_price=103` | `unrealised_pnl == -30.0` | Pass |
+| UT-EXE-018.013.M09.T03 | MD-EXE-018.013.M09 | Edge | Default is LONG | `OpenPosition` without direction, avg 100, current 103, qty 10 | `direction == "LONG"`; `unrealised_pnl == 30.0` | Pass |
+
+---
+
+## Module: `gui/app_service.py` — Pending-execute conflict check & position direction (FO-EXE-018)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-018.013.M10.T01 | MD-EXE-018.012.M10 | Positive | IBKR negative quantity maps to SHORT | portfolio item `position=-10`, `averageCost=100` | `OpenPosition(direction="SHORT", quantity=10)` | Pass |
+| UT-EXE-018.013.M10.T02 | MD-EXE-018.012.M10 | Positive | Cycle-derived position copies direction | open SHORT cycle | position source returns `direction="SHORT"` | Pass |
+| UT-EXE-018.012.M10.T03 | MD-EXE-018.012.M10 | Negative | Pending SHORT entry blocked by open LONG | OPEN LONG cycle on AAPL; `execute_signal(SHORT ENTRY AAPL, 10)` | returns -1; submitter not called; signal stays in pending store; one WARNING | Pass |
+| UT-EXE-018.012.M10.T04 | MD-EXE-018.012.M10 | Positive | Pending SHORT entry without conflict submits | no open AAPL cycle; `execute_signal(SHORT ENTRY AAPL, 10)` | submitter called once; returns order id | Pass |

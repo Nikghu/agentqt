@@ -1,9 +1,9 @@
 # Traceability Matrix — Execution & Risk Management (EXE)
 
 **Document ID:** TRACE-EXE
-**Version:** 1.20.2
+**Version:** 1.22.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-09-04 (Session 79, Yahoo dotted-symbol fix)
+**Last Updated:** 2026-09-17 (Session 80, FO-EXE-018 Short Trade Direction implemented)
 
 ---
 
@@ -51,6 +51,7 @@
 | FO-EXE-014 | SRD-EXE-014.007 | — | MD-EXE-014.007.M01 | UT-EXE-014.007.M01.T04–T17 | `gui/app_service.py` | Implemented | RN-EXE-1.32.0-20260827 |
 | FO-INF-009 | SRD-INF-009.005 | — | MD-INF-009.005.M01 | UT-INF-009.005.M01.T10–T19 | `broker/ibkr.py` | Implemented | RN-EXE-1.32.0-20260827 |
 | FO-EXE-005 | SRD-EXE-005.001–003 (Reopen) | DD-EXE-005.001.D01 | MD-EXE-002.001.M01 | UT-EXE-005.001.M01.T01–T05 | `execution/position_tracker.py` | Reopen | RN-EXE-1.14.0-20260528 |
+| FO-EXE-018 | SRD-EXE-018.001–016 | DD-EXE-018.001.D01, .003.D01, .006.D01, .007.D01, .012.D01, .013.D01 | MD-EXE-018.001.M01–018.012.M10 | UT-EXE-018.001.M02.T01–03, .002.M03.T01–03, .003–.004.M04.T01–05, .005/.012/.014.M05.T01–10, .005.M06.T01–03, .006/.015.M07.T01–04, .007–.011.M08.T01–17, .016.M08.T01–02, .013.M09.T01–03, .012/.013.M10.T01–04; IT-EXE-018.001–002 | `execution/{_enums,direction,broker_adapter,signal_bridge,order_ingestion}.py`, `execution/strategy_engine/{_signals,_router,_context,_engine}.py`, `execution/trade_cycle/{_schema,_dto,_repository,_service,_protocols}.py`, `db/schema.py`, `data/models.py`, `gui/{strategy_store,app_service}.py` | Implemented | RN-EXE-1.33.0-20260917 (.016 pending RN) |
 
 ---
 
@@ -86,6 +87,7 @@
 | `execution/trade_cycle/_service.py` | MD-EXE-012.001.M03 | SRD-EXE-012.002–013 | FO-EXE-012 |
 | `execution/trade_cycle/_protocols.py` | MD-EXE-012.001.M04 | SRD-EXE-012.010–011 | FO-EXE-012 |
 | `execution/trade_cycle/__init__.py` | MD-EXE-012.001.M05 | SRD-EXE-012.001, 010–012 | FO-EXE-012 |
+| `execution/direction.py` | MD-EXE-018.003.M04 | SRD-EXE-018.003–004 | FO-EXE-018 |
 
 ---
 

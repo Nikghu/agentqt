@@ -1103,6 +1103,14 @@ class _SettingsPage(QScrollArea):
         self._trade_type_combo.setStyleSheet("QComboBox { outline: none; } QComboBox:focus { outline: none; }")
         exec_form.addRow("Trade Type:", self._trade_type_combo)
 
+        self._direction_combo = QComboBox()
+        self._direction_combo.addItem("Long", "LONG")
+        self._direction_combo.addItem("Short", "SHORT")
+        self._direction_combo.setFixedWidth(160)
+        exec_form.addRow("Direction:", self._direction_combo)
+        self._direction_combo.currentIndexChanged.connect(self._paint_direction)
+        self._paint_direction()
+
         bl.addLayout(exec_form)
 
         bl.addWidget(_section_label("EXECUTION SETTINGS"))
@@ -1152,6 +1160,14 @@ class _SettingsPage(QScrollArea):
         bl.addLayout(cadence_form)
         bl.addStretch()
         self.setWidget(body)
+
+    def _paint_direction(self) -> None:
+        """Colour the Direction text by side — green for Long, red for Short."""
+        colour = C.RED if self._direction_combo.currentData() == "SHORT" else C.GREEN
+        self._direction_combo.setStyleSheet(
+            f"QComboBox {{ color: {colour}; outline: none; }}"
+            f" QComboBox:focus {{ color: {colour}; outline: none; }}"
+        )
 
 
 # ── Page: Risk ────────────────────────────────────────────────────────────────
@@ -1229,6 +1245,14 @@ class _RiskPage(QScrollArea):
         self._sl_controls.setLayout(sl_form)
         bl.addWidget(self._sl_controls)
 
+        self._short_note = QLabel("Short trades have no loss limit without a stop loss")
+        self._short_note.setStyleSheet(
+            f"color: {C.YELLOW}; font-size: 9pt; border: none; background: transparent;"
+        )
+        self._short_note.setWordWrap(True)
+        self._short_note.hide()
+        bl.addWidget(self._short_note)
+
         bl.addStretch()
         self.setWidget(body)
 
@@ -1272,6 +1296,7 @@ class StrategyBuilderDialog(QDialog):
         existing: StrategyConfig | None = None,
         existing_names: set[str] | None = None,
         max_capital: float = 0.0,
+        has_open_trades: bool = False,
     ) -> None:
         super().__init__(parent)
         self._existing = existing
@@ -1431,12 +1456,28 @@ class StrategyBuilderDialog(QDialog):
         if self._existing is not None:
             self._populate(self._existing)
 
+        # SRD-GUI-013.017 — an open trade keeps the direction it was opened with.
+        if has_open_trades:
+            self._exec_page._direction_combo.setEnabled(False)
+            self._exec_page._direction_combo.setToolTip(
+                "Close open trades and clear pending signals before changing direction"
+            )
+
+        self._exec_page._direction_combo.currentIndexChanged.connect(self._update_short_note)
+        self._risk_page._sl_enabled.toggled.connect(self._update_short_note)
+        self._update_short_note()
+
     # ── Navigation ─────────────────────────────────────────────────────────────
 
     def _on_nav_changed(self, current: QTreeWidgetItem, _prev: QTreeWidgetItem) -> None:
         idx = self._page_map.get(id(current))
         if idx is not None:
             self._stack.setCurrentIndex(idx)
+
+    def _update_short_note(self) -> None:
+        """Show the no-stop note for a Short strategy without a stop loss (SRD-GUI-013.018)."""
+        is_short = self._exec_page._direction_combo.currentData() == "SHORT"
+        self._risk_page._short_note.setVisible(is_short and not self._risk_page._sl_enabled.isChecked())
 
     def _go_to(self, page_idx: int) -> None:
         self._stack.setCurrentIndex(page_idx)
@@ -1473,6 +1514,7 @@ class StrategyBuilderDialog(QDialog):
         e = self._exec_page
         e._auto_trade.setChecked(cfg.auto_trade)
         e._trade_type_combo.setCurrentText(cfg.trade_type)
+        e._direction_combo.setCurrentIndex(max(0, e._direction_combo.findData(cfg.direction)))
         e._minute_close.setValue(cfg.minute_close)
         e._exec_rate.setValue(cfg.execution_rate_sec)
         e._rex_count.setValue(cfg.rex_count)
@@ -1539,6 +1581,7 @@ class StrategyBuilderDialog(QDialog):
             exit_condition=exit_,
             auto_trade=e._auto_trade.isChecked(),
             trade_type=e._trade_type_combo.currentText(),
+            direction=e._direction_combo.currentData(),
             minute_close=e._minute_close.value(),
             execution_rate_sec=e._exec_rate.value(),
             rex_count=e._rex_count.value(),

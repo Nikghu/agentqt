@@ -2,6 +2,31 @@
 
 ---
 
+## [20260918] EXE+GUI — Short Trade follow-ups: side colours, stale-price warning, Direction lock (FO-EXE-018, feature)
+
+- Type: Feature follow-up
+- FO(s): FO-EXE-018, FO-GUI-013, FO-GUI-004
+- Artifacts updated: SRD (new SRD-EXE-018.016, SRD-GUI-013.020, SRD-GUI-013.021 — user-approved, then Implemented), TRACE (EXE, GUI), Code, Tests, TODO (T14 closed, T30), CONTEXT, DEVLOG
+- PRs: #72 (open)
+- Decisions: Direction is now coloured by side — green Long, red Short — in the Add / Edit Strategy combo (`strategy_builder_dialog.py`) and in the strategy table Direction column (`strategy_table_model.py`), matching the Active Trades Side column. Stops and targets are only checked when a price arrives, so a silent feed leaves a trade unguarded — worst for a short, whose loss has no floor. The cycle loop now checks every 30 s and logs one warning per outage, cleared by the next price. A signal waiting for the user now also locks the strategy's Direction field, so a Long signal cannot be executed under a strategy just switched to Short; new `AppService.has_live_or_pending_trades` covers both the open-trade and pending-signal cases. Order-state enum docstrings corrected — the state set follows entry/exit, not the BUY/SELL side.
+- Verification: new cases in `tests/gui/test_short_direction_gui.py` for both colour changes; the stale-price warning and Direction lock covered under MD-EXE-018.007.M08 / MD-GUI-004.001.M01.
+- Housekeeping (2026-10-16): docs for this work were written a month late — the session ended without them. Branch pushed and PR #72 raised. TODO T14 closed: it claimed uncommitted Active-Trades work, but the working tree is clean.
+- Open: **Manual IBKR paper-account check of one live short still not run (TODO T30).** PR #72 awaits merge.
+
+---
+
+## [20260917] EXE+GUI — Short Trade Direction: Long / Short per strategy (FO-EXE-018, feature)
+
+- Type: Feature
+- FO(s): FO-EXE-018 (new), FO-GUI-013, FO-GUI-014
+- RN: RN-EXE-1.33.0-20260917, RN-GUI-1.5.0-20260917
+- Artifacts updated: FO (new FO-EXE-018), SRD (new SRD-EXE-018.001-.015, SRD-GUI-013.016-.019, SRD-GUI-014.016-.018 — all user-approved 2026-09-17, then Implemented), DD (6 EXE + 2 GUI sections), MD (MD-EXE-018.001.M01-.012.M10 + GUI cross-module rows), UTCD (52 EXE + 22 GUI cases), TRACE (EXE v1.22.0, GUI v1.12.0), RN, plan doc `docs/execution/Short_Trade_plan.md`, Code, Tests, TODO (T30), CONTEXT, DEVLOG
+- Decisions: The user asked in plain terms whether a trade can start with a sell. It could not. Rather than patch the two obvious call sites, the whole path was traced first and 20 long-only assumptions were written into a plan doc with seven decisions for the user to confirm: one direction per strategy; opposite directions on one stock blocked (IBKR nets them into a single position, which would break both cycles' exits); direction locked while trades are open; a short reserves capital like a long, with no separate short-margin model; no pre-trade borrow check in v1 (the broker's reject is the answer, logged in plain English); paper allows every short; and `highest_price_seen` reused for the best price seen so no column is renamed. The user approved all seven, then approved the 22 SRDs, then took the phases one at a time. An eighth decision came out of the P3 review: on an open short the stop cannot be cleared from the risk editor — the user chose to keep it that way, so a short always carries a stop. Deliberately left long-only: the legacy ANA engine (`analysis/strategies/*`, `exit_manager.py`), which does not read the Strategy Builder config, and the dead Pending Signals pane (`_build_signals_pane` has no caller).
+- Verification: 74 unit tests (52 EXE, 22 GUI) plus IT-EXE-018.001/.002 — a full short cycle through `SimBroker`, asserting SELL to open, BUY to cover, the stored order states and +$40 at target / −$20 at stop. `UT-EXE-018.007.M08.T16` pins long behaviour unchanged. 822 passed; ruff and mypy --strict counts identical to the pre-change baseline on every touched file; the 11 pre-existing failures (`test_candle_builder`, `test_preset`) and the `test_llm_claude_screener` collection error were confirmed present at HEAD and left alone. Four bugs were caught by review or by writing the tests first: a `0.0` (disabled) stop would have closed every short on its first tick, since `price >= 0.0` is always true; `trades.order_state` was picked from the order side, so a short entry would have been recorded as an exit; the GUI-thread conflict check read `in_flight` off-thread and now runs on the engine loop with a 2 s timeout that blocks the entry rather than guessing; and a plain Save in the risk editor would have added a stop at the current price to a stopless short, closing it on the next tick.
+- Open: **The manual IBKR paper-account check of one live short has not been run (TODO T30)** — nothing here has touched a real broker. `update_risk` cannot clear the stop on an open short (intentional).
+
+---
+
 ## [20260904] GUI+EXE — Reset-Database crash + Yahoo dotted-symbol fallback (ISS-GUI-0001, ISS-EXE-0012, bugfix)
 
 - Type: Bugfix

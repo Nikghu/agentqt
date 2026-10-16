@@ -59,6 +59,7 @@ class _Cfg:
     target_value: float = 2.0
     rex_count: int = 0
     run_state: str = "RUNNING"
+    direction: str = "LONG"
 
 
 class _FakeCycleQuery:
@@ -69,6 +70,7 @@ class _FakeCycleQuery:
         self.qty_by_pair: dict[tuple[str, str], int] = {}
         self.entry_price_by_pair: dict[tuple[str, str], float] = {}
         self.current_price_by_pair: dict[tuple[str, str], float | None] = {}
+        self.direction_by_pair: dict[tuple[str, str], str] = {}
 
     def has_open_cycle(self, strategy_id: str, symbol: str) -> bool:
         return (strategy_id, symbol) in self.open_pairs
@@ -83,11 +85,17 @@ class _FakeCycleQuery:
                 snap.entry_qty = self.qty_by_pair.get((sid, sym), 0)
                 snap.entry_price = self.entry_price_by_pair.get((sid, sym), 0.0)
                 snap.current_price = self.current_price_by_pair.get((sid, sym))
+                snap.direction = self.direction_by_pair.get((sid, sym), "LONG")
+                snap.user_id = 0
                 snaps.append(snap)
         return tuple(snaps)
 
     def open_cycles(self) -> tuple[Any, ...]:
-        return self.open_cycles_for_strategy("")
+        return tuple(
+            snap
+            for sid in {s for s, _ in self.open_pairs}
+            for snap in self.open_cycles_for_strategy(sid)
+        )
 
     def cycle(self, _cycle_id: int) -> Any:
         return None
@@ -972,3 +980,198 @@ async def test_dispatch_exception_for_unknown_strategy_does_not_crash() -> None:
     await _pump_one(router, queue, TradeSignal(
         action=Action.ENTRY, symbol="AAPL", strategy_id="gone", entry_price=150.0,
     ))
+
+
+# ── FO-EXE-018 — trade direction in the router ────────────────────────────────
+
+
+def _candles() -> dict[str, Any]:
+    import pandas as pd
+    return {
+        "3m": pd.DataFrame({"open": [100.0], "high": [101.0], "low": [99.0], "close": [100.0], "volume": [1_000_000]})
+    }
+
+
+def _add_strategy(
+    registry: dict[str, _StrategyContext], name: str, direction: str
+) -> _StrategyContext:
+    ctx = _StrategyContext(cfg=_Cfg(name=name, direction=direction), run_state=_RUNNING)  # type: ignore[arg-type]
+    registry[name] = ctx
+    return ctx
+
+
+@pytest.mark.asyncio
+async def test_short_entry_signal_carries_direction_and_flipped_levels() -> None:
+    """UT-EXE-018.005.M05.T01: a SHORT strategy's entry signal is SHORT with stop above and target below."""
+    cfg = _Cfg(direction="SHORT", stoploss_enabled=True, stoploss_value=2.0,
+               target_enabled=True, target_value=4.0)
+    router, queue, *_rest, registry, _cq = _make_router(cfg=cfg, clock=_scheduled_clock)
+    ctx = registry[cfg.name]
+
+    await router.evaluate(ctx, "AAPL", _candles(), _make_bar(close=100.0))
+    signal = await asyncio.wait_for(queue.get(), timeout=1.0)
+
+    assert signal.action is Action.ENTRY
+    assert signal.direction == "SHORT"
+    assert signal.stop_loss == pytest.approx(102.0)
+    assert signal.target == pytest.approx(96.0)
+
+
+@pytest.mark.asyncio
+async def test_exit_direction_comes_from_open_cycle() -> None:
+    """UT-EXE-018.005.M05.T02: an exit on a SHORT cycle stays SHORT after the strategy is edited to LONG."""
+    cq = _FakeCycleQuery()
+    cq.open_pairs.add(("test_strat", "AAPL"))
+    cq.qty_by_pair[("test_strat", "AAPL")] = 10
+    cq.direction_by_pair[("test_strat", "AAPL")] = "SHORT"
+    router, queue, *_rest, registry, _cq = _make_router(
+        cfg=_Cfg(direction="LONG"), clock=_scheduled_clock, cycle_query=cq
+    )
+
+    await router.evaluate(registry["test_strat"], "AAPL", _candles(), _make_bar())
+    signal = await asyncio.wait_for(queue.get(), timeout=1.0)
+
+    assert signal.action is Action.EXIT
+    assert signal.direction == "SHORT"
+
+
+@pytest.mark.asyncio
+async def test_opposite_open_cycle_blocks_entry(caplog: pytest.LogCaptureFixture) -> None:
+    """UT-EXE-018.012.M05.T03: another strategy's open LONG on the stock drops a SHORT entry."""
+    cq = _FakeCycleQuery()
+    cq.open_pairs.add(("A", "AAPL"))
+    router, queue, _risk, submitter, _pending, bus, registry, _cq = _make_router(
+        cfg=_Cfg(name="B", direction="SHORT"), clock=_scheduled_clock, cycle_query=cq
+    )
+
+    with caplog.at_level("WARNING"):
+        await router.evaluate(registry["B"], "AAPL", _candles(), _make_bar())
+
+    assert queue.empty()
+    submitter.submit.assert_not_called()
+    dropped = [c.args[0] for c in bus.publish.call_args_list if isinstance(c.args[0], StrategySignalDropped)]
+    assert [d.reason for d in dropped] == ["direction_conflict"]
+    assert len([r for r in caplog.records if r.levelname == "WARNING"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_same_direction_on_same_stock_is_allowed() -> None:
+    """UT-EXE-018.012.M05.T04: another strategy's open LONG does not block a LONG entry."""
+    cq = _FakeCycleQuery()
+    cq.open_pairs.add(("A", "AAPL"))
+    router, queue, *_rest, registry, _cq = _make_router(
+        cfg=_Cfg(name="B", direction="LONG"), clock=_scheduled_clock, cycle_query=cq
+    )
+
+    await router.evaluate(registry["B"], "AAPL", _candles(), _make_bar())
+
+    signal = await asyncio.wait_for(queue.get(), timeout=1.0)
+    assert signal.action is Action.ENTRY
+
+
+@pytest.mark.asyncio
+async def test_opposite_in_flight_entry_blocks_entry() -> None:
+    """UT-EXE-018.012.M05.T05: a SHORT entry in flight on another strategy drops a LONG entry."""
+    router, queue, _risk, _submitter, _pending, bus, registry, _cq = _make_router(
+        cfg=_Cfg(name="A", direction="LONG"), clock=_scheduled_clock
+    )
+    _add_strategy(registry, "B", "SHORT").in_flight.add("AAPL")
+
+    await router.evaluate(registry["A"], "AAPL", _candles(), _make_bar())
+
+    assert queue.empty()
+    dropped = [c.args[0] for c in bus.publish.call_args_list if isinstance(c.args[0], StrategySignalDropped)]
+    assert [d.reason for d in dropped] == ["direction_conflict"]
+
+
+@pytest.mark.asyncio
+async def test_conflict_warns_once_per_crossing(caplog: pytest.LogCaptureFixture) -> None:
+    """UT-EXE-018.012.M05.T06: repeated conflicting bars drop every time but warn once."""
+    cq = _FakeCycleQuery()
+    cq.open_pairs.add(("A", "AAPL"))
+    router, _queue, _risk, _submitter, _pending, bus, registry, _cq = _make_router(
+        cfg=_Cfg(name="B", direction="SHORT"), clock=_scheduled_clock, cycle_query=cq
+    )
+
+    with caplog.at_level("WARNING"):
+        for _ in range(3):
+            await router.evaluate(registry["B"], "AAPL", _candles(), _make_bar())
+
+    dropped = [c.args[0] for c in bus.publish.call_args_list if isinstance(c.args[0], StrategySignalDropped)]
+    assert len(dropped) == 3
+    assert len([r for r in caplog.records if r.levelname == "WARNING"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_short_entry_sized_and_reserved_like_long() -> None:
+    """UT-EXE-018.014.M05.T07: a SHORT entry is sized and reserved exactly like a LONG."""
+    cfg = _Cfg(direction="SHORT", capital_max=25, per_trade_pct=100)
+    router, queue, risk, *_rest, registry, _cq = _make_router(
+        cfg=cfg, clock=_scheduled_clock, eff_cap=2000.0
+    )
+
+    await router.evaluate(registry[cfg.name], "AAPL", _candles(), _make_bar(close=96.0))
+    signal = await asyncio.wait_for(queue.get(), timeout=1.0)
+
+    assert signal.qty_recommended == 5
+    risk.reserve.assert_called_once_with(cfg.name, "AAPL", pytest.approx(480.0))
+
+
+@pytest.mark.asyncio
+async def test_short_entry_blocked_by_margin_like_long() -> None:
+    """UT-EXE-018.014.M05.T08: a SHORT entry over Margin Available is dropped like a LONG."""
+    cfg = _Cfg(direction="SHORT", capital_max=25, per_trade_pct=100)
+    router, queue, risk, _submitter, _pending, bus, registry, _cq = _make_router(
+        cfg=cfg, clock=_scheduled_clock, eff_cap=2000.0
+    )
+    risk.margin_available.return_value = 50.0
+
+    await router.evaluate(registry[cfg.name], "AAPL", _candles(), _make_bar(close=96.0))
+
+    assert queue.empty()
+    risk.reserve.assert_not_called()
+    dropped = [c.args[0] for c in bus.publish.call_args_list if isinstance(c.args[0], StrategySignalDropped)]
+    assert [d.reason for d in dropped] == ["margin_exhausted"]
+
+
+def _engine_over(router: _Router, loop: asyncio.AbstractEventLoop | None) -> Any:
+    from us_swing.execution.strategy_engine._engine import StrategyEngine
+
+    engine = StrategyEngine.__new__(StrategyEngine)
+    engine._router = router
+    engine._loop = loop
+    return engine
+
+
+def test_engine_conflict_check_runs_on_engine_loop() -> None:
+    """UT-EXE-018.012.M05.T09: the GUI-side conflict check is answered by the running engine loop."""
+    import threading
+
+    router, *_rest, registry, _cq = _make_router(cfg=_Cfg(name="A", direction="LONG"))
+    _add_strategy(registry, "B", "SHORT").in_flight.add("AAPL")
+    loop = asyncio.new_event_loop()
+    thread = threading.Thread(target=loop.run_forever, daemon=True)
+    thread.start()
+    try:
+        assert _engine_over(router, loop).has_direction_conflict("AAPL", "LONG") is True
+    finally:
+        loop.call_soon_threadsafe(loop.stop)
+        thread.join(timeout=2.0)
+        loop.close()
+
+
+def test_unresponsive_engine_loop_blocks_entry(caplog: pytest.LogCaptureFixture) -> None:
+    """UT-EXE-018.012.M05.T10: when the engine loop does not answer, the entry is treated as conflicting."""
+    router, *_rest = _make_router()
+    loop = asyncio.new_event_loop()
+    try:
+        with caplog.at_level("WARNING"):
+            result = _engine_over(router, loop).has_direction_conflict("AAPL", "LONG", timeout=0.05)
+    finally:
+        loop.run_until_complete(asyncio.sleep(0))
+        loop.close()
+
+    assert result is True
+    warnings = [r for r in caplog.records if r.levelname == "WARNING"]
+    assert len(warnings) == 1
+    assert warnings[0].getMessage().startswith("[Strategy]")

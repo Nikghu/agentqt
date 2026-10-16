@@ -70,6 +70,7 @@ class TradeCycleCommand(Protocol):
         trailing_offset: float | None,
         monitoring_session_date: str,
         order_state:     ExecutionEnums.BuyOrderState = ExecutionEnums.BuyOrderState.FILLED,
+        direction:       str = "LONG",
     ) -> CycleSnapshot: ...
 
     def on_exit_fill(

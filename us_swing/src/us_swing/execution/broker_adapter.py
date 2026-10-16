@@ -24,6 +24,7 @@ from collections.abc import Callable
 from typing import Any
 
 from us_swing.broker.broker import Broker, OrderEvent, OrderRequest, OrderSide, OrderType
+from us_swing.execution.direction import order_side, risk_levels
 from us_swing.execution.order_ingestion import OrderContext, OrderIngestion
 from us_swing.execution.strategy_engine._signals import Action, TradeSignal
 
@@ -59,7 +60,7 @@ class BrokerAdapter:
 
     def submit(self, signal: TradeSignal, qty: int) -> int | None:
         is_entry = signal.action is Action.ENTRY
-        side = OrderSide.BUY if is_entry else OrderSide.SELL
+        side = order_side(signal.direction, is_entry)
         request = OrderRequest(
             client_ref=signal.signal_id,
             symbol=signal.symbol,
@@ -99,7 +100,9 @@ class BrokerAdapter:
     ) -> OrderContext:
         price = signal.entry_price or 0.0
         hard_sl, target_price, target_type, stoploss_type = self._entry_risk(
-            self._config_provider(signal.strategy_id) if is_entry else None, price
+            self._config_provider(signal.strategy_id) if is_entry else None,
+            price,
+            signal.direction,
         )
         return OrderContext(
             broker_order_id="",  # backfilled at on_order_accepted once the broker assigns it
@@ -109,6 +112,7 @@ class BrokerAdapter:
             symbol=signal.symbol,
             side=side,
             is_entry=is_entry,
+            direction=signal.direction,
             quantity=qty,
             intended_price=price,
             mode=self._mode_provider(),
@@ -121,7 +125,9 @@ class BrokerAdapter:
         )
 
     @staticmethod
-    def _entry_risk(config: Any, price: float) -> tuple[float, float | None, str, str]:
+    def _entry_risk(
+        config: Any, price: float, direction: str
+    ) -> tuple[float, float | None, str, str]:
         """Compute the absolute hard-stop and target from the strategy config,
         mirroring the legacy paper-fill snapshot."""
         if config is None:
@@ -132,9 +138,10 @@ class BrokerAdapter:
         sl_pct = float(getattr(config, "stoploss_value", 0.0))
         target_type = (getattr(config, "target_type", "fixed") or "fixed")
         stoploss_type = (getattr(config, "stoploss_type", "fixed") or "fixed")
-        target_price = price * (1.0 + target_pct / 100.0) if target_enabled else None
-        hard_sl = price * (1.0 - sl_pct / 100.0) if sl_enabled else 0.0
-        return hard_sl, target_price, target_type, stoploss_type
+        hard_sl, target_price = risk_levels(
+            direction, price, sl_enabled, sl_pct, target_enabled, target_pct
+        )
+        return hard_sl or 0.0, target_price, target_type, stoploss_type
 
 
 __all__ = ["BrokerAdapter"]

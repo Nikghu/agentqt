@@ -15,6 +15,7 @@ from __future__ import annotations
 import os
 import tempfile
 
+import pytest
 import sqlalchemy as sa
 
 from us_swing.broker.broker import OrderEvent, OrderSide, OrderStatus
@@ -234,3 +235,111 @@ class TestSinkFailureIsContained:
         ingestion.on_order_event(_event(OrderStatus.REJECTED))
 
         assert ingestion._context == {}
+
+
+# ── FO-EXE-018 — order state by entry/exit & short reject ─────────────────────
+
+
+class _EntryCaptureCycles(_StubCycles):
+    def __init__(self) -> None:
+        super().__init__()
+        self.entry_calls: list[dict[str, object]] = []
+        self.exit_calls: list[dict[str, object]] = []
+
+    def on_entry_fill(self, **k: object) -> None:
+        self.entry_calls.append(k)
+
+    def on_exit_fill(self, **k: object) -> None:
+        self.exit_calls.append(k)
+
+
+def _short_wire(is_entry: bool):  # type: ignore[no-untyped-def]
+    mgr = _make_db()
+    cycles = _EntryCaptureCycles()
+    ingestion = OrderIngestion(
+        ledger      = mgr,
+        fill_sink   = lambda _f: None,
+        reject_sink = lambda _r: None,
+        cycles      = cycles,
+    )
+    ingestion.register(OrderContext(
+        broker_order_id = "1001",
+        signal_id       = "sig-1",
+        strategy_id     = "FADE",
+        user_id         = 1,
+        symbol          = "AAPL",
+        side            = OrderSide.SELL if is_entry else OrderSide.BUY,
+        is_entry        = is_entry,
+        quantity        = 10,
+        intended_price  = 100.0,
+        direction       = "SHORT",
+    ))
+    return mgr, ingestion, cycles
+
+
+def _order_state(mgr: DatabaseManager) -> str:
+    with mgr._engine.connect() as conn:
+        return str(conn.execute(
+            sa.select(trades.c.order_state).where(trades.c.trade_id == "1001")
+        ).scalar_one())
+
+
+def _filled(status: OrderStatus, qty: int) -> OrderEvent:
+    return OrderEvent(
+        broker_order_id = "1001",
+        client_ref      = "sig-1",
+        status          = status,
+        filled_quantity = qty,
+        fill_price      = 100.0,
+    )
+
+
+class TestShortDirection:
+    def test_short_entry_uses_entry_order_states(self) -> None:
+        """UT-EXE-018.006.M07.T01: a SHORT entry (SELL) records entry order states and opens a SHORT cycle."""
+        from us_swing.execution import ExecutionEnums as E
+
+        mgr, ingestion, cycles = _short_wire(is_entry=True)
+
+        ingestion.on_order_event(_filled(OrderStatus.PARTIAL_FILLED, 4))
+        assert _order_state(mgr) == E.BuyOrderState.PARTIAL_FILLED.value
+        ingestion.on_order_event(_filled(OrderStatus.FILLED, 10))
+        assert _order_state(mgr) == E.BuyOrderState.FILLED.value
+
+        assert [c["direction"] for c in cycles.entry_calls] == ["SHORT", "SHORT"]
+        assert cycles.entry_calls[0]["order_state"] is E.BuyOrderState.PARTIAL_FILLED
+        assert cycles.entry_calls[1]["order_state"] is E.BuyOrderState.FILLED
+
+    def test_short_exit_uses_exit_order_states(self) -> None:
+        """UT-EXE-018.006.M07.T02: a SHORT exit (BUY) passes the exit FILLED state that closes the cycle."""
+        from us_swing.execution import ExecutionEnums as E
+
+        mgr, ingestion, cycles = _short_wire(is_entry=False)
+
+        ingestion.on_order_event(_filled(OrderStatus.FILLED, 10))
+
+        assert _order_state(mgr) == E.SellOrderState.FILLED.value
+        assert cycles.exit_calls[0]["order_state"] is E.SellOrderState.FILLED
+
+    def test_rejected_short_entry_aborts_with_message(self, caplog: pytest.LogCaptureFixture) -> None:
+        """UT-EXE-018.015.M07.T03: a rejected SHORT entry aborts the cycle and names the short sale."""
+        _mgr, ingestion, cycles = _short_wire(is_entry=True)
+
+        with caplog.at_level("WARNING"):
+            ingestion.on_order_event(_event(OrderStatus.REJECTED, reason="not shortable"))
+
+        assert cycles.aborted == [("1001", "broker_reject")]
+        assert any(
+            r.getMessage() == "[Orders] Short sale for AAPL was rejected by the broker"
+            for r in caplog.records
+        )
+
+    def test_rejected_long_entry_has_no_short_message(self, caplog: pytest.LogCaptureFixture) -> None:
+        """UT-EXE-018.015.M07.T04: a rejected LONG entry aborts without the short-sale message."""
+        _mgr, ingestion, cycles, _rejects, _fills = _wire(is_entry=True)
+
+        with caplog.at_level("WARNING"):
+            ingestion.on_order_event(_event(OrderStatus.REJECTED, reason="no funds"))
+
+        assert cycles.aborted == [("1001", "broker_reject")]
+        assert not any("Short sale" in r.getMessage() for r in caplog.records)

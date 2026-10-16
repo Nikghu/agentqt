@@ -72,6 +72,13 @@ _PILL_W = 84
 _STATE_W = 165
 
 
+def _order_verb(direction: str, is_exit: bool) -> str:
+    """Confirm-dialog verb for an order (SRD-GUI-014.017)."""
+    if direction == "SHORT":
+        return "Buy to cover" if is_exit else "Sell short"
+    return "Sell" if is_exit else "Buy"
+
+
 # ── Row Actions Delegate ─────────────────────────────────────────────────────
 
 
@@ -605,14 +612,14 @@ class ActiveCyclesPanel(QWidget):
             return
         qty = sig.qty_recommended or 0
         is_exit = sig.action == Action.EXIT
-        verb = "Sell" if is_exit else "Buy"
+        verb = _order_verb(sig.direction, is_exit)
         text = (
             f"Submit {verb} {qty} × {sig.symbol} @ MKT?\n"
             f"Entry at live market   ·   "
             f"Stop ${sig.stop_loss or 0.0:.2f}   ·   "
             f"Target ${sig.target or 0.0:.2f}"
         )
-        # A BUY needs free margin; a SELL frees capital and is never blocked.
+        # An entry needs free margin; an exit frees capital and is never blocked.
         confirm_enabled, warning = self._affordability(sig, qty) if not is_exit else (True, None)
         if not self._confirm(
             "EXECUTE SIGNAL",
@@ -653,7 +660,8 @@ class ActiveCyclesPanel(QWidget):
         pnl = snap.current_pnl_usd if snap.current_pnl_usd is not None else 0.0
         sign = "+" if pnl >= 0 else "-"
         text = (
-            f"Close position — Sell {snap.entry_qty} × {snap.symbol} @ MKT?\n"
+            f"Close position — {_order_verb(snap.direction, True)} "
+            f"{snap.entry_qty} × {snap.symbol} @ MKT?\n"
             f"Entry ${snap.entry_price:.2f}   ·   Current ~${ltp:.2f}   ·   "
             f"Est. P&L: {sign}${abs(pnl):.2f}"
         )

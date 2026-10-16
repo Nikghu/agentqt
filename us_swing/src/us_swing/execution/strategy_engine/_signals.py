@@ -1,6 +1,6 @@
 """
 Module: MD-EXE-011.001.M06 — TradeSignal & Action
-Parent SRD: SRD-EXE-011.008
+Parent SRD: SRD-EXE-011.008, SRD-EXE-018.005
 """
 from __future__ import annotations
 
@@ -31,6 +31,7 @@ class TradeSignal:
     user_id: int = 0
     reason: str | None = None
     signal_id: str = field(default_factory=_new_signal_id)
+    direction: str = "LONG"
     schema_version: int = 2
 
 

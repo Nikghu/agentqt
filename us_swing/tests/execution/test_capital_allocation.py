@@ -183,6 +183,7 @@ class _Cfg:
     target_value: float = 2.0
     rex_count: int = 0
     run_state: str = "RUNNING"
+    direction: str = "LONG"
 
 
 class _FakeCycleQuery:

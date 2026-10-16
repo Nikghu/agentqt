@@ -1,9 +1,9 @@
 # Traceability Matrix — GUI Module (GUI)
 
 **Document ID:** TRACE-GUI
-**Version:** 1.10.1
+**Version:** 1.12.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-09-04 (Session 79, SRD-GUI-006.018 approved)
+**Last Updated:** 2026-09-17 (Session 80, FO-EXE-018 Short Trade Direction GUI implemented)
 
 ---
 
@@ -32,6 +32,8 @@
 | FO-GUI-014 | SRD-GUI-014.007 | DD-GUI-014.007.D01 | MD-GUI-014.001.M03 | UT-GUI-014.001.M03.T09–T10 | `gui/risk_editor_widget.py` | Implemented | RN-GUI-1.3.1-20260625 |
 | FO-GUI-014 | SRD-GUI-014.014 | — | MD-GUI-004.001.M01 | — | `gui/app_service.py`, `gui/execution_panel.py` | Implemented | Pending |
 | FO-GUI-014 | SRD-GUI-014.015 | — | MD-GUI-014.001.M01 | — | `gui/active_cycles_panel.py` | Implemented | RN-EXE-1.22.0-20260610 |
+| FO-GUI-013 | SRD-GUI-013.016–.021 | DD-GUI-013.016.D01 | MD-GUI-013.001.M01, MD-GUI-004.001.M01, MD-GUI-004.001.M02 | UT-GUI-013.016–.018.M01.T01–08, .020.M01.T01, .021.M01.T01–03, .019.M02.T01–02, .020.M02.T02 | `gui/strategy_builder_dialog.py`, `gui/execution_panel.py`, `gui/strategy_table_model.py` | Implemented | RN-GUI-1.5.0-20260917 (.020/.021 pending RN) |
+| FO-GUI-014 | SRD-GUI-014.016–.018 | DD-GUI-014.016.D01 | MD-GUI-014.001.M01–M03 | UT-GUI-014.016.M02.T01–03, .017.M01.T01–05, .018.M03.T01–04 | `gui/active_cycles_model.py`, `gui/active_cycles_panel.py`, `gui/risk_editor_widget.py` | Implemented | RN-GUI-1.5.0-20260917 |
 
 ---
 

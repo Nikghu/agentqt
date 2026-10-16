@@ -5,6 +5,7 @@ Parent SRD: SRD-EXE-012.002, .003, .004, .005, .006, .007, .008, .009, .011, .01
 from __future__ import annotations
 
 import asyncio
+import logging
 import sys
 from typing import Any
 from unittest.mock import MagicMock
@@ -586,3 +587,229 @@ def test_no_pyqt6_import_under_trade_cycle() -> None:
 
     new_pyqt = pyqt_after - pyqt_before
     assert not new_pyqt, f"trade_cycle modules imported PyQt6: {new_pyqt}"
+
+
+# ── FO-EXE-018 — direction-aware cycle maths ──────────────────────────────────
+
+
+def _short(svc: TradeCycleService, **overrides: Any):  # type: ignore[no-untyped-def]
+    kw = _entry_kwargs(entry_price=100.0, entry_qty=10, hard_stop_loss=102.0,
+                       target_price=96.0, direction="SHORT")
+    kw.update(overrides)
+    return svc.on_entry_fill(**kw)
+
+
+def _fresh(svc: TradeCycleService, cycle_id: int):  # type: ignore[no-untyped-def]
+    snap = svc.cycle(cycle_id)
+    assert snap is not None
+    return snap
+
+
+def test_short_live_profit_when_price_falls(svc: TradeCycleService) -> None:
+    """UT-EXE-018.007.M08.T01: a SHORT shows live profit when the price falls."""
+    snap = _short(svc)
+    _tick_and_flush(svc, snap.cycle_id, "AAPL", 97.0)
+    fresh = _fresh(svc, snap.cycle_id)
+    assert fresh.current_pnl_usd == pytest.approx(30.0)
+    assert fresh.current_pnl_pct == pytest.approx(3.0)
+
+
+def test_short_live_loss_when_price_rises(svc: TradeCycleService) -> None:
+    """UT-EXE-018.007.M08.T02: a SHORT shows a live loss when the price rises."""
+    snap = _short(svc, hard_stop_loss=110.0)
+    _tick_and_flush(svc, snap.cycle_id, "AAPL", 103.0)
+    assert _fresh(svc, snap.cycle_id).current_pnl_usd == pytest.approx(-30.0)
+
+
+def test_short_dollar_trail_follows_the_low(svc: TradeCycleService) -> None:
+    """UT-EXE-018.008.M08.T03: a SHORT $ trail follows the lowest price and sets the effective stop."""
+    snap = _short(svc, trailing_mode="$", trailing_offset=1.0, target_price=None)
+    _tick_and_flush(svc, snap.cycle_id, "AAPL", 98.0)
+    _tick_and_flush(svc, snap.cycle_id, "AAPL", 95.0)
+    fresh = _fresh(svc, snap.cycle_id)
+    assert fresh.highest_price_seen == pytest.approx(95.0)
+    assert fresh.trailing_stop_level == pytest.approx(96.0)
+    assert fresh.effective_stop == pytest.approx(96.0)
+
+
+def test_short_trail_never_moves_up(svc: TradeCycleService) -> None:
+    """UT-EXE-018.008.M08.T04: after a new low, a small bounce leaves the SHORT trail in place."""
+    snap = _short(svc, trailing_mode="$", trailing_offset=1.0, target_price=None)
+    _tick_and_flush(svc, snap.cycle_id, "AAPL", 95.0)
+    _tick_and_flush(svc, snap.cycle_id, "AAPL", 95.8)
+    fresh = _fresh(svc, snap.cycle_id)
+    assert fresh.trailing_stop_level == pytest.approx(96.0)
+    assert fresh.highest_price_seen == pytest.approx(95.0)
+
+
+def test_short_percent_trail(svc: TradeCycleService) -> None:
+    """UT-EXE-018.008.M08.T05: a SHORT % trail sits the offset above the low."""
+    snap = _short(svc, trailing_mode="%", trailing_offset=1.0, target_price=None)
+    _tick_and_flush(svc, snap.cycle_id, "AAPL", 95.0)
+    assert _fresh(svc, snap.cycle_id).trailing_stop_level == pytest.approx(95.95)
+
+
+def test_disabled_stop_never_exits_a_short(svc: TradeCycleService, bus: MagicMock) -> None:
+    """UT-EXE-018.008.M08.T06: a SHORT with no stop, trail or target never exits on price."""
+    snap = _short(svc, hard_stop_loss=0.0, target_price=None)
+    bus.reset_mock()
+    _tick_and_flush(svc, snap.cycle_id, "AAPL", 150.0)
+    _tick_and_flush(svc, snap.cycle_id, "AAPL", 500.0)
+    assert _fresh(svc, snap.cycle_id).effective_stop is None
+    assert _published_of(bus, ExitTrigger) == []
+
+
+def test_short_target_exit(svc: TradeCycleService, bus: MagicMock) -> None:
+    """UT-EXE-018.009.M08.T07: a SHORT exits on target when the price falls to it."""
+    snap = _short(svc)
+    bus.reset_mock()
+    _tick_and_flush(svc, snap.cycle_id, "AAPL", 96.0)
+    assert [t.reason for t in _published_of(bus, ExitTrigger)] == ["target"]
+
+
+def test_short_hard_stop_exit(svc: TradeCycleService, bus: MagicMock) -> None:
+    """UT-EXE-018.009.M08.T08: a SHORT exits on the hard stop when the price rises to it."""
+    snap = _short(svc)
+    bus.reset_mock()
+    _tick_and_flush(svc, snap.cycle_id, "AAPL", 102.0)
+    assert [t.reason for t in _published_of(bus, ExitTrigger)] == ["hard_sl"]
+
+
+def test_short_trailing_exit(svc: TradeCycleService, bus: MagicMock) -> None:
+    """UT-EXE-018.009.M08.T09: a SHORT exits on the trailing stop after a bounce off the low."""
+    snap = _short(svc, trailing_mode="$", trailing_offset=1.0, target_price=None)
+    _tick_and_flush(svc, snap.cycle_id, "AAPL", 98.0)
+    _tick_and_flush(svc, snap.cycle_id, "AAPL", 95.0)
+    bus.reset_mock()
+    _tick_and_flush(svc, snap.cycle_id, "AAPL", 96.2)
+    assert [t.reason for t in _published_of(bus, ExitTrigger)] == ["trailing_sl"]
+
+
+def test_no_short_exit_between_stop_and_target(svc: TradeCycleService, bus: MagicMock) -> None:
+    """UT-EXE-018.009.M08.T10: a SHORT priced between target and stop does not exit."""
+    snap = _short(svc)
+    bus.reset_mock()
+    _tick_and_flush(svc, snap.cycle_id, "AAPL", 99.0)
+    assert _published_of(bus, ExitTrigger) == []
+    assert _fresh(svc, snap.cycle_id).state == TradeCycleState.OPEN
+
+
+def test_short_realized_profit(svc: TradeCycleService) -> None:
+    """UT-EXE-018.010.M08.T11: a SHORT closed below entry realizes a profit."""
+    snap = _short(svc)
+    closed = svc.close_cycle_by_id(
+        snap.cycle_id,
+        **_exit_kwargs(exit_price=96.0, exit_qty=10, order_state=ExecutionEnums.SellOrderState.FILLED),
+    )
+    assert closed.realized_pnl_usd == pytest.approx(40.0)
+    assert closed.realized_pnl_pct == pytest.approx(4.0)
+
+
+def test_short_realized_loss(svc: TradeCycleService) -> None:
+    """UT-EXE-018.010.M08.T12: a SHORT closed above entry realizes a loss."""
+    snap = _short(svc)
+    closed = svc.close_cycle_by_id(
+        snap.cycle_id,
+        **_exit_kwargs(exit_price=102.0, exit_qty=10, order_state=ExecutionEnums.SellOrderState.FILLED),
+    )
+    assert closed.realized_pnl_usd == pytest.approx(-20.0)
+    assert closed.realized_pnl_pct == pytest.approx(-2.0)
+
+
+def test_valid_short_risk_edit(svc: TradeCycleService) -> None:
+    """UT-EXE-018.011.M08.T13: a SHORT accepts a stop above and a target below the price."""
+    snap = _short(svc)
+    updated = svc.update_risk(snap.cycle_id, hard_sl=104.0, target=94.0)
+    assert updated.hard_stop_loss == pytest.approx(104.0)
+    assert updated.target_price == pytest.approx(94.0)
+
+
+def test_short_stop_below_price_rejected(svc: TradeCycleService) -> None:
+    """UT-EXE-018.011.M08.T14: a SHORT rejects a stop below the current price."""
+    snap = _short(svc)
+    with pytest.raises(InvariantViolation):
+        svc.update_risk(snap.cycle_id, hard_sl=99.0)
+    assert _fresh(svc, snap.cycle_id).hard_stop_loss == pytest.approx(102.0)
+
+
+def test_short_target_above_price_rejected(svc: TradeCycleService) -> None:
+    """UT-EXE-018.011.M08.T15: a SHORT rejects a target above the current price."""
+    snap = _short(svc)
+    with pytest.raises(InvariantViolation):
+        svc.update_risk(snap.cycle_id, target=101.0)
+    assert _fresh(svc, snap.cycle_id).target_price == pytest.approx(96.0)
+
+
+def test_long_cycle_maths_unchanged(svc: TradeCycleService, bus: MagicMock) -> None:
+    """UT-EXE-018.007.M08.T16: a LONG cycle keeps its profit, trail and trailing exit behaviour."""
+    snap = svc.on_entry_fill(**_entry_kwargs(
+        entry_price=100.0, entry_qty=10, hard_stop_loss=98.0, target_price=104.0,
+        trailing_mode="$", trailing_offset=1.0,
+    ))
+    _tick_and_flush(svc, snap.cycle_id, "AAPL", 103.0)
+    assert _fresh(svc, snap.cycle_id).trailing_stop_level == pytest.approx(102.0)
+    bus.reset_mock()
+    _tick_and_flush(svc, snap.cycle_id, "AAPL", 102.0)
+    fresh = _fresh(svc, snap.cycle_id)
+    assert fresh.current_pnl_usd == pytest.approx(20.0)
+    assert [t.reason for t in _published_of(bus, ExitTrigger)] == ["trailing_sl"]
+
+
+def test_reloaded_short_cycle_tracks_the_low(mem_engine: sa.Engine, bus: MagicMock) -> None:
+    """UT-EXE-018.008.M08.T17: a SHORT cycle loaded after a restart still trails the lowest price."""
+    repo = TradeCycleRepository(mem_engine)
+    stored = repo.insert_open(row={
+        "strategy_id": "boss_ema", "symbol": "AAPL", "user_id": 1,
+        "monitoring_session_date": "2026-09-17", "entry_time": "2026-09-17T14:00:00",
+        "entry_price": 100.0, "entry_qty": 10, "entry_order_id": "ord-reload",
+        "hard_stop_loss": 102.0, "target_price": None, "target_type": "fixed",
+        "stoploss_type": "fixed", "trailing_mode": "$", "trailing_offset": 1.0,
+        "state": "OPEN", "direction": "SHORT",
+    })
+    assert stored.highest_price_seen is None
+    service = TradeCycleService(repo=repo, bus=bus)
+    service.start()
+    try:
+        service.reload()
+        _tick_and_flush(service, stored.cycle_id, "AAPL", 95.0)
+        fresh = service.cycle(stored.cycle_id)
+        assert fresh is not None
+        assert fresh.highest_price_seen == pytest.approx(95.0)
+        assert fresh.trailing_stop_level == pytest.approx(96.0)
+    finally:
+        service.stop()
+
+
+def test_silent_feed_warns_once_per_outage(
+    svc: TradeCycleService, caplog: pytest.LogCaptureFixture
+) -> None:
+    """UT-EXE-018.016.M08.T01: an open trade with no prices warns once, and again only after prices resume."""
+    import time as _time
+
+    snap = _short(svc)
+    acc = svc._accs[snap.cycle_id]
+    acc.last_tick_at = _time.monotonic() - 300.0
+
+    with caplog.at_level(logging.WARNING):
+        svc._check_tick_silence()
+        svc._check_tick_silence()
+
+    warnings = [r.getMessage() for r in caplog.records if r.levelname == "WARNING"]
+    assert len(warnings) == 1
+    assert warnings[0].startswith("[Cycle] No price updates for AAPL")
+
+    _tick_and_flush(svc, snap.cycle_id, "AAPL", 99.0)
+    assert svc._accs[snap.cycle_id].silence_warned is False
+
+
+def test_fresh_feed_never_warns(
+    svc: TradeCycleService, caplog: pytest.LogCaptureFixture
+) -> None:
+    """UT-EXE-018.016.M08.T02: a trade receiving prices raises no feed warning."""
+    snap = _short(svc)
+    _tick_and_flush(svc, snap.cycle_id, "AAPL", 99.0)
+
+    with caplog.at_level(logging.WARNING):
+        svc._check_tick_silence()
+
+    assert [r for r in caplog.records if r.levelname == "WARNING"] == []

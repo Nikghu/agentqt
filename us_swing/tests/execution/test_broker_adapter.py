@@ -13,6 +13,7 @@ import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass
 
+import pytest
 import sqlalchemy as sa
 
 from us_swing.broker.sim import ImmediateFillModel, SimBroker
@@ -200,3 +201,93 @@ def test_fill_arriving_before_acceptance_is_not_dropped() -> None:
     assert entry_price == 100.0
     assert len(engine_fills) == 1
     assert cycles.calls == [("entry", 95.0)]
+
+
+# ── FO-EXE-018 — direction-aware order placement ──────────────────────────────
+
+
+class _CaptureBroker:
+    """Records placed requests; never fills."""
+
+    def __init__(self) -> None:
+        self.requests: list[object] = []
+
+    def on_event(self, _handler: object) -> None:
+        return None
+
+    def place_order(self, request: object) -> str:
+        self.requests.append(request)
+        return str(500 + len(self.requests))
+
+
+class _CaptureIngestion:
+    def __init__(self) -> None:
+        self.contexts: list[object] = []
+
+    def register(self, ctx: object) -> None:
+        self.contexts.append(ctx)
+
+    def discard(self, _signal_id: str) -> None:
+        return None
+
+    def on_order_accepted(self, _signal_id: str, _order_id: str) -> None:
+        return None
+
+    def on_order_event(self, _event: object) -> None:
+        return None
+
+
+def _capture_adapter(stop_pct: float = 2.0, target_pct: float = 4.0):  # type: ignore[no-untyped-def]
+    broker = _CaptureBroker()
+    ingestion = _CaptureIngestion()
+    adapter = BrokerAdapter(
+        broker=broker,  # type: ignore[arg-type]
+        ingestion=ingestion,  # type: ignore[arg-type]
+        config_provider=lambda _sid: _StubConfig(stoploss_value=stop_pct, target_value=target_pct),
+        user_id_provider=lambda: 1,
+        session_date_provider=lambda: "2026-09-17",
+    )
+    return adapter, broker, ingestion
+
+
+def _signal(action: Action, direction: str) -> TradeSignal:
+    return TradeSignal(action=action, symbol="AAPL", strategy_id="S1",
+                       entry_price=100.0, qty_recommended=10, user_id=1, direction=direction)
+
+
+def test_short_entry_places_sell_with_flipped_levels() -> None:
+    """UT-EXE-018.005.M06.T01: a SHORT entry places a SELL with stop above and target below."""
+    from us_swing.broker.broker import OrderSide
+
+    adapter, broker, ingestion = _capture_adapter()
+    adapter.submit(_signal(Action.ENTRY, "SHORT"), 10)
+
+    assert broker.requests[0].side is OrderSide.SELL  # type: ignore[attr-defined]
+    ctx = ingestion.contexts[0]
+    assert ctx.direction == "SHORT"  # type: ignore[attr-defined]
+    assert ctx.hard_stop_loss == pytest.approx(102.0)  # type: ignore[attr-defined]
+    assert ctx.target_price == pytest.approx(96.0)  # type: ignore[attr-defined]
+
+
+def test_short_exit_places_buy() -> None:
+    """UT-EXE-018.005.M06.T02: a SHORT exit places a BUY."""
+    from us_swing.broker.broker import OrderSide
+
+    adapter, broker, _ingestion = _capture_adapter()
+    adapter.submit(_signal(Action.EXIT, "SHORT"), 10)
+
+    assert broker.requests[0].side is OrderSide.BUY  # type: ignore[attr-defined]
+
+
+def test_long_orders_unchanged() -> None:
+    """UT-EXE-018.005.M06.T03: LONG entry and exit keep BUY / SELL and the long levels."""
+    from us_swing.broker.broker import OrderSide
+
+    adapter, broker, ingestion = _capture_adapter()
+    adapter.submit(_signal(Action.ENTRY, "LONG"), 10)
+    adapter.submit(_signal(Action.EXIT, "LONG"), 10)
+
+    assert [r.side for r in broker.requests] == [OrderSide.BUY, OrderSide.SELL]  # type: ignore[attr-defined]
+    ctx = ingestion.contexts[0]
+    assert ctx.hard_stop_loss == pytest.approx(98.0)  # type: ignore[attr-defined]
+    assert ctx.target_price == pytest.approx(104.0)  # type: ignore[attr-defined]

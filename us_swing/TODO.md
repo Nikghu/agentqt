@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-09-04 (Session 79)
+**Last Updated:** 2026-10-16 (Session 81)
 
 ---
 
@@ -22,7 +22,7 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T11 | FO-EXE-017 global Margin Available ceiling — `margin_available()`, in-flight reservation ledger, per-entry clamp, paper open-value fix, live drift advisory, User View capital cell. SRD-EXE-017.015–.021 + SRD-GUI-000.006 Implemented; RN-EXE-1.25.0; merged PR #41. | `execution/`, `gui/` | High | Done |
 | T12 | No pytest-qt render test for the `_AdminContextBar` capital cell (SRD-GUI-000.006). Underlying `margin_available`/`effective_capital` logic is covered; add a GUI smoke test. | `gui/main_window.py` | Low | Open |
 | T13 | ISS-EXE-0007 fixed — `on_exit_fill` now matches the cycle by (strategy_id, symbol), not the oldest open cycle. Follow-up: decide whether to repair the corrupted historical row (QCOM cycle 25, wrong exit $16.965 / PNL −$371.97). RN-EXE-1.26.0. | `execution/trade_cycle/_service.py` | High | Done |
-| T14 | Uncommitted Active-Trades work on the working tree — commit on a branch + PR. Three pieces: (a) pending blank Entry + live LTP + Exit $ column; (b) ISS-EXE-0007 exit-routing fix; (c) SRD-EXE-017.022 manual-monitor + popup affordability gate. SRD-GUI-014.002/.004/.005 + SRD-EXE-014.007/-017.022 amended. | `gui/active_cycles_{model,panel}.py`, `gui/app_service.py`, `execution/trade_cycle/*`, `execution/order_ingestion.py`, `execution/strategy_engine/_router.py` | High | Open |
+| T14 | Uncommitted Active-Trades work on the working tree — commit on a branch + PR. Three pieces: (a) pending blank Entry + live LTP + Exit $ column; (b) ISS-EXE-0007 exit-routing fix; (c) SRD-EXE-017.022 manual-monitor + popup affordability gate. SRD-GUI-014.002/.004/.005 + SRD-EXE-014.007/-017.022 amended. | `gui/active_cycles_{model,panel}.py`, `gui/app_service.py`, `execution/trade_cycle/*`, `execution/order_ingestion.py`, `execution/strategy_engine/_router.py` | High | Closed |
 | T15 | **Before enabling Live broker:** audit all record-resolution sites for "first match" / partial-key bugs like ISS-EXE-0007 (exit closed wrong cycle). Sweep `next(...)`, `open_cycles()`, `find_by_*` across `execution/` — every entry/exit/risk/position lookup must use the full unique key. Warn the user that this audit is required before any live trade. | `execution/` | High | Open |
 | T16 | FO-INF-010 per-event toggles DONE (RN-INF-1.5.0) — dispatcher drops toggled-off events; 3 `UserProfile` bools + Settings "Notify on:" switches. Also added guarded once-per-day day-end at market close. Open interaction: Send Test fires ToolStartedEvent, so "Tool started" off drops the test — pending user decision. | `core/notifications/`, `gui/settings_panel.py`, `gui/app_service.py` | Medium | Done |
 | T17 | Fixed (RN-INF-1.5.0): `AppService._publish_day_end_pnl` now reads `p.unrealised_pnl` (British) instead of the never-present `unrealized_pnl` → day-end unrealised P&L is correct. | `gui/app_service.py` | Low | Done |
@@ -39,3 +39,4 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T27 | **Closed** (ISS-INF-0003, RN-INF-1.7.0) — `yahoo_symbol()` now lives in `core/symbols.py` and all four Yahoo call sites convert. `SRD-INF-007.006` approved by user 2026-09-04, now Implemented. | `core/`, `gui/`, `execution/`, `universe/` | Medium | Closed |
 | T28 | `DatabaseManager` has no `dispose()`/`close()`. Not needed today, but any feature that must replace `candles.db` on Windows will need one. | `db/manager.py` | Low | Open |
 | T29 | IBKR notation (`.` → ` `) is still copy-pasted at `intraday_candle_loader.py:470`, `live_bar_worker.py:242`, `universe/store.py:193`. Fold into `core/symbols.py` beside `yahoo_symbol()`. | `core/`, `execution/`, `universe/` | Low | Open |
+| T30 | Short trade direction — Long/Short choice per strategy (flipped side, SL/target, trailing, P&L, GUI). Plan at `docs/execution/Short_Trade_plan.md`, 16 change points, 6 phases. All 25 SRDs Implemented; SimBroker E2E and RN done; PR #72 open. **Next:** manual IBKR paper check of one live short, then merge. | `execution/`, `gui/` | High | Open |

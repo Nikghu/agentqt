@@ -179,3 +179,63 @@ def test_history_excludes_rows_older_than_days(repo: TradeCycleRepository) -> No
     result_ids = {r.cycle_id for r in results}
     assert snap_recent.cycle_id in result_ids
     assert snap_old.cycle_id not in result_ids
+
+
+# ── FO-EXE-018 — stored trade direction ───────────────────────────────────────
+
+
+def test_insert_open_stores_short_direction(repo: TradeCycleRepository) -> None:
+    """UT-EXE-018.002.M03.T01: an opened cycle stores and returns its SHORT direction."""
+    snap = repo.insert_open(row=_base_row(direction="SHORT"))
+    fresh = repo.cycle(snap.cycle_id)
+    assert fresh is not None
+    assert fresh.direction == "SHORT"
+
+
+def test_legacy_trade_cycles_table_migrates_to_long() -> None:
+    """UT-EXE-018.002.M03.T02: a trade_cycles table without direction gains it; rows read LONG."""
+    from us_swing.execution.trade_cycle._schema import trade_cycles
+
+    legacy_meta = sa.MetaData()
+    legacy = sa.Table(
+        "trade_cycles",
+        legacy_meta,
+        *(
+            sa.Column(c.name, c.type, primary_key=c.primary_key, nullable=c.nullable)
+            for c in trade_cycles.columns
+            if c.name != "direction"
+        ),
+    )
+    eng = sa.create_engine("sqlite:///:memory:")
+    legacy_meta.create_all(eng)
+    with eng.begin() as conn:
+        conn.execute(sa.insert(legacy), [{**_base_row(), "opened_at": "2026-05-25T09:35:00"}])
+
+    create_schema(eng)
+
+    (snap,) = TradeCycleRepository(eng).open_cycles()
+    assert snap.direction == "LONG"
+
+
+def test_later_writes_never_change_direction(repo: TradeCycleRepository) -> None:
+    """UT-EXE-018.002.M03.T03: live, risk and close writes leave the stored direction unchanged."""
+    snap = repo.insert_open(row=_base_row(direction="SHORT", hard_stop_loss=186.0))
+    cid = snap.cycle_id
+
+    repo.update_live(cid, fields={"current_price": 181.0})
+    assert (repo.cycle(cid) or snap).direction == "SHORT"
+
+    repo.update_risk(cid, fields={"hard_stop_loss": 185.0})
+    assert (repo.cycle(cid) or snap).direction == "SHORT"
+
+    repo.update_state(cid, "CLOSING")
+    closed = repo.close(cid, exit_fields={
+        "exit_order_id":    "exit-018",
+        "exit_price":       180.0,
+        "exit_qty":         25,
+        "exit_time":        "2026-05-25T10:00:00",
+        "exit_reason":      "target",
+        "realized_pnl_usd": 62.5,
+        "realized_pnl_pct": 1.4,
+    })
+    assert closed.direction == "SHORT"

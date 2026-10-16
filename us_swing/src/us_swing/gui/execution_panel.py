@@ -73,6 +73,7 @@ from us_swing.gui.strategy_builder_dialog import (
 )
 from us_swing.gui.strategy_table_model import (
     COL_CAPITAL,
+    COL_DIRECTION,
     COL_DELETE,
     COL_EDIT,
     COL_END,
@@ -238,6 +239,7 @@ class _StrategyTablePane(QWidget):
                 (COL_START,        55, QHeaderView.ResizeMode.Interactive),
                 (COL_END,          55, QHeaderView.ResizeMode.Interactive),
                 (COL_TRADE_TYPE,   80, QHeaderView.ResizeMode.Interactive),
+                (COL_DIRECTION,    70, QHeaderView.ResizeMode.Interactive),
                 (COL_START_DATE,   90, QHeaderView.ResizeMode.Interactive),
                 (COL_END_DATE,     90, QHeaderView.ResizeMode.Interactive),
                 (COL_TARGET,        60, QHeaderView.ResizeMode.Interactive),
@@ -349,6 +351,7 @@ class _StrategyTablePane(QWidget):
         dlg = StrategyBuilderDialog(
             self, existing=original, existing_names=existing_names,
             max_capital=self._demo.effective_capital(),
+            has_open_trades=bool(self._demo.has_live_or_pending_trades(original.name)),
         )
 
         def _on_saved(cfg: StrategyConfig) -> None:
