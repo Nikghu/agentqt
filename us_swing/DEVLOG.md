@@ -2,6 +2,19 @@
 
 ---
 
+## [20260918] EXE+GUI — Short Trade follow-ups: side colours, stale-price warning, Direction lock (FO-EXE-018, feature)
+
+- Type: Feature follow-up
+- FO(s): FO-EXE-018, FO-GUI-013, FO-GUI-004
+- Artifacts updated: SRD (new SRD-EXE-018.016, SRD-GUI-013.020, SRD-GUI-013.021 — user-approved, then Implemented), TRACE (EXE, GUI), Code, Tests, TODO (T14 closed, T30), CONTEXT, DEVLOG
+- PRs: #72 (open)
+- Decisions: Direction is now coloured by side — green Long, red Short — in the Add / Edit Strategy combo (`strategy_builder_dialog.py`) and in the strategy table Direction column (`strategy_table_model.py`), matching the Active Trades Side column. Stops and targets are only checked when a price arrives, so a silent feed leaves a trade unguarded — worst for a short, whose loss has no floor. The cycle loop now checks every 30 s and logs one warning per outage, cleared by the next price. A signal waiting for the user now also locks the strategy's Direction field, so a Long signal cannot be executed under a strategy just switched to Short; new `AppService.has_live_or_pending_trades` covers both the open-trade and pending-signal cases. Order-state enum docstrings corrected — the state set follows entry/exit, not the BUY/SELL side.
+- Verification: new cases in `tests/gui/test_short_direction_gui.py` for both colour changes; the stale-price warning and Direction lock covered under MD-EXE-018.007.M08 / MD-GUI-004.001.M01.
+- Housekeeping (2026-10-16): docs for this work were written a month late — the session ended without them. Branch pushed and PR #72 raised. TODO T14 closed: it claimed uncommitted Active-Trades work, but the working tree is clean.
+- Open: **Manual IBKR paper-account check of one live short still not run (TODO T30).** PR #72 awaits merge.
+
+---
+
 ## [20260917] EXE+GUI — Short Trade Direction: Long / Short per strategy (FO-EXE-018, feature)
 
 - Type: Feature
