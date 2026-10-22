@@ -5,6 +5,8 @@
 **Traces To:** FO-SCR v2.2.0
 **Status:** Draft
 **Last Updated:** 2026-05-06
+> v2.5.0: SRD-SCR-016.018 added — Fibonacci retracement Sell / Buy patterns; user request 2026-10-22; Implemented (RN-SCR-2.5.0).
+> v2.4.0: SRD-SCR-016.016 (Double Top + Double Top Pullback) and SRD-SCR-016.017 (Double Bottom breakout-within) added; user request 2026-10-22; Implemented (RN-SCR-2.4.0).
 > v2.3.0: SRD-SCR-014.008 added — CustomAIModel persistent store (FO-SCR-012).
 **Project:** US Swing Trading System
 
@@ -218,6 +220,57 @@
 
 ---
 
+## Section 15: Requirements for FO-SCR-013 — Indicator Catalogue and Rule-List Screening
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-SCR-015.001 | FO-SCR-013 | Must | `core/indicator_rules` exposes a read-only `CATALOGUE` of `IndicatorSpec` entries with id, name, category, description, params, conditions, unit and availability. | — | `tuple[IndicatorSpec, ...]` | Ids unique; frozen dataclasses; no Qt imports | Implemented |
+| SRD-SCR-015.002 | FO-SCR-013 | Must | `ParamSpec` holds key, label, kind (int/float), default, min, max and step for one indicator parameter. | — | `ParamSpec` | Default must lie within min–max | Implemented |
+| SRD-SCR-015.003 | FO-SCR-013 | Must | `Category` enum lists Price, Momentum, Trend, Volatility, Volume, Relative strength, Fundamentals, Dividends, Others. | — | enum | Display order = enum order | Implemented |
+| SRD-SCR-015.004 | FO-SCR-013 | Must | `Rule` holds indicator id, condition, value, optional upper value, params and enabled flag. | rule fields | frozen `Rule` | Params missing from a rule fall back to catalogue defaults | Implemented |
+| SRD-SCR-015.005 | FO-SCR-013 | Must | `Condition` enum supports at least, at most, between, crosses above signal, crosses below signal, price above, price below and is true. | — | enum | Each indicator allows only its listed conditions | Implemented |
+| SRD-SCR-015.006 | FO-SCR-013 | Must | `rules_to_config()` writes `{"schema": 2, "rules": [...], "benchmark_symbol": ...}` and `rules_from_config()` reads it back. | rule list / config dict | config dict / rule list | Round trip is lossless | Implemented |
+| SRD-SCR-015.007 | FO-SCR-013 | Must | `rules_from_config()` maps a legacy `filters` dict (volatility, rsi, range, breakout, volume, rs_index) to equivalent rules when no `rules` key exists. | legacy config | rule list | Missing sections use legacy defaults; rs_index defaults to off | Implemented |
+| SRD-SCR-015.008 | FO-SCR-013 | Must | Indicator series are computed with TA-Lib: Wilder ATR and RSI, EMA, MACD(12,26,9) and PPO(12,26,9). | OHLCV arrays, params | `numpy` series | Satisfies the Wilder constraint of SRD-SCR-002.003 | Implemented |
+| SRD-SCR-015.009 | FO-SCR-013 | Must | Conditions compare the last bar's value; "between" is inclusive; crosses compare the last two bars against the signal line. | series, rule | `(passed, value)` | Too few bars for the indicator makes the rule fail | Implemented |
+| SRD-SCR-015.010 | FO-SCR-013 | Must | `IndicatorScreener.apply()` evaluates enabled rules per symbol; a symbol passes only if all pass and its score is passed ÷ enabled. | symbols, bars, config | `dict[str, (bool, float)]` | No enabled rules → every symbol passes with score 1.0 | Implemented |
+| SRD-SCR-015.011 | FO-SCR-013 | Must | RS Index rules use RS percentile ranks computed once per run, only when an RS rule is enabled. | bars incl. benchmark | rank map | Missing benchmark raises `BenchmarkDataUnavailableError` (SRD-SCR-012.004) | Implemented |
+| SRD-SCR-015.012 | FO-SCR-013 | Should | Market Cap rules read per-symbol caps passed from `run_preset(market_caps=...)` through the screener context. | market caps | rule result | Symbol with no stored cap fails the rule | Implemented |
+| SRD-SCR-015.013 | FO-SCR-013 | Must | Catalogue release 1 lists Price, ATR %, RSI, Breakout, Volume ratio, RVOL (1 Day), RS Index, EMA(20/50/100/200), Price/EMA(20/50/100), MACD family, PPO family and Market Cap as available. | — | catalogue entries | Daily bars only | Implemented |
+| SRD-SCR-015.014 | FO-SCR-013 | Must | RVOL (3/5/10 Min) and Short-Term Volume (3/5/10 Min) are listed unavailable with reason "needs intraday data". | — | catalogue entries | Rules on unavailable or unknown indicators raise `IndicatorRuleError` | Implemented |
+| SRD-SCR-015.015 | FO-SCR-013 | Must | `config_summary()` builds the Details-column text from the catalogue, one short label per enabled rule. | config dict | `str` | Works for legacy and rule-list configs | Implemented |
+| SRD-SCR-015.016 | FO-SCR-013 | Should | `screen_detailed()` returns each enabled rule's last value keyed by its rule label. | symbols, bars, config | per-symbol value dict | Same rule set as `apply()` | Implemented |
+| SRD-SCR-015.017 | FO-SCR-013 | Must | The private `_atr_pct`, `_rsi`, `_volume_ratio` and `_is_breakout` helpers in `indicator.py` are removed in favour of the catalogue. | — | — | Registry id `indicator_composite` unchanged | Implemented |
+
+---
+
+## Section 16: Requirements for FO-SCR-014 — Price Action Pattern Catalogue and Rule-List Screening
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-SCR-016.001 | FO-SCR-014 | Must | `core/price_patterns` exposes a read-only `PATTERNS` catalogue of `PatternSpec` entries with id, name, short label, category, direction, description, params and minimum bars. | — | `tuple[PatternSpec, ...]` | Ids unique; frozen dataclasses; reuses `ParamSpec`; no Qt imports | Implemented |
+| SRD-SCR-016.002 | FO-SCR-014 | Must | `PatternCategory` lists Bullish candles, Bearish candles, Neutral candles, Breakout, Trend, Volatility and Chart shapes; `Direction` lists bullish, bearish and neutral. | — | enums | Display order = enum order | Implemented |
+| SRD-SCR-016.003 | FO-SCR-014 | Must | 27 candlestick patterns use TA-Lib `CDL*` functions; entries sharing a two-sided function match by sign (+ bullish, − bearish), all others match any non-zero value. | OHLC arrays | match flag | Pattern list and sign table in DD-SCR-016.003.D01 | Implemented |
+| SRD-SCR-016.004 | FO-SCR-014 | Should | Each candlestick pattern has a "within N bars" parameter (1–5, default 1) that matches a signal on any of the last N bars. | rule params | match flag | Default 1 = last bar only | Implemented |
+| SRD-SCR-016.005 | FO-SCR-014 | Must | 20 breakout, trend, volatility and chart-shape patterns are computed from daily OHLCV arrays with numpy. | OHLCV arrays, params | match flag | Formulas in DD-SCR-016.005.D01 | Implemented |
+| SRD-SCR-016.006 | FO-SCR-014 | Must | Near 52-Week High, Volume Breakout, NR7 and EMA Pullback keep their legacy ids, parameters and results from SRD-SCR-002.007. | OHLCV arrays, params | match flag | Same results as the legacy code on the same bars | Implemented |
+| SRD-SCR-016.007 | FO-SCR-014 | Must | `PatternRule` holds pattern id, params and enabled flag; params missing from a rule fall back to catalogue defaults. | rule fields | frozen `PatternRule` | — | Implemented |
+| SRD-SCR-016.008 | FO-SCR-014 | Must | `pattern_rules_to_config()` writes `{"schema": 2, "rules": [...], "threshold": ...}` and `pattern_rules_from_config()` reads it back. | rule list, threshold | config dict / rules + threshold | Round trip is lossless | Implemented |
+| SRD-SCR-016.009 | FO-SCR-014 | Must | `pattern_rules_from_config()` maps a legacy `patterns` dict to 5 rules when no `rules` key exists; `engulfing` maps to Bullish Engulfing. | legacy config | rule list | Missing sections use legacy defaults; threshold default 0.2 | Implemented |
+| SRD-SCR-016.010 | FO-SCR-014 | Must | Unknown pattern ids, bad params and malformed rule lists raise `PatternRuleError`. | config dict | error | Message names the bad item | Implemented |
+| SRD-SCR-016.011 | FO-SCR-014 | Must | `evaluate_pattern()` clamps params to their range; too few bars or NaN values give no match. | rule, arrays | `bool` | Warm-up bar counts in DD | Implemented |
+| SRD-SCR-016.012 | FO-SCR-014 | Must | `PriceActionScreener.apply()` scores matched ÷ enabled rules and passes symbols whose score ≥ threshold. | symbols, bars, config | `dict[str, (bool, float)]` | Threshold outside 0–1 raises `ScreenerError`; symbols with < 2 bars omitted; no enabled rules → score 0.0 | Implemented |
+| SRD-SCR-016.013 | FO-SCR-014 | Should | `screen_detailed()` returns a match flag per enabled rule keyed by the pattern's short label. | symbols, bars, config | per-symbol flag dict | Same rule set as `apply()` | Implemented |
+| SRD-SCR-016.014 | FO-SCR-014 | Must | `pattern_config_summary()` builds the Details-column text: threshold plus one short label per enabled rule. | config dict | `str` | Works for legacy and rule-list configs; returns "" on a bad config | Implemented |
+| SRD-SCR-016.015 | FO-SCR-014 | Should | `price_action.py` uses only `core/price_patterns` for pattern logic and no longer imports from the analysis tool. | — | — | Registry id `price_action` unchanged | Implemented |
+| SRD-SCR-016.016 | FO-SCR-014 | Must | Double Top matches two similar highs and a recent close below the neck; Double Top Pullback matches a recent breakdown followed by a bounce back near the neck. | OHLCV arrays, params | match flag | Bearish chart shapes for sell entries; formulas in DD-SCR-016.005.D01 | Implemented |
+| SRD-SCR-016.017 | FO-SCR-014 | Must | Double Bottom matches only when its first close above the neck is within the last N bars (default 5). | OHLCV arrays, params | match flag | Saved rules without the new param use the default | Implemented |
+| SRD-SCR-016.018 | FO-SCR-014 | Must | Fib Retracement (Sell) and (Buy) match when the latest bar reaches the set retracement zone of the last swing without any close breaking past the zone's far edge. | OHLCV arrays, params | match flag | Default zone 50–61.8 %, minimum swing 10 %; formulas in DD-SCR-016.005.D01 | Implemented |
+
+Note: Section 16 extends SRD-SCR-002.007 (Approved), which is left unchanged.
+
+---
+
 ## Summary: Requirement Counts
 
 | Module | FO Count | SRD Count | Status |
@@ -236,6 +289,8 @@
 | Relative Strength | 10 | 001–005 | 5 |
 | AI Stock Ranking (Phase 1) | 11 | 013.001–008 | 8 |
 | AI Transparency Transcript | 12 | 014.001–008 | 8 |
-| **Totals** | **12 FOs** | **96 SRDs** | — |
+| Indicator Catalogue & Rules | 13 | 015.001–017 | 17 |
+| Price Action Patterns & Rules | 14 | 016.001–015 | 15 |
+| **Totals** | **14 FOs** | **128 SRDs** | — |
 
 **Status:** v2.3.0 Draft — SRD-SCR-004.007/008 added (2026-05-05): Enable Daily Scheduler flag and `load_for_execution()` contract.

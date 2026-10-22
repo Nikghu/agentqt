@@ -1,30 +1,240 @@
 {
-  "generated": "2026-09-04T08:12:00",
+  "generated": "2026-10-22T08:17:24",
   "subfolder": "core",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\core",
-  "tool_code": "EXE",
+  "tool_code": "SCR",
   "files": {
     "__init__.py": {
-      "module_id": "MD-INF-010.001.M07",
-      "srd_id": "SRD-INF-010.008",
+      "module_id": "MD-SCR-016.001.M27",
+      "srd_id": "SRD-SCR-016.001"
+    },
+    "candle_builder.py": {},
+    "_catalogue.py": {
+      "module_id": "MD-SCR-016.001.M27",
+      "srd_id": "SRD-SCR-016.001",
       "top_level_functions": [
         {
-          "name": "build_default_dispatcher",
-          "signature": "def build_default_dispatcher(\r\n    config: NotificationConfig,\r\n    *,\r\n    http: httpx.AsyncClient | None = None,\r\n    registry: FormatterRegistry | None = None,\r\n    bus: NotificationBus | None = None,\r\n) -> tuple[NotificationDispatcher, NotificationBus]",
-          "docstring": "Wire a dispatcher and bus from a user's notification config.",
-          "line_start": 38,
-          "line_end": 72
+          "name": "get_pattern",
+          "signature": "def get_pattern(pattern_id: str) -> PatternSpec",
+          "docstring": "Return the catalogue entry for ``pattern_id``.",
+          "line_start": 18,
+          "line_end": 27
+        }
+      ],
+      "constants": [
+        "PATTERNS: tuple[PatternSpec, ...] = candle_specs() + breakout_specs()",
+        "_BY_ID: dict[str, PatternSpec] = {spec.id: spec for spec in PATTERNS}"
+      ]
+    },
+    "_evaluate.py": {
+      "module_id": "MD-SCR-016.011.M31",
+      "srd_id": "SRD-SCR-016.011",
+      "top_level_functions": [
+        {
+          "name": "resolve_params",
+          "signature": "def resolve_params(spec: PatternSpec, params: Mapping[str, float]) -> dict[str, float]",
+          "docstring": "Fill missing params with defaults and clamp each to its range.",
+          "line_start": 17,
+          "line_end": 23
         },
         {
-          "name": "build_command_poller",
-          "signature": "def build_command_poller(\r\n    config: NotificationConfig,\r\n    http: httpx.AsyncClient,\r\n    port: CommandPort | None,\r\n) -> TelegramPoller | None",
-          "docstring": "Build the inbound command poller, or ``None`` when it cannot run.",
-          "line_start": 75,
-          "line_end": 96
+          "name": "evaluate_pattern",
+          "signature": "def evaluate_pattern(rule: PatternRule, arrays: BarArrays) -> bool",
+          "docstring": "Return whether the rule's pattern shows on the last bar.",
+          "line_start": 26,
+          "line_end": 35
         }
       ]
     },
-    "candle_builder.py": {},
+    "_rules.py": {
+      "module_id": "MD-SCR-016.007.M30",
+      "srd_id": "SRD-SCR-016.007",
+      "classes": [
+        {
+          "name": "PatternRule",
+          "docstring": "One pattern rule; params missing here fall back to catalogue defaults.",
+          "class_vars": [
+            "pattern_id: str",
+            "params: Mapping[str, float]",
+            "enabled: bool"
+          ],
+          "line_start": 24,
+          "line_end": 29
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "default_pattern_rule",
+          "signature": "def default_pattern_rule(spec: PatternSpec) -> PatternRule",
+          "docstring": "Return a new enabled rule for ``spec`` with default params.",
+          "line_start": 32,
+          "line_end": 34
+        },
+        {
+          "name": "pattern_rules_to_config",
+          "signature": "def pattern_rules_to_config(\n    rules: list[PatternRule], threshold: float = DEFAULT_THRESHOLD\n) -> dict[str, Any]",
+          "docstring": "Serialise rules and the pass threshold to the schema-2 config dict.",
+          "line_start": 39,
+          "line_end": 47
+        },
+        {
+          "name": "pattern_rules_from_config",
+          "signature": "def pattern_rules_from_config(config: Mapping[str, Any]) -> tuple[list[PatternRule], float]",
+          "docstring": "Read rules and threshold from a schema-2 config, or map a legacy ``patterns`` co",
+          "line_start": 50,
+          "line_end": 65
+        },
+        {
+          "name": "_rule_to_dict",
+          "signature": "def _rule_to_dict(rule: PatternRule) -> dict[str, Any]",
+          "line_start": 68,
+          "line_end": 71
+        },
+        {
+          "name": "_rule_from_dict",
+          "signature": "def _rule_from_dict(item: Any) -> PatternRule",
+          "line_start": 74,
+          "line_end": 81
+        },
+        {
+          "name": "_params",
+          "signature": "def _params(spec: PatternSpec, raw: Mapping[str, Any]) -> dict[str, float]",
+          "line_start": 84,
+          "line_end": 96
+        },
+        {
+          "name": "_rules_from_legacy",
+          "signature": "def _rules_from_legacy(patterns: Any) -> list[PatternRule]",
+          "line_start": 111,
+          "line_end": 124
+        },
+        {
+          "name": "pattern_settings_summary",
+          "signature": "def pattern_settings_summary(rule: PatternRule) -> str",
+          "docstring": "Settings-column text, e.g. ``1-bar window`` or ``0.9 \u00b7 252``; ``\"\"`` without par",
+          "line_start": 129,
+          "line_end": 131
+        },
+        {
+          "name": "pattern_config_summary",
+          "signature": "def pattern_config_summary(config: Mapping[str, Any]) -> str",
+          "docstring": "Details-column text such as ``PA \u2265 20%  \u00b7  52wHigh``; ``\"\"`` if none on or unrea",
+          "line_start": 134,
+          "line_end": 143
+        }
+      ],
+      "constants": [
+        "SCHEMA_VERSION = 2",
+        "DEFAULT_THRESHOLD = 0.2",
+        "_SEP = \"  \u00b7  \"",
+        "_LEGACY: tuple[tuple[str, str, bool], ...] = ("
+      ]
+    },
+    "_ta.py": {
+      "module_id": "MD-SCR-015.008.M25",
+      "srd_id": "SRD-SCR-015.008",
+      "classes": [
+        {
+          "name": "BarArrays",
+          "docstring": "One symbol's OHLCV history as float64 arrays, oldest bar first.",
+          "class_vars": [
+            "open: FloatArray",
+            "high: FloatArray",
+            "low: FloatArray",
+            "close: FloatArray",
+            "volume: FloatArray"
+          ],
+          "methods": [
+            {
+              "name": "from_bars",
+              "signature": "def from_bars(cls, bars: Sequence[Any]) -> BarArrays",
+              "docstring": "Build arrays from bar objects exposing open/high/low/close/volume.",
+              "decorators": [
+                "@classmethod"
+              ],
+              "line_start": 31,
+              "line_end": 37
+            }
+          ],
+          "line_start": 21,
+          "line_end": 37
+        },
+        {
+          "name": "Series",
+          "docstring": "Indicator output: the main series plus an optional reference (signal) line.",
+          "class_vars": [
+            "value: FloatArray",
+            "reference: FloatArray | None"
+          ],
+          "line_start": 41,
+          "line_end": 45
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "ema",
+          "signature": "def ema(close: FloatArray, period: int) -> FloatArray",
+          "docstring": "Exponential moving average.",
+          "line_start": 48,
+          "line_end": 50
+        },
+        {
+          "name": "rsi",
+          "signature": "def rsi(close: FloatArray, period: int) -> FloatArray",
+          "docstring": "Wilder RSI.",
+          "line_start": 53,
+          "line_end": 55
+        },
+        {
+          "name": "atr_pct",
+          "signature": "def atr_pct(high: FloatArray, low: FloatArray, close: FloatArray, period: int) -> FloatArray",
+          "docstring": "Wilder ATR as a percentage of the close.",
+          "line_start": 58,
+          "line_end": 61
+        },
+        {
+          "name": "macd",
+          "signature": "def macd(\n    close: FloatArray, fast: int, slow: int, signal: int\n) -> tuple[FloatArray, FloatArray, FloatArray]",
+          "docstring": "MACD line, signal line and histogram.",
+          "line_start": 64,
+          "line_end": 75
+        },
+        {
+          "name": "ppo",
+          "signature": "def ppo(\n    close: FloatArray, fast: int, slow: int, signal: int\n) -> tuple[FloatArray, FloatArray, FloatArray]",
+          "docstring": "EMA-based PPO line (%), its signal EMA and the histogram.",
+          "line_start": 78,
+          "line_end": 85
+        },
+        {
+          "name": "volume_ratio",
+          "signature": "def volume_ratio(volume: FloatArray, period: int) -> FloatArray",
+          "docstring": "Each bar's volume divided by the mean volume of the previous ``period`` bars.",
+          "line_start": 88,
+          "line_end": 91
+        },
+        {
+          "name": "n_bar_breakout",
+          "signature": "def n_bar_breakout(close: FloatArray, lookback: int) -> FloatArray",
+          "docstring": "1.0 where the close is above the highest close of the previous ``lookback`` bars",
+          "line_start": 94,
+          "line_end": 102
+        },
+        {
+          "name": "_shift",
+          "signature": "def _shift(series: FloatArray) -> FloatArray",
+          "line_start": 105,
+          "line_end": 108
+        },
+        {
+          "name": "safe_div",
+          "signature": "def safe_div(num: FloatArray, den: FloatArray) -> FloatArray",
+          "docstring": "Element-wise ``num / den``; NaN where the denominator is zero, negative or NaN.",
+          "line_start": 111,
+          "line_end": 115
+        }
+      ]
+    },
     "_dto.py": {
       "module_id": "MD-INF-010.001.M06",
       "srd_id": "SRD-INF-010.006",
@@ -772,6 +982,249 @@
       ],
       "constants": [
         "_API_BASE = \"https://api.telegram.org\""
+      ]
+    },
+    "_breakouts.py": {
+      "module_id": "MD-SCR-016.005.M29",
+      "srd_id": "SRD-SCR-016.005",
+      "top_level_functions": [
+        {
+          "name": "_i",
+          "signature": "def _i(params: Params, key: str) -> int",
+          "line_start": 28,
+          "line_end": 29
+        },
+        {
+          "name": "_prior",
+          "signature": "def _prior(series: FloatArray, bars: int) -> FloatArray",
+          "docstring": "The ``bars`` values before the last one.",
+          "line_start": 32,
+          "line_end": 34
+        },
+        {
+          "name": "_seeded_ema",
+          "signature": "def _seeded_ema(close: FloatArray, period: int) -> FloatArray",
+          "docstring": "EMA seeded from the first close, as the legacy price action screener computed it",
+          "line_start": 37,
+          "line_end": 44
+        },
+        {
+          "name": "_near_52w_high",
+          "signature": "def _near_52w_high(a: BarArrays, p: Params) -> bool",
+          "line_start": 49,
+          "line_end": 51
+        },
+        {
+          "name": "_high_52w_breakout",
+          "signature": "def _high_52w_breakout(a: BarArrays, p: Params) -> bool",
+          "line_start": 54,
+          "line_end": 55
+        },
+        {
+          "name": "_volume_breakout",
+          "signature": "def _volume_breakout(a: BarArrays, p: Params) -> bool",
+          "line_start": 58,
+          "line_end": 63
+        },
+        {
+          "name": "_gap_up",
+          "signature": "def _gap_up(a: BarArrays, p: Params) -> bool",
+          "line_start": 66,
+          "line_end": 72
+        },
+        {
+          "name": "_pocket_pivot",
+          "signature": "def _pocket_pivot(a: BarArrays, p: Params) -> bool",
+          "line_start": 75,
+          "line_end": 84
+        },
+        {
+          "name": "_darvas_box",
+          "signature": "def _darvas_box(a: BarArrays, p: Params) -> bool",
+          "line_start": 87,
+          "line_end": 93
+        },
+        {
+          "name": "_bull_flag",
+          "signature": "def _bull_flag(a: BarArrays, p: Params) -> bool",
+          "line_start": 96,
+          "line_end": 108
+        },
+        {
+          "name": "_ema_pullback",
+          "signature": "def _ema_pullback(a: BarArrays, p: Params) -> bool",
+          "line_start": 113,
+          "line_end": 115
+        },
+        {
+          "name": "_swing_extremes",
+          "signature": "def _swing_extremes(a: BarArrays, p: Params) -> tuple[FloatArray, FloatArray]",
+          "line_start": 118,
+          "line_end": 122
+        },
+        {
+          "name": "_higher_highs_lows",
+          "signature": "def _higher_highs_lows(a: BarArrays, p: Params) -> bool",
+          "line_start": 125,
+          "line_end": 127
+        },
+        {
+          "name": "_lower_highs_lows",
+          "signature": "def _lower_highs_lows(a: BarArrays, p: Params) -> bool",
+          "line_start": 130,
+          "line_end": 132
+        },
+        {
+          "name": "_golden_cross",
+          "signature": "def _golden_cross(a: BarArrays, p: Params) -> bool",
+          "line_start": 135,
+          "line_end": 140
+        },
+        {
+          "name": "_gap_down",
+          "signature": "def _gap_down(a: BarArrays, p: Params) -> bool",
+          "line_start": 143,
+          "line_end": 149
+        },
+        {
+          "name": "_outside_bar",
+          "signature": "def _outside_bar(a: BarArrays, p: Params) -> bool",
+          "line_start": 152,
+          "line_end": 153
+        },
+        {
+          "name": "_narrowest_of",
+          "signature": "def _narrowest_of(bars: int) -> Detect",
+          "line_start": 158,
+          "line_end": 163
+        },
+        {
+          "name": "_inside_bar",
+          "signature": "def _inside_bar(a: BarArrays, p: Params) -> bool",
+          "line_start": 166,
+          "line_end": 167
+        },
+        {
+          "name": "_vcp",
+          "signature": "def _vcp(a: BarArrays, p: Params) -> bool",
+          "line_start": 170,
+          "line_end": 185
+        },
+        {
+          "name": "_bollinger_squeeze",
+          "signature": "def _bollinger_squeeze(a: BarArrays, p: Params) -> bool",
+          "line_start": 188,
+          "line_end": 196
+        },
+        {
+          "name": "_double_bottom",
+          "signature": "def _double_bottom(a: BarArrays, p: Params) -> bool",
+          "line_start": 201,
+          "line_end": 214
+        },
+        {
+          "name": "_cup_with_handle",
+          "signature": "def _cup_with_handle(a: BarArrays, p: Params) -> bool",
+          "line_start": 217,
+          "line_end": 233
+        },
+        {
+          "name": "_bars",
+          "signature": "def _bars(n: int) -> MinBars",
+          "line_start": 238,
+          "line_end": 239
+        },
+        {
+          "name": "breakout_specs",
+          "signature": "def breakout_specs() -> tuple[PatternSpec, ...]",
+          "docstring": "Build the breakout, trend, volatility and chart-shape catalogue entries.",
+          "line_start": 254,
+          "line_end": 382
+        }
+      ],
+      "constants": [
+        "_BULL, _BEAR, _NEUTRAL = Direction.BULLISH, Direction.BEARISH, Direction.NEUTRAL",
+        "_BREAKOUT, _TREND = PatternCategory.BREAKOUT, PatternCategory.TREND",
+        "_VOLATILITY, _SHAPES = PatternCategory.VOLATILITY, PatternCategory.CHART_SHAPES",
+        "_LOOKBACK_52W = ParamSpec(\"lookback\", \"Lookback\", \"int\", 252, 20, 504, display=\"{} bars\")",
+        "_MIN_GAP = ParamSpec(\"min_gap\", \"Min gap %\", \"float\", 1.0, 0.1, 20.0, 0.1, display=\"\u2265 {}%\")",
+        "_SWINGS = ("
+      ]
+    },
+    "_candles.py": {
+      "module_id": "MD-SCR-016.003.M28",
+      "srd_id": "SRD-SCR-016.003",
+      "top_level_functions": [
+        {
+          "name": "_detector",
+          "signature": "def _detector(function: str, sign: int) -> Detect",
+          "line_start": 91,
+          "line_end": 103
+        },
+        {
+          "name": "_min_bars",
+          "signature": "def _min_bars(function: str) -> MinBars",
+          "line_start": 106,
+          "line_end": 108
+        },
+        {
+          "name": "candle_specs",
+          "signature": "def candle_specs() -> tuple[PatternSpec, ...]",
+          "docstring": "Build the candlestick catalogue entries.",
+          "line_start": 111,
+          "line_end": 126
+        }
+      ],
+      "constants": [
+        "_WITHIN = ParamSpec(\"within\", \"Within bars\", \"int\", 1, 1, 5, display=\"{}-bar window\")",
+        "_BULL = PatternCategory.BULLISH_CANDLES",
+        "_BEAR = PatternCategory.BEARISH_CANDLES",
+        "_NEUTRAL = PatternCategory.NEUTRAL_CANDLES",
+        "_DIRECTION = {_BULL: Direction.BULLISH, _BEAR: Direction.BEARISH, _NEUTRAL: Direction.NEUTRAL}",
+        "_CANDLES: tuple[tuple[str, str, str, PatternCategory, str, int, str], ...] = ("
+      ]
+    },
+    "_spec.py": {
+      "module_id": "MD-SCR-016.001.M27",
+      "srd_id": "SRD-SCR-016.001",
+      "classes": [
+        {
+          "name": "PatternRuleError",
+          "docstring": "Raised for unknown patterns or malformed pattern rules.",
+          "line_start": 20,
+          "line_end": 21
+        },
+        {
+          "name": "PatternCategory",
+          "docstring": "Library categories, in display order.",
+          "line_start": 24,
+          "line_end": 33
+        },
+        {
+          "name": "Direction",
+          "docstring": "Which way a pattern points.",
+          "line_start": 36,
+          "line_end": 41
+        },
+        {
+          "name": "PatternSpec",
+          "docstring": "Catalogue entry describing one price action pattern.",
+          "class_vars": [
+            "id: str",
+            "name: str",
+            "short: str",
+            "category: PatternCategory",
+            "direction: Direction",
+            "description: str",
+            "params: tuple[ParamSpec, ...]",
+            "min_bars: MinBars",
+            "detect: Detect",
+            "available: bool",
+            "unavailable_reason: str"
+          ],
+          "line_start": 45,
+          "line_end": 58
+        }
       ]
     },
     "symbols.py": {

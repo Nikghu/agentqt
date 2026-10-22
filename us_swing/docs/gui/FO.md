@@ -135,6 +135,8 @@ The Trade Execution panel is split horizontally into two panes:
 6. Filtered Stocks pane auto-refreshes when `screener_results_updated` fires (no manual reload needed).
 7. Filtered Stocks pane shows an empty-state placeholder when no screener results exist on disk.
 8. Date selector in the Filtered Stocks pane contains only dates for which results exist, sorted newest first.
+9. *(Added 2026-10-22, user request)* The user can add any stock from the universe to the Filtered Stocks pane by hand ("manual pick"); picks are kept per user until removed, are listed above screener rows, and feed the strategy engine like screened stocks.
+10. *(Added 2026-10-22, user request)* At app start, intraday candles of stocks that are no longer tracked (not in Filtered Stocks, no open trade, no new bars for the retention period) are deleted automatically, so the user need not run "Clear Old Data".
 
 ---
 
@@ -461,3 +463,73 @@ The system shall provide an **Active Cycles Panel** that replaces the right pane
 9. With `circuit_breaker_active = True`, every PENDING row's `[Execute]` button is disabled with the tooltip text; `[Close]` and `[Edit Risk ▼]` on existing OPEN rows remain enabled.
 10. With the global Scope switched from "All Users" to a specific user, the table re-queries and renders only that user's pending signals and open cycles; the prepended User column is hidden.
 11. With zero rows in any state, the panel renders the empty-state placeholder; no row container is drawn.
+
+---
+
+## FO-GUI-015: Indicator Rule Library Dialog
+
+**Status:** Approved (user, 2026-10-22)
+**Priority:** Must
+**User-facing label:** "Indicator Filters"
+**Depends on:** FO-SCR-013 (indicator catalogue + rule list)
+**Supersedes:** the fixed 6-section "Indicator Filter Settings" dialog in the Screener Builder
+**Source:** Trader requirement — add many indicator rules from a browsable library (design C4).
+
+The system shall provide an **Indicator Filters** dialog, opened from the Screener Builder, with a searchable indicator library on the left and an editable rule table on the right. All rules in the dialog are joined with AND. The dialog owns no screening logic; it reads the catalogue and returns a rule-list config.
+
+### Requirements
+
+1. **Library tree.** The left pane shall show the catalogue as collapsible categories; each category shows "used / total" counts and empty categories are hidden.
+2. **Search.** A search box shall filter the tree by indicator name as the user types.
+3. **In-use tag.** Indicators already used in a rule shall show an "in use" tag.
+4. **Unavailable items.** Unavailable indicators shall appear greyed out with their reason as a tooltip and cannot be added.
+5. **Add rule.** Double-clicking or dragging an indicator into the table shall add a rule with catalogue defaults.
+6. **Rule table.** Each rule row shall show: On toggle · Indicator · Condition · Value · To · Settings · remove.
+7. **Editing.** Condition lists only that indicator's allowed conditions; Value/To respect parameter ranges; "To" is enabled only for "between"; Settings edits indicator parameters.
+8. **Disable vs remove.** Turning a rule off keeps it but dims the row; remove deletes it.
+9. **Load / save.** The dialog shall load both rule-list and legacy `filters` configs and always return a rule-list config.
+10. **Style.** Frameless window with custom title bar, standard 28 px controls, VS Code dark theme colours.
+
+### Acceptance Criteria
+
+1. Opening an old preset shows its 6 legacy filters as 6 rows with the same values and on/off states.
+2. Typing "macd" in search shows only the MACD family entries under Momentum.
+3. Double-clicking EMA(50) adds one row with default settings, and the tree tags EMA(50) "in use".
+4. Intraday RVOL entries are greyed out, show "needs intraday data" on hover, and double-click adds nothing.
+5. Turning a row off dims it; clicking ✕ removes it and the tree counts update.
+6. Pressing OK returns a rule-list config that reloads into the same rows.
+7. The screener Details column shows the new rules' summary after saving.
+
+---
+
+## FO-GUI-016: Price Action Pattern Library Dialog
+
+**Status:** Approved (user, 2026-10-22)
+**Priority:** Must
+**User-facing label:** "Price Action Patterns"
+**Depends on:** FO-SCR-014 (pattern catalogue + rule list), FO-GUI-015 (shared library and rule-table widgets)
+**Supersedes:** the fixed 5-pattern "Price Action Pattern Settings" dialog in the Screener Builder
+**Source:** Trader requirement — pick from many price action patterns in a browsable library, same look as Indicator Filters.
+
+The system shall provide a **Price Action Patterns** dialog, opened from the Screener Builder, with a searchable pattern library on the left and a slim rule table on the right. The dialog owns no screening logic; it reads the pattern catalogue and returns a rule-list config.
+
+### Requirements
+
+1. **Library tree.** The left pane shall show the pattern catalogue as collapsible categories with "used / total" counts, a search box and "in use" tags, like the Indicator Filters dialog.
+2. **Add rule.** Double-clicking or dragging a pattern into the table shall add a rule with catalogue defaults.
+3. **Rule table.** Each row shall show: On toggle · Pattern · Settings · remove.
+4. **Settings.** Clicking Settings shall open the same popup panel under the cell as the Indicator Filters dialog.
+5. **Threshold.** The header shall show "Pass when ≥ [N] % of patterns match" with an editable percent box.
+6. **Disable vs remove.** Turning a rule off keeps it but dims the row; remove deletes it.
+7. **Load / save.** The dialog shall load both rule-list and legacy `patterns` configs and always return a rule-list config.
+8. **Style.** Frameless window with custom title bar, standard 28 px controls, VS Code dark theme colours.
+
+### Acceptance Criteria
+
+1. Opening an old preset shows its 5 legacy patterns as 5 rows with the same on/off states and a 20% threshold.
+2. Typing "doji" in search shows only the doji patterns.
+3. Double-clicking Hammer adds one row and the tree tags Hammer "in use".
+4. Changing the threshold to 40% and pressing OK saves threshold 0.4.
+5. Turning a row off dims it; clicking ✕ removes it and the tree counts update.
+6. Pressing OK returns a rule-list config that reloads into the same rows.
+7. The Indicator Filters dialog keeps working unchanged.

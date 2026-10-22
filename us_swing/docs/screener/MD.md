@@ -32,7 +32,41 @@
 | MD-SCR-007.010.M16 | SRD-SCR-007.001–010 | `src/us_swing/screener/gui/screener_panel.py` | ScreenerPanel tab widget. Preset selector dropdown, style filter `QComboBox`, "Run Now" button, results table, status bar, historical date picker, Export CSV. On style filter change: calls `PresetManager.list_admin_presets(style_filter)` and `list_user_presets(user_id, style_filter)` and rebuilds preset dropdown. | `ScreenerPanel` | `manager.py`, `executor.py`, `storage.py`, PyQt6 | Draft |
 | MD-SCR-007.011.M17 | SRD-SCR-007.002–005, 007.011–012 | `src/us_swing/screener/gui/preset_builder.py` | PresetBuilderPanel modal + helpers. Drag-and-drop screener builder, AND/OR group toggling, collapsible config panels, trading style `QGroupBox` (3 checkboxes, editable vs. read-only badge mode), `AssignUsersWidget` (tokenised input; immediate grant/revoke on token add/remove; error badge for invalid IDs), Save / Save As / preview. | `PresetBuilderPanel`, `AssignUsersWidget`, `_UserTag` | `manager.py`, `preset.py`, `registry.py`, PyQt6 | Draft |
 | MD-SCR-011.001.M18 | SRD-SCR-013.003–004 | `src/us_swing/screener/screeners/_tool_executor.py` | `CandleToolExecutor` — bridges AI provider `get_candle_data` tool calls to `DatabaseManager.fetch_bars()`. Enforces Stage-2 symbol allowlist, per-symbol call cap (default 3), validates `lookback_bars ≤ 300` and `timeframe ∈ {1d, 1w}`. Returns errors as JSON to the model (never raised) so the agentic loop can continue. Single-use per provider run. | `CandleToolExecutor`, `TOOL_NAME = "get_candle_data"` | `db/manager.py`, `data/models.py` | Draft |
+| MD-SCR-015.001.M23 | SRD-SCR-015.001–.003, .013–.014 | `src/us_swing/core/indicator_rules/_catalogue.py` | Indicator catalogue: categories, parameter specs and the release-1 indicator list. | `Category`, `Condition`, `IndicatorRuleError`, `ParamSpec` (incl. `display` format), `IndicatorSpec`, `CATALOGUE`, `get_spec()` | `_ta.py`, `dataclasses`, `enum` | Implemented |
+| MD-SCR-015.006.M24 | SRD-SCR-015.004–.007, .015 | `src/us_swing/core/indicator_rules/_rules.py` | Rule model, condition enum, config schema v2, legacy `filters` mapping and summary text. | `Rule`, `default_rule()`, `rules_from_config()`, `rules_to_config()`, `rule_label()`, `rule_summary()`, `params_summary()`, `settings_summary()`, `config_summary()` | `_catalogue.py` | Implemented |
+| MD-SCR-015.008.M25 | SRD-SCR-015.008 | `src/us_swing/core/indicator_rules/_ta.py` | TA-Lib backed indicator series on numpy arrays. | `BarArrays`, `Series`, `ema()`, `rsi()`, `atr_pct()`, `macd()`, `ppo()`, `volume_ratio()`, `n_bar_breakout()`, `safe_div()` | `talib`, `numpy` | Implemented |
+| MD-SCR-015.009.M26 | SRD-SCR-015.009, .012 | `src/us_swing/core/indicator_rules/_evaluate.py` | Evaluates one rule on one symbol's arrays, including RS and market-cap context. | `RuleContext`, `evaluate_rule(rule, symbol, arrays, ctx)`, `rs_slope_up()` | `_catalogue.py`, `_rules.py`, `numpy` | Implemented |
 | MD-SCR-014.008.M20 | SRD-SCR-014.008 | `src/us_swing/gui/ai_model_store.py` | Persistent JSON store for user-defined custom AI models. Merges built-in model presets with custom entries for the Cloud AI config dialog. Provides OpenRouter probe-based model validation. | `CustomAIModel`, `load_custom_models()`, `save_custom_models()`, `all_model_rows()`, `validate_model(model_id, api_key) -> tuple[bool, str]` | `screener/screeners/_cloud_ai_models.py`, `screener/screeners/_api_key_store.py`, `openai` (lazy) | Implemented |
+
+### Cross-Module Modifications for FO-SCR-013
+
+| Module ID | File | Change Required | SRD |
+|---|---|---|---|
+| MD-SCR-002.001.M04 | `src/us_swing/screener/screeners/indicator.py` | `apply()` / `screen_detailed()` evaluate the rule list via `core.indicator_rules`; remove `_atr_pct`, `_rsi`, `_volume_ratio`, `_is_breakout`; keep `_compute_rs_ranks` and `BenchmarkDataUnavailableError`. | SRD-SCR-015.010–.011, .016–.017 |
+| MD-SCR-003.001.M10 | `src/us_swing/screener/executor.py` | `_run_stage2` receives `market_caps` and passes `{**ref.config, "market_caps": caps}` to `apply()`. | SRD-SCR-015.012 |
+
+Package `src/us_swing/core/indicator_rules/__init__.py` re-exports the public API of M23–M26 and carries the M23 header.
+
+### Modules for FO-SCR-014 — Price Action Pattern Catalogue
+
+| Module ID | Parent SRD | File | Responsibility | Public API | Deps | Status |
+|---|---|---|---|---|---|---|
+| MD-SCR-016.001.M27 | SRD-SCR-016.001–.002 | `src/us_swing/core/price_patterns/_spec.py`, `_catalogue.py` | Pattern categories, directions and spec type (`_spec.py`); the assembled 47-entry catalogue (`_catalogue.py`). | `PatternCategory`, `Direction`, `PatternRuleError`, `PatternSpec`, `PATTERNS`, `get_pattern()` | `_candles.py`, `_breakouts.py`, `core.indicator_rules` | Implemented |
+| MD-SCR-016.003.M28 | SRD-SCR-016.003–.004 | `src/us_swing/core/price_patterns/_candles.py` | Builds the 27 TA-Lib candlestick specs from one sign table. | `candle_specs()` | `talib`, `numpy`, `core.indicator_rules` | Implemented |
+| MD-SCR-016.005.M29 | SRD-SCR-016.005–.006 | `src/us_swing/core/price_patterns/_breakouts.py` | Detect functions and specs for the 24 breakout, trend, volatility and chart-shape patterns (Double Top and Double Top Pullback added, SRD-SCR-016.016; Fib Retracement Sell / Buy, SRD-SCR-016.018). | `breakout_specs()` | `talib`, `numpy`, `core.indicator_rules` | Implemented |
+| MD-SCR-016.007.M30 | SRD-SCR-016.007–.010, .014 | `src/us_swing/core/price_patterns/_rules.py` | Pattern rule model, config schema v2, legacy `patterns` mapping and summary text. | `PatternRule`, `default_pattern_rule()`, `pattern_rules_from_config()`, `pattern_rules_to_config()`, `pattern_settings_summary()`, `pattern_config_summary()` | `_catalogue.py`, `core.indicator_rules` | Implemented |
+| MD-SCR-016.011.M31 | SRD-SCR-016.011 | `src/us_swing/core/price_patterns/_evaluate.py` | Evaluates one pattern rule on one symbol's arrays with clamped params. | `evaluate_pattern(rule, arrays)` | `_catalogue.py`, `_rules.py` | Implemented |
+
+### Cross-Module Modifications for FO-SCR-014
+
+| Module ID | File | Change Required | SRD |
+|---|---|---|---|
+| MD-SCR-002.005.M08 | `src/us_swing/screener/screeners/price_action.py` | `apply()` / `screen_detailed()` evaluate the rule list via `core.price_patterns`; private pattern helpers and the `analysis.indicators` import are removed. | SRD-SCR-016.012–.013, .015 |
+| MD-SCR-015.006.M24 | `src/us_swing/core/indicator_rules/_rules.py` | Param-text code moves into a shared `format_param_values()` helper; `settings_summary()` output unchanged. | SRD-SCR-016.014 |
+
+Package `src/us_swing/core/price_patterns/__init__.py` re-exports the public API of M27–M31 and carries the M27 header.
+
+> **Doc mismatch (record only, not fixed):** MD-SCR-007.011.M17 names `screener/gui/preset_builder.py`, but the preset builder is implemented as `_PresetBuilderDialog` in `src/us_swing/gui/screener_panel.py`. Found 2026-10-21 while scoping FO-SCR-013.
 
 ---
 

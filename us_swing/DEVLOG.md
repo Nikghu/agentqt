@@ -2,6 +2,107 @@
 
 ---
 
+## [20261022] GUI — User edit keeps Telegram settings (ISS-GUI-0005, bugfix)
+
+- Type: Bugfix
+- FO(s): FO-GUI-006 (FO-INF-010 affected)
+- RN: RN-GUI-1.8.1-20261022
+- Cause: `_UserDialog.get_profile()` built a new `UserProfile`, so any user edit reset `telegram_enabled`, `telegram_chat_id`, notify toggles and strategy/screener config. Token survived (OS keychain).
+- Fix: `dataclasses.replace()` on the existing user. SRD root cause: code diverged — SRD-GUI-006.002.
+- Artifacts: UTCD (UT-GUI-006.001.M01.T17–T18), TRACE reverse row, ISS, RN, CONTEXT, DEVLOG.
+- Verification: T17 failed before, passes after; tests/gui 256 passed; ruff and mypy clean.
+
+---
+
+## [20261022] GUI — Manual picks in Trade Execution (FO-GUI-004, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-004 (acceptance criterion 9 added, user request)
+- RN: RN-GUI-1.8.0-20261022
+- Artifacts updated: FO, SRD (GUI-004.010–.012 Implemented), MD (new MD-GUI-004.001.M02; M01 change rows), UTCD (UT-GUI-004.001.M01.T11–T20 Pass), Code (new `gui/manual_picks_store.py`; `gui/app_service.py`, `gui/execution_panel.py`, `data/models.py` comment), Tests, TRACE, RN, CONTEXT, DEVLOG
+- Decisions (user, 2026-10-22): layout 1 — add box in the Filtered Stocks header, picks pinned in the same table; picks stay until removed. Defaults chosen: no Telegram message on pick changes; ledger label "Manual pick"; `BRK B` accepted; adds refused until the universe loads.
+- Verification: tests/gui 249 passed; ruff clean; mypy no new errors. pyqt-code-reviewer WARNs fixed (removed pick trimmed from the engine list; save errors handled).
+- Also (same RN): SRD-GUI-004.013 automatic cleanup of stale intraday candles at app start — new `gui/intraday_cleanup.py`, UT-GUI-004.001.M01.T21–T25; user chose stale stocks only, at app start. tests/gui 254 passed.
+- Open: manual check in the running app.
+
+---
+
+## [20261022] SCR — Fibonacci retracement Sell / Buy patterns (FO-SCR-014, feature)
+
+- Type: Feature
+- FO(s): FO-SCR-014 (bullet added, user request)
+- RN: RN-SCR-2.5.0-20261022
+- Artifacts updated: FO, SRD (SCR-016.018 Implemented), DD (2 rows in DD-SCR-016.005.D01), MD (M29 text), UTCD (UT-SCR-016.018.M29.T01–T03; counts 49 → 51, Trend 6 → 8), Code (`core/price_patterns/_breakouts.py`), Tests, TRACE, RN, CONTEXT, DEVLOG
+- Decisions (user, 2026-10-22): two patterns (Sell / Buy); match while in zone; default zone 50–61.8 %. Min swing 10 % added so small wiggles are ignored.
+- Verification: 273 passed (tests/core + price action screener); ruff and mypy --strict clean. On the DB: daily 54 Sell / 10 Buy, weekly 7 Sell / 33 Buy; ABT checked by hand.
+
+---
+
+## [20261022] SCR — Double Top, Double Top Pullback; Double Bottom breakout-within (FO-SCR-014, feature)
+
+- Type: Feature
+- FO(s): FO-SCR-014 (bullet added, user request)
+- RN: RN-SCR-2.4.0-20261022
+- Artifacts updated: FO, SRD (SCR-016.016, .017 Implemented), DD (DD-SCR-016.005.D01 rows), MD (MD-SCR-016.005.M29 text), UTCD (UT-SCR-016.016.M29.T01–T02, UT-SCR-016.017.M29.T01; counts 47 → 49), Code (`core/price_patterns/_breakouts.py`), Tests, TRACE, RN, CONTEXT, DEVLOG
+- Decisions (user, 2026-10-22): breakdown and pullback as two separate patterns, for sell entries after a pullback; Double Bottom gets "Breakout within" (default 5) so stale breakouts stop matching. Saved Double Bottom rules pick up the default.
+- Verification: tests/core + price action screener 266 passed; tests/gui + tests/screener 413 passed, 2 known old failures (test_preset t17/t18). ruff and mypy --strict clean. code-reviewer: APPROVE; neck rule made an exact mirror.
+
+---
+
+## [20261022] GUI — Execution feed ignores presets with no assigned users (ISS-GUI-0004, bugfix)
+
+- Type: Bugfix
+- FO(s): FO-GUI-004
+- RN: RN-GUI-1.7.2-20261022
+- Artifacts updated: SRD (SRD-GUI-004.009 added, Implemented), MD (MD-GUI-004.001.M01 change row), UTCD (UT-GUI-004.001.M01.T08–T10 Pass), Code (`gui/app_service.py`), Tests (`tests/gui/test_app_service_screener_feed.py`), TRACE, ISS, RN, CONTEXT, DEVLOG
+- Cause: `get_latest_screener_results()` read every preset's latest result and never checked `assigned_to`; a manual run of the unassigned "Test" preset put 6 stocks into Filtered Stocks and the engine.
+- Decisions (user, 2026-10-22): exclude from display and engine; also hide deleted presets. Added a `[Screener]` warning when presets fail to load (reviewer WARN).
+- Verification: 3 new tests pass; `tests/gui/` 235 passed; no new ruff or mypy errors.
+
+---
+
+## [20261022] GUI — Weekly candles built from daily candles (ISS-GUI-0003, bugfix)
+
+- Type: Bugfix
+- FO(s): FO-GUI-006
+- RN: RN-GUI-1.7.1-20261022
+- Artifacts updated: SRD (SRD-GUI-006.019 Implemented), UTCD (T11–T16 Pass), Issue (ISS-GUI-0003), Code, Tests, DB (`price_1w` rebuilt), RN, CONTEXT, DEVLOG
+- Decisions: Weekly candles are now built from daily candles, not fetched as IBKR weekly bars. Rebuilt 518 symbols (115,739 → 89,113 rows). Backup: `candles_backup_20261022_before_weekly_rebuild.db`.
+
+---
+
+## [20261022] GUI — Screener loads 600 daily/weekly bars instead of 300 (config tweak)
+
+- Type: Enhancement (one-line config change)
+- Code: `gui/screener_panel.py` — `get_candles_bulk(..., limit=600)`; comment updated
+- Why: price pattern lookbacks go up to 504 bars (52-week High / Breakout), which could never match with 300 bars. The candle DB holds ~823 daily bars per stock (2023-05-30 onward), so 1D gains real depth. 1W holds only ~222 bars, so it already loaded everything.
+- Artifacts: none changed — no SRD/DD/MD/UTCD row names the 300-bar limit (checked by prompt-evaluator). TODO T38 added (backward fill of older 1W/1D history in `data/engine.py`).
+- Verification: no test references the old limit. ruff on `screener_panel.py` shows only 9 old errors (unused imports, E701), none on changed lines. Not run in the app.
+
+---
+
+## [20261022] SCR + GUI — Price action pattern library: 47-pattern catalogue, rule list and library dialog (FO-SCR-014 / FO-GUI-016, feature)
+
+- Type: Feature
+- FO(s): FO-SCR-014, FO-GUI-016
+- RN: RN-SCR-2.3.0-20261022, RN-GUI-1.7.0-20261022
+- Artifacts updated: FO, SRD (SCR-016.001–.015, GUI-016.001–.011 Implemented), DD (DD-SCR-016.*, DD-GUI-016.001.D01), MD (MD-SCR-016.001/.003/.005/.007/.011 M27–M31; MD-SCR-002.005.M08 and MD-SCR-015.006.M24 cross-module; MD-GUI-016.001.M08, .004.M07; MD-GUI-015.003/.008/.009/.011 and MD-GUI-003.001.M01 cross-module), UTCD (UT-SCR-016.* 35 Pass; UT-GUI-016.* 25 Pass), Code (new `core/price_patterns/`, `gui/pattern_rule_model.py`, `gui/price_action_rules_dialog.py`; edited `screener/screeners/price_action.py`, `core/indicator_rules/_rules.py`, `gui/indicator_*.py`, `gui/screener_panel.py`), Tests, TRACE (SCR, GUI), RN, TODO (T37), CONTEXT, DEVLOG
+- Decisions: 47 patterns in one shared catalogue. Legacy 4 patterns give identical results (tested on 200 windows); EMA Pullback keeps the first-close seed. Legacy `engulfing` maps to TA-Lib Bullish Engulfing (3 bars, may differ on equal open/close). Double Bottom and Cup with Handle are rough checks. Layout "Library + slim table" chosen by user 2026-10-22. Review (code and PyQt): APPROVE; fixes applied.
+- Verification: 35 SCR and 25 GUI UT rows Pass; legacy SCR T01–T08 pass. ruff and mypy --strict clean. Coverage not measured (pytest-cov not installed). Known unrelated failures: `test_preset` t17/t18.
+- Open: manual GUI check of both dialogs in the running app (TODO T33, T37); commit and PR on `feat/indicator-rule-library` not yet done.
+
+---
+
+## [20261022] SCR + GUI — Indicator rule library: catalogue, rule list and C4 rule-builder dialog (FO-SCR-013 / FO-GUI-015, feature)
+
+- Type: Feature
+- FO(s): FO-SCR-013, FO-GUI-015
+- RN: RN-SCR-2.2.0-20261022, RN-GUI-1.6.0-20261022
+- Artifacts updated: FO, SRD (SCR-015.001–.017, GUI-015.001–.015 Implemented), DD (DD-SCR-015.001.D01, .008.D01, .009.D01; DD-GUI-015.001.D01), MD (MD-SCR-015.001.M23, .006.M24, .008.M25, .009.M26; MD-SCR-002.001.M04, MD-SCR-003.001.M10 cross-module; MD-GUI-015.001–.011 M01–M06; MD-GUI-003.001.M01 cross-module), UTCD (UT-SCR-015.* 46 Pass; UT-GUI-015.* 39 Pass), Code (new `core/indicator_rules/`, `gui/indicator_*.py`, `gui/frameless_dialog.py`; edited `screener/screeners/indicator.py`, `screener/executor.py`, `gui/screener_panel.py`), Tests, TRACE (SCR, GUI), RN, TODO (T33), CONTEXT, DEVLOG
+- Decisions: Mockup C4 chosen (library tree left, rule table right). Scope = six legacy filters migrated plus new daily indicators; storage = schema-2 rule list with legacy `filters` reader. Intraday RVOL and Short-Term Volume shown greyed (TODO T34); Fundamentals = Market Cap only, Dividends hidden (T35). ATR and RSI switched to TA-Lib Wilder math (matches SRD-SCR-002.003), so old preset results may shift slightly. EXE strategy-builder catalogue not merged (T36). Stale MD-SCR-007.011.M17 path recorded, not fixed.
+- Verification: core + screener + gui tests 510 passed. Pre-existing failures, unrelated: `tests/screener/test_preset.py` t17/t18 (old `ai_model` default); `tests/screener/test_llm_claude_screener.py` import error (`llm_claude` gone). GUI suite crashes at interpreter exit (0xC0000409) independent of this change. ruff and mypy --strict: 0 errors in new and changed modules. pyqt-code-reviewer: APPROVE; its 2 MEDIUM findings fixed.
+- Open: manual GUI check in the running app (TODO T33); commit and PR on `feat/indicator-rule-library` not yet done.
+
 ## [20261016] GUI — Trade History side for short trades (ISS-GUI-0002, bugfix)
 
 - Type: Bugfix

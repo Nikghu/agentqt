@@ -3,7 +3,7 @@
 **Document ID:** TRACE-GUI
 **Version:** 1.12.1
 **Project:** US Swing Trading System
-**Last Updated:** 2026-10-16 (Session 82, ISS-GUI-0002 Trade History side for shorts)
+**Last Updated:** 2026-10-22 (Session 83, FO-GUI-015 Indicator Rule Library — implemented; RN-GUI-1.6.0-20261022)
 
 ---
 
@@ -22,6 +22,12 @@
 | FO-GUI-006 | SRD-GUI-006.005 | — | MD-GUI-000.004 | — | `gui/scheduler_dialog.py` | Draft | RN-GUI-1.2.1-20260519 |
 | FO-GUI-006 | SRD-GUI-006.017 | — | MD-GUI-000.003, MD-GUI-000.004 | UT-GUI-000.003.T01–T04, UT-GUI-000.004.T01–T02 | `gui/scheduler_store.py`, `gui/scheduler_dialog.py` | Implemented | RN-GUI-1.3.2-20260625 |
 | FO-GUI-006 | SRD-GUI-006.018 | — | MD-GUI-006.001.M01 | UT-GUI-006.001.M01.T05–T06 | `gui/app_service.py`, `gui/settings_panel.py` | Implemented | RN-GUI-1.4.1-20260904 |
+| FO-GUI-006 | SRD-GUI-006.019 | — | MD-GUI-006.001.M01 | UT-GUI-006.001.M01.T11–T16 | `gui/app_service.py` | Implemented | RN-GUI-1.7.1-20261022 |
+| FO-GUI-004 | SRD-GUI-004.009 | — | MD-GUI-004.001.M01 | UT-GUI-004.001.M01.T08–T10 | `gui/app_service.py` | Implemented | RN-GUI-1.7.2-20261022 |
+| FO-GUI-004 | SRD-GUI-004.010 | — | MD-GUI-004.001.M01, MD-GUI-004.001.M02 | UT-GUI-004.001.M01.T11–T14 | `gui/manual_picks_store.py`, `gui/app_service.py` | Implemented | RN-GUI-1.8.0-20261022 |
+| FO-GUI-004 | SRD-GUI-004.011 | — | MD-GUI-004.001.M01 | UT-GUI-004.001.M01.T15–T16, T19 | `gui/execution_panel.py`, `gui/app_service.py` | Implemented | RN-GUI-1.8.0-20261022 |
+| FO-GUI-004 | SRD-GUI-004.012 | — | MD-GUI-004.001.M01 | UT-GUI-004.001.M01.T17–T18, T20 | `gui/app_service.py` | Implemented | RN-GUI-1.8.0-20261022 |
+| FO-GUI-004 | SRD-GUI-004.013 | — | MD-GUI-004.001.M01, MD-GUI-004.001.M03 | UT-GUI-004.001.M01.T21–T25 | `gui/intraday_cleanup.py`, `gui/app_service.py` | Implemented | RN-GUI-1.8.0-20261022 |
 | FO-GUI-007 | SRD-GUI-007.001–004 | DD-GUI-007.001.D01 | MD-GUI-007.001.M01 | T01–T04 | `gui/log_viewer_panel.py` | Draft |
 | FO-GUI-007 | SRD-GUI-007.001 | DD-GUI-007.001.D01 | MD-GUI-007.001.M02 | T01 | `gui/log_bridge.py` | Draft |
 | FO-GUI-011 | SRD-GUI-011.001–004 | DD-GUI-011.001.D01 | MD-GUI-011.001.M01 | — | `gui/chart_panel.py` | Implemented | RN-GUI-1.0.0-20260513 |
@@ -35,6 +41,19 @@
 | FO-GUI-013 | SRD-GUI-013.016–.021 | DD-GUI-013.016.D01 | MD-GUI-013.001.M01, MD-GUI-004.001.M01, MD-GUI-004.001.M02 | UT-GUI-013.016–.018.M01.T01–08, .020.M01.T01, .021.M01.T01–03, .019.M02.T01–02, .020.M02.T02 | `gui/strategy_builder_dialog.py`, `gui/execution_panel.py`, `gui/strategy_table_model.py` | Implemented | RN-GUI-1.5.0-20260917 (.020/.021 pending RN) |
 | FO-GUI-014 | SRD-GUI-014.016–.018 | DD-GUI-014.016.D01 | MD-GUI-014.001.M01–M03 | UT-GUI-014.016.M02.T01–03, .017.M01.T01–05, .018.M03.T01–04 | `gui/active_cycles_model.py`, `gui/active_cycles_panel.py`, `gui/risk_editor_widget.py` | Implemented | RN-GUI-1.5.0-20260917 |
 | FO-GUI-002 | SRD-GUI-002.005 (Reopen; fix conforms to SRD-EXE-018.003) | — | MD-GUI-004.001.M01 | UT-GUI-002.005.M01.T01–T03 | `gui/app_service.py` | Implemented (ISS-GUI-0002 fix only; SRD stays Reopen) | RN-GUI-1.5.1-20261016 |
+| FO-GUI-015 | SRD-GUI-015.002 | DD-GUI-015.001.D01 | MD-GUI-015.002.M01 | UT-GUI-015.002.M01.T01–T02 | `gui/frameless_dialog.py` | Implemented | RN-GUI-1.6.0-20261022 |
+| FO-GUI-015 | SRD-GUI-015.008, .009, .012 | DD-GUI-015.001.D01 | MD-GUI-015.008.M02 | UT-GUI-015.008.M02.T01–T03, .009.M02.T01–T03, .012.M02.T01–T02 | `gui/indicator_rule_model.py` | Implemented | RN-GUI-1.6.0-20261022 |
+| FO-GUI-015 | SRD-GUI-015.009, .010, .012, .015 | DD-GUI-015.001.D01 | MD-GUI-015.009.M03 | UT-GUI-015.009.M03.T01, .010.M03.T01–T02, .012.M03.T01–T03, .015.M03.T01–T02 | `gui/indicator_rule_delegates.py` | Implemented | RN-GUI-1.6.0-20261022 |
+| FO-GUI-015 | SRD-GUI-015.003–.006 | DD-GUI-015.001.D01 | MD-GUI-015.003.M04 | UT-GUI-015.003.M04.T01–T03, .004.M04.T01–T02, .005.M04.T01–T02, .006.M04.T01–T02 | `gui/indicator_library_model.py` | Implemented | RN-GUI-1.6.0-20261022 |
+| FO-GUI-015 | SRD-GUI-015.011 | DD-GUI-015.001.D01 | MD-GUI-015.011.M05 | UT-GUI-015.011.M05.T01–T02 | `gui/indicator_params_dialog.py` | Implemented | RN-GUI-1.6.0-20261022 |
+| FO-GUI-015 | SRD-GUI-015.001, .007, .013 | DD-GUI-015.001.D01 | MD-GUI-015.001.M06 | UT-GUI-015.001.M06.T01–T02, .007.M06.T01–T03, .013.M06.T01–T03 | `gui/indicator_rules_dialog.py` | Implemented | RN-GUI-1.6.0-20261022 |
+| FO-GUI-015 | SRD-GUI-015.014 | DD-GUI-015.001.D01 | MD-GUI-003.001.M01 | UT-GUI-015.014.M01.T01–T02 | `gui/screener_panel.py` | Implemented | RN-GUI-1.6.0-20261022 |
+| FO-GUI-016 | SRD-GUI-016.004, .008 | DD-GUI-016.001.D01 | MD-GUI-016.004.M07 | UT-GUI-016.004.M07.T01–T02, .008.M07.T01–T02 | `gui/pattern_rule_model.py` | Implemented | RN-GUI-1.7.0-20261022 |
+| FO-GUI-016 | SRD-GUI-016.001, .003, .006, .007, .009, .011 | DD-GUI-016.001.D01 | MD-GUI-016.001.M08 | UT-GUI-016.001.M08.T01–T02, .003.M08.T01–T03, .006.M08.T01, .007.M08.T01–T03, .009.M08.T01–T03, .011.M08.T01–T02 | `gui/price_action_rules_dialog.py` | Implemented | RN-GUI-1.7.0-20261022 |
+| FO-GUI-016 | SRD-GUI-016.002 | DD-GUI-016.001.D01 | MD-GUI-015.003.M04 | UT-GUI-016.002.M04.T01–T02 | `gui/indicator_library_model.py` | Implemented | RN-GUI-1.7.0-20261022 |
+| FO-GUI-016 | SRD-GUI-016.005 | DD-GUI-016.001.D01 | MD-GUI-015.009.M03 | UT-GUI-016.005.M03.T01–T02 | `gui/indicator_rule_delegates.py`, `gui/indicator_rule_model.py` | Implemented | RN-GUI-1.7.0-20261022 |
+| FO-GUI-016 | SRD-GUI-016.006 | DD-GUI-016.001.D01 | MD-GUI-015.011.M05 | UT-GUI-016.006.M05.T01 | `gui/indicator_params_dialog.py` | Implemented | RN-GUI-1.7.0-20261022 |
+| FO-GUI-016 | SRD-GUI-016.010 | DD-GUI-016.001.D01 | MD-GUI-003.001.M01 | UT-GUI-016.010.M01.T01–T02 | `gui/screener_panel.py` | Implemented | RN-GUI-1.7.0-20261022 |
 
 ---
 
@@ -51,6 +70,7 @@
 | `data/models.py` (FilteredStockEntry) | MD-GUI-004.001.M01 | SRD-GUI-004.007 | FO-GUI-004 |
 | `gui/position_monitor_panel.py` | MD-GUI-005.001.M01 | SRD-GUI-005.001–004 | FO-GUI-005 |
 | `gui/settings_panel.py` | MD-GUI-006.001.M01 | SRD-GUI-006.001–005, SRD-GUI-006.018 | FO-GUI-006 |
+| `gui/settings_panel.py` (ISS-GUI-0005 fix) | MD-GUI-006.001.M01 | SRD-GUI-006.002 | FO-GUI-006 |
 | `gui/scheduler_dialog.py` | MD-GUI-000.004 | SRD-GUI-006.005, SRD-GUI-006.017 | FO-GUI-006 |
 | `gui/scheduler_store.py` | MD-GUI-000.003 | SRD-GUI-006.005, SRD-GUI-006.017 | FO-GUI-006 |
 | `gui/log_viewer_panel.py` | MD-GUI-007.001.M01 | SRD-GUI-007.001–004 | FO-GUI-007 |
@@ -63,6 +83,14 @@
 | `gui/active_cycles_panel.py` | MD-GUI-014.001.M01 | SRD-GUI-014.001, .003–.005, .008–.012 | FO-GUI-014 |
 | `gui/active_cycles_model.py` | MD-GUI-014.001.M02 | SRD-GUI-014.002, .004 | FO-GUI-014 |
 | `gui/risk_editor_widget.py` | MD-GUI-014.001.M03 | SRD-GUI-014.007 | FO-GUI-014 |
+| `gui/frameless_dialog.py` | MD-GUI-015.002.M01 | SRD-GUI-015.002 | FO-GUI-015 |
+| `gui/indicator_rule_model.py` | MD-GUI-015.008.M02 | SRD-GUI-015.008 | FO-GUI-015 |
+| `gui/indicator_rule_delegates.py` | MD-GUI-015.009.M03 | SRD-GUI-015.009 | FO-GUI-015 |
+| `gui/indicator_library_model.py` | MD-GUI-015.003.M04 | SRD-GUI-015.003 | FO-GUI-015 |
+| `gui/indicator_params_dialog.py` | MD-GUI-015.011.M05 | SRD-GUI-015.011 | FO-GUI-015 |
+| `gui/indicator_rules_dialog.py` | MD-GUI-015.001.M06 | SRD-GUI-015.001 | FO-GUI-015 |
+| `gui/pattern_rule_model.py` | MD-GUI-016.004.M07 | SRD-GUI-016.004 | FO-GUI-016 |
+| `gui/price_action_rules_dialog.py` | MD-GUI-016.001.M08 | SRD-GUI-016.001 | FO-GUI-016 |
 
 ---
 

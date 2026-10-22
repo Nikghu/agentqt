@@ -1,5 +1,5 @@
 """Unit tests: MD-SCR-002.001.M04 — screeners/indicator.py
-Refs: UT-SCR-002.001.M04.T01 – UT-SCR-002.001.M04.T08
+Refs: UT-SCR-002.001.M04.T01 – UT-SCR-002.001.M04.T08, UT-SCR-015.010–.017 (M04)
 """
 from __future__ import annotations
 
@@ -169,3 +169,142 @@ def test_t08_batch_features_returns_empty():
     bars = {s: make_bars(s, n=30) for s in symbols}
     result = screener.batch_features(symbols, bars)
     assert result == {}
+
+
+# ---------------------------------------------------------------------------
+# FO-SCR-013 — rule-list screening (UT-SCR-015.*.M04)
+# ---------------------------------------------------------------------------
+
+def _rules_cfg(*rules: dict, **extra) -> dict:
+    return {"schema": 2, "rules": list(rules), **extra}
+
+
+_PASS_RULE = {"indicator_id": "price", "condition": "at_least", "value": 0.0}
+_FAIL_RULE = {"indicator_id": "price", "condition": "at_least", "value": 1e9}
+
+
+def test_015_all_rules_pass():
+    """UT-SCR-015.010.M04.T01: all enabled rules pass → (True, 1.0)."""
+    bars = {"AAA": make_bars("AAA", n=60)}
+    cfg = _rules_cfg(_PASS_RULE, {"indicator_id": "rsi", "condition": "between",
+                                  "value": 0, "to": 100})
+    assert IndicatorScreener().apply(["AAA"], bars, cfg) == {"AAA": (True, 1.0)}
+
+
+def test_015_one_of_two_fails():
+    """UT-SCR-015.010.M04.T02: one of two rules fails → (False, 0.5)."""
+    bars = {"AAA": make_bars("AAA", n=60)}
+    cfg = _rules_cfg(_PASS_RULE, _FAIL_RULE)
+    assert IndicatorScreener().apply(["AAA"], bars, cfg) == {"AAA": (False, 0.5)}
+
+
+def test_015_disabled_rule_ignored():
+    """UT-SCR-015.010.M04.T03: disabled impossible rule is ignored."""
+    bars = {"AAA": make_bars("AAA", n=60)}
+    cfg = _rules_cfg(_PASS_RULE, {**_FAIL_RULE, "enabled": False})
+    assert IndicatorScreener().apply(["AAA"], bars, cfg) == {"AAA": (True, 1.0)}
+
+
+def test_015_no_enabled_rules():
+    """UT-SCR-015.010.M04.T04: empty rule list → every symbol (True, 1.0)."""
+    bars = {s: make_bars(s, n=30) for s in ("AAA", "BBB")}
+    result = IndicatorScreener().apply(["AAA", "BBB"], bars, _rules_cfg())
+    assert result == {"AAA": (True, 1.0), "BBB": (True, 1.0)}
+
+
+_RS_RULE = {"indicator_id": "rs_index", "condition": "at_least", "value": 60,
+            "params": {"slope_days": 0}}
+
+
+def test_015_rs_rule_passes_strongest():
+    """UT-SCR-015.011.M04.T01: RS ≥ 60 passes the top performer, fails the weakest."""
+    bars = {
+        "UP": make_bars("UP", n=300, trend=0.004, seed=1),
+        "MID": make_bars("MID", n=300, trend=0.0, seed=2),
+        "DOWN": make_bars("DOWN", n=300, trend=-0.004, seed=3),
+        "SPY": make_bars("SPY", n=300, seed=4),
+    }
+    result = IndicatorScreener().apply(["UP", "MID", "DOWN"], bars, _rules_cfg(_RS_RULE))
+    assert result["UP"][0] is True
+    assert result["DOWN"][0] is False
+
+
+def test_015_rs_rule_without_benchmark():
+    """UT-SCR-015.011.M04.T02: RS rule with no SPY bars raises."""
+    from us_swing.screener.screeners.indicator import BenchmarkDataUnavailableError
+
+    bars = {"AAA": make_bars("AAA", n=60)}
+    with pytest.raises(BenchmarkDataUnavailableError):
+        IndicatorScreener().apply(["AAA"], bars, _rules_cfg(_RS_RULE))
+
+
+def test_015_no_rs_rule_needs_no_benchmark():
+    """UT-SCR-015.011.M04.T03: RSI-only config runs without SPY."""
+    bars = {"AAA": make_bars("AAA", n=60)}
+    cfg = _rules_cfg({"indicator_id": "rsi", "condition": "between", "value": 0, "to": 100})
+    assert "AAA" in IndicatorScreener().apply(["AAA"], bars, cfg)
+
+
+_MCAP_RULE = {"indicator_id": "market_cap", "condition": "at_least", "value": 10}
+
+
+def test_015_market_cap_passes_large_cap():
+    """UT-SCR-015.012.M04.T01: cap 50e9 passes ≥ $10B."""
+    bars = {"AAA": make_bars("AAA", n=30)}
+    cfg = _rules_cfg(_MCAP_RULE, market_caps={"AAA": 50e9})
+    assert IndicatorScreener().apply(["AAA"], bars, cfg)["AAA"] == (True, 1.0)
+
+
+def test_015_market_cap_missing_fails():
+    """UT-SCR-015.012.M04.T02: symbol without a stored cap fails."""
+    bars = {"AAA": make_bars("AAA", n=30)}
+    cfg = _rules_cfg(_MCAP_RULE, market_caps={})
+    assert IndicatorScreener().apply(["AAA"], bars, cfg)["AAA"] == (False, 0.0)
+
+
+def test_015_detailed_keyed_by_rule_label():
+    """UT-SCR-015.016.M04.T01: screen_detailed keys are rule labels."""
+    bars = {"AAA": make_bars("AAA", n=80)}
+    cfg = _rules_cfg(
+        {"indicator_id": "rsi", "condition": "between", "value": 30, "to": 70},
+        {"indicator_id": "ema_50", "condition": "price_above"},
+    )
+    det = IndicatorScreener().screen_detailed(["AAA"], bars, cfg)
+    assert set(det["AAA"]) == {"RSI", "EMA(50)"}
+    assert isinstance(det["AAA"]["RSI"], float)
+
+
+def test_015_legacy_config_uses_wilder_math():
+    """UT-SCR-015.017.M04.T01: legacy dict result equals a manual TA-Lib evaluation."""
+    import numpy as np
+    import talib
+
+    bars = make_bars("AAA", n=60, seed=5)
+    close = np.asarray([b.close for b in bars])
+    high = np.asarray([b.high for b in bars])
+    low = np.asarray([b.low for b in bars])
+    rsi = talib.RSI(close, timeperiod=14)[-1]
+    atr_pct = talib.ATR(high, low, close, timeperiod=14)[-1] / close[-1] * 100
+    cfg = {"filters": {
+        "volatility": {"enabled": True, "min_atr_pct": 0.005},
+        "rsi": {"enabled": True, "min": 0, "max": 100, "period": 14},
+        "range": {"enabled": False}, "breakout": {"enabled": False},
+        "volume": {"enabled": False},
+    }}
+    expected_pass = int(atr_pct >= 0.5) + int(0 <= rsi <= 100)
+    passed, score = IndicatorScreener().apply(["AAA"], {"AAA": bars}, cfg)["AAA"]
+    assert score == pytest.approx(expected_pass / 2)
+    assert passed is (expected_pass == 2)
+
+
+def test_015_old_private_helpers_removed():
+    """UT-SCR-015.017.M04.T02: old helpers gone; id indicator_composite still registered."""
+    import inspect
+
+    import us_swing.screener as screener_pkg
+    from us_swing.screener.screeners import indicator as module
+
+    for name in ("_rsi", "_atr_pct", "_volume_ratio", "_is_breakout"):
+        assert not hasattr(module, name), name
+    source = inspect.getsource(screener_pkg)
+    assert 'register("indicator_composite", IndicatorScreener)' in source

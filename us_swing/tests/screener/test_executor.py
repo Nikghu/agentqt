@@ -925,3 +925,26 @@ def test_stage3_no_cap_when_within_limit(tmp_path: Path):
 
     sent = llm.apply.call_args[0][0]
     assert len(sent) == 20
+
+
+# ---------------------------------------------------------------------------
+# UT-SCR-015.012.M10.T01 — market caps reach Stage 2 screeners
+# ---------------------------------------------------------------------------
+
+def test_market_caps_passed_to_stage2(tmp_path: Path):
+    """UT-SCR-015.012.M10.T01: run_preset(market_caps=…) reaches screener config."""
+    preset = make_composite_preset("p1")
+    screener = _make_screener()
+    registry = ScreenerRegistry()
+    registry.register("indicator_composite", lambda: screener)
+    registry.register("indicator_volume", lambda: screener)
+
+    executor = PresetExecutor(
+        preset_manager=_mock_preset_manager(preset),
+        storage=_mock_storage(tmp_path),
+        registry=registry,
+    )
+    executor.run_preset("p1", "u", symbols=SYMBOLS_3, bars=BARS_3,
+                        market_caps={"AAPL": 1e10})
+    configs = [c.args[2] for c in screener.apply.call_args_list]
+    assert configs and all(cfg["market_caps"] == {"AAPL": 1e10} for cfg in configs)

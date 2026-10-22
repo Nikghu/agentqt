@@ -1323,6 +1323,335 @@ Turn 3:  assistant (end_turn): JSON ranking for all 10 symbols
 
 ---
 
+# FO-SCR-013 — Indicator Catalogue and Rule-List Screening
+
+## DD-SCR-015.001.D01 — Catalogue, Rule Model and Config Schema
+- **Status:** Draft
+
+**Parent SRDs:** SRD-SCR-015.001 through SRD-SCR-015.007, SRD-SCR-015.013, SRD-SCR-015.014
+
+### Package layout
+
+New shared package `src/us_swing/core/indicator_rules/` (same layout as `core/notifications/`: private `_*.py` modules, public API re-exported from `__init__`). No Qt imports; both `screener/` and `gui/` import from here and never from each other.
+
+| File | Holds |
+|---|---|
+| `_ta.py` | `BarArrays`, `Series` and TA-Lib backed series functions (DD-SCR-015.008.D01) |
+| `_catalogue.py` | `Category`, `Condition`, `IndicatorRuleError`, `ParamSpec`, `IndicatorSpec`, `CATALOGUE`, `get_spec()` (Condition lives here to avoid a catalogue↔rules import cycle) |
+| `_rules.py` | `Rule`, `default_rule()`, `rules_from_config()`, `rules_to_config()`, `rule_label()`, summaries |
+| `_evaluate.py` | `RuleContext`, `evaluate_rule()`, `rs_slope_up()` (DD-SCR-015.009.D01) |
+
+### Data types
+
+```python
+class Category(Enum):          # display order = declaration order
+    PRICE = "Price"; MOMENTUM = "Momentum"; TREND = "Trend"; VOLATILITY = "Volatility"
+    VOLUME = "Volume"; RELATIVE_STRENGTH = "Relative strength"
+    FUNDAMENTALS = "Fundamentals"; DIVIDENDS = "Dividends"; OTHERS = "Others"
+
+@dataclass(frozen=True, slots=True)
+class ParamSpec:
+    key: str; label: str; kind: Literal["int", "float"]
+    default: float; min: float; max: float; step: float = 1.0
+
+@dataclass(frozen=True, slots=True)
+class IndicatorSpec:
+    id: str; name: str; category: Category; description: str
+    params: tuple[ParamSpec, ...]
+    conditions: tuple[Condition, ...]          # first = default condition
+    default_value: float | None; default_to: float | None
+    value_min: float; value_max: float; unit: str   # "", "%", "$", "×", "$B"
+    compute: Callable[[BarArrays, Mapping[str, float]], Series] | None
+    context: Literal["none", "rs", "market_cap"] = "none"
+    available: bool = True; unavailable_reason: str = ""
+
+class Condition(Enum):   # value = stored string; .label for GUI
+    AT_LEAST="at_least"; AT_MOST="at_most"; BETWEEN="between"
+    CROSSES_ABOVE="crosses_above"; CROSSES_BELOW="crosses_below"
+    PRICE_ABOVE="price_above"; PRICE_BELOW="price_below"; IS_TRUE="is_true"
+
+@dataclass(frozen=True, slots=True)
+class Rule:
+    indicator_id: str; condition: Condition
+    value: float | None = None; to: float | None = None
+    params: Mapping[str, float] = field(default_factory=dict); enabled: bool = True
+```
+
+`Series` is a small frozen pair `(value: ndarray, reference: ndarray | None)`; `reference` is the signal line for MACD/PPO crosses.
+
+`Condition` also exposes `label` (GUI text, e.g. "at least"), `needs_value` (false for crosses, price above/below, is true) and `needs_to` (true only for between). Helpers used by the GUI: `get_spec(id)`, `default_rule(spec)` (first condition, catalogue default value/to/params), `params_summary(rule)` (e.g. `12 · 26 · 9`).
+
+### Catalogue — release 1
+
+| id | Name | Category | Params (default) | Conditions | Unit | Compute |
+|---|---|---|---|---|---|---|
+| `price` | Price | Price | — | between, at least, at most | $ | close |
+| `atr_pct` | ATR % | Volatility | period 14 | at least, at most, between | % | `atr / close × 100` |
+| `rsi` | RSI | Momentum | period 14 | between, at least, at most | — | Wilder RSI |
+| `macd` | MACD | Momentum | fast 12, slow 26, signal 9 | crosses above, crosses below, at least, at most | — | line, ref = signal |
+| `macd_hist` | MACD Histogram | Momentum | same | at least, at most, between | — | histogram |
+| `macd_signal` | MACD Signal Line | Momentum | same | at least, at most, between | — | signal |
+| `ppo` / `ppo_hist` / `ppo_signal` | PPO family | Momentum | fast 12, slow 26, signal 9 | as MACD family | % | PPO via EMA, signal = EMA(PPO, 9) |
+| `ema_20` / `ema_50` / `ema_100` / `ema_200` | EMA(N) | Trend | period N | price above, price below | $ | EMA |
+| `price_ema_20` / `_50` / `_100` | Price/EMA(N) | Trend | period N | at least, at most, between | % | `close / EMA × 100` |
+| `breakout` | Breakout (N-bar high) | Trend | lookback 10 | is true | — | `close[-1] > max(close[-1-N:-1])` (legacy semantics; numpy window, since TA-Lib MAX needs N ≥ 2) |
+| `volume_ratio` | Volume ratio | Volume | MA period 10 | at least | × | `vol[-1] / mean(vol[-1-N:-1])` (legacy semantics) |
+| `rvol_1d` | RVOL (1 Day) | Volume | lookback 20 | at least | × | same function, 20-day default |
+| `rvol_3m` `rvol_5m` `rvol_10m` `stvol_3m` `stvol_5m` `stvol_10m` | RVOL / Short-Term Volume (N Min) | Volume | — | at least | × | `None`, `available=False`, reason "needs intraday data" |
+| `rs_index` | RS Index | Relative strength | slope days 63 (0 = off) | at least | percentile | context `rs` |
+| `market_cap` | Market Cap | Fundamentals | — | at least, at most, between | $B | context `market_cap` |
+
+Dividends and Others have no entries in release 1; the GUI hides empty categories.
+
+### Config schema v2
+
+```json
+{"schema": 2,
+ "rules": [{"indicator_id": "rsi", "condition": "between", "value": 30, "to": 70,
+            "params": {"period": 14}, "enabled": true}],
+ "benchmark_symbol": "SPY"}
+```
+
+`rules_from_config(cfg)`:
+1. `"rules"` present → parse each entry; missing params filled from catalogue defaults.
+2. Otherwise → legacy mapping below from `cfg.get("filters", {})`. An absent section uses the legacy defaults, so `{}` gives the 5 legacy rules on and RS off (same as today's engine).
+3. Unknown id or unavailable indicator → `IndicatorRuleError("[Screener] Unknown indicator: …")`.
+
+| Legacy section | Rule |
+|---|---|
+| `volatility{min_atr_pct}` | `atr_pct` at least `min_atr_pct × 100` (fraction → percent) |
+| `rsi{min,max,period}` | `rsi` between min..max, period |
+| `range{min_price,max_price}` | `price` between min..max |
+| `breakout{lookback}` | `breakout` is true, lookback |
+| `volume{min_volume_ratio,ma_period}` | `volume_ratio` at least ratio, period = ma_period |
+| `rs_index{rs_min_percentile,rs_slope_days}` | `rs_index` at least percentile, slope_days |
+
+`enabled` is copied; default `True` except `rs_index` (`False`). The legacy dict is never written again — the next save stores schema 2.
+
+### Notes
+- **EXE strategy-builder catalogue** (`gui/strategy_builder_dialog.py::_INDICATOR_DATA`, SRD-GUI-013.006) is not merged: it feeds an expression evaluator over `dict[tf, DataFrame]` returning last values. A shared catalogue is tracked as TODO T36.
+- **Doc mismatch (record only):** MD-SCR-007.011.M17 names `screener/gui/preset_builder.py`, but the builder lives in `gui/screener_panel.py::_PresetBuilderDialog`.
+
+## DD-SCR-015.008.D01 — Indicator Math
+- **Status:** Draft
+
+**Parent SRDs:** SRD-SCR-015.008
+
+- Input `BarArrays(open, high, low, close, volume)` as `float64` numpy arrays, built once per symbol from the bar list.
+- `atr` = `talib.ATR(high, low, close, period)` (Wilder). `rsi` = `talib.RSI(close, period)` (Wilder). `ema` = `talib.EMA`. `macd` = `talib.MACD(close, fast, slow, signal)`.
+- PPO: `ema_f = EMA(close, fast)`, `ema_s = EMA(close, slow)`, `ppo = (ema_f − ema_s) / ema_s × 100`, `signal = EMA(ppo, signal)`, `hist = ppo − signal` (TA-Lib `PPO` has no signal output).
+- **Result change:** ATR (was mean of high − low) and RSI (was simple averages; 50 when short) now use Wilder. Old presets give slightly different symbols; recorded in the RN.
+
+## DD-SCR-015.009.D01 — Rule Evaluation and Screener Integration
+- **Status:** Draft
+
+**Parent SRDs:** SRD-SCR-015.009 through SRD-SCR-015.012, SRD-SCR-015.015 through SRD-SCR-015.017
+
+### `evaluate_rule(rule, symbol, arrays, ctx) -> tuple[bool, float | None]`
+- Params are clamped to their ParamSpec min–max before computing, so a bad stored value cannot break TA-Lib.
+- Last value `v = series.value[-1]`; NaN or too few bars → `(False, None)`.
+- at least `v ≥ value`; at most `v ≤ value`; between `value ≤ v ≤ to` (inclusive).
+- crosses above `value[-2] ≤ ref[-2] and value[-1] > ref[-1]`; crosses below mirrored.
+- price above `close[-1] > v`; price below `close[-1] < v`; is true `v == 1.0`.
+- Context `rs`: `v = ctx.rs_ranks[sym]`; passes if `v ≥ value` and, when `slope_days > 0`, the RS line rises over `slope_days` (existing `_rs_slope` logic moves to `_evaluate.py`).
+- Context `market_cap`: `v = ctx.market_caps[sym] / 1e9`; missing → fail.
+
+### `IndicatorScreener.apply(symbols, bars, config)`
+1. `rules = [r for r in rules_from_config(config) if r.enabled]`.
+2. If any rule is `rs_index`: compute RS ranks once (`_compute_rs_ranks`, unchanged) — missing benchmark raises `BenchmarkDataUnavailableError`.
+3. `ctx = RuleContext(rs_ranks, market_caps=config.get("market_caps", {}), benchmark_arrays)`.
+4. Per symbol: build `BarArrays`; `passed = Σ ok`; result `(passed == n, passed / n)`; `n == 0` → `(True, 1.0)`.
+
+`screen_detailed()` runs the same loop and returns `{rule_label(rule): value}` (short names such as `RSI`, `EMA(50)`), because the GUI Details column already prefixes the full `config_summary()`.
+
+### Executor hand-off
+`PresetExecutor._run_stage2` gains a `market_caps` argument and calls `apply(symbols, bars, {**ref.config, "market_caps": caps})`. Other screeners ignore the extra key. `run_preset` already receives `market_caps`.
+
+### Summary text
+`rule_summary(rule)` → short label e.g. `RSI 30–70 (14)`, `ATR ≥ 1.0%`, `$5–$5K`, `Breakout 10`, `Vol ≥ 1.0×`, `RS ≥ 70 sl63`, `MACD ↑ signal`, `Price > EMA(50)`. `config_summary(cfg)` joins enabled rules with `"  ·  "`, matching today's Details format.
+
+---
+
+# FO-SCR-014 — Price Action Pattern Catalogue and Rule-List Screening
+
+## DD-SCR-016.001.D01 — Pattern Catalogue, Rule Model and Config Schema
+- **Status:** Draft
+
+**Parent SRDs:** SRD-SCR-016.001, .002, .007 through .010, .014
+
+### Package layout
+
+New package `src/us_swing/core/price_patterns/`, same layout as `core/indicator_rules/`. It reuses `ParamSpec`, `BarArrays` and `ema()` from `core.indicator_rules` (an import inside `core/`). No Qt imports.
+
+| File | Holds |
+|---|---|
+| `_spec.py` | `PatternCategory`, `Direction`, `PatternRuleError`, `PatternSpec` (kept apart so `_candles` / `_breakouts` can build specs without an import cycle) |
+| `_candles.py` | TA-Lib candle table and `candle_specs()` factory (DD-SCR-016.003.D01) |
+| `_breakouts.py` | 20 detect functions and `breakout_specs()` (DD-SCR-016.005.D01) |
+| `_rules.py` | `PatternRule`, `default_pattern_rule()`, `pattern_rules_from_config()`, `pattern_rules_to_config()`, `pattern_settings_summary()`, `pattern_config_summary()` |
+| `_evaluate.py` | `evaluate_pattern()` (DD-SCR-016.011.D01) |
+
+### Data types
+
+```python
+class PatternCategory(Enum):     # display order = declaration order
+    BULLISH_CANDLES = "Bullish candles"; BEARISH_CANDLES = "Bearish candles"
+    NEUTRAL_CANDLES = "Neutral candles"; BREAKOUT = "Breakout"; TREND = "Trend"
+    VOLATILITY = "Volatility"; CHART_SHAPES = "Chart shapes"
+
+class Direction(Enum): BULLISH = "bullish"; BEARISH = "bearish"; NEUTRAL = "neutral"
+
+Detect = Callable[[BarArrays, Mapping[str, float]], bool]
+MinBars = Callable[[Mapping[str, float]], int]
+
+@dataclass(frozen=True, slots=True)
+class PatternSpec:
+    id: str; name: str; short: str          # short: Details key, no "_" (GUI splits on "_")
+    category: PatternCategory; direction: Direction; description: str
+    params: tuple[ParamSpec, ...]; min_bars: MinBars; detect: Detect
+    available: bool = True; unavailable_reason: str = ""   # same shape as IndicatorSpec for the GUI tree
+
+@dataclass(frozen=True, slots=True)
+class PatternRule:
+    pattern_id: str; params: Mapping[str, float] = {}; enabled: bool = True
+```
+
+`PATTERNS = candle_specs() + breakout_specs()` (47 entries). `get_pattern(id)` raises `PatternRuleError` for unknown ids.
+
+### Config schema v2
+
+```json
+{"schema": 2, "threshold": 0.2,
+ "rules": [{"pattern_id": "hammer", "params": {"within": 1}, "enabled": true}, ...]}
+```
+
+- `pattern_rules_to_config(rules, threshold)` writes all params (filled with defaults) so a round trip is lossless.
+- `pattern_rules_from_config(cfg) -> tuple[list[PatternRule], float]`:
+  - `"rules"` present → parse each dict. Unknown id, unknown param key, non-numeric value or non-list `rules` → `PatternRuleError`. Missing params take the defaults.
+  - otherwise → legacy reader (below).
+  - The threshold is `float(cfg.get("threshold", 0.2))`; a non-number raises `PatternRuleError`. The range check stays in the screener (`ScreenerError`, SRD-SCR-016.012).
+
+### Legacy mapping (old `patterns` dict)
+
+| Legacy section | Default on | Rule id | Params kept |
+|---|---|---|---|
+| `proximity_52w_high` | yes | `proximity_52w_high` | `min_ratio`, `lookback` |
+| `volume_breakout` | yes | `volume_breakout` | `lookback`, `vol_multiplier` |
+| `nr7_compression` | no | `nr7_compression` | — |
+| `ema_pullback` | no | `ema_pullback` | `ema_period` |
+| `engulfing` | no | `bullish_engulfing` | — (`within` = 1) |
+
+Missing sections use these defaults, so `{}` gives the old default (2 of 5 on, threshold 0.2). Legacy Engulfing was a custom 2-bar check; TA-Lib `CDLENGULFING` needs 3 bars and may differ on equal open/close prices — recorded in the RN.
+
+### Summary text
+- `pattern_settings_summary(rule)` uses the shared `format_param_values(params, values)` helper. It moves out of `indicator_rules._rules.settings_summary`, which keeps the same output. One param → `ParamSpec.display` text (`1-bar window`, `EMA 21`). Several → values joined with ` · `. No params → "".
+- `pattern_config_summary(cfg)` → `"PA ≥ 20%  ·  52wHigh  ·  VolBreak"`: the threshold as a whole percent, then each enabled rule's `short`. It returns "" when no rule is enabled or the config cannot be read.
+
+## DD-SCR-016.003.D01 — Candlestick Patterns (TA-Lib)
+- **Status:** Draft
+
+**Parent SRDs:** SRD-SCR-016.003, SRD-SCR-016.004
+
+- `signal = talib.CDLxxx(open, high, low, close)` (int array, ±100 or 0), using TA-Lib's default candle settings. There is no extra trend filter.
+- Match: `sign` is `+1` (`signal > 0`), `−1` (`signal < 0`) or `0` (`signal != 0`), checked on any of the last `within` bars.
+- Param `within` (int, 1–5, default 1, display `{}-bar window`).
+- `min_bars = abstract.Function(name).lookback + within`, read once when the module loads.
+- One-sided functions return a single sign that does not always match the pattern's direction. For example, `CDLGRAVESTONEDOJI` returns +100, so those entries use `sign = 0`.
+
+| id | Name | Function | sign | Short |
+|---|---|---|---|---|
+| `hammer` | Hammer | CDLHAMMER | 0 | Hammer |
+| `inverted_hammer` | Inverted Hammer | CDLINVERTEDHAMMER | 0 | InvHammer |
+| `bullish_engulfing` | Bullish Engulfing | CDLENGULFING | +1 | BullEngulf |
+| `piercing_line` | Piercing Line | CDLPIERCING | 0 | Piercing |
+| `morning_star` | Morning Star | CDLMORNINGSTAR | 0 | MornStar |
+| `morning_doji_star` | Morning Doji Star | CDLMORNINGDOJISTAR | 0 | MornDoji |
+| `bullish_harami` | Bullish Harami | CDLHARAMI | +1 | BullHarami |
+| `three_white_soldiers` | Three White Soldiers | CDL3WHITESOLDIERS | 0 | 3Soldiers |
+| `three_inside_up` | Three Inside Up | CDL3INSIDE | +1 | 3InUp |
+| `three_outside_up` | Three Outside Up | CDL3OUTSIDE | +1 | 3OutUp |
+| `dragonfly_doji` | Dragonfly Doji | CDLDRAGONFLYDOJI | 0 | Dragonfly |
+| `shooting_star` | Shooting Star | CDLSHOOTINGSTAR | 0 | ShootStar |
+| `hanging_man` | Hanging Man | CDLHANGINGMAN | 0 | HangMan |
+| `bearish_engulfing` | Bearish Engulfing | CDLENGULFING | −1 | BearEngulf |
+| `dark_cloud_cover` | Dark Cloud Cover | CDLDARKCLOUDCOVER | 0 | DarkCloud |
+| `evening_star` | Evening Star | CDLEVENINGSTAR | 0 | EveStar |
+| `evening_doji_star` | Evening Doji Star | CDLEVENINGDOJISTAR | 0 | EveDoji |
+| `bearish_harami` | Bearish Harami | CDLHARAMI | −1 | BearHarami |
+| `three_black_crows` | Three Black Crows | CDL3BLACKCROWS | 0 | 3Crows |
+| `three_inside_down` | Three Inside Down | CDL3INSIDE | −1 | 3InDown |
+| `three_outside_down` | Three Outside Down | CDL3OUTSIDE | −1 | 3OutDown |
+| `gravestone_doji` | Gravestone Doji | CDLGRAVESTONEDOJI | 0 | Gravestone |
+| `doji` | Doji | CDLDOJI | 0 | Doji |
+| `spinning_top` | Spinning Top | CDLSPINNINGTOP | 0 | SpinTop |
+| `marubozu` | Marubozu | CDLMARUBOZU | 0 | Marubozu |
+| `three_methods` | Rising/Falling Three Methods | CDLRISEFALL3METHODS | 0 | 3Methods |
+| `kicker` | Kicker | CDLKICKING | 0 | Kicker |
+
+The first 11 rows are Bullish candles, the next 11 are Bearish candles and the last 5 are Neutral candles. Each entry's direction follows its group.
+
+## DD-SCR-016.005.D01 — Breakout, Trend, Volatility and Chart-Shape Patterns
+- **Status:** Draft
+
+**Parent SRDs:** SRD-SCR-016.005, SRD-SCR-016.006
+
+**Notation:**
+- `O H L C V` are float64 arrays and `[-1]` is the last bar.
+- `prior(k)` is the k bars before the last bar, `x[-(k+1):-1]`.
+- `rng = H − L`.
+- `ema()` is TA-Lib's EMA, except that EMA Pullback uses `_seeded_ema`, seeded from the first close as in legacy `analysis.indicators.ema`, so its results are identical.
+
+| id | Name (category, direction) | Params (default, range) | Match on last bar | min_bars |
+|---|---|---|---|---|
+| `proximity_52w_high` | Near 52-Week High (Breakout, bull) | `min_ratio` 0.90 (0.50–1.00), `lookback` 252 (20–504) | `C[-1] / max(H[-lookback:]) ≥ min_ratio` (all bars if fewer) | 2 |
+| `high_52w_breakout` | 52-Week High Breakout (Breakout, bull) | `lookback` 252 (20–504) | `C[-1] > max(prior(lookback) H)` | lookback + 1 |
+| `volume_breakout` | Volume Breakout (Breakout, bull) | `lookback` 20 (5–100), `vol_multiplier` 1.5 (1.0–5.0) | `C[-1] > max(prior H)` and `V[-1] > mean(prior V) × vol_multiplier` | lookback + 1 |
+| `gap_up` | Gap Up (Breakout, bull) | `min_gap` 1.0 % (0.1–20) | `L[-1] > H[-2]` and `(O[-1] / H[-2] − 1) × 100 ≥ min_gap` | 2 |
+| `pocket_pivot` | Pocket Pivot (Breakout, bull) | `lookback` 10 (5–20), `ema_period` 10 (5–50) | `C[-1] > C[-2]`, `V[-1] >` the largest volume of a down-close day in `prior(lookback)` (0 if none), and `C[-1] ≥ ema(C, ema_period)[-1]` | max(lookback + 2, ema_period) |
+| `darvas_box` | Darvas Box Breakout (Breakout, bull) | `box_bars` 20 (10–60), `max_depth` 15 % (3–30) | `top = max(prior H)`, `bottom = min(prior L)`; `(top − bottom) / top × 100 ≤ max_depth` and `C[-1] > top` | box_bars + 1 |
+| `bull_flag` | Bull Flag (Breakout, bull) | `pole_bars` 5 (3–20), `min_pole_gain` 10 % (5–50), `flag_bars` 5 (3–20) | The pole runs from bar `s = n − 2 − flag − pole` to `e = s + pole`, with `gain = (C[e] / C[s] − 1) × 100 ≥ min_pole_gain`. The flag is `prior(flag_bars)`, and `min(flag L) ≥ C[e] − 0.5 × (C[e] − C[s])`. Breakout: `C[-1] > max(flag H)`. | pole + flag + 2 |
+| `ema_pullback` | EMA Pullback (Trend, bull) | `ema_period` 21 (5–200) | `C[-2] < E[-2]` and `C[-1] ≥ E[-1]` with `E = _seeded_ema` | ema_period + 1 |
+| `higher_highs_lows` | Higher Highs & Lows (Trend, bull) | `swing_bars` 5 (2–20), `swings` 3 (2–5) | Split the last `swings × swing_bars` bars into `swings` windows. Each window's `max H` and `min L` must be above the previous window's. | swings × swing_bars |
+| `lower_highs_lows` | Lower Highs & Lows (Trend, bear) | same | Mirror of the above (each below the previous) | swings × swing_bars |
+| `golden_cross` | Golden Cross (Trend, bull) | `fast` 50 (10–100), `slow` 200 (50–300), `within` 5 (1–20) | `Ef = ema(C, fast)`, `Es = ema(C, slow)`. Some `j` in the last `within` bars has `Ef[j−1] ≤ Es[j−1]` and `Ef[j] > Es[j]`. No match if `fast ≥ slow`. | slow + within |
+| `fib_retracement_sell` | Fib Retracement (Sell) (Trend, bear) | `lookback` 60 (20–250), `zone_from` 50 % (20–90), `zone_to` 61.8 % (20–90), `min_move` 10 % (3–50) | In `W = last lookback bars`: `b = argmin L` (not the last bar), `a = argmax H` over bars before `b`, `b − a ≥ 5`, `leg = H[a] − L[b] ≥ H[a] × min_move / 100`. Zone `[L[b] + leg × zone_from, L[b] + leg × zone_to]`. Match when `H[-1] ≥` zone bottom and every close after `b` is `≤` zone top. No match if `zone_from > zone_to`. | lookback |
+| `fib_retracement_buy` | Fib Retracement (Buy) (Trend, bull) | same | Mirror: `b = argmax H` (not the last bar), `a = argmin L` before `b`, `leg = H[b] − L[a] ≥ L[a] × min_move / 100`. Zone `[H[b] − leg × zone_to, H[b] − leg × zone_from]`. Match when `L[-1] ≤` zone top and every close after `b` is `≥` zone bottom. | lookback |
+| `gap_down` | Gap Down (Trend, bear) | `min_gap` 1.0 % (0.1–20) | `H[-1] < L[-2]` and `(1 − O[-1] / L[-2]) × 100 ≥ min_gap` | 2 |
+| `outside_bar` | Outside Bar (Trend, neutral) | — | `H[-1] > H[-2]` and `L[-1] < L[-2]` | 2 |
+| `nr7_compression` | NR7 (Volatility, neutral) | — | `rng[-1] == min(rng[-7:])` | 7 |
+| `nr4` | NR4 (Volatility, neutral) | — | `rng[-1] == min(rng[-4:])` | 4 |
+| `inside_bar` | Inside Bar (Volatility, neutral) | — | `H[-1] < H[-2]` and `L[-1] > L[-2]` | 2 |
+| `vcp` | Volatility Contraction (VCP) (Volatility, bull) | `lookback` 60 (30–250), `contractions` 3 (2–4), `final_depth` 10 % (2–20) | Split the last `lookback` bars into `contractions` equal windows, with `depth = (max H − min L) / max H × 100`. Depths must strictly fall and the last must be ≤ `final_depth`. Also needs `mean V(last window) < mean V(first window)` and `C[-1] ≥ max(H[-lookback:]) × (1 − final_depth / 100)`. | lookback |
+| `bollinger_squeeze` | Bollinger Squeeze (Volatility, neutral) | `period` 20 (10–50), `lookback` 120 (20–250) | `upper, mid, lower = talib.BBANDS(C, period, 2, 2)`, `w = (upper − lower) / mid`; `w[-1] < min(w[-lookback:-1])` (strict new low, so a flat series never matches; any NaN → no match) | period + lookback − 1 |
+| `double_bottom` ⚠ | Double Bottom (Chart shapes, bull) | `lookback` 60 (30–250), `tolerance` 3 % (1–10), `within` 5 (1–20) | In `W = last lookback bars`, `a = argmin L` over the first half and `b = argmin L` over the second half (excluding the last bar). Needs `b − a ≥ 10`, `abs(L[b] / L[a] − 1) × 100 ≤ tolerance`, `neck = max H[a..b] ≥ max(L[a], L[b]) × 1.05`, `C[-1] > neck`, and the first `C > neck` after `b` is in the last `within` bars (SRD-SCR-016.017). | lookback |
+| `cup_with_handle` ⚠ | Cup with Handle (Chart shapes, bull) | `lookback` 130 (60–250), `max_depth` 35 % (12–50), `handle_bars` 10 (5–20) | The cup is the `lookback − handle_bars − 1` bars before the handle, and the handle is `prior(handle_bars)`. Take `left = max H` of the cup's first third, `bottom = min L` of the cup, and `right = max H` of the cup's last third. Needs `12 ≤ (left − bottom) / left × 100 ≤ max_depth`, `right ≥ 0.95 × left`, `min(handle L) ≥ right − 0.5 × (right − bottom)`, and `C[-1] > max(handle H)`. | lookback |
+| `double_top` ⚠ | Double Top (Chart shapes, bear) | `lookback` 60 (30–250), `tolerance` 3 % (1–10), `within` 5 (1–20) | Mirror of Double Bottom: `a = argmax H` over the first half, `b = argmax H` over the second half (excluding the last bar), `b − a ≥ 10`, `abs(H[b] / H[a] − 1) × 100 ≤ tolerance`, `neck × 1.05 ≤ min(H[a], H[b])` with `neck = min L[a..b]`, `C[-1] < neck`, and the first `C < neck` after `b` is in the last `within` bars. | lookback |
+| `double_top_pullback` ⚠ | Double Top Pullback (Chart shapes, bear) | `lookback` 60 (30–250), `tolerance` 3 % (1–10), `within` 10 (2–30), `near` 2 % (0.5–5) | Same top shape and neck. The first `C < neck` after `b` is 1 to `within` bars ago, every close since then is below the neck, and `H[-1] ≥ neck × (1 − near / 100)` — the bounce has reached the broken neck (sell-entry zone). | lookback |
+
+⚠ The chart shapes are rough code checks. They can give false matches, and the RN says so. Each existing pattern keeps its legacy formula exactly.
+
+## DD-SCR-016.011.D01 — Evaluation and Screener Integration
+- **Status:** Draft
+
+**Parent SRDs:** SRD-SCR-016.011 through SRD-SCR-016.015
+
+### `evaluate_pattern(rule, arrays) -> bool`
+1. `spec = get_pattern(rule.pattern_id)`. Params = defaults updated with `rule.params`, each clamped to its ParamSpec min–max and rounded for `int` kinds.
+2. `len(arrays.close) < spec.min_bars(params)` → `False`.
+3. `bool(spec.detect(arrays, params))`. A NaN compares as false, so it gives no match.
+
+### `PriceActionScreener.apply(symbols, bars, config)`
+1. `rules, threshold = pattern_rules_from_config(config)`; keep only enabled rules (`n` of them).
+2. A threshold outside 0–1 raises `ScreenerError` (same message style as today).
+3. For each symbol: fewer than 2 bars → left out. Otherwise `arrays = BarArrays.from_bars(bars)`, `m = Σ evaluate_pattern`, `score = m / n` if `n` else `0.0`, and the result is `(score ≥ threshold, round(score, 4))`.
+4. One DEBUG log line: `[Screener] Price action screened %d stock(s), %d passed`.
+
+`screen_detailed()` runs the same loop and returns `{spec.short: bool}` for each enabled rule. The GUI Details column already shows bool values as ✔ / ✘.
+
+The registry id stays `price_action`. The module no longer imports `us_swing.analysis.indicators`.
+
+---
+
 ## Notes for Implementation
 
 1. **Backward Compatibility:** v1 ScreenerEngine **removed entirely**. No conditional "if v1 else v2" logic.

@@ -131,7 +131,7 @@ class PresetExecutor:
         )
 
         # --- Stage 2: Run screeners ----------------------------------------
-        stage2 = self._run_stage2(preset, filtered, bars)
+        stage2 = self._run_stage2(preset, filtered, bars, market_caps)
 
         # --- Combine per preset type ---------------------------------------
         combined = self._combine_results(preset, stage2, filtered)
@@ -157,7 +157,8 @@ class PresetExecutor:
                     screener = registry.get(ref.screener_id)
                     if hasattr(screener, "screen_detailed"):
                         detail_map = screener.screen_detailed(
-                            passing_syms, bars, ref.config
+                            passing_syms, bars,
+                            {**ref.config, "market_caps": market_caps or {}},
                         )
                         for sym, det in detail_map.items():
                             if sym in combined:
@@ -197,8 +198,12 @@ class PresetExecutor:
         preset: Preset,
         symbols: list[str],
         bars: dict[str, list[Any]],
+        market_caps: dict[str, float] | None = None,
     ) -> dict[str, dict[str, tuple[bool, float]]]:
         """Call every enabled screener and collect per-symbol (passed, score).
+
+        ``market_caps`` is passed to each screener as ``config["market_caps"]``
+        (SRD-SCR-015.012); screeners that do not use it ignore the key.
 
         Returns:
             ``{screener_id: {symbol: (passed, score)}}``
@@ -233,7 +238,8 @@ class PresetExecutor:
         # is synchronous in every implementation, so asyncio provides no benefit.
         def _apply(ref: Any) -> tuple[str, dict[str, tuple[bool, float]]]:
             screener = registry.get(ref.screener_id)
-            return ref.screener_id, screener.apply(symbols, bars, ref.config)
+            config = {**ref.config, "market_caps": market_caps or {}}
+            return ref.screener_id, screener.apply(symbols, bars, config)
 
         with concurrent.futures.ThreadPoolExecutor(
             max_workers=self._max_workers

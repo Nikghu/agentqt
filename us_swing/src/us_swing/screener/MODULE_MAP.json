@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-27T12:48:59",
+  "generated": "2026-10-22T08:17:24",
   "subfolder": "screener",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\screener",
   "tool_code": "SCR",
@@ -106,57 +106,57 @@
               "signature": "def run_preset(\r\n        self,\r\n        preset_id: str,\r\n        user_id: str,\r\n        manual: bool = True,\r\n        *,\r\n        symbols: list[str] | None = None,\r\n        bars: dict[str, list[Any]] | None = None,\r\n        preset: Preset | None = None,\r\n        market_caps: dict[str, float] | None = None,\r\n    ) -> ScreenerRunResult",
               "docstring": "Execute a preset and persist the result.",
               "line_start": 73,
-              "line_end": 189
+              "line_end": 190
             },
             {
               "name": "_run_stage2",
-              "signature": "def _run_stage2(\r\n        self,\r\n        preset: Preset,\r\n        symbols: list[str],\r\n        bars: dict[str, list[Any]],\r\n    ) -> dict[str, dict[str, tuple[bool, float]]]",
+              "signature": "def _run_stage2(\r\n        self,\r\n        preset: Preset,\r\n        symbols: list[str],\r\n        bars: dict[str, list[Any]],\r\n        market_caps: dict[str, float] | None = None,\r\n    ) -> dict[str, dict[str, tuple[bool, float]]]",
               "docstring": "Call every enabled screener and collect per-symbol (passed, score).",
-              "line_start": 195,
-              "line_end": 244
+              "line_start": 196,
+              "line_end": 250
             },
             {
               "name": "_combine_results",
               "signature": "def _combine_results(\r\n        self,\r\n        preset: Preset,\r\n        stage2: dict[str, dict[str, tuple[bool, float]]],\r\n        symbols: list[str],\r\n    ) -> dict[str, dict[str, Any]]",
-              "line_start": 250,
-              "line_end": 258
+              "line_start": 256,
+              "line_end": 264
             },
             {
               "name": "_composite_logic",
               "signature": "def _composite_logic(\r\n        self,\r\n        preset: Preset,\r\n        stage2: dict[str, dict[str, tuple[bool, float]]],\r\n        symbols: list[str],\r\n    ) -> dict[str, dict[str, Any]]",
               "docstring": "Symbol passes if ANY group passes (groups are OR-ed together).",
-              "line_start": 260,
-              "line_end": 298
+              "line_start": 266,
+              "line_end": 304
             },
             {
               "name": "_weighted_logic",
               "signature": "def _weighted_logic(\r\n        self,\r\n        preset: Preset,\r\n        stage2: dict[str, dict[str, tuple[bool, float]]],\r\n        symbols: list[str],\r\n    ) -> dict[str, dict[str, Any]]",
               "docstring": "Score = \u03a3(score_i \u00d7 weight_i) / \u03a3(weights) for enabled screeners.",
-              "line_start": 300,
-              "line_end": 323
+              "line_start": 306,
+              "line_end": 329
             },
             {
               "name": "_run_stage3",
               "signature": "def _run_stage3(\r\n        self,\r\n        preset: Preset,\r\n        combined: dict[str, dict[str, Any]],\r\n        bars: dict[str, list[Any]],\r\n        market_caps: dict[str, float] | None = None,\r\n    ) -> tuple[dict[str, dict[str, Any]], list[AITranscriptTurn]]",
               "docstring": "Re-rank Stage 2 passing symbols with CloudAIScreener.",
-              "line_start": 329,
-              "line_end": 416
+              "line_start": 335,
+              "line_end": 422
             },
             {
               "name": "_get_registry",
               "signature": "def _get_registry(self) -> ScreenerRegistry",
-              "line_start": 422,
-              "line_end": 423
+              "line_start": 428,
+              "line_end": 429
             },
             {
               "name": "_get_storage",
               "signature": "def _get_storage(self) -> ScreenerResultsStorage",
-              "line_start": 425,
-              "line_end": 426
+              "line_start": 431,
+              "line_end": 432
             }
           ],
           "line_start": 32,
-          "line_end": 426
+          "line_end": 432
         }
       ],
       "constants": [
@@ -973,85 +973,63 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, symbol: str) -> None",
-              "line_start": 17,
-              "line_end": 22
+              "line_start": 26,
+              "line_end": 31
             }
           ],
-          "line_start": 16,
-          "line_end": 22
+          "line_start": 25,
+          "line_end": 31
         },
         {
           "name": "InsufficientUniverseDataError",
-          "line_start": 25,
-          "line_end": 26
+          "line_start": 34,
+          "line_end": 35
         },
         {
           "name": "IndicatorScreener",
-          "docstring": "MD-SCR-002.001.M04 \u2014 indicator-based screener plugin.",
+          "docstring": "MD-SCR-002.001.M04 \u2014 rule-list indicator screener plugin.",
           "methods": [
             {
               "name": "apply",
-              "signature": "def apply(\n        self,\n        symbols: list[str],\n        bars: dict[str, list[Any]],\n        config: dict[str, Any],\n    ) -> dict[str, tuple[bool, float]]",
-              "line_start": 128,
-              "line_end": 207
+              "signature": "def apply(\r\n        self,\r\n        symbols: list[str],\r\n        bars: dict[str, list[Any]],\r\n        config: dict[str, Any],\r\n    ) -> dict[str, tuple[bool, float]]",
+              "line_start": 76,
+              "line_end": 96
             },
             {
               "name": "screen_detailed",
-              "signature": "def screen_detailed(\n        self,\n        symbols: list[str],\n        bars: dict[str, list[Any]],\n        config: dict[str, Any],\n    ) -> dict[str, dict[str, Any]]",
-              "docstring": "Return per-symbol indicator values for the enabled filters.",
-              "line_start": 209,
-              "line_end": 270
+              "signature": "def screen_detailed(\r\n        self,\r\n        symbols: list[str],\r\n        bars: dict[str, list[Any]],\r\n        config: dict[str, Any],\r\n    ) -> dict[str, dict[str, Any]]",
+              "docstring": "Return each enabled rule's last value per symbol, keyed by rule label.",
+              "line_start": 98,
+              "line_end": 122
             },
             {
               "name": "batch_features",
-              "signature": "def batch_features(\n        self,\n        symbols: list[str],\n        bars: dict[str, list[Any]],\n    ) -> dict[str, dict[str, Any]]",
-              "line_start": 272,
-              "line_end": 277
+              "signature": "def batch_features(\r\n        self,\r\n        symbols: list[str],\r\n        bars: dict[str, list[Any]],\r\n    ) -> dict[str, dict[str, Any]]",
+              "line_start": 124,
+              "line_end": 129
+            },
+            {
+              "name": "_prepare",
+              "signature": "def _prepare(\r\n        symbols: list[str],\r\n        bars: dict[str, list[Any]],\r\n        config: dict[str, Any],\r\n        *,\r\n        strict: bool,\r\n    ) -> tuple[list[Rule], RuleContext]",
+              "docstring": "Read enabled rules and build the shared context (RS ranks, market caps).",
+              "decorators": [
+                "@staticmethod"
+              ],
+              "line_start": 132,
+              "line_end": 160
             }
           ],
-          "line_start": 121,
-          "line_end": 277
+          "line_start": 69,
+          "line_end": 160
         }
       ],
       "top_level_functions": [
         {
-          "name": "_atr_pct",
-          "signature": "def _atr_pct(bars: list[Any], period: int = 14) -> float",
-          "docstring": "ATR as a fraction of closing price.",
-          "line_start": 33,
-          "line_end": 41
-        },
-        {
-          "name": "_rsi",
-          "signature": "def _rsi(bars: list[Any], period: int = 14) -> float",
-          "line_start": 44,
-          "line_end": 59
-        },
-        {
-          "name": "_volume_ratio",
-          "signature": "def _volume_ratio(bars: list[Any], period: int = 10) -> float",
-          "line_start": 62,
-          "line_end": 66
-        },
-        {
-          "name": "_is_breakout",
-          "signature": "def _is_breakout(bars: list[Any], lookback: int = 5) -> bool",
-          "line_start": 69,
-          "line_end": 73
-        },
-        {
-          "name": "_rs_slope",
-          "signature": "def _rs_slope(sym_bars: list[Any], bench_bars: list[Any], slope_days: int) -> bool",
-          "docstring": "Return True if the RS line (stock/benchmark) rose over the last slope_days bars.",
-          "line_start": 76,
-          "line_end": 87
-        },
-        {
           "name": "_compute_rs_ranks",
-          "signature": "def _compute_rs_ranks(\n    symbols: list[str],\n    bars: dict[str, list[Any]],\n    lookback: int = 252,\n) -> dict[str, float]",
+          "signature": "def _compute_rs_ranks(\r\n    symbols: list[str],\r\n    bars: dict[str, list[Any]],\r\n    lookback: int = 252,\r\n) -> dict[str, float]",
           "docstring": "Compute 252-day return percentile rank for each symbol (SRD-SCR-012.002/005).",
-          "line_start": 90,
-          "line_end": 114
+          "line_start": 38,
+          "line_end": 62
         }
       ]
     },
@@ -1158,67 +1136,35 @@
             {
               "name": "apply",
               "signature": "def apply(\n        self,\n        symbols: list[str],\n        bars: dict[str, list[Any]],\n        config: dict[str, Any],\n    ) -> dict[str, tuple[bool, float]]",
-              "docstring": "Screen symbols for OHLCV price action patterns.",
-              "line_start": 130,
-              "line_end": 207
+              "docstring": "Screen symbols for price action patterns.",
+              "line_start": 39,
+              "line_end": 79
             },
             {
               "name": "screen_detailed",
               "signature": "def screen_detailed(\n        self,\n        symbols: list[str],\n        bars: dict[str, list[Any]],\n        config: dict[str, Any],\n    ) -> dict[str, dict[str, Any]]",
-              "docstring": "Return per-pattern match details for each symbol (used by executor for DETAILS c",
-              "line_start": 209,
-              "line_end": 260
+              "docstring": "Return per-pattern match flags for each symbol (used by executor for DETAILS col",
+              "line_start": 81,
+              "line_end": 103
             },
             {
               "name": "batch_features",
               "signature": "def batch_features(\n        self,\n        symbols: list[str],\n        bars: dict[str, list[Any]],\n    ) -> dict[str, dict[str, Any]]",
-              "line_start": 262,
-              "line_end": 267
+              "line_start": 105,
+              "line_end": 110
             }
           ],
-          "line_start": 119,
-          "line_end": 267
+          "line_start": 32,
+          "line_end": 110
         }
       ],
       "top_level_functions": [
         {
-          "name": "_proximity_52w_high",
-          "signature": "def _proximity_52w_high(bars: list[Any], cfg: dict[str, Any]) -> bool",
-          "docstring": "Close / max(closes[-lookback:]) >= min_ratio.",
-          "line_start": 46,
-          "line_end": 59
-        },
-        {
-          "name": "_volume_breakout",
-          "signature": "def _volume_breakout(bars: list[Any], cfg: dict[str, Any]) -> bool",
-          "docstring": "close > max(highs of prior lookback bars) AND volume > vol_ma \u00d7 multiplier.",
-          "line_start": 62,
-          "line_end": 73
-        },
-        {
-          "name": "_nr7_compression",
-          "signature": "def _nr7_compression(bars: list[Any]) -> bool",
-          "docstring": "Current bar has the smallest high-low range of the last 7 bars.",
-          "line_start": 76,
-          "line_end": 83
-        },
-        {
-          "name": "_ema_pullback",
-          "signature": "def _ema_pullback(bars: list[Any], cfg: dict[str, Any]) -> bool",
-          "docstring": "Close crossed above EMA(ema_period) on the last bar (was below prior bar).",
-          "line_start": 86,
-          "line_end": 98
-        },
-        {
-          "name": "_bullish_engulfing",
-          "signature": "def _bullish_engulfing(bars: list[Any]) -> bool",
-          "docstring": "Bearish candle followed by a larger bullish candle that fully engulfs it.",
-          "line_start": 101,
-          "line_end": 111
+          "name": "_enabled_rules",
+          "signature": "def _enabled_rules(config: dict[str, Any]) -> tuple[list[PatternRule], float]",
+          "line_start": 27,
+          "line_end": 29
         }
-      ],
-      "constants": [
-        "_DEFAULT_CONFIG: dict[str, Any] = {"
       ]
     },
     "storage.py": {

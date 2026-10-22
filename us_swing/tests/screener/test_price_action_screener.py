@@ -1,25 +1,46 @@
 """Tests for PriceActionScreener (M08).
 
-Refs: UT-SCR-002.005.M08.T01–T08 (UTCD-SCR v2.0.0)
+Refs: UT-SCR-002.005.M08.T01–T08 (UTCD-SCR v2.0.0), UT-SCR-016.012–.015.M08 (FO-SCR-014)
 """
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 import pytest
 
+from us_swing.core.indicator_rules import BarArrays
+from us_swing.core.price_patterns import PatternRule, evaluate_pattern, pattern_rules_to_config
 from us_swing.data.models import OHLCVBar
 from us_swing.screener.base import ScreenerError
-from us_swing.screener.screeners.price_action import (
-    PriceActionScreener,
-    _bullish_engulfing,
-    _ema_pullback,
-    _nr7_compression,
-    _proximity_52w_high,
-    _volume_breakout,
-)
+from us_swing.screener.screeners.price_action import PriceActionScreener
 
 from tests.screener.conftest import make_bars
+
+
+def _match(pattern_id: str, bars: list[OHLCVBar], cfg: dict[str, Any] | None = None) -> bool:
+    return evaluate_pattern(PatternRule(pattern_id, cfg or {}), BarArrays.from_bars(bars))
+
+
+# The legacy tests below call the pattern checks through the shared catalogue.
+def _proximity_52w_high(bars: list[OHLCVBar], cfg: dict[str, Any]) -> bool:
+    return _match("proximity_52w_high", bars, cfg)
+
+
+def _volume_breakout(bars: list[OHLCVBar], cfg: dict[str, Any]) -> bool:
+    return _match("volume_breakout", bars, cfg)
+
+
+def _nr7_compression(bars: list[OHLCVBar]) -> bool:
+    return _match("nr7_compression", bars)
+
+
+def _ema_pullback(bars: list[OHLCVBar], cfg: dict[str, Any]) -> bool:
+    return _match("ema_pullback", bars, cfg)
+
+
+def _bullish_engulfing(bars: list[OHLCVBar]) -> bool:
+    return _match("bullish_engulfing", bars)
 
 
 # ---------------------------------------------------------------------------
@@ -319,3 +340,58 @@ def test_all_patterns_disabled_score_zero():
     }
     result = screener.apply(["SYM"], bars, config)
     assert result["SYM"] == (False, 0.0)
+
+
+# ---------------------------------------------------------------------------
+# FO-SCR-014 — rule-list configs
+# ---------------------------------------------------------------------------
+
+def _nr7_bars() -> list[OHLCVBar]:
+    """30 flat bars whose last bar is the narrowest (NR7 and NR4 match, nothing else)."""
+    bars = [_bar(100.0, high=102.0, low=98.0, i=i) for i in range(29)]
+    bars.append(_bar(100.0, high=100.2, low=99.8, i=29))
+    return bars
+
+
+def test_rule_list_score_is_matched_over_enabled():
+    """UT-SCR-016.012.M08.T01: 4 rules, 1 matches, threshold 0.2 → (True, 0.25)."""
+    rules = [PatternRule(pid) for pid in ("nr7_compression", "gap_up", "gap_down", "outside_bar")]
+    config = pattern_rules_to_config(rules, 0.2)
+    assert PriceActionScreener().apply(["S"], {"S": _nr7_bars()}, config) == {"S": (True, 0.25)}
+
+
+def test_rule_list_threshold_out_of_range_raises():
+    """UT-SCR-016.012.M08.T02: threshold 1.5 raises ScreenerError."""
+    config = pattern_rules_to_config([PatternRule("nr4")], 1.5)
+    with pytest.raises(ScreenerError):
+        PriceActionScreener().apply(["S"], {"S": _nr7_bars()}, config)
+
+
+def test_rule_list_disabled_rule_and_short_symbol():
+    """UT-SCR-016.012.M08.T03: disabled rule not counted; 1-bar symbol omitted; none on → 0.0."""
+    screener = PriceActionScreener()
+    bars = {"S": _nr7_bars(), "ONE": [_bar(100.0)]}
+    mixed = pattern_rules_to_config(
+        [PatternRule("nr4"), PatternRule("gap_up", enabled=False)], 0.5
+    )
+    assert screener.apply(["S", "ONE"], bars, mixed) == {"S": (True, 1.0)}
+    none_on = pattern_rules_to_config([PatternRule("nr4", enabled=False)], 0.0)
+    assert screener.apply(["S"], bars, none_on) == {"S": (True, 0.0)}
+
+
+def test_screen_detailed_keyed_by_short_label():
+    """UT-SCR-016.013.M08.T01: details keyed by short label with bool values."""
+    config = pattern_rules_to_config([PatternRule("hammer"), PatternRule("nr7_compression")])
+    details = PriceActionScreener().screen_detailed(["S"], {"S": _nr7_bars()}, config)
+    assert details == {"S": {"Hammer": False, "NR7": True}}
+
+
+def test_no_analysis_import_and_id_registered():
+    """UT-SCR-016.015.M08.T01: module does not import the analysis tool; id still registered."""
+    import inspect
+
+    import us_swing.screener as screener_pkg
+    from us_swing.screener.screeners import price_action
+
+    assert "us_swing.analysis" not in inspect.getsource(price_action)
+    assert 'register("price_action", PriceActionScreener)' in inspect.getsource(screener_pkg)

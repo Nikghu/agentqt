@@ -244,3 +244,52 @@
   - Selecting a past result date from the date picker loads and displays that run's transcript (or shows an empty panel if the run pre-dates this feature).
   - The panel is absent (`.hide()`) when viewing a result from a non-AI preset, or when `ai_transcript` is empty.
   - System prompt block is collapsed by default to avoid dominating the view; a toggle button expands it.
+
+---
+
+## FO-SCR-013: Indicator Catalogue and Rule-List Screening
+- **Status:** Approved (user, 2026-10-22)
+- **Extends:** FO-SCR-001 (preset framework), FO-SCR-002 (IndicatorScreener), FO-SCR-010 (RS vs benchmark). Does not replace them.
+
+- The system shall keep one shared **indicator catalogue** in `core/` that lists every screener indicator with its name, category, description, parameters (default, min, max) and allowed conditions.
+- The catalogue shall group indicators into categories: Price, Momentum, Trend, Volatility, Volume, Relative strength, Fundamentals, Dividends, Others.
+- Adding a new daily indicator shall need only a catalogue entry and a compute function — no GUI or screener-engine change.
+- The indicator screener config shall store an ordered **rule list**; each rule holds indicator id, condition, value, optional upper value, parameters and an enabled flag.
+- The screener shall read old presets that store the legacy `filters` dict by mapping its 6 sections (volatility, rsi, range, breakout, volume, rs_index) to equivalent rules.
+- A symbol shall pass only when every enabled rule passes; its score shall be the fraction of enabled rules that pass.
+- The first release shall support these daily indicators: Price, ATR %, RSI, Breakout (N-bar high), Volume ratio, RVOL (1 Day), RS Index, EMA(20/50/100/200), Price/EMA(20/50/100), MACD, MACD Histogram, MACD Signal Line, PPO, PPO Histogram, PPO Signal Line, Market Cap.
+- ATR and RSI shall use standard Wilder smoothing (TA-Lib), as SRD-SCR-002.003 already requires.
+- Intraday indicators (RVOL 3/5/10 Min, Short-Term Volume 3/5/10 Min) shall be listed as unavailable with the reason "needs intraday data" until an intraday data source exists.
+- The screener Details summary shall be built from the catalogue, so new indicators show without code changes.
+- **Acceptance Criteria:**
+  - An old preset with the 6-section `filters` dict loads as 6 rules with the same thresholds and enabled flags.
+  - A rule list with RSI between 30 and 70 passes only symbols whose Wilder RSI(14) is in that band.
+  - A MACD rule "crosses above signal" passes a symbol only when the MACD line crossed above its signal line on the last bar.
+  - A disabled rule does not change pass/fail or score.
+  - Adding a test-only catalogue entry makes it usable in a rule without editing the screener.
+  - Rules on unavailable indicators are rejected with a clear error.
+
+---
+
+## FO-SCR-014: Price Action Pattern Catalogue and Rule-List Screening
+- **Status:** Approved (user, 2026-10-22)
+- **Extends:** FO-SCR-002 / SRD-SCR-002.007 (PriceActionScreener, 5 patterns). Does not replace them.
+
+- The system shall keep one shared **price action pattern catalogue** in `core/` that lists every pattern with its name, category, direction (bullish / bearish / neutral), description and parameters (default, min, max).
+- The catalogue shall group patterns into: Bullish candles, Bearish candles, Neutral candles, Breakout, Trend, Volatility, Chart shapes.
+- The first release shall offer 27 candlestick patterns computed with TA-Lib and 20 breakout / trend / volatility / chart-shape patterns computed from daily OHLCV bars.
+- The 4 existing non-candle patterns (Near 52-Week High, Volume Breakout, NR7, EMA Pullback) shall keep their ids, parameters and results.
+- Adding a new pattern shall need only a catalogue entry and a detect function — no GUI or screener-engine change.
+- The price action screener config shall store an ordered **rule list** (pattern id, parameters, enabled flag) plus the pass threshold.
+- The screener shall read old presets that store the legacy `patterns` dict and map its 5 sections to equivalent rules, keeping the threshold.
+- A symbol's score shall stay matched ÷ enabled patterns, and it shall pass when the score is at least the threshold.
+- The screener Details summary shall be built from the catalogue.
+- *(Added 2026-10-22, user request)* The catalogue shall offer Double Top (breakdown) and Double Top Pullback (retest of the broken neck) as bearish chart shapes for sell setups, and Double Bottom shall match only a recent breakout.
+- *(Added 2026-10-22, user request)* The catalogue shall offer Fibonacci retracement patterns — Sell (bounce up into the zone after a fall) and Buy (dip into the zone after a rise) — with a settable zone, default 50–61.8 %.
+- **Acceptance Criteria:**
+  - An old preset with the 5-section `patterns` dict loads as 5 rules with the same parameters, on/off states and threshold.
+  - A bar series that TA-Lib flags as a bullish engulfing matches Bullish Engulfing and not Bearish Engulfing.
+  - With 4 patterns enabled, 1 matched and threshold 20%, the symbol passes with score 0.25.
+  - A disabled pattern does not change pass/fail or score.
+  - Adding a test-only catalogue entry makes it usable in a rule without editing the screener.
+  - An unknown pattern id is rejected with a clear error.
