@@ -77,8 +77,13 @@ from PyQt6.QtWidgets import (
 )
 
 from us_swing.gui.ai_transcript_panel import AITranscriptPanel
+from us_swing.core.indicator_rules import config_summary
+from us_swing.core.price_patterns import pattern_config_summary
 from us_swing.gui.app_service import AppService
 from us_swing.gui.chart_panel import _build_html as _build_chart_html
+from us_swing.gui.frameless_dialog import FramelessDialog
+from us_swing.gui.indicator_rules_dialog import IndicatorRulesDialog
+from us_swing.gui.price_action_rules_dialog import PriceActionRulesDialog
 from us_swing.gui.theme import C, active_palette, colors
 from us_swing.screener.screeners import _api_key_store
 from us_swing.screener.storage import INPUT_COST_PER_1K, OUTPUT_COST_PER_1K
@@ -283,7 +288,7 @@ class _PresetRunWorker(QThread):
                 return
 
             # Bulk-load bars; convert dicts → namespace objects (screener uses b.close etc.)
-            # Fetch 300 bars (252+ needed for RS rank computation).
+            # Fetch 600 bars (252+ for RS rank; price patterns look back up to 504 bars).
             # Include the benchmark symbol so the RS index filter can access it.
             from datetime import datetime as _dt, timezone as _tz
             try:
@@ -291,7 +296,7 @@ class _PresetRunWorker(QThread):
             except Exception:
                 benchmark_sym = "SPY"
             fetch_syms = symbols if benchmark_sym in symbols else symbols + [benchmark_sym]
-            raw = self._svc.get_candles_bulk(fetch_syms, timeframe=self._timeframe, limit=300)
+            raw = self._svc.get_candles_bulk(fetch_syms, timeframe=self._timeframe, limit=600)
 
             def _parse_dt(s: str) -> _dt:
                 try:
@@ -608,17 +613,6 @@ class QuickChartWindow(QWidget):
         return web
 
 
-# ── Indicator filter defaults (mirrors indicator.py tightened defaults) ────────
-
-_INDICATOR_DEFAULTS: dict[str, dict] = {
-    "volatility": {"enabled": True,  "min_atr_pct": 0.01},
-    "rsi":        {"enabled": True,  "min": 30, "max": 70, "period": 14},
-    "range":      {"enabled": True,  "min_price": 5.0, "max_price": 5000.0},
-    "breakout":   {"enabled": True,  "lookback": 10},
-    "volume":     {"enabled": True,  "min_volume_ratio": 1.0, "ma_period": 10},
-    "rs_index":   {"enabled": False, "rs_min_percentile": 70.0, "rs_slope_days": 63},
-}
-
 _INDICATOR_SCREENER_ID   = "indicator_composite"
 _PRICE_ACTION_SCREENER_ID = "price_action"
 _LLM_CLAUDE_SCREENER_ID  = "llm_claude_ranking"
@@ -626,581 +620,10 @@ _LLM_CLAUDE_SCREENER_ID  = "llm_claude_ranking"
 # Screeners hidden from the "Add Screener" menu — still registered for backward compat with saved presets
 _HIDDEN_SCREENER_IDS: frozenset[str] = frozenset({_LLM_CLAUDE_SCREENER_ID})
 
-_CHECKBOX_QSS = "QCheckBox { font-size: 9pt; spacing: 6px; }"
-
-
-def _format_indicator_config(config: dict) -> str:
-    """Return a compact one-line summary of an IndicatorScreener config dict.
-
-    Example: ``RSI(30–70 p14) · ATR≥1% · $5–5K · BK10 · Vol≥1.0×``
-    Disabled filters are omitted; missing keys fall back to _INDICATOR_DEFAULTS.
-    """
-    filters = config.get("filters", {})
-
-    def _f(section: str) -> dict:
-        d = dict(_INDICATOR_DEFAULTS[section])
-        d.update(filters.get(section, {}))
-        return d
-
-    parts: list[str] = []
-
-    v = _f("volatility")
-    if v.get("enabled", True):
-        pct = float(v["min_atr_pct"]) * 100
-        parts.append(f"ATR≥{pct:.1f}%")
-
-    r = _f("rsi")
-    if r.get("enabled", True):
-        parts.append(f"RSI({int(r['min'])}–{int(r['max'])} p{int(r['period'])})")
-
-    p = _f("range")
-    if p.get("enabled", True):
-        lo = float(p["min_price"])
-        hi = float(p["max_price"])
-        lo_s = f"${lo:.0f}" if lo < 1000 else f"${lo/1000:.0f}K"
-        hi_s = f"${hi:.0f}" if hi < 1000 else f"${hi/1000:.0f}K"
-        parts.append(f"{lo_s}–{hi_s}")
-
-    b = _f("breakout")
-    if b.get("enabled", True):
-        parts.append(f"BK{int(b['lookback'])}")
-
-    vo = _f("volume")
-    if vo.get("enabled", True):
-        parts.append(f"Vol≥{float(vo['min_volume_ratio']):.1f}×")
-
-    ri = _f("rs_index")
-    if ri.get("enabled", False):
-        rs_pct = float(ri["rs_min_percentile"])
-        rs_sl = int(ri["rs_slope_days"])
-        rs_part = f"RS≥{rs_pct:.0f}%"
-        if rs_sl > 0:
-            rs_part += f" sl{rs_sl}"
-        parts.append(rs_part)
-
-    return "  ·  ".join(parts) if parts else ""
-
-
-def _hdivider() -> QFrame:
-    """Thin horizontal rule used between sections in config dialogs."""
-    line = QFrame()
-    line.setFrameShape(QFrame.Shape.HLine)
-    line.setFixedHeight(1)
-    line.setStyleSheet(f"background: {active_palette().OVERLAY}; border: none;")
-    return line
-
 
 # ── Shared frameless dialog base ──────────────────────────────────────────────
 
-class _FramelessDialog(QDialog):
-    """QDialog subclass: frameless OS chrome + custom title bar with min/max/close."""
-
-    def __init__(
-        self,
-        title: str,
-        min_width: int = 420,
-        min_height: int = 0,
-        extra_qss: str = "",
-        parent: QWidget | None = None,
-    ) -> None:
-        super().__init__(parent)
-        self.setWindowTitle(title)
-        self.setMinimumWidth(min_width)
-        if min_height:
-            self.setMinimumHeight(min_height)
-        self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
-        if extra_qss:
-            self.setStyleSheet(extra_qss)
-        self._drag_pos: QPoint | None = None
-        self._maximized = False
-
-        outer = QVBoxLayout(self)
-        outer.setContentsMargins(0, 0, 0, 0)
-        outer.setSpacing(0)
-
-        self._title_bar = self._make_title_bar(title)
-        outer.addWidget(self._title_bar)
-
-        self._content = QWidget()
-        self._content.setStyleSheet("QWidget { background: transparent; }")
-        self._content_layout = QVBoxLayout(self._content)
-        self._content_layout.setContentsMargins(16, 12, 16, 12)
-        self._content_layout.setSpacing(8)
-        outer.addWidget(self._content, 1)
-
-    def content_layout(self) -> QVBoxLayout:
-        return self._content_layout
-
-    def _make_title_bar(self, title: str) -> QFrame:
-        bar = QFrame()
-        bar.setObjectName("dlg_title_bar")
-        bar.setFixedHeight(38)
-        hl = QHBoxLayout(bar)
-        hl.setContentsMargins(14, 0, 6, 0)
-        hl.setSpacing(0)
-
-        title_lbl = QLabel(title)
-        title_lbl.setObjectName("top_brand")
-        hl.addWidget(title_lbl)
-        hl.addStretch()
-
-        _wc_style = (
-            "QPushButton {{ background: transparent; color: {fg}; border: none;"
-            " font-size: 14px; min-width: 32px; max-width: 32px;"
-            " min-height: 28px; max-height: 28px; border-radius: 4px; }}"
-            "QPushButton:hover {{ background: {hover}; color: white; }}"
-        )
-        min_btn = QPushButton("−")
-        min_btn.setStyleSheet(_wc_style.format(fg=C.SUBTEXT, hover=C.OVERLAY2))
-        min_btn.setToolTip("Minimize")
-        min_btn.clicked.connect(self.showMinimized)
-
-        self._max_btn = QPushButton("□")
-        self._max_btn.setStyleSheet(_wc_style.format(fg=C.SUBTEXT, hover=C.OVERLAY2))
-        self._max_btn.setToolTip("Maximize")
-        self._max_btn.clicked.connect(self._toggle_maximize)
-
-        close_btn = QPushButton("✕")
-        close_btn.setStyleSheet(_wc_style.format(fg=C.SUBTEXT, hover="#c0392b"))
-        close_btn.setToolTip("Close")
-        close_btn.clicked.connect(self.reject)
-
-        hl.addWidget(min_btn)
-        hl.addSpacing(2)
-        hl.addWidget(self._max_btn)
-        hl.addSpacing(2)
-        hl.addWidget(close_btn)
-        return bar
-
-    def _toggle_maximize(self) -> None:
-        if self._maximized:
-            self.showNormal()
-            self._max_btn.setText("□")
-            self._max_btn.setToolTip("Maximize")
-        else:
-            self.showMaximized()
-            self._max_btn.setText("❐")
-            self._max_btn.setToolTip("Restore")
-        self._maximized = not self._maximized
-
-    def mousePressEvent(self, event: Any) -> None:
-        if (
-            event.button() == Qt.MouseButton.LeftButton
-            and self._title_bar.geometry().contains(event.pos())
-        ):
-            self._drag_pos = event.globalPosition().toPoint()
-        super().mousePressEvent(event)
-
-    def mouseMoveEvent(self, event: Any) -> None:
-        if self._drag_pos is not None and event.buttons() & Qt.MouseButton.LeftButton:
-            delta = event.globalPosition().toPoint() - self._drag_pos
-            self.move(self.pos() + delta)
-            self._drag_pos = event.globalPosition().toPoint()
-        super().mouseMoveEvent(event)
-
-    def mouseReleaseEvent(self, event: Any) -> None:
-        self._drag_pos = None
-        super().mouseReleaseEvent(event)
-
-
-# ── Indicator config dialog ───────────────────────────────────────────────────
-
-class _IndicatorConfigDialog(_FramelessDialog):
-    """View / edit the 5 filter params of IndicatorScreener for one ScreenerRef."""
-
-    def __init__(self, config: dict | None = None, parent: QWidget | None = None) -> None:
-        super().__init__(
-            "Indicator Filter Settings",
-            min_width=480,
-            extra_qss=f" {_CHECKBOX_QSS}",
-            parent=parent,
-        )
-
-        supplied_filters = (config or {}).get("filters", {})
-        def _f(section: str) -> dict:
-            d = dict(_INDICATOR_DEFAULTS[section])
-            d.update(supplied_filters.get(section, {}))
-            return d
-
-        root = self.content_layout()
-        _T = active_palette()
-
-        def _section(title: str) -> QLabel:
-            lbl = QLabel(title)
-            lbl.setStyleSheet(f"color: {_T.BLUE}; font-weight: bold; font-size: 9pt;")
-            return lbl
-
-        def _lbl(text: str) -> QLabel:
-            l = QLabel(text)
-            l.setStyleSheet(f"color: {_T.SUBTEXT}; font-size: 8pt;")
-            return l
-
-        def _spin_d(lo: float, hi: float, step: float, val: float, dec: int = 3) -> QDoubleSpinBox:
-            s = QDoubleSpinBox()
-            s.setRange(lo, hi)
-            s.setSingleStep(step)
-            s.setDecimals(dec)
-            s.setValue(val)
-            s.setFixedWidth(80)
-            s.setStyleSheet(
-                f"QDoubleSpinBox {{ background: {_T.OVERLAY}; color: {_T.TEXT};"
-                f" border: 1px solid {_T.OVERLAY}; border-radius: 3px; padding: 1px 4px; }}"
-            )
-            return s
-
-        def _spin_i(lo: int, hi: int, val: int) -> QDoubleSpinBox:
-            return _spin_d(lo, hi, 1.0, float(val), dec=0)
-
-        # ── Volatility ────────────────────────────────────────────────────────
-        v = _f("volatility")
-        root.addWidget(_section("Volatility  (ATR %)"))
-        vr = QHBoxLayout()
-        self._vol_en  = QCheckBox("Enabled")
-        self._vol_en.setChecked(bool(v["enabled"]))
-        self._vol_atr = _spin_d(0.001, 0.10, 0.001, float(v["min_atr_pct"]), dec=3)
-        vr.addWidget(self._vol_en)
-        vr.addStretch()
-        vr.addWidget(_lbl("Min ATR %:"))
-        vr.addWidget(self._vol_atr)
-        root.addLayout(vr)
-        root.addWidget(_hdivider())
-
-        # ── RSI ───────────────────────────────────────────────────────────────
-        r = _f("rsi")
-        root.addWidget(_section("RSI"))
-        rr = QHBoxLayout()
-        self._rsi_en     = QCheckBox("Enabled")
-        self._rsi_en.setChecked(bool(r["enabled"]))
-        self._rsi_min    = _spin_i(0, 100, int(r["min"]))
-        self._rsi_max    = _spin_i(0, 100, int(r["max"]))
-        self._rsi_period = _spin_i(5,  50, int(r["period"]))
-        rr.addWidget(self._rsi_en)
-        rr.addStretch()
-        rr.addWidget(_lbl("Min:"))
-        rr.addWidget(self._rsi_min)
-        rr.addWidget(_lbl("Max:"))
-        rr.addWidget(self._rsi_max)
-        rr.addWidget(_lbl("Period:"))
-        rr.addWidget(self._rsi_period)
-        root.addLayout(rr)
-        root.addWidget(_hdivider())
-
-        # ── Price Range ───────────────────────────────────────────────────────
-        p = _f("range")
-        root.addWidget(_section("Price Range  ($)"))
-        pr = QHBoxLayout()
-        self._rng_en  = QCheckBox("Enabled")
-        self._rng_en.setChecked(bool(p["enabled"]))
-        self._rng_min = _spin_d(1.0, 1000.0, 1.0, float(p["min_price"]), dec=2)
-        self._rng_max = _spin_d(10.0, 10000.0, 10.0, float(p["max_price"]), dec=2)
-        pr.addWidget(self._rng_en)
-        pr.addStretch()
-        pr.addWidget(_lbl("Min $:"))
-        pr.addWidget(self._rng_min)
-        pr.addWidget(_lbl("Max $:"))
-        pr.addWidget(self._rng_max)
-        root.addLayout(pr)
-        root.addWidget(_hdivider())
-
-        # ── Breakout ──────────────────────────────────────────────────────────
-        b = _f("breakout")
-        root.addWidget(_section("Breakout  (N-bar high)"))
-        br = QHBoxLayout()
-        self._bk_en = QCheckBox("Enabled")
-        self._bk_en.setChecked(bool(b["enabled"]))
-        self._bk_lb = _spin_i(1, 50, int(b["lookback"]))
-        br.addWidget(self._bk_en)
-        br.addStretch()
-        br.addWidget(_lbl("Lookback bars:"))
-        br.addWidget(self._bk_lb)
-        root.addLayout(br)
-        root.addWidget(_hdivider())
-
-        # ── Volume ────────────────────────────────────────────────────────────
-        vo = _f("volume")
-        root.addWidget(_section("Volume  (ratio vs MA)"))
-        vor = QHBoxLayout()
-        self._vol2_en     = QCheckBox("Enabled")
-        self._vol2_en.setChecked(bool(vo["enabled"]))
-        self._vol2_ratio  = _spin_d(0.1, 5.0, 0.1, float(vo["min_volume_ratio"]), dec=1)
-        self._vol2_period = _spin_i(5, 50, int(vo["ma_period"]))
-        vor.addWidget(self._vol2_en)
-        vor.addStretch()
-        vor.addWidget(_lbl("Min ratio:"))
-        vor.addWidget(self._vol2_ratio)
-        vor.addWidget(_lbl("MA period:"))
-        vor.addWidget(self._vol2_period)
-        root.addLayout(vor)
-        root.addWidget(_hdivider())
-
-        # ── RS Index ──────────────────────────────────────────────────────────
-        ri = _f("rs_index")
-        root.addWidget(_section("RS Index  (vs benchmark)"))
-        rir = QHBoxLayout()
-        self._ri_en   = QCheckBox("Enabled")
-        self._ri_en.setChecked(bool(ri["enabled"]))
-        self._ri_pct  = _spin_d(0.0, 100.0, 1.0, float(ri["rs_min_percentile"]), dec=1)
-        self._ri_sl   = _spin_i(0, 252, int(ri["rs_slope_days"]))
-        rir.addWidget(self._ri_en)
-        rir.addStretch()
-        rir.addWidget(_lbl("Min percentile:"))
-        rir.addWidget(self._ri_pct)
-        rir.addWidget(_lbl("Slope days (0=off):"))
-        rir.addWidget(self._ri_sl)
-        root.addLayout(rir)
-
-        # ── Buttons ───────────────────────────────────────────────────────────
-        root.addWidget(_hdivider())
-        btn_row = QHBoxLayout()
-        btn_row.addStretch()
-        cancel_btn = QPushButton("Cancel")
-        cancel_btn.clicked.connect(self.reject)
-        ok_btn = QPushButton("✔  OK")
-        ok_btn.setObjectName("btn_green")
-        ok_btn.setDefault(True)
-        ok_btn.clicked.connect(self.accept)
-        btn_row.addWidget(cancel_btn)
-        btn_row.addSpacing(4)
-        btn_row.addWidget(ok_btn)
-        root.addLayout(btn_row)
-
-    def get_config(self) -> dict:
-        """Return full IndicatorScreener config dict from current widget values."""
-        return {
-            "filters": {
-                "volatility": {
-                    "enabled": self._vol_en.isChecked(),
-                    "min_atr_pct": round(self._vol_atr.value(), 4),
-                },
-                "rsi": {
-                    "enabled": self._rsi_en.isChecked(),
-                    "min": int(self._rsi_min.value()),
-                    "max": int(self._rsi_max.value()),
-                    "period": int(self._rsi_period.value()),
-                },
-                "range": {
-                    "enabled": self._rng_en.isChecked(),
-                    "min_price": round(self._rng_min.value(), 2),
-                    "max_price": round(self._rng_max.value(), 2),
-                },
-                "breakout": {
-                    "enabled": self._bk_en.isChecked(),
-                    "lookback": int(self._bk_lb.value()),
-                },
-                "volume": {
-                    "enabled": self._vol2_en.isChecked(),
-                    "min_volume_ratio": round(self._vol2_ratio.value(), 2),
-                    "ma_period": int(self._vol2_period.value()),
-                },
-                "rs_index": {
-                    "enabled": self._ri_en.isChecked(),
-                    "rs_min_percentile": round(self._ri_pct.value(), 1),
-                    "rs_slope_days": int(self._ri_sl.value()),
-                },
-            }
-        }
-
-
-# ── Price Action config dialog ────────────────────────────────────────────────
-
-_PA_PATTERN_LABELS: dict[str, str] = {
-    "proximity_52w_high": "Near 52-Week High",
-    "volume_breakout":    "Volume Breakout",
-    "nr7_compression":    "NR7 Compression",
-    "ema_pullback":       "EMA Pullback Crossover",
-    "engulfing":          "Bullish Engulfing Candle",
-}
-
-_PA_DEFAULTS: dict[str, Any] = {
-    "proximity_52w_high": {"enabled": True,  "min_ratio": 0.90, "lookback": 252},
-    "volume_breakout":    {"enabled": True,  "lookback": 20,    "vol_multiplier": 1.5},
-    "nr7_compression":    {"enabled": False},
-    "ema_pullback":       {"enabled": False, "ema_period": 21},
-    "engulfing":          {"enabled": False},
-}
-
-
-def _format_price_action_config(config: dict) -> str:
-    """Return a compact one-line summary of a PriceActionScreener config dict."""
-    patterns = config.get("patterns", _PA_DEFAULTS)
-    active = [
-        lbl
-        for pid, lbl in _PA_PATTERN_LABELS.items()
-        if patterns.get(pid, {}).get("enabled", _PA_DEFAULTS[pid]["enabled"])
-    ]
-    thr = config.get("threshold", 0.2)
-    base = "  ·  ".join(active) if active else "no patterns enabled"
-    return f"PA [{base}]  thr≥{thr}"
-
-
-class _PriceActionConfigDialog(_FramelessDialog):
-    """Toggle and tune the 5 price-action patterns for one ScreenerRef."""
-
-    def __init__(self, config: dict | None = None, parent: QWidget | None = None) -> None:
-        super().__init__(
-            "Price Action Pattern Settings",
-            min_width=500,
-            extra_qss=f" {_CHECKBOX_QSS}",
-            parent=parent,
-        )
-
-        supplied = (config or {}).get("patterns", {})
-
-        def _p(pid: str) -> dict:
-            d = dict(_PA_DEFAULTS[pid])
-            d.update(supplied.get(pid, {}))
-            return d
-
-        root = self.content_layout()
-        _T = active_palette()
-
-        def _section(title: str) -> QLabel:
-            lbl = QLabel(title)
-            lbl.setStyleSheet(f"color: {_T.BLUE}; font-weight: bold; font-size: 9pt;")
-            return lbl
-
-        def _lbl(text: str) -> QLabel:
-            l = QLabel(text)
-            l.setStyleSheet(f"color: {_T.SUBTEXT}; font-size: 8pt;")
-            return l
-
-        def _spin_d(lo: float, hi: float, step: float, val: float, dec: int = 2) -> QDoubleSpinBox:
-            s = QDoubleSpinBox()
-            s.setRange(lo, hi)
-            s.setSingleStep(step)
-            s.setDecimals(dec)
-            s.setValue(val)
-            s.setFixedWidth(80)
-            s.setStyleSheet(
-                f"QDoubleSpinBox {{ background: {_T.OVERLAY}; color: {_T.TEXT};"
-                f" border: 1px solid {_T.OVERLAY}; border-radius: 3px; padding: 1px 4px; }}"
-            )
-            return s
-
-        def _spin_i(lo: int, hi: int, val: int) -> QDoubleSpinBox:
-            return _spin_d(lo, hi, 1.0, float(val), dec=0)
-
-        # ── 52-Week High ──────────────────────────────────────────────────────
-        p52 = _p("proximity_52w_high")
-        root.addWidget(_section("Near 52-Week High"))
-        r52 = QHBoxLayout()
-        self._52_en   = QCheckBox("Enabled")
-        self._52_en.setChecked(bool(p52["enabled"]))
-        self._52_rat  = _spin_d(0.50, 1.00, 0.01, float(p52["min_ratio"]))
-        self._52_lb   = _spin_i(20, 504, int(p52["lookback"]))
-        r52.addWidget(self._52_en)
-        r52.addStretch()
-        r52.addWidget(_lbl("Min ratio:"))
-        r52.addWidget(self._52_rat)
-        r52.addWidget(_lbl("Lookback days:"))
-        r52.addWidget(self._52_lb)
-        root.addLayout(r52)
-        root.addWidget(_hdivider())
-
-        # ── Volume Breakout ───────────────────────────────────────────────────
-        pvb = _p("volume_breakout")
-        root.addWidget(_section("Volume Breakout"))
-        rvb = QHBoxLayout()
-        self._vb_en   = QCheckBox("Enabled")
-        self._vb_en.setChecked(bool(pvb["enabled"]))
-        self._vb_lb   = _spin_i(5, 60, int(pvb["lookback"]))
-        self._vb_mul  = _spin_d(1.0, 5.0, 0.1, float(pvb["vol_multiplier"]))
-        rvb.addWidget(self._vb_en)
-        rvb.addStretch()
-        rvb.addWidget(_lbl("Lookback bars:"))
-        rvb.addWidget(self._vb_lb)
-        rvb.addWidget(_lbl("Vol multiplier:"))
-        rvb.addWidget(self._vb_mul)
-        root.addLayout(rvb)
-        root.addWidget(_hdivider())
-
-        # ── NR7 Compression ───────────────────────────────────────────────────
-        pnr = _p("nr7_compression")
-        root.addWidget(_section("NR7 Compression"))
-        rnr = QHBoxLayout()
-        self._nr7_en = QCheckBox("Enabled")
-        self._nr7_en.setChecked(bool(pnr["enabled"]))
-        rnr.addWidget(self._nr7_en)
-        rnr.addStretch()
-        rnr.addWidget(_lbl("Triggers when today's range is smallest of last 7 bars"))
-        root.addLayout(rnr)
-        root.addWidget(_hdivider())
-
-        # ── EMA Pullback ──────────────────────────────────────────────────────
-        pem = _p("ema_pullback")
-        root.addWidget(_section("EMA Pullback Crossover"))
-        rem = QHBoxLayout()
-        self._ema_en  = QCheckBox("Enabled")
-        self._ema_en.setChecked(bool(pem["enabled"]))
-        self._ema_per = _spin_i(5, 200, int(pem["ema_period"]))
-        rem.addWidget(self._ema_en)
-        rem.addStretch()
-        rem.addWidget(_lbl("EMA period:"))
-        rem.addWidget(self._ema_per)
-        root.addLayout(rem)
-        root.addWidget(_hdivider())
-
-        # ── Bullish Engulfing ─────────────────────────────────────────────────
-        peg = _p("engulfing")
-        root.addWidget(_section("Bullish Engulfing Candle"))
-        reg = QHBoxLayout()
-        self._eng_en = QCheckBox("Enabled")
-        self._eng_en.setChecked(bool(peg["enabled"]))
-        reg.addWidget(self._eng_en)
-        reg.addStretch()
-        reg.addWidget(_lbl("Bearish candle followed by larger bullish candle that engulfs it"))
-        root.addLayout(reg)
-        root.addWidget(_hdivider())
-
-        # ── Threshold ─────────────────────────────────────────────────────────
-        root.addWidget(_section("Pass Threshold"))
-        thr_row = QHBoxLayout()
-        self._thr = _spin_d(0.0, 1.0, 0.05, float((config or {}).get("threshold", 0.2)))
-        thr_row.addWidget(_lbl("Min score to pass  (patterns matched / patterns enabled):"))
-        thr_row.addWidget(self._thr)
-        root.addLayout(thr_row)
-
-        # ── Buttons ───────────────────────────────────────────────────────────
-        root.addWidget(_hdivider())
-        btn_row = QHBoxLayout()
-        btn_row.addStretch()
-        cancel_btn = QPushButton("Cancel")
-        cancel_btn.clicked.connect(self.reject)
-        ok_btn = QPushButton("✔  OK")
-        ok_btn.setObjectName("btn_green")
-        ok_btn.setDefault(True)
-        ok_btn.clicked.connect(self.accept)
-        btn_row.addWidget(cancel_btn)
-        btn_row.addSpacing(4)
-        btn_row.addWidget(ok_btn)
-        root.addLayout(btn_row)
-
-    def get_config(self) -> dict:
-        return {
-            "patterns": {
-                "proximity_52w_high": {
-                    "enabled": self._52_en.isChecked(),
-                    "min_ratio": round(self._52_rat.value(), 2),
-                    "lookback": int(self._52_lb.value()),
-                },
-                "volume_breakout": {
-                    "enabled": self._vb_en.isChecked(),
-                    "lookback": int(self._vb_lb.value()),
-                    "vol_multiplier": round(self._vb_mul.value(), 2),
-                },
-                "nr7_compression": {
-                    "enabled": self._nr7_en.isChecked(),
-                },
-                "ema_pullback": {
-                    "enabled": self._ema_en.isChecked(),
-                    "ema_period": int(self._ema_per.value()),
-                },
-                "engulfing": {
-                    "enabled": self._eng_en.isChecked(),
-                },
-            },
-            "threshold": round(self._thr.value(), 2),
-        }
+_FramelessDialog = FramelessDialog
 
 
 # ── Composite group widget ────────────────────────────────────────────────────
@@ -1425,13 +848,13 @@ class _GroupWidget(QFrame):
         menu.exec(self._list.viewport().mapToGlobal(pos))
 
     def _open_indicator_config(self, sid: str) -> None:
-        dlg = _IndicatorConfigDialog(self._configs.get(sid), parent=self)
+        dlg = IndicatorRulesDialog(self._configs.get(sid), parent=self)
         if dlg.exec() == QDialog.DialogCode.Accepted:
             self._configs[sid] = dlg.get_config()
             self.changed.emit()
 
     def _open_price_action_config(self, sid: str) -> None:
-        dlg = _PriceActionConfigDialog(self._configs.get(sid), parent=self)
+        dlg = PriceActionRulesDialog(self._configs.get(sid), parent=self)
         if dlg.exec() == QDialog.DialogCode.Accepted:
             self._configs[sid] = dlg.get_config()
             self.changed.emit()
@@ -1550,11 +973,13 @@ class _WeightedRow(QFrame):
 
     def _open_config(self) -> None:
         if self._sid == _PRICE_ACTION_SCREENER_ID:
-            dlg = _PriceActionConfigDialog(self._config or None, parent=self)
+            dlg: PriceActionRulesDialog | IndicatorRulesDialog = PriceActionRulesDialog(
+                self._config or None, parent=self
+            )
         else:
-            dlg = _IndicatorConfigDialog(self._config or None, parent=self)
+            dlg = IndicatorRulesDialog(self._config or None, parent=self)
         if dlg.exec() == QDialog.DialogCode.Accepted:
-            self._config = dlg.get_config()  # type: ignore[union-attr]
+            self._config = dlg.get_config()
 
 
 # ── WYSIWYG Preset builder dialog ─────────────────────────────────────────────
@@ -3217,8 +2642,12 @@ class ScreenerPanel(QWidget):
         self._refresh_transcript_visibility()
 
     def _build_rows(self, result: Any) -> list[_Row]:
-        # Resolve indicator config summary once for the active preset
-        _ind_cfg_summary = ""
+        # Resolve indicator and price action config summaries once for the active preset
+        summarisers = {
+            _INDICATOR_SCREENER_ID: config_summary,
+            _PRICE_ACTION_SCREENER_ID: pattern_config_summary,
+        }
+        summaries: dict[str, str] = {}
         if self._mgr is not None and self._selected_preset_id:
             try:
                 uid = str(self._demo.get_active_user().user_id)
@@ -3227,13 +2656,13 @@ class ScreenerPanel(QWidget):
                 for grp in getattr(preset, "groups", None) or []:
                     refs.extend(getattr(grp, "screeners", []))
                 for ref in refs:
-                    if getattr(ref, "screener_id", "") == _INDICATOR_SCREENER_ID:
-                        cfg = getattr(ref, "config", None) or {}
-                        if cfg:
-                            _ind_cfg_summary = _format_indicator_config(cfg)
-                        break
+                    sid = getattr(ref, "screener_id", "")
+                    cfg = getattr(ref, "config", None) or {}
+                    if sid in summarisers and sid not in summaries:
+                        summaries[sid] = summarisers[sid](cfg) if cfg else ""
             except Exception:  # noqa: BLE001
                 pass
+        _ind_cfg_summary = "  ·  ".join(text for text in summaries.values() if text)
 
         rows: list[_Row] = []
         results_dict: dict = getattr(result, "results", {})

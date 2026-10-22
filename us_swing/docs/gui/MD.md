@@ -7,6 +7,10 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.11.0: MD-GUI-004.001.M03 (intraday_cleanup.py) added; MD-GUI-004.001.M01 extended for startup cleanup (SRD-GUI-004.013).
+> v1.10.0: MD-GUI-004.001.M02 (manual_picks_store.py) added; MD-GUI-004.001.M01 extended for manual picks (SRD-GUI-004.010–.012).
+> v1.9.0: MD-GUI-004.001.M01 extended — Execution feed skips unassigned or missing presets (SRD-GUI-004.009, ISS-GUI-0004).
+> v1.8.0: MD-GUI-006.001.M01 extended — weekly candles built from daily in `app_service.py` (SRD-GUI-006.019, ISS-GUI-0003).
 > v1.7.0: Cross-module rows added for SRD-GUI-013.016–.019 and SRD-GUI-014.016–.018 — Short Trade Direction (FO-EXE-018) GUI surfaces.
 
 > v1.6.0: MD-GUI-004.001.M01 extended — live tick worker watchdog in AppService (SRD-GUI-012.008–009).
@@ -44,6 +48,13 @@ FO-GUI-012 modifies existing modules rather than creating new files. The new `Li
 | MD-GUI-004.001.M01 | `src/us_swing/gui/app_service.py` | Add the tick watchdog: `_tick_watchdog` QTimer plus `_start_tick_worker()`, `_on_tick_worker_finished()`, `_check_tick_health()`, `_warn_if_ticks_stale()`; stamp `_last_tick_at` in `_record_market_price`; stop the watchdog in `disconnect_feed`; emit tick failures to the GUI log panel from `_on_tick_sub_failed`. `live_tick_worker.py` is unchanged. | SRD-GUI-012.008–009 |
 | MD-GUI-006.001.M01 | `src/us_swing/gui/settings_panel.py` | Add "Tick Data Client ID" `QSpinBox` row to System tab, bound to `SystemConfig.ibkr_tick_client_id`. Follows same pattern as existing clientId spinboxes. | SRD-GUI-012.001 |
 | — | `src/us_swing/gui/system_store.py` | Add `ibkr_tick_client_id: int = 14` field to `SystemConfig` dataclass. No migration needed — default value handles missing key on first load. | SRD-GUI-012.001 |
+| MD-GUI-006.001.M01 | `src/us_swing/gui/app_service.py` | Add `_rebuild_weekly_from_daily(conn, symbol)`; `_download_all` and `_download_benchmark` stop requesting IBKR `1 week` bars and rebuild `price_1w` per symbol after its daily bars are saved. | SRD-GUI-006.019 |
+| MD-GUI-004.001.M01 | `src/us_swing/gui/app_service.py` | `get_latest_screener_results()` skips result folders whose preset is not found or has an empty `assigned_to`. | SRD-GUI-004.009 |
+| MD-GUI-004.001.M02 | `src/us_swing/gui/manual_picks_store.py` (new) | `load_manual_picks(user_id)`, `save_manual_picks(user_id, symbols)` — per-user JSON, atomic write. | SRD-GUI-004.010 |
+| MD-GUI-004.001.M01 | `src/us_swing/gui/app_service.py` | `add_manual_pick()`, `remove_manual_pick()`, `_manual_pick_entries()`, `_refresh_after_pick_change()`; picks lead `get_latest_screener_results()`; ledger records picks apart; empty list updates `_filtered_symbols`; `ScreenerApprovedEvent` skipped for pick changes. | SRD-GUI-004.010, .012 |
+| MD-GUI-004.001.M01 | `src/us_swing/gui/execution_panel.py` | Pick box + "+ Add" in `_FilteredStocksPane`; `_PinnedPicksProxy`; pick rows in `_FilteredStocksModel`; ✕ click removes. | SRD-GUI-004.011 |
+| MD-GUI-004.001.M03 | `src/us_swing/gui/intraday_cleanup.py` (new) | `remove_stale_intraday(db_path, keep, idle_days) -> list[str]` — finds and deletes stale stocks' rows in price_1m/3m/15m. | SRD-GUI-004.013 |
+| MD-GUI-004.001.M01 | `src/us_swing/gui/app_service.py` | `_cleanup_stale_intraday(entries)` runs first in `_boot_candle_check()`; keep-set = Filtered Stocks + open trade cycles + positions. | SRD-GUI-004.013 |
 
 ---
 
@@ -110,6 +121,42 @@ gui/app_service.py (FO-GUI-012 additions)
 | MD-GUI-014.001.M02 | `src/us_swing/gui/active_cycles_model.py` | Add `Col.SIDE` after `Col.SYMBOL` and `_Row.direction`, filled from the pending signal or cycle snapshot; green `Long` / red `Short` cell. | SRD-GUI-014.016 |
 | MD-GUI-014.001.M01 | `src/us_swing/gui/active_cycles_panel.py` | Add `_order_verb(direction, is_exit)`; use it in the Execute and Close confirmations and button text; margin check stays entry-only. | SRD-GUI-014.017 |
 | MD-GUI-014.001.M03 | `src/us_swing/gui/risk_editor_widget.py` | Swap the Hard Stop and Target spinbox ranges around the current price for a Short cycle. | SRD-GUI-014.018 |
+
+---
+
+## FO-GUI-015 — Indicator Rule Library Dialog Modules
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP | Status |
+|---|---|---|---|---|---|---|---|
+| MD-GUI-015.002.M01 | SRD-GUI-015.002 | `src/us_swing/gui/frameless_dialog.py` | Shared frameless dialog base with custom title bar, moved unchanged from `screener_panel.py`. | `FramelessDialog(title, min_width, min_height, extra_qss, parent)`, `content_layout()` | PyQt6, `theme.C` | No | Implemented |
+| MD-GUI-015.008.M02 | SRD-GUI-015.008, .012 | `src/us_swing/gui/indicator_rule_model.py` | Table model holding the dialog's `Rule` list; no screening logic. | `RuleTableModel`, `set_rules()`, `rules()`, `add_rule()`, `remove_row()`, `set_enabled()`, `update_rule()`, signal `rules_changed` | `core.indicator_rules`, PyQt6, `theme.C` | No | Implemented |
+| MD-GUI-015.009.M03 | SRD-GUI-015.009–.010, .015 | `src/us_swing/gui/indicator_rule_delegates.py` | Delegates for toggle, condition combo, number spinboxes, settings cell and remove button. | `ToggleSwitchDelegate`, `ConditionComboDelegate`, `NumberSpinDelegate`, `SettingsDelegate`, `RemoveButtonDelegate` | `indicator_rule_model`, `core.indicator_rules`, PyQt6, `theme.C` | No | Implemented |
+| MD-GUI-015.003.M04 | SRD-GUI-015.003–.006 | `src/us_swing/gui/indicator_library_model.py` | Catalogue tree model with usage counts, search proxy and drag-source view. | `LibraryTreeModel`, `LibraryFilterProxy`, `LibraryTreeView`, `MIME_INDICATOR`, `set_usage()`, `find_item()` | `core.indicator_rules`, PyQt6, `theme.C` | No | Implemented |
+| MD-GUI-015.011.M05 | SRD-GUI-015.011 | `src/us_swing/gui/indicator_params_dialog.py` | Title-bar-less popup panel (S2) anchored under the Settings cell; Enter saves, Esc or click outside discards. | `IndicatorParamsDialog(spec, params)`, `place_under(anchor)`, `get_params()` | `frameless_dialog`, `core.indicator_rules`, PyQt6 | No | Implemented |
+| MD-GUI-015.001.M06 | SRD-GUI-015.001, .007, .013 | `src/us_swing/gui/indicator_rules_dialog.py` | Assembles library pane, rule table, header and footer; loads and returns rule-list config. | `IndicatorRulesDialog(config, parent)`, `get_config()`, `rules()`, `RuleTableView` | M01–M05, `core.indicator_rules`, PyQt6 | No | Implemented |
+
+### Cross-Module Modifications for FO-GUI-015
+
+| Module ID | File | Change Required | SRD |
+|---|---|---|---|
+| MD-GUI-003.001.M01 | `src/us_swing/gui/screener_panel.py` | Import `FramelessDialog` (keep `_FramelessDialog` alias); both builder call sites open `IndicatorRulesDialog`; Details column uses `config_summary()`; delete `_IndicatorConfigDialog`, `_INDICATOR_DEFAULTS`, `_format_indicator_config`. | SRD-GUI-015.014 |
+
+## FO-GUI-016 — Price Action Pattern Library Dialog Modules
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP | Status |
+|---|---|---|---|---|---|---|---|
+| MD-GUI-016.004.M07 | SRD-GUI-016.004, .008 | `src/us_swing/gui/pattern_rule_model.py` | Table model holding the dialog's `PatternRule` list; no screening logic. | `PatternRuleTableModel`, `set_rules()`, `rules()`, `add_rule()`, `remove_row()`, `set_enabled()`, `update_rule()`, signal `rules_changed` | `core.price_patterns`, `indicator_rule_model` roles, PyQt6, `theme.C` | No | Implemented |
+| MD-GUI-016.001.M08 | SRD-GUI-016.001, .003, .006–.007, .009, .011 | `src/us_swing/gui/price_action_rules_dialog.py` | Assembles pattern library, threshold header, rule table and footer; loads and returns rule-list config. | `PriceActionRulesDialog(config, parent)`, `get_config()`, `rules()`, `threshold()` | M01–M07, `core.price_patterns`, PyQt6 | No | Implemented |
+
+### Cross-Module Modifications for FO-GUI-016
+
+| Module ID | File | Change Required | SRD |
+|---|---|---|---|
+| MD-GUI-015.003.M04 | `src/us_swing/gui/indicator_library_model.py` | `LibraryTreeModel` takes optional `entries` and `categories` (defaults: indicator catalogue). | SRD-GUI-016.002 |
+| MD-GUI-015.009.M03 | `src/us_swing/gui/indicator_rule_delegates.py` | Toggle / Remove use a `RuleRowsModel` Protocol; Settings paints the model's display text. | SRD-GUI-016.005 |
+| MD-GUI-015.008.M02 | `src/us_swing/gui/indicator_rule_model.py` | Settings column returns `settings_summary()` as display text. | SRD-GUI-016.005 |
+| MD-GUI-015.011.M05 | `src/us_swing/gui/indicator_params_dialog.py` | `spec` typed as a `ParamsOwner` Protocol so pattern specs work. | SRD-GUI-016.006 |
+| MD-GUI-003.001.M01 | `src/us_swing/gui/screener_panel.py` | Price action call sites open `PriceActionRulesDialog`; Details adds `pattern_config_summary()`; delete `_PriceActionConfigDialog`, `_PA_PATTERN_LABELS`, `_PA_DEFAULTS`, `_format_price_action_config`. | SRD-GUI-016.010 |
 
 ---
 

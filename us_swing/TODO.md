@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-10-16 (Session 82)
+**Last Updated:** 2026-10-22 (Session 83)
 
 ---
 
@@ -42,3 +42,9 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T30 | Short trade direction — Long/Short choice per strategy (flipped side, SL/target, trailing, P&L, GUI). Plan at `docs/execution/Short_Trade_plan.md`, 16 change points, 6 phases. All 25 SRDs Implemented; SimBroker E2E and RN done; PR #72 open. **Next:** manual IBKR paper check of one live short, then merge. | `execution/`, `gui/` | High | Open |
 | T31 | `entry_time` is stored in local (India) time while `opened_at` is UTC. Pick one convention and make the two columns match, so cycle times compare correctly. | `execution/trade_cycle` | Low | Open |
 | T32 | `pending_signals_table_model` classifies rows by `sig.side == "BUY"`, so a short entry would show as an exit. Fix only if the pane is revived; it has no caller today (ISS-GUI-0002 NIT 3). | `gui/pending_signals_table_model.py` | Low | Open |
+| T33 | Indicator rule library (FO-GUI-015 + FO-SCR-013): C4 tree + rule table dialog, shared `core/indicator_rules` catalogue, rule-list config with legacy reader, new daily indicators. Implemented on branch feat/indicator-rule-library; awaiting manual GUI check + PR. | `core/indicator_rules`, `gui/indicator_rules_dialog.py`, `screener/screeners/indicator.py` | High | Open |
+| T34 | Intraday candle source for the screener so RVOL (3/5/10 Min) and Short-Term Volume can be enabled; needs 5m/10m bars for the whole universe. | `db/schema.py`, `core/indicator_rules` | Medium | Open |
+| T35 | Fundamentals and dividends data (PE, yield, etc.) for the indicator catalogue; only market cap is stored today. | `universe/store.py`, `core/indicator_rules` | Low | Open |
+| T36 | Merge the EXE strategy-builder indicator list (`_INDICATOR_DATA`) with the shared `core/indicator_rules` catalogue. | `gui/strategy_builder_dialog.py`, `core/indicator_rules` | Low | Open |
+| T37 | Price action pattern library (FO-SCR-014 + FO-GUI-016): 47-pattern `core/price_patterns` catalogue, rule-list config with legacy reader, library + slim table dialog. Implemented on branch feat/indicator-rule-library (same PR as T33); awaiting manual GUI check + PR. | `core/price_patterns`, `gui/price_action_rules_dialog.py`, `screener/screeners/price_action.py` | High | Open |
+| T38 | Daily history starts 2023-05-30 (~823 bars): the candle download fills forward only. Add a backward fill of older daily history; weekly is now built from daily (ISS-GUI-0003), so it deepens too. | `gui/app_service.py` | Medium | Open |

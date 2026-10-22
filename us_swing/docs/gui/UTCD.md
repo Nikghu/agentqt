@@ -1,4 +1,4 @@
-﻿# Unit Test Case Document â€” GUI Module (GUI)
+# Unit Test Case Document â€” GUI Module (GUI)
 
 **Document ID:** UTCD-GUI
 **Version:** 1.5.1
@@ -7,6 +7,11 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.9.1: UT-GUI-006.001.M01.T17–T18 added — user edit keeps Telegram settings (ISS-GUI-0005).
+> v1.9.0: UT-GUI-004.001.M01.T21–T25 added — startup cleanup of stale intraday candles (SRD-GUI-004.013).
+> v1.8.0: UT-GUI-004.001.M01.T11–T19 added — manual picks (SRD-GUI-004.010–.012).
+> v1.7.0: UT-GUI-004.001.M01.T08–T10 added — Execution feed skips unassigned or missing presets (ISS-GUI-0004).
+> v1.6.0: UT-GUI-006.001.M01.T11–T16 added — weekly candles built from daily candles (ISS-GUI-0003).
 > v1.5.1: UT-GUI-002.005.M01.T01–T03 added — Trade History side follows trade direction (ISS-GUI-0002).
 
 > v1.5.0: UT-GUI-013.016–.019 and UT-GUI-014.016–.018 added (27 tests) — Short Trade Direction GUI surfaces (FO-EXE-018).
@@ -67,6 +72,24 @@
 | UT-GUI-004.001.M01.T05 | MD-GUI-004.001.M01 | Unit | `viewing_changed` syncs Execute-for combo to current scope | `svc.set_viewing_uid(user_id)` | `_exec_user_combo` index matches `user_id` entry | Implemented |
 | UT-GUI-004.001.M01.T06 | MD-GUI-004.001.M01 | Positive | `_on_run()` on SQUARING_OFF with no open cycles forces run_state to STOPPED and saves | `run_state="SQUARING_OFF"`; `get_open_symbols_for_strategy` returns `[]`; call `_on_run(0)` | `cfg.strategy_signal["run_state"] == "STOPPED"`; `save_strategies` called once | Pass |
 | UT-GUI-004.001.M01.T07 | MD-GUI-004.001.M01 | Negative | `_on_run()` on SQUARING_OFF with open cycles leaves state unchanged and does not save | `run_state="SQUARING_OFF"`; `get_open_symbols_for_strategy` returns `["AAPL","MSFT"]`; call `_on_run(0)` | `cfg.strategy_signal["run_state"] == "SQUARING_OFF"`; `save_strategies` not called | Pass |
+| UT-GUI-004.001.M01.T08 | MD-GUI-004.001.M01 | Positive | Results of a preset with assigned users reach the Execution feed | Admin preset assigned to user 1 with a saved result for AAPL | `get_latest_screener_results()` returns AAPL with that preset's name (ISS-GUI-0004) | Pass |
+| UT-GUI-004.001.M01.T09 | MD-GUI-004.001.M01 | Negative | Results of a preset with no assigned users are excluded | Admin preset with empty `assigned_to` and a saved result for MSFT | MSFT not returned (ISS-GUI-0004) | Pass |
+| UT-GUI-004.001.M01.T10 | MD-GUI-004.001.M01 | Negative | Results of a deleted preset are excluded | Result folder `preset_<id>` with no matching preset file | Nothing returned for that folder (ISS-GUI-0004) | Pass |
+| UT-GUI-004.001.M01.T11 | MD-GUI-004.001.M01 | Positive | Valid pick is saved and the list refreshes | " tsla " with TSLA in universe | Store holds TSLA; one refresh | Pass |
+| UT-GUI-004.001.M01.T12 | MD-GUI-004.001.M01 | Negative | Unknown, duplicate, empty or too-early pick is refused | XYZ / existing AAPL / blank / empty universe | Matching message; store unchanged; no refresh | Pass |
+| UT-GUI-004.001.M01.T13 | MD-GUI-004.001.M01 | Edge | IBKR form is stored in universe form | "brk b" | Store holds BRK.B | Pass |
+| UT-GUI-004.001.M01.T14 | MD-GUI-004.001.M01 | Positive | Removing a pick saves the shorter list and drops it from the engine list | Picks AAPL, TSLA; remove AAPL; no open trade | Store holds TSLA; one refresh; engine list TSLA | Pass |
+| UT-GUI-004.001.M01.T15 | MD-GUI-004.001.M01 | Positive | Picks lead the feed, need no users and win over a screener row | Picks TSLA, MSFT; preset result AAPL, MSFT | TSLA, MSFT (pick), AAPL (scheduled) | Pass |
+| UT-GUI-004.001.M01.T16 | MD-GUI-004.001.M01 | Edge | Picks show with no screener results on disk | Pick TSLA; no results folder | TSLA only | Pass |
+| UT-GUI-004.001.M01.T17 | MD-GUI-004.001.M01 | Negative | Pick change sends no "screener approved" message | `_refresh_after_pick_change()` | Flag False during refresh, True after | Pass |
+| UT-GUI-004.001.M01.T18 | MD-GUI-004.001.M01 | Positive | Ledger records picks apart | Pick TSLA + Momentum AAPL | (Momentum, AAPL) then (Manual pick, TSLA) | Pass |
+| UT-GUI-004.001.M01.T19 | MD-GUI-004.001.M01 | Positive | Picks stay on top in either sort order | Proxy sorted by score asc / desc | Row 0 is "★ TSLA" with "✕ Remove" | Pass |
+| UT-GUI-004.001.M01.T20 | MD-GUI-004.001.M01 | Edge | A removed pick with an open trade stays on the engine list | Remove AAPL while AAPL has an open trade | Engine list keeps AAPL | Pass |
+| UT-GUI-004.001.M01.T21 | MD-GUI-004.001.M01 | Positive | Stale stock's intraday rows are deleted from all three tables | OLD newest bar 10 days before newest DB bar; not kept | OLD gone from price_1m/3m/15m; returns [OLD] | Pass |
+| UT-GUI-004.001.M01.T22 | MD-GUI-004.001.M01 | Negative | Kept stock is not deleted even when idle | OLD idle 10 days but in keep-set | OLD rows remain | Pass |
+| UT-GUI-004.001.M01.T23 | MD-GUI-004.001.M01 | Edge | Stock idle less than the retention period is kept | Newest bar 3 days old, retention 5 | Rows remain | Pass |
+| UT-GUI-004.001.M01.T24 | MD-GUI-004.001.M01 | Edge | A long break deletes nothing | Every stock's newest bar 30 days before today | Nothing deleted (idle is relative to newest DB bar) | Pass |
+| UT-GUI-004.001.M01.T25 | MD-GUI-004.001.M01 | Negative | Cleanup is skipped when open trades cannot be read | `_tc_query` is None | `remove_stale_intraday` not called | Pass |
 
 ---
 
@@ -96,6 +119,14 @@
 | UT-GUI-006.001.M01.T08 | MD-GUI-006.001.M01 | Edge | Candle reset never unlinks the database file | Existing candles.db | File still exists after reset | Pass |
 | UT-GUI-006.001.M01.T09 | MD-GUI-006.001.M01 | Positive | Candle reset clears ancillary files and refreshes status | Checkpoint and failed-symbols files present | Both files deleted; download stopped; status refresh called | Pass |
 | UT-GUI-006.001.M01.T10 | MD-GUI-006.001.M01 | Edge | Candle reset on a fresh path creates empty candle tables | No candles.db at the configured path | `price_1d` and `price_1w` exist and are empty | Pass |
+| UT-GUI-006.001.M01.T11 | MD-GUI-006.001.M01 | Positive | Weekly candle aggregates a full week of daily candles | Five daily rows Mon–Fri for one symbol | One `price_1w` row dated Friday; open = Monday open, high = max, low = min, close = Friday close, volume = sum (ISS-GUI-0003) | Pass |
+| UT-GUI-006.001.M01.T12 | MD-GUI-006.001.M01 | Negative | Rebuild removes stale weekly rows for the same week | Daily rows Mon–Wed; `price_1w` already holds a Tue-dated and a cut-short Fri-dated row for that week | Exactly one `price_1w` row for the week, dated Wednesday, with full Mon–Wed values (ISS-GUI-0003) | Pass |
+| UT-GUI-006.001.M01.T13 | MD-GUI-006.001.M01 | Edge | Holiday-short week is dated on its last trading day | Daily rows Mon–Thu (Friday holiday) | One `price_1w` row dated Thursday (ISS-GUI-0003) | Pass |
+| UT-GUI-006.001.M01.T14 | MD-GUI-006.001.M01 | Edge | Rebuild only touches the given symbol | Weekly rows for AAPL and MSFT; rebuild AAPL | MSFT weekly rows unchanged (ISS-GUI-0003) | Pass |
+| UT-GUI-006.001.M01.T15 | MD-GUI-006.001.M01 | Positive | Download worker no longer requests IBKR weekly bars | Run `_download_all` with a fake IB returning daily bars | No `1 week` request made; `price_1w` built from the saved daily bars; `inserted_1w` = weekly rows written (ISS-GUI-0003) | Pass |
+| UT-GUI-006.001.M01.T16 | MD-GUI-006.001.M01 | Negative | Symbol with no daily bars is reported and writes nothing | Fake IB returns no daily bars | `symbol_failed(symbol, "NO_DATA")` emitted; no `price_1w` rows (ISS-GUI-0003) | Pass |
+| UT-GUI-006.001.M01.T17 | MD-GUI-006.001.M01 | Negative | Editing a user keeps fields the dialog does not show | User with Telegram on, chat id, notify toggles, configs; change display name | All hidden fields unchanged (ISS-GUI-0005) | Pass |
+| UT-GUI-006.001.M01.T18 | MD-GUI-006.001.M01 | Positive | A new user starts with defaults | `_UserDialog(None)` | id -1, Telegram off, empty chat id (ISS-GUI-0005) | Pass |
 
 ---
 
@@ -348,3 +379,87 @@
 | UT-GUI-002.005.M01.T01 | MD-GUI-004.001.M01 | Positive | Closed short shows SELL entry and BUY cover | history snap `direction="SHORT"`, closed | entry row `SELL`; exit row `BUY` | Pass |
 | UT-GUI-002.005.M01.T02 | MD-GUI-004.001.M01 | Edge | Closed long unchanged | history snap `direction="LONG"`, closed | entry row `BUY`; exit row `SELL` | Pass |
 | UT-GUI-002.005.M01.T03 | MD-GUI-004.001.M01 | Negative | Short entry fill log names a Sell | short snap; `FILLED` event for its entry order | log starts `[Orders] KVUE Sell fill confirmed` | Pass |
+
+
+---
+
+## FO-GUI-015 — Indicator Rule Library Dialog
+
+Test files: `tests/gui/test_indicator_rule_model.py` (M02, M03), `tests/gui/test_indicator_library_model.py` (M04), `tests/gui/test_indicator_rules_dialog.py` (M01, M05, M06, wiring).
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-015.002.M01.T01 | MD-GUI-015.002.M01 | Positive | Moved base keeps title bar and content layout | `FramelessDialog("X")` | title label "X"; 3 window buttons; `content_layout()` is a `QVBoxLayout` | Pass |
+| UT-GUI-015.002.M01.T02 | MD-GUI-015.002.M01 | Negative | Close button rejects | click ✕ | `result() == Rejected` | Pass |
+| UT-GUI-015.008.M02.T01 | MD-GUI-015.008.M02 | Positive | Table has the 7 columns | empty model | headers On, Indicator, Condition, Value, To, Settings, "" | Pass |
+| UT-GUI-015.008.M02.T02 | MD-GUI-015.008.M02 | Positive | Add appends default rule and signals | `add_rule("rsi")` | 1 row; `rules_changed` emitted once | Pass |
+| UT-GUI-015.008.M02.T03 | MD-GUI-015.008.M02 | Negative | Unknown indicator adds no row | `add_rule("nope")` | raises `IndicatorRuleError`; 0 rows | Pass |
+| UT-GUI-015.009.M02.T01 | MD-GUI-015.008.M02 | Positive | To is editable for between | RSI rule between | To cell flag `ItemIsEditable` | Pass |
+| UT-GUI-015.009.M02.T02 | MD-GUI-015.008.M02 | Negative | To is locked for at least | ATR rule at least | To not editable; shows "—" | Pass |
+| UT-GUI-015.009.M02.T03 | MD-GUI-015.008.M02 | Positive | Switching to between fills To | ATR at least → between | `to == spec.value_max` | Pass |
+| UT-GUI-015.012.M02.T01 | MD-GUI-015.008.M02 | Positive | Disabled row is dimmed | `set_enabled(0, False)` | foreground `C.MUTED`; rule `enabled False` | Pass |
+| UT-GUI-015.012.M02.T02 | MD-GUI-015.008.M02 | Negative | Removing a bad row index does nothing | `remove_row(9)` on 1 row | still 1 row; no signal | Pass |
+| UT-GUI-015.009.M03.T01 | MD-GUI-015.009.M03 | Positive | Condition combo lists only allowed conditions | editor for MACD row | 4 items, crosses above first | Pass |
+| UT-GUI-015.010.M03.T01 | MD-GUI-015.009.M03 | Positive | Value spinbox uses spec range and unit | editor for ATR % row | range `value_min..value_max`; suffix "%" | Pass |
+| UT-GUI-015.010.M03.T02 | MD-GUI-015.009.M03 | Negative | Value above max is clamped | type 999 in RSI editor | committed value 100 | Pass |
+| UT-GUI-015.012.M03.T01 | MD-GUI-015.009.M03 | Positive | Clicking the switch flips On | click centre of `switch_rect` | rule `enabled` toggles | Pass |
+| UT-GUI-015.012.M03.T02 | MD-GUI-015.009.M03 | Positive | Clicking ✕ removes the row | click ✕ cell | row count drops by 1 (waitUntil) | Pass |
+| UT-GUI-015.012.M03.T03 | MD-GUI-015.009.M03 | Negative | Click outside the switch does nothing | click cell corner | `enabled` unchanged | Pass |
+| UT-GUI-015.015.M03.T01 | MD-GUI-015.009.M03 | Positive | Inline editor styles suppress focus outline | condition and spin editors | stylesheet contains `outline: none` | Pass |
+| UT-GUI-015.015.M03.T02 | MD-GUI-015.009.M03 | Negative | No fixed heights in the new GUI modules | source of the 5 new modules (moved `frameless_dialog.py` keeps its 38 px title bar) | no `setFixedHeight` / `setFixedSize` calls | Pass |
+| UT-GUI-015.003.M04.T01 | MD-GUI-015.003.M04 | Positive | Categories follow enum order and empty ones are hidden | `LibraryTreeModel()` | no Dividends/Others row; Price first | Pass |
+| UT-GUI-015.003.M04.T02 | MD-GUI-015.003.M04 | Positive | Category shows used / total | `set_usage({"rsi": 1})` | Momentum text ends "1 / 7" | Pass |
+| UT-GUI-015.003.M04.T03 | MD-GUI-015.003.M04 | Negative | Category rows cannot be selected or dragged | Momentum category index | flags lack `ItemIsSelectable` and `ItemIsDragEnabled` | Pass |
+| UT-GUI-015.004.M04.T01 | MD-GUI-015.003.M04 | Positive | Search keeps matches and parent | filter "macd" | 3 items under Momentum | Pass |
+| UT-GUI-015.004.M04.T02 | MD-GUI-015.003.M04 | Negative | Search with no match empties the tree | filter "zzz" | proxy `rowCount() == 0` | Pass |
+| UT-GUI-015.005.M04.T01 | MD-GUI-015.003.M04 | Positive | In-use tag follows usage | usage `{"ema_50": 1}` then `{}` | `InUseRole` True then False | Pass |
+| UT-GUI-015.005.M04.T02 | MD-GUI-015.003.M04 | Negative | Unused indicator has no tag | usage `{"rsi": 1}` | `find_item("macd")` `InUseRole` False | Pass |
+| UT-GUI-015.006.M04.T01 | MD-GUI-015.003.M04 | Positive | Unavailable item is disabled with reason | `find_item("rvol_5m")` | not enabled; tooltip "needs intraday data" | Pass |
+| UT-GUI-015.006.M04.T02 | MD-GUI-015.003.M04 | Negative | Double-click on unavailable item emits nothing | double-click `rvol_5m` | no `indicator_activated` | Pass |
+| UT-GUI-015.011.M05.T01 | MD-GUI-015.011.M05 | Positive | One spinbox per param with ranges | MACD spec | `param_fast`, `param_slow`, `param_signal`; edits returned by `get_params()` | Pass |
+| UT-GUI-015.011.M05.T02 | MD-GUI-015.011.M05 | Negative | Reset restores defaults | change fast to 5, click Reset | `get_params()["fast"] == 12` | Pass |
+| UT-GUI-015.001.M06.T01 | MD-GUI-015.001.M06 | Positive | Dialog builds both panes | `IndicatorRulesDialog({})` | title "Indicator Filters"; named widgets present | Pass |
+| UT-GUI-015.001.M06.T02 | MD-GUI-015.001.M06 | Negative | Cancel does not change the input config | edit a row, click Cancel | `Rejected`; input dict unchanged | Pass |
+| UT-GUI-015.007.M06.T01 | MD-GUI-015.001.M06 | Positive | Adding an indicator adds a row and tags it | `_add_indicator("ema_50")` | new row; tree tag "in use" | Pass |
+| UT-GUI-015.007.M06.T02 | MD-GUI-015.001.M06 | Negative | Unavailable indicator is not added | `_add_indicator("rvol_5m")` | row count unchanged | Pass |
+| UT-GUI-015.007.M06.T03 | MD-GUI-015.001.M06 | Positive | Dropping an indicator adds a row | drop mime `rsi` on table | one RSI row appended | Pass |
+| UT-GUI-015.013.M06.T01 | MD-GUI-015.001.M06 | Positive | Legacy config loads as 6 rows | legacy 6-section dict | 6 rows; RS row off | Pass |
+| UT-GUI-015.013.M06.T02 | MD-GUI-015.001.M06 | Positive | OK returns a reloadable rule-list config | add EMA(50), `get_config()` | `schema 2`; reloads same rows | Pass |
+| UT-GUI-015.013.M06.T03 | MD-GUI-015.001.M06 | Negative | Bad saved config starts empty and is kept | rule with unknown id; press OK without edits | 0 rows; WARNING `[Screener]` logged; `get_config()` returns the original config | Pass |
+| UT-GUI-015.014.M01.T01 | MD-GUI-003.001.M01 | Positive | Group "Configure…" stores the new config | patched dialog accepts | `_configs[sid]` has `schema 2`; `changed` emitted | Pass |
+| UT-GUI-015.014.M01.T02 | MD-GUI-003.001.M01 | Negative | Cancel keeps the old config | patched dialog rejects | `_configs[sid]` unchanged | Pass |
+
+## FO-GUI-016 — Price Action Pattern Library Dialog
+
+Test files:
+- `tests/gui/test_pattern_rule_model.py` (M07, shared M03 delegates)
+- `tests/gui/test_price_action_rules_dialog.py` (M08, M04, M05, wiring)
+- The existing FO-GUI-015 tests stay as regression tests for M02–M06.
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-016.004.M07.T01 | MD-GUI-016.004.M07 | Positive | Model shows 4 columns with pattern name and settings text | rule `hammer` | headers On, Pattern, Settings, ""; text "Hammer", "1-bar window" | Pass |
+| UT-GUI-016.004.M07.T02 | MD-GUI-016.004.M07 | Negative | Unknown pattern cannot be added; bad row remove is a no-op | `add_rule("nope")`; `remove_row(9)` | `PatternRuleError`; row count unchanged | Pass |
+| UT-GUI-016.008.M07.T01 | MD-GUI-016.004.M07 | Positive | Disable dims the row and emits change | `set_enabled(0, False)` | foreground `C.MUTED`; `rules_changed` emitted | Pass |
+| UT-GUI-016.008.M07.T02 | MD-GUI-016.004.M07 | Negative | Toggling a missing row does nothing | `set_enabled(9, False)` on 1 row | rules unchanged; no `rules_changed` | Pass |
+| UT-GUI-016.005.M03.T01 | MD-GUI-015.009.M03 | Positive | Toggle and remove delegates act on the pattern model | release inside switch / ✕ rect | rule disabled; row removed | Pass |
+| UT-GUI-016.005.M03.T02 | MD-GUI-015.009.M03 | Negative | Delegates ignore a model without the rule-row API | release on a plain `QStandardItemModel` | returns False; nothing changes | Pass |
+| UT-GUI-016.002.M04.T01 | MD-GUI-015.003.M04 | Positive | Tree built from the pattern catalogue | `LibraryTreeModel(entries=PATTERNS, categories=PatternCategory)` | 7 category rows; `find_item("hammer")` exists | Pass |
+| UT-GUI-016.002.M04.T02 | MD-GUI-015.003.M04 | Negative | Default tree is still the indicator catalogue | `LibraryTreeModel()` | `find_item("rsi")` exists; `find_item("hammer")` None | Pass |
+| UT-GUI-016.006.M05.T01 | MD-GUI-015.011.M05 | Positive | Params popup edits a pattern spec | `IndicatorParamsDialog(get_pattern("vcp"), {})` | `param_lookback`, `param_contractions`, `param_final_depth` present | Pass |
+| UT-GUI-016.001.M08.T01 | MD-GUI-016.001.M08 | Positive | Dialog builds both panes | `PriceActionRulesDialog({})` | title "Price Action Patterns"; named widgets present | Pass |
+| UT-GUI-016.001.M08.T02 | MD-GUI-016.001.M08 | Negative | Cancel does not change the input config | edit a row, click Cancel | `Rejected`; input dict unchanged | Pass |
+| UT-GUI-016.003.M08.T01 | MD-GUI-016.001.M08 | Positive | Adding a pattern adds a row and tags it | `_add_pattern("hammer")` | new row; tree tag "in use"; header count up | Pass |
+| UT-GUI-016.003.M08.T02 | MD-GUI-016.001.M08 | Positive | Dropping a pattern adds a row | drop mime `doji` on table | one Doji row appended | Pass |
+| UT-GUI-016.003.M08.T03 | MD-GUI-016.001.M08 | Negative | Unknown id adds nothing | `_add_pattern("nope")` | row count unchanged; WARNING `[Screener]` | Pass |
+| UT-GUI-016.007.M08.T01 | MD-GUI-016.001.M08 | Positive | Threshold box saves a fraction | set `threshold_spin` 40 | `get_config()["threshold"] == 0.4` | Pass |
+| UT-GUI-016.007.M08.T02 | MD-GUI-016.001.M08 | Edge | Out-of-range saved threshold is clamped in the box | config threshold 1.7 | spin shows 100 | Pass |
+| UT-GUI-016.007.M08.T03 | MD-GUI-016.001.M08 | Negative | Box refuses values below 0 % | `threshold_spin.setValue(-10)` | spin shows 0; `get_config()["threshold"] == 0.0` | Pass |
+| UT-GUI-016.006.M08.T01 | MD-GUI-016.001.M08 | Positive | Settings popup saves params | patched popup accepts `{"within": 3}` | rule params `within` 3; cell text "3-bar window" | Pass |
+| UT-GUI-016.009.M08.T01 | MD-GUI-016.001.M08 | Positive | Legacy config loads as 5 rows with 20% | `{}` | 5 rows (2 on); spin 20 | Pass |
+| UT-GUI-016.009.M08.T02 | MD-GUI-016.001.M08 | Positive | OK returns a reloadable rule-list config | add Hammer, `get_config()` | `schema 2`; reloads same rows | Pass |
+| UT-GUI-016.009.M08.T03 | MD-GUI-016.001.M08 | Negative | Bad saved config starts empty and is kept | rule with unknown id; OK without edits | 0 rows; WARNING logged; `get_config()` returns the original | Pass |
+| UT-GUI-016.011.M08.T01 | MD-GUI-016.001.M08 | Positive | Style rules are followed | dialog widgets | no fixed heights on buttons/inputs; threshold spin QSS has `outline: none` | Pass |
+| UT-GUI-016.011.M08.T02 | MD-GUI-016.001.M08 | Negative | Warning text shows no internal names | bad saved config | log starts `[Screener]`; no class names or snake_case words | Pass |
+| UT-GUI-016.010.M01.T01 | MD-GUI-003.001.M01 | Positive | Group and weighted call sites store the new config | patched dialog accepts | stored config has `schema 2`; group emits `changed` | Pass |
+| UT-GUI-016.010.M01.T02 | MD-GUI-003.001.M01 | Negative | Cancel keeps the old config; old dialog is gone | patched dialog rejects; module attrs | config unchanged; no `_PriceActionConfigDialog` | Pass |

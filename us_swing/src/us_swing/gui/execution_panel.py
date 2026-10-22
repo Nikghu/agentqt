@@ -16,6 +16,7 @@ from PyQt6.QtCore import (
     QPoint,
     QSize,
     QSortFilterProxyModel,
+    QStringListModel,
     Qt,
     QTimer,
     QUrl,
@@ -27,10 +28,12 @@ from PyQt6.QtWidgets import (
     QAbstractButton,
     QAbstractItemView,
     QComboBox,
+    QCompleter,
     QDialog,
     QHBoxLayout,
     QHeaderView,
     QLabel,
+    QLineEdit,
     QMessageBox,
     QPushButton,
     QSizePolicy,
@@ -39,6 +42,7 @@ from PyQt6.QtWidgets import (
     QTableView,
     QTableWidget,
     QTableWidgetItem,
+    QToolTip,
     QVBoxLayout,
     QWidget,
 )
@@ -935,6 +939,13 @@ class _FilteredStocksModel(QAbstractTableModel):
         self._rows = entries
         self.endResetModel()
 
+    def is_pick(self, row: int) -> bool:
+        """True when the row is a manual pick (SRD-GUI-004.011)."""
+        return 0 <= row < len(self._rows) and self._rows[row].run_type == "pick"
+
+    def symbol_at(self, row: int) -> str:
+        return self._rows[row].symbol
+
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
         return 0 if parent.isValid() else len(self._rows)
 
@@ -951,6 +962,11 @@ class _FilteredStocksModel(QAbstractTableModel):
             return None
         entry = self._rows[index.row()]
         col = index.column()
+
+        if entry.run_type == "pick" and role in (
+            Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.ForegroundRole
+        ):
+            return self._pick_data(entry, col, role)
 
         if role == Qt.ItemDataRole.DisplayRole:
             if col == _COL_SYMBOL:
@@ -987,12 +1003,39 @@ class _FilteredStocksModel(QAbstractTableModel):
 
         return None
 
+    @staticmethod
+    def _pick_data(entry: FilteredStockEntry, col: int, role: int) -> Any:
+        """Display text and colour for a manual pick row (SRD-GUI-004.011)."""
+        if role == Qt.ItemDataRole.DisplayRole:
+            return {
+                _COL_SYMBOL: f"★ {entry.symbol}",
+                _COL_RUN: "Manual pick",
+                _COL_SCREENER: "✕ Remove",
+            }.get(col, "—")
+        if col == _COL_SYMBOL:
+            return QColor(C.YELLOW)
+        if col == _COL_SCREENER:
+            return QColor(C.RED)
+        return QColor(C.MUTED)
+
     def set_candle_readiness(self, report: dict[str, bool | None]) -> None:
         self._readiness.update(report)
         if self._rows:
             top_left = self.createIndex(0, 0)
             bot_right = self.createIndex(len(self._rows) - 1, len(self.HEADERS) - 1)
             self.dataChanged.emit(top_left, bot_right, [Qt.ItemDataRole.BackgroundRole])
+
+
+class _PinnedPicksProxy(QSortFilterProxyModel):
+    """Sorts as usual but keeps manual picks above screener rows in either order."""
+
+    def lessThan(self, left: QModelIndex, right: QModelIndex) -> bool:
+        model = self.sourceModel()
+        assert isinstance(model, _FilteredStocksModel)
+        left_pick, right_pick = model.is_pick(left.row()), model.is_pick(right.row())
+        if left_pick != right_pick:
+            return left_pick if self.sortOrder() == Qt.SortOrder.AscendingOrder else right_pick
+        return super().lessThan(left, right)
 
 
 # ── Filtered Stocks left pane ─────────────────────────────────────────────────
@@ -1005,6 +1048,7 @@ class _FilteredStocksPane(QWidget):
     def __init__(self, svc: AppService, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setMinimumWidth(180)
+        self._svc = svc
         self._all_entries: list[FilteredStockEntry] = []
 
         self._current_date = ""
@@ -1037,9 +1081,36 @@ class _FilteredStocksPane(QWidget):
         hdr_row.addWidget(self._time_count_sep)
         hdr_row.addWidget(self._count_lbl)
 
+        # ── Manual pick input (SRD-GUI-004.010) ────────────────────────────────
+        self._pick_input = QLineEdit()
+        self._pick_input.setPlaceholderText("Add symbol…")
+        self._pick_input.returnPressed.connect(self._on_add_pick)
+        # Suggestions match symbol or company name, e.g. "dell" → "DELL — Dell Technologies"
+        self._pick_completer = QCompleter(self)
+        self._pick_completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        self._pick_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self._pick_completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
+        self._pick_completer.setMaxVisibleItems(12)
+        popup = self._pick_completer.popup()
+        assert popup is not None
+        popup.setStyleSheet(
+            f"QAbstractItemView {{ background:{C.SURFACE}; color:{C.TEXT};"
+            f" border:1px solid {C.OVERLAY}; selection-background-color:{C.OVERLAY};"
+            f" selection-color:{C.TEXT}; font-size:8pt; outline:none; }}"
+        )
+        self._pick_input.setCompleter(self._pick_completer)
+        self._refresh_pick_suggestions()
+        svc.sp500_updated.connect(self._refresh_pick_suggestions)
+        add_btn = QPushButton("+ Add")
+        add_btn.clicked.connect(self._on_add_pick)
+        pick_row = QHBoxLayout()
+        pick_row.setContentsMargins(0, 0, 0, 0)
+        pick_row.addWidget(self._pick_input, 1)
+        pick_row.addWidget(add_btn)
+
         # ── Table ──────────────────────────────────────────────────────────────
         self._model = _FilteredStocksModel()
-        self._proxy = QSortFilterProxyModel()
+        self._proxy = _PinnedPicksProxy()
         self._proxy.setSourceModel(self._model)
 
         self._table = QTableView()
@@ -1082,6 +1153,7 @@ class _FilteredStocksPane(QWidget):
         root.setContentsMargins(0, 0, 6, 0)
         root.setSpacing(6)
         root.addLayout(hdr_row)
+        root.addLayout(pick_row)
         root.addWidget(self._table, 1)
         root.addWidget(self._empty_lbl, 1)
 
@@ -1089,6 +1161,7 @@ class _FilteredStocksPane(QWidget):
         sel_model = self._table.selectionModel()
         assert sel_model is not None
         sel_model.currentChanged.connect(self._on_current_changed)
+        self._table.clicked.connect(self._on_cell_clicked)
 
         # ── Wire up to service ─────────────────────────────────────────────────
         svc.screener_results_updated.connect(self._on_updated)
@@ -1103,6 +1176,27 @@ class _FilteredStocksPane(QWidget):
             return
         self.symbol_selected.emit(self._model._rows[src.row()].symbol)
 
+    def _refresh_pick_suggestions(self) -> None:
+        items = [f"{r.symbol} — {r.name}" for r in self._svc.get_sp500_universe()]
+        self._pick_completer.setModel(QStringListModel(items, self._pick_completer))
+
+    def _on_add_pick(self) -> None:
+        symbol = self._pick_input.text().split(" — ")[0]
+        error = self._svc.add_manual_pick(symbol)
+        if error is None:
+            self._pick_input.clear()
+            return
+        QToolTip.showText(
+            self._pick_input.mapToGlobal(QPoint(0, self._pick_input.height())),
+            error,
+            self._pick_input,
+        )
+
+    def _on_cell_clicked(self, index: QModelIndex) -> None:
+        src = self._proxy.mapToSource(index)
+        if src.column() == _COL_SCREENER and self._model.is_pick(src.row()):
+            self._svc.remove_manual_pick(self._model.symbol_at(src.row()))
+
     def get_top_symbol(self) -> str | None:
         """Return the symbol of the highest-score row, or None if empty."""
         idx = self._proxy.index(0, 0)
@@ -1115,7 +1209,7 @@ class _FilteredStocksPane(QWidget):
 
     def _on_updated(self, entries: list[FilteredStockEntry]) -> None:
         self._all_entries = entries
-        dates = sorted({e.date for e in entries}, reverse=True)
+        dates = sorted({e.date for e in entries if e.date}, reverse=True)
         if not dates:
             self._current_date = ""
             self._date_lbl.setText("")
@@ -1123,8 +1217,7 @@ class _FilteredStocksPane(QWidget):
             self._count_lbl.setText("")
             self._date_time_sep.setVisible(False)
             self._time_count_sep.setVisible(False)
-            self._table.setVisible(False)
-            self._empty_lbl.setVisible(True)
+            self._filter_by_date()
             return
         self._current_date = dates[0]
         self._date_lbl.setText(

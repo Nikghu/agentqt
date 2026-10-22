@@ -308,7 +308,7 @@ class FilteredStockEntry:
     trading_styles: list[str]
     assigned_users: list[str]
     screener_name:  str
-    run_type:       str   # "manual" | "scheduled"
+    run_type:       str   # "manual" | "scheduled" | "pick" (added by hand, SRD-GUI-004.010)
     date:           str   # YYYY-MM-DD
     time:           str = ""   # HH:MM (local time), empty for legacy entries
 

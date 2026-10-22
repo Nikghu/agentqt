@@ -4,7 +4,7 @@
 **Version:** 2.2.0
 **Traces To:** FO-SCR v2.1.0, SRD-SCR v2.3.0, DD-SCR v2.1.0, MD-SCR v2.2.0, UTCD-SCR v2.1.0
 **Status:** Draft
-**Last Updated:** 2026-05-06 (SRD-SCR-014.008 + MD-SCR-014.008.M20 added for ai_model_store.py)
+**Last Updated:** 2026-10-22 (FO-SCR-013 indicator catalogue + rule list — implemented; RN-SCR-2.2.0-20261022)
 **Project:** US Swing Trading System
 
 ---
@@ -38,8 +38,9 @@
 | FO-SCR-009 | Backward Compatibility & v1 Migration | SRD-009.001–004 | 4 |
 | FO-SCR-010 | Relative Strength vs Benchmark | SRD-012.001–005 | 5 |
 | FO-SCR-011 | AI-Assisted Stock Ranking (Phase 1) | SRD-013.001–008 | 8 |
+| FO-SCR-013 | Indicator Catalogue and Rule-List Screening | SRD-015.001–017 | 17 |
 | — | Cross-Cutting (Error, Performance) | SRD-010, 011 | 10 |
-| **Total** | — | — | **86** |
+| **Total** | — | — | **103** |
 
 ---
 
@@ -452,6 +453,55 @@ FO-011
 | SRD-014.008 | — | MD-SCR-014.008.M20 (ai_model_store.py) | (pending) | — | Implemented |
 
 **Note (2026-05-27, ISS-SCR-0002):** SRD-014.003 and SRD-014.006 marked Implemented after fixing the blank-transcript-panel regression — see RN-SCR-2.1.1-20260527.
+
+### FO-SCR-013 Coverage Summary (SRD-SCR-015)
+
+| SRD | DD | MD | UT File | Tests | Status |
+|---|---|---|---|---|---|
+| SRD-015.001 | DD-SCR-015.001.D01 | MD-SCR-015.001.M23 | tests/core/test_indicator_catalogue.py | UT-SCR-015.001.M23.T01–T02 | Implemented |
+| SRD-015.002 | DD-SCR-015.001.D01 | MD-SCR-015.001.M23 | tests/core/test_indicator_catalogue.py | UT-SCR-015.002.M23.T01–T02 | Implemented |
+| SRD-015.003 | DD-SCR-015.001.D01 | MD-SCR-015.001.M23 | tests/core/test_indicator_catalogue.py | UT-SCR-015.003.M23.T01–T02 | Implemented |
+| SRD-015.004 | DD-SCR-015.001.D01 | MD-SCR-015.006.M24 | tests/core/test_indicator_rules_config.py | UT-SCR-015.004.M24.T01–T02 | Implemented |
+| SRD-015.005 | DD-SCR-015.001.D01 | MD-SCR-015.006.M24 | tests/core/test_indicator_rules_config.py | UT-SCR-015.005.M24.T01–T03 | Implemented |
+| SRD-015.006 | DD-SCR-015.001.D01 | MD-SCR-015.006.M24 | tests/core/test_indicator_rules_config.py | UT-SCR-015.006.M24.T01–T03 | Implemented |
+| SRD-015.007 | DD-SCR-015.001.D01 | MD-SCR-015.006.M24 | tests/core/test_indicator_rules_config.py | UT-SCR-015.007.M24.T01–T03 | Implemented |
+| SRD-015.008 | DD-SCR-015.008.D01 | MD-SCR-015.008.M25 | tests/core/test_indicator_ta.py | UT-SCR-015.008.M25.T01–T04 | Implemented |
+| SRD-015.009 | DD-SCR-015.009.D01 | MD-SCR-015.009.M26 | tests/core/test_indicator_evaluate.py | UT-SCR-015.009.M26.T01–T06 | Implemented |
+| SRD-015.010 | DD-SCR-015.009.D01 | MD-SCR-002.001.M04 | tests/screener/test_indicator_screener.py | UT-SCR-015.010.M04.T01–T04 | Implemented |
+| SRD-015.011 | DD-SCR-015.009.D01 | MD-SCR-002.001.M04 | tests/screener/test_indicator_screener.py | UT-SCR-015.011.M04.T01–T03 | Implemented |
+| SRD-015.012 | DD-SCR-015.009.D01 | MD-SCR-002.001.M04, MD-SCR-003.001.M10 | test_indicator_screener.py, test_executor.py | UT-SCR-015.012.M04.T01–T02, .012.M10.T01 | Implemented |
+| SRD-015.013 | DD-SCR-015.001.D01 | MD-SCR-015.001.M23 | tests/core/test_indicator_catalogue.py | UT-SCR-015.013.M23.T01–T02 | Implemented |
+| SRD-015.014 | DD-SCR-015.001.D01 | MD-SCR-015.001.M23 | tests/core/test_indicator_catalogue.py | UT-SCR-015.014.M23.T01–T02 | Implemented |
+| SRD-015.015 | DD-SCR-015.009.D01 | MD-SCR-015.006.M24 | tests/core/test_indicator_rules_config.py | UT-SCR-015.015.M24.T01–T02 | Implemented |
+| SRD-015.016 | DD-SCR-015.009.D01 | MD-SCR-002.001.M04 | tests/screener/test_indicator_screener.py | UT-SCR-015.016.M04.T01 | Implemented |
+| SRD-015.017 | DD-SCR-015.009.D01 | MD-SCR-002.001.M04 | tests/screener/test_indicator_screener.py | UT-SCR-015.017.M04.T01–T02 | Implemented |
+
+**RN:** RN-SCR-2.2.0-20261022 (all SRD-015.001–.017 rows above, 2026-10-22).
+
+### FO-SCR-014 Coverage Summary (SRD-SCR-016)
+
+| SRD | DD | MD | UT File | Tests | Status |
+|---|---|---|---|---|---|
+| SRD-016.001 | DD-SCR-016.001.D01 | MD-SCR-016.001.M27 | tests/core/test_price_pattern_catalogue.py | UT-SCR-016.001.M27.T01–T02 | Implemented |
+| SRD-016.002 | DD-SCR-016.001.D01 | MD-SCR-016.001.M27 | tests/core/test_price_pattern_catalogue.py | UT-SCR-016.002.M27.T01–T02 | Implemented |
+| SRD-016.003 | DD-SCR-016.003.D01 | MD-SCR-016.003.M28 | tests/core/test_price_pattern_candles.py | UT-SCR-016.003.M28.T01–T03 | Implemented |
+| SRD-016.004 | DD-SCR-016.003.D01 | MD-SCR-016.003.M28 | tests/core/test_price_pattern_candles.py | UT-SCR-016.004.M28.T01–T02 | Implemented |
+| SRD-016.005 | DD-SCR-016.005.D01 | MD-SCR-016.005.M29 | tests/core/test_price_pattern_breakouts.py | UT-SCR-016.005.M29.T01–T03 | Implemented |
+| SRD-016.006 | DD-SCR-016.005.D01 | MD-SCR-016.005.M29 | tests/core/test_price_pattern_breakouts.py | UT-SCR-016.006.M29.T01–T02 | Implemented |
+| SRD-016.016 | DD-SCR-016.005.D01 | MD-SCR-016.005.M29 | tests/core/test_price_pattern_breakouts.py | UT-SCR-016.005.M29.T01–T02, UT-SCR-016.016.M29.T01–T02 | Implemented |
+| SRD-016.017 | DD-SCR-016.005.D01 | MD-SCR-016.005.M29 | tests/core/test_price_pattern_breakouts.py | UT-SCR-016.017.M29.T01 | Implemented |
+| SRD-016.018 | DD-SCR-016.005.D01 | MD-SCR-016.005.M29 | tests/core/test_price_pattern_breakouts.py | UT-SCR-016.005.M29.T01–T02, UT-SCR-016.018.M29.T01–T03 | Implemented |
+| SRD-016.007 | DD-SCR-016.001.D01 | MD-SCR-016.007.M30 | tests/core/test_price_pattern_rules.py | UT-SCR-016.007.M30.T01–T02 | Implemented |
+| SRD-016.008 | DD-SCR-016.001.D01 | MD-SCR-016.007.M30 | tests/core/test_price_pattern_rules.py | UT-SCR-016.008.M30.T01–T03 | Implemented |
+| SRD-016.009 | DD-SCR-016.001.D01 | MD-SCR-016.007.M30 | tests/core/test_price_pattern_rules.py | UT-SCR-016.009.M30.T01–T03 | Implemented |
+| SRD-016.010 | DD-SCR-016.001.D01 | MD-SCR-016.007.M30 | tests/core/test_price_pattern_rules.py | UT-SCR-016.010.M30.T01–T03 | Implemented |
+| SRD-016.011 | DD-SCR-016.011.D01 | MD-SCR-016.011.M31 | tests/core/test_price_pattern_evaluate.py | UT-SCR-016.011.M31.T01–T02 | Implemented |
+| SRD-016.012 | DD-SCR-016.011.D01 | MD-SCR-002.005.M08 | tests/screener/test_price_action_screener.py | UT-SCR-016.012.M08.T01–T03 | Implemented |
+| SRD-016.013 | DD-SCR-016.011.D01 | MD-SCR-002.005.M08 | tests/screener/test_price_action_screener.py | UT-SCR-016.013.M08.T01 | Implemented |
+| SRD-016.014 | DD-SCR-016.001.D01 | MD-SCR-016.007.M30, MD-SCR-015.006.M24 | tests/core/test_price_pattern_rules.py | UT-SCR-016.014.M30.T01–T03, .014.M24.T01 | Implemented |
+| SRD-016.015 | DD-SCR-016.011.D01 | MD-SCR-002.005.M08 | tests/screener/test_price_action_screener.py | UT-SCR-016.015.M08.T01 | Implemented |
+
+**RN:** RN-SCR-2.3.0-20261022 (all SRD-016.001–.015 rows above, 2026-10-22).
 
 ---
 

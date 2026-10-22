@@ -1,10 +1,19 @@
 """Module: MD-SCR-002.001.M04 — screeners/indicator.py
-Parent SRD: SRD-SCR-002.003
+Parent SRD: SRD-SCR-002.003, SRD-SCR-015.010
 """
 from __future__ import annotations
 
 import logging
 from typing import Any
+
+from us_swing.core.indicator_rules import (
+    BarArrays,
+    Rule,
+    RuleContext,
+    evaluate_rule,
+    rule_label,
+    rules_from_config,
+)
 
 _log = logging.getLogger(__name__)
 
@@ -24,67 +33,6 @@ class BenchmarkDataUnavailableError(Exception):
 
 class InsufficientUniverseDataError(Exception):
     pass
-
-
-# ---------------------------------------------------------------------------
-# Indicator helpers (inline — analysis/indicators.py not yet implemented)
-# ---------------------------------------------------------------------------
-
-def _atr_pct(bars: list[Any], period: int = 14) -> float:
-    """ATR as a fraction of closing price."""
-    if len(bars) < 2:
-        return 0.0
-    window = bars[max(0, len(bars) - period):]
-    trs = [b.high - b.low for b in window]
-    avg = sum(trs) / len(trs)
-    close = bars[-1].close
-    return avg / close if close > 0 else 0.0
-
-
-def _rsi(bars: list[Any], period: int = 14) -> float:
-    closes = [b.close for b in bars]
-    if len(closes) < period + 1:
-        return 50.0
-    gains, losses = [], []
-    for i in range(len(closes) - period, len(closes)):
-        d = closes[i] - closes[i - 1]
-        gains.append(max(d, 0.0))
-        losses.append(max(-d, 0.0))
-    avg_g = sum(gains) / period
-    avg_l = sum(losses) / period
-    if avg_g == 0.0 and avg_l == 0.0:
-        return 50.0
-    if avg_l == 0.0:
-        return 100.0
-    return 100.0 - 100.0 / (1.0 + avg_g / avg_l)
-
-
-def _volume_ratio(bars: list[Any], period: int = 10) -> float:
-    if len(bars) < period + 1:
-        return 1.0
-    ma = sum(b.volume for b in bars[-(period + 1):-1]) / period
-    return bars[-1].volume / ma if ma > 0 else 0.0
-
-
-def _is_breakout(bars: list[Any], lookback: int = 5) -> bool:
-    if len(bars) < lookback + 1:
-        return False
-    prior_high = max(b.close for b in bars[-(lookback + 1):-1])
-    return bars[-1].close > prior_high
-
-
-def _rs_slope(sym_bars: list[Any], bench_bars: list[Any], slope_days: int) -> bool:
-    """Return True if the RS line (stock/benchmark) rose over the last slope_days bars."""
-    n = min(len(sym_bars), len(bench_bars))
-    if n < slope_days + 1:
-        return True  # insufficient data — don't penalise
-    b_now = bench_bars[-1].close
-    b_prev = bench_bars[-slope_days - 1].close
-    if b_now == 0 or b_prev == 0:
-        return True
-    rs_now = sym_bars[-1].close / b_now
-    rs_prev = sym_bars[-slope_days - 1].close / b_prev
-    return rs_now > rs_prev
 
 
 def _compute_rs_ranks(
@@ -119,10 +67,10 @@ def _compute_rs_ranks(
 # ---------------------------------------------------------------------------
 
 class IndicatorScreener:
-    """MD-SCR-002.001.M04 — indicator-based screener plugin.
+    """MD-SCR-002.001.M04 — rule-list indicator screener plugin.
 
-    Applies up to five configurable filters (volatility, RSI, range,
-    breakout, volume). Score = fraction of enabled filters that pass.
+    Evaluates the enabled rules from the config (SRD-SCR-015.010). A symbol
+    passes only if every enabled rule passes; score = fraction that pass.
     """
 
     def apply(
@@ -131,78 +79,19 @@ class IndicatorScreener:
         bars: dict[str, list[Any]],
         config: dict[str, Any],
     ) -> dict[str, tuple[bool, float]]:
-        filters = config.get("filters", {})
+        rules, ctx = self._prepare(symbols, bars, config, strict=True)
         results: dict[str, tuple[bool, float]] = {}
-
-        # Pre-compute RS ranks once for all symbols (SRD-SCR-012.005)
-        ricfg = filters.get("rs_index", {})
-        ri_enabled = ricfg.get("enabled", False)
-        rs_ranks: dict[str, float] = {}
-        bench_bars: list[Any] = []
-        rs_min_pct: float = 0.0
-        rs_slope_days: int = 0
-        if ri_enabled:
-            benchmark_sym: str = config.get("benchmark_symbol", "SPY")
-            bench_bars = bars.get(benchmark_sym, [])
-            if not bench_bars:
-                raise BenchmarkDataUnavailableError(benchmark_sym)
-            rs_min_pct = float(ricfg.get("rs_min_percentile", 0.0))
-            rs_slope_days = int(ricfg.get("rs_slope_days", 0))
-            rs_ranks = _compute_rs_ranks(symbols, bars)
 
         for sym in symbols:
             sym_bars = bars.get(sym, [])
             if not sym_bars:
                 continue
-
-            passed = 0
-            total = 0
-
-            vcfg = filters.get("volatility", {})
-            if vcfg.get("enabled", True):
-                total += 1
-                if _atr_pct(sym_bars) >= vcfg.get("min_atr_pct", 0.01):
-                    passed += 1
-
-            rcfg = filters.get("rsi", {})
-            if rcfg.get("enabled", True):
-                total += 1
-                rsi = _rsi(sym_bars, period=rcfg.get("period", 14))
-                if rcfg.get("min", 30) <= rsi <= rcfg.get("max", 70):
-                    passed += 1
-
-            rngcfg = filters.get("range", {})
-            if rngcfg.get("enabled", True):
-                total += 1
-                price = sym_bars[-1].close
-                if rngcfg.get("min_price", 5.0) <= price <= rngcfg.get("max_price", 5000.0):
-                    passed += 1
-
-            bkcfg = filters.get("breakout", {})
-            if bkcfg.get("enabled", True):
-                total += 1
-                if _is_breakout(sym_bars, lookback=bkcfg.get("lookback", 10)):
-                    passed += 1
-
-            volcfg = filters.get("volume", {})
-            if volcfg.get("enabled", True):
-                total += 1
-                if _volume_ratio(sym_bars, period=volcfg.get("ma_period", 10)) >= volcfg.get("min_volume_ratio", 1.0):
-                    passed += 1
-
-            if ri_enabled:
-                total += 1
-                rank_ok = rs_ranks.get(sym, 50.0) >= rs_min_pct
-                slope_ok = (
-                    _rs_slope(sym_bars, bench_bars, rs_slope_days)
-                    if rs_slope_days > 0
-                    else True
-                )
-                if rank_ok and slope_ok:
-                    passed += 1
-
-            score = float(passed / total) if total > 0 else 0.0
-            results[sym] = (passed == total, score)
+            if not rules:
+                results[sym] = (True, 1.0)
+                continue
+            arrays = BarArrays.from_bars(sym_bars)
+            passed = sum(evaluate_rule(r, sym, arrays, ctx)[0] for r in rules)
+            results[sym] = (passed == len(rules), float(passed / len(rules)))
 
         return results
 
@@ -212,60 +101,23 @@ class IndicatorScreener:
         bars: dict[str, list[Any]],
         config: dict[str, Any],
     ) -> dict[str, dict[str, Any]]:
-        """Return per-symbol indicator values for the enabled filters.
+        """Return each enabled rule's last value per symbol, keyed by rule label.
 
-        Keys match the enabled filters; values are the raw computed numbers
-        or booleans so the GUI can display them in the Details column.
+        Values are rounded floats (``None`` when not computable) so the GUI can
+        show them in the Details column (SRD-SCR-015.016).
         """
-        filters = config.get("filters", {})
+        rules, ctx = self._prepare(symbols, bars, config, strict=False)
         out: dict[str, dict[str, Any]] = {}
-
-        # Pre-compute RS ranks if rs_index filter is enabled
-        ricfg = filters.get("rs_index", {})
-        ri_enabled = ricfg.get("enabled", False)
-        rs_ranks: dict[str, float] = {}
-        bench_bars: list[Any] = []
-        rs_slope_days: int = 0
-        if ri_enabled:
-            benchmark_sym: str = config.get("benchmark_symbol", "SPY")
-            bench_bars = bars.get(benchmark_sym, [])
-            if bench_bars:
-                rs_slope_days = int(ricfg.get("rs_slope_days", 0))
-                rs_ranks = _compute_rs_ranks(symbols, bars)
 
         for sym in symbols:
             sym_bars = bars.get(sym, [])
             if not sym_bars:
                 continue
+            arrays = BarArrays.from_bars(sym_bars)
             det: dict[str, Any] = {}
-
-            vcfg = filters.get("volatility", {})
-            if vcfg.get("enabled", True):
-                det["atr"] = round(_atr_pct(sym_bars) * 100, 2)
-
-            rcfg = filters.get("rsi", {})
-            if rcfg.get("enabled", True):
-                det["rsi"] = round(_rsi(sym_bars, period=rcfg.get("period", 14)), 1)
-
-            rngcfg = filters.get("range", {})
-            if rngcfg.get("enabled", True):
-                det["price"] = round(sym_bars[-1].close, 2)
-
-            bkcfg = filters.get("breakout", {})
-            if bkcfg.get("enabled", True):
-                det["breakout"] = _is_breakout(sym_bars, lookback=bkcfg.get("lookback", 10))
-
-            volcfg = filters.get("volume", {})
-            if volcfg.get("enabled", True):
-                det["vol_ratio"] = round(
-                    _volume_ratio(sym_bars, period=volcfg.get("ma_period", 10)), 2
-                )
-
-            if ri_enabled:
-                det["rs_rank"] = round(rs_ranks.get(sym, 50.0), 1)
-                if rs_slope_days > 0 and bench_bars:
-                    det["rs_slope_up"] = _rs_slope(sym_bars, bench_bars, rs_slope_days)
-
+            for rule in rules:
+                _, value = evaluate_rule(rule, sym, arrays, ctx)
+                det[rule_label(rule)] = None if value is None else round(value, 2)
             out[sym] = det
         return out
 
@@ -275,3 +127,34 @@ class IndicatorScreener:
         bars: dict[str, list[Any]],
     ) -> dict[str, dict[str, Any]]:
         return {}
+
+    @staticmethod
+    def _prepare(
+        symbols: list[str],
+        bars: dict[str, list[Any]],
+        config: dict[str, Any],
+        *,
+        strict: bool,
+    ) -> tuple[list[Rule], RuleContext]:
+        """Read enabled rules and build the shared context (RS ranks, market caps).
+
+        RS ranks are computed once per run, only when an RS rule is enabled
+        (SRD-SCR-015.011). ``strict`` raises when the benchmark is missing.
+        """
+        rules = [r for r in rules_from_config(config) if r.enabled]
+        market_caps: dict[str, float] = dict(config.get("market_caps") or {})
+
+        if not any(r.indicator_id == "rs_index" for r in rules):
+            return rules, RuleContext(market_caps=market_caps)
+
+        benchmark_sym: str = config.get("benchmark_symbol", "SPY")
+        bench_bars = bars.get(benchmark_sym, [])
+        if not bench_bars:
+            if strict:
+                raise BenchmarkDataUnavailableError(benchmark_sym)
+            return rules, RuleContext(market_caps=market_caps)
+        return rules, RuleContext(
+            rs_ranks=_compute_rs_ranks(symbols, bars),
+            market_caps=market_caps,
+            benchmark=BarArrays.from_bars(bench_bars),
+        )

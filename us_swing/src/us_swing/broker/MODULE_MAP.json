@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-27T12:48:58",
+  "generated": "2026-10-22T08:17:24",
   "subfolder": "broker",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\broker",
   "tool_code": "INF",
@@ -294,8 +294,8 @@
             "avg_fill_price: float",
             "reason: str"
           ],
-          "line_start": 38,
-          "line_end": 45
+          "line_start": 40,
+          "line_end": 47
         },
         {
           "name": "OrderGateway",
@@ -304,24 +304,24 @@
             {
               "name": "submit",
               "signature": "def submit(\r\n        self,\r\n        symbol: str,\r\n        side: str,\r\n        quantity: int,\r\n        order_type: str,\r\n        limit_price: float | None,\r\n    ) -> str",
-              "line_start": 55,
-              "line_end": 62
+              "line_start": 57,
+              "line_end": 64
             },
             {
               "name": "cancel",
               "signature": "def cancel(self, broker_order_id: str) -> None",
-              "line_start": 64,
-              "line_end": 64
+              "line_start": 66,
+              "line_end": 66
             },
             {
               "name": "on_status",
               "signature": "def on_status(self, callback: Callable[[IbkrOrderUpdate], None]) -> None",
-              "line_start": 66,
-              "line_end": 66
+              "line_start": 68,
+              "line_end": 68
             }
           ],
-          "line_start": 48,
-          "line_end": 66
+          "line_start": 50,
+          "line_end": 68
         },
         {
           "name": "IBKRBroker",
@@ -330,26 +330,40 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, gateway: OrderGateway) -> None",
-              "line_start": 122,
-              "line_end": 126
+              "line_start": 129,
+              "line_end": 134
             },
             {
               "name": "place_order",
               "signature": "def place_order(self, request: OrderRequest) -> str",
-              "line_start": 128,
-              "line_end": 137
+              "line_start": 136,
+              "line_end": 145
             },
             {
               "name": "cancel_order",
               "signature": "def cancel_order(self, broker_order_id: str) -> None",
-              "line_start": 139,
-              "line_end": 140
+              "line_start": 147,
+              "line_end": 148
             },
             {
               "name": "_on_update",
               "signature": "def _on_update(self, update: IbkrOrderUpdate) -> None",
-              "line_start": 142,
-              "line_end": 158
+              "line_start": 150,
+              "line_end": 166
+            },
+            {
+              "name": "_ref_for",
+              "signature": "def _ref_for(self, broker_order_id: str) -> str",
+              "docstring": "Client reference for *broker_order_id*, live orders first.",
+              "line_start": 168,
+              "line_end": 173
+            },
+            {
+              "name": "_retire",
+              "signature": "def _retire(self, broker_order_id: str) -> None",
+              "docstring": "Move a finished order's reference aside so late updates still map.",
+              "line_start": 175,
+              "line_end": 183
             },
             {
               "name": "_map_status",
@@ -357,12 +371,12 @@
               "decorators": [
                 "@staticmethod"
               ],
-              "line_start": 161,
-              "line_end": 175
+              "line_start": 186,
+              "line_end": 200
             }
           ],
-          "line_start": 119,
-          "line_end": 175
+          "line_start": 126,
+          "line_end": 200
         },
         {
           "name": "IBKRClientGateway",
@@ -371,75 +385,82 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, client: IBKRClient) -> None",
-              "line_start": 185,
-              "line_end": 192
+              "line_start": 210,
+              "line_end": 217
             },
             {
               "name": "on_status",
               "signature": "def on_status(self, callback: Callable[[IbkrOrderUpdate], None]) -> None",
-              "line_start": 194,
-              "line_end": 195
+              "line_start": 219,
+              "line_end": 220
             },
             {
               "name": "_hook_errors",
               "signature": "def _hook_errors(self) -> None",
               "docstring": "Subscribe to ``errorEvent`` once, on the first placement.",
-              "line_start": 197,
-              "line_end": 208
+              "line_start": 222,
+              "line_end": 233
             },
             {
               "name": "_on_error",
               "signature": "def _on_error(  # pragma: no cover - requires a live IBKR connection\r\n        self, req_id: int, code: int, message: str, *_: Any\r\n    ) -> None",
               "docstring": "Turn an order-scoped IBKR error into an order update.",
-              "line_start": 210,
-              "line_end": 219
+              "line_start": 235,
+              "line_end": 244
+            },
+            {
+              "name": "_require_live",
+              "signature": "def _require_live(self) -> None",
+              "docstring": "Refuse to touch the socket when the order connection is down.",
+              "line_start": 246,
+              "line_end": 256
             },
             {
               "name": "submit",
-              "signature": "def submit(  # pragma: no cover - requires a live IBKR connection\r\n        self,\r\n        symbol: str,\r\n        side: str,\r\n        quantity: int,\r\n        order_type: str,\r\n        limit_price: float | None,\r\n    ) -> str",
-              "line_start": 221,
-              "line_end": 231
+              "signature": "def submit(\r\n        self,\r\n        symbol: str,\r\n        side: str,\r\n        quantity: int,\r\n        order_type: str,\r\n        limit_price: float | None,\r\n    ) -> str",
+              "line_start": 258,
+              "line_end": 269
             },
             {
               "name": "cancel",
               "signature": "def cancel(self, broker_order_id: str) -> None",
-              "line_start": 233,
-              "line_end": 234
+              "line_start": 271,
+              "line_end": 275
             },
             {
               "name": "_place",
               "signature": "def _place(  # pragma: no cover\r\n        self,\r\n        symbol: str,\r\n        side: str,\r\n        quantity: int,\r\n        order_type: str,\r\n        limit_price: float | None,\r\n    ) -> str",
-              "line_start": 238,
-              "line_end": 259
+              "line_start": 279,
+              "line_end": 303
             },
             {
               "name": "_cancel",
               "signature": "def _cancel(self, broker_order_id: str) -> None",
-              "line_start": 261,
-              "line_end": 265
+              "line_start": 305,
+              "line_end": 309
             },
             {
               "name": "_on_client_loop",
               "signature": "def _on_client_loop(self, fn: Callable[[], _T]) -> _T",
               "docstring": "Run ``fn`` on the loop owning the ib_insync connection and wait.",
-              "line_start": 267,
-              "line_end": 291
+              "line_start": 311,
+              "line_end": 335
             },
             {
               "name": "_make_handler",
               "signature": "def _make_handler(  # pragma: no cover\r\n        self, broker_order_id: str\r\n    ) -> Callable[[object], None]",
-              "line_start": 293,
-              "line_end": 308
+              "line_start": 337,
+              "line_end": 352
             },
             {
               "name": "_dispatch",
               "signature": "def _dispatch(self, update: IbkrOrderUpdate) -> None",
-              "line_start": 310,
-              "line_end": 312
+              "line_start": 354,
+              "line_end": 356
             }
           ],
-          "line_start": 178,
-          "line_end": 312
+          "line_start": 203,
+          "line_end": 356
         }
       ],
       "top_level_functions": [
@@ -447,19 +468,20 @@
           "name": "_error_to_update",
           "signature": "def _error_to_update(order_id: str, code: int, message: str) -> IbkrOrderUpdate | None",
           "docstring": "Map an order-scoped IBKR error onto an order update, or None to ignore.",
-          "line_start": 83,
-          "line_end": 99
+          "line_start": 90,
+          "line_end": 106
         },
         {
           "name": "_reason_from_trade",
           "signature": "def _reason_from_trade(trade: Any) -> str",
           "docstring": "Best available human reason for a trade's current status.",
-          "line_start": 102,
-          "line_end": 111
+          "line_start": 109,
+          "line_end": 118
         }
       ],
       "constants": [
         "_TERMINAL = (OrderStatus.FILLED, OrderStatus.REJECTED, OrderStatus.CANCELLED)",
+        "_RETIRED_LIMIT = 256",
         "_ERROR_STATUS: dict[int, str] = {",
         "_ORDER_TIMEOUT_S = 10.0",
         "_T = TypeVar(\"_T\")"

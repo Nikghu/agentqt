@@ -399,3 +399,114 @@ pytest tests/screener/ -m "not slow" -v
 |---|---|---|
 | T21 | Stage 3 LLM config carries `db`, `passing_symbols`, `ai_query`, `ai_model` per SRD-013.006 | Pass |
 | T22 | `last_reasoning` side-channel merges into `result.results[sym]["ai_reasoning"]` per SRD-013.007 | Pass |
+
+
+---
+
+## FO-SCR-013 — Indicator Catalogue and Rule-List Screening
+
+Test files: `tests/core/test_indicator_catalogue.py` (M23), `tests/core/test_indicator_rules_config.py` (M24), `tests/core/test_indicator_ta.py` (M25), `tests/core/test_indicator_evaluate.py` (M26), `tests/screener/test_indicator_screener.py` (M04), `tests/screener/test_executor.py` (M10).
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-SCR-015.001.M23.T01 | MD-SCR-015.001.M23 | Positive | Catalogue ids are unique and every available entry has a compute or context | `CATALOGUE` | no duplicate ids; available ⇒ `compute` or `context != "none"` | Pass |
+| UT-SCR-015.001.M23.T02 | MD-SCR-015.001.M23 | Negative | Unknown id is rejected | `get_spec("nope")` | raises `IndicatorRuleError` | Pass |
+| UT-SCR-015.002.M23.T01 | MD-SCR-015.001.M23 | Positive | Every param default lies inside its range | all `ParamSpec`s | `min ≤ default ≤ max` | Pass |
+| UT-SCR-015.002.M23.T02 | MD-SCR-015.001.M23 | Negative | Out-of-range default is refused | `ParamSpec(default=0, min=1, max=5)` | raises `ValueError` | Pass |
+| UT-SCR-015.003.M23.T01 | MD-SCR-015.001.M23 | Positive | Category order matches FO list | `list(Category)` | Price … Others in FO order | Pass |
+| UT-SCR-015.003.M23.T02 | MD-SCR-015.001.M23 | Negative | Unknown category is refused | `Category("Crypto")` | raises `ValueError` | Pass |
+| UT-SCR-015.013.M23.T01 | MD-SCR-015.001.M23 | Positive | All release-1 indicators exist and are available | 21 release-1 ids | each `get_spec(id).available is True` | Pass |
+| UT-SCR-015.013.M23.T02 | MD-SCR-015.001.M23 | Negative | No release-1 entries in Dividends or Others | `CATALOGUE` | no spec with category Dividends or Others | Pass |
+| UT-SCR-015.014.M23.T01 | MD-SCR-015.001.M23 | Positive | Intraday entries are unavailable with reason | 6 intraday ids | `available False`; reason "needs intraday data" | Pass |
+| UT-SCR-015.014.M23.T02 | MD-SCR-015.001.M23 | Negative | Rule on an unavailable indicator is refused | config rule `rvol_5m` | `rules_from_config` raises `IndicatorRuleError` | Pass |
+| UT-SCR-015.004.M24.T01 | MD-SCR-015.006.M24 | Positive | Missing params get catalogue defaults | rule `rsi` without params | `params == {"period": 14}` | Pass |
+| UT-SCR-015.004.M24.T02 | MD-SCR-015.006.M24 | Negative | Rule cannot be changed in place | `rule.value = 5` | raises `FrozenInstanceError` | Pass |
+| UT-SCR-015.005.M24.T01 | MD-SCR-015.006.M24 | Positive | Condition flags are correct | each `Condition` | `needs_to` only for between; `needs_value` false for crosses, price, is true | Pass |
+| UT-SCR-015.005.M24.T02 | MD-SCR-015.006.M24 | Negative | Unknown condition string is refused | rule condition `"sideways"` | raises `IndicatorRuleError` | Pass |
+| UT-SCR-015.005.M24.T03 | MD-SCR-015.006.M24 | Negative | Condition not allowed for the indicator is refused | `ema_50` with `between` | raises `IndicatorRuleError` | Pass |
+| UT-SCR-015.006.M24.T01 | MD-SCR-015.006.M24 | Positive | Rule list round trip is lossless | 3 mixed rules | `rules_from_config(rules_to_config(r)) == r`; `schema == 2` | Pass |
+| UT-SCR-015.006.M24.T02 | MD-SCR-015.006.M24 | Edge | Empty rule list round trips | `[]` | config `rules == []`; reads back `[]` | Pass |
+| UT-SCR-015.006.M24.T03 | MD-SCR-015.006.M24 | Negative | Malformed rule list is refused | `{"schema": 2, "rules": "rsi"}` | raises `IndicatorRuleError` | Pass |
+| UT-SCR-015.007.M24.T01 | MD-SCR-015.006.M24 | Positive | Full legacy dict maps to 6 rules | legacy 6-section dict | 6 rules; ATR `0.01 → 1.0`; RSI 30–70 p14 | Pass |
+| UT-SCR-015.007.M24.T02 | MD-SCR-015.006.M24 | Edge | Empty config uses legacy defaults | `{}` | 5 enabled rules + `rs_index` disabled | Pass |
+| UT-SCR-015.007.M24.T03 | MD-SCR-015.006.M24 | Negative | Disabled legacy sections stay disabled | `rsi.enabled=False` | `rsi` rule `enabled False` | Pass |
+| UT-SCR-015.015.M24.T01 | MD-SCR-015.006.M24 | Positive | Summary of legacy defaults | `{}` | `"ATR ≥ 1.0%  ·  RSI 30–70 (14)  ·  $5–$5K  ·  Breakout 10  ·  Vol ≥ 1.0×"` | Pass |
+| UT-SCR-015.015.M24.T02 | MD-SCR-015.006.M24 | Negative | Disabled rules are left out of the summary | all rules disabled | `""` | Pass |
+| UT-SCR-015.015.M24.T03 | MD-SCR-015.006.M24 | Positive | Settings text labels one-parameter values and joins several | default RSI, Vol, Breakout, RS, MACD, Price rules | `period 14`, `MA 10`, `10 bars`, `slope 63 d`, `12 · 26 · 9`, `""` | Pass |
+| UT-SCR-015.008.M25.T01 | MD-SCR-015.008.M25 | Positive | RSI matches TA-Lib Wilder RSI | 60 seeded closes, period 14 | last value equals `talib.RSI` | Pass |
+| UT-SCR-015.008.M25.T02 | MD-SCR-015.008.M25 | Positive | ATR % equals Wilder ATR ÷ close × 100 | 60 seeded bars | matches `talib.ATR / close × 100` | Pass |
+| UT-SCR-015.008.M25.T03 | MD-SCR-015.008.M25 | Positive | PPO signal and histogram follow formula | 80 closes, 12/26/9 | `hist == ppo − EMA(ppo, 9)` | Pass |
+| UT-SCR-015.008.M25.T04 | MD-SCR-015.008.M25 | Negative | Too few bars gives NaN | 5 closes, RSI 14 | last value NaN | Pass |
+| UT-SCR-015.009.M26.T01 | MD-SCR-015.009.M26 | Positive | Between is inclusive | RSI value exactly 30 and 70 | both pass | Pass |
+| UT-SCR-015.009.M26.T02 | MD-SCR-015.009.M26 | Negative | Value outside band fails | RSI 75, band 30–70 | `(False, 75)` | Pass |
+| UT-SCR-015.009.M26.T03 | MD-SCR-015.009.M26 | Positive | Cross above detected on the last bar | MACD below signal at −2, above at −1 | pass | Pass |
+| UT-SCR-015.009.M26.T04 | MD-SCR-015.009.M26 | Negative | Older cross does not count | cross at −3, above since | fail | Pass |
+| UT-SCR-015.009.M26.T05 | MD-SCR-015.009.M26 | Edge | Too few bars fails the rule | 10 bars, EMA 50 | `(False, None)` | Pass |
+| UT-SCR-015.009.M26.T06 | MD-SCR-015.009.M26 | Positive | Price above EMA | rising series, `ema_20` price above | pass | Pass |
+| UT-SCR-015.010.M04.T01 | MD-SCR-002.001.M04 | Positive | All rules pass | 2 lenient rules | `(True, 1.0)` | Pass |
+| UT-SCR-015.010.M04.T02 | MD-SCR-002.001.M04 | Negative | One of two rules fails | 1 lenient + 1 impossible rule | `(False, 0.5)` | Pass |
+| UT-SCR-015.010.M04.T03 | MD-SCR-002.001.M04 | Edge | Disabled rule is ignored | impossible rule with `enabled False` | `(True, 1.0)` | Pass |
+| UT-SCR-015.010.M04.T04 | MD-SCR-002.001.M04 | Edge | No enabled rules | `{"schema": 2, "rules": []}` | every symbol `(True, 1.0)` | Pass |
+| UT-SCR-015.011.M04.T01 | MD-SCR-002.001.M04 | Positive | RS rule passes the strongest symbol | 3 symbols + SPY, RS ≥ 60 | top return passes; weakest fails | Pass |
+| UT-SCR-015.011.M04.T02 | MD-SCR-002.001.M04 | Negative | RS rule without benchmark bars | RS rule, no SPY | raises `BenchmarkDataUnavailableError` | Pass |
+| UT-SCR-015.011.M04.T03 | MD-SCR-002.001.M04 | Edge | No RS rule needs no benchmark | RSI rule only, no SPY | no error | Pass |
+| UT-SCR-015.012.M04.T01 | MD-SCR-002.001.M04 | Positive | Market cap rule passes large cap | cap 50e9, rule ≥ 10 ($B) | pass | Pass |
+| UT-SCR-015.012.M04.T02 | MD-SCR-002.001.M04 | Negative | Symbol without cap fails | no cap entry | fail | Pass |
+| UT-SCR-015.016.M04.T01 | MD-SCR-002.001.M04 | Positive | Detailed output keyed by rule label | RSI + EMA rules | keys `RSI`, `EMA(50)` | Pass |
+| UT-SCR-015.017.M04.T01 | MD-SCR-002.001.M04 | Positive | Legacy config uses Wilder math | legacy dict, seeded bars | result equals manual TA-Lib evaluation | Pass |
+| UT-SCR-015.017.M04.T02 | MD-SCR-002.001.M04 | Negative | Old private helpers are gone | import module | no `_rsi`, `_atr_pct`, `_volume_ratio`, `_is_breakout`; id `indicator_composite` still registered | Pass |
+| UT-SCR-015.012.M10.T01 | MD-SCR-003.001.M10 | Positive | Executor passes market caps to screeners | `run_preset(market_caps={"AAA": 1e10})` with spy screener | screener config has `market_caps` | Pass |
+
+## FO-SCR-014 — Price Action Pattern Catalogue and Rule-List Screening
+
+Test files:
+- `tests/core/test_price_pattern_catalogue.py` (M27)
+- `tests/core/test_price_pattern_candles.py` (M28)
+- `tests/core/test_price_pattern_breakouts.py` (M29)
+- `tests/core/test_price_pattern_rules.py` (M30, M24)
+- `tests/core/test_price_pattern_evaluate.py` (M31)
+- `tests/screener/test_price_action_screener.py` (M08; the legacy T01–T07 stay as regression tests)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-SCR-016.001.M27.T01 | MD-SCR-016.001.M27 | Positive | Catalogue has 51 unique entries with valid defaults | `PATTERNS` | 51 ids, no duplicates; every `short` has no `_`; defaults inside ranges | Pass |
+| UT-SCR-016.001.M27.T02 | MD-SCR-016.001.M27 | Negative | Unknown id is rejected | `get_pattern("nope")` | raises `PatternRuleError` | Pass |
+| UT-SCR-016.002.M27.T01 | MD-SCR-016.001.M27 | Positive | Category sizes match the release list | count per `PatternCategory` | 11, 11, 5, 7, 8, 5, 4 | Pass |
+| UT-SCR-016.002.M27.T02 | MD-SCR-016.001.M27 | Negative | Candle groups carry their direction | entries in Bearish candles | all `Direction.BEARISH`; none bullish | Pass |
+| UT-SCR-016.003.M28.T01 | MD-SCR-016.003.M28 | Positive | Each candle entry matches when its TA-Lib signal fires (parametrised, 27 cases) | arrays with patched signal at last bar of the right sign | `evaluate_pattern` True | Pass |
+| UT-SCR-016.003.M28.T02 | MD-SCR-016.003.M28 | Negative | Two-sided entries reject the opposite sign | signal −100 for `bullish_engulfing`, +100 for `bearish_engulfing` | both False | Pass |
+| UT-SCR-016.003.M28.T03 | MD-SCR-016.003.M28 | Positive | Real bars give a TA-Lib bullish engulfing | 12 down bars + small red + large green engulfing bar | `bullish_engulfing` True, `bearish_engulfing` False | Pass |
+| UT-SCR-016.004.M28.T01 | MD-SCR-016.003.M28 | Positive | `within` finds a signal 2 bars back | signal at bar −3, `within` 3 | True | Pass |
+| UT-SCR-016.004.M28.T02 | MD-SCR-016.003.M28 | Negative | Default `within` 1 ignores older signals | signal at bar −3, `within` 1 | False | Pass |
+| UT-SCR-016.005.M29.T01 | MD-SCR-016.005.M29 | Positive | Each new pattern matches its built series (parametrised, 20 cases) | one synthetic series per pattern | True | Pass |
+| UT-SCR-016.005.M29.T02 | MD-SCR-016.005.M29 | Negative | Each new pattern rejects a flat series (parametrised, 20 cases) | flat bars, constant volume (NR4: widening ranges) | False | Pass |
+| UT-SCR-016.005.M29.T03 | MD-SCR-016.005.M29 | Edge | Golden Cross with fast ≥ slow never matches | `fast` 100, `slow` 100 | False | Pass |
+| UT-SCR-016.006.M29.T01 | MD-SCR-016.005.M29 | Positive | Legacy 4 patterns equal the old code | random seeded bars, 200 windows | same flags as the old helper functions (kept in the test) | Pass |
+| UT-SCR-016.006.M29.T02 | MD-SCR-016.005.M29 | Negative | Legacy ids are unchanged | ids in `PATTERNS` | include `proximity_52w_high`, `volume_breakout`, `nr7_compression`, `ema_pullback` | Pass |
+| UT-SCR-016.016.M29.T01 | MD-SCR-016.005.M29 | Negative | Double Top Pullback rejects a breakdown still falling away from the neck | Double Top series ending far below the neck | False | Pass |
+| UT-SCR-016.016.M29.T02 | MD-SCR-016.005.M29 | Negative | Double Top Pullback rejects a close back above the neck | Pullback series whose last close is above the neck | False | Pass |
+| UT-SCR-016.017.M29.T01 | MD-SCR-016.005.M29 | Negative | Double Bottom rejects a breakout older than `within` bars | Double Bottom series that broke out ~20 bars ago and stayed above the neck | False (True with `within` 20) | Pass |
+| UT-SCR-016.018.M29.T01 | MD-SCR-016.005.M29 | Negative | Fib Sell rejects a bounce that closed above the zone | fall then bounce closing above the 61.8 % level | False | Pass |
+| UT-SCR-016.018.M29.T02 | MD-SCR-016.005.M29 | Negative | Fib Sell rejects a bounce that has not reached the zone | fall then small bounce below the 50 % level | False | Pass |
+| UT-SCR-016.018.M29.T03 | MD-SCR-016.005.M29 | Edge | Fib rejects a swing smaller than `min_move` | 5 % fall and bounce, `min_move` 10 | False | Pass |
+| UT-SCR-016.007.M30.T01 | MD-SCR-016.007.M30 | Positive | Missing params get defaults | rule dict without params | params = catalogue defaults | Pass |
+| UT-SCR-016.007.M30.T02 | MD-SCR-016.007.M30 | Negative | Rule cannot be changed in place | set `rule.enabled` | `FrozenInstanceError` | Pass |
+| UT-SCR-016.008.M30.T01 | MD-SCR-016.007.M30 | Positive | Round trip is lossless | 3 rules, threshold 0.4 | same rules and 0.4 back; `schema` 2 | Pass |
+| UT-SCR-016.008.M30.T02 | MD-SCR-016.007.M30 | Edge | Empty rule list round trips | `[]`, 0.2 | `[]`, 0.2 | Pass |
+| UT-SCR-016.008.M30.T03 | MD-SCR-016.007.M30 | Negative | Non-numeric threshold is refused | `{"schema": 2, "rules": [], "threshold": "high"}` | `PatternRuleError` | Pass |
+| UT-SCR-016.009.M30.T01 | MD-SCR-016.007.M30 | Positive | Legacy dict maps to 5 rules | full legacy `patterns` dict, threshold 0.4 | 5 rules in legacy order; `engulfing` → `bullish_engulfing`; params kept; 0.4 | Pass |
+| UT-SCR-016.009.M30.T02 | MD-SCR-016.007.M30 | Positive | Empty config gives legacy defaults | `{}` | 52w + volume on, other 3 off; threshold 0.2 | Pass |
+| UT-SCR-016.009.M30.T03 | MD-SCR-016.007.M30 | Negative | Bad legacy param is refused | `{"patterns": {"ema_pullback": {"ema_period": "x"}}}` | `PatternRuleError` | Pass |
+| UT-SCR-016.010.M30.T01 | MD-SCR-016.007.M30 | Negative | Unknown pattern id raises | rule `{"pattern_id": "nope"}` | `PatternRuleError` | Pass |
+| UT-SCR-016.010.M30.T02 | MD-SCR-016.007.M30 | Negative | Bad param value or non-list rules raise | `params {"within": "x"}`; `rules: "hammer"` | `PatternRuleError` | Pass |
+| UT-SCR-016.010.M30.T03 | MD-SCR-016.007.M30 | Positive | A valid rule list for every catalogue id loads without error | one default rule per `PATTERNS` entry | 47 rules, no error | Pass |
+| UT-SCR-016.014.M30.T01 | MD-SCR-016.007.M30 | Positive | Summary of legacy defaults | `{}` | `"PA ≥ 20%  ·  52wHigh  ·  VolBreak"` | Pass |
+| UT-SCR-016.014.M30.T02 | MD-SCR-016.007.M30 | Negative | No enabled rules or bad config → empty text | all disabled; unknown id | `""` | Pass |
+| UT-SCR-016.014.M24.T01 | MD-SCR-015.006.M24 | Positive | Indicator settings text unchanged after helper move | existing UT-SCR-015.015.M24.T03 inputs | same strings | Pass |
+| UT-SCR-016.011.M31.T01 | MD-SCR-016.011.M31 | Positive | Out-of-range params are clamped | `within` 99 | evaluated as 5, no error | Pass |
+| UT-SCR-016.011.M31.T02 | MD-SCR-016.011.M31 | Negative | Too few bars gives no match | 5 bars, VCP lookback 60 | False | Pass |
+| UT-SCR-016.012.M08.T01 | MD-SCR-002.005.M08 | Positive | Score is matched ÷ enabled and passes at threshold | 4 rules, 1 matches, threshold 0.2 | `(True, 0.25)` | Pass |
+| UT-SCR-016.012.M08.T02 | MD-SCR-002.005.M08 | Negative | Threshold outside 0–1 raises | threshold 1.5 | `ScreenerError` | Pass |
+| UT-SCR-016.012.M08.T03 | MD-SCR-002.005.M08 | Edge | Disabled rule and short bar list | 1 disabled rule; symbol with 1 bar | disabled rule not counted; 1-bar symbol omitted; no enabled → score 0.0 | Pass |
+| UT-SCR-016.013.M08.T01 | MD-SCR-002.005.M08 | Positive | Detailed output keyed by short label | Hammer + NR7 rules | keys `Hammer`, `NR7`; bool values | Pass |
+| UT-SCR-016.015.M08.T01 | MD-SCR-002.005.M08 | Positive | No analysis-tool import; id unchanged | module source; registry | no `us_swing.analysis` import; `price_action` registered | Pass |

@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-27T12:48:59",
+  "generated": "2026-10-22T08:17:24",
   "subfolder": "universe",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\universe",
   "tool_code": "INF",
@@ -151,42 +151,42 @@
           "signature": "def _fetch_market_caps(symbols: list[str]) -> dict[str, float | None]",
           "docstring": "Return {symbol: market_cap_usd} for each symbol via yfinance fast_info.",
           "line_start": 210,
-          "line_end": 227
+          "line_end": 229
         },
         {
           "name": "get_meta",
           "signature": "def get_meta() -> Sp500Meta",
           "docstring": "Return current metadata (last_fetched timestamp, source, count).",
-          "line_start": 232,
-          "line_end": 234
+          "line_start": 234,
+          "line_end": 236
         },
         {
           "name": "refresh",
           "signature": "def refresh() -> list[Sp500Record]",
           "docstring": "Force-download from Wikipedia, save CSV + meta, return records.",
-          "line_start": 237,
-          "line_end": 243
+          "line_start": 239,
+          "line_end": 245
         },
         {
           "name": "load_sp500",
           "signature": "def load_sp500(*, force_refresh: bool = False) -> list[Sp500Record]",
           "docstring": "Return the S&P 500 universe, refreshing from Wikipedia if stale or missing.",
-          "line_start": 246,
-          "line_end": 265
+          "line_start": 248,
+          "line_end": 267
         },
         {
           "name": "ibkr_csv_exists",
           "signature": "def ibkr_csv_exists() -> bool",
           "docstring": "Return True if the IBKR-qualified CSV (~/.usswing/sp500_ibkr.csv) exists.",
-          "line_start": 268,
-          "line_end": 270
+          "line_start": 270,
+          "line_end": 272
         },
         {
           "name": "load_ibkr_universe",
           "signature": "def load_ibkr_universe() -> list[dict]",
           "docstring": "Load the IBKR-qualified universe CSV (Symbol, IbkrSymbol, conid, PrimaryExch).",
-          "line_start": 273,
-          "line_end": 285
+          "line_start": 275,
+          "line_end": 287
         }
       ],
       "constants": [

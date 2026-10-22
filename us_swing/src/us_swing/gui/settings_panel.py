@@ -4,6 +4,7 @@ FO-GUI-006 Settings Panel: sub-tabs — Users, System, Universe, Database.
 """
 from __future__ import annotations
 
+import dataclasses
 import datetime
 import json
 import logging
@@ -124,14 +125,24 @@ class _UserDialog(QDialog):
         layout.addWidget(btns)
 
     def get_profile(self) -> UserProfile:
+        """Return the edited profile; fields this dialog does not show keep their values.
+
+        Rebuilding the profile from scratch reset Telegram and notification settings
+        on every user edit (ISS-GUI-0005).
+        """
         username = self._username.text().strip() or "unnamed"
-        return UserProfile(
-            user_id         = self._user.user_id if self._user else -1,
+        base = self._user or UserProfile(
+            user_id=-1, username="", display_name="", ibkr_client_id=0, mode="",
+            risk_config=RiskConfig(), strategy_config={}, screener_config={},
+        )
+        return dataclasses.replace(
+            base,
             username        = username,
             display_name    = self._display.text().strip() or username,
             ibkr_client_id  = self._ibkr_id.value(),
             mode            = self._mode.currentText(),
-            risk_config     = RiskConfig(
+            risk_config     = dataclasses.replace(
+                base.risk_config,
                 risk_per_trade_pct = self._risk.value(),
                 max_position_value = self._max_pos.value(),
                 max_capital_value  = self._max_cap.value(),
@@ -139,8 +150,6 @@ class _UserDialog(QDialog):
                 default_order_type = self._order_type.currentText(),
                 confirm_orders     = self._confirm.isChecked(),
             ),
-            strategy_config = {},
-            screener_config = {},
         )
 
 

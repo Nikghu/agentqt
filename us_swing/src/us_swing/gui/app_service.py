@@ -100,6 +100,7 @@ from us_swing.data.models import (
 )
 from us_swing.exceptions import BrokerConnectionError
 from us_swing.gui.system_store import SystemConfig, load_system_config
+from us_swing.gui.manual_picks_store import load_manual_picks, save_manual_picks
 from us_swing.gui.user_store import load_users, next_user_id, save_users
 
 # Lifecycle service — see FO-EXE-009 / FO-EXE-010.  Imported eagerly because the
@@ -491,6 +492,39 @@ def _reclaim_sqlite_space(conn: sqlite3.Connection) -> None:
         _log.warning("[CandleDB] Could not compact the database file (%s)", exc)
 
 
+def _rebuild_weekly_from_daily(conn: sqlite3.Connection, symbol: str) -> int:
+    """Replace a symbol's weekly candles with ones built from its daily candles.
+
+    A week runs Monday to Friday and is dated on its last trading day, matching
+    IBKR's completed weekly bars. IBKR's own weekly bars are not used: the
+    in-progress week is stamped with the request day, and a short request
+    window starts mid-week (ISS-GUI-0003). The caller commits.
+
+    Returns:
+        Number of weekly rows written.
+    """
+    rows = conn.execute(
+        "SELECT datetime, open, high, low, close, volume FROM price_1d "
+        "WHERE symbol = ? ORDER BY datetime",
+        (symbol,),
+    ).fetchall()
+    weeks: dict[tuple[int, int], list[tuple[Any, ...]]] = {}
+    for row in rows:
+        iso = datetime.date.fromisoformat(row[0][:10]).isocalendar()
+        weeks.setdefault((iso.year, iso.week), []).append(row)
+    conn.execute("DELETE FROM price_1w WHERE symbol = ?", (symbol,))
+    conn.executemany(
+        "INSERT INTO price_1w VALUES (?,?,?,?,?,?,?)",
+        [
+            (symbol, days[-1][0], days[0][1],
+             max(d[2] for d in days), min(d[3] for d in days),
+             days[-1][4], sum(d[5] for d in days))
+            for days in weeks.values()
+        ],
+    )
+    return len(weeks)
+
+
 def _ensure_candle_tables(conn: sqlite3.Connection) -> None:
     """Create price_1d and price_1w tables if they don't exist."""
     for tbl in ("price_1d", "price_1w"):
@@ -698,8 +732,8 @@ class _IntradayCandleWorker(QThread):
 # ── Background worker: download candles ──────────────────────────────────────
 
 class _CandleDownloadWorker(QThread):
-    """Downloads Daily + Weekly OHLCV for all symbols via IBKR (ib_insync)
-    and stores them in ``~/.usswing/candles.db``.
+    """Downloads Daily OHLCV for all symbols via IBKR (ib_insync), builds the
+    Weekly candles from it, and stores both in ``~/.usswing/candles.db``.
 
     Supports checkpoint/resume: after each symbol, progress is written to
     ``~/.usswing/candle_download_checkpoint.json``.  A clean finish deletes
@@ -810,16 +844,7 @@ class _CandleDownloadWorker(QThread):
                 useRTH=True,
                 formatDate=1,
             )
-            bars_1w = await ib.reqHistoricalDataAsync(  # type: ignore[attr-defined]
-                contract,
-                endDateTime=end_dt_str,
-                durationStr="2 Y",
-                barSizeSetting="1 week",
-                whatToShow="TRADES",
-                useRTH=True,
-                formatDate=1,
-            )
-            if not bars_1d and not bars_1w:
+            if not bars_1d:
                 self.symbol_failed.emit(symbol, "BENCHMARK_NO_DATA")
                 return
 
@@ -835,15 +860,7 @@ class _CandleDownloadWorker(QThread):
                      float(bar.low),  float(bar.close),
                      int(bar.volume)),
                 )
-            for bar in bars_1w:
-                dt_str = _bar_date_str(bar.date)
-                cur.execute(
-                    "INSERT OR REPLACE INTO price_1w VALUES (?,?,?,?,?,?,?)",
-                    (symbol, dt_str,
-                     float(bar.open), float(bar.high),
-                     float(bar.low),  float(bar.close),
-                     int(bar.volume)),
-                )
+            _rebuild_weekly_from_daily(conn, symbol)
             conn.commit()
             conn.close()
         except Exception as exc:
@@ -863,18 +880,13 @@ class _CandleDownloadWorker(QThread):
             await self._download_benchmark(ib)
 
         # Duration strings for IBKR reqHistoricalData
-        # IBKR rule: durations > 365 days or > 52 weeks must be expressed in years.
+        # IBKR rule: durations > 365 days must be expressed in years.
         duration_days = (self._end_date - self._start_date).days + 5
-        duration_weeks = max((duration_days // 7) + 2, 4)
         duration_years = max((duration_days // 365) + 1, 1)
         if duration_days > 365:
             ibkr_duration_1d = f"{duration_years} Y"
         else:
             ibkr_duration_1d = f"{duration_days} D"
-        if duration_weeks > 52:
-            ibkr_duration_1w = f"{duration_years} Y"
-        else:
-            ibkr_duration_1w = f"{duration_weeks} W"
         end_dt_str = self._end_date.strftime("%Y%m%d 23:59:59")
 
         # Build mutable done/todo lists (checkpoint may have pre-populated them)
@@ -906,18 +918,9 @@ class _CandleDownloadWorker(QThread):
                     useRTH=True,
                     formatDate=1,
                 )
-                bars_1w = await ib.reqHistoricalDataAsync(  # type: ignore[attr-defined]
-                    contract,
-                    endDateTime=end_dt_str,
-                    durationStr=ibkr_duration_1w,
-                    barSizeSetting="1 week",
-                    whatToShow="TRADES",
-                    useRTH=True,
-                    formatDate=1,
-                )
 
                 # Check for empty response (IBKR returned no data)
-                if not bars_1d and not bars_1w:
+                if not bars_1d:
                     self.symbol_failed.emit(symbol, "NO_DATA")
                 else:
                     # Write to DB atomically per symbol
@@ -935,17 +938,7 @@ class _CandleDownloadWorker(QThread):
                         )
                         inserted_1d += 1
 
-                    for bar in bars_1w:
-                        dt_str = _bar_date_str(bar.date)
-                        cur.execute(
-                            "INSERT OR REPLACE INTO price_1w VALUES (?,?,?,?,?,?,?)",
-                            (symbol, dt_str,
-                             float(bar.open), float(bar.high),
-                             float(bar.low),  float(bar.close),
-                             int(bar.volume)),
-                        )
-                        inserted_1w += 1
-
+                    inserted_1w += _rebuild_weekly_from_daily(conn, symbol)
                     conn.commit()
                     conn.close()
 
@@ -1174,6 +1167,7 @@ class AppService(QObject):
         # ── Live bar worker — must be initialised before _refresh_market_status ─
         self._live_bar_worker: LiveBarWorker | None = None
         self._filtered_symbols: list[str] = []
+        self._notify_screener_approved = True  # False while a manual-pick change refreshes
 
         # ── Telegram notifications (FO-INF-010) ──────────────────────────────
         self._notif_worker: NotificationWorker | None = None
@@ -1561,7 +1555,8 @@ class AppService(QObject):
         Scans ``~/.usswing/screener_results/preset_*/`` directories and loads
         the newest date file for each preset.  Does not require a fresh run —
         results from any past date are returned.  Symbols that appear in
-        multiple presets are deduped, keeping the highest score.
+        multiple presets are deduped, keeping the highest score.  Presets that
+        no longer exist or have no assigned users are skipped (SRD-GUI-004.009).
         """
         from us_swing.screener.storage import ScreenerResultsStorage  # noqa: PLC0415
         from us_swing.screener.manager import PresetManager            # noqa: PLC0415
@@ -1569,8 +1564,9 @@ class AppService(QObject):
         storage = ScreenerResultsStorage()
         mgr = PresetManager()
         base = Path.home() / ".usswing" / "screener_results"
+        picks = self._manual_pick_entries()
         if not base.exists():
-            return []
+            return picks
 
         # Build preset metadata lookup across admin + active-user presets
         preset_meta: dict[str, Any] = {}
@@ -1578,18 +1574,21 @@ class AppService(QObject):
             for p in mgr.list_admin_presets():
                 preset_meta[p.id] = p
         except Exception:  # noqa: BLE001
-            pass
+            _log.warning("[Screener] Could not load admin presets — their results are not shown")
         try:
             for p in mgr.list_user_presets(str(self._active_uid)):
                 preset_meta[p.id] = p
         except Exception:  # noqa: BLE001
-            pass
+            _log.warning("[Screener] Could not load your presets — their results are not shown")
 
         best: dict[str, FilteredStockEntry] = {}
         for d in base.iterdir():
             if not d.is_dir() or not d.name.startswith("preset_"):
                 continue
             preset_id = d.name[len("preset_"):]
+            preset = preset_meta.get(preset_id)
+            if preset is None or not preset.assigned_to:
+                continue
             dates = storage.list_results(preset_id, limit=1)
             if not dates:
                 continue
@@ -1598,10 +1597,9 @@ class AppService(QObject):
             except Exception:  # noqa: BLE001
                 continue
 
-            p = preset_meta.get(preset_id)
-            name: str = p.name if p else preset_id
-            styles: list[str] = list(p.trading_styles) if p else []
-            users: list[str] = list(p.assigned_to) if p else []
+            name: str = preset.name
+            styles: list[str] = list(preset.trading_styles)
+            users: list[str] = list(preset.assigned_to)
 
             # Convert UTC run_timestamp to local HH:MM for display.
             try:
@@ -1629,7 +1627,77 @@ class AppService(QObject):
                 if sym not in best or score > best[sym].score:
                     best[sym] = entry
 
-        return sorted(best.values(), key=lambda e: e.score, reverse=True)
+        pick_symbols = {e.symbol for e in picks}
+        screened = sorted(best.values(), key=lambda e: e.score, reverse=True)
+        return picks + [e for e in screened if e.symbol not in pick_symbols]
+
+    # ── Manual picks (SRD-GUI-004.010 – .012) ────────────────────────────────
+
+    def _manual_pick_entries(self) -> list[FilteredStockEntry]:
+        return [
+            FilteredStockEntry(
+                symbol=sym, score=0.0, trading_styles=[], assigned_users=[],
+                screener_name="—", run_type="pick", date="",
+            )
+            for sym in load_manual_picks(str(self._active_uid))
+        ]
+
+    def add_manual_pick(self, symbol: str) -> str | None:
+        """Add a stock to Trade Execution by hand.
+
+        Accepts ``BRK.B`` or ``BRK B``; the pick is stored in universe form.
+
+        Returns:
+            A message for the user when the pick is refused, else None.
+        """
+        sym = symbol.strip().upper().replace(" ", ".")
+        if not sym:
+            return "Type a stock symbol first"
+        universe = {r.symbol for r in self._sp500}
+        if not universe:
+            return "The stock list is still loading — try again in a moment"
+        if sym not in universe:
+            return f"{sym} is not in the stock universe"
+        picks = load_manual_picks(str(self._active_uid))
+        if sym in picks:
+            return f"{sym} is already in your picks"
+        try:
+            save_manual_picks(str(self._active_uid), picks + [sym])
+        except OSError:
+            _log.warning("[Execution] Could not save your picks — %s was not added", sym)
+            return f"Could not save — {sym} was not added"
+        _log.info("[Execution] %s added to your picks", sym)
+        self._refresh_after_pick_change()
+        return None
+
+    def remove_manual_pick(self, symbol: str) -> None:
+        """Remove a manual pick and stop the engine trading it.
+
+        The stock stays watched while it has an open trade or a screener still
+        lists it. The monitoring ledger keeps today's rows, so the engine list
+        is trimmed here rather than by the keep-set.
+        """
+        picks = load_manual_picks(str(self._active_uid))
+        if symbol not in picks:
+            return
+        try:
+            save_manual_picks(str(self._active_uid), [s for s in picks if s != symbol])
+        except OSError:
+            _log.warning("[Execution] Could not save your picks — %s was not removed", symbol)
+            return
+        _log.info("[Execution] %s removed from your picks", symbol)
+        self._refresh_after_pick_change()
+        listed = {e.symbol for e in self.get_latest_screener_results()}
+        if symbol not in listed and symbol not in self._cycle_symbols:
+            self._filtered_symbols = [s for s in self._filtered_symbols if s != symbol]
+
+    def _refresh_after_pick_change(self) -> None:
+        """Re-emit the Execution list without the "screener approved" notification."""
+        self._notify_screener_approved = False
+        try:
+            self.notify_screener_results_updated()
+        finally:
+            self._notify_screener_approved = True
 
     def notify_screener_results_updated(self) -> None:
         """Reload latest file-based results and emit ``screener_results_updated``.
@@ -1645,6 +1713,7 @@ class AppService(QObject):
     def _boot_candle_check(self) -> None:
         """Fire candle fetch on startup if saved screener results already exist."""
         entries = self.get_latest_screener_results()
+        self._cleanup_stale_intraday(entries)
         symbols = sorted({e.symbol for e in entries})
         if not symbols:
             _log.info("[Candles] No previous screener results found — skipping startup fetch")
@@ -1658,9 +1727,36 @@ class AppService(QObject):
         if self._market_status.get("nyse") == "open":
             self._start_live_bar_worker()
 
+    def _cleanup_stale_intraday(self, entries: list[FilteredStockEntry]) -> None:
+        """Delete intraday candles of stocks no longer tracked (SRD-GUI-004.013).
+
+        Skipped when open trades cannot be read, so a held stock is never touched.
+        """
+        if self._tc_query is None:
+            return
+        from us_swing.config.settings import DataConfig
+        from us_swing.gui.intraday_cleanup import remove_stale_intraday
+
+        try:
+            keep = {e.symbol for e in entries}
+            keep |= {c.symbol for c in self._tc_query.open_cycles()}
+            keep |= {p.symbol for p in self.get_positions()}
+            removed = remove_stale_intraday(
+                _CANDLE_DB_PATH, keep, DataConfig().intraday_retention_days
+            )
+        except Exception:  # noqa: BLE001
+            _log.warning("[Candles] Could not remove old intraday data", exc_info=True)
+            return
+        if removed:
+            _log.info(
+                "[Candles] Removed old intraday data for %d stock(s) no longer tracked: %s",
+                len(removed), ", ".join(removed),
+            )
+
     def _on_screener_results_updated(self, entries: list[FilteredStockEntry]) -> None:
         symbols = sorted({e.symbol for e in entries})
         if not symbols:
+            self._filtered_symbols = self._lifecycle_keep_symbols([])
             _log.info("[Candles] Screener returned no stocks — skipping candle fetch")
             return
         # FO-EXE-009 — record into the monitoring-session ledger BEFORE
@@ -1680,7 +1776,8 @@ class AppService(QObject):
         if self._market_status.get("nyse") == "open":
             self._start_live_bar_worker()
         # FO-INF-010 — notify the user of the freshly approved screener list.
-        self.publish_notification(ScreenerApprovedEvent(symbols=tuple(symbols)))
+        if self._notify_screener_approved:
+            self.publish_notification(ScreenerApprovedEvent(symbols=tuple(symbols)))
 
     # ── Monitoring session lifecycle wiring (FO-EXE-009 / FO-EXE-010) ────────
     #
@@ -1750,23 +1847,30 @@ class AppService(QObject):
             return
         if not self._ensure_lifecycle_service():
             return
-        # Adapter exposing the duck-typed surface
-        # ``MonitoringSessionService.on_screener_results`` consumes.  Real
-        # `ScreenerRunResult` carries preset_id/run_timestamp; here we derive
-        # them from the entries so the integration works before the screener
-        # storage layer is wired through.
-        screener_name = entries[0].screener_name or "default"
-        date_str      = entries[0].date or datetime.date.today().isoformat()
-        result = _ScreenerLifecycleAdapter(
-            preset_id     = screener_name,
-            run_timestamp = f"{date_str}T00:00:00Z",
-            results       = {e.symbol: {"passed": True} for e in entries},
-        )
-        try:
-            assert self._lifecycle_command is not None
-            self._lifecycle_command.on_screener_results(result)
-        except Exception as exc:
-            _log.warning("[Lifecycle] on_screener_results failed: %r", exc)
+        # Manual picks are recorded apart so they never lend their label to
+        # screener rows, or take one (SRD-GUI-004.012).
+        screened = [e for e in entries if e.run_type != "pick"]
+        picks = [e for e in entries if e.run_type == "pick"]
+        for group, label in ((screened, None), (picks, "Manual pick")):
+            if not group:
+                continue
+            # Adapter exposing the duck-typed surface
+            # ``MonitoringSessionService.on_screener_results`` consumes.  Real
+            # `ScreenerRunResult` carries preset_id/run_timestamp; here we derive
+            # them from the entries so the integration works before the screener
+            # storage layer is wired through.
+            screener_name = label or group[0].screener_name or "default"
+            date_str      = group[0].date or datetime.date.today().isoformat()
+            result = _ScreenerLifecycleAdapter(
+                preset_id     = screener_name,
+                run_timestamp = f"{date_str}T00:00:00Z",
+                results       = {e.symbol: {"passed": True} for e in group},
+            )
+            try:
+                assert self._lifecycle_command is not None
+                self._lifecycle_command.on_screener_results(result)
+            except Exception as exc:
+                _log.warning("[Lifecycle] on_screener_results failed: %r", exc)
 
     def _lifecycle_keep_symbols(self, fallback: list[str]) -> list[str]:
         """Return today's keep-set as a sorted list.  Falls back to *fallback*

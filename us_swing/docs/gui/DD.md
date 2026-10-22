@@ -1354,3 +1354,119 @@ placeholder in `_hsl_placeholder`; `_collect_changed_fields` leaves `hard_sl` ou
 value is still the placeholder. Otherwise a plain Save would add a stop at the current
 price, and the next tick would close the trade.
 
+
+
+---
+
+## DD-GUI-015.001.D01 — Indicator Rule Library Dialog
+
+**Parent SRD:** SRD-GUI-015.001 through SRD-GUI-015.015
+
+Design follows mockup C4 (approved 2026-10-21). All rule logic lives in `core/indicator_rules` (DD-SCR-015.001.D01); the GUI only renders the catalogue and edits `Rule` objects.
+
+**Modules.**
+
+| File | Classes | Primary SRD |
+|---|---|---|
+| `gui/frameless_dialog.py` | `FramelessDialog` (moved unchanged from `screener_panel.py`; `_FramelessDialog = FramelessDialog` alias kept there) | SRD-GUI-015.002 |
+| `gui/indicator_rule_model.py` | `RuleTableModel(QAbstractTableModel)` | SRD-GUI-015.008 |
+| `gui/indicator_rule_delegates.py` | `ToggleSwitchDelegate`, `ConditionComboDelegate`, `NumberSpinDelegate`, `SettingsDelegate`, `RemoveButtonDelegate` | SRD-GUI-015.009 |
+| `gui/indicator_library_model.py` | `LibraryTreeModel(QStandardItemModel)`, `LibraryFilterProxy`, `LibraryTreeView`, `MIME_INDICATOR` | SRD-GUI-015.003 |
+| `gui/indicator_params_dialog.py` | `IndicatorParamsDialog(FramelessDialog)` | SRD-GUI-015.011 |
+| `gui/indicator_rules_dialog.py` | `RuleTableView`, `IndicatorRulesDialog(FramelessDialog)` | SRD-GUI-015.001 |
+
+**Layout.** Title "Indicator Filters", min 960 × 600 (wider than usual dialogs; accepted with the C4 mockup). `QSplitter`: left pane ~250 px = search `QLineEdit` ("Search N indicators") + `LibraryTreeView`; right pane = header `QLabel` (`"{n} rules · {m} on · match all"`) + `RuleTableView`. Footer: hint "Double-click an indicator to add a row", stretch, Cancel, "✔ OK" (default; object name `btn_green` for the theme's green style, exposed as `dlg.ok_btn`).
+
+**Rule table.** `RuleTableModel` stores `list[Rule]` and replaces rows with `dataclasses.replace` (rules are frozen). Columns `COL_ON, COL_INDICATOR, COL_CONDITION, COL_VALUE, COL_TO, COL_SETTINGS, COL_REMOVE`. Roles `RuleRole = UserRole + 1`, `SpecRole = UserRole + 2`. API: `set_rules`, `rules`, `add_rule(indicator_id)` (appends `default_rule(spec)`), `remove_row`, `set_enabled`, `update_rule(row, **changes)`; signal `rules_changed()` after every change.
+- Value editable only when `condition.needs_value`; To only when `condition.needs_to` (between). Other cells show "—".
+- Changing the condition keeps `value`; `to` becomes `spec.value_max` for between, else `None`.
+- Disabled rows paint text in `C.MUTED`.
+- Column widths: On 48, Condition 140, Value 76, To 76, Settings 110, ✕ 32; Indicator stretches and shows the full `spec.name`.
+- Value/To text: `$5`, `$5,000` (dollar first, thousands separator), `1.0%`, `1.0×`, `$10B`, plain numbers otherwise. Row height via `verticalHeader().setDefaultSectionSize(C.INPUT_H)`; grid off; vertical header hidden.
+
+**Delegates.** Clicks are hit-tested in `editorEvent` (same pattern as `_RowActionsDelegate`).
+- `ToggleSwitchDelegate` paints a 32 × 16 pill: on `C.BLUE`, off `C.OVERLAY2`, white knob; release inside `switch_rect()` → `set_enabled(row, not current)`.
+- `RemoveButtonDelegate` paints "✕" in `C.SUBTEXT` (`C.RED` on hover; viewport mouse tracking on); release → `remove_row` deferred by `QTimer.singleShot(0, …)`.
+- `ConditionComboDelegate` → `QComboBox` filled from `spec.conditions` (`label` text, enum as user data), commits on `activated`, inline QSS has `outline: none`.
+- `NumberSpinDelegate` → `QDoubleSpinBox`, range `spec.value_min..value_max`, suffix `spec.unit`.
+- `SettingsDelegate` paints `settings_summary(rule)` right-aligned in `C.SUBTEXT` (`period 14`, `MA 10`, `10 bars`, `slope 63 d`; several params as `12 · 26 · 9  ▾`); release emits `edit_requested(row)`; indicators without params show "—".
+
+**Library tree.** `LibraryTreeModel` builds one category row per non-empty `Category` (text `"NAME   used / total"`, not selectable or draggable) and one item per spec (`IdRole = UserRole + 1`). Unavailable items: not enabled, text `C.MUTED`, tooltip = `unavailable_reason`. `set_usage(counts)` sets `InUseRole` on items and refreshes category counts (distinct indicators in use); a private `LibraryItemDelegate` paints the right-aligned "in use" tag in `C.BLUE`. `LibraryFilterProxy` uses `setRecursiveFilteringEnabled(True)` and case-insensitive name matching. `LibraryTreeView` is drag-only; mime type `application/x-usswing-indicator-id` carries the id; signal `indicator_activated(str)` fires on double-click of an available item only.
+
+**Drop target.** `RuleTableView(QTableView)` accepts `MIME_INDICATOR` and emits `indicator_dropped(str)`.
+
+**Signal flow.**
+1. `indicator_activated` / `indicator_dropped` → `IndicatorRulesDialog._add_indicator(id)` → checks `spec.available` → `model.add_rule(id)` → scrolls to the new row.
+2. Toggle / ✕ / Condition / Value / To edits → model change → `rules_changed`.
+3. `SettingsDelegate.edit_requested(row)` → `IndicatorParamsDialog(spec, rule.params)`; on OK → `update_rule(row, params=dlg.get_params())`.
+4. `rules_changed` → `_refresh()`: `tree_model.set_usage(Counter(r.indicator_id for r in rules))` and header text update.
+5. Search `textChanged` → `proxy.setFilterFixedString(text)`; non-empty text expands all.
+
+**Params editor (design S2, chosen 2026-10-22).** `IndicatorParamsDialog(spec, params)` is a `QDialog` with `Popup | FramelessWindowHint` flags — no title bar or window buttons. It shows "<name> settings", a `QFormLayout` with one `QSpinBox` (int) or `QDoubleSpinBox` (float) per `ParamSpec` (object name `param_<key>`), a "Reset to <defaults>" link (`param_reset_btn`) and an "Enter = save" hint. `place_under(anchor)` puts its top-right corner under the Settings cell's bottom-right. Enter accepts; Esc or a click outside rejects. The dialog opens it from a 0 ms timer so the table's mouse handler returns first. `get_params() -> dict[str, float]`.
+
+**Load / save.** `IndicatorRulesDialog(config, parent)` calls `rules_from_config(config or {})`. The benchmark symbol is `config.get("benchmark_symbol", "SPY")` (the old dialog had no benchmark field). If loading raises `IndicatorRuleError`, the dialog logs a `[Screener]` WARNING and starts empty; until the user edits the rules, `get_config()` returns the original config so OK cannot erase it. `get_config()` returns `rules_to_config(model.rules(), benchmark)`.
+
+**Wiring (`screener_panel.py`).** Both `_GroupWidget._open_indicator_config` and `_WeightedRow._open_config` open `IndicatorRulesDialog`; on Accepted they store `get_config()` (the group path also emits `changed`). The Details column calls `config_summary()`. `_IndicatorConfigDialog`, `_INDICATOR_DEFAULTS` and `_format_indicator_config` are deleted after checking for other users.
+
+**Test hooks.** Object names: `indicator_rules_dialog`, `rule_search`, `rule_library_tree`, `rule_table`, `rule_header`, `dlg.ok_btn` (`btn_green`), `rule_cancel_btn`, `indicator_params_dialog`, `param_<key>`. Helpers: `ToggleSwitchDelegate.switch_rect()`, `RemoveButtonDelegate.remove_rect()`, `LibraryTreeModel.find_item(id)`.
+
+---
+
+## DD-GUI-016.001.D01 — Price Action Pattern Library Dialog
+
+**Parent SRD:** SRD-GUI-016.001 through SRD-GUI-016.011
+
+Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern logic lives in `core/price_patterns` (DD-SCR-016.001.D01). The dialog reuses the FO-GUI-015 widgets after the small general changes below. The indicator dialog's behaviour does not change.
+
+**Shared widget changes (FO-GUI-015 modules).**
+
+| Module | Change | SRD |
+|---|---|---|
+| `indicator_library_model.py` | Adds a `LibraryEntry` Protocol with read-only `id, name, category (Enum), description, available, unavailable_reason`. The signature becomes `LibraryTreeModel(parent=None, *, entries=CATALOGUE, categories=Category)`, and the loops use those arguments instead of the module constants. | SRD-GUI-016.002 |
+| `indicator_rule_delegates.py` | Adds a `runtime_checkable` Protocol `RuleRowsModel` (`set_enabled(row, bool)`, `remove_row(row)`). Toggle and Remove test `isinstance(model, RuleRowsModel)`. `SettingsDelegate` paints `index.data(DisplayRole)` and adds `▾` when `len(SpecRole.params) > 1`. | SRD-GUI-016.005 |
+| `indicator_rule_model.py` | `data(COL_SETTINGS, DisplayRole)` returns `settings_summary(rule)`, so the painted text is the same as before. | SRD-GUI-016.005 |
+| `indicator_params_dialog.py` | The `spec` hint becomes a `ParamsOwner` Protocol (`name: str`, `params: tuple[ParamSpec, ...]`). | SRD-GUI-016.006 |
+
+**New modules.**
+
+| File | Classes | Primary SRD |
+|---|---|---|
+| `gui/pattern_rule_model.py` | `PatternRuleTableModel(QAbstractTableModel)` | SRD-GUI-016.004 |
+| `gui/price_action_rules_dialog.py` | `PriceActionRulesDialog(FramelessDialog)` | SRD-GUI-016.001 |
+
+**Pattern table.**
+- Columns are `COL_ON=0, COL_PATTERN=1, COL_SETTINGS=2, COL_REMOVE=3`, with headers `On`, `Pattern`, `Settings`, and an empty header for remove. It uses `RuleRole` / `SpecRole` from `indicator_rule_model`.
+- API: `set_rules`, `rules`, `add_rule(pattern_id) -> row`, `remove_row`, `set_enabled`, `update_rule(row, **changes)`, and signal `rules_changed()`.
+- Display text:
+  - Pattern shows `spec.name`, with `spec.description` as the tooltip.
+  - Settings shows `pattern_settings_summary(rule)`, or "—" when there are no params.
+  - Disabled rows show their text in `C.MUTED`.
+- No cell is editable; all edits go through the delegates or the popup.
+
+**Layout.**
+- Title "Price Action Patterns", min 860 × 560, object name `price_action_rules_dialog`.
+- The `QSplitter` is 250 / 610:
+  - **Left:** search `rule_search` ("Search 47 patterns") above `LibraryTreeView` `rule_library_tree`, whose model is `LibraryTreeModel(entries=PATTERNS, categories=PatternCategory)`.
+  - **Right:** a header row above `RuleTableView` `rule_table`, which is reused from `indicator_rules_dialog`.
+    - The header row reads `rule_header` "{n} patterns · {m} on", then a stretch, then "Pass when ≥", then `QSpinBox` `threshold_spin` (0–100, step 5, suffix " %", width 72, inline QSS with `outline: none`), then "of patterns match".
+- Column widths: On 48, Settings 150, ✕ 32; Pattern stretches.
+- Footer: hint "Double-click a pattern to add a row", a stretch, Cancel (`rule_cancel_btn`), then "✔ OK" (`btn_green`, the default button, `dlg.ok_btn`).
+
+**Signal flow.**
+1. `tree.indicator_activated` / `table.indicator_dropped` call `_add_pattern(id)`, which runs `get_pattern` (an unknown id logs a `[Screener]` WARNING), then `model.add_rule(id)`, then scrolls to the row.
+2. `ToggleSwitchDelegate` / `RemoveButtonDelegate` change the model, which emits `rules_changed`.
+3. `SettingsDelegate.edit_requested(row)` starts a 0 ms timer, then `_edit_params(row)`. That builds `IndicatorParamsDialog(spec, rule.params)`, calls `place_under(cell bottom-right)` and `exec()`; on Accepted it calls `update_rule(row, params=…)`.
+4. `rules_changed` runs `_refresh()`, which calls `tree_model.set_usage(Counter(pattern ids))` and updates the header text.
+5. `threshold_spin.valueChanged` clears the unreadable-config guard.
+
+**Load / save.**
+- The constructor calls `pattern_rules_from_config(config or {})`. The spin is set to `round(threshold × 100)`, clamped to 0–100.
+- On `PatternRuleError`, the dialog logs a `[Screener]` WARNING and starts with an empty table and 20%. It keeps the original config, and `get_config()` returns it until the user edits rules or the threshold.
+- `get_config()` returns `pattern_rules_to_config(model.rules(), spin.value() / 100)`.
+
+**Wiring (`screener_panel.py`).**
+- `_GroupWidget._open_price_action_config` and `_WeightedRow._open_config` open `PriceActionRulesDialog`.
+- In `_build_rows`, the preset loop also builds `pattern_config_summary(cfg)` for `price_action` refs. The two summaries are joined with `"  ·  "` in the Details column.
+- Delete `_PriceActionConfigDialog`, `_PA_PATTERN_LABELS`, `_PA_DEFAULTS` and `_format_price_action_config`, which is unused today, after checking for other users.
+
+**Test hooks.** Object names: `price_action_rules_dialog`, `rule_search`, `rule_library_tree`, `rule_table`, `rule_header`, `threshold_spin`, `dlg.ok_btn`, `rule_cancel_btn`. Helpers: the same delegate rect helpers plus `LibraryTreeModel.find_item(id)`.

@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-18T12:37:04",
+  "generated": "2026-10-22T08:17:24",
   "subfolder": "execution",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\execution",
   "tool_code": "EXE",
@@ -106,7 +106,7 @@
         },
         {
           "name": "risk_levels",
-          "signature": "def risk_levels(\n    direction: str,\n    price: float,\n    stoploss_enabled: bool,\n    stoploss_pct: float,\n    target_enabled: bool,\n    target_pct: float,\n) -> tuple[float | None, float | None]",
+          "signature": "def risk_levels(\r\n    direction: str,\r\n    price: float,\r\n    stoploss_enabled: bool,\r\n    stoploss_pct: float,\r\n    target_enabled: bool,\r\n    target_pct: float,\r\n) -> tuple[float | None, float | None]",
           "docstring": "Return absolute ``(stop, target)`` prices for a reference price.",
           "line_start": 28,
           "line_end": 53
