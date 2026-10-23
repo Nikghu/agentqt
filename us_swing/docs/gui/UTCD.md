@@ -529,8 +529,14 @@ Test files:
 | ID | Module | Type | Description | Input | Expected | Status |
 |---|---|---|---|---|---|---|
 | UT-GUI-021.001.M01.T01 | MD-GUI-021.001.M01 | Positive | System tab is split into three sections | build `_SystemSections` | Connection, Scheduler, Telegram | Pass |
-| UT-GUI-021.001.M01.T02 | MD-GUI-021.001.M01 | Positive | Section click shows one section | click Telegram | stack shows Telegram; Users unchecked; 7 sections, no Theme or Diagnostics | Pass |
+| UT-GUI-021.001.M01.T02 | MD-GUI-021.001.M01 | Positive | Section click shows one section | click Telegram | stack shows Telegram; Users unchecked; 6 sections, no Theme, Diagnostics or Database | Pass |
 | UT-GUI-021.002.M01.T01 | MD-GUI-021.001.M01 | Positive | Risk save persists values | set 2.5 % and LMT, Save | `update_user` called with new risk config | Pass |
 | UT-GUI-021.002.M01.T02 | MD-GUI-021.001.M01 | Negative | Risk save keeps other user fields | chat ID set, Save | chat ID and username unchanged | Pass |
-| UT-GUI-021.003.M01.T01 | MD-GUI-021.001.M01 | Positive | System panel holds Theme, Updates, Diagnostics | build `_SystemSections` | theme, update, circuit breaker and Candle DB buttons inside `panel`; groups THEME, UPDATES, DIAGNOSTICS | Pass |
+| UT-GUI-021.003.M01.T01 | MD-GUI-021.001.M01 | Positive | System panel holds Theme, Updates, Diagnostics | build `_SystemSections` | theme, update and circuit breaker buttons inside `panel`; groups THEME, UPDATES, ORDERS | Pass |
 | UT-GUI-021.003.M02.T01 | MD-GUI-019.001.M01 | Positive | Strip has a System button | click System | `panel_toggled("system", True)` | Pass |
+| UT-GUI-021.004.M01.T01 | MD-GUI-021.001.M01 | Positive | Progress shows percent | progress MSFT 312 of 503 | "62%", "312 / 503 stocks", "Now: MSFT"; state downloading 62 | Pass |
+| UT-GUI-021.004.M01.T02 | MD-GUI-021.001.M01 | Positive | No failures ends Complete | finish, no failures | "Complete", "100%"; state complete | Pass |
+| UT-GUI-021.004.M01.T03 | MD-GUI-021.001.M01 | Negative | Failures end Partial | finish, 3 failed | "Partial", "500 / 503 stocks", "3 failed"; Failed group shown | Pass |
+| UT-GUI-021.004.M01.T04 | MD-GUI-021.001.M01 | Edge | Past failures mark partial | failed stocks on disk at start | state partial; Failed shown; Download hidden | Pass |
+| UT-GUI-021.004.M02.T01 | MD-GUI-019.001.M01 | Positive | Data badge per state | downloading 62, complete, partial | "62"; check icon; "!" | Pass |
+| UT-GUI-021.004.M02.T02 | MD-GUI-019.001.M01 | Negative | Idle hides the badge | complete then idle | badge hidden | Pass |

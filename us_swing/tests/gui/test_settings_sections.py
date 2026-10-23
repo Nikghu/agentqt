@@ -71,11 +71,10 @@ def test_system_panel_holds_theme_updates_diagnostics(qapp: Any, svc: _StubServi
     sections = settings_panel._SystemSections(svc)  # type: ignore[arg-type]
     panel = sections.panel
 
-    for widget in (sections._btn_carbon, sections._update_btn, sections._cb_toggle,
-                   sections._candle_db_btn):
+    for widget in (sections._btn_carbon, sections._update_btn, sections._cb_toggle):
         assert panel.isAncestorOf(widget)
     titles = [lbl.text() for lbl in panel.findChildren(QLabel) if lbl.objectName() == "panel_group"]
-    assert titles == ["THEME", "UPDATES", "DIAGNOSTICS"]
+    assert titles == ["THEME", "UPDATES", "ORDERS"]
 
 
 def test_strip_has_system_button(qapp: Any) -> None:
@@ -103,12 +102,12 @@ def test_section_click_shows_one_section(
     qapp: Any, svc: _StubService, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """UT-GUI-021.001.M01.T02: clicking a section in the list shows only that section."""
-    for name in ("_UsersTab", "_UniverseTab", "_DatabaseTab"):
+    for name in ("_UsersTab", "_UniverseTab", "_DataPanel"):
         monkeypatch.setattr(settings_panel, name, _PlainTab)
     panel = settings_panel.SettingsPanel(svc)  # type: ignore[arg-type]
     buttons = panel._nav_group.buttons()
     names = [b.text() for b in buttons]
-    assert panel._stack.count() == len(buttons) == 7
+    assert panel._stack.count() == len(buttons) == 6
     assert "Theme" not in names and "Diagnostics" not in names
     assert panel._stack.currentIndex() == 0 and buttons[0].isChecked()
 

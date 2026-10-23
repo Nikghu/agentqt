@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.29.0: SRD-GUI-021.004 added — Data panel on the right strip; approved by user 2026-10-23.
 > v2.28.0: SRD-GUI-021.003 added — System panel on the right strip; approved by user 2026-10-23.
 > v2.27.0: SRD-GUI-021.001–.002 added — Settings section list; approved by user 2026-10-23.
 > v2.26.0: SRD-GUI-020.001–.005 added — Charts workspace (GUI redesign Phase 4); approved by user 2026-10-23.
@@ -348,3 +349,4 @@
 | SRD-GUI-021.001 | FO-GUI-021 | Must | `SettingsPanel` shows a 180 px section list and a `QStackedWidget` of section cards; the old System tab is split into Connection, Scheduler and Telegram. | section click | one section shown | One section checked at a time; handlers unchanged | Implemented |
 | SRD-GUI-021.002 | FO-GUI-021 | Must | Save Risk Settings writes risk values to the active user through `update_user`. | click Save | saved risk config | Other user fields unchanged | Implemented |
 | SRD-GUI-021.003 | FO-GUI-021 | Must | Theme, Updates and Diagnostics form a System panel in the right panel stack, toggled by a System icon on the strip. | strip click | System panel shown | Shares the right panel with Details and Watchlist | Implemented |
+| SRD-GUI-021.004 | FO-GUI-021 | Must | The candle database is a Data panel in the right panel stack showing percent, stock count, current stock, failed stocks and a Complete or Partial result; the strip's Data icon shows a percent, tick or ! badge. | download signals | panel state, strip badge | Build, delta, resume, retry and reset logic unchanged | Implemented |

@@ -2,6 +2,16 @@
 
 ---
 
+## [20261023] GUI — Data panel on the right strip (FO-GUI-021, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-021
+- RN: RN-GUI-1.15.0-20261023
+- Artifacts updated: FO, SRD, DD, MD, UTCD, TRACE, Code, Tests, RN, CONTEXT
+- Decisions: user picked Data 2 of 3 plus percent and Complete / Partial states (canvas https://claude.ai/artifact/CTo5RrNFn1122FB1xdr7Dv); Settings no longer scrolls sideways.
+
+---
+
 ## [20261023] GUI — System panel on the right strip (FO-GUI-021, feature)
 
 - Type: Feature

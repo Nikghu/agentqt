@@ -565,7 +565,7 @@ _NAV_ITEMS: list[tuple[str, str]] = [
 ]
 _WIDE_PAGES = frozenset({2, 3})   # Execution, Chart
 _NO_PANEL_PAGES = frozenset({3, 4})   # Chart, Settings
-_RIGHT_PANELS = ("details", "watch", "system")
+_RIGHT_PANELS = ("details", "watch", "system", "data")
 
 
 class _MiniState:
@@ -641,6 +641,8 @@ class MainWindow(QMainWindow):
                 # Settings is tall; scroll it so it never sets the window's minimum height.
                 scroll = QScrollArea()
                 scroll.setWidgetResizable(True)
+                # Never scroll sideways: that hid the section list when a side panel opened.
+                scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
                 scroll.setFrameShape(QFrame.Shape.NoFrame)
                 scroll.setWidget(p)
                 self._stack.addWidget(scroll)
@@ -660,7 +662,7 @@ class MainWindow(QMainWindow):
         self._side_slot = QWidget()
         body_row.addWidget(self._side_slot)
 
-        # Right panel (Position Details | Watchlist | System) and bottom Live Log panel;
+        # Right panel (Position Details | Watchlist | System | Data) and bottom Live Log panel;
         # both are sized only by RevealController.
         self._details = PositionDetails(svc)
         self._right_stack = QStackedWidget()
@@ -669,6 +671,7 @@ class MainWindow(QMainWindow):
         watchlist.set_compact()  # type: ignore[attr-defined]
         self._right_stack.addWidget(watchlist)
         self._right_stack.addWidget(self._settings_panel.system_panel)
+        self._right_stack.addWidget(self._settings_panel.data_panel)
         self._right_panel = QFrame()
         self._right_panel.setObjectName("right_panel")
         rp = QVBoxLayout(self._right_panel)
@@ -724,6 +727,9 @@ class MainWindow(QMainWindow):
         self._reveal.revealed.connect(self._on_panel_revealed)
         # svc → log_message → strip → warning badge while the log is closed
         svc.log_message.connect(self._strip.count_warning)
+        # data panel → state_changed → strip → Data badge (percent, tick or !)
+        self._settings_panel.data_panel.state_changed.connect(self._strip.set_data_state)
+        self._strip.set_data_state(*self._settings_panel.data_panel.state)
         # dashboard → position_selected → details panel
         self._dashboard_panel.position_selected.connect(self._on_position_selected)
         # details → exit_requested / chart_requested → dashboard drawer / chart

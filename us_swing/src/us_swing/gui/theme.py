@@ -1312,6 +1312,24 @@ QLabel#settings_head {{
     min-height: 32px; max-height: 32px; font-family: "IBM Plex Mono", Consolas, monospace;
     font-size: 8pt; font-weight: bold;
 }}
+QLabel#data_pill {{
+    border: 1px solid {sub}; color: {sub}; border-radius: 2px; padding: 0 6px;
+    font-size: 7.5pt; font-weight: bold;
+}}
+QLabel#data_pct {{ font-family: "IBM Plex Mono", Consolas, monospace; font-size: 20pt; font-weight: bold; }}
+QLabel#data_pill[state="downloading"], QLabel#data_pct[state="downloading"] {{ color: {accent}; border-color: {accent}; }}
+QLabel#data_pill[state="complete"], QLabel#data_pct[state="complete"] {{ color: #3cc583; border-color: #3cc583; }}
+QLabel#data_pill[state="partial"], QLabel#data_pct[state="partial"] {{ color: #e8c14d; border-color: #e8c14d; }}
+QLabel#data_pill[state="empty"] {{ color: #ef5a50; border-color: #ef5a50; }}
+QProgressBar#data_bar {{ background: {hover}; border: none; border-radius: 1px; }}
+QProgressBar#data_bar::chunk {{ background: {accent}; }}
+QProgressBar#data_bar[state="complete"]::chunk {{ background: #3cc583; }}
+QProgressBar#data_bar[state="partial"]::chunk {{ background: #e8c14d; }}
+QLabel#data_badge {{
+    background: {accent}; color: {bg}; border-radius: 7px; font-size: 7pt; font-weight: bold;
+}}
+QLabel#data_badge[state="complete"] {{ background: #3cc583; }}
+QLabel#data_badge[state="partial"] {{ background: #e8c14d; }}
 QLabel#panel_group {{
     color: {sub}; font-family: "IBM Plex Mono", Consolas, monospace; font-size: 7.5pt;
     font-weight: bold;
