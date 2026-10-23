@@ -62,3 +62,5 @@ pyqt-code-reviewer: 0 critical / 0 high. 4 medium fixed: drawer focus for Esc, r
 Left out of the mock: 1D / 1W chart tabs (the chart uses the preset timeframe).
 
 Visual check: not yet checked by the user in the running app.
+
+- Follow-up: removed the floating busy bar from the header; a running scan shows "Running…" on Run now and "Scanning symbols…" in the run line (SRD-GUI-022.008).

@@ -50,7 +50,6 @@ from PyQt6.QtWidgets import (
     QMenu,
     QMessageBox,
     QPlainTextEdit,
-    QProgressBar,
     QPushButton,
     QRadioButton,
     QScrollArea,
@@ -1820,12 +1819,6 @@ class ScreenerPanel(QWidget):
         title_box.addLayout(title_row)
         title_box.addLayout(meta_row)
 
-        self._progress = QProgressBar()
-        self._progress.setRange(0, 0)
-        self._progress.setFixedHeight(4)
-        self._progress.setFixedWidth(100)
-        self._progress.setVisible(False)
-
         # Saved-run stepper (SRD-GUI-022.009)
         self._run_stepper = RunStepper()
         self._run_stepper.index_changed.connect(self._on_run_picked)
@@ -1864,7 +1857,6 @@ class ScreenerPanel(QWidget):
         row.setContentsMargins(20, 12, 20, 12)
         row.setSpacing(8)
         row.addLayout(title_box, 1)
-        row.addWidget(self._progress)
         row.addWidget(self._run_stepper, 0, Qt.AlignmentFlag.AlignVCenter)
         row.addSpacing(4)
         row.addWidget(sort_lbl)
@@ -2210,7 +2202,6 @@ class ScreenerPanel(QWidget):
             self._select_preset_in_list(preset_id)
         self._run_btn.setEnabled(False)
         self._run_btn.setText("Running…")
-        self._progress.setVisible(True)
         status_msg = "Scanning symbols…" if manual else "Auto-running screener…"
         self._status_lbl.setText(status_msg)
         self._status_lbl.setStyleSheet(f"color: {C.SUBTEXT}; font-size: 9pt;")
@@ -2255,7 +2246,6 @@ class ScreenerPanel(QWidget):
     def _on_run_finished(self, result: Any) -> None:
         self._run_btn.setEnabled(True)
         self._run_btn.setText("Run now")
-        self._progress.setVisible(False)
         self._export_btn.setEnabled(True)
 
         # Refresh date list (new file was just written)
@@ -2280,7 +2270,6 @@ class ScreenerPanel(QWidget):
     def _on_run_failed(self, reason: str) -> None:
         self._run_btn.setEnabled(True)
         self._run_btn.setText("Run now")
-        self._progress.setVisible(False)
         self._show_error(reason)
 
     # ── Display helpers ───────────────────────────────────────────────────
