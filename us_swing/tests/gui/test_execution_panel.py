@@ -2,8 +2,9 @@
 Module: MD-GUI-004.001.M01 test cases (FO-GUI-004)
 Parent SRD: SRD-GUI-004.001
 
-Unit tests for _StrategyTablePane._on_run() — SQUARING_OFF force-clear path.
-Covers the fix shipped in RN-GUI-1.2.3-20260529.
+Unit tests for StrategiesPane._on_run() — SQUARING_OFF force-clear path.
+Covers the fix shipped in RN-GUI-1.2.3-20260529; the pane moved to strategies_pane.py
+in FO-GUI-024 (logic unchanged).
 """
 from __future__ import annotations
 
@@ -19,7 +20,8 @@ _web_stub = types.ModuleType("PyQt6.QtWebEngineWidgets")
 _web_stub.QWebEngineView = MagicMock  # type: ignore[attr-defined]
 sys.modules.setdefault("PyQt6.QtWebEngineWidgets", _web_stub)
 
-from us_swing.gui.strategy_builder_dialog import StrategyConfig
+import us_swing.data  # noqa: E402,F401  — load data before db (db ↔ data import cycle)
+from us_swing.gui.strategy_builder_dialog import StrategyConfig  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -44,6 +46,8 @@ def _squaring_off_cfg(name: str = "TESTING") -> StrategyConfig:
 
 
 def _make_demo(open_syms: list[str]) -> MagicMock:
+    from us_swing.execution.trade_cycle import StrategyPnlSummary
+
     demo = MagicMock()
     demo.strategy_status_changed = MagicMock()
     demo.strategy_status_changed.connect = MagicMock()
@@ -51,6 +55,10 @@ def _make_demo(open_syms: list[str]) -> MagicMock:
     demo.reload_strategy_registry = MagicMock()
     demo.get_strategies_with_open_cycles.return_value = set()
     demo._strategy_engine = None
+    demo.get_strategy_pnl.return_value = StrategyPnlSummary()
+    demo.get_viewing_uid.return_value = None
+    demo.cycle_query.open_cycles_for_strategy.return_value = ()
+    demo.cycle_query.closed_between.return_value = ()
     return demo
 
 
@@ -60,8 +68,8 @@ def _make_demo(open_syms: list[str]) -> MagicMock:
 
 @pytest.fixture()
 def pane_no_cycles(qapp):
-    """_StrategyTablePane with one SQUARING_OFF strategy and no open cycles."""
-    import us_swing.gui.execution_panel as ep
+    """StrategiesPane with one SQUARING_OFF strategy and no open cycles."""
+    import us_swing.gui.strategies_pane as ep
 
     cfg = _squaring_off_cfg()
     demo = _make_demo([])
@@ -70,14 +78,14 @@ def pane_no_cycles(qapp):
         patch.object(ep, "load_strategies", return_value=[cfg]),
         patch.object(ep, "save_strategies") as mock_save,
     ):
-        pane = ep._StrategyTablePane(demo)
+        pane = ep.StrategiesPane(demo)
         yield pane, cfg, mock_save
 
 
 @pytest.fixture()
 def pane_with_cycles(qapp):
-    """_StrategyTablePane with one SQUARING_OFF strategy that still has open cycles."""
-    import us_swing.gui.execution_panel as ep
+    """StrategiesPane with one SQUARING_OFF strategy that still has open cycles."""
+    import us_swing.gui.strategies_pane as ep
 
     cfg = _squaring_off_cfg()
     demo = _make_demo(["AAPL", "MSFT"])
@@ -86,7 +94,7 @@ def pane_with_cycles(qapp):
         patch.object(ep, "load_strategies", return_value=[cfg]),
         patch.object(ep, "save_strategies") as mock_save,
     ):
-        pane = ep._StrategyTablePane(demo)
+        pane = ep.StrategiesPane(demo)
         yield pane, cfg, mock_save
 
 

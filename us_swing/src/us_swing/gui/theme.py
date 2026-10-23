@@ -1390,6 +1390,12 @@ QMdiArea#chart_mdi {{ background: {bg}; border: 1px solid {line}; }}
 QMdiArea#chart_mdi QTabBar::tab:selected {{ color: {accent}; border-bottom: 2px solid {accent}; }}
 QLabel#page_title {{ font-size: 13pt; font-weight: bold; }}
 QLabel#page_meta {{ color: {sub}; padding-left: 8px; }}
+QTabBar#exec_tabs::tab {{
+    background: transparent; color: {sub}; border: none; border-bottom: 2px solid transparent;
+    padding: 9px 2px; margin-right: 18px; font-size: 9.5pt;
+}}
+QTabBar#exec_tabs::tab:hover {{ color: {text}; }}
+QTabBar#exec_tabs::tab:selected {{ color: {text}; border-bottom-color: {accent}; }}
 QTreeWidget#exec_watch {{ background: transparent; border: none; outline: none; }}
 QTreeWidget#exec_watch::item {{ min-height: 26px; border-bottom: 1px solid {line}; }}
 QTreeWidget#exec_watch::item:hover {{ background: {hover}; }}

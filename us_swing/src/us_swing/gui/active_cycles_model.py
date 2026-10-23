@@ -293,6 +293,14 @@ class _ActiveCyclesModel(QAbstractTableModel):
             self.index(idx, Col.ACTIONS),
         )
 
+    def is_closed_row(self, r: int) -> bool:
+        """True for a CLOSED trade row; editor rows count with their open cycle."""
+        row = self._rows[r]
+        return row.kind != "editor" and row.state == "CLOSED"
+
+    def is_editor_row(self, r: int) -> bool:
+        return self._rows[r].kind == "editor"
+
     # ── Editor row management ────────────────────────────────────────────
 
     def insert_editor_row(self, cycle_id: int) -> int | None:
