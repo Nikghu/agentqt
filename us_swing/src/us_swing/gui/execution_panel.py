@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -23,7 +22,6 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QDialog,
-    QFrame,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -42,7 +40,7 @@ from PyQt6.QtWidgets import (
 
 from us_swing.gui.active_cycles_panel import ActiveCyclesPanel
 from us_swing.gui.app_service import AppService, _IntradayCandleWorker
-from us_swing.gui.cards import card
+from us_swing.gui.cards import GAP, card, gutter
 from us_swing.gui._types import TradeSignal
 from us_swing.gui.execution_header import ExecutionHeader
 from us_swing.gui.execution_watchlist import WatchlistPane
@@ -324,32 +322,11 @@ _CHART_REFRESH_MS: int = 90_000  # periodic fallback re-render interval
 CHARTS_HIDDEN_KEY = "charts_hidden"
 
 
-def price_change(candles: list[dict[str, Any]]) -> tuple[float, float, float] | None:
-    """(last close, change, change %) vs the previous session's last close.
-
-    Candle ``time`` is UTC epoch seconds; a US session sits inside one UTC
-    date, so the previous session is the last candle on an earlier date.
-    Returns None without candles, or with no earlier session in the data.
-    """
-    if not candles:
-        return None
-    last = candles[-1]
-    last_day = datetime.fromtimestamp(last["time"], timezone.utc).date()
-    for c in reversed(candles):
-        if datetime.fromtimestamp(c["time"], timezone.utc).date() < last_day:
-            prev = float(c["close"])
-            if prev == 0:
-                return None
-            change = float(last["close"]) - prev
-            return float(last["close"]), change, change / prev * 100
-    return None
-
-
 class _IntradayChartPane(QWidget):
     """Shows two intraday TradingView charts (3m and 15m) side by side.
 
-    SRD-GUI-024.008 — a header with symbol, price and change, and a Hide /
-    Show charts toggle remembered in ``settings``.
+    SRD-GUI-024.008 — the hidden / shown state (toggled from the page
+    header) is remembered in ``settings``.
     """
 
     charts_toggled = pyqtSignal(bool)  # True = hidden
@@ -374,18 +351,6 @@ class _IntradayChartPane(QWidget):
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
-
-        self._hdr = QLabel("Select a stock to view intraday charts")
-        self._hdr.setTextFormat(Qt.TextFormat.RichText)
-        self.toggle_btn = QPushButton()
-        self.toggle_btn.clicked.connect(lambda: self.set_charts_hidden(not self.charts_hidden))
-        self._head = QFrame()
-        self._head.setObjectName("chart_head")
-        head_row = QHBoxLayout(self._head)
-        head_row.setContentsMargins(14, 8, 10, 8)
-        head_row.addWidget(self._hdr, 1)
-        head_row.addWidget(self.toggle_btn)
-        root.addWidget(self._head)
 
         self._splitter = QSplitter(Qt.Orientation.Horizontal)
         self._splitter.setHandleWidth(2)
@@ -421,7 +386,6 @@ class _IntradayChartPane(QWidget):
         if symbol == self._current_symbol:
             return
         self._current_symbol = symbol
-        self._show_price(symbol, None)
         self._request_candles("3m",  symbol, "render")
         self._request_candles("15m", symbol, "render")
 
@@ -473,8 +437,6 @@ class _IntradayChartPane(QWidget):
     def _on_candles_ready(self, symbol: str, tf: str, candles: list[dict], mode: str) -> None:
         if symbol != self._current_symbol:
             return   # user switched symbols while the read was in flight
-        if tf == "3m":
-            self._show_price(symbol, price_change(candles))
         web = self._web_3m if tf == "3m" else self._web_15m
         if mode == "render":
             self._render(tf, web, symbol, candles)
@@ -527,26 +489,9 @@ class _IntradayChartPane(QWidget):
             )
             web.setHtml(html)
 
-    def _show_price(self, symbol: str, change: tuple[float, float, float] | None) -> None:
-        mono = '"IBM Plex Mono", Consolas, monospace'
-        text = f"<span style='font-family:{mono}; font-size:11pt'><b>{symbol}</b>"
-        if change is not None:
-            last, diff, pct = change
-            colour = C.GREEN if diff >= 0 else C.RED
-            sign = "+" if diff >= 0 else "−"
-            text += (
-                f"&nbsp;&nbsp;{last:,.2f}&nbsp;&nbsp;<span style='color:{colour};"
-                f" font-size:9pt'>{sign}{abs(diff):,.2f} ({sign}{abs(pct):.2f}%)</span>"
-            )
-        self._hdr.setText(text + "</span>")
-
     def set_charts_hidden(self, hidden: bool) -> None:
-        """Collapse the charts to the header, or show them (SRD-GUI-024.008)."""
+        """Hide or show the charts and remember it (SRD-GUI-024.008)."""
         self.charts_hidden = hidden
-        self._splitter.setVisible(not hidden)
-        self.toggle_btn.setText("Show charts" if hidden else "Hide charts")
-        set_icon(self.toggle_btn, "chevron-up" if hidden else "chevron-down", "neutral", 13)
-        self.setMaximumHeight(self._head.sizeHint().height() if hidden else 16_777_215)
         self._settings.setValue(CHARTS_HIDDEN_KEY, hidden)
         self.charts_toggled.emit(hidden)
 
@@ -585,13 +530,19 @@ class ExecutionPanel(QWidget):
         self._demo = demo
         self._cb_active = False
 
+        # Cards on the gutter with a GAP between them, like the Screener (SRD-GUI-023.002).
+        gutter(self)
         main = QVBoxLayout(self)
-        main.setContentsMargins(16, 16, 16, 16)
-        main.setSpacing(12)
+        main.setContentsMargins(0, 0, 0, 0)
+        main.setSpacing(GAP)
 
         # ── Page header (SRD-GUI-024.001) ──────────────────────────────────────
         self._header = ExecutionHeader(demo)
-        main.addWidget(self._header)
+        head_box = QWidget()
+        head_col = QVBoxLayout(head_box)
+        head_col.setContentsMargins(0, 0, 0, 0)
+        head_col.setSpacing(0)
+        head_col.addWidget(self._header)
 
         # ── Circuit breaker banner (hidden by default) ─────────────────────────
         self._cb_banner = QLabel(
@@ -601,7 +552,8 @@ class ExecutionPanel(QWidget):
         self._cb_banner.setObjectName("cb_banner")
         self._cb_banner.setVisible(False)
         self._cb_banner.setWordWrap(True)
-        main.addWidget(self._cb_banner)
+        head_col.addWidget(self._cb_banner)
+        main.addWidget(card(head_box))
         # Circuit breaker now lives on AppService (toggled from Settings → System).
         demo.circuit_breaker_changed.connect(self.on_circuit_breaker)
 
@@ -609,8 +561,8 @@ class ExecutionPanel(QWidget):
         self._chart_pane = _IntradayChartPane(demo)
 
         # ── Horizontal split: watchlist card | right column ────────────────────
-        h_splitter = QSplitter(Qt.Orientation.Horizontal)
-        h_splitter.setHandleWidth(8)
+        h_splitter = gutter(QSplitter(Qt.Orientation.Horizontal))
+        h_splitter.setHandleWidth(GAP)
         h_splitter.setStyleSheet(_GAP_HANDLE_QSS)
         self._h_splitter = h_splitter
 
@@ -634,8 +586,8 @@ class ExecutionPanel(QWidget):
 
     def _build_right_pane(self, demo: AppService) -> QWidget:
         """Right column: tab card on top, intraday charts below (SRD-GUI-024.008)."""
-        self._v_splitter = QSplitter(Qt.Orientation.Vertical)
-        self._v_splitter.setHandleWidth(8)
+        self._v_splitter = gutter(QSplitter(Qt.Orientation.Vertical))
+        self._v_splitter.setHandleWidth(GAP)
         self._v_splitter.setStyleSheet(_GAP_HANDLE_QSS)
 
         self._bottom_tabs = self._build_bottom_tabs(demo)
@@ -647,13 +599,16 @@ class ExecutionPanel(QWidget):
         self._v_splitter.setCollapsible(0, False)
         self._v_splitter.setCollapsible(1, False)
         self._chart_pane.charts_toggled.connect(self._on_charts_toggled)
+        self._header.charts_btn.clicked.connect(
+            lambda: self._chart_pane.set_charts_hidden(not self._chart_pane.charts_hidden)
+        )
         self._on_charts_toggled(self._chart_pane.charts_hidden)
         return self._v_splitter
 
     def _on_charts_toggled(self, hidden: bool) -> None:
-        """Hidden: the chart card keeps only its header; shown: 3 : 2 split."""
-        head = self._chart_pane.maximumHeight() + 6
-        self._chart_card.setMaximumHeight(head if hidden else 16_777_215)
+        """Hidden: the chart card goes away; shown: 3 : 2 split."""
+        self._chart_card.setVisible(not hidden)
+        self._header.show_charts_state(hidden)
         if not hidden:
             total = max(self._v_splitter.height(), 500)
             self._v_splitter.setSizes([total * 3 // 5, total * 2 // 5])

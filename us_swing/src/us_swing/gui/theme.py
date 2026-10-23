@@ -1396,7 +1396,6 @@ QTabBar#exec_tabs::tab {{
 }}
 QTabBar#exec_tabs::tab:hover {{ color: {text}; }}
 QTabBar#exec_tabs::tab:selected {{ color: {text}; border-bottom-color: {accent}; }}
-QFrame#chart_head {{ background: transparent; border-bottom: 1px solid {line}; }}
 QTreeWidget#exec_watch {{ background: transparent; border: none; outline: none; }}
 QTreeWidget#exec_watch::item {{ min-height: 26px; border-bottom: 1px solid {line}; }}
 QTreeWidget#exec_watch::item:hover {{ background: {hover}; }}

@@ -10,10 +10,19 @@ from __future__ import annotations
 from datetime import datetime
 
 from PyQt6.QtCore import QTimer
-from PyQt6.QtWidgets import QComboBox, QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import (
+    QComboBox,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 from us_swing.data.models import ConnectionStatus, FilteredStockEntry
 from us_swing.gui.app_service import AppService
+from us_swing.gui.icons import set_icon
 from us_swing.gui.strategy_store import load_strategies
 from us_swing.gui.theme import C
 
@@ -66,6 +75,8 @@ class ExecutionHeader(QFrame):
         self.unrealised_chip = self._chip()
         self.running_chip = self._chip()
         self.broker_chip = self._chip()
+        self.charts_btn = QPushButton()
+        self.show_charts_state(False)
 
         exec_for = QLabel("Execute for")
         exec_for.setObjectName("view_key")
@@ -85,6 +96,7 @@ class ExecutionHeader(QFrame):
         row.addWidget(self.unrealised_chip)
         row.addWidget(self.running_chip)
         row.addWidget(self.broker_chip)
+        row.addWidget(self.charts_btn)
         row.addSpacing(8)
         row.addWidget(exec_for)
         row.addWidget(self.user_combo)
@@ -107,6 +119,11 @@ class ExecutionHeader(QFrame):
         chip = QLabel()
         chip.setObjectName("exec_chip")
         return chip
+
+    def show_charts_state(self, hidden: bool) -> None:
+        """Label the charts toggle for the current state (SRD-GUI-024.008)."""
+        self.charts_btn.setText("Show charts" if hidden else "Hide charts")
+        set_icon(self.charts_btn, "chevron-up" if hidden else "chevron-down", "neutral", 13)
 
     def set_last_run(self, entries: list[FilteredStockEntry]) -> None:
         self._last_run.setText(last_run_text(entries))

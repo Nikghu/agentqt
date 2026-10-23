@@ -76,3 +76,12 @@ def test_broker_chip_follows_mode(qtbot: QtBot, mode: str, name: str) -> None:
     qtbot.addWidget(header)
 
     assert name in header.broker_chip.text()
+
+
+def test_charts_button_label(qtbot: QtBot) -> None:
+    """UT-GUI-024.008.M01.T03: The header charts button names the next action."""
+    header = eh.ExecutionHeader(_Svc())  # type: ignore[arg-type]
+    qtbot.addWidget(header)
+    assert header.charts_btn.text() == "Hide charts"
+    header.show_charts_state(True)
+    assert header.charts_btn.text() == "Show charts"
