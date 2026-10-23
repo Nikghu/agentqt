@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.17.0: UT-GUI-022.008–.011.* added — screener header, run stepper, transcript drawer, list detail.
 > v1.16.0: UT-GUI-022.* added — screener result views and preset rail.
 > v1.15.0: UT-GUI-018.008–.011.* added — Connections panel in the sidebar.
 > v1.14.0: UT-GUI-021.* added — Settings section list.
@@ -569,3 +570,9 @@ Test files:
 | UT-GUI-022.006.M01.T01 | MD-GUI-022.001.M01 | Positive | CSV rows carry the plan | 2 rows, one without plan | header has Entry, Stop, Target, R:R; values and "" | Pass |
 | UT-GUI-022.007.M01.T01 | MD-GUI-022.001.M01 | Positive | Preset filter by search text | 3 presets; "MOM"; "" | Momentum only; all 3 | Pass |
 | UT-GUI-022.007.M01.T02 | MD-GUI-022.001.M01 | Positive | Last-run line | today, earlier date, none | "Today 13:18 · 5 matches"; "Oct 21 · 8 matches"; "Not run yet" | Pass |
+| UT-GUI-022.008.M01.T01 | MD-GUI-022.001.M01 | Positive | Header run line and date text | 5 matches AI-ranked at 13:18 UTC; 1 match no time; "2026-10-22"; "bad" | full line; "1 match · ranked by score"; "Oct 22, 2026"; "bad" | Pass |
+| UT-GUI-022.009.M01.T01 | MD-GUI-022.001.M01 | Positive | Stepper arrows and menu move between runs | 3 dates; click older; pick menu item 3 | Latest shown then hidden; `index_changed` 1 then 2; arrows enabled per end | Pass |
+| UT-GUI-022.009.M01.T02 | MD-GUI-022.001.M01 | Negative | No saved runs disables the stepper | [] | "—"; arrows and date disabled; no Latest tag | Pass |
+| UT-GUI-022.010.M01.T01 | MD-GUI-022.001.M01 | Positive | Pill shows steps and cost | 2 turns with tokens; 1 turn without | "AI transcript · 2 steps · $0.04"; "AI transcript · 1 step" | Pass |
+| UT-GUI-022.010.M01.T02 | MD-GUI-022.001.M01 | Positive | Drawer opens and Esc closes it | host 1000 px; open; Esc | open, visible, 460 px wide; closed once | Pass |
+| UT-GUI-022.011.M01.T01 | MD-GUI-022.001.M01 | Positive | Company name, rules count, risk / reward | names for NVDA; select row without plan | company in meta; "RULES · 1 OF 3"; "$10.00" / "$33.00" lines; bar hidden and no-plan text | Pass |

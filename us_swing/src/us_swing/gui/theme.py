@@ -1301,40 +1301,75 @@ QPushButton#view_btn {{
     outline: none;
 }}
 QPushButton#view_btn:hover {{ background: {hover}; }}
-QPushButton#view_btn:checked {{ background: {active_bg}; border-color: {accent}; }}
+QPushButton#view_btn:checked {{ background: {line}; }}
 QPushButton#view_btn:focus {{ outline: none; }}
 QListWidget#result_list {{
     background: transparent; border: none; border-right: 1px solid {line}; outline: none;
+    padding: 6px;
 }}
-QListWidget#result_list::item {{ border-radius: 4px; }}
+QListWidget#result_list::item {{ border-radius: 6px; border: 1px solid transparent; }}
 QListWidget#result_list::item:hover {{ background: {hover}; }}
-QListWidget#result_list::item:selected {{ background: {active_bg}; }}
+QListWidget#result_list::item:selected {{ background: {hover}; border-color: {line}; }}
 QWidget#result_row, QWidget#result_row QLabel {{ background: transparent; }}
+QLabel#row_symbol {{ color: {text}; font-size: 10pt; font-weight: bold; }}
+QLabel#card_symbol {{ color: {text}; font-size: 12pt; font-weight: bold; }}
 QWidget#result_detail, QWidget#cards_host, QWidget#rule_strip {{ background: transparent; }}
-QFrame#result_card, QFrame#detail_tile, QFrame#chart_slot {{
+QFrame#result_card, QFrame#detail_tile, QFrame#chart_slot, QFrame#detail_plan {{
     background: transparent; border: 1px solid {line}; border-radius: 6px;
 }}
-QFrame#result_card QLabel, QFrame#detail_tile QLabel {{ border: none; }}
-QLabel#detail_symbol {{ color: {accent}; font-size: 16pt; font-weight: bold; }}
+QFrame#result_card QLabel, QFrame#detail_tile QLabel, QFrame#detail_plan QLabel {{
+    border: none;
+}}
+QLabel#detail_symbol {{ color: {text}; font-size: 17pt; font-weight: bold; }}
 QLabel#view_key {{ color: {sub}; font-size: 8pt; }}
-QPushButton#filter_chip {{
-    background: transparent; color: {sub}; border: 1px solid {line}; border-radius: 11px;
+QFrame#screener_header {{ background: transparent; border-bottom: 1px solid {line}; }}
+QLabel#page_tag {{
+    color: {sub}; background: {line}; border-radius: 3px; padding: 1px 7px; font-size: 8pt;
+}}
+QLabel#rule_pill {{
+    color: {text}; background: {hover}; border: 1px solid {line}; border-radius: 10px;
+    padding: 2px 10px; font-size: 8.5pt;
+}}
+QPushButton#tx_pill {{
+    background: transparent; color: {text}; border: 1px solid {line}; border-radius: 11px;
     padding: 0 10px; min-height: 22px; max-height: 22px; font-size: 8pt; outline: none;
 }}
-QPushButton#filter_chip:hover {{ color: {text}; }}
-QPushButton#filter_chip:checked {{
-    background: {active_bg}; color: {accent}; border-color: {accent}; font-weight: bold;
+QPushButton#tx_pill:hover {{ background: {hover}; }}
+QPushButton#tx_pill:checked {{ background: {line}; }}
+QPushButton#tx_pill:focus {{ outline: none; }}
+QPushButton#primary_btn {{
+    background: {accent}; color: {bg}; border: 1px solid {accent}; font-weight: bold;
+    padding: 0 14px; outline: none;
 }}
+QPushButton#primary_btn:hover {{ background: {text}; border-color: {text}; }}
+QPushButton#primary_btn:disabled {{ background: {line}; color: {sub}; border-color: {line}; }}
+QPushButton#primary_btn:focus {{ outline: none; }}
+QFrame#run_stepper {{ border: 1px solid {line}; border-radius: 4px; }}
+QPushButton#stepper_btn, QPushButton#stepper_date {{
+    background: transparent; border: none; color: {text}; padding: 0 6px; outline: none;
+}}
+QPushButton#stepper_btn:hover, QPushButton#stepper_date:hover {{ background: {hover}; }}
+QPushButton#stepper_btn:disabled {{ background: transparent; }}
+QPushButton#stepper_date::menu-indicator {{ image: none; width: 0; }}
+QPushButton#stepper_btn:focus, QPushButton#stepper_date:focus {{ outline: none; }}
+QLabel#latest_tag {{ color: {sub}; background: {line}; border-radius: 3px; padding: 1px 6px;
+    font-size: 7.5pt; margin-right: 4px; }}
+QFrame#side_drawer {{ background: {bg}; border-left: 1px solid {line}; }}
+QLabel#drawer_title {{ color: {text}; font-size: 11pt; font-weight: bold; }}
+QWidget#seg_group {{ background: {bg}; border: 1px solid {line}; border-radius: 6px; }}
+QPushButton#filter_chip {{
+    background: transparent; color: {sub}; border: none; border-radius: 4px;
+    padding: 0 6px; min-height: 22px; max-height: 22px; font-size: 8pt; outline: none;
+}}
+QPushButton#filter_chip:hover {{ color: {text}; }}
+QPushButton#filter_chip:checked {{ background: {line}; color: {text}; font-weight: bold; }}
 QPushButton#filter_chip:focus {{ outline: none; }}
 QListWidget#preset_list {{ background: transparent; border: none; outline: none; }}
 QListWidget#preset_list::item {{ border-radius: 4px; margin: 0 6px; }}
 QListWidget#preset_list::item:hover {{ background: {hover}; }}
-QListWidget#preset_list::item:selected {{ background: {active_bg}; color: {accent}; }}
+QListWidget#preset_list::item:selected {{ background: {line}; }}
 QWidget#preset_item, QWidget#preset_item QLabel {{ background: transparent; }}
 QLabel#preset_name {{ color: {text}; font-size: 9.5pt; }}
-QWidget#preset_item QLabel#preset_tag {{
-    color: {sub}; background: {line}; border-radius: 3px; padding: 1px 6px; font-size: 7.5pt;
-}}
 QLabel#view_head {{ color: {sub}; font-size: 7.5pt; font-weight: bold; letter-spacing: 1px; }}
 QFrame#icon_strip {{ background: {bg}; border-left: 1px solid {line}; }}
 QPushButton#strip_btn {{

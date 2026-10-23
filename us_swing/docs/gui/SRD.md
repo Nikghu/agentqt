@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.32.0: SRD-GUI-022.008–.012 added — screener page header, run stepper, AI transcript drawer, list / detail polish and look (canvas Option A); approved by user 2026-10-23.
 > v2.31.0: SRD-GUI-022.001–.007 added — screener result views (List + detail, Signal cards) and preset rail; approved by user 2026-10-23.
 > v2.30.0: SRD-GUI-018.008–.011 added — Connections panel in the sidebar (feed toggle moved from the title bar; supersedes the feed toggle part of SRD-GUI-018.005); approved by user 2026-10-23.
 > v2.29.0: SRD-GUI-021.004 added — Data panel on the right strip; approved by user 2026-10-23.
@@ -368,3 +369,8 @@
 | SRD-GUI-022.005 | FO-GUI-022 | Should | A Sort box orders both views by AI score, reward : risk or rules passed; R:R = (target − entry) / (entry − stop) when stop < entry < target, else "—". | sort choice | row order | Rows without R:R sort last | Implemented |
 | SRD-GUI-022.006 | FO-GUI-022 | Must | Chart, Watchlist, CSV, date navigation and AI transcript keep working with the new views; CSV adds Entry, Stop, Target and R:R columns; the old table is removed. | — | — | `chart_requested` and `watchlist_add_requested` unchanged | Implemented |
 | SRD-GUI-022.007 | FO-GUI-022 | Should | The preset rail has a search box, All / Swing / Day / Position chips in place of the style combo, and per preset a type tag (Weighted / Composite) and a last-run line from saved results. | search text, chip, storage | filtered list | Same preset sections and context menu | Implemented |
+| SRD-GUI-022.008 | FO-GUI-022 | Must | A page header over the results shows the preset name, a Weighted / Composite tag, an Auto / Manual run tag and a run line (matches, ranking, run date and time); Run now is the only filled accent button and the toolbar Watchlist button is removed. | preset, result | header | Detail and cards keep their Watchlist buttons | Implemented |
+| SRD-GUI-022.009 | FO-GUI-022 | Must | A run stepper joins older / newer arrows and the run date ("Oct 22, 2026", Latest tag on the newest run); clicking the date lists all saved runs. | saved run dates | loaded run | Arrows disabled at either end | Implemented |
+| SRD-GUI-022.010 | FO-GUI-022 | Must | A header pill "AI transcript · N steps · $cost" opens the run transcript in a drawer over the right side of the results; the bottom transcript panel is removed. | transcript | drawer | Pill shown only for AI-ranked presets with a transcript | Implemented |
+| SRD-GUI-022.011 | FO-GUI-022 | Should | List rows show rank, symbol, company name, score bar and rules passed ("2/4"); the detail shows a company line, Open in Charts, Add to watchlist, a chart without its input bar, one plan box with a risk / reward bar and a ✓ / ✕ rule list. | rows | list, detail | Supersedes the rule dots of SRD-GUI-022.002 | Implemented |
+| SRD-GUI-022.012 | FO-GUI-022 | Should | Numbers use the UI font, the accent colour is kept for Run now and selection, rule chips are pills, the style chips are one segmented control, New preset is a + button in the rail header and preset rows drop the type tag. | — | — | Supersedes the per-row type tag of SRD-GUI-022.007 | Implemented |

@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.15.0: DD-GUI-022.001.D01 extended — page header, run stepper, transcript drawer (SRD-GUI-022.008–.012).
 > v1.14.0: DD-GUI-022.001.D01 added — screener result views and preset rail.
 > v1.13.0: DD-GUI-018.001.D01 extended — Connections panel in the sidebar (SRD-GUI-018.008–.011).
 > v1.12.0: DD-GUI-021.001.D01 added — Settings section list.
@@ -1585,7 +1586,7 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 
 ## DD-GUI-022.001.D01 — Screener Result Views
 
-**Traces:** SRD-GUI-022.001–.007
+**Traces:** SRD-GUI-022.001–.012
 
 **Data (`screener_views.py`).** `ResultRow` (dataclass): `symbol`, `score`, `rank`, `rules: list[RuleCheck]`, `reasoning`, `entry/stop/target: float | None`; properties `rr` (None unless stop < entry < target), `tier` (Strong ≥ 0.70, Watch ≥ 0.40, Weak) and `passed_count`. `RuleCheck(name, passed: bool | None, value: str)`: bool details give pass/fail, numbers give a value chip. `rows_from_result(results)` builds rows from `ScreenerRunResult.results` (`details`, `ai_reasoning`, `ai_plan`), ranks them by score. `sort_rows(rows, key)` for `score` / `rr` / `rules` (None R:R last). `csv_rows(rows)` returns header + rows with Entry, Stop, Target, R:R.
 
@@ -1598,5 +1599,7 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 **Panel (`screener_panel.py`).** The table, `_ResultsModel` and `_ChartButtonDelegate` are removed. The right pane is: rule chip strip, `QStackedWidget` (empty label, `ListDetailView`, `CardsView`), then the existing transcript splitter. The toolbar gains `ViewSwitch` and a Sort `QComboBox`; Watchlist shows only in List view and acts on its selection. Views emit `chart_requested(symbol)` → panel emits `chart_requested(symbol, timeframe)`; `watchlist_requested(symbol)` → `watchlist_add_requested`.
 
 **Preset rail (SRD-GUI-022.007).** A search `QLineEdit` and four checkable chips (All / Swing / Day / Position, the old `_STYLE_OPTIONS`) replace `_style_combo`; the chip value still goes to the manager as `style_filter`, and `filter_presets(presets, text)` (pure) keeps presets whose name contains the search text. Each item shows the name, a type tag and "Today HH:MM · N matches" / "Mon DD · N matches" / "Not run yet" from `ScreenerResultsStorage` (latest result per preset), rendered by an item widget.
+
+**Polish (SRD-GUI-022.008–.012).** The toolbar becomes `screener_header`, placed over the results column only (the rail runs full height): title + `page_tag` labels (type, Auto / Manual run), a run line from `run_meta_text(count, run_timestamp, ai_ranked)`, the `tx_pill`, then `RunStepper`, Sort, `ViewSwitch`, an icon-only CSV button and `primary_btn` Run now. `RunStepper(QFrame)` takes the storage date keys newest first, shows `run_date_text(key)`, a Latest tag at index 0 and a `QMenu` with one checkable action per run; it emits `index_changed(int)` and the panel loads that run. `SideDrawer(QFrame)` is a child of the results container: it follows the parent's resize through an event filter, slides with a 220 ms `pos` animation, closes on Esc or ✕ and emits `closed`; it holds the existing `AITranscriptPanel` (own title hidden). The pill text comes from `transcript_pill_text(turns, in_rate, out_rate)` and the pill shows only when the preset has `enable_llm_ranking` and turns are loaded. Rows carry `name` from the S&P 500 universe (`get_sp500_universe()`, read once and cached). The list row shows rank, symbol / company, score, `_ScoreBar` and "passed/total"; the detail plan box uses `_RiskRewardBar` (risk share = (entry − stop) / (target − stop)) and "Risk / Reward $x per share" lines; rules use check / x icons. The compact chart hides its toolbar (`CandleChartPanel.hide_toolbar()`).
 
 **Styles.** New QSS in `_sidebar_qss`: `view_btn`, `result_card`, `detail_tile`, `rule_chip` (`state` = pass / fail / value), `tier_chip`, `preset_item`. Tier and score colours come from `active_palette()` at render time; views refresh on `StyleChange`.

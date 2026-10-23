@@ -2,6 +2,16 @@
 
 ---
 
+## [20261023] GUI — Screener result polish, Option A (FO-GUI-022, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-022
+- RN: RN-GUI-1.18.0-20261023
+- Artifacts updated: SRD, MD, UTCD, TRACE, Code, Tests, Assets, RN, CONTEXT
+- Decisions: page header and run stepper over the results; transcript moved from a bottom splitter to a side drawer; toolbar Watchlist button removed (kept in detail); accent colour only on Run now and selection.
+
+---
+
 ## [20261023] SCR + GUI — AI trade plan fields and Screener result views (FO-SCR-011, FO-GUI-022, feature)
 
 - Type: Feature

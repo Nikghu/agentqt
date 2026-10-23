@@ -637,6 +637,10 @@ class CandleChartPanel(QWidget):
             btn.setToolTip(tip)
             btn.setAccessibleName(tip)
 
+    def hide_toolbar(self) -> None:
+        """Hide the symbol and timeframe bar when a host picks the symbol (SRD-GUI-022.011)."""
+        self._toolbar.hide()
+
     def show_symbol(self, symbol: str, timeframe: str | None = None) -> None:
         """Load ``symbol`` as if the user typed it and pressed Load Chart (SRD-GUI-019.008)."""
         if timeframe and self._tf_combo.findText(timeframe) >= 0:
