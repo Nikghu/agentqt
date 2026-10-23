@@ -35,11 +35,9 @@ from PyQt6.QtCore import (
     QSortFilterProxyModel,
     Qt,
     QThread,
-    QUrl,
     pyqtSignal,
 )
 from PyQt6.QtGui import QAction, QColor, QCursor, QFont, QPainter
-from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QButtonGroup,
@@ -69,8 +67,6 @@ from PyQt6.QtWidgets import (
     QSplitter,
     QStyle,
     QStyledItemDelegate,
-    QTabBar,
-    QTabWidget,
     QTableView,
     QVBoxLayout,
     QWidget,
@@ -80,7 +76,6 @@ from us_swing.gui.ai_transcript_panel import AITranscriptPanel
 from us_swing.core.indicator_rules import config_summary
 from us_swing.core.price_patterns import pattern_config_summary
 from us_swing.gui.app_service import AppService
-from us_swing.gui.chart_panel import _build_html as _build_chart_html
 from us_swing.gui.frameless_dialog import FramelessDialog
 from us_swing.gui.indicator_rules_dialog import IndicatorRulesDialog
 from us_swing.gui.price_action_rules_dialog import PriceActionRulesDialog
@@ -396,221 +391,6 @@ class _ChartButtonDelegate(QStyledItemDelegate):
 
     def sizeHint(self, option: Any, index: Any) -> QSize:
         return QSize(56, 28)
-
-
-# ── Quick chart window (multi-tab, frameless, one per symbol) ────────────────
-
-class QuickChartWindow(QWidget):
-    """Standalone frameless chart window opened from the Screener results table.
-
-    Maintains one tab per symbol; clicking the same symbol again switches
-    focus to the existing tab rather than opening a duplicate.  Tabs have no
-    close button — the window is dismissed via the custom title-bar controls.
-    """
-
-    def __init__(self, svc: AppService, parent: QWidget | None = None) -> None:
-        super().__init__(parent, Qt.WindowType.Window | Qt.WindowType.FramelessWindowHint)
-        self._svc = svc
-        self._drag_pos: QPoint | None = None
-        self._maximized = False
-
-        self.setWindowTitle("Quick Chart Viewer")
-        self.resize(960, 640)
-        _ap = active_palette()
-        self.setStyleSheet(
-            f"QWidget#qcw_root {{ background: {_ap.BG};"
-            f" border: 1px solid {_ap.OVERLAY2}; }}"
-        )
-
-        root_widget = QWidget()
-        root_widget.setObjectName("qcw_root")
-        outer = QVBoxLayout(self)
-        outer.setContentsMargins(0, 0, 0, 0)
-        outer.setSpacing(0)
-        outer.addWidget(root_widget)
-
-        self._layout = QVBoxLayout(root_widget)
-        self._layout.setContentsMargins(0, 0, 0, 0)
-        self._layout.setSpacing(0)
-
-        self._title_bar = self._make_title_bar()
-        self._layout.addWidget(self._title_bar)
-
-        self._tabs = QTabWidget()
-        self._tabs.setTabsClosable(False)
-        self._tabs.setMovable(True)
-        self._tabs.setStyleSheet(
-            f"QTabWidget::pane {{ border: none; background: {_ap.BG}; }}"
-            f"QTabBar::tab {{"
-            f"  background: {_ap.SURFACE}; color: {_ap.SUBTEXT};"
-            f"  border: 1px solid {_ap.OVERLAY}; border-bottom: none;"
-            f"  padding: 5px 14px; font-size: 8pt; margin-right: 2px; }}"
-            f"QTabBar::tab:selected {{"
-            f"  background: {_ap.BG}; color: {_ap.TEXT}; border-color: {_ap.OVERLAY2}; }}"
-            f"QTabBar::tab:hover:!selected {{ background: {_ap.OVERLAY}; }}"
-        )
-        self._layout.addWidget(self._tabs, 1)
-
-    # ── Title bar ─────────────────────────────────────────────────────────────
-
-    def _make_title_bar(self) -> QFrame:
-        _ap = active_palette()
-        bar = QFrame()
-        bar.setObjectName("qcw_title")
-        bar.setFixedHeight(38)
-        bar.setStyleSheet(
-            f"QFrame#qcw_title {{ background: {_ap.SURFACE};"
-            f" border-bottom: 1px solid {_ap.OVERLAY}; }}"
-        )
-        hl = QHBoxLayout(bar)
-        hl.setContentsMargins(14, 0, 6, 0)
-        hl.setSpacing(0)
-
-        icon = QLabel()
-        icon.setPixmap(make_icon("chart-candlestick", "go").pixmap(16, 16))
-        icon.setStyleSheet("background: transparent;")
-        title_lbl = QLabel("  Quick Chart Viewer")
-        title_lbl.setStyleSheet(
-            f"color: {_ap.TEXT}; font-size: 9pt; font-weight: bold; background: transparent;"
-        )
-        hl.addWidget(icon)
-        hl.addWidget(title_lbl)
-        hl.addStretch()
-
-        _wc = (
-            "QPushButton {{ background: transparent; color: {fg}; border: none;"
-            " font-size: 14px; min-width: 32px; max-width: 32px;"
-            " min-height: 28px; max-height: 28px; border-radius: 4px; }}"
-            "QPushButton:hover {{ background: {hover}; color: white; }}"
-        )
-        min_btn = QPushButton("−")
-        min_btn.setStyleSheet(_wc.format(fg=_ap.SUBTEXT, hover=_ap.OVERLAY2))
-        min_btn.setToolTip("Minimize")
-        min_btn.clicked.connect(self.showMinimized)
-
-        self._max_btn = QPushButton("□")
-        self._max_btn.setStyleSheet(_wc.format(fg=_ap.SUBTEXT, hover=_ap.OVERLAY2))
-        self._max_btn.setToolTip("Maximize")
-        self._max_btn.clicked.connect(self._toggle_maximize)
-
-        close_btn = QPushButton("✕")
-        close_btn.setStyleSheet(_wc.format(fg=_ap.SUBTEXT, hover="#c0392b"))
-        close_btn.setToolTip("Close")
-        close_btn.clicked.connect(self.close)
-
-        hl.addWidget(min_btn)
-        hl.addSpacing(2)
-        hl.addWidget(self._max_btn)
-        hl.addSpacing(2)
-        hl.addWidget(close_btn)
-        return bar
-
-    def _toggle_maximize(self) -> None:
-        if self._maximized:
-            self.showNormal()
-            self._max_btn.setText("□")
-            self._max_btn.setToolTip("Maximize")
-        else:
-            self.showMaximized()
-            self._max_btn.setText("❐")
-            self._max_btn.setToolTip("Restore")
-        self._maximized = not self._maximized
-
-    # ── Drag to move ──────────────────────────────────────────────────────────
-
-    def mousePressEvent(self, event: Any) -> None:
-        if (
-            event.button() == Qt.MouseButton.LeftButton
-            and self._title_bar.geometry().contains(event.pos())
-        ):
-            self._drag_pos = event.globalPosition().toPoint()
-        super().mousePressEvent(event)
-
-    def mouseMoveEvent(self, event: Any) -> None:
-        if self._drag_pos is not None and event.buttons() & Qt.MouseButton.LeftButton:
-            delta = event.globalPosition().toPoint() - self._drag_pos
-            self.move(self.pos() + delta)
-            self._drag_pos = event.globalPosition().toPoint()
-        super().mouseMoveEvent(event)
-
-    def mouseReleaseEvent(self, event: Any) -> None:
-        self._drag_pos = None
-        super().mouseReleaseEvent(event)
-
-    # ── Chart management ──────────────────────────────────────────────────────
-
-    def open_symbol(self, symbol: str, timeframe: str = "1d") -> None:
-        """Switch to an existing tab for *symbol*, or create a new one."""
-        for i in range(self._tabs.count()):
-            if self._tabs.tabText(i) == symbol:
-                self._tabs.setCurrentIndex(i)
-                return
-        web = self._make_chart_view(symbol, timeframe)
-        idx = self._tabs.addTab(web, symbol)
-        self._attach_close_btn(idx)
-        self._tabs.setCurrentIndex(idx)
-
-    def _attach_close_btn(self, tab_idx: int) -> None:
-        """Add a visible custom × button to the right side of a tab."""
-        # Capture the content widget — its Python identity stays stable across
-        # tab shifts, unlike the button returned by tabButton() which PyQt6 may
-        # re-wrap as a new Python object on every call.
-        content_widget = self._tabs.widget(tab_idx)
-        btn = QPushButton("×")
-        btn.setFixedSize(18, 18)
-        _close_hover_bg = colors()["filter_close_hover_bg"]
-        btn.setStyleSheet(
-            f"QPushButton {{ background: transparent; color: {C.SUBTEXT};"
-            f" border: none; font-size: 13px; border-radius: 3px;"
-            f" padding: 0; line-height: 18px; }}"
-            f"QPushButton:hover {{ background: {_close_hover_bg}; color: white; }}"
-        )
-        btn.clicked.connect(lambda _checked=False, w=content_widget: self._close_tab_for_widget(w))
-        self._tabs.tabBar().setTabButton(tab_idx, QTabBar.ButtonPosition.RightSide, btn)
-
-    def _close_tab_for_widget(self, widget: QWidget) -> None:
-        idx = self._tabs.indexOf(widget)
-        if idx >= 0:
-            self._tabs.removeTab(idx)
-
-    def closeEvent(self, event: Any) -> None:
-        self._tabs.clear()
-        super().closeEvent(event)
-
-    def _make_chart_view(self, symbol: str, timeframe: str) -> QWebEngineView:
-        _ap = active_palette()
-        web = QWebEngineView()
-        web.setStyleSheet(f"background: {_ap.BG};")
-        candles = self._svc.get_candles_for_symbol(symbol, timeframe, 500)
-        if candles:
-            _tc = colors()
-            _vol_up = _tc["candle_up_volume"]
-            _vol_dn = _tc["candle_down_volume"]
-            volume_data = [
-                {
-                    "time": c["time"],
-                    "value": c["volume"],
-                    "color": _vol_up if c["close"] >= c["open"] else _vol_dn,
-                }
-                for c in candles
-            ]
-            tz = self._svc.get_system_config().market_timezone
-            html = _build_chart_html(candles, volume_data, symbol, timeframe, timezone=tz)
-            web.setHtml(html, QUrl("about:blank"))
-        else:
-            web.setHtml(
-                f"""<!DOCTYPE html><html><body style="margin:0;background:{_ap.BG};
-                display:flex;align-items:center;justify-content:center;height:100vh;
-                font-family:monospace;">
-                <div style="text-align:center;color:{_ap.MUTED};">
-                  <div style="font-size:36px;margin-bottom:12px;">⚠</div>
-                  <div>No candle data for <b style="color:{_ap.YELLOW}">{symbol}</b>
-                  ({timeframe.upper()})</div>
-                  <div style="font-size:11px;margin-top:8px;">
-                    Download data from Settings → Database.</div>
-                </div></body></html>"""
-            )
-        return web
 
 
 _INDICATOR_SCREENER_ID   = "indicator_composite"
@@ -2061,6 +1841,7 @@ class ScreenerPanel(QWidget):
     """
 
     watchlist_add_requested = pyqtSignal(str)   # preserved — wired in main_window
+    chart_requested = pyqtSignal(str, str)      # symbol, timeframe → Charts screen
 
     def __init__(self, demo: AppService, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -2078,7 +1859,6 @@ class ScreenerPanel(QWidget):
         self._available_dates:           list[str]  = []
         self._date_idx:           int        = 0
         self._worker: _PresetRunWorker | None = None
-        self._quick_chart_win: QuickChartWindow | None = None
         self._db_info:           Any        = None   # latest CandleDbInfo
         self._auto_run_queue:    list[str]  = []     # preset IDs pending auto-run
 
@@ -2863,15 +2643,7 @@ class ScreenerPanel(QWidget):
         src_index = self._proxy.mapToSource(proxy_index)
         row = self._model.row_at(src_index.row())
         if row:
-            self._open_quick_chart(row.symbol)
-
-    def _open_quick_chart(self, symbol: str) -> None:
-        if self._quick_chart_win is None or not self._quick_chart_win.isVisible():
-            self._quick_chart_win = QuickChartWindow(self._demo)
-        self._quick_chart_win.open_symbol(symbol, self._selected_preset_timeframe)
-        self._quick_chart_win.show()
-        self._quick_chart_win.raise_()
-        self._quick_chart_win.activateWindow()
+            self.chart_requested.emit(row.symbol, self._selected_preset_timeframe)
 
     # ── Selection / watchlist ─────────────────────────────────────────────
 

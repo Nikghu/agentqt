@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.13.0: UT-GUI-020.* added — Charts workspace.
 > v1.12.0: UT-GUI-019.* added — side panels and Exit drawer.
 > v1.11.0: UT-GUI-018.* added — sidebar workspace shell.
 > v1.10.0: UT-GUI-017.* added — Carbon theme and icon system.
@@ -510,3 +511,14 @@ Test files:
 | UT-GUI-019.006.M02.T03 | MD-GUI-019.006.M02 | Negative | Cancel and Back send nothing | Review then Back; Cancel | no `submitted` | Pass |
 | UT-GUI-019.007.M02.T01 | MD-GUI-019.006.M02 | Positive | Square-off list shows all positions and confirms | 3 positions; Review; Confirm | 3 rows; `submitted("square_off_all")` | Pass |
 | UT-GUI-019.002.M03.T01 | MD-GUI-019.002.M03 | Positive | Opening the right panel shrinks the sidebar and closing restores it | `_MiniState` panel open then closed | `want_mini` True then False | Pass |
+
+## FO-GUI-020 — Charts Workspace
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-020.001.M01.T01 | MD-GUI-020.001.M01 | Positive | New Chart adds windows up to six | click New Chart until disabled | 6 windows; button disabled; count "6 of 6 charts" | Pass |
+| UT-GUI-020.001.M01.T02 | MD-GUI-020.001.M01 | Positive | Closing a window frees a slot | close one of six | 5 windows; button enabled | Pass |
+| UT-GUI-020.002.M01.T01 | MD-GUI-020.001.M01 | Positive | Tabs mode switches view mode | click Tabs, then Tile | tabbed view; then sub-window view | Pass |
+| UT-GUI-020.003.M01.T01 | MD-GUI-020.001.M01 | Positive | Same symbol focuses its window | open AAPL twice | one AAPL window, active | Pass |
+| UT-GUI-020.003.M01.T02 | MD-GUI-020.001.M01 | Edge | Seventh symbol loads into the active window | six open, open TSLA | still 6 windows; active shows TSLA | Pass |
+| UT-GUI-020.004.M01.T01 | MD-GUI-003.001.M01 | Negative | Quick Chart Viewer is gone | screener module | no `QuickChartWindow`; `chart_requested` signal exists | Pass |

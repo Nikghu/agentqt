@@ -52,7 +52,7 @@ from PyQt6.QtWidgets import (
 from us_swing import __version__
 from us_swing.data.models import ConnectionStatus
 from us_swing.gui.app_service import AppService
-from us_swing.gui.chart_panel import CandleChartPanel
+from us_swing.gui.chart_workspace import ChartWorkspace
 from us_swing.gui.dashboard_panel import DashboardPanel
 from us_swing.gui.execution_panel import ExecutionPanel
 from us_swing.gui.screener_panel import ScreenerPanel
@@ -560,7 +560,7 @@ _NAV_ITEMS: list[tuple[str, str]] = [
     ("layout-dashboard", "Dashboard"),
     ("filter", "Screener"),
     ("zap", "Execution"),
-    ("chart-candlestick", "Chart"),
+    ("chart-candlestick", "Charts"),
     ("settings", "Settings"),
 ]
 _WIDE_PAGES = frozenset({2, 3})   # Execution, Chart
@@ -619,7 +619,7 @@ class MainWindow(QMainWindow):
         self._dashboard_panel  = DashboardPanel(svc)
         self._screener_panel   = ScreenerPanel(svc)
         self._execution_panel  = ExecutionPanel(svc)
-        self._chart_panel      = CandleChartPanel(svc)
+        self._chart_panel      = ChartWorkspace(svc)
         self._settings_panel   = SettingsPanel(svc)
         panels = [
             self._dashboard_panel, self._screener_panel, self._execution_panel,
@@ -728,6 +728,8 @@ class MainWindow(QMainWindow):
         # details → exit_requested / chart_requested → dashboard drawer / chart
         self._details.exit_requested.connect(self._on_details_exit)
         self._details.chart_requested.connect(self._on_details_chart)
+        # screener → chart_requested → Charts screen
+        self._screener_panel.chart_requested.connect(self._on_chart_requested)
         # ── Status bar widgets ─────────────────────────────────────────────────
         self._status = self.statusBar()
         self._status.setSizeGripEnabled(False)
@@ -840,8 +842,11 @@ class MainWindow(QMainWindow):
         self._dashboard_panel.open_exit(tab)
 
     def _on_details_chart(self, symbol: str) -> None:
+        self._on_chart_requested(symbol, "1d")
+
+    def _on_chart_requested(self, symbol: str, timeframe: str) -> None:
         self._go_to(3)
-        self._chart_panel.show_symbol(symbol)
+        self._chart_panel.open_symbol(symbol, timeframe)
 
     def _on_mini_toggled(self, mini: bool) -> None:
         self._mini_state.set_user_mini(mini)

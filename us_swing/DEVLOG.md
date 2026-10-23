@@ -2,6 +2,16 @@
 
 ---
 
+## [20261023] GUI — Charts workspace (MDI), Phase 4 (FO-GUI-020, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-020
+- RN: RN-GUI-1.12.0-20261023
+- Artifacts updated: SRD, DD, MD, UTCD, TRACE, Code, Tests, RN, TODO (T39), CONTEXT
+- Decisions: Quick Chart Viewer removed in favour of the Charts screen; max six chart windows.
+
+---
+
 ## [20261023] GUI — Side panels and Exit drawer, Phase 3 (FO-GUI-019, feature)
 
 - Type: Feature

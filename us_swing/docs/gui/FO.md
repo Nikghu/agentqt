@@ -608,3 +608,26 @@ The system shall show Position Details, Watchlist and Live Log as panels that op
 2. Every exit type from the old dialog sends the same request as before, but only after Review and Confirm.
 3. Prices keep updating while the drawer is open.
 4. Screener "Watchlist" still adds the symbol to the watchlist.
+
+---
+
+## FO-GUI-020: Charts Workspace
+
+**Status:** Approved (user, 2026-10-23)
+**Priority:** Should
+**Depends on:** FO-GUI-011 (candle chart viewer), FO-GUI-019 (Open in Chart)
+**Source:** GUI redesign Phase 4 — Carbon Workspace design agreed 2026-10-23 (MDI on the Charts screen only).
+
+The system shall let the user keep several charts open at once on the Charts screen and arrange them as tiles, a cascade or tabs. Chart content does not change.
+
+### Requirements
+
+1. **Many charts.** The Charts screen holds up to six chart windows, each with its own symbol, timeframe and bars controls.
+2. **Arrange.** Tile, Cascade and Tabs buttons arrange the windows.
+3. **Open from elsewhere.** Open in Chart and the Screener chart button open the symbol here instead of a separate window.
+
+### Acceptance Criteria
+
+1. New Chart adds a window until six are open, then the button is disabled.
+2. Opening a symbol that is already open brings its window to the front.
+3. The Screener chart button shows the chart on the Charts screen with the preset's timeframe.

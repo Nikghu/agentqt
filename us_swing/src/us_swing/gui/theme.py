@@ -1301,6 +1301,11 @@ QLabel#strip_badge {{
 QFrame#right_panel {{ border-left: 1px solid {line}; }}
 QFrame#log_panel {{ border-top: 1px solid {line}; }}
 QLabel#details_key {{ color: {sub}; }}
+QMdiArea#chart_mdi {{ background: {bg}; border: 1px solid {line}; }}
+QMdiArea#chart_mdi QTabBar::tab:selected {{ color: {accent}; border-bottom: 2px solid {accent}; }}
+QLabel#page_title {{ font-size: 13pt; font-weight: bold; }}
+QLabel#page_meta {{ color: {sub}; padding-left: 8px; }}
+QPushButton#mode_btn:checked {{ background: {active_bg}; color: {accent}; border-color: {accent}; }}
 """
 
 

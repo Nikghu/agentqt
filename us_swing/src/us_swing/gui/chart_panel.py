@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from PyQt6.QtCore import Qt, QStringListModel, QUrl
+from PyQt6.QtCore import pyqtSignal, Qt, QStringListModel, QUrl
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import (
     QComboBox,
@@ -30,7 +30,7 @@ from PyQt6.QtWidgets import (
 
 from us_swing.gui.app_service import AppService
 from us_swing.gui.icons import set_icon
-from us_swing.gui.theme import active_palette, colors, load_theme_id
+from us_swing.gui.theme import C, active_palette, colors, load_theme_id
 
 # Path to the bundled Lightweight Charts JS (downloaded once at install time)
 _RESOURCES = Path(__file__).parent / "resources"
@@ -520,6 +520,8 @@ class CandleChartPanel(QWidget):
     v5 (Apache 2.0) rendered via QWebEngineView.
     """
 
+    chart_loaded = pyqtSignal(str, str)   # symbol, timeframe (SRD-GUI-020.001)
+
     def __init__(self, svc: AppService, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._svc = svc
@@ -614,8 +616,33 @@ class CandleChartPanel(QWidget):
 
     # ── Logic ──────────────────────────────────────────────────────────────────
 
-    def show_symbol(self, symbol: str) -> None:
+    @property
+    def current_symbol(self) -> str:
+        return self._current_symbol
+
+    @property
+    def current_timeframe(self) -> str:
+        return self._current_tf
+
+    def set_compact(self) -> None:
+        """Slim toolbar for small workspace windows: icon-only buttons, no bars or status."""
+        for widget in (self._sym_lbl, self._tf_lbl, self._bars_lbl, self._limit_spin,
+                       self._status_lbl):
+            widget.hide()
+        for btn, name, role, tip in ((self._load_btn, "play", "go", "Load Chart"),
+                                     (self._refresh_btn, "refresh-cw", "info", "Refresh List")):
+            btn.setText("")
+            set_icon(btn, name, role)
+            btn.setFixedWidth(C.BTN_H + 4)
+            btn.setToolTip(tip)
+            btn.setAccessibleName(tip)
+
+    def show_symbol(self, symbol: str, timeframe: str | None = None) -> None:
         """Load ``symbol`` as if the user typed it and pressed Load Chart (SRD-GUI-019.008)."""
+        if timeframe and self._tf_combo.findText(timeframe) >= 0:
+            self._tf_combo.blockSignals(True)
+            self._tf_combo.setCurrentText(timeframe)
+            self._tf_combo.blockSignals(False)
         self._sym_combo.setCurrentText(symbol)
         self._on_load()
 
@@ -746,6 +773,7 @@ class CandleChartPanel(QWidget):
         self._status_lbl.setText(
             f"{symbol} · {timeframe.upper()} · {len(candles)} bars"
         )
+        self.chart_loaded.emit(symbol, timeframe)
 
     def _show_placeholder(self) -> None:
         ct = active_palette()

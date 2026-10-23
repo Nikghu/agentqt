@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.26.0: SRD-GUI-020.001–.005 added — Charts workspace (GUI redesign Phase 4); approved by user 2026-10-23.
 > v2.25.0: SRD-GUI-019.001–.008 added — side panels and Exit drawer (GUI redesign Phase 3); approved by user 2026-10-23.
 > v2.24.0: SRD-GUI-018.001–.007 added — sidebar workspace shell (GUI redesign Phase 2); approved by user 2026-10-23. Supersedes the layout parts of SRD-GUI-001.001, SRD-GUI-000.003 and the location of SRD-GUI-000.006.
 > v2.23.0: SRD-GUI-017.001–.005 added — Carbon theme and icon system (GUI redesign Phase 1); approved by user 2026-10-23.
@@ -327,3 +328,13 @@
 | SRD-GUI-019.006 | FO-GUI-019 | Must | A non-modal Exit drawer on the Dashboard replaces the Exit Position dialog: same four tabs and fields, then Review, then a Confirm button naming the action. | row double-click, Details buttons | same actions as before | Live-mode block unchanged; Cancel or Esc changes nothing | Implemented |
 | SRD-GUI-019.007 | FO-GUI-019 | Must | Square Off All opens the drawer in list mode with every open position and the total, then Review and Confirm. | click | close requests | Replaces the warning message box | Implemented |
 | SRD-GUI-019.008 | FO-GUI-019 | Should | Open in Chart switches to the Chart screen and loads the selected symbol. | click | chart | Uses the chart's own load path | Implemented |
+
+## FO-GUI-020 — Charts Workspace
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-020.001 | FO-GUI-020 | Must | The Charts screen is a `ChartWorkspace` with a `QMdiArea`; each sub-window holds one `CandleChartPanel` and shows its symbol in the title. | New Chart, open request | chart windows | At most six windows; New Chart disabled at six | Implemented |
+| SRD-GUI-020.002 | FO-GUI-020 | Must | Tile, Cascade and Tabs buttons call `tileSubWindows()`, `cascadeSubWindows()` and tabbed view mode; Tabs mode has closable tabs. | click | arranged windows | One mode checked at a time | Implemented |
+| SRD-GUI-020.003 | FO-GUI-020 | Must | `open_symbol(symbol, timeframe)` focuses a window already showing the symbol, else opens a new one, else loads into the active window when six are open. | symbol, timeframe | loaded chart | Uses the chart's own load path | Implemented |
+| SRD-GUI-020.004 | FO-GUI-020 | Must | Open in Chart and the Screener chart button switch to Charts and call `open_symbol`; the separate Quick Chart Viewer window is removed. | click | Charts screen | Screener passes its preset timeframe | Implemented |
+| SRD-GUI-020.005 | FO-GUI-020 | Should | A theme change refreshes every open chart. | `theme_changed` | re-rendered charts | — | Implemented |

@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.11.0: DD-GUI-020.001.D01 added — Charts workspace.
 > v1.10.0: DD-GUI-019.001.D01 added — side panels and Exit drawer.
 > v1.9.0: DD-GUI-018.001.D01 added — sidebar workspace shell.
 > v1.8.0: DD-GUI-017.001.D01 added — Carbon theme and icon system.
@@ -1537,3 +1538,17 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 **Exit drawer (`dashboard_panel.py`).** `_ExitPositionDialog` becomes `_ExitForm(QWidget)` with the same summary card, four tabs and estimate helpers; its title bar and drag code are removed. Footer: Cancel · Review. Review shows a red summary line ("Sell 85 NVDA at market") and swaps the footer to Back · Confirm <action>; Confirm emits `submitted(action, params)` with the same values the dialog returned. `_SquareOffForm` lists open positions with quantity, price and P&L plus a total, with the same Review → Confirm flow and emits `submitted("square_off_all", {})`. `_ExitDrawer(QFrame)` is a 420 px child of `DashboardPanel`, kept at the right edge on resize, slid in and out with a `QPropertyAnimation` on `pos` (220 ms); Esc closes it. `DashboardPanel._apply_exit(pos, action, params)` holds the existing order calls; row highlight is set while the drawer is open.
 
 **Removed from Dashboard.** Watchlist tab and the embedded log section (`_on_log_message`, filter, pause, clear helpers).
+
+---
+
+## DD-GUI-020.001.D01 — Charts Workspace
+
+**Traces:** SRD-GUI-020.001–.005
+
+**Widget (`chart_workspace.py`).** `ChartWorkspace(QWidget)`: page header row (title "Charts", count label "N of 6 charts", stretch, New Chart button, Tile / Cascade / Tabs checkable buttons in an exclusive `QButtonGroup`) above a `QMdiArea` (scroll bars as needed, background from the theme). Starts with one empty chart window.
+
+**Sub-windows.** `_add_window()` creates `CandleChartPanel(svc)` inside a `QMdiSubWindow` (`WA_DeleteOnClose`), 640 × 420 minimum 360 × 260, title "Chart" until loaded. `CandleChartPanel` gains `chart_loaded(str symbol, str timeframe)` emitted at the end of `_load_chart`; the workspace sets the title to "SYMBOL · TF". `destroyed` updates the count and New Chart enabled state. After adding, the current arrange mode is applied again.
+
+**Open path.** `open_symbol(symbol, timeframe="1d")`: search sub-windows whose panel's current symbol equals `symbol` → `setActiveSubWindow`; else if fewer than six → new window; else the active window. Then `panel.show_symbol(symbol, timeframe)` (timeframe selected only when it is in the panel's list).
+
+**Wiring.** `MainWindow` uses `ChartWorkspace` as stack page 3 (nav label "Charts"); `details.chart_requested` and `screener.chart_requested(symbol, timeframe)` → `_go_to(3)` + `open_symbol`. `SettingsPanel.theme_changed` → `ChartWorkspace.refresh_theme`, which calls each panel's `refresh_theme`. `QuickChartWindow` and `_open_quick_chart` are removed from `screener_panel.py`; the chart button delegate emits `chart_requested` instead.
