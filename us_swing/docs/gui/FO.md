@@ -576,6 +576,7 @@ The system shall replace the top navigation tabs and the account strip with a le
 3. **Account footer.** The sidebar footer shows the current user or All Users, mode, IBKR ID, risk and capital.
 4. **Title bar.** The title bar keeps brand, version, index prices, feed button and window buttons.
 5. **Hide and show.** One controller animates panels that open and close; changing screen slides in briefly.
+6. **Connections panel.** The feed button moves from the title bar to the sidebar bottom, with Internet, IBKR Feed and Market status.
 
 ### Acceptance Criteria
 
@@ -583,6 +584,7 @@ The system shall replace the top navigation tabs and the account strip with a le
 2. Collapse makes the sidebar icon-only; the choice is kept after restart.
 3. Opening Execution makes the sidebar small; going back to Dashboard restores it.
 4. The footer shows the same capital and available values as the old account strip.
+5. The sidebar power button connects and disconnects the feed as the old title bar button did.
 
 ---
 

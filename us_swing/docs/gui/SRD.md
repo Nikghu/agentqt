@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.30.0: SRD-GUI-018.008–.011 added — Connections panel in the sidebar (feed toggle moved from the title bar; supersedes the feed toggle part of SRD-GUI-018.005); approved by user 2026-10-23.
 > v2.29.0: SRD-GUI-021.004 added — Data panel on the right strip; approved by user 2026-10-23.
 > v2.28.0: SRD-GUI-021.003 added — System panel on the right strip; approved by user 2026-10-23.
 > v2.27.0: SRD-GUI-021.001–.002 added — Settings section list; approved by user 2026-10-23.
@@ -318,6 +319,10 @@
 | SRD-GUI-018.005 | FO-GUI-018 | Must | The title bar shows logo, brand, version, the market watch index prices, the feed toggle and window controls. | — | — | Drag, double-click maximise unchanged | Implemented |
 | SRD-GUI-018.006 | FO-GUI-018 | Must | `RevealController` animates a registered widget between closed and open sizes in 200 ms and emits `revealed(name, bool)` when done. | `reveal_requested(name, bool)` | `revealed(name, bool)` | One animation per widget; repeat requests restart it | Implemented |
 | SRD-GUI-018.007 | FO-GUI-018 | Should | Changing screen slides the new screen in from the right over 180 ms. | `page_requested` | slide | No opacity effects (web views) | Implemented |
+| SRD-GUI-018.008 | FO-GUI-018 | Must | A Connections panel above the footer shows Internet, IBKR Feed (with `host:port`) and Market rows with status dots, and a power button that connects or, after a confirm, disconnects; the title bar feed toggle is removed. | `feed_status_changed`, `internet_status_changed`, `market_status_updated`, click | panel text, `connect_feed()` / `disconnect_feed()` | Connect logic unchanged; button disabled while a probe runs | Implemented |
+| SRD-GUI-018.009 | FO-GUI-018 | Should | While auto-connect retries, the Feed row shows the attempt number and a countdown to the next try; the power button tries at once. | `set_feed_retry()`, `clear_feed_retry()` | Feed row text | Retry loop timing unchanged | Implemented |
+| SRD-GUI-018.010 | FO-GUI-018 | Should | The Market row shows the session and the time until the close or the next regular open, skipping weekends and NYSE holidays. | clock (ET) | Market row text | Same session rules as `get_exchange_status` | Implemented |
+| SRD-GUI-018.011 | FO-GUI-018 | Must | In mini mode the panel is a plug button with a worst-status dot and a tooltip of all rows; a click acts like the power button. | `set_mini()` | plug button, badge | Badge: offline > retrying > not connected > live | Implemented |
 
 ## FO-GUI-019 — Side Panels and Exit Drawer
 

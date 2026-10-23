@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-10-22 (Session 83)
+**Last Updated:** 2026-10-23 (Session 85)
 
 ---
 
@@ -49,3 +49,4 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T37 | Price action pattern library (FO-SCR-014 + FO-GUI-016): 47-pattern `core/price_patterns` catalogue, rule-list config with legacy reader, library + slim table dialog. Implemented on branch feat/indicator-rule-library (same PR as T33); awaiting manual GUI check + PR. | `core/price_patterns`, `gui/price_action_rules_dialog.py`, `screener/screeners/price_action.py` | High | Open |
 | T38 | Daily history starts 2023-05-30 (~823 bars): the candle download fills forward only. Add a backward fill of older daily history; weekly is now built from daily (ISS-GUI-0003), so it deepens too. | `gui/app_service.py` | Medium | Open |
 | T39 | GUI redesign Carbon Workspace — Phases 1–4 done on feat/gui-carbon-theme; push + PR pending user check | `gui/` | Medium | Done |
+| T40 | Connections panel in the sidebar (FO-GUI-018, RN-GUI-1.16.0): Internet, IBKR Feed and Market rows, power button, retry countdown, mini-mode plug. Title bar feed toggle removed. Ready to commit on feat/gui-carbon-theme, not pushed; user visual check pending. | `gui/sidebar.py`, `gui/main_window.py`, `gui/theme.py` | Medium | Done |

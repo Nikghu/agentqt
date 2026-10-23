@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.17.0: MD-GUI-018.008.M04 (sidebar.py Connections panel) added; MD-GUI-018.005.M03 drops the title bar feed toggle.
 > v1.16.0: MD-GUI-021.001.M01 (settings_panel.py section list) added.
 > v1.15.0: MD-GUI-020.001.M01 (chart_workspace.py) added.
 > v1.14.0: MD-GUI-019.001.M01 (side_panels.py) added; MD-GUI-019.006.M02 (dashboard exit drawer) and MD-GUI-019.002.M03 (main_window panels) extend existing files.
@@ -193,6 +194,7 @@ us_swing/src/us_swing/gui/
 | MD-GUI-018.001.M01 | SRD-GUI-018.001 | `us_swing/src/us_swing/gui/sidebar.py` | Sidebar nav, mini labels, account footer | `Sidebar`, `page_requested`, `mini_toggled`, `hover_changed`, `set_mini()`, `set_current()` | `icons`, `theme`, `AppService` | No |
 | MD-GUI-018.006.M02 | SRD-GUI-018.006 | `us_swing/src/us_swing/gui/reveal.py` | Size animation for hide/show panels | `RevealController`, `register()`, `on_reveal_requested()`, `revealed` | `QtCore` | No |
 | MD-GUI-018.005.M03 | SRD-GUI-018.005 | `us_swing/src/us_swing/gui/main_window.py` | Shell layout, mini state, peek geometry, screen slide | `MainWindow` | `sidebar`, `reveal` | No |
+| MD-GUI-018.008.M04 | SRD-GUI-018.008 | `us_swing/src/us_swing/gui/sidebar.py` | Connections panel, retry text, market countdown, mini plug | `_ConnectionsPanel`, `market_text()`, `Sidebar.set_feed_retry()`, `Sidebar.clear_feed_retry()` | `AppService`, `market_calendar`, `icons`, `theme` | No |
 
 ## FO-GUI-019 — Side Panels and Exit Drawer
 

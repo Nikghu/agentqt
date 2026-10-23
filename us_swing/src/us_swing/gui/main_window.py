@@ -5,7 +5,7 @@ QMainWindow: Frameless terminal UI — title bar, left sidebar, stacked screens.
 
 Layout:
   ┌──────────────────────────────────────────────────────────────────────┐
-  │ logo  Swing Trading Terminal v  │  index prices  │  feed  │ − □ ✕   │
+  │ logo  Swing Trading Terminal v  │  index prices           │ − □ ✕   │
   ├──────────┬───────────────────────────────────────────────────────────┤
   │ SIDEBAR  │  CONTENT  (QStackedWidget)        │ RIGHT PANEL │ STRIP │
   │ (200/56) ├───────────────────────────────────┴─────────────┤       │
@@ -17,7 +17,6 @@ Layout:
 from __future__ import annotations
 
 import logging
-import math
 import sys
 from pathlib import Path
 
@@ -27,14 +26,12 @@ from PyQt6.QtCore import (
     QEvent,
     QObject,
     QPoint,
-    QPointF,
     QPropertyAnimation,
-    QRectF,
     QSettings,
     QTimer,
     Qt,
 )
-from PyQt6.QtGui import QColor, QCursor, QFont, QPainter, QPainterPath, QPen, QPixmap
+from PyQt6.QtGui import QCursor, QPixmap
 from PyQt6.QtWidgets import (
     QApplication,
     QDialog,
@@ -63,7 +60,7 @@ from us_swing.gui.log_viewer_panel import LogViewerPanel
 from us_swing.gui.reveal import RevealController
 from us_swing.gui.side_panels import IconStrip, PositionDetails
 from us_swing.gui.sidebar import FULL_WIDTH, MINI_WIDTH, Sidebar
-from us_swing.gui.theme import C, active_palette, colors
+from us_swing.gui.theme import C, active_palette
 
 _log = logging.getLogger(__name__)
 
@@ -125,142 +122,6 @@ class _MWCell(QLabel):
                 f"<span style='color:{name_color};font-size:8.5pt;font-weight:500'>{self._name}</span>"
                 f"&nbsp;&nbsp;<span style='color:{_T.OVERLAY2};font-size:9pt'>—</span>"
             )
-
-
-# ── Feed connect toggle ────────────────────────────────────────────────────────
-
-class _FeedToggle(QPushButton):
-    """
-    Pill-shaped feed connect/disconnect toggle with animated LED indicator.
-
-    Three states
-    ────────────
-    IDLE        gray pill  — "Connect Feed"
-    CONNECTING  amber pill — "Connecting…" (LED breathes)
-    CONNECTED   green pill — "Live Feed"   (LED glows)
-    """
-
-    IDLE       = "idle"
-    CONNECTING = "connecting"
-    CONNECTED  = "connected"
-
-    # (bg, border, led, text) hex per state
-    _COL: dict[str, tuple[str, str, str, str]] = {
-        IDLE:       ("#181824", "#45475a", "#565870", "#7f849c"),
-        CONNECTING: ("#1e1505", "#c8860a", "#f5a623", "#f5a623"),
-        CONNECTED:  ("#071810", "#1a7840", "#2dbd6e", "#2dbd6e"),
-    }
-    _LABEL: dict[str, str] = {
-        IDLE:       "Connect",
-        CONNECTING: "Connecting…",
-        CONNECTED:  "Live Feed",
-    }
-
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self._state      = self.IDLE
-        self._led_alpha  = 1.0
-        self._pulse_phi  = 0.0
-        self._hovered    = False
-
-        self._pulse_timer = QTimer(self)
-        self._pulse_timer.setInterval(40)
-        self._pulse_timer.timeout.connect(self._tick)
-
-        self.setFixedSize(100, 28)
-        self.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.setStyleSheet("")   # opt out of global QSS entirely
-
-    # ── Public API ─────────────────────────────────────────────────────────────
-
-    def set_state(self, state: str) -> None:
-        self._state = state
-        if state == self.CONNECTING:
-            self._pulse_phi = 0.0
-            self._pulse_timer.start()
-            self.setEnabled(False)
-        else:
-            self._pulse_timer.stop()
-            self._led_alpha = 1.0
-            self.setEnabled(True)
-        self.update()
-
-    # ── Events ─────────────────────────────────────────────────────────────────
-
-    def enterEvent(self, event: object) -> None:  # type: ignore[override]
-        self._hovered = True
-        self.update()
-
-    def leaveEvent(self, event: object) -> None:  # type: ignore[override]
-        self._hovered = False
-        self.update()
-
-    def _tick(self) -> None:
-        self._pulse_phi = (self._pulse_phi + 0.16) % (2 * math.pi)
-        self._led_alpha = 0.20 + 0.80 * (0.5 + 0.5 * math.sin(self._pulse_phi))
-        self.update()
-
-    # ── Paint ──────────────────────────────────────────────────────────────────
-
-    def paintEvent(self, event: object) -> None:  # type: ignore[override]
-        p = QPainter(self)
-        p.setRenderHint(QPainter.RenderHint.Antialiasing)
-
-        w = float(self.width())
-        h = float(self.height())
-        r = h / 2.0
-
-        bg_h, bd_h, led_h, txt_h = self._COL[self._state]
-        bg  = QColor(bg_h)
-        bd  = QColor(bd_h)
-        led = QColor(led_h)
-        txt = QColor(txt_h)
-
-        if self._hovered and self._state == self.IDLE:
-            _c = colors()
-            bd  = QColor(_c["feed_hover_border"])
-            txt = QColor(_c["feed_hover_text"])
-
-        # ── Pill shell ─────────────────────────────────────────────────────
-        shell = QPainterPath()
-        shell.addRoundedRect(QRectF(0.5, 0.5, w - 1.0, h - 1.0), r, r)
-        p.fillPath(shell, bg)
-        p.setPen(QPen(bd, 1.0))
-        p.drawPath(shell)
-
-        # ── LED ────────────────────────────────────────────────────────────
-        led_r  = 4.0
-        led_cx = r          # horizontally centred in the left "cap"
-        led_cy = h / 2.0
-
-        if self._state == self.CONNECTED:
-            # soft outer glow ring
-            glow = QColor(led_h)
-            glow.setAlphaF(0.22)
-            p.setPen(Qt.PenStyle.NoPen)
-            p.setBrush(glow)
-            p.drawEllipse(QPointF(led_cx, led_cy), led_r + 3.0, led_r + 3.0)
-
-        core = QColor(led)
-        core.setAlphaF(self._led_alpha)
-        p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(core)
-        p.drawEllipse(QPointF(led_cx, led_cy), led_r, led_r)
-
-        # ── Label ──────────────────────────────────────────────────────────
-        font = QFont("Segoe UI", 8)
-        font.setWeight(QFont.Weight.Bold)
-        p.setFont(font)
-        p.setPen(txt)
-        tx = led_cx + led_r + 8.0
-        p.drawText(
-            QRectF(tx, 0.0, w - tx - 8.0, h),
-            Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
-            self._LABEL[self._state],
-        )
-
-        p.end()
 
 
 # ── Draggable top bar ──────────────────────────────────────────────────────────
@@ -332,14 +193,6 @@ class _TitleBar(QWidget):
 
         row.addStretch(1)          # push remaining right
 
-        # ── Connect / Disconnect feed toggle ──────────────────────────────
-        row.addSpacing(8)
-        self._feed_btn = _FeedToggle(self)
-        self._feed_btn.clicked.connect(self._on_feed_btn_clicked)
-        row.addWidget(self._feed_btn)
-        svc.feed_status_changed.connect(self._on_feed_status_changed)
-        row.addSpacing(8)
-
         _vdiv(row)
 
         # ── Window controls (dialog-style flat buttons) ───────────────────
@@ -402,27 +255,6 @@ class _TitleBar(QWidget):
             self._apply_mw_styles()
             self._refresh_mw()
 
-    def _on_feed_btn_clicked(self) -> None:
-        status = self._svc.connection_status
-        if status == ConnectionStatus.CONNECTED:
-            from PyQt6.QtWidgets import QMessageBox
-            ret = QMessageBox.question(
-                self, "Disconnect Feed",
-                "Disconnect data feed?\nPosition prices will stop updating.",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            )
-            if ret == QMessageBox.StandardButton.Yes:
-                self._svc.disconnect_feed()
-        elif status != ConnectionStatus.RECONNECTING:
-            self._svc.connect_feed()
-
-    def _on_feed_status_changed(self, status_str: str) -> None:
-        if status_str == "connected":
-            self._feed_btn.set_state(_FeedToggle.CONNECTED)
-        elif status_str == "reconnecting":
-            self._feed_btn.set_state(_FeedToggle.CONNECTING)
-        else:
-            self._feed_btn.set_state(_FeedToggle.IDLE)
     # ── Drag to move ──────────────────────────────────────────────────────────
 
     def mousePressEvent(self, ev):  # type: ignore[override]
@@ -968,6 +800,7 @@ class MainWindow(QMainWindow):
         self._demo.feed_status_changed.connect(self._on_scheduler_feed_status)
         self._demo.connect_feed()
         self._schedule_next_retry()
+        self._sidebar.set_feed_retry(1, self._feed_retry_max, 60_000)
 
     def _on_scheduler_feed_status(self, status: str) -> None:
         """Fires immediately when feed status changes during auto-connect."""
@@ -977,6 +810,7 @@ class MainWindow(QMainWindow):
         if self._feed_retry_timer is not None:
             self._feed_retry_timer.stop()
             self._feed_retry_timer = None
+        self._sidebar.clear_feed_retry()
         self._demo.log_message.emit("INFO", "Feed auto-connect succeeded.")
         self._trigger_fill_delta_if_partial()
 
@@ -999,6 +833,9 @@ class MainWindow(QMainWindow):
             )
             self._demo.connect_feed()
             self._schedule_next_retry()
+            self._sidebar.set_feed_retry(
+                self._feed_retry_count + 1, self._feed_retry_max, 60_000
+            )
         else:
             self._demo.log_message.emit(
                 "WARNING",
@@ -1008,6 +845,7 @@ class MainWindow(QMainWindow):
             if self._feed_retry_timer is not None:
                 self._feed_retry_timer.stop()
                 self._feed_retry_timer = None
+            self._sidebar.clear_feed_retry()
 
     def _trigger_fill_delta_if_partial(self) -> None:
         """Trigger fill delta if the database status is PARTIAL."""

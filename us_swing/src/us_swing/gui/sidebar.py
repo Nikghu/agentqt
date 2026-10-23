@@ -1,33 +1,274 @@
 """
 Module: MD-GUI-018.001.M01 — Sidebar
 Parent SRD: SRD-GUI-018.001
+Connections panel: MD-GUI-018.008.M04 (Parent SRD: SRD-GUI-018.008)
 
-Left navigation for the five screens, with a mini (icon-only) mode and an
-account footer that replaces the old admin context strip (SRD-GUI-018.004).
+Left navigation for the five screens, with a mini (icon-only) mode, a
+Connections panel (internet, IBKR feed, market) and an account footer that
+replaces the old admin context strip (SRD-GUI-018.004).
 """
 from __future__ import annotations
 
+import datetime
+import time
 from typing import Any
 
-from PyQt6.QtCore import QEvent, Qt, pyqtSignal
+from PyQt6.QtCore import QEvent, QObject, Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QCursor, QEnterEvent
 from PyQt6.QtWidgets import (
     QButtonGroup,
     QFrame,
     QHBoxLayout,
     QLabel,
+    QMessageBox,
     QPushButton,
     QVBoxLayout,
     QWidget,
 )
 
+from us_swing.data.market_calendar import ET, NYSE_HOLIDAYS, get_exchange_status
+from us_swing.data.models import ConnectionStatus
 from us_swing.gui.app_service import AppService
 from us_swing.gui.icons import icon as make_icon
 from us_swing.gui.icons import set_icon
-from us_swing.gui.theme import active_palette
+from us_swing.gui.theme import C, active_palette
 
 FULL_WIDTH = 200
 MINI_WIDTH = 56
+
+_SESSION_LABEL = {
+    "open": "Open",
+    "pre_market": "Pre-market",
+    "after_hours": "After hours",
+    "closed": "Closed",
+}
+
+
+def _span(start: datetime.datetime, end: datetime.datetime) -> str:
+    delta = end.astimezone(datetime.timezone.utc) - start.astimezone(datetime.timezone.utc)
+    minutes = max(0, int(delta.total_seconds() // 60))
+    days, rest = divmod(minutes, 24 * 60)
+    hours, minutes = divmod(rest, 60)
+    if days:
+        return f"{days}d {hours}h"
+    if hours:
+        return f"{hours}h {minutes}m"
+    return f"{minutes}m"
+
+
+def _next_open(now_et: datetime.datetime) -> datetime.datetime:
+    day = now_et.date()
+    while True:
+        open_at = datetime.datetime.combine(day, datetime.time(9, 30), tzinfo=now_et.tzinfo)
+        trading_day = day.weekday() < 5 and (day.month, day.day) not in NYSE_HOLIDAYS
+        if trading_day and open_at > now_et:
+            return open_at
+        day += datetime.timedelta(days=1)
+
+
+def market_text(now_et: datetime.datetime) -> tuple[str, str, str]:
+    """Describe the market session for the Connections panel.
+
+    Args:
+        now_et: Current time in Eastern Time.
+
+    Returns:
+        ``(status, label, detail)``, e.g. ``("open", "Open", "closes in 2h 14m")``.
+    """
+    status = get_exchange_status(now_et)
+    if status == "open":
+        close_at = now_et.replace(hour=16, minute=0, second=0, microsecond=0)
+        detail = f"closes in {_span(now_et, close_at)}"
+    else:
+        detail = f"opens in {_span(now_et, _next_open(now_et))}"
+    return status, _SESSION_LABEL[status], detail
+
+
+class _Dot(QLabel):
+    """Small round status light."""
+
+    def __init__(self, size: int, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._size = size
+        self.setFixedSize(size, size)
+
+    def set_colour(self, colour: str) -> None:
+        if self.property("colour") == colour:
+            return
+        self.setProperty("colour", colour)
+        self.setStyleSheet(f"background: {colour}; border-radius: {self._size // 2}px;")
+
+
+class _ConnectionsPanel(QWidget):
+    """Internet, IBKR feed and market status with a connect / disconnect button."""
+
+    def __init__(self, svc: AppService, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._svc = svc
+        self._retry: tuple[int, int] | None = None
+        self._retry_due = 0.0
+        self._retry_timer = QTimer(self)
+        self._retry_timer.setInterval(1000)
+        self._retry_timer.timeout.connect(self.refresh)
+        self.setObjectName("side_conn")
+
+        self._layout = QVBoxLayout(self)
+        self._layout.setContentsMargins(6, 6, 6, 6)
+        self._layout.setSpacing(0)
+
+        self._full = QWidget()
+        self._full.setObjectName("side_conn_rows")
+        rows = QVBoxLayout(self._full)
+        rows.setContentsMargins(0, 0, 0, 0)
+        rows.setSpacing(6)
+        head = QHBoxLayout()
+        title = QLabel("CONNECTIONS")
+        title.setObjectName("side_conn_title")
+        head.addWidget(title)
+        head.addStretch(1)
+        self._power = QPushButton()
+        self._power.setObjectName("side_power")
+        self._power.setFixedWidth(C.BTN_H)
+        self._power.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self._power.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self._power.clicked.connect(self._on_power_clicked)
+        head.addWidget(self._power)
+        rows.addLayout(head)
+        self._net_dot, self._net_val, _ = self._add_row(rows, "Internet", with_detail=False)
+        self._feed_dot, self._feed_val, self._feed_sub = self._add_row(rows, "IBKR Feed")
+        self._mkt_dot, self._mkt_val, self._mkt_sub = self._add_row(rows, "Market")
+        self._layout.addWidget(self._full)
+
+        self._plug = QPushButton()
+        self._plug.setObjectName("side_btn")
+        set_icon(self._plug, "plug", "neutral", 20)
+        self._plug.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self._plug.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self._plug.clicked.connect(self._on_power_clicked)
+        self._plug.installEventFilter(self)
+        self._badge = _Dot(9, self._plug)
+        self._plug.hide()
+        self._layout.addWidget(self._plug)
+
+        svc.feed_status_changed.connect(self.refresh)
+        svc.internet_status_changed.connect(self.refresh)
+        svc.market_status_updated.connect(self.refresh)
+        self.refresh()
+
+    @staticmethod
+    def _add_row(parent: QVBoxLayout, name: str,
+                 with_detail: bool = True) -> tuple[_Dot, QLabel, QLabel]:
+        row = QHBoxLayout()
+        row.setSpacing(8)
+        dot = _Dot(7)
+        key = QLabel(name)
+        key.setObjectName("side_footer")
+        value = QLabel()
+        row.addWidget(dot)
+        row.addWidget(key)
+        row.addStretch(1)
+        row.addWidget(value)
+        parent.addLayout(row)
+        detail = QLabel()
+        detail.setObjectName("side_footer")
+        detail.setContentsMargins(15, 0, 0, 0)
+        detail.setVisible(with_detail)
+        parent.addWidget(detail)
+        return dot, value, detail
+
+    def set_mini(self, mini: bool) -> None:
+        side = 0 if mini else 6
+        self._layout.setContentsMargins(side, 6, side, 6)
+        self._full.setVisible(not mini)
+        self._plug.setVisible(mini)
+
+    def set_retry(self, attempt: int, total: int, next_in_ms: int) -> None:
+        """Show auto-connect progress until :meth:`clear_retry` is called."""
+        self._retry = (attempt, total)
+        self._retry_due = time.monotonic() + next_in_ms / 1000
+        self._retry_timer.start()
+        self.refresh()
+
+    def clear_retry(self) -> None:
+        self._retry = None
+        self._retry_timer.stop()
+        self.refresh()
+
+    def eventFilter(self, obj: QObject | None, event: QEvent | None) -> bool:
+        if obj is self._plug and event is not None and event.type() == QEvent.Type.Resize:
+            self._badge.move(self._plug.width() // 2 + 3, self._plug.height() // 2 + 2)
+        return super().eventFilter(obj, event)
+
+    def changeEvent(self, event: QEvent | None) -> None:
+        super().changeEvent(event)
+        if event is not None and event.type() == QEvent.Type.StyleChange:
+            self.refresh()
+
+    def refresh(self, *_args: object) -> None:
+        _T: Any = active_palette()
+        status = self._svc.connection_status
+        online = self._svc.is_internet_online()
+        cfg = self._svc.get_system_config()
+        address = f"{cfg.ibkr_host}:{cfg.ibkr_port}"
+        connected = status is ConnectionStatus.CONNECTED
+        probing = status is ConnectionStatus.RECONNECTING
+
+        if connected:
+            feed, feed_clr, feed_sub = "Live", _T.GREEN, address
+        elif self._retry is not None:
+            attempt, total = self._retry
+            left = max(0, round(self._retry_due - time.monotonic()))
+            feed, feed_clr = f"Attempt {attempt} of {total}", _T.YELLOW
+            feed_sub = "Trying now" if probing else f"Next try in {left} s"
+        elif probing:
+            feed, feed_clr, feed_sub = "Connecting…", _T.YELLOW, address
+        else:
+            feed, feed_clr, feed_sub = "Not connected", _T.MUTED, address
+
+        mkt_status, mkt_label, mkt_detail = market_text(datetime.datetime.now(ET))
+        mkt_clr = {"open": _T.GREEN, "closed": _T.MUTED}.get(mkt_status, _T.YELLOW)
+
+        self._net_dot.set_colour(_T.GREEN if online else _T.RED)
+        self._net_val.setText("Online" if online else "Offline")
+        self._feed_dot.set_colour(feed_clr)
+        self._feed_val.setText(f"<b style='color:{feed_clr}'>{feed}</b>")
+        self._feed_sub.setText(feed_sub)
+        self._mkt_dot.set_colour(mkt_clr)
+        self._mkt_val.setText(mkt_label)
+        self._mkt_sub.setText(mkt_detail)
+
+        tip = "Disconnect" if connected else ("Try now" if self._retry else "Connect")
+        set_icon(self._power, "power", "neutral" if connected else "go", 14)
+        self._power.setToolTip(tip)
+        self._power.setAccessibleName(tip)
+        self._power.setEnabled(not probing)
+        self._power.setProperty("armed", not connected)
+        style = self._power.style()
+        if style is not None:
+            style.unpolish(self._power)
+            style.polish(self._power)
+
+        self._badge.set_colour(_T.RED if not online else feed_clr)
+        self._plug.setEnabled(not probing)
+        self._plug.setToolTip(
+            f"Internet: {'Online' if online else 'Offline'}\n"
+            f"IBKR Feed: {feed} ({feed_sub})\n"
+            f"Market: {mkt_label}, {mkt_detail}"
+        )
+        self._plug.setAccessibleName(f"Connections, feed {feed}")
+
+    def _on_power_clicked(self) -> None:
+        status = self._svc.connection_status
+        if status is ConnectionStatus.CONNECTED:
+            ret = QMessageBox.question(
+                self, "Disconnect Feed",
+                "Disconnect data feed?\nPosition prices will stop updating.",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            )
+            if ret == QMessageBox.StandardButton.Yes:
+                self._svc.disconnect_feed()
+        elif status is not ConnectionStatus.RECONNECTING:
+            self._svc.connect_feed()
 
 
 class _AccountFooter(QWidget):
@@ -163,6 +404,12 @@ class Sidebar(QFrame):
         sep2.setObjectName("side_sep")
         sep2.setFixedHeight(1)
         layout.addWidget(sep2)
+        self._conn = _ConnectionsPanel(svc)
+        layout.addWidget(self._conn)
+        sep3 = QFrame()
+        sep3.setObjectName("side_sep")
+        sep3.setFixedHeight(1)
+        layout.addWidget(sep3)
         self._footer = _AccountFooter(svc)
         layout.addWidget(self._footer)
 
@@ -190,7 +437,16 @@ class Sidebar(QFrame):
         """Show or hide button labels and footer details (used for mini and peek)."""
         for btn, label in self._labels.items():
             btn.setText(label if visible else "")
+        self._conn.set_mini(not visible)
         self._footer.set_mini(not visible)
+
+    def set_feed_retry(self, attempt: int, total: int, next_in_ms: int) -> None:
+        """Show auto-connect attempt ``attempt`` of ``total`` with a countdown."""
+        self._conn.set_retry(attempt, total, next_in_ms)
+
+    def clear_feed_retry(self) -> None:
+        """Hide auto-connect progress."""
+        self._conn.clear_retry()
 
     def set_mini(self, mini: bool) -> None:
         """Record mini mode and update labels and the collapse icon."""

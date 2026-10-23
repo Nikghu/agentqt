@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.15.0: UT-GUI-018.008–.011.* added — Connections panel in the sidebar.
 > v1.14.0: UT-GUI-021.* added — Settings section list.
 > v1.13.0: UT-GUI-020.* added — Charts workspace.
 > v1.12.0: UT-GUI-019.* added — side panels and Exit drawer.
@@ -497,6 +498,14 @@ Test files:
 | UT-GUI-018.006.M02.T03 | MD-GUI-018.006.M02 | Edge | Request during animation restarts from current size | open then close mid-way | ends at closed size; last `revealed` is False | Pass |
 | UT-GUI-018.002.M03.T01 | MD-GUI-018.005.M03 | Positive | Wide screen auto-shrinks and restores | page Execution then Dashboard | slot 56 then 200 | Pass |
 | UT-GUI-018.002.M03.T02 | MD-GUI-018.005.M03 | Negative | Auto restore keeps user's mini choice | user mini on; Execution then Dashboard | slot stays 56 | Pass |
+| UT-GUI-018.008.M04.T01 | MD-GUI-018.008.M04 | Positive | Live rows | connected, online | "Online"; "Live"; "127.0.0.1:7497"; tip "Disconnect" | Pass |
+| UT-GUI-018.008.M04.T02 | MD-GUI-018.008.M04 | Negative | Offline rows | disconnected, offline | "Offline"; "Not connected"; tip "Connect" | Pass |
+| UT-GUI-018.008.M04.T03 | MD-GUI-018.008.M04 | Positive | Power button connects and disconnects | click when disconnected; click when connected, confirm Yes | `connect_feed` once; `disconnect_feed` once | Pass |
+| UT-GUI-018.008.M04.T04 | MD-GUI-018.008.M04 | Edge | Button off during probe | status reconnecting | power disabled; "Connecting…" | Pass |
+| UT-GUI-018.009.M04.T01 | MD-GUI-018.008.M04 | Positive | Retry shows attempt and countdown | `set_feed_retry(3, 10, 45000)`; then clear | "Attempt 3 of 10", "Next try in 45 s", tip "Try now"; then "Not connected" | Pass |
+| UT-GUI-018.010.M04.T01 | MD-GUI-018.008.M04 | Positive | Open market counts to close | Wed 2026-10-21 13:46 ET | ("open", "Open", "closes in 2h 14m") | Pass |
+| UT-GUI-018.010.M04.T02 | MD-GUI-018.008.M04 | Edge | Weekend and holiday skipped | Fri 2026-10-23 17:00; Wed 2026-11-25 20:30; Fri 2026-10-30 17:00 (DST ends) | "opens in 2d 16h"; "opens in 1d 13h"; "opens in 2d 17h" | Pass |
+| UT-GUI-018.011.M04.T01 | MD-GUI-018.008.M04 | Positive | Mini shows plug with worst status | `set_mini(True)`, offline | rows hidden; plug shown; badge red; tooltip has 3 rows | Pass |
 
 ## FO-GUI-019 — Side Panels and Exit Drawer
 

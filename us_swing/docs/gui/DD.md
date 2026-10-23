@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.13.0: DD-GUI-018.001.D01 extended — Connections panel in the sidebar (SRD-GUI-018.008–.011).
 > v1.12.0: DD-GUI-021.001.D01 added — Settings section list.
 > v1.11.0: DD-GUI-020.001.D01 added — Charts workspace.
 > v1.10.0: DD-GUI-019.001.D01 added — side panels and Exit drawer.
@@ -1503,7 +1504,7 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 
 ## DD-GUI-018.001.D01 — Sidebar Workspace Shell
 
-**Traces:** SRD-GUI-018.001–.007
+**Traces:** SRD-GUI-018.001–.011
 
 **Layout.** Title bar (40 px) on top; below it a row: sidebar slot | `QStackedWidget`; status bar at the bottom. The accent line and `_AdminContextBar` are removed.
 
@@ -1520,6 +1521,13 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 **Title bar.** `_TitleBar` loses the nav tabs and gains the market watch cells (`_MWCell`, moved from `_AdminContextBar`) between brand and the feed toggle.
 
 **Screen slide.** On `page_requested`, after `setCurrentIndex`, a `QPropertyAnimation` moves the new page's `pos` from (24, 0) to (0, 0) over 180 ms.
+
+**Connections panel (SRD-GUI-018.008–.011).** `_ConnectionsPanel` sits between the stretch and `_AccountFooter`. Full mode: a `CONNECTIONS` header with a 28 px power button, then Internet, IBKR Feed and Market rows (dot, name, value; Feed and Market have a small second line). Mini mode hides that and shows a `side_btn` plug button with a 9 px badge dot.
+- Feed row order: CONNECTED → "Live"; retry active → "Attempt N of M" with "Next try in S s" (or "Trying now" during the probe); RECONNECTING → "Connecting…"; else "Not connected". The second line is `host:port` from `get_system_config()` when not retrying.
+- `MainWindow` calls `Sidebar.set_feed_retry(attempt, total, next_in_ms)` when auto-connect starts and on each retry tick, and `clear_feed_retry()` on success or give-up. A 1 s `QTimer` runs only while a retry is active.
+- `market_text(now_et)` returns `(status, label, detail)`: open → "closes in Xh Ym" (to 16:00); otherwise "opens in …" to the next 09:30 on a weekday not in `NYSE_HOLIDAYS`. Spans ≥ 1 day show "Xd Yh".
+- Power button and plug click: CONNECTED → `QMessageBox.question` then `disconnect_feed()`; not RECONNECTING → `connect_feed()` (the old `_TitleBar._on_feed_btn_clicked` logic). `_FeedToggle` and its colour keys are removed.
+- Badge colour: RED if offline, YELLOW if retrying or connecting, MUTED if not connected, GREEN if live.
 
 ---
 

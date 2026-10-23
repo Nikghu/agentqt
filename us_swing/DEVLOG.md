@@ -2,6 +2,16 @@
 
 ---
 
+## [20261023] GUI — Connections panel in the sidebar (FO-GUI-018, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-018
+- RN: RN-GUI-1.16.0-20261023
+- Artifacts updated: FO, SRD, DD, MD, UTCD, TRACE, Code, Tests, Assets, RN, CONTEXT
+- Decisions: feed toggle moved from the title bar to a sidebar Connections panel; mini mode uses one plug button with a worst-status dot; retry timing unchanged.
+
+---
+
 ## [20261023] GUI — Bigger sidebar and strip icons (FO-GUI-017, fix)
 
 - Type: Fix

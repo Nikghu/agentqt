@@ -157,9 +157,6 @@ THEME_COLORS: dict[str, dict[str, str]] = {
         "scope_pill_checked_bg":   "#89b4fa33",
         "scope_pill_checked_fg":   "#89b4fa",
         "scope_pill_checked_bd":   "#89b4fa",
-        # Footer feed-toggle pill (custom paintEvent).
-        "feed_hover_border":     "#6e7aff",
-        "feed_hover_text":       "#b0b8ff",
     },
     "vscode": {
         "candle_up_volume":      "#26a69a55",
@@ -178,8 +175,6 @@ THEME_COLORS: dict[str, dict[str, str]] = {
         "scope_pill_checked_bg":   "#3a3d41",
         "scope_pill_checked_fg":   "#ffffff",
         "scope_pill_checked_bd":   "#9d9d9d",
-        "feed_hover_border":     "#9d9d9d",
-        "feed_hover_text":       "#d4d4d4",
     },
 }
 
@@ -1291,6 +1286,16 @@ QFrame#side_sep {{ background: {line}; border: none; }}
 QLabel#side_footer {{ color: {sub}; font-size: 8.5pt; }}
 QLabel#top_brand {{ font-size: 10pt; letter-spacing: 0px; }}
 QWidget#side_account, QWidget#side_account QLabel {{ background: transparent; }}
+QWidget#side_conn, QWidget#side_conn_rows, QWidget#side_conn QLabel {{ background: transparent; }}
+QLabel#side_conn_title {{ color: {sub}; font-size: 7.5pt; font-weight: bold; letter-spacing: 1px; }}
+QPushButton#side_power {{
+    background: transparent; border: 1px solid {line}; border-radius: 4px; padding: 0;
+    outline: none;
+}}
+QPushButton#side_power:hover {{ background: {hover}; }}
+QPushButton#side_power[armed="true"] {{ background: {active_bg}; border-color: {accent}; }}
+QPushButton#side_power:disabled {{ background: transparent; border-color: {line}; }}
+QPushButton#side_power:focus {{ outline: none; }}
 QFrame#icon_strip {{ background: {bg}; border-left: 1px solid {line}; }}
 QPushButton#strip_btn {{
     background: transparent; border: none; border-radius: 2px; outline: none;
@@ -1355,8 +1360,6 @@ QSS = MOCHA_QSS
 THEME_COLORS["carbon"] = {
     **{key: _to_carbon(value) for key, value in THEME_COLORS["mocha"].items()},
     "scope_pill_checked_bg": "#2a2213",
-    "feed_hover_border": _CARBON.BLUE,
-    "feed_hover_text":   _CARBON.MAUVE,
 }
 
 
