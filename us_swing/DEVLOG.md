@@ -2,6 +2,16 @@
 
 ---
 
+## [20261023] GUI — Settings section list (FO-GUI-021, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-021
+- RN: RN-GUI-1.13.0-20261023
+- Artifacts updated: FO, SRD, DD, MD, UTCD, TRACE, Code, Tests, RN, CONTEXT
+- Decisions: keep all ten sections; theme picker only (Animations / Sidebar mode deferred); Risk section now saves for real.
+
+---
+
 ## [20261023] GUI — Charts workspace (MDI), Phase 4 (FO-GUI-020, feature)
 
 - Type: Feature

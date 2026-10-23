@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.16.0: MD-GUI-021.001.M01 (settings_panel.py section list) added.
 > v1.15.0: MD-GUI-020.001.M01 (chart_workspace.py) added.
 > v1.14.0: MD-GUI-019.001.M01 (side_panels.py) added; MD-GUI-019.006.M02 (dashboard exit drawer) and MD-GUI-019.002.M03 (main_window panels) extend existing files.
 > v1.13.0: MD-GUI-018.001.M01 (sidebar.py), MD-GUI-018.006.M02 (reveal.py) added; MD-GUI-018.005.M03 covers main_window.py shell changes.
@@ -208,3 +209,11 @@ us_swing/src/us_swing/gui/
 | MD-GUI-020.001.M01 | SRD-GUI-020.001 | `us_swing/src/us_swing/gui/chart_workspace.py` | MDI chart windows, arrange modes, open path | `ChartWorkspace`, `open_symbol()`, `refresh_theme()` | `chart_panel`, `icons` | No |
 
 > `chart_panel.py` (MD-GUI-011) gains `chart_loaded` and a timeframe argument on `show_symbol`; `screener_panel.py` (MD-GUI-003.001.M01) emits `chart_requested` and drops `QuickChartWindow`; `main_window.py` wiring stays under MD-GUI-019.002.M03.
+
+## FO-GUI-021 — Settings Section List
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-GUI-021.001.M01 | SRD-GUI-021.001 | `us_swing/src/us_swing/gui/settings_panel.py` | Section list, section cards, system sections, risk save | `SettingsPanel`, `theme_changed`, `trigger_fill_delta()` | `theme`, `icons`, `app_service` | No |
+
+> `theme.py` (MD-GUI-017) gains the `settings_nav`, `settings_card` and `settings_head` QSS rules.

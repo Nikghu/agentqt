@@ -631,3 +631,22 @@ The system shall let the user keep several charts open at once on the Charts scr
 1. New Chart adds a window until six are open, then the button is disabled.
 2. Opening a symbol that is already open brings its window to the front.
 3. The Screener chart button shows the chart on the Charts screen with the preset's timeframe.
+
+## FO-GUI-021: Settings Section List
+
+**Status:** Approved (user, 2026-10-23)
+**Priority:** Should
+**Depends on:** FO-GUI-006 (settings panel), FO-GUI-017 (Carbon theme)
+**Source:** GUI redesign follow-up — Carbon Workspace mockup, Settings screen; layout choices confirmed by user 2026-10-23.
+
+The system shall show Settings as a section list on the left with one section visible at a time, in the Carbon style. Setting values and their save paths do not change, except that Risk now saves for real.
+
+### Requirements
+
+1. **Section list.** Users, Risk, Connection, Scheduler, Telegram, Theme, Updates, Diagnostics, Universe and Database are listed on the left; clicking one shows only that section.
+2. **Risk saves.** Save Risk Settings writes the values to the active user.
+
+### Acceptance Criteria
+
+1. Clicking a section shows its card and highlights it in the list.
+2. Saved risk values are still there after reopening the app.

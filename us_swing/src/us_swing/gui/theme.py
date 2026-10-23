@@ -1306,6 +1306,12 @@ QMdiArea#chart_mdi QTabBar::tab:selected {{ color: {accent}; border-bottom: 2px 
 QLabel#page_title {{ font-size: 13pt; font-weight: bold; }}
 QLabel#page_meta {{ color: {sub}; padding-left: 8px; }}
 QPushButton#mode_btn:checked {{ background: {active_bg}; color: {accent}; border-color: {accent}; }}
+QFrame#settings_nav, QFrame#settings_card {{ border: 1px solid {line}; }}
+QLabel#settings_head {{
+    background: {hover}; border-bottom: 1px solid {line}; padding: 0 10px;
+    min-height: 32px; max-height: 32px; font-family: "IBM Plex Mono", Consolas, monospace;
+    font-size: 8pt; font-weight: bold;
+}}
 """
 
 

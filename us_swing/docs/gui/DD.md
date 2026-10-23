@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.12.0: DD-GUI-021.001.D01 added — Settings section list.
 > v1.11.0: DD-GUI-020.001.D01 added — Charts workspace.
 > v1.10.0: DD-GUI-019.001.D01 added — side panels and Exit drawer.
 > v1.9.0: DD-GUI-018.001.D01 added — sidebar workspace shell.
@@ -1552,3 +1553,15 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 **Open path.** `open_symbol(symbol, timeframe="1d")`: search sub-windows whose panel's current symbol equals `symbol` → `setActiveSubWindow`; else if fewer than six → new window; else the active window. Then `panel.show_symbol(symbol, timeframe)` (timeframe selected only when it is in the panel's list).
 
 **Wiring.** `MainWindow` uses `ChartWorkspace` as stack page 3 (nav label "Charts"); `details.chart_requested` and `screener.chart_requested(symbol, timeframe)` → `_go_to(3)` + `open_symbol`. `SettingsPanel.theme_changed` → `ChartWorkspace.refresh_theme`, which calls each panel's `refresh_theme`. `QuickChartWindow` and `_open_quick_chart` are removed from `screener_panel.py`; the chart button delegate emits `chart_requested` instead.
+
+## DD-GUI-021.001.D01 — Settings Section List
+
+**Traces:** SRD-GUI-021.001–.002
+
+**Layout (`settings_panel.py`).** `SettingsPanel`: title "Settings" (`page_title`) above a row of `QFrame#settings_nav` (180 px, checkable `side_btn` buttons in an exclusive `QButtonGroup`) and a `QStackedWidget`. Each section is a `QFrame#settings_card` with a `QLabel#settings_head` bar (upper-case name) over the section body. `idClicked` → `setCurrentIndex`.
+
+**Sections.** Users (`_UsersTab`), Risk (`_RiskTab`), then the pages of `_SystemSections(QObject)` — Connection (host, port, tick client ID, log level), Scheduler (market times, timezone, enable flag, Edit Scheduler), Telegram, Theme (`mode_btn` buttons), Updates, Diagnostics (with a circuit breaker hint) — then Universe and Database. Connection and Scheduler each have a Save Settings button; both call `_on_save`, which saves the whole `SystemConfig` and sets every save note. Dialogs use the button's window as parent because `_SystemSections` is not a widget.
+
+**Risk save.** `_RiskTab._on_save` replaces the active user's `risk_config` with `dataclasses.replace(...)` and calls `update_user`.
+
+**Theme.** `_sidebar_qss` adds `settings_nav`, `settings_card` (1 px line border) and `settings_head` (raised background, 32 px, mono 8 pt bold) rules for all three themes.

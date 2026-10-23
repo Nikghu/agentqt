@@ -1,6 +1,6 @@
 """
 Module: MD-GUI-006 — settings_panel.py
-FO-GUI-006 Settings Panel: sub-tabs — Users, System, Universe, Database.
+FO-GUI-006 Settings Panel; FO-GUI-021 section list layout (Carbon Workspace).
 """
 from __future__ import annotations
 
@@ -9,10 +9,11 @@ import datetime
 import json
 import logging
 
-from PyQt6.QtCore import Qt, QDate, pyqtSignal
+from PyQt6.QtCore import Qt, QDate, QObject, pyqtSignal
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import (
     QAbstractItemView,
+    QButtonGroup,
     QCheckBox,
     QComboBox,
     QDateEdit,
@@ -20,6 +21,7 @@ from PyQt6.QtWidgets import (
     QDialogButtonBox,
     QDoubleSpinBox,
     QFormLayout,
+    QFrame,
     QGroupBox,
     QHBoxLayout,
     QHeaderView,
@@ -29,7 +31,7 @@ from PyQt6.QtWidgets import (
     QProgressBar,
     QPushButton,
     QSpinBox,
-    QTabWidget,
+    QStackedWidget,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -310,6 +312,7 @@ class _UsersTab(QWidget):
 class _RiskTab(QWidget):
     def __init__(self, demo: AppService, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        self._demo = demo
         user = demo.get_active_user()
         form = QFormLayout()
         form.setSpacing(12)
@@ -347,34 +350,69 @@ class _RiskTab(QWidget):
         save_btn.setFixedWidth(200)
         save_btn.clicked.connect(self._on_save)
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.addLayout(form)
-        layout.addStretch()
-        layout.addWidget(save_btn)
-
         self._note = QLabel("")
         self._note.setStyleSheet(f"color: {C.GREEN}; font-size: 9pt;")
-        layout.addWidget(self._note)
+
+        btn_row = QHBoxLayout()
+        btn_row.addWidget(save_btn)
+        btn_row.addWidget(self._note)
+        btn_row.addStretch()
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(14, 14, 14, 14)
+        layout.setSpacing(12)
+        layout.addLayout(form)
+        layout.addLayout(btn_row)
+        layout.addStretch()
 
     def _on_save(self) -> None:
-        self._note.setText("✔  Settings saved (demo mode — will persist to real backend)")
+        user = self._demo.get_active_user()
+        user.risk_config = dataclasses.replace(
+            user.risk_config,
+            risk_per_trade_pct = self._risk.value(),
+            max_position_value = self._max_pos.value(),
+            max_capital_value  = self._max_cap.value(),
+            max_daily_loss_pct = self._max_loss.value(),
+            default_order_type = self._ord_type.currentText(),
+            confirm_orders     = self._confirm.isChecked(),
+        )
+        self._demo.update_user(user)
+        self._note.setText("✔  Risk settings saved")
 
 
-# ── System sub-tab ────────────────────────────────────────────────────────────
+# ── System sections ───────────────────────────────────────────────────────────
 
-class _SystemTab(QWidget):
+
+def _page(*items: QWidget | QHBoxLayout | QFormLayout) -> QWidget:
+    """Stack ``items`` top-down with the standard section padding."""
+    page = QWidget()
+    layout = QVBoxLayout(page)
+    layout.setContentsMargins(14, 14, 14, 14)
+    layout.setSpacing(12)
+    for item in items:
+        if isinstance(item, QWidget):
+            layout.addWidget(item)
+        else:
+            layout.addLayout(item)
+    layout.addStretch()
+    return page
+
+
+class _SystemSections(QObject):
+    """Connection, Scheduler, Telegram, Theme, Updates and Diagnostics section pages."""
+
     theme_changed = pyqtSignal(str)
 
-    def __init__(self, demo: AppService, parent: QWidget | None = None) -> None:
+    def __init__(self, demo: AppService, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self._demo = demo
         cfg = demo.get_system_config()
 
-        # ── Config form ────────────────────────────────────────────────────────
-        form = QFormLayout()
-        form.setSpacing(10)
-        form.setContentsMargins(20, 20, 20, 20)
+        # ── Connection and Scheduler forms ─────────────────────────────────────
+        conn_form = QFormLayout()
+        conn_form.setSpacing(10)
+        sched_form = QFormLayout()
+        sched_form.setSpacing(10)
 
         self._host      = QLineEdit(cfg.ibkr_host)
         self._port      = QSpinBox()
@@ -406,20 +444,14 @@ class _SystemTab(QWidget):
             "Must be unique — not shared with other connections."
         )
 
-        form.addRow("IBKR TWS Host:",          self._host)
-        form.addRow("IBKR TWS Port:",          self._port)
-        form.addRow("Tick Data Client ID:",    self._tick_id)
-        form.addRow("Log level:",              self._log_level)
-        form.addRow("Market open time:",       self._open_t)
-        form.addRow("Market close time:",      self._close_t)
-        form.addRow("Market timezone:",        self._mkt_tz)
-        form.addRow("Enable daily scheduler:", self._sched_en)
-
-        save_btn = QPushButton("Save Settings")
-        set_icon(save_btn, "save", "go")
-        save_btn.setObjectName("run_btn")
-        save_btn.setFixedWidth(140)
-        save_btn.clicked.connect(self._on_save)
+        conn_form.addRow("IBKR TWS Host:",          self._host)
+        conn_form.addRow("IBKR TWS Port:",          self._port)
+        conn_form.addRow("Tick Data Client ID:",    self._tick_id)
+        conn_form.addRow("Log level:",              self._log_level)
+        sched_form.addRow("Market open time:",       self._open_t)
+        sched_form.addRow("Market close time:",      self._close_t)
+        sched_form.addRow("Market timezone:",        self._mkt_tz)
+        sched_form.addRow("Enable daily scheduler:", self._sched_en)
 
         self._sched_btn = QPushButton("Add Scheduler")
         set_icon(self._sched_btn, "calendar", "info")
@@ -427,21 +459,28 @@ class _SystemTab(QWidget):
         self._sched_btn.clicked.connect(self._on_scheduler)
         self._refresh_sched_btn_label()
 
-        self._save_note = QLabel("")
-        self._save_note.setStyleSheet(f"color: {C.GREEN}; font-size: 9pt;")
+        self._save_notes: list[QLabel] = []
 
-        btn_row = QHBoxLayout()
-        btn_row.setContentsMargins(20, 12, 20, 0)
-        btn_row.addWidget(self._save_note)
-        btn_row.addStretch()
-        btn_row.addWidget(self._sched_btn)
-        btn_row.addWidget(save_btn)
+        def _save_row(*extra: QPushButton) -> QHBoxLayout:
+            save_btn = QPushButton("Save Settings")
+            set_icon(save_btn, "save", "go")
+            save_btn.setObjectName("run_btn")
+            save_btn.setFixedWidth(140)
+            save_btn.clicked.connect(self._on_save)
+            note = QLabel("")
+            note.setStyleSheet(f"color: {C.GREEN}; font-size: 9pt;")
+            self._save_notes.append(note)
+            row = QHBoxLayout()
+            row.addWidget(save_btn)
+            for btn in extra:
+                row.addWidget(btn)
+            row.addWidget(note)
+            row.addStretch()
+            return row
 
-        # ── Theme group ────────────────────────────────────────────────────────
+        # ── Theme ──────────────────────────────────────────────────────────────
         from us_swing.gui import theme as _theme
-        theme_box = QGroupBox("Theme")
-        theme_row = QHBoxLayout(theme_box)
-        theme_row.setContentsMargins(12, 8, 12, 8)
+        theme_row = QHBoxLayout()
         theme_row.setSpacing(8)
 
         self._btn_carbon = QPushButton("Carbon")
@@ -453,6 +492,8 @@ class _SystemTab(QWidget):
         self._btn_vscode = QPushButton("VS Code Dark")
         self._btn_vscode.setCheckable(True)
         self._btn_vscode.setFixedWidth(140)
+        for btn in (self._btn_carbon, self._btn_mocha, self._btn_vscode):
+            btn.setObjectName("mode_btn")
 
         current_theme = _theme.load_theme_id()
         self._btn_carbon.setChecked(current_theme == "carbon")
@@ -468,14 +509,8 @@ class _SystemTab(QWidget):
         theme_row.addWidget(self._btn_vscode)
         theme_row.addStretch()
 
-        theme_wrapper = QHBoxLayout()
-        theme_wrapper.setContentsMargins(20, 12, 20, 0)
-        theme_wrapper.addWidget(theme_box)
-
-        # ── Diagnostics group ────────────────────────────────────────────────────
-        diag_box = QGroupBox("Diagnostics")
-        diag_row = QHBoxLayout(diag_box)
-        diag_row.setContentsMargins(12, 8, 12, 8)
+        # ── Diagnostics ────────────────────────────────────────────────────────
+        diag_row = QHBoxLayout()
         diag_row.setSpacing(8)
 
         self._candle_db_btn = QPushButton("Candle DB")
@@ -493,14 +528,11 @@ class _SystemTab(QWidget):
         diag_row.addWidget(self._cb_toggle)
         diag_row.addStretch()
 
-        diag_wrapper = QHBoxLayout()
-        diag_wrapper.setContentsMargins(20, 12, 20, 0)
-        diag_wrapper.addWidget(diag_box)
+        cb_hint = QLabel("Circuit breaker stops all new orders until you reset it.")
+        cb_hint.setObjectName("page_meta")
 
-        # ── Updates group ────────────────────────────────────────────────────────
-        update_box = QGroupBox("Updates")
-        update_row = QHBoxLayout(update_box)
-        update_row.setContentsMargins(12, 8, 12, 8)
+        # ── Updates ────────────────────────────────────────────────────────────
+        update_row = QHBoxLayout()
         update_row.setSpacing(8)
 
         self._update_btn = QPushButton("Check for Updates")
@@ -516,17 +548,11 @@ class _SystemTab(QWidget):
         update_row.addWidget(self._update_note)
         update_row.addStretch()
 
-        update_wrapper = QHBoxLayout()
-        update_wrapper.setContentsMargins(20, 12, 20, 0)
-        update_wrapper.addWidget(update_box)
-
-        # ── Telegram Notifications group (FO-INF-010) ────────────────────────────
+        # ── Telegram Notifications (FO-INF-010) ────────────────────────────────
         from us_swing.gui import telegram_token_store
         _active = self._demo.get_active_user()
 
-        tg_box  = QGroupBox("Telegram Notifications")
-        tg_form = QFormLayout(tg_box)
-        tg_form.setContentsMargins(12, 8, 12, 8)
+        tg_form = QFormLayout()
         tg_form.setSpacing(8)
 
         self._tg_enabled = QCheckBox("Enable notifications")
@@ -563,31 +589,25 @@ class _SystemTab(QWidget):
         tg_save.clicked.connect(self._on_save_telegram)
 
         tg_btn_row = QHBoxLayout()
-        tg_btn_row.addWidget(self._tg_note)
-        tg_btn_row.addStretch()
         tg_btn_row.addWidget(self._tg_test)
         tg_btn_row.addWidget(tg_save)
+        tg_btn_row.addWidget(self._tg_note)
+        tg_btn_row.addStretch()
 
         tg_form.addRow("", self._tg_enabled)
         tg_form.addRow("Bot Token:", self._tg_token)
         tg_form.addRow("Chat ID:",   self._tg_chat)
         tg_form.addRow("Notify on:", tg_events)
-        tg_form.addRow(tg_btn_row)
 
-        telegram_wrapper = QHBoxLayout()
-        telegram_wrapper.setContentsMargins(20, 12, 20, 0)
-        telegram_wrapper.addWidget(tg_box)
-
-        # ── Main layout ────────────────────────────────────────────────────────
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addLayout(form)
-        layout.addLayout(btn_row)
-        layout.addLayout(theme_wrapper)
-        layout.addLayout(diag_wrapper)
-        layout.addLayout(update_wrapper)
-        layout.addLayout(telegram_wrapper)
-        layout.addStretch()
+        # ── Section pages ──────────────────────────────────────────────────────
+        self.pages: list[tuple[str, QWidget]] = [
+            ("Connection",  _page(conn_form, _save_row())),
+            ("Scheduler",   _page(sched_form, _save_row(self._sched_btn))),
+            ("Telegram",    _page(tg_form, tg_btn_row)),
+            ("Theme",       _page(theme_row)),
+            ("Updates",     _page(update_row)),
+            ("Diagnostics", _page(diag_row, cb_hint)),
+        ]
 
     # ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -606,7 +626,7 @@ class _SystemTab(QWidget):
 
     def _on_candle_db(self) -> None:
         from us_swing.gui.execution_panel import _CandleDbDiagDialog
-        _CandleDbDiagDialog(self._demo, self).exec()
+        _CandleDbDiagDialog(self._demo, self._candle_db_btn.window()).exec()
 
     def _on_check_updates(self) -> None:
         from update_dialog import _CheckWorker  # type: ignore[import]
@@ -646,7 +666,7 @@ class _SystemTab(QWidget):
 
     def _on_scheduler(self) -> None:
         from us_swing.gui.scheduler_dialog import SchedulerDialog
-        dlg = SchedulerDialog(parent=self)
+        dlg = SchedulerDialog(parent=self._sched_btn.window())
         dlg.exec()
         self._refresh_sched_btn_label()
 
@@ -663,7 +683,8 @@ class _SystemTab(QWidget):
             market_timezone       = self._mkt_tz.currentText(),
         )
         self._demo.save_system_config(cfg)
-        self._save_note.setText("✔  Settings saved")
+        for note in self._save_notes:
+            note.setText("✔  Settings saved")
 
     def _on_save_telegram(self) -> None:
         from us_swing.gui import telegram_token_store
@@ -1489,7 +1510,7 @@ class _DatabaseTab(QWidget):
 
 class SettingsPanel(QWidget):
     """
-    FO-GUI-006 Settings Panel — 5 sub-tabs.
+    FO-GUI-006 Settings Panel — section list on the left, one section shown at a time (FO-GUI-021).
     """
 
     theme_changed = pyqtSignal(str)
@@ -1498,20 +1519,68 @@ class SettingsPanel(QWidget):
         super().__init__(parent)
 
         self._db_tab       = _DatabaseTab(demo)
-        self._sys_tab      = _SystemTab(demo)
+        self._sys          = _SystemSections(demo, self)
         self._universe_tab = _UniverseTab(demo)
-        self._sys_tab.theme_changed.connect(self.theme_changed)
-        self._sys_tab.theme_changed.connect(self._universe_tab.refresh_theme)
+        self._sys.theme_changed.connect(self.theme_changed)
+        self._sys.theme_changed.connect(self._universe_tab.refresh_theme)
 
-        tabs = QTabWidget()
-        tabs.addTab(_UsersTab(demo),       "Users")
-        tabs.addTab(self._sys_tab,         "System")
-        tabs.addTab(self._universe_tab,    "Universe")
-        tabs.addTab(self._db_tab,          "Database")
+        sections: list[tuple[str, QWidget]] = [
+            ("Users", _UsersTab(demo)),
+            ("Risk",  _RiskTab(demo)),
+            *self._sys.pages,
+            ("Universe", self._universe_tab),
+            ("Database", self._db_tab),
+        ]
+
+        nav = QFrame()
+        nav.setObjectName("settings_nav")
+        nav.setFixedWidth(180)
+        nav_layout = QVBoxLayout(nav)
+        nav_layout.setContentsMargins(4, 4, 4, 4)
+        nav_layout.setSpacing(2)
+
+        self._stack = QStackedWidget()
+        self._nav_group = QButtonGroup(self)
+        self._nav_group.setExclusive(True)
+        for index, (name, body) in enumerate(sections):
+            btn = QPushButton(name)
+            btn.setObjectName("side_btn")
+            btn.setCheckable(True)
+            self._nav_group.addButton(btn, index)
+            nav_layout.addWidget(btn)
+            self._stack.addWidget(self._section_card(name, body))
+        nav_layout.addStretch()
+        self._nav_group.idClicked.connect(self._stack.setCurrentIndex)
+        first = self._nav_group.button(0)
+        if first is not None:
+            first.setChecked(True)
+
+        title = QLabel("Settings")
+        title.setObjectName("page_title")
+
+        body_row = QHBoxLayout()
+        body_row.setSpacing(10)
+        body_row.addWidget(nav)
+        body_row.addWidget(self._stack, 1)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(tabs)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
+        layout.addWidget(title)
+        layout.addLayout(body_row, 1)
+
+    @staticmethod
+    def _section_card(name: str, body: QWidget) -> QFrame:
+        card = QFrame()
+        card.setObjectName("settings_card")
+        head = QLabel(name.upper())
+        head.setObjectName("settings_head")
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(0, 0, 0, 0)
+        card_layout.setSpacing(0)
+        card_layout.addWidget(head)
+        card_layout.addWidget(body, 1)
+        return card
 
     def trigger_fill_delta(self) -> None:
         """Programmatically invoke fill delta — identical to clicking the button manually."""

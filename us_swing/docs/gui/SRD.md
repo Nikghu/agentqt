@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.27.0: SRD-GUI-021.001–.002 added — Settings section list; approved by user 2026-10-23.
 > v2.26.0: SRD-GUI-020.001–.005 added — Charts workspace (GUI redesign Phase 4); approved by user 2026-10-23.
 > v2.25.0: SRD-GUI-019.001–.008 added — side panels and Exit drawer (GUI redesign Phase 3); approved by user 2026-10-23.
 > v2.24.0: SRD-GUI-018.001–.007 added — sidebar workspace shell (GUI redesign Phase 2); approved by user 2026-10-23. Supersedes the layout parts of SRD-GUI-001.001, SRD-GUI-000.003 and the location of SRD-GUI-000.006.
@@ -338,3 +339,10 @@
 | SRD-GUI-020.003 | FO-GUI-020 | Must | `open_symbol(symbol, timeframe)` focuses a window already showing the symbol, else opens a new one, else loads into the active window when six are open. | symbol, timeframe | loaded chart | Uses the chart's own load path | Implemented |
 | SRD-GUI-020.004 | FO-GUI-020 | Must | Open in Chart and the Screener chart button switch to Charts and call `open_symbol`; the separate Quick Chart Viewer window is removed. | click | Charts screen | Screener passes its preset timeframe | Implemented |
 | SRD-GUI-020.005 | FO-GUI-020 | Should | A theme change refreshes every open chart. | `theme_changed` | re-rendered charts | — | Implemented |
+
+## FO-GUI-021 — Settings Section List
+
+| ID | Parent | Priority | Description | Input | Output | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-021.001 | FO-GUI-021 | Must | `SettingsPanel` shows a 180 px section list and a `QStackedWidget` of section cards; the old System tab is split into Connection, Scheduler, Telegram, Theme, Updates and Diagnostics. | section click | one section shown | One section checked at a time; handlers unchanged | Implemented |
+| SRD-GUI-021.002 | FO-GUI-021 | Must | Save Risk Settings writes risk values to the active user through `update_user`. | click Save | saved risk config | Other user fields unchanged | Implemented |

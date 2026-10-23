@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.14.0: UT-GUI-021.* added — Settings section list.
 > v1.13.0: UT-GUI-020.* added — Charts workspace.
 > v1.12.0: UT-GUI-019.* added — side panels and Exit drawer.
 > v1.11.0: UT-GUI-018.* added — sidebar workspace shell.
@@ -522,3 +523,12 @@ Test files:
 | UT-GUI-020.003.M01.T01 | MD-GUI-020.001.M01 | Positive | Same symbol focuses its window | open AAPL twice | one AAPL window, active | Pass |
 | UT-GUI-020.003.M01.T02 | MD-GUI-020.001.M01 | Edge | Seventh symbol loads into the active window | six open, open TSLA | still 6 windows; active shows TSLA | Pass |
 | UT-GUI-020.004.M01.T01 | MD-GUI-003.001.M01 | Negative | Quick Chart Viewer is gone | screener module | no `QuickChartWindow`; `chart_requested` signal exists | Pass |
+
+## FO-GUI-021 — Settings Section List
+
+| ID | Module | Type | Description | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-021.001.M01.T01 | MD-GUI-021.001.M01 | Positive | System tab is split into six sections | build `_SystemSections` | Connection, Scheduler, Telegram, Theme, Updates, Diagnostics | Pass |
+| UT-GUI-021.001.M01.T02 | MD-GUI-021.001.M01 | Positive | Section click shows one section | click Telegram | stack shows Telegram; Users unchecked; 10 sections | Pass |
+| UT-GUI-021.002.M01.T01 | MD-GUI-021.001.M01 | Positive | Risk save persists values | set 2.5 % and LMT, Save | `update_user` called with new risk config | Pass |
+| UT-GUI-021.002.M01.T02 | MD-GUI-021.001.M01 | Negative | Risk save keeps other user fields | chat ID set, Save | chat ID and username unchanged | Pass |
