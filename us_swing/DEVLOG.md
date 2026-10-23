@@ -2,6 +2,16 @@
 
 ---
 
+## [20261023] GUI + EXE — Execution workspace (F2) and strategy P&L history (FO-GUI-024, FO-EXE-019, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-024, FO-EXE-019
+- RN: RN-EXE-1.34.0-20261023, RN-GUI-1.20.0 / 1.21.0 / 1.22.0 / 1.23.0-20261023
+- Artifacts updated: FO, SRD, DD, MD, UTCD, TRACE (GUI + EXE), Code, Tests, RN, CONTEXT, TODO
+- Decisions: user chose canvas F2 after 5 options + 2 follow-ups (https://claude.ai/artifact/9F83v5ErsZw7otTJctni47); P&L from `trade_cycles` only (no new table); deleting a strategy keeps its closed trades; all 5 phases, one commit each, no push. Duplicate always takes a new name so histories never mix.
+- Findings: `metadata.create_all` never adds a new index to an existing table — `create_schema` now creates missing indexes. `test_execution_panel.py` failed when run alone (existing db ↔ data import cycle) — tests now import `us_swing.data` first. Render check caught collapsed watchlist groups (fixed, test added).
+- Open: T47 — renaming a strategy starts a new P&L history (strategy id = name).
+
 ## [20261023] GUI — Card layout, gaps and rounded corners (FO-GUI-023, feature)
 
 - Type: Feature

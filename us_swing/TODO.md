@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-10-23 (Session 87)
+**Last Updated:** 2026-10-23 (Session 88)
 
 ---
 
@@ -55,5 +55,5 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T43 | Future screener features: compare with last run, score history, earnings/sector warnings, multi-select to watchlist/Execution, Telegram alert on new Strong pick, draw entry/stop/target lines on the detail chart. | `gui/` | Medium | Open |
 | T44 | Screener Option A polish (FO-GUI-022, RN-GUI-1.18.0): page header, run stepper, transcript drawer, company names, plan box, calmer look. SRD-GUI-022.008–.012 Implemented. Not committed; user visual check pending. | `gui/screener_views.py`, `gui/screener_panel.py`, `gui/theme.py` | Medium | Done |
 | T45 | Card layout (FO-GUI-023, RN-GUI-1.19.0): sections as rounded cards with 4 px gaps across the app; Screener rail and results as two cards. Committed, not pushed; user visual check pending. | `gui/cards.py`, `gui/main_window.py`, `gui/theme.py` | Low | Done |
-| T46 | Execution screen redesign F2 (FO-GUI-024 + FO-EXE-019): P1 strategy P&L read path done (RN-EXE-1.34.0); P2 header, P3 watchlist, P4 tabs + Strategies + P&L card, P5 charts at bottom + hide toggle. Commit per phase, no push. | `gui/execution_panel.py`, `execution/trade_cycle/` | High | In Progress |
+| T46 | Execution screen redesign F2 (FO-GUI-024 + FO-EXE-019): header, grouped watchlist, tab card, Strategies list-detail + P&L chart, charts below with hide toggle. 5 commits, not pushed; user app check pending. RN-EXE-1.34.0, RN-GUI-1.20.0–1.23.0. | `gui/execution_panel.py`, `execution/trade_cycle/` | High | Done |
 | T47 | Renaming a strategy in Edit starts a new P&L history (strategy id = name in `trade_cycles`). Decide: block rename when closed cycles exist, or migrate `strategy_id` on rename. | `gui/strategy_builder_dialog.py`, `execution/trade_cycle/` | Medium | Open |
