@@ -583,3 +583,25 @@ Test files:
 |---|---|---|---|---|---|---|
 | UT-GUI-023.001.M01.T01 | MD-GUI-023.001.M01 | Positive | Card holds the child inside its padding | QLabel | name `shell_card`; child at index 0; margins ≥ 2 | Pass |
 | UT-GUI-023.001.M01.T02 | MD-GUI-023.001.M01 | Positive | Gutter marks the widget | QWidget | same widget returned; name `shell_gutter`; GAP 4 | Pass |
+
+## FO-GUI-024 — Execution Workspace
+
+| ID | Module | Type | Description | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-024.001.M01.T01 | MD-GUI-024.001.M01 | Positive | Chips show running count and unrealised P&L | 3 strategies, 1 RUNNING + 1 with open cycle; open cycles P&L +10 and −4 | "2 of 3"; "+$6.00" | Pass |
+| UT-GUI-024.001.M01.T02 | MD-GUI-024.001.M01 | Positive | Broker chip follows user mode | active user paper / live | "Paper broker" / "IBKR live" | Pass |
+| UT-GUI-024.002.M02.T01 | MD-GUI-024.002.M02 | Positive | Groups: Manual first, screeners A→Z, score order, counts | 1 pick, 2 "Price Action", 2 "Momentum" | groups Manual, Momentum, Price Action; counts 1, 2, 2; higher score first | Not Run |
+| UT-GUI-024.002.M02.T02 | MD-GUI-024.002.M02 | Positive | ✕ on a pick removes it | click Score cell of pick row | `remove_manual_pick("DELL")` called once | Not Run |
+| UT-GUI-024.002.M02.T03 | MD-GUI-024.002.M02 | Negative | Not-ready symbol is tinted | readiness {"NVDA": False} | NVDA row has a background brush; others none | Not Run |
+| UT-GUI-024.002.M02.T04 | MD-GUI-024.002.M02 | Edge | No entries shows the empty text | [] | tree hidden; empty label shown; `get_top_symbol()` None | Not Run |
+| UT-GUI-024.003.M03.T01 | MD-GUI-024.003.M03 | Positive | Active filter hides closed rows | 2 open + 1 closed rows; filter "active" | 1 hidden row; counts (2, 1) | Not Run |
+| UT-GUI-024.003.M03.T02 | MD-GUI-024.003.M03 | Positive | Closed filter shows only closed rows | same rows; filter "closed" | 2 hidden rows | Not Run |
+| UT-GUI-024.004.M04.T01 | MD-GUI-024.004.M04 | Positive | List rows and selection fill the detail | 2 configs | 2 items; first selected; detail title = first name | Not Run |
+| UT-GUI-024.005.M04.T02 | MD-GUI-024.004.M04 | Positive | Duplicate makes a stopped copy with a unique name | "ST" and "ST copy" exist; duplicate "ST" | new "ST copy 2", run_state STOPPED, saved, selected | Not Run |
+| UT-GUI-024.005.M04.T03 | MD-GUI-024.004.M04 | Positive | Stop forces STOPPED when no open cycles | SQUARING_OFF, no open cycles | run_state STOPPED | Not Run |
+| UT-GUI-024.005.M04.T04 | MD-GUI-024.004.M04 | Negative | Stop keeps SQUARING_OFF while cycles remain | SQUARING_OFF, open symbol | run_state SQUARING_OFF | Not Run |
+| UT-GUI-024.006.M05.T01 | MD-GUI-024.006.M05 | Edge | Empty summary shows the empty text | `StrategyPnlSummary()` | chart reports empty; stats "—" | Not Run |
+| UT-GUI-024.006.M05.T02 | MD-GUI-024.006.M05 | Positive | Card shows total and stats | summary total 412.6, 38 trades, win rate 0.55 | "+$412.60"; "38 trades"; "55%" | Not Run |
+| UT-GUI-024.006.M05.T03 | MD-GUI-024.006.M05 | Positive | Range button asks for a start time | click 1W | provider called with since ≈ now − 7 days | Not Run |
+| UT-GUI-024.006.M05.T04 | MD-GUI-024.006.M05 | Positive | Nice y ticks | min 0, max 412.6 | ticks 0, 150, 300, 450 | Not Run |
+| UT-GUI-024.008.M06.T01 | MD-GUI-024.008.M06 | Positive | Hide charts is remembered | toggle hide; new panel | web views hidden; setting true; new panel starts hidden | Not Run |

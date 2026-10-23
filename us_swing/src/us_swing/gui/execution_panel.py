@@ -27,7 +27,6 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import (
     QAbstractButton,
     QAbstractItemView,
-    QComboBox,
     QCompleter,
     QDialog,
     QHBoxLayout,
@@ -51,6 +50,7 @@ from us_swing.data.models import FilteredStockEntry
 from us_swing.gui.active_cycles_panel import ActiveCyclesPanel
 from us_swing.gui.app_service import AppService, _IntradayCandleWorker
 from us_swing.gui._types import TradeSignal
+from us_swing.gui.execution_header import ExecutionHeader
 from us_swing.gui.chart_panel import _build_html as _build_chart_html
 from us_swing.gui.pending_signals_table_model import (
     COL_ACTION   as PS_COL_ACTION,
@@ -1272,33 +1272,9 @@ class ExecutionPanel(QWidget):
         main.setContentsMargins(16, 16, 16, 16)
         main.setSpacing(12)
 
-        # ── Header row ─────────────────────────────────────────────────────────
-        title = QLabel("Trade Execution")
-        title.setStyleSheet(f"color: {C.BLUE}; font-size: 12pt; font-weight: bold;")
-
-        admin_badge = QLabel("ADMIN")
-        admin_badge.setStyleSheet(
-            f"color:{C.YELLOW}; background:{C.YELLOW}18; border:1px solid {C.YELLOW}55;"
-            f"border-radius:5px; padding:1px 7px; font-size:7pt; font-weight:bold;"
-        )
-
-        exec_for_lbl = QLabel("Execute for:")
-        exec_for_lbl.setStyleSheet(f"color:{C.MUTED}; font-size:8pt;")
-        self._exec_user_combo = QComboBox()
-        self._exec_user_combo.setMinimumWidth(140)
-        self._exec_user_combo.setStyleSheet("QComboBox { outline: none; } QComboBox:focus { outline: none; }")
-        self._exec_user_combo.addItem("All / Broadcast", None)
-        for u in demo.get_users():
-            self._exec_user_combo.addItem(f"{u.username}  ({u.mode.upper()})", u.user_id)
-        demo.viewing_changed.connect(self._on_scope_changed)
-
-        hdr = QHBoxLayout()
-        hdr.addWidget(title)
-        hdr.addWidget(admin_badge)
-        hdr.addStretch()
-        hdr.addWidget(exec_for_lbl)
-        hdr.addWidget(self._exec_user_combo)
-        main.addLayout(hdr)
+        # ── Page header (SRD-GUI-024.001) ──────────────────────────────────────
+        self._header = ExecutionHeader(demo)
+        main.addWidget(self._header)
 
         # ── Circuit breaker banner (hidden by default) ─────────────────────────
         self._cb_banner = QLabel(
@@ -1564,14 +1540,6 @@ class ExecutionPanel(QWidget):
         return btn
 
     # ── Slots ─────────────────────────────────────────────────────────────────
-
-    def _on_scope_changed(self) -> None:
-        """Sync the Execute-for combo with the admin viewing scope."""
-        uid = self._demo.get_viewing_uid()
-        for i in range(self._exec_user_combo.count()):
-            if self._exec_user_combo.itemData(i) == uid:
-                self._exec_user_combo.setCurrentIndex(i)
-                break
 
     def _on_table_execute(self, signal: TradeSignal) -> None:
         """User clicked Execute on a pending row — confirm and submit."""

@@ -1390,6 +1390,10 @@ QMdiArea#chart_mdi {{ background: {bg}; border: 1px solid {line}; }}
 QMdiArea#chart_mdi QTabBar::tab:selected {{ color: {accent}; border-bottom: 2px solid {accent}; }}
 QLabel#page_title {{ font-size: 13pt; font-weight: bold; }}
 QLabel#page_meta {{ color: {sub}; padding-left: 8px; }}
+QLabel#exec_chip {{
+    color: {sub}; background: transparent; border: 1px solid {line}; border-radius: 4px;
+    padding: 2px 8px; font-size: 8.5pt;
+}}
 QPushButton#mode_btn:checked {{ background: {active_bg}; color: {accent}; border-color: {accent}; }}
 QFrame#settings_nav, QFrame#settings_card {{ border: 1px solid {line}; }}
 QLabel#settings_head {{

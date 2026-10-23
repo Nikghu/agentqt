@@ -1,7 +1,7 @@
 # Functional Overview — GUI Module (GUI)
 
 **Document ID:** FO-GUI
-**Version:** 2.6.0
+**Version:** 2.7.0
 **Traces To:** requirements.md §21, §22, §23.3, §24, §25, §28.1, §29.1, §32
 **Status:** Draft
 **Last Updated:** 2026-05-22
@@ -703,3 +703,28 @@ The system shall show the main sections of the window as separate rounded cards 
 
 1. A closed right panel or log panel leaves no gap behind.
 2. Corners stay rounded on every screen; nothing paints over them.
+
+---
+
+## FO-GUI-024: Execution Workspace
+
+**Status:** Approved (user, 2026-10-23)
+**Priority:** Should
+**Depends on:** FO-GUI-004 (Execution panel), FO-GUI-014 (Active Trades), FO-GUI-023 (cards), FO-EXE-019 (strategy P&L history)
+**Source:** User picked canvas Option F2 (https://claude.ai/artifact/9F83v5ErsZw7otTJctni47) on 2026-10-23.
+
+The system shall lay out the Execution screen as a workspace: a page header, a grouped watchlist, a tab card for trades and strategies on top, and the intraday charts below. Trading behaviour does not change.
+
+### Requirements
+
+1. **Header.** Title, admin badge, last screener run, unrealised P&L, strategies running, broker state and the Execute-for user.
+2. **Watchlist.** Symbols grouped by source (manual picks first, then each screener) with last price and score.
+3. **Tabs.** Active trades, Strategies and Closed today, each with a count.
+4. **Strategies.** A list of strategies and a detail view with actions (Edit, Duplicate, Reset count, Start / Stop, Delete), its settings, its P&L history chart and today's trades.
+5. **Charts.** The 3m and 15m charts sit below the tabs and can be hidden; the choice is remembered.
+
+### Acceptance Criteria
+
+1. Every action of the old Strategy Builder table is still reachable.
+2. The P&L chart of a strategy matches the sum of its closed trades.
+3. Hiding the charts gives their space to the tabs, and stays hidden after a restart.

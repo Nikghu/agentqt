@@ -3,7 +3,7 @@
 **Document ID:** TRACE-GUI
 **Version:** 1.13.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-10-23 (Session 85, SRD-GUI-018.008–.011 Connections panel in the sidebar — implemented; RN-GUI-1.16.0-20261023)
+**Last Updated:** 2026-10-23 (Session 88, FO-GUI-024 Execution workspace — in progress)
 
 ---
 
@@ -61,6 +61,7 @@
 | FO-GUI-021 | SRD-GUI-021.001–004 | DD-GUI-021.001.D01 | MD-GUI-021.001.M01 | UT-GUI-021.001.M01.T01–T02, .002.M01.T01–T02, .003.M01.T01, .003.M02.T01, .004.M01.T01–T04, .004.M02.T01–T02 | `gui/settings_panel.py`, `gui/theme.py`, `gui/side_panels.py`, `gui/main_window.py` | Implemented | RN-GUI-1.15.0-20261023 |
 | FO-GUI-022 | SRD-GUI-022.001–012 | DD-GUI-022.001.D01 | MD-GUI-022.001.M01, MD-GUI-003.001.M01 | UT-GUI-022.001.M01.T01–T02, .002.M01.T01–T05, .003.M01.T01–T02, .004.M01.T01, .005.M01.T01, .006.M01.T01, .007.M01.T01–T02, .008.M01.T01, .009.M01.T01–T02, .010.M01.T01–T02, .011.M01.T01 | `gui/screener_views.py`, `gui/screener_panel.py`, `gui/theme.py`, `gui/chart_panel.py`, `gui/ai_transcript_panel.py`, `assets/icons` | Implemented | RN-GUI-1.18.0-20261023 |
 | FO-GUI-023 | SRD-GUI-023.001–004 | DD-GUI-023.001.D01 | MD-GUI-023.001.M01, MD-GUI-001.001.M01, MD-GUI-003.001.M01 | UT-GUI-023.001.M01.T01–T02 | `gui/cards.py`, `gui/main_window.py`, `gui/screener_panel.py`, `gui/theme.py` | Implemented | RN-GUI-1.19.0-20261023 |
+| FO-GUI-024 | SRD-GUI-024.001–008 | DD-GUI-024.001.D01 | MD-GUI-024.001.M01 | UT-GUI-024.001.M01.T01–T02 | `gui/execution_header.py`, `gui/execution_panel.py`, `gui/theme.py` | In Progress (.001 Implemented) | RN-GUI-1.20.0-20261023 |
 
 ---
 

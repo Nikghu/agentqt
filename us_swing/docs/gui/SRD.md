@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.35.0: SRD-GUI-024.001–.008 added — Execution workspace (canvas Option F2); approved by user 2026-10-23.
 > v2.34.0: SRD-GUI-023.004 added — lighter gap colour; requested by user 2026-10-23.
 > v2.33.0: SRD-GUI-023.001–.003 added — card layout (gaps and rounded corners between sections); approved by user 2026-10-23.
 > v2.32.0: SRD-GUI-022.008–.012 added — screener page header, run stepper, AI transcript drawer, list / detail polish and look (canvas Option A); approved by user 2026-10-23.
@@ -384,3 +385,16 @@
 | SRD-GUI-023.002 | FO-GUI-023 | Must | The screener shows the preset list and the results as two cards with a 4 px gap; other screens sit in one card each. | — | card layout | Inside of other screens unchanged | Implemented |
 | SRD-GUI-023.003 | FO-GUI-023 | Should | Carbon, Mocha and VS Code themes use the same gap and corner sizes with their own colours. | theme | card colours | Rules live in `_sidebar_qss` | Implemented |
 | SRD-GUI-023.004 | FO-GUI-023 | Should | The gap colour is lighter than the cards (the theme's hover grey) so each section stands out. | theme | gap colour | Supersedes the title-bar gap colour of SRD-GUI-023.001 | Implemented |
+
+## FO-GUI-024 — Execution Workspace
+
+| ID | Parent | Priority | Description | Input | Output | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-024.001 | FO-GUI-024 | Must | A page header shows "Execution", the ADMIN badge, the last screener run, chips for unrealised P&L, strategies running X of Y and broker state, and the Execute-for combo. | open cycles, strategies, active user, feed status | header | Replaces the "Trade Execution" row | Implemented |
+| SRD-GUI-024.002 | FO-GUI-024 | Must | The watchlist groups symbols under Manual first, then each screener name with a count; rows show symbol, last 3m close and score, sorted by score. | screener entries, manual picks | grouped list | Keeps add / remove pick, candle-readiness tint and auto-select of the top row | Approved |
+| SRD-GUI-024.003 | FO-GUI-024 | Must | A tab bar "Active trades · N", "Strategies · N", "Closed today · N" sits on top; Active trades and Closed today show the one Active Trades table filtered by row state. | active-trade rows, strategies | tab card | Counts follow the table and the strategy list | Approved |
+| SRD-GUI-024.004 | FO-GUI-024 | Must | The Strategies tab lists strategies with a status dot, name, mode and a one-line summary, and an "+ Add" button. | strategies, open cycles | list | Selection drives the detail | Approved |
+| SRD-GUI-024.005 | FO-GUI-024 | Must | The detail shows name, status pill, mode and start date, buttons Edit, Duplicate, Reset count, Start / Stop and Delete, and four boxes: what it trades, when, size, exit rules. | selected strategy | detail | Duplicate saves a stopped copy under a new unique name | Approved |
+| SRD-GUI-024.006 | FO-GUI-024 | Must | A Strategy P&L card shows the running total line (or per-trade bars), the max drawdown in red, ranges 1W / 1M / 3M / All, and win rate, average win, average loss, max drawdown and today. | `get_strategy_pnl` | P&L card | Empty text when the strategy has no closed trades | Approved |
+| SRD-GUI-024.007 | FO-GUI-024 | Should | A Today strip lists the strategy's open trades and today's closed trades with side, quantity, state and P&L. | open cycles, today's closed cycles | strip | "No trades today" when empty | Approved |
+| SRD-GUI-024.008 | FO-GUI-024 | Must | The intraday charts sit below the tab card with a header showing symbol, last price and change; "Hide charts" collapses them to the header and the choice is remembered. | selected symbol, setting | chart pane | `QSettings("USSwing", "ExecutionPanel")` key `charts_hidden` | Approved |

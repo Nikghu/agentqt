@@ -237,3 +237,16 @@ us_swing/src/us_swing/gui/
 | MD-GUI-023.001.M01 | SRD-GUI-023.001 | `us_swing/src/us_swing/gui/cards.py` | Wrap a section in a rounded card; mark gap widgets | `card()`, `gutter()`, `GAP`, `GUTTER` | PyQt6 | No |
 
 > `main_window.py` (MD-GUI-001.001.M01) and `screener_panel.py` (MD-GUI-003.001.M01) use the helpers; `theme.py` styles `shell_card` and `shell_gutter`.
+
+## FO-GUI-024 — Execution Workspace
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-GUI-024.001.M01 | SRD-GUI-024.001 | `us_swing/src/us_swing/gui/execution_header.py` | Page header with chips and Execute-for combo | `ExecutionHeader`, `last_run_text()` | AppService, strategy_store, PyQt6 | No |
+| MD-GUI-024.002.M02 | SRD-GUI-024.002 | `us_swing/src/us_swing/gui/execution_watchlist.py` | Grouped watchlist with add / remove pick | `WatchlistPane`, `symbol_selected`, `get_top_symbol()`, `last_run_text()` | AppService, PyQt6 | No |
+| MD-GUI-024.003.M03 | SRD-GUI-024.003 | `us_swing/src/us_swing/gui/active_cycles_panel.py` | Row filter by state and counts | `set_row_filter()`, `counts_changed` | — | No |
+| MD-GUI-024.004.M04 | SRD-GUI-024.004 | `us_swing/src/us_swing/gui/strategies_pane.py` | Strategy list, detail, actions, Duplicate, Today strip | `StrategiesPane`, `count_changed` | AppService, strategy_store, strategy_builder_dialog | No |
+| MD-GUI-024.006.M05 | SRD-GUI-024.006 | `us_swing/src/us_swing/gui/strategy_pnl_chart.py` | P&L line / bar chart and card | `StrategyPnlChart`, `StrategyPnlCard` | trade_cycle summary, PyQt6 | No |
+| MD-GUI-024.008.M06 | SRD-GUI-024.008 | `us_swing/src/us_swing/gui/execution_panel.py` | Workspace layout, tab card, charts below with hide toggle | `ExecutionPanel` | all of the above | No |
+
+> `_StrategyTablePane` and the filtered-stocks table leave `execution_panel.py` (MD-GUI-004.001.M01); `theme.py` gains QSS for `exec_chip`, `exec_tabs`, `detail_tile`.
