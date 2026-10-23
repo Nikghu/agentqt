@@ -782,6 +782,39 @@ def test_ai_reasoning_merged_into_results(tmp_path: Path):
         assert data.get("ai_reasoning") == llm.last_reasoning[sym]
 
 
+def test_ai_plan_merged_only_where_present(tmp_path: Path):
+    """UT-SCR-013.009.M10.T01: Plan merged only where present."""
+    ind = _make_screener()
+    llm = MagicMock()
+    llm.apply.side_effect = lambda syms, bars, cfg: {s: (True, 0.8) for s in syms}
+    llm.last_reasoning = {}
+    llm.last_plan = {"AAPL": {"entry": 190.0, "stop": 182.0, "target": 214.0}}
+    registry = ScreenerRegistry()
+    registry.register("ind_b", lambda: ind)
+    registry.register("llm_claude_ranking", lambda: llm)
+    preset = Preset(
+        id="plan",
+        name="Plan",
+        preset_type=PresetType.WEIGHTED,
+        screeners=[ScreenerRef(screener_id="ind_b", enabled=True, weight=1.0)],
+        threshold=0.5,
+        enable_llm_ranking=True,
+        top_n=5,
+        ai_query="rank these",
+    )
+    executor = PresetExecutor(
+        db=MagicMock(),
+        preset_manager=_mock_preset_manager(preset),
+        storage=_mock_storage(tmp_path),
+        registry=registry,
+    )
+    result = executor.run_preset("plan", "u", symbols=SYMBOLS_3, bars=BARS_3)
+
+    assert result.results["AAPL"]["ai_plan"] == llm.last_plan["AAPL"]
+    assert "ai_plan" not in result.results["MSFT"]
+    assert "ai_plan" not in result.results["GOOGL"]
+
+
 # ---------------------------------------------------------------------------
 # T23 — Stage 3 LLM exception → partial transcript preserved from the screener
 #       (ISS-SCR-0001 regression; SRD-SCR-014.003 / SRD-SCR-014.006)

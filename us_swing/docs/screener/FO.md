@@ -212,6 +212,7 @@
 - Tool calls shall be capped at **3 per symbol per run** to prevent runaway loops; excess calls return an error to the model and the run continues with partial data.
 - The user-authored query shall be a per-preset configuration field (`Preset.ai_query`, 1–500 chars) editable in the GUI Preset Builder. Existing presets default to an empty query and continue to work via the legacy hardcoded ranking prompt.
 - Each ranked symbol shall include a `reasoning` string (≤50 words) explaining the AI's rationale (e.g. "Strong breakout above 50d MA, RSI healthy at 58, weekly volume 1.8× average"). The reasoning shall surface in the GUI results table as a new "AI Reasoning" column with full text in tooltip.
+- Each ranked symbol may include an optional trade plan (`entry`, `stop`, `target` prices), saved with the result as `ai_plan` (added 2026-10-23, SRD-SCR-013.009).
 - The architecture shall remain **provider-agnostic** so Phase 2 (multi-provider single-choice) and Phase 3 (parallel orchestration with consensus) can extend it without rework. Specifically: the tool definition, multi-turn loop pattern, and reasoning JSON contract are designed to be portable to other providers (OpenAI function calling, Gemini tool use).
 - **Acceptance Criteria:**
   - A preset with `ai_query="find bullish breakout candidates"` and `enable_llm_ranking=True` runs end-to-end on Stage 2 output and returns top-N symbols with per-stock reasoning.

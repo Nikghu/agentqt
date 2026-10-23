@@ -1,7 +1,7 @@
 # Unit Test & Coverage Definition — Screener (SCR)
 
 **Document ID:** UTCD-SCR
-**Version:** 2.1.0
+**Version:** 2.2.0
 **Traces To:** MD-SCR v2.1.0
 **Status:** Draft
 **Last Updated:** 2026-04-25
@@ -399,6 +399,15 @@ pytest tests/screener/ -m "not slow" -v
 |---|---|---|
 | T21 | Stage 3 LLM config carries `db`, `passing_symbols`, `ai_query`, `ai_model` per SRD-013.006 | Pass |
 | T22 | `last_reasoning` side-channel merges into `result.results[sym]["ai_reasoning"]` per SRD-013.007 | Pass |
+
+### SRD-SCR-013.009 — AI trade plan fields
+
+| ID | Module | Type | Objective | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-SCR-013.009.M06.T01 | MD-SCR-002.003.M06 | Positive | Valid plan kept | ranking entry with entry 222, stop 212, target 255 | `last_plan["NVDA"] == {entry: 222.0, stop: 212.0, target: 255.0}` | Pass |
+| UT-SCR-013.009.M06.T02 | MD-SCR-002.003.M06 | Negative | Missing or bad value drops the plan | no target; stop "abc"; entry -5 | symbol absent from `last_plan`; score and reasoning still parsed | Pass |
+| UT-SCR-013.009.M06.T03 | MD-SCR-002.003.M06 | Positive | Prompt asks for plan fields | build tool-path prompt | system prompt contains "entry", "stop", "target" | Pass |
+| UT-SCR-013.009.M10.T01 | MD-SCR-003.001.M10 | Positive | Plan merged only where present | `last_plan` for AAPL only | AAPL has `ai_plan`; MSFT, GOOGL have none | Pass |
 
 
 ---

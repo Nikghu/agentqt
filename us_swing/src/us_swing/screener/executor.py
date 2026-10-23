@@ -396,6 +396,8 @@ class PresetExecutor:
         # Capture side-channels (SRD-SCR-013.007, SRD-SCR-014.003).
         raw_reasoning = getattr(llm, "last_reasoning", None)
         reasoning: dict[str, str] = raw_reasoning if isinstance(raw_reasoning, dict) else {}
+        raw_plan = getattr(llm, "last_plan", None)
+        plans: dict[str, dict[str, float]] = raw_plan if isinstance(raw_plan, dict) else {}
         raw_transcript = getattr(llm, "last_transcript", None)
         transcript: list[AITranscriptTurn] = (
             raw_transcript if isinstance(raw_transcript, list) else []
@@ -410,6 +412,8 @@ class PresetExecutor:
                     "passed":       passed,
                     "ai_reasoning": reasoning.get(sym, ""),
                 }
+                if sym in plans:
+                    result[sym]["ai_plan"] = plans[sym]
         # Keep only top-N passing symbols
         ranked_passing = sorted(
             [sym for sym, d in result.items() if d.get("passed", False)],
