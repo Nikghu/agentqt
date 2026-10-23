@@ -41,6 +41,11 @@ from us_swing.execution.trade_cycle._events import (
     RiskUpdated,
     TradeCycleEvent,
 )
+from us_swing.execution.trade_cycle._pnl_history import (
+    PnlPoint,
+    StrategyPnlSummary,
+    summarise,
+)
 from us_swing.execution.trade_cycle._protocols import (
     TradeCycleCommand,
     TradeCycleQuery,
@@ -109,4 +114,7 @@ __all__ = [
     "STOPLOSS_TYPES",
     "TRAILING_MODES",
     "build_default_service",
+    "PnlPoint",
+    "StrategyPnlSummary",
+    "summarise",
 ]

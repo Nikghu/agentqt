@@ -6,51 +6,45 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from PyQt6.QtCore import (
-    QAbstractTableModel,
-    QModelIndex,
     QPoint,
-    QSize,
-    QSortFilterProxyModel,
-    QStringListModel,
+    QSettings,
     Qt,
     QTimer,
     QUrl,
     pyqtSignal,
 )
-from PyQt6.QtGui import QColor, QIcon, QMouseEvent, QPainter, QPainterPath, QPen, QPixmap
+from PyQt6.QtGui import QColor, QMouseEvent
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import (
-    QAbstractButton,
     QAbstractItemView,
-    QComboBox,
-    QCompleter,
     QDialog,
     QHBoxLayout,
     QHeaderView,
     QLabel,
-    QLineEdit,
     QMessageBox,
     QPushButton,
     QSizePolicy,
     QSplitter,
-    QTabWidget,
+    QStackedWidget,
+    QTabBar,
     QTableView,
     QTableWidget,
     QTableWidgetItem,
-    QToolTip,
     QVBoxLayout,
     QWidget,
 )
 
-from us_swing.data.models import FilteredStockEntry
 from us_swing.gui.active_cycles_panel import ActiveCyclesPanel
 from us_swing.gui.app_service import AppService, _IntradayCandleWorker
+from us_swing.gui.cards import GAP, card, gutter
 from us_swing.gui._types import TradeSignal
+from us_swing.gui.execution_header import ExecutionHeader
+from us_swing.gui.execution_watchlist import WatchlistPane
+from us_swing.gui.strategies_pane import StrategiesPane
 from us_swing.gui.chart_panel import _build_html as _build_chart_html
 from us_swing.gui.pending_signals_table_model import (
     COL_ACTION   as PS_COL_ACTION,
@@ -69,35 +63,7 @@ from us_swing.gui.pending_signals_table_model import (
     KIND_RUNNING,
     PendingSignalsTableModel,
 )
-from us_swing.gui.strategy_builder_dialog import (
-    StrategyBuilderDialog,
-    StrategyConfig,
-    load_strategies,
-    save_strategies,
-)
-from us_swing.gui.strategy_table_model import (
-    COL_CAPITAL,
-    COL_DIRECTION,
-    COL_DELETE,
-    COL_EDIT,
-    COL_END,
-    COL_END_DATE,
-    COL_MODE,
-    COL_NAME,
-    COL_RESET,
-    COL_RUN,
-    COL_SCOPE,
-    COL_START,
-    COL_START_DATE,
-    COL_STATUS,
-    COL_STOPLOSS,
-    COL_STOPLOSS_TYPE,
-    COL_TARGET,
-    COL_TARGET_TYPE,
-    COL_TRADE_TYPE,
-    StatusBadgeDelegate,
-    StrategyTableModel,
-)
+from us_swing.gui.icons import mark_danger, set_icon
 from us_swing.gui.theme import C, active_palette, colors
 
 
@@ -114,379 +80,6 @@ def _cell_btn_ss(border: str, fg: str) -> str:
         f"QPushButton:hover {{ background: {fg}22; border-color: {fg}; }}"
         f"QPushButton:focus {{ outline: none; }}"
     )
-
-_CELL_ICON_BTN_SS = (
-    "QPushButton {{ background: transparent; border: 1px solid transparent;"
-    " border-radius: 4px; outline: none; }}"
-    "QPushButton:hover {{ background: {hover_bg}; border: 1px solid {fg}; }}"
-    "QPushButton:focus {{ outline: none; }}"
-)
-
-
-def _cell_icon(kind: str, color_hex: str) -> QIcon:
-    """Draw a 14×14 icon for table cell buttons: pencil, trash-can, play triangle, or stop square."""
-    SIZE = 14
-    pm = QPixmap(SIZE, SIZE)
-    pm.fill(Qt.GlobalColor.transparent)
-    painter = QPainter(pm)
-    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-    c = QColor(color_hex)
-    painter.setPen(Qt.PenStyle.NoPen)
-    painter.setBrush(c)
-
-    if kind == "edit":
-        # Pencil body — diagonal filled polygon
-        path = QPainterPath()
-        path.moveTo(10.5, 1.5)
-        path.lineTo(12.5, 3.5)
-        path.lineTo(4.5, 11.5)
-        path.lineTo(1.5, 12.5)
-        path.lineTo(2.5, 9.5)
-        path.closeSubpath()
-        painter.drawPath(path)
-        # Eraser cap — small semi-transparent rect at the top
-        painter.setBrush(QColor(c.red(), c.green(), c.blue(), 170))
-        painter.drawRect(9, 1, 4, 2)
-    elif kind == "run":
-        # Play triangle — pointing right, centered
-        path = QPainterPath()
-        path.moveTo(3.0, 1.5)
-        path.lineTo(12.0, 7.0)
-        path.lineTo(3.0, 12.5)
-        path.closeSubpath()
-        painter.drawPath(path)
-    elif kind == "stop":
-        # Stop square — filled rounded rect, centered
-        painter.drawRoundedRect(2, 2, 10, 10, 2, 2)
-    elif kind == "reset":
-        painter.setBrush(Qt.BrushStyle.NoBrush)
-        painter.setPen(QPen(c, 1.6))
-        painter.drawArc(2, 2, 10, 10, 60 * 16, 260 * 16)
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(c)
-        head = QPainterPath()
-        head.moveTo(11.5, 5.0)
-        head.lineTo(13.5, 2.0)
-        head.lineTo(9.5, 2.5)
-        head.closeSubpath()
-        painter.drawPath(head)
-    else:
-        # Trash handle
-        painter.drawRoundedRect(5, 1, 4, 2, 1, 1)
-        # Lid bar
-        painter.drawRoundedRect(1, 3, 12, 2, 1, 1)
-        # Body
-        painter.drawRoundedRect(2, 6, 10, 7, 1, 1)
-        # Ribs (dark cutouts to simulate vertical lines)
-        painter.setBrush(QColor(0, 0, 0, 110))
-        painter.drawRect(5, 7, 1, 5)
-        painter.drawRect(8, 7, 1, 5)
-
-    painter.end()
-    return QIcon(pm)
-
-
-# ── Strategy Table Pane ───────────────────────────────────────────────────────
-
-class _StrategyTablePane(QWidget):
-    """Strategy Builder tab — all configured strategies with inline edit and delete."""
-
-    def __init__(self, demo: AppService, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self._demo = demo
-        self._configs: list[StrategyConfig] = load_strategies()
-        demo.strategy_status_changed.connect(self._on_engine_status)
-
-        root = QVBoxLayout(self)
-        root.setContentsMargins(0, 6, 0, 0)
-        root.setSpacing(6)
-
-        # ── Model + proxy ──────────────────────────────────────────────────────
-        self._model = StrategyTableModel(self)
-        self._proxy = QSortFilterProxyModel(self)
-        self._proxy.setSourceModel(self._model)
-
-        # ── View ───────────────────────────────────────────────────────────────
-        self._view = QTableView()
-        self._view.setModel(self._proxy)
-        self._view.setSortingEnabled(True)
-        self._view.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self._view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        self._view.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-        self._view.setAlternatingRowColors(True)
-        self._view.setShowGrid(False)
-        self._view.setWordWrap(False)
-        self._view.setItemDelegateForColumn(COL_STATUS, StatusBadgeDelegate(self._view))
-        self._view.setStyleSheet(
-            f"QTableCornerButton::section {{ background: {C.BG}; border: none; }}"
-        )
-
-        vh = self._view.verticalHeader()
-        if vh:
-            vh.setVisible(True)
-            vh.setDefaultSectionSize(28)
-            vh.setMinimumWidth(32)
-
-        hh = self._view.horizontalHeader()
-        if hh:
-            hh.setStretchLastSection(False)
-            for col, width, mode in [
-                (COL_STATUS,      110, QHeaderView.ResizeMode.Interactive),
-                (COL_RUN,          42, QHeaderView.ResizeMode.Fixed),
-                (COL_NAME,        130, QHeaderView.ResizeMode.Interactive),
-                (COL_EDIT,         42, QHeaderView.ResizeMode.Fixed),
-                (COL_DELETE,       62, QHeaderView.ResizeMode.Fixed),
-                (COL_RESET,        42, QHeaderView.ResizeMode.Fixed),
-                (COL_SCOPE,        90, QHeaderView.ResizeMode.Interactive),
-                (COL_MODE,         70, QHeaderView.ResizeMode.Interactive),
-                (COL_CAPITAL,      60, QHeaderView.ResizeMode.Interactive),
-                (COL_START,        55, QHeaderView.ResizeMode.Interactive),
-                (COL_END,          55, QHeaderView.ResizeMode.Interactive),
-                (COL_TRADE_TYPE,   80, QHeaderView.ResizeMode.Interactive),
-                (COL_DIRECTION,    70, QHeaderView.ResizeMode.Interactive),
-                (COL_START_DATE,   90, QHeaderView.ResizeMode.Interactive),
-                (COL_END_DATE,     90, QHeaderView.ResizeMode.Interactive),
-                (COL_TARGET,        60, QHeaderView.ResizeMode.Interactive),
-                (COL_TARGET_TYPE,   70, QHeaderView.ResizeMode.Interactive),
-                (COL_STOPLOSS,      60, QHeaderView.ResizeMode.Interactive),
-                (COL_STOPLOSS_TYPE, 70, QHeaderView.ResizeMode.Stretch),
-            ]:
-                hh.setSectionResizeMode(col, mode)
-                if mode != QHeaderView.ResizeMode.Stretch:
-                    hh.resizeSection(col, width)
-
-        # Label the vertical-header corner cell as the row-number column.
-        corner = self._view.findChild(QAbstractButton)
-        if corner is not None:
-            corner.setText("#")
-
-        self._proxy.layoutChanged.connect(lambda: self._reinject_row_widgets())
-        root.addWidget(self._view, 1)
-
-        add_btn = QPushButton("+ Add Strategy")
-        add_btn.setFixedHeight(C.BTN_H)
-        add_btn.setFixedWidth(130)
-        add_btn.clicked.connect(self._on_add)
-        btn_row = QHBoxLayout()
-        btn_row.addStretch()
-        btn_row.addWidget(add_btn)
-        root.addLayout(btn_row)
-
-        self._refresh_table()
-
-    # ── Data helpers ──────────────────────────────────────────────────────────
-
-    def _refresh_table(self) -> None:
-        running_override = self._demo.get_strategies_with_open_cycles()
-        self._model.load(self._configs, running_override=running_override)
-        self._reinject_row_widgets()
-
-    def _reinject_row_widgets(self) -> None:
-        ct = active_palette()
-        for proxy_row in range(self._proxy.rowCount()):
-            src_row = self._proxy.mapToSource(self._proxy.index(proxy_row, 0)).row()
-            cfg = self._configs[src_row]
-            # Use the effective state (same source as the STATUS badge) so the
-            # Play/Stop icon never disagrees with the badge.
-            state = self._model.status_for(cfg)
-            is_live = state in ("RUNNING", "SQUARING_OFF")
-            self._view.setIndexWidget(
-                self._proxy.index(proxy_row, COL_RUN),
-                self._make_run_btn(
-                    "■" if is_live else "▶",
-                    ct.RED if is_live else ct.GREEN,
-                    lambda _, r=src_row: self._on_run(r),
-                ),
-            )
-            self._view.setIndexWidget(
-                self._proxy.index(proxy_row, COL_EDIT),
-                self._make_cell_btn("edit", ct.BLUE, lambda _, r=src_row: self._on_edit(r)),
-            )
-            self._view.setIndexWidget(
-                self._proxy.index(proxy_row, COL_DELETE),
-                self._make_cell_btn("delete", ct.RED, lambda _, r=src_row: self._on_delete(r)),
-            )
-            self._view.setIndexWidget(
-                self._proxy.index(proxy_row, COL_RESET),
-                self._make_cell_btn("reset", ct.ORANGE, lambda _, r=src_row: self._on_reset(r)),
-            )
-
-    @staticmethod
-    def _make_run_btn(icon_char: str, color: str, slot: Any) -> QPushButton:
-        ct = active_palette()
-        kind = "run" if icon_char == "▶" else "stop"
-        btn = QPushButton()
-        btn.setIcon(_cell_icon(kind, color))
-        btn.setIconSize(QSize(14, 14))
-        btn.setToolTip("Start strategy" if kind == "run" else "Stop strategy")
-        btn.setStyleSheet(_CELL_ICON_BTN_SS.format(fg=color, hover_bg=ct.OVERLAY))
-        btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        btn.clicked.connect(slot)
-        return btn
-
-    @staticmethod
-    def _make_cell_btn(kind: str, color: str, slot: Any) -> QPushButton:
-        ct = active_palette()
-        btn = QPushButton()
-        btn.setIcon(_cell_icon(kind, color))
-        btn.setIconSize(QSize(14, 14))
-        tip = {"edit": "Edit", "delete": "Delete", "reset": "Reset rex counters"}.get(kind, kind.title())
-        btn.setToolTip(tip)
-        btn.setStyleSheet(_CELL_ICON_BTN_SS.format(fg=color, hover_bg=ct.OVERLAY))
-        btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        btn.clicked.connect(slot)
-        return btn
-
-    # ── Slots ─────────────────────────────────────────────────────────────────
-
-    def _on_add(self) -> None:
-        existing_names = {c.name for c in self._configs}
-        dlg = StrategyBuilderDialog(
-            self, existing_names=existing_names, max_capital=self._demo.effective_capital()
-        )
-        dlg.strategy_saved.connect(self._append_config)
-        dlg.exec()
-
-    def _on_edit(self, src_row: int) -> None:
-        if src_row < 0 or src_row >= len(self._configs):
-            return
-        original = self._configs[src_row]
-        existing_names = {c.name for c in self._configs}
-        dlg = StrategyBuilderDialog(
-            self, existing=original, existing_names=existing_names,
-            max_capital=self._demo.effective_capital(),
-            has_open_trades=bool(self._demo.has_live_or_pending_trades(original.name)),
-        )
-
-        def _on_saved(cfg: StrategyConfig) -> None:
-            self._configs[src_row] = cfg
-            save_strategies(self._configs)
-            self._demo.reload_strategy_registry()
-            self._refresh_table()
-
-        dlg.strategy_saved.connect(_on_saved)
-        dlg.exec()
-
-    def _on_delete(self, src_row: int) -> None:
-        if src_row < 0 or src_row >= len(self._configs):
-            return
-        cfg = self._configs[src_row]
-        ret = QMessageBox.question(
-            self,
-            "Delete Strategy",
-            f"Delete strategy '{cfg.name}'?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
-        )
-        if ret == QMessageBox.StandardButton.Yes:
-            self._configs.pop(src_row)
-            save_strategies(self._configs)
-            repo = getattr(self._demo, "rex_counters", None)
-            if repo is not None:
-                try:
-                    repo.reset(cfg.name)
-                except Exception:
-                    pass
-            self._refresh_table()
-
-    def _on_reset(self, src_row: int) -> None:
-        if src_row < 0 or src_row >= len(self._configs):
-            return
-        cfg = self._configs[src_row]
-        repo = getattr(self._demo, "rex_counters", None)
-        if repo is None:
-            QMessageBox.warning(
-                self,
-                "Reset unavailable",
-                "Rex counter repository is not initialized — restart the app and try again.",
-            )
-            return
-        ret = QMessageBox.question(
-            self,
-            "Reset Strategy",
-            f"Reset rex counters for '{cfg.name}'?\n\n"
-            "This clears the per-stock re-entry budget so the strategy can take fresh entries.\n"
-            "Open positions are NOT affected.",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
-        )
-        if ret != QMessageBox.StandardButton.Yes:
-            return
-        try:
-            deleted = repo.reset(cfg.name)
-        except Exception as exc:
-            QMessageBox.critical(self, "Reset failed", f"Could not reset counters:\n{exc}")
-            return
-        QMessageBox.information(
-            self,
-            "Reset complete",
-            f"Cleared {deleted} rex counter row(s) for '{cfg.name}'.",
-        )
-
-    def _append_config(self, cfg: StrategyConfig) -> None:
-        self._configs.append(cfg)
-        save_strategies(self._configs)
-        self._refresh_table()
-
-    def _on_run(self, src_row: int) -> None:
-        """Play/Stop toggle.
-
-        Play (STOPPED → RUNNING): arms evaluation immediately.
-
-        Stop (RUNNING → STOPPED or SQUARING_OFF):
-        - With no open cycles: transitions to STOPPED immediately.
-        - With one or more open cycles: transitions to SQUARING_OFF; the
-          engine emits forced EXITs for each open cycle and auto-transitions
-          to STOPPED when the last cycle closes (FO-EXE-013 AC#3).
-
-        Stop while SQUARING_OFF: forces STOPPED once no open cycles remain
-        (or the cycle ledger is absent), so a strategy can never be locked
-        into the squaring-off badge; stays SQUARING_OFF while cycles remain.
-        """
-        if src_row < 0 or src_row >= len(self._configs):
-            return
-        cfg = self._configs[src_row]
-        # Effective state (badge source) so a Stop icon always performs a stop,
-        # even when RUNNING is forced by an open cycle.
-        current = self._model.status_for(cfg)
-
-        if current == "STOPPED":
-            new_state = "RUNNING"
-        elif current == "SQUARING_OFF":
-            if self._demo.get_open_symbols_for_strategy(cfg.name):
-                return
-            new_state = "STOPPED"
-        else:
-            open_syms = self._demo.get_open_symbols_for_strategy(cfg.name)
-            new_state = "SQUARING_OFF" if open_syms else "STOPPED"
-
-        cfg.run_state = new_state
-        save_strategies(self._configs)
-        self._notify_engine_run_state(cfg.name, new_state)
-        self._demo.reload_strategy_registry()
-        self._refresh_table()
-
-    def _notify_engine_run_state(self, strategy_id: str, new_state: str) -> None:
-        engine = getattr(self._demo, "_strategy_engine", None)
-        if engine is None:
-            return
-        try:
-            from us_swing.execution import ExecutionEnums
-            engine.set_run_state(strategy_id, ExecutionEnums.StrategyRunState(new_state))
-        except Exception:
-            pass
-
-    def _on_engine_status(self, strategy_name: str, new_status: str) -> None:
-        """A strategy entered or exited a position.
-
-        The RUNNING badge is derived live from open cycles in
-        ``_refresh_table`` (via ``running_override``), so we only refresh
-        here. ``run_state`` must never be overwritten with the legacy
-        ``"Active"`` / ``"Running"`` vocabulary — those are not valid
-        ``StrategyRunState`` values and corrupt the persisted column.
-        """
-        self._refresh_table()
-
 
 # ── Diagnostics title bar ─────────────────────────────────────────────────────
 
@@ -574,9 +167,11 @@ class _CandleDbDiagDialog(QDialog):
         btn_row = QHBoxLayout()
         clear_btn = QPushButton("Clear Old Data")
         clear_btn.setObjectName("danger_btn")
+        set_icon(clear_btn, "eraser", "danger")
         clear_btn.setFixedWidth(130)
         clear_btn.clicked.connect(self._clear_old_data)
         refresh_btn = QPushButton("Refresh")
+        set_icon(refresh_btn, "refresh-cw", "info")
         refresh_btn.setFixedWidth(90)
         refresh_btn.clicked.connect(self._load)
         btn_row.addStretch()
@@ -724,14 +319,28 @@ class _CandleDbDiagDialog(QDialog):
 # ── Intraday chart pane (3m + 15m side by side) ───────────────────────────────
 
 _CHART_REFRESH_MS: int = 90_000  # periodic fallback re-render interval
+CHARTS_HIDDEN_KEY = "charts_hidden"
+
 
 class _IntradayChartPane(QWidget):
-    """Shows two intraday TradingView charts (3m and 15m) side by side."""
+    """Shows two intraday TradingView charts (3m and 15m) side by side.
 
-    def __init__(self, svc: AppService, parent: QWidget | None = None) -> None:
+    SRD-GUI-024.008 — the hidden / shown state (toggled from the page
+    header) is remembered in ``settings``.
+    """
+
+    charts_toggled = pyqtSignal(bool)  # True = hidden
+
+    def __init__(
+        self,
+        svc: AppService,
+        parent: QWidget | None = None,
+        settings: QSettings | None = None,
+    ) -> None:
         super().__init__(parent)
         self._svc = svc
         self._current_symbol = ""
+        self._settings = settings or QSettings("USSwing", "ExecutionPanel")
 
         # One in-flight candle read per timeframe; a request that arrives while
         # a read is running is held in _pending and run when the current one
@@ -742,10 +351,6 @@ class _IntradayChartPane(QWidget):
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
-
-        self._hdr = QLabel("Select a stock to view intraday charts")
-        self._apply_hdr_style(active=False)
-        root.addWidget(self._hdr)
 
         self._splitter = QSplitter(Qt.Orientation.Horizontal)
         self._splitter.setHandleWidth(2)
@@ -763,6 +368,8 @@ class _IntradayChartPane(QWidget):
 
         root.addWidget(self._splitter, 1)
         self._show_placeholder()
+        self.charts_hidden = False
+        self.set_charts_hidden(bool(self._settings.value(CHARTS_HIDDEN_KEY, False, type=bool)))
 
         # Qt auto-disconnects this when the widget is destroyed (QObject lifetime rule).
         svc.live_bar_data_updated.connect(self._on_live_bar)
@@ -779,8 +386,6 @@ class _IntradayChartPane(QWidget):
         if symbol == self._current_symbol:
             return
         self._current_symbol = symbol
-        self._hdr.setText(f"{symbol}  —  Intraday")
-        self._apply_hdr_style(active=True)
         self._request_candles("3m",  symbol, "render")
         self._request_candles("15m", symbol, "render")
 
@@ -884,18 +489,11 @@ class _IntradayChartPane(QWidget):
             )
             web.setHtml(html)
 
-    def _apply_hdr_style(self, *, active: bool) -> None:
-        ct = active_palette()
-        if active:
-            self._hdr.setStyleSheet(
-                f"color:{ct.TEXT}; font-size:9pt; font-weight:bold; padding:4px 10px;"
-                f"background:{ct.SURFACE}; border-bottom:1px solid {ct.OVERLAY};"
-            )
-        else:
-            self._hdr.setStyleSheet(
-                f"color:{ct.MUTED}; font-size:8pt; padding:4px 10px;"
-                f"background:{ct.SURFACE}; border-bottom:1px solid {ct.OVERLAY};"
-            )
+    def set_charts_hidden(self, hidden: bool) -> None:
+        """Hide or show the charts and remember it (SRD-GUI-024.008)."""
+        self.charts_hidden = hidden
+        self._settings.setValue(CHARTS_HIDDEN_KEY, hidden)
+        self.charts_toggled.emit(hidden)
 
     def _apply_splitter_style(self) -> None:
         ct = active_palette()
@@ -904,9 +502,7 @@ class _IntradayChartPane(QWidget):
     def refresh_theme(self, _theme_id: str = "") -> None:
         """Re-apply Qt styles and re-render chart HTML for the active theme."""
         self._apply_splitter_style()
-        active = bool(self._current_symbol)
-        self._apply_hdr_style(active=active)
-        if active:
+        if self._current_symbol:
             self._request_candles("3m",  self._current_symbol, "render")
             self._request_candles("15m", self._current_symbol, "render")
         else:
@@ -915,347 +511,18 @@ class _IntradayChartPane(QWidget):
 
 
 
-# ── Filtered Stocks table model ───────────────────────────────────────────────
-
-_COL_SYMBOL   = 0
-_COL_SCORE    = 1
-_COL_RUN      = 2
-_COL_STYLE    = 3
-_COL_SCREENER = 4
-
-
-class _FilteredStocksModel(QAbstractTableModel):
-    """Table model for the filtered stocks left pane."""
-
-    HEADERS = ["Symbol", "Score", "Run", "Style", "Screener"]
-
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self._rows: list[FilteredStockEntry] = []
-        self._readiness: dict[str, bool | None] = {}
-
-    def load(self, entries: list[FilteredStockEntry]) -> None:
-        self.beginResetModel()
-        self._rows = entries
-        self.endResetModel()
-
-    def is_pick(self, row: int) -> bool:
-        """True when the row is a manual pick (SRD-GUI-004.011)."""
-        return 0 <= row < len(self._rows) and self._rows[row].run_type == "pick"
-
-    def symbol_at(self, row: int) -> str:
-        return self._rows[row].symbol
-
-    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
-        return 0 if parent.isValid() else len(self._rows)
-
-    def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
-        return 0 if parent.isValid() else len(self.HEADERS)
-
-    def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
-        if orientation == Qt.Orientation.Horizontal and role == Qt.ItemDataRole.DisplayRole:
-            return self.HEADERS[section]
-        return None
-
-    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
-        if not index.isValid() or index.row() >= len(self._rows):
-            return None
-        entry = self._rows[index.row()]
-        col = index.column()
-
-        if entry.run_type == "pick" and role in (
-            Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.ForegroundRole
-        ):
-            return self._pick_data(entry, col, role)
-
-        if role == Qt.ItemDataRole.DisplayRole:
-            if col == _COL_SYMBOL:
-                return entry.symbol
-            if col == _COL_SCORE:
-                return f"{entry.score:.3f}"
-            if col == _COL_STYLE:
-                return ", ".join(entry.trading_styles) if entry.trading_styles else "—"
-            if col == _COL_SCREENER:
-                return entry.screener_name
-            if col == _COL_RUN:
-                return "Auto" if entry.run_type == "scheduled" else "Manual"
-
-        if role == Qt.ItemDataRole.ForegroundRole:
-            if col == _COL_SYMBOL:
-                return QColor(C.BLUE)
-            if col == _COL_SCORE:
-                if entry.score >= 0.70:
-                    return QColor(C.GREEN)
-                if entry.score >= 0.40:
-                    return QColor(C.YELLOW)
-                return QColor(C.RED)
-            if col == _COL_RUN:
-                return QColor(C.TEAL) if entry.run_type == "scheduled" else QColor(C.BLUE)
-
-        if role == Qt.ItemDataRole.BackgroundRole:
-            if self._readiness.get(entry.symbol) is False:
-                return QColor(180, 60, 60, 70)
-
-        if role == Qt.ItemDataRole.TextAlignmentRole:
-            if col in (_COL_SCORE, _COL_RUN):
-                return Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
-            return Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
-
-        return None
-
-    @staticmethod
-    def _pick_data(entry: FilteredStockEntry, col: int, role: int) -> Any:
-        """Display text and colour for a manual pick row (SRD-GUI-004.011)."""
-        if role == Qt.ItemDataRole.DisplayRole:
-            return {
-                _COL_SYMBOL: f"★ {entry.symbol}",
-                _COL_RUN: "Manual pick",
-                _COL_SCREENER: "✕ Remove",
-            }.get(col, "—")
-        if col == _COL_SYMBOL:
-            return QColor(C.YELLOW)
-        if col == _COL_SCREENER:
-            return QColor(C.RED)
-        return QColor(C.MUTED)
-
-    def set_candle_readiness(self, report: dict[str, bool | None]) -> None:
-        self._readiness.update(report)
-        if self._rows:
-            top_left = self.createIndex(0, 0)
-            bot_right = self.createIndex(len(self._rows) - 1, len(self.HEADERS) - 1)
-            self.dataChanged.emit(top_left, bot_right, [Qt.ItemDataRole.BackgroundRole])
-
-
-class _PinnedPicksProxy(QSortFilterProxyModel):
-    """Sorts as usual but keeps manual picks above screener rows in either order."""
-
-    def lessThan(self, left: QModelIndex, right: QModelIndex) -> bool:
-        model = self.sourceModel()
-        assert isinstance(model, _FilteredStocksModel)
-        left_pick, right_pick = model.is_pick(left.row()), model.is_pick(right.row())
-        if left_pick != right_pick:
-            return left_pick if self.sortOrder() == Qt.SortOrder.AscendingOrder else right_pick
-        return super().lessThan(left, right)
-
-
-# ── Filtered Stocks left pane ─────────────────────────────────────────────────
-
-class _FilteredStocksPane(QWidget):
-    """Left panel showing the most recent screener output across all presets."""
-
-    symbol_selected = pyqtSignal(str)  # emitted on row click or auto-select
-
-    def __init__(self, svc: AppService, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setMinimumWidth(180)
-        self._svc = svc
-        self._all_entries: list[FilteredStockEntry] = []
-
-        self._current_date = ""
-
-        # ── Header ─────────────────────────────────────────────────────────────
-        hdr_lbl = QLabel("FILTERED STOCKS")
-        hdr_lbl.setStyleSheet(
-            f"color: {C.MUTED}; font-size: 7pt; font-weight: bold; letter-spacing: 2px;"
-        )
-        _meta_qss = f"color: {C.MUTED}; font-size: 8pt;"
-        self._date_lbl = QLabel("")
-        self._date_lbl.setStyleSheet(_meta_qss)
-        self._time_lbl = QLabel("")
-        self._time_lbl.setStyleSheet(_meta_qss)
-        self._count_lbl = QLabel("")
-        self._count_lbl.setStyleSheet(_meta_qss)
-
-        self._date_time_sep = QLabel(" - ")
-        self._date_time_sep.setStyleSheet(_meta_qss)
-        self._time_count_sep = QLabel(" - ")
-        self._time_count_sep.setStyleSheet(_meta_qss)
-
-        hdr_row = QHBoxLayout()
-        hdr_row.setContentsMargins(0, 0, 0, 0)
-        hdr_row.addWidget(hdr_lbl)
-        hdr_row.addStretch()
-        hdr_row.addWidget(self._date_lbl)
-        hdr_row.addWidget(self._date_time_sep)
-        hdr_row.addWidget(self._time_lbl)
-        hdr_row.addWidget(self._time_count_sep)
-        hdr_row.addWidget(self._count_lbl)
-
-        # ── Manual pick input (SRD-GUI-004.010) ────────────────────────────────
-        self._pick_input = QLineEdit()
-        self._pick_input.setPlaceholderText("Add symbol…")
-        self._pick_input.returnPressed.connect(self._on_add_pick)
-        # Suggestions match symbol or company name, e.g. "dell" → "DELL — Dell Technologies"
-        self._pick_completer = QCompleter(self)
-        self._pick_completer.setFilterMode(Qt.MatchFlag.MatchContains)
-        self._pick_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-        self._pick_completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
-        self._pick_completer.setMaxVisibleItems(12)
-        popup = self._pick_completer.popup()
-        assert popup is not None
-        popup.setStyleSheet(
-            f"QAbstractItemView {{ background:{C.SURFACE}; color:{C.TEXT};"
-            f" border:1px solid {C.OVERLAY}; selection-background-color:{C.OVERLAY};"
-            f" selection-color:{C.TEXT}; font-size:8pt; outline:none; }}"
-        )
-        self._pick_input.setCompleter(self._pick_completer)
-        self._refresh_pick_suggestions()
-        svc.sp500_updated.connect(self._refresh_pick_suggestions)
-        add_btn = QPushButton("+ Add")
-        add_btn.clicked.connect(self._on_add_pick)
-        pick_row = QHBoxLayout()
-        pick_row.setContentsMargins(0, 0, 0, 0)
-        pick_row.addWidget(self._pick_input, 1)
-        pick_row.addWidget(add_btn)
-
-        # ── Table ──────────────────────────────────────────────────────────────
-        self._model = _FilteredStocksModel()
-        self._proxy = _PinnedPicksProxy()
-        self._proxy.setSourceModel(self._model)
-
-        self._table = QTableView()
-        self._table.setModel(self._proxy)
-        self._table.setSortingEnabled(True)
-        self._table.sortByColumn(_COL_SCORE, Qt.SortOrder.DescendingOrder)
-        self._table.setAlternatingRowColors(True)
-        self._table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        self._table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        v_hdr = self._table.verticalHeader()
-        assert v_hdr is not None
-        v_hdr.setVisible(False)
-        self._table.setShowGrid(False)
-        self._table.setWordWrap(False)
-
-        hdrs = self._table.horizontalHeader()
-        assert hdrs is not None
-        hdrs.setSectionResizeMode(_COL_SYMBOL,   QHeaderView.ResizeMode.Interactive)
-        hdrs.resizeSection(_COL_SYMBOL, 75)
-        hdrs.setSectionResizeMode(_COL_SCORE,    QHeaderView.ResizeMode.Interactive)
-        hdrs.resizeSection(_COL_SCORE, 52)
-        hdrs.setSectionResizeMode(_COL_RUN,      QHeaderView.ResizeMode.Interactive)
-        hdrs.resizeSection(_COL_RUN, 58)
-        hdrs.setSectionResizeMode(_COL_STYLE,    QHeaderView.ResizeMode.Interactive)
-        hdrs.resizeSection(_COL_STYLE, 65)
-        hdrs.setSectionResizeMode(_COL_SCREENER, QHeaderView.ResizeMode.Stretch)
-
-        # ── Empty state label ─────────────────────────────────────────────────
-        self._empty_lbl = QLabel("No screener results yet.\nRun a preset in the Screener tab.")
-        self._empty_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._empty_lbl.setStyleSheet(f"color: {C.MUTED}; font-size: 9pt; padding: 20px;")
-        self._empty_lbl.setWordWrap(True)
-
-        # Stack table and empty label — show one at a time
-        self._table.setVisible(False)
-        self._empty_lbl.setVisible(True)
-
-        # ── Layout ─────────────────────────────────────────────────────────────
-        root = QVBoxLayout(self)
-        root.setContentsMargins(0, 0, 6, 0)
-        root.setSpacing(6)
-        root.addLayout(hdr_row)
-        root.addLayout(pick_row)
-        root.addWidget(self._table, 1)
-        root.addWidget(self._empty_lbl, 1)
-
-        # ── Selection signal ───────────────────────────────────────────────────
-        sel_model = self._table.selectionModel()
-        assert sel_model is not None
-        sel_model.currentChanged.connect(self._on_current_changed)
-        self._table.clicked.connect(self._on_cell_clicked)
-
-        # ── Wire up to service ─────────────────────────────────────────────────
-        svc.screener_results_updated.connect(self._on_updated)
-        svc.candle_readiness_updated.connect(self._on_candle_readiness)
-        self._on_updated(svc.get_latest_screener_results())
-
-    def _on_current_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
-        if not current.isValid():
-            return
-        src = self._proxy.mapToSource(current)
-        if not src.isValid() or src.row() >= len(self._model._rows):
-            return
-        self.symbol_selected.emit(self._model._rows[src.row()].symbol)
-
-    def _refresh_pick_suggestions(self) -> None:
-        items = [f"{r.symbol} — {r.name}" for r in self._svc.get_sp500_universe()]
-        self._pick_completer.setModel(QStringListModel(items, self._pick_completer))
-
-    def _on_add_pick(self) -> None:
-        symbol = self._pick_input.text().split(" — ")[0]
-        error = self._svc.add_manual_pick(symbol)
-        if error is None:
-            self._pick_input.clear()
-            return
-        QToolTip.showText(
-            self._pick_input.mapToGlobal(QPoint(0, self._pick_input.height())),
-            error,
-            self._pick_input,
-        )
-
-    def _on_cell_clicked(self, index: QModelIndex) -> None:
-        src = self._proxy.mapToSource(index)
-        if src.column() == _COL_SCREENER and self._model.is_pick(src.row()):
-            self._svc.remove_manual_pick(self._model.symbol_at(src.row()))
-
-    def get_top_symbol(self) -> str | None:
-        """Return the symbol of the highest-score row, or None if empty."""
-        idx = self._proxy.index(0, 0)
-        if not idx.isValid():
-            return None
-        src = self._proxy.mapToSource(idx)
-        if not src.isValid() or src.row() >= len(self._model._rows):
-            return None
-        return self._model._rows[src.row()].symbol
-
-    def _on_updated(self, entries: list[FilteredStockEntry]) -> None:
-        self._all_entries = entries
-        dates = sorted({e.date for e in entries if e.date}, reverse=True)
-        if not dates:
-            self._current_date = ""
-            self._date_lbl.setText("")
-            self._time_lbl.setText("")
-            self._count_lbl.setText("")
-            self._date_time_sep.setVisible(False)
-            self._time_count_sep.setVisible(False)
-            self._filter_by_date()
-            return
-        self._current_date = dates[0]
-        self._date_lbl.setText(
-            datetime.strptime(self._current_date, "%Y-%m-%d").strftime("%d %b %Y")
-        )
-        latest_time = max(
-            (e.time for e in entries if e.date == self._current_date and e.time),
-            default="",
-        )
-        self._time_lbl.setText(latest_time)
-        self._time_lbl.setVisible(bool(latest_time))
-        self._date_time_sep.setVisible(bool(latest_time))
-        self._time_count_sep.setVisible(True)
-        self._filter_by_date()
-
-    def _filter_by_date(self) -> None:
-        self._model.load(self._all_entries)
-        count = len(self._all_entries)
-        self._count_lbl.setText(f"{count} Stock{'s' if count != 1 else ''}")
-        self._table.setVisible(count > 0)
-        self._empty_lbl.setVisible(count == 0)
-        if count > 0:
-            top = self._proxy.index(0, 0)
-            if top.isValid():
-                self._table.setCurrentIndex(top)
-
-    def _on_candle_readiness(self, report: dict[str, bool | None]) -> None:
-        self._model.set_candle_readiness(report)
+_TAB_NAMES = ("Active trades", "Strategies", "Closed today")
+_GAP_HANDLE_QSS = "QSplitter::handle { background: transparent; }"
 
 
 # ── Execution Panel ───────────────────────────────────────────────────────────
 
 class ExecutionPanel(QWidget):
     """
-    FO-GUI-004 Execution Panel.
-    Left pane: filtered stocks — click any row to load intraday charts.
-    Right pane top: 3m and 15m TradingView charts for the selected stock.
-    Right pane bottom: pending signals with qty override and execute controls.
+    FO-GUI-004 Execution Panel, laid out as the FO-GUI-024 workspace.
+    Top: page header.  Left card: grouped watchlist — click a symbol to load
+    its charts.  Right column: tab card (Active trades / Strategies / Closed
+    today) above the 3m and 15m charts, which can be hidden.
     """
 
     def __init__(self, demo: AppService, parent: QWidget | None = None) -> None:
@@ -1263,38 +530,19 @@ class ExecutionPanel(QWidget):
         self._demo = demo
         self._cb_active = False
 
+        # Cards on the gutter with a GAP between them, like the Screener (SRD-GUI-023.002).
+        gutter(self)
         main = QVBoxLayout(self)
-        main.setContentsMargins(16, 16, 16, 16)
-        main.setSpacing(12)
+        main.setContentsMargins(0, 0, 0, 0)
+        main.setSpacing(GAP)
 
-        # ── Header row ─────────────────────────────────────────────────────────
-        title = QLabel("Trade Execution")
-        title.setStyleSheet(f"color: {C.BLUE}; font-size: 12pt; font-weight: bold;")
-
-        admin_badge = QLabel("🔐 ADMIN")
-        admin_badge.setStyleSheet(
-            f"color:{C.YELLOW}; background:{C.YELLOW}18; border:1px solid {C.YELLOW}55;"
-            f"border-radius:5px; padding:1px 7px; font-size:7pt; font-weight:bold;"
-        )
-
-        exec_for_lbl = QLabel("Execute for:")
-        exec_for_lbl.setStyleSheet(f"color:{C.MUTED}; font-size:8pt;")
-        self._exec_user_combo = QComboBox()
-        self._exec_user_combo.setMinimumWidth(140)
-        self._exec_user_combo.setStyleSheet("QComboBox { outline: none; } QComboBox:focus { outline: none; }")
-        self._exec_user_combo.addItem("🌐  All / Broadcast", None)
-        for u in demo.get_users():
-            flag = "🔴" if u.mode == "live" else "🔵"
-            self._exec_user_combo.addItem(f"{flag}  {u.username}  ({u.mode.upper()})", u.user_id)
-        demo.viewing_changed.connect(self._on_scope_changed)
-
-        hdr = QHBoxLayout()
-        hdr.addWidget(title)
-        hdr.addWidget(admin_badge)
-        hdr.addStretch()
-        hdr.addWidget(exec_for_lbl)
-        hdr.addWidget(self._exec_user_combo)
-        main.addLayout(hdr)
+        # ── Page header (SRD-GUI-024.001) ──────────────────────────────────────
+        self._header = ExecutionHeader(demo)
+        head_box = QWidget()
+        head_col = QVBoxLayout(head_box)
+        head_col.setContentsMargins(0, 0, 0, 0)
+        head_col.setSpacing(0)
+        head_col.addWidget(self._header)
 
         # ── Circuit breaker banner (hidden by default) ─────────────────────────
         self._cb_banner = QLabel(
@@ -1304,27 +552,28 @@ class ExecutionPanel(QWidget):
         self._cb_banner.setObjectName("cb_banner")
         self._cb_banner.setVisible(False)
         self._cb_banner.setWordWrap(True)
-        main.addWidget(self._cb_banner)
+        head_col.addWidget(self._cb_banner)
+        main.addWidget(card(head_box))
         # Circuit breaker now lives on AppService (toggled from Settings → System).
         demo.circuit_breaker_changed.connect(self.on_circuit_breaker)
 
         # ── Chart pane (created first so we can wire the signal) ───────────────
         self._chart_pane = _IntradayChartPane(demo)
 
-        # ── Horizontal split: filtered stocks | right pane ─────────────────────
-        h_splitter = QSplitter(Qt.Orientation.Horizontal)
-        h_splitter.setHandleWidth(2)
-        h_splitter.setStyleSheet(f"QSplitter::handle {{ background: {active_palette().OVERLAY}; }}")
+        # ── Horizontal split: watchlist card | right column ────────────────────
+        h_splitter = gutter(QSplitter(Qt.Orientation.Horizontal))
+        h_splitter.setHandleWidth(GAP)
+        h_splitter.setStyleSheet(_GAP_HANDLE_QSS)
         self._h_splitter = h_splitter
 
         self._selected_symbol: str = ""
-        self._left_pane = _FilteredStocksPane(demo)
+        self._left_pane = WatchlistPane(demo)
         self._left_pane.symbol_selected.connect(self._on_symbol_selected)
         demo.candle_readiness_updated.connect(self._on_candle_data_ready)
 
-        h_splitter.addWidget(self._left_pane)
+        h_splitter.addWidget(card(self._left_pane))
         h_splitter.addWidget(self._build_right_pane(demo))
-        h_splitter.setSizes([260, 900])
+        h_splitter.setSizes([250, 950])
         h_splitter.setCollapsible(0, False)
         h_splitter.setCollapsible(1, False)
 
@@ -1336,58 +585,79 @@ class ExecutionPanel(QWidget):
             self._on_symbol_selected(top)
 
     def _build_right_pane(self, demo: AppService) -> QWidget:
-        """Build the right side: intraday charts (top) + tabbed bottom pane."""
-        pane = QWidget()
-        layout = QVBoxLayout(pane)
-        layout.setContentsMargins(6, 0, 0, 0)
-        layout.setSpacing(0)
+        """Right column: tab card on top, intraday charts below (SRD-GUI-024.008)."""
+        self._v_splitter = gutter(QSplitter(Qt.Orientation.Vertical))
+        self._v_splitter.setHandleWidth(GAP)
+        self._v_splitter.setStyleSheet(_GAP_HANDLE_QSS)
 
-        self._v_splitter = QSplitter(Qt.Orientation.Vertical)
-        self._v_splitter.setHandleWidth(2)
-        self._v_splitter.setStyleSheet(f"QSplitter::handle {{ background: {active_palette().OVERLAY}; }}")
-
-        self._v_splitter.addWidget(self._chart_pane)
         self._bottom_tabs = self._build_bottom_tabs(demo)
-        self._v_splitter.addWidget(self._bottom_tabs)
-        self._v_splitter.setSizes([380, 260])
+        self._v_splitter.addWidget(card(self._bottom_tabs))
+        self._chart_card = card(self._chart_pane)
+        self._v_splitter.addWidget(self._chart_card)
+        self._v_splitter.setStretchFactor(0, 3)
+        self._v_splitter.setStretchFactor(1, 2)
         self._v_splitter.setCollapsible(0, False)
         self._v_splitter.setCollapsible(1, False)
-
-        layout.addWidget(self._v_splitter, 1)
-        return pane
-
-    @staticmethod
-    def _tab_qss() -> str:
-        ct = active_palette()
-        return (
-            f"QTabBar::tab {{"
-            f"  background: {ct.SURFACE}; color: {ct.MUTED};"
-            f"  padding: 6px 16px; border: 1px solid {ct.OVERLAY}; border-bottom: none;"
-            f"  border-top-left-radius: 4px; border-top-right-radius: 4px;"
-            f"  margin-right: 2px; font-size: 9pt;"
-            f"}}"
-            f"QTabBar::tab:selected {{"
-            f"  background: {ct.BG}; color: {ct.TEXT};"
-            f"  border-bottom: 2px solid {ct.TEXT}; font-weight: bold;"
-            f"}}"
-            f"QTabBar::tab:hover:!selected {{ background: {ct.OVERLAY}; }}"
-            f"QTabWidget::pane {{ border: 1px solid {ct.OVERLAY}; background: {ct.BG}; }}"
+        self._chart_pane.charts_toggled.connect(self._on_charts_toggled)
+        self._header.charts_btn.clicked.connect(
+            lambda: self._chart_pane.set_charts_hidden(not self._chart_pane.charts_hidden)
         )
+        self._on_charts_toggled(self._chart_pane.charts_hidden)
+        return self._v_splitter
 
-    def _build_bottom_tabs(self, demo: AppService) -> QTabWidget:
-        """Tabbed bottom pane: Active Trades | Strategy Builder."""
-        tabs = QTabWidget()
-        tabs.setStyleSheet(self._tab_qss())
-        tabs.addTab(self._build_active_trades_pane(demo), "📈  Active Trades")
-        tabs.addTab(self._build_strategy_tab(demo), "🛠  Strategy Builder")
-        return tabs
+    def _on_charts_toggled(self, hidden: bool) -> None:
+        """Hidden: the chart card goes away; shown: 3 : 2 split."""
+        self._chart_card.setVisible(not hidden)
+        self._header.show_charts_state(hidden)
+        if not hidden:
+            total = max(self._v_splitter.height(), 500)
+            self._v_splitter.setSizes([total * 3 // 5, total * 2 // 5])
 
-    def _build_strategy_tab(self, demo: AppService) -> QWidget:
-        """Strategy Builder pane. (Candle DB + circuit-breaker live in Settings → System.)"""
-        self._strategy_pane = _StrategyTablePane(demo)
+    def _build_bottom_tabs(self, demo: AppService) -> QWidget:
+        """Tab card: Active trades | Strategies | Closed today (SRD-GUI-024.003)."""
+        self._tab_bar = QTabBar()
+        self._tab_bar.setObjectName("exec_tabs")
+        self._tab_bar.setDrawBase(False)
+        self._tab_bar.setExpanding(False)
+        for label in _TAB_NAMES:
+            self._tab_bar.addTab(label)
+
+        self._tab_stack = QStackedWidget()
+        self._tab_stack.addWidget(self._build_active_trades_pane(demo))
+        self._strategy_pane = StrategiesPane(demo)
+        self._tab_stack.addWidget(self._strategy_pane)
         # Retained off-screen for the dormant legacy signals view's status text.
         self._status_lbl = QLabel()
-        return self._strategy_pane
+
+        self._active_trades_panel.counts_changed.connect(self._on_trade_counts)
+        self._strategy_pane.count_changed.connect(lambda n: self._set_tab_count(1, n))
+        self._tab_bar.currentChanged.connect(self._on_tab_changed)
+        self._on_tab_changed(0)
+        self._set_tab_count(1, self._strategy_pane.list.count())
+
+        card = QWidget()
+        box = QVBoxLayout(card)
+        box.setContentsMargins(0, 0, 0, 0)
+        box.setSpacing(0)
+        bar_row = QHBoxLayout()
+        bar_row.setContentsMargins(14, 0, 14, 0)
+        bar_row.addWidget(self._tab_bar)
+        bar_row.addStretch(1)
+        box.addLayout(bar_row)
+        box.addWidget(self._tab_stack, 1)
+        return card
+
+    def _set_tab_count(self, index: int, count: int) -> None:
+        self._tab_bar.setTabText(index, f"{_TAB_NAMES[index]} · {count}")
+
+    def _on_trade_counts(self, active: int, closed: int) -> None:
+        self._set_tab_count(0, active)
+        self._set_tab_count(2, closed)
+
+    def _on_tab_changed(self, index: int) -> None:
+        self._tab_stack.setCurrentIndex(1 if index == 1 else 0)
+        if index != 1:
+            self._active_trades_panel.set_row_filter("closed" if index == 2 else "active")
 
     def _build_active_trades_pane(self, demo: AppService) -> QWidget:
         """SRD-GUI-014.001 — Active Trades pane wrapping `ActiveCyclesPanel`."""
@@ -1485,6 +755,7 @@ class ExecutionPanel(QWidget):
         cb_row.addStretch()
         if _SHOW_DB_DIAGNOSTICS:
             diag_btn = QPushButton("Candle DB")
+            set_icon(diag_btn, "database", "info")
             diag_btn.setFixedWidth(100)
             diag_btn.clicked.connect(lambda: _CandleDbDiagDialog(self._demo, self).exec())
             cb_row.addWidget(diag_btn)
@@ -1549,20 +820,14 @@ class ExecutionPanel(QWidget):
     def _make_force_exit_btn(self, pos: Any) -> QPushButton:
         ct = active_palette()
         btn = QPushButton("Force Exit")
+        set_icon(btn, "log-out", "danger", 13)
+        mark_danger(btn)
         btn.setStyleSheet(_cell_btn_ss(ct.RED, ct.RED))
         btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         btn.clicked.connect(lambda _, p=pos: self._on_table_force_exit(p))
         return btn
 
     # ── Slots ─────────────────────────────────────────────────────────────────
-
-    def _on_scope_changed(self) -> None:
-        """Sync the Execute-for combo with the admin viewing scope."""
-        uid = self._demo.get_viewing_uid()
-        for i in range(self._exec_user_combo.count()):
-            if self._exec_user_combo.itemData(i) == uid:
-                self._exec_user_combo.setCurrentIndex(i)
-                break
 
     def _on_table_execute(self, signal: TradeSignal) -> None:
         """User clicked Execute on a pending row — confirm and submit."""
@@ -1634,9 +899,5 @@ class ExecutionPanel(QWidget):
             self._demo.log_message.emit("WARNING", "Circuit breaker activated — entries disabled")
 
     def refresh_theme(self, _theme_id: str = "") -> None:
-        """Re-apply splitter styles and delegate chart refresh for the active theme."""
-        ct = active_palette()
-        self._h_splitter.setStyleSheet(f"QSplitter::handle {{ background: {ct.OVERLAY}; }}")
-        self._v_splitter.setStyleSheet(f"QSplitter::handle {{ background: {ct.OVERLAY}; }}")
-        self._bottom_tabs.setStyleSheet(self._tab_qss())
+        """Delegate chart refresh for the active theme."""
         self._chart_pane.refresh_theme()

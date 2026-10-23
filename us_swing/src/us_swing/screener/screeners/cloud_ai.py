@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import time
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -48,6 +49,7 @@ _log = logging.getLogger(__name__)
 
 _COST_THRESHOLD_USD: Final[float] = 50.0
 _REASONING_MAX_WORDS: Final[int] = 50
+_PLAN_KEYS: Final[tuple[str, ...]] = ("entry", "stop", "target")
 _AGENTIC_MAX_TURNS: Final[int] = 8
 _REQUEST_TIMEOUT_S: Final[float] = 60.0
 _RETRY_DELAYS_S: Final[tuple[float, ...]] = (1.0, 3.0, 7.0)
@@ -354,6 +356,7 @@ class CloudAIScreener:
     def __init__(self, usage_tracker: _UsageTracker | None = None) -> None:
         self._usage_tracker = usage_tracker
         self.last_reasoning: dict[str, str] = {}
+        self.last_plan: dict[str, dict[str, float]] = {}
         self.last_transcript: list[AITranscriptTurn] = []
 
     def batch_features(
@@ -379,6 +382,7 @@ class CloudAIScreener:
         config: dict[str, Any],
     ) -> dict[str, tuple[bool, float]]:
         self.last_reasoning = {}
+        self.last_plan = {}
         self.last_transcript = []
         ai_query = str(config.get("ai_query", "")).strip()
         if ai_query:
@@ -562,15 +566,7 @@ class CloudAIScreener:
         features = self.batch_features(symbols, bars)
         tool_executor = CandleToolExecutor(db, passing_symbols)
 
-        system_prompt = (
-            "You are a swing-trade analyst.  Rank the supplied stocks "
-            f"according to the user's query: {ai_query!r}.\n\n"
-            "Use the get_candle_data tool to inspect daily or weekly bars "
-            "when the pre-extracted features are insufficient.  When ready, "
-            "respond with ONLY a JSON array (no prose) of the form:\n"
-            '[{"symbol": "TICK", "score": 0.0..1.0, '
-            '"reasoning": "≤ 50 words"}, ...]'
-        )
+        system_prompt = _tool_system_prompt(ai_query)
         user_msg = (
             f"Symbols passing Stage 2: {', '.join(symbols)}\n\n"
             f"Pre-extracted features:\n{_features_to_table(features)}"
@@ -758,6 +754,9 @@ class CloudAIScreener:
                 scores[sym] = 0.0
             reasoning = str(entry.get("reasoning", "")).strip()
             self.last_reasoning[sym] = _truncate_words(reasoning, _REASONING_MAX_WORDS)
+            plan = _plan_from_entry(entry)
+            if plan:
+                self.last_plan[sym] = plan
 
         if not scores:
             _log.warning("CloudAIScreener: ranking JSON was empty — fallback.")
@@ -791,6 +790,36 @@ class CloudAIScreener:
 # ---------------------------------------------------------------------------
 # Module-level helpers
 # ---------------------------------------------------------------------------
+
+def _tool_system_prompt(ai_query: str) -> str:
+    """Return the system prompt for the tool-augmented ranking loop."""
+    return (
+        "You are a swing-trade analyst.  Rank the supplied stocks "
+        f"according to the user's query: {ai_query!r}.\n\n"
+        "Use the get_candle_data tool to inspect daily or weekly bars "
+        "when the pre-extracted features are insufficient.  When ready, "
+        "respond with ONLY a JSON array (no prose) of the form:\n"
+        '[{"symbol": "TICK", "score": 0.0..1.0, '
+        '"reasoning": "≤ 50 words", '
+        '"entry": price, "stop": price, "target": price}, ...]\n'
+        "entry, stop and target are optional trade-plan prices; "
+        "omit all three when there is no clear setup."
+    )
+
+
+def _plan_from_entry(entry: dict[str, Any]) -> dict[str, float]:
+    """Return ``{entry, stop, target}`` from one ranking record, or ``{}`` if any is invalid."""
+    plan: dict[str, float] = {}
+    for key in _PLAN_KEYS:
+        try:
+            value = float(entry.get(key))  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            return {}
+        if not math.isfinite(value) or value <= 0:
+            return {}
+        plan[key] = value
+    return plan
+
 
 def _scores_to_results(
     symbols: list[str], raw_scores: dict[str, float],

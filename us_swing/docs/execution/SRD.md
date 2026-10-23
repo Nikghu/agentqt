@@ -1,10 +1,10 @@
-﻿# Software Requirement Document — Execution & Risk Management (EXE)
+# Software Requirement Document — Execution & Risk Management (EXE)
 
 **Document ID:** SRD-EXE
-**Version:** 1.25.1
-**Traces To:** FO-EXE v1.13.0
+**Version:** 1.26.0
+**Traces To:** FO-EXE v1.14.0
 **Status:** Draft
-**Last Updated:** 2026-09-17
+**Last Updated:** 2026-10-23
 **Project:** US Swing Trading System
 
 > v1.7.0: Sections 11 + 12 added — SRD-EXE-011.001–015 (Strategy Engine) and SRD-EXE-012.001–013 (Trade Cycle Ledger).
@@ -33,6 +33,7 @@
 > v1.24.3: SRD-EXE-018.002–.006, .012, .014, .015 Approved → Implemented (P2: direction wired through router, broker adapter, order ingestion and cycle open; opposite-direction guard at engine and pending execute).
 > v1.24.4: SRD-EXE-018.007–.011 and .013 Approved → Implemented (P3: direction-aware live/realized P&L, SHORT trailing stop and exit triggers, risk-edit invariants, signed OpenPosition P&L). All SRD-EXE-018 rows now Implemented.
 > v1.25.0: SRD-EXE-018.016 added (Draft) — price-feed silence warning for open cycles (deep-review finding, 2026-09-18).
+> v1.26.0: SRD-EXE-019.001–.004 added — Strategy P&L History; approved by user 2026-10-23 (plan).
 > v1.25.1: SRD-EXE-018.016 approved by user (2026-09-18) and set to Implemented — code and tests shipped with the requirement.
 
 ---
@@ -358,3 +359,14 @@
 | SRD-EXE-018.014 | FO-EXE-018 | Must | A SHORT entry is sized, allocation-capped and margin-reserved exactly like a LONG entry of the same price and quantity. | entry signal | sized, reserved entry | No extra short-margin model in v1 (D4) | Implemented |
 | SRD-EXE-018.015 | FO-EXE-018 | Should | A rejected SHORT entry aborts the opening cycle through the existing reject path and logs `[Orders] Short sale for {symbol} was rejected by the broker`. | broker reject event | aborted cycle + WARNING | No pre-trade borrow check in v1 (D5); paper never rejects (D6) | Implemented |
 | SRD-EXE-018.016 | FO-EXE-018 | Should | A cycle whose symbol has received no price for 2 minutes logs one WARNING that its stop loss and target are not being checked; the next price clears the warning. | tick times of open cycles | one WARNING per outage | Checked every 30 s on the cycle loop; edge-triggered per cycle; applies to both directions, and matters most for a short, whose loss has no floor | Implemented |
+
+---
+
+## Section 19: Requirements for FO-EXE-019 — Strategy P&L History
+
+| SRD ID | Parent FO | Priority | Description | Inputs | Outputs | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-EXE-019.001 | FO-EXE-019 | Must | `TradeCycleQuery.closed_for_strategy(strategy_id, since_iso=None, user_id=None)` returns the strategy's CLOSED cycles ordered by `closed_at`, then `cycle_id`. | strategy id, optional start, optional user | tuple of `CycleSnapshot` | Read-only; no day cap | Implemented |
+| SRD-EXE-019.002 | FO-EXE-019 | Must | `summarise(cycles, today_start_iso, today_end_iso)` returns a frozen `StrategyPnlSummary` with running-total points, total, trades, wins, win rate, average win, average loss, max drawdown with its start and end point, and today's P&L. | closed cycles, today's bounds | `StrategyPnlSummary` | Pure; cycles without `realized_pnl_usd` are skipped | Implemented |
+| SRD-EXE-019.003 | FO-EXE-019 | Should | `trade_cycles` gets index `idx_trade_cycles_strategy_closed` on (`strategy_id`, `closed_at`). | — | index | Created by `create_schema(checkfirst=True)` | Implemented |
+| SRD-EXE-019.004 | FO-EXE-019 | Must | `AppService.get_strategy_pnl(strategy_id, since_iso=None)` returns the summary for the viewing user (all users when none) with today in the market day. | strategy id, optional start | `StrategyPnlSummary` | Empty summary when the ledger is missing or the read fails (logged) | Implemented |

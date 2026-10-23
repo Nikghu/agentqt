@@ -7,6 +7,15 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.18.0: UT-GUI-023.* added — card layout.
+> v1.17.0: UT-GUI-022.008–.011.* added — screener header, run stepper, transcript drawer, list detail.
+> v1.16.0: UT-GUI-022.* added — screener result views and preset rail.
+> v1.15.0: UT-GUI-018.008–.011.* added — Connections panel in the sidebar.
+> v1.14.0: UT-GUI-021.* added — Settings section list.
+> v1.13.0: UT-GUI-020.* added — Charts workspace.
+> v1.12.0: UT-GUI-019.* added — side panels and Exit drawer.
+> v1.11.0: UT-GUI-018.* added — sidebar workspace shell.
+> v1.10.0: UT-GUI-017.* added — Carbon theme and icon system.
 > v1.9.1: UT-GUI-006.001.M01.T17–T18 added — user edit keeps Telegram settings (ISS-GUI-0005).
 > v1.9.0: UT-GUI-004.001.M01.T21–T25 added — startup cleanup of stale intraday candles (SRD-GUI-004.013).
 > v1.8.0: UT-GUI-004.001.M01.T11–T19 added — manual picks (SRD-GUI-004.010–.012).
@@ -463,3 +472,135 @@ Test files:
 | UT-GUI-016.011.M08.T02 | MD-GUI-016.001.M08 | Negative | Warning text shows no internal names | bad saved config | log starts `[Screener]`; no class names or snake_case words | Pass |
 | UT-GUI-016.010.M01.T01 | MD-GUI-003.001.M01 | Positive | Group and weighted call sites store the new config | patched dialog accepts | stored config has `schema 2`; group emits `changed` | Pass |
 | UT-GUI-016.010.M01.T02 | MD-GUI-003.001.M01 | Negative | Cancel keeps the old config; old dialog is gone | patched dialog rejects; module attrs | config unchanged; no `_PriceActionConfigDialog` | Pass |
+
+## FO-GUI-017 — Carbon Theme and Icon System
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-017.001.M02.T01 | MD-GUI-017.001.M02 | Positive | Carbon is the default theme | no saved theme file | `load_theme_id()` "carbon"; palette BG `#0c0f13` | Pass |
+| UT-GUI-017.001.M02.T02 | MD-GUI-017.001.M02 | Negative | Unknown saved theme falls back to Carbon | saved id "neon" | "carbon" | Pass |
+| UT-GUI-017.001.M02.T03 | MD-GUI-017.001.M02 | Positive | Carbon QSS has no Mocha colours left and same colour keys | `CARBON_QSS`, `THEME_COLORS` | no Mocha hex in QSS; carbon keys == mocha keys | Pass |
+| UT-GUI-017.002.M02.T01 | MD-GUI-017.001.M02 | Negative | Missing font file does not stop the app | font dir with one bad path | other fonts load; `[Theme]` WARNING | Pass |
+| UT-GUI-017.003.M01.T01 | MD-GUI-017.003.M01 | Positive | Icon is built in the role colour | `icon("plus", "add")` | non-null icon; rendered SVG uses `C.GREEN` | Pass |
+| UT-GUI-017.003.M01.T02 | MD-GUI-017.003.M01 | Negative | Unknown icon name | `icon("nope")` | empty icon; WARNING logged | Pass |
+| UT-GUI-017.003.M01.T03 | MD-GUI-017.003.M01 | Positive | Cache reuses and clears | same call twice; then `clear_cache()` | same key hit; cache empty after clear | Pass |
+| UT-GUI-017.003.M01.T04 | MD-GUI-017.003.M01 | Positive | Icon-only button has tooltip and accessible name | `icon_button("refresh", "info", "Refresh")` | tooltip and accessible name "Refresh" | Pass |
+| UT-GUI-017.004.M01.T01 | MD-GUI-017.003.M01 | Positive | No emoji on buttons and tabs | GUI panel source files | no emoji in button, tab, action or `setText` text | Pass |
+| UT-GUI-017.005.M01.T01 | MD-GUI-017.003.M01 | Positive | Risky buttons are marked danger in every theme | Square Off All, Delete, Trip Circuit Breaker; all 3 QSS | `role` property "danger"; each QSS has the danger selector | Pass |
+
+## FO-GUI-018 — Sidebar Workspace Shell
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-018.001.M01.T01 | MD-GUI-018.001.M01 | Positive | Nav click asks for that screen | click third item | `page_requested(2)`; item checked | Pass |
+| UT-GUI-018.002.M01.T01 | MD-GUI-018.001.M01 | Positive | Mini mode hides labels, keeps tooltips | `set_mini(True)` | buttons have no text; tooltips are labels | Pass |
+| UT-GUI-018.004.M01.T01 | MD-GUI-018.001.M01 | Positive | Footer shows user details | stub service, viewing user 1 | username, mode, IBKR, risk, `Cap` and `Avail` values | Pass |
+| UT-GUI-018.004.M01.T02 | MD-GUI-018.001.M01 | Negative | Footer handles All Users and missing user | viewing `None`; then unknown id | "All Users" with count; no crash | Pass |
+| UT-GUI-018.006.M02.T01 | MD-GUI-018.006.M02 | Positive | Reveal animates and reports | register 0→200, request open | width ends 200; `revealed("x", True)` once | Pass |
+| UT-GUI-018.006.M02.T02 | MD-GUI-018.006.M02 | Negative | Unknown name is ignored | request "nope" | no error; no `revealed` | Pass |
+| UT-GUI-018.006.M02.T03 | MD-GUI-018.006.M02 | Edge | Request during animation restarts from current size | open then close mid-way | ends at closed size; last `revealed` is False | Pass |
+| UT-GUI-018.002.M03.T01 | MD-GUI-018.005.M03 | Positive | Wide screen auto-shrinks and restores | page Execution then Dashboard | slot 56 then 200 | Pass |
+| UT-GUI-018.002.M03.T02 | MD-GUI-018.005.M03 | Negative | Auto restore keeps user's mini choice | user mini on; Execution then Dashboard | slot stays 56 | Pass |
+| UT-GUI-018.008.M04.T01 | MD-GUI-018.008.M04 | Positive | Live rows | connected, online | "Online"; "Live"; "127.0.0.1:7497"; tip "Disconnect" | Pass |
+| UT-GUI-018.008.M04.T02 | MD-GUI-018.008.M04 | Negative | Offline rows | disconnected, offline | "Offline"; "Not connected"; tip "Connect" | Pass |
+| UT-GUI-018.008.M04.T03 | MD-GUI-018.008.M04 | Positive | Power button connects and disconnects | click when disconnected; click when connected, confirm Yes | `connect_feed` once; `disconnect_feed` once | Pass |
+| UT-GUI-018.008.M04.T04 | MD-GUI-018.008.M04 | Edge | Button off during probe | status reconnecting | power disabled; "Connecting…" | Pass |
+| UT-GUI-018.009.M04.T01 | MD-GUI-018.008.M04 | Positive | Retry shows attempt and countdown | `set_feed_retry(3, 10, 45000)`; then clear | "Attempt 3 of 10", "Next try in 45 s", tip "Try now"; then "Not connected" | Pass |
+| UT-GUI-018.010.M04.T01 | MD-GUI-018.008.M04 | Positive | Open market counts to close | Wed 2026-10-21 13:46 ET | ("open", "Open", "closes in 2h 14m") | Pass |
+| UT-GUI-018.010.M04.T02 | MD-GUI-018.008.M04 | Edge | Weekend and holiday skipped | Fri 2026-10-23 17:00; Wed 2026-11-25 20:30; Fri 2026-10-30 17:00 (DST ends) | "opens in 2d 16h"; "opens in 1d 13h"; "opens in 2d 17h" | Pass |
+| UT-GUI-018.011.M04.T01 | MD-GUI-018.008.M04 | Positive | Mini shows plug with worst status | `set_mini(True)`, offline | rows hidden; plug shown; badge red; tooltip has 3 rows | Pass |
+
+## FO-GUI-019 — Side Panels and Exit Drawer
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-019.001.M01.T01 | MD-GUI-019.001.M01 | Positive | Strip button toggles its panel | click Watchlist twice | `panel_toggled("watch", True)` then `False` | Pass |
+| UT-GUI-019.001.M01.T02 | MD-GUI-019.001.M01 | Positive | Log badge counts warnings only while hidden | WARNING, INFO, ERROR; then open Log | badge 2; badge hidden after open | Pass |
+| UT-GUI-019.003.M01.T01 | MD-GUI-019.001.M01 | Positive | Details shows the position | position NVDA 85 @ 138.20 | symbol, quantity, average, P&L shown | Pass |
+| UT-GUI-019.003.M01.T02 | MD-GUI-019.001.M01 | Negative | Details with no selection | `show_position(None)` | empty hint; buttons disabled | Pass |
+| UT-GUI-019.006.M02.T01 | MD-GUI-019.006.M02 | Positive | Market exit sends only after Review and Confirm | Market tab; Review; Confirm | `submitted("full_close", qty=85)` once, not on Review | Pass |
+| UT-GUI-019.006.M02.T04 | MD-GUI-019.006.M02 | Negative | Double-click on Confirm sends once | Review; Confirm twice | one `submitted`; form disabled | Pass |
+| UT-GUI-019.006.M02.T02 | MD-GUI-019.006.M02 | Positive | Stop tab returns the same params as the old dialog | price 132.5, trailing off | `submitted("set_stop_loss", {price 132.5, trailing False, ...})` | Pass |
+| UT-GUI-019.006.M02.T03 | MD-GUI-019.006.M02 | Negative | Cancel and Back send nothing | Review then Back; Cancel | no `submitted` | Pass |
+| UT-GUI-019.007.M02.T01 | MD-GUI-019.006.M02 | Positive | Square-off list shows all positions and confirms | 3 positions; Review; Confirm | 3 rows; `submitted("square_off_all")` | Pass |
+| UT-GUI-019.002.M03.T01 | MD-GUI-019.002.M03 | Positive | Opening the right panel shrinks the sidebar and closing restores it | `_MiniState` panel open then closed | `want_mini` True then False | Pass |
+
+## FO-GUI-020 — Charts Workspace
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-020.001.M01.T01 | MD-GUI-020.001.M01 | Positive | New Chart adds windows up to six | click New Chart until disabled | 6 windows; button disabled; count "6 of 6 charts" | Pass |
+| UT-GUI-020.001.M01.T02 | MD-GUI-020.001.M01 | Positive | Closing a window frees a slot | close one of six | 5 windows; button enabled | Pass |
+| UT-GUI-020.002.M01.T01 | MD-GUI-020.001.M01 | Positive | Tabs mode switches view mode | click Tabs, then Tile | tabbed view; then sub-window view | Pass |
+| UT-GUI-020.003.M01.T01 | MD-GUI-020.001.M01 | Positive | Same symbol focuses its window | open AAPL twice | one AAPL window, active | Pass |
+| UT-GUI-020.003.M01.T02 | MD-GUI-020.001.M01 | Edge | Seventh symbol loads into the active window | six open, open TSLA | still 6 windows; active shows TSLA | Pass |
+| UT-GUI-020.004.M01.T01 | MD-GUI-003.001.M01 | Negative | Quick Chart Viewer is gone | screener module | no `QuickChartWindow`; `chart_requested` signal exists | Pass |
+
+## FO-GUI-021 — Settings Section List
+
+| ID | Module | Type | Description | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-021.001.M01.T01 | MD-GUI-021.001.M01 | Positive | System tab is split into three sections | build `_SystemSections` | Connection, Scheduler, Telegram | Pass |
+| UT-GUI-021.001.M01.T02 | MD-GUI-021.001.M01 | Positive | Section click shows one section | click Telegram | stack shows Telegram; Users unchecked; 6 sections, no Theme, Diagnostics or Database | Pass |
+| UT-GUI-021.002.M01.T01 | MD-GUI-021.001.M01 | Positive | Risk save persists values | set 2.5 % and LMT, Save | `update_user` called with new risk config | Pass |
+| UT-GUI-021.002.M01.T02 | MD-GUI-021.001.M01 | Negative | Risk save keeps other user fields | chat ID set, Save | chat ID and username unchanged | Pass |
+| UT-GUI-021.003.M01.T01 | MD-GUI-021.001.M01 | Positive | System panel holds Theme, Updates, Diagnostics | build `_SystemSections` | theme, update and circuit breaker buttons inside `panel`; groups THEME, UPDATES, ORDERS | Pass |
+| UT-GUI-021.003.M02.T01 | MD-GUI-019.001.M01 | Positive | Strip has a System button | click System | `panel_toggled("system", True)` | Pass |
+| UT-GUI-021.004.M01.T01 | MD-GUI-021.001.M01 | Positive | Progress shows percent | progress MSFT 312 of 503 | "62%", "312 / 503 stocks", "Now: MSFT"; state downloading 62 | Pass |
+| UT-GUI-021.004.M01.T02 | MD-GUI-021.001.M01 | Positive | No failures ends Complete | finish, no failures | "Complete", "100%"; state complete | Pass |
+| UT-GUI-021.004.M01.T03 | MD-GUI-021.001.M01 | Negative | Failures end Partial | finish, 3 failed | "Partial", "500 / 503 stocks", "3 failed"; Failed group shown | Pass |
+| UT-GUI-021.004.M01.T04 | MD-GUI-021.001.M01 | Edge | Past failures mark partial | failed stocks on disk at start | state partial; Failed shown; Download hidden | Pass |
+| UT-GUI-021.004.M02.T01 | MD-GUI-019.001.M01 | Positive | Data badge per state | downloading 62, complete, partial | "62"; check icon; "!" | Pass |
+| UT-GUI-021.004.M02.T02 | MD-GUI-019.001.M01 | Negative | Idle hides the badge | complete then idle | badge hidden | Pass |
+
+## FO-GUI-022 — Screener Result Views
+
+| ID | Module | Type | Description | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-022.001.M01.T01 | MD-GUI-022.001.M01 | Positive | View switch saves and restores | default; click Cards; new switch on same settings | "list"; `view_changed("cards")`; new switch is "cards" | Pass |
+| UT-GUI-022.001.M01.T02 | MD-GUI-022.001.M01 | Negative | Unknown saved view falls back | settings view "grid" | "list" | Pass |
+| UT-GUI-022.002.M01.T01 | MD-GUI-022.001.M01 | Positive | List loads and shows first stock | 3 rows | 3 items; first selected; detail symbol, tier, "$222.00", "3.3 R", reasoning | Pass |
+| UT-GUI-022.002.M01.T02 | MD-GUI-022.001.M01 | Positive | Selection updates detail and chart | select row 2 | detail shows JCI; fake chart `show_symbol("JCI", "1d")`; chart built once | Pass |
+| UT-GUI-022.002.M01.T03 | MD-GUI-022.001.M01 | Negative | Missing plan shows dashes | row without plan | Entry, Stop, Target, R:R tiles "—" | Pass |
+| UT-GUI-022.002.M01.T04 | MD-GUI-022.001.M01 | Positive | Detail buttons emit symbol | click Open chart, Watchlist | `chart_requested("NVDA")`, `watchlist_requested("NVDA")` | Pass |
+| UT-GUI-022.002.M01.T05 | MD-GUI-022.001.M01 | Edge | Theme change keeps selection, no chart reload | select JCI; restyle | JCI still selected and shown; no new `show_symbol` call | Pass |
+| UT-GUI-022.003.M01.T01 | MD-GUI-022.001.M01 | Positive | One card per stock with actions | 3 rows; click card 2 Chart | 3 cards; "#1", "NVDA", "Strong"; `chart_requested("JCI")` | Pass |
+| UT-GUI-022.003.M01.T02 | MD-GUI-022.001.M01 | Edge | Empty rows clear cards | load 3 then [] | 0 cards | Pass |
+| UT-GUI-022.004.M01.T01 | MD-GUI-022.001.M01 | Positive | Rows built from result meta | details bool + float, `ai_plan`, scores 0.85 / 0.55 / 0.2 | pass/fail/value checks; plan read; tiers Strong / Watch / Weak; ranked by score | Pass |
+| UT-GUI-022.005.M01.T01 | MD-GUI-022.001.M01 | Positive | R:R and sort | plans valid, short-shaped, missing; sort rr, rules | 3.3; None; None; None last; most rules first | Pass |
+| UT-GUI-022.006.M01.T01 | MD-GUI-022.001.M01 | Positive | CSV rows carry the plan | 2 rows, one without plan | header has Entry, Stop, Target, R:R; values and "" | Pass |
+| UT-GUI-022.007.M01.T01 | MD-GUI-022.001.M01 | Positive | Preset filter by search text | 3 presets; "MOM"; "" | Momentum only; all 3 | Pass |
+| UT-GUI-022.007.M01.T02 | MD-GUI-022.001.M01 | Positive | Last-run line | today, earlier date, none | "Today 13:18 · 5 matches"; "Oct 21 · 8 matches"; "Not run yet" | Pass |
+| UT-GUI-022.008.M01.T01 | MD-GUI-022.001.M01 | Positive | Header run line and date text | 5 matches AI-ranked at 13:18 UTC; 1 match no time; "2026-10-22"; "bad" | full line; "1 match · ranked by score"; "Oct 22, 2026"; "bad" | Pass |
+| UT-GUI-022.009.M01.T01 | MD-GUI-022.001.M01 | Positive | Stepper arrows and menu move between runs | 3 dates; click older; pick menu item 3 | Latest shown then hidden; `index_changed` 1 then 2; arrows enabled per end | Pass |
+| UT-GUI-022.009.M01.T02 | MD-GUI-022.001.M01 | Negative | No saved runs disables the stepper | [] | "—"; arrows and date disabled; no Latest tag | Pass |
+| UT-GUI-022.010.M01.T01 | MD-GUI-022.001.M01 | Positive | Pill shows steps and cost | 2 turns with tokens; 1 turn without | "AI transcript · 2 steps · $0.04"; "AI transcript · 1 step" | Pass |
+| UT-GUI-022.010.M01.T02 | MD-GUI-022.001.M01 | Positive | Drawer opens and Esc closes it | host 1000 px; open; Esc | open, visible, 460 px wide; closed once | Pass |
+| UT-GUI-022.011.M01.T01 | MD-GUI-022.001.M01 | Positive | Company name, rules count, risk / reward | names for NVDA; select row without plan | company in meta; "RULES · 1 OF 3"; "$10.00" / "$33.00" lines; bar hidden and no-plan text | Pass |
+## FO-GUI-023 — Card Layout
+
+| ID | Module | Type | Description | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-023.001.M01.T01 | MD-GUI-023.001.M01 | Positive | Card holds the child inside its padding | QLabel | name `shell_card`; child at index 0; margins ≥ 2 | Pass |
+| UT-GUI-023.001.M01.T02 | MD-GUI-023.001.M01 | Positive | Gutter marks the widget | QWidget | same widget returned; name `shell_gutter`; GAP 4 | Pass |
+
+## FO-GUI-024 — Execution Workspace
+
+| ID | Module | Type | Description | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-024.001.M01.T01 | MD-GUI-024.001.M01 | Positive | Chips show running count and unrealised P&L | 3 strategies, 1 RUNNING + 1 with open cycle; open cycles P&L +10 and −4 | "2 of 3"; "+$6.00" | Pass |
+| UT-GUI-024.001.M01.T02 | MD-GUI-024.001.M01 | Positive | Broker chip follows user mode | active user paper / live | "Paper broker" / "IBKR live" | Pass |
+| UT-GUI-024.002.M02.T01 | MD-GUI-024.002.M02 | Positive | Groups: Manual first, screeners A→Z, score order, counts | 1 pick, 2 "Price Action", 2 "Momentum" | groups Manual, Momentum, Price Action; counts 1, 2, 2; higher score first | Pass |
+| UT-GUI-024.002.M02.T02 | MD-GUI-024.002.M02 | Positive | ✕ on a pick removes it | click Score cell of pick row | `remove_manual_pick("DELL")` called once | Pass |
+| UT-GUI-024.002.M02.T03 | MD-GUI-024.002.M02 | Negative | Not-ready symbol is tinted | readiness {"NVDA": False} | NVDA row has a background brush; others none | Pass |
+| UT-GUI-024.002.M02.T04 | MD-GUI-024.002.M02 | Edge | No entries shows the empty text | [] | tree hidden; empty label shown; `get_top_symbol()` None | Pass |
+| UT-GUI-024.003.M03.T01 | MD-GUI-024.003.M03 | Positive | Active filter hides closed rows | 2 open + 1 closed rows; filter "active" | 1 hidden row; counts (2, 1) | Pass |
+| UT-GUI-024.003.M03.T02 | MD-GUI-024.003.M03 | Positive | Closed filter shows only closed rows | same rows; filter "closed" | 2 hidden rows | Pass |
+| UT-GUI-024.004.M04.T01 | MD-GUI-024.004.M04 | Positive | List rows and selection fill the detail | 2 configs | 2 items; first selected; detail title = first name | Pass |
+| UT-GUI-024.005.M04.T02 | MD-GUI-024.004.M04 | Positive | Duplicate makes a stopped copy with a unique name | "ST" and "ST copy" exist; duplicate "ST" | new "ST copy 2", run_state STOPPED, saved, selected | Pass |
+| UT-GUI-024.006.M05.T01 | MD-GUI-024.006.M05 | Edge | Empty summary shows the empty text | `StrategyPnlSummary()` | chart reports empty; stats "—" | Pass |
+| UT-GUI-024.006.M05.T02 | MD-GUI-024.006.M05 | Positive | Card shows total and stats | summary total 412.6, 38 trades, win rate 0.55 | "+$412.60"; "38 trades"; "55%" | Pass |
+| UT-GUI-024.006.M05.T03 | MD-GUI-024.006.M05 | Positive | Range button asks for a start time | click 1W | provider called with since ≈ now − 7 days | Pass |
+| UT-GUI-024.006.M05.T04 | MD-GUI-024.006.M05 | Positive | Nice y ticks | min 0, max 412.6 | ticks 0, 150, 300, 450 | Pass |
+| UT-GUI-024.008.M06.T01 | MD-GUI-024.008.M06 | Positive | Hide charts is remembered | `set_charts_hidden(True)`; new pane | `charts_toggled(True)`; setting true; new pane starts hidden | Pass |
+| UT-GUI-024.008.M01.T03 | MD-GUI-024.001.M01 | Positive | Header charts button names the next action | default; `show_charts_state(True)` | "Hide charts"; "Show charts" | Pass |

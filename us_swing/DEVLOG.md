@@ -2,6 +2,146 @@
 
 ---
 
+## [20261023] GUI + EXE — Execution workspace (F2) and strategy P&L history (FO-GUI-024, FO-EXE-019, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-024, FO-EXE-019
+- RN: RN-EXE-1.34.0-20261023, RN-GUI-1.20.0 / 1.21.0 / 1.22.0 / 1.23.0-20261023
+- Artifacts updated: FO, SRD, DD, MD, UTCD, TRACE (GUI + EXE), Code, Tests, RN, CONTEXT, TODO
+- Decisions: user chose canvas F2 after 5 options + 2 follow-ups (https://claude.ai/artifact/9F83v5ErsZw7otTJctni47); P&L from `trade_cycles` only (no new table); deleting a strategy keeps its closed trades; all 5 phases, one commit each, no push. Duplicate always takes a new name so histories never mix.
+- Findings: `metadata.create_all` never adds a new index to an existing table — `create_schema` now creates missing indexes. `test_execution_panel.py` failed when run alone (existing db ↔ data import cycle) — tests now import `us_swing.data` first. Render check caught collapsed watchlist groups (fixed, test added).
+- Open: T47 — renaming a strategy starts a new P&L history (strategy id = name).
+
+## [20261023] GUI — Card layout, gaps and rounded corners (FO-GUI-023, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-023
+- RN: RN-GUI-1.19.0-20261023
+- Artifacts updated: FO, SRD, DD, MD, UTCD, TRACE, Code, Tests, RN, CONTEXT
+- Decisions: whole app as cards, 4 px gap in the title-bar colour, 6 px corners, 1 px border; gap kept inside the sliding right / log panels; Screener rail and results as two cards. Follow-ups this session: busy bar removed from the Screener header; three-digit ranks fit.
+
+---
+
+## [20261023] GUI — Screener result polish, Option A (FO-GUI-022, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-022
+- RN: RN-GUI-1.18.0-20261023
+- Artifacts updated: SRD, MD, UTCD, TRACE, Code, Tests, Assets, RN, CONTEXT
+- Decisions: page header and run stepper over the results; transcript moved from a bottom splitter to a side drawer; toolbar Watchlist button removed (kept in detail); accent colour only on Run now and selection.
+
+---
+
+## [20261023] SCR + GUI — AI trade plan fields and Screener result views (FO-SCR-011, FO-GUI-022, feature)
+
+- Type: Feature
+- FO(s): FO-SCR-011, FO-GUI-022
+- RN: RN-SCR-2.6.0-20261023, RN-GUI-1.17.0-20261023
+- Artifacts updated: FO, SRD, DD, MD, UTCD, TRACE, Code, Tests, Assets, RN, CONTEXT
+- Decisions: AI plan kept only when entry, stop and target are all valid; screener results shown as switchable List (default) and Cards views with a real chart; Watchlist button only in List view; rail restyled with search and style chips.
+
+---
+
+## [20261023] GUI — Connections panel in the sidebar (FO-GUI-018, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-018
+- RN: RN-GUI-1.16.0-20261023
+- Artifacts updated: FO, SRD, DD, MD, UTCD, TRACE, Code, Tests, Assets, RN, CONTEXT
+- Decisions: feed toggle moved from the title bar to a sidebar Connections panel; mini mode uses one plug button with a worst-status dot; retry timing unchanged.
+
+---
+
+## [20261023] GUI — Bigger sidebar and strip icons (FO-GUI-017, fix)
+
+- Type: Fix
+- FO(s): FO-GUI-017
+- RN: RN-GUI-1.15.2-20261023
+- Artifacts updated: Code, RN, CONTEXT
+- Decisions: 20 px icons on both sides; right strip 44 px wide.
+
+---
+
+## [20261023] GUI — Shell font sizes match the mockup (FO-GUI-017, fix)
+
+- Type: Fix
+- FO(s): FO-GUI-017
+- RN: RN-GUI-1.15.1-20261023
+- Artifacts updated: Code, RN, CONTEXT
+- Decisions: sidebar 10pt, brand 10pt, ticker 8.5pt names with mono prices, as in the mockup.
+
+---
+
+## [20261023] GUI — Data panel on the right strip (FO-GUI-021, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-021
+- RN: RN-GUI-1.15.0-20261023
+- Artifacts updated: FO, SRD, DD, MD, UTCD, TRACE, Code, Tests, RN, CONTEXT
+- Decisions: user picked Data 2 of 3 plus percent and Complete / Partial states (canvas https://claude.ai/artifact/CTo5RrNFn1122FB1xdr7Dv); Settings no longer scrolls sideways.
+
+---
+
+## [20261023] GUI — System panel on the right strip (FO-GUI-021, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-021
+- RN: RN-GUI-1.14.0-20261023
+- Artifacts updated: FO, SRD, DD, MD, UTCD, TRACE, Code, Tests, RN, CONTEXT
+- Decisions: user picked option A of 3 (design canvas https://claude.ai/artifact/CTo5RrNFn1122FB1xdr7Dv); Theme, Updates, Diagnostics moved out of Settings.
+
+---
+
+## [20261023] GUI — Settings section list (FO-GUI-021, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-021
+- RN: RN-GUI-1.13.0-20261023
+- Artifacts updated: FO, SRD, DD, MD, UTCD, TRACE, Code, Tests, RN, CONTEXT
+- Decisions: keep all ten sections; theme picker only (Animations / Sidebar mode deferred); Risk section now saves for real.
+
+---
+
+## [20261023] GUI — Charts workspace (MDI), Phase 4 (FO-GUI-020, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-020
+- RN: RN-GUI-1.12.0-20261023
+- Artifacts updated: SRD, DD, MD, UTCD, TRACE, Code, Tests, RN, TODO (T39), CONTEXT
+- Decisions: Quick Chart Viewer removed in favour of the Charts screen; max six chart windows.
+
+---
+
+## [20261023] GUI — Side panels and Exit drawer, Phase 3 (FO-GUI-019, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-019
+- RN: RN-GUI-1.11.0-20261023
+- Artifacts updated: SRD, DD, MD, UTCD, TRACE, Code, Tests, RN, TODO (T39), CONTEXT
+- Decisions: Panels are plain QFrames, not QDockWidgets (no floating to a second monitor); Exit drawer is non-modal.
+
+---
+
+## [20261023] GUI — Sidebar workspace shell, Phase 2 (FO-GUI-018, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-018
+- RN: RN-GUI-1.10.0-20261023
+- Artifacts updated: SRD, DD, MD, UTCD, TRACE, Code, Tests, RN, TODO (T39), CONTEXT
+- Decisions: Top tabs replaced by left sidebar; hover peek floats without moving content; screen slide is position-only (web views).
+
+---
+
+## [20261023] GUI — Carbon theme and icon system, Phase 1 (FO-GUI-017, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-017
+- RN: RN-GUI-1.9.0-20261023
+- Artifacts updated: SRD, DD, MD, UTCD, TRACE, Code, Tests, RN, TODO (T39)
+- Decisions: Carbon is the default theme; 8-digit hex converted to rgba() for Qt; risky buttons use role="danger" in all themes.
+
+---
+
 ## [20261022] GUI — User edit keeps Telegram settings (ISS-GUI-0005, bugfix)
 
 - Type: Bugfix

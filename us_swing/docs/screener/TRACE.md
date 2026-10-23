@@ -436,6 +436,7 @@ FO-011
 | SRD-013.006 | D21 | M10 | test_executor.py | T21 | Draft → Pass |
 | SRD-013.007 | D21 | M10 | test_executor.py | T22 | Draft → Pass |
 | SRD-013.008 | D21 | M16 | (deferred Phase 5) | — | Pending |
+| SRD-013.009 | D21 | M06, M10 | test_cloud_ai_plan.py, test_executor.py | T01–T03, M10.T01 (4) | Implemented → Pass |
 
 **Test totals added by FO-SCR-011:** 22 unit tests across 4 modules.
 

@@ -2,44 +2,35 @@
 Module: MD-GUI-003.001.M01 — screener_panel.py  (v2 — Phase 5 GUI integration)
 Parent SRD: SRD-SCR-007.001–012
 
-Screener Panel — Preset-based v2:
-  ┌──────────────────────────────────────────────────────────────────────────┐
-  │  TOOLBAR  (▶ Run Now · progress · ← date → · result count · + Watchlist) │
-  ├──────────────────────┬───────────────────────────────────────────────────┤
-  │  PRESET LIST (260px) │  RESULTS TABLE (sortable, score colour-coded)      │
-  │  ────────────────    │  (Symbol | Score | Matched | Details)              │
-  │  ADMIN PRESETS       │                                                    │
-  │  · Daily RSI    [C]  │                                                    │
-  │  MY PRESETS          │                                                    │
-  │  · Custom       [W]  │                                                    │
-  │  ────────────────    │                                                    │
-  │  [＋ New Preset]     │                                                    │
+Screener Panel — Preset-based v2 (layout: SRD-GUI-022.008–.012):
+  ┌──────────────────────┬───────────────────────────────────────────────────┐
+  │  PRESETS        [+]  │  HEADER  preset name · tags · run line · AI pill  │
+  │  search · segments   │          ‹ run date › · Sort · view · CSV · Run   │
+  │  ADMIN / MY PRESETS  ├───────────────────────────────────────────────────┤
+  │  · name, last run    │  Rule pills, then List + detail or Cards view;    │
+  │                      │  AI transcript drawer slides in from the right    │
   └──────────────────────┴───────────────────────────────────────────────────┘
 """
 from __future__ import annotations
 
 import csv
+import logging
 import uuid
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from datetime import date as _date
 
 from PyQt6.QtCore import (
-    QAbstractTableModel,
-    QModelIndex,
     QObject,
     QPoint,
+    QSettings,
     QSize,
-    QSortFilterProxyModel,
     Qt,
     QThread,
-    QUrl,
     pyqtSignal,
 )
-from PyQt6.QtGui import QAction, QColor, QCursor, QFont, QPainter
-from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtGui import QAction, QColor, QCursor, QFont
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QButtonGroup,
@@ -52,7 +43,6 @@ from PyQt6.QtWidgets import (
     QFrame,
     QGroupBox,
     QHBoxLayout,
-    QHeaderView,
     QLabel,
     QLineEdit,
     QListWidget,
@@ -60,18 +50,12 @@ from PyQt6.QtWidgets import (
     QMenu,
     QMessageBox,
     QPlainTextEdit,
-    QProgressBar,
     QPushButton,
     QRadioButton,
     QScrollArea,
     QSizePolicy,
     QSpinBox,
-    QSplitter,
-    QStyle,
-    QStyledItemDelegate,
-    QTabBar,
-    QTabWidget,
-    QTableView,
+    QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -80,10 +64,30 @@ from us_swing.gui.ai_transcript_panel import AITranscriptPanel
 from us_swing.core.indicator_rules import config_summary
 from us_swing.core.price_patterns import pattern_config_summary
 from us_swing.gui.app_service import AppService
-from us_swing.gui.chart_panel import _build_html as _build_chart_html
+from us_swing.gui.cards import GAP, card, gutter
 from us_swing.gui.frameless_dialog import FramelessDialog
 from us_swing.gui.indicator_rules_dialog import IndicatorRulesDialog
 from us_swing.gui.price_action_rules_dialog import PriceActionRulesDialog
+from us_swing.gui.icons import icon as make_icon
+from us_swing.gui.icons import mark_danger, set_icon
+from us_swing.gui.screener_views import (
+    SORT_KEYS,
+    CardsView,
+    ChipGroup,
+    ListDetailView,
+    PresetItem,
+    ResultRow,
+    RunStepper,
+    SideDrawer,
+    ViewSwitch,
+    csv_rows,
+    filter_presets,
+    last_run_text,
+    rows_from_result,
+    run_meta_text,
+    sort_rows,
+    transcript_pill_text,
+)
 from us_swing.gui.theme import C, active_palette, colors
 from us_swing.screener.screeners import _api_key_store
 from us_swing.screener.storage import INPUT_COST_PER_1K, OUTPUT_COST_PER_1K
@@ -100,6 +104,11 @@ _STYLE_OPTIONS: list[tuple[str, str | None]] = [
     ("Position Trading", "position"),
 ]
 
+# Short labels for the preset rail chips (SRD-GUI-022.007).
+_STYLE_CHIPS: list[tuple[str, str | None]] = [
+    ("All", None), ("Swing", "swing"), ("Day", "day"), ("Position", "position"),
+]
+
 # Canonical display names for all registered screener IDs.
 _SCREENER_DISPLAY: dict[str, str] = {
     "indicator_composite": "Indicators",
@@ -110,129 +119,12 @@ _SCREENER_DISPLAY: dict[str, str] = {
 }
 
 
-# ── Per-symbol display row ────────────────────────────────────────────────────
-
-@dataclass
-class _Row:
-    symbol: str
-    score: float
-    details: str   # compact per-screener breakdown
-    ai_reasoning: str = ""  # SRD-SCR-013.007: ≤50-word AI rationale (Stage 3)
+_log = logging.getLogger(__name__)
 
 
-# ── Results table model ───────────────────────────────────────────────────────
-
-_CHART_COL = 1  # index of the Chart button column
-
-
-_AI_REASONING_PREVIEW_CHARS = 60
-
-
-class _ResultsModel(QAbstractTableModel):
-    COLS = ["Symbol", "Chart", "Score", "Details", "AI Reasoning"]
-
-    def __init__(self, parent: Any = None) -> None:
-        super().__init__(parent)
-        self._rows: list[_Row] = []
-
-    def load(self, rows: list[_Row]) -> None:
-        self.beginResetModel()
-        self._rows = rows
-        self.endResetModel()
-
-    def clear(self) -> None:
-        self.load([])
-
-    def row_at(self, index: int) -> _Row | None:
-        if 0 <= index < len(self._rows):
-            return self._rows[index]
-        return None
-
-    # ── QAbstractTableModel interface ──────────────────────────────────────
-
-    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:  # noqa: B008
-        return len(self._rows)
-
-    def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:  # noqa: B008
-        return len(self.COLS)
-
-    def headerData(
-        self,
-        section: int,
-        orientation: Qt.Orientation,
-        role: int = Qt.ItemDataRole.DisplayRole,
-    ) -> Any:
-        if orientation == Qt.Orientation.Horizontal:
-            if role == Qt.ItemDataRole.DisplayRole:
-                return self.COLS[section]
-            if role == Qt.ItemDataRole.TextAlignmentRole:
-                return Qt.AlignmentFlag.AlignCenter
-            if role == Qt.ItemDataRole.FontRole:
-                f = QFont()
-                f.setPointSize(8)
-                f.setBold(True)
-                return f
-        return None
-
-    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
-        if not index.isValid() or index.row() >= len(self._rows):
-            return None
-        r = self._rows[index.row()]
-        col = index.column()
-
-        if role == Qt.ItemDataRole.DisplayRole:
-            match col:
-                case 0: return r.symbol
-                case 1: return ""           # painted by _ChartButtonDelegate
-                case 2: return f"{r.score:.3f}"
-                case 3: return r.details
-                case 4:
-                    return r.ai_reasoning
-            return ""
-
-        if role == Qt.ItemDataRole.ToolTipRole:
-            # Full reasoning text in tooltip when hovering AI column
-            if col == 4 and r.ai_reasoning:
-                return r.ai_reasoning
-            return None
-
-        if role == Qt.ItemDataRole.ForegroundRole:
-            if col == 0:
-                return QColor(C.BLUE)
-            if col == 2:
-                if r.score >= 0.70:
-                    return QColor(C.GREEN)
-                if r.score >= 0.40:
-                    return QColor(C.YELLOW)
-                return QColor(C.RED)
-            return None
-
-        if role == Qt.ItemDataRole.BackgroundRole:
-            if col == 2:
-                if r.score >= 0.70:
-                    return QColor(C.PNL_POS_BG)
-                if r.score >= 0.40:
-                    return QColor(colors()["score_cell_warning_bg"])
-                return QColor(C.PNL_NEG_BG)
-            return None
-
-        if role == Qt.ItemDataRole.TextAlignmentRole:
-            if col in (0, 2):
-                return Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
-            return Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
-
-        if role == Qt.ItemDataRole.FontRole:
-            if col == 0:
-                f = QFont()
-                f.setBold(True)
-                return f
-            if col == 2:
-                f = QFont()
-                f.setBold(True)
-                f.setPointSize(10)
-                return f
-
-        return None
+def _view_settings() -> QSettings:
+    """Settings store for the List / Cards choice (SRD-GUI-022.001)."""
+    return QSettings("USSwing", "ScreenerPanel")
 
 
 # ── Preset run worker ─────────────────────────────────────────────────────────
@@ -372,247 +264,6 @@ class _ModelValidateWorker(QThread):
         self.done.emit(ok, msg)
 
 
-# ── Chart button delegate ─────────────────────────────────────────────────────
-
-class _ChartButtonDelegate(QStyledItemDelegate):
-    """Paints a small clickable-looking 📈 button in the Chart column."""
-
-    def paint(self, painter: QPainter, option: Any, index: Any) -> None:
-        painter.save()
-        rect = option.rect.adjusted(5, 3, -5, -3)
-        is_hovered = bool(option.state & QStyle.StateFlag.State_MouseOver)
-        bg = QColor(C.BLUE)
-        bg.setAlpha(70 if is_hovered else 30)
-        border = QColor(C.BLUE)
-        border.setAlpha(140)
-        painter.setBrush(bg)
-        painter.setPen(border)
-        painter.drawRoundedRect(rect, 3, 3)
-        painter.setPen(QColor(C.BLUE))
-        font = painter.font()
-        font.setPointSize(8)
-        painter.setFont(font)
-        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "📈")
-        painter.restore()
-
-    def sizeHint(self, option: Any, index: Any) -> QSize:
-        return QSize(56, 28)
-
-
-# ── Quick chart window (multi-tab, frameless, one per symbol) ────────────────
-
-class QuickChartWindow(QWidget):
-    """Standalone frameless chart window opened from the Screener results table.
-
-    Maintains one tab per symbol; clicking the same symbol again switches
-    focus to the existing tab rather than opening a duplicate.  Tabs have no
-    close button — the window is dismissed via the custom title-bar controls.
-    """
-
-    def __init__(self, svc: AppService, parent: QWidget | None = None) -> None:
-        super().__init__(parent, Qt.WindowType.Window | Qt.WindowType.FramelessWindowHint)
-        self._svc = svc
-        self._drag_pos: QPoint | None = None
-        self._maximized = False
-
-        self.setWindowTitle("Quick Chart Viewer")
-        self.resize(960, 640)
-        _ap = active_palette()
-        self.setStyleSheet(
-            f"QWidget#qcw_root {{ background: {_ap.BG};"
-            f" border: 1px solid {_ap.OVERLAY2}; }}"
-        )
-
-        root_widget = QWidget()
-        root_widget.setObjectName("qcw_root")
-        outer = QVBoxLayout(self)
-        outer.setContentsMargins(0, 0, 0, 0)
-        outer.setSpacing(0)
-        outer.addWidget(root_widget)
-
-        self._layout = QVBoxLayout(root_widget)
-        self._layout.setContentsMargins(0, 0, 0, 0)
-        self._layout.setSpacing(0)
-
-        self._title_bar = self._make_title_bar()
-        self._layout.addWidget(self._title_bar)
-
-        self._tabs = QTabWidget()
-        self._tabs.setTabsClosable(False)
-        self._tabs.setMovable(True)
-        self._tabs.setStyleSheet(
-            f"QTabWidget::pane {{ border: none; background: {_ap.BG}; }}"
-            f"QTabBar::tab {{"
-            f"  background: {_ap.SURFACE}; color: {_ap.SUBTEXT};"
-            f"  border: 1px solid {_ap.OVERLAY}; border-bottom: none;"
-            f"  padding: 5px 14px; font-size: 8pt; margin-right: 2px; }}"
-            f"QTabBar::tab:selected {{"
-            f"  background: {_ap.BG}; color: {_ap.TEXT}; border-color: {_ap.OVERLAY2}; }}"
-            f"QTabBar::tab:hover:!selected {{ background: {_ap.OVERLAY}; }}"
-        )
-        self._layout.addWidget(self._tabs, 1)
-
-    # ── Title bar ─────────────────────────────────────────────────────────────
-
-    def _make_title_bar(self) -> QFrame:
-        _ap = active_palette()
-        bar = QFrame()
-        bar.setObjectName("qcw_title")
-        bar.setFixedHeight(38)
-        bar.setStyleSheet(
-            f"QFrame#qcw_title {{ background: {_ap.SURFACE};"
-            f" border-bottom: 1px solid {_ap.OVERLAY}; }}"
-        )
-        hl = QHBoxLayout(bar)
-        hl.setContentsMargins(14, 0, 6, 0)
-        hl.setSpacing(0)
-
-        icon = QLabel("📈")
-        icon.setStyleSheet("background: transparent; font-size: 13px;")
-        title_lbl = QLabel("  Quick Chart Viewer")
-        title_lbl.setStyleSheet(
-            f"color: {_ap.TEXT}; font-size: 9pt; font-weight: bold; background: transparent;"
-        )
-        hl.addWidget(icon)
-        hl.addWidget(title_lbl)
-        hl.addStretch()
-
-        _wc = (
-            "QPushButton {{ background: transparent; color: {fg}; border: none;"
-            " font-size: 14px; min-width: 32px; max-width: 32px;"
-            " min-height: 28px; max-height: 28px; border-radius: 4px; }}"
-            "QPushButton:hover {{ background: {hover}; color: white; }}"
-        )
-        min_btn = QPushButton("−")
-        min_btn.setStyleSheet(_wc.format(fg=_ap.SUBTEXT, hover=_ap.OVERLAY2))
-        min_btn.setToolTip("Minimize")
-        min_btn.clicked.connect(self.showMinimized)
-
-        self._max_btn = QPushButton("□")
-        self._max_btn.setStyleSheet(_wc.format(fg=_ap.SUBTEXT, hover=_ap.OVERLAY2))
-        self._max_btn.setToolTip("Maximize")
-        self._max_btn.clicked.connect(self._toggle_maximize)
-
-        close_btn = QPushButton("✕")
-        close_btn.setStyleSheet(_wc.format(fg=_ap.SUBTEXT, hover="#c0392b"))
-        close_btn.setToolTip("Close")
-        close_btn.clicked.connect(self.close)
-
-        hl.addWidget(min_btn)
-        hl.addSpacing(2)
-        hl.addWidget(self._max_btn)
-        hl.addSpacing(2)
-        hl.addWidget(close_btn)
-        return bar
-
-    def _toggle_maximize(self) -> None:
-        if self._maximized:
-            self.showNormal()
-            self._max_btn.setText("□")
-            self._max_btn.setToolTip("Maximize")
-        else:
-            self.showMaximized()
-            self._max_btn.setText("❐")
-            self._max_btn.setToolTip("Restore")
-        self._maximized = not self._maximized
-
-    # ── Drag to move ──────────────────────────────────────────────────────────
-
-    def mousePressEvent(self, event: Any) -> None:
-        if (
-            event.button() == Qt.MouseButton.LeftButton
-            and self._title_bar.geometry().contains(event.pos())
-        ):
-            self._drag_pos = event.globalPosition().toPoint()
-        super().mousePressEvent(event)
-
-    def mouseMoveEvent(self, event: Any) -> None:
-        if self._drag_pos is not None and event.buttons() & Qt.MouseButton.LeftButton:
-            delta = event.globalPosition().toPoint() - self._drag_pos
-            self.move(self.pos() + delta)
-            self._drag_pos = event.globalPosition().toPoint()
-        super().mouseMoveEvent(event)
-
-    def mouseReleaseEvent(self, event: Any) -> None:
-        self._drag_pos = None
-        super().mouseReleaseEvent(event)
-
-    # ── Chart management ──────────────────────────────────────────────────────
-
-    def open_symbol(self, symbol: str, timeframe: str = "1d") -> None:
-        """Switch to an existing tab for *symbol*, or create a new one."""
-        for i in range(self._tabs.count()):
-            if self._tabs.tabText(i) == symbol:
-                self._tabs.setCurrentIndex(i)
-                return
-        web = self._make_chart_view(symbol, timeframe)
-        idx = self._tabs.addTab(web, symbol)
-        self._attach_close_btn(idx)
-        self._tabs.setCurrentIndex(idx)
-
-    def _attach_close_btn(self, tab_idx: int) -> None:
-        """Add a visible custom × button to the right side of a tab."""
-        # Capture the content widget — its Python identity stays stable across
-        # tab shifts, unlike the button returned by tabButton() which PyQt6 may
-        # re-wrap as a new Python object on every call.
-        content_widget = self._tabs.widget(tab_idx)
-        btn = QPushButton("×")
-        btn.setFixedSize(18, 18)
-        _close_hover_bg = colors()["filter_close_hover_bg"]
-        btn.setStyleSheet(
-            f"QPushButton {{ background: transparent; color: {C.SUBTEXT};"
-            f" border: none; font-size: 13px; border-radius: 3px;"
-            f" padding: 0; line-height: 18px; }}"
-            f"QPushButton:hover {{ background: {_close_hover_bg}; color: white; }}"
-        )
-        btn.clicked.connect(lambda _checked=False, w=content_widget: self._close_tab_for_widget(w))
-        self._tabs.tabBar().setTabButton(tab_idx, QTabBar.ButtonPosition.RightSide, btn)
-
-    def _close_tab_for_widget(self, widget: QWidget) -> None:
-        idx = self._tabs.indexOf(widget)
-        if idx >= 0:
-            self._tabs.removeTab(idx)
-
-    def closeEvent(self, event: Any) -> None:
-        self._tabs.clear()
-        super().closeEvent(event)
-
-    def _make_chart_view(self, symbol: str, timeframe: str) -> QWebEngineView:
-        _ap = active_palette()
-        web = QWebEngineView()
-        web.setStyleSheet(f"background: {_ap.BG};")
-        candles = self._svc.get_candles_for_symbol(symbol, timeframe, 500)
-        if candles:
-            _tc = colors()
-            _vol_up = _tc["candle_up_volume"]
-            _vol_dn = _tc["candle_down_volume"]
-            volume_data = [
-                {
-                    "time": c["time"],
-                    "value": c["volume"],
-                    "color": _vol_up if c["close"] >= c["open"] else _vol_dn,
-                }
-                for c in candles
-            ]
-            tz = self._svc.get_system_config().market_timezone
-            html = _build_chart_html(candles, volume_data, symbol, timeframe, timezone=tz)
-            web.setHtml(html, QUrl("about:blank"))
-        else:
-            web.setHtml(
-                f"""<!DOCTYPE html><html><body style="margin:0;background:{_ap.BG};
-                display:flex;align-items:center;justify-content:center;height:100vh;
-                font-family:monospace;">
-                <div style="text-align:center;color:{_ap.MUTED};">
-                  <div style="font-size:36px;margin-bottom:12px;">⚠</div>
-                  <div>No candle data for <b style="color:{_ap.YELLOW}">{symbol}</b>
-                  ({timeframe.upper()})</div>
-                  <div style="font-size:11px;margin-top:8px;">
-                    Download data from Settings → Database.</div>
-                </div></body></html>"""
-            )
-        return web
-
-
 _INDICATOR_SCREENER_ID   = "indicator_composite"
 _PRICE_ACTION_SCREENER_ID = "price_action"
 _LLM_CLAUDE_SCREENER_ID  = "llm_claude_ranking"
@@ -688,20 +339,23 @@ class _GroupWidget(QFrame):
         self._logic_btn.clicked.connect(self._toggle_logic)
         self._apply_logic_style()
 
-        self._add_screener_btn = QPushButton("＋  Add Screener")
+        self._add_screener_btn = QPushButton("Add Screener")
         add_btn = self._add_screener_btn
+        set_icon(add_btn, "plus", "add")
         add_btn.setObjectName("btn_add_screener")
         add_btn.setToolTip("Add a screener to this group")
         add_btn.clicked.connect(self._on_add_screener)
 
-        self._cfg_btn = QPushButton("⚙  Configure")
+        self._cfg_btn = QPushButton("Configure")
+        set_icon(self._cfg_btn, "settings-2")
         self._cfg_btn.setObjectName("btn_configure")
         self._cfg_btn.setToolTip("Configure the selected screener")
         self._cfg_btn.setEnabled(False)
         self._cfg_btn.clicked.connect(self._on_configure)
 
         del_btn = QPushButton("Remove")
-        del_btn.setObjectName("btn_remove")
+        set_icon(del_btn, "trash-2", "danger")
+        mark_danger(del_btn)
         del_btn.setToolTip("Remove this group")
         del_btn.clicked.connect(lambda: self.remove_requested.emit(self._group_id))
 
@@ -717,7 +371,7 @@ class _GroupWidget(QFrame):
         root.addWidget(header)
 
         # ── Empty state (shown when list is empty) ───────────────────────────
-        self._empty_lbl = QLabel("No screeners yet — click  ＋ Add Screener  above")
+        self._empty_lbl = QLabel("No screeners yet — click Add Screener above")
         self._empty_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._empty_lbl.setFixedHeight(48)
         self._empty_lbl.setStyleSheet(
@@ -831,13 +485,15 @@ class _GroupWidget(QFrame):
         menu = QMenu(self)
         if sid == _INDICATOR_SCREENER_ID:
             menu.addAction(
-                "⚙  Configure…",
+                make_icon("settings-2"),
+                "Configure…",
                 lambda: self._open_indicator_config(sid),
             )
             menu.addSeparator()
         elif sid == _PRICE_ACTION_SCREENER_ID:
             menu.addAction(
-                "⚙  Configure…",
+                make_icon("settings-2"),
+                "Configure…",
                 lambda: self._open_price_action_config(sid),
             )
             menu.addSeparator()
@@ -924,13 +580,16 @@ class _WeightedRow(QFrame):
         hl.addWidget(name_lbl, 1)
 
         if sid in (_INDICATOR_SCREENER_ID, _PRICE_ACTION_SCREENER_ID):
-            cfg_btn = QPushButton("⚙")
+            cfg_btn = QPushButton()
+            set_icon(cfg_btn, "settings-2", "neutral", 13)
             cfg_btn.setFixedSize(22, 22)
             cfg_btn.setToolTip("Edit screener settings")
+            cfg_btn.setAccessibleName("Configure")
             cfg_btn.setStyleSheet(
-                f"QPushButton {{ background: transparent; color: {_T.SUBTEXT}; font-size: 11pt;"
-                f" border: 1px solid {_T.OVERLAY2}; border-radius: 3px; }}"
-                f"QPushButton:hover {{ color: {_T.BLUE}; border-color: {_T.BLUE}; }}"
+                f"QPushButton {{ background: transparent;"
+                f" border: 1px solid {_T.OVERLAY2}; border-radius: 3px; outline: none; }}"
+                f"QPushButton:hover {{ border-color: {_T.BLUE}; }}"
+                f"QPushButton:focus {{ outline: none; }}"
             )
             cfg_btn.clicked.connect(self._open_config)
             hl.addWidget(cfg_btn)
@@ -1127,7 +786,8 @@ class _AssignUsersWidget(QWidget):
         self._tag_row.setContentsMargins(0, 0, 0, 0)
         self._tag_row.addStretch()
 
-        add_btn = QPushButton("＋  Add User")
+        add_btn = QPushButton("Add User")
+        set_icon(add_btn, "user-plus", "add")
         add_btn.setObjectName("btn_blue")
         add_btn.clicked.connect(self._on_open_picker)
 
@@ -1276,7 +936,8 @@ class _PresetBuilderDialog(_FramelessDialog):
         radio_row.addWidget(self._r_composite)
         radio_row.addWidget(self._r_weighted)
         radio_row.addStretch()
-        self._add_grp_btn = QPushButton("＋  Add Group")
+        self._add_grp_btn = QPushButton("Add Group")
+        set_icon(self._add_grp_btn, "plus", "add")
         self._add_grp_btn.setObjectName("btn_blue")
         self._add_grp_btn.clicked.connect(lambda: self._add_group())
         radio_row.addWidget(self._add_grp_btn)
@@ -1360,7 +1021,8 @@ class _PresetBuilderDialog(_FramelessDialog):
         self._ai_ranking_chk.setStyleSheet(f"color: {_T.TEXT}; font-size: 9pt;")
         ai_header_hl.addWidget(self._ai_ranking_chk)
         ai_header_hl.addStretch()
-        self._ai_model_validate_btn = QPushButton("⚡  Validate")
+        self._ai_model_validate_btn = QPushButton("Validate")
+        set_icon(self._ai_model_validate_btn, "check-check", "go")
         self._ai_model_validate_btn.setFixedWidth(105)
         self._ai_model_validate_btn.setVisible(False)
         self._ai_model_validate_btn.clicked.connect(self._on_validate_model)
@@ -1419,12 +1081,14 @@ class _PresetBuilderDialog(_FramelessDialog):
         btn_row = QHBoxLayout()
         btn_row.addStretch()
 
-        self._save_as_btn = QPushButton("💾  Save As…")
+        self._save_as_btn = QPushButton("Save As…")
+        set_icon(self._save_as_btn, "copy")
         self._save_as_btn.setVisible(preset is not None)
         self._save_as_btn.setToolTip("Save a copy of this preset with a new name")
         self._save_as_btn.clicked.connect(self._on_save_as)
 
-        save_btn = QPushButton("✔  Save")
+        save_btn = QPushButton("Save")
+        set_icon(save_btn, "save", "add")
         save_btn.setObjectName("btn_green")
         save_btn.setDefault(True)
         save_btn.clicked.connect(self._on_save)
@@ -1524,7 +1188,8 @@ class _PresetBuilderDialog(_FramelessDialog):
         self._threshold.valueChanged.connect(self._refresh_preview)
         thr_row.addWidget(self._threshold)
         thr_row.addStretch()
-        self._add_screener_w_btn = QPushButton("＋  Add Screener")
+        self._add_screener_w_btn = QPushButton("Add Screener")
+        set_icon(self._add_screener_w_btn, "plus", "add")
         self._add_screener_w_btn.setObjectName("btn_add_screener")
         self._add_screener_w_btn.clicked.connect(self._on_add_weighted_screener)
         add_btn = self._add_screener_w_btn
@@ -1839,7 +1504,7 @@ class _PresetBuilderDialog(_FramelessDialog):
     def _on_validate_done(self, ok: bool, message: str) -> None:
         _T = active_palette()
         self._ai_model_validate_btn.setEnabled(True)
-        self._ai_model_validate_btn.setText("⚡  Validate")
+        self._ai_model_validate_btn.setText("Validate")
         if ok:
             self._ai_model_status_lbl.setStyleSheet(f"font-size: 8pt; color: {_T.GREEN};")
             self._ai_model_status_lbl.setText(f"✓  {message}")
@@ -2041,12 +1706,13 @@ class _NewPresetDialog(QDialog):
 class ScreenerPanel(QWidget):
     """FO-SCR-007 Screener Panel v2 — preset-based execution.
 
-    Toolbar: Run Now / date navigation / status / Add to Watchlist.
-    Left:    Preset list (admin + user + create-new).
-    Right:   Results table (symbol · score · details · AI reasoning).
+    Left:    Preset list (admin + user) with a New preset button.
+    Right:   Page header (title, run line, run stepper, sort, view, CSV, Run now), rule
+             chips, then the List + detail or Cards view (SRD-GUI-022.001–.012).
     """
 
     watchlist_add_requested = pyqtSignal(str)   # preserved — wired in main_window
+    chart_requested = pyqtSignal(str, str)      # symbol, timeframe → Charts screen
 
     def __init__(self, demo: AppService, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -2064,31 +1730,39 @@ class ScreenerPanel(QWidget):
         self._available_dates:           list[str]  = []
         self._date_idx:           int        = 0
         self._worker: _PresetRunWorker | None = None
-        self._quick_chart_win: QuickChartWindow | None = None
         self._db_info:           Any        = None   # latest CandleDbInfo
         self._auto_run_queue:    list[str]  = []     # preset IDs pending auto-run
+        self._rows:              list[ResultRow] = []  # rows shown by both views
+        self._run_meta:          dict[str, str] = {}   # preset id → last-run line
+        self._names:             dict[str, str] = {}   # symbol → company name
 
         # ── DB status subscription (SRD-SCR-004.007) ──────────────────────
         demo.candle_db_status_changed.connect(self._on_db_status_changed)
         demo.market_status_updated.connect(self._maybe_auto_run)
 
         # ── Build UI ───────────────────────────────────────────────────────
-        toolbar      = self._build_toolbar()
+        header       = self._build_toolbar()
         left_frame   = self._build_left_pane()
         right_widget = self._build_right_pane()
 
-        body = QSplitter(Qt.Orientation.Horizontal)
-        body.setHandleWidth(2)
-        body.addWidget(left_frame)
-        body.addWidget(right_widget)
-        body.setSizes([260, 900])
-        body.setCollapsible(0, False)
-        body.setCollapsible(1, False)
+        right_col = QWidget()
+        rl = QVBoxLayout(right_col)
+        rl.setContentsMargins(0, 0, 0, 0)
+        rl.setSpacing(0)
+        rl.addWidget(header)
+        rl.addWidget(right_widget, 1)
+
+        # Preset rail and results are two cards on the gutter (SRD-GUI-023.002)
+        body = gutter(QWidget())
+        bl = QHBoxLayout(body)
+        bl.setContentsMargins(0, 0, 0, 0)
+        bl.setSpacing(GAP)
+        bl.addWidget(card(left_frame))
+        bl.addWidget(card(right_col), 1)
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
-        root.addWidget(toolbar)
         root.addWidget(body, 1)
 
     # ── Backend init ──────────────────────────────────────────────────────
@@ -2106,126 +1780,143 @@ class ScreenerPanel(QWidget):
     # ── Toolbar ───────────────────────────────────────────────────────────
 
     def _build_toolbar(self) -> QFrame:
-        _BTN_H = 30   # unified height for all toolbar interactive controls
-
-        self._run_btn = QPushButton("▶  Run Now")
-        self._run_btn.setObjectName("run_btn")
-        self._run_btn.setFixedHeight(_BTN_H)
-        self._run_btn.setMinimumWidth(110)
-        self._run_btn.setEnabled(False)
-        self._run_btn.clicked.connect(self._run_preset)
-
-        self._progress = QProgressBar()
-        self._progress.setRange(0, 0)
-        self._progress.setFixedHeight(4)
-        self._progress.setFixedWidth(100)
-        self._progress.setVisible(False)
-
-        # Date navigation — square arrow buttons; font/padding defined by #btn_nav in theme
-        self._nav_prev = QPushButton("‹")
-        self._nav_prev.setObjectName("btn_nav")
-        self._nav_prev.setFixedWidth(28)
-        self._nav_prev.setEnabled(False)
-        self._nav_prev.setToolTip("Older result")
-        self._nav_prev.clicked.connect(lambda: self._navigate_date(+1))
-
-        self._date_lbl = QLabel("—")
-        self._date_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._date_lbl.setMinimumWidth(90)
-        self._date_lbl.setStyleSheet(f"color: {C.SUBTEXT}; font-size: 9pt;")
-
-        self._nav_next = QPushButton("›")
-        self._nav_next.setObjectName("btn_nav")
-        self._nav_next.setFixedWidth(28)
-        self._nav_next.setEnabled(False)
-        self._nav_next.setToolTip("Newer result")
-        self._nav_next.clicked.connect(lambda: self._navigate_date(-1))
-
+        """Page header: preset title, run line, transcript pill and run controls."""
+        self._title_lbl = QLabel("Screener")
+        self._title_lbl.setObjectName("page_title")
+        self._type_tag = QLabel()
+        self._type_tag.setObjectName("page_tag")
+        self._type_tag.setVisible(False)
         self._mode_badge = QLabel()
-        self._mode_badge.setFixedHeight(20)
+        self._mode_badge.setObjectName("page_tag")
         self._mode_badge.setVisible(False)
 
         self._status_lbl = QLabel("Select a preset to begin")
-        self._status_lbl.setStyleSheet(f"color: {C.MUTED}; font-size: 9pt;")
+        self._status_lbl.setObjectName("view_key")
 
-        self._export_btn = QPushButton("⬇  CSV")
-        self._export_btn.setFixedWidth(86)
+        # AI transcript pill (SRD-GUI-022.010)
+        self._tx_pill = QPushButton()
+        self._tx_pill.setObjectName("tx_pill")
+        self._tx_pill.setCheckable(True)
+        set_icon(self._tx_pill, "message-square", "neutral", 13)
+        self._tx_pill.setToolTip("Show the AI conversation for this run")
+        self._tx_pill.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self._tx_pill.setVisible(False)
+        self._tx_pill.clicked.connect(self._toggle_transcript)
+
+        title_row = QHBoxLayout()
+        title_row.setSpacing(8)
+        title_row.addWidget(self._title_lbl)
+        title_row.addWidget(self._type_tag)
+        title_row.addWidget(self._mode_badge)
+        title_row.addStretch(1)
+        meta_row = QHBoxLayout()
+        meta_row.setSpacing(8)
+        meta_row.addWidget(self._status_lbl)
+        meta_row.addWidget(self._tx_pill)
+        meta_row.addStretch(1)
+        title_box = QVBoxLayout()
+        title_box.setSpacing(4)
+        title_box.addLayout(title_row)
+        title_box.addLayout(meta_row)
+
+        # Saved-run stepper (SRD-GUI-022.009)
+        self._run_stepper = RunStepper()
+        self._run_stepper.index_changed.connect(self._on_run_picked)
+
+        sort_lbl = QLabel("Sort")
+        sort_lbl.setObjectName("view_key")
+        self._sort_combo = QComboBox()
+        for key, label in SORT_KEYS:
+            self._sort_combo.addItem(label, key)
+        self._sort_combo.setFixedWidth(130)
+        self._sort_combo.setToolTip("Sort results")
+        self._sort_combo.setAccessibleName("Sort results")
+        self._sort_combo.currentIndexChanged.connect(self._refresh_views)
+
+        self._view_switch = ViewSwitch(_view_settings())
+        self._view_switch.view_changed.connect(self._on_view_changed)
+
+        self._export_btn = QPushButton()
+        set_icon(self._export_btn, "download", "neutral")
+        self._export_btn.setFixedWidth(C.BTN_H + 4)
         self._export_btn.setEnabled(False)
         self._export_btn.setToolTip("Export results to CSV")
+        self._export_btn.setAccessibleName("Export results to CSV")
         self._export_btn.clicked.connect(self._export_csv)
 
-        self._add_btn = QPushButton("＋  Watchlist")
-        self._add_btn.setObjectName("add_btn")
-        self._add_btn.setEnabled(False)
-        self._add_btn.setFixedHeight(_BTN_H)
-        self._add_btn.setFixedWidth(110)
-        self._add_btn.clicked.connect(self._on_add_watchlist)
+        self._run_btn = QPushButton("Run now")
+        set_icon(self._run_btn, "play", "inverse", 14)
+        self._run_btn.setObjectName("primary_btn")
+        self._run_btn.setMinimumWidth(100)
+        self._run_btn.setEnabled(False)
+        self._run_btn.clicked.connect(self._run_preset)
 
-        toolbar = QFrame()
-        toolbar.setObjectName("screener_toolbar")
-        toolbar.setFixedHeight(58)
-        tb = QHBoxLayout(toolbar)
-        tb.setContentsMargins(14, 0, 14, 8)
-        tb.setSpacing(8)
-        tb.addWidget(self._run_btn)
-        tb.addSpacing(10)
-        tb.addWidget(self._nav_prev)
-        tb.addWidget(self._date_lbl)
-        tb.addWidget(self._nav_next)
-        tb.addSpacing(4)
-        tb.addWidget(self._mode_badge)
-        tb.addStretch()
-        tb.addWidget(self._status_lbl)
-        tb.addSpacing(8)
-        tb.addWidget(self._progress)
-        tb.addSpacing(8)
-        tb.addWidget(self._export_btn)
-        tb.addSpacing(6)
-        tb.addWidget(self._add_btn)
-        return toolbar
+        header = QFrame()
+        header.setObjectName("screener_header")
+        row = QHBoxLayout(header)
+        row.setContentsMargins(20, 12, 20, 12)
+        row.setSpacing(8)
+        row.addLayout(title_box, 1)
+        row.addWidget(self._run_stepper, 0, Qt.AlignmentFlag.AlignVCenter)
+        row.addSpacing(4)
+        row.addWidget(sort_lbl)
+        row.addWidget(self._sort_combo)
+        row.addWidget(self._view_switch)
+        row.addWidget(self._export_btn)
+        row.addSpacing(4)
+        row.addWidget(self._run_btn)
+        return header
 
     # ── Left pane (preset list) ───────────────────────────────────────────
 
     def _build_left_pane(self) -> QFrame:
-        header = QLabel("PRESETS")
-        header.setStyleSheet(
-            f"color: {C.MUTED}; font-size: 7pt; letter-spacing: 2px;"
-            f" font-weight: bold; padding: 8px 12px 4px 12px;"
-        )
+        title = QLabel("PRESETS")
+        title.setObjectName("view_head")
+        self._new_btn = QPushButton()
+        set_icon(self._new_btn, "plus", "add")
+        self._new_btn.setFixedWidth(C.BTN_H)
+        self._new_btn.setToolTip("New preset")
+        self._new_btn.setAccessibleName("New preset")
+        self._new_btn.setEnabled(self._mgr is not None)
+        self._new_btn.clicked.connect(self._on_new_preset)
+        header = QWidget()
+        header.setObjectName("rule_strip")
+        hl = QHBoxLayout(header)
+        hl.setContentsMargins(12, 12, 8, 8)
+        hl.addWidget(title)
+        hl.addStretch(1)
+        hl.addWidget(self._new_btn)
 
-        # Style filter dropdown (SRD-SCR-007.010)
-        self._style_combo = QComboBox()
-        for label, value in _STYLE_OPTIONS:
-            self._style_combo.addItem(label, value)
-        self._style_combo.setFixedHeight(26)
-        self._style_combo.setStyleSheet(
-            f"QComboBox {{ background: {C.OVERLAY}; color: {C.TEXT};"
-            f" border: 1px solid {C.OVERLAY2}; border-radius: 4px;"
-            f" padding: 2px 8px; font-size: 8pt; margin: 0 8px 4px 8px; outline: none; }}"
-            f"QComboBox:focus {{ border: 1px solid {C.BLUE}; outline: none; }}"
-            f"QComboBox::drop-down {{ border: none; width: 16px; }}"
+        # Search and style chips (SRD-GUI-022.007; style filter SRD-SCR-007.010)
+        self._preset_search = QLineEdit()
+        self._preset_search.setPlaceholderText("Search presets")
+        self._preset_search.setAccessibleName("Search presets")
+        self._preset_search.setClearButtonEnabled(True)
+        self._preset_search.addAction(
+            make_icon("search", "neutral"), QLineEdit.ActionPosition.LeadingPosition
         )
-        self._style_combo.currentIndexChanged.connect(self._on_style_filter_changed)
+        self._preset_search.textChanged.connect(self._on_style_filter_changed)
+
+        self._style_chips = ChipGroup(_STYLE_CHIPS)
+        self._style_chips.changed.connect(self._on_style_filter_changed)
+
+        filters = QWidget()
+        filters.setObjectName("rule_strip")
+        fbox = QVBoxLayout(filters)
+        fbox.setContentsMargins(8, 0, 8, 6)
+        fbox.setSpacing(8)
+        fbox.addWidget(self._preset_search)
+        fbox.addWidget(self._style_chips)
 
         self._preset_list = QListWidget()
-        self._preset_list.setStyleSheet(
-            f"QListWidget {{ border: none; outline: none; }}"
-            f"QListWidget::item {{ padding: 6px 10px; border-bottom: 1px solid {C.OVERLAY}; }}"
-            f"QListWidget::item:selected {{ background: #1a2d45; color: {C.BLUE}; }}"
-            f"QListWidget::item:focus {{ outline: none; border: none; }}"
-            f"QListWidget::item:hover:!selected {{ background: {C.OVERLAY}22; }}"
-        )
+        self._preset_list.setObjectName("preset_list")
+        self._preset_list.setResizeMode(QListWidget.ResizeMode.Adjust)
         self._preset_list.setHorizontalScrollBarPolicy(
             Qt.ScrollBarPolicy.ScrollBarAlwaysOff
         )
         self._preset_list.itemClicked.connect(self._on_preset_clicked)
         self._preset_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self._preset_list.customContextMenuRequested.connect(self._on_preset_context_menu)
-
-        self._new_btn = QPushButton("＋  New Preset")
-        self._new_btn.setObjectName("add_btn")
-        self._new_btn.setEnabled(self._mgr is not None)
-        self._new_btn.clicked.connect(self._on_new_preset)
 
         frame = QFrame()
         frame.setObjectName("preset_pane")
@@ -2234,16 +1925,8 @@ class ScreenerPanel(QWidget):
         fl.setContentsMargins(0, 0, 0, 0)
         fl.setSpacing(0)
         fl.addWidget(header)
-        fl.addWidget(self._style_combo)
+        fl.addWidget(filters)
         fl.addWidget(self._preset_list, 1)
-
-        btn_row = QWidget()
-        btn_row.setStyleSheet("background: transparent;")
-        br = QVBoxLayout(btn_row)
-        br.setContentsMargins(8, 6, 8, 8)
-        br.setSpacing(6)
-        br.addWidget(self._new_btn)
-        fl.addWidget(btn_row)
 
         self._populate_preset_list()
         return frame
@@ -2252,72 +1935,46 @@ class ScreenerPanel(QWidget):
 
     def _build_right_pane(self) -> QWidget:
         # Empty state overlay
-        self._empty_lbl = QLabel("Select a preset from the list\nand click ▶ Run Now")
+        self._empty_lbl = QLabel("Select a preset from the list\nand click Run now")
         self._empty_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._empty_lbl.setStyleSheet(
             f"color: {C.MUTED}; font-size: 12pt; padding: 40px;"
         )
 
-        # Results table
-        self._model = _ResultsModel()
-        self._proxy = QSortFilterProxyModel()
-        self._proxy.setSourceModel(self._model)
+        # Preset rules, shown once above the results (SRD-GUI-022.004)
+        self._rule_strip = QWidget()
+        self._rule_strip.setObjectName("rule_strip")
+        self._rule_row = QHBoxLayout(self._rule_strip)
+        self._rule_row.setContentsMargins(20, 8, 20, 8)
+        self._rule_row.setSpacing(6)
+        self._rule_strip.setVisible(False)
 
-        self._table = QTableView()
-        self._table.setModel(self._proxy)
-        self._table.setSortingEnabled(True)
-        self._table.sortByColumn(1, Qt.SortOrder.DescendingOrder)
-        self._table.setAlternatingRowColors(True)
-        self._table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        self._table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self._table.verticalHeader().setVisible(False)
-        self._table.setShowGrid(False)
-        self._table.setWordWrap(True)
-        self._table.setStyleSheet(
-            "QTableView { border: none; outline: none; }"
-            "QTableView::item { padding: 5px 8px; }"
-            "QTableView::item:focus { outline: none; border: none; }"
-        )
+        # Result views (SRD-GUI-022.001–.003)
+        self._list_view = ListDetailView(self._make_chart)
+        self._list_view.chart_requested.connect(self._on_view_chart)
+        self._list_view.watchlist_requested.connect(self._on_view_watchlist)
+        self._cards_view = CardsView()
+        self._cards_view.chart_requested.connect(self._on_view_chart)
+        self._cards_view.watchlist_requested.connect(self._on_view_watchlist)
 
-        hdrs = self._table.horizontalHeader()
-        hdrs.setSectionResizeMode(0, QHeaderView.ResizeMode.Interactive)   # Symbol
-        hdrs.resizeSection(0, 80)
-        hdrs.setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)          # Chart button
-        hdrs.resizeSection(1, 56)
-        hdrs.setSectionResizeMode(2, QHeaderView.ResizeMode.Interactive)   # Score
-        hdrs.resizeSection(2, 72)
-        hdrs.setSectionResizeMode(3, QHeaderView.ResizeMode.Interactive)   # Details
-        hdrs.resizeSection(3, 200)
-        hdrs.setStretchLastSection(True)                                    # AI Reasoning fills remainder
-        hdrs.setDefaultAlignment(Qt.AlignmentFlag.AlignCenter)
-        hdrs.sectionDoubleClicked.connect(self._table.resizeColumnToContents)
-
-        self._table.setItemDelegateForColumn(_CHART_COL, _ChartButtonDelegate(self._table))
-        self._table.setMouseTracking(True)
-        self._table.viewport().setMouseTracking(True)
-        self._table.clicked.connect(self._on_table_clicked)
-
-        self._table.selectionModel().selectionChanged.connect(self._on_selection)
-        self._table.setVisible(False)
+        self._views = QStackedWidget()
+        self._views.addWidget(self._empty_lbl)
+        self._views.addWidget(self._list_view)
+        self._views.addWidget(self._cards_view)
 
         table_container = QWidget()
         cl = QVBoxLayout(table_container)
         cl.setContentsMargins(0, 0, 0, 0)
         cl.setSpacing(0)
-        cl.addWidget(self._empty_lbl, 1)
-        cl.addWidget(self._table, 1)
+        cl.addWidget(self._rule_strip)
+        cl.addWidget(self._views, 1)
 
+        # AI transcript drawer over the results (SRD-GUI-022.010)
         self._transcript_panel = AITranscriptPanel()
-        self._transcript_panel.setVisible(False)
-
-        right_splitter = QSplitter(Qt.Orientation.Vertical)
-        right_splitter.setHandleWidth(2)
-        right_splitter.addWidget(table_container)
-        right_splitter.addWidget(self._transcript_panel)
-        right_splitter.setSizes([700, 300])
-        right_splitter.setCollapsible(0, False)
-        right_splitter.setCollapsible(1, True)
-        return right_splitter
+        self._transcript_panel.hide_title()
+        self._tx_drawer = SideDrawer("AI transcript", self._transcript_panel, table_container)
+        self._tx_drawer.closed.connect(lambda: self._tx_pill.setChecked(False))
+        return table_container
 
     # ── Preset list population ────────────────────────────────────────────
 
@@ -2333,16 +1990,20 @@ class ScreenerPanel(QWidget):
             self._preset_list.addItem(item)
             return
 
-        style_filter: str | None = self._style_combo.currentData()
+        style_filter = self._style_chips.value
+        search = self._preset_search.text()
         uid = str(self._demo.get_active_user().user_id)
         try:
-            admin_presets = self._mgr.list_admin_presets(style_filter=style_filter)
-            user_presets  = self._mgr.list_user_presets(uid, style_filter=style_filter)
+            admin_presets = filter_presets(
+                self._mgr.list_admin_presets(style_filter=style_filter), search)
+            user_presets = filter_presets(
+                self._mgr.list_user_presets(uid, style_filter=style_filter), search)
         except Exception:  # noqa: BLE001
             admin_presets, user_presets = [], []
 
         if not admin_presets and not user_presets:
-            item = QListWidgetItem("No presets yet — create one below")
+            empty = "No presets match" if search.strip() else "No presets yet — create one below"
+            item = QListWidgetItem(empty)
             item.setForeground(QColor(C.MUTED))
             item.setFlags(Qt.ItemFlag.NoItemFlags)
             self._preset_list.addItem(item)
@@ -2354,7 +2015,7 @@ class ScreenerPanel(QWidget):
                 self._add_preset_item(p)
 
         if user_presets:
-            self._add_section_header("MINE")
+            self._add_section_header("MY PRESETS")
             for p in user_presets:
                 self._add_preset_item(p)
 
@@ -2363,15 +2024,47 @@ class ScreenerPanel(QWidget):
         item.setForeground(QColor(C.MUTED))
         item.setFont(self._section_font())
         item.setFlags(Qt.ItemFlag.NoItemFlags)
-        item.setBackground(QColor(C.OVERLAY))
         self._preset_list.addItem(item)
 
     def _add_preset_item(self, preset: Any) -> None:
-        type_tag = "C" if str(preset.preset_type).endswith("composite") else "W"
-        item = QListWidgetItem(f"  {preset.name}  [{type_tag}]")
+        item = QListWidgetItem()
         item.setData(Qt.ItemDataRole.UserRole, preset.id)
-        item.setForeground(QColor(C.TEXT))
+        item.setToolTip(preset.name)
+        item.setSizeHint(QSize(0, 50))
         self._preset_list.addItem(item)
+        self._preset_list.setItemWidget(
+            item, PresetItem(preset.name, self._last_run_meta(preset.id))
+        )
+
+    def _last_run_meta(self, preset_id: str) -> str:
+        """Last-run line for a preset, read once from saved results (SRD-GUI-022.007)."""
+        if preset_id not in self._run_meta:
+            self._run_meta[preset_id] = self._read_last_run(preset_id)
+        return self._run_meta[preset_id]
+
+    def _read_last_run(self, preset_id: str) -> str:
+        if self._storage is None:
+            return ""
+        try:
+            dates = self._storage.list_results(preset_id, limit=1)
+            if not dates:
+                return last_run_text(None, 0, _date.today())
+            result = self._storage.load_result(preset_id, dates[0])
+        except Exception:  # noqa: BLE001
+            _log.debug("[Screener] Could not read the last run of a preset", exc_info=True)
+            return ""
+        matches = sum(1 for meta in result.results.values() if meta.get("passed", True))
+        return last_run_text(result.run_timestamp, matches, _date.today())
+
+    def _refresh_preset_meta(self, preset_id: str) -> None:
+        self._run_meta.pop(preset_id, None)
+        for i in range(self._preset_list.count()):
+            item = self._preset_list.item(i)
+            if item is not None and item.data(Qt.ItemDataRole.UserRole) == preset_id:
+                widget = self._preset_list.itemWidget(item)
+                if isinstance(widget, PresetItem):
+                    widget.set_meta(self._last_run_meta(preset_id))
+                return
 
     @staticmethod
     def _section_font() -> QFont:
@@ -2397,17 +2090,16 @@ class ScreenerPanel(QWidget):
                 self._selected_preset_timeframe = "1d"
                 self._selected_preset = None
         self._run_btn.setEnabled(True)
+        self._update_header()
         self._refresh_date_nav()
         self._refresh_transcript_visibility()
         self._maybe_auto_run()
 
     def _refresh_date_nav(self) -> None:
+        self._date_idx = 0
         if not self._selected_preset_id or self._storage is None:
             self._available_dates = []
-            self._date_idx        = 0
-            self._date_lbl.setText("—")
-            self._nav_prev.setEnabled(False)
-            self._nav_next.setEnabled(False)
+            self._update_date_display()
             return
 
         try:
@@ -2415,33 +2107,18 @@ class ScreenerPanel(QWidget):
         except Exception:  # noqa: BLE001
             self._available_dates = []
 
+        self._update_date_display()
         if self._available_dates:
-            self._date_idx = 0
-            self._update_date_display()
             self._load_result_for_current_date()
         else:
-            self._date_lbl.setText("no history")
-            self._nav_prev.setEnabled(False)
-            self._nav_next.setEnabled(False)
             self._show_empty("Run the screener to see results")
 
     def _update_date_display(self) -> None:
-        dates = self._available_dates
-        if not dates:
-            self._date_lbl.setText("—")
-            self._nav_prev.setEnabled(False)
-            self._nav_next.setEnabled(False)
-            return
-        self._date_lbl.setText(dates[self._date_idx])
-        self._nav_prev.setEnabled(self._date_idx < len(dates) - 1)
-        self._nav_next.setEnabled(self._date_idx > 0)
+        self._run_stepper.set_runs(self._available_dates, self._date_idx)
 
-    def _navigate_date(self, delta: int) -> None:
-        new_idx = self._date_idx + delta
-        if 0 <= new_idx < len(self._available_dates):
-            self._date_idx = new_idx
-            self._update_date_display()
-            self._load_result_for_current_date()
+    def _on_run_picked(self, index: int) -> None:
+        self._date_idx = index
+        self._load_result_for_current_date()
 
     def _load_result_for_current_date(self) -> None:
         if not self._available_dates or self._storage is None:
@@ -2525,7 +2202,6 @@ class ScreenerPanel(QWidget):
             self._select_preset_in_list(preset_id)
         self._run_btn.setEnabled(False)
         self._run_btn.setText("Running…")
-        self._progress.setVisible(True)
         status_msg = "Scanning symbols…" if manual else "Auto-running screener…"
         self._status_lbl.setText(status_msg)
         self._status_lbl.setStyleSheet(f"color: {C.SUBTEXT}; font-size: 9pt;")
@@ -2563,13 +2239,13 @@ class ScreenerPanel(QWidget):
                         self._selected_preset_timeframe = "1d"
                         self._selected_preset = None
                 self._run_btn.setEnabled(True)
+                self._update_header()
                 self._refresh_transcript_visibility()
                 break
 
     def _on_run_finished(self, result: Any) -> None:
         self._run_btn.setEnabled(True)
-        self._run_btn.setText("▶  Run Now")
-        self._progress.setVisible(False)
+        self._run_btn.setText("Run now")
         self._export_btn.setEnabled(True)
 
         # Refresh date list (new file was just written)
@@ -2581,6 +2257,7 @@ class ScreenerPanel(QWidget):
             pass
 
         self._display_result(result)
+        self._refresh_preset_meta(str(getattr(result, "preset_id", self._selected_preset_id)))
 
         # Notify Execution panel so its Filtered Stocks pane refreshes immediately
         self._demo.notify_screener_results_updated()
@@ -2592,42 +2269,63 @@ class ScreenerPanel(QWidget):
 
     def _on_run_failed(self, reason: str) -> None:
         self._run_btn.setEnabled(True)
-        self._run_btn.setText("▶  Run Now")
-        self._progress.setVisible(False)
+        self._run_btn.setText("Run now")
         self._show_error(reason)
 
     # ── Display helpers ───────────────────────────────────────────────────
 
     def _refresh_transcript_visibility(self) -> None:
-        """Show the transcript panel only when the active preset uses LLM ranking
-        AND a non-empty transcript is loaded (SRD-SCR-014.006)."""
+        """Show the transcript pill only when the active preset uses LLM ranking
+        AND a non-empty transcript is loaded (SRD-SCR-014.006, SRD-GUI-022.010)."""
         llm_enabled = bool(getattr(self._selected_preset, "enable_llm_ranking", False))
         if not llm_enabled:
-            self._transcript_panel.setVisible(False)
             self._transcript_panel.clear()
-        elif self._transcript_panel.has_turns():
-            self._transcript_panel.setVisible(True)
-        else:
-            self._transcript_panel.setVisible(False)
+        show = llm_enabled and self._transcript_panel.has_turns()
+        self._tx_pill.setVisible(show)
+        if not show:
+            self._tx_drawer.close_drawer()
+
+    def _toggle_transcript(self) -> None:
+        self._tx_drawer.toggle()
+        self._tx_pill.setChecked(self._tx_drawer.is_open)
+
+    def _update_header(self) -> None:
+        """Show the selected preset's name and type tag (SRD-GUI-022.008)."""
+        preset = self._selected_preset
+        self._title_lbl.setText(str(getattr(preset, "name", "") or "Screener"))
+        if preset is None:
+            self._type_tag.setVisible(False)
+            return
+        composite = str(getattr(preset, "preset_type", "")).endswith("composite")
+        self._type_tag.setText("Composite" if composite else "Weighted")
+        self._type_tag.setVisible(True)
+
+    def _company_names(self) -> dict[str, str]:
+        """Symbol → company name from the S&P 500 universe, read once it is loaded."""
+        if not self._names:
+            try:
+                self._names = {r.symbol: r.name for r in self._demo.get_sp500_universe()}
+            except Exception:  # noqa: BLE001
+                _log.debug("[Screener] Company names are not available", exc_info=True)
+        return self._names
 
     def _display_result(self, result: Any) -> None:
-        """Populate the results table from a ScreenerRunResult."""
-        rows = self._build_rows(result)
-        count = len(rows)
-        self._model.load(rows)
-        self._table.resizeRowsToContents()
+        """Show a ScreenerRunResult in the result views."""
+        self._rows = rows_from_result(getattr(result, "results", {}) or {},
+                                      self._company_names())
+        count = len(self._rows)
 
         mode = getattr(result, "execution_mode", "manual")
         self._update_mode_badge(mode)
 
+        ai_ranked = bool(getattr(self._selected_preset, "enable_llm_ranking", False))
         self._status_lbl.setText(
-            f"{count} symbol{'s' if count != 1 else ''} matched"
-            f"  ·  sorted by score ↓"
+            run_meta_text(count, getattr(result, "run_timestamp", None), ai_ranked)
         )
-        self._status_lbl.setStyleSheet(
-            f"color: {C.SUBTEXT if count > 0 else C.MUTED}; font-size: 9pt;"
-        )
+        self._status_lbl.setStyleSheet("")
         self._export_btn.setEnabled(count > 0)
+        self._show_rule_strip(self._rule_summary())
+        self._refresh_views()
         self._show_table(has_data=count > 0)
 
         transcript = list(getattr(result, "ai_transcript", None) or [])
@@ -2637,12 +2335,15 @@ class ScreenerPanel(QWidget):
                 cost_per_1k_in=INPUT_COST_PER_1K,
                 cost_per_1k_out=OUTPUT_COST_PER_1K,
             )
+            self._tx_pill.setText(
+                transcript_pill_text(transcript, INPUT_COST_PER_1K, OUTPUT_COST_PER_1K)
+            )
         else:
             self._transcript_panel.clear()
         self._refresh_transcript_visibility()
 
-    def _build_rows(self, result: Any) -> list[_Row]:
-        # Resolve indicator and price action config summaries once for the active preset
+    def _rule_summary(self) -> list[str]:
+        """Return the active preset's rule summary as chip texts (SRD-GUI-022.004)."""
         summarisers = {
             _INDICATOR_SCREENER_ID: config_summary,
             _PRICE_ACTION_SCREENER_ID: pattern_config_summary,
@@ -2662,64 +2363,72 @@ class ScreenerPanel(QWidget):
                         summaries[sid] = summarisers[sid](cfg) if cfg else ""
             except Exception:  # noqa: BLE001
                 pass
-        _ind_cfg_summary = "  ·  ".join(text for text in summaries.values() if text)
+        return [part.strip() for text in summaries.values() if text
+                for part in text.split("·") if part.strip()]
 
-        rows: list[_Row] = []
-        results_dict: dict = getattr(result, "results", {})
-        for symbol, meta in results_dict.items():
-            score = float(meta.get("score", 0.0))
+    def _show_rule_strip(self, chips: list[str]) -> None:
+        while self._rule_row.count():
+            item = self._rule_row.takeAt(0)
+            widget = item.widget() if item is not None else None
+            if widget is not None:
+                widget.deleteLater()
+        if not chips:
+            self._rule_strip.setVisible(False)
+            return
+        title = QLabel("Rules")
+        title.setObjectName("view_key")
+        self._rule_row.addWidget(title)
+        for text in chips:
+            chip = QLabel(text)
+            chip.setObjectName("rule_pill")
+            self._rule_row.addWidget(chip)
+        self._rule_row.addStretch(1)
+        self._rule_strip.setVisible(True)
 
-            # Details: full per-screener breakdown + indicator config summary
-            details_dict = meta.get("details", {})
-            if details_dict:
-                detail_parts = []
-                for k, v in details_dict.items():
-                    short = k.split("_")[0]
-                    if isinstance(v, bool):
-                        detail_parts.append(f"{short}:{'✔' if v else '✘'}")
-                    elif isinstance(v, (int, float)):
-                        detail_parts.append(f"{short}:{float(v):.2f}")
-                    else:
-                        detail_parts.append(f"{short}:{v}")
-                details_str = "  ·  ".join(detail_parts)
-            else:
-                details_str = "—"
+    def _refresh_views(self) -> None:
+        """Load the current rows, in the chosen sort order, into both views."""
+        rows = sort_rows(self._rows, str(self._sort_combo.currentData() or "score"))
+        self._list_view.load(rows, self._selected_preset_timeframe)
+        self._cards_view.load(rows)
 
-            if _ind_cfg_summary:
-                details_str = f"[{_ind_cfg_summary}]  {details_str}"
+    def _make_chart(self) -> QWidget:
+        from us_swing.gui.chart_panel import CandleChartPanel
+        chart = CandleChartPanel(self._demo)
+        chart.hide_toolbar()
+        return chart
 
-            ai_reasoning = str(meta.get("ai_reasoning", "") or "")
-            rows.append(_Row(symbol=symbol, score=score,
-                             details=details_str, ai_reasoning=ai_reasoning))
+    def _on_view_changed(self, view: str) -> None:
+        if self._rows:
+            self._show_table(has_data=True)
 
-        rows.sort(key=lambda r: r.score, reverse=True)
-        return rows
+    def _on_view_chart(self, symbol: str) -> None:
+        self.chart_requested.emit(symbol, self._selected_preset_timeframe)
+
+    def _on_view_watchlist(self, symbol: str) -> None:
+        self.watchlist_add_requested.emit(symbol)
+        self._status_lbl.setText(f"✔  {symbol} added to watchlist")
+        self._status_lbl.setStyleSheet(f"color: {C.GREEN}; font-size: 9pt;")
 
     def _update_mode_badge(self, mode: str) -> None:
-        _tc = colors()
-        if mode == "scheduled":
-            self._mode_badge.setText("Auto")
-            self._mode_badge.setStyleSheet(
-                f"color:{C.TEAL};background:{_tc['mode_auto_bg']};border:1px solid {C.TEAL};"
-                "border-radius:8px;padding:2px 8px;font-size:7pt;font-weight:bold;"
-            )
-        else:
-            self._mode_badge.setText("Manual")
-            self._mode_badge.setStyleSheet(
-                f"color:{C.BLUE};background:{_tc['mode_manual_bg']};border:1px solid {C.BLUE};"
-                "border-radius:8px;padding:2px 8px;font-size:7pt;font-weight:bold;"
-            )
+        self._mode_badge.setText("Auto run" if mode == "scheduled" else "Manual run")
         self._mode_badge.setVisible(True)
 
     def _show_table(self, *, has_data: bool) -> None:
-        self._empty_lbl.setVisible(not has_data)
-        self._table.setVisible(has_data)
+        if not has_data:
+            self._views.setCurrentWidget(self._empty_lbl)
+        elif self._view_switch.view == "cards":
+            self._views.setCurrentWidget(self._cards_view)
+        else:
+            self._views.setCurrentWidget(self._list_view)
 
-    def _show_empty(self, message: str = "Select a preset from the list\nand click ▶ Run Now") -> None:
+    def _show_empty(self, message: str = "Select a preset from the list\nand click Run now") -> None:
+        self._rows = []
+        self._export_btn.setEnabled(False)
+        self._mode_badge.setVisible(False)
+        self._rule_strip.setVisible(False)
         self._empty_lbl.setText(message)
         self._empty_lbl.setStyleSheet(f"color: {C.MUTED}; font-size: 12pt; padding: 40px;")
-        self._table.setVisible(False)
-        self._empty_lbl.setVisible(True)
+        self._views.setCurrentWidget(self._empty_lbl)
 
     def _show_error(self, reason: str) -> None:
         self._status_lbl.setText(f"⚠  {reason[:120]}")
@@ -2734,10 +2443,10 @@ class ScreenerPanel(QWidget):
         if not item or not item.data(Qt.ItemDataRole.UserRole):
             return
         menu = QMenu(self)
-        menu.addAction(QAction("✏  Edit", self, triggered=self._on_edit_preset))
-        menu.addAction(QAction("⧉  Duplicate", self, triggered=self._on_duplicate_preset))
+        menu.addAction(QAction(make_icon("pencil"), "Edit", self, triggered=self._on_edit_preset))
+        menu.addAction(QAction(make_icon("copy"), "Duplicate", self, triggered=self._on_duplicate_preset))
         menu.addSeparator()
-        menu.addAction(QAction("🗑  Delete", self, triggered=self._on_delete_preset))
+        menu.addAction(QAction(make_icon("trash-2", "danger"), "Delete", self, triggered=self._on_delete_preset))
         menu.exec(self._preset_list.viewport().mapToGlobal(pos))
 
     def _on_edit_preset(self) -> None:
@@ -2839,43 +2548,12 @@ class ScreenerPanel(QWidget):
 
     # ── Quick chart ───────────────────────────────────────────────────────
 
-    def _on_table_clicked(self, proxy_index: QModelIndex) -> None:
-        if proxy_index.column() != _CHART_COL:
-            return
-        src_index = self._proxy.mapToSource(proxy_index)
-        row = self._model.row_at(src_index.row())
-        if row:
-            self._open_quick_chart(row.symbol)
-
-    def _open_quick_chart(self, symbol: str) -> None:
-        if self._quick_chart_win is None or not self._quick_chart_win.isVisible():
-            self._quick_chart_win = QuickChartWindow(self._demo)
-        self._quick_chart_win.open_symbol(symbol, self._selected_preset_timeframe)
-        self._quick_chart_win.show()
-        self._quick_chart_win.raise_()
-        self._quick_chart_win.activateWindow()
-
-    # ── Selection / watchlist ─────────────────────────────────────────────
-
-    def _on_selection(self) -> None:
-        has_row = bool(self._table.selectionModel().selectedRows())
-        self._add_btn.setEnabled(has_row)
-
-    def _on_add_watchlist(self) -> None:
-        indexes = self._table.selectionModel().selectedRows()
-        if not indexes:
-            return
-        src_idx = self._proxy.mapToSource(indexes[0])
-        row = self._model.row_at(src_idx.row())
-        if row:
-            self.watchlist_add_requested.emit(row.symbol)
-            self._status_lbl.setText(f"✔  {row.symbol} added to watchlist")
-            self._status_lbl.setStyleSheet(f"color: {C.GREEN}; font-size: 9pt;")
+    # ── Watchlist ─────────────────────────────────────────────────────────
 
     # ── CSV export ────────────────────────────────────────────────────────
 
     def _export_csv(self) -> None:
-        if self._model.rowCount() == 0:
+        if not self._rows:
             return
         path, _ = QFileDialog.getSaveFileName(
             self, "Export Screener Results", "screener_results.csv",
@@ -2885,14 +2563,8 @@ class ScreenerPanel(QWidget):
             return
         try:
             with open(path, "w", newline="", encoding="utf-8") as fh:
-                w = csv.writer(fh)
-                w.writerow(["Symbol", "Score", "Details", "AI Reasoning"])
-                for i in range(self._model.rowCount()):
-                    r = self._model.row_at(i)
-                    if r:
-                        w.writerow([r.symbol, f"{r.score:.4f}", r.details,
-                                    r.ai_reasoning])
-            self._status_lbl.setText(f"✔  Exported {self._model.rowCount()} rows to CSV")
+                csv.writer(fh).writerows(csv_rows(self._rows))
+            self._status_lbl.setText(f"✔  Exported {len(self._rows)} rows to CSV")
             self._status_lbl.setStyleSheet(f"color: {C.GREEN}; font-size: 9pt;")
         except Exception as exc:  # noqa: BLE001
             self._show_error(f"Export failed: {exc}")

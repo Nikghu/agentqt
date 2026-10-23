@@ -1,6 +1,6 @@
 """
 Module: MD-GUI-006 — settings_panel.py
-FO-GUI-006 Settings Panel: sub-tabs — Users, System, Universe, Database.
+FO-GUI-006 Settings Panel; FO-GUI-021 section list layout (Carbon Workspace).
 """
 from __future__ import annotations
 
@@ -9,10 +9,11 @@ import datetime
 import json
 import logging
 
-from PyQt6.QtCore import Qt, QDate, pyqtSignal
+from PyQt6.QtCore import Qt, QDate, QObject, pyqtSignal
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import (
     QAbstractItemView,
+    QButtonGroup,
     QCheckBox,
     QComboBox,
     QDateEdit,
@@ -20,6 +21,8 @@ from PyQt6.QtWidgets import (
     QDialogButtonBox,
     QDoubleSpinBox,
     QFormLayout,
+    QFrame,
+    QGridLayout,
     QGroupBox,
     QHBoxLayout,
     QHeaderView,
@@ -29,7 +32,7 @@ from PyQt6.QtWidgets import (
     QProgressBar,
     QPushButton,
     QSpinBox,
-    QTabWidget,
+    QStackedWidget,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -39,7 +42,8 @@ from PyQt6.QtWidgets import (
 
 from us_swing.gui.app_service import AppService
 from us_swing.data.models import RiskConfig, UserProfile
-from us_swing.gui.theme import C, active_palette, colors
+from us_swing.gui.icons import mark_danger, set_icon
+from us_swing.gui.theme import C, active_palette
 
 _log = logging.getLogger(__name__)
 
@@ -182,10 +186,13 @@ class _UsersTab(QWidget):
         self._table.setColumnWidth(9, 100)  # Default Order
         self._table.setColumnWidth(10, 105) # Order Confirm
 
-        self._new_btn  = QPushButton("＋  New User")
-        self._edit_btn = QPushButton("✎  Edit")
-        self._del_btn  = QPushButton("✕  Delete")
-        self._del_btn.setObjectName("danger_btn")
+        self._new_btn  = QPushButton("New User")
+        self._edit_btn = QPushButton("Edit")
+        self._del_btn  = QPushButton("Delete")
+        set_icon(self._new_btn, "user-plus", "add")
+        set_icon(self._edit_btn, "pencil")
+        set_icon(self._del_btn, "trash-2", "danger")
+        mark_danger(self._del_btn)
         self._edit_btn.setEnabled(False)
         self._del_btn.setEnabled(False)
         self._table.selectionModel().selectionChanged.connect(self._on_sel)
@@ -306,6 +313,7 @@ class _UsersTab(QWidget):
 class _RiskTab(QWidget):
     def __init__(self, demo: AppService, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        self._demo = demo
         user = demo.get_active_user()
         form = QFormLayout()
         form.setSpacing(12)
@@ -327,7 +335,8 @@ class _RiskTab(QWidget):
         self._ord_type  = QComboBox()
         self._ord_type.addItems(["MKT", "LMT", "MOO", "LOO"])
         self._ord_type.setCurrentText(rc.default_order_type)
-        self._confirm   = QCheckBox("Require confirmation dialog before submitting order")
+        self._confirm   = QCheckBox("Confirm before each order")
+        self._confirm.setToolTip("Show a confirmation dialog before an order is sent")
         self._confirm.setChecked(rc.confirm_orders)
 
         form.addRow("Risk per trade:",         self._risk)
@@ -338,38 +347,74 @@ class _RiskTab(QWidget):
         form.addRow("",                        self._confirm)
 
         save_btn = QPushButton("Save Risk Settings")
+        set_icon(save_btn, "save", "go")
         save_btn.setObjectName("run_btn")
         save_btn.setFixedWidth(200)
         save_btn.clicked.connect(self._on_save)
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.addLayout(form)
-        layout.addStretch()
-        layout.addWidget(save_btn)
-
         self._note = QLabel("")
         self._note.setStyleSheet(f"color: {C.GREEN}; font-size: 9pt;")
-        layout.addWidget(self._note)
+
+        btn_row = QHBoxLayout()
+        btn_row.addWidget(save_btn)
+        btn_row.addWidget(self._note)
+        btn_row.addStretch()
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(14, 14, 14, 14)
+        layout.setSpacing(12)
+        layout.addLayout(form)
+        layout.addLayout(btn_row)
+        layout.addStretch()
 
     def _on_save(self) -> None:
-        self._note.setText("✔  Settings saved (demo mode — will persist to real backend)")
+        user = self._demo.get_active_user()
+        user.risk_config = dataclasses.replace(
+            user.risk_config,
+            risk_per_trade_pct = self._risk.value(),
+            max_position_value = self._max_pos.value(),
+            max_capital_value  = self._max_cap.value(),
+            max_daily_loss_pct = self._max_loss.value(),
+            default_order_type = self._ord_type.currentText(),
+            confirm_orders     = self._confirm.isChecked(),
+        )
+        self._demo.update_user(user)
+        self._note.setText("✔  Risk settings saved")
 
 
-# ── System sub-tab ────────────────────────────────────────────────────────────
+# ── System sections ───────────────────────────────────────────────────────────
 
-class _SystemTab(QWidget):
+
+def _page(*items: QWidget | QHBoxLayout | QFormLayout) -> QWidget:
+    """Stack ``items`` top-down with the standard section padding."""
+    page = QWidget()
+    layout = QVBoxLayout(page)
+    layout.setContentsMargins(14, 14, 14, 14)
+    layout.setSpacing(12)
+    for item in items:
+        if isinstance(item, QWidget):
+            layout.addWidget(item)
+        else:
+            layout.addLayout(item)
+    layout.addStretch()
+    return page
+
+
+class _SystemSections(QObject):
+    """Connection, Scheduler and Telegram section pages, plus the System side panel."""
+
     theme_changed = pyqtSignal(str)
 
-    def __init__(self, demo: AppService, parent: QWidget | None = None) -> None:
+    def __init__(self, demo: AppService, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self._demo = demo
         cfg = demo.get_system_config()
 
-        # ── Config form ────────────────────────────────────────────────────────
-        form = QFormLayout()
-        form.setSpacing(10)
-        form.setContentsMargins(20, 20, 20, 20)
+        # ── Connection and Scheduler forms ─────────────────────────────────────
+        conn_form = QFormLayout()
+        conn_form.setSpacing(10)
+        sched_form = QFormLayout()
+        sched_form.setSpacing(10)
 
         self._host      = QLineEdit(cfg.ibkr_host)
         self._port      = QSpinBox()
@@ -401,118 +446,90 @@ class _SystemTab(QWidget):
             "Must be unique — not shared with other connections."
         )
 
-        form.addRow("IBKR TWS Host:",          self._host)
-        form.addRow("IBKR TWS Port:",          self._port)
-        form.addRow("Tick Data Client ID:",    self._tick_id)
-        form.addRow("Log level:",              self._log_level)
-        form.addRow("Market open time:",       self._open_t)
-        form.addRow("Market close time:",      self._close_t)
-        form.addRow("Market timezone:",        self._mkt_tz)
-        form.addRow("Enable daily scheduler:", self._sched_en)
+        conn_form.addRow("IBKR TWS Host:",          self._host)
+        conn_form.addRow("IBKR TWS Port:",          self._port)
+        conn_form.addRow("Tick Data Client ID:",    self._tick_id)
+        conn_form.addRow("Log level:",              self._log_level)
+        sched_form.addRow("Market open time:",       self._open_t)
+        sched_form.addRow("Market close time:",      self._close_t)
+        sched_form.addRow("Market timezone:",        self._mkt_tz)
+        sched_form.addRow("Enable daily scheduler:", self._sched_en)
 
-        save_btn = QPushButton("💾  Save Settings")
-        save_btn.setObjectName("run_btn")
-        save_btn.setFixedWidth(140)
-        save_btn.clicked.connect(self._on_save)
-
-        self._sched_btn = QPushButton("📅  Add Scheduler")
+        self._sched_btn = QPushButton("Add Scheduler")
+        set_icon(self._sched_btn, "calendar", "info")
         self._sched_btn.setFixedWidth(160)
         self._sched_btn.clicked.connect(self._on_scheduler)
         self._refresh_sched_btn_label()
 
-        self._save_note = QLabel("")
-        self._save_note.setStyleSheet(f"color: {C.GREEN}; font-size: 9pt;")
+        self._save_notes: list[QLabel] = []
 
-        btn_row = QHBoxLayout()
-        btn_row.setContentsMargins(20, 12, 20, 0)
-        btn_row.addWidget(self._save_note)
-        btn_row.addStretch()
-        btn_row.addWidget(self._sched_btn)
-        btn_row.addWidget(save_btn)
+        def _save_row(*extra: QPushButton) -> QHBoxLayout:
+            save_btn = QPushButton("Save Settings")
+            set_icon(save_btn, "save", "go")
+            save_btn.setObjectName("run_btn")
+            save_btn.setFixedWidth(140)
+            save_btn.clicked.connect(self._on_save)
+            note = QLabel("")
+            note.setStyleSheet(f"color: {C.GREEN}; font-size: 9pt;")
+            self._save_notes.append(note)
+            row = QHBoxLayout()
+            row.addWidget(save_btn)
+            for btn in extra:
+                row.addWidget(btn)
+            row.addWidget(note)
+            row.addStretch()
+            return row
 
-        # ── Theme group ────────────────────────────────────────────────────────
+        # ── Theme ──────────────────────────────────────────────────────────────
         from us_swing.gui import theme as _theme
-        theme_box = QGroupBox("Theme")
-        theme_row = QHBoxLayout(theme_box)
-        theme_row.setContentsMargins(12, 8, 12, 8)
-        theme_row.setSpacing(8)
+        theme_row = QHBoxLayout()
+        theme_row.setSpacing(4)
 
-        self._btn_mocha  = QPushButton("Mocha (Default)")
+        self._btn_carbon = QPushButton("Carbon")
+        self._btn_carbon.setCheckable(True)
+        self._btn_mocha  = QPushButton("Mocha")
         self._btn_mocha.setCheckable(True)
-        self._btn_mocha.setFixedWidth(140)
-        self._btn_vscode = QPushButton("VS Code Dark")
+        self._btn_vscode = QPushButton("VS Code")
         self._btn_vscode.setCheckable(True)
-        self._btn_vscode.setFixedWidth(140)
+        for btn in (self._btn_carbon, self._btn_mocha, self._btn_vscode):
+            btn.setObjectName("mode_btn")
 
         current_theme = _theme.load_theme_id()
+        self._btn_carbon.setChecked(current_theme == "carbon")
         self._btn_mocha.setChecked(current_theme == "mocha")
         self._btn_vscode.setChecked(current_theme == "vscode")
 
+        self._btn_carbon.clicked.connect(lambda: self._on_theme("carbon"))
         self._btn_mocha.clicked.connect(lambda: self._on_theme("mocha"))
         self._btn_vscode.clicked.connect(lambda: self._on_theme("vscode"))
 
+        theme_row.addWidget(self._btn_carbon)
         theme_row.addWidget(self._btn_mocha)
         theme_row.addWidget(self._btn_vscode)
-        theme_row.addStretch()
 
-        theme_wrapper = QHBoxLayout()
-        theme_wrapper.setContentsMargins(20, 12, 20, 0)
-        theme_wrapper.addWidget(theme_box)
-
-        # ── Diagnostics group ────────────────────────────────────────────────────
-        diag_box = QGroupBox("Diagnostics")
-        diag_row = QHBoxLayout(diag_box)
-        diag_row.setContentsMargins(12, 8, 12, 8)
-        diag_row.setSpacing(8)
-
-        self._candle_db_btn = QPushButton("Candle DB")
-        self._candle_db_btn.setFixedWidth(120)
-        self._candle_db_btn.clicked.connect(self._on_candle_db)
-
+        # ── Orders (circuit breaker) ───────────────────────────────────────────
         self._cb_toggle = QPushButton()
-        self._cb_toggle.setObjectName("danger_btn")
-        self._cb_toggle.setFixedWidth(200)
+        self._cb_toggle.setToolTip("Stops all new orders until you reset it.")
         self._cb_toggle.clicked.connect(self._on_toggle_cb)
         self._refresh_cb_label()
         self._demo.circuit_breaker_changed.connect(lambda _a: self._refresh_cb_label())
 
-        diag_row.addWidget(self._candle_db_btn)
-        diag_row.addWidget(self._cb_toggle)
-        diag_row.addStretch()
-
-        diag_wrapper = QHBoxLayout()
-        diag_wrapper.setContentsMargins(20, 12, 20, 0)
-        diag_wrapper.addWidget(diag_box)
-
-        # ── Updates group ────────────────────────────────────────────────────────
-        update_box = QGroupBox("Updates")
-        update_row = QHBoxLayout(update_box)
-        update_row.setContentsMargins(12, 8, 12, 8)
-        update_row.setSpacing(8)
-
+        # ── Updates ────────────────────────────────────────────────────────────
         self._update_btn = QPushButton("Check for Updates")
-        self._update_btn.setFixedWidth(160)
+        set_icon(self._update_btn, "circle-arrow-up", "info")
         self._update_btn.clicked.connect(self._on_check_updates)
 
         self._update_note = QLabel("")
         self._update_note.setStyleSheet(f"color: {C.GREEN}; font-size: 9pt;")
+        self._update_note.setWordWrap(True)
+        self._update_note.hide()
         self._update_worker: object | None = None
 
-        update_row.addWidget(self._update_btn)
-        update_row.addWidget(self._update_note)
-        update_row.addStretch()
-
-        update_wrapper = QHBoxLayout()
-        update_wrapper.setContentsMargins(20, 12, 20, 0)
-        update_wrapper.addWidget(update_box)
-
-        # ── Telegram Notifications group (FO-INF-010) ────────────────────────────
+        # ── Telegram Notifications (FO-INF-010) ────────────────────────────────
         from us_swing.gui import telegram_token_store
         _active = self._demo.get_active_user()
 
-        tg_box  = QGroupBox("Telegram Notifications")
-        tg_form = QFormLayout(tg_box)
-        tg_form.setContentsMargins(12, 8, 12, 8)
+        tg_form = QFormLayout()
         tg_form.setSpacing(8)
 
         self._tg_enabled = QCheckBox("Enable notifications")
@@ -539,52 +556,87 @@ class _SystemTab(QWidget):
         self._tg_note = QLabel("")
         self._tg_note.setStyleSheet(f"color: {C.GREEN}; font-size: 9pt;")
         self._tg_test = QPushButton("Send Test")
+        set_icon(self._tg_test, "send", "info")
         self._tg_test.setFixedWidth(120)
         self._tg_test.clicked.connect(self._on_test_telegram)
-        tg_save = QPushButton("💾  Save")
+        tg_save = QPushButton("Save")
+        set_icon(tg_save, "save", "go")
         tg_save.setObjectName("run_btn")
         tg_save.setFixedWidth(120)
         tg_save.clicked.connect(self._on_save_telegram)
 
         tg_btn_row = QHBoxLayout()
-        tg_btn_row.addWidget(self._tg_note)
-        tg_btn_row.addStretch()
         tg_btn_row.addWidget(self._tg_test)
         tg_btn_row.addWidget(tg_save)
+        tg_btn_row.addWidget(self._tg_note)
+        tg_btn_row.addStretch()
 
         tg_form.addRow("", self._tg_enabled)
         tg_form.addRow("Bot Token:", self._tg_token)
         tg_form.addRow("Chat ID:",   self._tg_chat)
         tg_form.addRow("Notify on:", tg_events)
-        tg_form.addRow(tg_btn_row)
 
-        telegram_wrapper = QHBoxLayout()
-        telegram_wrapper.setContentsMargins(20, 12, 20, 0)
-        telegram_wrapper.addWidget(tg_box)
+        # ── Section pages ──────────────────────────────────────────────────────
+        self.pages: list[tuple[str, QWidget]] = [
+            ("Connection",  _page(conn_form, _save_row())),
+            ("Scheduler",   _page(sched_form, _save_row(self._sched_btn))),
+            ("Telegram",    _page(tg_form, tg_btn_row)),
+        ]
+        self.panel = self._build_panel(theme_row)
 
-        # ── Main layout ────────────────────────────────────────────────────────
-        layout = QVBoxLayout(self)
+    def _build_panel(self, theme_row: QHBoxLayout) -> QWidget:
+        """System side panel: Theme, Updates and Orders groups (FO-GUI-021)."""
+        from us_swing import __version__
+
+        panel = QWidget()
+        layout = QVBoxLayout(panel)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addLayout(form)
-        layout.addLayout(btn_row)
-        layout.addLayout(theme_wrapper)
-        layout.addLayout(diag_wrapper)
-        layout.addLayout(update_wrapper)
-        layout.addLayout(telegram_wrapper)
+        layout.setSpacing(0)
+        head = QLabel("SYSTEM")
+        head.setObjectName("settings_head")
+        layout.addWidget(head)
+
+        version = QLabel(f"Installed v{__version__}")
+        version.setObjectName("details_key")
+        groups: list[tuple[str, list[QWidget | QHBoxLayout]]] = [
+            ("THEME",       [theme_row]),
+            ("UPDATES",     [version, self._update_btn, self._update_note]),
+            ("ORDERS",      [self._cb_toggle]),
+        ]
+        for title, items in groups:
+            group = QVBoxLayout()
+            group.setContentsMargins(12, 12, 12, 12)
+            group.setSpacing(8)
+            label = QLabel(title)
+            label.setObjectName("panel_group")
+            group.addWidget(label)
+            for item in items:
+                if isinstance(item, QWidget):
+                    group.addWidget(item)
+                else:
+                    group.addLayout(item)
+            layout.addLayout(group)
+            sep = QFrame()
+            sep.setObjectName("side_sep")
+            sep.setFixedHeight(1)
+            layout.addWidget(sep)
         layout.addStretch()
+        return panel
 
     # ── Helpers ────────────────────────────────────────────────────────────────
 
     def _refresh_cb_label(self) -> None:
         active = self._demo.circuit_breaker_active
         self._cb_toggle.setText("Reset Circuit Breaker" if active else "Trip Circuit Breaker")
+        set_icon(self._cb_toggle, "power", "neutral" if active else "danger")
+        self._cb_toggle.setProperty("role", "" if active else "danger")
+        style = self._cb_toggle.style()
+        if style is not None:
+            style.unpolish(self._cb_toggle)
+            style.polish(self._cb_toggle)
 
     def _on_toggle_cb(self) -> None:
         self._demo.set_circuit_breaker(not self._demo.circuit_breaker_active)
-
-    def _on_candle_db(self) -> None:
-        from us_swing.gui.execution_panel import _CandleDbDiagDialog
-        _CandleDbDiagDialog(self._demo, self).exec()
 
     def _on_check_updates(self) -> None:
         from update_dialog import _CheckWorker  # type: ignore[import]
@@ -592,6 +644,7 @@ class _SystemTab(QWidget):
         self._update_btn.setEnabled(False)
         self._update_note.setStyleSheet(f"color: {C.GREEN}; font-size: 9pt;")
         self._update_note.setText("Checking for updates…")
+        self._update_note.show()
         worker = _CheckWorker()
         worker.found.connect(self._on_update_found)
         worker.up_to_date.connect(self._on_update_up_to_date)
@@ -620,11 +673,11 @@ class _SystemTab(QWidget):
     def _refresh_sched_btn_label(self) -> None:
         from us_swing.gui.scheduler_store import load_scheduler_config, load_usswing_config
         has_task = bool(load_scheduler_config() or load_usswing_config())
-        self._sched_btn.setText("📅  Edit Scheduler" if has_task else "📅  Add Scheduler")
+        self._sched_btn.setText("Edit Scheduler" if has_task else "Add Scheduler")
 
     def _on_scheduler(self) -> None:
         from us_swing.gui.scheduler_dialog import SchedulerDialog
-        dlg = SchedulerDialog(parent=self)
+        dlg = SchedulerDialog(parent=self._sched_btn.window())
         dlg.exec()
         self._refresh_sched_btn_label()
 
@@ -641,7 +694,8 @@ class _SystemTab(QWidget):
             market_timezone       = self._mkt_tz.currentText(),
         )
         self._demo.save_system_config(cfg)
-        self._save_note.setText("✔  Settings saved")
+        for note in self._save_notes:
+            note.setText("✔  Settings saved")
 
     def _on_save_telegram(self) -> None:
         from us_swing.gui import telegram_token_store
@@ -664,6 +718,7 @@ class _SystemTab(QWidget):
         from us_swing.gui import theme as _theme
         _theme.save_theme_id(theme_id)
         _theme.apply_theme(theme_id)
+        self._btn_carbon.setChecked(theme_id == "carbon")
         self._btn_mocha.setChecked(theme_id == "mocha")
         self._btn_vscode.setChecked(theme_id == "vscode")
         self.theme_changed.emit(theme_id)
@@ -909,7 +964,8 @@ class _UniverseTab(QWidget):
         self._meta_label = QLabel("Loading…")
         self._meta_label.setStyleSheet(f"color: {active_palette().SUBTEXT}; font-size: 9pt;")
 
-        refresh_btn = QPushButton("🔄  Refresh")
+        refresh_btn = QPushButton("Refresh")
+        set_icon(refresh_btn, "refresh-cw", "info")
         refresh_btn.setObjectName("run_btn")
         refresh_btn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         refresh_btn.clicked.connect(self._on_refresh)
@@ -921,7 +977,7 @@ class _UniverseTab(QWidget):
 
         # ── Search bar ────────────────────────────────────────────────────────
         self._search = QLineEdit()
-        self._search.setPlaceholderText("🔍  Symbol / Name / Sector…")
+        self._search.setPlaceholderText("Search symbol, name or sector")
         self._search.textChanged.connect(self._push_filters)
 
         # ── Web view ──────────────────────────────────────────────────────────
@@ -966,197 +1022,200 @@ class _UniverseTab(QWidget):
         self._load_from_cache()
 
 
-# ── Database tab ─────────────────────────────────────────────────────────────
+# ── Data panel ───────────────────────────────────────────────────────────────
 
-class _DatabaseTab(QWidget):
-    """SRD-GUI-006.011 — Candle database lifecycle management.
+def _set_state(widget: QWidget, state: str) -> None:
+    """Set the ``state`` property that the theme QSS colours, and repaint."""
+    widget.setProperty("state", state)
+    style = widget.style()
+    if style is not None:
+        style.unpolish(widget)
+        style.polish(widget)
 
-    Displays current DB status (EMPTY / PARTIAL / CURRENT), data coverage
-    stats, and provides a build/delta-fill button backed by
-    AppService candle download workers.
+
+def _group(title: str, right: QWidget | None = None) -> tuple[QWidget, QVBoxLayout]:
+    """A titled group for the Data panel; returns the group and its body layout."""
+    box = QWidget()
+    body = QVBoxLayout(box)
+    body.setContentsMargins(12, 12, 12, 12)
+    body.setSpacing(8)
+    head = QHBoxLayout()
+    label = QLabel(title)
+    label.setObjectName("panel_group")
+    head.addWidget(label)
+    head.addStretch()
+    if right is not None:
+        head.addWidget(right)
+    body.addLayout(head)
+    return box, body
+
+
+def _separator() -> QFrame:
+    sep = QFrame()
+    sep.setObjectName("side_sep")
+    sep.setFixedHeight(1)
+    return sep
+
+
+class _DataPanel(QWidget):
+    """SRD-GUI-006.011 / SRD-GUI-021.004 — Candle database panel on the right strip.
+
+    Shows download progress, failed stocks, database status and the build,
+    retry and reset actions, sized for the 300 px right panel.
     """
+
+    state_changed = pyqtSignal(str, int)   # downloading | complete | partial | idle, percent
 
     def __init__(self, svc: AppService, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._svc = svc
         self._db_info = None        # last CandleDbInfo received
         self._downloading = False
+        self._total = 0
+        self.state: tuple[str, int] = ("idle", 0)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        head = QLabel("DATA")
+        head.setObjectName("settings_head")
+        layout.addWidget(head)
+
+        # ── Download group ────────────────────────────────────────────────────
+        self._dl_pill = QLabel("")
+        self._dl_pill.setObjectName("data_pill")
+        self._download_box, dl = _group("DOWNLOAD", self._dl_pill)
+
+        self._pct_lbl = QLabel("0%")
+        self._pct_lbl.setObjectName("data_pct")
+        self._count_lbl = QLabel("")
+        self._count_lbl.setObjectName("details_key")
+        pct_row = QHBoxLayout()
+        pct_row.addWidget(self._pct_lbl)
+        pct_row.addStretch()
+        pct_row.addWidget(self._count_lbl)
+
+        self._progress_bar = QProgressBar()
+        self._progress_bar.setObjectName("data_bar")
+        self._progress_bar.setRange(0, 100)
+        self._progress_bar.setTextVisible(False)
+        self._progress_bar.setFixedHeight(6)
+
+        self._progress_label = QLabel("")
+        self._progress_label.setObjectName("details_key")
+        self._fail_count_lbl = QLabel("")
+        self._fail_count_lbl.setStyleSheet(f"color: {C.RED};")
+        now_row = QHBoxLayout()
+        now_row.addWidget(self._progress_label)
+        now_row.addStretch()
+        now_row.addWidget(self._fail_count_lbl)
+
+        self._cancel_btn = QPushButton("Cancel")
+        set_icon(self._cancel_btn, "x", "danger")
+        self._cancel_btn.clicked.connect(self._on_cancel)
+
+        dl.addLayout(pct_row)
+        dl.addWidget(self._progress_bar)
+        dl.addLayout(now_row)
+        dl.addWidget(self._cancel_btn)
+        self._download_sep = _separator()
+
+        # ── Failed group (SRD-GUI-006.016) ────────────────────────────────────
+        self._disc_group, fg = _group("FAILED")
+        self._disc_symbols_lbl = QLabel("")
+        self._disc_symbols_lbl.setWordWrap(True)
+        self._fix_btn = QPushButton("Retry Failed")
+        set_icon(self._fix_btn, "refresh-cw", "go")
+        self._fix_btn.setObjectName("run_btn")
+        self._fix_btn.clicked.connect(self._on_fix_discrepancies)
+        fg.addWidget(self._disc_symbols_lbl)
+        fg.addWidget(self._fix_btn)
+        self._disc_sep = _separator()
+        self._disc_failed_symbols: list[str] = []
 
         # ── Status group ──────────────────────────────────────────────────────
-        status_group = QGroupBox("Database Status")
-        sg_layout = QVBoxLayout(status_group)
-        sg_layout.setSpacing(6)
-
+        status_right = QWidget()
+        sr = QHBoxLayout(status_right)
+        sr.setContentsMargins(0, 0, 0, 0)
+        sr.setSpacing(6)
         self._badge = QLabel("Checking…")
-        self._badge.setFixedHeight(24)
-        self._badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._badge.setObjectName("db_status_badge")
-
-        self._last_trading_day_lbl = QLabel("Last trading day: —")
-        self._last_trading_day_lbl.setStyleSheet(f"color: {C.SUBTEXT}; font-size: 9pt;")
-
-        self._data_through_lbl = QLabel("Data through: —")
-        self._data_through_lbl.setStyleSheet(f"color: {C.SUBTEXT}; font-size: 9pt;")
-
-        self._coverage_lbl = QLabel("Coverage: —")
-        self._coverage_lbl.setStyleSheet(f"color: {C.SUBTEXT}; font-size: 9pt;")
-
-        self._candle_count_lbl = QLabel("Total candles: —")
-        self._candle_count_lbl.setStyleSheet(f"color: {C.SUBTEXT}; font-size: 9pt;")
-
-        self._refresh_status_btn = QPushButton("↻  Refresh Status")
-        self._refresh_status_btn.setFixedWidth(160)
+        self._badge.setObjectName("data_pill")
+        self._refresh_status_btn = QPushButton()
+        set_icon(self._refresh_status_btn, "refresh-cw", "info")
+        self._refresh_status_btn.setToolTip("Refresh status")
+        self._refresh_status_btn.setAccessibleName("Refresh status")
+        self._refresh_status_btn.setFixedWidth(28)
         self._refresh_status_btn.clicked.connect(self._on_refresh_status)
+        sr.addWidget(self._badge)
+        sr.addWidget(self._refresh_status_btn)
+        status_box, sg = _group("STATUS", status_right)
 
-        status_row = QHBoxLayout()
-        status_row.addWidget(self._refresh_status_btn)
-        status_row.addStretch()
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(12)
+        grid.setVerticalSpacing(5)
+        self._values: dict[str, QLabel] = {}
+        for row, key in enumerate(("Data to", "Last trading day", "Stocks", "Candles")):
+            name = QLabel(key)
+            name.setObjectName("details_key")
+            value = QLabel("—")
+            value.setAlignment(Qt.AlignmentFlag.AlignRight)
+            grid.addWidget(name, row, 0)
+            grid.addWidget(value, row, 1)
+            self._values[key] = value
+        sg.addLayout(grid)
 
-        sg_layout.addWidget(self._badge)
-        sg_layout.addWidget(self._last_trading_day_lbl)
-        sg_layout.addWidget(self._data_through_lbl)
-        sg_layout.addWidget(self._coverage_lbl)
-        sg_layout.addWidget(self._candle_count_lbl)
-        sg_layout.addLayout(status_row)
-
-        # ── Build group ───────────────────────────────────────────────────────
-        build_group = QGroupBox("Build / Update Database")
-        bg_layout = QVBoxLayout(build_group)
-        bg_layout.setSpacing(8)
-
-        # Start date (only shown in EMPTY mode)
+        # Start date (only shown when the database is EMPTY)
         date_row = QHBoxLayout()
-        date_lbl = QLabel("Start date:")
-        date_lbl.setStyleSheet(f"color: {C.SUBTEXT}; font-size: 9pt;")
+        date_lbl = QLabel("Start date")
+        date_lbl.setObjectName("details_key")
         self._start_date_edit = QDateEdit()
         self._start_date_edit.setCalendarPopup(True)
         self._start_date_edit.setDisplayFormat("yyyy-MM-dd")
-        default_start = QDate.currentDate().addYears(-2)
-        self._start_date_edit.setDate(default_start)
+        self._start_date_edit.setDate(QDate.currentDate().addYears(-2))
         self._start_date_edit.setMaximumDate(QDate.currentDate())
         date_row.addWidget(date_lbl)
-        date_row.addWidget(self._start_date_edit)
         date_row.addStretch()
-
+        date_row.addWidget(self._start_date_edit)
         self._start_date_row_widget = QWidget()
         self._start_date_row_widget.setLayout(date_row)
-        self._start_date_row_widget.hide()  # shown only when EMPTY
+        self._start_date_row_widget.hide()
+        sg.addWidget(self._start_date_row_widget)
 
-        self._build_btn = QPushButton("↻  Checking…")
+        # ── Actions ───────────────────────────────────────────────────────────
+        actions, act = _group("ACTIONS")
+        self._build_btn = QPushButton("Checking…")
+        set_icon(self._build_btn, "refresh-cw", "go")
         self._build_btn.setObjectName("run_btn")
-        self._build_btn.setFixedWidth(220)
         self._build_btn.setEnabled(False)
         self._build_btn.clicked.connect(self._on_build_clicked)
+        self._candle_db_btn = QPushButton("Open Candle DB")
+        set_icon(self._candle_db_btn, "database", "info")
+        self._candle_db_btn.clicked.connect(self._on_candle_db)
+        act.addWidget(self._build_btn)
+        act.addWidget(self._candle_db_btn)
 
-        bg_layout.addWidget(self._start_date_row_widget)
-        bg_layout.addWidget(self._build_btn)
-
-        # ── Progress group ────────────────────────────────────────────────────
-        self._progress_group = QGroupBox("Download Progress")
-        pg_layout = QVBoxLayout(self._progress_group)
-        pg_layout.setSpacing(6)
-
-        self._progress_bar = QProgressBar()
-        self._progress_bar.setRange(0, 100)
-        self._progress_bar.setValue(0)
-        self._progress_bar.setTextVisible(True)
-        self._progress_bar.setFixedHeight(18)
-
-        self._progress_label = QLabel("Starting…")
-        self._progress_label.setStyleSheet(f"color: {C.SUBTEXT}; font-size: 9pt;")
-
-        self._fail_count_lbl = QLabel("")
-        self._fail_count_lbl.setStyleSheet(f"color: {C.RED}; font-size: 9pt;")
-        self._fail_count_lbl.hide()
-
-        self._cancel_btn = QPushButton("✕  Cancel")
-        self._cancel_btn.setObjectName("danger_btn")
-        self._cancel_btn.setFixedWidth(120)
-        self._cancel_btn.clicked.connect(self._on_cancel)
-
-        cancel_row = QHBoxLayout()
-        cancel_row.addWidget(self._cancel_btn)
-        cancel_row.addStretch()
-
-        pg_layout.addWidget(self._progress_bar)
-        pg_layout.addWidget(self._progress_label)
-        pg_layout.addWidget(self._fail_count_lbl)
-        pg_layout.addLayout(cancel_row)
-
-        self._progress_group.hide()
-
-        # ── Discrepancies group (SRD-GUI-006.016) ─────────────────────────────
-        self._disc_group = QGroupBox("⚠  Download Discrepancies")
-        self._disc_group.setStyleSheet(
-            f"QGroupBox {{ color: {C.RED}; font-weight: bold; }}"
-        )
-        dg_layout = QVBoxLayout(self._disc_group)
-        dg_layout.setSpacing(6)
-
-        self._disc_summary_lbl = QLabel("")
-        self._disc_summary_lbl.setStyleSheet(
-            f"color: {C.RED}; font-size: 9pt;"
-        )
-        self._disc_symbols_lbl = QLabel("")
-        self._disc_symbols_lbl.setStyleSheet(
-            f"color: {C.SUBTEXT}; font-size: 8pt;"
-        )
-        self._disc_symbols_lbl.setWordWrap(True)
-
-        self._fix_btn = QPushButton("🔧  Fix Discrepancies")
-        self._fix_btn.setObjectName("run_btn")
-        self._fix_btn.setFixedWidth(200)
-        self._fix_btn.clicked.connect(self._on_fix_discrepancies)
-
-        fix_row = QHBoxLayout()
-        fix_row.addWidget(self._fix_btn)
-        fix_row.addStretch()
-
-        dg_layout.addWidget(self._disc_summary_lbl)
-        dg_layout.addWidget(self._disc_symbols_lbl)
-        dg_layout.addLayout(fix_row)
-
-        self._disc_group.hide()
-        self._disc_failed_symbols: list[str] = []
-
-        # ── Danger Zone group ─────────────────────────────────────────────────
-        danger_group = QGroupBox("⚠  Danger Zone")
-        danger_group.setStyleSheet(
-            f"QGroupBox {{ color: {C.RED}; font-weight: bold; border: 1px solid {C.RED};"
-            f" border-radius: 4px; margin-top: 6px; padding-top: 6px; }}"
-        )
-        dz_layout = QVBoxLayout(danger_group)
-        dz_layout.setSpacing(8)
-
-        dz_info = QLabel(
-            "Permanently deletes ALL candle data and recreates an empty database.\n"
-            "Use this to start fresh. A full re-download will be required."
-        )
-        dz_info.setStyleSheet(f"color: {C.SUBTEXT}; font-size: 9pt;")
-        dz_info.setWordWrap(True)
-
-        self._reset_db_btn = QPushButton("🗑  Reset Database")
-        self._reset_db_btn.setObjectName("danger_btn")
-        self._reset_db_btn.setFixedWidth(200)
+        self._reset_db_btn = QPushButton("Reset Database")
+        set_icon(self._reset_db_btn, "trash-2", "danger")
+        mark_danger(self._reset_db_btn)
+        self._reset_db_btn.setToolTip("Deletes all candles. A full download is needed after.")
         self._reset_db_btn.clicked.connect(self._on_reset_db)
+        reset_row = QVBoxLayout()
+        reset_row.setContentsMargins(12, 12, 12, 12)
+        reset_row.addWidget(self._reset_db_btn)
 
-        dz_row = QHBoxLayout()
-        dz_row.addWidget(self._reset_db_btn)
-        dz_row.addStretch()
-
-        dz_layout.addWidget(dz_info)
-        dz_layout.addLayout(dz_row)
-
-        # ── Main layout ───────────────────────────────────────────────────────
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(14)
-        layout.addWidget(status_group)
-        layout.addWidget(build_group)
-        layout.addWidget(self._progress_group)
+        layout.addWidget(self._download_box)
+        layout.addWidget(self._download_sep)
         layout.addWidget(self._disc_group)
-        layout.addWidget(danger_group)
+        layout.addWidget(self._disc_sep)
+        layout.addWidget(status_box)
+        layout.addWidget(_separator())
+        layout.addWidget(actions)
         layout.addStretch()
+        layout.addWidget(_separator())
+        layout.addLayout(reset_row)
+
+        self._show_download(False)
+        self._show_failed(False)
 
         # ── Signal wiring ─────────────────────────────────────────────────────
         svc.candle_db_status_changed.connect(self._on_status_loaded)
@@ -1170,7 +1229,7 @@ class _DatabaseTab(QWidget):
         # Show resume button immediately if a checkpoint exists
         self._apply_checkpoint_state()
 
-        # Trigger initial status check (deferred so the tab renders first)
+        # Trigger initial status check (deferred so the panel renders first)
         from PyQt6.QtCore import QTimer
         QTimer.singleShot(300, self._on_refresh_status)
 
@@ -1181,11 +1240,7 @@ class _DatabaseTab(QWidget):
 
     def _on_refresh_status(self) -> None:
         self._badge.setText("Checking…")
-        _badge_fg = colors()["badge_text_dark"]
-        self._badge.setStyleSheet(
-            f"background: {C.SUBTEXT}; color: {_badge_fg}; border-radius: 4px;"
-            "font-weight: bold; padding: 2px 10px;"
-        )
+        _set_state(self._badge, "")
         self._build_btn.setEnabled(False)
         self._svc.refresh_candle_db_status()
 
@@ -1195,54 +1250,43 @@ class _DatabaseTab(QWidget):
             return
         self._db_info = info
 
-        # Badge
-        _badge_styles = {
-            CandleDbStatus.EMPTY:   (C.RED,    "EMPTY"),
-            CandleDbStatus.PARTIAL: ("#f9a825", "PARTIAL"),
-            CandleDbStatus.CURRENT: (C.GREEN,  "CURRENT"),
+        badge = {
+            CandleDbStatus.EMPTY:   ("empty",    "Empty"),
+            CandleDbStatus.PARTIAL: ("partial",  "Partial"),
+            CandleDbStatus.CURRENT: ("complete", "Current"),
         }
-        color, label = _badge_styles[info.status]
-        self._badge.setText(f"  {label}  ")
-        _badge_fg = colors()["badge_text_dark"]
-        self._badge.setStyleSheet(
-            f"background: {color}; color: {_badge_fg}; border-radius: 4px;"
-            "font-weight: bold; padding: 2px 10px;"
-        )
+        state, label = badge[info.status]
+        self._badge.setText(label)
+        _set_state(self._badge, state)
 
-        # Labels
-        self._last_trading_day_lbl.setText(
-            f"Last trading day:  {info.last_trading_day}"
-        )
-        self._data_through_lbl.setText(
-            f"Data through:  {info.last_candle_date or '—'}"
-        )
         universe = info.universe_size or 0
         sym = max(info.symbols_1d, info.symbols_1w)
-        self._coverage_lbl.setText(
-            f"Coverage:  {sym} / {universe} symbols  ·  Daily + Weekly"
-        )
-        total = info.total_1d + info.total_1w
-        self._candle_count_lbl.setText(
-            f"Total candles:  {total:,}"
-            f"  ({info.total_1d:,} daily · {info.total_1w:,} weekly)"
+        self._values["Data to"].setText(str(info.last_candle_date or "—"))
+        self._values["Last trading day"].setText(str(info.last_trading_day))
+        self._values["Stocks"].setText(f"{sym} / {universe}")
+        self._values["Candles"].setText(f"{info.total_1d + info.total_1w:,}")
+        self._values["Candles"].setToolTip(
+            f"{info.total_1d:,} daily · {info.total_1w:,} weekly"
         )
 
-        # Build button
         if self._downloading:
             return   # don't change button state mid-download
 
         if info.status == CandleDbStatus.EMPTY:
-            self._build_btn.setText("⬇  Build Full Database")
+            self._build_btn.setText("Build Full Database")
+            set_icon(self._build_btn, "download", "go")
             self._build_btn.setEnabled(True)
             self._build_btn.setObjectName("run_btn")
             self._start_date_row_widget.show()
         elif info.status == CandleDbStatus.PARTIAL:
-            self._build_btn.setText("🔄  Fill Delta")
+            self._build_btn.setText("Fill Delta")
+            set_icon(self._build_btn, "refresh-cw", "go")
             self._build_btn.setEnabled(True)
             self._build_btn.setObjectName("run_btn")
             self._start_date_row_widget.hide()
         else:  # CURRENT
-            self._build_btn.setText("✔  Database Current")
+            self._build_btn.setText("Database Current")
+            set_icon(self._build_btn, "check", "add")
             self._build_btn.setEnabled(False)
             self._build_btn.setObjectName("")
             self._start_date_row_widget.hide()
@@ -1264,7 +1308,7 @@ class _DatabaseTab(QWidget):
                 self,
                 "IBKR Not Connected",
                 "IBKR Gateway must be connected before downloading candle data.\n\n"
-                "Use the '🟢 Connect Feed' button in the title bar to connect first.",
+                "Use the 'Connect Feed' button in the title bar to connect first.",
             )
             return
 
@@ -1291,52 +1335,57 @@ class _DatabaseTab(QWidget):
         self._cancel_btn.setEnabled(False)
 
     def _on_progress(self, symbol: str, done: int, total: int) -> None:
-        if total > 0:
-            pct = int(done / total * 100)
-            self._progress_bar.setValue(pct)
-        self._progress_label.setText(
-            f"Downloading {symbol}…   ({done + 1} / {total})"
-        )
+        self._total = total
+        pct = int(done / total * 100) if total > 0 else 0
+        self._progress_bar.setValue(pct)
+        self._pct_lbl.setText(f"{pct}%")
+        self._count_lbl.setText(f"{done} / {total} stocks")
+        self._progress_label.setText(f"Now: {symbol}")
+        self._emit_state("downloading", pct)
 
     def _on_finished(self, inserted_1d: int, inserted_1w: int) -> None:
         self._set_downloading(False)
-        self._progress_bar.setValue(100)
         self._progress_label.setText(
-            f"Done — {inserted_1d:,} daily bars · {inserted_1w:,} weekly bars inserted."
+            f"Finished {datetime.datetime.now():%H:%M}"
         )
+        self._progress_label.setToolTip(
+            f"{inserted_1d:,} daily · {inserted_1w:,} weekly bars added"
+        )
+        self._show_result(len(self._disc_failed_symbols))
         self._apply_checkpoint_state()
         # Status will auto-refresh (triggered in AppService._on_candle_finished)
 
     def _on_failed(self, reason: str) -> None:
         self._set_downloading(False)
-        self._progress_label.setText(f"Failed: {reason}")
+        self._progress_label.setText("Failed")
+        self._progress_label.setToolTip(reason)
+        self._set_result("partial", "Failed")
         self._apply_checkpoint_state()
 
     def _on_paused(self, reason: str) -> None:
         """Called when IBKR disconnects mid-download (SRD-GUI-006.014)."""
         self._set_downloading(False)
-        self._progress_label.setText("⏸ Paused — IBKR disconnected")
+        self._progress_label.setText("IBKR disconnected")
+        self._set_result("partial", "Paused")
         self._apply_checkpoint_state()
 
     def _on_symbol_failed(self, symbol: str, reason: str) -> None:
-        """Increment live fail counter in progress section (SRD-GUI-006.016)."""
-        count = len(self._disc_failed_symbols) + 1
-        # Update internal list so it matches AppService accumulation
+        """Increment live fail counter in the download group (SRD-GUI-006.016)."""
         if symbol not in self._disc_failed_symbols:
             self._disc_failed_symbols.append(symbol)
-        self._fail_count_lbl.setText(f"⚠  {count} symbol(s) failed so far")
-        self._fail_count_lbl.show()
+        self._fail_count_lbl.setText(f"{len(self._disc_failed_symbols)} failed")
 
     def _on_failures_ready(self, symbols: object) -> None:
-        """Show/hide discrepancy panel after download finishes (SRD-GUI-006.016)."""
+        """Show/hide the failed group after download finishes (SRD-GUI-006.016)."""
         failed: list[str] = list(symbols) if symbols else []  # type: ignore[arg-type]
         self._disc_failed_symbols = failed
-        self._fail_count_lbl.hide()
         if failed:
             self._show_discrepancies(failed)
         else:
-            self._disc_group.hide()
+            self._show_failed(False)
             self._svc.clear_failed_symbols()
+        if not self._download_box.isHidden() and not self._downloading:
+            self._show_result(len(failed))
 
     def _on_fix_discrepancies(self) -> None:
         """Re-download only failed symbols (SRD-GUI-006.016)."""
@@ -1347,7 +1396,7 @@ class _DatabaseTab(QWidget):
                 self,
                 "IBKR Not Connected",
                 "IBKR Gateway must be connected before downloading candle data.\n\n"
-                "Use the '🟢 Connect Feed' button in the title bar to connect first.",
+                "Use the 'Connect Feed' button in the title bar to connect first.",
             )
             return
 
@@ -1361,8 +1410,12 @@ class _DatabaseTab(QWidget):
             symbols=failed,
         )
         self._disc_failed_symbols = []
-        self._disc_group.hide()
+        self._show_failed(False)
         self._set_downloading(True)
+
+    def _on_candle_db(self) -> None:
+        from us_swing.gui.execution_panel import _CandleDbDiagDialog
+        _CandleDbDiagDialog(self._svc, self.window()).exec()
 
     def _on_reset_db(self) -> None:
         """Confirm and clear the daily and weekly candle tables."""
@@ -1381,11 +1434,12 @@ class _DatabaseTab(QWidget):
             return
 
         self._reset_db_btn.setEnabled(False)
-        self._reset_db_btn.setText("⏳  Resetting…")
+        self._reset_db_btn.setText("Resetting…")
         # Clear any in-progress/discrepancy state in the UI
-        self._disc_group.hide()
+        self._show_failed(False)
         self._disc_failed_symbols = []
-        self._fail_count_lbl.hide()
+        self._show_download(False)
+        self._emit_state("idle", 0)
 
         try:
             self._svc.reset_candle_db()
@@ -1400,35 +1454,68 @@ class _DatabaseTab(QWidget):
             )
         finally:
             self._reset_db_btn.setEnabled(True)
-            self._reset_db_btn.setText("🗑  Reset Database")
+            self._reset_db_btn.setText("Reset Database")
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 
+    def _emit_state(self, state: str, percent: int) -> None:
+        self.state = (state, percent)
+        self.state_changed.emit(state, percent)
+
+    def _show_download(self, visible: bool) -> None:
+        self._download_box.setVisible(visible)
+        self._download_sep.setVisible(visible)
+
+    def _show_failed(self, visible: bool) -> None:
+        self._disc_group.setVisible(visible)
+        self._disc_sep.setVisible(visible)
+
+    def _set_result(self, state: str, label: str) -> None:
+        """Colour the download group for ``state`` and tell the strip."""
+        self._dl_pill.setText(label)
+        for widget in (self._dl_pill, self._pct_lbl, self._progress_bar):
+            _set_state(widget, state)
+        self._emit_state(state, self._progress_bar.value())
+
+    def _show_result(self, failed: int) -> None:
+        """Show Complete or Partial once a download ends."""
+        total = self._total
+        done = max(total - failed, 0)
+        pct = int(done / total * 100) if total and failed else 100
+        self._progress_bar.setValue(pct)
+        self._pct_lbl.setText(f"{pct}%")
+        if total:
+            self._count_lbl.setText(f"{done} / {total} stocks")
+        self._fail_count_lbl.setText(f"{failed} failed" if failed else "")
+        if failed:
+            self._set_result("partial", "Partial")
+        else:
+            self._set_result("complete", "Complete")
+
     def _show_discrepancies(self, symbols: list[str]) -> None:
-        """Populate and show the discrepancy group."""
-        n = len(symbols)
-        self._disc_summary_lbl.setText(
-            f"{n} symbol{'s' if n != 1 else ''} could not be downloaded:"
-        )
-        joined = ", ".join(symbols)
+        """Populate and show the failed group."""
+        joined = " · ".join(symbols)
         if len(joined) > 120:
             joined = joined[:117] + "…"
         self._disc_symbols_lbl.setText(joined)
-        self._disc_group.show()
+        self._disc_symbols_lbl.setToolTip(", ".join(symbols))
+        self._show_failed(True)
 
     def _load_persisted_failures(self) -> None:
-        """Restore failed-symbols panel from disk on startup (SRD-GUI-006.016)."""
+        """Restore the failed group from disk on startup (SRD-GUI-006.016)."""
         failed = self._svc.get_failed_symbols()
         if failed:
             self._disc_failed_symbols = failed
             self._show_discrepancies(failed)
+            self._emit_state("partial", 0)
 
     def _apply_checkpoint_state(self) -> None:
-        """Show '▶ Resume Download' if a checkpoint exists; restore normal label otherwise."""
+        """Show 'Resume Download' if a checkpoint exists; restore normal label otherwise."""
         if self._downloading:
             return
         if self._svc.has_candle_checkpoint():
-            self._build_btn.setText("▶  Resume Download")
+            self._build_btn.setText("Resume Download")
+            set_icon(self._build_btn, "play", "go")
             self._build_btn.setEnabled(True)
             self._start_date_row_widget.hide()
             self._build_btn.setObjectName("run_btn")
@@ -1437,26 +1524,31 @@ class _DatabaseTab(QWidget):
 
     def _set_downloading(self, active: bool) -> None:
         self._downloading = active
-        self._progress_group.setVisible(active)
         self._build_btn.setEnabled(not active)
         self._refresh_status_btn.setEnabled(not active)
         self._reset_db_btn.setEnabled(not active)
+        self._cancel_btn.setVisible(active)
         if active:
-            self._build_btn.setText("⏳  Downloading…")
+            self._build_btn.setText("Downloading…")
             self._progress_bar.setValue(0)
+            self._pct_lbl.setText("0%")
+            self._count_lbl.setText("")
             self._progress_label.setText("Starting…")
+            self._progress_label.setToolTip("")
+            self._fail_count_lbl.setText("")
             self._cancel_btn.setEnabled(True)
-            # Hide discrepancy panel while downloading; reset live counter
-            self._disc_group.hide()
-            self._fail_count_lbl.hide()
+            self._show_download(True)
+            # Hide failed group while downloading; reset live counter
+            self._show_failed(False)
             self._disc_failed_symbols = []
+            self._set_result("downloading", "Downloading")
 
 
 # ── Settings Panel ────────────────────────────────────────────────────────────
 
 class SettingsPanel(QWidget):
     """
-    FO-GUI-006 Settings Panel — 5 sub-tabs.
+    FO-GUI-006 Settings Panel — section list on the left, one section shown at a time (FO-GUI-021).
     """
 
     theme_changed = pyqtSignal(str)
@@ -1464,22 +1556,79 @@ class SettingsPanel(QWidget):
     def __init__(self, demo: AppService, parent: QWidget | None = None) -> None:
         super().__init__(parent)
 
-        self._db_tab       = _DatabaseTab(demo)
-        self._sys_tab      = _SystemTab(demo)
+        self._data         = _DataPanel(demo)
+        self._sys          = _SystemSections(demo, self)
         self._universe_tab = _UniverseTab(demo)
-        self._sys_tab.theme_changed.connect(self.theme_changed)
-        self._sys_tab.theme_changed.connect(self._universe_tab.refresh_theme)
+        self._sys.theme_changed.connect(self.theme_changed)
+        self._sys.theme_changed.connect(self._universe_tab.refresh_theme)
 
-        tabs = QTabWidget()
-        tabs.addTab(_UsersTab(demo),       "Users")
-        tabs.addTab(self._sys_tab,         "System")
-        tabs.addTab(self._universe_tab,    "Universe")
-        tabs.addTab(self._db_tab,          "Database")
+        sections: list[tuple[str, QWidget]] = [
+            ("Users", _UsersTab(demo)),
+            ("Risk",  _RiskTab(demo)),
+            *self._sys.pages,
+            ("Universe", self._universe_tab),
+        ]
+
+        nav = QFrame()
+        nav.setObjectName("settings_nav")
+        nav.setFixedWidth(180)
+        nav_layout = QVBoxLayout(nav)
+        nav_layout.setContentsMargins(4, 4, 4, 4)
+        nav_layout.setSpacing(2)
+
+        self._stack = QStackedWidget()
+        self._nav_group = QButtonGroup(self)
+        self._nav_group.setExclusive(True)
+        for index, (name, body) in enumerate(sections):
+            btn = QPushButton(name)
+            btn.setObjectName("side_btn")
+            btn.setCheckable(True)
+            self._nav_group.addButton(btn, index)
+            nav_layout.addWidget(btn)
+            self._stack.addWidget(self._section_card(name, body))
+        nav_layout.addStretch()
+        self._nav_group.idClicked.connect(self._stack.setCurrentIndex)
+        first = self._nav_group.button(0)
+        if first is not None:
+            first.setChecked(True)
+
+        title = QLabel("Settings")
+        title.setObjectName("page_title")
+
+        body_row = QHBoxLayout()
+        body_row.setSpacing(10)
+        body_row.addWidget(nav)
+        body_row.addWidget(self._stack, 1)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(tabs)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
+        layout.addWidget(title)
+        layout.addLayout(body_row, 1)
+
+    @staticmethod
+    def _section_card(name: str, body: QWidget) -> QFrame:
+        card = QFrame()
+        card.setObjectName("settings_card")
+        head = QLabel(name.upper())
+        head.setObjectName("settings_head")
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(0, 0, 0, 0)
+        card_layout.setSpacing(0)
+        card_layout.addWidget(head)
+        card_layout.addWidget(body, 1)
+        return card
+
+    @property
+    def system_panel(self) -> QWidget:
+        """Theme, Updates and Orders panel shown from the right icon strip."""
+        return self._sys.panel
+
+    @property
+    def data_panel(self) -> _DataPanel:
+        """Candle database panel shown from the right icon strip (FO-GUI-021)."""
+        return self._data
 
     def trigger_fill_delta(self) -> None:
         """Programmatically invoke fill delta — identical to clicking the button manually."""
-        self._db_tab._on_build_clicked()
+        self._data._on_build_clicked()

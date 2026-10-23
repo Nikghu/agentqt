@@ -5,6 +5,20 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.36.0: SRD-GUI-024.008 changed — charts toggle moved to the page header, chart header row removed, 4 px card gaps (user, 2026-10-23).
+> v2.35.0: SRD-GUI-024.001–.008 added — Execution workspace (canvas Option F2); approved by user 2026-10-23.
+> v2.34.0: SRD-GUI-023.004 added — lighter gap colour; requested by user 2026-10-23.
+> v2.33.0: SRD-GUI-023.001–.003 added — card layout (gaps and rounded corners between sections); approved by user 2026-10-23.
+> v2.32.0: SRD-GUI-022.008–.012 added — screener page header, run stepper, AI transcript drawer, list / detail polish and look (canvas Option A); approved by user 2026-10-23.
+> v2.31.0: SRD-GUI-022.001–.007 added — screener result views (List + detail, Signal cards) and preset rail; approved by user 2026-10-23.
+> v2.30.0: SRD-GUI-018.008–.011 added — Connections panel in the sidebar (feed toggle moved from the title bar; supersedes the feed toggle part of SRD-GUI-018.005); approved by user 2026-10-23.
+> v2.29.0: SRD-GUI-021.004 added — Data panel on the right strip; approved by user 2026-10-23.
+> v2.28.0: SRD-GUI-021.003 added — System panel on the right strip; approved by user 2026-10-23.
+> v2.27.0: SRD-GUI-021.001–.002 added — Settings section list; approved by user 2026-10-23.
+> v2.26.0: SRD-GUI-020.001–.005 added — Charts workspace (GUI redesign Phase 4); approved by user 2026-10-23.
+> v2.25.0: SRD-GUI-019.001–.008 added — side panels and Exit drawer (GUI redesign Phase 3); approved by user 2026-10-23.
+> v2.24.0: SRD-GUI-018.001–.007 added — sidebar workspace shell (GUI redesign Phase 2); approved by user 2026-10-23. Supersedes the layout parts of SRD-GUI-001.001, SRD-GUI-000.003 and the location of SRD-GUI-000.006.
+> v2.23.0: SRD-GUI-017.001–.005 added — Carbon theme and icon system (GUI redesign Phase 1); approved by user 2026-10-23.
 > v2.22.0: SRD-GUI-004.013 added — automatic cleanup of stale intraday candles at app start; user request 2026-10-22; Implemented (RN-GUI-1.8.0).
 > v2.21.0: SRD-GUI-004.010–.012 added — manual picks in Trade Execution; user request and design approval 2026-10-22; Implemented (RN-GUI-1.8.0).
 > v2.20.0: SRD-GUI-004.009 added — Execution feed ignores presets with no assigned users or that no longer exist (ISS-GUI-0004); approved by user in session 2026-10-22 and set to Implemented (RN-GUI-1.7.2).
@@ -289,3 +303,99 @@
 | SRD-GUI-016.009 | FO-GUI-016 | Must | The dialog loads legacy and rule-list configs via `pattern_rules_from_config()` and returns `pattern_rules_to_config()` output on OK. | config dict | rule-list config | An unreadable config is kept unless the user edits it; Cancel changes nothing | Implemented |
 | SRD-GUI-016.010 | FO-GUI-016 | Must | All Screener Builder call sites open the new dialog, and the Details column also shows `pattern_config_summary()` for price action. | user action | stored config, summary | Old dialog, labels and defaults are deleted | Implemented |
 | SRD-GUI-016.011 | FO-GUI-016 | Must | Controls use `C.BTN_H` / `C.INPUT_H`, inline styles include `outline: none`, and logs use the `[Screener]` prefix. | — | — | No `setFixedHeight` | Implemented |
+
+## FO-GUI-017 — Carbon Theme and Icon System
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-017.001 | FO-GUI-017 | Must | `theme.py` registers a "carbon" theme with its own tokens and runtime colours, used as the default when no saved theme exists; Settings offers it. | saved theme id | applied QSS, palette | Mocha and VS Code themes unchanged | Implemented |
+| SRD-GUI-017.002 | FO-GUI-017 | Should | IBM Plex Sans and IBM Plex Mono font files are bundled and registered at app start for the Carbon theme. | font files | registered families | Falls back to Segoe UI if loading fails | Implemented |
+| SRD-GUI-017.003 | FO-GUI-017 | Must | `icons.py` returns a cached `QIcon` for a bundled SVG coloured by role (neutral, add, go, danger, info) from the active theme. | icon name, role | `QIcon` | Unknown name returns an empty icon; cache clears on theme change | Implemented |
+| SRD-GUI-017.004 | FO-GUI-017 | Must | Emoji on buttons, tabs and title bar navigation are replaced by an icon plus label; icon-only buttons get a tooltip and accessible name. | — | — | Log text, status dots and window controls unchanged | Implemented |
+| SRD-GUI-017.005 | FO-GUI-017 | Must | Risky buttons carry the property `role="danger"`, styled in every theme with red text, red border and a red icon. | — | — | Uses `C.BTN_H`; no `setFixedHeight`; `outline: none` | Implemented |
+
+## FO-GUI-018 — Sidebar Workspace Shell
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-018.001 | FO-GUI-018 | Must | A left `Sidebar` lists the five screens as checkable icon + label buttons and emits `page_requested(int)`; it replaces the title bar tabs. | click | current screen | Same screens and order as before | Implemented |
+| SRD-GUI-018.002 | FO-GUI-018 | Must | A collapse button switches the sidebar between 200 px and 56 px; the choice is saved in `QSettings`; Execution and Chart shrink it and leaving restores it. | click, screen | sidebar width | Auto-shrink never overrides a user choice | Implemented |
+| SRD-GUI-018.003 | FO-GUI-018 | Should | In mini mode, hovering the sidebar shows it at full width on top of the screen without moving the screen. | hover | overlay sidebar | Closes on mouse leave | Implemented |
+| SRD-GUI-018.004 | FO-GUI-018 | Must | The sidebar footer shows scope (All Users or user), mode, IBKR ID, risk per trade and `Cap · Avail` from `AppService`; the account strip is removed. | `viewing_changed`, `account_updated` | footer text | Same values as SRD-GUI-000.006 | Implemented |
+| SRD-GUI-018.005 | FO-GUI-018 | Must | The title bar shows logo, brand, version, the market watch index prices, the feed toggle and window controls. | — | — | Drag, double-click maximise unchanged | Implemented |
+| SRD-GUI-018.006 | FO-GUI-018 | Must | `RevealController` animates a registered widget between closed and open sizes in 200 ms and emits `revealed(name, bool)` when done. | `reveal_requested(name, bool)` | `revealed(name, bool)` | One animation per widget; repeat requests restart it | Implemented |
+| SRD-GUI-018.007 | FO-GUI-018 | Should | Changing screen slides the new screen in from the right over 180 ms. | `page_requested` | slide | No opacity effects (web views) | Implemented |
+| SRD-GUI-018.008 | FO-GUI-018 | Must | A Connections panel above the footer shows Internet, IBKR Feed (with `host:port`) and Market rows with status dots, and a power button that connects or, after a confirm, disconnects; the title bar feed toggle is removed. | `feed_status_changed`, `internet_status_changed`, `market_status_updated`, click | panel text, `connect_feed()` / `disconnect_feed()` | Connect logic unchanged; button disabled while a probe runs | Implemented |
+| SRD-GUI-018.009 | FO-GUI-018 | Should | While auto-connect retries, the Feed row shows the attempt number and a countdown to the next try; the power button tries at once. | `set_feed_retry()`, `clear_feed_retry()` | Feed row text | Retry loop timing unchanged | Implemented |
+| SRD-GUI-018.010 | FO-GUI-018 | Should | The Market row shows the session and the time until the close or the next regular open, skipping weekends and NYSE holidays. | clock (ET) | Market row text | Same session rules as `get_exchange_status` | Implemented |
+| SRD-GUI-018.011 | FO-GUI-018 | Must | In mini mode the panel is a plug button with a worst-status dot and a tooltip of all rows; a click acts like the power button. | `set_mini()` | plug button, badge | Badge: offline > retrying > not connected > live | Implemented |
+
+## FO-GUI-019 — Side Panels and Exit Drawer
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-019.001 | FO-GUI-019 | Must | A right `IconStrip` has checkable Details, Watchlist and Log buttons that toggle their panels; Log shows a count of new warnings and errors while hidden. | click, `log_message` | panel request | Icon-only buttons have tooltips | Implemented |
+| SRD-GUI-019.002 | FO-GUI-019 | Must | A 280 px right panel shows Position Details or Watchlist and a 180 px bottom panel shows Live Log, both opened and closed through `RevealController`. | panel request | panel shown or hidden | Right panel shrinks the sidebar while open; Chart and Settings close panels | Implemented |
+| SRD-GUI-019.003 | FO-GUI-019 | Must | Position Details shows the selected position's symbol, state, price, change, quantity, average entry, P&L, stop and target, with Exit, Stop / Trail and Open in Chart buttons. | Dashboard row click, `positions_updated` | details | Empty hint when nothing is selected | Implemented |
+| SRD-GUI-019.004 | FO-GUI-019 | Must | The Watchlist moves from a Dashboard tab to the right panel; the Screener add-to-watchlist path is unchanged. | — | — | Same widget and data | Implemented |
+| SRD-GUI-019.005 | FO-GUI-019 | Must | The Live Log moves from the Dashboard to the bottom panel using `LogViewerPanel`, with the same level, search, pause and clear controls. | `log_message` | log lines | Dashboard log section removed | Implemented |
+| SRD-GUI-019.006 | FO-GUI-019 | Must | A non-modal Exit drawer on the Dashboard replaces the Exit Position dialog: same four tabs and fields, then Review, then a Confirm button naming the action. | row double-click, Details buttons | same actions as before | Live-mode block unchanged; Cancel or Esc changes nothing | Implemented |
+| SRD-GUI-019.007 | FO-GUI-019 | Must | Square Off All opens the drawer in list mode with every open position and the total, then Review and Confirm. | click | close requests | Replaces the warning message box | Implemented |
+| SRD-GUI-019.008 | FO-GUI-019 | Should | Open in Chart switches to the Chart screen and loads the selected symbol. | click | chart | Uses the chart's own load path | Implemented |
+
+## FO-GUI-020 — Charts Workspace
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-020.001 | FO-GUI-020 | Must | The Charts screen is a `ChartWorkspace` with a `QMdiArea`; each sub-window holds one `CandleChartPanel` and shows its symbol in the title. | New Chart, open request | chart windows | At most six windows; New Chart disabled at six | Implemented |
+| SRD-GUI-020.002 | FO-GUI-020 | Must | Tile, Cascade and Tabs buttons call `tileSubWindows()`, `cascadeSubWindows()` and tabbed view mode; Tabs mode has closable tabs. | click | arranged windows | One mode checked at a time | Implemented |
+| SRD-GUI-020.003 | FO-GUI-020 | Must | `open_symbol(symbol, timeframe)` focuses a window already showing the symbol, else opens a new one, else loads into the active window when six are open. | symbol, timeframe | loaded chart | Uses the chart's own load path | Implemented |
+| SRD-GUI-020.004 | FO-GUI-020 | Must | Open in Chart and the Screener chart button switch to Charts and call `open_symbol`; the separate Quick Chart Viewer window is removed. | click | Charts screen | Screener passes its preset timeframe | Implemented |
+| SRD-GUI-020.005 | FO-GUI-020 | Should | A theme change refreshes every open chart. | `theme_changed` | re-rendered charts | — | Implemented |
+
+## FO-GUI-021 — Settings Section List
+
+| ID | Parent | Priority | Description | Input | Output | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-021.001 | FO-GUI-021 | Must | `SettingsPanel` shows a 180 px section list and a `QStackedWidget` of section cards; the old System tab is split into Connection, Scheduler and Telegram. | section click | one section shown | One section checked at a time; handlers unchanged | Implemented |
+| SRD-GUI-021.002 | FO-GUI-021 | Must | Save Risk Settings writes risk values to the active user through `update_user`. | click Save | saved risk config | Other user fields unchanged | Implemented |
+| SRD-GUI-021.003 | FO-GUI-021 | Must | Theme, Updates and Diagnostics form a System panel in the right panel stack, toggled by a System icon on the strip. | strip click | System panel shown | Shares the right panel with Details and Watchlist | Implemented |
+| SRD-GUI-021.004 | FO-GUI-021 | Must | The candle database is a Data panel in the right panel stack showing percent, stock count, current stock, failed stocks and a Complete or Partial result; the strip's Data icon shows a percent, tick or ! badge. | download signals | panel state, strip badge | Build, delta, resume, retry and reset logic unchanged | Implemented |
+
+## FO-GUI-022 — Screener Result Views
+
+| ID | Parent | Priority | Description | Input | Output | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-022.001 | FO-GUI-022 | Must | A List / Cards switch in the screener toolbar swaps the result views; the choice is saved in `QSettings` and List is the default. | click | current view | Unknown saved value → List | Implemented |
+| SRD-GUI-022.002 | FO-GUI-022 | Must | The List view shows a ranked list (rank, symbol, score bar, rule dots) and a detail panel with tier, score, Open chart, Watchlist, a compact chart, Entry / Stop / Target / R:R tiles, rule checklist and AI reasoning. | rows, selection | detail panel, `chart_requested`, `watchlist_requested` | Chart created once, on first selection | Implemented |
+| SRD-GUI-022.003 | FO-GUI-022 | Must | The Cards view shows one card per stock with rank, symbol, tier, score bar, rule chips, three lines of reasoning, plan row and Chart / Watchlist buttons. | rows | cards, `chart_requested`, `watchlist_requested` | Column count follows the view width | Implemented |
+| SRD-GUI-022.004 | FO-GUI-022 | Must | The preset's rule summary shows once as chips above the results; tiers are Strong ≥ 0.70, Watch ≥ 0.40, else Weak. | preset config | rule chips, tier | Same thresholds as the old score colours | Implemented |
+| SRD-GUI-022.005 | FO-GUI-022 | Should | A Sort box orders both views by AI score, reward : risk or rules passed; R:R = (target − entry) / (entry − stop) when stop < entry < target, else "—". | sort choice | row order | Rows without R:R sort last | Implemented |
+| SRD-GUI-022.006 | FO-GUI-022 | Must | Chart, Watchlist, CSV, date navigation and AI transcript keep working with the new views; CSV adds Entry, Stop, Target and R:R columns; the old table is removed. | — | — | `chart_requested` and `watchlist_add_requested` unchanged | Implemented |
+| SRD-GUI-022.007 | FO-GUI-022 | Should | The preset rail has a search box, All / Swing / Day / Position chips in place of the style combo, and per preset a type tag (Weighted / Composite) and a last-run line from saved results. | search text, chip, storage | filtered list | Same preset sections and context menu | Implemented |
+| SRD-GUI-022.008 | FO-GUI-022 | Must | A page header over the results shows the preset name, a Weighted / Composite tag, an Auto / Manual run tag and a run line (matches, ranking, run date and time); Run now is the only filled accent button and the toolbar Watchlist button is removed. | preset, result | header | Detail and cards keep their Watchlist buttons | Implemented |
+| SRD-GUI-022.009 | FO-GUI-022 | Must | A run stepper joins older / newer arrows and the run date ("Oct 22, 2026", Latest tag on the newest run); clicking the date lists all saved runs. | saved run dates | loaded run | Arrows disabled at either end | Implemented |
+| SRD-GUI-022.010 | FO-GUI-022 | Must | A header pill "AI transcript · N steps · $cost" opens the run transcript in a drawer over the right side of the results; the bottom transcript panel is removed. | transcript | drawer | Pill shown only for AI-ranked presets with a transcript | Implemented |
+| SRD-GUI-022.011 | FO-GUI-022 | Should | List rows show rank, symbol, company name, score bar and rules passed ("2/4"); the detail shows a company line, Open in Charts, Add to watchlist, a chart without its input bar, one plan box with a risk / reward bar and a ✓ / ✕ rule list. | rows | list, detail | Supersedes the rule dots of SRD-GUI-022.002 | Implemented |
+| SRD-GUI-022.012 | FO-GUI-022 | Should | Numbers use the UI font, the accent colour is kept for Run now and selection, rule chips are pills, the style chips are one segmented control, New preset is a + button in the rail header and preset rows drop the type tag. | — | — | Supersedes the per-row type tag of SRD-GUI-022.007 | Implemented |
+## FO-GUI-023 — Card Layout
+
+| ID | Parent | Priority | Description | Input | Output | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-023.001 | FO-GUI-023 | Must | The sidebar, each screen, the right panel, the log panel and the icon strip are separate cards with 6 px corners, a 1 px border and a 4 px gap in the title-bar colour. | — | card layout | A closed right or log panel leaves no gap | Implemented |
+| SRD-GUI-023.002 | FO-GUI-023 | Must | The screener shows the preset list and the results as two cards with a 4 px gap; other screens sit in one card each. | — | card layout | Inside of other screens unchanged | Implemented |
+| SRD-GUI-023.003 | FO-GUI-023 | Should | Carbon, Mocha and VS Code themes use the same gap and corner sizes with their own colours. | theme | card colours | Rules live in `_sidebar_qss` | Implemented |
+| SRD-GUI-023.004 | FO-GUI-023 | Should | The gap colour is lighter than the cards (the theme's hover grey) so each section stands out. | theme | gap colour | Supersedes the title-bar gap colour of SRD-GUI-023.001 | Implemented |
+
+## FO-GUI-024 — Execution Workspace
+
+| ID | Parent | Priority | Description | Input | Output | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-024.001 | FO-GUI-024 | Must | A page header shows "Execution", the ADMIN badge, the last screener run, chips for unrealised P&L, strategies running X of Y and broker state, and the Execute-for combo. | open cycles, strategies, active user, feed status | header | Replaces the "Trade Execution" row | Implemented |
+| SRD-GUI-024.002 | FO-GUI-024 | Must | The watchlist groups symbols under Manual first, then each screener name with a count; rows show symbol, last 3m close and score, sorted by score. | screener entries, manual picks | grouped list | Keeps add / remove pick, candle-readiness tint and auto-select of the top row | Implemented |
+| SRD-GUI-024.003 | FO-GUI-024 | Must | A tab bar "Active trades · N", "Strategies · N", "Closed today · N" sits on top; Active trades and Closed today show the one Active Trades table filtered by row state. | active-trade rows, strategies | tab card | Counts follow the table and the strategy list | Implemented |
+| SRD-GUI-024.004 | FO-GUI-024 | Must | The Strategies tab lists strategies with a status dot, name, mode and a one-line summary, and an "+ Add" button. | strategies, open cycles | list | Selection drives the detail | Implemented |
+| SRD-GUI-024.005 | FO-GUI-024 | Must | The detail shows name, status pill, mode and start date, buttons Edit, Duplicate, Reset count, Start / Stop and Delete, and four boxes: what it trades, when, size, exit rules. | selected strategy | detail | Duplicate saves a stopped copy under a new unique name | Implemented |
+| SRD-GUI-024.006 | FO-GUI-024 | Must | A Strategy P&L card shows the running total line (or per-trade bars), the max drawdown in red, ranges 1W / 1M / 3M / All, and win rate, average win, average loss, max drawdown and today. | `get_strategy_pnl` | P&L card | Empty text when the strategy has no closed trades | Implemented |
+| SRD-GUI-024.007 | FO-GUI-024 | Should | A Today strip lists the strategy's open trades and today's closed trades with side, quantity, state and P&L. | open cycles, today's closed cycles | strip | "No trades today" when empty | Implemented |
+| SRD-GUI-024.008 | FO-GUI-024 | Must | The intraday charts sit below the tab card; a "Hide charts" / "Show charts" button in the page header (after the broker chip) hides them completely and the choice is remembered. Execution cards sit on the gutter with the Screener's 4 px gap. | selected symbol, setting | chart pane | `QSettings("USSwing", "ExecutionPanel")` key `charts_hidden` | Implemented |

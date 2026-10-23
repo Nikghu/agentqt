@@ -1,7 +1,7 @@
 # Functional Overview — GUI Module (GUI)
 
 **Document ID:** FO-GUI
-**Version:** 2.6.0
+**Version:** 2.7.0
 **Traces To:** requirements.md §21, §22, §23.3, §24, §25, §28.1, §29.1, §32
 **Status:** Draft
 **Last Updated:** 2026-05-22
@@ -533,3 +533,198 @@ The system shall provide a **Price Action Patterns** dialog, opened from the Scr
 5. Turning a row off dims it; clicking ✕ removes it and the tree counts update.
 6. Pressing OK returns a rule-list config that reloads into the same rows.
 7. The Indicator Filters dialog keeps working unchanged.
+
+---
+
+## FO-GUI-017: Carbon Theme and Icon System
+
+**Status:** Approved (user, 2026-10-23)
+**Priority:** Should
+**Source:** GUI redesign Phase 1 — design agreed in session 2026-10-23 (Carbon Workspace, icon Option C).
+
+The system shall offer a new default "Carbon" look (graphite with amber) and replace emoji on buttons, tabs and navigation with colour-coded line icons. Behaviour does not change.
+
+### Requirements
+
+1. **Carbon theme.** A third theme "Carbon" is available in Settings and is used when no theme has been saved.
+2. **Fonts.** IBM Plex Sans and IBM Plex Mono ship with the app and are used by the Carbon theme.
+3. **Icons.** Buttons, tabs and navigation show a line icon plus a word; the icon colour shows the meaning (add, go, danger, info).
+4. **Risky actions.** Risky buttons show red text, red border and a red icon in every theme.
+
+### Acceptance Criteria
+
+1. A fresh install opens in the Carbon theme; Mocha and VS Code Dark can still be picked.
+2. No emoji remain on buttons, tabs or the title bar navigation.
+3. Square Off All, Delete, Trip Circuit Breaker and Force Exit show red borders.
+4. Every icon-only button shows a tooltip.
+
+---
+
+## FO-GUI-018: Sidebar Workspace Shell
+
+**Status:** Approved (user, 2026-10-23)
+**Priority:** Should
+**Depends on:** FO-GUI-017 (Carbon theme and icons)
+**Source:** GUI redesign Phase 2 — Carbon Workspace design agreed 2026-10-23.
+
+The system shall replace the top navigation tabs and the account strip with a left sidebar, so screens are easy to find and account details are always visible. Screen content does not change.
+
+### Requirements
+
+1. **Sidebar.** The five screens are listed in a left sidebar with icon and label.
+2. **Mini mode.** The sidebar can shrink to icons only; wide screens shrink it on their own; hovering shows it in full without moving the screen.
+3. **Account footer.** The sidebar footer shows the current user or All Users, mode, IBKR ID, risk and capital.
+4. **Title bar.** The title bar keeps brand, version, index prices, feed button and window buttons.
+5. **Hide and show.** One controller animates panels that open and close; changing screen slides in briefly.
+6. **Connections panel.** The feed button moves from the title bar to the sidebar bottom, with Internet, IBKR Feed and Market status.
+
+### Acceptance Criteria
+
+1. Clicking each sidebar item shows the same screen as the old tab did.
+2. Collapse makes the sidebar icon-only; the choice is kept after restart.
+3. Opening Execution makes the sidebar small; going back to Dashboard restores it.
+4. The footer shows the same capital and available values as the old account strip.
+5. The sidebar power button connects and disconnects the feed as the old title bar button did.
+
+---
+
+## FO-GUI-019: Side Panels and Exit Drawer
+
+**Status:** Approved (user, 2026-10-23)
+**Priority:** Should
+**Depends on:** FO-GUI-018 (sidebar shell and reveal controller)
+**Source:** GUI redesign Phase 3 — Carbon Workspace design agreed 2026-10-23.
+
+The system shall show Position Details, Watchlist and Live Log as panels that open and close from a right icon strip, and shall replace the blocking Exit Position dialog with a drawer that has a review step. Trading behaviour does not change.
+
+### Requirements
+
+1. **Icon strip.** A thin strip on the right edge opens and closes Position Details, Watchlist and Live Log.
+2. **Panels.** Position Details and Watchlist open on the right; Live Log opens at the bottom; the Watchlist and Live Log leave the Dashboard.
+3. **Exit drawer.** Exit, limit, scale-out and stop changes open in a drawer that does not block the app, with a Review step before Confirm.
+4. **Square Off All.** Uses the same drawer, listing all positions before Confirm.
+
+### Acceptance Criteria
+
+1. Clicking a position row shows its details in the right panel.
+2. Every exit type from the old dialog sends the same request as before, but only after Review and Confirm.
+3. Prices keep updating while the drawer is open.
+4. Screener "Watchlist" still adds the symbol to the watchlist.
+
+---
+
+## FO-GUI-020: Charts Workspace
+
+**Status:** Approved (user, 2026-10-23)
+**Priority:** Should
+**Depends on:** FO-GUI-011 (candle chart viewer), FO-GUI-019 (Open in Chart)
+**Source:** GUI redesign Phase 4 — Carbon Workspace design agreed 2026-10-23 (MDI on the Charts screen only).
+
+The system shall let the user keep several charts open at once on the Charts screen and arrange them as tiles, a cascade or tabs. Chart content does not change.
+
+### Requirements
+
+1. **Many charts.** The Charts screen holds up to six chart windows, each with its own symbol, timeframe and bars controls.
+2. **Arrange.** Tile, Cascade and Tabs buttons arrange the windows.
+3. **Open from elsewhere.** Open in Chart and the Screener chart button open the symbol here instead of a separate window.
+
+### Acceptance Criteria
+
+1. New Chart adds a window until six are open, then the button is disabled.
+2. Opening a symbol that is already open brings its window to the front.
+3. The Screener chart button shows the chart on the Charts screen with the preset's timeframe.
+
+## FO-GUI-021: Settings Section List
+
+**Status:** Approved (user, 2026-10-23)
+**Priority:** Should
+**Depends on:** FO-GUI-006 (settings panel), FO-GUI-017 (Carbon theme)
+**Source:** GUI redesign follow-up — Carbon Workspace mockup, Settings screen; layout choices confirmed by user 2026-10-23.
+
+The system shall show Settings as a section list on the left with one section visible at a time, in the Carbon style. Setting values and their save paths do not change, except that Risk now saves for real.
+
+### Requirements
+
+1. **Section list.** Users, Risk, Connection, Scheduler, Telegram and Universe are listed on the left; clicking one shows only that section.
+2. **Risk saves.** Save Risk Settings writes the values to the active user.
+3. **System panel.** Theme, Updates and Orders (circuit breaker) sit in a System panel opened from the right icon strip on any screen (layout option A, chosen by user 2026-10-23).
+4. **Data panel.** The candle database moves to a Data panel on the right strip showing download percent and a Complete or Partial result; the Data icon carries a percent, tick or ! badge (option Data 2, chosen by user 2026-10-23).
+
+### Acceptance Criteria
+
+1. Clicking a section shows its card and highlights it in the list.
+2. Saved risk values are still there after reopening the app.
+3. The System strip icon opens and closes the System panel like Details and Watchlist.
+4. While downloading the Data icon shows the percent; after a download it shows a tick when complete or ! when stocks failed.
+
+---
+
+## FO-GUI-022: Screener Result Views
+
+**Status:** Approved (user, 2026-10-23)
+**Priority:** Should
+**Depends on:** FO-GUI-017 (Carbon theme and icons), FO-SCR-011 (AI ranking, `ai_plan` from SRD-SCR-013.009)
+**Source:** Screener redesign — user chose Option 2 (List + detail) and Option 3 (Signal cards) from https://claude.ai/artifact/LrgcUSpuKswbdfCmKzoZTY, both as switchable views.
+
+The system shall replace the screener results table with two views the user can switch between, so results look professional and the trade plan is easy to read. Screening logic does not change.
+
+### Requirements
+
+1. **View switch.** List and Cards views; the choice is remembered; List is the default.
+2. **List + detail.** A ranked list with a detail panel holding a chart, the trade plan, rules and AI reasoning.
+3. **Signal cards.** One card per stock with score, rules, reasoning and plan.
+4. **Rules once.** The preset's rules are shown once, not repeated per row.
+5. **Sort.** By AI score, reward : risk or rules passed.
+6. **Same actions.** Chart, Watchlist, CSV, date navigation and AI transcript keep working.
+7. **Preset rail.** Search, style chips and a last-run line per preset.
+
+### Acceptance Criteria
+
+1. Switching views keeps the same stocks and order; the view is the same after restart.
+2. Selecting a stock in List shows its chart and plan.
+3. A run without a plan shows "—" for Entry, Stop, Target and R:R.
+4. CSV includes Entry, Stop, Target and R:R.
+## FO-GUI-023: Card Layout
+
+**Status:** Approved (user, 2026-10-23)
+**Priority:** Should
+**Depends on:** FO-GUI-018 (sidebar workspace shell), FO-GUI-022 (screener views)
+**Source:** User asked for VS Code style gaps and rounded corners between sections; chose "Whole app", 4 px gap, 6 px corner.
+
+The system shall show the main sections of the window as separate rounded cards with a small gap between them. Behaviour does not change.
+
+### Requirements
+
+1. **Shell cards.** Sidebar, each screen, right panel, log panel and icon strip are separate cards.
+2. **Screener cards.** The preset list and the results are two cards.
+3. **Themes.** All three themes use the same gap and corner sizes.
+
+### Acceptance Criteria
+
+1. A closed right panel or log panel leaves no gap behind.
+2. Corners stay rounded on every screen; nothing paints over them.
+
+---
+
+## FO-GUI-024: Execution Workspace
+
+**Status:** Approved (user, 2026-10-23)
+**Priority:** Should
+**Depends on:** FO-GUI-004 (Execution panel), FO-GUI-014 (Active Trades), FO-GUI-023 (cards), FO-EXE-019 (strategy P&L history)
+**Source:** User picked canvas Option F2 (https://claude.ai/artifact/9F83v5ErsZw7otTJctni47) on 2026-10-23.
+
+The system shall lay out the Execution screen as a workspace: a page header, a grouped watchlist, a tab card for trades and strategies on top, and the intraday charts below. Trading behaviour does not change.
+
+### Requirements
+
+1. **Header.** Title, admin badge, last screener run, unrealised P&L, strategies running, broker state and the Execute-for user.
+2. **Watchlist.** Symbols grouped by source (manual picks first, then each screener) with last price and score.
+3. **Tabs.** Active trades, Strategies and Closed today, each with a count.
+4. **Strategies.** A list of strategies and a detail view with actions (Edit, Duplicate, Reset count, Start / Stop, Delete), its settings, its P&L history chart and today's trades.
+5. **Charts.** The 3m and 15m charts sit below the tabs and can be hidden; the choice is remembered.
+
+### Acceptance Criteria
+
+1. Every action of the old Strategy Builder table is still reachable.
+2. The P&L chart of a strategy matches the sum of its closed trades.
+3. Hiding the charts gives their space to the tabs, and stays hidden after a restart.

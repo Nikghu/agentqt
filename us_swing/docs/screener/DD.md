@@ -1316,6 +1316,10 @@ Turn 2:  assistant: tool_use(symbol=NVDA, 1w, 26)
 Turn 3:  assistant (end_turn): JSON ranking for all 10 symbols
 ```
 
+### Trade Plan Fields (SRD-SCR-013.009)
+
+The tool-path system prompt adds `"entry": price, "stop": price, "target": price` to each ranking record and says they are optional. `_parse_ranking()` calls `_plan_from_entry(entry)`, which returns `{entry, stop, target}` only when all three convert to finite floats > 0, else `{}`; non-empty plans go to `self.last_plan[sym]` (reset in `apply()`). `PresetExecutor._apply_stage3` reads `last_plan` the same way as `last_reasoning` (dict check) and adds `"ai_plan"` to `result[sym]` only for symbols that have one. The legacy single-shot path never sets a plan. Direction is not checked here; the GUI computes R:R only for long-shaped plans (stop < entry < target).
+
 ### Phase 2/3 Forward Compatibility
 
 - `_apply_with_tools()` is structured so the inner loop can be lifted into a provider-agnostic helper when `OpenAIProvider` / `GeminiProvider` are added.

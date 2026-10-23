@@ -75,7 +75,7 @@ if TYPE_CHECKING:
     from us_swing.execution.intraday_candle_loader import IntradayCandleLoader
     from us_swing.execution.live_bar_worker import LiveBarWorker
     from us_swing.execution.live_tick_worker import LiveTickWorker
-    from us_swing.execution.trade_cycle import CycleSnapshot
+    from us_swing.execution.trade_cycle import CycleSnapshot, StrategyPnlSummary
     from us_swing.gui.telegram_commands import TelegramCommandBridge
     from us_swing.universe.store import Sp500Meta
 
@@ -2567,6 +2567,28 @@ class AppService(QObject):
         """Return the latest closing price for *symbol* at *tf*, or None."""
         bar = self._get_latest_bar(symbol, tf)
         return float(bar.close) if bar is not None else None
+
+    def get_strategy_pnl(
+        self, strategy_id: str, since_iso: str | None = None
+    ) -> "StrategyPnlSummary":
+        """Realized P&L history of *strategy_id* for the viewing user (SRD-EXE-019.004).
+
+        ``None`` viewing scope = all users.  "Today" is the market (ET) day,
+        the same window the Active Trades closed rows use.
+        """
+        from us_swing.execution.trade_cycle import StrategyPnlSummary, summarise
+        from us_swing.gui.active_cycles_model import _today_et_bounds_utc
+
+        if self._tc_query is None:
+            return StrategyPnlSummary()
+        try:
+            cycles = self._tc_query.closed_for_strategy(
+                strategy_id, since_iso=since_iso, user_id=self._viewing_uid
+            )
+        except Exception:
+            _log.exception("[Strategy] Could not load P&L history for %s", strategy_id)
+            return StrategyPnlSummary()
+        return summarise(cycles, *_today_et_bounds_utc())
 
     def get_recent_closed_cycles(self) -> list:
         """Cycles closed today — stay visible in the Pending Signals table

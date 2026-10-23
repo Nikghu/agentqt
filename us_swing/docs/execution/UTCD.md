@@ -1,12 +1,13 @@
-﻿# Unit Test Case Document â€” Execution & Risk Management (EXE)
+# Unit Test Case Document â€” Execution & Risk Management (EXE)
 
 **Document ID:** UTCD-EXE
-**Version:** 1.15.0
+**Version:** 1.16.0
 **Traces To:** MD-EXE v1.15.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.16.0: UT-EXE-019.* added (14 tests, FO-EXE-019 Strategy P&L History).
 > v1.15.0: UT-EXE-018.* added (54 tests, FO-EXE-018 Short Trade Direction) — direction storage, side and risk-level helpers, conflict guard, direction-aware order placement and ingestion, SHORT P&L / trailing / exit triggers / risk invariants, signed position P&L.
 
 > v1.13.0: UT-EXE-006.013.M01.T01–T04 (4 tests) + UT-EXE-011.001.M03.T10–T13 (4 tests) added (ISS-EXE-0009) — cycle-open candle-feed arming; ATR/indicator NaN guard raises `EvaluatorError` instead of silently reading false.
@@ -846,3 +847,34 @@
 | UT-EXE-018.013.M10.T02 | MD-EXE-018.012.M10 | Positive | Cycle-derived position copies direction | open SHORT cycle | position source returns `direction="SHORT"` | Pass |
 | UT-EXE-018.012.M10.T03 | MD-EXE-018.012.M10 | Negative | Pending SHORT entry blocked by open LONG | OPEN LONG cycle on AAPL; `execute_signal(SHORT ENTRY AAPL, 10)` | returns -1; submitter not called; signal stays in pending store; one WARNING | Pass |
 | UT-EXE-018.012.M10.T04 | MD-EXE-018.012.M10 | Positive | Pending SHORT entry without conflict submits | no open AAPL cycle; `execute_signal(SHORT ENTRY AAPL, 10)` | submitter called once; returns order id | Pass |
+
+---
+
+## Module: `execution/trade_cycle/_repository.py` — Strategy closed-cycle read (FO-EXE-019)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-019.001.M01.T01 | MD-EXE-019.001.M01 | Positive | Returns only the strategy's CLOSED cycles in close order | 3 closed (out of order) + 1 open for "S1", 1 closed for "S2" | 3 rows for "S1", ascending `closed_at` | Pass |
+| UT-EXE-019.001.M01.T02 | MD-EXE-019.001.M01 | Positive | Start filter | closes on day 1, 2, 3; `since_iso` = day 2 | 2 rows | Pass |
+| UT-EXE-019.001.M01.T03 | MD-EXE-019.001.M01 | Positive | User filter | user 1 and user 2 closes; `user_id=2` | only user 2 rows | Pass |
+| UT-EXE-019.001.M01.T04 | MD-EXE-019.001.M01 | Negative | Unknown strategy | `closed_for_strategy("NOPE")` | empty tuple | Pass |
+| UT-EXE-019.003.M01.T05 | MD-EXE-019.001.M01 | Positive | Index created by schema | `create_schema` on a fresh engine | `idx_trade_cycles_strategy_closed` in index list | Pass |
+
+## Module: `execution/trade_cycle/_pnl_history.py` — P&L summary (FO-EXE-019)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-019.002.M02.T01 | MD-EXE-019.002.M02 | Positive | Running total and total | P&L +10, −4, +6 | cumulative 10, 6, 12; total 12; trades 3 | Pass |
+| UT-EXE-019.002.M02.T02 | MD-EXE-019.002.M02 | Positive | Win rate and averages | +10, −4, +6, −2 | wins 2; win rate 0.5; avg win 8; avg loss −3 | Pass |
+| UT-EXE-019.002.M02.T03 | MD-EXE-019.002.M02 | Positive | Max drawdown span | +10, +5, −8, −4, +20 | max drawdown −12; `dd_start` 1; `dd_end` 3 | Pass |
+| UT-EXE-019.002.M02.T04 | MD-EXE-019.002.M02 | Negative | Cycle without P&L skipped | +5, None, +5 | 2 points; total 10 | Pass |
+| UT-EXE-019.002.M02.T05 | MD-EXE-019.002.M02 | Edge | Empty input | no cycles | zero summary; no points; `dd_start` −1 | Pass |
+| UT-EXE-019.002.M02.T06 | MD-EXE-019.002.M02 | Positive | Today only counts today's closes | yesterday +7, today −3 and +1 | today −2 | Pass |
+| UT-EXE-019.002.M02.T07 | MD-EXE-019.002.M02 | Edge | Losing from the start | −5, −5 | max drawdown −10; `dd_start` −1; `dd_end` 1 | Pass |
+
+## Module: `gui/app_service.py` — Strategy P&L accessor (FO-EXE-019)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-019.004.M03.T01 | MD-EXE-019.004.M03 | Positive | Viewing user is the filter | viewing uid 2; closes for users 1 and 2 | summary counts user 2 only | Pass |
+| UT-EXE-019.004.M03.T02 | MD-EXE-019.004.M03 | Negative | No ledger | `_tc_query = None` | empty `StrategyPnlSummary` | Pass |

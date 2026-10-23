@@ -1,25 +1,37 @@
 """
 Module: MD-GUI-000 — main_window.py
-QMainWindow: Frameless terminal UI — compact top bar with horizontal nav.
+Shell: MD-GUI-018.005.M03 (Parent SRD: SRD-GUI-018.005)
+QMainWindow: Frameless terminal UI — title bar, left sidebar, stacked screens.
 
 Layout:
   ┌──────────────────────────────────────────────────────────────────────┐
-  │ ◈ US SWING  │ Dashboard  Screener  Execution  Settings │ NYSE● │ 👤 trader PAPER │ P&L │ ─ □ ✕ │
-  ├──────────────────────────────────────────────────────────────────────┤
-  │  CONTENT  (QStackedWidget — fills remainder)                          │
-  ├──────────────────────────────────────────────────────────────────────┤
-  │  STATUS BAR                                                            │
+  │ logo  Swing Trading Terminal v  │  index prices           │ − □ ✕   │
+  ├──────────┬───────────────────────────────────────────────────────────┤
+  │ SIDEBAR  │  CONTENT  (QStackedWidget)        │ RIGHT PANEL │ STRIP │
+  │ (200/56) ├───────────────────────────────────┴─────────────┤       │
+  │          │  LIVE LOG (bottom panel, 0/180)                  │       │
+  ├──────────┴─────────────────────────────────────────────────┴───────┤
+  │  STATUS BAR                                                          │
   └──────────────────────────────────────────────────────────────────────┘
 """
 from __future__ import annotations
 
 import logging
-import math
 import sys
 from pathlib import Path
 
-from PyQt6.QtCore import QEvent, QPoint, QPointF, QRectF, QSettings, QTimer, Qt
-from PyQt6.QtGui import QColor, QCursor, QFont, QPainter, QPainterPath, QPen, QPixmap
+from PyQt6.QtCore import (
+    QAbstractAnimation,
+    QEasingCurve,
+    QEvent,
+    QObject,
+    QPoint,
+    QPropertyAnimation,
+    QSettings,
+    QTimer,
+    Qt,
+)
+from PyQt6.QtGui import QCursor, QPixmap
 from PyQt6.QtWidgets import (
     QApplication,
     QDialog,
@@ -28,6 +40,7 @@ from PyQt6.QtWidgets import (
     QLabel,
     QMainWindow,
     QPushButton,
+    QScrollArea,
     QStackedWidget,
     QVBoxLayout,
     QWidget,
@@ -36,13 +49,19 @@ from PyQt6.QtWidgets import (
 from us_swing import __version__
 from us_swing.data.models import ConnectionStatus
 from us_swing.gui.app_service import AppService
-from us_swing.gui.chart_panel import CandleChartPanel
+from us_swing.gui.cards import GAP, card, gutter
+from us_swing.gui.chart_workspace import ChartWorkspace
 from us_swing.gui.dashboard_panel import DashboardPanel
 from us_swing.gui.execution_panel import ExecutionPanel
 from us_swing.gui.screener_panel import ScreenerPanel
 from us_swing.gui.settings_panel import SettingsPanel
 from us_swing.gui.system_store import load_system_config
-from us_swing.gui.theme import C, active_palette, colors
+from us_swing.gui.icons import refresh_icons
+from us_swing.gui.log_viewer_panel import LogViewerPanel
+from us_swing.gui.reveal import RevealController
+from us_swing.gui.side_panels import IconStrip, PositionDetails
+from us_swing.gui.sidebar import FULL_WIDTH, MINI_WIDTH, Sidebar
+from us_swing.gui.theme import C, active_palette
 
 _log = logging.getLogger(__name__)
 
@@ -95,167 +114,15 @@ class _MWCell(QLabel):
             color = _T.GREEN if self._change_pct >= 0 else _T.RED
             sign = "+" if self._change_pct >= 0 else ""
             self.setText(
-                f"<span style='color:{name_color};font-size:7pt;letter-spacing:0.5px'>{self._name}</span>"
-                f"&nbsp;&nbsp;<span style='color:{color};font-size:9pt;font-weight:bold'>{self._ltp:,.2f}</span>"
-                f"&nbsp;<span style='color:{color};font-size:7pt'>{sign}{self._change_pct:.2f}%</span>"
+                f"<span style='color:{name_color};font-size:8.5pt;font-weight:500'>{self._name}</span>"
+                f"&nbsp;&nbsp;<span style='color:{_T.TEXT};font-size:9pt;font-family:IBM Plex Mono,Consolas,monospace;'>{self._ltp:,.2f}</span>"
+                f"&nbsp;<span style='color:{color};font-size:8.5pt;font-family:IBM Plex Mono,Consolas,monospace;'>{sign}{self._change_pct:.2f}%</span>"
             )
         else:
             self.setText(
-                f"<span style='color:{name_color};font-size:7pt;letter-spacing:0.5px'>{self._name}</span>"
+                f"<span style='color:{name_color};font-size:8.5pt;font-weight:500'>{self._name}</span>"
                 f"&nbsp;&nbsp;<span style='color:{_T.OVERLAY2};font-size:9pt'>—</span>"
             )
-
-
-# ── Horizontal nav tab button ──────────────────────────────────────────────────
-
-class _TabBtn(QPushButton):
-    """Compact horizontal nav tab — icon + label, underline when active."""
-
-    def __init__(self, icon: str, label: str, parent: QWidget | None = None) -> None:
-        super().__init__(f"{icon}  {label}", parent)
-        self.setCheckable(True)
-        self.setAutoExclusive(True)
-        self.setObjectName("tab_btn")
-        self.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.setFixedHeight(38)
-        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-
-
-
-# ── Feed connect toggle ────────────────────────────────────────────────────────
-
-class _FeedToggle(QPushButton):
-    """
-    Pill-shaped feed connect/disconnect toggle with animated LED indicator.
-
-    Three states
-    ────────────
-    IDLE        gray pill  — "Connect Feed"
-    CONNECTING  amber pill — "Connecting…" (LED breathes)
-    CONNECTED   green pill — "Live Feed"   (LED glows)
-    """
-
-    IDLE       = "idle"
-    CONNECTING = "connecting"
-    CONNECTED  = "connected"
-
-    # (bg, border, led, text) hex per state
-    _COL: dict[str, tuple[str, str, str, str]] = {
-        IDLE:       ("#181824", "#45475a", "#565870", "#7f849c"),
-        CONNECTING: ("#1e1505", "#c8860a", "#f5a623", "#f5a623"),
-        CONNECTED:  ("#071810", "#1a7840", "#2dbd6e", "#2dbd6e"),
-    }
-    _LABEL: dict[str, str] = {
-        IDLE:       "Connect",
-        CONNECTING: "Connecting…",
-        CONNECTED:  "Live Feed",
-    }
-
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self._state      = self.IDLE
-        self._led_alpha  = 1.0
-        self._pulse_phi  = 0.0
-        self._hovered    = False
-
-        self._pulse_timer = QTimer(self)
-        self._pulse_timer.setInterval(40)
-        self._pulse_timer.timeout.connect(self._tick)
-
-        self.setFixedSize(100, 28)
-        self.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.setStyleSheet("")   # opt out of global QSS entirely
-
-    # ── Public API ─────────────────────────────────────────────────────────────
-
-    def set_state(self, state: str) -> None:
-        self._state = state
-        if state == self.CONNECTING:
-            self._pulse_phi = 0.0
-            self._pulse_timer.start()
-            self.setEnabled(False)
-        else:
-            self._pulse_timer.stop()
-            self._led_alpha = 1.0
-            self.setEnabled(True)
-        self.update()
-
-    # ── Events ─────────────────────────────────────────────────────────────────
-
-    def enterEvent(self, event: object) -> None:  # type: ignore[override]
-        self._hovered = True
-        self.update()
-
-    def leaveEvent(self, event: object) -> None:  # type: ignore[override]
-        self._hovered = False
-        self.update()
-
-    def _tick(self) -> None:
-        self._pulse_phi = (self._pulse_phi + 0.16) % (2 * math.pi)
-        self._led_alpha = 0.20 + 0.80 * (0.5 + 0.5 * math.sin(self._pulse_phi))
-        self.update()
-
-    # ── Paint ──────────────────────────────────────────────────────────────────
-
-    def paintEvent(self, event: object) -> None:  # type: ignore[override]
-        p = QPainter(self)
-        p.setRenderHint(QPainter.RenderHint.Antialiasing)
-
-        w = float(self.width())
-        h = float(self.height())
-        r = h / 2.0
-
-        bg_h, bd_h, led_h, txt_h = self._COL[self._state]
-        bg  = QColor(bg_h)
-        bd  = QColor(bd_h)
-        led = QColor(led_h)
-        txt = QColor(txt_h)
-
-        if self._hovered and self._state == self.IDLE:
-            _c = colors()
-            bd  = QColor(_c["feed_hover_border"])
-            txt = QColor(_c["feed_hover_text"])
-
-        # ── Pill shell ─────────────────────────────────────────────────────
-        shell = QPainterPath()
-        shell.addRoundedRect(QRectF(0.5, 0.5, w - 1.0, h - 1.0), r, r)
-        p.fillPath(shell, bg)
-        p.setPen(QPen(bd, 1.0))
-        p.drawPath(shell)
-
-        # ── LED ────────────────────────────────────────────────────────────
-        led_r  = 4.0
-        led_cx = r          # horizontally centred in the left "cap"
-        led_cy = h / 2.0
-
-        if self._state == self.CONNECTED:
-            # soft outer glow ring
-            glow = QColor(led_h)
-            glow.setAlphaF(0.22)
-            p.setPen(Qt.PenStyle.NoPen)
-            p.setBrush(glow)
-            p.drawEllipse(QPointF(led_cx, led_cy), led_r + 3.0, led_r + 3.0)
-
-        core = QColor(led)
-        core.setAlphaF(self._led_alpha)
-        p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(core)
-        p.drawEllipse(QPointF(led_cx, led_cy), led_r, led_r)
-
-        # ── Label ──────────────────────────────────────────────────────────
-        font = QFont("Segoe UI", 8)
-        font.setWeight(QFont.Weight.Bold)
-        p.setFont(font)
-        p.setPen(txt)
-        tx = led_cx + led_r + 8.0
-        p.drawText(
-            QRectF(tx, 0.0, w - tx - 8.0, h),
-            Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
-            self._LABEL[self._state],
-        )
-
-        p.end()
 
 
 # ── Draggable top bar ──────────────────────────────────────────────────────────
@@ -268,10 +135,10 @@ class _TitleBar(QWidget):
     """
 
     def __init__(self, svc: AppService, window: QMainWindow,
-                 panels: list[QWidget], stack: QStackedWidget,
                  parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._win         = window
+        self._svc         = svc
         self._drag_pos    = QPoint()
         self._maximised   = False
         self._restore_geom = window.geometry()
@@ -306,32 +173,26 @@ class _TitleBar(QWidget):
 
         _vdiv(row)
 
-        # ── Nav tabs ─────────────────────────────────────────────────────
-        nav_items = [
-            ("📊", "Dashboard"),
-            ("🔍", "Screener"),
-            ("⚡", "Execution"),
-            ("📈", "Chart"),
-            ("⚙",  "Settings"),
-        ]
-        self._tabs: list[_TabBtn] = []
-        for (icon, label), panel in zip(nav_items, panels):
-            btn = _TabBtn(icon, label)
-            self._tabs.append(btn)
-            row.addWidget(btn)
-            btn.clicked.connect(lambda _c, p=panel: stack.setCurrentWidget(p))
+        # ── Market watch index prices ──────────────────────────────────────
+        row.addStretch(1)
+        self._mw_cells: list[_MWCell] = []
+        self._mw_cell_divs: list[QLabel] = []
+        self._mw_sym_names = dict(svc.get_mw_symbol_names())
+        for sym in self._mw_sym_names:
+            if self._mw_cells:
+                div = QLabel("│")
+                row.addWidget(div)
+                self._mw_cell_divs.append(div)
+            cell = _MWCell()
+            cell.setObjectName(f"mw_{sym}")
+            cell.update_data(self._mw_sym_names[sym], 0.0, 0.0)
+            row.addWidget(cell)
+            self._mw_cells.append(cell)
+        self._apply_mw_styles()
+        svc.market_watch_updated.connect(self._refresh_mw)
+        self._refresh_mw()
 
         row.addStretch(1)          # push remaining right
-
-        self._svc = svc
-
-        # ── Connect / Disconnect feed toggle ──────────────────────────────
-        row.addSpacing(8)
-        self._feed_btn = _FeedToggle(self)
-        self._feed_btn.clicked.connect(self._on_feed_btn_clicked)
-        row.addWidget(self._feed_btn)
-        svc.feed_status_changed.connect(self._on_feed_status_changed)
-        row.addSpacing(8)
 
         _vdiv(row)
 
@@ -373,27 +234,28 @@ class _TitleBar(QWidget):
         for b in (self._btn_min, self._btn_max, self._btn_cls):
             wf.addWidget(b, alignment=Qt.AlignmentFlag.AlignVCenter)
         row.addWidget(win_frame, alignment=Qt.AlignmentFlag.AlignVCenter)
-    def _on_feed_btn_clicked(self) -> None:
-        status = self._svc.connection_status
-        if status == ConnectionStatus.CONNECTED:
-            from PyQt6.QtWidgets import QMessageBox
-            ret = QMessageBox.question(
-                self, "Disconnect Feed",
-                "Disconnect data feed?\nPosition prices will stop updating.",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            )
-            if ret == QMessageBox.StandardButton.Yes:
-                self._svc.disconnect_feed()
-        elif status != ConnectionStatus.RECONNECTING:
-            self._svc.connect_feed()
 
-    def _on_feed_status_changed(self, status_str: str) -> None:
-        if status_str == "connected":
-            self._feed_btn.set_state(_FeedToggle.CONNECTED)
-        elif status_str == "reconnecting":
-            self._feed_btn.set_state(_FeedToggle.CONNECTING)
-        else:
-            self._feed_btn.set_state(_FeedToggle.IDLE)
+    def _apply_mw_styles(self) -> None:
+        _T = active_palette()
+        for div in self._mw_cell_divs:
+            div.setStyleSheet(f"color:{_T.OVERLAY2}; padding: 0 8px;")
+        for cell in self._mw_cells:
+            cell.setStyleSheet("font-size:8pt;")
+
+    def _refresh_mw(self) -> None:
+        items = self._svc.get_market_watch_items()
+        for i, cell in enumerate(self._mw_cells):
+            if i >= len(items):
+                break
+            it = items[i]
+            cell.update_data(self._mw_sym_names.get(it.symbol, it.symbol), it.ltp, it.change_pct)
+
+    def changeEvent(self, event: QEvent | None) -> None:
+        super().changeEvent(event)
+        if event is not None and event.type() == QEvent.Type.StyleChange:
+            self._apply_mw_styles()
+            self._refresh_mw()
+
     # ── Drag to move ──────────────────────────────────────────────────────────
 
     def mousePressEvent(self, ev):  # type: ignore[override]
@@ -527,137 +389,36 @@ class _ConfirmDialog(QDialog):
 
 # ── Admin Context Bar ─────────────────────────────────────────────────────────────
 
-class _AdminContextBar(QWidget):
-    """
-    A slim info strip (28px) below the accent line showing the active admin scope:
-      • All Users: aggregate count, total equity, combined P&L, total positions
-      • Specific user: name, mode, IBKR ID, risk settings, equity
-    """
+_NAV_ITEMS: list[tuple[str, str]] = [
+    ("layout-dashboard", "Dashboard"),
+    ("filter", "Screener"),
+    ("zap", "Execution"),
+    ("chart-candlestick", "Charts"),
+    ("settings", "Settings"),
+]
+_WIDE_PAGES = frozenset({2, 3})   # Execution, Chart
+_NO_PANEL_PAGES = frozenset({3, 4})   # Chart, Settings
+_RIGHT_PANELS = ("details", "watch", "system", "data")
 
-    def __init__(self, svc: AppService, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self._demo = svc
-        self.setObjectName("admin_ctx_bar")
-        self.setFixedHeight(28)
 
-        row = QHBoxLayout(self)
-        row.setContentsMargins(14, 0, 14, 0)
-        row.setSpacing(0)
+class _MiniState:
+    """Sidebar mini mode: the user's saved choice plus a per-screen auto shrink."""
 
-        # ── Scope icon + items ───────────────────────────────────────────────
-        self._scope_icon = QLabel()
-        row.addWidget(self._scope_icon)
+    def __init__(self, user_mini: bool) -> None:
+        self.user_mini = user_mini
+        self.auto_mini = False
+        self.panel_open = False
 
-        self._items: dict[str, QLabel] = {}
-        self._dividers: list[QLabel] = []
+    def set_page(self, index: int) -> None:
+        self.auto_mini = index in _WIDE_PAGES
 
-        for key in ("scope", "risk", "capital", "mode", "ibkr"):
-            if self._items:  # divider before each (except first)
-                d = QLabel("·")
-                row.addWidget(d)
-                self._dividers.append(d)
-            lbl = QLabel()
-            row.addWidget(lbl)
-            self._items[key] = lbl
+    def set_user_mini(self, mini: bool) -> None:
+        self.user_mini = mini
+        if not mini:
+            self.auto_mini = False
 
-        row.addStretch()
-
-        # ── Market Watch (right side) ─────────────────────────────────────────
-        self._mw_sep = QLabel("│")
-        row.addWidget(self._mw_sep)
-
-        self._mw_cells: list[_MWCell] = []
-        self._mw_cell_divs: list[QLabel] = []
-        self._mw_sym_names = dict(svc.get_mw_symbol_names())
-        for sym in self._mw_sym_names:
-            if self._mw_cells:
-                div = QLabel("│")
-                row.addWidget(div)
-                self._mw_cell_divs.append(div)
-            cell = _MWCell()
-            cell.setObjectName(f"mw_{sym}")
-            cell.update_data(self._mw_sym_names[sym], 0.0, 0.0)
-            row.addWidget(cell)
-            self._mw_cells.append(cell)
-
-        self._apply_static_styles()
-        svc.viewing_changed.connect(self.refresh)
-        svc.positions_updated.connect(self.refresh)
-        svc.account_updated.connect(self.refresh)
-        svc.market_watch_updated.connect(self._refresh_mw)
-        self._refresh_mw()
-        self.refresh()
-
-    def _apply_static_styles(self) -> None:
-        _T = active_palette()
-        self._scope_icon.setStyleSheet(
-            f"color:{_T.YELLOW}; font-size:8pt; font-weight:bold; padding-right:6px;"
-        )
-        for d in self._dividers:
-            d.setStyleSheet(f"color:{_T.OVERLAY2}; padding: 0 10px;")
-        for lbl in self._items.values():
-            lbl.setStyleSheet(f"color:{_T.TEXT}; font-size:8pt;")
-        self._mw_sep.setStyleSheet(f"color:{_T.OVERLAY2}; padding: 0 10px;")
-        for div in self._mw_cell_divs:
-            div.setStyleSheet(f"color:{_T.OVERLAY2}; padding: 0 8px;")
-        for cell in self._mw_cells:
-            cell.setStyleSheet("font-size:8pt;")
-
-    def changeEvent(self, event: QEvent | None) -> None:
-        super().changeEvent(event)
-        if event is not None and event.type() == QEvent.Type.StyleChange:
-            self._apply_static_styles()
-            self.refresh()
-
-    def _refresh_mw(self) -> None:
-        items = self._demo.get_market_watch_items()
-        for i, cell in enumerate(self._mw_cells):
-            if i >= len(items):
-                break
-            it = items[i]
-            name = self._mw_sym_names.get(it.symbol, it.symbol)
-            cell.update_data(name, it.ltp, it.change_pct)
-
-    def refresh(self) -> None:
-        _T = active_palette()
-        uid   = self._demo.get_viewing_uid()
-        users = self._demo.get_users()
-
-        if uid is None:
-            self._scope_icon.setText("🌐")
-            self._items["scope"].setText(
-                f"<b style='color:{_T.YELLOW}'>ALL USERS</b>"
-                f"  <span style='color:{_T.MUTED};font-size:7pt'>{len(users)} accounts</span>"
-            )
-            for k in ("risk", "capital", "mode", "ibkr"):
-                self._items[k].hide()
-        else:
-            u = self._demo.get_user_by_id(uid)
-            if not u:
-                return
-            mode_clr = _T.RED if u.mode == "live" else _T.BLUE
-            self._scope_icon.setText("👤")
-            self._items["scope"].setText(f"<b style='color:{_T.BLUE}'>{u.username}</b>")
-            self._items["risk"].setText(
-                f"<span style='color:{_T.MUTED}'>Risk/Trade</span>  <b>{u.risk_config.risk_per_trade_pct:.1f}%</b>"
-            )
-            self._items["mode"].setText(f"<b style='color:{mode_clr}'>{u.mode.upper()}</b>")
-            self._items["ibkr"].setText(
-                f"<span style='color:{_T.MUTED}'>IBKR</span>  <b>#{u.ibkr_client_id}</b>"
-            )
-            cap = self._demo.effective_capital()
-            avail = self._demo.margin_available()
-            avail_clr = _T.GREEN if avail > 0 else _T.RED
-            self._items["capital"].setText(
-                f"<span style='color:{_T.MUTED}'>Cap</span>  <b>${cap:,.0f}</b>"
-                f"  <span style='color:{_T.MUTED}'>Avail</span>  "
-                f"<b style='color:{avail_clr}'>${avail:,.0f}</b>"
-            )
-            for k in ("risk", "capital", "mode", "ibkr"):
-                self._items[k].show()
-
-        for lbl in self._items.values():
-            lbl.setTextFormat(Qt.TextFormat.RichText)
+    def want_mini(self) -> bool:
+        return self.user_mini or self.auto_mini or self.panel_open
 
 
 # ── Main Window ────────────────────────────────────────────────────────────────
@@ -684,11 +445,14 @@ class MainWindow(QMainWindow):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
         self.setWindowTitle("US Swing Terminal")
 
+        # ── Live Log first, so messages logged while the screens build are kept ─
+        self._log_view = LogViewerPanel(svc)
+
         # ── Panels ─────────────────────────────────────────────────────────────
         self._dashboard_panel  = DashboardPanel(svc)
         self._screener_panel   = ScreenerPanel(svc)
         self._execution_panel  = ExecutionPanel(svc)
-        self._chart_panel      = CandleChartPanel(svc)
+        self._chart_panel      = ChartWorkspace(svc)
         self._settings_panel   = SettingsPanel(svc)
         panels = [
             self._dashboard_panel, self._screener_panel, self._execution_panel,
@@ -697,28 +461,122 @@ class MainWindow(QMainWindow):
 
         self._settings_panel.theme_changed.connect(self._chart_panel.refresh_theme)
         self._settings_panel.theme_changed.connect(self._execution_panel.refresh_theme)
+        # settings_panel → theme_changed → MainWindow → _on_theme_changed
+        self._settings_panel.theme_changed.connect(self._on_theme_changed)
 
         # The log panel is listening now, so a failed live-broker start can surface.
         svc.flush_broker_fallback_message()
 
         # ── Stacked content ────────────────────────────────────────────────────
+        # Each screen is a card; the Screener lays out its own cards (SRD-GUI-023.002).
         self._stack = QStackedWidget()
+        gutter(self._stack)
         for p in panels:
-            self._stack.addWidget(p)
-
-        # ── Title bar (with nav + win controls) ────────────────────────────────
-        self._title_bar = _TitleBar(svc, self, panels, self._stack)
-
-        # Activate first tab
-        self._title_bar._tabs[0].setChecked(True)
+            if p is self._settings_panel:
+                # Settings is tall; scroll it so it never sets the window's minimum height.
+                scroll = QScrollArea()
+                scroll.setWidgetResizable(True)
+                # Never scroll sideways: that hid the section list when a side panel opened.
+                scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+                scroll.setFrameShape(QFrame.Shape.NoFrame)
+                scroll.setWidget(p)
+                self._stack.addWidget(card(scroll))
+            elif p is self._screener_panel or p is self._execution_panel:
+                # These screens lay out their own cards on the gutter.
+                self._stack.addWidget(p)
+            else:
+                self._stack.addWidget(card(p))
         self._stack.setCurrentIndex(0)
 
-        # ── Blue accent underline below title bar ──────────────────────────────
-        accent = QFrame()
-        accent.setFrameShape(QFrame.Shape.HLine)
-        accent.setObjectName("accent_line")
-        # ── Admin context bar ─────────────────────────────────────────────────────
-        self._admin_ctx_bar = _AdminContextBar(svc)
+        # ── Title bar (brand, index prices, feed, win controls) ────────────────
+        self._title_bar = _TitleBar(svc, self)
+
+        # ── Sidebar: floats over a width-reserving slot so hover peek never
+        #    pushes the screen; the slot width is animated by RevealController.
+        # Sections are cards with a GAP of gutter between them (SRD-GUI-023.001).
+        body = gutter(QWidget())
+        body_row = QHBoxLayout(body)
+        body_row.setContentsMargins(GAP, GAP, GAP, GAP)
+        body_row.setSpacing(GAP)
+        self._side_slot = gutter(QWidget())
+        body_row.addWidget(self._side_slot)
+
+        # Right panel (Position Details | Watchlist | System | Data) and bottom Live Log panel;
+        # both are sized only by RevealController.
+        self._details = PositionDetails(svc)
+        self._right_stack = QStackedWidget()
+        self._right_stack.addWidget(self._details)
+        watchlist = self._dashboard_panel.watchlist_widget
+        watchlist.set_compact()  # type: ignore[attr-defined]
+        self._right_stack.addWidget(watchlist)
+        self._right_stack.addWidget(self._settings_panel.system_panel)
+        self._right_stack.addWidget(self._settings_panel.data_panel)
+        # The gap sits inside each sliding panel, so a closed panel leaves none behind.
+        self._right_panel = QFrame()
+        self._right_panel.setObjectName("right_panel")
+        rp = QVBoxLayout(self._right_panel)
+        rp.setContentsMargins(GAP, 0, 0, 0)
+        rp.addWidget(card(self._right_stack))
+        self._right_name = "details"
+        self._log_panel = QFrame()
+        self._log_panel.setObjectName("log_panel")
+        lp = QVBoxLayout(self._log_panel)
+        lp.setContentsMargins(0, GAP, 0, 0)
+        lp.addWidget(card(self._log_view))
+
+        centre = gutter(QWidget())
+        centre_col = QVBoxLayout(centre)
+        centre_col.setContentsMargins(0, 0, 0, 0)
+        centre_col.setSpacing(0)
+        top_row = QHBoxLayout()
+        top_row.setSpacing(0)
+        top_row.addWidget(self._stack, 1)
+        top_row.addWidget(self._right_panel)
+        centre_col.addLayout(top_row, 1)
+        centre_col.addWidget(self._log_panel)
+        body_row.addWidget(centre, 1)
+        self._strip = IconStrip()
+        body_row.addWidget(self._strip)
+        self._sidebar = Sidebar(svc, _NAV_ITEMS, body)
+        self._sidebar.set_current(0)
+        self._body = body
+        self._peeking = False
+        self._mini_state = _MiniState(bool(QSettings("USSwing", "MainWindow").value(
+            "sidebar_mini", False, type=bool)))
+        self._reveal = RevealController(self)
+        want_mini = self._mini_state.want_mini()
+        self._reveal.register("sidebar", self._side_slot, MINI_WIDTH, FULL_WIDTH,
+                              start_open=not want_mini)
+        self._reveal.register("right", self._right_panel, 0, 300 + GAP, start_open=False)
+        self._reveal.register("log", self._log_panel, 0, 180 + GAP, horizontal=False,
+                              start_open=False)
+        self._sidebar.set_mini(want_mini)
+        self._slide: QPropertyAnimation | None = None
+        body.installEventFilter(self)
+        self._side_slot.installEventFilter(self)
+
+        # sidebar → page_requested → MainWindow → stack + mini state
+        self._sidebar.page_requested.connect(self._on_page_requested)
+        # sidebar → mini_toggled → MainWindow → saved user choice
+        self._sidebar.mini_toggled.connect(self._on_mini_toggled)
+        # sidebar → hover_changed → MainWindow → peek overlay
+        self._sidebar.hover_changed.connect(self._on_sidebar_hover)
+        # strip → panel_toggled → MainWindow → RevealController
+        self._strip.panel_toggled.connect(self._on_panel_toggled)
+        # reveal → revealed → MainWindow → strip buttons + sidebar room
+        self._reveal.revealed.connect(self._on_panel_revealed)
+        # svc → log_message → strip → warning badge while the log is closed
+        svc.log_message.connect(self._strip.count_warning)
+        # data panel → state_changed → strip → Data badge (percent, tick or !)
+        self._settings_panel.data_panel.state_changed.connect(self._strip.set_data_state)
+        self._strip.set_data_state(*self._settings_panel.data_panel.state)
+        # dashboard → position_selected → details panel
+        self._dashboard_panel.position_selected.connect(self._on_position_selected)
+        # details → exit_requested / chart_requested → dashboard drawer / chart
+        self._details.exit_requested.connect(self._on_details_exit)
+        self._details.chart_requested.connect(self._on_details_chart)
+        # screener → chart_requested → Charts screen
+        self._screener_panel.chart_requested.connect(self._on_chart_requested)
         # ── Status bar widgets ─────────────────────────────────────────────────
         self._status = self.statusBar()
         self._status.setSizeGripEnabled(False)
@@ -742,9 +600,7 @@ class MainWindow(QMainWindow):
         rl.setContentsMargins(0, 0, 0, 0)
         rl.setSpacing(0)
         rl.addWidget(self._title_bar)
-        rl.addWidget(accent)
-        rl.addWidget(self._admin_ctx_bar)
-        rl.addWidget(self._stack, 1)
+        rl.addWidget(body, 1)
         self.setCentralWidget(root)
 
         # ── Signals ─────────────────────────────────────────────────────────────
@@ -782,6 +638,113 @@ class MainWindow(QMainWindow):
             )
 
     # ── Slots ─────────────────────────────────────────────────────────────────
+
+    def _on_theme_changed(self) -> None:
+        refresh_icons(self)
+
+    def _on_page_requested(self, index: int) -> None:
+        self._stack.setCurrentIndex(index)
+        self._slide_in(self._stack.currentWidget())
+        self._mini_state.set_page(index)
+        if index in _NO_PANEL_PAGES:
+            for name in ("right", "log"):
+                if self._reveal.is_open(name):
+                    self._reveal.reveal_requested.emit(name, False)
+        self._apply_sidebar_mode()
+
+    def _go_to(self, index: int) -> None:
+        self._sidebar.set_current(index)
+        self._on_page_requested(index)
+
+    def _on_panel_toggled(self, name: str, show: bool) -> None:
+        if name == "log":
+            self._reveal.reveal_requested.emit("log", show)
+            return
+        if show:
+            self._right_name = name
+            self._right_stack.setCurrentIndex(_RIGHT_PANELS.index(name))
+            for other in _RIGHT_PANELS:
+                self._strip.set_checked(other, other == name)
+            self._reveal.reveal_requested.emit("right", True)
+        elif name == self._right_name:
+            self._reveal.reveal_requested.emit("right", False)
+
+    def _on_panel_revealed(self, name: str, shown: bool) -> None:
+        if name == "log":
+            self._strip.set_checked("log", shown)
+        elif name == "right":
+            for other in _RIGHT_PANELS:
+                self._strip.set_checked(other, shown and other == self._right_name)
+            self._mini_state.panel_open = shown
+            self._apply_sidebar_mode()
+
+    def _on_position_selected(self, pos: object, user_name: str) -> None:
+        self._details.show_position(pos, user_name)  # type: ignore[arg-type]
+        details_open = self._reveal.is_open("right") and self._right_name == "details"
+        if pos is not None and not details_open:
+            self._on_panel_toggled("details", True)
+
+    def _on_details_exit(self, tab: int) -> None:
+        self._go_to(0)
+        self._dashboard_panel.open_exit(tab)
+
+    def _on_details_chart(self, symbol: str) -> None:
+        self._on_chart_requested(symbol, "1d")
+
+    def _on_chart_requested(self, symbol: str, timeframe: str) -> None:
+        self._go_to(3)
+        self._chart_panel.open_symbol(symbol, timeframe)
+
+    def _on_mini_toggled(self, mini: bool) -> None:
+        self._mini_state.set_user_mini(mini)
+        QSettings("USSwing", "MainWindow").setValue("sidebar_mini", mini)
+        self._apply_sidebar_mode()
+
+    def _apply_sidebar_mode(self) -> None:
+        mini = self._mini_state.want_mini()
+        if mini == self._sidebar.is_mini:
+            return
+        self._peeking = False
+        self._sidebar.set_mini(mini)
+        self._reveal.reveal_requested.emit("sidebar", not mini)
+
+    def _on_sidebar_hover(self, entered: bool) -> None:
+        peek = entered and self._sidebar.is_mini
+        if peek == self._peeking:
+            return
+        self._peeking = peek
+        self._sidebar.set_labels_visible(peek)
+        self._sync_sidebar_geometry()
+
+    def _slide_in(self, page: QWidget | None) -> None:
+        if page is None:
+            return
+        if self._slide is not None:
+            self._slide.stop()
+        self._slide = QPropertyAnimation(page, b"pos", self)
+        self._slide.setDuration(180)
+        self._slide.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._slide.setStartValue(QPoint(24, 0))
+        self._slide.setEndValue(QPoint(0, 0))
+        self._slide.finished.connect(self._clear_slide)
+        self._slide.start(QAbstractAnimation.DeletionPolicy.DeleteWhenStopped)
+
+    def _clear_slide(self) -> None:
+        self._slide = None
+
+    def _sync_sidebar_geometry(self) -> None:
+        width = FULL_WIDTH if self._peeking else self._side_slot.width()
+        slot = self._side_slot.geometry()
+        self._sidebar.setGeometry(slot.x(), slot.y(), width, slot.height())
+        self._sidebar.raise_()
+
+    def eventFilter(self, obj: QObject | None, event: QEvent | None) -> bool:
+        if event is not None and obj in (self._body, self._side_slot) and event.type() in (
+            QEvent.Type.Resize, QEvent.Type.Show,
+        ):
+            self._sync_sidebar_geometry()
+        return super().eventFilter(obj, event)
+
 
     def _refresh_status(self) -> None:
         pass
@@ -846,6 +809,7 @@ class MainWindow(QMainWindow):
         self._demo.feed_status_changed.connect(self._on_scheduler_feed_status)
         self._demo.connect_feed()
         self._schedule_next_retry()
+        self._sidebar.set_feed_retry(1, self._feed_retry_max, 60_000)
 
     def _on_scheduler_feed_status(self, status: str) -> None:
         """Fires immediately when feed status changes during auto-connect."""
@@ -855,6 +819,7 @@ class MainWindow(QMainWindow):
         if self._feed_retry_timer is not None:
             self._feed_retry_timer.stop()
             self._feed_retry_timer = None
+        self._sidebar.clear_feed_retry()
         self._demo.log_message.emit("INFO", "Feed auto-connect succeeded.")
         self._trigger_fill_delta_if_partial()
 
@@ -877,6 +842,9 @@ class MainWindow(QMainWindow):
             )
             self._demo.connect_feed()
             self._schedule_next_retry()
+            self._sidebar.set_feed_retry(
+                self._feed_retry_count + 1, self._feed_retry_max, 60_000
+            )
         else:
             self._demo.log_message.emit(
                 "WARNING",
@@ -886,6 +854,7 @@ class MainWindow(QMainWindow):
             if self._feed_retry_timer is not None:
                 self._feed_retry_timer.stop()
                 self._feed_retry_timer = None
+            self._sidebar.clear_feed_retry()
 
     def _trigger_fill_delta_if_partial(self) -> None:
         """Trigger fill delta if the database status is PARTIAL."""

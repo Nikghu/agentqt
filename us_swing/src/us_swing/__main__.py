@@ -64,7 +64,8 @@ def _cmd_gui() -> None:
     app = QApplication(sys.argv)
     app.setApplicationName("US Swing Trader")
     app.setOrganizationName("USSwing")
-    app.setStyleSheet(_theme.THEMES.get(_theme.load_theme_id(), _theme.QSS))
+    _theme.load_fonts()
+    app.setStyleSheet(_theme.THEMES[_theme.load_theme_id()])
 
     try:
         from update_dialog import check_for_updates_gui  # type: ignore[import]

@@ -148,6 +148,31 @@ class TradeCycleRepository:
             rows = conn.execute(stmt).mappings().all()
         return tuple(_row_to_snapshot(r) for r in rows)
 
+    def closed_for_strategy(
+        self,
+        strategy_id: str,
+        *,
+        since_iso: str | None = None,
+        user_id: int | None   = None,
+    ) -> tuple[CycleSnapshot, ...]:
+        """CLOSED cycles of *strategy_id*, oldest close first (SRD-EXE-019.001)."""
+        conds = [
+            trade_cycles.c.strategy_id == strategy_id,
+            trade_cycles.c.state       == TradeCycleState.CLOSED.value,
+        ]
+        if since_iso is not None:
+            conds.append(trade_cycles.c.closed_at >= since_iso)
+        if user_id is not None:
+            conds.append(trade_cycles.c.user_id == user_id)
+        stmt = (
+            sa.select(trade_cycles)
+            .where(sa.and_(*conds))
+            .order_by(trade_cycles.c.closed_at.asc(), trade_cycles.c.cycle_id.asc())
+        )
+        with self._engine.connect() as conn:
+            rows = conn.execute(stmt).mappings().all()
+        return tuple(_row_to_snapshot(r) for r in rows)
+
     def has_open_cycle(self, strategy_id: str, symbol: str) -> bool:
         stmt = (
             sa.select(sa.literal(1))

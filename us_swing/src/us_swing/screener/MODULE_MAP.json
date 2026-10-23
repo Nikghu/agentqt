@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-22T08:17:24",
+  "generated": "2026-10-23T11:52:00",
   "subfolder": "screener",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\screener",
   "tool_code": "SCR",
@@ -1135,21 +1135,21 @@
           "methods": [
             {
               "name": "apply",
-              "signature": "def apply(\n        self,\n        symbols: list[str],\n        bars: dict[str, list[Any]],\n        config: dict[str, Any],\n    ) -> dict[str, tuple[bool, float]]",
+              "signature": "def apply(\r\n        self,\r\n        symbols: list[str],\r\n        bars: dict[str, list[Any]],\r\n        config: dict[str, Any],\r\n    ) -> dict[str, tuple[bool, float]]",
               "docstring": "Screen symbols for price action patterns.",
               "line_start": 39,
               "line_end": 79
             },
             {
               "name": "screen_detailed",
-              "signature": "def screen_detailed(\n        self,\n        symbols: list[str],\n        bars: dict[str, list[Any]],\n        config: dict[str, Any],\n    ) -> dict[str, dict[str, Any]]",
+              "signature": "def screen_detailed(\r\n        self,\r\n        symbols: list[str],\r\n        bars: dict[str, list[Any]],\r\n        config: dict[str, Any],\r\n    ) -> dict[str, dict[str, Any]]",
               "docstring": "Return per-pattern match flags for each symbol (used by executor for DETAILS col",
               "line_start": 81,
               "line_end": 103
             },
             {
               "name": "batch_features",
-              "signature": "def batch_features(\n        self,\n        symbols: list[str],\n        bars: dict[str, list[Any]],\n    ) -> dict[str, dict[str, Any]]",
+              "signature": "def batch_features(\r\n        self,\r\n        symbols: list[str],\r\n        bars: dict[str, list[Any]],\r\n    ) -> dict[str, dict[str, Any]]",
               "line_start": 105,
               "line_end": 110
             }

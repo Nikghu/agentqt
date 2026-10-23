@@ -7,6 +7,16 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.17.0: DD-GUI-024.001.D01 added — Execution workspace.
+> v1.16.0: DD-GUI-023.001.D01 added — card layout.
+> v1.15.0: DD-GUI-022.001.D01 extended — page header, run stepper, transcript drawer (SRD-GUI-022.008–.012).
+> v1.14.0: DD-GUI-022.001.D01 added — screener result views and preset rail.
+> v1.13.0: DD-GUI-018.001.D01 extended — Connections panel in the sidebar (SRD-GUI-018.008–.011).
+> v1.12.0: DD-GUI-021.001.D01 added — Settings section list.
+> v1.11.0: DD-GUI-020.001.D01 added — Charts workspace.
+> v1.10.0: DD-GUI-019.001.D01 added — side panels and Exit drawer.
+> v1.9.0: DD-GUI-018.001.D01 added — sidebar workspace shell.
+> v1.8.0: DD-GUI-017.001.D01 added — Carbon theme and icon system.
 > v1.7.0: DD-GUI-013.016.D01 + DD-GUI-014.016.D01 added — Short Trade Direction: Direction selector, edit lock, no-stop note, strategy table column, Active Trades Side column, direction-aware verbs, Short risk-editor ranges.
 > v1.6.0: DD-GUI-014.* added — Active Cycles Panel (view-model, delegate, inline risk editor).
 > v1.5.0: DD-GUI-013.* added — Strategy Builder Dialog (shell, schema, trigger builder, persistence).
@@ -1470,3 +1480,152 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 - Delete `_PriceActionConfigDialog`, `_PA_PATTERN_LABELS`, `_PA_DEFAULTS` and `_format_price_action_config`, which is unused today, after checking for other users.
 
 **Test hooks.** Object names: `price_action_rules_dialog`, `rule_search`, `rule_library_tree`, `rule_table`, `rule_header`, `threshold_spin`, `dlg.ok_btn`, `rule_cancel_btn`. Helpers: the same delegate rect helpers plus `LibraryTreeModel.find_item(id)`.
+
+---
+
+## DD-GUI-017.001.D01 — Carbon Theme and Icon System
+
+**Traces:** SRD-GUI-017.001–.005
+
+**Theme (`theme.py`).**
+- Add `_CARBON` token class with the same names as `_MOCHA`: BG `#0c0f13`, SURFACE `#12161c`, OVERLAY `#1a2029`, OVERLAY2 `#232a35`, TEXT `#dde2ea`, SUBTEXT `#9ba5b4`, MUTED `#687384`, BLUE (accent) `#f0a63a`, GREEN `#3cc583`, RED `#ef5a50`, YELLOW `#e8c14d`, ORANGE `#ee8a4a`, TEAL `#7fb4d9`, MAUVE `#f4b85c`, plus state, P&L and size tokens.
+- `CARBON_QSS` is built once from `MOCHA_QSS` by a fixed `_MOCHA_TO_CARBON` hex map (every hex in `MOCHA_QSS` has an entry), then a short `_CARBON_EXTRA` block: IBM Plex Sans font, 2 px radius on buttons, inputs and frames.
+- `THEMES["carbon"]`, `THEME_COLORS["carbon"]` (same keys as "mocha"). `load_theme_id()` default and unknown-id fallback become "carbon". `active_palette()` maps id → token class via a dict.
+- `_DANGER_QSS` is appended to all three themes: `QPushButton[role="danger"]` red text and border, transparent background; hover fills with red at 15 %.
+
+**Fonts.** `assets/fonts/` holds IBM Plex Sans (Regular, Medium, SemiBold) and IBM Plex Mono (Regular, Medium), SIL OFL licence. `theme.load_fonts()` registers them with `QFontDatabase.addApplicationFont`, called once from `run_gui.py` before the window opens; a failed file logs a `[Theme]` WARNING and the QSS fallback stack applies.
+
+**Icons (`icons.py`).**
+- `assets/icons/<name>.svg`: Lucide line icons (ISC licence) using `stroke="currentColor"`.
+- `icon(name, role="neutral") -> QIcon`: reads the SVG, replaces `currentColor` with the role colour, renders 16/13/17 px pixmaps with `QSvgRenderer`, adds the Normal mode plus a Disabled mode in `C.MUTED`. Cached by `(theme_id, name, role)`.
+- Role colours: neutral `C.TEXT`, add `C.GREEN`, go `C.BLUE` (amber in Carbon), danger `C.RED`, info `C.TEAL`.
+- `clear_cache()` is connected to `SettingsPanel.theme_changed`; panels that set icons re-apply them in their existing `refresh_theme` slots.
+- `set_icon(button, name, role, size=16)` helper sets icon and icon size; `icon_button(name, role, tip)` builds an icon-only button with tooltip and accessible name.
+
+**Panel changes.** Remove emoji prefixes from button, tab and nav text in `main_window`, `dashboard_panel`, `screener_panel`, `execution_panel`, `settings_panel`, `scheduler_dialog`, `active_cycles_panel`, `log_viewer_panel`. Add the matching icon via `set_icon`. Set `role="danger"` on Square Off All, Delete / Remove, Trip Circuit Breaker, Force Exit and Confirm Exit. Log text, Telegram text, status dots (●) and window controls (− □ ✕) stay as they are.
+
+---
+
+## DD-GUI-018.001.D01 — Sidebar Workspace Shell
+
+**Traces:** SRD-GUI-018.001–.011
+
+**Layout.** Title bar (40 px) on top; below it a row: sidebar slot | `QStackedWidget`; status bar at the bottom. The accent line and `_AdminContextBar` are removed.
+
+**Sidebar (`sidebar.py`).**
+- `Sidebar(QFrame)` is a child of the central root widget, not of the layout. A `QWidget` slot in the row layout reserves its width (56 or 200 px). `MainWindow` keeps the sidebar's geometry equal to the slot's rect, widened to 200 px while peeking, and calls `raise_()`.
+- Collapse button on top, then nav buttons in an exclusive `QButtonGroup` (`set_icon`, 17 px), then a stretch and `_AccountFooter`. Labels hide in mini mode (`setText("")` with the label kept as tooltip).
+- Signals: `page_requested(int)`, `mini_toggled(bool)` (user only), `hover_changed(bool)`.
+- `_AccountFooter` reuses the text logic of the old `_AdminContextBar.refresh()` and listens to `viewing_changed`, `positions_updated`, `account_updated`.
+
+**Mini mode.** `MainWindow` owns the state: `user_mini` (from `QSettings` key `sidebar_mini`) and `auto_mini`. On `page_requested`, wide screens (Execution, Chart) set `auto_mini`; the slot width is `56 if user_mini or auto_mini else 200`, changed through `RevealController`.
+
+**Reveal (`reveal.py`).** `RevealController(QObject)`: `register(name, widget, closed, opened, axis)` stores one `QVariantAnimation` (200 ms, OutCubic) per name; `valueChanged` calls `setFixedWidth`/`setFixedHeight`. Slot `on_reveal_requested(name, show)` restarts the animation from the current size; `finished` emits `revealed(name, show)`.
+
+**Title bar.** `_TitleBar` loses the nav tabs and gains the market watch cells (`_MWCell`, moved from `_AdminContextBar`) between brand and the feed toggle.
+
+**Screen slide.** On `page_requested`, after `setCurrentIndex`, a `QPropertyAnimation` moves the new page's `pos` from (24, 0) to (0, 0) over 180 ms.
+
+**Connections panel (SRD-GUI-018.008–.011).** `_ConnectionsPanel` sits between the stretch and `_AccountFooter`. Full mode: a `CONNECTIONS` header with a 28 px power button, then Internet, IBKR Feed and Market rows (dot, name, value; Feed and Market have a small second line). Mini mode hides that and shows a `side_btn` plug button with a 9 px badge dot.
+- Feed row order: CONNECTED → "Live"; retry active → "Attempt N of M" with "Next try in S s" (or "Trying now" during the probe); RECONNECTING → "Connecting…"; else "Not connected". The second line is `host:port` from `get_system_config()` when not retrying.
+- `MainWindow` calls `Sidebar.set_feed_retry(attempt, total, next_in_ms)` when auto-connect starts and on each retry tick, and `clear_feed_retry()` on success or give-up. A 1 s `QTimer` runs only while a retry is active.
+- `market_text(now_et)` returns `(status, label, detail)`: open → "closes in Xh Ym" (to 16:00); otherwise "opens in …" to the next 09:30 on a weekday not in `NYSE_HOLIDAYS`. Spans ≥ 1 day show "Xd Yh".
+- Power button and plug click: CONNECTED → `QMessageBox.question` then `disconnect_feed()`; not RECONNECTING → `connect_feed()` (the old `_TitleBar._on_feed_btn_clicked` logic). `_FeedToggle` and its colour keys are removed.
+- Badge colour: RED if offline, YELLOW if retrying or connecting, MUTED if not connected, GREEN if live.
+
+---
+
+## DD-GUI-019.001.D01 — Side Panels and Exit Drawer
+
+**Traces:** SRD-GUI-019.001–.008
+
+**Layout.** Body row: sidebar slot | centre column | icon strip (40 px). Centre column: top row (stack | right panel) above the bottom log panel. Panels are plain `QFrame`s sized by `RevealController` (`"right"` 0↔280 width, `"log"` 0↔180 height), not `QDockWidget`s, so they never float or get a native frame.
+
+**Icon strip and panels (`side_panels.py`).**
+- `IconStrip(QFrame)`: three checkable icon-only buttons (`clipboard-list` Details, `eye` Watchlist, `scroll-text` Log) and a count badge on Log. Signal `panel_toggled(str, bool)`; slots `set_checked(name, bool)`, `count_warning(level, message)` (counts WARNING/ERROR/CRITICAL while Log is closed, reset on open).
+- `PositionDetails(QWidget)`: `show_position(pos | None, user_name)`; refreshes on `positions_updated` by matching `(symbol, user_id)`. Signals `exit_requested(int tab)` and `chart_requested(str)`.
+- Right panel holds a `QStackedWidget` with Details and the Watchlist widget taken from `DashboardPanel.watchlist_widget`.
+
+**MainWindow wiring.** `strip.panel_toggled` → `RevealController.reveal_requested`; `revealed` → `strip.set_checked`; opening `"right"` sets `_MiniState.panel_open` so the sidebar shrinks, closing clears it. `page_requested` for Chart or Settings closes both panels. `dashboard.position_selected` → `details.show_position` and opens Details. `details.exit_requested(tab)` → switch to Dashboard and `dashboard.open_exit(tab)`. `details.chart_requested(symbol)` → switch to Chart and `chart_panel.show_symbol(symbol)`.
+
+**Exit drawer (`dashboard_panel.py`).** `_ExitPositionDialog` becomes `_ExitForm(QWidget)` with the same summary card, four tabs and estimate helpers; its title bar and drag code are removed. Footer: Cancel · Review. Review shows a red summary line ("Sell 85 NVDA at market") and swaps the footer to Back · Confirm <action>; Confirm emits `submitted(action, params)` with the same values the dialog returned. `_SquareOffForm` lists open positions with quantity, price and P&L plus a total, with the same Review → Confirm flow and emits `submitted("square_off_all", {})`. `_ExitDrawer(QFrame)` is a 420 px child of `DashboardPanel`, kept at the right edge on resize, slid in and out with a `QPropertyAnimation` on `pos` (220 ms); Esc closes it. `DashboardPanel._apply_exit(pos, action, params)` holds the existing order calls; row highlight is set while the drawer is open.
+
+**Removed from Dashboard.** Watchlist tab and the embedded log section (`_on_log_message`, filter, pause, clear helpers).
+
+---
+
+## DD-GUI-020.001.D01 — Charts Workspace
+
+**Traces:** SRD-GUI-020.001–.005
+
+**Widget (`chart_workspace.py`).** `ChartWorkspace(QWidget)`: page header row (title "Charts", count label "N of 6 charts", stretch, New Chart button, Tile / Cascade / Tabs checkable buttons in an exclusive `QButtonGroup`) above a `QMdiArea` (scroll bars as needed, background from the theme). Starts with one empty chart window.
+
+**Sub-windows.** `_add_window()` creates `CandleChartPanel(svc)` inside a `QMdiSubWindow` (`WA_DeleteOnClose`), 640 × 420 minimum 360 × 260, title "Chart" until loaded. `CandleChartPanel` gains `chart_loaded(str symbol, str timeframe)` emitted at the end of `_load_chart`; the workspace sets the title to "SYMBOL · TF". `destroyed` updates the count and New Chart enabled state. After adding, the current arrange mode is applied again.
+
+**Open path.** `open_symbol(symbol, timeframe="1d")`: search sub-windows whose panel's current symbol equals `symbol` → `setActiveSubWindow`; else if fewer than six → new window; else the active window. Then `panel.show_symbol(symbol, timeframe)` (timeframe selected only when it is in the panel's list).
+
+**Wiring.** `MainWindow` uses `ChartWorkspace` as stack page 3 (nav label "Charts"); `details.chart_requested` and `screener.chart_requested(symbol, timeframe)` → `_go_to(3)` + `open_symbol`. `SettingsPanel.theme_changed` → `ChartWorkspace.refresh_theme`, which calls each panel's `refresh_theme`. `QuickChartWindow` and `_open_quick_chart` are removed from `screener_panel.py`; the chart button delegate emits `chart_requested` instead.
+
+## DD-GUI-021.001.D01 — Settings Section List
+
+**Traces:** SRD-GUI-021.001–.004
+
+**Layout (`settings_panel.py`).** `SettingsPanel`: title "Settings" (`page_title`) above a row of `QFrame#settings_nav` (180 px, checkable `side_btn` buttons in an exclusive `QButtonGroup`) and a `QStackedWidget`. Each section is a `QFrame#settings_card` with a `QLabel#settings_head` bar (upper-case name) over the section body. `idClicked` → `setCurrentIndex`.
+
+**Sections.** Users (`_UsersTab`), Risk (`_RiskTab`), then the pages of `_SystemSections(QObject)` — Connection (host, port, tick client ID, log level), Scheduler (market times, timezone, enable flag, Edit Scheduler), Telegram — then Universe. Connection and Scheduler each have a Save Settings button; both call `_on_save`, which saves the whole `SystemConfig` and sets every save note. Dialogs use the button's window as parent because `_SystemSections` is not a widget.
+
+**System panel.** `_SystemSections.panel` is a widget with a `settings_head` "SYSTEM" bar and three `panel_group` groups split by `side_sep` lines: Theme (three `mode_btn` buttons), Updates (installed version, Check for Updates, a wrapped note hidden until a check starts), Orders (circuit breaker toggle; its meaning is a tooltip). `SettingsPanel.system_panel` exposes it; `MainWindow` adds it as the third page of `_right_stack` and `"system"` to `_RIGHT_PANELS`; `IconStrip` gains a `system` button (`settings-2` icon). The existing toggle path (`panel_toggled` → `_on_panel_toggled` → `RevealController`) is unchanged.
+
+**Data panel.** `_DataPanel` (was `_DatabaseTab`) is a 300 px widget: `settings_head` "DATA" bar; Download group (shown once a download starts: `data_pill` state label, `data_pct` big percent, "done / total stocks", `data_bar` progress bar, "Now: SYMBOL", live failed count, Cancel); Failed group (failed stocks, Retry Failed → fix mode); Status group (`data_pill` Empty/Partial/Current, refresh icon, Data to, Last trading day, Stocks, Candles; start date when empty); Actions (build button, Open Candle DB); Reset Database at the bottom. `_set_state()` sets the `state` property (`downloading`, `complete`, `partial`, `empty`) that the QSS colours. A finished download is Complete when no stock failed, else Partial with percent = (total − failed) / total. `state_changed(str, int)` → `IconStrip.set_data_state`, which badges the `data` strip button with the percent, a check icon or "!"; `state` keeps the last value so `MainWindow` syncs the badge at start-up. `SettingsPanel.data_panel` exposes it; `MainWindow` adds it as the fourth right panel page.
+
+**No sideways scroll.** The Settings `QScrollArea` turns its horizontal scroll bar off, so opening a side panel can no longer scroll the section list out of view; the Risk checkbox text is shortened so the section fits.
+
+**Risk save.** `_RiskTab._on_save` replaces the active user's `risk_config` with `dataclasses.replace(...)` and calls `update_user`.
+
+**Theme.** `_sidebar_qss` adds `settings_nav`, `settings_card` (1 px line border) and `settings_head` (raised background, 32 px, mono 8 pt bold) `panel_group` (sub colour, mono 7.5 pt bold) and `data_pill`, `data_pct`, `data_bar`, `data_badge` state rules for all three themes.
+
+---
+
+## DD-GUI-022.001.D01 — Screener Result Views
+
+**Traces:** SRD-GUI-022.001–.012
+
+**Data (`screener_views.py`).** `ResultRow` (dataclass): `symbol`, `score`, `rank`, `rules: list[RuleCheck]`, `reasoning`, `entry/stop/target: float | None`; properties `rr` (None unless stop < entry < target), `tier` (Strong ≥ 0.70, Watch ≥ 0.40, Weak) and `passed_count`. `RuleCheck(name, passed: bool | None, value: str)`: bool details give pass/fail, numbers give a value chip. `rows_from_result(results)` builds rows from `ScreenerRunResult.results` (`details`, `ai_reasoning`, `ai_plan`), ranks them by score. `sort_rows(rows, key)` for `score` / `rr` / `rules` (None R:R last). `csv_rows(rows)` returns header + rows with Entry, Stop, Target, R:R.
+
+**View switch.** `ViewSwitch(QWidget)`: two checkable `view_btn` buttons (list / layout-grid icons) in an exclusive group; reads and writes `view` in the `QSettings` object it is given; emits `view_changed(str)`.
+
+**List view.** `ListDetailView(QWidget)`: `QListWidget` of `_ListRow` item widgets (rank, symbol, `_ScoreBar`, `_RuleDots`) beside a `QScrollArea` detail: header (symbol, tier chip, rank / score / rules text, Open chart, Watchlist), chart slot, four plan tiles, rule checklist, reasoning. The chart comes from a `chart_factory` callable, built on first selection, then `show_symbol(symbol, timeframe)` on every selection change.
+
+**Cards view.** `CardsView(QScrollArea)`: `_Card` frames in a `QGridLayout`; columns = max(1, width // 320), re-laid out on resize. Each card: rank, symbol, tier chip, score, `_ScoreBar`, rule chips, reasoning (3 lines, elided), plan row, Chart / Watchlist buttons.
+
+**Panel (`screener_panel.py`).** The table, `_ResultsModel` and `_ChartButtonDelegate` are removed. The right pane is: rule chip strip, `QStackedWidget` (empty label, `ListDetailView`, `CardsView`), then the existing transcript splitter. The toolbar gains `ViewSwitch` and a Sort `QComboBox`; Watchlist shows only in List view and acts on its selection. Views emit `chart_requested(symbol)` → panel emits `chart_requested(symbol, timeframe)`; `watchlist_requested(symbol)` → `watchlist_add_requested`.
+
+**Preset rail (SRD-GUI-022.007).** A search `QLineEdit` and four checkable chips (All / Swing / Day / Position, the old `_STYLE_OPTIONS`) replace `_style_combo`; the chip value still goes to the manager as `style_filter`, and `filter_presets(presets, text)` (pure) keeps presets whose name contains the search text. Each item shows the name, a type tag and "Today HH:MM · N matches" / "Mon DD · N matches" / "Not run yet" from `ScreenerResultsStorage` (latest result per preset), rendered by an item widget.
+
+**Polish (SRD-GUI-022.008–.012).** The toolbar becomes `screener_header`, placed over the results column only (the rail runs full height): title + `page_tag` labels (type, Auto / Manual run), a run line from `run_meta_text(count, run_timestamp, ai_ranked)`, the `tx_pill`, then `RunStepper`, Sort, `ViewSwitch`, an icon-only CSV button and `primary_btn` Run now. `RunStepper(QFrame)` takes the storage date keys newest first, shows `run_date_text(key)`, a Latest tag at index 0 and a `QMenu` with one checkable action per run; it emits `index_changed(int)` and the panel loads that run. `SideDrawer(QFrame)` is a child of the results container: it follows the parent's resize through an event filter, slides with a 220 ms `pos` animation, closes on Esc or ✕ and emits `closed`; it holds the existing `AITranscriptPanel` (own title hidden). The pill text comes from `transcript_pill_text(turns, in_rate, out_rate)` and the pill shows only when the preset has `enable_llm_ranking` and turns are loaded. Rows carry `name` from the S&P 500 universe (`get_sp500_universe()`, read once and cached). The list row shows rank, symbol / company, score, `_ScoreBar` and "passed/total"; the detail plan box uses `_RiskRewardBar` (risk share = (entry − stop) / (target − stop)) and "Risk / Reward $x per share" lines; rules use check / x icons. The compact chart hides its toolbar (`CandleChartPanel.hide_toolbar()`).
+
+**Styles.** New QSS in `_sidebar_qss`: `view_btn`, `result_card`, `detail_tile`, `rule_chip` (`state` = pass / fail / value), `tier_chip`, `preset_item`. Tier and score colours come from `active_palette()` at render time; views refresh on `StyleChange`.
+
+## DD-GUI-023.001.D01 — Card Layout
+
+**Traces:** SRD-GUI-023.001–.003
+
+`cards.card(child)` returns a `QFrame#shell_card` with 2 px layout margins, so square child corners stay inside the 6 px rounded border (every `QWidget` paints the page colour). `cards.gutter(w)` names a widget `shell_gutter`; QSS paints it in the theme's hover grey, lighter than the cards (SRD-GUI-023.004). Main window: body row margins and spacing = `GAP` (4); the stack is gutter and each screen except the Screener is wrapped in a card; the right panel and log panel keep their gap inside (left / top margin `GAP`) and hold a card, so at size 0 nothing is left. The floating sidebar takes the slot's geometry instead of (0, 0). Screener: the rail and the results column become two cards in a gutter row (the fixed-width splitter is dropped). QSS in `_sidebar_qss` (all themes): `shell_gutter`, `shell_card` (border + radius only, background from the page rule), sidebar and icon strip get a full border and radius, `preset_pane` loses its own background and border.
+
+## DD-GUI-024.001.D01 — Execution Workspace
+
+**Traces:** SRD-GUI-024.001–.008
+
+**Layout (`execution_panel.py`).** Root: `ExecutionHeader` → circuit-breaker banner → a row of two cards (`cards.card`): `WatchlistPane` (≈250 px) | right column. The right column is a vertical `QSplitter`: the tab card (stretch 3) over `_IntradayChartPane` (stretch 2). The old `QTabWidget`, the filtered-stocks table and `_StrategyTablePane` are removed.
+
+**Header (`execution_header.py`, SRD-.001).** Title + `ADMIN` + last-run label; right side chips (`QLabel#exec_chip`): Unrealised (sum of `current_pnl_usd` of `cycle_query.open_cycles()` in the viewing scope, signed colour), "Strategies running X of Y" (`load_strategies()` + `StrategyTableModel.status_for` with `get_strategies_with_open_cycles()`), broker ("● Paper broker" / "● IBKR live", dot green when `connection_status` is CONNECTED, else muted). The Execute-for combo and `_on_scope_changed` move here unchanged. Refresh: `positions_updated`, `strategy_status_changed`, `viewing_changed`, `feed_status_changed`, and a 3 s timer for unrealised P&L. The last-run line is built by `last_run_text(entries)` from `screener_results_updated`.
+
+**Watchlist (`execution_watchlist.py`, SRD-.002).** `QTreeWidget`, 3 columns (Symbol, LTP, Score), no root decoration. Top-level group items (not selectable, bold, colour by group) in the order Manual, then screener names A→Z; children sorted by score descending. Pick rows show "✕" in the Score column; a click there calls `remove_manual_pick`. Readiness `False` paints the row red (as before). `symbol_selected(str)` on current-item change; `get_top_symbol()` = first child of the first group; `last_run_text()` gives "22 Oct 2026 · 18:48 · 11 stocks". LTP = `get_latest_close(sym, "3m")`, refreshed for one symbol on `live_bar_data_updated`. The add-pick input, completer and tooltip error are moved as-is.
+
+**Tabs (SRD-.003).** `QTabBar#exec_tabs` over a `QStackedWidget`: index 0 and 2 show the `ActiveCyclesPanel`, index 1 the `StrategiesPane`. `ActiveCyclesPanel.set_row_filter(mode)` (`"all"` default, `"active"`, `"closed"`) hides rows with `setRowHidden`; CLOSED rows are "closed", every other row is "active". It re-applies on `rowsInserted`, `modelReset`, `dataChanged` and emits `counts_changed(active, closed)`; the panel sets the tab texts from it and from `StrategiesPane.count_changed`.
+
+**Strategies (`strategies_pane.py`, SRD-.004/.005/.007).** `StrategiesPane(QWidget)`: left `QListWidget` (item widget: dot, name, mode, summary "Short · All S&P 500 · 100% · 1 open") + "+ Add"; right `QScrollArea` with the detail. It holds the logic of the old `_StrategyTablePane` unchanged: `_configs`, `StrategyTableModel` used only for `status_for`, `_on_add/_on_edit/_on_delete/_on_reset/_on_run/_notify_engine_run_state/_on_engine_status`, all still taking a config index. Duplicate: `dataclasses.replace(cfg, name=_unique_copy_name(cfg.name, names), run_state="STOPPED")`, append, save, select. Detail boxes are `QFrame#detail_tile` grids of label pairs. The Today strip lists `open_cycles_for_strategy(name)` and today's closed cycles of the strategy (`closed_between` over today, filtered by strategy).
+
+**P&L card (`strategy_pnl_chart.py`, SRD-.006).** `StrategyPnlCard(QWidget)` = title + total + "since … · N trades", a two-button toggle (P&L curve / Per trade), range buttons (1W / 1M / 3M / All → `since_iso` = now − 7/30/90 days UTC, All = None), `StrategyPnlChart` and a stats column. `StrategyPnlChart.paintEvent` (QPainter, antialiased): plot rect minus a 52 px right axis and 18 px bottom axis; y range from min(0, min cum) to max(0, max cum) rounded up to a "nice" step (1/1.5/2/2.5/5 × 10ⁿ, 3 steps); line in GREEN when total ≥ 0 else RED, fill = vertical gradient of the line colour from 28 % alpha to 0; drawdown span (`dd_start`..`dd_end`, −1 = origin) redrawn in RED 2 px; dashed zero line; x labels = month short names at the first point of each month. Per-trade mode draws one bar per point from the zero line. Empty summary → centred "No closed trades yet".
+
+**Charts (SRD-.008).** `ExecutionHeader.charts_btn` (after the broker chip) toggles `_IntradayChartPane.set_charts_hidden()`, which stores `charts_hidden` in `QSettings("USSwing", "ExecutionPanel")` and emits `charts_toggled`; the panel hides the whole chart card (shown again at 3 : 2) and relabels the button via `show_charts_state()`. No chart header row. Like the Screener, `MainWindow` does not wrap Execution in one card: the panel is a gutter with cards (header, watchlist, tabs, charts) 4 px apart (`cards.GAP`), splitter handles GAP wide.

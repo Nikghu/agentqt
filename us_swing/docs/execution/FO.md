@@ -1,14 +1,15 @@
 # Functional Objectives — Execution & Risk Management (EXE)
 
 **Document ID:** FO-EXE
-**Version:** 1.13.0
+**Version:** 1.14.0
 **Status:** Draft
-**Last Updated:** 2026-09-17
+**Last Updated:** 2026-10-23
 **Project:** US Swing Trading System
 
 > Traces to: `us_swing/requirements.md` §10, §11, §12, §13, §21.4, §22, §23, §25
 > v1.9.0: FO-EXE-014 added — Broker Order State Machine (Final_Execution.md Phase 3 split of `PositionState` into `BuyOrderState` + `SellOrderState`; `trades.pnl` and `positions.state` removed).
 > v1.10.0: FO-EXE-015 added — Broker-Agnostic Order Ingestion & Adapter (Broker_fix.md Phases 2/5/6).
+> v1.14.0: FO-EXE-019 added — Strategy P&L History (approved by user 2026-10-23).
 > v1.11.0: FO-EXE-016 added — Retire `positions` table; drive the monitoring-session Lifecycle from `OrderIngestion` fills (supersedes cleanup.md Steps 7B–8).
 > v1.12.0: FO-EXE-017 added — Absolute Capital Allocation, Capital-Max Position Sizing & Advisory Risk Warnings (refines FO-EXE-001, FO-EXE-005, FO-EXE-011).
 > v1.13.0: FO-EXE-018 added — Short Trade Direction: Long / Short per strategy with direction-aware order side, risk levels, trailing stop, P&L and an opposite-direction conflict guard (refines FO-EXE-011, FO-EXE-012, FO-EXE-014).
@@ -625,3 +626,25 @@ Every order — paper included — shall flow through one broker-agnostic pipeli
 6. Strategy A holds AAPL LONG; strategy B fires a SHORT entry on AAPL → the entry is dropped with one warning and no order is placed.
 7. Existing strategies and trade cycles created before this change load as LONG and behave exactly as before.
 8. A live SHORT entry rejected by IBKR (not borrowable) aborts the opening cycle and logs one user-readable warning.
+---
+
+## FO-EXE-019: Strategy P&L History
+
+**Status:** Approved (user, 2026-10-23)
+**Priority:** Should
+**Depends on:** FO-EXE-012 (Trade Cycle Ledger), FO-EXE-018 (signed realized P&L)
+**Source:** User picked Execution mockup F2 (2026-10-23) and asked that past strategy P&L come from stored data; chose `trade_cycles` as the only source.
+**Cross-tool impact (notes, not EXE IDs):** GUI — Strategy P&L card in the Strategies tab (FO-GUI-024).
+
+The system shall show the realized profit and loss history of each strategy from the closed trade cycles already stored in the database. No new table.
+
+- Closed cycles of one strategy shall be readable in close-time order, optionally from a start time and for one user.
+- A summary shall give the running total after each closed trade, the total, trade count, win rate, average win, average loss, the largest fall from a peak (with its start and end trade) and today's realized P&L.
+- A cycle without a realized P&L value shall not count.
+- Deleting or resetting a strategy shall not delete its closed cycles.
+
+### Acceptance Criteria
+
+1. A strategy with closed trades on three days shows a running total that ends at the sum of their realized P&L.
+2. Trades of other strategies or other users never appear in a strategy's history.
+3. A strategy with no closed trades returns an empty summary with zero values.

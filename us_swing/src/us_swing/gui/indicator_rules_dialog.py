@@ -58,6 +58,7 @@ from us_swing.gui.indicator_rule_model import (
     RuleRole,
     RuleTableModel,
 )
+from us_swing.gui.icons import set_icon
 from us_swing.gui.theme import C
 
 log = logging.getLogger(__name__)
@@ -263,8 +264,9 @@ class IndicatorRulesDialog(FramelessDialog):
         hint.setStyleSheet(f"color: {C.MUTED}; font-size: 11px;")
         cancel_btn = QPushButton("Cancel")
         cancel_btn.setObjectName("rule_cancel_btn")
-        ok_btn = QPushButton("✔  OK")
+        ok_btn = QPushButton("OK")
         ok_btn.setObjectName("btn_green")
+        set_icon(ok_btn, "check", "add")
         ok_btn.setDefault(True)
         self.ok_btn = ok_btn
         for btn in (cancel_btn, ok_btn):

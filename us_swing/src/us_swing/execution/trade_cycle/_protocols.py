@@ -41,6 +41,14 @@ class TradeCycleQuery(Protocol):
         self, start_iso: str, end_iso: str
     ) -> tuple[CycleSnapshot, ...]: ...
 
+    def closed_for_strategy(
+        self,
+        strategy_id: str,
+        *,
+        since_iso: str | None = None,
+        user_id: int | None   = None,
+    ) -> tuple[CycleSnapshot, ...]: ...
+
 
 @runtime_checkable
 class TradeCycleCommand(Protocol):

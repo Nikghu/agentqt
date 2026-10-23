@@ -15,7 +15,6 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
-from PyQt6.QtCore import Qt
 
 # QWebEngineWidgets DLL is unavailable in the test environment — stub it so
 # execution_panel.py can be imported without the DLL.
@@ -26,7 +25,7 @@ sys.modules.setdefault("PyQt6.QtWebEngineWidgets", _web_stub)
 from us_swing.data.models import FilteredStockEntry  # noqa: E402
 from us_swing.gui import manual_picks_store  # noqa: E402
 from us_swing.gui.app_service import AppService  # noqa: E402
-from us_swing.gui.execution_panel import _FilteredStocksModel, _PinnedPicksProxy  # noqa: E402
+from us_swing.gui.execution_watchlist import MANUAL, group_entries  # noqa: E402
 from us_swing.screener.manager import PresetManager  # noqa: E402
 from us_swing.screener.preset import Preset, PresetType  # noqa: E402
 from us_swing.screener.storage import ScreenerResultsStorage, ScreenerRunResult  # noqa: E402
@@ -178,19 +177,13 @@ def test_ledger_records_picks_apart() -> None:
     assert recorded == [("Momentum", ["AAPL"]), ("Manual pick", ["TSLA"])]
 
 
-@pytest.mark.parametrize("order", [Qt.SortOrder.DescendingOrder, Qt.SortOrder.AscendingOrder])
-def test_picks_pinned_on_top(qapp: Any, order: Qt.SortOrder) -> None:
-    """UT-GUI-004.001.M01.T19: picks stay above screener rows in either sort order."""
-    model = _FilteredStocksModel()
-    model.load([
+def test_picks_pinned_on_top() -> None:
+    """UT-GUI-004.001.M01.T19: picks form the first group, above every screener group."""
+    groups = group_entries([
         FilteredStockEntry("AAPL", 0.9, [], ["1"], "Momentum", "scheduled", "2026-10-22"),
         FilteredStockEntry("TSLA", 0.0, [], [], "—", "pick", ""),
         FilteredStockEntry("MSFT", 0.5, [], ["1"], "Momentum", "scheduled", "2026-10-22"),
     ])
-    proxy = _PinnedPicksProxy()
-    proxy.setSourceModel(model)
-    proxy.sort(1, order)
 
-    top = proxy.data(proxy.index(0, 0))
-    assert top == "★ TSLA"
-    assert proxy.data(proxy.index(0, 4)) == "✕ Remove"
+    assert groups[0][0] == MANUAL
+    assert [e.symbol for e in groups[0][1]] == ["TSLA"]
