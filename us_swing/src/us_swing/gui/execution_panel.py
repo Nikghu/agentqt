@@ -6,20 +6,24 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from PyQt6.QtCore import (
     QPoint,
+    QSettings,
     Qt,
     QTimer,
     QUrl,
+    pyqtSignal,
 )
 from PyQt6.QtGui import QColor, QMouseEvent
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QDialog,
+    QFrame,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -38,6 +42,7 @@ from PyQt6.QtWidgets import (
 
 from us_swing.gui.active_cycles_panel import ActiveCyclesPanel
 from us_swing.gui.app_service import AppService, _IntradayCandleWorker
+from us_swing.gui.cards import card
 from us_swing.gui._types import TradeSignal
 from us_swing.gui.execution_header import ExecutionHeader
 from us_swing.gui.execution_watchlist import WatchlistPane
@@ -316,14 +321,49 @@ class _CandleDbDiagDialog(QDialog):
 # ── Intraday chart pane (3m + 15m side by side) ───────────────────────────────
 
 _CHART_REFRESH_MS: int = 90_000  # periodic fallback re-render interval
+CHARTS_HIDDEN_KEY = "charts_hidden"
+
+
+def price_change(candles: list[dict[str, Any]]) -> tuple[float, float, float] | None:
+    """(last close, change, change %) vs the previous session's last close.
+
+    Candle ``time`` is UTC epoch seconds; a US session sits inside one UTC
+    date, so the previous session is the last candle on an earlier date.
+    Returns None without candles, or with no earlier session in the data.
+    """
+    if not candles:
+        return None
+    last = candles[-1]
+    last_day = datetime.fromtimestamp(last["time"], timezone.utc).date()
+    for c in reversed(candles):
+        if datetime.fromtimestamp(c["time"], timezone.utc).date() < last_day:
+            prev = float(c["close"])
+            if prev == 0:
+                return None
+            change = float(last["close"]) - prev
+            return float(last["close"]), change, change / prev * 100
+    return None
+
 
 class _IntradayChartPane(QWidget):
-    """Shows two intraday TradingView charts (3m and 15m) side by side."""
+    """Shows two intraday TradingView charts (3m and 15m) side by side.
 
-    def __init__(self, svc: AppService, parent: QWidget | None = None) -> None:
+    SRD-GUI-024.008 — a header with symbol, price and change, and a Hide /
+    Show charts toggle remembered in ``settings``.
+    """
+
+    charts_toggled = pyqtSignal(bool)  # True = hidden
+
+    def __init__(
+        self,
+        svc: AppService,
+        parent: QWidget | None = None,
+        settings: QSettings | None = None,
+    ) -> None:
         super().__init__(parent)
         self._svc = svc
         self._current_symbol = ""
+        self._settings = settings or QSettings("USSwing", "ExecutionPanel")
 
         # One in-flight candle read per timeframe; a request that arrives while
         # a read is running is held in _pending and run when the current one
@@ -336,8 +376,16 @@ class _IntradayChartPane(QWidget):
         root.setSpacing(0)
 
         self._hdr = QLabel("Select a stock to view intraday charts")
-        self._apply_hdr_style(active=False)
-        root.addWidget(self._hdr)
+        self._hdr.setTextFormat(Qt.TextFormat.RichText)
+        self.toggle_btn = QPushButton()
+        self.toggle_btn.clicked.connect(lambda: self.set_charts_hidden(not self.charts_hidden))
+        self._head = QFrame()
+        self._head.setObjectName("chart_head")
+        head_row = QHBoxLayout(self._head)
+        head_row.setContentsMargins(14, 8, 10, 8)
+        head_row.addWidget(self._hdr, 1)
+        head_row.addWidget(self.toggle_btn)
+        root.addWidget(self._head)
 
         self._splitter = QSplitter(Qt.Orientation.Horizontal)
         self._splitter.setHandleWidth(2)
@@ -355,6 +403,8 @@ class _IntradayChartPane(QWidget):
 
         root.addWidget(self._splitter, 1)
         self._show_placeholder()
+        self.charts_hidden = False
+        self.set_charts_hidden(bool(self._settings.value(CHARTS_HIDDEN_KEY, False, type=bool)))
 
         # Qt auto-disconnects this when the widget is destroyed (QObject lifetime rule).
         svc.live_bar_data_updated.connect(self._on_live_bar)
@@ -371,8 +421,7 @@ class _IntradayChartPane(QWidget):
         if symbol == self._current_symbol:
             return
         self._current_symbol = symbol
-        self._hdr.setText(f"{symbol}  —  Intraday")
-        self._apply_hdr_style(active=True)
+        self._show_price(symbol, None)
         self._request_candles("3m",  symbol, "render")
         self._request_candles("15m", symbol, "render")
 
@@ -424,6 +473,8 @@ class _IntradayChartPane(QWidget):
     def _on_candles_ready(self, symbol: str, tf: str, candles: list[dict], mode: str) -> None:
         if symbol != self._current_symbol:
             return   # user switched symbols while the read was in flight
+        if tf == "3m":
+            self._show_price(symbol, price_change(candles))
         web = self._web_3m if tf == "3m" else self._web_15m
         if mode == "render":
             self._render(tf, web, symbol, candles)
@@ -476,18 +527,28 @@ class _IntradayChartPane(QWidget):
             )
             web.setHtml(html)
 
-    def _apply_hdr_style(self, *, active: bool) -> None:
-        ct = active_palette()
-        if active:
-            self._hdr.setStyleSheet(
-                f"color:{ct.TEXT}; font-size:9pt; font-weight:bold; padding:4px 10px;"
-                f"background:{ct.SURFACE}; border-bottom:1px solid {ct.OVERLAY};"
+    def _show_price(self, symbol: str, change: tuple[float, float, float] | None) -> None:
+        mono = '"IBM Plex Mono", Consolas, monospace'
+        text = f"<span style='font-family:{mono}; font-size:11pt'><b>{symbol}</b>"
+        if change is not None:
+            last, diff, pct = change
+            colour = C.GREEN if diff >= 0 else C.RED
+            sign = "+" if diff >= 0 else "−"
+            text += (
+                f"&nbsp;&nbsp;{last:,.2f}&nbsp;&nbsp;<span style='color:{colour};"
+                f" font-size:9pt'>{sign}{abs(diff):,.2f} ({sign}{abs(pct):.2f}%)</span>"
             )
-        else:
-            self._hdr.setStyleSheet(
-                f"color:{ct.MUTED}; font-size:8pt; padding:4px 10px;"
-                f"background:{ct.SURFACE}; border-bottom:1px solid {ct.OVERLAY};"
-            )
+        self._hdr.setText(text + "</span>")
+
+    def set_charts_hidden(self, hidden: bool) -> None:
+        """Collapse the charts to the header, or show them (SRD-GUI-024.008)."""
+        self.charts_hidden = hidden
+        self._splitter.setVisible(not hidden)
+        self.toggle_btn.setText("Show charts" if hidden else "Hide charts")
+        set_icon(self.toggle_btn, "chevron-up" if hidden else "chevron-down", "neutral", 13)
+        self.setMaximumHeight(self._head.sizeHint().height() if hidden else 16_777_215)
+        self._settings.setValue(CHARTS_HIDDEN_KEY, hidden)
+        self.charts_toggled.emit(hidden)
 
     def _apply_splitter_style(self) -> None:
         ct = active_palette()
@@ -496,9 +557,7 @@ class _IntradayChartPane(QWidget):
     def refresh_theme(self, _theme_id: str = "") -> None:
         """Re-apply Qt styles and re-render chart HTML for the active theme."""
         self._apply_splitter_style()
-        active = bool(self._current_symbol)
-        self._apply_hdr_style(active=active)
-        if active:
+        if self._current_symbol:
             self._request_candles("3m",  self._current_symbol, "render")
             self._request_candles("15m", self._current_symbol, "render")
         else:
@@ -508,16 +567,17 @@ class _IntradayChartPane(QWidget):
 
 
 _TAB_NAMES = ("Active trades", "Strategies", "Closed today")
+_GAP_HANDLE_QSS = "QSplitter::handle { background: transparent; }"
 
 
 # ── Execution Panel ───────────────────────────────────────────────────────────
 
 class ExecutionPanel(QWidget):
     """
-    FO-GUI-004 Execution Panel.
-    Left pane: filtered stocks — click any row to load intraday charts.
-    Right pane top: 3m and 15m TradingView charts for the selected stock.
-    Right pane bottom: pending signals with qty override and execute controls.
+    FO-GUI-004 Execution Panel, laid out as the FO-GUI-024 workspace.
+    Top: page header.  Left card: grouped watchlist — click a symbol to load
+    its charts.  Right column: tab card (Active trades / Strategies / Closed
+    today) above the 3m and 15m charts, which can be hidden.
     """
 
     def __init__(self, demo: AppService, parent: QWidget | None = None) -> None:
@@ -548,10 +608,10 @@ class ExecutionPanel(QWidget):
         # ── Chart pane (created first so we can wire the signal) ───────────────
         self._chart_pane = _IntradayChartPane(demo)
 
-        # ── Horizontal split: filtered stocks | right pane ─────────────────────
+        # ── Horizontal split: watchlist card | right column ────────────────────
         h_splitter = QSplitter(Qt.Orientation.Horizontal)
-        h_splitter.setHandleWidth(2)
-        h_splitter.setStyleSheet(f"QSplitter::handle {{ background: {active_palette().OVERLAY}; }}")
+        h_splitter.setHandleWidth(8)
+        h_splitter.setStyleSheet(_GAP_HANDLE_QSS)
         self._h_splitter = h_splitter
 
         self._selected_symbol: str = ""
@@ -559,9 +619,9 @@ class ExecutionPanel(QWidget):
         self._left_pane.symbol_selected.connect(self._on_symbol_selected)
         demo.candle_readiness_updated.connect(self._on_candle_data_ready)
 
-        h_splitter.addWidget(self._left_pane)
+        h_splitter.addWidget(card(self._left_pane))
         h_splitter.addWidget(self._build_right_pane(demo))
-        h_splitter.setSizes([260, 900])
+        h_splitter.setSizes([250, 950])
         h_splitter.setCollapsible(0, False)
         h_splitter.setCollapsible(1, False)
 
@@ -573,25 +633,30 @@ class ExecutionPanel(QWidget):
             self._on_symbol_selected(top)
 
     def _build_right_pane(self, demo: AppService) -> QWidget:
-        """Build the right side: intraday charts (top) + tabbed bottom pane."""
-        pane = QWidget()
-        layout = QVBoxLayout(pane)
-        layout.setContentsMargins(6, 0, 0, 0)
-        layout.setSpacing(0)
-
+        """Right column: tab card on top, intraday charts below (SRD-GUI-024.008)."""
         self._v_splitter = QSplitter(Qt.Orientation.Vertical)
-        self._v_splitter.setHandleWidth(2)
-        self._v_splitter.setStyleSheet(f"QSplitter::handle {{ background: {active_palette().OVERLAY}; }}")
+        self._v_splitter.setHandleWidth(8)
+        self._v_splitter.setStyleSheet(_GAP_HANDLE_QSS)
 
-        self._v_splitter.addWidget(self._chart_pane)
         self._bottom_tabs = self._build_bottom_tabs(demo)
-        self._v_splitter.addWidget(self._bottom_tabs)
-        self._v_splitter.setSizes([380, 260])
+        self._v_splitter.addWidget(card(self._bottom_tabs))
+        self._chart_card = card(self._chart_pane)
+        self._v_splitter.addWidget(self._chart_card)
+        self._v_splitter.setStretchFactor(0, 3)
+        self._v_splitter.setStretchFactor(1, 2)
         self._v_splitter.setCollapsible(0, False)
         self._v_splitter.setCollapsible(1, False)
+        self._chart_pane.charts_toggled.connect(self._on_charts_toggled)
+        self._on_charts_toggled(self._chart_pane.charts_hidden)
+        return self._v_splitter
 
-        layout.addWidget(self._v_splitter, 1)
-        return pane
+    def _on_charts_toggled(self, hidden: bool) -> None:
+        """Hidden: the chart card keeps only its header; shown: 3 : 2 split."""
+        head = self._chart_pane.maximumHeight() + 6
+        self._chart_card.setMaximumHeight(head if hidden else 16_777_215)
+        if not hidden:
+            total = max(self._v_splitter.height(), 500)
+            self._v_splitter.setSizes([total * 3 // 5, total * 2 // 5])
 
     def _build_bottom_tabs(self, demo: AppService) -> QWidget:
         """Tab card: Active trades | Strategies | Closed today (SRD-GUI-024.003)."""
@@ -879,8 +944,5 @@ class ExecutionPanel(QWidget):
             self._demo.log_message.emit("WARNING", "Circuit breaker activated — entries disabled")
 
     def refresh_theme(self, _theme_id: str = "") -> None:
-        """Re-apply splitter styles and delegate chart refresh for the active theme."""
-        ct = active_palette()
-        self._h_splitter.setStyleSheet(f"QSplitter::handle {{ background: {ct.OVERLAY}; }}")
-        self._v_splitter.setStyleSheet(f"QSplitter::handle {{ background: {ct.OVERLAY}; }}")
+        """Delegate chart refresh for the active theme."""
         self._chart_pane.refresh_theme()

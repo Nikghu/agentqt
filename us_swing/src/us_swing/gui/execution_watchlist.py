@@ -129,8 +129,8 @@ class WatchlistPane(QWidget):
         header.setSectionResizeMode(COL_SYMBOL, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(COL_LTP, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(COL_SCORE, QHeaderView.ResizeMode.Fixed)
-        header.resizeSection(COL_LTP, 78)
-        header.resizeSection(COL_SCORE, 48)
+        header.resizeSection(COL_LTP, 74)
+        header.resizeSection(COL_SCORE, 60)
         self.tree.currentItemChanged.connect(self._on_current_changed)
         self.tree.itemClicked.connect(self._on_item_clicked)
 
@@ -172,6 +172,7 @@ class WatchlistPane(QWidget):
             self.tree.setItemWidget(group, COL_SYMBOL, _GroupRow(name, len(rows), colour))
             for entry in rows:
                 self._add_row(group, entry)
+            group.setExpanded(True)
         self.tree.blockSignals(False)
 
         has_rows = bool(entries)

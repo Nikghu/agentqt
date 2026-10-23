@@ -67,6 +67,7 @@ def test_groups_order_counts_and_score(qtbot: QtBot) -> None:
     assert pane.group_names() == [("Manual", 1), ("Momentum", 2), ("Price Action", 2)]
     momentum = pane.tree.topLevelItem(1)
     assert momentum is not None
+    assert momentum.isExpanded()
     child = momentum.child(0)
     assert child is not None
     assert child.text(COL_SYMBOL) == "A"
