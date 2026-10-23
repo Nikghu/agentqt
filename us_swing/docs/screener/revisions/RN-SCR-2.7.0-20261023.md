@@ -30,12 +30,12 @@ New **Accumulation / Distribution** screener (`acc_dist`). Accumulation passes w
 
 ---
 
-## Pending
+## Builder wiring
 
-- Wire the dialog and the "Acc / Dist" display name into `gui/screener_panel.py` (another session is editing that file).
+- `gui/screener_panel.py`: "Acc / Dist" display name; configure button, context menu and weighted row open the settings dialog.
 
 ---
 
 ## Test Coverage
 
-19 new tests (15 screener, 4 dialog), all pass. `ruff` and `mypy --strict` clean on the new files. Existing failures on `main`, not from this change: `test_preset.py` T17/T18 and the `test_llm_claude_screener.py` import error.
+20 new tests (15 screener, 5 dialog and wiring), all pass. `ruff` and `mypy --strict` clean on the new files. Existing failures on `main`, not from this change: `test_preset.py` T17/T18 and the `test_llm_claude_screener.py` import error.

@@ -520,7 +520,7 @@ FO-011
 | SRD-017.010 | DD-SCR-017.002.D01 | MD-SCR-017.001.M32 | tests/screener/test_acc_dist_screener.py | UT-SCR-017.010.M32.T01 | Implemented |
 | SRD-017.011 | DD-SCR-017.002.D01 | MD-SCR-017.001.M32 | tests/screener/test_acc_dist_screener.py | UT-SCR-017.011.M32.T01 | Implemented |
 | SRD-017.012 | DD-SCR-017.002.D01 | MD-SCR-017.001.M32 | tests/screener/test_acc_dist_screener.py | UT-SCR-017.008.M32.T01 | Implemented |
-| SRD-017.013 | DD-SCR-017.002.D01 | MD-SCR-017.013.M33 | tests/gui/test_acc_dist_settings_dialog.py | UT-SCR-017.013.M33.T01–T04 | Implemented |
+| SRD-017.013 | DD-SCR-017.002.D01 | MD-SCR-017.013.M33 | tests/gui/test_acc_dist_settings_dialog.py | UT-SCR-017.013.M33.T01–T05 | Implemented |
 
 **RN:** RN-SCR-2.7.0-20261023 (2026-10-23).
 

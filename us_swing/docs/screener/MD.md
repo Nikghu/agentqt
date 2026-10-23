@@ -73,7 +73,7 @@ Package `src/us_swing/core/price_patterns/__init__.py` re-exports the public API
 | MD-SCR-017.001.M32 | SRD-SCR-017.001–.012 | `src/us_swing/screener/screeners/acc_dist.py` | Settings, rally / drop volume checks, location and close-position filters, score. | `AccDistScreener`, `SETTINGS`, `default_config()`, `read_config()` | `core.indicator_rules` (`BarArrays`, `volume_ratio`), `base.py` | Implemented |
 | MD-SCR-017.013.M33 | SRD-SCR-017.013 | `src/us_swing/gui/acc_dist_settings_dialog.py` | Frameless form that edits every setting. | `AccDistSettingsDialog`, `get_config()` | `frameless_dialog.py`, `acc_dist.py` | Implemented |
 
-Registered as `acc_dist` in `src/us_swing/screener/__init__.py`. Wiring M33 into `gui/screener_panel.py` is pending (another session is editing that file).
+Registered as `acc_dist` in `src/us_swing/screener/__init__.py`. M33 opens from the builder's configure button and context menu in `gui/screener_panel.py` (display name "Acc / Dist").
 
 > **Doc mismatch (record only, not fixed):** MD-SCR-007.011.M17 names `screener/gui/preset_builder.py`, but the preset builder is implemented as `_PresetBuilderDialog` in `src/us_swing/gui/screener_panel.py`. Found 2026-10-21 while scoping FO-SCR-013.
 

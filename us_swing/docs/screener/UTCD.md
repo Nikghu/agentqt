@@ -544,6 +544,7 @@ Test files:
 | UT-SCR-017.013.M33.T02 | MD-SCR-017.013.M33 | Positive | One input per setting | default dialog | inputs = `SETTINGS` keys; on/off keys are checkboxes | Pass |
 | UT-SCR-017.013.M33.T03 | MD-SCR-017.013.M33 | Negative | Inputs are range-limited | lookback 999 | 120 | Pass |
 | UT-SCR-017.013.M33.T04 | MD-SCR-017.013.M33 | Edge | Bad saved config and Reset | mode `sideways`; edits then Reset | defaults both times | Pass |
+| UT-SCR-017.013.M33.T05 | MD-SCR-017.013.M33 | Positive | Builder wiring | group and weighted-row configure with an accepting dialog | display "Acc / Dist"; both store the returned config | Pass |
 
 SRD-SCR-017.005 (relative volume) and .007 (score) are covered by T01 / T03 of .006 and T01 of .008.
 

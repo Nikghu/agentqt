@@ -293,7 +293,7 @@ Note: Section 16 extends SRD-SCR-002.007 (Approved), which is left unchanged.
 
 SRD-SCR-017.001–.013 approved by the user on 2026-10-23.
 
-Note: Wiring the dialog into `screener_panel.py` is a separate last step (another session is editing that file).
+Note: The dialog opens from the screener builder in `gui/screener_panel.py`.
 
 ---
 

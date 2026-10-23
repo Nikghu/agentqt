@@ -1,10 +1,16 @@
 """Tests for AccDistSettingsDialog (MD-SCR-017.013.M33).
 
-Refs: UT-SCR-017.013.M33.T01–T04 (FO-SCR-015)
+Refs: UT-SCR-017.013.M33.T01–T05 (FO-SCR-015)
 """
 from __future__ import annotations
 
-from PyQt6.QtWidgets import QCheckBox
+import sys
+import types
+from collections.abc import Iterator
+from typing import Any
+
+import pytest
+from PyQt6.QtWidgets import QCheckBox, QDialog, QWidget
 from pytestqt.qtbot import QtBot
 
 from us_swing.gui.acc_dist_settings_dialog import AccDistSettingsDialog
@@ -48,3 +54,48 @@ def test_bad_config_and_reset(qtbot: QtBot) -> None:
     dlg.inputs["location_filter"].setChecked(False)  # type: ignore[union-attr]
     dlg._reset()
     assert dlg.get_config() == default_config()
+
+
+@pytest.fixture
+def panel_module(monkeypatch: pytest.MonkeyPatch) -> Iterator[types.ModuleType]:
+    """Import screener_panel, stubbing QtWebEngineWidgets when its DLL cannot load."""
+    try:
+        import PyQt6.QtWebEngineWidgets  # noqa: F401
+    except ImportError:
+        stub = types.ModuleType("PyQt6.QtWebEngineWidgets")
+        stub.QWebEngineView = type("QWebEngineView", (QWidget,), {})  # type: ignore[attr-defined]
+        monkeypatch.setitem(sys.modules, "PyQt6.QtWebEngineWidgets", stub)
+        monkeypatch.delitem(sys.modules, "us_swing.gui.screener_panel", raising=False)
+    import us_swing.gui.screener_panel as panel
+
+    yield panel
+    sys.modules.pop("us_swing.gui.screener_panel", None)
+
+
+class _AcceptingDialog:
+    def __init__(self, config: dict[str, Any] | None, parent: QWidget | None = None) -> None:
+        pass
+
+    def exec(self) -> QDialog.DialogCode:
+        return QDialog.DialogCode.Accepted
+
+    def get_config(self) -> dict[str, Any]:
+        return {**default_config(), "mode": "distribution"}
+
+
+def test_panel_wiring(
+    qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, panel_module: types.ModuleType
+) -> None:
+    """UT-SCR-017.013.M33.T05: Builder shows Acc / Dist and both call sites store its config."""
+    panel = panel_module
+    assert panel._SCREENER_DISPLAY["acc_dist"] == "Acc / Dist"
+    monkeypatch.setattr(panel, "AccDistSettingsDialog", _AcceptingDialog)
+    group = panel._GroupWidget("g1", configs={"acc_dist": {}})
+    qtbot.addWidget(group)
+    with qtbot.waitSignal(group.changed, timeout=500):
+        group._open_acc_dist_config("acc_dist")
+    assert group._configs["acc_dist"]["mode"] == "distribution"
+    row = panel._WeightedRow("acc_dist", 0.5, {})
+    qtbot.addWidget(row)
+    row._open_config()
+    assert row.config()["mode"] == "distribution"
