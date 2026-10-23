@@ -6,33 +6,26 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from PyQt6.QtCore import (
-    QAbstractTableModel,
-    QModelIndex,
     QPoint,
     QSize,
     QSortFilterProxyModel,
-    QStringListModel,
     Qt,
     QTimer,
     QUrl,
-    pyqtSignal,
 )
 from PyQt6.QtGui import QColor, QIcon, QMouseEvent, QPainter, QPainterPath, QPen, QPixmap
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import (
     QAbstractButton,
     QAbstractItemView,
-    QCompleter,
     QDialog,
     QHBoxLayout,
     QHeaderView,
     QLabel,
-    QLineEdit,
     QMessageBox,
     QPushButton,
     QSizePolicy,
@@ -41,16 +34,15 @@ from PyQt6.QtWidgets import (
     QTableView,
     QTableWidget,
     QTableWidgetItem,
-    QToolTip,
     QVBoxLayout,
     QWidget,
 )
 
-from us_swing.data.models import FilteredStockEntry
 from us_swing.gui.active_cycles_panel import ActiveCyclesPanel
 from us_swing.gui.app_service import AppService, _IntradayCandleWorker
 from us_swing.gui._types import TradeSignal
 from us_swing.gui.execution_header import ExecutionHeader
+from us_swing.gui.execution_watchlist import WatchlistPane
 from us_swing.gui.chart_panel import _build_html as _build_chart_html
 from us_swing.gui.pending_signals_table_model import (
     COL_ACTION   as PS_COL_ACTION,
@@ -919,340 +911,6 @@ class _IntradayChartPane(QWidget):
 
 
 
-# ── Filtered Stocks table model ───────────────────────────────────────────────
-
-_COL_SYMBOL   = 0
-_COL_SCORE    = 1
-_COL_RUN      = 2
-_COL_STYLE    = 3
-_COL_SCREENER = 4
-
-
-class _FilteredStocksModel(QAbstractTableModel):
-    """Table model for the filtered stocks left pane."""
-
-    HEADERS = ["Symbol", "Score", "Run", "Style", "Screener"]
-
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self._rows: list[FilteredStockEntry] = []
-        self._readiness: dict[str, bool | None] = {}
-
-    def load(self, entries: list[FilteredStockEntry]) -> None:
-        self.beginResetModel()
-        self._rows = entries
-        self.endResetModel()
-
-    def is_pick(self, row: int) -> bool:
-        """True when the row is a manual pick (SRD-GUI-004.011)."""
-        return 0 <= row < len(self._rows) and self._rows[row].run_type == "pick"
-
-    def symbol_at(self, row: int) -> str:
-        return self._rows[row].symbol
-
-    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
-        return 0 if parent.isValid() else len(self._rows)
-
-    def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
-        return 0 if parent.isValid() else len(self.HEADERS)
-
-    def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
-        if orientation == Qt.Orientation.Horizontal and role == Qt.ItemDataRole.DisplayRole:
-            return self.HEADERS[section]
-        return None
-
-    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
-        if not index.isValid() or index.row() >= len(self._rows):
-            return None
-        entry = self._rows[index.row()]
-        col = index.column()
-
-        if entry.run_type == "pick" and role in (
-            Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.ForegroundRole
-        ):
-            return self._pick_data(entry, col, role)
-
-        if role == Qt.ItemDataRole.DisplayRole:
-            if col == _COL_SYMBOL:
-                return entry.symbol
-            if col == _COL_SCORE:
-                return f"{entry.score:.3f}"
-            if col == _COL_STYLE:
-                return ", ".join(entry.trading_styles) if entry.trading_styles else "—"
-            if col == _COL_SCREENER:
-                return entry.screener_name
-            if col == _COL_RUN:
-                return "Auto" if entry.run_type == "scheduled" else "Manual"
-
-        if role == Qt.ItemDataRole.ForegroundRole:
-            if col == _COL_SYMBOL:
-                return QColor(C.BLUE)
-            if col == _COL_SCORE:
-                if entry.score >= 0.70:
-                    return QColor(C.GREEN)
-                if entry.score >= 0.40:
-                    return QColor(C.YELLOW)
-                return QColor(C.RED)
-            if col == _COL_RUN:
-                return QColor(C.TEAL) if entry.run_type == "scheduled" else QColor(C.BLUE)
-
-        if role == Qt.ItemDataRole.BackgroundRole:
-            if self._readiness.get(entry.symbol) is False:
-                return QColor(180, 60, 60, 70)
-
-        if role == Qt.ItemDataRole.TextAlignmentRole:
-            if col in (_COL_SCORE, _COL_RUN):
-                return Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
-            return Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
-
-        return None
-
-    @staticmethod
-    def _pick_data(entry: FilteredStockEntry, col: int, role: int) -> Any:
-        """Display text and colour for a manual pick row (SRD-GUI-004.011)."""
-        if role == Qt.ItemDataRole.DisplayRole:
-            return {
-                _COL_SYMBOL: f"★ {entry.symbol}",
-                _COL_RUN: "Manual pick",
-                _COL_SCREENER: "✕ Remove",
-            }.get(col, "—")
-        if col == _COL_SYMBOL:
-            return QColor(C.YELLOW)
-        if col == _COL_SCREENER:
-            return QColor(C.RED)
-        return QColor(C.MUTED)
-
-    def set_candle_readiness(self, report: dict[str, bool | None]) -> None:
-        self._readiness.update(report)
-        if self._rows:
-            top_left = self.createIndex(0, 0)
-            bot_right = self.createIndex(len(self._rows) - 1, len(self.HEADERS) - 1)
-            self.dataChanged.emit(top_left, bot_right, [Qt.ItemDataRole.BackgroundRole])
-
-
-class _PinnedPicksProxy(QSortFilterProxyModel):
-    """Sorts as usual but keeps manual picks above screener rows in either order."""
-
-    def lessThan(self, left: QModelIndex, right: QModelIndex) -> bool:
-        model = self.sourceModel()
-        assert isinstance(model, _FilteredStocksModel)
-        left_pick, right_pick = model.is_pick(left.row()), model.is_pick(right.row())
-        if left_pick != right_pick:
-            return left_pick if self.sortOrder() == Qt.SortOrder.AscendingOrder else right_pick
-        return super().lessThan(left, right)
-
-
-# ── Filtered Stocks left pane ─────────────────────────────────────────────────
-
-class _FilteredStocksPane(QWidget):
-    """Left panel showing the most recent screener output across all presets."""
-
-    symbol_selected = pyqtSignal(str)  # emitted on row click or auto-select
-
-    def __init__(self, svc: AppService, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setMinimumWidth(180)
-        self._svc = svc
-        self._all_entries: list[FilteredStockEntry] = []
-
-        self._current_date = ""
-
-        # ── Header ─────────────────────────────────────────────────────────────
-        hdr_lbl = QLabel("FILTERED STOCKS")
-        hdr_lbl.setStyleSheet(
-            f"color: {C.MUTED}; font-size: 7pt; font-weight: bold; letter-spacing: 2px;"
-        )
-        _meta_qss = f"color: {C.MUTED}; font-size: 8pt;"
-        self._date_lbl = QLabel("")
-        self._date_lbl.setStyleSheet(_meta_qss)
-        self._time_lbl = QLabel("")
-        self._time_lbl.setStyleSheet(_meta_qss)
-        self._count_lbl = QLabel("")
-        self._count_lbl.setStyleSheet(_meta_qss)
-
-        self._date_time_sep = QLabel(" - ")
-        self._date_time_sep.setStyleSheet(_meta_qss)
-        self._time_count_sep = QLabel(" - ")
-        self._time_count_sep.setStyleSheet(_meta_qss)
-
-        hdr_row = QHBoxLayout()
-        hdr_row.setContentsMargins(0, 0, 0, 0)
-        hdr_row.addWidget(hdr_lbl)
-        hdr_row.addStretch()
-        hdr_row.addWidget(self._date_lbl)
-        hdr_row.addWidget(self._date_time_sep)
-        hdr_row.addWidget(self._time_lbl)
-        hdr_row.addWidget(self._time_count_sep)
-        hdr_row.addWidget(self._count_lbl)
-
-        # ── Manual pick input (SRD-GUI-004.010) ────────────────────────────────
-        self._pick_input = QLineEdit()
-        self._pick_input.setPlaceholderText("Add symbol…")
-        self._pick_input.returnPressed.connect(self._on_add_pick)
-        # Suggestions match symbol or company name, e.g. "dell" → "DELL — Dell Technologies"
-        self._pick_completer = QCompleter(self)
-        self._pick_completer.setFilterMode(Qt.MatchFlag.MatchContains)
-        self._pick_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-        self._pick_completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
-        self._pick_completer.setMaxVisibleItems(12)
-        popup = self._pick_completer.popup()
-        assert popup is not None
-        popup.setStyleSheet(
-            f"QAbstractItemView {{ background:{C.SURFACE}; color:{C.TEXT};"
-            f" border:1px solid {C.OVERLAY}; selection-background-color:{C.OVERLAY};"
-            f" selection-color:{C.TEXT}; font-size:8pt; outline:none; }}"
-        )
-        self._pick_input.setCompleter(self._pick_completer)
-        self._refresh_pick_suggestions()
-        svc.sp500_updated.connect(self._refresh_pick_suggestions)
-        add_btn = QPushButton("Add")
-        set_icon(add_btn, "plus", "add")
-        add_btn.clicked.connect(self._on_add_pick)
-        pick_row = QHBoxLayout()
-        pick_row.setContentsMargins(0, 0, 0, 0)
-        pick_row.addWidget(self._pick_input, 1)
-        pick_row.addWidget(add_btn)
-
-        # ── Table ──────────────────────────────────────────────────────────────
-        self._model = _FilteredStocksModel()
-        self._proxy = _PinnedPicksProxy()
-        self._proxy.setSourceModel(self._model)
-
-        self._table = QTableView()
-        self._table.setModel(self._proxy)
-        self._table.setSortingEnabled(True)
-        self._table.sortByColumn(_COL_SCORE, Qt.SortOrder.DescendingOrder)
-        self._table.setAlternatingRowColors(True)
-        self._table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        self._table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        v_hdr = self._table.verticalHeader()
-        assert v_hdr is not None
-        v_hdr.setVisible(False)
-        self._table.setShowGrid(False)
-        self._table.setWordWrap(False)
-
-        hdrs = self._table.horizontalHeader()
-        assert hdrs is not None
-        hdrs.setSectionResizeMode(_COL_SYMBOL,   QHeaderView.ResizeMode.Interactive)
-        hdrs.resizeSection(_COL_SYMBOL, 75)
-        hdrs.setSectionResizeMode(_COL_SCORE,    QHeaderView.ResizeMode.Interactive)
-        hdrs.resizeSection(_COL_SCORE, 52)
-        hdrs.setSectionResizeMode(_COL_RUN,      QHeaderView.ResizeMode.Interactive)
-        hdrs.resizeSection(_COL_RUN, 58)
-        hdrs.setSectionResizeMode(_COL_STYLE,    QHeaderView.ResizeMode.Interactive)
-        hdrs.resizeSection(_COL_STYLE, 65)
-        hdrs.setSectionResizeMode(_COL_SCREENER, QHeaderView.ResizeMode.Stretch)
-
-        # ── Empty state label ─────────────────────────────────────────────────
-        self._empty_lbl = QLabel("No screener results yet.\nRun a preset in the Screener tab.")
-        self._empty_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._empty_lbl.setStyleSheet(f"color: {C.MUTED}; font-size: 9pt; padding: 20px;")
-        self._empty_lbl.setWordWrap(True)
-
-        # Stack table and empty label — show one at a time
-        self._table.setVisible(False)
-        self._empty_lbl.setVisible(True)
-
-        # ── Layout ─────────────────────────────────────────────────────────────
-        root = QVBoxLayout(self)
-        root.setContentsMargins(0, 0, 6, 0)
-        root.setSpacing(6)
-        root.addLayout(hdr_row)
-        root.addLayout(pick_row)
-        root.addWidget(self._table, 1)
-        root.addWidget(self._empty_lbl, 1)
-
-        # ── Selection signal ───────────────────────────────────────────────────
-        sel_model = self._table.selectionModel()
-        assert sel_model is not None
-        sel_model.currentChanged.connect(self._on_current_changed)
-        self._table.clicked.connect(self._on_cell_clicked)
-
-        # ── Wire up to service ─────────────────────────────────────────────────
-        svc.screener_results_updated.connect(self._on_updated)
-        svc.candle_readiness_updated.connect(self._on_candle_readiness)
-        self._on_updated(svc.get_latest_screener_results())
-
-    def _on_current_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
-        if not current.isValid():
-            return
-        src = self._proxy.mapToSource(current)
-        if not src.isValid() or src.row() >= len(self._model._rows):
-            return
-        self.symbol_selected.emit(self._model._rows[src.row()].symbol)
-
-    def _refresh_pick_suggestions(self) -> None:
-        items = [f"{r.symbol} — {r.name}" for r in self._svc.get_sp500_universe()]
-        self._pick_completer.setModel(QStringListModel(items, self._pick_completer))
-
-    def _on_add_pick(self) -> None:
-        symbol = self._pick_input.text().split(" — ")[0]
-        error = self._svc.add_manual_pick(symbol)
-        if error is None:
-            self._pick_input.clear()
-            return
-        QToolTip.showText(
-            self._pick_input.mapToGlobal(QPoint(0, self._pick_input.height())),
-            error,
-            self._pick_input,
-        )
-
-    def _on_cell_clicked(self, index: QModelIndex) -> None:
-        src = self._proxy.mapToSource(index)
-        if src.column() == _COL_SCREENER and self._model.is_pick(src.row()):
-            self._svc.remove_manual_pick(self._model.symbol_at(src.row()))
-
-    def get_top_symbol(self) -> str | None:
-        """Return the symbol of the highest-score row, or None if empty."""
-        idx = self._proxy.index(0, 0)
-        if not idx.isValid():
-            return None
-        src = self._proxy.mapToSource(idx)
-        if not src.isValid() or src.row() >= len(self._model._rows):
-            return None
-        return self._model._rows[src.row()].symbol
-
-    def _on_updated(self, entries: list[FilteredStockEntry]) -> None:
-        self._all_entries = entries
-        dates = sorted({e.date for e in entries if e.date}, reverse=True)
-        if not dates:
-            self._current_date = ""
-            self._date_lbl.setText("")
-            self._time_lbl.setText("")
-            self._count_lbl.setText("")
-            self._date_time_sep.setVisible(False)
-            self._time_count_sep.setVisible(False)
-            self._filter_by_date()
-            return
-        self._current_date = dates[0]
-        self._date_lbl.setText(
-            datetime.strptime(self._current_date, "%Y-%m-%d").strftime("%d %b %Y")
-        )
-        latest_time = max(
-            (e.time for e in entries if e.date == self._current_date and e.time),
-            default="",
-        )
-        self._time_lbl.setText(latest_time)
-        self._time_lbl.setVisible(bool(latest_time))
-        self._date_time_sep.setVisible(bool(latest_time))
-        self._time_count_sep.setVisible(True)
-        self._filter_by_date()
-
-    def _filter_by_date(self) -> None:
-        self._model.load(self._all_entries)
-        count = len(self._all_entries)
-        self._count_lbl.setText(f"{count} Stock{'s' if count != 1 else ''}")
-        self._table.setVisible(count > 0)
-        self._empty_lbl.setVisible(count == 0)
-        if count > 0:
-            top = self._proxy.index(0, 0)
-            if top.isValid():
-                self._table.setCurrentIndex(top)
-
-    def _on_candle_readiness(self, report: dict[str, bool | None]) -> None:
-        self._model.set_candle_readiness(report)
-
-
 # ── Execution Panel ───────────────────────────────────────────────────────────
 
 class ExecutionPanel(QWidget):
@@ -1298,7 +956,7 @@ class ExecutionPanel(QWidget):
         self._h_splitter = h_splitter
 
         self._selected_symbol: str = ""
-        self._left_pane = _FilteredStocksPane(demo)
+        self._left_pane = WatchlistPane(demo)
         self._left_pane.symbol_selected.connect(self._on_symbol_selected)
         demo.candle_readiness_updated.connect(self._on_candle_data_ready)
 

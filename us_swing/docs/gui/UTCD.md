@@ -590,10 +590,10 @@ Test files:
 |---|---|---|---|---|---|---|
 | UT-GUI-024.001.M01.T01 | MD-GUI-024.001.M01 | Positive | Chips show running count and unrealised P&L | 3 strategies, 1 RUNNING + 1 with open cycle; open cycles P&L +10 and −4 | "2 of 3"; "+$6.00" | Pass |
 | UT-GUI-024.001.M01.T02 | MD-GUI-024.001.M01 | Positive | Broker chip follows user mode | active user paper / live | "Paper broker" / "IBKR live" | Pass |
-| UT-GUI-024.002.M02.T01 | MD-GUI-024.002.M02 | Positive | Groups: Manual first, screeners A→Z, score order, counts | 1 pick, 2 "Price Action", 2 "Momentum" | groups Manual, Momentum, Price Action; counts 1, 2, 2; higher score first | Not Run |
-| UT-GUI-024.002.M02.T02 | MD-GUI-024.002.M02 | Positive | ✕ on a pick removes it | click Score cell of pick row | `remove_manual_pick("DELL")` called once | Not Run |
-| UT-GUI-024.002.M02.T03 | MD-GUI-024.002.M02 | Negative | Not-ready symbol is tinted | readiness {"NVDA": False} | NVDA row has a background brush; others none | Not Run |
-| UT-GUI-024.002.M02.T04 | MD-GUI-024.002.M02 | Edge | No entries shows the empty text | [] | tree hidden; empty label shown; `get_top_symbol()` None | Not Run |
+| UT-GUI-024.002.M02.T01 | MD-GUI-024.002.M02 | Positive | Groups: Manual first, screeners A→Z, score order, counts | 1 pick, 2 "Price Action", 2 "Momentum" | groups Manual, Momentum, Price Action; counts 1, 2, 2; higher score first | Pass |
+| UT-GUI-024.002.M02.T02 | MD-GUI-024.002.M02 | Positive | ✕ on a pick removes it | click Score cell of pick row | `remove_manual_pick("DELL")` called once | Pass |
+| UT-GUI-024.002.M02.T03 | MD-GUI-024.002.M02 | Negative | Not-ready symbol is tinted | readiness {"NVDA": False} | NVDA row has a background brush; others none | Pass |
+| UT-GUI-024.002.M02.T04 | MD-GUI-024.002.M02 | Edge | No entries shows the empty text | [] | tree hidden; empty label shown; `get_top_symbol()` None | Pass |
 | UT-GUI-024.003.M03.T01 | MD-GUI-024.003.M03 | Positive | Active filter hides closed rows | 2 open + 1 closed rows; filter "active" | 1 hidden row; counts (2, 1) | Not Run |
 | UT-GUI-024.003.M03.T02 | MD-GUI-024.003.M03 | Positive | Closed filter shows only closed rows | same rows; filter "closed" | 2 hidden rows | Not Run |
 | UT-GUI-024.004.M04.T01 | MD-GUI-024.004.M04 | Positive | List rows and selection fill the detail | 2 configs | 2 items; first selected; detail title = first name | Not Run |
