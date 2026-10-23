@@ -2,6 +2,16 @@
 
 ---
 
+## [20261023] GUI — Carbon theme and icon system, Phase 1 (FO-GUI-017, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-017
+- RN: RN-GUI-1.9.0-20261023
+- Artifacts updated: SRD, DD, MD, UTCD, TRACE, Code, Tests, RN, TODO (T39)
+- Decisions: Carbon is the default theme; 8-digit hex converted to rgba() for Qt; risky buttons use role="danger" in all themes.
+
+---
+
 ## [20261022] GUI — User edit keeps Telegram settings (ISS-GUI-0005, bugfix)
 
 - Type: Bugfix

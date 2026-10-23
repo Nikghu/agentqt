@@ -533,3 +533,27 @@ The system shall provide a **Price Action Patterns** dialog, opened from the Scr
 5. Turning a row off dims it; clicking ✕ removes it and the tree counts update.
 6. Pressing OK returns a rule-list config that reloads into the same rows.
 7. The Indicator Filters dialog keeps working unchanged.
+
+---
+
+## FO-GUI-017: Carbon Theme and Icon System
+
+**Status:** Approved (user, 2026-10-23)
+**Priority:** Should
+**Source:** GUI redesign Phase 1 — design agreed in session 2026-10-23 (Carbon Workspace, icon Option C).
+
+The system shall offer a new default "Carbon" look (graphite with amber) and replace emoji on buttons, tabs and navigation with colour-coded line icons. Behaviour does not change.
+
+### Requirements
+
+1. **Carbon theme.** A third theme "Carbon" is available in Settings and is used when no theme has been saved.
+2. **Fonts.** IBM Plex Sans and IBM Plex Mono ship with the app and are used by the Carbon theme.
+3. **Icons.** Buttons, tabs and navigation show a line icon plus a word; the icon colour shows the meaning (add, go, danger, info).
+4. **Risky actions.** Risky buttons show red text, red border and a red icon in every theme.
+
+### Acceptance Criteria
+
+1. A fresh install opens in the Carbon theme; Mocha and VS Code Dark can still be picked.
+2. No emoji remain on buttons, tabs or the title bar navigation.
+3. Square Off All, Delete, Trip Circuit Breaker and Force Exit show red borders.
+4. Every icon-only button shows a tooltip.

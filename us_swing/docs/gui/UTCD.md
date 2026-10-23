@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.10.0: UT-GUI-017.* added — Carbon theme and icon system.
 > v1.9.1: UT-GUI-006.001.M01.T17–T18 added — user edit keeps Telegram settings (ISS-GUI-0005).
 > v1.9.0: UT-GUI-004.001.M01.T21–T25 added — startup cleanup of stale intraday candles (SRD-GUI-004.013).
 > v1.8.0: UT-GUI-004.001.M01.T11–T19 added — manual picks (SRD-GUI-004.010–.012).
@@ -463,3 +464,18 @@ Test files:
 | UT-GUI-016.011.M08.T02 | MD-GUI-016.001.M08 | Negative | Warning text shows no internal names | bad saved config | log starts `[Screener]`; no class names or snake_case words | Pass |
 | UT-GUI-016.010.M01.T01 | MD-GUI-003.001.M01 | Positive | Group and weighted call sites store the new config | patched dialog accepts | stored config has `schema 2`; group emits `changed` | Pass |
 | UT-GUI-016.010.M01.T02 | MD-GUI-003.001.M01 | Negative | Cancel keeps the old config; old dialog is gone | patched dialog rejects; module attrs | config unchanged; no `_PriceActionConfigDialog` | Pass |
+
+## FO-GUI-017 — Carbon Theme and Icon System
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-017.001.M02.T01 | MD-GUI-017.001.M02 | Positive | Carbon is the default theme | no saved theme file | `load_theme_id()` "carbon"; palette BG `#0c0f13` | Pass |
+| UT-GUI-017.001.M02.T02 | MD-GUI-017.001.M02 | Negative | Unknown saved theme falls back to Carbon | saved id "neon" | "carbon" | Pass |
+| UT-GUI-017.001.M02.T03 | MD-GUI-017.001.M02 | Positive | Carbon QSS has no Mocha colours left and same colour keys | `CARBON_QSS`, `THEME_COLORS` | no Mocha hex in QSS; carbon keys == mocha keys | Pass |
+| UT-GUI-017.002.M02.T01 | MD-GUI-017.001.M02 | Negative | Missing font file does not stop the app | font dir with one bad path | other fonts load; `[Theme]` WARNING | Pass |
+| UT-GUI-017.003.M01.T01 | MD-GUI-017.003.M01 | Positive | Icon is built in the role colour | `icon("plus", "add")` | non-null icon; rendered SVG uses `C.GREEN` | Pass |
+| UT-GUI-017.003.M01.T02 | MD-GUI-017.003.M01 | Negative | Unknown icon name | `icon("nope")` | empty icon; WARNING logged | Pass |
+| UT-GUI-017.003.M01.T03 | MD-GUI-017.003.M01 | Positive | Cache reuses and clears | same call twice; then `clear_cache()` | same key hit; cache empty after clear | Pass |
+| UT-GUI-017.003.M01.T04 | MD-GUI-017.003.M01 | Positive | Icon-only button has tooltip and accessible name | `icon_button("refresh", "info", "Refresh")` | tooltip and accessible name "Refresh" | Pass |
+| UT-GUI-017.004.M01.T01 | MD-GUI-017.003.M01 | Positive | No emoji on buttons and tabs | GUI panel source files | no emoji in button, tab, action or `setText` text | Pass |
+| UT-GUI-017.005.M01.T01 | MD-GUI-017.003.M01 | Positive | Risky buttons are marked danger in every theme | Square Off All, Delete, Trip Circuit Breaker; all 3 QSS | `role` property "danger"; each QSS has the danger selector | Pass |

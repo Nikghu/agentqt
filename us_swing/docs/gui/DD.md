@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.8.0: DD-GUI-017.001.D01 added — Carbon theme and icon system.
 > v1.7.0: DD-GUI-013.016.D01 + DD-GUI-014.016.D01 added — Short Trade Direction: Direction selector, edit lock, no-stop note, strategy table column, Active Trades Side column, direction-aware verbs, Short risk-editor ranges.
 > v1.6.0: DD-GUI-014.* added — Active Cycles Panel (view-model, delegate, inline risk editor).
 > v1.5.0: DD-GUI-013.* added — Strategy Builder Dialog (shell, schema, trigger builder, persistence).
@@ -1470,3 +1471,26 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 - Delete `_PriceActionConfigDialog`, `_PA_PATTERN_LABELS`, `_PA_DEFAULTS` and `_format_price_action_config`, which is unused today, after checking for other users.
 
 **Test hooks.** Object names: `price_action_rules_dialog`, `rule_search`, `rule_library_tree`, `rule_table`, `rule_header`, `threshold_spin`, `dlg.ok_btn`, `rule_cancel_btn`. Helpers: the same delegate rect helpers plus `LibraryTreeModel.find_item(id)`.
+
+---
+
+## DD-GUI-017.001.D01 — Carbon Theme and Icon System
+
+**Traces:** SRD-GUI-017.001–.005
+
+**Theme (`theme.py`).**
+- Add `_CARBON` token class with the same names as `_MOCHA`: BG `#0c0f13`, SURFACE `#12161c`, OVERLAY `#1a2029`, OVERLAY2 `#232a35`, TEXT `#dde2ea`, SUBTEXT `#9ba5b4`, MUTED `#687384`, BLUE (accent) `#f0a63a`, GREEN `#3cc583`, RED `#ef5a50`, YELLOW `#e8c14d`, ORANGE `#ee8a4a`, TEAL `#7fb4d9`, MAUVE `#f4b85c`, plus state, P&L and size tokens.
+- `CARBON_QSS` is built once from `MOCHA_QSS` by a fixed `_MOCHA_TO_CARBON` hex map (every hex in `MOCHA_QSS` has an entry), then a short `_CARBON_EXTRA` block: IBM Plex Sans font, 2 px radius on buttons, inputs and frames.
+- `THEMES["carbon"]`, `THEME_COLORS["carbon"]` (same keys as "mocha"). `load_theme_id()` default and unknown-id fallback become "carbon". `active_palette()` maps id → token class via a dict.
+- `_DANGER_QSS` is appended to all three themes: `QPushButton[role="danger"]` red text and border, transparent background; hover fills with red at 15 %.
+
+**Fonts.** `assets/fonts/` holds IBM Plex Sans (Regular, Medium, SemiBold) and IBM Plex Mono (Regular, Medium), SIL OFL licence. `theme.load_fonts()` registers them with `QFontDatabase.addApplicationFont`, called once from `run_gui.py` before the window opens; a failed file logs a `[Theme]` WARNING and the QSS fallback stack applies.
+
+**Icons (`icons.py`).**
+- `assets/icons/<name>.svg`: Lucide line icons (ISC licence) using `stroke="currentColor"`.
+- `icon(name, role="neutral") -> QIcon`: reads the SVG, replaces `currentColor` with the role colour, renders 16/13/17 px pixmaps with `QSvgRenderer`, adds the Normal mode plus a Disabled mode in `C.MUTED`. Cached by `(theme_id, name, role)`.
+- Role colours: neutral `C.TEXT`, add `C.GREEN`, go `C.BLUE` (amber in Carbon), danger `C.RED`, info `C.TEAL`.
+- `clear_cache()` is connected to `SettingsPanel.theme_changed`; panels that set icons re-apply them in their existing `refresh_theme` slots.
+- `set_icon(button, name, role, size=16)` helper sets icon and icon size; `icon_button(name, role, tip)` builds an icon-only button with tooltip and accessible name.
+
+**Panel changes.** Remove emoji prefixes from button, tab and nav text in `main_window`, `dashboard_panel`, `screener_panel`, `execution_panel`, `settings_panel`, `scheduler_dialog`, `active_cycles_panel`, `log_viewer_panel`. Add the matching icon via `set_icon`. Set `role="danger"` on Square Off All, Delete / Remove, Trip Circuit Breaker, Force Exit and Confirm Exit. Log text, Telegram text, status dots (●) and window controls (− □ ✕) stay as they are.

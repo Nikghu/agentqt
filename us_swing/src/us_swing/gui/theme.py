@@ -22,8 +22,13 @@ panel reads `colors()["<role>"]` / `C.<TOKEN>` / `active_palette().<TOKEN>`.
 """
 from __future__ import annotations
 
+import logging
+import re
+import sys
 from pathlib import Path
 from typing import Any
+
+_log = logging.getLogger(__name__)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -36,6 +41,7 @@ class _MOCHA:
     SURFACE  = "#181825"
     OVERLAY  = "#313244"
     OVERLAY2 = "#45475a"
+    INPUT    = "#181825"
     TEXT     = "#cdd6f4"
     SUBTEXT  = "#bac2de"
     MUTED    = "#7f849c"
@@ -1175,13 +1181,123 @@ QToolTip {
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Carbon — graphite + amber (default). Its QSS is MOCHA_QSS with every Mocha
+# hex swapped through _MOCHA_TO_CARBON, so both themes style the same widgets.
+# ─────────────────────────────────────────────────────────────────────────────
+
+class _CARBON:
+    """Carbon colour tokens. BLUE is the accent role (amber in this theme)."""
+    BG       = "#0c0f13"
+    SURFACE  = "#12161c"
+    OVERLAY  = "#232a35"
+    OVERLAY2 = "#2f3845"
+    INPUT    = "#0f1318"
+    TEXT     = "#dde2ea"
+    SUBTEXT  = "#9ba5b4"
+    MUTED    = "#687384"
+
+    GREEN    = "#3cc583"
+    RED      = "#ef5a50"
+    YELLOW   = "#e8c14d"
+    ORANGE   = "#ee8a4a"
+    BLUE     = "#f0a63a"
+    TEAL     = "#7fb4d9"
+    MAUVE    = "#f4b85c"
+
+    STATE_NEW           = "#687384"
+    STATE_PARTIAL_ENTRY = "#e8c14d"
+    STATE_OPEN          = "#3cc583"
+    STATE_PARTIAL_EXIT  = "#ee8a4a"
+    STATE_CLOSED        = "#59626f"
+
+    PNL_POS_BG = "#12291e"
+    PNL_NEG_BG = "#2e1615"
+
+    BTN_H    = _MOCHA.BTN_H
+    BTN_H_SM = _MOCHA.BTN_H_SM
+    INPUT_H  = _MOCHA.INPUT_H
+
+
+_MOCHA_TO_CARBON: dict[str, str] = {
+    "#11111b": "#090b0e", "#181825": "#12161c", "#1e1e2e": "#0c0f13",
+    "#313244": "#232a35", "#45475a": "#2f3845", "#6c7086": "#59626f",
+    "#7f849c": "#687384", "#bac2de": "#9ba5b4", "#cdd6f4": "#dde2ea",
+    "#89b4fa": "#f0a63a", "#a6e3a1": "#3cc583", "#f38ba8": "#ef5a50",
+    "#cba6f7": "#f4b85c", "#f9e2af": "#e8c14d", "#fab387": "#ee8a4a",
+    "#94e2d5": "#7fb4d9",
+    "#1a2d45": "#2a2213", "#1e3558": "#3a2e17", "#1e3658": "#3a2e17",
+    "#2a1a3a": "#2a2213", "#33214d": "#3a2e17",
+    "#1a3326": "#12291e", "#1a3d2a": "#15301f", "#1e4a32": "#183a26", "#223d2e": "#1a3324",
+    "#331a1a": "#2e1615", "#3d2222": "#3a1b19",
+}
+
+
+def _to_carbon(text: str) -> str:
+    for mocha_hex, carbon_hex in _MOCHA_TO_CARBON.items():
+        text = text.replace(mocha_hex, carbon_hex)
+    return text
+
+
+def _rgba_from_hex8(qss: str) -> str:
+    """Rewrite ``#RRGGBBAA`` as ``rgba()``; Qt reads 8-digit hex as ``#AARRGGBB``."""
+    def to_rgba(match: re.Match[str]) -> str:
+        h = match.group(1)
+        r, g, b, a = (int(h[i:i + 2], 16) for i in (0, 2, 4, 6))
+        return f"rgba({r}, {g}, {b}, {a / 255:.2f})"
+    return re.sub(r"#([0-9a-fA-F]{8})(?![0-9a-fA-F])", to_rgba, qss)
+
+
+_CARBON_EXTRA = """
+QMainWindow, QDialog, QWidget {
+    font-family: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
+}
+QPushButton, QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, QTimeEdit, QGroupBox {
+    border-radius: 2px;
+}
+QTableView, QTableWidget, QTreeView {
+    font-family: "IBM Plex Mono", Consolas, monospace;
+}
+"""
+
+
+def _danger_qss(red: str, muted: str, line: str) -> str:
+    r, g, b = (int(red[i:i + 2], 16) for i in (1, 3, 5))
+    return f"""
+QPushButton[role="danger"] {{
+    background: transparent; color: {red}; border: 1px solid {red}; outline: none;
+}}
+QPushButton[role="danger"]:hover {{ background: rgba({r}, {g}, {b}, 0.15); }}
+QPushButton[role="danger"]:focus {{ outline: none; }}
+QPushButton[role="danger"]:disabled {{ color: {muted}; border-color: {line}; }}
+"""
+
+
+CARBON_QSS = _rgba_from_hex8(_to_carbon(MOCHA_QSS)) + _CARBON_EXTRA + _danger_qss(
+    _CARBON.RED, _CARBON.MUTED, _CARBON.OVERLAY2
+)
+MOCHA_QSS += _danger_qss(_MOCHA.RED, _MOCHA.MUTED, _MOCHA.OVERLAY2)
+VS_CODE_QSS += _danger_qss(_VS.RED, _VS.MUTED, _VS.OVERLAY2)
+QSS = MOCHA_QSS
+
+THEME_COLORS["carbon"] = {
+    **{key: _to_carbon(value) for key, value in THEME_COLORS["mocha"].items()},
+    "scope_pill_checked_bg": "#2a2213",
+    "feed_hover_border": _CARBON.BLUE,
+    "feed_hover_text":   _CARBON.MAUVE,
+}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Theme registry + persistence + active-palette helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
 THEMES: dict[str, str] = {
+    "carbon": CARBON_QSS,
     "mocha":  MOCHA_QSS,
     "vscode": VS_CODE_QSS,
 }
+DEFAULT_THEME = "carbon"
+_PALETTES: dict[str, type] = {"carbon": _CARBON, "mocha": _MOCHA, "vscode": _VS}
 
 _THEME_PREF_FILE = Path.home() / ".usswing" / "theme_id"
 
@@ -1189,9 +1305,9 @@ _THEME_PREF_FILE = Path.home() / ".usswing" / "theme_id"
 def load_theme_id() -> str:
     try:
         tid = _THEME_PREF_FILE.read_text(encoding="utf-8").strip()
-        return tid if tid in THEMES else "mocha"
+        return tid if tid in THEMES else DEFAULT_THEME
     except OSError:
-        return "mocha"
+        return DEFAULT_THEME
 
 
 def save_theme_id(theme_id: str) -> None:
@@ -1202,13 +1318,13 @@ def save_theme_id(theme_id: str) -> None:
 def apply_theme(theme_id: str) -> None:
     from PyQt6.QtWidgets import QApplication
     app = QApplication.instance()
-    if app is not None:
-        app.setStyleSheet(THEMES.get(theme_id, MOCHA_QSS))
+    if isinstance(app, QApplication):
+        app.setStyleSheet(THEMES.get(theme_id, CARBON_QSS))
 
 
 def active_palette() -> type:
-    """Return the active theme's colour token class (_MOCHA or _VS)."""
-    return _VS if load_theme_id() == "vscode" else _MOCHA  # type: ignore[return-value]
+    """Return the active theme's colour token class (_CARBON, _MOCHA or _VS)."""
+    return _PALETTES[load_theme_id()]
 
 
 class _ThemeProxy:
@@ -1237,3 +1353,19 @@ def colors() -> dict[str, str]:
     case where the styled widget is QSS-reachable.
     """
     return THEME_COLORS[load_theme_id()]
+
+
+def asset_dir(sub: str) -> Path:
+    """Return ``assets/<sub>`` for both source runs and PyInstaller builds."""
+    if getattr(sys, "frozen", False):
+        return Path(sys._MEIPASS) / "assets" / sub  # type: ignore[attr-defined]
+    return Path(__file__).resolve().parents[3] / "assets" / sub
+
+
+def load_fonts(font_dir: Path | None = None) -> None:
+    """Register the bundled IBM Plex fonts; a bad file is skipped with a warning."""
+    from PyQt6.QtGui import QFontDatabase
+
+    for path in sorted((font_dir or asset_dir("fonts")).glob("*.ttf")):
+        if QFontDatabase.addApplicationFont(str(path)) < 0:
+            _log.warning("[Theme] Could not load font %s", path.name)

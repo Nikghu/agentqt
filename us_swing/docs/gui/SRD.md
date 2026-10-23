@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.23.0: SRD-GUI-017.001–.005 added — Carbon theme and icon system (GUI redesign Phase 1); approved by user 2026-10-23.
 > v2.22.0: SRD-GUI-004.013 added — automatic cleanup of stale intraday candles at app start; user request 2026-10-22; Implemented (RN-GUI-1.8.0).
 > v2.21.0: SRD-GUI-004.010–.012 added — manual picks in Trade Execution; user request and design approval 2026-10-22; Implemented (RN-GUI-1.8.0).
 > v2.20.0: SRD-GUI-004.009 added — Execution feed ignores presets with no assigned users or that no longer exist (ISS-GUI-0004); approved by user in session 2026-10-22 and set to Implemented (RN-GUI-1.7.2).
@@ -289,3 +290,13 @@
 | SRD-GUI-016.009 | FO-GUI-016 | Must | The dialog loads legacy and rule-list configs via `pattern_rules_from_config()` and returns `pattern_rules_to_config()` output on OK. | config dict | rule-list config | An unreadable config is kept unless the user edits it; Cancel changes nothing | Implemented |
 | SRD-GUI-016.010 | FO-GUI-016 | Must | All Screener Builder call sites open the new dialog, and the Details column also shows `pattern_config_summary()` for price action. | user action | stored config, summary | Old dialog, labels and defaults are deleted | Implemented |
 | SRD-GUI-016.011 | FO-GUI-016 | Must | Controls use `C.BTN_H` / `C.INPUT_H`, inline styles include `outline: none`, and logs use the `[Screener]` prefix. | — | — | No `setFixedHeight` | Implemented |
+
+## FO-GUI-017 — Carbon Theme and Icon System
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-017.001 | FO-GUI-017 | Must | `theme.py` registers a "carbon" theme with its own tokens and runtime colours, used as the default when no saved theme exists; Settings offers it. | saved theme id | applied QSS, palette | Mocha and VS Code themes unchanged | Implemented |
+| SRD-GUI-017.002 | FO-GUI-017 | Should | IBM Plex Sans and IBM Plex Mono font files are bundled and registered at app start for the Carbon theme. | font files | registered families | Falls back to Segoe UI if loading fails | Implemented |
+| SRD-GUI-017.003 | FO-GUI-017 | Must | `icons.py` returns a cached `QIcon` for a bundled SVG coloured by role (neutral, add, go, danger, info) from the active theme. | icon name, role | `QIcon` | Unknown name returns an empty icon; cache clears on theme change | Implemented |
+| SRD-GUI-017.004 | FO-GUI-017 | Must | Emoji on buttons, tabs and title bar navigation are replaced by an icon plus label; icon-only buttons get a tooltip and accessible name. | — | — | Log text, status dots and window controls unchanged | Implemented |
+| SRD-GUI-017.005 | FO-GUI-017 | Must | Risky buttons carry the property `role="danger"`, styled in every theme with red text, red border and a red icon. | — | — | Uses `C.BTN_H`; no `setFixedHeight`; `outline: none` | Implemented |

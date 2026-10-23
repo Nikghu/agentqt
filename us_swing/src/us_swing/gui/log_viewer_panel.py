@@ -21,6 +21,7 @@ from PyQt6.QtWidgets import (
 )
 
 from us_swing.gui.app_service import AppService
+from us_swing.gui.icons import set_icon
 from us_swing.gui.theme import C
 
 
@@ -96,11 +97,13 @@ class LogViewerPanel(QWidget):
         self._auto_scroll = QCheckBox("Auto-scroll")
         self._auto_scroll.setChecked(True)
 
-        self._pause_btn = QPushButton("⏸  Pause")
+        self._pause_btn = QPushButton("Pause")
+        set_icon(self._pause_btn, "pause", "go")
         self._pause_btn.setFixedWidth(90)
         self._pause_btn.clicked.connect(self._toggle_pause)
 
-        self._clear_btn = QPushButton("🗑  Clear")
+        self._clear_btn = QPushButton("Clear")
+        set_icon(self._clear_btn, "eraser")
         self._clear_btn.setFixedWidth(80)
         self._clear_btn.clicked.connect(self._clear)
 
@@ -189,10 +192,12 @@ class LogViewerPanel(QWidget):
     def _toggle_pause(self) -> None:
         self._paused = not self._paused
         if self._paused:
-            self._pause_btn.setText("▶  Resume")
+            self._pause_btn.setText("Resume")
+            set_icon(self._pause_btn, "play", "go")
             self._pause_btn.setStyleSheet(f"color: {C.YELLOW};")
         else:
-            self._pause_btn.setText("⏸  Pause")
+            self._pause_btn.setText("Pause")
+            set_icon(self._pause_btn, "pause", "go")
             self._pause_btn.setStyleSheet("")
             # Flush buffered entries received while paused
             self._reapply_filter()

@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.12.0: MD-GUI-017.001.M02 (theme.py Carbon extension) and MD-GUI-017.003.M01 (icons.py) added for the Carbon theme (SRD-GUI-017.001, .002, .005).
 > v1.11.0: MD-GUI-004.001.M03 (intraday_cleanup.py) added; MD-GUI-004.001.M01 extended for startup cleanup (SRD-GUI-004.013).
 > v1.10.0: MD-GUI-004.001.M02 (manual_picks_store.py) added; MD-GUI-004.001.M01 extended for manual picks (SRD-GUI-004.010–.012).
 > v1.9.0: MD-GUI-004.001.M01 extended — Execution feed skips unassigned or missing presets (SRD-GUI-004.009, ISS-GUI-0004).
@@ -171,3 +172,12 @@ us_swing/src/us_swing/gui/
 ```
 
 > The Strategy Builder Dialog is already implemented as a single file (~1620 lines). Splitting into per-page submodules is a future refactor; the working prototype's monolithic layout is retained for this FO. The Active Cycles Panel is split into three files from the start because the model + delegate + editor benefit from clear file boundaries for testing.
+
+## FO-GUI-017 — Carbon Theme and Icon System
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-GUI-017.001.M02 | SRD-GUI-017.001 | `us_swing/src/us_swing/gui/theme.py` | Carbon tokens and QSS, danger QSS, font loading | `THEMES`, `load_theme_id()`, `load_fonts()` | `QtGui` | No |
+| MD-GUI-017.003.M01 | SRD-GUI-017.003 | `us_swing/src/us_swing/gui/icons.py` | Role-coloured, cached SVG icons | `icon()`, `set_icon()`, `icon_button()`, `clear_cache()` | `theme`, `QtSvg` | No |
+
+> MD-GUI-017.001.M02 also covers SRD-GUI-017.002 and .005. Panel edits for SRD-GUI-017.004/.005 stay under each panel's existing MD ID.

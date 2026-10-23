@@ -49,6 +49,7 @@ from us_swing.gui.scheduler_store import (
     save_scheduler_config,
     save_usswing_config,
 )
+from us_swing.gui.icons import mark_danger, set_icon
 from us_swing.gui.theme import C
 
 # ── Auto-detection helpers ────────────────────────────────────────────────────
@@ -598,7 +599,7 @@ class SchedulerDialog(QDialog):
         root.setSpacing(0)
         root.setContentsMargins(0, 0, 0, 0)
 
-        root.addWidget(_DialogTitleBar("🗓  Windows Task Scheduler", self))
+        root.addWidget(_DialogTitleBar("Windows Task Scheduler", self))
 
         body = QWidget()
         body_layout = QVBoxLayout(body)
@@ -713,10 +714,12 @@ class SchedulerDialog(QDialog):
         self._ibkr_pwd.setEchoMode(QLineEdit.EchoMode.Password)
         self._ibkr_pwd.setPlaceholderText("IBKR password")
 
-        self._eye_btn = QPushButton("👁")
+        self._eye_btn = QPushButton()
+        set_icon(self._eye_btn, "eye")
         self._eye_btn.setCheckable(True)
         self._eye_btn.setFixedWidth(65)
         self._eye_btn.setToolTip("Show / hide password")
+        self._eye_btn.setAccessibleName("Show password")
         self._eye_btn.toggled.connect(self._on_eye_toggled)
 
         pwd_row = QHBoxLayout()
@@ -735,7 +738,8 @@ class SchedulerDialog(QDialog):
         )
         self._fill_btn.clicked.connect(self._on_fill_tws)
 
-        self._save_cred_btn = QPushButton("💾  Save Credentials")
+        self._save_cred_btn = QPushButton("Save Credentials")
+        set_icon(self._save_cred_btn, "key-round")
         self._save_cred_btn.setFixedWidth(145)
         self._save_cred_btn.clicked.connect(self._on_save_credentials)
 
@@ -804,15 +808,17 @@ class SchedulerDialog(QDialog):
 
     def _build_buttons(self) -> QHBoxLayout:
         has_any = bool(self._existing_usswing or self._existing_ibkr or self._existing_close.enabled)
-        action_label = "📅  Update Tasks" if has_any else "📅  Add Tasks"
+        action_label = "Update Tasks" if has_any else "Add Tasks"
 
-        self._remove_btn = QPushButton("🗑  Remove All Tasks")
-        self._remove_btn.setObjectName("danger_btn")
+        self._remove_btn = QPushButton("Remove All Tasks")
+        set_icon(self._remove_btn, "trash-2", "danger")
+        mark_danger(self._remove_btn)
         self._remove_btn.clicked.connect(self._on_remove)
         self._remove_btn.setVisible(has_any)
 
         self._ok_btn = QPushButton(action_label)
         self._ok_btn.setObjectName("run_btn")
+        set_icon(self._ok_btn, "calendar", "go")
         self._ok_btn.setDefault(True)
         self._ok_btn.clicked.connect(self._on_add_or_update)
 

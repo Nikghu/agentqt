@@ -98,6 +98,7 @@ from us_swing.gui.strategy_table_model import (
     StatusBadgeDelegate,
     StrategyTableModel,
 )
+from us_swing.gui.icons import mark_danger, set_icon, set_tab_icon
 from us_swing.gui.theme import C, active_palette, colors
 
 
@@ -263,7 +264,8 @@ class _StrategyTablePane(QWidget):
         self._proxy.layoutChanged.connect(lambda: self._reinject_row_widgets())
         root.addWidget(self._view, 1)
 
-        add_btn = QPushButton("+ Add Strategy")
+        add_btn = QPushButton("Add Strategy")
+        set_icon(add_btn, "plus", "add")
         add_btn.setFixedHeight(C.BTN_H)
         add_btn.setFixedWidth(130)
         add_btn.clicked.connect(self._on_add)
@@ -574,9 +576,11 @@ class _CandleDbDiagDialog(QDialog):
         btn_row = QHBoxLayout()
         clear_btn = QPushButton("Clear Old Data")
         clear_btn.setObjectName("danger_btn")
+        set_icon(clear_btn, "eraser", "danger")
         clear_btn.setFixedWidth(130)
         clear_btn.clicked.connect(self._clear_old_data)
         refresh_btn = QPushButton("Refresh")
+        set_icon(refresh_btn, "refresh-cw", "info")
         refresh_btn.setFixedWidth(90)
         refresh_btn.clicked.connect(self._load)
         btn_row.addStretch()
@@ -1101,7 +1105,8 @@ class _FilteredStocksPane(QWidget):
         self._pick_input.setCompleter(self._pick_completer)
         self._refresh_pick_suggestions()
         svc.sp500_updated.connect(self._refresh_pick_suggestions)
-        add_btn = QPushButton("+ Add")
+        add_btn = QPushButton("Add")
+        set_icon(add_btn, "plus", "add")
         add_btn.clicked.connect(self._on_add_pick)
         pick_row = QHBoxLayout()
         pick_row.setContentsMargins(0, 0, 0, 0)
@@ -1271,7 +1276,7 @@ class ExecutionPanel(QWidget):
         title = QLabel("Trade Execution")
         title.setStyleSheet(f"color: {C.BLUE}; font-size: 12pt; font-weight: bold;")
 
-        admin_badge = QLabel("🔐 ADMIN")
+        admin_badge = QLabel("ADMIN")
         admin_badge.setStyleSheet(
             f"color:{C.YELLOW}; background:{C.YELLOW}18; border:1px solid {C.YELLOW}55;"
             f"border-radius:5px; padding:1px 7px; font-size:7pt; font-weight:bold;"
@@ -1282,10 +1287,9 @@ class ExecutionPanel(QWidget):
         self._exec_user_combo = QComboBox()
         self._exec_user_combo.setMinimumWidth(140)
         self._exec_user_combo.setStyleSheet("QComboBox { outline: none; } QComboBox:focus { outline: none; }")
-        self._exec_user_combo.addItem("🌐  All / Broadcast", None)
+        self._exec_user_combo.addItem("All / Broadcast", None)
         for u in demo.get_users():
-            flag = "🔴" if u.mode == "live" else "🔵"
-            self._exec_user_combo.addItem(f"{flag}  {u.username}  ({u.mode.upper()})", u.user_id)
+            self._exec_user_combo.addItem(f"{u.username}  ({u.mode.upper()})", u.user_id)
         demo.viewing_changed.connect(self._on_scope_changed)
 
         hdr = QHBoxLayout()
@@ -1378,8 +1382,10 @@ class ExecutionPanel(QWidget):
         """Tabbed bottom pane: Active Trades | Strategy Builder."""
         tabs = QTabWidget()
         tabs.setStyleSheet(self._tab_qss())
-        tabs.addTab(self._build_active_trades_pane(demo), "📈  Active Trades")
-        tabs.addTab(self._build_strategy_tab(demo), "🛠  Strategy Builder")
+        tabs.addTab(self._build_active_trades_pane(demo), "Active Trades")
+        tabs.addTab(self._build_strategy_tab(demo), "Strategy Builder")
+        set_tab_icon(tabs, 0, "trending-up", "info")
+        set_tab_icon(tabs, 1, "wrench", "info")
         return tabs
 
     def _build_strategy_tab(self, demo: AppService) -> QWidget:
@@ -1485,6 +1491,7 @@ class ExecutionPanel(QWidget):
         cb_row.addStretch()
         if _SHOW_DB_DIAGNOSTICS:
             diag_btn = QPushButton("Candle DB")
+            set_icon(diag_btn, "database", "info")
             diag_btn.setFixedWidth(100)
             diag_btn.clicked.connect(lambda: _CandleDbDiagDialog(self._demo, self).exec())
             cb_row.addWidget(diag_btn)
@@ -1549,6 +1556,8 @@ class ExecutionPanel(QWidget):
     def _make_force_exit_btn(self, pos: Any) -> QPushButton:
         ct = active_palette()
         btn = QPushButton("Force Exit")
+        set_icon(btn, "log-out", "danger", 13)
+        mark_danger(btn)
         btn.setStyleSheet(_cell_btn_ss(ct.RED, ct.RED))
         btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         btn.clicked.connect(lambda _, p=pos: self._on_table_force_exit(p))

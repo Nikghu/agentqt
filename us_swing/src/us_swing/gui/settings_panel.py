@@ -39,6 +39,7 @@ from PyQt6.QtWidgets import (
 
 from us_swing.gui.app_service import AppService
 from us_swing.data.models import RiskConfig, UserProfile
+from us_swing.gui.icons import mark_danger, set_icon
 from us_swing.gui.theme import C, active_palette, colors
 
 _log = logging.getLogger(__name__)
@@ -182,10 +183,13 @@ class _UsersTab(QWidget):
         self._table.setColumnWidth(9, 100)  # Default Order
         self._table.setColumnWidth(10, 105) # Order Confirm
 
-        self._new_btn  = QPushButton("＋  New User")
-        self._edit_btn = QPushButton("✎  Edit")
-        self._del_btn  = QPushButton("✕  Delete")
-        self._del_btn.setObjectName("danger_btn")
+        self._new_btn  = QPushButton("New User")
+        self._edit_btn = QPushButton("Edit")
+        self._del_btn  = QPushButton("Delete")
+        set_icon(self._new_btn, "user-plus", "add")
+        set_icon(self._edit_btn, "pencil")
+        set_icon(self._del_btn, "trash-2", "danger")
+        mark_danger(self._del_btn)
         self._edit_btn.setEnabled(False)
         self._del_btn.setEnabled(False)
         self._table.selectionModel().selectionChanged.connect(self._on_sel)
@@ -338,6 +342,7 @@ class _RiskTab(QWidget):
         form.addRow("",                        self._confirm)
 
         save_btn = QPushButton("Save Risk Settings")
+        set_icon(save_btn, "save", "go")
         save_btn.setObjectName("run_btn")
         save_btn.setFixedWidth(200)
         save_btn.clicked.connect(self._on_save)
@@ -410,12 +415,14 @@ class _SystemTab(QWidget):
         form.addRow("Market timezone:",        self._mkt_tz)
         form.addRow("Enable daily scheduler:", self._sched_en)
 
-        save_btn = QPushButton("💾  Save Settings")
+        save_btn = QPushButton("Save Settings")
+        set_icon(save_btn, "save", "go")
         save_btn.setObjectName("run_btn")
         save_btn.setFixedWidth(140)
         save_btn.clicked.connect(self._on_save)
 
-        self._sched_btn = QPushButton("📅  Add Scheduler")
+        self._sched_btn = QPushButton("Add Scheduler")
+        set_icon(self._sched_btn, "calendar", "info")
         self._sched_btn.setFixedWidth(160)
         self._sched_btn.clicked.connect(self._on_scheduler)
         self._refresh_sched_btn_label()
@@ -437,7 +444,10 @@ class _SystemTab(QWidget):
         theme_row.setContentsMargins(12, 8, 12, 8)
         theme_row.setSpacing(8)
 
-        self._btn_mocha  = QPushButton("Mocha (Default)")
+        self._btn_carbon = QPushButton("Carbon")
+        self._btn_carbon.setCheckable(True)
+        self._btn_carbon.setFixedWidth(140)
+        self._btn_mocha  = QPushButton("Mocha")
         self._btn_mocha.setCheckable(True)
         self._btn_mocha.setFixedWidth(140)
         self._btn_vscode = QPushButton("VS Code Dark")
@@ -445,12 +455,15 @@ class _SystemTab(QWidget):
         self._btn_vscode.setFixedWidth(140)
 
         current_theme = _theme.load_theme_id()
+        self._btn_carbon.setChecked(current_theme == "carbon")
         self._btn_mocha.setChecked(current_theme == "mocha")
         self._btn_vscode.setChecked(current_theme == "vscode")
 
+        self._btn_carbon.clicked.connect(lambda: self._on_theme("carbon"))
         self._btn_mocha.clicked.connect(lambda: self._on_theme("mocha"))
         self._btn_vscode.clicked.connect(lambda: self._on_theme("vscode"))
 
+        theme_row.addWidget(self._btn_carbon)
         theme_row.addWidget(self._btn_mocha)
         theme_row.addWidget(self._btn_vscode)
         theme_row.addStretch()
@@ -466,11 +479,11 @@ class _SystemTab(QWidget):
         diag_row.setSpacing(8)
 
         self._candle_db_btn = QPushButton("Candle DB")
+        set_icon(self._candle_db_btn, "database", "info")
         self._candle_db_btn.setFixedWidth(120)
         self._candle_db_btn.clicked.connect(self._on_candle_db)
 
         self._cb_toggle = QPushButton()
-        self._cb_toggle.setObjectName("danger_btn")
         self._cb_toggle.setFixedWidth(200)
         self._cb_toggle.clicked.connect(self._on_toggle_cb)
         self._refresh_cb_label()
@@ -491,6 +504,7 @@ class _SystemTab(QWidget):
         update_row.setSpacing(8)
 
         self._update_btn = QPushButton("Check for Updates")
+        set_icon(self._update_btn, "circle-arrow-up", "info")
         self._update_btn.setFixedWidth(160)
         self._update_btn.clicked.connect(self._on_check_updates)
 
@@ -539,9 +553,11 @@ class _SystemTab(QWidget):
         self._tg_note = QLabel("")
         self._tg_note.setStyleSheet(f"color: {C.GREEN}; font-size: 9pt;")
         self._tg_test = QPushButton("Send Test")
+        set_icon(self._tg_test, "send", "info")
         self._tg_test.setFixedWidth(120)
         self._tg_test.clicked.connect(self._on_test_telegram)
-        tg_save = QPushButton("💾  Save")
+        tg_save = QPushButton("Save")
+        set_icon(tg_save, "save", "go")
         tg_save.setObjectName("run_btn")
         tg_save.setFixedWidth(120)
         tg_save.clicked.connect(self._on_save_telegram)
@@ -578,6 +594,12 @@ class _SystemTab(QWidget):
     def _refresh_cb_label(self) -> None:
         active = self._demo.circuit_breaker_active
         self._cb_toggle.setText("Reset Circuit Breaker" if active else "Trip Circuit Breaker")
+        set_icon(self._cb_toggle, "power", "neutral" if active else "danger")
+        self._cb_toggle.setProperty("role", "" if active else "danger")
+        style = self._cb_toggle.style()
+        if style is not None:
+            style.unpolish(self._cb_toggle)
+            style.polish(self._cb_toggle)
 
     def _on_toggle_cb(self) -> None:
         self._demo.set_circuit_breaker(not self._demo.circuit_breaker_active)
@@ -620,7 +642,7 @@ class _SystemTab(QWidget):
     def _refresh_sched_btn_label(self) -> None:
         from us_swing.gui.scheduler_store import load_scheduler_config, load_usswing_config
         has_task = bool(load_scheduler_config() or load_usswing_config())
-        self._sched_btn.setText("📅  Edit Scheduler" if has_task else "📅  Add Scheduler")
+        self._sched_btn.setText("Edit Scheduler" if has_task else "Add Scheduler")
 
     def _on_scheduler(self) -> None:
         from us_swing.gui.scheduler_dialog import SchedulerDialog
@@ -664,6 +686,7 @@ class _SystemTab(QWidget):
         from us_swing.gui import theme as _theme
         _theme.save_theme_id(theme_id)
         _theme.apply_theme(theme_id)
+        self._btn_carbon.setChecked(theme_id == "carbon")
         self._btn_mocha.setChecked(theme_id == "mocha")
         self._btn_vscode.setChecked(theme_id == "vscode")
         self.theme_changed.emit(theme_id)
@@ -909,7 +932,8 @@ class _UniverseTab(QWidget):
         self._meta_label = QLabel("Loading…")
         self._meta_label.setStyleSheet(f"color: {active_palette().SUBTEXT}; font-size: 9pt;")
 
-        refresh_btn = QPushButton("🔄  Refresh")
+        refresh_btn = QPushButton("Refresh")
+        set_icon(refresh_btn, "refresh-cw", "info")
         refresh_btn.setObjectName("run_btn")
         refresh_btn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         refresh_btn.clicked.connect(self._on_refresh)
@@ -921,7 +945,7 @@ class _UniverseTab(QWidget):
 
         # ── Search bar ────────────────────────────────────────────────────────
         self._search = QLineEdit()
-        self._search.setPlaceholderText("🔍  Symbol / Name / Sector…")
+        self._search.setPlaceholderText("Search symbol, name or sector")
         self._search.textChanged.connect(self._push_filters)
 
         # ── Web view ──────────────────────────────────────────────────────────
@@ -1004,7 +1028,8 @@ class _DatabaseTab(QWidget):
         self._candle_count_lbl = QLabel("Total candles: —")
         self._candle_count_lbl.setStyleSheet(f"color: {C.SUBTEXT}; font-size: 9pt;")
 
-        self._refresh_status_btn = QPushButton("↻  Refresh Status")
+        self._refresh_status_btn = QPushButton("Refresh Status")
+        set_icon(self._refresh_status_btn, "refresh-cw", "info")
         self._refresh_status_btn.setFixedWidth(160)
         self._refresh_status_btn.clicked.connect(self._on_refresh_status)
 
@@ -1042,7 +1067,8 @@ class _DatabaseTab(QWidget):
         self._start_date_row_widget.setLayout(date_row)
         self._start_date_row_widget.hide()  # shown only when EMPTY
 
-        self._build_btn = QPushButton("↻  Checking…")
+        self._build_btn = QPushButton("Checking…")
+        set_icon(self._build_btn, "refresh-cw", "go")
         self._build_btn.setObjectName("run_btn")
         self._build_btn.setFixedWidth(220)
         self._build_btn.setEnabled(False)
@@ -1069,7 +1095,8 @@ class _DatabaseTab(QWidget):
         self._fail_count_lbl.setStyleSheet(f"color: {C.RED}; font-size: 9pt;")
         self._fail_count_lbl.hide()
 
-        self._cancel_btn = QPushButton("✕  Cancel")
+        self._cancel_btn = QPushButton("Cancel")
+        set_icon(self._cancel_btn, "x", "danger")
         self._cancel_btn.setObjectName("danger_btn")
         self._cancel_btn.setFixedWidth(120)
         self._cancel_btn.clicked.connect(self._on_cancel)
@@ -1103,7 +1130,8 @@ class _DatabaseTab(QWidget):
         )
         self._disc_symbols_lbl.setWordWrap(True)
 
-        self._fix_btn = QPushButton("🔧  Fix Discrepancies")
+        self._fix_btn = QPushButton("Fix Discrepancies")
+        set_icon(self._fix_btn, "wrench", "go")
         self._fix_btn.setObjectName("run_btn")
         self._fix_btn.setFixedWidth(200)
         self._fix_btn.clicked.connect(self._on_fix_discrepancies)
@@ -1135,8 +1163,9 @@ class _DatabaseTab(QWidget):
         dz_info.setStyleSheet(f"color: {C.SUBTEXT}; font-size: 9pt;")
         dz_info.setWordWrap(True)
 
-        self._reset_db_btn = QPushButton("🗑  Reset Database")
-        self._reset_db_btn.setObjectName("danger_btn")
+        self._reset_db_btn = QPushButton("Reset Database")
+        set_icon(self._reset_db_btn, "trash-2", "danger")
+        mark_danger(self._reset_db_btn)
         self._reset_db_btn.setFixedWidth(200)
         self._reset_db_btn.clicked.connect(self._on_reset_db)
 
@@ -1232,17 +1261,20 @@ class _DatabaseTab(QWidget):
             return   # don't change button state mid-download
 
         if info.status == CandleDbStatus.EMPTY:
-            self._build_btn.setText("⬇  Build Full Database")
+            self._build_btn.setText("Build Full Database")
+            set_icon(self._build_btn, "download", "go")
             self._build_btn.setEnabled(True)
             self._build_btn.setObjectName("run_btn")
             self._start_date_row_widget.show()
         elif info.status == CandleDbStatus.PARTIAL:
-            self._build_btn.setText("🔄  Fill Delta")
+            self._build_btn.setText("Fill Delta")
+            set_icon(self._build_btn, "refresh-cw", "go")
             self._build_btn.setEnabled(True)
             self._build_btn.setObjectName("run_btn")
             self._start_date_row_widget.hide()
         else:  # CURRENT
-            self._build_btn.setText("✔  Database Current")
+            self._build_btn.setText("Database Current")
+            set_icon(self._build_btn, "check", "add")
             self._build_btn.setEnabled(False)
             self._build_btn.setObjectName("")
             self._start_date_row_widget.hide()
@@ -1264,7 +1296,7 @@ class _DatabaseTab(QWidget):
                 self,
                 "IBKR Not Connected",
                 "IBKR Gateway must be connected before downloading candle data.\n\n"
-                "Use the '🟢 Connect Feed' button in the title bar to connect first.",
+                "Use the 'Connect Feed' button in the title bar to connect first.",
             )
             return
 
@@ -1315,7 +1347,7 @@ class _DatabaseTab(QWidget):
     def _on_paused(self, reason: str) -> None:
         """Called when IBKR disconnects mid-download (SRD-GUI-006.014)."""
         self._set_downloading(False)
-        self._progress_label.setText("⏸ Paused — IBKR disconnected")
+        self._progress_label.setText("Paused — IBKR disconnected")
         self._apply_checkpoint_state()
 
     def _on_symbol_failed(self, symbol: str, reason: str) -> None:
@@ -1347,7 +1379,7 @@ class _DatabaseTab(QWidget):
                 self,
                 "IBKR Not Connected",
                 "IBKR Gateway must be connected before downloading candle data.\n\n"
-                "Use the '🟢 Connect Feed' button in the title bar to connect first.",
+                "Use the 'Connect Feed' button in the title bar to connect first.",
             )
             return
 
@@ -1381,7 +1413,7 @@ class _DatabaseTab(QWidget):
             return
 
         self._reset_db_btn.setEnabled(False)
-        self._reset_db_btn.setText("⏳  Resetting…")
+        self._reset_db_btn.setText("Resetting…")
         # Clear any in-progress/discrepancy state in the UI
         self._disc_group.hide()
         self._disc_failed_symbols = []
@@ -1400,7 +1432,7 @@ class _DatabaseTab(QWidget):
             )
         finally:
             self._reset_db_btn.setEnabled(True)
-            self._reset_db_btn.setText("🗑  Reset Database")
+            self._reset_db_btn.setText("Reset Database")
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -1428,7 +1460,8 @@ class _DatabaseTab(QWidget):
         if self._downloading:
             return
         if self._svc.has_candle_checkpoint():
-            self._build_btn.setText("▶  Resume Download")
+            self._build_btn.setText("Resume Download")
+            set_icon(self._build_btn, "play", "go")
             self._build_btn.setEnabled(True)
             self._start_date_row_widget.hide()
             self._build_btn.setObjectName("run_btn")
@@ -1442,7 +1475,7 @@ class _DatabaseTab(QWidget):
         self._refresh_status_btn.setEnabled(not active)
         self._reset_db_btn.setEnabled(not active)
         if active:
-            self._build_btn.setText("⏳  Downloading…")
+            self._build_btn.setText("Downloading…")
             self._progress_bar.setValue(0)
             self._progress_label.setText("Starting…")
             self._cancel_btn.setEnabled(True)

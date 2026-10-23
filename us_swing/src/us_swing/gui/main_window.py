@@ -42,6 +42,8 @@ from us_swing.gui.execution_panel import ExecutionPanel
 from us_swing.gui.screener_panel import ScreenerPanel
 from us_swing.gui.settings_panel import SettingsPanel
 from us_swing.gui.system_store import load_system_config
+from us_swing.gui.icons import icon as make_icon
+from us_swing.gui.icons import refresh_icons, set_icon
 from us_swing.gui.theme import C, active_palette, colors
 
 _log = logging.getLogger(__name__)
@@ -111,8 +113,9 @@ class _MWCell(QLabel):
 class _TabBtn(QPushButton):
     """Compact horizontal nav tab — icon + label, underline when active."""
 
-    def __init__(self, icon: str, label: str, parent: QWidget | None = None) -> None:
-        super().__init__(f"{icon}  {label}", parent)
+    def __init__(self, icon_name: str, label: str, parent: QWidget | None = None) -> None:
+        super().__init__(label, parent)
+        set_icon(self, icon_name, "neutral", 17)
         self.setCheckable(True)
         self.setAutoExclusive(True)
         self.setObjectName("tab_btn")
@@ -308,15 +311,15 @@ class _TitleBar(QWidget):
 
         # ── Nav tabs ─────────────────────────────────────────────────────
         nav_items = [
-            ("📊", "Dashboard"),
-            ("🔍", "Screener"),
-            ("⚡", "Execution"),
-            ("📈", "Chart"),
-            ("⚙",  "Settings"),
+            ("layout-dashboard", "Dashboard"),
+            ("filter", "Screener"),
+            ("zap", "Execution"),
+            ("chart-candlestick", "Chart"),
+            ("settings", "Settings"),
         ]
         self._tabs: list[_TabBtn] = []
-        for (icon, label), panel in zip(nav_items, panels):
-            btn = _TabBtn(icon, label)
+        for (icon_name, label), panel in zip(nav_items, panels):
+            btn = _TabBtn(icon_name, label)
             self._tabs.append(btn)
             row.addWidget(btn)
             btn.clicked.connect(lambda _c, p=panel: stack.setCurrentWidget(p))
@@ -624,7 +627,7 @@ class _AdminContextBar(QWidget):
         users = self._demo.get_users()
 
         if uid is None:
-            self._scope_icon.setText("🌐")
+            self._scope_icon.setPixmap(make_icon("globe", "go").pixmap(14, 14))
             self._items["scope"].setText(
                 f"<b style='color:{_T.YELLOW}'>ALL USERS</b>"
                 f"  <span style='color:{_T.MUTED};font-size:7pt'>{len(users)} accounts</span>"
@@ -636,7 +639,7 @@ class _AdminContextBar(QWidget):
             if not u:
                 return
             mode_clr = _T.RED if u.mode == "live" else _T.BLUE
-            self._scope_icon.setText("👤")
+            self._scope_icon.setPixmap(make_icon("user", "go").pixmap(14, 14))
             self._items["scope"].setText(f"<b style='color:{_T.BLUE}'>{u.username}</b>")
             self._items["risk"].setText(
                 f"<span style='color:{_T.MUTED}'>Risk/Trade</span>  <b>{u.risk_config.risk_per_trade_pct:.1f}%</b>"
@@ -697,6 +700,8 @@ class MainWindow(QMainWindow):
 
         self._settings_panel.theme_changed.connect(self._chart_panel.refresh_theme)
         self._settings_panel.theme_changed.connect(self._execution_panel.refresh_theme)
+        # settings_panel → theme_changed → MainWindow → _on_theme_changed
+        self._settings_panel.theme_changed.connect(self._on_theme_changed)
 
         # The log panel is listening now, so a failed live-broker start can surface.
         svc.flush_broker_fallback_message()
@@ -782,6 +787,11 @@ class MainWindow(QMainWindow):
             )
 
     # ── Slots ─────────────────────────────────────────────────────────────────
+
+    def _on_theme_changed(self) -> None:
+        refresh_icons(self)
+        self._admin_ctx_bar.refresh()
+
 
     def _refresh_status(self) -> None:
         pass

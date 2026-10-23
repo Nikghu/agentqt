@@ -84,6 +84,8 @@ from us_swing.gui.chart_panel import _build_html as _build_chart_html
 from us_swing.gui.frameless_dialog import FramelessDialog
 from us_swing.gui.indicator_rules_dialog import IndicatorRulesDialog
 from us_swing.gui.price_action_rules_dialog import PriceActionRulesDialog
+from us_swing.gui.icons import icon as make_icon
+from us_swing.gui.icons import mark_danger, set_icon
 from us_swing.gui.theme import C, active_palette, colors
 from us_swing.screener.screeners import _api_key_store
 from us_swing.screener.storage import INPUT_COST_PER_1K, OUTPUT_COST_PER_1K
@@ -375,7 +377,7 @@ class _ModelValidateWorker(QThread):
 # ── Chart button delegate ─────────────────────────────────────────────────────
 
 class _ChartButtonDelegate(QStyledItemDelegate):
-    """Paints a small clickable-looking 📈 button in the Chart column."""
+    """Paints a small clickable-looking chart button in the Chart column."""
 
     def paint(self, painter: QPainter, option: Any, index: Any) -> None:
         painter.save()
@@ -388,11 +390,8 @@ class _ChartButtonDelegate(QStyledItemDelegate):
         painter.setBrush(bg)
         painter.setPen(border)
         painter.drawRoundedRect(rect, 3, 3)
-        painter.setPen(QColor(C.BLUE))
-        font = painter.font()
-        font.setPointSize(8)
-        painter.setFont(font)
-        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "📈")
+        pix = make_icon("chart-candlestick", "go").pixmap(16, 16)
+        painter.drawPixmap(rect.center().x() - 8, rect.center().y() - 8, pix)
         painter.restore()
 
     def sizeHint(self, option: Any, index: Any) -> QSize:
@@ -467,8 +466,9 @@ class QuickChartWindow(QWidget):
         hl.setContentsMargins(14, 0, 6, 0)
         hl.setSpacing(0)
 
-        icon = QLabel("📈")
-        icon.setStyleSheet("background: transparent; font-size: 13px;")
+        icon = QLabel()
+        icon.setPixmap(make_icon("chart-candlestick", "go").pixmap(16, 16))
+        icon.setStyleSheet("background: transparent;")
         title_lbl = QLabel("  Quick Chart Viewer")
         title_lbl.setStyleSheet(
             f"color: {_ap.TEXT}; font-size: 9pt; font-weight: bold; background: transparent;"
@@ -688,20 +688,23 @@ class _GroupWidget(QFrame):
         self._logic_btn.clicked.connect(self._toggle_logic)
         self._apply_logic_style()
 
-        self._add_screener_btn = QPushButton("＋  Add Screener")
+        self._add_screener_btn = QPushButton("Add Screener")
         add_btn = self._add_screener_btn
+        set_icon(add_btn, "plus", "add")
         add_btn.setObjectName("btn_add_screener")
         add_btn.setToolTip("Add a screener to this group")
         add_btn.clicked.connect(self._on_add_screener)
 
-        self._cfg_btn = QPushButton("⚙  Configure")
+        self._cfg_btn = QPushButton("Configure")
+        set_icon(self._cfg_btn, "settings-2")
         self._cfg_btn.setObjectName("btn_configure")
         self._cfg_btn.setToolTip("Configure the selected screener")
         self._cfg_btn.setEnabled(False)
         self._cfg_btn.clicked.connect(self._on_configure)
 
         del_btn = QPushButton("Remove")
-        del_btn.setObjectName("btn_remove")
+        set_icon(del_btn, "trash-2", "danger")
+        mark_danger(del_btn)
         del_btn.setToolTip("Remove this group")
         del_btn.clicked.connect(lambda: self.remove_requested.emit(self._group_id))
 
@@ -717,7 +720,7 @@ class _GroupWidget(QFrame):
         root.addWidget(header)
 
         # ── Empty state (shown when list is empty) ───────────────────────────
-        self._empty_lbl = QLabel("No screeners yet — click  ＋ Add Screener  above")
+        self._empty_lbl = QLabel("No screeners yet — click Add Screener above")
         self._empty_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._empty_lbl.setFixedHeight(48)
         self._empty_lbl.setStyleSheet(
@@ -831,13 +834,15 @@ class _GroupWidget(QFrame):
         menu = QMenu(self)
         if sid == _INDICATOR_SCREENER_ID:
             menu.addAction(
-                "⚙  Configure…",
+                make_icon("settings-2"),
+                "Configure…",
                 lambda: self._open_indicator_config(sid),
             )
             menu.addSeparator()
         elif sid == _PRICE_ACTION_SCREENER_ID:
             menu.addAction(
-                "⚙  Configure…",
+                make_icon("settings-2"),
+                "Configure…",
                 lambda: self._open_price_action_config(sid),
             )
             menu.addSeparator()
@@ -924,13 +929,16 @@ class _WeightedRow(QFrame):
         hl.addWidget(name_lbl, 1)
 
         if sid in (_INDICATOR_SCREENER_ID, _PRICE_ACTION_SCREENER_ID):
-            cfg_btn = QPushButton("⚙")
+            cfg_btn = QPushButton()
+            set_icon(cfg_btn, "settings-2", "neutral", 13)
             cfg_btn.setFixedSize(22, 22)
             cfg_btn.setToolTip("Edit screener settings")
+            cfg_btn.setAccessibleName("Configure")
             cfg_btn.setStyleSheet(
-                f"QPushButton {{ background: transparent; color: {_T.SUBTEXT}; font-size: 11pt;"
-                f" border: 1px solid {_T.OVERLAY2}; border-radius: 3px; }}"
-                f"QPushButton:hover {{ color: {_T.BLUE}; border-color: {_T.BLUE}; }}"
+                f"QPushButton {{ background: transparent;"
+                f" border: 1px solid {_T.OVERLAY2}; border-radius: 3px; outline: none; }}"
+                f"QPushButton:hover {{ border-color: {_T.BLUE}; }}"
+                f"QPushButton:focus {{ outline: none; }}"
             )
             cfg_btn.clicked.connect(self._open_config)
             hl.addWidget(cfg_btn)
@@ -1127,7 +1135,8 @@ class _AssignUsersWidget(QWidget):
         self._tag_row.setContentsMargins(0, 0, 0, 0)
         self._tag_row.addStretch()
 
-        add_btn = QPushButton("＋  Add User")
+        add_btn = QPushButton("Add User")
+        set_icon(add_btn, "user-plus", "add")
         add_btn.setObjectName("btn_blue")
         add_btn.clicked.connect(self._on_open_picker)
 
@@ -1276,7 +1285,8 @@ class _PresetBuilderDialog(_FramelessDialog):
         radio_row.addWidget(self._r_composite)
         radio_row.addWidget(self._r_weighted)
         radio_row.addStretch()
-        self._add_grp_btn = QPushButton("＋  Add Group")
+        self._add_grp_btn = QPushButton("Add Group")
+        set_icon(self._add_grp_btn, "plus", "add")
         self._add_grp_btn.setObjectName("btn_blue")
         self._add_grp_btn.clicked.connect(lambda: self._add_group())
         radio_row.addWidget(self._add_grp_btn)
@@ -1360,7 +1370,8 @@ class _PresetBuilderDialog(_FramelessDialog):
         self._ai_ranking_chk.setStyleSheet(f"color: {_T.TEXT}; font-size: 9pt;")
         ai_header_hl.addWidget(self._ai_ranking_chk)
         ai_header_hl.addStretch()
-        self._ai_model_validate_btn = QPushButton("⚡  Validate")
+        self._ai_model_validate_btn = QPushButton("Validate")
+        set_icon(self._ai_model_validate_btn, "check-check", "go")
         self._ai_model_validate_btn.setFixedWidth(105)
         self._ai_model_validate_btn.setVisible(False)
         self._ai_model_validate_btn.clicked.connect(self._on_validate_model)
@@ -1419,12 +1430,14 @@ class _PresetBuilderDialog(_FramelessDialog):
         btn_row = QHBoxLayout()
         btn_row.addStretch()
 
-        self._save_as_btn = QPushButton("💾  Save As…")
+        self._save_as_btn = QPushButton("Save As…")
+        set_icon(self._save_as_btn, "copy")
         self._save_as_btn.setVisible(preset is not None)
         self._save_as_btn.setToolTip("Save a copy of this preset with a new name")
         self._save_as_btn.clicked.connect(self._on_save_as)
 
-        save_btn = QPushButton("✔  Save")
+        save_btn = QPushButton("Save")
+        set_icon(save_btn, "save", "add")
         save_btn.setObjectName("btn_green")
         save_btn.setDefault(True)
         save_btn.clicked.connect(self._on_save)
@@ -1524,7 +1537,8 @@ class _PresetBuilderDialog(_FramelessDialog):
         self._threshold.valueChanged.connect(self._refresh_preview)
         thr_row.addWidget(self._threshold)
         thr_row.addStretch()
-        self._add_screener_w_btn = QPushButton("＋  Add Screener")
+        self._add_screener_w_btn = QPushButton("Add Screener")
+        set_icon(self._add_screener_w_btn, "plus", "add")
         self._add_screener_w_btn.setObjectName("btn_add_screener")
         self._add_screener_w_btn.clicked.connect(self._on_add_weighted_screener)
         add_btn = self._add_screener_w_btn
@@ -1839,7 +1853,7 @@ class _PresetBuilderDialog(_FramelessDialog):
     def _on_validate_done(self, ok: bool, message: str) -> None:
         _T = active_palette()
         self._ai_model_validate_btn.setEnabled(True)
-        self._ai_model_validate_btn.setText("⚡  Validate")
+        self._ai_model_validate_btn.setText("Validate")
         if ok:
             self._ai_model_status_lbl.setStyleSheet(f"font-size: 8pt; color: {_T.GREEN};")
             self._ai_model_status_lbl.setText(f"✓  {message}")
@@ -2108,7 +2122,8 @@ class ScreenerPanel(QWidget):
     def _build_toolbar(self) -> QFrame:
         _BTN_H = 30   # unified height for all toolbar interactive controls
 
-        self._run_btn = QPushButton("▶  Run Now")
+        self._run_btn = QPushButton("Run Now")
+        set_icon(self._run_btn, "play", "go")
         self._run_btn.setObjectName("run_btn")
         self._run_btn.setFixedHeight(_BTN_H)
         self._run_btn.setMinimumWidth(110)
@@ -2148,13 +2163,15 @@ class ScreenerPanel(QWidget):
         self._status_lbl = QLabel("Select a preset to begin")
         self._status_lbl.setStyleSheet(f"color: {C.MUTED}; font-size: 9pt;")
 
-        self._export_btn = QPushButton("⬇  CSV")
+        self._export_btn = QPushButton("CSV")
+        set_icon(self._export_btn, "download", "info")
         self._export_btn.setFixedWidth(86)
         self._export_btn.setEnabled(False)
         self._export_btn.setToolTip("Export results to CSV")
         self._export_btn.clicked.connect(self._export_csv)
 
-        self._add_btn = QPushButton("＋  Watchlist")
+        self._add_btn = QPushButton("Watchlist")
+        set_icon(self._add_btn, "plus", "add")
         self._add_btn.setObjectName("add_btn")
         self._add_btn.setEnabled(False)
         self._add_btn.setFixedHeight(_BTN_H)
@@ -2222,7 +2239,8 @@ class ScreenerPanel(QWidget):
         self._preset_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self._preset_list.customContextMenuRequested.connect(self._on_preset_context_menu)
 
-        self._new_btn = QPushButton("＋  New Preset")
+        self._new_btn = QPushButton("New Preset")
+        set_icon(self._new_btn, "plus", "add")
         self._new_btn.setObjectName("add_btn")
         self._new_btn.setEnabled(self._mgr is not None)
         self._new_btn.clicked.connect(self._on_new_preset)
@@ -2252,7 +2270,7 @@ class ScreenerPanel(QWidget):
 
     def _build_right_pane(self) -> QWidget:
         # Empty state overlay
-        self._empty_lbl = QLabel("Select a preset from the list\nand click ▶ Run Now")
+        self._empty_lbl = QLabel("Select a preset from the list\nand click Run Now")
         self._empty_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._empty_lbl.setStyleSheet(
             f"color: {C.MUTED}; font-size: 12pt; padding: 40px;"
@@ -2568,7 +2586,7 @@ class ScreenerPanel(QWidget):
 
     def _on_run_finished(self, result: Any) -> None:
         self._run_btn.setEnabled(True)
-        self._run_btn.setText("▶  Run Now")
+        self._run_btn.setText("Run Now")
         self._progress.setVisible(False)
         self._export_btn.setEnabled(True)
 
@@ -2592,7 +2610,7 @@ class ScreenerPanel(QWidget):
 
     def _on_run_failed(self, reason: str) -> None:
         self._run_btn.setEnabled(True)
-        self._run_btn.setText("▶  Run Now")
+        self._run_btn.setText("Run Now")
         self._progress.setVisible(False)
         self._show_error(reason)
 
@@ -2715,7 +2733,7 @@ class ScreenerPanel(QWidget):
         self._empty_lbl.setVisible(not has_data)
         self._table.setVisible(has_data)
 
-    def _show_empty(self, message: str = "Select a preset from the list\nand click ▶ Run Now") -> None:
+    def _show_empty(self, message: str = "Select a preset from the list\nand click Run Now") -> None:
         self._empty_lbl.setText(message)
         self._empty_lbl.setStyleSheet(f"color: {C.MUTED}; font-size: 12pt; padding: 40px;")
         self._table.setVisible(False)
@@ -2734,10 +2752,10 @@ class ScreenerPanel(QWidget):
         if not item or not item.data(Qt.ItemDataRole.UserRole):
             return
         menu = QMenu(self)
-        menu.addAction(QAction("✏  Edit", self, triggered=self._on_edit_preset))
-        menu.addAction(QAction("⧉  Duplicate", self, triggered=self._on_duplicate_preset))
+        menu.addAction(QAction(make_icon("pencil"), "Edit", self, triggered=self._on_edit_preset))
+        menu.addAction(QAction(make_icon("copy"), "Duplicate", self, triggered=self._on_duplicate_preset))
         menu.addSeparator()
-        menu.addAction(QAction("🗑  Delete", self, triggered=self._on_delete_preset))
+        menu.addAction(QAction(make_icon("trash-2", "danger"), "Delete", self, triggered=self._on_delete_preset))
         menu.exec(self._preset_list.viewport().mapToGlobal(pos))
 
     def _on_edit_preset(self) -> None:

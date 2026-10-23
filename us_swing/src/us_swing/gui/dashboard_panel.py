@@ -42,6 +42,7 @@ from us_swing.gui.log_viewer_panel import _html_entry
 from us_swing.gui.app_service import AppService
 from us_swing.gui._types import AccountState, OpenPosition
 from us_swing.gui.position_table_model import PositionTableModel, TradeHistoryModel
+from us_swing.gui.icons import mark_danger, set_icon, set_tab_icon
 from us_swing.gui.theme import C, colors
 from us_swing.data.models import WatchlistItem
 
@@ -149,9 +150,8 @@ class _ExitPositionDialog(QDialog):
         self._cancel_btn.setFixedHeight(32)
         self._confirm_btn = QPushButton("Confirm Exit")
         self._confirm_btn.setFixedHeight(32)
-        self._confirm_btn.setStyleSheet(
-            f"background:{C.RED}; color:#fff; font-weight:bold; padding:0 24px;"
-        )
+        mark_danger(self._confirm_btn)
+        set_icon(self._confirm_btn, "log-out", "danger")
         self._cancel_btn.clicked.connect(self.reject)
         self._confirm_btn.clicked.connect(self._on_confirm)
         btn_row.addStretch()
@@ -382,7 +382,8 @@ class _ExitPositionDialog(QDialog):
         tif_row.addStretch()
         ly.addLayout(tif_row)
         ly.addStretch()
-        self._tabs.addTab(w, "⚡  Market Exit")
+        self._tabs.addTab(w, "Market Exit")
+        set_tab_icon(self._tabs, self._tabs.count() - 1, "log-out", "danger")
 
     def _build_limit_tab(self) -> None:
         """Tab 2 — Limit Exit: close at a specified price or better."""
@@ -435,7 +436,8 @@ class _ExitPositionDialog(QDialog):
         ly.addWidget(self._lmt_est)
         ly.addStretch()
         self._update_limit_est()
-        self._tabs.addTab(w, "📋  Limit Exit")
+        self._tabs.addTab(w, "Limit Exit")
+        set_tab_icon(self._tabs, self._tabs.count() - 1, "tag", "go")
 
     def _build_scale_out_tab(self) -> None:
         """Tab 3 — Scale Out: partial close, book profit at market."""
@@ -501,7 +503,8 @@ class _ExitPositionDialog(QDialog):
 
         ly.addStretch()
         self._update_scale_est()
-        self._tabs.addTab(w, "📤  Scale Out")
+        self._tabs.addTab(w, "Scale Out")
+        set_tab_icon(self._tabs, self._tabs.count() - 1, "trending-down", "go")
 
     def _build_stop_trail_tab(self) -> None:
         """Tab 4 — Stop Loss / Trailing: set or update protective stop."""
@@ -578,17 +581,21 @@ class _ExitPositionDialog(QDialog):
 
         ly.addWidget(trail_grp)
         ly.addStretch()
-        self._tabs.addTab(w, "🛡  Stop / Trail")
+        self._tabs.addTab(w, "Stop / Trail")
+        set_tab_icon(self._tabs, self._tabs.count() - 1, "shield", "go")
 
     # ── Update helpers ────────────────────────────────────────────────────────
 
     def _update_confirm_label(self, idx: int) -> None:
         labels = ["Sell at Market", "Place Limit Order", "Scale Out", "Set Stop Loss"]
-        colors = [C.RED, C.ORANGE, C.BLUE, C.YELLOW]
         self._confirm_btn.setText(labels[idx])
-        self._confirm_btn.setStyleSheet(
-            f"background:{colors[idx]}; color:#fff; font-weight:bold; padding:7px 22px;"
-        )
+        is_sell = idx < 3
+        self._confirm_btn.setProperty("role", "danger" if is_sell else "")
+        set_icon(self._confirm_btn, "log-out" if is_sell else "shield", "danger" if is_sell else "go")
+        style = self._confirm_btn.style()
+        if style is not None:
+            style.unpolish(self._confirm_btn)
+            style.polish(self._confirm_btn)
 
     def _update_limit_est(self) -> None:
         qty = self._lmt_qty.value()
@@ -1087,18 +1094,21 @@ class _WatchlistTab(QWidget):
             self._sym_input.setCompleter(_completer)
         self._sym_input.returnPressed.connect(self._on_add)
 
-        self._add_btn = QPushButton("➕  Add")
+        self._add_btn = QPushButton("Add")
         self._add_btn.setObjectName("btn_green")
+        set_icon(self._add_btn, "plus", "add")
         self._add_btn.setFixedWidth(110)
         self._add_btn.clicked.connect(self._on_add)
 
-        self._remove_btn = QPushButton("🗑  Remove")
-        self._remove_btn.setObjectName("btn_remove")
+        self._remove_btn = QPushButton("Remove")
+        set_icon(self._remove_btn, "trash-2", "danger")
+        mark_danger(self._remove_btn)
         self._remove_btn.setFixedWidth(110)
         self._remove_btn.setEnabled(False)
         self._remove_btn.clicked.connect(self._on_remove)
 
-        self._refresh_btn = QPushButton("⟳  Refresh")
+        self._refresh_btn = QPushButton("Refresh")
+        set_icon(self._refresh_btn, "refresh-cw", "info")
         self._refresh_btn.setFixedWidth(110)
         self._refresh_btn.clicked.connect(self._on_manual_refresh)
 
@@ -1130,7 +1140,7 @@ class _WatchlistTab(QWidget):
 
         # ── Empty state overlay ───────────────────────────────────────────────
         self._empty_lbl = QLabel(
-            "Watchlist is empty.\n\nType a symbol below and click ➕ Add,\n"
+            "Watchlist is empty.\n\nType a symbol below and click Add,\n"
             "or click 'Add to Watchlist' on any Screener result."
         )
         self._empty_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -1247,7 +1257,7 @@ class DashboardPanel(QWidget):
         ss_row = QHBoxLayout(self._scope_strip)
         ss_row.setContentsMargins(8, 0, 8, 0)
         ss_row.setSpacing(4)
-        self._scope_lbl = QLabel("👥  View:")
+        self._scope_lbl = QLabel("View:")
         self._scope_lbl.setFixedHeight(20)
         self._scope_lbl.setStyleSheet("font-size:8pt; font-weight:bold;")
         ss_row.addWidget(self._scope_lbl)
@@ -1266,9 +1276,9 @@ class DashboardPanel(QWidget):
             ss_row.addWidget(btn)
             return btn
 
-        self._scope_pills[None] = _make_pill("🌐 All", None, first=True)
+        self._scope_pills[None] = _make_pill("All", None, first=True)
         for u in users:
-            self._scope_pills[u.user_id] = _make_pill(f"🔵 {u.username}", u.user_id)
+            self._scope_pills[u.user_id] = _make_pill(u.username, u.user_id)
         ss_row.addStretch()
         self._restyle_scope_strip()
 
@@ -1290,8 +1300,9 @@ class DashboardPanel(QWidget):
         _resize_columns(self._pos_view, {0: 80, 1: 55, 8: 120})
 
         # ── Position action toolbar ────────────────────────────────────────────
-        self._sq_all_btn = QPushButton("⚡  Square Off All")
-        self._sq_all_btn.setObjectName("danger_btn")
+        self._sq_all_btn = QPushButton("Square Off All")
+        set_icon(self._sq_all_btn, "square-x", "danger")
+        mark_danger(self._sq_all_btn)
         self._sq_all_btn.setToolTip("Close all open positions at market price")
         self._pos_status_lbl = QLabel("Double-click a row to manage")
         self._pos_status_lbl.setStyleSheet(f"color:{C.MUTED}; font-size:8pt;")
@@ -1341,10 +1352,12 @@ class DashboardPanel(QWidget):
         # ── QTabWidget: Positions | Trade History | Watchlist | Market Watch ──
         self._dash_tabs = QTabWidget()
         self._dash_tabs.setObjectName("dash_tabs")
-        self._dash_tabs.addTab(pos_tab,              "📋  Open Positions")
-        self._dash_tabs.addTab(hist_tab,             "📜  Trade History")
-        self._dash_tabs.addTab(self._watchlist_tab,  "👁  Watchlist")
-        self._dash_tabs.addTab(self._mw_tab,         "📊  Market Watch")
+        self._dash_tabs.addTab(pos_tab,              "Open Positions")
+        self._dash_tabs.addTab(hist_tab,             "Trade History")
+        self._dash_tabs.addTab(self._watchlist_tab,  "Watchlist")
+        self._dash_tabs.addTab(self._mw_tab,         "Market Watch")
+        for _i, _ic in enumerate(("briefcase", "history", "eye", "activity")):
+            set_tab_icon(self._dash_tabs, _i, _ic, "info")
 
         # ── Live log feed (right panel) ────────────────────────────────────────
         # ── Embedded log section ──────────────────────────────────────────────
@@ -1373,11 +1386,13 @@ class DashboardPanel(QWidget):
         self._log_auto_scroll = QCheckBox("Auto-scroll")
         self._log_auto_scroll.setChecked(True)
 
-        self._pause_btn = QPushButton("⏸  Pause")
+        self._pause_btn = QPushButton("Pause")
+        set_icon(self._pause_btn, "pause", "go")
         self._pause_btn.setFixedWidth(90)
         self._pause_btn.clicked.connect(self._toggle_log_pause)
 
-        self._clear_btn = QPushButton("🗑  Clear")
+        self._clear_btn = QPushButton("Clear")
+        set_icon(self._clear_btn, "eraser")
         self._clear_btn.setFixedWidth(90)
         self._clear_btn.clicked.connect(self._clear_log)
 
@@ -1675,10 +1690,12 @@ class DashboardPanel(QWidget):
     def _toggle_log_pause(self) -> None:
         self._log_paused = not self._log_paused
         if self._log_paused:
-            self._pause_btn.setText("▶  Resume")
+            self._pause_btn.setText("Resume")
+            set_icon(self._pause_btn, "play", "go")
             self._pause_btn.setStyleSheet(f"color: {C.YELLOW};")
         else:
-            self._pause_btn.setText("⏸  Pause")
+            self._pause_btn.setText("Pause")
+            set_icon(self._pause_btn, "pause", "go")
             self._pause_btn.setStyleSheet("")
             self._reapply_log_filter()
 
