@@ -294,3 +294,25 @@
   - A disabled pattern does not change pass/fail or score.
   - Adding a test-only catalogue entry makes it usable in a rule without editing the screener.
   - An unknown pattern id is rejected with a clear error.
+
+---
+
+## FO-SCR-015: Accumulation / Distribution Screener
+- **Status:** Draft (2026-10-23)
+
+- The system shall offer an **Accumulation / Distribution** screener that reads the volume behind recent rallies and drops on daily bars.
+- A rally day shall be a close above the previous close by at least the minimum move %; a drop day a close below it by at least that %.
+- In **Accumulation** mode a symbol shall match when rallies come on high volume and drops come on low volume.
+- In **Distribution** mode a symbol shall match when rallies come on low volume and drops come on high volume.
+- High and low volume shall be judged against the average volume of the previous N days, using settable factors.
+- The screener shall check the up/down volume ratio (average rally-day volume ÷ average drop-day volume).
+- An optional location filter shall require the close near the bottom (Accumulation) or top (Distribution) of a settable range period.
+- An optional close-position check shall require strong rallies to close near the candle high (Accumulation) and strong drops near the candle low (Distribution).
+- Candle-size (spread) checks are out of scope for this release.
+- All thresholds shall be user settings with defaults, edited from a settings dialog in the screener builder.
+- **Acceptance Criteria:**
+  - 20 bars with 8 rally days (6 on 1.5× volume) and 7 drop days (6 on 0.6× volume), near the range low, pass Accumulation with score ≈ 0.80.
+  - The same bars fail Distribution.
+  - With fewer than the minimum rally or drop days, the symbol fails.
+  - With the location filter on, a symbol at the top of its range fails Accumulation; with it off, only the volume pattern decides.
+  - A setting outside its allowed range is rejected with a clear error.
