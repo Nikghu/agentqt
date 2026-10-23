@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.20.0: MD-GUI-023.001.M01 (cards.py) added — card layout.
 > v1.19.0: MD-GUI-022.001.M01 adds `RunStepper`, `SideDrawer` and the header text helpers (SRD-GUI-022.008–.012).
 > v1.18.0: MD-GUI-022.001.M01 (screener_views.py) added; MD-GUI-003.001.M01 hosts the views.
 > v1.17.0: MD-GUI-018.008.M04 (sidebar.py Connections panel) added; MD-GUI-018.005.M03 drops the title bar feed toggle.
@@ -229,3 +230,10 @@ us_swing/src/us_swing/gui/
 | MD-GUI-022.001.M01 | SRD-GUI-022.001 | `us_swing/src/us_swing/gui/screener_views.py` | Result rows, sort, CSV rows, view switch, List + detail view, Cards view, preset filter | `ResultRow`, `RuleCheck`, `rows_from_result()`, `sort_rows()`, `csv_rows()`, `filter_presets()`, `run_date_text()`, `run_meta_text()`, `transcript_pill_text()`, `ViewSwitch`, `RunStepper`, `SideDrawer`, `ListDetailView`, `CardsView` | `theme`, `icons` | No |
 
 > `screener_panel.py` (MD-GUI-003.001.M01) hosts the views, the Sort box and the new preset rail; `theme.py` (MD-GUI-017) gains the screener view QSS rules.
+## FO-GUI-023 — Card Layout
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-GUI-023.001.M01 | SRD-GUI-023.001 | `us_swing/src/us_swing/gui/cards.py` | Wrap a section in a rounded card; mark gap widgets | `card()`, `gutter()`, `GAP`, `GUTTER` | PyQt6 | No |
+
+> `main_window.py` (MD-GUI-001.001.M01) and `screener_panel.py` (MD-GUI-003.001.M01) use the helpers; `theme.py` styles `shell_card` and `shell_gutter`.

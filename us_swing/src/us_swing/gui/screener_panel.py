@@ -55,7 +55,6 @@ from PyQt6.QtWidgets import (
     QScrollArea,
     QSizePolicy,
     QSpinBox,
-    QSplitter,
     QStackedWidget,
     QVBoxLayout,
     QWidget,
@@ -65,6 +64,7 @@ from us_swing.gui.ai_transcript_panel import AITranscriptPanel
 from us_swing.core.indicator_rules import config_summary
 from us_swing.core.price_patterns import pattern_config_summary
 from us_swing.gui.app_service import AppService
+from us_swing.gui.cards import GAP, card, gutter
 from us_swing.gui.frameless_dialog import FramelessDialog
 from us_swing.gui.indicator_rules_dialog import IndicatorRulesDialog
 from us_swing.gui.price_action_rules_dialog import PriceActionRulesDialog
@@ -1752,13 +1752,13 @@ class ScreenerPanel(QWidget):
         rl.addWidget(header)
         rl.addWidget(right_widget, 1)
 
-        body = QSplitter(Qt.Orientation.Horizontal)
-        body.setHandleWidth(2)
-        body.addWidget(left_frame)
-        body.addWidget(right_col)
-        body.setSizes([260, 900])
-        body.setCollapsible(0, False)
-        body.setCollapsible(1, False)
+        # Preset rail and results are two cards on the gutter (SRD-GUI-023.002)
+        body = gutter(QWidget())
+        bl = QHBoxLayout(body)
+        bl.setContentsMargins(0, 0, 0, 0)
+        bl.setSpacing(GAP)
+        bl.addWidget(card(left_frame))
+        bl.addWidget(card(right_col), 1)
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)

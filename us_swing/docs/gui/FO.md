@@ -684,3 +684,22 @@ The system shall replace the screener results table with two views the user can 
 2. Selecting a stock in List shows its chart and plan.
 3. A run without a plan shows "—" for Entry, Stop, Target and R:R.
 4. CSV includes Entry, Stop, Target and R:R.
+## FO-GUI-023: Card Layout
+
+**Status:** Approved (user, 2026-10-23)
+**Priority:** Should
+**Depends on:** FO-GUI-018 (sidebar workspace shell), FO-GUI-022 (screener views)
+**Source:** User asked for VS Code style gaps and rounded corners between sections; chose "Whole app", 4 px gap, 6 px corner.
+
+The system shall show the main sections of the window as separate rounded cards with a small gap between them. Behaviour does not change.
+
+### Requirements
+
+1. **Shell cards.** Sidebar, each screen, right panel, log panel and icon strip are separate cards.
+2. **Screener cards.** The preset list and the results are two cards.
+3. **Themes.** All three themes use the same gap and corner sizes.
+
+### Acceptance Criteria
+
+1. A closed right panel or log panel leaves no gap behind.
+2. Corners stay rounded on every screen; nothing paints over them.

@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.16.0: DD-GUI-023.001.D01 added — card layout.
 > v1.15.0: DD-GUI-022.001.D01 extended — page header, run stepper, transcript drawer (SRD-GUI-022.008–.012).
 > v1.14.0: DD-GUI-022.001.D01 added — screener result views and preset rail.
 > v1.13.0: DD-GUI-018.001.D01 extended — Connections panel in the sidebar (SRD-GUI-018.008–.011).
@@ -1603,3 +1604,9 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 **Polish (SRD-GUI-022.008–.012).** The toolbar becomes `screener_header`, placed over the results column only (the rail runs full height): title + `page_tag` labels (type, Auto / Manual run), a run line from `run_meta_text(count, run_timestamp, ai_ranked)`, the `tx_pill`, then `RunStepper`, Sort, `ViewSwitch`, an icon-only CSV button and `primary_btn` Run now. `RunStepper(QFrame)` takes the storage date keys newest first, shows `run_date_text(key)`, a Latest tag at index 0 and a `QMenu` with one checkable action per run; it emits `index_changed(int)` and the panel loads that run. `SideDrawer(QFrame)` is a child of the results container: it follows the parent's resize through an event filter, slides with a 220 ms `pos` animation, closes on Esc or ✕ and emits `closed`; it holds the existing `AITranscriptPanel` (own title hidden). The pill text comes from `transcript_pill_text(turns, in_rate, out_rate)` and the pill shows only when the preset has `enable_llm_ranking` and turns are loaded. Rows carry `name` from the S&P 500 universe (`get_sp500_universe()`, read once and cached). The list row shows rank, symbol / company, score, `_ScoreBar` and "passed/total"; the detail plan box uses `_RiskRewardBar` (risk share = (entry − stop) / (target − stop)) and "Risk / Reward $x per share" lines; rules use check / x icons. The compact chart hides its toolbar (`CandleChartPanel.hide_toolbar()`).
 
 **Styles.** New QSS in `_sidebar_qss`: `view_btn`, `result_card`, `detail_tile`, `rule_chip` (`state` = pass / fail / value), `tier_chip`, `preset_item`. Tier and score colours come from `active_palette()` at render time; views refresh on `StyleChange`.
+
+## DD-GUI-023.001.D01 — Card Layout
+
+**Traces:** SRD-GUI-023.001–.003
+
+`cards.card(child)` returns a `QFrame#shell_card` with 2 px layout margins, so square child corners stay inside the 6 px rounded border (every `QWidget` paints the page colour). `cards.gutter(w)` names a widget `shell_gutter`; QSS paints it in the sidebar / title-bar colour. Main window: body row margins and spacing = `GAP` (4); the stack is gutter and each screen except the Screener is wrapped in a card; the right panel and log panel keep their gap inside (left / top margin `GAP`) and hold a card, so at size 0 nothing is left. The floating sidebar takes the slot's geometry instead of (0, 0). Screener: the rail and the results column become two cards in a gutter row (the fixed-width splitter is dropped). QSS in `_sidebar_qss` (all themes): `shell_gutter`, `shell_card` (border + radius only, background from the page rule), sidebar and icon strip get a full border and radius, `preset_pane` loses its own background and border.

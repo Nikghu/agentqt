@@ -2,6 +2,16 @@
 
 ---
 
+## [20261023] GUI — Card layout, gaps and rounded corners (FO-GUI-023, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-023
+- RN: RN-GUI-1.19.0-20261023
+- Artifacts updated: FO, SRD, DD, MD, UTCD, TRACE, Code, Tests, RN, CONTEXT
+- Decisions: whole app as cards, 4 px gap in the title-bar colour, 6 px corners, 1 px border; gap kept inside the sliding right / log panels; Screener rail and results as two cards. Follow-ups this session: busy bar removed from the Screener header; three-digit ranks fit.
+
+---
+
 ## [20261023] GUI — Screener result polish, Option A (FO-GUI-022, feature)
 
 - Type: Feature

@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.18.0: UT-GUI-023.* added — card layout.
 > v1.17.0: UT-GUI-022.008–.011.* added — screener header, run stepper, transcript drawer, list detail.
 > v1.16.0: UT-GUI-022.* added — screener result views and preset rail.
 > v1.15.0: UT-GUI-018.008–.011.* added — Connections panel in the sidebar.
@@ -576,3 +577,9 @@ Test files:
 | UT-GUI-022.010.M01.T01 | MD-GUI-022.001.M01 | Positive | Pill shows steps and cost | 2 turns with tokens; 1 turn without | "AI transcript · 2 steps · $0.04"; "AI transcript · 1 step" | Pass |
 | UT-GUI-022.010.M01.T02 | MD-GUI-022.001.M01 | Positive | Drawer opens and Esc closes it | host 1000 px; open; Esc | open, visible, 460 px wide; closed once | Pass |
 | UT-GUI-022.011.M01.T01 | MD-GUI-022.001.M01 | Positive | Company name, rules count, risk / reward | names for NVDA; select row without plan | company in meta; "RULES · 1 OF 3"; "$10.00" / "$33.00" lines; bar hidden and no-plan text | Pass |
+## FO-GUI-023 — Card Layout
+
+| ID | Module | Type | Description | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-023.001.M01.T01 | MD-GUI-023.001.M01 | Positive | Card holds the child inside its padding | QLabel | name `shell_card`; child at index 0; margins ≥ 2 | Pass |
+| UT-GUI-023.001.M01.T02 | MD-GUI-023.001.M01 | Positive | Gutter marks the widget | QWidget | same widget returned; name `shell_gutter`; GAP 4 | Pass |

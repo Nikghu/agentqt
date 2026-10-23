@@ -41,7 +41,7 @@ class IconStrip(QFrame):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("icon_strip")
-        self.setFixedWidth(44)
+        self.setFixedWidth(46)  # 36 px buttons + 4 px margins + 1 px border each side
         layout = QVBoxLayout(self)
         layout.setContentsMargins(4, 8, 4, 8)
         layout.setSpacing(4)

@@ -49,6 +49,7 @@ from PyQt6.QtWidgets import (
 from us_swing import __version__
 from us_swing.data.models import ConnectionStatus
 from us_swing.gui.app_service import AppService
+from us_swing.gui.cards import GAP, card, gutter
 from us_swing.gui.chart_workspace import ChartWorkspace
 from us_swing.gui.dashboard_panel import DashboardPanel
 from us_swing.gui.execution_panel import ExecutionPanel
@@ -467,7 +468,9 @@ class MainWindow(QMainWindow):
         svc.flush_broker_fallback_message()
 
         # ── Stacked content ────────────────────────────────────────────────────
+        # Each screen is a card; the Screener lays out its own cards (SRD-GUI-023.002).
         self._stack = QStackedWidget()
+        gutter(self._stack)
         for p in panels:
             if p is self._settings_panel:
                 # Settings is tall; scroll it so it never sets the window's minimum height.
@@ -477,9 +480,11 @@ class MainWindow(QMainWindow):
                 scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
                 scroll.setFrameShape(QFrame.Shape.NoFrame)
                 scroll.setWidget(p)
-                self._stack.addWidget(scroll)
-            else:
+                self._stack.addWidget(card(scroll))
+            elif p is self._screener_panel:
                 self._stack.addWidget(p)
+            else:
+                self._stack.addWidget(card(p))
         self._stack.setCurrentIndex(0)
 
         # ── Title bar (brand, index prices, feed, win controls) ────────────────
@@ -487,11 +492,12 @@ class MainWindow(QMainWindow):
 
         # ── Sidebar: floats over a width-reserving slot so hover peek never
         #    pushes the screen; the slot width is animated by RevealController.
-        body = QWidget()
+        # Sections are cards with a GAP of gutter between them (SRD-GUI-023.001).
+        body = gutter(QWidget())
         body_row = QHBoxLayout(body)
-        body_row.setContentsMargins(0, 0, 0, 0)
-        body_row.setSpacing(0)
-        self._side_slot = QWidget()
+        body_row.setContentsMargins(GAP, GAP, GAP, GAP)
+        body_row.setSpacing(GAP)
+        self._side_slot = gutter(QWidget())
         body_row.addWidget(self._side_slot)
 
         # Right panel (Position Details | Watchlist | System | Data) and bottom Live Log panel;
@@ -504,19 +510,20 @@ class MainWindow(QMainWindow):
         self._right_stack.addWidget(watchlist)
         self._right_stack.addWidget(self._settings_panel.system_panel)
         self._right_stack.addWidget(self._settings_panel.data_panel)
+        # The gap sits inside each sliding panel, so a closed panel leaves none behind.
         self._right_panel = QFrame()
         self._right_panel.setObjectName("right_panel")
         rp = QVBoxLayout(self._right_panel)
-        rp.setContentsMargins(0, 0, 0, 0)
-        rp.addWidget(self._right_stack)
+        rp.setContentsMargins(GAP, 0, 0, 0)
+        rp.addWidget(card(self._right_stack))
         self._right_name = "details"
         self._log_panel = QFrame()
         self._log_panel.setObjectName("log_panel")
         lp = QVBoxLayout(self._log_panel)
-        lp.setContentsMargins(0, 0, 0, 0)
-        lp.addWidget(self._log_view)
+        lp.setContentsMargins(0, GAP, 0, 0)
+        lp.addWidget(card(self._log_view))
 
-        centre = QWidget()
+        centre = gutter(QWidget())
         centre_col = QVBoxLayout(centre)
         centre_col.setContentsMargins(0, 0, 0, 0)
         centre_col.setSpacing(0)
@@ -539,8 +546,8 @@ class MainWindow(QMainWindow):
         want_mini = self._mini_state.want_mini()
         self._reveal.register("sidebar", self._side_slot, MINI_WIDTH, FULL_WIDTH,
                               start_open=not want_mini)
-        self._reveal.register("right", self._right_panel, 0, 300, start_open=False)
-        self._reveal.register("log", self._log_panel, 0, 180, horizontal=False,
+        self._reveal.register("right", self._right_panel, 0, 300 + GAP, start_open=False)
+        self._reveal.register("log", self._log_panel, 0, 180 + GAP, horizontal=False,
                               start_open=False)
         self._sidebar.set_mini(want_mini)
         self._slide: QPropertyAnimation | None = None
@@ -726,7 +733,8 @@ class MainWindow(QMainWindow):
 
     def _sync_sidebar_geometry(self) -> None:
         width = FULL_WIDTH if self._peeking else self._side_slot.width()
-        self._sidebar.setGeometry(0, 0, width, self._body.height())
+        slot = self._side_slot.geometry()
+        self._sidebar.setGeometry(slot.x(), slot.y(), width, slot.height())
         self._sidebar.raise_()
 
     def eventFilter(self, obj: QObject | None, event: QEvent | None) -> bool:

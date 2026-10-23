@@ -1272,7 +1272,7 @@ QPushButton[role="danger"]:disabled {{ color: {muted}; border-color: {line}; }}
 def _sidebar_qss(bg: str, line: str, text: str, sub: str, hover: str,
                  active_bg: str, accent: str) -> str:
     return f"""
-QFrame#sidebar {{ background: {bg}; border-right: 1px solid {line}; }}
+QFrame#sidebar {{ background: {bg}; border: 1px solid {line}; border-radius: 6px; }}
 QPushButton#side_btn {{
     background: transparent; color: {sub}; border: none; border-left: 2px solid transparent;
     border-radius: 2px; text-align: left; padding: 0 10px; outline: none; font-size: 10pt;
@@ -1371,7 +1371,7 @@ QListWidget#preset_list::item:selected {{ background: {line}; }}
 QWidget#preset_item, QWidget#preset_item QLabel {{ background: transparent; }}
 QLabel#preset_name {{ color: {text}; font-size: 9.5pt; }}
 QLabel#view_head {{ color: {sub}; font-size: 7.5pt; font-weight: bold; letter-spacing: 1px; }}
-QFrame#icon_strip {{ background: {bg}; border-left: 1px solid {line}; }}
+QFrame#icon_strip {{ background: {bg}; border: 1px solid {line}; border-radius: 6px; }}
 QPushButton#strip_btn {{
     background: transparent; border: none; border-radius: 2px; outline: none;
 }}
@@ -1381,8 +1381,10 @@ QPushButton#strip_btn:focus {{ outline: none; }}
 QLabel#strip_badge {{
     background: {accent}; color: {bg}; border-radius: 7px; font-size: 7pt; font-weight: bold;
 }}
-QFrame#right_panel {{ border-left: 1px solid {line}; }}
-QFrame#log_panel {{ border-top: 1px solid {line}; }}
+QFrame#right_panel, QFrame#log_panel {{ background: {bg}; border: none; }}
+QWidget#shell_gutter {{ background: {bg}; }}
+QFrame#shell_card {{ border: 1px solid {line}; border-radius: 6px; }}
+QFrame#preset_pane {{ background: transparent; border: none; }}
 QLabel#details_key {{ color: {sub}; }}
 QMdiArea#chart_mdi {{ background: {bg}; border: 1px solid {line}; }}
 QMdiArea#chart_mdi QTabBar::tab:selected {{ color: {accent}; border-bottom: 2px solid {accent}; }}
