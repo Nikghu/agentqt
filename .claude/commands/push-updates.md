@@ -3,7 +3,8 @@ Publish a new GitHub release for the USSwing installer.
 Usage: /project:push-updates
 Run AFTER building the installer via the installer GUI. Creates a GitHub release tag,
 uploads the .exe and .sha256 assets, and patches updater_manifest.json with the live
-download URL so the in-app updater can resolve it.
+download URL so the in-app updater can resolve it. Finally deletes all older GitHub
+releases so only the latest one is available.
 
 Pre-conditions (verify before proceeding — abort with a clear message if any fail):
   - `gh` CLI is authenticated  →  run: gh auth status
@@ -61,7 +62,15 @@ Steps:
    - Write the updated JSON back to MANIFEST (pretty-print, 2-space indent).
    - Print: `Manifest patched with download URL`
 
-7. Confirm
+7. Delete old GitHub releases
+   Only run this after step 6 succeeds, so the new release is live first.
+   - Run: gh release list --repo <REPO> --limit 100 --json tagName --jq '.[].tagName'
+   - For every tag that is not v<VERSION>, run:
+       gh release delete <TAG> --repo <REPO> --yes
+   - Keep the git tags — delete only the releases and their assets.
+   - Print: `Old releases deleted: <TAG list>` (or `No old releases to delete`)
+
+8. Confirm
    Print a summary table:
    ```
    Release:       v<VERSION>
@@ -70,5 +79,6 @@ Steps:
    SHA-256:       <sha256_value>
    Download URL:  <DOWNLOAD_URL>
    Updater mode:  GitHub Releases (active)
+   Old releases:  <deleted TAG list or "none">
    ```
    Print: "Done — users will receive this update within 24 hours of next app launch."
