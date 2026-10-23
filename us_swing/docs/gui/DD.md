@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.10.0: DD-GUI-019.001.D01 added — side panels and Exit drawer.
 > v1.9.0: DD-GUI-018.001.D01 added — sidebar workspace shell.
 > v1.8.0: DD-GUI-017.001.D01 added — Carbon theme and icon system.
 > v1.7.0: DD-GUI-013.016.D01 + DD-GUI-014.016.D01 added — Short Trade Direction: Direction selector, edit lock, no-stop note, strategy table column, Active Trades Side column, direction-aware verbs, Short risk-editor ranges.
@@ -1517,3 +1518,22 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 **Title bar.** `_TitleBar` loses the nav tabs and gains the market watch cells (`_MWCell`, moved from `_AdminContextBar`) between brand and the feed toggle.
 
 **Screen slide.** On `page_requested`, after `setCurrentIndex`, a `QPropertyAnimation` moves the new page's `pos` from (24, 0) to (0, 0) over 180 ms.
+
+---
+
+## DD-GUI-019.001.D01 — Side Panels and Exit Drawer
+
+**Traces:** SRD-GUI-019.001–.008
+
+**Layout.** Body row: sidebar slot | centre column | icon strip (40 px). Centre column: top row (stack | right panel) above the bottom log panel. Panels are plain `QFrame`s sized by `RevealController` (`"right"` 0↔280 width, `"log"` 0↔180 height), not `QDockWidget`s, so they never float or get a native frame.
+
+**Icon strip and panels (`side_panels.py`).**
+- `IconStrip(QFrame)`: three checkable icon-only buttons (`clipboard-list` Details, `eye` Watchlist, `scroll-text` Log) and a count badge on Log. Signal `panel_toggled(str, bool)`; slots `set_checked(name, bool)`, `count_warning(level, message)` (counts WARNING/ERROR/CRITICAL while Log is closed, reset on open).
+- `PositionDetails(QWidget)`: `show_position(pos | None, user_name)`; refreshes on `positions_updated` by matching `(symbol, user_id)`. Signals `exit_requested(int tab)` and `chart_requested(str)`.
+- Right panel holds a `QStackedWidget` with Details and the Watchlist widget taken from `DashboardPanel.watchlist_widget`.
+
+**MainWindow wiring.** `strip.panel_toggled` → `RevealController.reveal_requested`; `revealed` → `strip.set_checked`; opening `"right"` sets `_MiniState.panel_open` so the sidebar shrinks, closing clears it. `page_requested` for Chart or Settings closes both panels. `dashboard.position_selected` → `details.show_position` and opens Details. `details.exit_requested(tab)` → switch to Dashboard and `dashboard.open_exit(tab)`. `details.chart_requested(symbol)` → switch to Chart and `chart_panel.show_symbol(symbol)`.
+
+**Exit drawer (`dashboard_panel.py`).** `_ExitPositionDialog` becomes `_ExitForm(QWidget)` with the same summary card, four tabs and estimate helpers; its title bar and drag code are removed. Footer: Cancel · Review. Review shows a red summary line ("Sell 85 NVDA at market") and swaps the footer to Back · Confirm <action>; Confirm emits `submitted(action, params)` with the same values the dialog returned. `_SquareOffForm` lists open positions with quantity, price and P&L plus a total, with the same Review → Confirm flow and emits `submitted("square_off_all", {})`. `_ExitDrawer(QFrame)` is a 420 px child of `DashboardPanel`, kept at the right edge on resize, slid in and out with a `QPropertyAnimation` on `pos` (220 ms); Esc closes it. `DashboardPanel._apply_exit(pos, action, params)` holds the existing order calls; row highlight is set while the drawer is open.
+
+**Removed from Dashboard.** Watchlist tab and the embedded log section (`_on_log_message`, filter, pause, clear helpers).

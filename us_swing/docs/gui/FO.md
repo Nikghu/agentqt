@@ -583,3 +583,28 @@ The system shall replace the top navigation tabs and the account strip with a le
 2. Collapse makes the sidebar icon-only; the choice is kept after restart.
 3. Opening Execution makes the sidebar small; going back to Dashboard restores it.
 4. The footer shows the same capital and available values as the old account strip.
+
+---
+
+## FO-GUI-019: Side Panels and Exit Drawer
+
+**Status:** Approved (user, 2026-10-23)
+**Priority:** Should
+**Depends on:** FO-GUI-018 (sidebar shell and reveal controller)
+**Source:** GUI redesign Phase 3 — Carbon Workspace design agreed 2026-10-23.
+
+The system shall show Position Details, Watchlist and Live Log as panels that open and close from a right icon strip, and shall replace the blocking Exit Position dialog with a drawer that has a review step. Trading behaviour does not change.
+
+### Requirements
+
+1. **Icon strip.** A thin strip on the right edge opens and closes Position Details, Watchlist and Live Log.
+2. **Panels.** Position Details and Watchlist open on the right; Live Log opens at the bottom; the Watchlist and Live Log leave the Dashboard.
+3. **Exit drawer.** Exit, limit, scale-out and stop changes open in a drawer that does not block the app, with a Review step before Confirm.
+4. **Square Off All.** Uses the same drawer, listing all positions before Confirm.
+
+### Acceptance Criteria
+
+1. Clicking a position row shows its details in the right panel.
+2. Every exit type from the old dialog sends the same request as before, but only after Review and Confirm.
+3. Prices keep updating while the drawer is open.
+4. Screener "Watchlist" still adds the symbol to the watchlist.

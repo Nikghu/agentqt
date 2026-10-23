@@ -2,6 +2,16 @@
 
 ---
 
+## [20261023] GUI — Side panels and Exit drawer, Phase 3 (FO-GUI-019, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-019
+- RN: RN-GUI-1.11.0-20261023
+- Artifacts updated: SRD, DD, MD, UTCD, TRACE, Code, Tests, RN, TODO (T39), CONTEXT
+- Decisions: Panels are plain QFrames, not QDockWidgets (no floating to a second monitor); Exit drawer is non-modal.
+
+---
+
 ## [20261023] GUI — Sidebar workspace shell, Phase 2 (FO-GUI-018, feature)
 
 - Type: Feature

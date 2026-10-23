@@ -1288,6 +1288,19 @@ QPushButton#side_btn:focus {{ outline: none; }}
 QFrame#side_sep {{ background: {line}; border: none; }}
 QLabel#side_footer {{ color: {sub}; font-size: 8pt; }}
 QWidget#side_account, QWidget#side_account QLabel {{ background: transparent; }}
+QFrame#icon_strip {{ background: {bg}; border-left: 1px solid {line}; }}
+QPushButton#strip_btn {{
+    background: transparent; border: none; border-radius: 2px; outline: none;
+}}
+QPushButton#strip_btn:hover {{ background: {hover}; }}
+QPushButton#strip_btn:checked {{ background: {active_bg}; border-left: 2px solid {accent}; }}
+QPushButton#strip_btn:focus {{ outline: none; }}
+QLabel#strip_badge {{
+    background: {accent}; color: {bg}; border-radius: 7px; font-size: 7pt; font-weight: bold;
+}}
+QFrame#right_panel {{ border-left: 1px solid {line}; }}
+QFrame#log_panel {{ border-top: 1px solid {line}; }}
+QLabel#details_key {{ color: {sub}; }}
 """
 
 

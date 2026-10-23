@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.25.0: SRD-GUI-019.001–.008 added — side panels and Exit drawer (GUI redesign Phase 3); approved by user 2026-10-23.
 > v2.24.0: SRD-GUI-018.001–.007 added — sidebar workspace shell (GUI redesign Phase 2); approved by user 2026-10-23. Supersedes the layout parts of SRD-GUI-001.001, SRD-GUI-000.003 and the location of SRD-GUI-000.006.
 > v2.23.0: SRD-GUI-017.001–.005 added — Carbon theme and icon system (GUI redesign Phase 1); approved by user 2026-10-23.
 > v2.22.0: SRD-GUI-004.013 added — automatic cleanup of stale intraday candles at app start; user request 2026-10-22; Implemented (RN-GUI-1.8.0).
@@ -313,3 +314,16 @@
 | SRD-GUI-018.005 | FO-GUI-018 | Must | The title bar shows logo, brand, version, the market watch index prices, the feed toggle and window controls. | — | — | Drag, double-click maximise unchanged | Implemented |
 | SRD-GUI-018.006 | FO-GUI-018 | Must | `RevealController` animates a registered widget between closed and open sizes in 200 ms and emits `revealed(name, bool)` when done. | `reveal_requested(name, bool)` | `revealed(name, bool)` | One animation per widget; repeat requests restart it | Implemented |
 | SRD-GUI-018.007 | FO-GUI-018 | Should | Changing screen slides the new screen in from the right over 180 ms. | `page_requested` | slide | No opacity effects (web views) | Implemented |
+
+## FO-GUI-019 — Side Panels and Exit Drawer
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-019.001 | FO-GUI-019 | Must | A right `IconStrip` has checkable Details, Watchlist and Log buttons that toggle their panels; Log shows a count of new warnings and errors while hidden. | click, `log_message` | panel request | Icon-only buttons have tooltips | Implemented |
+| SRD-GUI-019.002 | FO-GUI-019 | Must | A 280 px right panel shows Position Details or Watchlist and a 180 px bottom panel shows Live Log, both opened and closed through `RevealController`. | panel request | panel shown or hidden | Right panel shrinks the sidebar while open; Chart and Settings close panels | Implemented |
+| SRD-GUI-019.003 | FO-GUI-019 | Must | Position Details shows the selected position's symbol, state, price, change, quantity, average entry, P&L, stop and target, with Exit, Stop / Trail and Open in Chart buttons. | Dashboard row click, `positions_updated` | details | Empty hint when nothing is selected | Implemented |
+| SRD-GUI-019.004 | FO-GUI-019 | Must | The Watchlist moves from a Dashboard tab to the right panel; the Screener add-to-watchlist path is unchanged. | — | — | Same widget and data | Implemented |
+| SRD-GUI-019.005 | FO-GUI-019 | Must | The Live Log moves from the Dashboard to the bottom panel using `LogViewerPanel`, with the same level, search, pause and clear controls. | `log_message` | log lines | Dashboard log section removed | Implemented |
+| SRD-GUI-019.006 | FO-GUI-019 | Must | A non-modal Exit drawer on the Dashboard replaces the Exit Position dialog: same four tabs and fields, then Review, then a Confirm button naming the action. | row double-click, Details buttons | same actions as before | Live-mode block unchanged; Cancel or Esc changes nothing | Implemented |
+| SRD-GUI-019.007 | FO-GUI-019 | Must | Square Off All opens the drawer in list mode with every open position and the total, then Review and Confirm. | click | close requests | Replaces the warning message box | Implemented |
+| SRD-GUI-019.008 | FO-GUI-019 | Should | Open in Chart switches to the Chart screen and loads the selected symbol. | click | chart | Uses the chart's own load path | Implemented |

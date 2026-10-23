@@ -29,6 +29,7 @@ from PyQt6.QtWidgets import (
 )
 
 from us_swing.gui.app_service import AppService
+from us_swing.gui.icons import set_icon
 from us_swing.gui.theme import active_palette, colors, load_theme_id
 
 # Path to the bundled Lightweight Charts JS (downloaded once at install time)
@@ -588,7 +589,8 @@ class CandleChartPanel(QWidget):
         self._status_lbl = QLabel("Select a symbol and click Load Chart")
         trow.addWidget(self._status_lbl)
 
-        self._refresh_btn = QPushButton("↺ Refresh List")
+        self._refresh_btn = QPushButton("Refresh List")
+        set_icon(self._refresh_btn, "refresh-cw", "info")
         self._refresh_btn.setFixedHeight(26)
         self._refresh_btn.clicked.connect(self._refresh_symbol_list)
         trow.addWidget(self._refresh_btn)
@@ -611,6 +613,11 @@ class CandleChartPanel(QWidget):
         self._limit_spin.editingFinished.connect(self._auto_reload_if_loaded)
 
     # ── Logic ──────────────────────────────────────────────────────────────────
+
+    def show_symbol(self, symbol: str) -> None:
+        """Load ``symbol`` as if the user typed it and pressed Load Chart (SRD-GUI-019.008)."""
+        self._sym_combo.setCurrentText(symbol)
+        self._on_load()
 
     def _refresh_symbol_list(self) -> None:
         """Repopulate the symbol dropdown from candles.db."""

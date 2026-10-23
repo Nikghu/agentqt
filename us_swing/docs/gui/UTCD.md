@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.12.0: UT-GUI-019.* added — side panels and Exit drawer.
 > v1.11.0: UT-GUI-018.* added — sidebar workspace shell.
 > v1.10.0: UT-GUI-017.* added — Carbon theme and icon system.
 > v1.9.1: UT-GUI-006.001.M01.T17–T18 added — user edit keeps Telegram settings (ISS-GUI-0005).
@@ -494,3 +495,18 @@ Test files:
 | UT-GUI-018.006.M02.T03 | MD-GUI-018.006.M02 | Edge | Request during animation restarts from current size | open then close mid-way | ends at closed size; last `revealed` is False | Pass |
 | UT-GUI-018.002.M03.T01 | MD-GUI-018.005.M03 | Positive | Wide screen auto-shrinks and restores | page Execution then Dashboard | slot 56 then 200 | Pass |
 | UT-GUI-018.002.M03.T02 | MD-GUI-018.005.M03 | Negative | Auto restore keeps user's mini choice | user mini on; Execution then Dashboard | slot stays 56 | Pass |
+
+## FO-GUI-019 — Side Panels and Exit Drawer
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-019.001.M01.T01 | MD-GUI-019.001.M01 | Positive | Strip button toggles its panel | click Watchlist twice | `panel_toggled("watch", True)` then `False` | Pass |
+| UT-GUI-019.001.M01.T02 | MD-GUI-019.001.M01 | Positive | Log badge counts warnings only while hidden | WARNING, INFO, ERROR; then open Log | badge 2; badge hidden after open | Pass |
+| UT-GUI-019.003.M01.T01 | MD-GUI-019.001.M01 | Positive | Details shows the position | position NVDA 85 @ 138.20 | symbol, quantity, average, P&L shown | Pass |
+| UT-GUI-019.003.M01.T02 | MD-GUI-019.001.M01 | Negative | Details with no selection | `show_position(None)` | empty hint; buttons disabled | Pass |
+| UT-GUI-019.006.M02.T01 | MD-GUI-019.006.M02 | Positive | Market exit sends only after Review and Confirm | Market tab; Review; Confirm | `submitted("full_close", qty=85)` once, not on Review | Pass |
+| UT-GUI-019.006.M02.T04 | MD-GUI-019.006.M02 | Negative | Double-click on Confirm sends once | Review; Confirm twice | one `submitted`; form disabled | Pass |
+| UT-GUI-019.006.M02.T02 | MD-GUI-019.006.M02 | Positive | Stop tab returns the same params as the old dialog | price 132.5, trailing off | `submitted("set_stop_loss", {price 132.5, trailing False, ...})` | Pass |
+| UT-GUI-019.006.M02.T03 | MD-GUI-019.006.M02 | Negative | Cancel and Back send nothing | Review then Back; Cancel | no `submitted` | Pass |
+| UT-GUI-019.007.M02.T01 | MD-GUI-019.006.M02 | Positive | Square-off list shows all positions and confirms | 3 positions; Review; Confirm | 3 rows; `submitted("square_off_all")` | Pass |
+| UT-GUI-019.002.M03.T01 | MD-GUI-019.002.M03 | Positive | Opening the right panel shrinks the sidebar and closing restores it | `_MiniState` panel open then closed | `want_mini` True then False | Pass |

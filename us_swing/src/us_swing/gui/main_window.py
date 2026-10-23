@@ -7,9 +7,10 @@ Layout:
   ┌──────────────────────────────────────────────────────────────────────┐
   │ logo  Swing Trading Terminal v  │  index prices  │  feed  │ − □ ✕   │
   ├──────────┬───────────────────────────────────────────────────────────┤
-  │ SIDEBAR  │  CONTENT  (QStackedWidget — fills remainder)              │
-  │ (200/56) │                                                           │
-  ├──────────┴───────────────────────────────────────────────────────────┤
+  │ SIDEBAR  │  CONTENT  (QStackedWidget)        │ RIGHT PANEL │ STRIP │
+  │ (200/56) ├───────────────────────────────────┴─────────────┤       │
+  │          │  LIVE LOG (bottom panel, 0/180)                  │       │
+  ├──────────┴─────────────────────────────────────────────────┴───────┤
   │  STATUS BAR                                                          │
   └──────────────────────────────────────────────────────────────────────┘
 """
@@ -42,6 +43,7 @@ from PyQt6.QtWidgets import (
     QLabel,
     QMainWindow,
     QPushButton,
+    QScrollArea,
     QStackedWidget,
     QVBoxLayout,
     QWidget,
@@ -57,7 +59,9 @@ from us_swing.gui.screener_panel import ScreenerPanel
 from us_swing.gui.settings_panel import SettingsPanel
 from us_swing.gui.system_store import load_system_config
 from us_swing.gui.icons import refresh_icons
+from us_swing.gui.log_viewer_panel import LogViewerPanel
 from us_swing.gui.reveal import RevealController
+from us_swing.gui.side_panels import IconStrip, PositionDetails
 from us_swing.gui.sidebar import FULL_WIDTH, MINI_WIDTH, Sidebar
 from us_swing.gui.theme import C, active_palette, colors
 
@@ -560,6 +564,8 @@ _NAV_ITEMS: list[tuple[str, str]] = [
     ("settings", "Settings"),
 ]
 _WIDE_PAGES = frozenset({2, 3})   # Execution, Chart
+_NO_PANEL_PAGES = frozenset({3, 4})   # Chart, Settings
+_RIGHT_PANELS = ("details", "watch")
 
 
 class _MiniState:
@@ -568,6 +574,7 @@ class _MiniState:
     def __init__(self, user_mini: bool) -> None:
         self.user_mini = user_mini
         self.auto_mini = False
+        self.panel_open = False
 
     def set_page(self, index: int) -> None:
         self.auto_mini = index in _WIDE_PAGES
@@ -578,7 +585,7 @@ class _MiniState:
             self.auto_mini = False
 
     def want_mini(self) -> bool:
-        return self.user_mini or self.auto_mini
+        return self.user_mini or self.auto_mini or self.panel_open
 
 
 # ── Main Window ────────────────────────────────────────────────────────────────
@@ -605,6 +612,9 @@ class MainWindow(QMainWindow):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
         self.setWindowTitle("US Swing Terminal")
 
+        # ── Live Log first, so messages logged while the screens build are kept ─
+        self._log_view = LogViewerPanel(svc)
+
         # ── Panels ─────────────────────────────────────────────────────────────
         self._dashboard_panel  = DashboardPanel(svc)
         self._screener_panel   = ScreenerPanel(svc)
@@ -627,7 +637,15 @@ class MainWindow(QMainWindow):
         # ── Stacked content ────────────────────────────────────────────────────
         self._stack = QStackedWidget()
         for p in panels:
-            self._stack.addWidget(p)
+            if p is self._settings_panel:
+                # Settings is tall; scroll it so it never sets the window's minimum height.
+                scroll = QScrollArea()
+                scroll.setWidgetResizable(True)
+                scroll.setFrameShape(QFrame.Shape.NoFrame)
+                scroll.setWidget(p)
+                self._stack.addWidget(scroll)
+            else:
+                self._stack.addWidget(p)
         self._stack.setCurrentIndex(0)
 
         # ── Title bar (brand, index prices, feed, win controls) ────────────────
@@ -641,7 +659,40 @@ class MainWindow(QMainWindow):
         body_row.setSpacing(0)
         self._side_slot = QWidget()
         body_row.addWidget(self._side_slot)
-        body_row.addWidget(self._stack, 1)
+
+        # Right panel (Position Details | Watchlist) and bottom Live Log panel;
+        # both are sized only by RevealController.
+        self._details = PositionDetails(svc)
+        self._right_stack = QStackedWidget()
+        self._right_stack.addWidget(self._details)
+        watchlist = self._dashboard_panel.watchlist_widget
+        watchlist.set_compact()  # type: ignore[attr-defined]
+        self._right_stack.addWidget(watchlist)
+        self._right_panel = QFrame()
+        self._right_panel.setObjectName("right_panel")
+        rp = QVBoxLayout(self._right_panel)
+        rp.setContentsMargins(0, 0, 0, 0)
+        rp.addWidget(self._right_stack)
+        self._right_name = "details"
+        self._log_panel = QFrame()
+        self._log_panel.setObjectName("log_panel")
+        lp = QVBoxLayout(self._log_panel)
+        lp.setContentsMargins(0, 0, 0, 0)
+        lp.addWidget(self._log_view)
+
+        centre = QWidget()
+        centre_col = QVBoxLayout(centre)
+        centre_col.setContentsMargins(0, 0, 0, 0)
+        centre_col.setSpacing(0)
+        top_row = QHBoxLayout()
+        top_row.setSpacing(0)
+        top_row.addWidget(self._stack, 1)
+        top_row.addWidget(self._right_panel)
+        centre_col.addLayout(top_row, 1)
+        centre_col.addWidget(self._log_panel)
+        body_row.addWidget(centre, 1)
+        self._strip = IconStrip()
+        body_row.addWidget(self._strip)
         self._sidebar = Sidebar(svc, _NAV_ITEMS, body)
         self._sidebar.set_current(0)
         self._body = body
@@ -652,6 +703,9 @@ class MainWindow(QMainWindow):
         want_mini = self._mini_state.want_mini()
         self._reveal.register("sidebar", self._side_slot, MINI_WIDTH, FULL_WIDTH,
                               start_open=not want_mini)
+        self._reveal.register("right", self._right_panel, 0, 300, start_open=False)
+        self._reveal.register("log", self._log_panel, 0, 180, horizontal=False,
+                              start_open=False)
         self._sidebar.set_mini(want_mini)
         self._slide: QPropertyAnimation | None = None
         body.installEventFilter(self)
@@ -663,6 +717,17 @@ class MainWindow(QMainWindow):
         self._sidebar.mini_toggled.connect(self._on_mini_toggled)
         # sidebar → hover_changed → MainWindow → peek overlay
         self._sidebar.hover_changed.connect(self._on_sidebar_hover)
+        # strip → panel_toggled → MainWindow → RevealController
+        self._strip.panel_toggled.connect(self._on_panel_toggled)
+        # reveal → revealed → MainWindow → strip buttons + sidebar room
+        self._reveal.revealed.connect(self._on_panel_revealed)
+        # svc → log_message → strip → warning badge while the log is closed
+        svc.log_message.connect(self._strip.count_warning)
+        # dashboard → position_selected → details panel
+        self._dashboard_panel.position_selected.connect(self._on_position_selected)
+        # details → exit_requested / chart_requested → dashboard drawer / chart
+        self._details.exit_requested.connect(self._on_details_exit)
+        self._details.chart_requested.connect(self._on_details_chart)
         # ── Status bar widgets ─────────────────────────────────────────────────
         self._status = self.statusBar()
         self._status.setSizeGripEnabled(False)
@@ -732,7 +797,51 @@ class MainWindow(QMainWindow):
         self._stack.setCurrentIndex(index)
         self._slide_in(self._stack.currentWidget())
         self._mini_state.set_page(index)
+        if index in _NO_PANEL_PAGES:
+            for name in ("right", "log"):
+                if self._reveal.is_open(name):
+                    self._reveal.reveal_requested.emit(name, False)
         self._apply_sidebar_mode()
+
+    def _go_to(self, index: int) -> None:
+        self._sidebar.set_current(index)
+        self._on_page_requested(index)
+
+    def _on_panel_toggled(self, name: str, show: bool) -> None:
+        if name == "log":
+            self._reveal.reveal_requested.emit("log", show)
+            return
+        if show:
+            self._right_name = name
+            self._right_stack.setCurrentIndex(_RIGHT_PANELS.index(name))
+            for other in _RIGHT_PANELS:
+                self._strip.set_checked(other, other == name)
+            self._reveal.reveal_requested.emit("right", True)
+        elif name == self._right_name:
+            self._reveal.reveal_requested.emit("right", False)
+
+    def _on_panel_revealed(self, name: str, shown: bool) -> None:
+        if name == "log":
+            self._strip.set_checked("log", shown)
+        elif name == "right":
+            for other in _RIGHT_PANELS:
+                self._strip.set_checked(other, shown and other == self._right_name)
+            self._mini_state.panel_open = shown
+            self._apply_sidebar_mode()
+
+    def _on_position_selected(self, pos: object, user_name: str) -> None:
+        self._details.show_position(pos, user_name)  # type: ignore[arg-type]
+        details_open = self._reveal.is_open("right") and self._right_name == "details"
+        if pos is not None and not details_open:
+            self._on_panel_toggled("details", True)
+
+    def _on_details_exit(self, tab: int) -> None:
+        self._go_to(0)
+        self._dashboard_panel.open_exit(tab)
+
+    def _on_details_chart(self, symbol: str) -> None:
+        self._go_to(3)
+        self._chart_panel.show_symbol(symbol)
 
     def _on_mini_toggled(self, mini: bool) -> None:
         self._mini_state.set_user_mini(mini)

@@ -11,13 +11,23 @@ import datetime
 import logging
 from zoneinfo import ZoneInfo
 
-from PyQt6.QtCore import QAbstractTableModel, QEvent, QModelIndex, QStringListModel, Qt
-from PyQt6.QtGui import QColor, QFont, QTextCursor
+from PyQt6.QtCore import (
+    QAbstractTableModel,
+    QEasingCurve,
+    QEvent,
+    QModelIndex,
+    QPoint,
+    QPropertyAnimation,
+    QStringListModel,
+    Qt,
+    pyqtSignal,
+)
+from PyQt6.QtGui import QColor, QKeyEvent, QKeySequence, QResizeEvent, QShortcut
 from PyQt6.QtWidgets import (
+    QAbstractItemView,
     QCheckBox,
     QComboBox,
     QCompleter,
-    QDialog,
     QDoubleSpinBox,
     QFrame,
     QGroupBox,
@@ -30,14 +40,13 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QSizePolicy,
     QSpinBox,
+    QTableWidget,
+    QTableWidgetItem,
     QTabWidget,
     QTableView,
-    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
-
-from us_swing.gui.log_viewer_panel import _html_entry
 
 from us_swing.gui.app_service import AppService
 from us_swing.gui._types import AccountState, OpenPosition
@@ -80,47 +89,39 @@ _DLG_QSS = (
 
 # ── Exit Position Dialog ──────────────────────────────────────────────────────
 
-class _ExitPositionDialog(QDialog):
+class _ExitForm(QWidget):
     """
-    Professional position-exit dialog modelled after Thinkorswim / IBKR TWS /
-    Schwab StreetSmart.  Tabs:
+    Position-exit form shown in the Exit drawer (SRD-GUI-019.006).  Tabs:
 
       1. Market Exit   — full close at market (MKT)
       2. Limit Exit    — full or partial close at a limit price
       3. Scale Out     — partial close by qty / pct at market
       4. Stop / Trail  — set or update SL (fixed / trailing)
 
-    Returns .action + .params on Accepted.
+    Review shows what will be sent; Confirm emits ``submitted(action, params)``
+    with the same values the old Exit Position dialog returned.
     """
 
-    def __init__(self, pos: OpenPosition, user_name: str = "",
+    submitted = pyqtSignal(str, dict)
+    cancelled = pyqtSignal()
+
+    def __init__(self, pos: OpenPosition, user_name: str = "", tab: int = 0,
                  parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.setWindowFlags(
-            Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint
-        )
-        self.setWindowTitle(f"Exit Position — {pos.symbol}")
-        self.setMinimumWidth(580)
-        self.setMinimumHeight(540)
         self._pos = pos
         self.action: str = ""
         self.params: dict = {}
-        self._drag_pos = None
+        self._reviewing = False
+        self._done = False
         self.setStyleSheet(_DLG_QSS)
 
-        # ── Root layout (no margins — title bar goes edge-to-edge) ────────────
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
-        # ── Custom draggable title bar ────────────────────────────────────────
-        self._title_bar = self._build_title_bar(pos.symbol)
-        root.addWidget(self._title_bar)
-
-        # ── Content area ──────────────────────────────────────────────────────
         content = QWidget()
         content_layout = QVBoxLayout(content)
-        content_layout.setContentsMargins(16, 12, 16, 14)
+        content_layout.setContentsMargins(14, 12, 14, 14)
         content_layout.setSpacing(10)
 
         # ── Position summary card (two-row metrics grid) ──────────────────────
@@ -143,60 +144,37 @@ class _ExitPositionDialog(QDialog):
         btn_sep.setStyleSheet(f"background:{C.OVERLAY};")
         content_layout.addWidget(btn_sep)
 
-        # ── Confirm + Cancel ──────────────────────────────────────────────────
+        # ── Review line (shown after Review) ──────────────────────────────────
+        self._review_lbl = QLabel()
+        self._review_lbl.setWordWrap(True)
+        self._review_lbl.setStyleSheet(
+            f"color:{C.RED}; border:1px solid {C.RED}; padding:8px; font-weight:bold;"
+        )
+        self._review_lbl.hide()
+        content_layout.addWidget(self._review_lbl)
+
+        # ── Back · Cancel · Review / Confirm ──────────────────────────────────
         btn_row = QHBoxLayout()
         btn_row.setSpacing(8)
+        self._back_btn = QPushButton("Back")
+        set_icon(self._back_btn, "arrow-left")
+        self._back_btn.hide()
         self._cancel_btn = QPushButton("Cancel")
-        self._cancel_btn.setFixedHeight(32)
-        self._confirm_btn = QPushButton("Confirm Exit")
-        self._confirm_btn.setFixedHeight(32)
-        mark_danger(self._confirm_btn)
-        set_icon(self._confirm_btn, "log-out", "danger")
-        self._cancel_btn.clicked.connect(self.reject)
+        self._confirm_btn = QPushButton("Review")
+        set_icon(self._confirm_btn, "check", "go")
+        self._back_btn.clicked.connect(self._on_back)
+        self._cancel_btn.clicked.connect(self.cancelled)
         self._confirm_btn.clicked.connect(self._on_confirm)
+        btn_row.addWidget(self._back_btn)
         btn_row.addStretch()
         btn_row.addWidget(self._cancel_btn)
         btn_row.addWidget(self._confirm_btn)
         content_layout.addLayout(btn_row)
 
         root.addWidget(content, 1)
-
-        # Update confirm label based on active tab
-        self._tabs.currentChanged.connect(self._update_confirm_label)
-        self._update_confirm_label(0)
+        self._tabs.setCurrentIndex(tab)
 
     # ── Title bar & summary card builders ────────────────────────────────────
-
-    def _build_title_bar(self, symbol: str) -> QFrame:
-        """Custom draggable title bar with symbol badge, title, and close button."""
-        bar = QFrame()
-        bar.setObjectName("dlg_title_bar")
-        bar.setFixedHeight(36)
-        bar.setStyleSheet(
-            f"QFrame#dlg_title_bar {{"
-            f"  background:#11111b;"
-            f"  border-bottom:1px solid {C.OVERLAY};"
-            f"}}"
-        )
-
-        layout = QHBoxLayout(bar)
-        layout.setContentsMargins(14, 0, 10, 0)
-        layout.setSpacing(10)
-
-        title_lbl = QLabel("Exit Position")
-        title_lbl.setStyleSheet(
-            f"background:transparent; color:{C.TEXT}; font-size:9pt; font-weight:bold;"
-        )
-
-        layout.addWidget(title_lbl)
-        layout.addStretch()
-
-        # Wire drag events to the title bar frame
-        bar.mousePressEvent   = self._title_mouse_press
-        bar.mouseMoveEvent    = self._title_mouse_move
-        bar.mouseReleaseEvent = self._title_mouse_release
-
-        return bar
 
     def _build_summary_card(self, pos: OpenPosition, user_name: str = "") -> QFrame:
         """Two-row four-column position metrics card."""
@@ -336,22 +314,6 @@ class _ExitPositionDialog(QDialog):
         return card
 
     # ── Window drag support ───────────────────────────────────────────────────
-
-    def _title_mouse_press(self, event) -> None:
-        if event.button() == Qt.MouseButton.LeftButton:
-            self._drag_pos = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
-            event.accept()
-
-    def _title_mouse_move(self, event) -> None:
-        if event.buttons() == Qt.MouseButton.LeftButton and self._drag_pos is not None:
-            self.move(event.globalPosition().toPoint() - self._drag_pos)
-            event.accept()
-
-    def _title_mouse_release(self, event) -> None:
-        self._drag_pos = None
-        event.accept()
-
-    # ── Tab builders ──────────────────────────────────────────────────────────
 
     def _build_market_tab(self) -> None:
         """Tab 1 — Market Exit: close full position instantly at market."""
@@ -661,6 +623,47 @@ class _ExitPositionDialog(QDialog):
     # ── Confirm action ────────────────────────────────────────────────────────
 
     def _on_confirm(self) -> None:
+        if self._reviewing:
+            if self._done:
+                return
+            self._done = True
+            self.setEnabled(False)
+            self.submitted.emit(self.action, self.params)
+            return
+        self._collect()
+        self._reviewing = True
+        self._tabs.setEnabled(False)
+        self._review_lbl.setText(f"This sends: {self._review_text()}")
+        self._review_lbl.show()
+        self._back_btn.show()
+        self._update_confirm_label(self._tabs.currentIndex())
+
+    def _on_back(self) -> None:
+        self._reviewing = False
+        self._tabs.setEnabled(True)
+        self._review_lbl.hide()
+        self._back_btn.hide()
+        self._confirm_btn.setText("Review")
+        self._confirm_btn.setProperty("role", "")
+        set_icon(self._confirm_btn, "check", "go")
+        style = self._confirm_btn.style()
+        if style is not None:
+            style.unpolish(self._confirm_btn)
+            style.polish(self._confirm_btn)
+
+    def _review_text(self) -> str:
+        sym, p = self._pos.symbol, self.params
+        if self.action == "full_close":
+            return f"Sell {p['qty']} {sym} at market ({p['tif']})"
+        if self.action == "limit_close":
+            return f"Sell {p['qty']} {sym} at limit ${p['limit_price']:.2f} ({p['tif']})"
+        if self.action == "partial_close":
+            tail = " and move the stop to break-even" if p["move_sl_to_be"] else ""
+            return f"Sell {p['qty']} {sym} at market{tail}"
+        trail = f", trailing by {p['trail_val']:g} ({p['trail_by']})" if p["trailing"] else ""
+        return f"Set the stop for {sym} at ${p['price']:.2f}{trail}"
+
+    def _collect(self) -> None:
         tab = self._tabs.currentIndex()
         if tab == 0:
             self.action = "full_close"
@@ -686,7 +689,206 @@ class _ExitPositionDialog(QDialog):
                 "trail_by":  self._trail_type.currentText() if trailing else "",
                 "trail_val": self._trail_val.value() if trailing else 0.0,
             }
-        self.accept()
+
+
+class _SquareOffForm(QWidget):
+    """List of every open position with Review → Confirm (SRD-GUI-019.007)."""
+
+    submitted = pyqtSignal(str, dict)
+    cancelled = pyqtSignal()
+
+    def __init__(self, positions: list[OpenPosition], scope_text: str,
+                 parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._reviewing = False
+        self._done = False
+        self._count = len(positions)
+        self._scope_text = scope_text
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(14, 12, 14, 14)
+        layout.setSpacing(10)
+
+        head = QLabel(f"Close all {len(positions)} open positions for {scope_text} at market")
+        head.setWordWrap(True)
+        layout.addWidget(head)
+
+        table = QTableWidget(len(positions), 4)
+        table.setHorizontalHeaderLabels(["Symbol", "Qty", "Price", "P&L"])
+        table.verticalHeader().setVisible(False)
+        table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        table.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        proceeds = 0.0
+        total_pnl = 0.0
+        for row, pos in enumerate(positions):
+            pnl = (pos.current_price - pos.average_price) * pos.quantity
+            proceeds += pos.current_price * pos.quantity
+            total_pnl += pnl
+            cells = [pos.symbol, str(pos.quantity), f"${pos.current_price:,.2f}", f"{pnl:+,.2f}"]
+            for col, text in enumerate(cells):
+                item = QTableWidgetItem(text)
+                if col == 3:
+                    item.setForeground(QColor(C.GREEN if pnl >= 0 else C.RED))
+                table.setItem(row, col, item)
+        layout.addWidget(table, 1)
+
+        total = QLabel(f"Estimated proceeds ${proceeds:,.2f}  ·  Realised P&L {total_pnl:+,.2f}")
+        total.setStyleSheet(f"color:{C.SUBTEXT};")
+        layout.addWidget(total)
+
+        self._review_lbl = QLabel(
+            f"This sends {len(positions)} market sell orders for {scope_text}. It cannot be undone."
+        )
+        self._review_lbl.setWordWrap(True)
+        self._review_lbl.setStyleSheet(
+            f"color:{C.RED}; border:1px solid {C.RED}; padding:8px; font-weight:bold;"
+        )
+        self._review_lbl.hide()
+        layout.addWidget(self._review_lbl)
+
+        btn_row = QHBoxLayout()
+        self._back_btn = QPushButton("Back")
+        set_icon(self._back_btn, "arrow-left")
+        self._back_btn.hide()
+        cancel = QPushButton("Cancel")
+        self._confirm_btn = QPushButton("Review")
+        set_icon(self._confirm_btn, "check", "go")
+        self._back_btn.clicked.connect(self._on_back)
+        cancel.clicked.connect(self.cancelled)
+        self._confirm_btn.clicked.connect(self._on_confirm)
+        btn_row.addWidget(self._back_btn)
+        btn_row.addStretch()
+        btn_row.addWidget(cancel)
+        btn_row.addWidget(self._confirm_btn)
+        layout.addLayout(btn_row)
+
+    def _on_confirm(self) -> None:
+        if self._reviewing:
+            if self._done:
+                return
+            self._done = True
+            self.setEnabled(False)
+            self.submitted.emit("square_off_all", {})
+            return
+        self._reviewing = True
+        self._review_lbl.show()
+        self._back_btn.show()
+        self._confirm_btn.setText("Confirm Square Off")
+        set_icon(self._confirm_btn, "square-x", "danger")
+        mark_danger(self._confirm_btn)
+
+    def _on_back(self) -> None:
+        self._reviewing = False
+        self._review_lbl.hide()
+        self._back_btn.hide()
+        self._confirm_btn.setText("Review")
+        set_icon(self._confirm_btn, "check", "go")
+        self._confirm_btn.setProperty("role", "")
+        style = self._confirm_btn.style()
+        if style is not None:
+            style.unpolish(self._confirm_btn)
+            style.polish(self._confirm_btn)
+
+
+class _ExitDrawer(QFrame):
+    """Non-modal panel that slides in from the right edge of the Dashboard."""
+
+    WIDTH = 560
+    closed = pyqtSignal()
+
+    def __init__(self, parent: QWidget) -> None:
+        super().__init__(parent)
+        self.setObjectName("exit_drawer")
+        self.setStyleSheet(
+            f"QFrame#exit_drawer {{ background:{C.BG}; border-left:1px solid {C.BLUE}; }}"
+            f"QFrame#exit_drawer_hd {{ background:{C.SURFACE}; border-bottom:1px solid {C.OVERLAY}; }}"
+        )
+        self._open = False
+        self._anim: QPropertyAnimation | None = None
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        head = QFrame()
+        head.setObjectName("exit_drawer_hd")
+        hl = QHBoxLayout(head)
+        hl.setContentsMargins(14, 6, 6, 6)
+        self._title = QLabel()
+        self._title.setStyleSheet(f"color:{C.TEXT}; font-weight:bold; background:transparent;")
+        close_btn = QPushButton()
+        set_icon(close_btn, "x")
+        close_btn.setFixedWidth(C.BTN_H)
+        close_btn.setToolTip("Close")
+        close_btn.setAccessibleName("Close")
+        close_btn.clicked.connect(self.close_drawer)
+        hl.addWidget(self._title)
+        hl.addStretch()
+        hl.addWidget(close_btn)
+        layout.addWidget(head)
+        self._body = QVBoxLayout()
+        self._body.setContentsMargins(0, 0, 0, 0)
+        layout.addLayout(self._body, 1)
+        self._form: QWidget | None = None
+        self.hide()
+
+    @property
+    def is_open(self) -> bool:
+        return self._open
+
+    def open_with(self, form: QWidget, title: str) -> None:
+        """Show ``form`` in the drawer and slide it in."""
+        if self._form is not None:
+            self._form.deleteLater()
+        self._form = form
+        self._body.addWidget(form)
+        self._title.setText(title)
+        self._open = True
+        self.show()
+        self.raise_()
+        self.setFocus()
+        self._slide(self._open_x())
+
+    def close_drawer(self) -> None:
+        if not self._open:
+            return
+        self._open = False
+        self._slide(self._closed_x())
+        self.closed.emit()
+
+    def place(self) -> None:
+        """Keep the drawer on the right edge after the Dashboard resizes."""
+        parent = self.parentWidget()
+        if parent is None:
+            return
+        self.setGeometry(self._open_x() if self._open else self._closed_x(), 0,
+                         self.WIDTH, parent.height())
+
+    def keyPressEvent(self, event: QKeyEvent | None) -> None:
+        if event is not None and event.key() == Qt.Key.Key_Escape:
+            self.close_drawer()
+            return
+        super().keyPressEvent(event)
+
+    def _open_x(self) -> int:
+        parent = self.parentWidget()
+        return (parent.width() if parent else 0) - self.WIDTH
+
+    def _closed_x(self) -> int:
+        parent = self.parentWidget()
+        return parent.width() if parent else 0
+
+    def _slide(self, x: int) -> None:
+        parent = self.parentWidget()
+        self.resize(self.WIDTH, parent.height() if parent else self.height())
+        if self._anim is not None:
+            self._anim.stop()
+        self._anim = QPropertyAnimation(self, b"pos", self)
+        self._anim.setDuration(220)
+        self._anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._anim.setEndValue(QPoint(x, 0))
+        if not self._open:
+            self._anim.finished.connect(lambda: None if self._open else self.hide())
+        self._anim.start()
 
 
 # ── TIKR-style KPI stat card ───────────────────────────────────────────────────
@@ -1169,6 +1371,22 @@ class _WatchlistTab(QWidget):
         self._update_empty_state()
         svc.watchlist_updated.connect(self._on_data_updated)
 
+    def set_compact(self) -> None:
+        """Fit the narrow right panel: key columns only, icon-only buttons."""
+        for col in range(self._model.columnCount()):
+            self._view.setColumnHidden(col, col not in (0, 1, 3))
+        self._view.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self._sym_input.setMinimumWidth(0)
+        self._sym_input.setMaximumWidth(16_777_215)
+        for btn, tip in ((self._add_btn, "Add"), (self._remove_btn, "Remove"),
+                         (self._refresh_btn, "Refresh")):
+            btn.setText("")
+            btn.setFixedWidth(C.BTN_H + 4)
+            btn.setToolTip(tip)
+            btn.setAccessibleName(tip)
+        self._status_lbl.hide()
+        self._updated_lbl.hide()
+
     def add_symbol(self, symbol: str) -> None:
         """Public API — called by DashboardPanel.on_watchlist_add."""
         sym = symbol.strip().upper()
@@ -1233,6 +1451,8 @@ class DashboardPanel(QWidget):
     FO-GUI-002 Dashboard Panel — TIKR terminal style.
     KPI cards → market pulse bar → positions splitter → trade history.
     """
+
+    position_selected = pyqtSignal(object, str)   # OpenPosition | None, user name
 
     def __init__(self, demo: AppService, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -1314,7 +1534,7 @@ class DashboardPanel(QWidget):
         pos_toolbar.addWidget(self._sq_all_btn)
 
         self._pos_view.selectionModel().selectionChanged.connect(self._on_pos_selection)
-        self._pos_view.doubleClicked.connect(lambda _: self._on_manage_selected())
+        self._pos_view.doubleClicked.connect(lambda _: self.open_exit(0))
         self._sq_all_btn.clicked.connect(self._on_square_off_all)
 
         pos_tab = QWidget()
@@ -1343,84 +1563,20 @@ class DashboardPanel(QWidget):
         hist_tab_layout.setSpacing(6)
         hist_tab_layout.addWidget(self._hist_view)
 
-        # ── Watchlist tab ──────────────────────────────────────────────────────
+        # ── Watchlist (shown in the main window's right panel) ────────────────
         self._watchlist_tab = _WatchlistTab(demo)
 
         # ── Market Watch tab ───────────────────────────────────────────────────
         self._mw_tab = _MarketWatchTab(demo)
 
-        # ── QTabWidget: Positions | Trade History | Watchlist | Market Watch ──
+        # ── QTabWidget: Positions | Trade History | Market Watch ──────────────
         self._dash_tabs = QTabWidget()
         self._dash_tabs.setObjectName("dash_tabs")
         self._dash_tabs.addTab(pos_tab,              "Open Positions")
         self._dash_tabs.addTab(hist_tab,             "Trade History")
-        self._dash_tabs.addTab(self._watchlist_tab,  "Watchlist")
         self._dash_tabs.addTab(self._mw_tab,         "Market Watch")
-        for _i, _ic in enumerate(("briefcase", "history", "eye", "activity")):
+        for _i, _ic in enumerate(("briefcase", "history", "activity")):
             set_tab_icon(self._dash_tabs, _i, _ic, "info")
-
-        # ── Live log feed (right panel) ────────────────────────────────────────
-        # ── Embedded log section ──────────────────────────────────────────────
-        self._log_paused     = False
-        self._log_line_count = 0
-        self._log_buffer: list[tuple[str, str]] = []
-
-        log_hdr = QLabel("LIVE LOG")
-        log_hdr.setStyleSheet(
-            f"color:{C.ORANGE}; font-size:7pt; letter-spacing:1px; font-weight:bold;"
-        )
-
-        _lbl_lvl = QLabel("Level:")
-        self._level_combo = QComboBox()
-        self._level_combo.addItems(["ALL", "DEBUG", "INFO", "WARNING", "ERROR"])
-        self._level_combo.setCurrentText("ALL")
-        self._level_combo.setFixedWidth(100)
-        self._level_combo.currentTextChanged.connect(self._reapply_log_filter)
-
-        _lbl_srch = QLabel("Search:")
-        self._log_search = QLineEdit()
-        self._log_search.setPlaceholderText("Filter by keyword…")
-        self._log_search.setFixedWidth(220)
-        self._log_search.textChanged.connect(self._reapply_log_filter)
-
-        self._log_auto_scroll = QCheckBox("Auto-scroll")
-        self._log_auto_scroll.setChecked(True)
-
-        self._pause_btn = QPushButton("Pause")
-        set_icon(self._pause_btn, "pause", "go")
-        self._pause_btn.setFixedWidth(90)
-        self._pause_btn.clicked.connect(self._toggle_log_pause)
-
-        self._clear_btn = QPushButton("Clear")
-        set_icon(self._clear_btn, "eraser")
-        self._clear_btn.setFixedWidth(90)
-        self._clear_btn.clicked.connect(self._clear_log)
-
-        filter_row = QHBoxLayout()
-        filter_row.setSpacing(8)
-        filter_row.addWidget(log_hdr)
-        filter_row.addSpacing(8)
-        filter_row.addWidget(_lbl_lvl)
-        filter_row.addWidget(self._level_combo)
-        filter_row.addWidget(_lbl_srch)
-        filter_row.addWidget(self._log_search)
-        filter_row.addWidget(self._log_auto_scroll)
-        filter_row.addStretch()
-        filter_row.addWidget(self._pause_btn)
-        filter_row.addWidget(self._clear_btn)
-
-        self._log_view = QTextEdit()
-        self._log_view.setReadOnly(True)
-        self._log_view.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
-        _lf = QFont("Consolas", 9)
-        _lf.setStyleHint(QFont.StyleHint.Monospace)
-        self._log_view.setFont(_lf)
-        self._log_view.setFixedHeight(180)
-
-        self._log_count_lbl = QLabel("0 entries")
-        self._log_count_lbl.setStyleSheet(f"color: {C.MUTED}; font-size: 8pt;")
-
-        demo.log_message.connect(self._on_log_message)
 
         # ── Main layout ────────────────────────────────────────────────────────
         main = QVBoxLayout(self)
@@ -1429,9 +1585,16 @@ class DashboardPanel(QWidget):
         main.addLayout(cards_row)
         main.addWidget(self._scope_strip)
         main.addWidget(self._dash_tabs, 1)
-        main.addLayout(filter_row)
-        main.addWidget(self._log_view)
-        main.addWidget(self._log_count_lbl)
+
+        self._drawer = _ExitDrawer(self)
+        self._drawer.closed.connect(self._on_drawer_closed)
+        self._selected_pos: OpenPosition | None = None
+        self._drawer_pos: OpenPosition | None = None
+        self._drawer_count = 0
+        self._esc = QShortcut(QKeySequence(Qt.Key.Key_Escape), self)
+        self._esc.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+        self._esc.setEnabled(False)
+        self._esc.activated.connect(self._drawer.close_drawer)
 
         # ── Signals ────────────────────────────────────────────────────────────────
         demo.positions_updated.connect(self._refresh_positions)
@@ -1513,6 +1676,39 @@ class DashboardPanel(QWidget):
             f"{n} open position{'s' if n != 1 else ''}  ·  prices streaming live"
         )
         self._sq_all_btn.setEnabled(n > 0)
+        self._check_drawer_positions(positions)
+
+    def _check_drawer_positions(self, positions: list[OpenPosition]) -> None:
+        """Close the drawer if the position it acts on has closed or changed size."""
+        if not self._drawer.is_open:
+            return
+        if self._drawer_pos is None:
+            if len(positions) != self._drawer_count:
+                _log.info("[Positions] Square off form closed because open positions changed")
+                self._drawer.close_drawer()
+            return
+        key = (self._drawer_pos.symbol, self._drawer_pos.user_id)
+        row = next((i for i, p in enumerate(positions) if (p.symbol, p.user_id) == key), -1)
+        if row < 0 or positions[row].quantity != self._drawer_pos.quantity:
+            _log.info("[Positions] Exit form for %s closed because the position changed",
+                      self._drawer_pos.symbol)
+            self._drawer.close_drawer()
+            return
+        self._pos_model.set_highlighted_row(row)
+
+    def _on_drawer_closed(self) -> None:
+        self._pos_model.set_highlighted_row(-1)
+        self._esc.setEnabled(False)
+        self._drawer_pos = None
+
+    @property
+    def watchlist_widget(self) -> QWidget:
+        """Watchlist widget; the main window shows it in its right panel."""
+        return self._watchlist_tab
+
+    def resizeEvent(self, event: QResizeEvent | None) -> None:
+        super().resizeEvent(event)
+        self._drawer.place()
 
     def on_watchlist_add(self, symbol: str) -> None:
         """Called by MainWindow when screener requests adding symbol to watchlist."""
@@ -1523,16 +1719,16 @@ class DashboardPanel(QWidget):
 
     def _on_pos_selection(self) -> None:
         rows = self._pos_view.selectionModel().selectedRows()
-        if rows:
-            positions = self._demo.get_positions()
-            row = rows[0].row()
-            if row < len(positions):
-                pos = positions[row]
-                self._pos_status_lbl.setText(
-                    f"{pos.symbol} selected  ·  Double-click to manage"
-                )
+        positions = self._demo.get_positions()
+        pos = positions[rows[0].row()] if rows and rows[0].row() < len(positions) else None
+        self._selected_pos = pos
+        if pos is not None:
+            self._pos_status_lbl.setText(f"{pos.symbol} selected  ·  Double-click to manage")
+            user = self._demo.get_user_by_id(pos.user_id)
+            self.position_selected.emit(pos, user.username if user else "")
         else:
             self._pos_status_lbl.setText("Double-click a row to manage")
+            self.position_selected.emit(None, "")
 
     def _live_mode_blocked(self, action: str) -> bool:
         """Explain why an unrouted position edit is unavailable in live mode."""
@@ -1555,19 +1751,25 @@ class DashboardPanel(QWidget):
         if not positions:
             return
         uid = self._demo.get_viewing_uid()
-        scope_txt = "ALL users" if uid is None else f"<b>{self._demo.get_user_label()}</b>"
-        ret = QMessageBox.warning(
-            self,
-            "Square Off All",
-            f"Close <b>all {len(positions)} open positions</b> for {scope_txt} at market price?<br>"
-            f"<span style='color:gray;font-size:9pt;'>This action cannot be undone.</span>",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-        )
-        if ret == QMessageBox.StandardButton.Yes:
-            for pos in positions:
-                self._demo.close_position(pos.symbol, pos.user_id)
+        scope_txt = "all users" if uid is None else self._demo.get_user_label()
+        self._pos_model.set_highlighted_row(-1)
+        self._drawer_pos = None
+        self._drawer_count = len(positions)
+        self._esc.setEnabled(True)
+        form = _SquareOffForm(positions, scope_txt)
+        form.cancelled.connect(self._drawer.close_drawer)
+        form.submitted.connect(lambda _a, _p, ps=positions: self._finish_square_off(ps))
+        self._drawer.open_with(form, "Square Off All")
 
-    def _on_manage_selected(self) -> None:
+    def _finish_square_off(self, positions: list[OpenPosition]) -> None:
+        self._drawer.close_drawer()
+        if self._live_mode_blocked("Square Off All"):
+            return
+        for pos in positions:
+            self._demo.close_position(pos.symbol, pos.user_id)
+
+    def open_exit(self, tab: int = 0) -> None:
+        """Open the Exit drawer for the selected position on ``tab`` (0–3)."""
         if self._live_mode_blocked("Managing a position"):
             return
         rows = self._pos_view.selectionModel().selectedRows()
@@ -1578,21 +1780,23 @@ class DashboardPanel(QWidget):
         if row >= len(positions):
             return
         pos = positions[row]
-        # Highlight the row in red while the dialog is open
         self._pos_model.set_highlighted_row(row)
-        # Resolve user name for the admin "acting for" banner
+        self._drawer_pos = pos
+        self._esc.setEnabled(True)
         u = self._demo.get_user_by_id(pos.user_id)
         user_name = u.username if u else ""
-        dlg = _ExitPositionDialog(pos, user_name, self)
-        result = dlg.exec()
-        # Clear row highlight regardless of dialog outcome
-        self._pos_model.set_highlighted_row(-1)
-        if result != QDialog.DialogCode.Accepted:
+        form = _ExitForm(pos, user_name, tab)
+        form.cancelled.connect(self._drawer.close_drawer)
+        form.submitted.connect(lambda a, p, ps=pos: self._finish_exit(ps, a, p))
+        self._drawer.open_with(form, f"Exit Position · {pos.symbol}")
+
+    def _finish_exit(self, pos: OpenPosition, action: str, params: dict) -> None:
+        self._drawer.close_drawer()
+        if self._live_mode_blocked("Managing a position"):
             return
+        self._apply_exit(pos, action, params)
 
-        action = dlg.action
-        params = dlg.params
-
+    def _apply_exit(self, pos: OpenPosition, action: str, params: dict) -> None:
         if action == "full_close":
             self._demo.close_position(pos.symbol, pos.user_id)
 
@@ -1650,60 +1854,6 @@ class DashboardPanel(QWidget):
             if t.entry_time.astimezone(tz).date() == today
         ]
         self._hist_model.refresh(trades)
-
-    def _on_log_message(self, level: str, message: str) -> None:
-        self._log_buffer.append((level, message))
-        if len(self._log_buffer) > 10_000:
-            self._log_buffer = self._log_buffer[-10_000:]
-        if not self._log_paused and self._matches_log_filter(level, message):
-            self._log_view.append(_html_entry(level, message))
-            self._log_line_count += 1
-            self._log_count_lbl.setText(f"{self._log_line_count} entries")
-            if self._log_auto_scroll.isChecked():
-                self._log_view.moveCursor(QTextCursor.MoveOperation.End)
-
-    def _matches_log_filter(self, level: str, message: str) -> bool:
-        selected = self._level_combo.currentText()
-        if selected != "ALL":
-            levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
-            try:
-                if levels.index(level) < levels.index(selected):
-                    return False
-            except ValueError:
-                pass
-        kw = self._log_search.text().strip().lower()
-        if kw and kw not in message.lower():
-            return False
-        return True
-
-    def _reapply_log_filter(self) -> None:
-        self._log_view.clear()
-        self._log_line_count = 0
-        for level, msg in self._log_buffer:
-            if self._matches_log_filter(level, msg):
-                self._log_view.append(_html_entry(level, msg))
-                self._log_line_count += 1
-        self._log_count_lbl.setText(f"{self._log_line_count} entries (filtered)")
-        if self._log_auto_scroll.isChecked():
-            self._log_view.moveCursor(QTextCursor.MoveOperation.End)
-
-    def _toggle_log_pause(self) -> None:
-        self._log_paused = not self._log_paused
-        if self._log_paused:
-            self._pause_btn.setText("Resume")
-            set_icon(self._pause_btn, "play", "go")
-            self._pause_btn.setStyleSheet(f"color: {C.YELLOW};")
-        else:
-            self._pause_btn.setText("Pause")
-            set_icon(self._pause_btn, "pause", "go")
-            self._pause_btn.setStyleSheet("")
-            self._reapply_log_filter()
-
-    def _clear_log(self) -> None:
-        self._log_buffer.clear()
-        self._log_view.clear()
-        self._log_line_count = 0
-        self._log_count_lbl.setText("0 entries")
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

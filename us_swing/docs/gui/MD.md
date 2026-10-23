@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.14.0: MD-GUI-019.001.M01 (side_panels.py) added; MD-GUI-019.006.M02 (dashboard exit drawer) and MD-GUI-019.002.M03 (main_window panels) extend existing files.
 > v1.13.0: MD-GUI-018.001.M01 (sidebar.py), MD-GUI-018.006.M02 (reveal.py) added; MD-GUI-018.005.M03 covers main_window.py shell changes.
 > v1.12.0: MD-GUI-017.001.M02 (theme.py Carbon extension) and MD-GUI-017.003.M01 (icons.py) added for the Carbon theme (SRD-GUI-017.001, .002, .005).
 > v1.11.0: MD-GUI-004.001.M03 (intraday_cleanup.py) added; MD-GUI-004.001.M01 extended for startup cleanup (SRD-GUI-004.013).
@@ -190,3 +191,11 @@ us_swing/src/us_swing/gui/
 | MD-GUI-018.001.M01 | SRD-GUI-018.001 | `us_swing/src/us_swing/gui/sidebar.py` | Sidebar nav, mini labels, account footer | `Sidebar`, `page_requested`, `mini_toggled`, `hover_changed`, `set_mini()`, `set_current()` | `icons`, `theme`, `AppService` | No |
 | MD-GUI-018.006.M02 | SRD-GUI-018.006 | `us_swing/src/us_swing/gui/reveal.py` | Size animation for hide/show panels | `RevealController`, `register()`, `on_reveal_requested()`, `revealed` | `QtCore` | No |
 | MD-GUI-018.005.M03 | SRD-GUI-018.005 | `us_swing/src/us_swing/gui/main_window.py` | Shell layout, mini state, peek geometry, screen slide | `MainWindow` | `sidebar`, `reveal` | No |
+
+## FO-GUI-019 — Side Panels and Exit Drawer
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-GUI-019.001.M01 | SRD-GUI-019.001 | `us_swing/src/us_swing/gui/side_panels.py` | Icon strip and Position Details panel | `IconStrip`, `PositionDetails` | `icons`, `theme`, `AppService` | No |
+| MD-GUI-019.006.M02 | SRD-GUI-019.006 | `us_swing/src/us_swing/gui/dashboard_panel.py` | Exit drawer, exit and square-off forms, apply exit | `DashboardPanel.open_exit()`, `position_selected`, `watchlist_widget` | `AppService` | No |
+| MD-GUI-019.002.M03 | SRD-GUI-019.002 | `us_swing/src/us_swing/gui/main_window.py` | Panel layout and wiring | `MainWindow` | `side_panels`, `reveal`, `log_viewer_panel` | No |
