@@ -1381,8 +1381,8 @@ QPushButton#strip_btn:focus {{ outline: none; }}
 QLabel#strip_badge {{
     background: {accent}; color: {bg}; border-radius: 7px; font-size: 7pt; font-weight: bold;
 }}
-QFrame#right_panel, QFrame#log_panel {{ background: {bg}; border: none; }}
-QWidget#shell_gutter {{ background: {bg}; }}
+QFrame#right_panel, QFrame#log_panel {{ background: {hover}; border: none; }}
+QWidget#shell_gutter {{ background: {hover}; }}
 QFrame#shell_card {{ border: 1px solid {line}; border-radius: 6px; }}
 QFrame#preset_pane {{ background: transparent; border: none; }}
 QLabel#details_key {{ color: {sub}; }}

@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.34.0: SRD-GUI-023.004 added — lighter gap colour; requested by user 2026-10-23.
 > v2.33.0: SRD-GUI-023.001–.003 added — card layout (gaps and rounded corners between sections); approved by user 2026-10-23.
 > v2.32.0: SRD-GUI-022.008–.012 added — screener page header, run stepper, AI transcript drawer, list / detail polish and look (canvas Option A); approved by user 2026-10-23.
 > v2.31.0: SRD-GUI-022.001–.007 added — screener result views (List + detail, Signal cards) and preset rail; approved by user 2026-10-23.
@@ -382,3 +383,4 @@
 | SRD-GUI-023.001 | FO-GUI-023 | Must | The sidebar, each screen, the right panel, the log panel and the icon strip are separate cards with 6 px corners, a 1 px border and a 4 px gap in the title-bar colour. | — | card layout | A closed right or log panel leaves no gap | Implemented |
 | SRD-GUI-023.002 | FO-GUI-023 | Must | The screener shows the preset list and the results as two cards with a 4 px gap; other screens sit in one card each. | — | card layout | Inside of other screens unchanged | Implemented |
 | SRD-GUI-023.003 | FO-GUI-023 | Should | Carbon, Mocha and VS Code themes use the same gap and corner sizes with their own colours. | theme | card colours | Rules live in `_sidebar_qss` | Implemented |
+| SRD-GUI-023.004 | FO-GUI-023 | Should | The gap colour is lighter than the cards (the theme's hover grey) so each section stands out. | theme | gap colour | Supersedes the title-bar gap colour of SRD-GUI-023.001 | Implemented |

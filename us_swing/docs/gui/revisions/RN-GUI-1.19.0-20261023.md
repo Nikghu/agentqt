@@ -37,3 +37,5 @@ The window now shows its main sections as separate rounded cards with a small ga
 
 - Inside of Dashboard, Execution, Charts and Settings is not split into smaller cards (possible later step).
 - Mocha and VS Code themes not checked by eye.
+
+- Follow-up (SRD-GUI-023.004, user request): the gap colour is now the theme's lighter hover grey instead of the dark title-bar colour, so sections stand out clearly.
