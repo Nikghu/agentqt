@@ -645,6 +645,7 @@ QScrollBar::handle:vertical {
     min-height: 24px;
 }
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
+QScrollBar::add-page, QScrollBar::sub-page { background: none; }
 QScrollBar:horizontal {
     background: #181825;
     height: 10px;
@@ -1135,6 +1136,7 @@ QScrollBar::handle:vertical {
 }
 QScrollBar::handle:vertical:hover { background: #686868; }
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
+QScrollBar::add-page, QScrollBar::sub-page { background: none; }
 QScrollBar:horizontal {
     background: #1e1e1e;
     height: 10px;
