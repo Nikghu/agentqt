@@ -3,7 +3,7 @@
 **Document ID:** TRACE-GUI
 **Version:** 1.13.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-10-23 (Session 84, FO-GUI-017 Carbon Theme and Icon System — implemented; RN-GUI-1.9.0-20261023)
+**Last Updated:** 2026-10-23 (Session 84, FO-GUI-018 Sidebar Workspace Shell Phase 2 — implemented; RN-GUI-1.10.0-20261023)
 
 ---
 
@@ -55,6 +55,7 @@
 | FO-GUI-016 | SRD-GUI-016.006 | DD-GUI-016.001.D01 | MD-GUI-015.011.M05 | UT-GUI-016.006.M05.T01 | `gui/indicator_params_dialog.py` | Implemented | RN-GUI-1.7.0-20261022 |
 | FO-GUI-016 | SRD-GUI-016.010 | DD-GUI-016.001.D01 | MD-GUI-003.001.M01 | UT-GUI-016.010.M01.T01–T02 | `gui/screener_panel.py` | Implemented | RN-GUI-1.7.0-20261022 |
 | FO-GUI-017 | SRD-GUI-017.001–005 | DD-GUI-017.001.D01 | MD-GUI-017.001.M02, MD-GUI-017.003.M01 | UT-GUI-017.* (10 tests) | `gui/theme.py`, `gui/icons.py`, `gui/main_window.py`, `gui/dashboard_panel.py`, `gui/screener_panel.py`, `gui/execution_panel.py`, `gui/settings_panel.py`, `gui/log_viewer_panel.py`, `gui/scheduler_dialog.py`, `gui/indicator_rules_dialog.py`, `gui/price_action_rules_dialog.py` | Implemented | RN-GUI-1.9.0-20261023 |
+| FO-GUI-018 | SRD-GUI-018.001–007 | DD-GUI-018.001.D01 | MD-GUI-018.001.M01, MD-GUI-018.006.M02, MD-GUI-018.005.M03 | UT-GUI-018.* (9 tests) | `gui/sidebar.py`, `gui/reveal.py`, `gui/main_window.py` | Implemented | RN-GUI-1.10.0-20261023 |
 
 ---
 

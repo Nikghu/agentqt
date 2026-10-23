@@ -557,3 +557,29 @@ The system shall offer a new default "Carbon" look (graphite with amber) and rep
 2. No emoji remain on buttons, tabs or the title bar navigation.
 3. Square Off All, Delete, Trip Circuit Breaker and Force Exit show red borders.
 4. Every icon-only button shows a tooltip.
+
+---
+
+## FO-GUI-018: Sidebar Workspace Shell
+
+**Status:** Approved (user, 2026-10-23)
+**Priority:** Should
+**Depends on:** FO-GUI-017 (Carbon theme and icons)
+**Source:** GUI redesign Phase 2 — Carbon Workspace design agreed 2026-10-23.
+
+The system shall replace the top navigation tabs and the account strip with a left sidebar, so screens are easy to find and account details are always visible. Screen content does not change.
+
+### Requirements
+
+1. **Sidebar.** The five screens are listed in a left sidebar with icon and label.
+2. **Mini mode.** The sidebar can shrink to icons only; wide screens shrink it on their own; hovering shows it in full without moving the screen.
+3. **Account footer.** The sidebar footer shows the current user or All Users, mode, IBKR ID, risk and capital.
+4. **Title bar.** The title bar keeps brand, version, index prices, feed button and window buttons.
+5. **Hide and show.** One controller animates panels that open and close; changing screen slides in briefly.
+
+### Acceptance Criteria
+
+1. Clicking each sidebar item shows the same screen as the old tab did.
+2. Collapse makes the sidebar icon-only; the choice is kept after restart.
+3. Opening Execution makes the sidebar small; going back to Dashboard restores it.
+4. The footer shows the same capital and available values as the old account strip.

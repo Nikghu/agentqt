@@ -2,6 +2,16 @@
 
 ---
 
+## [20261023] GUI — Sidebar workspace shell, Phase 2 (FO-GUI-018, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-018
+- RN: RN-GUI-1.10.0-20261023
+- Artifacts updated: SRD, DD, MD, UTCD, TRACE, Code, Tests, RN, TODO (T39), CONTEXT
+- Decisions: Top tabs replaced by left sidebar; hover peek floats without moving content; screen slide is position-only (web views).
+
+---
+
 ## [20261023] GUI — Carbon theme and icon system, Phase 1 (FO-GUI-017, feature)
 
 - Type: Feature

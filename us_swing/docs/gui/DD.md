@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.9.0: DD-GUI-018.001.D01 added — sidebar workspace shell.
 > v1.8.0: DD-GUI-017.001.D01 added — Carbon theme and icon system.
 > v1.7.0: DD-GUI-013.016.D01 + DD-GUI-014.016.D01 added — Short Trade Direction: Direction selector, edit lock, no-stop note, strategy table column, Active Trades Side column, direction-aware verbs, Short risk-editor ranges.
 > v1.6.0: DD-GUI-014.* added — Active Cycles Panel (view-model, delegate, inline risk editor).
@@ -1494,3 +1495,25 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 - `set_icon(button, name, role, size=16)` helper sets icon and icon size; `icon_button(name, role, tip)` builds an icon-only button with tooltip and accessible name.
 
 **Panel changes.** Remove emoji prefixes from button, tab and nav text in `main_window`, `dashboard_panel`, `screener_panel`, `execution_panel`, `settings_panel`, `scheduler_dialog`, `active_cycles_panel`, `log_viewer_panel`. Add the matching icon via `set_icon`. Set `role="danger"` on Square Off All, Delete / Remove, Trip Circuit Breaker, Force Exit and Confirm Exit. Log text, Telegram text, status dots (●) and window controls (− □ ✕) stay as they are.
+
+---
+
+## DD-GUI-018.001.D01 — Sidebar Workspace Shell
+
+**Traces:** SRD-GUI-018.001–.007
+
+**Layout.** Title bar (40 px) on top; below it a row: sidebar slot | `QStackedWidget`; status bar at the bottom. The accent line and `_AdminContextBar` are removed.
+
+**Sidebar (`sidebar.py`).**
+- `Sidebar(QFrame)` is a child of the central root widget, not of the layout. A `QWidget` slot in the row layout reserves its width (56 or 200 px). `MainWindow` keeps the sidebar's geometry equal to the slot's rect, widened to 200 px while peeking, and calls `raise_()`.
+- Collapse button on top, then nav buttons in an exclusive `QButtonGroup` (`set_icon`, 17 px), then a stretch and `_AccountFooter`. Labels hide in mini mode (`setText("")` with the label kept as tooltip).
+- Signals: `page_requested(int)`, `mini_toggled(bool)` (user only), `hover_changed(bool)`.
+- `_AccountFooter` reuses the text logic of the old `_AdminContextBar.refresh()` and listens to `viewing_changed`, `positions_updated`, `account_updated`.
+
+**Mini mode.** `MainWindow` owns the state: `user_mini` (from `QSettings` key `sidebar_mini`) and `auto_mini`. On `page_requested`, wide screens (Execution, Chart) set `auto_mini`; the slot width is `56 if user_mini or auto_mini else 200`, changed through `RevealController`.
+
+**Reveal (`reveal.py`).** `RevealController(QObject)`: `register(name, widget, closed, opened, axis)` stores one `QVariantAnimation` (200 ms, OutCubic) per name; `valueChanged` calls `setFixedWidth`/`setFixedHeight`. Slot `on_reveal_requested(name, show)` restarts the animation from the current size; `finished` emits `revealed(name, show)`.
+
+**Title bar.** `_TitleBar` loses the nav tabs and gains the market watch cells (`_MWCell`, moved from `_AdminContextBar`) between brand and the feed toggle.
+
+**Screen slide.** On `page_requested`, after `setCurrentIndex`, a `QPropertyAnimation` moves the new page's `pos` from (24, 0) to (0, 0) over 180 ms.

@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.13.0: MD-GUI-018.001.M01 (sidebar.py), MD-GUI-018.006.M02 (reveal.py) added; MD-GUI-018.005.M03 covers main_window.py shell changes.
 > v1.12.0: MD-GUI-017.001.M02 (theme.py Carbon extension) and MD-GUI-017.003.M01 (icons.py) added for the Carbon theme (SRD-GUI-017.001, .002, .005).
 > v1.11.0: MD-GUI-004.001.M03 (intraday_cleanup.py) added; MD-GUI-004.001.M01 extended for startup cleanup (SRD-GUI-004.013).
 > v1.10.0: MD-GUI-004.001.M02 (manual_picks_store.py) added; MD-GUI-004.001.M01 extended for manual picks (SRD-GUI-004.010–.012).
@@ -181,3 +182,11 @@ us_swing/src/us_swing/gui/
 | MD-GUI-017.003.M01 | SRD-GUI-017.003 | `us_swing/src/us_swing/gui/icons.py` | Role-coloured, cached SVG icons | `icon()`, `set_icon()`, `icon_button()`, `clear_cache()` | `theme`, `QtSvg` | No |
 
 > MD-GUI-017.001.M02 also covers SRD-GUI-017.002 and .005. Panel edits for SRD-GUI-017.004/.005 stay under each panel's existing MD ID.
+
+## FO-GUI-018 — Sidebar Workspace Shell
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-GUI-018.001.M01 | SRD-GUI-018.001 | `us_swing/src/us_swing/gui/sidebar.py` | Sidebar nav, mini labels, account footer | `Sidebar`, `page_requested`, `mini_toggled`, `hover_changed`, `set_mini()`, `set_current()` | `icons`, `theme`, `AppService` | No |
+| MD-GUI-018.006.M02 | SRD-GUI-018.006 | `us_swing/src/us_swing/gui/reveal.py` | Size animation for hide/show panels | `RevealController`, `register()`, `on_reveal_requested()`, `revealed` | `QtCore` | No |
+| MD-GUI-018.005.M03 | SRD-GUI-018.005 | `us_swing/src/us_swing/gui/main_window.py` | Shell layout, mini state, peek geometry, screen slide | `MainWindow` | `sidebar`, `reveal` | No |

@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.11.0: UT-GUI-018.* added — sidebar workspace shell.
 > v1.10.0: UT-GUI-017.* added — Carbon theme and icon system.
 > v1.9.1: UT-GUI-006.001.M01.T17–T18 added — user edit keeps Telegram settings (ISS-GUI-0005).
 > v1.9.0: UT-GUI-004.001.M01.T21–T25 added — startup cleanup of stale intraday candles (SRD-GUI-004.013).
@@ -479,3 +480,17 @@ Test files:
 | UT-GUI-017.003.M01.T04 | MD-GUI-017.003.M01 | Positive | Icon-only button has tooltip and accessible name | `icon_button("refresh", "info", "Refresh")` | tooltip and accessible name "Refresh" | Pass |
 | UT-GUI-017.004.M01.T01 | MD-GUI-017.003.M01 | Positive | No emoji on buttons and tabs | GUI panel source files | no emoji in button, tab, action or `setText` text | Pass |
 | UT-GUI-017.005.M01.T01 | MD-GUI-017.003.M01 | Positive | Risky buttons are marked danger in every theme | Square Off All, Delete, Trip Circuit Breaker; all 3 QSS | `role` property "danger"; each QSS has the danger selector | Pass |
+
+## FO-GUI-018 — Sidebar Workspace Shell
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-018.001.M01.T01 | MD-GUI-018.001.M01 | Positive | Nav click asks for that screen | click third item | `page_requested(2)`; item checked | Pass |
+| UT-GUI-018.002.M01.T01 | MD-GUI-018.001.M01 | Positive | Mini mode hides labels, keeps tooltips | `set_mini(True)` | buttons have no text; tooltips are labels | Pass |
+| UT-GUI-018.004.M01.T01 | MD-GUI-018.001.M01 | Positive | Footer shows user details | stub service, viewing user 1 | username, mode, IBKR, risk, `Cap` and `Avail` values | Pass |
+| UT-GUI-018.004.M01.T02 | MD-GUI-018.001.M01 | Negative | Footer handles All Users and missing user | viewing `None`; then unknown id | "All Users" with count; no crash | Pass |
+| UT-GUI-018.006.M02.T01 | MD-GUI-018.006.M02 | Positive | Reveal animates and reports | register 0→200, request open | width ends 200; `revealed("x", True)` once | Pass |
+| UT-GUI-018.006.M02.T02 | MD-GUI-018.006.M02 | Negative | Unknown name is ignored | request "nope" | no error; no `revealed` | Pass |
+| UT-GUI-018.006.M02.T03 | MD-GUI-018.006.M02 | Edge | Request during animation restarts from current size | open then close mid-way | ends at closed size; last `revealed` is False | Pass |
+| UT-GUI-018.002.M03.T01 | MD-GUI-018.005.M03 | Positive | Wide screen auto-shrinks and restores | page Execution then Dashboard | slot 56 then 200 | Pass |
+| UT-GUI-018.002.M03.T02 | MD-GUI-018.005.M03 | Negative | Auto restore keeps user's mini choice | user mini on; Execution then Dashboard | slot stays 56 | Pass |

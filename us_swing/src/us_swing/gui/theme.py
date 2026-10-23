@@ -1272,11 +1272,35 @@ QPushButton[role="danger"]:disabled {{ color: {muted}; border-color: {line}; }}
 """
 
 
+def _sidebar_qss(bg: str, line: str, text: str, sub: str, hover: str,
+                 active_bg: str, accent: str) -> str:
+    return f"""
+QFrame#sidebar {{ background: {bg}; border-right: 1px solid {line}; }}
+QPushButton#side_btn {{
+    background: transparent; color: {sub}; border: none; border-left: 2px solid transparent;
+    border-radius: 2px; text-align: left; padding: 0 10px; outline: none;
+}}
+QPushButton#side_btn:hover {{ background: {hover}; color: {text}; }}
+QPushButton#side_btn:checked {{
+    background: {active_bg}; color: {accent}; border-left: 2px solid {accent}; font-weight: bold;
+}}
+QPushButton#side_btn:focus {{ outline: none; }}
+QFrame#side_sep {{ background: {line}; border: none; }}
+QLabel#side_footer {{ color: {sub}; font-size: 8pt; }}
+QWidget#side_account, QWidget#side_account QLabel {{ background: transparent; }}
+"""
+
+
 CARBON_QSS = _rgba_from_hex8(_to_carbon(MOCHA_QSS)) + _CARBON_EXTRA + _danger_qss(
     _CARBON.RED, _CARBON.MUTED, _CARBON.OVERLAY2
+) + _sidebar_qss("#090b0e", _CARBON.OVERLAY, _CARBON.TEXT, _CARBON.SUBTEXT,
+                 "#1a2029", "#2a2213", _CARBON.MAUVE)
+MOCHA_QSS += _danger_qss(_MOCHA.RED, _MOCHA.MUTED, _MOCHA.OVERLAY2) + _sidebar_qss(
+    "#11111b", _MOCHA.OVERLAY, _MOCHA.TEXT, _MOCHA.SUBTEXT, _MOCHA.OVERLAY, "#1a2d45", _MOCHA.BLUE
 )
-MOCHA_QSS += _danger_qss(_MOCHA.RED, _MOCHA.MUTED, _MOCHA.OVERLAY2)
-VS_CODE_QSS += _danger_qss(_VS.RED, _VS.MUTED, _VS.OVERLAY2)
+VS_CODE_QSS += _danger_qss(_VS.RED, _VS.MUTED, _VS.OVERLAY2) + _sidebar_qss(
+    "#161616", _VS.OVERLAY2, _VS.TEXT, _VS.SUBTEXT, _VS.OVERLAY, "#04395e", _VS.TEXT
+)
 QSS = MOCHA_QSS
 
 THEME_COLORS["carbon"] = {

@@ -1,14 +1,16 @@
 """
 Module: MD-GUI-000 — main_window.py
-QMainWindow: Frameless terminal UI — compact top bar with horizontal nav.
+Shell: MD-GUI-018.005.M03 (Parent SRD: SRD-GUI-018.005)
+QMainWindow: Frameless terminal UI — title bar, left sidebar, stacked screens.
 
 Layout:
   ┌──────────────────────────────────────────────────────────────────────┐
-  │ ◈ US SWING  │ Dashboard  Screener  Execution  Settings │ NYSE● │ 👤 trader PAPER │ P&L │ ─ □ ✕ │
-  ├──────────────────────────────────────────────────────────────────────┤
-  │  CONTENT  (QStackedWidget — fills remainder)                          │
-  ├──────────────────────────────────────────────────────────────────────┤
-  │  STATUS BAR                                                            │
+  │ logo  Swing Trading Terminal v  │  index prices  │  feed  │ − □ ✕   │
+  ├──────────┬───────────────────────────────────────────────────────────┤
+  │ SIDEBAR  │  CONTENT  (QStackedWidget — fills remainder)              │
+  │ (200/56) │                                                           │
+  ├──────────┴───────────────────────────────────────────────────────────┤
+  │  STATUS BAR                                                          │
   └──────────────────────────────────────────────────────────────────────┘
 """
 from __future__ import annotations
@@ -18,7 +20,19 @@ import math
 import sys
 from pathlib import Path
 
-from PyQt6.QtCore import QEvent, QPoint, QPointF, QRectF, QSettings, QTimer, Qt
+from PyQt6.QtCore import (
+    QAbstractAnimation,
+    QEasingCurve,
+    QEvent,
+    QObject,
+    QPoint,
+    QPointF,
+    QPropertyAnimation,
+    QRectF,
+    QSettings,
+    QTimer,
+    Qt,
+)
 from PyQt6.QtGui import QColor, QCursor, QFont, QPainter, QPainterPath, QPen, QPixmap
 from PyQt6.QtWidgets import (
     QApplication,
@@ -42,8 +56,9 @@ from us_swing.gui.execution_panel import ExecutionPanel
 from us_swing.gui.screener_panel import ScreenerPanel
 from us_swing.gui.settings_panel import SettingsPanel
 from us_swing.gui.system_store import load_system_config
-from us_swing.gui.icons import icon as make_icon
-from us_swing.gui.icons import refresh_icons, set_icon
+from us_swing.gui.icons import refresh_icons
+from us_swing.gui.reveal import RevealController
+from us_swing.gui.sidebar import FULL_WIDTH, MINI_WIDTH, Sidebar
 from us_swing.gui.theme import C, active_palette, colors
 
 _log = logging.getLogger(__name__)
@@ -106,23 +121,6 @@ class _MWCell(QLabel):
                 f"<span style='color:{name_color};font-size:7pt;letter-spacing:0.5px'>{self._name}</span>"
                 f"&nbsp;&nbsp;<span style='color:{_T.OVERLAY2};font-size:9pt'>—</span>"
             )
-
-
-# ── Horizontal nav tab button ──────────────────────────────────────────────────
-
-class _TabBtn(QPushButton):
-    """Compact horizontal nav tab — icon + label, underline when active."""
-
-    def __init__(self, icon_name: str, label: str, parent: QWidget | None = None) -> None:
-        super().__init__(label, parent)
-        set_icon(self, icon_name, "neutral", 17)
-        self.setCheckable(True)
-        self.setAutoExclusive(True)
-        self.setObjectName("tab_btn")
-        self.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.setFixedHeight(38)
-        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-
 
 
 # ── Feed connect toggle ────────────────────────────────────────────────────────
@@ -271,10 +269,10 @@ class _TitleBar(QWidget):
     """
 
     def __init__(self, svc: AppService, window: QMainWindow,
-                 panels: list[QWidget], stack: QStackedWidget,
                  parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._win         = window
+        self._svc         = svc
         self._drag_pos    = QPoint()
         self._maximised   = False
         self._restore_geom = window.geometry()
@@ -309,24 +307,26 @@ class _TitleBar(QWidget):
 
         _vdiv(row)
 
-        # ── Nav tabs ─────────────────────────────────────────────────────
-        nav_items = [
-            ("layout-dashboard", "Dashboard"),
-            ("filter", "Screener"),
-            ("zap", "Execution"),
-            ("chart-candlestick", "Chart"),
-            ("settings", "Settings"),
-        ]
-        self._tabs: list[_TabBtn] = []
-        for (icon_name, label), panel in zip(nav_items, panels):
-            btn = _TabBtn(icon_name, label)
-            self._tabs.append(btn)
-            row.addWidget(btn)
-            btn.clicked.connect(lambda _c, p=panel: stack.setCurrentWidget(p))
+        # ── Market watch index prices ──────────────────────────────────────
+        row.addStretch(1)
+        self._mw_cells: list[_MWCell] = []
+        self._mw_cell_divs: list[QLabel] = []
+        self._mw_sym_names = dict(svc.get_mw_symbol_names())
+        for sym in self._mw_sym_names:
+            if self._mw_cells:
+                div = QLabel("│")
+                row.addWidget(div)
+                self._mw_cell_divs.append(div)
+            cell = _MWCell()
+            cell.setObjectName(f"mw_{sym}")
+            cell.update_data(self._mw_sym_names[sym], 0.0, 0.0)
+            row.addWidget(cell)
+            self._mw_cells.append(cell)
+        self._apply_mw_styles()
+        svc.market_watch_updated.connect(self._refresh_mw)
+        self._refresh_mw()
 
         row.addStretch(1)          # push remaining right
-
-        self._svc = svc
 
         # ── Connect / Disconnect feed toggle ──────────────────────────────
         row.addSpacing(8)
@@ -376,6 +376,28 @@ class _TitleBar(QWidget):
         for b in (self._btn_min, self._btn_max, self._btn_cls):
             wf.addWidget(b, alignment=Qt.AlignmentFlag.AlignVCenter)
         row.addWidget(win_frame, alignment=Qt.AlignmentFlag.AlignVCenter)
+
+    def _apply_mw_styles(self) -> None:
+        _T = active_palette()
+        for div in self._mw_cell_divs:
+            div.setStyleSheet(f"color:{_T.OVERLAY2}; padding: 0 8px;")
+        for cell in self._mw_cells:
+            cell.setStyleSheet("font-size:8pt;")
+
+    def _refresh_mw(self) -> None:
+        items = self._svc.get_market_watch_items()
+        for i, cell in enumerate(self._mw_cells):
+            if i >= len(items):
+                break
+            it = items[i]
+            cell.update_data(self._mw_sym_names.get(it.symbol, it.symbol), it.ltp, it.change_pct)
+
+    def changeEvent(self, event: QEvent | None) -> None:
+        super().changeEvent(event)
+        if event is not None and event.type() == QEvent.Type.StyleChange:
+            self._apply_mw_styles()
+            self._refresh_mw()
+
     def _on_feed_btn_clicked(self) -> None:
         status = self._svc.connection_status
         if status == ConnectionStatus.CONNECTED:
@@ -530,137 +552,33 @@ class _ConfirmDialog(QDialog):
 
 # ── Admin Context Bar ─────────────────────────────────────────────────────────────
 
-class _AdminContextBar(QWidget):
-    """
-    A slim info strip (28px) below the accent line showing the active admin scope:
-      • All Users: aggregate count, total equity, combined P&L, total positions
-      • Specific user: name, mode, IBKR ID, risk settings, equity
-    """
+_NAV_ITEMS: list[tuple[str, str]] = [
+    ("layout-dashboard", "Dashboard"),
+    ("filter", "Screener"),
+    ("zap", "Execution"),
+    ("chart-candlestick", "Chart"),
+    ("settings", "Settings"),
+]
+_WIDE_PAGES = frozenset({2, 3})   # Execution, Chart
 
-    def __init__(self, svc: AppService, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self._demo = svc
-        self.setObjectName("admin_ctx_bar")
-        self.setFixedHeight(28)
 
-        row = QHBoxLayout(self)
-        row.setContentsMargins(14, 0, 14, 0)
-        row.setSpacing(0)
+class _MiniState:
+    """Sidebar mini mode: the user's saved choice plus a per-screen auto shrink."""
 
-        # ── Scope icon + items ───────────────────────────────────────────────
-        self._scope_icon = QLabel()
-        row.addWidget(self._scope_icon)
+    def __init__(self, user_mini: bool) -> None:
+        self.user_mini = user_mini
+        self.auto_mini = False
 
-        self._items: dict[str, QLabel] = {}
-        self._dividers: list[QLabel] = []
+    def set_page(self, index: int) -> None:
+        self.auto_mini = index in _WIDE_PAGES
 
-        for key in ("scope", "risk", "capital", "mode", "ibkr"):
-            if self._items:  # divider before each (except first)
-                d = QLabel("·")
-                row.addWidget(d)
-                self._dividers.append(d)
-            lbl = QLabel()
-            row.addWidget(lbl)
-            self._items[key] = lbl
+    def set_user_mini(self, mini: bool) -> None:
+        self.user_mini = mini
+        if not mini:
+            self.auto_mini = False
 
-        row.addStretch()
-
-        # ── Market Watch (right side) ─────────────────────────────────────────
-        self._mw_sep = QLabel("│")
-        row.addWidget(self._mw_sep)
-
-        self._mw_cells: list[_MWCell] = []
-        self._mw_cell_divs: list[QLabel] = []
-        self._mw_sym_names = dict(svc.get_mw_symbol_names())
-        for sym in self._mw_sym_names:
-            if self._mw_cells:
-                div = QLabel("│")
-                row.addWidget(div)
-                self._mw_cell_divs.append(div)
-            cell = _MWCell()
-            cell.setObjectName(f"mw_{sym}")
-            cell.update_data(self._mw_sym_names[sym], 0.0, 0.0)
-            row.addWidget(cell)
-            self._mw_cells.append(cell)
-
-        self._apply_static_styles()
-        svc.viewing_changed.connect(self.refresh)
-        svc.positions_updated.connect(self.refresh)
-        svc.account_updated.connect(self.refresh)
-        svc.market_watch_updated.connect(self._refresh_mw)
-        self._refresh_mw()
-        self.refresh()
-
-    def _apply_static_styles(self) -> None:
-        _T = active_palette()
-        self._scope_icon.setStyleSheet(
-            f"color:{_T.YELLOW}; font-size:8pt; font-weight:bold; padding-right:6px;"
-        )
-        for d in self._dividers:
-            d.setStyleSheet(f"color:{_T.OVERLAY2}; padding: 0 10px;")
-        for lbl in self._items.values():
-            lbl.setStyleSheet(f"color:{_T.TEXT}; font-size:8pt;")
-        self._mw_sep.setStyleSheet(f"color:{_T.OVERLAY2}; padding: 0 10px;")
-        for div in self._mw_cell_divs:
-            div.setStyleSheet(f"color:{_T.OVERLAY2}; padding: 0 8px;")
-        for cell in self._mw_cells:
-            cell.setStyleSheet("font-size:8pt;")
-
-    def changeEvent(self, event: QEvent | None) -> None:
-        super().changeEvent(event)
-        if event is not None and event.type() == QEvent.Type.StyleChange:
-            self._apply_static_styles()
-            self.refresh()
-
-    def _refresh_mw(self) -> None:
-        items = self._demo.get_market_watch_items()
-        for i, cell in enumerate(self._mw_cells):
-            if i >= len(items):
-                break
-            it = items[i]
-            name = self._mw_sym_names.get(it.symbol, it.symbol)
-            cell.update_data(name, it.ltp, it.change_pct)
-
-    def refresh(self) -> None:
-        _T = active_palette()
-        uid   = self._demo.get_viewing_uid()
-        users = self._demo.get_users()
-
-        if uid is None:
-            self._scope_icon.setPixmap(make_icon("globe", "go").pixmap(14, 14))
-            self._items["scope"].setText(
-                f"<b style='color:{_T.YELLOW}'>ALL USERS</b>"
-                f"  <span style='color:{_T.MUTED};font-size:7pt'>{len(users)} accounts</span>"
-            )
-            for k in ("risk", "capital", "mode", "ibkr"):
-                self._items[k].hide()
-        else:
-            u = self._demo.get_user_by_id(uid)
-            if not u:
-                return
-            mode_clr = _T.RED if u.mode == "live" else _T.BLUE
-            self._scope_icon.setPixmap(make_icon("user", "go").pixmap(14, 14))
-            self._items["scope"].setText(f"<b style='color:{_T.BLUE}'>{u.username}</b>")
-            self._items["risk"].setText(
-                f"<span style='color:{_T.MUTED}'>Risk/Trade</span>  <b>{u.risk_config.risk_per_trade_pct:.1f}%</b>"
-            )
-            self._items["mode"].setText(f"<b style='color:{mode_clr}'>{u.mode.upper()}</b>")
-            self._items["ibkr"].setText(
-                f"<span style='color:{_T.MUTED}'>IBKR</span>  <b>#{u.ibkr_client_id}</b>"
-            )
-            cap = self._demo.effective_capital()
-            avail = self._demo.margin_available()
-            avail_clr = _T.GREEN if avail > 0 else _T.RED
-            self._items["capital"].setText(
-                f"<span style='color:{_T.MUTED}'>Cap</span>  <b>${cap:,.0f}</b>"
-                f"  <span style='color:{_T.MUTED}'>Avail</span>  "
-                f"<b style='color:{avail_clr}'>${avail:,.0f}</b>"
-            )
-            for k in ("risk", "capital", "mode", "ibkr"):
-                self._items[k].show()
-
-        for lbl in self._items.values():
-            lbl.setTextFormat(Qt.TextFormat.RichText)
+    def want_mini(self) -> bool:
+        return self.user_mini or self.auto_mini
 
 
 # ── Main Window ────────────────────────────────────────────────────────────────
@@ -710,20 +628,41 @@ class MainWindow(QMainWindow):
         self._stack = QStackedWidget()
         for p in panels:
             self._stack.addWidget(p)
-
-        # ── Title bar (with nav + win controls) ────────────────────────────────
-        self._title_bar = _TitleBar(svc, self, panels, self._stack)
-
-        # Activate first tab
-        self._title_bar._tabs[0].setChecked(True)
         self._stack.setCurrentIndex(0)
 
-        # ── Blue accent underline below title bar ──────────────────────────────
-        accent = QFrame()
-        accent.setFrameShape(QFrame.Shape.HLine)
-        accent.setObjectName("accent_line")
-        # ── Admin context bar ─────────────────────────────────────────────────────
-        self._admin_ctx_bar = _AdminContextBar(svc)
+        # ── Title bar (brand, index prices, feed, win controls) ────────────────
+        self._title_bar = _TitleBar(svc, self)
+
+        # ── Sidebar: floats over a width-reserving slot so hover peek never
+        #    pushes the screen; the slot width is animated by RevealController.
+        body = QWidget()
+        body_row = QHBoxLayout(body)
+        body_row.setContentsMargins(0, 0, 0, 0)
+        body_row.setSpacing(0)
+        self._side_slot = QWidget()
+        body_row.addWidget(self._side_slot)
+        body_row.addWidget(self._stack, 1)
+        self._sidebar = Sidebar(svc, _NAV_ITEMS, body)
+        self._sidebar.set_current(0)
+        self._body = body
+        self._peeking = False
+        self._mini_state = _MiniState(bool(QSettings("USSwing", "MainWindow").value(
+            "sidebar_mini", False, type=bool)))
+        self._reveal = RevealController(self)
+        want_mini = self._mini_state.want_mini()
+        self._reveal.register("sidebar", self._side_slot, MINI_WIDTH, FULL_WIDTH,
+                              start_open=not want_mini)
+        self._sidebar.set_mini(want_mini)
+        self._slide: QPropertyAnimation | None = None
+        body.installEventFilter(self)
+        self._side_slot.installEventFilter(self)
+
+        # sidebar → page_requested → MainWindow → stack + mini state
+        self._sidebar.page_requested.connect(self._on_page_requested)
+        # sidebar → mini_toggled → MainWindow → saved user choice
+        self._sidebar.mini_toggled.connect(self._on_mini_toggled)
+        # sidebar → hover_changed → MainWindow → peek overlay
+        self._sidebar.hover_changed.connect(self._on_sidebar_hover)
         # ── Status bar widgets ─────────────────────────────────────────────────
         self._status = self.statusBar()
         self._status.setSizeGripEnabled(False)
@@ -747,9 +686,7 @@ class MainWindow(QMainWindow):
         rl.setContentsMargins(0, 0, 0, 0)
         rl.setSpacing(0)
         rl.addWidget(self._title_bar)
-        rl.addWidget(accent)
-        rl.addWidget(self._admin_ctx_bar)
-        rl.addWidget(self._stack, 1)
+        rl.addWidget(body, 1)
         self.setCentralWidget(root)
 
         # ── Signals ─────────────────────────────────────────────────────────────
@@ -790,7 +727,61 @@ class MainWindow(QMainWindow):
 
     def _on_theme_changed(self) -> None:
         refresh_icons(self)
-        self._admin_ctx_bar.refresh()
+
+    def _on_page_requested(self, index: int) -> None:
+        self._stack.setCurrentIndex(index)
+        self._slide_in(self._stack.currentWidget())
+        self._mini_state.set_page(index)
+        self._apply_sidebar_mode()
+
+    def _on_mini_toggled(self, mini: bool) -> None:
+        self._mini_state.set_user_mini(mini)
+        QSettings("USSwing", "MainWindow").setValue("sidebar_mini", mini)
+        self._apply_sidebar_mode()
+
+    def _apply_sidebar_mode(self) -> None:
+        mini = self._mini_state.want_mini()
+        if mini == self._sidebar.is_mini:
+            return
+        self._peeking = False
+        self._sidebar.set_mini(mini)
+        self._reveal.reveal_requested.emit("sidebar", not mini)
+
+    def _on_sidebar_hover(self, entered: bool) -> None:
+        peek = entered and self._sidebar.is_mini
+        if peek == self._peeking:
+            return
+        self._peeking = peek
+        self._sidebar.set_labels_visible(peek)
+        self._sync_sidebar_geometry()
+
+    def _slide_in(self, page: QWidget | None) -> None:
+        if page is None:
+            return
+        if self._slide is not None:
+            self._slide.stop()
+        self._slide = QPropertyAnimation(page, b"pos", self)
+        self._slide.setDuration(180)
+        self._slide.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._slide.setStartValue(QPoint(24, 0))
+        self._slide.setEndValue(QPoint(0, 0))
+        self._slide.finished.connect(self._clear_slide)
+        self._slide.start(QAbstractAnimation.DeletionPolicy.DeleteWhenStopped)
+
+    def _clear_slide(self) -> None:
+        self._slide = None
+
+    def _sync_sidebar_geometry(self) -> None:
+        width = FULL_WIDTH if self._peeking else self._side_slot.width()
+        self._sidebar.setGeometry(0, 0, width, self._body.height())
+        self._sidebar.raise_()
+
+    def eventFilter(self, obj: QObject | None, event: QEvent | None) -> bool:
+        if event is not None and obj in (self._body, self._side_slot) and event.type() in (
+            QEvent.Type.Resize, QEvent.Type.Show,
+        ):
+            self._sync_sidebar_geometry()
+        return super().eventFilter(obj, event)
 
 
     def _refresh_status(self) -> None:
