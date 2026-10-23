@@ -1,12 +1,13 @@
 # Design Document — Execution & Risk Management (EXE)
 
 **Document ID:** DD-EXE
-**Version:** 1.17.0
+**Version:** 1.18.0
 **Traces To:** SRD-EXE v1.24.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.18.0: DD-EXE-019.001.D01 added — Strategy P&L History read, summary and app accessor.
 > v1.17.0: DD-EXE-018.001/.003/.006/.007/.012/.013.D01 added — Short Trade Direction: stored direction, shared side and risk-level helpers, order-state by entry/exit, direction-aware cycle maths, opposite-direction guard, signed position P&L.
 > v1.15.0: DD-EXE-006.013.D01 + DD-EXE-011.023.D01 added (ISS-EXE-0009) — opening a trade cycle marshals candle-feed arming (historical download + live-bar subscription) for its symbol; and the `ConditionEvaluator` FUNC choke point raises `EvaluatorError` on a NaN indicator result so an un-computable exit surfaces instead of reading as false.
 > v1.14.0: DD-EXE-016.007.D01 added (ISS-EXE-0008) — `mark_entered` re-arms a same-day `EXITED` ledger row back to `ENTERED` to keep the reconcile invariant on a same-day re-entry.
@@ -4020,3 +4021,51 @@ day-end P&L correct without changing them.
 `[Orders] Short sale for %s was rejected by the broker` before the existing
 `abort_entry_order` call. Nothing else changes: the cycle aborts and the reservation is
 released as it is today. `SimBroker` never rejects on direction (D6).
+
+---
+
+## DD-EXE-019.001.D01 — Strategy P&L History Read & Summary
+
+**Parent SRD:** SRD-EXE-019.001, SRD-EXE-019.002, SRD-EXE-019.003, SRD-EXE-019.004
+
+**Read.** `TradeCycleRepository.closed_for_strategy(strategy_id, *, since_iso=None, user_id=None)`:
+
+```python
+stmt = (sa.select(trade_cycles)
+        .where(trade_cycles.c.strategy_id == strategy_id,
+               trade_cycles.c.state == TradeCycleState.CLOSED.value)
+        .order_by(trade_cycles.c.closed_at.asc(), trade_cycles.c.cycle_id.asc()))
+# + closed_at >= since_iso when given, + user_id == user_id when given
+```
+
+`TradeCycleQuery` (protocol) and `TradeCycleService` gain the same method as a pass-through.
+Index `idx_trade_cycles_strategy_closed (strategy_id, closed_at)` lives in `_schema.py`, so
+`create_schema(checkfirst=True)` adds it to existing databases on the next start.
+
+**Summary.** New pure module `trade_cycle/_pnl_history.py`:
+
+```python
+@dataclass(frozen=True, slots=True)
+class PnlPoint:      closed_at: str; symbol: str; pnl: float; cumulative: float
+
+@dataclass(frozen=True, slots=True)
+class StrategyPnlSummary:
+    points: tuple[PnlPoint, ...] = ()
+    total: float = 0.0; trades: int = 0; wins: int = 0; win_rate: float = 0.0
+    avg_win: float = 0.0; avg_loss: float = 0.0
+    max_drawdown: float = 0.0          # ≤ 0, largest fall from a running peak
+    dd_start: int = -1; dd_end: int = -1   # point indexes; -1 = no drawdown
+    today: float = 0.0
+```
+
+`summarise(cycles, today_start_iso, today_end_iso)` walks cycles in the given order and skips
+any without `realized_pnl_usd`. Running peak starts at 0 (the line starts at 0). For each
+point: `cum += pnl`; if `cum > peak` the peak index moves; `dd = cum - peak`; the most
+negative `dd` sets `max_drawdown`, `dd_start` = peak index (−1 when the peak is the 0 start,
+then the span starts at the origin) and `dd_end` = this index. Win = `pnl > 0`; average loss
+is over `pnl < 0`. `today` sums points with `today_start ≤ closed_at < today_end`.
+
+**App service.** `AppService.get_strategy_pnl(strategy_id, since_iso=None)` reads with
+`user_id = get_viewing_uid()`, takes today's bounds from the market day (same rule as the
+Active Trades closed-today rows) and returns `summarise(...)`. A missing ledger or a failed
+read logs `[Strategy] Could not load P&L history for %s` and returns `StrategyPnlSummary()`.

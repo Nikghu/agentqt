@@ -257,6 +257,10 @@ def create_schema(engine: sa.Engine) -> None:
     additive lifecycle-column migrations for existing databases."""
     _register_trade_cycle_schema()
     metadata.create_all(engine, checkfirst=True)
+    # create_all skips indexes of tables that already exist; add new ones too.
+    for table in metadata.sorted_tables:
+        for index in table.indexes:
+            index.create(engine, checkfirst=True)
     migrate_lifecycle_columns(engine)
 
 
