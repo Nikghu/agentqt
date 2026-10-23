@@ -298,7 +298,7 @@
 ---
 
 ## FO-SCR-015: Accumulation / Distribution Screener
-- **Status:** Draft (2026-10-23)
+- **Status:** Approved (user, 2026-10-23)
 
 - The system shall offer an **Accumulation / Distribution** screener that reads the volume behind recent rallies and drops on daily bars.
 - A rally day shall be a close above the previous close by at least the minimum move %; a drop day a close below it by at least that %.

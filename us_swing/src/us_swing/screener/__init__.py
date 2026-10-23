@@ -33,6 +33,7 @@ from us_swing.screener.utils import PreFilter
 # ---------------------------------------------------------------------------
 # Built-in screener plugins
 # ---------------------------------------------------------------------------
+from us_swing.screener.screeners.acc_dist import AccDistScreener
 from us_swing.screener.screeners.cloud_ai import CloudAIScreener
 from us_swing.screener.screeners.indicator import IndicatorScreener
 from us_swing.screener.screeners.llm_local import LLMLocalScreener
@@ -51,6 +52,7 @@ ScreenerRegistry.register("llm_claude_ranking", CloudAIScreener)
 ScreenerRegistry.register("llm_local_mistral", LLMLocalScreener)
 ScreenerRegistry.register("price_action", PriceActionScreener)
 ScreenerRegistry.register("mcp", MCPScreener)
+ScreenerRegistry.register("acc_dist", AccDistScreener)
 
 
 # ---------------------------------------------------------------------------

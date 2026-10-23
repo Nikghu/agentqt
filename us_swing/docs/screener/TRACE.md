@@ -504,6 +504,26 @@ FO-011
 
 **RN:** RN-SCR-2.3.0-20261022 (all SRD-016.001–.015 rows above, 2026-10-22).
 
+### FO-SCR-015 Coverage Summary (SRD-SCR-017)
+
+| SRD | DD | MD | UT File | Tests | Status |
+|---|---|---|---|---|---|
+| SRD-017.001 | DD-SCR-017.002.D01 | MD-SCR-017.001.M32 | tests/screener/test_acc_dist_screener.py | UT-SCR-017.001.M32.T01 | Implemented |
+| SRD-017.002 | DD-SCR-017.002.D01 | MD-SCR-017.001.M32 | tests/screener/test_acc_dist_screener.py | UT-SCR-017.002.M32.T01 | Implemented |
+| SRD-017.003 | DD-SCR-017.002.D01 | MD-SCR-017.001.M32 | tests/screener/test_acc_dist_screener.py | UT-SCR-017.003.M32.T01 | Implemented |
+| SRD-017.004 | DD-SCR-017.002.D01 | MD-SCR-017.001.M32 | tests/screener/test_acc_dist_screener.py | UT-SCR-017.004.M32.T01 | Implemented |
+| SRD-017.005 | DD-SCR-017.002.D01 | MD-SCR-017.001.M32 | tests/screener/test_acc_dist_screener.py | UT-SCR-017.008.M32.T01 | Implemented |
+| SRD-017.006 | DD-SCR-017.002.D01 | MD-SCR-017.001.M32 | tests/screener/test_acc_dist_screener.py | UT-SCR-017.006.M32.T01–T03 | Implemented |
+| SRD-017.007 | DD-SCR-017.002.D01 | MD-SCR-017.001.M32 | tests/screener/test_acc_dist_screener.py | UT-SCR-017.006.M32.T01, T03 | Implemented |
+| SRD-017.008 | DD-SCR-017.002.D01 | MD-SCR-017.001.M32 | tests/screener/test_acc_dist_screener.py | UT-SCR-017.008.M32.T01–T02 | Implemented |
+| SRD-017.009 | DD-SCR-017.002.D01 | MD-SCR-017.001.M32 | tests/screener/test_acc_dist_screener.py | UT-SCR-017.009.M32.T01 | Implemented |
+| SRD-017.010 | DD-SCR-017.002.D01 | MD-SCR-017.001.M32 | tests/screener/test_acc_dist_screener.py | UT-SCR-017.010.M32.T01 | Implemented |
+| SRD-017.011 | DD-SCR-017.002.D01 | MD-SCR-017.001.M32 | tests/screener/test_acc_dist_screener.py | UT-SCR-017.011.M32.T01 | Implemented |
+| SRD-017.012 | DD-SCR-017.002.D01 | MD-SCR-017.001.M32 | tests/screener/test_acc_dist_screener.py | UT-SCR-017.008.M32.T01 | Implemented |
+| SRD-017.013 | DD-SCR-017.002.D01 | MD-SCR-017.013.M33 | tests/gui/test_acc_dist_settings_dialog.py | UT-SCR-017.013.M33.T01–T04 | Implemented |
+
+**RN:** RN-SCR-2.7.0-20261023 (2026-10-23).
+
 ---
 
 **Status:** v2.1.0 — FO-SCR-011 (Phase 1 AI Stock Ranking) traced through SRD/DD/MD/UTCD. All 22 new unit tests pass; GUI smoke deferred to Phase 5.

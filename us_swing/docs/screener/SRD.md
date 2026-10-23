@@ -277,19 +277,21 @@ Note: Section 16 extends SRD-SCR-002.007 (Approved), which is left unchanged.
 
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
-| SRD-SCR-017.001 | FO-SCR-015 | Must | `AccDistScreener` is registered as `acc_dist` and implements the `Screener` protocol. | — | registry entry | Name "Accumulation / Distribution" | Draft |
-| SRD-SCR-017.002 | FO-SCR-015 | Must | Config keys and defaults: mode `accumulation`, lookback 20, volume period 20, high factor 1.2, low factor 0.9, minimum move 0.5 %, minimum rally days 3, minimum drop days 3, min score 0.6. | config dict | settings | Missing keys use defaults | Draft |
-| SRD-SCR-017.003 | FO-SCR-015 | Must | Bad mode or a value outside its range raises `ScreenerValidationError` naming the key. | config dict | error | Ranges in DD-SCR-017.002.D01 | Draft |
-| SRD-SCR-017.004 | FO-SCR-015 | Must | Each of the last lookback bars is a rally day, drop day or flat day by close-to-close change versus the minimum move %. | close array | day class | Flat days are not scored | Draft |
-| SRD-SCR-017.005 | FO-SCR-015 | Must | A day's relative volume is its volume ÷ the mean volume of the previous volume-period days. | volume array | ratio per day | Day itself excluded from the mean | Draft |
-| SRD-SCR-017.006 | FO-SCR-015 | Must | Accumulation counts rally days with ratio ≥ high factor and drop days with ratio ≤ low factor; Distribution counts the reverse. | day classes, ratios | match counts | — | Draft |
-| SRD-SCR-017.007 | FO-SCR-015 | Must | Score = mean of rally match % and drop match %, in 0–1. | match counts | `float` | Formula in DD-SCR-017.002.D01 | Draft |
-| SRD-SCR-017.008 | FO-SCR-015 | Must | Up/down volume ratio must be ≥ 1.3 for Accumulation or ≤ 0.8 for Distribution. | volumes, day classes | `bool` | Both limits are settings | Draft |
-| SRD-SCR-017.009 | FO-SCR-015 | Should | Location filter (default on) needs the close within the bottom (Acc) or top (Dist) zone % of the range-period high–low. | OHLC arrays | `bool` | Defaults: 126 bars (6 months), zone 25 % | Draft |
-| SRD-SCR-017.010 | FO-SCR-015 | Should | Close-position check (default on) counts a high-volume rally (Acc) only if it closes in the top 30 % of its candle, and a high-volume drop (Dist) only if it closes in the bottom 30 %. | OHLC arrays | match flag | Zone % is a setting | Draft |
-| SRD-SCR-017.011 | FO-SCR-015 | Must | A symbol passes when score ≥ min score, the volume ratio check passes, minimum rally and drop days are met and enabled filters pass. | checks | `(bool, float)` | Too few bars → symbol omitted | Draft |
-| SRD-SCR-017.012 | FO-SCR-015 | Should | `screen_detailed()` returns rally-volume ×, drop-volume × and up/down ratio per symbol for result columns. | symbols, bars, config | per-symbol dict | Same checks as `apply()` | Draft |
-| SRD-SCR-017.013 | FO-SCR-015 | Must | A settings dialog edits every config key with range-limited inputs and returns the config dict. | config dict | config dict | Frameless; new file, no shared GUI file edits until wiring step | Draft |
+| SRD-SCR-017.001 | FO-SCR-015 | Must | `AccDistScreener` is registered as `acc_dist` and implements the `Screener` protocol. | — | registry entry | Name "Accumulation / Distribution" | Implemented |
+| SRD-SCR-017.002 | FO-SCR-015 | Must | Config keys and defaults: mode `accumulation`, lookback 20, volume period 20, high factor 1.2, low factor 0.9, minimum move 0.5 %, minimum rally days 3, minimum drop days 3, min score 0.6. | config dict | settings | Missing keys use defaults | Implemented |
+| SRD-SCR-017.003 | FO-SCR-015 | Must | Bad mode or a value outside its range raises `ScreenerValidationError` naming the key. | config dict | error | Ranges in DD-SCR-017.002.D01 | Implemented |
+| SRD-SCR-017.004 | FO-SCR-015 | Must | Each of the last lookback bars is a rally day, drop day or flat day by close-to-close change versus the minimum move %. | close array | day class | Flat days are not scored | Implemented |
+| SRD-SCR-017.005 | FO-SCR-015 | Must | A day's relative volume is its volume ÷ the mean volume of the previous volume-period days. | volume array | ratio per day | Day itself excluded from the mean | Implemented |
+| SRD-SCR-017.006 | FO-SCR-015 | Must | Accumulation counts rally days with ratio ≥ high factor and drop days with ratio ≤ low factor; Distribution counts the reverse. | day classes, ratios | match counts | — | Implemented |
+| SRD-SCR-017.007 | FO-SCR-015 | Must | Score = mean of rally match % and drop match %, in 0–1. | match counts | `float` | Formula in DD-SCR-017.002.D01 | Implemented |
+| SRD-SCR-017.008 | FO-SCR-015 | Must | Up/down volume ratio must be ≥ 1.3 for Accumulation or ≤ 0.8 for Distribution. | volumes, day classes | `bool` | Both limits are settings | Implemented |
+| SRD-SCR-017.009 | FO-SCR-015 | Should | Location filter (default on) needs the close within the bottom (Acc) or top (Dist) zone % of the range-period high–low. | OHLC arrays | `bool` | Defaults: 126 bars (6 months), zone 25 % | Implemented |
+| SRD-SCR-017.010 | FO-SCR-015 | Should | Close-position check (default on) counts a high-volume rally (Acc) only if it closes in the top 30 % of its candle, and a high-volume drop (Dist) only if it closes in the bottom 30 %. | OHLC arrays | match flag | Zone % is a setting | Implemented |
+| SRD-SCR-017.011 | FO-SCR-015 | Must | A symbol passes when score ≥ min score, the volume ratio check passes, minimum rally and drop days are met and enabled filters pass. | checks | `(bool, float)` | Too few bars → symbol omitted | Implemented |
+| SRD-SCR-017.012 | FO-SCR-015 | Should | `screen_detailed()` returns rally-volume ×, drop-volume × and up/down ratio per symbol for result columns. | symbols, bars, config | per-symbol dict | Same checks as `apply()` | Implemented |
+| SRD-SCR-017.013 | FO-SCR-015 | Must | A settings dialog edits every config key with range-limited inputs and returns the config dict. | config dict | config dict | Frameless; new file, no shared GUI file edits until wiring step | Implemented |
+
+SRD-SCR-017.001–.013 approved by the user on 2026-10-23.
 
 Note: Wiring the dialog into `screener_panel.py` is a separate last step (another session is editing that file).
 
