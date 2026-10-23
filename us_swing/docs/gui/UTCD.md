@@ -561,10 +561,11 @@ Test files:
 | UT-GUI-022.002.M01.T02 | MD-GUI-022.001.M01 | Positive | Selection updates detail and chart | select row 2 | detail shows JCI; fake chart `show_symbol("JCI", "1d")`; chart built once | Pass |
 | UT-GUI-022.002.M01.T03 | MD-GUI-022.001.M01 | Negative | Missing plan shows dashes | row without plan | Entry, Stop, Target, R:R tiles "—" | Pass |
 | UT-GUI-022.002.M01.T04 | MD-GUI-022.001.M01 | Positive | Detail buttons emit symbol | click Open chart, Watchlist | `chart_requested("NVDA")`, `watchlist_requested("NVDA")` | Pass |
+| UT-GUI-022.002.M01.T05 | MD-GUI-022.001.M01 | Edge | Theme change keeps selection, no chart reload | select JCI; restyle | JCI still selected and shown; no new `show_symbol` call | Pass |
 | UT-GUI-022.003.M01.T01 | MD-GUI-022.001.M01 | Positive | One card per stock with actions | 3 rows; click card 2 Chart | 3 cards; "#1", "NVDA", "Strong"; `chart_requested("JCI")` | Pass |
 | UT-GUI-022.003.M01.T02 | MD-GUI-022.001.M01 | Edge | Empty rows clear cards | load 3 then [] | 0 cards | Pass |
 | UT-GUI-022.004.M01.T01 | MD-GUI-022.001.M01 | Positive | Rows built from result meta | details bool + float, `ai_plan`, scores 0.85 / 0.55 / 0.2 | pass/fail/value checks; plan read; tiers Strong / Watch / Weak; ranked by score | Pass |
 | UT-GUI-022.005.M01.T01 | MD-GUI-022.001.M01 | Positive | R:R and sort | plans valid, short-shaped, missing; sort rr, rules | 3.3; None; None; None last; most rules first | Pass |
 | UT-GUI-022.006.M01.T01 | MD-GUI-022.001.M01 | Positive | CSV rows carry the plan | 2 rows, one without plan | header has Entry, Stop, Target, R:R; values and "" | Pass |
-| UT-GUI-022.007.M01.T01 | MD-GUI-022.001.M01 | Positive | Preset filter by search text | 3 presets; "MOM"; "" | Momentum only; all 3 | Not Run |
-| UT-GUI-022.007.M01.T02 | MD-GUI-022.001.M01 | Positive | Last-run line | today, earlier date, none | "Today 13:18 · 5 matches"; "Oct 21 · 8 matches"; "Not run yet" | Not Run |
+| UT-GUI-022.007.M01.T01 | MD-GUI-022.001.M01 | Positive | Preset filter by search text | 3 presets; "MOM"; "" | Momentum only; all 3 | Pass |
+| UT-GUI-022.007.M01.T02 | MD-GUI-022.001.M01 | Positive | Last-run line | today, earlier date, none | "Today 13:18 · 5 matches"; "Oct 21 · 8 matches"; "Not run yet" | Pass |

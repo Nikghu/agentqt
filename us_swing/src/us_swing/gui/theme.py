@@ -1309,7 +1309,7 @@ QListWidget#result_list {{
 QListWidget#result_list::item {{ border-radius: 4px; }}
 QListWidget#result_list::item:hover {{ background: {hover}; }}
 QListWidget#result_list::item:selected {{ background: {active_bg}; }}
-QListWidget#result_list QWidget, QListWidget#result_list QLabel {{ background: transparent; }}
+QWidget#result_row, QWidget#result_row QLabel {{ background: transparent; }}
 QWidget#result_detail, QWidget#cards_host, QWidget#rule_strip {{ background: transparent; }}
 QFrame#result_card, QFrame#detail_tile, QFrame#chart_slot {{
     background: transparent; border: 1px solid {line}; border-radius: 6px;
@@ -1317,6 +1317,24 @@ QFrame#result_card, QFrame#detail_tile, QFrame#chart_slot {{
 QFrame#result_card QLabel, QFrame#detail_tile QLabel {{ border: none; }}
 QLabel#detail_symbol {{ color: {accent}; font-size: 16pt; font-weight: bold; }}
 QLabel#view_key {{ color: {sub}; font-size: 8pt; }}
+QPushButton#filter_chip {{
+    background: transparent; color: {sub}; border: 1px solid {line}; border-radius: 11px;
+    padding: 0 10px; min-height: 22px; max-height: 22px; font-size: 8pt; outline: none;
+}}
+QPushButton#filter_chip:hover {{ color: {text}; }}
+QPushButton#filter_chip:checked {{
+    background: {active_bg}; color: {accent}; border-color: {accent}; font-weight: bold;
+}}
+QPushButton#filter_chip:focus {{ outline: none; }}
+QListWidget#preset_list {{ background: transparent; border: none; outline: none; }}
+QListWidget#preset_list::item {{ border-radius: 4px; margin: 0 6px; }}
+QListWidget#preset_list::item:hover {{ background: {hover}; }}
+QListWidget#preset_list::item:selected {{ background: {active_bg}; color: {accent}; }}
+QWidget#preset_item, QWidget#preset_item QLabel {{ background: transparent; }}
+QLabel#preset_name {{ color: {text}; font-size: 9.5pt; }}
+QWidget#preset_item QLabel#preset_tag {{
+    color: {sub}; background: {line}; border-radius: 3px; padding: 1px 6px; font-size: 7.5pt;
+}}
 QLabel#view_head {{ color: {sub}; font-size: 7.5pt; font-weight: bold; letter-spacing: 1px; }}
 QFrame#icon_strip {{ background: {bg}; border-left: 1px solid {line}; }}
 QPushButton#strip_btn {{

@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-10-23 (Session 85)
+**Last Updated:** 2026-10-23 (Session 86)
 
 ---
 
@@ -50,3 +50,6 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T38 | Daily history starts 2023-05-30 (~823 bars): the candle download fills forward only. Add a backward fill of older daily history; weekly is now built from daily (ISS-GUI-0003), so it deepens too. | `gui/app_service.py` | Medium | Open |
 | T39 | GUI redesign Carbon Workspace — Phases 1–4 done on feat/gui-carbon-theme; push + PR pending user check | `gui/` | Medium | Done |
 | T40 | Connections panel in the sidebar (FO-GUI-018, RN-GUI-1.16.0): Internet, IBKR Feed and Market rows, power button, retry countdown, mini-mode plug. Title bar feed toggle removed. Ready to commit on feat/gui-carbon-theme, not pushed; user visual check pending. | `gui/sidebar.py`, `gui/main_window.py`, `gui/theme.py` | Medium | Done |
+| T41 | Screener result views (FO-GUI-022, RN-GUI-1.17.0): List and Cards views with real chart, rule chips, sort, R:R, rail search and chips. AI trade plan fields (SRD-SCR-013.009, RN-SCR-2.6.0) saved as ai_plan. Committed d15dbff6, a7148033 and Phase C; not pushed; user visual check pending. | `gui/screener_views.py`, `gui/screener_panel.py`, `screener/screeners/cloud_ai.py`, `screener/executor.py` | Medium | Done |
+| T42 | Remove or rewrite stale tests/screener/test_llm_claude_screener.py (imports removed llm_claude module) and fix test_preset.py T17/T18 failures; cloud_ai.py has no full test file. | `screener/` | High | Open |
+| T43 | Future screener features: compare with last run, score history, earnings/sector warnings, multi-select to watchlist/Execution, Telegram alert on new Strong pick, draw entry/stop/target lines on the detail chart. | `gui/` | Medium | Open |

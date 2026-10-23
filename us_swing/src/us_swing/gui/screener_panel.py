@@ -19,6 +19,7 @@ Screener Panel — Preset-based v2:
 from __future__ import annotations
 
 import csv
+import logging
 import uuid
 from pathlib import Path
 from typing import Any
@@ -78,10 +79,14 @@ from us_swing.gui.icons import mark_danger, set_icon
 from us_swing.gui.screener_views import (
     SORT_KEYS,
     CardsView,
+    ChipGroup,
     ListDetailView,
+    PresetItem,
     ResultRow,
     ViewSwitch,
     csv_rows,
+    filter_presets,
+    last_run_text,
     rows_from_result,
     sort_rows,
 )
@@ -101,6 +106,11 @@ _STYLE_OPTIONS: list[tuple[str, str | None]] = [
     ("Position Trading", "position"),
 ]
 
+# Short labels for the preset rail chips (SRD-GUI-022.007).
+_STYLE_CHIPS: list[tuple[str, str | None]] = [
+    ("All", None), ("Swing", "swing"), ("Day", "day"), ("Position", "position"),
+]
+
 # Canonical display names for all registered screener IDs.
 _SCREENER_DISPLAY: dict[str, str] = {
     "indicator_composite": "Indicators",
@@ -109,6 +119,9 @@ _SCREENER_DISPLAY: dict[str, str] = {
     "ml_ensemble_v3":      "Machine Learning Models",
     "mcp":                 "MCP",
 }
+
+
+_log = logging.getLogger(__name__)
 
 
 def _view_settings() -> QSettings:
@@ -1722,6 +1735,7 @@ class ScreenerPanel(QWidget):
         self._db_info:           Any        = None   # latest CandleDbInfo
         self._auto_run_queue:    list[str]  = []     # preset IDs pending auto-run
         self._rows:              list[ResultRow] = []  # rows shown by both views
+        self._run_meta:          dict[str, str] = {}   # preset id → last-run line
 
         # ── DB status subscription (SRD-SCR-004.007) ──────────────────────
         demo.candle_db_status_changed.connect(self._on_db_status_changed)
@@ -1866,28 +1880,30 @@ class ScreenerPanel(QWidget):
             f" font-weight: bold; padding: 8px 12px 4px 12px;"
         )
 
-        # Style filter dropdown (SRD-SCR-007.010)
-        self._style_combo = QComboBox()
-        for label, value in _STYLE_OPTIONS:
-            self._style_combo.addItem(label, value)
-        self._style_combo.setFixedHeight(26)
-        self._style_combo.setStyleSheet(
-            f"QComboBox {{ background: {C.OVERLAY}; color: {C.TEXT};"
-            f" border: 1px solid {C.OVERLAY2}; border-radius: 4px;"
-            f" padding: 2px 8px; font-size: 8pt; margin: 0 8px 4px 8px; outline: none; }}"
-            f"QComboBox:focus {{ border: 1px solid {C.BLUE}; outline: none; }}"
-            f"QComboBox::drop-down {{ border: none; width: 16px; }}"
+        # Search and style chips (SRD-GUI-022.007; style filter SRD-SCR-007.010)
+        self._preset_search = QLineEdit()
+        self._preset_search.setPlaceholderText("Search presets")
+        self._preset_search.setAccessibleName("Search presets")
+        self._preset_search.setClearButtonEnabled(True)
+        self._preset_search.addAction(
+            make_icon("search", "neutral"), QLineEdit.ActionPosition.LeadingPosition
         )
-        self._style_combo.currentIndexChanged.connect(self._on_style_filter_changed)
+        self._preset_search.textChanged.connect(self._on_style_filter_changed)
+
+        self._style_chips = ChipGroup(_STYLE_CHIPS)
+        self._style_chips.changed.connect(self._on_style_filter_changed)
+
+        filters = QWidget()
+        filters.setObjectName("rule_strip")
+        fbox = QVBoxLayout(filters)
+        fbox.setContentsMargins(8, 0, 8, 6)
+        fbox.setSpacing(8)
+        fbox.addWidget(self._preset_search)
+        fbox.addWidget(self._style_chips)
 
         self._preset_list = QListWidget()
-        self._preset_list.setStyleSheet(
-            f"QListWidget {{ border: none; outline: none; }}"
-            f"QListWidget::item {{ padding: 6px 10px; border-bottom: 1px solid {C.OVERLAY}; }}"
-            f"QListWidget::item:selected {{ background: #1a2d45; color: {C.BLUE}; }}"
-            f"QListWidget::item:focus {{ outline: none; border: none; }}"
-            f"QListWidget::item:hover:!selected {{ background: {C.OVERLAY}22; }}"
-        )
+        self._preset_list.setObjectName("preset_list")
+        self._preset_list.setResizeMode(QListWidget.ResizeMode.Adjust)
         self._preset_list.setHorizontalScrollBarPolicy(
             Qt.ScrollBarPolicy.ScrollBarAlwaysOff
         )
@@ -1908,7 +1924,7 @@ class ScreenerPanel(QWidget):
         fl.setContentsMargins(0, 0, 0, 0)
         fl.setSpacing(0)
         fl.addWidget(header)
-        fl.addWidget(self._style_combo)
+        fl.addWidget(filters)
         fl.addWidget(self._preset_list, 1)
 
         btn_row = QWidget()
@@ -1987,16 +2003,20 @@ class ScreenerPanel(QWidget):
             self._preset_list.addItem(item)
             return
 
-        style_filter: str | None = self._style_combo.currentData()
+        style_filter = self._style_chips.value
+        search = self._preset_search.text()
         uid = str(self._demo.get_active_user().user_id)
         try:
-            admin_presets = self._mgr.list_admin_presets(style_filter=style_filter)
-            user_presets  = self._mgr.list_user_presets(uid, style_filter=style_filter)
+            admin_presets = filter_presets(
+                self._mgr.list_admin_presets(style_filter=style_filter), search)
+            user_presets = filter_presets(
+                self._mgr.list_user_presets(uid, style_filter=style_filter), search)
         except Exception:  # noqa: BLE001
             admin_presets, user_presets = [], []
 
         if not admin_presets and not user_presets:
-            item = QListWidgetItem("No presets yet — create one below")
+            empty = "No presets match" if search.strip() else "No presets yet — create one below"
+            item = QListWidgetItem(empty)
             item.setForeground(QColor(C.MUTED))
             item.setFlags(Qt.ItemFlag.NoItemFlags)
             self._preset_list.addItem(item)
@@ -2017,15 +2037,48 @@ class ScreenerPanel(QWidget):
         item.setForeground(QColor(C.MUTED))
         item.setFont(self._section_font())
         item.setFlags(Qt.ItemFlag.NoItemFlags)
-        item.setBackground(QColor(C.OVERLAY))
         self._preset_list.addItem(item)
 
     def _add_preset_item(self, preset: Any) -> None:
-        type_tag = "C" if str(preset.preset_type).endswith("composite") else "W"
-        item = QListWidgetItem(f"  {preset.name}  [{type_tag}]")
+        type_tag = "Composite" if str(preset.preset_type).endswith("composite") else "Weighted"
+        item = QListWidgetItem()
         item.setData(Qt.ItemDataRole.UserRole, preset.id)
-        item.setForeground(QColor(C.TEXT))
+        item.setToolTip(preset.name)
+        item.setSizeHint(QSize(0, 50))
         self._preset_list.addItem(item)
+        self._preset_list.setItemWidget(
+            item, PresetItem(preset.name, type_tag, self._last_run_meta(preset.id))
+        )
+
+    def _last_run_meta(self, preset_id: str) -> str:
+        """Last-run line for a preset, read once from saved results (SRD-GUI-022.007)."""
+        if preset_id not in self._run_meta:
+            self._run_meta[preset_id] = self._read_last_run(preset_id)
+        return self._run_meta[preset_id]
+
+    def _read_last_run(self, preset_id: str) -> str:
+        if self._storage is None:
+            return ""
+        try:
+            dates = self._storage.list_results(preset_id, limit=1)
+            if not dates:
+                return last_run_text(None, 0, _date.today())
+            result = self._storage.load_result(preset_id, dates[0])
+        except Exception:  # noqa: BLE001
+            _log.debug("[Screener] Could not read the last run of a preset", exc_info=True)
+            return ""
+        matches = sum(1 for meta in result.results.values() if meta.get("passed", True))
+        return last_run_text(result.run_timestamp, matches, _date.today())
+
+    def _refresh_preset_meta(self, preset_id: str) -> None:
+        self._run_meta.pop(preset_id, None)
+        for i in range(self._preset_list.count()):
+            item = self._preset_list.item(i)
+            if item is not None and item.data(Qt.ItemDataRole.UserRole) == preset_id:
+                widget = self._preset_list.itemWidget(item)
+                if isinstance(widget, PresetItem):
+                    widget.set_meta(self._last_run_meta(preset_id))
+                return
 
     @staticmethod
     def _section_font() -> QFont:
@@ -2235,6 +2288,7 @@ class ScreenerPanel(QWidget):
             pass
 
         self._display_result(result)
+        self._refresh_preset_meta(str(getattr(result, "preset_id", self._selected_preset_id)))
 
         # Notify Execution panel so its Filtered Stocks pane refreshes immediately
         self._demo.notify_screener_results_updated()

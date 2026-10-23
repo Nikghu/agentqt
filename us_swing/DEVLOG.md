@@ -2,6 +2,16 @@
 
 ---
 
+## [20261023] SCR + GUI — AI trade plan fields and Screener result views (FO-SCR-011, FO-GUI-022, feature)
+
+- Type: Feature
+- FO(s): FO-SCR-011, FO-GUI-022
+- RN: RN-SCR-2.6.0-20261023, RN-GUI-1.17.0-20261023
+- Artifacts updated: FO, SRD, DD, MD, UTCD, TRACE, Code, Tests, Assets, RN, CONTEXT
+- Decisions: AI plan kept only when entry, stop and target are all valid; screener results shown as switchable List (default) and Cards views with a real chart; Watchlist button only in List view; rail restyled with search and style chips.
+
+---
+
 ## [20261023] GUI — Connections panel in the sidebar (FO-GUI-018, feature)
 
 - Type: Feature

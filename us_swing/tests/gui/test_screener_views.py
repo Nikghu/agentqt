@@ -1,7 +1,9 @@
 """Tests for the screener result views (FO-GUI-022)."""
 from __future__ import annotations
 
+import datetime
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from PyQt6.QtCore import QSettings
@@ -15,6 +17,8 @@ from us_swing.gui.screener_views import (
     RuleCheck,
     ViewSwitch,
     csv_rows,
+    filter_presets,
+    last_run_text,
     rows_from_result,
     sort_rows,
 )
@@ -102,6 +106,21 @@ def test_selection_updates_detail_and_chart(qtbot, rows):
     assert _FakeChart.instances == 1
 
 
+def test_theme_change_keeps_selection_without_chart_reload(qtbot, rows):
+    """UT-GUI-022.002.M01.T05: Theme change keeps selection, no chart reload."""
+    view = ListDetailView(_FakeChart)
+    qtbot.addWidget(view)
+    view.load(rows)
+    view.list.setCurrentRow(1)
+    chart = view._chart
+    assert isinstance(chart, _FakeChart)
+    shown = len(chart.shown)
+    view._restyle()
+    assert view.selected_symbol() == "JCI"
+    assert view.symbol_lbl.text() == "JCI"
+    assert len(chart.shown) == shown
+
+
 def test_missing_plan_shows_dashes(qtbot, rows):
     """UT-GUI-022.002.M01.T03: Missing plan shows dashes."""
     view = ListDetailView()
@@ -173,6 +192,23 @@ def test_rr_and_sort():
     assert [r.symbol for r in sort_rows([none, short, good], "rr")] == ["A", "B", "C"]
     assert [r.symbol for r in sort_rows([none, good, short], "rules")] == ["B", "A", "C"]
     assert [r.symbol for r in sort_rows([none, short, good], "score")] == ["A", "B", "C"]
+
+
+def test_filter_presets_by_search_text():
+    """UT-GUI-022.007.M01.T01: Preset filter by search text."""
+    presets = [SimpleNamespace(name=n) for n in ("Price Action", "Momentum_Price", "Test")]
+    assert [p.name for p in filter_presets(presets, "MOM")] == ["Momentum_Price"]
+    assert len(filter_presets(presets, "")) == 3
+
+
+def test_last_run_text():
+    """UT-GUI-022.007.M01.T02: Last-run line."""
+    today = datetime.date(2026, 10, 22)
+    utc = datetime.timezone.utc
+    assert last_run_text("2026-10-22T13:18:16Z", 5, today, utc) == "Today 13:18 · 5 matches"
+    assert last_run_text("2026-10-21T09:00:00Z", 8, today, utc) == "Oct 21 · 8 matches"
+    assert last_run_text(None, 0, today, utc) == "Not run yet"
+    assert last_run_text("2026-10-21T09:00:00Z", 1, today, utc) == "Oct 21 · 1 match"
 
 
 def test_csv_rows_carry_plan(rows):

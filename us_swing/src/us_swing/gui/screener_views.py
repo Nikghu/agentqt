@@ -7,8 +7,9 @@ view and the Signal cards view shown by the screener panel (FO-GUI-022).
 """
 from __future__ import annotations
 
+import datetime
 import math
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
@@ -170,6 +171,36 @@ def csv_rows(rows: list[ResultRow]) -> list[list[str]]:
     return lines
 
 
+def filter_presets(presets: Iterable[Any], text: str) -> list[Any]:
+    """Keep presets whose name contains ``text`` (case-insensitive)."""
+    needle = text.strip().casefold()
+    return [p for p in presets if needle in str(getattr(p, "name", "")).casefold()]
+
+
+def last_run_text(run_timestamp: str | None, matches: int, today: datetime.date,
+                  tz: datetime.tzinfo | None = None) -> str:
+    """Describe a preset's latest run, e.g. ``Today 13:18 · 5 matches``.
+
+    Args:
+        run_timestamp: ISO-8601 run time (``...Z`` for UTC), or None when never run.
+        matches: Number of stocks in that run.
+        today: Today's date in ``tz``.
+        tz: Display time zone; None means the computer's local zone.
+    """
+    if not run_timestamp:
+        return "Not run yet"
+    try:
+        when = datetime.datetime.fromisoformat(run_timestamp.replace("Z", "+00:00"))
+    except ValueError:
+        return "Not run yet"
+    if when.tzinfo is not None:
+        when = when.astimezone(tz)
+    noun = "match" if matches == 1 else "matches"
+    if when.date() == today:
+        return f"Today {when:%H:%M} · {matches} {noun}"
+    return f"{when:%b} {when.day} · {matches} {noun}"
+
+
 def _price_text(value: float | None) -> str:
     return _DASH if value is None else f"${value:,.2f}"
 
@@ -239,6 +270,7 @@ def _clear_layout(layout: Any) -> None:
         item = layout.takeAt(0)
         widget = item.widget()
         if widget is not None:
+            widget.hide()
             widget.deleteLater()
         elif item.layout() is not None:
             _clear_layout(item.layout())
@@ -346,6 +378,70 @@ class ViewSwitch(QWidget):
         self.view_changed.emit(name)
 
 
+# ── Preset rail pieces (SRD-GUI-022.007) ─────────────────────────────────────
+
+class ChipGroup(QWidget):
+    """Row of exclusive pill buttons; ``value`` is the checked option's value."""
+
+    changed = pyqtSignal()
+
+    def __init__(self, options: list[tuple[str, str | None]],
+                 parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        row = QHBoxLayout(self)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(6)
+        self._group = QButtonGroup(self)
+        self._group.setExclusive(True)
+        self._values: list[str | None] = []
+        self.buttons: list[QPushButton] = []
+        for index, (label, value) in enumerate(options):
+            button = QPushButton(label)
+            button.setObjectName("filter_chip")
+            button.setCheckable(True)
+            button.setChecked(index == 0)
+            button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+            button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            self._group.addButton(button, index)
+            self._values.append(value)
+            self.buttons.append(button)
+            row.addWidget(button)
+        row.addStretch(1)
+        self._group.idClicked.connect(lambda _id: self.changed.emit())
+
+    @property
+    def value(self) -> str | None:
+        index = self._group.checkedId()
+        return self._values[index] if 0 <= index < len(self._values) else None
+
+
+class PresetItem(QWidget):
+    """Preset list entry: name, type tag and last-run line."""
+
+    def __init__(self, name: str, type_tag: str, meta: str,
+                 parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("preset_item")
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        body = QVBoxLayout(self)
+        body.setContentsMargins(10, 6, 10, 6)
+        body.setSpacing(2)
+        top = QHBoxLayout()
+        top.setSpacing(8)
+        self.name_lbl = QLabel(name)
+        self.name_lbl.setObjectName("preset_name")
+        top.addWidget(self.name_lbl, 1)
+        self.type_lbl = QLabel(type_tag)
+        self.type_lbl.setObjectName("preset_tag")
+        top.addWidget(self.type_lbl)
+        body.addLayout(top)
+        self.meta_lbl = _key_label(meta)
+        body.addWidget(self.meta_lbl)
+
+    def set_meta(self, text: str) -> None:
+        self.meta_lbl.setText(text)
+
+
 # ── List + detail view ────────────────────────────────────────────────────────
 
 class _ChartLike(Protocol):
@@ -357,6 +453,7 @@ class _ListRow(QWidget):
 
     def __init__(self, row: ResultRow, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        self.setObjectName("result_row")
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         _T: Any = active_palette()
         tier_fg, _ = _tier_colours(row.tier)
@@ -400,6 +497,7 @@ class ListDetailView(QWidget):
         self.list.setMinimumWidth(300)
         self.list.setMaximumWidth(380)
         self.list.setSpacing(1)
+        self.list.setResizeMode(QListWidget.ResizeMode.Adjust)
         self.list.currentRowChanged.connect(self._show_row)
         layout.addWidget(self.list)
 
@@ -511,6 +609,13 @@ class ListDetailView(QWidget):
             signal.emit(symbol)
 
     def _show_row(self, index: int) -> None:
+        if self._fill_detail(index):
+            symbol = self._rows[index].symbol
+            self._show_chart(symbol)
+            self.selection_changed.emit(symbol)
+
+    def _fill_detail(self, index: int) -> bool:
+        """Fill the detail panel for row ``index``; False when there is no such row."""
         if not 0 <= index < len(self._rows):
             self.symbol_lbl.setText("")
             self.meta_lbl.setText("")
@@ -519,7 +624,7 @@ class ListDetailView(QWidget):
             self.reasoning_lbl.setText("")
             for value in self.tiles.values():
                 value.setText(_DASH)
-            return
+            return False
         row = self._rows[index]
         _T: Any = active_palette()
         self.symbol_lbl.setText(row.symbol)
@@ -537,8 +642,7 @@ class ListDetailView(QWidget):
         for rule in row.rules:
             self._rules_box.addWidget(self._rule_line(rule, _T))
         self.reasoning_lbl.setText(row.reasoning or "No AI reasoning for this run.")
-        self._show_chart(row.symbol)
-        self.selection_changed.emit(row.symbol)
+        return True
 
     @staticmethod
     def _rule_line(rule: RuleCheck, palette: Any) -> QWidget:
@@ -569,9 +673,15 @@ class ListDetailView(QWidget):
     def changeEvent(self, event: QEvent | None) -> None:
         super().changeEvent(event)
         if event is not None and event.type() == QEvent.Type.StyleChange and self._rows:
-            current = self.list.currentRow()
-            self.load(self._rows, self._timeframe)
-            self.list.setCurrentRow(max(0, current))
+            self._restyle()
+
+    def _restyle(self) -> None:
+        """Redraw rows and detail in the new theme without reloading the chart."""
+        for index, row in enumerate(self._rows):
+            item = self.list.item(index)
+            if item is not None:
+                self.list.setItemWidget(item, _ListRow(row))
+        self._fill_detail(self.list.currentRow())
 
 
 # ── Cards view ────────────────────────────────────────────────────────────────
@@ -667,6 +777,8 @@ class CardsView(QScrollArea):
         """Replace the cards with one per row."""
         self._rows = rows
         for card in self.cards:
+            card.hide()
+            card.setParent(None)
             card.deleteLater()
         self.cards = []
         for row in rows:
@@ -699,4 +811,8 @@ class CardsView(QScrollArea):
     def changeEvent(self, event: QEvent | None) -> None:
         super().changeEvent(event)
         if event is not None and event.type() == QEvent.Type.StyleChange and self._rows:
+            bar = self.verticalScrollBar()
+            position = bar.value() if bar is not None else 0
             self.load(self._rows)
+            if bar is not None:
+                bar.setValue(position)
