@@ -27,7 +27,8 @@ from us_swing.gui.theme import active_palette
 
 _STRIP_ITEMS = (("details", "clipboard-list", "Position Details"),
                 ("watch", "eye", "Watchlist"),
-                ("log", "scroll-text", "Live Log"))
+                ("log", "scroll-text", "Live Log"),
+                ("system", "settings-2", "System"))
 _ALERT_LEVELS = frozenset({"WARNING", "ERROR", "CRITICAL"})
 
 

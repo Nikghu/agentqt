@@ -12,7 +12,7 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
-from PyQt6.QtWidgets import QWidget
+from PyQt6.QtWidgets import QLabel, QWidget
 
 # QWebEngineWidgets DLL is unavailable in the test environment — stub it so
 # settings_panel.py can be imported without the DLL.
@@ -58,12 +58,37 @@ def svc(monkeypatch: pytest.MonkeyPatch) -> _StubService:
 
 
 def test_system_sections_split(qapp: Any, svc: _StubService) -> None:
-    """UT-GUI-021.001.M01.T01: the old System tab is split into six named sections."""
+    """UT-GUI-021.001.M01.T01: the old System tab is split into three named sections."""
     sections = settings_panel._SystemSections(svc)  # type: ignore[arg-type]
 
     names = [name for name, _page in sections.pages]
 
-    assert names == ["Connection", "Scheduler", "Telegram", "Theme", "Updates", "Diagnostics"]
+    assert names == ["Connection", "Scheduler", "Telegram"]
+
+
+def test_system_panel_holds_theme_updates_diagnostics(qapp: Any, svc: _StubService) -> None:
+    """UT-GUI-021.003.M01.T01: Theme, Updates and Diagnostics live in the System panel."""
+    sections = settings_panel._SystemSections(svc)  # type: ignore[arg-type]
+    panel = sections.panel
+
+    for widget in (sections._btn_carbon, sections._update_btn, sections._cb_toggle,
+                   sections._candle_db_btn):
+        assert panel.isAncestorOf(widget)
+    titles = [lbl.text() for lbl in panel.findChildren(QLabel) if lbl.objectName() == "panel_group"]
+    assert titles == ["THEME", "UPDATES", "DIAGNOSTICS"]
+
+
+def test_strip_has_system_button(qapp: Any) -> None:
+    """UT-GUI-021.003.M02.T01: the right icon strip gets a System button that toggles."""
+    from us_swing.gui.side_panels import IconStrip
+
+    strip = IconStrip()
+    seen: list[tuple[str, bool]] = []
+    strip.panel_toggled.connect(lambda name, on: seen.append((name, on)))
+
+    strip._buttons["system"].click()
+
+    assert seen == [("system", True)]
 
 
 class _PlainTab(QWidget):
@@ -83,7 +108,8 @@ def test_section_click_shows_one_section(
     panel = settings_panel.SettingsPanel(svc)  # type: ignore[arg-type]
     buttons = panel._nav_group.buttons()
     names = [b.text() for b in buttons]
-    assert panel._stack.count() == len(buttons) == 10
+    assert panel._stack.count() == len(buttons) == 7
+    assert "Theme" not in names and "Diagnostics" not in names
     assert panel._stack.currentIndex() == 0 and buttons[0].isChecked()
 
     buttons[names.index("Telegram")].click()

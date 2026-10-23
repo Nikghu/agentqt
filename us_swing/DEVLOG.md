@@ -2,6 +2,16 @@
 
 ---
 
+## [20261023] GUI — System panel on the right strip (FO-GUI-021, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-021
+- RN: RN-GUI-1.14.0-20261023
+- Artifacts updated: FO, SRD, DD, MD, UTCD, TRACE, Code, Tests, RN, CONTEXT
+- Decisions: user picked option A of 3 (design canvas https://claude.ai/artifact/CTo5RrNFn1122FB1xdr7Dv); Theme, Updates, Diagnostics moved out of Settings.
+
+---
+
 ## [20261023] GUI — Settings section list (FO-GUI-021, feature)
 
 - Type: Feature

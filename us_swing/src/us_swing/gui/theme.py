@@ -1312,6 +1312,10 @@ QLabel#settings_head {{
     min-height: 32px; max-height: 32px; font-family: "IBM Plex Mono", Consolas, monospace;
     font-size: 8pt; font-weight: bold;
 }}
+QLabel#panel_group {{
+    color: {sub}; font-family: "IBM Plex Mono", Consolas, monospace; font-size: 7.5pt;
+    font-weight: bold;
+}}
 """
 
 

@@ -216,4 +216,4 @@ us_swing/src/us_swing/gui/
 |---|---|---|---|---|---|---|
 | MD-GUI-021.001.M01 | SRD-GUI-021.001 | `us_swing/src/us_swing/gui/settings_panel.py` | Section list, section cards, system sections, risk save | `SettingsPanel`, `theme_changed`, `trigger_fill_delta()` | `theme`, `icons`, `app_service` | No |
 
-> `theme.py` (MD-GUI-017) gains the `settings_nav`, `settings_card` and `settings_head` QSS rules.
+> `theme.py` (MD-GUI-017) gains the `settings_nav`, `settings_card`, `settings_head` and `panel_group` QSS rules; `side_panels.py` (MD-GUI-019.001.M01) gains the `system` strip button; `main_window.py` (MD-GUI-019.002.M03) adds the System panel to the right panel stack.

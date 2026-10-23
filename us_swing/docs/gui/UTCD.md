@@ -528,7 +528,9 @@ Test files:
 
 | ID | Module | Type | Description | Input | Expected | Status |
 |---|---|---|---|---|---|---|
-| UT-GUI-021.001.M01.T01 | MD-GUI-021.001.M01 | Positive | System tab is split into six sections | build `_SystemSections` | Connection, Scheduler, Telegram, Theme, Updates, Diagnostics | Pass |
-| UT-GUI-021.001.M01.T02 | MD-GUI-021.001.M01 | Positive | Section click shows one section | click Telegram | stack shows Telegram; Users unchecked; 10 sections | Pass |
+| UT-GUI-021.001.M01.T01 | MD-GUI-021.001.M01 | Positive | System tab is split into three sections | build `_SystemSections` | Connection, Scheduler, Telegram | Pass |
+| UT-GUI-021.001.M01.T02 | MD-GUI-021.001.M01 | Positive | Section click shows one section | click Telegram | stack shows Telegram; Users unchecked; 7 sections, no Theme or Diagnostics | Pass |
 | UT-GUI-021.002.M01.T01 | MD-GUI-021.001.M01 | Positive | Risk save persists values | set 2.5 % and LMT, Save | `update_user` called with new risk config | Pass |
 | UT-GUI-021.002.M01.T02 | MD-GUI-021.001.M01 | Negative | Risk save keeps other user fields | chat ID set, Save | chat ID and username unchanged | Pass |
+| UT-GUI-021.003.M01.T01 | MD-GUI-021.001.M01 | Positive | System panel holds Theme, Updates, Diagnostics | build `_SystemSections` | theme, update, circuit breaker and Candle DB buttons inside `panel`; groups THEME, UPDATES, DIAGNOSTICS | Pass |
+| UT-GUI-021.003.M02.T01 | MD-GUI-019.001.M01 | Positive | Strip has a System button | click System | `panel_toggled("system", True)` | Pass |

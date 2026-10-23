@@ -1556,12 +1556,14 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 
 ## DD-GUI-021.001.D01 — Settings Section List
 
-**Traces:** SRD-GUI-021.001–.002
+**Traces:** SRD-GUI-021.001–.003
 
 **Layout (`settings_panel.py`).** `SettingsPanel`: title "Settings" (`page_title`) above a row of `QFrame#settings_nav` (180 px, checkable `side_btn` buttons in an exclusive `QButtonGroup`) and a `QStackedWidget`. Each section is a `QFrame#settings_card` with a `QLabel#settings_head` bar (upper-case name) over the section body. `idClicked` → `setCurrentIndex`.
 
-**Sections.** Users (`_UsersTab`), Risk (`_RiskTab`), then the pages of `_SystemSections(QObject)` — Connection (host, port, tick client ID, log level), Scheduler (market times, timezone, enable flag, Edit Scheduler), Telegram, Theme (`mode_btn` buttons), Updates, Diagnostics (with a circuit breaker hint) — then Universe and Database. Connection and Scheduler each have a Save Settings button; both call `_on_save`, which saves the whole `SystemConfig` and sets every save note. Dialogs use the button's window as parent because `_SystemSections` is not a widget.
+**Sections.** Users (`_UsersTab`), Risk (`_RiskTab`), then the pages of `_SystemSections(QObject)` — Connection (host, port, tick client ID, log level), Scheduler (market times, timezone, enable flag, Edit Scheduler), Telegram — then Universe and Database. Connection and Scheduler each have a Save Settings button; both call `_on_save`, which saves the whole `SystemConfig` and sets every save note. Dialogs use the button's window as parent because `_SystemSections` is not a widget.
+
+**System panel.** `_SystemSections.panel` is a widget with a `settings_head` "SYSTEM" bar and three `panel_group` groups split by `side_sep` lines: Theme (three `mode_btn` buttons), Updates (installed version, Check for Updates, a wrapped note hidden until a check starts), Diagnostics (circuit breaker toggle, hint, Open Candle DB). `SettingsPanel.system_panel` exposes it; `MainWindow` adds it as the third page of `_right_stack` and `"system"` to `_RIGHT_PANELS`; `IconStrip` gains a `system` button (`settings-2` icon). The existing toggle path (`panel_toggled` → `_on_panel_toggled` → `RevealController`) is unchanged.
 
 **Risk save.** `_RiskTab._on_save` replaces the active user's `risk_config` with `dataclasses.replace(...)` and calls `update_user`.
 
-**Theme.** `_sidebar_qss` adds `settings_nav`, `settings_card` (1 px line border) and `settings_head` (raised background, 32 px, mono 8 pt bold) rules for all three themes.
+**Theme.** `_sidebar_qss` adds `settings_nav`, `settings_card` (1 px line border) and `settings_head` (raised background, 32 px, mono 8 pt bold) and `panel_group` (sub colour, mono 7.5 pt bold) rules for all three themes.

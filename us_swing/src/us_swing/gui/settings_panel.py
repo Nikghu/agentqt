@@ -399,7 +399,7 @@ def _page(*items: QWidget | QHBoxLayout | QFormLayout) -> QWidget:
 
 
 class _SystemSections(QObject):
-    """Connection, Scheduler, Telegram, Theme, Updates and Diagnostics section pages."""
+    """Connection, Scheduler and Telegram section pages, plus the System side panel."""
 
     theme_changed = pyqtSignal(str)
 
@@ -481,17 +481,14 @@ class _SystemSections(QObject):
         # ── Theme ──────────────────────────────────────────────────────────────
         from us_swing.gui import theme as _theme
         theme_row = QHBoxLayout()
-        theme_row.setSpacing(8)
+        theme_row.setSpacing(4)
 
         self._btn_carbon = QPushButton("Carbon")
         self._btn_carbon.setCheckable(True)
-        self._btn_carbon.setFixedWidth(140)
         self._btn_mocha  = QPushButton("Mocha")
         self._btn_mocha.setCheckable(True)
-        self._btn_mocha.setFixedWidth(140)
-        self._btn_vscode = QPushButton("VS Code Dark")
+        self._btn_vscode = QPushButton("VS Code")
         self._btn_vscode.setCheckable(True)
-        self._btn_vscode.setFixedWidth(140)
         for btn in (self._btn_carbon, self._btn_mocha, self._btn_vscode):
             btn.setObjectName("mode_btn")
 
@@ -507,46 +504,31 @@ class _SystemSections(QObject):
         theme_row.addWidget(self._btn_carbon)
         theme_row.addWidget(self._btn_mocha)
         theme_row.addWidget(self._btn_vscode)
-        theme_row.addStretch()
 
         # ── Diagnostics ────────────────────────────────────────────────────────
-        diag_row = QHBoxLayout()
-        diag_row.setSpacing(8)
-
-        self._candle_db_btn = QPushButton("Candle DB")
+        self._candle_db_btn = QPushButton("Open Candle DB")
         set_icon(self._candle_db_btn, "database", "info")
-        self._candle_db_btn.setFixedWidth(120)
         self._candle_db_btn.clicked.connect(self._on_candle_db)
 
         self._cb_toggle = QPushButton()
-        self._cb_toggle.setFixedWidth(200)
         self._cb_toggle.clicked.connect(self._on_toggle_cb)
         self._refresh_cb_label()
         self._demo.circuit_breaker_changed.connect(lambda _a: self._refresh_cb_label())
 
-        diag_row.addWidget(self._candle_db_btn)
-        diag_row.addWidget(self._cb_toggle)
-        diag_row.addStretch()
-
         cb_hint = QLabel("Circuit breaker stops all new orders until you reset it.")
-        cb_hint.setObjectName("page_meta")
+        cb_hint.setObjectName("details_key")
+        cb_hint.setWordWrap(True)
 
         # ── Updates ────────────────────────────────────────────────────────────
-        update_row = QHBoxLayout()
-        update_row.setSpacing(8)
-
         self._update_btn = QPushButton("Check for Updates")
         set_icon(self._update_btn, "circle-arrow-up", "info")
-        self._update_btn.setFixedWidth(160)
         self._update_btn.clicked.connect(self._on_check_updates)
 
         self._update_note = QLabel("")
         self._update_note.setStyleSheet(f"color: {C.GREEN}; font-size: 9pt;")
+        self._update_note.setWordWrap(True)
+        self._update_note.hide()
         self._update_worker: object | None = None
-
-        update_row.addWidget(self._update_btn)
-        update_row.addWidget(self._update_note)
-        update_row.addStretch()
 
         # ── Telegram Notifications (FO-INF-010) ────────────────────────────────
         from us_swing.gui import telegram_token_store
@@ -604,10 +586,47 @@ class _SystemSections(QObject):
             ("Connection",  _page(conn_form, _save_row())),
             ("Scheduler",   _page(sched_form, _save_row(self._sched_btn))),
             ("Telegram",    _page(tg_form, tg_btn_row)),
-            ("Theme",       _page(theme_row)),
-            ("Updates",     _page(update_row)),
-            ("Diagnostics", _page(diag_row, cb_hint)),
         ]
+        self.panel = self._build_panel(theme_row, cb_hint)
+
+    def _build_panel(self, theme_row: QHBoxLayout, cb_hint: QLabel) -> QWidget:
+        """System side panel: Theme, Updates and Diagnostics groups (FO-GUI-021)."""
+        from us_swing import __version__
+
+        panel = QWidget()
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        head = QLabel("SYSTEM")
+        head.setObjectName("settings_head")
+        layout.addWidget(head)
+
+        version = QLabel(f"Installed v{__version__}")
+        version.setObjectName("details_key")
+        groups: list[tuple[str, list[QWidget | QHBoxLayout]]] = [
+            ("THEME",       [theme_row]),
+            ("UPDATES",     [version, self._update_btn, self._update_note]),
+            ("DIAGNOSTICS", [self._cb_toggle, cb_hint, self._candle_db_btn]),
+        ]
+        for title, items in groups:
+            group = QVBoxLayout()
+            group.setContentsMargins(12, 12, 12, 12)
+            group.setSpacing(8)
+            label = QLabel(title)
+            label.setObjectName("panel_group")
+            group.addWidget(label)
+            for item in items:
+                if isinstance(item, QWidget):
+                    group.addWidget(item)
+                else:
+                    group.addLayout(item)
+            layout.addLayout(group)
+            sep = QFrame()
+            sep.setObjectName("side_sep")
+            sep.setFixedHeight(1)
+            layout.addWidget(sep)
+        layout.addStretch()
+        return panel
 
     # ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -634,6 +653,7 @@ class _SystemSections(QObject):
         self._update_btn.setEnabled(False)
         self._update_note.setStyleSheet(f"color: {C.GREEN}; font-size: 9pt;")
         self._update_note.setText("Checking for updates…")
+        self._update_note.show()
         worker = _CheckWorker()
         worker.found.connect(self._on_update_found)
         worker.up_to_date.connect(self._on_update_up_to_date)
@@ -1581,6 +1601,11 @@ class SettingsPanel(QWidget):
         card_layout.addWidget(head)
         card_layout.addWidget(body, 1)
         return card
+
+    @property
+    def system_panel(self) -> QWidget:
+        """Theme, Updates and Diagnostics panel shown from the right icon strip."""
+        return self._sys.panel
 
     def trigger_fill_delta(self) -> None:
         """Programmatically invoke fill delta — identical to clicking the button manually."""

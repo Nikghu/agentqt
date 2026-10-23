@@ -565,7 +565,7 @@ _NAV_ITEMS: list[tuple[str, str]] = [
 ]
 _WIDE_PAGES = frozenset({2, 3})   # Execution, Chart
 _NO_PANEL_PAGES = frozenset({3, 4})   # Chart, Settings
-_RIGHT_PANELS = ("details", "watch")
+_RIGHT_PANELS = ("details", "watch", "system")
 
 
 class _MiniState:
@@ -660,7 +660,7 @@ class MainWindow(QMainWindow):
         self._side_slot = QWidget()
         body_row.addWidget(self._side_slot)
 
-        # Right panel (Position Details | Watchlist) and bottom Live Log panel;
+        # Right panel (Position Details | Watchlist | System) and bottom Live Log panel;
         # both are sized only by RevealController.
         self._details = PositionDetails(svc)
         self._right_stack = QStackedWidget()
@@ -668,6 +668,7 @@ class MainWindow(QMainWindow):
         watchlist = self._dashboard_panel.watchlist_widget
         watchlist.set_compact()  # type: ignore[attr-defined]
         self._right_stack.addWidget(watchlist)
+        self._right_stack.addWidget(self._settings_panel.system_panel)
         self._right_panel = QFrame()
         self._right_panel.setObjectName("right_panel")
         rp = QVBoxLayout(self._right_panel)

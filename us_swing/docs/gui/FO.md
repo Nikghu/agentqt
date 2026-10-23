@@ -643,10 +643,12 @@ The system shall show Settings as a section list on the left with one section vi
 
 ### Requirements
 
-1. **Section list.** Users, Risk, Connection, Scheduler, Telegram, Theme, Updates, Diagnostics, Universe and Database are listed on the left; clicking one shows only that section.
+1. **Section list.** Users, Risk, Connection, Scheduler, Telegram, Universe and Database are listed on the left; clicking one shows only that section.
 2. **Risk saves.** Save Risk Settings writes the values to the active user.
+3. **System panel.** Theme, Updates and Diagnostics sit in a System panel opened from the right icon strip on any screen (layout option A, chosen by user 2026-10-23).
 
 ### Acceptance Criteria
 
 1. Clicking a section shows its card and highlights it in the list.
 2. Saved risk values are still there after reopening the app.
+3. The System strip icon opens and closes the System panel like Details and Watchlist.
