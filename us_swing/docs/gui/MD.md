@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.18.0: MD-GUI-022.001.M01 (screener_views.py) added; MD-GUI-003.001.M01 hosts the views.
 > v1.17.0: MD-GUI-018.008.M04 (sidebar.py Connections panel) added; MD-GUI-018.005.M03 drops the title bar feed toggle.
 > v1.16.0: MD-GUI-021.001.M01 (settings_panel.py section list) added.
 > v1.15.0: MD-GUI-020.001.M01 (chart_workspace.py) added.
@@ -219,3 +220,11 @@ us_swing/src/us_swing/gui/
 | MD-GUI-021.001.M01 | SRD-GUI-021.001 | `us_swing/src/us_swing/gui/settings_panel.py` | Section list, section cards, system sections, risk save | `SettingsPanel`, `theme_changed`, `trigger_fill_delta()` | `theme`, `icons`, `app_service` | No |
 
 > `theme.py` (MD-GUI-017) gains the `settings_nav`, `settings_card`, `settings_head`, `panel_group` and `data_*` QSS rules; `side_panels.py` (MD-GUI-019.001.M01) gains the `system` and `data` strip buttons and `set_data_state()`; `main_window.py` (MD-GUI-019.002.M03) adds the System and Data panels to the right panel stack.
+
+## FO-GUI-022 — Screener Result Views
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-GUI-022.001.M01 | SRD-GUI-022.001 | `us_swing/src/us_swing/gui/screener_views.py` | Result rows, sort, CSV rows, view switch, List + detail view, Cards view, preset filter | `ResultRow`, `RuleCheck`, `rows_from_result()`, `sort_rows()`, `csv_rows()`, `filter_presets()`, `ViewSwitch`, `ListDetailView`, `CardsView` | `theme`, `icons` | No |
+
+> `screener_panel.py` (MD-GUI-003.001.M01) hosts the views, the Sort box and the new preset rail; `theme.py` (MD-GUI-017) gains the screener view QSS rules.

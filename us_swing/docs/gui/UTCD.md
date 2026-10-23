@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.16.0: UT-GUI-022.* added — screener result views and preset rail.
 > v1.15.0: UT-GUI-018.008–.011.* added — Connections panel in the sidebar.
 > v1.14.0: UT-GUI-021.* added — Settings section list.
 > v1.13.0: UT-GUI-020.* added — Charts workspace.
@@ -549,3 +550,21 @@ Test files:
 | UT-GUI-021.004.M01.T04 | MD-GUI-021.001.M01 | Edge | Past failures mark partial | failed stocks on disk at start | state partial; Failed shown; Download hidden | Pass |
 | UT-GUI-021.004.M02.T01 | MD-GUI-019.001.M01 | Positive | Data badge per state | downloading 62, complete, partial | "62"; check icon; "!" | Pass |
 | UT-GUI-021.004.M02.T02 | MD-GUI-019.001.M01 | Negative | Idle hides the badge | complete then idle | badge hidden | Pass |
+
+## FO-GUI-022 — Screener Result Views
+
+| ID | Module | Type | Description | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-022.001.M01.T01 | MD-GUI-022.001.M01 | Positive | View switch saves and restores | default; click Cards; new switch on same settings | "list"; `view_changed("cards")`; new switch is "cards" | Pass |
+| UT-GUI-022.001.M01.T02 | MD-GUI-022.001.M01 | Negative | Unknown saved view falls back | settings view "grid" | "list" | Pass |
+| UT-GUI-022.002.M01.T01 | MD-GUI-022.001.M01 | Positive | List loads and shows first stock | 3 rows | 3 items; first selected; detail symbol, tier, "$222.00", "3.3 R", reasoning | Pass |
+| UT-GUI-022.002.M01.T02 | MD-GUI-022.001.M01 | Positive | Selection updates detail and chart | select row 2 | detail shows JCI; fake chart `show_symbol("JCI", "1d")`; chart built once | Pass |
+| UT-GUI-022.002.M01.T03 | MD-GUI-022.001.M01 | Negative | Missing plan shows dashes | row without plan | Entry, Stop, Target, R:R tiles "—" | Pass |
+| UT-GUI-022.002.M01.T04 | MD-GUI-022.001.M01 | Positive | Detail buttons emit symbol | click Open chart, Watchlist | `chart_requested("NVDA")`, `watchlist_requested("NVDA")` | Pass |
+| UT-GUI-022.003.M01.T01 | MD-GUI-022.001.M01 | Positive | One card per stock with actions | 3 rows; click card 2 Chart | 3 cards; "#1", "NVDA", "Strong"; `chart_requested("JCI")` | Pass |
+| UT-GUI-022.003.M01.T02 | MD-GUI-022.001.M01 | Edge | Empty rows clear cards | load 3 then [] | 0 cards | Pass |
+| UT-GUI-022.004.M01.T01 | MD-GUI-022.001.M01 | Positive | Rows built from result meta | details bool + float, `ai_plan`, scores 0.85 / 0.55 / 0.2 | pass/fail/value checks; plan read; tiers Strong / Watch / Weak; ranked by score | Pass |
+| UT-GUI-022.005.M01.T01 | MD-GUI-022.001.M01 | Positive | R:R and sort | plans valid, short-shaped, missing; sort rr, rules | 3.3; None; None; None last; most rules first | Pass |
+| UT-GUI-022.006.M01.T01 | MD-GUI-022.001.M01 | Positive | CSV rows carry the plan | 2 rows, one without plan | header has Entry, Stop, Target, R:R; values and "" | Pass |
+| UT-GUI-022.007.M01.T01 | MD-GUI-022.001.M01 | Positive | Preset filter by search text | 3 presets; "MOM"; "" | Momentum only; all 3 | Not Run |
+| UT-GUI-022.007.M01.T02 | MD-GUI-022.001.M01 | Positive | Last-run line | today, earlier date, none | "Today 13:18 · 5 matches"; "Oct 21 · 8 matches"; "Not run yet" | Not Run |

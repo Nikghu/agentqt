@@ -1296,6 +1296,28 @@ QPushButton#side_power:hover {{ background: {hover}; }}
 QPushButton#side_power[armed="true"] {{ background: {active_bg}; border-color: {accent}; }}
 QPushButton#side_power:disabled {{ background: transparent; border-color: {line}; }}
 QPushButton#side_power:focus {{ outline: none; }}
+QPushButton#view_btn {{
+    background: transparent; border: 1px solid {line}; border-radius: 0; padding: 0;
+    outline: none;
+}}
+QPushButton#view_btn:hover {{ background: {hover}; }}
+QPushButton#view_btn:checked {{ background: {active_bg}; border-color: {accent}; }}
+QPushButton#view_btn:focus {{ outline: none; }}
+QListWidget#result_list {{
+    background: transparent; border: none; border-right: 1px solid {line}; outline: none;
+}}
+QListWidget#result_list::item {{ border-radius: 4px; }}
+QListWidget#result_list::item:hover {{ background: {hover}; }}
+QListWidget#result_list::item:selected {{ background: {active_bg}; }}
+QListWidget#result_list QWidget, QListWidget#result_list QLabel {{ background: transparent; }}
+QWidget#result_detail, QWidget#cards_host, QWidget#rule_strip {{ background: transparent; }}
+QFrame#result_card, QFrame#detail_tile, QFrame#chart_slot {{
+    background: transparent; border: 1px solid {line}; border-radius: 6px;
+}}
+QFrame#result_card QLabel, QFrame#detail_tile QLabel {{ border: none; }}
+QLabel#detail_symbol {{ color: {accent}; font-size: 16pt; font-weight: bold; }}
+QLabel#view_key {{ color: {sub}; font-size: 8pt; }}
+QLabel#view_head {{ color: {sub}; font-size: 7.5pt; font-weight: bold; letter-spacing: 1px; }}
 QFrame#icon_strip {{ background: {bg}; border-left: 1px solid {line}; }}
 QPushButton#strip_btn {{
     background: transparent; border: none; border-radius: 2px; outline: none;

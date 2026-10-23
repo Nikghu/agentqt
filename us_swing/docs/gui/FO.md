@@ -656,3 +656,31 @@ The system shall show Settings as a section list on the left with one section vi
 2. Saved risk values are still there after reopening the app.
 3. The System strip icon opens and closes the System panel like Details and Watchlist.
 4. While downloading the Data icon shows the percent; after a download it shows a tick when complete or ! when stocks failed.
+
+---
+
+## FO-GUI-022: Screener Result Views
+
+**Status:** Approved (user, 2026-10-23)
+**Priority:** Should
+**Depends on:** FO-GUI-017 (Carbon theme and icons), FO-SCR-011 (AI ranking, `ai_plan` from SRD-SCR-013.009)
+**Source:** Screener redesign — user chose Option 2 (List + detail) and Option 3 (Signal cards) from https://claude.ai/artifact/LrgcUSpuKswbdfCmKzoZTY, both as switchable views.
+
+The system shall replace the screener results table with two views the user can switch between, so results look professional and the trade plan is easy to read. Screening logic does not change.
+
+### Requirements
+
+1. **View switch.** List and Cards views; the choice is remembered; List is the default.
+2. **List + detail.** A ranked list with a detail panel holding a chart, the trade plan, rules and AI reasoning.
+3. **Signal cards.** One card per stock with score, rules, reasoning and plan.
+4. **Rules once.** The preset's rules are shown once, not repeated per row.
+5. **Sort.** By AI score, reward : risk or rules passed.
+6. **Same actions.** Chart, Watchlist, CSV, date navigation and AI transcript keep working.
+7. **Preset rail.** Search, style chips and a last-run line per preset.
+
+### Acceptance Criteria
+
+1. Switching views keeps the same stocks and order; the view is the same after restart.
+2. Selecting a stock in List shows its chart and plan.
+3. A run without a plan shows "—" for Entry, Stop, Target and R:R.
+4. CSV includes Entry, Stop, Target and R:R.

@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.31.0: SRD-GUI-022.001–.007 added — screener result views (List + detail, Signal cards) and preset rail; approved by user 2026-10-23.
 > v2.30.0: SRD-GUI-018.008–.011 added — Connections panel in the sidebar (feed toggle moved from the title bar; supersedes the feed toggle part of SRD-GUI-018.005); approved by user 2026-10-23.
 > v2.29.0: SRD-GUI-021.004 added — Data panel on the right strip; approved by user 2026-10-23.
 > v2.28.0: SRD-GUI-021.003 added — System panel on the right strip; approved by user 2026-10-23.
@@ -355,3 +356,15 @@
 | SRD-GUI-021.002 | FO-GUI-021 | Must | Save Risk Settings writes risk values to the active user through `update_user`. | click Save | saved risk config | Other user fields unchanged | Implemented |
 | SRD-GUI-021.003 | FO-GUI-021 | Must | Theme, Updates and Diagnostics form a System panel in the right panel stack, toggled by a System icon on the strip. | strip click | System panel shown | Shares the right panel with Details and Watchlist | Implemented |
 | SRD-GUI-021.004 | FO-GUI-021 | Must | The candle database is a Data panel in the right panel stack showing percent, stock count, current stock, failed stocks and a Complete or Partial result; the strip's Data icon shows a percent, tick or ! badge. | download signals | panel state, strip badge | Build, delta, resume, retry and reset logic unchanged | Implemented |
+
+## FO-GUI-022 — Screener Result Views
+
+| ID | Parent | Priority | Description | Input | Output | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-022.001 | FO-GUI-022 | Must | A List / Cards switch in the screener toolbar swaps the result views; the choice is saved in `QSettings` and List is the default. | click | current view | Unknown saved value → List | Implemented |
+| SRD-GUI-022.002 | FO-GUI-022 | Must | The List view shows a ranked list (rank, symbol, score bar, rule dots) and a detail panel with tier, score, Open chart, Watchlist, a compact chart, Entry / Stop / Target / R:R tiles, rule checklist and AI reasoning. | rows, selection | detail panel, `chart_requested`, `watchlist_requested` | Chart created once, on first selection | Implemented |
+| SRD-GUI-022.003 | FO-GUI-022 | Must | The Cards view shows one card per stock with rank, symbol, tier, score bar, rule chips, three lines of reasoning, plan row and Chart / Watchlist buttons. | rows | cards, `chart_requested`, `watchlist_requested` | Column count follows the view width | Implemented |
+| SRD-GUI-022.004 | FO-GUI-022 | Must | The preset's rule summary shows once as chips above the results; tiers are Strong ≥ 0.70, Watch ≥ 0.40, else Weak. | preset config | rule chips, tier | Same thresholds as the old score colours | Implemented |
+| SRD-GUI-022.005 | FO-GUI-022 | Should | A Sort box orders both views by AI score, reward : risk or rules passed; R:R = (target − entry) / (entry − stop) when stop < entry < target, else "—". | sort choice | row order | Rows without R:R sort last | Implemented |
+| SRD-GUI-022.006 | FO-GUI-022 | Must | Chart, Watchlist, CSV, date navigation and AI transcript keep working with the new views; CSV adds Entry, Stop, Target and R:R columns; the old table is removed. | — | — | `chart_requested` and `watchlist_add_requested` unchanged | Implemented |
+| SRD-GUI-022.007 | FO-GUI-022 | Should | The preset rail has a search box, All / Swing / Day / Position chips in place of the style combo, and per preset a type tag (Weighted / Composite) and a last-run line from saved results. | search text, chip, storage | filtered list | Same preset sections and context menu | Approved |

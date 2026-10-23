@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.14.0: DD-GUI-022.001.D01 added — screener result views and preset rail.
 > v1.13.0: DD-GUI-018.001.D01 extended — Connections panel in the sidebar (SRD-GUI-018.008–.011).
 > v1.12.0: DD-GUI-021.001.D01 added — Settings section list.
 > v1.11.0: DD-GUI-020.001.D01 added — Charts workspace.
@@ -1579,3 +1580,23 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 **Risk save.** `_RiskTab._on_save` replaces the active user's `risk_config` with `dataclasses.replace(...)` and calls `update_user`.
 
 **Theme.** `_sidebar_qss` adds `settings_nav`, `settings_card` (1 px line border) and `settings_head` (raised background, 32 px, mono 8 pt bold) `panel_group` (sub colour, mono 7.5 pt bold) and `data_pill`, `data_pct`, `data_bar`, `data_badge` state rules for all three themes.
+
+---
+
+## DD-GUI-022.001.D01 — Screener Result Views
+
+**Traces:** SRD-GUI-022.001–.007
+
+**Data (`screener_views.py`).** `ResultRow` (dataclass): `symbol`, `score`, `rank`, `rules: list[RuleCheck]`, `reasoning`, `entry/stop/target: float | None`; properties `rr` (None unless stop < entry < target), `tier` (Strong ≥ 0.70, Watch ≥ 0.40, Weak) and `passed_count`. `RuleCheck(name, passed: bool | None, value: str)`: bool details give pass/fail, numbers give a value chip. `rows_from_result(results)` builds rows from `ScreenerRunResult.results` (`details`, `ai_reasoning`, `ai_plan`), ranks them by score. `sort_rows(rows, key)` for `score` / `rr` / `rules` (None R:R last). `csv_rows(rows)` returns header + rows with Entry, Stop, Target, R:R.
+
+**View switch.** `ViewSwitch(QWidget)`: two checkable `view_btn` buttons (list / layout-grid icons) in an exclusive group; reads and writes `view` in the `QSettings` object it is given; emits `view_changed(str)`.
+
+**List view.** `ListDetailView(QWidget)`: `QListWidget` of `_ListRow` item widgets (rank, symbol, `_ScoreBar`, `_RuleDots`) beside a `QScrollArea` detail: header (symbol, tier chip, rank / score / rules text, Open chart, Watchlist), chart slot, four plan tiles, rule checklist, reasoning. The chart comes from a `chart_factory` callable, built on first selection, then `show_symbol(symbol, timeframe)` on every selection change.
+
+**Cards view.** `CardsView(QScrollArea)`: `_Card` frames in a `QGridLayout`; columns = max(1, width // 320), re-laid out on resize. Each card: rank, symbol, tier chip, score, `_ScoreBar`, rule chips, reasoning (3 lines, elided), plan row, Chart / Watchlist buttons.
+
+**Panel (`screener_panel.py`).** The table, `_ResultsModel` and `_ChartButtonDelegate` are removed. The right pane is: rule chip strip, `QStackedWidget` (empty label, `ListDetailView`, `CardsView`), then the existing transcript splitter. The toolbar gains `ViewSwitch` and a Sort `QComboBox`; Watchlist shows only in List view and acts on its selection. Views emit `chart_requested(symbol)` → panel emits `chart_requested(symbol, timeframe)`; `watchlist_requested(symbol)` → `watchlist_add_requested`.
+
+**Preset rail (SRD-GUI-022.007).** A search `QLineEdit` and four checkable chips (All / Swing / Day / Position, the old `_STYLE_OPTIONS`) replace `_style_combo`; the chip value still goes to the manager as `style_filter`, and `filter_presets(presets, text)` (pure) keeps presets whose name contains the search text. Each item shows the name, a type tag and "Today HH:MM · N matches" / "Mon DD · N matches" / "Not run yet" from `ScreenerResultsStorage` (latest result per preset), rendered by an item widget.
+
+**Styles.** New QSS in `_sidebar_qss`: `view_btn`, `result_card`, `detail_tile`, `rule_chip` (`state` = pass / fail / value), `tier_chip`, `preset_item`. Tier and score colours come from `active_palette()` at render time; views refresh on `StyleChange`.

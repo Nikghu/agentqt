@@ -20,24 +20,21 @@ from __future__ import annotations
 
 import csv
 import uuid
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from datetime import date as _date
 
 from PyQt6.QtCore import (
-    QAbstractTableModel,
-    QModelIndex,
     QObject,
     QPoint,
+    QSettings,
     QSize,
-    QSortFilterProxyModel,
     Qt,
     QThread,
     pyqtSignal,
 )
-from PyQt6.QtGui import QAction, QColor, QCursor, QFont, QPainter
+from PyQt6.QtGui import QAction, QColor, QCursor, QFont
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QButtonGroup,
@@ -50,7 +47,6 @@ from PyQt6.QtWidgets import (
     QFrame,
     QGroupBox,
     QHBoxLayout,
-    QHeaderView,
     QLabel,
     QLineEdit,
     QListWidget,
@@ -65,9 +61,7 @@ from PyQt6.QtWidgets import (
     QSizePolicy,
     QSpinBox,
     QSplitter,
-    QStyle,
-    QStyledItemDelegate,
-    QTableView,
+    QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -81,6 +75,16 @@ from us_swing.gui.indicator_rules_dialog import IndicatorRulesDialog
 from us_swing.gui.price_action_rules_dialog import PriceActionRulesDialog
 from us_swing.gui.icons import icon as make_icon
 from us_swing.gui.icons import mark_danger, set_icon
+from us_swing.gui.screener_views import (
+    SORT_KEYS,
+    CardsView,
+    ListDetailView,
+    ResultRow,
+    ViewSwitch,
+    csv_rows,
+    rows_from_result,
+    sort_rows,
+)
 from us_swing.gui.theme import C, active_palette, colors
 from us_swing.screener.screeners import _api_key_store
 from us_swing.screener.storage import INPUT_COST_PER_1K, OUTPUT_COST_PER_1K
@@ -107,129 +111,9 @@ _SCREENER_DISPLAY: dict[str, str] = {
 }
 
 
-# ── Per-symbol display row ────────────────────────────────────────────────────
-
-@dataclass
-class _Row:
-    symbol: str
-    score: float
-    details: str   # compact per-screener breakdown
-    ai_reasoning: str = ""  # SRD-SCR-013.007: ≤50-word AI rationale (Stage 3)
-
-
-# ── Results table model ───────────────────────────────────────────────────────
-
-_CHART_COL = 1  # index of the Chart button column
-
-
-_AI_REASONING_PREVIEW_CHARS = 60
-
-
-class _ResultsModel(QAbstractTableModel):
-    COLS = ["Symbol", "Chart", "Score", "Details", "AI Reasoning"]
-
-    def __init__(self, parent: Any = None) -> None:
-        super().__init__(parent)
-        self._rows: list[_Row] = []
-
-    def load(self, rows: list[_Row]) -> None:
-        self.beginResetModel()
-        self._rows = rows
-        self.endResetModel()
-
-    def clear(self) -> None:
-        self.load([])
-
-    def row_at(self, index: int) -> _Row | None:
-        if 0 <= index < len(self._rows):
-            return self._rows[index]
-        return None
-
-    # ── QAbstractTableModel interface ──────────────────────────────────────
-
-    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:  # noqa: B008
-        return len(self._rows)
-
-    def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:  # noqa: B008
-        return len(self.COLS)
-
-    def headerData(
-        self,
-        section: int,
-        orientation: Qt.Orientation,
-        role: int = Qt.ItemDataRole.DisplayRole,
-    ) -> Any:
-        if orientation == Qt.Orientation.Horizontal:
-            if role == Qt.ItemDataRole.DisplayRole:
-                return self.COLS[section]
-            if role == Qt.ItemDataRole.TextAlignmentRole:
-                return Qt.AlignmentFlag.AlignCenter
-            if role == Qt.ItemDataRole.FontRole:
-                f = QFont()
-                f.setPointSize(8)
-                f.setBold(True)
-                return f
-        return None
-
-    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
-        if not index.isValid() or index.row() >= len(self._rows):
-            return None
-        r = self._rows[index.row()]
-        col = index.column()
-
-        if role == Qt.ItemDataRole.DisplayRole:
-            match col:
-                case 0: return r.symbol
-                case 1: return ""           # painted by _ChartButtonDelegate
-                case 2: return f"{r.score:.3f}"
-                case 3: return r.details
-                case 4:
-                    return r.ai_reasoning
-            return ""
-
-        if role == Qt.ItemDataRole.ToolTipRole:
-            # Full reasoning text in tooltip when hovering AI column
-            if col == 4 and r.ai_reasoning:
-                return r.ai_reasoning
-            return None
-
-        if role == Qt.ItemDataRole.ForegroundRole:
-            if col == 0:
-                return QColor(C.BLUE)
-            if col == 2:
-                if r.score >= 0.70:
-                    return QColor(C.GREEN)
-                if r.score >= 0.40:
-                    return QColor(C.YELLOW)
-                return QColor(C.RED)
-            return None
-
-        if role == Qt.ItemDataRole.BackgroundRole:
-            if col == 2:
-                if r.score >= 0.70:
-                    return QColor(C.PNL_POS_BG)
-                if r.score >= 0.40:
-                    return QColor(colors()["score_cell_warning_bg"])
-                return QColor(C.PNL_NEG_BG)
-            return None
-
-        if role == Qt.ItemDataRole.TextAlignmentRole:
-            if col in (0, 2):
-                return Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
-            return Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
-
-        if role == Qt.ItemDataRole.FontRole:
-            if col == 0:
-                f = QFont()
-                f.setBold(True)
-                return f
-            if col == 2:
-                f = QFont()
-                f.setBold(True)
-                f.setPointSize(10)
-                return f
-
-        return None
+def _view_settings() -> QSettings:
+    """Settings store for the List / Cards choice (SRD-GUI-022.001)."""
+    return QSettings("USSwing", "ScreenerPanel")
 
 
 # ── Preset run worker ─────────────────────────────────────────────────────────
@@ -367,30 +251,6 @@ class _ModelValidateWorker(QThread):
         from us_swing.gui.ai_model_store import validate_model
         ok, msg = validate_model(self._model_id)
         self.done.emit(ok, msg)
-
-
-# ── Chart button delegate ─────────────────────────────────────────────────────
-
-class _ChartButtonDelegate(QStyledItemDelegate):
-    """Paints a small clickable-looking chart button in the Chart column."""
-
-    def paint(self, painter: QPainter, option: Any, index: Any) -> None:
-        painter.save()
-        rect = option.rect.adjusted(5, 3, -5, -3)
-        is_hovered = bool(option.state & QStyle.StateFlag.State_MouseOver)
-        bg = QColor(C.BLUE)
-        bg.setAlpha(70 if is_hovered else 30)
-        border = QColor(C.BLUE)
-        border.setAlpha(140)
-        painter.setBrush(bg)
-        painter.setPen(border)
-        painter.drawRoundedRect(rect, 3, 3)
-        pix = make_icon("chart-candlestick", "go").pixmap(16, 16)
-        painter.drawPixmap(rect.center().x() - 8, rect.center().y() - 8, pix)
-        painter.restore()
-
-    def sizeHint(self, option: Any, index: Any) -> QSize:
-        return QSize(56, 28)
 
 
 _INDICATOR_SCREENER_ID   = "indicator_composite"
@@ -1835,9 +1695,9 @@ class _NewPresetDialog(QDialog):
 class ScreenerPanel(QWidget):
     """FO-SCR-007 Screener Panel v2 — preset-based execution.
 
-    Toolbar: Run Now / date navigation / status / Add to Watchlist.
+    Toolbar: Run Now / date navigation / status / sort / List-Cards / CSV / Watchlist.
     Left:    Preset list (admin + user + create-new).
-    Right:   Results table (symbol · score · details · AI reasoning).
+    Right:   Rule chips, then the List + detail or Cards view (SRD-GUI-022.001–.006).
     """
 
     watchlist_add_requested = pyqtSignal(str)   # preserved — wired in main_window
@@ -1861,6 +1721,7 @@ class ScreenerPanel(QWidget):
         self._worker: _PresetRunWorker | None = None
         self._db_info:           Any        = None   # latest CandleDbInfo
         self._auto_run_queue:    list[str]  = []     # preset IDs pending auto-run
+        self._rows:              list[ResultRow] = []  # rows shown by both views
 
         # ── DB status subscription (SRD-SCR-004.007) ──────────────────────
         demo.candle_db_status_changed.connect(self._on_db_status_changed)
@@ -1974,7 +1835,22 @@ class ScreenerPanel(QWidget):
         tb.addStretch()
         tb.addWidget(self._status_lbl)
         tb.addSpacing(8)
+        self._sort_combo = QComboBox()
+        for key, label in SORT_KEYS:
+            self._sort_combo.addItem(label, key)
+        self._sort_combo.setFixedWidth(130)
+        self._sort_combo.setToolTip("Sort results")
+        self._sort_combo.setAccessibleName("Sort results")
+        self._sort_combo.currentIndexChanged.connect(self._refresh_views)
+
+        self._view_switch = ViewSwitch(_view_settings())
+        self._view_switch.view_changed.connect(self._on_view_changed)
+        self._add_btn.setVisible(self._view_switch.view == "list")
+
         tb.addWidget(self._progress)
+        tb.addSpacing(8)
+        tb.addWidget(self._sort_combo)
+        tb.addWidget(self._view_switch)
         tb.addSpacing(8)
         tb.addWidget(self._export_btn)
         tb.addSpacing(6)
@@ -2056,54 +1932,34 @@ class ScreenerPanel(QWidget):
             f"color: {C.MUTED}; font-size: 12pt; padding: 40px;"
         )
 
-        # Results table
-        self._model = _ResultsModel()
-        self._proxy = QSortFilterProxyModel()
-        self._proxy.setSourceModel(self._model)
+        # Preset rules, shown once above the results (SRD-GUI-022.004)
+        self._rule_strip = QWidget()
+        self._rule_strip.setObjectName("rule_strip")
+        self._rule_row = QHBoxLayout(self._rule_strip)
+        self._rule_row.setContentsMargins(14, 8, 14, 8)
+        self._rule_row.setSpacing(6)
+        self._rule_strip.setVisible(False)
 
-        self._table = QTableView()
-        self._table.setModel(self._proxy)
-        self._table.setSortingEnabled(True)
-        self._table.sortByColumn(1, Qt.SortOrder.DescendingOrder)
-        self._table.setAlternatingRowColors(True)
-        self._table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        self._table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self._table.verticalHeader().setVisible(False)
-        self._table.setShowGrid(False)
-        self._table.setWordWrap(True)
-        self._table.setStyleSheet(
-            "QTableView { border: none; outline: none; }"
-            "QTableView::item { padding: 5px 8px; }"
-            "QTableView::item:focus { outline: none; border: none; }"
-        )
+        # Result views (SRD-GUI-022.001–.003)
+        self._list_view = ListDetailView(self._make_chart)
+        self._list_view.chart_requested.connect(self._on_view_chart)
+        self._list_view.watchlist_requested.connect(self._on_view_watchlist)
+        self._list_view.selection_changed.connect(lambda _s: self._add_btn.setEnabled(True))
+        self._cards_view = CardsView()
+        self._cards_view.chart_requested.connect(self._on_view_chart)
+        self._cards_view.watchlist_requested.connect(self._on_view_watchlist)
 
-        hdrs = self._table.horizontalHeader()
-        hdrs.setSectionResizeMode(0, QHeaderView.ResizeMode.Interactive)   # Symbol
-        hdrs.resizeSection(0, 80)
-        hdrs.setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)          # Chart button
-        hdrs.resizeSection(1, 56)
-        hdrs.setSectionResizeMode(2, QHeaderView.ResizeMode.Interactive)   # Score
-        hdrs.resizeSection(2, 72)
-        hdrs.setSectionResizeMode(3, QHeaderView.ResizeMode.Interactive)   # Details
-        hdrs.resizeSection(3, 200)
-        hdrs.setStretchLastSection(True)                                    # AI Reasoning fills remainder
-        hdrs.setDefaultAlignment(Qt.AlignmentFlag.AlignCenter)
-        hdrs.sectionDoubleClicked.connect(self._table.resizeColumnToContents)
-
-        self._table.setItemDelegateForColumn(_CHART_COL, _ChartButtonDelegate(self._table))
-        self._table.setMouseTracking(True)
-        self._table.viewport().setMouseTracking(True)
-        self._table.clicked.connect(self._on_table_clicked)
-
-        self._table.selectionModel().selectionChanged.connect(self._on_selection)
-        self._table.setVisible(False)
+        self._views = QStackedWidget()
+        self._views.addWidget(self._empty_lbl)
+        self._views.addWidget(self._list_view)
+        self._views.addWidget(self._cards_view)
 
         table_container = QWidget()
         cl = QVBoxLayout(table_container)
         cl.setContentsMargins(0, 0, 0, 0)
         cl.setSpacing(0)
-        cl.addWidget(self._empty_lbl, 1)
-        cl.addWidget(self._table, 1)
+        cl.addWidget(self._rule_strip)
+        cl.addWidget(self._views, 1)
 
         self._transcript_panel = AITranscriptPanel()
         self._transcript_panel.setVisible(False)
@@ -2409,23 +2265,20 @@ class ScreenerPanel(QWidget):
             self._transcript_panel.setVisible(False)
 
     def _display_result(self, result: Any) -> None:
-        """Populate the results table from a ScreenerRunResult."""
-        rows = self._build_rows(result)
-        count = len(rows)
-        self._model.load(rows)
-        self._table.resizeRowsToContents()
+        """Show a ScreenerRunResult in the result views."""
+        self._rows = rows_from_result(getattr(result, "results", {}) or {})
+        count = len(self._rows)
 
         mode = getattr(result, "execution_mode", "manual")
         self._update_mode_badge(mode)
 
-        self._status_lbl.setText(
-            f"{count} symbol{'s' if count != 1 else ''} matched"
-            f"  ·  sorted by score ↓"
-        )
+        self._status_lbl.setText(f"{count} symbol{'s' if count != 1 else ''} matched")
         self._status_lbl.setStyleSheet(
             f"color: {C.SUBTEXT if count > 0 else C.MUTED}; font-size: 9pt;"
         )
         self._export_btn.setEnabled(count > 0)
+        self._show_rule_strip(self._rule_summary())
+        self._refresh_views()
         self._show_table(has_data=count > 0)
 
         transcript = list(getattr(result, "ai_transcript", None) or [])
@@ -2439,8 +2292,8 @@ class ScreenerPanel(QWidget):
             self._transcript_panel.clear()
         self._refresh_transcript_visibility()
 
-    def _build_rows(self, result: Any) -> list[_Row]:
-        # Resolve indicator and price action config summaries once for the active preset
+    def _rule_summary(self) -> list[str]:
+        """Return the active preset's rule summary as chip texts (SRD-GUI-022.004)."""
         summarisers = {
             _INDICATOR_SCREENER_ID: config_summary,
             _PRICE_ACTION_SCREENER_ID: pattern_config_summary,
@@ -2460,38 +2313,55 @@ class ScreenerPanel(QWidget):
                         summaries[sid] = summarisers[sid](cfg) if cfg else ""
             except Exception:  # noqa: BLE001
                 pass
-        _ind_cfg_summary = "  ·  ".join(text for text in summaries.values() if text)
+        return [part.strip() for text in summaries.values() if text
+                for part in text.split("·") if part.strip()]
 
-        rows: list[_Row] = []
-        results_dict: dict = getattr(result, "results", {})
-        for symbol, meta in results_dict.items():
-            score = float(meta.get("score", 0.0))
+    def _show_rule_strip(self, chips: list[str]) -> None:
+        while self._rule_row.count():
+            item = self._rule_row.takeAt(0)
+            widget = item.widget() if item is not None else None
+            if widget is not None:
+                widget.deleteLater()
+        if not chips:
+            self._rule_strip.setVisible(False)
+            return
+        title = QLabel("Rules")
+        title.setObjectName("view_key")
+        self._rule_row.addWidget(title)
+        for text in chips:
+            chip = QLabel(text)
+            chip.setStyleSheet(
+                f"color: {C.TEXT}; border: 1px solid {C.OVERLAY2}; border-radius: 3px;"
+                " padding: 2px 8px; font-size: 8pt;"
+            )
+            self._rule_row.addWidget(chip)
+        self._rule_row.addStretch(1)
+        self._rule_strip.setVisible(True)
 
-            # Details: full per-screener breakdown + indicator config summary
-            details_dict = meta.get("details", {})
-            if details_dict:
-                detail_parts = []
-                for k, v in details_dict.items():
-                    short = k.split("_")[0]
-                    if isinstance(v, bool):
-                        detail_parts.append(f"{short}:{'✔' if v else '✘'}")
-                    elif isinstance(v, (int, float)):
-                        detail_parts.append(f"{short}:{float(v):.2f}")
-                    else:
-                        detail_parts.append(f"{short}:{v}")
-                details_str = "  ·  ".join(detail_parts)
-            else:
-                details_str = "—"
+    def _refresh_views(self) -> None:
+        """Load the current rows, in the chosen sort order, into both views."""
+        rows = sort_rows(self._rows, str(self._sort_combo.currentData() or "score"))
+        self._list_view.load(rows, self._selected_preset_timeframe)
+        self._cards_view.load(rows)
 
-            if _ind_cfg_summary:
-                details_str = f"[{_ind_cfg_summary}]  {details_str}"
+    def _make_chart(self) -> QWidget:
+        from us_swing.gui.chart_panel import CandleChartPanel
+        chart = CandleChartPanel(self._demo)
+        chart.set_compact()
+        return chart
 
-            ai_reasoning = str(meta.get("ai_reasoning", "") or "")
-            rows.append(_Row(symbol=symbol, score=score,
-                             details=details_str, ai_reasoning=ai_reasoning))
+    def _on_view_changed(self, view: str) -> None:
+        if self._rows:
+            self._show_table(has_data=True)
+        self._add_btn.setVisible(view == "list")
 
-        rows.sort(key=lambda r: r.score, reverse=True)
-        return rows
+    def _on_view_chart(self, symbol: str) -> None:
+        self.chart_requested.emit(symbol, self._selected_preset_timeframe)
+
+    def _on_view_watchlist(self, symbol: str) -> None:
+        self.watchlist_add_requested.emit(symbol)
+        self._status_lbl.setText(f"✔  {symbol} added to watchlist")
+        self._status_lbl.setStyleSheet(f"color: {C.GREEN}; font-size: 9pt;")
 
     def _update_mode_badge(self, mode: str) -> None:
         _tc = colors()
@@ -2510,14 +2380,20 @@ class ScreenerPanel(QWidget):
         self._mode_badge.setVisible(True)
 
     def _show_table(self, *, has_data: bool) -> None:
-        self._empty_lbl.setVisible(not has_data)
-        self._table.setVisible(has_data)
+        if not has_data:
+            self._views.setCurrentWidget(self._empty_lbl)
+        elif self._view_switch.view == "cards":
+            self._views.setCurrentWidget(self._cards_view)
+        else:
+            self._views.setCurrentWidget(self._list_view)
 
     def _show_empty(self, message: str = "Select a preset from the list\nand click Run Now") -> None:
+        self._rows = []
+        self._add_btn.setEnabled(False)
+        self._rule_strip.setVisible(False)
         self._empty_lbl.setText(message)
         self._empty_lbl.setStyleSheet(f"color: {C.MUTED}; font-size: 12pt; padding: 40px;")
-        self._table.setVisible(False)
-        self._empty_lbl.setVisible(True)
+        self._views.setCurrentWidget(self._empty_lbl)
 
     def _show_error(self, reason: str) -> None:
         self._status_lbl.setText(f"⚠  {reason[:120]}")
@@ -2637,35 +2513,17 @@ class ScreenerPanel(QWidget):
 
     # ── Quick chart ───────────────────────────────────────────────────────
 
-    def _on_table_clicked(self, proxy_index: QModelIndex) -> None:
-        if proxy_index.column() != _CHART_COL:
-            return
-        src_index = self._proxy.mapToSource(proxy_index)
-        row = self._model.row_at(src_index.row())
-        if row:
-            self.chart_requested.emit(row.symbol, self._selected_preset_timeframe)
-
-    # ── Selection / watchlist ─────────────────────────────────────────────
-
-    def _on_selection(self) -> None:
-        has_row = bool(self._table.selectionModel().selectedRows())
-        self._add_btn.setEnabled(has_row)
+    # ── Watchlist ─────────────────────────────────────────────────────────
 
     def _on_add_watchlist(self) -> None:
-        indexes = self._table.selectionModel().selectedRows()
-        if not indexes:
-            return
-        src_idx = self._proxy.mapToSource(indexes[0])
-        row = self._model.row_at(src_idx.row())
-        if row:
-            self.watchlist_add_requested.emit(row.symbol)
-            self._status_lbl.setText(f"✔  {row.symbol} added to watchlist")
-            self._status_lbl.setStyleSheet(f"color: {C.GREEN}; font-size: 9pt;")
+        symbol = self._list_view.selected_symbol()
+        if symbol:
+            self._on_view_watchlist(symbol)
 
     # ── CSV export ────────────────────────────────────────────────────────
 
     def _export_csv(self) -> None:
-        if self._model.rowCount() == 0:
+        if not self._rows:
             return
         path, _ = QFileDialog.getSaveFileName(
             self, "Export Screener Results", "screener_results.csv",
@@ -2675,14 +2533,8 @@ class ScreenerPanel(QWidget):
             return
         try:
             with open(path, "w", newline="", encoding="utf-8") as fh:
-                w = csv.writer(fh)
-                w.writerow(["Symbol", "Score", "Details", "AI Reasoning"])
-                for i in range(self._model.rowCount()):
-                    r = self._model.row_at(i)
-                    if r:
-                        w.writerow([r.symbol, f"{r.score:.4f}", r.details,
-                                    r.ai_reasoning])
-            self._status_lbl.setText(f"✔  Exported {self._model.rowCount()} rows to CSV")
+                csv.writer(fh).writerows(csv_rows(self._rows))
+            self._status_lbl.setText(f"✔  Exported {len(self._rows)} rows to CSV")
             self._status_lbl.setStyleSheet(f"color: {C.GREEN}; font-size: 9pt;")
         except Exception as exc:  # noqa: BLE001
             self._show_error(f"Export failed: {exc}")
