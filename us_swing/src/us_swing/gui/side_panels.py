@@ -41,7 +41,7 @@ class IconStrip(QFrame):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("icon_strip")
-        self.setFixedWidth(40)
+        self.setFixedWidth(44)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(4, 8, 4, 8)
         layout.setSpacing(4)
@@ -50,8 +50,8 @@ class IconStrip(QFrame):
             btn = QPushButton()
             btn.setObjectName("strip_btn")
             btn.setCheckable(True)
-            btn.setFixedWidth(32)
-            set_icon(btn, icon_name, "neutral", 16)
+            btn.setFixedWidth(36)
+            set_icon(btn, icon_name, "neutral", 20)
             btn.setToolTip(tip)
             btn.setAccessibleName(tip)
             btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
@@ -66,14 +66,14 @@ class IconStrip(QFrame):
         self._badge.setObjectName("strip_badge")
         self._badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._badge.setFixedSize(16, 14)
-        self._badge.move(15, 1)
+        self._badge.move(19, 1)
         self._badge.hide()
 
         self._data_badge = QLabel(self._buttons["data"])
         self._data_badge.setObjectName("data_badge")
         self._data_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._data_badge.setFixedSize(18, 14)
-        self._data_badge.move(14, 1)
+        self._data_badge.move(18, 1)
         self._data_badge.hide()
 
     def set_data_state(self, state: str, percent: int) -> None:

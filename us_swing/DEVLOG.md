@@ -2,6 +2,16 @@
 
 ---
 
+## [20261023] GUI — Bigger sidebar and strip icons (FO-GUI-017, fix)
+
+- Type: Fix
+- FO(s): FO-GUI-017
+- RN: RN-GUI-1.15.2-20261023
+- Artifacts updated: Code, RN, CONTEXT
+- Decisions: 20 px icons on both sides; right strip 44 px wide.
+
+---
+
 ## [20261023] GUI — Shell font sizes match the mockup (FO-GUI-017, fix)
 
 - Type: Fix

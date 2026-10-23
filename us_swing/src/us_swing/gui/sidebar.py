@@ -169,7 +169,7 @@ class Sidebar(QFrame):
     def _make_button(self, icon_name: str, label: str) -> QPushButton:
         btn = QPushButton(label)
         btn.setObjectName("side_btn")
-        set_icon(btn, icon_name, "neutral", 17)
+        set_icon(btn, icon_name, "neutral", 20)
         btn.setToolTip(label)
         btn.setAccessibleName(label)
         btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
@@ -197,7 +197,7 @@ class Sidebar(QFrame):
         self._mini = mini
         self.set_labels_visible(not mini)
         set_icon(self._collapse_btn, "panel-left-open" if mini else "panel-left-close",
-                 "neutral", 17)
+                 "neutral", 20)
         tip = "Expand" if mini else "Collapse"
         self._collapse_btn.setToolTip(tip)
         self._collapse_btn.setAccessibleName(tip)
