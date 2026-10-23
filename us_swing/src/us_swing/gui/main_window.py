@@ -116,13 +116,13 @@ class _MWCell(QLabel):
             color = _T.GREEN if self._change_pct >= 0 else _T.RED
             sign = "+" if self._change_pct >= 0 else ""
             self.setText(
-                f"<span style='color:{name_color};font-size:7pt;letter-spacing:0.5px'>{self._name}</span>"
-                f"&nbsp;&nbsp;<span style='color:{color};font-size:9pt;font-weight:bold'>{self._ltp:,.2f}</span>"
-                f"&nbsp;<span style='color:{color};font-size:7pt'>{sign}{self._change_pct:.2f}%</span>"
+                f"<span style='color:{name_color};font-size:8.5pt;font-weight:500'>{self._name}</span>"
+                f"&nbsp;&nbsp;<span style='color:{_T.TEXT};font-size:9pt;font-family:IBM Plex Mono,Consolas,monospace;'>{self._ltp:,.2f}</span>"
+                f"&nbsp;<span style='color:{color};font-size:8.5pt;font-family:IBM Plex Mono,Consolas,monospace;'>{sign}{self._change_pct:.2f}%</span>"
             )
         else:
             self.setText(
-                f"<span style='color:{name_color};font-size:7pt;letter-spacing:0.5px'>{self._name}</span>"
+                f"<span style='color:{name_color};font-size:8.5pt;font-weight:500'>{self._name}</span>"
                 f"&nbsp;&nbsp;<span style='color:{_T.OVERLAY2};font-size:9pt'>—</span>"
             )
 

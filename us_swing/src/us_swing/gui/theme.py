@@ -1278,7 +1278,7 @@ def _sidebar_qss(bg: str, line: str, text: str, sub: str, hover: str,
 QFrame#sidebar {{ background: {bg}; border-right: 1px solid {line}; }}
 QPushButton#side_btn {{
     background: transparent; color: {sub}; border: none; border-left: 2px solid transparent;
-    border-radius: 2px; text-align: left; padding: 0 10px; outline: none;
+    border-radius: 2px; text-align: left; padding: 0 10px; outline: none; font-size: 10pt;
 }}
 QPushButton#side_btn:hover {{ background: {hover}; color: {text}; }}
 QPushButton#side_btn:checked {{
@@ -1286,7 +1286,8 @@ QPushButton#side_btn:checked {{
 }}
 QPushButton#side_btn:focus {{ outline: none; }}
 QFrame#side_sep {{ background: {line}; border: none; }}
-QLabel#side_footer {{ color: {sub}; font-size: 8pt; }}
+QLabel#side_footer {{ color: {sub}; font-size: 8.5pt; }}
+QLabel#top_brand {{ font-size: 10pt; letter-spacing: 0px; }}
 QWidget#side_account, QWidget#side_account QLabel {{ background: transparent; }}
 QFrame#icon_strip {{ background: {bg}; border-left: 1px solid {line}; }}
 QPushButton#strip_btn {{

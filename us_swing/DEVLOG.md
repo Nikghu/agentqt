@@ -2,6 +2,16 @@
 
 ---
 
+## [20261023] GUI — Shell font sizes match the mockup (FO-GUI-017, fix)
+
+- Type: Fix
+- FO(s): FO-GUI-017
+- RN: RN-GUI-1.15.1-20261023
+- Artifacts updated: Code, RN, CONTEXT
+- Decisions: sidebar 10pt, brand 10pt, ticker 8.5pt names with mono prices, as in the mockup.
+
+---
+
 ## [20261023] GUI — Data panel on the right strip (FO-GUI-021, feature)
 
 - Type: Feature
