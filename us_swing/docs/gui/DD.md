@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.19.0: DD-GUI-025.001.D01 gains Phase 2 tile buttons.
 > v1.18.0: DD-GUI-025.001.D01 added — Dashboard tiled workspace (Phase 1).
 > v1.17.0: DD-GUI-024.001.D01 added — Execution workspace.
 > v1.16.0: DD-GUI-023.001.D01 added — card layout.
@@ -1644,3 +1645,5 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 **Strip and switches.** `KpiStrip` cells: P&L today (`daily_pnl`), Unrealised (sum of `unrealised_pnl` of the positions), Equity, Cash, Capital used + "of 95%", Positions. Its tail holds two `ChipGroup`s: view (All users + each user → `set_viewing_uid`, kept in sync on `viewing_changed`) and density (Comfort 32 px / Compact 24 px default row height on the three tables).
 
 **Settings.** `QSettings("USSwing", "DashboardPanel")`: `density` ("compact" default), `view_uid` ("" = all; applied only when that user exists), `maximised` ("" = grid). Restored once in the constructor.
+
+**Tile buttons (Phase 2, SRD-GUI-025.008–.012).** Open Positions: a checkable `filter` icon button shows a `QLineEdit`; `_apply_pos_filter` calls `setRowHidden` on every row of the last `get_positions()` list (case-insensitive substring of the symbol) after each refresh, and the count reads "2 of 5". Closing the filter clears the text. The `columns-3` button opens a `QMenu` of checkable column names (Symbol disabled); hidden names are kept by name in `hidden_cols` (comma string; Symbol and User never hide) so they survive the User column shift; `modelReset` of the position model re-applies hidden columns and the row filter. Trade History: two `QPushButton`s with one-choice menus (`QActionGroup`) — range Today / 7 / 30 days / All (market time zone; Today = same date) and state All / Filled / Partial / Cancelled / Rejected / New (`str(order_state)`); choices kept in `hist_range` / `hist_state`, unknown saved values fall back to the first option. Export: `QFileDialog.getSaveFileName` then `table_rows(view)` (header + shown rows, shown columns, display text) written with `csv.writer`; `OSError` logs the reason and shows a warning box. Market Watch: the tile's `_WatchlistModel.set_removable(True)` adds a 32 px "✕" column; a click on it calls `remove_from_watchlist(symbol)`; the Remove button is hidden in the tile only.

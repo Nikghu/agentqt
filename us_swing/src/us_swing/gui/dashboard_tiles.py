@@ -8,9 +8,17 @@ the "P&L by Strategy" bar list.
 """
 from __future__ import annotations
 
-from PyQt6.QtCore import QRectF, pyqtSignal
+from PyQt6.QtCore import QRectF, Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QPainter, QPaintEvent
-from PyQt6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import (
+    QFrame,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QTableView,
+    QVBoxLayout,
+    QWidget,
+)
 
 from us_swing.gui.cards import GAP, card, gutter
 from us_swing.gui.icons import icon_button, set_icon
@@ -265,6 +273,19 @@ class StrategyPnlList(QWidget):
         box.addLayout(top)
         box.addWidget(bar)
         return row
+
+
+def table_rows(view: QTableView) -> list[list[str]]:
+    """Header plus every shown row of ``view``, shown columns only, as display text."""
+    model = view.model()
+    if model is None:
+        return []
+    cols = [c for c in range(model.columnCount()) if not view.isColumnHidden(c)]
+    rows = [[str(model.headerData(c, Qt.Orientation.Horizontal) or "") for c in cols]]
+    for r in range(model.rowCount()):
+        if not view.isRowHidden(r):
+            rows.append([str(model.data(model.index(r, c)) or "") for c in cols])
+    return rows
 
 
 def _pnl_colour(value: float) -> str:

@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.38.0: SRD-GUI-025.008–.012 added — Dashboard tile buttons, Phase 2; approved by user 2026-10-24.
 > v2.37.0: SRD-GUI-025.001–.007 added — Dashboard tiled workspace, Phase 1 (canvas Option E); approved by user 2026-10-24.
 > v2.36.0: SRD-GUI-024.008 changed — charts toggle moved to the page header, chart header row removed, 4 px card gaps (user, 2026-10-23).
 > v2.35.0: SRD-GUI-024.001–.008 added — Execution workspace (canvas Option F2); approved by user 2026-10-23.
@@ -412,3 +413,8 @@
 | SRD-GUI-025.005 | FO-GUI-025 | Should | The P&L by Strategy tile lists each strategy with today's P&L as a green or red bar and a total row. | `get_strategy_pnl` | bar list | "No strategies" text when none exist | Implemented |
 | SRD-GUI-025.006 | FO-GUI-025 | Must | Density, user view and the maximised tile are remembered across restarts. | setting | — | `QSettings("USSwing", "DashboardPanel")` | Implemented |
 | SRD-GUI-025.007 | FO-GUI-025 | Must | The Market Watch tile shows the user's watchlist with Symbol, LTP, change, change % and volume, and an add box, Add, Remove and Refresh in its header. | watchlist | table | Index ETFs stay in the title bar; the right-panel watchlist stays | Implemented |
+| SRD-GUI-025.008 | FO-GUI-025 | Must | The Open Positions Filter button shows a symbol box; typing hides rows whose symbol does not contain the text; closing the box shows all rows. | text | filtered rows | Case-insensitive; kept across price refreshes | Implemented |
+| SRD-GUI-025.009 | FO-GUI-025 | Should | The Open Positions Columns button opens a checkable list of columns; unticked columns are hidden and remembered. | ticks | visible columns | Symbol cannot be hidden | Implemented |
+| SRD-GUI-025.010 | FO-GUI-025 | Must | Trade History has a range menu (Today, 7 days, 30 days, All) and a state menu (All, Filled, Partial, Cancelled, Rejected, New); the header count shows the range and row count. | trades, choice | filtered rows | Range uses the market time zone; choices remembered | Implemented |
+| SRD-GUI-025.011 | FO-GUI-025 | Should | The Trade History Export button saves the shown rows and columns to a CSV file the user picks. | rows | `.csv` file | Log "[Trade History] Saved N order(s) to <file>" | Implemented |
+| SRD-GUI-025.012 | FO-GUI-025 | Should | Each Market Watch tile row ends with a ✕ that removes that symbol; the Remove button leaves the tile header. | click | watchlist | Right-panel watchlist unchanged | Implemented |

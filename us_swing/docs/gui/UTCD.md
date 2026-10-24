@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.20.0: UT-GUI-025.008–.012 added — tile buttons (Phase 2).
 > v1.19.0: UT-GUI-025.* added — dashboard tiled workspace (Phase 1).
 > v1.18.0: UT-GUI-023.* added — card layout.
 > v1.17.0: UT-GUI-022.008–.011.* added — screener header, run stepper, transcript drawer, list detail.
@@ -620,3 +621,15 @@ Test files:
 | UT-GUI-025.002.M02.T01 | MD-GUI-025.001.M02 | Positive | View switch scopes the dashboard | click "trader" | `set_viewing_uid(1)`; setting "1" | Pass |
 | UT-GUI-025.006.M02.T01 | MD-GUI-025.001.M02 | Positive | Density and maximised tile remembered | Comfort + maximise Strategy; new panel | "comfort"; row height 32; maximised "strategy" | Pass |
 | UT-GUI-025.006.M02.T02 | MD-GUI-025.001.M02 | Edge | First start defaults | empty settings | "compact"; full grid; scope not changed | Pass |
+| UT-GUI-025.008.M02.T01 | MD-GUI-025.001.M02 | Positive | Filter hides other symbols | NDAQ, MSFT; filter "nd" | MSFT row hidden; count "1 of 2" | Pass |
+| UT-GUI-025.008.M02.T02 | MD-GUI-025.001.M02 | Negative | Closing the filter shows all | filter "zzz", close | text cleared; both rows shown | Pass |
+| UT-GUI-025.008.M02.T03 | MD-GUI-025.001.M02 | Edge | Filter and hidden columns survive reloads | filter "ms", Stop hidden; refresh + scope to one user | MSFT only; Stop still hidden | Pass |
+| UT-GUI-025.009.M02.T01 | MD-GUI-025.001.M02 | Positive | Hidden column remembered | untick Stop; new panel | Stop hidden in both | Pass |
+| UT-GUI-025.009.M02.T02 | MD-GUI-025.001.M02 | Negative | Symbol and User cannot be hidden | untick Symbol, User | action disabled; columns shown | Pass |
+| UT-GUI-025.010.M02.T01 | MD-GUI-025.001.M02 | Positive | Range and state filter orders | 2 today (filled, cancelled), 3 days, 40 days | Today 2; Filled 1; 7 days 2; All/All 4 | Pass |
+| UT-GUI-025.010.M02.T02 | MD-GUI-025.001.M02 | Edge | Choices remembered; bad value falls back | 30 days + Cancelled; then "bogus" | texts restored, 1 row; then "Today" | Pass |
+| UT-GUI-025.011.M02.T01 | MD-GUI-025.001.M02 | Positive | Export writes shown rows | Today view | header User, Date & Time, Symbol; rows A, B | Pass |
+| UT-GUI-025.011.M02.T02 | MD-GUI-025.001.M02 | Negative | Unwritable path | folder path | error logged with reason; warning box shown | Pass |
+| UT-GUI-025.012.M01.T01 | MD-GUI-002.001.M01 | Positive | ✕ removes that symbol | click ✕ on MSFT row | `remove_from_watchlist("MSFT")` | Pass |
+| UT-GUI-025.012.M01.T02 | MD-GUI-002.001.M01 | Negative | Other cell removes nothing | click Symbol cell | not called; right-panel model has no ✕ | Pass |
+| UT-GUI-025.012.M01.T03 | MD-GUI-002.001.M01 | Edge | Tile watchlist keeps hidden columns after new quotes | reload | Open column hidden; ✕ shown | Pass |

@@ -256,5 +256,5 @@ us_swing/src/us_swing/gui/
 
 | ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
 |---|---|---|---|---|---|---|
-| MD-GUI-025.003.M01 | SRD-GUI-025.003 | `us_swing/src/us_swing/gui/dashboard_tiles.py` | Tile, tile grid with maximise, KPI strip, strategy P&L bars | `Tile`, `TileGrid`, `KpiStrip`, `StrategyPnlList`, `PnlBar`, `TILES`, `ROW_H` | cards, icons, strategy_pnl_chart, PyQt6 | No |
-| MD-GUI-025.001.M02 | SRD-GUI-025.001 | `us_swing/src/us_swing/gui/dashboard_panel.py` | Tiled layout, KPI values, switches, remembered settings, watchlist tile | `DashboardPanel(svc, parent, settings)` | AppService, dashboard_tiles, strategy_store | No |
+| MD-GUI-025.003.M01 | SRD-GUI-025.003 | `us_swing/src/us_swing/gui/dashboard_tiles.py` | Tile, tile grid with maximise, KPI strip, strategy P&L bars | `Tile`, `TileGrid`, `KpiStrip`, `StrategyPnlList`, `PnlBar`, `table_rows()`, `TILES`, `ROW_H` | cards, icons, strategy_pnl_chart, PyQt6 | No |
+| MD-GUI-025.001.M02 | SRD-GUI-025.001 | `us_swing/src/us_swing/gui/dashboard_panel.py` | Tiled layout, KPI values, switches, remembered settings, watchlist tile, tile buttons (filter, columns, history range / state, CSV export, ✕ remove) | `DashboardPanel(svc, parent, settings)`, `export_history(path)` | AppService, dashboard_tiles, strategy_store | No |

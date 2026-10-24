@@ -168,3 +168,178 @@ def test_defaults_without_saved_settings(qtbot, settings):
     assert panel._density_chips.value == "compact"
     assert panel._grid.maximised == ""
     svc.set_viewing_uid.assert_not_called()
+
+
+# ── Phase 2: tile buttons (SRD-GUI-025.008–.012) ──────────────────────────────
+
+_ET = datetime.timezone(datetime.timedelta(hours=-4))
+
+
+def _trade(symbol: str, days_ago: int, state: str) -> SimpleNamespace:
+    when = datetime.datetime.now(_ET) - datetime.timedelta(days=days_ago)
+    return SimpleNamespace(
+        user_id=1, symbol=symbol, side="BUY", quantity=5, filled_quantity=5,
+        entry_price=100.0, order_state=state, strategy_id="Breakout", mode="paper",
+        entry_time=when,
+    )
+
+
+def _watch_item(symbol: str) -> SimpleNamespace:
+    return SimpleNamespace(
+        symbol=symbol, ltp=100.0, change=1.0, change_pct=1.0, day_open=99.0,
+        day_high=101.0, day_low=98.0, volume=1_000, year_high=120.0, year_low=80.0,
+        market_cap=1e9,
+    )
+
+
+def test_filter_hides_other_symbols(qtbot, settings):
+    """UT-GUI-025.008.M02.T01: Filter text hides rows whose symbol does not match."""
+    panel = _panel(qtbot, _service([_pos("NDAQ", 100, 101), _pos("MSFT", 400, 401)]), settings)
+    panel._filter_btn.click()
+    panel._pos_filter.setText("nd")
+    assert not panel._pos_view.isRowHidden(0)
+    assert panel._pos_view.isRowHidden(1)
+    assert panel._pos_status_lbl.text().startswith("1 of 2")
+
+
+def test_closing_filter_shows_all(qtbot, settings):
+    """UT-GUI-025.008.M02.T02: Closing the filter clears it and shows every row."""
+    panel = _panel(qtbot, _service([_pos("NDAQ", 100, 101), _pos("MSFT", 400, 401)]), settings)
+    panel._filter_btn.click()
+    panel._pos_filter.setText("zzz")
+    panel._filter_btn.click()
+    assert panel._pos_filter.text() == ""
+    assert not panel._pos_view.isRowHidden(0) and not panel._pos_view.isRowHidden(1)
+    assert panel._pos_status_lbl.text().startswith("2")
+
+
+def test_hidden_column_remembered(qtbot, settings):
+    """UT-GUI-025.009.M02.T01: An unticked column is hidden and stays hidden after restart."""
+    panel = _panel(qtbot, _service([_pos("NDAQ", 100, 101)]), settings)
+    panel._set_column_shown("Stop", False)
+    stop = panel._pos_col_names().index("Stop")
+    assert panel._pos_view.isColumnHidden(stop)
+    again = _panel(qtbot, _service([]), settings)
+    assert again._pos_view.isColumnHidden(again._pos_col_names().index("Stop"))
+
+
+def test_symbol_column_cannot_hide(qtbot, settings):
+    """UT-GUI-025.009.M02.T02: Symbol is greyed out in the menu and never hidden."""
+    panel = _panel(qtbot, _service([]), settings)
+    menu = panel._columns_menu()
+    symbol_action = next(a for a in menu.actions() if a.text() == "Symbol")
+    assert not symbol_action.isEnabled()
+    panel._set_column_shown("Symbol", False)
+    panel._set_column_shown("User", False)
+    names = panel._pos_col_names()
+    assert not panel._pos_view.isColumnHidden(names.index("Symbol"))
+    assert not panel._pos_view.isColumnHidden(names.index("User"))
+
+
+def _history_panel(qtbot, settings):
+    svc = _service([])
+    svc.get_all_trades.return_value = [
+        _trade("A", 0, "FILLED"), _trade("B", 0, "CANCELLED"),
+        _trade("C", 3, "FILLED"), _trade("D", 40, "FILLED"),
+    ]
+    return _panel(qtbot, svc, settings)
+
+
+def _pick(button, text: str) -> None:
+    next(a for a in button.menu().actions() if a.text() == text).trigger()
+
+
+def test_history_range_and_state(qtbot, settings):
+    """UT-GUI-025.010.M02.T01: Range and state menus filter the orders and set the count."""
+    panel = _history_panel(qtbot, settings)
+    assert panel._hist_model.rowCount() == 2
+    _pick(panel._hist_state_btn, "Filled")
+    assert panel._hist_model.rowCount() == 1
+    _pick(panel._hist_range_btn, "7 days")
+    assert panel._hist_model.rowCount() == 2
+    _pick(panel._hist_state_btn, "All")
+    _pick(panel._hist_range_btn, "All")
+    assert panel._hist_model.rowCount() == 4
+    assert panel._hist_tile.count_lbl.text().startswith("All")
+
+
+def test_history_choice_remembered(qtbot, settings):
+    """UT-GUI-025.010.M02.T02: Range and state come back after a restart; bad value falls back."""
+    panel = _history_panel(qtbot, settings)
+    _pick(panel._hist_range_btn, "30 days")
+    _pick(panel._hist_state_btn, "Cancelled")
+    again = _history_panel(qtbot, settings)
+    assert again._hist_range_btn.text() == "30 days"
+    assert again._hist_state_btn.text() == "State: Cancelled"
+    assert again._hist_model.rowCount() == 1
+    settings.setValue("hist_range", "bogus")
+    third = _history_panel(qtbot, settings)
+    assert third._hist_range_btn.text() == "Today"
+
+
+def test_export_writes_shown_rows(qtbot, settings, tmp_path):
+    """UT-GUI-025.011.M02.T01: Export writes the header and the shown rows to CSV."""
+    import csv
+    panel = _history_panel(qtbot, settings)
+    out = tmp_path / "orders.csv"
+    panel.export_history(str(out))
+    rows = list(csv.reader(out.open(encoding="utf-8")))
+    assert rows[0][:3] == ["User", "Date & Time", "Symbol"]
+    assert sorted(r[2] for r in rows[1:]) == ["A", "B"]
+
+
+def test_export_bad_path_logs_error(qtbot, settings, tmp_path, caplog):
+    """UT-GUI-025.011.M02.T02: A path that cannot be written logs an error, no crash."""
+    panel = _history_panel(qtbot, settings)
+    with patch("us_swing.gui.dashboard_panel.QMessageBox.warning") as warn:
+        panel.export_history(str(tmp_path))      # a folder, not a file
+    assert any("[Trade History] Could not save" in r.message for r in caplog.records)
+    warn.assert_called_once()
+
+
+def test_watch_row_cross_removes_symbol(qtbot, settings):
+    """UT-GUI-025.012.M01.T01: Clicking ✕ removes that row's symbol from the watchlist."""
+    svc = _service([])
+    svc.get_watchlist_items.return_value = [_watch_item("AAPL"), _watch_item("MSFT")]
+    panel = _panel(qtbot, svc, settings)
+    model = panel._watch_list._model
+    assert model.data(model.index(1, model.remove_col)) == "✕"
+    panel._watch_list._on_cell_clicked(model.index(1, model.remove_col))
+    svc.remove_from_watchlist.assert_called_once_with("MSFT")
+
+
+def test_watch_other_cell_does_not_remove(qtbot, settings):
+    """UT-GUI-025.012.M01.T02: Clicking any other cell removes nothing; right panel has no ✕."""
+    svc = _service([])
+    svc.get_watchlist_items.return_value = [_watch_item("AAPL")]
+    panel = _panel(qtbot, svc, settings)
+    model = panel._watch_list._model
+    panel._watch_list._on_cell_clicked(model.index(0, 0))
+    svc.remove_from_watchlist.assert_not_called()
+    assert panel._watchlist_tab._model.remove_col == -1
+
+
+def test_filter_and_columns_survive_reload(qtbot, settings):
+    """UT-GUI-025.008.M02.T03: Hidden rows and columns stay after a price refresh and scope switch."""
+    svc = _service([_pos("NDAQ", 100, 101), _pos("MSFT", 400, 401)])
+    panel = _panel(qtbot, svc, settings)
+    panel._set_column_shown("Stop", False)
+    panel._filter_btn.click()
+    panel._pos_filter.setText("ms")
+    panel._refresh_positions()
+    svc.get_viewing_uid.return_value = 1
+    panel._on_scope_changed()
+    names = panel._pos_col_names()
+    assert "User" not in names
+    assert panel._pos_view.isColumnHidden(names.index("Stop"))
+    assert panel._pos_view.isRowHidden(0) and not panel._pos_view.isRowHidden(1)
+
+
+def test_watch_columns_survive_reload(qtbot, settings):
+    """UT-GUI-025.012.M01.T03: Tile watchlist keeps its hidden columns after new quotes."""
+    svc = _service([])
+    svc.get_watchlist_items.return_value = [_watch_item("AAPL")]
+    panel = _panel(qtbot, svc, settings)
+    panel._watch_list.reload()
+    view = panel._watch_list.table_view
+    assert view.isColumnHidden(4) and not view.isColumnHidden(panel._watch_list._model.remove_col)

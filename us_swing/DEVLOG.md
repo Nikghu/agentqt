@@ -2,6 +2,14 @@
 
 ---
 
+## [20261024] GUI — Dashboard tile buttons, Phase 2 (FO-GUI-025, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-025
+- RN: RN-GUI-1.26.0-20261024
+- Artifacts updated: SRD, DD, MD, UTCD, Code, Tests, TRACE, RN, CONTEXT, TODO, DEVLOG
+- Decisions: hidden columns stored by name (survive column shift); Trade History range uses market time zone; Market Watch ✕ removes the symbol, Remove button kept only in the right panel. Not committed; branch feat/gui-dashboard-tiles.
+
 ## [20261024] GUI — Dashboard tiled workspace, Phase 1 (FO-GUI-025, feature)
 
 - Type: Feature

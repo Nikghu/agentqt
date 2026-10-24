@@ -7,6 +7,7 @@ P&L by strategy (tiled workspace, FO-GUI-025).
 """
 from __future__ import annotations
 
+import csv
 import datetime
 
 import logging
@@ -29,6 +30,7 @@ from PyQt6.QtGui import (
     QHideEvent,
     QKeyEvent,
     QKeySequence,
+    QActionGroup,
     QResizeEvent,
     QShortcut,
     QShowEvent,
@@ -44,7 +46,9 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
     QLabel,
+    QFileDialog,
     QLineEdit,
+    QMenu,
     QMessageBox,
     QProgressBar,
     QPushButton,
@@ -59,13 +63,20 @@ from PyQt6.QtWidgets import (
 
 from us_swing.gui.app_service import AppService
 from us_swing.gui.cards import GAP, card, gutter
-from us_swing.gui.dashboard_tiles import ROW_H, KpiStrip, StrategyPnlList, Tile, TileGrid
+from us_swing.gui.dashboard_tiles import (
+    ROW_H,
+    KpiStrip,
+    StrategyPnlList,
+    Tile,
+    TileGrid,
+    table_rows,
+)
 from us_swing.gui.screener_views import ChipGroup
 from us_swing.gui.strategy_pnl_chart import money, since_iso
 from us_swing.gui.strategy_store import load_strategies
 from us_swing.gui._types import AccountState, OpenPosition
 from us_swing.gui.position_table_model import PositionTableModel, TradeHistoryModel
-from us_swing.gui.icons import mark_danger, set_icon, set_tab_icon
+from us_swing.gui.icons import icon_button, mark_danger, set_icon, set_tab_icon
 from us_swing.gui.theme import C
 from us_swing.data.models import WatchlistItem
 
@@ -970,6 +981,17 @@ class _WatchlistModel(QAbstractTableModel):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self._rows: list[WatchlistItem] = []
+        self._removable = False
+
+    def set_removable(self, on: bool) -> None:
+        """Add a trailing remove-mark column (dashboard tile, SRD-GUI-025.012)."""
+        self.beginResetModel()
+        self._removable = on
+        self.endResetModel()
+
+    @property
+    def remove_col(self) -> int:
+        return len(self._COLS) if self._removable else -1
 
     def refresh(self, items: list[WatchlistItem]) -> None:
         self.beginResetModel()
@@ -983,12 +1005,12 @@ class _WatchlistModel(QAbstractTableModel):
         return len(self._rows)
 
     def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
-        return len(self._COLS)
+        return len(self._COLS) + (1 if self._removable else 0)
 
     def headerData(self, section: int, orientation: Qt.Orientation,
                    role: int = Qt.ItemDataRole.DisplayRole):
         if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
-            return self._COLS[section]
+            return self._COLS[section] if section < len(self._COLS) else ""
         return None
 
     def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole):
@@ -996,6 +1018,9 @@ class _WatchlistModel(QAbstractTableModel):
             return None
         item = self._rows[index.row()]
         col  = index.column()
+
+        if col == self.remove_col:
+            return self._remove_mark(role)
 
         if role == Qt.ItemDataRole.DisplayRole:
             return self._display(item, col)
@@ -1015,6 +1040,18 @@ class _WatchlistModel(QAbstractTableModel):
                 return Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
             return Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
 
+        return None
+
+    @staticmethod
+    def _remove_mark(role: int) -> object:
+        if role == Qt.ItemDataRole.DisplayRole:
+            return "✕"
+        if role == Qt.ItemDataRole.ToolTipRole:
+            return "Remove from watchlist"
+        if role == Qt.ItemDataRole.ForegroundRole:
+            return QColor(C.MUTED)
+        if role == Qt.ItemDataRole.TextAlignmentRole:
+            return Qt.AlignmentFlag.AlignCenter
         return None
 
     def _display(self, item: WatchlistItem, col: int) -> str:
@@ -1141,6 +1178,7 @@ class _WatchlistTab(QWidget):
         h.setSectionResizeMode(10, QHeaderView.ResizeMode.Stretch)
 
         self._view.selectionModel().selectionChanged.connect(self._on_selection)
+        self._view.clicked.connect(self._on_cell_clicked)
 
         # ── Empty state overlay ───────────────────────────────────────────────
         self._empty_lbl = QLabel(
@@ -1190,24 +1228,34 @@ class _WatchlistTab(QWidget):
         self._updated_lbl.hide()
 
     def tile_tools(self) -> list[QWidget]:
-        """Fit a dashboard tile: key columns; returns the controls for the tile header."""
+        """Fit a dashboard tile: key columns and a ✕ per row; returns the header controls."""
+        self._model.set_removable(True)
+        remove_col = self._model.remove_col
         for col in range(self._model.columnCount()):
-            self._view.setColumnHidden(col, col not in (0, 1, 2, 3, 7))
+            self._view.setColumnHidden(col, col not in (0, 1, 2, 3, 7, remove_col))
         header = self._view.horizontalHeader()
         if header is not None:
             header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+            header.setSectionResizeMode(remove_col, QHeaderView.ResizeMode.Fixed)
+            header.resizeSection(remove_col, 32)
         self._sym_input.setFixedWidth(120)
         self._sym_input.setPlaceholderText("+ Add symbol")
         self._add_btn.setFixedWidth(70)
-        for btn, tip in ((self._remove_btn, "Remove"), (self._refresh_btn, "Refresh")):
-            btn.setText("")
-            btn.setFixedWidth(C.BTN_H + 4)
-            btn.setToolTip(tip)
-            btn.setAccessibleName(tip)
+        self._refresh_btn.setText("")
+        self._refresh_btn.setFixedWidth(C.BTN_H + 4)
+        self._refresh_btn.setToolTip("Refresh")
+        self._refresh_btn.setAccessibleName("Refresh")
+        self._remove_btn.hide()
         self._status_lbl.hide()
         self._updated_lbl.hide()
         self._empty_lbl.setText("Watchlist is empty.\n\nType a symbol above and click Add.")
-        return [self._sym_input, self._add_btn, self._remove_btn, self._refresh_btn]
+        return [self._sym_input, self._add_btn, self._refresh_btn]
+
+    def _on_cell_clicked(self, index: QModelIndex) -> None:
+        if index.column() == self._model.remove_col:
+            symbol = self._model.row_symbol(index.row())
+            if symbol:
+                self._svc.remove_from_watchlist(symbol)
 
     def reload(self) -> None:
         """Load the current watchlist quotes now instead of waiting for the next update."""
@@ -1338,8 +1386,29 @@ class DashboardPanel(QWidget):
         self._pos_view.doubleClicked.connect(lambda _: self.open_exit(0))
         self._sq_all_btn.clicked.connect(self._on_square_off_all)
 
+        # ── Filter box and column chooser (SRD-GUI-025.008/.009) ──────────────
+        self._positions: list[OpenPosition] = []
+        self._pos_filter = QLineEdit()
+        self._pos_filter.setPlaceholderText("Filter symbol")
+        self._pos_filter.setFixedWidth(130)
+        self._pos_filter.setClearButtonEnabled(True)
+        self._pos_filter.hide()
+        self._pos_filter.textChanged.connect(self._apply_pos_filter)
+        self._filter_btn = icon_button("filter", "neutral", "Filter by symbol")
+        self._filter_btn.setCheckable(True)
+        self._filter_btn.setFixedWidth(C.BTN_H)
+        self._filter_btn.toggled.connect(self._on_filter_toggled)
+        self._cols_btn = icon_button("columns-3", "neutral", "Choose columns")
+        self._cols_btn.setFixedWidth(C.BTN_H)
+        self._cols_btn.clicked.connect(self._show_columns_menu)
+
+        self._pos_model.modelReset.connect(self._on_pos_model_reset)
+
         self._pos_tile = Tile("Open Positions", self._pos_view)
-        self._pos_tile.add_tool(self._sq_all_btn)
+        pos_tools: tuple[QWidget, ...] = (
+            self._pos_filter, self._filter_btn, self._cols_btn, self._sq_all_btn)
+        for tool in pos_tools:
+            self._pos_tile.add_tool(tool)
         self._pos_status_lbl = self._pos_tile.count_lbl
         self._pos_view.setToolTip("Double-click a row to manage the position")
 
@@ -1356,6 +1425,22 @@ class DashboardPanel(QWidget):
         self._hist_view.verticalHeader().setVisible(False)
         _resize_columns(self._hist_view, {0: 85, 1: 70, 2: 50, 3: 50})
         self._hist_tile = Tile("Trade History", self._hist_view)
+
+        # ── Range, state and export (SRD-GUI-025.010/.011) ────────────────────
+        self._hist_choice: dict[str, str] = {}
+        self._hist_range_btn = QPushButton()
+        self._hist_state_btn = QPushButton()
+        self._hist_range_btn.setMenu(
+            self._choice_menu(self._hist_range_btn, _HIST_RANGES, "hist_range", ""))
+        self._hist_state_btn.setMenu(
+            self._choice_menu(self._hist_state_btn, _HIST_STATES, "hist_state", "State: "))
+        self._hist_range_btn.setFixedWidth(90)
+        self._hist_state_btn.setFixedWidth(130)
+        self._export_btn = icon_button("download", "neutral", "Export CSV")
+        self._export_btn.setFixedWidth(C.BTN_H)
+        self._export_btn.clicked.connect(self._on_export)
+        for button in (self._hist_range_btn, self._hist_state_btn, self._export_btn):
+            self._hist_tile.add_tool(button)
 
         # ── Watchlist (shown in the main window's right panel) ────────────────
         self._watchlist_tab = _WatchlistTab(demo)
@@ -1491,14 +1576,81 @@ class DashboardPanel(QWidget):
 
     def _refresh_positions(self) -> None:
         positions = self._demo.get_positions()
+        self._positions = positions
         self._pos_model.refresh(positions)
         n = len(positions)
         self._kpi.set_value("pos", str(n))
         unreal = sum(p.unrealised_pnl for p in positions)
         self._kpi.set_value("unreal", money(unreal), _pnl_colour(unreal))
-        self._pos_status_lbl.setText(f"{n}  ·  streaming")
         self._sq_all_btn.setEnabled(n > 0)
         self._check_drawer_positions(positions)
+
+    # ── Positions filter and columns (SRD-GUI-025.008/.009) ───────────────────
+
+    def _on_pos_model_reset(self) -> None:
+        """A model reset clears hidden rows and columns; put them back."""
+        self._apply_hidden_cols()
+        self._apply_pos_filter()
+
+    def _on_filter_toggled(self, on: bool) -> None:
+        self._pos_filter.setVisible(on)
+        if on:
+            self._pos_filter.setFocus()
+        else:
+            self._pos_filter.clear()
+        self._apply_pos_filter()
+
+    def _apply_pos_filter(self) -> None:
+        text = self._pos_filter.text().strip().upper()
+        shown = 0
+        for row, pos in enumerate(self._positions):
+            hide = bool(text) and text not in pos.symbol.upper()
+            self._pos_view.setRowHidden(row, hide)
+            shown += not hide
+        n = len(self._positions)
+        count = f"{shown} of {n}" if text else str(n)
+        self._pos_status_lbl.setText(f"{count}  ·  streaming")
+
+    def _hidden_cols(self) -> set[str]:
+        saved = str(self._settings.value("hidden_cols", ""))
+        return {name for name in saved.split(",") if name}
+
+    def _pos_col_names(self) -> list[str]:
+        horizontal = Qt.Orientation.Horizontal
+        return [str(self._pos_model.headerData(col, horizontal))
+                for col in range(self._pos_model.columnCount())]
+
+    def _columns_menu(self) -> QMenu:
+        menu = QMenu(self)
+        hidden = self._hidden_cols()
+        for name in self._pos_col_names():
+            action = menu.addAction(name)
+            if action is None:
+                continue
+            action.setCheckable(True)
+            action.setChecked(name not in hidden)
+            action.setEnabled(name not in _ALWAYS_SHOWN)
+            action.toggled.connect(lambda on, n=name: self._set_column_shown(n, on))
+        return menu
+
+    def _show_columns_menu(self) -> None:
+        menu = self._columns_menu()
+        menu.exec(self._cols_btn.mapToGlobal(self._cols_btn.rect().bottomLeft()))
+        menu.deleteLater()
+
+    def _set_column_shown(self, name: str, shown: bool) -> None:
+        hidden = self._hidden_cols()
+        if shown:
+            hidden.discard(name)
+        else:
+            hidden.add(name)
+        self._settings.setValue("hidden_cols", ",".join(sorted(hidden)))
+        self._apply_hidden_cols()
+
+    def _apply_hidden_cols(self) -> None:
+        hidden = self._hidden_cols()
+        for col, name in enumerate(self._pos_col_names()):
+            self._pos_view.setColumnHidden(col, name in hidden and name not in _ALWAYS_SHOWN)
 
     def _check_drawer_positions(self, positions: list[OpenPosition]) -> None:
         """Close the drawer if the position it acts on has closed or changed size."""
@@ -1673,17 +1825,86 @@ class DashboardPanel(QWidget):
             tz = ZoneInfo(self._demo.get_system_config().market_timezone)
         except Exception:
             tz = ZoneInfo("US/Eastern")
-        today = datetime.datetime.now(tz).date()
+        now = datetime.datetime.now(tz)
+        span = self._hist_choice.get("hist_range", "today")
+        state = self._hist_choice.get("hist_state", "all")
+
+        def in_range(entry: datetime.datetime) -> bool:
+            if span == "all":
+                return True
+            local = entry.astimezone(tz)
+            if span == "today":
+                return local.date() == now.date()
+            return local >= now - datetime.timedelta(days=int(span))
+
         trades = [
             t for t in self._demo.get_all_trades()
-            if t.entry_time.astimezone(tz).date() == today
+            if in_range(t.entry_time) and (state == "all" or str(t.order_state) == state)
         ]
         self._hist_model.refresh(trades)
         n = len(trades)
-        self._hist_tile.set_count(f"Today  ·  {n} order{'s' if n != 1 else ''}")
+        label = _RANGE_LABELS[span]
+        self._hist_tile.set_count(f"{label}  ·  {n} order{'s' if n != 1 else ''}")
+
+    # ── Trade History menus and export (SRD-GUI-025.010/.011) ─────────────────
+
+    def _choice_menu(self, button: QPushButton, options: list[tuple[str, str]],
+                     key: str, prefix: str) -> QMenu:
+        """One-choice menu on ``button``; the choice is remembered under ``key``."""
+        values = [value for _text, value in options]
+        saved = str(self._settings.value(key, values[0]))
+        self._hist_choice[key] = saved if saved in values else values[0]
+        menu = QMenu(button)
+        group = QActionGroup(menu)
+        for text, value in options:
+            action = menu.addAction(text)
+            if action is None:
+                continue
+            action.setCheckable(True)
+            action.setChecked(value == self._hist_choice[key])
+            group.addAction(action)
+            action.triggered.connect(
+                lambda _c, v=value, t=text: self._on_choice(button, key, prefix, v, t))
+            if value == self._hist_choice[key]:
+                button.setText(prefix + text)
+        return menu
+
+    def _on_choice(self, button: QPushButton, key: str, prefix: str,
+                   value: str, text: str) -> None:
+        self._hist_choice[key] = value
+        self._settings.setValue(key, value)
+        button.setText(prefix + text)
+        self._refresh_trades()
+
+    def _on_export(self) -> None:
+        tz = ZoneInfo(self._demo.get_system_config().market_timezone)
+        default = f"trade_history_{datetime.datetime.now(tz):%Y%m%d}.csv"
+        path, _filter = QFileDialog.getSaveFileName(
+            self, "Export Trade History", default, "CSV files (*.csv)")
+        if path:
+            self.export_history(path)
+
+    def export_history(self, path: str) -> None:
+        """Write the shown Trade History rows and columns to ``path`` as CSV."""
+        rows = table_rows(self._hist_view)
+        try:
+            with open(path, "w", newline="", encoding="utf-8") as handle:
+                csv.writer(handle).writerows(rows)
+        except OSError as exc:
+            _log.error("[Trade History] Could not save the file %s: %s", path, exc.strerror or exc)
+            QMessageBox.warning(self, "Export Failed",
+                                f"Could not save the file:\n{path}\n\n{exc.strerror or exc}")
+            return
+        _log.info("[Trade History] Saved %d order(s) to %s", max(len(rows) - 1, 0), path)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+_HIST_RANGES = [("Today", "today"), ("7 days", "7"), ("30 days", "30"), ("All", "all")]
+_RANGE_LABELS = {value: text for text, value in _HIST_RANGES}
+_ALWAYS_SHOWN = ("Symbol", "User")
+_HIST_STATES = [("All", "all"), ("Filled", "FILLED"), ("Partial", "PARTIAL_FILLED"),
+                ("Cancelled", "CANCELLED"), ("Rejected", "REJECTED"), ("New", "NEW")]
 
 def _pnl_colour(value: float) -> str:
     return str(C.GREEN if value > 0 else C.RED if value < 0 else C.TEXT)

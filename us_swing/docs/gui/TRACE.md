@@ -3,7 +3,7 @@
 **Document ID:** TRACE-GUI
 **Version:** 1.13.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-10-24 (Session 89, FO-GUI-025 Dashboard tiled workspace Phase 1 implemented; RN-GUI-1.25.0)
+**Last Updated:** 2026-10-24 (Session 89, FO-GUI-025 Dashboard tiled workspace Phases 1–2 implemented; RN-GUI-1.25.0, 1.26.0)
 
 ---
 
@@ -62,7 +62,7 @@
 | FO-GUI-022 | SRD-GUI-022.001–012 | DD-GUI-022.001.D01 | MD-GUI-022.001.M01, MD-GUI-003.001.M01 | UT-GUI-022.001.M01.T01–T02, .002.M01.T01–T05, .003.M01.T01–T02, .004.M01.T01, .005.M01.T01, .006.M01.T01, .007.M01.T01–T02, .008.M01.T01, .009.M01.T01–T02, .010.M01.T01–T02, .011.M01.T01 | `gui/screener_views.py`, `gui/screener_panel.py`, `gui/theme.py`, `gui/chart_panel.py`, `gui/ai_transcript_panel.py`, `assets/icons` | Implemented | RN-GUI-1.18.0-20261023 |
 | FO-GUI-023 | SRD-GUI-023.001–004 | DD-GUI-023.001.D01 | MD-GUI-023.001.M01, MD-GUI-001.001.M01, MD-GUI-003.001.M01 | UT-GUI-023.001.M01.T01–T02 | `gui/cards.py`, `gui/main_window.py`, `gui/screener_panel.py`, `gui/theme.py` | Implemented | RN-GUI-1.19.0-20261023 |
 | FO-GUI-024 | SRD-GUI-024.001–008 | DD-GUI-024.001.D01 | MD-GUI-024.001.M01, .002.M02, .003.M03, .004.M04, .006.M05, .008.M06 | UT-GUI-024.001.M01.T01–T02, .002.M02.T01–T04, .003.M03.T01–T02, .004–.005.M04.T01–T02, .006.M05.T01–T04, .008.M06.T01–T03; UT-GUI-004.001.M01.T06–T07 (moved) | `gui/execution_header.py`, `gui/execution_watchlist.py`, `gui/strategies_pane.py`, `gui/strategy_pnl_chart.py`, `gui/active_cycles_{panel,model}.py`, `gui/execution_panel.py`, `gui/theme.py` | Implemented | RN-GUI-1.20.0–1.23.0 |
-| FO-GUI-025 | SRD-GUI-025.001–007 | DD-GUI-025.001.D01 | MD-GUI-025.003.M01, .001.M02 | UT-GUI-025.004.M01.T01–T03, .001.M01.T01, .005.M01.T01–T02, .001.M02.T01, .002.M02.T01, .006.M02.T01–T02 | `gui/dashboard_tiles.py`, `gui/dashboard_panel.py`, `gui/main_window.py`, `assets/icons` | Implemented (Phase 1 of 5) | RN-GUI-1.25.0-20261024 |
+| FO-GUI-025 | SRD-GUI-025.001–012 | DD-GUI-025.001.D01 | MD-GUI-025.003.M01, .001.M02 | UT-GUI-025.004.M01.T01–T03, .001.M01.T01, .005.M01.T01–T02, .001.M02.T01, .002.M02.T01, .006.M02.T01–T02, .008.M02.T01–T03, .009–.011.M02.T01–T02, .012.M01.T01–T03 | `gui/dashboard_tiles.py`, `gui/dashboard_panel.py`, `gui/main_window.py`, `assets/icons` | Implemented (Phases 1–2 of 5) | RN-GUI-1.25.0-20261024, RN-GUI-1.26.0-20261024 |
 
 ---
 
