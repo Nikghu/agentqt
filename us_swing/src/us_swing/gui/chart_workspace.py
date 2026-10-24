@@ -11,7 +11,7 @@ import logging
 from functools import partial
 from typing import Any
 
-from PyQt6.QtCore import QSettings
+from PyQt6.QtCore import QSettings, pyqtSignal
 from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -61,6 +61,8 @@ def overlay_label(overlay: tuple[str, int]) -> str:
 class ChartWorkspace(QWidget):
     """Source list | chart | Inspector, with remembered tab, overlays and sections."""
 
+    execution_requested = pyqtSignal(str)   # symbol added to Execution (SRD-GUI-026.010)
+
     def __init__(self, svc: AppService, parent: QWidget | None = None,
                  settings: QSettings | None = None) -> None:
         super().__init__(parent)
@@ -98,6 +100,9 @@ class ChartWorkspace(QWidget):
 
         self.inspector = Inspector(self._settings)
         self.inspector.plan_changed.connect(self._on_plan_edited)
+        self.inspector.markers_changed.connect(self.chart.set_markers)
+        self.inspector.levels_changed.connect(self.chart.set_levels)
+        self.inspector.send_requested.connect(self._on_send)
         self._inspector_card = card(self.inspector)
         self._inspector_card.setFixedWidth(_INSPECTOR_W)
         row.addWidget(self._inspector_card)
@@ -257,6 +262,13 @@ class ChartWorkspace(QWidget):
         if symbol:
             self._edited_plans[symbol] = plan
             self._draw_plan(plan)
+
+    def _on_send(self, symbol: str) -> None:
+        message = self._svc.add_manual_pick(symbol)
+        if message:
+            self.inspector.show_message(message)
+            return
+        self.execution_requested.emit(symbol)
 
     def _draw_plan(self, plan: TradePlan | None) -> None:
         """Draw only a long-shaped plan; any other plan clears the lines."""

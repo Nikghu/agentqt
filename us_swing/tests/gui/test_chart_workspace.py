@@ -193,8 +193,39 @@ def test_theme_refresh_recolours_change(workspace):
 def test_inspector_gets_context(workspace):
     """UT-GUI-026.007.M01.T03: Indicators get the loaded bars."""
     workspace.open_symbol("NVDA")
-    section = workspace.inspector.sections[1]
+    section = next(s for s in workspace.inspector.sections if s.key == "indicators")
     assert section.rows.values["rsi"].text() != "—"
+
+
+def test_send_to_execution_adds_pick(qtbot, svc, workspace):
+    """UT-GUI-026.010.M01.T01: Send to Execution adds pick."""
+    picks: list[str] = []
+    svc.add_manual_pick = lambda s: picks.append(s)  # type: ignore[attr-defined]
+    workspace.open_symbol("NVDA")
+    plan = next(s for s in workspace.inspector.sections if s.key == "plan")
+    with qtbot.waitSignal(workspace.execution_requested) as blocker:
+        plan.send_btn.click()
+    assert picks == ["NVDA"] and blocker.args == ["NVDA"]
+    assert plan.message_lbl.isHidden()
+
+
+def test_existing_pick_shows_message(qtbot, svc, workspace):
+    """UT-GUI-026.010.M01.T02: Existing pick shows message."""
+    svc.add_manual_pick = lambda s: f"{s} is already in your picks"  # type: ignore[attr-defined]
+    workspace.open_symbol("NVDA")
+    plan = next(s for s in workspace.inspector.sections if s.key == "plan")
+    with qtbot.assertNotEmitted(workspace.execution_requested):
+        plan.send_btn.click()
+    assert not plan.message_lbl.isHidden()
+    assert plan.message_lbl.text() == "NVDA is already in your picks"
+
+
+def test_markers_and_levels_reach_chart(workspace):
+    """UT-GUI-026.008.M01.T03: Inspector markers and levels reach the chart."""
+    workspace.inspector.markers_changed.emit([{"time": 1, "text": "x"}])
+    workspace.inspector.levels_changed.emit([1.0])
+    studies = workspace.chart._studies()
+    assert studies["markers"] == [{"time": 1, "text": "x"}] and studies["levels"] == [1.0]
 
 
 def test_quick_chart_viewer_removed():

@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.25.0: UT-GUI-026.008–.010 Pass (Phase 2).
 > v1.24.0: UT-GUI-026.001–.007 Pass (Phase 1); UT-GUI-020.001–.003 Superseded by the Focus + Inspector layout.
 > v1.23.0: UT-GUI-026.* added — Charts workspace Focus + Inspector (Not Run).
 > v1.22.0: UT-GUI-025.016–.018 added — Side column, unset stop/target, P&L Today (Phase 5).
@@ -679,11 +680,13 @@ Test files:
 | UT-GUI-026.007.M03.T01 | MD-GUI-026.005.M03 | Positive | Indicator values | 60 known bars | RSI, ATR, ADX match reference values; rel. volume 2.0× | Pass |
 | UT-GUI-026.007.M03.T02 | MD-GUI-026.005.M03 | Edge | Too few bars | 5 bars | all "—" | Pass |
 | UT-GUI-026.007.M01.T03 | MD-GUI-026.001.M01 | Positive | Indicators get the loaded bars | open NVDA | RSI value shown | Pass |
-| UT-GUI-026.008.M03.T01 | MD-GUI-026.005.M03 | Positive | Pattern hits on recent bars | bars ending in a bullish engulfing 2 bars ago | hit "Bullish engulfing", 2 bars ago, bullish | Not Run |
-| UT-GUI-026.008.M03.T02 | MD-GUI-026.005.M03 | Negative | Old pattern not listed | engulfing 10 bars ago only | no hits | Not Run |
-| UT-GUI-026.009.M03.T01 | MD-GUI-026.005.M03 | Positive | Nearest swing levels | bars with pivots 110, 120, 135 and close 125 | above [135]; below [120, 110] | Not Run |
-| UT-GUI-026.010.M01.T01 | MD-GUI-026.001.M01 | Positive | Send to Execution adds pick | click; `add_manual_pick` returns None | called with "NVDA"; `execution_requested` emitted | Not Run |
-| UT-GUI-026.010.M01.T02 | MD-GUI-026.001.M01 | Negative | Existing pick shows message | `add_manual_pick` returns "Already added" | message shown; no `execution_requested` | Not Run |
+| UT-GUI-026.008.M03.T01 | MD-GUI-026.005.M03 | Positive | Pattern hits on recent bars | bars ending in a bullish engulfing 2 bars ago | hit "Bullish engulfing", 2 bars ago, bullish | Pass |
+| UT-GUI-026.008.M03.T02 | MD-GUI-026.005.M03 | Negative | Old pattern not listed | engulfing 10 bars ago only | no Bullish Engulfing hit | Pass |
+| UT-GUI-026.008.M01.T03 | MD-GUI-026.001.M01 | Positive | Inspector markers and levels reach the chart | emit markers and levels | chart studies hold both | Pass |
+| UT-GUI-026.009.M03.T01 | MD-GUI-026.005.M03 | Positive | Nearest swing levels | bars with pivots 110, 120, 135 and close 125; tick Show on chart | above [135]; below [120, 110]; `levels_changed` [] then all three | Pass |
+| UT-GUI-026.009.M03.T02 | MD-GUI-026.005.M03 | Edge | Too few bars give no levels | 5 bars | ([], []) | Pass |
+| UT-GUI-026.010.M01.T01 | MD-GUI-026.001.M01 | Positive | Send to Execution adds pick | click Send to Execution; `add_manual_pick` returns None | called with "NVDA"; `execution_requested("NVDA")`; no message | Pass |
+| UT-GUI-026.010.M01.T02 | MD-GUI-026.001.M01 | Negative | Existing pick shows message | `add_manual_pick` returns "NVDA is already in your picks" | message shown; no `execution_requested` | Pass |
 | UT-GUI-026.012.M04.T01 | MD-GUI-026.012.M04 | Positive | Save and load drawings | in-memory SQLite; save trend + hline for NVDA 1d | load NVDA 1d returns both with same points | Not Run |
 | UT-GUI-026.012.M04.T02 | MD-GUI-026.012.M04 | Negative | Other symbol or timeframe sees none | load NVDA 1w; load AMD 1d | [] and [] | Not Run |
 | UT-GUI-026.012.M04.T03 | MD-GUI-026.012.M04 | Positive | Delete all clears one chart only | delete_all NVDA 1d | NVDA 1d []; NVDA 1w kept | Not Run |

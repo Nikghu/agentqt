@@ -2,6 +2,14 @@
 
 ---
 
+## [20261024] GUI — Charts patterns, key levels, Send to Execution, Phase 2 (FO-GUI-026, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-026 (SRD-GUI-026.008–.010)
+- RN: RN-GUI-1.30.0-20261024
+- Artifacts updated: SRD, DD, MD, UTCD, Code, Tests, TRACE, RN, CONTEXT, TODO, DEVLOG
+- Decisions: patterns from the shared `core.price_patterns` catalogue, newest hit per pattern; arrays built once and sliced (117 → 13 ms for 500 bars); Inspector passes on section signals by name; a refused pick shows its reason and stays on Charts (per SRD). Not pushed; user app check pending.
+
 ## [20261024] GUI — Charts workspace Focus + Inspector, Phase 1 (FO-GUI-026, feature)
 
 - Type: Feature

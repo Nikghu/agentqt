@@ -7,6 +7,7 @@ Collapsible sections beside the Charts chart. Sections come from one registry,
 """
 from __future__ import annotations
 
+import logging
 import math
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
@@ -17,6 +18,7 @@ import numpy.typing as npt
 import talib
 from PyQt6.QtCore import QSettings, Qt, pyqtSignal
 from PyQt6.QtWidgets import (
+    QCheckBox,
     QDoubleSpinBox,
     QGridLayout,
     QHBoxLayout,
@@ -27,12 +29,20 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from us_swing.core.indicator_rules import BarArrays
+from us_swing.core.price_patterns import PATTERNS, Direction, default_pattern_rule, evaluate_pattern
 from us_swing.gui.icons import set_icon
 from us_swing.gui.theme import active_palette
+
+_log = logging.getLogger(__name__)
 
 _DASH = "—"
 _PERIOD = 14
 _REL_VOL_BARS = 20
+PATTERN_LOOKBACK = 5
+_PIVOT_WING = 3
+_PIVOT_WINDOW = 120
+_LEVEL_COUNT = 3
 
 Candle = Mapping[str, float]
 
@@ -117,6 +127,69 @@ def indicator_values(candles: Sequence[Candle]) -> dict[str, float | None]:
     return {"rsi": rsi, "atr": atr, "adx": adx(candles), "rel_volume": rel_volume(candles)}
 
 
+@dataclass(frozen=True)
+class PatternHit:
+    """A catalogue pattern found ``bars_ago`` bars before the last bar."""
+
+    name: str
+    bars_ago: int
+    direction: Direction
+    time: Any
+
+
+def _arrays(candles: Sequence[Candle]) -> BarArrays:
+    o, h, lo, c, v = (_column(candles, k) for k in ("open", "high", "low", "close", "volume"))
+    return BarArrays(o, h, lo, c, v)
+
+
+def pattern_hits(candles: Sequence[Candle],
+                 lookback: int = PATTERN_LOOKBACK) -> list[PatternHit]:
+    """Patterns true on one of the last ``lookback`` bars, newest hit per pattern first."""
+    full = _arrays(candles)
+    windows = [
+        BarArrays(*(getattr(full, k)[:len(candles) - ago]
+                    for k in ("open", "high", "low", "close", "volume")))
+        for ago in range(min(lookback, len(candles)))
+    ]
+    hits: list[PatternHit] = []
+    for spec in PATTERNS:
+        if not spec.available:
+            continue
+        rule = default_pattern_rule(spec)
+        for bars_ago, arrays in enumerate(windows):
+            try:
+                found = evaluate_pattern(rule, arrays)
+            except Exception:  # noqa: BLE001
+                _log.debug("[Charts] Pattern check failed for %s", spec.name, exc_info=True)
+                break
+            if found:
+                time = candles[len(candles) - 1 - bars_ago]["time"]
+                hits.append(PatternHit(spec.name, bars_ago, spec.direction, time))
+                break
+    return sorted(hits, key=lambda h: (h.bars_ago, h.name))
+
+
+def key_levels(candles: Sequence[Candle], wing: int = _PIVOT_WING,
+               window: int = _PIVOT_WINDOW,
+               count: int = _LEVEL_COUNT) -> tuple[list[float], list[float]]:
+    """Nearest swing levels above and below the last close (pivots ``wing`` bars each side)."""
+    if len(candles) < 2 * wing + 2:
+        return [], []
+    bars = candles[-window:]
+    highs, lows = _column(bars, "high"), _column(bars, "low")
+    pivots: set[float] = set()
+    for i in range(wing, len(bars) - wing):
+        span = slice(i - wing, i + wing + 1)
+        if highs[i] == highs[span].max():
+            pivots.add(round(float(highs[i]), 2))
+        if lows[i] == lows[span].min():
+            pivots.add(round(float(lows[i]), 2))
+    close = float(bars[-1]["close"])
+    above = sorted(p for p in pivots if p > close)[:count]
+    below = sorted((p for p in pivots if p < close), reverse=True)[:count]
+    return above, below
+
+
 def _money(value: float | None) -> str:
     return _DASH if value is None else f"{value:,.2f}"
 
@@ -170,6 +243,7 @@ class TradePlanSection(QWidget):
     key = "plan"
     title = "Trade Plan"
     plan_changed = pyqtSignal(object)   # TradePlan
+    send_requested = pyqtSignal(str)    # symbol (SRD-GUI-026.010)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -200,7 +274,17 @@ class TradePlanSection(QWidget):
         self.cancel_btn.clicked.connect(lambda: self._set_editing(False))
         self.cancel_btn.hide()
         buttons.addWidget(self.cancel_btn)
+        self.send_btn = QPushButton("Send to Execution")
+        self.send_btn.setObjectName("primary_btn")
+        set_icon(self.send_btn, "send", "inverse")
+        self.send_btn.setEnabled(False)
+        self.send_btn.clicked.connect(self._on_send)
+        buttons.addWidget(self.send_btn, 1)
         box.addLayout(buttons)
+        self.message_lbl = QLabel()
+        self.message_lbl.setWordWrap(True)
+        self.message_lbl.hide()
+        box.addWidget(self.message_lbl)
 
     def widget(self) -> QWidget:
         return self
@@ -208,8 +292,21 @@ class TradePlanSection(QWidget):
     def set_context(self, ctx: ChartContext) -> None:
         self._ctx = ctx
         self._plan = ctx.plan
+        self.send_btn.setEnabled(bool(ctx.symbol))
+        self.message_lbl.hide()
         self._set_editing(False)
         self._show()
+
+    def show_message(self, text: str) -> None:
+        """Show why Send to Execution did not add the symbol."""
+        ct: Any = active_palette()
+        self.message_lbl.setStyleSheet(f"color:{ct.YELLOW};")
+        self.message_lbl.setText(text)
+        self.message_lbl.show()
+
+    def _on_send(self) -> None:
+        if self._ctx is not None and self._ctx.symbol:
+            self.send_requested.emit(self._ctx.symbol)
 
     @property
     def editing(self) -> bool:
@@ -283,7 +380,101 @@ class IndicatorsSection(QWidget):
             self.rows.values[key].setText(_DASH if value is None else fmt.format(value))
 
 
-SECTIONS: tuple[Callable[[], InspectorSection], ...] = (TradePlanSection, IndicatorsSection)
+class PatternsSection(QWidget):
+    """Patterns found on the last bars, marked on the chart (SRD-GUI-026.008)."""
+
+    key = "patterns"
+    title = "Patterns Found"
+    markers_changed = pyqtSignal(list)   # chart markers, oldest first
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.column = QVBoxLayout(self)
+        self.column.setContentsMargins(0, 0, 0, 0)
+        self.column.setSpacing(4)
+        self.lines: list[QLabel] = []
+        self.hits: list[PatternHit] = []
+
+    def widget(self) -> QWidget:
+        return self
+
+    def set_context(self, ctx: ChartContext) -> None:
+        self.hits = pattern_hits(ctx.candles)
+        for label in self.lines:
+            label.deleteLater()
+        ct: Any = active_palette()
+        colour = {Direction.BULLISH: ct.GREEN, Direction.BEARISH: ct.RED,
+                  Direction.NEUTRAL: ct.YELLOW}
+        self.lines = []
+        texts = [
+            f"<span style='color:{colour[hit.direction]}'>●</span> {hit.name}"
+            f" <span style='color:{ct.SUBTEXT}'>· "
+            f"{'today' if hit.bars_ago == 0 else f'{hit.bars_ago} bars ago'}</span>"
+            for hit in self.hits
+        ] or [f"<span style='color:{ct.SUBTEXT}'>No patterns in the last "
+              f"{PATTERN_LOOKBACK} bars</span>"]
+        for text in texts:
+            label = QLabel(text)
+            label.setTextFormat(Qt.TextFormat.RichText)
+            self.column.addWidget(label)
+            self.lines.append(label)
+        markers = [
+            {"time": hit.time,
+             "position": "aboveBar" if hit.direction == Direction.BEARISH else "belowBar",
+             "shape": "arrowDown" if hit.direction == Direction.BEARISH else "arrowUp",
+             "color": colour[hit.direction], "text": hit.name}
+            for hit in sorted(self.hits, key=lambda h: h.time)
+        ]
+        self.markers_changed.emit(markers)
+
+
+class KeyLevelsSection(QWidget):
+    """Nearest swing highs and lows; can draw them on the chart (SRD-GUI-026.009)."""
+
+    key = "levels"
+    title = "Key Levels"
+    levels_changed = pyqtSignal(list)   # prices to draw, [] to clear
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        box = QVBoxLayout(self)
+        box.setContentsMargins(0, 0, 0, 0)
+        box.setSpacing(6)
+        self.above_lbl = QLabel(_DASH)
+        self.below_lbl = QLabel(_DASH)
+        self.rows = _Rows([("above", "Above"), ("below", "Below")])
+        self.rows.grid.addWidget(self.above_lbl, 0, 1)
+        self.rows.grid.addWidget(self.below_lbl, 1, 1)
+        for key in ("above", "below"):
+            self.rows.values[key].hide()
+        self.above_lbl.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.below_lbl.setAlignment(Qt.AlignmentFlag.AlignRight)
+        box.addWidget(self.rows)
+        self.show_box = QCheckBox("Show on chart")
+        self.show_box.toggled.connect(self._emit)
+        box.addWidget(self.show_box)
+        self.above: list[float] = []
+        self.below: list[float] = []
+
+    def widget(self) -> QWidget:
+        return self
+
+    def set_context(self, ctx: ChartContext) -> None:
+        self.above, self.below = key_levels(ctx.candles)
+        self.above_lbl.setText(", ".join(f"{p:,.2f}" for p in self.above) or _DASH)
+        self.below_lbl.setText(", ".join(f"{p:,.2f}" for p in self.below) or _DASH)
+        self._emit()
+
+    def _emit(self) -> None:
+        shown = self.show_box.isChecked()
+        self.levels_changed.emit([*self.above, *self.below] if shown else [])
+
+
+SECTIONS: tuple[Callable[[], InspectorSection], ...] = (
+    TradePlanSection, PatternsSection, KeyLevelsSection, IndicatorsSection,
+)
+# Signals an Inspector passes on from any section that has them.
+_FORWARDED = ("plan_changed", "send_requested", "markers_changed", "levels_changed")
 
 
 # ── Inspector ────────────────────────────────────────────────────────────────
@@ -325,6 +516,9 @@ class Inspector(QWidget):
     """Collapsible sections from a registry; open sections are remembered."""
 
     plan_changed = pyqtSignal(object)   # TradePlan edited in the Trade Plan section
+    send_requested = pyqtSignal(str)    # symbol to add to Execution
+    markers_changed = pyqtSignal(list)  # pattern markers for the chart
+    levels_changed = pyqtSignal(list)   # key level prices for the chart
 
     def __init__(self, settings: QSettings,
                  sections: Sequence[Callable[[], InspectorSection]] = SECTIONS,
@@ -357,8 +551,10 @@ class Inspector(QWidget):
             box.header.toggled.connect(self._save_open)
             column.addWidget(box)
             self.boxes.append(box)
-            if isinstance(section, TradePlanSection):
-                section.plan_changed.connect(self.plan_changed)
+            for name in _FORWARDED:
+                source = getattr(section, name, None)
+                if source is not None:
+                    source.connect(getattr(self, name))
         column.addStretch(1)
         scroll.setWidget(body)
         root.addWidget(scroll, 1)
@@ -368,6 +564,12 @@ class Inspector(QWidget):
         """Hand a freshly loaded chart to every section."""
         for section in self.sections:
             section.set_context(ctx)
+
+    def show_message(self, text: str) -> None:
+        """Show a Send to Execution message in the Trade Plan section."""
+        for section in self.sections:
+            if isinstance(section, TradePlanSection):
+                section.show_message(text)
 
     def is_open(self, key: str) -> bool:
         return any(box.opened for box in self.boxes if box.section.key == key)

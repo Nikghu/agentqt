@@ -529,11 +529,19 @@ def _build_html(
   // Called from Python after each load and on every change; redraws all studies.
   let studySeries = [];
   let planLines = [];
+  let markerApi = null;
   window.applyStudies = function(s) {{
     studySeries.forEach(x => chart.removeSeries(x));
     studySeries = [];
     planLines.forEach(l => candleSeries.removePriceLine(l));
     planLines = [];
+    // Pattern markers and key levels (SRD-GUI-026.008–.009)
+    if (!markerApi) markerApi = LightweightCharts.createSeriesMarkers(candleSeries, []);
+    markerApi.setMarkers(s.markers || []);
+    (s.levels || []).forEach(price => planLines.push(candleSeries.createPriceLine({{
+      price: price, color: '{ct.SUBTEXT}', lineWidth: 1,
+      lineStyle: LightweightCharts.LineStyle.Dotted, axisLabelVisible: true, title: '',
+    }})));
     (s.overlays || []).forEach(o => {{
       const line = chart.addSeries(LightweightCharts.LineSeries, {{
         color: o.color, lineWidth: 2, priceLineVisible: false,
@@ -604,6 +612,8 @@ class CandleChartPanel(QWidget):
         self._overlays: list[tuple[str, int]] = []
         self._plan: tuple[float, float, float] | None = None
         self._rsi_pane = False
+        self._markers: list[dict[str, Any]] = []
+        self._levels: list[float] = []
 
         self._build_ui()
 
@@ -730,6 +740,16 @@ class CandleChartPanel(QWidget):
         self._plan = plan
         self._push_studies()
 
+    def set_markers(self, markers: list[dict[str, Any]]) -> None:
+        """Draw pattern markers (``time``, ``position``, ``shape``, ``color``, ``text``)."""
+        self._markers = list(markers)
+        self._push_studies()
+
+    def set_levels(self, levels: list[float]) -> None:
+        """Draw faint dotted price lines at ``levels``; ``[]`` clears them (SRD-GUI-026.009)."""
+        self._levels = list(levels)
+        self._push_studies()
+
     def set_rsi_pane(self, shown: bool) -> None:
         """Show an RSI pane under the price pane (SRD-GUI-026.004)."""
         self._rsi_pane = shown
@@ -747,7 +767,8 @@ class CandleChartPanel(QWidget):
             entry, stop, target = self._plan
             plan = {"entry": entry, "stop": stop, "target": target}
         rsi = study_points(self._candles, "rsi", RSI_PERIOD) if self._rsi_pane else []
-        return {"overlays": overlays, "rsi": rsi, "plan": plan}
+        return {"overlays": overlays, "rsi": rsi, "plan": plan,
+                "markers": self._markers, "levels": self._levels}
 
     def _push_studies(self) -> None:
         if not self._candles:
