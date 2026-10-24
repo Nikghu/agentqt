@@ -2,6 +2,14 @@
 
 ---
 
+## [20261024] GUI — Charts workspace Focus + Inspector, Phase 1 (FO-GUI-026, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-026 (SRD-GUI-026.001–.007)
+- RN: RN-GUI-1.29.0-20261024
+- Artifacts updated: SRD, DD, MD, UTCD, Code, Tests, TRACE, RN, CONTEXT, TODO, DEVLOG
+- Decisions: overlays and RSI computed in Python with TA-Lib and sent to the page as data; studies re-sent on page load; only a long-shaped plan is drawn; edited plans are session-only; section method named `set_context` (QWidget already has `update`). Review fix: theme change now recolours the change %. Not pushed; user app check pending.
+
 ## [20261024] GUI — Charts workspace Focus + Inspector, docs only (FO-GUI-026, feature)
 
 - Type: Feature (docs)

@@ -5,7 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
-> v2.41.0: SRD-GUI-026.001–.012 added — Charts workspace Focus + Inspector (canvas Option 3); Draft, waiting for user approval.
+> v2.41.0: SRD-GUI-026.001–.012 added — Charts workspace Focus + Inspector (canvas Option 3); Phase 1 (.001–.007) approved by user and implemented 2026-10-24; .008–.012 Draft.
 > v2.40.0: SRD-GUI-025.016–.018 added — dashboard KPI and position-table fixes, Phase 5; approved by user and implemented 2026-10-24.
 > v2.39.0: SRD-GUI-025.013–.015 added — Performance band and Exposure tab, Phase 4; approved by user 2026-10-24.
 > v2.38.0: SRD-GUI-025.008–.012 added — Dashboard tile buttons, Phase 2; approved by user 2026-10-24.
@@ -432,13 +432,13 @@
 
 | ID | Parent | Priority | Description | Input | Output | Constraints | Status |
 |---|---|---|---|---|---|---|---|
-| SRD-GUI-026.001 | FO-GUI-026 | Must | The Charts screen is a source list card, one chart card and an Inspector card on the gutter; the MDI windows and arrange buttons are removed. | — | layout | `open_symbol(symbol, timeframe)` keeps its signature | Draft |
-| SRD-GUI-026.002 | FO-GUI-026 | Must | The source list has Watchlist, Screener and Trades tabs and a filter box; rows show symbol, a sub-line, last price and change %. | watchlist, latest screener results, open positions | list, `symbol_selected` | Tab remembered; empty text per tab | Draft |
-| SRD-GUI-026.003 | FO-GUI-026 | Must | The chart header shows symbol, company line, last price and change, a 1D / 1W switch and overlay chips with ✕ plus a "+ Overlay" menu (SMA or EMA, length). | loaded bars, click | header, overlays | Default SMA 20 and SMA 50; overlays remembered | Draft |
-| SRD-GUI-026.004 | FO-GUI-026 | Must | The chart shows candles, volume and an RSI 14 pane; a plan draws entry, stop and target price lines with labels and shaded zones. | bars, plan | chart | No plan → no lines | Draft |
-| SRD-GUI-026.005 | FO-GUI-026 | Must | The Inspector shows collapsible sections taken from one section registry; a header button hides the whole Inspector. | registry, click | sections | Open / closed state and Inspector visibility remembered | Draft |
-| SRD-GUI-026.006 | FO-GUI-026 | Must | Trade Plan shows entry, stop, target, reward : risk and size at the user's risk %, from the screener plan, else the open position, else "—"; Edit changes the values and lines for the session. | plan source, risk config, equity | section, chart lines | R:R rule as SRD-GUI-022.005; invalid plan → "—" | Draft |
-| SRD-GUI-026.007 | FO-GUI-026 | Should | Indicators shows RSI 14, ATR 14, ADX 14 and relative volume (last ÷ 20-bar average) for the loaded bars. | bars | section | Too few bars → "—" | Draft |
+| SRD-GUI-026.001 | FO-GUI-026 | Must | The Charts screen is a source list card, one chart card and an Inspector card on the gutter; the MDI windows and arrange buttons are removed. | — | layout | `open_symbol(symbol, timeframe)` keeps its signature | Implemented |
+| SRD-GUI-026.002 | FO-GUI-026 | Must | The source list has Watchlist, Screener and Trades tabs and a filter box; rows show symbol, a sub-line, last price and change %. | watchlist, latest screener results, open positions | list, `symbol_selected` | Tab remembered; empty text per tab | Implemented |
+| SRD-GUI-026.003 | FO-GUI-026 | Must | The chart header shows symbol, company line, last price and change, a 1D / 1W switch and overlay chips with ✕ plus a "+ Overlay" menu (SMA or EMA, length). | loaded bars, click | header, overlays | Default SMA 20 and SMA 50; overlays remembered | Implemented |
+| SRD-GUI-026.004 | FO-GUI-026 | Must | The chart shows candles, volume and an RSI 14 pane; a plan draws entry, stop and target price lines with labels and shaded zones. | bars, plan | chart | No plan → no lines | Implemented |
+| SRD-GUI-026.005 | FO-GUI-026 | Must | The Inspector shows collapsible sections taken from one section registry; a header button hides the whole Inspector. | registry, click | sections | Open / closed state and Inspector visibility remembered | Implemented |
+| SRD-GUI-026.006 | FO-GUI-026 | Must | Trade Plan shows entry, stop, target, reward : risk and size at the user's risk %, from the screener plan, else the open position, else "—"; Edit changes the values and lines for the session. | plan source, risk config, equity | section, chart lines | R:R rule as SRD-GUI-022.005; invalid plan → "—" | Implemented |
+| SRD-GUI-026.007 | FO-GUI-026 | Should | Indicators shows RSI 14, ATR 14, ADX 14 and relative volume (last ÷ 20-bar average) for the loaded bars. | bars | section | Too few bars → "—" | Implemented |
 | SRD-GUI-026.008 | FO-GUI-026 | Should | Patterns Found lists price action patterns true on the last 5 bars with name and bars ago, and marks them on the chart. | bars, pattern catalogue | section, markers | Phase 2 | Draft |
 | SRD-GUI-026.009 | FO-GUI-026 | Should | Key Levels lists the three nearest swing highs and lows and can show them as faint lines. | bars | section, lines | Phase 2 | Draft |
 | SRD-GUI-026.010 | FO-GUI-026 | Must | Send to Execution adds the symbol as a manual pick and switches to the Execution screen. | click | manual pick | Phase 2; existing pick → message only | Draft |

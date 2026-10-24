@@ -13,7 +13,10 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
+import numpy as np
+import talib
 from PyQt6.QtCore import pyqtSignal, Qt, QStringListModel, QUrl
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import (
@@ -35,6 +38,23 @@ from us_swing.gui.theme import C, active_palette, colors, load_theme_id
 # Path to the bundled Lightweight Charts JS (downloaded once at install time)
 _RESOURCES = Path(__file__).parent / "resources"
 _LWCHART_JS = _RESOURCES / "lightweight-charts.standalone.production.js"
+
+RSI_PERIOD = 14
+_OVERLAY_TOKENS = ("BLUE", "TEAL", "MAUVE", "GREEN", "ORANGE")
+
+
+def study_points(candles: list[dict[str, Any]], kind: str,
+                 length: int) -> list[dict[str, Any]]:
+    """``{time, value}`` points of an SMA, EMA or RSI over the closes; warm-up bars left out."""
+    close = np.asarray([float(c["close"]) for c in candles], dtype=np.float64)
+    if len(close) < length + (1 if kind == "rsi" else 0):
+        return []
+    func = {"sma": talib.SMA, "ema": talib.EMA, "rsi": talib.RSI}[kind]
+    values = np.asarray(func(close, timeperiod=length), dtype=np.float64)
+    return [
+        {"time": c["time"], "value": round(float(v), 4)}
+        for c, v in zip(candles, values) if not np.isnan(v)
+    ]
 
 
 def _build_html(
@@ -505,6 +525,59 @@ def _build_html(
     }}
   }};
 
+  // ── Studies: overlays, RSI pane and trade plan (SRD-GUI-026.003–.004) ──────
+  // Called from Python after each load and on every change; redraws all studies.
+  let studySeries = [];
+  let planLines = [];
+  window.applyStudies = function(s) {{
+    studySeries.forEach(x => chart.removeSeries(x));
+    studySeries = [];
+    planLines.forEach(l => candleSeries.removePriceLine(l));
+    planLines = [];
+    (s.overlays || []).forEach(o => {{
+      const line = chart.addSeries(LightweightCharts.LineSeries, {{
+        color: o.color, lineWidth: 2, priceLineVisible: false,
+        lastValueVisible: false, crosshairMarkerVisible: false,
+      }});
+      line.setData(o.data);
+      studySeries.push(line);
+    }});
+    if (s.rsi && s.rsi.length) {{
+      const rsi = chart.addSeries(LightweightCharts.LineSeries, {{
+        color: '{ct.MAUVE}', lineWidth: 1, priceLineVisible: false,
+      }}, 1);
+      rsi.setData(s.rsi);
+      [70, 30].forEach(v => rsi.createPriceLine({{
+        price: v, color: '{ct.OVERLAY2}', lineWidth: 1,
+        lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: false,
+      }}));
+      studySeries.push(rsi);
+      const panes = chart.panes();
+      if (panes.length > 1 && panes[1].setHeight) panes[1].setHeight(110);
+    }}
+    const p = s.plan;
+    if (!p) return;
+    // Shaded zones: a baseline series at the target (or stop) level filled to the entry.
+    [[p.target, '{ct.GREEN}'], [p.stop, '{ct.RED}']].forEach(([level, colour]) => {{
+      const zone = chart.addSeries(LightweightCharts.BaselineSeries, {{
+        baseValue: {{ type: 'price', price: p.entry }},
+        topLineColor: 'transparent', bottomLineColor: 'transparent',
+        topFillColor1: colour + '1f', topFillColor2: colour + '1f',
+        bottomFillColor1: colour + '1f', bottomFillColor2: colour + '1f',
+        priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
+      }});
+      zone.setData(candleData.map(c => ({{ time: c.time, value: level }})));
+      studySeries.push(zone);
+    }});
+    [['Entry', p.entry, '{ct.BLUE}'], ['Stop', p.stop, '{ct.RED}'],
+     ['Target', p.target, '{ct.GREEN}']].forEach(([title, price, colour]) => {{
+      planLines.push(candleSeries.createPriceLine({{
+        price: price, color: colour, lineWidth: 1,
+        lineStyle: LightweightCharts.LineStyle.Solid, axisLabelVisible: true, title: title,
+      }}));
+    }});
+  }};
+
 }})();
 </script>
 </body>
@@ -527,6 +600,10 @@ class CandleChartPanel(QWidget):
         self._svc = svc
         self._current_symbol: str = ""
         self._current_tf: str = "1d"
+        self._candles: list[dict[str, Any]] = []
+        self._overlays: list[tuple[str, int]] = []
+        self._plan: tuple[float, float, float] | None = None
+        self._rsi_pane = False
 
         self._build_ui()
 
@@ -602,6 +679,7 @@ class CandleChartPanel(QWidget):
         # ── WebEngine view ─────────────────────────────────────────────────────
         self._web = QWebEngineView()
         self._web.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self._web.loadFinished.connect(self._on_page_loaded)
         root.addWidget(self._web, 1)
 
         self._apply_toolbar_styles()
@@ -636,6 +714,52 @@ class CandleChartPanel(QWidget):
             btn.setFixedWidth(C.BTN_H + 4)
             btn.setToolTip(tip)
             btn.setAccessibleName(tip)
+
+    @property
+    def candles(self) -> list[dict[str, Any]]:
+        """Bars of the loaded chart (``time``, ``open``, ``high``, ``low``, ``close``, ``volume``)."""
+        return self._candles
+
+    def set_overlays(self, overlays: list[tuple[str, int]]) -> None:
+        """Draw ``(kind, length)`` moving averages, kind ``sma`` or ``ema`` (SRD-GUI-026.003)."""
+        self._overlays = list(overlays)
+        self._push_studies()
+
+    def set_plan(self, plan: tuple[float, float, float] | None) -> None:
+        """Draw ``(entry, stop, target)`` lines and zones, or clear them (SRD-GUI-026.004)."""
+        self._plan = plan
+        self._push_studies()
+
+    def set_rsi_pane(self, shown: bool) -> None:
+        """Show an RSI pane under the price pane (SRD-GUI-026.004)."""
+        self._rsi_pane = shown
+        self._push_studies()
+
+    def _studies(self) -> dict[str, Any]:
+        ct: Any = active_palette()
+        overlays = [
+            {"color": getattr(ct, _OVERLAY_TOKENS[i % len(_OVERLAY_TOKENS)]),
+             "data": study_points(self._candles, kind, length)}
+            for i, (kind, length) in enumerate(self._overlays)
+        ]
+        plan = None
+        if self._plan is not None:
+            entry, stop, target = self._plan
+            plan = {"entry": entry, "stop": stop, "target": target}
+        rsi = study_points(self._candles, "rsi", RSI_PERIOD) if self._rsi_pane else []
+        return {"overlays": overlays, "rsi": rsi, "plan": plan}
+
+    def _push_studies(self) -> None:
+        if not self._candles:
+            return
+        script = f"window.applyStudies && window.applyStudies({json.dumps(self._studies())});"
+        page = self._web.page()
+        if page is not None:
+            page.runJavaScript(script)
+
+    def _on_page_loaded(self, ok: bool) -> None:
+        if ok:
+            self._push_studies()
 
     def hide_toolbar(self) -> None:
         """Hide the symbol and timeframe bar when a host picks the symbol (SRD-GUI-022.011)."""
@@ -753,9 +877,11 @@ class CandleChartPanel(QWidget):
         self._status_lbl.setText(f"Loading {symbol} ({timeframe.upper()})…")
         candles = self._svc.get_candles_for_symbol(symbol, timeframe, limit)
         if not candles:
+            self._candles = []
             self._status_lbl.setText(f"No data for {symbol} ({timeframe.upper()})")
             self._show_no_data(symbol, timeframe)
             return
+        self._candles = candles
 
         _tc = colors()
         _vol_up = _tc["candle_up_volume"]

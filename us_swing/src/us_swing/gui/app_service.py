@@ -88,6 +88,17 @@ _log = logging.getLogger(__name__)
 
 _CURVE_DAYS = {"1W": 7, "1M": 30, "3M": 90}
 
+
+def _plan_price(plan: Any, key: str) -> float | None:
+    """One positive price from a saved ``ai_plan`` dict, else None (SRD-GUI-026.006)."""
+    if not isinstance(plan, dict):
+        return None
+    try:
+        value = float(plan.get(key))  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+    return value if value > 0 and value != float("inf") else None
+
 from PyQt6.QtCore import QObject, QThread, QTimer, pyqtSignal
 
 from us_swing.data.market_calendar import ET as _ET, get_exchange_status as _get_exchange_status
@@ -1669,6 +1680,7 @@ class AppService(QObject):
                 if not data.get("passed", True):
                     continue
                 score = float(data.get("score", 0.0))
+                plan = data.get("ai_plan")
                 entry = FilteredStockEntry(
                     symbol=sym,
                     score=score,
@@ -1678,6 +1690,9 @@ class AppService(QObject):
                     run_type=result.execution_mode,
                     date=result.date,
                     time=run_time,
+                    plan_entry=_plan_price(plan, "entry"),
+                    plan_stop=_plan_price(plan, "stop"),
+                    plan_target=_plan_price(plan, "target"),
                 )
                 if sym not in best or score > best[sym].score:
                     best[sym] = entry
