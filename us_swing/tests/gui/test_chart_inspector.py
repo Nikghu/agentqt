@@ -178,6 +178,9 @@ def test_pattern_hits_on_recent_bars(qtbot):
     assert hit.bars_ago == 2 and hit.direction.value == "bullish" and hit.time == 31
     section = PatternsSection()
     qtbot.addWidget(section)
+    section.set_context(ChartContext("NVDA", "1d", bars))
+    for eye in section.eyes.values():
+        eye.setChecked(True)
     with qtbot.waitSignal(section.markers_changed) as blocker:
         section.set_context(ChartContext("NVDA", "1d", bars))
     markers = blocker.args[0]
@@ -187,6 +190,20 @@ def test_pattern_hits_on_recent_bars(qtbot):
     assert [m["time"] for m in markers] == sorted(m["time"] for m in markers)
     assert any("Bullish Engulfing" in label.text() and "2 bars ago" in label.text()
                for label in section.lines)
+
+
+def test_pattern_eye_shows_and_hides_marker(qtbot):
+    """UT-GUI-026.008.M03.T04: Pattern eye shows and hides its marker."""
+    section = PatternsSection()
+    qtbot.addWidget(section)
+    sent: list[list[dict[str, object]]] = []
+    section.markers_changed.connect(sent.append)
+    section.set_context(ChartContext("NVDA", "1d", _engulfing(bars_after=2)))
+    assert sent[-1] == []   # nothing on the chart until an eye is clicked
+    section.eyes["Bullish Engulfing"].click()
+    assert [m["id"] for m in sent[-1]] == ["Bullish Engulfing"]
+    section.eyes["Bullish Engulfing"].click()
+    assert sent[-1] == []
 
 
 def test_old_pattern_not_listed():

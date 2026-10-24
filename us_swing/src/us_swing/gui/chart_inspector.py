@@ -16,7 +16,8 @@ from typing import Any, Protocol
 import numpy as np
 import numpy.typing as npt
 import talib
-from PyQt6.QtCore import QSettings, Qt, pyqtSignal
+from PyQt6.QtCore import QSettings, QSize, Qt, pyqtSignal
+from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import (
     QCheckBox,
     QDoubleSpinBox,
@@ -26,13 +27,14 @@ from PyQt6.QtWidgets import (
     QLabel,
     QPushButton,
     QScrollArea,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
 from us_swing.core.indicator_rules import BarArrays
 from us_swing.core.price_patterns import PATTERNS, Direction, default_pattern_rule, evaluate_pattern
-from us_swing.gui.icons import set_icon
+from us_swing.gui.icons import icon, set_icon
 from us_swing.gui.theme import active_palette
 
 _log = logging.getLogger(__name__)
@@ -386,7 +388,7 @@ class IndicatorsSection(QWidget):
 
 
 class PatternsSection(QWidget):
-    """Patterns found on the last bars, marked on the chart (SRD-GUI-026.008)."""
+    """Patterns found on the last bars; the eye on a row marks it on the chart (SRD-GUI-026.008)."""
 
     key = "patterns"
     title = "Patterns Found"
@@ -398,39 +400,84 @@ class PatternsSection(QWidget):
         self.column.setContentsMargins(0, 0, 0, 0)
         self.column.setSpacing(4)
         self.lines: list[QLabel] = []
+        self.eyes: dict[str, QToolButton] = {}
         self.hits: list[PatternHit] = []
+        self.shown: set[str] = set()   # kept across reloads so a chosen pattern stays marked
+        self._rows: list[QWidget] = []
+        self._colour: dict[Direction, str] = {}
 
     def widget(self) -> QWidget:
         return self
 
     def set_context(self, ctx: ChartContext) -> None:
         self.hits = pattern_hits(ctx.candles)
-        for label in self.lines:
-            label.deleteLater()
+        for row in self._rows:
+            row.deleteLater()
         ct: Any = active_palette()
-        colour = {Direction.BULLISH: ct.GREEN, Direction.BEARISH: ct.RED,
-                  Direction.NEUTRAL: ct.YELLOW}
-        self.lines = []
-        texts = [
-            f"<span style='color:{colour[hit.direction]}'>●</span> {hit.name}"
-            f" <span style='color:{ct.SUBTEXT}'>· "
-            f"{'today' if hit.bars_ago == 0 else f'{hit.bars_ago} bars ago'}</span>"
-            for hit in self.hits
-        ] or [f"<span style='color:{ct.SUBTEXT}'>No patterns in the last "
-              f"{PATTERN_LOOKBACK} bars</span>"]
-        for text in texts:
-            label = QLabel(text)
-            label.setTextFormat(Qt.TextFormat.RichText)
-            self.column.addWidget(label)
-            self.lines.append(label)
+        self._colour = {Direction.BULLISH: ct.GREEN, Direction.BEARISH: ct.RED,
+                        Direction.NEUTRAL: ct.YELLOW}
+        self.lines, self.eyes, self._rows = [], {}, []
+        for hit in self.hits:
+            self._add_row(
+                f"<span style='color:{self._colour[hit.direction]}'>●</span> {hit.name}"
+                f" <span style='color:{ct.SUBTEXT}'>· "
+                f"{'today' if hit.bars_ago == 0 else f'{hit.bars_ago} bars ago'}</span>",
+                hit.name)
+        if not self.hits:
+            self._add_row(f"<span style='color:{ct.SUBTEXT}'>No patterns in the last "
+                          f"{PATTERN_LOOKBACK} bars</span>", None)
+        self._emit()
+
+    def _add_row(self, text: str, name: str | None) -> None:
+        row = QWidget()
+        line = QHBoxLayout(row)
+        line.setContentsMargins(0, 0, 0, 0)
+        label = QLabel(text)
+        label.setTextFormat(Qt.TextFormat.RichText)
+        line.addWidget(label, 1)
+        if name is not None:
+            eye = QToolButton()
+            eye.setCheckable(True)
+            eye.setChecked(name in self.shown)
+            eye.setAutoRaise(True)
+            eye.setStyleSheet("QToolButton { border: none; background: transparent; "
+                              "outline: none; } QToolButton:focus { outline: none; }")
+            _style_eye(eye)
+            eye.toggled.connect(lambda on, n=name: self._on_eye(n, on))
+            line.addWidget(eye)
+            self.eyes[name] = eye
+        self.column.addWidget(row)
+        self.lines.append(label)
+        self._rows.append(row)
+
+    def _on_eye(self, name: str, on: bool) -> None:
+        if on:
+            self.shown.add(name)
+        else:
+            self.shown.discard(name)
+        _style_eye(self.eyes[name])
+        self._emit()
+
+    def _emit(self) -> None:
         markers = [
             {"time": hit.time,
              "position": "aboveBar" if hit.direction == Direction.BEARISH else "belowBar",
              "shape": "arrowDown" if hit.direction == Direction.BEARISH else "arrowUp",
-             "color": colour[hit.direction], "id": hit.name, "text": ""}
-            for hit in sorted(self.hits, key=lambda h: h.time)
+             "color": self._colour[hit.direction], "id": hit.name, "text": ""}
+            for hit in sorted(self.hits, key=lambda h: h.time) if hit.name in self.shown
         ]
         self.markers_changed.emit(markers)
+
+
+def _style_eye(eye: QToolButton) -> None:
+    """Bright eye when the pattern is on the chart, dimmed eye when it is not."""
+    on = eye.isChecked()
+    base = icon("eye", "info")
+    eye.setIcon(base if on else QIcon(base.pixmap(QSize(14, 14), QIcon.Mode.Disabled)))
+    eye.setIconSize(QSize(14, 14))
+    tip = "Hide from chart" if on else "Show on chart"
+    eye.setToolTip(tip)
+    eye.setAccessibleName(tip)
 
 
 class KeyLevelsSection(QWidget):

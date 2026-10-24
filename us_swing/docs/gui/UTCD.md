@@ -684,6 +684,7 @@ Test files:
 | UT-GUI-026.008.M03.T01 | MD-GUI-026.005.M03 | Positive | Pattern hits on recent bars | bars ending in a bullish engulfing 2 bars ago | hit "Bullish engulfing", 2 bars ago, bullish | Pass |
 | UT-GUI-026.008.M03.T02 | MD-GUI-026.005.M03 | Negative | Old pattern not listed | engulfing 10 bars ago only | no Bullish Engulfing hit | Pass |
 | UT-GUI-026.008.M01.T03 | MD-GUI-026.001.M01 | Positive | Inspector markers and levels reach the chart | emit markers and levels | chart studies hold both | Pass |
+| UT-GUI-026.008.M03.T04 | MD-GUI-026.005.M03 | Positive | Pattern eye shows and hides its marker | click a pattern's eye twice | no markers, then that one marker, then none | Pass |
 | UT-GUI-026.009.M03.T01 | MD-GUI-026.005.M03 | Positive | Nearest swing levels | bars with pivots 110, 120, 135 and close 125; tick Show on chart | above [135]; below [120, 110]; `levels_changed` [] then all three | Pass |
 | UT-GUI-026.009.M03.T02 | MD-GUI-026.005.M03 | Edge | Too few bars give no levels | 5 bars | ([], []) | Pass |
 | UT-GUI-026.010.M01.T01 | MD-GUI-026.001.M01 | Positive | Send to Execution adds pick | click Send to Execution; `add_manual_pick` returns None | called with "NVDA"; `execution_requested("NVDA")`; no message | Pass |
