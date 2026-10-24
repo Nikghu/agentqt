@@ -82,6 +82,8 @@ class _RowWidget(QWidget):
     def __init__(self, row: SourceRow, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        # The list paints the row (hover, selection); labels must not paint their own box.
+        self.setStyleSheet("QLabel { background: transparent; }")
         ct: Any = active_palette()
         line = QHBoxLayout(self)
         line.setContentsMargins(10, 5, 10, 5)
@@ -105,6 +107,8 @@ class _RowWidget(QWidget):
         change.setStyleSheet(f"color:{colour}; font-size:8pt;")
         right.addWidget(change)
         line.addLayout(right)
+        last.setVisible(row.last is not None)
+        change.setVisible(row.change_pct is not None)
 
 
 class SourceList(QWidget):
