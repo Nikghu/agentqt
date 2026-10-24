@@ -481,7 +481,8 @@ class MainWindow(QMainWindow):
                 scroll.setFrameShape(QFrame.Shape.NoFrame)
                 scroll.setWidget(p)
                 self._stack.addWidget(card(scroll))
-            elif p in (self._screener_panel, self._execution_panel, self._dashboard_panel):
+            elif p in (self._screener_panel, self._execution_panel, self._dashboard_panel,
+                       self._chart_panel):
                 # These screens lay out their own cards on the gutter.
                 self._stack.addWidget(p)
             else:
