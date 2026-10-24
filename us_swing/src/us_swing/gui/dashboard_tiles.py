@@ -56,6 +56,7 @@ class Tile(QWidget):
         self.max_btn.clicked.connect(self.maximise_clicked)
 
         head = QHBoxLayout()
+        self._head = head
         head.setContentsMargins(10, 5, 6, 5)
         head.setSpacing(8)
         head.addWidget(self.title_lbl)
@@ -70,6 +71,11 @@ class Tile(QWidget):
         box.addLayout(head)
         box.addWidget(_rule())
         box.addWidget(body, 1)
+
+    def set_title_widget(self, widget: QWidget) -> None:
+        """Show ``widget`` (for example tab buttons) in place of the title text."""
+        self.title_lbl.hide()
+        self._head.insertWidget(0, widget)
 
     def add_tool(self, widget: QWidget) -> None:
         self._tools.addWidget(widget)

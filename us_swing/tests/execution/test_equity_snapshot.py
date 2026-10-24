@@ -8,8 +8,10 @@ import pytest
 import sqlalchemy as sa
 
 from us_swing.execution.equity_snapshot import (
+    CurvePoint,
     EquitySnapshot,
     EquitySnapshotRepository,
+    curve_from_closed,
     slot_iso,
 )
 from us_swing.gui.app_service import AppService
@@ -202,3 +204,73 @@ def test_create_and_drop_schema_include_table():
     assert "equity_snapshots" in sa.inspect(engine).get_table_names()
     drop_schema(engine)
     assert "equity_snapshots" not in sa.inspect(engine).get_table_names()
+
+
+# ── Equity curve (SRD-EXE-020.007 / .008) ─────────────────────────────────────
+
+def _cycle(closed_at: str | None, pnl: float | None, user_id: int = 1) -> SimpleNamespace:
+    return SimpleNamespace(closed_at=closed_at, realized_pnl_usd=pnl, user_id=user_id)
+
+
+def test_curve_ends_at_equity_and_steps():
+    """UT-EXE-020.007.M01.T01: Curve starts at equity minus realised P&L, steps, ends at equity."""
+    cycles = [_cycle("2026-10-22T15:00:00", -20.0), _cycle("2026-10-21T15:00:00", 50.0)]
+    points = curve_from_closed(cycles, 1030.0, "2026-10-17T00:00:00", "2026-10-24T14:00:00")
+    assert points == (
+        CurvePoint("2026-10-17T00:00:00", 1000.0),
+        CurvePoint("2026-10-21T15:00:00", 1050.0),
+        CurvePoint("2026-10-22T15:00:00", 1030.0),
+        CurvePoint("2026-10-24T14:00:00", 1030.0),
+    )
+
+
+def test_curve_skips_cycles_without_pnl():
+    """UT-EXE-020.007.M01.T02: Cycles without realised P&L or close time are skipped; none is flat."""
+    points = curve_from_closed([_cycle("2026-10-22T15:00:00", None), _cycle(None, 9.0)],
+                               500.0, "A", "B")
+    assert points == (CurvePoint("A", 500.0), CurvePoint("B", 500.0))
+
+
+def _curve_svc(repo, cycles):
+    svc = _svc(repo)
+    svc._tc_query = SimpleNamespace(closed_between=lambda start, end: tuple(cycles))
+    svc.get_equity_snapshots = lambda since: AppService.get_equity_snapshots(svc, since)
+    svc.get_account_state = lambda uid=None: SimpleNamespace(equity=1030.0, total_cash_value=0.0)
+    return svc
+
+
+def test_one_day_curve_from_snapshots(repo):
+    """UT-EXE-020.008.M02.T01: 1D uses today's snapshots plus a live point; none gives empty."""
+    repo.record(1, 900.0, 0.0, 0.0, _at(30, day=23))     # yesterday
+    repo.record(1, 1000.0, 0.0, 0.0, _at(30))
+    repo.record(1, 1010.0, 0.0, 0.0, _at(35))
+    svc = _curve_svc(repo, [_cycle("2026-10-24T13:40:00", 99.0)])
+    points = AppService.get_equity_curve(svc, "1D", _at(40))   # type: ignore[arg-type]
+    assert [p.value for p in points] == [1000.0, 1010.0, 1030.0]
+    assert points[-1].at == "2026-10-24T13:40:00"
+    empty = _curve_svc(EquitySnapshotRepository(sa.create_engine("sqlite:///:memory:")), [])
+    assert AppService.get_equity_curve(empty, "1D", _at(40)) == ()   # type: ignore[arg-type]
+
+
+def test_week_curve_from_closed_trades(repo):
+    """UT-EXE-020.008.M02.T02: 1W steps at the viewing user's closes and ends at equity."""
+    svc = _curve_svc(repo, [_cycle("2026-10-22T15:00:00", 30.0, user_id=1),
+                            _cycle("2026-10-23T15:00:00", 500.0, user_id=2)])
+    svc._viewing_uid = 1
+    points = AppService.get_equity_curve(svc, "1W", _at(40))   # type: ignore[arg-type]
+    assert points[0] == CurvePoint("2026-10-17T13:40:00", 1000.0)
+    assert [p.value for p in points] == [1000.0, 1030.0, 1030.0]
+
+
+def test_ytd_starts_on_first_of_january(repo):
+    """UT-EXE-020.008.M02.T03: YTD starts at 1 January, midnight ET, in UTC."""
+    points = AppService.get_equity_curve(_curve_svc(repo, []), "YTD", _at(40))  # type: ignore[arg-type]
+    assert points[0].at == "2026-01-01T05:00:00"
+
+
+def test_unknown_range_or_no_ledger_is_empty(repo):
+    """UT-EXE-020.008.M02.T04: Unknown range key or missing ledger gives an empty curve."""
+    svc = _curve_svc(repo, [])
+    assert AppService.get_equity_curve(svc, "5Y", _at(40)) == ()   # type: ignore[arg-type]
+    svc._tc_query = None
+    assert AppService.get_equity_curve(svc, "1M", _at(40)) == ()   # type: ignore[arg-type]

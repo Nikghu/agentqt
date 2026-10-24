@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.39.0: SRD-GUI-025.013–.015 added — Performance band and Exposure tab, Phase 4; approved by user 2026-10-24.
 > v2.38.0: SRD-GUI-025.008–.012 added — Dashboard tile buttons, Phase 2; approved by user 2026-10-24.
 > v2.37.0: SRD-GUI-025.001–.007 added — Dashboard tiled workspace, Phase 1 (canvas Option E); approved by user 2026-10-24.
 > v2.36.0: SRD-GUI-024.008 changed — charts toggle moved to the page header, chart header row removed, 4 px card gaps (user, 2026-10-23).
@@ -418,3 +419,6 @@
 | SRD-GUI-025.010 | FO-GUI-025 | Must | Trade History has a range menu (Today, 7 days, 30 days, All) and a state menu (All, Filled, Partial, Cancelled, Rejected, New); the header count shows the range and row count. | trades, choice | filtered rows | Range uses the market time zone; choices remembered | Implemented |
 | SRD-GUI-025.011 | FO-GUI-025 | Should | The Trade History Export button saves the shown rows and columns to a CSV file the user picks. | rows | `.csv` file | Log "[Trade History] Saved N order(s) to <file>" | Implemented |
 | SRD-GUI-025.012 | FO-GUI-025 | Should | Each Market Watch tile row ends with a ✕ that removes that symbol; the Remove button leaves the tile header. | click | watchlist | Right-panel watchlist unchanged | Implemented |
+| SRD-GUI-025.013 | FO-GUI-025 | Must | A Performance band above the tiles shows Account Equity, its change for the chosen range (amount and %), range buttons 1D / 1W / 1M / 3M / YTD and a line-and-area equity chart. | `get_equity_curve(range)` | band | "No equity data for this range yet" when empty; range remembered | Implemented |
+| SRD-GUI-025.014 | FO-GUI-025 | Must | A "Performance" button at the end of the KPI strip shows or hides the band; the band is shown on first start and the choice is remembered. | click, setting | band visibility | Hidden band gives its space to the tiles | Implemented |
+| SRD-GUI-025.015 | FO-GUI-025 | Must | The Open Positions tile has tabs "Open Positions" and "Exposure"; Exposure shows a vertical bar per symbol (largest first, long blue, short amber) with its value on top, Long, Short, Net and Gross ÷ Equity totals, and a "$ Value / % Equity" switch. | open positions, equity | bar chart | Filter and Columns hide on the Exposure tab; bars follow price updates; more than 8 bars: the smallest join one "N others" bar | Implemented |

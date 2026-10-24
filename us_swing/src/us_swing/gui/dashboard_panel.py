@@ -1,6 +1,6 @@
 """
 Module: MD-GUI-002.001.M01 — dashboard_panel.py
-Parent SRD: SRD-GUI-002.001 – SRD-GUI-002.008, SRD-GUI-025.001 – SRD-GUI-025.007
+Parent SRD: SRD-GUI-002.001 – SRD-GUI-002.008, SRD-GUI-025.001 – SRD-GUI-025.015
 
 Dashboard: KPI strip and four tiles — open positions, market watch, trade history and
 P&L by strategy (tiled workspace, FO-GUI-025).
@@ -53,6 +53,7 @@ from PyQt6.QtWidgets import (
     QProgressBar,
     QPushButton,
     QSpinBox,
+    QStackedWidget,
     QTableWidget,
     QTableWidgetItem,
     QTabWidget,
@@ -71,6 +72,7 @@ from us_swing.gui.dashboard_tiles import (
     TileGrid,
     table_rows,
 )
+from us_swing.gui.performance_band import ExposureView, PerformanceBand
 from us_swing.gui.screener_views import ChipGroup
 from us_swing.gui.strategy_pnl_chart import money, since_iso
 from us_swing.gui.strategy_store import load_strategies
@@ -1359,6 +1361,16 @@ class DashboardPanel(QWidget):
         self._kpi.tail.addWidget(self._view_chips)
         self._kpi.tail.addWidget(self._density_chips)
 
+        # ── Performance band and its toggle (SRD-GUI-025.013/.014) ────────────
+        self._perf_band = PerformanceBand()
+        self._perf_band.ranges.changed.connect(self._on_perf_range)
+        self._perf_card = card(self._perf_band)
+        self._perf_btn = icon_button("chart-line", "info", "Show or hide the equity graph")
+        self._perf_btn.setText("Performance")
+        self._perf_btn.setCheckable(True)
+        self._perf_btn.toggled.connect(self._on_perf_toggled)
+        self._kpi.tail.addWidget(self._perf_btn)
+
         demo.viewing_changed.connect(self._on_scope_changed)
 
         # ── Market pulse bar ───────────────────────────────────────────────────────
@@ -1404,9 +1416,23 @@ class DashboardPanel(QWidget):
 
         self._pos_model.modelReset.connect(self._on_pos_model_reset)
 
-        self._pos_tile = Tile("Open Positions", self._pos_view)
+        # ── Open Positions | Exposure tabs (SRD-GUI-025.015) ──────────────────
+        self._exposure = ExposureView()
+        self._pos_stack = QStackedWidget()
+        self._pos_stack.addWidget(self._pos_view)
+        self._pos_stack.addWidget(self._exposure)
+        self._pos_tabs = ChipGroup([("Open Positions", "list"), ("Exposure", "expo")])
+        self._pos_tabs.changed.connect(self._on_pos_tab)
+        self._expo_units = ChipGroup([("$ Value", "value"), ("% Equity", "pct")])
+        self._expo_units.changed.connect(self._refresh_exposure)
+        self._expo_units.hide()
+        self._positions_equity = 0.0
+
+        self._pos_tile = Tile("Open Positions", self._pos_stack)
+        self._pos_tile.set_title_widget(self._pos_tabs)
         pos_tools: tuple[QWidget, ...] = (
-            self._pos_filter, self._filter_btn, self._cols_btn, self._sq_all_btn)
+            self._pos_filter, self._filter_btn, self._cols_btn, self._expo_units,
+            self._sq_all_btn)
         for tool in pos_tools:
             self._pos_tile.add_tool(tool)
         self._pos_status_lbl = self._pos_tile.count_lbl
@@ -1470,6 +1496,7 @@ class DashboardPanel(QWidget):
         main.setSpacing(GAP)
         main.setContentsMargins(0, 0, 0, 0)
         main.addWidget(card(self._kpi))
+        main.addWidget(self._perf_card)
         main.addWidget(self._grid, 1)
 
         self._drawer = _ExitDrawer(self)
@@ -1498,6 +1525,12 @@ class DashboardPanel(QWidget):
         self._strategy_load_failed = False
         demo.viewing_changed.connect(self._strategy_debounce.start)
         demo.strategy_status_changed.connect(self._on_strategy_status)
+        self._perf_debounce = QTimer(self)
+        self._perf_debounce.setSingleShot(True)
+        self._perf_debounce.setInterval(300)
+        self._perf_debounce.timeout.connect(self._refresh_performance)
+        self._strategy_timer.timeout.connect(self._perf_debounce.start)
+        demo.viewing_changed.connect(self._perf_debounce.start)
         self._restore_settings()
         self._on_scope_changed()   # initialise User column & column widths for current scope
         self._refresh_positions()
@@ -1510,6 +1543,7 @@ class DashboardPanel(QWidget):
         super().showEvent(event)
         self._strategy_timer.start()
         self._strategy_debounce.start()
+        self._perf_debounce.start()
 
     def hideEvent(self, event: QHideEvent | None) -> None:
         super().hideEvent(event)
@@ -1529,6 +1563,55 @@ class DashboardPanel(QWidget):
         if uid in self._view_uids and uid != self._demo.get_viewing_uid():
             self._demo.set_viewing_uid(uid)
         self._grid.set_maximised(str(self._settings.value("maximised", "")))
+        self._perf_band.set_range(str(self._settings.value("perf_range", "1D")))
+        shown = str(self._settings.value("perf_shown", "true")).lower() == "true"
+        self._perf_btn.setChecked(shown)
+        self._perf_card.setVisible(shown)
+
+    # ── Performance band (SRD-GUI-025.013/.014) ───────────────────────────────────
+
+    def _on_perf_toggled(self, on: bool) -> None:
+        self._perf_card.setVisible(on)
+        self._settings.setValue("perf_shown", "true" if on else "false")
+        if on:
+            self._perf_debounce.start()
+
+    def _on_perf_range(self) -> None:
+        self._settings.setValue("perf_range", self._perf_band.range_key)
+        self._refresh_performance()
+
+    def _refresh_performance(self) -> None:
+        if self._perf_card.isHidden():
+            return
+        key = self._perf_band.range_key
+        points = self._demo.get_equity_curve(key)
+        try:
+            tz = ZoneInfo(self._demo.get_system_config().market_timezone)
+        except Exception:
+            _log.warning("[Equity] Market time zone is not valid; showing US Eastern times")
+            tz = ZoneInfo("US/Eastern")
+        fmt = "%H:%M" if key == "1D" else "%b %d"
+
+        def label(iso: str) -> str:
+            moment = datetime.datetime.strptime(iso[:19], "%Y-%m-%dT%H:%M:%S")
+            return moment.replace(tzinfo=datetime.timezone.utc).astimezone(tz).strftime(fmt)
+
+        self._perf_band.show_curve(points, label)
+
+    # ── Exposure tab (SRD-GUI-025.015) ────────────────────────────────────────────
+
+    def _on_pos_tab(self) -> None:
+        exposure = self._pos_tabs.value == "expo"
+        self._pos_stack.setCurrentIndex(1 if exposure else 0)
+        self._expo_units.setVisible(exposure)
+        self._cols_btn.setVisible(not exposure)
+        self._filter_btn.setVisible(not exposure)
+        self._pos_filter.setVisible(not exposure and self._filter_btn.isChecked())
+        self._refresh_exposure()
+
+    def _refresh_exposure(self) -> None:
+        self._exposure.show_positions(self._positions, self._positions_equity,
+                                      self._expo_units.value == "pct")
 
     def _on_density_chip(self) -> None:
         self._settings.setValue("density", self._density_chips.value)
@@ -1583,6 +1666,7 @@ class DashboardPanel(QWidget):
         unreal = sum(p.unrealised_pnl for p in positions)
         self._kpi.set_value("unreal", money(unreal), _pnl_colour(unreal))
         self._sq_all_btn.setEnabled(n > 0)
+        self._refresh_exposure()
         self._check_drawer_positions(positions)
 
     # ── Positions filter and columns (SRD-GUI-025.008/.009) ───────────────────
@@ -1799,6 +1883,8 @@ class DashboardPanel(QWidget):
         self._kpi.set_value("cap", f"{util:.1f}%", cap_colour, sub="of 95%")
         self._kpi.set_value("equity", f"${acct.equity:,.2f}")
         self._kpi.set_value("cash", f"${acct.total_cash_value:,.2f}")
+        self._positions_equity = acct.equity
+        self._refresh_exposure()
 
     def _refresh_watch_count(self) -> None:
         self._watch_tile.set_count(str(self._watch_list.symbol_count))

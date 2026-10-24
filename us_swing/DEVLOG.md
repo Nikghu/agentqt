@@ -2,6 +2,14 @@
 
 ---
 
+## [20261024] GUI — Dashboard Performance band and Exposure tab, Phase 4 (FO-GUI-025, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-025 (SRD-GUI-025.013–.015; with FO-EXE-020 SRD-EXE-020.007–.008)
+- RN: RN-GUI-1.27.0-20261024, RN-EXE-1.36.0-20261024
+- Artifacts updated: SRD, DD, MD, UTCD, Code, Tests, TRACE, RN, CONTEXT, TODO, DEVLOG
+- Decisions: 1D curve from today's snapshots plus live point; longer ranges from closed cycles (ignore unrealised P&L and deposits); market time zone for all range boundaries; exposure bars grouped above 8 ("N others"). Review fixes: header value from curve's last point, no DB read per account update. Not committed; branch feat/gui-dashboard-tiles.
+
 ## [20261024] EXE — Account equity snapshots, Phase 3 (FO-EXE-020, feature)
 
 - Type: Feature

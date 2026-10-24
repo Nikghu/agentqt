@@ -33,6 +33,7 @@
 > v1.24.3: SRD-EXE-018.002–.006, .012, .014, .015 Approved → Implemented (P2: direction wired through router, broker adapter, order ingestion and cycle open; opposite-direction guard at engine and pending execute).
 > v1.24.4: SRD-EXE-018.007–.011 and .013 Approved → Implemented (P3: direction-aware live/realized P&L, SHORT trailing stop and exit triggers, risk-edit invariants, signed OpenPosition P&L). All SRD-EXE-018 rows now Implemented.
 > v1.25.0: SRD-EXE-018.016 added (Draft) — price-feed silence warning for open cycles (deep-review finding, 2026-09-18).
+> v1.28.0: SRD-EXE-020.007–.008 added — equity curve for the dashboard graph; approved by user 2026-10-24.
 > v1.27.0: SRD-EXE-020.001–.006 added — Account Equity Snapshots; approved by user 2026-10-24.
 > v1.26.0: SRD-EXE-019.001–.004 added — Strategy P&L History; approved by user 2026-10-23 (plan).
 > v1.25.1: SRD-EXE-018.016 approved by user (2026-09-18) and set to Implemented — code and tests shipped with the requirement.
@@ -382,3 +383,5 @@
 | SRD-EXE-020.004 | FO-EXE-020 | Must | While the market is open, the app saves one snapshot per user every 5 minutes from that user's account state and open positions. | timer, users, account state | rows | Only when NYSE status is "open", plus one slot at the first check after the close; a live account is saved once under the active user; a failed save logs one warning per slot and is tried again | Implemented |
 | SRD-EXE-020.005 | FO-EXE-020 | Should | Rows older than 30 days are deleted when the app starts and once a day after that. | start, day change | deleted count | Logged at INFO | Implemented |
 | SRD-EXE-020.006 | FO-EXE-020 | Must | `AppService.get_equity_snapshots(since_iso)` returns the points for the viewing user (all users when none). | start time | tuple of `EquitySnapshot` | Empty when the store is not ready | Implemented |
+| SRD-EXE-020.007 | FO-EXE-020 | Must | `curve_from_closed(cycles, end_equity, start_iso, end_iso)` returns points that start at `end_equity` minus the realised P&L in the range, step up or down at each close, and end at `end_equity`. | closed cycles, current equity, range | tuple of `CurvePoint` | Pure; cycles without realised P&L are skipped | Implemented |
+| SRD-EXE-020.008 | FO-EXE-020 | Must | `AppService.get_equity_curve(range_key)` returns the viewing scope's curve: "1D" from today's equity snapshots (market day) plus a live point now, "1W", "1M", "3M", "YTD" from closed cycles since 7 / 30 / 90 days ago or 1 January. | range key | tuple of `CurvePoint` | Empty on unknown key or when the stores are not ready | Implemented |

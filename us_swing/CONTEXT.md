@@ -7,7 +7,9 @@
 
 ---
 
-**Current (Session 89, 2026-10-24):** **Account equity snapshots, Phase 3 of 5 (Feature, EXE; FO-EXE-020 under FO-GUI-025; RN-EXE-1.35.0-20261024).** New `equity_snapshots` table (user, 5-minute slot). App saves every user's equity every 5 minutes while NYSE is open, plus one closing point at 16:00 ET; daily prune keeps 30 days. `AppService.get_equity_snapshots(since_iso)` for the viewing user. SRD-EXE-020.001–.006 Implemented (user-approved 2026-10-24); 17 UT Pass; execution+gui+core+integration+infrastructure 996 passed. Code is on branch feat/gui-dashboard-tiles, NOT committed. Known limit: paper equity is still Max Capital until Phase 5. **Next:** FO-GUI-025 Phase 4 (Performance band: equity graph from snapshots for 1D and closed trades for 1W/1M/3M/YTD, shown by default, toggle; Exposure tab vertical bars).
+**Current (Session 89, 2026-10-24):** **Dashboard Performance band and Exposure tab, Phase 4 of 5 (Feature, GUI + EXE; FO-GUI-025; RN-GUI-1.27.0-20261024, RN-EXE-1.36.0-20261024).** Account Equity band above the tiles (1D / 1W / 1M / 3M / YTD, remembered), "Performance" toggle in the KPI strip, Open Positions "Exposure" tab with $ / % switch. `AppService.get_equity_curve(range)` added. SRD-GUI-025.013–.015 and SRD-EXE-020.007–.008 Implemented (user-approved 2026-10-24); 16 UT Pass; suites 1012 passed, 2 skipped. Code is on branch feat/gui-dashboard-tiles, NOT committed. Known limit: paper equity still Max Capital; longer-range curve ignores unrealised P&L and deposits. **Next:** FO-GUI-025 Phase 5 (KPI bugs: NDAQ P&L sign, paper KPIs ignore open position, stop/target $0.00 shows "No stop"; TODO T48).
+
+**Previous (Session 89, 2026-10-24):** **Account equity snapshots, Phase 3 of 5 (Feature, EXE; FO-EXE-020 under FO-GUI-025; RN-EXE-1.35.0-20261024).** New `equity_snapshots` table (user, 5-minute slot). App saves every user's equity every 5 minutes while NYSE is open, plus one closing point at 16:00 ET; daily prune keeps 30 days. `AppService.get_equity_snapshots(since_iso)` for the viewing user. SRD-EXE-020.001–.006 Implemented (user-approved 2026-10-24); 17 UT Pass; execution+gui+core+integration+infrastructure 996 passed. Code is on branch feat/gui-dashboard-tiles, NOT committed. Known limit: paper equity is still Max Capital until Phase 5. **Next:** FO-GUI-025 Phase 4 (Performance band: equity graph from snapshots for 1D and closed trades for 1W/1M/3M/YTD, shown by default, toggle; Exposure tab vertical bars).
 
 **Previous (Session 89, 2026-10-24):** **Dashboard tile buttons, Phase 2 of 5 (Feature, GUI; FO-GUI-025; RN-GUI-1.26.0-20261024).** Open Positions: symbol filter ("2 of 5" count) and Columns menu (hidden columns remembered by name). Trade History: range (Today / 7 / 30 days / All) and state menus, CSV export. Market Watch tile: ✕ removes a symbol. SRD-GUI-025.008–.012 Implemented (user-approved 2026-10-24); 12 UT Pass; GUI suite 373 passed. Code is on branch feat/gui-dashboard-tiles, NOT committed or pushed. **Next:** FO-GUI-025 Phase 3 (equity snapshot table every 5 min, EXE).
 
@@ -386,7 +388,7 @@ Previous (Session 87, 2026-10-23): **Screener Option A polish (FO-GUI-022, RN-GU
 | DD | `docs/execution/DD.md` | Draft v1.7.0 | DD-EXE-011.* (4 designs) and DD-EXE-012.* (2 designs); 21 items total; FO-EXE-011/012 designs Approved |
 | MD | `docs/execution/MD.md` | Draft v1.6.0 | MD-EXE-015.001–003 (order_ingestion, broker_adapter, broker_factory modules); 26 modules total |
 | UTCD | `docs/execution/UTCD.md` | Draft v1.2.0 | Tests for FO-EXE-011/012: 67 cases (38+29) all Pass; test_fill_arriving_before_acceptance_is_not_dropped regression added; 142 total cases specified |
-| TRACE | `docs/execution/TRACE.md` | Draft v1.14.0 — **updated** | FO-EXE-015 row added (Implemented, RN-EXE-1.19.0-20260608); Last Updated 2026-06-08 |
+| TRACE | `docs/execution/TRACE.md` | Draft v1.23.0 — **updated** | FO-EXE-020 Implemented (RN-EXE-1.35.0-20261024, RN-EXE-1.36.0-20261024); Last Updated 2026-10-24 |
 
 ### GUI (NEW — created)
 
@@ -397,7 +399,7 @@ Previous (Session 87, 2026-10-23): **Screener Option A polish (FO-GUI-022, RN-GU
 | DD | `docs/gui/DD.md` | Draft v1.2.0 | 9 DDs across FO-GUI-001, 002, 004, 007, 011, 012, 014; FO-GUI-011/012 DD Approved |
 | MD | `docs/gui/MD.md` | Draft v1.0.0 | 15 modules; FO-GUI-004 now includes pending_signals_table_model.py (new); MD-GUI-014 (3 modules) for Active Cycles |
 | UTCD | `docs/gui/UTCD.md` | Draft v1.1.0 | 81 test cases; FO-GUI-004/012/014 test specs updated |
-| TRACE | `docs/gui/TRACE.md` | Draft v1.4.0 — **updated** | FO-GUI-004 updated with pending_signals_table_model.py and RN-EXE-1.8.0-20260527; FO-GUI-012/014 rows remain; 2 files Implemented, 13 Draft, 1 Approved. FO-GUI-025 Phases 1–2 Implemented (RN-GUI-1.25.0-20261024, RN-GUI-1.26.0-20261024) |
+| TRACE | `docs/gui/TRACE.md` | Draft v1.4.0 — **updated** | FO-GUI-004 updated with pending_signals_table_model.py and RN-EXE-1.8.0-20260527; FO-GUI-012/014 rows remain; 2 files Implemented, 13 Draft, 1 Approved. FO-GUI-025 Phases 1–4 Implemented (RN-GUI-1.25.0-20261024 to RN-GUI-1.27.0-20261024) |
 
 ### Indicator Rule Library (FO-SCR-013 / FO-GUI-015)
 

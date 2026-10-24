@@ -75,12 +75,18 @@ if TYPE_CHECKING:
     from us_swing.execution.intraday_candle_loader import IntradayCandleLoader
     from us_swing.execution.live_bar_worker import LiveBarWorker
     from us_swing.execution.live_tick_worker import LiveTickWorker
-    from us_swing.execution.equity_snapshot import EquitySnapshot, EquitySnapshotRepository
+    from us_swing.execution.equity_snapshot import (
+        CurvePoint,
+        EquitySnapshot,
+        EquitySnapshotRepository,
+    )
     from us_swing.execution.trade_cycle import CycleSnapshot, StrategyPnlSummary
     from us_swing.gui.telegram_commands import TelegramCommandBridge
     from us_swing.universe.store import Sp500Meta
 
 _log = logging.getLogger(__name__)
+
+_CURVE_DAYS = {"1W": 7, "1M": 30, "3M": 90}
 
 from PyQt6.QtCore import QObject, QThread, QTimer, pyqtSignal
 
@@ -2856,6 +2862,50 @@ class AppService(QObject):
         except Exception as exc:
             _log.warning("[Equity] Could not read equity snapshots: %s", exc)
             return ()
+
+    def get_equity_curve(self, range_key: str,
+                         now: datetime.datetime | None = None) -> tuple[CurvePoint, ...]:
+        """Equity curve of the viewing scope for "1D", "1W", "1M", "3M" or "YTD" (SRD-EXE-020.008).
+
+        1D comes from today's 5-minute snapshots plus a live point now; longer ranges step at
+        each closed trade. Day and year boundaries use the configured market time zone.
+        """
+        from zoneinfo import ZoneInfo
+
+        from us_swing.execution.equity_snapshot import CurvePoint, curve_from_closed
+        fmt = "%Y-%m-%dT%H:%M:%S"
+        utc = datetime.timezone.utc
+        now_utc = (now or datetime.datetime.now(utc)).astimezone(utc)
+        try:
+            zone = ZoneInfo(self.get_system_config().market_timezone)
+        except Exception:
+            zone = _ET
+        midnight_et = now_utc.astimezone(zone).replace(hour=0, minute=0, second=0, microsecond=0)
+        if range_key == "1D":
+            snaps = self.get_equity_snapshots(midnight_et.astimezone(utc).strftime(fmt))
+            if not snaps:
+                return ()
+            live = CurvePoint(now_utc.strftime(fmt), self.get_account_state().equity)
+            return tuple(CurvePoint(s.taken_at, s.equity) for s in snaps) + (live,)
+        if range_key == "YTD":
+            start = midnight_et.replace(month=1, day=1).astimezone(utc)
+        elif range_key in _CURVE_DAYS:
+            start = now_utc - datetime.timedelta(days=_CURVE_DAYS[range_key])
+        else:
+            return ()
+        if self._tc_query is None:
+            return ()
+        start_iso, end_iso = start.strftime(fmt), now_utc.strftime(fmt)
+        try:
+            cycles = self._tc_query.closed_between(start_iso, end_iso)
+        except Exception as exc:
+            _log.warning("[Equity] Could not read closed trades for the equity graph: %s", exc)
+            return ()
+        uid = self._viewing_uid
+        if uid is not None:
+            cycles = [c for c in cycles if c.user_id == uid]
+        equity = self.get_account_state().equity
+        return curve_from_closed(cycles, equity, start_iso, end_iso)
 
     # ── System config ─────────────────────────────────────────────────────────
 

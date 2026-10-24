@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.18.0: UT-EXE-020.007–.008 added (6 tests, equity curve).
 > v1.17.0: UT-EXE-020.* added (17 tests, FO-EXE-020 Account Equity Snapshots).
 > v1.16.0: UT-EXE-019.* added (14 tests, FO-EXE-019 Strategy P&L History).
 > v1.15.0: UT-EXE-018.* added (54 tests, FO-EXE-018 Short Trade Direction) — direction storage, side and risk-level helpers, conflict guard, direction-aware order placement and ingestion, SHORT P&L / trailing / exit triggers / risk invariants, signed position P&L.
@@ -903,3 +904,9 @@
 | UT-EXE-020.005.M02.T01 | MD-EXE-020.004.M02 | Positive | Daily prune | 53-day-old row; two checks on one day | one "Removed 1" log; old row gone | Pass |
 | UT-EXE-020.002.M01.T04 | MD-EXE-020.001.M01 | Edge | Naive time read as UTC | 13:33 without zone | 13:30:00 | Pass |
 | UT-EXE-020.001.M01.T02 | MD-EXE-020.001.M01 | Positive | Schema create and drop include the table | `create_schema`, `drop_schema` | table present, then gone | Pass |
+| UT-EXE-020.007.M01.T01 | MD-EXE-020.001.M01 | Positive | Curve steps and ends at equity | closes +50 then −20 (out of order); equity 1030 | 1000, 1050, 1030, 1030 | Pass |
+| UT-EXE-020.007.M01.T02 | MD-EXE-020.001.M01 | Negative | Cycles without P&L or close time | P&L None; close time None | flat start and end at 500 | Pass |
+| UT-EXE-020.008.M02.T01 | MD-EXE-020.004.M02 | Positive | 1D from today's snapshots plus live point | yesterday + two today; equity 1030; then no snapshots | 1000, 1010, 1030 at now; then empty | Pass |
+| UT-EXE-020.008.M02.T02 | MD-EXE-020.004.M02 | Positive | 1W from the viewing user's closes | user 1 +30, user 2 +500; viewing user 1 | 1000, 1030, 1030; start 7 days back | Pass |
+| UT-EXE-020.008.M02.T03 | MD-EXE-020.004.M02 | Edge | YTD start | 24 Oct 2026 | starts 2026-01-01T05:00:00 UTC | Pass |
+| UT-EXE-020.008.M02.T04 | MD-EXE-020.004.M02 | Negative | Unknown range or no ledger | "5Y"; `_tc_query` None | empty | Pass |

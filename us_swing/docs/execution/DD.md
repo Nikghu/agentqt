@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.20.0: DD-EXE-020.001.D01 gains the equity curve (SRD-EXE-020.007–.008).
 > v1.19.0: DD-EXE-020.001.D01 added — Account Equity Snapshots.
 > v1.18.0: DD-EXE-019.001.D01 added — Strategy P&L History read, summary and app accessor.
 > v1.17.0: DD-EXE-018.001/.003/.006/.007/.012/.013.D01 added — Short Trade Direction: stored direction, shared side and risk-level helpers, order-state by entry/exit, direction-aware cycle maths, opposite-direction guard, signed position P&L.
@@ -4090,3 +4091,5 @@ read logs `[Strategy] Could not load P&L history for %s` and returns `StrategyPn
 **Read accessor.** `get_equity_snapshots(since_iso)` → `between(since_iso, user_id=_viewing_uid)`; empty tuple when the store is missing or the read fails (warning logged).
 
 **Known limit.** Paper `equity` is the user's Max Capital until the paper-equity fix (FO-GUI-025 Phase 5); `unrealised_pnl` is stored separately so the curve can be drawn meanwhile.
+
+**Curve (SRD-EXE-020.007–.008).** `curve_from_closed(cycles, end_equity, start_iso, end_iso)`: keep cycles with `realized_pnl_usd` and `closed_at`, sort by `closed_at`, start value = `end_equity − Σ pnl`, one `CurvePoint(closed_at, running value)` per close, first point at `start_iso`, last `CurvePoint(end_iso, end_equity)`. `AppService.get_equity_curve(range_key, now=None)`: day boundaries in the configured market time zone (falls back to `America/New_York`). "1D" = `get_equity_snapshots(midnight)` equity values plus a live `CurvePoint(now, get_account_state().equity)` (empty when there are no snapshots). "1W" / "1M" / "3M" = now − 7 / 30 / 90 days, "YTD" = 1 January midnight; `_tc_query.closed_between(start, now)` filtered to the viewing user, end value = current equity. Unknown key, missing ledger or a read error (warning) → empty tuple. The curve leaves out unrealised P&L and cash movements.

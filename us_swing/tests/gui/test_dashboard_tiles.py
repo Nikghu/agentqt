@@ -10,9 +10,17 @@ from PyQt6.QtCore import QSettings
 from PyQt6.QtWidgets import QLabel
 
 from us_swing.data.models import AccountState
+from us_swing.execution.equity_snapshot import CurvePoint
 from us_swing.execution.trade_cycle import StrategyPnlSummary
 from us_swing.gui._types import OpenPosition
 from us_swing.gui.dashboard_tiles import ROW_H, TILES, KpiStrip, StrategyPnlList, Tile, TileGrid
+from us_swing.gui.performance_band import (
+    ExposureView,
+    PerformanceBand,
+    change_text,
+    exposure_bars,
+    MAX_BARS,
+)
 
 
 def _pos(symbol: str, avg: float, cur: float, qty: int = 10, side: str = "LONG") -> OpenPosition:
@@ -110,6 +118,7 @@ def _service(positions: list[OpenPosition]) -> MagicMock:
     svc.get_watchlist_items.return_value = []
     svc.get_strategy_pnl.return_value = StrategyPnlSummary(today=8.55)
     svc.get_open_symbols_for_strategy.return_value = ["NDAQ"]
+    svc.get_equity_curve.return_value = ()
     return svc
 
 
@@ -343,3 +352,119 @@ def test_watch_columns_survive_reload(qtbot, settings):
     panel._watch_list.reload()
     view = panel._watch_list.table_view
     assert view.isColumnHidden(4) and not view.isColumnHidden(panel._watch_list._model.remove_col)
+
+
+# ── Phase 4: Performance band and Exposure tab (SRD-GUI-025.013–.015) ─────────
+
+_CURVE = (CurvePoint("2026-10-24T13:30:00", 25_000.0),
+          CurvePoint("2026-10-24T14:00:00", 25_041.75))
+
+
+def test_change_text_for_range():
+    """UT-GUI-025.013.M03.T01: Change shows amount, percent and the range words."""
+    assert change_text(_CURVE, "1D") == ("+$41.75 (+0.17%) today", pytest.approx(41.75))
+    down = (_CURVE[1], _CURVE[0])
+    assert change_text(down, "1W")[0] == "−$41.75 (−0.17%) this week"
+
+
+def test_change_text_needs_two_points():
+    """UT-GUI-025.013.M03.T02: Fewer than two points gives no change text."""
+    assert change_text(_CURVE[:1], "1D") == ("", 0.0)
+
+
+def test_band_shows_value_change_and_chart(qtbot):
+    """UT-GUI-025.013.M03.T03: Band shows equity, change and passes points to the chart."""
+    band = PerformanceBand()
+    qtbot.addWidget(band)
+    band.set_range("3M")
+    band.show_curve(_CURVE, lambda iso: iso[11:16])
+    assert band.range_key == "3M"
+    assert band.value_lbl.text() == "$25,041.75"
+    assert band.change_lbl.text().endswith("in 3 months")
+    assert len(band.chart.points) == 2
+
+
+def test_band_unknown_range_falls_back(qtbot):
+    """UT-GUI-025.013.M03.T04: An unknown saved range selects 1D; empty curve has no change."""
+    band = PerformanceBand()
+    qtbot.addWidget(band)
+    band.set_range("5Y")
+    band.show_curve((), str)
+    assert band.range_key == "1D"
+    assert band.change_lbl.text() == ""
+    assert band.value_lbl.text() == "—"
+
+
+def test_exposure_bars_sum_and_sort():
+    """UT-GUI-025.015.M03.T01: Value per symbol and side, largest first, entry price fallback."""
+    bars = exposure_bars([_pos("NDAQ", 100, 103.23, qty=19), _pos("MSFT", 431.2, 427.9, 5, "SHORT"),
+                          _pos("NDAQ", 100, 103.23, qty=1), _pos("AMD", 160.0, 0.0, qty=20)])
+    assert [(b.symbol, b.side) for b in bars] == [("AMD", "Long"), ("MSFT", "Short"),
+                                                  ("NDAQ", "Long")]
+    assert bars[0].value == pytest.approx(3200.0)
+    assert bars[2].value == pytest.approx(2064.6)
+
+
+def test_exposure_view_totals_and_percent(qtbot):
+    """UT-GUI-025.015.M03.T02: Totals and % of equity labels; no equity shows a dash."""
+    view = ExposureView()
+    qtbot.addWidget(view)
+    positions = [_pos("AAPL", 200, 200.0, qty=10), _pos("MSFT", 400, 400.0, 5, "SHORT")]
+    view.show_positions(positions, 10_000.0, as_percent=True)
+    assert view.values["Long"].text() == "$2,000"
+    assert view.values["Short"].text() == "$2,000"
+    assert view.values["Net"].text() == "$0"
+    assert view.values["Gross ÷ Equity"].text() == "40.0%"
+    assert view.chart.labels == ["20.0%", "20.0%"]
+    view.show_positions(positions, 0.0, as_percent=True)
+    assert view.values["Gross ÷ Equity"].text() == "—"
+    assert view.chart.labels == ["$2,000", "$2,000"]
+
+
+def test_band_shown_by_default_and_toggle_remembered(qtbot, settings):
+    """UT-GUI-025.014.M02.T01: Band open on first start; hiding it is remembered."""
+    panel = _panel(qtbot, _service([]), settings)
+    assert not panel._perf_card.isHidden() and panel._perf_btn.isChecked()
+    panel._perf_btn.click()
+    assert panel._perf_card.isHidden()
+    again = _panel(qtbot, _service([]), settings)
+    assert again._perf_card.isHidden() and not again._perf_btn.isChecked()
+
+
+def test_band_range_asks_service_and_is_remembered(qtbot, settings):
+    """UT-GUI-025.013.M02.T01: Picking 1W asks for the 1W curve and is kept for next start."""
+    svc = _service([])
+    svc.get_equity_curve.return_value = _CURVE
+    panel = _panel(qtbot, svc, settings)
+    panel._perf_band.ranges.buttons[1].click()
+    svc.get_equity_curve.assert_called_with("1W")
+    assert panel._perf_band.chart.points == _CURVE
+    again = _panel(qtbot, _service([]), settings)
+    assert again._perf_band.range_key == "1W"
+
+
+def test_exposure_tab_swaps_view_and_tools(qtbot, settings):
+    """UT-GUI-025.015.M02.T01: Exposure tab shows bars and the unit switch, hides filter tools."""
+    panel = _panel(qtbot, _service([_pos("NDAQ", 100, 101, qty=19)]), settings)
+    panel._pos_tabs.buttons[1].click()
+    assert panel._pos_stack.currentWidget() is panel._exposure
+    assert panel._filter_btn.isHidden() and panel._cols_btn.isHidden()
+    assert not panel._expo_units.isHidden()
+    assert panel._exposure.chart.labels == ["$1,919"]
+    panel._expo_units.buttons[1].click()
+    assert panel._exposure.chart.labels == ["7.7%"]
+    panel._pos_tabs.buttons[0].click()
+    assert panel._pos_stack.currentWidget() is panel._pos_view
+    assert not panel._filter_btn.isHidden() and panel._expo_units.isHidden()
+
+
+def test_many_symbols_grouped_into_others(qtbot):
+    """UT-GUI-025.015.M03.T03: Beyond 8 bars the smallest join one "others" bar; totals stay whole."""
+    positions = [_pos(f"S{i}", 10, 10.0 + i, qty=10) for i in range(12)]
+    bars = exposure_bars(positions)
+    assert len(bars) == MAX_BARS
+    assert bars[-1].symbol == "5 others" and bars[-1].side == "Mixed"
+    view = ExposureView()
+    qtbot.addWidget(view)
+    view.show_positions(positions, 0.0, as_percent=False)
+    assert view.values["Long"].text() == f"${sum(100 + 10 * i for i in range(12)):,}"

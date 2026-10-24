@@ -53,7 +53,7 @@
 | FO-EXE-005 | SRD-EXE-005.001–003 (Reopen) | DD-EXE-005.001.D01 | MD-EXE-002.001.M01 | UT-EXE-005.001.M01.T01–T05 | `execution/position_tracker.py` | Reopen | RN-EXE-1.14.0-20260528 |
 | FO-EXE-018 | SRD-EXE-018.001–016 | DD-EXE-018.001.D01, .003.D01, .006.D01, .007.D01, .012.D01, .013.D01 | MD-EXE-018.001.M01–018.012.M10 | UT-EXE-018.001.M02.T01–03, .002.M03.T01–03, .003–.004.M04.T01–05, .005/.012/.014.M05.T01–10, .005.M06.T01–03, .006/.015.M07.T01–04, .007–.011.M08.T01–17, .016.M08.T01–02, .013.M09.T01–03, .012/.013.M10.T01–04; IT-EXE-018.001–002 | `execution/{_enums,direction,broker_adapter,signal_bridge,order_ingestion}.py`, `execution/strategy_engine/{_signals,_router,_context,_engine}.py`, `execution/trade_cycle/{_schema,_dto,_repository,_service,_protocols}.py`, `db/schema.py`, `data/models.py`, `gui/{strategy_store,app_service}.py` | Implemented | RN-EXE-1.33.0-20260917 (.016 pending RN) |
 | FO-EXE-019 | SRD-EXE-019.001–004 | DD-EXE-019.001.D01 | MD-EXE-019.001.M01, .002.M02, .004.M03 | UT-EXE-019.001.M01.T01–04, .003.M01.T05, .002.M02.T01–07, .004.M03.T01–02 | `execution/trade_cycle/{_repository,_protocols,_service,_schema,_pnl_history,__init__}.py`, `db/schema.py`, `gui/app_service.py` | Implemented | RN-EXE-1.34.0-20261023 |
-| FO-EXE-020 | SRD-EXE-020.001–006 | DD-EXE-020.001.D01 | MD-EXE-020.001.M01, .004.M02 | UT-EXE-020.001.M01.T01–T02, .002.M01.T01–T04, .003.M01.T01–T03, .005.M01.T01, .005.M02.T01, .004.M02.T01–T05, .006.M02.T01 | `execution/equity_snapshot.py`, `gui/app_service.py`, `db/schema.py` | Implemented | RN-EXE-1.35.0-20261024 |
+| FO-EXE-020 | SRD-EXE-020.001–008 | DD-EXE-020.001.D01 | MD-EXE-020.001.M01, .004.M02 | UT-EXE-020.001.M01.T01–T02, .002.M01.T01–T04, .003.M01.T01–T03, .005.M01.T01, .005.M02.T01, .004.M02.T01–T05, .006.M02.T01, .007.M01.T01–T02, .008.M02.T01–T04 | `execution/equity_snapshot.py`, `gui/app_service.py`, `db/schema.py` | Implemented | RN-EXE-1.35.0-20261024, RN-EXE-1.36.0-20261024 |
 
 ---
 
@@ -91,7 +91,7 @@
 | `execution/trade_cycle/__init__.py` | MD-EXE-012.001.M05 | SRD-EXE-012.001, 010–012 | FO-EXE-012 |
 | `execution/direction.py` | MD-EXE-018.003.M04 | SRD-EXE-018.003–004 | FO-EXE-018 |
 | `execution/trade_cycle/_pnl_history.py` | MD-EXE-019.002.M02 | SRD-EXE-019.002 | FO-EXE-019 |
-| `execution/equity_snapshot.py` | MD-EXE-020.001.M01 | SRD-EXE-020.001–003, .005 | FO-EXE-020 |
+| `execution/equity_snapshot.py` | MD-EXE-020.001.M01 | SRD-EXE-020.001–003, .005, .007 | FO-EXE-020 |
 
 ---
 

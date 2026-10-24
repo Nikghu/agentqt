@@ -1,14 +1,16 @@
 """
 Module: MD-EXE-020.001.M01 — execution/equity_snapshot.py
-Parent SRD: SRD-EXE-020.001 — SRD-EXE-020.003, SRD-EXE-020.005
+Parent SRD: SRD-EXE-020.001 — SRD-EXE-020.003, SRD-EXE-020.005, SRD-EXE-020.007
 
 Account equity saved every 5 minutes per user, so the dashboard can draw an
 intraday equity curve. Rows live in the shared ``candles.db`` SQLite file.
 """
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from typing import Protocol
 
 import sqlalchemy as sa
 from sqlalchemy import Engine
@@ -40,6 +42,40 @@ class EquitySnapshot:
     equity: float
     cash: float
     unrealised_pnl: float
+
+
+@dataclass(frozen=True, slots=True)
+class CurvePoint:
+    """One point of the equity curve drawn on the dashboard."""
+
+    at: str
+    value: float
+
+
+class _ClosedCycle(Protocol):
+    @property
+    def closed_at(self) -> str | None: ...
+    @property
+    def realized_pnl_usd(self) -> float | None: ...
+
+
+def curve_from_closed(cycles: Iterable[_ClosedCycle], end_equity: float, start_iso: str,
+                      end_iso: str) -> tuple[CurvePoint, ...]:
+    """Equity curve that ends at ``end_equity`` and steps at each close (SRD-EXE-020.007).
+
+    The start value is ``end_equity`` minus the realised P&L of the closes in the range.
+    """
+    closes = sorted(
+        (c for c in cycles if c.realized_pnl_usd is not None and c.closed_at),
+        key=lambda c: str(c.closed_at),
+    )
+    value = end_equity - sum(float(c.realized_pnl_usd or 0.0) for c in closes)
+    points = [CurvePoint(start_iso, value)]
+    for cycle in closes:
+        value += float(cycle.realized_pnl_usd or 0.0)
+        points.append(CurvePoint(str(cycle.closed_at), value))
+    points.append(CurvePoint(end_iso, end_equity))
+    return tuple(points)
 
 
 def slot_iso(moment: datetime) -> str:
@@ -118,6 +154,8 @@ class EquitySnapshotRepository:
 
 
 __all__ = [
+    "CurvePoint",
+    "curve_from_closed",
     "EquitySnapshot",
     "EquitySnapshotRepository",
     "equity_snapshots",

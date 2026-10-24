@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.21.0: UT-GUI-025.013–.015 added — Performance band and Exposure tab (Phase 4).
 > v1.20.0: UT-GUI-025.008–.012 added — tile buttons (Phase 2).
 > v1.19.0: UT-GUI-025.* added — dashboard tiled workspace (Phase 1).
 > v1.18.0: UT-GUI-023.* added — card layout.
@@ -633,3 +634,13 @@ Test files:
 | UT-GUI-025.012.M01.T01 | MD-GUI-002.001.M01 | Positive | ✕ removes that symbol | click ✕ on MSFT row | `remove_from_watchlist("MSFT")` | Pass |
 | UT-GUI-025.012.M01.T02 | MD-GUI-002.001.M01 | Negative | Other cell removes nothing | click Symbol cell | not called; right-panel model has no ✕ | Pass |
 | UT-GUI-025.012.M01.T03 | MD-GUI-002.001.M01 | Edge | Tile watchlist keeps hidden columns after new quotes | reload | Open column hidden; ✕ shown | Pass |
+| UT-GUI-025.013.M03.T01 | MD-GUI-025.013.M03 | Positive | Change text for the range | 25,000 → 25,041.75, 1D; reversed, 1W | "+$41.75 (+0.17%) today"; "−$41.75 (−0.17%) this week" | Pass |
+| UT-GUI-025.013.M03.T02 | MD-GUI-025.013.M03 | Edge | One point gives no change | one point | "", 0 | Pass |
+| UT-GUI-025.013.M03.T03 | MD-GUI-025.013.M03 | Positive | Band shows value, change and chart | 3M, two points | "$25,041.75"; text ends "in 3 months"; chart has 2 points | Pass |
+| UT-GUI-025.013.M03.T04 | MD-GUI-025.013.M03 | Negative | Unknown range and empty curve | "5Y"; no points | range 1D; no change text; value "—" | Pass |
+| UT-GUI-025.015.M03.T01 | MD-GUI-025.013.M03 | Positive | Bars per symbol and side, largest first | NDAQ twice, MSFT short, AMD with no quote | AMD, MSFT Short, NDAQ; AMD at entry price | Pass |
+| UT-GUI-025.015.M03.T02 | MD-GUI-025.013.M03 | Positive | Totals and percent labels | long 2,000, short 2,000, equity 10,000; then equity 0 | Net $0, Gross 40.0%, labels 20.0%; then "—" and $ labels | Pass |
+| UT-GUI-025.015.M03.T03 | MD-GUI-025.013.M03 | Edge | Many symbols grouped | 12 symbols | 8 bars, last "5 others"; Long total over all 12 | Pass |
+| UT-GUI-025.014.M02.T01 | MD-GUI-025.001.M02 | Positive | Band open by default; hiding remembered | first start; click Performance; new panel | shown; hidden; still hidden | Pass |
+| UT-GUI-025.013.M02.T01 | MD-GUI-025.001.M02 | Positive | Range asks the service and is remembered | click 1W | `get_equity_curve("1W")`; chart points set; new panel on 1W | Pass |
+| UT-GUI-025.015.M02.T01 | MD-GUI-025.001.M02 | Positive | Exposure tab swaps view and tools | click Exposure, % Equity, back | bars "$1,919" then "7.7%"; filter tools hidden then shown | Pass |
