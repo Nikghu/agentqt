@@ -16,10 +16,10 @@ from PyQt6.QtCore import QPointF, QRectF, QSettings, QSize, Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap, QPolygonF
 from PyQt6.QtWidgets import (
     QButtonGroup,
+    QDialog,
     QHBoxLayout,
     QLabel,
     QMenu,
-    QMessageBox,
     QPushButton,
     QVBoxLayout,
     QWidget,
@@ -31,7 +31,7 @@ from us_swing.gui.chart_drawings import Drawing
 from us_swing.gui.chart_inspector import ChartContext, Inspector, TradePlan, plan_rr
 from us_swing.gui.chart_panel import CandleChartPanel
 from us_swing.gui.chart_source_list import SourceList
-from us_swing.gui.icons import set_icon
+from us_swing.gui.icons import icon, set_icon
 from us_swing.gui.screener_views import ChipGroup
 from us_swing.gui.theme import C, active_palette
 
@@ -42,6 +42,7 @@ DRAW_TOOLS: tuple[tuple[str, str], ...] = (
     ("hline", "Horizontal line"),
     ("trend", "Trend line"),
     ("rect", "Rectangle"),
+    ("erase", "Eraser — click a drawing to delete it"),
 )
 
 
@@ -51,8 +52,10 @@ def tool_icon(tool: str) -> QIcon:
     The bundled icon set has no line or pointer shapes, and text glyphs are cut off
     by the button padding at this width.
     """
+    if tool == "erase":
+        return icon("eraser")
     ct: Any = active_palette()
-    icon = QIcon()
+    result = QIcon()
     for size in (16, 32):
         pixmap = QPixmap(size, size)
         pixmap.fill(Qt.GlobalColor.transparent)
@@ -75,8 +78,8 @@ def tool_icon(tool: str) -> QIcon:
                                            QPointF(10.2, 13.6), QPointF(8.6, 14.3),
                                            QPointF(6.6, 10.1), QPointF(4, 12.6)]))
         painter.end()
-        icon.addPixmap(pixmap)
-    return icon
+        result.addPixmap(pixmap)
+    return result
 
 TIMEFRAMES: tuple[tuple[str, str], ...] = (("1D", "1d"), ("1W", "1w"))
 DEFAULT_OVERLAYS: list[tuple[str, int]] = [("sma", 20), ("sma", 50)]
@@ -138,6 +141,7 @@ class ChartWorkspace(QWidget):
         self.chart.enable_drawing()
         self.chart.chart_loaded.connect(self._on_chart_loaded)
         self.chart.drawing_added.connect(self._on_drawing_added)
+        self.chart.drawing_deleted.connect(self._on_drawing_deleted)
         self._drawings: list[Drawing] = []
         column = QWidget()
         col = QVBoxLayout(column)
@@ -190,7 +194,7 @@ class ChartWorkspace(QWidget):
             column.addWidget(button)
         self.tool_buttons[""].setChecked(True)
         self.clear_btn = QPushButton()
-        set_icon(self.clear_btn, "eraser", "danger")
+        set_icon(self.clear_btn, "trash-2", "danger")
         self.clear_btn.setToolTip("Delete all drawings")
         self.clear_btn.setAccessibleName("Delete all drawings")
         self.clear_btn.setFixedWidth(C.BTN_H + 4)
@@ -221,12 +225,30 @@ class ChartWorkspace(QWidget):
     def _on_clear_clicked(self) -> None:
         if not self._drawings:
             return
-        answer = QMessageBox.question(
-            self, "Delete Drawings",
+        # Imported here: the module pulls in the execution package, which must not load
+        # before the app has set up the database modules.
+        from us_swing.gui.active_cycles_panel import _ConfirmDialog
+
+        dialog = _ConfirmDialog(
+            "DELETE DRAWINGS",
             f"Delete all {len(self._drawings)} drawing(s) on "
-            f"{self.chart.current_symbol} {self.timeframe.upper()}?")
-        if answer == QMessageBox.StandardButton.Yes:
+            f"{self.chart.current_symbol} {self.timeframe.upper()}?\n"
+            "To delete one drawing, pick the Eraser and click it.",
+            confirm_text="Delete all", accent=C.RED, parent=self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
             self.clear_drawings()
+
+    def _on_drawing_deleted(self, drawing_id: int) -> None:
+        store = self._svc.get_drawing_store()
+        if store is not None:
+            try:
+                store.delete(self._user_id(), drawing_id)
+            except Exception:  # noqa: BLE001
+                _log.warning("[Charts] Could not delete the drawing")
+                _log.debug("[Charts] Delete drawing failed", exc_info=True)
+                return
+        self._drawings = [d for d in self._drawings if d.id != drawing_id]
+        self.chart.set_drawings([d.to_js() for d in self._drawings])
 
     def _on_drawing_added(self, drawing: Drawing) -> None:
         ct: Any = active_palette()

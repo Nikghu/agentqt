@@ -696,4 +696,5 @@ Test files:
 | UT-GUI-026.011.M04.T05 | MD-GUI-026.012.M04 | Positive | Bridge turns page JSON into a drawing | rect JSON; hline with NaN price | `Drawing("rect", …)` emitted; NaN → None | Pass |
 | UT-GUI-026.011.M01.T01 | MD-GUI-026.001.M01 | Positive | Finished drawing is saved, tool resets, drawing comes back | Trend tool; drawing added; open AAPL then NVDA | saved with colour; pointer checked; AAPL none; NVDA drawing back | Pass |
 | UT-GUI-026.011.M01.T02 | MD-GUI-026.001.M01 | Positive | Delete all clears the chart and the database | one hline; `clear_drawings()` | chart and store empty | Pass |
+| UT-GUI-026.011.M01.T03 | MD-GUI-026.001.M01 | Positive | Eraser deletes only the clicked drawing | hline + trend; Eraser; page deletes the hline | trend kept on chart and in store; Eraser stays on | Pass |
 | UT-GUI-026.012.M01.T05 | MD-GUI-026.001.M01 | Negative | Save failure keeps the drawing on screen | table dropped; drawing added | drawing shown; "[Charts] Could not save drawing" logged | Pass |

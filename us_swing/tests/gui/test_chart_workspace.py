@@ -260,6 +260,19 @@ def test_clear_drawings(svc, workspace):
     assert svc.drawings.load(1, "NVDA", "1d") == []
 
 
+def test_eraser_deletes_one_drawing(svc, workspace):
+    """UT-GUI-026.011.M01.T03: Eraser deletes only the clicked drawing."""
+    workspace.open_symbol("NVDA")
+    workspace.chart.drawing_added.emit(Drawing("hline", ((1.0, 100.0),)))
+    workspace.chart.drawing_added.emit(Drawing("trend", ((1.0, 100.0), (2.0, 110.0))))
+    first, second = svc.drawings.load(1, "NVDA", "1d")
+    workspace.tool_buttons["erase"].click()
+    workspace.chart._bridge.delete_drawing(first.id)
+    assert workspace.chart._drawings == [second.to_js()]
+    assert svc.drawings.load(1, "NVDA", "1d") == [second]
+    assert workspace.chart._tool == "erase"   # stays on to erase more
+
+
 def test_save_failure_keeps_drawing(svc, workspace, caplog):
     """UT-GUI-026.012.M01.T05: Save failure logs and keeps the drawing on screen."""
     workspace.open_symbol("NVDA")

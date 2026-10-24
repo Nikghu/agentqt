@@ -127,9 +127,10 @@ class DrawingStore:
 
 
 class ChartBridge(QObject):
-    """Object the chart page calls through QWebChannel when a drawing is finished."""
+    """Object the chart page calls through QWebChannel when a drawing is finished or erased."""
 
     drawing_added = pyqtSignal(object)   # Drawing
+    drawing_deleted = pyqtSignal(int)    # drawing id
 
     @pyqtSlot(str)
     def add_drawing(self, payload: str) -> None:
@@ -138,6 +139,10 @@ class ChartBridge(QObject):
             _log.warning("[Charts] A drawing from the chart could not be read")
             return
         self.drawing_added.emit(drawing)
+
+    @pyqtSlot(int)
+    def delete_drawing(self, drawing_id: int) -> None:
+        self.drawing_deleted.emit(drawing_id)
 
 
 __all__ = [

@@ -624,6 +624,38 @@ def _build_html(
     if (!param.point || (param.paneIndex || 0) > 0) return null;
     return _pointAtXY(param.point.x, param.point.y);
   }}
+  // Eraser: the saved drawing nearest the click, within a few pixels (SRD-GUI-026.011).
+  const HIT_PX = 6;
+  function _segDist(x, y, a, b) {{
+    const dx = b.x - a.x, dy = b.y - a.y, len = dx * dx + dy * dy;
+    const t = len ? Math.max(0, Math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / len)) : 0;
+    return Math.hypot(x - (a.x + t * dx), y - (a.y + t * dy));
+  }}
+  function _hitDrawing(x, y) {{
+    const panes = chart.panes();
+    if (panes.length > 1 && y > panes[0].getHeight()) return null;
+    const ts = chart.timeScale();
+    let best = null, bestDist = HIT_PX;
+    drawn.forEach(p => {{
+      const d = p.d;
+      const pts = d.points.map(q => ({{
+        x: ts.timeToCoordinate(q.time), y: candleSeries.priceToCoordinate(q.price) }}));
+      if (d.id == null || pts.some(q => q.y === null || (d.kind !== 'hline' && q.x === null))) return;
+      let dist;
+      if (d.kind === 'hline') dist = Math.abs(y - pts[0].y);
+      else if (d.kind === 'trend') dist = _segDist(x, y, pts[0], pts[1]);
+      else {{
+        const [a, b] = pts, c = {{ x: a.x, y: b.y }}, e = {{ x: b.x, y: a.y }};
+        dist = Math.min(_segDist(x, y, a, c), _segDist(x, y, c, b),
+                        _segDist(x, y, b, e), _segDist(x, y, e, a));
+        const inside = x > Math.min(a.x, b.x) && x < Math.max(a.x, b.x)
+          && y > Math.min(a.y, b.y) && y < Math.max(a.y, b.y);
+        if (inside) dist = Math.min(dist, HIT_PX - 1);   // the filled box counts too
+      }}
+      if (dist <= bestDist) {{ best = d.id; bestDist = dist; }}
+    }});
+    return best;
+  }}
   function _finish(points) {{
     const d = {{ kind: tool, points: points }};
     _setTool('');
@@ -641,6 +673,11 @@ def _build_html(
     downAt = null;
     if (moved > 5) return;   // a drag pans the chart; it is not a point
     const box = chartEl.getBoundingClientRect();
+    if (tool === 'erase') {{
+      const id = _hitDrawing(e.clientX - box.left, e.clientY - box.top);
+      if (id !== null && bridge) bridge.delete_drawing(id);
+      return;
+    }}
     const pt = _pointAtXY(e.clientX - box.left, e.clientY - box.top);
     if (!pt) return;
     if (tool === 'hline') {{ _finish([pt]); return; }}
@@ -763,6 +800,7 @@ class CandleChartPanel(QWidget):
 
     chart_loaded = pyqtSignal(str, str)   # symbol, timeframe (SRD-GUI-020.001)
     drawing_added = pyqtSignal(object)    # Drawing finished on the page (SRD-GUI-026.011)
+    drawing_deleted = pyqtSignal(int)     # drawing id clicked with the eraser
 
     def __init__(self, svc: AppService, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -925,6 +963,7 @@ class CandleChartPanel(QWidget):
         self._webchannel_js = bytes(source.readAll().data()).decode("utf-8")
         self._bridge = ChartBridge(self)
         self._bridge.drawing_added.connect(self.drawing_added)
+        self._bridge.drawing_deleted.connect(self.drawing_deleted)
         self._channel = QWebChannel(self)
         self._channel.registerObject("bridge", self._bridge)
         page = self._web.page()
@@ -937,7 +976,7 @@ class CandleChartPanel(QWidget):
         self._push_studies()
 
     def set_draw_tool(self, tool: str) -> None:
-        """Pick ``hline``, ``trend`` or ``rect``; ``""`` is the plain pointer."""
+        """Pick ``hline``, ``trend``, ``rect`` or ``erase``; ``""`` is the plain pointer."""
         self._tool = tool
         self._push_studies()
 
