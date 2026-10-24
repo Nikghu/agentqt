@@ -289,6 +289,7 @@ def _build_html(
     layout: {{
       background: {{ color: '{ct.BG}' }},
       textColor: '{ct.TEXT}',
+      panes: {{ separatorColor: '{ct.OVERLAY}' }},
     }},
     grid: {{
       vertLines: {{ color: '{ct.OVERLAY}' }},
