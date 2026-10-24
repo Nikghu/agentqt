@@ -358,6 +358,8 @@ def _build_html(
     scaleMargins: {{ top: 0.1, bottom: 0 }},
   }});
   volSeries.setData(volumeData);
+  // With the RSI pane on, volume moves into the main chart above RSI (applyStudies).
+  let paneVol = null;
 
   // ── Sync time scales ──────────────────────────────────────────────────────
   chart.timeScale().subscribeVisibleLogicalRangeChange(range => {{
@@ -376,7 +378,7 @@ def _build_html(
     const bar = param.seriesData.get(candleSeries);
     if (!bar) return;
     {crosshair_date_js}
-    const vol = param.seriesData.get(volSeries);
+    const vol = param.seriesData.get(paneVol || volSeries);
     const vStr = vol ? (' · Vol ' + Math.round(vol.value).toLocaleString()) : '';
     document.getElementById('bar-info').textContent =
       `${{d}}  O ${{bar.open.toFixed(2)}}  H ${{bar.high.toFixed(2)}}  L ${{bar.low.toFixed(2)}}  C ${{bar.close.toFixed(2)}}${{vStr}}`;
@@ -534,6 +536,7 @@ def _build_html(
     volumeData  = newVolumeData;
     candleSeries.setData(candleData);
     volSeries.setData(volumeData);
+    if (paneVol) paneVol.setData(volumeData);
     if (range !== null) {{
       chart.timeScale().setVisibleLogicalRange(range);
     }}
@@ -603,7 +606,7 @@ def _build_html(
     chartEl.style.cursor = t ? 'crosshair' : '';
   }}
   function _pointAtXY(x, y) {{
-    // Only the price pane (pane 0) takes drawings; the RSI pane sits below it.
+    // Only the price pane (pane 0) takes drawings; volume and RSI panes sit below it.
     const panes = chart.panes();
     if (panes.length > 1 && y > panes[0].getHeight()) return null;
     const time = chart.timeScale().coordinateToTime(x);
@@ -649,6 +652,22 @@ def _build_html(
     if (e.key === 'Escape' && pending) {{ pending = null; _clearPreview(); }}
   }});
 
+  // setHeight shares the change equally among the other panes and shows in getHeight
+  // only after the next layout. So RSI is set first to a height that lands on RSI_H
+  // once volume is set to VOL_H in the next frame.
+  const VOL_H = 80, RSI_H = 110;
+  function _sizeSubPanes() {{
+    requestAnimationFrame(() => {{
+      const panes = chart.panes();
+      if (panes.length < 3) return;
+      const vol = panes[1].getHeight(), rsi = panes[2].getHeight();
+      panes[2].setHeight(Math.round(4 / 3 * (RSI_H + (VOL_H - vol) / 2 - rsi / 4)));
+      requestAnimationFrame(() => {{
+        panes[1].setHeight(VOL_H);
+      }});
+    }});
+  }}
+
   let studySeries = [];
   let planLines = [];
   let markerApi = null;
@@ -674,18 +693,28 @@ def _build_html(
       line.setData(o.data);
       studySeries.push(line);
     }});
-    if (s.rsi && s.rsi.length) {{
+    paneVol = null;
+    const showRsi = !!(s.rsi && s.rsi.length);
+    volEl.style.display = showRsi ? 'none' : '';
+    // Take up the freed space now, so the pane sizing below works on the final height.
+    chart.applyOptions({{ width: chartEl.clientWidth, height: chartEl.clientHeight }});
+    if (showRsi) {{
+      paneVol = chart.addSeries(LightweightCharts.HistogramSeries, {{
+        priceFormat: {{ type: 'volume' }}, priceLineVisible: false,
+      }}, 1);
+      paneVol.priceScale().applyOptions({{ scaleMargins: {{ top: 0.1, bottom: 0 }} }});
+      paneVol.setData(volumeData);
+      studySeries.push(paneVol);
       const rsi = chart.addSeries(LightweightCharts.LineSeries, {{
         color: '{ct.MAUVE}', lineWidth: 1, priceLineVisible: false,
-      }}, 1);
+      }}, 2);
       rsi.setData(s.rsi);
       [70, 30].forEach(v => rsi.createPriceLine({{
         price: v, color: '{ct.OVERLAY2}', lineWidth: 1,
         lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: false,
       }}));
       studySeries.push(rsi);
-      const panes = chart.panes();
-      if (panes.length > 1 && panes[1].setHeight) panes[1].setHeight(110);
+      _sizeSubPanes();
     }}
     const p = s.plan;
     if (!p) return;
