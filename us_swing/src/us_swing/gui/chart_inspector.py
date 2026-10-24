@@ -38,6 +38,7 @@ from us_swing.gui.theme import active_palette
 _log = logging.getLogger(__name__)
 
 _DASH = "—"
+_SPIN_W = 110
 _PERIOD = 14
 _REL_VOL_BARS = 20
 PATTERN_LOOKBACK = 5
@@ -262,9 +263,10 @@ class TradePlanSection(QWidget):
             spin.setRange(0.0, 1_000_000.0)
             spin.setDecimals(2)
             spin.setAccessibleName(key.title())
+            spin.setFixedWidth(_SPIN_W)
             spin.hide()
             self.spins[key] = spin
-            self.rows.grid.addWidget(spin, row, 1)
+            self.rows.grid.addWidget(spin, row, 1, Qt.AlignmentFlag.AlignRight)
         buttons = QHBoxLayout()
         buttons.setSpacing(8)
         self.edit_btn = QPushButton("Edit")
@@ -352,6 +354,8 @@ class TradePlanSection(QWidget):
             spin.setVisible(editing)
             self.rows.values[key].setVisible(not editing)
         self.cancel_btn.setVisible(editing)
+        # Save, Cancel and Send do not fit the Inspector width side by side.
+        self.send_btn.setVisible(not editing)
         self.edit_btn.setText("Save" if editing else "Edit")
         set_icon(self.edit_btn, "save" if editing else "pencil")
 

@@ -143,12 +143,15 @@ def test_edit_updates_values_and_emits(qtbot):
                                      TradePlan(129.8, 124.5, 141.0), 1.0, 40_000))
     section.edit_btn.click()
     assert section.editing
+    assert section.send_btn.isHidden()
+    assert section.minimumSizeHint().width() <= 276   # fits the 310 px Inspector card
     section.spins["stop"].setValue(125.0)
     with qtbot.waitSignal(section.plan_changed) as blocker:
         section.edit_btn.click()
     assert blocker.args[0] == TradePlan(129.8, 125.0, 141.0)
     assert section.rows.values["stop"].text() == "125.00"
     assert not section.editing
+    assert not section.send_btn.isHidden()
 
 
 def test_indicator_values_match_talib(qtbot):
