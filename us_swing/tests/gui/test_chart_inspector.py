@@ -178,8 +178,9 @@ def test_pattern_hits_on_recent_bars(qtbot):
     with qtbot.waitSignal(section.markers_changed) as blocker:
         section.set_context(ChartContext("NVDA", "1d", bars))
     markers = blocker.args[0]
-    engulf = next(m for m in markers if m["text"] == "Bullish Engulfing")
+    engulf = next(m for m in markers if m["id"] == "Bullish Engulfing")
     assert engulf["position"] == "belowBar" and engulf["shape"] == "arrowUp"
+    assert engulf["text"] == ""   # names are listed in the Inspector, not on the chart
     assert [m["time"] for m in markers] == sorted(m["time"] for m in markers)
     assert any("Bullish Engulfing" in label.text() and "2 bars ago" in label.text()
                for label in section.lines)

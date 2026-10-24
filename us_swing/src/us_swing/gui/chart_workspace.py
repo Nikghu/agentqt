@@ -12,7 +12,8 @@ from dataclasses import replace
 from functools import partial
 from typing import Any
 
-from PyQt6.QtCore import QSettings, pyqtSignal
+from PyQt6.QtCore import QPointF, QRectF, QSettings, QSize, Qt, pyqtSignal
+from PyQt6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap, QPolygonF
 from PyQt6.QtWidgets import (
     QButtonGroup,
     QHBoxLayout,
@@ -36,12 +37,46 @@ from us_swing.gui.theme import C, active_palette
 
 _log = logging.getLogger(__name__)
 
-DRAW_TOOLS: tuple[tuple[str, str, str], ...] = (
-    ("", "↖", "Pointer"),
-    ("hline", "―", "Horizontal line"),
-    ("trend", "╱", "Trend line"),
-    ("rect", "▭", "Rectangle"),
+DRAW_TOOLS: tuple[tuple[str, str], ...] = (
+    ("", "Pointer"),
+    ("hline", "Horizontal line"),
+    ("trend", "Trend line"),
+    ("rect", "Rectangle"),
 )
+
+
+def tool_icon(tool: str) -> QIcon:
+    """Line icon for a drawing tool, painted in the theme text colour.
+
+    The bundled icon set has no line or pointer shapes, and text glyphs are cut off
+    by the button padding at this width.
+    """
+    ct: Any = active_palette()
+    icon = QIcon()
+    for size in (16, 32):
+        pixmap = QPixmap(size, size)
+        pixmap.fill(Qt.GlobalColor.transparent)
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.scale(size / 16, size / 16)
+        painter.setPen(QPen(QColor(ct.TEXT), 1.5))
+        if tool == "hline":
+            painter.drawLine(QPointF(1.5, 8), QPointF(14.5, 8))
+        elif tool == "trend":
+            painter.drawLine(QPointF(2, 13.5), QPointF(14, 2.5))
+            painter.setBrush(QColor(ct.TEXT))
+            painter.drawEllipse(QPointF(2.5, 13), 1.4, 1.4)
+            painter.drawEllipse(QPointF(13.5, 3), 1.4, 1.4)
+        elif tool == "rect":
+            painter.drawRect(QRectF(2, 4, 12, 8))
+        else:
+            painter.setBrush(QColor(ct.TEXT))
+            painter.drawPolygon(QPolygonF([QPointF(4, 2), QPointF(12, 9), QPointF(8.2, 9.4),
+                                           QPointF(10.2, 13.6), QPointF(8.6, 14.3),
+                                           QPointF(6.6, 10.1), QPointF(4, 12.6)]))
+        painter.end()
+        icon.addPixmap(pixmap)
+    return icon
 
 TIMEFRAMES: tuple[tuple[str, str], ...] = (("1D", "1d"), ("1W", "1w"))
 DEFAULT_OVERLAYS: list[tuple[str, int]] = [("sma", 20), ("sma", 50)]
@@ -141,8 +176,10 @@ class ChartWorkspace(QWidget):
         self._tool_group = QButtonGroup(self)
         self._tool_group.setExclusive(True)
         self.tool_buttons: dict[str, QPushButton] = {}
-        for tool, text, tip in DRAW_TOOLS:
-            button = QPushButton(text)
+        for tool, tip in DRAW_TOOLS:
+            button = QPushButton()
+            button.setIcon(tool_icon(tool))
+            button.setIconSize(QSize(16, 16))
             button.setCheckable(True)
             button.setToolTip(tip)
             button.setAccessibleName(tip)
@@ -438,4 +475,6 @@ class ChartWorkspace(QWidget):
     def _restyle(self) -> None:
         ct: Any = active_palette()
         self.price_lbl.setStyleSheet(f"color:{ct.TEXT}; font-size:13pt;")
+        for tool, button in self.tool_buttons.items():
+            button.setIcon(tool_icon(tool))
         self.company_lbl.setStyleSheet(f"color:{ct.SUBTEXT}; font-size:8pt;")

@@ -602,22 +602,36 @@ def _build_html(
     tool = t; pending = null; _clearPreview();
     chartEl.style.cursor = t ? 'crosshair' : '';
   }}
+  function _pointAtXY(x, y) {{
+    // Only the price pane (pane 0) takes drawings; the RSI pane sits below it.
+    const panes = chart.panes();
+    if (panes.length > 1 && y > panes[0].getHeight()) return null;
+    const time = chart.timeScale().coordinateToTime(x);
+    const price = candleSeries.coordinateToPrice(y);
+    return (time === null || price === null) ? null : {{ time: time, price: price }};
+  }}
   function _pointAt(param) {{
     if (!param.point || (param.paneIndex || 0) > 0) return null;
-    const time = param.time !== undefined ? param.time
-      : chart.timeScale().coordinateToTime(param.point.x);
-    const price = candleSeries.coordinateToPrice(param.point.y);
-    return (time === null || time === undefined || price === null) ? null
-      : {{ time: time, price: price }};
+    return _pointAtXY(param.point.x, param.point.y);
   }}
   function _finish(points) {{
     const d = {{ kind: tool, points: points }};
     _setTool('');
     if (bridge) bridge.add_drawing(JSON.stringify(d));
   }}
-  chart.subscribeClick(param => {{
-    if (!tool) return;
-    const pt = _pointAt(param);
+  // Read the mouse on the chart element: the library's click event drops a second
+  // click that comes within 500 ms of the first (it waits for a double click).
+  let downAt = null;
+  chartEl.addEventListener('mousedown', e => {{
+    downAt = (tool && e.button === 0) ? {{ x: e.clientX, y: e.clientY }} : null;
+  }});
+  chartEl.addEventListener('mouseup', e => {{
+    if (!tool || !downAt || e.button !== 0) return;
+    const moved = Math.abs(e.clientX - downAt.x) + Math.abs(e.clientY - downAt.y);
+    downAt = null;
+    if (moved > 5) return;   // a drag pans the chart; it is not a point
+    const box = chartEl.getBoundingClientRect();
+    const pt = _pointAtXY(e.clientX - box.left, e.clientY - box.top);
     if (!pt) return;
     if (tool === 'hline') {{ _finish([pt]); return; }}
     if (!pending) {{ pending = pt; return; }}

@@ -422,7 +422,7 @@ class PatternsSection(QWidget):
             {"time": hit.time,
              "position": "aboveBar" if hit.direction == Direction.BEARISH else "belowBar",
              "shape": "arrowDown" if hit.direction == Direction.BEARISH else "arrowUp",
-             "color": colour[hit.direction], "text": hit.name}
+             "color": colour[hit.direction], "id": hit.name, "text": ""}
             for hit in sorted(self.hits, key=lambda h: h.time)
         ]
         self.markers_changed.emit(markers)

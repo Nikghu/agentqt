@@ -2,6 +2,14 @@
 
 ---
 
+## [20261025] GUI — Charts drawing tools fix (FO-GUI-026, bugfix)
+
+- Type: Bugfix
+- FO(s): FO-GUI-026 (SRD-GUI-026.008, .011)
+- RN: RN-GUI-1.31.1-20261025
+- Artifacts updated: DD, UTCD, Code, Tests, RN, CONTEXT, DEVLOG
+- Decisions: user saw blank tool buttons; painted icons replace clipped glyphs. Real-window test found a quick second click (< 500 ms) was dropped by the library's click event; clicks now read from DOM mouse events. Pattern marker text removed (names stay in the Inspector). Lesson: test drawing in the whole workspace with real mouse input, not only the standalone panel.
+
 ## [20261024] GUI — Charts drawing tools saved in SQLite, Phase 3 (FO-GUI-026, feature)
 
 - Type: Feature
