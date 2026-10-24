@@ -33,6 +33,7 @@
 > v1.24.3: SRD-EXE-018.002–.006, .012, .014, .015 Approved → Implemented (P2: direction wired through router, broker adapter, order ingestion and cycle open; opposite-direction guard at engine and pending execute).
 > v1.24.4: SRD-EXE-018.007–.011 and .013 Approved → Implemented (P3: direction-aware live/realized P&L, SHORT trailing stop and exit triggers, risk-edit invariants, signed OpenPosition P&L). All SRD-EXE-018 rows now Implemented.
 > v1.25.0: SRD-EXE-018.016 added (Draft) — price-feed silence warning for open cycles (deep-review finding, 2026-09-18).
+> v1.29.0: SRD-EXE-017.027 added — paper account state follows today's P&L and open positions; approved by user and implemented 2026-10-24.
 > v1.28.0: SRD-EXE-020.007–.008 added — equity curve for the dashboard graph; approved by user 2026-10-24.
 > v1.27.0: SRD-EXE-020.001–.006 added — Account Equity Snapshots; approved by user 2026-10-24.
 > v1.26.0: SRD-EXE-019.001–.004 added — Strategy P&L History; approved by user 2026-10-23 (plan).
@@ -385,3 +386,9 @@
 | SRD-EXE-020.006 | FO-EXE-020 | Must | `AppService.get_equity_snapshots(since_iso)` returns the points for the viewing user (all users when none). | start time | tuple of `EquitySnapshot` | Empty when the store is not ready | Implemented |
 | SRD-EXE-020.007 | FO-EXE-020 | Must | `curve_from_closed(cycles, end_equity, start_iso, end_iso)` returns points that start at `end_equity` minus the realised P&L in the range, step up or down at each close, and end at `end_equity`. | closed cycles, current equity, range | tuple of `CurvePoint` | Pure; cycles without realised P&L are skipped | Implemented |
 | SRD-EXE-020.008 | FO-EXE-020 | Must | `AppService.get_equity_curve(range_key)` returns the viewing scope's curve: "1D" from today's equity snapshots (market day) plus a live point now, "1W", "1M", "3M", "YTD" from closed cycles since 7 / 30 / 90 days ago or 1 January. | range key | tuple of `CurvePoint` | Empty on unknown key or when the stores are not ready | Implemented |
+
+### Addendum to FO-EXE-017 — Paper account state (2026-10-24)
+
+| SRD ID | Parent FO | Priority | Description | Inputs | Outputs | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-EXE-017.027 | FO-EXE-017 | Must | For a paper user, `get_account_state` returns start-of-day equity = Max Capital, daily P&L = realised P&L of cycles closed today (ET), equity = Max Capital + daily P&L + unrealised P&L, cash = Max Capital + daily P&L − entry value of open positions, and gross position value = market value of open positions. | Max Capital, today's closed cycles, open positions | `AccountState` | Sizing still uses Max Capital (`effective_capital`); live accounts unchanged | Implemented |

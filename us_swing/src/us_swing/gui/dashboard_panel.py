@@ -1386,7 +1386,7 @@ class DashboardPanel(QWidget):
         self._pos_view.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
         self._pos_view.horizontalHeader().setStretchLastSection(True)
         self._pos_view.verticalHeader().setVisible(False)
-        _resize_columns(self._pos_view, {0: 80, 1: 55, 8: 120})
+        _resize_columns(self._pos_view, {0: 80, 1: 60, 2: 55, 9: 120})
 
         # ── Position action toolbar ────────────────────────────────────────────
         self._sq_all_btn = QPushButton("Square Off All")
@@ -1650,8 +1650,9 @@ class DashboardPanel(QWidget):
         # Resize columns when User col appears/disappears
         shift = 1 if all_view else 0
         _resize_columns(self._pos_view, {0: 70 if all_view else 80,
-                                          shift + 1: 55,
-                                          shift + 8: 120})
+                                          shift + 1: 60,
+                                          shift + 2: 55,
+                                          shift + 9: 120})
         _resize_columns(self._hist_view, {0: 70 if all_view else 85,
                                            shift + 1: 70, shift + 2: 55, shift + 3: 45})
 
@@ -1876,7 +1877,7 @@ class DashboardPanel(QWidget):
         acct = self._demo.get_account_state()
         self._refresh_trades()
 
-        pnl = acct.daily_pnl
+        pnl = acct.equity - acct.start_of_day_equity   # realised + unrealised (SRD-GUI-025.018)
         self._kpi.set_value("pnl", money(pnl), _pnl_colour(pnl))
         util = acct.capital_utilisation_pct
         cap_colour = C.RED if util > 90 else C.ORANGE if util > 70 else C.TEXT

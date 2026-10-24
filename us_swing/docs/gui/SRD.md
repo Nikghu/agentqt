@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.40.0: SRD-GUI-025.016–.018 added — dashboard KPI and position-table fixes, Phase 5; approved by user and implemented 2026-10-24.
 > v2.39.0: SRD-GUI-025.013–.015 added — Performance band and Exposure tab, Phase 4; approved by user 2026-10-24.
 > v2.38.0: SRD-GUI-025.008–.012 added — Dashboard tile buttons, Phase 2; approved by user 2026-10-24.
 > v2.37.0: SRD-GUI-025.001–.007 added — Dashboard tiled workspace, Phase 1 (canvas Option E); approved by user 2026-10-24.
@@ -422,3 +423,6 @@
 | SRD-GUI-025.013 | FO-GUI-025 | Must | A Performance band above the tiles shows Account Equity, its change for the chosen range (amount and %), range buttons 1D / 1W / 1M / 3M / YTD and a line-and-area equity chart. | `get_equity_curve(range)` | band | "No equity data for this range yet" when empty; range remembered | Implemented |
 | SRD-GUI-025.014 | FO-GUI-025 | Must | A "Performance" button at the end of the KPI strip shows or hides the band; the band is shown on first start and the choice is remembered. | click, setting | band visibility | Hidden band gives its space to the tiles | Implemented |
 | SRD-GUI-025.015 | FO-GUI-025 | Must | The Open Positions tile has tabs "Open Positions" and "Exposure"; Exposure shows a vertical bar per symbol (largest first, long blue, short amber) with its value on top, Long, Short, Net and Gross ÷ Equity totals, and a "$ Value / % Equity" switch. | open positions, equity | bar chart | Filter and Columns hide on the Exposure tab; bars follow price updates; more than 8 bars: the smallest join one "N others" bar | Implemented |
+| SRD-GUI-025.016 | FO-GUI-025 | Must | The Open Positions table shows a Side column (LONG or SHORT) right after Symbol. | position direction | column | A short's P&L sign then reads correctly | Implemented |
+| SRD-GUI-025.017 | FO-GUI-025 | Must | Stop shows "No stop" in amber and Target shows "—" when the value is not set. | stop, target | cell text | Not set = 0 or missing | Implemented |
+| SRD-GUI-025.018 | FO-GUI-025 | Must | "P&L Today" in the KPI strip is equity minus start-of-day equity, so it counts realised and unrealised P&L in paper and live. | account state | KPI value | — | Implemented |

@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.21.0: DD-EXE-017.027.D01 added — paper account state follows today's P&L and open positions.
 > v1.20.0: DD-EXE-020.001.D01 gains the equity curve (SRD-EXE-020.007–.008).
 > v1.19.0: DD-EXE-020.001.D01 added — Account Equity Snapshots.
 > v1.18.0: DD-EXE-019.001.D01 added — Strategy P&L History read, summary and app accessor.
@@ -4090,6 +4091,23 @@ read logs `[Strategy] Could not load P&L history for %s` and returns `StrategyPn
 
 **Read accessor.** `get_equity_snapshots(since_iso)` → `between(since_iso, user_id=_viewing_uid)`; empty tuple when the store is missing or the read fails (warning logged).
 
-**Known limit.** Paper `equity` is the user's Max Capital until the paper-equity fix (FO-GUI-025 Phase 5); `unrealised_pnl` is stored separately so the curve can be drawn meanwhile.
+**Known limit.** Paper `equity` follows today's P&L since DD-EXE-017.027.D01; `unrealised_pnl` is stored separately so the curve can be drawn meanwhile.
 
 **Curve (SRD-EXE-020.007–.008).** `curve_from_closed(cycles, end_equity, start_iso, end_iso)`: keep cycles with `realized_pnl_usd` and `closed_at`, sort by `closed_at`, start value = `end_equity − Σ pnl`, one `CurvePoint(closed_at, running value)` per close, first point at `start_iso`, last `CurvePoint(end_iso, end_equity)`. `AppService.get_equity_curve(range_key, now=None)`: day boundaries in the configured market time zone (falls back to `America/New_York`). "1D" = `get_equity_snapshots(midnight)` equity values plus a live `CurvePoint(now, get_account_state().equity)` (empty when there are no snapshots). "1W" / "1M" / "3M" = now − 7 / 30 / 90 days, "YTD" = 1 January midnight; `_tc_query.closed_between(start, now)` filtered to the viewing user, end value = current equity. Unknown key, missing ledger or a read error (warning) → empty tuple. The curve leaves out unrealised P&L and cash movements.
+
+## DD-EXE-017.027.D01 — Paper Account State
+
+**Parent SRD:** SRD-EXE-017.027
+
+`get_account_state(uid)` returns the IBKR account when one is loaded, else `_paper_account_state(uid)`. `uids` = [uid], or every user for `None`. budget = sum of Max Capital; realised = `_realised_today(uids)` (cycles from `closed_between` over today's ET bounds; a read error logs an `[Account]` warning and gives 0); positions = `get_positions(uid)` kept to that user; deployed = `_open_position_value(uid)` (entry × qty of open cycles, all users for `None`).
+
+| Field | Value |
+|---|---|
+| `start_of_day_equity` | budget |
+| `daily_pnl` | realised |
+| `equity` | budget + realised + sum of unrealised |
+| `total_cash_value` | budget + realised − deployed |
+| `gross_position_value` | sum of abs(qty) × (last price, else entry price) |
+| `open_position_value` | deployed |
+
+**Known limit.** Realised P&L from earlier days is not carried; each market day the paper account starts again at Max Capital. Sizing still uses `effective_capital`.

@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.22.0: UT-GUI-025.016–.018 added — Side column, unset stop/target, P&L Today (Phase 5).
 > v1.21.0: UT-GUI-025.013–.015 added — Performance band and Exposure tab (Phase 4).
 > v1.20.0: UT-GUI-025.008–.012 added — tile buttons (Phase 2).
 > v1.19.0: UT-GUI-025.* added — dashboard tiled workspace (Phase 1).
@@ -644,3 +645,6 @@ Test files:
 | UT-GUI-025.014.M02.T01 | MD-GUI-025.001.M02 | Positive | Band open by default; hiding remembered | first start; click Performance; new panel | shown; hidden; still hidden | Pass |
 | UT-GUI-025.013.M02.T01 | MD-GUI-025.001.M02 | Positive | Range asks the service and is remembered | click 1W | `get_equity_curve("1W")`; chart points set; new panel on 1W | Pass |
 | UT-GUI-025.015.M02.T01 | MD-GUI-025.001.M02 | Positive | Exposure tab swaps view and tools | click Exposure, % Equity, back | bars "$1,919" then "7.7%"; filter tools hidden then shown | Pass |
+| UT-GUI-025.016.M04.T01 | MD-GUI-025.016.M04 | Positive | Side and unset stop/target text | LONG and SHORT rows; stop 0, target 0 | "LONG" / "SHORT"; "No stop"; "—" | Pass |
+| UT-GUI-025.016.M04.T02 | MD-GUI-025.016.M04 | Edge | Side follows Symbol with User column | User column shown | Side right after Symbol | Pass |
+| UT-GUI-025.018.M02.T01 | MD-GUI-025.001.M02 | Positive | P&L Today from equity change | equity above start-of-day; different daily_pnl | KPI shows equity − start | Pass |

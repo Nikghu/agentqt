@@ -2,6 +2,14 @@
 
 ---
 
+## [20261024] GUI + EXE — Dashboard KPI and table fixes, Phase 5 (FO-GUI-025, bugfix)
+
+- Type: Bugfix
+- FO(s): FO-GUI-025 (SRD-GUI-025.016–.018; with FO-EXE-017 SRD-EXE-017.027)
+- RN: RN-GUI-1.28.0-20261024, RN-EXE-1.37.0-20261024
+- Artifacts updated: SRD, DD, MD, UTCD, Code, Tests, TRACE, RN, CONTEXT, TODO, DEVLOG
+- Decisions: Side is its own column after Symbol (NDAQ short showed a loss with no side); unset stop shows "No stop" and unset target "—"; "P&L Today" = equity minus start-of-day equity; paper start-of-day equity = Max Capital, daily P&L = realised P&L of cycles closed today (ET), positions filtered to the user. Review fix: paper account was counting other users' broker positions, now filtered to the viewing user. Known limit: paper account restarts at Max Capital each market day. Branch feat/gui-dashboard-tiles, not pushed; PR pending user.
+
 ## [20261024] GUI — Dashboard Performance band and Exposure tab, Phase 4 (FO-GUI-025, feature)
 
 - Type: Feature

@@ -1522,24 +1522,50 @@ class AppService(QObject):
         uid = user_id if user_id is not None else self._viewing_uid
         if self._ibkr_acct is not None:
             return self._ibkr_acct
-        # Paper / disconnected — seed equity from the user's absolute Max Capital
-        # so capital sizing and checks have a budget to work against.
-        budget = self._user_max_capital(uid)
+        return self._paper_account_state(uid)
+
+    def _paper_account_state(self, uid: int | None) -> AccountState:
+        """Paper account built from Max Capital, today's closes and open positions (SRD-EXE-017.027).
+
+        Max Capital is the start-of-day equity; ``None`` (all users) adds every user's budget.
+        """
+        uids = [uid] if uid is not None else [u.user_id for u in self._users]
+        budget = sum(self._user_max_capital(u) for u in uids)
+        realised = self._realised_today(uids)
+        positions = [p for p in self.get_positions(uid) if uid is None or p.user_id == uid]
+        unrealised = sum(p.unrealised_pnl for p in positions)
+        market_value = sum(abs(p.quantity) * (p.current_price or p.average_price)
+                           for p in positions)
+        deployed = self._open_position_value(uid)
         return AccountState(
-            user_id             = uid or 0,
-            equity              = budget,
-            start_of_day_equity = budget,
-            open_position_value = self._open_position_value(uid),
-            daily_pnl           = 0.0,
-            total_cash_value    = budget,
+            user_id              = uid or 0,
+            equity               = budget + realised + unrealised,
+            start_of_day_equity  = budget,
+            open_position_value  = deployed,
+            daily_pnl            = realised,
+            total_cash_value     = budget + realised - deployed,
+            gross_position_value = market_value,
         )
 
+    def _realised_today(self, uids: list[int]) -> float:
+        """Realised P&L of cycles closed today (market day) for ``uids``."""
+        if self._tc_query is None:
+            return 0.0
+        from us_swing.gui.active_cycles_model import _today_et_bounds_utc
+        try:
+            closed = self._tc_query.closed_between(*_today_et_bounds_utc())
+        except Exception as exc:
+            _log.warning("[Account] Could not read today's closed trades: %s", exc)
+            return 0.0
+        return sum(c.realized_pnl_usd or 0.0 for c in closed if c.user_id in uids)
+
     def _open_position_value(self, uid: int | None) -> float:
-        """Deployed capital across the user's open cycles (entry price × qty)."""
+        """Deployed capital across open cycles (entry price × qty); ``None`` = all users."""
         src = getattr(self, "_cycle_position_source", None)
         if src is None:
             return 0.0
-        return sum(p.average_price * p.quantity for p in src.get_all(uid or 0))
+        uids = [uid] if uid is not None else [u.user_id for u in self._users]
+        return sum(p.average_price * p.quantity for u in uids for p in src.get_all(u))
 
     def margin_available(self) -> float:
         """Remaining budget = effective capital − deployed open-position value."""

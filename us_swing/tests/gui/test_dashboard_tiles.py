@@ -110,8 +110,8 @@ def _service(positions: list[OpenPosition]) -> MagicMock:
     svc.get_viewing_uid.return_value = None
     svc.get_positions.return_value = positions
     svc.get_account_state.return_value = AccountState(
-        user_id=1, equity=25_000.0, start_of_day_equity=25_000.0,
-        open_position_value=0.0, daily_pnl=41.75, total_cash_value=13_579.48,
+        user_id=1, equity=25_000.0, start_of_day_equity=24_958.25,
+        open_position_value=0.0, daily_pnl=12.0, total_cash_value=13_579.48,
     )
     svc.get_all_trades.return_value = []
     svc.get_system_config.return_value = SimpleNamespace(market_timezone="US/Eastern")
@@ -468,3 +468,42 @@ def test_many_symbols_grouped_into_others(qtbot):
     qtbot.addWidget(view)
     view.show_positions(positions, 0.0, as_percent=False)
     assert view.values["Long"].text() == f"${sum(100 + 10 * i for i in range(12)):,}"
+
+
+# ── Phase 5: position table and P&L Today (SRD-GUI-025.016–.018) ──────────────
+
+def test_side_column_and_unset_stop_target(qtbot):
+    """UT-GUI-025.016.M04.T01: Side shows LONG / SHORT; unset stop and target read "No stop" / "—"."""
+    from us_swing.gui.position_table_model import PositionTableModel
+    model = PositionTableModel()
+    short = _pos("NDAQ", 102.78, 103.23, qty=19, side="SHORT")
+    long_ = _pos("AAPL", 200.0, 210.0, qty=2)
+    long_.stop_loss, long_.target_price = 195.5, 230.0
+    model.refresh([short, long_])
+    cols = model.COLUMNS
+    cell = lambda row, name: model.data(model.index(row, cols.index(name)))   # noqa: E731
+    assert cols[:3] == ["Symbol", "Side", "Qty"]
+    assert (cell(0, "Side"), cell(0, "P&L ($)")) == ("SHORT", "-$8.55")
+    assert (cell(0, "Stop"), cell(0, "Target")) == ("No stop", "—")
+    assert (cell(1, "Side"), cell(1, "Stop"), cell(1, "Target")) == ("LONG", "$195.50", "$230.00")
+
+
+def test_side_column_with_user_column(qtbot):
+    """UT-GUI-025.016.M04.T02: With the User column shown, Side still follows Symbol."""
+    from us_swing.gui.position_table_model import PositionTableModel
+    model = PositionTableModel()
+    model.set_show_user(True, {1: "trader"})
+    model.refresh([_pos("MSFT", 431.2, 427.9, qty=5, side="SHORT")])
+    row = [model.data(model.index(0, c)) for c in range(model.columnCount())]
+    assert row[:3] == ["trader", "MSFT", "SHORT"]
+    assert row[-1] == "OPEN"
+
+
+def test_pnl_today_is_equity_change(qtbot, settings):
+    """UT-GUI-025.018.M02.T01: P&L Today = equity − start-of-day equity, not the realised field."""
+    svc = _service([])
+    svc.get_account_state.return_value = AccountState(
+        user_id=1, equity=1_950.0, start_of_day_equity=2_000.0, open_position_value=0.0,
+        daily_pnl=30.0, total_cash_value=1_000.0)
+    panel = _panel(qtbot, svc, settings)
+    assert panel._kpi.value("pnl") == "−$50.00"

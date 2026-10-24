@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.19.0: UT-EXE-017.027.M14.T01–T03 added (paper account state).
 > v1.18.0: UT-EXE-020.007–.008 added (6 tests, equity curve).
 > v1.17.0: UT-EXE-020.* added (17 tests, FO-EXE-020 Account Equity Snapshots).
 > v1.16.0: UT-EXE-019.* added (14 tests, FO-EXE-019 Strategy P&L History).
@@ -727,6 +728,9 @@
 | UT-EXE-017.019.M14.T01 | MD-EXE-017.016.M14 | Positive | Paper `open_position_value` summed from open cycles | paper user; two open cycles worth $1300 total | `get_account_state().open_position_value == 1300.0` | Pass |
 | UT-EXE-017.021.M14.T02 | MD-EXE-017.016.M14 | Positive | `AppService.margin_available` nets deployed | eff_cap=$2000; deployed $1300 | `margin_available() == 700.0` | Pass |
 | UT-EXE-017.021.M14.T03 | MD-EXE-017.016.M14 | Edge | Margin floors at zero when over-deployed | eff_cap=$2000; deployed $2500 | `margin_available() == 0.0` | Pass |
+| UT-EXE-017.027.M14.T01 | MD-EXE-017.016.M14 | Positive | Paper equity, cash and P&L move with trades | budget 2000; closes +42.10 today; SHORT −8.55, LONG +20 | equity 2053.55; daily 42.10; cash and gross from positions | Pass |
+| UT-EXE-017.027.M14.T02 | MD-EXE-017.016.M14 | Edge | All users; no ledger | two users 2000 + 1000; `_tc_query` None | start 3000; daily 0; deployed summed per user | Pass |
+| UT-EXE-017.027.M14.T03 | MD-EXE-017.016.M14 | Negative | Other users' broker positions ignored | IBKR rows for users 1 and 2; view user 1 | equity 2020; gross 420 | Pass |
 | UT-EXE-015.004.M01.T32 | MD-EXE-015.004.M01 | Negative | Submit raising never escapes into the Qt slot | live entry signal; submitter raises `BrokerConnectionError` | `execute_signal` returns -1, no exception propagates | Pass |
 | UT-EXE-015.004.M01.T33 | MD-EXE-015.004.M01 | Negative | A failed submit returns the signal to the pending store | same as T32 | `pending_store.add` called once with the popped signal | Pass |
 | UT-EXE-015.004.M01.T34 | MD-EXE-015.004.M01 | Positive | A healthy submit is unchanged | submitter returns order id 77 | returns 77; `pending_store.add` never called | Pass |

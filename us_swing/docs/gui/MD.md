@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.23.0: MD-GUI-025.016.M04 (position_table_model.py Side column and unset stop/target) added.
 > v1.22.0: MD-GUI-025.013.M03 (performance_band.py) added.
 > v1.21.0: MD-GUI-025.003.M01 (dashboard_tiles.py) added; MD-GUI-002.001.M01 hosts the tiled layout.
 > v1.20.0: MD-GUI-023.001.M01 (cards.py) added — card layout.
@@ -259,4 +260,5 @@ us_swing/src/us_swing/gui/
 |---|---|---|---|---|---|---|
 | MD-GUI-025.003.M01 | SRD-GUI-025.003 | `us_swing/src/us_swing/gui/dashboard_tiles.py` | Tile, tile grid with maximise, KPI strip, strategy P&L bars | `Tile` (`set_title_widget`), `TileGrid`, `KpiStrip`, `StrategyPnlList`, `PnlBar`, `table_rows()`, `TILES`, `ROW_H` | cards, icons, strategy_pnl_chart, PyQt6 | No |
 | MD-GUI-025.001.M02 | SRD-GUI-025.001 | `us_swing/src/us_swing/gui/dashboard_panel.py` | Tiled layout, KPI values, switches, remembered settings, watchlist tile, tile buttons (filter, columns, history range / state, CSV export, ✕ remove) | `DashboardPanel(svc, parent, settings)`, `export_history(path)` | AppService, dashboard_tiles, strategy_store | No |
+| MD-GUI-025.016.M04 | SRD-GUI-025.016 | `us_swing/src/us_swing/gui/position_table_model.py` | Side column; "No stop" / "—" for unset stop and target (extends MD-GUI-002.001.M02) | `PositionTableModel.COLUMNS`, `data()` | PyQt6 | No |
 | MD-GUI-025.013.M03 | SRD-GUI-025.013 | `us_swing/src/us_swing/gui/performance_band.py` | Equity band and chart; exposure bars, totals and chart | `PerformanceBand`, `EquityChart`, `change_text()`, `ExposureView`, `ExposureChart`, `exposure_bars()`, `market_value()`, `RANGES`, `MAX_BARS` | strategy_pnl_chart (`money`, `nice_ticks`), screener_views (`ChipGroup`), PyQt6 | No |
