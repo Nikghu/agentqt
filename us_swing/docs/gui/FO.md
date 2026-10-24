@@ -753,3 +753,30 @@ The system shall lay out the Dashboard as a tiled workspace: a one-line KPI stri
 1. Double-click exit, Square Off All and live prices work as before.
 2. Maximising a tile and restoring it brings back the same layout.
 3. Density, view and maximised tile survive a restart.
+
+---
+
+## FO-GUI-026: Charts Workspace (Focus + Inspector)
+
+**Status:** Approved (user, 2026-10-24)
+**Priority:** Should
+**Depends on:** FO-GUI-011 (candle chart viewer), FO-GUI-020 (Charts workspace, replaced), FO-GUI-022 (screener plan), FO-GUI-024 (Execution picks)
+**Source:** User picked canvas Option 3 "Focus + Inspector" (https://claude.ai/artifact/PNoXxfGNnhaXLPkhJ8ZyNr) on 2026-10-24.
+
+The system shall show the Charts screen as one large chart between a symbol source list and a collapsible Inspector, in the Carbon style. New chart features are added as new Inspector sections. It replaces the multi-window layout of FO-GUI-020.
+
+### Requirements
+
+1. **Source list.** Watchlist, Screener results and Active trades tabs with a filter; clicking a symbol loads it.
+2. **Chart.** Symbol header with price and change, 1D / 1W, removable SMA overlays, volume and an RSI pane.
+3. **Trade plan on chart.** Entry, stop and target lines with shaded risk and reward zones when a plan exists.
+4. **Inspector.** Collapsible sections added through one registry: Trade Plan and Indicators (Phase 1), Patterns Found and Key Levels (Phase 2).
+5. **Send to Execution.** The Trade Plan section adds the symbol to the Execution watchlist (Phase 2).
+6. **Drawing.** Horizontal line, trend line, rectangle and delete all, saved per symbol (Phase 3).
+
+### Acceptance Criteria
+
+1. Open in Chart and the Screener chart button load the symbol in the one chart.
+2. A screener stock with a plan shows its three lines and the same numbers in Trade Plan.
+3. Tab, overlays and open sections are the same after a restart.
+4. Drawings come back when the symbol is opened again, also after a restart.

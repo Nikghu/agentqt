@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.23.0: UT-GUI-026.* added — Charts workspace Focus + Inspector (Not Run).
 > v1.22.0: UT-GUI-025.016–.018 added — Side column, unset stop/target, P&L Today (Phase 5).
 > v1.21.0: UT-GUI-025.013–.015 added — Performance band and Exposure tab (Phase 4).
 > v1.20.0: UT-GUI-025.008–.012 added — tile buttons (Phase 2).
@@ -648,3 +649,36 @@ Test files:
 | UT-GUI-025.016.M04.T01 | MD-GUI-025.016.M04 | Positive | Side and unset stop/target text | LONG and SHORT rows; stop 0, target 0 | "LONG" / "SHORT"; "No stop"; "—" | Pass |
 | UT-GUI-025.016.M04.T02 | MD-GUI-025.016.M04 | Edge | Side follows Symbol with User column | User column shown | Side right after Symbol | Pass |
 | UT-GUI-025.018.M02.T01 | MD-GUI-025.001.M02 | Positive | P&L Today from equity change | equity above start-of-day; different daily_pnl | KPI shows equity − start | Pass |
+
+## FO-GUI-026 — Charts Workspace (Focus + Inspector)
+
+| ID | Module | Type | Description | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-026.001.M01.T01 | MD-GUI-026.001.M01 | Positive | Three cards, no MDI | build workspace | source list, chart and Inspector cards; no `QMdiArea` | Not Run |
+| UT-GUI-026.001.M01.T02 | MD-GUI-026.001.M01 | Positive | open_symbol loads chart and selects row | Watchlist has NVDA; `open_symbol("NVDA", "1w")` | fake chart `show_symbol("NVDA", "1w")`; NVDA row selected; Inspector updated | Not Run |
+| UT-GUI-026.001.M01.T03 | MD-GUI-026.001.M01 | Negative | Symbol not in list still loads | `open_symbol("ZZZ")` | chart loads ZZZ; no row selected; no error | Not Run |
+| UT-GUI-026.002.M02.T01 | MD-GUI-026.002.M02 | Positive | Rows per tab | 2 watchlist items, 3 screener entries, 1 short position | 2 rows; 3 rows by score with preset sub; "Short 20 sh" | Not Run |
+| UT-GUI-026.002.M02.T02 | MD-GUI-026.002.M02 | Positive | Filter and tab remembered | filter "nv"; pick Trades; new list on same settings | NVDA only; new list opens on Trades | Not Run |
+| UT-GUI-026.002.M02.T03 | MD-GUI-026.002.M02 | Negative | Empty tab shows empty text | no positions, Trades tab | list hidden; "No open trades" shown | Not Run |
+| UT-GUI-026.003.M01.T01 | MD-GUI-026.001.M01 | Positive | Overlay add, remove and remember | first start; add EMA 9; ✕ on SMA 50; new workspace | defaults SMA 20, SMA 50; `set_overlays` [sma 20, ema 9]; restored | Not Run |
+| UT-GUI-026.003.M01.T02 | MD-GUI-026.001.M01 | Negative | Bad saved overlay is dropped | setting "sma:x,foo:5,sma:20" | overlays [sma 20] | Not Run |
+| UT-GUI-026.004.M01.T01 | MD-GUI-026.001.M01 | Positive | Plan sent to the chart | screener plan 129.8 / 124.5 / 141 | `set_plan(129.8, 124.5, 141.0)` | Not Run |
+| UT-GUI-026.004.M01.T02 | MD-GUI-026.001.M01 | Negative | No plan clears lines | symbol without plan or position | `set_plan(None)` | Not Run |
+| UT-GUI-026.005.M03.T01 | MD-GUI-026.005.M03 | Positive | One header per registry entry; open state remembered | `SECTIONS`; collapse Indicators; new Inspector | header per entry in order; Indicators closed | Not Run |
+| UT-GUI-026.005.M03.T02 | MD-GUI-026.005.M03 | Edge | Extra section plugs in | registry plus a fake section | fake section shown and its `update` called on load | Not Run |
+| UT-GUI-026.005.M01.T04 | MD-GUI-026.001.M01 | Negative | Hidden Inspector stays hidden | hide; new workspace | Inspector card hidden | Not Run |
+| UT-GUI-026.006.M03.T01 | MD-GUI-026.005.M03 | Positive | R:R and size | entry 129.8, stop 124.5, target 141; equity 40,000, risk 1 % | R:R 2.1; size 75 | Not Run |
+| UT-GUI-026.006.M03.T02 | MD-GUI-026.005.M03 | Negative | Invalid plan shows dashes | stop 131 ≥ entry 129.8 | R:R None; size 0; cells "—" | Not Run |
+| UT-GUI-026.006.M03.T03 | MD-GUI-026.005.M03 | Positive | Plan source order | screener plan and position; position only | screener values; position avg, stop, target | Not Run |
+| UT-GUI-026.006.M03.T04 | MD-GUI-026.005.M03 | Positive | Edit updates values and lines | Edit; stop 125; Save | stop "125.00"; `plan_changed` with new stop | Not Run |
+| UT-GUI-026.007.M03.T01 | MD-GUI-026.005.M03 | Positive | Indicator values | 60 known bars | RSI, ATR, ADX match reference values; rel. volume 2.0× | Not Run |
+| UT-GUI-026.007.M03.T02 | MD-GUI-026.005.M03 | Edge | Too few bars | 5 bars | all "—" | Not Run |
+| UT-GUI-026.008.M03.T01 | MD-GUI-026.005.M03 | Positive | Pattern hits on recent bars | bars ending in a bullish engulfing 2 bars ago | hit "Bullish engulfing", 2 bars ago, bullish | Not Run |
+| UT-GUI-026.008.M03.T02 | MD-GUI-026.005.M03 | Negative | Old pattern not listed | engulfing 10 bars ago only | no hits | Not Run |
+| UT-GUI-026.009.M03.T01 | MD-GUI-026.005.M03 | Positive | Nearest swing levels | bars with pivots 110, 120, 135 and close 125 | above [135]; below [120, 110] | Not Run |
+| UT-GUI-026.010.M01.T01 | MD-GUI-026.001.M01 | Positive | Send to Execution adds pick | click; `add_manual_pick` returns None | called with "NVDA"; `execution_requested` emitted | Not Run |
+| UT-GUI-026.010.M01.T02 | MD-GUI-026.001.M01 | Negative | Existing pick shows message | `add_manual_pick` returns "Already added" | message shown; no `execution_requested` | Not Run |
+| UT-GUI-026.012.M04.T01 | MD-GUI-026.012.M04 | Positive | Save and load drawings | in-memory SQLite; save trend + hline for NVDA 1d | load NVDA 1d returns both with same points | Not Run |
+| UT-GUI-026.012.M04.T02 | MD-GUI-026.012.M04 | Negative | Other symbol or timeframe sees none | load NVDA 1w; load AMD 1d | [] and [] | Not Run |
+| UT-GUI-026.012.M04.T03 | MD-GUI-026.012.M04 | Positive | Delete all clears one chart only | delete_all NVDA 1d | NVDA 1d []; NVDA 1w kept | Not Run |
+| UT-GUI-026.012.M04.T04 | MD-GUI-026.012.M04 | Negative | Bridge ignores bad JSON | `drawing_changed("not json")` | nothing saved; warning logged | Not Run |

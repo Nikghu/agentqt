@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-10-24 (Session 89)
+**Last Updated:** 2026-10-24 (Session 90)
 
 ---
 
@@ -60,3 +60,4 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T48 | FO-GUI-025 Dashboard tiles — all 5 phases done (RN-GUI-1.25.0 to RN-GUI-1.28.0, RN-EXE-1.35.0 to RN-EXE-1.37.0). Phase 5 fixed Side column, "No stop" / "—", P&L Today, paper account per user. PR pending user on feat/gui-dashboard-tiles. | `gui/dashboard_panel.py`, `gui/dashboard_tiles.py`, `execution/` | High | Done |
 | T49 | PyQt6-WebEngine 6.11.0 mismatches PyQt6 6.10.2 on this machine; `tests/gui/test_chart_workspace.py` cannot import and the app cannot start. Fixed 2026-10-24: installed PyQt6-WebEngine 6.10.0 + WebEngine-Qt6 6.10.2; GUI suite 361 passed. | `gui/chart_workspace.py`, environment | Medium | Done |
 | T50 | EXE — paper equity drops prior-day realised P&L at midnight ET; equity curve anchor off (SRD-EXE-017.027 limit). | `gui/app_service.py` | Medium | Open |
+| T51 | FO-GUI-026 Charts workspace (Focus + Inspector): docs FO→UTCD done, SRD-GUI-026.* Draft. Waiting for user approval, then Phase 1 (layout, Trade Plan, Indicators), Phase 2 (Patterns, Key Levels, Send to Execution), Phase 3 (drawings in SQLite). | `gui/chart_workspace.py`, `gui/chart_panel.py` | High | Open |

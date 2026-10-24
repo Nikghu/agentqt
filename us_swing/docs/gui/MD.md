@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.24.0: MD-GUI-026.001.M01–.012.M04 added — Charts workspace Focus + Inspector; MD-GUI-020.001.M01 superseded.
 > v1.23.0: MD-GUI-025.016.M04 (position_table_model.py Side column and unset stop/target) added.
 > v1.22.0: MD-GUI-025.013.M03 (performance_band.py) added.
 > v1.21.0: MD-GUI-025.003.M01 (dashboard_tiles.py) added; MD-GUI-002.001.M01 hosts the tiled layout.
@@ -214,7 +215,7 @@ us_swing/src/us_swing/gui/
 
 | ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
 |---|---|---|---|---|---|---|
-| MD-GUI-020.001.M01 | SRD-GUI-020.001 | `us_swing/src/us_swing/gui/chart_workspace.py` | MDI chart windows, arrange modes, open path | `ChartWorkspace`, `open_symbol()`, `refresh_theme()` | `chart_panel`, `icons` | No |
+| MD-GUI-020.001.M01 | SRD-GUI-020.001 | `us_swing/src/us_swing/gui/chart_workspace.py` | MDI chart windows, arrange modes, open path (superseded by MD-GUI-026.001.M01) | `ChartWorkspace`, `open_symbol()`, `refresh_theme()` | `chart_panel`, `icons` | No |
 
 > `chart_panel.py` (MD-GUI-011) gains `chart_loaded` and a timeframe argument on `show_symbol`; `screener_panel.py` (MD-GUI-003.001.M01) emits `chart_requested` and drops `QuickChartWindow`; `main_window.py` wiring stays under MD-GUI-019.002.M03.
 
@@ -262,3 +263,14 @@ us_swing/src/us_swing/gui/
 | MD-GUI-025.001.M02 | SRD-GUI-025.001 | `us_swing/src/us_swing/gui/dashboard_panel.py` | Tiled layout, KPI values, switches, remembered settings, watchlist tile, tile buttons (filter, columns, history range / state, CSV export, ✕ remove) | `DashboardPanel(svc, parent, settings)`, `export_history(path)` | AppService, dashboard_tiles, strategy_store | No |
 | MD-GUI-025.016.M04 | SRD-GUI-025.016 | `us_swing/src/us_swing/gui/position_table_model.py` | Side column; "No stop" / "—" for unset stop and target (extends MD-GUI-002.001.M02) | `PositionTableModel.COLUMNS`, `data()` | PyQt6 | No |
 | MD-GUI-025.013.M03 | SRD-GUI-025.013 | `us_swing/src/us_swing/gui/performance_band.py` | Equity band and chart; exposure bars, totals and chart | `PerformanceBand`, `EquityChart`, `change_text()`, `ExposureView`, `ExposureChart`, `exposure_bars()`, `market_value()`, `RANGES`, `MAX_BARS` | strategy_pnl_chart (`money`, `nice_ticks`), screener_views (`ChipGroup`), PyQt6 | No |
+
+## FO-GUI-026 — Charts Workspace (Focus + Inspector)
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-GUI-026.001.M01 | SRD-GUI-026.001 | `us_swing/src/us_swing/gui/chart_workspace.py` | Three-card layout, chart header, overlays, remembered settings, open path | `ChartWorkspace(svc, parent, settings)`, `open_symbol()`, `refresh_theme()`, `execution_requested` | chart_panel, chart_source_list, chart_inspector, cards, screener_views (`ChipGroup`) | No |
+| MD-GUI-026.002.M02 | SRD-GUI-026.002 | `us_swing/src/us_swing/gui/chart_source_list.py` | Source tabs, filter, rows | `SourceList`, `SourceRow`, `source_rows()`, `filter_rows()`, `symbol_selected` | AppService, screener_views (`ChipGroup`), PyQt6 | No |
+| MD-GUI-026.005.M03 | SRD-GUI-026.005 | `us_swing/src/us_swing/gui/chart_inspector.py` | Section registry, collapsible sections, Trade Plan, Indicators, Patterns Found, Key Levels | `Inspector` (`plan_changed`), `InspectorSection`, `ChartContext`, `TradePlan`, `SECTIONS`, `plan_rr()`, `plan_size()`, `adx()`, `rel_volume()`, `pattern_hits()`, `key_levels()` | analysis.indicators, core.price_patterns, PyQt6 | No |
+| MD-GUI-026.012.M04 | SRD-GUI-026.012 | `us_swing/src/us_swing/gui/chart_drawings.py` | Drawing record, SQLite store, web bridge (Phase 3) | `Drawing`, `DrawingStore`, `ChartBridge` | db.manager, PyQt6 (`QWebChannel`) | No |
+
+> `chart_panel.py` (MD-GUI-011) gains `set_overlays()`, `set_plan()`, `set_markers()`, `set_levels()`, `set_drawings()`, the RSI pane and the drawing primitives; `db/manager.py` creates the `chart_drawings` table; `main_window.py` (MD-GUI-019.002.M03) switches to Execution on `execution_requested`.

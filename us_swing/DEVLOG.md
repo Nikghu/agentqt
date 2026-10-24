@@ -2,6 +2,14 @@
 
 ---
 
+## [20261024] GUI — Charts workspace Focus + Inspector, docs only (FO-GUI-026, feature)
+
+- Type: Feature (docs)
+- FO(s): FO-GUI-026 (SRD-GUI-026.001–.012, Draft)
+- RN: — (no code yet)
+- Artifacts updated: FO, SRD, DD, MD, UTCD, TRACE, CONTEXT, TODO, DEVLOG
+- Decisions: user picked canvas Option 3 of 5 (https://claude.ai/artifact/PNoXxfGNnhaXLPkhJ8ZyNr). One chart replaces the MDI windows (FO-GUI-020 superseded). New features plug in as Inspector sections through one registry. Free lightweight-charts v5.0.5 has no drawing tools, so drawings are our own primitives, saved per symbol and timeframe in a `chart_drawings` table. Timeframes stay 1D / 1W (daily DB). Branch feat/gui-charts-workspace, stacked on feat/gui-dashboard-tiles.
+
 ## [20261024] GUI + EXE — Dashboard KPI and table fixes, Phase 5 (FO-GUI-025, bugfix)
 
 - Type: Bugfix
