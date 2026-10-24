@@ -33,6 +33,7 @@
 > v1.24.3: SRD-EXE-018.002–.006, .012, .014, .015 Approved → Implemented (P2: direction wired through router, broker adapter, order ingestion and cycle open; opposite-direction guard at engine and pending execute).
 > v1.24.4: SRD-EXE-018.007–.011 and .013 Approved → Implemented (P3: direction-aware live/realized P&L, SHORT trailing stop and exit triggers, risk-edit invariants, signed OpenPosition P&L). All SRD-EXE-018 rows now Implemented.
 > v1.25.0: SRD-EXE-018.016 added (Draft) — price-feed silence warning for open cycles (deep-review finding, 2026-09-18).
+> v1.27.0: SRD-EXE-020.001–.006 added — Account Equity Snapshots; approved by user 2026-10-24.
 > v1.26.0: SRD-EXE-019.001–.004 added — Strategy P&L History; approved by user 2026-10-23 (plan).
 > v1.25.1: SRD-EXE-018.016 approved by user (2026-09-18) and set to Implemented — code and tests shipped with the requirement.
 
@@ -370,3 +371,14 @@
 | SRD-EXE-019.002 | FO-EXE-019 | Must | `summarise(cycles, today_start_iso, today_end_iso)` returns a frozen `StrategyPnlSummary` with running-total points, total, trades, wins, win rate, average win, average loss, max drawdown with its start and end point, and today's P&L. | closed cycles, today's bounds | `StrategyPnlSummary` | Pure; cycles without `realized_pnl_usd` are skipped | Implemented |
 | SRD-EXE-019.003 | FO-EXE-019 | Should | `trade_cycles` gets index `idx_trade_cycles_strategy_closed` on (`strategy_id`, `closed_at`). | — | index | Created by `create_schema(checkfirst=True)` | Implemented |
 | SRD-EXE-019.004 | FO-EXE-019 | Must | `AppService.get_strategy_pnl(strategy_id, since_iso=None)` returns the summary for the viewing user (all users when none) with today in the market day. | strategy id, optional start | `StrategyPnlSummary` | Empty summary when the ledger is missing or the read fails (logged) | Implemented |
+
+## Section 20: Requirements for FO-EXE-020 — Account Equity Snapshots
+
+| SRD ID | Parent FO | Priority | Description | Inputs | Outputs | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-EXE-020.001 | FO-EXE-020 | Must | Table `equity_snapshots` holds `user_id`, `taken_at` (UTC ISO), `equity`, `cash` and `unrealised_pnl`, keyed by (`user_id`, `taken_at`). | — | table | Created with `checkfirst=True` in `candles.db` | Implemented |
+| SRD-EXE-020.002 | FO-EXE-020 | Must | `EquitySnapshotRepository.record(user_id, equity, cash, unrealised_pnl, taken_at)` saves one row, replacing a row in the same slot. | user, values, slot time | row | `taken_at` floored to 5 minutes (naive time = UTC); `record_many` saves all users of a slot in one transaction | Implemented |
+| SRD-EXE-020.003 | FO-EXE-020 | Must | `EquitySnapshotRepository.between(start_iso, end_iso=None, user_id=None)` returns frozen `EquitySnapshot` points in time order; no user sums every user per slot. | range, optional user | tuple of `EquitySnapshot` | Read-only | Implemented |
+| SRD-EXE-020.004 | FO-EXE-020 | Must | While the market is open, the app saves one snapshot per user every 5 minutes from that user's account state and open positions. | timer, users, account state | rows | Only when NYSE status is "open", plus one slot at the first check after the close; a live account is saved once under the active user; a failed save logs one warning per slot and is tried again | Implemented |
+| SRD-EXE-020.005 | FO-EXE-020 | Should | Rows older than 30 days are deleted when the app starts and once a day after that. | start, day change | deleted count | Logged at INFO | Implemented |
+| SRD-EXE-020.006 | FO-EXE-020 | Must | `AppService.get_equity_snapshots(since_iso)` returns the points for the viewing user (all users when none). | start time | tuple of `EquitySnapshot` | Empty when the store is not ready | Implemented |

@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.17.0: MD-EXE-020.001.M01, MD-EXE-020.004.M02 added — Account Equity Snapshots (FO-EXE-020).
 > v1.16.0: MD-EXE-019.001.M01–019.004.M03 added — Strategy P&L History (FO-EXE-019).
 > v1.15.0: MD-EXE-018.001.M01–018.012.M10 added — Short Trade Direction (FO-EXE-018): direction enum and storage, new `execution/direction.py` helpers, engine/adapter/ingestion wiring, direction-aware cycle maths, signed position P&L, pending-execute conflict check.
 > v1.13.0: MD-EXE-006.013.M01 added + MD-EXE-011.001.M03 updated (ISS-EXE-0009) — opening a trade cycle arms candle feeds for its symbol in `app_service.py`; `_evaluator.py` raises `EvaluatorError` on a NaN indicator result.
@@ -360,3 +361,14 @@ Strategy P&L History. One new file (`trade_cycle/_pnl_history.py`).
 | MD-EXE-019.004.M03 | `src/us_swing/gui/app_service.py` | `get_strategy_pnl(strategy_id, since_iso=None)` — viewing-user filter, market-day today bounds, empty summary on failure. | SRD-EXE-019.004 |
 
 **Cross-tool surface (GUI tool — see `gui/MD.md`):** Strategy P&L card (FO-GUI-024).
+
+## Module Modifications for FO-EXE-020
+
+Account Equity Snapshots. One new file (`execution/equity_snapshot.py`).
+
+| Module ID | File | Change Required | SRD |
+|---|---|---|---|
+| MD-EXE-020.001.M01 | `src/us_swing/execution/equity_snapshot.py` (new) | `equity_snapshots` table + index, frozen `EquitySnapshot`, `slot_iso()`, `EquitySnapshotRepository(engine)` with `record`, `record_many`, `between`, `prune`; registered in `db/schema.py`. | SRD-EXE-020.001, .002, .003, .005 |
+| MD-EXE-020.004.M02 | `src/us_swing/gui/app_service.py` | Create the store and prune at start; 60 s `_equity_timer` → `_record_equity_snapshots()` (closing slot, one warning per slot) and `_prune_equity_daily()`; `get_equity_snapshots(since_iso)`. | SRD-EXE-020.004, .005, .006 |
+
+**Cross-tool surface (GUI tool — see `gui/MD.md`):** Performance band equity graph (FO-GUI-025, Phase 4).

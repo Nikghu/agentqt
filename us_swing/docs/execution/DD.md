@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.19.0: DD-EXE-020.001.D01 added — Account Equity Snapshots.
 > v1.18.0: DD-EXE-019.001.D01 added — Strategy P&L History read, summary and app accessor.
 > v1.17.0: DD-EXE-018.001/.003/.006/.007/.012/.013.D01 added — Short Trade Direction: stored direction, shared side and risk-level helpers, order-state by entry/exit, direction-aware cycle maths, opposite-direction guard, signed position P&L.
 > v1.15.0: DD-EXE-006.013.D01 + DD-EXE-011.023.D01 added (ISS-EXE-0009) — opening a trade cycle marshals candle-feed arming (historical download + live-bar subscription) for its symbol; and the `ConditionEvaluator` FUNC choke point raises `EvaluatorError` on a NaN indicator result so an un-computable exit surfaces instead of reading as false.
@@ -4069,3 +4070,23 @@ is over `pnl < 0`. `today` sums points with `today_start ≤ closed_at < today_e
 `user_id = get_viewing_uid()`, takes today's bounds from the market day (same rule as the
 Active Trades closed-today rows) and returns `summarise(...)`. A missing ledger or a failed
 read logs `[Strategy] Could not load P&L history for %s` and returns `StrategyPnlSummary()`.
+
+## DD-EXE-020.001.D01 — Account Equity Snapshots
+
+**Parent SRD:** SRD-EXE-020.001 — SRD-EXE-020.006
+
+**Table.** `equity_snapshots(user_id INTEGER, taken_at TEXT, equity REAL, cash REAL, unrealised_pnl REAL)`, primary key (`user_id`, `taken_at`), index `idx_equity_taken_at`. Defined on the shared `metadata`; `EquitySnapshotRepository(engine)` creates both with `checkfirst=True` (same pattern as `RexCounterRepository`).
+
+**Slot.** `slot_iso(moment)` converts to UTC and floors the minute to a multiple of 5 (`SLOT_MINUTES`), seconds cleared, format `%Y-%m-%dT%H:%M:%S` — the same text format as `trade_cycles`, so string compare orders by time.
+
+**Write.** `record_many(rows, taken_at)` deletes the slot's rows of those users, then inserts all rows, in one transaction (last write in a slot wins; a slot is never half saved, so all-user sums stay whole). `record(...)` is the one-row form. A naive `taken_at` is taken as UTC.
+
+**Read.** `between(start_iso, end_iso=None, user_id=None)` = `SELECT taken_at, SUM(equity), SUM(cash), SUM(unrealised_pnl) … WHERE taken_at >= start [AND <= end] [AND user_id = ?] GROUP BY taken_at ORDER BY taken_at` → tuple of frozen `EquitySnapshot`. One user gives that user's values; no user gives the sum per slot.
+
+**Prune.** `prune(now, keep_days=30)` deletes rows with `taken_at < slot_iso(now − 30 days)`; `AppService` calls it after creating the store and again on the first check of each new day (`_prune_equity_daily`). The table is also registered in `db/schema._register_trade_cycle_schema`, so `create_schema` / `drop_schema` include it.
+
+**Recording (`AppService`).** A 60 s `QTimer` calls `_record_equity_snapshots()`. It returns at once unless the store exists and `_market_status["nyse"] == "open"` (weekends and holidays come from the market calendar). When the current slot differs from `_equity_last_slot` it saves, for each user (or only the active user when the IBKR account is the source, because that account is shared), `get_account_state(uid).equity`, `.total_cash_value` and the sum of `unrealised_pnl` of `get_positions(uid)`. All users' rows go to `record_many` at once. Any exception logs "[Equity] Could not save the equity snapshot" once per slot and leaves the slot unsaved so the next minute tries again. `_equity_was_open` remembers the last status: the first check after NYSE leaves "open" saves one more slot, so the curve ends at 16:00. A 60 s check rather than a 5-minute timer keeps every slot covered without drift.
+
+**Read accessor.** `get_equity_snapshots(since_iso)` → `between(since_iso, user_id=_viewing_uid)`; empty tuple when the store is missing or the read fails (warning logged).
+
+**Known limit.** Paper `equity` is the user's Max Capital until the paper-equity fix (FO-GUI-025 Phase 5); `unrealised_pnl` is stored separately so the curve can be drawn meanwhile.

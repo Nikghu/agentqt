@@ -2,6 +2,14 @@
 
 ---
 
+## [20261024] EXE — Account equity snapshots, Phase 3 (FO-EXE-020, feature)
+
+- Type: Feature
+- FO(s): FO-EXE-020 (part of FO-GUI-025)
+- RN: RN-EXE-1.35.0-20261024
+- Artifacts updated: SRD, DD, MD, UTCD, Code, Tests, TRACE, RN, CONTEXT, TODO, DEVLOG
+- Decisions: one transaction per 5-minute slot for all users; live IBKR account saved once under the active user; closing point at 16:00 ET; paper equity stays Max Capital until Phase 5. Not committed; branch feat/gui-dashboard-tiles.
+
 ## [20261024] GUI — Dashboard tile buttons, Phase 2 (FO-GUI-025, feature)
 
 - Type: Feature

@@ -75,6 +75,7 @@ if TYPE_CHECKING:
     from us_swing.execution.intraday_candle_loader import IntradayCandleLoader
     from us_swing.execution.live_bar_worker import LiveBarWorker
     from us_swing.execution.live_tick_worker import LiveTickWorker
+    from us_swing.execution.equity_snapshot import EquitySnapshot, EquitySnapshotRepository
     from us_swing.execution.trade_cycle import CycleSnapshot, StrategyPnlSummary
     from us_swing.gui.telegram_commands import TelegramCommandBridge
     from us_swing.universe.store import Sp500Meta
@@ -1182,6 +1183,17 @@ class AppService(QObject):
         self._mkt_status_timer.start()
         self._refresh_market_status()   # immediate first check
 
+        # ── Equity snapshots (FO-EXE-020) — checked every minute, saved once per 5-min slot ──
+        self._equity_store: EquitySnapshotRepository | None = None
+        self._equity_last_slot = ""
+        self._equity_warned_slot = ""
+        self._equity_was_open = False
+        self._equity_pruned_on: datetime.date | None = None
+        self._equity_timer = QTimer(self)
+        self._equity_timer.setInterval(60_000)
+        self._equity_timer.timeout.connect(self._record_equity_snapshots)
+        self._equity_timer.start()
+
         self._start_notifications()
 
         # ── S&P 500 universe — check cache on startup ─────────────────────────
@@ -1267,6 +1279,17 @@ class AppService(QObject):
                 _log.info("[Strategy] Rex counter repository ready")
             except Exception:
                 _log.exception("[Strategy] Rex counter init failed")
+
+            try:
+                from us_swing.execution.equity_snapshot import EquitySnapshotRepository
+                engine: Any = self._db_engine   # set by the DB init call above
+                self._equity_store = EquitySnapshotRepository(engine)
+                now = datetime.datetime.now(datetime.timezone.utc)
+                removed = self._equity_store.prune(now)
+                self._equity_pruned_on = now.date()
+                _log.info("[Equity] Snapshot store ready, removed %d old row(s)", removed)
+            except Exception:
+                _log.exception("[Equity] Snapshot store could not start")
 
         # ── Strategy Engine ───────────────────────────────────────────────────
         from us_swing.execution.pending_signal_store import PendingSignalStore
@@ -2768,6 +2791,71 @@ class AppService(QObject):
         save_users(self._users)
         self.users_changed.emit()
         return None
+
+    # ── Equity snapshots (FO-EXE-020) ────────────────────────────────────────
+
+    def _record_equity_snapshots(self, now: datetime.datetime | None = None) -> None:
+        """Save every user's equity once per 5-minute slot while NYSE is open (SRD-EXE-020.004).
+
+        The first check after the close saves one more slot, so the curve ends at 16:00.
+        """
+        store = self._equity_store
+        if store is None:
+            return
+        is_open = self._market_status.get("nyse") == "open"
+        closing = self._equity_was_open and not is_open
+        self._equity_was_open = is_open
+        if not (is_open or closing):
+            return
+        from us_swing.execution.equity_snapshot import slot_iso
+        moment = now or datetime.datetime.now(datetime.timezone.utc)
+        self._prune_equity_daily(store, moment)
+        slot = slot_iso(moment)
+        if slot == self._equity_last_slot:
+            return
+        # A live broker reports one account, so it is saved once, under the active user.
+        if self._ibkr_acct is not None:
+            uids = [self._active_uid]
+        else:
+            uids = [u.user_id for u in self._users]
+        try:
+            rows = []
+            for uid in uids:
+                acct = self.get_account_state(uid)
+                unreal = sum(p.unrealised_pnl for p in self.get_positions(uid))
+                rows.append((uid, acct.equity, acct.total_cash_value, unreal))
+            store.record_many(rows, moment)
+        except Exception as exc:
+            if self._equity_warned_slot != slot:
+                _log.warning("[Equity] Could not save the equity snapshot: %s", exc)
+                self._equity_warned_slot = slot
+            self._equity_was_open = self._equity_was_open or closing   # retry the close point
+            return
+        self._equity_last_slot = slot
+
+    def _prune_equity_daily(self, store: EquitySnapshotRepository,
+                            moment: datetime.datetime) -> None:
+        """Remove snapshots older than 30 days once per day (SRD-EXE-020.005)."""
+        if self._equity_pruned_on == moment.date():
+            return
+        self._equity_pruned_on = moment.date()
+        try:
+            removed = store.prune(moment)
+        except Exception as exc:
+            _log.warning("[Equity] Could not remove old equity snapshots: %s", exc)
+            return
+        if removed:
+            _log.info("[Equity] Removed %d equity snapshot(s) older than 30 days", removed)
+
+    def get_equity_snapshots(self, since_iso: str) -> tuple[EquitySnapshot, ...]:
+        """Equity points from ``since_iso`` for the viewing user, all users when none."""
+        if self._equity_store is None:
+            return ()
+        try:
+            return self._equity_store.between(since_iso, user_id=self._viewing_uid)
+        except Exception as exc:
+            _log.warning("[Equity] Could not read equity snapshots: %s", exc)
+            return ()
 
     # ── System config ─────────────────────────────────────────────────────────
 
