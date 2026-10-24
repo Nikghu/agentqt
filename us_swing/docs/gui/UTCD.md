@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.26.0: UT-GUI-026.011–.012 Pass (Phase 3).
 > v1.25.0: UT-GUI-026.008–.010 Pass (Phase 2).
 > v1.24.0: UT-GUI-026.001–.007 Pass (Phase 1); UT-GUI-020.001–.003 Superseded by the Focus + Inspector layout.
 > v1.23.0: UT-GUI-026.* added — Charts workspace Focus + Inspector (Not Run).
@@ -687,7 +688,11 @@ Test files:
 | UT-GUI-026.009.M03.T02 | MD-GUI-026.005.M03 | Edge | Too few bars give no levels | 5 bars | ([], []) | Pass |
 | UT-GUI-026.010.M01.T01 | MD-GUI-026.001.M01 | Positive | Send to Execution adds pick | click Send to Execution; `add_manual_pick` returns None | called with "NVDA"; `execution_requested("NVDA")`; no message | Pass |
 | UT-GUI-026.010.M01.T02 | MD-GUI-026.001.M01 | Negative | Existing pick shows message | `add_manual_pick` returns "NVDA is already in your picks" | message shown; no `execution_requested` | Pass |
-| UT-GUI-026.012.M04.T01 | MD-GUI-026.012.M04 | Positive | Save and load drawings | in-memory SQLite; save trend + hline for NVDA 1d | load NVDA 1d returns both with same points | Not Run |
-| UT-GUI-026.012.M04.T02 | MD-GUI-026.012.M04 | Negative | Other symbol or timeframe sees none | load NVDA 1w; load AMD 1d | [] and [] | Not Run |
-| UT-GUI-026.012.M04.T03 | MD-GUI-026.012.M04 | Positive | Delete all clears one chart only | delete_all NVDA 1d | NVDA 1d []; NVDA 1w kept | Not Run |
-| UT-GUI-026.012.M04.T04 | MD-GUI-026.012.M04 | Negative | Bridge ignores bad JSON | `drawing_changed("not json")` | nothing saved; warning logged | Not Run |
+| UT-GUI-026.012.M04.T01 | MD-GUI-026.012.M04 | Positive | Save and load drawings | in-memory SQLite; save trend + hline for NVDA 1d | load NVDA 1d returns both with same points | Pass |
+| UT-GUI-026.012.M04.T02 | MD-GUI-026.012.M04 | Negative | Other symbol or timeframe sees none | load NVDA 1w; load AMD 1d | [] and [] | Pass |
+| UT-GUI-026.012.M04.T03 | MD-GUI-026.012.M04 | Positive | Delete all clears one chart only | delete_all NVDA 1d | NVDA 1d []; NVDA 1w kept | Pass |
+| UT-GUI-026.012.M04.T04 | MD-GUI-026.012.M04 | Negative | Bridge ignores bad JSON | `add_drawing("not json")`; one-point trend; unknown kind | no `drawing_added`; three warnings logged | Pass |
+| UT-GUI-026.011.M04.T05 | MD-GUI-026.012.M04 | Positive | Bridge turns page JSON into a drawing | rect JSON; hline with NaN price | `Drawing("rect", …)` emitted; NaN → None | Pass |
+| UT-GUI-026.011.M01.T01 | MD-GUI-026.001.M01 | Positive | Finished drawing is saved, tool resets, drawing comes back | Trend tool; drawing added; open AAPL then NVDA | saved with colour; pointer checked; AAPL none; NVDA drawing back | Pass |
+| UT-GUI-026.011.M01.T02 | MD-GUI-026.001.M01 | Positive | Delete all clears the chart and the database | one hline; `clear_drawings()` | chart and store empty | Pass |
+| UT-GUI-026.012.M01.T05 | MD-GUI-026.001.M01 | Negative | Save failure keeps the drawing on screen | table dropped; drawing added | drawing shown; "[Charts] Could not save drawing" logged | Pass |

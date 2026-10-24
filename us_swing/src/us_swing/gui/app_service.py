@@ -81,6 +81,7 @@ if TYPE_CHECKING:
         EquitySnapshotRepository,
     )
     from us_swing.execution.trade_cycle import CycleSnapshot, StrategyPnlSummary
+    from us_swing.gui.chart_drawings import DrawingStore
     from us_swing.gui.telegram_commands import TelegramCommandBridge
     from us_swing.universe.store import Sp500Meta
 
@@ -1241,6 +1242,7 @@ class AppService(QObject):
         # results arrive.
         self._db:                  Any                = None
         self._db_engine:           Any                = None
+        self._drawing_store:       DrawingStore | None = None
         self._lifecycle_query:     MonitoringQuery    | None = None
         self._lifecycle_command:   MonitoringCommand  | None = None
         self._lifecycle_bus:       MonitoringEventBus | None = None
@@ -2893,6 +2895,20 @@ class AppService(QObject):
             return
         if removed:
             _log.info("[Equity] Removed %d equity snapshot(s) older than 30 days", removed)
+
+    def get_drawing_store(self) -> DrawingStore | None:
+        """Chart drawing store on candles.db, opened on first use (SRD-GUI-026.012).
+
+        Returns None while the database is not open or when the table cannot be made.
+        """
+        if self._drawing_store is None and self._db_engine is not None:
+            from us_swing.gui.chart_drawings import DrawingStore  # noqa: PLC0415
+            try:
+                self._drawing_store = DrawingStore(self._db_engine)
+            except Exception as exc:  # noqa: BLE001
+                _log.warning("[Charts] Drawings cannot be saved in this session")
+                _log.debug("[Charts] Drawing store failed to open: %s", exc)
+        return self._drawing_store
 
     def get_equity_snapshots(self, since_iso: str) -> tuple[EquitySnapshot, ...]:
         """Equity points from ``since_iso`` for the viewing user, all users when none."""

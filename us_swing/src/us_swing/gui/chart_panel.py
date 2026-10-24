@@ -15,9 +15,12 @@ import json
 from pathlib import Path
 from typing import Any
 
+import logging
+
 import numpy as np
 import talib
-from PyQt6.QtCore import pyqtSignal, Qt, QStringListModel, QUrl
+from PyQt6.QtCore import QFile, QIODevice, pyqtSignal, Qt, QStringListModel, QUrl
+from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import (
     QComboBox,
@@ -32,12 +35,15 @@ from PyQt6.QtWidgets import (
 )
 
 from us_swing.gui.app_service import AppService
+from us_swing.gui.chart_drawings import ChartBridge
 from us_swing.gui.icons import set_icon
 from us_swing.gui.theme import C, active_palette, colors, load_theme_id
 
 # Path to the bundled Lightweight Charts JS (downloaded once at install time)
 _RESOURCES = Path(__file__).parent / "resources"
 _LWCHART_JS = _RESOURCES / "lightweight-charts.standalone.production.js"
+
+_log = logging.getLogger(__name__)
 
 RSI_PERIOD = 14
 _OVERLAY_TOKENS = ("BLUE", "TEAL", "MAUVE", "GREEN", "ORANGE")
@@ -64,8 +70,13 @@ def _build_html(
     timeframe: str,
     show_reset_menu: bool = False,
     timezone: str = "America/New_York",
+    webchannel_js: str = "",
 ) -> str:
-    """Return a self-contained HTML page with a TradingView Lightweight Chart."""
+    """Return a self-contained HTML page with a TradingView Lightweight Chart.
+
+    ``webchannel_js`` is Qt's qwebchannel.js; when given, finished drawings are sent
+    to the page's ``bridge`` object (SRD-GUI-026.011).
+    """
     ct = active_palette()
     candle_json = json.dumps(candle_data)
     volume_json = json.dumps(volume_data)
@@ -80,6 +91,9 @@ def _build_html(
             '<script src="https://unpkg.com/lightweight-charts@5.0.5/'
             'dist/lightweight-charts.standalone.production.js"></script>'
         )
+
+    if webchannel_js:
+        script_tag += f"\n<script>\n{webchannel_js}\n</script>"
 
     title = f"{symbol} — {timeframe.upper()}"
 
@@ -527,10 +541,106 @@ def _build_html(
 
   // ── Studies: overlays, RSI pane and trade plan (SRD-GUI-026.003–.004) ──────
   // Called from Python after each load and on every change; redraws all studies.
+  // ── Drawings: our own series primitives (SRD-GUI-026.011) ───────────────────
+  // Python owns the saved list; the page only reports a finished drawing to the bridge.
+  let bridge = null;
+  if (typeof QWebChannel !== 'undefined' && typeof qt !== 'undefined') {{
+    new QWebChannel(qt.webChannelTransport, ch => {{ bridge = ch.objects.bridge; }});
+  }}
+  class DrawingPrimitive {{
+    constructor(d) {{ this.d = d; this.chart = null; this.series = null; }}
+    attached(p) {{ this.chart = p.chart; this.series = p.series; }}
+    detached() {{ this.chart = null; this.series = null; }}
+    updateAllViews() {{}}
+    paneViews() {{ return [{{ renderer: () => ({{ draw: target => this.draw(target) }}) }}]; }}
+    draw(target) {{
+      if (!this.chart || !this.series) return;
+      const ts = this.chart.timeScale();
+      const pts = this.d.points.map(p => ({{
+        x: ts.timeToCoordinate(p.time), y: this.series.priceToCoordinate(p.price) }}));
+      target.useMediaCoordinateSpace(({{ context: ctx, mediaSize }}) => {{
+        ctx.save();
+        ctx.strokeStyle = this.d.colour;
+        ctx.lineWidth = 1.5;
+        if (this.d.kind === 'hline' && pts[0].y !== null) {{
+          ctx.beginPath(); ctx.moveTo(0, pts[0].y); ctx.lineTo(mediaSize.width, pts[0].y);
+          ctx.stroke();
+        }} else if (pts.length === 2 && pts.every(p => p.x !== null && p.y !== null)) {{
+          if (this.d.kind === 'trend') {{
+            ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y); ctx.lineTo(pts[1].x, pts[1].y);
+            ctx.stroke();
+          }} else {{
+            const x = Math.min(pts[0].x, pts[1].x), y = Math.min(pts[0].y, pts[1].y);
+            const w = Math.abs(pts[1].x - pts[0].x), h = Math.abs(pts[1].y - pts[0].y);
+            ctx.fillStyle = this.d.colour + '22';
+            ctx.fillRect(x, y, w, h);
+            ctx.strokeRect(x, y, w, h);
+          }}
+        }}
+        ctx.restore();
+      }});
+    }}
+  }}
+  const DRAW_COLOUR = '{ct.BLUE}';
+  let drawn = [];
+  let tool = '';
+  let pending = null;
+  let preview = null;
+  function _clearPreview() {{
+    if (preview) {{ candleSeries.detachPrimitive(preview); preview = null; }}
+  }}
+  function _setDrawings(list) {{
+    drawn.forEach(p => candleSeries.detachPrimitive(p));
+    drawn = (list || []).map(d => {{
+      const p = new DrawingPrimitive(d);
+      candleSeries.attachPrimitive(p);
+      return p;
+    }});
+  }}
+  function _setTool(t) {{
+    if (t === tool) return;
+    tool = t; pending = null; _clearPreview();
+    chartEl.style.cursor = t ? 'crosshair' : '';
+  }}
+  function _pointAt(param) {{
+    if (!param.point || (param.paneIndex || 0) > 0) return null;
+    const time = param.time !== undefined ? param.time
+      : chart.timeScale().coordinateToTime(param.point.x);
+    const price = candleSeries.coordinateToPrice(param.point.y);
+    return (time === null || time === undefined || price === null) ? null
+      : {{ time: time, price: price }};
+  }}
+  function _finish(points) {{
+    const d = {{ kind: tool, points: points }};
+    _setTool('');
+    if (bridge) bridge.add_drawing(JSON.stringify(d));
+  }}
+  chart.subscribeClick(param => {{
+    if (!tool) return;
+    const pt = _pointAt(param);
+    if (!pt) return;
+    if (tool === 'hline') {{ _finish([pt]); return; }}
+    if (!pending) {{ pending = pt; return; }}
+    _finish([pending, pt]);
+  }});
+  chart.subscribeCrosshairMove(param => {{
+    if (!tool || !pending) return;
+    const pt = _pointAt(param);
+    if (!pt) return;
+    _clearPreview();
+    preview = new DrawingPrimitive({{ kind: tool, points: [pending, pt], colour: DRAW_COLOUR }});
+    candleSeries.attachPrimitive(preview);
+  }});
+  document.addEventListener('keydown', e => {{
+    if (e.key === 'Escape' && pending) {{ pending = null; _clearPreview(); }}
+  }});
+
   let studySeries = [];
   let planLines = [];
   let markerApi = null;
   window.applyStudies = function(s) {{
+    _setDrawings(s.drawings);
+    _setTool(s.tool || '');
     studySeries.forEach(x => chart.removeSeries(x));
     studySeries = [];
     planLines.forEach(l => candleSeries.removePriceLine(l));
@@ -602,6 +712,7 @@ class CandleChartPanel(QWidget):
     """
 
     chart_loaded = pyqtSignal(str, str)   # symbol, timeframe (SRD-GUI-020.001)
+    drawing_added = pyqtSignal(object)    # Drawing finished on the page (SRD-GUI-026.011)
 
     def __init__(self, svc: AppService, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -614,6 +725,9 @@ class CandleChartPanel(QWidget):
         self._rsi_pane = False
         self._markers: list[dict[str, Any]] = []
         self._levels: list[float] = []
+        self._drawings: list[dict[str, object]] = []
+        self._tool = ""
+        self._webchannel_js = ""
 
         self._build_ui()
 
@@ -750,6 +864,33 @@ class CandleChartPanel(QWidget):
         self._levels = list(levels)
         self._push_studies()
 
+    def enable_drawing(self) -> None:
+        """Let the page report finished drawings through ``drawing_added`` (SRD-GUI-026.011)."""
+        if self._webchannel_js:
+            return
+        source = QFile(":/qtwebchannel/qwebchannel.js")
+        if not source.open(QIODevice.OpenModeFlag.ReadOnly):
+            _log.warning("[Charts] Drawing tools are not available on this system")
+            return
+        self._webchannel_js = bytes(source.readAll().data()).decode("utf-8")
+        self._bridge = ChartBridge(self)
+        self._bridge.drawing_added.connect(self.drawing_added)
+        self._channel = QWebChannel(self)
+        self._channel.registerObject("bridge", self._bridge)
+        page = self._web.page()
+        if page is not None:
+            page.setWebChannel(self._channel)
+
+    def set_drawings(self, drawings: list[dict[str, object]]) -> None:
+        """Draw saved drawings (``Drawing.to_js()`` shape); ``[]`` clears them."""
+        self._drawings = list(drawings)
+        self._push_studies()
+
+    def set_draw_tool(self, tool: str) -> None:
+        """Pick ``hline``, ``trend`` or ``rect``; ``""`` is the plain pointer."""
+        self._tool = tool
+        self._push_studies()
+
     def set_rsi_pane(self, shown: bool) -> None:
         """Show an RSI pane under the price pane (SRD-GUI-026.004)."""
         self._rsi_pane = shown
@@ -768,7 +909,8 @@ class CandleChartPanel(QWidget):
             plan = {"entry": entry, "stop": stop, "target": target}
         rsi = study_points(self._candles, "rsi", RSI_PERIOD) if self._rsi_pane else []
         return {"overlays": overlays, "rsi": rsi, "plan": plan,
-                "markers": self._markers, "levels": self._levels}
+                "markers": self._markers, "levels": self._levels,
+                "drawings": self._drawings, "tool": self._tool}
 
     def _push_studies(self) -> None:
         if not self._candles:
@@ -917,7 +1059,8 @@ class CandleChartPanel(QWidget):
         ]
 
         tz = self._svc.get_system_config().market_timezone
-        html = _build_html(candles, volume_data, symbol, timeframe, timezone=tz)
+        html = _build_html(candles, volume_data, symbol, timeframe, timezone=tz,
+                           webchannel_js=self._webchannel_js)
         self._web.setHtml(html, QUrl("about:blank"))
         self._current_symbol = symbol
         self._current_tf = timeframe

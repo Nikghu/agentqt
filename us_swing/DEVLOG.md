@@ -2,6 +2,14 @@
 
 ---
 
+## [20261024] GUI — Charts drawing tools saved in SQLite, Phase 3 (FO-GUI-026, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-026 (SRD-GUI-026.011–.012) — FO complete
+- RN: RN-GUI-1.31.0-20261024
+- Artifacts updated: SRD, DD, MD, UTCD, Code, Tests, TRACE, RN, CONTEXT, TODO, DEVLOG
+- Decisions: own series primitives (free library has no drawing tools); qwebchannel.js inlined from the Qt resource; Python owns the drawing list; drawings per user + symbol + timeframe; store makes its own table on its own MetaData (importing `us_swing.db` first from the GUI hits a circular import). Synthetic DOM clicks do not trigger the chart, real Qt mouse input does. Not pushed.
+
 ## [20261024] GUI — Charts patterns, key levels, Send to Execution, Phase 2 (FO-GUI-026, feature)
 
 - Type: Feature

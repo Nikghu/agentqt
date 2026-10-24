@@ -5,7 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
-> v2.41.0: SRD-GUI-026.001–.012 added — Charts workspace Focus + Inspector (canvas Option 3); Phase 1 (.001–.007) approved by user and implemented 2026-10-24; Phase 2 (.008–.010) approved by user and implemented 2026-10-24; .011–.012 Draft.
+> v2.41.0: SRD-GUI-026.001–.012 added — Charts workspace Focus + Inspector (canvas Option 3); Phase 1 (.001–.007) approved by user and implemented 2026-10-24; Phase 2 (.008–.010) approved by user and implemented 2026-10-24; Phase 3 (.011–.012) approved by user and implemented 2026-10-24.
 > v2.40.0: SRD-GUI-025.016–.018 added — dashboard KPI and position-table fixes, Phase 5; approved by user and implemented 2026-10-24.
 > v2.39.0: SRD-GUI-025.013–.015 added — Performance band and Exposure tab, Phase 4; approved by user 2026-10-24.
 > v2.38.0: SRD-GUI-025.008–.012 added — Dashboard tile buttons, Phase 2; approved by user 2026-10-24.
@@ -442,5 +442,5 @@
 | SRD-GUI-026.008 | FO-GUI-026 | Should | Patterns Found lists price action patterns true on the last 5 bars with name and bars ago, and marks them on the chart. | bars, pattern catalogue | section, markers | Phase 2 | Implemented |
 | SRD-GUI-026.009 | FO-GUI-026 | Should | Key Levels lists the three nearest swing highs and lows and can show them as faint lines. | bars | section, lines | Phase 2 | Implemented |
 | SRD-GUI-026.010 | FO-GUI-026 | Must | Send to Execution adds the symbol as a manual pick and switches to the Execution screen. | click | manual pick | Phase 2; existing pick → message only | Implemented |
-| SRD-GUI-026.011 | FO-GUI-026 | Should | A drawing bar offers horizontal line, trend line, rectangle and delete all, drawn with chart primitives. | mouse | drawings | Phase 3; Esc cancels a drawing in progress | Draft |
-| SRD-GUI-026.012 | FO-GUI-026 | Must | Drawings are saved per symbol and timeframe in SQLite and redrawn when that chart loads. | drawings | `chart_drawings` rows | Phase 3; save failure logs and keeps the drawing on screen | Draft |
+| SRD-GUI-026.011 | FO-GUI-026 | Should | A drawing bar offers horizontal line, trend line, rectangle and delete all, drawn with chart primitives. | mouse | drawings | Phase 3; Esc cancels a drawing in progress | Implemented |
+| SRD-GUI-026.012 | FO-GUI-026 | Must | Drawings are saved per symbol and timeframe in SQLite and redrawn when that chart loads. | drawings | `chart_drawings` rows | Phase 3; save failure logs and keeps the drawing on screen | Implemented |

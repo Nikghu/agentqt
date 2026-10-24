@@ -8,14 +8,17 @@ collapsible Inspector, as three cards on the gutter (Focus + Inspector layout).
 from __future__ import annotations
 
 import logging
+from dataclasses import replace
 from functools import partial
 from typing import Any
 
 from PyQt6.QtCore import QSettings, pyqtSignal
 from PyQt6.QtWidgets import (
+    QButtonGroup,
     QHBoxLayout,
     QLabel,
     QMenu,
+    QMessageBox,
     QPushButton,
     QVBoxLayout,
     QWidget,
@@ -23,14 +26,22 @@ from PyQt6.QtWidgets import (
 
 from us_swing.gui.app_service import AppService
 from us_swing.gui.cards import GAP, card, gutter
+from us_swing.gui.chart_drawings import Drawing
 from us_swing.gui.chart_inspector import ChartContext, Inspector, TradePlan, plan_rr
 from us_swing.gui.chart_panel import CandleChartPanel
 from us_swing.gui.chart_source_list import SourceList
 from us_swing.gui.icons import set_icon
 from us_swing.gui.screener_views import ChipGroup
-from us_swing.gui.theme import active_palette
+from us_swing.gui.theme import C, active_palette
 
 _log = logging.getLogger(__name__)
+
+DRAW_TOOLS: tuple[tuple[str, str, str], ...] = (
+    ("", "↖", "Pointer"),
+    ("hline", "―", "Horizontal line"),
+    ("trend", "╱", "Trend line"),
+    ("rect", "▭", "Rectangle"),
+)
 
 TIMEFRAMES: tuple[tuple[str, str], ...] = (("1D", "1d"), ("1W", "1w"))
 DEFAULT_OVERLAYS: list[tuple[str, int]] = [("sma", 20), ("sma", 50)]
@@ -89,13 +100,21 @@ class ChartWorkspace(QWidget):
         self.chart.hide_toolbar()
         self.chart.set_rsi_pane(True)
         self.chart.set_overlays(self._overlays)
+        self.chart.enable_drawing()
         self.chart.chart_loaded.connect(self._on_chart_loaded)
+        self.chart.drawing_added.connect(self._on_drawing_added)
+        self._drawings: list[Drawing] = []
         column = QWidget()
         col = QVBoxLayout(column)
         col.setContentsMargins(0, 0, 0, 0)
         col.setSpacing(0)
         col.addWidget(self._build_header())
-        col.addWidget(self.chart, 1)
+        body = QHBoxLayout()
+        body.setContentsMargins(0, 0, 0, 0)
+        body.setSpacing(0)
+        body.addWidget(self._build_draw_bar())
+        body.addWidget(self.chart, 1)
+        col.addLayout(body, 1)
         row.addWidget(card(column), 1)
 
         self.inspector = Inspector(self._settings)
@@ -111,6 +130,96 @@ class ChartWorkspace(QWidget):
         self._set_inspector_shown(shown)
         svc.sp500_updated.connect(self._names.clear)
         self._restyle()
+
+    # ── Drawing bar (SRD-GUI-026.011) ─────────────────────────────────────────
+
+    def _build_draw_bar(self) -> QWidget:
+        bar = QWidget()
+        column = QVBoxLayout(bar)
+        column.setContentsMargins(4, 6, 4, 6)
+        column.setSpacing(4)
+        self._tool_group = QButtonGroup(self)
+        self._tool_group.setExclusive(True)
+        self.tool_buttons: dict[str, QPushButton] = {}
+        for tool, text, tip in DRAW_TOOLS:
+            button = QPushButton(text)
+            button.setCheckable(True)
+            button.setToolTip(tip)
+            button.setAccessibleName(tip)
+            button.setFixedWidth(C.BTN_H + 4)
+            button.clicked.connect(partial(self.set_tool, tool))
+            self._tool_group.addButton(button)
+            self.tool_buttons[tool] = button
+            column.addWidget(button)
+        self.tool_buttons[""].setChecked(True)
+        self.clear_btn = QPushButton()
+        set_icon(self.clear_btn, "eraser", "danger")
+        self.clear_btn.setToolTip("Delete all drawings")
+        self.clear_btn.setAccessibleName("Delete all drawings")
+        self.clear_btn.setFixedWidth(C.BTN_H + 4)
+        self.clear_btn.clicked.connect(self._on_clear_clicked)
+        column.addWidget(self.clear_btn)
+        column.addStretch(1)
+        return bar
+
+    def set_tool(self, tool: str) -> None:
+        """Pick a drawing tool, or ``""`` for the pointer."""
+        self.tool_buttons[tool].setChecked(True)
+        self.chart.set_draw_tool(tool)
+
+    def clear_drawings(self) -> None:
+        """Delete every drawing of the shown chart, on screen and in the database."""
+        symbol, timeframe = self.chart.current_symbol, self.chart.current_timeframe
+        store = self._svc.get_drawing_store()
+        if store is not None and symbol:
+            try:
+                store.delete_all(self._user_id(), symbol, timeframe)
+            except Exception:  # noqa: BLE001
+                _log.warning("[Charts] Could not delete the drawings of this chart")
+                _log.debug("[Charts] Delete drawings failed", exc_info=True)
+                return
+        self._drawings = []
+        self.chart.set_drawings([])
+
+    def _on_clear_clicked(self) -> None:
+        if not self._drawings:
+            return
+        answer = QMessageBox.question(
+            self, "Delete Drawings",
+            f"Delete all {len(self._drawings)} drawing(s) on "
+            f"{self.chart.current_symbol} {self.timeframe.upper()}?")
+        if answer == QMessageBox.StandardButton.Yes:
+            self.clear_drawings()
+
+    def _on_drawing_added(self, drawing: Drawing) -> None:
+        ct: Any = active_palette()
+        drawing = replace(drawing, colour=ct.BLUE)
+        symbol, timeframe = self.chart.current_symbol, self.chart.current_timeframe
+        store = self._svc.get_drawing_store()
+        if store is not None and symbol:
+            try:
+                drawing = store.save(self._user_id(), symbol, timeframe, drawing)
+            except Exception:  # noqa: BLE001
+                _log.warning("[Charts] Could not save drawing — it stays until the app closes")
+                _log.debug("[Charts] Save drawing failed", exc_info=True)
+        self._drawings.append(drawing)
+        self.tool_buttons[""].setChecked(True)
+        self.chart.set_draw_tool("")
+        self.chart.set_drawings([d.to_js() for d in self._drawings])
+
+    def _load_drawings(self, symbol: str, timeframe: str) -> None:
+        self._drawings = []
+        store = self._svc.get_drawing_store()
+        if store is not None:
+            try:
+                self._drawings = store.load(self._user_id(), symbol, timeframe)
+            except Exception:  # noqa: BLE001
+                _log.warning("[Charts] Could not load the saved drawings of this chart")
+                _log.debug("[Charts] Load drawings failed", exc_info=True)
+        self.chart.set_drawings([d.to_js() for d in self._drawings])
+
+    def _user_id(self) -> int:
+        return int(self._svc.get_active_user().user_id)
 
     # ── Header ────────────────────────────────────────────────────────────────
 
@@ -251,6 +360,7 @@ class ChartWorkspace(QWidget):
         self._show_quote(symbol, candles)
         plan = self._plan_for(symbol)
         self._draw_plan(plan)
+        self._load_drawings(symbol, timeframe)
         risk_pct, equity = self._risk()
         self.inspector.update_context(ChartContext(
             symbol=symbol, timeframe=timeframe, candles=candles,

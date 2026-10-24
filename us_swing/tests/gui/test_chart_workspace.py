@@ -4,10 +4,12 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
+import sqlalchemy as sa
 from PyQt6.QtCore import QObject, QSettings, pyqtSignal
 from PyQt6.QtWidgets import QMdiArea
 
 from us_swing.gui import screener_panel
+from us_swing.gui.chart_drawings import Drawing, DrawingStore
 from us_swing.gui.chart_inspector import TradePlan
 from us_swing.gui.chart_workspace import ChartWorkspace, parse_overlays
 
@@ -28,6 +30,7 @@ class _Svc(QObject):
         super().__init__()
         self.screener: list[SimpleNamespace] = []
         self.positions: list[SimpleNamespace] = []
+        self.drawings = DrawingStore(sa.create_engine("sqlite://"))
 
     def get_candle_symbols(self, *_a, **_k) -> list[str]:
         return ["AAPL", "NVDA"]
@@ -51,10 +54,14 @@ class _Svc(QObject):
         return [SimpleNamespace(symbol="NVDA", name="NVIDIA Corp")]
 
     def get_active_user(self) -> SimpleNamespace:
-        return SimpleNamespace(risk_config=SimpleNamespace(risk_per_trade_pct=1.0))
+        return SimpleNamespace(user_id=1,
+                               risk_config=SimpleNamespace(risk_per_trade_pct=1.0))
 
     def get_account_state(self) -> SimpleNamespace:
         return SimpleNamespace(equity=40_000.0)
+
+    def get_drawing_store(self) -> DrawingStore:
+        return self.drawings
 
 
 def _screener_entry(symbol: str, entry=None, stop=None, target=None) -> SimpleNamespace:
@@ -89,6 +96,7 @@ def test_three_cards_no_mdi(workspace):
     assert workspace.findChild(QMdiArea) is None
     cards = [workspace.source.parent(), workspace.chart.parent().parent(),
              workspace.inspector.parent()]
+    assert workspace.chart.parent().parent().objectName() == "shell_card"
     assert [c.objectName() for c in cards] == ["shell_card"] * 3
 
 
@@ -226,6 +234,40 @@ def test_markers_and_levels_reach_chart(workspace):
     workspace.inspector.levels_changed.emit([1.0])
     studies = workspace.chart._studies()
     assert studies["markers"] == [{"time": 1, "text": "x"}] and studies["levels"] == [1.0]
+
+
+def test_drawing_saved_and_reloaded(svc, workspace):
+    """UT-GUI-026.011.M01.T01: Finished drawing is saved, tool resets, drawing comes back."""
+    workspace.open_symbol("NVDA")
+    workspace.tool_buttons["trend"].click()
+    assert workspace.chart._tool == "trend"
+    workspace.chart.drawing_added.emit(Drawing("trend", ((1.0, 100.0), (2.0, 110.0))))
+    assert workspace.chart._tool == "" and workspace.tool_buttons[""].isChecked()
+    saved = svc.drawings.load(1, "NVDA", "1d")
+    assert len(saved) == 1 and saved[0].colour
+    workspace.open_symbol("AAPL")
+    assert workspace.chart._drawings == []
+    workspace.open_symbol("NVDA")
+    assert workspace.chart._drawings == [saved[0].to_js()]
+
+
+def test_clear_drawings(svc, workspace):
+    """UT-GUI-026.011.M01.T02: Delete all clears the chart and the database."""
+    workspace.open_symbol("NVDA")
+    workspace.chart.drawing_added.emit(Drawing("hline", ((1.0, 100.0),)))
+    workspace.clear_drawings()
+    assert workspace.chart._drawings == []
+    assert svc.drawings.load(1, "NVDA", "1d") == []
+
+
+def test_save_failure_keeps_drawing(svc, workspace, caplog):
+    """UT-GUI-026.012.M01.T05: Save failure logs and keeps the drawing on screen."""
+    workspace.open_symbol("NVDA")
+    with svc.drawings._engine.begin() as conn:
+        conn.execute(sa.text("DROP TABLE chart_drawings"))
+    workspace.chart.drawing_added.emit(Drawing("hline", ((1.0, 100.0),)))
+    assert len(workspace.chart._drawings) == 1
+    assert "[Charts] Could not save drawing" in caplog.text
 
 
 def test_quick_chart_viewer_removed():
