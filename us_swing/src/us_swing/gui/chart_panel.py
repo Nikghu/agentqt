@@ -562,20 +562,26 @@ def _build_html(
       const ts = this.chart.timeScale();
       const pts = this.d.points.map(p => ({{
         x: ts.timeToCoordinate(p.time), y: this.series.priceToCoordinate(p.price) }}));
-      target.useMediaCoordinateSpace(({{ context: ctx, mediaSize }}) => {{
+      // Device pixels, snapped to the pixel grid: a crisp 1 px line on any screen scale.
+      target.useBitmapCoordinateSpace(({{ context: ctx, bitmapSize, horizontalPixelRatio: hr,
+                                         verticalPixelRatio: vr }}) => {{
+        const lw = Math.max(1, Math.floor(hr));
+        const snap = v => Math.round(v) + (lw % 2) / 2;
+        const bp = pts.map(p => ({{
+          x: p.x === null ? null : snap(p.x * hr), y: p.y === null ? null : snap(p.y * vr) }}));
         ctx.save();
         ctx.strokeStyle = this.d.colour;
-        ctx.lineWidth = 1.5;
-        if (this.d.kind === 'hline' && pts[0].y !== null) {{
-          ctx.beginPath(); ctx.moveTo(0, pts[0].y); ctx.lineTo(mediaSize.width, pts[0].y);
+        ctx.lineWidth = lw;
+        if (this.d.kind === 'hline' && bp[0].y !== null) {{
+          ctx.beginPath(); ctx.moveTo(0, bp[0].y); ctx.lineTo(bitmapSize.width, bp[0].y);
           ctx.stroke();
-        }} else if (pts.length === 2 && pts.every(p => p.x !== null && p.y !== null)) {{
+        }} else if (bp.length === 2 && bp.every(p => p.x !== null && p.y !== null)) {{
           if (this.d.kind === 'trend') {{
-            ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y); ctx.lineTo(pts[1].x, pts[1].y);
+            ctx.beginPath(); ctx.moveTo(bp[0].x, bp[0].y); ctx.lineTo(bp[1].x, bp[1].y);
             ctx.stroke();
           }} else {{
-            const x = Math.min(pts[0].x, pts[1].x), y = Math.min(pts[0].y, pts[1].y);
-            const w = Math.abs(pts[1].x - pts[0].x), h = Math.abs(pts[1].y - pts[0].y);
+            const x = Math.min(bp[0].x, bp[1].x), y = Math.min(bp[0].y, bp[1].y);
+            const w = Math.abs(bp[1].x - bp[0].x), h = Math.abs(bp[1].y - bp[0].y);
             ctx.fillStyle = this.d.colour + '22';
             ctx.fillRect(x, y, w, h);
             ctx.strokeRect(x, y, w, h);
