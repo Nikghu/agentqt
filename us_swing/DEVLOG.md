@@ -2,6 +2,14 @@
 
 ---
 
+## [20261024] GUI — Dashboard tiled workspace, Phase 1 (FO-GUI-025, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-025
+- RN: RN-GUI-1.25.0-20261024
+- Artifacts updated: SRD, DD, MD, UTCD, Code, Tests, TRACE, RN, CONTEXT, TODO
+- Decisions: Canvas Option E with Performance band; Market Watch tile shows user's watchlist (index ETFs stay in title bar); Square Off All moved to Open Positions header. Not committed; branch feat/gui-dashboard-tiles.
+
 ## [20261023] GUI + EXE — Execution workspace (F2) and strategy P&L history (FO-GUI-024, FO-EXE-019, feature)
 
 - Type: Feature

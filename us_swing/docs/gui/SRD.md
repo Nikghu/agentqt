@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.37.0: SRD-GUI-025.001–.007 added — Dashboard tiled workspace, Phase 1 (canvas Option E); approved by user 2026-10-24.
 > v2.36.0: SRD-GUI-024.008 changed — charts toggle moved to the page header, chart header row removed, 4 px card gaps (user, 2026-10-23).
 > v2.35.0: SRD-GUI-024.001–.008 added — Execution workspace (canvas Option F2); approved by user 2026-10-23.
 > v2.34.0: SRD-GUI-023.004 added — lighter gap colour; requested by user 2026-10-23.
@@ -399,3 +400,15 @@
 | SRD-GUI-024.006 | FO-GUI-024 | Must | A Strategy P&L card shows the running total line (or per-trade bars), the max drawdown in red, ranges 1W / 1M / 3M / All, and win rate, average win, average loss, max drawdown and today. | `get_strategy_pnl` | P&L card | Empty text when the strategy has no closed trades | Implemented |
 | SRD-GUI-024.007 | FO-GUI-024 | Should | A Today strip lists the strategy's open trades and today's closed trades with side, quantity, state and P&L. | open cycles, today's closed cycles | strip | "No trades today" when empty | Implemented |
 | SRD-GUI-024.008 | FO-GUI-024 | Must | The intraday charts sit below the tab card; a "Hide charts" / "Show charts" button in the page header (after the broker chip) hides them completely and the choice is remembered. Execution cards sit on the gutter with the Screener's 4 px gap. | selected symbol, setting | chart pane | `QSettings("USSwing", "ExecutionPanel")` key `charts_hidden` | Implemented |
+
+## FO-GUI-025 — Dashboard Tiled Workspace
+
+| ID | Parent | Priority | Description | Input | Output | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-025.001 | FO-GUI-025 | Must | A one-line KPI strip shows P&L today, unrealised P&L, equity, cash, capital used "of 95%" and open positions. | account state, positions | KPI strip | Replaces the five stat cards and the scope strip | Implemented |
+| SRD-GUI-025.002 | FO-GUI-025 | Must | The strip ends with the user view switch (All users plus each user) and a Comfort / Compact switch that changes table row height. | users, setting | switches | View stays in sync with the title-bar user scope | Implemented |
+| SRD-GUI-025.003 | FO-GUI-025 | Must | Four tiles sit in a 2 × 2 grid: Open Positions and Market Watch on top, Trade History and P&L by Strategy below; each tile header shows its title, a count and its own buttons. | — | tile grid | Square Off All moves into the Open Positions header | Implemented |
+| SRD-GUI-025.004 | FO-GUI-025 | Must | Each tile has a Maximise button that makes it fill the grid and hides the others; clicking it again restores the grid. | click | layout | Only one tile maximised at a time | Implemented |
+| SRD-GUI-025.005 | FO-GUI-025 | Should | The P&L by Strategy tile lists each strategy with today's P&L as a green or red bar and a total row. | `get_strategy_pnl` | bar list | "No strategies" text when none exist | Implemented |
+| SRD-GUI-025.006 | FO-GUI-025 | Must | Density, user view and the maximised tile are remembered across restarts. | setting | — | `QSettings("USSwing", "DashboardPanel")` | Implemented |
+| SRD-GUI-025.007 | FO-GUI-025 | Must | The Market Watch tile shows the user's watchlist with Symbol, LTP, change, change % and volume, and an add box, Add, Remove and Refresh in its header. | watchlist | table | Index ETFs stay in the title bar; the right-panel watchlist stays | Implemented |

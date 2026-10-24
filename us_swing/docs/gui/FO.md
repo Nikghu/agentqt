@@ -728,3 +728,28 @@ The system shall lay out the Execution screen as a workspace: a page header, a g
 1. Every action of the old Strategy Builder table is still reachable.
 2. The P&L chart of a strategy matches the sum of its closed trades.
 3. Hiding the charts gives their space to the tabs, and stays hidden after a restart.
+
+---
+
+## FO-GUI-025: Dashboard Tiled Workspace
+
+**Status:** Approved (user, 2026-10-24)
+**Priority:** Should
+**Depends on:** FO-GUI-002 (Dashboard), FO-GUI-023 (cards), FO-EXE-019 (strategy P&L history)
+**Source:** User picked canvas Option E + Performance band (https://claude.ai/artifact/M55jLrkWtMETMH4XgYCPgr) on 2026-10-24.
+
+The system shall lay out the Dashboard as a tiled workspace: a one-line KPI strip, an optional performance band, and four tiles (Open Positions, Market Watch, Trade History, P&L by Strategy). Trading behaviour does not change.
+
+### Requirements
+
+1. **KPI strip.** P&L today, unrealised P&L, equity, cash, capital used against its limit and open positions on one line.
+2. **Tiles.** Four tiles in a 2 × 2 grid, each with its own toolbar and a maximise / restore button.
+3. **Controls.** User view switch and Comfort / Compact row density; choices are remembered.
+4. **Tile tools.** Filter, column chooser, export and state / range filters work on their tiles (Phase 2).
+5. **Performance.** An account equity graph (1D from saved equity snapshots, longer ranges from closed trades) shown by default and hidden with a toggle; an Exposure tab with a vertical bar per symbol (Phases 3–4).
+
+### Acceptance Criteria
+
+1. Double-click exit, Square Off All and live prices work as before.
+2. Maximising a tile and restoring it brings back the same layout.
+3. Density, view and maximised tile survive a restart.

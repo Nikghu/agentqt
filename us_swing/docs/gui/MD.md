@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.21.0: MD-GUI-025.003.M01 (dashboard_tiles.py) added; MD-GUI-002.001.M01 hosts the tiled layout.
 > v1.20.0: MD-GUI-023.001.M01 (cards.py) added — card layout.
 > v1.19.0: MD-GUI-022.001.M01 adds `RunStepper`, `SideDrawer` and the header text helpers (SRD-GUI-022.008–.012).
 > v1.18.0: MD-GUI-022.001.M01 (screener_views.py) added; MD-GUI-003.001.M01 hosts the views.
@@ -250,3 +251,10 @@ us_swing/src/us_swing/gui/
 | MD-GUI-024.008.M06 | SRD-GUI-024.008 | `us_swing/src/us_swing/gui/execution_panel.py` | Workspace layout, tab card, charts below with hide toggle | `ExecutionPanel` | all of the above | No |
 
 > `_StrategyTablePane` and the filtered-stocks table leave `execution_panel.py` (MD-GUI-004.001.M01); `theme.py` gains QSS for `exec_chip`, `exec_tabs`, `detail_tile`.
+
+## FO-GUI-025 — Dashboard Tiled Workspace
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-GUI-025.003.M01 | SRD-GUI-025.003 | `us_swing/src/us_swing/gui/dashboard_tiles.py` | Tile, tile grid with maximise, KPI strip, strategy P&L bars | `Tile`, `TileGrid`, `KpiStrip`, `StrategyPnlList`, `PnlBar`, `TILES`, `ROW_H` | cards, icons, strategy_pnl_chart, PyQt6 | No |
+| MD-GUI-025.001.M02 | SRD-GUI-025.001 | `us_swing/src/us_swing/gui/dashboard_panel.py` | Tiled layout, KPI values, switches, remembered settings, watchlist tile | `DashboardPanel(svc, parent, settings)` | AppService, dashboard_tiles, strategy_store | No |

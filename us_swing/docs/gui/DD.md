@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.18.0: DD-GUI-025.001.D01 added — Dashboard tiled workspace (Phase 1).
 > v1.17.0: DD-GUI-024.001.D01 added — Execution workspace.
 > v1.16.0: DD-GUI-023.001.D01 added — card layout.
 > v1.15.0: DD-GUI-022.001.D01 extended — page header, run stepper, transcript drawer (SRD-GUI-022.008–.012).
@@ -1629,3 +1630,17 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 **P&L card (`strategy_pnl_chart.py`, SRD-.006).** `StrategyPnlCard(QWidget)` = title + total + "since … · N trades", a two-button toggle (P&L curve / Per trade), range buttons (1W / 1M / 3M / All → `since_iso` = now − 7/30/90 days UTC, All = None), `StrategyPnlChart` and a stats column. `StrategyPnlChart.paintEvent` (QPainter, antialiased): plot rect minus a 52 px right axis and 18 px bottom axis; y range from min(0, min cum) to max(0, max cum) rounded up to a "nice" step (1/1.5/2/2.5/5 × 10ⁿ, 3 steps); line in GREEN when total ≥ 0 else RED, fill = vertical gradient of the line colour from 28 % alpha to 0; drawdown span (`dd_start`..`dd_end`, −1 = origin) redrawn in RED 2 px; dashed zero line; x labels = month short names at the first point of each month. Per-trade mode draws one bar per point from the zero line. Empty summary → centred "No closed trades yet".
 
 **Charts (SRD-.008).** `ExecutionHeader.charts_btn` (after the broker chip) toggles `_IntradayChartPane.set_charts_hidden()`, which stores `charts_hidden` in `QSettings("USSwing", "ExecutionPanel")` and emits `charts_toggled`; the panel hides the whole chart card (shown again at 3 : 2) and relabels the button via `show_charts_state()`. No chart header row. Like the Screener, `MainWindow` does not wrap Execution in one card: the panel is a gutter with cards (header, watchlist, tabs, charts) 4 px apart (`cards.GAP`), splitter handles GAP wide.
+
+## DD-GUI-025.001.D01 — Dashboard Tiled Workspace
+
+**Traces:** SRD-GUI-025.001–.007
+
+**Layout (`dashboard_panel.py`).** Like Screener and Execution, `MainWindow` does not wrap the Dashboard in one card: the panel is a gutter holding the KPI strip card over a `TileGrid`, `cards.GAP` apart. The five stat cards, the scope pill strip and the `QTabWidget` are removed; `_StatCard`, `_MarketWatchModel` and `_MarketWatchTab` go with them (index ETFs stay in the title bar).
+
+**Tiles (`dashboard_tiles.py`).** `Tile(title, body)`: header row (bold title, muted count label, tool slot, `maximize-2` icon button) over a 1 px rule and the body. `TileGrid` puts four `cards.card(tile)` in a `QGridLayout` (columns 19 : 10, rows 23 : 20). `set_maximised(name)` removes all cards, then adds only that card spanning 2 × 2 (others hidden) or all four in their cells; the tile's button becomes `minimize-2` "Restore". An unknown name restores. `changed(str)` reports the maximised tile.
+
+**Tile contents.** Open Positions: the existing `PositionTableModel` view; Square Off All moves to the header; the header count label shows "5 · streaming" or the selected symbol. Market Watch: a second `_WatchlistTab`; `tile_tools()` hides all columns except Symbol, LTP, Chg $, Chg %, Volume and hands the add box, Add, Remove and Refresh to the tile header. Trade History: the existing view; count "Today · N orders". P&L by Strategy: `StrategyPnlList` rows (name, "N open", money, `PnlBar` from a centre line, length = |P&L| ÷ largest |P&L|) and a total row; data = `get_strategy_pnl(name, since_iso("1")).today` for each `load_strategies()` name, refreshed on `viewing_changed`, `strategy_status_changed` and a 60 s timer.
+
+**Strip and switches.** `KpiStrip` cells: P&L today (`daily_pnl`), Unrealised (sum of `unrealised_pnl` of the positions), Equity, Cash, Capital used + "of 95%", Positions. Its tail holds two `ChipGroup`s: view (All users + each user → `set_viewing_uid`, kept in sync on `viewing_changed`) and density (Comfort 32 px / Compact 24 px default row height on the three tables).
+
+**Settings.** `QSettings("USSwing", "DashboardPanel")`: `density` ("compact" default), `view_uid` ("" = all; applied only when that user exists), `maximised` ("" = grid). Restored once in the constructor.
