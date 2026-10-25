@@ -881,7 +881,7 @@ class MainWindow(QMainWindow):
         if not pwd:
             self._demo.log_message.emit(
                 "WARNING",
-                "Auto Fill: no stored IBKR password — open Windows Task Scheduler dialog and save credentials.",
+                "Auto Fill: no stored IBKR password — add it in Settings → Scheduler → TWS login and press Apply.",
             )
             return
         self._auto_fill_username = sched_cfg.ibkr_username

@@ -1,37 +1,32 @@
 """
 Module: MD-GUI-000.004 — scheduler_dialog.py
 Parent SRD: SRD-GUI-006.005
+Task helpers: MD-GUI-029.004.M02 (Parent SRD: SRD-GUI-029.004)
 
-Windows Task Scheduler integration dialog.
-Creates two independent scheduled tasks:
+Windows Task Scheduler helpers for two independent scheduled tasks:
   • USSwing_App  — launches USSwing.exe
   • USSwing_IBKR — launches Trader Workstation (TWS)
+plus their "_Close" tasks, the TWS password in Windows Credential Manager, the TWS
+login auto-fill and the frameless dialog title bar. The task table that drives them
+lives in Settings → Scheduler (scheduler_table.py, FO-GUI-029).
 
 Uses only stdlib (winreg, subprocess, pathlib) — no 3rd-party dependencies.
 """
 from __future__ import annotations
 
+import dataclasses
 import subprocess
+from collections.abc import Callable
 from pathlib import Path
 
-from PyQt6.QtCore import QObject, QPoint, QThread, Qt, QTime, pyqtSignal
+from PyQt6.QtCore import QObject, QPoint, QThread, Qt, pyqtSignal
 from PyQt6.QtGui import QCursor
 from PyQt6.QtWidgets import (
     QApplication,
-    QCheckBox,
-    QComboBox,
     QDialog,
-    QFileDialog,
-    QFormLayout,
-    QFrame,
-    QGroupBox,
     QHBoxLayout,
     QLabel,
-    QLineEdit,
-    QMessageBox,
     QPushButton,
-    QTimeEdit,
-    QVBoxLayout,
     QWidget,
 )
 
@@ -42,14 +37,10 @@ from us_swing.gui.scheduler_store import (
     delete_close_config,
     delete_scheduler_config,
     delete_usswing_config,
-    load_close_config,
-    load_scheduler_config,
-    load_usswing_config,
     save_close_config,
     save_scheduler_config,
     save_usswing_config,
 )
-from us_swing.gui.icons import mark_danger, set_icon
 from us_swing.gui.theme import C
 
 # ── Auto-detection helpers ────────────────────────────────────────────────────
@@ -132,6 +123,8 @@ def _run_schtasks(*args: str) -> tuple[bool, str]:
             capture_output=True,
             text=True,
             timeout=15,
+            # No console window flashes when the packaged GUI app runs schtasks.
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         )
         ok = result.returncode == 0
         msg = (result.stdout.strip() or result.stderr.strip()) if not ok else result.stdout.strip()
@@ -194,26 +187,6 @@ def create_usswing_close_task(cfg: USSwingConfig, close_time: str) -> tuple[bool
 def create_ibkr_close_task(cfg: SchedulerConfig, close_time: str) -> tuple[bool, str]:
     image = Path(cfg.exe_path).name or "tws.exe"
     return _create_close_task(f"{cfg.task_name}_Close", image, close_time, cfg.days)
-
-
-# ── Path status label helper ──────────────────────────────────────────────────
-
-def _make_status_label() -> QLabel:
-    lbl = QLabel("")
-    lbl.setStyleSheet(f"color: {C.SUBTEXT}; font-size: 8pt;")
-    return lbl
-
-
-def _update_status_label(lbl: QLabel, path: str | None) -> None:
-    if path and Path(path).exists():
-        lbl.setText("✔  Executable found")
-        lbl.setStyleSheet(f"color: {C.GREEN}; font-size: 8pt;")
-    elif path:
-        lbl.setText("⚠  Path set but file not found — verify the location")
-        lbl.setStyleSheet("color: #f9a825; font-size: 8pt;")
-    else:
-        lbl.setText("✗  Not found — click Browse to locate the executable")
-        lbl.setStyleSheet(f"color: {C.RED}; font-size: 8pt;")
 
 
 # ── Keyring helpers ───────────────────────────────────────────────────────────
@@ -567,596 +540,90 @@ class _DialogTitleBar(QWidget):
             self._maximised = True
 
 
-# ── Dialog ────────────────────────────────────────────────────────────────────
+# ── Task table helpers (SRD-GUI-029.002, .004, .005) ─────────────────────────
 
-class SchedulerDialog(QDialog):
-    """Configure Windows Task Scheduler entries for USSwing and IBKR."""
+def close_task_name(task_name: str) -> str:
+    """Name of the auto-close task that belongs to ``task_name``."""
+    return f"{task_name}_Close"
 
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setWindowTitle("Windows Task Scheduler")
-        self.setMinimumWidth(580)
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
 
-        self._existing_usswing = load_usswing_config()
-        self._existing_ibkr    = load_scheduler_config()
-        self._existing_close   = load_close_config()
-        self._ibkr_path_auto   = False
-        self._fill_worker: _FillWorker | None = None
+def task_exists(task_name: str) -> bool:
+    """True when Windows Task Scheduler has a task called ``task_name``."""
+    ok, _ = _run_schtasks("/query", "/tn", task_name)
+    return ok
 
-        self._build_ui()
-        self._populate_usswing(self._existing_usswing)
-        if self._existing_ibkr:
-            self._populate_ibkr(self._existing_ibkr)
+
+def task_states(us: USSwingConfig, ibkr: SchedulerConfig, close: CloseConfig) -> dict[str, str]:
+    """Windows state per table row (``tws``, ``app``, ``close``): installed, missing or off."""
+    def state(cfg: USSwingConfig | SchedulerConfig) -> str:
+        if not cfg.enabled:
+            return "off"
+        return "installed" if task_exists(cfg.task_name) else "missing"
+
+    states = {"tws": state(ibkr), "app": state(us), "close": "off"}
+    if close.enabled:
+        names = [close_task_name(c.task_name) for c in (ibkr, us) if c.enabled and c.exe_path]
+        states["close"] = "installed" if all(task_exists(n) for n in names) else "missing"
+    return states
+
+
+def write_tasks(
+    us: USSwingConfig, ibkr: SchedulerConfig, close: CloseConfig, password: str
+) -> dict[str, str]:
+    """Create switched-on tasks, delete switched-off ones and save the configs.
+
+    Runs off the GUI thread. Returns an error message per row key; empty when all worked.
+    """
+    errors: dict[str, str] = {}
+    ibkr = dataclasses.replace(ibkr)   # the GUI thread still holds the caller's copy
+    if ibkr.auto_login and ibkr.ibkr_username and password:
+        if not _save_ibkr_password(ibkr.ibkr_username, password):
+            errors["tws"] = ("Could not save the password to Windows Credential Manager, "
+                             "so auto fill is off")
+            ibkr.auto_login = False
+    for key, cfg in (("tws", ibkr), ("app", us)):
+        if not cfg.enabled:
+            delete_task(cfg.task_name)   # a task that is already gone is fine
+            continue
+        if not cfg.exe_path:
+            errors[key] = "Choose the program first"
+            continue
+        if isinstance(cfg, SchedulerConfig):
+            ok, msg = create_ibkr_task(cfg, password if cfg.auto_login else "")
         else:
-            self._detect_tws()
-        self._populate_close(self._existing_close)
+            ok, msg = create_usswing_task(cfg)
+        if not ok:
+            errors[key] = msg
+    save_scheduler_config(ibkr)
+    save_usswing_config(us)
 
-    # ── UI construction ───────────────────────────────────────────────────────
-
-    def _build_ui(self) -> None:
-        root = QVBoxLayout(self)
-        root.setSpacing(0)
-        root.setContentsMargins(0, 0, 0, 0)
-
-        root.addWidget(_DialogTitleBar("Windows Task Scheduler", self))
-
-        body = QWidget()
-        body_layout = QVBoxLayout(body)
-        body_layout.setSpacing(12)
-        body_layout.setContentsMargins(12, 12, 12, 12)
-
-        body_layout.addWidget(self._build_usswing_group())
-        body_layout.addWidget(self._build_ibkr_group())
-        body_layout.addWidget(self._build_close_group())
-        body_layout.addWidget(self._build_note())
-        body_layout.addLayout(self._build_buttons())
-
-        root.addWidget(body)
-
-    def _build_usswing_group(self) -> QGroupBox:
-        grp = QGroupBox("USSwing Application")
-        form = QFormLayout(grp)
-        form.setSpacing(8)
-        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
-
-        self._us_task_name = QLineEdit("USSwing_App")
-
-        self._us_exe = QLineEdit()
-        self._us_exe.setPlaceholderText(r"C:\Program Files (x86)\USSwing\USSwing.exe")
-        self._us_exe.textChanged.connect(
-            lambda t: _update_status_label(self._us_detect_lbl, t.strip() or None)
-        )
-        us_browse = QPushButton("Browse…")
-        us_browse.setFixedWidth(80)
-        us_browse.clicked.connect(self._on_us_browse)
-        us_exe_row = QHBoxLayout()
-        us_exe_row.setSpacing(6)
-        us_exe_row.addWidget(self._us_exe)
-        us_exe_row.addWidget(us_browse)
-
-        self._us_detect_lbl = _make_status_label()
-
-        self._us_time = QTimeEdit()
-        self._us_time.setDisplayFormat("hh:mm AP")
-        self._us_time.setTime(QTime(9, 0))
-
-        self._us_days = QComboBox()
-        self._us_days.addItems(["Weekdays (Mon–Fri)", "Daily (every day)"])
-
-        us_sched_row = QHBoxLayout()
-        us_sched_row.setSpacing(6)
-        us_sched_row.addWidget(QLabel("Time:"), 0)
-        us_sched_row.addWidget(self._us_time, 1)
-        us_sched_row.addWidget(QLabel("Days:"), 0)
-        us_sched_row.addWidget(self._us_days, 1)
-
-        form.addRow("Task name:",   self._us_task_name)
-        form.addRow("Executable:",  us_exe_row)
-        form.addRow("",             self._us_detect_lbl)
-        form.addRow("Schedule:",    us_sched_row)
-        return grp
-
-    def _build_ibkr_group(self) -> QGroupBox:
-        grp = QGroupBox("Trader Workstation (TWS)")
-        form = QFormLayout(grp)
-        form.setSpacing(8)
-        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
-
-        self._ibkr_task_name = QLineEdit("USSwing_IBKR")
-
-        self._ibkr_exe = QLineEdit()
-        self._ibkr_exe.setPlaceholderText("Auto-detecting…")
-        self._ibkr_exe.textChanged.connect(
-            lambda t: _update_status_label(self._ibkr_detect_lbl, t.strip() or None)
-        )
-        ibkr_browse = QPushButton("Browse…")
-        ibkr_browse.setFixedWidth(80)
-        ibkr_browse.clicked.connect(self._on_ibkr_browse)
-        ibkr_exe_row = QHBoxLayout()
-        ibkr_exe_row.setSpacing(6)
-        ibkr_exe_row.addWidget(self._ibkr_exe)
-        ibkr_exe_row.addWidget(ibkr_browse)
-
-        self._ibkr_detect_lbl = _make_status_label()
-
-        self._ibkr_time = QTimeEdit()
-        self._ibkr_time.setDisplayFormat("hh:mm AP")
-        self._ibkr_time.setTime(QTime(9, 0))
-
-        self._ibkr_days = QComboBox()
-        self._ibkr_days.addItems(["Weekdays (Mon–Fri)", "Daily (every day)"])
-
-        ibkr_sched_row = QHBoxLayout()
-        ibkr_sched_row.setSpacing(6)
-        ibkr_sched_row.addWidget(QLabel("Time:"), 0)
-        ibkr_sched_row.addWidget(self._ibkr_time, 1)
-        ibkr_sched_row.addWidget(QLabel("Days:"), 0)
-        ibkr_sched_row.addWidget(self._ibkr_days, 1)
-
-        form.addRow("Task name:",   self._ibkr_task_name)
-        form.addRow("Executable:",  ibkr_exe_row)
-        form.addRow("",             self._ibkr_detect_lbl)
-        form.addRow("Schedule:",    ibkr_sched_row)
-
-        # ── Auto Login ────────────────────────────────────────────────────────
-        sep = QFrame()
-        sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setFrameShadow(QFrame.Shadow.Sunken)
-
-        cred_hdr = QLabel("Auto Login")
-        cred_hdr.setStyleSheet("font-weight: 600;")
-
-        self._ibkr_user = QLineEdit()
-        self._ibkr_user.setPlaceholderText("IBKR username")
-
-        self._ibkr_pwd = QLineEdit()
-        self._ibkr_pwd.setEchoMode(QLineEdit.EchoMode.Password)
-        self._ibkr_pwd.setPlaceholderText("IBKR password")
-
-        self._eye_btn = QPushButton()
-        set_icon(self._eye_btn, "eye")
-        self._eye_btn.setCheckable(True)
-        self._eye_btn.setFixedWidth(65)
-        self._eye_btn.setToolTip("Show / hide password")
-        self._eye_btn.setAccessibleName("Show password")
-        self._eye_btn.toggled.connect(self._on_eye_toggled)
-
-        pwd_row = QHBoxLayout()
-        pwd_row.setSpacing(6)
-        pwd_row.addWidget(self._ibkr_pwd)
-        pwd_row.addWidget(self._eye_btn)
-
-        self._ibkr_auto_login = QCheckBox("Auto Fill Credential")
-
-        # TEMP: remove after auto-login testing is complete
-        self._fill_btn = QPushButton("⌨  Fill TWS Login")
-        self._fill_btn.setFixedWidth(145)
-        self._fill_btn.setToolTip(
-            "Open TWS manually, wait for its login form, then click here.\n"
-            "USSwing will focus TWS and type the credentials for you."
-        )
-        self._fill_btn.clicked.connect(self._on_fill_tws)
-
-        self._save_cred_btn = QPushButton("Save Credentials")
-        set_icon(self._save_cred_btn, "key-round")
-        self._save_cred_btn.setFixedWidth(145)
-        self._save_cred_btn.clicked.connect(self._on_save_credentials)
-
-        # Single row: [checkbox ──stretch── Fill TWS Login | Save Credentials]
-        # Save Credentials sits flush-right, aligning with the eye button above.
-        action_row = QHBoxLayout()
-        action_row.setSpacing(6)
-        action_row.addWidget(self._ibkr_auto_login)
-        action_row.addStretch()
-        action_row.addWidget(self._fill_btn)
-        action_row.addWidget(self._save_cred_btn)
-
-        keyring_note = QLabel(
-            "Password is saved in Windows Credential Manager — never written to disk."
-        )
-        keyring_note.setStyleSheet(f"color: {C.SUBTEXT}; font-size: 8pt;")
-        keyring_note.setWordWrap(True)
-
-        form.addRow(sep)
-        form.addRow(cred_hdr)
-        form.addRow("Username:", self._ibkr_user)
-        form.addRow("Password:", pwd_row)
-        form.addRow("",          action_row)
-        form.addRow(keyring_note)
-
-        return grp
-
-    def _build_close_group(self) -> QGroupBox:
-        grp = QGroupBox("Auto Close")
-        v = QVBoxLayout(grp)
-        v.setSpacing(6)
-
-        self._close_enabled = QCheckBox("Close both apps automatically at")
-        self._close_enabled.toggled.connect(self._on_close_toggled)
-
-        self._close_time = QTimeEdit()
-        self._close_time.setDisplayFormat("hh:mm AP")
-        self._close_time.setTime(QTime(16, 30))
-        self._close_time.setFixedWidth(110)
-        self._close_time.setEnabled(False)
-
-        row = QHBoxLayout()
-        row.setSpacing(8)
-        row.addWidget(self._close_enabled)
-        row.addWidget(self._close_time)
-        row.addStretch()
-        v.addLayout(row)
-
-        note = QLabel(
-            "Force-closes USSwing and Trader Workstation at this time so they don't stay open."
-        )
-        note.setWordWrap(True)
-        note.setStyleSheet(f"color: {C.SUBTEXT}; font-size: 8pt;")
-        v.addWidget(note)
-        return grp
-
-    def _build_note(self) -> QLabel:
-        note = QLabel(
-            "ℹ  Tasks launch as your Windows user account.  "
-            "When auto-login is enabled, USSwing passes credentials to TWS on startup — "
-            "you still need to approve the IBKR mobile 2FA from your phone."
-        )
-        note.setWordWrap(True)
-        note.setStyleSheet(f"color: {C.SUBTEXT}; font-size: 8pt; padding: 4px 0;")
-        return note
-
-    def _build_buttons(self) -> QHBoxLayout:
-        has_any = bool(self._existing_usswing or self._existing_ibkr or self._existing_close.enabled)
-        action_label = "Update Tasks" if has_any else "Add Tasks"
-
-        self._remove_btn = QPushButton("Remove All Tasks")
-        set_icon(self._remove_btn, "trash-2", "danger")
-        mark_danger(self._remove_btn)
-        self._remove_btn.clicked.connect(self._on_remove)
-        self._remove_btn.setVisible(has_any)
-
-        self._ok_btn = QPushButton(action_label)
-        self._ok_btn.setObjectName("run_btn")
-        set_icon(self._ok_btn, "calendar", "go")
-        self._ok_btn.setDefault(True)
-        self._ok_btn.clicked.connect(self._on_add_or_update)
-
-        cancel_btn = QPushButton("Cancel")
-        cancel_btn.clicked.connect(self.reject)
-
-        row = QHBoxLayout()
-        row.addWidget(self._remove_btn)
-        row.addStretch()
-        row.addWidget(cancel_btn)
-        row.addWidget(self._ok_btn)
-        return row
-
-    # ── Population ────────────────────────────────────────────────────────────
-
-    def _populate_usswing(self, cfg: USSwingConfig | None) -> None:
-        if cfg:
-            self._us_task_name.setText(cfg.task_name)
-            self._us_exe.setText(cfg.exe_path)
-            try:
-                h, m = cfg.launch_time.split(":")
-                self._us_time.setTime(QTime(int(h), int(m)))
-            except ValueError:
-                pass
-            self._us_days.setCurrentIndex(0 if cfg.days == "weekdays" else 1)
+    closers: tuple[tuple[USSwingConfig | SchedulerConfig, Callable[[], tuple[bool, str]]], ...] = (
+        (us, lambda: create_usswing_close_task(us, close.close_time)),
+        (ibkr, lambda: create_ibkr_close_task(ibkr, close.close_time)),
+    )
+    for cfg, make in closers:
+        if close.enabled and cfg.enabled and cfg.exe_path:
+            ok, msg = make()
+            if not ok:
+                errors["close"] = msg
         else:
-            # Set default path and let the status label react
-            default = str(_USSWING_DEFAULT)
-            self._us_exe.setText(default)
+            delete_task(close_task_name(cfg.task_name))
+    save_close_config(close)
+    return errors
 
-    def _populate_ibkr(self, cfg: SchedulerConfig) -> None:
-        self._ibkr_task_name.setText(cfg.task_name)
-        self._set_ibkr_path(cfg.exe_path, auto=False)
-        try:
-            h, m = cfg.launch_time.split(":")
-            self._ibkr_time.setTime(QTime(int(h), int(m)))
-        except ValueError:
-            pass
-        self._ibkr_days.setCurrentIndex(0 if cfg.days == "weekdays" else 1)
-        self._ibkr_user.setText(cfg.ibkr_username)
-        self._ibkr_auto_login.setChecked(cfg.auto_login)
-        if cfg.ibkr_username:
-            stored_pwd = _load_ibkr_password(cfg.ibkr_username)
-            if stored_pwd:
-                self._ibkr_pwd.setText(stored_pwd)
 
-    def _populate_close(self, cfg: CloseConfig) -> None:
-        self._close_enabled.setChecked(cfg.enabled)
-        self._close_time.setEnabled(cfg.enabled)
-        try:
-            h, m = cfg.close_time.split(":")
-            self._close_time.setTime(QTime(int(h), int(m)))
-        except ValueError:
-            pass
-
-    def _detect_tws(self) -> None:
-        found = find_tws_exe()
-        self._set_ibkr_path(found or "", auto=found is not None)
-
-    def _set_ibkr_path(self, path: str, *, auto: bool) -> None:
-        self._ibkr_path_auto = auto
-        self._ibkr_exe.blockSignals(True)
-        self._ibkr_exe.setText(path)
-        self._ibkr_exe.blockSignals(False)
-        _update_status_label(self._ibkr_detect_lbl, path or None)
-
-    # ── Slots ─────────────────────────────────────────────────────────────────
-
-    def _on_close_toggled(self, checked: bool) -> None:
-        self._close_time.setEnabled(checked)
-
-    def _on_us_browse(self) -> None:
-        start = str(Path(r"C:\Program Files (x86)\USSwing"))
-        if not Path(start).exists():
-            start = str(Path.home())
-        path, _ = QFileDialog.getOpenFileName(
-            self, "Select USSwing Executable", start, "Executables (*.exe)"
-        )
-        if path:
-            self._us_exe.setText(path)
-
-    def _on_ibkr_browse(self) -> None:
-        start = str(Path("C:/Jts")) if Path("C:/Jts").exists() else str(Path.home())
-        path, _ = QFileDialog.getOpenFileName(
-            self, "Select IBKR Executable", start, "Executables (*.exe)"
-        )
-        if path:
-            self._set_ibkr_path(path, auto=False)
-
-    def _on_add_or_update(self) -> None:
-        us_cfg   = self._collect_usswing()
-        ibkr_cfg = self._collect_ibkr()
-
-        # Close tasks act on the same apps regardless of whether the launch task
-        # is (re)created this round, so capture targets before the not-found flow.
-        us_close_target   = us_cfg
-        ibkr_close_target = ibkr_cfg
-
-        if us_cfg is None and ibkr_cfg is None:
-            QMessageBox.warning(
-                self, "Nothing to Schedule",
-                "Provide at least one executable path to create a scheduled task."
-            )
-            return
-
-        errors: list[str] = []
-        created: list[str] = []
-
-        # ── USSwing task ──
-        if us_cfg is not None:
-            if not Path(us_cfg.exe_path).exists():
-                ret = QMessageBox.question(
-                    self, "File Not Found",
-                    f"USSwing executable not found:\n{us_cfg.exe_path}\n\nAdd the task anyway?",
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                )
-                if ret != QMessageBox.StandardButton.Yes:
-                    us_cfg = None
-
-        if us_cfg is not None:
-            ok, msg = create_usswing_task(us_cfg)
-            if ok:
-                save_usswing_config(us_cfg)
-                created.append(f"• {us_cfg.task_name} (USSwing App)")
-            else:
-                errors.append(f"USSwing task failed:\n{msg}")
-
-        # ── IBKR task ──
-        if ibkr_cfg is not None:
-            if not Path(ibkr_cfg.exe_path).exists():
-                ret = QMessageBox.question(
-                    self, "File Not Found",
-                    f"IBKR executable not found:\n{ibkr_cfg.exe_path}\n\nAdd the task anyway?",
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                )
-                if ret != QMessageBox.StandardButton.Yes:
-                    ibkr_cfg = None
-
-        if ibkr_cfg is not None:
-            pwd = self._ibkr_pwd.text()
-            if ibkr_cfg.auto_login and ibkr_cfg.ibkr_username:
-                if not _save_ibkr_password(ibkr_cfg.ibkr_username, pwd):
-                    QMessageBox.warning(
-                        self, "Credential Storage",
-                        "Could not save the password to Windows Credential Manager.\n"
-                        "Ensure the keyring package is installed.\n\n"
-                        "The task will be created without auto-login.",
-                    )
-                    ibkr_cfg.auto_login = False
-                    pwd = ""
-            ok, msg = create_ibkr_task(ibkr_cfg, pwd)
-            if ok:
-                save_scheduler_config(ibkr_cfg)
-                created.append(f"• {ibkr_cfg.task_name} (Trader Workstation)")
-            else:
-                errors.append(f"IBKR task failed:\n{msg}")
-
-        # ── Auto-close tasks ──
-        close_cfg = self._collect_close()
-        us_close_name   = (self._us_task_name.text().strip()   or "USSwing_App")  + "_Close"
-        ibkr_close_name = (self._ibkr_task_name.text().strip() or "USSwing_IBKR") + "_Close"
-        if close_cfg.enabled:
-            if us_close_target is not None:
-                ok, msg = create_usswing_close_task(us_close_target, close_cfg.close_time)
-                if ok:
-                    created.append(f"• {us_close_name} (auto-close)")
-                else:
-                    errors.append(f"USSwing close task failed:\n{msg}")
-            if ibkr_close_target is not None:
-                ok, msg = create_ibkr_close_task(ibkr_close_target, close_cfg.close_time)
-                if ok:
-                    created.append(f"• {ibkr_close_name} (auto-close)")
-                else:
-                    errors.append(f"IBKR close task failed:\n{msg}")
-        elif self._existing_close.enabled:
-            # Auto-close was turned off — remove any close tasks created earlier.
-            delete_task(us_close_name)
-            delete_task(ibkr_close_name)
-        save_close_config(close_cfg)
-        self._existing_close = close_cfg
-
-        if created:
-            QMessageBox.information(
-                self, "Tasks Scheduled",
-                "✔  The following tasks were created in Windows Task Scheduler:\n\n"
-                + "\n".join(created),
-            )
-        if errors:
-            QMessageBox.critical(
-                self, "Task Creation Failed",
-                "\n\n".join(errors)
-                + "\n\nIf the error mentions permissions, try running as Administrator.",
-            )
-
-        if created:
-            self.accept()
-
-    def _on_remove(self) -> None:
-        tasks_to_remove: list[str] = []
-        if self._existing_usswing:
-            tasks_to_remove.append(self._us_task_name.text().strip() or "USSwing_App")
-        if self._existing_ibkr:
-            tasks_to_remove.append(self._ibkr_task_name.text().strip() or "USSwing_IBKR")
-
-        names = "\n".join(f"• {t}" for t in tasks_to_remove)
-        ret = QMessageBox.question(
-            self, "Remove Scheduled Tasks",
-            f"Remove these tasks from Windows Task Scheduler?\n\n{names}",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-        )
-        if ret != QMessageBox.StandardButton.Yes:
-            return
-
-        errors: list[str] = []
-        if self._existing_usswing:
-            ok, msg = delete_task(tasks_to_remove[0])
-            if ok:
-                delete_usswing_config()
-            else:
-                errors.append(f"USSwing task: {msg}")
-
-        if self._existing_ibkr:
-            ok, msg = delete_task(tasks_to_remove[-1])
-            if ok:
-                _delete_ibkr_password(self._existing_ibkr.ibkr_username)
-                delete_scheduler_config()
-            else:
-                errors.append(f"IBKR task: {msg}")
-
-        if self._existing_close.enabled:
-            us_close   = (self._us_task_name.text().strip()   or "USSwing_App")  + "_Close"
-            ibkr_close = (self._ibkr_task_name.text().strip() or "USSwing_IBKR") + "_Close"
-            delete_task(us_close)
-            delete_task(ibkr_close)
-        delete_close_config()
-
-        if errors:
-            QMessageBox.critical(self, "Removal Failed", "\n".join(errors))
-        else:
-            QMessageBox.information(self, "Tasks Removed", "✔  Scheduled tasks have been removed.")
-            self.accept()
-
-    # ── Collect helpers ───────────────────────────────────────────────────────
-
-    def _collect_usswing(self) -> USSwingConfig | None:
-        exe = self._us_exe.text().strip()
-        if not exe:
-            return None
-        t = self._us_time.time()
-        return USSwingConfig(
-            task_name=self._us_task_name.text().strip() or "USSwing_App",
-            exe_path=exe,
-            launch_time=f"{t.hour():02d}:{t.minute():02d}",
-            days="weekdays" if self._us_days.currentIndex() == 0 else "daily",
-        )
-
-    def _collect_ibkr(self) -> SchedulerConfig | None:
-        exe = self._ibkr_exe.text().strip()
-        if not exe:
-            return None
-        t = self._ibkr_time.time()
-        return SchedulerConfig(
-            task_name=self._ibkr_task_name.text().strip() or "USSwing_IBKR",
-            exe_path=exe,
-            launch_time=f"{t.hour():02d}:{t.minute():02d}",
-            days="weekdays" if self._ibkr_days.currentIndex() == 0 else "daily",
-            ibkr_username=self._ibkr_user.text().strip(),
-            auto_login=self._ibkr_auto_login.isChecked(),
-        )
-
-    def _collect_close(self) -> CloseConfig:
-        t = self._close_time.time()
-        return CloseConfig(
-            enabled=self._close_enabled.isChecked(),
-            close_time=f"{t.hour():02d}:{t.minute():02d}",
-        )
-
-    # ── Credential helpers ────────────────────────────────────────────────────
-
-    def _on_eye_toggled(self, checked: bool) -> None:
-        self._ibkr_pwd.setEchoMode(
-            QLineEdit.EchoMode.Normal if checked else QLineEdit.EchoMode.Password
-        )
-
-    def _on_save_credentials(self) -> None:
-        username = self._ibkr_user.text().strip()
-        password = self._ibkr_pwd.text()
-        if not username:
-            QMessageBox.warning(self, "Save Credentials", "Enter a username first.")
-            return
-        if not password:
-            QMessageBox.warning(self, "Save Credentials", "Enter a password first.")
-            return
-        if _save_ibkr_password(username, password):
-            # Persist auto_login flag + current form state so checkbox survives dialog re-open
-            cfg = self._collect_ibkr()
-            if cfg is None:
-                cfg = SchedulerConfig(
-                    ibkr_username=username,
-                    auto_login=self._ibkr_auto_login.isChecked(),
-                )
-            save_scheduler_config(cfg)
-            self._existing_ibkr = cfg
-            QMessageBox.information(
-                self, "Save Credentials",
-                "✔  Password saved to Windows Credential Manager.",
-            )
-        else:
-            QMessageBox.warning(
-                self, "Save Credentials",
-                "Could not save password.\n"
-                "Run:  pip install keyring  then try again.",
-            )
-
-    # ── TEMP: Fill TWS Login ──────────────────────────────────────────────────
-
-    def _on_fill_tws(self) -> None:
-        if self._fill_worker is not None and self._fill_worker.isRunning():
-            return
-        username = self._ibkr_user.text().strip()
-        password = self._ibkr_pwd.text()
-        if not username or not password:
-            QMessageBox.warning(self, "Fill TWS", "Enter username and password first.")
-            return
-        self._fill_btn.setEnabled(False)
-        self._fill_btn.setText("Filling…")
-        self._fill_worker: _FillWorker = _FillWorker(username, password, self)
-        self._fill_worker.done.connect(self._on_fill_done)
-        self._fill_worker.start()
-
-    def _on_fill_done(self, error: str) -> None:
-        self._fill_btn.setEnabled(True)
-        self._fill_btn.setText("⌨  Fill TWS Login")
-        if error:
-            QMessageBox.warning(self, "Fill TWS", error)
-        else:
-            QMessageBox.information(
-                self, "Fill TWS",
-                "✔  Credentials typed and Log In clicked.\n"
-                "Approve the 2FA prompt on your phone to complete login.",
-            )
+def remove_tasks(us: USSwingConfig, ibkr: SchedulerConfig) -> list[str]:
+    """Delete every task, the saved configs and the TWS password; return any errors."""
+    errors: list[str] = []
+    names = (ibkr.task_name, us.task_name,
+             close_task_name(ibkr.task_name), close_task_name(us.task_name))
+    for name in names:
+        if task_exists(name):
+            ok, msg = delete_task(name)
+            if not ok:
+                errors.append(msg)
+    _delete_ibkr_password(ibkr.ibkr_username)
+    delete_usswing_config()
+    delete_scheduler_config()
+    delete_close_config()
+    return errors

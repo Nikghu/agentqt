@@ -66,6 +66,15 @@ def test_system_sections_split(qapp: Any, svc: _StubService) -> None:
     assert names == ["Connection", "Scheduler", "Telegram"]
 
 
+def test_scheduler_page_holds_table(qapp: Any, svc: _StubService) -> None:
+    """UT-GUI-029.006.M01.T01: the Scheduler page shows the task table, no Edit Scheduler."""
+    sections = settings_panel._SystemSections(svc)  # type: ignore[arg-type]
+    page = dict(sections.pages)["Scheduler"]
+
+    assert page.isAncestorOf(sections.sched_table)
+    assert not hasattr(sections, "_sched_btn")
+
+
 def test_appearance_page_only(qapp: Any, svc: _StubService) -> None:
     """UT-GUI-027.005.M04.T01: Appearance is the only app page; Updates moved to the sidebar."""
     sections = settings_panel._SystemSections(svc)  # type: ignore[arg-type]

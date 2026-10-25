@@ -1298,6 +1298,27 @@ QPushButton#side_power:disabled {{ background: transparent; border-color: {line}
 QPushButton#side_power:focus {{ outline: none; }}
 QFrame#update_popup {{ background: {bg}; border: 1px solid {line}; border-radius: 6px; }}
 QFrame#update_popup QLabel {{ background: transparent; }}
+QLabel#task_pill {{
+    border: 1px solid {sub}; color: {sub}; border-radius: 2px; padding: 0 6px;
+    font-size: 7.5pt; font-weight: bold;
+}}
+QLabel#task_pill[state="installed"] {{ color: #3cc583; border-color: #3cc583; }}
+QLabel#task_pill[state="changed"] {{ color: #e8c14d; border-color: #e8c14d; }}
+QLabel#task_pill[state="missing"], QLabel#task_pill[state="failed"] {{
+    color: #ef5a50; border-color: #ef5a50;
+}}
+QPushButton#link_danger {{
+    background: transparent; color: #ef5a50; border: none; padding: 0 6px; outline: none;
+}}
+QPushButton#link_danger:hover {{ background: rgba(239, 90, 80, 0.12); }}
+QPushButton#link_danger:disabled {{ color: {sub}; }}
+QPushButton#link_danger:focus {{ outline: none; }}
+QPushButton#login_fold {{
+    background: transparent; color: {text}; border: none; text-align: left; padding: 0;
+    outline: none;
+}}
+QPushButton#login_fold:hover {{ color: {accent}; }}
+QPushButton#login_fold:focus {{ outline: none; }}
 QPushButton#view_btn {{
     background: transparent; border: 1px solid {line}; border-radius: 0; padding: 0;
     outline: none;

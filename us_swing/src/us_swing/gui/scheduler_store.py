@@ -25,6 +25,7 @@ class USSwingConfig:
     exe_path:    str = _USSWING_EXE_DEFAULT
     launch_time: str = "09:00"
     days:        str = "weekdays"   # "weekdays" | "daily"
+    enabled:     bool = True        # off = task deleted from Windows, settings kept
 
 
 @dataclass
@@ -36,6 +37,7 @@ class SchedulerConfig:
     days:          str  = "weekdays"   # "weekdays" | "daily"
     ibkr_username: str  = ""
     auto_login:    bool = False
+    enabled:       bool = True         # off = task deleted from Windows, settings kept
 
 
 @dataclass
@@ -68,6 +70,7 @@ def load_usswing_config() -> USSwingConfig | None:
     cfg.exe_path    = str(section.get("exe_path",    cfg.exe_path))
     cfg.launch_time = str(section.get("launch_time", cfg.launch_time))
     cfg.days        = str(section.get("days",        cfg.days))
+    cfg.enabled     = bool(section.get("enabled",    cfg.enabled))
     return cfg
 
 
@@ -89,6 +92,7 @@ def load_scheduler_config() -> SchedulerConfig | None:
     cfg.days          = str(section.get("days",          cfg.days))
     cfg.ibkr_username = str(section.get("ibkr_username", cfg.ibkr_username))
     cfg.auto_login    = bool(section.get("auto_login",   cfg.auto_login))
+    cfg.enabled       = bool(section.get("enabled",      cfg.enabled))
     return cfg
 
 
