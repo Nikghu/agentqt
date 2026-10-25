@@ -2,6 +2,15 @@
 
 ---
 
+## [20261025] GUI — Settings dialog opened from the sidebar (FO-GUI-027, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-027
+- RN: RN-GUI-1.32.0-20261025
+- Artifacts updated: FO, SRD, DD, MD, UTCD, TRACE, Code, Tests, RN, CONTEXT, TODO
+- Decisions: user chose Option 5 (dialog) + Open A (sidebar gear) from 5 + 4 canvas options; modal; System/Data panels moved in; download % on the sidebar Settings item; circuit breaker to the Execution header (it was only in the System panel). Minimal docs: the dialog wraps the existing `SettingsPanel` and reuses `_DialogTitleBar`. Restore defaults skips Telegram so the bot token is never wiped.
+- Findings: the full app was not launched for the check — it auto-connects the feed and types the TWS login; the dialog was rendered offscreen with a stub service instead. RN numbered 1.32.0 because the unpushed Charts branch already uses up to 1.31.1.
+
 ## [20261023] GUI + EXE — Execution workspace (F2) and strategy P&L history (FO-GUI-024, FO-EXE-019, feature)
 
 - Type: Feature

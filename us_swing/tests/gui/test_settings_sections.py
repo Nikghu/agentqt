@@ -126,6 +126,100 @@ def test_nine_sections_in_order(
     assert panel._stack.count() == 9
 
 
+@pytest.fixture()
+def panel(svc: _StubService, monkeypatch: pytest.MonkeyPatch) -> settings_panel.SettingsPanel:
+    for name in ("_UsersTab", "_UniverseTab", "_DataPanel"):
+        monkeypatch.setattr(settings_panel, name, _PlainTab)
+    return settings_panel.SettingsPanel(svc)  # type: ignore[arg-type]
+
+
+def _risk_tab(panel: settings_panel.SettingsPanel) -> Any:
+    return next(w for w in panel.findChildren(settings_panel._RiskTab))
+
+
+def test_edit_then_apply_saves_once(qapp: Any, panel: Any, svc: _StubService) -> None:
+    """UT-GUI-027.010.M04.T01: an edit marks the panel dirty; Apply saves once and clears it."""
+    seen: list[bool] = []
+    panel.dirty_changed.connect(seen.append)
+
+    _risk_tab(panel)._risk.setValue(2.5)
+    panel.apply()
+
+    assert seen == [True, False]
+    assert len(svc.updated) == 1
+    assert svc.updated[0].risk_config.risk_per_trade_pct == 2.5
+    assert not panel.is_dirty
+
+
+def test_cancel_drops_edits(qapp: Any, panel: Any, svc: _StubService) -> None:
+    """UT-GUI-027.010.M04.T02: revert reloads the saved value and saves nothing."""
+    saved = svc.user.risk_config.risk_per_trade_pct
+    _risk_tab(panel)._risk.setValue(2.5)
+
+    panel.revert()
+
+    assert svc.updated == []
+    assert _risk_tab(panel)._risk.value() == saved
+    assert not panel.is_dirty
+
+
+@pytest.mark.parametrize(("answer", "dirty"), [("Yes", True), ("No", False)])
+def test_restore_defaults_asks_first(
+    qapp: Any, panel: Any, monkeypatch: pytest.MonkeyPatch, answer: str, dirty: bool
+) -> None:
+    """UT-GUI-027.011.M04.T01–T02: Restore defaults fills defaults only after yes."""
+    button = getattr(settings_panel.QMessageBox.StandardButton, answer)
+    monkeypatch.setattr(settings_panel.QMessageBox, "question", lambda *_a: button)
+    panel.show_section("Risk")
+    tab = _risk_tab(panel)
+    tab._risk.setValue(2.5)
+    panel._set_clean()
+
+    panel.restore_defaults()
+
+    expected = RiskConfig().risk_per_trade_pct if dirty else 2.5
+    assert tab._risk.value() == expected
+    assert panel.is_dirty is dirty
+
+
+def test_section_dot_states(qapp: Any, panel: Any) -> None:
+    """UT-GUI-027.012.M04.T01: dots show ok, warn and off, and hide for none."""
+    dot = panel._dots["Telegram"]
+    for state in ("ok", "warn", "off"):
+        panel.set_section_state("Telegram", state)
+        assert not dot.isHidden() and dot.property("state") == state
+
+    panel.set_section_state("Telegram", "none")
+
+    assert dot.isHidden()
+
+
+@pytest.mark.parametrize(
+    ("enabled", "token", "chat", "state"),
+    [(True, "t", "c", "ok"), (True, "t", "", "warn"), (False, "t", "c", "off")],
+)
+def test_telegram_dot_rule(enabled: bool, token: str, chat: str, state: str) -> None:
+    """UT-GUI-027.012.M04.T02: Telegram is ok when ready, warn when incomplete, else off."""
+    assert settings_panel.telegram_dot(enabled, token, chat) == state
+
+
+def test_theme_waits_for_apply(
+    qapp: Any, panel: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """UT-GUI-027.013.M04.T01: picking a theme applies nothing until Apply."""
+    from us_swing.gui import theme
+
+    applied: list[str] = []
+    monkeypatch.setattr(theme, "apply_theme", applied.append)
+    monkeypatch.setattr(theme, "save_theme_id", lambda _t: None)
+    panel._sys._btn_mocha.click()
+    assert applied == [] and panel.is_dirty
+
+    panel.apply()
+
+    assert applied == ["mocha"]
+
+
 def test_risk_save_persists(qapp: Any, svc: _StubService) -> None:
     """UT-GUI-021.002.M01.T01: Save Risk Settings writes the values to the active user."""
     tab = settings_panel._RiskTab(svc)  # type: ignore[arg-type]

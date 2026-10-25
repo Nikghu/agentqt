@@ -546,6 +546,10 @@ class MainWindow(QMainWindow):
 
         # One reused dialog keeps the settings panel (and a running download) alive.
         self._settings_dialog = SettingsDialog(self._settings_panel, self)
+        # feed / candle download → settings panel → section dots (SRD-GUI-027.012)
+        svc.feed_status_changed.connect(lambda *_: self._settings_panel.refresh_states())
+        self._settings_panel.data_panel.state_changed.connect(
+            lambda *_: self._settings_panel.refresh_states())
         # sidebar → page_requested → MainWindow → stack + mini state
         self._sidebar.page_requested.connect(self._on_page_requested)
         # sidebar → settings_requested → Settings dialog (current screen unchanged)

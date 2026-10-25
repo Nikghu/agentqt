@@ -12,7 +12,7 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import QDialog, QLabel, QWidget
 
 # QWebEngineWidgets DLL is unavailable in the test environment — stub it so
@@ -25,12 +25,32 @@ from us_swing.gui.settings_dialog import SettingsDialog  # noqa: E402
 
 
 class _FakePanel(QWidget):
+    dirty_changed = pyqtSignal(bool)
+    section_changed = pyqtSignal(str)
+    current_section = "Users"
+
     def __init__(self) -> None:
         super().__init__()
         self.shown: list[str] = []
+        self.calls: list[str] = []
 
     def show_section(self, name: str) -> None:
         self.shown.append(name)
+
+    def can_restore(self, name: str) -> bool:
+        return name == "Risk"
+
+    def refresh_states(self) -> None:
+        pass
+
+    def apply(self) -> None:
+        self.calls.append("apply")
+
+    def revert(self) -> None:
+        self.calls.append("revert")
+
+    def restore_defaults(self) -> None:
+        self.calls.append("defaults")
 
 
 @pytest.fixture()
@@ -70,3 +90,17 @@ def test_footer_buttons(dialog: SettingsDialog) -> None:
 
     assert results == [QDialog.DialogCode.Rejected, QDialog.DialogCode.Accepted]
     assert not dialog.isVisible()
+    assert dialog.panel.calls == ["revert", "apply"]  # type: ignore[attr-defined]
+
+
+def test_footer_follows_panel(dialog: SettingsDialog) -> None:
+    """UT-GUI-027.003.M01.T02: Apply follows changes; Restore defaults follows the section."""
+    panel = dialog.panel
+    assert not dialog._defaults_btn.isEnabled()
+
+    panel.dirty_changed.emit(True)  # type: ignore[attr-defined]
+    panel.section_changed.emit("Risk")  # type: ignore[attr-defined]
+
+    assert dialog._apply_btn.isEnabled() and dialog._defaults_btn.isEnabled()
+    dialog._defaults_btn.click()
+    assert panel.calls == ["defaults"]  # type: ignore[attr-defined]

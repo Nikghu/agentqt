@@ -54,10 +54,17 @@ class SettingsDialog(QDialog):
         self._ok_btn.setDefault(True)
         for btn in (self._defaults_btn, self._cancel_btn, self._apply_btn, self._ok_btn):
             btn.setFixedWidth(130 if btn is self._defaults_btn else 90)
-        self._defaults_btn.setEnabled(False)
         self._apply_btn.setEnabled(False)
         self._cancel_btn.clicked.connect(self.reject)
-        self._ok_btn.clicked.connect(self.accept)
+        self._ok_btn.clicked.connect(self._on_ok)
+        self._apply_btn.clicked.connect(panel.apply)
+        self._defaults_btn.clicked.connect(panel.restore_defaults)
+        # panel → dirty_changed / section_changed → footer buttons
+        panel.dirty_changed.connect(self._apply_btn.setEnabled)
+        panel.section_changed.connect(
+            lambda name: self._defaults_btn.setEnabled(panel.can_restore(name))
+        )
+        self._defaults_btn.setEnabled(panel.can_restore(panel.current_section))
 
         footer = QFrame()
         footer.setObjectName("dialog_footer")
@@ -89,6 +96,7 @@ class SettingsDialog(QDialog):
         """
         if section is not None:
             self._panel.show_section(section)
+        self._panel.refresh_states()
         parent = self.parentWidget()
         if parent is not None:
             centre = parent.frameGeometry().center()
@@ -96,3 +104,12 @@ class SettingsDialog(QDialog):
         self.show()
         self.raise_()
         self.activateWindow()
+
+    def _on_ok(self) -> None:
+        self._panel.apply()
+        self.accept()
+
+    def reject(self) -> None:
+        """Cancel, Esc and the close button drop unsaved edits (SRD-GUI-027.010)."""
+        self._panel.revert()
+        super().reject()
