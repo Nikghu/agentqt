@@ -1419,11 +1419,20 @@ QLabel#data_pill {{
     border: 1px solid {sub}; color: {sub}; border-radius: 2px; padding: 0 6px;
     font-size: 7.5pt; font-weight: bold;
 }}
-QLabel#data_pct {{ font-family: "IBM Plex Mono", Consolas, monospace; font-size: 20pt; font-weight: bold; }}
-QLabel#data_pill[state="downloading"], QLabel#data_pct[state="downloading"] {{ color: {accent}; border-color: {accent}; }}
-QLabel#data_pill[state="complete"], QLabel#data_pct[state="complete"] {{ color: #3cc583; border-color: #3cc583; }}
-QLabel#data_pill[state="partial"], QLabel#data_pct[state="partial"] {{ color: #e8c14d; border-color: #e8c14d; }}
+QLabel#data_pill[state="downloading"] {{ color: {accent}; border-color: {accent}; }}
+QLabel#data_pill[state="complete"] {{ color: #3cc583; border-color: #3cc583; }}
+QLabel#data_pill[state="partial"] {{ color: #e8c14d; border-color: #e8c14d; }}
 QLabel#data_pill[state="empty"] {{ color: #ef5a50; border-color: #ef5a50; }}
+QLabel#data_summary {{ color: {text}; font-size: 10.5pt; font-weight: bold; }}
+QLabel#data_stat_value {{
+    color: {text}; font-family: "IBM Plex Mono", Consolas, monospace; font-size: 11pt;
+}}
+QPushButton#link_danger {{
+    background: transparent; color: #ef5a50; border: none; padding: 0 6px; outline: none;
+}}
+QPushButton#link_danger:hover {{ background: rgba(239, 90, 80, 0.12); }}
+QPushButton#link_danger:disabled {{ color: {sub}; }}
+QPushButton#link_danger:focus {{ outline: none; }}
 QProgressBar#data_bar {{ background: {hover}; border: none; border-radius: 1px; }}
 QProgressBar#data_bar::chunk {{ background: {accent}; }}
 QProgressBar#data_bar[state="complete"]::chunk {{ background: #3cc583; }}
