@@ -412,7 +412,7 @@ def _page(*items: QWidget | QHBoxLayout | QFormLayout) -> QWidget:
 
 
 class _SystemSections(QObject):
-    """Connection, Scheduler and Telegram pages, plus the Appearance and Updates pages."""
+    """Connection, Scheduler and Telegram pages, plus the Appearance page."""
 
     theme_changed = pyqtSignal(str)
 
@@ -494,18 +494,6 @@ class _SystemSections(QObject):
             theme_row.addWidget(btn)
         self.load_theme()
 
-        # ── Updates ────────────────────────────────────────────────────────────
-        self._update_btn = QPushButton("Check for Updates")
-        set_icon(self._update_btn, "circle-arrow-up", "info")
-        self._update_btn.clicked.connect(self._on_check_updates)
-
-        self._update_note = QLabel("")
-        self._update_note.setStyleSheet(f"color: {C.GREEN}; font-size: 9pt;")
-        self._update_note.setWordWrap(True)
-        self._update_note.hide()
-        self._update_worker: object | None = None
-        self.update_found = False
-
         # ── Telegram Notifications (FO-INF-010) ────────────────────────────────
         from us_swing.gui import telegram_token_store
         _active = self._demo.get_active_user()
@@ -552,13 +540,6 @@ class _SystemSections(QObject):
         tg_form.addRow("Notify on:", tg_events)
 
         # ── Section pages ──────────────────────────────────────────────────────
-        from us_swing import __version__
-        version = QLabel(f"Installed v{__version__}")
-        version.setObjectName("details_key")
-        update_row = QHBoxLayout()
-        update_row.addWidget(self._update_btn)
-        update_row.addStretch()
-
         self.pages: list[tuple[str, QWidget]] = [
             ("Connection",  _page(conn_form)),
             ("Scheduler",   _page(sched_form, sched_row)),
@@ -568,43 +549,9 @@ class _SystemSections(QObject):
         theme_row.addStretch()
         self.app_pages: list[tuple[str, QWidget]] = [
             ("Appearance",  _page(theme_row)),
-            ("Updates",     _page(version, update_row, self._update_note)),
         ]
 
     # ── Helpers ────────────────────────────────────────────────────────────────
-
-    def _on_check_updates(self) -> None:
-        from update_dialog import _CheckWorker  # type: ignore[import]
-
-        self._update_btn.setEnabled(False)
-        self._update_note.setStyleSheet(f"color: {C.GREEN}; font-size: 9pt;")
-        self._update_note.setText("Checking for updates…")
-        self._update_note.show()
-        worker = _CheckWorker()
-        worker.found.connect(self._on_update_found)
-        worker.up_to_date.connect(self._on_update_up_to_date)
-        worker.failed.connect(self._on_update_failed)
-        worker.start()
-        self._update_worker = worker
-
-    def _on_update_found(self, info: object) -> None:
-        from update_dialog import _UpdateDialog  # type: ignore[import]
-        from updater_stub import UpdateInfo  # type: ignore[import]
-
-        self._update_btn.setEnabled(True)
-        self._update_note.setText("")
-        self.update_found = True
-        if isinstance(info, UpdateInfo):
-            _UpdateDialog(info).exec()
-
-    def _on_update_up_to_date(self) -> None:
-        self._update_btn.setEnabled(True)
-        self._update_note.setText("You're on the latest version")
-
-    def _on_update_failed(self, msg: str) -> None:
-        self._update_btn.setEnabled(True)
-        self._update_note.setStyleSheet(f"color: {C.RED}; font-size: 9pt;")
-        self._update_note.setText(f"Could not check for updates — {msg}")
 
     def _refresh_sched_btn_label(self) -> None:
         from us_swing.gui.scheduler_store import load_scheduler_config, load_usswing_config
@@ -1731,7 +1678,6 @@ class SettingsPanel(QWidget):
         self.set_section_state("Telegram", self._sys.telegram_state())
         data = {"complete": "ok", "partial": "warn", "downloading": "warn"}
         self.set_section_state("Candle data", data.get(self._data.state[0], "off"))
-        self.set_section_state("Updates", "warn" if self._sys.update_found else "none")
 
     @staticmethod
     def _section_card(name: str, body: QWidget) -> QFrame:

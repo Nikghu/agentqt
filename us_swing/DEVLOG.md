@@ -2,6 +2,17 @@
 
 ---
 
+## [20261025] GUI — Updates moves from Settings to the sidebar (FO-GUI-027, enhancement)
+
+- Type: Enhancement
+- FO(s): FO-GUI-027
+- RN: RN-GUI-1.33.0-20261025
+- Artifacts updated: FO, SRD (027.002/.005/.012 reopened by user request, now Implemented), DD, MD, UTCD, TRACE, Code, Tests, RN, CONTEXT, TODO
+- Decisions: user picked Option B of 3 (title-bar chip, sidebar icon, Settings footer link); icon sits with the plug/globe group below the gear; "last checked" reads the saved stamp via new `updater_stub.last_check_time()`.
+- Findings: popup is a `Qt.WindowType.Popup` frame (closes on outside click), not a titled window. Checked by offscreen render only; full app not launched.
+
+---
+
 ## [20261025] GUI — Settings dialog opened from the sidebar (FO-GUI-027, feature)
 
 - Type: Feature

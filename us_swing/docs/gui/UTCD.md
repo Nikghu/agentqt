@@ -616,13 +616,13 @@ Test files:
 | UT-GUI-027.003.M01.T02 | MD-GUI-027.001.M01 | Positive | Footer follows the panel | panel dirty; Risk section shown; click Restore defaults | Apply and Restore defaults enabled; panel asked to restore | Pass |
 | UT-GUI-027.004.M02.T01 | MD-GUI-027.004.M02 | Positive | Settings item opens, screen stays | click Settings with Execution checked | `settings_requested` once; Execution still checked | Pass |
 | UT-GUI-027.004.M03.T01 | MD-GUI-027.004.M03 | Positive | Four screens | `_NAV_ITEMS` | Dashboard, Screener, Execution, Charts | Pass |
-| UT-GUI-027.002.M04.T01 | MD-GUI-027.005.M04 | Positive | Eight sections in order | build panel | Users … Appearance, eight stack pages; no Updates | Not Run |
-| UT-GUI-027.005.M04.T01 | MD-GUI-027.005.M04 | Positive | Appearance page only | build `_SystemSections` | `app_pages` is Appearance alone; theme buttons on it | Not Run |
-| UT-GUI-027.005.M07.T01 | MD-GUI-027.005.M07 | Positive | Version and last check text | stamp 2026-10-25 09:14; show popup | "Installed v<version> · last checked 25 Oct 09:14" | Not Run |
-| UT-GUI-027.005.M07.T02 | MD-GUI-027.005.M07 | Edge | Never checked | no stamp | "not checked yet" | Not Run |
-| UT-GUI-027.005.M07.T03 | MD-GUI-027.005.M07 | Positive | Update found | worker emits found | `update_found` once; update dialog opened; button enabled | Not Run |
-| UT-GUI-027.005.M07.T04 | MD-GUI-027.005.M07 | Negative | Check fails | worker emits failed "timeout" | note "Could not check for updates — timeout"; no `update_found` | Not Run |
-| UT-GUI-027.005.M02.T01 | MD-GUI-027.004.M02 | Positive | Sidebar Updates item | click item; popup emits `update_found`; mini mode | popup shown; dot visible; label hidden in mini | Not Run |
+| UT-GUI-027.002.M04.T01 | MD-GUI-027.005.M04 | Positive | Eight sections in order | build panel | Users … Appearance, eight stack pages; no Updates | Pass |
+| UT-GUI-027.005.M04.T01 | MD-GUI-027.005.M04 | Positive | Appearance page only | build `_SystemSections` | `app_pages` is Appearance alone; theme buttons on it | Pass |
+| UT-GUI-027.005.M07.T01 | MD-GUI-027.005.M07 | Positive | Version and last check text | stamp 2026-10-25 09:14; show popup | "Installed v<version> · last checked 25 Oct 09:14" | Pass |
+| UT-GUI-027.005.M07.T02 | MD-GUI-027.005.M07 | Edge | Never checked | no stamp | "not checked yet" | Pass |
+| UT-GUI-027.005.M07.T03 | MD-GUI-027.005.M07 | Positive | Update found | worker emits found | `update_found` once; update dialog opened; button enabled | Pass |
+| UT-GUI-027.005.M07.T04 | MD-GUI-027.005.M07 | Negative | Check fails | worker emits failed "timeout" | note "Could not check for updates — timeout"; no `update_found` | Pass |
+| UT-GUI-027.005.M02.T01 | MD-GUI-027.004.M02 | Positive | Sidebar Updates item | click item; popup emits `update_found`; mini mode | popup shown; dot visible; label hidden in mini | Pass |
 | UT-GUI-027.007.M06.T01 | MD-GUI-019.001.M01 | Positive | Strip keeps three buttons | build `IconStrip` | details, watch, log only | Pass |
 | UT-GUI-027.008.M02.T01 | MD-GUI-027.004.M02 | Positive | Settings badge per state | downloading 62, complete, partial | "62"; check icon; "!" | Pass |
 | UT-GUI-027.008.M02.T02 | MD-GUI-027.004.M02 | Negative | Idle hides the badge | complete then idle | badge hidden | Pass |

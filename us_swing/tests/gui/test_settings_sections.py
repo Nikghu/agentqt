@@ -66,14 +66,13 @@ def test_system_sections_split(qapp: Any, svc: _StubService) -> None:
     assert names == ["Connection", "Scheduler", "Telegram"]
 
 
-def test_appearance_and_updates_pages(qapp: Any, svc: _StubService) -> None:
-    """UT-GUI-027.005.M04.T01: theme buttons sit on Appearance, the update button on Updates."""
+def test_appearance_page_only(qapp: Any, svc: _StubService) -> None:
+    """UT-GUI-027.005.M04.T01: Appearance is the only app page; Updates moved to the sidebar."""
     sections = settings_panel._SystemSections(svc)  # type: ignore[arg-type]
     pages = dict(sections.app_pages)
 
-    assert list(pages) == ["Appearance", "Updates"]
+    assert list(pages) == ["Appearance"]
     assert pages["Appearance"].isAncestorOf(sections._btn_carbon)
-    assert pages["Updates"].isAncestorOf(sections._update_btn)
 
 
 def test_strip_keeps_three_buttons(qapp: Any) -> None:
@@ -111,10 +110,10 @@ def test_section_click_shows_one_section(
     assert not buttons[0].isChecked()
 
 
-def test_nine_sections_in_order(
+def test_eight_sections_in_order(
     qapp: Any, svc: _StubService, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """UT-GUI-027.002.M04.T01: the dialog lists all nine sections in order."""
+    """UT-GUI-027.002.M04.T01: the dialog lists all eight sections in order."""
     for name in ("_UsersTab", "_UniverseTab", "_DataPanel"):
         monkeypatch.setattr(settings_panel, name, _PlainTab)
     panel = settings_panel.SettingsPanel(svc)  # type: ignore[arg-type]
@@ -122,8 +121,8 @@ def test_nine_sections_in_order(
     names = [b.text() for b in panel._nav_group.buttons()]
 
     assert names == ["Users", "Risk", "Connection", "Scheduler", "Telegram", "Universe",
-                     "Candle data", "Appearance", "Updates"]
-    assert panel._stack.count() == 9
+                     "Candle data", "Appearance"]
+    assert panel._stack.count() == 8
 
 
 @pytest.fixture()

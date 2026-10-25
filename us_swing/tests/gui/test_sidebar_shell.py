@@ -118,6 +118,21 @@ def test_settings_data_badge_hidden_when_idle(sidebar):
     assert sidebar._data_badge.isHidden()
 
 
+def test_updates_item_popup_and_dot(sidebar, monkeypatch):
+    """UT-GUI-027.005.M02.T01: Updates opens its popup, shows a dot on found, hides in mini."""
+    shown = []
+    monkeypatch.setattr(sidebar._update_popup, "show_beside", shown.append)
+
+    sidebar._update_btn.click()
+    sidebar._update_popup.update_found.emit()
+    sidebar.set_mini(True)
+
+    assert shown == [sidebar._update_btn]
+    assert not sidebar._update_dot.isHidden()
+    assert sidebar._update_btn.text() == ""
+    assert sidebar._update_btn.toolTip() == "Updates"
+
+
 def test_main_window_lists_four_screens():
     """UT-GUI-027.004.M03.T01: Settings is no longer a screen in the sidebar."""
     from us_swing.gui.main_window import _NAV_ITEMS
