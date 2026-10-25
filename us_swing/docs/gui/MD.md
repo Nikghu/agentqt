@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.26.0: MD-GUI-028.001.M01 added — Candle data panel redesign.
 > v1.25.0: MD-GUI-027.* added — Settings dialog (new `settings_dialog.py`; sidebar, main window, settings panel, icon strip and Execution header changes).
 > v1.24.0: MD-GUI-026.001.M01–.012.M04 added — Charts workspace Focus + Inspector; MD-GUI-020.001.M01 superseded.
 > v1.23.0: MD-GUI-025.016.M04 (position_table_model.py Side column and unset stop/target) added.
@@ -288,3 +289,9 @@ us_swing/src/us_swing/gui/
 | MD-GUI-027.005.M07 | SRD-GUI-027.005 | `us_swing/src/us_swing/gui/update_popup.py` | Popup with installed version, last check time and Check for Updates | `UpdatePopup`, `UpdatePopup.update_found`, `checked_text()` | `update_dialog`, `updater_stub`, `icons` | No (check runs on a `QThread`) |
 
 > `side_panels.py` (MD-GUI-019.001.M01) drops the System and Data buttons and the data badge.
+
+## FO-GUI-028 — Candle Data Panel Redesign
+
+| MD ID | SRD | File | Purpose | Public API | Depends on | Async |
+|---|---|---|---|---|---|---|
+| MD-GUI-028.001.M01 | SRD-GUI-028.001 | `us_swing/src/us_swing/gui/settings_panel.py` | `_DataPanel` summary line, progress, stat strip, footer and reset confirm | `_DataPanel.state`, `state_changed` (unchanged) | `app_service`, `market_calendar`, `active_cycles_panel` | No |
