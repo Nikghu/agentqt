@@ -736,11 +736,11 @@ Test files:
 
 | UT ID | MD | Type | Description | Input | Expected | Status |
 |---|---|---|---|---|---|---|
-| UT-GUI-028.002.M01.T01 | MD-GUI-028.001.M01 | Positive | Progress line | start; MSFT 312 / 503 | "Updating 312 of 503 stocks"; detail starts "62% · MSFT"; state downloading 62 | Not Run |
-| UT-GUI-028.002.M01.T02 | MD-GUI-028.001.M01 | Positive | ETA from the third stock | 10 of 100 after 20 s | detail ends "~3 min left" | Not Run |
-| UT-GUI-028.001.M01.T01 | MD-GUI-028.001.M01 | Positive | Finish without failures | 502 / 503 then finished, no failures | pill "COMPLETE"; state complete 100 | Not Run |
-| UT-GUI-028.001.M01.T02 | MD-GUI-028.001.M01 | Negative | Finish with failures | 3 failed | pill "PARTIAL"; "3 failed"; failed group shown; state partial | Not Run |
-| UT-GUI-028.001.M01.T03 | MD-GUI-028.001.M01 | Positive | Status pill and summary | CURRENT; PARTIAL 1 day behind; EMPTY | "UP TO DATE"; "1 DAY BEHIND"; "EMPTY" with matching summary | Not Run |
-| UT-GUI-028.003.M01.T01 | MD-GUI-028.001.M01 | Edge | Extra stored stocks | 518 stored, universe 503 | "503 / 503", note "+15 left the index" | Not Run |
-| UT-GUI-028.004.M01.T01 | MD-GUI-028.001.M01 | Positive | Footer swaps while downloading | start download | Cancel shown, Update hidden, Reset disabled | Not Run |
-| UT-GUI-028.005.M01.T01 | MD-GUI-028.001.M01 | Negative | Reset cancelled keeps data | confirm returns Cancel | `reset_candle_db` not called | Not Run |
+| UT-GUI-028.002.M01.T01 | MD-GUI-028.001.M01 | Positive | Progress line | start; MSFT 312 / 503 | "Updating 312 of 503 stocks"; detail starts "62% · MSFT"; state downloading 62 | Pass |
+| UT-GUI-028.002.M01.T02 | MD-GUI-028.001.M01 | Positive | ETA from the third stock | 10 of 100 after 20 s | detail ends "~3 min left" | Pass |
+| UT-GUI-028.001.M01.T01 | MD-GUI-028.001.M01 | Positive | Finish without failures | 502 / 503 then finished, no failures | pill "COMPLETE"; state complete 100 | Pass |
+| UT-GUI-028.001.M01.T02 | MD-GUI-028.001.M01 | Negative | Finish with failures | 3 failed | pill "PARTIAL"; "3 failed"; failed group shown; state partial | Pass |
+| UT-GUI-028.001.M01.T03 | MD-GUI-028.001.M01 | Positive | Status pill and summary | CURRENT; PARTIAL 1 day behind; EMPTY | "UP TO DATE"; "1 DAY BEHIND"; "EMPTY" with matching summary | Pass |
+| UT-GUI-028.003.M01.T01 | MD-GUI-028.001.M01 | Edge | Extra stored stocks | 518 stored, universe 503 | "503 / 503", note "+15 left the index" | Pass |
+| UT-GUI-028.004.M01.T01 | MD-GUI-028.001.M01 | Positive | Footer swaps while downloading | start download | Cancel shown, Update hidden, Reset disabled | Pass |
+| UT-GUI-028.005.M01.T01 | MD-GUI-028.001.M01 | Negative | Reset cancelled keeps data | confirm returns Cancel | `reset_candle_db` not called | Pass |

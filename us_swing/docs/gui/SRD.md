@@ -469,8 +469,8 @@
 
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
-| SRD-GUI-028.001 | FO-GUI-028 | Must | A summary line and one state pill show the panel state: Checking, Downloading, Up to date, N days behind, Partial or Empty. | status, progress | summary, pill | `state` tuple and `state_changed` keep their values | Approved |
-| SRD-GUI-028.002 | FO-GUI-028 | Must | While downloading, a 4 px bar and "pct · stock · ~N min left" show; both hide when idle. | progress | bar, detail | ETA shown from the third stock on | Approved |
-| SRD-GUI-028.003 | FO-GUI-028 | Must | A four-cell strip shows Data to, Last trading day, Stocks and Candles, each with a short note. | `CandleDbInfo` | stat cells | Stocks above the index read "M / M" with "+N left the index" | Approved |
-| SRD-GUI-028.004 | FO-GUI-028 | Must | The footer has Update (Build, Fill Delta or Resume) or Cancel, Open Candle DB, and a red Reset database link on the right. | click | actions | Update disabled when up to date; Reset disabled while downloading | Approved |
-| SRD-GUI-028.005 | FO-GUI-028 | Should | Reset asks in the app's frameless confirm dialog with the line "Deletes all stored candles. The next update downloads everything again." | click | confirm | Native message box removed for this confirm | Approved |
+| SRD-GUI-028.001 | FO-GUI-028 | Must | A summary line and one state pill show the panel state: Checking, Downloading, Up to date, N days behind, Partial or Empty. | status, progress | summary, pill | `state` tuple and `state_changed` keep their values | Implemented |
+| SRD-GUI-028.002 | FO-GUI-028 | Must | While downloading, a 4 px bar and "pct · stock · ~N min left" show; both hide when idle. | progress | bar, detail | ETA shown from the third stock on | Implemented |
+| SRD-GUI-028.003 | FO-GUI-028 | Must | A four-cell strip shows Data to, Last trading day, Stocks and Candles, each with a short note. | `CandleDbInfo` | stat cells | Stocks above the index read "M / M" with "+N left the index" | Implemented |
+| SRD-GUI-028.004 | FO-GUI-028 | Must | The footer has Update (Build, Fill Delta or Resume) or Cancel, Open Candle DB, and a red Reset database link on the right. | click | actions | Update disabled when up to date; Reset disabled while downloading | Implemented |
+| SRD-GUI-028.005 | FO-GUI-028 | Should | Reset asks in the app's frameless confirm dialog with the line "Deletes all stored candles. The next update downloads everything again." | click | confirm | Native message box removed for this confirm | Implemented |
