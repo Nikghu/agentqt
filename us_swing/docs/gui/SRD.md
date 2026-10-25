@@ -469,9 +469,9 @@
 
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
-| SRD-GUI-029.001 | FO-GUI-029 | Must | The Scheduler section shows a table with rows Start TWS, Start USSwing and Close both and columns On, Task, Time, Days, Program and Windows. | scheduler.json | table | Close both has no program; its days follow each app | Approved |
-| SRD-GUI-029.002 | FO-GUI-029 | Must | The Windows pill shows Installed or Missing from a background check and Changed while the row has unapplied edits. | schtasks query | pill | The check never runs on the GUI thread | Approved |
-| SRD-GUI-029.003 | FO-GUI-029 | Must | A folded TWS login line opens username, password with show toggle, fill-in-automatically and Fill TWS login now. | click | login fields | Password lives only in Windows Credential Manager | Approved |
-| SRD-GUI-029.004 | FO-GUI-029 | Must | Apply writes switched-on tasks, deletes switched-off ones and saves the password; a Missing switched-on task marks the section changed so Apply re-creates it. | Apply | Windows tasks | Writes run in the background; errors show on the pill | Approved |
-| SRD-GUI-029.005 | FO-GUI-029 | Should | A red Remove all tasks link deletes every task, the saved configs and the password after a frameless confirm. | click | none | Cancel keeps everything | Approved |
-| SRD-GUI-029.006 | FO-GUI-029 | Must | The Edit Scheduler button and the Windows Task Scheduler window are removed; task names are kept internally. | — | — | Saved task names still used | Approved |
+| SRD-GUI-029.001 | FO-GUI-029 | Must | The Scheduler section shows a table with rows Start TWS, Start USSwing and Close both and columns On, Task, Time, Days, Program and Windows. | scheduler.json | table | Close both has no program; its days follow each app | Implemented |
+| SRD-GUI-029.002 | FO-GUI-029 | Must | The Windows pill shows Installed or Missing from a background check and Changed while the row has unapplied edits. | schtasks query | pill | The check never runs on the GUI thread | Implemented |
+| SRD-GUI-029.003 | FO-GUI-029 | Must | A folded TWS login line opens username, password with show toggle, fill-in-automatically and Fill TWS login now. | click | login fields | Password lives only in Windows Credential Manager | Implemented |
+| SRD-GUI-029.004 | FO-GUI-029 | Must | Apply writes switched-on tasks, deletes switched-off ones and saves the password; a Missing switched-on task marks the section changed so Apply re-creates it. | Apply | Windows tasks | Writes run in the background; errors show on the pill | Implemented |
+| SRD-GUI-029.005 | FO-GUI-029 | Should | A red Remove all tasks link deletes every task, the saved configs and the password after a frameless confirm. | click | none | Cancel keeps everything | Implemented |
+| SRD-GUI-029.006 | FO-GUI-029 | Must | The Edit Scheduler button and the Windows Task Scheduler window are removed; task names are kept internally. | — | — | Saved task names still used | Implemented |

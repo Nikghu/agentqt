@@ -736,13 +736,13 @@ Test files:
 
 | UT ID | MD | Type | Description | Input | Expected | Status |
 |---|---|---|---|---|---|---|
-| UT-GUI-029.004.M02.T01 | MD-GUI-029.004.M02 | Positive | Write switched-on tasks | TWS and USSwing on, close on at 01:30 | create calls for both apps and both close tasks; configs saved | Not Run |
-| UT-GUI-029.004.M02.T02 | MD-GUI-029.004.M02 | Negative | Switched-off task is deleted | USSwing off, close off | delete USSwing task and both close tasks; no create for USSwing | Not Run |
-| UT-GUI-029.002.M02.T01 | MD-GUI-029.004.M02 | Positive | Task states | query ok for TWS, fails for USSwing | tws installed; app missing | Not Run |
-| UT-GUI-029.001.M01.T01 | MD-GUI-029.001.M01 | Positive | Table loads saved tasks | saved TWS 18:30 Mon–Fri, close 01:30 | row values match; Close both shows "Same as start" | Not Run |
-| UT-GUI-029.002.M01.T01 | MD-GUI-029.001.M01 | Positive | Edit marks the row Changed | change USSwing time | USSwing pill CHANGED; other pills unchanged | Not Run |
-| UT-GUI-029.004.M01.T01 | MD-GUI-029.001.M01 | Positive | Missing on-task asks for repair | states: tws missing, tws on | `repair_needed` emitted; pill MISSING | Not Run |
-| UT-GUI-029.004.M01.T02 | MD-GUI-029.001.M01 | Edge | Apply during a write waits | Apply while a write runs | no second write; Remove all off; runs once the write ends | Not Run |
-| UT-GUI-029.002.M01.T02 | MD-GUI-029.001.M01 | Edge | Old status result dropped | result from before a reload | pills keep the fresh check | Not Run |
-| UT-GUI-029.005.M01.T01 | MD-GUI-029.001.M01 | Negative | Remove all cancelled | confirm returns Cancel | `remove_tasks` not called | Not Run |
-| UT-GUI-029.006.M01.T01 | MD-GUI-029.001.M01 | Positive | Scheduler page has the table, no Edit button | build `_SystemSections` | page holds `SchedulerTable`; no `_sched_btn` | Not Run |
+| UT-GUI-029.004.M02.T01 | MD-GUI-029.004.M02 | Positive | Write switched-on tasks | TWS and USSwing on, close on at 01:30 | create calls for both apps and both close tasks; configs saved | Pass |
+| UT-GUI-029.004.M02.T02 | MD-GUI-029.004.M02 | Negative | Switched-off task is deleted | USSwing off, close off | delete USSwing task and both close tasks; no create for USSwing | Pass |
+| UT-GUI-029.002.M02.T01 | MD-GUI-029.004.M02 | Positive | Task states | query ok for TWS, fails for USSwing | tws installed; app missing | Pass |
+| UT-GUI-029.001.M01.T01 | MD-GUI-029.001.M01 | Positive | Table loads saved tasks | saved TWS 18:30 Mon–Fri, close 01:30 | row values match; Close both shows "Same as start" | Pass |
+| UT-GUI-029.002.M01.T01 | MD-GUI-029.001.M01 | Positive | Edit marks the row Changed | change USSwing time | USSwing pill CHANGED; other pills unchanged | Pass |
+| UT-GUI-029.004.M01.T01 | MD-GUI-029.001.M01 | Positive | Missing on-task asks for repair | states: tws missing, tws on | `repair_needed` emitted; pill MISSING | Pass |
+| UT-GUI-029.004.M01.T02 | MD-GUI-029.001.M01 | Edge | Apply during a write waits | Apply while a write runs | no second write; Remove all off; runs once the write ends | Pass |
+| UT-GUI-029.002.M01.T02 | MD-GUI-029.001.M01 | Edge | Old status result dropped | result from before a reload | pills keep the fresh check | Pass |
+| UT-GUI-029.005.M01.T01 | MD-GUI-029.001.M01 | Negative | Remove all cancelled | confirm returns Cancel | `remove_tasks` not called | Pass |
+| UT-GUI-029.006.M01.T01 | MD-GUI-029.001.M01 | Positive | Scheduler page has the table, no Edit button | build `_SystemSections` | page holds `SchedulerTable`; no `_sched_btn` | Pass |

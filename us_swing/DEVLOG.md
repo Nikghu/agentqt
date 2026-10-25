@@ -2,6 +2,17 @@
 
 ---
 
+## [20261025] GUI — Scheduler task table in Settings (FO-GUI-029, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-029
+- RN: RN-GUI-1.35.0-20261025
+- Artifacts updated: FO, SRD, DD, MD, UTCD, TRACE, Code, Tests, RN, CONTEXT, DEVLOG
+- Decisions: user picked Option D of 4 (https://claude.ai/artifact/Gh6UQNmQUXdHbWtsuKHSww); pill = exists in Windows + unapplied edits (no field compare); Apply re-creates missing switched-on tasks; Windows calls on QThread jobs; old window removed, helpers kept.
+- Findings: review found stale status results, overlapping writes and a shared config mutated off-thread — all fixed and tested. GUI tests now isolated from the real scheduler.json / keyring / schtasks. Market hours on this machine read 15:00–23:00 US/Eastern (likely meant 09:30–16:00) — left for the user.
+
+---
+
 ## [20261025] GUI — Updates moves from Settings to the sidebar (FO-GUI-027, enhancement)
 
 - Type: Enhancement
