@@ -780,3 +780,34 @@ The system shall show the Charts screen as one large chart between a symbol sour
 2. A screener stock with a plan shows its three lines and the same numbers in Trade Plan.
 3. Tab, overlays and open sections are the same after a restart.
 4. Drawings come back when the symbol is opened again, also after a restart.
+
+---
+
+## FO-GUI-027: Settings Dialog
+
+**Status:** Approved (user, 2026-10-25)
+**Priority:** Should
+**Depends on:** FO-GUI-018 (sidebar), FO-GUI-021 (settings sections), FO-GUI-024 (Execution header)
+**Source:** User chose Option 5 (Settings dialog) and Open A (sidebar gear) from https://claude.ai/artifact/SHgMoy3fAqpy4xhQnhFy8P on 2026-10-25; modal, side panels moved in, download progress on the gear, circuit breaker in the Execution header.
+
+The system shall show Settings as a modal dialog opened from the sidebar, with every setting in one place, so the screen the user is on stays put. Setting values and their save paths do not change.
+
+### Requirements
+
+1. **Dialog.** A frameless modal dialog with its own title bar: Settings, minimise, maximise, close.
+2. **Sections.** Users, Risk, Connection, Scheduler, Telegram, Universe, Candle data and Appearance in a left list, each with a status dot.
+3. **Footer.** Restore defaults, Cancel, Apply and OK; Apply works only when something changed.
+4. **Open from the sidebar.** A Settings item at the bottom of the sidebar opens the dialog; Settings is no longer a screen.
+5. **One place.** Theme and the candle database move from the right strip into the dialog; the strip keeps Details, Watchlist and Log.
+6. **Download progress.** While candles download, the sidebar Settings item shows the percent, and a dot when data is behind or stocks failed; the download keeps running when the dialog closes.
+7. **Circuit breaker.** Trip / Reset Circuit Breaker moves to the Execution page header.
+8. **Updates in the sidebar.** An Updates item next to the Connections panel opens a small popup with the installed version, the last check time and Check for Updates; a dot shows when an update is found (user chose Option B, https://claude.ai/artifact/U2hKfHTWMvQVoW85QU7Nm4, 2026-10-25).
+
+### Acceptance Criteria
+
+1. Clicking Settings in the sidebar opens the dialog; closing it shows the same screen as before.
+2. The app cannot be used while the dialog is open.
+3. Cancel leaves every saved value as it was; OK saves and closes.
+4. A candle download started in the dialog keeps running after it closes, and the sidebar Settings item shows its percent.
+5. The right strip has no System or Data icon.
+6. The circuit breaker can be tripped and reset from the Execution header.

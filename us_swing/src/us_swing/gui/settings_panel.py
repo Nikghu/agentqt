@@ -1,6 +1,7 @@
 """
 Module: MD-GUI-006 — settings_panel.py
 FO-GUI-006 Settings Panel; FO-GUI-021 section list layout (Carbon Workspace).
+Dialog sections: MD-GUI-027.005.M04 (Parent SRD: SRD-GUI-027.005).
 """
 from __future__ import annotations
 
@@ -8,10 +9,12 @@ import dataclasses
 import datetime
 import json
 import logging
+from collections.abc import Callable
 
-from PyQt6.QtCore import Qt, QDate, QObject, pyqtSignal
+from PyQt6.QtCore import Qt, QDate, QObject, pyqtBoundSignal, pyqtSignal
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import (
+    QAbstractButton,
     QAbstractItemView,
     QButtonGroup,
     QCheckBox,
@@ -41,8 +44,9 @@ from PyQt6.QtWidgets import (
 )
 
 from us_swing.gui.app_service import AppService
-from us_swing.data.models import RiskConfig, UserProfile
+from us_swing.data.models import ConnectionStatus, RiskConfig, UserProfile
 from us_swing.gui.icons import mark_danger, set_icon
+from us_swing.gui.system_store import SystemConfig
 from us_swing.gui.theme import C, active_palette
 
 _log = logging.getLogger(__name__)
@@ -346,26 +350,27 @@ class _RiskTab(QWidget):
         form.addRow("Default order type:",     self._ord_type)
         form.addRow("",                        self._confirm)
 
-        save_btn = QPushButton("Save Risk Settings")
-        set_icon(save_btn, "save", "go")
-        save_btn.setObjectName("run_btn")
-        save_btn.setFixedWidth(200)
-        save_btn.clicked.connect(self._on_save)
-
-        self._note = QLabel("")
-        self._note.setStyleSheet(f"color: {C.GREEN}; font-size: 9pt;")
-
-        btn_row = QHBoxLayout()
-        btn_row.addWidget(save_btn)
-        btn_row.addWidget(self._note)
-        btn_row.addStretch()
-
         layout = QVBoxLayout(self)
         layout.setContentsMargins(14, 14, 14, 14)
         layout.setSpacing(12)
         layout.addLayout(form)
-        layout.addLayout(btn_row)
         layout.addStretch()
+
+    @property
+    def inputs(self) -> list[QWidget]:
+        """Fields the Settings dialog watches for changes (SRD-GUI-027.010)."""
+        return [self._risk, self._max_pos, self._max_cap, self._max_loss,
+                self._ord_type, self._confirm]
+
+    def load(self, rc: RiskConfig | None = None) -> None:
+        """Fill the fields from ``rc``, or from the active user when ``None``."""
+        rc = rc or self._demo.get_active_user().risk_config
+        self._risk.setValue(rc.risk_per_trade_pct)
+        self._max_pos.setValue(rc.max_position_value)
+        self._max_cap.setValue(rc.max_capital_value)
+        self._max_loss.setValue(rc.max_daily_loss_pct)
+        self._ord_type.setCurrentText(rc.default_order_type)
+        self._confirm.setChecked(rc.confirm_orders)
 
     def _on_save(self) -> None:
         user = self._demo.get_active_user()
@@ -379,10 +384,16 @@ class _RiskTab(QWidget):
             confirm_orders     = self._confirm.isChecked(),
         )
         self._demo.update_user(user)
-        self._note.setText("✔  Risk settings saved")
 
 
 # ── System sections ───────────────────────────────────────────────────────────
+
+
+def telegram_dot(enabled: bool, token: str, chat_id: str) -> str:
+    """Telegram section dot: ok when ready, warn when on but incomplete, else off."""
+    if not enabled:
+        return "off"
+    return "ok" if token.strip() and chat_id.strip() else "warn"
 
 
 def _page(*items: QWidget | QHBoxLayout | QFormLayout) -> QWidget:
@@ -401,7 +412,7 @@ def _page(*items: QWidget | QHBoxLayout | QFormLayout) -> QWidget:
 
 
 class _SystemSections(QObject):
-    """Connection, Scheduler and Telegram section pages, plus the System side panel."""
+    """Connection, Scheduler and Telegram pages, plus the Appearance page."""
 
     theme_changed = pyqtSignal(str)
 
@@ -460,70 +471,28 @@ class _SystemSections(QObject):
         self._sched_btn.setFixedWidth(160)
         self._sched_btn.clicked.connect(self._on_scheduler)
         self._refresh_sched_btn_label()
-
-        self._save_notes: list[QLabel] = []
-
-        def _save_row(*extra: QPushButton) -> QHBoxLayout:
-            save_btn = QPushButton("Save Settings")
-            set_icon(save_btn, "save", "go")
-            save_btn.setObjectName("run_btn")
-            save_btn.setFixedWidth(140)
-            save_btn.clicked.connect(self._on_save)
-            note = QLabel("")
-            note.setStyleSheet(f"color: {C.GREEN}; font-size: 9pt;")
-            self._save_notes.append(note)
-            row = QHBoxLayout()
-            row.addWidget(save_btn)
-            for btn in extra:
-                row.addWidget(btn)
-            row.addWidget(note)
-            row.addStretch()
-            return row
+        sched_row = QHBoxLayout()
+        sched_row.addWidget(self._sched_btn)
+        sched_row.addStretch()
 
         # ── Theme ──────────────────────────────────────────────────────────────
-        from us_swing.gui import theme as _theme
+        # A click only picks the theme; Apply or OK applies it (SRD-GUI-027.013).
         theme_row = QHBoxLayout()
         theme_row.setSpacing(4)
 
         self._btn_carbon = QPushButton("Carbon")
-        self._btn_carbon.setCheckable(True)
         self._btn_mocha  = QPushButton("Mocha")
-        self._btn_mocha.setCheckable(True)
         self._btn_vscode = QPushButton("VS Code")
-        self._btn_vscode.setCheckable(True)
-        for btn in (self._btn_carbon, self._btn_mocha, self._btn_vscode):
+        self._theme_btns = {"carbon": self._btn_carbon, "mocha": self._btn_mocha,
+                            "vscode": self._btn_vscode}
+        theme_group = QButtonGroup(self)
+        theme_group.setExclusive(True)
+        for btn in self._theme_btns.values():
             btn.setObjectName("mode_btn")
-
-        current_theme = _theme.load_theme_id()
-        self._btn_carbon.setChecked(current_theme == "carbon")
-        self._btn_mocha.setChecked(current_theme == "mocha")
-        self._btn_vscode.setChecked(current_theme == "vscode")
-
-        self._btn_carbon.clicked.connect(lambda: self._on_theme("carbon"))
-        self._btn_mocha.clicked.connect(lambda: self._on_theme("mocha"))
-        self._btn_vscode.clicked.connect(lambda: self._on_theme("vscode"))
-
-        theme_row.addWidget(self._btn_carbon)
-        theme_row.addWidget(self._btn_mocha)
-        theme_row.addWidget(self._btn_vscode)
-
-        # ── Orders (circuit breaker) ───────────────────────────────────────────
-        self._cb_toggle = QPushButton()
-        self._cb_toggle.setToolTip("Stops all new orders until you reset it.")
-        self._cb_toggle.clicked.connect(self._on_toggle_cb)
-        self._refresh_cb_label()
-        self._demo.circuit_breaker_changed.connect(lambda _a: self._refresh_cb_label())
-
-        # ── Updates ────────────────────────────────────────────────────────────
-        self._update_btn = QPushButton("Check for Updates")
-        set_icon(self._update_btn, "circle-arrow-up", "info")
-        self._update_btn.clicked.connect(self._on_check_updates)
-
-        self._update_note = QLabel("")
-        self._update_note.setStyleSheet(f"color: {C.GREEN}; font-size: 9pt;")
-        self._update_note.setWordWrap(True)
-        self._update_note.hide()
-        self._update_worker: object | None = None
+            btn.setCheckable(True)
+            theme_group.addButton(btn)
+            theme_row.addWidget(btn)
+        self.load_theme()
 
         # ── Telegram Notifications (FO-INF-010) ────────────────────────────────
         from us_swing.gui import telegram_token_store
@@ -559,15 +528,9 @@ class _SystemSections(QObject):
         set_icon(self._tg_test, "send", "info")
         self._tg_test.setFixedWidth(120)
         self._tg_test.clicked.connect(self._on_test_telegram)
-        tg_save = QPushButton("Save")
-        set_icon(tg_save, "save", "go")
-        tg_save.setObjectName("run_btn")
-        tg_save.setFixedWidth(120)
-        tg_save.clicked.connect(self._on_save_telegram)
 
         tg_btn_row = QHBoxLayout()
         tg_btn_row.addWidget(self._tg_test)
-        tg_btn_row.addWidget(tg_save)
         tg_btn_row.addWidget(self._tg_note)
         tg_btn_row.addStretch()
 
@@ -578,97 +541,17 @@ class _SystemSections(QObject):
 
         # ── Section pages ──────────────────────────────────────────────────────
         self.pages: list[tuple[str, QWidget]] = [
-            ("Connection",  _page(conn_form, _save_row())),
-            ("Scheduler",   _page(sched_form, _save_row(self._sched_btn))),
+            ("Connection",  _page(conn_form)),
+            ("Scheduler",   _page(sched_form, sched_row)),
             ("Telegram",    _page(tg_form, tg_btn_row)),
         ]
-        self.panel = self._build_panel(theme_row)
-
-    def _build_panel(self, theme_row: QHBoxLayout) -> QWidget:
-        """System side panel: Theme, Updates and Orders groups (FO-GUI-021)."""
-        from us_swing import __version__
-
-        panel = QWidget()
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
-        head = QLabel("SYSTEM")
-        head.setObjectName("settings_head")
-        layout.addWidget(head)
-
-        version = QLabel(f"Installed v{__version__}")
-        version.setObjectName("details_key")
-        groups: list[tuple[str, list[QWidget | QHBoxLayout]]] = [
-            ("THEME",       [theme_row]),
-            ("UPDATES",     [version, self._update_btn, self._update_note]),
-            ("ORDERS",      [self._cb_toggle]),
+        # Shown after Universe and Candle data (SRD-GUI-027.005).
+        theme_row.addStretch()
+        self.app_pages: list[tuple[str, QWidget]] = [
+            ("Appearance",  _page(theme_row)),
         ]
-        for title, items in groups:
-            group = QVBoxLayout()
-            group.setContentsMargins(12, 12, 12, 12)
-            group.setSpacing(8)
-            label = QLabel(title)
-            label.setObjectName("panel_group")
-            group.addWidget(label)
-            for item in items:
-                if isinstance(item, QWidget):
-                    group.addWidget(item)
-                else:
-                    group.addLayout(item)
-            layout.addLayout(group)
-            sep = QFrame()
-            sep.setObjectName("side_sep")
-            sep.setFixedHeight(1)
-            layout.addWidget(sep)
-        layout.addStretch()
-        return panel
 
     # ── Helpers ────────────────────────────────────────────────────────────────
-
-    def _refresh_cb_label(self) -> None:
-        active = self._demo.circuit_breaker_active
-        self._cb_toggle.setText("Reset Circuit Breaker" if active else "Trip Circuit Breaker")
-        set_icon(self._cb_toggle, "power", "neutral" if active else "danger")
-        self._cb_toggle.setProperty("role", "" if active else "danger")
-        style = self._cb_toggle.style()
-        if style is not None:
-            style.unpolish(self._cb_toggle)
-            style.polish(self._cb_toggle)
-
-    def _on_toggle_cb(self) -> None:
-        self._demo.set_circuit_breaker(not self._demo.circuit_breaker_active)
-
-    def _on_check_updates(self) -> None:
-        from update_dialog import _CheckWorker  # type: ignore[import]
-
-        self._update_btn.setEnabled(False)
-        self._update_note.setStyleSheet(f"color: {C.GREEN}; font-size: 9pt;")
-        self._update_note.setText("Checking for updates…")
-        self._update_note.show()
-        worker = _CheckWorker()
-        worker.found.connect(self._on_update_found)
-        worker.up_to_date.connect(self._on_update_up_to_date)
-        worker.failed.connect(self._on_update_failed)
-        worker.start()
-        self._update_worker = worker
-
-    def _on_update_found(self, info: object) -> None:
-        from update_dialog import _UpdateDialog  # type: ignore[import]
-        from updater_stub import UpdateInfo  # type: ignore[import]
-
-        self._update_btn.setEnabled(True)
-        self._update_note.setText("")
-        if isinstance(info, UpdateInfo):
-            _UpdateDialog(info).exec()
-
-    def _on_update_up_to_date(self) -> None:
-        self._update_btn.setEnabled(True)
-        self._update_note.setText("You're on the latest version")
-
-    def _on_update_failed(self, msg: str) -> None:
-        self._update_btn.setEnabled(True)
-        self._update_note.setStyleSheet(f"color: {C.RED}; font-size: 9pt;")
-        self._update_note.setText(f"Could not check for updates — {msg}")
 
     def _refresh_sched_btn_label(self) -> None:
         from us_swing.gui.scheduler_store import load_scheduler_config, load_usswing_config
@@ -682,7 +565,6 @@ class _SystemSections(QObject):
         self._refresh_sched_btn_label()
 
     def _on_save(self) -> None:
-        from us_swing.gui.system_store import SystemConfig
         cfg = SystemConfig(
             ibkr_host             = self._host.text().strip() or "127.0.0.1",
             ibkr_port             = self._port.value(),
@@ -694,8 +576,6 @@ class _SystemSections(QObject):
             market_timezone       = self._mkt_tz.currentText(),
         )
         self._demo.save_system_config(cfg)
-        for note in self._save_notes:
-            note.setText("✔  Settings saved")
 
     def _on_save_telegram(self) -> None:
         from us_swing.gui import telegram_token_store
@@ -714,14 +594,72 @@ class _SystemSections(QObject):
         self._demo.send_test_notification()
         self._tg_note.setText("✔  Test message sent")
 
-    def _on_theme(self, theme_id: str) -> None:
+    # ── Dialog apply flow (SRD-GUI-027.010–.013) ───────────────────────────────
+
+    @property
+    def connection_inputs(self) -> list[QWidget]:
+        return [self._host, self._port, self._tick_id, self._log_level]
+
+    @property
+    def scheduler_inputs(self) -> list[QWidget]:
+        return [self._open_t, self._close_t, self._mkt_tz, self._sched_en]
+
+    @property
+    def telegram_inputs(self) -> list[QWidget]:
+        return [self._tg_enabled, self._tg_token, self._tg_chat,
+                self._tg_ev_tool, self._tg_ev_screener, self._tg_ev_pnl]
+
+    @property
+    def theme_inputs(self) -> list[QWidget]:
+        return list(self._theme_btns.values())
+
+    def load_connection(self, cfg: SystemConfig | None = None) -> None:
+        """Fill Connection fields from ``cfg``, or from the saved config when ``None``."""
+        cfg = cfg or self._demo.get_system_config()
+        self._host.setText(cfg.ibkr_host)
+        self._port.setValue(cfg.ibkr_port)
+        self._tick_id.setValue(cfg.ibkr_tick_client_id)
+        self._log_level.setCurrentText(cfg.log_level)
+
+    def load_scheduler(self, cfg: SystemConfig | None = None) -> None:
+        """Fill Scheduler fields from ``cfg``, or from the saved config when ``None``."""
+        cfg = cfg or self._demo.get_system_config()
+        self._open_t.setText(cfg.market_open)
+        self._close_t.setText(cfg.market_close)
+        self._mkt_tz.setCurrentText(cfg.market_timezone)
+        self._sched_en.setChecked(cfg.scheduler_enabled)
+
+    def load_telegram(self) -> None:
+        """Fill Telegram fields from the active user and the token store."""
+        from us_swing.gui import telegram_token_store
+        user = self._demo.get_active_user()
+        self._tg_enabled.setChecked(user.telegram_enabled)
+        self._tg_token.setText(telegram_token_store.load(user.user_id))
+        self._tg_chat.setText(user.telegram_chat_id)
+        self._tg_ev_tool.setChecked(user.notify_tool_started)
+        self._tg_ev_screener.setChecked(user.notify_screener_approved)
+        self._tg_ev_pnl.setChecked(user.notify_day_end_pnl)
+
+    def load_theme(self, theme_id: str | None = None) -> None:
+        """Check the button of ``theme_id``, or of the saved theme when ``None``."""
         from us_swing.gui import theme as _theme
+        picked = theme_id or _theme.load_theme_id()
+        self._theme_btns.get(picked, self._btn_carbon).setChecked(True)
+
+    def apply_theme(self) -> None:
+        """Save and apply the picked theme, then tell the app."""
+        from us_swing.gui import theme as _theme
+        theme_id = next(t for t, btn in self._theme_btns.items() if btn.isChecked())
         _theme.save_theme_id(theme_id)
         _theme.apply_theme(theme_id)
-        self._btn_carbon.setChecked(theme_id == "carbon")
-        self._btn_mocha.setChecked(theme_id == "mocha")
-        self._btn_vscode.setChecked(theme_id == "vscode")
         self.theme_changed.emit(theme_id)
+
+    def telegram_state(self) -> str:
+        """Dot state of the saved Telegram setup: ok, warn or off."""
+        from us_swing.gui import telegram_token_store
+        user = self._demo.get_active_user()
+        return telegram_dot(user.telegram_enabled, telegram_token_store.load(user.user_id),
+                            user.telegram_chat_id)
 
 
 # ── Universe Tab ─────────────────────────────────────────────────────────────
@@ -1058,10 +996,10 @@ def _separator() -> QFrame:
 
 
 class _DataPanel(QWidget):
-    """SRD-GUI-006.011 / SRD-GUI-021.004 — Candle database panel on the right strip.
+    """SRD-GUI-006.011 / SRD-GUI-027.006 — Candle data section of the Settings dialog.
 
     Shows download progress, failed stocks, database status and the build,
-    retry and reset actions, sized for the 300 px right panel.
+    retry and reset actions.
     """
 
     state_changed = pyqtSignal(str, int)   # downloading | complete | partial | idle, percent
@@ -1077,9 +1015,6 @@ class _DataPanel(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
-        head = QLabel("DATA")
-        head.setObjectName("settings_head")
-        layout.addWidget(head)
 
         # ── Download group ────────────────────────────────────────────────────
         self._dl_pill = QLabel("")
@@ -1546,27 +1481,74 @@ class _DataPanel(QWidget):
 
 # ── Settings Panel ────────────────────────────────────────────────────────────
 
+@dataclasses.dataclass(frozen=True)
+class _Editable:
+    """A section saved on Apply: its fields, save, reload and optional defaults."""
+
+    inputs: list[QWidget]
+    save: Callable[[], None]
+    load: Callable[[], None]
+    defaults: Callable[[], None] | None
+
+
+def _changed_signal(widget: QWidget) -> pyqtBoundSignal:
+    """The signal a field emits when the user changes its value."""
+    if isinstance(widget, QLineEdit):
+        return widget.textChanged
+    if isinstance(widget, (QSpinBox, QDoubleSpinBox)):
+        return widget.valueChanged
+    if isinstance(widget, QComboBox):
+        return widget.currentTextChanged
+    assert isinstance(widget, QAbstractButton)
+    return widget.toggled
+
+
 class SettingsPanel(QWidget):
     """
-    FO-GUI-006 Settings Panel — section list on the left, one section shown at a time (FO-GUI-021).
+    FO-GUI-006 Settings Panel — section list on the left, one section shown at a time
+    (FO-GUI-021), hosted by the Settings dialog with Apply / Cancel (FO-GUI-027).
     """
 
     theme_changed = pyqtSignal(str)
+    dirty_changed = pyqtSignal(bool)
+    section_changed = pyqtSignal(str)
 
     def __init__(self, demo: AppService, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        self._demo = demo
 
         self._data         = _DataPanel(demo)
         self._sys          = _SystemSections(demo, self)
         self._universe_tab = _UniverseTab(demo)
         self._sys.theme_changed.connect(self.theme_changed)
         self._sys.theme_changed.connect(self._universe_tab.refresh_theme)
+        risk = _RiskTab(demo)
+        sys_ = self._sys
+        self._editable: dict[str, _Editable] = {
+            "Risk": _Editable(risk.inputs, risk._on_save, risk.load,
+                              lambda: risk.load(RiskConfig())),
+            "Connection": _Editable(sys_.connection_inputs, sys_._on_save, sys_.load_connection,
+                                    lambda: sys_.load_connection(SystemConfig())),
+            "Scheduler": _Editable(sys_.scheduler_inputs, sys_._on_save, sys_.load_scheduler,
+                                   lambda: sys_.load_scheduler(SystemConfig())),
+            "Telegram": _Editable(sys_.telegram_inputs, sys_._on_save_telegram,
+                                  sys_.load_telegram, None),
+            "Appearance": _Editable(sys_.theme_inputs, sys_.apply_theme, sys_.load_theme,
+                                    lambda: sys_.load_theme("carbon")),
+        }
+        self._dirty: set[str] = set()
+        self._loading = False
+        for name, editable in self._editable.items():
+            for widget in editable.inputs:
+                _changed_signal(widget).connect(lambda *_a, n=name: self._mark_dirty(n))
 
         sections: list[tuple[str, QWidget]] = [
             ("Users", _UsersTab(demo)),
-            ("Risk",  _RiskTab(demo)),
+            ("Risk",  risk),
             *self._sys.pages,
             ("Universe", self._universe_tab),
+            ("Candle data", self._data),
+            *self._sys.app_pages,
         ]
 
         nav = QFrame()
@@ -1579,6 +1561,8 @@ class SettingsPanel(QWidget):
         self._stack = QStackedWidget()
         self._nav_group = QButtonGroup(self)
         self._nav_group.setExclusive(True)
+        self._names = [name for name, _body in sections]
+        self._dots: dict[str, QLabel] = {}
         for index, (name, body) in enumerate(sections):
             btn = QPushButton(name)
             btn.setObjectName("side_btn")
@@ -1586,25 +1570,114 @@ class SettingsPanel(QWidget):
             self._nav_group.addButton(btn, index)
             nav_layout.addWidget(btn)
             self._stack.addWidget(self._section_card(name, body))
+            dot = QLabel()
+            dot.setFixedSize(8, 8)
+            dot.hide()
+            dot_row = QHBoxLayout(btn)
+            dot_row.setContentsMargins(0, 0, 10, 0)
+            dot_row.addStretch()
+            dot_row.addWidget(dot)
+            self._dots[name] = dot
         nav_layout.addStretch()
         self._nav_group.idClicked.connect(self._stack.setCurrentIndex)
+        self._nav_group.idClicked.connect(lambda i: self.section_changed.emit(self._names[i]))
         first = self._nav_group.button(0)
         if first is not None:
             first.setChecked(True)
 
-        title = QLabel("Settings")
-        title.setObjectName("page_title")
-
-        body_row = QHBoxLayout()
-        body_row.setSpacing(10)
-        body_row.addWidget(nav)
-        body_row.addWidget(self._stack, 1)
-
-        layout = QVBoxLayout(self)
+        layout = QHBoxLayout(self)
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(10)
-        layout.addWidget(title)
-        layout.addLayout(body_row, 1)
+        layout.addWidget(nav)
+        layout.addWidget(self._stack, 1)
+
+    def show_section(self, name: str) -> None:
+        """Select the section called ``name``; unknown names are ignored (SRD-GUI-027.001)."""
+        if name not in self._names:
+            return
+        index = self._names.index(name)
+        btn = self._nav_group.button(index)
+        if btn is not None:
+            btn.setChecked(True)
+        self._stack.setCurrentIndex(index)
+        self.section_changed.emit(name)
+
+    @property
+    def current_section(self) -> str:
+        return self._names[self._stack.currentIndex()]
+
+    @property
+    def is_dirty(self) -> bool:
+        return bool(self._dirty)
+
+    def can_restore(self, name: str) -> bool:
+        """True when section ``name`` has default values to restore (SRD-GUI-027.011)."""
+        editable = self._editable.get(name)
+        return editable is not None and editable.defaults is not None
+
+    def _mark_dirty(self, name: str) -> None:
+        if self._loading:
+            return
+        was_dirty = self.is_dirty
+        self._dirty.add(name)
+        if not was_dirty:
+            self.dirty_changed.emit(True)
+
+    def _set_clean(self) -> None:
+        if self._dirty:
+            self._dirty.clear()
+            self.dirty_changed.emit(False)
+
+    def apply(self) -> None:
+        """Save each changed section once, in list order (SRD-GUI-027.010)."""
+        saves: list[Callable[[], None]] = []
+        for name in self._names:
+            if name in self._dirty and self._editable[name].save not in saves:
+                saves.append(self._editable[name].save)
+        for save in saves:
+            save()
+        self._set_clean()
+
+    def revert(self) -> None:
+        """Reload every editable section from storage (for the active user), dropping edits."""
+        self._loading = True
+        for editable in self._editable.values():
+            editable.load()
+        self._loading = False
+        self._set_clean()
+
+    def restore_defaults(self) -> None:
+        """Fill the shown section with default values after a confirm; saved on Apply."""
+        name = self.current_section
+        editable = self._editable.get(name)
+        if editable is None or editable.defaults is None:
+            return
+        answer = QMessageBox.question(self, "Restore defaults", f"Restore defaults for {name}?")
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        editable.defaults()
+        self._mark_dirty(name)
+
+    def set_section_state(self, name: str, state: str) -> None:
+        """Colour section ``name``'s dot: ok, warn, off, or none to hide it (SRD-GUI-027.012)."""
+        dot = self._dots[name]
+        if state == "none":
+            dot.hide()
+            return
+        colour = {"ok": C.GREEN, "warn": C.YELLOW, "off": C.MUTED}[state]
+        dot.setProperty("state", state)
+        dot.setStyleSheet(f"background: {colour}; border-radius: 4px;")
+        dot.show()
+
+    def refresh_states(self) -> None:
+        """Recompute every section dot from the saved settings and live status."""
+        connected = self._demo.connection_status is ConnectionStatus.CONNECTED
+        self.set_section_state("Connection", "ok" if connected else "warn")
+        scheduler_on = self._demo.get_system_config().scheduler_enabled
+        self.set_section_state("Scheduler", "ok" if scheduler_on else "off")
+        self.set_section_state("Telegram", self._sys.telegram_state())
+        data = {"complete": "ok", "partial": "warn", "downloading": "warn"}
+        self.set_section_state("Candle data", data.get(self._data.state[0], "off"))
 
     @staticmethod
     def _section_card(name: str, body: QWidget) -> QFrame:
@@ -1620,13 +1693,8 @@ class SettingsPanel(QWidget):
         return card
 
     @property
-    def system_panel(self) -> QWidget:
-        """Theme, Updates and Orders panel shown from the right icon strip."""
-        return self._sys.panel
-
-    @property
     def data_panel(self) -> _DataPanel:
-        """Candle database panel shown from the right icon strip (FO-GUI-021)."""
+        """Candle data section; its state drives the sidebar Settings badge (SRD-GUI-027.008)."""
         return self._data
 
     def trigger_fill_delta(self) -> None:

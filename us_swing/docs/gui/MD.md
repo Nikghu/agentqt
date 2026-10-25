@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.25.0: MD-GUI-027.* added — Settings dialog (new `settings_dialog.py`; sidebar, main window, settings panel, icon strip and Execution header changes).
 > v1.24.0: MD-GUI-026.001.M01–.012.M04 added — Charts workspace Focus + Inspector; MD-GUI-020.001.M01 superseded.
 > v1.23.0: MD-GUI-025.016.M04 (position_table_model.py Side column and unset stop/target) added.
 > v1.22.0: MD-GUI-025.013.M03 (performance_band.py) added.
@@ -274,3 +275,16 @@ us_swing/src/us_swing/gui/
 | MD-GUI-026.012.M04 | SRD-GUI-026.012 | `us_swing/src/us_swing/gui/chart_drawings.py` | Drawing record, SQLite store, web bridge (Phase 3) | `Drawing`, `DrawingStore`, `ChartBridge`, `drawing_from_json()`, `chart_drawings`, `KINDS` | SQLAlchemy, PyQt6 | No |
 
 > `chart_panel.py` (MD-GUI-011) gains `study_points()`, `candles`, `set_overlays()`, `set_plan()`, `set_rsi_pane()`, `set_markers()`, `set_levels()`, `set_drawings()`, the RSI pane and the drawing primitives; `data/models.py` `FilteredStockEntry` gains `plan_entry`, `plan_stop`, `plan_target`, filled by `app_service.get_latest_screener_results`; `chart_panel.py` also gains `enable_drawing()`, `drawing_added`, `set_draw_tool()`; `app_service.py` gains `get_drawing_store()` (the store creates the `chart_drawings` table itself); `main_window.py` (MD-GUI-019.002.M03) switches to Execution on `execution_requested`.
+
+## FO-GUI-027 — Settings Dialog
+
+| MD ID | SRD | File | Purpose | Public API | Depends on | Async |
+|---|---|---|---|---|---|---|
+| MD-GUI-027.001.M01 | SRD-GUI-027.001 | `us_swing/src/us_swing/gui/settings_dialog.py` | Frameless modal dialog around the settings panel; footer and apply flow | `SettingsDialog`, `open_at()`, `apply()` | `settings_panel`, `scheduler_dialog._DialogTitleBar` | No |
+| MD-GUI-027.004.M02 | SRD-GUI-027.004 | `us_swing/src/us_swing/gui/sidebar.py` | Settings item, download badge and Updates item with its dot | `Sidebar.settings_requested`, `Sidebar.set_data_state()` | `icons`, `theme`, `update_popup` | No |
+| MD-GUI-027.004.M03 | SRD-GUI-027.004 | `us_swing/src/us_swing/gui/main_window.py` | Four screens, one reused dialog, two right panels | `MainWindow` | all of the above | No |
+| MD-GUI-027.005.M04 | SRD-GUI-027.005 | `us_swing/src/us_swing/gui/settings_panel.py` | Eight sections, dirty tracking, reload, defaults, section dots | `SettingsPanel.show_section()`, `set_section_state()` | `app_service`, `theme` | No |
+| MD-GUI-027.009.M05 | SRD-GUI-027.009 | `us_swing/src/us_swing/gui/execution_header.py` | Circuit breaker button in the page header | `ExecutionHeader.show_breaker_state()` | `app_service` | No |
+| MD-GUI-027.005.M07 | SRD-GUI-027.005 | `us_swing/src/us_swing/gui/update_popup.py` | Popup with installed version, last check time and Check for Updates | `UpdatePopup`, `UpdatePopup.update_found`, `checked_text()` | `update_dialog`, `updater_stub`, `icons` | No (check runs on a `QThread`) |
+
+> `side_panels.py` (MD-GUI-019.001.M01) drops the System and Data buttons and the data badge.

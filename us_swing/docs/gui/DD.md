@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.23.0: DD-GUI-027.001.D01 added — Settings dialog opened from the sidebar.
 > v1.22.0: DD-GUI-026.001.D01 and DD-GUI-026.011.D01 added — Charts workspace Focus + Inspector.
 > v1.21.0: DD-GUI-025.001.D01 gains Phase 5 Side column, unset stop/target text and P&L Today.
 > v1.20.0: DD-GUI-025.001.D01 gains Phase 4 Performance band and Exposure tab.
@@ -1686,3 +1687,23 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 **Bridge.** `CandleChartPanel.enable_drawing()` inlines Qt's `qwebchannel.js` (resource `:/qtwebchannel/qwebchannel.js`) into the page and registers a `ChartBridge(QObject)` as `bridge`; its slot `add_drawing(str json)` checks the kind and point count (finite numbers) and emits `drawing_added(Drawing)`, else logs a warning. Drawings and the tool go to the page with the other studies, so they come back after every load.
 
 **Store (`chart_drawings.py`).** `Drawing` frozen dataclass: id, symbol, timeframe, kind (`hline` | `trend` | `rect`), points (list of time, price), colour, updated_at. `DrawingStore` (repository) with `load(symbol, timeframe)`, `save(drawing)`, `delete(id)`, `delete_all(symbol, timeframe)` on table `chart_drawings` (id INTEGER PK, user_id, symbol, timeframe, kind, points_json, colour, updated_at; index on user_id, symbol, timeframe). The store creates its table and index itself on the app's `candles.db` engine (`AppService.get_drawing_store()`, opened on first use), on its own `MetaData` — importing `us_swing.db` first from the GUI hits that package's circular import. A database error logs `[Charts] Could not save drawing: <reason>` and the drawing stays on screen.
+
+---
+
+## DD-GUI-027.001.D01 — Settings Dialog
+
+**Traces:** SRD-GUI-027.001–.013
+
+**Dialog (`settings_dialog.py`, SRD-.001–.003).** `SettingsDialog(QDialog)` wraps the existing `SettingsPanel`: flags `FramelessWindowHint | Dialog`, application modal, minimum 900 × 600. Rows: `_DialogTitleBar("Settings", self)` reused from `scheduler_dialog.py`; a `QScrollArea` (no sideways scroll) holding the panel; a footer with Restore defaults on the left and Cancel, Apply, OK on the right. Cancel and Esc → `reject()`, OK → `apply()` then `accept()`. `MainWindow` builds one dialog at start-up and reuses it, so the panel and its candle download live as long as the main window. `open_at(name=None)` selects a section (when given), centres the dialog on its parent and shows it. The panel's own "Settings" title is removed; the title bar shows it.
+
+**Sidebar (SRD-.004, .008).** `Sidebar` gains `settings_requested` and a non-checkable Settings button between the stretch and the Connections panel, outside the screen `QButtonGroup`, so the checked screen never changes. `set_data_state(state, percent)` moves from `IconStrip` to `Sidebar` unchanged and badges this button (percent, check icon or "!"). `_NAV_ITEMS` lists four screens; Settings is no longer a stack page and `_NO_PANEL_PAGES` is `{3}`.
+
+**Sections (SRD-.002, .005–.007).** `SettingsPanel` sections: Users, Risk, Connection, Scheduler, Telegram, Universe, Candle data (`_DataPanel`, its own "DATA" head removed) and Appearance (theme buttons). `_SystemSections` returns these as pages; its side `panel` is removed. `IconStrip` keeps Details, Watchlist and Log; `_RIGHT_PANELS` is `("details", "watch")`. `data_panel.state_changed` → `Sidebar.set_data_state`.
+
+**Updates item (SRD-.005).** The Updates page leaves the dialog. `Sidebar` adds an Updates button (`circle-arrow-up`, built by `_make_button` so its label hides in mini mode) after the Connections panel, before the account footer. A click shows `UpdatePopup` (`update_popup.py`, a `Qt.WindowType.Popup` frame, closes on outside click) beside the button. It shows "Installed v<version> · last checked <date time>" read from `updater_stub.last_check_time()` ("not checked yet" when there is no stamp), a Check for Updates button and a note. The check reuses `update_dialog._CheckWorker`: found → `update_found` signal, then `_UpdateDialog(info).exec()`; up to date → green note; failed → red note. `update_found` → `Sidebar` shows an amber 9 px dot on the button. The time label refreshes on each show and after each check.
+
+**Circuit breaker (SRD-.009).** The toggle moves to `ExecutionHeader` after the broker chip: text "Trip breaker" (danger role) or "Reset breaker", refreshed on `circuit_breaker_changed`; a click calls `set_circuit_breaker(not active)` at once.
+
+**Apply flow (SRD-.010, .011, .013).** The per-section Save buttons are removed. Each editable section (Risk, Connection, Scheduler, Telegram, Appearance) reports its input widgets; any edit marks that section dirty and enables Apply. `apply()` saves dirty sections through the existing handlers (`_RiskTab._on_save`, `_SystemSections._on_save`, `_on_save_telegram`, theme save + `apply_theme` + `theme_changed`), then clears the dirty set. `reject()` reloads every dirty section from storage with signals blocked. A theme click only checks the button; it is applied on Apply / OK and undone by the reload on Cancel. Restore defaults (enabled on Risk, Connection, Scheduler and Appearance; not Telegram, so the bot token is never wiped) asks "Restore defaults for <section>?" and fills `RiskConfig()` / `SystemConfig()` / Carbon values, marking the section dirty. Action buttons (New user, Send test, build) keep acting at once.
+
+**Status dots (SRD-.012).** Each section button carries an 8 px dot set by `set_section_state(name, state)`: `ok` green, `warn` amber, `off` grey, `none` hidden. Connection: connected → ok, else warn. Scheduler: enabled → ok, else off. Telegram: enabled with token and chat → ok, enabled but missing one → warn, else off. Candle data: complete → ok, partial or downloading → warn, else off. Dots refresh after Apply, when the dialog opens, and on `feed_status_changed` / `state_changed` only while it is visible. Review fixes: the title bar hides minimise (a minimised application-modal dialog would lock the app), and every open reloads all editable sections, so they follow the active user.

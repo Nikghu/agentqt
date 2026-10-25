@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.42.0: SRD-GUI-027.001–.013 added; approved by user 2026-10-25 — Settings dialog opened from the sidebar (canvas Option 5 + Open A, user 2026-10-25). On approval supersedes SRD-GUI-018.001 (five screens → four plus a Settings item), SRD-GUI-021.001 (Settings page), SRD-GUI-021.003 (System panel) and SRD-GUI-021.004 (Data panel and strip badge).
 > v2.41.0: SRD-GUI-026.001–.012 added — Charts workspace Focus + Inspector (canvas Option 3); Phase 1 (.001–.007) approved by user and implemented 2026-10-24; Phase 2 (.008–.010) approved by user and implemented 2026-10-24; Phase 3 (.011–.012) approved by user and implemented 2026-10-24.
 > v2.40.0: SRD-GUI-025.016–.018 added — dashboard KPI and position-table fixes, Phase 5; approved by user and implemented 2026-10-24.
 > v2.39.0: SRD-GUI-025.013–.015 added — Performance band and Exposure tab, Phase 4; approved by user 2026-10-24.
@@ -444,3 +445,21 @@
 | SRD-GUI-026.010 | FO-GUI-026 | Must | Send to Execution adds the symbol as a manual pick and switches to the Execution screen. | click | manual pick | Phase 2; existing pick → message only | Implemented |
 | SRD-GUI-026.011 | FO-GUI-026 | Should | A drawing bar offers horizontal line, trend line, rectangle and delete all, drawn with chart primitives. | mouse | drawings | Phase 3; Esc cancels a drawing in progress | Implemented |
 | SRD-GUI-026.012 | FO-GUI-026 | Must | Drawings are saved per symbol and timeframe in SQLite and redrawn when that chart loads. | drawings | `chart_drawings` rows | Phase 3; save failure logs and keeps the drawing on screen | Implemented |
+
+## FO-GUI-027 — Settings Dialog
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-027.001 | FO-GUI-027 | Must | `SettingsDialog` is a frameless modal dialog with a custom title bar (Settings, minimise, maximise, close) and drag-to-move. | open request | dialog | Same title bar pattern as `scheduler_dialog.py` | Implemented |
+| SRD-GUI-027.002 | FO-GUI-027 | Must | A left list holds Users, Risk, Connection, Scheduler, Telegram, Universe, Candle data and Appearance; clicking one shows only that section. | section click | one section shown | Section bodies reuse the existing settings widgets | Implemented |
+| SRD-GUI-027.003 | FO-GUI-027 | Must | The footer has Restore defaults on the left and Cancel, Apply and OK on the right; Esc acts as Cancel. | click, Esc | close or save | Apply disabled until a value changes | Implemented |
+| SRD-GUI-027.004 | FO-GUI-027 | Must | A Settings item pinned to the sidebar bottom opens the dialog; the sidebar lists four screens and Settings is no longer a stacked page. | click | dialog | Current screen and checked item do not change | Implemented |
+| SRD-GUI-027.005 | FO-GUI-027 | Must | Appearance (theme) is a dialog section; a sidebar Updates item below the Connections panel opens a popup with the installed version, last check time and Check for Updates. | click | popup, dot | Theme and update logic unchanged; dot on the item when an update is found | Implemented |
+| SRD-GUI-027.006 | FO-GUI-027 | Must | Candle data is a dialog section showing the existing candle database panel. | download signals | section state | Panel outlives the dialog so a download keeps running after close | Implemented |
+| SRD-GUI-027.007 | FO-GUI-027 | Must | The right icon strip keeps Details, Watchlist and Log; the System and Data icons and panels are removed. | — | — | Details and Watchlist behaviour unchanged | Implemented |
+| SRD-GUI-027.008 | FO-GUI-027 | Must | The sidebar Settings item shows the download percent while downloading, and a dot when data is behind or stocks failed. | `state_changed` | badge | Same states as the old Data icon badge | Implemented |
+| SRD-GUI-027.009 | FO-GUI-027 | Must | A Trip / Reset Circuit Breaker button sits in the Execution page header and acts at once. | click | `set_circuit_breaker()` | Same label and colour rules as the old System panel button | Implemented |
+| SRD-GUI-027.010 | FO-GUI-027 | Must | Changed fields are tracked per section; Apply saves every changed section, OK applies and closes, Cancel drops unsaved changes. | edits, click | saved config | Action buttons (New user, Update now, Send test) still act at once | Implemented |
+| SRD-GUI-027.011 | FO-GUI-027 | Should | Restore defaults resets the shown section's fields to default values after a confirm. | click | field values | Values are saved only on Apply or OK | Implemented |
+| SRD-GUI-027.012 | FO-GUI-027 | Should | Each section's dot shows its state: green ok, amber needs attention, grey off. | feed, Telegram config, candle state | dots | Dots refresh while the dialog is open | Implemented |
+| SRD-GUI-027.013 | FO-GUI-027 | Should | A theme picked in Appearance applies on Apply or OK and is reverted by Cancel. | theme click | `theme_changed` | Charts and Execution still refresh on theme change | Implemented |

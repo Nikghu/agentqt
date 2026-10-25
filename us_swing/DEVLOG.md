@@ -2,6 +2,26 @@
 
 ---
 
+## [20261025] GUI — Updates moves from Settings to the sidebar (FO-GUI-027, enhancement)
+
+- Type: Enhancement
+- FO(s): FO-GUI-027
+- RN: RN-GUI-1.33.0-20261025
+- Artifacts updated: FO, SRD (027.002/.005/.012 reopened by user request, now Implemented), DD, MD, UTCD, TRACE, Code, Tests, RN, CONTEXT, TODO
+- Decisions: user picked Option B of 3 (title-bar chip, sidebar icon, Settings footer link); icon sits with the plug/globe group below the gear; "last checked" reads the saved stamp via new `updater_stub.last_check_time()`.
+- Findings: popup is a `Qt.WindowType.Popup` frame (closes on outside click), not a titled window. Checked by offscreen render only; full app not launched.
+
+---
+
+## [20261025] GUI — Settings dialog opened from the sidebar (FO-GUI-027, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-027
+- RN: RN-GUI-1.32.0-20261025
+- Artifacts updated: FO, SRD, DD, MD, UTCD, TRACE, Code, Tests, RN, CONTEXT, TODO
+- Decisions: user chose Option 5 (dialog) + Open A (sidebar gear) from 5 + 4 canvas options; modal; System/Data panels moved in; download % on the sidebar Settings item; circuit breaker to the Execution header (it was only in the System panel). Minimal docs: the dialog wraps the existing `SettingsPanel` and reuses `_DialogTitleBar`. Restore defaults skips Telegram so the bot token is never wiped.
+- Findings: the full app was not launched for the check — it auto-connects the feed and types the TWS login; the dialog was rendered offscreen with a stub service instead. RN numbered 1.32.0 because the unpushed Charts branch already uses up to 1.31.1.
+
 ## [20261025] GUI — Charts drawing tools fix (FO-GUI-026, bugfix)
 
 - Type: Bugfix

@@ -22,14 +22,12 @@ from PyQt6.QtWidgets import (
 
 from us_swing.gui._types import OpenPosition
 from us_swing.gui.app_service import AppService
-from us_swing.gui.icons import icon, mark_danger, set_icon
+from us_swing.gui.icons import mark_danger, set_icon
 from us_swing.gui.theme import active_palette
 
 _STRIP_ITEMS = (("details", "clipboard-list", "Position Details"),
                 ("watch", "eye", "Watchlist"),
-                ("log", "scroll-text", "Live Log"),
-                ("system", "settings-2", "System"),
-                ("data", "database", "Data"))
+                ("log", "scroll-text", "Live Log"))
 _ALERT_LEVELS = frozenset({"WARNING", "ERROR", "CRITICAL"})
 
 
@@ -68,29 +66,6 @@ class IconStrip(QFrame):
         self._badge.setFixedSize(16, 14)
         self._badge.move(19, 1)
         self._badge.hide()
-
-        self._data_badge = QLabel(self._buttons["data"])
-        self._data_badge.setObjectName("data_badge")
-        self._data_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._data_badge.setFixedSize(18, 14)
-        self._data_badge.move(18, 1)
-        self._data_badge.hide()
-
-    def set_data_state(self, state: str, percent: int) -> None:
-        """Badge the Data button: percent while downloading, tick or ! when done."""
-        text = {"downloading": str(percent), "complete": "", "partial": "!"}.get(state)
-        if text is None:
-            self._data_badge.hide()
-            return
-        self._data_badge.setText(text)
-        if state == "complete":
-            self._data_badge.setPixmap(icon("check", "inverse").pixmap(10, 10))
-        self._data_badge.setProperty("state", state)
-        style = self._data_badge.style()
-        if style is not None:
-            style.unpolish(self._data_badge)
-            style.polish(self._data_badge)
-        self._data_badge.show()
 
     def set_checked(self, name: str, checked: bool) -> None:
         """Sync a button with its panel without emitting ``panel_toggled``."""

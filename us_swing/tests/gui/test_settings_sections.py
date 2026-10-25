@@ -12,7 +12,7 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
-from PyQt6.QtWidgets import QLabel, QWidget
+from PyQt6.QtWidgets import QWidget
 
 # QWebEngineWidgets DLL is unavailable in the test environment — stub it so
 # settings_panel.py can be imported without the DLL.
@@ -66,28 +66,22 @@ def test_system_sections_split(qapp: Any, svc: _StubService) -> None:
     assert names == ["Connection", "Scheduler", "Telegram"]
 
 
-def test_system_panel_holds_theme_updates_diagnostics(qapp: Any, svc: _StubService) -> None:
-    """UT-GUI-021.003.M01.T01: Theme, Updates and Diagnostics live in the System panel."""
+def test_appearance_page_only(qapp: Any, svc: _StubService) -> None:
+    """UT-GUI-027.005.M04.T01: Appearance is the only app page; Updates moved to the sidebar."""
     sections = settings_panel._SystemSections(svc)  # type: ignore[arg-type]
-    panel = sections.panel
+    pages = dict(sections.app_pages)
 
-    for widget in (sections._btn_carbon, sections._update_btn, sections._cb_toggle):
-        assert panel.isAncestorOf(widget)
-    titles = [lbl.text() for lbl in panel.findChildren(QLabel) if lbl.objectName() == "panel_group"]
-    assert titles == ["THEME", "UPDATES", "ORDERS"]
+    assert list(pages) == ["Appearance"]
+    assert pages["Appearance"].isAncestorOf(sections._btn_carbon)
 
 
-def test_strip_has_system_button(qapp: Any) -> None:
-    """UT-GUI-021.003.M02.T01: the right icon strip gets a System button that toggles."""
+def test_strip_keeps_three_buttons(qapp: Any) -> None:
+    """UT-GUI-027.007.M06.T01: the right icon strip has no System or Data button."""
     from us_swing.gui.side_panels import IconStrip
 
     strip = IconStrip()
-    seen: list[tuple[str, bool]] = []
-    strip.panel_toggled.connect(lambda name, on: seen.append((name, on)))
 
-    strip._buttons["system"].click()
-
-    assert seen == [("system", True)]
+    assert list(strip._buttons) == ["details", "watch", "log"]
 
 
 class _PlainTab(QWidget):
@@ -107,14 +101,122 @@ def test_section_click_shows_one_section(
     panel = settings_panel.SettingsPanel(svc)  # type: ignore[arg-type]
     buttons = panel._nav_group.buttons()
     names = [b.text() for b in buttons]
-    assert panel._stack.count() == len(buttons) == 6
-    assert "Theme" not in names and "Diagnostics" not in names
+    assert panel._stack.count() == len(buttons)
     assert panel._stack.currentIndex() == 0 and buttons[0].isChecked()
 
     buttons[names.index("Telegram")].click()
 
     assert panel._stack.currentIndex() == names.index("Telegram")
     assert not buttons[0].isChecked()
+
+
+def test_eight_sections_in_order(
+    qapp: Any, svc: _StubService, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """UT-GUI-027.002.M04.T01: the dialog lists all eight sections in order."""
+    for name in ("_UsersTab", "_UniverseTab", "_DataPanel"):
+        monkeypatch.setattr(settings_panel, name, _PlainTab)
+    panel = settings_panel.SettingsPanel(svc)  # type: ignore[arg-type]
+
+    names = [b.text() for b in panel._nav_group.buttons()]
+
+    assert names == ["Users", "Risk", "Connection", "Scheduler", "Telegram", "Universe",
+                     "Candle data", "Appearance"]
+    assert panel._stack.count() == 8
+
+
+@pytest.fixture()
+def panel(svc: _StubService, monkeypatch: pytest.MonkeyPatch) -> settings_panel.SettingsPanel:
+    for name in ("_UsersTab", "_UniverseTab", "_DataPanel"):
+        monkeypatch.setattr(settings_panel, name, _PlainTab)
+    return settings_panel.SettingsPanel(svc)  # type: ignore[arg-type]
+
+
+def _risk_tab(panel: settings_panel.SettingsPanel) -> Any:
+    return next(w for w in panel.findChildren(settings_panel._RiskTab))
+
+
+def test_edit_then_apply_saves_once(qapp: Any, panel: Any, svc: _StubService) -> None:
+    """UT-GUI-027.010.M04.T01: an edit marks the panel dirty; Apply saves once and clears it."""
+    seen: list[bool] = []
+    panel.dirty_changed.connect(seen.append)
+
+    _risk_tab(panel)._risk.setValue(2.5)
+    panel.apply()
+
+    assert seen == [True, False]
+    assert len(svc.updated) == 1
+    assert svc.updated[0].risk_config.risk_per_trade_pct == 2.5
+    assert not panel.is_dirty
+
+
+def test_cancel_drops_edits(qapp: Any, panel: Any, svc: _StubService) -> None:
+    """UT-GUI-027.010.M04.T02: revert reloads the saved value and saves nothing."""
+    saved = svc.user.risk_config.risk_per_trade_pct
+    _risk_tab(panel)._risk.setValue(2.5)
+
+    panel.revert()
+
+    assert svc.updated == []
+    assert _risk_tab(panel)._risk.value() == saved
+    assert not panel.is_dirty
+
+
+@pytest.mark.parametrize(("answer", "dirty"), [("Yes", True), ("No", False)])
+def test_restore_defaults_asks_first(
+    qapp: Any, panel: Any, monkeypatch: pytest.MonkeyPatch, answer: str, dirty: bool
+) -> None:
+    """UT-GUI-027.011.M04.T01–T02: Restore defaults fills defaults only after yes."""
+    button = getattr(settings_panel.QMessageBox.StandardButton, answer)
+    monkeypatch.setattr(settings_panel.QMessageBox, "question", lambda *_a: button)
+    panel.show_section("Risk")
+    tab = _risk_tab(panel)
+    tab._risk.setValue(2.5)
+    panel._set_clean()
+
+    panel.restore_defaults()
+
+    expected = RiskConfig().risk_per_trade_pct if dirty else 2.5
+    assert tab._risk.value() == expected
+    assert panel.is_dirty is dirty
+
+
+def test_section_dot_states(qapp: Any, panel: Any) -> None:
+    """UT-GUI-027.012.M04.T01: dots show ok, warn and off, and hide for none."""
+    dot = panel._dots["Telegram"]
+    for state in ("ok", "warn", "off"):
+        panel.set_section_state("Telegram", state)
+        assert not dot.isHidden() and dot.property("state") == state
+
+    panel.set_section_state("Telegram", "none")
+
+    assert dot.isHidden()
+
+
+@pytest.mark.parametrize(
+    ("enabled", "token", "chat", "state"),
+    [(True, "t", "c", "ok"), (True, "t", "", "warn"), (False, "t", "c", "off")],
+)
+def test_telegram_dot_rule(enabled: bool, token: str, chat: str, state: str) -> None:
+    """UT-GUI-027.012.M04.T02: Telegram is ok when ready, warn when incomplete, else off."""
+    assert settings_panel.telegram_dot(enabled, token, chat) == state
+
+
+def test_theme_waits_for_apply(
+    qapp: Any, panel: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """UT-GUI-027.013.M04.T01: picking a theme applies nothing until Apply."""
+    from us_swing.gui import theme
+
+    applied: list[str] = []
+    monkeypatch.setattr(theme, "apply_theme", applied.append)
+    monkeypatch.setattr(theme, "save_theme_id", lambda _t: None)
+    panel._sys._btn_mocha.click()
+    assert applied == [] and panel.is_dirty
+
+    panel.apply()
+
+    assert applied == ["mocha"]
 
 
 def test_risk_save_persists(qapp: Any, svc: _StubService) -> None:

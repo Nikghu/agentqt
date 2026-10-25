@@ -1296,6 +1296,8 @@ QPushButton#side_power:hover {{ background: {hover}; }}
 QPushButton#side_power[armed="true"] {{ background: {active_bg}; border-color: {accent}; }}
 QPushButton#side_power:disabled {{ background: transparent; border-color: {line}; }}
 QPushButton#side_power:focus {{ outline: none; }}
+QFrame#update_popup {{ background: {bg}; border: 1px solid {line}; border-radius: 6px; }}
+QFrame#update_popup QLabel {{ background: transparent; }}
 QPushButton#view_btn {{
     background: transparent; border: 1px solid {line}; border-radius: 0; padding: 0;
     outline: none;

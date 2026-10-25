@@ -2,9 +2,11 @@
 Module: MD-GUI-018.001.M01 — Sidebar
 Parent SRD: SRD-GUI-018.001
 Connections panel: MD-GUI-018.008.M04 (Parent SRD: SRD-GUI-018.008)
+Settings item: MD-GUI-027.004.M02 (Parent SRD: SRD-GUI-027.004)
+Updates item: MD-GUI-027.004.M02 (Parent SRD: SRD-GUI-027.005)
 
-Left navigation for the five screens, with a mini (icon-only) mode, a
-Connections panel (internet, IBKR feed, market) and an account footer that
+Left navigation for the four screens plus a Settings item, with a mini (icon-only) mode, a
+Connections panel (internet, IBKR feed, market), an Updates item and an account footer that
 replaces the old admin context strip (SRD-GUI-018.004).
 """
 from __future__ import annotations
@@ -32,6 +34,7 @@ from us_swing.gui.app_service import AppService
 from us_swing.gui.icons import icon as make_icon
 from us_swing.gui.icons import set_icon
 from us_swing.gui.theme import C, active_palette
+from us_swing.gui.update_popup import UpdatePopup
 
 FULL_WIDTH = 200
 MINI_WIDTH = 56
@@ -358,6 +361,7 @@ class Sidebar(QFrame):
     """Screen navigation with a collapse button and an account footer."""
 
     page_requested = pyqtSignal(int)
+    settings_requested = pyqtSignal()
     mini_toggled = pyqtSignal(bool)
     hover_changed = pyqtSignal(bool)
 
@@ -400,12 +404,32 @@ class Sidebar(QFrame):
         self._group.idClicked.connect(self.page_requested)
 
         layout.addStretch(1)
+        # Outside the screen group: opening Settings never changes the checked screen.
+        self._settings_btn = self._make_button("settings", "Settings")
+        self._settings_btn.clicked.connect(self.settings_requested)
+        layout.addWidget(self._settings_btn)
+        self._data_badge = QLabel(self._settings_btn)
+        self._data_badge.setObjectName("data_badge")
+        self._data_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._data_badge.setFixedSize(18, 14)
+        self._data_badge.move(22, 1)
+        self._data_badge.hide()
         sep2 = QFrame()
         sep2.setObjectName("side_sep")
         sep2.setFixedHeight(1)
         layout.addWidget(sep2)
         self._conn = _ConnectionsPanel(svc)
         layout.addWidget(self._conn)
+        self._update_btn = self._make_button("circle-arrow-up", "Updates")
+        layout.addWidget(self._update_btn)
+        self._update_dot = _Dot(9, self._update_btn)
+        self._update_dot.move(24, 4)
+        self._update_dot.hide()
+        self._update_popup = UpdatePopup(self)
+        # popup → update_found → amber dot on the Updates item (SRD-GUI-027.005)
+        self._update_popup.update_found.connect(self._on_update_found)
+        self._update_btn.clicked.connect(
+            lambda: self._update_popup.show_beside(self._update_btn))
         sep3 = QFrame()
         sep3.setObjectName("side_sep")
         sep3.setFixedHeight(1)
@@ -432,6 +456,27 @@ class Sidebar(QFrame):
         """Check the nav item for ``index`` without emitting ``page_requested``."""
         if 0 <= index < len(self._nav):
             self._nav[index].setChecked(True)
+
+    def set_data_state(self, state: str, percent: int) -> None:
+        """Badge Settings with the candle download: percent, tick or ! (SRD-GUI-027.008)."""
+        text = {"downloading": str(percent), "complete": "", "partial": "!"}.get(state)
+        if text is None:
+            self._data_badge.hide()
+            return
+        self._data_badge.setText(text)
+        if state == "complete":
+            self._data_badge.setPixmap(make_icon("check", "inverse").pixmap(10, 10))
+        self._data_badge.setProperty("state", state)
+        style = self._data_badge.style()
+        if style is not None:
+            style.unpolish(self._data_badge)
+            style.polish(self._data_badge)
+        self._data_badge.show()
+
+    def _on_update_found(self) -> None:
+        _T: Any = active_palette()
+        self._update_dot.set_colour(_T.YELLOW)
+        self._update_dot.show()
 
     def set_labels_visible(self, visible: bool) -> None:
         """Show or hide button labels and footer details (used for mini and peek)."""

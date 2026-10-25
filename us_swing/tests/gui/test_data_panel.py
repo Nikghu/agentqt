@@ -2,8 +2,8 @@
 Module: MD-GUI-021.001.M01 — tests
 Parent SRD: SRD-GUI-021.004
 
-Data panel on the right strip: download percent, Complete / Partial result and
-the strip badge (FO-GUI-021).
+Candle data panel: download percent and Complete / Partial result (FO-GUI-021).
+The badge moved to the sidebar Settings item (test_sidebar_shell.py, FO-GUI-027).
 """
 from __future__ import annotations
 
@@ -21,7 +21,6 @@ _web_stub.QWebEngineView = MagicMock  # type: ignore[attr-defined]
 sys.modules.setdefault("PyQt6.QtWebEngineWidgets", _web_stub)
 
 from us_swing.gui import settings_panel  # noqa: E402
-from us_swing.gui.side_panels import IconStrip  # noqa: E402
 
 
 class _Signal:
@@ -98,29 +97,3 @@ def test_persisted_failures_mark_partial(qapp: Any) -> None:
     assert widget.state == ("partial", 0)
     assert not widget._disc_group.isHidden()
     assert widget._download_box.isHidden()
-
-
-@pytest.mark.parametrize(
-    ("state", "percent", "text"),
-    [("downloading", 62, "62"), ("complete", 100, ""), ("partial", 99, "!")],
-)
-def test_strip_data_badge(qapp: Any, state: str, percent: int, text: str) -> None:
-    """UT-GUI-021.004.M02.T01: the Data strip button shows percent, tick or !."""
-    strip = IconStrip()
-
-    strip.set_data_state(state, percent)
-
-    assert not strip._data_badge.isHidden()
-    assert strip._data_badge.text() == text
-    pixmap = strip._data_badge.pixmap()
-    assert (pixmap is not None and not pixmap.isNull()) == (state == "complete")
-
-
-def test_strip_data_badge_hidden_when_idle(qapp: Any) -> None:
-    """UT-GUI-021.004.M02.T02: an idle state hides the Data badge."""
-    strip = IconStrip()
-    strip.set_data_state("complete", 100)
-
-    strip.set_data_state("idle", 0)
-
-    assert strip._data_badge.isHidden()
