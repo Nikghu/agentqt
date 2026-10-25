@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.29.0: UT-GUI-029.* added — Scheduler task table.
 > v1.27.0: UT-GUI-027.* added — Settings dialog.
 > v1.26.0: UT-GUI-026.011–.012 Pass (Phase 3).
 > v1.25.0: UT-GUI-026.008–.010 Pass (Phase 2).
@@ -730,3 +731,16 @@ Test files:
 | UT-GUI-027.013.M04.T01 | MD-GUI-027.005.M04 | Positive | Theme waits for Apply | click Mocha; then Apply | not applied after click; applied once and saved after Apply | Pass |
 
 > UT-GUI-021.003.M01.T01, UT-GUI-021.003.M02.T01 and UT-GUI-021.004.M02.T01–T02 are replaced by UT-GUI-027.005.M04.T01, .007.M06.T01 and .008.M02.T01–T02: the System and Data side panels are gone.
+
+## FO-GUI-029 — Scheduler Task Table in Settings
+
+| UT ID | MD | Type | Description | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-029.004.M02.T01 | MD-GUI-029.004.M02 | Positive | Write switched-on tasks | TWS and USSwing on, close on at 01:30 | create calls for both apps and both close tasks; configs saved | Not Run |
+| UT-GUI-029.004.M02.T02 | MD-GUI-029.004.M02 | Negative | Switched-off task is deleted | USSwing off, close off | delete USSwing task and both close tasks; no create for USSwing | Not Run |
+| UT-GUI-029.002.M02.T01 | MD-GUI-029.004.M02 | Positive | Task states | query ok for TWS, fails for USSwing | tws installed; app missing | Not Run |
+| UT-GUI-029.001.M01.T01 | MD-GUI-029.001.M01 | Positive | Table loads saved tasks | saved TWS 18:30 Mon–Fri, close 01:30 | row values match; Close both shows "Same as start" | Not Run |
+| UT-GUI-029.002.M01.T01 | MD-GUI-029.001.M01 | Positive | Edit marks the row Changed | change USSwing time | USSwing pill CHANGED; other pills unchanged | Not Run |
+| UT-GUI-029.004.M01.T01 | MD-GUI-029.001.M01 | Positive | Missing on-task asks for repair | states: tws missing, tws on | `repair_needed` emitted; pill MISSING | Not Run |
+| UT-GUI-029.005.M01.T01 | MD-GUI-029.001.M01 | Negative | Remove all cancelled | confirm returns Cancel | `remove_tasks` not called | Not Run |
+| UT-GUI-029.006.M01.T01 | MD-GUI-029.001.M01 | Positive | Scheduler page has the table, no Edit button | build `_SystemSections` | page holds `SchedulerTable`; no `_sched_btn` | Not Run |

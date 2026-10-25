@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.27.0: MD-GUI-029.* added — Scheduler task table (new `scheduler_table.py`).
 > v1.25.0: MD-GUI-027.* added — Settings dialog (new `settings_dialog.py`; sidebar, main window, settings panel, icon strip and Execution header changes).
 > v1.24.0: MD-GUI-026.001.M01–.012.M04 added — Charts workspace Focus + Inspector; MD-GUI-020.001.M01 superseded.
 > v1.23.0: MD-GUI-025.016.M04 (position_table_model.py Side column and unset stop/target) added.
@@ -288,3 +289,10 @@ us_swing/src/us_swing/gui/
 | MD-GUI-027.005.M07 | SRD-GUI-027.005 | `us_swing/src/us_swing/gui/update_popup.py` | Popup with installed version, last check time and Check for Updates | `UpdatePopup`, `UpdatePopup.update_found`, `checked_text()` | `update_dialog`, `updater_stub`, `icons` | No (check runs on a `QThread`) |
 
 > `side_panels.py` (MD-GUI-019.001.M01) drops the System and Data buttons and the data badge.
+
+## FO-GUI-029 — Scheduler Task Table in Settings
+
+| MD ID | SRD | File | Purpose | Public API | Depends on | Async |
+|---|---|---|---|---|---|---|
+| MD-GUI-029.001.M01 | SRD-GUI-029.001 | `us_swing/src/us_swing/gui/scheduler_table.py` | Task table, status pills, TWS login fold, apply and remove all | `SchedulerTable`, `inputs`, `load()`, `apply()`, `refresh_status()`, `repair_needed` | `scheduler_dialog`, `scheduler_store` | Yes (`QThread` jobs) |
+| MD-GUI-029.004.M02 | SRD-GUI-029.004 | `us_swing/src/us_swing/gui/scheduler_dialog.py` | Windows task and keyring helpers; dialog class removed | `task_states()`, `write_tasks()`, `remove_tasks()` | `scheduler_store` | No |

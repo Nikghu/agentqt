@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.25.0: DD-GUI-029.001.D01 added — Scheduler task table.
 > v1.23.0: DD-GUI-027.001.D01 added — Settings dialog opened from the sidebar.
 > v1.22.0: DD-GUI-026.001.D01 and DD-GUI-026.011.D01 added — Charts workspace Focus + Inspector.
 > v1.21.0: DD-GUI-025.001.D01 gains Phase 5 Side column, unset stop/target text and P&L Today.
@@ -1707,3 +1708,15 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 **Apply flow (SRD-.010, .011, .013).** The per-section Save buttons are removed. Each editable section (Risk, Connection, Scheduler, Telegram, Appearance) reports its input widgets; any edit marks that section dirty and enables Apply. `apply()` saves dirty sections through the existing handlers (`_RiskTab._on_save`, `_SystemSections._on_save`, `_on_save_telegram`, theme save + `apply_theme` + `theme_changed`), then clears the dirty set. `reject()` reloads every dirty section from storage with signals blocked. A theme click only checks the button; it is applied on Apply / OK and undone by the reload on Cancel. Restore defaults (enabled on Risk, Connection, Scheduler and Appearance; not Telegram, so the bot token is never wiped) asks "Restore defaults for <section>?" and fills `RiskConfig()` / `SystemConfig()` / Carbon values, marking the section dirty. Action buttons (New user, Send test, build) keep acting at once.
 
 **Status dots (SRD-.012).** Each section button carries an 8 px dot set by `set_section_state(name, state)`: `ok` green, `warn` amber, `off` grey, `none` hidden. Connection: connected → ok, else warn. Scheduler: enabled → ok, else off. Telegram: enabled with token and chat → ok, enabled but missing one → warn, else off. Candle data: complete → ok, partial or downloading → warn, else off. Dots refresh after Apply, when the dialog opens, and on `feed_status_changed` / `state_changed` only while it is visible. Review fixes: the title bar hides minimise (a minimised application-modal dialog would lock the app), and every open reloads all editable sections, so they follow the active user.
+
+---
+
+## DD-GUI-029.001.D01 — Scheduler Task Table
+
+**Traces:** SRD-GUI-029.001–.006
+
+**Widget (`scheduler_table.py`).** `SchedulerTable(QWidget)` sits under the market-hours form on the Scheduler page. A `QGridLayout` holds a header row and three task rows of real widgets: `QCheckBox` (on), name label, `QTimeEdit` (HH:mm), days `QComboBox` (Mon–Fri / Every day; a "Same as start" label for Close both), program `QLineEdit` + Browse (a dash for Close both) and a `task_pill` label. Below: a fold button "TWS login · user · fill in automatically" over username, password + eye, Fill in automatically and Fill TWS login now (`FillWorker`); a footer hint and a `link_danger` "Remove all tasks…". `inputs` lists every field for the dialog's dirty tracking (`_changed_signal` gains `QTimeEdit.timeChanged`).
+
+**Status.** `refresh_status()` runs `task_states()` in a `_Job(QThread)`: `/query /tn` per task name → installed or missing; Close both is installed when every close task of a switched-on app exists. An edited row shows CHANGED until Apply. A switched-on row found missing emits `repair_needed`, which marks the Scheduler section dirty. Runs on show and after each write.
+
+**Apply.** The Scheduler editable saves `_SystemSections._on_save` then `SchedulerTable.apply()`, which collects the three configs and runs `write_tasks()` in a `_Job`: on → `create_*_task` and save config; off → `delete_task`; close on → close tasks for switched-on apps, off → delete both; password saved to keyring when fill-in is on. Errors return as text per row and show on the pill tooltip and footer. `remove_all()` asks with `_ConfirmDialog`, then runs `remove_tasks()` (all tasks, configs, password). `USSwingConfig` and `SchedulerConfig` gain `enabled: bool = True` (old files load as on).
