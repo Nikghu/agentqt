@@ -22,6 +22,7 @@ class _Svc(QObject):
     strategy_status_changed = pyqtSignal(str, str)
     feed_status_changed = pyqtSignal(str)
     screener_results_updated = pyqtSignal(list)
+    circuit_breaker_changed = pyqtSignal(bool)
 
     def __init__(self, mode: str = "paper", pnls: tuple[float, ...] = (),
                  with_open: set[str] | None = None) -> None:
@@ -31,6 +32,13 @@ class _Svc(QObject):
         cycles = [SimpleNamespace(current_pnl_usd=p, user_id=1) for p in pnls]
         self.cycle_query = SimpleNamespace(open_cycles=lambda: cycles)
         self.connection_status = ConnectionStatus.DISCONNECTED
+        self.circuit_breaker_active = False
+        self.breaker_calls: list[bool] = []
+
+    def set_circuit_breaker(self, active: bool) -> None:
+        self.breaker_calls.append(active)
+        self.circuit_breaker_active = active
+        self.circuit_breaker_changed.emit(active)
 
     def get_users(self) -> list[Any]:
         return []
@@ -85,3 +93,18 @@ def test_charts_button_label(qtbot: QtBot) -> None:
     assert header.charts_btn.text() == "Hide charts"
     header.show_charts_state(True)
     assert header.charts_btn.text() == "Show charts"
+
+
+def test_breaker_button_trips_and_resets(qtbot: QtBot) -> None:
+    """UT-GUI-027.009.M05.T01: The header breaker button trips, relabels and resets."""
+    svc = _Svc()
+    header = eh.ExecutionHeader(svc)  # type: ignore[arg-type]
+    qtbot.addWidget(header)
+    assert header.breaker_btn.text() == "Trip breaker"
+
+    header.breaker_btn.click()
+    assert header.breaker_btn.text() == "Reset breaker"
+    header.breaker_btn.click()
+
+    assert svc.breaker_calls == [True, False]
+    assert header.breaker_btn.text() == "Trip breaker"

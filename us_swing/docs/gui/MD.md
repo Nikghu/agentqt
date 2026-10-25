@@ -260,6 +260,6 @@ us_swing/src/us_swing/gui/
 | MD-GUI-027.004.M02 | SRD-GUI-027.004 | `us_swing/src/us_swing/gui/sidebar.py` | Settings item and download badge | `Sidebar.settings_requested`, `Sidebar.set_data_state()` | `icons`, `theme` | No |
 | MD-GUI-027.004.M03 | SRD-GUI-027.004 | `us_swing/src/us_swing/gui/main_window.py` | Four screens, one reused dialog, two right panels | `MainWindow` | all of the above | No |
 | MD-GUI-027.005.M04 | SRD-GUI-027.005 | `us_swing/src/us_swing/gui/settings_panel.py` | Nine sections, dirty tracking, reload, defaults, section dots | `SettingsPanel.show_section()`, `set_section_state()` | `app_service`, `theme` | No |
-| MD-GUI-027.009.M05 | SRD-GUI-027.009 | `us_swing/src/us_swing/gui/execution_panel.py` | Circuit breaker button in the page header | `ExecutionHeader` | `app_service` | No |
+| MD-GUI-027.009.M05 | SRD-GUI-027.009 | `us_swing/src/us_swing/gui/execution_header.py` | Circuit breaker button in the page header | `ExecutionHeader.show_breaker_state()` | `app_service` | No |
 
 > `side_panels.py` (MD-GUI-019.001.M01) drops the System and Data buttons and the data badge.

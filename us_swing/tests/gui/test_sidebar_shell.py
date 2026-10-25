@@ -95,6 +95,29 @@ def test_settings_item_keeps_screen(qtbot, sidebar):
     assert not sidebar._settings_btn.isCheckable()
 
 
+@pytest.mark.parametrize(
+    ("state", "percent", "text"),
+    [("downloading", 62, "62"), ("complete", 100, ""), ("partial", 99, "!")],
+)
+def test_settings_data_badge(sidebar, state, percent, text):
+    """UT-GUI-027.008.M02.T01: Settings shows the download percent, a tick or !."""
+    sidebar.set_data_state(state, percent)
+
+    assert not sidebar._data_badge.isHidden()
+    assert sidebar._data_badge.text() == text
+    pixmap = sidebar._data_badge.pixmap()
+    assert (pixmap is not None and not pixmap.isNull()) == (state == "complete")
+
+
+def test_settings_data_badge_hidden_when_idle(sidebar):
+    """UT-GUI-027.008.M02.T02: an idle state hides the Settings badge."""
+    sidebar.set_data_state("complete", 100)
+
+    sidebar.set_data_state("idle", 0)
+
+    assert sidebar._data_badge.isHidden()
+
+
 def test_main_window_lists_four_screens():
     """UT-GUI-027.004.M03.T01: Settings is no longer a screen in the sidebar."""
     from us_swing.gui.main_window import _NAV_ITEMS

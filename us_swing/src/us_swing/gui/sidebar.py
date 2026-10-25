@@ -406,6 +406,12 @@ class Sidebar(QFrame):
         self._settings_btn = self._make_button("settings", "Settings")
         self._settings_btn.clicked.connect(self.settings_requested)
         layout.addWidget(self._settings_btn)
+        self._data_badge = QLabel(self._settings_btn)
+        self._data_badge.setObjectName("data_badge")
+        self._data_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._data_badge.setFixedSize(18, 14)
+        self._data_badge.move(22, 1)
+        self._data_badge.hide()
         sep2 = QFrame()
         sep2.setObjectName("side_sep")
         sep2.setFixedHeight(1)
@@ -438,6 +444,22 @@ class Sidebar(QFrame):
         """Check the nav item for ``index`` without emitting ``page_requested``."""
         if 0 <= index < len(self._nav):
             self._nav[index].setChecked(True)
+
+    def set_data_state(self, state: str, percent: int) -> None:
+        """Badge Settings with the candle download: percent, tick or ! (SRD-GUI-027.008)."""
+        text = {"downloading": str(percent), "complete": "", "partial": "!"}.get(state)
+        if text is None:
+            self._data_badge.hide()
+            return
+        self._data_badge.setText(text)
+        if state == "complete":
+            self._data_badge.setPixmap(make_icon("check", "inverse").pixmap(10, 10))
+        self._data_badge.setProperty("state", state)
+        style = self._data_badge.style()
+        if style is not None:
+            style.unpolish(self._data_badge)
+            style.polish(self._data_badge)
+        self._data_badge.show()
 
     def set_labels_visible(self, visible: bool) -> None:
         """Show or hide button labels and footer details (used for mini and peek)."""

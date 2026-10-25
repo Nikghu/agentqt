@@ -398,7 +398,7 @@ _NAV_ITEMS: list[tuple[str, str]] = [
 ]
 _WIDE_PAGES = frozenset({2, 3})   # Execution, Chart
 _NO_PANEL_PAGES = frozenset({3})   # Chart
-_RIGHT_PANELS = ("details", "watch", "system", "data")
+_RIGHT_PANELS = ("details", "watch")
 
 
 class _MiniState:
@@ -492,7 +492,7 @@ class MainWindow(QMainWindow):
         self._side_slot = gutter(QWidget())
         body_row.addWidget(self._side_slot)
 
-        # Right panel (Position Details | Watchlist | System | Data) and bottom Live Log panel;
+        # Right panel (Position Details | Watchlist) and bottom Live Log panel;
         # both are sized only by RevealController.
         self._details = PositionDetails(svc)
         self._right_stack = QStackedWidget()
@@ -500,8 +500,6 @@ class MainWindow(QMainWindow):
         watchlist = self._dashboard_panel.watchlist_widget
         watchlist.set_compact()  # type: ignore[attr-defined]
         self._right_stack.addWidget(watchlist)
-        self._right_stack.addWidget(self._settings_panel.system_panel)
-        self._right_stack.addWidget(self._settings_panel.data_panel)
         # The gap sits inside each sliding panel, so a closed panel leaves none behind.
         self._right_panel = QFrame()
         self._right_panel.setObjectName("right_panel")
@@ -562,9 +560,9 @@ class MainWindow(QMainWindow):
         self._reveal.revealed.connect(self._on_panel_revealed)
         # svc → log_message → strip → warning badge while the log is closed
         svc.log_message.connect(self._strip.count_warning)
-        # data panel → state_changed → strip → Data badge (percent, tick or !)
-        self._settings_panel.data_panel.state_changed.connect(self._strip.set_data_state)
-        self._strip.set_data_state(*self._settings_panel.data_panel.state)
+        # data panel → state_changed → sidebar → Settings badge (percent, tick or !)
+        self._settings_panel.data_panel.state_changed.connect(self._sidebar.set_data_state)
+        self._sidebar.set_data_state(*self._settings_panel.data_panel.state)
         # dashboard → position_selected → details panel
         self._dashboard_panel.position_selected.connect(self._on_position_selected)
         # details → exit_requested / chart_requested → dashboard drawer / chart

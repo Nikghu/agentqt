@@ -1,9 +1,11 @@
 """
 Module: MD-GUI-024.001.M01 — Execution page header
 Parent SRD: SRD-GUI-024.001
+Circuit breaker button: MD-GUI-027.009.M05 (Parent SRD: SRD-GUI-027.009)
 
 Title, admin badge, last screener run, and chips for unrealised P&L,
-strategies running and broker state, plus the Execute-for user combo.
+strategies running and broker state, the circuit breaker button, plus the
+Execute-for user combo.
 """
 from __future__ import annotations
 
@@ -75,6 +77,12 @@ class ExecutionHeader(QFrame):
         self.unrealised_chip = self._chip()
         self.running_chip = self._chip()
         self.broker_chip = self._chip()
+        self.breaker_btn = QPushButton()
+        self.breaker_btn.setToolTip("Stops all new orders until you reset it.")
+        self.breaker_btn.clicked.connect(
+            lambda: svc.set_circuit_breaker(not svc.circuit_breaker_active)
+        )
+        self.show_breaker_state(svc.circuit_breaker_active)
         self.charts_btn = QPushButton()
         self.show_charts_state(False)
 
@@ -96,6 +104,7 @@ class ExecutionHeader(QFrame):
         row.addWidget(self.unrealised_chip)
         row.addWidget(self.running_chip)
         row.addWidget(self.broker_chip)
+        row.addWidget(self.breaker_btn)
         row.addWidget(self.charts_btn)
         row.addSpacing(8)
         row.addWidget(exec_for)
@@ -107,6 +116,7 @@ class ExecutionHeader(QFrame):
         svc.positions_updated.connect(self.refresh_unrealised)
         svc.strategy_status_changed.connect(self.refresh_running)
         svc.feed_status_changed.connect(self.refresh_broker)
+        svc.circuit_breaker_changed.connect(self.show_breaker_state)
         self._timer = QTimer(self)
         self._timer.setInterval(_UNREALISED_REFRESH_MS)
         self._timer.timeout.connect(self.refresh_unrealised)
@@ -124,6 +134,16 @@ class ExecutionHeader(QFrame):
         """Label the charts toggle for the current state (SRD-GUI-024.008)."""
         self.charts_btn.setText("Show charts" if hidden else "Hide charts")
         set_icon(self.charts_btn, "chevron-up" if hidden else "chevron-down", "neutral", 13)
+
+    def show_breaker_state(self, active: bool) -> None:
+        """Label the breaker button: Trip when off, Reset when tripped (SRD-GUI-027.009)."""
+        self.breaker_btn.setText("Reset breaker" if active else "Trip breaker")
+        set_icon(self.breaker_btn, "power", "neutral" if active else "danger", 13)
+        self.breaker_btn.setProperty("role", "" if active else "danger")
+        style = self.breaker_btn.style()
+        if style is not None:
+            style.unpolish(self.breaker_btn)
+            style.polish(self.breaker_btn)
 
     def set_last_run(self, entries: list[FilteredStockEntry]) -> None:
         self._last_run.setText(last_run_text(entries))

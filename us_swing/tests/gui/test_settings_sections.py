@@ -12,7 +12,7 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
-from PyQt6.QtWidgets import QLabel, QWidget
+from PyQt6.QtWidgets import QWidget
 
 # QWebEngineWidgets DLL is unavailable in the test environment — stub it so
 # settings_panel.py can be imported without the DLL.
@@ -66,28 +66,23 @@ def test_system_sections_split(qapp: Any, svc: _StubService) -> None:
     assert names == ["Connection", "Scheduler", "Telegram"]
 
 
-def test_system_panel_holds_theme_updates_diagnostics(qapp: Any, svc: _StubService) -> None:
-    """UT-GUI-021.003.M01.T01: Theme, Updates and Diagnostics live in the System panel."""
+def test_appearance_and_updates_pages(qapp: Any, svc: _StubService) -> None:
+    """UT-GUI-027.005.M04.T01: theme buttons sit on Appearance, the update button on Updates."""
     sections = settings_panel._SystemSections(svc)  # type: ignore[arg-type]
-    panel = sections.panel
+    pages = dict(sections.app_pages)
 
-    for widget in (sections._btn_carbon, sections._update_btn, sections._cb_toggle):
-        assert panel.isAncestorOf(widget)
-    titles = [lbl.text() for lbl in panel.findChildren(QLabel) if lbl.objectName() == "panel_group"]
-    assert titles == ["THEME", "UPDATES", "ORDERS"]
+    assert list(pages) == ["Appearance", "Updates"]
+    assert pages["Appearance"].isAncestorOf(sections._btn_carbon)
+    assert pages["Updates"].isAncestorOf(sections._update_btn)
 
 
-def test_strip_has_system_button(qapp: Any) -> None:
-    """UT-GUI-021.003.M02.T01: the right icon strip gets a System button that toggles."""
+def test_strip_keeps_three_buttons(qapp: Any) -> None:
+    """UT-GUI-027.007.M06.T01: the right icon strip has no System or Data button."""
     from us_swing.gui.side_panels import IconStrip
 
     strip = IconStrip()
-    seen: list[tuple[str, bool]] = []
-    strip.panel_toggled.connect(lambda name, on: seen.append((name, on)))
 
-    strip._buttons["system"].click()
-
-    assert seen == [("system", True)]
+    assert list(strip._buttons) == ["details", "watch", "log"]
 
 
 class _PlainTab(QWidget):
@@ -107,14 +102,28 @@ def test_section_click_shows_one_section(
     panel = settings_panel.SettingsPanel(svc)  # type: ignore[arg-type]
     buttons = panel._nav_group.buttons()
     names = [b.text() for b in buttons]
-    assert panel._stack.count() == len(buttons) == 6
-    assert "Theme" not in names and "Diagnostics" not in names
+    assert panel._stack.count() == len(buttons)
     assert panel._stack.currentIndex() == 0 and buttons[0].isChecked()
 
     buttons[names.index("Telegram")].click()
 
     assert panel._stack.currentIndex() == names.index("Telegram")
     assert not buttons[0].isChecked()
+
+
+def test_nine_sections_in_order(
+    qapp: Any, svc: _StubService, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """UT-GUI-027.002.M04.T01: the dialog lists all nine sections in order."""
+    for name in ("_UsersTab", "_UniverseTab", "_DataPanel"):
+        monkeypatch.setattr(settings_panel, name, _PlainTab)
+    panel = settings_panel.SettingsPanel(svc)  # type: ignore[arg-type]
+
+    names = [b.text() for b in panel._nav_group.buttons()]
+
+    assert names == ["Users", "Risk", "Connection", "Scheduler", "Telegram", "Universe",
+                     "Candle data", "Appearance", "Updates"]
+    assert panel._stack.count() == 9
 
 
 def test_risk_save_persists(qapp: Any, svc: _StubService) -> None:

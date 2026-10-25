@@ -554,7 +554,7 @@ class ExecutionPanel(QWidget):
         self._cb_banner.setWordWrap(True)
         head_col.addWidget(self._cb_banner)
         main.addWidget(card(head_box))
-        # Circuit breaker now lives on AppService (toggled from Settings → System).
+        # Circuit breaker lives on AppService (toggled from the page header, SRD-GUI-027.009).
         demo.circuit_breaker_changed.connect(self.on_circuit_breaker)
 
         # ── Chart pane (created first so we can wire the signal) ───────────────

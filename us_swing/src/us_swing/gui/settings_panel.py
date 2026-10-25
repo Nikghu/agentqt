@@ -1,6 +1,7 @@
 """
 Module: MD-GUI-006 — settings_panel.py
 FO-GUI-006 Settings Panel; FO-GUI-021 section list layout (Carbon Workspace).
+Dialog sections: MD-GUI-027.005.M04 (Parent SRD: SRD-GUI-027.005).
 """
 from __future__ import annotations
 
@@ -401,7 +402,7 @@ def _page(*items: QWidget | QHBoxLayout | QFormLayout) -> QWidget:
 
 
 class _SystemSections(QObject):
-    """Connection, Scheduler and Telegram section pages, plus the System side panel."""
+    """Connection, Scheduler and Telegram pages, plus the Appearance and Updates pages."""
 
     theme_changed = pyqtSignal(str)
 
@@ -507,13 +508,6 @@ class _SystemSections(QObject):
         theme_row.addWidget(self._btn_mocha)
         theme_row.addWidget(self._btn_vscode)
 
-        # ── Orders (circuit breaker) ───────────────────────────────────────────
-        self._cb_toggle = QPushButton()
-        self._cb_toggle.setToolTip("Stops all new orders until you reset it.")
-        self._cb_toggle.clicked.connect(self._on_toggle_cb)
-        self._refresh_cb_label()
-        self._demo.circuit_breaker_changed.connect(lambda _a: self._refresh_cb_label())
-
         # ── Updates ────────────────────────────────────────────────────────────
         self._update_btn = QPushButton("Check for Updates")
         set_icon(self._update_btn, "circle-arrow-up", "info")
@@ -577,66 +571,26 @@ class _SystemSections(QObject):
         tg_form.addRow("Notify on:", tg_events)
 
         # ── Section pages ──────────────────────────────────────────────────────
+        from us_swing import __version__
+        version = QLabel(f"Installed v{__version__}")
+        version.setObjectName("details_key")
+        update_row = QHBoxLayout()
+        update_row.addWidget(self._update_btn)
+        update_row.addStretch()
+
         self.pages: list[tuple[str, QWidget]] = [
             ("Connection",  _page(conn_form, _save_row())),
             ("Scheduler",   _page(sched_form, _save_row(self._sched_btn))),
             ("Telegram",    _page(tg_form, tg_btn_row)),
         ]
-        self.panel = self._build_panel(theme_row)
-
-    def _build_panel(self, theme_row: QHBoxLayout) -> QWidget:
-        """System side panel: Theme, Updates and Orders groups (FO-GUI-021)."""
-        from us_swing import __version__
-
-        panel = QWidget()
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
-        head = QLabel("SYSTEM")
-        head.setObjectName("settings_head")
-        layout.addWidget(head)
-
-        version = QLabel(f"Installed v{__version__}")
-        version.setObjectName("details_key")
-        groups: list[tuple[str, list[QWidget | QHBoxLayout]]] = [
-            ("THEME",       [theme_row]),
-            ("UPDATES",     [version, self._update_btn, self._update_note]),
-            ("ORDERS",      [self._cb_toggle]),
+        # Shown after Universe and Candle data (SRD-GUI-027.005).
+        theme_row.addStretch()
+        self.app_pages: list[tuple[str, QWidget]] = [
+            ("Appearance",  _page(theme_row)),
+            ("Updates",     _page(version, update_row, self._update_note)),
         ]
-        for title, items in groups:
-            group = QVBoxLayout()
-            group.setContentsMargins(12, 12, 12, 12)
-            group.setSpacing(8)
-            label = QLabel(title)
-            label.setObjectName("panel_group")
-            group.addWidget(label)
-            for item in items:
-                if isinstance(item, QWidget):
-                    group.addWidget(item)
-                else:
-                    group.addLayout(item)
-            layout.addLayout(group)
-            sep = QFrame()
-            sep.setObjectName("side_sep")
-            sep.setFixedHeight(1)
-            layout.addWidget(sep)
-        layout.addStretch()
-        return panel
 
     # ── Helpers ────────────────────────────────────────────────────────────────
-
-    def _refresh_cb_label(self) -> None:
-        active = self._demo.circuit_breaker_active
-        self._cb_toggle.setText("Reset Circuit Breaker" if active else "Trip Circuit Breaker")
-        set_icon(self._cb_toggle, "power", "neutral" if active else "danger")
-        self._cb_toggle.setProperty("role", "" if active else "danger")
-        style = self._cb_toggle.style()
-        if style is not None:
-            style.unpolish(self._cb_toggle)
-            style.polish(self._cb_toggle)
-
-    def _on_toggle_cb(self) -> None:
-        self._demo.set_circuit_breaker(not self._demo.circuit_breaker_active)
 
     def _on_check_updates(self) -> None:
         from update_dialog import _CheckWorker  # type: ignore[import]
@@ -1058,10 +1012,10 @@ def _separator() -> QFrame:
 
 
 class _DataPanel(QWidget):
-    """SRD-GUI-006.011 / SRD-GUI-021.004 — Candle database panel on the right strip.
+    """SRD-GUI-006.011 / SRD-GUI-027.006 — Candle data section of the Settings dialog.
 
     Shows download progress, failed stocks, database status and the build,
-    retry and reset actions, sized for the 300 px right panel.
+    retry and reset actions.
     """
 
     state_changed = pyqtSignal(str, int)   # downloading | complete | partial | idle, percent
@@ -1077,9 +1031,6 @@ class _DataPanel(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
-        head = QLabel("DATA")
-        head.setObjectName("settings_head")
-        layout.addWidget(head)
 
         # ── Download group ────────────────────────────────────────────────────
         self._dl_pill = QLabel("")
@@ -1567,6 +1518,8 @@ class SettingsPanel(QWidget):
             ("Risk",  _RiskTab(demo)),
             *self._sys.pages,
             ("Universe", self._universe_tab),
+            ("Candle data", self._data),
+            *self._sys.app_pages,
         ]
 
         nav = QFrame()
@@ -1623,13 +1576,8 @@ class SettingsPanel(QWidget):
         return card
 
     @property
-    def system_panel(self) -> QWidget:
-        """Theme, Updates and Orders panel shown from the right icon strip."""
-        return self._sys.panel
-
-    @property
     def data_panel(self) -> _DataPanel:
-        """Candle database panel shown from the right icon strip (FO-GUI-021)."""
+        """Candle data section; its state drives the sidebar Settings badge (SRD-GUI-027.008)."""
         return self._data
 
     def trigger_fill_delta(self) -> None:
