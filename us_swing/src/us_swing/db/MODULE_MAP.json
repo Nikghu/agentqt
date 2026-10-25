@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-22T08:17:24",
+  "generated": "2026-10-25T13:39:54",
   "subfolder": "db",
-  "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\db",
+  "root": "f:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\db",
   "tool_code": "INF",
   "files": {
     "__init__.py": {},
@@ -190,28 +190,28 @@
           "name": "_register_trade_cycle_schema",
           "signature": "def _register_trade_cycle_schema() -> None",
           "line_start": 166,
-          "line_end": 167
+          "line_end": 168
         },
         {
           "name": "migrate_lifecycle_columns",
           "signature": "def migrate_lifecycle_columns(engine: sa.Engine) -> None",
           "docstring": "Add monitoring-session + order-state lifecycle columns, drop the legacy",
-          "line_start": 210,
-          "line_end": 252
+          "line_start": 211,
+          "line_end": 253
         },
         {
           "name": "create_schema",
           "signature": "def create_schema(engine: sa.Engine) -> None",
           "docstring": "Create all tables and indexes if they do not already exist, then run",
-          "line_start": 255,
-          "line_end": 260
+          "line_start": 256,
+          "line_end": 265
         },
         {
           "name": "drop_schema",
           "signature": "def drop_schema(engine: sa.Engine) -> None",
           "docstring": "Drop all tables (test use only).",
-          "line_start": 263,
-          "line_end": 265
+          "line_start": 268,
+          "line_end": 270
         }
       ],
       "constants": [

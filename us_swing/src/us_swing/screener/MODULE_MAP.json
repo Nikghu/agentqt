@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-23T11:52:00",
+  "generated": "2026-10-25T13:39:54",
   "subfolder": "screener",
-  "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\screener",
+  "root": "f:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\screener",
   "tool_code": "SCR",
   "files": {
     "__init__.py": {},
@@ -140,23 +140,23 @@
               "signature": "def _run_stage3(\r\n        self,\r\n        preset: Preset,\r\n        combined: dict[str, dict[str, Any]],\r\n        bars: dict[str, list[Any]],\r\n        market_caps: dict[str, float] | None = None,\r\n    ) -> tuple[dict[str, dict[str, Any]], list[AITranscriptTurn]]",
               "docstring": "Re-rank Stage 2 passing symbols with CloudAIScreener.",
               "line_start": 335,
-              "line_end": 422
+              "line_end": 426
             },
             {
               "name": "_get_registry",
               "signature": "def _get_registry(self) -> ScreenerRegistry",
-              "line_start": 428,
-              "line_end": 429
+              "line_start": 432,
+              "line_end": 433
             },
             {
               "name": "_get_storage",
               "signature": "def _get_storage(self) -> ScreenerResultsStorage",
-              "line_start": 431,
-              "line_end": 432
+              "line_start": 435,
+              "line_end": 436
             }
           ],
           "line_start": 32,
-          "line_end": 432
+          "line_end": 436
         }
       ],
       "constants": [
@@ -772,8 +772,8 @@
             "high: float",
             "low: float"
           ],
-          "line_start": 92,
-          "line_end": 96
+          "line_start": 94,
+          "line_end": 98
         },
         {
           "name": "_WkBar",
@@ -783,8 +783,8 @@
             "high: float",
             "low: float"
           ],
-          "line_start": 99,
-          "line_end": 103
+          "line_start": 101,
+          "line_end": 105
         },
         {
           "name": "_UsageTracker",
@@ -793,18 +793,18 @@
             {
               "name": "log_usage",
               "signature": "def log_usage(self, *, tokens_in: int, tokens_out: int) -> None",
-              "line_start": 334,
-              "line_end": 334
+              "line_start": 336,
+              "line_end": 336
             },
             {
               "name": "get_monthly_cost",
               "signature": "def get_monthly_cost(self) -> float",
-              "line_start": 335,
-              "line_end": 335
+              "line_start": 337,
+              "line_end": 337
             }
           ],
-          "line_start": 332,
-          "line_end": 335
+          "line_start": 334,
+          "line_end": 337
         },
         {
           "name": "CloudAIScreener",
@@ -813,45 +813,45 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, usage_tracker: _UsageTracker | None = None) -> None",
-              "line_start": 354,
-              "line_end": 357
+              "line_start": 356,
+              "line_end": 360
             },
             {
               "name": "batch_features",
               "signature": "def batch_features(\r\n        self,\r\n        symbols: list[str],\r\n        bars: dict[str, list[OHLCVBar]],\r\n    ) -> dict[str, dict[str, Any]]",
-              "line_start": 359,
-              "line_end": 369
+              "line_start": 362,
+              "line_end": 372
             },
             {
               "name": "apply",
               "signature": "def apply(\r\n        self,\r\n        symbols: list[str],\r\n        bars: dict[str, list[OHLCVBar]],\r\n        config: dict[str, Any],\r\n    ) -> dict[str, tuple[bool, float]]",
-              "line_start": 375,
-              "line_end": 386
+              "line_start": 378,
+              "line_end": 390
             },
             {
               "name": "_make_client",
               "signature": "def _make_client(self) -> Any",
-              "line_start": 392,
-              "line_end": 409
+              "line_start": 396,
+              "line_end": 413
             },
             {
               "name": "_call_with_retry",
               "signature": "def _call_with_retry(self, client: Any, **kwargs: Any) -> Any",
               "docstring": "Bounded exponential backoff for transient errors (429/5xx).",
-              "line_start": 411,
-              "line_end": 433
+              "line_start": 415,
+              "line_end": 437
             },
             {
               "name": "_apply_legacy",
               "signature": "def _apply_legacy(\r\n        self,\r\n        symbols: list[str],\r\n        bars: dict[str, list[OHLCVBar]],\r\n        config: dict[str, Any],\r\n    ) -> dict[str, tuple[bool, float]]",
-              "line_start": 439,
-              "line_end": 538
+              "line_start": 443,
+              "line_end": 542
             },
             {
               "name": "_apply_with_tools",
               "signature": "def _apply_with_tools(\r\n        self,\r\n        symbols: list[str],\r\n        bars: dict[str, list[OHLCVBar]],\r\n        config: dict[str, Any],\r\n        ai_query: str,\r\n    ) -> dict[str, tuple[bool, float]]",
-              "line_start": 544,
-              "line_end": 684
+              "line_start": 548,
+              "line_end": 680
             },
             {
               "name": "_tool_display",
@@ -859,96 +859,111 @@
               "decorators": [
                 "@staticmethod"
               ],
-              "line_start": 691,
-              "line_end": 699
+              "line_start": 687,
+              "line_end": 695
             },
             {
               "name": "_append_tool_round",
               "signature": "def _append_tool_round(\r\n        self,\r\n        messages: list[dict[str, Any]],\r\n        choice: Any,\r\n        tool_executor: CandleToolExecutor,\r\n    ) -> list[tuple[str, str, dict[str, Any]]]",
               "docstring": "Append the assistant's tool-call message + each tool's result.",
-              "line_start": 701,
-              "line_end": 732
+              "line_start": 697,
+              "line_end": 728
             },
             {
               "name": "_parse_ranking",
               "signature": "def _parse_ranking(\r\n        self,\r\n        text: str,\r\n        symbols: list[str],\r\n        fallback: dict[str, tuple[bool, float]],\r\n    ) -> dict[str, tuple[bool, float]]",
-              "line_start": 738,
-              "line_end": 765
+              "line_start": 734,
+              "line_end": 764
             },
             {
               "name": "_track_usage",
               "signature": "def _track_usage(self, response: Any) -> None",
-              "line_start": 767,
-              "line_end": 788
+              "line_start": 766,
+              "line_end": 787
             }
           ],
-          "line_start": 338,
-          "line_end": 788
+          "line_start": 340,
+          "line_end": 787
         }
       ],
       "top_level_functions": [
         {
           "name": "_compute_rsi",
           "signature": "def _compute_rsi(closes: list[float], period: int = 14) -> float",
-          "line_start": 106,
-          "line_end": 120
+          "line_start": 108,
+          "line_end": 122
         },
         {
           "name": "_compute_atr",
           "signature": "def _compute_atr(bars: list[_BarProto], period: int = 14) -> float",
-          "line_start": 123,
-          "line_end": 125
+          "line_start": 125,
+          "line_end": 127
         },
         {
           "name": "_to_weekly",
           "signature": "def _to_weekly(bars: list[OHLCVBar]) -> list[_WkBar]",
           "docstring": "Aggregate daily bars into weekly bars keyed by ISO year-week.",
-          "line_start": 128,
-          "line_end": 142
+          "line_start": 130,
+          "line_end": 144
         },
         {
           "name": "_find_swings",
           "signature": "def _find_swings(\r\n    bars: list[_BarProto],\r\n    *,\r\n    use_high:   bool,\r\n    neighbors:  int   = _SWING_N,\r\n    max_pts:    int   = _SWING_MAX,\r\n    atr_filter: float = 0.0,\r\n) -> list[dict[str, Any]]",
           "docstring": "Return the ``max_pts`` most-recent swing pivot points.",
-          "line_start": 145,
-          "line_end": 178
+          "line_start": 147,
+          "line_end": 180
         },
         {
           "name": "_extract_features",
           "signature": "def _extract_features(sym: str, bars: list[OHLCVBar]) -> dict[str, Any]",
-          "line_start": 185,
-          "line_end": 260
+          "line_start": 187,
+          "line_end": 262
         },
         {
           "name": "_features_to_table",
           "signature": "def _features_to_table(features: dict[str, dict[str, Any]]) -> str",
           "docstring": "Serialise batch_features output as a compact table + swing-pivot block.",
-          "line_start": 267,
-          "line_end": 325
+          "line_start": 269,
+          "line_end": 327
+        },
+        {
+          "name": "_tool_system_prompt",
+          "signature": "def _tool_system_prompt(ai_query: str) -> str",
+          "docstring": "Return the system prompt for the tool-augmented ranking loop.",
+          "line_start": 794,
+          "line_end": 807
+        },
+        {
+          "name": "_plan_from_entry",
+          "signature": "def _plan_from_entry(entry: dict[str, Any]) -> dict[str, float]",
+          "docstring": "Return ``{entry, stop, target}`` from one ranking record, or ``{}`` if any is in",
+          "line_start": 810,
+          "line_end": 821
         },
         {
           "name": "_scores_to_results",
           "signature": "def _scores_to_results(\r\n    symbols: list[str], raw_scores: dict[str, float],\r\n) -> dict[str, tuple[bool, float]]",
-          "line_start": 795,
-          "line_end": 805
+          "line_start": 824,
+          "line_end": 834
         },
         {
           "name": "_strip_codefence",
           "signature": "def _strip_codefence(text: str) -> str",
           "docstring": "Strip ``` fences and any leading prose before the JSON value.",
-          "line_start": 808,
-          "line_end": 827
+          "line_start": 837,
+          "line_end": 856
         },
         {
           "name": "_truncate_words",
           "signature": "def _truncate_words(text: str, max_words: int) -> str",
-          "line_start": 830,
-          "line_end": 834
+          "line_start": 859,
+          "line_end": 863
         }
       ],
       "constants": [
         "_COST_THRESHOLD_USD: Final[float] = 50.0",
         "_REASONING_MAX_WORDS: Final[int] = 50",
+        "_PLAN_KEYS: Final[tuple[str, ...]] = (\"entry\", \"stop\", \"target\")",
         "_AGENTIC_MAX_TURNS: Final[int] = 8",
         "_REQUEST_TIMEOUT_S: Final[float] = 60.0",
         "_RETRY_DELAYS_S: Final[tuple[float, ...]] = (1.0, 3.0, 7.0)",
