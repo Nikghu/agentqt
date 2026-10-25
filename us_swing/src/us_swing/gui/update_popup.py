@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import datetime
 
-from PyQt6.QtCore import QThread, Qt, pyqtSignal
+from PyQt6.QtCore import QCoreApplication, QThread, Qt, pyqtSignal
 from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from us_swing import __version__
@@ -55,6 +55,13 @@ class UpdatePopup(QFrame):
         layout.addLayout(btn_row)
         layout.addWidget(self._note)
         self.setFixedWidth(280)
+        app = QCoreApplication.instance()
+        if app is not None:
+            app.aboutToQuit.connect(self._wait_for_check)
+
+    def _wait_for_check(self) -> None:
+        if self._worker is not None and self._worker.isRunning():
+            self._worker.wait(3000)
 
     def refresh(self) -> None:
         """Reread the last check time."""
