@@ -1112,29 +1112,28 @@ class _WatchlistTab(QWidget):
         super().__init__(parent)
         self._svc = svc
 
-        # ── S&P 500 symbol set (loaded once; used for validation + completer) ──
+        # ── S&P 500 symbol set (validation + suggestions; refreshed on sp500_updated) ──
         self._sp500: frozenset[str] = frozenset()
-        try:
-            from us_swing.universe import store as _store  # lazy import
-            records = _store.load_sp500()
-            if records:
-                self._sp500 = frozenset(r.symbol.upper() for r in records)
-            else:
-                _log.warning("[Watchlist] S&P 500 universe unavailable — symbol filter disabled")
-        except Exception:
-            _log.warning("[Watchlist] S&P 500 universe unavailable — symbol filter disabled")
 
         # ── Toolbar ───────────────────────────────────────────────────────────
         self._sym_input = QLineEdit()
         self._sym_input.setPlaceholderText("Symbol (e.g. AAPL)…")
         self._sym_input.setFixedWidth(160)
-        self._sym_input.setMaxLength(12)
-        if self._sp500:
-            _completer_model = QStringListModel(sorted(self._sp500))
-            _completer = QCompleter(_completer_model, self._sym_input)
-            _completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-            _completer.setCompletionMode(QCompleter.CompletionMode.InlineCompletion)
-            self._sym_input.setCompleter(_completer)
+        # Suggestions start with the typed text, e.g. "a" → "AAPL — Apple Inc."
+        self._completer = QCompleter(self)
+        self._completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self._completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
+        self._completer.setMaxVisibleItems(12)
+        popup = self._completer.popup()
+        assert popup is not None
+        popup.setStyleSheet(
+            f"QAbstractItemView {{ background:{C.SURFACE}; color:{C.TEXT};"
+            f" border:1px solid {C.OVERLAY}; selection-background-color:{C.OVERLAY};"
+            f" selection-color:{C.TEXT}; font-size:8pt; outline:none; }}"
+        )
+        self._sym_input.setCompleter(self._completer)
+        self._refresh_suggestions()
+        svc.sp500_updated.connect(self._refresh_suggestions)
         self._sym_input.returnPressed.connect(self._on_add)
 
         self._add_btn = QPushButton("Add")
@@ -1282,8 +1281,14 @@ class _WatchlistTab(QWidget):
             return
         self._svc.add_to_watchlist(sym)
 
+    def _refresh_suggestions(self) -> None:
+        records = self._svc.get_sp500_universe()
+        self._sp500 = frozenset(r.symbol.upper() for r in records)
+        items = sorted(f"{r.symbol} — {r.name}" for r in records)
+        self._completer.setModel(QStringListModel(items, self._completer))
+
     def _on_add(self) -> None:
-        sym = self._sym_input.text().strip().upper()
+        sym = self._sym_input.text().split(" — ")[0].strip().upper()
         if not sym:
             return
         if self._sp500 and sym not in self._sp500:
