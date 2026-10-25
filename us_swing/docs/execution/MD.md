@@ -7,6 +7,9 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.19.0: MD-EXE-017.016.M14 gains `_paper_account_state`, `_realised_today` (SRD-EXE-017.027).
+> v1.18.0: MD-EXE-020.001.M01 adds `CurvePoint`, `curve_from_closed`; MD-EXE-020.004.M02 adds `get_equity_curve`.
+> v1.17.0: MD-EXE-020.001.M01, MD-EXE-020.004.M02 added — Account Equity Snapshots (FO-EXE-020).
 > v1.16.0: MD-EXE-019.001.M01–019.004.M03 added — Strategy P&L History (FO-EXE-019).
 > v1.15.0: MD-EXE-018.001.M01–018.012.M10 added — Short Trade Direction (FO-EXE-018): direction enum and storage, new `execution/direction.py` helpers, engine/adapter/ingestion wiring, direction-aware cycle maths, signed position P&L, pending-execute conflict check.
 > v1.13.0: MD-EXE-006.013.M01 added + MD-EXE-011.001.M03 updated (ISS-EXE-0009) — opening a trade cycle arms candle feeds for its symbol in `app_service.py`; `_evaluator.py` raises `EvaluatorError` on a NaN indicator result.
@@ -304,7 +307,7 @@ wiring (M03–M04) → app wiring (M09) → GUI surfaces (M05, M08).
 | MD-EXE-017.013.M11 | `src/us_swing/execution/strategy_engine/_protocols.py` | Extend `RiskValidator` with `margin_available()`, `reserve(strategy_id, symbol, value)`, `release(strategy_id, symbol)`. | SRD-EXE-017.015, .017 |
 | MD-EXE-017.014.M12 | `src/us_swing/execution/strategy_engine/_router.py` | After `can_allocate`, clamp entry qty to `floor(margin_available()/price)`; drop `reason='margin_exhausted'` + edge WARNING when `<1`; `reserve()` on commit; `release()` in `on_order_fill` (entry), `_rollback`, `on_order_reject`. | SRD-EXE-017.016, .018 |
 | MD-EXE-017.015.M13 | `src/us_swing/execution/strategy_engine/_context.py` | Add `margin_warned: bool` edge-trigger flag (mirrors `capital_warned`). | SRD-EXE-017.016 |
-| MD-EXE-017.016.M14 | `src/us_swing/gui/app_service.py` | `get_account_state` sums paper `open_position_value` from `_cycle_position_source`; add `margin_available()`; live `_reconcile_margin_drift()` (one-per-crossing latch) in `_on_account_data_ready`. | SRD-EXE-017.019, .020, .021 |
+| MD-EXE-017.016.M14 | `src/us_swing/gui/app_service.py` | `get_account_state` sums paper `open_position_value` from `_cycle_position_source`; add `margin_available()`; live `_reconcile_margin_drift()` (one-per-crossing latch) in `_on_account_data_ready`; paper `_paper_account_state()` + `_realised_today()`. | SRD-EXE-017.019, .020, .021, .027 |
 | MD-EXE-017.017.M15 | `src/us_swing/gui/main_window.py` | `_AdminContextBar` adds a `capital` cell rendering `Cap $X · Avail $Y` from `effective_capital()`/`margin_available()`; green when `Y>0`; refresh on `account_updated`. | SRD-EXE-017.021 |
 | MD-EXE-017.023.M03 | `src/us_swing/execution/strategy_engine/_router.py` | In `_size_entry`, multiply the strategy allocation by `per_trade_pct/100`: `budget = eff_cap × capital_max × per_trade_pct / 10000`. `can_allocate` (full-allocation cap) unchanged, so a strategy may hold up to `floor(100/per_trade_pct)` concurrent positions. | SRD-EXE-017.024 |
 
@@ -360,3 +363,14 @@ Strategy P&L History. One new file (`trade_cycle/_pnl_history.py`).
 | MD-EXE-019.004.M03 | `src/us_swing/gui/app_service.py` | `get_strategy_pnl(strategy_id, since_iso=None)` — viewing-user filter, market-day today bounds, empty summary on failure. | SRD-EXE-019.004 |
 
 **Cross-tool surface (GUI tool — see `gui/MD.md`):** Strategy P&L card (FO-GUI-024).
+
+## Module Modifications for FO-EXE-020
+
+Account Equity Snapshots. One new file (`execution/equity_snapshot.py`).
+
+| Module ID | File | Change Required | SRD |
+|---|---|---|---|
+| MD-EXE-020.001.M01 | `src/us_swing/execution/equity_snapshot.py` (new) | `equity_snapshots` table + index, frozen `EquitySnapshot`, `slot_iso()`, `EquitySnapshotRepository(engine)` with `record`, `record_many`, `between`, `prune`; `CurvePoint`, `curve_from_closed()`; registered in `db/schema.py`. | SRD-EXE-020.001, .002, .003, .005, .007 |
+| MD-EXE-020.004.M02 | `src/us_swing/gui/app_service.py` | Create the store and prune at start; 60 s `_equity_timer` → `_record_equity_snapshots()` (closing slot, one warning per slot) and `_prune_equity_daily()`; `get_equity_snapshots(since_iso)`; `get_equity_curve(range_key)`. | SRD-EXE-020.004, .005, .006, .008 |
+
+**Cross-tool surface (GUI tool — see `gui/MD.md`):** Performance band equity graph (FO-GUI-025, Phase 4).

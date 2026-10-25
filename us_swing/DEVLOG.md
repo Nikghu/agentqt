@@ -22,6 +22,86 @@
 - Decisions: user chose Option 5 (dialog) + Open A (sidebar gear) from 5 + 4 canvas options; modal; System/Data panels moved in; download % on the sidebar Settings item; circuit breaker to the Execution header (it was only in the System panel). Minimal docs: the dialog wraps the existing `SettingsPanel` and reuses `_DialogTitleBar`. Restore defaults skips Telegram so the bot token is never wiped.
 - Findings: the full app was not launched for the check — it auto-connects the feed and types the TWS login; the dialog was rendered offscreen with a stub service instead. RN numbered 1.32.0 because the unpushed Charts branch already uses up to 1.31.1.
 
+## [20261025] GUI — Charts drawing tools fix (FO-GUI-026, bugfix)
+
+- Type: Bugfix
+- FO(s): FO-GUI-026 (SRD-GUI-026.008, .011)
+- RN: RN-GUI-1.31.1-20261025
+- Artifacts updated: DD, UTCD, Code, Tests, RN, CONTEXT, DEVLOG
+- Decisions: user saw blank tool buttons; painted icons replace clipped glyphs. Real-window test found a quick second click (< 500 ms) was dropped by the library's click event; clicks now read from DOM mouse events. Pattern marker text removed (names stay in the Inspector). Lesson: test drawing in the whole workspace with real mouse input, not only the standalone panel.
+
+## [20261024] GUI — Charts drawing tools saved in SQLite, Phase 3 (FO-GUI-026, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-026 (SRD-GUI-026.011–.012) — FO complete
+- RN: RN-GUI-1.31.0-20261024
+- Artifacts updated: SRD, DD, MD, UTCD, Code, Tests, TRACE, RN, CONTEXT, TODO, DEVLOG
+- Decisions: own series primitives (free library has no drawing tools); qwebchannel.js inlined from the Qt resource; Python owns the drawing list; drawings per user + symbol + timeframe; store makes its own table on its own MetaData (importing `us_swing.db` first from the GUI hits a circular import). Synthetic DOM clicks do not trigger the chart, real Qt mouse input does. Not pushed.
+
+## [20261024] GUI — Charts patterns, key levels, Send to Execution, Phase 2 (FO-GUI-026, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-026 (SRD-GUI-026.008–.010)
+- RN: RN-GUI-1.30.0-20261024
+- Artifacts updated: SRD, DD, MD, UTCD, Code, Tests, TRACE, RN, CONTEXT, TODO, DEVLOG
+- Decisions: patterns from the shared `core.price_patterns` catalogue, newest hit per pattern; arrays built once and sliced (117 → 13 ms for 500 bars); Inspector passes on section signals by name; a refused pick shows its reason and stays on Charts (per SRD). Not pushed; user app check pending.
+
+## [20261024] GUI — Charts workspace Focus + Inspector, Phase 1 (FO-GUI-026, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-026 (SRD-GUI-026.001–.007)
+- RN: RN-GUI-1.29.0-20261024
+- Artifacts updated: SRD, DD, MD, UTCD, Code, Tests, TRACE, RN, CONTEXT, TODO, DEVLOG
+- Decisions: overlays and RSI computed in Python with TA-Lib and sent to the page as data; studies re-sent on page load; only a long-shaped plan is drawn; edited plans are session-only; section method named `set_context` (QWidget already has `update`). Review fix: theme change now recolours the change %. Not pushed; user app check pending.
+
+## [20261024] GUI — Charts workspace Focus + Inspector, docs only (FO-GUI-026, feature)
+
+- Type: Feature (docs)
+- FO(s): FO-GUI-026 (SRD-GUI-026.001–.012, Draft)
+- RN: — (no code yet)
+- Artifacts updated: FO, SRD, DD, MD, UTCD, TRACE, CONTEXT, TODO, DEVLOG
+- Decisions: user picked canvas Option 3 of 5 (https://claude.ai/artifact/PNoXxfGNnhaXLPkhJ8ZyNr). One chart replaces the MDI windows (FO-GUI-020 superseded). New features plug in as Inspector sections through one registry. Free lightweight-charts v5.0.5 has no drawing tools, so drawings are our own primitives, saved per symbol and timeframe in a `chart_drawings` table. Timeframes stay 1D / 1W (daily DB). Branch feat/gui-charts-workspace, stacked on feat/gui-dashboard-tiles.
+
+## [20261024] GUI + EXE — Dashboard KPI and table fixes, Phase 5 (FO-GUI-025, bugfix)
+
+- Type: Bugfix
+- FO(s): FO-GUI-025 (SRD-GUI-025.016–.018; with FO-EXE-017 SRD-EXE-017.027)
+- RN: RN-GUI-1.28.0-20261024, RN-EXE-1.37.0-20261024
+- Artifacts updated: SRD, DD, MD, UTCD, Code, Tests, TRACE, RN, CONTEXT, TODO, DEVLOG
+- Decisions: Side is its own column after Symbol (NDAQ short showed a loss with no side); unset stop shows "No stop" and unset target "—"; "P&L Today" = equity minus start-of-day equity; paper start-of-day equity = Max Capital, daily P&L = realised P&L of cycles closed today (ET), positions filtered to the user. Review fix: paper account was counting other users' broker positions, now filtered to the viewing user. Known limit: paper account restarts at Max Capital each market day. Branch feat/gui-dashboard-tiles, not pushed; PR pending user.
+
+## [20261024] GUI — Dashboard Performance band and Exposure tab, Phase 4 (FO-GUI-025, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-025 (SRD-GUI-025.013–.015; with FO-EXE-020 SRD-EXE-020.007–.008)
+- RN: RN-GUI-1.27.0-20261024, RN-EXE-1.36.0-20261024
+- Artifacts updated: SRD, DD, MD, UTCD, Code, Tests, TRACE, RN, CONTEXT, TODO, DEVLOG
+- Decisions: 1D curve from today's snapshots plus live point; longer ranges from closed cycles (ignore unrealised P&L and deposits); market time zone for all range boundaries; exposure bars grouped above 8 ("N others"). Review fixes: header value from curve's last point, no DB read per account update. Not committed; branch feat/gui-dashboard-tiles.
+
+## [20261024] EXE — Account equity snapshots, Phase 3 (FO-EXE-020, feature)
+
+- Type: Feature
+- FO(s): FO-EXE-020 (part of FO-GUI-025)
+- RN: RN-EXE-1.35.0-20261024
+- Artifacts updated: SRD, DD, MD, UTCD, Code, Tests, TRACE, RN, CONTEXT, TODO, DEVLOG
+- Decisions: one transaction per 5-minute slot for all users; live IBKR account saved once under the active user; closing point at 16:00 ET; paper equity stays Max Capital until Phase 5. Not committed; branch feat/gui-dashboard-tiles.
+
+## [20261024] GUI — Dashboard tile buttons, Phase 2 (FO-GUI-025, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-025
+- RN: RN-GUI-1.26.0-20261024
+- Artifacts updated: SRD, DD, MD, UTCD, Code, Tests, TRACE, RN, CONTEXT, TODO, DEVLOG
+- Decisions: hidden columns stored by name (survive column shift); Trade History range uses market time zone; Market Watch ✕ removes the symbol, Remove button kept only in the right panel. Not committed; branch feat/gui-dashboard-tiles.
+
+## [20261024] GUI — Dashboard tiled workspace, Phase 1 (FO-GUI-025, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-025
+- RN: RN-GUI-1.25.0-20261024
+- Artifacts updated: SRD, DD, MD, UTCD, Code, Tests, TRACE, RN, CONTEXT, TODO
+- Decisions: Canvas Option E with Performance band; Market Watch tile shows user's watchlist (index ETFs stay in title bar); Square Off All moved to Open Positions header. Not committed; branch feat/gui-dashboard-tiles.
+
 ## [20261023] GUI + EXE — Execution workspace (F2) and strategy P&L history (FO-GUI-024, FO-EXE-019, feature)
 
 - Type: Feature

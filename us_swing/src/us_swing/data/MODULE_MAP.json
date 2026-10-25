@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-22T08:17:24",
+  "generated": "2026-10-25T13:39:54",
   "subfolder": "data",
-  "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\data",
+  "root": "f:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\data",
   "tool_code": "INF",
   "files": {
     "__init__.py": {},
@@ -426,10 +426,13 @@
             "screener_name: str",
             "run_type: str",
             "date: str",
-            "time: str"
+            "time: str",
+            "plan_entry: float | None",
+            "plan_stop: float | None",
+            "plan_target: float | None"
           ],
           "line_start": 300,
-          "line_end": 313
+          "line_end": 316
         },
         {
           "name": "TradeSignal",
@@ -446,8 +449,8 @@
             "generated_at: datetime",
             "signal_id: str"
           ],
-          "line_start": 317,
-          "line_end": 328
+          "line_start": 320,
+          "line_end": 331
         },
         {
           "name": "MarketWatchItem",
@@ -459,8 +462,8 @@
             "change_pct: float",
             "prev_close: float"
           ],
-          "line_start": 332,
-          "line_end": 338
+          "line_start": 335,
+          "line_end": 341
         },
         {
           "name": "WatchlistItem",
@@ -479,8 +482,8 @@
             "year_low: float",
             "market_cap: float"
           ],
-          "line_start": 342,
-          "line_end": 355
+          "line_start": 345,
+          "line_end": 358
         }
       ]
     },

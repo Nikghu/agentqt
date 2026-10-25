@@ -9,6 +9,7 @@
 > Traces to: `us_swing/requirements.md` §10, §11, §12, §13, §21.4, §22, §23, §25
 > v1.9.0: FO-EXE-014 added — Broker Order State Machine (Final_Execution.md Phase 3 split of `PositionState` into `BuyOrderState` + `SellOrderState`; `trades.pnl` and `positions.state` removed).
 > v1.10.0: FO-EXE-015 added — Broker-Agnostic Order Ingestion & Adapter (Broker_fix.md Phases 2/5/6).
+> v1.15.0: FO-EXE-020 added — Account Equity Snapshots (approved by user 2026-10-24).
 > v1.14.0: FO-EXE-019 added — Strategy P&L History (approved by user 2026-10-23).
 > v1.11.0: FO-EXE-016 added — Retire `positions` table; drive the monitoring-session Lifecycle from `OrderIngestion` fills (supersedes cleanup.md Steps 7B–8).
 > v1.12.0: FO-EXE-017 added — Absolute Capital Allocation, Capital-Max Position Sizing & Advisory Risk Warnings (refines FO-EXE-001, FO-EXE-005, FO-EXE-011).
@@ -648,3 +649,25 @@ The system shall show the realized profit and loss history of each strategy from
 1. A strategy with closed trades on three days shows a running total that ends at the sum of their realized P&L.
 2. Trades of other strategies or other users never appear in a strategy's history.
 3. A strategy with no closed trades returns an empty summary with zero values.
+
+---
+
+## FO-EXE-020: Account Equity Snapshots
+
+**Status:** Approved (user, 2026-10-24)
+**Priority:** Should
+**Depends on:** FO-EXE-012 (Trade Cycle Ledger)
+**Source:** User chose (2026-10-24) a 5-minute equity snapshot table for the 1D Account Equity graph; longer ranges come from closed trades.
+**Cross-tool impact (notes, not EXE IDs):** GUI — Performance band equity graph (FO-GUI-025, Phase 4).
+
+The system shall save each user's account equity every 5 minutes while the market is open, so the dashboard can draw an intraday equity curve.
+
+- One row per user per 5-minute slot holds equity, cash and unrealised P&L.
+- Rows shall be readable for a time range, for one user or summed over all users.
+- Rows older than 30 days shall be removed.
+
+### Acceptance Criteria
+
+1. With the app open from 09:30 to 10:00 ET, each user has 7 rows (09:30 … 10:00).
+2. Saving twice in the same slot keeps one row with the latest values.
+3. Reading "all users" returns one point per slot with summed equity.

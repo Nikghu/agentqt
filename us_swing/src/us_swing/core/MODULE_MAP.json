@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-22T08:17:24",
+  "generated": "2026-10-25T13:39:54",
   "subfolder": "core",
-  "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\core",
+  "root": "f:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\core",
   "tool_code": "SCR",
   "files": {
     "__init__.py": {
@@ -72,7 +72,7 @@
         },
         {
           "name": "pattern_rules_to_config",
-          "signature": "def pattern_rules_to_config(\n    rules: list[PatternRule], threshold: float = DEFAULT_THRESHOLD\n) -> dict[str, Any]",
+          "signature": "def pattern_rules_to_config(\r\n    rules: list[PatternRule], threshold: float = DEFAULT_THRESHOLD\r\n) -> dict[str, Any]",
           "docstring": "Serialise rules and the pass threshold to the schema-2 config dict.",
           "line_start": 39,
           "line_end": 47
@@ -194,14 +194,14 @@
         },
         {
           "name": "macd",
-          "signature": "def macd(\n    close: FloatArray, fast: int, slow: int, signal: int\n) -> tuple[FloatArray, FloatArray, FloatArray]",
+          "signature": "def macd(\r\n    close: FloatArray, fast: int, slow: int, signal: int\r\n) -> tuple[FloatArray, FloatArray, FloatArray]",
           "docstring": "MACD line, signal line and histogram.",
           "line_start": 64,
           "line_end": 75
         },
         {
           "name": "ppo",
-          "signature": "def ppo(\n    close: FloatArray, fast: int, slow: int, signal: int\n) -> tuple[FloatArray, FloatArray, FloatArray]",
+          "signature": "def ppo(\r\n    close: FloatArray, fast: int, slow: int, signal: int\r\n) -> tuple[FloatArray, FloatArray, FloatArray]",
           "docstring": "EMA-based PPO line (%), its signal EMA and the histogram.",
           "line_start": 78,
           "line_end": 85
@@ -991,155 +991,193 @@
         {
           "name": "_i",
           "signature": "def _i(params: Params, key: str) -> int",
-          "line_start": 28,
-          "line_end": 29
+          "line_start": 29,
+          "line_end": 30
         },
         {
           "name": "_prior",
           "signature": "def _prior(series: FloatArray, bars: int) -> FloatArray",
           "docstring": "The ``bars`` values before the last one.",
-          "line_start": 32,
-          "line_end": 34
+          "line_start": 33,
+          "line_end": 35
         },
         {
           "name": "_seeded_ema",
           "signature": "def _seeded_ema(close: FloatArray, period: int) -> FloatArray",
           "docstring": "EMA seeded from the first close, as the legacy price action screener computed it",
-          "line_start": 37,
-          "line_end": 44
+          "line_start": 38,
+          "line_end": 45
         },
         {
           "name": "_near_52w_high",
           "signature": "def _near_52w_high(a: BarArrays, p: Params) -> bool",
-          "line_start": 49,
-          "line_end": 51
+          "line_start": 50,
+          "line_end": 52
         },
         {
           "name": "_high_52w_breakout",
           "signature": "def _high_52w_breakout(a: BarArrays, p: Params) -> bool",
-          "line_start": 54,
-          "line_end": 55
+          "line_start": 55,
+          "line_end": 56
         },
         {
           "name": "_volume_breakout",
           "signature": "def _volume_breakout(a: BarArrays, p: Params) -> bool",
-          "line_start": 58,
-          "line_end": 63
+          "line_start": 59,
+          "line_end": 64
         },
         {
           "name": "_gap_up",
           "signature": "def _gap_up(a: BarArrays, p: Params) -> bool",
-          "line_start": 66,
-          "line_end": 72
+          "line_start": 67,
+          "line_end": 73
         },
         {
           "name": "_pocket_pivot",
           "signature": "def _pocket_pivot(a: BarArrays, p: Params) -> bool",
-          "line_start": 75,
-          "line_end": 84
+          "line_start": 76,
+          "line_end": 85
         },
         {
           "name": "_darvas_box",
           "signature": "def _darvas_box(a: BarArrays, p: Params) -> bool",
-          "line_start": 87,
-          "line_end": 93
+          "line_start": 88,
+          "line_end": 94
         },
         {
           "name": "_bull_flag",
           "signature": "def _bull_flag(a: BarArrays, p: Params) -> bool",
-          "line_start": 96,
-          "line_end": 108
+          "line_start": 97,
+          "line_end": 109
         },
         {
           "name": "_ema_pullback",
           "signature": "def _ema_pullback(a: BarArrays, p: Params) -> bool",
-          "line_start": 113,
-          "line_end": 115
+          "line_start": 114,
+          "line_end": 116
         },
         {
           "name": "_swing_extremes",
           "signature": "def _swing_extremes(a: BarArrays, p: Params) -> tuple[FloatArray, FloatArray]",
-          "line_start": 118,
-          "line_end": 122
+          "line_start": 119,
+          "line_end": 123
         },
         {
           "name": "_higher_highs_lows",
           "signature": "def _higher_highs_lows(a: BarArrays, p: Params) -> bool",
-          "line_start": 125,
-          "line_end": 127
+          "line_start": 126,
+          "line_end": 128
         },
         {
           "name": "_lower_highs_lows",
           "signature": "def _lower_highs_lows(a: BarArrays, p: Params) -> bool",
-          "line_start": 130,
-          "line_end": 132
+          "line_start": 131,
+          "line_end": 133
         },
         {
           "name": "_golden_cross",
           "signature": "def _golden_cross(a: BarArrays, p: Params) -> bool",
-          "line_start": 135,
-          "line_end": 140
+          "line_start": 136,
+          "line_end": 141
+        },
+        {
+          "name": "_fib_retracement_sell",
+          "signature": "def _fib_retracement_sell(a: BarArrays, p: Params) -> bool",
+          "line_start": 144,
+          "line_end": 156
+        },
+        {
+          "name": "_fib_retracement_buy",
+          "signature": "def _fib_retracement_buy(a: BarArrays, p: Params) -> bool",
+          "line_start": 159,
+          "line_end": 171
         },
         {
           "name": "_gap_down",
           "signature": "def _gap_down(a: BarArrays, p: Params) -> bool",
-          "line_start": 143,
-          "line_end": 149
+          "line_start": 174,
+          "line_end": 180
         },
         {
           "name": "_outside_bar",
           "signature": "def _outside_bar(a: BarArrays, p: Params) -> bool",
-          "line_start": 152,
-          "line_end": 153
+          "line_start": 183,
+          "line_end": 184
         },
         {
           "name": "_narrowest_of",
           "signature": "def _narrowest_of(bars: int) -> Detect",
-          "line_start": 158,
-          "line_end": 163
+          "line_start": 189,
+          "line_end": 194
         },
         {
           "name": "_inside_bar",
           "signature": "def _inside_bar(a: BarArrays, p: Params) -> bool",
-          "line_start": 166,
-          "line_end": 167
+          "line_start": 197,
+          "line_end": 198
         },
         {
           "name": "_vcp",
           "signature": "def _vcp(a: BarArrays, p: Params) -> bool",
-          "line_start": 170,
-          "line_end": 185
+          "line_start": 201,
+          "line_end": 216
         },
         {
           "name": "_bollinger_squeeze",
           "signature": "def _bollinger_squeeze(a: BarArrays, p: Params) -> bool",
-          "line_start": 188,
-          "line_end": 196
+          "line_start": 219,
+          "line_end": 227
+        },
+        {
+          "name": "_bars_since_first",
+          "signature": "def _bars_since_first(hits: npt.NDArray[np.bool_]) -> int | None",
+          "docstring": "Bars from the first True in ``hits`` to its last element, or None if none.",
+          "line_start": 232,
+          "line_end": 235
         },
         {
           "name": "_double_bottom",
           "signature": "def _double_bottom(a: BarArrays, p: Params) -> bool",
-          "line_start": 201,
-          "line_end": 214
+          "line_start": 238,
+          "line_end": 254
+        },
+        {
+          "name": "_double_top_breakdown",
+          "signature": "def _double_top_breakdown(a: BarArrays, p: Params) -> tuple[FloatArray, float] | None",
+          "docstring": "Closes after the second top, and the neck, when the top shape holds.",
+          "line_start": 257,
+          "line_end": 272
+        },
+        {
+          "name": "_double_top",
+          "signature": "def _double_top(a: BarArrays, p: Params) -> bool",
+          "line_start": 275,
+          "line_end": 281
+        },
+        {
+          "name": "_double_top_pullback",
+          "signature": "def _double_top_pullback(a: BarArrays, p: Params) -> bool",
+          "line_start": 284,
+          "line_end": 295
         },
         {
           "name": "_cup_with_handle",
           "signature": "def _cup_with_handle(a: BarArrays, p: Params) -> bool",
-          "line_start": 217,
-          "line_end": 233
+          "line_start": 298,
+          "line_end": 314
         },
         {
           "name": "_bars",
           "signature": "def _bars(n: int) -> MinBars",
-          "line_start": 238,
-          "line_end": 239
+          "line_start": 319,
+          "line_end": 320
         },
         {
           "name": "breakout_specs",
           "signature": "def breakout_specs() -> tuple[PatternSpec, ...]",
           "docstring": "Build the breakout, trend, volatility and chart-shape catalogue entries.",
-          "line_start": 254,
-          "line_end": 382
+          "line_start": 341,
+          "line_end": 497
         }
       ],
       "constants": [
@@ -1148,6 +1186,7 @@
         "_VOLATILITY, _SHAPES = PatternCategory.VOLATILITY, PatternCategory.CHART_SHAPES",
         "_LOOKBACK_52W = ParamSpec(\"lookback\", \"Lookback\", \"int\", 252, 20, 504, display=\"{} bars\")",
         "_MIN_GAP = ParamSpec(\"min_gap\", \"Min gap %\", \"float\", 1.0, 0.1, 20.0, 0.1, display=\"\u2265 {}%\")",
+        "_FIB_PARAMS = (",
         "_SWINGS = ("
       ]
     },

@@ -472,7 +472,8 @@ class MainWindow(QMainWindow):
         self._stack = QStackedWidget()
         gutter(self._stack)
         for p in panels:
-            if p is self._screener_panel or p is self._execution_panel:
+            if p in (self._screener_panel, self._execution_panel, self._dashboard_panel,
+                     self._chart_panel):
                 # These screens lay out their own cards on the gutter.
                 self._stack.addWidget(p)
             else:
@@ -574,6 +575,8 @@ class MainWindow(QMainWindow):
         self._details.chart_requested.connect(self._on_details_chart)
         # screener → chart_requested → Charts screen
         self._screener_panel.chart_requested.connect(self._on_chart_requested)
+        # charts → execution_requested → Execution screen (SRD-GUI-026.010)
+        self._chart_panel.execution_requested.connect(lambda _symbol: self._go_to(2))
         # ── Status bar widgets ─────────────────────────────────────────────────
         self._status = self.statusBar()
         self._status.setSizeGripEnabled(False)

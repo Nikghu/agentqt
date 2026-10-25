@@ -1352,6 +1352,8 @@ QPushButton#stepper_btn, QPushButton#stepper_date {{
 }}
 QPushButton#stepper_btn:hover, QPushButton#stepper_date:hover {{ background: {hover}; }}
 QPushButton#stepper_btn:disabled {{ background: transparent; }}
+QPushButton::menu-indicator {{ subcontrol-origin: padding; subcontrol-position: right center;
+    right: 8px; }}
 QPushButton#stepper_date::menu-indicator {{ image: none; width: 0; }}
 QPushButton#stepper_btn:focus, QPushButton#stepper_date:focus {{ outline: none; }}
 QLabel#latest_tag {{ color: {sub}; background: {line}; border-radius: 3px; padding: 1px 6px;

@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-10-23 (Session 88)
+**Last Updated:** 2026-10-24 (Session 90)
 
 ---
 
@@ -57,4 +57,8 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T45 | Card layout (FO-GUI-023, RN-GUI-1.19.0): sections as rounded cards with 4 px gaps across the app; Screener rail and results as two cards. Committed, not pushed; user visual check pending. | `gui/cards.py`, `gui/main_window.py`, `gui/theme.py` | Low | Done |
 | T46 | Execution screen redesign F2 (FO-GUI-024 + FO-EXE-019): header, grouped watchlist, tab card, Strategies list-detail + P&L chart, charts below with hide toggle. 5 commits, not pushed; user app check pending. RN-EXE-1.34.0, RN-GUI-1.20.0–1.23.0. | `gui/execution_panel.py`, `execution/trade_cycle/` | High | Done |
 | T47 | Renaming a strategy in Edit starts a new P&L history (strategy id = name in `trade_cycles`). Decide: block rename when closed cycles exist, or migrate `strategy_id` on rename. | `gui/strategy_builder_dialog.py`, `execution/trade_cycle/` | Medium | Open |
-| T51 | Settings dialog (FO-GUI-027, RN-GUI-1.32.0): built on feat/gui-settings-dialog (3 commits, not pushed). Updates moved to sidebar popup (RN-GUI-1.33.0). User app check pending, then push / PR when asked. | `gui/settings_dialog.py`, `gui/sidebar.py` | Medium | Open |
+| T48 | FO-GUI-025 Dashboard tiles — all 5 phases done (RN-GUI-1.25.0 to RN-GUI-1.28.0, RN-EXE-1.35.0 to RN-EXE-1.37.0). Phase 5 fixed Side column, "No stop" / "—", P&L Today, paper account per user. PR pending user on feat/gui-dashboard-tiles. | `gui/dashboard_panel.py`, `gui/dashboard_tiles.py`, `execution/` | High | Done |
+| T49 | PyQt6-WebEngine 6.11.0 mismatches PyQt6 6.10.2 on this machine; `tests/gui/test_chart_workspace.py` cannot import and the app cannot start. Fixed 2026-10-24: installed PyQt6-WebEngine 6.10.0 + WebEngine-Qt6 6.10.2; GUI suite 361 passed. | `gui/chart_workspace.py`, environment | Medium | Done |
+| T50 | EXE — paper equity drops prior-day realised P&L at midnight ET; equity curve anchor off (SRD-EXE-017.027 limit). | `gui/app_service.py` | Medium | Open |
+| T51 | FO-GUI-026 Charts workspace (Focus + Inspector): All 3 phases done (RN-GUI-1.29.0–1.31.0): layout, Trade Plan, Indicators, Patterns, Key Levels, Send to Execution, drawings in SQLite. User app check and push / PR pending. | `gui/chart_workspace.py`, `gui/chart_panel.py` | High | Done |
+| T52 | Settings dialog (FO-GUI-027, RN-GUI-1.32.0): built on feat/gui-settings-dialog (3 commits, not pushed). Updates moved to sidebar popup (RN-GUI-1.33.0). User app check pending, then push / PR when asked. | `gui/settings_dialog.py`, `gui/sidebar.py` | Medium | Open |
