@@ -257,9 +257,10 @@ us_swing/src/us_swing/gui/
 | MD ID | SRD | File | Purpose | Public API | Depends on | Async |
 |---|---|---|---|---|---|---|
 | MD-GUI-027.001.M01 | SRD-GUI-027.001 | `us_swing/src/us_swing/gui/settings_dialog.py` | Frameless modal dialog around the settings panel; footer and apply flow | `SettingsDialog`, `open_at()`, `apply()` | `settings_panel`, `scheduler_dialog._DialogTitleBar` | No |
-| MD-GUI-027.004.M02 | SRD-GUI-027.004 | `us_swing/src/us_swing/gui/sidebar.py` | Settings item and download badge | `Sidebar.settings_requested`, `Sidebar.set_data_state()` | `icons`, `theme` | No |
+| MD-GUI-027.004.M02 | SRD-GUI-027.004 | `us_swing/src/us_swing/gui/sidebar.py` | Settings item, download badge and Updates item with its dot | `Sidebar.settings_requested`, `Sidebar.set_data_state()` | `icons`, `theme`, `update_popup` | No |
 | MD-GUI-027.004.M03 | SRD-GUI-027.004 | `us_swing/src/us_swing/gui/main_window.py` | Four screens, one reused dialog, two right panels | `MainWindow` | all of the above | No |
-| MD-GUI-027.005.M04 | SRD-GUI-027.005 | `us_swing/src/us_swing/gui/settings_panel.py` | Nine sections, dirty tracking, reload, defaults, section dots | `SettingsPanel.show_section()`, `set_section_state()` | `app_service`, `theme` | No |
+| MD-GUI-027.005.M04 | SRD-GUI-027.005 | `us_swing/src/us_swing/gui/settings_panel.py` | Eight sections, dirty tracking, reload, defaults, section dots | `SettingsPanel.show_section()`, `set_section_state()` | `app_service`, `theme` | No |
 | MD-GUI-027.009.M05 | SRD-GUI-027.009 | `us_swing/src/us_swing/gui/execution_header.py` | Circuit breaker button in the page header | `ExecutionHeader.show_breaker_state()` | `app_service` | No |
+| MD-GUI-027.005.M07 | SRD-GUI-027.005 | `us_swing/src/us_swing/gui/update_popup.py` | Popup with installed version, last check time and Check for Updates | `UpdatePopup`, `UpdatePopup.update_found`, `checked_text()` | `update_dialog`, `updater_stub`, `icons` | No (check runs on a `QThread`) |
 
 > `side_panels.py` (MD-GUI-019.001.M01) drops the System and Data buttons and the data badge.

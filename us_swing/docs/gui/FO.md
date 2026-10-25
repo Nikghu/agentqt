@@ -743,12 +743,13 @@ The system shall show Settings as a modal dialog opened from the sidebar, with e
 ### Requirements
 
 1. **Dialog.** A frameless modal dialog with its own title bar: Settings, minimise, maximise, close.
-2. **Sections.** Users, Risk, Connection, Scheduler, Telegram, Universe, Candle data, Appearance and Updates in a left list, each with a status dot.
+2. **Sections.** Users, Risk, Connection, Scheduler, Telegram, Universe, Candle data and Appearance in a left list, each with a status dot.
 3. **Footer.** Restore defaults, Cancel, Apply and OK; Apply works only when something changed.
 4. **Open from the sidebar.** A Settings item at the bottom of the sidebar opens the dialog; Settings is no longer a screen.
-5. **One place.** Theme, Updates and the candle database move from the right strip into the dialog; the strip keeps Details, Watchlist and Log.
+5. **One place.** Theme and the candle database move from the right strip into the dialog; the strip keeps Details, Watchlist and Log.
 6. **Download progress.** While candles download, the sidebar Settings item shows the percent, and a dot when data is behind or stocks failed; the download keeps running when the dialog closes.
 7. **Circuit breaker.** Trip / Reset Circuit Breaker moves to the Execution page header.
+8. **Updates in the sidebar.** An Updates item next to the Connections panel opens a small popup with the installed version, the last check time and Check for Updates; a dot shows when an update is found (user chose Option B, https://claude.ai/artifact/U2hKfHTWMvQVoW85QU7Nm4, 2026-10-25).
 
 ### Acceptance Criteria
 
