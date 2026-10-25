@@ -1,16 +1,17 @@
 """
 GUI-side tests for FO-EXE-017 — RiskConfig migration, Rex display, effective
 capital + daily-loss aggregation.
-Parent SRD: SRD-EXE-017.001, .002, .007, .011, .014
+Parent SRD: SRD-EXE-017.001, .002, .007, .011, .014, .027
 """
 from __future__ import annotations
 
 from unittest.mock import MagicMock
 
+import pytest
 from PyQt6.QtCore import QObject
 from pytestqt.qtbot import QtBot
 
-from us_swing.data.models import AccountState, RiskConfig, UserProfile
+from us_swing.data.models import AccountState, OpenPosition, RiskConfig, UserProfile
 from us_swing.gui.active_cycles_model import _ActiveCyclesModel, _Row
 from us_swing.gui.app_service import AppService
 from us_swing.gui.user_store import _from_dict, _to_dict
@@ -88,6 +89,8 @@ def _svc(active_uid: int, users: list[UserProfile], ibkr_acct: AccountState | No
     svc._ibkr_acct = ibkr_acct    # type: ignore[attr-defined]
     svc._tc_query = tc_query      # type: ignore[attr-defined]
     svc._daily_loss_warned = False  # type: ignore[attr-defined]
+    svc._positions = []           # type: ignore[attr-defined]
+    svc._ibkr_positions = []      # type: ignore[attr-defined]
     return svc
 
 
@@ -203,3 +206,67 @@ def test_daily_loss_no_warn_within_limit(qtbot: QtBot) -> None:
     svc.risk_warning_raised.connect(lambda k, m: raised.append((k, m)))
     svc._check_daily_loss()
     assert raised == []
+
+
+# ── paper account state follows today's P&L (SRD-EXE-017.027) ─────────────────
+
+def _open(symbol: str, qty: int, avg: float, cur: float, uid: int = 1,
+          direction: str = "LONG") -> OpenPosition:
+    return OpenPosition(symbol=symbol, user_id=uid, quantity=qty, average_price=avg,
+                        stop_loss=0.0, target_price=0.0, mode="paper", trailing_stop=False,
+                        current_price=cur, direction=direction)
+
+
+class _ClosedToday:
+    def __init__(self, closes: list[tuple[int, float | None]]) -> None:
+        self._closed = [MagicMock(user_id=u, realized_pnl_usd=p) for u, p in closes]
+
+    def open_cycles(self) -> list[object]:
+        return []
+
+    def closed_between(self, start: str, end: str) -> list[object]:
+        return self._closed
+
+
+def test_paper_account_follows_pnl(qtbot: QtBot) -> None:
+    """UT-EXE-017.027.M14.T01: paper equity, cash, P&L and positions value move with trades."""
+    svc = _svc(1, [_paper_user()], tc_query=_ClosedToday([(1, 42.10), (1, None), (2, 500.0)]))
+    svc._positions = [_open("NDAQ", 19, 102.78, 103.23, direction="SHORT"),   # −8.55
+                      _open("AAPL", 2, 200.0, 210.0)]                          # +20.00
+    svc._cycle_position_source = _FakeCycleSource([          # type: ignore[attr-defined]
+        MagicMock(average_price=102.78, quantity=19), MagicMock(average_price=200.0, quantity=2),
+    ])
+    acct = svc.get_account_state(1)
+    assert acct.start_of_day_equity == 2_000.0
+    assert acct.daily_pnl == pytest.approx(42.10)
+    assert acct.equity == pytest.approx(2_000.0 + 42.10 - 8.55 + 20.0)
+    assert acct.open_position_value == pytest.approx(1_952.82 + 400.0)
+    assert acct.total_cash_value == pytest.approx(2_000.0 + 42.10 - 2_352.82)
+    assert acct.gross_position_value == pytest.approx(19 * 103.23 + 2 * 210.0)
+    assert acct.capital_utilisation_pct > 0
+
+
+def test_paper_account_all_users_and_no_ledger(qtbot: QtBot) -> None:
+    """UT-EXE-017.027.M14.T02: All users sums every budget; no ledger means no realised P&L."""
+    users = [_paper_user(), UserProfile(3, "Cara", "Cara", 103, "paper",
+                                        risk_config=RiskConfig(max_capital_value=1_000.0),
+                                        strategy_config={}, screener_config={})]
+    svc = _svc(1, users)
+    svc._cycle_position_source = _FakeCycleSource([          # type: ignore[attr-defined]
+        MagicMock(average_price=10.0, quantity=10),
+    ])
+    acct = svc.get_account_state(None)
+    assert acct.start_of_day_equity == 3_000.0
+    assert acct.daily_pnl == 0.0
+    assert acct.open_position_value == 200.0   # one $100 position per user from the fake source
+
+
+def test_paper_account_counts_only_own_ibkr_positions(qtbot: QtBot) -> None:
+    """UT-EXE-017.027.M14.T03: broker positions of other users do not move this user's equity."""
+    svc = _svc(1, [_paper_user()])
+    svc._ibkr_positions = [_open("AAPL", 2, 200.0, 210.0, uid=1),   # type: ignore[attr-defined]
+                           _open("MSFT", 1, 100.0, 150.0, uid=2)]
+    svc._cycle_position_source = _FakeCycleSource([])          # type: ignore[attr-defined]
+    acct = svc.get_account_state(1)
+    assert acct.equity == pytest.approx(2_000.0 + 20.0)
+    assert acct.gross_position_value == pytest.approx(420.0)

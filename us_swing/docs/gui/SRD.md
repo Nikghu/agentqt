@@ -5,6 +5,11 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.41.0: SRD-GUI-026.001–.012 added — Charts workspace Focus + Inspector (canvas Option 3); Phase 1 (.001–.007) approved by user and implemented 2026-10-24; Phase 2 (.008–.010) approved by user and implemented 2026-10-24; Phase 3 (.011–.012) approved by user and implemented 2026-10-24.
+> v2.40.0: SRD-GUI-025.016–.018 added — dashboard KPI and position-table fixes, Phase 5; approved by user and implemented 2026-10-24.
+> v2.39.0: SRD-GUI-025.013–.015 added — Performance band and Exposure tab, Phase 4; approved by user 2026-10-24.
+> v2.38.0: SRD-GUI-025.008–.012 added — Dashboard tile buttons, Phase 2; approved by user 2026-10-24.
+> v2.37.0: SRD-GUI-025.001–.007 added — Dashboard tiled workspace, Phase 1 (canvas Option E); approved by user 2026-10-24.
 > v2.36.0: SRD-GUI-024.008 changed — charts toggle moved to the page header, chart header row removed, 4 px card gaps (user, 2026-10-23).
 > v2.35.0: SRD-GUI-024.001–.008 added — Execution workspace (canvas Option F2); approved by user 2026-10-23.
 > v2.34.0: SRD-GUI-023.004 added — lighter gap colour; requested by user 2026-10-23.
@@ -399,3 +404,43 @@
 | SRD-GUI-024.006 | FO-GUI-024 | Must | A Strategy P&L card shows the running total line (or per-trade bars), the max drawdown in red, ranges 1W / 1M / 3M / All, and win rate, average win, average loss, max drawdown and today. | `get_strategy_pnl` | P&L card | Empty text when the strategy has no closed trades | Implemented |
 | SRD-GUI-024.007 | FO-GUI-024 | Should | A Today strip lists the strategy's open trades and today's closed trades with side, quantity, state and P&L. | open cycles, today's closed cycles | strip | "No trades today" when empty | Implemented |
 | SRD-GUI-024.008 | FO-GUI-024 | Must | The intraday charts sit below the tab card; a "Hide charts" / "Show charts" button in the page header (after the broker chip) hides them completely and the choice is remembered. Execution cards sit on the gutter with the Screener's 4 px gap. | selected symbol, setting | chart pane | `QSettings("USSwing", "ExecutionPanel")` key `charts_hidden` | Implemented |
+
+## FO-GUI-025 — Dashboard Tiled Workspace
+
+| ID | Parent | Priority | Description | Input | Output | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-025.001 | FO-GUI-025 | Must | A one-line KPI strip shows P&L today, unrealised P&L, equity, cash, capital used "of 95%" and open positions. | account state, positions | KPI strip | Replaces the five stat cards and the scope strip | Implemented |
+| SRD-GUI-025.002 | FO-GUI-025 | Must | The strip ends with the user view switch (All users plus each user) and a Comfort / Compact switch that changes table row height. | users, setting | switches | View stays in sync with the title-bar user scope | Implemented |
+| SRD-GUI-025.003 | FO-GUI-025 | Must | Four tiles sit in a 2 × 2 grid: Open Positions and Market Watch on top, Trade History and P&L by Strategy below; each tile header shows its title, a count and its own buttons. | — | tile grid | Square Off All moves into the Open Positions header | Implemented |
+| SRD-GUI-025.004 | FO-GUI-025 | Must | Each tile has a Maximise button that makes it fill the grid and hides the others; clicking it again restores the grid. | click | layout | Only one tile maximised at a time | Implemented |
+| SRD-GUI-025.005 | FO-GUI-025 | Should | The P&L by Strategy tile lists each strategy with today's P&L as a green or red bar and a total row. | `get_strategy_pnl` | bar list | "No strategies" text when none exist | Implemented |
+| SRD-GUI-025.006 | FO-GUI-025 | Must | Density, user view and the maximised tile are remembered across restarts. | setting | — | `QSettings("USSwing", "DashboardPanel")` | Implemented |
+| SRD-GUI-025.007 | FO-GUI-025 | Must | The Market Watch tile shows the user's watchlist with Symbol, LTP, change, change % and volume, and an add box, Add, Remove and Refresh in its header. | watchlist | table | Index ETFs stay in the title bar; the right-panel watchlist stays | Implemented |
+| SRD-GUI-025.008 | FO-GUI-025 | Must | The Open Positions Filter button shows a symbol box; typing hides rows whose symbol does not contain the text; closing the box shows all rows. | text | filtered rows | Case-insensitive; kept across price refreshes | Implemented |
+| SRD-GUI-025.009 | FO-GUI-025 | Should | The Open Positions Columns button opens a checkable list of columns; unticked columns are hidden and remembered. | ticks | visible columns | Symbol cannot be hidden | Implemented |
+| SRD-GUI-025.010 | FO-GUI-025 | Must | Trade History has a range menu (Today, 7 days, 30 days, All) and a state menu (All, Filled, Partial, Cancelled, Rejected, New); the header count shows the range and row count. | trades, choice | filtered rows | Range uses the market time zone; choices remembered | Implemented |
+| SRD-GUI-025.011 | FO-GUI-025 | Should | The Trade History Export button saves the shown rows and columns to a CSV file the user picks. | rows | `.csv` file | Log "[Trade History] Saved N order(s) to <file>" | Implemented |
+| SRD-GUI-025.012 | FO-GUI-025 | Should | Each Market Watch tile row ends with a ✕ that removes that symbol; the Remove button leaves the tile header. | click | watchlist | Right-panel watchlist unchanged | Implemented |
+| SRD-GUI-025.013 | FO-GUI-025 | Must | A Performance band above the tiles shows Account Equity, its change for the chosen range (amount and %), range buttons 1D / 1W / 1M / 3M / YTD and a line-and-area equity chart. | `get_equity_curve(range)` | band | "No equity data for this range yet" when empty; range remembered | Implemented |
+| SRD-GUI-025.014 | FO-GUI-025 | Must | A "Performance" button at the end of the KPI strip shows or hides the band; the band is shown on first start and the choice is remembered. | click, setting | band visibility | Hidden band gives its space to the tiles | Implemented |
+| SRD-GUI-025.015 | FO-GUI-025 | Must | The Open Positions tile has tabs "Open Positions" and "Exposure"; Exposure shows a vertical bar per symbol (largest first, long blue, short amber) with its value on top, Long, Short, Net and Gross ÷ Equity totals, and a "$ Value / % Equity" switch. | open positions, equity | bar chart | Filter and Columns hide on the Exposure tab; bars follow price updates; more than 8 bars: the smallest join one "N others" bar | Implemented |
+| SRD-GUI-025.016 | FO-GUI-025 | Must | The Open Positions table shows a Side column (LONG or SHORT) right after Symbol. | position direction | column | A short's P&L sign then reads correctly | Implemented |
+| SRD-GUI-025.017 | FO-GUI-025 | Must | Stop shows "No stop" in amber and Target shows "—" when the value is not set. | stop, target | cell text | Not set = 0 or missing | Implemented |
+| SRD-GUI-025.018 | FO-GUI-025 | Must | "P&L Today" in the KPI strip is equity minus start-of-day equity, so it counts realised and unrealised P&L in paper and live. | account state | KPI value | — | Implemented |
+
+## FO-GUI-026 — Charts Workspace (Focus + Inspector)
+
+| ID | Parent | Priority | Description | Input | Output | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-026.001 | FO-GUI-026 | Must | The Charts screen is a source list card, one chart card and an Inspector card on the gutter; the MDI windows and arrange buttons are removed. | — | layout | `open_symbol(symbol, timeframe)` keeps its signature | Implemented |
+| SRD-GUI-026.002 | FO-GUI-026 | Must | The source list has Watchlist, Screener and Trades tabs and a filter box; rows show symbol, a sub-line, last price and change %. | watchlist, latest screener results, open positions | list, `symbol_selected` | Tab remembered; empty text per tab | Implemented |
+| SRD-GUI-026.003 | FO-GUI-026 | Must | The chart header shows symbol, company line, last price and change, a 1D / 1W switch and overlay chips with ✕ plus a "+ Overlay" menu (SMA or EMA, length). | loaded bars, click | header, overlays | Default SMA 20 and SMA 50; overlays remembered | Implemented |
+| SRD-GUI-026.004 | FO-GUI-026 | Must | The chart shows candles, volume and an RSI 14 pane; a plan draws entry, stop and target price lines with labels and shaded zones. | bars, plan | chart | No plan → no lines | Implemented |
+| SRD-GUI-026.005 | FO-GUI-026 | Must | The Inspector shows collapsible sections taken from one section registry; a header button hides the whole Inspector. | registry, click | sections | Open / closed state and Inspector visibility remembered | Implemented |
+| SRD-GUI-026.006 | FO-GUI-026 | Must | Trade Plan shows entry, stop, target, reward : risk and size at the user's risk %, from the screener plan, else the open position, else "—"; Edit changes the values and lines for the session. | plan source, risk config, equity | section, chart lines | R:R rule as SRD-GUI-022.005; invalid plan → "—" | Implemented |
+| SRD-GUI-026.007 | FO-GUI-026 | Should | Indicators shows RSI 14, ATR 14, ADX 14 and relative volume (last ÷ 20-bar average) for the loaded bars. | bars | section | Too few bars → "—" | Implemented |
+| SRD-GUI-026.008 | FO-GUI-026 | Should | Patterns Found lists price action patterns true on the last 5 bars with name and bars ago, and marks them on the chart. | bars, pattern catalogue | section, markers | Phase 2 | Implemented |
+| SRD-GUI-026.009 | FO-GUI-026 | Should | Key Levels lists the three nearest swing highs and lows and can show them as faint lines. | bars | section, lines | Phase 2 | Implemented |
+| SRD-GUI-026.010 | FO-GUI-026 | Must | Send to Execution adds the symbol as a manual pick and switches to the Execution screen. | click | manual pick | Phase 2; existing pick → message only | Implemented |
+| SRD-GUI-026.011 | FO-GUI-026 | Should | A drawing bar offers horizontal line, trend line, rectangle and delete all, drawn with chart primitives. | mouse | drawings | Phase 3; Esc cancels a drawing in progress | Implemented |
+| SRD-GUI-026.012 | FO-GUI-026 | Must | Drawings are saved per symbol and timeframe in SQLite and redrawn when that chart loads. | drawings | `chart_drawings` rows | Phase 3; save failure logs and keeps the drawing on screen | Implemented |

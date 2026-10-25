@@ -54,6 +54,9 @@ class ExecutionHeader(QFrame):
         super().__init__(parent)
         self._svc = svc
         self.setObjectName("screener_header")
+        # The header is its own card here, so the Screener's bottom rule would show as
+        # a stray line above the card edge.
+        self.setStyleSheet("QFrame#screener_header { border-bottom: none; }")
 
         title = QLabel("Execution")
         title.setObjectName("page_title")

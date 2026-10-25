@@ -7,6 +7,9 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.19.0: UT-EXE-017.027.M14.T01–T03 added (paper account state).
+> v1.18.0: UT-EXE-020.007–.008 added (6 tests, equity curve).
+> v1.17.0: UT-EXE-020.* added (17 tests, FO-EXE-020 Account Equity Snapshots).
 > v1.16.0: UT-EXE-019.* added (14 tests, FO-EXE-019 Strategy P&L History).
 > v1.15.0: UT-EXE-018.* added (54 tests, FO-EXE-018 Short Trade Direction) — direction storage, side and risk-level helpers, conflict guard, direction-aware order placement and ingestion, SHORT P&L / trailing / exit triggers / risk invariants, signed position P&L.
 
@@ -725,6 +728,9 @@
 | UT-EXE-017.019.M14.T01 | MD-EXE-017.016.M14 | Positive | Paper `open_position_value` summed from open cycles | paper user; two open cycles worth $1300 total | `get_account_state().open_position_value == 1300.0` | Pass |
 | UT-EXE-017.021.M14.T02 | MD-EXE-017.016.M14 | Positive | `AppService.margin_available` nets deployed | eff_cap=$2000; deployed $1300 | `margin_available() == 700.0` | Pass |
 | UT-EXE-017.021.M14.T03 | MD-EXE-017.016.M14 | Edge | Margin floors at zero when over-deployed | eff_cap=$2000; deployed $2500 | `margin_available() == 0.0` | Pass |
+| UT-EXE-017.027.M14.T01 | MD-EXE-017.016.M14 | Positive | Paper equity, cash and P&L move with trades | budget 2000; closes +42.10 today; SHORT −8.55, LONG +20 | equity 2053.55; daily 42.10; cash and gross from positions | Pass |
+| UT-EXE-017.027.M14.T02 | MD-EXE-017.016.M14 | Edge | All users; no ledger | two users 2000 + 1000; `_tc_query` None | start 3000; daily 0; deployed summed per user | Pass |
+| UT-EXE-017.027.M14.T03 | MD-EXE-017.016.M14 | Negative | Other users' broker positions ignored | IBKR rows for users 1 and 2; view user 1 | equity 2020; gross 420 | Pass |
 | UT-EXE-015.004.M01.T32 | MD-EXE-015.004.M01 | Negative | Submit raising never escapes into the Qt slot | live entry signal; submitter raises `BrokerConnectionError` | `execute_signal` returns -1, no exception propagates | Pass |
 | UT-EXE-015.004.M01.T33 | MD-EXE-015.004.M01 | Negative | A failed submit returns the signal to the pending store | same as T32 | `pending_store.add` called once with the popped signal | Pass |
 | UT-EXE-015.004.M01.T34 | MD-EXE-015.004.M01 | Positive | A healthy submit is unchanged | submitter returns order id 77 | returns 77; `pending_store.add` never called | Pass |
@@ -878,3 +884,33 @@
 |---|---|---|---|---|---|---|
 | UT-EXE-019.004.M03.T01 | MD-EXE-019.004.M03 | Positive | Viewing user is the filter | viewing uid 2; closes for users 1 and 2 | summary counts user 2 only | Pass |
 | UT-EXE-019.004.M03.T02 | MD-EXE-019.004.M03 | Negative | No ledger | `_tc_query = None` | empty `StrategyPnlSummary` | Pass |
+
+---
+
+## Module: `execution/equity_snapshot.py` and `AppService` equity snapshots (FO-EXE-020)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-020.001.M01.T01 | MD-EXE-020.001.M01 | Positive | Table and columns created | new in-memory engine | `equity_snapshots` with 5 columns | Pass |
+| UT-EXE-020.002.M01.T01 | MD-EXE-020.001.M01 | Positive | Time floored to 5-minute slot | 13:34:59, 13:35:00 UTC | 13:30:00, 13:35:00 | Pass |
+| UT-EXE-020.002.M01.T02 | MD-EXE-020.001.M01 | Edge | Same slot keeps the latest | saves at 13:31 and 13:33 | one row with the 13:33 values | Pass |
+| UT-EXE-020.003.M01.T01 | MD-EXE-020.001.M01 | Positive | Half hour gives 7 points | saves 09:30–10:00 ET every 5 min | 7 points in time order | Pass |
+| UT-EXE-020.003.M01.T02 | MD-EXE-020.001.M01 | Positive | All users summed per slot | users 1 and 2 in one slot | equity 35,000; user filter gives 25,000 | Pass |
+| UT-EXE-020.003.M01.T03 | MD-EXE-020.001.M01 | Edge | Start and end limits | 3 slots; range = middle slot | 1 point; future start gives empty | Pass |
+| UT-EXE-020.005.M01.T01 | MD-EXE-020.001.M01 | Positive | Old rows pruned | rows 34 days and 0 days old | 1 deleted; second prune 0 | Pass |
+| UT-EXE-020.004.M02.T01 | MD-EXE-020.004.M02 | Positive | Each user saved once per slot | market open; calls at :31, :33, :36 | 2 slots; unrealised 12.5 for user 1 | Pass |
+| UT-EXE-020.004.M02.T02 | MD-EXE-020.004.M02 | Negative | Market not open | NYSE "after_hours" | no rows | Pass |
+| UT-EXE-020.004.M02.T03 | MD-EXE-020.004.M02 | Edge | Live account saved once | IBKR account present; active user 2 | rows for user 2 only | Pass |
+| UT-EXE-020.004.M02.T04 | MD-EXE-020.004.M02 | Negative | Failed save | account state raises, two checks | one warning; slot not marked | Pass |
+| UT-EXE-020.006.M02.T01 | MD-EXE-020.004.M02 | Positive | Read follows viewing user | all users, then user 1, then no store | 3000, 1000, empty | Pass |
+| UT-EXE-020.004.M02.T05 | MD-EXE-020.004.M02 | Edge | Closing point saved once | open at 15:55 ET; after-hours checks at 16:00 and 16:05 | slots 15:55 and 16:00 only | Pass |
+| UT-EXE-020.002.M01.T03 | MD-EXE-020.004.M02 | Negative | Partial slot not saved | user 2's account state raises | no rows for the slot | Pass |
+| UT-EXE-020.005.M02.T01 | MD-EXE-020.004.M02 | Positive | Daily prune | 53-day-old row; two checks on one day | one "Removed 1" log; old row gone | Pass |
+| UT-EXE-020.002.M01.T04 | MD-EXE-020.001.M01 | Edge | Naive time read as UTC | 13:33 without zone | 13:30:00 | Pass |
+| UT-EXE-020.001.M01.T02 | MD-EXE-020.001.M01 | Positive | Schema create and drop include the table | `create_schema`, `drop_schema` | table present, then gone | Pass |
+| UT-EXE-020.007.M01.T01 | MD-EXE-020.001.M01 | Positive | Curve steps and ends at equity | closes +50 then −20 (out of order); equity 1030 | 1000, 1050, 1030, 1030 | Pass |
+| UT-EXE-020.007.M01.T02 | MD-EXE-020.001.M01 | Negative | Cycles without P&L or close time | P&L None; close time None | flat start and end at 500 | Pass |
+| UT-EXE-020.008.M02.T01 | MD-EXE-020.004.M02 | Positive | 1D from today's snapshots plus live point | yesterday + two today; equity 1030; then no snapshots | 1000, 1010, 1030 at now; then empty | Pass |
+| UT-EXE-020.008.M02.T02 | MD-EXE-020.004.M02 | Positive | 1W from the viewing user's closes | user 1 +30, user 2 +500; viewing user 1 | 1000, 1030, 1030; start 7 days back | Pass |
+| UT-EXE-020.008.M02.T03 | MD-EXE-020.004.M02 | Edge | YTD start | 24 Oct 2026 | starts 2026-01-01T05:00:00 UTC | Pass |
+| UT-EXE-020.008.M02.T04 | MD-EXE-020.004.M02 | Negative | Unknown range or no ledger | "5Y"; `_tc_query` None | empty | Pass |

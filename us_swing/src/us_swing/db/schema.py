@@ -165,6 +165,7 @@ _PRICE_INDEXES = [
 
 def _register_trade_cycle_schema() -> None:
     from us_swing.execution.trade_cycle import _schema as _trade_cycle_schema  # noqa: F401
+    from us_swing.execution import equity_snapshot as _equity_snapshot  # noqa: F401
 
 # Map canonical timeframe keys to the corresponding table object.
 PRICE_TABLES: dict[str, sa.Table] = {

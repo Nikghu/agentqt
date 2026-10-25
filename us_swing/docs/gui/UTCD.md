@@ -7,6 +7,14 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.26.0: UT-GUI-026.011–.012 Pass (Phase 3).
+> v1.25.0: UT-GUI-026.008–.010 Pass (Phase 2).
+> v1.24.0: UT-GUI-026.001–.007 Pass (Phase 1); UT-GUI-020.001–.003 Superseded by the Focus + Inspector layout.
+> v1.23.0: UT-GUI-026.* added — Charts workspace Focus + Inspector (Not Run).
+> v1.22.0: UT-GUI-025.016–.018 added — Side column, unset stop/target, P&L Today (Phase 5).
+> v1.21.0: UT-GUI-025.013–.015 added — Performance band and Exposure tab (Phase 4).
+> v1.20.0: UT-GUI-025.008–.012 added — tile buttons (Phase 2).
+> v1.19.0: UT-GUI-025.* added — dashboard tiled workspace (Phase 1).
 > v1.18.0: UT-GUI-023.* added — card layout.
 > v1.17.0: UT-GUI-022.008–.011.* added — screener header, run stepper, transcript drawer, list detail.
 > v1.16.0: UT-GUI-022.* added — screener result views and preset rail.
@@ -529,11 +537,11 @@ Test files:
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
 |---|---|---|---|---|---|---|
-| UT-GUI-020.001.M01.T01 | MD-GUI-020.001.M01 | Positive | New Chart adds windows up to six | click New Chart until disabled | 6 windows; button disabled; count "6 of 6 charts" | Pass |
-| UT-GUI-020.001.M01.T02 | MD-GUI-020.001.M01 | Positive | Closing a window frees a slot | close one of six | 5 windows; button enabled | Pass |
-| UT-GUI-020.002.M01.T01 | MD-GUI-020.001.M01 | Positive | Tabs mode switches view mode | click Tabs, then Tile | tabbed view; then sub-window view | Pass |
-| UT-GUI-020.003.M01.T01 | MD-GUI-020.001.M01 | Positive | Same symbol focuses its window | open AAPL twice | one AAPL window, active | Pass |
-| UT-GUI-020.003.M01.T02 | MD-GUI-020.001.M01 | Edge | Seventh symbol loads into the active window | six open, open TSLA | still 6 windows; active shows TSLA | Pass |
+| UT-GUI-020.001.M01.T01 | MD-GUI-020.001.M01 | Positive | New Chart adds windows up to six | click New Chart until disabled | 6 windows; button disabled; count "6 of 6 charts" | Superseded |
+| UT-GUI-020.001.M01.T02 | MD-GUI-020.001.M01 | Positive | Closing a window frees a slot | close one of six | 5 windows; button enabled | Superseded |
+| UT-GUI-020.002.M01.T01 | MD-GUI-020.001.M01 | Positive | Tabs mode switches view mode | click Tabs, then Tile | tabbed view; then sub-window view | Superseded |
+| UT-GUI-020.003.M01.T01 | MD-GUI-020.001.M01 | Positive | Same symbol focuses its window | open AAPL twice | one AAPL window, active | Superseded |
+| UT-GUI-020.003.M01.T02 | MD-GUI-020.001.M01 | Edge | Seventh symbol loads into the active window | six open, open TSLA | still 6 windows; active shows TSLA | Superseded |
 | UT-GUI-020.004.M01.T01 | MD-GUI-003.001.M01 | Negative | Quick Chart Viewer is gone | screener module | no `QuickChartWindow`; `chart_requested` signal exists | Pass |
 
 ## FO-GUI-021 — Settings Section List
@@ -604,3 +612,89 @@ Test files:
 | UT-GUI-024.006.M05.T04 | MD-GUI-024.006.M05 | Positive | Nice y ticks | min 0, max 412.6 | ticks 0, 150, 300, 450 | Pass |
 | UT-GUI-024.008.M06.T01 | MD-GUI-024.008.M06 | Positive | Hide charts is remembered | `set_charts_hidden(True)`; new pane | `charts_toggled(True)`; setting true; new pane starts hidden | Pass |
 | UT-GUI-024.008.M01.T03 | MD-GUI-024.001.M01 | Positive | Header charts button names the next action | default; `show_charts_state(True)` | "Hide charts"; "Show charts" | Pass |
+
+## FO-GUI-025 — Dashboard Tiled Workspace
+
+| ID | Module | Type | Description | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-025.004.M01.T01 | MD-GUI-025.003.M01 | Positive | Maximise shows only that tile | click History maximise | only History shown; button tip "Restore" | Pass |
+| UT-GUI-025.004.M01.T02 | MD-GUI-025.003.M01 | Positive | Second click restores the grid | click Watch maximise twice | all four shown; `changed` "watch", "" | Pass |
+| UT-GUI-025.004.M01.T03 | MD-GUI-025.003.M01 | Negative | Unknown tile name restores | `set_maximised("no-such-tile")` | maximised ""; all shown | Pass |
+| UT-GUI-025.001.M01.T01 | MD-GUI-025.003.M01 | Positive | Strip value and note | cap "45.8%" note "of 95%"; pos "5" | cap note shown; pos note hidden | Pass |
+| UT-GUI-025.005.M01.T01 | MD-GUI-025.003.M01 | Positive | Bars scale to the largest P&L | +49.5, −16.3 | fractions 1.0, −0.33; total "+$33.20" | Pass |
+| UT-GUI-025.005.M01.T02 | MD-GUI-025.003.M01 | Edge | No strategies | [] | "No strategies" shown; total "$0.00" | Pass |
+| UT-GUI-025.001.M02.T01 | MD-GUI-025.001.M02 | Positive | Strip filled from positions and account | NDAQ long +8.55, MSFT short +16.50; daily P&L 41.75 | pos "2"; unrealised "+$25.05"; P&L "+$41.75"; strategy total "+$8.55" | Pass |
+| UT-GUI-025.002.M02.T01 | MD-GUI-025.001.M02 | Positive | View switch scopes the dashboard | click "trader" | `set_viewing_uid(1)`; setting "1" | Pass |
+| UT-GUI-025.006.M02.T01 | MD-GUI-025.001.M02 | Positive | Density and maximised tile remembered | Comfort + maximise Strategy; new panel | "comfort"; row height 32; maximised "strategy" | Pass |
+| UT-GUI-025.006.M02.T02 | MD-GUI-025.001.M02 | Edge | First start defaults | empty settings | "compact"; full grid; scope not changed | Pass |
+| UT-GUI-025.008.M02.T01 | MD-GUI-025.001.M02 | Positive | Filter hides other symbols | NDAQ, MSFT; filter "nd" | MSFT row hidden; count "1 of 2" | Pass |
+| UT-GUI-025.008.M02.T02 | MD-GUI-025.001.M02 | Negative | Closing the filter shows all | filter "zzz", close | text cleared; both rows shown | Pass |
+| UT-GUI-025.008.M02.T03 | MD-GUI-025.001.M02 | Edge | Filter and hidden columns survive reloads | filter "ms", Stop hidden; refresh + scope to one user | MSFT only; Stop still hidden | Pass |
+| UT-GUI-025.009.M02.T01 | MD-GUI-025.001.M02 | Positive | Hidden column remembered | untick Stop; new panel | Stop hidden in both | Pass |
+| UT-GUI-025.009.M02.T02 | MD-GUI-025.001.M02 | Negative | Symbol and User cannot be hidden | untick Symbol, User | action disabled; columns shown | Pass |
+| UT-GUI-025.010.M02.T01 | MD-GUI-025.001.M02 | Positive | Range and state filter orders | 2 today (filled, cancelled), 3 days, 40 days | Today 2; Filled 1; 7 days 2; All/All 4 | Pass |
+| UT-GUI-025.010.M02.T02 | MD-GUI-025.001.M02 | Edge | Choices remembered; bad value falls back | 30 days + Cancelled; then "bogus" | texts restored, 1 row; then "Today" | Pass |
+| UT-GUI-025.011.M02.T01 | MD-GUI-025.001.M02 | Positive | Export writes shown rows | Today view | header User, Date & Time, Symbol; rows A, B | Pass |
+| UT-GUI-025.011.M02.T02 | MD-GUI-025.001.M02 | Negative | Unwritable path | folder path | error logged with reason; warning box shown | Pass |
+| UT-GUI-025.012.M01.T01 | MD-GUI-002.001.M01 | Positive | ✕ removes that symbol | click ✕ on MSFT row | `remove_from_watchlist("MSFT")` | Pass |
+| UT-GUI-025.012.M01.T02 | MD-GUI-002.001.M01 | Negative | Other cell removes nothing | click Symbol cell | not called; right-panel model has no ✕ | Pass |
+| UT-GUI-025.012.M01.T03 | MD-GUI-002.001.M01 | Edge | Tile watchlist keeps hidden columns after new quotes | reload | Open column hidden; ✕ shown | Pass |
+| UT-GUI-025.013.M03.T01 | MD-GUI-025.013.M03 | Positive | Change text for the range | 25,000 → 25,041.75, 1D; reversed, 1W | "+$41.75 (+0.17%) today"; "−$41.75 (−0.17%) this week" | Pass |
+| UT-GUI-025.013.M03.T02 | MD-GUI-025.013.M03 | Edge | One point gives no change | one point | "", 0 | Pass |
+| UT-GUI-025.013.M03.T03 | MD-GUI-025.013.M03 | Positive | Band shows value, change and chart | 3M, two points | "$25,041.75"; text ends "in 3 months"; chart has 2 points | Pass |
+| UT-GUI-025.013.M03.T04 | MD-GUI-025.013.M03 | Negative | Unknown range and empty curve | "5Y"; no points | range 1D; no change text; value "—" | Pass |
+| UT-GUI-025.015.M03.T01 | MD-GUI-025.013.M03 | Positive | Bars per symbol and side, largest first | NDAQ twice, MSFT short, AMD with no quote | AMD, MSFT Short, NDAQ; AMD at entry price | Pass |
+| UT-GUI-025.015.M03.T02 | MD-GUI-025.013.M03 | Positive | Totals and percent labels | long 2,000, short 2,000, equity 10,000; then equity 0 | Net $0, Gross 40.0%, labels 20.0%; then "—" and $ labels | Pass |
+| UT-GUI-025.015.M03.T03 | MD-GUI-025.013.M03 | Edge | Many symbols grouped | 12 symbols | 8 bars, last "5 others"; Long total over all 12 | Pass |
+| UT-GUI-025.014.M02.T01 | MD-GUI-025.001.M02 | Positive | Band open by default; hiding remembered | first start; click Performance; new panel | shown; hidden; still hidden | Pass |
+| UT-GUI-025.013.M02.T01 | MD-GUI-025.001.M02 | Positive | Range asks the service and is remembered | click 1W | `get_equity_curve("1W")`; chart points set; new panel on 1W | Pass |
+| UT-GUI-025.015.M02.T01 | MD-GUI-025.001.M02 | Positive | Exposure tab swaps view and tools | click Exposure, % Equity, back | bars "$1,919" then "7.7%"; filter tools hidden then shown | Pass |
+| UT-GUI-025.016.M04.T01 | MD-GUI-025.016.M04 | Positive | Side and unset stop/target text | LONG and SHORT rows; stop 0, target 0 | "LONG" / "SHORT"; "No stop"; "—" | Pass |
+| UT-GUI-025.016.M04.T02 | MD-GUI-025.016.M04 | Edge | Side follows Symbol with User column | User column shown | Side right after Symbol | Pass |
+| UT-GUI-025.018.M02.T01 | MD-GUI-025.001.M02 | Positive | P&L Today from equity change | equity above start-of-day; different daily_pnl | KPI shows equity − start | Pass |
+
+## FO-GUI-026 — Charts Workspace (Focus + Inspector)
+
+| ID | Module | Type | Description | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-026.001.M01.T01 | MD-GUI-026.001.M01 | Positive | Three cards, no MDI | build workspace | source list, chart and Inspector cards; no `QMdiArea` | Pass |
+| UT-GUI-026.001.M01.T02 | MD-GUI-026.001.M01 | Positive | open_symbol loads chart and selects row | Watchlist has NVDA; `open_symbol("NVDA", "1w")` | fake chart `show_symbol("NVDA", "1w")`; NVDA row selected; Inspector updated | Pass |
+| UT-GUI-026.001.M01.T03 | MD-GUI-026.001.M01 | Negative | Symbol not in list still loads | `open_symbol("AAPL")`; then ZZZ with no bars | AAPL loads, no row selected; ZZZ header "No data" | Pass |
+| UT-GUI-026.001.M01.T04 | MD-GUI-026.001.M01 | Positive | Theme change keeps symbol and recolours the change | NVDA loaded; `refresh_theme` | symbol kept; change label coloured | Pass |
+| UT-GUI-026.002.M02.T01 | MD-GUI-026.002.M02 | Positive | Rows per tab | 2 watchlist items, 3 screener entries, 1 short position | 2 rows; 3 rows by score with preset sub; "Short 20 sh" | Pass |
+| UT-GUI-026.002.M02.T02 | MD-GUI-026.002.M02 | Positive | Filter and tab remembered | filter "nv"; pick Trades; new list on same settings | NVDA only; new list opens on Trades | Pass |
+| UT-GUI-026.002.M02.T03 | MD-GUI-026.002.M02 | Negative | Empty tab shows empty text | no positions, Trades tab | list hidden; "No open trades" shown | Pass |
+| UT-GUI-026.002.M02.T04 | MD-GUI-026.002.M02 | Positive | Row click emits; watchlist signal reloads | click NVDA; add AMD, emit `watchlist_updated` | `symbol_selected("NVDA")`; rows NVDA, AMD | Pass |
+| UT-GUI-026.003.M01.T01 | MD-GUI-026.001.M01 | Positive | Overlay add, remove and remember | first start; add EMA 9; ✕ on SMA 50; new workspace | defaults SMA 20, SMA 50; `set_overlays` [sma 20, ema 9]; restored | Pass |
+| UT-GUI-026.003.M01.T02 | MD-GUI-026.001.M01 | Negative | Bad saved overlay is dropped | setting "sma:x,foo:5,sma:20" | overlays [sma 20] | Pass |
+| UT-GUI-026.004.M01.T01 | MD-GUI-026.001.M01 | Positive | Plan sent to the chart | screener plan 129.8 / 124.5 / 141 | `set_plan((129.8, 124.5, 141.0))` | Pass |
+| UT-GUI-026.004.M01.T02 | MD-GUI-026.001.M01 | Negative | No plan clears lines | symbol without plan or position | `set_plan(None)` | Pass |
+| UT-GUI-026.005.M03.T01 | MD-GUI-026.005.M03 | Positive | One header per registry entry; open state remembered | `SECTIONS`; collapse Indicators; new Inspector | header per entry in order; Indicators closed | Pass |
+| UT-GUI-026.005.M03.T02 | MD-GUI-026.005.M03 | Edge | Extra section plugs in | registry plus a fake section | fake section shown and its `update` called on load | Pass |
+| UT-GUI-026.005.M01.T04 | MD-GUI-026.001.M01 | Negative | Hidden Inspector stays hidden | hide; new workspace | Inspector card hidden | Pass |
+| UT-GUI-026.006.M03.T01 | MD-GUI-026.005.M03 | Positive | R:R and size | entry 129.8, stop 124.5, target 141; equity 40,000, risk 1 % | R:R 2.1; size 75 | Pass |
+| UT-GUI-026.006.M03.T02 | MD-GUI-026.005.M03 | Negative | Invalid plan shows dashes | stop 131 ≥ entry 129.8 | R:R None; size 0; cells "—" | Pass |
+| UT-GUI-026.006.M03.T03 | MD-GUI-026.005.M03 | Positive | Plan values shown | plan 129.8 / 124.5 / 141; equity 40,000, risk 1 % | "129.80", "124.50", "141.00", "2.1", "75 sh"; "Size (1% risk)" | Pass |
+| UT-GUI-026.006.M01.T05 | MD-GUI-026.001.M01 | Positive | Plan source order | screener plan and position; position only; stop 0 | screener values; position avg, stop, target; None | Pass |
+| UT-GUI-026.006.M01.T06 | MD-GUI-026.001.M01 | Negative | Edited plan kept; invalid plan clears lines | edit NVDA; reload; edit stop above entry | same lines after reload; `set_plan(None)` | Pass |
+| UT-GUI-026.006.M03.T04 | MD-GUI-026.005.M03 | Positive | Edit updates values and lines | Edit; stop 125; Save | stop "125.00"; `plan_changed` with new stop | Pass |
+| UT-GUI-026.007.M03.T01 | MD-GUI-026.005.M03 | Positive | Indicator values | 60 known bars | RSI, ATR, ADX match reference values; rel. volume 2.0× | Pass |
+| UT-GUI-026.007.M03.T02 | MD-GUI-026.005.M03 | Edge | Too few bars | 5 bars | all "—" | Pass |
+| UT-GUI-026.007.M01.T03 | MD-GUI-026.001.M01 | Positive | Indicators get the loaded bars | open NVDA | RSI value shown | Pass |
+| UT-GUI-026.008.M03.T01 | MD-GUI-026.005.M03 | Positive | Pattern hits on recent bars | bars ending in a bullish engulfing 2 bars ago | hit "Bullish engulfing", 2 bars ago, bullish | Pass |
+| UT-GUI-026.008.M03.T02 | MD-GUI-026.005.M03 | Negative | Old pattern not listed | engulfing 10 bars ago only | no Bullish Engulfing hit | Pass |
+| UT-GUI-026.008.M01.T03 | MD-GUI-026.001.M01 | Positive | Inspector markers and levels reach the chart | emit markers and levels | chart studies hold both | Pass |
+| UT-GUI-026.008.M03.T04 | MD-GUI-026.005.M03 | Positive | Pattern eye shows and hides its marker | click a pattern's eye twice | no markers, then that one marker, then none | Pass |
+| UT-GUI-026.009.M03.T01 | MD-GUI-026.005.M03 | Positive | Nearest swing levels | bars with pivots 110, 120, 135 and close 125; tick Show on chart | above [135]; below [120, 110]; `levels_changed` [] then all three | Pass |
+| UT-GUI-026.009.M03.T02 | MD-GUI-026.005.M03 | Edge | Too few bars give no levels | 5 bars | ([], []) | Pass |
+| UT-GUI-026.010.M01.T01 | MD-GUI-026.001.M01 | Positive | Send to Execution adds pick | click Send to Execution; `add_manual_pick` returns None | called with "NVDA"; `execution_requested("NVDA")`; no message | Pass |
+| UT-GUI-026.010.M01.T02 | MD-GUI-026.001.M01 | Negative | Existing pick shows message | `add_manual_pick` returns "NVDA is already in your picks" | message shown; no `execution_requested` | Pass |
+| UT-GUI-026.012.M04.T01 | MD-GUI-026.012.M04 | Positive | Save and load drawings | in-memory SQLite; save trend + hline for NVDA 1d | load NVDA 1d returns both with same points | Pass |
+| UT-GUI-026.012.M04.T02 | MD-GUI-026.012.M04 | Negative | Other symbol or timeframe sees none | load NVDA 1w; load AMD 1d | [] and [] | Pass |
+| UT-GUI-026.012.M04.T03 | MD-GUI-026.012.M04 | Positive | Delete all clears one chart only | delete_all NVDA 1d | NVDA 1d []; NVDA 1w kept | Pass |
+| UT-GUI-026.012.M04.T04 | MD-GUI-026.012.M04 | Negative | Bridge ignores bad JSON | `add_drawing("not json")`; one-point trend; unknown kind | no `drawing_added`; three warnings logged | Pass |
+| UT-GUI-026.011.M04.T05 | MD-GUI-026.012.M04 | Positive | Bridge turns page JSON into a drawing | rect JSON; hline with NaN price | `Drawing("rect", …)` emitted; NaN → None | Pass |
+| UT-GUI-026.011.M01.T01 | MD-GUI-026.001.M01 | Positive | Finished drawing is saved, tool resets, drawing comes back | Trend tool; drawing added; open AAPL then NVDA | saved with colour; pointer checked; AAPL none; NVDA drawing back | Pass |
+| UT-GUI-026.011.M01.T02 | MD-GUI-026.001.M01 | Positive | Delete all clears the chart and the database | one hline; `clear_drawings()` | chart and store empty | Pass |
+| UT-GUI-026.011.M01.T03 | MD-GUI-026.001.M01 | Positive | Eraser deletes only the clicked drawing | hline + trend; Eraser; page deletes the hline | trend kept on chart and in store; Eraser stays on | Pass |
+| UT-GUI-026.012.M01.T05 | MD-GUI-026.001.M01 | Negative | Save failure keeps the drawing on screen | table dropped; drawing added | drawing shown; "[Charts] Could not save drawing" logged | Pass |

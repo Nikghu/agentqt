@@ -311,6 +311,9 @@ class FilteredStockEntry:
     run_type:       str   # "manual" | "scheduled" | "pick" (added by hand, SRD-GUI-004.010)
     date:           str   # YYYY-MM-DD
     time:           str = ""   # HH:MM (local time), empty for legacy entries
+    plan_entry:     float | None = None   # AI trade plan, when the run saved one (SRD-GUI-026.006)
+    plan_stop:      float | None = None
+    plan_target:    float | None = None
 
 
 @dataclass

@@ -13,8 +13,14 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
-from PyQt6.QtCore import pyqtSignal, Qt, QStringListModel, QUrl
+import logging
+
+import numpy as np
+import talib
+from PyQt6.QtCore import QFile, QIODevice, pyqtSignal, Qt, QStringListModel, QUrl
+from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import (
     QComboBox,
@@ -29,12 +35,32 @@ from PyQt6.QtWidgets import (
 )
 
 from us_swing.gui.app_service import AppService
+from us_swing.gui.chart_drawings import ChartBridge
 from us_swing.gui.icons import set_icon
 from us_swing.gui.theme import C, active_palette, colors, load_theme_id
 
 # Path to the bundled Lightweight Charts JS (downloaded once at install time)
 _RESOURCES = Path(__file__).parent / "resources"
 _LWCHART_JS = _RESOURCES / "lightweight-charts.standalone.production.js"
+
+_log = logging.getLogger(__name__)
+
+RSI_PERIOD = 14
+_OVERLAY_TOKENS = ("BLUE", "TEAL", "MAUVE", "GREEN", "ORANGE")
+
+
+def study_points(candles: list[dict[str, Any]], kind: str,
+                 length: int) -> list[dict[str, Any]]:
+    """``{time, value}`` points of an SMA, EMA or RSI over the closes; warm-up bars left out."""
+    close = np.asarray([float(c["close"]) for c in candles], dtype=np.float64)
+    if len(close) < length + (1 if kind == "rsi" else 0):
+        return []
+    func = {"sma": talib.SMA, "ema": talib.EMA, "rsi": talib.RSI}[kind]
+    values = np.asarray(func(close, timeperiod=length), dtype=np.float64)
+    return [
+        {"time": c["time"], "value": round(float(v), 4)}
+        for c, v in zip(candles, values) if not np.isnan(v)
+    ]
 
 
 def _build_html(
@@ -44,8 +70,13 @@ def _build_html(
     timeframe: str,
     show_reset_menu: bool = False,
     timezone: str = "America/New_York",
+    webchannel_js: str = "",
 ) -> str:
-    """Return a self-contained HTML page with a TradingView Lightweight Chart."""
+    """Return a self-contained HTML page with a TradingView Lightweight Chart.
+
+    ``webchannel_js`` is Qt's qwebchannel.js; when given, finished drawings are sent
+    to the page's ``bridge`` object (SRD-GUI-026.011).
+    """
     ct = active_palette()
     candle_json = json.dumps(candle_data)
     volume_json = json.dumps(volume_data)
@@ -60,6 +91,9 @@ def _build_html(
             '<script src="https://unpkg.com/lightweight-charts@5.0.5/'
             'dist/lightweight-charts.standalone.production.js"></script>'
         )
+
+    if webchannel_js:
+        script_tag += f"\n<script>\n{webchannel_js}\n</script>"
 
     title = f"{symbol} — {timeframe.upper()}"
 
@@ -255,6 +289,7 @@ def _build_html(
     layout: {{
       background: {{ color: '{ct.BG}' }},
       textColor: '{ct.TEXT}',
+      panes: {{ separatorColor: '{ct.OVERLAY}' }},
     }},
     grid: {{
       vertLines: {{ color: '{ct.OVERLAY}' }},
@@ -324,6 +359,8 @@ def _build_html(
     scaleMargins: {{ top: 0.1, bottom: 0 }},
   }});
   volSeries.setData(volumeData);
+  // With the RSI pane on, volume moves into the main chart above RSI (applyStudies).
+  let paneVol = null;
 
   // ── Sync time scales ──────────────────────────────────────────────────────
   chart.timeScale().subscribeVisibleLogicalRangeChange(range => {{
@@ -342,7 +379,7 @@ def _build_html(
     const bar = param.seriesData.get(candleSeries);
     if (!bar) return;
     {crosshair_date_js}
-    const vol = param.seriesData.get(volSeries);
+    const vol = param.seriesData.get(paneVol || volSeries);
     const vStr = vol ? (' · Vol ' + Math.round(vol.value).toLocaleString()) : '';
     document.getElementById('bar-info').textContent =
       `${{d}}  O ${{bar.open.toFixed(2)}}  H ${{bar.high.toFixed(2)}}  L ${{bar.low.toFixed(2)}}  C ${{bar.close.toFixed(2)}}${{vStr}}`;
@@ -500,9 +537,250 @@ def _build_html(
     volumeData  = newVolumeData;
     candleSeries.setData(candleData);
     volSeries.setData(volumeData);
+    if (paneVol) paneVol.setData(volumeData);
     if (range !== null) {{
       chart.timeScale().setVisibleLogicalRange(range);
     }}
+  }};
+
+  // ── Studies: overlays, RSI pane and trade plan (SRD-GUI-026.003–.004) ──────
+  // Called from Python after each load and on every change; redraws all studies.
+  // ── Drawings: our own series primitives (SRD-GUI-026.011) ───────────────────
+  // Python owns the saved list; the page only reports a finished drawing to the bridge.
+  let bridge = null;
+  if (typeof QWebChannel !== 'undefined' && typeof qt !== 'undefined') {{
+    new QWebChannel(qt.webChannelTransport, ch => {{ bridge = ch.objects.bridge; }});
+  }}
+  class DrawingPrimitive {{
+    constructor(d) {{ this.d = d; this.chart = null; this.series = null; }}
+    attached(p) {{ this.chart = p.chart; this.series = p.series; }}
+    detached() {{ this.chart = null; this.series = null; }}
+    updateAllViews() {{}}
+    paneViews() {{ return [{{ renderer: () => ({{ draw: target => this.draw(target) }}) }}]; }}
+    draw(target) {{
+      if (!this.chart || !this.series) return;
+      const ts = this.chart.timeScale();
+      const pts = this.d.points.map(p => ({{
+        x: ts.timeToCoordinate(p.time), y: this.series.priceToCoordinate(p.price) }}));
+      // Device pixels, snapped to the pixel grid: a crisp 1 px line on any screen scale.
+      target.useBitmapCoordinateSpace(({{ context: ctx, bitmapSize, horizontalPixelRatio: hr,
+                                         verticalPixelRatio: vr }}) => {{
+        const lw = Math.max(1, Math.floor(hr));
+        const snap = v => Math.round(v) + (lw % 2) / 2;
+        const bp = pts.map(p => ({{
+          x: p.x === null ? null : snap(p.x * hr), y: p.y === null ? null : snap(p.y * vr) }}));
+        ctx.save();
+        ctx.strokeStyle = this.d.colour;
+        ctx.lineWidth = lw;
+        if (this.d.kind === 'hline' && bp[0].y !== null) {{
+          ctx.beginPath(); ctx.moveTo(0, bp[0].y); ctx.lineTo(bitmapSize.width, bp[0].y);
+          ctx.stroke();
+        }} else if (bp.length === 2 && bp.every(p => p.x !== null && p.y !== null)) {{
+          if (this.d.kind === 'trend') {{
+            ctx.beginPath(); ctx.moveTo(bp[0].x, bp[0].y); ctx.lineTo(bp[1].x, bp[1].y);
+            ctx.stroke();
+          }} else {{
+            const x = Math.min(bp[0].x, bp[1].x), y = Math.min(bp[0].y, bp[1].y);
+            const w = Math.abs(bp[1].x - bp[0].x), h = Math.abs(bp[1].y - bp[0].y);
+            ctx.fillStyle = this.d.colour + '22';
+            ctx.fillRect(x, y, w, h);
+            ctx.strokeRect(x, y, w, h);
+          }}
+        }}
+        ctx.restore();
+      }});
+    }}
+  }}
+  const DRAW_COLOUR = '{ct.BLUE}';
+  let drawn = [];
+  let tool = '';
+  let pending = null;
+  let preview = null;
+  function _clearPreview() {{
+    if (preview) {{ candleSeries.detachPrimitive(preview); preview = null; }}
+  }}
+  function _setDrawings(list) {{
+    drawn.forEach(p => candleSeries.detachPrimitive(p));
+    drawn = (list || []).map(d => {{
+      const p = new DrawingPrimitive(d);
+      candleSeries.attachPrimitive(p);
+      return p;
+    }});
+  }}
+  function _setTool(t) {{
+    if (t === tool) return;
+    tool = t; pending = null; _clearPreview();
+    chartEl.style.cursor = t ? 'crosshair' : '';
+  }}
+  function _pointAtXY(x, y) {{
+    // Only the price pane (pane 0) takes drawings; volume and RSI panes sit below it.
+    const panes = chart.panes();
+    if (panes.length > 1 && y > panes[0].getHeight()) return null;
+    const time = chart.timeScale().coordinateToTime(x);
+    const price = candleSeries.coordinateToPrice(y);
+    return (time === null || price === null) ? null : {{ time: time, price: price }};
+  }}
+  function _pointAt(param) {{
+    if (!param.point || (param.paneIndex || 0) > 0) return null;
+    return _pointAtXY(param.point.x, param.point.y);
+  }}
+  // Eraser: the saved drawing nearest the click, within a few pixels (SRD-GUI-026.011).
+  const HIT_PX = 6;
+  function _segDist(x, y, a, b) {{
+    const dx = b.x - a.x, dy = b.y - a.y, len = dx * dx + dy * dy;
+    const t = len ? Math.max(0, Math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / len)) : 0;
+    return Math.hypot(x - (a.x + t * dx), y - (a.y + t * dy));
+  }}
+  function _hitDrawing(x, y) {{
+    const panes = chart.panes();
+    if (panes.length > 1 && y > panes[0].getHeight()) return null;
+    const ts = chart.timeScale();
+    let best = null, bestDist = HIT_PX;
+    drawn.forEach(p => {{
+      const d = p.d;
+      const pts = d.points.map(q => ({{
+        x: ts.timeToCoordinate(q.time), y: candleSeries.priceToCoordinate(q.price) }}));
+      if (d.id == null || pts.some(q => q.y === null || (d.kind !== 'hline' && q.x === null))) return;
+      let dist;
+      if (d.kind === 'hline') dist = Math.abs(y - pts[0].y);
+      else if (d.kind === 'trend') dist = _segDist(x, y, pts[0], pts[1]);
+      else {{
+        const [a, b] = pts, c = {{ x: a.x, y: b.y }}, e = {{ x: b.x, y: a.y }};
+        dist = Math.min(_segDist(x, y, a, c), _segDist(x, y, c, b),
+                        _segDist(x, y, b, e), _segDist(x, y, e, a));
+        const inside = x > Math.min(a.x, b.x) && x < Math.max(a.x, b.x)
+          && y > Math.min(a.y, b.y) && y < Math.max(a.y, b.y);
+        if (inside) dist = Math.min(dist, HIT_PX - 1);   // the filled box counts too
+      }}
+      if (dist <= bestDist) {{ best = d.id; bestDist = dist; }}
+    }});
+    return best;
+  }}
+  function _finish(points) {{
+    const d = {{ kind: tool, points: points }};
+    _setTool('');
+    if (bridge) bridge.add_drawing(JSON.stringify(d));
+  }}
+  // Read the mouse on the chart element: the library's click event drops a second
+  // click that comes within 500 ms of the first (it waits for a double click).
+  let downAt = null;
+  chartEl.addEventListener('mousedown', e => {{
+    downAt = (tool && e.button === 0) ? {{ x: e.clientX, y: e.clientY }} : null;
+  }});
+  chartEl.addEventListener('mouseup', e => {{
+    if (!tool || !downAt || e.button !== 0) return;
+    const moved = Math.abs(e.clientX - downAt.x) + Math.abs(e.clientY - downAt.y);
+    downAt = null;
+    if (moved > 5) return;   // a drag pans the chart; it is not a point
+    const box = chartEl.getBoundingClientRect();
+    if (tool === 'erase') {{
+      const id = _hitDrawing(e.clientX - box.left, e.clientY - box.top);
+      if (id !== null && bridge) bridge.delete_drawing(id);
+      return;
+    }}
+    const pt = _pointAtXY(e.clientX - box.left, e.clientY - box.top);
+    if (!pt) return;
+    if (tool === 'hline') {{ _finish([pt]); return; }}
+    if (!pending) {{ pending = pt; return; }}
+    _finish([pending, pt]);
+  }});
+  chart.subscribeCrosshairMove(param => {{
+    if (!tool || !pending) return;
+    const pt = _pointAt(param);
+    if (!pt) return;
+    _clearPreview();
+    preview = new DrawingPrimitive({{ kind: tool, points: [pending, pt], colour: DRAW_COLOUR }});
+    candleSeries.attachPrimitive(preview);
+  }});
+  document.addEventListener('keydown', e => {{
+    if (e.key === 'Escape' && pending) {{ pending = null; _clearPreview(); }}
+  }});
+
+  // setHeight shares the change equally among the other panes and shows in getHeight
+  // only after the next layout. So RSI is set first to a height that lands on RSI_H
+  // once volume is set to VOL_H in the next frame.
+  const VOL_H = 80, RSI_H = 110;
+  function _sizeSubPanes() {{
+    requestAnimationFrame(() => {{
+      const panes = chart.panes();
+      if (panes.length < 3) return;
+      const vol = panes[1].getHeight(), rsi = panes[2].getHeight();
+      panes[2].setHeight(Math.round(4 / 3 * (RSI_H + (VOL_H - vol) / 2 - rsi / 4)));
+      requestAnimationFrame(() => {{
+        panes[1].setHeight(VOL_H);
+      }});
+    }});
+  }}
+
+  let studySeries = [];
+  let planLines = [];
+  let markerApi = null;
+  window.applyStudies = function(s) {{
+    _setDrawings(s.drawings);
+    _setTool(s.tool || '');
+    studySeries.forEach(x => chart.removeSeries(x));
+    studySeries = [];
+    planLines.forEach(l => candleSeries.removePriceLine(l));
+    planLines = [];
+    // Pattern markers and key levels (SRD-GUI-026.008–.009)
+    if (!markerApi) markerApi = LightweightCharts.createSeriesMarkers(candleSeries, []);
+    markerApi.setMarkers(s.markers || []);
+    (s.levels || []).forEach(price => planLines.push(candleSeries.createPriceLine({{
+      price: price, color: '{ct.SUBTEXT}', lineWidth: 1,
+      lineStyle: LightweightCharts.LineStyle.Dotted, axisLabelVisible: true, title: '',
+    }})));
+    (s.overlays || []).forEach(o => {{
+      const line = chart.addSeries(LightweightCharts.LineSeries, {{
+        color: o.color, lineWidth: 2, priceLineVisible: false,
+        lastValueVisible: false, crosshairMarkerVisible: false,
+      }});
+      line.setData(o.data);
+      studySeries.push(line);
+    }});
+    paneVol = null;
+    const showRsi = !!(s.rsi && s.rsi.length);
+    volEl.style.display = showRsi ? 'none' : '';
+    // Take up the freed space now, so the pane sizing below works on the final height.
+    chart.applyOptions({{ width: chartEl.clientWidth, height: chartEl.clientHeight }});
+    if (showRsi) {{
+      paneVol = chart.addSeries(LightweightCharts.HistogramSeries, {{
+        priceFormat: {{ type: 'volume' }}, priceLineVisible: false,
+      }}, 1);
+      paneVol.priceScale().applyOptions({{ scaleMargins: {{ top: 0.1, bottom: 0 }} }});
+      paneVol.setData(volumeData);
+      studySeries.push(paneVol);
+      const rsi = chart.addSeries(LightweightCharts.LineSeries, {{
+        color: '{ct.MAUVE}', lineWidth: 1, priceLineVisible: false,
+      }}, 2);
+      rsi.setData(s.rsi);
+      [70, 30].forEach(v => rsi.createPriceLine({{
+        price: v, color: '{ct.OVERLAY2}', lineWidth: 1,
+        lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: false,
+      }}));
+      studySeries.push(rsi);
+      _sizeSubPanes();
+    }}
+    const p = s.plan;
+    if (!p) return;
+    // Shaded zones: a baseline series at the target (or stop) level filled to the entry.
+    [[p.target, '{ct.GREEN}'], [p.stop, '{ct.RED}']].forEach(([level, colour]) => {{
+      const zone = chart.addSeries(LightweightCharts.BaselineSeries, {{
+        baseValue: {{ type: 'price', price: p.entry }},
+        topLineColor: 'transparent', bottomLineColor: 'transparent',
+        topFillColor1: colour + '1f', topFillColor2: colour + '1f',
+        bottomFillColor1: colour + '1f', bottomFillColor2: colour + '1f',
+        priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
+      }});
+      zone.setData(candleData.map(c => ({{ time: c.time, value: level }})));
+      studySeries.push(zone);
+    }});
+    [['Entry', p.entry, '{ct.BLUE}'], ['Stop', p.stop, '{ct.RED}'],
+     ['Target', p.target, '{ct.GREEN}']].forEach(([title, price, colour]) => {{
+      planLines.push(candleSeries.createPriceLine({{
+        price: price, color: colour, lineWidth: 1,
+        lineStyle: LightweightCharts.LineStyle.Solid, axisLabelVisible: true, title: title,
+      }}));
+    }});
   }};
 
 }})();
@@ -521,12 +799,23 @@ class CandleChartPanel(QWidget):
     """
 
     chart_loaded = pyqtSignal(str, str)   # symbol, timeframe (SRD-GUI-020.001)
+    drawing_added = pyqtSignal(object)    # Drawing finished on the page (SRD-GUI-026.011)
+    drawing_deleted = pyqtSignal(int)     # drawing id clicked with the eraser
 
     def __init__(self, svc: AppService, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._svc = svc
         self._current_symbol: str = ""
         self._current_tf: str = "1d"
+        self._candles: list[dict[str, Any]] = []
+        self._overlays: list[tuple[str, int]] = []
+        self._plan: tuple[float, float, float] | None = None
+        self._rsi_pane = False
+        self._markers: list[dict[str, Any]] = []
+        self._levels: list[float] = []
+        self._drawings: list[dict[str, object]] = []
+        self._tool = ""
+        self._webchannel_js = ""
 
         self._build_ui()
 
@@ -602,6 +891,7 @@ class CandleChartPanel(QWidget):
         # ── WebEngine view ─────────────────────────────────────────────────────
         self._web = QWebEngineView()
         self._web.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self._web.loadFinished.connect(self._on_page_loaded)
         root.addWidget(self._web, 1)
 
         self._apply_toolbar_styles()
@@ -636,6 +926,92 @@ class CandleChartPanel(QWidget):
             btn.setFixedWidth(C.BTN_H + 4)
             btn.setToolTip(tip)
             btn.setAccessibleName(tip)
+
+    @property
+    def candles(self) -> list[dict[str, Any]]:
+        """Bars of the loaded chart (``time``, ``open``, ``high``, ``low``, ``close``, ``volume``)."""
+        return self._candles
+
+    def set_overlays(self, overlays: list[tuple[str, int]]) -> None:
+        """Draw ``(kind, length)`` moving averages, kind ``sma`` or ``ema`` (SRD-GUI-026.003)."""
+        self._overlays = list(overlays)
+        self._push_studies()
+
+    def set_plan(self, plan: tuple[float, float, float] | None) -> None:
+        """Draw ``(entry, stop, target)`` lines and zones, or clear them (SRD-GUI-026.004)."""
+        self._plan = plan
+        self._push_studies()
+
+    def set_markers(self, markers: list[dict[str, Any]]) -> None:
+        """Draw pattern markers (``time``, ``position``, ``shape``, ``color``, ``text``)."""
+        self._markers = list(markers)
+        self._push_studies()
+
+    def set_levels(self, levels: list[float]) -> None:
+        """Draw faint dotted price lines at ``levels``; ``[]`` clears them (SRD-GUI-026.009)."""
+        self._levels = list(levels)
+        self._push_studies()
+
+    def enable_drawing(self) -> None:
+        """Let the page report finished drawings through ``drawing_added`` (SRD-GUI-026.011)."""
+        if self._webchannel_js:
+            return
+        source = QFile(":/qtwebchannel/qwebchannel.js")
+        if not source.open(QIODevice.OpenModeFlag.ReadOnly):
+            _log.warning("[Charts] Drawing tools are not available on this system")
+            return
+        self._webchannel_js = bytes(source.readAll().data()).decode("utf-8")
+        self._bridge = ChartBridge(self)
+        self._bridge.drawing_added.connect(self.drawing_added)
+        self._bridge.drawing_deleted.connect(self.drawing_deleted)
+        self._channel = QWebChannel(self)
+        self._channel.registerObject("bridge", self._bridge)
+        page = self._web.page()
+        if page is not None:
+            page.setWebChannel(self._channel)
+
+    def set_drawings(self, drawings: list[dict[str, object]]) -> None:
+        """Draw saved drawings (``Drawing.to_js()`` shape); ``[]`` clears them."""
+        self._drawings = list(drawings)
+        self._push_studies()
+
+    def set_draw_tool(self, tool: str) -> None:
+        """Pick ``hline``, ``trend``, ``rect`` or ``erase``; ``""`` is the plain pointer."""
+        self._tool = tool
+        self._push_studies()
+
+    def set_rsi_pane(self, shown: bool) -> None:
+        """Show an RSI pane under the price pane (SRD-GUI-026.004)."""
+        self._rsi_pane = shown
+        self._push_studies()
+
+    def _studies(self) -> dict[str, Any]:
+        ct: Any = active_palette()
+        overlays = [
+            {"color": getattr(ct, _OVERLAY_TOKENS[i % len(_OVERLAY_TOKENS)]),
+             "data": study_points(self._candles, kind, length)}
+            for i, (kind, length) in enumerate(self._overlays)
+        ]
+        plan = None
+        if self._plan is not None:
+            entry, stop, target = self._plan
+            plan = {"entry": entry, "stop": stop, "target": target}
+        rsi = study_points(self._candles, "rsi", RSI_PERIOD) if self._rsi_pane else []
+        return {"overlays": overlays, "rsi": rsi, "plan": plan,
+                "markers": self._markers, "levels": self._levels,
+                "drawings": self._drawings, "tool": self._tool}
+
+    def _push_studies(self) -> None:
+        if not self._candles:
+            return
+        script = f"window.applyStudies && window.applyStudies({json.dumps(self._studies())});"
+        page = self._web.page()
+        if page is not None:
+            page.runJavaScript(script)
+
+    def _on_page_loaded(self, ok: bool) -> None:
+        if ok:
+            self._push_studies()
 
     def hide_toolbar(self) -> None:
         """Hide the symbol and timeframe bar when a host picks the symbol (SRD-GUI-022.011)."""
@@ -753,9 +1129,11 @@ class CandleChartPanel(QWidget):
         self._status_lbl.setText(f"Loading {symbol} ({timeframe.upper()})…")
         candles = self._svc.get_candles_for_symbol(symbol, timeframe, limit)
         if not candles:
+            self._candles = []
             self._status_lbl.setText(f"No data for {symbol} ({timeframe.upper()})")
             self._show_no_data(symbol, timeframe)
             return
+        self._candles = candles
 
         _tc = colors()
         _vol_up = _tc["candle_up_volume"]
@@ -770,7 +1148,8 @@ class CandleChartPanel(QWidget):
         ]
 
         tz = self._svc.get_system_config().market_timezone
-        html = _build_html(candles, volume_data, symbol, timeframe, timezone=tz)
+        html = _build_html(candles, volume_data, symbol, timeframe, timezone=tz,
+                           webchannel_js=self._webchannel_js)
         self._web.setHtml(html, QUrl("about:blank"))
         self._current_symbol = symbol
         self._current_tf = timeframe
