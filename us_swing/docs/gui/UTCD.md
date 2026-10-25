@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.19.0: UT-GUI-027.* added — Settings dialog.
 > v1.18.0: UT-GUI-023.* added — card layout.
 > v1.17.0: UT-GUI-022.008–.011.* added — screener header, run stepper, transcript drawer, list detail.
 > v1.16.0: UT-GUI-022.* added — screener result views and preset rail.
@@ -604,3 +605,26 @@ Test files:
 | UT-GUI-024.006.M05.T04 | MD-GUI-024.006.M05 | Positive | Nice y ticks | min 0, max 412.6 | ticks 0, 150, 300, 450 | Pass |
 | UT-GUI-024.008.M06.T01 | MD-GUI-024.008.M06 | Positive | Hide charts is remembered | `set_charts_hidden(True)`; new pane | `charts_toggled(True)`; setting true; new pane starts hidden | Pass |
 | UT-GUI-024.008.M01.T03 | MD-GUI-024.001.M01 | Positive | Header charts button names the next action | default; `show_charts_state(True)` | "Hide charts"; "Show charts" | Pass |
+
+## FO-GUI-027 — Settings Dialog
+
+| UT ID | MD | Type | Description | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-027.001.M01.T01 | MD-GUI-027.001.M01 | Positive | Dialog is frameless and modal | build dialog | frameless flag; application modal; title bar text "Settings" | Pass |
+| UT-GUI-027.001.M01.T02 | MD-GUI-027.001.M01 | Positive | Open at a section | `open_at("Telegram")` | dialog visible; Telegram section shown | Pass |
+| UT-GUI-027.003.M01.T01 | MD-GUI-027.001.M01 | Positive | Footer buttons | open; click Cancel; open; click OK | Apply disabled at start; rejected; accepted | Pass |
+| UT-GUI-027.004.M02.T01 | MD-GUI-027.004.M02 | Positive | Settings item opens, screen stays | click Settings with Execution checked | `settings_requested` once; Execution still checked | Pass |
+| UT-GUI-027.004.M03.T01 | MD-GUI-027.004.M03 | Positive | Four screens | `_NAV_ITEMS` | Dashboard, Screener, Execution, Charts | Pass |
+| UT-GUI-027.002.M04.T01 | MD-GUI-027.005.M04 | Positive | Nine sections in order | build panel | Users … Updates, nine stack pages | Not Run |
+| UT-GUI-027.005.M04.T01 | MD-GUI-027.005.M04 | Positive | Appearance and Updates pages | build `_SystemSections` | theme buttons on Appearance; update button on Updates | Not Run |
+| UT-GUI-027.007.M06.T01 | MD-GUI-019.001.M01 | Positive | Strip keeps three buttons | build `IconStrip` | details, watch, log only | Not Run |
+| UT-GUI-027.008.M02.T01 | MD-GUI-027.004.M02 | Positive | Settings badge per state | downloading 62, complete, partial | "62"; check icon; "!" | Not Run |
+| UT-GUI-027.008.M02.T02 | MD-GUI-027.004.M02 | Negative | Idle hides the badge | complete then idle | badge hidden | Not Run |
+| UT-GUI-027.009.M05.T01 | MD-GUI-027.009.M05 | Positive | Header breaker trips and resets | click; breaker active; click | `set_circuit_breaker(True)`; label "Reset breaker"; `set_circuit_breaker(False)` | Not Run |
+| UT-GUI-027.010.M04.T01 | MD-GUI-027.005.M04 | Positive | Edit then Apply saves once | change risk to 2.5; Apply | Apply enabled after edit; `update_user` once; Apply disabled | Not Run |
+| UT-GUI-027.010.M04.T02 | MD-GUI-027.005.M04 | Negative | Cancel drops edits | change risk to 2.5; Cancel | no save; field back to saved value | Not Run |
+| UT-GUI-027.011.M04.T01 | MD-GUI-027.005.M04 | Positive | Restore defaults after yes | Risk shown, risk 2.5, confirm yes | default risk value; section dirty | Not Run |
+| UT-GUI-027.011.M04.T02 | MD-GUI-027.005.M04 | Negative | No keeps values | confirm no | risk still 2.5; nothing dirty | Not Run |
+| UT-GUI-027.012.M04.T01 | MD-GUI-027.005.M04 | Positive | Dot states | `set_section_state` ok, warn, off, none | green, amber, grey; hidden | Not Run |
+| UT-GUI-027.012.M04.T02 | MD-GUI-027.005.M04 | Edge | Telegram dot rule | enabled + token + chat; enabled, no chat; disabled | ok; warn; off | Not Run |
+| UT-GUI-027.013.M04.T01 | MD-GUI-027.005.M04 | Positive | Theme waits for Apply | click Mocha; then Apply | not applied after click; applied once and saved after Apply | Not Run |

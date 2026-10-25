@@ -16,7 +16,7 @@ from us_swing.gui.sidebar import Sidebar, market_text
 from us_swing.gui.theme import active_palette
 
 _ITEMS = [("layout-dashboard", "Dashboard"), ("filter", "Screener"), ("zap", "Execution"),
-          ("chart-candlestick", "Chart"), ("settings", "Settings")]
+          ("chart-candlestick", "Chart")]
 
 
 class _StubService(QObject):
@@ -84,6 +84,23 @@ def test_nav_click_requests_page(qtbot, sidebar):
         sidebar._nav[2].click()
     assert blocker.args == [2]
     assert sidebar._nav[2].isChecked()
+
+
+def test_settings_item_keeps_screen(qtbot, sidebar):
+    """UT-GUI-027.004.M02.T01: Settings asks for the dialog and keeps the checked screen."""
+    sidebar.set_current(2)
+    with qtbot.waitSignal(sidebar.settings_requested):
+        sidebar._settings_btn.click()
+    assert sidebar._nav[2].isChecked()
+    assert not sidebar._settings_btn.isCheckable()
+
+
+def test_main_window_lists_four_screens():
+    """UT-GUI-027.004.M03.T01: Settings is no longer a screen in the sidebar."""
+    from us_swing.gui.main_window import _NAV_ITEMS
+
+    assert [label for _icon, label in _NAV_ITEMS] == [
+        "Dashboard", "Screener", "Execution", "Charts"]
 
 
 def test_mini_hides_labels_keeps_tooltips(sidebar):

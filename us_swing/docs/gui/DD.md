@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.18.0: DD-GUI-027.001.D01 added — Settings dialog opened from the sidebar.
 > v1.17.0: DD-GUI-024.001.D01 added — Execution workspace.
 > v1.16.0: DD-GUI-023.001.D01 added — card layout.
 > v1.15.0: DD-GUI-022.001.D01 extended — page header, run stepper, transcript drawer (SRD-GUI-022.008–.012).
@@ -1629,3 +1630,21 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 **P&L card (`strategy_pnl_chart.py`, SRD-.006).** `StrategyPnlCard(QWidget)` = title + total + "since … · N trades", a two-button toggle (P&L curve / Per trade), range buttons (1W / 1M / 3M / All → `since_iso` = now − 7/30/90 days UTC, All = None), `StrategyPnlChart` and a stats column. `StrategyPnlChart.paintEvent` (QPainter, antialiased): plot rect minus a 52 px right axis and 18 px bottom axis; y range from min(0, min cum) to max(0, max cum) rounded up to a "nice" step (1/1.5/2/2.5/5 × 10ⁿ, 3 steps); line in GREEN when total ≥ 0 else RED, fill = vertical gradient of the line colour from 28 % alpha to 0; drawdown span (`dd_start`..`dd_end`, −1 = origin) redrawn in RED 2 px; dashed zero line; x labels = month short names at the first point of each month. Per-trade mode draws one bar per point from the zero line. Empty summary → centred "No closed trades yet".
 
 **Charts (SRD-.008).** `ExecutionHeader.charts_btn` (after the broker chip) toggles `_IntradayChartPane.set_charts_hidden()`, which stores `charts_hidden` in `QSettings("USSwing", "ExecutionPanel")` and emits `charts_toggled`; the panel hides the whole chart card (shown again at 3 : 2) and relabels the button via `show_charts_state()`. No chart header row. Like the Screener, `MainWindow` does not wrap Execution in one card: the panel is a gutter with cards (header, watchlist, tabs, charts) 4 px apart (`cards.GAP`), splitter handles GAP wide.
+
+---
+
+## DD-GUI-027.001.D01 — Settings Dialog
+
+**Traces:** SRD-GUI-027.001–.013
+
+**Dialog (`settings_dialog.py`, SRD-.001–.003).** `SettingsDialog(QDialog)` wraps the existing `SettingsPanel`: flags `FramelessWindowHint | Dialog`, application modal, minimum 900 × 600. Rows: `_DialogTitleBar("Settings", self)` reused from `scheduler_dialog.py`; a `QScrollArea` (no sideways scroll) holding the panel; a footer with Restore defaults on the left and Cancel, Apply, OK on the right. Cancel and Esc → `reject()`, OK → `apply()` then `accept()`. `MainWindow` builds one dialog at start-up and reuses it, so the panel and its candle download live as long as the main window. `open_at(name=None)` selects a section (when given), centres the dialog on its parent and shows it. The panel's own "Settings" title is removed; the title bar shows it.
+
+**Sidebar (SRD-.004, .008).** `Sidebar` gains `settings_requested` and a non-checkable Settings button between the stretch and the Connections panel, outside the screen `QButtonGroup`, so the checked screen never changes. `set_data_state(state, percent)` moves from `IconStrip` to `Sidebar` unchanged and badges this button (percent, check icon or "!"). `_NAV_ITEMS` lists four screens; Settings is no longer a stack page and `_NO_PANEL_PAGES` is `{3}`.
+
+**Sections (SRD-.002, .005–.007).** `SettingsPanel` sections: Users, Risk, Connection, Scheduler, Telegram, Universe, Candle data (`_DataPanel`, its own "DATA" head removed), Appearance (theme buttons) and Updates (installed version, Check for Updates, note). `_SystemSections` returns these as pages; its side `panel` is removed. `IconStrip` keeps Details, Watchlist and Log; `_RIGHT_PANELS` is `("details", "watch")`. `data_panel.state_changed` → `Sidebar.set_data_state`.
+
+**Circuit breaker (SRD-.009).** The toggle moves to `ExecutionHeader` after the broker chip: text "Trip breaker" (danger role) or "Reset breaker", refreshed on `circuit_breaker_changed`; a click calls `set_circuit_breaker(not active)` at once.
+
+**Apply flow (SRD-.010, .011, .013).** The per-section Save buttons are removed. Each editable section (Risk, Connection, Scheduler, Telegram, Appearance) reports its input widgets; any edit marks that section dirty and enables Apply. `apply()` saves dirty sections through the existing handlers (`_RiskTab._on_save`, `_SystemSections._on_save`, `_on_save_telegram`, theme save + `apply_theme` + `theme_changed`), then clears the dirty set. `reject()` reloads every dirty section from storage with signals blocked. A theme click only checks the button; it is applied on Apply / OK and undone by the reload on Cancel. Restore defaults (enabled on those five sections) asks "Restore defaults for <section>?" and fills `RiskConfig()` / `SystemConfig()` / Carbon values, marking the section dirty. Action buttons (New user, Send test, build, Check for Updates) keep acting at once.
+
+**Status dots (SRD-.012).** Each section button carries an 8 px dot set by `set_section_state(name, state)`: `ok` green, `warn` amber, `off` grey, `none` hidden. Connection: connected → ok, else warn. Scheduler: enabled → ok, else off. Telegram: enabled with token and chat → ok, enabled but missing one → warn, else off. Candle data: complete → ok, partial or downloading → warn, else off. Updates: update found → warn, else none. Dots refresh on `feed_status_changed`, `state_changed`, after Apply and when the dialog opens.

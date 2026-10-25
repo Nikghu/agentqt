@@ -2,8 +2,9 @@
 Module: MD-GUI-018.001.M01 — Sidebar
 Parent SRD: SRD-GUI-018.001
 Connections panel: MD-GUI-018.008.M04 (Parent SRD: SRD-GUI-018.008)
+Settings item: MD-GUI-027.004.M02 (Parent SRD: SRD-GUI-027.004)
 
-Left navigation for the five screens, with a mini (icon-only) mode, a
+Left navigation for the four screens plus a Settings item, with a mini (icon-only) mode, a
 Connections panel (internet, IBKR feed, market) and an account footer that
 replaces the old admin context strip (SRD-GUI-018.004).
 """
@@ -358,6 +359,7 @@ class Sidebar(QFrame):
     """Screen navigation with a collapse button and an account footer."""
 
     page_requested = pyqtSignal(int)
+    settings_requested = pyqtSignal()
     mini_toggled = pyqtSignal(bool)
     hover_changed = pyqtSignal(bool)
 
@@ -400,6 +402,10 @@ class Sidebar(QFrame):
         self._group.idClicked.connect(self.page_requested)
 
         layout.addStretch(1)
+        # Outside the screen group: opening Settings never changes the checked screen.
+        self._settings_btn = self._make_button("settings", "Settings")
+        self._settings_btn.clicked.connect(self.settings_requested)
+        layout.addWidget(self._settings_btn)
         sep2 = QFrame()
         sep2.setObjectName("side_sep")
         sep2.setFixedHeight(1)

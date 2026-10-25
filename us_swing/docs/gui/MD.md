@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.21.0: MD-GUI-027.* added — Settings dialog (new `settings_dialog.py`; sidebar, main window, settings panel, icon strip and Execution header changes).
 > v1.20.0: MD-GUI-023.001.M01 (cards.py) added — card layout.
 > v1.19.0: MD-GUI-022.001.M01 adds `RunStepper`, `SideDrawer` and the header text helpers (SRD-GUI-022.008–.012).
 > v1.18.0: MD-GUI-022.001.M01 (screener_views.py) added; MD-GUI-003.001.M01 hosts the views.
@@ -250,3 +251,15 @@ us_swing/src/us_swing/gui/
 | MD-GUI-024.008.M06 | SRD-GUI-024.008 | `us_swing/src/us_swing/gui/execution_panel.py` | Workspace layout, tab card, charts below with hide toggle | `ExecutionPanel` | all of the above | No |
 
 > `_StrategyTablePane` and the filtered-stocks table leave `execution_panel.py` (MD-GUI-004.001.M01); `theme.py` gains QSS for `exec_chip`, `exec_tabs`, `detail_tile`.
+
+## FO-GUI-027 — Settings Dialog
+
+| MD ID | SRD | File | Purpose | Public API | Depends on | Async |
+|---|---|---|---|---|---|---|
+| MD-GUI-027.001.M01 | SRD-GUI-027.001 | `us_swing/src/us_swing/gui/settings_dialog.py` | Frameless modal dialog around the settings panel; footer and apply flow | `SettingsDialog`, `open_at()`, `apply()` | `settings_panel`, `scheduler_dialog._DialogTitleBar` | No |
+| MD-GUI-027.004.M02 | SRD-GUI-027.004 | `us_swing/src/us_swing/gui/sidebar.py` | Settings item and download badge | `Sidebar.settings_requested`, `Sidebar.set_data_state()` | `icons`, `theme` | No |
+| MD-GUI-027.004.M03 | SRD-GUI-027.004 | `us_swing/src/us_swing/gui/main_window.py` | Four screens, one reused dialog, two right panels | `MainWindow` | all of the above | No |
+| MD-GUI-027.005.M04 | SRD-GUI-027.005 | `us_swing/src/us_swing/gui/settings_panel.py` | Nine sections, dirty tracking, reload, defaults, section dots | `SettingsPanel.show_section()`, `set_section_state()` | `app_service`, `theme` | No |
+| MD-GUI-027.009.M05 | SRD-GUI-027.009 | `us_swing/src/us_swing/gui/execution_panel.py` | Circuit breaker button in the page header | `ExecutionHeader` | `app_service` | No |
+
+> `side_panels.py` (MD-GUI-019.001.M01) drops the System and Data buttons and the data badge.

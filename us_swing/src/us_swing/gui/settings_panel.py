@@ -1579,6 +1579,7 @@ class SettingsPanel(QWidget):
         self._stack = QStackedWidget()
         self._nav_group = QButtonGroup(self)
         self._nav_group.setExclusive(True)
+        self._names = [name for name, _body in sections]
         for index, (name, body) in enumerate(sections):
             btn = QPushButton(name)
             btn.setObjectName("side_btn")
@@ -1592,19 +1593,21 @@ class SettingsPanel(QWidget):
         if first is not None:
             first.setChecked(True)
 
-        title = QLabel("Settings")
-        title.setObjectName("page_title")
-
-        body_row = QHBoxLayout()
-        body_row.setSpacing(10)
-        body_row.addWidget(nav)
-        body_row.addWidget(self._stack, 1)
-
-        layout = QVBoxLayout(self)
+        layout = QHBoxLayout(self)
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(10)
-        layout.addWidget(title)
-        layout.addLayout(body_row, 1)
+        layout.addWidget(nav)
+        layout.addWidget(self._stack, 1)
+
+    def show_section(self, name: str) -> None:
+        """Select the section called ``name``; unknown names are ignored (SRD-GUI-027.001)."""
+        if name not in self._names:
+            return
+        index = self._names.index(name)
+        btn = self._nav_group.button(index)
+        if btn is not None:
+            btn.setChecked(True)
+        self._stack.setCurrentIndex(index)
 
     @staticmethod
     def _section_card(name: str, body: QWidget) -> QFrame:
