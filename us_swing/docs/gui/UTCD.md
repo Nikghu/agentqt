@@ -533,8 +533,9 @@ Test files:
 | UT-GUI-019.006.M02.T03 | MD-GUI-019.006.M02 | Negative | Cancel and Back send nothing | Review then Back; Cancel | no `submitted` | Pass |
 | UT-GUI-019.007.M02.T01 | MD-GUI-019.006.M02 | Positive | Square-off list shows all positions and confirms | 3 positions; Review; Confirm | 3 rows; `submitted("square_off_all")` | Pass |
 | UT-GUI-019.002.M03.T01 | MD-GUI-019.002.M03 | Positive | Opening the right panel shrinks the sidebar and closing restores it | `_MiniState` panel open then closed | `want_mini` True then False | Pass |
-| UT-GUI-019.004.M02.T01 | MD-GUI-019.006.M02 | Positive | Watchlist box suggests S&P 500 stocks | universe loads after the panel; type "a" | popup list; first match "AAPL — Apple Inc." | Pass |
-| UT-GUI-019.004.M02.T02 | MD-GUI-019.006.M02 | Positive | Picked suggestion adds the symbol | "AAPL — Apple Inc."; Add | `add_to_watchlist("AAPL")` | Pass |
+| UT-GUI-019.004.M02.T01 | MD-GUI-019.006.M02 | Positive | Watchlist box suggests S&P 500 stocks | universe loads after the panel; type "a" | popup list; first match "AAPL - Apple Inc." | Pass |
+| UT-GUI-019.004.M02.T02 | MD-GUI-019.006.M02 | Positive | Picked suggestion adds the symbol | "AAPL - Apple Inc."; Add | `add_to_watchlist("AAPL")` | Pass |
+| UT-GUI-019.004.M02.T03 | MD-GUI-019.006.M02 | Negative | Non-S&P 500 symbol shows the app notice | "AA"; Add | frameless "NOT IN S&P 500" notice, OK only; nothing added | Pass |
 
 ## FO-GUI-020 — Charts Workspace
 

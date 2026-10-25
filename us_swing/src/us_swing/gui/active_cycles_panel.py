@@ -292,6 +292,7 @@ class _ConfirmDialog(QDialog):
         accent: str | None = None,
         confirm_enabled: bool = True,
         warning: str | None = None,
+        show_cancel: bool = True,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -335,7 +336,7 @@ class _ConfirmDialog(QDialog):
             body.addWidget(detail_lbl)
 
         root.addWidget(card, 1)
-        root.addWidget(self._build_button_row(confirm_text, accent, confirm_enabled))
+        root.addWidget(self._build_button_row(confirm_text, accent, confirm_enabled, show_cancel))
 
         if warning:
             root.addWidget(self._build_warning_banner(warning))
@@ -372,7 +373,8 @@ class _ConfirmDialog(QDialog):
         return bar
 
     def _build_button_row(
-        self, confirm_text: str, accent: str, confirm_enabled: bool = True
+        self, confirm_text: str, accent: str, confirm_enabled: bool = True,
+        show_cancel: bool = True,
     ) -> QWidget:
         wrap = QWidget()
         wrap.setStyleSheet(f"background: {C.BG};")
@@ -411,7 +413,8 @@ class _ConfirmDialog(QDialog):
                 f" border-radius: 5px; font-size: 9pt; font-weight: bold; outline: none; }}"
             )
 
-        row.addWidget(cancel)
+        if show_cancel:
+            row.addWidget(cancel)
         row.addWidget(confirm)
         return wrap
 
