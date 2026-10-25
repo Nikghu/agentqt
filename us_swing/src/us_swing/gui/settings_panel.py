@@ -1692,10 +1692,10 @@ class SettingsPanel(QWidget):
         self._set_clean()
 
     def revert(self) -> None:
-        """Reload changed sections from storage, dropping unsaved edits."""
+        """Reload every editable section from storage (for the active user), dropping edits."""
         self._loading = True
-        for name in self._dirty:
-            self._editable[name].load()
+        for editable in self._editable.values():
+            editable.load()
         self._loading = False
         self._set_clean()
 

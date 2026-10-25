@@ -35,3 +35,5 @@ Supersedes SRD-GUI-018.001 (five screens), SRD-GUI-021.001 (Settings page), SRD-
 ## Verification
 
 GUI suite 368 passed (351 before). `ruff` clean on changed files. `mypy --strict` clean on `settings_dialog.py`, `sidebar.py`, `side_panels.py` and `execution_header.py`, with no new errors on changed lines in `main_window.py` and `settings_panel.py` (80 old errors there). The dialog was rendered offscreen with a stub service (Risk, Appearance, Updates; dots and an unsaved edit) and checked. The full app was not launched: it would auto-connect the feed and fill the TWS login. The user should check the whole flow in the real app.
+
+Review (pyqt-code-reviewer): approved, no critical or high issues. Fixed: minimise hidden on the modal dialog; dots no longer refresh on every download tick while closed; dots refresh after Apply; each open reloads all sections for the active user.

@@ -546,10 +546,10 @@ class MainWindow(QMainWindow):
 
         # One reused dialog keeps the settings panel (and a running download) alive.
         self._settings_dialog = SettingsDialog(self._settings_panel, self)
-        # feed / candle download → settings panel → section dots (SRD-GUI-027.012)
-        svc.feed_status_changed.connect(lambda *_: self._settings_panel.refresh_states())
-        self._settings_panel.data_panel.state_changed.connect(
-            lambda *_: self._settings_panel.refresh_states())
+        # feed / candle download → section dots, only while the dialog is open
+        # (open_at refreshes them; each refresh reads the Telegram token store).
+        svc.feed_status_changed.connect(self._refresh_settings_dots)
+        self._settings_panel.data_panel.state_changed.connect(self._refresh_settings_dots)
         # sidebar → page_requested → MainWindow → stack + mini state
         self._sidebar.page_requested.connect(self._on_page_requested)
         # sidebar → settings_requested → Settings dialog (current screen unchanged)
@@ -648,6 +648,10 @@ class MainWindow(QMainWindow):
                 if self._reveal.is_open(name):
                     self._reveal.reveal_requested.emit(name, False)
         self._apply_sidebar_mode()
+
+    def _refresh_settings_dots(self, *_: object) -> None:
+        if self._settings_dialog.isVisible():
+            self._settings_panel.refresh_states()
 
     def _go_to(self, index: int) -> None:
         self._sidebar.set_current(index)

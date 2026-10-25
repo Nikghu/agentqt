@@ -13,7 +13,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtWidgets import QDialog, QLabel, QWidget
+from PyQt6.QtWidgets import QDialog, QLabel, QPushButton, QWidget
 
 # QWebEngineWidgets DLL is unavailable in the test environment — stub it so
 # settings_panel.py can be imported without the DLL.
@@ -66,6 +66,8 @@ def test_dialog_is_frameless_and_modal(dialog: SettingsDialog) -> None:
     assert dialog.windowModality() == Qt.WindowModality.ApplicationModal
     titles = [lbl.text() for lbl in dialog.findChildren(QLabel) if lbl.objectName() == "top_brand"]
     assert titles == ["Settings"]
+    minimise = [b for b in dialog.findChildren(QPushButton) if b.text() == "−"]
+    assert len(minimise) == 1 and minimise[0].isHidden()
 
 
 def test_open_at_section(dialog: SettingsDialog) -> None:
@@ -90,7 +92,9 @@ def test_footer_buttons(dialog: SettingsDialog) -> None:
 
     assert results == [QDialog.DialogCode.Rejected, QDialog.DialogCode.Accepted]
     assert not dialog.isVisible()
-    assert dialog.panel.calls == ["revert", "apply"]  # type: ignore[attr-defined]
+    # Each open reloads saved values; Cancel reverts; OK applies.
+    calls = dialog.panel.calls  # type: ignore[attr-defined]
+    assert calls == ["revert", "revert", "revert", "apply"]
 
 
 def test_footer_follows_panel(dialog: SettingsDialog) -> None:

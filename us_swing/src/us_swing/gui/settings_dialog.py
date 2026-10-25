@@ -57,7 +57,7 @@ class SettingsDialog(QDialog):
         self._apply_btn.setEnabled(False)
         self._cancel_btn.clicked.connect(self.reject)
         self._ok_btn.clicked.connect(self._on_ok)
-        self._apply_btn.clicked.connect(panel.apply)
+        self._apply_btn.clicked.connect(self._on_apply)
         self._defaults_btn.clicked.connect(panel.restore_defaults)
         # panel → dirty_changed / section_changed → footer buttons
         panel.dirty_changed.connect(self._apply_btn.setEnabled)
@@ -80,7 +80,10 @@ class SettingsDialog(QDialog):
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
-        root.addWidget(_DialogTitleBar("Settings", self))
+        title_bar = _DialogTitleBar("Settings", self)
+        # A minimised application-modal dialog would leave the main window locked.
+        title_bar._btn_min.hide()
+        root.addWidget(title_bar)
         root.addWidget(scroll, 1)
         root.addWidget(footer)
 
@@ -96,6 +99,7 @@ class SettingsDialog(QDialog):
         """
         if section is not None:
             self._panel.show_section(section)
+        self._panel.revert()
         self._panel.refresh_states()
         parent = self.parentWidget()
         if parent is not None:
@@ -104,6 +108,10 @@ class SettingsDialog(QDialog):
         self.show()
         self.raise_()
         self.activateWindow()
+
+    def _on_apply(self) -> None:
+        self._panel.apply()
+        self._panel.refresh_states()
 
     def _on_ok(self) -> None:
         self._panel.apply()
