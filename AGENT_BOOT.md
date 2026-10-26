@@ -182,6 +182,16 @@ Modular Python 3.11+ platform for US equity swing trading: Analysis, Screening, 
 
 ---
 
+### §9.2 — Git Branch Rule (do not miss)
+
+**One open feature branch at a time.** Finish means the PR is merged into `main`, not only committed. Before a new branch, run `git switch main` and `git pull`. Push and merge only when the user says so; never push directly to `main`.
+
+Why: parallel branches go stale and all edit the same docs (`CONTEXT.md`, `DEVLOG.md`, `FO/SRD/DD/MD/UTCD/TRACE.md`), which causes merge conflicts (12 fixed by hand in PRs #81–#84, 2026-10-26).
+
+Exceptions: a short fix branch from `main` for an urgent bug; one branch per phase for large work, each merged before the next phase; two parallel sessions need two worktrees on different files.
+
+---
+
 ## §10 — Slash Command Registry
 
 Commands live in `.claude/commands/`; skills live in `.claude/skills/`. Prompt-evaluator treats these as Class D unless otherwise noted.
