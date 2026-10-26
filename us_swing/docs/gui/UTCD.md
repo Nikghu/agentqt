@@ -535,6 +535,9 @@ Test files:
 | UT-GUI-019.006.M02.T03 | MD-GUI-019.006.M02 | Negative | Cancel and Back send nothing | Review then Back; Cancel | no `submitted` | Pass |
 | UT-GUI-019.007.M02.T01 | MD-GUI-019.006.M02 | Positive | Square-off list shows all positions and confirms | 3 positions; Review; Confirm | 3 rows; `submitted("square_off_all")` | Pass |
 | UT-GUI-019.002.M03.T01 | MD-GUI-019.002.M03 | Positive | Opening the right panel shrinks the sidebar and closing restores it | `_MiniState` panel open then closed | `want_mini` True then False | Pass |
+| UT-GUI-019.004.M02.T01 | MD-GUI-019.006.M02 | Positive | Watchlist box suggests S&P 500 stocks | universe loads after the panel; type "a" | popup list; first match "AAPL - Apple Inc." | Pass |
+| UT-GUI-019.004.M02.T02 | MD-GUI-019.006.M02 | Positive | Picked suggestion adds the symbol | "AAPL - Apple Inc."; Add | `add_to_watchlist("AAPL")` | Pass |
+| UT-GUI-019.004.M02.T03 | MD-GUI-019.006.M02 | Negative | Non-S&P 500 symbol shows the app notice | "AA"; Add | frameless "NOT IN S&P 500" notice, OK only; nothing added | Pass |
 
 ## FO-GUI-020 — Charts Workspace
 
@@ -672,6 +675,7 @@ Test files:
 | UT-GUI-026.003.M01.T02 | MD-GUI-026.001.M01 | Negative | Bad saved overlay is dropped | setting "sma:x,foo:5,sma:20" | overlays [sma 20] | Pass |
 | UT-GUI-026.004.M01.T01 | MD-GUI-026.001.M01 | Positive | Plan sent to the chart | screener plan 129.8 / 124.5 / 141 | `set_plan((129.8, 124.5, 141.0))` | Pass |
 | UT-GUI-026.004.M01.T02 | MD-GUI-026.001.M01 | Negative | No plan clears lines | symbol without plan or position | `set_plan(None)` | Pass |
+| UT-GUI-026.004.M01.T03 | MD-GUI-026.001.M01 | Positive | Plan drawn into the future only (manual, real window) | 220 daily bars; plan 85.8 / 82.8 / 95 | zones and lines start at the last candle and run to the right edge; about 12 empty bars on the right; earlier history unshaded | Pass |
 | UT-GUI-026.005.M03.T01 | MD-GUI-026.005.M03 | Positive | One header per registry entry; open state remembered | `SECTIONS`; collapse Indicators; new Inspector | header per entry in order; Indicators closed | Pass |
 | UT-GUI-026.005.M03.T02 | MD-GUI-026.005.M03 | Edge | Extra section plugs in | registry plus a fake section | fake section shown and its `update` called on load | Pass |
 | UT-GUI-026.005.M01.T04 | MD-GUI-026.001.M01 | Negative | Hidden Inspector stays hidden | hide; new workspace | Inspector card hidden | Pass |

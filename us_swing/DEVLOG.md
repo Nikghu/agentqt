@@ -20,6 +20,15 @@
 - Decisions: user picked Option A of 4 (https://claude.ai/artifact/BdzCz7hUddmW7Ps9sTp8si); Candles cell shows daily bars (weekly in tooltip); refresh button dropped (auto refresh kept); Failed group and Retry kept; Update now disabled when up to date; Reset uses `_ConfirmDialog`.
 - Findings: real-window render caught the start-up status check overwriting the summary mid-download; fixed and tested. `test_theme_waits_for_apply` fails on main too (machine's saved theme).
 
+## [20261025] GUI — Chart plan drawn into the future; watchlist suggestions (FO-GUI-026, FO-GUI-019, bugfix)
+
+- Type: Bugfix
+- FO(s): FO-GUI-026 (SRD-GUI-026.004), FO-GUI-019 (SRD-GUI-019.004)
+- RN: — (small fixes on fix/gui-chart-plan-future-zone)
+- Artifacts updated: DD, UTCD, Code, Tests, CONTEXT, DEVLOG
+- Decisions: trade plan zones and lines now drawn by a series primitive from the last candle to the right edge (12-bar right offset), axis labels kept; watchlist completer switched from inline to a popup "AAPL — Apple Inc." list, refilled on sp500_updated (it was built before the universe loaded).
+- Findings: plan checked in a real window with sample candles; 449 GUI tests pass.
+
 ---
 
 ## [20261025] GUI — Updates moves from Settings to the sidebar (FO-GUI-027, enhancement)

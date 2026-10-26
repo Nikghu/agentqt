@@ -306,6 +306,7 @@ def _build_html(
       timeVisible: true,
       secondsVisible: false,
       timezone: '{timezone}',
+      rightOffset: 12,
     }},
     watermark: {{
       visible: true,
@@ -712,8 +713,55 @@ def _build_html(
     }});
   }}
 
+  // Trade plan zones and lines run from the last candle into the future (SRD-GUI-026.004).
+  class PlanPrimitive {{
+    constructor(p) {{ this.p = p; this.chart = null; this.series = null; }}
+    attached(a) {{ this.chart = a.chart; this.series = a.series; }}
+    detached() {{ this.chart = null; this.series = null; }}
+    updateAllViews() {{}}
+    autoscaleInfo() {{
+      const v = [this.p.entry, this.p.stop, this.p.target];
+      return {{ priceRange: {{ minValue: Math.min(...v), maxValue: Math.max(...v) }} }};
+    }}
+    paneViews() {{
+      return [{{ zOrder: () => 'bottom', renderer: () => ({{ draw: t => this.draw(t) }}) }}];
+    }}
+    draw(target) {{
+      if (!this.chart || !this.series || !candleData.length) return;
+      const last = candleData[candleData.length - 1].time;
+      const x0 = this.chart.timeScale().timeToCoordinate(last);
+      if (x0 === null) return;
+      const p = this.p, y = v => this.series.priceToCoordinate(v);
+      target.useBitmapCoordinateSpace(({{ context: ctx, bitmapSize, horizontalPixelRatio: hr,
+                                         verticalPixelRatio: vr }}) => {{
+        const x = Math.max(0, Math.round(x0 * hr)), w = bitmapSize.width - x;
+        if (w <= 0) return;
+        const lw = Math.max(1, Math.floor(hr));
+        const snap = v => Math.round(v) + (lw % 2) / 2;
+        ctx.save();
+        [[p.target, '{ct.GREEN}'], [p.stop, '{ct.RED}']].forEach(([level, colour]) => {{
+          const a = y(p.entry), b = y(level);
+          if (a === null || b === null) return;
+          ctx.fillStyle = colour + '1f';
+          ctx.fillRect(x, Math.round(Math.min(a, b) * vr), w, Math.round(Math.abs(b - a) * vr));
+        }});
+        ctx.lineWidth = lw;
+        [[p.entry, '{ct.BLUE}'], [p.stop, '{ct.RED}'], [p.target, '{ct.GREEN}']]
+          .forEach(([level, colour]) => {{
+            const yy = y(level);
+            if (yy === null) return;
+            ctx.strokeStyle = colour;
+            ctx.beginPath(); ctx.moveTo(x, snap(yy * vr)); ctx.lineTo(bitmapSize.width, snap(yy * vr));
+            ctx.stroke();
+          }});
+        ctx.restore();
+      }});
+    }}
+  }}
+
   let studySeries = [];
   let planLines = [];
+  let planPrim = null;
   let markerApi = null;
   window.applyStudies = function(s) {{
     _setDrawings(s.drawings);
@@ -760,25 +808,16 @@ def _build_html(
       studySeries.push(rsi);
       _sizeSubPanes();
     }}
+    if (planPrim) {{ candleSeries.detachPrimitive(planPrim); planPrim = null; }}
     const p = s.plan;
     if (!p) return;
-    // Shaded zones: a baseline series at the target (or stop) level filled to the entry.
-    [[p.target, '{ct.GREEN}'], [p.stop, '{ct.RED}']].forEach(([level, colour]) => {{
-      const zone = chart.addSeries(LightweightCharts.BaselineSeries, {{
-        baseValue: {{ type: 'price', price: p.entry }},
-        topLineColor: 'transparent', bottomLineColor: 'transparent',
-        topFillColor1: colour + '1f', topFillColor2: colour + '1f',
-        bottomFillColor1: colour + '1f', bottomFillColor2: colour + '1f',
-        priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
-      }});
-      zone.setData(candleData.map(c => ({{ time: c.time, value: level }})));
-      studySeries.push(zone);
-    }});
+    planPrim = new PlanPrimitive(p);
+    candleSeries.attachPrimitive(planPrim);
+    // Axis labels only; the primitive draws the lines from the last candle onward.
     [['Entry', p.entry, '{ct.BLUE}'], ['Stop', p.stop, '{ct.RED}'],
      ['Target', p.target, '{ct.GREEN}']].forEach(([title, price, colour]) => {{
       planLines.push(candleSeries.createPriceLine({{
-        price: price, color: colour, lineWidth: 1,
-        lineStyle: LightweightCharts.LineStyle.Solid, axisLabelVisible: true, title: title,
+        price: price, color: colour, lineVisible: false, axisLabelVisible: true, title: title,
       }}));
     }});
   }};
