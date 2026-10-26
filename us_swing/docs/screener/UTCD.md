@@ -519,3 +519,32 @@ Test files:
 | UT-SCR-016.012.M08.T03 | MD-SCR-002.005.M08 | Edge | Disabled rule and short bar list | 1 disabled rule; symbol with 1 bar | disabled rule not counted; 1-bar symbol omitted; no enabled → score 0.0 | Pass |
 | UT-SCR-016.013.M08.T01 | MD-SCR-002.005.M08 | Positive | Detailed output keyed by short label | Hammer + NR7 rules | keys `Hammer`, `NR7`; bool values | Pass |
 | UT-SCR-016.015.M08.T01 | MD-SCR-002.005.M08 | Positive | No analysis-tool import; id unchanged | module source; registry | no `us_swing.analysis` import; `price_action` registered | Pass |
+
+## FO-SCR-015 — Accumulation / Distribution Screener
+
+Test files:
+- `tests/screener/test_acc_dist_screener.py` (M32)
+- `tests/gui/test_acc_dist_settings_dialog.py` (M33)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-SCR-017.001.M32.T01 | MD-SCR-017.001.M32 | Positive | Screener is registered | package source; class | `register("acc_dist", AccDistScreener)`; name "Accumulation / Distribution" | Pass |
+| UT-SCR-017.002.M32.T01 | MD-SCR-017.001.M32 | Positive | Empty config reads as defaults | `{}` | equals `default_config()`; lookback int 20 | Pass |
+| UT-SCR-017.003.M32.T01 | MD-SCR-017.001.M32 | Negative | Bad mode or out-of-range value raises (4 cases) | mode `sideways`, lookback 2, high factor 9, min score 1.5 | `ScreenerValidationError` naming the key | Pass |
+| UT-SCR-017.004.M32.T01 | MD-SCR-017.001.M32 | Edge | Moves under the minimum move are flat | min move 2 % on 1.5 % / 1 % days | `(False, 0.0)` | Pass |
+| UT-SCR-017.006.M32.T01 | MD-SCR-017.001.M32 | Positive | Accumulation passes | 8 rallies (6 at 1.5×), 7 drops (6 at 0.6×), near range low | `True`, score ≈ 0.80 | Pass |
+| UT-SCR-017.006.M32.T02 | MD-SCR-017.001.M32 | Negative | Same bars fail Distribution | mode distribution, location off | `False`, score < 0.6 | Pass |
+| UT-SCR-017.006.M32.T03 | MD-SCR-017.001.M32 | Positive | Distribution passes | rallies 0.6×, drops 1.5×, near range high | `True`, score ≈ 0.80 | Pass |
+| UT-SCR-017.008.M32.T01 | MD-SCR-017.001.M32 | Positive | Detailed output and ratio | accumulation bars | keys RallyVol / DropVol / UD; RallyVol > 1.2, DropVol < 0.9, UD ≥ 1.3 | Pass |
+| UT-SCR-017.008.M32.T02 | MD-SCR-017.001.M32 | Negative | Ratio limit blocks pass | min up/down ratio 5 | `False` | Pass |
+| UT-SCR-017.009.M32.T01 | MD-SCR-017.001.M32 | Edge | Location filter | accumulation volumes near range high | fails with filter on, passes off | Pass |
+| UT-SCR-017.010.M32.T01 | MD-SCR-017.001.M32 | Positive | Close-position check | rallies closing in the lower candle half | fails and lower score with check on; passes off | Pass |
+| UT-SCR-017.011.M32.T01 | MD-SCR-017.001.M32 | Edge | Minimum days and short history | min rally days 9; 30 bars | `False`; symbol omitted | Pass |
+| UT-SCR-017.013.M33.T01 | MD-SCR-017.013.M33 | Positive | Config round trip | distribution, lookback 30, location off | same dict back | Pass |
+| UT-SCR-017.013.M33.T02 | MD-SCR-017.013.M33 | Positive | One input per setting | default dialog | inputs = `SETTINGS` keys; on/off keys are checkboxes | Pass |
+| UT-SCR-017.013.M33.T03 | MD-SCR-017.013.M33 | Negative | Inputs are range-limited | lookback 999 | 120 | Pass |
+| UT-SCR-017.013.M33.T04 | MD-SCR-017.013.M33 | Edge | Bad saved config and Reset | mode `sideways`; edits then Reset | defaults both times | Pass |
+| UT-SCR-017.013.M33.T05 | MD-SCR-017.013.M33 | Positive | Builder wiring | group and weighted-row configure with an accepting dialog | display "Acc / Dist"; both store the returned config | Pass |
+
+SRD-SCR-017.005 (relative volume) and .007 (score) are covered by T01 / T03 of .006 and T01 of .008.
+

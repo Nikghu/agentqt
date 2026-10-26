@@ -1656,6 +1656,44 @@ The registry id stays `price_action`. The module no longer imports `us_swing.ana
 
 ---
 
+## DD-SCR-017.002.D01 — Accumulation / Distribution Screener
+- **Status:** Draft
+
+**Parent SRDs:** SRD-SCR-017.001 through SRD-SCR-017.013
+
+### Settings (`SETTINGS`, key → default, min, max)
+
+| Key | Default | Range | Key | Default | Range |
+|---|---|---|---|---|---|
+| `lookback` | 20 | 5–120 | `max_ud_ratio` | 0.8 | 0.1–1.0 |
+| `volume_period` | 20 | 5–100 | `location_filter` | on | on / off |
+| `high_factor` | 1.2 | 1.0–5.0 | `range_period` | 126 | 20–260 |
+| `low_factor` | 0.9 | 0.1–1.0 | `zone_pct` | 25 | 5–50 |
+| `min_move_pct` | 0.5 | 0–10 | `close_position` | on | on / off |
+| `min_rally_days` | 3 | 1–60 | `close_zone_pct` | 30 | 10–50 |
+| `min_drop_days` | 3 | 1–60 | `min_score` | 0.6 | 0–1 |
+| `min_ud_ratio` | 1.3 | 1.0–5.0 | `mode` | `accumulation` | `accumulation` / `distribution` |
+
+`read_config()` merges the saved dict over the defaults, ignores unknown keys, casts int / float / bool by the default's type and raises `ScreenerValidationError` naming the key for a bad mode or out-of-range value.
+
+### `_evaluate(arrays, cfg)` for the last `n = lookback` bars
+1. `change % = close[i] / close[i-1] − 1`. Rally: `change > 0` and `≥ min_move_pct`. Drop: `change < 0` and `≤ −min_move_pct`. Other days are flat and not scored.
+2. `ratio = volume_ratio(volume, volume_period)` (volume ÷ mean of the previous `volume_period` bars, today excluded).
+3. `high = ratio ≥ high_factor`, `low = ratio ≤ low_factor`.
+4. Close position (if on): `pos = (close − low) / (high − low)` (0.5 when the candle has no range). Accumulation needs `pos ≥ 1 − zone`; Distribution needs `pos ≤ zone`.
+5. Accumulation: rally hit = rally & high & strong close; drop hit = drop & low. Distribution: rally hit = rally & low; drop hit = drop & high & weak close.
+6. `score = (rally hits / rally days + drop hits / drop days) / 2`, a missing side counts 0; rounded to 4 places.
+7. `ud = mean volume on rally days / mean volume on drop days` (0 when no drop days).
+8. Location (if on): over the last `min(range_period, bars)` bars, `pos = (close − lowest low) / (highest high − lowest low)`. Accumulation needs `pos ≤ zone_pct`; Distribution needs `pos ≥ 1 − zone_pct`.
+9. Pass = score ≥ `min_score` and rally days ≥ `min_rally_days` and drop days ≥ `min_drop_days` and (Acc: `ud ≥ min_ud_ratio`; Dist: `0 < ud ≤ max_ud_ratio`) and location passes.
+
+Symbols with fewer than `lookback + volume_period + 1` bars are left out. `screen_detailed()` returns `RallyVol` / `DropVol` (mean relative volume on rally / drop days) and `UD`, which the Details column shows as numbers.
+
+### Settings dialog
+`AccDistSettingsDialog(config)` is a `FramelessDialog` with a mode combo and one input per `SETTINGS` key: a checkbox for on/off keys, a range-limited spin box for the others. A config that fails `read_config()` opens with defaults. Reset restores defaults; `get_config()` returns `read_config()` of the inputs.
+
+---
+
 ## Notes for Implementation
 
 1. **Backward Compatibility:** v1 ScreenerEngine **removed entirely**. No conditional "if v1 else v2" logic.

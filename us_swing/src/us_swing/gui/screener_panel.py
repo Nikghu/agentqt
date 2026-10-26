@@ -67,6 +67,7 @@ from us_swing.gui.app_service import AppService
 from us_swing.gui.cards import GAP, card, gutter
 from us_swing.gui.frameless_dialog import FramelessDialog
 from us_swing.gui.indicator_rules_dialog import IndicatorRulesDialog
+from us_swing.gui.acc_dist_settings_dialog import AccDistSettingsDialog
 from us_swing.gui.price_action_rules_dialog import PriceActionRulesDialog
 from us_swing.gui.icons import icon as make_icon
 from us_swing.gui.icons import mark_danger, set_icon
@@ -113,6 +114,7 @@ _STYLE_CHIPS: list[tuple[str, str | None]] = [
 _SCREENER_DISPLAY: dict[str, str] = {
     "indicator_composite": "Indicators",
     "price_action":        "Price Action",
+    "acc_dist":            "Acc / Dist",
     "llm_local_mistral":   "Local AI",
     "ml_ensemble_v3":      "Machine Learning Models",
     "mcp":                 "MCP",
@@ -266,6 +268,8 @@ class _ModelValidateWorker(QThread):
 
 _INDICATOR_SCREENER_ID   = "indicator_composite"
 _PRICE_ACTION_SCREENER_ID = "price_action"
+_ACC_DIST_SCREENER_ID    = "acc_dist"
+_CONFIGURABLE_IDS = (_INDICATOR_SCREENER_ID, _PRICE_ACTION_SCREENER_ID, _ACC_DIST_SCREENER_ID)
 _LLM_CLAUDE_SCREENER_ID  = "llm_claude_ranking"
 
 # Screeners hidden from the "Add Screener" menu — still registered for backward compat with saved presets
@@ -439,9 +443,7 @@ class _GroupWidget(QFrame):
     def _on_selection_changed(self) -> None:
         item = self._list.currentItem()
         sid = item.data(Qt.ItemDataRole.UserRole) if item else None
-        self._cfg_btn.setEnabled(
-            sid in (_INDICATOR_SCREENER_ID, _PRICE_ACTION_SCREENER_ID)
-        )
+        self._cfg_btn.setEnabled(sid in _CONFIGURABLE_IDS)
 
     def _on_configure(self) -> None:
         item = self._list.currentItem()
@@ -452,6 +454,8 @@ class _GroupWidget(QFrame):
             self._open_indicator_config(sid)
         elif sid == _PRICE_ACTION_SCREENER_ID:
             self._open_price_action_config(sid)
+        elif sid == _ACC_DIST_SCREENER_ID:
+            self._open_acc_dist_config(sid)
 
     def _on_add_screener(self) -> None:
         menu = QMenu(self)
@@ -497,6 +501,13 @@ class _GroupWidget(QFrame):
                 lambda: self._open_price_action_config(sid),
             )
             menu.addSeparator()
+        elif sid == _ACC_DIST_SCREENER_ID:
+            menu.addAction(
+                make_icon("settings-2"),
+                "Configure…",
+                lambda: self._open_acc_dist_config(sid),
+            )
+            menu.addSeparator()
         menu.addAction(
             "Remove from group",
             lambda: (self._list.takeItem(self._list.row(item)), self.changed.emit()),
@@ -511,6 +522,12 @@ class _GroupWidget(QFrame):
 
     def _open_price_action_config(self, sid: str) -> None:
         dlg = PriceActionRulesDialog(self._configs.get(sid), parent=self)
+        if dlg.exec() == QDialog.DialogCode.Accepted:
+            self._configs[sid] = dlg.get_config()
+            self.changed.emit()
+
+    def _open_acc_dist_config(self, sid: str) -> None:
+        dlg = AccDistSettingsDialog(self._configs.get(sid), parent=self)
         if dlg.exec() == QDialog.DialogCode.Accepted:
             self._configs[sid] = dlg.get_config()
             self.changed.emit()
@@ -579,7 +596,7 @@ class _WeightedRow(QFrame):
         hl.addWidget(drag_hint)
         hl.addWidget(name_lbl, 1)
 
-        if sid in (_INDICATOR_SCREENER_ID, _PRICE_ACTION_SCREENER_ID):
+        if sid in _CONFIGURABLE_IDS:
             cfg_btn = QPushButton()
             set_icon(cfg_btn, "settings-2", "neutral", 13)
             cfg_btn.setFixedSize(22, 22)
@@ -631,10 +648,11 @@ class _WeightedRow(QFrame):
         return dict(self._config)
 
     def _open_config(self) -> None:
+        dlg: PriceActionRulesDialog | IndicatorRulesDialog | AccDistSettingsDialog
         if self._sid == _PRICE_ACTION_SCREENER_ID:
-            dlg: PriceActionRulesDialog | IndicatorRulesDialog = PriceActionRulesDialog(
-                self._config or None, parent=self
-            )
+            dlg = PriceActionRulesDialog(self._config or None, parent=self)
+        elif self._sid == _ACC_DIST_SCREENER_ID:
+            dlg = AccDistSettingsDialog(self._config or None, parent=self)
         else:
             dlg = IndicatorRulesDialog(self._config or None, parent=self)
         if dlg.exec() == QDialog.DialogCode.Accepted:
@@ -1603,6 +1621,7 @@ class _NewPresetDialog(QDialog):
         _DISPLAY = {
             "indicator_composite": "Indicators",
             "price_action":        "Price Action",
+            "acc_dist":            "Acc / Dist",
             "llm_local_mistral":   "Local AI",
             "ml_ensemble_v3":      "Machine Learning Models",
             "mcp":                 "MCP",

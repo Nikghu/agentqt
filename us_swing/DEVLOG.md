@@ -159,6 +159,15 @@
 - Artifacts updated: SRD, MD, UTCD, TRACE, Code, Tests, Assets, RN, CONTEXT
 - Decisions: page header and run stepper over the results; transcript moved from a bottom splitter to a side drawer; toolbar Watchlist button removed (kept in detail); accent colour only on Run now and selection.
 
+## [20261023] SCR — Accumulation / Distribution screener (FO-SCR-015, feature)
+
+- Type: Feature
+- FO(s): FO-SCR-015
+- RN: RN-SCR-2.7.0-20261023
+- Artifacts updated: FO, SRD, DD, MD, UTCD, TRACE, Code, RN, CONTEXT
+- Decisions: classic volume rule (rally ↑vol / drop ↓vol = accumulation); location filter 6-month range, 25 % zone; close position on; candle size left out (overlaps volume, weak evidence).
+- Panel wiring: Acc / Dist added to the new screener panel (rebased onto feat/gui-carbon-theme).
+
 ---
 
 ## [20261023] SCR + GUI — AI trade plan fields and Screener result views (FO-SCR-011, FO-GUI-022, feature)
