@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.43.0: SRD-GUI-028.001–.005 added; approved by user 2026-10-25 — Candle data panel redesign (Option A). Replaces the layout part of SRD-GUI-027.006 and SRD-GUI-021.004.
 > v2.42.0: SRD-GUI-027.001–.013 added; approved by user 2026-10-25 — Settings dialog opened from the sidebar (canvas Option 5 + Open A, user 2026-10-25). On approval supersedes SRD-GUI-018.001 (five screens → four plus a Settings item), SRD-GUI-021.001 (Settings page), SRD-GUI-021.003 (System panel) and SRD-GUI-021.004 (Data panel and strip badge).
 > v2.41.0: SRD-GUI-026.001–.012 added — Charts workspace Focus + Inspector (canvas Option 3); Phase 1 (.001–.007) approved by user and implemented 2026-10-24; Phase 2 (.008–.010) approved by user and implemented 2026-10-24; Phase 3 (.011–.012) approved by user and implemented 2026-10-24.
 > v2.40.0: SRD-GUI-025.016–.018 added — dashboard KPI and position-table fixes, Phase 5; approved by user and implemented 2026-10-24.
@@ -463,3 +464,13 @@
 | SRD-GUI-027.011 | FO-GUI-027 | Should | Restore defaults resets the shown section's fields to default values after a confirm. | click | field values | Values are saved only on Apply or OK | Implemented |
 | SRD-GUI-027.012 | FO-GUI-027 | Should | Each section's dot shows its state: green ok, amber needs attention, grey off. | feed, Telegram config, candle state | dots | Dots refresh while the dialog is open | Implemented |
 | SRD-GUI-027.013 | FO-GUI-027 | Should | A theme picked in Appearance applies on Apply or OK and is reverted by Cancel. | theme click | `theme_changed` | Charts and Execution still refresh on theme change | Implemented |
+
+## FO-GUI-028 — Candle Data Panel Redesign
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-028.001 | FO-GUI-028 | Must | A summary line and one state pill show the panel state: Checking, Downloading, Up to date, N days behind, Partial or Empty. | status, progress | summary, pill | `state` tuple and `state_changed` keep their values | Implemented |
+| SRD-GUI-028.002 | FO-GUI-028 | Must | While downloading, a 4 px bar and "pct · stock · ~N min left" show; both hide when idle. | progress | bar, detail | ETA shown from the third stock on | Implemented |
+| SRD-GUI-028.003 | FO-GUI-028 | Must | A four-cell strip shows Data to, Last trading day, Stocks and Candles, each with a short note. | `CandleDbInfo` | stat cells | Stocks above the index read "M / M" with "+N left the index" | Implemented |
+| SRD-GUI-028.004 | FO-GUI-028 | Must | The footer has Update (Build, Fill Delta or Resume) or Cancel, Open Candle DB, and a red Reset database link on the right. | click | actions | Update disabled when up to date; Reset disabled while downloading | Implemented |
+| SRD-GUI-028.005 | FO-GUI-028 | Should | Reset asks in the app's frameless confirm dialog with the line "Deletes all stored candles. The next update downloads everything again." | click | confirm | Native message box removed for this confirm | Implemented |
