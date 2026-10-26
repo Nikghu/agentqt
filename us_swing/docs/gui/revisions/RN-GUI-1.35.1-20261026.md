@@ -23,7 +23,7 @@ The watchlist now stays after the app is closed and opened again. It is saved pe
 
 | SRD ID | Description | Status |
 |---|---|---|
-| SRD-GUI-025.019 | Watchlist saved per user and restored at start | Draft (user to approve) |
+| SRD-GUI-025.019 | Watchlist saved per user and restored at start | Implemented (approved by user 2026-10-26) |
 
 ## Tests
 

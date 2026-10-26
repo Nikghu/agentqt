@@ -5,7 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
-> v2.45.0: SRD-GUI-025.019 added (Draft) — watchlist persists across restarts (ISS-GUI-0006).
+> v2.45.0: SRD-GUI-025.019 added; approved by user 2026-10-26 — watchlist persists across restarts (ISS-GUI-0006).
 > v2.44.0: SRD-GUI-029.001–.006 added; approved by user 2026-10-25 — Scheduler task table (Option D). Replaces the Windows Task Scheduler window.
 > v2.43.0: SRD-GUI-028.001–.005 added; approved by user 2026-10-25 — Candle data panel redesign (Option A). Replaces the layout part of SRD-GUI-027.006 and SRD-GUI-021.004.
 > v2.42.0: SRD-GUI-027.001–.013 added; approved by user 2026-10-25 — Settings dialog opened from the sidebar (canvas Option 5 + Open A, user 2026-10-25). On approval supersedes SRD-GUI-018.001 (five screens → four plus a Settings item), SRD-GUI-021.001 (Settings page), SRD-GUI-021.003 (System panel) and SRD-GUI-021.004 (Data panel and strip badge).
@@ -431,7 +431,7 @@
 | SRD-GUI-025.016 | FO-GUI-025 | Must | The Open Positions table shows a Side column (LONG or SHORT) right after Symbol. | position direction | column | A short's P&L sign then reads correctly | Implemented |
 | SRD-GUI-025.017 | FO-GUI-025 | Must | Stop shows "No stop" in amber and Target shows "—" when the value is not set. | stop, target | cell text | Not set = 0 or missing | Implemented |
 | SRD-GUI-025.018 | FO-GUI-025 | Must | "P&L Today" in the KPI strip is equity minus start-of-day equity, so it counts realised and unrealised P&L in paper and live. | account state | KPI value | — | Implemented |
-| SRD-GUI-025.019 | FO-GUI-025 | Must | The watchlist is saved per user and is restored when the app starts. | add or remove a stock | `~/.usswing/watchlist.json` | A missing or broken file gives an empty watchlist | Draft |
+| SRD-GUI-025.019 | FO-GUI-025 | Must | The watchlist is saved per user and is restored when the app starts. | add or remove a stock | `~/.usswing/watchlist.json` | A missing or broken file gives an empty watchlist | Implemented |
 
 ## FO-GUI-026 — Charts Workspace (Focus + Inspector)
 
