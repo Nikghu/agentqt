@@ -9,7 +9,7 @@
 - RN: RN-GUI-1.35.1-20261026
 - Artifacts updated: SRD, MD, UTCD, TRACE, ISS, Code, Tests, RN, CONTEXT, DEVLOG
 - Decisions: JSON file per user (same pattern as manual picks) instead of the date-keyed `watchlist` DB table, which has no user column.
-- Findings: `upsert_watchlist` / `fetch_watchlist` in db/manager.py are dead code. SRD-GUI-025.019 left Draft for user approval.
+- Findings: `upsert_watchlist` / `fetch_watchlist` in db/manager.py were dead code and are removed. SRD-GUI-025.019 left Draft for user approval.
 
 ## [20261025] GUI — Scheduler task table in Settings (FO-GUI-029, feature)
 

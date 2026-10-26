@@ -17,7 +17,7 @@ Stocks added to the watchlist are gone after the app is closed and opened again.
 
 ## Root Cause
 
-`AppService._watchlist` was only an in-memory list. `add_to_watchlist` and `remove_from_watchlist` never saved it, and nothing loaded it at start. `DatabaseManager.upsert_watchlist` and `fetch_watchlist` exist but are never called.
+`AppService._watchlist` was only an in-memory list. `add_to_watchlist` and `remove_from_watchlist` never saved it, and nothing loaded it at start. `DatabaseManager.upsert_watchlist` and `fetch_watchlist` were never called; they are removed (dead code).
 
 **SRD root cause: SRD gap.** No SRD asked for the watchlist to persist. New row SRD-GUI-025.019 (Draft, waiting for user approval).
 
