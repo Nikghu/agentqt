@@ -2,12 +2,13 @@
 
 **Document:** CONTEXT.md
 **Project:** us_swing
-**Last Updated:** 2026-10-25 (Session 95)
+**Last Updated:** 2026-10-26 (Session 96)
 **Updated By:** Claude (Opus 5.5)
 
 ---
 
-**Current (Session 95, 2026-10-25):** **Scheduler task table in Settings (FO-GUI-029, RN-GUI-1.35.0).** Option D: Windows start / close tasks edited in a table in Settings → Scheduler; old Task Scheduler window removed. On feat/gui-scheduler-inline, not pushed.
+**Current (Session 96, 2026-10-26):** **Watchlist persists across restarts (Bugfix, GUI; ISS-GUI-0006; RN-GUI-1.35.1-20261026).** Watchlist was memory-only. New `gui/watchlist_store.py` (per-user JSON, like manual picks); AppService loads at start, saves on add / remove. SRD-GUI-025.019 is Draft — waiting for user approval. On branch fix/gui-watchlist-persist, not pushed.
+Previous (Session 95, 2026-10-25): **Scheduler task table in Settings (FO-GUI-029, RN-GUI-1.35.0).** Option D: Windows start / close tasks edited in a table in Settings → Scheduler; old Task Scheduler window removed. On feat/gui-scheduler-inline, not pushed.
 Previous (Session 92, 2026-10-25): **Updates moved to the sidebar (FO-GUI-027 req 8, RN-GUI-1.33.0).** User picked Option B (https://claude.ai/artifact/U2hKfHTWMvQVoW85QU7Nm4): an Updates item below the Connections panel opens a popup (version, last check time, Check for Updates) and shows an amber dot when an update is found; Settings now has 8 sections. On feat/gui-settings-dialog, not pushed.
 Previous (Session 91, 2026-10-25): **Settings dialog (FO-GUI-027, RN-GUI-1.32.0).** User picked canvas Option 5 + "Open A" (https://claude.ai/artifact/SHgMoy3fAqpy4xhQnhFy8P). Settings is no longer a screen: a sidebar Settings item opens a frameless modal dialog (9 sections with status dots; Restore defaults / Cancel / Apply / OK; edits saved only on Apply/OK, theme too). System and Data strip panels moved in as Appearance, Updates, Candle data; download % badge moved to the sidebar Settings item; Trip / Reset breaker moved to the Execution header. SRD-GUI-027.001–.013 Implemented. GUI suite 368 passed. 3 commits on **feat/gui-settings-dialog** (from main, worktree `F:\USMarket_settings`), NOT pushed. **Next:** user checks the dialog in the real app (I did not launch it: auto-connect + TWS auto-fill); then push / PR when asked. On merge with the Charts/Dashboard branches expect only doc-table conflicts (FO/SRD/TRACE/CONTEXT) and 5 lines in `main_window.py`.
 Previous (Session 90, 2026-10-25): **Charts drawing tools fix (Bugfix, GUI; FO-GUI-026; RN-GUI-1.31.1-20261025).** User reported drawing "not working": tool buttons were blank (glyphs clipped) → painted icons; a quick second click was dropped by the chart library's click event → clicks read from DOM mouse events; pattern marker labels piled up → arrows only. GUI suite 423 passed; verified in a real window. **Next:** user re-checks Charts; push / PR when the user says.
