@@ -203,10 +203,6 @@ class DatabaseManager:
     def upsert_universe(records: list[UniverseRecord]) -> None
     def fetch_universe() -> list[UniverseRecord]
 
-    # Watchlist
-    def upsert_watchlist(symbols: list[str], date: date) -> None
-    def fetch_watchlist(date: date) -> list[str]
-
     # Trades / Positions
     def insert_trade(trade: TradeRecord) -> None
     def update_trade_exit(trade_id: int, exit_time: datetime, exit_price: float, pnl: float) -> None

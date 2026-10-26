@@ -121,6 +121,7 @@ from us_swing.exceptions import BrokerConnectionError
 from us_swing.gui.system_store import SystemConfig, load_system_config
 from us_swing.gui.manual_picks_store import load_manual_picks, save_manual_picks
 from us_swing.gui.user_store import load_users, next_user_id, save_users
+from us_swing.gui.watchlist_store import load_watchlist, save_watchlist
 
 # Lifecycle service — see FO-EXE-009 / FO-EXE-010.  Imported eagerly because the
 # Protocols and DTOs are pure-Python and add no GUI dependency.
@@ -1168,6 +1169,7 @@ class AppService(QObject):
 
         # ── Watchlist ─────────────────────────────────────────────────────────
         self._watchlist: list[WatchlistItem] = []
+        self._load_saved_watchlist()
         self._wl_worker: _WatchlistQuoteWorker | None = None
 
         # ── Live tick worker (FO-GUI-012) ─────────────────────────────────────
@@ -3249,6 +3251,7 @@ class AppService(QObject):
         if not symbol or any(w.symbol == symbol for w in self._watchlist):
             return
         self._watchlist.append(WatchlistItem(symbol=symbol))
+        self._save_watchlist()
         self.watchlist_updated.emit()
         if self._connection_status is ConnectionStatus.CONNECTED:
             self._refresh_watchlist()          # one-shot static metadata
@@ -3256,9 +3259,18 @@ class AppService(QObject):
 
     def remove_from_watchlist(self, symbol: str) -> None:
         self._watchlist = [w for w in self._watchlist if w.symbol != symbol]
+        self._save_watchlist()
         self.watchlist_updated.emit()
         if self._connection_status is ConnectionStatus.CONNECTED:
             self._sync_tick_subscriptions()    # cancel removed symbol's subscription
+
+    def _load_saved_watchlist(self) -> None:
+        self._watchlist = [
+            WatchlistItem(symbol=sym) for sym in load_watchlist(str(self._active_uid))
+        ]
+
+    def _save_watchlist(self) -> None:
+        save_watchlist(str(self._active_uid), [w.symbol for w in self._watchlist])
 
     def _refresh_watchlist(self) -> None:
         if not self._watchlist:

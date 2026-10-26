@@ -2,6 +2,15 @@
 
 ---
 
+## [20261026] GUI — Watchlist persists across restarts (ISS-GUI-0006, bugfix)
+
+- Type: Bugfix
+- FO(s): FO-GUI-025
+- RN: RN-GUI-1.35.1-20261026
+- Artifacts updated: SRD, MD, UTCD, TRACE, ISS, Code, Tests, RN, CONTEXT, DEVLOG
+- Decisions: JSON file per user (same pattern as manual picks) instead of the date-keyed `watchlist` DB table, which has no user column.
+- Findings: `upsert_watchlist` / `fetch_watchlist` in db/manager.py were dead code and are removed. SRD-GUI-025.019 approved by user 2026-10-26, set to Implemented.
+
 ## [20261025] GUI — Scheduler task table in Settings (FO-GUI-029, feature)
 
 - Type: Feature

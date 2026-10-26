@@ -658,6 +658,12 @@ Test files:
 | UT-GUI-025.016.M04.T01 | MD-GUI-025.016.M04 | Positive | Side and unset stop/target text | LONG and SHORT rows; stop 0, target 0 | "LONG" / "SHORT"; "No stop"; "—" | Pass |
 | UT-GUI-025.016.M04.T02 | MD-GUI-025.016.M04 | Edge | Side follows Symbol with User column | User column shown | Side right after Symbol | Pass |
 | UT-GUI-025.018.M02.T01 | MD-GUI-025.001.M02 | Positive | P&L Today from equity change | equity above start-of-day; different daily_pnl | KPI shows equity − start | Pass |
+| UT-GUI-025.019.M05.T01 | MD-GUI-025.019.M05 | Positive | Add survives restart | add TSLA, AAPL; build a new service | new service holds TSLA, AAPL | Pass |
+| UT-GUI-025.019.M05.T02 | MD-GUI-025.019.M05 | Positive | Remove survives restart | remove TSLA; build a new service | new service holds AAPL only | Pass |
+| UT-GUI-025.019.M05.T03 | MD-GUI-025.019.M05 | Edge | Duplicate saved once | add TSLA, then tsla | file holds TSLA once | Pass |
+| UT-GUI-025.019.M05.T04 | MD-GUI-025.019.M05 | Negative | No file | no saved file; load | empty watchlist, no error | Pass |
+| UT-GUI-025.019.M05.T05 | MD-GUI-025.019.M05 | Negative | Broken file | file holds bad JSON; load | empty watchlist, no error | Pass |
+| UT-GUI-025.019.M05.T06 | MD-GUI-025.019.M05 | Positive | Separate users | save for user 1 and 2 | each user loads only their own | Pass |
 
 ## FO-GUI-026 — Charts Workspace (Focus + Inspector)
 
