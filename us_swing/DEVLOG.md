@@ -2,6 +2,15 @@
 
 ---
 
+## [20261026] GUI — Right-panel watchlist on start + Market Watch own list (ISS-GUI-0007, SRD-GUI-025.020)
+
+- Type: Bugfix + Feature
+- FO(s): FO-GUI-025
+- RN: RN-GUI-1.35.2-20261026, RN-GUI-1.36.0-20261026
+- Artifacts updated: SRD, MD, UTCD, TRACE, ISS, Code, Tests, RN, CONTEXT, DEVLOG
+- Decisions: user — tile list starts empty (no copy from watchlist), accepts any stock; one JSON file per list; `_WatchlistTab(market_watch=True)` picks the list.
+- Findings: right panel only drew on `watchlist_updated` (ISS-GUI-0007). Review found quote QThreads with no parent could be destroyed mid-run — parented, tested. Tile/watchlist ticks are not capped (noted in RN).
+
 ## [20261026] GUI — Watchlist persists across restarts (ISS-GUI-0006, bugfix)
 
 - Type: Bugfix

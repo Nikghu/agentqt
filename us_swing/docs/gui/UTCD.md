@@ -665,6 +665,15 @@ Test files:
 | UT-GUI-025.019.M05.T05 | MD-GUI-025.019.M05 | Negative | Broken file | file holds bad JSON; load | empty watchlist, no error | Pass |
 | UT-GUI-025.019.M05.T06 | MD-GUI-025.019.M05 | Positive | Separate users | save for user 1 and 2 | each user loads only their own | Pass |
 | UT-GUI-025.019.M02.T01 | MD-GUI-025.001.M02 | Positive | Right panel shows saved watchlist on start | 2 saved stocks; build dashboard, no update signal | right panel shows 2 rows, no empty text | Pass |
+| UT-GUI-025.020.M05.T01 | MD-GUI-025.019.M05 | Positive | Market Watch list saved on its own | add PLTR to tile list; restart | tile list PLTR; watchlist unchanged | Pass |
+| UT-GUI-025.020.M05.T02 | MD-GUI-025.019.M05 | Positive | Market Watch remove survives restart | remove TSLA from tile list | file holds PLTR; watchlist file empty | Pass |
+| UT-GUI-025.020.M05.T03 | MD-GUI-025.019.M05 | Edge | Market Watch starts empty | saved watchlist only; load tile list | tile list empty | Pass |
+| UT-GUI-025.020.M01.T01 | MD-GUI-004.001.M01 | Positive | Tick updates both lists | AAPL in both lists; tick 110 | both rows updated; both signals sent | Pass |
+| UT-GUI-025.020.M01.T02 | MD-GUI-004.001.M01 | Positive | Non-S&P tile stock gets ticks | PLTR in tile list, not S&P 500 | PLTR subscribed; non-S&P watchlist stock not | Pass |
+| UT-GUI-025.020.M01.T03 | MD-GUI-004.001.M01 | Negative | Refresh during a fetch | refresh twice while the first fetch runs | both fetches owned by the service; both finish, no crash | Pass |
+| UT-GUI-025.020.M02.T01 | MD-GUI-025.001.M02 | Positive | Tile and right panel separate | tile TSLA; watchlist AAPL, NVDA | tile 1 row; right panel 2 rows | Pass |
+| UT-GUI-025.020.M02.T02 | MD-GUI-025.001.M02 | Positive | Tile accepts any stock | type pltr on tile | added to tile list, not watchlist | Pass |
+| UT-GUI-025.020.M02.T03 | MD-GUI-025.001.M02 | Positive | Screener add goes to watchlist | Screener add AAPL | watchlist add; tile list unchanged | Pass |
 
 ## FO-GUI-026 — Charts Workspace (Focus + Inspector)
 

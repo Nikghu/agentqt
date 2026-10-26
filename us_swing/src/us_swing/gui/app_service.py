@@ -121,7 +121,7 @@ from us_swing.exceptions import BrokerConnectionError
 from us_swing.gui.system_store import SystemConfig, load_system_config
 from us_swing.gui.manual_picks_store import load_manual_picks, save_manual_picks
 from us_swing.gui.user_store import load_users, next_user_id, save_users
-from us_swing.gui.watchlist_store import load_watchlist, save_watchlist
+from us_swing.gui.watchlist_store import MARKET_WATCH, load_watchlist, save_watchlist
 
 # Lifecycle service — see FO-EXE-009 / FO-EXE-010.  Imported eagerly because the
 # Protocols and DTOs are pure-Python and add no GUI dependency.
@@ -1028,6 +1028,34 @@ def _make_stk_contract(symbol: str) -> Any:
         return None
 
 
+def _apply_quotes(items: list[WatchlistItem], results: list[dict[str, Any]]) -> None:
+    lookup = {r["symbol"]: r for r in results}
+    for item in items:
+        if item.symbol in lookup:
+            d = lookup[item.symbol]
+            # LTP / change come from tick stream; populate prev_close + static fields
+            item.prev_close = d["prev_close"]
+            item.day_open   = d["day_open"]
+            item.day_high   = d["day_high"]
+            item.day_low    = d["day_low"]
+            item.volume     = d["volume"]
+            item.year_high  = d["year_high"]
+            item.year_low   = d["year_low"]
+            item.market_cap = d["market_cap"]
+
+
+def _apply_tick(items: list[WatchlistItem], tag: str, price: float) -> bool:
+    for item in items:
+        if item.symbol == tag:
+            item.ltp = price
+            prev = item.prev_close or 0.0
+            if prev:
+                item.change = price - prev
+                item.change_pct = item.change / prev * 100
+            return True
+    return False
+
+
 def _make_ind_contract(ibkr_symbol: str, exchange: str) -> Any:
     """Return an ib_insync Index contract for a Market Watch index symbol."""
     try:
@@ -1095,6 +1123,7 @@ class AppService(QObject):
     feed_status_changed  = pyqtSignal(str)       # ConnectionStatus.value string
     market_watch_updated = pyqtSignal()          # Market Watch prices refreshed
     watchlist_updated    = pyqtSignal()          # Watchlist quote data refreshed
+    market_list_updated  = pyqtSignal()          # Market Watch tile list refreshed
     market_status_updated = pyqtSignal()          # NYSE/NASDAQ open-closed status
     sp500_updated         = pyqtSignal()          # S&P 500 universe loaded/refreshed
     internet_status_changed = pyqtSignal(bool)   # True = online, False = offline
@@ -1171,6 +1200,11 @@ class AppService(QObject):
         self._watchlist: list[WatchlistItem] = []
         self._load_saved_watchlist()
         self._wl_worker: _WatchlistQuoteWorker | None = None
+
+        # ── Market Watch tile list (SRD-GUI-025.020) ──────────────────────────
+        self._market_list: list[WatchlistItem] = []
+        self._load_saved_market_list()
+        self._ml_worker: _WatchlistQuoteWorker | None = None
 
         # ── Live tick worker (FO-GUI-012) ─────────────────────────────────────
         self._tick_worker: LiveTickWorker | None = None
@@ -3165,6 +3199,8 @@ class AppService(QObject):
         self._refresh_mw_quotes()
         if self._watchlist:
             self._refresh_watchlist()      # one-shot static metadata (day_open, etc.)
+        if self._market_list:
+            self._refresh_market_list()
 
     def _on_connect_fail(self, reason: str) -> None:
         host = self._system_cfg.ibkr_host
@@ -3277,32 +3313,70 @@ class AppService(QObject):
             return
         symbols = [w.symbol for w in self._watchlist]
         worker = _WatchlistQuoteWorker(symbols)
+        worker.setParent(self)    # a running fetch must outlive being replaced by a newer one
+        worker.finished.connect(worker.deleteLater)
         worker.done.connect(self._on_watchlist_data)
         worker.start()
         self._wl_worker = worker
 
     def _on_watchlist_data(self, results: list) -> None:
-        lookup = {r["symbol"]: r for r in results}
-        for item in self._watchlist:
-            if item.symbol in lookup:
-                d = lookup[item.symbol]
-                # LTP / change come from tick stream; populate prev_close + static fields
-                item.prev_close = d["prev_close"]
-                item.day_open   = d["day_open"]
-                item.day_high   = d["day_high"]
-                item.day_low    = d["day_low"]
-                item.volume     = d["volume"]
-                item.year_high  = d["year_high"]
-                item.year_low   = d["year_low"]
-                item.market_cap = d["market_cap"]
+        _apply_quotes(self._watchlist, results)
         self.watchlist_updated.emit()
+
+    # ── Market Watch tile list (SRD-GUI-025.020) ──────────────────────────────
+
+    def get_market_list_items(self) -> list[WatchlistItem]:
+        return list(self._market_list)
+
+    def add_to_market_list(self, symbol: str) -> None:
+        symbol = symbol.upper().strip()
+        if not symbol or any(w.symbol == symbol for w in self._market_list):
+            return
+        self._market_list.append(WatchlistItem(symbol=symbol))
+        self._save_market_list()
+        self.market_list_updated.emit()
+        if self._connection_status is ConnectionStatus.CONNECTED:
+            self._refresh_market_list()
+            self._sync_tick_subscriptions()
+
+    def remove_from_market_list(self, symbol: str) -> None:
+        self._market_list = [w for w in self._market_list if w.symbol != symbol]
+        self._save_market_list()
+        self.market_list_updated.emit()
+        if self._connection_status is ConnectionStatus.CONNECTED:
+            self._sync_tick_subscriptions()
+
+    def _load_saved_market_list(self) -> None:
+        self._market_list = [
+            WatchlistItem(symbol=sym)
+            for sym in load_watchlist(str(self._active_uid), MARKET_WATCH)
+        ]
+
+    def _save_market_list(self) -> None:
+        save_watchlist(
+            str(self._active_uid), [w.symbol for w in self._market_list], MARKET_WATCH,
+        )
+
+    def _refresh_market_list(self) -> None:
+        if not self._market_list:
+            return
+        worker = _WatchlistQuoteWorker([w.symbol for w in self._market_list])
+        worker.setParent(self)    # a running fetch must outlive being replaced by a newer one
+        worker.finished.connect(worker.deleteLater)
+        worker.done.connect(self._on_market_list_data)
+        worker.start()
+        self._ml_worker = worker
+
+    def _on_market_list_data(self, results: list[dict[str, Any]]) -> None:
+        _apply_quotes(self._market_list, results)
+        self.market_list_updated.emit()
 
     # ── Live tick streaming (FO-GUI-012) ──────────────────────────────────────
 
     def _sync_tick_subscriptions(self) -> None:
         """Rebuild the LiveTickWorker contract set from MW + watchlist + positions.
 
-        Market Watch index contracts are always included.
+        Market Watch index contracts and the Market Watch tile list are always included.
         Watchlist and position contracts are gated to S&P 500 members.
         Total subscriptions are capped at _MAX_TICK_SUBS (95); position
         contracts are trimmed first if the cap is exceeded.
@@ -3339,6 +3413,13 @@ class AppService(QObject):
         if not self._sp500_cache and self._sp500:
             self._sp500_cache = {r.symbol for r in self._sp500}
 
+        # Market Watch tile list — any stock the user picked (SRD-GUI-025.020)
+        for item in self._market_list:
+            if item.symbol not in contracts:
+                c = _make_stk_contract(item.symbol)
+                if c is not None:
+                    contracts[item.symbol] = c
+
         # Watchlist (S&P 500 members only)
         for item in self._watchlist:
             if item.symbol in self._sp500_cache:
@@ -3368,7 +3449,7 @@ class AppService(QObject):
         tw.set_contracts(contracts)
 
     def _on_watchlist_tick(self, tag: str, price: float) -> None:
-        """Update Market Watch and Watchlist ltp/change from tick stream."""
+        """Update Market Watch, Watchlist and Market Watch tile ltp/change from tick stream."""
         for item in self._mw_items:
             if item.symbol == tag:
                 item.ltp = price
@@ -3378,15 +3459,10 @@ class AppService(QObject):
                     item.change_pct = item.change / prev * 100
                 self.market_watch_updated.emit()
                 return
-        for item in self._watchlist:
-            if item.symbol == tag:
-                item.ltp = price
-                prev = item.prev_close or 0.0
-                if prev:
-                    item.change = price - prev
-                    item.change_pct = item.change / prev * 100
-                self.watchlist_updated.emit()
-                return
+        if _apply_tick(self._watchlist, tag, price):
+            self.watchlist_updated.emit()
+        if _apply_tick(self._market_list, tag, price):
+            self.market_list_updated.emit()
 
     def _on_cycle_symbols_changed(self, symbols: frozenset[str]) -> None:
         """Open trade-cycle symbols changed — re-sync tick subscriptions.

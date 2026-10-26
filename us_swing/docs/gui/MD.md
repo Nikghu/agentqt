@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.29.0: MD-GUI-025.019.M05 extended for the Market Watch tile list; AppService and `_WatchlistTab` extended (SRD-GUI-025.020).
 > v1.28.0: MD-GUI-025.019.M05 (watchlist_store.py) added; AppService extended (SRD-GUI-025.019).
 > v1.27.0: MD-GUI-029.* added — Scheduler task table (new `scheduler_table.py`).
 > v1.26.0: MD-GUI-028.001.M01 added — Candle data panel redesign.
@@ -267,7 +268,7 @@ us_swing/src/us_swing/gui/
 | MD-GUI-025.001.M02 | SRD-GUI-025.001 | `us_swing/src/us_swing/gui/dashboard_panel.py` | Tiled layout, KPI values, switches, remembered settings, watchlist tile, tile buttons (filter, columns, history range / state, CSV export, ✕ remove) | `DashboardPanel(svc, parent, settings)`, `export_history(path)` | AppService, dashboard_tiles, strategy_store | No |
 | MD-GUI-025.016.M04 | SRD-GUI-025.016 | `us_swing/src/us_swing/gui/position_table_model.py` | Side column; "No stop" / "—" for unset stop and target (extends MD-GUI-002.001.M02) | `PositionTableModel.COLUMNS`, `data()` | PyQt6 | No |
 | MD-GUI-025.013.M03 | SRD-GUI-025.013 | `us_swing/src/us_swing/gui/performance_band.py` | Equity band and chart; exposure bars, totals and chart | `PerformanceBand`, `EquityChart`, `change_text()`, `ExposureView`, `ExposureChart`, `exposure_bars()`, `market_value()`, `RANGES`, `MAX_BARS` | strategy_pnl_chart (`money`, `nice_ticks`), screener_views (`ChipGroup`), PyQt6 | No |
-| MD-GUI-025.019.M05 | SRD-GUI-025.019 | `us_swing/src/us_swing/gui/watchlist_store.py` | Per-user watchlist file, atomic write; `AppService` loads it at start and saves on add and remove | `load_watchlist()`, `save_watchlist()` | json, os, logging | No | Implemented |
+| MD-GUI-025.019.M05 | SRD-GUI-025.019 | `us_swing/src/us_swing/gui/watchlist_store.py` | Per-user saved lists (watchlist, Market Watch tile), one file each, atomic write; `AppService` loads both at start and saves on add and remove | `load_watchlist()`, `save_watchlist()` | json, os, logging | No | Implemented |
 
 ## FO-GUI-026 — Charts Workspace (Focus + Inspector)
 
