@@ -116,6 +116,7 @@ def _service(positions: list[OpenPosition]) -> MagicMock:
     svc.get_all_trades.return_value = []
     svc.get_system_config.return_value = SimpleNamespace(market_timezone="US/Eastern")
     svc.get_watchlist_items.return_value = []
+    svc.get_market_list_items.return_value = []
     svc.get_strategy_pnl.return_value = StrategyPnlSummary(today=8.55)
     svc.get_open_symbols_for_strategy.return_value = ["NDAQ"]
     svc.get_equity_curve.return_value = ()
@@ -307,24 +308,25 @@ def test_export_bad_path_logs_error(qtbot, settings, tmp_path, caplog):
 
 
 def test_watch_row_cross_removes_symbol(qtbot, settings):
-    """UT-GUI-025.012.M01.T01: Clicking ✕ removes that row's symbol from the watchlist."""
+    """UT-GUI-025.012.M01.T01: Clicking ✕ removes that row's symbol from the Market Watch list."""
     svc = _service([])
-    svc.get_watchlist_items.return_value = [_watch_item("AAPL"), _watch_item("MSFT")]
+    svc.get_market_list_items.return_value = [_watch_item("AAPL"), _watch_item("MSFT")]
     panel = _panel(qtbot, svc, settings)
     model = panel._watch_list._model
     assert model.data(model.index(1, model.remove_col)) == "✕"
     panel._watch_list._on_cell_clicked(model.index(1, model.remove_col))
-    svc.remove_from_watchlist.assert_called_once_with("MSFT")
+    svc.remove_from_market_list.assert_called_once_with("MSFT")
+    svc.remove_from_watchlist.assert_not_called()
 
 
 def test_watch_other_cell_does_not_remove(qtbot, settings):
     """UT-GUI-025.012.M01.T02: Clicking any other cell removes nothing; right panel has no ✕."""
     svc = _service([])
-    svc.get_watchlist_items.return_value = [_watch_item("AAPL")]
+    svc.get_market_list_items.return_value = [_watch_item("AAPL")]
     panel = _panel(qtbot, svc, settings)
     model = panel._watch_list._model
     panel._watch_list._on_cell_clicked(model.index(0, 0))
-    svc.remove_from_watchlist.assert_not_called()
+    svc.remove_from_market_list.assert_not_called()
     assert panel._watchlist_tab._model.remove_col == -1
 
 
@@ -344,10 +346,52 @@ def test_filter_and_columns_survive_reload(qtbot, settings):
     assert panel._pos_view.isRowHidden(0) and not panel._pos_view.isRowHidden(1)
 
 
+def test_right_panel_shows_saved_watchlist_on_start(qtbot, settings):
+    """UT-GUI-025.019.M02.T01: The right-panel watchlist shows saved stocks with no feed update."""
+    svc = _service([])
+    svc.get_watchlist_items.return_value = [_watch_item("AAPL"), _watch_item("NVDA")]
+    panel = _panel(qtbot, svc, settings)
+    assert panel.watchlist_widget.symbol_count == 2
+    assert panel.watchlist_widget._empty_lbl.isHidden()
+
+
+def test_tile_and_right_panel_use_separate_lists(qtbot, settings):
+    """UT-GUI-025.020.M02.T01: The tile shows the Market Watch list; the right panel the watchlist."""
+    svc = _service([])
+    svc.get_market_list_items.return_value = [_watch_item("TSLA")]
+    svc.get_watchlist_items.return_value = [_watch_item("AAPL"), _watch_item("NVDA")]
+    panel = _panel(qtbot, svc, settings)
+    assert panel._watch_list._model.row_symbol(0) == "TSLA"
+    assert panel._watch_list.symbol_count == 1
+    assert panel.watchlist_widget.symbol_count == 2
+
+
+def test_tile_add_accepts_any_stock(qtbot, settings):
+    """UT-GUI-025.020.M02.T02: The tile adds a stock outside the S&P 500 to the Market Watch list."""
+    svc = _service([])
+    svc.get_sp500_universe.return_value = [SimpleNamespace(symbol="AAPL", name="Apple")]
+    panel = _panel(qtbot, svc, settings)
+    tile = panel._watch_list
+    tile._refresh_suggestions()
+    tile._sym_input.setText("pltr")
+    tile._on_add()
+    svc.add_to_market_list.assert_called_once_with("PLTR")
+    svc.add_to_watchlist.assert_not_called()
+
+
+def test_screener_add_goes_to_watchlist(qtbot, settings):
+    """UT-GUI-025.020.M02.T03: Screener "Add to Watchlist" adds to the watchlist, not the tile."""
+    svc = _service([])
+    panel = _panel(qtbot, svc, settings)
+    panel.on_watchlist_add("AAPL")
+    svc.add_to_watchlist.assert_called_once_with("AAPL")
+    svc.add_to_market_list.assert_not_called()
+
+
 def test_watch_columns_survive_reload(qtbot, settings):
     """UT-GUI-025.012.M01.T03: Tile watchlist keeps its hidden columns after new quotes."""
     svc = _service([])
-    svc.get_watchlist_items.return_value = [_watch_item("AAPL")]
+    svc.get_market_list_items.return_value = [_watch_item("AAPL")]
     panel = _panel(qtbot, svc, settings)
     panel._watch_list.reload()
     view = panel._watch_list.table_view

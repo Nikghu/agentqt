@@ -5,6 +5,8 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.47.0: SRD-GUI-026.013 added; approved by user 2026-10-26 — Charts opens on a default stock (Trades → Screener → Watchlist).
+> v2.46.0: SRD-GUI-025.020 added; approved by user 2026-10-26 — Market Watch tile has its own saved list.
 > v2.45.0: SRD-GUI-025.019 added; approved by user 2026-10-26 — watchlist persists across restarts (ISS-GUI-0006).
 > v2.44.0: SRD-GUI-029.001–.006 added; approved by user 2026-10-25 — Scheduler task table (Option D). Replaces the Windows Task Scheduler window.
 > v2.43.0: SRD-GUI-028.001–.005 added; approved by user 2026-10-25 — Candle data panel redesign (Option A). Replaces the layout part of SRD-GUI-027.006 and SRD-GUI-021.004.
@@ -432,6 +434,7 @@
 | SRD-GUI-025.017 | FO-GUI-025 | Must | Stop shows "No stop" in amber and Target shows "—" when the value is not set. | stop, target | cell text | Not set = 0 or missing | Implemented |
 | SRD-GUI-025.018 | FO-GUI-025 | Must | "P&L Today" in the KPI strip is equity minus start-of-day equity, so it counts realised and unrealised P&L in paper and live. | account state | KPI value | — | Implemented |
 | SRD-GUI-025.019 | FO-GUI-025 | Must | The watchlist is saved per user and is restored when the app starts. | add or remove a stock | `~/.usswing/watchlist.json` | A missing or broken file gives an empty watchlist | Implemented |
+| SRD-GUI-025.020 | FO-GUI-025 | Must | The Market Watch tile keeps its own saved list per user, separate from the watchlist, and accepts any stock. | add or remove on the tile | `~/.usswing/market_watch.json` | Starts empty; Screener adds and Charts still use the watchlist; supersedes "the user's watchlist" in SRD-GUI-025.007 | Implemented |
 
 ## FO-GUI-026 — Charts Workspace (Focus + Inspector)
 
@@ -449,6 +452,7 @@
 | SRD-GUI-026.010 | FO-GUI-026 | Must | Send to Execution adds the symbol as a manual pick and switches to the Execution screen. | click | manual pick | Phase 2; existing pick → message only | Implemented |
 | SRD-GUI-026.011 | FO-GUI-026 | Should | A drawing bar offers horizontal line, trend line, rectangle and delete all, drawn with chart primitives. | mouse | drawings | Phase 3; Esc cancels a drawing in progress | Implemented |
 | SRD-GUI-026.012 | FO-GUI-026 | Must | Drawings are saved per symbol and timeframe in SQLite and redrawn when that chart loads. | drawings | `chart_drawings` rows | Phase 3; save failure logs and keeps the drawing on screen | Implemented |
+| SRD-GUI-026.013 | FO-GUI-026 | Must | When Charts opens, it shows the first stock of the first non-empty tab in the order Trades, Screener, Watchlist; the empty chart shows only when all three are empty. | open trades, screener results, watchlist | selected tab, loaded chart | User's own tab, row or open request is never overridden; tab no longer remembered (supersedes "Tab remembered" in SRD-GUI-026.002) | Implemented |
 
 ## FO-GUI-027 — Settings Dialog
 

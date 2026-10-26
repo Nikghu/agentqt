@@ -1106,11 +1106,30 @@ class _WatchlistModel(QAbstractTableModel):
 # ── Watchlist tab widget ──────────────────────────────────────────────────────
 
 class _WatchlistTab(QWidget):
-    """Watchlist tab: add/remove symbols, live-refreshing quote table."""
+    """Watchlist tab: add/remove symbols, live-refreshing quote table.
 
-    def __init__(self, svc: AppService, parent: QWidget | None = None) -> None:
+    ``market_watch=True`` shows the Market Watch tile's own list, which takes any
+    stock (SRD-GUI-025.020); otherwise the S&P 500-only watchlist.
+    """
+
+    def __init__(
+        self, svc: AppService, parent: QWidget | None = None, *, market_watch: bool = False,
+    ) -> None:
         super().__init__(parent)
         self._svc = svc
+        self._sp500_only = not market_watch
+        if market_watch:
+            self._get_items = svc.get_market_list_items
+            self._add_item = svc.add_to_market_list
+            self._remove_item = svc.remove_from_market_list
+            self._refresh_items = svc._refresh_market_list
+            updated = svc.market_list_updated
+        else:
+            self._get_items = svc.get_watchlist_items
+            self._add_item = svc.add_to_watchlist
+            self._remove_item = svc.remove_from_watchlist
+            self._refresh_items = svc._refresh_watchlist
+            updated = svc.watchlist_updated
 
         # ── S&P 500 symbol set (validation + suggestions; refreshed on sp500_updated) ──
         self._sp500: frozenset[str] = frozenset()
@@ -1209,8 +1228,8 @@ class _WatchlistTab(QWidget):
         layout.addLayout(bottom_bar)
         layout.addSpacing(4)
 
-        self._update_empty_state()
-        svc.watchlist_updated.connect(self._on_data_updated)
+        self._on_data_updated()
+        updated.connect(self._on_data_updated)
 
     def set_compact(self) -> None:
         """Fit the narrow right panel: key columns only, icon-only buttons."""
@@ -1249,14 +1268,14 @@ class _WatchlistTab(QWidget):
         self._remove_btn.hide()
         self._status_lbl.hide()
         self._updated_lbl.hide()
-        self._empty_lbl.setText("Watchlist is empty.\n\nType a symbol above and click Add.")
+        self._empty_lbl.setText("Market Watch is empty.\n\nType a symbol above and click Add.")
         return [self._sym_input, self._add_btn, self._refresh_btn]
 
     def _on_cell_clicked(self, index: QModelIndex) -> None:
         if index.column() == self._model.remove_col:
             symbol = self._model.row_symbol(index.row())
             if symbol:
-                self._svc.remove_from_watchlist(symbol)
+                self._remove_item(symbol)
 
     def reload(self) -> None:
         """Load the current watchlist quotes now instead of waiting for the next update."""
@@ -1273,10 +1292,10 @@ class _WatchlistTab(QWidget):
     def add_symbol(self, symbol: str) -> None:
         """Public API — called by DashboardPanel.on_watchlist_add."""
         sym = symbol.strip().upper()
-        if self._sp500 and sym not in self._sp500:
+        if self._sp500_only and self._sp500 and sym not in self._sp500:
             self._warn_not_sp500(sym)
             return
-        self._svc.add_to_watchlist(sym)
+        self._add_item(sym)
 
     def _warn_not_sp500(self, sym: str) -> None:
         # Imported here: the module pulls in the execution package, which must not load
@@ -1301,10 +1320,10 @@ class _WatchlistTab(QWidget):
         sym = self._sym_input.text().split(" - ")[0].strip().upper()
         if not sym:
             return
-        if self._sp500 and sym not in self._sp500:
+        if self._sp500_only and self._sp500 and sym not in self._sp500:
             self._warn_not_sp500(sym)
             return
-        self._svc.add_to_watchlist(sym)
+        self._add_item(sym)
         self._sym_input.clear()
 
     def _on_remove(self) -> None:
@@ -1313,17 +1332,17 @@ class _WatchlistTab(QWidget):
             return
         symbol = self._model.row_symbol(rows[0].row())
         if symbol:
-            self._svc.remove_from_watchlist(symbol)
+            self._remove_item(symbol)
 
     def _on_manual_refresh(self) -> None:
-        self._svc._refresh_watchlist()
+        self._refresh_items()
 
     def _on_selection(self) -> None:
         has_row = bool(self._view.selectionModel().selectedRows())
         self._remove_btn.setEnabled(has_row)
 
     def _on_data_updated(self) -> None:
-        items = self._svc.get_watchlist_items()
+        items = self._get_items()
         self._model.refresh(items)
         n = len(items)
         if n == 0:
@@ -1483,12 +1502,12 @@ class DashboardPanel(QWidget):
         # ── Watchlist (shown in the main window's right panel) ────────────────
         self._watchlist_tab = _WatchlistTab(demo)
 
-        # ── Market Watch tile: the user's watchlist (SRD-GUI-025.007) ─────────
-        self._watch_list = _WatchlistTab(demo)
+        # ── Market Watch tile: its own saved list (SRD-GUI-025.020) ───────────
+        self._watch_list = _WatchlistTab(demo, market_watch=True)
         self._watch_tile = Tile("Market Watch", self._watch_list)
         for tool in self._watch_list.tile_tools():
             self._watch_tile.add_tool(tool)
-        demo.watchlist_updated.connect(self._refresh_watch_count)
+        demo.market_list_updated.connect(self._refresh_watch_count)
 
         # ── P&L by Strategy tile (SRD-GUI-025.005) ────────────────────────────
         self._strategy_list = StrategyPnlList()

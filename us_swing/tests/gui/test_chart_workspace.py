@@ -287,3 +287,44 @@ def test_quick_chart_viewer_removed():
     """UT-GUI-020.004.M01.T01: Quick Chart Viewer is gone."""
     assert not hasattr(screener_panel, "QuickChartWindow")
     assert hasattr(screener_panel.ScreenerPanel, "chart_requested")
+
+
+# ── Default stock on open (SRD-GUI-026.013) ───────────────────────────────────
+
+def _trade(symbol: str) -> SimpleNamespace:
+    return SimpleNamespace(symbol=symbol, quantity=5, direction="LONG", current_price=50.0,
+                           pnl_pct=1.0, average_price=48.0, stop_loss=0.0, target_price=0.0)
+
+
+def test_opens_first_trade_when_shown(qtbot, svc, workspace):
+    """UT-GUI-026.013.M01.T01: Opening Charts loads the first open trade, ahead of the watchlist."""
+    svc.positions = [_trade("KVUE")]
+    workspace.show()
+    qtbot.waitUntil(lambda: workspace.chart.current_symbol == "KVUE")
+    assert workspace.source.tab == "trades"
+
+
+def test_late_trades_take_over_auto_pick(qtbot, svc, workspace):
+    """UT-GUI-026.013.M01.T02: Trades that arrive after open replace the automatic watchlist pick."""
+    workspace.show()
+    qtbot.waitUntil(lambda: workspace.chart.current_symbol == "NVDA")
+    svc.positions = [_trade("KVUE")]
+    svc.positions_updated.emit()
+    assert workspace.chart.current_symbol == "KVUE" and workspace.source.tab == "trades"
+
+
+def test_user_choice_not_overridden(qtbot, svc, workspace):
+    """UT-GUI-026.013.M01.T03: A stock the user asked for stays, even when trades arrive."""
+    workspace.show()
+    workspace.open_symbol("AAPL")
+    qtbot.wait(20)
+    svc.positions = [_trade("KVUE")]
+    svc.positions_updated.emit()
+    assert workspace.chart.current_symbol == "AAPL"
+
+
+def test_hidden_workspace_does_not_load(svc, workspace):
+    """UT-GUI-026.013.M01.T04: Data updates while Charts is hidden load nothing."""
+    svc.positions = [_trade("KVUE")]
+    svc.positions_updated.emit()
+    assert workspace.chart.current_symbol == ""

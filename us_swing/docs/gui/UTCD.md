@@ -664,6 +664,16 @@ Test files:
 | UT-GUI-025.019.M05.T04 | MD-GUI-025.019.M05 | Negative | No file | no saved file; load | empty watchlist, no error | Pass |
 | UT-GUI-025.019.M05.T05 | MD-GUI-025.019.M05 | Negative | Broken file | file holds bad JSON; load | empty watchlist, no error | Pass |
 | UT-GUI-025.019.M05.T06 | MD-GUI-025.019.M05 | Positive | Separate users | save for user 1 and 2 | each user loads only their own | Pass |
+| UT-GUI-025.019.M02.T01 | MD-GUI-025.001.M02 | Positive | Right panel shows saved watchlist on start | 2 saved stocks; build dashboard, no update signal | right panel shows 2 rows, no empty text | Pass |
+| UT-GUI-025.020.M05.T01 | MD-GUI-025.019.M05 | Positive | Market Watch list saved on its own | add PLTR to tile list; restart | tile list PLTR; watchlist unchanged | Pass |
+| UT-GUI-025.020.M05.T02 | MD-GUI-025.019.M05 | Positive | Market Watch remove survives restart | remove TSLA from tile list | file holds PLTR; watchlist file empty | Pass |
+| UT-GUI-025.020.M05.T03 | MD-GUI-025.019.M05 | Edge | Market Watch starts empty | saved watchlist only; load tile list | tile list empty | Pass |
+| UT-GUI-025.020.M01.T01 | MD-GUI-004.001.M01 | Positive | Tick updates both lists | AAPL in both lists; tick 110 | both rows updated; both signals sent | Pass |
+| UT-GUI-025.020.M01.T02 | MD-GUI-004.001.M01 | Positive | Non-S&P tile stock gets ticks | PLTR in tile list, not S&P 500 | PLTR subscribed; non-S&P watchlist stock not | Pass |
+| UT-GUI-025.020.M01.T03 | MD-GUI-004.001.M01 | Negative | Refresh during a fetch | refresh twice while the first fetch runs | both fetches owned by the service; both finish, no crash | Pass |
+| UT-GUI-025.020.M02.T01 | MD-GUI-025.001.M02 | Positive | Tile and right panel separate | tile TSLA; watchlist AAPL, NVDA | tile 1 row; right panel 2 rows | Pass |
+| UT-GUI-025.020.M02.T02 | MD-GUI-025.001.M02 | Positive | Tile accepts any stock | type pltr on tile | added to tile list, not watchlist | Pass |
+| UT-GUI-025.020.M02.T03 | MD-GUI-025.001.M02 | Positive | Screener add goes to watchlist | Screener add AAPL | watchlist add; tile list unchanged | Pass |
 
 ## FO-GUI-026 — Charts Workspace (Focus + Inspector)
 
@@ -674,7 +684,7 @@ Test files:
 | UT-GUI-026.001.M01.T03 | MD-GUI-026.001.M01 | Negative | Symbol not in list still loads | `open_symbol("AAPL")`; then ZZZ with no bars | AAPL loads, no row selected; ZZZ header "No data" | Pass |
 | UT-GUI-026.001.M01.T04 | MD-GUI-026.001.M01 | Positive | Theme change keeps symbol and recolours the change | NVDA loaded; `refresh_theme` | symbol kept; change label coloured | Pass |
 | UT-GUI-026.002.M02.T01 | MD-GUI-026.002.M02 | Positive | Rows per tab | 2 watchlist items, 3 screener entries, 1 short position | 2 rows; 3 rows by score with preset sub; "Short 20 sh" | Pass |
-| UT-GUI-026.002.M02.T02 | MD-GUI-026.002.M02 | Positive | Filter and tab remembered | filter "nv"; pick Trades; new list on same settings | NVDA only; new list opens on Trades | Pass |
+| UT-GUI-026.002.M02.T02 | MD-GUI-026.002.M02 | Positive | Filter works; tab not remembered | filter "nv"; pick Trades; new list | NVDA only; new list opens on Watchlist | Pass |
 | UT-GUI-026.002.M02.T03 | MD-GUI-026.002.M02 | Negative | Empty tab shows empty text | no positions, Trades tab | list hidden; "No open trades" shown | Pass |
 | UT-GUI-026.002.M02.T04 | MD-GUI-026.002.M02 | Positive | Row click emits; watchlist signal reloads | click NVDA; add AMD, emit `watchlist_updated` | `symbol_selected("NVDA")`; rows NVDA, AMD | Pass |
 | UT-GUI-026.003.M01.T01 | MD-GUI-026.001.M01 | Positive | Overlay add, remove and remember | first start; add EMA 9; ✕ on SMA 50; new workspace | defaults SMA 20, SMA 50; `set_overlays` [sma 20, ema 9]; restored | Pass |
@@ -711,6 +721,14 @@ Test files:
 | UT-GUI-026.011.M01.T02 | MD-GUI-026.001.M01 | Positive | Delete all clears the chart and the database | one hline; `clear_drawings()` | chart and store empty | Pass |
 | UT-GUI-026.011.M01.T03 | MD-GUI-026.001.M01 | Positive | Eraser deletes only the clicked drawing | hline + trend; Eraser; page deletes the hline | trend kept on chart and in store; Eraser stays on | Pass |
 | UT-GUI-026.012.M01.T05 | MD-GUI-026.001.M01 | Negative | Save failure keeps the drawing on screen | table dropped; drawing added | drawing shown; "[Charts] Could not save drawing" logged | Pass |
+| UT-GUI-026.013.M02.T01 | MD-GUI-026.002.M02 | Positive | Default pick priority | trades / screener / watchlist data sets | first non-empty tab in order; its first stock | Pass |
+| UT-GUI-026.013.M02.T02 | MD-GUI-026.002.M02 | Negative | All tabs empty | no data | no default stock | Pass |
+| UT-GUI-026.013.M02.T03 | MD-GUI-026.002.M02 | Positive | Tab or row click is a user choice | click tab; click row | `user_chose` set | Pass |
+| UT-GUI-026.013.M02.T04 | MD-GUI-026.002.M02 | Edge | Repeat pick keeps list | pick twice on Trades | same list rows, no rebuild | Pass |
+| UT-GUI-026.013.M01.T01 | MD-GUI-026.001.M01 | Positive | Opens first trade when shown | trade KVUE + watchlist NVDA; show | chart KVUE; Trades tab | Pass |
+| UT-GUI-026.013.M01.T02 | MD-GUI-026.001.M01 | Edge | Late trades take over auto pick | shown on NVDA; trades arrive | chart KVUE; Trades tab | Pass |
+| UT-GUI-026.013.M01.T03 | MD-GUI-026.001.M01 | Negative | User choice not overridden | open AAPL; trades arrive | chart stays AAPL | Pass |
+| UT-GUI-026.013.M01.T04 | MD-GUI-026.001.M01 | Negative | Hidden Charts loads nothing | trades arrive while hidden | no chart loaded | Pass |
 
 ## FO-GUI-027 — Settings Dialog
 
