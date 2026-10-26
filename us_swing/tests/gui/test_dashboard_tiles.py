@@ -344,6 +344,15 @@ def test_filter_and_columns_survive_reload(qtbot, settings):
     assert panel._pos_view.isRowHidden(0) and not panel._pos_view.isRowHidden(1)
 
 
+def test_right_panel_shows_saved_watchlist_on_start(qtbot, settings):
+    """UT-GUI-025.019.M02.T01: The right-panel watchlist shows saved stocks with no feed update."""
+    svc = _service([])
+    svc.get_watchlist_items.return_value = [_watch_item("AAPL"), _watch_item("NVDA")]
+    panel = _panel(qtbot, svc, settings)
+    assert panel.watchlist_widget.symbol_count == 2
+    assert panel.watchlist_widget._empty_lbl.isHidden()
+
+
 def test_watch_columns_survive_reload(qtbot, settings):
     """UT-GUI-025.012.M01.T03: Tile watchlist keeps its hidden columns after new quotes."""
     svc = _service([])

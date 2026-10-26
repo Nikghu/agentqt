@@ -664,6 +664,7 @@ Test files:
 | UT-GUI-025.019.M05.T04 | MD-GUI-025.019.M05 | Negative | No file | no saved file; load | empty watchlist, no error | Pass |
 | UT-GUI-025.019.M05.T05 | MD-GUI-025.019.M05 | Negative | Broken file | file holds bad JSON; load | empty watchlist, no error | Pass |
 | UT-GUI-025.019.M05.T06 | MD-GUI-025.019.M05 | Positive | Separate users | save for user 1 and 2 | each user loads only their own | Pass |
+| UT-GUI-025.019.M02.T01 | MD-GUI-025.001.M02 | Positive | Right panel shows saved watchlist on start | 2 saved stocks; build dashboard, no update signal | right panel shows 2 rows, no empty text | Pass |
 
 ## FO-GUI-026 — Charts Workspace (Focus + Inspector)
 

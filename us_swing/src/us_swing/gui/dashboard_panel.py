@@ -1209,7 +1209,7 @@ class _WatchlistTab(QWidget):
         layout.addLayout(bottom_bar)
         layout.addSpacing(4)
 
-        self._update_empty_state()
+        self._on_data_updated()
         svc.watchlist_updated.connect(self._on_data_updated)
 
     def set_compact(self) -> None:
