@@ -3,6 +3,7 @@ Module: MD-GUI-026.002.M02 — Chart source list
 Parent SRD: SRD-GUI-026.002
 
 Watchlist, Screener and Trades symbols beside the Charts chart, with a filter box.
+Opens on the first non-empty tab in the order Trades, Screener, Watchlist (SRD-GUI-026.013).
 """
 from __future__ import annotations
 
@@ -10,7 +11,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any
 
-from PyQt6.QtCore import QSettings, Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -28,6 +29,7 @@ from us_swing.gui.theme import active_palette
 TABS: tuple[tuple[str, str], ...] = (
     ("Watchlist", "watchlist"), ("Screener", "screener"), ("Trades", "trades"),
 )
+DEFAULT_ORDER = ("trades", "screener", "watchlist")
 EMPTY_TEXT = {
     "watchlist": "Watchlist is empty",
     "screener": "No screener results yet",
@@ -116,23 +118,17 @@ class SourceList(QWidget):
 
     symbol_selected = pyqtSignal(str)
 
-    def __init__(self, svc: AppService, settings: QSettings,
-                 parent: QWidget | None = None) -> None:
+    def __init__(self, svc: AppService, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._svc = svc
-        self._settings = settings
         self._rows: list[SourceRow] = []
+        self.user_chose = False   # set once the user clicks a tab or a row
         self._selected = ""
 
         root = QVBoxLayout(self)
         root.setContentsMargins(8, 8, 8, 8)
         root.setSpacing(8)
         self.tabs = ChipGroup(list(TABS))
-        saved = str(settings.value("source_tab", "watchlist"))
-        for button, (_label, value) in zip(self.tabs.buttons, TABS):
-            button.setChecked(value == saved)
-        if self.tabs.value is None:
-            self.tabs.buttons[0].setChecked(True)
         self.tabs.changed.connect(self._on_tab)
         root.addWidget(self.tabs)
 
@@ -165,6 +161,19 @@ class SourceList(QWidget):
         self._rows = source_rows(self._svc, self.tab)
         self._fill()
 
+    def pick_default(self) -> str | None:
+        """Show the first non-empty tab in ``DEFAULT_ORDER``; return its first symbol."""
+        for tab in DEFAULT_ORDER:
+            rows = source_rows(self._svc, tab)
+            if rows:
+                if tab != self.tab:   # the current tab already refreshes on its own signal
+                    for button, (_label, value) in zip(self.tabs.buttons, TABS):
+                        button.setChecked(value == tab)
+                    self._rows = rows
+                    self._fill()
+                return rows[0].symbol
+        return None
+
     def select_symbol(self, symbol: str) -> bool:
         """Highlight ``symbol`` when it is in the list; returns whether it was found."""
         self._selected = symbol
@@ -186,7 +195,7 @@ class SourceList(QWidget):
             self.refresh()
 
     def _on_tab(self) -> None:
-        self._settings.setValue("source_tab", self.tab)
+        self.user_chose = True
         self.refresh()
 
     def _fill(self) -> None:
@@ -211,4 +220,5 @@ class SourceList(QWidget):
     def _on_item(self, item: QListWidgetItem) -> None:
         symbol = str(item.data(_SYMBOL_ROLE))
         self._selected = symbol
+        self.user_chose = True
         self.symbol_selected.emit(symbol)

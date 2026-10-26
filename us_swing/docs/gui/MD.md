@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.30.0: MD-GUI-026.002.M02 adds `pick_default()`, `user_chose`, drops the remembered tab; MD-GUI-026.001.M01 auto-opens on show (SRD-GUI-026.013).
 > v1.29.0: MD-GUI-025.019.M05 extended for the Market Watch tile list; AppService and `_WatchlistTab` extended (SRD-GUI-025.020).
 > v1.28.0: MD-GUI-025.019.M05 (watchlist_store.py) added; AppService extended (SRD-GUI-025.019).
 > v1.27.0: MD-GUI-029.* added — Scheduler task table (new `scheduler_table.py`).

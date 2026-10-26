@@ -12,8 +12,8 @@ from dataclasses import replace
 from functools import partial
 from typing import Any
 
-from PyQt6.QtCore import QPointF, QRectF, QSettings, QSize, Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap, QPolygonF
+from PyQt6.QtCore import QPointF, QRectF, QSettings, QSize, Qt, QTimer, pyqtSignal
+from PyQt6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap, QPolygonF, QShowEvent
 from PyQt6.QtWidgets import (
     QButtonGroup,
     QDialog,
@@ -108,7 +108,7 @@ def overlay_label(overlay: tuple[str, int]) -> str:
 
 
 class ChartWorkspace(QWidget):
-    """Source list | chart | Inspector, with remembered tab, overlays and sections."""
+    """Source list | chart | Inspector, with remembered overlays and sections."""
 
     execution_requested = pyqtSignal(str)   # symbol added to Execution (SRD-GUI-026.010)
 
@@ -128,8 +128,14 @@ class ChartWorkspace(QWidget):
         row.setContentsMargins(0, 0, 0, 0)
         row.setSpacing(GAP)
 
-        self.source = SourceList(svc, self._settings)
+        self.source = SourceList(svc)
         self.source.symbol_selected.connect(lambda s: self.open_symbol(s, self.timeframe))
+        # Default stock on open (SRD-GUI-026.013) until the user picks one.
+        self._user_opened = False
+        self._auto_symbol = ""
+        svc.positions_updated.connect(self._auto_open)
+        svc.watchlist_updated.connect(self._auto_open)
+        svc.screener_results_updated.connect(lambda _e: self._auto_open())
         self._source_card = card(self.source)
         self._source_card.setFixedWidth(_SOURCE_W)
         row.addWidget(self._source_card)
@@ -366,6 +372,23 @@ class ChartWorkspace(QWidget):
 
     def open_symbol(self, symbol: str, timeframe: str = "1d") -> None:
         """Load ``symbol`` in the chart and highlight it in the source list."""
+        self._user_opened = True
+        self._load_symbol(symbol, timeframe)
+
+    def showEvent(self, event: QShowEvent | None) -> None:  # noqa: N802
+        super().showEvent(event)
+        # Deferred so a caller that shows Charts to open a stock goes first.
+        QTimer.singleShot(0, self._auto_open)
+
+    def _auto_open(self) -> None:
+        if not self.isVisible() or self._user_opened or self.source.user_chose:
+            return
+        symbol = self.source.pick_default()
+        if symbol and symbol != self._auto_symbol:
+            self._auto_symbol = symbol
+            self._load_symbol(symbol, self.timeframe)
+
+    def _load_symbol(self, symbol: str, timeframe: str) -> None:
         symbol = symbol.strip().upper()
         if not symbol:
             return

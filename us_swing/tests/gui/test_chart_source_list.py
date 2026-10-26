@@ -4,7 +4,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
-from PyQt6.QtCore import QObject, QSettings, pyqtSignal
+from PyQt6.QtCore import QObject, pyqtSignal
 
 from us_swing.gui.chart_source_list import SourceList, source_rows
 
@@ -41,11 +41,6 @@ def _position(symbol: str, qty: int, direction: str = "LONG"):
                            current_price=50.0, pnl_pct=-1.5)
 
 
-@pytest.fixture()
-def settings(tmp_path) -> QSettings:
-    return QSettings(str(tmp_path / "charts.ini"), QSettings.Format.IniFormat)
-
-
 def test_rows_per_tab():
     """UT-GUI-026.002.M02.T01: Rows per tab."""
     svc = _Svc(watch=[_watch("NVDA"), _watch("AMD")],
@@ -60,22 +55,22 @@ def test_rows_per_tab():
     assert [(r.symbol, r.sub) for r in trades] == [("KVUE", "Short 20 sh")]
 
 
-def test_filter_and_tab_remembered(qtbot, settings):
-    """UT-GUI-026.002.M02.T02: Filter and tab remembered."""
+def test_filter_and_tab_not_remembered(qtbot):
+    """UT-GUI-026.002.M02.T02: Filter works; a clicked tab is not remembered (SRD-GUI-026.013)."""
     svc = _Svc(watch=[_watch("NVDA"), _watch("AMD")], positions=[_position("AAPL", 5)])
-    widget = SourceList(svc, settings)  # type: ignore[arg-type]
+    widget = SourceList(svc)  # type: ignore[arg-type]
     qtbot.addWidget(widget)
     widget.filter_box.setText("nv")
     assert widget.visible_symbols() == ["NVDA"]
     widget.tabs.buttons[2].click()
-    again = SourceList(svc, settings)  # type: ignore[arg-type]
+    again = SourceList(svc)  # type: ignore[arg-type]
     qtbot.addWidget(again)
-    assert again.tab == "trades" and again.visible_symbols() == ["AAPL"]
+    assert again.tab == "watchlist"
 
 
-def test_empty_tab_shows_text(qtbot, settings):
+def test_empty_tab_shows_text(qtbot):
     """UT-GUI-026.002.M02.T03: Empty tab shows empty text."""
-    widget = SourceList(_Svc(), settings)  # type: ignore[arg-type]
+    widget = SourceList(_Svc())  # type: ignore[arg-type]
     qtbot.addWidget(widget)
     widget.tabs.buttons[2].click()
     assert widget.list.isHidden()
@@ -83,10 +78,10 @@ def test_empty_tab_shows_text(qtbot, settings):
     assert widget.empty_lbl.text() == "No open trades"
 
 
-def test_click_emits_and_refresh_on_signal(qtbot, settings):
+def test_click_emits_and_refresh_on_signal(qtbot):
     """UT-GUI-026.002.M02.T04: Row click emits the symbol; watchlist signal reloads rows."""
     svc = _Svc(watch=[_watch("NVDA")])
-    widget = SourceList(svc, settings)  # type: ignore[arg-type]
+    widget = SourceList(svc)  # type: ignore[arg-type]
     qtbot.addWidget(widget)
     with qtbot.waitSignal(widget.symbol_selected) as blocker:
         widget._on_item(widget.list.item(0))
@@ -94,3 +89,51 @@ def test_click_emits_and_refresh_on_signal(qtbot, settings):
     svc.watch.append(_watch("AMD"))
     svc.watchlist_updated.emit()
     assert widget.visible_symbols() == ["NVDA", "AMD"]
+
+
+@pytest.mark.parametrize(
+    ("svc", "tab", "symbol"),
+    [
+        (_Svc(watch=[_watch("NVDA")], screener=[_entry("AVGO", 0.4)],
+              positions=[_position("KVUE", 5)]), "trades", "KVUE"),
+        (_Svc(watch=[_watch("NVDA")], screener=[_entry("AVGO", 0.4), _entry("DELL", 0.9)]),
+         "screener", "DELL"),
+        (_Svc(watch=[_watch("NVDA"), _watch("AMD")]), "watchlist", "NVDA"),
+    ],
+)
+def test_pick_default_priority(qtbot, svc, tab, symbol):
+    """UT-GUI-026.013.M02.T01: Default pick follows Trades, then Screener, then Watchlist."""
+    widget = SourceList(svc)  # type: ignore[arg-type]
+    qtbot.addWidget(widget)
+    assert widget.pick_default() == symbol
+    assert widget.tab == tab and widget.visible_symbols()[0] == symbol
+    assert not widget.user_chose
+
+
+def test_pick_default_all_empty(qtbot):
+    """UT-GUI-026.013.M02.T02: With every tab empty there is no default stock."""
+    widget = SourceList(_Svc())  # type: ignore[arg-type]
+    qtbot.addWidget(widget)
+    assert widget.pick_default() is None
+
+
+def test_user_tab_or_row_click_marks_choice(qtbot):
+    """UT-GUI-026.013.M02.T03: Clicking a tab or a row counts as the user's own choice."""
+    widget = SourceList(_Svc(watch=[_watch("NVDA")]))  # type: ignore[arg-type]
+    qtbot.addWidget(widget)
+    widget.tabs.buttons[1].click()
+    assert widget.user_chose
+    again = SourceList(_Svc(watch=[_watch("NVDA")]))  # type: ignore[arg-type]
+    qtbot.addWidget(again)
+    again._on_item(again.list.item(0))
+    assert again.user_chose
+
+
+def test_repeat_pick_keeps_list(qtbot):
+    """UT-GUI-026.013.M02.T04: Picking again on the same tab does not rebuild the list."""
+    widget = SourceList(_Svc(positions=[_position("KVUE", 5)]))  # type: ignore[arg-type]
+    qtbot.addWidget(widget)
+    widget.pick_default()
+    first_row = widget.list.item(0)
+    assert widget.pick_default() == "KVUE"
+    assert widget.list.item(0) is first_row
