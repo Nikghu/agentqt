@@ -836,3 +836,26 @@ The system shall show the Candle data section as one summary line with a state p
 1. "Downloading" shows only once while a download runs.
 2. Stored stocks above the index size read "503 / 503" with "+15 left the index".
 3. Reset asks first in a frameless dialog; Cancel keeps the data.
+
+## FO-GUI-029: Scheduler Task Table in Settings
+
+**Status:** Approved (user, 2026-10-25)
+**Priority:** Should
+**Depends on:** FO-GUI-027 (Settings dialog), FO-GUI-006 (scheduler settings)
+**Source:** User picked Option D "Task table with Windows status" from https://claude.ai/artifact/Gh6UQNmQUXdHbWtsuKHSww on 2026-10-25.
+
+The system shall show the Windows start and close tasks as a table inside Settings → Scheduler, so the separate Windows Task Scheduler window is no longer needed. Task names, programs and the TWS login keep their current storage.
+
+### Requirements
+
+1. **Task table.** One row each for Start TWS, Start USSwing and Close both: on/off, time, days, program and a Windows status pill.
+2. **Status.** The pill shows Installed or Missing from Windows, and Changed while a row has unapplied edits.
+3. **TWS login.** A folded line opens username, password, fill-in-automatically and a fill-now action.
+4. **One save.** Apply or OK writes the tasks and the password; switched-on tasks missing in Windows are re-created.
+5. **Remove all.** A red link removes every task and the saved password after a confirm.
+
+### Acceptance Criteria
+
+1. Edit Scheduler and its window are gone; everything is in the Scheduler section.
+2. Apply never freezes the dialog while Windows tasks are written.
+3. A task deleted outside the app shows Missing and comes back after Apply.

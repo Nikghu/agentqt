@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.25.0: DD-GUI-029.001.D01 added — Scheduler task table.
 > v1.24.0: DD-GUI-028.001.D01 added — Candle data panel redesign.
 > v1.23.0: DD-GUI-027.001.D01 added — Settings dialog opened from the sidebar.
 > v1.22.0: DD-GUI-026.001.D01 and DD-GUI-026.011.D01 added — Charts workspace Focus + Inspector.
@@ -1720,3 +1721,13 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 **Texts.** Downloading: "Updating {done} of {total} stocks", detail "{pct}% · {symbol} · ~{n} min left" (ETA = elapsed / done × left, from done ≥ 3; "< 1 min" under 60 s). Idle: CURRENT → "Up to date · {n} stocks", pill UP TO DATE; PARTIAL → "{n} trading day(s) behind" (weekdays minus NYSE holidays between data-to and last trading day) or "Some stocks are missing", pill "N DAYS BEHIND" or PARTIAL; EMPTY → "No candle data yet", pill EMPTY. Notes: data-to "up to date" / "N days behind"; last trading day weekday; stocks "+N left the index" / "N missing" / "all stocks"; candles "daily bars" (weekly count in the tooltip).
 
 **Reset (SRD-.005).** `_on_reset_db` opens `active_cycles_panel._ConfirmDialog` (lazy import, red accent, "Reset"); the rest of the flow is unchanged.
+
+## DD-GUI-029.001.D01 — Scheduler Task Table
+
+**Traces:** SRD-GUI-029.001–.006
+
+**Widget (`scheduler_table.py`).** `SchedulerTable(QWidget)` sits under the market-hours form on the Scheduler page. A `QGridLayout` holds a header row and three task rows of real widgets: `QCheckBox` (on), name label, `QTimeEdit` (HH:mm), days `QComboBox` (Mon–Fri / Every day; a "Same as start" label for Close both), program `QLineEdit` + Browse (a dash for Close both) and a `task_pill` label. Below: a fold button "TWS login · user · fill in automatically" over username, password + eye, Fill in automatically and Fill TWS login now (`FillWorker`); a footer hint and a `link_danger` "Remove all tasks…". `inputs` lists every field for the dialog's dirty tracking (`_changed_signal` gains `QTimeEdit.timeChanged`).
+
+**Status.** `refresh_status()` runs `task_states()` in a `_Job(QThread)`: `/query /tn` per task name → installed or missing; Close both is installed when every close task of a switched-on app exists. An edited row shows CHANGED until Apply. A switched-on row found missing emits `repair_needed`, which marks the Scheduler section dirty. Runs on show and after each write.
+
+**Apply.** The Scheduler editable saves `_SystemSections._on_save` then `SchedulerTable.apply()`, which collects the three configs and runs `write_tasks()` in a `_Job`: on → `create_*_task` and save config; off → `delete_task`; close on → close tasks for switched-on apps, off → delete both; password saved to keyring when fill-in is on. Errors return as text per row and show on the pill tooltip and footer. `remove_all()` asks with `_ConfirmDialog`, then runs `remove_tasks()` (all tasks, configs, password). `USSwingConfig` and `SchedulerConfig` gain `enabled: bool = True` (old files load as on).

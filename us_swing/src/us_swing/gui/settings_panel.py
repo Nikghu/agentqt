@@ -38,6 +38,7 @@ from PyQt6.QtWidgets import (
     QStackedWidget,
     QTableWidget,
     QTableWidgetItem,
+    QTimeEdit,
     QVBoxLayout,
     QWidget,
     QSizePolicy,
@@ -467,14 +468,9 @@ class _SystemSections(QObject):
         sched_form.addRow("Market timezone:",        self._mkt_tz)
         sched_form.addRow("Enable daily scheduler:", self._sched_en)
 
-        self._sched_btn = QPushButton("Add Scheduler")
-        set_icon(self._sched_btn, "calendar", "info")
-        self._sched_btn.setFixedWidth(160)
-        self._sched_btn.clicked.connect(self._on_scheduler)
-        self._refresh_sched_btn_label()
-        sched_row = QHBoxLayout()
-        sched_row.addWidget(self._sched_btn)
-        sched_row.addStretch()
+        # Windows start / close tasks, edited in place (FO-GUI-029)
+        from us_swing.gui.scheduler_table import SchedulerTable
+        self.sched_table = SchedulerTable()
 
         # ── Theme ──────────────────────────────────────────────────────────────
         # A click only picks the theme; Apply or OK applies it (SRD-GUI-027.013).
@@ -543,7 +539,7 @@ class _SystemSections(QObject):
         # ── Section pages ──────────────────────────────────────────────────────
         self.pages: list[tuple[str, QWidget]] = [
             ("Connection",  _page(conn_form)),
-            ("Scheduler",   _page(sched_form, sched_row)),
+            ("Scheduler",   _page(sched_form, self.sched_table)),
             ("Telegram",    _page(tg_form, tg_btn_row)),
         ]
         # Shown after Universe and Candle data (SRD-GUI-027.005).
@@ -554,16 +550,10 @@ class _SystemSections(QObject):
 
     # ── Helpers ────────────────────────────────────────────────────────────────
 
-    def _refresh_sched_btn_label(self) -> None:
-        from us_swing.gui.scheduler_store import load_scheduler_config, load_usswing_config
-        has_task = bool(load_scheduler_config() or load_usswing_config())
-        self._sched_btn.setText("Edit Scheduler" if has_task else "Add Scheduler")
-
-    def _on_scheduler(self) -> None:
-        from us_swing.gui.scheduler_dialog import SchedulerDialog
-        dlg = SchedulerDialog(parent=self._sched_btn.window())
-        dlg.exec()
-        self._refresh_sched_btn_label()
+    def _on_save_scheduler(self) -> None:
+        """Save market hours, then write the task table to Windows (SRD-GUI-029.004)."""
+        self._on_save()
+        self.sched_table.apply()
 
     def _on_save(self) -> None:
         cfg = SystemConfig(
@@ -603,7 +593,8 @@ class _SystemSections(QObject):
 
     @property
     def scheduler_inputs(self) -> list[QWidget]:
-        return [self._open_t, self._close_t, self._mkt_tz, self._sched_en]
+        return [self._open_t, self._close_t, self._mkt_tz, self._sched_en,
+                *self.sched_table.inputs]
 
     @property
     def telegram_inputs(self) -> list[QWidget]:
@@ -629,6 +620,7 @@ class _SystemSections(QObject):
         self._close_t.setText(cfg.market_close)
         self._mkt_tz.setCurrentText(cfg.market_timezone)
         self._sched_en.setChecked(cfg.scheduler_enabled)
+        self.sched_table.load()
 
     def load_telegram(self) -> None:
         """Fill Telegram fields from the active user and the token store."""
@@ -1550,6 +1542,8 @@ def _changed_signal(widget: QWidget) -> pyqtBoundSignal:
         return widget.valueChanged
     if isinstance(widget, QComboBox):
         return widget.currentTextChanged
+    if isinstance(widget, QTimeEdit):
+        return widget.timeChanged
     assert isinstance(widget, QAbstractButton)
     return widget.toggled
 
@@ -1580,7 +1574,8 @@ class SettingsPanel(QWidget):
                               lambda: risk.load(RiskConfig())),
             "Connection": _Editable(sys_.connection_inputs, sys_._on_save, sys_.load_connection,
                                     lambda: sys_.load_connection(SystemConfig())),
-            "Scheduler": _Editable(sys_.scheduler_inputs, sys_._on_save, sys_.load_scheduler,
+            "Scheduler": _Editable(sys_.scheduler_inputs, sys_._on_save_scheduler,
+                                   sys_.load_scheduler,
                                    lambda: sys_.load_scheduler(SystemConfig())),
             "Telegram": _Editable(sys_.telegram_inputs, sys_._on_save_telegram,
                                   sys_.load_telegram, None),
@@ -1589,6 +1584,8 @@ class SettingsPanel(QWidget):
         }
         self._dirty: set[str] = set()
         self._loading = False
+        # table → repair_needed → Scheduler marked changed, so Apply re-creates missing tasks
+        sys_.sched_table.repair_needed.connect(lambda: self._mark_dirty("Scheduler"))
         for name, editable in self._editable.items():
             for widget in editable.inputs:
                 _changed_signal(widget).connect(lambda *_a, n=name: self._mark_dirty(n))

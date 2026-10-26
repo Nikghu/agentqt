@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.29.0: UT-GUI-029.* added — Scheduler task table.
 > v1.28.0: UT-GUI-028.* added — Candle data panel redesign; UT-GUI-021.004.M01.T01–T03 replaced.
 > v1.27.0: UT-GUI-027.* added — Settings dialog.
 > v1.26.0: UT-GUI-026.011–.012 Pass (Phase 3).
@@ -744,3 +745,18 @@ Test files:
 | UT-GUI-028.003.M01.T01 | MD-GUI-028.001.M01 | Edge | Extra stored stocks | 518 stored, universe 503 | "503 / 503", note "+15 left the index" | Pass |
 | UT-GUI-028.004.M01.T01 | MD-GUI-028.001.M01 | Positive | Footer swaps while downloading | start download | Cancel shown, Update hidden, Reset disabled | Pass |
 | UT-GUI-028.005.M01.T01 | MD-GUI-028.001.M01 | Negative | Reset cancelled keeps data | confirm returns Cancel | `reset_candle_db` not called | Pass |
+
+## FO-GUI-029 — Scheduler Task Table in Settings
+
+| UT ID | MD | Type | Description | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-029.004.M02.T01 | MD-GUI-029.004.M02 | Positive | Write switched-on tasks | TWS and USSwing on, close on at 01:30 | create calls for both apps and both close tasks; configs saved | Pass |
+| UT-GUI-029.004.M02.T02 | MD-GUI-029.004.M02 | Negative | Switched-off task is deleted | USSwing off, close off | delete USSwing task and both close tasks; no create for USSwing | Pass |
+| UT-GUI-029.002.M02.T01 | MD-GUI-029.004.M02 | Positive | Task states | query ok for TWS, fails for USSwing | tws installed; app missing | Pass |
+| UT-GUI-029.001.M01.T01 | MD-GUI-029.001.M01 | Positive | Table loads saved tasks | saved TWS 18:30 Mon–Fri, close 01:30 | row values match; Close both shows "Same as start" | Pass |
+| UT-GUI-029.002.M01.T01 | MD-GUI-029.001.M01 | Positive | Edit marks the row Changed | change USSwing time | USSwing pill CHANGED; other pills unchanged | Pass |
+| UT-GUI-029.004.M01.T01 | MD-GUI-029.001.M01 | Positive | Missing on-task asks for repair | states: tws missing, tws on | `repair_needed` emitted; pill MISSING | Pass |
+| UT-GUI-029.004.M01.T02 | MD-GUI-029.001.M01 | Edge | Apply during a write waits | Apply while a write runs | no second write; Remove all off; runs once the write ends | Pass |
+| UT-GUI-029.002.M01.T02 | MD-GUI-029.001.M01 | Edge | Old status result dropped | result from before a reload | pills keep the fresh check | Pass |
+| UT-GUI-029.005.M01.T01 | MD-GUI-029.001.M01 | Negative | Remove all cancelled | confirm returns Cancel | `remove_tasks` not called | Pass |
+| UT-GUI-029.006.M01.T01 | MD-GUI-029.001.M01 | Positive | Scheduler page has the table, no Edit button | build `_SystemSections` | page holds `SchedulerTable`; no `_sched_btn` | Pass |
