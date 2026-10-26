@@ -814,6 +814,29 @@ The system shall show Settings as a modal dialog opened from the sidebar, with e
 
 ---
 
+## FO-GUI-028: Candle Data Panel Redesign
+
+**Status:** Approved (user, 2026-10-25)
+**Priority:** Should
+**Depends on:** FO-GUI-027 (Settings dialog), FO-GUI-006 (candle download)
+**Source:** User picked Option A "Summary line + stat strip" from https://claude.ai/artifact/BdzCz7hUddmW7Ps9sTp8si on 2026-10-25.
+
+The system shall show the Candle data section as one summary line with a state pill, a thin progress bar while downloading, a four-cell stat strip and one quiet action row. Download, retry and reset behaviour do not change.
+
+### Requirements
+
+1. **Summary.** One line says what is happening (updating N of M, up to date, days behind, empty) with one state pill.
+2. **Progress.** A thin bar and "51% · IQV · ~4 min left" show only while downloading.
+3. **Stat strip.** Data to, Last trading day, Stocks and Candles in one row, each with a short plain note.
+4. **Actions.** Update (or Cancel while downloading) and Open Candle DB on the left; a red "Reset database…" link on the right.
+5. **Reset confirm.** Reset asks in the app's own dialog and says what it deletes.
+
+### Acceptance Criteria
+
+1. "Downloading" shows only once while a download runs.
+2. Stored stocks above the index size read "503 / 503" with "+15 left the index".
+3. Reset asks first in a frameless dialog; Cancel keeps the data.
+
 ## FO-GUI-029: Scheduler Task Table in Settings
 
 **Status:** Approved (user, 2026-10-25)

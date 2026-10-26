@@ -8,6 +8,7 @@
 **Project:** US Swing Trading System
 
 > v1.29.0: UT-GUI-029.* added — Scheduler task table.
+> v1.28.0: UT-GUI-028.* added — Candle data panel redesign; UT-GUI-021.004.M01.T01–T03 replaced.
 > v1.27.0: UT-GUI-027.* added — Settings dialog.
 > v1.26.0: UT-GUI-026.011–.012 Pass (Phase 3).
 > v1.25.0: UT-GUI-026.008–.010 Pass (Phase 2).
@@ -556,9 +557,9 @@ Test files:
 | UT-GUI-021.002.M01.T02 | MD-GUI-021.001.M01 | Negative | Risk save keeps other user fields | chat ID set, Save | chat ID and username unchanged | Pass |
 | UT-GUI-021.003.M01.T01 | MD-GUI-021.001.M01 | Positive | System panel holds Theme, Updates, Diagnostics | build `_SystemSections` | theme, update and circuit breaker buttons inside `panel`; groups THEME, UPDATES, ORDERS | Pass |
 | UT-GUI-021.003.M02.T01 | MD-GUI-019.001.M01 | Positive | Strip has a System button | click System | `panel_toggled("system", True)` | Pass |
-| UT-GUI-021.004.M01.T01 | MD-GUI-021.001.M01 | Positive | Progress shows percent | progress MSFT 312 of 503 | "62%", "312 / 503 stocks", "Now: MSFT"; state downloading 62 | Pass |
-| UT-GUI-021.004.M01.T02 | MD-GUI-021.001.M01 | Positive | No failures ends Complete | finish, no failures | "Complete", "100%"; state complete | Pass |
-| UT-GUI-021.004.M01.T03 | MD-GUI-021.001.M01 | Negative | Failures end Partial | finish, 3 failed | "Partial", "500 / 503 stocks", "3 failed"; Failed group shown | Pass |
+| UT-GUI-021.004.M01.T01 | MD-GUI-021.001.M01 | Positive | Progress shows percent | progress MSFT 312 of 503 | "62%", "312 / 503 stocks", "Now: MSFT"; state downloading 62 | Superseded (UT-GUI-028.*) |
+| UT-GUI-021.004.M01.T02 | MD-GUI-021.001.M01 | Positive | No failures ends Complete | finish, no failures | "Complete", "100%"; state complete | Superseded (UT-GUI-028.*) |
+| UT-GUI-021.004.M01.T03 | MD-GUI-021.001.M01 | Negative | Failures end Partial | finish, 3 failed | "Partial", "500 / 503 stocks", "3 failed"; Failed group shown | Superseded (UT-GUI-028.*) |
 | UT-GUI-021.004.M01.T04 | MD-GUI-021.001.M01 | Edge | Past failures mark partial | failed stocks on disk at start | state partial; Failed shown; Download hidden | Pass |
 | UT-GUI-021.004.M02.T01 | MD-GUI-019.001.M01 | Positive | Data badge per state | downloading 62, complete, partial | "62"; check icon; "!" | Pass |
 | UT-GUI-021.004.M02.T02 | MD-GUI-019.001.M01 | Negative | Idle hides the badge | complete then idle | badge hidden | Pass |
@@ -731,6 +732,19 @@ Test files:
 | UT-GUI-027.013.M04.T01 | MD-GUI-027.005.M04 | Positive | Theme waits for Apply | click Mocha; then Apply | not applied after click; applied once and saved after Apply | Pass |
 
 > UT-GUI-021.003.M01.T01, UT-GUI-021.003.M02.T01 and UT-GUI-021.004.M02.T01–T02 are replaced by UT-GUI-027.005.M04.T01, .007.M06.T01 and .008.M02.T01–T02: the System and Data side panels are gone.
+
+## FO-GUI-028 — Candle Data Panel Redesign
+
+| UT ID | MD | Type | Description | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-028.002.M01.T01 | MD-GUI-028.001.M01 | Positive | Progress line | start; MSFT 312 / 503 | "Updating 312 of 503 stocks"; detail starts "62% · MSFT"; state downloading 62 | Pass |
+| UT-GUI-028.002.M01.T02 | MD-GUI-028.001.M01 | Positive | ETA from the third stock | 10 of 100 after 20 s | detail ends "~3 min left" | Pass |
+| UT-GUI-028.001.M01.T01 | MD-GUI-028.001.M01 | Positive | Finish without failures | 502 / 503 then finished, no failures | pill "COMPLETE"; state complete 100 | Pass |
+| UT-GUI-028.001.M01.T02 | MD-GUI-028.001.M01 | Negative | Finish with failures | 3 failed | pill "PARTIAL"; "3 failed"; failed group shown; state partial | Pass |
+| UT-GUI-028.001.M01.T03 | MD-GUI-028.001.M01 | Positive | Status pill and summary | CURRENT; PARTIAL 1 day behind; EMPTY | "UP TO DATE"; "1 DAY BEHIND"; "EMPTY" with matching summary | Pass |
+| UT-GUI-028.003.M01.T01 | MD-GUI-028.001.M01 | Edge | Extra stored stocks | 518 stored, universe 503 | "503 / 503", note "+15 left the index" | Pass |
+| UT-GUI-028.004.M01.T01 | MD-GUI-028.001.M01 | Positive | Footer swaps while downloading | start download | Cancel shown, Update hidden, Reset disabled | Pass |
+| UT-GUI-028.005.M01.T01 | MD-GUI-028.001.M01 | Negative | Reset cancelled keeps data | confirm returns Cancel | `reset_candle_db` not called | Pass |
 
 ## FO-GUI-029 — Scheduler Task Table in Settings
 

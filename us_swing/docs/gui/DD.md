@@ -8,6 +8,7 @@
 **Project:** US Swing Trading System
 
 > v1.25.0: DD-GUI-029.001.D01 added — Scheduler task table.
+> v1.24.0: DD-GUI-028.001.D01 added — Candle data panel redesign.
 > v1.23.0: DD-GUI-027.001.D01 added — Settings dialog opened from the sidebar.
 > v1.22.0: DD-GUI-026.001.D01 and DD-GUI-026.011.D01 added — Charts workspace Focus + Inspector.
 > v1.21.0: DD-GUI-025.001.D01 gains Phase 5 Side column, unset stop/target text and P&L Today.
@@ -1710,6 +1711,16 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 **Status dots (SRD-.012).** Each section button carries an 8 px dot set by `set_section_state(name, state)`: `ok` green, `warn` amber, `off` grey, `none` hidden. Connection: connected → ok, else warn. Scheduler: enabled → ok, else off. Telegram: enabled with token and chat → ok, enabled but missing one → warn, else off. Candle data: complete → ok, partial or downloading → warn, else off. Dots refresh after Apply, when the dialog opens, and on `feed_status_changed` / `state_changed` only while it is visible. Review fixes: the title bar hides minimise (a minimised application-modal dialog would lock the app), and every open reloads all editable sections, so they follow the active user.
 
 ---
+
+## DD-GUI-028.001.D01 — Candle Data Panel Redesign
+
+**Traces:** SRD-GUI-028.001–.005
+
+**Layout (`_DataPanel`, `settings_panel.py`).** Top block: `_summary` (bold) and `_pill` (`data_pill`) in one row; `_progress_bar` (`data_bar`, 4 px) and a detail row (`_detail` left, `_fail_count_lbl` right) visible only while a download runs or just ended; the start-date row (EMPTY only) stays here. Then a 4-cell stat strip (`_stat(key)` → `(value, note)` labels, `data_stat_value`) split by 1 px lines; then the FAILED group (unchanged); a stretch; a footer row: `_build_btn` / `_cancel_btn` (one visible), `_candle_db_btn`, stretch, `_reset_db_btn` (`link_danger`). The DOWNLOAD / STATUS / ACTIONS group heads, the big percent, the refresh button and the "Downloading…" button text are removed; status still refreshes at start and after each download.
+
+**Texts.** Downloading: "Updating {done} of {total} stocks", detail "{pct}% · {symbol} · ~{n} min left" (ETA = elapsed / done × left, from done ≥ 3; "< 1 min" under 60 s). Idle: CURRENT → "Up to date · {n} stocks", pill UP TO DATE; PARTIAL → "{n} trading day(s) behind" (weekdays minus NYSE holidays between data-to and last trading day) or "Some stocks are missing", pill "N DAYS BEHIND" or PARTIAL; EMPTY → "No candle data yet", pill EMPTY. Notes: data-to "up to date" / "N days behind"; last trading day weekday; stocks "+N left the index" / "N missing" / "all stocks"; candles "daily bars" (weekly count in the tooltip).
+
+**Reset (SRD-.005).** `_on_reset_db` opens `active_cycles_panel._ConfirmDialog` (lazy import, red accent, "Reset"); the rest of the flow is unchanged.
 
 ## DD-GUI-029.001.D01 — Scheduler Task Table
 
