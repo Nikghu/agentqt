@@ -1,11 +1,13 @@
 """
 Module: MD-GUI-002.001.M01 — dashboard_panel.py
-Parent SRD: SRD-GUI-002.001 – SRD-GUI-002.008
+Parent SRD: SRD-GUI-002.001 – SRD-GUI-002.008, SRD-GUI-025.001 – SRD-GUI-025.015
 
-Dashboard: TIKR-style KPI cards · open positions table · capital bar · trade history.
+Dashboard: KPI strip and four tiles — open positions, market watch, trade history and
+P&L by strategy (tiled workspace, FO-GUI-025).
 """
 from __future__ import annotations
 
+import csv
 import datetime
 
 import logging
@@ -14,15 +16,25 @@ from zoneinfo import ZoneInfo
 from PyQt6.QtCore import (
     QAbstractTableModel,
     QEasingCurve,
-    QEvent,
     QModelIndex,
     QPoint,
     QPropertyAnimation,
+    QSettings,
     QStringListModel,
     Qt,
+    QTimer,
     pyqtSignal,
 )
-from PyQt6.QtGui import QColor, QKeyEvent, QKeySequence, QResizeEvent, QShortcut
+from PyQt6.QtGui import (
+    QColor,
+    QHideEvent,
+    QKeyEvent,
+    QKeySequence,
+    QActionGroup,
+    QResizeEvent,
+    QShortcut,
+    QShowEvent,
+)
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
@@ -34,12 +46,14 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
     QLabel,
+    QFileDialog,
     QLineEdit,
+    QMenu,
     QMessageBox,
     QProgressBar,
     QPushButton,
-    QSizePolicy,
     QSpinBox,
+    QStackedWidget,
     QTableWidget,
     QTableWidgetItem,
     QTabWidget,
@@ -49,10 +63,23 @@ from PyQt6.QtWidgets import (
 )
 
 from us_swing.gui.app_service import AppService
+from us_swing.gui.cards import GAP, card, gutter
+from us_swing.gui.dashboard_tiles import (
+    ROW_H,
+    KpiStrip,
+    StrategyPnlList,
+    Tile,
+    TileGrid,
+    table_rows,
+)
+from us_swing.gui.performance_band import ExposureView, PerformanceBand
+from us_swing.gui.screener_views import ChipGroup
+from us_swing.gui.strategy_pnl_chart import money, since_iso
+from us_swing.gui.strategy_store import load_strategies
 from us_swing.gui._types import AccountState, OpenPosition
 from us_swing.gui.position_table_model import PositionTableModel, TradeHistoryModel
-from us_swing.gui.icons import mark_danger, set_icon, set_tab_icon
-from us_swing.gui.theme import C, colors
+from us_swing.gui.icons import icon_button, mark_danger, set_icon, set_tab_icon
+from us_swing.gui.theme import C
 from us_swing.data.models import WatchlistItem
 
 _log = logging.getLogger(__name__)
@@ -891,74 +918,6 @@ class _ExitDrawer(QFrame):
         self._anim.start()
 
 
-# ── TIKR-style KPI stat card ───────────────────────────────────────────────────
-
-class _StatCard(QFrame):
-    """
-    TIKR-style KPI card:
-      ┌──────────────────────────────┐
-      │ LABEL   (muted, uppercase)   │
-      │                              │
-      │  VALUE  (large, bold)        │
-      │  ▲ +12.5%  (change badge)   │
-      │──────────────────────────────│  ← colored accent bottom bar
-      └──────────────────────────────┘
-    """
-
-    def __init__(self, label: str, accent: str = C.BLUE,
-                 parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setObjectName("stat_card")
-        self._accent = accent
-
-        # card border + bottom accent achieved with nested frames
-        outer = QVBoxLayout(self)
-        outer.setContentsMargins(0, 0, 0, 0)
-        outer.setSpacing(0)
-
-        inner_widget = QWidget()
-        inner_widget.setObjectName("stat_card_inner")
-        inner = QVBoxLayout(inner_widget)
-        inner.setContentsMargins(14, 12, 14, 10)
-        inner.setSpacing(4)
-
-        self._lbl = QLabel(label.upper())
-        self._lbl.setStyleSheet(
-            f"color: {C.MUTED}; font-size: 7pt; letter-spacing: 1px; font-weight: bold;"
-        )
-
-        self._val = QLabel("—")
-        self._val.setStyleSheet(f"font-size: 20pt; font-weight: bold; color: {C.TEXT};")
-
-        self._change = QLabel()
-        self._change.setStyleSheet(f"font-size: 8pt; color: {C.MUTED};")
-
-        inner.addWidget(self._lbl)
-        inner.addSpacing(2)
-        inner.addWidget(self._val)
-        inner.addWidget(self._change)
-
-        # bottom accent bar (2px)
-        self._bar = QFrame()
-        self._bar.setFixedHeight(3)
-        self._bar.setStyleSheet(f"background: {accent}; border-radius: 0px;")
-
-        outer.addWidget(inner_widget, 1)
-        outer.addWidget(self._bar)
-
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self.setMinimumHeight(100)
-
-    def set_value(self, text: str, colour: str = C.TEXT,
-                  change: str = "", change_colour: str = C.MUTED) -> None:
-        self._val.setText(text)
-        self._val.setStyleSheet(f"font-size: 20pt; font-weight: bold; color: {colour};")
-        if change:
-            self._change.setText(change)
-            self._change.setStyleSheet(f"font-size: 8pt; color: {change_colour};")
-        self._bar.setStyleSheet(f"background: {colour}; border-radius: 0px;")
-
-
 # ── Mini market-pulse bar ──────────────────────────────────────────────────────
 
 class _MarketPulseBar(QWidget):
@@ -1024,6 +983,17 @@ class _WatchlistModel(QAbstractTableModel):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self._rows: list[WatchlistItem] = []
+        self._removable = False
+
+    def set_removable(self, on: bool) -> None:
+        """Add a trailing remove-mark column (dashboard tile, SRD-GUI-025.012)."""
+        self.beginResetModel()
+        self._removable = on
+        self.endResetModel()
+
+    @property
+    def remove_col(self) -> int:
+        return len(self._COLS) if self._removable else -1
 
     def refresh(self, items: list[WatchlistItem]) -> None:
         self.beginResetModel()
@@ -1037,12 +1007,12 @@ class _WatchlistModel(QAbstractTableModel):
         return len(self._rows)
 
     def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
-        return len(self._COLS)
+        return len(self._COLS) + (1 if self._removable else 0)
 
     def headerData(self, section: int, orientation: Qt.Orientation,
                    role: int = Qt.ItemDataRole.DisplayRole):
         if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
-            return self._COLS[section]
+            return self._COLS[section] if section < len(self._COLS) else ""
         return None
 
     def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole):
@@ -1050,6 +1020,9 @@ class _WatchlistModel(QAbstractTableModel):
             return None
         item = self._rows[index.row()]
         col  = index.column()
+
+        if col == self.remove_col:
+            return self._remove_mark(role)
 
         if role == Qt.ItemDataRole.DisplayRole:
             return self._display(item, col)
@@ -1069,6 +1042,18 @@ class _WatchlistModel(QAbstractTableModel):
                 return Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
             return Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
 
+        return None
+
+    @staticmethod
+    def _remove_mark(role: int) -> object:
+        if role == Qt.ItemDataRole.DisplayRole:
+            return "✕"
+        if role == Qt.ItemDataRole.ToolTipRole:
+            return "Remove from watchlist"
+        if role == Qt.ItemDataRole.ForegroundRole:
+            return QColor(C.MUTED)
+        if role == Qt.ItemDataRole.TextAlignmentRole:
+            return Qt.AlignmentFlag.AlignCenter
         return None
 
     def _display(self, item: WatchlistItem, col: int) -> str:
@@ -1118,150 +1103,6 @@ class _WatchlistModel(QAbstractTableModel):
             case _:  return ""
 
 
-# ── Market Watch table model ──────────────────────────────────────────────────
-
-class _MarketWatchModel(QAbstractTableModel):
-    """QAbstractTableModel for the Market Watch tab.
-
-    Columns: Symbol | Name | Price | Change | Chg % | Open | High | Low | Volume
-    """
-
-    _COLS = ["Symbol", "Name", "Price", "Change", "Chg %", "Open", "High", "Low", "Volume"]
-
-    def __init__(self, names: dict[str, str], parent=None) -> None:
-        super().__init__(parent)
-        self._rows: list[WatchlistItem] = []
-        self._names = names
-
-    def refresh(self, items: list[WatchlistItem]) -> None:
-        self.beginResetModel()
-        self._rows = list(items)
-        self.endResetModel()
-
-    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
-        return len(self._rows)
-
-    def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
-        return len(self._COLS)
-
-    def headerData(self, section: int, orientation: Qt.Orientation,
-                   role: int = Qt.ItemDataRole.DisplayRole):
-        if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
-            return self._COLS[section]
-        return None
-
-    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole):
-        if not index.isValid() or index.row() >= len(self._rows):
-            return None
-        item = self._rows[index.row()]
-        col = index.column()
-
-        if role == Qt.ItemDataRole.DisplayRole:
-            return self._display(item, col)
-
-        if role == Qt.ItemDataRole.ForegroundRole:
-            if col in (3, 4):
-                if item.change_pct > 0:
-                    return QColor(C.GREEN)
-                if item.change_pct < 0:
-                    return QColor(C.RED)
-                return QColor(C.MUTED)
-            if col == 2 and item.ltp:
-                return QColor(C.GREEN) if item.change_pct >= 0 else QColor(C.RED)
-
-        if role == Qt.ItemDataRole.TextAlignmentRole:
-            if col <= 1:
-                return Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
-            return Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
-
-        return None
-
-    def _display(self, item: WatchlistItem, col: int) -> str:
-        def _p(v: float) -> str:
-            return f"{v:,.2f}" if v else "—"
-
-        def _vol(v: int) -> str:
-            if not v:
-                return "—"
-            if v >= 1_000_000:
-                return f"{v / 1_000_000:.1f}M"
-            if v >= 1_000:
-                return f"{v / 1_000:.1f}K"
-            return str(v)
-
-        match col:
-            case 0: return item.symbol
-            case 1: return self._names.get(item.symbol, item.symbol)
-            case 2: return f"{item.ltp:,.2f}" if item.ltp else "—"
-            case 3:
-                if item.change == 0 and not item.ltp:
-                    return "—"
-                sign = "+" if item.change >= 0 else ""
-                return f"{sign}{item.change:.2f}"
-            case 4:
-                if item.change_pct == 0 and not item.ltp:
-                    return "—"
-                sign = "+" if item.change_pct >= 0 else ""
-                return f"{sign}{item.change_pct:.2f}%"
-            case 5: return _p(item.day_open)
-            case 6: return _p(item.day_high)
-            case 7: return _p(item.day_low)
-            case 8: return _vol(item.volume)
-            case _: return ""
-
-
-# ── Market Watch tab widget ───────────────────────────────────────────────────
-
-class _MarketWatchTab(QWidget):
-    """Market Watch tab: fixed index ETFs (SPY/QQQ/DIA/IWM) with live prices."""
-
-    def __init__(self, svc: AppService, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self._svc = svc
-
-        names = dict(svc.get_mw_symbol_names())
-
-        self._model = _MarketWatchModel(names)
-        self._view = QTableView()
-        self._view.setModel(self._model)
-        self._view.setAlternatingRowColors(True)
-        self._view.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
-        self._view.setSelectionMode(QTableView.SelectionMode.SingleSelection)
-        self._view.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
-        self._view.horizontalHeader().setStretchLastSection(True)
-        self._view.verticalHeader().setVisible(False)
-        self._view.setSortingEnabled(False)
-
-        _col_widths = {0: 70, 1: 120, 2: 90, 3: 90, 4: 80, 5: 90, 6: 90, 7: 90}
-        h = self._view.horizontalHeader()
-        for col, w in _col_widths.items():
-            h.resizeSection(col, w)
-            h.setSectionResizeMode(col, QHeaderView.ResizeMode.Interactive)
-        h.setSectionResizeMode(8, QHeaderView.ResizeMode.Stretch)
-
-        self._updated_lbl = QLabel("")
-        self._updated_lbl.setStyleSheet(f"color:{C.MUTED}; font-size:8pt;")
-
-        bottom_bar = QHBoxLayout()
-        bottom_bar.addWidget(self._updated_lbl)
-        bottom_bar.addStretch()
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(4, 8, 4, 8)
-        layout.setSpacing(6)
-        layout.addWidget(self._view)
-        layout.addLayout(bottom_bar)
-
-        svc.market_watch_updated.connect(self._on_data_updated)
-        self._on_data_updated()
-
-    def _on_data_updated(self) -> None:
-        items = self._svc.get_market_watch_items()
-        self._model.refresh(items)
-        now = datetime.datetime.now().strftime("%H:%M:%S")
-        self._updated_lbl.setText(f"Updated {now}")
-
-
 # ── Watchlist tab widget ──────────────────────────────────────────────────────
 
 class _WatchlistTab(QWidget):
@@ -1271,29 +1112,28 @@ class _WatchlistTab(QWidget):
         super().__init__(parent)
         self._svc = svc
 
-        # ── S&P 500 symbol set (loaded once; used for validation + completer) ──
+        # ── S&P 500 symbol set (validation + suggestions; refreshed on sp500_updated) ──
         self._sp500: frozenset[str] = frozenset()
-        try:
-            from us_swing.universe import store as _store  # lazy import
-            records = _store.load_sp500()
-            if records:
-                self._sp500 = frozenset(r.symbol.upper() for r in records)
-            else:
-                _log.warning("[Watchlist] S&P 500 universe unavailable — symbol filter disabled")
-        except Exception:
-            _log.warning("[Watchlist] S&P 500 universe unavailable — symbol filter disabled")
 
         # ── Toolbar ───────────────────────────────────────────────────────────
         self._sym_input = QLineEdit()
         self._sym_input.setPlaceholderText("Symbol (e.g. AAPL)…")
         self._sym_input.setFixedWidth(160)
-        self._sym_input.setMaxLength(12)
-        if self._sp500:
-            _completer_model = QStringListModel(sorted(self._sp500))
-            _completer = QCompleter(_completer_model, self._sym_input)
-            _completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-            _completer.setCompletionMode(QCompleter.CompletionMode.InlineCompletion)
-            self._sym_input.setCompleter(_completer)
+        # Suggestions start with the typed text, e.g. "a" → "AAPL — Apple Inc."
+        self._completer = QCompleter(self)
+        self._completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self._completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
+        self._completer.setMaxVisibleItems(12)
+        popup = self._completer.popup()
+        assert popup is not None
+        popup.setStyleSheet(
+            f"QAbstractItemView {{ background:{C.SURFACE}; color:{C.TEXT};"
+            f" border:1px solid {C.OVERLAY}; selection-background-color:{C.OVERLAY};"
+            f" selection-color:{C.TEXT}; font-size:8pt; outline:none; }}"
+        )
+        self._sym_input.setCompleter(self._completer)
+        self._refresh_suggestions()
+        svc.sp500_updated.connect(self._refresh_suggestions)
         self._sym_input.returnPressed.connect(self._on_add)
 
         self._add_btn = QPushButton("Add")
@@ -1339,6 +1179,7 @@ class _WatchlistTab(QWidget):
         h.setSectionResizeMode(10, QHeaderView.ResizeMode.Stretch)
 
         self._view.selectionModel().selectionChanged.connect(self._on_selection)
+        self._view.clicked.connect(self._on_cell_clicked)
 
         # ── Empty state overlay ───────────────────────────────────────────────
         self._empty_lbl = QLabel(
@@ -1387,26 +1228,81 @@ class _WatchlistTab(QWidget):
         self._status_lbl.hide()
         self._updated_lbl.hide()
 
+    def tile_tools(self) -> list[QWidget]:
+        """Fit a dashboard tile: key columns and a ✕ per row; returns the header controls."""
+        self._model.set_removable(True)
+        remove_col = self._model.remove_col
+        for col in range(self._model.columnCount()):
+            self._view.setColumnHidden(col, col not in (0, 1, 2, 3, 7, remove_col))
+        header = self._view.horizontalHeader()
+        if header is not None:
+            header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+            header.setSectionResizeMode(remove_col, QHeaderView.ResizeMode.Fixed)
+            header.resizeSection(remove_col, 32)
+        self._sym_input.setFixedWidth(120)
+        self._sym_input.setPlaceholderText("+ Add symbol")
+        self._add_btn.setFixedWidth(70)
+        self._refresh_btn.setText("")
+        self._refresh_btn.setFixedWidth(C.BTN_H + 4)
+        self._refresh_btn.setToolTip("Refresh")
+        self._refresh_btn.setAccessibleName("Refresh")
+        self._remove_btn.hide()
+        self._status_lbl.hide()
+        self._updated_lbl.hide()
+        self._empty_lbl.setText("Watchlist is empty.\n\nType a symbol above and click Add.")
+        return [self._sym_input, self._add_btn, self._refresh_btn]
+
+    def _on_cell_clicked(self, index: QModelIndex) -> None:
+        if index.column() == self._model.remove_col:
+            symbol = self._model.row_symbol(index.row())
+            if symbol:
+                self._svc.remove_from_watchlist(symbol)
+
+    def reload(self) -> None:
+        """Load the current watchlist quotes now instead of waiting for the next update."""
+        self._on_data_updated()
+
+    @property
+    def table_view(self) -> QTableView:
+        return self._view
+
+    @property
+    def symbol_count(self) -> int:
+        return self._model.rowCount()
+
     def add_symbol(self, symbol: str) -> None:
         """Public API — called by DashboardPanel.on_watchlist_add."""
         sym = symbol.strip().upper()
         if self._sp500 and sym not in self._sp500:
-            QMessageBox.warning(
-                self, "Not in S&P 500",
-                "Only S&P 500 stocks can be added to the watchlist.",
-            )
+            self._warn_not_sp500(sym)
             return
         self._svc.add_to_watchlist(sym)
 
+    def _warn_not_sp500(self, sym: str) -> None:
+        # Imported here: the module pulls in the execution package, which must not load
+        # before the app has set up the database modules.
+        from us_swing.gui.active_cycles_panel import _ConfirmDialog
+
+        _ConfirmDialog(
+            "NOT IN S&P 500",
+            f"{sym} is not an S&P 500 stock\n"
+            "Only S&P 500 stocks can be added to the watchlist. "
+            "Pick one from the suggestions as you type.",
+            confirm_text="OK", accent=C.YELLOW, show_cancel=False, parent=self,
+        ).exec()
+
+    def _refresh_suggestions(self) -> None:
+        records = self._svc.get_sp500_universe()
+        self._sp500 = frozenset(r.symbol.upper() for r in records)
+        items = sorted(f"{r.symbol} - {r.name}" for r in records)
+        self._completer.setModel(QStringListModel(items, self._completer))
+
     def _on_add(self) -> None:
-        sym = self._sym_input.text().strip().upper()
+        sym = self._sym_input.text().split(" - ")[0].strip().upper()
         if not sym:
             return
         if self._sp500 and sym not in self._sp500:
-            QMessageBox.warning(
-                self, "Not in S&P 500",
-                "Only S&P 500 stocks can be added to the watchlist.",
-            )
+            self._warn_not_sp500(sym)
             return
         self._svc.add_to_watchlist(sym)
         self._sym_input.clear()
@@ -1454,53 +1350,38 @@ class DashboardPanel(QWidget):
 
     position_selected = pyqtSignal(object, str)   # OpenPosition | None, user name
 
-    def __init__(self, demo: AppService, parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        demo: AppService,
+        parent: QWidget | None = None,
+        settings: QSettings | None = None,
+    ) -> None:
         super().__init__(parent)
         self._demo = demo
 
-        # ── KPI stat cards ─────────────────────────────────────────────────────
-        self._card_pnl    = _StatCard("Total P&L",             accent=C.GREEN)
-        self._card_cap    = _StatCard("Capital Utilised",    accent=C.ORANGE)
-        self._card_pos    = _StatCard("Open Positions",      accent=C.BLUE)
-        self._card_equity = _StatCard("Account Equity",      accent=C.MAUVE)
-        self._card_cash   = _StatCard("Available Cash",      accent=C.TEAL)
+        self._settings = settings or QSettings("USSwing", "DashboardPanel")
 
-        cards_row = QHBoxLayout()
-        cards_row.setSpacing(10)
-        for card in (self._card_pnl, self._card_cap, self._card_pos, self._card_equity, self._card_cash):
-            cards_row.addWidget(card)
+        # ── KPI strip with the view and density switches (SRD-GUI-025.001/.002) ─
+        self._kpi = KpiStrip()
+        self._view_uids: list[int | None] = [None] + [u.user_id for u in demo.get_users()]
+        self._view_chips = ChipGroup(
+            [("All users", None)] + [(u.username, str(u.user_id)) for u in demo.get_users()]
+        )
+        self._view_chips.changed.connect(self._on_view_chip)
+        self._density_chips = ChipGroup([("Comfort", "comfort"), ("Compact", "compact")])
+        self._density_chips.changed.connect(self._on_density_chip)
+        self._kpi.tail.addWidget(self._view_chips)
+        self._kpi.tail.addWidget(self._density_chips)
 
-        # ── Admin user-scope pill strip ──────────────────────────────────────────────
-        self._scope_strip = QWidget()
-        self._scope_strip.setObjectName("scope_strip")
-        self._scope_strip.setFixedHeight(32)
-        ss_row = QHBoxLayout(self._scope_strip)
-        ss_row.setContentsMargins(8, 0, 8, 0)
-        ss_row.setSpacing(4)
-        self._scope_lbl = QLabel("View:")
-        self._scope_lbl.setFixedHeight(20)
-        self._scope_lbl.setStyleSheet("font-size:8pt; font-weight:bold;")
-        ss_row.addWidget(self._scope_lbl)
-
-        self._scope_pills: dict[object, QPushButton] = {}  # uid:None | int -> button
-        users = demo.get_users()
-
-        def _make_pill(label: str, uid, first: bool = False) -> QPushButton:
-            btn = QPushButton(label)
-            btn.setCheckable(True)
-            btn.setAutoExclusive(True)
-            btn.setFixedHeight(20)
-            if first:
-                btn.setChecked(True)
-            btn.clicked.connect(lambda _c, u=uid: demo.set_viewing_uid(u))
-            ss_row.addWidget(btn)
-            return btn
-
-        self._scope_pills[None] = _make_pill("All", None, first=True)
-        for u in users:
-            self._scope_pills[u.user_id] = _make_pill(u.username, u.user_id)
-        ss_row.addStretch()
-        self._restyle_scope_strip()
+        # ── Performance band and its toggle (SRD-GUI-025.013/.014) ────────────
+        self._perf_band = PerformanceBand()
+        self._perf_band.ranges.changed.connect(self._on_perf_range)
+        self._perf_card = card(self._perf_band)
+        self._perf_btn = icon_button("chart-line", "info", "Show or hide the equity graph")
+        self._perf_btn.setText("Performance")
+        self._perf_btn.setCheckable(True)
+        self._perf_btn.toggled.connect(self._on_perf_toggled)
+        self._kpi.tail.addWidget(self._perf_btn)
 
         demo.viewing_changed.connect(self._on_scope_changed)
 
@@ -1517,32 +1398,57 @@ class DashboardPanel(QWidget):
         self._pos_view.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
         self._pos_view.horizontalHeader().setStretchLastSection(True)
         self._pos_view.verticalHeader().setVisible(False)
-        _resize_columns(self._pos_view, {0: 80, 1: 55, 8: 120})
+        _resize_columns(self._pos_view, {0: 80, 1: 60, 2: 55, 9: 120})
 
         # ── Position action toolbar ────────────────────────────────────────────
         self._sq_all_btn = QPushButton("Square Off All")
         set_icon(self._sq_all_btn, "square-x", "danger")
         mark_danger(self._sq_all_btn)
         self._sq_all_btn.setToolTip("Close all open positions at market price")
-        self._pos_status_lbl = QLabel("Double-click a row to manage")
-        self._pos_status_lbl.setStyleSheet(f"color:{C.MUTED}; font-size:8pt;")
-
-        pos_toolbar = QHBoxLayout()
-        pos_toolbar.setSpacing(8)
-        pos_toolbar.addWidget(self._pos_status_lbl)
-        pos_toolbar.addStretch()
-        pos_toolbar.addWidget(self._sq_all_btn)
 
         self._pos_view.selectionModel().selectionChanged.connect(self._on_pos_selection)
         self._pos_view.doubleClicked.connect(lambda _: self.open_exit(0))
         self._sq_all_btn.clicked.connect(self._on_square_off_all)
 
-        pos_tab = QWidget()
-        pos_tab_layout = QVBoxLayout(pos_tab)
-        pos_tab_layout.setContentsMargins(4, 8, 4, 4)
-        pos_tab_layout.setSpacing(6)
-        pos_tab_layout.addWidget(self._pos_view)
-        pos_tab_layout.addLayout(pos_toolbar)
+        # ── Filter box and column chooser (SRD-GUI-025.008/.009) ──────────────
+        self._positions: list[OpenPosition] = []
+        self._pos_filter = QLineEdit()
+        self._pos_filter.setPlaceholderText("Filter symbol")
+        self._pos_filter.setFixedWidth(130)
+        self._pos_filter.setClearButtonEnabled(True)
+        self._pos_filter.hide()
+        self._pos_filter.textChanged.connect(self._apply_pos_filter)
+        self._filter_btn = icon_button("filter", "neutral", "Filter by symbol")
+        self._filter_btn.setCheckable(True)
+        self._filter_btn.setFixedWidth(C.BTN_H)
+        self._filter_btn.toggled.connect(self._on_filter_toggled)
+        self._cols_btn = icon_button("columns-3", "neutral", "Choose columns")
+        self._cols_btn.setFixedWidth(C.BTN_H)
+        self._cols_btn.clicked.connect(self._show_columns_menu)
+
+        self._pos_model.modelReset.connect(self._on_pos_model_reset)
+
+        # ── Open Positions | Exposure tabs (SRD-GUI-025.015) ──────────────────
+        self._exposure = ExposureView()
+        self._pos_stack = QStackedWidget()
+        self._pos_stack.addWidget(self._pos_view)
+        self._pos_stack.addWidget(self._exposure)
+        self._pos_tabs = ChipGroup([("Open Positions", "list"), ("Exposure", "expo")])
+        self._pos_tabs.changed.connect(self._on_pos_tab)
+        self._expo_units = ChipGroup([("$ Value", "value"), ("% Equity", "pct")])
+        self._expo_units.changed.connect(self._refresh_exposure)
+        self._expo_units.hide()
+        self._positions_equity = 0.0
+
+        self._pos_tile = Tile("Open Positions", self._pos_stack)
+        self._pos_tile.set_title_widget(self._pos_tabs)
+        pos_tools: tuple[QWidget, ...] = (
+            self._pos_filter, self._filter_btn, self._cols_btn, self._expo_units,
+            self._sq_all_btn)
+        for tool in pos_tools:
+            self._pos_tile.add_tool(tool)
+        self._pos_status_lbl = self._pos_tile.count_lbl
+        self._pos_view.setToolTip("Double-click a row to manage the position")
 
         # ── Trade history table (History tab) ─────────────────────────────────
         self._hist_model = TradeHistoryModel(
@@ -1556,35 +1462,54 @@ class DashboardPanel(QWidget):
         self._hist_view.horizontalHeader().setStretchLastSection(True)
         self._hist_view.verticalHeader().setVisible(False)
         _resize_columns(self._hist_view, {0: 85, 1: 70, 2: 50, 3: 50})
+        self._hist_tile = Tile("Trade History", self._hist_view)
 
-        hist_tab = QWidget()
-        hist_tab_layout = QVBoxLayout(hist_tab)
-        hist_tab_layout.setContentsMargins(4, 8, 4, 4)
-        hist_tab_layout.setSpacing(6)
-        hist_tab_layout.addWidget(self._hist_view)
+        # ── Range, state and export (SRD-GUI-025.010/.011) ────────────────────
+        self._hist_choice: dict[str, str] = {}
+        self._hist_range_btn = QPushButton()
+        self._hist_state_btn = QPushButton()
+        self._hist_range_btn.setMenu(
+            self._choice_menu(self._hist_range_btn, _HIST_RANGES, "hist_range", ""))
+        self._hist_state_btn.setMenu(
+            self._choice_menu(self._hist_state_btn, _HIST_STATES, "hist_state", "State: "))
+        self._hist_range_btn.setFixedWidth(90)
+        self._hist_state_btn.setFixedWidth(130)
+        self._export_btn = icon_button("download", "neutral", "Export CSV")
+        self._export_btn.setFixedWidth(C.BTN_H)
+        self._export_btn.clicked.connect(self._on_export)
+        for button in (self._hist_range_btn, self._hist_state_btn, self._export_btn):
+            self._hist_tile.add_tool(button)
 
         # ── Watchlist (shown in the main window's right panel) ────────────────
         self._watchlist_tab = _WatchlistTab(demo)
 
-        # ── Market Watch tab ───────────────────────────────────────────────────
-        self._mw_tab = _MarketWatchTab(demo)
+        # ── Market Watch tile: the user's watchlist (SRD-GUI-025.007) ─────────
+        self._watch_list = _WatchlistTab(demo)
+        self._watch_tile = Tile("Market Watch", self._watch_list)
+        for tool in self._watch_list.tile_tools():
+            self._watch_tile.add_tool(tool)
+        demo.watchlist_updated.connect(self._refresh_watch_count)
 
-        # ── QTabWidget: Positions | Trade History | Market Watch ──────────────
-        self._dash_tabs = QTabWidget()
-        self._dash_tabs.setObjectName("dash_tabs")
-        self._dash_tabs.addTab(pos_tab,              "Open Positions")
-        self._dash_tabs.addTab(hist_tab,             "Trade History")
-        self._dash_tabs.addTab(self._mw_tab,         "Market Watch")
-        for _i, _ic in enumerate(("briefcase", "history", "activity")):
-            set_tab_icon(self._dash_tabs, _i, _ic, "info")
+        # ── P&L by Strategy tile (SRD-GUI-025.005) ────────────────────────────
+        self._strategy_list = StrategyPnlList()
+        self._strategy_tile = Tile("P&L by Strategy", self._strategy_list)
+        self._strategy_tile.set_count("Today")
 
-        # ── Main layout ────────────────────────────────────────────────────────
+        # ── Tile grid (SRD-GUI-025.003/.004) ──────────────────────────────────
+        self._grid = TileGrid({
+            "positions": self._pos_tile, "watch": self._watch_tile,
+            "history": self._hist_tile, "strategy": self._strategy_tile,
+        })
+        self._grid.changed.connect(lambda name: self._settings.setValue("maximised", name))
+
+        # ── Main layout: cards on the gutter, like Screener and Execution ─────
+        gutter(self)
         main = QVBoxLayout(self)
-        main.setSpacing(10)
-        main.setContentsMargins(14, 14, 14, 14)
-        main.addLayout(cards_row)
-        main.addWidget(self._scope_strip)
-        main.addWidget(self._dash_tabs, 1)
+        main.setSpacing(GAP)
+        main.setContentsMargins(0, 0, 0, 0)
+        main.addWidget(card(self._kpi))
+        main.addWidget(self._perf_card)
+        main.addWidget(self._grid, 1)
 
         self._drawer = _ExitDrawer(self)
         self._drawer.closed.connect(self._on_drawer_closed)
@@ -1602,52 +1527,129 @@ class DashboardPanel(QWidget):
         demo.viewing_changed.connect(self._refresh_positions)
         demo.viewing_changed.connect(self._refresh_account)
         demo.exchange_unavail_updated.connect(self._pos_model.set_exchange_unavailable)
+        self._strategy_debounce = QTimer(self)
+        self._strategy_debounce.setSingleShot(True)
+        self._strategy_debounce.setInterval(200)
+        self._strategy_debounce.timeout.connect(self._refresh_strategies)
+        self._strategy_timer = QTimer(self)
+        self._strategy_timer.setInterval(60_000)
+        self._strategy_timer.timeout.connect(self._strategy_debounce.start)
+        self._strategy_load_failed = False
+        demo.viewing_changed.connect(self._strategy_debounce.start)
+        demo.strategy_status_changed.connect(self._on_strategy_status)
+        self._perf_debounce = QTimer(self)
+        self._perf_debounce.setSingleShot(True)
+        self._perf_debounce.setInterval(300)
+        self._perf_debounce.timeout.connect(self._refresh_performance)
+        self._strategy_timer.timeout.connect(self._perf_debounce.start)
+        demo.viewing_changed.connect(self._perf_debounce.start)
+        self._restore_settings()
         self._on_scope_changed()   # initialise User column & column widths for current scope
         self._refresh_positions()
         self._refresh_account()
+        self._watch_list.reload()
+        self._refresh_watch_count()
+        self._refresh_strategies()
 
-    # ── Theme-aware scope strip ───────────────────────────────────────────────────────
+    def showEvent(self, event: QShowEvent | None) -> None:
+        super().showEvent(event)
+        self._strategy_timer.start()
+        self._strategy_debounce.start()
+        self._perf_debounce.start()
 
-    def changeEvent(self, event: QEvent) -> None:
-        super().changeEvent(event)
-        if event.type() == QEvent.Type.StyleChange:
-            self._restyle_scope_strip()
+    def hideEvent(self, event: QHideEvent | None) -> None:
+        super().hideEvent(event)
+        self._strategy_timer.stop()
 
-    def _restyle_scope_strip(self) -> None:
-        _tc = colors()
-        _ss_bg  = _tc["scope_strip_bg"]
-        _ss_brd = _tc["scope_strip_border"]
-        _pill_mu = _tc["scope_pill_muted"]
-        _pill_ov = _tc["scope_pill_border"]
-        _pill_ck_bg = _tc["scope_pill_checked_bg"]
-        _pill_ck_fg = _tc["scope_pill_checked_fg"]
-        _pill_ck_bd = _tc["scope_pill_checked_bd"]
-        self._scope_strip.setStyleSheet(
-            f"QWidget#scope_strip {{ background:{_ss_bg}; border:1px solid {_ss_brd};"
-            f" border-radius:4px; }}"
-        )
-        self._scope_lbl.setStyleSheet(
-            f"color:{_pill_mu}; font-size:8pt; font-weight:bold;"
-        )
-        pill_qss = (
-            f"QPushButton {{ background:transparent; color:{_pill_mu}; border:1px solid {_pill_ov};"
-            f" border-radius:10px; padding:0 10px; font-size:8pt; }}"
-            f"QPushButton:checked {{ background:{_pill_ck_bg}; color:{_pill_ck_fg};"
-            f" border:1px solid {_pill_ck_bd}; font-weight:bold; }}"
-            f"QPushButton:focus {{ outline: none; }}"
-        )
-        for btn in self._scope_pills.values():
-            btn.setStyleSheet(pill_qss)
+    def _on_strategy_status(self, _name: str, _state: str) -> None:
+        self._strategy_debounce.start()
 
-    # ── Scope pill sync ───────────────────────────────────────────────────────────────
+    # ── Switches and remembered layout (SRD-GUI-025.002/.006) ──────────────────────
+
+    def _restore_settings(self) -> None:
+        density = str(self._settings.value("density", "compact"))
+        self._density_chips.buttons[1 if density == "compact" else 0].setChecked(True)
+        self._apply_density()
+        saved = str(self._settings.value("view_uid", ""))
+        uid = int(saved) if saved.isdigit() else None
+        if uid in self._view_uids and uid != self._demo.get_viewing_uid():
+            self._demo.set_viewing_uid(uid)
+        self._grid.set_maximised(str(self._settings.value("maximised", "")))
+        self._perf_band.set_range(str(self._settings.value("perf_range", "1D")))
+        shown = str(self._settings.value("perf_shown", "true")).lower() == "true"
+        self._perf_btn.setChecked(shown)
+        self._perf_card.setVisible(shown)
+
+    # ── Performance band (SRD-GUI-025.013/.014) ───────────────────────────────────
+
+    def _on_perf_toggled(self, on: bool) -> None:
+        self._perf_card.setVisible(on)
+        self._settings.setValue("perf_shown", "true" if on else "false")
+        if on:
+            self._perf_debounce.start()
+
+    def _on_perf_range(self) -> None:
+        self._settings.setValue("perf_range", self._perf_band.range_key)
+        self._refresh_performance()
+
+    def _refresh_performance(self) -> None:
+        if self._perf_card.isHidden():
+            return
+        key = self._perf_band.range_key
+        points = self._demo.get_equity_curve(key)
+        try:
+            tz = ZoneInfo(self._demo.get_system_config().market_timezone)
+        except Exception:
+            _log.warning("[Equity] Market time zone is not valid; showing US Eastern times")
+            tz = ZoneInfo("US/Eastern")
+        fmt = "%H:%M" if key == "1D" else "%b %d"
+
+        def label(iso: str) -> str:
+            moment = datetime.datetime.strptime(iso[:19], "%Y-%m-%dT%H:%M:%S")
+            return moment.replace(tzinfo=datetime.timezone.utc).astimezone(tz).strftime(fmt)
+
+        self._perf_band.show_curve(points, label)
+
+    # ── Exposure tab (SRD-GUI-025.015) ────────────────────────────────────────────
+
+    def _on_pos_tab(self) -> None:
+        exposure = self._pos_tabs.value == "expo"
+        self._pos_stack.setCurrentIndex(1 if exposure else 0)
+        self._expo_units.setVisible(exposure)
+        self._cols_btn.setVisible(not exposure)
+        self._filter_btn.setVisible(not exposure)
+        self._pos_filter.setVisible(not exposure and self._filter_btn.isChecked())
+        self._refresh_exposure()
+
+    def _refresh_exposure(self) -> None:
+        self._exposure.show_positions(self._positions, self._positions_equity,
+                                      self._expo_units.value == "pct")
+
+    def _on_density_chip(self) -> None:
+        self._settings.setValue("density", self._density_chips.value)
+        self._apply_density()
+
+    def _apply_density(self) -> None:
+        height = ROW_H[self._density_chips.value or "compact"]
+        for view in (self._pos_view, self._hist_view, self._watch_list.table_view):
+            header = view.verticalHeader()
+            if header is not None:
+                header.setDefaultSectionSize(height)
+
+    def _on_view_chip(self) -> None:
+        value = self._view_chips.value
+        uid = int(value) if value else None
+        self._settings.setValue("view_uid", value or "")
+        self._demo.set_viewing_uid(uid)
 
     def _on_scope_changed(self) -> None:
         uid = self._demo.get_viewing_uid()
-        # Sync pill highlight (scope could have changed from title bar dropdown)
-        for pill_uid, btn in self._scope_pills.items():
-            btn.blockSignals(True)
-            btn.setChecked(pill_uid == uid)
-            btn.blockSignals(False)
+        # Sync the view switch (scope could have changed from the title bar dropdown)
+        if uid in self._view_uids:
+            button = self._view_chips.buttons[self._view_uids.index(uid)]
+            button.blockSignals(True)
+            button.setChecked(True)
+            button.blockSignals(False)
         # Toggle User column in positions and trade history models
         all_view = uid is None
         if all_view:
@@ -1660,8 +1662,9 @@ class DashboardPanel(QWidget):
         # Resize columns when User col appears/disappears
         shift = 1 if all_view else 0
         _resize_columns(self._pos_view, {0: 70 if all_view else 80,
-                                          shift + 1: 55,
-                                          shift + 8: 120})
+                                          shift + 1: 60,
+                                          shift + 2: 55,
+                                          shift + 9: 120})
         _resize_columns(self._hist_view, {0: 70 if all_view else 85,
                                            shift + 1: 70, shift + 2: 55, shift + 3: 45})
 
@@ -1669,14 +1672,82 @@ class DashboardPanel(QWidget):
 
     def _refresh_positions(self) -> None:
         positions = self._demo.get_positions()
+        self._positions = positions
         self._pos_model.refresh(positions)
-        self._card_pos.set_value(str(len(positions)), C.BLUE)
         n = len(positions)
-        self._pos_status_lbl.setText(
-            f"{n} open position{'s' if n != 1 else ''}  ·  prices streaming live"
-        )
+        self._kpi.set_value("pos", str(n))
+        unreal = sum(p.unrealised_pnl for p in positions)
+        self._kpi.set_value("unreal", money(unreal), _pnl_colour(unreal))
         self._sq_all_btn.setEnabled(n > 0)
+        self._refresh_exposure()
         self._check_drawer_positions(positions)
+
+    # ── Positions filter and columns (SRD-GUI-025.008/.009) ───────────────────
+
+    def _on_pos_model_reset(self) -> None:
+        """A model reset clears hidden rows and columns; put them back."""
+        self._apply_hidden_cols()
+        self._apply_pos_filter()
+
+    def _on_filter_toggled(self, on: bool) -> None:
+        self._pos_filter.setVisible(on)
+        if on:
+            self._pos_filter.setFocus()
+        else:
+            self._pos_filter.clear()
+        self._apply_pos_filter()
+
+    def _apply_pos_filter(self) -> None:
+        text = self._pos_filter.text().strip().upper()
+        shown = 0
+        for row, pos in enumerate(self._positions):
+            hide = bool(text) and text not in pos.symbol.upper()
+            self._pos_view.setRowHidden(row, hide)
+            shown += not hide
+        n = len(self._positions)
+        count = f"{shown} of {n}" if text else str(n)
+        self._pos_status_lbl.setText(f"{count}  ·  streaming")
+
+    def _hidden_cols(self) -> set[str]:
+        saved = str(self._settings.value("hidden_cols", ""))
+        return {name for name in saved.split(",") if name}
+
+    def _pos_col_names(self) -> list[str]:
+        horizontal = Qt.Orientation.Horizontal
+        return [str(self._pos_model.headerData(col, horizontal))
+                for col in range(self._pos_model.columnCount())]
+
+    def _columns_menu(self) -> QMenu:
+        menu = QMenu(self)
+        hidden = self._hidden_cols()
+        for name in self._pos_col_names():
+            action = menu.addAction(name)
+            if action is None:
+                continue
+            action.setCheckable(True)
+            action.setChecked(name not in hidden)
+            action.setEnabled(name not in _ALWAYS_SHOWN)
+            action.toggled.connect(lambda on, n=name: self._set_column_shown(n, on))
+        return menu
+
+    def _show_columns_menu(self) -> None:
+        menu = self._columns_menu()
+        menu.exec(self._cols_btn.mapToGlobal(self._cols_btn.rect().bottomLeft()))
+        menu.deleteLater()
+
+    def _set_column_shown(self, name: str, shown: bool) -> None:
+        hidden = self._hidden_cols()
+        if shown:
+            hidden.discard(name)
+        else:
+            hidden.add(name)
+        self._settings.setValue("hidden_cols", ",".join(sorted(hidden)))
+        self._apply_hidden_cols()
+
+    def _apply_hidden_cols(self) -> None:
+        hidden = self._hidden_cols()
+        for col, name in enumerate(self._pos_col_names()):
+            self._pos_view.setColumnHidden(col, name in hidden and name not in _ALWAYS_SHOWN)
 
     def _check_drawer_positions(self, positions: list[OpenPosition]) -> None:
         """Close the drawer if the position it acts on has closed or changed size."""
@@ -1723,11 +1794,9 @@ class DashboardPanel(QWidget):
         pos = positions[rows[0].row()] if rows and rows[0].row() < len(positions) else None
         self._selected_pos = pos
         if pos is not None:
-            self._pos_status_lbl.setText(f"{pos.symbol} selected  ·  Double-click to manage")
             user = self._demo.get_user_by_id(pos.user_id)
             self.position_selected.emit(pos, user.username if user else "")
         else:
-            self._pos_status_lbl.setText("Double-click a row to manage")
             self.position_selected.emit(None, "")
 
     def _live_mode_blocked(self, action: str) -> bool:
@@ -1820,43 +1889,125 @@ class DashboardPanel(QWidget):
         acct = self._demo.get_account_state()
         self._refresh_trades()
 
-        pnl = acct.daily_pnl
-        pnl_colour = C.GREEN if pnl >= 0 else C.RED
-        sign = "+" if pnl >= 0 else ""
-        arrow = "▲" if pnl >= 0 else "▼"
-        self._card_pnl.set_value(
-            f"{sign}${pnl:,.2f}", pnl_colour,
-            change=f"{arrow}  Unrealized", change_colour=pnl_colour
-        )
-
+        pnl = acct.equity - acct.start_of_day_equity   # realised + unrealised (SRD-GUI-025.018)
+        self._kpi.set_value("pnl", money(pnl), _pnl_colour(pnl))
         util = acct.capital_utilisation_pct
-        cap_colour = C.RED if util > 90 else C.ORANGE if util > 70 else C.GREEN
-        self._card_cap.set_value(
-            f"{util:.1f}%", cap_colour,
-            change=f"Limit: 95%", change_colour=C.MUTED
-        )
-        self._card_equity.set_value(
-            f"${acct.equity:,.0f}", C.TEXT,
-            change=f"Positions: ${acct.gross_position_value:,.0f}", change_colour=C.MUTED
-        )
-        self._card_cash.set_value(f"${acct.total_cash_value:,.0f}", C.TEAL)
+        cap_colour = C.RED if util > 90 else C.ORANGE if util > 70 else C.TEXT
+        self._kpi.set_value("cap", f"{util:.1f}%", cap_colour, sub="of 95%")
+        self._kpi.set_value("equity", f"${acct.equity:,.2f}")
+        self._kpi.set_value("cash", f"${acct.total_cash_value:,.2f}")
+        self._positions_equity = acct.equity
+        self._refresh_exposure()
 
+    def _refresh_watch_count(self) -> None:
+        self._watch_tile.set_count(str(self._watch_list.symbol_count))
 
+    def _refresh_strategies(self) -> None:
+        """Today's realised P&L per strategy for the viewing scope (SRD-GUI-025.005)."""
+        try:
+            names = [cfg.name for cfg in load_strategies()]
+        except Exception:
+            if not self._strategy_load_failed:
+                _log.warning("[Strategy] Could not load the strategy list for the dashboard")
+            self._strategy_load_failed = True
+            return
+        self._strategy_load_failed = False
+        rows = []
+        for name in names:
+            summary = self._demo.get_strategy_pnl(name, since_iso("1"))
+            open_n = len(self._demo.get_open_symbols_for_strategy(name))
+            rows.append((name, f"{open_n} open", summary.today))
+        self._strategy_list.set_rows(rows)
 
     def _refresh_trades(self) -> None:
         try:
             tz = ZoneInfo(self._demo.get_system_config().market_timezone)
         except Exception:
             tz = ZoneInfo("US/Eastern")
-        today = datetime.datetime.now(tz).date()
+        now = datetime.datetime.now(tz)
+        span = self._hist_choice.get("hist_range", "today")
+        state = self._hist_choice.get("hist_state", "all")
+
+        def in_range(entry: datetime.datetime) -> bool:
+            if span == "all":
+                return True
+            local = entry.astimezone(tz)
+            if span == "today":
+                return local.date() == now.date()
+            return local >= now - datetime.timedelta(days=int(span))
+
         trades = [
             t for t in self._demo.get_all_trades()
-            if t.entry_time.astimezone(tz).date() == today
+            if in_range(t.entry_time) and (state == "all" or str(t.order_state) == state)
         ]
         self._hist_model.refresh(trades)
+        n = len(trades)
+        label = _RANGE_LABELS[span]
+        self._hist_tile.set_count(f"{label}  ·  {n} order{'s' if n != 1 else ''}")
+
+    # ── Trade History menus and export (SRD-GUI-025.010/.011) ─────────────────
+
+    def _choice_menu(self, button: QPushButton, options: list[tuple[str, str]],
+                     key: str, prefix: str) -> QMenu:
+        """One-choice menu on ``button``; the choice is remembered under ``key``."""
+        values = [value for _text, value in options]
+        saved = str(self._settings.value(key, values[0]))
+        self._hist_choice[key] = saved if saved in values else values[0]
+        menu = QMenu(button)
+        group = QActionGroup(menu)
+        for text, value in options:
+            action = menu.addAction(text)
+            if action is None:
+                continue
+            action.setCheckable(True)
+            action.setChecked(value == self._hist_choice[key])
+            group.addAction(action)
+            action.triggered.connect(
+                lambda _c, v=value, t=text: self._on_choice(button, key, prefix, v, t))
+            if value == self._hist_choice[key]:
+                button.setText(prefix + text)
+        return menu
+
+    def _on_choice(self, button: QPushButton, key: str, prefix: str,
+                   value: str, text: str) -> None:
+        self._hist_choice[key] = value
+        self._settings.setValue(key, value)
+        button.setText(prefix + text)
+        self._refresh_trades()
+
+    def _on_export(self) -> None:
+        tz = ZoneInfo(self._demo.get_system_config().market_timezone)
+        default = f"trade_history_{datetime.datetime.now(tz):%Y%m%d}.csv"
+        path, _filter = QFileDialog.getSaveFileName(
+            self, "Export Trade History", default, "CSV files (*.csv)")
+        if path:
+            self.export_history(path)
+
+    def export_history(self, path: str) -> None:
+        """Write the shown Trade History rows and columns to ``path`` as CSV."""
+        rows = table_rows(self._hist_view)
+        try:
+            with open(path, "w", newline="", encoding="utf-8") as handle:
+                csv.writer(handle).writerows(rows)
+        except OSError as exc:
+            _log.error("[Trade History] Could not save the file %s: %s", path, exc.strerror or exc)
+            QMessageBox.warning(self, "Export Failed",
+                                f"Could not save the file:\n{path}\n\n{exc.strerror or exc}")
+            return
+        _log.info("[Trade History] Saved %d order(s) to %s", max(len(rows) - 1, 0), path)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+_HIST_RANGES = [("Today", "today"), ("7 days", "7"), ("30 days", "30"), ("All", "all")]
+_RANGE_LABELS = {value: text for text, value in _HIST_RANGES}
+_ALWAYS_SHOWN = ("Symbol", "User")
+_HIST_STATES = [("All", "all"), ("Filled", "FILLED"), ("Partial", "PARTIAL_FILLED"),
+                ("Cancelled", "CANCELLED"), ("Rejected", "REJECTED"), ("New", "NEW")]
+
+def _pnl_colour(value: float) -> str:
+    return str(C.GREEN if value > 0 else C.RED if value < 0 else C.TEXT)
+
 
 def _resize_columns(view: QTableView, fixed: dict[int, int]) -> None:
     h = view.horizontalHeader()

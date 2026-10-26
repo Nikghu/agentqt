@@ -426,14 +426,14 @@ class AITranscriptPanel(QWidget):
         header_layout.setContentsMargins(8, 4, 12, 4)
         header_layout.setSpacing(8)
 
-        title_lbl = QLabel("AI TRANSCRIPT")
+        self._title_lbl = QLabel("AI TRANSCRIPT")
         title_font = QFont()
         title_font.setPointSize(7)
-        title_lbl.setFont(title_font)
-        title_lbl.setStyleSheet(
+        self._title_lbl.setFont(title_font)
+        self._title_lbl.setStyleSheet(
             f"color: {C.MUTED}; background: transparent; border: none;"
         )
-        header_layout.addWidget(title_lbl)
+        header_layout.addWidget(self._title_lbl)
 
         header_layout.addStretch()
 
@@ -557,6 +557,10 @@ class AITranscriptPanel(QWidget):
         self._last_cost_out = 0.0
         self._clear_turns()
         self._update_summary("")
+
+    def hide_title(self) -> None:
+        """Hide the panel's own title when a host already shows one (SRD-GUI-022.010)."""
+        self._title_lbl.hide()
 
     def has_turns(self) -> bool:
         """Return True if at least one transcript turn is currently loaded."""

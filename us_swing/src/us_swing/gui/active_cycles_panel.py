@@ -63,6 +63,12 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 _ACTIONS_W = 88
+_EMPTY_TEXT = {
+    "all":    "No active cycles — pending signals and open positions appear here",
+    "active": "No active trades — pending signals and open positions appear here",
+    "closed": "No trades closed today",
+}
+
 _NUM_W = 32
 _BTN_W = 26
 _BTN_H = 22
@@ -286,6 +292,7 @@ class _ConfirmDialog(QDialog):
         accent: str | None = None,
         confirm_enabled: bool = True,
         warning: str | None = None,
+        show_cancel: bool = True,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -329,7 +336,7 @@ class _ConfirmDialog(QDialog):
             body.addWidget(detail_lbl)
 
         root.addWidget(card, 1)
-        root.addWidget(self._build_button_row(confirm_text, accent, confirm_enabled))
+        root.addWidget(self._build_button_row(confirm_text, accent, confirm_enabled, show_cancel))
 
         if warning:
             root.addWidget(self._build_warning_banner(warning))
@@ -366,7 +373,8 @@ class _ConfirmDialog(QDialog):
         return bar
 
     def _build_button_row(
-        self, confirm_text: str, accent: str, confirm_enabled: bool = True
+        self, confirm_text: str, accent: str, confirm_enabled: bool = True,
+        show_cancel: bool = True,
     ) -> QWidget:
         wrap = QWidget()
         wrap.setStyleSheet(f"background: {C.BG};")
@@ -405,7 +413,8 @@ class _ConfirmDialog(QDialog):
                 f" border-radius: 5px; font-size: 9pt; font-weight: bold; outline: none; }}"
             )
 
-        row.addWidget(cancel)
+        if show_cancel:
+            row.addWidget(cancel)
         row.addWidget(confirm)
         return wrap
 
@@ -468,6 +477,7 @@ class ActiveCyclesPanel(QWidget):
     """
 
     _bridge_event = pyqtSignal(object)
+    counts_changed = pyqtSignal(int, int)  # (active rows, closed rows) — SRD-GUI-024.003
 
     def __init__(
         self,
@@ -490,6 +500,7 @@ class ActiveCyclesPanel(QWidget):
 
         self._expanded_cycle_id: int | None = None
         self._editor: _RiskEditorWidget | None = None
+        self._row_filter = "all"
 
         # ── Widgets ──────────────────────────────────────────────────────
         self._model = _ActiveCyclesModel(
@@ -563,6 +574,7 @@ class ActiveCyclesPanel(QWidget):
         self._model.modelReset.connect(self._refresh_empty_state)
         self._model.rowsInserted.connect(self._refresh_empty_state)
         self._model.rowsRemoved.connect(self._refresh_empty_state)
+        self._model.dataChanged.connect(self._refresh_empty_state)
 
         # Initial scope + refresh. refresh() is called explicitly because
         # set_scope() is a no-op when the scope is unchanged (e.g. None→None),
@@ -749,10 +761,30 @@ class ActiveCyclesPanel(QWidget):
     # ── Empty state ──────────────────────────────────────────────────────
 
     @pyqtSlot()
-    def _refresh_empty_state(self) -> None:
-        empty = self._model.rowCount() == 0
-        self._table.setVisible(not empty)
-        self._empty_label.setVisible(empty)
+    def set_row_filter(self, mode: str) -> None:
+        """Show ``"all"`` rows, only ``"active"`` (not CLOSED) or only ``"closed"`` rows.
+
+        SRD-GUI-024.003 — Active trades and Closed today share this one table.
+        """
+        self._row_filter = mode
+        self._empty_label.setText(_EMPTY_TEXT.get(mode, _EMPTY_TEXT["all"]))
+        self._refresh_empty_state()
+
+    def _refresh_empty_state(self, *_: object) -> None:
+        active = closed = 0
+        for r in range(self._model.rowCount()):
+            is_closed = self._model.is_closed_row(r)
+            if not self._model.is_editor_row(r):
+                closed += is_closed
+                active += not is_closed
+            hide = (self._row_filter == "active" and is_closed) or (
+                self._row_filter == "closed" and not is_closed
+            )
+            self._table.setRowHidden(r, hide)
+        shown = {"active": active, "closed": closed}.get(self._row_filter, active + closed)
+        self._table.setVisible(shown > 0)
+        self._empty_label.setVisible(shown == 0)
+        self.counts_changed.emit(active, closed)
 
     # ── Helpers ──────────────────────────────────────────────────────────
 

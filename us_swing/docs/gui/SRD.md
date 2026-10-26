@@ -5,6 +5,19 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.44.0: SRD-GUI-029.001–.006 added; approved by user 2026-10-25 — Scheduler task table (Option D). Replaces the Windows Task Scheduler window.
+> v2.43.0: SRD-GUI-028.001–.005 added; approved by user 2026-10-25 — Candle data panel redesign (Option A). Replaces the layout part of SRD-GUI-027.006 and SRD-GUI-021.004.
+> v2.42.0: SRD-GUI-027.001–.013 added; approved by user 2026-10-25 — Settings dialog opened from the sidebar (canvas Option 5 + Open A, user 2026-10-25). On approval supersedes SRD-GUI-018.001 (five screens → four plus a Settings item), SRD-GUI-021.001 (Settings page), SRD-GUI-021.003 (System panel) and SRD-GUI-021.004 (Data panel and strip badge).
+> v2.41.0: SRD-GUI-026.001–.012 added — Charts workspace Focus + Inspector (canvas Option 3); Phase 1 (.001–.007) approved by user and implemented 2026-10-24; Phase 2 (.008–.010) approved by user and implemented 2026-10-24; Phase 3 (.011–.012) approved by user and implemented 2026-10-24.
+> v2.40.0: SRD-GUI-025.016–.018 added — dashboard KPI and position-table fixes, Phase 5; approved by user and implemented 2026-10-24.
+> v2.39.0: SRD-GUI-025.013–.015 added — Performance band and Exposure tab, Phase 4; approved by user 2026-10-24.
+> v2.38.0: SRD-GUI-025.008–.012 added — Dashboard tile buttons, Phase 2; approved by user 2026-10-24.
+> v2.37.0: SRD-GUI-025.001–.007 added — Dashboard tiled workspace, Phase 1 (canvas Option E); approved by user 2026-10-24.
+> v2.36.0: SRD-GUI-024.008 changed — charts toggle moved to the page header, chart header row removed, 4 px card gaps (user, 2026-10-23).
+> v2.35.0: SRD-GUI-024.001–.008 added — Execution workspace (canvas Option F2); approved by user 2026-10-23.
+> v2.34.0: SRD-GUI-023.004 added — lighter gap colour; requested by user 2026-10-23.
+> v2.33.0: SRD-GUI-023.001–.003 added — card layout (gaps and rounded corners between sections); approved by user 2026-10-23.
+> v2.32.0: SRD-GUI-022.008–.012 added — screener page header, run stepper, AI transcript drawer, list / detail polish and look (canvas Option A); approved by user 2026-10-23.
 > v2.31.0: SRD-GUI-022.001–.007 added — screener result views (List + detail, Signal cards) and preset rail; approved by user 2026-10-23.
 > v2.30.0: SRD-GUI-018.008–.011 added — Connections panel in the sidebar (feed toggle moved from the title bar; supersedes the feed toggle part of SRD-GUI-018.005); approved by user 2026-10-23.
 > v2.29.0: SRD-GUI-021.004 added — Data panel on the right strip; approved by user 2026-10-23.
@@ -368,3 +381,108 @@
 | SRD-GUI-022.005 | FO-GUI-022 | Should | A Sort box orders both views by AI score, reward : risk or rules passed; R:R = (target − entry) / (entry − stop) when stop < entry < target, else "—". | sort choice | row order | Rows without R:R sort last | Implemented |
 | SRD-GUI-022.006 | FO-GUI-022 | Must | Chart, Watchlist, CSV, date navigation and AI transcript keep working with the new views; CSV adds Entry, Stop, Target and R:R columns; the old table is removed. | — | — | `chart_requested` and `watchlist_add_requested` unchanged | Implemented |
 | SRD-GUI-022.007 | FO-GUI-022 | Should | The preset rail has a search box, All / Swing / Day / Position chips in place of the style combo, and per preset a type tag (Weighted / Composite) and a last-run line from saved results. | search text, chip, storage | filtered list | Same preset sections and context menu | Implemented |
+| SRD-GUI-022.008 | FO-GUI-022 | Must | A page header over the results shows the preset name, a Weighted / Composite tag, an Auto / Manual run tag and a run line (matches, ranking, run date and time); Run now is the only filled accent button and the toolbar Watchlist button is removed. | preset, result | header | Detail and cards keep their Watchlist buttons | Implemented |
+| SRD-GUI-022.009 | FO-GUI-022 | Must | A run stepper joins older / newer arrows and the run date ("Oct 22, 2026", Latest tag on the newest run); clicking the date lists all saved runs. | saved run dates | loaded run | Arrows disabled at either end | Implemented |
+| SRD-GUI-022.010 | FO-GUI-022 | Must | A header pill "AI transcript · N steps · $cost" opens the run transcript in a drawer over the right side of the results; the bottom transcript panel is removed. | transcript | drawer | Pill shown only for AI-ranked presets with a transcript | Implemented |
+| SRD-GUI-022.011 | FO-GUI-022 | Should | List rows show rank, symbol, company name, score bar and rules passed ("2/4"); the detail shows a company line, Open in Charts, Add to watchlist, a chart without its input bar, one plan box with a risk / reward bar and a ✓ / ✕ rule list. | rows | list, detail | Supersedes the rule dots of SRD-GUI-022.002 | Implemented |
+| SRD-GUI-022.012 | FO-GUI-022 | Should | Numbers use the UI font, the accent colour is kept for Run now and selection, rule chips are pills, the style chips are one segmented control, New preset is a + button in the rail header and preset rows drop the type tag. | — | — | Supersedes the per-row type tag of SRD-GUI-022.007 | Implemented |
+## FO-GUI-023 — Card Layout
+
+| ID | Parent | Priority | Description | Input | Output | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-023.001 | FO-GUI-023 | Must | The sidebar, each screen, the right panel, the log panel and the icon strip are separate cards with 6 px corners, a 1 px border and a 4 px gap in the title-bar colour. | — | card layout | A closed right or log panel leaves no gap | Implemented |
+| SRD-GUI-023.002 | FO-GUI-023 | Must | The screener shows the preset list and the results as two cards with a 4 px gap; other screens sit in one card each. | — | card layout | Inside of other screens unchanged | Implemented |
+| SRD-GUI-023.003 | FO-GUI-023 | Should | Carbon, Mocha and VS Code themes use the same gap and corner sizes with their own colours. | theme | card colours | Rules live in `_sidebar_qss` | Implemented |
+| SRD-GUI-023.004 | FO-GUI-023 | Should | The gap colour is lighter than the cards (the theme's hover grey) so each section stands out. | theme | gap colour | Supersedes the title-bar gap colour of SRD-GUI-023.001 | Implemented |
+
+## FO-GUI-024 — Execution Workspace
+
+| ID | Parent | Priority | Description | Input | Output | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-024.001 | FO-GUI-024 | Must | A page header shows "Execution", the ADMIN badge, the last screener run, chips for unrealised P&L, strategies running X of Y and broker state, and the Execute-for combo. | open cycles, strategies, active user, feed status | header | Replaces the "Trade Execution" row | Implemented |
+| SRD-GUI-024.002 | FO-GUI-024 | Must | The watchlist groups symbols under Manual first, then each screener name with a count; rows show symbol, last 3m close and score, sorted by score. | screener entries, manual picks | grouped list | Keeps add / remove pick, candle-readiness tint and auto-select of the top row | Implemented |
+| SRD-GUI-024.003 | FO-GUI-024 | Must | A tab bar "Active trades · N", "Strategies · N", "Closed today · N" sits on top; Active trades and Closed today show the one Active Trades table filtered by row state. | active-trade rows, strategies | tab card | Counts follow the table and the strategy list | Implemented |
+| SRD-GUI-024.004 | FO-GUI-024 | Must | The Strategies tab lists strategies with a status dot, name, mode and a one-line summary, and an "+ Add" button. | strategies, open cycles | list | Selection drives the detail | Implemented |
+| SRD-GUI-024.005 | FO-GUI-024 | Must | The detail shows name, status pill, mode and start date, buttons Edit, Duplicate, Reset count, Start / Stop and Delete, and four boxes: what it trades, when, size, exit rules. | selected strategy | detail | Duplicate saves a stopped copy under a new unique name | Implemented |
+| SRD-GUI-024.006 | FO-GUI-024 | Must | A Strategy P&L card shows the running total line (or per-trade bars), the max drawdown in red, ranges 1W / 1M / 3M / All, and win rate, average win, average loss, max drawdown and today. | `get_strategy_pnl` | P&L card | Empty text when the strategy has no closed trades | Implemented |
+| SRD-GUI-024.007 | FO-GUI-024 | Should | A Today strip lists the strategy's open trades and today's closed trades with side, quantity, state and P&L. | open cycles, today's closed cycles | strip | "No trades today" when empty | Implemented |
+| SRD-GUI-024.008 | FO-GUI-024 | Must | The intraday charts sit below the tab card; a "Hide charts" / "Show charts" button in the page header (after the broker chip) hides them completely and the choice is remembered. Execution cards sit on the gutter with the Screener's 4 px gap. | selected symbol, setting | chart pane | `QSettings("USSwing", "ExecutionPanel")` key `charts_hidden` | Implemented |
+
+## FO-GUI-025 — Dashboard Tiled Workspace
+
+| ID | Parent | Priority | Description | Input | Output | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-025.001 | FO-GUI-025 | Must | A one-line KPI strip shows P&L today, unrealised P&L, equity, cash, capital used "of 95%" and open positions. | account state, positions | KPI strip | Replaces the five stat cards and the scope strip | Implemented |
+| SRD-GUI-025.002 | FO-GUI-025 | Must | The strip ends with the user view switch (All users plus each user) and a Comfort / Compact switch that changes table row height. | users, setting | switches | View stays in sync with the title-bar user scope | Implemented |
+| SRD-GUI-025.003 | FO-GUI-025 | Must | Four tiles sit in a 2 × 2 grid: Open Positions and Market Watch on top, Trade History and P&L by Strategy below; each tile header shows its title, a count and its own buttons. | — | tile grid | Square Off All moves into the Open Positions header | Implemented |
+| SRD-GUI-025.004 | FO-GUI-025 | Must | Each tile has a Maximise button that makes it fill the grid and hides the others; clicking it again restores the grid. | click | layout | Only one tile maximised at a time | Implemented |
+| SRD-GUI-025.005 | FO-GUI-025 | Should | The P&L by Strategy tile lists each strategy with today's P&L as a green or red bar and a total row. | `get_strategy_pnl` | bar list | "No strategies" text when none exist | Implemented |
+| SRD-GUI-025.006 | FO-GUI-025 | Must | Density, user view and the maximised tile are remembered across restarts. | setting | — | `QSettings("USSwing", "DashboardPanel")` | Implemented |
+| SRD-GUI-025.007 | FO-GUI-025 | Must | The Market Watch tile shows the user's watchlist with Symbol, LTP, change, change % and volume, and an add box, Add, Remove and Refresh in its header. | watchlist | table | Index ETFs stay in the title bar; the right-panel watchlist stays | Implemented |
+| SRD-GUI-025.008 | FO-GUI-025 | Must | The Open Positions Filter button shows a symbol box; typing hides rows whose symbol does not contain the text; closing the box shows all rows. | text | filtered rows | Case-insensitive; kept across price refreshes | Implemented |
+| SRD-GUI-025.009 | FO-GUI-025 | Should | The Open Positions Columns button opens a checkable list of columns; unticked columns are hidden and remembered. | ticks | visible columns | Symbol cannot be hidden | Implemented |
+| SRD-GUI-025.010 | FO-GUI-025 | Must | Trade History has a range menu (Today, 7 days, 30 days, All) and a state menu (All, Filled, Partial, Cancelled, Rejected, New); the header count shows the range and row count. | trades, choice | filtered rows | Range uses the market time zone; choices remembered | Implemented |
+| SRD-GUI-025.011 | FO-GUI-025 | Should | The Trade History Export button saves the shown rows and columns to a CSV file the user picks. | rows | `.csv` file | Log "[Trade History] Saved N order(s) to <file>" | Implemented |
+| SRD-GUI-025.012 | FO-GUI-025 | Should | Each Market Watch tile row ends with a ✕ that removes that symbol; the Remove button leaves the tile header. | click | watchlist | Right-panel watchlist unchanged | Implemented |
+| SRD-GUI-025.013 | FO-GUI-025 | Must | A Performance band above the tiles shows Account Equity, its change for the chosen range (amount and %), range buttons 1D / 1W / 1M / 3M / YTD and a line-and-area equity chart. | `get_equity_curve(range)` | band | "No equity data for this range yet" when empty; range remembered | Implemented |
+| SRD-GUI-025.014 | FO-GUI-025 | Must | A "Performance" button at the end of the KPI strip shows or hides the band; the band is shown on first start and the choice is remembered. | click, setting | band visibility | Hidden band gives its space to the tiles | Implemented |
+| SRD-GUI-025.015 | FO-GUI-025 | Must | The Open Positions tile has tabs "Open Positions" and "Exposure"; Exposure shows a vertical bar per symbol (largest first, long blue, short amber) with its value on top, Long, Short, Net and Gross ÷ Equity totals, and a "$ Value / % Equity" switch. | open positions, equity | bar chart | Filter and Columns hide on the Exposure tab; bars follow price updates; more than 8 bars: the smallest join one "N others" bar | Implemented |
+| SRD-GUI-025.016 | FO-GUI-025 | Must | The Open Positions table shows a Side column (LONG or SHORT) right after Symbol. | position direction | column | A short's P&L sign then reads correctly | Implemented |
+| SRD-GUI-025.017 | FO-GUI-025 | Must | Stop shows "No stop" in amber and Target shows "—" when the value is not set. | stop, target | cell text | Not set = 0 or missing | Implemented |
+| SRD-GUI-025.018 | FO-GUI-025 | Must | "P&L Today" in the KPI strip is equity minus start-of-day equity, so it counts realised and unrealised P&L in paper and live. | account state | KPI value | — | Implemented |
+
+## FO-GUI-026 — Charts Workspace (Focus + Inspector)
+
+| ID | Parent | Priority | Description | Input | Output | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-026.001 | FO-GUI-026 | Must | The Charts screen is a source list card, one chart card and an Inspector card on the gutter; the MDI windows and arrange buttons are removed. | — | layout | `open_symbol(symbol, timeframe)` keeps its signature | Implemented |
+| SRD-GUI-026.002 | FO-GUI-026 | Must | The source list has Watchlist, Screener and Trades tabs and a filter box; rows show symbol, a sub-line, last price and change %. | watchlist, latest screener results, open positions | list, `symbol_selected` | Tab remembered; empty text per tab | Implemented |
+| SRD-GUI-026.003 | FO-GUI-026 | Must | The chart header shows symbol, company line, last price and change, a 1D / 1W switch and overlay chips with ✕ plus a "+ Overlay" menu (SMA or EMA, length). | loaded bars, click | header, overlays | Default SMA 20 and SMA 50; overlays remembered | Implemented |
+| SRD-GUI-026.004 | FO-GUI-026 | Must | The chart shows candles, volume and an RSI 14 pane; a plan draws entry, stop and target price lines with labels and shaded zones. | bars, plan | chart | No plan → no lines | Implemented |
+| SRD-GUI-026.005 | FO-GUI-026 | Must | The Inspector shows collapsible sections taken from one section registry; a header button hides the whole Inspector. | registry, click | sections | Open / closed state and Inspector visibility remembered | Implemented |
+| SRD-GUI-026.006 | FO-GUI-026 | Must | Trade Plan shows entry, stop, target, reward : risk and size at the user's risk %, from the screener plan, else the open position, else "—"; Edit changes the values and lines for the session. | plan source, risk config, equity | section, chart lines | R:R rule as SRD-GUI-022.005; invalid plan → "—" | Implemented |
+| SRD-GUI-026.007 | FO-GUI-026 | Should | Indicators shows RSI 14, ATR 14, ADX 14 and relative volume (last ÷ 20-bar average) for the loaded bars. | bars | section | Too few bars → "—" | Implemented |
+| SRD-GUI-026.008 | FO-GUI-026 | Should | Patterns Found lists price action patterns true on the last 5 bars with name and bars ago, and marks them on the chart. | bars, pattern catalogue | section, markers | Phase 2 | Implemented |
+| SRD-GUI-026.009 | FO-GUI-026 | Should | Key Levels lists the three nearest swing highs and lows and can show them as faint lines. | bars | section, lines | Phase 2 | Implemented |
+| SRD-GUI-026.010 | FO-GUI-026 | Must | Send to Execution adds the symbol as a manual pick and switches to the Execution screen. | click | manual pick | Phase 2; existing pick → message only | Implemented |
+| SRD-GUI-026.011 | FO-GUI-026 | Should | A drawing bar offers horizontal line, trend line, rectangle and delete all, drawn with chart primitives. | mouse | drawings | Phase 3; Esc cancels a drawing in progress | Implemented |
+| SRD-GUI-026.012 | FO-GUI-026 | Must | Drawings are saved per symbol and timeframe in SQLite and redrawn when that chart loads. | drawings | `chart_drawings` rows | Phase 3; save failure logs and keeps the drawing on screen | Implemented |
+
+## FO-GUI-027 — Settings Dialog
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-027.001 | FO-GUI-027 | Must | `SettingsDialog` is a frameless modal dialog with a custom title bar (Settings, minimise, maximise, close) and drag-to-move. | open request | dialog | Same title bar pattern as `scheduler_dialog.py` | Implemented |
+| SRD-GUI-027.002 | FO-GUI-027 | Must | A left list holds Users, Risk, Connection, Scheduler, Telegram, Universe, Candle data and Appearance; clicking one shows only that section. | section click | one section shown | Section bodies reuse the existing settings widgets | Implemented |
+| SRD-GUI-027.003 | FO-GUI-027 | Must | The footer has Restore defaults on the left and Cancel, Apply and OK on the right; Esc acts as Cancel. | click, Esc | close or save | Apply disabled until a value changes | Implemented |
+| SRD-GUI-027.004 | FO-GUI-027 | Must | A Settings item pinned to the sidebar bottom opens the dialog; the sidebar lists four screens and Settings is no longer a stacked page. | click | dialog | Current screen and checked item do not change | Implemented |
+| SRD-GUI-027.005 | FO-GUI-027 | Must | Appearance (theme) is a dialog section; a sidebar Updates item below the Connections panel opens a popup with the installed version, last check time and Check for Updates. | click | popup, dot | Theme and update logic unchanged; dot on the item when an update is found | Implemented |
+| SRD-GUI-027.006 | FO-GUI-027 | Must | Candle data is a dialog section showing the existing candle database panel. | download signals | section state | Panel outlives the dialog so a download keeps running after close | Implemented |
+| SRD-GUI-027.007 | FO-GUI-027 | Must | The right icon strip keeps Details, Watchlist and Log; the System and Data icons and panels are removed. | — | — | Details and Watchlist behaviour unchanged | Implemented |
+| SRD-GUI-027.008 | FO-GUI-027 | Must | The sidebar Settings item shows the download percent while downloading, and a dot when data is behind or stocks failed. | `state_changed` | badge | Same states as the old Data icon badge | Implemented |
+| SRD-GUI-027.009 | FO-GUI-027 | Must | A Trip / Reset Circuit Breaker button sits in the Execution page header and acts at once. | click | `set_circuit_breaker()` | Same label and colour rules as the old System panel button | Implemented |
+| SRD-GUI-027.010 | FO-GUI-027 | Must | Changed fields are tracked per section; Apply saves every changed section, OK applies and closes, Cancel drops unsaved changes. | edits, click | saved config | Action buttons (New user, Update now, Send test) still act at once | Implemented |
+| SRD-GUI-027.011 | FO-GUI-027 | Should | Restore defaults resets the shown section's fields to default values after a confirm. | click | field values | Values are saved only on Apply or OK | Implemented |
+| SRD-GUI-027.012 | FO-GUI-027 | Should | Each section's dot shows its state: green ok, amber needs attention, grey off. | feed, Telegram config, candle state | dots | Dots refresh while the dialog is open | Implemented |
+| SRD-GUI-027.013 | FO-GUI-027 | Should | A theme picked in Appearance applies on Apply or OK and is reverted by Cancel. | theme click | `theme_changed` | Charts and Execution still refresh on theme change | Implemented |
+
+## FO-GUI-028 — Candle Data Panel Redesign
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-028.001 | FO-GUI-028 | Must | A summary line and one state pill show the panel state: Checking, Downloading, Up to date, N days behind, Partial or Empty. | status, progress | summary, pill | `state` tuple and `state_changed` keep their values | Implemented |
+| SRD-GUI-028.002 | FO-GUI-028 | Must | While downloading, a 4 px bar and "pct · stock · ~N min left" show; both hide when idle. | progress | bar, detail | ETA shown from the third stock on | Implemented |
+| SRD-GUI-028.003 | FO-GUI-028 | Must | A four-cell strip shows Data to, Last trading day, Stocks and Candles, each with a short note. | `CandleDbInfo` | stat cells | Stocks above the index read "M / M" with "+N left the index" | Implemented |
+| SRD-GUI-028.004 | FO-GUI-028 | Must | The footer has Update (Build, Fill Delta or Resume) or Cancel, Open Candle DB, and a red Reset database link on the right. | click | actions | Update disabled when up to date; Reset disabled while downloading | Implemented |
+| SRD-GUI-028.005 | FO-GUI-028 | Should | Reset asks in the app's frameless confirm dialog with the line "Deletes all stored candles. The next update downloads everything again." | click | confirm | Native message box removed for this confirm | Implemented |
+
+## FO-GUI-029 — Scheduler Task Table in Settings
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-029.001 | FO-GUI-029 | Must | The Scheduler section shows a table with rows Start TWS, Start USSwing and Close both and columns On, Task, Time, Days, Program and Windows. | scheduler.json | table | Close both has no program; its days follow each app | Implemented |
+| SRD-GUI-029.002 | FO-GUI-029 | Must | The Windows pill shows Installed or Missing from a background check and Changed while the row has unapplied edits. | schtasks query | pill | The check never runs on the GUI thread | Implemented |
+| SRD-GUI-029.003 | FO-GUI-029 | Must | A folded TWS login line opens username, password with show toggle, fill-in-automatically and Fill TWS login now. | click | login fields | Password lives only in Windows Credential Manager | Implemented |
+| SRD-GUI-029.004 | FO-GUI-029 | Must | Apply writes switched-on tasks, deletes switched-off ones and saves the password; a Missing switched-on task marks the section changed so Apply re-creates it. | Apply | Windows tasks | Writes run in the background; errors show on the pill | Implemented |
+| SRD-GUI-029.005 | FO-GUI-029 | Should | A red Remove all tasks link deletes every task, the saved configs and the password after a frameless confirm. | click | none | Cancel keeps everything | Implemented |
+| SRD-GUI-029.006 | FO-GUI-029 | Must | The Edit Scheduler button and the Windows Task Scheduler window are removed; task names are kept internally. | — | — | Saved task names still used | Implemented |

@@ -7,6 +7,15 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.27.0: MD-GUI-029.* added — Scheduler task table (new `scheduler_table.py`).
+> v1.26.0: MD-GUI-028.001.M01 added — Candle data panel redesign.
+> v1.25.0: MD-GUI-027.* added — Settings dialog (new `settings_dialog.py`; sidebar, main window, settings panel, icon strip and Execution header changes).
+> v1.24.0: MD-GUI-026.001.M01–.012.M04 added — Charts workspace Focus + Inspector; MD-GUI-020.001.M01 superseded.
+> v1.23.0: MD-GUI-025.016.M04 (position_table_model.py Side column and unset stop/target) added.
+> v1.22.0: MD-GUI-025.013.M03 (performance_band.py) added.
+> v1.21.0: MD-GUI-025.003.M01 (dashboard_tiles.py) added; MD-GUI-002.001.M01 hosts the tiled layout.
+> v1.20.0: MD-GUI-023.001.M01 (cards.py) added — card layout.
+> v1.19.0: MD-GUI-022.001.M01 adds `RunStepper`, `SideDrawer` and the header text helpers (SRD-GUI-022.008–.012).
 > v1.18.0: MD-GUI-022.001.M01 (screener_views.py) added; MD-GUI-003.001.M01 hosts the views.
 > v1.17.0: MD-GUI-018.008.M04 (sidebar.py Connections panel) added; MD-GUI-018.005.M03 drops the title bar feed toggle.
 > v1.16.0: MD-GUI-021.001.M01 (settings_panel.py section list) added.
@@ -209,7 +218,7 @@ us_swing/src/us_swing/gui/
 
 | ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
 |---|---|---|---|---|---|---|
-| MD-GUI-020.001.M01 | SRD-GUI-020.001 | `us_swing/src/us_swing/gui/chart_workspace.py` | MDI chart windows, arrange modes, open path | `ChartWorkspace`, `open_symbol()`, `refresh_theme()` | `chart_panel`, `icons` | No |
+| MD-GUI-020.001.M01 | SRD-GUI-020.001 | `us_swing/src/us_swing/gui/chart_workspace.py` | MDI chart windows, arrange modes, open path (superseded by MD-GUI-026.001.M01) | `ChartWorkspace`, `open_symbol()`, `refresh_theme()` | `chart_panel`, `icons` | No |
 
 > `chart_panel.py` (MD-GUI-011) gains `chart_loaded` and a timeframe argument on `show_symbol`; `screener_panel.py` (MD-GUI-003.001.M01) emits `chart_requested` and drops `QuickChartWindow`; `main_window.py` wiring stays under MD-GUI-019.002.M03.
 
@@ -225,6 +234,72 @@ us_swing/src/us_swing/gui/
 
 | ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
 |---|---|---|---|---|---|---|
-| MD-GUI-022.001.M01 | SRD-GUI-022.001 | `us_swing/src/us_swing/gui/screener_views.py` | Result rows, sort, CSV rows, view switch, List + detail view, Cards view, preset filter | `ResultRow`, `RuleCheck`, `rows_from_result()`, `sort_rows()`, `csv_rows()`, `filter_presets()`, `ViewSwitch`, `ListDetailView`, `CardsView` | `theme`, `icons` | No |
+| MD-GUI-022.001.M01 | SRD-GUI-022.001 | `us_swing/src/us_swing/gui/screener_views.py` | Result rows, sort, CSV rows, view switch, List + detail view, Cards view, preset filter | `ResultRow`, `RuleCheck`, `rows_from_result()`, `sort_rows()`, `csv_rows()`, `filter_presets()`, `run_date_text()`, `run_meta_text()`, `transcript_pill_text()`, `ViewSwitch`, `RunStepper`, `SideDrawer`, `ListDetailView`, `CardsView` | `theme`, `icons` | No |
 
 > `screener_panel.py` (MD-GUI-003.001.M01) hosts the views, the Sort box and the new preset rail; `theme.py` (MD-GUI-017) gains the screener view QSS rules.
+## FO-GUI-023 — Card Layout
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-GUI-023.001.M01 | SRD-GUI-023.001 | `us_swing/src/us_swing/gui/cards.py` | Wrap a section in a rounded card; mark gap widgets | `card()`, `gutter()`, `GAP`, `GUTTER` | PyQt6 | No |
+
+> `main_window.py` (MD-GUI-001.001.M01) and `screener_panel.py` (MD-GUI-003.001.M01) use the helpers; `theme.py` styles `shell_card` and `shell_gutter`.
+
+## FO-GUI-024 — Execution Workspace
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-GUI-024.001.M01 | SRD-GUI-024.001 | `us_swing/src/us_swing/gui/execution_header.py` | Page header with chips and Execute-for combo | `ExecutionHeader`, `last_run_text()` | AppService, strategy_store, PyQt6 | No |
+| MD-GUI-024.002.M02 | SRD-GUI-024.002 | `us_swing/src/us_swing/gui/execution_watchlist.py` | Grouped watchlist with add / remove pick | `WatchlistPane`, `symbol_selected`, `get_top_symbol()`, `last_run_text()` | AppService, PyQt6 | No |
+| MD-GUI-024.003.M03 | SRD-GUI-024.003 | `us_swing/src/us_swing/gui/active_cycles_panel.py` | Row filter by state and counts | `set_row_filter()`, `counts_changed` | — | No |
+| MD-GUI-024.004.M04 | SRD-GUI-024.004 | `us_swing/src/us_swing/gui/strategies_pane.py` | Strategy list, detail, actions, Duplicate, Today strip | `StrategiesPane`, `count_changed` | AppService, strategy_store, strategy_builder_dialog | No |
+| MD-GUI-024.006.M05 | SRD-GUI-024.006 | `us_swing/src/us_swing/gui/strategy_pnl_chart.py` | P&L line / bar chart and card | `StrategyPnlChart`, `StrategyPnlCard` | trade_cycle summary, PyQt6 | No |
+| MD-GUI-024.008.M06 | SRD-GUI-024.008 | `us_swing/src/us_swing/gui/execution_panel.py` | Workspace layout, tab card, charts below with hide toggle | `ExecutionPanel` | all of the above | No |
+
+> `_StrategyTablePane` and the filtered-stocks table leave `execution_panel.py` (MD-GUI-004.001.M01); `theme.py` gains QSS for `exec_chip`, `exec_tabs`, `detail_tile`.
+
+## FO-GUI-025 — Dashboard Tiled Workspace
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-GUI-025.003.M01 | SRD-GUI-025.003 | `us_swing/src/us_swing/gui/dashboard_tiles.py` | Tile, tile grid with maximise, KPI strip, strategy P&L bars | `Tile` (`set_title_widget`), `TileGrid`, `KpiStrip`, `StrategyPnlList`, `PnlBar`, `table_rows()`, `TILES`, `ROW_H` | cards, icons, strategy_pnl_chart, PyQt6 | No |
+| MD-GUI-025.001.M02 | SRD-GUI-025.001 | `us_swing/src/us_swing/gui/dashboard_panel.py` | Tiled layout, KPI values, switches, remembered settings, watchlist tile, tile buttons (filter, columns, history range / state, CSV export, ✕ remove) | `DashboardPanel(svc, parent, settings)`, `export_history(path)` | AppService, dashboard_tiles, strategy_store | No |
+| MD-GUI-025.016.M04 | SRD-GUI-025.016 | `us_swing/src/us_swing/gui/position_table_model.py` | Side column; "No stop" / "—" for unset stop and target (extends MD-GUI-002.001.M02) | `PositionTableModel.COLUMNS`, `data()` | PyQt6 | No |
+| MD-GUI-025.013.M03 | SRD-GUI-025.013 | `us_swing/src/us_swing/gui/performance_band.py` | Equity band and chart; exposure bars, totals and chart | `PerformanceBand`, `EquityChart`, `change_text()`, `ExposureView`, `ExposureChart`, `exposure_bars()`, `market_value()`, `RANGES`, `MAX_BARS` | strategy_pnl_chart (`money`, `nice_ticks`), screener_views (`ChipGroup`), PyQt6 | No |
+
+## FO-GUI-026 — Charts Workspace (Focus + Inspector)
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-GUI-026.001.M01 | SRD-GUI-026.001 | `us_swing/src/us_swing/gui/chart_workspace.py` | Three-card layout, chart header, overlays, remembered settings, open path | `ChartWorkspace(svc, parent, settings)`, `open_symbol()`, `refresh_theme()`, `execution_requested`, `parse_overlays()` | chart_panel, chart_source_list, chart_inspector, cards, screener_views (`ChipGroup`) | No |
+| MD-GUI-026.002.M02 | SRD-GUI-026.002 | `us_swing/src/us_swing/gui/chart_source_list.py` | Source tabs, filter, rows | `SourceList`, `SourceRow`, `source_rows()`, `filter_rows()`, `symbol_selected` | AppService, screener_views (`ChipGroup`), PyQt6 | No |
+| MD-GUI-026.005.M03 | SRD-GUI-026.005 | `us_swing/src/us_swing/gui/chart_inspector.py` | Section registry, collapsible sections, Trade Plan, Indicators, Patterns Found, Key Levels | `Inspector` (`plan_changed`, `send_requested`, `markers_changed`, `levels_changed`, `show_message()`), `TradePlanSection`, `IndicatorsSection`, `PatternsSection`, `KeyLevelsSection`, `PatternHit`, `InspectorSection`, `ChartContext`, `TradePlan`, `SECTIONS`, `plan_rr()`, `plan_size()`, `adx()`, `rel_volume()`, `indicator_values()`, `pattern_hits()`, `key_levels()` | TA-Lib, core.price_patterns (Phase 2), PyQt6 | No |
+| MD-GUI-026.012.M04 | SRD-GUI-026.012 | `us_swing/src/us_swing/gui/chart_drawings.py` | Drawing record, SQLite store, web bridge (Phase 3) | `Drawing`, `DrawingStore`, `ChartBridge`, `drawing_from_json()`, `chart_drawings`, `KINDS` | SQLAlchemy, PyQt6 | No |
+
+> `chart_panel.py` (MD-GUI-011) gains `study_points()`, `candles`, `set_overlays()`, `set_plan()`, `set_rsi_pane()`, `set_markers()`, `set_levels()`, `set_drawings()`, the RSI pane and the drawing primitives; `data/models.py` `FilteredStockEntry` gains `plan_entry`, `plan_stop`, `plan_target`, filled by `app_service.get_latest_screener_results`; `chart_panel.py` also gains `enable_drawing()`, `drawing_added`, `set_draw_tool()`; `app_service.py` gains `get_drawing_store()` (the store creates the `chart_drawings` table itself); `main_window.py` (MD-GUI-019.002.M03) switches to Execution on `execution_requested`.
+
+## FO-GUI-027 — Settings Dialog
+
+| MD ID | SRD | File | Purpose | Public API | Depends on | Async |
+|---|---|---|---|---|---|---|
+| MD-GUI-027.001.M01 | SRD-GUI-027.001 | `us_swing/src/us_swing/gui/settings_dialog.py` | Frameless modal dialog around the settings panel; footer and apply flow | `SettingsDialog`, `open_at()`, `apply()` | `settings_panel`, `scheduler_dialog._DialogTitleBar` | No |
+| MD-GUI-027.004.M02 | SRD-GUI-027.004 | `us_swing/src/us_swing/gui/sidebar.py` | Settings item, download badge and Updates item with its dot | `Sidebar.settings_requested`, `Sidebar.set_data_state()` | `icons`, `theme`, `update_popup` | No |
+| MD-GUI-027.004.M03 | SRD-GUI-027.004 | `us_swing/src/us_swing/gui/main_window.py` | Four screens, one reused dialog, two right panels | `MainWindow` | all of the above | No |
+| MD-GUI-027.005.M04 | SRD-GUI-027.005 | `us_swing/src/us_swing/gui/settings_panel.py` | Eight sections, dirty tracking, reload, defaults, section dots | `SettingsPanel.show_section()`, `set_section_state()` | `app_service`, `theme` | No |
+| MD-GUI-027.009.M05 | SRD-GUI-027.009 | `us_swing/src/us_swing/gui/execution_header.py` | Circuit breaker button in the page header | `ExecutionHeader.show_breaker_state()` | `app_service` | No |
+| MD-GUI-027.005.M07 | SRD-GUI-027.005 | `us_swing/src/us_swing/gui/update_popup.py` | Popup with installed version, last check time and Check for Updates | `UpdatePopup`, `UpdatePopup.update_found`, `checked_text()` | `update_dialog`, `updater_stub`, `icons` | No (check runs on a `QThread`) |
+
+> `side_panels.py` (MD-GUI-019.001.M01) drops the System and Data buttons and the data badge.
+
+## FO-GUI-028 — Candle Data Panel Redesign
+
+| MD ID | SRD | File | Purpose | Public API | Depends on | Async |
+|---|---|---|---|---|---|---|
+| MD-GUI-028.001.M01 | SRD-GUI-028.001 | `us_swing/src/us_swing/gui/settings_panel.py` | `_DataPanel` summary line, progress, stat strip, footer and reset confirm | `_DataPanel.state`, `state_changed` (unchanged) | `app_service`, `market_calendar`, `active_cycles_panel` | No |
+
+## FO-GUI-029 — Scheduler Task Table in Settings
+
+| MD ID | SRD | File | Purpose | Public API | Depends on | Async |
+|---|---|---|---|---|---|---|
+| MD-GUI-029.001.M01 | SRD-GUI-029.001 | `us_swing/src/us_swing/gui/scheduler_table.py` | Task table, status pills, TWS login fold, apply and remove all | `SchedulerTable`, `inputs`, `load()`, `apply()`, `refresh_status()`, `repair_needed` | `scheduler_dialog`, `scheduler_store` | Yes (`QThread` jobs) |
+| MD-GUI-029.004.M02 | SRD-GUI-029.004 | `us_swing/src/us_swing/gui/scheduler_dialog.py` | Windows task and keyring helpers; dialog class removed | `task_states()`, `write_tasks()`, `remove_tasks()` | `scheduler_store` | No |

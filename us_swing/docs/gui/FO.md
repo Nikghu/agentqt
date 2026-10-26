@@ -1,7 +1,7 @@
 # Functional Overview — GUI Module (GUI)
 
 **Document ID:** FO-GUI
-**Version:** 2.6.0
+**Version:** 2.7.0
 **Traces To:** requirements.md §21, §22, §23.3, §24, §25, §28.1, §29.1, §32
 **Status:** Draft
 **Last Updated:** 2026-05-22
@@ -684,3 +684,178 @@ The system shall replace the screener results table with two views the user can 
 2. Selecting a stock in List shows its chart and plan.
 3. A run without a plan shows "—" for Entry, Stop, Target and R:R.
 4. CSV includes Entry, Stop, Target and R:R.
+## FO-GUI-023: Card Layout
+
+**Status:** Approved (user, 2026-10-23)
+**Priority:** Should
+**Depends on:** FO-GUI-018 (sidebar workspace shell), FO-GUI-022 (screener views)
+**Source:** User asked for VS Code style gaps and rounded corners between sections; chose "Whole app", 4 px gap, 6 px corner.
+
+The system shall show the main sections of the window as separate rounded cards with a small gap between them. Behaviour does not change.
+
+### Requirements
+
+1. **Shell cards.** Sidebar, each screen, right panel, log panel and icon strip are separate cards.
+2. **Screener cards.** The preset list and the results are two cards.
+3. **Themes.** All three themes use the same gap and corner sizes.
+
+### Acceptance Criteria
+
+1. A closed right panel or log panel leaves no gap behind.
+2. Corners stay rounded on every screen; nothing paints over them.
+
+---
+
+## FO-GUI-024: Execution Workspace
+
+**Status:** Approved (user, 2026-10-23)
+**Priority:** Should
+**Depends on:** FO-GUI-004 (Execution panel), FO-GUI-014 (Active Trades), FO-GUI-023 (cards), FO-EXE-019 (strategy P&L history)
+**Source:** User picked canvas Option F2 (https://claude.ai/artifact/9F83v5ErsZw7otTJctni47) on 2026-10-23.
+
+The system shall lay out the Execution screen as a workspace: a page header, a grouped watchlist, a tab card for trades and strategies on top, and the intraday charts below. Trading behaviour does not change.
+
+### Requirements
+
+1. **Header.** Title, admin badge, last screener run, unrealised P&L, strategies running, broker state and the Execute-for user.
+2. **Watchlist.** Symbols grouped by source (manual picks first, then each screener) with last price and score.
+3. **Tabs.** Active trades, Strategies and Closed today, each with a count.
+4. **Strategies.** A list of strategies and a detail view with actions (Edit, Duplicate, Reset count, Start / Stop, Delete), its settings, its P&L history chart and today's trades.
+5. **Charts.** The 3m and 15m charts sit below the tabs and can be hidden; the choice is remembered.
+
+### Acceptance Criteria
+
+1. Every action of the old Strategy Builder table is still reachable.
+2. The P&L chart of a strategy matches the sum of its closed trades.
+3. Hiding the charts gives their space to the tabs, and stays hidden after a restart.
+
+---
+
+## FO-GUI-025: Dashboard Tiled Workspace
+
+**Status:** Approved (user, 2026-10-24)
+**Priority:** Should
+**Depends on:** FO-GUI-002 (Dashboard), FO-GUI-023 (cards), FO-EXE-019 (strategy P&L history)
+**Source:** User picked canvas Option E + Performance band (https://claude.ai/artifact/M55jLrkWtMETMH4XgYCPgr) on 2026-10-24.
+
+The system shall lay out the Dashboard as a tiled workspace: a one-line KPI strip, an optional performance band, and four tiles (Open Positions, Market Watch, Trade History, P&L by Strategy). Trading behaviour does not change.
+
+### Requirements
+
+1. **KPI strip.** P&L today, unrealised P&L, equity, cash, capital used against its limit and open positions on one line.
+2. **Tiles.** Four tiles in a 2 × 2 grid, each with its own toolbar and a maximise / restore button.
+3. **Controls.** User view switch and Comfort / Compact row density; choices are remembered.
+4. **Tile tools.** Filter, column chooser, export and state / range filters work on their tiles (Phase 2).
+5. **Performance.** An account equity graph (1D from saved equity snapshots, longer ranges from closed trades) shown by default and hidden with a toggle; an Exposure tab with a vertical bar per symbol (Phases 3–4).
+
+### Acceptance Criteria
+
+1. Double-click exit, Square Off All and live prices work as before.
+2. Maximising a tile and restoring it brings back the same layout.
+3. Density, view and maximised tile survive a restart.
+
+---
+
+## FO-GUI-026: Charts Workspace (Focus + Inspector)
+
+**Status:** Approved (user, 2026-10-24)
+**Priority:** Should
+**Depends on:** FO-GUI-011 (candle chart viewer), FO-GUI-020 (Charts workspace, replaced), FO-GUI-022 (screener plan), FO-GUI-024 (Execution picks)
+**Source:** User picked canvas Option 3 "Focus + Inspector" (https://claude.ai/artifact/PNoXxfGNnhaXLPkhJ8ZyNr) on 2026-10-24.
+
+The system shall show the Charts screen as one large chart between a symbol source list and a collapsible Inspector, in the Carbon style. New chart features are added as new Inspector sections. It replaces the multi-window layout of FO-GUI-020.
+
+### Requirements
+
+1. **Source list.** Watchlist, Screener results and Active trades tabs with a filter; clicking a symbol loads it.
+2. **Chart.** Symbol header with price and change, 1D / 1W, removable SMA overlays, volume and an RSI pane.
+3. **Trade plan on chart.** Entry, stop and target lines with shaded risk and reward zones when a plan exists.
+4. **Inspector.** Collapsible sections added through one registry: Trade Plan and Indicators (Phase 1), Patterns Found and Key Levels (Phase 2).
+5. **Send to Execution.** The Trade Plan section adds the symbol to the Execution watchlist (Phase 2).
+6. **Drawing.** Horizontal line, trend line, rectangle and delete all, saved per symbol (Phase 3).
+
+### Acceptance Criteria
+
+1. Open in Chart and the Screener chart button load the symbol in the one chart.
+2. A screener stock with a plan shows its three lines and the same numbers in Trade Plan.
+3. Tab, overlays and open sections are the same after a restart.
+4. Drawings come back when the symbol is opened again, also after a restart.
+
+---
+
+## FO-GUI-027: Settings Dialog
+
+**Status:** Approved (user, 2026-10-25)
+**Priority:** Should
+**Depends on:** FO-GUI-018 (sidebar), FO-GUI-021 (settings sections), FO-GUI-024 (Execution header)
+**Source:** User chose Option 5 (Settings dialog) and Open A (sidebar gear) from https://claude.ai/artifact/SHgMoy3fAqpy4xhQnhFy8P on 2026-10-25; modal, side panels moved in, download progress on the gear, circuit breaker in the Execution header.
+
+The system shall show Settings as a modal dialog opened from the sidebar, with every setting in one place, so the screen the user is on stays put. Setting values and their save paths do not change.
+
+### Requirements
+
+1. **Dialog.** A frameless modal dialog with its own title bar: Settings, minimise, maximise, close.
+2. **Sections.** Users, Risk, Connection, Scheduler, Telegram, Universe, Candle data and Appearance in a left list, each with a status dot.
+3. **Footer.** Restore defaults, Cancel, Apply and OK; Apply works only when something changed.
+4. **Open from the sidebar.** A Settings item at the bottom of the sidebar opens the dialog; Settings is no longer a screen.
+5. **One place.** Theme and the candle database move from the right strip into the dialog; the strip keeps Details, Watchlist and Log.
+6. **Download progress.** While candles download, the sidebar Settings item shows the percent, and a dot when data is behind or stocks failed; the download keeps running when the dialog closes.
+7. **Circuit breaker.** Trip / Reset Circuit Breaker moves to the Execution page header.
+8. **Updates in the sidebar.** An Updates item next to the Connections panel opens a small popup with the installed version, the last check time and Check for Updates; a dot shows when an update is found (user chose Option B, https://claude.ai/artifact/U2hKfHTWMvQVoW85QU7Nm4, 2026-10-25).
+
+### Acceptance Criteria
+
+1. Clicking Settings in the sidebar opens the dialog; closing it shows the same screen as before.
+2. The app cannot be used while the dialog is open.
+3. Cancel leaves every saved value as it was; OK saves and closes.
+4. A candle download started in the dialog keeps running after it closes, and the sidebar Settings item shows its percent.
+5. The right strip has no System or Data icon.
+6. The circuit breaker can be tripped and reset from the Execution header.
+
+---
+
+## FO-GUI-028: Candle Data Panel Redesign
+
+**Status:** Approved (user, 2026-10-25)
+**Priority:** Should
+**Depends on:** FO-GUI-027 (Settings dialog), FO-GUI-006 (candle download)
+**Source:** User picked Option A "Summary line + stat strip" from https://claude.ai/artifact/BdzCz7hUddmW7Ps9sTp8si on 2026-10-25.
+
+The system shall show the Candle data section as one summary line with a state pill, a thin progress bar while downloading, a four-cell stat strip and one quiet action row. Download, retry and reset behaviour do not change.
+
+### Requirements
+
+1. **Summary.** One line says what is happening (updating N of M, up to date, days behind, empty) with one state pill.
+2. **Progress.** A thin bar and "51% · IQV · ~4 min left" show only while downloading.
+3. **Stat strip.** Data to, Last trading day, Stocks and Candles in one row, each with a short plain note.
+4. **Actions.** Update (or Cancel while downloading) and Open Candle DB on the left; a red "Reset database…" link on the right.
+5. **Reset confirm.** Reset asks in the app's own dialog and says what it deletes.
+
+### Acceptance Criteria
+
+1. "Downloading" shows only once while a download runs.
+2. Stored stocks above the index size read "503 / 503" with "+15 left the index".
+3. Reset asks first in a frameless dialog; Cancel keeps the data.
+
+## FO-GUI-029: Scheduler Task Table in Settings
+
+**Status:** Approved (user, 2026-10-25)
+**Priority:** Should
+**Depends on:** FO-GUI-027 (Settings dialog), FO-GUI-006 (scheduler settings)
+**Source:** User picked Option D "Task table with Windows status" from https://claude.ai/artifact/Gh6UQNmQUXdHbWtsuKHSww on 2026-10-25.
+
+The system shall show the Windows start and close tasks as a table inside Settings → Scheduler, so the separate Windows Task Scheduler window is no longer needed. Task names, programs and the TWS login keep their current storage.
+
+### Requirements
+
+1. **Task table.** One row each for Start TWS, Start USSwing and Close both: on/off, time, days, program and a Windows status pill.
+2. **Status.** The pill shows Installed or Missing from Windows, and Changed while a row has unapplied edits.
+3. **TWS login.** A folded line opens username, password, fill-in-automatically and a fill-now action.
+4. **One save.** Apply or OK writes the tasks and the password; switched-on tasks missing in Windows are re-created.
+5. **Remove all.** A red link removes every task and the saved password after a confirm.
+
+### Acceptance Criteria
+
+1. Edit Scheduler and its window are gone; everything is in the Scheduler section.
+2. Apply never freezes the dialog while Windows tasks are written.
+3. A task deleted outside the app shows Missing and comes back after Apply.

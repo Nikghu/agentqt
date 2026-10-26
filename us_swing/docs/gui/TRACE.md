@@ -3,7 +3,7 @@
 **Document ID:** TRACE-GUI
 **Version:** 1.13.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-10-23 (Session 85, SRD-GUI-018.008–.011 Connections panel in the sidebar — implemented; RN-GUI-1.16.0-20261023)
+**Last Updated:** 2026-10-25 (FO-GUI-029 Scheduler task table; RN-GUI-1.35.0)
 
 ---
 
@@ -59,7 +59,14 @@
 | FO-GUI-019 | SRD-GUI-019.001–008 | DD-GUI-019.001.D01 | MD-GUI-019.001.M01, MD-GUI-019.006.M02, MD-GUI-019.002.M03 | UT-GUI-019.* (10 tests) | `gui/side_panels.py`, `gui/dashboard_panel.py`, `gui/main_window.py` | Implemented | RN-GUI-1.11.0-20261023 |
 | FO-GUI-020 | SRD-GUI-020.001–005 | DD-GUI-020.001.D01 | MD-GUI-020.001.M01 | UT-GUI-020.001.M01.T01–T02, .002.M01.T01, .003.M01.T01–T02, .004.M01.T01 | `gui/chart_workspace.py`, `gui/chart_panel.py`, `gui/screener_panel.py`, `gui/main_window.py` | Implemented | RN-GUI-1.12.0-20261023 |
 | FO-GUI-021 | SRD-GUI-021.001–004 | DD-GUI-021.001.D01 | MD-GUI-021.001.M01 | UT-GUI-021.001.M01.T01–T02, .002.M01.T01–T02, .003.M01.T01, .003.M02.T01, .004.M01.T01–T04, .004.M02.T01–T02 | `gui/settings_panel.py`, `gui/theme.py`, `gui/side_panels.py`, `gui/main_window.py` | Implemented | RN-GUI-1.15.0-20261023 |
-| FO-GUI-022 | SRD-GUI-022.001–007 | DD-GUI-022.001.D01 | MD-GUI-022.001.M01, MD-GUI-003.001.M01 | UT-GUI-022.001.M01.T01–T02, .002.M01.T01–T05, .003.M01.T01–T02, .004.M01.T01, .005.M01.T01, .006.M01.T01, .007.M01.T01–T02 | `gui/screener_views.py`, `gui/screener_panel.py`, `gui/theme.py`, `assets/icons` | Implemented | RN-GUI-1.17.0-20261023 |
+| FO-GUI-022 | SRD-GUI-022.001–012 | DD-GUI-022.001.D01 | MD-GUI-022.001.M01, MD-GUI-003.001.M01 | UT-GUI-022.001.M01.T01–T02, .002.M01.T01–T05, .003.M01.T01–T02, .004.M01.T01, .005.M01.T01, .006.M01.T01, .007.M01.T01–T02, .008.M01.T01, .009.M01.T01–T02, .010.M01.T01–T02, .011.M01.T01 | `gui/screener_views.py`, `gui/screener_panel.py`, `gui/theme.py`, `gui/chart_panel.py`, `gui/ai_transcript_panel.py`, `assets/icons` | Implemented | RN-GUI-1.18.0-20261023 |
+| FO-GUI-023 | SRD-GUI-023.001–004 | DD-GUI-023.001.D01 | MD-GUI-023.001.M01, MD-GUI-001.001.M01, MD-GUI-003.001.M01 | UT-GUI-023.001.M01.T01–T02 | `gui/cards.py`, `gui/main_window.py`, `gui/screener_panel.py`, `gui/theme.py` | Implemented | RN-GUI-1.19.0-20261023 |
+| FO-GUI-024 | SRD-GUI-024.001–008 | DD-GUI-024.001.D01 | MD-GUI-024.001.M01, .002.M02, .003.M03, .004.M04, .006.M05, .008.M06 | UT-GUI-024.001.M01.T01–T02, .002.M02.T01–T04, .003.M03.T01–T02, .004–.005.M04.T01–T02, .006.M05.T01–T04, .008.M06.T01–T03; UT-GUI-004.001.M01.T06–T07 (moved) | `gui/execution_header.py`, `gui/execution_watchlist.py`, `gui/strategies_pane.py`, `gui/strategy_pnl_chart.py`, `gui/active_cycles_{panel,model}.py`, `gui/execution_panel.py`, `gui/theme.py` | Implemented | RN-GUI-1.20.0–1.23.0 |
+| FO-GUI-025 | SRD-GUI-025.001–018 | DD-GUI-025.001.D01 | MD-GUI-025.003.M01, .001.M02, .013.M03, .016.M04 | UT-GUI-025.004.M01.T01–T03, .001.M01.T01, .005.M01.T01–T02, .001.M02.T01, .002.M02.T01, .006.M02.T01–T02, .008.M02.T01–T03, .009–.011.M02.T01–T02, .012.M01.T01–T03, .013.M03.T01–T04, .015.M03.T01–T03, .013.M02.T01, .014.M02.T01, .015.M02.T01, .016.M04.T01–T02, .018.M02.T01 | `gui/dashboard_tiles.py`, `gui/performance_band.py`, `gui/dashboard_panel.py`, `gui/main_window.py`, `gui/position_table_model.py`, `assets/icons` | Implemented | RN-GUI-1.25.0-20261024, RN-GUI-1.26.0-20261024, RN-GUI-1.27.0-20261024, RN-GUI-1.28.0-20261024 |
+| FO-GUI-026 | SRD-GUI-026.001–012 | DD-GUI-026.001.D01, DD-GUI-026.011.D01 | MD-GUI-026.001.M01, .002.M02, .005.M03, .012.M04 | UT-GUI-026.001.M01.T01–T04, .002.M02.T01–T04, .003.M01.T01–T02, .004.M01.T01–T02, .005.M03.T01–T02, .005.M01.T04, .006.M03.T01–T04, .006.M01.T05–T06, .007.M03.T01–T02, .007.M01.T03, .008.M03.T01–T02, .008.M01.T03, .009.M03.T01–T02, .010.M01.T01–T02, .011.M04.T05, .011.M01.T01–T02, .012.M01.T05, .012.M04.T01–T04 | `gui/chart_workspace.py`, `gui/chart_source_list.py`, `gui/chart_inspector.py`, `gui/chart_drawings.py`, `gui/chart_panel.py`, `gui/app_service.py`, `gui/main_window.py`, `data/models.py` | Implemented | RN-GUI-1.29.0-20261024, RN-GUI-1.30.0-20261024, RN-GUI-1.31.0-20261024 |
+| FO-GUI-027 | SRD-GUI-027.001–013 | DD-GUI-027.001.D01 | MD-GUI-027.001.M01, .004.M02, .004.M03, .005.M04, .009.M05, .005.M07; MD-GUI-019.001.M01 | UT-GUI-027.001.M01.T01–T02, .003.M01.T01–T02, .004.M02.T01, .004.M03.T01, .002.M04.T01, .005.M04.T01, .007.M06.T01, .008.M02.T01–T02, .009.M05.T01, .010.M04.T01–T02, .011.M04.T01–T02, .012.M04.T01–T02, .013.M04.T01, .005.M07.T01–T04, .005.M02.T01 | `gui/settings_dialog.py`, `gui/settings_panel.py`, `gui/sidebar.py`, `gui/main_window.py`, `gui/side_panels.py`, `gui/execution_header.py`, `gui/update_popup.py` | Implemented | RN-GUI-1.32.0-20261025, RN-GUI-1.33.0-20261025 |
+| FO-GUI-028 | SRD-GUI-028.001–005 | DD-GUI-028.001.D01 | MD-GUI-028.001.M01 | UT-GUI-028.001.M01.T01–T03, .002.M01.T01–T02, .003.M01.T01, .004.M01.T01, .005.M01.T01; UT-GUI-021.004.M01.T04 | `gui/settings_panel.py`, `gui/theme.py` | Implemented | RN-GUI-1.34.0-20261025 |
+| FO-GUI-029 | SRD-GUI-029.001–006 | DD-GUI-029.001.D01 | MD-GUI-029.001.M01, .004.M02 | UT-GUI-029.001.M01.T01, .002.M01.T01–T02, .004.M01.T01–T02, .005.M01.T01, .006.M01.T01, .002.M02.T01, .004.M02.T01–T02 | `gui/scheduler_table.py`, `gui/scheduler_dialog.py`, `gui/scheduler_store.py`, `gui/settings_panel.py`, `gui/theme.py` | Implemented | RN-GUI-1.35.0-20261025 |
 
 ---
 
@@ -97,6 +104,9 @@
 | `gui/indicator_rules_dialog.py` | MD-GUI-015.001.M06 | SRD-GUI-015.001 | FO-GUI-015 |
 | `gui/pattern_rule_model.py` | MD-GUI-016.004.M07 | SRD-GUI-016.004 | FO-GUI-016 |
 | `gui/price_action_rules_dialog.py` | MD-GUI-016.001.M08 | SRD-GUI-016.001 | FO-GUI-016 |
+| `gui/settings_dialog.py` | MD-GUI-027.001.M01 | SRD-GUI-027.001–.003 | FO-GUI-027 |
+| `gui/update_popup.py` | MD-GUI-027.005.M07 | SRD-GUI-027.005 | FO-GUI-027 |
+| `gui/scheduler_table.py` | MD-GUI-029.001.M01 | SRD-GUI-029.001–.006 | FO-GUI-029 |
 
 ---
 

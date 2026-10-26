@@ -175,6 +175,17 @@ class TradeCycleService:
     def closed_between(self, start_iso: str, end_iso: str) -> tuple[CycleSnapshot, ...]:
         return self._repo.closed_between(start_iso, end_iso)
 
+    def closed_for_strategy(
+        self,
+        strategy_id: str,
+        *,
+        since_iso: str | None = None,
+        user_id: int | None   = None,
+    ) -> tuple[CycleSnapshot, ...]:
+        return self._repo.closed_for_strategy(
+            strategy_id, since_iso=since_iso, user_id=user_id
+        )
+
     def open_cycles_for_strategy(self, strategy_id: str) -> tuple[CycleSnapshot, ...]:
         return self._repo.open_cycles_for_strategy(strategy_id)
 

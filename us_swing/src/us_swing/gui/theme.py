@@ -1272,7 +1272,7 @@ QPushButton[role="danger"]:disabled {{ color: {muted}; border-color: {line}; }}
 def _sidebar_qss(bg: str, line: str, text: str, sub: str, hover: str,
                  active_bg: str, accent: str) -> str:
     return f"""
-QFrame#sidebar {{ background: {bg}; border-right: 1px solid {line}; }}
+QFrame#sidebar {{ background: {bg}; border: 1px solid {line}; border-radius: 6px; }}
 QPushButton#side_btn {{
     background: transparent; color: {sub}; border: none; border-left: 2px solid transparent;
     border-radius: 2px; text-align: left; padding: 0 10px; outline: none; font-size: 10pt;
@@ -1296,47 +1296,107 @@ QPushButton#side_power:hover {{ background: {hover}; }}
 QPushButton#side_power[armed="true"] {{ background: {active_bg}; border-color: {accent}; }}
 QPushButton#side_power:disabled {{ background: transparent; border-color: {line}; }}
 QPushButton#side_power:focus {{ outline: none; }}
+QFrame#update_popup {{ background: {bg}; border: 1px solid {line}; border-radius: 6px; }}
+QFrame#update_popup QLabel {{ background: transparent; }}
+QLabel#task_pill {{
+    border: 1px solid {sub}; color: {sub}; border-radius: 2px; padding: 0 6px;
+    font-size: 7.5pt; font-weight: bold;
+}}
+QLabel#task_pill[state="installed"] {{ color: #3cc583; border-color: #3cc583; }}
+QLabel#task_pill[state="changed"] {{ color: #e8c14d; border-color: #e8c14d; }}
+QLabel#task_pill[state="missing"], QLabel#task_pill[state="failed"] {{
+    color: #ef5a50; border-color: #ef5a50;
+}}
+QPushButton#link_danger {{
+    background: transparent; color: #ef5a50; border: none; padding: 0 6px; outline: none;
+}}
+QPushButton#link_danger:hover {{ background: rgba(239, 90, 80, 0.12); }}
+QPushButton#link_danger:disabled {{ color: {sub}; }}
+QPushButton#link_danger:focus {{ outline: none; }}
+QPushButton#login_fold {{
+    background: transparent; color: {text}; border: none; text-align: left; padding: 0;
+    outline: none;
+}}
+QPushButton#login_fold:hover {{ color: {accent}; }}
+QPushButton#login_fold:focus {{ outline: none; }}
 QPushButton#view_btn {{
     background: transparent; border: 1px solid {line}; border-radius: 0; padding: 0;
     outline: none;
 }}
 QPushButton#view_btn:hover {{ background: {hover}; }}
-QPushButton#view_btn:checked {{ background: {active_bg}; border-color: {accent}; }}
+QPushButton#view_btn:checked {{ background: {line}; }}
 QPushButton#view_btn:focus {{ outline: none; }}
 QListWidget#result_list {{
     background: transparent; border: none; border-right: 1px solid {line}; outline: none;
+    padding: 6px;
 }}
-QListWidget#result_list::item {{ border-radius: 4px; }}
+QListWidget#result_list::item {{ border-radius: 6px; border: 1px solid transparent; }}
 QListWidget#result_list::item:hover {{ background: {hover}; }}
-QListWidget#result_list::item:selected {{ background: {active_bg}; }}
+QListWidget#result_list::item:selected {{ background: {hover}; border-color: {line}; }}
 QWidget#result_row, QWidget#result_row QLabel {{ background: transparent; }}
+QLabel#row_symbol {{ color: {text}; font-size: 10pt; font-weight: bold; }}
+QLabel#card_symbol {{ color: {text}; font-size: 12pt; font-weight: bold; }}
 QWidget#result_detail, QWidget#cards_host, QWidget#rule_strip {{ background: transparent; }}
-QFrame#result_card, QFrame#detail_tile, QFrame#chart_slot {{
+QFrame#result_card, QFrame#detail_tile, QFrame#chart_slot, QFrame#detail_plan {{
     background: transparent; border: 1px solid {line}; border-radius: 6px;
 }}
-QFrame#result_card QLabel, QFrame#detail_tile QLabel {{ border: none; }}
-QLabel#detail_symbol {{ color: {accent}; font-size: 16pt; font-weight: bold; }}
+QFrame#result_card QLabel, QFrame#detail_tile QLabel, QFrame#detail_plan QLabel {{
+    border: none;
+}}
+QLabel#detail_symbol {{ color: {text}; font-size: 17pt; font-weight: bold; }}
 QLabel#view_key {{ color: {sub}; font-size: 8pt; }}
-QPushButton#filter_chip {{
-    background: transparent; color: {sub}; border: 1px solid {line}; border-radius: 11px;
+QFrame#screener_header {{ background: transparent; border-bottom: 1px solid {line}; }}
+QLabel#page_tag {{
+    color: {sub}; background: {line}; border-radius: 3px; padding: 1px 7px; font-size: 8pt;
+}}
+QLabel#rule_pill {{
+    color: {text}; background: {hover}; border: 1px solid {line}; border-radius: 10px;
+    padding: 2px 10px; font-size: 8.5pt;
+}}
+QPushButton#tx_pill {{
+    background: transparent; color: {text}; border: 1px solid {line}; border-radius: 11px;
     padding: 0 10px; min-height: 22px; max-height: 22px; font-size: 8pt; outline: none;
 }}
-QPushButton#filter_chip:hover {{ color: {text}; }}
-QPushButton#filter_chip:checked {{
-    background: {active_bg}; color: {accent}; border-color: {accent}; font-weight: bold;
+QPushButton#tx_pill:hover {{ background: {hover}; }}
+QPushButton#tx_pill:checked {{ background: {line}; }}
+QPushButton#tx_pill:focus {{ outline: none; }}
+QPushButton#primary_btn {{
+    background: {accent}; color: {bg}; border: 1px solid {accent}; font-weight: bold;
+    padding: 0 14px; outline: none;
 }}
+QPushButton#primary_btn:hover {{ background: {text}; border-color: {text}; }}
+QPushButton#primary_btn:disabled {{ background: {line}; color: {sub}; border-color: {line}; }}
+QPushButton#primary_btn:focus {{ outline: none; }}
+QFrame#run_stepper {{ border: 1px solid {line}; border-radius: 4px; }}
+QPushButton#stepper_btn, QPushButton#stepper_date {{
+    background: transparent; border: none; color: {text}; padding: 0 6px; outline: none;
+}}
+QPushButton#stepper_btn:hover, QPushButton#stepper_date:hover {{ background: {hover}; }}
+QPushButton#stepper_btn:disabled {{ background: transparent; }}
+QPushButton::menu-indicator {{ subcontrol-origin: padding; subcontrol-position: right center;
+    right: 8px; }}
+QPushButton#stepper_date::menu-indicator {{ image: none; width: 0; }}
+QPushButton#stepper_btn:focus, QPushButton#stepper_date:focus {{ outline: none; }}
+QLabel#latest_tag {{ color: {sub}; background: {line}; border-radius: 3px; padding: 1px 6px;
+    font-size: 7.5pt; margin-right: 4px; }}
+QFrame#side_drawer {{ background: {bg}; border-left: 1px solid {line}; }}
+QLabel#drawer_title {{ color: {text}; font-size: 11pt; font-weight: bold; }}
+QWidget#seg_group {{ background: {bg}; border: 1px solid {line}; border-radius: 6px; }}
+QPushButton#filter_chip {{
+    background: transparent; color: {sub}; border: none; border-radius: 4px;
+    padding: 0 6px; min-height: 22px; max-height: 22px; font-size: 8pt; outline: none;
+}}
+QPushButton#filter_chip:hover {{ color: {text}; }}
+QPushButton#filter_chip:checked {{ background: {line}; color: {text}; font-weight: bold; }}
 QPushButton#filter_chip:focus {{ outline: none; }}
 QListWidget#preset_list {{ background: transparent; border: none; outline: none; }}
 QListWidget#preset_list::item {{ border-radius: 4px; margin: 0 6px; }}
 QListWidget#preset_list::item:hover {{ background: {hover}; }}
-QListWidget#preset_list::item:selected {{ background: {active_bg}; color: {accent}; }}
+QListWidget#preset_list::item:selected {{ background: {line}; }}
 QWidget#preset_item, QWidget#preset_item QLabel {{ background: transparent; }}
 QLabel#preset_name {{ color: {text}; font-size: 9.5pt; }}
-QWidget#preset_item QLabel#preset_tag {{
-    color: {sub}; background: {line}; border-radius: 3px; padding: 1px 6px; font-size: 7.5pt;
-}}
 QLabel#view_head {{ color: {sub}; font-size: 7.5pt; font-weight: bold; letter-spacing: 1px; }}
-QFrame#icon_strip {{ background: {bg}; border-left: 1px solid {line}; }}
+QFrame#icon_strip {{ background: {bg}; border: 1px solid {line}; border-radius: 6px; }}
 QPushButton#strip_btn {{
     background: transparent; border: none; border-radius: 2px; outline: none;
 }}
@@ -1346,13 +1406,29 @@ QPushButton#strip_btn:focus {{ outline: none; }}
 QLabel#strip_badge {{
     background: {accent}; color: {bg}; border-radius: 7px; font-size: 7pt; font-weight: bold;
 }}
-QFrame#right_panel {{ border-left: 1px solid {line}; }}
-QFrame#log_panel {{ border-top: 1px solid {line}; }}
+QFrame#right_panel, QFrame#log_panel {{ background: {hover}; border: none; }}
+QWidget#shell_gutter {{ background: {hover}; }}
+QFrame#shell_card {{ border: 1px solid {line}; border-radius: 6px; }}
+QFrame#preset_pane {{ background: transparent; border: none; }}
 QLabel#details_key {{ color: {sub}; }}
 QMdiArea#chart_mdi {{ background: {bg}; border: 1px solid {line}; }}
 QMdiArea#chart_mdi QTabBar::tab:selected {{ color: {accent}; border-bottom: 2px solid {accent}; }}
 QLabel#page_title {{ font-size: 13pt; font-weight: bold; }}
 QLabel#page_meta {{ color: {sub}; padding-left: 8px; }}
+QTabBar#exec_tabs::tab {{
+    background: transparent; color: {sub}; border: none; border-bottom: 2px solid transparent;
+    padding: 9px 2px; margin-right: 18px; font-size: 9.5pt;
+}}
+QTabBar#exec_tabs::tab:hover {{ color: {text}; }}
+QTabBar#exec_tabs::tab:selected {{ color: {text}; border-bottom-color: {accent}; }}
+QTreeWidget#exec_watch {{ background: transparent; border: none; outline: none; }}
+QTreeWidget#exec_watch::item {{ min-height: 26px; border-bottom: 1px solid {line}; }}
+QTreeWidget#exec_watch::item:hover {{ background: {hover}; }}
+QTreeWidget#exec_watch::item:selected {{ background: {active_bg}; color: {text}; }}
+QLabel#exec_chip {{
+    color: {sub}; background: transparent; border: 1px solid {line}; border-radius: 4px;
+    padding: 2px 8px; font-size: 8.5pt;
+}}
 QPushButton#mode_btn:checked {{ background: {active_bg}; color: {accent}; border-color: {accent}; }}
 QFrame#settings_nav, QFrame#settings_card {{ border: 1px solid {line}; }}
 QLabel#settings_head {{
@@ -1364,11 +1440,20 @@ QLabel#data_pill {{
     border: 1px solid {sub}; color: {sub}; border-radius: 2px; padding: 0 6px;
     font-size: 7.5pt; font-weight: bold;
 }}
-QLabel#data_pct {{ font-family: "IBM Plex Mono", Consolas, monospace; font-size: 20pt; font-weight: bold; }}
-QLabel#data_pill[state="downloading"], QLabel#data_pct[state="downloading"] {{ color: {accent}; border-color: {accent}; }}
-QLabel#data_pill[state="complete"], QLabel#data_pct[state="complete"] {{ color: #3cc583; border-color: #3cc583; }}
-QLabel#data_pill[state="partial"], QLabel#data_pct[state="partial"] {{ color: #e8c14d; border-color: #e8c14d; }}
+QLabel#data_pill[state="downloading"] {{ color: {accent}; border-color: {accent}; }}
+QLabel#data_pill[state="complete"] {{ color: #3cc583; border-color: #3cc583; }}
+QLabel#data_pill[state="partial"] {{ color: #e8c14d; border-color: #e8c14d; }}
 QLabel#data_pill[state="empty"] {{ color: #ef5a50; border-color: #ef5a50; }}
+QLabel#data_summary {{ color: {text}; font-size: 10.5pt; font-weight: bold; }}
+QLabel#data_stat_value {{
+    color: {text}; font-family: "IBM Plex Mono", Consolas, monospace; font-size: 11pt;
+}}
+QPushButton#link_danger {{
+    background: transparent; color: #ef5a50; border: none; padding: 0 6px; outline: none;
+}}
+QPushButton#link_danger:hover {{ background: rgba(239, 90, 80, 0.12); }}
+QPushButton#link_danger:disabled {{ color: {sub}; }}
+QPushButton#link_danger:focus {{ outline: none; }}
 QProgressBar#data_bar {{ background: {hover}; border: none; border-radius: 1px; }}
 QProgressBar#data_bar::chunk {{ background: {accent}; }}
 QProgressBar#data_bar[state="complete"]::chunk {{ background: #3cc583; }}

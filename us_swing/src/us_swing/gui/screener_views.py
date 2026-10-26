@@ -13,8 +13,19 @@ from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
-from PyQt6.QtCore import QEvent, QRectF, QSettings, QSize, Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QCursor, QPainter, QPaintEvent, QResizeEvent
+from PyQt6.QtCore import (
+    QEasingCurve,
+    QEvent,
+    QObject,
+    QPoint,
+    QPropertyAnimation,
+    QRectF,
+    QSettings,
+    QSize,
+    Qt,
+    pyqtSignal,
+)
+from PyQt6.QtGui import QColor, QCursor, QKeyEvent, QPainter, QPaintEvent, QResizeEvent
 from PyQt6.QtWidgets import (
     QButtonGroup,
     QFrame,
@@ -23,13 +34,14 @@ from PyQt6.QtWidgets import (
     QLabel,
     QListWidget,
     QListWidgetItem,
+    QMenu,
     QPushButton,
     QScrollArea,
     QVBoxLayout,
     QWidget,
 )
 
-from us_swing.gui.icons import set_icon
+from us_swing.gui.icons import icon, set_icon
 from us_swing.gui.theme import C, active_palette, colors
 
 STRONG_MIN = 0.70
@@ -42,7 +54,6 @@ SORT_KEYS: tuple[tuple[str, str], ...] = (
 )
 CSV_HEADER = ["Symbol", "Score", "Details", "AI Reasoning", "Entry", "Stop", "Target", "R:R"]
 
-_MONO = "'IBM Plex Mono', Consolas, monospace"
 _CARD_MIN_W = 320
 _DASH = "—"
 
@@ -70,6 +81,7 @@ class ResultRow:
     entry: float | None = None
     stop: float | None = None
     target: float | None = None
+    name: str = ""
 
     @property
     def rr(self) -> float | None:
@@ -121,15 +133,18 @@ def _price(plan: Any, key: str) -> float | None:
     return value if math.isfinite(value) and value > 0 else None
 
 
-def rows_from_result(results: Mapping[str, Mapping[str, Any]]) -> list[ResultRow]:
+def rows_from_result(results: Mapping[str, Mapping[str, Any]],
+                     names: Mapping[str, str] | None = None) -> list[ResultRow]:
     """Build ranked rows from ``ScreenerRunResult.results``.
 
     Args:
         results: Symbol → result metadata (``score``, ``details``, ``ai_reasoning``, ``ai_plan``).
+        names: Optional symbol → company name.
 
     Returns:
         Rows sorted by score, highest first, with ``rank`` set from 1.
     """
+    names = names or {}
     rows: list[ResultRow] = []
     for symbol, meta in results.items():
         plan = meta.get("ai_plan")
@@ -142,6 +157,7 @@ def rows_from_result(results: Mapping[str, Mapping[str, Any]]) -> list[ResultRow
             entry=_price(plan, "entry"),
             stop=_price(plan, "stop"),
             target=_price(plan, "target"),
+            name=names.get(symbol, ""),
         ))
     rows.sort(key=lambda r: r.score, reverse=True)
     for rank, row in enumerate(rows, start=1):
@@ -187,18 +203,57 @@ def last_run_text(run_timestamp: str | None, matches: int, today: datetime.date,
         today: Today's date in ``tz``.
         tz: Display time zone; None means the computer's local zone.
     """
-    if not run_timestamp:
+    when = _run_time(run_timestamp, tz)
+    if when is None:
         return "Not run yet"
-    try:
-        when = datetime.datetime.fromisoformat(run_timestamp.replace("Z", "+00:00"))
-    except ValueError:
-        return "Not run yet"
-    if when.tzinfo is not None:
-        when = when.astimezone(tz)
     noun = "match" if matches == 1 else "matches"
     if when.date() == today:
         return f"Today {when:%H:%M} · {matches} {noun}"
     return f"{when:%b} {when.day} · {matches} {noun}"
+
+
+def _run_time(run_timestamp: str | None,
+              tz: datetime.tzinfo | None) -> datetime.datetime | None:
+    if not run_timestamp:
+        return None
+    try:
+        when = datetime.datetime.fromisoformat(run_timestamp.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return when.astimezone(tz) if when.tzinfo is not None else when
+
+
+def run_date_text(date_key: str) -> str:
+    """Show a saved run date (``2026-10-22``) as ``Oct 22, 2026``; other text is unchanged."""
+    try:
+        day = datetime.date.fromisoformat(date_key)
+    except ValueError:
+        return date_key
+    return f"{day:%b} {day.day}, {day.year}"
+
+
+def run_meta_text(count: int, run_timestamp: str | None, ai_ranked: bool,
+                  tz: datetime.tzinfo | None = None) -> str:
+    """Header line for a run, e.g. ``5 matches · ranked by AI score · run Oct 22, 2026 at 13:18``."""
+    noun = "match" if count == 1 else "matches"
+    parts = [f"{count} {noun}", "ranked by AI score" if ai_ranked else "ranked by score"]
+    when = _run_time(run_timestamp, tz)
+    if when is not None:
+        parts.append(f"run {when:%b} {when.day}, {when.year} at {when:%H:%M}")
+    return " · ".join(parts)
+
+
+def transcript_pill_text(turns: list[Any], cost_per_1k_in: float,
+                         cost_per_1k_out: float) -> str:
+    """Pill text such as ``AI transcript · 5 steps · $0.04``; cost is left out without token data."""
+    steps = len(turns)
+    text = f"AI transcript · {steps} {'step' if steps == 1 else 'steps'}"
+    tokens_in = sum(getattr(t, "tokens_input", 0) or 0 for t in turns)
+    tokens_out = sum(getattr(t, "tokens_output", 0) or 0 for t in turns)
+    if tokens_in or tokens_out:
+        cost = (tokens_in * cost_per_1k_in + tokens_out * cost_per_1k_out) / 1000
+        text += f" · ${cost:.2f}"
+    return text
 
 
 def _price_text(value: float | None) -> str:
@@ -231,24 +286,25 @@ def _tier_chip(tier: str) -> QLabel:
 def _rule_chip(rule: RuleCheck) -> QLabel:
     _T: Any = active_palette()
     if rule.passed is None:
-        text, fg, bg, border = f"{rule.name} {rule.value}", _T.TEXT, "transparent", _T.OVERLAY2
+        text, fg = f"{rule.name} {rule.value}", _T.TEXT
     elif rule.passed:
-        text, fg, bg, border = f"✓ {rule.name}", _T.GREEN, _T.PNL_POS_BG, _T.PNL_POS_BG
+        text, fg = f"✓ {rule.name}", _T.GREEN
     else:
-        text, fg, bg, border = f"– {rule.name}", _T.MUTED, "transparent", _T.OVERLAY2
+        text, fg = f"✕ {rule.name}", _T.MUTED
     chip = QLabel(text)
     chip.setStyleSheet(
-        f"color: {fg}; background: {bg}; border: 1px solid {border};"
-        " border-radius: 3px; padding: 2px 8px; font-size: 8pt;"
+        f"color: {fg}; background: transparent; border: 1px solid {_T.OVERLAY2};"
+        " border-radius: 10px; padding: 2px 9px; font-size: 8pt;"
     )
     return chip
 
 
-def _mono(text: str, colour: str = "", size: str = "9pt", bold: bool = False) -> QLabel:
+def _value_label(text: str, colour: str = "", size: str = "9pt",
+                 bold: bool = False) -> QLabel:
     label = QLabel(text)
     weight = "font-weight: bold;" if bold else ""
     tint = f"color: {colour};" if colour else ""
-    label.setStyleSheet(f"font-family: {_MONO}; font-size: {size}; {weight} {tint}")
+    label.setStyleSheet(f"font-size: {size}; {weight} {tint}")
     return label
 
 
@@ -300,33 +356,39 @@ class _ScoreBar(QWidget):
         painter.end()
 
 
-class _RuleDots(QWidget):
-    """One small square per rule: green pass, grey fail, blue value."""
+class _RiskRewardBar(QWidget):
+    """Stop-to-target bar: risk share in red, reward share in green, entry as a tick."""
 
-    _SIZE = 8
-    _GAP = 3
-
-    def __init__(self, rules: list[RuleCheck], parent: QWidget | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self._rules = rules
-        step = self._SIZE + self._GAP
-        self.setFixedSize(max(0, len(rules) * step - self._GAP), self._SIZE)
-        self.setToolTip("  ·  ".join(
-            r.name if r.passed is None else f"{r.name} {'pass' if r.passed else 'no'}"
-            for r in rules
-        ))
+        self.risk_share = 0.0
+        self.setFixedHeight(6)
+
+    def set_row(self, row: ResultRow) -> None:
+        """Show the plan of ``row``; hidden when it has no valid long plan."""
+        if row.rr is None or row.entry is None or row.stop is None or row.target is None:
+            self.setVisible(False)
+            return
+        self.risk_share = (row.entry - row.stop) / (row.target - row.stop)
+        self.setVisible(True)
+        self.update()
 
     def paintEvent(self, event: QPaintEvent | None) -> None:
         _T: Any = active_palette()
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setPen(Qt.PenStyle.NoPen)
-        for i, rule in enumerate(self._rules):
-            colour = _T.TEAL if rule.passed is None else (_T.GREEN if rule.passed else _T.OVERLAY2)
-            painter.setBrush(QColor(colour))
-            painter.drawRoundedRect(
-                QRectF(i * (self._SIZE + self._GAP), 0, self._SIZE, self._SIZE), 2, 2
-            )
+        width, height = float(self.width()), float(self.height())
+        split = width * self.risk_share
+        risk, reward = QColor(_T.RED), QColor(_T.GREEN)
+        risk.setAlphaF(0.45)
+        reward.setAlphaF(0.45)
+        painter.setBrush(risk)
+        painter.drawRoundedRect(QRectF(0, 0, split, height), 3, 3)
+        painter.setBrush(reward)
+        painter.drawRoundedRect(QRectF(split, 0, width - split, height), 3, 3)
+        painter.setBrush(QColor(_T.TEXT))
+        painter.drawRect(QRectF(split - 1, 0, 2, height))
         painter.end()
 
 
@@ -388,9 +450,11 @@ class ChipGroup(QWidget):
     def __init__(self, options: list[tuple[str, str | None]],
                  parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        self.setObjectName("seg_group")
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground)
         row = QHBoxLayout(self)
-        row.setContentsMargins(0, 0, 0, 0)
-        row.setSpacing(6)
+        row.setContentsMargins(2, 2, 2, 2)
+        row.setSpacing(2)
         self._group = QButtonGroup(self)
         self._group.setExclusive(True)
         self._values: list[str | None] = []
@@ -405,8 +469,7 @@ class ChipGroup(QWidget):
             self._group.addButton(button, index)
             self._values.append(value)
             self.buttons.append(button)
-            row.addWidget(button)
-        row.addStretch(1)
+            row.addWidget(button, 1)
         self._group.idClicked.connect(lambda _id: self.changed.emit())
 
     @property
@@ -416,30 +479,213 @@ class ChipGroup(QWidget):
 
 
 class PresetItem(QWidget):
-    """Preset list entry: name, type tag and last-run line."""
+    """Preset list entry: name and last-run line."""
 
-    def __init__(self, name: str, type_tag: str, meta: str,
-                 parent: QWidget | None = None) -> None:
+    def __init__(self, name: str, meta: str, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("preset_item")
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         body = QVBoxLayout(self)
         body.setContentsMargins(10, 6, 10, 6)
         body.setSpacing(2)
-        top = QHBoxLayout()
-        top.setSpacing(8)
         self.name_lbl = QLabel(name)
         self.name_lbl.setObjectName("preset_name")
-        top.addWidget(self.name_lbl, 1)
-        self.type_lbl = QLabel(type_tag)
-        self.type_lbl.setObjectName("preset_tag")
-        top.addWidget(self.type_lbl)
-        body.addLayout(top)
+        body.addWidget(self.name_lbl)
         self.meta_lbl = _key_label(meta)
         body.addWidget(self.meta_lbl)
 
     def set_meta(self, text: str) -> None:
         self.meta_lbl.setText(text)
+
+
+# ── Page header pieces (SRD-GUI-022.009 / .010) ──────────────────────────────
+
+class RunStepper(QFrame):
+    """Older / newer arrows around the run date; the date opens a menu of saved runs.
+
+    ``dates`` are saved run keys, newest first, as ``ScreenerResultsStorage.list_results``
+    returns them; ``index`` 0 is the latest run.
+    """
+
+    index_changed = pyqtSignal(int)
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("run_stepper")
+        self._dates: list[str] = []
+        self._index = 0
+        row = QHBoxLayout(self)
+        row.setContentsMargins(1, 1, 1, 1)
+        row.setSpacing(0)
+        self.older_btn = self._arrow("chevron-left", "Older run", +1)
+        row.addWidget(self.older_btn)
+        self.date_btn = QPushButton("—")
+        self.date_btn.setObjectName("stepper_date")
+        set_icon(self.date_btn, "calendar", "neutral", 14)
+        self.date_btn.setToolTip("Pick a saved run")
+        self.date_btn.setAccessibleName("Pick a saved run")
+        self.date_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self._menu = QMenu(self.date_btn)
+        self.date_btn.setMenu(self._menu)
+        row.addWidget(self.date_btn)
+        self.latest_lbl = QLabel("Latest")
+        self.latest_lbl.setObjectName("latest_tag")
+        row.addWidget(self.latest_lbl, 0, Qt.AlignmentFlag.AlignVCenter)
+        self.newer_btn = self._arrow("chevron-right", "Newer run", -1)
+        row.addWidget(self.newer_btn)
+        self.set_runs([], 0)
+
+    def _arrow(self, name: str, tip: str, step: int) -> QPushButton:
+        button = QPushButton()
+        button.setObjectName("stepper_btn")
+        set_icon(button, name, "neutral", 14)
+        button.setFixedWidth(C.BTN_H)
+        button.setToolTip(tip)
+        button.setAccessibleName(tip)
+        button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        button.clicked.connect(lambda _checked=False: self._go(self._index + step))
+        return button
+
+    @property
+    def index(self) -> int:
+        return self._index
+
+    def set_runs(self, dates: list[str], index: int = 0) -> None:
+        """Show ``dates`` with ``index`` selected; an empty list shows ``—``."""
+        self._dates = list(dates)
+        self._index = max(0, min(index, len(self._dates) - 1)) if self._dates else 0
+        self._menu.clear()
+        for i, date in enumerate(self._dates):
+            label = run_date_text(date) + ("   Latest" if i == 0 else "")
+            action = self._menu.addAction(label)
+            if action is not None:
+                action.setCheckable(True)
+                action.setChecked(i == self._index)
+                action.triggered.connect(lambda _checked=False, n=i: self._go(n))
+        self._refresh()
+
+    def _go(self, index: int) -> None:
+        if not 0 <= index < len(self._dates) or index == self._index:
+            return
+        self._index = index
+        for i, action in enumerate(self._menu.actions()):
+            action.setChecked(i == index)
+        self._refresh()
+        self.index_changed.emit(index)
+
+    def _refresh(self) -> None:
+        has_runs = bool(self._dates)
+        self.date_btn.setText(run_date_text(self._dates[self._index]) if has_runs else "—")
+        self.date_btn.setEnabled(has_runs)
+        self.latest_lbl.setVisible(has_runs and self._index == 0)
+        self.older_btn.setEnabled(self._index < len(self._dates) - 1)
+        self.newer_btn.setEnabled(has_runs and self._index > 0)
+
+
+class SideDrawer(QFrame):
+    """Panel that slides in over the right edge of its parent; Esc or ✕ closes it."""
+
+    WIDTH = 460
+    closed = pyqtSignal()
+
+    def __init__(self, title: str, body: QWidget, parent: QWidget) -> None:
+        super().__init__(parent)
+        self.setObjectName("side_drawer")
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self._open = False
+        self._anim = QPropertyAnimation(self, b"pos", self)
+        self._anim.setDuration(220)
+        self._anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._anim.finished.connect(self._on_slide_done)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        head = QHBoxLayout()
+        head.setContentsMargins(16, 10, 10, 10)
+        head.setSpacing(8)
+        title_lbl = QLabel(title)
+        title_lbl.setObjectName("drawer_title")
+        head.addWidget(title_lbl)
+        head.addStretch(1)
+        self.close_btn = QPushButton()
+        set_icon(self.close_btn, "x", "neutral", 14)
+        self.close_btn.setFixedWidth(C.BTN_H)
+        self.close_btn.setToolTip("Close")
+        self.close_btn.setAccessibleName("Close")
+        self.close_btn.clicked.connect(self.close_drawer)
+        head.addWidget(self.close_btn)
+        layout.addLayout(head)
+        layout.addWidget(body, 1)
+        parent.installEventFilter(self)
+        self.hide()
+
+    @property
+    def is_open(self) -> bool:
+        return self._open
+
+    def open_drawer(self) -> None:
+        if not self.isVisible():
+            self._place()
+        self._open = True
+        self.show()
+        self.raise_()
+        self.setFocus()
+        self._slide()
+
+    def close_drawer(self) -> None:
+        if not self._open:
+            return
+        self._open = False
+        self._slide()
+        self.closed.emit()
+
+    def toggle(self) -> None:
+        if self._open:
+            self.close_drawer()
+        else:
+            self.open_drawer()
+
+    def eventFilter(self, watched: QObject | None, event: QEvent | None) -> bool:
+        if watched is self.parentWidget() and event is not None \
+                and event.type() == QEvent.Type.Resize:
+            self._place()
+        return False
+
+    def keyPressEvent(self, event: QKeyEvent | None) -> None:
+        if event is not None and event.key() == Qt.Key.Key_Escape:
+            self.close_drawer()
+            return
+        super().keyPressEvent(event)
+
+    def _x(self, opened: bool) -> int:
+        parent = self.parentWidget()
+        parent_w = parent.width() if parent is not None else 0
+        return parent_w - self._width() if opened else parent_w
+
+    def _width(self) -> int:
+        parent = self.parentWidget()
+        parent_w = parent.width() if parent is not None else 0
+        return min(self.WIDTH, parent_w) if parent_w > 0 else self.WIDTH
+
+    def _place(self) -> None:
+        """Snap to the open or closed spot; a resize mid-slide ends the slide there."""
+        parent = self.parentWidget()
+        if parent is None:
+            return
+        self._anim.stop()
+        self.setGeometry(self._x(self._open), 0, self._width(), parent.height())
+        self._on_slide_done()
+
+    def _slide(self) -> None:
+        self._anim.stop()
+        parent = self.parentWidget()
+        self.resize(self._width(), parent.height() if parent is not None else self.height())
+        self._anim.setEndValue(QPoint(self._x(self._open), 0))
+        self._anim.start()
+
+    def _on_slide_done(self) -> None:
+        if not self._open:
+            self.hide()
 
 
 # ── List + detail view ────────────────────────────────────────────────────────
@@ -449,7 +695,7 @@ class _ChartLike(Protocol):
 
 
 class _ListRow(QWidget):
-    """One line of the ranked list: rank, symbol, score bar, rule dots."""
+    """One line of the ranked list: rank, symbol and company, score bar, rules passed."""
 
     def __init__(self, row: ResultRow, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -458,19 +704,32 @@ class _ListRow(QWidget):
         _T: Any = active_palette()
         tier_fg, _ = _tier_colours(row.tier)
         line = QHBoxLayout(self)
-        line.setContentsMargins(10, 0, 10, 0)
+        line.setContentsMargins(10, 0, 12, 0)
         line.setSpacing(10)
-        rank = _mono(str(row.rank), _T.MUTED)
-        rank.setFixedWidth(20)
+        rank = _value_label(str(row.rank), _T.MUTED)
+        rank.ensurePolished()
+        rank.setFixedWidth(rank.fontMetrics().horizontalAdvance("999") + 2)
         line.addWidget(rank)
-        line.addWidget(_mono(row.symbol, _T.BLUE, "10pt", bold=True), 1)
-        score = _mono(f"{row.score:.2f}", tier_fg, bold=True)
-        score.setFixedWidth(34)
+        names = QVBoxLayout()
+        names.setSpacing(0)
+        symbol = QLabel(row.symbol)
+        symbol.setObjectName("row_symbol")
+        names.addWidget(symbol)
+        if row.name:
+            company = _key_label(row.name)
+            company.setToolTip(row.name)
+            names.addWidget(company)
+        line.addLayout(names, 1)
+        score = _value_label(f"{row.score:.2f}", bold=True)
+        score.setFixedWidth(32)
         line.addWidget(score)
         bar = _ScoreBar(row.score, tier_fg)
-        bar.setFixedWidth(64)
+        bar.setFixedWidth(60)
         line.addWidget(bar)
-        line.addWidget(_RuleDots(row.rules))
+        rules = _value_label(f"{row.passed_count}/{len(row.rules)}", _T.SUBTEXT)
+        rules.setFixedWidth(30)
+        rules.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        line.addWidget(rules)
 
 
 class ListDetailView(QWidget):
@@ -494,8 +753,8 @@ class ListDetailView(QWidget):
 
         self.list = QListWidget()
         self.list.setObjectName("result_list")
-        self.list.setMinimumWidth(300)
-        self.list.setMaximumWidth(380)
+        self.list.setMinimumWidth(320)
+        self.list.setMaximumWidth(400)
         self.list.setSpacing(1)
         self.list.setResizeMode(QListWidget.ResizeMode.Adjust)
         self.list.currentRowChanged.connect(self._show_row)
@@ -507,23 +766,29 @@ class ListDetailView(QWidget):
         detail = QWidget()
         detail.setObjectName("result_detail")
         body = QVBoxLayout(detail)
-        body.setContentsMargins(20, 16, 20, 16)
-        body.setSpacing(14)
+        body.setContentsMargins(24, 18, 24, 18)
+        body.setSpacing(16)
 
         head = QHBoxLayout()
         head.setSpacing(10)
+        title = QVBoxLayout()
+        title.setSpacing(2)
+        top = QHBoxLayout()
+        top.setSpacing(10)
         self.symbol_lbl = QLabel()
         self.symbol_lbl.setObjectName("detail_symbol")
-        head.addWidget(self.symbol_lbl)
+        top.addWidget(self.symbol_lbl)
         self._tier_slot = QHBoxLayout()
-        head.addLayout(self._tier_slot)
+        top.addLayout(self._tier_slot)
+        top.addStretch(1)
+        title.addLayout(top)
         self.meta_lbl = _key_label("")
-        head.addWidget(self.meta_lbl)
-        head.addStretch(1)
-        self.chart_btn = _action_button("Open chart", "chart-candlestick", "info")
+        title.addWidget(self.meta_lbl)
+        head.addLayout(title, 1)
+        self.chart_btn = _action_button("Open in Charts", "chart-candlestick", "info")
         self.chart_btn.clicked.connect(lambda: self._emit_selected(self.chart_requested))
         head.addWidget(self.chart_btn)
-        self.watch_btn = _action_button("Watchlist", "plus", "add")
+        self.watch_btn = _action_button("Add to watchlist", "plus", "add")
         self.watch_btn.clicked.connect(lambda: self._emit_selected(self.watchlist_requested))
         head.addWidget(self.watch_btn)
         body.addLayout(head)
@@ -532,34 +797,45 @@ class ListDetailView(QWidget):
         self.chart_slot.setObjectName("chart_slot")
         self.chart_slot.setMinimumHeight(260)
         self._chart_layout = QVBoxLayout(self.chart_slot)
-        self._chart_layout.setContentsMargins(0, 0, 0, 0)
+        self._chart_layout.setContentsMargins(1, 1, 1, 1)
         self.chart_slot.setVisible(chart_factory is not None)
         body.addWidget(self.chart_slot)
 
-        tiles = QGridLayout()
-        tiles.setSpacing(10)
+        plan = QFrame()
+        plan.setObjectName("detail_plan")
+        plan_box = QVBoxLayout(plan)
+        plan_box.setContentsMargins(16, 12, 16, 12)
+        plan_box.setSpacing(10)
+        values = QGridLayout()
+        values.setHorizontalSpacing(12)
+        values.setVerticalSpacing(2)
         self.tiles: dict[str, QLabel] = {}
-        for col, (key, title) in enumerate((("entry", "Entry"), ("stop", "Stop"),
-                                            ("target", "Target"), ("rr", "Reward : risk"))):
-            tile = QFrame()
-            tile.setObjectName("detail_tile")
-            box = QVBoxLayout(tile)
-            box.setContentsMargins(12, 8, 12, 8)
-            box.setSpacing(2)
-            box.addWidget(_key_label(title))
-            value = _mono(_DASH, size="12pt", bold=True)
-            box.addWidget(value)
+        for col, (key, caption) in enumerate((("stop", "Stop"), ("entry", "Entry"),
+                                              ("target", "Target"), ("rr", "Reward : risk"))):
+            values.addWidget(_key_label(caption), 0, col)
+            value = _value_label(_DASH, size="13pt", bold=True)
+            values.addWidget(value, 1, col)
+            values.setColumnStretch(col, 1)
             self.tiles[key] = value
-            tiles.addWidget(tile, 0, col)
-        body.addLayout(tiles)
+        plan_box.addLayout(values)
+        self.rr_bar = _RiskRewardBar()
+        plan_box.addWidget(self.rr_bar)
+        amounts = QHBoxLayout()
+        self.risk_lbl = _key_label("")
+        amounts.addWidget(self.risk_lbl)
+        amounts.addStretch(1)
+        self.reward_lbl = _key_label("")
+        amounts.addWidget(self.reward_lbl)
+        plan_box.addLayout(amounts)
+        body.addWidget(plan)
 
         lower = QHBoxLayout()
         lower.setSpacing(24)
         rules_col = QVBoxLayout()
         rules_col.setSpacing(6)
-        rules_head = QLabel("RULES")
-        rules_head.setObjectName("view_head")
-        rules_col.addWidget(rules_head)
+        self.rules_head = QLabel("RULES")
+        self.rules_head.setObjectName("view_head")
+        rules_col.addWidget(self.rules_head)
         self._rules_box = QVBoxLayout()
         self._rules_box.setSpacing(4)
         rules_col.addLayout(self._rules_box)
@@ -590,7 +866,7 @@ class ListDetailView(QWidget):
         self.list.clear()
         for row in rows:
             item = QListWidgetItem()
-            item.setSizeHint(QSize(0, 46))
+            item.setSizeHint(QSize(0, 50))
             self.list.addItem(item)
             self.list.setItemWidget(item, _ListRow(row))
         self.list.blockSignals(False)
@@ -616,33 +892,50 @@ class ListDetailView(QWidget):
 
     def _fill_detail(self, index: int) -> bool:
         """Fill the detail panel for row ``index``; False when there is no such row."""
+        _T: Any = active_palette()
+        _clear_layout(self._tier_slot)
+        _clear_layout(self._rules_box)
         if not 0 <= index < len(self._rows):
             self.symbol_lbl.setText("")
             self.meta_lbl.setText("")
-            _clear_layout(self._tier_slot)
-            _clear_layout(self._rules_box)
             self.reasoning_lbl.setText("")
+            self.rules_head.setText("RULES")
             for value in self.tiles.values():
                 value.setText(_DASH)
+            self.rr_bar.setVisible(False)
+            self.risk_lbl.setText("")
+            self.reward_lbl.setText("")
             return False
         row = self._rows[index]
-        _T: Any = active_palette()
         self.symbol_lbl.setText(row.symbol)
-        _clear_layout(self._tier_slot)
         self._tier_slot.addWidget(_tier_chip(row.tier))
-        self.meta_lbl.setText(
-            f"Rank {row.rank} of {len(self._rows)}  ·  AI score {row.score:.2f}"
-            f"  ·  {row.passed_count} of {len(row.rules)} rules"
-        )
-        self.tiles["entry"].setText(_price_text(row.entry))
-        self.tiles["stop"].setText(_price_text(row.stop))
-        self.tiles["target"].setText(_price_text(row.target))
-        self.tiles["rr"].setText(_rr_text(row))
-        _clear_layout(self._rules_box)
+        parts = [row.name] if row.name else []
+        parts += [f"rank {row.rank} of {len(self._rows)}", f"AI score {row.score:.2f}"]
+        self.meta_lbl.setText(" · ".join(parts))
+        self._fill_plan(row, _T)
+        self.rules_head.setText(f"RULES · {row.passed_count} OF {len(row.rules)}")
         for rule in row.rules:
             self._rules_box.addWidget(self._rule_line(rule, _T))
         self.reasoning_lbl.setText(row.reasoning or "No AI reasoning for this run.")
         return True
+
+    def _fill_plan(self, row: ResultRow, palette: Any) -> None:
+        for key, text, colour in (("stop", _price_text(row.stop), palette.RED),
+                                  ("entry", _price_text(row.entry), ""),
+                                  ("target", _price_text(row.target), palette.GREEN),
+                                  ("rr", _rr_text(row), "")):
+            label = self.tiles[key]
+            label.setText(text)
+            tint = f"color: {colour};" if colour and text != _DASH else ""
+            label.setStyleSheet(f"font-size: 13pt; font-weight: bold; {tint}")
+        self.rr_bar.set_row(row)
+        entry, stop, target = row.entry, row.stop, row.target
+        if row.rr is not None and entry is not None and stop is not None and target is not None:
+            self.risk_lbl.setText(f"Risk ${entry - stop:,.2f} per share")
+            self.reward_lbl.setText(f"Reward ${target - entry:,.2f} per share")
+        else:
+            self.risk_lbl.setText("No trade plan from the AI for this stock")
+            self.reward_lbl.setText("")
 
     @staticmethod
     def _rule_line(rule: RuleCheck, palette: Any) -> QWidget:
@@ -650,15 +943,19 @@ class ListDetailView(QWidget):
         box = QHBoxLayout(line)
         box.setContentsMargins(0, 0, 0, 0)
         box.setSpacing(8)
-        box.addWidget(_RuleDots([rule]))
+        mark = QLabel()
+        if rule.passed is not None:
+            name, role = ("check", "add") if rule.passed else ("x", "neutral")
+            mark.setPixmap(icon(name, role).pixmap(14, 14))
+            mark.setAccessibleName("Passed" if rule.passed else "Not passed")
+        mark.setFixedWidth(14)
+        box.addWidget(mark)
         text_clr = palette.MUTED if rule.passed is False else palette.TEXT
-        name = QLabel(rule.name)
-        name.setStyleSheet(f"color: {text_clr};")
-        box.addWidget(name, 1)
-        word = rule.value if rule.passed is None else ("Pass" if rule.passed else "No")
-        result = QLabel(word)
-        result.setStyleSheet(f"color: {text_clr};")
-        box.addWidget(result)
+        label = QLabel(rule.name)
+        label.setStyleSheet(f"color: {text_clr};")
+        box.addWidget(label, 1)
+        if rule.passed is None:
+            box.addWidget(QLabel(rule.value))
         return line
 
     def _show_chart(self, symbol: str) -> None:
@@ -703,14 +1000,15 @@ class _Card(QFrame):
 
         head = QHBoxLayout()
         head.setSpacing(8)
-        self.rank_lbl = _mono(f"#{row.rank}", _T.MUTED)
+        self.rank_lbl = _value_label(f"#{row.rank}", _T.MUTED)
         head.addWidget(self.rank_lbl)
-        self.symbol_lbl = _mono(row.symbol, _T.BLUE, "12pt", bold=True)
+        self.symbol_lbl = QLabel(row.symbol)
+        self.symbol_lbl.setObjectName("card_symbol")
         head.addWidget(self.symbol_lbl)
         self.tier_lbl = _tier_chip(row.tier)
         head.addWidget(self.tier_lbl)
         head.addStretch(1)
-        head.addWidget(_mono(f"{row.score:.2f}", tier_fg, "14pt", bold=True))
+        head.addWidget(_value_label(f"{row.score:.2f}", tier_fg, "14pt", bold=True))
         body.addLayout(head)
         body.addWidget(_ScoreBar(row.score, tier_fg))
 
@@ -739,7 +1037,7 @@ class _Card(QFrame):
             ("R:R", _DASH if row.rr is None else f"{row.rr:.1f}", ""),
         )):
             plan.addWidget(_key_label(title), 0, col)
-            plan.addWidget(_mono(text, colour, bold=True), 1, col)
+            plan.addWidget(_value_label(text, colour, bold=True), 1, col)
         body.addLayout(plan)
 
         actions = QHBoxLayout()

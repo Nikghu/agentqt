@@ -2,6 +2,163 @@
 
 ---
 
+## [20261025] GUI — Scheduler task table in Settings (FO-GUI-029, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-029
+- RN: RN-GUI-1.35.0-20261025
+- Artifacts updated: FO, SRD, DD, MD, UTCD, TRACE, Code, Tests, RN, CONTEXT, DEVLOG
+- Decisions: user picked Option D of 4 (https://claude.ai/artifact/Gh6UQNmQUXdHbWtsuKHSww); pill = exists in Windows + unapplied edits (no field compare); Apply re-creates missing switched-on tasks; Windows calls on QThread jobs; old window removed, helpers kept.
+- Findings: review found stale status results, overlapping writes and a shared config mutated off-thread — all fixed and tested. GUI tests now isolated from the real scheduler.json / keyring / schtasks. Market hours on this machine read 15:00–23:00 US/Eastern (likely meant 09:30–16:00) — left for the user.
+
+## [20261025] GUI — Candle data panel redesign (FO-GUI-028, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-028
+- RN: RN-GUI-1.34.0-20261025
+- Artifacts updated: FO, SRD, DD, MD, UTCD, TRACE, Code, Tests, RN, CONTEXT, DEVLOG
+- Decisions: user picked Option A of 4 (https://claude.ai/artifact/BdzCz7hUddmW7Ps9sTp8si); Candles cell shows daily bars (weekly in tooltip); refresh button dropped (auto refresh kept); Failed group and Retry kept; Update now disabled when up to date; Reset uses `_ConfirmDialog`.
+- Findings: real-window render caught the start-up status check overwriting the summary mid-download; fixed and tested. `test_theme_waits_for_apply` fails on main too (machine's saved theme).
+
+## [20261025] GUI — Chart plan drawn into the future; watchlist suggestions (FO-GUI-026, FO-GUI-019, bugfix)
+
+- Type: Bugfix
+- FO(s): FO-GUI-026 (SRD-GUI-026.004), FO-GUI-019 (SRD-GUI-019.004)
+- RN: — (small fixes on fix/gui-chart-plan-future-zone)
+- Artifacts updated: DD, UTCD, Code, Tests, CONTEXT, DEVLOG
+- Decisions: trade plan zones and lines now drawn by a series primitive from the last candle to the right edge (12-bar right offset), axis labels kept; watchlist completer switched from inline to a popup "AAPL — Apple Inc." list, refilled on sp500_updated (it was built before the universe loaded).
+- Findings: plan checked in a real window with sample candles; 449 GUI tests pass.
+
+---
+
+## [20261025] GUI — Updates moves from Settings to the sidebar (FO-GUI-027, enhancement)
+
+- Type: Enhancement
+- FO(s): FO-GUI-027
+- RN: RN-GUI-1.33.0-20261025
+- Artifacts updated: FO, SRD (027.002/.005/.012 reopened by user request, now Implemented), DD, MD, UTCD, TRACE, Code, Tests, RN, CONTEXT, TODO
+- Decisions: user picked Option B of 3 (title-bar chip, sidebar icon, Settings footer link); icon sits with the plug/globe group below the gear; "last checked" reads the saved stamp via new `updater_stub.last_check_time()`.
+- Findings: popup is a `Qt.WindowType.Popup` frame (closes on outside click), not a titled window. Checked by offscreen render only; full app not launched.
+
+---
+
+## [20261025] GUI — Settings dialog opened from the sidebar (FO-GUI-027, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-027
+- RN: RN-GUI-1.32.0-20261025
+- Artifacts updated: FO, SRD, DD, MD, UTCD, TRACE, Code, Tests, RN, CONTEXT, TODO
+- Decisions: user chose Option 5 (dialog) + Open A (sidebar gear) from 5 + 4 canvas options; modal; System/Data panels moved in; download % on the sidebar Settings item; circuit breaker to the Execution header (it was only in the System panel). Minimal docs: the dialog wraps the existing `SettingsPanel` and reuses `_DialogTitleBar`. Restore defaults skips Telegram so the bot token is never wiped.
+- Findings: the full app was not launched for the check — it auto-connects the feed and types the TWS login; the dialog was rendered offscreen with a stub service instead. RN numbered 1.32.0 because the unpushed Charts branch already uses up to 1.31.1.
+
+## [20261025] GUI — Charts drawing tools fix (FO-GUI-026, bugfix)
+
+- Type: Bugfix
+- FO(s): FO-GUI-026 (SRD-GUI-026.008, .011)
+- RN: RN-GUI-1.31.1-20261025
+- Artifacts updated: DD, UTCD, Code, Tests, RN, CONTEXT, DEVLOG
+- Decisions: user saw blank tool buttons; painted icons replace clipped glyphs. Real-window test found a quick second click (< 500 ms) was dropped by the library's click event; clicks now read from DOM mouse events. Pattern marker text removed (names stay in the Inspector). Lesson: test drawing in the whole workspace with real mouse input, not only the standalone panel.
+
+## [20261024] GUI — Charts drawing tools saved in SQLite, Phase 3 (FO-GUI-026, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-026 (SRD-GUI-026.011–.012) — FO complete
+- RN: RN-GUI-1.31.0-20261024
+- Artifacts updated: SRD, DD, MD, UTCD, Code, Tests, TRACE, RN, CONTEXT, TODO, DEVLOG
+- Decisions: own series primitives (free library has no drawing tools); qwebchannel.js inlined from the Qt resource; Python owns the drawing list; drawings per user + symbol + timeframe; store makes its own table on its own MetaData (importing `us_swing.db` first from the GUI hits a circular import). Synthetic DOM clicks do not trigger the chart, real Qt mouse input does. Not pushed.
+
+## [20261024] GUI — Charts patterns, key levels, Send to Execution, Phase 2 (FO-GUI-026, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-026 (SRD-GUI-026.008–.010)
+- RN: RN-GUI-1.30.0-20261024
+- Artifacts updated: SRD, DD, MD, UTCD, Code, Tests, TRACE, RN, CONTEXT, TODO, DEVLOG
+- Decisions: patterns from the shared `core.price_patterns` catalogue, newest hit per pattern; arrays built once and sliced (117 → 13 ms for 500 bars); Inspector passes on section signals by name; a refused pick shows its reason and stays on Charts (per SRD). Not pushed; user app check pending.
+
+## [20261024] GUI — Charts workspace Focus + Inspector, Phase 1 (FO-GUI-026, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-026 (SRD-GUI-026.001–.007)
+- RN: RN-GUI-1.29.0-20261024
+- Artifacts updated: SRD, DD, MD, UTCD, Code, Tests, TRACE, RN, CONTEXT, TODO, DEVLOG
+- Decisions: overlays and RSI computed in Python with TA-Lib and sent to the page as data; studies re-sent on page load; only a long-shaped plan is drawn; edited plans are session-only; section method named `set_context` (QWidget already has `update`). Review fix: theme change now recolours the change %. Not pushed; user app check pending.
+
+## [20261024] GUI — Charts workspace Focus + Inspector, docs only (FO-GUI-026, feature)
+
+- Type: Feature (docs)
+- FO(s): FO-GUI-026 (SRD-GUI-026.001–.012, Draft)
+- RN: — (no code yet)
+- Artifacts updated: FO, SRD, DD, MD, UTCD, TRACE, CONTEXT, TODO, DEVLOG
+- Decisions: user picked canvas Option 3 of 5 (https://claude.ai/artifact/PNoXxfGNnhaXLPkhJ8ZyNr). One chart replaces the MDI windows (FO-GUI-020 superseded). New features plug in as Inspector sections through one registry. Free lightweight-charts v5.0.5 has no drawing tools, so drawings are our own primitives, saved per symbol and timeframe in a `chart_drawings` table. Timeframes stay 1D / 1W (daily DB). Branch feat/gui-charts-workspace, stacked on feat/gui-dashboard-tiles.
+
+## [20261024] GUI + EXE — Dashboard KPI and table fixes, Phase 5 (FO-GUI-025, bugfix)
+
+- Type: Bugfix
+- FO(s): FO-GUI-025 (SRD-GUI-025.016–.018; with FO-EXE-017 SRD-EXE-017.027)
+- RN: RN-GUI-1.28.0-20261024, RN-EXE-1.37.0-20261024
+- Artifacts updated: SRD, DD, MD, UTCD, Code, Tests, TRACE, RN, CONTEXT, TODO, DEVLOG
+- Decisions: Side is its own column after Symbol (NDAQ short showed a loss with no side); unset stop shows "No stop" and unset target "—"; "P&L Today" = equity minus start-of-day equity; paper start-of-day equity = Max Capital, daily P&L = realised P&L of cycles closed today (ET), positions filtered to the user. Review fix: paper account was counting other users' broker positions, now filtered to the viewing user. Known limit: paper account restarts at Max Capital each market day. Branch feat/gui-dashboard-tiles, not pushed; PR pending user.
+
+## [20261024] GUI — Dashboard Performance band and Exposure tab, Phase 4 (FO-GUI-025, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-025 (SRD-GUI-025.013–.015; with FO-EXE-020 SRD-EXE-020.007–.008)
+- RN: RN-GUI-1.27.0-20261024, RN-EXE-1.36.0-20261024
+- Artifacts updated: SRD, DD, MD, UTCD, Code, Tests, TRACE, RN, CONTEXT, TODO, DEVLOG
+- Decisions: 1D curve from today's snapshots plus live point; longer ranges from closed cycles (ignore unrealised P&L and deposits); market time zone for all range boundaries; exposure bars grouped above 8 ("N others"). Review fixes: header value from curve's last point, no DB read per account update. Not committed; branch feat/gui-dashboard-tiles.
+
+## [20261024] EXE — Account equity snapshots, Phase 3 (FO-EXE-020, feature)
+
+- Type: Feature
+- FO(s): FO-EXE-020 (part of FO-GUI-025)
+- RN: RN-EXE-1.35.0-20261024
+- Artifacts updated: SRD, DD, MD, UTCD, Code, Tests, TRACE, RN, CONTEXT, TODO, DEVLOG
+- Decisions: one transaction per 5-minute slot for all users; live IBKR account saved once under the active user; closing point at 16:00 ET; paper equity stays Max Capital until Phase 5. Not committed; branch feat/gui-dashboard-tiles.
+
+## [20261024] GUI — Dashboard tile buttons, Phase 2 (FO-GUI-025, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-025
+- RN: RN-GUI-1.26.0-20261024
+- Artifacts updated: SRD, DD, MD, UTCD, Code, Tests, TRACE, RN, CONTEXT, TODO, DEVLOG
+- Decisions: hidden columns stored by name (survive column shift); Trade History range uses market time zone; Market Watch ✕ removes the symbol, Remove button kept only in the right panel. Not committed; branch feat/gui-dashboard-tiles.
+
+## [20261024] GUI — Dashboard tiled workspace, Phase 1 (FO-GUI-025, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-025
+- RN: RN-GUI-1.25.0-20261024
+- Artifacts updated: SRD, DD, MD, UTCD, Code, Tests, TRACE, RN, CONTEXT, TODO
+- Decisions: Canvas Option E with Performance band; Market Watch tile shows user's watchlist (index ETFs stay in title bar); Square Off All moved to Open Positions header. Not committed; branch feat/gui-dashboard-tiles.
+
+## [20261023] GUI + EXE — Execution workspace (F2) and strategy P&L history (FO-GUI-024, FO-EXE-019, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-024, FO-EXE-019
+- RN: RN-EXE-1.34.0-20261023, RN-GUI-1.20.0 / 1.21.0 / 1.22.0 / 1.23.0-20261023
+- Artifacts updated: FO, SRD, DD, MD, UTCD, TRACE (GUI + EXE), Code, Tests, RN, CONTEXT, TODO
+- Decisions: user chose canvas F2 after 5 options + 2 follow-ups (https://claude.ai/artifact/9F83v5ErsZw7otTJctni47); P&L from `trade_cycles` only (no new table); deleting a strategy keeps its closed trades; all 5 phases, one commit each, no push. Duplicate always takes a new name so histories never mix.
+- Findings: `metadata.create_all` never adds a new index to an existing table — `create_schema` now creates missing indexes. `test_execution_panel.py` failed when run alone (existing db ↔ data import cycle) — tests now import `us_swing.data` first. Render check caught collapsed watchlist groups (fixed, test added).
+- Open: T47 — renaming a strategy starts a new P&L history (strategy id = name).
+
+## [20261023] GUI — Card layout, gaps and rounded corners (FO-GUI-023, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-023
+- RN: RN-GUI-1.19.0-20261023
+- Artifacts updated: FO, SRD, DD, MD, UTCD, TRACE, Code, Tests, RN, CONTEXT
+- Decisions: whole app as cards, 4 px gap in the title-bar colour, 6 px corners, 1 px border; gap kept inside the sliding right / log panels; Screener rail and results as two cards. Follow-ups this session: busy bar removed from the Screener header; three-digit ranks fit.
+
+---
+
+## [20261023] GUI — Screener result polish, Option A (FO-GUI-022, feature)
+
+- Type: Feature
+- FO(s): FO-GUI-022
+- RN: RN-GUI-1.18.0-20261023
+- Artifacts updated: SRD, MD, UTCD, TRACE, Code, Tests, Assets, RN, CONTEXT
+- Decisions: page header and run stepper over the results; transcript moved from a bottom splitter to a side drawer; toolbar Watchlist button removed (kept in detail); accent colour only on Run now and selection.
+
 ## [20261023] SCR — Accumulation / Distribution screener (FO-SCR-015, feature)
 
 - Type: Feature

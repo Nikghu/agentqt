@@ -75,11 +75,30 @@ if TYPE_CHECKING:
     from us_swing.execution.intraday_candle_loader import IntradayCandleLoader
     from us_swing.execution.live_bar_worker import LiveBarWorker
     from us_swing.execution.live_tick_worker import LiveTickWorker
-    from us_swing.execution.trade_cycle import CycleSnapshot
+    from us_swing.execution.equity_snapshot import (
+        CurvePoint,
+        EquitySnapshot,
+        EquitySnapshotRepository,
+    )
+    from us_swing.execution.trade_cycle import CycleSnapshot, StrategyPnlSummary
+    from us_swing.gui.chart_drawings import DrawingStore
     from us_swing.gui.telegram_commands import TelegramCommandBridge
     from us_swing.universe.store import Sp500Meta
 
 _log = logging.getLogger(__name__)
+
+_CURVE_DAYS = {"1W": 7, "1M": 30, "3M": 90}
+
+
+def _plan_price(plan: Any, key: str) -> float | None:
+    """One positive price from a saved ``ai_plan`` dict, else None (SRD-GUI-026.006)."""
+    if not isinstance(plan, dict):
+        return None
+    try:
+        value = float(plan.get(key))  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+    return value if value > 0 and value != float("inf") else None
 
 from PyQt6.QtCore import QObject, QThread, QTimer, pyqtSignal
 
@@ -1182,6 +1201,17 @@ class AppService(QObject):
         self._mkt_status_timer.start()
         self._refresh_market_status()   # immediate first check
 
+        # ── Equity snapshots (FO-EXE-020) — checked every minute, saved once per 5-min slot ──
+        self._equity_store: EquitySnapshotRepository | None = None
+        self._equity_last_slot = ""
+        self._equity_warned_slot = ""
+        self._equity_was_open = False
+        self._equity_pruned_on: datetime.date | None = None
+        self._equity_timer = QTimer(self)
+        self._equity_timer.setInterval(60_000)
+        self._equity_timer.timeout.connect(self._record_equity_snapshots)
+        self._equity_timer.start()
+
         self._start_notifications()
 
         # ── S&P 500 universe — check cache on startup ─────────────────────────
@@ -1212,6 +1242,7 @@ class AppService(QObject):
         # results arrive.
         self._db:                  Any                = None
         self._db_engine:           Any                = None
+        self._drawing_store:       DrawingStore | None = None
         self._lifecycle_query:     MonitoringQuery    | None = None
         self._lifecycle_command:   MonitoringCommand  | None = None
         self._lifecycle_bus:       MonitoringEventBus | None = None
@@ -1267,6 +1298,17 @@ class AppService(QObject):
                 _log.info("[Strategy] Rex counter repository ready")
             except Exception:
                 _log.exception("[Strategy] Rex counter init failed")
+
+            try:
+                from us_swing.execution.equity_snapshot import EquitySnapshotRepository
+                engine: Any = self._db_engine   # set by the DB init call above
+                self._equity_store = EquitySnapshotRepository(engine)
+                now = datetime.datetime.now(datetime.timezone.utc)
+                removed = self._equity_store.prune(now)
+                self._equity_pruned_on = now.date()
+                _log.info("[Equity] Snapshot store ready, removed %d old row(s)", removed)
+            except Exception:
+                _log.exception("[Equity] Snapshot store could not start")
 
         # ── Strategy Engine ───────────────────────────────────────────────────
         from us_swing.execution.pending_signal_store import PendingSignalStore
@@ -1493,24 +1535,50 @@ class AppService(QObject):
         uid = user_id if user_id is not None else self._viewing_uid
         if self._ibkr_acct is not None:
             return self._ibkr_acct
-        # Paper / disconnected — seed equity from the user's absolute Max Capital
-        # so capital sizing and checks have a budget to work against.
-        budget = self._user_max_capital(uid)
+        return self._paper_account_state(uid)
+
+    def _paper_account_state(self, uid: int | None) -> AccountState:
+        """Paper account built from Max Capital, today's closes and open positions (SRD-EXE-017.027).
+
+        Max Capital is the start-of-day equity; ``None`` (all users) adds every user's budget.
+        """
+        uids = [uid] if uid is not None else [u.user_id for u in self._users]
+        budget = sum(self._user_max_capital(u) for u in uids)
+        realised = self._realised_today(uids)
+        positions = [p for p in self.get_positions(uid) if uid is None or p.user_id == uid]
+        unrealised = sum(p.unrealised_pnl for p in positions)
+        market_value = sum(abs(p.quantity) * (p.current_price or p.average_price)
+                           for p in positions)
+        deployed = self._open_position_value(uid)
         return AccountState(
-            user_id             = uid or 0,
-            equity              = budget,
-            start_of_day_equity = budget,
-            open_position_value = self._open_position_value(uid),
-            daily_pnl           = 0.0,
-            total_cash_value    = budget,
+            user_id              = uid or 0,
+            equity               = budget + realised + unrealised,
+            start_of_day_equity  = budget,
+            open_position_value  = deployed,
+            daily_pnl            = realised,
+            total_cash_value     = budget + realised - deployed,
+            gross_position_value = market_value,
         )
 
+    def _realised_today(self, uids: list[int]) -> float:
+        """Realised P&L of cycles closed today (market day) for ``uids``."""
+        if self._tc_query is None:
+            return 0.0
+        from us_swing.gui.active_cycles_model import _today_et_bounds_utc
+        try:
+            closed = self._tc_query.closed_between(*_today_et_bounds_utc())
+        except Exception as exc:
+            _log.warning("[Account] Could not read today's closed trades: %s", exc)
+            return 0.0
+        return sum(c.realized_pnl_usd or 0.0 for c in closed if c.user_id in uids)
+
     def _open_position_value(self, uid: int | None) -> float:
-        """Deployed capital across the user's open cycles (entry price × qty)."""
+        """Deployed capital across open cycles (entry price × qty); ``None`` = all users."""
         src = getattr(self, "_cycle_position_source", None)
         if src is None:
             return 0.0
-        return sum(p.average_price * p.quantity for p in src.get_all(uid or 0))
+        uids = [uid] if uid is not None else [u.user_id for u in self._users]
+        return sum(p.average_price * p.quantity for u in uids for p in src.get_all(u))
 
     def margin_available(self) -> float:
         """Remaining budget = effective capital − deployed open-position value."""
@@ -1614,6 +1682,7 @@ class AppService(QObject):
                 if not data.get("passed", True):
                     continue
                 score = float(data.get("score", 0.0))
+                plan = data.get("ai_plan")
                 entry = FilteredStockEntry(
                     symbol=sym,
                     score=score,
@@ -1623,6 +1692,9 @@ class AppService(QObject):
                     run_type=result.execution_mode,
                     date=result.date,
                     time=run_time,
+                    plan_entry=_plan_price(plan, "entry"),
+                    plan_stop=_plan_price(plan, "stop"),
+                    plan_target=_plan_price(plan, "target"),
                 )
                 if sym not in best or score > best[sym].score:
                     best[sym] = entry
@@ -2568,6 +2640,28 @@ class AppService(QObject):
         bar = self._get_latest_bar(symbol, tf)
         return float(bar.close) if bar is not None else None
 
+    def get_strategy_pnl(
+        self, strategy_id: str, since_iso: str | None = None
+    ) -> "StrategyPnlSummary":
+        """Realized P&L history of *strategy_id* for the viewing user (SRD-EXE-019.004).
+
+        ``None`` viewing scope = all users.  "Today" is the market (ET) day,
+        the same window the Active Trades closed rows use.
+        """
+        from us_swing.execution.trade_cycle import StrategyPnlSummary, summarise
+        from us_swing.gui.active_cycles_model import _today_et_bounds_utc
+
+        if self._tc_query is None:
+            return StrategyPnlSummary()
+        try:
+            cycles = self._tc_query.closed_for_strategy(
+                strategy_id, since_iso=since_iso, user_id=self._viewing_uid
+            )
+        except Exception:
+            _log.exception("[Strategy] Could not load P&L history for %s", strategy_id)
+            return StrategyPnlSummary()
+        return summarise(cycles, *_today_et_bounds_utc())
+
     def get_recent_closed_cycles(self) -> list:
         """Cycles closed today — stay visible in the Pending Signals table
         until the next-day pre-open cleanup.
@@ -2746,6 +2840,129 @@ class AppService(QObject):
         save_users(self._users)
         self.users_changed.emit()
         return None
+
+    # ── Equity snapshots (FO-EXE-020) ────────────────────────────────────────
+
+    def _record_equity_snapshots(self, now: datetime.datetime | None = None) -> None:
+        """Save every user's equity once per 5-minute slot while NYSE is open (SRD-EXE-020.004).
+
+        The first check after the close saves one more slot, so the curve ends at 16:00.
+        """
+        store = self._equity_store
+        if store is None:
+            return
+        is_open = self._market_status.get("nyse") == "open"
+        closing = self._equity_was_open and not is_open
+        self._equity_was_open = is_open
+        if not (is_open or closing):
+            return
+        from us_swing.execution.equity_snapshot import slot_iso
+        moment = now or datetime.datetime.now(datetime.timezone.utc)
+        self._prune_equity_daily(store, moment)
+        slot = slot_iso(moment)
+        if slot == self._equity_last_slot:
+            return
+        # A live broker reports one account, so it is saved once, under the active user.
+        if self._ibkr_acct is not None:
+            uids = [self._active_uid]
+        else:
+            uids = [u.user_id for u in self._users]
+        try:
+            rows = []
+            for uid in uids:
+                acct = self.get_account_state(uid)
+                unreal = sum(p.unrealised_pnl for p in self.get_positions(uid))
+                rows.append((uid, acct.equity, acct.total_cash_value, unreal))
+            store.record_many(rows, moment)
+        except Exception as exc:
+            if self._equity_warned_slot != slot:
+                _log.warning("[Equity] Could not save the equity snapshot: %s", exc)
+                self._equity_warned_slot = slot
+            self._equity_was_open = self._equity_was_open or closing   # retry the close point
+            return
+        self._equity_last_slot = slot
+
+    def _prune_equity_daily(self, store: EquitySnapshotRepository,
+                            moment: datetime.datetime) -> None:
+        """Remove snapshots older than 30 days once per day (SRD-EXE-020.005)."""
+        if self._equity_pruned_on == moment.date():
+            return
+        self._equity_pruned_on = moment.date()
+        try:
+            removed = store.prune(moment)
+        except Exception as exc:
+            _log.warning("[Equity] Could not remove old equity snapshots: %s", exc)
+            return
+        if removed:
+            _log.info("[Equity] Removed %d equity snapshot(s) older than 30 days", removed)
+
+    def get_drawing_store(self) -> DrawingStore | None:
+        """Chart drawing store on candles.db, opened on first use (SRD-GUI-026.012).
+
+        Returns None while the database is not open or when the table cannot be made.
+        """
+        if self._drawing_store is None and self._db_engine is not None:
+            from us_swing.gui.chart_drawings import DrawingStore  # noqa: PLC0415
+            try:
+                self._drawing_store = DrawingStore(self._db_engine)
+            except Exception as exc:  # noqa: BLE001
+                _log.warning("[Charts] Drawings cannot be saved in this session")
+                _log.debug("[Charts] Drawing store failed to open: %s", exc)
+        return self._drawing_store
+
+    def get_equity_snapshots(self, since_iso: str) -> tuple[EquitySnapshot, ...]:
+        """Equity points from ``since_iso`` for the viewing user, all users when none."""
+        if self._equity_store is None:
+            return ()
+        try:
+            return self._equity_store.between(since_iso, user_id=self._viewing_uid)
+        except Exception as exc:
+            _log.warning("[Equity] Could not read equity snapshots: %s", exc)
+            return ()
+
+    def get_equity_curve(self, range_key: str,
+                         now: datetime.datetime | None = None) -> tuple[CurvePoint, ...]:
+        """Equity curve of the viewing scope for "1D", "1W", "1M", "3M" or "YTD" (SRD-EXE-020.008).
+
+        1D comes from today's 5-minute snapshots plus a live point now; longer ranges step at
+        each closed trade. Day and year boundaries use the configured market time zone.
+        """
+        from zoneinfo import ZoneInfo
+
+        from us_swing.execution.equity_snapshot import CurvePoint, curve_from_closed
+        fmt = "%Y-%m-%dT%H:%M:%S"
+        utc = datetime.timezone.utc
+        now_utc = (now or datetime.datetime.now(utc)).astimezone(utc)
+        try:
+            zone = ZoneInfo(self.get_system_config().market_timezone)
+        except Exception:
+            zone = _ET
+        midnight_et = now_utc.astimezone(zone).replace(hour=0, minute=0, second=0, microsecond=0)
+        if range_key == "1D":
+            snaps = self.get_equity_snapshots(midnight_et.astimezone(utc).strftime(fmt))
+            if not snaps:
+                return ()
+            live = CurvePoint(now_utc.strftime(fmt), self.get_account_state().equity)
+            return tuple(CurvePoint(s.taken_at, s.equity) for s in snaps) + (live,)
+        if range_key == "YTD":
+            start = midnight_et.replace(month=1, day=1).astimezone(utc)
+        elif range_key in _CURVE_DAYS:
+            start = now_utc - datetime.timedelta(days=_CURVE_DAYS[range_key])
+        else:
+            return ()
+        if self._tc_query is None:
+            return ()
+        start_iso, end_iso = start.strftime(fmt), now_utc.strftime(fmt)
+        try:
+            cycles = self._tc_query.closed_between(start_iso, end_iso)
+        except Exception as exc:
+            _log.warning("[Equity] Could not read closed trades for the equity graph: %s", exc)
+            return ()
+        uid = self._viewing_uid
+        if uid is not None:
+            cycles = [c for c in cycles if c.user_id == uid]
+        equity = self.get_account_state().equity
+        return curve_from_closed(cycles, equity, start_iso, end_iso)
 
     # ── System config ─────────────────────────────────────────────────────────
 

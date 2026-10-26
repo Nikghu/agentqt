@@ -2,18 +2,13 @@
 Module: MD-GUI-003.001.M01 — screener_panel.py  (v2 — Phase 5 GUI integration)
 Parent SRD: SRD-SCR-007.001–012
 
-Screener Panel — Preset-based v2:
-  ┌──────────────────────────────────────────────────────────────────────────┐
-  │  TOOLBAR  (▶ Run Now · progress · ← date → · result count · + Watchlist) │
-  ├──────────────────────┬───────────────────────────────────────────────────┤
-  │  PRESET LIST (260px) │  RESULTS TABLE (sortable, score colour-coded)      │
-  │  ────────────────    │  (Symbol | Score | Matched | Details)              │
-  │  ADMIN PRESETS       │                                                    │
-  │  · Daily RSI    [C]  │                                                    │
-  │  MY PRESETS          │                                                    │
-  │  · Custom       [W]  │                                                    │
-  │  ────────────────    │                                                    │
-  │  [＋ New Preset]     │                                                    │
+Screener Panel — Preset-based v2 (layout: SRD-GUI-022.008–.012):
+  ┌──────────────────────┬───────────────────────────────────────────────────┐
+  │  PRESETS        [+]  │  HEADER  preset name · tags · run line · AI pill  │
+  │  search · segments   │          ‹ run date › · Sort · view · CSV · Run   │
+  │  ADMIN / MY PRESETS  ├───────────────────────────────────────────────────┤
+  │  · name, last run    │  Rule pills, then List + detail or Cards view;    │
+  │                      │  AI transcript drawer slides in from the right    │
   └──────────────────────┴───────────────────────────────────────────────────┘
 """
 from __future__ import annotations
@@ -55,13 +50,11 @@ from PyQt6.QtWidgets import (
     QMenu,
     QMessageBox,
     QPlainTextEdit,
-    QProgressBar,
     QPushButton,
     QRadioButton,
     QScrollArea,
     QSizePolicy,
     QSpinBox,
-    QSplitter,
     QStackedWidget,
     QVBoxLayout,
     QWidget,
@@ -71,6 +64,7 @@ from us_swing.gui.ai_transcript_panel import AITranscriptPanel
 from us_swing.core.indicator_rules import config_summary
 from us_swing.core.price_patterns import pattern_config_summary
 from us_swing.gui.app_service import AppService
+from us_swing.gui.cards import GAP, card, gutter
 from us_swing.gui.frameless_dialog import FramelessDialog
 from us_swing.gui.indicator_rules_dialog import IndicatorRulesDialog
 from us_swing.gui.acc_dist_settings_dialog import AccDistSettingsDialog
@@ -84,12 +78,16 @@ from us_swing.gui.screener_views import (
     ListDetailView,
     PresetItem,
     ResultRow,
+    RunStepper,
+    SideDrawer,
     ViewSwitch,
     csv_rows,
     filter_presets,
     last_run_text,
     rows_from_result,
+    run_meta_text,
     sort_rows,
+    transcript_pill_text,
 )
 from us_swing.gui.theme import C, active_palette, colors
 from us_swing.screener.screeners import _api_key_store
@@ -1727,9 +1725,9 @@ class _NewPresetDialog(QDialog):
 class ScreenerPanel(QWidget):
     """FO-SCR-007 Screener Panel v2 — preset-based execution.
 
-    Toolbar: Run Now / date navigation / status / sort / List-Cards / CSV / Watchlist.
-    Left:    Preset list (admin + user + create-new).
-    Right:   Rule chips, then the List + detail or Cards view (SRD-GUI-022.001–.006).
+    Left:    Preset list (admin + user) with a New preset button.
+    Right:   Page header (title, run line, run stepper, sort, view, CSV, Run now), rule
+             chips, then the List + detail or Cards view (SRD-GUI-022.001–.012).
     """
 
     watchlist_add_requested = pyqtSignal(str)   # preserved — wired in main_window
@@ -1755,28 +1753,35 @@ class ScreenerPanel(QWidget):
         self._auto_run_queue:    list[str]  = []     # preset IDs pending auto-run
         self._rows:              list[ResultRow] = []  # rows shown by both views
         self._run_meta:          dict[str, str] = {}   # preset id → last-run line
+        self._names:             dict[str, str] = {}   # symbol → company name
 
         # ── DB status subscription (SRD-SCR-004.007) ──────────────────────
         demo.candle_db_status_changed.connect(self._on_db_status_changed)
         demo.market_status_updated.connect(self._maybe_auto_run)
 
         # ── Build UI ───────────────────────────────────────────────────────
-        toolbar      = self._build_toolbar()
+        header       = self._build_toolbar()
         left_frame   = self._build_left_pane()
         right_widget = self._build_right_pane()
 
-        body = QSplitter(Qt.Orientation.Horizontal)
-        body.setHandleWidth(2)
-        body.addWidget(left_frame)
-        body.addWidget(right_widget)
-        body.setSizes([260, 900])
-        body.setCollapsible(0, False)
-        body.setCollapsible(1, False)
+        right_col = QWidget()
+        rl = QVBoxLayout(right_col)
+        rl.setContentsMargins(0, 0, 0, 0)
+        rl.setSpacing(0)
+        rl.addWidget(header)
+        rl.addWidget(right_widget, 1)
+
+        # Preset rail and results are two cards on the gutter (SRD-GUI-023.002)
+        body = gutter(QWidget())
+        bl = QHBoxLayout(body)
+        bl.setContentsMargins(0, 0, 0, 0)
+        bl.setSpacing(GAP)
+        bl.addWidget(card(left_frame))
+        bl.addWidget(card(right_col), 1)
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
-        root.addWidget(toolbar)
         root.addWidget(body, 1)
 
     # ── Backend init ──────────────────────────────────────────────────────
@@ -1794,80 +1799,51 @@ class ScreenerPanel(QWidget):
     # ── Toolbar ───────────────────────────────────────────────────────────
 
     def _build_toolbar(self) -> QFrame:
-        _BTN_H = 30   # unified height for all toolbar interactive controls
-
-        self._run_btn = QPushButton("Run Now")
-        set_icon(self._run_btn, "play", "go")
-        self._run_btn.setObjectName("run_btn")
-        self._run_btn.setFixedHeight(_BTN_H)
-        self._run_btn.setMinimumWidth(110)
-        self._run_btn.setEnabled(False)
-        self._run_btn.clicked.connect(self._run_preset)
-
-        self._progress = QProgressBar()
-        self._progress.setRange(0, 0)
-        self._progress.setFixedHeight(4)
-        self._progress.setFixedWidth(100)
-        self._progress.setVisible(False)
-
-        # Date navigation — square arrow buttons; font/padding defined by #btn_nav in theme
-        self._nav_prev = QPushButton("‹")
-        self._nav_prev.setObjectName("btn_nav")
-        self._nav_prev.setFixedWidth(28)
-        self._nav_prev.setEnabled(False)
-        self._nav_prev.setToolTip("Older result")
-        self._nav_prev.clicked.connect(lambda: self._navigate_date(+1))
-
-        self._date_lbl = QLabel("—")
-        self._date_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._date_lbl.setMinimumWidth(90)
-        self._date_lbl.setStyleSheet(f"color: {C.SUBTEXT}; font-size: 9pt;")
-
-        self._nav_next = QPushButton("›")
-        self._nav_next.setObjectName("btn_nav")
-        self._nav_next.setFixedWidth(28)
-        self._nav_next.setEnabled(False)
-        self._nav_next.setToolTip("Newer result")
-        self._nav_next.clicked.connect(lambda: self._navigate_date(-1))
-
+        """Page header: preset title, run line, transcript pill and run controls."""
+        self._title_lbl = QLabel("Screener")
+        self._title_lbl.setObjectName("page_title")
+        self._type_tag = QLabel()
+        self._type_tag.setObjectName("page_tag")
+        self._type_tag.setVisible(False)
         self._mode_badge = QLabel()
-        self._mode_badge.setFixedHeight(20)
+        self._mode_badge.setObjectName("page_tag")
         self._mode_badge.setVisible(False)
 
         self._status_lbl = QLabel("Select a preset to begin")
-        self._status_lbl.setStyleSheet(f"color: {C.MUTED}; font-size: 9pt;")
+        self._status_lbl.setObjectName("view_key")
 
-        self._export_btn = QPushButton("CSV")
-        set_icon(self._export_btn, "download", "info")
-        self._export_btn.setFixedWidth(86)
-        self._export_btn.setEnabled(False)
-        self._export_btn.setToolTip("Export results to CSV")
-        self._export_btn.clicked.connect(self._export_csv)
+        # AI transcript pill (SRD-GUI-022.010)
+        self._tx_pill = QPushButton()
+        self._tx_pill.setObjectName("tx_pill")
+        self._tx_pill.setCheckable(True)
+        set_icon(self._tx_pill, "message-square", "neutral", 13)
+        self._tx_pill.setToolTip("Show the AI conversation for this run")
+        self._tx_pill.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self._tx_pill.setVisible(False)
+        self._tx_pill.clicked.connect(self._toggle_transcript)
 
-        self._add_btn = QPushButton("Watchlist")
-        set_icon(self._add_btn, "plus", "add")
-        self._add_btn.setObjectName("add_btn")
-        self._add_btn.setEnabled(False)
-        self._add_btn.setFixedHeight(_BTN_H)
-        self._add_btn.setFixedWidth(110)
-        self._add_btn.clicked.connect(self._on_add_watchlist)
+        title_row = QHBoxLayout()
+        title_row.setSpacing(8)
+        title_row.addWidget(self._title_lbl)
+        title_row.addWidget(self._type_tag)
+        title_row.addWidget(self._mode_badge)
+        title_row.addStretch(1)
+        meta_row = QHBoxLayout()
+        meta_row.setSpacing(8)
+        meta_row.addWidget(self._status_lbl)
+        meta_row.addWidget(self._tx_pill)
+        meta_row.addStretch(1)
+        title_box = QVBoxLayout()
+        title_box.setSpacing(4)
+        title_box.addLayout(title_row)
+        title_box.addLayout(meta_row)
 
-        toolbar = QFrame()
-        toolbar.setObjectName("screener_toolbar")
-        toolbar.setFixedHeight(58)
-        tb = QHBoxLayout(toolbar)
-        tb.setContentsMargins(14, 0, 14, 8)
-        tb.setSpacing(8)
-        tb.addWidget(self._run_btn)
-        tb.addSpacing(10)
-        tb.addWidget(self._nav_prev)
-        tb.addWidget(self._date_lbl)
-        tb.addWidget(self._nav_next)
-        tb.addSpacing(4)
-        tb.addWidget(self._mode_badge)
-        tb.addStretch()
-        tb.addWidget(self._status_lbl)
-        tb.addSpacing(8)
+        # Saved-run stepper (SRD-GUI-022.009)
+        self._run_stepper = RunStepper()
+        self._run_stepper.index_changed.connect(self._on_run_picked)
+
+        sort_lbl = QLabel("Sort")
+        sort_lbl.setObjectName("view_key")
         self._sort_combo = QComboBox()
         for key, label in SORT_KEYS:
             self._sort_combo.addItem(label, key)
@@ -1878,26 +1854,57 @@ class ScreenerPanel(QWidget):
 
         self._view_switch = ViewSwitch(_view_settings())
         self._view_switch.view_changed.connect(self._on_view_changed)
-        self._add_btn.setVisible(self._view_switch.view == "list")
 
-        tb.addWidget(self._progress)
-        tb.addSpacing(8)
-        tb.addWidget(self._sort_combo)
-        tb.addWidget(self._view_switch)
-        tb.addSpacing(8)
-        tb.addWidget(self._export_btn)
-        tb.addSpacing(6)
-        tb.addWidget(self._add_btn)
-        return toolbar
+        self._export_btn = QPushButton()
+        set_icon(self._export_btn, "download", "neutral")
+        self._export_btn.setFixedWidth(C.BTN_H + 4)
+        self._export_btn.setEnabled(False)
+        self._export_btn.setToolTip("Export results to CSV")
+        self._export_btn.setAccessibleName("Export results to CSV")
+        self._export_btn.clicked.connect(self._export_csv)
+
+        self._run_btn = QPushButton("Run now")
+        set_icon(self._run_btn, "play", "inverse", 14)
+        self._run_btn.setObjectName("primary_btn")
+        self._run_btn.setMinimumWidth(100)
+        self._run_btn.setEnabled(False)
+        self._run_btn.clicked.connect(self._run_preset)
+
+        header = QFrame()
+        header.setObjectName("screener_header")
+        row = QHBoxLayout(header)
+        row.setContentsMargins(20, 12, 20, 12)
+        row.setSpacing(8)
+        row.addLayout(title_box, 1)
+        row.addWidget(self._run_stepper, 0, Qt.AlignmentFlag.AlignVCenter)
+        row.addSpacing(4)
+        row.addWidget(sort_lbl)
+        row.addWidget(self._sort_combo)
+        row.addWidget(self._view_switch)
+        row.addWidget(self._export_btn)
+        row.addSpacing(4)
+        row.addWidget(self._run_btn)
+        return header
 
     # ── Left pane (preset list) ───────────────────────────────────────────
 
     def _build_left_pane(self) -> QFrame:
-        header = QLabel("PRESETS")
-        header.setStyleSheet(
-            f"color: {C.MUTED}; font-size: 7pt; letter-spacing: 2px;"
-            f" font-weight: bold; padding: 8px 12px 4px 12px;"
-        )
+        title = QLabel("PRESETS")
+        title.setObjectName("view_head")
+        self._new_btn = QPushButton()
+        set_icon(self._new_btn, "plus", "add")
+        self._new_btn.setFixedWidth(C.BTN_H)
+        self._new_btn.setToolTip("New preset")
+        self._new_btn.setAccessibleName("New preset")
+        self._new_btn.setEnabled(self._mgr is not None)
+        self._new_btn.clicked.connect(self._on_new_preset)
+        header = QWidget()
+        header.setObjectName("rule_strip")
+        hl = QHBoxLayout(header)
+        hl.setContentsMargins(12, 12, 8, 8)
+        hl.addWidget(title)
+        hl.addStretch(1)
+        hl.addWidget(self._new_btn)
 
         # Search and style chips (SRD-GUI-022.007; style filter SRD-SCR-007.010)
         self._preset_search = QLineEdit()
@@ -1930,12 +1937,6 @@ class ScreenerPanel(QWidget):
         self._preset_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self._preset_list.customContextMenuRequested.connect(self._on_preset_context_menu)
 
-        self._new_btn = QPushButton("New Preset")
-        set_icon(self._new_btn, "plus", "add")
-        self._new_btn.setObjectName("add_btn")
-        self._new_btn.setEnabled(self._mgr is not None)
-        self._new_btn.clicked.connect(self._on_new_preset)
-
         frame = QFrame()
         frame.setObjectName("preset_pane")
         frame.setFixedWidth(260)
@@ -1946,14 +1947,6 @@ class ScreenerPanel(QWidget):
         fl.addWidget(filters)
         fl.addWidget(self._preset_list, 1)
 
-        btn_row = QWidget()
-        btn_row.setStyleSheet("background: transparent;")
-        br = QVBoxLayout(btn_row)
-        br.setContentsMargins(8, 6, 8, 8)
-        br.setSpacing(6)
-        br.addWidget(self._new_btn)
-        fl.addWidget(btn_row)
-
         self._populate_preset_list()
         return frame
 
@@ -1961,7 +1954,7 @@ class ScreenerPanel(QWidget):
 
     def _build_right_pane(self) -> QWidget:
         # Empty state overlay
-        self._empty_lbl = QLabel("Select a preset from the list\nand click Run Now")
+        self._empty_lbl = QLabel("Select a preset from the list\nand click Run now")
         self._empty_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._empty_lbl.setStyleSheet(
             f"color: {C.MUTED}; font-size: 12pt; padding: 40px;"
@@ -1971,7 +1964,7 @@ class ScreenerPanel(QWidget):
         self._rule_strip = QWidget()
         self._rule_strip.setObjectName("rule_strip")
         self._rule_row = QHBoxLayout(self._rule_strip)
-        self._rule_row.setContentsMargins(14, 8, 14, 8)
+        self._rule_row.setContentsMargins(20, 8, 20, 8)
         self._rule_row.setSpacing(6)
         self._rule_strip.setVisible(False)
 
@@ -1979,7 +1972,6 @@ class ScreenerPanel(QWidget):
         self._list_view = ListDetailView(self._make_chart)
         self._list_view.chart_requested.connect(self._on_view_chart)
         self._list_view.watchlist_requested.connect(self._on_view_watchlist)
-        self._list_view.selection_changed.connect(lambda _s: self._add_btn.setEnabled(True))
         self._cards_view = CardsView()
         self._cards_view.chart_requested.connect(self._on_view_chart)
         self._cards_view.watchlist_requested.connect(self._on_view_watchlist)
@@ -1996,17 +1988,12 @@ class ScreenerPanel(QWidget):
         cl.addWidget(self._rule_strip)
         cl.addWidget(self._views, 1)
 
+        # AI transcript drawer over the results (SRD-GUI-022.010)
         self._transcript_panel = AITranscriptPanel()
-        self._transcript_panel.setVisible(False)
-
-        right_splitter = QSplitter(Qt.Orientation.Vertical)
-        right_splitter.setHandleWidth(2)
-        right_splitter.addWidget(table_container)
-        right_splitter.addWidget(self._transcript_panel)
-        right_splitter.setSizes([700, 300])
-        right_splitter.setCollapsible(0, False)
-        right_splitter.setCollapsible(1, True)
-        return right_splitter
+        self._transcript_panel.hide_title()
+        self._tx_drawer = SideDrawer("AI transcript", self._transcript_panel, table_container)
+        self._tx_drawer.closed.connect(lambda: self._tx_pill.setChecked(False))
+        return table_container
 
     # ── Preset list population ────────────────────────────────────────────
 
@@ -2047,7 +2034,7 @@ class ScreenerPanel(QWidget):
                 self._add_preset_item(p)
 
         if user_presets:
-            self._add_section_header("MINE")
+            self._add_section_header("MY PRESETS")
             for p in user_presets:
                 self._add_preset_item(p)
 
@@ -2059,14 +2046,13 @@ class ScreenerPanel(QWidget):
         self._preset_list.addItem(item)
 
     def _add_preset_item(self, preset: Any) -> None:
-        type_tag = "Composite" if str(preset.preset_type).endswith("composite") else "Weighted"
         item = QListWidgetItem()
         item.setData(Qt.ItemDataRole.UserRole, preset.id)
         item.setToolTip(preset.name)
         item.setSizeHint(QSize(0, 50))
         self._preset_list.addItem(item)
         self._preset_list.setItemWidget(
-            item, PresetItem(preset.name, type_tag, self._last_run_meta(preset.id))
+            item, PresetItem(preset.name, self._last_run_meta(preset.id))
         )
 
     def _last_run_meta(self, preset_id: str) -> str:
@@ -2123,17 +2109,16 @@ class ScreenerPanel(QWidget):
                 self._selected_preset_timeframe = "1d"
                 self._selected_preset = None
         self._run_btn.setEnabled(True)
+        self._update_header()
         self._refresh_date_nav()
         self._refresh_transcript_visibility()
         self._maybe_auto_run()
 
     def _refresh_date_nav(self) -> None:
+        self._date_idx = 0
         if not self._selected_preset_id or self._storage is None:
             self._available_dates = []
-            self._date_idx        = 0
-            self._date_lbl.setText("—")
-            self._nav_prev.setEnabled(False)
-            self._nav_next.setEnabled(False)
+            self._update_date_display()
             return
 
         try:
@@ -2141,33 +2126,18 @@ class ScreenerPanel(QWidget):
         except Exception:  # noqa: BLE001
             self._available_dates = []
 
+        self._update_date_display()
         if self._available_dates:
-            self._date_idx = 0
-            self._update_date_display()
             self._load_result_for_current_date()
         else:
-            self._date_lbl.setText("no history")
-            self._nav_prev.setEnabled(False)
-            self._nav_next.setEnabled(False)
             self._show_empty("Run the screener to see results")
 
     def _update_date_display(self) -> None:
-        dates = self._available_dates
-        if not dates:
-            self._date_lbl.setText("—")
-            self._nav_prev.setEnabled(False)
-            self._nav_next.setEnabled(False)
-            return
-        self._date_lbl.setText(dates[self._date_idx])
-        self._nav_prev.setEnabled(self._date_idx < len(dates) - 1)
-        self._nav_next.setEnabled(self._date_idx > 0)
+        self._run_stepper.set_runs(self._available_dates, self._date_idx)
 
-    def _navigate_date(self, delta: int) -> None:
-        new_idx = self._date_idx + delta
-        if 0 <= new_idx < len(self._available_dates):
-            self._date_idx = new_idx
-            self._update_date_display()
-            self._load_result_for_current_date()
+    def _on_run_picked(self, index: int) -> None:
+        self._date_idx = index
+        self._load_result_for_current_date()
 
     def _load_result_for_current_date(self) -> None:
         if not self._available_dates or self._storage is None:
@@ -2251,7 +2221,6 @@ class ScreenerPanel(QWidget):
             self._select_preset_in_list(preset_id)
         self._run_btn.setEnabled(False)
         self._run_btn.setText("Running…")
-        self._progress.setVisible(True)
         status_msg = "Scanning symbols…" if manual else "Auto-running screener…"
         self._status_lbl.setText(status_msg)
         self._status_lbl.setStyleSheet(f"color: {C.SUBTEXT}; font-size: 9pt;")
@@ -2289,13 +2258,13 @@ class ScreenerPanel(QWidget):
                         self._selected_preset_timeframe = "1d"
                         self._selected_preset = None
                 self._run_btn.setEnabled(True)
+                self._update_header()
                 self._refresh_transcript_visibility()
                 break
 
     def _on_run_finished(self, result: Any) -> None:
         self._run_btn.setEnabled(True)
-        self._run_btn.setText("Run Now")
-        self._progress.setVisible(False)
+        self._run_btn.setText("Run now")
         self._export_btn.setEnabled(True)
 
         # Refresh date list (new file was just written)
@@ -2319,36 +2288,60 @@ class ScreenerPanel(QWidget):
 
     def _on_run_failed(self, reason: str) -> None:
         self._run_btn.setEnabled(True)
-        self._run_btn.setText("Run Now")
-        self._progress.setVisible(False)
+        self._run_btn.setText("Run now")
         self._show_error(reason)
 
     # ── Display helpers ───────────────────────────────────────────────────
 
     def _refresh_transcript_visibility(self) -> None:
-        """Show the transcript panel only when the active preset uses LLM ranking
-        AND a non-empty transcript is loaded (SRD-SCR-014.006)."""
+        """Show the transcript pill only when the active preset uses LLM ranking
+        AND a non-empty transcript is loaded (SRD-SCR-014.006, SRD-GUI-022.010)."""
         llm_enabled = bool(getattr(self._selected_preset, "enable_llm_ranking", False))
         if not llm_enabled:
-            self._transcript_panel.setVisible(False)
             self._transcript_panel.clear()
-        elif self._transcript_panel.has_turns():
-            self._transcript_panel.setVisible(True)
-        else:
-            self._transcript_panel.setVisible(False)
+        show = llm_enabled and self._transcript_panel.has_turns()
+        self._tx_pill.setVisible(show)
+        if not show:
+            self._tx_drawer.close_drawer()
+
+    def _toggle_transcript(self) -> None:
+        self._tx_drawer.toggle()
+        self._tx_pill.setChecked(self._tx_drawer.is_open)
+
+    def _update_header(self) -> None:
+        """Show the selected preset's name and type tag (SRD-GUI-022.008)."""
+        preset = self._selected_preset
+        self._title_lbl.setText(str(getattr(preset, "name", "") or "Screener"))
+        if preset is None:
+            self._type_tag.setVisible(False)
+            return
+        composite = str(getattr(preset, "preset_type", "")).endswith("composite")
+        self._type_tag.setText("Composite" if composite else "Weighted")
+        self._type_tag.setVisible(True)
+
+    def _company_names(self) -> dict[str, str]:
+        """Symbol → company name from the S&P 500 universe, read once it is loaded."""
+        if not self._names:
+            try:
+                self._names = {r.symbol: r.name for r in self._demo.get_sp500_universe()}
+            except Exception:  # noqa: BLE001
+                _log.debug("[Screener] Company names are not available", exc_info=True)
+        return self._names
 
     def _display_result(self, result: Any) -> None:
         """Show a ScreenerRunResult in the result views."""
-        self._rows = rows_from_result(getattr(result, "results", {}) or {})
+        self._rows = rows_from_result(getattr(result, "results", {}) or {},
+                                      self._company_names())
         count = len(self._rows)
 
         mode = getattr(result, "execution_mode", "manual")
         self._update_mode_badge(mode)
 
-        self._status_lbl.setText(f"{count} symbol{'s' if count != 1 else ''} matched")
-        self._status_lbl.setStyleSheet(
-            f"color: {C.SUBTEXT if count > 0 else C.MUTED}; font-size: 9pt;"
+        ai_ranked = bool(getattr(self._selected_preset, "enable_llm_ranking", False))
+        self._status_lbl.setText(
+            run_meta_text(count, getattr(result, "run_timestamp", None), ai_ranked)
         )
+        self._status_lbl.setStyleSheet("")
         self._export_btn.setEnabled(count > 0)
         self._show_rule_strip(self._rule_summary())
         self._refresh_views()
@@ -2360,6 +2353,9 @@ class ScreenerPanel(QWidget):
                 transcript,
                 cost_per_1k_in=INPUT_COST_PER_1K,
                 cost_per_1k_out=OUTPUT_COST_PER_1K,
+            )
+            self._tx_pill.setText(
+                transcript_pill_text(transcript, INPUT_COST_PER_1K, OUTPUT_COST_PER_1K)
             )
         else:
             self._transcript_panel.clear()
@@ -2403,10 +2399,7 @@ class ScreenerPanel(QWidget):
         self._rule_row.addWidget(title)
         for text in chips:
             chip = QLabel(text)
-            chip.setStyleSheet(
-                f"color: {C.TEXT}; border: 1px solid {C.OVERLAY2}; border-radius: 3px;"
-                " padding: 2px 8px; font-size: 8pt;"
-            )
+            chip.setObjectName("rule_pill")
             self._rule_row.addWidget(chip)
         self._rule_row.addStretch(1)
         self._rule_strip.setVisible(True)
@@ -2420,13 +2413,12 @@ class ScreenerPanel(QWidget):
     def _make_chart(self) -> QWidget:
         from us_swing.gui.chart_panel import CandleChartPanel
         chart = CandleChartPanel(self._demo)
-        chart.set_compact()
+        chart.hide_toolbar()
         return chart
 
     def _on_view_changed(self, view: str) -> None:
         if self._rows:
             self._show_table(has_data=True)
-        self._add_btn.setVisible(view == "list")
 
     def _on_view_chart(self, symbol: str) -> None:
         self.chart_requested.emit(symbol, self._selected_preset_timeframe)
@@ -2437,19 +2429,7 @@ class ScreenerPanel(QWidget):
         self._status_lbl.setStyleSheet(f"color: {C.GREEN}; font-size: 9pt;")
 
     def _update_mode_badge(self, mode: str) -> None:
-        _tc = colors()
-        if mode == "scheduled":
-            self._mode_badge.setText("Auto")
-            self._mode_badge.setStyleSheet(
-                f"color:{C.TEAL};background:{_tc['mode_auto_bg']};border:1px solid {C.TEAL};"
-                "border-radius:8px;padding:2px 8px;font-size:7pt;font-weight:bold;"
-            )
-        else:
-            self._mode_badge.setText("Manual")
-            self._mode_badge.setStyleSheet(
-                f"color:{C.BLUE};background:{_tc['mode_manual_bg']};border:1px solid {C.BLUE};"
-                "border-radius:8px;padding:2px 8px;font-size:7pt;font-weight:bold;"
-            )
+        self._mode_badge.setText("Auto run" if mode == "scheduled" else "Manual run")
         self._mode_badge.setVisible(True)
 
     def _show_table(self, *, has_data: bool) -> None:
@@ -2460,9 +2440,10 @@ class ScreenerPanel(QWidget):
         else:
             self._views.setCurrentWidget(self._list_view)
 
-    def _show_empty(self, message: str = "Select a preset from the list\nand click Run Now") -> None:
+    def _show_empty(self, message: str = "Select a preset from the list\nand click Run now") -> None:
         self._rows = []
-        self._add_btn.setEnabled(False)
+        self._export_btn.setEnabled(False)
+        self._mode_badge.setVisible(False)
         self._rule_strip.setVisible(False)
         self._empty_lbl.setText(message)
         self._empty_lbl.setStyleSheet(f"color: {C.MUTED}; font-size: 12pt; padding: 40px;")
@@ -2587,11 +2568,6 @@ class ScreenerPanel(QWidget):
     # ── Quick chart ───────────────────────────────────────────────────────
 
     # ── Watchlist ─────────────────────────────────────────────────────────
-
-    def _on_add_watchlist(self) -> None:
-        symbol = self._list_view.selected_symbol()
-        if symbol:
-            self._on_view_watchlist(symbol)
 
     # ── CSV export ────────────────────────────────────────────────────────
 

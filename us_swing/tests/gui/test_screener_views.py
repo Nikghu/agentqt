@@ -6,7 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from PyQt6.QtCore import QSettings
+from PyQt6.QtCore import QSettings, Qt
 from PyQt6.QtWidgets import QWidget
 
 from us_swing.gui.screener_views import (
@@ -15,12 +15,17 @@ from us_swing.gui.screener_views import (
     ListDetailView,
     ResultRow,
     RuleCheck,
+    RunStepper,
+    SideDrawer,
     ViewSwitch,
     csv_rows,
     filter_presets,
     last_run_text,
     rows_from_result,
+    run_date_text,
+    run_meta_text,
     sort_rows,
+    transcript_pill_text,
 )
 
 _RESULTS = {
@@ -86,7 +91,7 @@ def test_list_loads_and_shows_first(qtbot, rows):
     assert view.list.count() == 3
     assert view.selected_symbol() == "NVDA"
     assert view.symbol_lbl.text() == "NVDA"
-    assert "Rank 1 of 3" in view.meta_lbl.text()
+    assert "rank 1 of 3" in view.meta_lbl.text()
     assert view.tiles["entry"].text() == "$222.00"
     assert view.tiles["rr"].text() == "3.3 R"
     assert view.reasoning_lbl.text() == "Support held at the 200-day MA"
@@ -218,3 +223,83 @@ def test_csv_rows_carry_plan(rows):
     assert lines[0][-4:] == ["Entry", "Stop", "Target", "R:R"]
     assert lines[1][-4:] == ["222.00", "212.00", "255.00", "3.30"]
     assert lines[2][-4:] == ["", "", "", ""]
+
+
+def test_run_meta_and_date_text():
+    """UT-GUI-022.008.M01.T01: Header run line and date text."""
+    utc = datetime.timezone.utc
+    assert run_meta_text(5, "2026-10-22T13:18:00Z", True, utc) == (
+        "5 matches · ranked by AI score · run Oct 22, 2026 at 13:18")
+    assert run_meta_text(1, None, False) == "1 match · ranked by score"
+    assert run_date_text("2026-10-22") == "Oct 22, 2026"
+    assert run_date_text("bad") == "bad"
+
+
+def test_run_stepper_moves_between_runs(qtbot):
+    """UT-GUI-022.009.M01.T01: Stepper arrows and menu move between saved runs."""
+    stepper = RunStepper()
+    qtbot.addWidget(stepper)
+    stepper.set_runs(["2026-10-22", "2026-10-21", "2026-10-20"])
+    assert stepper.date_btn.text() == "Oct 22, 2026"
+    assert not stepper.latest_lbl.isHidden()
+    assert stepper.older_btn.isEnabled() and not stepper.newer_btn.isEnabled()
+    picked: list[int] = []
+    stepper.index_changed.connect(picked.append)
+    stepper.older_btn.click()
+    assert picked == [1] and stepper.date_btn.text() == "Oct 21, 2026"
+    assert stepper.latest_lbl.isHidden() and stepper.newer_btn.isEnabled()
+    menu = stepper.date_btn.menu()
+    assert menu is not None and len(menu.actions()) == 3
+    menu.actions()[2].trigger()
+    assert picked == [1, 2] and not stepper.older_btn.isEnabled()
+
+
+def test_run_stepper_without_runs(qtbot):
+    """UT-GUI-022.009.M01.T02: No saved runs disables the stepper."""
+    stepper = RunStepper()
+    qtbot.addWidget(stepper)
+    stepper.set_runs([])
+    assert stepper.date_btn.text() == "—"
+    assert not stepper.older_btn.isEnabled() and not stepper.newer_btn.isEnabled()
+    assert not stepper.date_btn.isEnabled() and stepper.latest_lbl.isHidden()
+
+
+def test_transcript_pill_text():
+    """UT-GUI-022.010.M01.T01: Pill shows steps and cost."""
+    turns = [SimpleNamespace(tokens_input=1000, tokens_output=0),
+             SimpleNamespace(tokens_input=0, tokens_output=1000)]
+    assert transcript_pill_text(turns, 0.01, 0.03) == "AI transcript · 2 steps · $0.04"
+    assert transcript_pill_text([SimpleNamespace()], 0.01, 0.03) == "AI transcript · 1 step"
+
+
+def test_side_drawer_opens_and_closes(qtbot):
+    """UT-GUI-022.010.M01.T02: Drawer opens over the right edge; Esc closes it."""
+    host = QWidget()
+    host.resize(1000, 600)
+    qtbot.addWidget(host)
+    drawer = SideDrawer("AI transcript", QWidget(), host)
+    host.show()
+    drawer.open_drawer()
+    assert drawer.is_open and drawer.isVisible()
+    assert drawer.width() == SideDrawer.WIDTH
+    closed: list[bool] = []
+    drawer.closed.connect(lambda: closed.append(True))
+    qtbot.keyClick(drawer, Qt.Key.Key_Escape)
+    assert not drawer.is_open and closed == [True]
+
+
+def test_list_row_and_plan_details(qtbot):
+    """UT-GUI-022.011.M01.T01: Company name, rules count and risk / reward lines."""
+    rows = rows_from_result(_RESULTS, {"NVDA": "NVIDIA Corp"})
+    assert rows[0].name == "NVIDIA Corp" and rows[1].name == ""
+    view = ListDetailView()
+    qtbot.addWidget(view)
+    view.load(rows)
+    assert view.meta_lbl.text().startswith("NVIDIA Corp · rank 1 of 3")
+    assert view.rules_head.text() == "RULES · 1 OF 3"
+    assert view.risk_lbl.text() == "Risk $10.00 per share"
+    assert view.reward_lbl.text() == "Reward $33.00 per share"
+    assert not view.rr_bar.isHidden() and abs(view.rr_bar.risk_share - 10 / 43) < 1e-9
+    view.list.setCurrentRow(2)
+    assert view.rr_bar.isHidden()
+    assert view.risk_lbl.text() == "No trade plan from the AI for this stock"

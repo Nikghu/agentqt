@@ -1,6 +1,7 @@
 """
 Module: MD-GUI-000 — main_window.py
 Shell: MD-GUI-018.005.M03 (Parent SRD: SRD-GUI-018.005)
+Settings dialog wiring: MD-GUI-027.004.M03 (Parent SRD: SRD-GUI-027.004)
 QMainWindow: Frameless terminal UI — title bar, left sidebar, stacked screens.
 
 Layout:
@@ -40,7 +41,6 @@ from PyQt6.QtWidgets import (
     QLabel,
     QMainWindow,
     QPushButton,
-    QScrollArea,
     QStackedWidget,
     QVBoxLayout,
     QWidget,
@@ -49,10 +49,12 @@ from PyQt6.QtWidgets import (
 from us_swing import __version__
 from us_swing.data.models import ConnectionStatus
 from us_swing.gui.app_service import AppService
+from us_swing.gui.cards import GAP, card, gutter
 from us_swing.gui.chart_workspace import ChartWorkspace
 from us_swing.gui.dashboard_panel import DashboardPanel
 from us_swing.gui.execution_panel import ExecutionPanel
 from us_swing.gui.screener_panel import ScreenerPanel
+from us_swing.gui.settings_dialog import SettingsDialog
 from us_swing.gui.settings_panel import SettingsPanel
 from us_swing.gui.system_store import load_system_config
 from us_swing.gui.icons import refresh_icons
@@ -393,11 +395,10 @@ _NAV_ITEMS: list[tuple[str, str]] = [
     ("filter", "Screener"),
     ("zap", "Execution"),
     ("chart-candlestick", "Charts"),
-    ("settings", "Settings"),
 ]
 _WIDE_PAGES = frozenset({2, 3})   # Execution, Chart
-_NO_PANEL_PAGES = frozenset({3, 4})   # Chart, Settings
-_RIGHT_PANELS = ("details", "watch", "system", "data")
+_NO_PANEL_PAGES = frozenset({3})   # Chart
+_RIGHT_PANELS = ("details", "watch")
 
 
 class _MiniState:
@@ -455,7 +456,7 @@ class MainWindow(QMainWindow):
         self._settings_panel   = SettingsPanel(svc)
         panels = [
             self._dashboard_panel, self._screener_panel, self._execution_panel,
-            self._chart_panel, self._settings_panel,
+            self._chart_panel,
         ]
 
         self._settings_panel.theme_changed.connect(self._chart_panel.refresh_theme)
@@ -467,19 +468,16 @@ class MainWindow(QMainWindow):
         svc.flush_broker_fallback_message()
 
         # ── Stacked content ────────────────────────────────────────────────────
+        # Each screen is a card; the Screener lays out its own cards (SRD-GUI-023.002).
         self._stack = QStackedWidget()
+        gutter(self._stack)
         for p in panels:
-            if p is self._settings_panel:
-                # Settings is tall; scroll it so it never sets the window's minimum height.
-                scroll = QScrollArea()
-                scroll.setWidgetResizable(True)
-                # Never scroll sideways: that hid the section list when a side panel opened.
-                scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-                scroll.setFrameShape(QFrame.Shape.NoFrame)
-                scroll.setWidget(p)
-                self._stack.addWidget(scroll)
-            else:
+            if p in (self._screener_panel, self._execution_panel, self._dashboard_panel,
+                     self._chart_panel):
+                # These screens lay out their own cards on the gutter.
                 self._stack.addWidget(p)
+            else:
+                self._stack.addWidget(card(p))
         self._stack.setCurrentIndex(0)
 
         # ── Title bar (brand, index prices, feed, win controls) ────────────────
@@ -487,14 +485,15 @@ class MainWindow(QMainWindow):
 
         # ── Sidebar: floats over a width-reserving slot so hover peek never
         #    pushes the screen; the slot width is animated by RevealController.
-        body = QWidget()
+        # Sections are cards with a GAP of gutter between them (SRD-GUI-023.001).
+        body = gutter(QWidget())
         body_row = QHBoxLayout(body)
-        body_row.setContentsMargins(0, 0, 0, 0)
-        body_row.setSpacing(0)
-        self._side_slot = QWidget()
+        body_row.setContentsMargins(GAP, GAP, GAP, GAP)
+        body_row.setSpacing(GAP)
+        self._side_slot = gutter(QWidget())
         body_row.addWidget(self._side_slot)
 
-        # Right panel (Position Details | Watchlist | System | Data) and bottom Live Log panel;
+        # Right panel (Position Details | Watchlist) and bottom Live Log panel;
         # both are sized only by RevealController.
         self._details = PositionDetails(svc)
         self._right_stack = QStackedWidget()
@@ -502,21 +501,20 @@ class MainWindow(QMainWindow):
         watchlist = self._dashboard_panel.watchlist_widget
         watchlist.set_compact()  # type: ignore[attr-defined]
         self._right_stack.addWidget(watchlist)
-        self._right_stack.addWidget(self._settings_panel.system_panel)
-        self._right_stack.addWidget(self._settings_panel.data_panel)
+        # The gap sits inside each sliding panel, so a closed panel leaves none behind.
         self._right_panel = QFrame()
         self._right_panel.setObjectName("right_panel")
         rp = QVBoxLayout(self._right_panel)
-        rp.setContentsMargins(0, 0, 0, 0)
-        rp.addWidget(self._right_stack)
+        rp.setContentsMargins(GAP, 0, 0, 0)
+        rp.addWidget(card(self._right_stack))
         self._right_name = "details"
         self._log_panel = QFrame()
         self._log_panel.setObjectName("log_panel")
         lp = QVBoxLayout(self._log_panel)
-        lp.setContentsMargins(0, 0, 0, 0)
-        lp.addWidget(self._log_view)
+        lp.setContentsMargins(0, GAP, 0, 0)
+        lp.addWidget(card(self._log_view))
 
-        centre = QWidget()
+        centre = gutter(QWidget())
         centre_col = QVBoxLayout(centre)
         centre_col.setContentsMargins(0, 0, 0, 0)
         centre_col.setSpacing(0)
@@ -539,16 +537,24 @@ class MainWindow(QMainWindow):
         want_mini = self._mini_state.want_mini()
         self._reveal.register("sidebar", self._side_slot, MINI_WIDTH, FULL_WIDTH,
                               start_open=not want_mini)
-        self._reveal.register("right", self._right_panel, 0, 300, start_open=False)
-        self._reveal.register("log", self._log_panel, 0, 180, horizontal=False,
+        self._reveal.register("right", self._right_panel, 0, 300 + GAP, start_open=False)
+        self._reveal.register("log", self._log_panel, 0, 180 + GAP, horizontal=False,
                               start_open=False)
         self._sidebar.set_mini(want_mini)
         self._slide: QPropertyAnimation | None = None
         body.installEventFilter(self)
         self._side_slot.installEventFilter(self)
 
+        # One reused dialog keeps the settings panel (and a running download) alive.
+        self._settings_dialog = SettingsDialog(self._settings_panel, self)
+        # feed / candle download → section dots, only while the dialog is open
+        # (open_at refreshes them; each refresh reads the Telegram token store).
+        svc.feed_status_changed.connect(self._refresh_settings_dots)
+        self._settings_panel.data_panel.state_changed.connect(self._refresh_settings_dots)
         # sidebar → page_requested → MainWindow → stack + mini state
         self._sidebar.page_requested.connect(self._on_page_requested)
+        # sidebar → settings_requested → Settings dialog (current screen unchanged)
+        self._sidebar.settings_requested.connect(lambda: self._settings_dialog.open_at())
         # sidebar → mini_toggled → MainWindow → saved user choice
         self._sidebar.mini_toggled.connect(self._on_mini_toggled)
         # sidebar → hover_changed → MainWindow → peek overlay
@@ -559,9 +565,9 @@ class MainWindow(QMainWindow):
         self._reveal.revealed.connect(self._on_panel_revealed)
         # svc → log_message → strip → warning badge while the log is closed
         svc.log_message.connect(self._strip.count_warning)
-        # data panel → state_changed → strip → Data badge (percent, tick or !)
-        self._settings_panel.data_panel.state_changed.connect(self._strip.set_data_state)
-        self._strip.set_data_state(*self._settings_panel.data_panel.state)
+        # data panel → state_changed → sidebar → Settings badge (percent, tick or !)
+        self._settings_panel.data_panel.state_changed.connect(self._sidebar.set_data_state)
+        self._sidebar.set_data_state(*self._settings_panel.data_panel.state)
         # dashboard → position_selected → details panel
         self._dashboard_panel.position_selected.connect(self._on_position_selected)
         # details → exit_requested / chart_requested → dashboard drawer / chart
@@ -569,6 +575,8 @@ class MainWindow(QMainWindow):
         self._details.chart_requested.connect(self._on_details_chart)
         # screener → chart_requested → Charts screen
         self._screener_panel.chart_requested.connect(self._on_chart_requested)
+        # charts → execution_requested → Execution screen (SRD-GUI-026.010)
+        self._chart_panel.execution_requested.connect(lambda _symbol: self._go_to(2))
         # ── Status bar widgets ─────────────────────────────────────────────────
         self._status = self.statusBar()
         self._status.setSizeGripEnabled(False)
@@ -643,6 +651,10 @@ class MainWindow(QMainWindow):
                 if self._reveal.is_open(name):
                     self._reveal.reveal_requested.emit(name, False)
         self._apply_sidebar_mode()
+
+    def _refresh_settings_dots(self, *_: object) -> None:
+        if self._settings_dialog.isVisible():
+            self._settings_panel.refresh_states()
 
     def _go_to(self, index: int) -> None:
         self._sidebar.set_current(index)
@@ -726,7 +738,8 @@ class MainWindow(QMainWindow):
 
     def _sync_sidebar_geometry(self) -> None:
         width = FULL_WIDTH if self._peeking else self._side_slot.width()
-        self._sidebar.setGeometry(0, 0, width, self._body.height())
+        slot = self._side_slot.geometry()
+        self._sidebar.setGeometry(slot.x(), slot.y(), width, slot.height())
         self._sidebar.raise_()
 
     def eventFilter(self, obj: QObject | None, event: QEvent | None) -> bool:
@@ -868,7 +881,7 @@ class MainWindow(QMainWindow):
         if not pwd:
             self._demo.log_message.emit(
                 "WARNING",
-                "Auto Fill: no stored IBKR password — open Windows Task Scheduler dialog and save credentials.",
+                "Auto Fill: no stored IBKR password — add it in Settings → Scheduler → TWS login and press Apply.",
             )
             return
         self._auto_fill_username = sched_cfg.ibkr_username

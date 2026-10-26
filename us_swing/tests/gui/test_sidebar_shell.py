@@ -16,7 +16,7 @@ from us_swing.gui.sidebar import Sidebar, market_text
 from us_swing.gui.theme import active_palette
 
 _ITEMS = [("layout-dashboard", "Dashboard"), ("filter", "Screener"), ("zap", "Execution"),
-          ("chart-candlestick", "Chart"), ("settings", "Settings")]
+          ("chart-candlestick", "Chart")]
 
 
 class _StubService(QObject):
@@ -84,6 +84,61 @@ def test_nav_click_requests_page(qtbot, sidebar):
         sidebar._nav[2].click()
     assert blocker.args == [2]
     assert sidebar._nav[2].isChecked()
+
+
+def test_settings_item_keeps_screen(qtbot, sidebar):
+    """UT-GUI-027.004.M02.T01: Settings asks for the dialog and keeps the checked screen."""
+    sidebar.set_current(2)
+    with qtbot.waitSignal(sidebar.settings_requested):
+        sidebar._settings_btn.click()
+    assert sidebar._nav[2].isChecked()
+    assert not sidebar._settings_btn.isCheckable()
+
+
+@pytest.mark.parametrize(
+    ("state", "percent", "text"),
+    [("downloading", 62, "62"), ("complete", 100, ""), ("partial", 99, "!")],
+)
+def test_settings_data_badge(sidebar, state, percent, text):
+    """UT-GUI-027.008.M02.T01: Settings shows the download percent, a tick or !."""
+    sidebar.set_data_state(state, percent)
+
+    assert not sidebar._data_badge.isHidden()
+    assert sidebar._data_badge.text() == text
+    pixmap = sidebar._data_badge.pixmap()
+    assert (pixmap is not None and not pixmap.isNull()) == (state == "complete")
+
+
+def test_settings_data_badge_hidden_when_idle(sidebar):
+    """UT-GUI-027.008.M02.T02: an idle state hides the Settings badge."""
+    sidebar.set_data_state("complete", 100)
+
+    sidebar.set_data_state("idle", 0)
+
+    assert sidebar._data_badge.isHidden()
+
+
+def test_updates_item_popup_and_dot(sidebar, monkeypatch):
+    """UT-GUI-027.005.M02.T01: Updates opens its popup, shows a dot on found, hides in mini."""
+    shown = []
+    monkeypatch.setattr(sidebar._update_popup, "show_beside", shown.append)
+
+    sidebar._update_btn.click()
+    sidebar._update_popup.update_found.emit()
+    sidebar.set_mini(True)
+
+    assert shown == [sidebar._update_btn]
+    assert not sidebar._update_dot.isHidden()
+    assert sidebar._update_btn.text() == ""
+    assert sidebar._update_btn.toolTip() == "Updates"
+
+
+def test_main_window_lists_four_screens():
+    """UT-GUI-027.004.M03.T01: Settings is no longer a screen in the sidebar."""
+    from us_swing.gui.main_window import _NAV_ITEMS
+
+    assert [label for _icon, label in _NAV_ITEMS] == [
+        "Dashboard", "Screener", "Execution", "Charts"]
 
 
 def test_mini_hides_labels_keeps_tooltips(sidebar):

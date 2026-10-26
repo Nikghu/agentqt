@@ -93,6 +93,14 @@ def check_update_available(force: bool = False) -> UpdateInfo | None:
     )
 
 
+def last_check_time() -> float | None:
+    """Return the epoch time of the last update check, or None if never checked."""
+    try:
+        return float(_LAST_CHECK_FILE.read_text())
+    except (OSError, ValueError):
+        return None
+
+
 def download_and_verify_update(
     info: UpdateInfo,
     progress_cb: Callable[[int, int], None] | None = None,

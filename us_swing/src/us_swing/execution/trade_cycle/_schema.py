@@ -64,8 +64,16 @@ idx_trade_cycles_strategy_symbol_state = sa.Index(
     trade_cycles.c.state,
 )
 
+# SRD-EXE-019.003 — strategy P&L history reads closed cycles by close time.
+idx_trade_cycles_strategy_closed = sa.Index(
+    "idx_trade_cycles_strategy_closed",
+    trade_cycles.c.strategy_id,
+    trade_cycles.c.closed_at,
+)
+
 __all__ = [
     "trade_cycles",
     "idx_trade_cycles_state_symbol",
     "idx_trade_cycles_strategy_symbol_state",
+    "idx_trade_cycles_strategy_closed",
 ]
