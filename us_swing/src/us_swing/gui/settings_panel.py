@@ -9,6 +9,7 @@ import dataclasses
 import datetime
 import json
 import logging
+import time
 from collections.abc import Callable
 
 from PyQt6.QtCore import Qt, QDate, QObject, pyqtBoundSignal, pyqtSignal
@@ -25,7 +26,6 @@ from PyQt6.QtWidgets import (
     QDoubleSpinBox,
     QFormLayout,
     QFrame,
-    QGridLayout,
     QGroupBox,
     QHBoxLayout,
     QHeaderView,
@@ -38,12 +38,14 @@ from PyQt6.QtWidgets import (
     QStackedWidget,
     QTableWidget,
     QTableWidgetItem,
+    QTimeEdit,
     QVBoxLayout,
     QWidget,
     QSizePolicy,
 )
 
 from us_swing.gui.app_service import AppService
+from us_swing.data.market_calendar import NYSE_HOLIDAYS
 from us_swing.data.models import ConnectionStatus, RiskConfig, UserProfile
 from us_swing.gui.icons import mark_danger, set_icon
 from us_swing.gui.system_store import SystemConfig
@@ -466,14 +468,9 @@ class _SystemSections(QObject):
         sched_form.addRow("Market timezone:",        self._mkt_tz)
         sched_form.addRow("Enable daily scheduler:", self._sched_en)
 
-        self._sched_btn = QPushButton("Add Scheduler")
-        set_icon(self._sched_btn, "calendar", "info")
-        self._sched_btn.setFixedWidth(160)
-        self._sched_btn.clicked.connect(self._on_scheduler)
-        self._refresh_sched_btn_label()
-        sched_row = QHBoxLayout()
-        sched_row.addWidget(self._sched_btn)
-        sched_row.addStretch()
+        # Windows start / close tasks, edited in place (FO-GUI-029)
+        from us_swing.gui.scheduler_table import SchedulerTable
+        self.sched_table = SchedulerTable()
 
         # ── Theme ──────────────────────────────────────────────────────────────
         # A click only picks the theme; Apply or OK applies it (SRD-GUI-027.013).
@@ -542,7 +539,7 @@ class _SystemSections(QObject):
         # ── Section pages ──────────────────────────────────────────────────────
         self.pages: list[tuple[str, QWidget]] = [
             ("Connection",  _page(conn_form)),
-            ("Scheduler",   _page(sched_form, sched_row)),
+            ("Scheduler",   _page(sched_form, self.sched_table)),
             ("Telegram",    _page(tg_form, tg_btn_row)),
         ]
         # Shown after Universe and Candle data (SRD-GUI-027.005).
@@ -553,16 +550,10 @@ class _SystemSections(QObject):
 
     # ── Helpers ────────────────────────────────────────────────────────────────
 
-    def _refresh_sched_btn_label(self) -> None:
-        from us_swing.gui.scheduler_store import load_scheduler_config, load_usswing_config
-        has_task = bool(load_scheduler_config() or load_usswing_config())
-        self._sched_btn.setText("Edit Scheduler" if has_task else "Add Scheduler")
-
-    def _on_scheduler(self) -> None:
-        from us_swing.gui.scheduler_dialog import SchedulerDialog
-        dlg = SchedulerDialog(parent=self._sched_btn.window())
-        dlg.exec()
-        self._refresh_sched_btn_label()
+    def _on_save_scheduler(self) -> None:
+        """Save market hours, then write the task table to Windows (SRD-GUI-029.004)."""
+        self._on_save()
+        self.sched_table.apply()
 
     def _on_save(self) -> None:
         cfg = SystemConfig(
@@ -602,7 +593,8 @@ class _SystemSections(QObject):
 
     @property
     def scheduler_inputs(self) -> list[QWidget]:
-        return [self._open_t, self._close_t, self._mkt_tz, self._sched_en]
+        return [self._open_t, self._close_t, self._mkt_tz, self._sched_en,
+                *self.sched_table.inputs]
 
     @property
     def telegram_inputs(self) -> list[QWidget]:
@@ -628,6 +620,7 @@ class _SystemSections(QObject):
         self._close_t.setText(cfg.market_close)
         self._mkt_tz.setCurrentText(cfg.market_timezone)
         self._sched_en.setChecked(cfg.scheduler_enabled)
+        self.sched_table.load()
 
     def load_telegram(self) -> None:
         """Fill Telegram fields from the active user and the token store."""
@@ -995,11 +988,34 @@ def _separator() -> QFrame:
     return sep
 
 
-class _DataPanel(QWidget):
-    """SRD-GUI-006.011 / SRD-GUI-027.006 — Candle data section of the Settings dialog.
+def _trading_days_behind(data_to: object, last_day: object) -> int:
+    """Trading days after ``data_to`` up to ``last_day`` (weekdays, NYSE holidays skipped)."""
+    try:
+        day = datetime.date.fromisoformat(str(data_to))
+        end = datetime.date.fromisoformat(str(last_day))
+    except ValueError:
+        return 0
+    behind = 0
+    while day < end:
+        day += datetime.timedelta(days=1)
+        if day.weekday() < 5 and (day.month, day.day) not in NYSE_HOLIDAYS:
+            behind += 1
+    return behind
 
-    Shows download progress, failed stocks, database status and the build,
-    retry and reset actions.
+
+def _plural(n: int, word: str) -> str:
+    return f"{n} {word}" + ("" if n == 1 else "s")
+
+
+def _eta_text(seconds: float) -> str:
+    return "< 1 min left" if seconds < 60 else f"~{round(seconds / 60)} min left"
+
+
+class _DataPanel(QWidget):
+    """SRD-GUI-006.011 / SRD-GUI-027.006 / SRD-GUI-028.001 — Candle data section.
+
+    One summary line with a state pill, a thin bar while downloading, a four-cell
+    stat strip, failed stocks, and the update, open and reset actions (FO-GUI-028).
     """
 
     state_changed = pyqtSignal(str, int)   # downloading | complete | partial | idle, percent
@@ -1010,94 +1026,48 @@ class _DataPanel(QWidget):
         self._db_info = None        # last CandleDbInfo received
         self._downloading = False
         self._total = 0
+        self._started = 0.0
         self.state: tuple[str, int] = ("idle", 0)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        # ── Download group ────────────────────────────────────────────────────
-        self._dl_pill = QLabel("")
-        self._dl_pill.setObjectName("data_pill")
-        self._download_box, dl = _group("DOWNLOAD", self._dl_pill)
-
-        self._pct_lbl = QLabel("0%")
-        self._pct_lbl.setObjectName("data_pct")
-        self._count_lbl = QLabel("")
-        self._count_lbl.setObjectName("details_key")
-        pct_row = QHBoxLayout()
-        pct_row.addWidget(self._pct_lbl)
-        pct_row.addStretch()
-        pct_row.addWidget(self._count_lbl)
+        # ── Summary line, progress and start date (SRD-GUI-028.001–.002) ─────
+        top = QWidget()
+        top_l = QVBoxLayout(top)
+        top_l.setContentsMargins(14, 14, 14, 12)
+        top_l.setSpacing(8)
+        head = QHBoxLayout()
+        self._summary = QLabel("Checking candle data…")
+        self._summary.setObjectName("data_summary")
+        self._summary.setWordWrap(True)
+        self._pill = QLabel("")
+        self._pill.setObjectName("data_pill")
+        self._pill.hide()
+        head.addWidget(self._summary, 1)
+        head.addWidget(self._pill)
+        top_l.addLayout(head)
 
         self._progress_bar = QProgressBar()
         self._progress_bar.setObjectName("data_bar")
         self._progress_bar.setRange(0, 100)
         self._progress_bar.setTextVisible(False)
-        self._progress_bar.setFixedHeight(6)
-
-        self._progress_label = QLabel("")
-        self._progress_label.setObjectName("details_key")
+        self._progress_bar.setFixedHeight(4)
+        self._detail = QLabel("")
+        self._detail.setObjectName("details_key")
         self._fail_count_lbl = QLabel("")
         self._fail_count_lbl.setStyleSheet(f"color: {C.RED};")
-        now_row = QHBoxLayout()
-        now_row.addWidget(self._progress_label)
-        now_row.addStretch()
-        now_row.addWidget(self._fail_count_lbl)
-
-        self._cancel_btn = QPushButton("Cancel")
-        set_icon(self._cancel_btn, "x", "danger")
-        self._cancel_btn.clicked.connect(self._on_cancel)
-
-        dl.addLayout(pct_row)
-        dl.addWidget(self._progress_bar)
-        dl.addLayout(now_row)
-        dl.addWidget(self._cancel_btn)
-        self._download_sep = _separator()
-
-        # ── Failed group (SRD-GUI-006.016) ────────────────────────────────────
-        self._disc_group, fg = _group("FAILED")
-        self._disc_symbols_lbl = QLabel("")
-        self._disc_symbols_lbl.setWordWrap(True)
-        self._fix_btn = QPushButton("Retry Failed")
-        set_icon(self._fix_btn, "refresh-cw", "go")
-        self._fix_btn.setObjectName("run_btn")
-        self._fix_btn.clicked.connect(self._on_fix_discrepancies)
-        fg.addWidget(self._disc_symbols_lbl)
-        fg.addWidget(self._fix_btn)
-        self._disc_sep = _separator()
-        self._disc_failed_symbols: list[str] = []
-
-        # ── Status group ──────────────────────────────────────────────────────
-        status_right = QWidget()
-        sr = QHBoxLayout(status_right)
-        sr.setContentsMargins(0, 0, 0, 0)
-        sr.setSpacing(6)
-        self._badge = QLabel("Checking…")
-        self._badge.setObjectName("data_pill")
-        self._refresh_status_btn = QPushButton()
-        set_icon(self._refresh_status_btn, "refresh-cw", "info")
-        self._refresh_status_btn.setToolTip("Refresh status")
-        self._refresh_status_btn.setAccessibleName("Refresh status")
-        self._refresh_status_btn.setFixedWidth(28)
-        self._refresh_status_btn.clicked.connect(self._on_refresh_status)
-        sr.addWidget(self._badge)
-        sr.addWidget(self._refresh_status_btn)
-        status_box, sg = _group("STATUS", status_right)
-
-        grid = QGridLayout()
-        grid.setHorizontalSpacing(12)
-        grid.setVerticalSpacing(5)
-        self._values: dict[str, QLabel] = {}
-        for row, key in enumerate(("Data to", "Last trading day", "Stocks", "Candles")):
-            name = QLabel(key)
-            name.setObjectName("details_key")
-            value = QLabel("—")
-            value.setAlignment(Qt.AlignmentFlag.AlignRight)
-            grid.addWidget(name, row, 0)
-            grid.addWidget(value, row, 1)
-            self._values[key] = value
-        sg.addLayout(grid)
+        detail_row = QHBoxLayout()
+        detail_row.addWidget(self._detail, 1)
+        detail_row.addWidget(self._fail_count_lbl)
+        self._progress_box = QWidget()
+        progress_l = QVBoxLayout(self._progress_box)
+        progress_l.setContentsMargins(0, 0, 0, 0)
+        progress_l.setSpacing(6)
+        progress_l.addWidget(self._progress_bar)
+        progress_l.addLayout(detail_row)
+        top_l.addWidget(self._progress_box)
 
         # Start date (only shown when the database is EMPTY)
         date_row = QHBoxLayout()
@@ -1114,40 +1084,87 @@ class _DataPanel(QWidget):
         self._start_date_row_widget = QWidget()
         self._start_date_row_widget.setLayout(date_row)
         self._start_date_row_widget.hide()
-        sg.addWidget(self._start_date_row_widget)
+        top_l.addWidget(self._start_date_row_widget)
 
-        # ── Actions ───────────────────────────────────────────────────────────
-        actions, act = _group("ACTIONS")
+        # ── Stat strip (SRD-GUI-028.003) ──────────────────────────────────────
+        strip = QWidget()
+        strip_l = QHBoxLayout(strip)
+        strip_l.setContentsMargins(0, 0, 0, 0)
+        strip_l.setSpacing(0)
+        self._values: dict[str, QLabel] = {}
+        self._notes: dict[str, QLabel] = {}
+        for index, key in enumerate(("Data to", "Last trading day", "Stocks", "Candles")):
+            if index:
+                line = QFrame()
+                line.setObjectName("side_sep")
+                line.setFixedWidth(1)
+                strip_l.addWidget(line)
+            cell = QWidget()
+            cell_l = QVBoxLayout(cell)
+            cell_l.setContentsMargins(14, 10, 14, 10)
+            cell_l.setSpacing(2)
+            name = QLabel(key.upper())
+            name.setObjectName("panel_group")
+            value = QLabel("—")
+            value.setObjectName("data_stat_value")
+            note = QLabel("")
+            note.setObjectName("details_key")
+            cell_l.addWidget(name)
+            cell_l.addWidget(value)
+            cell_l.addWidget(note)
+            strip_l.addWidget(cell, 1)
+            self._values[key] = value
+            self._notes[key] = note
+
+        # ── Failed group (SRD-GUI-006.016) ────────────────────────────────────
+        self._disc_group, fg = _group("FAILED")
+        self._disc_symbols_lbl = QLabel("")
+        self._disc_symbols_lbl.setWordWrap(True)
+        self._fix_btn = QPushButton("Retry Failed")
+        set_icon(self._fix_btn, "refresh-cw", "go")
+        self._fix_btn.setObjectName("run_btn")
+        self._fix_btn.clicked.connect(self._on_fix_discrepancies)
+        fg.addWidget(self._disc_symbols_lbl)
+        fg.addWidget(self._fix_btn)
+        self._disc_sep = _separator()
+        self._disc_failed_symbols: list[str] = []
+
+        # ── Actions (SRD-GUI-028.004) ─────────────────────────────────────────
+        footer = QHBoxLayout()
+        footer.setContentsMargins(14, 12, 14, 12)
+        footer.setSpacing(8)
         self._build_btn = QPushButton("Checking…")
         set_icon(self._build_btn, "refresh-cw", "go")
         self._build_btn.setObjectName("run_btn")
         self._build_btn.setEnabled(False)
         self._build_btn.clicked.connect(self._on_build_clicked)
+        self._cancel_btn = QPushButton("Cancel download")
+        set_icon(self._cancel_btn, "x", "danger")
+        self._cancel_btn.clicked.connect(self._on_cancel)
+        self._cancel_btn.hide()
         self._candle_db_btn = QPushButton("Open Candle DB")
         set_icon(self._candle_db_btn, "database", "info")
         self._candle_db_btn.clicked.connect(self._on_candle_db)
-        act.addWidget(self._build_btn)
-        act.addWidget(self._candle_db_btn)
-
-        self._reset_db_btn = QPushButton("Reset Database")
+        self._reset_db_btn = QPushButton("Reset database…")
+        self._reset_db_btn.setObjectName("link_danger")
         set_icon(self._reset_db_btn, "trash-2", "danger")
-        mark_danger(self._reset_db_btn)
         self._reset_db_btn.setToolTip("Deletes all candles. A full download is needed after.")
         self._reset_db_btn.clicked.connect(self._on_reset_db)
-        reset_row = QVBoxLayout()
-        reset_row.setContentsMargins(12, 12, 12, 12)
-        reset_row.addWidget(self._reset_db_btn)
+        footer.addWidget(self._build_btn)
+        footer.addWidget(self._cancel_btn)
+        footer.addWidget(self._candle_db_btn)
+        footer.addStretch()
+        footer.addWidget(self._reset_db_btn)
 
-        layout.addWidget(self._download_box)
-        layout.addWidget(self._download_sep)
+        layout.addWidget(top)
+        layout.addWidget(_separator())
+        layout.addWidget(strip)
+        layout.addWidget(_separator())
         layout.addWidget(self._disc_group)
         layout.addWidget(self._disc_sep)
-        layout.addWidget(status_box)
-        layout.addWidget(_separator())
-        layout.addWidget(actions)
         layout.addStretch()
         layout.addWidget(_separator())
-        layout.addLayout(reset_row)
+        layout.addLayout(footer)
 
         self._show_download(False)
         self._show_failed(False)
@@ -1174,9 +1191,10 @@ class _DataPanel(QWidget):
     # ── Slots ─────────────────────────────────────────────────────────────────
 
     def _on_refresh_status(self) -> None:
-        self._badge.setText("Checking…")
-        _set_state(self._badge, "")
-        self._build_btn.setEnabled(False)
+        if not self._downloading:   # a running download owns the summary and pill
+            self._summary.setText("Checking candle data…")
+            self._set_pill("", "")
+            self._build_btn.setEnabled(False)
         self._svc.refresh_candle_db_status()
 
     def _on_status_loaded(self, info: object) -> None:
@@ -1185,45 +1203,61 @@ class _DataPanel(QWidget):
             return
         self._db_info = info
 
-        badge = {
-            CandleDbStatus.EMPTY:   ("empty",    "Empty"),
-            CandleDbStatus.PARTIAL: ("partial",  "Partial"),
-            CandleDbStatus.CURRENT: ("complete", "Current"),
-        }
-        state, label = badge[info.status]
-        self._badge.setText(label)
-        _set_state(self._badge, state)
-
         universe = info.universe_size or 0
-        sym = max(info.symbols_1d, info.symbols_1w)
-        self._values["Data to"].setText(str(info.last_candle_date or "—"))
-        self._values["Last trading day"].setText(str(info.last_trading_day))
-        self._values["Stocks"].setText(f"{sym} / {universe}")
-        self._values["Candles"].setText(f"{info.total_1d + info.total_1w:,}")
+        stored = max(info.symbols_1d, info.symbols_1w)
+        shown = min(stored, universe) if universe else stored
+        empty = info.status == CandleDbStatus.EMPTY
+        behind = 0 if empty else _trading_days_behind(info.last_candle_date,
+                                                      info.last_trading_day)
+        data_note = "" if empty else (
+            "up to date" if behind == 0 else f"{_plural(behind, 'day')} behind")
+        self._set_stat("Data to", str(info.last_candle_date or "—"), data_note,
+                       warn=behind > 0)
+        try:
+            weekday = datetime.date.fromisoformat(str(info.last_trading_day)).strftime("%A")
+        except ValueError:
+            weekday = ""
+        self._set_stat("Last trading day", str(info.last_trading_day), weekday)
+        if stored > universe > 0:
+            stock_note = f"+{stored - universe} left the index"
+        elif universe > stored:
+            stock_note = f"{universe - stored} missing"
+        else:
+            stock_note = "all stocks" if universe else ""
+        self._set_stat("Stocks", f"{shown} / {universe}" if universe else str(stored),
+                       stock_note, warn=universe > stored and not empty)
+        self._set_stat("Candles", f"{info.total_1d:,}", "daily bars")
         self._values["Candles"].setToolTip(
             f"{info.total_1d:,} daily · {info.total_1w:,} weekly"
         )
 
         if self._downloading:
-            return   # don't change button state mid-download
+            return   # the download owns the summary and buttons
 
-        if info.status == CandleDbStatus.EMPTY:
-            self._build_btn.setText("Build Full Database")
+        if empty:
+            summary, pill, state = "No candle data yet", "EMPTY", "empty"
+        elif info.status == CandleDbStatus.CURRENT:
+            summary, pill, state = f"Up to date · {shown} stocks", "UP TO DATE", "complete"
+        elif behind:
+            summary = f"{_plural(behind, 'trading day')} behind"
+            pill, state = f"{_plural(behind, 'DAY')} BEHIND", "partial"
+        else:
+            summary, pill, state = "Some stocks are missing", "PARTIAL", "partial"
+        self._summary.setText(summary)
+        self._set_pill(pill, state)
+
+        if empty:
+            self._build_btn.setText("Build database")
             set_icon(self._build_btn, "download", "go")
             self._build_btn.setEnabled(True)
             self._build_btn.setObjectName("run_btn")
             self._start_date_row_widget.show()
-        elif info.status == CandleDbStatus.PARTIAL:
-            self._build_btn.setText("Fill Delta")
+        else:
+            current = info.status == CandleDbStatus.CURRENT
+            self._build_btn.setText("Update now")
             set_icon(self._build_btn, "refresh-cw", "go")
-            self._build_btn.setEnabled(True)
-            self._build_btn.setObjectName("run_btn")
-            self._start_date_row_widget.hide()
-        else:  # CURRENT
-            self._build_btn.setText("Database Current")
-            set_icon(self._build_btn, "check", "add")
-            self._build_btn.setEnabled(False)
-            self._build_btn.setObjectName("")
+            self._build_btn.setEnabled(not current)
+            self._build_btn.setObjectName("" if current else "run_btn")
             self._start_date_row_widget.hide()
 
         # Force QSS re-evaluation after objectName change
@@ -1266,24 +1300,25 @@ class _DataPanel(QWidget):
 
     def _on_cancel(self) -> None:
         self._svc.stop_candle_download()
-        self._progress_label.setText("Cancelling…")
+        self._detail.setText("Cancelling…")
         self._cancel_btn.setEnabled(False)
 
     def _on_progress(self, symbol: str, done: int, total: int) -> None:
         self._total = total
         pct = int(done / total * 100) if total > 0 else 0
         self._progress_bar.setValue(pct)
-        self._pct_lbl.setText(f"{pct}%")
-        self._count_lbl.setText(f"{done} / {total} stocks")
-        self._progress_label.setText(f"Now: {symbol}")
+        self._summary.setText(f"Updating {done} of {total} stocks")
+        parts = [f"{pct}%", symbol]
+        if done >= 3 and self._started:
+            elapsed = time.monotonic() - self._started
+            parts.append(_eta_text(elapsed / done * (total - done)))
+        self._detail.setText(" · ".join(parts))
         self._emit_state("downloading", pct)
 
     def _on_finished(self, inserted_1d: int, inserted_1w: int) -> None:
         self._set_downloading(False)
-        self._progress_label.setText(
-            f"Finished {datetime.datetime.now():%H:%M}"
-        )
-        self._progress_label.setToolTip(
+        self._detail.setText(f"Finished {datetime.datetime.now():%H:%M}")
+        self._detail.setToolTip(
             f"{inserted_1d:,} daily · {inserted_1w:,} weekly bars added"
         )
         self._show_result(len(self._disc_failed_symbols))
@@ -1292,16 +1327,18 @@ class _DataPanel(QWidget):
 
     def _on_failed(self, reason: str) -> None:
         self._set_downloading(False)
-        self._progress_label.setText("Failed")
-        self._progress_label.setToolTip(reason)
-        self._set_result("partial", "Failed")
+        self._summary.setText("Download failed")
+        self._detail.setText("Failed")
+        self._detail.setToolTip(reason)
+        self._set_result("partial", "FAILED")
         self._apply_checkpoint_state()
 
     def _on_paused(self, reason: str) -> None:
         """Called when IBKR disconnects mid-download (SRD-GUI-006.014)."""
         self._set_downloading(False)
-        self._progress_label.setText("IBKR disconnected")
-        self._set_result("partial", "Paused")
+        self._summary.setText("Download paused")
+        self._detail.setText("IBKR disconnected")
+        self._set_result("partial", "PAUSED")
         self._apply_checkpoint_state()
 
     def _on_symbol_failed(self, symbol: str, reason: str) -> None:
@@ -1319,7 +1356,7 @@ class _DataPanel(QWidget):
         else:
             self._show_failed(False)
             self._svc.clear_failed_symbols()
-        if not self._download_box.isHidden() and not self._downloading:
+        if not self._progress_box.isHidden() and not self._downloading:
             self._show_result(len(failed))
 
     def _on_fix_discrepancies(self) -> None:
@@ -1353,19 +1390,19 @@ class _DataPanel(QWidget):
         _CandleDbDiagDialog(self._svc, self.window()).exec()
 
     def _on_reset_db(self) -> None:
-        """Confirm and clear the daily and weekly candle tables."""
-        reply = QMessageBox.warning(
-            self,
-            "Reset Candle Database",
-            "This will permanently delete all daily and weekly candles "
-            "and cannot be undone.\n\n"
-            "A full re-download from IBKR will be required afterwards. "
-            "Your trades, cycles and strategies are kept.\n\n"
-            "Are you sure you want to reset the database?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
-            QMessageBox.StandardButton.Cancel,
+        """Confirm and clear the daily and weekly candle tables (SRD-GUI-028.005)."""
+        # Imported here: the module pulls in the execution package, which must not load
+        # before the app has set up the database modules.
+        from us_swing.gui.active_cycles_panel import _ConfirmDialog
+
+        dialog = _ConfirmDialog(
+            "RESET CANDLE DATABASE",
+            "Reset the candle database?\n"
+            "Deletes all stored candles. The next update downloads everything again. "
+            "Your trades, cycles and strategies are kept.",
+            confirm_text="Reset", accent=C.RED, parent=self,
         )
-        if reply != QMessageBox.StandardButton.Yes:
+        if dialog.exec() != QDialog.DialogCode.Accepted:
             return
 
         self._reset_db_btn.setEnabled(False)
@@ -1389,7 +1426,7 @@ class _DataPanel(QWidget):
             )
         finally:
             self._reset_db_btn.setEnabled(True)
-            self._reset_db_btn.setText("Reset Database")
+            self._reset_db_btn.setText("Reset database…")
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -1398,18 +1435,26 @@ class _DataPanel(QWidget):
         self.state_changed.emit(state, percent)
 
     def _show_download(self, visible: bool) -> None:
-        self._download_box.setVisible(visible)
-        self._download_sep.setVisible(visible)
+        self._progress_box.setVisible(visible)
+
+    def _set_pill(self, text: str, state: str) -> None:
+        self._pill.setText(text)
+        self._pill.setVisible(bool(text))
+        _set_state(self._pill, state)
+
+    def _set_stat(self, key: str, value: str, note: str, warn: bool = False) -> None:
+        self._values[key].setText(value)
+        self._notes[key].setText(note)
+        self._notes[key].setStyleSheet(f"color: {C.YELLOW};" if warn else "")
 
     def _show_failed(self, visible: bool) -> None:
         self._disc_group.setVisible(visible)
         self._disc_sep.setVisible(visible)
 
     def _set_result(self, state: str, label: str) -> None:
-        """Colour the download group for ``state`` and tell the strip."""
-        self._dl_pill.setText(label)
-        for widget in (self._dl_pill, self._pct_lbl, self._progress_bar):
-            _set_state(widget, state)
+        """Colour the pill and bar for ``state`` and tell the strip."""
+        self._set_pill(label, state)
+        _set_state(self._progress_bar, state)
         self._emit_state(state, self._progress_bar.value())
 
     def _show_result(self, failed: int) -> None:
@@ -1418,14 +1463,14 @@ class _DataPanel(QWidget):
         done = max(total - failed, 0)
         pct = int(done / total * 100) if total and failed else 100
         self._progress_bar.setValue(pct)
-        self._pct_lbl.setText(f"{pct}%")
-        if total:
-            self._count_lbl.setText(f"{done} / {total} stocks")
         self._fail_count_lbl.setText(f"{failed} failed" if failed else "")
         if failed:
-            self._set_result("partial", "Partial")
+            self._summary.setText(f"Download finished · {done} of {total} stocks")
+            self._set_result("partial", "PARTIAL")
         else:
-            self._set_result("complete", "Complete")
+            self._summary.setText(f"Download complete · {total} stocks" if total
+                                  else "Download complete")
+            self._set_result("complete", "COMPLETE")
 
     def _show_discrepancies(self, symbols: list[str]) -> None:
         """Populate and show the failed group."""
@@ -1449,7 +1494,7 @@ class _DataPanel(QWidget):
         if self._downloading:
             return
         if self._svc.has_candle_checkpoint():
-            self._build_btn.setText("Resume Download")
+            self._build_btn.setText("Resume download")
             set_icon(self._build_btn, "play", "go")
             self._build_btn.setEnabled(True)
             self._start_date_row_widget.hide()
@@ -1460,24 +1505,22 @@ class _DataPanel(QWidget):
     def _set_downloading(self, active: bool) -> None:
         self._downloading = active
         self._build_btn.setEnabled(not active)
-        self._refresh_status_btn.setEnabled(not active)
+        self._build_btn.setVisible(not active)
         self._reset_db_btn.setEnabled(not active)
         self._cancel_btn.setVisible(active)
         if active:
-            self._build_btn.setText("Downloading…")
+            self._started = time.monotonic()
             self._progress_bar.setValue(0)
-            self._pct_lbl.setText("0%")
-            self._count_lbl.setText("")
-            self._progress_label.setText("Starting…")
-            self._progress_label.setToolTip("")
+            self._summary.setText("Starting download…")
+            self._detail.setText("Starting…")
+            self._detail.setToolTip("")
             self._fail_count_lbl.setText("")
             self._cancel_btn.setEnabled(True)
             self._show_download(True)
             # Hide failed group while downloading; reset live counter
             self._show_failed(False)
             self._disc_failed_symbols = []
-            self._set_result("downloading", "Downloading")
-
+            self._set_result("downloading", "DOWNLOADING")
 
 # ── Settings Panel ────────────────────────────────────────────────────────────
 
@@ -1499,6 +1542,8 @@ def _changed_signal(widget: QWidget) -> pyqtBoundSignal:
         return widget.valueChanged
     if isinstance(widget, QComboBox):
         return widget.currentTextChanged
+    if isinstance(widget, QTimeEdit):
+        return widget.timeChanged
     assert isinstance(widget, QAbstractButton)
     return widget.toggled
 
@@ -1529,7 +1574,8 @@ class SettingsPanel(QWidget):
                               lambda: risk.load(RiskConfig())),
             "Connection": _Editable(sys_.connection_inputs, sys_._on_save, sys_.load_connection,
                                     lambda: sys_.load_connection(SystemConfig())),
-            "Scheduler": _Editable(sys_.scheduler_inputs, sys_._on_save, sys_.load_scheduler,
+            "Scheduler": _Editable(sys_.scheduler_inputs, sys_._on_save_scheduler,
+                                   sys_.load_scheduler,
                                    lambda: sys_.load_scheduler(SystemConfig())),
             "Telegram": _Editable(sys_.telegram_inputs, sys_._on_save_telegram,
                                   sys_.load_telegram, None),
@@ -1538,6 +1584,8 @@ class SettingsPanel(QWidget):
         }
         self._dirty: set[str] = set()
         self._loading = False
+        # table → repair_needed → Scheduler marked changed, so Apply re-creates missing tasks
+        sys_.sched_table.repair_needed.connect(lambda: self._mark_dirty("Scheduler"))
         for name, editable in self._editable.items():
             for widget in editable.inputs:
                 _changed_signal(widget).connect(lambda *_a, n=name: self._mark_dirty(n))
