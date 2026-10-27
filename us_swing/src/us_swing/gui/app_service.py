@@ -1017,6 +1017,7 @@ _DEFAULT_PAPER_EQUITY: float = 100_000.0
 _MAX_TICK_SUBS: int = 95  # leave headroom below IBKR's ~100-line L1 limit
 _TICK_WATCHDOG_MS: int = 30_000   # how often the tick worker is checked for a silent death
 _TICK_STALE_S: float   = 90.0     # quiet period that earns a log warning while the market is open
+_TICK_REFRESH_MS: int  = 250      # tick-driven view refreshes go out at most this often (SRD-GUI-000.008)
 
 
 def _make_stk_contract(symbol: str) -> Any:
@@ -1215,6 +1216,12 @@ class AppService(QObject):
         self._tick_watchdog = QTimer(self)
         self._tick_watchdog.setInterval(_TICK_WATCHDOG_MS)
         self._tick_watchdog.timeout.connect(self._check_tick_health)
+        # Ticks only mark view signals dirty; one flush per interval keeps the GUI thread free.
+        self._tick_dirty: dict[str, None] = {}
+        self._tick_flush = QTimer(self)
+        self._tick_flush.setSingleShot(True)
+        self._tick_flush.setInterval(_TICK_REFRESH_MS)
+        self._tick_flush.timeout.connect(self._flush_tick_refresh)
         self._sp500_cache: set[str] = set()   # S&P 500 symbols, populated lazily
         self._cycle_symbols: frozenset[str] = frozenset()  # symbols of open trade cycles
         self._pending_exit_reason: str = "manual"          # reason carried into the next exit fill
@@ -3055,6 +3062,8 @@ class AppService(QObject):
         """Cleanly disconnect from the data feed."""
         self._acct_timer.stop()
         self._tick_watchdog.stop()
+        self._tick_flush.stop()
+        self._tick_dirty.clear()
         # Stop live tick worker
         tw = self._tick_worker
         if tw is not None:
@@ -3457,12 +3466,24 @@ class AppService(QObject):
                 if prev:
                     item.change = price - prev
                     item.change_pct = item.change / prev * 100
-                self.market_watch_updated.emit()
+                self._queue_tick_refresh("market_watch_updated")
                 return
         if _apply_tick(self._watchlist, tag, price):
-            self.watchlist_updated.emit()
+            self._queue_tick_refresh("watchlist_updated")
         if _apply_tick(self._market_list, tag, price):
-            self.market_list_updated.emit()
+            self._queue_tick_refresh("market_list_updated")
+
+    def _queue_tick_refresh(self, signal_name: str) -> None:
+        """Mark a view signal for the next tick flush instead of emitting it per tick."""
+        self._tick_dirty[signal_name] = None
+        if not self._tick_flush.isActive():
+            self._tick_flush.start()
+
+    def _flush_tick_refresh(self) -> None:
+        """Emit each view signal dirtied by ticks since the last flush, once."""
+        dirty, self._tick_dirty = self._tick_dirty, {}
+        for signal_name in dirty:
+            getattr(self, signal_name).emit()
 
     def _on_cycle_symbols_changed(self, symbols: frozenset[str]) -> None:
         """Open trade-cycle symbols changed — re-sync tick subscriptions.
@@ -3579,7 +3600,7 @@ class AppService(QObject):
         for pos in self._ibkr_positions:
             if pos.symbol == tag:
                 pos.current_price = price
-                self.positions_updated.emit()
+                self._queue_tick_refresh("positions_updated")
                 return
 
     def _on_tick_sub_failed(self, tag: str, code: int) -> None:

@@ -13,7 +13,9 @@ from typing import Any
 from unittest.mock import MagicMock, patch, call
 
 import pytest
-from PyQt6.QtCore import QObject
+from PyQt6.QtCore import QObject, QTimer
+
+from us_swing.gui import app_service
 
 from us_swing.data.models import (
     OpenPosition,
@@ -232,6 +234,7 @@ class TestMarketWatchTick:
         svc.market_watch_updated.connect(lambda: emitted.append(True))
 
         svc._on_watchlist_tick("SPY", 510.0)
+        svc._flush_tick_refresh()
 
         assert item.ltp == 510.0
         assert item.change_pct == pytest.approx((510.0 - 500.0) / 500.0 * 100, rel=1e-3)
@@ -246,6 +249,7 @@ class TestMarketWatchTick:
         svc.market_watch_updated.connect(lambda: emitted.append(True))
 
         svc._on_watchlist_tick("SPY", 510.0)
+        svc._flush_tick_refresh()
 
         assert item.ltp == 510.0
         assert item.change_pct == 0.0, "change must stay at its default without a prev_close"
@@ -259,6 +263,7 @@ class TestMarketWatchTick:
         svc.market_watch_updated.connect(lambda: emitted.append(True))
 
         svc._on_watchlist_tick("UNKNOWN_TAG", 100.0)
+        svc._flush_tick_refresh()
 
         assert emitted == []
 
@@ -276,6 +281,7 @@ class TestWatchlistTick:
         svc.watchlist_updated.connect(lambda: emitted.append(True))
 
         svc._on_watchlist_tick("AAPL", 180.0)
+        svc._flush_tick_refresh()
 
         assert item.ltp == 180.0
         assert item.change == pytest.approx(5.0)
@@ -314,6 +320,7 @@ class TestPositionTick:
         svc.positions_updated.connect(lambda: emitted.append(True))
 
         svc._on_position_tick("AAPL", 185.0)
+        svc._flush_tick_refresh()
 
         assert pos.current_price == 185.0
         assert emitted
@@ -325,8 +332,51 @@ class TestPositionTick:
         svc.positions_updated.connect(lambda: emitted.append(True))
 
         svc._on_position_tick("AAPL", 185.0)
+        svc._flush_tick_refresh()
 
         assert not emitted
+
+
+# ---------------------------------------------------------------------------
+# SRD-GUI-000.008 — Tick refresh batching
+# ---------------------------------------------------------------------------
+
+class TestTickBatching:
+    def test_ticks_coalesce_into_one_refresh(self, svc, qtbot):
+        """UT-GUI-000.008.M03.T01: many ticks in one interval give one refresh per view."""
+        svc._tick_flush = QTimer(svc)  # the fixture mocks QTimer; this flush must really fire
+        svc._tick_flush.setSingleShot(True)
+        svc._tick_flush.setInterval(app_service._TICK_REFRESH_MS)
+        svc._tick_flush.timeout.connect(svc._flush_tick_refresh)
+        svc._ibkr_positions = [_make_open_position("AAPL", current_price=180.0)]
+        svc._watchlist = [WatchlistItem(symbol="AAPL", prev_close=175.0)]
+        emitted: list[str] = []
+        svc.positions_updated.connect(lambda: emitted.append("positions"))
+        svc.watchlist_updated.connect(lambda: emitted.append("watchlist"))
+
+        for price in (181.0, 182.0, 183.0):
+            svc._on_watchlist_tick("AAPL", price)
+            svc._on_position_tick("AAPL", price)
+
+        assert emitted == []
+        with qtbot.waitSignal(svc.positions_updated, timeout=2000):
+            pass
+        assert emitted == ["watchlist", "positions"]
+        assert svc._ibkr_positions[0].current_price == 183.0
+
+        svc._on_position_tick("AAPL", 184.0)
+        svc.disconnect_feed()   # a pending tick refresh is dropped, not emitted late
+        assert not svc._tick_flush.isActive() and svc._tick_dirty == {}
+
+    def test_refresh_interval_is_250_ms(self, svc):
+        """UT-GUI-000.008.M03.T02: tick refreshes go out at most every 250 ms, once per burst."""
+        svc._queue_tick_refresh("positions_updated")
+        svc._queue_tick_refresh("positions_updated")
+
+        assert app_service._TICK_REFRESH_MS == 250
+        svc._tick_flush.setInterval.assert_any_call(250)
+        svc._tick_flush.setSingleShot.assert_any_call(True)
+        assert list(svc._tick_dirty) == ["positions_updated"]
 
 
 # ---------------------------------------------------------------------------

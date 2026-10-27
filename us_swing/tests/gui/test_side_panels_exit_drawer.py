@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import datetime
+from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 import pytest
 from PyQt6.QtCore import QObject, pyqtSignal
@@ -9,7 +11,7 @@ from PyQt6.QtWidgets import QTableWidget
 
 from us_swing.gui._types import OpenPosition
 from us_swing.gui.dashboard_panel import _ExitForm, _SquareOffForm
-from us_swing.gui.main_window import _MiniState
+from us_swing.gui.main_window import MainWindow, _MiniState
 from us_swing.gui.side_panels import IconStrip, PositionDetails
 
 
@@ -160,3 +162,27 @@ def test_right_panel_shrinks_sidebar():
     assert state.want_mini()
     state.panel_open = False
     assert not state.want_mini()
+
+
+@pytest.mark.parametrize("name", ["details", "watch"])
+def test_sidebar_shrinks_before_right_panel_opens(name):
+    """UT-GUI-019.009.M03.T01: A right panel click shrinks the sidebar before the panel slides in."""
+    order: list[str] = []
+    stub = SimpleNamespace(
+        _mini_state=_MiniState(user_mini=False), _right_name="", _right_stack=MagicMock(),
+        _strip=MagicMock(), _reveal=MagicMock(),
+    )
+    stub._apply_sidebar_mode = lambda: order.append(f"sidebar mini={stub._mini_state.want_mini()}")
+    stub._reveal.reveal_requested.emit.side_effect = lambda n, on: order.append(f"{n} {on}")
+    MainWindow._on_panel_toggled(stub, name, True)  # type: ignore[arg-type]
+    assert order == ["sidebar mini=True", "right True"]
+
+
+def test_sidebar_stays_mini_while_right_panel_open():
+    """UT-GUI-019.009.M03.T02: Expanding the sidebar while a right panel is open keeps it mini."""
+    state = _MiniState(user_mini=True)
+    state.panel_open = True
+    state.set_user_mini(False)
+    assert state.want_mini()
+    state.set_page(0)
+    assert state.want_mini()

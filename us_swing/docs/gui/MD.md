@@ -7,6 +7,8 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.33.0: MD-GUI-019.009.M03 added (SRD-GUI-019.009) — `main_window.py` shrinks the sidebar on the right panel click.
+> v1.32.0: MD-GUI-000.008.M01–M03 added (SRD-GUI-000.008) — theme id cached, hidden source list, tick refresh batching.
 > v1.31.0: MD-GUI-000.007.M01 (quiet_platform.py) added (SRD-GUI-000.007).
 > v1.30.0: MD-GUI-026.002.M02 adds `pick_default()`, `user_chose`, drops the remembered tab; MD-GUI-026.001.M01 auto-opens on show (SRD-GUI-026.013).
 > v1.29.0: MD-GUI-025.019.M05 extended for the Market Watch tile list; AppService and `_WatchlistTab` extended (SRD-GUI-025.020).
@@ -217,6 +219,7 @@ us_swing/src/us_swing/gui/
 | MD-GUI-019.001.M01 | SRD-GUI-019.001 | `us_swing/src/us_swing/gui/side_panels.py` | Icon strip and Position Details panel | `IconStrip`, `PositionDetails` | `icons`, `theme`, `AppService` | No |
 | MD-GUI-019.006.M02 | SRD-GUI-019.006 | `us_swing/src/us_swing/gui/dashboard_panel.py` | Exit drawer, exit and square-off forms, apply exit | `DashboardPanel.open_exit()`, `position_selected`, `watchlist_widget` | `AppService` | No |
 | MD-GUI-019.002.M03 | SRD-GUI-019.002 | `us_swing/src/us_swing/gui/main_window.py` | Panel layout and wiring | `MainWindow` | `side_panels`, `reveal`, `log_viewer_panel` | No |
+| MD-GUI-019.009.M03 | SRD-GUI-019.009 | `us_swing/src/us_swing/gui/main_window.py` | Sidebar mini on right panel click | `MainWindow._on_panel_toggled`, `_MiniState` | `reveal` | No |
 
 ## FO-GUI-020 — Charts Workspace
 
@@ -272,6 +275,9 @@ us_swing/src/us_swing/gui/
 | MD-GUI-025.013.M03 | SRD-GUI-025.013 | `us_swing/src/us_swing/gui/performance_band.py` | Equity band and chart; exposure bars, totals and chart | `PerformanceBand`, `EquityChart`, `change_text()`, `ExposureView`, `ExposureChart`, `exposure_bars()`, `market_value()`, `RANGES`, `MAX_BARS` | strategy_pnl_chart (`money`, `nice_ticks`), screener_views (`ChipGroup`), PyQt6 | No |
 | MD-GUI-025.019.M05 | SRD-GUI-025.019 | `us_swing/src/us_swing/gui/watchlist_store.py` | Per-user saved lists (watchlist, Market Watch tile), one file each, atomic write; `AppService` loads both at start and saves on add and remove | `load_watchlist()`, `save_watchlist()` | json, os, logging | No | Implemented |
 | MD-GUI-000.007.M01 | SRD-GUI-000.007 | `us_swing/src/us_swing/gui/quiet_platform.py` | Replaces `platform._syscmd_ver` with a `sys.getwindowsversion()` answer; called from `run_gui.py` and `pyi_rth_quiet_platform.py` | `install()` | platform, sys | No | Implemented |
+| MD-GUI-000.008.M01 | SRD-GUI-000.008 | `us_swing/src/us_swing/gui/theme.py` | Theme id read from disk once and kept in memory; `save_theme_id` updates it | `load_theme_id()`, `save_theme_id()` | pathlib | No | Implemented |
+| MD-GUI-000.008.M02 | SRD-GUI-000.008 | `us_swing/src/us_swing/gui/chart_source_list.py` | `SourceList` skips tick refreshes while hidden and catches up in `showEvent` | `_refresh_if()`, `showEvent()` | AppService | No | Implemented |
+| MD-GUI-000.008.M03 | SRD-GUI-000.008 | `us_swing/src/us_swing/gui/app_service.py` | Tick slots mark view signals dirty; a 250 ms single-shot timer emits each once | `_queue_tick_refresh()`, `_flush_tick_refresh()` | QTimer | No | Implemented |
 
 ## FO-GUI-026 — Charts Workspace (Focus + Inspector)
 

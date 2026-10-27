@@ -669,6 +669,8 @@ class MainWindow(QMainWindow):
             self._right_stack.setCurrentIndex(_RIGHT_PANELS.index(name))
             for other in _RIGHT_PANELS:
                 self._strip.set_checked(other, other == name)
+            self._mini_state.panel_open = True
+            self._apply_sidebar_mode()
             self._reveal.reveal_requested.emit("right", True)
         elif name == self._right_name:
             self._reveal.reveal_requested.emit("right", False)

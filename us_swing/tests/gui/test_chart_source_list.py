@@ -83,11 +83,27 @@ def test_click_emits_and_refresh_on_signal(qtbot):
     svc = _Svc(watch=[_watch("NVDA")])
     widget = SourceList(svc)  # type: ignore[arg-type]
     qtbot.addWidget(widget)
+    widget.show()
     with qtbot.waitSignal(widget.symbol_selected) as blocker:
         widget._on_item(widget.list.item(0))
     assert blocker.args == ["NVDA"]
     svc.watch.append(_watch("AMD"))
     svc.watchlist_updated.emit()
+    assert widget.visible_symbols() == ["NVDA", "AMD"]
+
+
+def test_hidden_list_waits_for_show(qtbot):
+    """UT-GUI-000.008.M02.T01: A hidden list skips tick rebuilds and catches up when shown."""
+    svc = _Svc(watch=[_watch("NVDA")])
+    widget = SourceList(svc)  # type: ignore[arg-type]
+    qtbot.addWidget(widget)
+    first_item = widget.list.item(0)
+    svc.watch.append(_watch("AMD"))
+
+    svc.watchlist_updated.emit()
+
+    assert widget.list.item(0) is first_item and widget.visible_symbols() == ["NVDA"]
+    widget.show()
     assert widget.visible_symbols() == ["NVDA", "AMD"]
 
 

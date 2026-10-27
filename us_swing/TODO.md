@@ -64,5 +64,7 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T52 | Settings dialog (FO-GUI-027, RN-GUI-1.32.0): built on feat/gui-settings-dialog (3 commits, not pushed). Updates moved to sidebar popup (RN-GUI-1.33.0). User app check pending, then push / PR when asked. | `gui/settings_dialog.py`, `gui/sidebar.py` | Medium | Open |
 | T53 | GUI — watchlist persists (SRD-GUI-025.019, ISS-GUI-0006). Merged via PR #86. | `gui/watchlist_store.py` | Medium | Done |
 | T54 | GUI — Market Watch tile and watchlist ticks are not trimmed by the 95-subscription cap (only positions are); a long tile list can go over it. Features merged via PR #87. | `gui/app_service.py` | Low | Open |
-| T55 | Release — rebuild installer so the console-flash fix (ISS-GUI-0008) ships; then publish the next version. | `usswing_installer.yaml` | Medium | Open |
+| T55 | Release — rebuild installer so the console-flash fix (ISS-GUI-0008) ships; then publish the next version. | `usswing_installer.yaml` | Medium | Done — v1.6.1 released 2026-10-27; user to confirm no flash |
 | T56 | IBKR reported no market data permission for all 9 stocks on 26 Oct — user to check TWS subscription; until fixed, live candles come from Yahoo (ISS-EXE-0013). | `execution/live_bar_worker.py` | High | Open |
+| T57 | Re-profile the freeze fix (ISS-GUI-0009) with py-spy during market hours; installed app must be closed first to avoid two engines. | `gui/app_service.py` | High | Open |
+| T58 | GUI — KPI strip minimum width is its full text width; very long values could still push the maximized window past the screen with a right panel open (ISS-GUI-0010 note). | `gui/dashboard_tiles.py` | Low | Open |
