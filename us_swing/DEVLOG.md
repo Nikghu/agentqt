@@ -2,6 +2,15 @@
 
 ---
 
+## [20261027] EXE — Flat 15m candles from the Yahoo live path (ISS-EXE-0013, SRD-EXE-007.010)
+
+- Type: Bugfix
+- FO(s): FO-EXE-007
+- RN: RN-EXE-1.37.1-20261027
+- Artifacts updated: SRD, MD, UTCD, TRACE, ISS, Code, Tests, RN, CONTEXT, DEVLOG, TODO
+- Decisions: user approved all 4 items — Yahoo 15m saved only when closed, first partial IBKR window dropped, tests, delete flat rows after backup. Same branch as the console-flash fix.
+- Findings: code unchanged since September; 26 Oct was the first full day on Yahoo (IBKR: no market data permission for 9 of 9). Saved `price_15m` rows win over 1m-built candles, so strategy 15m indicators also read flat candles that day. 217 rows deleted; all had 1m cover.
+
 ## [20261027] GUI — No console window flash at start (ISS-GUI-0008, SRD-GUI-000.007)
 
 - Type: Bugfix

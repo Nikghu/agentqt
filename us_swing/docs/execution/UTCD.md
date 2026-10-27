@@ -4,9 +4,10 @@
 **Version:** 1.16.0
 **Traces To:** MD-EXE v1.15.0
 **Status:** Draft
-**Last Updated:** 2026-09-17
+**Last Updated:** 2026-10-27
 **Project:** US Swing Trading System
 
+> v1.20.0: UT-EXE-007.001.M01.T27–T29 added (complete candles only, ISS-EXE-0013).
 > v1.19.0: UT-EXE-017.027.M14.T01–T03 added (paper account state).
 > v1.18.0: UT-EXE-020.007–.008 added (6 tests, equity curve).
 > v1.17.0: UT-EXE-020.* added (17 tests, FO-EXE-020 Account Equity Snapshots).
@@ -248,6 +249,14 @@
 | UT-EXE-007.001.M01.T24 | MD-EXE-007.001.M01 | Integration | `price_3m` table created by `create_schema(checkfirst=True)` without error; existing `price_1m` unaffected | In-memory SQLite engine with pre-existing `price_1m` rows; call `create_schema(engine)` | `price_3m` table exists and accepts INSERT; `price_1m` row count unchanged | Draft |
 | UT-EXE-007.001.M01.T25 | MD-EXE-007.001.M01 | Integration | After `candle_closed` persists a 3m bar, `get_readiness_report` returns `candles_3m` = prior count + 1 | `price_3m` has 391 rows for `'AAPL'`; `_close_bar()` inserts 1 more row (new window) | `get_readiness_report(['AAPL']).candles_3m == 392` | Draft |
 | UT-EXE-007.001.M01.T26 | MD-EXE-007.001.M01 | Integration | `get_readiness_report` `candles_3m` reads from `price_3m` not `price_1m` | `price_1m` has 0 rows for `'AAPL'`; `price_3m` has 400 rows for `'AAPL'` | `get_readiness_report(['AAPL']).candles_3m == 400` (not 0) | Draft |
+
+### Complete candles only (SRD-EXE-007.010)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-007.001.M01.T27 | MD-EXE-007.001.M01 | Negative | A Yahoo 15m bar still forming is not saved | One closed and one forming 15m bar | Only the closed bar is in `price_15m` | Pass |
+| UT-EXE-007.001.M01.T28 | MD-EXE-007.001.M01 | Negative | The first IBKR window after a mid-window start is not saved | Feed starts 8 min into a 15m window | No candle passed on for saving | Pass |
+| UT-EXE-007.001.M01.T29 | MD-EXE-007.001.M01 | Positive | Windows starting at or after the first bar are saved | Start on a boundary; start mid-window then two closes | One candle saved in each case | Pass |
 
 ---
 

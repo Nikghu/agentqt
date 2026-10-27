@@ -7,7 +7,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import sqlite3
-from datetime import datetime, time as _dtime, timezone
+from datetime import datetime, time as _dtime, timedelta, timezone
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -23,6 +23,7 @@ _YFINANCE_POLL_SECS: int = 60
 _CONNECT_TIMEOUT: int = 10
 _ET = ZoneInfo("America/New_York")
 _LIVE_TIMEFRAMES: tuple[str, ...] = ("3m", "15m")
+_TF_LENGTH: dict[str, timedelta] = {"3m": timedelta(minutes=3), "15m": timedelta(minutes=15)}
 _RTH_OPEN  = _dtime(9, 30)
 _RTH_CLOSE = _dtime(16, 0)
 _SUB_BATCH_SIZE: int = 10        # pause after every N subscriptions
@@ -93,6 +94,7 @@ class LiveBarWorker(QThread):
         self._subscribed: set[str] = set()
         self._tick_subs: dict[str, Any] = {}
         self._reqid_to_symbol: dict[int, str] = {}
+        self._first_bar_dt: dict[str, datetime] = {}
 
     # ── QThread entry point ────────────────────────────────────────────────────
 
@@ -159,6 +161,7 @@ class LiveBarWorker(QThread):
                     if _rid is not None:
                         self._reqid_to_symbol.pop(_rid, None)
                 self._subscribed.discard(symbol)
+                self._first_bar_dt.pop(symbol, None)
                 builder.reset(symbol)
             except Exception as exc:
                 log.warning("[Live] Could not cancel subscription for %s: %s", symbol, exc)
@@ -266,6 +269,7 @@ class LiveBarWorker(QThread):
             for sym in list(self._subscribed):
                 builder.reset(sym)
             self._subscribed.clear()
+            self._first_bar_dt.clear()
             self._tick_subs.clear()
             self._reqid_to_symbol.clear()
             self._builder = None
@@ -293,6 +297,7 @@ class LiveBarWorker(QThread):
                 dt = _ensure_utc(bar.time)
                 if not _is_rth(dt):
                     return
+                self._first_bar_dt.setdefault(symbol, dt)
                 volume = int(bar.volume) if bar.volume is not None else 0
                 if volume <= 0:
                     return
@@ -310,6 +315,11 @@ class LiveBarWorker(QThread):
         return _handler
 
     def _on_candle_closed(self, symbol: str, tf: str, bar: OHLCVBar) -> None:
+        first = self._first_bar_dt.get(symbol)
+        if first is not None and bar.datetime < first:
+            # Window began before the feed started — partial candle (SRD-EXE-007.010).
+            log.debug("[Live] %s — first %s candle after start is partial, not saved", symbol, tf)
+            return
         loop = self._worker_loop
         if loop is not None:
             async def _write_async() -> None:
@@ -430,13 +440,16 @@ class LiveBarWorker(QThread):
                     log.debug("[Live] Yahoo Finance processing failed for %s", symbol, exc_info=True)
 
     def _write_yfinance_direct(self, symbol: str, df: Any, tf: str) -> int:
-        """Insert each row of *df* as a candle in price_<tf>. Returns row count."""
+        """Insert each closed row of *df* as a candle in price_<tf>. Returns row count."""
         last_in_db = self._get_last_ts(symbol, tf)
+        now = datetime.now(timezone.utc)
         rows: list[tuple[str, str, float, float, float, float, int]] = []
         for ts, row in df.iterrows():
             dt = _ensure_utc(ts.to_pydatetime())
             if last_in_db is not None and dt <= last_in_db:
                 continue
+            if dt + _TF_LENGTH[tf] > now:
+                continue  # still forming — saving it would freeze a flat candle
             rows.append((
                 symbol,
                 dt.strftime("%Y-%m-%dT%H:%M:%S"),
