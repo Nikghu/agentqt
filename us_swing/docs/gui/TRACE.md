@@ -3,7 +3,7 @@
 **Document ID:** TRACE-GUI
 **Version:** 1.13.1
 **Project:** US Swing Trading System
-**Last Updated:** 2026-10-26 (watchlist persistence, Market Watch list, Charts default stock; RN-GUI-1.37.0)
+**Last Updated:** 2026-10-27 (no console flash at start; RN-GUI-1.37.1)
 
 ---
 
@@ -12,6 +12,7 @@
 | FO ID | SRD ID | DD ID | MD ID | UTCD IDs | Code File | Status | RN |
 |---|---|---|---|---|---|---|---|
 | FO-GUI-000 | SRD-GUI-000.006 | DD-EXE-017.021.D01 | MD-EXE-017.017.M15 | (logic via UT-EXE-017.021.M14.T02–03) | `gui/main_window.py`, `gui/app_service.py` | Implemented | RN-EXE-1.25.0-20260612 |
+| FO-GUI-000 | SRD-GUI-000.007 | — | MD-GUI-000.007.M01 | UT-GUI-000.007.M01.T01–T03 | `gui/quiet_platform.py`, `run_gui.py`, `pyi_rth_quiet_platform.py`, `usswing_installer.yaml` | Implemented | RN-GUI-1.37.1-20261027 |
 | FO-GUI-001 | SRD-GUI-001.001–004 | DD-GUI-001.001.D01 | MD-GUI-001.001.M01 | T01–T06 | `gui/main_window.py` | Draft |
 | FO-GUI-002 | SRD-GUI-002.001–005 | DD-GUI-002.001.D01 | MD-GUI-002.001.M01 | — | `gui/dashboard_panel.py` | Draft |
 | FO-GUI-002 | SRD-GUI-002.001–002, .005 (Reopen) | DD-GUI-002.001.D01 | MD-GUI-002.001.M02 | T01–T05 | `gui/position_table_model.py` | Reopen | RN-EXE-1.14.0-20260528 |

@@ -13,6 +13,11 @@ _SRC = Path(__file__).parent / "src"
 if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
+# Before pandas / keyring load: no console window flash on Windows (SRD-GUI-000.007).
+from us_swing.gui.quiet_platform import install as _quiet_platform  # noqa: E402
+
+_quiet_platform()
+
 from us_swing.__main__ import main  # noqa: E402
 
 if __name__ == "__main__":

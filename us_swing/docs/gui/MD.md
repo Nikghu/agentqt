@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.31.0: MD-GUI-000.007.M01 (quiet_platform.py) added (SRD-GUI-000.007).
 > v1.30.0: MD-GUI-026.002.M02 adds `pick_default()`, `user_chose`, drops the remembered tab; MD-GUI-026.001.M01 auto-opens on show (SRD-GUI-026.013).
 > v1.29.0: MD-GUI-025.019.M05 extended for the Market Watch tile list; AppService and `_WatchlistTab` extended (SRD-GUI-025.020).
 > v1.28.0: MD-GUI-025.019.M05 (watchlist_store.py) added; AppService extended (SRD-GUI-025.019).
@@ -270,6 +271,7 @@ us_swing/src/us_swing/gui/
 | MD-GUI-025.016.M04 | SRD-GUI-025.016 | `us_swing/src/us_swing/gui/position_table_model.py` | Side column; "No stop" / "—" for unset stop and target (extends MD-GUI-002.001.M02) | `PositionTableModel.COLUMNS`, `data()` | PyQt6 | No |
 | MD-GUI-025.013.M03 | SRD-GUI-025.013 | `us_swing/src/us_swing/gui/performance_band.py` | Equity band and chart; exposure bars, totals and chart | `PerformanceBand`, `EquityChart`, `change_text()`, `ExposureView`, `ExposureChart`, `exposure_bars()`, `market_value()`, `RANGES`, `MAX_BARS` | strategy_pnl_chart (`money`, `nice_ticks`), screener_views (`ChipGroup`), PyQt6 | No |
 | MD-GUI-025.019.M05 | SRD-GUI-025.019 | `us_swing/src/us_swing/gui/watchlist_store.py` | Per-user saved lists (watchlist, Market Watch tile), one file each, atomic write; `AppService` loads both at start and saves on add and remove | `load_watchlist()`, `save_watchlist()` | json, os, logging | No | Implemented |
+| MD-GUI-000.007.M01 | SRD-GUI-000.007 | `us_swing/src/us_swing/gui/quiet_platform.py` | Replaces `platform._syscmd_ver` with a `sys.getwindowsversion()` answer; called from `run_gui.py` and `pyi_rth_quiet_platform.py` | `install()` | platform, sys | No | Implemented |
 
 ## FO-GUI-026 — Charts Workspace (Focus + Inspector)
 

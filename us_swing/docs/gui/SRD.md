@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.48.0: SRD-GUI-000.007 added; approved by user 2026-10-27 — no console window flash at start (ISS-GUI-0008).
 > v2.47.0: SRD-GUI-026.013 added; approved by user 2026-10-26 — Charts opens on a default stock (Trades → Screener → Watchlist).
 > v2.46.0: SRD-GUI-025.020 added; approved by user 2026-10-26 — Market Watch tile has its own saved list.
 > v2.45.0: SRD-GUI-025.019 added; approved by user 2026-10-26 — watchlist persists across restarts (ISS-GUI-0006).
@@ -68,6 +69,7 @@
 | SRD-GUI-000.004 | FO-GUI-000 | Must | A `🔐 ADMIN` badge (yellow) appears in `_TitleBar` to the left of the "Scope:" label, right of the nav tabs stretch. | App launch | Badge rendered | Non-interactive; always visible | Implemented |
 | SRD-GUI-000.005 | FO-GUI-000 | Must | All position mutations carry the `user_id` of the position row, not the viewing scope. | Admin action | Mutation targets correct user | Correct when admin views All-Users scope | Implemented |
 | SRD-GUI-000.006 | FO-GUI-000 | Must | In single-user scope `_AdminContextBar` shows a capital cell `Cap $X · Avail $Y` from `AppService.effective_capital()` and `margin_available()`; green when `Y > 0`, red otherwise. Mirrors SRD-EXE-017.021. | `account_updated` | Rendered capital cell | Display-only; hidden in All-Users scope | Approved |
+| SRD-GUI-000.007 | FO-GUI-000 | Must | On Windows the app starts without any console window flashing; Python's Windows-version check is answered without running cmd.exe. | app start | no child process | Reported version unchanged; installed by `run_gui.py` and a PyInstaller runtime hook | Implemented |
 
 ---
 

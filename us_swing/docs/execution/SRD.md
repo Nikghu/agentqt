@@ -1,10 +1,10 @@
 # Software Requirement Document — Execution & Risk Management (EXE)
 
 **Document ID:** SRD-EXE
-**Version:** 1.26.0
+**Version:** 1.30.0
 **Traces To:** FO-EXE v1.14.0
 **Status:** Draft
-**Last Updated:** 2026-10-23
+**Last Updated:** 2026-10-27
 **Project:** US Swing Trading System
 
 > v1.7.0: Sections 11 + 12 added — SRD-EXE-011.001–015 (Strategy Engine) and SRD-EXE-012.001–013 (Trade Cycle Ledger).
@@ -33,6 +33,7 @@
 > v1.24.3: SRD-EXE-018.002–.006, .012, .014, .015 Approved → Implemented (P2: direction wired through router, broker adapter, order ingestion and cycle open; opposite-direction guard at engine and pending execute).
 > v1.24.4: SRD-EXE-018.007–.011 and .013 Approved → Implemented (P3: direction-aware live/realized P&L, SHORT trailing stop and exit triggers, risk-edit invariants, signed OpenPosition P&L). All SRD-EXE-018 rows now Implemented.
 > v1.25.0: SRD-EXE-018.016 added (Draft) — price-feed silence warning for open cycles (deep-review finding, 2026-09-18).
+> v1.30.0: SRD-EXE-007.010 added — live 3m/15m tables hold only complete candles (ISS-EXE-0013); approved by user and implemented 2026-10-27.
 > v1.29.0: SRD-EXE-017.027 added — paper account state follows today's P&L and open positions; approved by user and implemented 2026-10-24.
 > v1.28.0: SRD-EXE-020.007–.008 added — equity curve for the dashboard graph; approved by user 2026-10-24.
 > v1.27.0: SRD-EXE-020.001–.006 added — Account Equity Snapshots; approved by user 2026-10-24.
@@ -145,6 +146,7 @@
 | SRD-EXE-007.007 | FO-EXE-007 | Must | **RTH guard — `_is_rth(dt: datetime) -> bool`:** Module-level function in `live_bar_worker.py`. Returns `True` only if `dt`, converted to US/Eastern time via `zoneinfo.ZoneInfo("America/New_York")`, is on a weekday and falls within `09:30:00 ≤ dt_et < 16:00:00`. Applied per tick in `_make_tick_handler` (step 4). Ticks outside RTH are discarded without reaching `CandleBuilder`. Partial windows open at session end are discarded automatically — `CandleBuilder` never receives an out-of-RTH tick to trigger a window close, so in-progress buffers are simply abandoned; they are cleared when `builder.reset(symbol)` is called on the next session's `set_symbols()` call or on disconnect. No QTimer polling is required. | `datetime` (UTC) | `bool` | Federal holidays are treated as non-RTH days (no market data received, so no action needed); DST transitions handled correctly via `zoneinfo` (not `pytz`) | Implemented |
 | SRD-EXE-007.008 | FO-EXE-007 | Must | **Disconnect / reconnect handling:** On IBKR disconnect, `LiveBarWorker` detects the dropped connection via `ib.isConnected()` returning False in the main loop, exits cleanly, and calls `builder.reset(symbol)` for each subscribed symbol — discarding all in-progress windows without persisting. Logs WARNING: `"[Live] IBKR real-time subscription ended"`. On reconnect (i.e., `AppService` calls `_start_live_bar_worker()` again), a fresh `LiveBarWorker` is constructed; fresh windows begin on the first incoming tick for each symbol. `request_stop()` triggers `ib.disconnect()` which tears down all tick subscriptions server-side; no per-symbol `cancelTickByTick` is needed in the stop path. No gap-fill fetch is performed on reconnect — `IntradayCandleLoader` (Phase 1) is responsible for back-filling missing historical bars. | — | in-progress windows discarded on disconnect; fresh worker created on reconnect | `request_stop()` is called by `AppService._stop_live_bar_worker()` before constructing a new worker; partial windows from the previous session are never persisted | Implemented |
 | SRD-EXE-007.009 | FO-EXE-007 | Should | **`get_readiness_report` consistency after live close:** After a `candle_closed` event persists a new 3m bar for `symbol` via `insert_bars()`, a subsequent call to `IntradayCandleLoader.get_readiness_report([symbol])` must return `candles_3m` = (prior count + 1). This holds automatically because `get_readiness_report` queries `price_3m` row counts from the database directly (no stale in-memory cache). No additional integration code is required; this requirement exists to specify the observable contract and to drive the integration test that verifies it. | `candle_closed` event → DB insert | `get_readiness_report` reflects updated count | `get_readiness_report` must query `price_3m` (not only the 1m-aggregated view) — requires SRD-EXE-006.006 to be updated so `candles_3m` reads from `price_3m` row count rather than aggregating from `price_1m`; this update is in scope for Phase 2 implementation | Approved |
+| SRD-EXE-007.010 | FO-EXE-007 | Must | `price_3m` / `price_15m` hold only complete candles: a Yahoo bar is saved only after its window ends, and the first IBKR window after a (re)start is not saved when it began before the first 5-second bar. | Yahoo bars; IBKR 5-second bars | rows in `price_3m` / `price_15m` | A forming or partial candle must never be saved; skipped windows are filled later from `price_1m` | Implemented |
 
 ---
 
