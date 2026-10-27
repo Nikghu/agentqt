@@ -3,7 +3,7 @@
 **Document ID:** TRACE-GUI
 **Version:** 1.13.1
 **Project:** US Swing Trading System
-**Last Updated:** 2026-10-27 (app responsive while ticks stream; RN-GUI-1.37.2)
+**Last Updated:** 2026-10-27 (sidebar mini while right panel open; RN-GUI-1.37.3)
 
 ---
 
@@ -59,6 +59,7 @@
 | FO-GUI-017 | SRD-GUI-017.001–005 | DD-GUI-017.001.D01 | MD-GUI-017.001.M02, MD-GUI-017.003.M01 | UT-GUI-017.* (10 tests) | `gui/theme.py`, `gui/icons.py`, `gui/main_window.py`, `gui/dashboard_panel.py`, `gui/screener_panel.py`, `gui/execution_panel.py`, `gui/settings_panel.py`, `gui/log_viewer_panel.py`, `gui/scheduler_dialog.py`, `gui/indicator_rules_dialog.py`, `gui/price_action_rules_dialog.py` | Implemented | RN-GUI-1.9.0-20261023 |
 | FO-GUI-018 | SRD-GUI-018.001–011 | DD-GUI-018.001.D01 | MD-GUI-018.001.M01, MD-GUI-018.006.M02, MD-GUI-018.005.M03, MD-GUI-018.008.M04 | UT-GUI-018.* (17 tests) | `gui/sidebar.py`, `gui/reveal.py`, `gui/main_window.py`, `gui/theme.py` | Implemented | RN-GUI-1.10.0-20261023, RN-GUI-1.16.0-20261023 |
 | FO-GUI-019 | SRD-GUI-019.001–008 | DD-GUI-019.001.D01 | MD-GUI-019.001.M01, MD-GUI-019.006.M02, MD-GUI-019.002.M03 | UT-GUI-019.* (10 tests) | `gui/side_panels.py`, `gui/dashboard_panel.py`, `gui/main_window.py` | Implemented | RN-GUI-1.11.0-20261023 |
+| FO-GUI-019 | SRD-GUI-019.009 | — | MD-GUI-019.009.M03 | UT-GUI-019.009.M03.T01–T02 | `gui/main_window.py` | Implemented | RN-GUI-1.37.3-20261027 |
 | FO-GUI-020 | SRD-GUI-020.001–005 | DD-GUI-020.001.D01 | MD-GUI-020.001.M01 | UT-GUI-020.001.M01.T01–T02, .002.M01.T01, .003.M01.T01–T02, .004.M01.T01 | `gui/chart_workspace.py`, `gui/chart_panel.py`, `gui/screener_panel.py`, `gui/main_window.py` | Implemented | RN-GUI-1.12.0-20261023 |
 | FO-GUI-021 | SRD-GUI-021.001–004 | DD-GUI-021.001.D01 | MD-GUI-021.001.M01 | UT-GUI-021.001.M01.T01–T02, .002.M01.T01–T02, .003.M01.T01, .003.M02.T01, .004.M01.T01–T04, .004.M02.T01–T02 | `gui/settings_panel.py`, `gui/theme.py`, `gui/side_panels.py`, `gui/main_window.py` | Implemented | RN-GUI-1.15.0-20261023 |
 | FO-GUI-022 | SRD-GUI-022.001–012 | DD-GUI-022.001.D01 | MD-GUI-022.001.M01, MD-GUI-003.001.M01 | UT-GUI-022.001.M01.T01–T02, .002.M01.T01–T05, .003.M01.T01–T02, .004.M01.T01, .005.M01.T01, .006.M01.T01, .007.M01.T01–T02, .008.M01.T01, .009.M01.T01–T02, .010.M01.T01–T02, .011.M01.T01 | `gui/screener_views.py`, `gui/screener_panel.py`, `gui/theme.py`, `gui/chart_panel.py`, `gui/ai_transcript_panel.py`, `assets/icons` | Implemented | RN-GUI-1.18.0-20261023 |

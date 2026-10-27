@@ -2,6 +2,17 @@
 
 ---
 
+## [20261027] GUI — Window grows past the screen when a right panel opens (ISS-GUI-0010, SRD-GUI-019.009)
+
+- Type: Bugfix
+- FO(s): FO-GUI-019
+- RN: RN-GUI-1.37.3-20261027
+- Artifacts updated: SRD, MD, UTCD, TRACE, ISS, Code, Tests, RN, CONTEXT, DEVLOG, TODO
+- Decisions: user rule — sidebar stays mini whenever a right panel is open, on every screen. KPI strip shrink not done (T58).
+- Findings: sidebar shrank only after the 200 ms reveal, so full sidebar + right panel briefly passed 1920 px and the maximized window stayed wide. User confirmed fix in the app.
+
+---
+
 ## [20261027] GUI — App freeze while live ticks stream (ISS-GUI-0009, SRD-GUI-000.008)
 
 - Type: Bugfix

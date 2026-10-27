@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.33.0: MD-GUI-019.009.M03 added (SRD-GUI-019.009) — `main_window.py` shrinks the sidebar on the right panel click.
 > v1.32.0: MD-GUI-000.008.M01–M03 added (SRD-GUI-000.008) — theme id cached, hidden source list, tick refresh batching.
 > v1.31.0: MD-GUI-000.007.M01 (quiet_platform.py) added (SRD-GUI-000.007).
 > v1.30.0: MD-GUI-026.002.M02 adds `pick_default()`, `user_chose`, drops the remembered tab; MD-GUI-026.001.M01 auto-opens on show (SRD-GUI-026.013).
@@ -218,6 +219,7 @@ us_swing/src/us_swing/gui/
 | MD-GUI-019.001.M01 | SRD-GUI-019.001 | `us_swing/src/us_swing/gui/side_panels.py` | Icon strip and Position Details panel | `IconStrip`, `PositionDetails` | `icons`, `theme`, `AppService` | No |
 | MD-GUI-019.006.M02 | SRD-GUI-019.006 | `us_swing/src/us_swing/gui/dashboard_panel.py` | Exit drawer, exit and square-off forms, apply exit | `DashboardPanel.open_exit()`, `position_selected`, `watchlist_widget` | `AppService` | No |
 | MD-GUI-019.002.M03 | SRD-GUI-019.002 | `us_swing/src/us_swing/gui/main_window.py` | Panel layout and wiring | `MainWindow` | `side_panels`, `reveal`, `log_viewer_panel` | No |
+| MD-GUI-019.009.M03 | SRD-GUI-019.009 | `us_swing/src/us_swing/gui/main_window.py` | Sidebar mini on right panel click | `MainWindow._on_panel_toggled`, `_MiniState` | `reveal` | No |
 
 ## FO-GUI-020 — Charts Workspace
 

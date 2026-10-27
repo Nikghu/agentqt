@@ -67,3 +67,4 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T55 | Release — rebuild installer so the console-flash fix (ISS-GUI-0008) ships; then publish the next version. | `usswing_installer.yaml` | Medium | Done — v1.6.1 released 2026-10-27; user to confirm no flash |
 | T56 | IBKR reported no market data permission for all 9 stocks on 26 Oct — user to check TWS subscription; until fixed, live candles come from Yahoo (ISS-EXE-0013). | `execution/live_bar_worker.py` | High | Open |
 | T57 | Re-profile the freeze fix (ISS-GUI-0009) with py-spy during market hours; installed app must be closed first to avoid two engines. | `gui/app_service.py` | High | Open |
+| T58 | GUI — KPI strip minimum width is its full text width; very long values could still push the maximized window past the screen with a right panel open (ISS-GUI-0010 note). | `gui/dashboard_tiles.py` | Low | Open |
