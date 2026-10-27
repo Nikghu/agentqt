@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.31.0: UT-GUI-000.008.* added — app stays responsive while ticks stream.
 > v1.29.0: UT-GUI-029.* added — Scheduler task table.
 > v1.28.0: UT-GUI-028.* added — Candle data panel redesign; UT-GUI-021.004.M01.T01–T03 replaced.
 > v1.27.0: UT-GUI-027.* added — Settings dialog.
@@ -732,6 +733,11 @@ Test files:
 | UT-GUI-000.007.M01.T01 | MD-GUI-000.007.M01 | Positive | Version check starts no process | install; process start blocked; win32_ver, uname, machine | no process started | Pass |
 | UT-GUI-000.007.M01.T02 | MD-GUI-000.007.M01 | Positive | Version values unchanged | real answers, then install | _syscmd_ver, win32_ver, uname equal | Pass |
 | UT-GUI-000.007.M01.T03 | MD-GUI-000.007.M01 | Negative | Other platforms left alone | sys.platform linux; install | returns False; nothing replaced | Pass |
+| UT-GUI-000.008.M01.T01 | MD-GUI-000.008.M01 | Positive | Theme file read once | saved mocha; file changed to vscode | lookups stay mocha | Pass |
+| UT-GUI-000.008.M01.T02 | MD-GUI-000.008.M01 | Positive | Saved theme used at once | save vscode, then neon | vscode, then carbon; file written | Pass |
+| UT-GUI-000.008.M02.T01 | MD-GUI-000.008.M02 | Negative | Hidden list skips tick rebuild | hidden list; watchlist signal; show | rows unchanged until shown | Pass |
+| UT-GUI-000.008.M03.T01 | MD-GUI-000.008.M03 | Positive | Ticks coalesce into one refresh | 3 watchlist + 3 position ticks; disconnect | one emit each; nothing pending | Pass |
+| UT-GUI-000.008.M03.T02 | MD-GUI-000.008.M03 | Edge | Refresh timer is 250 ms single-shot | queue same signal twice | one dirty entry; 250 ms single-shot | Pass |
 
 ## FO-GUI-027 — Settings Dialog
 

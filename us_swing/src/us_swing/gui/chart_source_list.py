@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtGui import QShowEvent
 from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -124,6 +125,7 @@ class SourceList(QWidget):
         self._rows: list[SourceRow] = []
         self.user_chose = False   # set once the user clicks a tab or a row
         self._selected = ""
+        self._stale = False       # a refresh was skipped while hidden (SRD-GUI-000.008)
 
         root = QVBoxLayout(self)
         root.setContentsMargins(8, 8, 8, 8)
@@ -190,9 +192,19 @@ class SourceList(QWidget):
         return [str(self.list.item(i).data(_SYMBOL_ROLE))  # type: ignore[union-attr]
                 for i in range(self.list.count())]
 
-    def _refresh_if(self, tab: str) -> None:
-        if self.tab == tab:
+    def showEvent(self, event: QShowEvent | None) -> None:  # noqa: N802
+        super().showEvent(event)
+        if self._stale:
+            self._stale = False
             self.refresh()
+
+    def _refresh_if(self, tab: str) -> None:
+        if self.tab != tab:
+            return
+        if self.isVisible():
+            self.refresh()
+        else:
+            self._stale = True
 
     def _on_tab(self) -> None:
         self.user_chose = True

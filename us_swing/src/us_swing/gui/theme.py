@@ -1501,19 +1501,26 @@ DEFAULT_THEME = "carbon"
 _PALETTES: dict[str, type] = {"carbon": _CARBON, "mocha": _MOCHA, "vscode": _VS}
 
 _THEME_PREF_FILE = Path.home() / ".usswing" / "theme_id"
+# Read once: every C.<token> lookup lands here, many times per repaint (SRD-GUI-000.008).
+_theme_id: str | None = None
 
 
 def load_theme_id() -> str:
-    try:
-        tid = _THEME_PREF_FILE.read_text(encoding="utf-8").strip()
-        return tid if tid in THEMES else DEFAULT_THEME
-    except OSError:
-        return DEFAULT_THEME
+    global _theme_id
+    if _theme_id is None:
+        try:
+            tid = _THEME_PREF_FILE.read_text(encoding="utf-8").strip()
+        except OSError:
+            tid = DEFAULT_THEME
+        _theme_id = tid if tid in THEMES else DEFAULT_THEME
+    return _theme_id
 
 
 def save_theme_id(theme_id: str) -> None:
+    global _theme_id
     _THEME_PREF_FILE.parent.mkdir(parents=True, exist_ok=True)
     _THEME_PREF_FILE.write_text(theme_id, encoding="utf-8")
+    _theme_id = theme_id if theme_id in THEMES else DEFAULT_THEME
 
 
 def apply_theme(theme_id: str) -> None:

@@ -149,13 +149,12 @@ def test_tick_updates_both_lists() -> None:
     svc._mw_items = []
     svc._watchlist = [WatchlistItem(symbol="AAPL", prev_close=100.0)]
     svc._market_list = [WatchlistItem(symbol="AAPL", prev_close=100.0)]
-    svc.watchlist_updated = SimpleNamespace(emit=lambda: emitted.append("wl"))
-    svc.market_list_updated = SimpleNamespace(emit=lambda: emitted.append("mw"))
+    svc._queue_tick_refresh = emitted.append
 
     AppService._on_watchlist_tick(svc, "AAPL", 110.0)
 
     assert svc._watchlist[0].ltp == 110.0 and svc._market_list[0].change_pct == 10.0
-    assert emitted == ["wl", "mw"]
+    assert emitted == ["watchlist_updated", "market_list_updated"]
 
 
 def test_market_list_subscribed_without_sp500_gate() -> None:

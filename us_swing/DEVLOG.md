@@ -2,6 +2,15 @@
 
 ---
 
+## [20261027] GUI — App freeze while live ticks stream (ISS-GUI-0009, SRD-GUI-000.008)
+
+- Type: Bugfix
+- FO(s): FO-GUI-000
+- RN: RN-GUI-1.37.2-20261027
+- Artifacts updated: SRD, MD, UTCD, TRACE, ISS, Code, Tests, RN, CONTEXT, DEVLOG, TODO
+- Decisions: user approved all 4 items — cache theme id, hidden Charts list skips tick rebuilds, batch tick view signals (250 ms), tests + live re-profile.
+- Findings: py-spy on the installed v1.6.1 during a real "Not responding": 4 of 5 dumps in `SourceList._fill` after a watchlist tick. Main thread 54% busy; `C.RED` cost 142 µs (disk) vs 0.18 µs. Also v1.6.1 released (PR #89).
+
 ## [20261027] EXE — Flat 15m candles from the Yahoo live path (ISS-EXE-0013, SRD-EXE-007.010)
 
 - Type: Bugfix

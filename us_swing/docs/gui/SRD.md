@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.49.0: SRD-GUI-000.008 added; approved by user 2026-10-27 — app stays responsive while ticks stream (ISS-GUI-0009).
 > v2.48.0: SRD-GUI-000.007 added; approved by user 2026-10-27 — no console window flash at start (ISS-GUI-0008).
 > v2.47.0: SRD-GUI-026.013 added; approved by user 2026-10-26 — Charts opens on a default stock (Trades → Screener → Watchlist).
 > v2.46.0: SRD-GUI-025.020 added; approved by user 2026-10-26 — Market Watch tile has its own saved list.
@@ -70,6 +71,7 @@
 | SRD-GUI-000.005 | FO-GUI-000 | Must | All position mutations carry the `user_id` of the position row, not the viewing scope. | Admin action | Mutation targets correct user | Correct when admin views All-Users scope | Implemented |
 | SRD-GUI-000.006 | FO-GUI-000 | Must | In single-user scope `_AdminContextBar` shows a capital cell `Cap $X · Avail $Y` from `AppService.effective_capital()` and `margin_available()`; green when `Y > 0`, red otherwise. Mirrors SRD-EXE-017.021. | `account_updated` | Rendered capital cell | Display-only; hidden in All-Users scope | Approved |
 | SRD-GUI-000.007 | FO-GUI-000 | Must | On Windows the app starts without any console window flashing; Python's Windows-version check is answered without running cmd.exe. | app start | no child process | Reported version unchanged; installed by `run_gui.py` and a PyInstaller runtime hook | Implemented |
+| SRD-GUI-000.008 | FO-GUI-000 | Must | The app stays responsive while live ticks stream: tick-driven view refreshes go out at most every 250 ms, hidden lists do not rebuild on ticks, and theme colours are not read from disk on each use. | live ticks | batched view signals | Non-tick refreshes (fills, user actions) stay immediate | Implemented |
 
 ---
 

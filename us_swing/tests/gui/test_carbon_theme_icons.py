@@ -20,6 +20,7 @@ _WIDGET_TEXT = re.compile(r"(QPushButton|addTab|QAction|setText)\(([^)]*)\)")
 def theme_file(tmp_path, monkeypatch):
     path = tmp_path / "theme_id"
     monkeypatch.setattr(theme, "_THEME_PREF_FILE", path)
+    monkeypatch.setattr(theme, "_theme_id", None)
     icons.clear_cache()
     yield path
     icons.clear_cache()
@@ -34,6 +35,31 @@ def test_carbon_is_default(theme_file):
 def test_unknown_theme_falls_back_to_carbon(theme_file):
     """UT-GUI-017.001.M02.T02: Unknown saved theme falls back to Carbon."""
     theme_file.write_text("neon", encoding="utf-8")
+    assert theme.load_theme_id() == "carbon"
+
+
+def test_theme_file_read_once(theme_file):
+    """UT-GUI-000.008.M01.T01: The theme file is read once; later colour lookups use memory."""
+    theme_file.write_text("mocha", encoding="utf-8")
+    assert theme.load_theme_id() == "mocha"
+
+    theme_file.write_text("vscode", encoding="utf-8")
+
+    assert theme.load_theme_id() == "mocha"
+    assert theme.C.BG == theme._PALETTES["mocha"].BG
+
+
+def test_saved_theme_used_at_once(theme_file):
+    """UT-GUI-000.008.M01.T02: Saving a theme updates lookups and the file."""
+    assert theme.load_theme_id() == "carbon"
+
+    theme.save_theme_id("vscode")
+
+    assert theme.load_theme_id() == "vscode"
+    assert theme_file.read_text(encoding="utf-8") == "vscode"
+
+    theme.save_theme_id("neon")
+
     assert theme.load_theme_id() == "carbon"
 
 
