@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.33.0: UT-GUI-030.* added — Backtest data section.
 > v1.32.0: UT-GUI-019.009.* added — sidebar mini while a right panel is open.
 > v1.31.0: UT-GUI-000.008.* added — app stays responsive while ticks stream.
 > v1.29.0: UT-GUI-029.* added — Scheduler task table.
@@ -800,3 +801,23 @@ Test files:
 | UT-GUI-029.002.M01.T02 | MD-GUI-029.001.M01 | Edge | Old status result dropped | result from before a reload | pills keep the fresh check | Pass |
 | UT-GUI-029.005.M01.T01 | MD-GUI-029.001.M01 | Negative | Remove all cancelled | confirm returns Cancel | `remove_tasks` not called | Pass |
 | UT-GUI-029.006.M01.T01 | MD-GUI-029.001.M01 | Positive | Scheduler page has the table, no Edit button | build `_SystemSections` | page holds `SchedulerTable`; no `_sched_btn` | Pass |
+
+## FO-GUI-030 — Backtest Data Settings
+
+| UT ID | MD | Type | Description | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-030.006.M03.T01 | MD-GUI-030.006.M03 | Positive | Section sits after Candle data | build `SettingsPanel` | "Backtest data" is the name right after "Candle data" | Not Run |
+| UT-GUI-030.001.M01.T01 | MD-GUI-030.001.M01 | Positive | Status from stats | fake stats 503 stocks, 1.3M 1d, 186M 3m, 3.9 GB | summary, strip values and pill text match | Not Run |
+| UT-GUI-030.001.M01.T03 | MD-GUI-030.001.M01 | Negative | Empty store | stats with 0 stocks | summary "No backtest data yet"; strip shows dashes; pill hidden | Not Run |
+| UT-GUI-030.001.M01.T02 | MD-GUI-030.001.M01 | Positive | Progress lines update | progress 3m 191 of 503 | 3m bar 38%; label "191 of 503" | Not Run |
+| UT-GUI-030.002.M01.T01 | MD-GUI-030.001.M01 | Positive | Load and save settings | saved start 2018-01-01, latest on | fields filled; End date disabled; save writes same values | Not Run |
+| UT-GUI-030.002.M01.T02 | MD-GUI-030.001.M01 | Negative | Start never after end | fixed end 2020-01-01, set start 2021-01-01 | start held at 2020-01-01 | Not Run |
+| UT-GUI-030.003.M01.T02 | MD-GUI-030.001.M01 | Positive | Auto delta fields load | saved on, 17:30, Mon–Fri | switch on; time 17:30; label "US/Eastern"; Mon–Fri chips checked | Not Run |
+| UT-GUI-030.003.M01.T01 | MD-GUI-030.001.M01 | Negative | Fixed end date turns off auto delta | uncheck latest | auto delta switch disabled and saved off | Not Run |
+| UT-GUI-030.004.M01.T01 | MD-GUI-030.001.M01 | Negative | TWS not connected | connection state false | Start, Fill and Clear disabled; hint "Connect TWS to download" | Not Run |
+| UT-GUI-030.004.M01.T02 | MD-GUI-030.001.M01 | Positive | Start becomes Pause | click Start with fake service | service start called; button reads Pause; Fill and Clear disabled | Not Run |
+| UT-GUI-030.005.M01.T01 | MD-GUI-030.001.M01 | Negative | Clear cancelled | confirm returns Cancel | `clear_backtest_data` not called | Not Run |
+| UT-GUI-030.005.M01.T02 | MD-GUI-030.001.M01 | Positive | Clear needs typed CLEAR | type "clear", then "CLEAR" | button disabled, then enabled; accept calls clear | Not Run |
+| UT-GUI-030.006.M01.T01 | MD-GUI-030.001.M01 | Positive | Dot state | empty / running / up to date | off / warn / ok | Not Run |
+| UT-GUI-030.004.M02.T01 | MD-GUI-030.004.M02 | Positive | Auto delta starts once when due | `delta_due` true twice, fake downloader | one delta started; none while it runs | Not Run |
+| UT-GUI-030.004.M02.T02 | MD-GUI-030.004.M02 | Negative | Clear refused while downloading | `clear_backtest_data()` while a run is active | returns False; store files kept | Not Run |

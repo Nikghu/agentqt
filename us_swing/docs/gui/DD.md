@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.26.0: DD-GUI-030.001.D01 added — Backtest data section.
 > v1.25.0: DD-GUI-029.001.D01 added — Scheduler task table.
 > v1.24.0: DD-GUI-028.001.D01 added — Candle data panel redesign.
 > v1.23.0: DD-GUI-027.001.D01 added — Settings dialog opened from the sidebar.
@@ -1731,3 +1732,15 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 **Status.** `refresh_status()` runs `task_states()` in a `_Job(QThread)`: `/query /tn` per task name → installed or missing; Close both is installed when every close task of a switched-on app exists. An edited row shows CHANGED until Apply. A switched-on row found missing emits `repair_needed`, which marks the Scheduler section dirty. Runs on show and after each write.
 
 **Apply.** The Scheduler editable saves `_SystemSections._on_save` then `SchedulerTable.apply()`, which collects the three configs and runs `write_tasks()` in a `_Job`: on → `create_*_task` and save config; off → `delete_task`; close on → close tasks for switched-on apps, off → delete both; password saved to keyring when fill-in is on. Errors return as text per row and show on the pill tooltip and footer. `remove_all()` asks with `_ConfirmDialog`, then runs `remove_tasks()` (all tasks, configs, password). `USSwingConfig` and `SchedulerConfig` gain `enabled: bool = True` (old files load as on).
+
+## DD-GUI-030.001.D01 — Backtest Data Section
+
+**Traces:** SRD-GUI-030.001–.006
+
+**Widget (`backtest_data_panel.py`).** `BacktestDataPanel(QWidget)` follows `_DataPanel`: top card (summary label, `data_pill`, two rows of label + 4 px `QProgressBar` + count label for 1d and 3m, stat strip of four cells), Range card (`QDateEdit` start, `QDateEdit` end, `QCheckBox` "Up to latest trading day"), Auto delta card (`QCheckBox` switch, `QTimeEdit` HH:mm + "US/Eastern" label, seven checkable day buttons), action row (Start/Pause, Fill delta now, stretch, `link_danger` Clear database…) and a hint label. `inputs` lists the Range and Auto delta fields for dirty tracking; `load()`, `save()` and `defaults()` map to `BacktestDataSettings`. An estimate line under Range shows `1d ~N h · 3m ~N–N days` from stock count and missing 3m windows.
+
+**Registration.** `SettingsPanel` adds `("Backtest data", panel)` right after Candle data and an `_Editable(panel.inputs, panel.save, panel.load, panel.defaults)`. `refresh_states()` maps panel state to the dot: up to date → ok, running or behind → warn, empty → off.
+
+**Service (`app_service.py`).** `AppService` owns one `BacktestDownloader` at a time: `start_backtest_download()`, `stop_backtest_download()`, `fill_backtest_delta()`, `clear_backtest_data()`, `backtest_stats()`, `is_backtest_running()`; it re-emits `backtest_progress(tf, done, total, symbol)` and `backtest_finished(ok, message)`. A 60 s `QTimer` (and one check at start) calls `delta_due()` and starts a delta when due and nothing runs; `last_delta` is saved when a delta finishes ok. The downloader uses `SystemConfig.ibkr_backtest_client_id` (new, default 16). TWS state comes from the existing connection status the panel already gets for Candle data.
+
+**Clear confirm.** `_TypeConfirmDialog` (frameless, `_DialogTitleBar` style) shows "Deletes N GB of backtest candles. Settings are kept.", a `QLineEdit`, and Cancel / Clear; Clear enables only when the text equals `CLEAR`.

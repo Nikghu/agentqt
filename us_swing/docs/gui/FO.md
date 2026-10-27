@@ -859,3 +859,27 @@ The system shall show the Windows start and close tasks as a table inside Settin
 1. Edit Scheduler and its window are gone; everything is in the Scheduler section.
 2. Apply never freezes the dialog while Windows tasks are written.
 3. A task deleted outside the app shows Missing and comes back after Apply.
+
+## FO-GUI-030: Backtest Data Settings
+
+**Status:** Approved (user, 2026-10-28)
+**Priority:** Must
+**Depends on:** FO-GUI-027 (Settings dialog), FO-BKT-001 (backtest data store)
+**Source:** User picked Option A "Single card, like Candle data" from https://claude.ai/artifact/NWMti5JCJk1C36bXAw4Z71 on 2026-10-28; 1d + 3m; time in US/Eastern only.
+
+The system shall show a Backtest data section in Settings, below Candle data, to set up and watch the backtest candle download (FO-BKT-001).
+
+### Requirements
+
+1. **Status.** Summary line and pill, one progress line each for 1d and 3m, and a stat strip: 1d bars, 3m bars, Last delta, Disk.
+2. **Range.** Start date and End date with an "Up to latest trading day" check.
+3. **Auto delta.** On/off, run time in US/Eastern and run days.
+4. **Actions.** Start or Pause download, Fill delta now and Clear database; disabled with a hint when TWS is not connected.
+5. **Clear confirm.** Clear asks the user to type CLEAR.
+6. **Dot.** The section dot shows up to date, downloading or behind, or empty.
+
+### Acceptance Criteria
+
+1. Range and auto delta save on Apply like other sections; actions work at once.
+2. Closing Settings does not stop a running download.
+3. Clear never runs without the typed confirm.

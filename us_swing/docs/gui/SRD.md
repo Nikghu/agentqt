@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.51.0: SRD-GUI-030.001–.006 added (Draft) — Backtest data section in Settings (Option A).
 > v2.50.0: SRD-GUI-019.009 added; requirement stated by user 2026-10-27 — sidebar stays mini while a right panel is open (ISS-GUI-0010).
 > v2.49.0: SRD-GUI-000.008 added; approved by user 2026-10-27 — app stays responsive while ticks stream (ISS-GUI-0009).
 > v2.48.0: SRD-GUI-000.007 added; approved by user 2026-10-27 — no console window flash at start (ISS-GUI-0008).
@@ -498,3 +499,14 @@
 | SRD-GUI-029.004 | FO-GUI-029 | Must | Apply writes switched-on tasks, deletes switched-off ones and saves the password; a Missing switched-on task marks the section changed so Apply re-creates it. | Apply | Windows tasks | Writes run in the background; errors show on the pill | Implemented |
 | SRD-GUI-029.005 | FO-GUI-029 | Should | A red Remove all tasks link deletes every task, the saved configs and the password after a frameless confirm. | click | none | Cancel keeps everything | Implemented |
 | SRD-GUI-029.006 | FO-GUI-029 | Must | The Edit Scheduler button and the Windows Task Scheduler window are removed; task names are kept internally. | — | — | Saved task names still used | Implemented |
+
+## FO-GUI-030 — Backtest Data Settings
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-030.001 | FO-GUI-030 | Must | A Backtest data section below Candle data shows a summary line with pill, 1d and 3m progress lines and a stat strip of 1d bars, 3m bars, Last delta and Disk. | store stats, progress | card | Same look as the Candle data section | Draft |
+| SRD-GUI-030.002 | FO-GUI-030 | Must | A Range card has Start date and End date with an "Up to latest trading day" check that disables End date. | settings | fields | Saved on Apply; start never after end | Draft |
+| SRD-GUI-030.003 | FO-GUI-030 | Must | An Auto delta card has an on/off switch, a run time labelled US/Eastern and Mon–Sun day chips. | settings | fields | Switch disabled while End date is fixed | Draft |
+| SRD-GUI-030.004 | FO-GUI-030 | Must | Start download (Pause while running), Fill delta now and Clear database act at once and are disabled with "Connect TWS to download" when TWS is not connected. | click | download, delta, clear | Fill and Clear disabled while a download runs | Draft |
+| SRD-GUI-030.005 | FO-GUI-030 | Must | Clear opens a frameless confirm showing the size to delete, whose Clear button enables only after typing CLEAR. | click, text | clear or nothing | Cancel deletes nothing | Draft |
+| SRD-GUI-030.006 | FO-GUI-030 | Should | The section dot is green when up to date, amber while downloading or behind, and grey when empty. | stats, run state | dot | Uses the existing section dot | Draft |
