@@ -64,3 +64,4 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T52 | Settings dialog (FO-GUI-027, RN-GUI-1.32.0): built on feat/gui-settings-dialog (3 commits, not pushed). Updates moved to sidebar popup (RN-GUI-1.33.0). User app check pending, then push / PR when asked. | `gui/settings_dialog.py`, `gui/sidebar.py` | Medium | Open |
 | T53 | GUI — watchlist persists (SRD-GUI-025.019, ISS-GUI-0006). Merged via PR #86. | `gui/watchlist_store.py` | Medium | Done |
 | T54 | GUI — Market Watch tile and watchlist ticks are not trimmed by the 95-subscription cap (only positions are); a long tile list can go over it. Features merged via PR #87. | `gui/app_service.py` | Low | Open |
+| T55 | Release — rebuild installer so the console-flash fix (ISS-GUI-0008) ships; then publish the next version. | `usswing_installer.yaml` | Medium | Open |

@@ -2,6 +2,15 @@
 
 ---
 
+## [20261027] GUI — No console window flash at start (ISS-GUI-0008, SRD-GUI-000.007)
+
+- Type: Bugfix
+- FO(s): FO-GUI-000
+- RN: RN-GUI-1.37.1-20261027
+- Artifacts updated: SRD, MD, UTCD, TRACE, ISS, Code, Tests, RN, CONTEXT, DEVLOG, installer config
+- Decisions: user picked Option A (patch `platform._syscmd_ver`) over a Python 3.12 upgrade. Also a PyInstaller runtime hook, since the bundled setuptools hook runs before `run_gui.py`.
+- Findings: flashes are old (pandas since May, Telegram keyring since July). Verified with `COMSPEC` pointed at a logging exe: 2 calls before, 0 after. Also: v1.6.0 released; user's crash was the old installed v1.5.0 (`_MOCHA` had no `INPUT`).
+
 ## [20261026] GUI — Charts opens on a default stock (SRD-GUI-026.013)
 
 - Type: Feature

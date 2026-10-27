@@ -729,6 +729,9 @@ Test files:
 | UT-GUI-026.013.M01.T02 | MD-GUI-026.001.M01 | Edge | Late trades take over auto pick | shown on NVDA; trades arrive | chart KVUE; Trades tab | Pass |
 | UT-GUI-026.013.M01.T03 | MD-GUI-026.001.M01 | Negative | User choice not overridden | open AAPL; trades arrive | chart stays AAPL | Pass |
 | UT-GUI-026.013.M01.T04 | MD-GUI-026.001.M01 | Negative | Hidden Charts loads nothing | trades arrive while hidden | no chart loaded | Pass |
+| UT-GUI-000.007.M01.T01 | MD-GUI-000.007.M01 | Positive | Version check starts no process | install; process start blocked; win32_ver, uname, machine | no process started | Pass |
+| UT-GUI-000.007.M01.T02 | MD-GUI-000.007.M01 | Positive | Version values unchanged | real answers, then install | _syscmd_ver, win32_ver, uname equal | Pass |
+| UT-GUI-000.007.M01.T03 | MD-GUI-000.007.M01 | Negative | Other platforms left alone | sys.platform linux; install | returns False; nothing replaced | Pass |
 
 ## FO-GUI-027 — Settings Dialog
 
