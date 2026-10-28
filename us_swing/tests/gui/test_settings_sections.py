@@ -271,3 +271,17 @@ def test_risk_save_keeps_other_fields(qapp: Any, svc: _StubService) -> None:
 
     assert svc.updated[0].telegram_chat_id == "12345"
     assert svc.updated[0].username == "trader"
+
+
+def test_universe_html_has_backtest_columns() -> None:
+    """UT-GUI-030.008.M03.T01: Universe table carries Backtest, BT From and BT To."""
+    from us_swing.universe.store import Sp500Record
+
+    rec = Sp500Record("AAPL", "AAPL", "Apple", "Tech")
+    html = settings_panel._build_universe_html(
+        [rec], {"AAPL": "2026-10-27"}, "2026-10-27",
+        {"AAPL": ("2026-01-02", "2026-10-27", "ok")},
+    )
+
+    assert "['BT From',       8,100]" in html
+    assert '"2026-01-02", "2026-10-27", "ok"' in html

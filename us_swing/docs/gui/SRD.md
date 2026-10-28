@@ -511,3 +511,4 @@
 | SRD-GUI-030.005 | FO-GUI-030 | Must | Clear opens a frameless confirm showing the size to delete, whose Clear button enables only after typing CLEAR. | click, text | clear or nothing | Cancel deletes nothing | Implemented |
 | SRD-GUI-030.006 | FO-GUI-030 | Should | The section dot is green when up to date, amber while downloading or behind, and grey when empty. | stats, run state | dot | Uses the existing section dot | Implemented |
 | SRD-GUI-030.007 | FO-GUI-030 | Should | The main window status bar shows backtest download progress while a run is active and the result for 15 s after it ends. | progress, result | status text | Requested by user 2026-10-28 | Implemented |
+| SRD-GUI-030.008 | FO-GUI-030 | Should | The Universe table shows each stock's backtest status, first date and last date. | backtest store | Backtest, BT From, BT To columns | Requested by user 2026-10-28; 3m dates, else 1d | Implemented |

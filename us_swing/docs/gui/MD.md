@@ -326,3 +326,4 @@ us_swing/src/us_swing/gui/
 | MD-GUI-030.006.M03 | SRD-GUI-030.006 | `us_swing/src/us_swing/gui/settings_panel.py` | Register the section after Candle data and colour its dot | `SettingsPanel` (sections, `refresh_states()`) | `backtest_data_panel` | No |
 | MD-GUI-030.004.M04 | SRD-GUI-030.004 | `us_swing/src/us_swing/gui/system_store.py` | Add the backtest TWS client ID | `SystemConfig.ibkr_backtest_client_id` (default 16) | — | No |
 | MD-GUI-030.007.M05 | SRD-GUI-030.007 | `us_swing/src/us_swing/gui/main_window.py` | Status bar item for backtest progress | `_on_backtest_progress()`, `_on_backtest_finished()` | `app_service` | No |
+| MD-GUI-030.008.M06 | SRD-GUI-030.008 | `us_swing/src/us_swing/gui/settings_panel.py` | Universe table backtest columns | `_build_universe_html(backtest=…)`, `AppService.get_backtest_symbol_coverage()` | `app_service` | No |

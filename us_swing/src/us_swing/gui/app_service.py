@@ -4493,6 +4493,25 @@ class AppService(QObject):
         self.refresh_backtest_stats()
         return True
 
+    def get_backtest_symbol_coverage(self) -> dict[str, tuple[str | None, str | None, str]]:
+        """Per S&P 500 symbol: backtest first date, last date and status (SRD-GUI-030.008).
+
+        Dates come from 3m data when saved, else 1d. Status is ``ok``, ``behind``,
+        ``1d`` (no 3m yet) or ``none``.
+        """
+        store = self._bkt_store
+        end = BacktestDataSettings.load(store.root).end_date or _compute_last_trading_day()
+        out: dict[str, tuple[str | None, str | None, str]] = {}
+        for rec in self._sp500:
+            cov_3m = store.coverage(rec.ibkr_symbol, "3m")
+            cov = cov_3m or store.coverage(rec.ibkr_symbol, "1d")
+            if cov is None:
+                out[rec.symbol] = (None, None, "none")
+                continue
+            status = "1d" if cov_3m is None else "behind" if cov[1] < end else "ok"
+            out[rec.symbol] = (cov[0].isoformat(), cov[1].isoformat(), status)
+        return out
+
     def refresh_backtest_stats(self) -> None:
         """Read store stats in the background; emits ``backtest_stats_changed``."""
         worker = _BacktestStatsWorker(self._bkt_store, parent=self)

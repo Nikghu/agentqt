@@ -125,8 +125,13 @@ class BacktestStore:
         return df[keep].sort_values("ts").reset_index(drop=True)
 
     def coverage(self, symbol: str, tf: Timeframe) -> tuple[date, date] | None:
-        """Return the first and last saved date from Parquet metadata, or ``None``."""
-        ranges = [r for f in self._files(symbol, tf) if (r := _ts_range(f)) is not None]
+        """Return the first and last saved date from Parquet metadata, or ``None``.
+
+        For 3m only the oldest and newest year files are read; year files never overlap.
+        """
+        files = self._files(symbol, tf)
+        ends = list(dict.fromkeys(files[:1] + files[-1:]))
+        ranges = [r for f in ends if (r := _ts_range(f)) is not None]
         if not ranges:
             return None
         first = min(r[0] for r in ranges)

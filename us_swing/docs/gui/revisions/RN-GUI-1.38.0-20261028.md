@@ -20,7 +20,7 @@ New "Backtest data" section in Settings, right after Candle data (Option A, sing
 |---|---|---|
 | MD-GUI-030.001.M01 | `gui/backtest_data_panel.py` | New panel and `build_clear_dialog()` |
 | MD-GUI-030.004.M02 | `gui/app_service.py` | Backtest downloader, stats worker, 60 s auto delta check, clear guard, exit stop |
-| MD-GUI-030.006.M03 | `gui/settings_panel.py` | Section registered with Apply/Cancel; dot; `QDateEdit` dirty tracking |
+| MD-GUI-030.006.M03 | `gui/settings_panel.py` | Section registered with Apply/Cancel; dot; `QDateEdit` dirty tracking; Universe backtest columns (MD-GUI-030.008.M06) |
 | MD-GUI-030.004.M04 | `gui/system_store.py` | `ibkr_backtest_client_id` (default 16) |
 | MD-GUI-030.007.M05 | `gui/main_window.py` | Calls `shutdown_backtest_download()` on close; status bar shows backtest progress |
 | — | `gui/theme.py` | `QDateEdit` styled like `QTimeEdit` (also fixes the Candle data start date) |
@@ -38,6 +38,7 @@ New "Backtest data" section in Settings, right after Candle data (Option A, sing
 | SRD-GUI-030.005 | Clear needs typed CLEAR | Implemented |
 | SRD-GUI-030.006 | Section dot | Implemented |
 | SRD-GUI-030.007 | Status bar shows backtest progress (user request after testing) | Implemented |
+| SRD-GUI-030.008 | Universe table shows backtest status, BT From, BT To (user request) | Implemented |
 
 ---
 

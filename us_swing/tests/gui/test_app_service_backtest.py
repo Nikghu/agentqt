@@ -72,3 +72,27 @@ def test_clear_refused_while_downloading(svc: Any, tmp_path: Path) -> None:
 
     assert svc.clear_backtest_data() is False
     assert (tmp_path / "1d" / "AAPL.parquet").exists()
+
+
+def test_universe_backtest_coverage(svc: Any) -> None:
+    """UT-GUI-030.008.M02.T01: Per-stock backtest dates and status for the Universe table."""
+    from us_swing.gui.app_service import _compute_last_trading_day
+
+    last = _compute_last_trading_day()
+    svc._sp500 = [Sp500Record(s, s, s, "Tech") for s in ("AAPL", "MSFT", "NVDA")]
+    store = svc._bkt_store
+    now = datetime(2030, 1, 1, tzinfo=timezone.utc)
+
+    def bars(day: str) -> pd.DataFrame:
+        return pd.DataFrame({"ts": [pd.Timestamp(day, tz="UTC")], "open": [1.0], "high": [1.0],
+                             "low": [1.0], "close": [1.0], "volume": [1.0]})
+
+    store.save("AAPL", "1d", bars("2026-01-02"), now)
+    store.save("AAPL", "3m", bars(f"{last} 15:00"), now)
+    store.save("MSFT", "1d", bars("2026-01-02"), now)
+
+    cov = svc.get_backtest_symbol_coverage()
+
+    assert cov["AAPL"] == (last.isoformat(), last.isoformat(), "ok")
+    assert cov["MSFT"] == ("2026-01-02", "2026-01-02", "1d")
+    assert cov["NVDA"] == (None, None, "none")
