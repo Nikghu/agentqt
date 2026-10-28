@@ -50,6 +50,7 @@ First BKT module: a Parquet candle store for backtesting plus a TWS downloader. 
 - The run-end signal is `completed`, because `QThread` already owns `finished`.
 - The plan is built inside the download thread; reading metadata for 500 stocks is too slow for the GUI thread.
 - A 1d request that starts much later than the range start (IPO) sets the stock's floor, so it is not asked again.
+- No fixed 50-per-10-minute limiter (user test 2026-10-28: download sat at 50 of 503 for 10 minutes). Requests run back to back like the candle download; errors and timeouts still retry. Estimate line now shows hours (~1 s per 1d, ~4 s per 3m request, measured).
 - Stocks use the S&P 500 `ibkr_symbol` (e.g. `BRK B`) as the file name.
 
 ---

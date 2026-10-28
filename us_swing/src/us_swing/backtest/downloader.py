@@ -2,7 +2,8 @@
 Module: MD-BKT-001.006.M04 — backtest/downloader.py
 Parent SRD: SRD-BKT-001.006
 
-Runs planned jobs against TWS in a background thread: pacing, retry, floors and stop.
+Runs planned jobs against TWS in a background thread: retry, floors and stop. Requests go
+one after another with no fixed limit, like the candle download; TWS slows them itself.
 Uses its own client ID so it never disturbs the live feeds.
 """
 from __future__ import annotations
@@ -65,7 +66,7 @@ class BacktestDownloader(QThread):
         self._port = port
         self._client_id = client_id
         self._delta = delta
-        self._pacing = pacing or PacingQueue()
+        self._pacing = pacing
         self._retry_wait_s = retry_wait_s
         self._timeout_s = timeout_s
         self._stop = False
@@ -171,7 +172,8 @@ class BacktestDownloader(QThread):
     async def _request(self, ib: Any, job: Job) -> list[Any]:
         from ib_insync import Stock
 
-        await self._pacing.acquire()
+        if self._pacing is not None:
+            await self._pacing.acquire()
         result = await asyncio.wait_for(
             ib.reqHistoricalDataAsync(
                 Stock(job.symbol, "SMART", "USD"),

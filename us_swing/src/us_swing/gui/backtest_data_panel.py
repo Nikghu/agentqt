@@ -42,7 +42,8 @@ _ET = ZoneInfo("America/New_York")
 _DAY_NAMES = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 _STAT_KEYS = ("1d bars", "3m bars", "Last delta", "Disk")
 _CONFIRM_WORD = "CLEAR"
-_REQUESTS_PER_DAY = 5 * 60 * 24   # IBKR pacing: about 50 requests per 10 minutes
+_SECONDS_1D = 1.0   # measured on TWS: one 1d request per stock
+_SECONDS_3M = 4.0   # measured on TWS: one 3-month 3m request
 
 
 def _qdate(day: datetime.date) -> QDate:
@@ -364,10 +365,10 @@ class BacktestDataPanel(QWidget):
         end = QDate.currentDate() if self._latest.isChecked() else self._end.date()
         years = max(self._start.date().daysTo(end) / 365.25, 0.0)
         stocks = self._stats.stocks if self._stats and self._stats.stocks else 503
-        requests = int(stocks * (1 + years * 4))
-        days = requests / _REQUESTS_PER_DAY
+        windows = int(stocks * years * 4)
+        hours = (stocks * _SECONDS_1D + windows * _SECONDS_3M) / 3600
         self._estimate.setText(
-            f"Full download ≈ {requests:,} requests · about {days:.1f} days of TWS time"
+            f"Full download ≈ {stocks + windows:,} requests · about {hours:.0f} h"
         )
 
     # ── Service signals ───────────────────────────────────────────────────────
