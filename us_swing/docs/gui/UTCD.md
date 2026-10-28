@@ -812,6 +812,7 @@ Test files:
 | UT-GUI-030.001.M01.T02 | MD-GUI-030.001.M01 | Positive | Progress lines update | progress 3m 191 of 503 | 3m bar 38%; label "191 of 503" | Pass |
 | UT-GUI-030.002.M01.T01 | MD-GUI-030.001.M01 | Positive | Load and save settings | saved start 2018-01-01, latest on | fields filled; End date disabled; save writes same values | Pass |
 | UT-GUI-030.002.M01.T02 | MD-GUI-030.001.M01 | Negative | Start never after end | fixed end 2020-01-01, set start 2021-01-01 | start held at 2020-01-01 | Pass |
+| UT-GUI-030.002.M01.T03 | MD-GUI-030.001.M01 | Positive | Estimate uses real 3m speed | 503 stocks, 2024-01-02 to 2025-01-01; then from 2015 | "2,515 requests · about 14 h"; 10 years shows days | Pass |
 | UT-GUI-030.003.M01.T02 | MD-GUI-030.001.M01 | Positive | Auto delta fields load | saved on, 17:30, Mon–Fri | switch on; time 17:30; label "US/Eastern"; Mon–Fri chips checked | Pass |
 | UT-GUI-030.003.M01.T01 | MD-GUI-030.001.M01 | Negative | Fixed end date turns off auto delta | uncheck latest | auto delta switch disabled and saved off | Pass |
 | UT-GUI-030.004.M01.T01 | MD-GUI-030.001.M01 | Negative | TWS not connected | connection state false | Start, Fill and Clear disabled; hint "Connect TWS to download" | Pass |

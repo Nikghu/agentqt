@@ -47,7 +47,7 @@ _CONFIRM_WORD = "CLEAR"
 _SP500_SIZE = 503
 _STATS_REFRESH_S = 15.0   # stats re-read while a download runs
 _SECONDS_1D = 1.0   # measured on TWS: one 1d request per stock
-_SECONDS_3M = 4.0   # measured on TWS: one 3-month 3m request
+_SECONDS_3M = 25.0  # measured on TWS: one 3-month 3m request (parallel requests time out)
 
 
 def _qdate(day: datetime.date) -> QDate:
@@ -372,7 +372,12 @@ class BacktestDataPanel(QWidget):
         stocks = len(self._svc.get_sp500_universe()) or _SP500_SIZE
         windows = stocks * math.ceil(years * 4)
         minutes = (stocks * _SECONDS_1D + windows * _SECONDS_3M) / 60
-        took = f"{minutes / 60:.0f} h" if minutes >= 90 else f"{max(minutes, 1):.0f} min"
+        if minutes >= 48 * 60:
+            took = f"{minutes / 1440:.1f} days"
+        elif minutes >= 90:
+            took = f"{minutes / 60:.0f} h"
+        else:
+            took = f"{max(minutes, 1):.0f} min"
         self._estimate.setText(f"Full download ≈ {stocks + windows:,} requests · about {took}")
 
     # ── Service signals ───────────────────────────────────────────────────────

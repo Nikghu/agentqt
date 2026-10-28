@@ -139,6 +139,19 @@ def test_start_never_after_end(make: Any) -> None:
     assert panel._start.date() == QDate(2020, 1, 1)
 
 
+def test_estimate_uses_measured_3m_speed(make: Any) -> None:
+    """UT-GUI-030.002.M01.T03: Estimate uses 25 s per 3m request; long runs show days."""
+    panel, _svc = make()
+    panel._latest.setChecked(False)
+    panel._end.setDate(QDate(2025, 1, 1))
+    panel._start.setDate(QDate(2024, 1, 2))
+
+    assert panel._estimate.text() == "Full download ≈ 2,515 requests · about 14 h"
+
+    panel._start.setDate(QDate(2015, 1, 2))
+    assert panel._estimate.text().endswith("days")
+
+
 def test_auto_delta_fields_load(make: Any, tmp_path: Path) -> None:
     """UT-GUI-030.003.M01.T02: Auto delta switch, time, zone label and day chips load."""
     BacktestDataSettings().save(tmp_path)
