@@ -436,8 +436,18 @@ class BacktestDataPanel(QWidget):
         self._refresh_state()
 
     def _on_clear_clicked(self) -> None:
-        if self._confirm_clear():
-            self._svc.clear_backtest_data()
+        if not self._confirm_clear():
+            return
+        freed = _size(self._stats.size_bytes) if self._stats and self._stats.size_bytes else ""
+        if not self._svc.clear_backtest_data():
+            self._hint.setText("Pause the download before clearing")
+            return
+        for tf, bar in self._bars.items():
+            bar.setValue(0)
+            self._counts[tf].setText("—")
+        self._summary.setText("No backtest data yet")
+        self._hint.setText(f"Backtest data cleared · {freed} freed" if freed
+                           else "Backtest data cleared")
 
     def _confirm_clear(self) -> bool:
         size = _size(self._stats.size_bytes) if self._stats else "all"

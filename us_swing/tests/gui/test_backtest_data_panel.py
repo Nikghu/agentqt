@@ -207,9 +207,12 @@ def test_clear_needs_typed_word(make: Any, monkeypatch: pytest.MonkeyPatch) -> N
     assert button.isEnabled()
     dialog.reject()
 
+    svc.backtest_stats_changed.emit(_stats())
     monkeypatch.setattr(panel, "_confirm_clear", lambda: True)
     panel._clear_btn.click()
     assert "clear" in svc.calls
+    assert panel._hint.text() == "Backtest data cleared · 3.9 GB freed"
+    assert panel._summary.text() == "No backtest data yet"
 
 
 def test_dot_state(make: Any) -> None:
