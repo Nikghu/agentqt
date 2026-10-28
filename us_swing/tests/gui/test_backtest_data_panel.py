@@ -228,3 +228,39 @@ def test_dot_state(make: Any) -> None:
     assert panel.state == "ok"
     svc.backtest_stats_changed.emit(_stats(last=date(2026, 10, 1)))
     assert panel.state == "behind"
+
+
+def test_status_bar_shows_backtest(qtbot: Any) -> None:
+    """UT-GUI-030.007.M05.T01: Status bar shows progress, then the result, then hides."""
+    import sys
+    import types
+    from types import SimpleNamespace
+    from unittest.mock import MagicMock
+
+    from PyQt6.QtCore import QTimer
+    from PyQt6.QtWidgets import QLabel
+
+    # QWebEngineWidgets cannot load in tests — same stub as test_settings_sections.py.
+    web_stub = types.ModuleType("PyQt6.QtWebEngineWidgets")
+    web_stub.QWebEngineView = MagicMock  # type: ignore[attr-defined]
+    sys.modules.setdefault("PyQt6.QtWebEngineWidgets", web_stub)
+    from us_swing.gui.main_window import MainWindow
+
+    label = QLabel("")
+    label.hide()
+    qtbot.addWidget(label)
+    hide = QTimer()
+    hide.setSingleShot(True)
+    hide.setInterval(15_000)
+    hide.timeout.connect(label.hide)
+    win = SimpleNamespace(_sb_backtest=label, _sb_backtest_hide=hide)
+
+    MainWindow._on_backtest_progress(win, "1d", 35, 503, "AAPL")  # type: ignore[arg-type]
+    assert label.text() == "Backtest data · 1d 35 of 503"
+    assert not label.isHidden()
+
+    MainWindow._on_backtest_finished(win, True, "Done")  # type: ignore[arg-type]
+    assert label.text() == "Backtest data · Done"
+    assert hide.isActive()
+    hide.timeout.emit()
+    assert label.isHidden()

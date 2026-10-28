@@ -22,7 +22,7 @@ New "Backtest data" section in Settings, right after Candle data (Option A, sing
 | MD-GUI-030.004.M02 | `gui/app_service.py` | Backtest downloader, stats worker, 60 s auto delta check, clear guard, exit stop |
 | MD-GUI-030.006.M03 | `gui/settings_panel.py` | Section registered with Apply/Cancel; dot; `QDateEdit` dirty tracking |
 | MD-GUI-030.004.M04 | `gui/system_store.py` | `ibkr_backtest_client_id` (default 16) |
-| — | `gui/main_window.py` | Calls `shutdown_backtest_download()` on close |
+| MD-GUI-030.007.M05 | `gui/main_window.py` | Calls `shutdown_backtest_download()` on close; status bar shows backtest progress |
 | — | `gui/theme.py` | `QDateEdit` styled like `QTimeEdit` (also fixes the Candle data start date) |
 
 ---
@@ -37,6 +37,7 @@ New "Backtest data" section in Settings, right after Candle data (Option A, sing
 | SRD-GUI-030.004 | Actions disabled with "Connect TWS to download" | Implemented |
 | SRD-GUI-030.005 | Clear needs typed CLEAR | Implemented |
 | SRD-GUI-030.006 | Section dot | Implemented |
+| SRD-GUI-030.007 | Status bar shows backtest progress (user request after testing) | Implemented |
 
 ---
 

@@ -821,3 +821,4 @@ Test files:
 | UT-GUI-030.006.M01.T01 | MD-GUI-030.001.M01 | Positive | Dot state | empty / running / up to date | off / warn / ok | Pass |
 | UT-GUI-030.004.M02.T01 | MD-GUI-030.004.M02 | Positive | Auto delta starts once when due | `delta_due` true twice, fake downloader | one delta started; none while it runs | Pass |
 | UT-GUI-030.004.M02.T02 | MD-GUI-030.004.M02 | Negative | Clear refused while downloading | `clear_backtest_data()` while a run is active | returns False; store files kept | Pass |
+| UT-GUI-030.007.M05.T01 | MD-GUI-030.007.M05 | Positive | Status bar shows backtest state | progress 1d 35 of 503, then finished Done | text "Backtest data · 1d 35 of 503", then "Backtest data · Done", hidden after 15 s | Pass |

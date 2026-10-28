@@ -386,7 +386,8 @@ class BacktestDataPanel(QWidget):
             for value in self._values.values():
                 value.setText("—")
         else:
-            self._summary.setText(f"{stats.stocks} stocks · {stats.first} to {stats.last}")
+            noun = "stock" if stats.stocks == 1 else "stocks"
+            self._summary.setText(f"{stats.stocks} {noun} · {stats.first} to {stats.last}")
             self._values["1d bars"].setText(_compact(stats.bars_1d))
             self._values["3m bars"].setText(_compact(stats.bars_3m))
             last = stats.last_delta
