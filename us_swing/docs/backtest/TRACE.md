@@ -3,7 +3,7 @@
 **Document ID:** TRACE-BKT
 **Version:** 1.0.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-10-28 (FO-BKT-001 docs written; SRDs Draft)
+**Last Updated:** 2026-10-28 (FO-BKT-001 implemented; RN-BKT-1.0.0)
 
 ---
 
@@ -11,7 +11,7 @@
 
 | FO ID | SRD ID | DD ID | MD ID | UTCD IDs | Code File | Status | RN |
 |---|---|---|---|---|---|---|---|
-| FO-BKT-001 | SRD-BKT-001.001–.011 | DD-BKT-001.001.D01 | MD-BKT-001.001.M01, .004.M02, .005.M03, .006.M04, .009.M05 | UT-BKT-001.* (27 tests) | `backtest/store.py`, `backtest/settings.py`, `backtest/planner.py`, `backtest/downloader.py`, `backtest/schedule.py` | Draft | — |
+| FO-BKT-001 | SRD-BKT-001.001–.011 | DD-BKT-001.001.D01 | MD-BKT-001.001.M01, .004.M02, .005.M03, .006.M04, .009.M05 | UT-BKT-001.* (27 tests, Pass) | `backtest/store.py`, `backtest/settings.py`, `backtest/planner.py`, `backtest/downloader.py`, `backtest/schedule.py` | Implemented | RN-BKT-1.0.0-20261028 |
 
 ## Reverse Traceability: Code → MD → SRD → FO
 

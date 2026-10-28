@@ -68,4 +68,4 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T56 | IBKR reported no market data permission for all 9 stocks on 26 Oct — user to check TWS subscription; until fixed, live candles come from Yahoo (ISS-EXE-0013). | `execution/live_bar_worker.py` | High | Open |
 | T57 | Re-profile the freeze fix (ISS-GUI-0009) with py-spy during market hours; installed app must be closed first to avoid two engines. | `gui/app_service.py` | High | Open |
 | T58 | GUI — KPI strip minimum width is its full text width; very long values could still push the maximized window past the screen with a right panel open (ISS-GUI-0010 note). | `gui/dashboard_tiles.py` | Low | Open |
-| T59 | BKT/GUI — Backtest data store + Settings section (FO-BKT-001, FO-GUI-030): docs Draft on feat/backtest-data; waiting for user SRD approval, then 5 code phases. | `backtest/`, `gui/backtest_data_panel.py` | High | Open |
+| T59 | BKT/GUI — Backtest data store + Settings section (FO-BKT-001, FO-GUI-030): code done on feat/backtest-data (unpushed); pending real TWS check (3 stocks), user GUI check, then PR. | `backtest/`, `gui/backtest_data_panel.py` | High | Open |
