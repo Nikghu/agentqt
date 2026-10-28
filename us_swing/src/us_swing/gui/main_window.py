@@ -960,6 +960,7 @@ class MainWindow(QMainWindow):
         self._demo._stop_live_bar_worker()
         self._demo.shutdown_notifications()
         self._demo.shutdown_order_connection()
+        self._demo.shutdown_backtest_download()
         settings = QSettings("USSwing", "MainWindow")
         settings.setValue("geometry", self.saveGeometry())
         super().closeEvent(event)  # type: ignore[arg-type]

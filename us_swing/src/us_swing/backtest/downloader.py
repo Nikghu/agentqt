@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections import Counter
+from collections.abc import Callable, Sequence
 from datetime import date, datetime, time, timedelta, timezone
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -45,7 +46,7 @@ class BacktestDownloader(QThread):
 
     def __init__(
         self,
-        jobs: list[Job],
+        jobs: Sequence[Job] | Callable[[], list[Job]],
         store: BacktestStore,
         *,
         host: str = "127.0.0.1",
@@ -84,11 +85,12 @@ class BacktestDownloader(QThread):
 
     async def run_jobs(self, ib: Any) -> tuple[bool, str]:
         """Run every job on a connected ``ib``; return ``(ok, message)``."""
+        jobs = self._resolve_jobs()
         state = DownloadState.load(self._store.root)
         state.failed = []
-        totals = Counter(job.tf for job in self._jobs)
+        totals = Counter(job.tf for job in jobs)
         done: Counter[str] = Counter()
-        for job in self._jobs:
+        for job in jobs:
             if self._stop:
                 _log.info("[Backtest] Download paused")
                 state.save(self._store.root)
@@ -106,8 +108,22 @@ class BacktestDownloader(QThread):
         _log.info("[Backtest] Download finished")
         return True, "Done"
 
+    def _resolve_jobs(self) -> list[Job]:
+        if callable(self._jobs):
+            self._jobs = self._jobs()
+        return list(self._jobs)
+
     async def _connect_and_run(self) -> tuple[bool, str]:
         from ib_insync import IB
+
+        jobs = self._resolve_jobs()
+        if not jobs:
+            if self._delta:
+                state = DownloadState.load(self._store.root)
+                state.last_delta = datetime.now(timezone.utc)
+                state.save(self._store.root)
+            _log.info("[Backtest] Backtest data is already up to date")
+            return True, "Up to date"
 
         ib = IB()  # type: ignore[no-untyped-call]
         client_id = self._client_id
@@ -130,7 +146,7 @@ class BacktestDownloader(QThread):
                 client_id += 1
             finally:
                 ib.errorEvent -= on_error
-        _log.info("[Backtest] Downloading %d request(s) from TWS", len(self._jobs))
+        _log.info("[Backtest] Downloading %d request(s) from TWS", len(jobs))
         try:
             return await self.run_jobs(ib)
         finally:

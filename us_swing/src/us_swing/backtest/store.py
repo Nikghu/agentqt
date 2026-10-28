@@ -28,7 +28,6 @@ _ET = ZoneInfo("America/New_York")
 _DAY_DONE = time(16, 15)
 _PRICE_COLUMNS = ["open", "high", "low", "close", "volume"]
 _COLUMNS = ["ts", *_PRICE_COLUMNS]
-_TIMEFRAMES: tuple[Timeframe, ...] = ("1d", "3m")
 
 
 @dataclass(frozen=True, slots=True)
@@ -39,8 +38,8 @@ class BacktestStats:
         stocks: Number of stocks with any saved bars.
         bars_1d: Total 1d bars.
         bars_3m: Total 3m bars.
-        first: Earliest saved date, or ``None`` when empty.
-        last: Latest saved date, or ``None`` when empty.
+        first: Earliest saved 1d date, or ``None`` when empty.
+        last: Latest saved 1d date, or ``None`` when empty.
         size_bytes: Disk size of all Parquet files.
         last_delta: When the last delta fill finished, or ``None``.
     """
@@ -127,13 +126,7 @@ class BacktestStore:
         symbols_3m = {p.name for p in (self.root / "3m").glob("*") if p.is_dir()}
         files_1d = self._glob("1d", "*.parquet")
         files_3m = self._glob("3m", "*/*.parquet")
-        dates = [
-            d
-            for sym in symbols_1d | symbols_3m
-            for tf in _TIMEFRAMES
-            if (cov := self.coverage(sym, tf)) is not None
-            for d in cov
-        ]
+        dates = [d for sym in symbols_1d if (cov := self.coverage(sym, "1d")) for d in cov]
         return BacktestStats(
             stocks=len(symbols_1d | symbols_3m),
             bars_1d=sum(pq.read_metadata(f).num_rows for f in files_1d),

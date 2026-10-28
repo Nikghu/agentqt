@@ -819,5 +819,5 @@ Test files:
 | UT-GUI-030.005.M01.T01 | MD-GUI-030.001.M01 | Negative | Clear cancelled | confirm returns Cancel | `clear_backtest_data` not called | Not Run |
 | UT-GUI-030.005.M01.T02 | MD-GUI-030.001.M01 | Positive | Clear needs typed CLEAR | type "clear", then "CLEAR" | button disabled, then enabled; accept calls clear | Not Run |
 | UT-GUI-030.006.M01.T01 | MD-GUI-030.001.M01 | Positive | Dot state | empty / running / up to date | off / warn / ok | Not Run |
-| UT-GUI-030.004.M02.T01 | MD-GUI-030.004.M02 | Positive | Auto delta starts once when due | `delta_due` true twice, fake downloader | one delta started; none while it runs | Not Run |
-| UT-GUI-030.004.M02.T02 | MD-GUI-030.004.M02 | Negative | Clear refused while downloading | `clear_backtest_data()` while a run is active | returns False; store files kept | Not Run |
+| UT-GUI-030.004.M02.T01 | MD-GUI-030.004.M02 | Positive | Auto delta starts once when due | `delta_due` true twice, fake downloader | one delta started; none while it runs | Pass |
+| UT-GUI-030.004.M02.T02 | MD-GUI-030.004.M02 | Negative | Clear refused while downloading | `clear_backtest_data()` while a run is active | returns False; store files kept | Pass |
