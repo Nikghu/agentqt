@@ -1,0 +1,404 @@
+{
+  "generated": "2026-10-28T05:57:02",
+  "subfolder": "backtest",
+  "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\backtest",
+  "tool_code": "BKT",
+  "files": {
+    "__init__.py": {
+      "constants": [
+        "DEFAULT_ROOT: Path = Path.home() / \".usswing\" / \"backtest\""
+      ]
+    },
+    "downloader.py": {
+      "module_id": "MD-BKT-001.006.M04",
+      "srd_id": "SRD-BKT-001.006",
+      "classes": [
+        {
+          "name": "BacktestDownloader",
+          "docstring": "Download backtest candles from TWS for a planned job list.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(\n        self,\n        jobs: list[Job],\n        store: BacktestStore,\n        *,\n        host: str = \"127.0.0.1\",\n        port: int = 7497,\n        client_id: int = 16,\n        delta: bool = False,\n        pacing: PacingQueue | None = None,\n        retry_wait_s: float = 30.0,\n        timeout_s: float = 90.0,\n        parent: QObject | None = None,\n    ) -> None",
+              "line_start": 46,
+              "line_end": 70
+            },
+            {
+              "name": "request_stop",
+              "signature": "def request_stop(self) -> None",
+              "docstring": "Stop after the current request finishes.",
+              "line_start": 72,
+              "line_end": 74
+            },
+            {
+              "name": "run",
+              "signature": "def run(self) -> None",
+              "docstring": "QThread entry: connect, run the jobs, disconnect, emit ``completed``.",
+              "line_start": 76,
+              "line_end": 83
+            },
+            {
+              "name": "run_jobs",
+              "signature": "def run_jobs(self, ib: Any) -> tuple[bool, str]",
+              "docstring": "Run every job on a connected ``ib``; return ``(ok, message)``.",
+              "line_start": 85,
+              "line_end": 107
+            },
+            {
+              "name": "_connect_and_run",
+              "signature": "def _connect_and_run(self) -> tuple[bool, str]",
+              "line_start": 109,
+              "line_end": 137
+            },
+            {
+              "name": "_run_job",
+              "signature": "def _run_job(self, ib: Any, job: Job, state: DownloadState) -> None",
+              "line_start": 139,
+              "line_end": 153
+            },
+            {
+              "name": "_request",
+              "signature": "def _request(self, ib: Any, job: Job) -> list[Any]",
+              "line_start": 155,
+              "line_end": 171
+            },
+            {
+              "name": "_update_floor",
+              "signature": "def _update_floor(self, job: Job, state: DownloadState, got_bars: bool) -> None",
+              "line_start": 173,
+              "line_end": 180
+            },
+            {
+              "name": "_below_floor",
+              "signature": "def _below_floor(job: Job, state: DownloadState) -> bool",
+              "decorators": [
+                "@staticmethod"
+              ],
+              "line_start": 183,
+              "line_end": 185
+            }
+          ],
+          "line_start": 35,
+          "line_end": 185
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_end_time",
+          "signature": "def _end_time(end: date) -> datetime | str",
+          "line_start": 188,
+          "line_end": 190
+        },
+        {
+          "name": "_to_frame",
+          "signature": "def _to_frame(bars: list[Any]) -> pd.DataFrame",
+          "line_start": 193,
+          "line_end": 201
+        }
+      ],
+      "constants": [
+        "_ET = ZoneInfo(\"America/New_York\")",
+        "_TRIES = 3",
+        "_MAX_CLIENT_ID_RETRIES = 3",
+        "_IPO_SLACK = timedelta(days=7)",
+        "_BAR_SIZE = {\"1d\": \"1 day\", \"3m\": \"3 mins\"}",
+        "_RETRYABLE = (asyncio.TimeoutError, ConnectionError, OSError)"
+      ]
+    },
+    "planner.py": {
+      "module_id": "MD-BKT-001.005.M03",
+      "srd_id": "SRD-BKT-001.005",
+      "classes": [
+        {
+          "name": "Job",
+          "docstring": "One historical-data request.",
+          "class_vars": [
+            "symbol: str",
+            "tf: Timeframe",
+            "start: date",
+            "end: date",
+            "duration: str"
+          ],
+          "line_start": 31,
+          "line_end": 46
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "plan",
+          "signature": "def plan(\r\n    symbols: list[str],\r\n    settings: BacktestDataSettings,\r\n    coverage: CoverageFn,\r\n    floors: Mapping[str, date],\r\n    last_session: date,\r\n    delta_only: bool = False,\r\n) -> list[Job]",
+          "docstring": "Return the jobs still needed: all 1d jobs, then 3m jobs newest end first.",
+          "line_start": 49,
+          "line_end": 84
+        },
+        {
+          "name": "_missing",
+          "signature": "def _missing(\r\n    symbol: str,\r\n    tf: Timeframe,\r\n    start: date,\r\n    end: date,\r\n    saved: tuple[date, date] | None,\r\n    floor: date | None,\r\n) -> list[Job]",
+          "line_start": 87,
+          "line_end": 103
+        },
+        {
+          "name": "_back",
+          "signature": "def _back(symbol: str, tf: Timeframe, start: date, end: date, floor: date | None) -> list[Job]",
+          "line_start": 106,
+          "line_end": 113
+        },
+        {
+          "name": "_forward",
+          "signature": "def _forward(symbol: str, tf: Timeframe, last: date, end: date, *, delta: bool) -> list[Job]",
+          "line_start": 116,
+          "line_end": 128
+        },
+        {
+          "name": "_windows",
+          "signature": "def _windows(start: date, end: date) -> list[tuple[date, date]]",
+          "docstring": "3-month windows ``(w_start, w_end]`` from ``end`` back until one reaches ``start",
+          "line_start": 131,
+          "line_end": 142
+        },
+        {
+          "name": "_weekdays_after",
+          "signature": "def _weekdays_after(last: date, end: date) -> int",
+          "line_start": 145,
+          "line_end": 148
+        },
+        {
+          "name": "_years",
+          "signature": "def _years(start: date, end: date) -> str",
+          "line_start": 151,
+          "line_end": 152
+        }
+      ],
+      "constants": [
+        "_WINDOW_MONTHS = 3",
+        "_BACKFILL_SLACK = timedelta(days=7)",
+        "_MIN_DELTA_DAYS = 2",
+        "_MAX_3M_DAYS = 60",
+        "_MAX_1D_DAYS = 250",
+        "_TIMEFRAMES: tuple[Timeframe, ...] = (\"1d\", \"3m\")"
+      ]
+    },
+    "settings.py": {
+      "module_id": "MD-BKT-001.004.M02",
+      "srd_id": "SRD-BKT-001.004",
+      "classes": [
+        {
+          "name": "BacktestDataSettings",
+          "docstring": "User settings for the backtest data download.",
+          "class_vars": [
+            "start_date: date",
+            "end_date: date | None",
+            "auto_delta: bool",
+            "run_time: time",
+            "run_days: tuple[int, ...]"
+          ],
+          "methods": [
+            {
+              "name": "load",
+              "signature": "def load(cls, root: Path) -> BacktestDataSettings",
+              "docstring": "Load settings from ``root``; defaults when missing or unreadable.",
+              "decorators": [
+                "@classmethod"
+              ],
+              "line_start": 61,
+              "line_end": 77
+            },
+            {
+              "name": "save",
+              "signature": "def save(self, root: Path) -> None",
+              "docstring": "Write settings to ``root`` atomically.",
+              "line_start": 79,
+              "line_end": 87
+            }
+          ],
+          "line_start": 43,
+          "line_end": 87
+        },
+        {
+          "name": "DownloadState",
+          "docstring": "Download progress kept between runs.",
+          "class_vars": [
+            "last_delta: datetime | None",
+            "floors: dict[str, date]",
+            "failed: list[str]"
+          ],
+          "methods": [
+            {
+              "name": "load",
+              "signature": "def load(cls, root: Path) -> DownloadState",
+              "docstring": "Load state from ``root``; empty state when missing or unreadable.",
+              "decorators": [
+                "@classmethod"
+              ],
+              "line_start": 105,
+              "line_end": 119
+            },
+            {
+              "name": "save",
+              "signature": "def save(self, root: Path) -> None",
+              "docstring": "Write state to ``root`` atomically.",
+              "line_start": 121,
+              "line_end": 127
+            }
+          ],
+          "line_start": 91,
+          "line_end": 127
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_read_json",
+          "signature": "def _read_json(path: Path) -> dict[str, Any] | None",
+          "line_start": 24,
+          "line_end": 32
+        },
+        {
+          "name": "_write_json",
+          "signature": "def _write_json(path: Path, data: dict[str, Any]) -> None",
+          "line_start": 35,
+          "line_end": 39
+        }
+      ],
+      "constants": [
+        "SETTINGS_FILE = \"settings.json\"",
+        "STATE_FILE = \"state.json\""
+      ]
+    },
+    "store.py": {
+      "module_id": "MD-BKT-001.001.M01",
+      "srd_id": "SRD-BKT-001.001",
+      "classes": [
+        {
+          "name": "BacktestStats",
+          "docstring": "Summary of what the store holds.",
+          "class_vars": [
+            "stocks: int",
+            "bars_1d: int",
+            "bars_3m: int",
+            "first: date | None",
+            "last: date | None",
+            "size_bytes: int",
+            "last_delta: datetime | None"
+          ],
+          "line_start": 35,
+          "line_end": 54
+        },
+        {
+          "name": "BacktestStore",
+          "docstring": "Read, merge-save and summarise backtest candles under ``root``.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, root: Path = DEFAULT_ROOT) -> None",
+              "line_start": 60,
+              "line_end": 61
+            },
+            {
+              "name": "save",
+              "signature": "def save(self, symbol: str, tf: Timeframe, df: pd.DataFrame, now: datetime) -> int",
+              "docstring": "Merge ``df`` into the saved bars for ``symbol`` and replace the file(s) atomical",
+              "line_start": 63,
+              "line_end": 89
+            },
+            {
+              "name": "read",
+              "signature": "def read(\r\n        self,\r\n        symbol: str,\r\n        tf: Timeframe,\r\n        start: date | None = None,\r\n        end: date | None = None,\r\n    ) -> pd.DataFrame",
+              "docstring": "Return saved bars for ``symbol`` in time order, optionally limited to a date ran",
+              "line_start": 91,
+              "line_end": 113
+            },
+            {
+              "name": "coverage",
+              "signature": "def coverage(self, symbol: str, tf: Timeframe) -> tuple[date, date] | None",
+              "docstring": "Return the first and last saved date from Parquet metadata, or ``None``.",
+              "line_start": 115,
+              "line_end": 122
+            },
+            {
+              "name": "stats",
+              "signature": "def stats(self) -> BacktestStats",
+              "docstring": "Summarise the store from file metadata without reading the bars.",
+              "line_start": 124,
+              "line_end": 145
+            },
+            {
+              "name": "clear",
+              "signature": "def clear(self) -> None",
+              "docstring": "Delete all saved candles and the download state; keep ``settings.json``.",
+              "line_start": 147,
+              "line_end": 151
+            },
+            {
+              "name": "_path_1d",
+              "signature": "def _path_1d(self, symbol: str) -> Path",
+              "line_start": 153,
+              "line_end": 154
+            },
+            {
+              "name": "_dir_3m",
+              "signature": "def _dir_3m(self, symbol: str) -> Path",
+              "line_start": 156,
+              "line_end": 157
+            },
+            {
+              "name": "_files",
+              "signature": "def _files(self, symbol: str, tf: Timeframe) -> list[Path]",
+              "line_start": 159,
+              "line_end": 163
+            },
+            {
+              "name": "_glob",
+              "signature": "def _glob(self, sub: str, pattern: str) -> list[Path]",
+              "line_start": 165,
+              "line_end": 166
+            },
+            {
+              "name": "_merge_write",
+              "signature": "def _merge_write(path: Path, bars: pd.DataFrame) -> None",
+              "decorators": [
+                "@staticmethod"
+              ],
+              "line_start": 169,
+              "line_end": 181
+            }
+          ],
+          "line_start": 57,
+          "line_end": 181
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_normalise",
+          "signature": "def _normalise(df: pd.DataFrame, tf: Timeframe) -> pd.DataFrame",
+          "line_start": 184,
+          "line_end": 194
+        },
+        {
+          "name": "_et_dates",
+          "signature": "def _et_dates(ts: pd.Series, tf: Timeframe) -> pd.Series",
+          "line_start": 197,
+          "line_end": 199
+        },
+        {
+          "name": "_et_date",
+          "signature": "def _et_date(stamp: pd.Timestamp, tf: Timeframe) -> date",
+          "line_start": 202,
+          "line_end": 206
+        },
+        {
+          "name": "_ts_range",
+          "signature": "def _ts_range(path: Path) -> tuple[pd.Timestamp, pd.Timestamp] | None",
+          "line_start": 209,
+          "line_end": 221
+        }
+      ],
+      "constants": [
+        "_ET = ZoneInfo(\"America/New_York\")",
+        "_DAY_DONE = time(16, 15)",
+        "_PRICE_COLUMNS = [\"open\", \"high\", \"low\", \"close\", \"volume\"]",
+        "_COLUMNS = [\"ts\", *_PRICE_COLUMNS]",
+        "_TIMEFRAMES: tuple[Timeframe, ...] = (\"1d\", \"3m\")"
+      ]
+    }
+  }
+}
