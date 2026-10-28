@@ -13,6 +13,7 @@ import logging
 from collections import Counter
 from collections.abc import Callable, Sequence
 from datetime import date, datetime, time, timedelta, timezone
+from time import monotonic
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -172,19 +173,21 @@ class BacktestDownloader(QThread):
 
         if self._pacing is not None:
             await self._pacing.acquire()
-        result = await asyncio.wait_for(
-            ib.reqHistoricalDataAsync(
-                Stock(job.symbol, "SMART", "USD"),
-                endDateTime=_end_time(job.end),
-                durationStr=job.duration,
-                barSizeSetting=_BAR_SIZE[job.tf],
-                whatToShow="TRADES",
-                useRTH=True,
-                formatDate=2,
-            ),
+        started = monotonic()
+        result = await ib.reqHistoricalDataAsync(
+            Stock(job.symbol, "SMART", "USD"),
+            endDateTime=_end_time(job.end),
+            durationStr=job.duration,
+            barSizeSetting=_BAR_SIZE[job.tf],
+            whatToShow="TRADES",
+            useRTH=True,
+            formatDate=2,
             timeout=self._timeout_s,
         )
-        return list(result or [])
+        if not result and monotonic() - started >= self._timeout_s:
+            # ib_insync cancels a timed-out request and returns an empty list, not an error.
+            raise asyncio.TimeoutError
+        return list(result)
 
     def _update_floor(self, job: Job, state: DownloadState, got_bars: bool) -> None:
         saved = self._store.coverage(job.symbol, job.tf)

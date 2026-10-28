@@ -37,6 +37,7 @@
 | UT-BKT-001.006.M04.T01 | MD-BKT-001.006.M04 | Positive | Jobs saved with progress | fake IB returns bars for 2 jobs | both saved; progress emitted 1/2, 2/2; returns ok | Pass |
 | UT-BKT-001.006.M04.T02 | MD-BKT-001.006.M04 | Negative | Retry then mark failed | fake IB times out every time for AAPL | 3 tries; AAPL in failed; MSFT jobs still run | Pass |
 | UT-BKT-001.006.M04.T03 | MD-BKT-001.006.M04 | Edge | Empty window sets floor | 3m window returns no bars, newer data saved | floor set to window end | Pass |
+| UT-BKT-001.006.M04.T04 | MD-BKT-001.006.M04 | Negative | Slow empty answer is a timeout | ib_insync times out and returns no bars | retried 3 times, marked failed, no floor | Pass |
 | UT-BKT-001.007.M04.T01 | MD-BKT-001.006.M04 | Positive | Stop ends after current job | stop requested during job 1 of 3 | job 1 saved; jobs 2–3 not requested | Pass |
 | UT-BKT-001.007.M04.T02 | MD-BKT-001.006.M04 | Negative | Stopped run is not reported complete | stop requested during job 1 of 3 | returns ok False with message "Stopped" | Pass |
 | UT-BKT-001.009.M05.T01 | MD-BKT-001.009.M05 | Positive | Due after run time | Tue 17:31 ET, last delta Mon 17:35 | due | Pass |

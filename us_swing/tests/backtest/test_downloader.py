@@ -29,12 +29,19 @@ Handler = Callable[[str, str], list[_Bar]]
 
 
 class _FakeIB:
-    def __init__(self, handler: Handler) -> None:
+    def __init__(self, handler: Handler, delay: float = 0.0, ib_timeout: float = 60.0) -> None:
         self.handler = handler
+        self.delay = delay
+        self.ib_timeout = ib_timeout
         self.calls: list[tuple[str, str]] = []
 
     async def reqHistoricalDataAsync(self, contract: Any, **kwargs: Any) -> list[_Bar]:
         self.calls.append((contract.symbol, kwargs["durationStr"]))
+        timeout = kwargs.get("timeout", self.ib_timeout)
+        if self.delay >= timeout:
+            await asyncio.sleep(timeout)
+            return []
+        await asyncio.sleep(self.delay)
         return self.handler(contract.symbol, kwargs["barSizeSetting"])
 
 
@@ -98,6 +105,25 @@ def test_empty_window_sets_floor(tmp_path: Path) -> None:
     asyncio.run(_downloader(tmp_path, [old]).run_jobs(_FakeIB(lambda s, b: [])))
 
     assert DownloadState.load(tmp_path).floors == {"AAPL": date(2024, 10, 3)}
+
+
+def test_slow_empty_answer_is_timeout(tmp_path: Path) -> None:
+    """UT-BKT-001.006.M04.T04: An empty answer after the timeout is retried, not a floor."""
+    store = BacktestStore(tmp_path)
+    recent = [_Bar(datetime(2025, 1, 2, 15, 0, tzinfo=timezone.utc))]
+    asyncio.run(_downloader(tmp_path, [
+        Job("AAPL", "3m", date(2024, 10, 3), date(2025, 1, 3), "3 M"),
+    ]).run_jobs(_FakeIB(lambda s, b: recent)))
+
+    old = Job("AAPL", "3m", date(2024, 7, 3), date(2024, 10, 3), "3 M")
+    ib = _FakeIB(lambda s, b: recent, delay=0.1, ib_timeout=0.01)
+    dl = BacktestDownloader([old], store, retry_wait_s=0.0, timeout_s=0.03)
+    asyncio.run(dl.run_jobs(ib))
+
+    state = DownloadState.load(tmp_path)
+    assert len(ib.calls) == 3
+    assert state.floors == {}
+    assert state.failed == ["AAPL"]
 
 
 def test_stop_ends_after_current_job(tmp_path: Path) -> None:
