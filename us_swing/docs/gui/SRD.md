@@ -504,9 +504,9 @@
 
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
-| SRD-GUI-030.001 | FO-GUI-030 | Must | A Backtest data section below Candle data shows a summary line with pill, 1d and 3m progress lines and a stat strip of 1d bars, 3m bars, Last delta and Disk. | store stats, progress | card | Same look as the Candle data section | Draft |
-| SRD-GUI-030.002 | FO-GUI-030 | Must | A Range card has Start date and End date with an "Up to latest trading day" check that disables End date. | settings | fields | Saved on Apply; start never after end | Draft |
-| SRD-GUI-030.003 | FO-GUI-030 | Must | An Auto delta card has an on/off switch, a run time labelled US/Eastern and Mon–Sun day chips. | settings | fields | Switch disabled while End date is fixed | Draft |
-| SRD-GUI-030.004 | FO-GUI-030 | Must | Start download (Pause while running), Fill delta now and Clear database act at once and are disabled with "Connect TWS to download" when TWS is not connected. | click | download, delta, clear | Fill and Clear disabled while a download runs | Draft |
-| SRD-GUI-030.005 | FO-GUI-030 | Must | Clear opens a frameless confirm showing the size to delete, whose Clear button enables only after typing CLEAR. | click, text | clear or nothing | Cancel deletes nothing | Draft |
-| SRD-GUI-030.006 | FO-GUI-030 | Should | The section dot is green when up to date, amber while downloading or behind, and grey when empty. | stats, run state | dot | Uses the existing section dot | Draft |
+| SRD-GUI-030.001 | FO-GUI-030 | Must | A Backtest data section below Candle data shows a summary line with pill, 1d and 3m progress lines and a stat strip of 1d bars, 3m bars, Last delta and Disk. | store stats, progress | card | Same look as the Candle data section | Approved |
+| SRD-GUI-030.002 | FO-GUI-030 | Must | A Range card has Start date and End date with an "Up to latest trading day" check that disables End date. | settings | fields | Saved on Apply; start never after end | Approved |
+| SRD-GUI-030.003 | FO-GUI-030 | Must | An Auto delta card has an on/off switch, a run time labelled US/Eastern and Mon–Sun day chips. | settings | fields | Switch disabled while End date is fixed | Approved |
+| SRD-GUI-030.004 | FO-GUI-030 | Must | Start download (Pause while running), Fill delta now and Clear database act at once and are disabled with "Connect TWS to download" when TWS is not connected. | click | download, delta, clear | Fill and Clear disabled while a download runs | Approved |
+| SRD-GUI-030.005 | FO-GUI-030 | Must | Clear opens a frameless confirm showing the size to delete, whose Clear button enables only after typing CLEAR. | click, text | clear or nothing | Cancel deletes nothing | Approved |
+| SRD-GUI-030.006 | FO-GUI-030 | Should | The section dot is green when up to date, amber while downloading or behind, and grey when empty. | stats, run state | dot | Uses the existing section dot | Approved |

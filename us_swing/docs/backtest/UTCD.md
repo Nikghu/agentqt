@@ -15,17 +15,17 @@
 
 | UT ID | MD | Type | Description | Input | Expected | Status |
 |---|---|---|---|---|---|---|
-| UT-BKT-001.001.M01.T01 | MD-BKT-001.001.M01 | Positive | 3m bars split by year | bars over 2024-12-31 and 2025-01-02 | files `3m/AAPL/2024` and `2025`; read returns all rows in order | Not Run |
-| UT-BKT-001.001.M01.T02 | MD-BKT-001.001.M01 | Negative | Unknown stock reads empty | no files for ZZZZ | empty frame; coverage None; no file created | Not Run |
-| UT-BKT-001.002.M01.T01 | MD-BKT-001.001.M01 | Positive | Overlap merge keeps one row per timestamp | save, then save overlapping rows with new close | no duplicate ts; new close kept | Not Run |
-| UT-BKT-001.002.M01.T02 | MD-BKT-001.001.M01 | Negative | Failed write keeps old file | write raises mid-save | old file still readable; no `.tmp` left | Not Run |
-| UT-BKT-001.003.M01.T01 | MD-BKT-001.001.M01 | Negative | Unfinished day dropped | today's bars, now 14:00 ET | today's rows not saved | Not Run |
-| UT-BKT-001.003.M01.T02 | MD-BKT-001.001.M01 | Positive | Finished day kept | today's bars, now 16:20 ET | today's rows saved | Not Run |
-| UT-BKT-001.010.M01.T01 | MD-BKT-001.001.M01 | Positive | Clear keeps settings | store with data, settings and a `candles.db` beside it | data and state gone; `settings.json` and `candles.db` kept | Not Run |
-| UT-BKT-001.010.M01.T02 | MD-BKT-001.001.M01 | Negative | Clear on empty store is safe | empty root with `settings.json` only | no error; `settings.json` unchanged | Not Run |
-| UT-BKT-001.011.M01.T01 | MD-BKT-001.001.M01 | Positive | Stats from metadata | 2 stocks saved | stock count 2; bar counts, first/last date and size match | Not Run |
-| UT-BKT-001.004.M02.T01 | MD-BKT-001.004.M02 | Positive | Settings round trip | save custom settings, load | values equal | Not Run |
-| UT-BKT-001.004.M02.T02 | MD-BKT-001.004.M02 | Negative | Broken file loads defaults | `settings.json` with bad JSON | defaults 2016-01-01, latest, on, 17:30, Mon–Fri | Not Run |
+| UT-BKT-001.001.M01.T01 | MD-BKT-001.001.M01 | Positive | 3m bars split by year | bars over 2024-12-31 and 2025-01-02 | files `3m/AAPL/2024` and `2025`; read returns all rows in order | Pass |
+| UT-BKT-001.001.M01.T02 | MD-BKT-001.001.M01 | Negative | Unknown stock reads empty | no files for ZZZZ | empty frame; coverage None; no file created | Pass |
+| UT-BKT-001.002.M01.T01 | MD-BKT-001.001.M01 | Positive | Overlap merge keeps one row per timestamp | save, then save overlapping rows with new close | no duplicate ts; new close kept | Pass |
+| UT-BKT-001.002.M01.T02 | MD-BKT-001.001.M01 | Negative | Failed write keeps old file | write raises mid-save | old file still readable; no `.tmp` left | Pass |
+| UT-BKT-001.003.M01.T01 | MD-BKT-001.001.M01 | Negative | Unfinished day dropped | today's bars, now 14:00 ET | today's rows not saved | Pass |
+| UT-BKT-001.003.M01.T02 | MD-BKT-001.001.M01 | Positive | Finished day kept | today's bars, now 16:20 ET | today's rows saved | Pass |
+| UT-BKT-001.010.M01.T01 | MD-BKT-001.001.M01 | Positive | Clear keeps settings | store with data, settings and a `candles.db` beside it | data and state gone; `settings.json` and `candles.db` kept | Pass |
+| UT-BKT-001.010.M01.T02 | MD-BKT-001.001.M01 | Negative | Clear on empty store is safe | empty root with `settings.json` only | no error; `settings.json` unchanged | Pass |
+| UT-BKT-001.011.M01.T01 | MD-BKT-001.001.M01 | Positive | Stats from metadata | 2 stocks saved | stock count 2; bar counts, first/last date and size match | Pass |
+| UT-BKT-001.004.M02.T01 | MD-BKT-001.004.M02 | Positive | Settings round trip | save custom settings, load | values equal | Pass |
+| UT-BKT-001.004.M02.T02 | MD-BKT-001.004.M02 | Negative | Broken file loads defaults | `settings.json` with bad JSON | defaults 2016-01-01, latest, on, 17:30, Mon–Fri | Pass |
 | UT-BKT-001.005.M03.T01 | MD-BKT-001.005.M03 | Positive | Empty store plan | 2 stocks, 2025-01-01 to 2025-12-31 | 2 1d jobs first; 3m jobs newest end first across both stocks | Not Run |
 | UT-BKT-001.005.M03.T02 | MD-BKT-001.005.M03 | Negative | Fully saved store has no jobs | coverage equals range | empty plan | Not Run |
 | UT-BKT-001.005.M03.T03 | MD-BKT-001.005.M03 | Edge | Earlier start back-fills only older windows | saved 2024–2025, start moved to 2023 | 3m jobs only for 2023 windows; one 1d back-fill job | Not Run |
