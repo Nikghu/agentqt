@@ -7,6 +7,7 @@ type-to-confirm clear and the section dot.
 """
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import date, datetime, time, timezone
 from pathlib import Path
 from typing import Any
@@ -241,6 +242,16 @@ def test_dot_state(make: Any) -> None:
     assert panel.state == "ok"
     svc.backtest_stats_changed.emit(_stats(last=date(2026, 10, 1)))
     assert panel.state == "behind"
+
+
+def test_short_3m_shows_behind(make: Any, tmp_path: Path) -> None:
+    """UT-GUI-030.006.M01.T02: 3m starting well after the start date shows BEHIND."""
+    BacktestDataSettings(start_date=date(2026, 1, 1)).save(tmp_path)
+    panel, svc = make()
+    svc.backtest_stats_changed.emit(replace(_stats(), first_3m=date(2026, 7, 30)))
+
+    assert panel._summary.text().endswith("· 3m from 2026-07-30")
+    assert panel._pill.text() == "BEHIND"
 
 
 def test_status_bar_shows_backtest(qtbot: Any) -> None:

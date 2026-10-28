@@ -11,7 +11,7 @@ import os
 import shutil
 import time as time_mod
 from dataclasses import dataclass
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from pathlib import Path
 from typing import Literal
 from zoneinfo import ZoneInfo
@@ -28,6 +28,7 @@ Timeframe = Literal["1d", "3m"]
 _ET = ZoneInfo("America/New_York")
 _DAY_DONE = time(16, 15)
 _REPLACE_TRIES = 5
+_LISTED_SLACK = timedelta(days=7)
 _PRICE_COLUMNS = ["open", "high", "low", "close", "volume"]
 _COLUMNS = ["ts", *_PRICE_COLUMNS]
 
@@ -44,6 +45,8 @@ class BacktestStats:
         last: Latest saved 1d date, or ``None`` when empty.
         size_bytes: Disk size of all Parquet files.
         last_delta: When the last delta fill finished, or ``None``.
+        first_3m: Date from which every stock has 3m bars (stocks listed later are skipped),
+            or ``None`` when no 3m bars are saved.
     """
 
     stocks: int
@@ -53,6 +56,7 @@ class BacktestStats:
     last: date | None
     size_bytes: int
     last_delta: datetime | None
+    first_3m: date | None = None
 
 
 class BacktestStore:
@@ -145,6 +149,11 @@ class BacktestStore:
         files_1d = self._glob("1d", "*.parquet")
         files_3m = self._glob("3m", "*/*.parquet")
         dates = [d for sym in symbols_1d if (cov := self.coverage(sym, "1d")) for d in cov]
+        state = DownloadState.load(self.root)
+        firsts_3m = [
+            cov[0] for sym in symbols_3m if (cov := self.coverage(sym, "3m"))
+            and not ((floor := state.floors.get(sym)) and cov[0] <= floor + _LISTED_SLACK)
+        ]
         return BacktestStats(
             stocks=len(symbols_1d | symbols_3m),
             bars_1d=sum(pq.read_metadata(f).num_rows for f in files_1d),
@@ -152,7 +161,8 @@ class BacktestStore:
             first=min(dates) if dates else None,
             last=max(dates) if dates else None,
             size_bytes=sum(f.stat().st_size for f in files_1d + files_3m),
-            last_delta=DownloadState.load(self.root).last_delta,
+            last_delta=state.last_delta,
+            first_3m=max(firsts_3m) if firsts_3m else None,
         )
 
     def clear(self) -> None:

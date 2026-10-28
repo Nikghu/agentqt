@@ -392,7 +392,10 @@ class BacktestDataPanel(QWidget):
                 value.setText("—")
         else:
             noun = "stock" if stats.stocks == 1 else "stocks"
-            self._summary.setText(f"{stats.stocks} {noun} · {stats.first} to {stats.last}")
+            text = f"{stats.stocks} {noun} · 1d {stats.first} to {stats.last}"
+            if stats.first_3m is not None:
+                text += f" · 3m from {stats.first_3m}"
+            self._summary.setText(text)
             self._values["1d bars"].setText(_compact(stats.bars_1d))
             self._values["3m bars"].setText(_compact(stats.bars_3m))
             last = stats.last_delta
@@ -483,9 +486,14 @@ class BacktestDataPanel(QWidget):
         elif stats is None or not stats.stocks or stats.last is None:
             self.state = "empty"
         else:
-            saved = BacktestDataSettings.load(self._root).end_date
-            target = saved or datetime.date.fromisoformat(self._svc.get_last_trading_day())
-            self.state = "behind" if stats.last < target else "ok"
+            settings = BacktestDataSettings.load(self._root)
+            target = settings.end_date or datetime.date.fromisoformat(
+                self._svc.get_last_trading_day()
+            )
+            short_3m = stats.first_3m is not None and stats.first_3m > (
+                settings.start_date + datetime.timedelta(days=7)
+            )
+            self.state = "behind" if stats.last < target or short_3m else "ok"
         pill = {"running": ("DOWNLOADING", "downloading"), "behind": ("BEHIND", "partial"),
                 "ok": ("UP TO DATE", "complete")}.get(self.state)
         self._pill.setText(pill[0] if pill else "")

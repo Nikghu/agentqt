@@ -25,6 +25,7 @@
 | UT-BKT-001.010.M01.T01 | MD-BKT-001.001.M01 | Positive | Clear keeps settings | store with data, settings and a `candles.db` beside it | data and state gone; `settings.json` and `candles.db` kept | Pass |
 | UT-BKT-001.010.M01.T02 | MD-BKT-001.001.M01 | Negative | Clear on empty store is safe | empty root with `settings.json` only | no error; `settings.json` unchanged | Pass |
 | UT-BKT-001.011.M01.T01 | MD-BKT-001.001.M01 | Positive | Stats from metadata | 2 stocks saved | stock count 2; bar counts, first/last date and size match | Pass |
+| UT-BKT-001.011.M01.T02 | MD-BKT-001.001.M01 | Edge | 3m complete-from date | 3 stocks, one listed later with a floor | first_3m is the latest start of the other two | Pass |
 | UT-BKT-001.004.M02.T01 | MD-BKT-001.004.M02 | Positive | Settings round trip | save custom settings, load | values equal | Pass |
 | UT-BKT-001.004.M02.T02 | MD-BKT-001.004.M02 | Negative | Broken file loads defaults | `settings.json` with bad JSON | defaults 2016-01-01, latest, on, 17:30, Mon–Fri | Pass |
 | UT-BKT-001.005.M03.T01 | MD-BKT-001.005.M03 | Positive | Empty store plan | 2 stocks, 2025-01-01 to 2025-12-31 | 2 1d jobs first; 3m jobs newest end first across both stocks | Pass |

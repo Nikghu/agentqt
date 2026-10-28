@@ -53,6 +53,7 @@ First BKT module: a Parquet candle store for backtesting plus a TWS downloader. 
 - No fixed 50-per-10-minute limiter (user test 2026-10-28: download sat at 50 of 503 for 10 minutes). Requests run back to back like the candle download; errors and timeouts still retry. Estimate line uses ~1 s per 1d and ~25 s per 3m request (measured over a long run; 3 or 6 parallel requests all timed out on TWS, so requests stay one at a time).
 - Bars before the job start are dropped on save (IBKR "1 Y" returns a full year), 3m windows start at the range start, and an empty delta no longer stamps Last delta. Panel stats refresh every 15 s during a run; counts say "this run"; estimate uses all S&P 500 stocks.
 - ib_insync returns an empty list (no error) when its own timeout fires, so an empty answer that took the full timeout is treated as a timeout and retried. Before this fix, slow TWS answers set false 3m floors (502 stocks stuck at 2026-07-27, cleaned from the user's `state.json`).
+- Stats carry `first_3m`, the date from which every stock has 3m bars (stocks with a listed-later floor are skipped), so the panel can tell when 3m is short.
 - Stocks use the S&P 500 `ibkr_symbol` (e.g. `BRK B`) as the file name.
 
 ---

@@ -46,6 +46,7 @@ New "Backtest data" section in Settings, right after Candle data (Option A, sing
 
 - Auto delta tries at most once per scheduled time per session, so a paused or failed delta does not restart every minute.
 - Stats are read in a background worker (`backtest_stats_changed`), like the candle DB status.
+- The summary shows both ranges (`1d … to … · 3m from …`) and the pill shows BEHIND when 3m starts more than 7 days after the start date. Before this, the pill looked only at 1d and said UP TO DATE while 3m was months short.
 - Clear confirm reuses the frameless `_ConfirmDialog` and adds a text field.
 
 ---

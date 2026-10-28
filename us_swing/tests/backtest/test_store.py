@@ -175,3 +175,15 @@ def test_bars_before_start_not_saved(tmp_path: Path) -> None:
     assert list(store.read("AAPL", "1d")["ts"].dt.date) == [date(2026, 1, 2)]
     assert len(store.read("AAPL", "3m")) == 1
     assert not (tmp_path / "3m" / "AAPL" / "2025.parquet").exists()
+
+
+def test_stats_first_3m_skips_listed_later(tmp_path: Path) -> None:
+    """UT-BKT-001.011.M01.T02: first_3m is the latest 3m start, skipping later listings."""
+    store = BacktestStore(tmp_path)
+    store.save("AAPL", "3m", _bars(["2025-01-02 15:00"]), _LATE)
+    store.save("MSFT", "3m", _bars(["2024-06-03 15:00"]), _LATE)
+    store.save("NEWCO", "3m", _bars(["2025-03-03 15:00"]), _LATE)
+    DownloadState(floors={"NEWCO": date(2025, 3, 1)}).save(tmp_path)
+
+    assert store.stats().first_3m == date(2025, 1, 2)
+    assert BacktestStore(tmp_path / "none").stats().first_3m is None
