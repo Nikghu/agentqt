@@ -700,15 +700,19 @@ def _build_html(
   // setHeight shares the change equally among the other panes and shows in getHeight
   // only after the next layout. So RSI is set first to a height that lands on RSI_H
   // once volume is set to VOL_H in the next frame.
+  // A newer applyStudies rebuilds the panes, so only the latest call may size them.
   const VOL_H = 80, RSI_H = 110;
+  let sizeRun = 0;
   function _sizeSubPanes() {{
+    const run = ++sizeRun;
     requestAnimationFrame(() => {{
       const panes = chart.panes();
-      if (panes.length < 3) return;
+      if (run !== sizeRun || panes.length < 3) return;
       const vol = panes[1].getHeight(), rsi = panes[2].getHeight();
       panes[2].setHeight(Math.round(4 / 3 * (RSI_H + (VOL_H - vol) / 2 - rsi / 4)));
       requestAnimationFrame(() => {{
-        panes[1].setHeight(VOL_H);
+        if (run !== sizeRun || chart.panes().length < 3) return;
+        chart.panes()[1].setHeight(VOL_H);
       }});
     }});
   }}
