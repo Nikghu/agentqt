@@ -45,6 +45,7 @@ from PyQt6.QtWidgets import (
 )
 
 from us_swing.gui.app_service import AppService
+from us_swing.gui.backtest_data_panel import BacktestDataPanel
 from us_swing.data.market_calendar import NYSE_HOLIDAYS
 from us_swing.data.models import ConnectionStatus, RiskConfig, UserProfile
 from us_swing.gui.icons import mark_danger, set_icon
@@ -1544,6 +1545,8 @@ def _changed_signal(widget: QWidget) -> pyqtBoundSignal:
         return widget.currentTextChanged
     if isinstance(widget, QTimeEdit):
         return widget.timeChanged
+    if isinstance(widget, QDateEdit):
+        return widget.dateChanged
     assert isinstance(widget, QAbstractButton)
     return widget.toggled
 
@@ -1563,6 +1566,7 @@ class SettingsPanel(QWidget):
         self._demo = demo
 
         self._data         = _DataPanel(demo)
+        self._backtest     = BacktestDataPanel(demo)
         self._sys          = _SystemSections(demo, self)
         self._universe_tab = _UniverseTab(demo)
         self._sys.theme_changed.connect(self.theme_changed)
@@ -1581,6 +1585,8 @@ class SettingsPanel(QWidget):
                                   sys_.load_telegram, None),
             "Appearance": _Editable(sys_.theme_inputs, sys_.apply_theme, sys_.load_theme,
                                     lambda: sys_.load_theme("carbon")),
+            "Backtest data": _Editable(self._backtest.inputs, self._backtest.save,
+                                       self._backtest.load, self._backtest.defaults),
         }
         self._dirty: set[str] = set()
         self._loading = False
@@ -1596,6 +1602,7 @@ class SettingsPanel(QWidget):
             *self._sys.pages,
             ("Universe", self._universe_tab),
             ("Candle data", self._data),
+            ("Backtest data", self._backtest),
             *self._sys.app_pages,
         ]
 
@@ -1726,6 +1733,8 @@ class SettingsPanel(QWidget):
         self.set_section_state("Telegram", self._sys.telegram_state())
         data = {"complete": "ok", "partial": "warn", "downloading": "warn"}
         self.set_section_state("Candle data", data.get(self._data.state[0], "off"))
+        backtest = {"ok": "ok", "running": "warn", "behind": "warn"}
+        self.set_section_state("Backtest data", backtest.get(self._backtest.state, "off"))
 
     @staticmethod
     def _section_card(name: str, body: QWidget) -> QFrame:
