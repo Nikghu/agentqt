@@ -107,7 +107,7 @@ def _back(symbol: str, tf: Timeframe, start: date, end: date, floor: date | None
     if tf == "1d":
         return [Job(symbol, tf, start, end, _years(start, end))]
     return [
-        Job(symbol, tf, w_start, w_end, f"{_WINDOW_MONTHS} M")
+        Job(symbol, tf, max(w_start, start), w_end, f"{_WINDOW_MONTHS} M")
         for w_start, w_end in _windows(start, end)
         if floor is None or w_end > floor
     ]

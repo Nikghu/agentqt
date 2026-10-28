@@ -21,6 +21,7 @@
 | UT-BKT-001.002.M01.T02 | MD-BKT-001.001.M01 | Negative | Failed write keeps old file | write raises mid-save | old file still readable; no `.tmp` left | Pass |
 | UT-BKT-001.003.M01.T01 | MD-BKT-001.001.M01 | Negative | Unfinished day dropped | today's bars, now 14:00 ET | today's rows not saved | Pass |
 | UT-BKT-001.003.M01.T02 | MD-BKT-001.001.M01 | Positive | Finished day kept | today's bars, now 16:20 ET | today's rows saved | Pass |
+| UT-BKT-001.005.M01.T01 | MD-BKT-001.001.M01 | Negative | Bars before job start dropped | 1d and 3m bars from 2025, start 2026-01-01 | only 2026 rows saved; no `3m/AAPL/2025` file | Pass |
 | UT-BKT-001.010.M01.T01 | MD-BKT-001.001.M01 | Positive | Clear keeps settings | store with data, settings and a `candles.db` beside it | data and state gone; `settings.json` and `candles.db` kept | Pass |
 | UT-BKT-001.010.M01.T02 | MD-BKT-001.001.M01 | Negative | Clear on empty store is safe | empty root with `settings.json` only | no error; `settings.json` unchanged | Pass |
 | UT-BKT-001.011.M01.T01 | MD-BKT-001.001.M01 | Positive | Stats from metadata | 2 stocks saved | stock count 2; bar counts, first/last date and size match | Pass |

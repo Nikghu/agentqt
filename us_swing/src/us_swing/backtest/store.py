@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import time as time_mod
 from dataclasses import dataclass
 from datetime import date, datetime, time
 from pathlib import Path
@@ -26,6 +27,7 @@ Timeframe = Literal["1d", "3m"]
 
 _ET = ZoneInfo("America/New_York")
 _DAY_DONE = time(16, 15)
+_REPLACE_TRIES = 5
 _PRICE_COLUMNS = ["open", "high", "low", "close", "volume"]
 _COLUMNS = ["ts", *_PRICE_COLUMNS]
 
@@ -59,16 +61,25 @@ class BacktestStore:
     def __init__(self, root: Path = DEFAULT_ROOT) -> None:
         self.root = root
 
-    def save(self, symbol: str, tf: Timeframe, df: pd.DataFrame, now: datetime) -> int:
+    def save(
+        self,
+        symbol: str,
+        tf: Timeframe,
+        df: pd.DataFrame,
+        now: datetime,
+        start: date | None = None,
+    ) -> int:
         """Merge ``df`` into the saved bars for ``symbol`` and replace the file(s) atomically.
 
-        Bars of today's US/Eastern date are dropped when ``now`` is before 16:15 ET.
+        Bars of today's US/Eastern date are dropped when ``now`` is before 16:15 ET, and bars
+        before ``start`` are dropped so the store keeps only the asked range.
 
         Args:
             symbol: Stock ticker.
             tf: ``"1d"`` or ``"3m"``.
             df: Bars with columns ``ts, open, high, low, close, volume``.
             now: Current time (timezone-aware).
+            start: Oldest US/Eastern date to keep, or ``None`` to keep all.
 
         Returns:
             Number of bars saved from ``df``.
@@ -77,6 +88,8 @@ class BacktestStore:
         now_et = now.astimezone(_ET)
         if now_et.time() < _DAY_DONE:
             bars = bars[_et_dates(bars["ts"], tf) != now_et.date()]
+        if start is not None:
+            bars = bars[_et_dates(bars["ts"], tf) >= start]
         if bars.empty:
             return 0
         if tf == "1d":
@@ -169,9 +182,21 @@ class BacktestStore:
         tmp = path.with_suffix(".tmp")
         try:
             pq.write_table(pa.Table.from_pandas(merged, preserve_index=False), tmp)
-            os.replace(tmp, path)
+            _replace(tmp, path)
         finally:
             tmp.unlink(missing_ok=True)
+
+
+def _replace(tmp: Path, path: Path) -> None:
+    """``os.replace`` with short retries: on Windows a stats read can hold the file briefly."""
+    for attempt in range(_REPLACE_TRIES):
+        try:
+            os.replace(tmp, path)
+            return
+        except PermissionError:
+            if attempt == _REPLACE_TRIES - 1:
+                raise
+            time_mod.sleep(0.2)
 
 
 def _normalise(df: pd.DataFrame, tf: Timeframe) -> pd.DataFrame:

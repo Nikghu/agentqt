@@ -119,10 +119,6 @@ class BacktestDownloader(QThread):
 
         jobs = self._resolve_jobs()
         if not jobs:
-            if self._delta:
-                state = DownloadState.load(self._store.root)
-                state.last_delta = datetime.now(timezone.utc)
-                state.save(self._store.root)
             _log.info("[Backtest] Backtest data is already up to date")
             return True, "Up to date"
 
@@ -166,7 +162,9 @@ class BacktestDownloader(QThread):
                     return
                 await asyncio.sleep(self._retry_wait_s)
         if bars:
-            self._store.save(job.symbol, job.tf, _to_frame(bars), datetime.now(timezone.utc))
+            self._store.save(
+                job.symbol, job.tf, _to_frame(bars), datetime.now(timezone.utc), job.start
+            )
         self._update_floor(job, state, bool(bars))
 
     async def _request(self, ib: Any, job: Job) -> list[Any]:

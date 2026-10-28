@@ -8,6 +8,8 @@ actions and a type-to-confirm clear. Business logic lives in AppService / backte
 from __future__ import annotations
 
 import datetime
+import math
+import time
 from pathlib import Path
 from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
@@ -42,6 +44,8 @@ _ET = ZoneInfo("America/New_York")
 _DAY_NAMES = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 _STAT_KEYS = ("1d bars", "3m bars", "Last delta", "Disk")
 _CONFIRM_WORD = "CLEAR"
+_SP500_SIZE = 503
+_STATS_REFRESH_S = 15.0   # stats re-read while a download runs
 _SECONDS_1D = 1.0   # measured on TWS: one 1d request per stock
 _SECONDS_3M = 4.0   # measured on TWS: one 3-month 3m request
 
@@ -134,6 +138,7 @@ class BacktestDataPanel(QWidget):
         self._root = root
         self._stats: BacktestStats | None = None
         self._running = svc.is_backtest_running()
+        self._stats_asked = 0.0
         self.state = "empty"
 
         layout = QVBoxLayout(self)
@@ -364,12 +369,11 @@ class BacktestDataPanel(QWidget):
     def _update_estimate(self) -> None:
         end = QDate.currentDate() if self._latest.isChecked() else self._end.date()
         years = max(self._start.date().daysTo(end) / 365.25, 0.0)
-        stocks = self._stats.stocks if self._stats and self._stats.stocks else 503
-        windows = int(stocks * years * 4)
-        hours = (stocks * _SECONDS_1D + windows * _SECONDS_3M) / 3600
-        self._estimate.setText(
-            f"Full download ≈ {stocks + windows:,} requests · about {hours:.0f} h"
-        )
+        stocks = len(self._svc.get_sp500_universe()) or _SP500_SIZE
+        windows = stocks * math.ceil(years * 4)
+        minutes = (stocks * _SECONDS_1D + windows * _SECONDS_3M) / 60
+        took = f"{minutes / 60:.0f} h" if minutes >= 90 else f"{max(minutes, 1):.0f} min"
+        self._estimate.setText(f"Full download ≈ {stocks + windows:,} requests · about {took}")
 
     # ── Service signals ───────────────────────────────────────────────────────
 
@@ -397,7 +401,10 @@ class BacktestDataPanel(QWidget):
         if tf not in self._bars:
             return
         self._bars[tf].setValue(round(done * 100 / total) if total else 0)
-        self._counts[tf].setText(f"{done:,} of {total:,}")
+        self._counts[tf].setText(f"{done:,} of {total:,} this run")
+        if time.monotonic() - self._stats_asked >= _STATS_REFRESH_S:
+            self._stats_asked = time.monotonic()
+            self._svc.refresh_backtest_stats()
 
     def _on_finished(self, _ok: bool, message: str) -> None:
         self._running = False

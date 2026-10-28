@@ -161,3 +161,17 @@ def test_stats_from_metadata(tmp_path: Path) -> None:
     assert stats.last_delta is None
     assert store.coverage("AAPL", "3m") is not None
     assert pq.read_metadata(tmp_path / "1d" / "AAPL.parquet").num_rows == 2
+
+
+def test_bars_before_start_not_saved(tmp_path: Path) -> None:
+    """UT-BKT-001.005.M01.T01: Bars older than the job start are dropped on save."""
+    store = BacktestStore(tmp_path)
+
+    store.save("AAPL", "1d", _bars(["2025-10-28", "2026-01-02"], tz=None), _LATE,
+               start=date(2026, 1, 1))
+    store.save("AAPL", "3m", _bars(["2025-12-31 15:00", "2026-01-02 15:00"]), _LATE,
+               start=date(2026, 1, 1))
+
+    assert list(store.read("AAPL", "1d")["ts"].dt.date) == [date(2026, 1, 2)]
+    assert len(store.read("AAPL", "3m")) == 1
+    assert not (tmp_path / "3m" / "AAPL" / "2025.parquet").exists()

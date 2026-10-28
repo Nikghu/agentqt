@@ -57,6 +57,9 @@ class _FakeService(QObject):
     def refresh_backtest_stats(self) -> None:
         self.calls.append("stats")
 
+    def get_sp500_universe(self) -> list[object]:
+        return []
+
     def get_last_trading_day(self) -> str:
         return "2026-10-27"
 
@@ -109,7 +112,7 @@ def test_progress_lines_update(make: Any) -> None:
     svc.backtest_progress.emit("3m", 191, 503, "AAPL")
 
     assert panel._bars["3m"].value() == 38
-    assert panel._counts["3m"].text() == "191 of 503"
+    assert panel._counts["3m"].text() == "191 of 503 this run"
 
 
 def test_load_and_save_settings(make: Any, tmp_path: Path) -> None:
