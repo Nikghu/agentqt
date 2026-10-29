@@ -110,18 +110,28 @@ def test_no_look_ahead(frames: dict[str, pd.DataFrame]) -> None:
     np.testing.assert_array_equal(before[on_day2], after[on_day2])
 
 
-def test_price_current_and_last_on_15m(frames: dict[str, pd.DataFrame]) -> None:
-    """UT-BKT-002.023.M10.T01: 15m current is the forming bar; Last is the bar before."""
+def test_price_reads_closed_15m_bars(frames: dict[str, pd.DataFrame]) -> None:
+    """UT-BKT-002.050.M10.T01: 15m current is the last closed bar; Last is the one before."""
     ev = evaluate("Price('Spot', 'current', 'close', '15m') > 0 AND "
                   "Price('Spot', 'current', 'high', '15m') > 0 AND "
                   "Price('Spot', 'Last', 'close', '15m') > 0", frames)
     bars = frames["3m"]
     i = 131  # day 2, second 3m bar (09:33–09:36) of the 09:30 bucket
-    prev_15m = frames["15m"][frames["15m"]["ts"] < bars["ts"].iloc[130]].iloc[-1]
+    closed = frames["15m"][frames["15m"]["ts"] < bars["ts"].iloc[130]]
 
-    assert ev.values["Price(current, close, 15m)"][i] == bars["close"].iloc[i]
-    assert ev.values["Price(current, high, 15m)"][i] == bars["high"].iloc[130:132].max()
-    assert ev.values["Price(Last, close, 15m)"][i] == prev_15m["close"]
+    assert ev.values["Price(current, close, 15m)"][i] == closed["close"].iloc[-1]
+    assert ev.values["Price(current, high, 15m)"][i] == closed["high"].iloc[-1]
+    assert ev.values["Price(Last, close, 15m)"][i] == closed["close"].iloc[-2]
+
+
+def test_price_15m_changes_only_at_bucket_close(frames: dict[str, pd.DataFrame]) -> None:
+    """UT-BKT-002.050.M10.T02: 15m current price never moves inside a forming bar."""
+    ev = evaluate("Price('Spot', 'current', 'close', '15m') > 0", frames)
+    closes = pd.DatetimeIndex(frames["3m"]["ts"]) + pd.Timedelta(minutes=3)
+    values = ev.values["Price(current, close, 15m)"]
+    same = (values[1:] == values[:-1]) | (np.isnan(values[1:]) & np.isnan(values[:-1]))
+
+    assert all(closes[i].minute % 15 == 0 for i in np.flatnonzero(~same) + 1)
 
 
 def test_vwap_resets_each_session(frames: dict[str, pd.DataFrame]) -> None:

@@ -104,7 +104,8 @@
 | UT-BKT-002.021.M10.T02 | MD-BKT-002.021.M10 | Negative | Too few bars | 5 bars, RSI 14 | NaN where live raises | Pass |
 | UT-BKT-002.022.M10.T01 | MD-BKT-002.021.M10 | Positive | Daily and 15m alignment | 3m timeline of 2 days | 1d value on day 2 is day 1's; 15m value changes only at bucket closes | Pass |
 | UT-BKT-002.022.M10.T02 | MD-BKT-002.021.M10 | Negative | No look-ahead | change day 2's 1d bar | day 2 3m results unchanged | Pass |
-| UT-BKT-002.023.M10.T01 | MD-BKT-002.021.M10 | Positive | Price current and Last on 15m | 3m bars in one bucket | current close = 3m close; Last = previous 15m close; current high = running high | Pass |
+| UT-BKT-002.050.M10.T01 | MD-BKT-002.021.M10 | Positive | Price current and Last on 15m read closed bars | 3m bar inside a 15m bucket | current = last closed 15m bar; Last = the one before | Pass |
+| UT-BKT-002.050.M10.T02 | MD-BKT-002.021.M10 | Negative | 15m current price never moves inside a forming bar | 3 days of 3m bars | values change only at 15m closes | Pass |
 | UT-BKT-002.024.M10.T01 | MD-BKT-002.021.M10 | Positive | VWAP resets per session | 2 sessions of 3m bars | first bar of day 2 VWAP = its typical price | Pass |
 | UT-BKT-002.025.M10.T01 | MD-BKT-002.021.M10 | Negative | NaN comparison is false | RSI 14 on first 10 bars `!= 0` | false on those bars | Pass |
 | UT-BKT-002.026.M11.T01 | MD-BKT-002.026.M11 | Positive | Periods from runs of true bars | fired F T T F T | 2 periods with start, end, close at start | Pass |

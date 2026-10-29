@@ -89,3 +89,10 @@
 | SRD-BKT-002.037 | FO-BKT-002 | Must | Intraday positions close at the first open at or after the strategy's end time (or the day's last close); Swing positions stay open overnight; all close at the test's last close. | positions | exits | Reasons: end_time, end_of_test | Implemented |
 | SRD-BKT-002.038 | FO-BKT-002 | Must | Once today's equity change reaches minus the daily loss stop % of day-start equity, no new entries are made that day (daily_loss_stop); exits continue. | equity | block | User 2026-10-29: block; live only warns; 0 % = off | Implemented |
 | SRD-BKT-002.039 | FO-BKT-002 | Must | Each variant saves its trades, day log and money-by-day rows in `results.db` under the run. | results | tables | `variants`, `trades`, `day_log`, `money_daily` | Implemented |
+
+## FO-BKT-002 — Backtest Engine (Closed candles and session dates)
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-BKT-002.050 | FO-BKT-002 | Must | Strategy PRICE reads only closed bars on every timeframe; "current" is the last closed bar. | bars | prices | User 2026-10-29: replaces SRD-BKT-002.023; live matches via SRD-EXE-006.014 | Implemented |
+| SRD-BKT-002.051 | FO-BKT-002 | Must | Step 1 keys each list by session date, built from the previous trading day's close, for every session from From to To. | 1d bars | daily list | User 2026-10-29: matches the pre-market screener run | Approved |

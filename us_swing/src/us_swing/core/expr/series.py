@@ -205,12 +205,9 @@ class _Walker:
             self.uses_pnl = True
             return self._full(np.nan)
         tf = str(args[-1])
-        if name == "Price":
-            out = self._price(args, tf)
-        else:
-            frame = self._frame(tf)
-            series = function_series(name, args, frame, tf)
-            out = _as_of(series, available_ns(frame, tf), self.close_ns)
+        frame = self._frame(tf)
+        series = function_series(name, args, frame, tf)
+        out = _as_of(series, available_ns(frame, tf), self.close_ns)
         label = f"{name}({', '.join(str(a) for a in args[1:])})"
         self.values[label] = out
         return out
@@ -220,30 +217,6 @@ class _Walker:
         if node["type"] in ("NUMBER", "STRING"):
             return node["value"]
         raise EvaluatorError("Only numbers and text are allowed inside a function")
-
-    def _price(self, args: list[Any], tf: str) -> FloatArray:
-        """SRD-BKT-002.023 — current / previous candle as live reads them."""
-        column = str(args[2]).lower()
-        current = str(args[1]).lower() == "current"
-        if tf == "3m":
-            values = _col(self.base, column)
-            return values if current else np.concatenate(([np.nan], values[:-1]))
-        frame = self._frame(tf)
-        avail = available_ns(frame, tf)
-        if tf not in INTRADAY_MINUTES:
-            return _as_of(_col(frame, column), avail, self.close_ns, back=0 if current else 1)
-        bucket = pd.DatetimeIndex(self.base["ts"]).floor(f"{INTRADAY_MINUTES[tf]}min")
-        if not current:
-            start_ns = _ns(bucket)
-            return _as_of(_col(frame, column), avail, start_ns)
-        grouped = pd.Series(_col(self.base, column)).groupby(np.asarray(bucket))
-        forming = {"open": grouped.transform("first"), "high": grouped.cummax(),
-                   "low": grouped.cummin(), "volume": grouped.cumsum()}
-        if column == "close":
-            return _col(self.base, "close")
-        if column not in forming:
-            raise EvaluatorError(f"Unknown price type {column!r}")
-        return forming[column].to_numpy(dtype=np.float64)
 
     def _bin_op(self, node: dict[str, Any]) -> BoolArray:
         op = node["op"]
