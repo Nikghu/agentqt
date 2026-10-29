@@ -1,6 +1,6 @@
 """
 Module: MD-GUI-031.002.M02 — Backtest builder
-Parent SRD: SRD-GUI-031.002, SRD-GUI-031.010, SRD-GUI-031.020
+Parent SRD: SRD-GUI-031.002, SRD-GUI-031.010, SRD-GUI-031.020, SRD-GUI-031.030
 
 Left builder of the Backtest workspace. It only reads fields into a
 ``RunPlan``; estimating and running live in ``backtest.service``.
@@ -17,6 +17,7 @@ from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDateEdit,
+    QDoubleSpinBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -27,7 +28,15 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from us_swing.backtest.spec import Period, RunPlan, ScreenerSpec, StrategySpec, UniverseSpec
+from us_swing.backtest.spec import (
+    AccountSpec,
+    CostSpec,
+    Period,
+    RunPlan,
+    ScreenerSpec,
+    StrategySpec,
+    UniverseSpec,
+)
 from us_swing.backtest.universe import UniverseRecord
 from us_swing.core.backtest_bridge import PresetInfo
 from us_swing.gui.screener_views import ChipGroup
@@ -77,6 +86,7 @@ class BacktestBuilder(QWidget):
         self._mode = ChipGroup([("S&&P 500", "sp500"), ("Sectors", "sector"), ("Names", "names")])
         self._sectors = QListWidget()
         self._sectors.setObjectName("bt_sectors")
+        self._sectors.setMinimumHeight(160)
         self._names_edit = QLineEdit()
         self._names_edit.setPlaceholderText("AAPL, MSFT, NVDA")
         self._add = QLineEdit()
@@ -94,6 +104,20 @@ class BacktestBuilder(QWidget):
         self._strategies = QListWidget()
         self._strategies.setObjectName("bt_strategies")
         self._strategies.setMaximumHeight(120)
+        self._capital = self._money(100, 10_000_000, 0, "$ ", 10_000)
+        self._loss = self._money(0, 100, 1, "", 2.0)
+        self._loss.setSuffix(" %")
+        self._loss.setSpecialValueText("Off")
+        self._when = QComboBox()
+        self._when.addItem("First signal", "first_signal")
+        self._when.addItem("Highest score", "highest_score")
+        self._when.setFixedWidth(120)
+        self._commission = self._money(0, 100, 2, "$ ", 1.0)
+        self._slippage = QSpinBox()
+        self._slippage.setRange(0, 500)
+        self._slippage.setSuffix(" bps")
+        self._slippage.setValue(5)
+        self._slippage.setFixedWidth(120)
 
         body.addWidget(_group_label("RUN"))
         body.addWidget(self._name)
@@ -111,6 +135,12 @@ class BacktestBuilder(QWidget):
         body.addWidget(self._ai)
         body.addWidget(_group_label("STRATEGIES"))
         body.addWidget(self._strategies)
+        body.addWidget(_group_label("ACCOUNT"))
+        body.addLayout(self._row("Capital", self._capital))
+        body.addLayout(self._row("Daily loss stop", self._loss))
+        body.addLayout(self._row("When money short", self._when))
+        body.addLayout(self._row("Commission per order", self._commission))
+        body.addLayout(self._row("Slippage", self._slippage))
         body.addStretch()
 
         for edit in (self._name, self._names_edit, self._add, self._remove):
@@ -122,6 +152,10 @@ class BacktestBuilder(QWidget):
         self._preset.currentIndexChanged.connect(self.changed)
         self._top_n.valueChanged.connect(self.changed)
         self._strategies.itemChanged.connect(self.changed)
+        for spin in (self._capital, self._loss, self._commission):
+            spin.valueChanged.connect(self.changed)
+        self._slippage.valueChanged.connect(self.changed)
+        self._when.currentIndexChanged.connect(self.changed)
         self._on_mode()
 
     @staticmethod
@@ -131,6 +165,22 @@ class BacktestBuilder(QWidget):
         row.addStretch()
         row.addWidget(field)
         return row
+
+    @staticmethod
+    def _money(low: float, high: float, decimals: int, prefix: str, value: float
+               ) -> QDoubleSpinBox:
+        spin = QDoubleSpinBox()
+        spin.setRange(low, high)
+        spin.setDecimals(decimals)
+        spin.setPrefix(prefix)
+        spin.setValue(value)
+        spin.setFixedWidth(120)
+        return spin
+
+    def set_account_defaults(self, capital: float, daily_loss_pct: float) -> None:
+        """SRD-GUI-031.030 — start values from the user's Max capital and max daily loss."""
+        self._capital.setValue(capital)
+        self._loss.setValue(daily_loss_pct)
 
     @staticmethod
     def _date_edit() -> QDateEdit:
@@ -232,4 +282,11 @@ class BacktestBuilder(QWidget):
                 ai_ranking=self._ai.isChecked(),
             ),
             strategies=self._ticked_strategies(),
+            account=AccountSpec(
+                capital=(self._capital.value(),),
+                max_daily_loss_pct=self._loss.value(),
+                when_full=str(self._when.currentData()),
+            ),
+            costs=CostSpec(per_order=self._commission.value(),
+                           slippage_bps=float(self._slippage.value())),
         )

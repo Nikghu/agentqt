@@ -531,3 +531,8 @@
 | SRD-GUI-031.021 | FO-GUI-031 | Must | Run does Step 1 and then Step 2 when strategies are ticked, with progress on both step pills. | click | lists | Cancel stops either step | Implemented |
 | SRD-GUI-031.022 | FO-GUI-031 | Must | A Signals tab lists periods (strategy, symbol, kind, start, end, close) with a strategy filter. | signal list | table | Times shown in US/Eastern, newest first | Implemented |
 | SRD-GUI-031.023 | FO-GUI-031 | Should | Double-clicking a signal row opens Charts on that stock. | double-click | Charts screen | Period shading comes later | Implemented |
+| SRD-GUI-031.030 | FO-GUI-031 | Must | The builder (scrollable) has an ACCOUNT group: Capital $ and Daily loss stop % (defaults from the active user), When money short, Commission $ per order and Slippage bps. | user risk settings | plan account and costs | Daily loss 0 = off | Implemented |
+| SRD-GUI-031.031 | FO-GUI-031 | Must | Run does Step 3 after Step 2, with progress on the Portfolio pill. | click | variant results | Only when strategies are ticked | Implemented |
+| SRD-GUI-031.032 | FO-GUI-031 | Must | A Trades tab shows a summary line (trades, net P&L, win rate) and each trade's strategy, symbol, side, entry, shares, exit, reason and net P&L. | trades | table | Times in US/Eastern, newest first | Implemented |
+| SRD-GUI-031.033 | FO-GUI-031 | Must | A Day log tab lists each decision (entered or why skipped) with margin left and strategy deployed. | day log | table | — | Implemented |
+| SRD-GUI-031.034 | FO-GUI-031 | Must | A Money tab lists per day deployed, lowest margin, margin at close, open value and equity. | money rows | table | — | Implemented |

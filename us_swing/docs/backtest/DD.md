@@ -103,3 +103,26 @@ state.json           last_delta (ISO, UTC), floors {symbol: first date with 3m d
 **Step (`backtest/steps/signals.py`).** `load_frames(store, symbol, period)` reads 3m and 15m from 45 days before the start and 1d and 1w from 400 days before (live loads 30 and 400 days). The timeline is the 3m bars whose US/Eastern date is in the period. `schedule_mask(timeline, strategy)` keeps bars with start ≤ close time < end on the strategy's days. `periods(fired)` turns each run of true bars into one row: `kind, start, end` (bar close times, UTC), `close_at_start`, `values` (JSON of the labels at the start bar), `pnl`. `signal_key(strategy, symbol, period, coverage)` = `make_key("signals", STEP_VERSION, …)` with entry and exit text, hours, days, symbol, period and `store.coverage` of 3m and 1d. `stocks_for(strategy, daily, top_n)` = symbols with rank ≤ N on any day, filtered like live `accepts()` (all / include / exclude). `run_signals(plan, strategies, daily, store, cache, workers, progress, cancel)` makes one task per (strategy, stock) not cached, runs them in a `ProcessPoolExecutor` (or in process with `workers=0`), writes `cache/signals/<key>/<SYM>.parquet` and returns a `SignalList` frame (`strategy, symbol, kind, start, end, close_at_start, values, pnl`).
 
 **Bridge, service, CLI.** `core.backtest_bridge.load_strategies()` returns the live `StrategyConfig` rows as dicts. `BacktestService(…, strategies=loader)`; `run_signals(plan, daily, …)` checks that the plan has strategies and every name exists ("Strategy X is not in the strategy list"), then calls the step and records a run row. The CLI `run` runs Step 2 after Step 1 when the plan lists strategies and prints the period count per strategy.
+
+---
+
+## DD-BKT-002.030.D01 — Step 3 Portfolio (Phase 3)
+
+**Traces:** SRD-BKT-002.030–.039
+
+**Inputs.** `run_portfolio(plan, strategies, daily, signals, store, *, progress, cancel) -> list[VariantResult]`. `daily` is the Step 1 list cut to top N; the list of day *i − 1* is the pick list of day *i* (the first day has none). `signals` is the Step 2 frame. `strategies` are the live dicts of the plan's strategies. Each variant gets `StrategyRules` per strategy: sign (+1 LONG, −1 SHORT), intraday flag, end time, stop % and target % (None when off), Rex count, allocation % and per-trade %.
+
+**Refusals (SRD .036).** Before running: a strategy with an enabled trailing stop or target, a strategy whose signals carry the PNL flag, or `grow_with_pnl` → `StepRefused` with one sentence each.
+
+**Bars and signals.** 3m bars of every stock that is ever picked are read for the period once (`ts` close = start + 3 min, open, high, low, close, ET date). Each (strategy, stock) gets an entry-window id and an exit flag per bar from its Step 2 periods (`searchsorted` of start and end on the bar closes).
+
+**Day loop (per variant).** For each day: the bar times are the union of the bar closes of picked, held and pending stocks. At each time *t*, for each stock that has a bar at *t*:
+1. Fill pending orders at the bar's open: exits first, then entries in queue order. Entry fill: `px = open × (1 + sign × slip)`; `qty = floor(capital × alloc × per ÷ px)` → too_expensive at 0; strategy cost ≥ capital × alloc → strategy_limit; `qty = min(qty, floor((capital − all open cost) ÷ px))` → no_margin below 1; stock held → already_held. Exit fill: `px = price × (1 − sign × slip)`.
+2. Stop / target on the bar's high and low (SRD .035): LONG stop if low ≤ stop (fill min(open, stop)), else target if high ≥ target (fill max(open, target)); SHORT mirrored.
+3. At the close: mark open trades (MAE / MFE, unrealised P&L); Intraday trades at or after end time get an exit at the next open, or at this close when no later bar exists today; an active exit window queues an exit (reason strategy).
+4. Entries: candidates are (strategy, stock) with an active entry window, stock in today's pick list, not held or pending, Rex left today ≥ 0, and no daily loss stop. Sorted by window start then score (first_signal) or score then window start (highest_score). Each queues an entry for the next bar.
+Blocked candidates are logged once per (strategy, stock, entry window, decision). At day end Intraday trades still open close at their last close; pending Intraday entries are dropped. The money row keeps start capital, deployed at close, lowest margin, margin at close, open value and equity (capital + realised + unrealised).
+
+**Daily loss (SRD .038).** `equity(t) − equity(day start) ≤ −pct/100 × equity(day start)` sets the day's stop flag; logged once as daily_loss_stop.
+
+**Results (SRD .039).** `ResultsStore.save_variant(run_id, index, variant, result)` writes `variants` (variant_id, run_id, capital, strategies JSON) and appends `trades`, `day_log`, `money_daily` with `pandas.to_sql`. `BacktestService.run_portfolio(plan, daily, signals)` loads the live strategies, runs every variant in turn and records the run.

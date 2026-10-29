@@ -16,11 +16,13 @@ import pytest
 from PyQt6.QtCore import QObject, Qt, pyqtSignal
 
 from us_swing.backtest.service import DailyList, Estimate
+from us_swing.backtest.spec import Variant
+from us_swing.backtest.steps.portfolio import VariantResult
 from us_swing.core.backtest_bridge import PresetInfo
 from us_swing.data.models import ConnectionStatus
 from us_swing.gui import backtest_workspace as mod
 from us_swing.gui.backtest_builder import BacktestBuilder
-from us_swing.gui.backtest_workspace import BacktestWorkspace, data_check_text
+from us_swing.gui.backtest_workspace import BacktestWorkspace, data_check_text, trades_summary
 
 _PRESETS = [PresetInfo("p1", "Momentum", "1d", False), PresetInfo("p2", "Weekly", "1w", False)]
 
@@ -99,6 +101,27 @@ class _FakeService:
             "end": [start, start, start + pd.Timedelta(minutes=33)],
             "close_at_start": [10.0, 20.0, 11.0], "values": ["{}"] * 3, "pnl": [False] * 3,
         })
+
+    def run_portfolio(self, _plan: Any, _daily: DailyList, _found: Any, **kw: Any) -> list[Any]:
+        kw["progress"](1, 1)
+        ts = pd.Timestamp("2026-03-03 15:00", tz="UTC")
+        trades = pd.DataFrame({
+            "strategy": ["ST_A", "ST_A"], "symbol": ["AAPL", "MSFT"], "direction": ["LONG"] * 2,
+            "entry_ts": [ts, ts + pd.Timedelta(hours=1)], "entry_px": [10.0, 20.0], "qty": [3, 1],
+            "exit_ts": [ts + pd.Timedelta(hours=2)] * 2, "exit_px": [20.0, 10.0],
+            "exit_reason": ["strategy", "end_time"], "costs": [0.0, 0.0],
+            "net_pnl": [30.0, -10.0], "mae": [0.0, 0.0], "mfe": [0.0, 0.0],
+            "score": [1.0, 1.0], "rank": [1, 2],
+        })
+        log = pd.DataFrame({"ts": [ts] * 3, "symbol": ["AAPL", "MSFT", "NVDA"],
+                            "strategy": ["ST_A"] * 3,
+                            "decision": ["entered", "entered", "no_margin"],
+                            "margin_available": [1.0] * 3, "strategy_deployed": [1.0] * 3})
+        money = pd.DataFrame({"date": [date(2026, 3, 2), date(2026, 3, 3)],
+                              "start_capital": [100.0] * 2, "deployed": [0.0] * 2,
+                              "margin_min": [50.0] * 2, "margin_close": [100.0] * 2,
+                              "open_value": [0.0] * 2, "equity": [100.0, 120.0]})
+        return [VariantResult(Variant(100.0, ()), trades, log, money)]
 
 
 _STRATEGIES = [
@@ -288,3 +311,45 @@ def test_double_click_opens_charts(workspace: BacktestWorkspace, qtbot: Any) -> 
     workspace.signals_table.cellDoubleClicked.emit(0, 0)
 
     assert seen == [("AAPL", "1d")]
+
+
+def test_account_fields(qtbot: Any) -> None:
+    """UT-GUI-031.030.M02.T01: Account fields and user defaults go into the plan."""
+    builder = BacktestBuilder()
+    qtbot.addWidget(builder)
+    builder.set_account_defaults(5000.0, 2.0)
+    builder._slippage.setValue(10)
+    builder._when.setCurrentIndex(1)
+
+    plan = builder.plan()
+
+    assert plan.account.capital == (5000.0,)
+    assert plan.account.max_daily_loss_pct == 2.0
+    assert plan.account.when_full == "highest_score"
+    assert plan.costs.slippage_bps == 10.0
+
+
+def test_run_does_step_3(workspace: BacktestWorkspace, qtbot: Any) -> None:
+    """UT-GUI-031.031.M03.T01: Run does Step 3 and shows the Trades tab."""
+    _run_both(workspace, qtbot)
+
+    assert workspace.pills[2].text() == "3 Portfolio · Done"
+    assert workspace.tabs.tabText(workspace.tabs.currentIndex()) == "Trades"
+
+
+def test_trades_tab(workspace: BacktestWorkspace, qtbot: Any) -> None:
+    """UT-GUI-031.032.M03.T01: Summary line and one row per trade."""
+    _run_both(workspace, qtbot)
+
+    assert workspace.trades_head.text() == "TRADES · 2 trades · net P&L $20.00 · win rate 50%"
+    assert workspace.trades_table.rowCount() == 2
+    assert trades_summary(pd.DataFrame(columns=["net_pnl"])) == "TRADES · none"
+
+
+def test_day_log_and_money_tabs(workspace: BacktestWorkspace, qtbot: Any) -> None:
+    """UT-GUI-031.033.M03.T01: Day log and Money tabs list their rows."""
+    _run_both(workspace, qtbot)
+
+    assert workspace.log_table.rowCount() == 3
+    assert workspace.money_table.rowCount() == 2
+    assert workspace.money_table.item(0, 5).text() == "120.00"  # type: ignore[union-attr]

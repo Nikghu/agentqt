@@ -77,6 +77,22 @@ def main(argv: Sequence[str] | None = None, service: BacktestService | None = No
         entries = int((group["kind"] == "entry").sum())
         print(f"{name}: {entries} entry and {len(group) - entries} exit periods "
               f"on {group['symbol'].nunique()} stocks")
+    try:
+        variants = svc.run_portfolio(
+            plan, result, found,
+            progress=lambda d, t: print(f"\rDays {d} of {t}", end="", flush=True),
+        )
+    except (StepRefused, ValueError) as exc:
+        print(f"\nError: {exc}")
+        return 1
+    print()
+    for res in variants:
+        trades = res.trades
+        wins = int((trades["net_pnl"] > 0).sum())
+        print(f"Capital ${res.variant.capital:,.0f}: {len(trades)} trades · "
+              f"net P&L ${trades['net_pnl'].sum():,.2f} · "
+              f"win rate {wins / len(trades):.0%}" if len(trades) else
+              f"Capital ${res.variant.capital:,.0f}: no trades")
     return 0
 
 

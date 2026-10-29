@@ -1,9 +1,9 @@
 """
 Module: MD-BKT-002.008.M05 — backtest/service.py
-Parent SRD: SRD-BKT-002.008, SRD-BKT-002.017, SRD-BKT-002.029
+Parent SRD: SRD-BKT-002.008, SRD-BKT-002.017, SRD-BKT-002.029, SRD-BKT-002.039
 
 ``BacktestService``: the one entry point for the GUI, the CLI and (later) MCP.
-Phase 0–2: data check estimate, Step 1 (Stocks) and Step 2 (Signals).
+Phase 0–3: data check estimate, Step 1 (Stocks), Step 2 (Signals), Step 3 (Portfolio).
 """
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ import pandas as pd
 from us_swing.backtest.cache import StepCache
 from us_swing.backtest.results import ResultsStore
 from us_swing.backtest.spec import Period, RunPlan
-from us_swing.backtest.steps import signals, stocks
+from us_swing.backtest.steps import portfolio, signals, stocks
 from us_swing.backtest.store import BacktestStore
 from us_swing.backtest.universe import UniverseRecord, resolve
 
@@ -138,7 +138,7 @@ class BacktestService:
                 if (cap := getattr(r, "market_cap", None)) is not None}
         preset = self._presets(plan.screener.preset_id, user_id)
         self._cache.cleanup(datetime.now(timezone.utc))
-        key, days = self._recorded(plan, lambda: stocks.run_stocks(
+        key, days = self._recorded(plan, lambda _run_id: stocks.run_stocks(
             plan, preset, symbols, self._store, self._cache, caps,
             workers=workers, progress=progress, cancel=cancel,
         ))
@@ -160,15 +160,8 @@ class BacktestService:
             ValueError: no strategy picked, or a name is not in the live store.
             StepCancelled: from Step 2.
         """
-        if not plan.strategies:
-            raise ValueError("Pick at least one strategy")
-        live = {str(s["name"]): s for s in self._strategies()}
-        missing = [s.id for s in plan.strategies if s.id not in live]
-        if missing:
-            raise ValueError("; ".join(f"Strategy {m} is not in the strategy list"
-                                       for m in missing))
-        chosen = [dict(live[s.id]) for s in plan.strategies]
-        frame = self._recorded(plan, lambda: signals.run_signals(
+        chosen = self._chosen_strategies(plan)
+        frame = self._recorded(plan, lambda _run_id: signals.run_signals(
             plan.period, chosen, daily.frame, plan.screener.top_n, self._store, self._cache,
             workers=workers, progress=progress, cancel=cancel,
         ))
@@ -176,12 +169,54 @@ class BacktestService:
                   len(frame), len(chosen))
         return frame
 
-    def _recorded(self, plan: RunPlan, work: Callable[[], _T]) -> _T:
-        """Run ``work`` inside a results row: done, cancelled or failed."""
+    def run_portfolio(
+        self,
+        plan: RunPlan,
+        daily: DailyList,
+        found: pd.DataFrame,
+        *,
+        progress: stocks.Progress | None = None,
+        cancel: stocks.Cancel | None = None,
+    ) -> list[portfolio.VariantResult]:
+        """Run Step 3 for every variant and save the rows (SRD-BKT-002.039).
+
+        Raises:
+            ValueError: no strategy picked, or a name is not in the live store.
+            StepRefused, StepCancelled: from Step 3.
+        """
+        chosen = self._chosen_strategies(plan)
+
+        def work(run_id: str) -> list[portfolio.VariantResult]:
+            results = portfolio.run_portfolio(
+                plan, chosen, daily.frame, daily.days, found, self._store,
+                progress=progress, cancel=cancel,
+            )
+            for i, res in enumerate(results):
+                self._results.save_variant(run_id, i, res.variant, res.trades, res.day_log,
+                                           res.money)
+            return results
+
+        results = self._recorded(plan, work)
+        _log.info("[Backtest] Portfolio done: %d trade(s) in %d variant(s)",
+                  sum(len(r.trades) for r in results), len(results))
+        return results
+
+    def _chosen_strategies(self, plan: RunPlan) -> list[dict[str, Any]]:
+        if not plan.strategies:
+            raise ValueError("Pick at least one strategy")
+        live = {str(s["name"]): s for s in self._strategies()}
+        missing = [s.id for s in plan.strategies if s.id not in live]
+        if missing:
+            raise ValueError("; ".join(f"Strategy {m} is not in the strategy list"
+                                       for m in missing))
+        return [dict(live[s.id]) for s in plan.strategies]
+
+    def _recorded(self, plan: RunPlan, work: Callable[[str], _T]) -> _T:
+        """Run ``work(run_id)`` inside a results row: done, cancelled or failed."""
         run_id = self._results.start_run(plan, datetime.now(timezone.utc))
         status, message = "failed", ""
         try:
-            result = work()
+            result = work(run_id)
             status = "done"
         except stocks.StepCancelled:
             status = "cancelled"

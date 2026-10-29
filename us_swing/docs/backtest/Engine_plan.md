@@ -1,6 +1,6 @@
 # Engine_plan — Backtest Engine (Stocks → Signals → Portfolio → Report)
 
-**Status:** Phase 0, 1 and 2 done (code); Phase 3 next
+**Status:** Phase 0 to 3 done (code); Phase 4 next
 **Tool:** BKT (engine) + GUI (Backtest workspace) + MCP (last)
 **Author:** USSwing
 **Created:** 2026-10-29
@@ -18,8 +18,8 @@ section for the phase in progress. Update §0 at the end of every session.
 |---|---|---|---|---|---|---|
 | 0 | Foundation | Approved | Done | Done | OK | see DEVLOG 2026-10-29 |
 | 1 | Step 1 · Stocks | Approved | Done | Done | OK | see DEVLOG 2026-10-29 |
-| 2 | Step 2 · Signals | Approved | Done | Done | Pending | see DEVLOG 2026-10-29 |
-| 3 | Step 3 · Portfolio | Not started | — | — | — | — |
+| 2 | Step 2 · Signals | Approved | Done | Done | OK | see DEVLOG 2026-10-29 |
+| 3 | Step 3 · Portfolio | Approved | Done | Done | Pending | see DEVLOG 2026-10-29 |
 | 4 | Step 4 · Report | Not started | — | — | — | — |
 | 5 | Quick test in Screener | Not started | — | — | — | — |
 | 6 | MCP tools | Not started | — | — | — | — |
@@ -33,7 +33,9 @@ Cell values: `Not started` → `Draft` → `Approved` (docs) / `In progress` →
 
 **Done 2026-10-29 (Phase 2):** SRD-BKT-002.020–.029, SRD-GUI-031.020–.023 (minimal, approved by user for code; RN-BKT-1.3.0, RN-GUI-1.40.0). User choices: the parser is re-exported from live in `core/expr` (live code not moved, R7 avoided); VWAP resets each session (R5). Parity gate: 50 real stocks, 60,000 values, 0 mismatches. Price reads the forming 15m bar like live; other indicators use closed bars, so inside a forming 15m bar they can differ from live (R4). Found in live (not fixed): VWAP adds up 30 days with no daily reset; `PNL` always returns 0.
 
-**Next action:** user checks Step 2 in the app (tick ST_AUTO, Run, open Signals). Then Phase 3 FO/SRD rows (SRD-BKT-002.030–.039, SRD-GUI-031.030–.039). SPY is not downloaded: the user wants backtest data to be S&P 500 only (2026-10-29), so presets with the RS rule are refused with a plain message (SRD-BKT-002.018).
+**Done 2026-10-29 (Phase 3):** SRD-BKT-002.030–.039, SRD-GUI-031.030–.034 (minimal, approved by user for code; RN-BKT-1.4.0, RN-GUI-1.41.0). User choices (D10–D12): Rex count resets each day; daily loss stop blocks new entries (live only warns); stop counts when stop and target are in one bar (live checks ticks, target first). Money rules copy live `_size_entry` / `can_allocate` / `margin_available`. Deferred: shadow P&L, equity Parquet, variant pool, trailing levels, PNL conditions, Grow with P&L (refused with a message), trade detail drawer.
+
+**Next action:** user checks Step 3 in the app (Run, open Trades, Day log, Money). Then Phase 4 FO/SRD rows (SRD-BKT-002.040–.049, SRD-GUI-031.040–.049). SPY is not downloaded: the user wants backtest data to be S&P 500 only (2026-10-29), so presets with the RS rule are refused with a plain message (SRD-BKT-002.018).
 
 ---
 
@@ -62,6 +64,9 @@ A flexible, fast backtest engine that:
 | D7 | Money | **Same rules as live** (see §6). Defaults from user/strategy settings; any value allowed in backtest. No broker leverage, no PDT. |
 | D8 | Strategies | Read from the **live strategy store**. Edits and new strategies appear automatically. |
 | D9 | Stocks | S&P 500, sector(s) or names, plus add/remove on top. |
+| D10 | Rex count | Resets each trading day in the backtest (live never resets). (user, 2026-10-29) |
+| D11 | Daily loss stop | Blocks new entries for the rest of the day (live only warns). (user, 2026-10-29) |
+| D12 | Stop and target in one bar | The stop counts. (user, 2026-10-29) |
 
 ---
 

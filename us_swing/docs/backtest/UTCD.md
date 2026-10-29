@@ -115,3 +115,23 @@
 | UT-BKT-002.028.M11.T03 | MD-BKT-002.026.M11 | Positive | Process pool equals in-process | 2 workers | same frames | Pass |
 | UT-BKT-002.029.M05.T01 | MD-BKT-002.008.M05 | Negative | Missing strategy name | plan names "X" | `ValueError` "Strategy X is not in the strategy list" | Pass |
 | UT-BKT-002.029.M05.T02 | MD-BKT-002.008.M05 | Positive | Service run of Step 2 | fake store and one strategy | signal list returned; run row done | Pass |
+
+## FO-BKT-002 — Backtest Engine (Phase 3)
+
+| UT ID | MD | Type | Description | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-BKT-002.030.M12.T01 | MD-BKT-002.030.M12 | Positive | Entry only from yesterday's list | entry window on day 2 for a stock picked on day 1 and one not picked | one trade, for the picked stock | Pass |
+| UT-BKT-002.030.M12.T02 | MD-BKT-002.030.M12 | Positive | First signal vs highest score | 2 stocks, money for one; earlier window has the lower score | first_signal takes the earlier; highest_score takes the higher score | Pass |
+| UT-BKT-002.031.M12.T01 | MD-BKT-002.030.M12 | Positive | Per-trade sizing | capital 10,000, alloc 50 %, per-trade 50 %, fill 100 | 25 shares | Pass |
+| UT-BKT-002.031.M12.T02 | MD-BKT-002.030.M12 | Negative | Too expensive | per-trade $50, fill 100 | no trade; day log too_expensive | Pass |
+| UT-BKT-002.032.M12.T01 | MD-BKT-002.030.M12 | Negative | Strategy limit | alloc 50 %, per-trade 100 %, 2 stocks signal | 1 trade; strategy_limit for the second | Pass |
+| UT-BKT-002.032.M12.T02 | MD-BKT-002.030.M12 | Negative | Margin across 2 strategies | 2 strategies 60 % each, per-trade 100 % | second cut to the margin left | Pass |
+| UT-BKT-002.033.M12.T01 | MD-BKT-002.030.M12 | Positive | Next-open fill with costs | signal at 10:00 close, slippage 10 bps, commission 1 | entry at 10:00 bar's next open × 1.001; 2 commissions in net P&L | Pass |
+| UT-BKT-002.034.M12.T01 | MD-BKT-002.030.M12 | Negative | Already held and Rex per day | 2 entry windows same day, Rex 0; then next day | 1 trade day 1 (rex_limit logged); a new trade day 2 | Pass |
+| UT-BKT-002.035.M12.T01 | MD-BKT-002.030.M12 | Negative | Stop and target in one bar | bar low under stop and high over target | exit reason stop at stop price | Pass |
+| UT-BKT-002.035.M12.T02 | MD-BKT-002.030.M12 | Edge | Gap through stop | swing LONG, next day opens below stop | exit at that open | Pass |
+| UT-BKT-002.036.M12.T01 | MD-BKT-002.030.M12 | Positive | SHORT levels and P&L | SHORT fill 100, stop 1 %, price falls to target 2 % | exit target at 98; P&L positive | Pass |
+| UT-BKT-002.036.M12.T02 | MD-BKT-002.030.M12 | Negative | Trailing stop refused | strategy with trailing stop on | `StepRefused` plain message | Pass |
+| UT-BKT-002.037.M12.T01 | MD-BKT-002.030.M12 | Positive | Intraday end time and swing overnight | Intraday end 15:30; Swing same signals | intraday exits at 15:30 open; swing still open next day | Pass |
+| UT-BKT-002.038.M12.T01 | MD-BKT-002.030.M12 | Negative | Daily loss stop | 1 % stop, loss 2 % after first trade | later entries that day blocked; daily_loss_stop logged once | Pass |
+| UT-BKT-002.039.M04.T01 | MD-BKT-002.007.M04 | Positive | Variant rows saved | one variant result | rows in variants, trades, day_log, money_daily | Pass |

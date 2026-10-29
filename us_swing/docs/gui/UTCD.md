@@ -847,3 +847,7 @@ Test files:
 | UT-GUI-031.021.M03.T01 | MD-GUI-031.003.M03 | Positive | Run does both steps | fake service, one strategy ticked | Stocks and Signals pills Done; signals table filled | Pass |
 | UT-GUI-031.022.M03.T01 | MD-GUI-031.003.M03 | Positive | Strategy filter | 2 strategies' periods, pick one | only its rows shown | Pass |
 | UT-GUI-031.023.M03.T01 | MD-GUI-031.003.M03 | Positive | Double-click opens Charts | double-click AAPL row | `chart_requested("AAPL", "1d")` | Pass |
+| UT-GUI-031.030.M02.T01 | MD-GUI-031.002.M02 | Positive | Account fields | defaults 5,000 and 2 %, set slippage 10, highest score | plan capital (5000,), daily loss 2, when_full highest_score, slippage 10 | Pass |
+| UT-GUI-031.031.M03.T01 | MD-GUI-031.003.M03 | Positive | Run does Step 3 | fake service, one strategy | Portfolio pill Done; Trades tab shown | Pass |
+| UT-GUI-031.032.M03.T01 | MD-GUI-031.003.M03 | Positive | Trades tab | 2 trades, +30 and −10 | summary "2 trades · net P&L $20.00 · win rate 50%"; 2 rows | Pass |
+| UT-GUI-031.033.M03.T01 | MD-GUI-031.003.M03 | Positive | Day log and Money tabs | 3 decisions, 2 money rows | 3 and 2 rows | Pass |

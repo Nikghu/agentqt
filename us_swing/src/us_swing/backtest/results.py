@@ -1,12 +1,13 @@
 """
 Module: MD-BKT-002.007.M04 — backtest/results.py
-Parent SRD: SRD-BKT-002.007
+Parent SRD: SRD-BKT-002.007, SRD-BKT-002.039
 
-Results store (``results.db``): one row per run with its plan and status.
-Variant, trade and log tables are added in Phase 3.
+Results store (``results.db``): one row per run with its plan and status, and
+per variant its trades, day log and money-by-day rows (Phase 3).
 """
 from __future__ import annotations
 
+import json
 import sqlite3
 from contextlib import closing
 import uuid
@@ -14,8 +15,10 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+import pandas as pd
+
 from us_swing.backtest import DEFAULT_ROOT
-from us_swing.backtest.spec import RunPlan
+from us_swing.backtest.spec import RunPlan, Variant
 
 DEFAULT_RESULTS_PATH: Path = DEFAULT_ROOT / "results.db"
 
@@ -86,6 +89,29 @@ class ResultsStore:
             ).fetchone()
         return _row(row) if row else None
 
+    def save_variant(self, run_id: str, index: int, variant: Variant, trades: pd.DataFrame,
+                     day_log: pd.DataFrame, money: pd.DataFrame) -> str:
+        """Save one variant's Step 3 rows (SRD-BKT-002.039); returns the variant id."""
+        variant_id = f"{run_id}-{index}"
+        head = pd.DataFrame([{
+            "variant_id": variant_id, "run_id": run_id, "capital": variant.capital,
+            "strategies_json": json.dumps([list(s) for s in variant.strategies]),
+        }])
+        with closing(self._connect()) as conn, conn:
+            for name, frame in (("variants", head), ("trades", trades),
+                                ("day_log", day_log), ("money_daily", money)):
+                _as_text(frame).assign(variant_id=variant_id).to_sql(
+                    name, conn, if_exists="append", index=False)
+        return variant_id
+
+    def read_table(self, name: str, variant_id: str) -> pd.DataFrame:
+        """Read one saved table for a variant (``trades``, ``day_log``, ``money_daily``)."""
+        if name not in ("trades", "day_log", "money_daily"):
+            raise ValueError(f"Unknown results table {name!r}")
+        with closing(self._connect()) as conn:
+            return pd.read_sql_query(f"SELECT * FROM {name} WHERE variant_id = ?", conn,
+                                     params=(variant_id,))
+
     def list_runs(self, limit: int = 50) -> list[RunRow]:
         """Return the newest runs first."""
         with closing(self._connect()) as conn, conn:
@@ -95,6 +121,15 @@ class ResultsStore:
                 (limit,),
             ).fetchall()
         return [_row(r) for r in rows]
+
+
+def _as_text(frame: pd.DataFrame) -> pd.DataFrame:
+    """Dates and timestamps as ISO text, so SQLite keeps them readable."""
+    out = frame.copy()
+    for col in out.columns:
+        if pd.api.types.is_datetime64_any_dtype(out[col]) or out[col].dtype == object:
+            out[col] = out[col].map(lambda v: v.isoformat() if hasattr(v, "isoformat") else v)
+    return out
 
 
 def _row(r: tuple[str, str, str, str, str, str | None, str]) -> RunRow:

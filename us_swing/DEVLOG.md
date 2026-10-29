@@ -2,6 +2,17 @@
 
 ---
 
+## [20261029] BKT + GUI — Backtest engine Phase 3 · Step 3 Portfolio (FO-BKT-002, FO-GUI-031)
+
+- Type: Feature
+- FO(s): FO-BKT-002, FO-GUI-031
+- RN: RN-BKT-1.4.0-20261029, RN-GUI-1.41.0-20261029
+- Artifacts updated: FO (bullets), SRD (SRD-BKT-002.030–.039, SRD-GUI-031.030–.034 — minimal, approved by user for code, now Implemented), DD, MD, UTCD (20 Pass), TRACE, Code, Tests, RN, Engine_plan §0/§2 (D10–D12), TODO T61, CONTEXT, DEVLOG
+- Decisions (user 2026-10-29): Rex count resets each day; daily loss stop blocks new entries; stop counts when stop and target are in one bar.
+- Findings: live sizing is floor(capital × alloc % × per-trade % ÷ price), strategy limit is checked before entry, the order is cut to margin; live stop / target are % of entry, checked per tick on last price with target first; live daily loss only warns; live Rex never resets. Real run: ST_AUTO on IT top 5, $2,000 and $5,000 variants, ~104 trades each, 12 s for Steps 1–3. Also: section headings on the Stocks and Signals tabs (10c86ebc).
+
+---
+
 ## [20261029] BKT — RS-rule presets refused plainly; worker errors not doubled (FO-BKT-002)
 
 - Type: Bugfix

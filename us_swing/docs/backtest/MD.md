@@ -46,3 +46,11 @@ Cross-tool note: `screener/executor.py` gets a public `PresetExecutor.screen()` 
 | MD-BKT-002.026.M11 | SRD-BKT-002.026 | `us_swing/src/us_swing/backtest/steps/signals.py` | Step 2 periods per strategy and stock, cache, pool | `load_frames()`, `schedule_mask()`, `periods()`, `signal_key()`, `stocks_for()`, `run_signals()` | `core.expr.series`, `cache`, `store` | Process pool |
 
 Also changed: `core/backtest_bridge.py` (MD-BKT-002.011.M08) adds `load_strategies()`; `backtest/service.py` (MD-BKT-002.008.M05) adds `run_signals()`; `backtest/cli.py` (MD-BKT-002.009.M06) runs Step 2.
+
+## FO-BKT-002 — Backtest Engine (Phase 3)
+
+| MD ID | SRD | File | Purpose | Public API | Depends on | Async |
+|---|---|---|---|---|---|---|
+| MD-BKT-002.030.M12 | SRD-BKT-002.030 | `us_swing/src/us_swing/backtest/steps/portfolio.py` | Step 3 day loop, money rules, exits, logs | `run_portfolio()`, `refusals()`, `StrategyRules`, `VariantResult` | `store`, `spec` | No |
+
+Also changed: `backtest/results.py` (MD-BKT-002.007.M04) adds `save_variant()` and the four tables; `backtest/service.py` (MD-BKT-002.008.M05) adds `run_portfolio()`; `backtest/cli.py` (MD-BKT-002.009.M06) prints each variant's trades and net P&L.

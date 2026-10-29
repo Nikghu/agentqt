@@ -1,7 +1,7 @@
 """
 Module: MD-GUI-031.003.M03 — Backtest workspace
 Parent SRD: SRD-GUI-031.003, SRD-GUI-031.004, SRD-GUI-031.011, SRD-GUI-031.012,
-            SRD-GUI-031.021, SRD-GUI-031.022, SRD-GUI-031.023
+            SRD-GUI-031.021, SRD-GUI-031.022, SRD-GUI-031.023, SRD-GUI-031.031–.034
 
 Builder on the left; step strip, data check and the Stocks / Signals views on
 the right.
@@ -14,7 +14,7 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
-from PyQt6.QtCore import QThread, QTimer, pyqtSignal
+from PyQt6.QtCore import Qt, QThread, QTimer, pyqtSignal
 from PyQt6.QtGui import QShowEvent
 from PyQt6.QtWidgets import (
     QAbstractItemView,
@@ -22,6 +22,7 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QScrollArea,
     QTableWidget,
     QTableWidgetItem,
     QTabWidget,
@@ -33,6 +34,7 @@ from us_swing.backtest.cache import StepCache
 from us_swing.backtest.results import ResultsStore
 from us_swing.backtest.service import BacktestService, DailyList, Estimate
 from us_swing.backtest.spec import RunPlan
+from us_swing.backtest.steps.portfolio import VariantResult
 from us_swing.backtest.steps.stocks import StepCancelled, top_n
 from us_swing.backtest.store import BacktestStore
 from us_swing.core.backtest_bridge import list_presets, load_preset_dict, load_strategies
@@ -76,6 +78,7 @@ class _RunWorker(QThread):
     progress = pyqtSignal(int, int, int)  # (step index, done, total)
     done = pyqtSignal(object)  # DailyList
     signals_done = pyqtSignal(object)  # DataFrame of signal periods
+    portfolio_done = pyqtSignal(object)  # list[VariantResult]
     failed = pyqtSignal(str)
     cancelled = pyqtSignal()
 
@@ -104,6 +107,11 @@ class _RunWorker(QThread):
                     progress=lambda d, t: self.progress.emit(1, d, t),
                 )
                 self.signals_done.emit(found)
+                results = self._service.run_portfolio(
+                    self._plan, daily, found, cancel=stop,
+                    progress=lambda d, t: self.progress.emit(2, d, t),
+                )
+                self.portfolio_done.emit(results)
         except StepCancelled:
             self.cancelled.emit()
         except Exception as exc:  # noqa: BLE001 — shown to the user
@@ -124,6 +132,41 @@ def _head(text: str) -> QLabel:
     label = QLabel(text)
     label.setObjectName("view_head")
     return label
+
+
+def _page(head: QLabel, table: QTableWidget) -> QWidget:
+    box = QWidget()
+    body = QVBoxLayout(box)
+    body.setContentsMargins(14, 12, 14, 12)
+    body.setSpacing(8)
+    body.addWidget(head)
+    body.addWidget(table, 1)
+    return box
+
+
+def _fill(table: QTableWidget, columns: list[list[str]]) -> None:
+    table.setRowCount(len(columns[0]) if columns else 0)
+    for col, values in enumerate(columns):
+        for row, value in enumerate(values):
+            table.setItem(row, col, QTableWidgetItem(value))
+    table.resizeColumnsToContents()
+
+
+def _usd(value: float) -> str:
+    return f"-${-value:,.2f}" if value < 0 else f"${value:,.2f}"
+
+
+def _et(values: pd.Series, fmt: str = "%Y-%m-%d %H:%M") -> list[str]:
+    return list(pd.DatetimeIndex(pd.to_datetime(values, utc=True)).tz_convert(_ET).strftime(fmt))
+
+
+def trades_summary(trades: pd.DataFrame) -> str:
+    """Trades count, net P&L and win rate (SRD-GUI-031.032)."""
+    if trades.empty:
+        return "TRADES · none"
+    wins = int((trades["net_pnl"] > 0).sum())
+    return (f"TRADES · {len(trades)} trades · net P&L {_usd(trades['net_pnl'].sum())} · "
+            f"win rate {wins / len(trades):.0%}")
 
 
 def _table(headers: list[str]) -> QTableWidget:
@@ -156,13 +199,20 @@ class BacktestWorkspace(QWidget):
         self._runner: _RunWorker | None = None
         self._daily: DailyList | None = None
         self._signals: pd.DataFrame | None = None
+        self._results: list[VariantResult] = []
 
         gutter(self)
         main = QHBoxLayout(self)
         main.setContentsMargins(0, 0, 0, 0)
         main.setSpacing(GAP)
         self.builder = BacktestBuilder()
-        main.addWidget(card(self.builder))
+        scroll = QScrollArea()
+        scroll.setWidget(self.builder)
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setFixedWidth(self.builder.width() + 14)
+        main.addWidget(card(scroll))
         right = QVBoxLayout()
         right.setSpacing(GAP)
         right.addWidget(card(self._build_header()))
@@ -182,6 +232,10 @@ class BacktestWorkspace(QWidget):
         svc.feed_status_changed.connect(lambda _s: self._render_buttons())
         self._load_universe()
         self.refresh_presets()
+        risk = getattr(svc.get_active_user(), "risk_config", None)
+        if risk is not None:
+            self.builder.set_account_defaults(float(risk.max_capital_value),
+                                              float(risk.max_daily_loss_pct))
 
     # ── Build ─────────────────────────────────────────────────────────────────
 
@@ -227,6 +281,17 @@ class BacktestWorkspace(QWidget):
         self.tabs = QTabWidget()
         self.tabs.addTab(self._build_step1(), "Stocks")
         self.tabs.addTab(self._build_step2(), "Signals")
+        self.trades_head = _head("TRADES")
+        self.trades_table = _table(["Strategy", "Symbol", "Side", "Entry", "Entry $", "Shares",
+                                    "Exit", "Exit $", "Reason", "Net P&L"])
+        self.log_table = _table(["Time", "Symbol", "Strategy", "Decision", "Margin left",
+                                 "Strategy deployed"])
+        self.money_table = _table(["Date", "Deployed", "Lowest margin", "Margin at close",
+                                   "Open value", "Equity"])
+        self.tabs.addTab(_page(self.trades_head, self.trades_table), "Trades")
+        self.tabs.addTab(_page(_head("DECISIONS · ENTERED OR WHY SKIPPED"), self.log_table),
+                         "Day log")
+        self.tabs.addTab(_page(_head("MONEY BY DAY"), self.money_table), "Money")
         return self.tabs
 
     def _build_step2(self) -> QWidget:
@@ -366,6 +431,7 @@ class BacktestWorkspace(QWidget):
         runner.progress.connect(lambda step, d, t: self.set_step(step, "running", d, t))
         runner.done.connect(self._on_run_done)
         runner.signals_done.connect(self._on_signals_done)
+        runner.portfolio_done.connect(self._on_portfolio_done)
         runner.failed.connect(self._on_run_failed)
         runner.cancelled.connect(self._on_run_cancelled)
         runner.finished.connect(self._on_runner_finished)
@@ -374,6 +440,7 @@ class BacktestWorkspace(QWidget):
         set_icon(self.run_btn, "square-x", "inverse")
         self.set_step(0, "running")
         self.set_step(1, "waiting")
+        self.set_step(2, "waiting")
         runner.start()
 
     def _on_run_done(self, daily: DailyList) -> None:
@@ -394,7 +461,7 @@ class BacktestWorkspace(QWidget):
         self.tabs.setCurrentIndex(1)
 
     def _running_steps(self) -> list[int]:
-        return [i for i in (0, 1) if self.pills[i].property("state") == "downloading"]
+        return [i for i in (0, 1, 2) if self.pills[i].property("state") == "downloading"]
 
     def _on_run_failed(self, message: str) -> None:
         for step in self._running_steps():
@@ -486,3 +553,34 @@ class BacktestWorkspace(QWidget):
         item = self.signals_table.item(row, 1)
         if item is not None:
             self.chart_requested.emit(item.text(), "1d")
+
+    # ── Step 3 views (SRD-GUI-031.031–.034) ───────────────────────────────────
+
+    def _on_portfolio_done(self, results: list[VariantResult]) -> None:
+        self._results = results
+        self.set_step(2, "done")
+        if not results:
+            return
+        res = results[0]
+        trades = res.trades.sort_values("entry_ts", ascending=False)
+        self.trades_head.setText(trades_summary(trades))
+        _fill(self.trades_table, [
+            list(trades["strategy"]), list(trades["symbol"]), list(trades["direction"]),
+            _et(trades["entry_ts"]), [f"{v:.2f}" for v in trades["entry_px"]],
+            [str(v) for v in trades["qty"]], _et(trades["exit_ts"]),
+            [f"{v:.2f}" for v in trades["exit_px"]], list(trades["exit_reason"]),
+            [f"{v:,.2f}" for v in trades["net_pnl"]],
+        ])
+        log = res.day_log.sort_values("ts", ascending=False)
+        _fill(self.log_table, [
+            _et(log["ts"]), list(log["symbol"]), list(log["strategy"]), list(log["decision"]),
+            [f"{v:,.2f}" for v in log["margin_available"]],
+            [f"{v:,.2f}" for v in log["strategy_deployed"]],
+        ])
+        money = res.money.sort_values("date", ascending=False)
+        _fill(self.money_table, [
+            [str(d) for d in money["date"]],
+            *[[f"{v:,.2f}" for v in money[c]] for c in
+              ("deployed", "margin_min", "margin_close", "open_value", "equity")],
+        ])
+        self.tabs.setCurrentIndex(2)

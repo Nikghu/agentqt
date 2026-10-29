@@ -38,7 +38,7 @@ The system shall keep a separate history of 1d and 3m candles for all S&P 500 st
 
 ## FO-BKT-002: Backtest Engine
 
-**Status:** Approved (user, 2026-10-29 — Phase 0, 1 and 2 scope)
+**Status:** Approved (user, 2026-10-29 — Phase 0 to 3 scope)
 **Priority:** Must
 **Depends on:** FO-BKT-001 (backtest data store), FO-SCR presets (screener replay)
 **Source:** `Engine_plan.md` §1–§5, locked decisions D1–D9 (user, 2026-10-29). User asked for minimal Phase 0 and Phase 1 requirements, approved for code on 2026-10-29.
@@ -54,6 +54,7 @@ The system shall run a saved screener and the user's live strategies over histor
 - The system shall be usable from a command line as well as the GUI.
 - The system shall find, per stock and live strategy, the periods when the entry and exit conditions are true, using the live condition parser (Phase 2, approved by user 2026-10-29).
 - The system shall read each timeframe only as far as live could see it at that 3m bar close (no look-ahead).
+- The system shall turn the signals of the picked stocks into trades with the live money rules (sizing, strategy limit, margin), stop, target and end time, for each variant (Phase 3, approved by user 2026-10-29).
 
 ### Acceptance Criteria
 

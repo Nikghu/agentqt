@@ -902,6 +902,7 @@ The system shall give a Backtest workspace in the sidebar to build a run plan, c
 - The system shall show the four steps with their state and a data check line with a Download button.
 - The system shall run Step 1 in the background with progress and cancel, then show each day's stocks.
 - The system shall let the user pick live strategies, run Step 2 after Step 1, and list the signal periods (Phase 2, approved by user 2026-10-29).
+- The system shall set capital, daily loss stop, money-short rule and costs, run Step 3, and show trades, the day log and money by day (Phase 3, approved by user 2026-10-29).
 
 ### Acceptance Criteria
 
