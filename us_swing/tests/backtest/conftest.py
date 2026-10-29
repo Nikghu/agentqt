@@ -35,6 +35,20 @@ def daily_bars(start: str, days: int, seed: int, base: float = 50.0) -> pd.DataF
     })
 
 
+def intraday_bars(days: list[str], seed: int, base: float = 50.0) -> pd.DataFrame:
+    """130 random-walk 3m bars per session, 09:30–15:57 US/Eastern, as UTC."""
+    rng = np.random.default_rng(seed)
+    stamps = pd.DatetimeIndex([
+        ts for day in days
+        for ts in pd.date_range(f"{day} 09:30", periods=130, freq="3min", tz="America/New_York")
+    ]).tz_convert("UTC")
+    close = np.maximum(base + np.cumsum(rng.normal(0, 0.2, len(stamps))), 10.0)
+    return pd.DataFrame({
+        "ts": stamps, "open": close - 0.1, "high": close + 0.3, "low": close - 0.3,
+        "close": close, "volume": rng.integers(1_000, 5_000, len(stamps)).astype(float),
+    })
+
+
 def rsi_preset(low: float = 50.0, high: float = 100.0, timeframe: str = "1d") -> dict[str, Any]:
     """Weighted preset with one RSI rule; passes when RSI(14) is within [low, high]."""
     return {

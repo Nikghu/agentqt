@@ -1,6 +1,6 @@
 """
 Module: MD-GUI-031.002.M02 — Backtest builder
-Parent SRD: SRD-GUI-031.002, SRD-GUI-031.010
+Parent SRD: SRD-GUI-031.002, SRD-GUI-031.010, SRD-GUI-031.020
 
 Left builder of the Backtest workspace. It only reads fields into a
 ``RunPlan``; estimating and running live in ``backtest.service``.
@@ -9,7 +9,8 @@ from __future__ import annotations
 
 import datetime
 import re
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from PyQt6.QtCore import QDate, Qt, pyqtSignal
 from PyQt6.QtWidgets import (
@@ -26,7 +27,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from us_swing.backtest.spec import Period, RunPlan, ScreenerSpec, UniverseSpec
+from us_swing.backtest.spec import Period, RunPlan, ScreenerSpec, StrategySpec, UniverseSpec
 from us_swing.backtest.universe import UniverseRecord
 from us_swing.core.backtest_bridge import PresetInfo
 from us_swing.gui.screener_views import ChipGroup
@@ -90,6 +91,9 @@ class BacktestBuilder(QWidget):
         self._ai = QCheckBox("Use AI ranking")
         self._ai.setEnabled(False)
         self._ai.setToolTip("Comes in a later phase")
+        self._strategies = QListWidget()
+        self._strategies.setObjectName("bt_strategies")
+        self._strategies.setMaximumHeight(120)
 
         body.addWidget(_group_label("RUN"))
         body.addWidget(self._name)
@@ -105,6 +109,8 @@ class BacktestBuilder(QWidget):
         body.addWidget(self._preset)
         body.addLayout(self._row("Stocks per day", self._top_n))
         body.addWidget(self._ai)
+        body.addWidget(_group_label("STRATEGIES"))
+        body.addWidget(self._strategies)
         body.addStretch()
 
         for edit in (self._name, self._names_edit, self._add, self._remove):
@@ -115,6 +121,7 @@ class BacktestBuilder(QWidget):
         self._sectors.itemChanged.connect(self.changed)
         self._preset.currentIndexChanged.connect(self.changed)
         self._top_n.valueChanged.connect(self.changed)
+        self._strategies.itemChanged.connect(self.changed)
         self._on_mode()
 
     @staticmethod
@@ -168,6 +175,32 @@ class BacktestBuilder(QWidget):
         self._preset.blockSignals(False)
         self.changed.emit()
 
+    def set_strategies(self, strategies: Sequence[Mapping[str, Any]]) -> None:
+        """SRD-GUI-031.020 — fill the strategy list, keeping ticked names ticked."""
+        ticked = {spec.id for spec in self._ticked_strategies()}
+        self._strategies.blockSignals(True)
+        self._strategies.clear()
+        for cfg in strategies:
+            name, alloc, per = str(cfg["name"]), float(cfg["capital_max"]), float(cfg["per_trade_pct"])
+            item = QListWidgetItem(f"{name} · {alloc:g}% · {per:g}% per trade")
+            item.setData(Qt.ItemDataRole.UserRole, (name, alloc, per))
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setCheckState(
+                Qt.CheckState.Checked if name in ticked else Qt.CheckState.Unchecked
+            )
+            self._strategies.addItem(item)
+        self._strategies.blockSignals(False)
+        self.changed.emit()
+
+    def _ticked_strategies(self) -> tuple[StrategySpec, ...]:
+        specs = []
+        for i in range(self._strategies.count()):
+            item = self._strategies.item(i)
+            if item is not None and item.checkState() == Qt.CheckState.Checked:
+                name, alloc, per = item.data(Qt.ItemDataRole.UserRole)
+                specs.append(StrategySpec(name, (alloc,), (per,)))
+        return tuple(specs)
+
     def _ticked_sectors(self) -> tuple[str, ...]:
         return tuple(
             item.text()
@@ -198,4 +231,5 @@ class BacktestBuilder(QWidget):
                 top_n=self._top_n.value(),
                 ai_ranking=self._ai.isChecked(),
             ),
+            strategies=self._ticked_strategies(),
         )

@@ -1,6 +1,6 @@
 # Engine_plan — Backtest Engine (Stocks → Signals → Portfolio → Report)
 
-**Status:** Phase 0 and 1 done (code); Phase 2 next
+**Status:** Phase 0, 1 and 2 done (code); Phase 3 next
 **Tool:** BKT (engine) + GUI (Backtest workspace) + MCP (last)
 **Author:** USSwing
 **Created:** 2026-10-29
@@ -16,9 +16,9 @@ section for the phase in progress. Update §0 at the end of every session.
 
 | Phase | Name | Docs (FO/SRD) | Backend | GUI | User check | Commit |
 |---|---|---|---|---|---|---|
-| 0 | Foundation | Approved | Done | Done | Pending | see DEVLOG 2026-10-29 |
-| 1 | Step 1 · Stocks | Approved | Done | Done | Pending | see DEVLOG 2026-10-29 |
-| 2 | Step 2 · Signals | Not started | — | — | — | — |
+| 0 | Foundation | Approved | Done | Done | OK | see DEVLOG 2026-10-29 |
+| 1 | Step 1 · Stocks | Approved | Done | Done | OK | see DEVLOG 2026-10-29 |
+| 2 | Step 2 · Signals | Approved | Done | Done | Pending | see DEVLOG 2026-10-29 |
 | 3 | Step 3 · Portfolio | Not started | — | — | — | — |
 | 4 | Step 4 · Report | Not started | — | — | — | — |
 | 5 | Quick test in Screener | Not started | — | — | — | — |
@@ -31,7 +31,9 @@ Cell values: `Not started` → `Draft` → `Approved` (docs) / `In progress` →
 
 **Done 2026-10-29:** Phase 0 and 1 (FO-BKT-002, FO-GUI-031; SRD-BKT-002.001–.017, SRD-GUI-031.001–.004, .010–.012; RN-BKT-1.2.0, RN-GUI-1.39.0). Minimal requirements, approved by user for code. R2 answered: scores are per stock except the RS-rank rule, so Step 1 caches one file per day keyed by the whole stock list (not per stock). AI ranking tick and weekly presets are refused for now. SPY is not in the backtest store.
 
-**Next action:** user checks the Backtest screen in the app (pick a sector, run Step 1, compare one day with the screener history). Then Phase 2 FO/SRD rows (SRD-BKT-002.020–.029, SRD-GUI-031.020–.029). Consider adding SPY to the backtest download.
+**Done 2026-10-29 (Phase 2):** SRD-BKT-002.020–.029, SRD-GUI-031.020–.023 (minimal, approved by user for code; RN-BKT-1.3.0, RN-GUI-1.40.0). User choices: the parser is re-exported from live in `core/expr` (live code not moved, R7 avoided); VWAP resets each session (R5). Parity gate: 50 real stocks, 60,000 values, 0 mismatches. Price reads the forming 15m bar like live; other indicators use closed bars, so inside a forming 15m bar they can differ from live (R4). Found in live (not fixed): VWAP adds up 30 days with no daily reset; `PNL` always returns 0.
+
+**Next action:** user checks Step 2 in the app (tick ST_AUTO, Run, open Signals). Then Phase 3 FO/SRD rows (SRD-BKT-002.030–.039, SRD-GUI-031.030–.039). Consider adding SPY to the backtest download.
 
 ---
 
@@ -238,7 +240,7 @@ Swing positions carry overnight. A gap through the stop fills at the open.
 
 | Item | Live | Backtest |
 |---|---|---|
-| Parser | `execution/strategy_engine/_evaluator.py` | Moved to `core/expr/`; live = last value, backtest = full series |
+| Parser | `execution/strategy_engine/_evaluator.py` | Re-exported by `core/expr/` (user choice 2026-10-29, live code unchanged); backtest = full series in `core/expr/series.py` |
 | Functions | Number, PNL, VWAP, Price, RSI, ADX, EMA, SUPERTREND, SWING, MACD | All 10, as series |
 | Timeframes | 3m, 15m, 1d, 1w | All 4 read from the store; 15m and 1w are built on every save (SRD-BKT-001.012–.014, done 2026-10-29). 1w has a `days` column; an unfinished week is never used before that day's close |
 | `PNL` | From open position | Checked in Step 3 per held bar |

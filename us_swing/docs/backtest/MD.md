@@ -36,3 +36,13 @@
 | MD-BKT-002.011.M08 | SRD-BKT-002.011 | `us_swing/src/us_swing/core/backtest_bridge.py` | Bridge to screener presets and the universe | `load_universe()`, `list_presets()`, `PresetInfo`, `load_preset_dict()`, `screen_day()` | `screener`, `universe` | No |
 
 Cross-tool note: `screener/executor.py` gets a public `PresetExecutor.screen()` (pre-filter + Stage 2 + combine) that `run_preset()` now calls; live screener results are unchanged.
+
+## FO-BKT-002 — Backtest Engine (Phase 2)
+
+| MD ID | SRD | File | Purpose | Public API | Depends on | Async |
+|---|---|---|---|---|---|---|
+| MD-BKT-002.020.M09 | SRD-BKT-002.020 | `us_swing/src/us_swing/core/expr/__init__.py` | Re-export of the live condition parser | `parse()`, `ConditionEvaluator`, `EvaluatorError` | `execution.strategy_engine._evaluator` | No |
+| MD-BKT-002.021.M10 | SRD-BKT-002.021 | `us_swing/src/us_swing/core/expr/series.py` | Series evaluator on the 3m timeline | `function_series()`, `evaluate()`, `Evaluation` | `core.expr`, `talib` | No |
+| MD-BKT-002.026.M11 | SRD-BKT-002.026 | `us_swing/src/us_swing/backtest/steps/signals.py` | Step 2 periods per strategy and stock, cache, pool | `load_frames()`, `schedule_mask()`, `periods()`, `signal_key()`, `stocks_for()`, `run_signals()` | `core.expr.series`, `cache`, `store` | Process pool |
+
+Also changed: `core/backtest_bridge.py` (MD-BKT-002.011.M08) adds `load_strategies()`; `backtest/service.py` (MD-BKT-002.008.M05) adds `run_signals()`; `backtest/cli.py` (MD-BKT-002.009.M06) runs Step 2.

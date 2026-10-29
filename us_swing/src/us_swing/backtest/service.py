@@ -1,9 +1,9 @@
 """
 Module: MD-BKT-002.008.M05 — backtest/service.py
-Parent SRD: SRD-BKT-002.008, SRD-BKT-002.017
+Parent SRD: SRD-BKT-002.008, SRD-BKT-002.017, SRD-BKT-002.029
 
 ``BacktestService``: the one entry point for the GUI, the CLI and (later) MCP.
-Phase 0–1: data check estimate and the Step 1 (Stocks) run.
+Phase 0–2: data check estimate, Step 1 (Stocks) and Step 2 (Signals).
 """
 from __future__ import annotations
 
@@ -11,14 +11,14 @@ import logging
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
-from typing import Any
+from typing import Any, TypeVar
 
 import pandas as pd
 
 from us_swing.backtest.cache import StepCache
 from us_swing.backtest.results import ResultsStore
 from us_swing.backtest.spec import Period, RunPlan
-from us_swing.backtest.steps import stocks
+from us_swing.backtest.steps import signals, stocks
 from us_swing.backtest.store import BacktestStore
 from us_swing.backtest.universe import UniverseRecord, resolve
 
@@ -27,6 +27,8 @@ _log = logging.getLogger(__name__)
 _EDGE_DAYS = 5
 
 PresetLoader = Callable[[str, str], dict[str, Any]]
+StrategyLoader = Callable[[], Sequence[dict[str, Any]]]
+_T = TypeVar("_T")
 
 
 @dataclass(frozen=True)
@@ -65,6 +67,7 @@ class BacktestService:
     Args:
         records: Returns the universe records (symbol, sector, market_cap).
         presets: Loads a preset dict by (preset id, user id).
+        strategies: Returns the live strategies as dicts (Step 2).
     """
 
     def __init__(
@@ -74,12 +77,14 @@ class BacktestService:
         results: ResultsStore,
         records: Callable[[], Sequence[UniverseRecord]],
         presets: PresetLoader,
+        strategies: StrategyLoader = tuple,
     ) -> None:
         self._store = store
         self._cache = cache
         self._results = results
         self._records = records
         self._presets = presets
+        self._strategies = strategies
 
     def estimate(self, plan: RunPlan, user_id: str, today: date | None = None) -> Estimate:
         """Return the stock count, missing candles and Step 1 day counts."""
@@ -133,13 +138,50 @@ class BacktestService:
                 if (cap := getattr(r, "market_cap", None)) is not None}
         preset = self._presets(plan.screener.preset_id, user_id)
         self._cache.cleanup(datetime.now(timezone.utc))
+        key, days = self._recorded(plan, lambda: stocks.run_stocks(
+            plan, preset, symbols, self._store, self._cache, caps,
+            workers=workers, progress=progress, cancel=cancel,
+        ))
+        _log.info("[Backtest] Stock lists ready for %d day(s)", len(days))
+        return DailyList(key, days, stocks.daily_list(self._cache, key, days))
+
+    def run_signals(
+        self,
+        plan: RunPlan,
+        daily: DailyList,
+        *,
+        workers: int = 4,
+        progress: stocks.Progress | None = None,
+        cancel: stocks.Cancel | None = None,
+    ) -> pd.DataFrame:
+        """Run Step 2 on Step 1's list and record the run (SRD-BKT-002.029).
+
+        Raises:
+            ValueError: no strategy picked, or a name is not in the live store.
+            StepCancelled: from Step 2.
+        """
+        if not plan.strategies:
+            raise ValueError("Pick at least one strategy")
+        live = {str(s["name"]): s for s in self._strategies()}
+        missing = [s.id for s in plan.strategies if s.id not in live]
+        if missing:
+            raise ValueError("; ".join(f"Strategy {m} is not in the strategy list"
+                                       for m in missing))
+        chosen = [dict(live[s.id]) for s in plan.strategies]
+        frame = self._recorded(plan, lambda: signals.run_signals(
+            plan.period, chosen, daily.frame, plan.screener.top_n, self._store, self._cache,
+            workers=workers, progress=progress, cancel=cancel,
+        ))
+        _log.info("[Backtest] Found %d signal period(s) for %d strategy(ies)",
+                  len(frame), len(chosen))
+        return frame
+
+    def _recorded(self, plan: RunPlan, work: Callable[[], _T]) -> _T:
+        """Run ``work`` inside a results row: done, cancelled or failed."""
         run_id = self._results.start_run(plan, datetime.now(timezone.utc))
         status, message = "failed", ""
         try:
-            key, days = stocks.run_stocks(
-                plan, preset, symbols, self._store, self._cache, caps,
-                workers=workers, progress=progress, cancel=cancel,
-            )
+            result = work()
             status = "done"
         except stocks.StepCancelled:
             status = "cancelled"
@@ -149,5 +191,4 @@ class BacktestService:
             raise
         finally:
             self._results.finish_run(run_id, status, datetime.now(timezone.utc), message)
-        _log.info("[Backtest] Stock lists ready for %d day(s)", len(days))
-        return DailyList(key, days, stocks.daily_list(self._cache, key, days))
+        return result

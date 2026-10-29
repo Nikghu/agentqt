@@ -2,6 +2,17 @@
 
 ---
 
+## [20261029] BKT + GUI — Backtest engine Phase 2 · Step 2 Signals (FO-BKT-002, FO-GUI-031)
+
+- Type: Feature
+- FO(s): FO-BKT-002, FO-GUI-031
+- RN: RN-BKT-1.3.0-20261029, RN-GUI-1.40.0-20261029
+- Artifacts updated: FO (bullets), SRD (SRD-BKT-002.020–.029, SRD-GUI-031.020–.023 — minimal, approved by user for code, now Implemented), DD, MD, UTCD (21 Pass), TRACE, Code, Tests, RN, Engine_plan §0/§7, TODO T61, CONTEXT, DEVLOG
+- Decisions (user 2026-10-29): parser re-exported from live in `core/expr` (not moved); VWAP resets each session; same minimal-SRD approach as Phase 0–1.
+- Findings: parity 50 real stocks / 60,000 values / 0 mismatches. Live builds 15m from 1m with a forming last bar and `Price('Last')` reads index -2, so the backtest builds the forming 15m bar from 3m for Price; other indicators use closed bars (can differ inside a forming bar). Live VWAP adds up 30 days (no daily reset) and live `PNL` always returns 0 — reported, not fixed. Importing the strategy engine first hits the db/data import cycle; `core/expr` loads `us_swing.data` first.
+
+---
+
 ## [20261029] BKT + GUI — Backtest engine Phase 0 (Foundation) and Phase 1 (Step 1 Stocks) (FO-BKT-002, FO-GUI-031)
 
 - Type: Feature

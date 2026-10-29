@@ -89,3 +89,25 @@
 | UT-BKT-002.016.M07.T02 | MD-BKT-002.010.M07 | Negative | AI tick refused | `ai_ranking` true | `StepRefused`; zero screener calls | Pass |
 | UT-BKT-002.017.M05.T01 | MD-BKT-002.008.M05 | Positive | Service run recorded | fake store, preset loader | daily list returned; run row done | Pass |
 | UT-BKT-002.017.M05.T02 | MD-BKT-002.008.M05 | Negative | Service cancel recorded | cancel at once | run row cancelled | Pass |
+
+## FO-BKT-002 — Backtest Engine (Phase 2)
+
+| UT ID | MD | Type | Description | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-BKT-002.020.M09.T01 | MD-BKT-002.020.M09 | Positive | Parser is the live parser | `parse("RSI('Spot', 14, '3m') > 50")` | same AST as live `_Parser` | Pass |
+| UT-BKT-002.020.M09.T02 | MD-BKT-002.020.M09 | Negative | Bad text raises | `"RSI(("` | `EvaluatorError` | Pass |
+| UT-BKT-002.021.M10.T01 | MD-BKT-002.021.M10 | Positive | Parity for every function and timeframe | random-walk 3m, 15m, 1d, 1w frames | series[i] equals live value on frame[:i+1] for RSI, ADX, EMA, MACD, SUPERTREND, SWING, VWAP (1d) | Pass |
+| UT-BKT-002.021.M10.T02 | MD-BKT-002.021.M10 | Negative | Too few bars | 5 bars, RSI 14 | NaN where live raises | Pass |
+| UT-BKT-002.022.M10.T01 | MD-BKT-002.021.M10 | Positive | Daily and 15m alignment | 3m timeline of 2 days | 1d value on day 2 is day 1's; 15m value changes only at bucket closes | Pass |
+| UT-BKT-002.022.M10.T02 | MD-BKT-002.021.M10 | Negative | No look-ahead | change day 2's 1d bar | day 2 3m results unchanged | Pass |
+| UT-BKT-002.023.M10.T01 | MD-BKT-002.021.M10 | Positive | Price current and Last on 15m | 3m bars in one bucket | current close = 3m close; Last = previous 15m close; current high = running high | Pass |
+| UT-BKT-002.024.M10.T01 | MD-BKT-002.021.M10 | Positive | VWAP resets per session | 2 sessions of 3m bars | first bar of day 2 VWAP = its typical price | Pass |
+| UT-BKT-002.025.M10.T01 | MD-BKT-002.021.M10 | Negative | NaN comparison is false | RSI 14 on first 10 bars `!= 0` | false on those bars | Pass |
+| UT-BKT-002.026.M11.T01 | MD-BKT-002.026.M11 | Positive | Periods from runs of true bars | fired F T T F T | 2 periods with start, end, close at start | Pass |
+| UT-BKT-002.026.M11.T02 | MD-BKT-002.026.M11 | Negative | Hours and days | bars closing 09:36, 10:00 and 15:30 ET on a Monday and a Saturday, hours 09:40–15:30 Mon–Fri | only the Monday 10:00 bar kept | Pass |
+| UT-BKT-002.027.M10.T01 | MD-BKT-002.021.M10 | Positive | PNL flagged | `PNL('Spot') > 1 OR RSI(…) > 0` | `uses_pnl` true; result equals the RSI part | Pass |
+| UT-BKT-002.028.M11.T01 | MD-BKT-002.026.M11 | Positive | Cache reuse | run twice | second run computes nothing | Pass |
+| UT-BKT-002.028.M11.T02 | MD-BKT-002.026.M11 | Negative | Stocks follow top N and include list | include mode with 1 stock, top N 1 | only that stock computed | Pass |
+| UT-BKT-002.028.M11.T03 | MD-BKT-002.026.M11 | Positive | Process pool equals in-process | 2 workers | same frames | Pass |
+| UT-BKT-002.029.M05.T01 | MD-BKT-002.008.M05 | Negative | Missing strategy name | plan names "X" | `ValueError` "Strategy X is not in the strategy list" | Pass |
+| UT-BKT-002.029.M05.T02 | MD-BKT-002.008.M05 | Positive | Service run of Step 2 | fake store and one strategy | signal list returned; run row done | Pass |

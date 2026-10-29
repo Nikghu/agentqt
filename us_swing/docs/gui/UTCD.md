@@ -841,5 +841,9 @@ Test files:
 | UT-GUI-031.003.M03.T01 | MD-GUI-031.003.M03 | Positive | Step strip states | waiting, running 3 of 10, done, cached | texts "Waiting", "3 of 10", "Done", "Cached" with matching state | Pass |
 | UT-GUI-031.004.M03.T01 | MD-GUI-031.003.M03 | Positive | Data check text | estimate 75 stocks, 1 missing 3m, SPY missing | "75 stocks · 0 missing 1d · 1 missing 3m candles · SPY missing"; Run enabled | Pass |
 | UT-GUI-031.004.M03.T02 | MD-GUI-031.003.M03 | Negative | Errors block Run and Download needs TWS | estimate with an error, TWS off | error shown; Run and Download disabled | Pass |
-| UT-GUI-031.011.M03.T01 | MD-GUI-031.003.M03 | Positive | Run and cancel button | click Run with fake service | button reads Cancel; after done reads Run Step 1; Stocks pill Done | Pass |
+| UT-GUI-031.011.M03.T01 | MD-GUI-031.003.M03 | Positive | Run and cancel button | click Run with fake service | button reads Cancel; after done reads Run; Stocks pill Done | Pass |
 | UT-GUI-031.012.M03.T01 | MD-GUI-031.003.M03 | Positive | Step 1 view | daily list of 2 days, top N 1 | day table 2 rows newest first; selected day shows 1 stock | Pass |
+| UT-GUI-031.020.M02.T01 | MD-GUI-031.002.M02 | Positive | Strategies list | 2 strategies, tick one | list shows "ST_A · 50% · 100% per trade"; plan has one StrategySpec with 50 / 100 | Pass |
+| UT-GUI-031.021.M03.T01 | MD-GUI-031.003.M03 | Positive | Run does both steps | fake service, one strategy ticked | Stocks and Signals pills Done; signals table filled | Pass |
+| UT-GUI-031.022.M03.T01 | MD-GUI-031.003.M03 | Positive | Strategy filter | 2 strategies' periods, pick one | only its rows shown | Pass |
+| UT-GUI-031.023.M03.T01 | MD-GUI-031.003.M03 | Positive | Double-click opens Charts | double-click AAPL row | `chart_requested("AAPL", "1d")` | Pass |

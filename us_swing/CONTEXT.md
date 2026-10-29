@@ -2,12 +2,14 @@
 
 **Document:** CONTEXT.md
 **Project:** us_swing
-**Last Updated:** 2026-10-29 (Session 100)
+**Last Updated:** 2026-10-29 (Session 101)
 **Updated By:** Claude (Opus 5.5)
 
 ---
 
-**Current (Session 100, 2026-10-29):** **Backtest engine Phase 0 + 1 (FO-BKT-002, FO-GUI-031; RN-BKT-1.2.0, RN-GUI-1.39.0).** Minimal SRDs approved by user for code (SRD-BKT-002.001–.017, SRD-GUI-031.001–.004, .010–.012), all Implemented; 41 new UT Pass. New: `backtest/spec.py` (RunPlan), `universe.py`, `cache.py`, `results.py`, `service.py`, `cli.py`, `steps/stocks.py`, `core/backtest_bridge.py`; `PresetExecutor.screen()` shared by live and replay; Backtest sidebar screen (builder, step strip, data check, Step 1 view). Real data: IT sector 75 stocks, 207 days in 10.6 s (4 workers), 3.6 s cached. Full suite: 1504 passed, 11 failed — the same 11 fail on clean HEAD (candle_builder, preset AI model), plus `test_llm_claude_screener.py` imports a removed module. SPY not in the backtest store. Branch feat/backtest-phase0, not pushed. **Next:** user checks the Backtest screen; then Phase 2 SRDs.
+**Current (Session 101, 2026-10-29):** **Backtest engine Phase 2 · Step 2 Signals (SRD-BKT-002.020–.029, SRD-GUI-031.020–.023; RN-BKT-1.3.0, RN-GUI-1.40.0).** User confirmed Phase 0–1 good; Phase 2 minimal SRDs approved for code. `core/expr` re-exports the live parser (live unchanged); `core/expr/series.py` evaluates conditions per 3m bar (parity gate: 50 real stocks, 60,000 values, 0 mismatches); `backtest/steps/signals.py` gives entry / exit periods per strategy and stock, cached; Backtest screen has a Strategies list, Run does both steps, Signals tab. Real data: ST_AUTO on IT top-5 stocks (35) 13 s first, 4 s cached. Found in live, not fixed: VWAP not reset per day; PNL always 0. **Next:** user checks Step 2; then Phase 3 (Portfolio).
+
+**Previous (Session 100, 2026-10-29):** **Backtest engine Phase 0 + 1 (FO-BKT-002, FO-GUI-031; RN-BKT-1.2.0, RN-GUI-1.39.0).** Minimal SRDs approved by user for code (SRD-BKT-002.001–.017, SRD-GUI-031.001–.004, .010–.012), all Implemented; 41 new UT Pass. New: `backtest/spec.py` (RunPlan), `universe.py`, `cache.py`, `results.py`, `service.py`, `cli.py`, `steps/stocks.py`, `core/backtest_bridge.py`; `PresetExecutor.screen()` shared by live and replay; Backtest sidebar screen (builder, step strip, data check, Step 1 view). Real data: IT sector 75 stocks, 207 days in 10.6 s (4 workers), 3.6 s cached. Full suite: 1504 passed, 11 failed — the same 11 fail on clean HEAD (candle_builder, preset AI model), plus `test_llm_claude_screener.py` imports a removed module. SPY not in the backtest store. Branch feat/backtest-phase0, not pushed. **Next:** user checks the Backtest screen; then Phase 2 SRDs.
 
 **Previous (Session 99, 2026-10-29):** **Backtest engine plan + 15m/1w built timeframes (RN-BKT-1.1.0, RN-GUI-1.38.1).** Store now keeps 15m and 1w built on every 3m/1d save; missing ones are built at app start (SRD-BKT-001.012–.014, SRD-GUI-030.010). Engine design agreed with user (decisions D1–D9) and written to `docs/backtest/Engine_plan.md` — read its §0 status first. **Next:** FO-BKT-002 + FO-GUI-031 with Phase 0 (foundation) and Phase 1 (Step 1 Stocks) SRDs as Draft.
 

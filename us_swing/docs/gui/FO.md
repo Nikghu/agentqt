@@ -901,6 +901,7 @@ The system shall give a Backtest workspace in the sidebar to build a run plan, c
 - The system shall build the run plan in a left builder: name, period, stocks, screener preset and stocks per day.
 - The system shall show the four steps with their state and a data check line with a Download button.
 - The system shall run Step 1 in the background with progress and cancel, then show each day's stocks.
+- The system shall let the user pick live strategies, run Step 2 after Step 1, and list the signal periods (Phase 2, approved by user 2026-10-29).
 
 ### Acceptance Criteria
 

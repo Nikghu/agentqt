@@ -1,13 +1,13 @@
 """
 Module: MD-BKT-002.011.M08 — core/backtest_bridge.py
-Parent SRD: SRD-BKT-002.011
+Parent SRD: SRD-BKT-002.011, SRD-BKT-002.029
 
-Bridge from the backtest engine to screener presets and the S&P 500
-universe, so ``backtest`` never imports another tool directly.
+Bridge from the backtest engine to screener presets, live strategies and
+the S&P 500 universe, so ``backtest`` never imports another tool directly.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Any
 
 from us_swing.screener.executor import PresetExecutor
@@ -41,6 +41,14 @@ def list_presets(user_id: str) -> list[PresetInfo]:
         (PresetInfo(p.id, p.name, p.timeframe, p.enable_llm_ranking) for p in found.values()),
         key=lambda info: info.name.lower(),
     )
+
+
+def load_strategies() -> list[dict[str, Any]]:
+    """Return the live strategies (``StrategyConfig`` fields) as plain dicts."""
+    import us_swing.data  # noqa: F401, PLC0415 — avoids the db/data import cycle
+    from us_swing.gui.strategy_store import load_strategies as _load  # noqa: PLC0415
+
+    return [asdict(cfg) for cfg in _load()]
 
 
 def load_preset_dict(preset_id: str, user_id: str) -> dict[str, Any]:

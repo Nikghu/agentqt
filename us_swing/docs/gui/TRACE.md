@@ -3,7 +3,7 @@
 **Document ID:** TRACE-GUI
 **Version:** 1.13.1
 **Project:** US Swing Trading System
-**Last Updated:** 2026-10-29 (Backtest workspace; RN-GUI-1.39.0)
+**Last Updated:** 2026-10-29 (Backtest Signals; RN-GUI-1.40.0)
 
 ---
 
@@ -71,7 +71,7 @@
 | FO-GUI-028 | SRD-GUI-028.001–005 | DD-GUI-028.001.D01 | MD-GUI-028.001.M01 | UT-GUI-028.001.M01.T01–T03, .002.M01.T01–T02, .003.M01.T01, .004.M01.T01, .005.M01.T01; UT-GUI-021.004.M01.T04 | `gui/settings_panel.py`, `gui/theme.py` | Implemented | RN-GUI-1.34.0-20261025 |
 | FO-GUI-029 | SRD-GUI-029.001–006 | DD-GUI-029.001.D01 | MD-GUI-029.001.M01, .004.M02 | UT-GUI-029.001.M01.T01, .002.M01.T01–T02, .004.M01.T01–T02, .005.M01.T01, .006.M01.T01, .002.M02.T01, .004.M02.T01–T02 | `gui/scheduler_table.py`, `gui/scheduler_dialog.py`, `gui/scheduler_store.py`, `gui/settings_panel.py`, `gui/theme.py` | Implemented | RN-GUI-1.35.0-20261025 |
 | FO-GUI-030 | SRD-GUI-030.001–010 | DD-GUI-030.001.D01 | MD-GUI-030.001.M01, .004.M02, .006.M03, .004.M04, .007.M05, .008.M06 | UT-GUI-030.* (20 tests, Pass) | `gui/backtest_data_panel.py`, `gui/app_service.py`, `gui/settings_panel.py`, `gui/system_store.py`, `gui/main_window.py` | Implemented | RN-GUI-1.38.0-20261028, RN-GUI-1.38.1-20261029 |
-| FO-GUI-031 | SRD-GUI-031.001–.004, .010–.012 | DD-GUI-031.001.D01 | MD-GUI-031.001.M01, .002.M02, .003.M03 | UT-GUI-031.* (9 tests, Pass) | `gui/main_window.py`, `gui/backtest_builder.py`, `gui/backtest_workspace.py` | Implemented (Phase 0–1) | RN-GUI-1.39.0-20261029 |
+| FO-GUI-031 | SRD-GUI-031.001–.004, .010–.012, .020–.023 | DD-GUI-031.001.D01 | MD-GUI-031.001.M01, .002.M02, .003.M03 | UT-GUI-031.* (13 tests, Pass) | `gui/main_window.py`, `gui/backtest_builder.py`, `gui/backtest_workspace.py` | Implemented (Phase 0–2) | RN-GUI-1.39.0-20261029, RN-GUI-1.40.0-20261029 |
 
 ---
 
@@ -113,8 +113,8 @@
 | `gui/update_popup.py` | MD-GUI-027.005.M07 | SRD-GUI-027.005 | FO-GUI-027 |
 | `gui/scheduler_table.py` | MD-GUI-029.001.M01 | SRD-GUI-029.001–.006 | FO-GUI-029 |
 | `gui/backtest_data_panel.py` | MD-GUI-030.001.M01 | SRD-GUI-030.001–.006, .009, .010 | FO-GUI-030 |
-| `gui/backtest_builder.py` | MD-GUI-031.002.M02 | SRD-GUI-031.002, .010 | FO-GUI-031 |
-| `gui/backtest_workspace.py` | MD-GUI-031.003.M03 | SRD-GUI-031.003, .004, .011, .012 | FO-GUI-031 |
+| `gui/backtest_builder.py` | MD-GUI-031.002.M02 | SRD-GUI-031.002, .010, .020 | FO-GUI-031 |
+| `gui/backtest_workspace.py` | MD-GUI-031.003.M03 | SRD-GUI-031.003, .004, .011, .012, .021–.023 | FO-GUI-031 |
 
 ---
 

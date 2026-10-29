@@ -57,3 +57,18 @@
 | SRD-BKT-002.015 | FO-BKT-002 | Must | Days are computed in a process pool with progress as days done of total, and cancel stops between days. | days | day results, progress | Finished days stay cached after cancel | Implemented |
 | SRD-BKT-002.016 | FO-BKT-002 | Must | A weekly preset or a ticked AI ranking stops the run with a plain message. | plan | error | AI ranking (D4) is built in a later phase | Implemented |
 | SRD-BKT-002.017 | FO-BKT-002 | Must | `BacktestService` gives estimate and Step 1 run with progress and cancel, and records each run in the results store. | plan | estimate, daily list | Used by GUI and CLI | Implemented |
+
+## FO-BKT-002 — Backtest Engine (Phase 2 · Step 2 Signals)
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-BKT-002.020 | FO-BKT-002 | Must | `core/expr` re-exports the live condition parser so the backtest uses the same parser. | — | `parse()` | Live code unchanged (user chose re-export 2026-10-29) | Implemented |
+| SRD-BKT-002.021 | FO-BKT-002 | Must | Each of the 10 functions gives a series per timeframe whose value at a bar equals the live value on the closed bars up to that bar. | frames, args | series | Parity checked per function and timeframe | Implemented |
+| SRD-BKT-002.022 | FO-BKT-002 | Must | Values are read at each 3m bar close: 3m and 15m bars once closed, 1d bars from the next session, 1w bars from the next week. | series | aligned values | No look-ahead | Implemented |
+| SRD-BKT-002.023 | FO-BKT-002 | Must | Price reads candles like live: on 15m "current" is the forming bar built from 3m bars and any other candle is the bar before. | 3m bars | prices | 1d and 1w have no forming bar, as in live | Implemented |
+| SRD-BKT-002.024 | FO-BKT-002 | Must | VWAP on 3m and 15m resets at the start of each session. | bars | VWAP | User chose reset 2026-10-29; live adds up 30 days (reported) | Implemented |
+| SRD-BKT-002.025 | FO-BKT-002 | Must | A value that cannot be computed (NaN) makes its comparison false instead of stopping the run. | values | false | Live raises an error and skips the bar | Implemented |
+| SRD-BKT-002.026 | FO-BKT-002 | Must | Entry and exit conditions give periods (start, end, close at start, values) per stock per strategy, only on bars inside the strategy's hours and days. | conditions, bars | periods | Hours as live: start ≤ bar close < end, US/Eastern | Implemented |
+| SRD-BKT-002.027 | FO-BKT-002 | Must | A condition that uses PNL is flagged and PNL counts as unknown (false) in Step 2. | condition | flag | Step 3 re-checks per held bar; live PNL is always 0 (reported) | Implemented |
+| SRD-BKT-002.028 | FO-BKT-002 | Must | Step 2 runs on the stocks in Step 1's top-N list that the strategy accepts, cached per strategy and stock, in a process pool with progress and cancel. | daily list, strategies | cache files | Key: condition text, hours, days, period, candle coverage, step version | Implemented |
+| SRD-BKT-002.029 | FO-BKT-002 | Must | Strategies are read from the live strategy store by name, and `BacktestService.run_signals()` and the CLI give the signal periods. | plan | signal list | A missing strategy name is a plain error | Implemented |

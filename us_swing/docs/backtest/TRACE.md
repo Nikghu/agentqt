@@ -3,7 +3,7 @@
 **Document ID:** TRACE-BKT
 **Version:** 1.0.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-10-29 (engine Phase 0 and 1; RN-BKT-1.2.0)
+**Last Updated:** 2026-10-29 (engine Phase 2; RN-BKT-1.3.0)
 
 ---
 
@@ -13,6 +13,7 @@
 |---|---|---|---|---|---|---|---|
 | FO-BKT-001 | SRD-BKT-001.001–.014 | DD-BKT-001.001.D01 | MD-BKT-001.001.M01, .004.M02, .005.M03, .006.M04, .009.M05 | UT-BKT-001.* (33 tests, Pass) | `backtest/store.py`, `backtest/settings.py`, `backtest/planner.py`, `backtest/downloader.py`, `backtest/schedule.py` | Implemented | RN-BKT-1.0.0-20261028, RN-BKT-1.1.0-20261029 |
 | FO-BKT-002 | SRD-BKT-002.001–.017 | DD-BKT-002.001.D01, DD-BKT-002.010.D01 | MD-BKT-002.001.M01, .004.M02, .005.M03, .007.M04, .008.M05, .009.M06, .010.M07, .011.M08 | UT-BKT-002.* (32 tests, Pass) | `backtest/spec.py`, `backtest/universe.py`, `backtest/cache.py`, `backtest/results.py`, `backtest/service.py`, `backtest/cli.py`, `backtest/steps/stocks.py`, `core/backtest_bridge.py` | Implemented (Phase 0–1) | RN-BKT-1.2.0-20261029 |
+| FO-BKT-002 | SRD-BKT-002.020–.029 | DD-BKT-002.020.D01 | MD-BKT-002.020.M09, .021.M10, .026.M11 (+ .008.M05, .009.M06, .011.M08) | UT-BKT-002.020–.029 (17 tests, Pass) | `core/expr/__init__.py`, `core/expr/series.py`, `backtest/steps/signals.py`, `backtest/service.py`, `backtest/cli.py`, `core/backtest_bridge.py` | Implemented (Phase 2) | RN-BKT-1.3.0-20261029 |
 
 ## Reverse Traceability: Code → MD → SRD → FO
 
@@ -30,4 +31,7 @@
 | `backtest/service.py` | MD-BKT-002.008.M05 | SRD-BKT-002.008, .017 | FO-BKT-002 |
 | `backtest/cli.py` | MD-BKT-002.009.M06 | SRD-BKT-002.009 | FO-BKT-002 |
 | `backtest/steps/stocks.py` | MD-BKT-002.010.M07 | SRD-BKT-002.010–.016 | FO-BKT-002 |
-| `core/backtest_bridge.py` | MD-BKT-002.011.M08 | SRD-BKT-002.011 | FO-BKT-002 |
+| `core/backtest_bridge.py` | MD-BKT-002.011.M08 | SRD-BKT-002.011, .029 | FO-BKT-002 |
+| `core/expr/__init__.py` | MD-BKT-002.020.M09 | SRD-BKT-002.020 | FO-BKT-002 |
+| `core/expr/series.py` | MD-BKT-002.021.M10 | SRD-BKT-002.021–.025, .027 | FO-BKT-002 |
+| `backtest/steps/signals.py` | MD-BKT-002.026.M11 | SRD-BKT-002.026, .028 | FO-BKT-002 |

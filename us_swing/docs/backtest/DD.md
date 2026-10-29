@@ -84,3 +84,22 @@ state.json           last_delta (ISO, UTC), floors {symbol: first date with 3m d
 **Refusals (SRD .016).** Before any compute: preset `timeframe` ≠ `1d` → "Weekly screener presets are not supported in backtest yet"; `plan.screener.ai_ranking` → "AI ranking is not built yet — untick it to run". Also added to `estimate().errors`.
 
 **Service (SRD .017).** `BacktestService.run_stocks(plan, user_id, progress, cancel, workers=4) -> DailyList(key, days, frame)`: validate, resolve symbols, load the preset, clean the cache (SRD .006), start a run row, call the step, finish the row as `done`, `cancelled` or `failed`. Market caps come from the universe records.
+
+---
+
+## DD-BKT-002.020.D01 — Step 2 Signals (Phase 2)
+
+**Traces:** SRD-BKT-002.020–.029
+
+**Parser (`core/expr/__init__.py`).** Re-exports `ConditionEvaluator`, `EvaluatorError` and `parse(expr)` (= live `_Parser(_tokenize(expr)).parse()`) from `execution/strategy_engine/_evaluator.py`. It imports `us_swing.data` first, because importing the strategy engine package first hits the `db` ↔ `data` import cycle.
+
+**Series (`core/expr/series.py`).** `function_series(name, args, frame, tf) -> ndarray` gives, for every bar *i*, the live value on `frame[:i+1]`: talib RSI, ADX, EMA, MACD histogram and Wilder ATR are causal, so one full-array call matches; SUPERTREND runs the live loop once and keeps the active band per bar; SWING is a rolling max / min / range with `min_periods=1`; VWAP is cumulative per US/Eastern session for 3m and 15m (SRD .024) and over all loaded bars for 1d and 1w. `evaluate(expr, frames, timeline) -> Evaluation(fired, values, uses_pnl)` walks the AST on the 3m timeline (one value per 3m bar):
+- Each bar's close time is `ts + 3 min`. A function series is read as of that time from its timeframe's availability times: 3m `ts+3m`, 15m `ts+15m`, 1d next day 00:00 ET, 1w Monday + 7 days 00:00 ET (SRD .022).
+- Price (SRD .023): on 3m, current = bar *t*, other = bar *t−1*; on 15m, current = the forming bucket so far (first open, running high/low, close, running volume of its 3m bars) and other = the last 15m bar closed by the bucket start; on 1d and 1w, current = last available bar, other = the one before.
+- `Number` is a constant; `PNL` is NaN and sets `uses_pnl` (SRD .027). Function arguments must be numbers or text.
+- Comparisons are false where either side is NaN (SRD .025); AND / OR are element-wise; booleans compare as 0 / 1 as in live.
+- `values` keeps each function's aligned series under a label such as `SUPERTREND(10, 3, 15m)`.
+
+**Step (`backtest/steps/signals.py`).** `load_frames(store, symbol, period)` reads 3m and 15m from 45 days before the start and 1d and 1w from 400 days before (live loads 30 and 400 days). The timeline is the 3m bars whose US/Eastern date is in the period. `schedule_mask(timeline, strategy)` keeps bars with start ≤ close time < end on the strategy's days. `periods(fired)` turns each run of true bars into one row: `kind, start, end` (bar close times, UTC), `close_at_start`, `values` (JSON of the labels at the start bar), `pnl`. `signal_key(strategy, symbol, period, coverage)` = `make_key("signals", STEP_VERSION, …)` with entry and exit text, hours, days, symbol, period and `store.coverage` of 3m and 1d. `stocks_for(strategy, daily, top_n)` = symbols with rank ≤ N on any day, filtered like live `accepts()` (all / include / exclude). `run_signals(plan, strategies, daily, store, cache, workers, progress, cancel)` makes one task per (strategy, stock) not cached, runs them in a `ProcessPoolExecutor` (or in process with `workers=0`), writes `cache/signals/<key>/<SYM>.parquet` and returns a `SignalList` frame (`strategy, symbol, kind, start, end, close_at_start, values, pnl`).
+
+**Bridge, service, CLI.** `core.backtest_bridge.load_strategies()` returns the live `StrategyConfig` rows as dicts. `BacktestService(…, strategies=loader)`; `run_signals(plan, daily, …)` checks that the plan has strategies and every name exists ("Strategy X is not in the strategy list"), then calls the step and records a run row. The CLI `run` runs Step 2 after Step 1 when the plan lists strategies and prints the period count per strategy.
