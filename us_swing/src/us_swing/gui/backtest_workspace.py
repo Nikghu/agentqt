@@ -1,7 +1,8 @@
 """
 Module: MD-GUI-031.003.M03 — Backtest workspace
 Parent SRD: SRD-GUI-031.003, SRD-GUI-031.004, SRD-GUI-031.011, SRD-GUI-031.012,
-            SRD-GUI-031.021, SRD-GUI-031.022, SRD-GUI-031.023, SRD-GUI-031.031–.034
+            SRD-GUI-031.021, SRD-GUI-031.022, SRD-GUI-031.023, SRD-GUI-031.031–.034,
+            SRD-GUI-031.040, SRD-GUI-031.044
 
 Builder on the left; step strip, data check and the Stocks / Signals views on
 the right.
@@ -35,11 +36,13 @@ from us_swing.backtest.results import ResultsStore
 from us_swing.backtest.service import BacktestService, DailyList, Estimate
 from us_swing.backtest.spec import RunPlan
 from us_swing.backtest.steps.portfolio import VariantResult
+from us_swing.backtest.steps.report import Report
 from us_swing.backtest.steps.stocks import StepCancelled, top_n
 from us_swing.backtest.store import BacktestStore
 from us_swing.core.backtest_bridge import list_presets, load_preset_dict, load_strategies
 from us_swing.data.models import ConnectionStatus
 from us_swing.gui.backtest_builder import BacktestBuilder
+from us_swing.gui.backtest_report_view import ReportView
 from us_swing.gui.cards import GAP, card, gutter
 from us_swing.gui.icons import set_icon
 
@@ -79,6 +82,7 @@ class _RunWorker(QThread):
     done = pyqtSignal(object)  # DailyList
     signals_done = pyqtSignal(object)  # DataFrame of signal periods
     portfolio_done = pyqtSignal(object)  # list[VariantResult]
+    report_done = pyqtSignal(object)  # list[Report]
     failed = pyqtSignal(str)
     cancelled = pyqtSignal()
 
@@ -112,6 +116,9 @@ class _RunWorker(QThread):
                     progress=lambda d, t: self.progress.emit(2, d, t),
                 )
                 self.portfolio_done.emit(results)
+                if results:
+                    self.progress.emit(3, 0, 1)
+                    self.report_done.emit(self._service.build_reports(self._plan, results))
         except StepCancelled:
             self.cancelled.emit()
         except Exception as exc:  # noqa: BLE001 — shown to the user
@@ -292,6 +299,14 @@ class BacktestWorkspace(QWidget):
         self.tabs.addTab(_page(_head("DECISIONS · ENTERED OR WHY SKIPPED"), self.log_table),
                          "Day log")
         self.tabs.addTab(_page(_head("MONEY BY DAY"), self.money_table), "Money")
+        self.report_view = ReportView()
+        self.report_view.variant.currentIndexChanged.connect(self._render_variant)
+        report_scroll = QScrollArea()
+        report_scroll.setWidget(self.report_view)
+        report_scroll.setWidgetResizable(True)
+        report_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        self.report_view.setMinimumHeight(980)
+        self.tabs.addTab(report_scroll, "Report")
         return self.tabs
 
     def _build_step2(self) -> QWidget:
@@ -432,6 +447,7 @@ class BacktestWorkspace(QWidget):
         runner.done.connect(self._on_run_done)
         runner.signals_done.connect(self._on_signals_done)
         runner.portfolio_done.connect(self._on_portfolio_done)
+        runner.report_done.connect(self._on_report_done)
         runner.failed.connect(self._on_run_failed)
         runner.cancelled.connect(self._on_run_cancelled)
         runner.finished.connect(self._on_runner_finished)
@@ -441,6 +457,9 @@ class BacktestWorkspace(QWidget):
         self.set_step(0, "running")
         self.set_step(1, "waiting")
         self.set_step(2, "waiting")
+        self.set_step(3, "waiting")
+        self._results = []
+        self.report_view.set_reports([])
         runner.start()
 
     def _on_run_done(self, daily: DailyList) -> None:
@@ -461,7 +480,7 @@ class BacktestWorkspace(QWidget):
         self.tabs.setCurrentIndex(1)
 
     def _running_steps(self) -> list[int]:
-        return [i for i in (0, 1, 2) if self.pills[i].property("state") == "downloading"]
+        return [i for i in (0, 1, 2, 3) if self.pills[i].property("state") == "downloading"]
 
     def _on_run_failed(self, message: str) -> None:
         for step in self._running_steps():
@@ -567,7 +586,14 @@ class BacktestWorkspace(QWidget):
         self.set_step(2, "done")
         if not results:
             return
-        res = results[0]
+        self._render_variant(0)
+        self.tabs.setCurrentIndex(2)
+
+    def _render_variant(self, index: int) -> None:
+        """Trades, Day log and Money tabs of the picked variant (SRD-GUI-031.044)."""
+        if not 0 <= index < len(self._results):
+            return
+        res = self._results[index]
         trades = res.trades.sort_values("entry_ts", ascending=False)
         self.trades_head.setText(trades_summary(trades))
         _fill(self.trades_table, [
@@ -589,4 +615,10 @@ class BacktestWorkspace(QWidget):
             *[[f"{v:,.2f}" for v in money[c]] for c in
               ("deployed", "margin_min", "margin_close", "open_value", "equity")],
         ])
-        self.tabs.setCurrentIndex(2)
+
+    # ── Step 4 view (SRD-GUI-031.040–.045) ────────────────────────────────────
+
+    def _on_report_done(self, reports: list[Report]) -> None:
+        self.set_step(3, "done")
+        self.report_view.set_reports(reports)
+        self.tabs.setCurrentIndex(self.tabs.count() - 1)

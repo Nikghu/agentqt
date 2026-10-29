@@ -852,3 +852,15 @@ Test files:
 | UT-GUI-031.031.M03.T01 | MD-GUI-031.003.M03 | Positive | Run does Step 3 | fake service, one strategy | Portfolio pill Done; Trades tab shown | Pass |
 | UT-GUI-031.032.M03.T01 | MD-GUI-031.003.M03 | Positive | Trades tab | 2 trades, +30 and −10 | summary "2 trades · net P&L $20.00 · win rate 50%"; 2 rows | Pass |
 | UT-GUI-031.033.M03.T01 | MD-GUI-031.003.M03 | Positive | Day log and Money tabs | 3 decisions, 2 money rows | 3 and 2 rows | Pass |
+| UT-GUI-031.040.M04.T01 | MD-GUI-031.040.M04 | Positive | Stat formats | usd, pct, ratio, days, NaN | $ with sign, %, 2 decimals, days, dash | Pass |
+| UT-GUI-031.040.M04.T02 | MD-GUI-031.040.M04 | Positive | KPI row and stats | one report | KPIs, all-stats rows and skip line filled | Pass |
+| UT-GUI-031.040.M04.T03 | MD-GUI-031.040.M04 | Negative | No report | empty list | dashes; Export disabled | Pass |
+| UT-GUI-031.040.M04.T04 | MD-GUI-031.040.M04 | Edge | Skip line without skips | only entered | no skipped part | Pass |
+| UT-GUI-031.040.M03.T01 | MD-GUI-031.003.M03 | Positive | Run ends on Report | fake run with 2 variants | 4 Report · Done; Report tab open; KPIs filled | Pass |
+| UT-GUI-031.041.M04.T01 | MD-GUI-031.040.M04 | Positive | Chart data | report with benchmark | chart has benchmark per day; paints | Pass |
+| UT-GUI-031.042.M04.T01 | MD-GUI-031.040.M04 | Positive | Month heat map | March and April P&L | one year row; coloured cells; year total | Pass |
+| UT-GUI-031.043.M04.T01 | MD-GUI-031.040.M04 | Positive | Group by picker | pick Sector | table refilled by sector | Pass |
+| UT-GUI-031.044.M04.T01 | MD-GUI-031.040.M04 | Edge | One variant | one report | picker and compare hidden | Pass |
+| UT-GUI-031.044.M04.T02 | MD-GUI-031.040.M04 | Positive | Two variants | two reports | compare has 2 rows; picking B shows B | Pass |
+| UT-GUI-031.044.M03.T01 | MD-GUI-031.003.M03 | Positive | Picker drives tabs | pick 2nd variant | Trades tab and KPIs show variant 2 | Pass |
+| UT-GUI-031.045.M04.T01 | MD-GUI-031.040.M04 | Positive | CSV export | export to folder | stats and trades CSV written | Pass |

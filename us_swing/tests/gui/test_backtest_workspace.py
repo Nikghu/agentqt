@@ -18,6 +18,7 @@ from PyQt6.QtCore import QObject, Qt, pyqtSignal
 from us_swing.backtest.service import DailyList, Estimate
 from us_swing.backtest.spec import Variant
 from us_swing.backtest.steps.portfolio import VariantResult
+from us_swing.backtest.steps.report import Report, build_report
 from us_swing.core.backtest_bridge import PresetInfo
 from us_swing.data.models import ConnectionStatus
 from us_swing.gui import backtest_workspace as mod
@@ -121,7 +122,12 @@ class _FakeService:
                               "start_capital": [100.0] * 2, "deployed": [0.0] * 2,
                               "margin_min": [50.0] * 2, "margin_close": [100.0] * 2,
                               "open_value": [0.0] * 2, "equity": [100.0, 120.0]})
-        return [VariantResult(Variant(100.0, ()), trades, log, money)]
+        return [VariantResult(Variant(100.0, ()), trades, log, money),
+                VariantResult(Variant(200.0, ()), trades.iloc[:1], log, money.assign(equity=230.0))]
+
+    def build_reports(self, _plan: Any, results: list[VariantResult]) -> list[Report]:
+        return [build_report(f"${r.variant.capital:,.0f}", r.variant.capital, r.trades, r.money,
+                             r.day_log, {"AAPL": "Information Technology"}) for r in results]
 
 
 _STRATEGIES = [
@@ -348,7 +354,7 @@ def test_run_does_step_3(workspace: BacktestWorkspace, qtbot: Any) -> None:
     _run_both(workspace, qtbot)
 
     assert workspace.pills[2].text() == "3 Portfolio · Done"
-    assert workspace.tabs.tabText(workspace.tabs.currentIndex()) == "Trades"
+    assert workspace.trades_table.rowCount() == 2
 
 
 def test_trades_tab(workspace: BacktestWorkspace, qtbot: Any) -> None:
@@ -367,3 +373,26 @@ def test_day_log_and_money_tabs(workspace: BacktestWorkspace, qtbot: Any) -> Non
     assert workspace.log_table.rowCount() == 3
     assert workspace.money_table.rowCount() == 2
     assert workspace.money_table.item(0, 5).text() == "120.00"  # type: ignore[union-attr]
+
+
+def test_run_does_step_4(workspace: BacktestWorkspace, qtbot: Any) -> None:
+    """UT-GUI-031.040.M03.T01: Run ends with the Report tab and its KPI row filled."""
+    _run_both(workspace, qtbot)
+
+    assert workspace.pills[3].text() == "4 Report · Done"
+    assert workspace.tabs.tabText(workspace.tabs.currentIndex()) == "Report"
+    assert workspace.report_view.kpi_values["Trades"].text() == "2"
+    assert workspace.report_view.kpi_values["Net P&L"].text() == "$20.00"
+
+
+def test_variant_picker_switches_tabs(workspace: BacktestWorkspace, qtbot: Any) -> None:
+    """UT-GUI-031.044.M03.T01: Picking the second variant shows its trades and report."""
+    _run_both(workspace, qtbot)
+    view = workspace.report_view
+
+    assert not view.variant.isHidden()
+    assert view.compare_table.rowCount() == 2
+    view.variant.setCurrentIndex(1)
+
+    assert workspace.trades_table.rowCount() == 1
+    assert view.kpi_values["Net P&L"].text() == "$30.00"
