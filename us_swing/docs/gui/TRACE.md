@@ -70,7 +70,7 @@
 | FO-GUI-027 | SRD-GUI-027.001–013 | DD-GUI-027.001.D01 | MD-GUI-027.001.M01, .004.M02, .004.M03, .005.M04, .009.M05, .005.M07; MD-GUI-019.001.M01 | UT-GUI-027.001.M01.T01–T02, .003.M01.T01–T02, .004.M02.T01, .004.M03.T01, .002.M04.T01, .005.M04.T01, .007.M06.T01, .008.M02.T01–T02, .009.M05.T01, .010.M04.T01–T02, .011.M04.T01–T02, .012.M04.T01–T02, .013.M04.T01, .005.M07.T01–T04, .005.M02.T01 | `gui/settings_dialog.py`, `gui/settings_panel.py`, `gui/sidebar.py`, `gui/main_window.py`, `gui/side_panels.py`, `gui/execution_header.py`, `gui/update_popup.py` | Implemented | RN-GUI-1.32.0-20261025, RN-GUI-1.33.0-20261025 |
 | FO-GUI-028 | SRD-GUI-028.001–005 | DD-GUI-028.001.D01 | MD-GUI-028.001.M01 | UT-GUI-028.001.M01.T01–T03, .002.M01.T01–T02, .003.M01.T01, .004.M01.T01, .005.M01.T01; UT-GUI-021.004.M01.T04 | `gui/settings_panel.py`, `gui/theme.py` | Implemented | RN-GUI-1.34.0-20261025 |
 | FO-GUI-029 | SRD-GUI-029.001–006 | DD-GUI-029.001.D01 | MD-GUI-029.001.M01, .004.M02 | UT-GUI-029.001.M01.T01, .002.M01.T01–T02, .004.M01.T01–T02, .005.M01.T01, .006.M01.T01, .002.M02.T01, .004.M02.T01–T02 | `gui/scheduler_table.py`, `gui/scheduler_dialog.py`, `gui/scheduler_store.py`, `gui/settings_panel.py`, `gui/theme.py` | Implemented | RN-GUI-1.35.0-20261025 |
-| FO-GUI-030 | SRD-GUI-030.001–008 | DD-GUI-030.001.D01 | MD-GUI-030.001.M01, .004.M02, .006.M03, .004.M04, .007.M05, .008.M06 | UT-GUI-030.* (18 tests, Pass) | `gui/backtest_data_panel.py`, `gui/app_service.py`, `gui/settings_panel.py`, `gui/system_store.py`, `gui/main_window.py` | Implemented | RN-GUI-1.38.0-20261028 |
+| FO-GUI-030 | SRD-GUI-030.001–009 | DD-GUI-030.001.D01 | MD-GUI-030.001.M01, .004.M02, .006.M03, .004.M04, .007.M05, .008.M06 | UT-GUI-030.* (20 tests, Pass) | `gui/backtest_data_panel.py`, `gui/app_service.py`, `gui/settings_panel.py`, `gui/system_store.py`, `gui/main_window.py` | Implemented | RN-GUI-1.38.0-20261028 |
 
 ---
 
@@ -111,7 +111,7 @@
 | `gui/settings_dialog.py` | MD-GUI-027.001.M01 | SRD-GUI-027.001–.003 | FO-GUI-027 |
 | `gui/update_popup.py` | MD-GUI-027.005.M07 | SRD-GUI-027.005 | FO-GUI-027 |
 | `gui/scheduler_table.py` | MD-GUI-029.001.M01 | SRD-GUI-029.001–.006 | FO-GUI-029 |
-| `gui/backtest_data_panel.py` | MD-GUI-030.001.M01 | SRD-GUI-030.001–.006 | FO-GUI-030 |
+| `gui/backtest_data_panel.py` | MD-GUI-030.001.M01 | SRD-GUI-030.001–.006, .009 | FO-GUI-030 |
 
 ---
 

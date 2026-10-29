@@ -2,8 +2,9 @@
 Module: MD-GUI-030.001.M01 — gui/backtest_data_panel.py
 Parent SRD: SRD-GUI-030.001
 
-Backtest data section in Settings: status card, range and auto delta fields, download
-actions and a type-to-confirm clear. Business logic lives in AppService / backtest.
+Backtest data section in Settings (Option D): one plain status sentence with coverage,
+progress and a single download button, range and auto delta fields, and a type-to-confirm
+clear. Business logic lives in AppService / backtest.
 """
 from __future__ import annotations
 
@@ -12,7 +13,6 @@ import math
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING
-from zoneinfo import ZoneInfo
 
 from PyQt6.QtCore import QDate, QTime, QTimer
 from PyQt6.QtWidgets import (
@@ -40,14 +40,15 @@ from us_swing.gui.theme import C
 if TYPE_CHECKING:
     from us_swing.gui.app_service import AppService
 
-_ET = ZoneInfo("America/New_York")
 _DAY_NAMES = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-_STAT_KEYS = ("1d bars", "3m bars", "Last delta", "Disk")
+_TF_NAMES = {"1d": "daily", "3m": "3-minute"}
 _CONFIRM_WORD = "CLEAR"
 _SP500_SIZE = 503
 _STATS_REFRESH_S = 15.0   # stats re-read while a download runs
 _SECONDS_1D = 1.0   # measured on TWS: one 1d request per stock
 _SECONDS_3M = 25.0  # measured on TWS: one 3-month 3m request (parallel requests time out)
+_SECONDS = {"1d": _SECONDS_1D, "3m": _SECONDS_3M}
+_EMPTY = BacktestStats(0, 0, 0, None, None, 0, None)
 
 
 def _qdate(day: datetime.date) -> QDate:
@@ -58,14 +59,30 @@ def _pydate(day: QDate) -> datetime.date:
     return datetime.date(day.year(), day.month(), day.day())
 
 
-def _compact(n: int) -> str:
-    if n >= 100_000_000:
-        return f"{n / 1e6:.0f}M"
-    if n >= 1_000_000:
-        return f"{n / 1e6:.1f}M"
-    if n >= 1_000:
-        return f"{n / 1e3:.0f}K"
-    return str(n)
+def _day(day: datetime.date) -> str:
+    return f"{day:%b} {day.day}, {day.year}"
+
+
+def _stocks(n: int) -> str:
+    return "1 stock" if n == 1 else f"{n:,} stocks"
+
+
+def _duration(seconds: float) -> str:
+    minutes = seconds / 60
+    if minutes >= 48 * 60:
+        return f"{minutes / 1440:.1f} days"
+    if minutes >= 90:
+        return f"{int(minutes // 60)} h {int(minutes % 60)} min"
+    return f"{max(round(minutes), 1)} min"
+
+
+def _coverage(stats: BacktestStats) -> str:
+    parts = []
+    if stats.first and stats.last:
+        parts.append(f"Daily {_day(stats.first)} – {_day(stats.last)}")
+    if stats.first_3m:
+        parts.append(f"3-minute from {_day(stats.first_3m)}")
+    return " · ".join(parts)
 
 
 def _size(n: int) -> str:
@@ -77,14 +94,6 @@ def _separator() -> QFrame:
     sep.setObjectName("side_sep")
     sep.setFixedHeight(1)
     return sep
-
-
-def _set_state(widget: QWidget, state: str) -> None:
-    widget.setProperty("state", state)
-    style = widget.style()
-    if style is not None:
-        style.unpolish(widget)
-        style.polish(widget)
 
 
 def _group_label(title: str) -> QLabel:
@@ -125,7 +134,7 @@ def build_clear_dialog(detail: str, parent: QWidget) -> tuple[QDialog, QLineEdit
 
 
 class BacktestDataPanel(QWidget):
-    """SRD-GUI-030.001–.006 — Backtest data section (Option A, single card).
+    """SRD-GUI-030.001–.009 — Backtest data section (Option D: one sentence, one button).
 
     ``state`` is ``empty``, ``running``, ``behind`` or ``ok`` for the section dot.
     """
@@ -139,14 +148,15 @@ class BacktestDataPanel(QWidget):
         self._stats: BacktestStats | None = None
         self._running = svc.is_backtest_running()
         self._stats_asked = 0.0
+        self._progress: dict[str, tuple[int, int]] = {}
+        self._tf_now = ""
+        self._symbol = ""
         self.state = "empty"
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         layout.addWidget(self._build_status())
-        layout.addWidget(_separator())
-        layout.addWidget(self._build_strip())
         layout.addWidget(_separator())
         layout.addWidget(self._build_range())
         layout.addWidget(_separator())
@@ -163,8 +173,8 @@ class BacktestDataPanel(QWidget):
         svc.backtest_stats_changed.connect(self._on_stats)
         svc.backtest_progress.connect(self._on_progress)
         svc.backtest_finished.connect(self._on_finished)
-        svc.feed_status_changed.connect(lambda _s: self._update_actions())
-        self._update_actions()
+        svc.feed_status_changed.connect(lambda _s: self._render())
+        self._render()
         QTimer.singleShot(300, svc.refresh_backtest_stats)
 
     # ── Build ─────────────────────────────────────────────────────────────────
@@ -172,60 +182,40 @@ class BacktestDataPanel(QWidget):
     def _build_status(self) -> QWidget:
         top = QWidget()
         top_l = QVBoxLayout(top)
-        top_l.setContentsMargins(14, 14, 14, 12)
+        top_l.setContentsMargins(14, 16, 14, 14)
         top_l.setSpacing(8)
-        head = QHBoxLayout()
-        self._summary = QLabel("Checking backtest data…")
-        self._summary.setObjectName("data_summary")
-        self._summary.setWordWrap(True)
-        self._pill = QLabel("")
-        self._pill.setObjectName("data_pill")
-        self._pill.hide()
-        head.addWidget(self._summary, 1)
-        head.addWidget(self._pill)
-        top_l.addLayout(head)
-        self._bars: dict[str, QProgressBar] = {}
-        self._counts: dict[str, QLabel] = {}
-        for tf in ("1d", "3m"):
-            row = QHBoxLayout()
-            row.setSpacing(8)
-            bar = QProgressBar()
-            bar.setObjectName("data_bar")
-            bar.setRange(0, 100)
-            bar.setTextVisible(False)
-            bar.setFixedHeight(4)
-            count = _key_label("—")
-            row.addWidget(_key_label(tf))
-            row.addWidget(bar, 1)
-            row.addWidget(count)
-            top_l.addLayout(row)
-            self._bars[tf] = bar
-            self._counts[tf] = count
+        self._headline = QLabel("Checking backtest data…")
+        self._headline.setObjectName("data_headline")
+        self._headline.setWordWrap(True)
+        self._detail = _key_label("")
+        self._detail.setWordWrap(True)
+        self._bar = QProgressBar()
+        self._bar.setObjectName("data_bar")
+        self._bar.setRange(0, 100)
+        self._bar.setTextVisible(False)
+        self._bar.setFixedHeight(4)
+        self._bar.hide()
+        self._info_row = QWidget()
+        info = QHBoxLayout(self._info_row)
+        info.setContentsMargins(0, 0, 0, 0)
+        self._info = _key_label("")
+        self._eta = _key_label("")
+        info.addWidget(self._info, 1)
+        info.addWidget(self._eta)
+        self._start_btn = QPushButton("Download")
+        self._start_btn.setObjectName("run_btn")
+        self._start_btn.clicked.connect(self._on_start_clicked)
+        self._hint = _key_label("")
+        button_row = QHBoxLayout()
+        button_row.setSpacing(8)
+        button_row.addWidget(self._start_btn)
+        button_row.addWidget(self._hint, 1)
+        top_l.addWidget(self._headline)
+        top_l.addWidget(self._detail)
+        top_l.addWidget(self._bar)
+        top_l.addWidget(self._info_row)
+        top_l.addLayout(button_row)
         return top
-
-    def _build_strip(self) -> QWidget:
-        strip = QWidget()
-        strip_l = QHBoxLayout(strip)
-        strip_l.setContentsMargins(0, 0, 0, 0)
-        strip_l.setSpacing(0)
-        self._values: dict[str, QLabel] = {}
-        for index, key in enumerate(_STAT_KEYS):
-            if index:
-                line = QFrame()
-                line.setObjectName("side_sep")
-                line.setFixedWidth(1)
-                strip_l.addWidget(line)
-            cell = QWidget()
-            cell_l = QVBoxLayout(cell)
-            cell_l.setContentsMargins(14, 10, 14, 10)
-            cell_l.setSpacing(2)
-            value = QLabel("—")
-            value.setObjectName("data_stat_value")
-            cell_l.addWidget(_group_label(key.upper()))
-            cell_l.addWidget(value)
-            strip_l.addWidget(cell, 1)
-            self._values[key] = value
-        return strip
 
     def _build_range(self) -> QWidget:
         box = QWidget()
@@ -238,6 +228,7 @@ class BacktestDataPanel(QWidget):
         self._latest = QCheckBox("Up to latest trading day")
         self._latest.toggled.connect(self._on_latest_toggled)
         self._end.dateChanged.connect(self._clamp_start)
+        self._start.dateChanged.connect(lambda _d: self._render())
         start_row = QHBoxLayout()
         start_row.addWidget(_key_label("Start date"))
         start_row.addStretch()
@@ -247,11 +238,8 @@ class BacktestDataPanel(QWidget):
         end_row.addStretch()
         end_row.addWidget(self._latest)
         end_row.addWidget(self._end)
-        self._estimate = _key_label("")
-        self._start.dateChanged.connect(lambda _d: self._update_estimate())
         body.addLayout(start_row)
         body.addLayout(end_row)
-        body.addWidget(self._estimate)
         return box
 
     def _build_auto(self) -> QWidget:
@@ -289,21 +277,12 @@ class BacktestDataPanel(QWidget):
         footer = QHBoxLayout()
         footer.setContentsMargins(14, 12, 14, 12)
         footer.setSpacing(8)
-        self._start_btn = QPushButton("Start download")
-        self._start_btn.setObjectName("run_btn")
-        set_icon(self._start_btn, "play", "go")
-        self._start_btn.clicked.connect(self._on_start_clicked)
-        self._delta_btn = QPushButton("Fill delta now")
-        set_icon(self._delta_btn, "refresh-cw", "info")
-        self._delta_btn.clicked.connect(self._on_delta_clicked)
-        self._hint = _key_label("")
+        self._facts = _key_label("")
         self._clear_btn = QPushButton("Clear database…")
         self._clear_btn.setObjectName("link_danger")
         set_icon(self._clear_btn, "trash-2", "danger")
         self._clear_btn.clicked.connect(self._on_clear_clicked)
-        footer.addWidget(self._start_btn)
-        footer.addWidget(self._delta_btn)
-        footer.addWidget(self._hint)
+        footer.addWidget(self._facts)
         footer.addStretch()
         footer.addWidget(self._clear_btn)
         return footer
@@ -358,7 +337,7 @@ class BacktestDataPanel(QWidget):
     def _clamp_start(self) -> None:
         latest = self._latest.isChecked()
         self._start.setMaximumDate(QDate.currentDate() if latest else self._end.date())
-        self._update_estimate()
+        self._render()
 
     def _sync_auto_fields(self) -> None:
         on = self._auto.isEnabled() and self._auto.isChecked()
@@ -366,62 +345,46 @@ class BacktestDataPanel(QWidget):
         for chip in self._days:
             chip.setEnabled(on)
 
-    def _update_estimate(self) -> None:
+    def _range_changed(self) -> bool:
+        saved = BacktestDataSettings.load(self._root)
+        end = None if self._latest.isChecked() else _pydate(self._end.date())
+        return saved.start_date != _pydate(self._start.date()) or saved.end_date != end
+
+    def _full_estimate(self) -> str:
         end = QDate.currentDate() if self._latest.isChecked() else self._end.date()
         years = max(self._start.date().daysTo(end) / 365.25, 0.0)
         stocks = len(self._svc.get_sp500_universe()) or _SP500_SIZE
         windows = stocks * math.ceil(years * 4)
-        minutes = (stocks * _SECONDS_1D + windows * _SECONDS_3M) / 60
-        if minutes >= 48 * 60:
-            took = f"{minutes / 1440:.1f} days"
-        elif minutes >= 90:
-            took = f"{minutes / 60:.0f} h"
-        else:
-            took = f"{max(minutes, 1):.0f} min"
-        self._estimate.setText(f"Full download ≈ {stocks + windows:,} requests · about {took}")
+        seconds = stocks * _SECONDS_1D + windows * _SECONDS_3M
+        return f"{stocks + windows:,} requests for this range · about {_duration(seconds)}"
 
     # ── Service signals ───────────────────────────────────────────────────────
 
     def _on_stats(self, stats: object) -> None:
-        if not isinstance(stats, BacktestStats):
-            return
-        self._stats = stats
-        if not stats.stocks:
-            self._summary.setText("No backtest data yet")
-            for value in self._values.values():
-                value.setText("—")
-        else:
-            noun = "stock" if stats.stocks == 1 else "stocks"
-            text = f"{stats.stocks} {noun} · 1d {stats.first} to {stats.last}"
-            if stats.first_3m is not None:
-                text += f" · 3m from {stats.first_3m}"
-            self._summary.setText(text)
-            self._values["1d bars"].setText(_compact(stats.bars_1d))
-            self._values["3m bars"].setText(_compact(stats.bars_3m))
-            last = stats.last_delta
-            self._values["Last delta"].setText(
-                last.astimezone(_ET).strftime("%b %d %H:%M") if last else "—"
-            )
-            self._values["Disk"].setText(_size(stats.size_bytes))
-        self._update_estimate()
-        self._refresh_state()
+        if isinstance(stats, BacktestStats):
+            self._stats = stats
+            self._render()
 
-    def _on_progress(self, tf: str, done: int, total: int, _symbol: str) -> None:
-        if tf not in self._bars:
+    def _on_progress(self, tf: str, done: int, total: int, symbol: str) -> None:
+        if tf not in _TF_NAMES:
             return
-        self._bars[tf].setValue(round(done * 100 / total) if total else 0)
-        self._counts[tf].setText(f"{done:,} of {total:,} this run")
+        self._running = True
+        self._progress[tf] = (done, total)
+        self._tf_now = tf
+        self._symbol = symbol
         if time.monotonic() - self._stats_asked >= _STATS_REFRESH_S:
             self._stats_asked = time.monotonic()
             self._svc.refresh_backtest_stats()
+        self._render()
 
     def _on_finished(self, _ok: bool, message: str) -> None:
         self._running = False
+        self._progress = {}
+        self._tf_now = ""
         self._hint.setText(message)
-        self._update_actions()
-        self._refresh_state()
+        self._render()
 
-    # ── Actions (SRD-GUI-030.004 / .005) ──────────────────────────────────────
+    # ── Actions (SRD-GUI-030.004 / .005 / .009) ───────────────────────────────
 
     def _on_start_clicked(self) -> None:
         if self._running:
@@ -429,20 +392,16 @@ class BacktestDataPanel(QWidget):
             self._start_btn.setEnabled(False)
             self._hint.setText("Pausing after the current request…")
             return
-        self._begin(self._svc.start_backtest_download())
-
-    def _on_delta_clicked(self) -> None:
-        self._begin(self._svc.fill_backtest_delta())
-
-    def _begin(self, started: bool) -> None:
-        if not started:
+        if self._range_changed():
+            self.save()
+        if not self._svc.start_backtest_download():
             return
         self._running = True
-        for bar in self._bars.values():
-            bar.setValue(0)
+        stats = self._stats
+        self._progress = {"1d": (0, stats.missing_1d), "3m": (0, stats.missing_3m)} if stats else {}
+        self._tf_now = ""
         self._hint.setText("")
-        self._update_actions()
-        self._refresh_state()
+        self._render()
 
     def _on_clear_clicked(self) -> None:
         if not self._confirm_clear():
@@ -451,12 +410,10 @@ class BacktestDataPanel(QWidget):
         if not self._svc.clear_backtest_data():
             self._hint.setText("Pause the download before clearing")
             return
-        for tf, bar in self._bars.items():
-            bar.setValue(0)
-            self._counts[tf].setText("—")
-        self._summary.setText("No backtest data yet")
+        self._stats = _EMPTY
         self._hint.setText(f"Backtest data cleared · {freed} freed" if freed
                            else "Backtest data cleared")
+        self._render()
 
     def _confirm_clear(self) -> bool:
         size = _size(self._stats.size_bytes) if self._stats else "all"
@@ -465,38 +422,84 @@ class BacktestDataPanel(QWidget):
         )
         return dialog.exec() == QDialog.DialogCode.Accepted
 
-    def _update_actions(self) -> None:
+    # ── Render (SRD-GUI-030.006 / .009) ───────────────────────────────────────
+
+    def _render(self) -> None:
+        stats = self._stats
+        missing = stats.missing_1d + stats.missing_3m if stats else 0
+        if self._running:
+            self.state = "running"
+        elif stats is None or not stats.stocks:
+            self.state = "empty"
+        else:
+            self.state = "behind" if missing else "ok"
+        self._headline.setText(self._headline_text())
+        self._detail.setText(_coverage(stats) if stats and stats.stocks else "")
+        self._detail.setVisible(bool(self._detail.text()))
+        self._facts.setText(
+            f"{_stocks(stats.stocks)} · {_size(stats.size_bytes)}" if stats and stats.stocks else ""
+        )
+        self._render_progress(missing)
+        self._render_actions()
+
+    def _headline_text(self) -> str:
+        stats = self._stats
+        if self._running:
+            name = _TF_NAMES.get(self._tf_now)
+            return f"Getting {name} candles" if name else "Getting candles"
+        if stats is None:
+            return "Checking backtest data…"
+        if not stats.stocks:
+            return "No backtest candles yet"
+        names = [n for n, c in (("Daily", stats.missing_1d), ("3-minute", stats.missing_3m)) if c]
+        if not names:
+            return "All candles saved"
+        return f"{' and '.join(names)} candles missing for {_stocks(stats.short_stocks)}"
+
+    def _render_progress(self, missing: int) -> None:
+        self._bar.setVisible(self._running)
+        self._eta.setText("")
+        if self._running:
+            done = sum(d for d, _t in self._progress.values())
+            total = sum(t for _d, t in self._progress.values())
+            left = sum((t - d) * _SECONDS[tf] for tf, (d, t) in self._progress.items())
+            self._bar.setValue(round(done * 100 / total) if total else 0)
+            parts = [f"{done:,} of {total:,}"] if total else []
+            parts += [self._symbol] if self._symbol else []
+            parts += [f"about {_duration(left)} left"] if total else []
+            self._info.setText(" · ".join(parts))
+            if total:
+                finish = datetime.datetime.now() + datetime.timedelta(seconds=left)
+                fmt = "%b %d %H:%M" if left >= 20 * 3600 else "%H:%M"
+                self._eta.setText(f"Done around {finish:{fmt}}")
+        elif self._range_changed():
+            self._info.setText("Range changed · not saved yet")
+        elif self.state == "empty":
+            self._info.setText(self._full_estimate())
+        elif self.state == "behind" and self._stats is not None:
+            seconds = self._stats.missing_1d * _SECONDS_1D + self._stats.missing_3m * _SECONDS_3M
+            self._info.setText(f"{missing:,} requests · about {_duration(seconds)}")
+        else:
+            self._info.setText("")
+        self._info_row.setVisible(bool(self._info.text()))
+
+    def _render_actions(self) -> None:
         connected = self._svc.connection_status is ConnectionStatus.CONNECTED
-        self._start_btn.setText("Pause" if self._running else "Start download")
-        set_icon(self._start_btn, "pause" if self._running else "play", "go")
-        self._start_btn.setEnabled(connected or self._running)
-        self._delta_btn.setEnabled(connected and not self._running)
+        if self._running:
+            label, icon, enabled = "Pause", "pause", True
+        elif self._range_changed():
+            label, icon, enabled = "Save range and download", "play", connected
+        elif self.state == "ok":
+            label, icon, enabled = "Up to date", "check", False
+        elif self.state == "empty":
+            label, icon, enabled = "Download", "play", connected
+        else:
+            label, icon, enabled = "Download missing", "play", connected
+        self._start_btn.setText(label)
+        set_icon(self._start_btn, icon, "go")
+        self._start_btn.setEnabled(enabled)
         self._clear_btn.setEnabled(connected and not self._running)
         if not connected and not self._running:
             self._hint.setText("Connect TWS to download")
         elif self._hint.text() == "Connect TWS to download":
             self._hint.setText("")
-
-    # ── State (SRD-GUI-030.006) ───────────────────────────────────────────────
-
-    def _refresh_state(self) -> None:
-        stats = self._stats
-        if self._running:
-            self.state = "running"
-        elif stats is None or not stats.stocks or stats.last is None:
-            self.state = "empty"
-        else:
-            settings = BacktestDataSettings.load(self._root)
-            target = settings.end_date or datetime.date.fromisoformat(
-                self._svc.get_last_trading_day()
-            )
-            short_3m = stats.first_3m is not None and stats.first_3m > (
-                settings.start_date + datetime.timedelta(days=7)
-            )
-            self.state = "behind" if stats.last < target or short_3m else "ok"
-        pill = {"running": ("DOWNLOADING", "downloading"), "behind": ("BEHIND", "partial"),
-                "ok": ("UP TO DATE", "complete")}.get(self.state)
-        self._pill.setText(pill[0] if pill else "")
-        self._pill.setVisible(pill is not None)
-        if pill is not None:
-            _set_state(self._pill, pill[1])

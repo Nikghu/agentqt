@@ -54,6 +54,7 @@ First BKT module: a Parquet candle store for backtesting plus a TWS downloader. 
 - Bars before the job start are dropped on save (IBKR "1 Y" returns a full year), 3m windows start at the range start, and an empty delta no longer stamps Last delta. Panel stats refresh every 15 s during a run; counts say "this run"; estimate uses all S&P 500 stocks.
 - ib_insync returns an empty list (no error) when its own timeout fires, so an empty answer that took the full timeout is treated as a timeout and retried. Before this fix, slow TWS answers set false 3m floors (502 stocks stuck at 2026-07-27, cleaned from the user's `state.json`).
 - Stats carry `first_3m`, the date from which every stock has 3m bars (stocks with a listed-later floor are skipped), so the panel can tell when 3m is short.
+- `BacktestStats` also carries `missing_1d`, `missing_3m` and `short_stocks`; the store leaves them 0 and AppService fills them from the download plan for the Settings panel.
 - Stocks use the S&P 500 `ibkr_symbol` (e.g. `BRK B`) as the file name.
 
 ---

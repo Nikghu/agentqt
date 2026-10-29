@@ -39,6 +39,7 @@ New "Backtest data" section in Settings, right after Candle data (Option A, sing
 | SRD-GUI-030.006 | Section dot | Implemented |
 | SRD-GUI-030.007 | Status bar shows backtest progress (user request after testing) | Implemented |
 | SRD-GUI-030.008 | Universe table shows backtest status, BT From, BT To (user request) | Implemented |
+| SRD-GUI-030.009 | Option D status: one sentence, coverage, missing with time left, one button (user request 2026-10-29) | Implemented |
 
 ---
 
@@ -47,6 +48,7 @@ New "Backtest data" section in Settings, right after Candle data (Option A, sing
 - Auto delta tries at most once per scheduled time per session, so a paused or failed delta does not restart every minute.
 - Stats are read in a background worker (`backtest_stats_changed`), like the candle DB status.
 - The summary shows both ranges (`1d … to … · 3m from …`) and the pill shows BEHIND when 3m starts more than 7 days after the start date. Before this, the pill looked only at 1d and said UP TO DATE while 3m was months short.
+- Option D (2026-10-29): the pill, per-timeframe progress lines, stat strip and Fill delta button are gone. One sentence says what is happening or missing, and one button changes label (Download / Download missing / Save range and download / Pause / Up to date). The stats worker counts the missing requests with the real download plan. An unsaved range is saved only when the user presses Save range and download.
 - Clear confirm reuses the frameless `_ConfirmDialog` and adds a text field.
 
 ---

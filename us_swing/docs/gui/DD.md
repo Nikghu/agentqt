@@ -1735,7 +1735,7 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 
 ## DD-GUI-030.001.D01 — Backtest Data Section
 
-**Traces:** SRD-GUI-030.001–.006
+**Traces:** SRD-GUI-030.001–.006, SRD-GUI-030.009
 
 **Widget (`backtest_data_panel.py`).** `BacktestDataPanel(QWidget)` follows `_DataPanel`: top card (summary label, `data_pill`, two rows of label + 4 px `QProgressBar` + count label for 1d and 3m, stat strip of four cells), Range card (`QDateEdit` start, `QDateEdit` end, `QCheckBox` "Up to latest trading day"), Auto delta card (`QCheckBox` switch, `QTimeEdit` HH:mm + "US/Eastern" label, seven checkable day buttons), action row (Start/Pause, Fill delta now, stretch, `link_danger` Clear database…) and a hint label. `inputs` lists the Range and Auto delta fields for dirty tracking; `load()`, `save()` and `defaults()` map to `BacktestDataSettings`. An estimate line under Range shows `Full download ≈ N requests · about N days of TWS time` (stocks × (1 + 4 × years) at 50 requests per 10 min). The panel takes the store `root` (default `~/.usswing/backtest`) and exposes `state` = `empty | running | behind | ok`. `theme.py` now styles `QDateEdit` like `QTimeEdit`.
 
@@ -1744,3 +1744,12 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 **Service (`app_service.py`).** `AppService` owns one `BacktestDownloader` at a time: `start_backtest_download()`, `stop_backtest_download()`, `fill_backtest_delta()`, `clear_backtest_data()`, `refresh_backtest_stats()`, `is_backtest_running()`, `shutdown_backtest_download()` (called from `MainWindow.closeEvent`, waits up to 10 s); it re-emits `backtest_progress(tf, done, total, symbol)` and `backtest_finished(ok, message)`, and `refresh_backtest_stats()` reads stats in `_BacktestStatsWorker` and emits `backtest_stats_changed(BacktestStats)`. Stocks are the S&P 500 `ibkr_symbol` values. The plan is built inside the downloader thread. A 60 s `QTimer` calls `delta_due()` while TWS is connected and starts a delta when due and nothing runs, at most once per scheduled time per session; `last_delta` is saved when a delta finishes ok. The downloader uses `SystemConfig.ibkr_backtest_client_id` (new, default 16). TWS state comes from the existing connection status the panel already gets for Candle data.
 
 **Clear confirm.** `build_clear_dialog()` reuses the frameless `_ConfirmDialog` (active_cycles_panel) and adds a `QLineEdit`; it shows "Deletes N GB of backtest candles. Settings are kept.", a `QLineEdit`, and Cancel / Clear; Clear enables only when the text equals `CLEAR`.
+
+### Option D status (SRD-GUI-030.009, 2026-10-29)
+
+- `_BacktestStatsWorker` runs the same full download plan as the Download button and adds `missing_1d`, `missing_3m` and `short_stocks` to `BacktestStats`, so "Up to date" means the plan is empty.
+- `_render()` draws everything from one state: `running` (progress seen or download started), `empty` (no stocks), `behind` (missing > 0) or `ok`.
+- Sentence: Getting <tf> candles / No backtest candles yet / <Daily and/or 3-minute> candles missing for N stocks / All candles saved. Coverage line: Daily first – last · 3-minute from `first_3m`.
+- Time left = remaining 1d × 1 s + remaining 3m × 25 s; totals are seeded from the plan size and replaced by progress signals.
+- When the range fields differ from `settings.json` the button reads "Save range and download" and saves before starting; nothing is saved silently.
+- Fill delta is no longer a button; the auto delta timer still calls `fill_backtest_delta()`.

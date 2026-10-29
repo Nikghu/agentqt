@@ -1445,6 +1445,7 @@ QLabel#data_pill[state="complete"] {{ color: #3cc583; border-color: #3cc583; }}
 QLabel#data_pill[state="partial"] {{ color: #e8c14d; border-color: #e8c14d; }}
 QLabel#data_pill[state="empty"] {{ color: #ef5a50; border-color: #ef5a50; }}
 QLabel#data_summary {{ color: {text}; font-size: 10.5pt; font-weight: bold; }}
+QLabel#data_headline {{ color: {text}; font-size: 13pt; font-weight: bold; }}
 QLabel#data_stat_value {{
     color: {text}; font-family: "IBM Plex Mono", Consolas, monospace; font-size: 11pt;
 }}

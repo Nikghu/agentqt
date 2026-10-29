@@ -89,31 +89,35 @@ def test_status_from_stats(make: Any) -> None:
     panel, svc = make()
     svc.backtest_stats_changed.emit(_stats())
 
-    assert "503 stocks" in panel._summary.text()
-    assert panel._values["1d bars"].text() == "1.3M"
-    assert panel._values["3m bars"].text() == "186M"
-    assert panel._values["Disk"].text() == "3.9 GB"
-    assert panel._values["Last delta"].text() == "Oct 27 17:35"
-    assert panel._pill.text() == "UP TO DATE"
+    assert panel._headline.text() == "All candles saved"
+    assert panel._detail.text() == "Daily Jan 4, 2016 – Oct 27, 2026"
+    assert panel._facts.text() == "503 stocks · 3.9 GB"
+    assert panel._start_btn.text() == "Up to date"
+    assert not panel._start_btn.isEnabled()
 
 
 def test_empty_store(make: Any) -> None:
-    """UT-GUI-030.001.M01.T03: Empty store shows the empty summary, dashes and no pill."""
+    """UT-GUI-030.001.M01.T03: Empty store says so, shows the range estimate and Download."""
     panel, svc = make()
     svc.backtest_stats_changed.emit(_stats(stocks=0))
 
-    assert panel._summary.text() == "No backtest data yet"
-    assert all(v.text() == "—" for v in panel._values.values())
-    assert panel._pill.isHidden()
+    assert panel._headline.text() == "No backtest candles yet"
+    assert panel._detail.isHidden()
+    assert "requests for this range" in panel._info.text()
+    assert panel._start_btn.text() == "Download"
 
 
 def test_progress_lines_update(make: Any) -> None:
-    """UT-GUI-030.001.M01.T02: Progress moves the matching bar and count label."""
+    """UT-GUI-030.001.M01.T02: Progress (even from auto delta) shows the bar, count and time left."""
     panel, svc = make()
     svc.backtest_progress.emit("3m", 191, 503, "AAPL")
 
-    assert panel._bars["3m"].value() == 38
-    assert panel._counts["3m"].text() == "191 of 503 this run"
+    assert panel.state == "running"
+    assert panel._headline.text() == "Getting 3-minute candles"
+    assert panel._bar.value() == 38
+    assert panel._info.text() == "191 of 503 · AAPL · about 2 h 10 min left"
+    assert panel._eta.text().startswith("Done around ")
+    assert panel._start_btn.text() == "Pause"
 
 
 def test_load_and_save_settings(make: Any, tmp_path: Path) -> None:
@@ -140,17 +144,17 @@ def test_start_never_after_end(make: Any) -> None:
     assert panel._start.date() == QDate(2020, 1, 1)
 
 
-def test_estimate_uses_measured_3m_speed(make: Any) -> None:
+def test_estimate_uses_measured_3m_speed(make: Any, tmp_path: Path) -> None:
     """UT-GUI-030.002.M01.T03: Estimate uses 25 s per 3m request; long runs show days."""
-    panel, _svc = make()
-    panel._latest.setChecked(False)
-    panel._end.setDate(QDate(2025, 1, 1))
-    panel._start.setDate(QDate(2024, 1, 2))
+    BacktestDataSettings(start_date=date(2024, 1, 2), end_date=date(2025, 1, 1)).save(tmp_path)
+    panel, svc = make()
+    svc.backtest_stats_changed.emit(_stats(stocks=0))
 
-    assert panel._estimate.text() == "Full download ≈ 2,515 requests · about 14 h"
+    assert panel._info.text() == "2,515 requests for this range · about 14 h 6 min"
 
-    panel._start.setDate(QDate(2015, 1, 2))
-    assert panel._estimate.text().endswith("days")
+    BacktestDataSettings(start_date=date(2015, 1, 2), end_date=date(2025, 1, 1)).save(tmp_path)
+    panel.load()
+    assert panel._info.text().endswith("days")
 
 
 def test_auto_delta_fields_load(make: Any, tmp_path: Path) -> None:
@@ -184,7 +188,6 @@ def test_tws_not_connected(make: Any) -> None:
     panel, _svc = make(connected=False)
 
     assert not panel._start_btn.isEnabled()
-    assert not panel._delta_btn.isEnabled()
     assert not panel._clear_btn.isEnabled()
     assert panel._hint.text() == "Connect TWS to download"
 
@@ -196,7 +199,6 @@ def test_start_becomes_pause(make: Any) -> None:
 
     assert "start" in svc.calls
     assert panel._start_btn.text() == "Pause"
-    assert not panel._delta_btn.isEnabled()
     assert not panel._clear_btn.isEnabled()
     panel._start_btn.click()
     assert "stop" in svc.calls
@@ -226,7 +228,7 @@ def test_clear_needs_typed_word(make: Any, monkeypatch: pytest.MonkeyPatch) -> N
     panel._clear_btn.click()
     assert "clear" in svc.calls
     assert panel._hint.text() == "Backtest data cleared · 3.9 GB freed"
-    assert panel._summary.text() == "No backtest data yet"
+    assert panel._headline.text() == "No backtest candles yet"
 
 
 def test_dot_state(make: Any) -> None:
@@ -240,18 +242,39 @@ def test_dot_state(make: Any) -> None:
     svc.backtest_finished.emit(True, "Done")
     svc.backtest_stats_changed.emit(_stats())
     assert panel.state == "ok"
-    svc.backtest_stats_changed.emit(_stats(last=date(2026, 10, 1)))
+    svc.backtest_stats_changed.emit(replace(_stats(), missing_1d=3, short_stocks=3))
     assert panel.state == "behind"
 
 
 def test_short_3m_shows_behind(make: Any, tmp_path: Path) -> None:
-    """UT-GUI-030.006.M01.T02: 3m starting well after the start date shows BEHIND."""
+    """UT-GUI-030.006.M01.T02: Missing 3m requests give a plain sentence and Download missing."""
+    BacktestDataSettings(start_date=date(2016, 1, 1)).save(tmp_path)
+    panel, svc = make()
+    svc.backtest_stats_changed.emit(replace(
+        _stats(), first_3m=date(2026, 1, 2), missing_3m=498, short_stocks=503,
+    ))
+
+    assert panel.state == "behind"
+    assert panel._headline.text() == "3-minute candles missing for 503 stocks"
+    assert panel._detail.text().endswith("· 3-minute from Jan 2, 2026")
+    assert panel._info.text() == "498 requests · about 3 h 27 min"
+    assert panel._start_btn.text() == "Download missing"
+    assert panel._start_btn.isEnabled()
+
+
+def test_changed_range_saved_on_download(make: Any, tmp_path: Path) -> None:
+    """UT-GUI-030.009.M01.T01: An unsaved range turns the button into Save range and download."""
     BacktestDataSettings(start_date=date(2026, 1, 1)).save(tmp_path)
     panel, svc = make()
-    svc.backtest_stats_changed.emit(replace(_stats(), first_3m=date(2026, 7, 30)))
+    svc.backtest_stats_changed.emit(_stats())
+    panel._start.setDate(QDate(2025, 11, 1))
 
-    assert panel._summary.text().endswith("· 3m from 2026-07-30")
-    assert panel._pill.text() == "BEHIND"
+    assert panel._info.text() == "Range changed · not saved yet"
+    assert panel._start_btn.text() == "Save range and download"
+    panel._start_btn.click()
+    assert BacktestDataSettings.load(tmp_path).start_date == date(2025, 11, 1)
+    assert "start" in svc.calls
+    assert panel._start_btn.text() == "Pause"
 
 
 def test_status_bar_shows_backtest(qtbot: Any) -> None:

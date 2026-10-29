@@ -96,3 +96,21 @@ def test_universe_backtest_coverage(svc: Any) -> None:
     assert cov["AAPL"] == (last.isoformat(), last.isoformat(), "ok")
     assert cov["MSFT"] == ("2026-01-02", "2026-01-02", "1d")
     assert cov["NVDA"] == (None, None, "none")
+
+
+def test_stats_worker_counts_missing(tmp_path: Path) -> None:
+    """UT-GUI-030.009.M02.T01: The stats worker adds missing requests and stocks from the plan."""
+    from datetime import date
+
+    from us_swing.backtest.planner import Job
+    from us_swing.gui.app_service import _BacktestStatsWorker
+
+    jobs = [Job("AAPL", "1d", date(2025, 1, 1), date(2025, 2, 1), "1 Y"),
+            Job("AAPL", "3m", date(2025, 1, 1), date(2025, 2, 1), "3 M"),
+            Job("MSFT", "3m", date(2025, 1, 1), date(2025, 2, 1), "3 M")]
+    worker = _BacktestStatsWorker(BacktestStore(tmp_path), lambda: jobs)
+    seen: list[Any] = []
+    worker.done.connect(seen.append)
+    worker.run()
+
+    assert (seen[0].missing_1d, seen[0].missing_3m, seen[0].short_stocks) == (1, 2, 2)

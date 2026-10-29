@@ -47,6 +47,9 @@ class BacktestStats:
         last_delta: When the last delta fill finished, or ``None``.
         first_3m: Date from which every stock has 3m bars (stocks listed later are skipped),
             or ``None`` when no 3m bars are saved.
+        missing_1d: 1d requests the download plan still needs (set by the caller).
+        missing_3m: 3m requests the download plan still needs (set by the caller).
+        short_stocks: Stocks with any request in the download plan (set by the caller).
     """
 
     stocks: int
@@ -57,6 +60,9 @@ class BacktestStats:
     size_bytes: int
     last_delta: datetime | None
     first_3m: date | None = None
+    missing_1d: int = 0
+    missing_3m: int = 0
+    short_stocks: int = 0
 
 
 class BacktestStore:

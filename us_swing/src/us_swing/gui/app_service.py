@@ -52,6 +52,7 @@ the DB on resume to catch partial writes.
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 import datetime
 import enum
 import json
@@ -1111,17 +1112,32 @@ class _CyclePositionSource:
 
 
 class _BacktestStatsWorker(QThread):
-    """Reads backtest store stats off the GUI thread (SRD-BKT-001.011)."""
+    """Reads backtest store stats and the missing-request count off the GUI thread."""
 
     done = pyqtSignal(object)   # BacktestStats
 
-    def __init__(self, store: BacktestStore, parent: QObject | None = None) -> None:
+    def __init__(
+        self,
+        store: BacktestStore,
+        build_plan: Callable[[], list[Job]] | None = None,
+        parent: QObject | None = None,
+    ) -> None:
         super().__init__(parent)
         self._store = store
+        self._build_plan = build_plan
 
     def run(self) -> None:
         try:
-            self.done.emit(self._store.stats())
+            stats = self._store.stats()
+            if self._build_plan is not None:
+                jobs = self._build_plan()
+                stats = dataclasses.replace(
+                    stats,
+                    missing_1d=sum(1 for j in jobs if j.tf == "1d"),
+                    missing_3m=sum(1 for j in jobs if j.tf == "3m"),
+                    short_stocks=len({j.symbol for j in jobs}),
+                )
+            self.done.emit(stats)
         except Exception:  # noqa: BLE001
             _log.exception("[Backtest] Could not read backtest data stats")
 
@@ -4514,7 +4530,9 @@ class AppService(QObject):
 
     def refresh_backtest_stats(self) -> None:
         """Read store stats in the background; emits ``backtest_stats_changed``."""
-        worker = _BacktestStatsWorker(self._bkt_store, parent=self)
+        symbols = [r.ibkr_symbol for r in self._sp500]
+        build = self._backtest_plan(symbols, delta=False) if symbols else None
+        worker = _BacktestStatsWorker(self._bkt_store, build, parent=self)
         worker.done.connect(self.backtest_stats_changed)
         worker.finished.connect(worker.deleteLater)
         worker.start()
@@ -4527,16 +4545,9 @@ class AppService(QObject):
             self.log_message.emit("WARNING", "[Backtest] S&P 500 list not loaded yet — try again")
             return False
         store = self._bkt_store
-        settings = BacktestDataSettings.load(store.root)
-
-        def build_plan() -> list[Job]:
-            floors = DownloadState.load(store.root).floors
-            return plan(symbols, settings, store.coverage, floors,
-                        _compute_last_trading_day(), delta)
-
         cfg = self._system_cfg
         dl = BacktestDownloader(
-            build_plan, store, host=cfg.ibkr_host, port=cfg.ibkr_port,
+            self._backtest_plan(symbols, delta=delta), store, host=cfg.ibkr_host, port=cfg.ibkr_port,
             client_id=cfg.ibkr_backtest_client_id, delta=delta, parent=self,
         )
         dl.progress.connect(self.backtest_progress)
@@ -4547,6 +4558,17 @@ class AppService(QObject):
         what = "Delta fill" if delta else "Download"
         self.log_message.emit("INFO", f"[Backtest] {what} started for {len(symbols)} stock(s)")
         return True
+
+    def _backtest_plan(self, symbols: list[str], *, delta: bool) -> Callable[[], list[Job]]:
+        store = self._bkt_store
+        settings = BacktestDataSettings.load(store.root)
+
+        def build_plan() -> list[Job]:
+            floors = DownloadState.load(store.root).floors
+            return plan(symbols, settings, store.coverage, floors,
+                        _compute_last_trading_day(), delta)
+
+        return build_plan
 
     def _on_backtest_completed(self, ok: bool, message: str) -> None:
         self._bkt_downloader = None
