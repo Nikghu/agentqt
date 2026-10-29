@@ -168,6 +168,8 @@
 | UT-EXE-006.001.M01.T19 | MD-EXE-006.001.M01 | Negative | Missing stored daily/weekly bars omit 1d/1w without error (SRD-EXE-006.012) | candles.db with 900 `price_1m` bars but no `price_1d`/`price_1w` rows for SYM | dict contains `'3m'`/`'15m'` only; `'1d'`/`'1w'` absent; no exception | Pass |
 | UT-EXE-006.001.M01.T20 | MD-EXE-006.001.M01 | Negative | Yahoo Finance lookup converts a dotted class share to hyphen notation | `_fetch_symbol_yfinance('BRK.B')` with `yfinance.Ticker` patched | `yfinance.Ticker` called once with `'BRK-B'` (ISS-EXE-0012) | Pass |
 | UT-EXE-006.001.M01.T21 | MD-EXE-006.001.M01 | Positive | A symbol without a dot reaches Yahoo Finance unchanged | `_fetch_symbol_yfinance('AAPL')` with `yfinance.Ticker` patched | `yfinance.Ticker` called once with `'AAPL'` | Pass |
+| UT-EXE-006.001.M01.T22 | MD-EXE-006.001.M01 | Positive | A 15m bar still forming is left out of the strategy frame (SRD-EXE-006.014) | Three 15m bars, the last started 5 min ago | Frame has 2 bars; last is the closed one | Pass |
+| UT-EXE-006.001.M01.T23 | MD-EXE-006.001.M01 | Negative | No bar is dropped when the last bar has closed (SRD-EXE-006.014) | 90 1m bars from a day ago | 3m frame length = assembled bar count | Pass |
 
 ---
 
