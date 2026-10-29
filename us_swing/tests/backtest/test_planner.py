@@ -89,14 +89,16 @@ def test_delta_asks_days_since_last_bar() -> None:
     assert all(j.duration == "4 D" and j.end == date(2025, 12, 31) for j in jobs)
 
 
-def test_delta_minimum_two_days() -> None:
-    """UT-BKT-001.008.M03.T02: Delta asks at least 2 days even when up to date."""
-    saved = (date(2025, 1, 2), date(2025, 12, 31))
-    cov: Coverage = {("AAPL", "1d"): saved, ("AAPL", "3m"): saved}
+def test_delta_skips_up_to_date_stock() -> None:
+    """UT-BKT-001.008.M03.T02: Delta skips a stock saved to the last session; one day asks 2 D."""
+    current = (date(2025, 1, 2), date(2025, 12, 31))
+    one_day = (date(2025, 1, 2), date(2025, 12, 30))
+    cov: Coverage = {("AAPL", "1d"): current, ("AAPL", "3m"): current,
+                     ("MSFT", "1d"): one_day, ("MSFT", "3m"): one_day}
 
-    jobs = _plan(_LATEST, cov, symbols=("AAPL",), delta_only=True)
+    jobs = _plan(_LATEST, cov, delta_only=True)
 
-    assert [j.duration for j in jobs] == ["2 D", "2 D"]
+    assert [(j.symbol, j.duration) for j in jobs] == [("MSFT", "2 D"), ("MSFT", "2 D")]
 
 
 def test_no_delta_with_fixed_end_date() -> None:

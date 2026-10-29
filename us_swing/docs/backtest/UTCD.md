@@ -33,7 +33,7 @@
 | UT-BKT-001.005.M03.T03 | MD-BKT-001.005.M03 | Edge | Earlier start back-fills only older windows | saved 2024–2025, start moved to 2023 | 3m jobs only for 2023 windows; one 1d back-fill job | Pass |
 | UT-BKT-001.005.M03.T04 | MD-BKT-001.005.M03 | Edge | Floor skips windows before first data | floor 2024-06-01 | no 3m job ending before the floor | Pass |
 | UT-BKT-001.008.M03.T01 | MD-BKT-001.005.M03 | Positive | Delta asks days since last bar | last saved 3 trading days ago, `delta_only` | one job per stock and tf, duration "4 D" | Pass |
-| UT-BKT-001.008.M03.T02 | MD-BKT-001.005.M03 | Edge | Delta minimum 2 days | last saved = last session | duration "2 D" | Pass |
+| UT-BKT-001.008.M03.T02 | MD-BKT-001.005.M03 | Edge | Delta skips up-to-date stock | AAPL saved to last session, MSFT one day behind | no AAPL job; MSFT "2 D" for 1d and 3m | Pass |
 | UT-BKT-001.008.M03.T03 | MD-BKT-001.005.M03 | Negative | No delta with fixed end date | end date 2025-12-31, `delta_only` | empty plan | Pass |
 | UT-BKT-001.006.M04.T01 | MD-BKT-001.006.M04 | Positive | Jobs saved with progress | fake IB returns bars for 2 jobs | both saved; progress emitted 1/2, 2/2; returns ok | Pass |
 | UT-BKT-001.006.M04.T02 | MD-BKT-001.006.M04 | Negative | Retry then mark failed | fake IB times out every time for AAPL | 3 tries; AAPL in failed; MSFT jobs still run | Pass |

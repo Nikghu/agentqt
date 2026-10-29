@@ -37,7 +37,7 @@ First BKT module: a Parquet candle store for backtesting plus a TWS downloader. 
 | SRD-BKT-001.005 | Download plan skips saved ranges and floors | Implemented |
 | SRD-BKT-001.006 | Background download, retry 3 times then mark failed | Implemented |
 | SRD-BKT-001.007 | Stop after current request; resume from files | Implemented |
-| SRD-BKT-001.008 | Delta asks days since last bar, at least 2 | Implemented |
+| SRD-BKT-001.008 | Delta asks days since last bar, at least 2; skips stocks already at the last session (reopened 2026-10-29) | Implemented |
 | SRD-BKT-001.009 | Auto delta due at set ET time, missed run caught up | Implemented |
 | SRD-BKT-001.010 | Clear keeps `settings.json` | Implemented |
 | SRD-BKT-001.011 | Stats from Parquet metadata | Implemented |
@@ -55,6 +55,7 @@ First BKT module: a Parquet candle store for backtesting plus a TWS downloader. 
 - ib_insync returns an empty list (no error) when its own timeout fires, so an empty answer that took the full timeout is treated as a timeout and retried. Before this fix, slow TWS answers set false 3m floors (502 stocks stuck at 2026-07-27, cleaned from the user's `state.json`).
 - Stats carry `first_3m`, the date from which every stock has 3m bars (stocks with a listed-later floor are skipped), so the panel can tell when 3m is short.
 - `BacktestStats` also carries `missing_1d`, `missing_3m` and `short_stocks`; the store leaves them 0 and AppService fills them from the download plan for the Settings panel.
+- Delta no longer re-asks 2 days for a stock already saved to the last session (user test 2026-10-29: a delta with nothing new sent 1,006 requests). An empty delta still leaves Last delta unchanged.
 - Stocks use the S&P 500 `ibkr_symbol` (e.g. `BRK B`) as the file name.
 
 ---

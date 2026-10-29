@@ -77,7 +77,7 @@ def plan(
             saved = coverage(symbol, tf)
             if delta_only:
                 if saved is not None:
-                    jobs[tf].extend(_forward(symbol, tf, saved[1], end, delta=True))
+                    jobs[tf].extend(_forward(symbol, tf, saved[1], end))
                 continue
             jobs[tf].extend(_missing(symbol, tf, start, end, saved, floors.get(symbol)))
     jobs["3m"].sort(key=lambda j: j.end, reverse=True)
@@ -97,7 +97,7 @@ def _missing(
     first, last = saved
     jobs: list[Job] = []
     if last < end:
-        jobs.extend(_forward(symbol, tf, last, end, delta=False))
+        jobs.extend(_forward(symbol, tf, last, end))
     if first > start + _BACKFILL_SLACK:
         jobs.extend(_back(symbol, tf, start, first - timedelta(days=1), floor))
     return jobs
@@ -113,9 +113,9 @@ def _back(symbol: str, tf: Timeframe, start: date, end: date, floor: date | None
     ]
 
 
-def _forward(symbol: str, tf: Timeframe, last: date, end: date, *, delta: bool) -> list[Job]:
+def _forward(symbol: str, tf: Timeframe, last: date, end: date) -> list[Job]:
     weekdays = _weekdays_after(last, end)
-    if weekdays == 0 and not delta:
+    if weekdays == 0:
         return []
     days = max(weekdays + 1, _MIN_DELTA_DAYS)
     if tf == "3m" and days > _MAX_3M_DAYS:
