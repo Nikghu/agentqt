@@ -1,30 +1,33 @@
 """
 Module: MD-BKT-002.008.M05 — backtest/service.py
-Parent SRD: SRD-BKT-002.008, SRD-BKT-002.017, SRD-BKT-002.029, SRD-BKT-002.039
+Parent SRD: SRD-BKT-002.008, SRD-BKT-002.017, SRD-BKT-002.029, SRD-BKT-002.039,
+            SRD-BKT-002.040
 
 ``BacktestService``: the one entry point for the GUI, the CLI and (later) MCP.
-Phase 0–3: data check estimate, Step 1 (Stocks), Step 2 (Signals), Step 3 (Portfolio).
+Phase 0–4: data check estimate, Step 1 (Stocks), Step 2 (Signals), Step 3 (Portfolio),
+Step 4 (Report).
 """
 from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, TypeVar
 
 import pandas as pd
 
 from us_swing.backtest.cache import StepCache
 from us_swing.backtest.results import ResultsStore
-from us_swing.backtest.spec import Period, RunPlan
-from us_swing.backtest.steps import portfolio, signals, stocks
+from us_swing.backtest.spec import Period, RunPlan, Variant
+from us_swing.backtest.steps import portfolio, report, signals, stocks
 from us_swing.backtest.store import BacktestStore
 from us_swing.backtest.universe import UniverseRecord, resolve
 
 _log = logging.getLogger(__name__)
 
 _EDGE_DAYS = 5
+_BENCHMARK_LOOKBACK_DAYS = 10
 
 PresetLoader = Callable[[str, str], dict[str, Any]]
 StrategyLoader = Callable[[], Sequence[dict[str, Any]]]
@@ -206,6 +209,47 @@ class BacktestService:
                   sum(len(r.trades) for r in results), len(results))
         return results
 
+    def build_reports(self, plan: RunPlan, results: Sequence[portfolio.VariantResult]
+                      ) -> list[report.Report]:
+        """Step 4 for each variant, with the equal-weight benchmark (SRD-BKT-002.040–.046)."""
+        records = self._records()
+        sectors = {r.symbol: str(getattr(r, "sector", "") or "Unknown") for r in records}
+        closes = self._closes(resolve(plan.universe, records), plan.period)
+        out = []
+        for res in results:
+            days = sorted(pd.to_datetime(res.money["date"]).dt.date)
+            bench = report.equal_weight_benchmark(closes, days, res.variant.capital)
+            out.append(report.build_report(variant_label(res.variant), res.variant.capital,
+                                           res.trades, res.money, res.day_log, sectors, bench))
+        return out
+
+    def report_for_run(self, run_id: str) -> list[report.Report]:
+        """Step 4 from a saved run's rows in ``results.db``, without running Steps 1–3.
+
+        Raises:
+            ValueError: the run id is unknown.
+        """
+        run = self._results.get_run(run_id)
+        if run is None:
+            raise ValueError(f"No saved run {run_id}")
+        results = [
+            portfolio.VariantResult(variant, self._results.read_table("trades", vid),
+                                    self._results.read_table("day_log", vid),
+                                    self._results.read_table("money_daily", vid))
+            for vid, variant in self._results.list_variants(run_id)
+        ]
+        return self.build_reports(RunPlan.from_json(run.plan_json), results)
+
+    def _closes(self, symbols: Sequence[str], period: Period) -> dict[str, pd.Series]:
+        start = period.start - timedelta(days=_BENCHMARK_LOOKBACK_DAYS)
+        out: dict[str, pd.Series] = {}
+        for sym in symbols:
+            frame = self._store.read(sym, "1d", start, period.end)
+            if not frame.empty:
+                out[sym] = pd.Series(frame["close"].to_numpy(dtype=float),
+                                     index=[ts.date() for ts in frame["ts"]])
+        return out
+
     def _chosen_strategies(self, plan: RunPlan) -> list[dict[str, Any]]:
         if not plan.strategies:
             raise ValueError("Pick at least one strategy")
@@ -232,3 +276,9 @@ class BacktestService:
         finally:
             self._results.finish_run(run_id, status, datetime.now(timezone.utc), message)
         return result
+
+
+def variant_label(variant: Variant) -> str:
+    """"$2,000 · ST_AUTO 100%/100%": capital, then each strategy's allocation and per-trade %."""
+    parts = [f"{sid} {alloc:g}%/{per:g}%" for sid, alloc, per in variant.strategies]
+    return " · ".join([f"${variant.capital:,.0f}", *parts])

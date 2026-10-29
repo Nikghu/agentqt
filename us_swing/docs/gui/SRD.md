@@ -537,3 +537,9 @@
 | SRD-GUI-031.032 | FO-GUI-031 | Must | A Trades tab shows a summary line (trades, net P&L, win rate) and each trade's strategy, symbol, side, entry, shares, exit, reason and net P&L. | trades | table | Times in US/Eastern, newest first | Implemented |
 | SRD-GUI-031.033 | FO-GUI-031 | Must | A Day log tab lists each decision (entered or why skipped) with margin left and strategy deployed. | day log | table | — | Implemented |
 | SRD-GUI-031.034 | FO-GUI-031 | Must | A Money tab lists per day deployed, lowest margin, margin at close, open value and equity. | money rows | table | — | Implemented |
+| SRD-GUI-031.040 | FO-GUI-031 | Must | A Report tab shows a KPI row: Net P&L, return %, max drawdown, win rate, profit factor, trades. | report | labels | — | Approved |
+| SRD-GUI-031.041 | FO-GUI-031 | Must | Equity curve with the benchmark line, and a drawdown chart below it. | daily equity | charts | — | Approved |
+| SRD-GUI-031.042 | FO-GUI-031 | Must | Monthly P&L heat map (year × month). | monthly P&L | table | Green gain, red loss | Approved |
+| SRD-GUI-031.043 | FO-GUI-031 | Must | Breakdown table with a "Group by" picker. | trades | table | — | Approved |
+| SRD-GUI-031.044 | FO-GUI-031 | Must | A variant picker, plus a compare table when the run has more than one variant. | reports | picker, table | — | Approved |
+| SRD-GUI-031.045 | FO-GUI-031 | Must | Export trades and stats to CSV. | report | 2 CSV files | — | Approved |

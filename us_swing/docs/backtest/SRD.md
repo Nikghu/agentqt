@@ -96,3 +96,16 @@
 |---|---|---|---|---|---|---|---|
 | SRD-BKT-002.050 | FO-BKT-002 | Must | Strategy PRICE reads only closed bars on every timeframe; "current" is the last closed bar. | bars | prices | User 2026-10-29: replaces SRD-BKT-002.023; live matches via SRD-EXE-006.014 | Implemented |
 | SRD-BKT-002.051 | FO-BKT-002 | Must | Step 1 keys each list by session date, built from the previous trading day's close, for every session from From to To. | 1d bars | daily list | User 2026-10-29: matches the pre-market screener run | Implemented |
+
+## FO-BKT-002 — Backtest Engine (Phase 4a · Step 4 Report)
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-BKT-002.040 | FO-BKT-002 | Must | The report reads a saved run's results from `results.db` and computes stats per variant without running Steps 1–3 again. | run id | reports | Same stats from in-memory results | Implemented |
+| SRD-BKT-002.041 | FO-BKT-002 | Must | Returns: net P&L, return %, CAGR, % of days with money deployed, and P&L by month. | money, trades | stats | — | Implemented |
+| SRD-BKT-002.042 | FO-BKT-002 | Must | Risk: max drawdown ($ and %), longest drawdown in days, Sharpe, Sortino and Calmar from daily equity (risk-free 0), worst day and worst trade. | daily equity | stats | 252 days a year | Implemented |
+| SRD-BKT-002.043 | FO-BKT-002 | Must | Trade quality: trade count, win rate, average win and loss, payoff, profit factor, expectancy ($), longest win and loss streak. | trades | stats | A 0 P&L trade counts as a loss | Implemented |
+| SRD-BKT-002.044 | FO-BKT-002 | Must | Breakdowns: P&L, trades and win rate by strategy, stock, sector, exit reason, entry hour and weekday. | trades | tables | Hour and weekday in US/Eastern | Implemented |
+| SRD-BKT-002.045 | FO-BKT-002 | Must | Capital use: entries taken vs each skip reason, counted from the day log. | day log | counts | — | Implemented |
+| SRD-BKT-002.046 | FO-BKT-002 | Must | Benchmark line over the same days: capital grown by the equal-weight average daily return of the run's stocks. | 1d closes | line | User 2026-10-29: equal weight, no SPY (T64) | Implemented |
+| SRD-BKT-002.047 | FO-BKT-002 | Must | Compare: one row of key stats per variant. | reports | table | — | Implemented |

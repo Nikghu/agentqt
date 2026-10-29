@@ -1,6 +1,6 @@
 """
 Module: MD-BKT-002.007.M04 — backtest/results.py
-Parent SRD: SRD-BKT-002.007, SRD-BKT-002.039
+Parent SRD: SRD-BKT-002.007, SRD-BKT-002.039, SRD-BKT-002.040
 
 Results store (``results.db``): one row per run with its plan and status, and
 per variant its trades, day log and money-by-day rows (Phase 3).
@@ -111,6 +111,20 @@ class ResultsStore:
         with closing(self._connect()) as conn:
             return pd.read_sql_query(f"SELECT * FROM {name} WHERE variant_id = ?", conn,
                                      params=(variant_id,))
+
+    def list_variants(self, run_id: str) -> list[tuple[str, Variant]]:
+        """Return (variant id, variant) for each saved variant of a run, in order."""
+        with closing(self._connect()) as conn:
+            if not conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' "
+                                "AND name = 'variants'").fetchone():
+                return []
+            rows = conn.execute(
+                "SELECT variant_id, capital, strategies_json FROM variants WHERE run_id = ? "
+                "ORDER BY rowid", (run_id,),
+            ).fetchall()
+        return [(vid, Variant(float(cap), tuple((str(s[0]), float(s[1]), float(s[2]))
+                                                for s in json.loads(text))))
+                for vid, cap, text in rows]
 
     def list_runs(self, limit: int = 50) -> list[RunRow]:
         """Return the newest runs first."""

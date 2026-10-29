@@ -54,3 +54,11 @@ Also changed: `core/backtest_bridge.py` (MD-BKT-002.011.M08) adds `load_strategi
 | MD-BKT-002.030.M12 | SRD-BKT-002.030 | `us_swing/src/us_swing/backtest/steps/portfolio.py` | Step 3 day loop, money rules, exits, logs | `run_portfolio()`, `refusals()`, `StrategyRules`, `VariantResult` | `store`, `spec` | No |
 
 Also changed: `backtest/results.py` (MD-BKT-002.007.M04) adds `save_variant()` and the four tables; `backtest/service.py` (MD-BKT-002.008.M05) adds `run_portfolio()`; `backtest/cli.py` (MD-BKT-002.009.M06) prints each variant's trades and net P&L.
+
+## FO-BKT-002 — Backtest Engine (Phase 4a)
+
+| MD ID | SRD | File | Purpose | Public API | Depends on | Async |
+|---|---|---|---|---|---|---|
+| MD-BKT-002.040.M13 | SRD-BKT-002.040 | `us_swing/src/us_swing/backtest/steps/report.py` | Step 4 stats, breakdowns, benchmark, compare | `build_report()`, `breakdown()`, `compare()`, `equal_weight_benchmark()`, `Report` | `pandas`, `numpy` | No |
+
+Also changed: `backtest/results.py` (MD-BKT-002.007.M04) adds `list_variants()`; `backtest/service.py` (MD-BKT-002.008.M05) adds `build_reports()`, `report_for_run()` and `variant_label()`.

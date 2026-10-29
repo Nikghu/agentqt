@@ -138,3 +138,17 @@
 | UT-BKT-002.039.M04.T01 | MD-BKT-002.007.M04 | Positive | Variant rows saved | one variant result | rows in variants, trades, day_log, money_daily | Pass |
 | UT-BKT-002.051.M07.T01 | MD-BKT-002.010.M07 | Positive | Sessions use the previous close | 5 sessions from Mon 2025-03-03 | each session maps to the trading day before; first maps to Fri 02-28; no list from the last close | Pass |
 | UT-BKT-002.051.M12.T01 | MD-BKT-002.030.M12 | Edge | First session trades its own list | list for session D1, days D1 and D2 | D1 has the stock; D2 has none | Pass |
+| UT-BKT-002.040.M13.T01 | MD-BKT-002.040.M13 | Positive | Report from a saved run | variant saved in results.db | same stats as in-memory; label and benchmark filled | Pass |
+| UT-BKT-002.040.M13.T02 | MD-BKT-002.040.M13 | Negative | Unknown run | run id not saved | ValueError | Pass |
+| UT-BKT-002.041.M13.T01 | MD-BKT-002.040.M13 | Positive | Returns on known days | 4 days, equity 1010/990/1020/1000 | P&L 0, return 0, CAGR 0, invested 100%, March P&L 0 | Pass |
+| UT-BKT-002.041.M13.T02 | MD-BKT-002.040.M13 | Edge | No trades | flat equity, no trades | P&L 0, invested 0, win rate NaN | Pass |
+| UT-BKT-002.042.M13.T01 | MD-BKT-002.040.M13 | Positive | Risk on known days | same 4 days | max DD 990/1010−1, $ −20, longest 1 day, worst day/trade −20, Sharpe by formula | Pass |
+| UT-BKT-002.042.M13.T02 | MD-BKT-002.040.M13 | Edge | Equity only rises | rising equity | no drawdown; Sortino and Calmar NaN | Pass |
+| UT-BKT-002.043.M13.T01 | MD-BKT-002.040.M13 | Positive | Trade quality | P&L 10, −20, 30, −20 | win 50%, avg ±20, payoff 1, PF 1, streaks 1/1 | Pass |
+| UT-BKT-002.043.M13.T02 | MD-BKT-002.040.M13 | Edge | Only winners | 4 trades of +5 | PF and payoff NaN, win streak 4 | Pass |
+| UT-BKT-002.044.M13.T01 | MD-BKT-002.040.M13 | Positive | Breakdowns | 2 strategies, 2 sectors | best group first; unknown sector named; weekday and hour groups | Pass |
+| UT-BKT-002.044.M13.T02 | MD-BKT-002.040.M13 | Negative | Unknown group | group 'colour' | ValueError | Pass |
+| UT-BKT-002.045.M13.T01 | MD-BKT-002.040.M13 | Positive | Skip counts | 4 entered, 2 no_margin | counts per decision | Pass |
+| UT-BKT-002.046.M13.T01 | MD-BKT-002.040.M13 | Positive | Equal-weight benchmark | 2 stocks, 2 days | 1050, 1050 | Pass |
+| UT-BKT-002.046.M13.T02 | MD-BKT-002.040.M13 | Negative | Benchmark without stocks | no closes | all NaN | Pass |
+| UT-BKT-002.047.M13.T01 | MD-BKT-002.040.M13 | Positive | Compare rows | 2 reports | one row each with key stats | Pass |
