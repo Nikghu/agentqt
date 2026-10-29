@@ -180,6 +180,22 @@ def load_latest_execution_bar(
     return None
 
 
+def load_latest_close(db: DatabaseManager, symbol: str, tf: str) -> float | None:
+    """Close of the newest stored 1m or ``tf`` bar, read as one row (ISS-GUI-0012).
+
+    The last price only needs the newest bar, so no history is read or aggregated.
+    """
+    newest: tuple[datetime, str] | None = None
+    for table_tf in ("1m", tf):
+        last = db.get_last_timestamp(symbol, table_tf)
+        if last is not None and (newest is None or last > newest[0]):
+            newest = (last, table_tf)
+    if newest is None:
+        return None
+    bars = db.fetch_bars(symbol, newest[1], newest[0], newest[0])
+    return float(bars[-1].close) if bars else None
+
+
 @dataclass
 class CandleLoadResult:
     """Outcome for a single symbol in the load job."""

@@ -170,6 +170,8 @@
 | UT-EXE-006.001.M01.T21 | MD-EXE-006.001.M01 | Positive | A symbol without a dot reaches Yahoo Finance unchanged | `_fetch_symbol_yfinance('AAPL')` with `yfinance.Ticker` patched | `yfinance.Ticker` called once with `'AAPL'` | Pass |
 | UT-EXE-006.001.M01.T22 | MD-EXE-006.001.M01 | Positive | A 15m bar still forming is left out of the strategy frame (SRD-EXE-006.014) | Three 15m bars, the last started 5 min ago | Frame has 2 bars; last is the closed one | Pass |
 | UT-EXE-006.001.M01.T23 | MD-EXE-006.001.M01 | Negative | No bar is dropped when the last bar has closed (SRD-EXE-006.014) | 90 1m bars from a day ago | 3m frame length = assembled bar count | Pass |
+| UT-EXE-006.001.M01.T24 | MD-EXE-006.001.M01 | Positive | Last price is the newest 1m or 3m close (ISS-GUI-0012) | 90 1m bars and one older 3m bar | close of the newest 1m bar | Pass |
+| UT-EXE-006.001.M01.T25 | MD-EXE-006.001.M01 | Negative | No stored bars gives no last price (ISS-GUI-0012) | empty database | None | Pass |
 
 ---
 

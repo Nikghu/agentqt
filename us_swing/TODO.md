@@ -76,3 +76,4 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T64 | BKT — Phase 4 needs a benchmark. SPY is not in the backtest store (user wants S&P 500 only). Choose the benchmark (e.g. an index) before writing Phase 4 SRDs. | `backtest/` | Medium | Open — user decision |
 | T65 | BKT — 2026-10-29 session is missing from backtest results: the store has no 1d bar for that day yet. Fill the 1d data, re-run, and check the session appears. | `backtest/store.py`, `backtest/downloader.py` | Medium | Open |
 | T66 | BKT — SRD-BKT-002.023 is still Implemented but replaced by SRD-BKT-002.050. User to decide its status (Reopen or Verified). | `docs/backtest/SRD.md` | Low | Open — user decision |
+| T67 | GUI/EXE — App froze 2–3 s with no TWS: last price rebuilt 30 days of candles per stock on the screen thread. Now reads one row (ISS-GUI-0012, RN-GUI-1.42.1). | `gui/app_service.py`, `execution/intraday_candle_loader.py` | High | Done |

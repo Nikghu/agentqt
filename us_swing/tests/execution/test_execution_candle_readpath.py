@@ -16,6 +16,7 @@ from us_swing.db.manager import DatabaseManager
 from us_swing.execution.intraday_candle_loader import (
     assemble_execution_bars,
     load_execution_frames,
+    load_latest_close,
     load_latest_execution_bar,
     load_stored_frames,
 )
@@ -183,6 +184,26 @@ def test_closed_bars_kept_whole(tmp_path):
     frame = load_execution_frames(db, hist, _SYM)["3m"]
 
     assert len(frame) == len(assemble_execution_bars(db, hist, _SYM, "3m"))
+
+
+def test_latest_close_reads_newest_bar(tmp_path):
+    """UT-EXE-006.001.M01.T24: last price is the close of the newest 1m or 3m bar."""
+    db, _hist = _make(tmp_path)
+    minute = _one_minute_bars(_SYM, 90)
+    db.insert_bars(_SYM, "1m", minute)
+    db.insert_bars(_SYM, "3m", [OHLCVBar(
+        symbol=_SYM, datetime=minute[0].datetime, open=1.0, high=1.0, low=1.0,
+        close=999.0, volume=1, timeframe="3m",
+    )])
+
+    assert load_latest_close(db, _SYM, "3m") == minute[-1].close
+
+
+def test_latest_close_none_without_bars(tmp_path):
+    """UT-EXE-006.001.M01.T25: no stored bars gives None, not an error."""
+    db, _hist = _make(tmp_path)
+
+    assert load_latest_close(db, _SYM, "3m") is None
 
 
 def test_latest_bar_returns_most_recent(tmp_path):

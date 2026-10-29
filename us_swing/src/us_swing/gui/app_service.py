@@ -2732,9 +2732,16 @@ class AppService(QObject):
         return out
 
     def get_latest_close(self, symbol: str, tf: str = "3m") -> float | None:
-        """Return the latest closing price for *symbol* at *tf*, or None."""
-        bar = self._get_latest_bar(symbol, tf)
-        return float(bar.close) if bar is not None else None
+        """Return the latest closing price for *symbol* at *tf*, or None (ISS-GUI-0012)."""
+        from us_swing.execution.intraday_candle_loader import load_latest_close
+        src = self._execution_candle_source()
+        if src is None:
+            return None
+        try:
+            return load_latest_close(src[0], symbol, tf)
+        except Exception:
+            _log.warning("[Strategy] Failed to read the last price for %s", symbol)
+            return None
 
     def get_strategy_pnl(
         self, strategy_id: str, since_iso: str | None = None
