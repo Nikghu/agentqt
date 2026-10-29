@@ -3,7 +3,7 @@
 **Document ID:** TRACE-BKT
 **Version:** 1.0.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-10-29 (closed-bar PRICE and session dates; RN-BKT-1.5.0)
+**Last Updated:** 2026-10-29 (Phase 4a Report, SRD-BKT-002.040–.047; RN-BKT-1.6.0)
 
 ---
 
@@ -17,6 +17,7 @@
 | FO-BKT-002 | SRD-BKT-002.030–.039 | DD-BKT-002.030.D01 | MD-BKT-002.030.M12 (+ .007.M04, .008.M05, .009.M06) | UT-BKT-002.030–.039 (16 tests, Pass) | `backtest/steps/portfolio.py`, `backtest/results.py`, `backtest/service.py`, `backtest/cli.py` | Implemented (Phase 3) | RN-BKT-1.4.0-20261029 |
 | FO-BKT-002 | SRD-BKT-002.050 | DD-BKT-002.020.D01 | MD-BKT-002.021.M10 | UT-BKT-002.050.M10.T01–T02 (2 tests, Pass) | `core/expr/series.py` | Implemented (replaces .023) | RN-BKT-1.5.0-20261029 |
 | FO-BKT-002 | SRD-BKT-002.051 | DD-BKT-002.010.D01 | MD-BKT-002.010.M07, .008.M05, .030.M12 | UT-BKT-002.051.M07.T01, UT-BKT-002.051.M12.T01 (2 tests, Pass) | `backtest/steps/stocks.py`, `backtest/steps/portfolio.py`, `backtest/service.py` | Implemented | RN-BKT-1.5.0-20261029 |
+| FO-BKT-002 | SRD-BKT-002.040–.047 | None yet (Phase 4a stats only) | MD-BKT-002.040.M13 (+ .007.M04, .008.M05) | UT-BKT-002.040–.047.M13 (14 tests, Pass) | `backtest/steps/report.py`, `backtest/results.py`, `backtest/service.py` | Implemented (Phase 4a) | RN-BKT-1.6.0-20261029 |
 
 ## Reverse Traceability: Code → MD → SRD → FO
 
@@ -30,8 +31,8 @@
 | `backtest/spec.py` | MD-BKT-002.001.M01 | SRD-BKT-002.001–.003 | FO-BKT-002 |
 | `backtest/universe.py` | MD-BKT-002.004.M02 | SRD-BKT-002.004 | FO-BKT-002 |
 | `backtest/cache.py` | MD-BKT-002.005.M03 | SRD-BKT-002.005, .006 | FO-BKT-002 |
-| `backtest/results.py` | MD-BKT-002.007.M04 | SRD-BKT-002.007, .039 | FO-BKT-002 |
-| `backtest/service.py` | MD-BKT-002.008.M05 | SRD-BKT-002.008, .017 | FO-BKT-002 |
+| `backtest/results.py` | MD-BKT-002.007.M04 | SRD-BKT-002.007, .039, .040 | FO-BKT-002 |
+| `backtest/service.py` | MD-BKT-002.008.M05 | SRD-BKT-002.008, .017, .040 | FO-BKT-002 |
 | `backtest/cli.py` | MD-BKT-002.009.M06 | SRD-BKT-002.009 | FO-BKT-002 |
 | `backtest/steps/stocks.py` | MD-BKT-002.010.M07 | SRD-BKT-002.010–.016, .018, .019 | FO-BKT-002 |
 | `core/backtest_bridge.py` | MD-BKT-002.011.M08 | SRD-BKT-002.011, .029 | FO-BKT-002 |
@@ -39,3 +40,4 @@
 | `core/expr/series.py` | MD-BKT-002.021.M10 | SRD-BKT-002.021–.025, .027 | FO-BKT-002 |
 | `backtest/steps/signals.py` | MD-BKT-002.026.M11 | SRD-BKT-002.026, .028 | FO-BKT-002 |
 | `backtest/steps/portfolio.py` | MD-BKT-002.030.M12 | SRD-BKT-002.030–.038 | FO-BKT-002 |
+| `backtest/steps/report.py` | MD-BKT-002.040.M13 | SRD-BKT-002.040–.047 | FO-BKT-002 |

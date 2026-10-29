@@ -1,9 +1,9 @@
 # Traceability Matrix — GUI Module (GUI)
 
 **Document ID:** TRACE-GUI
-**Version:** 1.13.1
+**Version:** 1.14.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-10-29 (Backtest Stocks session dates; RN-GUI-1.42.0)
+**Last Updated:** 2026-10-29 (Backtest Report tab, SRD-GUI-031.040–.045; RN-GUI-1.43.0)
 
 ---
 
@@ -73,6 +73,7 @@
 | FO-GUI-030 | SRD-GUI-030.001–010 | DD-GUI-030.001.D01 | MD-GUI-030.001.M01, .004.M02, .006.M03, .004.M04, .007.M05, .008.M06 | UT-GUI-030.* (20 tests, Pass) | `gui/backtest_data_panel.py`, `gui/app_service.py`, `gui/settings_panel.py`, `gui/system_store.py`, `gui/main_window.py` | Implemented | RN-GUI-1.38.0-20261028, RN-GUI-1.38.1-20261029 |
 | FO-GUI-031 | SRD-GUI-031.001–.004, .010–.012, .020–.023, .030–.034 | DD-GUI-031.001.D01 | MD-GUI-031.001.M01, .002.M02, .003.M03 | UT-GUI-031.* (17 tests, Pass) | `gui/main_window.py`, `gui/backtest_builder.py`, `gui/backtest_workspace.py` | Implemented (Phase 0–3) | RN-GUI-1.39.0-20261029, RN-GUI-1.40.0-20261029, RN-GUI-1.41.0-20261029 |
 | FO-GUI-031 | SRD-GUI-031.013 | DD-GUI-031.001.D01 | MD-GUI-031.003.M03 | UT-GUI-031.013.M03.T01 (1 test, Pass) | `gui/backtest_workspace.py` | Implemented | RN-GUI-1.42.0-20261029 |
+| FO-GUI-031 | SRD-GUI-031.040–.045 | None yet (Phase 4a view only) | MD-GUI-031.040.M04, MD-GUI-031.003.M03 | UT-GUI-031.040–.045 (12 tests: M04 ×10, M03 ×2, Pass) | `gui/backtest_report_view.py`, `gui/backtest_workspace.py` | Implemented (Phase 4a) | RN-GUI-1.43.0-20261029 |
 
 ---
 
@@ -115,7 +116,8 @@
 | `gui/scheduler_table.py` | MD-GUI-029.001.M01 | SRD-GUI-029.001–.006 | FO-GUI-029 |
 | `gui/backtest_data_panel.py` | MD-GUI-030.001.M01 | SRD-GUI-030.001–.006, .009, .010 | FO-GUI-030 |
 | `gui/backtest_builder.py` | MD-GUI-031.002.M02 | SRD-GUI-031.002, .010, .020, .030 | FO-GUI-031 |
-| `gui/backtest_workspace.py` | MD-GUI-031.003.M03 | SRD-GUI-031.003, .004, .011, .012, .021–.023, .031–.034 | FO-GUI-031 |
+| `gui/backtest_workspace.py` | MD-GUI-031.003.M03 | SRD-GUI-031.003, .004, .011, .012, .021–.023, .031–.034, .040–.045 | FO-GUI-031 |
+| `gui/backtest_report_view.py` | MD-GUI-031.040.M04 | SRD-GUI-031.040–.045 | FO-GUI-031 |
 
 ---
 

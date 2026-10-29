@@ -864,3 +864,4 @@ Test files:
 | UT-GUI-031.044.M04.T02 | MD-GUI-031.040.M04 | Positive | Two variants | two reports | compare has 2 rows; picking B shows B | Pass |
 | UT-GUI-031.044.M03.T01 | MD-GUI-031.003.M03 | Positive | Picker drives tabs | pick 2nd variant | Trades tab and KPIs show variant 2 | Pass |
 | UT-GUI-031.045.M04.T01 | MD-GUI-031.040.M04 | Positive | CSV export | export to folder | stats and trades CSV written | Pass |
+| UT-GUI-031.045.M04.T02 | MD-GUI-031.040.M04 | Negative | Failed export | folder that does not exist | warning logged; app keeps running | Pass |

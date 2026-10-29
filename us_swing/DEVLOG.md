@@ -2,6 +2,17 @@
 
 ---
 
+## [20261029] BKT + GUI — Backtest engine Phase 4a · Step 4 Report (FO-BKT-002, FO-GUI-031)
+
+- Type: Feature
+- FO(s): FO-BKT-002, FO-GUI-031
+- RN: RN-BKT-1.6.0-20261029, RN-GUI-1.43.0-20261029
+- Artifacts updated: SRD (SRD-BKT-002.040–.047, SRD-GUI-031.040–.045 — Implemented), MD (MD-BKT-002.040.M13, MD-GUI-031.040.M04), UTCD (14 BKT + 12 GUI Pass), TRACE (BKT, GUI), Code, Tests, RN, Engine_plan §0, TODO T64 Done / T68 Open, CONTEXT, DEVLOG
+- Decisions (user 2026-10-29): benchmark is equal-weight average daily return of the run's stocks, no SPY (T64); Phase 4 split into 4a (now) and 4b (T68: MAE / MFE, hold time, P&L by score / rank, Monte Carlo, first vs second half, without top 5, shadow P&L, capital × per-trade heat map).
+- Findings: real run (IT, Price Action, ST_AUTO, $2,000, 2026-01-02..10-28): 118 trades, net P&L -$544.36, return -27.2%, max DD -31.9%, Sharpe -1.49, PF 0.66. Benchmark $2,022 → $3,049. Tests: 153 passed. Phase 4 user check Pending. No DD written for Phase 4a.
+
+---
+
 ## [20261029] GUI — 2–3 s freezes with no TWS (ISS-GUI-0012)
 
 - Type: Bugfix

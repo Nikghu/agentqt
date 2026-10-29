@@ -1,6 +1,6 @@
 # Engine_plan — Backtest Engine (Stocks → Signals → Portfolio → Report)
 
-**Status:** Phase 0 to 3 done (code); Phase 4 next
+**Status:** Phase 0 to 3 done (code); Phase 4a done (code); Phase 4b and 5 next
 **Tool:** BKT (engine) + GUI (Backtest workspace) + MCP (last)
 **Author:** USSwing
 **Created:** 2026-10-29
@@ -20,7 +20,7 @@ section for the phase in progress. Update §0 at the end of every session.
 | 1 | Step 1 · Stocks | Approved | Done | Done | OK | see DEVLOG 2026-10-29 |
 | 2 | Step 2 · Signals | Approved | Done | Done | OK | see DEVLOG 2026-10-29 |
 | 3 | Step 3 · Portfolio | Approved | Done | Done | Pending | see DEVLOG 2026-10-29 |
-| 4 | Step 4 · Report | Not started | — | — | — | — |
+| 4 | Step 4 · Report | Approved (4a) | Done (4a) | Done (4a) | Pending (4a) | see DEVLOG 2026-10-29 |
 | 5 | Quick test in Screener | Not started | — | — | — | — |
 | 6 | MCP tools | Not started | — | — | — | — |
 
@@ -37,7 +37,9 @@ Cell values: `Not started` → `Draft` → `Approved` (docs) / `In progress` →
 
 **Done 2026-10-29 (closed candles + session dates):** user found the session-date issue while checking Step 3; fixed (SRD-BKT-002.050–.051, SRD-GUI-031.013, SRD-EXE-006.014; RN-BKT-1.5.0, RN-GUI-1.42.0, RN-EXE-1.38.0). PRICE reads closed bars only (replaces SRD-BKT-002.023). Step 1 lists are keyed by session date (built from the previous trading day). Phase 3 user check stays Pending. Open: ST_AUTO `Last` (TODO T63); 2026-10-29 session missing until its 1d bar is in the store.
 
-**Next action:** user checks Step 3 again in the app (Run, open Trades, Day log, Money); decide ST_AUTO `Last` vs `current` (TODO T63); choose the SPY benchmark for Phase 4. Then Phase 4 FO/SRD rows (SRD-BKT-002.040–.049, SRD-GUI-031.040–.049). SPY is not downloaded: the user wants backtest data to be S&P 500 only (2026-10-29), so presets with the RS rule are refused with a plain message (SRD-BKT-002.018).
+**Done 2026-10-29 (Phase 4a):** Step 4 Report: SRD-BKT-002.040–.047, SRD-GUI-031.040–.045 (RN-BKT-1.6.0, RN-GUI-1.43.0). Stats per variant from `results.db`, equal-weight benchmark ("S&P 500 (equal weight)", no SPY; TODO T64 Done), Report tab with KPIs, equity vs benchmark, drawdown, heat map, breakdown, compare, CSV. Real run (IT, Price Action, ST_AUTO, $2,000): 118 trades, net P&L -$544.36. Phase 4b (later, TODO T68): MAE / MFE and profit given back, hold time, P&L by score / rank, Monte Carlo, first vs second half, without top 5, shadow P&L, capital × per-trade heat map. Phase 4 user check Pending.
+
+**Next action:** user checks the Report tab in the app (Run, then Report, variant picker, CSV). Then Phase 4b, or Phase 5 if the user prefers. Phase 3 user check is still Pending. Open: ST_AUTO is `current` (T63 Done); SRD-BKT-002.023 status (TODO T66); 2026-10-29 session missing until its 1d bar is in the store (TODO T65). SPY is not downloaded: the user wants backtest data to be S&P 500 only (2026-10-29), so presets with the RS rule are refused with a plain message (SRD-BKT-002.018).
 
 ---
 
