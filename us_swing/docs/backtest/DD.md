@@ -13,7 +13,7 @@
 
 ## DD-BKT-001.001.D01 — Backtest Data Store and Downloader
 
-**Traces:** SRD-BKT-001.001–.011
+**Traces:** SRD-BKT-001.001–.014
 
 **Layout.** Root `~/.usswing/backtest/` (injectable for tests):
 
@@ -22,9 +22,13 @@ settings.json        start_date, end_date (null = latest), auto_delta, run_time 
 state.json           last_delta (ISO, UTC), floors {symbol: first date with 3m data}, failed [symbols]
 1d/<SYM>.parquet     ts (date), open, high, low, close, volume
 3m/<SYM>/<YYYY>.parquet   ts (UTC timestamp), open, high, low, close, volume
+15m/<SYM>/<YYYY>.parquet  built from 3m — same columns (SRD .012)
+1w/<SYM>.parquet          built from 1d — ts (Monday date), open, high, low, close, volume, days (SRD .013)
 ```
 
-**Store (`store.py`).** `BacktestStore(root)`. `save(symbol, tf, df, now)` drops unfinished bars (SRD .003: rows on today's US/Eastern date while `now` < 16:15 ET), splits 3m rows by year, and for each target file reads the saved rows, concatenates, `drop_duplicates("ts", keep="last")`, sorts, writes `<file>.tmp` with pyarrow, then `os.replace`. `read(symbol, tf, start, end)` returns one frame. `coverage(symbol, tf)` returns `(first, last)` from the `ts` column statistics in Parquet metadata, or `None`. `stats()` sums `num_rows` from metadata and file sizes; first/last date come from 1d coverage. `clear()` removes `1d/`, `3m/` and `state.json` only.
+**Store (`store.py`).** `BacktestStore(root)`. `save(symbol, tf, df, now)` drops unfinished bars (SRD .003: rows on today's US/Eastern date while `now` < 16:15 ET), splits 3m rows by year, and for each target file reads the saved rows, concatenates, `drop_duplicates("ts", keep="last")`, sorts, writes `<file>.tmp` with pyarrow, then `os.replace`. `read(symbol, tf, start, end)` returns one frame. `coverage(symbol, tf)` returns `(first, last)` from the `ts` column statistics in Parquet metadata, or `None`. `stats()` sums `num_rows` from metadata and file sizes; first/last date come from 1d coverage. `clear()` removes `1d/`, `3m/`, `15m/`, `1w/` and `state.json` only.
+
+**Built timeframes (SRD .012–.014).** After each 3m year file is written, `save()` reads that whole year file and writes `15m/<SYM>/<YYYY>.parquet`: group by `ts.floor("15min")` in UTC (US/Eastern is a whole-hour offset, so buckets are 09:30, 09:45 … 15:45 ET; 26 per normal day, 14 on a 13:00 half-day), open = first, high = max, low = min, close = last, volume = sum. After each 1d write, it rebuilds `1w/<SYM>.parquet` the same way, grouped by `ts − weekday` (Monday), plus `days` = number of daily bars. Built files are fully rewritten, not merged. `build_missing()` builds any 15m/1w file that is missing or has an older mtime than its source; `_BacktestStatsWorker` calls it before `stats()`, so data saved before this change is built once (about 0.12 s per stock). Temp files get a unique name per write, so the stats worker and a running download can write the same file safely. `stats().size_bytes` includes the built files. `read()` and `coverage()` accept `15m` and `1w`.
 
 **Settings (`settings.py`).** `BacktestDataSettings` frozen dataclass with `load(root)` / `save(root)`; a missing or broken file returns defaults. `DownloadState` (last delta, floors, failed) lives in `state.json` with the same load/save pattern.
 

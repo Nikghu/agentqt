@@ -26,6 +26,12 @@
 | UT-BKT-001.010.M01.T02 | MD-BKT-001.001.M01 | Negative | Clear on empty store is safe | empty root with `settings.json` only | no error; `settings.json` unchanged | Pass |
 | UT-BKT-001.011.M01.T01 | MD-BKT-001.001.M01 | Positive | Stats from metadata | 2 stocks saved | stock count 2; bar counts, first/last date and size match | Pass |
 | UT-BKT-001.011.M01.T02 | MD-BKT-001.001.M01 | Edge | 3m complete-from date | 3 stocks, one listed later with a floor | first_3m is the latest start of the other two | Pass |
+| UT-BKT-001.012.M01.T01 | MD-BKT-001.001.M01 | Positive | 15m built on 3m save | one session of 130 3m bars | 26 15m bars 09:30–15:45 ET; first bar OHLCV from bars 1–5 | Pass |
+| UT-BKT-001.012.M01.T02 | MD-BKT-001.001.M01 | Edge | Summer time and gaps | a winter and a summer session, 2 summer bars missing | 52 bars; buckets start 09:30 ET both; short bucket volume from 3 bars | Pass |
+| UT-BKT-001.013.M01.T01 | MD-BKT-001.001.M01 | Positive | 1w built on 1d save | 2 weeks, Thanksgiving week has 4 days | weeks dated 11-17 and 11-24; days 5 and 4; close, high, volume match | Pass |
+| UT-BKT-001.013.M01.T02 | MD-BKT-001.001.M01 | Edge | Unfinished week grows | Mon–Tue saved, then Wed | days 2, then 3; close from Wed | Pass |
+| UT-BKT-001.014.M01.T01 | MD-BKT-001.001.M01 | Positive | Build for old data | 2 stocks with 15m/1w folders deleted | returns 2; files back; second call returns 0 | Pass |
+| UT-BKT-001.014.M01.T02 | MD-BKT-001.001.M01 | Negative | Only stale files rebuilt | AAPL 15m older than its 3m file, MSFT current | returns 1; AAPL rebuilt; MSFT file untouched | Pass |
 | UT-BKT-001.004.M02.T01 | MD-BKT-001.004.M02 | Positive | Settings round trip | save custom settings, load | values equal | Pass |
 | UT-BKT-001.004.M02.T02 | MD-BKT-001.004.M02 | Negative | Broken file loads defaults | `settings.json` with bad JSON | defaults 2016-01-01, latest, on, 17:30, Mon–Fri | Pass |
 | UT-BKT-001.005.M03.T01 | MD-BKT-001.005.M03 | Positive | Empty store plan | 2 stocks, 2025-01-01 to 2025-12-31 | 2 1d jobs first; 3m jobs newest end first across both stocks | Pass |

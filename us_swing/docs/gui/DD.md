@@ -1735,7 +1735,7 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 
 ## DD-GUI-030.001.D01 — Backtest Data Section
 
-**Traces:** SRD-GUI-030.001–.006, SRD-GUI-030.009
+**Traces:** SRD-GUI-030.001–.006, SRD-GUI-030.009, SRD-GUI-030.010
 
 **Widget (`backtest_data_panel.py`).** `BacktestDataPanel(QWidget)` follows `_DataPanel`: top card (summary label, `data_pill`, two rows of label + 4 px `QProgressBar` + count label for 1d and 3m, stat strip of four cells), Range card (`QDateEdit` start, `QDateEdit` end, `QCheckBox` "Up to latest trading day"), Auto delta card (`QCheckBox` switch, `QTimeEdit` HH:mm + "US/Eastern" label, seven checkable day buttons), action row (Start/Pause, Fill delta now, stretch, `link_danger` Clear database…) and a hint label. `inputs` lists the Range and Auto delta fields for dirty tracking; `load()`, `save()` and `defaults()` map to `BacktestDataSettings`. An estimate line under Range shows `Full download ≈ N requests · about N days of TWS time` (stocks × (1 + 4 × years) at 50 requests per 10 min). The panel takes the store `root` (default `~/.usswing/backtest`) and exposes `state` = `empty | running | behind | ok`. `theme.py` now styles `QDateEdit` like `QTimeEdit`.
 
@@ -1753,3 +1753,4 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 - Time left = remaining 1d × 1 s + remaining 3m × 25 s; totals are seeded from the plan size and replaced by progress signals.
 - When the range fields differ from `settings.json` the button reads "Save range and download" and saves before starting; nothing is saved silently.
 - Fill delta is no longer a button; the auto delta timer still calls `fill_backtest_delta()`.
+- SRD-GUI-030.010: the coverage label gets a second line, "15-minute and weekly candles are built from these". `_BacktestStatsWorker` first calls `store.build_missing()` and logs `[Backtest] Built 15-minute and weekly candles for N stock(s)` when it built any.

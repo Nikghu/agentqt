@@ -20,6 +20,7 @@
 The system shall keep a separate history of 1d and 3m candles for all S&P 500 stocks, downloaded from IBKR, for later backtesting. The live `candles.db` is never touched.
 
 - The system shall store 1d and 3m candles as Parquet files under `~/.usswing/backtest/`.
+- The system shall keep 15m and 1w candles built from the saved 3m and 1d candles, so they are always available (added by user 2026-10-29).
 - The system shall download the range between a start date and an end date (or the latest trading day).
 - The system shall download 1d first, then 3m newest years first, and resume after a stop or TWS restart.
 - The system shall never save the unfinished candles of the current trading day.

@@ -15,7 +15,7 @@
 
 | MD ID | SRD | File | Purpose | Public API | Depends on | Async |
 |---|---|---|---|---|---|---|
-| MD-BKT-001.001.M01 | SRD-BKT-001.001 | `us_swing/src/us_swing/backtest/store.py` | Parquet read, merge-save, coverage, stats and clear | `BacktestStore`, `save()`, `read()`, `coverage()`, `stats()`, `clear()` | `pandas`, `pyarrow` | No |
+| MD-BKT-001.001.M01 | SRD-BKT-001.001 | `us_swing/src/us_swing/backtest/store.py` | Parquet read, merge-save, 15m/1w build, coverage, stats and clear | `BacktestStore`, `save()`, `build_missing()`, `read()`, `coverage()`, `stats()`, `clear()`, `StoredTf` | `pandas`, `pyarrow` | No |
 | MD-BKT-001.004.M02 | SRD-BKT-001.004 | `us_swing/src/us_swing/backtest/settings.py` | Settings and download state files | `BacktestDataSettings`, `DownloadState`, `load()`, `save()` | — | No |
 | MD-BKT-001.005.M03 | SRD-BKT-001.005 | `us_swing/src/us_swing/backtest/planner.py` | Build the request list from settings and saved ranges | `Job`, `plan()` | `settings`, `store.Timeframe` | No |
 | MD-BKT-001.006.M04 | SRD-BKT-001.006 | `us_swing/src/us_swing/backtest/downloader.py` | Run jobs against TWS with pacing, retry and stop | `BacktestDownloader`, `request_stop()`, `progress`, `completed` | `store`, `planner`, `broker.pacing`, `ib_insync` | Yes (`QThread` + asyncio) |
