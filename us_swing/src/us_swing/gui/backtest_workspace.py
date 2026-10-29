@@ -120,6 +120,12 @@ def data_check_text(est: Estimate) -> str:
     return "\n".join([line, *est.errors])
 
 
+def _head(text: str) -> QLabel:
+    label = QLabel(text)
+    label.setObjectName("view_head")
+    return label
+
+
 def _table(headers: list[str]) -> QTableWidget:
     table = QTableWidget(0, len(headers))
     table.setHorizontalHeaderLabels(headers)
@@ -232,7 +238,12 @@ class BacktestWorkspace(QWidget):
         self.strategy_filter.setFixedWidth(220)
         self.strategy_filter.addItem(_ALL)
         self.strategy_filter.currentIndexChanged.connect(self._render_signals)
-        body.addWidget(self.strategy_filter)
+        top = QHBoxLayout()
+        self.signals_head = _head("SIGNAL WINDOWS")
+        top.addWidget(self.signals_head)
+        top.addStretch()
+        top.addWidget(self.strategy_filter)
+        body.addLayout(top)
         self.signals_table = _table(["Strategy", "Symbol", "Kind", "Start", "End", "Close"])
         self.signals_table.cellDoubleClicked.connect(self._on_signal_double_clicked)
         for col in (3, 4):
@@ -251,8 +262,14 @@ class BacktestWorkspace(QWidget):
         self.days_table.setFixedWidth(220)
         self.days_table.itemSelectionChanged.connect(self._render_stocks)
         self.stocks_table = _table(["Rank", "Symbol", "Score"])
-        tables.addWidget(self.days_table)
-        tables.addWidget(self.stocks_table, 1)
+        left, right = QVBoxLayout(), QVBoxLayout()
+        left.addWidget(_head("SCREENER DAYS"))
+        left.addWidget(self.days_table, 1)
+        self.stocks_head = _head("STOCKS PICKED")
+        right.addWidget(self.stocks_head)
+        right.addWidget(self.stocks_table, 1)
+        tables.addLayout(left)
+        tables.addLayout(right, 1)
         body.addLayout(tables, 1)
         return box
 
@@ -431,6 +448,10 @@ class BacktestWorkspace(QWidget):
         day = self._selected_day()
         frame = self._shown()
         rows = frame[frame["date"] == day] if day is not None else frame.iloc[0:0]
+        self.stocks_head.setText(
+            "STOCKS PICKED" if day is None
+            else f"STOCKS PICKED AT {day.isoformat()} CLOSE · {len(rows)} · TRADED NEXT DAY"
+        )
         self.stocks_table.setRowCount(len(rows))
         for i, rec in enumerate(rows.itertuples()):
             self.stocks_table.setItem(i, 0, QTableWidgetItem(str(rec.rank)))
@@ -447,6 +468,9 @@ class BacktestWorkspace(QWidget):
         if name and name != _ALL:
             frame = frame[frame["strategy"] == name]
         frame = frame.sort_values("start", ascending=False)
+        self.signals_head.setText(
+            f"SIGNAL WINDOWS · {len(frame):,} · WHEN ENTRY OR EXIT CONDITION IS TRUE"
+        )
         starts = pd.DatetimeIndex(frame["start"]).tz_convert(_ET).strftime("%Y-%m-%d %H:%M")
         ends = pd.DatetimeIndex(frame["end"]).tz_convert(_ET).strftime("%Y-%m-%d %H:%M")
         self.signals_table.setRowCount(len(frame))
