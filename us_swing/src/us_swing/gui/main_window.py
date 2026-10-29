@@ -49,6 +49,7 @@ from PyQt6.QtWidgets import (
 from us_swing import __version__
 from us_swing.data.models import ConnectionStatus
 from us_swing.gui.app_service import AppService
+from us_swing.gui.backtest_workspace import BacktestWorkspace
 from us_swing.gui.cards import GAP, card, gutter
 from us_swing.gui.chart_workspace import ChartWorkspace
 from us_swing.gui.dashboard_panel import DashboardPanel
@@ -395,8 +396,9 @@ _NAV_ITEMS: list[tuple[str, str]] = [
     ("filter", "Screener"),
     ("zap", "Execution"),
     ("chart-candlestick", "Charts"),
+    ("history", "Backtest"),
 ]
-_WIDE_PAGES = frozenset({2, 3})   # Execution, Chart
+_WIDE_PAGES = frozenset({2, 3, 4})   # Execution, Chart, Backtest
 _NO_PANEL_PAGES = frozenset({3})   # Chart
 _RIGHT_PANELS = ("details", "watch")
 
@@ -453,10 +455,11 @@ class MainWindow(QMainWindow):
         self._screener_panel   = ScreenerPanel(svc)
         self._execution_panel  = ExecutionPanel(svc)
         self._chart_panel      = ChartWorkspace(svc)
+        self._backtest_panel   = BacktestWorkspace(svc)
         self._settings_panel   = SettingsPanel(svc)
         panels = [
             self._dashboard_panel, self._screener_panel, self._execution_panel,
-            self._chart_panel,
+            self._chart_panel, self._backtest_panel,
         ]
 
         self._settings_panel.theme_changed.connect(self._chart_panel.refresh_theme)
@@ -473,7 +476,7 @@ class MainWindow(QMainWindow):
         gutter(self._stack)
         for p in panels:
             if p in (self._screener_panel, self._execution_panel, self._dashboard_panel,
-                     self._chart_panel):
+                     self._chart_panel, self._backtest_panel):
                 # These screens lay out their own cards on the gutter.
                 self._stack.addWidget(p)
             else:

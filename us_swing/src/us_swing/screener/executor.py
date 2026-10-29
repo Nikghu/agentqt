@@ -15,7 +15,7 @@ import time
 from datetime import datetime, timezone
 from typing import Any, Callable, Final
 
-from us_swing.screener.base import PresetAccessDenied, ScreenerExecutionError
+from us_swing.screener.base import ScreenerExecutionError
 from us_swing.screener.preset import GroupLogic, Preset, PresetType
 from us_swing.screener.registry import ScreenerRegistry
 from us_swing.screener.storage import AITranscriptTurn, ScreenerResultsStorage, ScreenerRunResult
@@ -120,21 +120,7 @@ class PresetExecutor:
                 self._db.fetch_bars(symbols) if self._db is not None else {}
             )
 
-        # --- Stage 1: PreFilter --------------------------------------------
-        t0 = time.perf_counter()
-        filtered = PreFilter().apply(symbols, bars)
-        _log.debug(
-            "Stage 1 pre-filter: %d/%d symbols in %.0f ms",
-            len(filtered),
-            len(symbols),
-            (time.perf_counter() - t0) * 1000,
-        )
-
-        # --- Stage 2: Run screeners ----------------------------------------
-        stage2 = self._run_stage2(preset, filtered, bars, market_caps)
-
-        # --- Combine per preset type ---------------------------------------
-        combined = self._combine_results(preset, stage2, filtered)
+        combined = self.screen(preset, symbols, bars, market_caps)
 
         # --- Stage 3: LLM ranking (optional) ------------------------------
         ai_transcript: list[AITranscriptTurn] = []
@@ -188,6 +174,33 @@ class PresetExecutor:
             self.on_complete(result)
 
         return result
+
+    def screen(
+        self,
+        preset: Preset,
+        symbols: list[str],
+        bars: dict[str, list[Any]],
+        market_caps: dict[str, float] | None = None,
+    ) -> dict[str, dict[str, Any]]:
+        """Run the rule stages only: pre-filter, screeners and group/weight logic.
+
+        No AI stage and nothing is saved. Used by ``run_preset`` and by the
+        backtest replay (SRD-BKT-002.011), so both share one code path.
+
+        Returns:
+            ``{symbol: {"passed": bool, "score": float, ...}}`` for symbols that
+            pass the pre-filter.
+        """
+        t0 = time.perf_counter()
+        filtered = PreFilter().apply(symbols, bars)
+        _log.debug(
+            "Stage 1 pre-filter: %d/%d symbols in %.0f ms",
+            len(filtered),
+            len(symbols),
+            (time.perf_counter() - t0) * 1000,
+        )
+        stage2 = self._run_stage2(preset, filtered, bars, market_caps)
+        return self._combine_results(preset, stage2, filtered)
 
     # ------------------------------------------------------------------
     # Stage 2 — parallel screener execution

@@ -2,6 +2,17 @@
 
 ---
 
+## [20261029] BKT + GUI — Backtest engine Phase 0 (Foundation) and Phase 1 (Step 1 Stocks) (FO-BKT-002, FO-GUI-031)
+
+- Type: Feature
+- FO(s): FO-BKT-002, FO-GUI-031
+- RN: RN-BKT-1.2.0-20261029, RN-GUI-1.39.0-20261029
+- Artifacts updated: FO, SRD (SRD-BKT-002.001–.017, SRD-GUI-031.001–.004, .010–.012 — minimal, approved by user for code, now Implemented), DD, MD, UTCD (41 Pass), TRACE, Code, Tests, RN, Engine_plan §0, TODO T61, CONTEXT, DEVLOG
+- Decisions: Step 1 cache is one file per day keyed by preset rules + whole stock list (R2: RS-rank rule compares stocks); preset AI stage always skipped in replay; plan AI tick and weekly presets refused until a later phase; `PresetExecutor.screen()` added so live and replay share one path; worker processes need `freeze_support()` in `run_gui.py`.
+- Findings: real IT sector run 207 days / 75 stocks in 10.6 s (4 workers), 3.6 s cached; SPY missing from the backtest store (RS rule cannot run). 11 old test failures and one broken old test file exist on clean HEAD too.
+
+---
+
 ## [20261029] BKT + GUI — Backtest engine plan; 15m and 1w built from 3m and 1d (FO-BKT-001, FO-GUI-030)
 
 - Type: Enhancement + Planning

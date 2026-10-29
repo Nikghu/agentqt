@@ -1,12 +1,13 @@
 # Unit Test Case Document — Backtest Module (BKT)
 
 **Document ID:** UTCD-BKT
-**Version:** 1.0.0
-**Traces To:** MD-BKT v1.0.0
+**Version:** 1.1.0
+**Traces To:** MD-BKT v1.1.0
 **Status:** Draft
-**Last Updated:** 2026-10-28
+**Last Updated:** 2026-10-29
 **Project:** US Swing Trading System
 
+> v1.1.0: UT-BKT-002.* added — engine Phase 0 and 1.
 > v1.0.0: UT-BKT-001.* added — store, settings, planner, downloader (fake IB), schedule.
 
 ---
@@ -51,3 +52,40 @@
 | UT-BKT-001.009.M05.T02 | MD-BKT-001.009.M05 | Negative | Not due before run time | Tue 17:00 ET, last delta Mon 17:35 | not due | Pass |
 | UT-BKT-001.009.M05.T03 | MD-BKT-001.009.M05 | Edge | Missed Friday caught up on Monday morning | Mon 09:00 ET, last delta Thu 17:35 | due | Pass |
 | UT-BKT-001.009.M05.T04 | MD-BKT-001.009.M05 | Negative | Off when fixed end date | end date set, Tue 17:31 ET | not due | Pass |
+
+## FO-BKT-002 — Backtest Engine (Phase 0 and 1)
+
+| UT ID | MD | Type | Description | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-BKT-002.001.M01.T01 | MD-BKT-002.001.M01 | Positive | Plan JSON round trip | Engine_plan §4 example | loaded plan equals saved; capital list kept, single values written as numbers | Pass |
+| UT-BKT-002.001.M01.T02 | MD-BKT-002.001.M01 | Negative | Unknown keys and missing parts | JSON with extra key and no `costs` | loads; defaults used | Pass |
+| UT-BKT-002.002.M01.T01 | MD-BKT-002.001.M01 | Positive | Good plan is valid | example plan | no messages | Pass |
+| UT-BKT-002.002.M01.T02 | MD-BKT-002.001.M01 | Negative | Bad values listed | start after end, sector mode with no sectors, capital 0, schema 2 | 4 plain messages | Pass |
+| UT-BKT-002.003.M01.T01 | MD-BKT-002.001.M01 | Positive | Variant grid | capital [2000, 5000], one strategy per-trade [50, 100] | 4 variants in order | Pass |
+| UT-BKT-002.003.M01.T02 | MD-BKT-002.001.M01 | Negative | Over 64 variants | capital list of 65 values | validation message about 64 | Pass |
+| UT-BKT-002.004.M02.T01 | MD-BKT-002.004.M02 | Positive | Each mode resolves | 4 records in 2 sectors; sp500, sector, names | 4; sector's 2; given names | Pass |
+| UT-BKT-002.004.M02.T02 | MD-BKT-002.004.M02 | Negative | Add and remove | sector mode, add PLTR, remove one sector stock, duplicate add | sorted unique; removed stock absent | Pass |
+| UT-BKT-002.005.M03.T01 | MD-BKT-002.005.M03 | Positive | Write then read | frame under a key | read equals frame; key stable for same params in other order | Pass |
+| UT-BKT-002.005.M03.T02 | MD-BKT-002.005.M03 | Negative | Miss and failed write | unknown key; write raises mid-save | `None`; no file and no temp left | Pass |
+| UT-BKT-002.006.M03.T01 | MD-BKT-002.005.M03 | Positive | Cleanup by age and size | one old file, three new files over the limit | old file gone, then oldest new file gone; bytes freed returned | Pass |
+| UT-BKT-002.007.M04.T01 | MD-BKT-002.007.M04 | Positive | Run row life | start, finish done | row has plan, status done, both times | Pass |
+| UT-BKT-002.007.M04.T02 | MD-BKT-002.007.M04 | Negative | Unknown run | `get_run("x")` | `None` | Pass |
+| UT-BKT-002.008.M05.T01 | MD-BKT-002.008.M05 | Positive | Estimate on a fake store | 3 stocks, one with no 3m, SPY saved | symbols 3; missing_3m 1; benchmark ok; days counted | Pass |
+| UT-BKT-002.008.M05.T02 | MD-BKT-002.008.M05 | Negative | Estimate with errors | plan with start after end | errors listed; day counts 0 | Pass |
+| UT-BKT-002.009.M06.T01 | MD-BKT-002.009.M06 | Positive | CLI estimate | plan file, fake service | exit 0; stock count printed | Pass |
+| UT-BKT-002.010.M07.T01 | MD-BKT-002.010.M07 | Positive | Days from SPY | SPY and AAPL saved, period inside | SPY dates in the period | Pass |
+| UT-BKT-002.010.M07.T02 | MD-BKT-002.010.M07 | Negative | No SPY | only AAPL and MSFT saved | union of their dates | Pass |
+| UT-BKT-002.011.M07.T01 | MD-BKT-002.010.M07 | Positive | Replay equals live screener | preset "close above EMA 20" over 3 stocks, one day | same passed and score as `PresetExecutor.screen()` on bars up to that day | Pass |
+| UT-BKT-002.011.M07.T02 | MD-BKT-002.010.M07 | Negative | No look-ahead | stock jumps the day after D | D result uses no bar after D | Pass |
+| UT-BKT-002.012.M07.T01 | MD-BKT-002.010.M07 | Positive | One file per day | 5-day run | 5 day files under one key | Pass |
+| UT-BKT-002.012.M07.T02 | MD-BKT-002.010.M07 | Negative | Rules change gives new key | change rule period | different key; nothing reused | Pass |
+| UT-BKT-002.013.M07.T01 | MD-BKT-002.010.M07 | Positive | Second run computes nothing | run twice; second with other top N | second run progress total 0 | Pass |
+| UT-BKT-002.013.M07.T02 | MD-BKT-002.010.M07 | Edge | Longer period computes only new days | run 5 days, then 7 | 2 days computed | Pass |
+| UT-BKT-002.014.M07.T01 | MD-BKT-002.010.M07 | Positive | Rank and top N | day with scores 0.9, 0.5, 0.9 | ranks 1, 2 (tie by symbol) and 3; top 1 keeps one row | Pass |
+| UT-BKT-002.014.M07.T02 | MD-BKT-002.010.M07 | Negative | Top N 0 keeps all | N 0 | all rows | Pass |
+| UT-BKT-002.015.M07.T01 | MD-BKT-002.010.M07 | Positive | Process pool run | 2 workers, 4 days | same frames as in-process; progress reaches 4 of 4 | Pass |
+| UT-BKT-002.015.M07.T02 | MD-BKT-002.010.M07 | Negative | Cancel keeps finished days | cancel after first day, in process | `StepCancelled`; first day cached | Pass |
+| UT-BKT-002.016.M07.T01 | MD-BKT-002.010.M07 | Negative | Weekly preset refused | preset timeframe 1w | `StepRefused` with plain message | Pass |
+| UT-BKT-002.016.M07.T02 | MD-BKT-002.010.M07 | Negative | AI tick refused | `ai_ranking` true | `StepRefused`; zero screener calls | Pass |
+| UT-BKT-002.017.M05.T01 | MD-BKT-002.008.M05 | Positive | Service run recorded | fake store, preset loader | daily list returned; run row done | Pass |
+| UT-BKT-002.017.M05.T02 | MD-BKT-002.008.M05 | Negative | Service cancel recorded | cancel at once | run row cancelled | Pass |

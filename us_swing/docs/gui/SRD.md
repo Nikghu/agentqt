@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.52.0: SRD-GUI-031.001–.004, .010–.012 added; approved by user 2026-10-29 — Backtest workspace.
 > v2.51.0: SRD-GUI-030.001–.006 added (Draft) — Backtest data section in Settings (Option A).
 > v2.50.0: SRD-GUI-019.009 added; requirement stated by user 2026-10-27 — sidebar stays mini while a right panel is open (ISS-GUI-0010).
 > v2.49.0: SRD-GUI-000.008 added; approved by user 2026-10-27 — app stays responsive while ticks stream (ISS-GUI-0009).
@@ -514,3 +515,15 @@
 | SRD-GUI-030.008 | FO-GUI-030 | Should | The Universe table shows each stock's backtest status, first date and last date. | backtest store | Backtest, BT From, BT To columns | Requested by user 2026-10-28; 3m dates, else 1d | Implemented |
 | SRD-GUI-030.009 | FO-GUI-030 | Must | The status shows one plain sentence, the saved coverage, what is still missing with its time, and a single button labelled Download, Download missing, Save range and download, Pause or Up to date. | stats, plan size, run state, range fields | sentence, progress, button | Requested by user 2026-10-29 (Option D); replaces the Fill delta button of .004 and the progress lines and stat strip of .001; auto delta unchanged | Implemented |
 | SRD-GUI-030.010 | FO-GUI-030 | Should | Under the coverage line, one short line says 15-minute and weekly candles are built from these. | stats | note line | Approved by user 2026-10-29 | Implemented |
+
+## FO-GUI-031 — Backtest Workspace
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-031.001 | FO-GUI-031 | Must | The sidebar has a Backtest item after Charts that opens the Backtest workspace. | click | workspace | Approved by user 2026-10-29 | Implemented |
+| SRD-GUI-031.002 | FO-GUI-031 | Must | A left builder has Name, From and To dates, a Stocks chip row (S&P 500, Sectors, Names), a sector check list, a names field and Add and Remove fields. | input | run plan | Names split on commas and spaces | Implemented |
+| SRD-GUI-031.003 | FO-GUI-031 | Must | A step strip shows Stocks, Signals, Portfolio and Report, each Waiting, Running n of m, Done or Cached. | step state | pills | Steps 2–4 stay Waiting until built | Implemented |
+| SRD-GUI-031.004 | FO-GUI-031 | Must | A data check line shows the stock count, missing 1d and 3m candles and plan errors, with a Download button for the backtest data. | estimate | text, button | Refreshed 0.5 s after a builder change, in a worker thread; Download needs TWS | Implemented |
+| SRD-GUI-031.010 | FO-GUI-031 | Must | The builder has a Screener preset picker, Stocks per day (All or a number) and a disabled "Use AI ranking" tick. | presets | plan fields | AI tick tooltip says it comes in a later phase | Implemented |
+| SRD-GUI-031.011 | FO-GUI-031 | Must | Run Step 1 runs in the background, shows progress on the Stocks step and turns into Cancel while running. | click | daily list | Disabled while the data check has errors | Implemented |
+| SRD-GUI-031.012 | FO-GUI-031 | Must | The Step 1 view lists days with their stock count and shows the selected day's stocks with score and rank, limited by Stocks per day. | daily list | tables | Newest day first | Implemented |

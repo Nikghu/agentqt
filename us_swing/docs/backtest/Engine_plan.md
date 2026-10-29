@@ -1,10 +1,10 @@
 # Engine_plan — Backtest Engine (Stocks → Signals → Portfolio → Report)
 
-**Status:** Draft (planning) — no FO/SRD/code yet
+**Status:** Phase 0 and 1 done (code); Phase 2 next
 **Tool:** BKT (engine) + GUI (Backtest workspace) + MCP (last)
 **Author:** USSwing
 **Created:** 2026-10-29
-**Branch:** `feat/backtest-engine`
+**Branch:** `feat/backtest-phase0` (plan + 15m/1w merged via PR #93)
 **Design page:** https://claude.ai/artifact/EKKhu8pb3KSLYpXqpbsQrm (diagrams, mockups, worked example)
 
 This plan is the hand-over document between sessions. Read §0 (status) first, then the
@@ -16,8 +16,8 @@ section for the phase in progress. Update §0 at the end of every session.
 
 | Phase | Name | Docs (FO/SRD) | Backend | GUI | User check | Commit |
 |---|---|---|---|---|---|---|
-| 0 | Foundation | Not started | — | — | — | — |
-| 1 | Step 1 · Stocks | Not started | — | — | — | — |
+| 0 | Foundation | Approved | Done | Done | Pending | see DEVLOG 2026-10-29 |
+| 1 | Step 1 · Stocks | Approved | Done | Done | Pending | see DEVLOG 2026-10-29 |
 | 2 | Step 2 · Signals | Not started | — | — | — | — |
 | 3 | Step 3 · Portfolio | Not started | — | — | — | — |
 | 4 | Step 4 · Report | Not started | — | — | — | — |
@@ -29,7 +29,9 @@ Cell values: `Not started` → `Draft` → `Approved` (docs) / `In progress` →
 
 **Done before Phase 0 (2026-10-29):** store keeps 15m and 1w built from 3m and 1d (SRD-BKT-001.012–.014, SRD-GUI-030.010, RN-BKT-1.1.0).
 
-**Next action:** write FO-BKT-002 + FO-GUI-031 and the Phase 0 + Phase 1 SRD rows as Draft.
+**Done 2026-10-29:** Phase 0 and 1 (FO-BKT-002, FO-GUI-031; SRD-BKT-002.001–.017, SRD-GUI-031.001–.004, .010–.012; RN-BKT-1.2.0, RN-GUI-1.39.0). Minimal requirements, approved by user for code. R2 answered: scores are per stock except the RS-rank rule, so Step 1 caches one file per day keyed by the whole stock list (not per stock). AI ranking tick and weekly presets are refused for now. SPY is not in the backtest store.
+
+**Next action:** user checks the Backtest screen in the app (pick a sector, run Step 1, compare one day with the screener history). Then Phase 2 FO/SRD rows (SRD-BKT-002.020–.029, SRD-GUI-031.020–.029). Consider adding SPY to the backtest download.
 
 ---
 

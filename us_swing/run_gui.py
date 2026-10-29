@@ -5,6 +5,7 @@ Run from the workspace root: f:\\USMarket_Backtesting
 """
 from __future__ import annotations
 
+import multiprocessing
 import sys
 from pathlib import Path
 
@@ -21,4 +22,6 @@ _quiet_platform()
 from us_swing.__main__ import main  # noqa: E402
 
 if __name__ == "__main__":
+    # Backtest worker processes start from this file in the frozen app.
+    multiprocessing.freeze_support()
     main()

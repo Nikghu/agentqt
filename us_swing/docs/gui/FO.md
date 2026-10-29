@@ -7,6 +7,8 @@
 **Last Updated:** 2026-05-22
 **Project:** US Swing Trading System
 
+> v2.8.0: FO-GUI-031 added — Backtest workspace (Phase 0 and 1); approved by user 2026-10-29.
+
 ---
 
 ## FO-GUI-000: Admin Terminal Architecture
@@ -883,3 +885,24 @@ The system shall show a Backtest data section in Settings, below Candle data, to
 1. Range and auto delta save on Apply like other sections; actions work at once.
 2. Closing Settings does not stop a running download.
 3. Clear never runs without the typed confirm.
+
+---
+
+## FO-GUI-031: Backtest Workspace
+
+**Status:** Approved (user, 2026-10-29 — Phase 0 and Phase 1 scope)
+**Priority:** Must
+**Depends on:** FO-BKT-002 (backtest engine), FO-GUI-030 (backtest data download)
+**Source:** `docs/backtest/Engine_plan.md` §9 Phase 0 and 1; design page https://claude.ai/artifact/EKKhu8pb3KSLYpXqpbsQrm. User asked for minimal requirements, approved for code on 2026-10-29.
+
+The system shall give a Backtest workspace in the sidebar to build a run plan, check the data and run Step 1 (Stocks).
+
+- The system shall show a Backtest item in the sidebar after Charts.
+- The system shall build the run plan in a left builder: name, period, stocks, screener preset and stocks per day.
+- The system shall show the four steps with their state and a data check line with a Download button.
+- The system shall run Step 1 in the background with progress and cancel, then show each day's stocks.
+
+### Acceptance Criteria
+
+1. Picking a sector shows the stock count and the missing-candle line.
+2. Step 1 runs without freezing the window and shows each day's stocks with score and rank.

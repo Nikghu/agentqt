@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.34.0: UT-GUI-031.* added — Backtest workspace.
 > v1.33.0: UT-GUI-030.* added — Backtest data section.
 > v1.32.0: UT-GUI-019.009.* added — sidebar mini while a right panel is open.
 > v1.31.0: UT-GUI-000.008.* added — app stays responsive while ticks stream.
@@ -828,3 +829,17 @@ Test files:
 | UT-GUI-030.007.M05.T01 | MD-GUI-030.007.M05 | Positive | Status bar shows backtest state | progress 1d 35 of 503, then finished Done | text "Backtest data · 1d 35 of 503", then "Backtest data · Done", hidden after 15 s | Pass |
 | UT-GUI-030.008.M02.T01 | MD-GUI-030.008.M06 | Positive | Per-stock backtest coverage | AAPL 1d+3m to last day, MSFT 1d only, NVDA none | ok / 1d / none with dates | Pass |
 | UT-GUI-030.008.M03.T01 | MD-GUI-030.008.M06 | Positive | Universe HTML has backtest columns | one record with coverage | BT From column and dates in data | Pass |
+
+## FO-GUI-031 — Backtest Workspace
+
+| UT ID | MD | Type | Description | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-031.001.M01.T01 | MD-GUI-031.001.M01 | Positive | Backtest item after Charts | `_NAV_ITEMS` | index 4 is ("history", "Backtest"); page is wide | Pass |
+| UT-GUI-031.002.M02.T01 | MD-GUI-031.002.M02 | Positive | Plan from fields | Sectors mode, 2 sectors ticked, add "pltr, amd", remove "INTC" | plan mode sector, 2 sectors, add (PLTR, AMD), remove (INTC) | Pass |
+| UT-GUI-031.002.M02.T02 | MD-GUI-031.002.M02 | Negative | Names mode with no names | Names mode, empty field | plan validate says "Type at least one stock name" | Pass |
+| UT-GUI-031.010.M02.T01 | MD-GUI-031.002.M02 | Positive | Screener fields | 2 presets, Stocks per day 0 then 5 | combo has 2 presets; spin shows All; plan top_n 5; AI tick disabled | Pass |
+| UT-GUI-031.003.M03.T01 | MD-GUI-031.003.M03 | Positive | Step strip states | waiting, running 3 of 10, done, cached | texts "Waiting", "3 of 10", "Done", "Cached" with matching state | Pass |
+| UT-GUI-031.004.M03.T01 | MD-GUI-031.003.M03 | Positive | Data check text | estimate 75 stocks, 1 missing 3m, SPY missing | "75 stocks · 0 missing 1d · 1 missing 3m candles · SPY missing"; Run enabled | Pass |
+| UT-GUI-031.004.M03.T02 | MD-GUI-031.003.M03 | Negative | Errors block Run and Download needs TWS | estimate with an error, TWS off | error shown; Run and Download disabled | Pass |
+| UT-GUI-031.011.M03.T01 | MD-GUI-031.003.M03 | Positive | Run and cancel button | click Run with fake service | button reads Cancel; after done reads Run Step 1; Stocks pill Done | Pass |
+| UT-GUI-031.012.M03.T01 | MD-GUI-031.003.M03 | Positive | Step 1 view | daily list of 2 days, top N 1 | day table 2 rows newest first; selected day shows 1 stock | Pass |

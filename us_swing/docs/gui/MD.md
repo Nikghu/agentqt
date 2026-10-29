@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.35.0: MD-GUI-031.* added — Backtest workspace (new `backtest_builder.py`, `backtest_workspace.py`).
 > v1.34.0: MD-GUI-030.* added — Backtest data section (new `backtest_data_panel.py`).
 > v1.33.0: MD-GUI-019.009.M03 added (SRD-GUI-019.009) — `main_window.py` shrinks the sidebar on the right panel click.
 > v1.32.0: MD-GUI-000.008.M01–M03 added (SRD-GUI-000.008) — theme id cached, hidden source list, tick refresh batching.
@@ -327,3 +328,11 @@ us_swing/src/us_swing/gui/
 | MD-GUI-030.004.M04 | SRD-GUI-030.004 | `us_swing/src/us_swing/gui/system_store.py` | Add the backtest TWS client ID | `SystemConfig.ibkr_backtest_client_id` (default 16) | — | No |
 | MD-GUI-030.007.M05 | SRD-GUI-030.007 | `us_swing/src/us_swing/gui/main_window.py` | Status bar item for backtest progress | `_on_backtest_progress()`, `_on_backtest_finished()` | `app_service` | No |
 | MD-GUI-030.008.M06 | SRD-GUI-030.008 | `us_swing/src/us_swing/gui/settings_panel.py` | Universe table backtest columns | `_build_universe_html(backtest=…)`, `AppService.get_backtest_symbol_coverage()` | `app_service` | No |
+
+## FO-GUI-031 — Backtest Workspace
+
+| MD ID | SRD | File | Purpose | Public API | Depends on | Async |
+|---|---|---|---|---|---|---|
+| MD-GUI-031.001.M01 | SRD-GUI-031.001 | `us_swing/src/us_swing/gui/main_window.py` | Backtest sidebar item and stack page | `_NAV_ITEMS`, `_WIDE_PAGES` | `backtest_workspace` | No |
+| MD-GUI-031.002.M02 | SRD-GUI-031.002 | `us_swing/src/us_swing/gui/backtest_builder.py` | Left builder that makes the run plan | `BacktestBuilder`, `plan()`, `changed` | `backtest.spec`, `core.backtest_bridge`, `screener_views.ChipGroup` | No |
+| MD-GUI-031.003.M03 | SRD-GUI-031.003 | `us_swing/src/us_swing/gui/backtest_workspace.py` | Step strip, data check, Step 1 run and view | `BacktestWorkspace` | `backtest.service`, `backtest_builder`, `app_service` | Yes (`QThread` workers) |
