@@ -40,8 +40,6 @@ def main(argv: Sequence[str] | None = None, service: BacktestService | None = No
     est = svc.estimate(plan, args.user)
     print(f"{len(est.symbols)} stocks · {len(est.missing_1d)} missing 1d · "
           f"{len(est.missing_3m)} missing 3m candles")
-    if not est.benchmark_ok:
-        print("SPY has no 1d candles in the backtest store")
     print(f"Step 1: {est.days_cached} of {est.days_total} days cached")
     for message in est.errors:
         print(f"Error: {message}")

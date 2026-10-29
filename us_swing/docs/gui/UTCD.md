@@ -839,7 +839,7 @@ Test files:
 | UT-GUI-031.002.M02.T02 | MD-GUI-031.002.M02 | Negative | Names mode with no names | Names mode, empty field | plan validate says "Type at least one stock name" | Pass |
 | UT-GUI-031.010.M02.T01 | MD-GUI-031.002.M02 | Positive | Screener fields | 2 presets, Stocks per day 0 then 5 | combo has 2 presets; spin shows All; plan top_n 5; AI tick disabled | Pass |
 | UT-GUI-031.003.M03.T01 | MD-GUI-031.003.M03 | Positive | Step strip states | waiting, running 3 of 10, done, cached | texts "Waiting", "3 of 10", "Done", "Cached" with matching state | Pass |
-| UT-GUI-031.004.M03.T01 | MD-GUI-031.003.M03 | Positive | Data check text | estimate 75 stocks, 1 missing 3m, SPY missing | "75 stocks · 0 missing 1d · 1 missing 3m candles · SPY missing"; Run enabled | Pass |
+| UT-GUI-031.004.M03.T01 | MD-GUI-031.003.M03 | Positive | Data check text | estimate 75 stocks, 1 missing 3m | "75 stocks · 0 missing 1d · 1 missing 3m candles" (no SPY note: S&P 500 only); Run enabled | Pass |
 | UT-GUI-031.004.M03.T02 | MD-GUI-031.003.M03 | Negative | Errors block Run and Download needs TWS | estimate with an error, TWS off | error shown; Run and Download disabled | Pass |
 | UT-GUI-031.011.M03.T01 | MD-GUI-031.003.M03 | Positive | Run and cancel button | click Run with fake service | button reads Cancel; after done reads Run; Stocks pill Done | Pass |
 | UT-GUI-031.012.M03.T01 | MD-GUI-031.003.M03 | Positive | Step 1 view | daily list of 2 days, top N 1 | day table 2 rows newest first; selected day shows 1 stock | Pass |

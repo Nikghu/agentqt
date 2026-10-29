@@ -56,6 +56,8 @@
 | SRD-BKT-002.014 | FO-BKT-002 | Must | The daily list joins all days as date, symbol, score and rank, and can keep only the top N per day. | day files, N | frame | Rank 1 = highest score, ties by symbol; N 0 = all | Implemented |
 | SRD-BKT-002.015 | FO-BKT-002 | Must | Days are computed in a process pool with progress as days done of total, and cancel stops between days. | days | day results, progress | Finished days stay cached after cancel | Implemented |
 | SRD-BKT-002.016 | FO-BKT-002 | Must | A weekly preset or a ticked AI ranking stops the run with a plain message. | plan | error | AI ranking (D4) is built in a later phase | Implemented |
+| SRD-BKT-002.018 | FO-BKT-002 | Must | A preset with an enabled RS rule stops Step 1 and the data check with one plain sentence when SPY is not in the store. | preset, store | message | User 2026-10-29: backtest data is S&P 500 only, SPY is not downloaded | Implemented |
+| SRD-BKT-002.019 | FO-BKT-002 | Must | An error inside a worker process reaches the user once, in plain text, with the day. | error | message | Fixes the doubled RS message | Implemented |
 | SRD-BKT-002.017 | FO-BKT-002 | Must | `BacktestService` gives estimate and Step 1 run with progress and cancel, and records each run in the results store. | plan | estimate, daily list | Used by GUI and CLI | Implemented |
 
 ## FO-BKT-002 — Backtest Engine (Phase 2 · Step 2 Signals)

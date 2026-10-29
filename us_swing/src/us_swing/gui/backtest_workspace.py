@@ -115,8 +115,6 @@ def data_check_text(est: Estimate) -> str:
     """One line of counts, then any plan errors on their own lines."""
     line = (f"{len(est.symbols)} stocks · {len(est.missing_1d)} missing 1d · "
             f"{len(est.missing_3m)} missing 3m candles")
-    if not est.benchmark_ok:
-        line += " · SPY missing"
     if est.days_total:
         line += f" · Step 1: {est.days_cached} of {est.days_total} days cached"
     return "\n".join([line, *est.errors])

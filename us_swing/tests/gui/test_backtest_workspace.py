@@ -186,7 +186,7 @@ def test_step_strip_states(workspace: BacktestWorkspace) -> None:
 
 def test_data_check_text(workspace: BacktestWorkspace, qtbot: Any) -> None:
     """UT-GUI-031.004.M03.T01: Counts line from the estimate; Run enabled."""
-    assert data_check_text(_EST) == "75 stocks · 0 missing 1d · 1 missing 3m candles · SPY missing"
+    assert data_check_text(_EST) == "75 stocks · 0 missing 1d · 1 missing 3m candles"
 
     workspace._start_estimate()
     qtbot.waitUntil(lambda: workspace._estimate is not None)

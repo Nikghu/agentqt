@@ -98,7 +98,7 @@ class BacktestService:
             except Exception as exc:  # noqa: BLE001 — shown to the user as a message
                 errors.append(f"Screener preset could not be loaded: {exc}")
         if preset is not None:
-            errors += stocks.refusals(plan, preset)
+            errors += stocks.refusals(plan, preset, stocks.has_benchmark(self._store))
         days_total = days_cached = 0
         if not errors and preset is not None:
             days = stocks.trading_days(self._store, plan.period, symbols)

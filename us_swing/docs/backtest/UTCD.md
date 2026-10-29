@@ -87,6 +87,10 @@
 | UT-BKT-002.015.M07.T02 | MD-BKT-002.010.M07 | Negative | Cancel keeps finished days | cancel after first day, in process | `StepCancelled`; first day cached | Pass |
 | UT-BKT-002.016.M07.T01 | MD-BKT-002.010.M07 | Negative | Weekly preset refused | preset timeframe 1w | `StepRefused` with plain message | Pass |
 | UT-BKT-002.016.M07.T02 | MD-BKT-002.010.M07 | Negative | AI tick refused | `ai_ranking` true | `StepRefused`; zero screener calls | Pass |
+| UT-BKT-002.018.M07.T01 | MD-BKT-002.010.M07 | Positive | RS rule detected | RS rule on, off, and no RS rule | true, false, false | Pass |
+| UT-BKT-002.018.M07.T02 | MD-BKT-002.010.M07 | Negative | RS rule refused without SPY | preset with RS rule, no SPY | `StepRefused` starting "This screener uses the RS rule"; SPY named once | Pass |
+| UT-BKT-002.018.M05.T01 | MD-BKT-002.008.M05 | Negative | Data check shows the RS message | estimate with RS preset | one error; 0 days | Pass |
+| UT-BKT-002.019.M07.T01 | MD-BKT-002.010.M07 | Negative | Worker error is plain | screener raises an error that formats its argument | `RuntimeError("2025-03-03: Data for 'SPY' is missing")`; same text after pickling | Pass |
 | UT-BKT-002.017.M05.T01 | MD-BKT-002.008.M05 | Positive | Service run recorded | fake store, preset loader | daily list returned; run row done | Pass |
 | UT-BKT-002.017.M05.T02 | MD-BKT-002.008.M05 | Negative | Service cancel recorded | cancel at once | run row cancelled | Pass |
 

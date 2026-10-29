@@ -2,6 +2,17 @@
 
 ---
 
+## [20261029] BKT — RS-rule presets refused plainly; worker errors not doubled (FO-BKT-002)
+
+- Type: Bugfix
+- FO(s): FO-BKT-002
+- RN: RN-BKT-1.3.1-20261029
+- Artifacts updated: SRD (SRD-BKT-002.018–.019, user decision), UTCD (4 Pass), TRACE, Code, Tests, RN, Engine_plan (R9), CONTEXT, DEVLOG
+- Decisions (user 2026-10-29): backtest data stays S&P 500 only; SPY (an ETF, not a member) is not downloaded.
+- Findings: user ran preset Momentun_Price (RS rule) → `BenchmarkDataUnavailableError` text doubled because the exception's `__init__(symbol)` runs again when it is unpickled from the worker process. Now the data check and Step 1 refuse RS presets with one sentence, and worker errors come back as plain `RuntimeError("<day>: <message>")`.
+
+---
+
 ## [20261029] BKT + GUI — Backtest engine Phase 2 · Step 2 Signals (FO-BKT-002, FO-GUI-031)
 
 - Type: Feature

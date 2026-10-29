@@ -24,6 +24,7 @@ from us_swing.backtest.cache import StepCache, make_key
 from us_swing.backtest.spec import Period, RunPlan
 from us_swing.backtest.store import BacktestStore
 from us_swing.core.backtest_bridge import screen_day
+from us_swing.core.indicator_rules import IndicatorRuleError, rules_from_config
 
 STEP = "stocks"
 STEP_VERSION = 1
@@ -32,6 +33,8 @@ WARMUP_DAYS = 900
 BENCHMARK = "SPY"
 _KEY_FIELDS = ("preset_type", "groups", "screeners", "threshold", "timeframe")
 _DAY_COLUMNS = ["symbol", "passed", "score"]
+_RS_RULE = "rs_index"
+_INDICATOR_SCREENER = "indicator_composite"
 
 Progress = Callable[[int, int], None]
 Cancel = Callable[[], bool]
@@ -74,9 +77,35 @@ def rules_key(preset_dict: dict[str, Any], symbols: list[str]) -> str:
     return make_key(STEP, STEP_VERSION, {"rules": rules, "symbols": sorted(symbols)})
 
 
-def refusals(plan: RunPlan, preset_dict: dict[str, Any]) -> list[str]:
-    """Return plain messages for plans Step 1 cannot run yet (SRD-BKT-002.016)."""
+def needs_benchmark(preset_dict: dict[str, Any]) -> bool:
+    """True when an enabled indicator screener has an enabled RS rule (needs SPY)."""
+    refs: list[dict[str, Any]] = list(preset_dict.get("screeners") or ())
+    for group in preset_dict.get("groups") or ():
+        refs += group.get("screeners") or ()
+    for ref in refs:
+        if not ref.get("enabled", True) or ref.get("screener_id") != _INDICATOR_SCREENER:
+            continue
+        try:
+            rules = rules_from_config(ref.get("config") or {})
+        except IndicatorRuleError:
+            continue
+        if any(r.enabled and r.indicator_id == _RS_RULE for r in rules):
+            return True
+    return False
+
+
+def has_benchmark(store: BacktestStore) -> bool:
+    """True when SPY daily candles are in the store (the backtest is S&P 500 only)."""
+    return store.coverage(BENCHMARK, "1d") is not None
+
+
+def refusals(plan: RunPlan, preset_dict: dict[str, Any], benchmark: bool) -> list[str]:
+    """Return plain messages for plans Step 1 cannot run (SRD-BKT-002.016, .018)."""
     errors: list[str] = []
+    if needs_benchmark(preset_dict) and not benchmark:
+        errors.append("This screener uses the RS rule, which compares stocks with SPY. "
+                      "The backtest uses S&P 500 stocks only, so turn the RS rule off "
+                      "or pick another screener")
     if preset_dict.get("timeframe", "1d") != "1d":
         errors.append("Weekly screener presets are not supported in backtest yet")
     if plan.screener.ai_ranking:
@@ -146,7 +175,10 @@ def _init_worker(root: Path, symbols: list[str], start: date, end: date) -> None
 def _run_day(
     preset_dict: dict[str, Any], symbols: list[str], day: date, market_caps: dict[str, float]
 ) -> tuple[date, pd.DataFrame]:
-    return day, compute_day(_history, preset_dict, symbols, day, market_caps)
+    try:
+        return day, compute_day(_history, preset_dict, symbols, day, market_caps)
+    except Exception as exc:  # noqa: BLE001 — sent back once as plain text (SRD-BKT-002.019)
+        raise RuntimeError(f"{day.isoformat()}: {exc}") from None
 
 
 def run_stocks(
@@ -175,7 +207,7 @@ def run_stocks(
         StepRefused: weekly preset or AI ranking ticked.
         StepCancelled: ``cancel`` returned true.
     """
-    errors = refusals(plan, preset_dict)
+    errors = refusals(plan, preset_dict, has_benchmark(store))
     if errors:
         raise StepRefused("; ".join(errors))
     report = progress or (lambda _done, _total: None)

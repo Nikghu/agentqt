@@ -33,7 +33,7 @@ Cell values: `Not started` → `Draft` → `Approved` (docs) / `In progress` →
 
 **Done 2026-10-29 (Phase 2):** SRD-BKT-002.020–.029, SRD-GUI-031.020–.023 (minimal, approved by user for code; RN-BKT-1.3.0, RN-GUI-1.40.0). User choices: the parser is re-exported from live in `core/expr` (live code not moved, R7 avoided); VWAP resets each session (R5). Parity gate: 50 real stocks, 60,000 values, 0 mismatches. Price reads the forming 15m bar like live; other indicators use closed bars, so inside a forming 15m bar they can differ from live (R4). Found in live (not fixed): VWAP adds up 30 days with no daily reset; `PNL` always returns 0.
 
-**Next action:** user checks Step 2 in the app (tick ST_AUTO, Run, open Signals). Then Phase 3 FO/SRD rows (SRD-BKT-002.030–.039, SRD-GUI-031.030–.039). Consider adding SPY to the backtest download.
+**Next action:** user checks Step 2 in the app (tick ST_AUTO, Run, open Signals). Then Phase 3 FO/SRD rows (SRD-BKT-002.030–.039, SRD-GUI-031.030–.039). SPY is not downloaded: the user wants backtest data to be S&P 500 only (2026-10-29), so presets with the RS rule are refused with a plain message (SRD-BKT-002.018).
 
 ---
 
@@ -398,6 +398,7 @@ The engine only reads the Parquet store. Downloads stay in FO-BKT-001 (about 25 
 | # | Risk / point | Plan |
 |---|---|---|
 | R1 | Survivorship bias (only today's S&P 500) | Warning on every report |
+| R9 | RS rule needs SPY, which is not an S&P 500 member | User 2026-10-29: S&P 500 only; RS presets refused (SRD-BKT-002.018) |
 | R2 | Screener scores may be normalised across stocks | Check in Phase 1 before building the per-stock cache |
 | R3 | Composite presets (groups, weights, logic) | Replay through the preset executor without the AI stage; check in Phase 1 |
 | R4 | Live checks inside forming bars; backtest at 3m close | Accept; note in report |

@@ -1,6 +1,7 @@
 """Tests for MD-BKT-002.010.M07 — backtest/steps/stocks.py."""
 from __future__ import annotations
 
+import pickle
 import types
 from datetime import date
 from pathlib import Path
@@ -193,3 +194,48 @@ def test_ai_tick_refused(store: BacktestStore, tmp_path: Path,
         stocks.run_stocks(plan, rsi_preset(), list(_NAMES), store, StepCache(tmp_path), {},
                           workers=0)
     assert calls == []
+
+
+def _rs_preset(rs_enabled: bool = True) -> dict[str, Any]:
+    preset = rsi_preset(0, 100)
+    rules = preset["screeners"][0]["config"]["rules"]
+    rules.append({"indicator_id": "rs_index", "condition": "at_least", "value": 70,
+                  "enabled": rs_enabled})
+    return {**preset, "preset_type": "composite", "screeners": [],
+            "groups": [{"group_id": "g1", "logic": "AND", "screeners": [preset["screeners"][0]]}]}
+
+
+def test_rs_rule_detected() -> None:
+    """UT-BKT-002.018.M07.T01: An enabled RS rule inside a group needs the benchmark."""
+    assert stocks.needs_benchmark(_rs_preset())
+    assert not stocks.needs_benchmark(_rs_preset(rs_enabled=False))
+    assert not stocks.needs_benchmark(rsi_preset())
+
+
+def test_rs_rule_refused_without_spy(store: BacktestStore, tmp_path: Path) -> None:
+    """UT-BKT-002.018.M07.T02: RS rule and no SPY stops Step 1 with one plain sentence."""
+    with pytest.raises(stocks.StepRefused) as err:
+        _run(store, StepCache(tmp_path), preset=_rs_preset())
+
+    message = str(err.value)
+    assert message.startswith("This screener uses the RS rule")
+    assert message.count("SPY") == 1
+
+
+def test_worker_error_is_plain(monkeypatch: pytest.MonkeyPatch) -> None:
+    """UT-BKT-002.019.M07.T01: A worker error comes back once, as plain text with the day."""
+    class Doubling(Exception):
+        def __init__(self, symbol: str) -> None:
+            super().__init__(f"Data for '{symbol}' is missing")
+
+    def boom(*_a: Any) -> dict[str, tuple[bool, float]]:
+        raise Doubling("SPY")
+
+    monkeypatch.setattr(stocks, "screen_day", boom)
+    monkeypatch.setattr(stocks, "_history", {})
+
+    with pytest.raises(RuntimeError) as err:
+        stocks._run_day({}, ["AAPL"], date(2025, 3, 3), {})
+
+    assert str(err.value) == "2025-03-03: Data for 'SPY' is missing"
+    assert pickle.loads(pickle.dumps(err.value)).args == err.value.args

@@ -92,3 +92,17 @@ def test_cli_estimate(store: BacktestStore, tmp_path: Path,
 
     assert code == 0
     assert "3 stocks" in capsys.readouterr().out
+
+
+def test_estimate_lists_rs_refusal(store: BacktestStore, tmp_path: Path) -> None:
+    """UT-BKT-002.018.M05.T01: The data check shows the RS-rule message and counts no days."""
+    from tests.backtest.test_stocks import _rs_preset
+
+    svc = BacktestService(store, StepCache(tmp_path / "cache"),
+                          ResultsStore(tmp_path / "results.db"), lambda: _RECORDS,
+                          lambda _p, _u: _rs_preset())
+
+    est = svc.estimate(plan_for(date(2025, 3, 3), date(2025, 3, 7), _NAMES), "1")
+
+    assert len(est.errors) == 1 and est.errors[0].startswith("This screener uses the RS rule")
+    assert est.days_total == 0
