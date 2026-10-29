@@ -35,7 +35,9 @@ Cell values: `Not started` → `Draft` → `Approved` (docs) / `In progress` →
 
 **Done 2026-10-29 (Phase 3):** SRD-BKT-002.030–.039, SRD-GUI-031.030–.034 (minimal, approved by user for code; RN-BKT-1.4.0, RN-GUI-1.41.0). User choices (D10–D12): Rex count resets each day; daily loss stop blocks new entries (live only warns); stop counts when stop and target are in one bar (live checks ticks, target first). Money rules copy live `_size_entry` / `can_allocate` / `margin_available`. Deferred: shadow P&L, equity Parquet, variant pool, trailing levels, PNL conditions, Grow with P&L (refused with a message), trade detail drawer.
 
-**Next action:** user checks Step 3 in the app (Run, open Trades, Day log, Money). Then Phase 4 FO/SRD rows (SRD-BKT-002.040–.049, SRD-GUI-031.040–.049). SPY is not downloaded: the user wants backtest data to be S&P 500 only (2026-10-29), so presets with the RS rule are refused with a plain message (SRD-BKT-002.018).
+**Done 2026-10-29 (closed candles + session dates):** user found the session-date issue while checking Step 3; fixed (SRD-BKT-002.050–.051, SRD-GUI-031.013, SRD-EXE-006.014; RN-BKT-1.5.0, RN-GUI-1.42.0, RN-EXE-1.38.0). PRICE reads closed bars only (replaces SRD-BKT-002.023). Step 1 lists are keyed by session date (built from the previous trading day). Phase 3 user check stays Pending. Open: ST_AUTO `Last` (TODO T63); 2026-10-29 session missing until its 1d bar is in the store.
+
+**Next action:** user checks Step 3 again in the app (Run, open Trades, Day log, Money); decide ST_AUTO `Last` vs `current` (TODO T63); choose the SPY benchmark for Phase 4. Then Phase 4 FO/SRD rows (SRD-BKT-002.040–.049, SRD-GUI-031.040–.049). SPY is not downloaded: the user wants backtest data to be S&P 500 only (2026-10-29), so presets with the RS rule are refused with a plain message (SRD-BKT-002.018).
 
 ---
 
