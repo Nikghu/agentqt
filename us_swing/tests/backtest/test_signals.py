@@ -126,7 +126,7 @@ def test_missing_strategy_name(store: BacktestStore, tmp_path: Path) -> None:
     plan = replace(plan, strategies=(StrategySpec("X"),))
 
     with pytest.raises(ValueError, match="Strategy X is not in the strategy list"):
-        svc.run_signals(plan, DailyList("k", [], _daily("AAPL")), workers=0)
+        svc.run_signals(plan, DailyList("k", [], _daily("AAPL"), {}), workers=0)
 
 
 def test_service_runs_step_2(store: BacktestStore, tmp_path: Path) -> None:
@@ -135,7 +135,7 @@ def test_service_runs_step_2(store: BacktestStore, tmp_path: Path) -> None:
     plan = plan_for(_PERIOD.start, _PERIOD.end, ("AAPL", "MSFT"))
     plan = replace(plan, strategies=(StrategySpec("ST_A"),))
 
-    out = svc.run_signals(plan, DailyList("k", [], _daily("AAPL", "MSFT")), workers=0)
+    out = svc.run_signals(plan, DailyList("k", [], _daily("AAPL", "MSFT"), {}), workers=0)
 
     assert set(out["strategy"]) == {"ST_A"}
     assert [r.status for r in results.list_runs()] == ["done"]

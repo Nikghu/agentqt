@@ -23,7 +23,7 @@ _START, _END = date(2025, 3, 3), date(2025, 3, 7)
 
 
 def _run(store: BacktestStore, cache: StepCache, end: date = _END,
-         preset: dict[str, Any] | None = None, **kw: Any) -> tuple[str, list[date]]:
+         preset: dict[str, Any] | None = None, **kw: Any) -> tuple[str, dict[date, date]]:
     plan = plan_for(_START, end, _NAMES)
     return stocks.run_stocks(plan, preset or rsi_preset(0, 100), list(_NAMES), store, cache,
                              {}, workers=0, **kw)
@@ -89,7 +89,16 @@ def test_one_file_per_day(store: BacktestStore, tmp_path: Path) -> None:
     key, days = _run(store, cache)
 
     assert len(days) == 5
-    assert cache.names(stocks.STEP, key) == {d.isoformat() for d in days}
+    assert cache.names(stocks.STEP, key) == {d.isoformat() for d in days.values()}
+
+
+def test_sessions_use_previous_close(store: BacktestStore) -> None:
+    """UT-BKT-002.051.M07.T01: Each session maps to the previous trading day, the first too."""
+    by_session = stocks.sessions(store, Period(_START, _END), list(_NAMES))
+
+    assert by_session == {date(2025, 3, 3): date(2025, 2, 28), date(2025, 3, 4): _START,
+                          date(2025, 3, 5): date(2025, 3, 4), date(2025, 3, 6): date(2025, 3, 5),
+                          _END: date(2025, 3, 6)}
 
 
 def test_rules_change_gives_new_key() -> None:
@@ -133,7 +142,7 @@ def test_rank_and_top_n(tmp_path: Path) -> None:
     cache.write(stocks.STEP, "k", day.isoformat(), pd.DataFrame(
         {"symbol": ["NVDA", "MSFT", "AAPL"], "passed": True, "score": [0.9, 0.5, 0.9]}))
 
-    frame = stocks.daily_list(cache, "k", [day, date(2025, 3, 4)])
+    frame = stocks.daily_list(cache, "k", {date(2025, 3, 4): day, date(2025, 3, 5): date(2025, 3, 4)})
 
     assert list(zip(frame["symbol"], frame["rank"])) == [("AAPL", 1), ("NVDA", 2),
                                                          ("MSFT", 3)]
@@ -159,7 +168,7 @@ def test_process_pool_run(store: BacktestStore, tmp_path: Path) -> None:
                       progress=lambda d, t: calls.append((d, t)))
 
     assert calls[-1] == (4, 4)
-    for day in days[:4]:
+    for day in list(days.values())[:4]:
         pd.testing.assert_frame_equal(
             serial.read(stocks.STEP, key, day.isoformat()),
             pooled.read(stocks.STEP, key, day.isoformat()),
@@ -174,7 +183,7 @@ def test_cancel_keeps_finished_days(store: BacktestStore, tmp_path: Path) -> Non
         _run(store, cache, cancel=lambda: True)
 
     key = stocks.rules_key(rsi_preset(0, 100), list(_NAMES))
-    assert cache.names(stocks.STEP, key) == {_START.isoformat()}
+    assert cache.names(stocks.STEP, key) == {date(2025, 2, 28).isoformat()}
 
 
 def test_weekly_preset_refused(store: BacktestStore, tmp_path: Path) -> None:

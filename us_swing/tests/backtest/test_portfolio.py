@@ -84,7 +84,7 @@ def test_entry_only_from_yesterdays_list(tmp_path: Path) -> None:
     res = _run(tmp_path, {"AAPL": [_bars(D2)], "MSFT": [_bars(D2)]},
                [_sig("S1", "AAPL", "entry", D2, "10:00", "10:00"),
                 _sig("S1", "MSFT", "entry", D2, "10:00", "10:00")],
-               _daily([(D1, "AAPL", 1.0), (D2, "MSFT", 1.0)]), [(_strategy(), 50, 100)])
+               _daily([(D2, "AAPL", 1.0), (D3, "MSFT", 1.0)]), [(_strategy(), 50, 100)])
 
     assert list(res.trades["symbol"]) == ["AAPL"]
 
@@ -97,7 +97,7 @@ def test_first_signal_or_highest_score(tmp_path: Path, rule: str, winner: str) -
                 _sig("S1", "TSLA", "exit", D2, "09:57", "09:57"),
                 _sig("S1", "AAPL", "entry", D2, "09:42", "10:30"),
                 _sig("S1", "MSFT", "entry", D2, "09:51", "10:30")],
-               _daily([(D1, "TSLA", 0.9), (D1, "AAPL", 0.5), (D1, "MSFT", 0.8)]),
+               _daily([(D2, "TSLA", 0.9), (D2, "AAPL", 0.5), (D2, "MSFT", 0.8)]),
                [(_strategy(), 100, 100)], when_full=rule)
 
     assert list(res.trades["symbol"])[:2] == ["TSLA", winner]
@@ -106,7 +106,7 @@ def test_first_signal_or_highest_score(tmp_path: Path, rule: str, winner: str) -
 def test_per_trade_sizing(tmp_path: Path) -> None:
     """UT-BKT-002.031.M12.T01: Shares = floor(capital × alloc × per-trade ÷ fill)."""
     res = _run(tmp_path, {"AAPL": [_bars(D2)]}, [_sig("S1", "AAPL", "entry", D2, "10:00", "10:00")],
-               _daily([(D1, "AAPL", 1.0)]), [(_strategy(), 50, 50)], capital=10_000)
+               _daily([(D2, "AAPL", 1.0)]), [(_strategy(), 50, 50)], capital=10_000)
 
     assert list(res.trades["qty"]) == [25]
 
@@ -114,7 +114,7 @@ def test_per_trade_sizing(tmp_path: Path) -> None:
 def test_too_expensive(tmp_path: Path) -> None:
     """UT-BKT-002.031.M12.T02: Less than one share is not traded and is logged."""
     res = _run(tmp_path, {"AAPL": [_bars(D2)]}, [_sig("S1", "AAPL", "entry", D2, "10:00", "10:00")],
-               _daily([(D1, "AAPL", 1.0)]), [(_strategy(), 50, 100)], capital=100)
+               _daily([(D2, "AAPL", 1.0)]), [(_strategy(), 50, 100)], capital=100)
 
     assert res.trades.empty
     assert _decisions(res) == [("AAPL", "too_expensive")]
@@ -125,7 +125,7 @@ def test_strategy_limit(tmp_path: Path) -> None:
     res = _run(tmp_path, {"AAPL": [_bars(D2)], "MSFT": [_bars(D2)]},
                [_sig("S1", "AAPL", "entry", D2, "10:00", "10:00"),
                 _sig("S1", "MSFT", "entry", D2, "10:00", "10:00")],
-               _daily([(D1, "AAPL", 0.9), (D1, "MSFT", 0.5)]), [(_strategy(), 50, 100)])
+               _daily([(D2, "AAPL", 0.9), (D2, "MSFT", 0.5)]), [(_strategy(), 50, 100)])
 
     assert list(res.trades["symbol"]) == ["AAPL"]
     assert ("MSFT", "strategy_limit") in _decisions(res)
@@ -136,7 +136,7 @@ def test_margin_across_two_strategies(tmp_path: Path) -> None:
     res = _run(tmp_path, {"AAPL": [_bars(D2)], "MSFT": [_bars(D2)]},
                [_sig("S1", "AAPL", "entry", D2, "10:00", "10:00"),
                 _sig("S2", "MSFT", "entry", D2, "10:00", "10:00")],
-               _daily([(D1, "AAPL", 0.9), (D1, "MSFT", 0.5)]),
+               _daily([(D2, "AAPL", 0.9), (D2, "MSFT", 0.5)]),
                [(_strategy("S1"), 60, 100), (_strategy("S2"), 60, 100)])
 
     assert dict(zip(res.trades["symbol"], res.trades["qty"])) == {"AAPL": 6, "MSFT": 4}
@@ -148,7 +148,7 @@ def test_next_open_fill_with_costs(tmp_path: Path) -> None:
     res = _run(tmp_path, {"AAPL": [bars]},
                [_sig("S1", "AAPL", "entry", D2, "10:00", "10:00"),
                 _sig("S1", "AAPL", "exit", D2, "10:30", "10:30")],
-               _daily([(D1, "AAPL", 1.0)]), [(_strategy(), 100, 100)], capital=10_000,
+               _daily([(D2, "AAPL", 1.0)]), [(_strategy(), 100, 100)], capital=10_000,
                costs=CostSpec(per_order=1.0, slippage_bps=10.0))
     trade = res.trades.iloc[0]
 
@@ -167,7 +167,7 @@ def test_rex_limit_resets_each_day(tmp_path: Path) -> None:
                  _sig("S1", "AAPL", "exit", day, "10:30", "10:30"),
                  _sig("S1", "AAPL", "entry", day, "11:00", "11:03")]
     res = _run(tmp_path, {"AAPL": [_bars(D2), _bars(D3)]}, sigs,
-               _daily([(D1, "AAPL", 1.0), (D2, "AAPL", 1.0)]), [(_strategy(), 100, 100)],
+               _daily([(D2, "AAPL", 1.0), (D3, "AAPL", 1.0)]), [(_strategy(), 100, 100)],
                days=(D1, D2, D3))
 
     assert len(res.trades) == 2
@@ -178,7 +178,7 @@ def test_stop_wins_in_one_bar(tmp_path: Path) -> None:
     """UT-BKT-002.035.M12.T01: Stop and target in one bar count as the stop."""
     bars = _bars(D2, {"10:06": (100, 102, 98, 100)})
     res = _run(tmp_path, {"AAPL": [bars]}, [_sig("S1", "AAPL", "entry", D2, "10:00", "10:00")],
-               _daily([(D1, "AAPL", 1.0)]),
+               _daily([(D2, "AAPL", 1.0)]),
                [(_strategy(stoploss_enabled=True, target_enabled=True, target_value=1.0),
                  100, 100)])
     trade = res.trades.iloc[0]
@@ -190,7 +190,7 @@ def test_gap_through_stop(tmp_path: Path) -> None:
     """UT-BKT-002.035.M12.T02: A swing trade gapping under its stop exits at the open."""
     res = _run(tmp_path, {"AAPL": [_bars(D2), _bars(D3, price=95.0)]},
                [_sig("S1", "AAPL", "entry", D2, "10:00", "10:00")],
-               _daily([(D1, "AAPL", 1.0)]),
+               _daily([(D2, "AAPL", 1.0)]),
                [(_strategy(trade_type="Swing", stoploss_enabled=True, stoploss_value=2.0),
                  100, 100)], days=(D1, D2, D3))
     trade = res.trades.iloc[0]
@@ -202,7 +202,7 @@ def test_short_target(tmp_path: Path) -> None:
     """UT-BKT-002.036.M12.T01: A SHORT trade's target is below the fill and wins money."""
     bars = _bars(D2, {"10:30": (99, 99, 97.5, 98)})
     res = _run(tmp_path, {"AAPL": [bars]}, [_sig("S1", "AAPL", "entry", D2, "10:00", "10:00")],
-               _daily([(D1, "AAPL", 1.0)]),
+               _daily([(D2, "AAPL", 1.0)]),
                [(_strategy(direction="SHORT", target_enabled=True), 100, 100)])
     trade = res.trades.iloc[0]
 
@@ -214,14 +214,14 @@ def test_short_target(tmp_path: Path) -> None:
 def test_trailing_refused(tmp_path: Path) -> None:
     """UT-BKT-002.036.M12.T02: A trailing stop stops the run with a plain message."""
     with pytest.raises(StepRefused, match="trailing stop"):
-        _run(tmp_path, {"AAPL": [_bars(D2)]}, [], _daily([(D1, "AAPL", 1.0)]),
+        _run(tmp_path, {"AAPL": [_bars(D2)]}, [], _daily([(D2, "AAPL", 1.0)]),
              [(_strategy(stoploss_enabled=True, stoploss_type="trailing"), 100, 100)])
 
 
 def test_intraday_end_time_and_swing_overnight(tmp_path: Path) -> None:
     """UT-BKT-002.037.M12.T01: Intraday closes at the 15:30 open; Swing stays to the end."""
     sig = [_sig("S1", "AAPL", "entry", D2, "10:00", "10:00")]
-    daily = _daily([(D1, "AAPL", 1.0), (D2, "AAPL", 1.0)])
+    daily = _daily([(D2, "AAPL", 1.0), (D3, "AAPL", 1.0)])
     bars = {"AAPL": [_bars(D2), _bars(D3)]}
     intraday = _run(tmp_path / "a", bars, sig, daily, [(_strategy(), 100, 100)],
                     days=(D1, D2, D3)).trades.iloc[0]
@@ -240,7 +240,7 @@ def test_daily_loss_stop(tmp_path: Path) -> None:
     res = _run(tmp_path, {"AAPL": [aapl], "MSFT": [_bars(D2)]},
                [_sig("S1", "AAPL", "entry", D2, "10:00", "10:00"),
                 _sig("S1", "MSFT", "entry", D2, "11:00", "11:00")],
-               _daily([(D1, "AAPL", 0.9), (D1, "MSFT", 0.5)]), [(_strategy(), 50, 100)],
+               _daily([(D2, "AAPL", 0.9), (D2, "MSFT", 0.5)]), [(_strategy(), 50, 100)],
                max_daily_loss_pct=1.0)
 
     assert list(res.trades["symbol"]) == ["AAPL"]
@@ -250,7 +250,7 @@ def test_daily_loss_stop(tmp_path: Path) -> None:
 def test_variant_rows_saved(tmp_path: Path) -> None:
     """UT-BKT-002.039.M04.T01: A variant's trades, day log and money rows are saved."""
     res = _run(tmp_path, {"AAPL": [_bars(D2)]}, [_sig("S1", "AAPL", "entry", D2, "10:00", "10:00")],
-               _daily([(D1, "AAPL", 1.0)]), [(_strategy(), 100, 100)])
+               _daily([(D2, "AAPL", 1.0)]), [(_strategy(), 100, 100)])
     store = ResultsStore(tmp_path / "results.db")
     run_id = store.start_run(RunPlan(name="t", period=Period(D1, D2)), pd.Timestamp.now(tz="UTC"))
 
@@ -258,4 +258,11 @@ def test_variant_rows_saved(tmp_path: Path) -> None:
 
     assert len(store.read_table("trades", vid)) == 1
     assert len(store.read_table("day_log", vid)) == 1
-    assert len(store.read_table("money_daily", vid)) == 1
+    assert len(store.read_table("money_daily", vid)) == 2  # one row per session
+
+
+def test_first_session_trades_its_list() -> None:
+    """UT-BKT-002.051.M12.T01: The first session gets its own list; days without a list get none."""
+    picks = portfolio.picks_by_day(_daily([(D1, "AAPL", 1.0)]), [D1, D2], 0)
+
+    assert picks == {D1: {"AAPL": (1.0, 1)}, D2: {}}

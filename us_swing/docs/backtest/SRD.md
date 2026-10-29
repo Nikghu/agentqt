@@ -95,4 +95,4 @@
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
 | SRD-BKT-002.050 | FO-BKT-002 | Must | Strategy PRICE reads only closed bars on every timeframe; "current" is the last closed bar. | bars | prices | User 2026-10-29: replaces SRD-BKT-002.023; live matches via SRD-EXE-006.014 | Implemented |
-| SRD-BKT-002.051 | FO-BKT-002 | Must | Step 1 keys each list by session date, built from the previous trading day's close, for every session from From to To. | 1d bars | daily list | User 2026-10-29: matches the pre-market screener run | Approved |
+| SRD-BKT-002.051 | FO-BKT-002 | Must | Step 1 keys each list by session date, built from the previous trading day's close, for every session from From to To. | 1d bars | daily list | User 2026-10-29: matches the pre-market screener run | Implemented |

@@ -4,7 +4,8 @@ Parent SRD: SRD-BKT-002.010
 
 Step 1 · Stocks: replay a screener preset on each trading day with only the
 1d bars up to that day's close, cache one file per day and join the days into
-a ranked daily list. The list made on day D is for use on day D+1.
+a ranked daily list keyed by session: the list for a session is made at the
+previous trading day's close, like the pre-market screener run (SRD-BKT-002.051).
 """
 from __future__ import annotations
 
@@ -31,6 +32,7 @@ STEP_VERSION = 1
 LOOKBACK_BARS = 600
 WARMUP_DAYS = 900
 BENCHMARK = "SPY"
+_SESSION_LOOKBACK_DAYS = 10
 _KEY_FIELDS = ("preset_type", "groups", "screeners", "threshold", "timeframe")
 _DAY_COLUMNS = ["symbol", "passed", "score"]
 _RS_RULE = "rs_index"
@@ -69,6 +71,13 @@ def trading_days(store: BacktestStore, period: Period, symbols: list[str]) -> li
         frame = store.read(sym, "1d", period.start, period.end)
         days.update(ts.date() for ts in frame["ts"])
     return sorted(days)
+
+
+def sessions(store: BacktestStore, period: Period, symbols: list[str]) -> dict[date, date]:
+    """Map each session in the period to the trading day whose close made its list."""
+    early = Period(period.start - timedelta(days=_SESSION_LOOKBACK_DAYS), period.end)
+    days = trading_days(store, early, symbols)
+    return {s: d for d, s in zip(days, days[1:]) if s >= period.start}
 
 
 def rules_key(preset_dict: dict[str, Any], symbols: list[str]) -> str:
@@ -192,8 +201,8 @@ def run_stocks(
     workers: int = 4,
     progress: Progress | None = None,
     cancel: Cancel | None = None,
-) -> tuple[str, list[date]]:
-    """Compute and cache every day of the period that is not cached yet.
+) -> tuple[str, dict[date, date]]:
+    """Compute and cache the list of every session's data day that is not cached yet.
 
     Args:
         workers: Worker processes; 0 runs in this process.
@@ -201,7 +210,7 @@ def run_stocks(
         cancel: Checked after each day; true raises ``StepCancelled``.
 
     Returns:
-        The cache key and all trading days of the period.
+        The cache key and each session of the period mapped to its data day.
 
     Raises:
         StepRefused: weekly preset or AI ranking ticked.
@@ -212,12 +221,12 @@ def run_stocks(
         raise StepRefused("; ".join(errors))
     report = progress or (lambda _done, _total: None)
     stop = cancel or (lambda: False)
-    days = trading_days(store, plan.period, symbols)
+    by_session = sessions(store, plan.period, symbols)
     key = rules_key(preset_dict, symbols)
-    todo = missing_days(cache, key, days)
+    todo = missing_days(cache, key, list(by_session.values()))
     report(0, len(todo))
     if not todo:
-        return key, days
+        return key, by_session
     load_args = (store.root, sorted({*symbols, BENCHMARK}),
                  plan.period.start - timedelta(days=WARMUP_DAYS), plan.period.end)
 
@@ -231,7 +240,7 @@ def run_stocks(
         history = load_bars(*load_args)
         for done, day in enumerate(todo, start=1):
             save(day, compute_day(history, preset_dict, symbols, day, market_caps), done)
-        return key, days
+        return key, by_session
 
     pool = ProcessPoolExecutor(
         max_workers=min(workers, os.cpu_count() or 1),
@@ -243,16 +252,19 @@ def run_stocks(
             save(*future.result(), done)
     finally:
         pool.shutdown(wait=True, cancel_futures=True)
-    return key, days
+    return key, by_session
 
 
-def daily_list(cache: StepCache, key: str, days: list[date]) -> pd.DataFrame:
-    """Join cached days into ``date, symbol, score, rank`` (rank 1 = best, ties by symbol)."""
+def daily_list(cache: StepCache, key: str, by_session: dict[date, date]) -> pd.DataFrame:
+    """Join cached days into ``date, symbol, score, rank``; ``date`` is the session.
+
+    Rank 1 is the best score, ties by symbol.
+    """
     frames = []
-    for day in days:
+    for session, day in by_session.items():
         frame = cache.read(STEP, key, day.isoformat())
         if frame is not None and not frame.empty:
-            frames.append(frame.assign(date=day))
+            frames.append(frame.assign(date=session))
     if not frames:
         return pd.DataFrame(columns=["date", "symbol", "score", "rank"])
     joined = pd.concat(frames, ignore_index=True).sort_values(

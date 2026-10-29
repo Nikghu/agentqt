@@ -527,6 +527,7 @@
 | SRD-GUI-031.010 | FO-GUI-031 | Must | The builder has a Screener preset picker, Stocks per day (All or a number) and a disabled "Use AI ranking" tick. | presets | plan fields | AI tick tooltip says it comes in a later phase | Implemented |
 | SRD-GUI-031.011 | FO-GUI-031 | Must | Run (Step 1) runs in the background, shows progress on the Stocks step and turns into Cancel while running. | click | daily list | Disabled while the data check has errors | Implemented |
 | SRD-GUI-031.012 | FO-GUI-031 | Must | The Step 1 view lists days with their stock count and shows the selected day's stocks with score and rank, limited by Stocks per day. | daily list | tables | Newest day first | Implemented |
+| SRD-GUI-031.013 | FO-GUI-031 | Must | Stocks tab shows Session, Data up to and Stocks for each screener day. | daily list | tables | User 2026-10-29: session = day the list is traded (SRD-BKT-002.051) | Implemented |
 | SRD-GUI-031.020 | FO-GUI-031 | Must | The builder lists the live strategies with tick boxes, showing allocation % and per-trade %. | strategy store | plan strategies | Reloaded when the screen is shown | Implemented |
 | SRD-GUI-031.021 | FO-GUI-031 | Must | Run does Step 1 and then Step 2 when strategies are ticked, with progress on both step pills. | click | lists | Cancel stops either step | Implemented |
 | SRD-GUI-031.022 | FO-GUI-031 | Must | A Signals tab lists periods (strategy, symbol, kind, start, end, close) with a strategy filter. | signal list | table | Times shown in US/Eastern, newest first | Implemented |

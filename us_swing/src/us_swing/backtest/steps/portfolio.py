@@ -395,14 +395,13 @@ class _Sim:
 
 def picks_by_day(daily: pd.DataFrame, days: Sequence[date], n: int
                  ) -> dict[date, dict[str, tuple[float, int]]]:
-    """Day i trades the top-N list made at day i − 1's close."""
+    """Each session trades its own top-N list (made at the previous trading day's close)."""
     listed = top_n(daily, n)
     by_day: dict[date, dict[str, tuple[float, int]]] = defaultdict(dict)
     for day, symbol, score, rank in zip(listed["date"], listed["symbol"], listed["score"],
                                         listed["rank"]):
         by_day[day][str(symbol)] = (float(score), int(rank))
-    ordered = sorted(days)
-    return {ordered[i]: by_day.get(ordered[i - 1], {}) for i in range(1, len(ordered))}
+    return {day: by_day.get(day, {}) for day in sorted(days)}
 
 
 def run_portfolio(

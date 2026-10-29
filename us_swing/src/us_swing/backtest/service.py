@@ -46,11 +46,15 @@ class Estimate:
 
 @dataclass(frozen=True)
 class DailyList:
-    """Step 1 output: the cache key, the period's trading days and the ranked list."""
+    """Step 1 output: the cache key, the period's sessions and the ranked list.
+
+    ``data_days`` maps each session to the trading day whose close made its list.
+    """
 
     key: str
     days: list[date]
     frame: pd.DataFrame
+    data_days: dict[date, date]
 
 
 def _misses(store: BacktestStore, symbol: str, tf: str, period: Period, today: date) -> bool:
@@ -101,7 +105,7 @@ class BacktestService:
             errors += stocks.refusals(plan, preset, stocks.has_benchmark(self._store))
         days_total = days_cached = 0
         if not errors and preset is not None:
-            days = stocks.trading_days(self._store, plan.period, symbols)
+            days = list(stocks.sessions(self._store, plan.period, symbols).values())
             todo = stocks.missing_days(self._cache, stocks.rules_key(preset, symbols), days)
             days_total, days_cached = len(days), len(days) - len(todo)
         return Estimate(
@@ -138,12 +142,13 @@ class BacktestService:
                 if (cap := getattr(r, "market_cap", None)) is not None}
         preset = self._presets(plan.screener.preset_id, user_id)
         self._cache.cleanup(datetime.now(timezone.utc))
-        key, days = self._recorded(plan, lambda _run_id: stocks.run_stocks(
+        key, by_session = self._recorded(plan, lambda _run_id: stocks.run_stocks(
             plan, preset, symbols, self._store, self._cache, caps,
             workers=workers, progress=progress, cancel=cancel,
         ))
-        _log.info("[Backtest] Stock lists ready for %d day(s)", len(days))
-        return DailyList(key, days, stocks.daily_list(self._cache, key, days))
+        _log.info("[Backtest] Stock lists ready for %d session(s)", len(by_session))
+        return DailyList(key, list(by_session), stocks.daily_list(self._cache, key, by_session),
+                         by_session)
 
     def run_signals(
         self,

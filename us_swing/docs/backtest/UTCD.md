@@ -136,3 +136,5 @@
 | UT-BKT-002.037.M12.T01 | MD-BKT-002.030.M12 | Positive | Intraday end time and swing overnight | Intraday end 15:30; Swing same signals | intraday exits at 15:30 open; swing still open next day | Pass |
 | UT-BKT-002.038.M12.T01 | MD-BKT-002.030.M12 | Negative | Daily loss stop | 1 % stop, loss 2 % after first trade | later entries that day blocked; daily_loss_stop logged once | Pass |
 | UT-BKT-002.039.M04.T01 | MD-BKT-002.007.M04 | Positive | Variant rows saved | one variant result | rows in variants, trades, day_log, money_daily | Pass |
+| UT-BKT-002.051.M07.T01 | MD-BKT-002.010.M07 | Positive | Sessions use the previous close | 5 sessions from Mon 2025-03-03 | each session maps to the trading day before; first maps to Fri 02-28; no list from the last close | Pass |
+| UT-BKT-002.051.M12.T01 | MD-BKT-002.030.M12 | Edge | First session trades its own list | list for session D1, days D1 and D2 | D1 has the stock; D2 has none | Pass |

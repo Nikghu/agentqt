@@ -323,8 +323,8 @@ class BacktestWorkspace(QWidget):
         body.setSpacing(8)
         tables = QHBoxLayout()
         tables.setSpacing(GAP)
-        self.days_table = _table(["Date", "Stocks"])
-        self.days_table.setFixedWidth(220)
+        self.days_table = _table(["Session", "Data up to", "Stocks"])
+        self.days_table.setFixedWidth(330)
         self.days_table.itemSelectionChanged.connect(self._render_stocks)
         self.stocks_table = _table(["Rank", "Symbol", "Score"])
         left, right = QVBoxLayout(), QVBoxLayout()
@@ -480,7 +480,7 @@ class BacktestWorkspace(QWidget):
         self._render_buttons()
         self._timer.start()
 
-    # ── Step 1 view (SRD-GUI-031.012) ─────────────────────────────────────────
+    # ── Step 1 view (SRD-GUI-031.012 / .013) ──────────────────────────────────
 
     def _shown(self) -> pd.DataFrame:
         if self._daily is None:
@@ -497,7 +497,8 @@ class BacktestWorkspace(QWidget):
         self.days_table.setRowCount(len(days))
         for row, day in enumerate(days):
             self.days_table.setItem(row, 0, QTableWidgetItem(day.isoformat()))
-            self.days_table.setItem(row, 1, QTableWidgetItem(str(int(counts.get(day, 0)))))
+            self.days_table.setItem(row, 1, QTableWidgetItem(self._data_day(day)))
+            self.days_table.setItem(row, 2, QTableWidgetItem(str(int(counts.get(day, 0)))))
         self.days_table.blockSignals(False)
         keep = days.index(selected) if selected in days else 0
         if days:
@@ -511,13 +512,18 @@ class BacktestWorkspace(QWidget):
         item = self.days_table.item(rows.selectedRows()[0].row(), 0)
         return None if item is None else pd.Timestamp(item.text()).date()
 
+    def _data_day(self, session: datetime.date) -> str:
+        day = None if self._daily is None else self._daily.data_days.get(session)
+        return "" if day is None else day.isoformat()
+
     def _render_stocks(self) -> None:
         day = self._selected_day()
         frame = self._shown()
         rows = frame[frame["date"] == day] if day is not None else frame.iloc[0:0]
         self.stocks_head.setText(
-            "STOCKS PICKED" if day is None
-            else f"STOCKS PICKED AT {day.isoformat()} CLOSE · {len(rows)} · TRADED NEXT DAY"
+            "STOCKS FOR SESSION" if day is None
+            else f"STOCKS FOR SESSION {day.isoformat()} · DATA UP TO {self._data_day(day)} "
+                 f"CLOSE · {len(rows)}"
         )
         self.stocks_table.setRowCount(len(rows))
         for i, rec in enumerate(rows.itertuples()):

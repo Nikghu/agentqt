@@ -28,7 +28,7 @@ from us_swing.core.expr import EvaluatorError
 from us_swing.core.expr.series import ET, BoolArray, Evaluation, FloatArray, evaluate
 
 STEP = "signals"
-STEP_VERSION = 1
+STEP_VERSION = 2  # 2: PRICE reads closed bars only (SRD-BKT-002.050)
 INTRADAY_WARMUP_DAYS = 45
 DAILY_WARMUP_DAYS = 400
 _TIMEFRAMES = ("3m", "15m", "1d", "1w")

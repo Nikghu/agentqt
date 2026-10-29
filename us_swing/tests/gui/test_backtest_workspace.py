@@ -89,7 +89,7 @@ class _FakeService:
         frame = pd.DataFrame({"date": [days[0], days[1], days[1]],
                               "symbol": ["AAPL", "MSFT", "NVDA"],
                               "score": [0.9, 0.8, 0.7], "rank": [1, 1, 2]})
-        return DailyList("k", days, frame)
+        return DailyList("k", days, frame, {days[0]: date(2026, 2, 27), days[1]: days[0]})
 
     def run_signals(self, _plan: Any, _daily: DailyList, **kw: Any) -> pd.DataFrame:
         kw["progress"](1, 1)
@@ -250,9 +250,23 @@ def test_run_and_view(workspace: BacktestWorkspace, qtbot: Any) -> None:
     assert workspace.pills[0].text() == "1 Stocks · Done"
     assert workspace.days_table.rowCount() == 2
     assert workspace.days_table.item(0, 0).text() == "2026-03-03"  # type: ignore[union-attr]
-    assert workspace.days_table.item(0, 1).text() == "1"  # type: ignore[union-attr]
+    assert workspace.days_table.item(0, 2).text() == "1"  # type: ignore[union-attr]
     assert workspace.stocks_table.rowCount() == 1
     assert workspace.stocks_table.item(0, 1).text() == "MSFT"  # type: ignore[union-attr]
+
+
+def test_session_and_data_day_shown(workspace: BacktestWorkspace, qtbot: Any) -> None:
+    """UT-GUI-031.013.M03.T01: Each session row shows the day its list was made from."""
+    workspace._start_estimate()
+    qtbot.waitUntil(lambda: workspace._estimate is not None)
+
+    workspace.run_btn.click()
+    qtbot.waitUntil(lambda: workspace._runner is None)
+
+    assert workspace.days_table.item(1, 0).text() == "2026-03-02"  # type: ignore[union-attr]
+    assert workspace.days_table.item(1, 1).text() == "2026-02-27"  # type: ignore[union-attr]
+    assert workspace.stocks_head.text().startswith(
+        "STOCKS FOR SESSION 2026-03-03 · DATA UP TO 2026-03-02 CLOSE")
 
 
 def _tick_strategy(ws: BacktestWorkspace, index: int) -> None:
