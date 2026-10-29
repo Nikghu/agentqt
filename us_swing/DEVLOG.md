@@ -2,6 +2,14 @@
 
 ---
 
+## [20261029] GUI — 2–3 s freezes with no TWS (ISS-GUI-0012)
+
+- Type: Bugfix
+- RN: RN-GUI-1.42.1-20261029
+- Cause (py-spy on the running app): the last-price refresh rebuilt 30 days of 3m bars per stock on the screen thread for each closed candle (287 ms per stock). Now reads the newest stored row (1.7 ms). Tests UT-EXE-006.001.M01.T24–T25; TODO T67.
+
+---
+
 ## [20261029] BKT + EXE + GUI — Closed-bar PRICE and live candles; Step 1 lists keyed by session date (SRD-BKT-002.050–.051, SRD-EXE-006.014, SRD-GUI-031.013)
 
 - Type: Bugfix
@@ -9,7 +17,7 @@
 - RN: RN-BKT-1.5.0-20261029, RN-EXE-1.38.0-20261029, RN-GUI-1.42.0-20261029
 - Artifacts updated: SRD (SRD-BKT-002.050–.051, SRD-EXE-006.014, SRD-GUI-031.013 — Implemented; .050 replaces .023), UTCD (5 Pass), TRACE (BKT, EXE, GUI), Code, Tests, RN, Engine_plan §0, TODO T61–T66, CONTEXT, DEVLOG
 - Decisions (user 2026-10-29): strategy PRICE reads closed bars only; live entries/exits fire only after a 15m close; Step 1 list for a session is built from the previous trading day; session = the day the list is traded.
-- Findings: `Last` on 15m now means the bar before the last closed bar, so ST_AUTO compares a price one bar older than SUPERTREND (open, TODO T63). 2026-10-29 session missing: no 1d bar in the store yet. Tests: backtest + backtest GUI 126 passed; execution 329 passed.
+- Findings: `Last` on 15m now means the bar before the last closed bar, so ST_AUTO compares a price one bar older than SUPERTREND (fixed: user set ST_AUTO to `current`, T63 Done). 2026-10-29 session missing: no 1d bar in the store yet. Tests: backtest + backtest GUI 126 passed; execution 329 passed.
 
 ---
 
