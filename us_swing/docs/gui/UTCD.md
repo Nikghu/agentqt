@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.33.0: UT-GUI-030.* added — Backtest data section.
 > v1.32.0: UT-GUI-019.009.* added — sidebar mini while a right panel is open.
 > v1.31.0: UT-GUI-000.008.* added — app stays responsive while ticks stream.
 > v1.29.0: UT-GUI-029.* added — Scheduler task table.
@@ -800,3 +801,30 @@ Test files:
 | UT-GUI-029.002.M01.T02 | MD-GUI-029.001.M01 | Edge | Old status result dropped | result from before a reload | pills keep the fresh check | Pass |
 | UT-GUI-029.005.M01.T01 | MD-GUI-029.001.M01 | Negative | Remove all cancelled | confirm returns Cancel | `remove_tasks` not called | Pass |
 | UT-GUI-029.006.M01.T01 | MD-GUI-029.001.M01 | Positive | Scheduler page has the table, no Edit button | build `_SystemSections` | page holds `SchedulerTable`; no `_sched_btn` | Pass |
+
+## FO-GUI-030 — Backtest Data Settings
+
+| UT ID | MD | Type | Description | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-030.006.M03.T01 | MD-GUI-030.006.M03 | Positive | Section sits after Candle data | build `SettingsPanel` | "Backtest data" is the name right after "Candle data" | Pass |
+| UT-GUI-030.001.M01.T01 | MD-GUI-030.001.M01 | Positive | Status from stats | fake stats 503 stocks, nothing missing | "All candles saved"; coverage line; "503 stocks · 3.9 GB"; button Up to date, disabled | Pass |
+| UT-GUI-030.001.M01.T03 | MD-GUI-030.001.M01 | Negative | Empty store | stats with 0 stocks | "No backtest candles yet"; range estimate shown; button Download | Pass |
+| UT-GUI-030.001.M01.T02 | MD-GUI-030.001.M01 | Positive | Progress updates | progress 3m 191 of 503 (no click, as from auto delta) | running; bar 38%; "191 of 503 · AAPL · about 2 h 10 min left"; Done around; Pause | Pass |
+| UT-GUI-030.002.M01.T01 | MD-GUI-030.001.M01 | Positive | Load and save settings | saved start 2018-01-01, latest on | fields filled; End date disabled; save writes same values | Pass |
+| UT-GUI-030.002.M01.T02 | MD-GUI-030.001.M01 | Negative | Start never after end | fixed end 2020-01-01, set start 2021-01-01 | start held at 2020-01-01 | Pass |
+| UT-GUI-030.002.M01.T03 | MD-GUI-030.001.M01 | Positive | Estimate uses real 3m speed | 503 stocks, 2024-01-02 to 2025-01-01; then from 2015 | "2,515 requests for this range · about 14 h 6 min"; 10 years shows days | Pass |
+| UT-GUI-030.003.M01.T02 | MD-GUI-030.001.M01 | Positive | Auto delta fields load | saved on, 17:30, Mon–Fri | switch on; time 17:30; label "US/Eastern"; Mon–Fri chips checked | Pass |
+| UT-GUI-030.003.M01.T01 | MD-GUI-030.001.M01 | Negative | Fixed end date turns off auto delta | uncheck latest | auto delta switch disabled and saved off | Pass |
+| UT-GUI-030.004.M01.T01 | MD-GUI-030.001.M01 | Negative | TWS not connected | connection state false | download and Clear disabled; hint "Connect TWS to download" | Pass |
+| UT-GUI-030.004.M01.T02 | MD-GUI-030.001.M01 | Positive | Start becomes Pause | click Start with fake service | service start called; button reads Pause; Clear disabled | Pass |
+| UT-GUI-030.005.M01.T01 | MD-GUI-030.001.M01 | Negative | Clear cancelled | confirm returns Cancel | `clear_backtest_data` not called | Pass |
+| UT-GUI-030.005.M01.T02 | MD-GUI-030.001.M01 | Positive | Clear needs typed CLEAR | type "clear", then "CLEAR" | button disabled, then enabled; accept calls clear | Pass |
+| UT-GUI-030.006.M01.T01 | MD-GUI-030.001.M01 | Positive | Dot state | empty / running / up to date | off / warn / ok | Pass |
+| UT-GUI-030.006.M01.T02 | MD-GUI-030.001.M01 | Negative | Missing 3m shows behind | 498 3m requests missing for 503 stocks | "3-minute candles missing for 503 stocks"; "498 requests · about 3 h 27 min"; Download missing | Pass |
+| UT-GUI-030.009.M01.T01 | MD-GUI-030.001.M01 | Negative | Unsaved range is saved on download | saved start 2026-01-01, field set to 2025-11-01 | "Range changed · not saved yet"; button Save range and download; click saves and starts | Pass |
+| UT-GUI-030.009.M02.T01 | MD-GUI-030.004.M02 | Positive | Stats worker counts missing | plan with 1 1d and 2 3m jobs for 2 stocks | missing_1d 1, missing_3m 2, short_stocks 2 | Pass |
+| UT-GUI-030.004.M02.T01 | MD-GUI-030.004.M02 | Positive | Auto delta starts once when due | `delta_due` true twice, fake downloader | one delta started; none while it runs | Pass |
+| UT-GUI-030.004.M02.T02 | MD-GUI-030.004.M02 | Negative | Clear refused while downloading | `clear_backtest_data()` while a run is active | returns False; store files kept | Pass |
+| UT-GUI-030.007.M05.T01 | MD-GUI-030.007.M05 | Positive | Status bar shows backtest state | progress 1d 35 of 503, then finished Done | text "Backtest data · 1d 35 of 503", then "Backtest data · Done", hidden after 15 s | Pass |
+| UT-GUI-030.008.M02.T01 | MD-GUI-030.008.M06 | Positive | Per-stock backtest coverage | AAPL 1d+3m to last day, MSFT 1d only, NVDA none | ok / 1d / none with dates | Pass |
+| UT-GUI-030.008.M03.T01 | MD-GUI-030.008.M06 | Positive | Universe HTML has backtest columns | one record with coverage | BT From column and dates in data | Pass |

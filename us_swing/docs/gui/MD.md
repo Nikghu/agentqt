@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.34.0: MD-GUI-030.* added — Backtest data section (new `backtest_data_panel.py`).
 > v1.33.0: MD-GUI-019.009.M03 added (SRD-GUI-019.009) — `main_window.py` shrinks the sidebar on the right panel click.
 > v1.32.0: MD-GUI-000.008.M01–M03 added (SRD-GUI-000.008) — theme id cached, hidden source list, tick refresh batching.
 > v1.31.0: MD-GUI-000.007.M01 (quiet_platform.py) added (SRD-GUI-000.007).
@@ -315,3 +316,14 @@ us_swing/src/us_swing/gui/
 |---|---|---|---|---|---|---|
 | MD-GUI-029.001.M01 | SRD-GUI-029.001 | `us_swing/src/us_swing/gui/scheduler_table.py` | Task table, status pills, TWS login fold, apply and remove all | `SchedulerTable`, `inputs`, `load()`, `apply()`, `refresh_status()`, `repair_needed` | `scheduler_dialog`, `scheduler_store` | Yes (`QThread` jobs) |
 | MD-GUI-029.004.M02 | SRD-GUI-029.004 | `us_swing/src/us_swing/gui/scheduler_dialog.py` | Windows task and keyring helpers; dialog class removed | `task_states()`, `write_tasks()`, `remove_tasks()` | `scheduler_store` | No |
+
+## FO-GUI-030 — Backtest Data Settings
+
+| MD ID | SRD | File | Purpose | Public API | Depends on | Async |
+|---|---|---|---|---|---|---|
+| MD-GUI-030.001.M01 | SRD-GUI-030.001 | `us_swing/src/us_swing/gui/backtest_data_panel.py` | Backtest data card, range and auto delta fields, actions and type-to-confirm clear | `BacktestDataPanel`, `inputs`, `load()`, `save()`, `defaults()`, `state`, `build_clear_dialog()` | `app_service`, `backtest.settings` | No |
+| MD-GUI-030.004.M02 | SRD-GUI-030.004 | `us_swing/src/us_swing/gui/app_service.py` | Own the backtest downloader, auto delta timer and stats | `start_backtest_download()`, `stop_backtest_download()`, `fill_backtest_delta()`, `clear_backtest_data()`, `refresh_backtest_stats()`, `shutdown_backtest_download()`, `backtest_progress`, `backtest_finished`, `backtest_stats_changed` | `backtest.*` | Yes (`QThread`) |
+| MD-GUI-030.006.M03 | SRD-GUI-030.006 | `us_swing/src/us_swing/gui/settings_panel.py` | Register the section after Candle data and colour its dot | `SettingsPanel` (sections, `refresh_states()`) | `backtest_data_panel` | No |
+| MD-GUI-030.004.M04 | SRD-GUI-030.004 | `us_swing/src/us_swing/gui/system_store.py` | Add the backtest TWS client ID | `SystemConfig.ibkr_backtest_client_id` (default 16) | — | No |
+| MD-GUI-030.007.M05 | SRD-GUI-030.007 | `us_swing/src/us_swing/gui/main_window.py` | Status bar item for backtest progress | `_on_backtest_progress()`, `_on_backtest_finished()` | `app_service` | No |
+| MD-GUI-030.008.M06 | SRD-GUI-030.008 | `us_swing/src/us_swing/gui/settings_panel.py` | Universe table backtest columns | `_build_universe_html(backtest=…)`, `AppService.get_backtest_symbol_coverage()` | `app_service` | No |

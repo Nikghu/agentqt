@@ -417,7 +417,7 @@ QHeaderView::section {
     font-size: 8pt;
     text-transform: uppercase;
 }
-QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QTimeEdit {
+QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QTimeEdit, QDateEdit {
     background: #313244;
     border: 1px solid #45475a;
     border-radius: 4px;
@@ -427,7 +427,7 @@ QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QTimeEdit {
     max-height: 28px;
     outline: none;
 }
-QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus, QTimeEdit:focus {
+QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus, QTimeEdit:focus, QDateEdit:focus {
     border: 1px solid #89b4fa;
     outline: none;
 }
@@ -914,7 +914,7 @@ QHeaderView::section {
 }
 
 /* ── Inputs ───────────────────────────────────────────────── */
-QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QTimeEdit {
+QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QTimeEdit, QDateEdit {
     background: #3c3c3c;
     border: 1px solid #454545;
     border-radius: 2px;
@@ -924,7 +924,7 @@ QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QTimeEdit {
     max-height: 28px;
     outline: none;
 }
-QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus, QTimeEdit:focus {
+QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus, QTimeEdit:focus, QDateEdit:focus {
     border: 1px solid #007acc;
     outline: none;
 }
@@ -1248,7 +1248,7 @@ _CARBON_EXTRA = """
 QMainWindow, QDialog, QWidget {
     font-family: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
 }
-QPushButton, QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, QTimeEdit, QGroupBox {
+QPushButton, QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, QTimeEdit, QDateEdit, QGroupBox {
     border-radius: 2px;
 }
 QTableView, QTableWidget, QTreeView {
@@ -1445,6 +1445,7 @@ QLabel#data_pill[state="complete"] {{ color: #3cc583; border-color: #3cc583; }}
 QLabel#data_pill[state="partial"] {{ color: #e8c14d; border-color: #e8c14d; }}
 QLabel#data_pill[state="empty"] {{ color: #ef5a50; border-color: #ef5a50; }}
 QLabel#data_summary {{ color: {text}; font-size: 10.5pt; font-weight: bold; }}
+QLabel#data_headline {{ color: {text}; font-size: 13pt; font-weight: bold; }}
 QLabel#data_stat_value {{
     color: {text}; font-family: "IBM Plex Mono", Consolas, monospace; font-size: 11pt;
 }}

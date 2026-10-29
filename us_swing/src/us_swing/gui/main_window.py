@@ -586,6 +586,16 @@ class MainWindow(QMainWindow):
         self._sb_conn    = QLabel("●  Internet: Checking…")
         self._sb_conn.setStyleSheet(_sb_qss_sm)
         self._status.addWidget(self._sb_conn)
+        # Backtest download status — shown only while a run is active (SRD-GUI-030.007)
+        self._sb_backtest = QLabel("")
+        self._sb_backtest.setStyleSheet(_sb_pill_qss)
+        self._sb_backtest.setToolTip("Settings → Backtest data")
+        self._sb_backtest.hide()
+        self._status.addPermanentWidget(self._sb_backtest)
+        self._sb_backtest_hide = QTimer(self)
+        self._sb_backtest_hide.setSingleShot(True)
+        self._sb_backtest_hide.setInterval(15_000)
+        self._sb_backtest_hide.timeout.connect(self._sb_backtest.hide)
         # NYSE / NASDAQ market status — right side of status bar
         self._sb_nyse   = QLabel("⬤  NYSE")
         self._sb_nasdaq = QLabel("⬤  NASDAQ")
@@ -611,6 +621,8 @@ class MainWindow(QMainWindow):
         svc.market_status_updated.connect(self._on_market_status)
         svc.candle_db_status_changed.connect(self._on_db_status_updated)
         svc.risk_warning_raised.connect(self._on_risk_warning)
+        svc.backtest_progress.connect(self._on_backtest_progress)
+        svc.backtest_finished.connect(self._on_backtest_finished)
         self._risk_warning_last: dict[str, float] = {}
         self._refresh_status()
         self._on_market_status()
@@ -783,6 +795,18 @@ class MainWindow(QMainWindow):
             self._sb_conn.setText("●  Internet: Online")
         else:
             self._sb_conn.setText("●  Internet: Offline")
+
+    def _on_backtest_progress(self, tf: str, done: int, total: int, _symbol: str) -> None:
+        """Show backtest download progress in the status bar (SRD-GUI-030.007)."""
+        self._sb_backtest_hide.stop()
+        self._sb_backtest.setText(f"Backtest data · {tf} {done:,} of {total:,}")
+        self._sb_backtest.show()
+
+    def _on_backtest_finished(self, _ok: bool, message: str) -> None:
+        """Show the backtest result briefly, then hide the status bar item."""
+        self._sb_backtest.setText(f"Backtest data · {message}")
+        self._sb_backtest.show()
+        self._sb_backtest_hide.start()
 
     def _on_market_status(self) -> None:
         """Update NYSE / NASDAQ status bar pills from AppService market status."""
@@ -960,6 +984,7 @@ class MainWindow(QMainWindow):
         self._demo._stop_live_bar_worker()
         self._demo.shutdown_notifications()
         self._demo.shutdown_order_connection()
+        self._demo.shutdown_backtest_download()
         settings = QSettings("USSwing", "MainWindow")
         settings.setValue("geometry", self.saveGeometry())
         super().closeEvent(event)  # type: ignore[arg-type]

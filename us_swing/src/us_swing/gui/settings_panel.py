@@ -45,6 +45,7 @@ from PyQt6.QtWidgets import (
 )
 
 from us_swing.gui.app_service import AppService
+from us_swing.gui.backtest_data_panel import BacktestDataPanel
 from us_swing.data.market_calendar import NYSE_HOLIDAYS
 from us_swing.data.models import ConnectionStatus, RiskConfig, UserProfile
 from us_swing.gui.icons import mark_danger, set_icon
@@ -708,8 +709,11 @@ let COLS=[
   ['Name',          5,220],
   ['DB',            7, 50],
   ['Last Updated',  6,120],
+  ['Backtest',     10, 80],
+  ['BT From',       8,100],
+  ['BT To',         9,100],
 ];
-let colOrder=[0,1,2,3,4,5,6,7];   /* indices into COLS */
+let colOrder=[0,1,2,3,4,5,6,7,8,9,10];   /* indices into COLS */
 let sc=4, sa=false, ft='';
 
 function fc(b){{if(b===null)return'\u2014';if(b>=1000)return'$'+(b/1000).toFixed(2)+'T';if(b>=1)return'$'+b.toFixed(1)+'B';return'$'+(b*1000).toFixed(0)+'M';}}
@@ -817,6 +821,8 @@ function render(resort=true){{
       if(ci===5)  return `<td class="name" ${{style}}>${{r[5]}}</td>`;
       if(ci===6){{const st=r[7];const cl=st==='current'?'{st_ok}':st==='stale'?'{st_warn}':'{st_err}';const ic=st==='current'?'✔':st==='stale'?'⚠':'✘';return `<td style="width:${{w}}px;max-width:${{w}}px;color:${{cl}};font-size:13px;text-align:center">${{ic}}</td>`;}}
       if(ci===7){{const dt=r[6];const st=r[7];const cl=st==='current'?'{st_ok}':st==='stale'?'{st_warn}':'{st_err}';return `<td style="width:${{w}}px;max-width:${{w}}px;color:${{cl}};text-align:center">${{dt||'—'}}</td>`;}}
+      if(ci===8){{const st=r[10];const cl=st==='ok'?'{st_ok}':st==='none'?'{st_err}':'{st_warn}';const ic=st==='ok'?'✔':st==='none'?'✘':'⚠';const tip=st==='ok'?'Up to date':st==='behind'?'Behind':st==='1d'?'1d only, no 3m yet':'Not downloaded';return `<td title="${{tip}}" style="width:${{w}}px;max-width:${{w}}px;color:${{cl}};font-size:13px;text-align:center">${{ic}}</td>`;}}
+      if(ci===9||ci===10){{return `<td ${{style}}>${{r[di]||'—'}}</td>`;}}
       return `<td ${{style}}>${{r[di]}}</td>`;
     }}).join('');
     const rc=r[7]==='current'?'':r[7]==='stale'?' class="stale"':' class="missing"';
@@ -834,6 +840,7 @@ def _build_universe_html(
     records: list,
     coverage: "dict[str, str | None] | None" = None,
     last_trading_day: str | None = None,
+    backtest: "dict[str, tuple[str | None, str | None, str]] | None" = None,
 ) -> str:
     """Serialize records to an HTML page with all data embedded as JSON.
 
@@ -842,8 +849,10 @@ def _build_universe_html(
         coverage: {symbol: last_1d_candle_date | None} from candles.db.
             ``None`` means the DB has not been queried yet.
         last_trading_day: "YYYY-MM-DD"; rows with older dates are marked stale.
+        backtest: {symbol: (first, last, status)} from the backtest store (SRD-GUI-030.008).
     """
     cov = coverage or {}
+    bkt = backtest or {}
 
     def _sym_status(sym: str) -> "tuple[str | None, str]":
         last_date = cov.get(sym)
@@ -857,7 +866,8 @@ def _build_universe_html(
         [i + 1, r.symbol, r.ibkr_symbol, r.sector,
          round(r.market_cap / 1e9, 4) if r.market_cap else None,
          r.name,
-         *_sym_status(r.symbol)]
+         *_sym_status(r.symbol),
+         *bkt.get(r.symbol, (None, None, "none"))]
         for i, r in enumerate(records)
     ]
     ct = active_palette()
@@ -926,6 +936,7 @@ class _UniverseTab(QWidget):
         self._load_from_cache()
         svc.sp500_updated.connect(self._load_from_cache)
         svc.candle_db_status_changed.connect(lambda _: self._load_from_cache())
+        svc.backtest_finished.connect(lambda *_: self._load_from_cache())
 
     # ── Slots ─────────────────────────────────────────────────────────────────
 
@@ -933,7 +944,8 @@ class _UniverseTab(QWidget):
         records  = self._svc.get_sp500_universe()
         coverage = self._svc.get_candle_symbol_coverage()
         ltd      = self._svc.get_last_trading_day()
-        self._web.setHtml(_build_universe_html(records, coverage, ltd))
+        backtest = self._svc.get_backtest_symbol_coverage()
+        self._web.setHtml(_build_universe_html(records, coverage, ltd, backtest))
         meta  = self._svc.get_sp500_meta()
         stale = " (stale)" if meta.is_stale() else ""
         self._meta_label.setText(
@@ -1544,6 +1556,8 @@ def _changed_signal(widget: QWidget) -> pyqtBoundSignal:
         return widget.currentTextChanged
     if isinstance(widget, QTimeEdit):
         return widget.timeChanged
+    if isinstance(widget, QDateEdit):
+        return widget.dateChanged
     assert isinstance(widget, QAbstractButton)
     return widget.toggled
 
@@ -1563,6 +1577,7 @@ class SettingsPanel(QWidget):
         self._demo = demo
 
         self._data         = _DataPanel(demo)
+        self._backtest     = BacktestDataPanel(demo)
         self._sys          = _SystemSections(demo, self)
         self._universe_tab = _UniverseTab(demo)
         self._sys.theme_changed.connect(self.theme_changed)
@@ -1581,6 +1596,8 @@ class SettingsPanel(QWidget):
                                   sys_.load_telegram, None),
             "Appearance": _Editable(sys_.theme_inputs, sys_.apply_theme, sys_.load_theme,
                                     lambda: sys_.load_theme("carbon")),
+            "Backtest data": _Editable(self._backtest.inputs, self._backtest.save,
+                                       self._backtest.load, self._backtest.defaults),
         }
         self._dirty: set[str] = set()
         self._loading = False
@@ -1596,6 +1613,7 @@ class SettingsPanel(QWidget):
             *self._sys.pages,
             ("Universe", self._universe_tab),
             ("Candle data", self._data),
+            ("Backtest data", self._backtest),
             *self._sys.app_pages,
         ]
 
@@ -1726,6 +1744,8 @@ class SettingsPanel(QWidget):
         self.set_section_state("Telegram", self._sys.telegram_state())
         data = {"complete": "ok", "partial": "warn", "downloading": "warn"}
         self.set_section_state("Candle data", data.get(self._data.state[0], "off"))
+        backtest = {"ok": "ok", "running": "warn", "behind": "warn"}
+        self.set_section_state("Backtest data", backtest.get(self._backtest.state, "off"))
 
     @staticmethod
     def _section_card(name: str, body: QWidget) -> QFrame:

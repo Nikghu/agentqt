@@ -2,6 +2,28 @@
 
 ---
 
+## [20261029] BKT + GUI — Backtest download fixes from real TWS testing and Option D panel (FO-BKT-001, FO-GUI-030)
+
+- Type: Bugfix + Enhancement
+- FO(s): FO-BKT-001, FO-GUI-030
+- RN: RN-BKT-1.0.0-20261028, RN-GUI-1.38.0-20261028 (updated)
+- Artifacts updated: SRD (SRD-GUI-030.007–.009 added; SRD-BKT-001.008 reopened by user and Implemented), DD, UTCD, TRACE, Code, Tests, RN, CONTEXT, DEVLOG
+- Decisions: no 50-per-10-minute limiter (user); requests stay one at a time; panel Option D — one sentence + one button, Fill delta button removed, auto delta kept; an unsaved range is saved only via "Save range and download"; delta skips stocks already at the last session.
+- Findings: 3m 3-month request ≈ 25 s on TWS over a long run; 3 or 6 parallel requests all time out (no pacing error). ib_insync returns an empty list on its own 60 s timeout, which set false 3m floors for 502 stocks (fixed, floors cleaned from the user's state.json). Panel UP TO DATE looked only at 1d (fixed). Status bar and Universe BT From / BT To columns added on user request.
+
+---
+
+## [20261028] BKT + GUI — Backtest data store and Settings section (FO-BKT-001, FO-GUI-030)
+
+- Type: Feature
+- FO(s): FO-BKT-001, FO-GUI-030
+- RN: RN-BKT-1.0.0-20261028, RN-GUI-1.38.0-20261028
+- Artifacts updated: FO, SRD, DD, MD, UTCD, TRACE, Code, Tests, RN, CONTEXT, DEVLOG, TODO
+- Decisions: user picked Option A (single card), 1d + 3m (not 1m), Parquet in ~/.usswing/backtest/, ET only. Own client ID 16; delta min 2 D; auto delta one try per scheduled time; theme now styles QDateEdit.
+- Findings: TWS gives 20 Y 1d in one request and 3m back to 2006; 1 Y of 3m times out, 3 M takes ~4 s. Full 10 Y download ≈ 22k requests ≈ 3 days of TWS time. Real TWS run of the new downloader not done (TWS closed).
+
+---
+
 ## [20261027] GUI — Window grows past the screen when a right panel opens (ISS-GUI-0010, SRD-GUI-019.009)
 
 - Type: Bugfix

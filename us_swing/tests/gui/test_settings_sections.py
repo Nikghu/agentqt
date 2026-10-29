@@ -101,12 +101,30 @@ class _PlainTab(QWidget):
         pass
 
 
+class _PlainBacktest(_PlainTab):
+    state = "empty"
+
+    def __init__(self, *_a: Any) -> None:
+        super().__init__()
+        self.inputs: list[QWidget] = []
+
+    def save(self) -> None:
+        pass
+
+    def load(self) -> None:
+        pass
+
+    def defaults(self) -> None:
+        pass
+
+
 def test_section_click_shows_one_section(
     qapp: Any, svc: _StubService, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """UT-GUI-021.001.M01.T02: clicking a section in the list shows only that section."""
     for name in ("_UsersTab", "_UniverseTab", "_DataPanel"):
         monkeypatch.setattr(settings_panel, name, _PlainTab)
+    monkeypatch.setattr(settings_panel, "BacktestDataPanel", _PlainBacktest)
     panel = settings_panel.SettingsPanel(svc)  # type: ignore[arg-type]
     buttons = panel._nav_group.buttons()
     names = [b.text() for b in buttons]
@@ -119,25 +137,28 @@ def test_section_click_shows_one_section(
     assert not buttons[0].isChecked()
 
 
-def test_eight_sections_in_order(
+def test_sections_in_order(
     qapp: Any, svc: _StubService, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """UT-GUI-027.002.M04.T01: the dialog lists all eight sections in order."""
+    """UT-GUI-027.002.M04.T01 / UT-GUI-030.006.M03.T01: all sections in order, Backtest
+    data right after Candle data."""
     for name in ("_UsersTab", "_UniverseTab", "_DataPanel"):
         monkeypatch.setattr(settings_panel, name, _PlainTab)
+    monkeypatch.setattr(settings_panel, "BacktestDataPanel", _PlainBacktest)
     panel = settings_panel.SettingsPanel(svc)  # type: ignore[arg-type]
 
     names = [b.text() for b in panel._nav_group.buttons()]
 
     assert names == ["Users", "Risk", "Connection", "Scheduler", "Telegram", "Universe",
-                     "Candle data", "Appearance"]
-    assert panel._stack.count() == 8
+                     "Candle data", "Backtest data", "Appearance"]
+    assert panel._stack.count() == 9
 
 
 @pytest.fixture()
 def panel(svc: _StubService, monkeypatch: pytest.MonkeyPatch) -> settings_panel.SettingsPanel:
     for name in ("_UsersTab", "_UniverseTab", "_DataPanel"):
         monkeypatch.setattr(settings_panel, name, _PlainTab)
+    monkeypatch.setattr(settings_panel, "BacktestDataPanel", _PlainBacktest)
     return settings_panel.SettingsPanel(svc)  # type: ignore[arg-type]
 
 
@@ -250,3 +271,17 @@ def test_risk_save_keeps_other_fields(qapp: Any, svc: _StubService) -> None:
 
     assert svc.updated[0].telegram_chat_id == "12345"
     assert svc.updated[0].username == "trader"
+
+
+def test_universe_html_has_backtest_columns() -> None:
+    """UT-GUI-030.008.M03.T01: Universe table carries Backtest, BT From and BT To."""
+    from us_swing.universe.store import Sp500Record
+
+    rec = Sp500Record("AAPL", "AAPL", "Apple", "Tech")
+    html = settings_panel._build_universe_html(
+        [rec], {"AAPL": "2026-10-27"}, "2026-10-27",
+        {"AAPL": ("2026-01-02", "2026-10-27", "ok")},
+    )
+
+    assert "['BT From',       8,100]" in html
+    assert '"2026-01-02", "2026-10-27", "ok"' in html

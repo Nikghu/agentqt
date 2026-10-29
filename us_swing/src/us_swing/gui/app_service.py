@@ -52,6 +52,7 @@ the DB on resume to catch partial writes.
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 import datetime
 import enum
 import json
@@ -119,6 +120,11 @@ from us_swing.data.models import (
 )
 from us_swing.exceptions import BrokerConnectionError
 from us_swing.gui.system_store import SystemConfig, load_system_config
+from us_swing.backtest.downloader import BacktestDownloader
+from us_swing.backtest.planner import Job, plan
+from us_swing.backtest.schedule import delta_due
+from us_swing.backtest.settings import BacktestDataSettings, DownloadState
+from us_swing.backtest.store import BacktestStore
 from us_swing.gui.manual_picks_store import load_manual_picks, save_manual_picks
 from us_swing.gui.user_store import load_users, next_user_id, save_users
 from us_swing.gui.watchlist_store import MARKET_WATCH, load_watchlist, save_watchlist
@@ -1105,6 +1111,37 @@ class _CyclePositionSource:
         ]
 
 
+class _BacktestStatsWorker(QThread):
+    """Reads backtest store stats and the missing-request count off the GUI thread."""
+
+    done = pyqtSignal(object)   # BacktestStats
+
+    def __init__(
+        self,
+        store: BacktestStore,
+        build_plan: Callable[[], list[Job]] | None = None,
+        parent: QObject | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self._store = store
+        self._build_plan = build_plan
+
+    def run(self) -> None:
+        try:
+            stats = self._store.stats()
+            if self._build_plan is not None:
+                jobs = self._build_plan()
+                stats = dataclasses.replace(
+                    stats,
+                    missing_1d=sum(1 for j in jobs if j.tf == "1d"),
+                    missing_3m=sum(1 for j in jobs if j.tf == "3m"),
+                    short_stocks=len({j.symbol for j in jobs}),
+                )
+            self.done.emit(stats)
+        except Exception:  # noqa: BLE001
+            _log.exception("[Backtest] Could not read backtest data stats")
+
+
 # ── Application Service ───────────────────────────────────────────────────────
 
 class AppService(QObject):
@@ -1135,6 +1172,9 @@ class AppService(QObject):
     candle_download_paused    = pyqtSignal(str)            # reason (IBKR disconnect)
     candle_symbol_failed      = pyqtSignal(str, str)       # symbol, reason (per-symbol)
     candle_download_failures  = pyqtSignal(object)         # list[str] — full failed list at end
+    backtest_progress         = pyqtSignal(str, int, int, str)  # tf, done, total, symbol
+    backtest_finished         = pyqtSignal(bool, str)      # ok, message
+    backtest_stats_changed    = pyqtSignal(object)         # BacktestStats
     screener_results_updated  = pyqtSignal(list)           # list[FilteredStockEntry]
     intraday_load_progress    = pyqtSignal(str, int, int)  # symbol, done, total
     candle_readiness_updated  = pyqtSignal(dict)           # dict[str, bool | None]
@@ -1254,6 +1294,15 @@ class AppService(QObject):
         self._equity_timer.setInterval(60_000)
         self._equity_timer.timeout.connect(self._record_equity_snapshots)
         self._equity_timer.start()
+
+        # ── Backtest data (FO-GUI-030) — auto delta checked every minute ──────
+        self._bkt_store = BacktestStore()
+        self._bkt_downloader: BacktestDownloader | None = None
+        self._bkt_auto_tried: datetime.datetime | None = None
+        self._bkt_timer = QTimer(self)
+        self._bkt_timer.setInterval(60_000)
+        self._bkt_timer.timeout.connect(self._check_backtest_delta)
+        self._bkt_timer.start()
 
         self._start_notifications()
 
@@ -4422,3 +4471,119 @@ class AppService(QObject):
             self.log_message.emit(
                 "WARNING", f"[CandleDB] Download failed — {reason}"
             )
+
+    # ── Backtest data (FO-BKT-001 / FO-GUI-030) ───────────────────────────────
+
+    def is_backtest_running(self) -> bool:
+        """True while a backtest download or delta fill runs."""
+        return self._bkt_downloader is not None
+
+    def start_backtest_download(self) -> bool:
+        """Start (or continue) the full backtest download; False when it cannot start."""
+        return self._start_backtest(delta=False)
+
+    def fill_backtest_delta(self) -> bool:
+        """Download only the days since each stock's last saved bar."""
+        return self._start_backtest(delta=True)
+
+    def stop_backtest_download(self) -> None:
+        """Pause the running download after its current request."""
+        if self._bkt_downloader is not None:
+            self._bkt_downloader.request_stop()
+            self.log_message.emit("INFO", "[Backtest] Pausing after the current request")
+
+    def shutdown_backtest_download(self) -> None:
+        """Stop the download on app exit, waiting up to 10 s for the current request."""
+        dl = self._bkt_downloader
+        if dl is not None:
+            dl.request_stop()
+            dl.wait(10_000)
+
+    def clear_backtest_data(self) -> bool:
+        """Delete saved backtest candles and state; refused while a download runs."""
+        if self.is_backtest_running():
+            self.log_message.emit("WARNING", "[Backtest] Pause the download before clearing data")
+            return False
+        self._bkt_store.clear()
+        self.log_message.emit("INFO", "[Backtest] Backtest data cleared — settings kept")
+        self.refresh_backtest_stats()
+        return True
+
+    def get_backtest_symbol_coverage(self) -> dict[str, tuple[str | None, str | None, str]]:
+        """Per S&P 500 symbol: backtest first date, last date and status (SRD-GUI-030.008).
+
+        Dates come from 3m data when saved, else 1d. Status is ``ok``, ``behind``,
+        ``1d`` (no 3m yet) or ``none``.
+        """
+        store = self._bkt_store
+        end = BacktestDataSettings.load(store.root).end_date or _compute_last_trading_day()
+        out: dict[str, tuple[str | None, str | None, str]] = {}
+        for rec in self._sp500:
+            cov_3m = store.coverage(rec.ibkr_symbol, "3m")
+            cov = cov_3m or store.coverage(rec.ibkr_symbol, "1d")
+            if cov is None:
+                out[rec.symbol] = (None, None, "none")
+                continue
+            status = "1d" if cov_3m is None else "behind" if cov[1] < end else "ok"
+            out[rec.symbol] = (cov[0].isoformat(), cov[1].isoformat(), status)
+        return out
+
+    def refresh_backtest_stats(self) -> None:
+        """Read store stats in the background; emits ``backtest_stats_changed``."""
+        symbols = [r.ibkr_symbol for r in self._sp500]
+        build = self._backtest_plan(symbols, delta=False) if symbols else None
+        worker = _BacktestStatsWorker(self._bkt_store, build, parent=self)
+        worker.done.connect(self.backtest_stats_changed)
+        worker.finished.connect(worker.deleteLater)
+        worker.start()
+
+    def _start_backtest(self, *, delta: bool) -> bool:
+        symbols = [r.ibkr_symbol for r in self._sp500]
+        if self.is_backtest_running():
+            return False
+        if not symbols:
+            self.log_message.emit("WARNING", "[Backtest] S&P 500 list not loaded yet — try again")
+            return False
+        store = self._bkt_store
+        cfg = self._system_cfg
+        dl = BacktestDownloader(
+            self._backtest_plan(symbols, delta=delta), store, host=cfg.ibkr_host, port=cfg.ibkr_port,
+            client_id=cfg.ibkr_backtest_client_id, delta=delta, parent=self,
+        )
+        dl.progress.connect(self.backtest_progress)
+        dl.completed.connect(self._on_backtest_completed)
+        dl.finished.connect(dl.deleteLater)
+        self._bkt_downloader = dl
+        dl.start()
+        what = "Delta fill" if delta else "Download"
+        self.log_message.emit("INFO", f"[Backtest] {what} started for {len(symbols)} stock(s)")
+        return True
+
+    def _backtest_plan(self, symbols: list[str], *, delta: bool) -> Callable[[], list[Job]]:
+        store = self._bkt_store
+        settings = BacktestDataSettings.load(store.root)
+
+        def build_plan() -> list[Job]:
+            floors = DownloadState.load(store.root).floors
+            return plan(symbols, settings, store.coverage, floors,
+                        _compute_last_trading_day(), delta)
+
+        return build_plan
+
+    def _on_backtest_completed(self, ok: bool, message: str) -> None:
+        self._bkt_downloader = None
+        self.backtest_finished.emit(ok, message)
+        self.refresh_backtest_stats()
+
+    def _check_backtest_delta(self) -> None:
+        """Start the auto delta when due — at most one try per scheduled time (SRD-BKT-001.009)."""
+        if self.is_backtest_running() or self._connection_status is not ConnectionStatus.CONNECTED:
+            return
+        root = self._bkt_store.root
+        last = DownloadState.load(root).last_delta
+        tried = self._bkt_auto_tried
+        if tried is not None and (last is None or tried > last):
+            last = tried
+        now = datetime.datetime.now(datetime.timezone.utc)
+        if delta_due(BacktestDataSettings.load(root), last, now) and self.fill_backtest_delta():
+            self._bkt_auto_tried = now
