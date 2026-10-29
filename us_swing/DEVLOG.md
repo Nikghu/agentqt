@@ -2,6 +2,17 @@
 
 ---
 
+## [20261029] BKT + GUI — Backtest engine plan; 15m and 1w built from 3m and 1d (FO-BKT-001, FO-GUI-030)
+
+- Type: Enhancement + Planning
+- FO(s): FO-BKT-001, FO-GUI-030 (engine: FO-BKT-002 / FO-GUI-031 not written yet)
+- RN: RN-BKT-1.1.0-20261029, RN-GUI-1.38.1-20261029
+- Artifacts updated: FO (one shall-statement), SRD (SRD-BKT-001.012–.014, SRD-GUI-030.010, approved by user), DD, MD, UTCD, TRACE, Code, Tests, RN, Engine_plan.md (new), TODO T61, CONTEXT, DEVLOG
+- Decisions (user): engine design https://claude.ai/artifact/EKKhu8pb3KSLYpXqpbsQrm — 4 cached steps (Stocks, Signals, Portfolio, Report); one shared account; top N + first signal / highest score; AI ranking tick off by default; intraday and swing; money rules same as live (capital × allocation % × per-trade %, strategy limit, margin) with any value allowed; live strategies read directly; backend + GUI per step; MCP last. Plan and status tracker in docs/backtest/Engine_plan.md.
+- Findings: real AAPL copy gives 26 15m bars per day (14 on half-days) and 52 weeks; build takes 0.12 s per stock.
+
+---
+
 ## [20261029] BKT + GUI — Backtest download fixes from real TWS testing and Option D panel (FO-BKT-001, FO-GUI-030)
 
 - Type: Bugfix + Enhancement
