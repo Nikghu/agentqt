@@ -49,6 +49,7 @@ _SECONDS_1D = 1.0   # measured on TWS: one 1d request per stock
 _SECONDS_3M = 25.0  # measured on TWS: one 3-month 3m request (parallel requests time out)
 _SECONDS = {"1d": _SECONDS_1D, "3m": _SECONDS_3M}
 _EMPTY = BacktestStats(0, 0, 0, None, None, 0, None)
+_BUILT_NOTE = "15-minute and weekly candles are built from these"
 
 
 def _qdate(day: datetime.date) -> QDate:
@@ -82,7 +83,7 @@ def _coverage(stats: BacktestStats) -> str:
         parts.append(f"Daily {_day(stats.first)} – {_day(stats.last)}")
     if stats.first_3m:
         parts.append(f"3-minute from {_day(stats.first_3m)}")
-    return " · ".join(parts)
+    return f"{' · '.join(parts)}\n{_BUILT_NOTE}" if parts else ""
 
 
 def _size(n: int) -> str:

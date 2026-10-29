@@ -90,7 +90,9 @@ def test_status_from_stats(make: Any) -> None:
     svc.backtest_stats_changed.emit(_stats())
 
     assert panel._headline.text() == "All candles saved"
-    assert panel._detail.text() == "Daily Jan 4, 2016 – Oct 27, 2026"
+    assert panel._detail.text() == (
+        "Daily Jan 4, 2016 – Oct 27, 2026\n15-minute and weekly candles are built from these"
+    )
     assert panel._facts.text() == "503 stocks · 3.9 GB"
     assert panel._start_btn.text() == "Up to date"
     assert not panel._start_btn.isEnabled()
@@ -256,7 +258,7 @@ def test_short_3m_shows_behind(make: Any, tmp_path: Path) -> None:
 
     assert panel.state == "behind"
     assert panel._headline.text() == "3-minute candles missing for 503 stocks"
-    assert panel._detail.text().endswith("· 3-minute from Jan 2, 2026")
+    assert panel._detail.text().splitlines()[0].endswith("· 3-minute from Jan 2, 2026")
     assert panel._info.text() == "498 requests · about 3 h 27 min"
     assert panel._start_btn.text() == "Download missing"
     assert panel._start_btn.isEnabled()

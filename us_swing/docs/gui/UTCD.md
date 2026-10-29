@@ -807,7 +807,7 @@ Test files:
 | UT ID | MD | Type | Description | Input | Expected | Status |
 |---|---|---|---|---|---|---|
 | UT-GUI-030.006.M03.T01 | MD-GUI-030.006.M03 | Positive | Section sits after Candle data | build `SettingsPanel` | "Backtest data" is the name right after "Candle data" | Pass |
-| UT-GUI-030.001.M01.T01 | MD-GUI-030.001.M01 | Positive | Status from stats | fake stats 503 stocks, nothing missing | "All candles saved"; coverage line; "503 stocks · 3.9 GB"; button Up to date, disabled | Pass |
+| UT-GUI-030.001.M01.T01 | MD-GUI-030.001.M01 | Positive | Status from stats | fake stats 503 stocks, nothing missing | "All candles saved"; coverage line plus the 15-minute and weekly note (SRD .010); "503 stocks · 3.9 GB"; button Up to date, disabled | Pass |
 | UT-GUI-030.001.M01.T03 | MD-GUI-030.001.M01 | Negative | Empty store | stats with 0 stocks | "No backtest candles yet"; range estimate shown; button Download | Pass |
 | UT-GUI-030.001.M01.T02 | MD-GUI-030.001.M01 | Positive | Progress updates | progress 3m 191 of 503 (no click, as from auto delta) | running; bar 38%; "191 of 503 · AAPL · about 2 h 10 min left"; Done around; Pause | Pass |
 | UT-GUI-030.002.M01.T01 | MD-GUI-030.001.M01 | Positive | Load and save settings | saved start 2018-01-01, latest on | fields filled; End date disabled; save writes same values | Pass |

@@ -1,6 +1,8 @@
 """Tests for MD-BKT-001.001.M01 — backtest/store.py."""
 from __future__ import annotations
 
+import os
+import shutil
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -127,6 +129,8 @@ def test_clear_keeps_settings(tmp_path: Path) -> None:
 
     assert not (tmp_path / "1d").exists()
     assert not (tmp_path / "3m").exists()
+    assert not (tmp_path / "15m").exists()
+    assert not (tmp_path / "1w").exists()
     assert not (tmp_path / "state.json").exists()
     assert BacktestDataSettings.load(tmp_path).auto_delta is False
     assert (tmp_path / "candles.db").read_bytes() == b"db"
@@ -187,3 +191,112 @@ def test_stats_first_3m_skips_listed_later(tmp_path: Path) -> None:
 
     assert store.stats().first_3m == date(2025, 1, 2)
     assert BacktestStore(tmp_path / "none").stats().first_3m is None
+
+
+def _session_3m(day: str) -> pd.DataFrame:
+    """130 3m bars for one regular session (09:30–15:57 ET); close rises by 1 per bar."""
+    ts = pd.date_range(f"{day} 09:30", f"{day} 15:57", freq="3min", tz=_ET)
+    n = len(ts)
+    close = [100.0 + i for i in range(n)]
+    return pd.DataFrame({
+        "ts": ts,
+        "open": [c - 0.5 for c in close],
+        "high": [c + 2 for c in close],
+        "low": [c - 2 for c in close],
+        "close": close,
+        "volume": [10.0] * n,
+    })
+
+
+def test_15m_built_on_3m_save(tmp_path: Path) -> None:
+    """UT-BKT-001.012.M01.T01: A 3m save builds 26 15m bars per session from 5 bars each."""
+    store = BacktestStore(tmp_path)
+
+    store.save("AAPL", "3m", _session_3m("2026-03-04"), _LATE)
+
+    out = store.read("AAPL", "15m")
+    assert len(out) == 26
+    first = out.iloc[0]
+    assert first["ts"].tz_convert(_ET).strftime("%H:%M") == "09:30"
+    assert out.iloc[-1]["ts"].tz_convert(_ET).strftime("%H:%M") == "15:45"
+    assert (first["open"], first["high"], first["low"], first["close"], first["volume"]) == (
+        99.5, 106.0, 98.0, 104.0, 50.0,
+    )
+    assert store.coverage("AAPL", "15m") == (date(2026, 3, 4), date(2026, 3, 4))
+
+
+def test_15m_summer_time_and_gaps(tmp_path: Path) -> None:
+    """UT-BKT-001.012.M01.T02: Buckets start 09:30 ET in summer and winter; gaps still group."""
+    store = BacktestStore(tmp_path)
+    winter = _session_3m("2026-01-05")
+    summer = _session_3m("2026-07-06").drop(index=[1, 2])
+
+    store.save("AAPL", "3m", pd.concat([winter, summer], ignore_index=True), _LATE)
+
+    out = store.read("AAPL", "15m")
+    starts = out["ts"].dt.tz_convert(_ET).dt.strftime("%H:%M")
+    assert len(out) == 52
+    assert set(starts[starts.str.startswith("09")]) == {"09:30", "09:45"}
+    assert out.iloc[26]["volume"] == 30.0
+
+
+def test_1w_built_on_1d_save(tmp_path: Path) -> None:
+    """UT-BKT-001.013.M01.T01: A 1d save builds Monday-dated weeks; a holiday week has 4 days."""
+    store = BacktestStore(tmp_path)
+    days = ["2025-11-17", "2025-11-18", "2025-11-19", "2025-11-20", "2025-11-21",
+            "2025-11-24", "2025-11-25", "2025-11-26", "2025-11-28"]
+    df = _bars(days, tz=None)
+    df["close"] = [float(i) for i in range(len(days))]
+    df["high"] = df["close"] + 1
+
+    store.save("AAPL", "1d", df, _LATE)
+
+    weeks = store.read("AAPL", "1w")
+    assert list(weeks["ts"].dt.date) == [date(2025, 11, 17), date(2025, 11, 24)]
+    assert list(weeks["days"]) == [5, 4]
+    assert list(weeks["close"]) == [4.0, 8.0]
+    assert list(weeks["high"]) == [5.0, 9.0]
+    assert list(weeks["volume"]) == [5000.0, 4000.0]
+
+
+def test_1w_current_week_grows(tmp_path: Path) -> None:
+    """UT-BKT-001.013.M01.T02: An unfinished week shows its day count and grows on the next save."""
+    store = BacktestStore(tmp_path)
+    store.save("AAPL", "1d", _bars(["2026-10-26", "2026-10-27"], tz=None), _LATE)
+    assert list(store.read("AAPL", "1w")["days"]) == [2]
+
+    store.save("AAPL", "1d", _bars(["2026-10-28"], close=12.0, tz=None), _LATE)
+
+    weeks = store.read("AAPL", "1w")
+    assert list(weeks["days"]) == [3]
+    assert weeks.iloc[0]["close"] == 12.0
+
+
+def test_build_missing_for_old_data(tmp_path: Path) -> None:
+    """UT-BKT-001.014.M01.T01: Stocks saved before 15m/1w existed get them built once."""
+    store = BacktestStore(tmp_path)
+    store.save("AAPL", "3m", _session_3m("2026-03-04"), _LATE)
+    store.save("AAPL", "1d", _bars(["2026-03-04"], tz=None), _LATE)
+    store.save("MSFT", "1d", _bars(["2026-03-04"], tz=None), _LATE)
+    shutil.rmtree(tmp_path / "15m")
+    shutil.rmtree(tmp_path / "1w")
+
+    assert store.build_missing() == 2
+    assert len(store.read("AAPL", "15m")) == 26
+    assert len(store.read("MSFT", "1w")) == 1
+    assert store.build_missing() == 0
+
+
+def test_build_missing_rebuilds_stale_only(tmp_path: Path) -> None:
+    """UT-BKT-001.014.M01.T02: Only a 15m file older than its 3m source is rebuilt."""
+    store = BacktestStore(tmp_path)
+    store.save("AAPL", "3m", _session_3m("2026-03-04"), _LATE)
+    store.save("MSFT", "3m", _session_3m("2026-03-04"), _LATE)
+    built = tmp_path / "15m" / "AAPL" / "2026.parquet"
+    old = built.stat().st_mtime - 60
+    os.utime(built, (old, old))
+    msft_before = (tmp_path / "15m" / "MSFT" / "2026.parquet").stat().st_mtime
+
+    assert store.build_missing() == 1
+    assert built.stat().st_mtime > old
+    assert (tmp_path / "15m" / "MSFT" / "2026.parquet").stat().st_mtime == msft_before

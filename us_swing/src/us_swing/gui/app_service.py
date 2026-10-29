@@ -1112,7 +1112,8 @@ class _CyclePositionSource:
 
 
 class _BacktestStatsWorker(QThread):
-    """Reads backtest store stats and the missing-request count off the GUI thread."""
+    """Builds missing 15m/1w files, then reads store stats and the missing-request count
+    off the GUI thread."""
 
     done = pyqtSignal(object)   # BacktestStats
 
@@ -1128,6 +1129,9 @@ class _BacktestStatsWorker(QThread):
 
     def run(self) -> None:
         try:
+            built = self._store.build_missing()
+            if built:
+                _log.info("[Backtest] Built 15-minute and weekly candles for %d stock(s)", built)
             stats = self._store.stats()
             if self._build_plan is not None:
                 jobs = self._build_plan()
