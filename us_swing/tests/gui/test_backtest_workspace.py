@@ -300,17 +300,18 @@ def test_session_and_data_day_shown(workspace: BacktestWorkspace, qtbot: Any) ->
 
 def _tick_strategy(ws: BacktestWorkspace, index: int) -> None:
     ws.refresh_strategies()
-    item = ws.builder._strategies.item(index)
+    item = ws.builder._strategies.item(index, 0)
     assert item is not None
     item.setCheckState(Qt.CheckState.Checked)
 
 
 def test_strategies_list(workspace: BacktestWorkspace) -> None:
-    """UT-GUI-031.020.M02.T01: Strategy rows show money split; ticked ones go in the plan."""
+    """UT-GUI-031.020.M02.T01 / UT-GUI-031.073.M02.T01: Table shows the money split;
+    ticked rows go in the plan."""
     _tick_strategy(workspace, 0)
-    lst = workspace.builder._strategies
+    table = workspace.builder._strategies
 
-    assert lst.item(0).text() == "ST_A · 50% · 100% per trade"  # type: ignore[union-attr]
+    assert [table.item(0, c).text() for c in (1, 2, 3)] == ["ST_A", "50", "100"]  # type: ignore[union-attr]
     specs = workspace.builder.plan().strategies
     assert [(s.id, s.allocation_pct, s.per_trade_pct) for s in specs] == [
         ("ST_A", (50.0,), (100.0,))]
@@ -524,7 +525,7 @@ def test_saved_lists_tick(workspace: BacktestWorkspace) -> None:
     assert builder._saved_count.text() == "No saved lists for this preset"
 
     builder._preset.setCurrentIndex(builder._preset.findData("p1"))
-    builder._saved.setChecked(True)
+    builder._source.buttons[1].click()
 
     assert builder.plan().screener.recorded
     assert builder._saved_count.text() == "2 saved days · 2026-05-01 → 2026-10-29"
@@ -545,6 +546,6 @@ def test_quick_test(workspace: BacktestWorkspace) -> None:
     assert (plan.screener.preset_id, plan.screener.recorded) == ("p1", True)
     assert plan.universe.mode == "sp500"
     assert (plan.period.start, plan.period.end) == (date(2026, 5, 1), date(2026, 10, 29))
-    workspace.builder._saved.setChecked(False)
+    workspace.builder._source.buttons[0].click()
     workspace.quick_test("p2")  # no saved lists: nothing changes
     assert not workspace.builder.plan().screener.recorded

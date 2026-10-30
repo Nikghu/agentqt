@@ -894,3 +894,11 @@ Test files:
 | UT-GUI-031.060.M02.T01 | MD-GUI-031.002.M02 | Positive | Saved lists tick | preset without, then with saved days | message; count and range; plan recorded | Pass |
 | UT-GUI-031.060.M03.T01 | MD-GUI-031.003.M03 | Positive | Data check text | recorded estimate 7 of 20 | saved screener lists for 7 of 20 sessions | Pass |
 | UT-GUI-031.061.M03.T01 | MD-GUI-031.003.M03 | Positive | Quick test | preset with saved days; then without | S&P 500, preset, tick, dates; nothing for none | Pass |
+| UT-GUI-031.070.M03.T01 | MD-GUI-031.003.M03 | Positive | Plan line and Edit setup | open screen; click Edit setup | builder hidden; plan line; window shown | Pass |
+| UT-GUI-031.071.M10.T01 | MD-GUI-031.071.M10 | Edge | Section marks | none; missing candles and two errors | all ✓; Stocks, Screener, Account ! | Pass |
+| UT-GUI-031.071.M10.T02 | MD-GUI-031.071.M10 | Positive | Menu values | estimate with a missing stock; capital change | 5 items; Stocks !; screener and account values update | Pass |
+| UT-GUI-031.072.M02.T01 | MD-GUI-031.002.M02 | Positive | Pages and rows | builder; Sectors mode | 5 pages; Sectors row hidden then shown | Pass |
+| UT-GUI-031.073.M02.T01 | MD-GUI-031.002.M02 | Positive | Strategy table | tick first row | Strategy, 50, 100; plan has ST_A | Pass |
+| UT-GUI-031.074.M02.T01 | MD-GUI-031.002.M02 | Positive | Plan round trip | plan with sector, saved lists, strategy, capital | same plan after load | Pass |
+| UT-GUI-031.074.M10.T01 | MD-GUI-031.071.M10 | Negative | Cancel and Save | change name, Cancel; change, Save | old name back; new name kept | Pass |
+| UT-GUI-031.074.M03.T01 | MD-GUI-031.003.M03 | Positive | Run from window | Run in footer | window closed; run done | Pass |

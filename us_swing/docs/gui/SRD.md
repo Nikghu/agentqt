@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.55.0: SRD-GUI-031.070–.074 added; approved by user 2026-10-30 — Backtest setup window, option C1.
 > v2.54.0: SRD-GUI-031.046–.048 (Phase 4b) and .060–.061 (Phase 5) added; approved by user 2026-10-30.
 > v2.53.0: SRD-GUI-031.050–.055 added; approved by user 2026-10-30 — Backtest redesign, Dock Panels (option C).
 > v2.52.0: SRD-GUI-031.001–.004, .010–.012 added; approved by user 2026-10-29 — Backtest workspace.
@@ -561,3 +562,13 @@
 | SRD-GUI-031.055 | FO-GUI-031 | Must | Reports: a saved runs table; open a run into the other two sections, rename it, add a note or delete it. | results store | sections filled | No re-run of Step 3; Steps 1–2 from the step cache; delete asks to confirm | Implemented |
 | SRD-GUI-031.060 | FO-GUI-031 | Must | The builder Screener group has a "Use saved screener lists" tick that shows how many saved days the preset has. | preset | plan field | SRD-BKT-002.080 | Implemented |
 | SRD-GUI-031.061 | FO-GUI-031 | Should | The Screener screen has a Quick test button that opens Backtest with that preset and saved lists ticked. | click | Backtest screen | — | Implemented |
+
+### Setup window (Draft, design https://claude.ai/artifact/974y5KaeuTj5YP4QYSezaB option C1)
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-031.070 | FO-GUI-031 | Must | The left builder is removed; under the step strip a one-line plan summary shows with Edit setup and Run, and the results use the full width. | plan | summary chips | User picked C1 2026-10-30 | Implemented |
+| SRD-GUI-031.071 | FO-GUI-031 | Must | Edit setup opens a frameless Backtest setup window with a side menu (Run, Stocks, Screener, Strategies, Account); each item shows its current value and a ✓ or ! status. | click | window | ! when candles are missing or the section has an error | Implemented |
+| SRD-GUI-031.072 | FO-GUI-031 | Must | Each section shows titled cards with one help line, and rows with the label on the left and the control on the right. | plan | form | Same fields as today's builder | Implemented |
+| SRD-GUI-031.073 | FO-GUI-031 | Must | Screener source is a choice of Replay the screener or Saved lists; Strategies is a table of Use, Strategy, Allocation % and Per trade %. | presets, strategies | plan fields | Allocation and per-trade % shown from the live strategy, not edited | Implemented |
+| SRD-GUI-031.074 | FO-GUI-031 | Must | The window footer shows the data check line with Cancel, Save and Run; Run saves the plan, closes the window and starts the run. | click | plan, run | Cancel keeps the old plan | Implemented |

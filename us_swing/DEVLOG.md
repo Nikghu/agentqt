@@ -2,6 +2,15 @@
 
 ---
 
+## [20261030] GUI — Backtest setup window, option C1 (FO-GUI-031)
+
+- Type: Feature
+- RN: RN-GUI-1.49.0-20261030
+- Artifacts updated: SRD (SRD-GUI-031.070–.074 approved and Implemented), MD (MD-GUI-031.071.M10 + builder note), UTCD (8 Pass), TRACE, Code, Tests, RN, TODO T72, CONTEXT, DEVLOG
+- Decisions (user 2026-10-30): setup in its own window (option C, inner layout C1 cards); allocation and per-trade % shown, not edited.
+
+---
+
 ## [20261030] BKT + GUI — Backtest Phase 5 · saved screener lists and Quick test (FO-BKT-002, FO-GUI-031)
 
 - Type: Feature

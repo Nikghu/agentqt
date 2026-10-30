@@ -2,10 +2,11 @@
 Module: MD-GUI-031.003.M03 — Backtest workspace
 Parent SRD: SRD-GUI-031.003, SRD-GUI-031.004, SRD-GUI-031.011, SRD-GUI-031.012,
             SRD-GUI-031.021, SRD-GUI-031.022, SRD-GUI-031.023, SRD-GUI-031.031–.034,
-            SRD-GUI-031.040, SRD-GUI-031.044, SRD-GUI-031.046, SRD-GUI-031.050–.055, SRD-GUI-031.060–.061
+            SRD-GUI-031.040, SRD-GUI-031.044, SRD-GUI-031.046, SRD-GUI-031.050–.055, SRD-GUI-031.060–.061,
+            SRD-GUI-031.070–.074
 
-Builder on the left; step strip, data check and the Trade Inspector and Detail
-Report sections on the right.
+Step strip, plan line (Edit setup opens the setup window), data check, and the
+Trade Inspector, Detail Report and Reports sections at full width.
 Estimates and runs go to ``BacktestService`` in worker threads.
 """
 from __future__ import annotations
@@ -15,7 +16,7 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
-from PyQt6.QtCore import QSettings, Qt, QThread, QTimer, pyqtSignal
+from PyQt6.QtCore import QSettings, QThread, QTimer, pyqtSignal
 from PyQt6.QtGui import QShowEvent
 from PyQt6.QtWidgets import (
     QAbstractItemView,
@@ -44,6 +45,7 @@ from us_swing.data.models import ConnectionStatus
 from us_swing.gui.backtest_builder import BacktestBuilder
 from us_swing.gui.backtest_dock import DockSection, PanelSpec
 from us_swing.gui.backtest_report_view import ReportView, RiskFacts
+from us_swing.gui.backtest_setup import BacktestSetupDialog
 from us_swing.gui.backtest_reports import ReportsView
 from us_swing.gui.backtest_trade_chart import TradeChart
 from us_swing.gui.backtest_trade_list import TradeList
@@ -264,14 +266,9 @@ class BacktestWorkspace(QWidget):
         main = QHBoxLayout(self)
         main.setContentsMargins(0, 0, 0, 0)
         main.setSpacing(GAP)
-        self.builder = BacktestBuilder()
-        scroll = QScrollArea()
-        scroll.setWidget(self.builder)
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        scroll.setFixedWidth(self.builder.width() + 14)
-        main.addWidget(card(scroll))
+        self.builder = BacktestBuilder(self)
+        self.builder.hide()
+        self.setup = BacktestSetupDialog(self.builder, self)
         right = QVBoxLayout()
         right.setSpacing(GAP)
         right.addWidget(card(self._build_header()))
@@ -288,6 +285,10 @@ class BacktestWorkspace(QWidget):
         self.builder.changed.connect(self._render_days)
         # builder → changed → saved screener list count (SRD-GUI-031.060)
         self.builder.changed.connect(self._show_saved_days)
+        # builder → changed → plan line under the step strip (SRD-GUI-031.070)
+        self.builder.changed.connect(self._render_plan_line)
+        # setup window → run_requested → Run (SRD-GUI-031.074)
+        self.setup.run_requested.connect(self._on_setup_run)
         svc.sp500_updated.connect(self._load_universe)
         svc.backtest_finished.connect(lambda _ok, _msg: self._timer.start())
         svc.feed_status_changed.connect(lambda _s: self._render_buttons())
@@ -319,6 +320,17 @@ class BacktestWorkspace(QWidget):
             self.set_step(len(self.pills) - 1, "waiting")
         strip.addStretch()
         body.addLayout(strip)
+        plan_row = QHBoxLayout()
+        plan_row.setSpacing(8)
+        self.plan_label = QLabel("")
+        self.plan_label.setObjectName("data_summary")
+        self.plan_label.setWordWrap(True)
+        self.edit_btn = QPushButton("Edit setup")
+        set_icon(self.edit_btn, "pencil")
+        self.edit_btn.clicked.connect(lambda: self.setup.open_at())
+        plan_row.addWidget(self.plan_label, 1)
+        plan_row.addWidget(self.edit_btn)
+        body.addLayout(plan_row)
         row = QHBoxLayout()
         row.setSpacing(8)
         self.check_label = QLabel("Checking data…")
@@ -336,7 +348,12 @@ class BacktestWorkspace(QWidget):
         row.addWidget(self.run_btn)
         body.addLayout(row)
         self._render_buttons()
+        self._render_plan_line()
         return box
+
+    def _render_plan_line(self) -> None:
+        """One line with each setup section's value (SRD-GUI-031.070)."""
+        self.plan_label.setText("  ·  ".join(self.builder.summaries().values()))
 
     def _build_views(self) -> QWidget:
         self.tabs = QTabWidget()
@@ -510,6 +527,8 @@ class BacktestWorkspace(QWidget):
         self.download_btn.setToolTip("" if connected else "Connect TWS to download")
         if self._runner is None:
             self.run_btn.setEnabled(est is not None and not est.errors)
+        self.setup.set_check(self.check_label.text(), est,
+                             self._runner is None and self.run_btn.isEnabled())
 
     def _on_download(self) -> None:
         if self._svc.start_backtest_download():
@@ -543,6 +562,10 @@ class BacktestWorkspace(QWidget):
             return
         self._top_n = None
         self._start(_RunWorker(self._service, self.builder.plan(), self._user_id(), self))
+
+    def _on_setup_run(self) -> None:
+        if self._runner is None and self.run_btn.isEnabled():
+            self._on_run_clicked()
 
     def _show_saved_days(self) -> None:
         pid = self.builder.preset_id

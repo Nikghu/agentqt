@@ -1,8 +1,10 @@
 """
 Module: MD-GUI-031.002.M02 — Backtest builder
-Parent SRD: SRD-GUI-031.002, SRD-GUI-031.010, SRD-GUI-031.020, SRD-GUI-031.030
+Parent SRD: SRD-GUI-031.002, SRD-GUI-031.010, SRD-GUI-031.020, SRD-GUI-031.030,
+            SRD-GUI-031.060, SRD-GUI-031.072, SRD-GUI-031.073
 
-Left builder of the Backtest workspace. It only reads fields into a
+Run plan fields, laid out as five setup pages (Run, Stocks, Screener, Strategies,
+Account) of titled cards for the setup window. It only reads fields into a
 ``RunPlan``; estimating and running live in ``backtest.service``.
 """
 from __future__ import annotations
@@ -14,16 +16,20 @@ from typing import Any
 
 from PyQt6.QtCore import QDate, Qt, pyqtSignal
 from PyQt6.QtWidgets import (
+    QAbstractItemView,
     QCheckBox,
     QComboBox,
     QDateEdit,
     QDoubleSpinBox,
-    QHBoxLayout,
+    QFrame,
+    QGridLayout,
     QLabel,
     QLineEdit,
     QListWidget,
     QListWidgetItem,
     QSpinBox,
+    QTableWidget,
+    QTableWidgetItem,
     QVBoxLayout,
     QWidget,
 )
@@ -41,22 +47,24 @@ from us_swing.backtest.universe import UniverseRecord
 from us_swing.core.backtest_bridge import PresetInfo
 from us_swing.gui.screener_views import ChipGroup
 
-_WIDTH = 300
+SECTIONS = (("run", "Run"), ("stocks", "Stocks"), ("screener", "Screener"),
+            ("strategies", "Strategies"), ("account", "Account"))
 _MAX_TOP_N = 50
+_LABEL_W = 160
+_FIELD_W = 140
+_MODE_TEXT = {"sp500": "S&P 500", "sector": "Sectors", "names": "Names"}
 
 
 def _pydate(day: QDate) -> datetime.date:
     return datetime.date(day.year(), day.month(), day.day())
 
 
+def _qdate(day: datetime.date) -> QDate:
+    return QDate(day.year, day.month, day.day)
+
+
 def _names(text: str) -> tuple[str, ...]:
     return tuple(dict.fromkeys(n.upper() for n in re.split(r"[\s,]+", text) if n))
-
-
-def _group_label(title: str) -> QLabel:
-    label = QLabel(title)
-    label.setObjectName("panel_group")
-    return label
 
 
 def _key_label(text: str) -> QLabel:
@@ -65,50 +73,110 @@ def _key_label(text: str) -> QLabel:
     return label
 
 
+def card(title: str, help_text: str, rows: Sequence[tuple[str | None, QWidget]]) -> QFrame:
+    """Titled card with one help line and label-left / control-right rows (SRD-GUI-031.072).
+
+    A row whose label is ``None`` spans the whole card width.
+    """
+    frame = QFrame()
+    frame.setObjectName("settings_card")
+    body = QVBoxLayout(frame)
+    body.setContentsMargins(12, 10, 12, 12)
+    body.setSpacing(4)
+    head = QLabel(title)
+    head.setObjectName("data_summary")
+    body.addWidget(head)
+    if help_text:
+        body.addWidget(_key_label(help_text))
+    grid = QGridLayout()
+    grid.setContentsMargins(0, 6, 0, 0)
+    grid.setHorizontalSpacing(12)
+    grid.setVerticalSpacing(8)
+    grid.setColumnMinimumWidth(0, _LABEL_W)
+    grid.setColumnStretch(1, 1)
+    for row, (label, field) in enumerate(rows):
+        if label is None:
+            grid.addWidget(field, row, 0, 1, 2)
+            continue
+        key = _key_label(label)
+        key.setFixedWidth(_LABEL_W)
+        grid.addWidget(key, row, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        grid.addWidget(field, row, 1, Qt.AlignmentFlag.AlignLeft)
+        field.setProperty("row_label", key)
+    body.addLayout(grid)
+    return frame
+
+
+def _page(*cards: QFrame) -> QWidget:
+    page = QWidget()
+    body = QVBoxLayout(page)
+    body.setContentsMargins(0, 0, 0, 0)
+    body.setSpacing(10)
+    for c in cards:
+        body.addWidget(c)
+    body.addStretch()
+    return page
+
+
+def _show_row(field: QWidget, shown: bool) -> None:
+    field.setVisible(shown)
+    label = field.property("row_label")
+    if isinstance(label, QLabel):
+        label.setVisible(shown)
+
+
 class BacktestBuilder(QWidget):
-    """SRD-GUI-031.002 / .010 — run plan fields; ``changed`` fires on every edit."""
+    """SRD-GUI-031.002 / .010 / .072 — run plan fields; ``changed`` fires on every edit.
+
+    ``pages`` holds one page per section for the setup window.
+    """
 
     changed = pyqtSignal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.setFixedWidth(_WIDTH)
-        body = QVBoxLayout(self)
-        body.setContentsMargins(14, 14, 14, 14)
-        body.setSpacing(8)
-
         self._name = QLineEdit("Backtest")
+        self._name.setFixedWidth(260)
         self._start = self._date_edit()
         self._end = self._date_edit()
         today = QDate.currentDate()
         self._end.setDate(today)
         self._start.setDate(today.addYears(-1))
         self._mode = ChipGroup([("S&&P 500", "sp500"), ("Sectors", "sector"), ("Names", "names")])
+        self._mode.setFixedWidth(300)
         self._sectors = QListWidget()
         self._sectors.setObjectName("bt_sectors")
-        self._sectors.setMinimumHeight(160)
+        self._sectors.setFixedSize(300, 220)
         self._names_edit = QLineEdit()
         self._names_edit.setPlaceholderText("AAPL, MSFT, NVDA")
+        self._names_edit.setFixedWidth(300)
         self._add = QLineEdit()
-        self._add.setPlaceholderText("Add stocks")
+        self._add.setPlaceholderText("e.g. SHOP, TSM")
+        self._add.setFixedWidth(300)
         self._remove = QLineEdit()
-        self._remove.setPlaceholderText("Remove stocks")
+        self._remove.setPlaceholderText("e.g. TSLA")
+        self._remove.setFixedWidth(300)
         self._preset = QComboBox()
+        self._preset.setFixedWidth(260)
         self._top_n = QSpinBox()
         self._top_n.setRange(0, _MAX_TOP_N)
         self._top_n.setSpecialValueText("All")
-        self._top_n.setFixedWidth(80)
-        self._saved = QCheckBox("Use saved screener lists")
-        self._saved.setToolTip("Test on the lists the app saved for this preset (AI picks "
-                               "included) instead of running the screener again")
-        self._saved_count = QLabel("")
-        self._saved_count.setObjectName("details_key")
+        self._top_n.setFixedWidth(_FIELD_W)
+        self._source = ChipGroup([("Replay the screener", "replay"), ("Saved lists", "saved")])
+        self._source.setFixedWidth(300)
+        self._saved_count = _key_label("")
         self._ai = QCheckBox("Use AI ranking")
         self._ai.setEnabled(False)
         self._ai.setToolTip("Comes in a later phase")
-        self._strategies = QListWidget()
+        self._strategies = QTableWidget(0, 4)
         self._strategies.setObjectName("bt_strategies")
-        self._strategies.setMaximumHeight(120)
+        self._strategies.setHorizontalHeaderLabels(["Use", "Strategy", "Allocation %",
+                                                    "Per trade %"])
+        self._strategies.verticalHeader().setVisible(False)  # type: ignore[union-attr]
+        self._strategies.horizontalHeader().setStretchLastSection(True)  # type: ignore[union-attr]
+        self._strategies.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self._strategies.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+        self._strategies.setMinimumHeight(180)
         self._capital = self._money(100, 10_000_000, 0, "$ ", 10_000)
         self._loss = self._money(0, 100, 1, "", 2.0)
         self._loss.setSuffix(" %")
@@ -116,39 +184,14 @@ class BacktestBuilder(QWidget):
         self._when = QComboBox()
         self._when.addItem("First signal", "first_signal")
         self._when.addItem("Highest score", "highest_score")
-        self._when.setFixedWidth(120)
+        self._when.setFixedWidth(_FIELD_W)
         self._commission = self._money(0, 100, 2, "$ ", 1.0)
         self._slippage = QSpinBox()
         self._slippage.setRange(0, 500)
         self._slippage.setSuffix(" bps")
         self._slippage.setValue(5)
-        self._slippage.setFixedWidth(120)
-
-        body.addWidget(_group_label("RUN"))
-        body.addWidget(self._name)
-        body.addLayout(self._row("From", self._start))
-        body.addLayout(self._row("To", self._end))
-        body.addWidget(_group_label("STOCKS"))
-        body.addWidget(self._mode)
-        body.addWidget(self._sectors, 1)
-        body.addWidget(self._names_edit)
-        body.addWidget(self._add)
-        body.addWidget(self._remove)
-        body.addWidget(_group_label("SCREENER"))
-        body.addWidget(self._preset)
-        body.addLayout(self._row("Stocks per day", self._top_n))
-        body.addWidget(self._saved)
-        body.addWidget(self._saved_count)
-        body.addWidget(self._ai)
-        body.addWidget(_group_label("STRATEGIES"))
-        body.addWidget(self._strategies)
-        body.addWidget(_group_label("ACCOUNT"))
-        body.addLayout(self._row("Capital", self._capital))
-        body.addLayout(self._row("Daily loss stop", self._loss))
-        body.addLayout(self._row("When money short", self._when))
-        body.addLayout(self._row("Commission per order", self._commission))
-        body.addLayout(self._row("Slippage", self._slippage))
-        body.addStretch()
+        self._slippage.setFixedWidth(_FIELD_W)
+        self.pages = self._build_pages()
 
         for edit in (self._name, self._names_edit, self._add, self._remove):
             edit.textChanged.connect(self.changed)
@@ -158,7 +201,7 @@ class BacktestBuilder(QWidget):
         self._sectors.itemChanged.connect(self.changed)
         self._preset.currentIndexChanged.connect(self.changed)
         self._top_n.valueChanged.connect(self.changed)
-        self._saved.toggled.connect(self.changed)
+        self._source.changed.connect(self.changed)
         self._strategies.itemChanged.connect(self.changed)
         for spin in (self._capital, self._loss, self._commission):
             spin.valueChanged.connect(self.changed)
@@ -166,13 +209,42 @@ class BacktestBuilder(QWidget):
         self._when.currentIndexChanged.connect(self.changed)
         self._on_mode()
 
-    @staticmethod
-    def _row(label: str, field: QWidget) -> QHBoxLayout:
-        row = QHBoxLayout()
-        row.addWidget(_key_label(label))
-        row.addStretch()
-        row.addWidget(field)
-        return row
+    def _build_pages(self) -> dict[str, QWidget]:
+        """One page of cards per section (SRD-GUI-031.072, .073)."""
+        return {
+            "run": _page(
+                card("Name", "Shown in the Reports list.", [("Run name", self._name)]),
+                card("Period", "First and last session to test.",
+                     [("From", self._start), ("To", self._end)]),
+            ),
+            "stocks": _page(
+                card("Which stocks", "All S&P 500 stocks, some sectors or your own names.",
+                     [("Stock list", self._mode), ("Sectors", self._sectors),
+                      ("Names", self._names_edit)]),
+                card("Adjust the list", "Optional names to add or leave out, comma separated.",
+                     [("Add stocks", self._add), ("Remove stocks", self._remove)]),
+            ),
+            "screener": _page(
+                card("Preset", "The screener that makes each day's stock list.",
+                     [("Screener preset", self._preset), ("Stocks per day", self._top_n)]),
+                card("Source", "Run the screener again, or use the lists the app saved "
+                     "(AI picks included).",
+                     [("Daily lists", self._source), ("", self._saved_count)]),
+                card("Ranking", "", [("AI ranking", self._ai)]),
+            ),
+            "strategies": _page(
+                card("Strategies", "Tick the live strategies to test. Allocation and per-trade "
+                     "% come from Execution.", [(None, self._strategies)]),
+            ),
+            "account": _page(
+                card("Money", "Start values come from the active user's risk settings.",
+                     [("Capital", self._capital), ("Daily loss stop", self._loss),
+                      ("When money short", self._when)]),
+                card("Costs", "Added to every fill.",
+                     [("Commission per order", self._commission),
+                      ("Slippage", self._slippage)]),
+            ),
+        }
 
     @staticmethod
     def _money(low: float, high: float, decimals: int, prefix: str, value: float
@@ -182,7 +254,7 @@ class BacktestBuilder(QWidget):
         spin.setDecimals(decimals)
         spin.setPrefix(prefix)
         spin.setValue(value)
-        spin.setFixedWidth(120)
+        spin.setFixedWidth(_FIELD_W)
         return spin
 
     def set_account_defaults(self, capital: float, daily_loss_pct: float) -> None:
@@ -197,12 +269,13 @@ class BacktestBuilder(QWidget):
         edit.setDisplayFormat("yyyy-MM-dd")
         edit.setMinimumDate(QDate(2000, 1, 1))
         edit.setMaximumDate(QDate.currentDate())
+        edit.setFixedWidth(_FIELD_W)
         return edit
 
     def _on_mode(self) -> None:
         mode = self._mode.value
-        self._sectors.setVisible(mode == "sector")
-        self._names_edit.setVisible(mode == "names")
+        _show_row(self._sectors, mode == "sector")
+        _show_row(self._names_edit, mode == "names")
         self.changed.emit()
 
     def set_universe(self, records: Sequence[UniverseRecord]) -> None:
@@ -234,30 +307,38 @@ class BacktestBuilder(QWidget):
         self.changed.emit()
 
     def set_strategies(self, strategies: Sequence[Mapping[str, Any]]) -> None:
-        """SRD-GUI-031.020 — fill the strategy list, keeping ticked names ticked."""
-        ticked = {spec.id for spec in self._ticked_strategies()}
-        self._strategies.blockSignals(True)
-        self._strategies.clear()
-        for cfg in strategies:
-            name, alloc, per = str(cfg["name"]), float(cfg["capital_max"]), float(cfg["per_trade_pct"])
-            item = QListWidgetItem(f"{name} · {alloc:g}% · {per:g}% per trade")
-            item.setData(Qt.ItemDataRole.UserRole, (name, alloc, per))
-            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-            item.setCheckState(
-                Qt.CheckState.Checked if name in ticked else Qt.CheckState.Unchecked
-            )
-            self._strategies.addItem(item)
-        self._strategies.blockSignals(False)
+        """SRD-GUI-031.020 / .073 — fill the strategy table, keeping ticked names ticked."""
+        self._fill_strategies(strategies, {spec.id for spec in self._ticked_strategies()})
         self.changed.emit()
 
+    def _fill_strategies(self, strategies: Sequence[Mapping[str, Any]], ticked: set[str]) -> None:
+        table = self._strategies
+        table.blockSignals(True)
+        table.setRowCount(len(strategies))
+        for row, cfg in enumerate(strategies):
+            name, alloc, per = str(cfg["name"]), float(cfg["capital_max"]), float(cfg["per_trade_pct"])
+            use = QTableWidgetItem("")
+            use.setData(Qt.ItemDataRole.UserRole, (name, alloc, per))
+            use.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
+            use.setCheckState(Qt.CheckState.Checked if name in ticked else Qt.CheckState.Unchecked)
+            table.setItem(row, 0, use)
+            for col, text in ((1, name), (2, f"{alloc:g}"), (3, f"{per:g}")):
+                table.setItem(row, col, QTableWidgetItem(text))
+        table.resizeColumnsToContents()
+        table.blockSignals(False)
+
+    def _strategy_rows(self) -> list[tuple[QTableWidgetItem, tuple[str, float, float]]]:
+        rows = []
+        for row in range(self._strategies.rowCount()):
+            item = self._strategies.item(row, 0)
+            if item is not None:
+                rows.append((item, item.data(Qt.ItemDataRole.UserRole)))
+        return rows
+
     def _ticked_strategies(self) -> tuple[StrategySpec, ...]:
-        specs = []
-        for i in range(self._strategies.count()):
-            item = self._strategies.item(i)
-            if item is not None and item.checkState() == Qt.CheckState.Checked:
-                name, alloc, per = item.data(Qt.ItemDataRole.UserRole)
-                specs.append(StrategySpec(name, (alloc,), (per,)))
-        return tuple(specs)
+        return tuple(StrategySpec(name, (alloc,), (per,))
+                     for item, (name, alloc, per) in self._strategy_rows()
+                     if item.checkState() == Qt.CheckState.Checked)
 
     def _ticked_sectors(self) -> tuple[str, ...]:
         return tuple(
@@ -284,12 +365,61 @@ class BacktestBuilder(QWidget):
             else f"{len(days)} saved days · {days[0]} → {days[-1]}")
 
     def quick_test(self, preset_id: str, first: datetime.date, last: datetime.date) -> None:
-        """S&P 500, the preset, saved lists ticked and their period (SRD-GUI-031.061)."""
+        """S&P 500, the preset, saved lists and their period (SRD-GUI-031.061)."""
         self._mode.buttons[0].click()
         self._preset.setCurrentIndex(max(self._preset.findData(preset_id), 0))
-        self._saved.setChecked(True)
-        self._start.setDate(QDate(first.year, first.month, first.day))
-        self._end.setDate(QDate(last.year, last.month, last.day))
+        self._source.buttons[1].click()
+        self._start.setDate(_qdate(first))
+        self._end.setDate(_qdate(last))
+
+    def summaries(self) -> dict[str, str]:
+        """One short line per section for the setup menu and the plan line (SRD-GUI-031.070)."""
+        plan = self.plan()
+        uni, scr, acc = plan.universe, plan.screener, plan.account
+        stocks = {"sector": ", ".join(uni.sectors) or "No sector",
+                  "names": ", ".join(uni.names[:4]) or "No names"}.get(uni.mode, "S&P 500")
+        return {
+            "run": f"{plan.name} · {plan.period.start} → {plan.period.end}",
+            "stocks": stocks,
+            "screener": f"{self._preset.currentText() or 'No preset'} · "
+                        f"{'saved lists' if scr.recorded else 'replay'} · "
+                        f"{scr.top_n or 'All'} a day",
+            "strategies": ", ".join(s.id for s in plan.strategies) or "None picked",
+            "account": f"${acc.capital[0]:,.0f} · loss stop {acc.max_daily_loss_pct:g}% · "
+                       f"${plan.costs.per_order:g} · {plan.costs.slippage_bps:g} bps",
+        }
+
+    def load_plan(self, plan: RunPlan) -> None:
+        """Put a plan back into the fields (Cancel in the setup window, SRD-GUI-031.074)."""
+        self.blockSignals(True)
+        self._name.setText(plan.name)
+        self._start.setDate(_qdate(plan.period.start))
+        self._end.setDate(_qdate(plan.period.end))
+        modes = [b for b, v in zip(self._mode.buttons, ("sp500", "sector", "names"), strict=True)
+                 if v == plan.universe.mode]
+        if modes:
+            modes[0].click()
+        for i in range(self._sectors.count()):
+            item = self._sectors.item(i)
+            if item is not None:
+                item.setCheckState(Qt.CheckState.Checked if item.text() in plan.universe.sectors
+                                   else Qt.CheckState.Unchecked)
+        self._names_edit.setText(", ".join(plan.universe.names))
+        self._add.setText(", ".join(plan.universe.add))
+        self._remove.setText(", ".join(plan.universe.remove))
+        self._preset.setCurrentIndex(max(self._preset.findData(plan.screener.preset_id), 0))
+        self._top_n.setValue(plan.screener.top_n)
+        self._source.buttons[1 if plan.screener.recorded else 0].click()
+        ticked = {s.id for s in plan.strategies}
+        for use, (name, _alloc, _per) in self._strategy_rows():
+            use.setCheckState(Qt.CheckState.Checked if name in ticked else Qt.CheckState.Unchecked)
+        self._capital.setValue(plan.account.capital[0])
+        self._loss.setValue(plan.account.max_daily_loss_pct)
+        self._when.setCurrentIndex(max(self._when.findData(plan.account.when_full), 0))
+        self._commission.setValue(plan.costs.per_order)
+        self._slippage.setValue(int(plan.costs.slippage_bps))
+        self.blockSignals(False)
+        self._on_mode()
 
     def plan(self) -> RunPlan:
         """Return the run plan made from the fields."""
@@ -307,7 +437,7 @@ class BacktestBuilder(QWidget):
                 preset_id=str(self._preset.currentData() or ""),
                 top_n=self._top_n.value(),
                 ai_ranking=self._ai.isChecked(),
-                recorded=self._saved.isChecked(),
+                recorded=self._source.value == "saved",
             ),
             strategies=self._ticked_strategies(),
             account=AccountSpec(
