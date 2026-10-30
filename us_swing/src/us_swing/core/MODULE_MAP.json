@@ -1,14 +1,218 @@
 {
-  "generated": "2026-10-25T13:39:54",
+  "generated": "2026-10-30T09:43:05",
   "subfolder": "core",
-  "root": "f:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\core",
-  "tool_code": "SCR",
+  "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\core",
+  "tool_code": "BKT",
   "files": {
     "__init__.py": {
       "module_id": "MD-SCR-016.001.M27",
       "srd_id": "SRD-SCR-016.001"
     },
+    "backtest_bridge.py": {
+      "module_id": "MD-BKT-002.011.M08",
+      "srd_id": "SRD-BKT-002.011",
+      "classes": [
+        {
+          "name": "PresetInfo",
+          "docstring": "What the backtest builder shows for a preset.",
+          "class_vars": [
+            "id: str",
+            "name: str",
+            "timeframe: str",
+            "ai: bool"
+          ],
+          "line_start": 20,
+          "line_end": 26
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "load_universe",
+          "signature": "def load_universe() -> list[Sp500Record]",
+          "docstring": "Return the saved S&P 500 records (refreshed when stale).",
+          "line_start": 29,
+          "line_end": 31
+        },
+        {
+          "name": "list_presets",
+          "signature": "def list_presets(user_id: str) -> list[PresetInfo]",
+          "docstring": "Return admin presets and the user's presets, by name, without duplicates.",
+          "line_start": 34,
+          "line_end": 43
+        },
+        {
+          "name": "load_strategies",
+          "signature": "def load_strategies() -> list[dict[str, Any]]",
+          "docstring": "Return the live strategies (``StrategyConfig`` fields) as plain dicts.",
+          "line_start": 46,
+          "line_end": 51
+        },
+        {
+          "name": "load_preset_dict",
+          "signature": "def load_preset_dict(preset_id: str, user_id: str) -> dict[str, Any]",
+          "docstring": "Return a preset as a plain dict (picklable for worker processes).",
+          "line_start": 54,
+          "line_end": 60
+        },
+        {
+          "name": "screen_day",
+          "signature": "def screen_day(\r\n    preset_dict: dict[str, Any],\r\n    symbols: list[str],\r\n    bars: dict[str, list[Any]],\r\n    market_caps: dict[str, float],\r\n) -> dict[str, tuple[bool, float]]",
+          "docstring": "Run the preset's rule stages (no AI, nothing saved) on one day's bars.",
+          "line_start": 63,
+          "line_end": 75
+        }
+      ]
+    },
     "candle_builder.py": {},
+    "series.py": {
+      "module_id": "MD-BKT-002.021.M10",
+      "srd_id": "SRD-BKT-002.021",
+      "classes": [
+        {
+          "name": "Evaluation",
+          "docstring": "Result on the 3m timeline: fired per bar, each function's values, PNL use.",
+          "class_vars": [
+            "fired: BoolArray",
+            "values: dict[str, FloatArray]",
+            "uses_pnl: bool"
+          ],
+          "line_start": 42,
+          "line_end": 47
+        },
+        {
+          "name": "_Walker",
+          "docstring": "Evaluates one AST on the 3m timeline of ``frames``.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, frames: Mapping[str, pd.DataFrame]) -> None",
+              "line_start": 168,
+              "line_end": 173
+            },
+            {
+              "name": "_frame",
+              "signature": "def _frame(self, tf: str) -> pd.DataFrame",
+              "line_start": 175,
+              "line_end": 179
+            },
+            {
+              "name": "_full",
+              "signature": "def _full(self, value: float) -> FloatArray",
+              "line_start": 181,
+              "line_end": 182
+            },
+            {
+              "name": "number",
+              "signature": "def number(self, node: dict[str, Any]) -> FloatArray | BoolArray",
+              "line_start": 184,
+              "line_end": 192
+            },
+            {
+              "name": "_function",
+              "signature": "def _function(self, node: dict[str, Any]) -> FloatArray",
+              "line_start": 194,
+              "line_end": 213
+            },
+            {
+              "name": "_constant",
+              "signature": "def _constant(node: dict[str, Any]) -> Any",
+              "decorators": [
+                "@staticmethod"
+              ],
+              "line_start": 216,
+              "line_end": 219
+            },
+            {
+              "name": "_bin_op",
+              "signature": "def _bin_op(self, node: dict[str, Any]) -> BoolArray",
+              "line_start": 221,
+              "line_end": 233
+            }
+          ],
+          "line_start": 165,
+          "line_end": 233
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_col",
+          "signature": "def _col(frame: pd.DataFrame, name: str) -> FloatArray",
+          "line_start": 50,
+          "line_end": 53
+        },
+        {
+          "name": "_ns",
+          "signature": "def _ns(stamps: pd.DatetimeIndex) -> IntArray",
+          "line_start": 56,
+          "line_end": 58
+        },
+        {
+          "name": "_utc_ns",
+          "signature": "def _utc_ns(frame: pd.DataFrame) -> IntArray",
+          "line_start": 61,
+          "line_end": 63
+        },
+        {
+          "name": "available_ns",
+          "signature": "def available_ns(frame: pd.DataFrame, tf: str) -> IntArray",
+          "docstring": "When each bar becomes visible: intraday at its close, 1d next day, 1w next week.",
+          "line_start": 66,
+          "line_end": 72
+        },
+        {
+          "name": "_as_of",
+          "signature": "def _as_of(values: FloatArray, avail: IntArray, at: IntArray, back: int = 0) -> FloatArray",
+          "line_start": 75,
+          "line_end": 80
+        },
+        {
+          "name": "_vwap",
+          "signature": "def _vwap(frame: pd.DataFrame, tf: str) -> FloatArray",
+          "line_start": 83,
+          "line_end": 91
+        },
+        {
+          "name": "_supertrend",
+          "signature": "def _supertrend(frame: pd.DataFrame, length: int, factor: float) -> FloatArray",
+          "line_start": 94,
+          "line_end": 116
+        },
+        {
+          "name": "_swing",
+          "signature": "def _swing(frame: pd.DataFrame, bars: int, kind: str) -> FloatArray",
+          "line_start": 119,
+          "line_end": 130
+        },
+        {
+          "name": "function_series",
+          "signature": "def function_series(name: str, args: list[Any], frame: pd.DataFrame, tf: str) -> FloatArray",
+          "docstring": "Value per bar equal to the live function on ``frame`` up to that bar.",
+          "line_start": 133,
+          "line_end": 162
+        },
+        {
+          "name": "truth",
+          "signature": "def truth(values: FloatArray | BoolArray) -> BoolArray",
+          "docstring": "True where a value is a true comparison or a non-zero, known number.",
+          "line_start": 236,
+          "line_end": 240
+        },
+        {
+          "name": "evaluate",
+          "signature": "def evaluate(expr: str, frames: Mapping[str, pd.DataFrame]) -> Evaluation",
+          "docstring": "Evaluate ``expr`` on every bar of ``frames[\"3m\"]`` (SRD-BKT-002.021\u2013.025, .027).",
+          "line_start": 243,
+          "line_end": 251
+        }
+      ],
+      "constants": [
+        "ET = ZoneInfo(\"America/New_York\")",
+        "INTRADAY_MINUTES = {\"3m\": 3, \"15m\": 15}",
+        "_NS_PER_MIN = 60_000_000_000",
+        "_ARITY = {\"Number\": 1, \"PNL\": 1, \"VWAP\": 2, \"Price\": 4, \"RSI\": 3, \"ADX\": 3, \"EMA\": 3,",
+        "_COMPARE: dict[str, Callable[[FloatArray, FloatArray], BoolArray]] = {"
+      ]
+    },
     "_catalogue.py": {
       "module_id": "MD-SCR-016.001.M27",
       "srd_id": "SRD-SCR-016.001",

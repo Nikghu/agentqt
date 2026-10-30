@@ -19,8 +19,7 @@ package:
   entry_script: run_gui.py
   extra_paths: src
   pyinstaller_extra_args: --hidden-import talib.stream --runtime-hook pyi_rth_quiet_platform.py
-    --add-data assets;assets --add-data
-    src/us_swing/gui/resources;us_swing/gui/resources
+    --add-data assets;assets --add-data src/us_swing/gui/resources;us_swing/gui/resources
   pyinstaller_onedir: true
   pyinstaller_windowed: true
 paths:

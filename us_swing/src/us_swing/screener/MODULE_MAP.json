@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-25T13:39:54",
+  "generated": "2026-10-30T09:43:05",
   "subfolder": "screener",
-  "root": "f:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\screener",
+  "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\screener",
   "tool_code": "SCR",
   "files": {
     "__init__.py": {},
@@ -106,57 +106,64 @@
               "signature": "def run_preset(\r\n        self,\r\n        preset_id: str,\r\n        user_id: str,\r\n        manual: bool = True,\r\n        *,\r\n        symbols: list[str] | None = None,\r\n        bars: dict[str, list[Any]] | None = None,\r\n        preset: Preset | None = None,\r\n        market_caps: dict[str, float] | None = None,\r\n    ) -> ScreenerRunResult",
               "docstring": "Execute a preset and persist the result.",
               "line_start": 73,
-              "line_end": 190
+              "line_end": 176
+            },
+            {
+              "name": "screen",
+              "signature": "def screen(\r\n        self,\r\n        preset: Preset,\r\n        symbols: list[str],\r\n        bars: dict[str, list[Any]],\r\n        market_caps: dict[str, float] | None = None,\r\n    ) -> dict[str, dict[str, Any]]",
+              "docstring": "Run the rule stages only: pre-filter, screeners and group/weight logic.",
+              "line_start": 178,
+              "line_end": 203
             },
             {
               "name": "_run_stage2",
               "signature": "def _run_stage2(\r\n        self,\r\n        preset: Preset,\r\n        symbols: list[str],\r\n        bars: dict[str, list[Any]],\r\n        market_caps: dict[str, float] | None = None,\r\n    ) -> dict[str, dict[str, tuple[bool, float]]]",
               "docstring": "Call every enabled screener and collect per-symbol (passed, score).",
-              "line_start": 196,
-              "line_end": 250
+              "line_start": 209,
+              "line_end": 263
             },
             {
               "name": "_combine_results",
               "signature": "def _combine_results(\r\n        self,\r\n        preset: Preset,\r\n        stage2: dict[str, dict[str, tuple[bool, float]]],\r\n        symbols: list[str],\r\n    ) -> dict[str, dict[str, Any]]",
-              "line_start": 256,
-              "line_end": 264
+              "line_start": 269,
+              "line_end": 277
             },
             {
               "name": "_composite_logic",
               "signature": "def _composite_logic(\r\n        self,\r\n        preset: Preset,\r\n        stage2: dict[str, dict[str, tuple[bool, float]]],\r\n        symbols: list[str],\r\n    ) -> dict[str, dict[str, Any]]",
               "docstring": "Symbol passes if ANY group passes (groups are OR-ed together).",
-              "line_start": 266,
-              "line_end": 304
+              "line_start": 279,
+              "line_end": 317
             },
             {
               "name": "_weighted_logic",
               "signature": "def _weighted_logic(\r\n        self,\r\n        preset: Preset,\r\n        stage2: dict[str, dict[str, tuple[bool, float]]],\r\n        symbols: list[str],\r\n    ) -> dict[str, dict[str, Any]]",
               "docstring": "Score = \u03a3(score_i \u00d7 weight_i) / \u03a3(weights) for enabled screeners.",
-              "line_start": 306,
-              "line_end": 329
+              "line_start": 319,
+              "line_end": 342
             },
             {
               "name": "_run_stage3",
               "signature": "def _run_stage3(\r\n        self,\r\n        preset: Preset,\r\n        combined: dict[str, dict[str, Any]],\r\n        bars: dict[str, list[Any]],\r\n        market_caps: dict[str, float] | None = None,\r\n    ) -> tuple[dict[str, dict[str, Any]], list[AITranscriptTurn]]",
               "docstring": "Re-rank Stage 2 passing symbols with CloudAIScreener.",
-              "line_start": 335,
-              "line_end": 426
+              "line_start": 348,
+              "line_end": 439
             },
             {
               "name": "_get_registry",
               "signature": "def _get_registry(self) -> ScreenerRegistry",
-              "line_start": 432,
-              "line_end": 433
+              "line_start": 445,
+              "line_end": 446
             },
             {
               "name": "_get_storage",
               "signature": "def _get_storage(self) -> ScreenerResultsStorage",
-              "line_start": 435,
-              "line_end": 436
+              "line_start": 448,
+              "line_end": 449
             }
           ],
           "line_start": 32,
-          "line_end": 436
+          "line_end": 449
         }
       ],
       "constants": [
@@ -758,6 +765,103 @@
         "_VALID_TIMEFRAMES: Final[frozenset[str]] = frozenset({\"1d\", \"1w\"})",
         "_MAX_LOOKBACK_BARS: Final[int] = 300",
         "_CALENDAR_DAYS_PER_BAR: Final[dict[str, int]] = {\"1d\": 2, \"1w\": 8}"
+      ]
+    },
+    "acc_dist.py": {
+      "module_id": "MD-SCR-017.001.M32",
+      "srd_id": "SRD-SCR-017.001",
+      "classes": [
+        {
+          "name": "_Result",
+          "class_vars": [
+            "passed: bool",
+            "score: float",
+            "rally_vol: float",
+            "drop_vol: float",
+            "ud_ratio: float"
+          ],
+          "line_start": 78,
+          "line_end": 83
+        },
+        {
+          "name": "AccDistScreener",
+          "docstring": "MD-SCR-017.001.M32 \u2014 accumulation / distribution volume screener.",
+          "class_vars": [
+            "screener_id: str",
+            "screener_type: str",
+            "name: str"
+          ],
+          "methods": [
+            {
+              "name": "_run",
+              "signature": "def _run(\r\n        self, symbols: list[str], bars: dict[str, list[Any]], config: dict[str, Any]\r\n    ) -> dict[str, _Result]",
+              "line_start": 147,
+              "line_end": 158
+            },
+            {
+              "name": "apply",
+              "signature": "def apply(\r\n        self,\r\n        symbols: list[str],\r\n        bars: dict[str, list[Any]],\r\n        config: dict[str, Any],\r\n    ) -> dict[str, tuple[bool, float]]",
+              "docstring": "Screen symbols for accumulation or distribution.",
+              "line_start": 160,
+              "line_end": 184
+            },
+            {
+              "name": "screen_detailed",
+              "signature": "def screen_detailed(\r\n        self,\r\n        symbols: list[str],\r\n        bars: dict[str, list[Any]],\r\n        config: dict[str, Any],\r\n    ) -> dict[str, dict[str, Any]]",
+              "docstring": "Return rally volume \u00d7, drop volume \u00d7 and up/down ratio per symbol.",
+              "line_start": 186,
+              "line_end": 196
+            },
+            {
+              "name": "batch_features",
+              "signature": "def batch_features(\r\n        self,\r\n        symbols: list[str],\r\n        bars: dict[str, list[Any]],\r\n    ) -> dict[str, dict[str, Any]]",
+              "line_start": 198,
+              "line_end": 203
+            }
+          ],
+          "line_start": 140,
+          "line_end": 203
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "default_config",
+          "signature": "def default_config() -> dict[str, Any]",
+          "docstring": "Return a config dict with every setting at its default.",
+          "line_start": 49,
+          "line_end": 51
+        },
+        {
+          "name": "read_config",
+          "signature": "def read_config(config: dict[str, Any]) -> dict[str, Any]",
+          "docstring": "Merge ``config`` over the defaults and check every value.",
+          "line_start": 54,
+          "line_end": 74
+        },
+        {
+          "name": "_close_in_zone",
+          "signature": "def _close_in_zone(a: BarArrays, n: int, zone: float, top: bool) -> npt.NDArray[np.bool_]",
+          "line_start": 86,
+          "line_end": 90
+        },
+        {
+          "name": "_near_range_edge",
+          "signature": "def _near_range_edge(a: BarArrays, cfg: dict[str, Any], bottom: bool) -> bool",
+          "line_start": 93,
+          "line_end": 100
+        },
+        {
+          "name": "_evaluate",
+          "signature": "def _evaluate(a: BarArrays, cfg: dict[str, Any]) -> _Result",
+          "line_start": 103,
+          "line_end": 137
+        }
+      ],
+      "constants": [
+        "ACCUMULATION = \"accumulation\"",
+        "DISTRIBUTION = \"distribution\"",
+        "MODES = (ACCUMULATION, DISTRIBUTION)",
+        "SETTINGS: dict[str, tuple[Any, float, float]] = {"
       ]
     },
     "cloud_ai.py": {

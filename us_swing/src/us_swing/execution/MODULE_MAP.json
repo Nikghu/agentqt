@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-25T13:39:54",
+  "generated": "2026-10-30T09:43:05",
   "subfolder": "execution",
-  "root": "f:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\execution",
+  "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\execution",
   "tool_code": "EXE",
   "files": {
     "__init__.py": {
@@ -176,21 +176,21 @@
             },
             {
               "name": "record",
-              "signature": "def record(self, user_id: int, equity: float, cash: float, unrealised_pnl: float,\n               taken_at: datetime) -> None",
+              "signature": "def record(self, user_id: int, equity: float, cash: float, unrealised_pnl: float,\r\n               taken_at: datetime) -> None",
               "docstring": "Save one row for the slot of ``taken_at``, replacing a row already in that slot.",
               "line_start": 100,
               "line_end": 103
             },
             {
               "name": "record_many",
-              "signature": "def record_many(self, rows: list[tuple[int, float, float, float]],\n                    taken_at: datetime) -> None",
+              "signature": "def record_many(self, rows: list[tuple[int, float, float, float]],\r\n                    taken_at: datetime) -> None",
               "docstring": "Save ``(user_id, equity, cash, unrealised_pnl)`` rows for one slot in one transa",
               "line_start": 105,
               "line_end": 125
             },
             {
               "name": "between",
-              "signature": "def between(self, start_iso: str, end_iso: str | None = None,\n                user_id: int | None = None) -> tuple[EquitySnapshot, ...]",
+              "signature": "def between(self, start_iso: str, end_iso: str | None = None,\r\n                user_id: int | None = None) -> tuple[EquitySnapshot, ...]",
               "docstring": "Points from ``start_iso`` (inclusive) in time order; no user sums every user.",
               "line_start": 127,
               "line_end": 145
@@ -210,7 +210,7 @@
       "top_level_functions": [
         {
           "name": "curve_from_closed",
-          "signature": "def curve_from_closed(cycles: Iterable[_ClosedCycle], end_equity: float, start_iso: str,\n                      end_iso: str) -> tuple[CurvePoint, ...]",
+          "signature": "def curve_from_closed(cycles: Iterable[_ClosedCycle], end_equity: float, start_iso: str,\r\n                      end_iso: str) -> tuple[CurvePoint, ...]",
           "docstring": "Equity curve that ends at ``end_equity`` and steps at each close (SRD-EXE-020.00",
           "line_start": 62,
           "line_end": 78
@@ -315,8 +315,8 @@
             "ok: bool",
             "reason: str"
           ],
-          "line_start": 173,
-          "line_end": 178
+          "line_start": 200,
+          "line_end": 205
         },
         {
           "name": "SymbolReadiness",
@@ -328,8 +328,8 @@
             "last_1m_bar: datetime | None",
             "ready: bool"
           ],
-          "line_start": 182,
-          "line_end": 189
+          "line_start": 209,
+          "line_end": 216
         },
         {
           "name": "IntradayCandleLoader",
@@ -338,144 +338,158 @@
             {
               "name": "__init__",
               "signature": "def __init__(\r\n        self,\r\n        symbols: list[str],\r\n        ibkr_host: str,\r\n        ibkr_port: int,\r\n        ibkr_client_id: int,\r\n        db: DatabaseManager,\r\n        hist_engine: HistoricalDataEngine,\r\n        min_candles: int = _MIN_CANDLES,\r\n        full_fetch_cal_days: int = _FULL_FETCH_CAL_DAYS,\r\n        parent: QObject | None = None,\r\n    ) -> None",
-              "line_start": 214,
-              "line_end": 234
+              "line_start": 241,
+              "line_end": 261
             },
             {
               "name": "run",
               "signature": "def run(self) -> None",
               "docstring": "QThread entry: run the async fetch loop in a fresh event loop.",
-              "line_start": 238,
-              "line_end": 247
+              "line_start": 265,
+              "line_end": 274
             },
             {
               "name": "_async_run",
               "signature": "def _async_run(self) -> None",
-              "line_start": 251,
-              "line_end": 354
+              "line_start": 278,
+              "line_end": 381
             },
             {
               "name": "_run_yfinance_fallback",
               "signature": "def _run_yfinance_fallback(self) -> None",
               "docstring": "Fetch 1m bars via yfinance when IBKR is unavailable (dev / offline mode).",
-              "line_start": 356,
-              "line_end": 398
+              "line_start": 383,
+              "line_end": 425
             },
             {
               "name": "_fetch_symbol_async",
               "signature": "def _fetch_symbol_async(\r\n        self, ib: Any, pacing: PacingQueue, symbol: str\r\n    ) -> None",
               "docstring": "Delta-fetch 1 m bars for *symbol*. Pages when the window > 30 calendar days.",
-              "line_start": 400,
-              "line_end": 433
+              "line_start": 427,
+              "line_end": 460
             },
             {
               "name": "_fetch_paged_async",
               "signature": "def _fetch_paged_async(\r\n        self,\r\n        ib: Any,\r\n        pacing: PacingQueue,\r\n        symbol: str,\r\n        end: datetime,\r\n        total_cal_days: int,\r\n    ) -> None",
               "docstring": "Fetch 1 m bars in \u2264 30-calendar-day pages (IBKR limit), newest-first.",
-              "line_start": 435,
-              "line_end": 457
+              "line_start": 462,
+              "line_end": 484
             },
             {
               "name": "_request_1m_bars",
               "signature": "def _request_1m_bars(\r\n        self,\r\n        ib: Any,\r\n        pacing: PacingQueue,\r\n        symbol: str,\r\n        end_dt: datetime,\r\n        duration_days: int,\r\n    ) -> list[OHLCVBar]",
               "docstring": "Issue one IBKR 1 m-bar request through the pacing queue.",
-              "line_start": 459,
-              "line_end": 481
+              "line_start": 486,
+              "line_end": 508
             },
             {
               "name": "_fetch_symbol_yfinance",
               "signature": "def _fetch_symbol_yfinance(self, symbol: str) -> None",
               "docstring": "Delta-fetch 1 m bars from yfinance (max 7 calendar days lookback).",
-              "line_start": 485,
-              "line_end": 529
+              "line_start": 512,
+              "line_end": 556
             },
             {
               "name": "_validate_candle_counts",
               "signature": "def _validate_candle_counts(\r\n        self,\r\n        symbol: str,\r\n        timeframes: tuple[DerivedTimeframe, ...] = _REQUIRED_TIMEFRAMES,\r\n    ) -> CandleLoadResult",
               "docstring": "Aggregate timeframes (default: 3m, 15m) and verify each has \u2265 min_candles bars.",
-              "line_start": 531,
-              "line_end": 557
+              "line_start": 558,
+              "line_end": 584
             },
             {
               "name": "get_readiness_report",
               "signature": "def get_readiness_report(\r\n        self,\r\n        symbols: list[str],\r\n        min_candles: int = _MIN_CANDLES,\r\n    ) -> dict[str, SymbolReadiness]",
               "docstring": "Return a per-symbol readiness dict without triggering any fetches.",
-              "line_start": 559,
-              "line_end": 570
+              "line_start": 586,
+              "line_end": 597
             }
           ],
-          "line_start": 192,
-          "line_end": 570
+          "line_start": 219,
+          "line_end": 597
         }
       ],
       "top_level_functions": [
         {
           "name": "_ensure_utc",
           "signature": "def _ensure_utc(dt: datetime) -> datetime",
-          "line_start": 34,
-          "line_end": 35
+          "line_start": 35,
+          "line_end": 36
         },
         {
           "name": "_build_tf_counts",
           "signature": "def _build_tf_counts(\r\n    symbol: str,\r\n    bars_1m: list[OHLCVBar],\r\n    timeframes: tuple[DerivedTimeframe, ...],\r\n    hist_engine: HistoricalDataEngine,\r\n) -> dict[str, int]",
-          "line_start": 38,
-          "line_end": 44
+          "line_start": 39,
+          "line_end": 45
         },
         {
           "name": "_merge_bars",
           "signature": "def _merge_bars(derived: list[OHLCVBar], live: list[OHLCVBar]) -> list[OHLCVBar]",
           "docstring": "Union two bar lists by timestamp; live bars win on conflict, sorted ascending.",
-          "line_start": 47,
-          "line_end": 52
+          "line_start": 48,
+          "line_end": 53
+        },
+        {
+          "name": "_closed_bars",
+          "signature": "def _closed_bars(bars: list[OHLCVBar], tf: str, now: datetime) -> list[OHLCVBar]",
+          "docstring": "Drop the last bar while it is still forming (SRD-EXE-006.014).",
+          "line_start": 56,
+          "line_end": 60
         },
         {
           "name": "_bars_to_frame",
           "signature": "def _bars_to_frame(bars: list[OHLCVBar]) -> pd.DataFrame",
           "docstring": "Build the OHLCV frame consumed by ``ConditionEvaluator`` (SRD-EXE-011.006).",
-          "line_start": 55,
-          "line_end": 66
+          "line_start": 63,
+          "line_end": 74
         },
         {
           "name": "assemble_execution_bars",
           "signature": "def assemble_execution_bars(\r\n    db: DatabaseManager,\r\n    hist_engine: HistoricalDataEngine,\r\n    symbol: str,\r\n    tf: DerivedTimeframe,\r\n    lookback_days: int = _FULL_FETCH_CAL_DAYS,\r\n) -> list[OHLCVBar]",
           "docstring": "Assemble a derived-timeframe bar series for strategy evaluation (SRD-EXE-006.010",
-          "line_start": 69,
-          "line_end": 96
+          "line_start": 77,
+          "line_end": 104
         },
         {
           "name": "load_stored_frames",
           "signature": "def load_stored_frames(\r\n    db: DatabaseManager,\r\n    symbol: str,\r\n    timeframes: tuple[str, ...] = _STORED_TIMEFRAMES,\r\n    lookback_days: int = _STORED_LOOKBACK_CAL_DAYS,\r\n) -> dict[str, pd.DataFrame]",
           "docstring": "Return ``{timeframe: frame}`` of stored daily/weekly closed bars (SRD-EXE-006.01",
-          "line_start": 99,
-          "line_end": 128
+          "line_start": 107,
+          "line_end": 136
         },
         {
           "name": "load_execution_frames",
           "signature": "def load_execution_frames(\r\n    db: DatabaseManager,\r\n    hist_engine: HistoricalDataEngine,\r\n    symbol: str,\r\n    timeframes: tuple[DerivedTimeframe, ...] = _REQUIRED_TIMEFRAMES,\r\n    lookback_days: int = _FULL_FETCH_CAL_DAYS,\r\n) -> dict[str, pd.DataFrame]",
           "docstring": "Return ``{timeframe: frame}`` for strategy evaluation (SRD-EXE-006.010, .012).",
-          "line_start": 131,
-          "line_end": 151
+          "line_start": 139,
+          "line_end": 162
         },
         {
           "name": "load_latest_execution_bar",
           "signature": "def load_latest_execution_bar(\r\n    db: DatabaseManager,\r\n    hist_engine: HistoricalDataEngine,\r\n    symbol: str,\r\n    tf: str,\r\n    lookback_days: int = _FULL_FETCH_CAL_DAYS,\r\n) -> OHLCVBar | None",
           "docstring": "Return the most recent merged bar for ``(symbol, tf)`` or ``None`` (SRD-EXE-006.",
-          "line_start": 154,
-          "line_end": 169
+          "line_start": 165,
+          "line_end": 180
+        },
+        {
+          "name": "load_latest_close",
+          "signature": "def load_latest_close(db: DatabaseManager, symbol: str, tf: str) -> float | None",
+          "docstring": "Close of the newest stored 1m or ``tf`` bar, read as one row (ISS-GUI-0012).",
+          "line_start": 183,
+          "line_end": 196
         },
         {
           "name": "check_candle_readiness",
           "signature": "def check_candle_readiness(\r\n    symbols: list[str],\r\n    db: DatabaseManager,\r\n    hist_engine: HistoricalDataEngine,\r\n    min_candles: int = _MIN_CANDLES,\r\n    full_fetch_cal_days: int = _FULL_FETCH_CAL_DAYS,\r\n) -> dict[str, SymbolReadiness]",
           "docstring": "Pure DB-read readiness check \u2014 safe to call from any thread.",
-          "line_start": 576,
-          "line_end": 618
+          "line_start": 603,
+          "line_end": 645
         },
         {
           "name": "_raw_bar_to_ohlcv",
           "signature": "def _raw_bar_to_ohlcv(symbol: str, b: Any) -> OHLCVBar",
           "docstring": "Convert an ib_insync BarData object to :class:`OHLCVBar`.",
-          "line_start": 621,
-          "line_end": 643
+          "line_start": 648,
+          "line_end": 670
         }
       ],
       "constants": [
@@ -484,6 +498,7 @@
         "_FULL_FETCH_CAL_DAYS: int = 30",
         "_REQUIRED_TIMEFRAMES: tuple[DerivedTimeframe, ...] = (\"3m\", \"15m\")",
         "_STORED_TIMEFRAMES: tuple[str, ...] = (\"1d\", \"1w\")",
+        "_TF_MINUTES: dict[str, int] = {\"3m\": 3, \"5m\": 5, \"15m\": 15, \"1h\": 60, \"4h\": 240}",
         "_STORED_LOOKBACK_CAL_DAYS: int = 400",
         "_SYMBOL_PAUSE_S: float = 0.3",
         "_MAX_CLIENT_ID_RETRIES: int = 5"
@@ -500,120 +515,120 @@
             {
               "name": "__init__",
               "signature": "def __init__(\r\n        self,\r\n        symbols: list[str],\r\n        ibkr_host: str,\r\n        ibkr_port: int,\r\n        ibkr_client_id: int,\r\n        db_path: str,\r\n        parent: QObject | None = None,\r\n    ) -> None",
-              "line_start": 73,
-              "line_end": 95
+              "line_start": 74,
+              "line_end": 97
             },
             {
               "name": "run",
               "signature": "def run(self) -> None",
               "docstring": "QThread entry: run the async subscription loop in a fresh event loop.",
-              "line_start": 99,
-              "line_end": 104
+              "line_start": 101,
+              "line_end": 106
             },
             {
               "name": "request_stop",
               "signature": "def request_stop(self) -> None",
               "docstring": "Signal the worker to stop; safe to call from any thread.",
-              "line_start": 106,
-              "line_end": 121
+              "line_start": 108,
+              "line_end": 123
             },
             {
               "name": "set_symbols",
               "signature": "def set_symbols(self, symbols: list[str]) -> None",
               "docstring": "Update live real-time bar subscriptions without restarting the worker.",
-              "line_start": 123,
-              "line_end": 137
+              "line_start": 125,
+              "line_end": 139
             },
             {
               "name": "_apply_symbol_update",
               "signature": "def _apply_symbol_update(self, new_set: set[str]) -> None",
               "docstring": "Add/remove real-time bar subscriptions \u2014 must run on the worker event loop.",
-              "line_start": 141,
-              "line_end": 181
+              "line_start": 143,
+              "line_end": 184
             },
             {
               "name": "_async_run",
               "signature": "def _async_run(self) -> None",
-              "line_start": 183,
-              "line_end": 278
+              "line_start": 186,
+              "line_end": 282
             },
             {
               "name": "_make_bar_handler",
               "signature": "def _make_bar_handler(self, symbol: str, builder: CandleBuilder) -> Any",
               "docstring": "Return an ib_insync updateEvent closure for ``reqRealTimeBars`` on *symbol*.",
-              "line_start": 280,
-              "line_end": 310
+              "line_start": 284,
+              "line_end": 315
             },
             {
               "name": "_on_candle_closed",
               "signature": "def _on_candle_closed(self, symbol: str, tf: str, bar: OHLCVBar) -> None",
-              "line_start": 312,
-              "line_end": 322
+              "line_start": 317,
+              "line_end": 332
             },
             {
               "name": "_write_rows",
               "signature": "def _write_rows(\r\n        self, tf: str, rows: list[tuple[str, str, float, float, float, float, int]]\r\n    ) -> int",
               "docstring": "Bulk-insert pre-filtered rows into price_<tf>. Returns attempted row count.",
-              "line_start": 324,
-              "line_end": 342
+              "line_start": 334,
+              "line_end": 352
             },
             {
               "name": "_write_bar",
               "signature": "def _write_bar(self, symbol: str, tf: str, bar: OHLCVBar) -> None",
-              "line_start": 344,
-              "line_end": 351
+              "line_start": 354,
+              "line_end": 361
             },
             {
               "name": "_run_yfinance",
               "signature": "def _run_yfinance(self) -> None",
-              "line_start": 355,
-              "line_end": 378
+              "line_start": 365,
+              "line_end": 388
             },
             {
               "name": "_poll_yfinance_once",
               "signature": "def _poll_yfinance_once(self) -> None",
               "docstring": "Batch-download all symbols for both timeframes in two HTTP calls.",
-              "line_start": 380,
-              "line_end": 430
+              "line_start": 390,
+              "line_end": 440
             },
             {
               "name": "_write_yfinance_direct",
               "signature": "def _write_yfinance_direct(self, symbol: str, df: Any, tf: str) -> int",
-              "docstring": "Insert each row of *df* as a candle in price_<tf>. Returns row count.",
-              "line_start": 432,
-              "line_end": 449
+              "docstring": "Insert each closed row of *df* as a candle in price_<tf>. Returns row count.",
+              "line_start": 442,
+              "line_end": 462
             },
             {
               "name": "_write_yfinance_aggregated",
               "signature": "def _write_yfinance_aggregated(\r\n        self, symbol: str, df_1m: Any, tf: str, group_minutes: int\r\n    ) -> int",
               "docstring": "Aggregate 1m rows into *group_minutes* buckets, write completed buckets.",
-              "line_start": 451,
-              "line_end": 491
+              "line_start": 464,
+              "line_end": 504
             },
             {
               "name": "_get_last_ts",
               "signature": "def _get_last_ts(self, symbol: str, tf: str) -> datetime | None",
-              "line_start": 493,
-              "line_end": 506
+              "line_start": 506,
+              "line_end": 519
             }
           ],
-          "line_start": 49,
-          "line_end": 506
+          "line_start": 50,
+          "line_end": 519
         }
       ],
       "top_level_functions": [
         {
           "name": "_ensure_utc",
           "signature": "def _ensure_utc(dt: datetime) -> datetime",
-          "line_start": 36,
-          "line_end": 37
+          "line_start": 37,
+          "line_end": 38
         },
         {
           "name": "_is_rth",
           "signature": "def _is_rth(dt: datetime) -> bool",
           "docstring": "Return True iff *dt* falls inside US Regular Trading Hours (weekdays 09:30\u201316:00",
-          "line_start": 40,
-          "line_end": 46
+          "line_start": 41,
+          "line_end": 47
         }
       ],
       "constants": [
@@ -621,6 +636,7 @@
         "_CONNECT_TIMEOUT: int = 10",
         "_ET = ZoneInfo(\"America/New_York\")",
         "_LIVE_TIMEFRAMES: tuple[str, ...] = (\"3m\", \"15m\")",
+        "_TF_LENGTH: dict[str, timedelta] = {\"3m\": timedelta(minutes=3), \"15m\": timedelta(minutes=15)}",
         "_RTH_OPEN  = _dtime(9, 30)",
         "_RTH_CLOSE = _dtime(16, 0)",
         "_SUB_BATCH_SIZE: int = 10",

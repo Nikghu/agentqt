@@ -1,12 +1,95 @@
 {
-  "generated": "2026-10-28T05:57:02",
+  "generated": "2026-10-30T09:43:05",
   "subfolder": "backtest",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\backtest",
   "tool_code": "BKT",
   "files": {
-    "__init__.py": {
+    "__init__.py": {},
+    "cache.py": {
+      "module_id": "MD-BKT-002.005.M03",
+      "srd_id": "SRD-BKT-002.005",
+      "classes": [
+        {
+          "name": "StepCache",
+          "docstring": "Read and write step outputs by key.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, root: Path = DEFAULT_CACHE_ROOT) -> None",
+              "line_start": 39,
+              "line_end": 40
+            },
+            {
+              "name": "_path",
+              "signature": "def _path(self, step: str, key: str, name: str) -> Path",
+              "line_start": 42,
+              "line_end": 43
+            },
+            {
+              "name": "read",
+              "signature": "def read(self, step: str, key: str, name: str) -> pd.DataFrame | None",
+              "docstring": "Return the saved frame, or ``None`` on a miss; a hit marks the file used.",
+              "line_start": 45,
+              "line_end": 53
+            },
+            {
+              "name": "write",
+              "signature": "def write(self, step: str, key: str, name: str, frame: pd.DataFrame) -> None",
+              "docstring": "Save ``frame`` atomically under ``step/key/name``.",
+              "line_start": 55,
+              "line_end": 64
+            },
+            {
+              "name": "names",
+              "signature": "def names(self, step: str, key: str) -> set[str]",
+              "docstring": "Return the names saved under ``step/key``.",
+              "line_start": 66,
+              "line_end": 71
+            },
+            {
+              "name": "cleanup",
+              "signature": "def cleanup(\n        self, now: datetime, max_age_days: int = MAX_AGE_DAYS, max_bytes: int = MAX_BYTES\n    ) -> int",
+              "docstring": "Delete files unused for ``max_age_days``, then the oldest over ``max_bytes``.",
+              "line_start": 73,
+              "line_end": 97
+            }
+          ],
+          "line_start": 36,
+          "line_end": 97
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "make_key",
+          "signature": "def make_key(step: str, version: int, params: Any) -> str",
+          "docstring": "Return the sha256 key of a step's inputs; dict order does not matter.",
+          "line_start": 28,
+          "line_end": 33
+        }
+      ],
       "constants": [
-        "DEFAULT_ROOT: Path = Path.home() / \".usswing\" / \"backtest\""
+        "DEFAULT_CACHE_ROOT: Path = DEFAULT_ROOT / \"cache\"",
+        "MAX_AGE_DAYS = 30",
+        "MAX_BYTES = 5 * 1024**3"
+      ]
+    },
+    "cli.py": {
+      "module_id": "MD-BKT-002.009.M06",
+      "srd_id": "SRD-BKT-002.009",
+      "top_level_functions": [
+        {
+          "name": "_default_service",
+          "signature": "def _default_service() -> BacktestService",
+          "line_start": 24,
+          "line_end": 26
+        },
+        {
+          "name": "main",
+          "signature": "def main(argv: Sequence[str] | None = None, service: BacktestService | None = None) -> int",
+          "docstring": "Run the command line; returns the process exit code.",
+          "line_start": 29,
+          "line_end": 96
+        }
       ]
     },
     "downloader.py": {
@@ -19,54 +102,60 @@
           "methods": [
             {
               "name": "__init__",
-              "signature": "def __init__(\n        self,\n        jobs: list[Job],\n        store: BacktestStore,\n        *,\n        host: str = \"127.0.0.1\",\n        port: int = 7497,\n        client_id: int = 16,\n        delta: bool = False,\n        pacing: PacingQueue | None = None,\n        retry_wait_s: float = 30.0,\n        timeout_s: float = 90.0,\n        parent: QObject | None = None,\n    ) -> None",
-              "line_start": 46,
-              "line_end": 70
+              "signature": "def __init__(\r\n        self,\r\n        jobs: Sequence[Job] | Callable[[], list[Job]],\r\n        store: BacktestStore,\r\n        *,\r\n        host: str = \"127.0.0.1\",\r\n        port: int = 7497,\r\n        client_id: int = 16,\r\n        delta: bool = False,\r\n        pacing: PacingQueue | None = None,\r\n        retry_wait_s: float = 30.0,\r\n        timeout_s: float = 90.0,\r\n        parent: QObject | None = None,\r\n    ) -> None",
+              "line_start": 49,
+              "line_end": 73
             },
             {
               "name": "request_stop",
               "signature": "def request_stop(self) -> None",
               "docstring": "Stop after the current request finishes.",
-              "line_start": 72,
-              "line_end": 74
+              "line_start": 75,
+              "line_end": 77
             },
             {
               "name": "run",
               "signature": "def run(self) -> None",
               "docstring": "QThread entry: connect, run the jobs, disconnect, emit ``completed``.",
-              "line_start": 76,
-              "line_end": 83
+              "line_start": 79,
+              "line_end": 86
             },
             {
               "name": "run_jobs",
               "signature": "def run_jobs(self, ib: Any) -> tuple[bool, str]",
               "docstring": "Run every job on a connected ``ib``; return ``(ok, message)``.",
-              "line_start": 85,
-              "line_end": 107
+              "line_start": 88,
+              "line_end": 111
+            },
+            {
+              "name": "_resolve_jobs",
+              "signature": "def _resolve_jobs(self) -> list[Job]",
+              "line_start": 113,
+              "line_end": 116
             },
             {
               "name": "_connect_and_run",
               "signature": "def _connect_and_run(self) -> tuple[bool, str]",
-              "line_start": 109,
-              "line_end": 137
+              "line_start": 118,
+              "line_end": 151
             },
             {
               "name": "_run_job",
               "signature": "def _run_job(self, ib: Any, job: Job, state: DownloadState) -> None",
-              "line_start": 139,
-              "line_end": 153
+              "line_start": 153,
+              "line_end": 169
             },
             {
               "name": "_request",
               "signature": "def _request(self, ib: Any, job: Job) -> list[Any]",
-              "line_start": 155,
-              "line_end": 171
+              "line_start": 171,
+              "line_end": 190
             },
             {
               "name": "_update_floor",
               "signature": "def _update_floor(self, job: Job, state: DownloadState, got_bars: bool) -> None",
-              "line_start": 173,
-              "line_end": 180
+              "line_start": 192,
+              "line_end": 199
             },
             {
               "name": "_below_floor",
@@ -74,26 +163,26 @@
               "decorators": [
                 "@staticmethod"
               ],
-              "line_start": 183,
-              "line_end": 185
+              "line_start": 202,
+              "line_end": 204
             }
           ],
-          "line_start": 35,
-          "line_end": 185
+          "line_start": 38,
+          "line_end": 204
         }
       ],
       "top_level_functions": [
         {
           "name": "_end_time",
           "signature": "def _end_time(end: date) -> datetime | str",
-          "line_start": 188,
-          "line_end": 190
+          "line_start": 207,
+          "line_end": 209
         },
         {
           "name": "_to_frame",
           "signature": "def _to_frame(bars: list[Any]) -> pd.DataFrame",
-          "line_start": 193,
-          "line_end": 201
+          "line_start": 212,
+          "line_end": 220
         }
       ],
       "constants": [
@@ -126,47 +215,47 @@
       "top_level_functions": [
         {
           "name": "plan",
-          "signature": "def plan(\r\n    symbols: list[str],\r\n    settings: BacktestDataSettings,\r\n    coverage: CoverageFn,\r\n    floors: Mapping[str, date],\r\n    last_session: date,\r\n    delta_only: bool = False,\r\n) -> list[Job]",
+          "signature": "def plan(\r\n    symbols: list[str],\r\n    settings: BacktestDataSettings,\r\n    coverage: CoverageFn,\r\n    floors: Mapping[str, date],\r\n    last_session: date,\r\n    delta_only: bool = False,\r\n    daily_only: Sequence[str] = (),\r\n) -> list[Job]",
           "docstring": "Return the jobs still needed: all 1d jobs, then 3m jobs newest end first.",
           "line_start": 49,
-          "line_end": 84
+          "line_end": 86
         },
         {
           "name": "_missing",
           "signature": "def _missing(\r\n    symbol: str,\r\n    tf: Timeframe,\r\n    start: date,\r\n    end: date,\r\n    saved: tuple[date, date] | None,\r\n    floor: date | None,\r\n) -> list[Job]",
-          "line_start": 87,
-          "line_end": 103
+          "line_start": 89,
+          "line_end": 105
         },
         {
           "name": "_back",
           "signature": "def _back(symbol: str, tf: Timeframe, start: date, end: date, floor: date | None) -> list[Job]",
-          "line_start": 106,
-          "line_end": 113
+          "line_start": 108,
+          "line_end": 115
         },
         {
           "name": "_forward",
-          "signature": "def _forward(symbol: str, tf: Timeframe, last: date, end: date, *, delta: bool) -> list[Job]",
-          "line_start": 116,
-          "line_end": 128
+          "signature": "def _forward(symbol: str, tf: Timeframe, last: date, end: date) -> list[Job]",
+          "line_start": 118,
+          "line_end": 130
         },
         {
           "name": "_windows",
           "signature": "def _windows(start: date, end: date) -> list[tuple[date, date]]",
           "docstring": "3-month windows ``(w_start, w_end]`` from ``end`` back until one reaches ``start",
-          "line_start": 131,
-          "line_end": 142
+          "line_start": 133,
+          "line_end": 144
         },
         {
           "name": "_weekdays_after",
           "signature": "def _weekdays_after(last: date, end: date) -> int",
-          "line_start": 145,
-          "line_end": 148
+          "line_start": 147,
+          "line_end": 150
         },
         {
           "name": "_years",
           "signature": "def _years(start: date, end: date) -> str",
-          "line_start": 151,
-          "line_end": 152
+          "line_start": 153,
+          "line_end": 154
         }
       ],
       "constants": [
@@ -176,6 +265,401 @@
         "_MAX_3M_DAYS = 60",
         "_MAX_1D_DAYS = 250",
         "_TIMEFRAMES: tuple[Timeframe, ...] = (\"1d\", \"3m\")"
+      ]
+    },
+    "results.py": {
+      "module_id": "MD-BKT-002.007.M04",
+      "srd_id": "SRD-BKT-002.007",
+      "classes": [
+        {
+          "name": "RunRow",
+          "docstring": "One saved run.",
+          "class_vars": [
+            "run_id: str",
+            "name: str",
+            "plan_json: str",
+            "status: str",
+            "started: datetime",
+            "finished: datetime | None",
+            "message: str",
+            "note: str"
+          ],
+          "line_start": 40,
+          "line_end": 50
+        },
+        {
+          "name": "ResultsStore",
+          "docstring": "Repository for backtest run rows.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, path: Path = DEFAULT_RESULTS_PATH) -> None",
+              "line_start": 56,
+              "line_end": 63
+            },
+            {
+              "name": "_connect",
+              "signature": "def _connect(self) -> sqlite3.Connection",
+              "line_start": 65,
+              "line_end": 66
+            },
+            {
+              "name": "start_run",
+              "signature": "def start_run(self, plan: RunPlan, now: datetime) -> str",
+              "docstring": "Save a new run with status ``running`` and return its id.",
+              "line_start": 68,
+              "line_end": 77
+            },
+            {
+              "name": "finish_run",
+              "signature": "def finish_run(self, run_id: str, status: str, now: datetime, message: str = \"\") -> None",
+              "docstring": "Set the final status (``done``, ``cancelled`` or ``failed``) and end time.",
+              "line_start": 79,
+              "line_end": 85
+            },
+            {
+              "name": "get_run",
+              "signature": "def get_run(self, run_id: str) -> RunRow | None",
+              "docstring": "Return one run, or ``None`` when the id is unknown.",
+              "line_start": 87,
+              "line_end": 94
+            },
+            {
+              "name": "save_variant",
+              "signature": "def save_variant(self, run_id: str, index: int, variant: Variant, trades: pd.DataFrame,\r\n                     day_log: pd.DataFrame, money: pd.DataFrame) -> str",
+              "docstring": "Save one variant's Step 3 rows (SRD-BKT-002.039); returns the variant id.",
+              "line_start": 96,
+              "line_end": 109
+            },
+            {
+              "name": "read_table",
+              "signature": "def read_table(self, name: str, variant_id: str) -> pd.DataFrame",
+              "docstring": "Read one saved table for a variant (``trades``, ``day_log``, ``money_daily``).",
+              "line_start": 111,
+              "line_end": 117
+            },
+            {
+              "name": "list_variants",
+              "signature": "def list_variants(self, run_id: str) -> list[tuple[str, Variant]]",
+              "docstring": "Return (variant id, variant) for each saved variant of a run, in order.",
+              "line_start": 119,
+              "line_end": 131
+            },
+            {
+              "name": "list_runs",
+              "signature": "def list_runs(self, limit: int = 50) -> list[RunRow]",
+              "docstring": "Return the newest runs first.",
+              "line_start": 133,
+              "line_end": 140
+            },
+            {
+              "name": "list_reports",
+              "signature": "def list_reports(self, limit: int = 200) -> list[RunRow]",
+              "docstring": "Newest runs that saved Step 3 results (one per Run press) (SRD-GUI-031.055).",
+              "line_start": 142,
+              "line_end": 152
+            },
+            {
+              "name": "rename_run",
+              "signature": "def rename_run(self, run_id: str, name: str) -> None",
+              "docstring": "Give a run a new name (SRD-BKT-002.060).",
+              "line_start": 154,
+              "line_end": 157
+            },
+            {
+              "name": "set_note",
+              "signature": "def set_note(self, run_id: str, note: str) -> None",
+              "docstring": "Keep a free-text note on a run (SRD-BKT-002.060).",
+              "line_start": 159,
+              "line_end": 162
+            },
+            {
+              "name": "delete_run",
+              "signature": "def delete_run(self, run_id: str) -> None",
+              "docstring": "Delete a run with its variants, trades, day log and money rows (SRD-BKT-002.060)",
+              "line_start": 164,
+              "line_end": 175
+            }
+          ],
+          "line_start": 53,
+          "line_end": 175
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_has_table",
+          "signature": "def _has_table(conn: sqlite3.Connection, name: str) -> bool",
+          "line_start": 181,
+          "line_end": 183
+        },
+        {
+          "name": "_as_text",
+          "signature": "def _as_text(frame: pd.DataFrame) -> pd.DataFrame",
+          "docstring": "Dates and timestamps as ISO text, so SQLite keeps them readable.",
+          "line_start": 186,
+          "line_end": 192
+        },
+        {
+          "name": "_row",
+          "signature": "def _row(r: tuple[str, str, str, str, str, str | None, str, str]) -> RunRow",
+          "line_start": 195,
+          "line_end": 202
+        }
+      ],
+      "constants": [
+        "DEFAULT_RESULTS_PATH: Path = DEFAULT_ROOT / \"results.db\"",
+        "_SCHEMA = \"\"\"",
+        "_VARIANT_TABLES = (\"trades\", \"day_log\", \"money_daily\")",
+        "_RUN_COLUMNS = \"run_id, name, plan_json, status, started, finished, message, note\""
+      ]
+    },
+    "schedule.py": {
+      "module_id": "MD-BKT-001.009.M05",
+      "srd_id": "SRD-BKT-001.009",
+      "top_level_functions": [
+        {
+          "name": "delta_due",
+          "signature": "def delta_due(\r\n    settings: BacktestDataSettings, last_delta: datetime | None, now: datetime\r\n) -> bool",
+          "docstring": "Return True when a scheduled run time has passed since the last delta fill.",
+          "line_start": 17,
+          "line_end": 38
+        }
+      ],
+      "constants": [
+        "_ET = ZoneInfo(\"America/New_York\")"
+      ]
+    },
+    "service.py": {
+      "module_id": "MD-BKT-002.008.M05",
+      "srd_id": "SRD-BKT-002.008",
+      "classes": [
+        {
+          "name": "Estimate",
+          "docstring": "Data check result shown before every run (SRD-BKT-002.008).",
+          "class_vars": [
+            "symbols: list[str]",
+            "missing_1d: list[str]",
+            "missing_3m: list[str]",
+            "benchmark_ok: bool",
+            "days_total: int",
+            "days_cached: int",
+            "errors: list[str]",
+            "recorded: bool"
+          ],
+          "line_start": 40,
+          "line_end": 50
+        },
+        {
+          "name": "DailyList",
+          "docstring": "Step 1 output: the cache key, the period's sessions and the ranked list.",
+          "class_vars": [
+            "key: str",
+            "days: list[date]",
+            "frame: pd.DataFrame",
+            "data_days: dict[date, date]"
+          ],
+          "line_start": 54,
+          "line_end": 63
+        },
+        {
+          "name": "BacktestService",
+          "docstring": "Estimate and run backtests from a ``RunPlan``.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(\r\n        self,\r\n        store: BacktestStore,\r\n        cache: StepCache,\r\n        results: ResultsStore,\r\n        records: Callable[[], Sequence[UniverseRecord]],\r\n        presets: PresetLoader,\r\n        strategies: StrategyLoader = tuple,\r\n        screener_results: Path = recorded.RESULTS_DIR,\r\n    ) -> None",
+              "line_start": 83,
+              "line_end": 99
+            },
+            {
+              "name": "estimate",
+              "signature": "def estimate(self, plan: RunPlan, user_id: str, today: date | None = None) -> Estimate",
+              "docstring": "Return the stock count, missing candles and Step 1 day counts.",
+              "line_start": 101,
+              "line_end": 131
+            },
+            {
+              "name": "_estimate_recorded",
+              "signature": "def _estimate_recorded(self, plan: RunPlan, symbols: list[str], errors: list[str],\r\n                           today: date) -> Estimate",
+              "docstring": "Data check for saved screener lists: sessions with a list (SRD-BKT-002.081).",
+              "line_start": 133,
+              "line_end": 150
+            },
+            {
+              "name": "saved_days",
+              "signature": "def saved_days(self, preset_id: str) -> list[date]",
+              "docstring": "Dates of the screener lists the app saved for a preset (SRD-GUI-031.060).",
+              "line_start": 152,
+              "line_end": 154
+            },
+            {
+              "name": "run_stocks",
+              "signature": "def run_stocks(\r\n        self,\r\n        plan: RunPlan,\r\n        user_id: str,\r\n        *,\r\n        workers: int = 4,\r\n        progress: stocks.Progress | None = None,\r\n        cancel: stocks.Cancel | None = None,\r\n        record: bool = True,\r\n    ) -> DailyList",
+              "docstring": "Run Step 1 and record the run (SRD-BKT-002.017).",
+              "line_start": 156,
+              "line_end": 189
+            },
+            {
+              "name": "_saved_lists",
+              "signature": "def _saved_lists(self, plan: RunPlan, symbols: list[str]) -> DailyList",
+              "docstring": "Step 1 from the saved screener lists (SRD-BKT-002.080).",
+              "line_start": 191,
+              "line_end": 199
+            },
+            {
+              "name": "run_signals",
+              "signature": "def run_signals(\r\n        self,\r\n        plan: RunPlan,\r\n        daily: DailyList,\r\n        *,\r\n        workers: int = 4,\r\n        progress: stocks.Progress | None = None,\r\n        cancel: stocks.Cancel | None = None,\r\n        record: bool = True,\r\n    ) -> pd.DataFrame",
+              "docstring": "Run Step 2 on Step 1's list and record the run (SRD-BKT-002.029).",
+              "line_start": 201,
+              "line_end": 224
+            },
+            {
+              "name": "run_portfolio",
+              "signature": "def run_portfolio(\r\n        self,\r\n        plan: RunPlan,\r\n        daily: DailyList,\r\n        found: pd.DataFrame,\r\n        *,\r\n        progress: stocks.Progress | None = None,\r\n        cancel: stocks.Cancel | None = None,\r\n    ) -> list[portfolio.VariantResult]",
+              "docstring": "Run Step 3 for every variant and save the rows (SRD-BKT-002.039).",
+              "line_start": 226,
+              "line_end": 256
+            },
+            {
+              "name": "build_reports",
+              "signature": "def build_reports(self, plan: RunPlan, results: Sequence[portfolio.VariantResult]\r\n                      ) -> list[report.Report]",
+              "docstring": "Step 4 for each variant, with the equal-weight benchmark (SRD-BKT-002.040\u2013.046).",
+              "line_start": 258,
+              "line_end": 272
+            },
+            {
+              "name": "saved_results",
+              "signature": "def saved_results(self, run_id: str) -> list[portfolio.VariantResult]",
+              "docstring": "Step 3 rows of a saved run, one per variant, in order.",
+              "line_start": 274,
+              "line_end": 281
+            },
+            {
+              "name": "saved_reports",
+              "signature": "def saved_reports(self) -> list[SavedReport]",
+              "docstring": "Saved runs with Step 3 results, newest first, with their first variant's numbers",
+              "line_start": 283,
+              "line_end": 295
+            },
+            {
+              "name": "open_run",
+              "signature": "def open_run(self, run_id: str, user_id: str, *, workers: int = 4,\r\n                 progress: stocks.Progress | None = None,\r\n                 cancel: stocks.Cancel | None = None) -> OpenedRun",
+              "docstring": "Read a saved run back: Steps 1\u20132 from the step cache, Step 3 from ``results.db``",
+              "line_start": 297,
+              "line_end": 315
+            },
+            {
+              "name": "rename_run",
+              "signature": "def rename_run(self, run_id: str, name: str) -> None",
+              "docstring": "Rename a saved run (SRD-BKT-002.060).",
+              "line_start": 317,
+              "line_end": 319
+            },
+            {
+              "name": "set_note",
+              "signature": "def set_note(self, run_id: str, note: str) -> None",
+              "docstring": "Save a note on a run (SRD-BKT-002.060).",
+              "line_start": 321,
+              "line_end": 323
+            },
+            {
+              "name": "delete_run",
+              "signature": "def delete_run(self, run_id: str) -> None",
+              "docstring": "Delete a saved run and all its rows (SRD-BKT-002.060).",
+              "line_start": 325,
+              "line_end": 328
+            },
+            {
+              "name": "report_for_run",
+              "signature": "def report_for_run(self, run_id: str) -> list[report.Report]",
+              "docstring": "Step 4 from a saved run's rows in ``results.db``, without running Steps 1\u20133.",
+              "line_start": 330,
+              "line_end": 339
+            },
+            {
+              "name": "bars",
+              "signature": "def bars(self, symbol: str, tf: StoredTf, start: date, end: date) -> pd.DataFrame",
+              "docstring": "Saved bars of one stock for the Inspector chart (SRD-GUI-031.052).",
+              "line_start": 341,
+              "line_end": 343
+            },
+            {
+              "name": "_closes",
+              "signature": "def _closes(self, symbols: Sequence[str], period: Period) -> dict[str, pd.Series]",
+              "line_start": 345,
+              "line_end": 353
+            },
+            {
+              "name": "_chosen_strategies",
+              "signature": "def _chosen_strategies(self, plan: RunPlan) -> list[dict[str, Any]]",
+              "line_start": 355,
+              "line_end": 363
+            },
+            {
+              "name": "_recorded",
+              "signature": "def _recorded(self, plan: RunPlan, work: Callable[[str], _T], record: bool = True) -> _T",
+              "docstring": "Run ``work(run_id)`` inside a results row: done, cancelled or failed.",
+              "line_start": 365,
+              "line_end": 382
+            }
+          ],
+          "line_start": 74,
+          "line_end": 382
+        },
+        {
+          "name": "SavedReport",
+          "docstring": "One saved run for the Reports table: key numbers of its first variant.",
+          "class_vars": [
+            "run: RunRow",
+            "plan: RunPlan",
+            "trades: int",
+            "net_pnl: float",
+            "return_pct: float",
+            "max_dd_pct: float"
+          ],
+          "line_start": 386,
+          "line_end": 394
+        },
+        {
+          "name": "OpenedRun",
+          "docstring": "A saved run read back for the Inspector and Detail Report (SRD-GUI-031.055).",
+          "class_vars": [
+            "plan: RunPlan",
+            "daily: DailyList",
+            "signals: pd.DataFrame | None",
+            "results: list[portfolio.VariantResult]",
+            "reports: list[report.Report]"
+          ],
+          "line_start": 398,
+          "line_end": 405
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_misses",
+          "signature": "def _misses(store: BacktestStore, symbol: str, tf: str, period: Period, today: date) -> bool",
+          "line_start": 66,
+          "line_end": 71
+        },
+        {
+          "name": "stocks_text",
+          "signature": "def stocks_text(plan: RunPlan) -> str",
+          "docstring": "Short text for the run's stocks: \"S&P 500\", the sectors or the names.",
+          "line_start": 408,
+          "line_end": 415
+        },
+        {
+          "name": "variant_label",
+          "signature": "def variant_label(variant: Variant) -> str",
+          "docstring": "$2,000 \u00b7 ST_AUTO 100%/100%\": capital, then each strategy's allocation and per-tr",
+          "line_start": 418,
+          "line_end": 421
+        }
+      ],
+      "constants": [
+        "_EDGE_DAYS = 5",
+        "_BENCHMARK_LOOKBACK_DAYS = 10",
+        "_T = TypeVar(\"_T\")"
       ]
     },
     "settings.py": {
@@ -264,6 +748,929 @@
         "STATE_FILE = \"state.json\""
       ]
     },
+    "spec.py": {
+      "module_id": "MD-BKT-002.001.M01",
+      "srd_id": "SRD-BKT-002.001",
+      "classes": [
+        {
+          "name": "Period",
+          "docstring": "First and last session of the run.",
+          "class_vars": [
+            "start: date",
+            "end: date"
+          ],
+          "line_start": 39,
+          "line_end": 43
+        },
+        {
+          "name": "UniverseSpec",
+          "docstring": "Which stocks: all S&P 500, some sectors or a name list, then add/remove.",
+          "class_vars": [
+            "mode: str",
+            "sectors: tuple[str, ...]",
+            "names: tuple[str, ...]",
+            "add: tuple[str, ...]",
+            "remove: tuple[str, ...]"
+          ],
+          "line_start": 47,
+          "line_end": 54
+        },
+        {
+          "name": "ScreenerSpec",
+          "docstring": "Screener preset replayed in Step 1; ``top_n`` 0 means all passing stocks.",
+          "class_vars": [
+            "preset_id: str",
+            "top_n: int",
+            "ai_ranking: bool",
+            "recorded: bool"
+          ],
+          "line_start": 58,
+          "line_end": 67
+        },
+        {
+          "name": "StrategySpec",
+          "docstring": "A live strategy and its money split; lists expand into variants.",
+          "class_vars": [
+            "id: str",
+            "allocation_pct: tuple[float, ...]",
+            "per_trade_pct: tuple[float, ...]"
+          ],
+          "line_start": 71,
+          "line_end": 76
+        },
+        {
+          "name": "AccountSpec",
+          "docstring": "The one shared account (D1).",
+          "class_vars": [
+            "capital: tuple[float, ...]",
+            "grow_with_pnl: bool",
+            "max_daily_loss_pct: float",
+            "when_full: str"
+          ],
+          "line_start": 80,
+          "line_end": 86
+        },
+        {
+          "name": "CostSpec",
+          "docstring": "Commission per order in dollars and slippage in basis points.",
+          "class_vars": [
+            "per_order: float",
+            "slippage_bps: float"
+          ],
+          "line_start": 90,
+          "line_end": 94
+        },
+        {
+          "name": "Variant",
+          "docstring": "One point of the variant grid: capital plus (id, allocation %, per-trade %).",
+          "class_vars": [
+            "capital: float",
+            "strategies: tuple[tuple[str, float, float], ...]"
+          ],
+          "line_start": 98,
+          "line_end": 102
+        },
+        {
+          "name": "RunPlan",
+          "docstring": "Full backtest input (Engine_plan \u00a74).",
+          "class_vars": [
+            "name: str",
+            "period: Period",
+            "universe: UniverseSpec",
+            "screener: ScreenerSpec",
+            "strategies: tuple[StrategySpec, ...]",
+            "account: AccountSpec",
+            "costs: CostSpec",
+            "schema: int"
+          ],
+          "methods": [
+            {
+              "name": "to_dict",
+              "signature": "def to_dict(self) -> dict[str, Any]",
+              "docstring": "Return the JSON form; single list values are written as numbers.",
+              "line_start": 118,
+              "line_end": 138
+            },
+            {
+              "name": "from_dict",
+              "signature": "def from_dict(cls, data: dict[str, Any]) -> RunPlan",
+              "docstring": "Build a plan from its JSON form; unknown keys are ignored.",
+              "decorators": [
+                "@classmethod"
+              ],
+              "line_start": 141,
+              "line_end": 186
+            },
+            {
+              "name": "to_json",
+              "signature": "def to_json(self) -> str",
+              "docstring": "Return the plan as indented JSON text.",
+              "line_start": 188,
+              "line_end": 190
+            },
+            {
+              "name": "from_json",
+              "signature": "def from_json(cls, text: str) -> RunPlan",
+              "docstring": "Parse a plan from JSON text.",
+              "decorators": [
+                "@classmethod"
+              ],
+              "line_start": 193,
+              "line_end": 195
+            },
+            {
+              "name": "variant_count",
+              "signature": "def variant_count(self) -> int",
+              "docstring": "Number of variants the list values expand into.",
+              "line_start": 197,
+              "line_end": 202
+            },
+            {
+              "name": "variants",
+              "signature": "def variants(self) -> list[Variant]",
+              "docstring": "Expand capital \u00d7 each strategy's allocation \u00d7 per-trade lists (SRD-BKT-002.003).",
+              "line_start": 204,
+              "line_end": 214
+            },
+            {
+              "name": "validate",
+              "signature": "def validate(self) -> list[str]",
+              "docstring": "Return plain error messages; an empty list means the plan is valid.",
+              "line_start": 216,
+              "line_end": 249
+            }
+          ],
+          "line_start": 106,
+          "line_end": 249
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_floats",
+          "signature": "def _floats(value: Any, default: tuple[float, ...]) -> tuple[float, ...]",
+          "line_start": 22,
+          "line_end": 27
+        },
+        {
+          "name": "_one_or_list",
+          "signature": "def _one_or_list(values: tuple[float, ...]) -> float | list[float]",
+          "line_start": 30,
+          "line_end": 31
+        },
+        {
+          "name": "_strs",
+          "signature": "def _strs(value: Any) -> tuple[str, ...]",
+          "line_start": 34,
+          "line_end": 35
+        }
+      ],
+      "constants": [
+        "SCHEMA = 1",
+        "MAX_VARIANTS = 64",
+        "UNIVERSE_MODES = (\"sp500\", \"sector\", \"names\")",
+        "WHEN_FULL = (\"first_signal\", \"highest_score\")"
+      ]
+    },
+    "portfolio.py": {
+      "module_id": "MD-BKT-002.030.M12",
+      "srd_id": "SRD-BKT-002.030",
+      "classes": [
+        {
+          "name": "StrategyRules",
+          "docstring": "One strategy's live settings plus this variant's money split.",
+          "class_vars": [
+            "name: str",
+            "sign: int",
+            "intraday: bool",
+            "end_minute: int",
+            "stop_pct: float | None",
+            "target_pct: float | None",
+            "rex_count: int",
+            "alloc_pct: float",
+            "per_trade_pct: float"
+          ],
+          "methods": [
+            {
+              "name": "from_live",
+              "signature": "def from_live(cls, cfg: Mapping[str, Any], alloc_pct: float, per_trade_pct: float\n                  ) -> StrategyRules",
+              "decorators": [
+                "@classmethod"
+              ],
+              "line_start": 54,
+              "line_end": 67
+            }
+          ],
+          "line_start": 40,
+          "line_end": 67
+        },
+        {
+          "name": "VariantResult",
+          "docstring": "Step 3 output of one variant.",
+          "class_vars": [
+            "variant: Variant",
+            "trades: pd.DataFrame",
+            "day_log: pd.DataFrame",
+            "money: pd.DataFrame"
+          ],
+          "line_start": 71,
+          "line_end": 77
+        },
+        {
+          "name": "_Bars",
+          "docstring": "One stock's 3m bars keyed by close time.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, frame: pd.DataFrame) -> None",
+              "line_start": 106,
+              "line_end": 116
+            },
+            {
+              "name": "day_range",
+              "signature": "def day_range(self, day: date) -> tuple[int, int]",
+              "line_start": 118,
+              "line_end": 121
+            }
+          ],
+          "line_start": 103,
+          "line_end": 121
+        },
+        {
+          "name": "_Position",
+          "class_vars": [
+            "rules: StrategyRules",
+            "symbol: str",
+            "qty: int",
+            "entry_px: float",
+            "entry_ns: int",
+            "window: int",
+            "score: float",
+            "rank: int",
+            "costs: float",
+            "stop: float | None",
+            "target: float | None",
+            "best: float",
+            "worst: float"
+          ],
+          "methods": [
+            {
+              "name": "cost",
+              "signature": "def cost(self) -> float",
+              "decorators": [
+                "@property"
+              ],
+              "line_start": 154,
+              "line_end": 155
+            }
+          ],
+          "line_start": 138,
+          "line_end": 155
+        },
+        {
+          "name": "_Order",
+          "class_vars": [
+            "kind: str",
+            "rules: StrategyRules",
+            "symbol: str",
+            "reason: str",
+            "window: int",
+            "score: float",
+            "rank: int"
+          ],
+          "line_start": 159,
+          "line_end": 166
+        },
+        {
+          "name": "_Account",
+          "docstring": "The shared account of one variant while it runs.",
+          "class_vars": [
+            "capital: float",
+            "account: AccountSpec",
+            "costs: CostSpec",
+            "positions: dict[str, _Position]",
+            "pending: list[_Order]",
+            "last: dict[str, float]",
+            "realized: float",
+            "trades: list[tuple[Any, ...]]",
+            "log: list[tuple[Any, ...]]",
+            "logged: set[tuple[str, str, int, str]]"
+          ],
+          "methods": [
+            {
+              "name": "open_cost",
+              "signature": "def open_cost(self, strategy: str | None = None) -> float",
+              "line_start": 184,
+              "line_end": 186
+            },
+            {
+              "name": "equity",
+              "signature": "def equity(self) -> float",
+              "line_start": 188,
+              "line_end": 191
+            },
+            {
+              "name": "note",
+              "signature": "def note(self, ns: int, symbol: str, rules: StrategyRules, decision: str, window: int) -> None",
+              "line_start": 193,
+              "line_end": 199
+            },
+            {
+              "name": "close",
+              "signature": "def close(self, pos: _Position, raw: float, ns: int, reason: str) -> None",
+              "line_start": 201,
+              "line_end": 213
+            },
+            {
+              "name": "enter",
+              "signature": "def enter(self, order: _Order, raw: float, ns: int) -> bool",
+              "line_start": 215,
+              "line_end": 241
+            }
+          ],
+          "line_start": 170,
+          "line_end": 241
+        },
+        {
+          "name": "_Sim",
+          "docstring": "Day loop of one variant (DD-BKT-002.030.D01).",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, variant: Variant, rules: dict[str, StrategyRules], plan: RunPlan,\n                 picks: dict[date, dict[str, tuple[float, int]]], bars: dict[str, _Bars],\n                 entry: dict[tuple[str, str], IntArray],\n                 exits: dict[tuple[str, str], BoolArray]) -> None",
+              "line_start": 261,
+              "line_end": 269
+            },
+            {
+              "name": "run_day",
+              "signature": "def run_day(self, day: date) -> None",
+              "line_start": 271,
+              "line_end": 312
+            },
+            {
+              "name": "_fill",
+              "signature": "def _fill(self, here: dict[str, int], t: int,\n              rex_used: dict[tuple[str, str], int]) -> None",
+              "line_start": 314,
+              "line_end": 327
+            },
+            {
+              "name": "_exits_at_close",
+              "signature": "def _exits_at_close(self, here: dict[str, int], t: int,\n                        ranges: dict[str, tuple[int, int]]) -> None",
+              "line_start": 329,
+              "line_end": 345
+            },
+            {
+              "name": "_entries_at_close",
+              "signature": "def _entries_at_close(self, here: dict[str, int], t: int,\n                          picks: dict[str, tuple[float, int]], stopped: bool,\n                          rex_used: dict[tuple[str, str], int]) -> None",
+              "line_start": 347,
+              "line_end": 381
+            },
+            {
+              "name": "finish",
+              "signature": "def finish(self, variant: Variant) -> VariantResult",
+              "line_start": 383,
+              "line_end": 393
+            }
+          ],
+          "line_start": 258,
+          "line_end": 393
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "refusals",
+          "signature": "def refusals(plan: RunPlan, strategies: Sequence[Mapping[str, Any]],\n             signals: pd.DataFrame) -> list[str]",
+          "docstring": "Plain messages for what Step 3 cannot do yet (SRD-BKT-002.036).",
+          "line_start": 80,
+          "line_end": 95
+        },
+        {
+          "name": "_ns",
+          "signature": "def _ns(values: Any) -> IntArray",
+          "line_start": 98,
+          "line_end": 100
+        },
+        {
+          "name": "_windows",
+          "signature": "def _windows(bars: _Bars, rows: pd.DataFrame) -> IntArray",
+          "docstring": "Window start (ns) per bar where a condition is true, else 0.",
+          "line_start": 124,
+          "line_end": 134
+        },
+        {
+          "name": "_levels",
+          "signature": "def _levels(acc: _Account, pos: _Position, bars: _Bars, k: int) -> None",
+          "docstring": "SRD-BKT-002.035 \u2014 stop first, then target; a gap through a level fills at the op",
+          "line_start": 244,
+          "line_end": 255
+        },
+        {
+          "name": "picks_by_day",
+          "signature": "def picks_by_day(daily: pd.DataFrame, days: Sequence[date], n: int\n                 ) -> dict[date, dict[str, tuple[float, int]]]",
+          "docstring": "Each session trades its own top-N list (made at the previous trading day's close",
+          "line_start": 396,
+          "line_end": 404
+        },
+        {
+          "name": "run_portfolio",
+          "signature": "def run_portfolio(\n    plan: RunPlan,\n    strategies: Sequence[Mapping[str, Any]],\n    daily: pd.DataFrame,\n    days: Sequence[date],\n    signals: pd.DataFrame,\n    store: BacktestStore,\n    *,\n    progress: Progress | None = None,\n    cancel: Cancel | None = None,\n) -> list[VariantResult]",
+          "docstring": "Run every variant of the plan (SRD-BKT-002.030\u2013.038).",
+          "line_start": 407,
+          "line_end": 459
+        }
+      ],
+      "constants": [
+        "_NS_PER_MIN = 60_000_000_000",
+        "TRADE_COLUMNS = [\"strategy\", \"symbol\", \"direction\", \"entry_ts\", \"entry_px\", \"qty\", \"exit_ts\",",
+        "LOG_COLUMNS = [\"ts\", \"symbol\", \"strategy\", \"decision\", \"margin_available\", \"strategy_deployed\"]",
+        "MONEY_COLUMNS = [\"date\", \"start_capital\", \"deployed\", \"margin_min\", \"margin_close\","
+      ]
+    },
+    "recorded.py": {
+      "module_id": "MD-BKT-002.080.M14",
+      "srd_id": "SRD-BKT-002.080",
+      "top_level_functions": [
+        {
+          "name": "_files",
+          "signature": "def _files(preset_id: str, base: Path) -> list[Path]",
+          "line_start": 28,
+          "line_end": 30
+        },
+        {
+          "name": "saved_days",
+          "signature": "def saved_days(preset_id: str, base: Path = RESULTS_DIR) -> list[date]",
+          "docstring": "Dates of the saved lists for a preset, oldest first.",
+          "line_start": 33,
+          "line_end": 41
+        },
+        {
+          "name": "trade_day",
+          "signature": "def trade_day(run_ts: pd.Timestamp) -> date",
+          "docstring": "The day a list is traded: same day before 09:30 ET, else the next day (SRD-BKT-0",
+          "line_start": 44,
+          "line_end": 48
+        },
+        {
+          "name": "_read",
+          "signature": "def _read(path: Path) -> tuple[pd.Timestamp, dict[str, dict[str, object]]] | None",
+          "line_start": 51,
+          "line_end": 58
+        },
+        {
+          "name": "load_lists",
+          "signature": "def load_lists(preset_id: str, sessions: Sequence[date], symbols: Collection[str],\r\n               base: Path = RESULTS_DIR) -> pd.DataFrame",
+          "docstring": "Daily list (date, symbol, score, rank) from the saved lists (SRD-BKT-002.080).",
+          "line_start": 61,
+          "line_end": 88
+        }
+      ],
+      "constants": [
+        "RESULTS_DIR = Path.home() / \".usswing\" / \"screener_results\"",
+        "ET = \"America/New_York\"",
+        "MARKET_OPEN = time(9, 30)",
+        "COLUMNS = [\"date\", \"symbol\", \"score\", \"rank\"]",
+        "MAX_GAP_DAYS = 4"
+      ]
+    },
+    "report.py": {
+      "module_id": "MD-BKT-002.040.M13",
+      "srd_id": "SRD-BKT-002.040",
+      "classes": [
+        {
+          "name": "Stat",
+          "docstring": "One measure; ``kind`` says how to show it: usd, pct, ratio, count or days.",
+          "class_vars": [
+            "name: str",
+            "value: float",
+            "kind: str"
+          ],
+          "line_start": 37,
+          "line_end": 42
+        },
+        {
+          "name": "Report",
+          "docstring": "Step 4 output of one variant.",
+          "class_vars": [
+            "label: str",
+            "capital: float",
+            "stats: tuple[Stat, ...]",
+            "daily: pd.DataFrame",
+            "monthly: pd.DataFrame",
+            "skips: pd.DataFrame",
+            "trades: pd.DataFrame",
+            "per_trade_pct: float"
+          ],
+          "methods": [
+            {
+              "name": "stat",
+              "signature": "def stat(self, name: str) -> float",
+              "docstring": "Value of the stat called ``name``.",
+              "line_start": 62,
+              "line_end": 64
+            }
+          ],
+          "line_start": 46,
+          "line_end": 64
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "normalize",
+          "signature": "def normalize(trades: pd.DataFrame, money: pd.DataFrame, day_log: pd.DataFrame\r\n              ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]",
+          "docstring": "Same dtypes for in-memory results and rows read back from ``results.db``.",
+          "line_start": 67,
+          "line_end": 76
+        },
+        {
+          "name": "daily_equity",
+          "signature": "def daily_equity(money: pd.DataFrame, capital: float) -> pd.DataFrame",
+          "docstring": "Date, equity and drawdown from the peak so far (SRD-BKT-002.042).",
+          "line_start": 79,
+          "line_end": 84
+        },
+        {
+          "name": "_returns",
+          "signature": "def _returns(daily: pd.DataFrame, capital: float) -> FloatArray",
+          "line_start": 87,
+          "line_end": 90
+        },
+        {
+          "name": "_cagr",
+          "signature": "def _cagr(daily: pd.DataFrame, capital: float) -> float",
+          "line_start": 94,
+          "line_end": 99
+        },
+        {
+          "name": "_invested_share",
+          "signature": "def _invested_share(trades: pd.DataFrame, days: Sequence[date]) -> float",
+          "line_start": 102,
+          "line_end": 109
+        },
+        {
+          "name": "returns_stats",
+          "signature": "def returns_stats(trades: pd.DataFrame, daily: pd.DataFrame, capital: float) -> list[Stat]",
+          "docstring": "Net P&L, return, CAGR and share of days with a position (SRD-BKT-002.041).",
+          "line_start": 112,
+          "line_end": 120
+        },
+        {
+          "name": "_longest_drawdown",
+          "signature": "def _longest_drawdown(drawdown: FloatArray) -> int",
+          "line_start": 123,
+          "line_end": 128
+        },
+        {
+          "name": "risk_stats",
+          "signature": "def risk_stats(trades: pd.DataFrame, daily: pd.DataFrame, capital: float) -> list[Stat]",
+          "docstring": "Drawdown, Sharpe, Sortino, Calmar, worst day and trade (SRD-BKT-002.042).",
+          "line_start": 131,
+          "line_end": 155
+        },
+        {
+          "name": "_longest_streak",
+          "signature": "def _longest_streak(wins: Sequence[bool], value: bool) -> int",
+          "line_start": 158,
+          "line_end": 163
+        },
+        {
+          "name": "trade_stats",
+          "signature": "def trade_stats(trades: pd.DataFrame) -> list[Stat]",
+          "docstring": "Win rate, averages, payoff, profit factor, expectancy, streaks (SRD-BKT-002.043)",
+          "line_start": 166,
+          "line_end": 185
+        },
+        {
+          "name": "_hours",
+          "signature": "def _hours(trades: pd.DataFrame) -> pd.Series",
+          "line_start": 188,
+          "line_end": 189
+        },
+        {
+          "name": "exit_hold_stats",
+          "signature": "def exit_hold_stats(trades: pd.DataFrame) -> list[Stat]",
+          "docstring": "Average MAE, MFE, profit given back and hold time (SRD-BKT-002.070).",
+          "line_start": 192,
+          "line_end": 206
+        },
+        {
+          "name": "_max_drawdowns",
+          "signature": "def _max_drawdowns(pnl: FloatArray, capital: float, runs: int, seed: int) -> FloatArray",
+          "line_start": 209,
+          "line_end": 216
+        },
+        {
+          "name": "robustness_stats",
+          "signature": "def robustness_stats(trades: pd.DataFrame, daily: pd.DataFrame, capital: float) -> list[Stat]",
+          "docstring": "Monte Carlo drawdown, half-period P&L and P&L without the top 5 (SRD-BKT-002.072",
+          "line_start": 219,
+          "line_end": 239
+        },
+        {
+          "name": "monthly_pnl",
+          "signature": "def monthly_pnl(daily: pd.DataFrame, capital: float) -> pd.DataFrame",
+          "docstring": "P&L per calendar month from day-to-day equity change (SRD-BKT-002.041).",
+          "line_start": 242,
+          "line_end": 248
+        },
+        {
+          "name": "_hold_bucket",
+          "signature": "def _hold_bucket(hours: float) -> str",
+          "line_start": 251,
+          "line_end": 252
+        },
+        {
+          "name": "_score_buckets",
+          "signature": "def _score_buckets(scores: pd.Series) -> list[str]",
+          "docstring": "Quartile ranges of the score, or the score itself when there are few values.",
+          "line_start": 255,
+          "line_end": 261
+        },
+        {
+          "name": "with_groups",
+          "signature": "def with_groups(trades: pd.DataFrame, sectors: Mapping[str, str]) -> pd.DataFrame",
+          "docstring": "Add sector, entry hour (ET), weekday, hold time, score bucket and rank group col",
+          "line_start": 264,
+          "line_end": 275
+        },
+        {
+          "name": "breakdown",
+          "signature": "def breakdown(trades: pd.DataFrame, by: str) -> pd.DataFrame",
+          "docstring": "Trades, net P&L, win rate and average P&L per group, best first (SRD-BKT-002.044",
+          "line_start": 278,
+          "line_end": 294
+        },
+        {
+          "name": "skip_counts",
+          "signature": "def skip_counts(day_log: pd.DataFrame) -> pd.DataFrame",
+          "docstring": "Entries taken and each skip reason with its count (SRD-BKT-002.045).",
+          "line_start": 297,
+          "line_end": 302
+        },
+        {
+          "name": "equal_weight_benchmark",
+          "signature": "def equal_weight_benchmark(closes: Mapping[str, pd.Series], days: Sequence[date],\r\n                           capital: float) -> pd.Series",
+          "docstring": "Capital grown by the average daily return of the stocks (SRD-BKT-002.046).",
+          "line_start": 305,
+          "line_end": 316
+        },
+        {
+          "name": "build_report",
+          "signature": "def build_report(label: str, capital: float, trades: pd.DataFrame, money: pd.DataFrame,\r\n                 day_log: pd.DataFrame, sectors: Mapping[str, str],\r\n                 benchmark: pd.Series | None = None) -> Report",
+          "docstring": "All Step 4 measures of one variant from its Step 3 rows (SRD-BKT-002.040).",
+          "line_start": 319,
+          "line_end": 331
+        },
+        {
+          "name": "heat_map",
+          "signature": "def heat_map(reports: Sequence[Report]) -> pd.DataFrame",
+          "docstring": "Return by capital (rows) \u00d7 per-trade % (columns), or empty when one of them is",
+          "line_start": 334,
+          "line_end": 341
+        },
+        {
+          "name": "compare",
+          "signature": "def compare(reports: Sequence[Report]) -> pd.DataFrame",
+          "docstring": "One row of key stats per variant (SRD-BKT-002.047).",
+          "line_start": 344,
+          "line_end": 347
+        }
+      ],
+      "constants": [
+        "TRADING_DAYS = 252",
+        "ET = \"America/New_York\"",
+        "GROUPS = (\"strategy\", \"symbol\", \"sector\", \"exit_reason\", \"hour\", \"weekday\", \"hold\",",
+        "HOLD_BUCKETS = ((1.0, \"under 1 h\"), (3.0, \"1\u20133 h\"), (24.0, \"3 h\u20131 day\"),",
+        "MONTE_CARLO_RUNS = 1000",
+        "MONTE_CARLO_SEED = 7",
+        "BREAKDOWN_COLUMNS = [\"group\", \"trades\", \"net_pnl\", \"win_rate\", \"avg_pnl\"]",
+        "COMPARE_STATS = (\"Net P&L\", \"Return\", \"CAGR\", \"Max drawdown\", \"Sharpe\", \"Win rate\","
+      ]
+    },
+    "signals.py": {
+      "module_id": "MD-BKT-002.026.M11",
+      "srd_id": "SRD-BKT-002.026",
+      "top_level_functions": [
+        {
+          "name": "load_frames",
+          "signature": "def load_frames(store: BacktestStore, symbol: str, period: Period) -> dict[str, pd.DataFrame]",
+          "docstring": "Read 3m/15m from 45 days and 1d/1w from 400 days before the start.",
+          "line_start": 45,
+          "line_end": 52
+        },
+        {
+          "name": "_hhmm",
+          "signature": "def _hhmm(text: str) -> time",
+          "line_start": 55,
+          "line_end": 57
+        },
+        {
+          "name": "schedule_mask",
+          "signature": "def schedule_mask(close_et: pd.DatetimeIndex, strategy: Strategy) -> BoolArray",
+          "docstring": "Bars whose close is inside the strategy's hours (start \u2264 t < end) and days.",
+          "line_start": 60,
+          "line_end": 67
+        },
+        {
+          "name": "periods",
+          "signature": "def periods(fired: BoolArray, close_utc: pd.DatetimeIndex, close_px: FloatArray,\r\n            ev: Evaluation, kind: str) -> pd.DataFrame",
+          "docstring": "One row per run of true bars (SRD-BKT-002.026).",
+          "line_start": 70,
+          "line_end": 83
+        },
+        {
+          "name": "compute",
+          "signature": "def compute(strategy: Strategy, frames: Mapping[str, pd.DataFrame], period: Period\r\n            ) -> pd.DataFrame",
+          "docstring": "Entry and exit periods of one strategy on one stock's frames.",
+          "line_start": 86,
+          "line_end": 106
+        },
+        {
+          "name": "signal_key",
+          "signature": "def signal_key(strategy: Strategy, symbol: str, period: Period, store: BacktestStore) -> str",
+          "docstring": "Cache key: condition text, hours, days, stock, period and candle coverage.",
+          "line_start": 109,
+          "line_end": 118
+        },
+        {
+          "name": "accepts",
+          "signature": "def accepts(strategy: Strategy, symbol: str) -> bool",
+          "docstring": "Same stock filter as live ``_StrategyContext.accepts``.",
+          "line_start": 121,
+          "line_end": 130
+        },
+        {
+          "name": "stocks_for",
+          "signature": "def stocks_for(strategy: Strategy, daily: pd.DataFrame, top_n: int) -> list[str]",
+          "docstring": "Stocks ranked within top N on any day that the strategy accepts.",
+          "line_start": 133,
+          "line_end": 136
+        },
+        {
+          "name": "_run_pair",
+          "signature": "def _run_pair(strategy: dict[str, Any], symbol: str, root: str, period: Period\r\n              ) -> tuple[str, str, pd.DataFrame]",
+          "line_start": 139,
+          "line_end": 148
+        },
+        {
+          "name": "run_signals",
+          "signature": "def run_signals(\r\n    period: Period,\r\n    strategies: Sequence[dict[str, Any]],\r\n    daily: pd.DataFrame,\r\n    top_n: int,\r\n    store: BacktestStore,\r\n    cache: StepCache,\r\n    *,\r\n    workers: int = 4,\r\n    progress: Progress | None = None,\r\n    cancel: Cancel | None = None,\r\n) -> pd.DataFrame",
+          "docstring": "Compute missing (strategy, stock) periods and return all of them (SRD-BKT-002.02",
+          "line_start": 151,
+          "line_end": 203
+        }
+      ],
+      "constants": [
+        "STEP = \"signals\"",
+        "STEP_VERSION = 2",
+        "INTRADAY_WARMUP_DAYS = 45",
+        "DAILY_WARMUP_DAYS = 400",
+        "_TIMEFRAMES = (\"3m\", \"15m\", \"1d\", \"1w\")",
+        "_KINDS = ((\"entry\", \"entry_condition\"), (\"exit\", \"exit_condition\"))",
+        "PERIOD_COLUMNS = [\"kind\", \"start\", \"end\", \"close_at_start\", \"values\", \"pnl\"]",
+        "SIGNAL_COLUMNS = [\"strategy\", \"symbol\", *PERIOD_COLUMNS]",
+        "_DAY_NAMES = (\"Monday\", \"Tuesday\", \"Wednesday\", \"Thursday\", \"Friday\", \"Saturday\", \"Sunday\")"
+      ]
+    },
+    "stocks.py": {
+      "module_id": "MD-BKT-002.010.M07",
+      "srd_id": "SRD-BKT-002.010",
+      "classes": [
+        {
+          "name": "StepCancelled",
+          "docstring": "The user cancelled the step; finished days stay cached.",
+          "line_start": 46,
+          "line_end": 47
+        },
+        {
+          "name": "StepRefused",
+          "docstring": "The plan asks for something Step 1 cannot do yet.",
+          "line_start": 50,
+          "line_end": 51
+        },
+        {
+          "name": "_Bar",
+          "class_vars": [
+            "datetime: datetime",
+            "open: float",
+            "high: float",
+            "low: float",
+            "close: float",
+            "volume: float"
+          ],
+          "line_start": 55,
+          "line_end": 61
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "trading_days",
+          "signature": "def trading_days(store: BacktestStore, period: Period, symbols: list[str]) -> list[date]",
+          "docstring": "Return SPY's 1d dates in the period, or all stocks' dates when SPY is missing.",
+          "line_start": 64,
+          "line_end": 73
+        },
+        {
+          "name": "sessions",
+          "signature": "def sessions(store: BacktestStore, period: Period, symbols: list[str]) -> dict[date, date]",
+          "docstring": "Map each session in the period to the trading day whose close made its list.",
+          "line_start": 76,
+          "line_end": 80
+        },
+        {
+          "name": "rules_key",
+          "signature": "def rules_key(preset_dict: dict[str, Any], symbols: list[str]) -> str",
+          "docstring": "Cache key of the preset fields that change results plus the whole stock list.",
+          "line_start": 83,
+          "line_end": 86
+        },
+        {
+          "name": "needs_benchmark",
+          "signature": "def needs_benchmark(preset_dict: dict[str, Any]) -> bool",
+          "docstring": "True when an enabled indicator screener has an enabled RS rule (needs SPY).",
+          "line_start": 89,
+          "line_end": 103
+        },
+        {
+          "name": "has_benchmark",
+          "signature": "def has_benchmark(store: BacktestStore) -> bool",
+          "docstring": "True when SPY daily candles are in the store (the backtest is S&P 500 only).",
+          "line_start": 106,
+          "line_end": 108
+        },
+        {
+          "name": "refusals",
+          "signature": "def refusals(plan: RunPlan, preset_dict: dict[str, Any], benchmark: bool) -> list[str]",
+          "docstring": "Return plain messages for plans Step 1 cannot run (SRD-BKT-002.016, .018).",
+          "line_start": 111,
+          "line_end": 121
+        },
+        {
+          "name": "missing_days",
+          "signature": "def missing_days(cache: StepCache, key: str, days: list[date]) -> list[date]",
+          "docstring": "Return the days with no cache file under ``key``.",
+          "line_start": 124,
+          "line_end": 127
+        },
+        {
+          "name": "load_bars",
+          "signature": "def load_bars(root: Path, symbols: list[str], start: date, end: date) -> dict[str, _BarHistory]",
+          "docstring": "Read each stock's 1d bars once as (dates, bar objects).",
+          "line_start": 130,
+          "line_end": 146
+        },
+        {
+          "name": "compute_day",
+          "signature": "def compute_day(\n    history: dict[str, _BarHistory],\n    preset_dict: dict[str, Any],\n    symbols: list[str],\n    day: date,\n    market_caps: dict[str, float],\n) -> pd.DataFrame",
+          "docstring": "Screen one day with each stock's last ``LOOKBACK_BARS`` bars up to ``day``.",
+          "line_start": 149,
+          "line_end": 172
+        },
+        {
+          "name": "_init_worker",
+          "signature": "def _init_worker(root: Path, symbols: list[str], start: date, end: date) -> None",
+          "line_start": 178,
+          "line_end": 180
+        },
+        {
+          "name": "_run_day",
+          "signature": "def _run_day(\n    preset_dict: dict[str, Any], symbols: list[str], day: date, market_caps: dict[str, float]\n) -> tuple[date, pd.DataFrame]",
+          "line_start": 183,
+          "line_end": 189
+        },
+        {
+          "name": "run_stocks",
+          "signature": "def run_stocks(\n    plan: RunPlan,\n    preset_dict: dict[str, Any],\n    symbols: list[str],\n    store: BacktestStore,\n    cache: StepCache,\n    market_caps: dict[str, float],\n    *,\n    workers: int = 4,\n    progress: Progress | None = None,\n    cancel: Cancel | None = None,\n) -> tuple[str, dict[date, date]]",
+          "docstring": "Compute and cache the list of every session's data day that is not cached yet.",
+          "line_start": 192,
+          "line_end": 254
+        },
+        {
+          "name": "daily_list",
+          "signature": "def daily_list(cache: StepCache, key: str, by_session: dict[date, date]) -> pd.DataFrame",
+          "docstring": "Join cached days into ``date, symbol, score, rank``; ``date`` is the session.",
+          "line_start": 257,
+          "line_end": 273
+        },
+        {
+          "name": "top_n",
+          "signature": "def top_n(frame: pd.DataFrame, n: int) -> pd.DataFrame",
+          "docstring": "Keep the top ``n`` stocks per day; ``n`` 0 keeps all.",
+          "line_start": 276,
+          "line_end": 278
+        }
+      ],
+      "constants": [
+        "STEP = \"stocks\"",
+        "STEP_VERSION = 1",
+        "LOOKBACK_BARS = 600",
+        "WARMUP_DAYS = 900",
+        "BENCHMARK = \"SPY\"",
+        "_SESSION_LOOKBACK_DAYS = 10",
+        "_KEY_FIELDS = (\"preset_type\", \"groups\", \"screeners\", \"threshold\", \"timeframe\")",
+        "_DAY_COLUMNS = [\"symbol\", \"passed\", \"score\"]",
+        "_RS_RULE = \"rs_index\"",
+        "_INDICATOR_SCREENER = \"indicator_composite\""
+      ]
+    },
     "store.py": {
       "module_id": "MD-BKT-001.001.M01",
       "srd_id": "SRD-BKT-001.001",
@@ -278,10 +1685,14 @@
             "first: date | None",
             "last: date | None",
             "size_bytes: int",
-            "last_delta: datetime | None"
+            "last_delta: datetime | None",
+            "first_3m: date | None",
+            "missing_1d: int",
+            "missing_3m: int",
+            "short_stocks: int"
           ],
-          "line_start": 35,
-          "line_end": 54
+          "line_start": 41,
+          "line_end": 69
         },
         {
           "name": "BacktestStore",
@@ -290,67 +1701,86 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, root: Path = DEFAULT_ROOT) -> None",
-              "line_start": 60,
-              "line_end": 61
+              "line_start": 75,
+              "line_end": 76
             },
             {
               "name": "save",
-              "signature": "def save(self, symbol: str, tf: Timeframe, df: pd.DataFrame, now: datetime) -> int",
+              "signature": "def save(\r\n        self,\r\n        symbol: str,\r\n        tf: Timeframe,\r\n        df: pd.DataFrame,\r\n        now: datetime,\r\n        start: date | None = None,\r\n    ) -> int",
               "docstring": "Merge ``df`` into the saved bars for ``symbol`` and replace the file(s) atomical",
-              "line_start": 63,
-              "line_end": 89
+              "line_start": 78,
+              "line_end": 118
+            },
+            {
+              "name": "build_missing",
+              "signature": "def build_missing(self) -> int",
+              "docstring": "Build 15m and 1w files that are missing or older than their 3m or 1d source.",
+              "line_start": 120,
+              "line_end": 136
             },
             {
               "name": "read",
-              "signature": "def read(\r\n        self,\r\n        symbol: str,\r\n        tf: Timeframe,\r\n        start: date | None = None,\r\n        end: date | None = None,\r\n    ) -> pd.DataFrame",
+              "signature": "def read(\r\n        self,\r\n        symbol: str,\r\n        tf: StoredTf,\r\n        start: date | None = None,\r\n        end: date | None = None,\r\n    ) -> pd.DataFrame",
               "docstring": "Return saved bars for ``symbol`` in time order, optionally limited to a date ran",
-              "line_start": 91,
-              "line_end": 113
+              "line_start": 138,
+              "line_end": 163
             },
             {
               "name": "coverage",
-              "signature": "def coverage(self, symbol: str, tf: Timeframe) -> tuple[date, date] | None",
+              "signature": "def coverage(self, symbol: str, tf: StoredTf) -> tuple[date, date] | None",
               "docstring": "Return the first and last saved date from Parquet metadata, or ``None``.",
-              "line_start": 115,
-              "line_end": 122
+              "line_start": 165,
+              "line_end": 177
             },
             {
               "name": "stats",
               "signature": "def stats(self) -> BacktestStats",
               "docstring": "Summarise the store from file metadata without reading the bars.",
-              "line_start": 124,
-              "line_end": 145
+              "line_start": 179,
+              "line_end": 201
             },
             {
               "name": "clear",
               "signature": "def clear(self) -> None",
               "docstring": "Delete all saved candles and the download state; keep ``settings.json``.",
-              "line_start": 147,
-              "line_end": 151
+              "line_start": 203,
+              "line_end": 207
             },
             {
-              "name": "_path_1d",
-              "signature": "def _path_1d(self, symbol: str) -> Path",
-              "line_start": 153,
-              "line_end": 154
+              "name": "_single",
+              "signature": "def _single(self, symbol: str, tf: StoredTf) -> Path",
+              "line_start": 209,
+              "line_end": 210
             },
             {
-              "name": "_dir_3m",
-              "signature": "def _dir_3m(self, symbol: str) -> Path",
-              "line_start": 156,
-              "line_end": 157
+              "name": "_yearly",
+              "signature": "def _yearly(self, symbol: str, tf: StoredTf) -> Path",
+              "line_start": 212,
+              "line_end": 213
             },
             {
               "name": "_files",
-              "signature": "def _files(self, symbol: str, tf: Timeframe) -> list[Path]",
-              "line_start": 159,
-              "line_end": 163
+              "signature": "def _files(self, symbol: str, tf: StoredTf) -> list[Path]",
+              "line_start": 215,
+              "line_end": 219
             },
             {
               "name": "_glob",
               "signature": "def _glob(self, sub: str, pattern: str) -> list[Path]",
-              "line_start": 165,
-              "line_end": 166
+              "line_start": 221,
+              "line_end": 222
+            },
+            {
+              "name": "_build_15m",
+              "signature": "def _build_15m(self, symbol: str, year_file: str) -> None",
+              "line_start": 224,
+              "line_end": 226
+            },
+            {
+              "name": "_build_1w",
+              "signature": "def _build_1w(self, symbol: str) -> None",
+              "line_start": 228,
+              "line_end": 230
             },
             {
               "name": "_merge_write",
@@ -358,46 +1788,129 @@
               "decorators": [
                 "@staticmethod"
               ],
-              "line_start": 169,
-              "line_end": 181
+              "line_start": 233,
+              "line_end": 239
             }
           ],
-          "line_start": 57,
-          "line_end": 181
+          "line_start": 72,
+          "line_end": 239
         }
       ],
       "top_level_functions": [
         {
+          "name": "_write",
+          "signature": "def _write(path: Path, bars: pd.DataFrame) -> None",
+          "docstring": "Write ``bars`` to ``path`` atomically; the temp name is unique per call.",
+          "line_start": 242,
+          "line_end": 250
+        },
+        {
+          "name": "_stale",
+          "signature": "def _stale(built: Path, source: Path) -> bool",
+          "line_start": 253,
+          "line_end": 254
+        },
+        {
+          "name": "_to_15m",
+          "signature": "def _to_15m(bars: pd.DataFrame) -> pd.DataFrame",
+          "docstring": "Group 3m bars into 15m bars timed by their start (09:30, 09:45 \u2026 15:45 ET).",
+          "line_start": 257,
+          "line_end": 262
+        },
+        {
+          "name": "_to_1w",
+          "signature": "def _to_1w(bars: pd.DataFrame) -> pd.DataFrame",
+          "docstring": "Group 1d bars into Monday-to-Friday weeks dated by the Monday; ``days`` counts b",
+          "line_start": 265,
+          "line_end": 270
+        },
+        {
+          "name": "_ohlcv",
+          "signature": "def _ohlcv(bars: pd.DataFrame, key: pd.Series) -> pd.DataFrame",
+          "line_start": 273,
+          "line_end": 282
+        },
+        {
+          "name": "_replace",
+          "signature": "def _replace(tmp: Path, path: Path) -> None",
+          "docstring": "``os.replace`` with short retries: on Windows a stats read can hold the file bri",
+          "line_start": 285,
+          "line_end": 294
+        },
+        {
           "name": "_normalise",
           "signature": "def _normalise(df: pd.DataFrame, tf: Timeframe) -> pd.DataFrame",
-          "line_start": 184,
-          "line_end": 194
+          "line_start": 297,
+          "line_end": 307
         },
         {
           "name": "_et_dates",
-          "signature": "def _et_dates(ts: pd.Series, tf: Timeframe) -> pd.Series",
-          "line_start": 197,
-          "line_end": 199
+          "signature": "def _et_dates(ts: pd.Series, tf: StoredTf) -> pd.Series",
+          "line_start": 310,
+          "line_end": 312
         },
         {
           "name": "_et_date",
-          "signature": "def _et_date(stamp: pd.Timestamp, tf: Timeframe) -> date",
-          "line_start": 202,
-          "line_end": 206
+          "signature": "def _et_date(stamp: pd.Timestamp, tf: StoredTf) -> date",
+          "line_start": 315,
+          "line_end": 319
         },
         {
           "name": "_ts_range",
           "signature": "def _ts_range(path: Path) -> tuple[pd.Timestamp, pd.Timestamp] | None",
-          "line_start": 209,
-          "line_end": 221
+          "line_start": 322,
+          "line_end": 334
         }
       ],
       "constants": [
+        "_YEARLY: tuple[StoredTf, ...] = (\"3m\", \"15m\")",
         "_ET = ZoneInfo(\"America/New_York\")",
         "_DAY_DONE = time(16, 15)",
+        "_REPLACE_TRIES = 5",
+        "_LISTED_SLACK = timedelta(days=7)",
         "_PRICE_COLUMNS = [\"open\", \"high\", \"low\", \"close\", \"volume\"]",
-        "_COLUMNS = [\"ts\", *_PRICE_COLUMNS]",
-        "_TIMEFRAMES: tuple[Timeframe, ...] = (\"1d\", \"3m\")"
+        "_COLUMNS = [\"ts\", *_PRICE_COLUMNS]"
+      ]
+    },
+    "universe.py": {
+      "module_id": "MD-BKT-002.004.M02",
+      "srd_id": "SRD-BKT-002.004",
+      "classes": [
+        {
+          "name": "UniverseRecord",
+          "docstring": "Anything with a symbol and a sector, such as an S&P 500 record.",
+          "methods": [
+            {
+              "name": "symbol",
+              "signature": "def symbol(self) -> str",
+              "decorators": [
+                "@property"
+              ],
+              "line_start": 20,
+              "line_end": 20
+            },
+            {
+              "name": "sector",
+              "signature": "def sector(self) -> str",
+              "decorators": [
+                "@property"
+              ],
+              "line_start": 23,
+              "line_end": 23
+            }
+          ],
+          "line_start": 16,
+          "line_end": 23
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "resolve",
+          "signature": "def resolve(spec: UniverseSpec, records: Sequence[UniverseRecord]) -> list[str]",
+          "docstring": "Return the sorted, unique stock list for ``spec``.",
+          "line_start": 26,
+          "line_end": 45
+        }
       ]
     }
   }
