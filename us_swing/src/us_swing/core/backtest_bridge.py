@@ -1,6 +1,6 @@
 """
 Module: MD-BKT-002.011.M08 — core/backtest_bridge.py
-Parent SRD: SRD-BKT-002.011, SRD-BKT-002.029
+Parent SRD: SRD-BKT-002.011, SRD-BKT-002.029, SRD-MCP-007.002
 
 Bridge from the backtest engine to screener presets, live strategies and
 the S&P 500 universe, so ``backtest`` never imports another tool directly.
@@ -49,6 +49,14 @@ def load_strategies() -> list[dict[str, Any]]:
     from us_swing.gui.strategy_store import load_strategies as _load  # noqa: PLC0415
 
     return [asdict(cfg) for cfg in _load()]
+
+
+def default_user_id() -> str:
+    """The app's first saved user, as the app uses at start; "1" before any user exists."""
+    from us_swing.gui.user_store import load_users  # noqa: PLC0415 — same cycle as above
+
+    users = load_users()
+    return str(users[0].user_id) if users else "1"
 
 
 def load_preset_dict(preset_id: str, user_id: str) -> dict[str, Any]:

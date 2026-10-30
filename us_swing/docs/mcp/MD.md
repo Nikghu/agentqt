@@ -1,10 +1,10 @@
 # Module Decomposition — MCP Server Module (MCP)
 
 **Document ID:** MD-MCP
-**Version:** 1.0.0
+**Version:** 1.1.0
 **Traces To:** SRD-MCP v1.0.0 / DD-MCP v1.0.0
 **Status:** Draft
-**Last Updated:** 2026-03-06
+**Last Updated:** 2026-10-30
 **Project:** US Swing Trading System
 
 ---
@@ -19,6 +19,8 @@
 | MD-MCP-004.001.M01 | SRD-MCP-004.001 | `src/us_swing/mcp/tools/analysis_tools.py` | `get_signals` tool handler | `get_signals()` | `analysis/strategy_engine.py` | Yes | Draft |
 | MD-MCP-005.001.M01 | SRD-MCP-005.001–003 | `src/us_swing/mcp/tools/execution_tools.py` | `get_positions`, `submit_order`, `get_daily_pnl` tool handlers | `get_positions()`, `submit_order()`, `get_daily_pnl()` | `execution/execution_router.py`, `execution/position_tracker.py`, `execution/circuit_breaker.py`, `user/manager.py` | Yes | Draft |
 | MD-MCP-006.001.M01 | SRD-MCP-006.001 | `src/us_swing/mcp/tools/health_tools.py` | `system_health` tool handler | `system_health()` | `monitoring/health.py`, `broker/client.py` | Yes | Draft |
+| MD-MCP-007.001.M01 | SRD-MCP-007.001 | `src/us_swing/mcp/backtest_tools.py`, `mcp/__main__.py` | The 8 backtest tools, plain error replies and the stdio server | `BacktestTools`, `build_server()`, `default_tools()` | `backtest.service`, `core.backtest_bridge`, `mcp` (FastMCP) | Yes | Implemented |
+| MD-MCP-007.004.M02 | SRD-MCP-007.004 | `src/us_swing/mcp/jobs.py` | Background run jobs: limit 2, 30 minute stop, cancel, progress and run id | `JobManager`, `Job` | `backtest.service` | No | Implemented |
 
 ---
 

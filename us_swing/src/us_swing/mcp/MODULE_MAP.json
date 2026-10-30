@@ -1,0 +1,251 @@
+{
+  "generated": "2026-10-30T13:06:53",
+  "subfolder": "mcp",
+  "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\mcp",
+  "tool_code": "MCP",
+  "files": {
+    "backtest_tools.py": {
+      "module_id": "MD-MCP-007.001.M01",
+      "srd_id": "SRD-MCP-007.001",
+      "classes": [
+        {
+          "name": "BacktestTools",
+          "docstring": "The tool bodies, kept apart from the server so tests can call them directly.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, service: BacktestService, jobs: JobManager,\n                 presets: Callable[[str], Sequence[PresetInfo]],\n                 strategies: Callable[[], Sequence[dict[str, Any]]],\n                 records: Callable[[], Sequence[UniverseRecord]]) -> None",
+              "line_start": 70,
+              "line_end": 78
+            },
+            {
+              "name": "bt_catalog",
+              "signature": "def bt_catalog(self, user_id: str = DEFAULT_USER) -> Result",
+              "docstring": "Screener presets, live strategy names and S&P 500 sectors for a run plan.",
+              "decorators": [
+                "@_safe"
+              ],
+              "line_start": 81,
+              "line_end": 88
+            },
+            {
+              "name": "bt_estimate",
+              "signature": "def bt_estimate(self, plan: dict[str, Any], user_id: str = DEFAULT_USER) -> Result",
+              "docstring": "Data check for a run plan: stocks, missing candles, cached days and errors.",
+              "decorators": [
+                "@_safe"
+              ],
+              "line_start": 91,
+              "line_end": 96
+            },
+            {
+              "name": "bt_run",
+              "signature": "def bt_run(self, plan: dict[str, Any], user_id: str = DEFAULT_USER) -> Result",
+              "docstring": "Start Steps 1\u20133 in the background; poll ``bt_status`` with the job id.",
+              "decorators": [
+                "@_safe"
+              ],
+              "line_start": 99,
+              "line_end": 110
+            },
+            {
+              "name": "bt_status",
+              "signature": "def bt_status(self, job_id: str) -> Result",
+              "docstring": "State, step and progress of a job; ``run_id`` is set once results are saved.",
+              "decorators": [
+                "@_safe"
+              ],
+              "line_start": 113,
+              "line_end": 115
+            },
+            {
+              "name": "bt_cancel",
+              "signature": "def bt_cancel(self, job_id: str) -> Result",
+              "docstring": "Ask a running job to stop.",
+              "decorators": [
+                "@_safe"
+              ],
+              "line_start": 118,
+              "line_end": 120
+            },
+            {
+              "name": "bt_summary",
+              "signature": "def bt_summary(self, run_id: str) -> Result",
+              "docstring": "A saved run's plan and every Step 4 stat for each variant.",
+              "decorators": [
+                "@_safe"
+              ],
+              "line_start": 123,
+              "line_end": 134
+            },
+            {
+              "name": "bt_trades",
+              "signature": "def bt_trades(self, run_id: str, variant: int = 0, limit: int = 100) -> Result",
+              "docstring": "One variant's trades, newest last; ``limit`` up to 500.",
+              "decorators": [
+                "@_safe"
+              ],
+              "line_start": 137,
+              "line_end": 146
+            },
+            {
+              "name": "bt_compare",
+              "signature": "def bt_compare(self, run_ids: list[str]) -> Result",
+              "docstring": "Key stats for every variant of 1 to 10 saved runs.",
+              "decorators": [
+                "@_safe"
+              ],
+              "line_start": 149,
+              "line_end": 161
+            }
+          ],
+          "line_start": 67,
+          "line_end": 161
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_num",
+          "signature": "def _num(value: float) -> float | None",
+          "line_start": 38,
+          "line_end": 39
+        },
+        {
+          "name": "_rows",
+          "signature": "def _rows(frame: pd.DataFrame) -> list[dict[str, Any]]",
+          "docstring": "Frame rows as JSON-safe dicts: dates as ISO text, NaN as null.",
+          "line_start": 42,
+          "line_end": 45
+        },
+        {
+          "name": "_safe",
+          "signature": "def _safe(tool: Callable[..., Result]) -> Callable[..., Result]",
+          "docstring": "Return ``{\"error\": ...}`` instead of raising (SRD-MCP-007.010).",
+          "line_start": 48,
+          "line_end": 57
+        },
+        {
+          "name": "_plan",
+          "signature": "def _plan(data: dict[str, Any]) -> RunPlan",
+          "line_start": 60,
+          "line_end": 64
+        },
+        {
+          "name": "build_server",
+          "signature": "def build_server(tools: BacktestTools) -> FastMCP",
+          "docstring": "Register the tools on a FastMCP server (SRD-MCP-007.001).",
+          "line_start": 168,
+          "line_end": 173
+        },
+        {
+          "name": "default_tools",
+          "signature": "def default_tools() -> BacktestTools",
+          "docstring": "Tools on the app's real store, cache, results and live strategies.",
+          "line_start": 176,
+          "line_end": 191
+        }
+      ],
+      "constants": [
+        "SERVER_NAME = \"us_swing_backtest\"",
+        "MAX_VARIANTS = 64",
+        "MAX_TRADES = 500",
+        "MAX_COMPARE = 10",
+        "DEFAULT_USER = \"admin\"",
+        "TOOL_NAMES = (\"bt_catalog\", \"bt_estimate\", \"bt_run\", \"bt_status\", \"bt_cancel\", \"bt_summary\","
+      ]
+    },
+    "jobs.py": {
+      "module_id": "MD-MCP-007.004.M02",
+      "srd_id": "SRD-MCP-007.004",
+      "classes": [
+        {
+          "name": "Job",
+          "docstring": "One background run; ``state`` is running, done, failed or cancelled.",
+          "class_vars": [
+            "job_id: str",
+            "plan: RunPlan",
+            "started: float",
+            "state: str",
+            "step: str",
+            "done: int",
+            "total: int",
+            "run_id: str",
+            "message: str",
+            "cancel_asked: bool",
+            "timed_out: bool",
+            "thread: threading.Thread | None"
+          ],
+          "methods": [
+            {
+              "name": "as_dict",
+              "signature": "def as_dict(self) -> dict[str, object]",
+              "docstring": "Status shown by ``bt_status`` (SRD-MCP-007.005).",
+              "line_start": 44,
+              "line_end": 48
+            }
+          ],
+          "line_start": 28,
+          "line_end": 48
+        },
+        {
+          "name": "JobManager",
+          "docstring": "At most ``MAX_JOBS`` running jobs; a job over ``max_seconds`` is cancelled.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, service: BacktestService, *, workers: int = 4,\n                 max_seconds: float = MAX_SECONDS,\n                 clock: Callable[[], float] = time.monotonic) -> None",
+              "line_start": 54,
+              "line_end": 62
+            },
+            {
+              "name": "start",
+              "signature": "def start(self, plan: RunPlan, user_id: str) -> Job",
+              "docstring": "Start a job in a background thread.",
+              "line_start": 64,
+              "line_end": 78
+            },
+            {
+              "name": "get",
+              "signature": "def get(self, job_id: str) -> Job",
+              "docstring": "Return a job.",
+              "line_start": 80,
+              "line_end": 89
+            },
+            {
+              "name": "cancel",
+              "signature": "def cancel(self, job_id: str) -> Job",
+              "docstring": "Ask a running job to stop at its next progress step.",
+              "line_start": 91,
+              "line_end": 95
+            },
+            {
+              "name": "_stop",
+              "signature": "def _stop(self, job: Job) -> bool",
+              "line_start": 97,
+              "line_end": 100
+            },
+            {
+              "name": "_progress",
+              "signature": "def _progress(self, job: Job, step: int) -> Callable[[int, int], None]",
+              "line_start": 102,
+              "line_end": 105
+            },
+            {
+              "name": "_run",
+              "signature": "def _run(self, job: Job, user_id: str) -> None",
+              "line_start": 107,
+              "line_end": 132
+            }
+          ],
+          "line_start": 51,
+          "line_end": 132
+        }
+      ],
+      "constants": [
+        "MAX_JOBS = 2",
+        "MAX_SECONDS = 30 * 60",
+        "STEPS = (\"Stocks\", \"Signals\", \"Portfolio\")"
+      ]
+    }
+  }
+}

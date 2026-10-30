@@ -1,10 +1,10 @@
 # Functional Overview — MCP Server Module (MCP)
 
 **Document ID:** FO-MCP
-**Version:** 1.0.0
+**Version:** 1.1.0
 **Traces To:** requirements.md §27
 **Status:** Draft
-**Last Updated:** 2026-03-06
+**Last Updated:** 2026-10-30
 **Project:** US Swing Trading System
 
 ---
@@ -107,3 +107,21 @@ MCP tool for monitoring:
 
 1. Returns structured health object with: broker_connected, active_subscriptions count, last_data_update timestamp, error_count_today, circuit_breaker_active.
 2. Response time ≤ 500ms (no heavy computation).
+
+---
+
+## FO-MCP-007: Backtest Tools
+
+**Priority:** Must
+**Source:** `docs/backtest/Engine_plan.md` Phase 6; user choice 2026-10-30 (backtest-only stdio server, core 8 tools)
+
+- The system shall run a backtest-only MCP server over stdio (`python -m us_swing.mcp`), separate from the app.
+- The tools shall call `BacktestService` only, and share the step cache and `results.db` with the app.
+- An agent shall be able to list inputs, check data, start a run, follow or cancel it, and read and compare results.
+
+### Acceptance Criteria
+
+1. `bt_catalog`, `bt_estimate`, `bt_run`, `bt_status`, `bt_cancel`, `bt_summary`, `bt_trades` and `bt_compare` are listed by MCP introspection.
+2. A run started from MCP shows in the app's Reports tab.
+3. Bad input returns `{"error": "<plain message>"}`, never a stack trace.
+4. Limits: 64 variants per plan, 2 running jobs, 30 minutes per job.

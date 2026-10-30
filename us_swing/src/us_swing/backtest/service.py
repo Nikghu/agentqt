@@ -1,9 +1,9 @@
 """
 Module: MD-BKT-002.008.M05 — backtest/service.py
 Parent SRD: SRD-BKT-002.008, SRD-BKT-002.017, SRD-BKT-002.029, SRD-BKT-002.039,
-            SRD-BKT-002.040, SRD-BKT-002.060, SRD-BKT-002.080–.081
+            SRD-BKT-002.040, SRD-BKT-002.060, SRD-BKT-002.080–.081, SRD-MCP-007.005
 
-``BacktestService``: the one entry point for the GUI, the CLI and (later) MCP.
+``BacktestService``: the one entry point for the GUI, the CLI and MCP.
 Phase 0–4: data check estimate, Step 1 (Stocks), Step 2 (Signals), Step 3 (Portfolio),
 Step 4 (Report).
 """
@@ -231,8 +231,11 @@ class BacktestService:
         *,
         progress: stocks.Progress | None = None,
         cancel: stocks.Cancel | None = None,
+        started: Callable[[str], None] | None = None,
     ) -> list[portfolio.VariantResult]:
         """Run Step 3 for every variant and save the rows (SRD-BKT-002.039).
+
+        ``started`` gets the saved run id before Step 3 begins (SRD-MCP-007.005).
 
         Raises:
             ValueError: no strategy picked, or a name is not in the live store.
@@ -241,6 +244,8 @@ class BacktestService:
         chosen = self._chosen_strategies(plan)
 
         def work(run_id: str) -> list[portfolio.VariantResult]:
+            if started is not None:
+                started(run_id)
             results = portfolio.run_portfolio(
                 plan, chosen, daily.frame, daily.days, found, self._store,
                 progress=progress, cancel=cancel,
@@ -313,6 +318,10 @@ class BacktestService:
                  if plan.strategies else None)
         results = self.saved_results(run_id)
         return OpenedRun(plan, daily, found, results, self.build_reports(plan, results))
+
+    def get_run(self, run_id: str) -> RunRow | None:
+        """One saved run, or None when the id is unknown."""
+        return self._results.get_run(run_id)
 
     def rename_run(self, run_id: str, name: str) -> None:
         """Rename a saved run (SRD-BKT-002.060)."""

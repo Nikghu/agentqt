@@ -1,10 +1,10 @@
 # Software Requirements Document — MCP Server Module (MCP)
 
 **Document ID:** SRD-MCP
-**Version:** 1.0.0
+**Version:** 1.1.0
 **Traces To:** FO-MCP v1.0.0
 **Status:** Draft
-**Last Updated:** 2026-03-06
+**Last Updated:** 2026-10-30
 **Project:** US Swing Trading System
 
 ---
@@ -61,3 +61,20 @@
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
 | SRD-MCP-006.001 | FO-MCP-006 | Should | `system_health` tool: accepts `{}`. Returns `{"broker_connected": bool, "active_subscriptions": int, "last_data_update": str, "error_count_today": int, "circuit_breaker_active": bool}`. | Empty params | Health status | Read-only; response time ≤ 500ms; no user_id required | Draft |
+
+---
+
+## Section 7: Requirements for FO-MCP-007 — Backtest Tools
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-MCP-007.001 | FO-MCP-007 | Must | `python -m us_swing.mcp` starts a stdio MCP server named `us_swing_backtest` that registers the 8 backtest tools. | stdio | tool list | Separate process; no GUI or TWS needed | Implemented |
+| SRD-MCP-007.002 | FO-MCP-007 | Must | `bt_catalog` returns the screener presets (id, name, timeframe), live strategy names and S&P 500 sectors. | user_id | lists | empty user_id = the app's first user | Implemented |
+| SRD-MCP-007.003 | FO-MCP-007 | Must | `bt_estimate` takes a run plan (Engine_plan §4 JSON) and returns stock count, missing 1d / 3m stocks, days cached of total and errors. | plan | estimate | Same check as the app | Implemented |
+| SRD-MCP-007.004 | FO-MCP-007 | Must | `bt_run` checks the plan, starts Steps 1–3 in the background and returns a job id at once. | plan | job_id | Refused over 64 variants, with 2 jobs running, or when the estimate has errors | Implemented |
+| SRD-MCP-007.005 | FO-MCP-007 | Must | `bt_status` returns a job's state (running, done, failed, cancelled), step, progress, run id when done and message. | job_id | status | A job running over 30 minutes is cancelled | Implemented |
+| SRD-MCP-007.006 | FO-MCP-007 | Must | `bt_cancel` asks a running job to stop and returns its state. | job_id | state | Stops at the next progress step | Implemented |
+| SRD-MCP-007.007 | FO-MCP-007 | Must | `bt_summary` returns a saved run's plan and, per variant, its label and all Step 4 stats. | run_id | summary | Reads results.db; no re-run | Implemented |
+| SRD-MCP-007.008 | FO-MCP-007 | Must | `bt_trades` returns one variant's trades, newest last. | run_id, variant, limit | trades | limit default 100, max 500 | Implemented |
+| SRD-MCP-007.009 | FO-MCP-007 | Must | `bt_compare` returns the compare stats for every variant of 1 to 10 saved runs. | run_ids | rows | Unknown run ids are listed as errors | Implemented |
+| SRD-MCP-007.010 | FO-MCP-007 | Must | Every tool returns `{"error": "<plain message>"}` on bad input or a failed step, never a stack trace. | any | error | Logged with the [Backtest MCP] prefix | Implemented |

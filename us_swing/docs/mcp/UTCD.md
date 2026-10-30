@@ -1,10 +1,10 @@
 # Unit Test Case Document — MCP Server Module (MCP)
 
 **Document ID:** UTCD-MCP
-**Version:** 1.0.0
+**Version:** 1.1.0
 **Traces To:** MD-MCP v1.0.0
 **Status:** Draft
-**Last Updated:** 2026-03-06
+**Last Updated:** 2026-10-30
 **Project:** US Swing Trading System
 
 > Tests written BEFORE implementation per process.md §7.
@@ -70,3 +70,18 @@
 |---|---|---|---|---|---|---|
 | UT-MCP-006.001.M01.T01 | MD-MCP-006.001.M01 | Unit | `system_health` returns all required fields | No params | Response contains all 5 required keys with correct types | Draft |
 | UT-MCP-006.001.M01.T02 | MD-MCP-006.001.M01 | Unit | `system_health` when broker disconnected | Mock broker_connected=False | `{"broker_connected": false, ...}` | Draft |
+
+---
+
+## Module: `mcp/backtest_tools.py`, `mcp/jobs.py` — Backtest tools (FO-MCP-007)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-MCP-007.001.M01.T01 | MD-MCP-007.001.M01 | Positive | Tools listed | server | the 8 bt_ tool names | Pass |
+| UT-MCP-007.001.M01.T02 | MD-MCP-007.001.M01 | Integration | Real stdio session | python -m us_swing.mcp; bt_status "nope" | 8 tools listed; plain "No backtest job" error | Pass |
+| UT-MCP-007.002.M01.T01 | MD-MCP-007.001.M01 | Positive | Catalog and estimate | fake presets, strategies, records; 3-name plan; plan without period | sorted lists; 3 stocks, 3 missing 3m; "Run plan is not valid" | Pass |
+| UT-MCP-007.004.M01.T01 | MD-MCP-007.001.M01 | Negative | Run refusals | no strategy; 65 capitals; empty names; unknown job | plain error for each | Pass |
+| UT-MCP-007.007.M01.T01 | MD-MCP-007.001.M01 | Positive | Summary, trades, compare | saved run with 4 trades; unknown ids | label and stats; last 2 trades; rows plus errors | Pass |
+| UT-MCP-007.004.M02.T01 | MD-MCP-007.004.M02 | Positive | Job runs to done | fake service | state done, run id, Portfolio 4 of 4 | Pass |
+| UT-MCP-007.006.M02.T01 | MD-MCP-007.004.M02 | Negative | Cancel and failure | cancel; failing Step 2 | cancelled with message; failed with step message | Pass |
+| UT-MCP-007.005.M02.T01 | MD-MCP-007.004.M02 | Edge | Time and job limits | 2 jobs, third start, clock past limit | third refused; both stopped at the limit | Pass |

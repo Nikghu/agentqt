@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-30T09:43:05",
+  "generated": "2026-10-30T13:06:53",
   "subfolder": "backtest",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\backtest",
   "tool_code": "BKT",
@@ -467,7 +467,7 @@
           "methods": [
             {
               "name": "__init__",
-              "signature": "def __init__(\r\n        self,\r\n        store: BacktestStore,\r\n        cache: StepCache,\r\n        results: ResultsStore,\r\n        records: Callable[[], Sequence[UniverseRecord]],\r\n        presets: PresetLoader,\r\n        strategies: StrategyLoader = tuple,\r\n        screener_results: Path = recorded.RESULTS_DIR,\r\n    ) -> None",
+              "signature": "def __init__(\n        self,\n        store: BacktestStore,\n        cache: StepCache,\n        results: ResultsStore,\n        records: Callable[[], Sequence[UniverseRecord]],\n        presets: PresetLoader,\n        strategies: StrategyLoader = tuple,\n        screener_results: Path = recorded.RESULTS_DIR,\n    ) -> None",
               "line_start": 83,
               "line_end": 99
             },
@@ -480,7 +480,7 @@
             },
             {
               "name": "_estimate_recorded",
-              "signature": "def _estimate_recorded(self, plan: RunPlan, symbols: list[str], errors: list[str],\r\n                           today: date) -> Estimate",
+              "signature": "def _estimate_recorded(self, plan: RunPlan, symbols: list[str], errors: list[str],\n                           today: date) -> Estimate",
               "docstring": "Data check for saved screener lists: sessions with a list (SRD-BKT-002.081).",
               "line_start": 133,
               "line_end": 150
@@ -494,7 +494,7 @@
             },
             {
               "name": "run_stocks",
-              "signature": "def run_stocks(\r\n        self,\r\n        plan: RunPlan,\r\n        user_id: str,\r\n        *,\r\n        workers: int = 4,\r\n        progress: stocks.Progress | None = None,\r\n        cancel: stocks.Cancel | None = None,\r\n        record: bool = True,\r\n    ) -> DailyList",
+              "signature": "def run_stocks(\n        self,\n        plan: RunPlan,\n        user_id: str,\n        *,\n        workers: int = 4,\n        progress: stocks.Progress | None = None,\n        cancel: stocks.Cancel | None = None,\n        record: bool = True,\n    ) -> DailyList",
               "docstring": "Run Step 1 and record the run (SRD-BKT-002.017).",
               "line_start": 156,
               "line_end": 189
@@ -508,103 +508,110 @@
             },
             {
               "name": "run_signals",
-              "signature": "def run_signals(\r\n        self,\r\n        plan: RunPlan,\r\n        daily: DailyList,\r\n        *,\r\n        workers: int = 4,\r\n        progress: stocks.Progress | None = None,\r\n        cancel: stocks.Cancel | None = None,\r\n        record: bool = True,\r\n    ) -> pd.DataFrame",
+              "signature": "def run_signals(\n        self,\n        plan: RunPlan,\n        daily: DailyList,\n        *,\n        workers: int = 4,\n        progress: stocks.Progress | None = None,\n        cancel: stocks.Cancel | None = None,\n        record: bool = True,\n    ) -> pd.DataFrame",
               "docstring": "Run Step 2 on Step 1's list and record the run (SRD-BKT-002.029).",
               "line_start": 201,
               "line_end": 224
             },
             {
               "name": "run_portfolio",
-              "signature": "def run_portfolio(\r\n        self,\r\n        plan: RunPlan,\r\n        daily: DailyList,\r\n        found: pd.DataFrame,\r\n        *,\r\n        progress: stocks.Progress | None = None,\r\n        cancel: stocks.Cancel | None = None,\r\n    ) -> list[portfolio.VariantResult]",
+              "signature": "def run_portfolio(\n        self,\n        plan: RunPlan,\n        daily: DailyList,\n        found: pd.DataFrame,\n        *,\n        progress: stocks.Progress | None = None,\n        cancel: stocks.Cancel | None = None,\n        started: Callable[[str], None] | None = None,\n    ) -> list[portfolio.VariantResult]",
               "docstring": "Run Step 3 for every variant and save the rows (SRD-BKT-002.039).",
               "line_start": 226,
-              "line_end": 256
+              "line_end": 261
             },
             {
               "name": "build_reports",
-              "signature": "def build_reports(self, plan: RunPlan, results: Sequence[portfolio.VariantResult]\r\n                      ) -> list[report.Report]",
+              "signature": "def build_reports(self, plan: RunPlan, results: Sequence[portfolio.VariantResult]\n                      ) -> list[report.Report]",
               "docstring": "Step 4 for each variant, with the equal-weight benchmark (SRD-BKT-002.040\u2013.046).",
-              "line_start": 258,
-              "line_end": 272
+              "line_start": 263,
+              "line_end": 277
             },
             {
               "name": "saved_results",
               "signature": "def saved_results(self, run_id: str) -> list[portfolio.VariantResult]",
               "docstring": "Step 3 rows of a saved run, one per variant, in order.",
-              "line_start": 274,
-              "line_end": 281
+              "line_start": 279,
+              "line_end": 286
             },
             {
               "name": "saved_reports",
               "signature": "def saved_reports(self) -> list[SavedReport]",
               "docstring": "Saved runs with Step 3 results, newest first, with their first variant's numbers",
-              "line_start": 283,
-              "line_end": 295
+              "line_start": 288,
+              "line_end": 300
             },
             {
               "name": "open_run",
-              "signature": "def open_run(self, run_id: str, user_id: str, *, workers: int = 4,\r\n                 progress: stocks.Progress | None = None,\r\n                 cancel: stocks.Cancel | None = None) -> OpenedRun",
+              "signature": "def open_run(self, run_id: str, user_id: str, *, workers: int = 4,\n                 progress: stocks.Progress | None = None,\n                 cancel: stocks.Cancel | None = None) -> OpenedRun",
               "docstring": "Read a saved run back: Steps 1\u20132 from the step cache, Step 3 from ``results.db``",
-              "line_start": 297,
-              "line_end": 315
+              "line_start": 302,
+              "line_end": 320
+            },
+            {
+              "name": "get_run",
+              "signature": "def get_run(self, run_id: str) -> RunRow | None",
+              "docstring": "One saved run, or None when the id is unknown.",
+              "line_start": 322,
+              "line_end": 324
             },
             {
               "name": "rename_run",
               "signature": "def rename_run(self, run_id: str, name: str) -> None",
               "docstring": "Rename a saved run (SRD-BKT-002.060).",
-              "line_start": 317,
-              "line_end": 319
+              "line_start": 326,
+              "line_end": 328
             },
             {
               "name": "set_note",
               "signature": "def set_note(self, run_id: str, note: str) -> None",
               "docstring": "Save a note on a run (SRD-BKT-002.060).",
-              "line_start": 321,
-              "line_end": 323
+              "line_start": 330,
+              "line_end": 332
             },
             {
               "name": "delete_run",
               "signature": "def delete_run(self, run_id: str) -> None",
               "docstring": "Delete a saved run and all its rows (SRD-BKT-002.060).",
-              "line_start": 325,
-              "line_end": 328
+              "line_start": 334,
+              "line_end": 337
             },
             {
               "name": "report_for_run",
               "signature": "def report_for_run(self, run_id: str) -> list[report.Report]",
               "docstring": "Step 4 from a saved run's rows in ``results.db``, without running Steps 1\u20133.",
-              "line_start": 330,
-              "line_end": 339
+              "line_start": 339,
+              "line_end": 348
             },
             {
               "name": "bars",
               "signature": "def bars(self, symbol: str, tf: StoredTf, start: date, end: date) -> pd.DataFrame",
               "docstring": "Saved bars of one stock for the Inspector chart (SRD-GUI-031.052).",
-              "line_start": 341,
-              "line_end": 343
+              "line_start": 350,
+              "line_end": 352
             },
             {
               "name": "_closes",
               "signature": "def _closes(self, symbols: Sequence[str], period: Period) -> dict[str, pd.Series]",
-              "line_start": 345,
-              "line_end": 353
+              "line_start": 354,
+              "line_end": 362
             },
             {
               "name": "_chosen_strategies",
               "signature": "def _chosen_strategies(self, plan: RunPlan) -> list[dict[str, Any]]",
-              "line_start": 355,
-              "line_end": 363
+              "line_start": 364,
+              "line_end": 372
             },
             {
               "name": "_recorded",
               "signature": "def _recorded(self, plan: RunPlan, work: Callable[[str], _T], record: bool = True) -> _T",
               "docstring": "Run ``work(run_id)`` inside a results row: done, cancelled or failed.",
-              "line_start": 365,
-              "line_end": 382
+              "line_start": 374,
+              "line_end": 391
             }
           ],
           "line_start": 74,
-          "line_end": 382
+          "line_end": 391
         },
         {
           "name": "SavedReport",
@@ -617,8 +624,8 @@
             "return_pct: float",
             "max_dd_pct: float"
           ],
-          "line_start": 386,
-          "line_end": 394
+          "line_start": 395,
+          "line_end": 403
         },
         {
           "name": "OpenedRun",
@@ -630,8 +637,8 @@
             "results: list[portfolio.VariantResult]",
             "reports: list[report.Report]"
           ],
-          "line_start": 398,
-          "line_end": 405
+          "line_start": 407,
+          "line_end": 414
         }
       ],
       "top_level_functions": [
@@ -645,15 +652,15 @@
           "name": "stocks_text",
           "signature": "def stocks_text(plan: RunPlan) -> str",
           "docstring": "Short text for the run's stocks: \"S&P 500\", the sectors or the names.",
-          "line_start": 408,
-          "line_end": 415
+          "line_start": 417,
+          "line_end": 424
         },
         {
           "name": "variant_label",
           "signature": "def variant_label(variant: Variant) -> str",
           "docstring": "$2,000 \u00b7 ST_AUTO 100%/100%\": capital, then each strategy's allocation and per-tr",
-          "line_start": 418,
-          "line_end": 421
+          "line_start": 427,
+          "line_end": 430
         }
       ],
       "constants": [
