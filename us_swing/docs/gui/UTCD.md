@@ -873,3 +873,11 @@ Test files:
 | UT-GUI-031.052.M03.T01 | MD-GUI-031.003.M03 | Positive | Chart follows trade | pick AAPL trade, then 1d | reads AAPL 15m for the day; then 1d from 90 days back | Pass |
 | UT-GUI-031.052.M06.T01 | MD-GUI-031.052.M06 | Positive | Markers | short trade on 6 bars | entry bar 1, exit bar 5; chart paints | Pass |
 | UT-GUI-031.052.M06.T02 | MD-GUI-031.052.M06 | Negative | No bars | empty bars; time before first bar | message shown; no index | Pass |
+| UT-GUI-031.053.M07.T01 | MD-GUI-031.053.M07 | Positive | Numbered trades | 3 trades out of order | entry order; #, P&L %, hours, ET day | Pass |
+| UT-GUI-031.053.M07.T02 | MD-GUI-031.053.M07 | Edge | Filters | wins, losses (0 P&L), LONG, SHORT | right rows; 0 P&L is a loss | Pass |
+| UT-GUI-031.053.M07.T03 | MD-GUI-031.053.M07 | Positive | Table and click | 3 trades; SHORT chip; click row | screenshot columns; 1 row; trade sent | Pass |
+| UT-GUI-031.053.M07.T04 | MD-GUI-031.053.M07 | Negative | No trades | empty frame | empty table; zero summary | Pass |
+| UT-GUI-031.053.M03.T01 | MD-GUI-031.003.M03 | Positive | Trade list opens day | click trade #2 | Inspector tab; day 2026-03-03; chart on MSFT | Pass |
+| UT-GUI-031.054.M08.T01 | MD-GUI-031.054.M08 | Positive | Screener use | 3 sessions, one with no picks | traded / not traded per day; facts line | Pass |
+| UT-GUI-031.054.M08.T02 | MD-GUI-031.054.M08 | Edge | Margin use | 2 days; then no days | peak = capital minus lowest margin; paints; empty safe | Pass |
+| UT-GUI-031.054.M03.T01 | MD-GUI-031.003.M03 | Positive | Detail panels | fake run | 4 panels; trade list, screener and margin use filled | Pass |

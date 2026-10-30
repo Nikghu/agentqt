@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.37.0: MD-GUI-031.053.M07 and MD-GUI-031.054.M08 added — Trade list, screener and margin use.
 > v1.36.0: MD-GUI-031.050.M05 and MD-GUI-031.052.M06 added — Backtest dock panels and trade chart.
 > v1.35.0: MD-GUI-031.* added — Backtest workspace (new `backtest_builder.py`, `backtest_workspace.py`).
 > v1.34.0: MD-GUI-030.* added — Backtest data section (new `backtest_data_panel.py`).
@@ -339,4 +340,6 @@ us_swing/src/us_swing/gui/
 | MD-GUI-031.003.M03 | SRD-GUI-031.003 | `us_swing/src/us_swing/gui/backtest_workspace.py` | Step strip, data check, Step 1 run and view | `BacktestWorkspace` | `backtest.service`, `backtest_builder`, `app_service` | Yes (`QThread` workers) |
 | MD-GUI-031.050.M05 | SRD-GUI-031.050 | `us_swing/src/us_swing/gui/backtest_dock.py` | Section of titled panels in rows; right icon strip and ✕ turn panels on/off, kept in QSettings | `DockSection`, `Panel`, `PanelSpec` | `cards`, `icons` | No |
 | MD-GUI-031.052.M06 | SRD-GUI-031.052 | `us_swing/src/us_swing/gui/backtest_trade_chart.py` | Candles of one stock for a session with entry and exit markers | `TradeChart` | `theme`, `strategy_pnl_chart.nice_ticks` | No |
+| MD-GUI-031.053.M07 | SRD-GUI-031.053 | `us_swing/src/us_swing/gui/backtest_trade_list.py` | Trade list with LONG/SHORT pill, P&L %, duration and filter chips; click sends the trade | `TradeList`, `numbered()`, `keep()` | `screener_views.ChipGroup`, `theme` | No |
+| MD-GUI-031.054.M08 | SRD-GUI-031.054 | `us_swing/src/us_swing/gui/backtest_use_charts.py` | Screener use and margin use stacked daily bars with a facts line | `UsePanel`, `StackedBars`, `screener_use()`, `margin_use()` | `theme`, `strategy_pnl_chart.nice_ticks` | No |
 | MD-GUI-031.040.M04 | SRD-GUI-031.040 | `us_swing/src/us_swing/gui/backtest_report_view.py` | Report tab: KPI row, equity vs benchmark and drawdown chart, all stats, month heat map, breakdown, compare, CSV export | `ReportView`, `ReportChart`, `fmt()`, `skips_text()` | `backtest.steps.report`, `theme` | No |

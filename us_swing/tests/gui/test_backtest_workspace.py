@@ -453,3 +453,25 @@ def test_chart_shows_selected_trade(workspace: BacktestWorkspace, qtbot: Any) ->
     assert workspace.chart_head.text() == "AAPL · ST_A · 2026-03-03"
     workspace.chart_tf.setCurrentText("1d")
     assert reads[-1][1:3] == ("1d", date(2025, 12, 3))
+
+
+def test_trade_list_opens_day(workspace: BacktestWorkspace, qtbot: Any) -> None:
+    """UT-GUI-031.053.M03.T01: Clicking a Trade list row opens its day with that trade picked."""
+    _run_both(workspace, qtbot)
+    workspace.days_table.selectRow(2)  # start on another day
+
+    workspace.trade_list.table.cellClicked.emit(1, 0)  # trade #2, MSFT
+
+    assert workspace.tabs.currentWidget() is workspace.inspector
+    assert workspace._selected_day() == date(2026, 3, 3)
+    assert workspace.chart_head.text().startswith("MSFT")
+
+
+def test_detail_panels_filled(workspace: BacktestWorkspace, qtbot: Any) -> None:
+    """UT-GUI-031.054.M03.T01: Detail Report has Trade list, Screener use and Margin use filled."""
+    _run_both(workspace, qtbot)
+
+    assert set(workspace.detail.panels) == {"report", "tradelist", "screener_use", "margin_use"}
+    assert workspace.trade_list.table.rowCount() == 2
+    assert workspace.screener_use.chart.use.days == ["2026-03-02", "2026-03-03"]
+    assert workspace.margin_use.facts.text().startswith("Money deployed on 2 of 2 days")

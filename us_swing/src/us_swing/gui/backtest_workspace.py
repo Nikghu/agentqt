@@ -2,7 +2,7 @@
 Module: MD-GUI-031.003.M03 — Backtest workspace
 Parent SRD: SRD-GUI-031.003, SRD-GUI-031.004, SRD-GUI-031.011, SRD-GUI-031.012,
             SRD-GUI-031.021, SRD-GUI-031.022, SRD-GUI-031.023, SRD-GUI-031.031–.034,
-            SRD-GUI-031.040, SRD-GUI-031.044, SRD-GUI-031.050–.052
+            SRD-GUI-031.040, SRD-GUI-031.044, SRD-GUI-031.050–.054
 
 Builder on the left; step strip, data check and the Trade Inspector and Detail
 Report sections on the right.
@@ -45,8 +45,11 @@ from us_swing.gui.backtest_builder import BacktestBuilder
 from us_swing.gui.backtest_dock import DockSection, PanelSpec
 from us_swing.gui.backtest_report_view import ReportView
 from us_swing.gui.backtest_trade_chart import TradeChart
+from us_swing.gui.backtest_trade_list import TradeList
+from us_swing.gui.backtest_use_charts import UsePanel, margin_use, screener_use
 from us_swing.gui.cards import GAP, card, gutter
 from us_swing.gui.icons import set_icon
+from us_swing.gui.theme import C
 
 if TYPE_CHECKING:
     from us_swing.gui.app_service import AppService
@@ -320,8 +323,16 @@ class BacktestWorkspace(QWidget):
         report_scroll.setWidgetResizable(True)
         report_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
         self.report_view.setMinimumHeight(980)
+        self.trade_list = TradeList()
+        self.trade_list.trade_clicked.connect(self._open_trade)
+        self.screener_use = UsePanel((C.BLUE, C.MUTED), ("Traded", "Not traded"), money=False)
+        self.margin_use = UsePanel((C.BLUE, C.TEAL), ("Deployed peak", "Lowest margin left"),
+                                   money=True)
         self.detail = DockSection("detail", [
             [PanelSpec("report", "Report", "chart-line", report_scroll)],
+            [PanelSpec("tradelist", "Trade list", "list", self.trade_list)],
+            [PanelSpec("screener_use", "Screener use", "filter", self.screener_use),
+             PanelSpec("margin_use", "Margin use", "briefcase", self.margin_use)],
         ], settings=self._settings)
         self.tabs.addTab(self.inspector, "Trade Inspector")
         self.tabs.addTab(self.detail, "Detail Report")
@@ -664,6 +675,25 @@ class BacktestWorkspace(QWidget):
             return
         self._variant = index
         self._render_days()
+        res = self._results[index]
+        self.trade_list.set_trades(res.trades)
+        days = [] if self._daily is None else list(self._daily.days)
+        self.screener_use.set_use(screener_use(days, self._shown(), res.trades))
+        self.margin_use.set_use(margin_use(res.money))
+
+    def _open_trade(self, trade: pd.Series) -> None:
+        """Open the clicked trade's day in the Inspector with it selected (SRD-GUI-031.053)."""
+        day = trade["day"].isoformat()
+        for row in range(self.days_table.rowCount()):
+            item = self.days_table.item(row, 0)
+            if item is not None and item.text() == day:
+                self.days_table.selectRow(row)
+                break
+        same = ((self._day_trades["symbol"] == trade["symbol"])
+                & (self._day_trades["entry_ts"] == trade["entry_ts"]))
+        if same.any():
+            self.trades_table.selectRow(int(same.to_numpy().argmax()))
+        self.tabs.setCurrentWidget(self.inspector)
 
     def _render_results(self) -> None:
         res = self._result()

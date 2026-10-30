@@ -2,6 +2,15 @@
 
 ---
 
+## [20261030] GUI — Backtest redesign phase 2 · Detail Report (FO-GUI-031)
+
+- Type: Feature
+- RN: RN-GUI-1.45.0-20261030
+- Artifacts updated: SRD (SRD-GUI-031.053–.054 Implemented), MD (M07, M08), UTCD (8 Pass), TRACE, Code, Tests, RN, TODO T69, CONTEXT, DEVLOG
+- Findings: money table `deployed` is the value still open at the close, so intraday days show 0; Margin use draws the day's peak as start capital minus lowest margin (104 of 207 days, same as the report's time invested).
+
+---
+
 ## [20261030] BKT — SPY daily candles for the RS rule (FO-BKT-001, FO-BKT-002)
 
 - Type: Feature
