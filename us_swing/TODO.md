@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-10-24 (Session 90)
+**Last Updated:** 2026-10-29 (Session 103)
 
 ---
 
@@ -70,4 +70,15 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T58 | GUI — KPI strip minimum width is its full text width; very long values could still push the maximized window past the screen with a right panel open (ISS-GUI-0010 note). | `gui/dashboard_tiles.py` | Low | Open |
 | T59 | BKT/GUI — Backtest data store + Settings section (FO-BKT-001, FO-GUI-030): tested on real TWS by user, follow-up fixes and Option D panel done; PR opened. Pending: user checks Option D, then merge. | `backtest/`, `gui/backtest_data_panel.py` | High | Open |
 | T60 | GUI — screen freeze seen again 28–29 Oct (source run). 3-min py-spy: no stall over 0.5 s; Charts SourceList rebuilds every 250 ms while open. Waiting for user details: symptom, time, screen. | `gui/chart_source_list.py` | High | Open — needs user details |
-| T61 | BKT/GUI — Backtest engine, 7 phases (Foundation, Stocks, Signals, Portfolio, Report, Screener quick test, MCP). Plan + status: `docs/backtest/Engine_plan.md` §0. Next: FO-BKT-002 + FO-GUI-031, Phase 0–1 SRDs as Draft. | `backtest/`, `gui/` | High | Open — planning |
+| T61 | BKT/GUI — Backtest engine, 7 phases (Foundation, Stocks, Signals, Portfolio, Report, Screener quick test, MCP). Plan + status: `docs/backtest/Engine_plan.md` §0. Phase 0–3 done 2026-10-29 (RN-BKT-1.2.0–1.4.0, RN-GUI-1.39.0–1.41.0). Next: user check of Step 3, then Phase 4 (Report) SRDs. | `backtest/`, `gui/` | High | Open — Phase 4 next |
+| T62 | BKT/EXE/GUI — Closed-bar and session-date fixes: strategy PRICE reads closed bars (SRD-BKT-002.050); live frames drop the forming bar (SRD-EXE-006.014); Step 1 lists keyed by session date (SRD-BKT-002.051, SRD-GUI-031.013). RN-BKT-1.5.0, RN-EXE-1.38.0, RN-GUI-1.42.0. | `backtest/`, `core/expr/`, `execution/`, `gui/` | High | Done |
+| T63 | EXE/BKT — ST_AUTO uses Price('Spot','Last','close','15m') but SUPERTREND reads the last closed bar. `Last` is now one bar older. Fixed 2026-10-29: user chose closed candles only; ST_AUTO entry and exit now use `current`. | `execution/` (ST_AUTO preset) | High | Done |
+| T64 | BKT — Phase 4 benchmark. User chose equal-weight average daily return of the run's stocks, no SPY. Built in Phase 4a (SRD-BKT-002.046, RN-BKT-1.6.0). | `backtest/steps/report.py` | Medium | Done |
+| T65 | BKT — 2026-10-29 session is missing from backtest results: the store has no 1d bar for that day yet. Fill the 1d data, re-run, and check the session appears. | `backtest/store.py`, `backtest/downloader.py` | Medium | Open |
+| T66 | BKT — SRD-BKT-002.023 is still Implemented but replaced by SRD-BKT-002.050. User to decide its status (Reopen or Verified). | `docs/backtest/SRD.md` | Low | Open — user decision |
+| T67 | GUI/EXE — App froze 2–3 s with no TWS: last price rebuilt 30 days of candles per stock on the screen thread. Now reads one row (ISS-GUI-0012, RN-GUI-1.42.1). | `gui/app_service.py`, `execution/intraday_candle_loader.py` | High | Done |
+| T68 | BKT/GUI — Backtest Phase 4b report extras done (SRD-BKT-002.070–.073, SRD-GUI-031.046–.048; RN-BKT-1.9.0, RN-GUI-1.47.0). Shadow P&L left out (engine change). | `backtest/steps/report.py`, `gui/backtest_report_view.py` | Medium | Done |
+| T69 | GUI — Backtest redesign (Dock Panels, option C): phase 1 Inspector (RN-GUI-1.44.0), phase 2 Detail Report (RN-GUI-1.45.0), phase 3 Reports (RN-GUI-1.46.0, RN-BKT-1.8.0) done. User check of the new Backtest screen pending. | `gui/backtest_*.py`, `backtest/results.py` | High | Done — user check pending |
+| T70 | BKT — SPY for the RS rule (SRD-BKT-001.015, SRD-BKT-002.052, RN-BKT-1.7.0). User to press Download with TWS on, then run Momentun_Price and check RS picks. | `backtest/planner.py`, `gui/app_service.py` | High | Open — user TWS check |
+| T71 | BKT/GUI — Phase 5 saved screener lists + Quick test done (SRD-BKT-002.080–.081, SRD-GUI-031.060–.061; RN-BKT-1.10.0, RN-GUI-1.48.0). User check pending; real-window check added a run named "Quick test check" to Reports. Next: Phase 6 MCP (needs MCP server first). | `backtest/steps/recorded.py`, `gui/` | Medium | Done — user check pending |
+| T72 | GUI — Backtest setup window C1 done (SRD-GUI-031.070–.074, RN-GUI-1.49.0); left builder removed. User check pending. | `gui/backtest_setup.py`, `gui/backtest_builder.py` | Medium | Done — user check pending |

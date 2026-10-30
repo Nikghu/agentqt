@@ -1,10 +1,10 @@
 # Software Requirement Document — Execution & Risk Management (EXE)
 
 **Document ID:** SRD-EXE
-**Version:** 1.30.0
+**Version:** 1.31.0
 **Traces To:** FO-EXE v1.14.0
 **Status:** Draft
-**Last Updated:** 2026-10-27
+**Last Updated:** 2026-10-29
 **Project:** US Swing Trading System
 
 > v1.7.0: Sections 11 + 12 added — SRD-EXE-011.001–015 (Strategy Engine) and SRD-EXE-012.001–013 (Trade Cycle Ledger).
@@ -130,6 +130,7 @@
 | SRD-EXE-006.010 | FO-EXE-006 | Must | The execution candle provider builds each strategy-evaluation timeframe (3m, 15m) by aggregating stored 1m bars via `HistoricalDataEngine.aggregate_timeframe` and merging any live `price_{tf}` bars, giving strategies full historical depth without an active live session. | symbol; `price_1m` + live `price_{tf}` rows in candles.db | `dict[str, pd.DataFrame]` of merged bars per timeframe plus a latest-bar accessor | 1m is the source of truth; live bars win on timestamp conflict; timeframe omitted when neither source has bars | Implemented |
 | SRD-EXE-006.012 | FO-EXE-006 | Must | The execution candle provider also includes stored daily (1d) and weekly (1w) closed bars, read directly from `price_1d` / `price_1w` in candles.db, so both entry and exit conditions can reference daily/weekly timeframes. Strategy Builder Timeframe dropdowns offer `1d` and `1w`. | symbol; `price_1d` / `price_1w` rows in candles.db | `1d` / `1w` frames added to the `dict[str, pd.DataFrame]` | Closed bars only — no aggregation, no live merge, no synthetic current-day bar; timeframe omitted when no stored bars exist | Implemented |
 | SRD-EXE-006.013 | FO-EXE-006 | Must | When a trade cycle opens, `AppService` arms candle feeds for its symbol — triggers an `IntradayCandleLoader` delta-fetch and adds it to `LiveBarWorker.set_symbols` — so a held position always has historical + live bars for indicator evaluation even when its symbol is not in the current screened set (ISS-EXE-0009). | open-cycle symbol-set change (`_on_cycle_symbols_changed`) | symbol added to historical download + live-bar subscription | Idempotent (delta-fetch + set diff); mirrors the tick-subscription guarantee; extends the SRD-EXE-010.006 keep-set handoff to fire on cycle-open, not only at reconcile | Implemented |
+| SRD-EXE-006.014 | FO-EXE-006 | Must | Live strategy frames drop the unfinished last intraday bar, so every function reads closed bars only. | 3m/15m bars | closed frames | User 2026-10-29: matches backtest SRD-BKT-002.050; signals fire after a bar closes | Implemented |
 
 ---
 

@@ -1,12 +1,13 @@
 # Design Document — Backtest Module (BKT)
 
 **Document ID:** DD-BKT
-**Version:** 1.0.0
-**Traces To:** SRD-BKT v1.0.0
+**Version:** 1.1.0
+**Traces To:** SRD-BKT v1.1.0
 **Status:** Draft
-**Last Updated:** 2026-10-28
+**Last Updated:** 2026-10-29
 **Project:** US Swing Trading System
 
+> v1.1.0: DD-BKT-002.001.D01 and DD-BKT-002.010.D01 added — engine foundation and Step 1.
 > v1.0.0: DD-BKT-001.001.D01 added — Parquet store, planner, downloader and auto delta schedule.
 
 ---
@@ -41,3 +42,87 @@ state.json           last_delta (ISO, UTC), floors {symbol: first date with 3m d
 **Downloader (`downloader.py`).** `BacktestDownloader(QThread)` takes a job list or a function that builds it (run in the thread), with its own asyncio loop and `ib_insync.IB` on `ibkr_backtest_client_id` (default 16; the next ID is tried when it is in use, like `IntradayCandleLoader`). For each job (one after another, no fixed rate limit — same as the candle download; TWS throttles 1d/3m requests itself; a `PacingQueue` can be injected), call `reqHistoricalDataAsync(..., barSizeSetting="1 day" | "3 mins", whatToShow="TRADES", useRTH=True)` with a 90 s timeout, then `store.save`. On timeout or IBKR error: wait 30 s and retry, up to 3 tries, then add the stock to `failed` and skip its other jobs. A 3m window that returns no bars while newer data exists sets the stock's floor to that window's end. `request_stop()` sets a flag checked between jobs. Signals: `progress(tf, done, total, symbol)`, `completed(ok, message)` (`finished` is taken by `QThread`). Pause in the GUI = stop; Start runs a fresh plan from disk (SRD .007).
 
 **Schedule (`schedule.py`, pure).** `delta_due(settings, last_delta, now) -> bool`: false when auto delta is off or end date is fixed; else find the latest scheduled moment ≤ `now` (run time on the newest selected weekday, in US/Eastern) and return `last_delta < that moment`. `AppService` checks it at start and every 60 s while no download runs.
+
+---
+
+## DD-BKT-002.001.D01 — Backtest Engine Foundation (Phase 0)
+
+**Traces:** SRD-BKT-002.001–.009
+
+**Run plan (`spec.py`).** Frozen dataclasses: `Period(start, end)`, `UniverseSpec(mode, sectors, names, add, remove)` with mode `sp500 | sector | names`, `ScreenerSpec(preset_id, top_n=0, ai_ranking=False)`, `StrategySpec(id, allocation_pct, per_trade_pct)`, `AccountSpec(capital, grow_with_pnl, max_daily_loss_pct, when_full)` with `when_full` `first_signal | highest_score`, `CostSpec(per_order, slippage_bps)`, and `RunPlan(name, period, universe, screener, strategies, account, costs, schema=1)`. Value lists (`capital`, `allocation_pct`, `per_trade_pct`) are tuples; JSON accepts a number or a list and writes a number back when the tuple has one value. JSON keys follow Engine_plan §4 (`period.from` / `period.to`). `from_dict` ignores unknown keys and fills defaults.
+
+`validate() -> list[str]`: schema ≠ 1; start after end; bad universe mode; sector mode with no sectors; names mode with no names; empty preset id; `top_n` < 0; capital ≤ 0; allocation or per-trade outside 0–100; daily loss < 0; bad `when_full`; costs < 0; variant count > 64. `variants() -> list[Variant]` is the product of capital × each strategy's allocation × each strategy's per-trade list; `Variant(capital, strategies=((id, alloc, per_trade), …))`.
+
+**Universe (`universe.py`).** `resolve(spec, records) -> list[str]`; `records` is any sequence with `symbol` and `sector`. `sp500` = all records; `sector` = records whose sector is in `sectors` (exact text); `names` = upper-cased names. Then `add` is joined and `remove` taken out; the result is sorted and unique.
+
+**Step cache (`cache.py`).** `StepCache(root)`, root `~/.usswing/backtest/cache/`. `make_key(step, version, params)` = sha256 of `json.dumps({"step", "version", "params"}, sort_keys=True, default=str)`. Layout `<root>/<step>/<key>/<name>.parquet`. `write(step, key, name, df)` writes `<name>.<uuid>.tmp` then `os.replace`. `read(...)` returns `None` when missing and touches the file mtime (last use). `names(step, key)` lists saved names. `cleanup(now, max_age_days=30, max_bytes=5 GB)` removes files with mtime older than the age, then the oldest files until the total is under the limit, then empty key folders; returns bytes freed.
+
+**Results store (`results.py`).** `ResultsStore(path)`, default `~/.usswing/backtest/results.db`, stdlib `sqlite3`. Table `runs(run_id TEXT PK, name, plan_json, status, started, finished, message)`. `start_run(plan, now) -> run_id` (uuid4 hex, status `running`), `finish_run(run_id, status, now, message="")` with status `done | cancelled | failed`, `list_runs(limit=50)` newest first, `get_run(run_id)`. Variants, trades and logs tables come in Phase 3.
+
+**Estimate (`service.py`).** `BacktestService(store, cache, results, records, presets)`; `records` and `presets` are callables (universe records; preset loader) so tests and the GUI inject their own. `estimate(plan, user_id) -> Estimate(symbols, missing_1d, missing_3m, benchmark_ok, days_total, days_cached, errors)`. A stock misses a timeframe when it has no coverage, its first date is more than 5 calendar days after the start, or its last date is more than 5 calendar days before the end (clipped to today). `benchmark_ok` = SPY has 1d coverage. Days come from Step 1 (DD-BKT-002.010.D01); with errors (validation or preset not found) the day counts are 0.
+
+**CLI (`cli.py`).** `python -m us_swing.backtest.cli estimate PLAN` prints the estimate; `run PLAN [--user ID] [--workers N]` runs Step 1 and prints days, total passes and the top 5 of the last day. Exit code 0 ok, 1 errors. Universe records come from `core.backtest_bridge.load_universe()`.
+
+---
+
+## DD-BKT-002.010.D01 — Step 1 Stocks (Phase 1)
+
+**Traces:** SRD-BKT-002.010–.017
+
+**Bridge (`core/backtest_bridge.py`).** The engine does not import `screener` or `universe` directly. The bridge gives: `load_universe()` (S&P 500 records from `universe.store`), `list_presets(user_id)` (admin + user presets as `PresetInfo(id, name, timeframe, ai)`), `load_preset_dict(preset_id, user_id)` and `screen_day(preset_dict, symbols, bars, market_caps) -> {symbol: (passed, score)}`. `screen_day` builds a `Preset` and calls the new public `PresetExecutor.screen()` (pre-filter + Stage 2 + group/weight logic, no AI, nothing saved). `run_preset()` now calls `screen()` too, so live and backtest use one path (cross-tool note for SCR; live behaviour unchanged).
+
+**Days (SRD .010).** `trading_days(store, period, symbols)`: dates of `store.read("SPY", "1d", start, end)`; if empty, the sorted union of the stocks' 1d dates in the period.
+
+**Rules key (SRD .012–.013).** `rules_key(preset_dict, symbols)` = `make_key("stocks", STEP_VERSION, {preset fields that change results, symbols})`. Kept preset fields: `preset_type`, `groups`, `screeners`, `threshold`, `timeframe`. Not in the key: name, dates, users, `top_n`, AI fields. One cache file per day, name `YYYY-MM-DD`, columns `symbol, passed, score` (passing rows only; an empty frame is saved for a day with no passes so it counts as done).
+
+**Day compute (SRD .011).** Worker processes start with `_init_worker(root, symbols, load_start, end)`, which reads each stock's 1d bars (plus SPY) once into a module global: `dates` (numpy `datetime64[D]`) and a list of slotted `_Bar(datetime, open, high, low, close, volume)`. `load_start` = period start − 900 calendar days (600 trading bars). `_run_day(preset_dict, day, market_caps)` slices each stock with `searchsorted(dates, day, "right")` to the last 600 bars, drops stocks with no bar on `day`, calls `screen_day`, and returns `(day, frame)`. SPY bars are passed in `bars` but not in `symbols` unless the universe has it.
+
+**Run (SRD .015).** `run_stocks(plan, preset_dict, symbols, store, cache, market_caps, workers, progress, cancel)`: compute the key and the days not cached. `workers=0` runs in this process (tests); else `ProcessPoolExecutor(min(workers, cpu))` with the initialiser, one task per day. Each finished day is written to the cache and `progress(done, total)` is called. `cancel()` is checked after each result; when true, pending tasks are cancelled (`shutdown(cancel_futures=True)`) and `StepCancelled` is raised. `run_gui.py` calls `multiprocessing.freeze_support()` for the frozen app.
+
+**Daily list (SRD .014).** `daily_list(cache, key, days)` reads the day files and returns `date, symbol, score, rank` (`rank` = position by score descending, ties by symbol, starting at 1). `top_n(frame, n)` keeps `rank <= n`; `n == 0` keeps all.
+
+**Refusals (SRD .016).** Before any compute: preset `timeframe` ≠ `1d` → "Weekly screener presets are not supported in backtest yet"; `plan.screener.ai_ranking` → "AI ranking is not built yet — untick it to run". Also added to `estimate().errors`.
+
+**Service (SRD .017).** `BacktestService.run_stocks(plan, user_id, progress, cancel, workers=4) -> DailyList(key, days, frame)`: validate, resolve symbols, load the preset, clean the cache (SRD .006), start a run row, call the step, finish the row as `done`, `cancelled` or `failed`. Market caps come from the universe records.
+
+---
+
+## DD-BKT-002.020.D01 — Step 2 Signals (Phase 2)
+
+**Traces:** SRD-BKT-002.020–.029
+
+**Parser (`core/expr/__init__.py`).** Re-exports `ConditionEvaluator`, `EvaluatorError` and `parse(expr)` (= live `_Parser(_tokenize(expr)).parse()`) from `execution/strategy_engine/_evaluator.py`. It imports `us_swing.data` first, because importing the strategy engine package first hits the `db` ↔ `data` import cycle.
+
+**Series (`core/expr/series.py`).** `function_series(name, args, frame, tf) -> ndarray` gives, for every bar *i*, the live value on `frame[:i+1]`: talib RSI, ADX, EMA, MACD histogram and Wilder ATR are causal, so one full-array call matches; SUPERTREND runs the live loop once and keeps the active band per bar; SWING is a rolling max / min / range with `min_periods=1`; VWAP is cumulative per US/Eastern session for 3m and 15m (SRD .024) and over all loaded bars for 1d and 1w. `evaluate(expr, frames, timeline) -> Evaluation(fired, values, uses_pnl)` walks the AST on the 3m timeline (one value per 3m bar):
+- Each bar's close time is `ts + 3 min`. A function series is read as of that time from its timeframe's availability times: 3m `ts+3m`, 15m `ts+15m`, 1d next day 00:00 ET, 1w Monday + 7 days 00:00 ET (SRD .022).
+- Price (SRD .023): on 3m, current = bar *t*, other = bar *t−1*; on 15m, current = the forming bucket so far (first open, running high/low, close, running volume of its 3m bars) and other = the last 15m bar closed by the bucket start; on 1d and 1w, current = last available bar, other = the one before.
+- `Number` is a constant; `PNL` is NaN and sets `uses_pnl` (SRD .027). Function arguments must be numbers or text.
+- Comparisons are false where either side is NaN (SRD .025); AND / OR are element-wise; booleans compare as 0 / 1 as in live.
+- `values` keeps each function's aligned series under a label such as `SUPERTREND(10, 3, 15m)`.
+
+**Step (`backtest/steps/signals.py`).** `load_frames(store, symbol, period)` reads 3m and 15m from 45 days before the start and 1d and 1w from 400 days before (live loads 30 and 400 days). The timeline is the 3m bars whose US/Eastern date is in the period. `schedule_mask(timeline, strategy)` keeps bars with start ≤ close time < end on the strategy's days. `periods(fired)` turns each run of true bars into one row: `kind, start, end` (bar close times, UTC), `close_at_start`, `values` (JSON of the labels at the start bar), `pnl`. `signal_key(strategy, symbol, period, coverage)` = `make_key("signals", STEP_VERSION, …)` with entry and exit text, hours, days, symbol, period and `store.coverage` of 3m and 1d. `stocks_for(strategy, daily, top_n)` = symbols with rank ≤ N on any day, filtered like live `accepts()` (all / include / exclude). `run_signals(plan, strategies, daily, store, cache, workers, progress, cancel)` makes one task per (strategy, stock) not cached, runs them in a `ProcessPoolExecutor` (or in process with `workers=0`), writes `cache/signals/<key>/<SYM>.parquet` and returns a `SignalList` frame (`strategy, symbol, kind, start, end, close_at_start, values, pnl`).
+
+**Bridge, service, CLI.** `core.backtest_bridge.load_strategies()` returns the live `StrategyConfig` rows as dicts. `BacktestService(…, strategies=loader)`; `run_signals(plan, daily, …)` checks that the plan has strategies and every name exists ("Strategy X is not in the strategy list"), then calls the step and records a run row. The CLI `run` runs Step 2 after Step 1 when the plan lists strategies and prints the period count per strategy.
+
+---
+
+## DD-BKT-002.030.D01 — Step 3 Portfolio (Phase 3)
+
+**Traces:** SRD-BKT-002.030–.039
+
+**Inputs.** `run_portfolio(plan, strategies, daily, signals, store, *, progress, cancel) -> list[VariantResult]`. `daily` is the Step 1 list cut to top N; the list of day *i − 1* is the pick list of day *i* (the first day has none). `signals` is the Step 2 frame. `strategies` are the live dicts of the plan's strategies. Each variant gets `StrategyRules` per strategy: sign (+1 LONG, −1 SHORT), intraday flag, end time, stop % and target % (None when off), Rex count, allocation % and per-trade %.
+
+**Refusals (SRD .036).** Before running: a strategy with an enabled trailing stop or target, a strategy whose signals carry the PNL flag, or `grow_with_pnl` → `StepRefused` with one sentence each.
+
+**Bars and signals.** 3m bars of every stock that is ever picked are read for the period once (`ts` close = start + 3 min, open, high, low, close, ET date). Each (strategy, stock) gets an entry-window id and an exit flag per bar from its Step 2 periods (`searchsorted` of start and end on the bar closes).
+
+**Day loop (per variant).** For each day: the bar times are the union of the bar closes of picked, held and pending stocks. At each time *t*, for each stock that has a bar at *t*:
+1. Fill pending orders at the bar's open: exits first, then entries in queue order. Entry fill: `px = open × (1 + sign × slip)`; `qty = floor(capital × alloc × per ÷ px)` → too_expensive at 0; strategy cost ≥ capital × alloc → strategy_limit; `qty = min(qty, floor((capital − all open cost) ÷ px))` → no_margin below 1; stock held → already_held. Exit fill: `px = price × (1 − sign × slip)`.
+2. Stop / target on the bar's high and low (SRD .035): LONG stop if low ≤ stop (fill min(open, stop)), else target if high ≥ target (fill max(open, target)); SHORT mirrored.
+3. At the close: mark open trades (MAE / MFE, unrealised P&L); Intraday trades at or after end time get an exit at the next open, or at this close when no later bar exists today; an active exit window queues an exit (reason strategy).
+4. Entries: candidates are (strategy, stock) with an active entry window, stock in today's pick list, not held or pending, Rex left today ≥ 0, and no daily loss stop. Sorted by window start then score (first_signal) or score then window start (highest_score). Each queues an entry for the next bar.
+Blocked candidates are logged once per (strategy, stock, entry window, decision). At day end Intraday trades still open close at their last close; pending Intraday entries are dropped. The money row keeps start capital, deployed at close, lowest margin, margin at close, open value and equity (capital + realised + unrealised).
+
+**Daily loss (SRD .038).** `equity(t) − equity(day start) ≤ −pct/100 × equity(day start)` sets the day's stop flag; logged once as daily_loss_stop.
+
+**Results (SRD .039).** `ResultsStore.save_variant(run_id, index, variant, result)` writes `variants` (variant_id, run_id, capital, strategies JSON) and appends `trades`, `day_log`, `money_daily` with `pandas.to_sql`. `BacktestService.run_portfolio(plan, daily, signals)` loads the live strategies, runs every variant in turn and records the run.

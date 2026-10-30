@@ -1,12 +1,16 @@
 # Software Requirements Document — Backtest Module (BKT)
 
 **Document ID:** SRD-BKT
-**Version:** 1.0.0
-**Traces To:** FO-BKT v1.0.0
+**Version:** 1.1.0
+**Traces To:** FO-BKT v1.1.0
 **Status:** Draft
-**Last Updated:** 2026-10-28
+**Last Updated:** 2026-10-29
 **Project:** US Swing Trading System
 
+> v1.8.0: SRD-BKT-002.070–.073 (Phase 4b) and .080–.081 (Phase 5) added; approved by user 2026-10-30.
+> v1.7.0: SRD-BKT-001.015 and SRD-BKT-002.052 added; approved by user 2026-10-30 — SPY for the RS rule.
+> v1.6.0: SRD-BKT-002.060 added; approved by user 2026-10-30 — saved reports for the redesign.
+> v1.1.0: SRD-BKT-002.001–.017 added — engine Phase 0 and 1; approved by user 2026-10-29.
 > v1.0.0: SRD-BKT-001.001–.011 added — backtest data store and downloader (Draft, waiting for user approval).
 
 ---
@@ -29,3 +33,106 @@
 | SRD-BKT-001.012 | FO-BKT-001 | Must | Every 3m save rebuilds that stock's 15m bars for each year touched, five 3m bars per 15m bar from 09:30 ET. | saved 3m year file | `15m/<SYM>/<YYYY>.parquet` | Approved by user 2026-10-29; not downloaded from TWS | Implemented |
 | SRD-BKT-001.013 | FO-BKT-001 | Must | Every 1d save rebuilds that stock's 1w bars, Monday to Friday, dated by the Monday, with a day count. | saved 1d file | `1w/<SYM>.parquet` | Approved by user 2026-10-29; unfinished week kept with its day count | Implemented |
 | SRD-BKT-001.014 | FO-BKT-001 | Must | 15m and 1w files that are missing or older than their source are built in the background at app start. | 3m and 1d files | built files, stock count logged | Approved by user 2026-10-29; Clear also removes them | Implemented |
+| SRD-BKT-001.015 | FO-BKT-001 | Must | Download and delta also fetch SPY daily candles with the S&P 500 stocks. | S&P 500 list | SPY 1d in the store | Approved by user 2026-10-30 (RS rule needs SPY); no 3m for SPY | Implemented |
+
+## FO-BKT-002 — Backtest Engine (Phase 0 · Foundation)
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-BKT-002.001 | FO-BKT-002 | Must | A run plan is a frozen, versioned dataclass that saves to JSON and loads back equal. | plan / JSON | JSON / plan | `schema` 1; unknown keys ignored | Implemented |
+| SRD-BKT-002.002 | FO-BKT-002 | Must | Validation returns a list of plain error messages for a bad plan. | plan | messages | Empty list = valid; unknown schema is an error | Implemented |
+| SRD-BKT-002.003 | FO-BKT-002 | Must | List values of capital, allocation % and per-trade % expand into a grid of variants. | plan | variants | More than 64 variants is a validation error | Implemented |
+| SRD-BKT-002.004 | FO-BKT-002 | Must | The universe resolves to a sorted list of stocks from S&P 500, sectors or names, then add, then remove. | spec, universe records | symbols | Records are passed in; no network call | Implemented |
+| SRD-BKT-002.005 | FO-BKT-002 | Must | The step cache stores a frame under a sha256 key of step, step version and params, written atomically. | key parts, frame | Parquet file | A miss returns nothing; a crash never leaves a half file | Implemented |
+| SRD-BKT-002.006 | FO-BKT-002 | Should | Cache cleanup deletes entries unused for 30 days, then the oldest until the size limit is met. | cache folder | freed bytes | Default limit 5 GB | Implemented |
+| SRD-BKT-002.007 | FO-BKT-002 | Must | A results store in `results.db` keeps each run with its plan, status and start and end time. | run | rows | SQLite; one row per run | Implemented |
+| SRD-BKT-002.008 | FO-BKT-002 | Must | The estimate gives the stock count, stocks missing 1d or 3m candles for the period, and the cached and to-run days of Step 1. | plan, store, cache | estimate | Reads metadata only | Implemented |
+| SRD-BKT-002.009 | FO-BKT-002 | Should | A command line runs `estimate` and `run` on a plan JSON file. | plan file | printed summary | `python -m us_swing.backtest.cli` | Implemented |
+
+## FO-BKT-002 — Backtest Engine (Phase 1 · Step 1 Stocks)
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-BKT-002.010 | FO-BKT-002 | Must | Step 1 days are the SPY 1d dates inside the period, or all stocks' dates when SPY is missing. | store, period | days | SPY is also passed to the screener as the benchmark | Implemented |
+| SRD-BKT-002.011 | FO-BKT-002 | Must | For each day, each stock gets its last 600 1d bars up to that day and the preset's pre-filter, screeners and group or weight logic run without the AI stage. | preset, bars | passed, score per stock | Same code path as the live screener | Implemented |
+| SRD-BKT-002.012 | FO-BKT-002 | Must | Each day's passing stocks with score are cached in one file per day, keyed by the preset rules, the stock list and the step version. | day result | cache file | Scores can depend on other stocks (RS rank), so the key holds the whole stock list | Implemented |
+| SRD-BKT-002.013 | FO-BKT-002 | Must | Days already cached are not computed again; top N and the AI tick are not part of the key. | plan, cache | days to run | — | Implemented |
+| SRD-BKT-002.014 | FO-BKT-002 | Must | The daily list joins all days as date, symbol, score and rank, and can keep only the top N per day. | day files, N | frame | Rank 1 = highest score, ties by symbol; N 0 = all | Implemented |
+| SRD-BKT-002.015 | FO-BKT-002 | Must | Days are computed in a process pool with progress as days done of total, and cancel stops between days. | days | day results, progress | Finished days stay cached after cancel | Implemented |
+| SRD-BKT-002.016 | FO-BKT-002 | Must | A weekly preset or a ticked AI ranking stops the run with a plain message. | plan | error | AI ranking (D4) is built in a later phase | Implemented |
+| SRD-BKT-002.018 | FO-BKT-002 | Must | A preset with an enabled RS rule stops Step 1 and the data check with one plain sentence when SPY is not in the store. | preset, store | message | User 2026-10-29: backtest data is S&P 500 only, SPY is not downloaded | Implemented |
+| SRD-BKT-002.019 | FO-BKT-002 | Must | An error inside a worker process reaches the user once, in plain text, with the day. | error | message | Fixes the doubled RS message | Implemented |
+| SRD-BKT-002.017 | FO-BKT-002 | Must | `BacktestService` gives estimate and Step 1 run with progress and cancel, and records each run in the results store. | plan | estimate, daily list | Used by GUI and CLI | Implemented |
+
+## FO-BKT-002 — Backtest Engine (Phase 2 · Step 2 Signals)
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-BKT-002.020 | FO-BKT-002 | Must | `core/expr` re-exports the live condition parser so the backtest uses the same parser. | — | `parse()` | Live code unchanged (user chose re-export 2026-10-29) | Implemented |
+| SRD-BKT-002.021 | FO-BKT-002 | Must | Each of the 10 functions gives a series per timeframe whose value at a bar equals the live value on the closed bars up to that bar. | frames, args | series | Parity checked per function and timeframe | Implemented |
+| SRD-BKT-002.022 | FO-BKT-002 | Must | Values are read at each 3m bar close: 3m and 15m bars once closed, 1d bars from the next session, 1w bars from the next week. | series | aligned values | No look-ahead | Implemented |
+| SRD-BKT-002.023 | FO-BKT-002 | Must | Price reads candles like live: on 15m "current" is the forming bar built from 3m bars and any other candle is the bar before. | 3m bars | prices | 1d and 1w have no forming bar, as in live | Implemented |
+| SRD-BKT-002.024 | FO-BKT-002 | Must | VWAP on 3m and 15m resets at the start of each session. | bars | VWAP | User chose reset 2026-10-29; live adds up 30 days (reported) | Implemented |
+| SRD-BKT-002.025 | FO-BKT-002 | Must | A value that cannot be computed (NaN) makes its comparison false instead of stopping the run. | values | false | Live raises an error and skips the bar | Implemented |
+| SRD-BKT-002.026 | FO-BKT-002 | Must | Entry and exit conditions give periods (start, end, close at start, values) per stock per strategy, only on bars inside the strategy's hours and days. | conditions, bars | periods | Hours as live: start ≤ bar close < end, US/Eastern | Implemented |
+| SRD-BKT-002.027 | FO-BKT-002 | Must | A condition that uses PNL is flagged and PNL counts as unknown (false) in Step 2. | condition | flag | Step 3 re-checks per held bar; live PNL is always 0 (reported) | Implemented |
+| SRD-BKT-002.028 | FO-BKT-002 | Must | Step 2 runs on the stocks in Step 1's top-N list that the strategy accepts, cached per strategy and stock, in a process pool with progress and cancel. | daily list, strategies | cache files | Key: condition text, hours, days, period, candle coverage, step version | Implemented |
+| SRD-BKT-002.029 | FO-BKT-002 | Must | Strategies are read from the live strategy store by name, and `BacktestService.run_signals()` and the CLI give the signal periods. | plan | signal list | A missing strategy name is a plain error | Implemented |
+
+## FO-BKT-002 — Backtest Engine (Phase 3 · Step 3 Portfolio)
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-BKT-002.030 | FO-BKT-002 | Must | Step 3 plays the picked strategies' signals on one 3m timeline per variant; a stock can be entered on day D only if it is in day D−1's top-N list. | daily list, signals, 3m bars | trades | Candidates on one bar go by first signal or highest score (D3) | Implemented |
+| SRD-BKT-002.031 | FO-BKT-002 | Must | Shares are floor(capital × allocation % × per-trade % ÷ fill price); 0 shares is logged as too_expensive. | variant, price | quantity | Same formula as live `_size_entry` | Implemented |
+| SRD-BKT-002.032 | FO-BKT-002 | Must | An entry is blocked when the strategy's open cost has reached capital × allocation % (strategy_limit), and cut to the margin left, which is capital minus the cost of all open trades (no_margin below 1 share). | positions | quantity or block | Same as live `can_allocate` and `margin_available` | Implemented |
+| SRD-BKT-002.033 | FO-BKT-002 | Must | Orders fill at the next 3m bar's open with slippage against the trade, and each order pays the commission. | decision, bars | fill | Swing orders decided on the last bar fill at the next session's open | Implemented |
+| SRD-BKT-002.034 | FO-BKT-002 | Must | A stock has at most one open position across strategies (already_held), and a strategy enters a stock at most 1 + Rex count times a day (rex_limit). | positions | block | User 2026-10-29: Rex resets each day; live never resets | Implemented |
+| SRD-BKT-002.035 | FO-BKT-002 | Must | Each bar exits by stop, then target, then end time, then the exit condition; when stop and target are both in one bar the stop counts, and a gap through a level fills at the open. | bar, levels | exit | User 2026-10-29: stop first; live checks ticks, target first | Implemented |
+| SRD-BKT-002.036 | FO-BKT-002 | Must | Fixed stop and target are a % of the fill price, mirrored for SHORT; trailing types, PNL conditions and Grow with P&L stop the run with a plain message. | strategy | levels or message | P&L = sign × (exit − entry) × shares − commissions | Implemented |
+| SRD-BKT-002.037 | FO-BKT-002 | Must | Intraday positions close at the first open at or after the strategy's end time (or the day's last close); Swing positions stay open overnight; all close at the test's last close. | positions | exits | Reasons: end_time, end_of_test | Implemented |
+| SRD-BKT-002.038 | FO-BKT-002 | Must | Once today's equity change reaches minus the daily loss stop % of day-start equity, no new entries are made that day (daily_loss_stop); exits continue. | equity | block | User 2026-10-29: block; live only warns; 0 % = off | Implemented |
+| SRD-BKT-002.039 | FO-BKT-002 | Must | Each variant saves its trades, day log and money-by-day rows in `results.db` under the run. | results | tables | `variants`, `trades`, `day_log`, `money_daily` | Implemented |
+
+## FO-BKT-002 — Backtest Engine (Closed candles and session dates)
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-BKT-002.050 | FO-BKT-002 | Must | Strategy PRICE reads only closed bars on every timeframe; "current" is the last closed bar. | bars | prices | User 2026-10-29: replaces SRD-BKT-002.023; live matches via SRD-EXE-006.014 | Implemented |
+| SRD-BKT-002.051 | FO-BKT-002 | Must | Step 1 keys each list by session date, built from the previous trading day's close, for every session from From to To. | 1d bars | daily list | User 2026-10-29: matches the pre-market screener run | Implemented |
+| SRD-BKT-002.052 | FO-BKT-002 | Must | When the screener uses RS and SPY daily candles are missing, the data check counts SPY as missing 1d and asks to download it. | preset, store | missing list, message | Approved by user 2026-10-30; replaces the "S&P 500 only" text of SRD-BKT-002.018 | Implemented |
+
+## FO-BKT-002 — Backtest Engine (Phase 4a · Step 4 Report)
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-BKT-002.040 | FO-BKT-002 | Must | The report reads a saved run's results from `results.db` and computes stats per variant without running Steps 1–3 again. | run id | reports | Same stats from in-memory results | Implemented |
+| SRD-BKT-002.041 | FO-BKT-002 | Must | Returns: net P&L, return %, CAGR, % of days with money deployed, and P&L by month. | money, trades | stats | — | Implemented |
+| SRD-BKT-002.042 | FO-BKT-002 | Must | Risk: max drawdown ($ and %), longest drawdown in days, Sharpe, Sortino and Calmar from daily equity (risk-free 0), worst day and worst trade. | daily equity | stats | 252 days a year | Implemented |
+| SRD-BKT-002.043 | FO-BKT-002 | Must | Trade quality: trade count, win rate, average win and loss, payoff, profit factor, expectancy ($), longest win and loss streak. | trades | stats | A 0 P&L trade counts as a loss | Implemented |
+| SRD-BKT-002.044 | FO-BKT-002 | Must | Breakdowns: P&L, trades and win rate by strategy, stock, sector, exit reason, entry hour and weekday. | trades | tables | Hour and weekday in US/Eastern | Implemented |
+| SRD-BKT-002.045 | FO-BKT-002 | Must | Capital use: entries taken vs each skip reason, counted from the day log. | day log | counts | — | Implemented |
+| SRD-BKT-002.046 | FO-BKT-002 | Must | Benchmark line over the same days: capital grown by the equal-weight average daily return of the run's stocks. | 1d closes | line | User 2026-10-29: equal weight, no SPY (T64) | Implemented |
+| SRD-BKT-002.047 | FO-BKT-002 | Must | Compare: one row of key stats per variant. | reports | table | — | Implemented |
+
+## FO-BKT-002 — Backtest Engine (Saved reports)
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-BKT-002.060 | FO-BKT-002 | Must | The results store can rename a run, keep a note on it, and delete it with all its rows. | run id | updated or removed run | — | Implemented |
+
+## FO-BKT-002 — Backtest Engine (Phase 4b · Report extras)
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-BKT-002.070 | FO-BKT-002 | Must | Exit and holding: average MAE, MFE and profit given back (MFE minus P&L), and hold time (median, longest). | trades | stats | — | Implemented |
+| SRD-BKT-002.071 | FO-BKT-002 | Must | Breakdowns also by hold time (under 1 h, 1–3 h, 3 h–1 day, over 1 day), score bucket and rank. | trades | tables | Adds groups to SRD-BKT-002.044 | Implemented |
+| SRD-BKT-002.072 | FO-BKT-002 | Must | Robustness: Monte Carlo of trade order (1,000 runs, fixed seed) gives 5th/50th/95th max drawdown; first vs second half P&L; P&L without the top 5 trades. | trades | stats | Same result every time | Implemented |
+| SRD-BKT-002.073 | FO-BKT-002 | Should | Return heat map of capital × per-trade % when the variants differ in both. | reports | grid | — | Implemented |
+
+## FO-BKT-002 — Backtest Engine (Phase 5 · Recorded screener lists)
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-BKT-002.080 | FO-BKT-002 | Must | Step 1 can use the screener lists saved by the app for the preset instead of replaying it: passed stocks ranked by score. | `screener_results/preset_<id>/<date>.json` | daily list | Keeps the real lists, AI picks included | Implemented |
+| SRD-BKT-002.081 | FO-BKT-002 | Must | A list run before 09:30 ET trades that day, a later run trades the next session; sessions with no saved list have no picks. | run time | session date | Data check shows how many sessions have a saved list | Implemented |

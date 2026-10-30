@@ -133,12 +133,12 @@ def test_updates_item_popup_and_dot(sidebar, monkeypatch):
     assert sidebar._update_btn.toolTip() == "Updates"
 
 
-def test_main_window_lists_four_screens():
+def test_main_window_lists_screens():
     """UT-GUI-027.004.M03.T01: Settings is no longer a screen in the sidebar."""
     from us_swing.gui.main_window import _NAV_ITEMS
 
     assert [label for _icon, label in _NAV_ITEMS] == [
-        "Dashboard", "Screener", "Execution", "Charts"]
+        "Dashboard", "Screener", "Execution", "Charts", "Backtest"]
 
 
 def test_mini_hides_labels_keeps_tooltips(sidebar):

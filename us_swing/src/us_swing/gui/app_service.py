@@ -124,6 +124,7 @@ from us_swing.backtest.downloader import BacktestDownloader
 from us_swing.backtest.planner import Job, plan
 from us_swing.backtest.schedule import delta_due
 from us_swing.backtest.settings import BacktestDataSettings, DownloadState
+from us_swing.backtest.steps.stocks import BENCHMARK
 from us_swing.backtest.store import BacktestStore
 from us_swing.gui.manual_picks_store import load_manual_picks, save_manual_picks
 from us_swing.gui.user_store import load_users, next_user_id, save_users
@@ -2732,9 +2733,16 @@ class AppService(QObject):
         return out
 
     def get_latest_close(self, symbol: str, tf: str = "3m") -> float | None:
-        """Return the latest closing price for *symbol* at *tf*, or None."""
-        bar = self._get_latest_bar(symbol, tf)
-        return float(bar.close) if bar is not None else None
+        """Return the latest closing price for *symbol* at *tf*, or None (ISS-GUI-0012)."""
+        from us_swing.execution.intraday_candle_loader import load_latest_close
+        src = self._execution_candle_source()
+        if src is None:
+            return None
+        try:
+            return load_latest_close(src[0], symbol, tf)
+        except Exception:
+            _log.warning("[Strategy] Failed to read the last price for %s", symbol)
+            return None
 
     def get_strategy_pnl(
         self, strategy_id: str, since_iso: str | None = None
@@ -4570,7 +4578,8 @@ class AppService(QObject):
         def build_plan() -> list[Job]:
             floors = DownloadState.load(store.root).floors
             return plan(symbols, settings, store.coverage, floors,
-                        _compute_last_trading_day(), delta)
+                        _compute_last_trading_day(), delta,
+                        daily_only=(BENCHMARK,))  # SRD-BKT-001.015
 
         return build_plan
 

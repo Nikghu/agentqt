@@ -7,6 +7,14 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.42.0: MD-GUI-031.075.M11 added — Backtest header stepper and field grid (SRD-GUI-031.075).
+> v1.41.0: MD-GUI-031.071.M10 added — Backtest setup window; builder (M02) now gives five card pages, `summaries()` and `load_plan()` (SRD-GUI-031.070–.074).
+> v1.40.0: Phase 5 — `backtest_builder.py` (M02) saved-lists tick, `set_saved_days()`, `quick_test()`; `backtest_workspace.py` (M03) `quick_test()` and saved-list data check; `screener_panel.py` Quick test button and `main_window.py` wiring (SRD-GUI-031.060–.061).
+> v1.39.0: MD-GUI-031.040.M04 adds `RiskFacts`, new Group by names, the heat map table and the `hours` format (SRD-GUI-031.046–.048).
+> v1.38.0: MD-GUI-031.055.M09 added — Backtest saved reports.
+> v1.37.0: MD-GUI-031.053.M07 and MD-GUI-031.054.M08 added — Trade list, screener and margin use.
+> v1.36.0: MD-GUI-031.050.M05 and MD-GUI-031.052.M06 added — Backtest dock panels and trade chart.
+> v1.35.0: MD-GUI-031.* added — Backtest workspace (new `backtest_builder.py`, `backtest_workspace.py`).
 > v1.34.0: MD-GUI-030.* added — Backtest data section (new `backtest_data_panel.py`).
 > v1.33.0: MD-GUI-019.009.M03 added (SRD-GUI-019.009) — `main_window.py` shrinks the sidebar on the right panel click.
 > v1.32.0: MD-GUI-000.008.M01–M03 added (SRD-GUI-000.008) — theme id cached, hidden source list, tick refresh batching.
@@ -327,3 +335,19 @@ us_swing/src/us_swing/gui/
 | MD-GUI-030.004.M04 | SRD-GUI-030.004 | `us_swing/src/us_swing/gui/system_store.py` | Add the backtest TWS client ID | `SystemConfig.ibkr_backtest_client_id` (default 16) | — | No |
 | MD-GUI-030.007.M05 | SRD-GUI-030.007 | `us_swing/src/us_swing/gui/main_window.py` | Status bar item for backtest progress | `_on_backtest_progress()`, `_on_backtest_finished()` | `app_service` | No |
 | MD-GUI-030.008.M06 | SRD-GUI-030.008 | `us_swing/src/us_swing/gui/settings_panel.py` | Universe table backtest columns | `_build_universe_html(backtest=…)`, `AppService.get_backtest_symbol_coverage()` | `app_service` | No |
+
+## FO-GUI-031 — Backtest Workspace
+
+| MD ID | SRD | File | Purpose | Public API | Depends on | Async |
+|---|---|---|---|---|---|---|
+| MD-GUI-031.001.M01 | SRD-GUI-031.001 | `us_swing/src/us_swing/gui/main_window.py` | Backtest sidebar item and stack page | `_NAV_ITEMS`, `_WIDE_PAGES` | `backtest_workspace` | No |
+| MD-GUI-031.002.M02 | SRD-GUI-031.002 | `us_swing/src/us_swing/gui/backtest_builder.py` | Left builder that makes the run plan | `BacktestBuilder`, `plan()`, `changed`, `_NameCompleter` (SRD-GUI-031.078) | `backtest.spec`, `core.backtest_bridge`, `screener_views.ChipGroup` | No |
+| MD-GUI-031.003.M03 | SRD-GUI-031.003 | `us_swing/src/us_swing/gui/backtest_workspace.py` | Step strip, data check, Step 1 run and view | `BacktestWorkspace` | `backtest.service`, `backtest_builder`, `app_service` | Yes (`QThread` workers) |
+| MD-GUI-031.050.M05 | SRD-GUI-031.050 | `us_swing/src/us_swing/gui/backtest_dock.py` | Section of titled panels in rows; right icon strip and ✕ turn panels on/off, kept in QSettings | `DockSection`, `Panel`, `PanelSpec` | `cards`, `icons` | No |
+| MD-GUI-031.052.M06 | SRD-GUI-031.052, .076 | `us_swing/src/us_swing/gui/backtest_trade_chart.py` | Candles of one stock around a trade with entry/exit dots, path, callouts, result badge and dimmed outside bars | `TradeChart`, `time_labels()`, `trade_badge()` | `theme`, `strategy_pnl_chart.nice_ticks` | No |
+| MD-GUI-031.053.M07 | SRD-GUI-031.053 | `us_swing/src/us_swing/gui/backtest_trade_list.py` | Trade list with LONG/SHORT pill, P&L %, duration and filter chips; click sends the trade | `TradeList`, `numbered()`, `keep()` | `screener_views.ChipGroup`, `theme` | No |
+| MD-GUI-031.054.M08 | SRD-GUI-031.054 | `us_swing/src/us_swing/gui/backtest_use_charts.py` | Screener use and margin use stacked daily bars with a facts line | `UsePanel`, `StackedBars`, `screener_use()`, `margin_use()` | `theme`, `strategy_pnl_chart.nice_ticks` | No |
+| MD-GUI-031.055.M09 | SRD-GUI-031.055 | `us_swing/src/us_swing/gui/backtest_reports.py` | Saved runs table and details: open, rename, note, delete with confirm | `ReportsView`, `plan_text()` | `backtest.service`, `active_cycles_panel._ConfirmDialog` | Yes (`QThread` list worker) |
+| MD-GUI-031.071.M10 | SRD-GUI-031.071 | `us_swing/src/us_swing/gui/backtest_setup.py` | Frameless setup window: side menu with value and ✓ / !, builder pages, footer with data check, Cancel, Save, Run | `BacktestSetupDialog`, `section_marks()` | `backtest_builder`, `scheduler_dialog._DialogTitleBar`, `screener_views.PresetItem` | No |
+| MD-GUI-031.075.M11 | SRD-GUI-031.075 | `us_swing/src/us_swing/gui/backtest_header.py` | Step stepper (circles, lines, tick when done) and labelled setup field grid | `StepStrip`, `PlanFields`, `repolish()` | `theme` QSS | No |
+| MD-GUI-031.040.M04 | SRD-GUI-031.040 | `us_swing/src/us_swing/gui/backtest_report_view.py` | Report tab: KPI row, equity vs benchmark and drawdown chart, all stats, month heat map, breakdown, compare, CSV export | `ReportView`, `ReportChart`, `fmt()`, `skips_text()` | `backtest.steps.report`, `theme` | No |

@@ -49,6 +49,7 @@ from PyQt6.QtWidgets import (
 from us_swing import __version__
 from us_swing.data.models import ConnectionStatus
 from us_swing.gui.app_service import AppService
+from us_swing.gui.backtest_workspace import BacktestWorkspace
 from us_swing.gui.cards import GAP, card, gutter
 from us_swing.gui.chart_workspace import ChartWorkspace
 from us_swing.gui.dashboard_panel import DashboardPanel
@@ -395,8 +396,9 @@ _NAV_ITEMS: list[tuple[str, str]] = [
     ("filter", "Screener"),
     ("zap", "Execution"),
     ("chart-candlestick", "Charts"),
+    ("history", "Backtest"),
 ]
-_WIDE_PAGES = frozenset({2, 3})   # Execution, Chart
+_WIDE_PAGES = frozenset({2, 3, 4})   # Execution, Chart, Backtest
 _NO_PANEL_PAGES = frozenset({3})   # Chart
 _RIGHT_PANELS = ("details", "watch")
 
@@ -453,10 +455,11 @@ class MainWindow(QMainWindow):
         self._screener_panel   = ScreenerPanel(svc)
         self._execution_panel  = ExecutionPanel(svc)
         self._chart_panel      = ChartWorkspace(svc)
+        self._backtest_panel   = BacktestWorkspace(svc)
         self._settings_panel   = SettingsPanel(svc)
         panels = [
             self._dashboard_panel, self._screener_panel, self._execution_panel,
-            self._chart_panel,
+            self._chart_panel, self._backtest_panel,
         ]
 
         self._settings_panel.theme_changed.connect(self._chart_panel.refresh_theme)
@@ -473,7 +476,7 @@ class MainWindow(QMainWindow):
         gutter(self._stack)
         for p in panels:
             if p in (self._screener_panel, self._execution_panel, self._dashboard_panel,
-                     self._chart_panel):
+                     self._chart_panel, self._backtest_panel):
                 # These screens lay out their own cards on the gutter.
                 self._stack.addWidget(p)
             else:
@@ -575,6 +578,10 @@ class MainWindow(QMainWindow):
         self._details.chart_requested.connect(self._on_details_chart)
         # screener → chart_requested → Charts screen
         self._screener_panel.chart_requested.connect(self._on_chart_requested)
+        # backtest → chart_requested → Charts screen (SRD-GUI-031.023)
+        self._backtest_panel.chart_requested.connect(self._on_chart_requested)
+        # screener → quick_test_requested → Backtest screen on saved lists (SRD-GUI-031.061)
+        self._screener_panel.quick_test_requested.connect(self._on_quick_test)
         # charts → execution_requested → Execution screen (SRD-GUI-026.010)
         self._chart_panel.execution_requested.connect(lambda _symbol: self._go_to(2))
         # ── Status bar widgets ─────────────────────────────────────────────────
@@ -708,6 +715,10 @@ class MainWindow(QMainWindow):
 
     def _on_details_chart(self, symbol: str) -> None:
         self._on_chart_requested(symbol, "1d")
+
+    def _on_quick_test(self, preset_id: str) -> None:
+        self._go_to(4)
+        self._backtest_panel.quick_test(preset_id)
 
     def _on_chart_requested(self, symbol: str, timeframe: str) -> None:
         self._go_to(3)

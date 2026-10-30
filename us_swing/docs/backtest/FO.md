@@ -1,11 +1,12 @@
 # Functional Overview — Backtest Module (BKT)
 
 **Document ID:** FO-BKT
-**Version:** 1.0.0
+**Version:** 1.1.0
 **Status:** Draft
-**Last Updated:** 2026-10-28
+**Last Updated:** 2026-10-29
 **Project:** US Swing Trading System
 
+> v1.1.0: FO-BKT-002 added — backtest engine (Phase 0 and 1 scope).
 > v1.0.0: FO-BKT-001 added — backtest candle data store and IBKR downloader.
 
 ---
@@ -32,3 +33,31 @@ The system shall keep a separate history of 1d and 3m candles for all S&P 500 st
 1. A stopped download continues from where it stopped, without downloading saved months again.
 2. 1d and 3m candles for a stock can be read back for any date in the range.
 3. Clear removes backtest data only; `candles.db` is unchanged.
+
+---
+
+## FO-BKT-002: Backtest Engine
+
+**Status:** Approved (user, 2026-10-29 — Phase 0 to 3 scope)
+**Priority:** Must
+**Depends on:** FO-BKT-001 (backtest data store), FO-SCR presets (screener replay)
+**Source:** `Engine_plan.md` §1–§5, locked decisions D1–D9 (user, 2026-10-29). User asked for minimal Phase 0 and Phase 1 requirements, approved for code on 2026-10-29.
+
+The system shall run a saved screener and the user's live strategies over history in four cached steps (Stocks, Signals, Portfolio, Report), headless behind one `BacktestService`. Phase 0 and Phase 1 cover the run plan, the data check and Step 1 (Stocks).
+
+- The system shall describe a run in a versioned run plan saved as JSON, and expand list values into at most 64 variants.
+- The system shall pick the stocks from S&P 500, sectors or names, with add and remove on top.
+- The system shall check, before every run, which stocks miss 1d or 3m candles for the period.
+- The system shall cache each step's output by a key of its inputs, so unchanged steps are reused.
+- The system shall replay the screener preset on each trading day using only candles up to that day's close.
+- The system shall give, for each day, the stocks that passed with score and rank; the list made on day D is for use on day D+1.
+- The system shall be usable from a command line as well as the GUI.
+- The system shall find, per stock and live strategy, the periods when the entry and exit conditions are true, using the live condition parser (Phase 2, approved by user 2026-10-29).
+- The system shall read each timeframe only as far as live could see it at that 3m bar close (no look-ahead).
+- The system shall turn the signals of the picked stocks into trades with the live money rules (sizing, strategy limit, margin), stop, target and end time, for each variant (Phase 3, approved by user 2026-10-29).
+
+### Acceptance Criteria
+
+1. A run plan saved and loaded again is equal to the original.
+2. Running Step 1 twice computes nothing the second time; changing only top N computes nothing.
+3. The Step 1 list for one day equals what the screener's rule stages give on the same candles.

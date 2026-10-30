@@ -1,7 +1,8 @@
-"""Read-path tests for execution candle assembly (SRD-EXE-006.010).
+"""Read-path tests for execution candle assembly (SRD-EXE-006.010, SRD-EXE-006.014).
 
 Covers UT-EXE-006.001.M01.T14-T16: 3m/15m frames derived from ``price_1m``,
-live-bar merge/de-duplication, and the empty-source case.
+live-bar merge/de-duplication, and the empty-source case. UT-EXE-006.001.M01.T22-T23:
+frames hold closed bars only.
 """
 from __future__ import annotations
 
@@ -15,6 +16,7 @@ from us_swing.db.manager import DatabaseManager
 from us_swing.execution.intraday_candle_loader import (
     assemble_execution_bars,
     load_execution_frames,
+    load_latest_close,
     load_latest_execution_bar,
     load_stored_frames,
 )
@@ -152,6 +154,56 @@ def test_missing_daily_weekly_omitted(tmp_path):
     frames = load_execution_frames(db, hist, _SYM)
 
     assert set(frames) == {"3m", "15m"}
+
+
+def test_forming_bar_left_out_of_frames(tmp_path):
+    """UT-EXE-006.001.M01.T22: a 15m bar still forming is left out; closed bars stay."""
+    db, hist = _make(tmp_path)
+    now = dt.datetime.now(tz=dt.timezone.utc).replace(second=0, microsecond=0)
+    starts = [now - dt.timedelta(minutes=35), now - dt.timedelta(minutes=20),
+              now - dt.timedelta(minutes=5)]
+    db.insert_bars(_SYM, "15m", [
+        OHLCVBar(symbol=_SYM, datetime=s, open=10.0, high=11.0, low=9.0, close=10.0,
+                 volume=100, timeframe="15m")
+        for s in starts
+    ])
+
+    frame = load_execution_frames(db, hist, _SYM)["15m"]
+
+    assert len(frame) == 2
+    stamps = [dt.datetime.fromisoformat(str(t)).replace(tzinfo=dt.timezone.utc)
+              for t in frame["datetime"]]
+    assert stamps[-1] == starts[1]
+
+
+def test_closed_bars_kept_whole(tmp_path):
+    """UT-EXE-006.001.M01.T23: when the last bar has closed, no bar is dropped."""
+    db, hist = _make(tmp_path)
+    db.insert_bars(_SYM, "1m", _one_minute_bars(_SYM, 90))
+
+    frame = load_execution_frames(db, hist, _SYM)["3m"]
+
+    assert len(frame) == len(assemble_execution_bars(db, hist, _SYM, "3m"))
+
+
+def test_latest_close_reads_newest_bar(tmp_path):
+    """UT-EXE-006.001.M01.T24: last price is the close of the newest 1m or 3m bar."""
+    db, _hist = _make(tmp_path)
+    minute = _one_minute_bars(_SYM, 90)
+    db.insert_bars(_SYM, "1m", minute)
+    db.insert_bars(_SYM, "3m", [OHLCVBar(
+        symbol=_SYM, datetime=minute[0].datetime, open=1.0, high=1.0, low=1.0,
+        close=999.0, volume=1, timeframe="3m",
+    )])
+
+    assert load_latest_close(db, _SYM, "3m") == minute[-1].close
+
+
+def test_latest_close_none_without_bars(tmp_path):
+    """UT-EXE-006.001.M01.T25: no stored bars gives None, not an error."""
+    db, _hist = _make(tmp_path)
+
+    assert load_latest_close(db, _SYM, "3m") is None
 
 
 def test_latest_bar_returns_most_recent(tmp_path):

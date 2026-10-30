@@ -1,6 +1,6 @@
 """
 Module: MD-EXE-006.001.M01 — execution/intraday_candle_loader.py
-Parent SRD: SRD-EXE-006.001  # covers SRD-EXE-006.001–006.006, SRD-EXE-006.010, SRD-EXE-006.012
+Parent SRD: SRD-EXE-006.001  # covers SRD-EXE-006.001–006.006, SRD-EXE-006.010, .012, .014
 """
 from __future__ import annotations
 
@@ -26,6 +26,7 @@ _IBKR_MAX_CAL_DAYS_PER_PAGE: int = 30
 _FULL_FETCH_CAL_DAYS: int = 30  # 21 trading days ≈ 30 calendar days; fits one IBKR page
 _REQUIRED_TIMEFRAMES: tuple[DerivedTimeframe, ...] = ("3m", "15m")
 _STORED_TIMEFRAMES: tuple[str, ...] = ("1d", "1w")  # SRD-EXE-006.012
+_TF_MINUTES: dict[str, int] = {"3m": 3, "5m": 5, "15m": 15, "1h": 60, "4h": 240}
 _STORED_LOOKBACK_CAL_DAYS: int = 400  # ~1 yr: ≥ 250 daily / ≥ 52 weekly closed bars
 _SYMBOL_PAUSE_S: float = 0.3
 _MAX_CLIENT_ID_RETRIES: int = 5  # SRD-EXE-006.011
@@ -50,6 +51,13 @@ def _merge_bars(derived: list[OHLCVBar], live: list[OHLCVBar]) -> list[OHLCVBar]
     for bar in live:
         by_dt[bar.datetime] = bar
     return [by_dt[dt] for dt in sorted(by_dt)]
+
+
+def _closed_bars(bars: list[OHLCVBar], tf: str, now: datetime) -> list[OHLCVBar]:
+    """Drop the last bar while it is still forming (SRD-EXE-006.014)."""
+    if bars and _ensure_utc(bars[-1].datetime) + timedelta(minutes=_TF_MINUTES[tf]) > now:
+        return bars[:-1]
+    return bars
 
 
 def _bars_to_frame(bars: list[OHLCVBar]) -> pd.DataFrame:
@@ -140,11 +148,14 @@ def load_execution_frames(
     Intraday timeframes (3m, 15m) are aggregated from 1m history and merged with
     any live bars; stored daily/weekly closed bars (SRD-EXE-006.012) are added so
     entry and exit conditions can reference 1d / 1w. A timeframe is omitted when no
-    source has data for it.
+    source has data for it. Every frame holds closed bars only (SRD-EXE-006.014).
     """
+    now = datetime.now(tz=timezone.utc)
     frames: dict[str, pd.DataFrame] = {}
     for tf in timeframes:
-        bars = assemble_execution_bars(db, hist_engine, symbol, tf, lookback_days)
+        bars = _closed_bars(
+            assemble_execution_bars(db, hist_engine, symbol, tf, lookback_days), tf, now
+        )
         if bars:
             frames[tf] = _bars_to_frame(bars)
     frames.update(load_stored_frames(db, symbol))
@@ -167,6 +178,22 @@ def load_latest_execution_bar(
             bars = assemble_execution_bars(db, hist_engine, symbol, derived_tf, lookback_days)
             return bars[-1] if bars else None
     return None
+
+
+def load_latest_close(db: DatabaseManager, symbol: str, tf: str) -> float | None:
+    """Close of the newest stored 1m or ``tf`` bar, read as one row (ISS-GUI-0012).
+
+    The last price only needs the newest bar, so no history is read or aggregated.
+    """
+    newest: tuple[datetime, str] | None = None
+    for table_tf in ("1m", tf):
+        last = db.get_last_timestamp(symbol, table_tf)
+        if last is not None and (newest is None or last > newest[0]):
+            newest = (last, table_tf)
+    if newest is None:
+        return None
+    bars = db.fetch_bars(symbol, newest[1], newest[0], newest[0])
+    return float(bars[-1].close) if bars else None
 
 
 @dataclass

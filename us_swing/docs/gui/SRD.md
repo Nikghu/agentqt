@@ -5,6 +5,14 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.59.0: SRD-GUI-031.078 added; asked by user 2026-10-30 — stock name suggestions while typing in setup.
+> v2.58.0: SRD-GUI-031.077 added; approved by user 2026-10-30 — chart timeframe as 3m / 15m / 1D toggle in the panel title row.
+> v2.57.0: SRD-GUI-031.076 added; approved by user 2026-10-30 — trade chart option D (trade path with result badge).
+> v2.56.0: SRD-GUI-031.075 added; approved by user 2026-10-30 — Backtest header option A (stepper and field grid) with Hide details.
+> v2.55.0: SRD-GUI-031.070–.074 added; approved by user 2026-10-30 — Backtest setup window, option C1.
+> v2.54.0: SRD-GUI-031.046–.048 (Phase 4b) and .060–.061 (Phase 5) added; approved by user 2026-10-30.
+> v2.53.0: SRD-GUI-031.050–.055 added; approved by user 2026-10-30 — Backtest redesign, Dock Panels (option C).
+> v2.52.0: SRD-GUI-031.001–.004, .010–.012 added; approved by user 2026-10-29 — Backtest workspace.
 > v2.51.0: SRD-GUI-030.001–.006 added (Draft) — Backtest data section in Settings (Option A).
 > v2.50.0: SRD-GUI-019.009 added; requirement stated by user 2026-10-27 — sidebar stays mini while a right panel is open (ISS-GUI-0010).
 > v2.49.0: SRD-GUI-000.008 added; approved by user 2026-10-27 — app stays responsive while ticks stream (ISS-GUI-0009).
@@ -514,3 +522,61 @@
 | SRD-GUI-030.008 | FO-GUI-030 | Should | The Universe table shows each stock's backtest status, first date and last date. | backtest store | Backtest, BT From, BT To columns | Requested by user 2026-10-28; 3m dates, else 1d | Implemented |
 | SRD-GUI-030.009 | FO-GUI-030 | Must | The status shows one plain sentence, the saved coverage, what is still missing with its time, and a single button labelled Download, Download missing, Save range and download, Pause or Up to date. | stats, plan size, run state, range fields | sentence, progress, button | Requested by user 2026-10-29 (Option D); replaces the Fill delta button of .004 and the progress lines and stat strip of .001; auto delta unchanged | Implemented |
 | SRD-GUI-030.010 | FO-GUI-030 | Should | Under the coverage line, one short line says 15-minute and weekly candles are built from these. | stats | note line | Approved by user 2026-10-29 | Implemented |
+
+## FO-GUI-031 — Backtest Workspace
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-031.001 | FO-GUI-031 | Must | The sidebar has a Backtest item after Charts that opens the Backtest workspace. | click | workspace | Approved by user 2026-10-29 | Implemented |
+| SRD-GUI-031.002 | FO-GUI-031 | Must | A left builder has Name, From and To dates, a Stocks chip row (S&P 500, Sectors, Names), a sector check list, a names field and Add and Remove fields. | input | run plan | Names split on commas and spaces | Implemented |
+| SRD-GUI-031.003 | FO-GUI-031 | Must | A step strip shows Stocks, Signals, Portfolio and Report, each Waiting, Running n of m, Done or Cached. | step state | pills | Steps 2–4 stay Waiting until built | Implemented |
+| SRD-GUI-031.004 | FO-GUI-031 | Must | A data check line shows the stock count, missing 1d and 3m candles and plan errors, with a Download button for the backtest data. | estimate | text, button | Refreshed 0.5 s after a builder change, in a worker thread; Download needs TWS | Implemented |
+| SRD-GUI-031.010 | FO-GUI-031 | Must | The builder has a Screener preset picker, Stocks per day (All or a number) and a disabled "Use AI ranking" tick. | presets | plan fields | AI tick tooltip says it comes in a later phase | Implemented |
+| SRD-GUI-031.011 | FO-GUI-031 | Must | Run (Step 1) runs in the background, shows progress on the Stocks step and turns into Cancel while running. | click | daily list | Disabled while the data check has errors | Implemented |
+| SRD-GUI-031.012 | FO-GUI-031 | Must | The Step 1 view lists days with their stock count and shows the selected day's stocks with score and rank, limited by Stocks per day. | daily list | tables | Newest day first | Implemented |
+| SRD-GUI-031.013 | FO-GUI-031 | Must | Stocks tab shows Session, Data up to and Stocks for each screener day. | daily list | tables | User 2026-10-29: session = day the list is traded (SRD-BKT-002.051) | Implemented |
+| SRD-GUI-031.020 | FO-GUI-031 | Must | The builder lists the live strategies with tick boxes, showing allocation % and per-trade %. | strategy store | plan strategies | Reloaded when the screen is shown | Implemented |
+| SRD-GUI-031.021 | FO-GUI-031 | Must | Run does Step 1 and then Step 2 when strategies are ticked, with progress on both step pills. | click | lists | Cancel stops either step | Implemented |
+| SRD-GUI-031.022 | FO-GUI-031 | Must | A Signals tab lists periods (strategy, symbol, kind, start, end, close) with a strategy filter. | signal list | table | Times shown in US/Eastern, newest first | Implemented |
+| SRD-GUI-031.023 | FO-GUI-031 | Should | Double-clicking a signal row opens Charts on that stock. | double-click | Charts screen | Period shading comes later | Implemented |
+| SRD-GUI-031.030 | FO-GUI-031 | Must | The builder (scrollable) has an ACCOUNT group: Capital $ and Daily loss stop % (defaults from the active user), When money short, Commission $ per order and Slippage bps. | user risk settings | plan account and costs | Daily loss 0 = off | Implemented |
+| SRD-GUI-031.031 | FO-GUI-031 | Must | Run does Step 3 after Step 2, with progress on the Portfolio pill. | click | variant results | Only when strategies are ticked | Implemented |
+| SRD-GUI-031.032 | FO-GUI-031 | Must | A Trades tab shows a summary line (trades, net P&L, win rate) and each trade's strategy, symbol, side, entry, shares, exit, reason and net P&L. | trades | table | Times in US/Eastern, newest first | Implemented |
+| SRD-GUI-031.033 | FO-GUI-031 | Must | A Day log tab lists each decision (entered or why skipped) with margin left and strategy deployed. | day log | table | — | Implemented |
+| SRD-GUI-031.034 | FO-GUI-031 | Must | A Money tab lists per day deployed, lowest margin, margin at close, open value and equity. | money rows | table | — | Implemented |
+| SRD-GUI-031.040 | FO-GUI-031 | Must | A Report tab shows a KPI row: Net P&L, return %, max drawdown, win rate, profit factor, trades. | report | labels | — | Implemented |
+| SRD-GUI-031.041 | FO-GUI-031 | Must | Equity curve with the benchmark line, and a drawdown chart below it. | daily equity | charts | — | Implemented |
+| SRD-GUI-031.042 | FO-GUI-031 | Must | Monthly P&L heat map (year × month). | monthly P&L | table | Green gain, red loss | Implemented |
+| SRD-GUI-031.043 | FO-GUI-031 | Must | Breakdown table with a "Group by" picker. | trades | table | — | Implemented |
+| SRD-GUI-031.044 | FO-GUI-031 | Must | A variant picker, plus a compare table when the run has more than one variant. | reports | picker, table | — | Implemented |
+| SRD-GUI-031.045 | FO-GUI-031 | Must | Export trades and stats to CSV. | report | 2 CSV files | — | Implemented |
+| SRD-GUI-031.046 | FO-GUI-031 | Must | Detail Report Risk panel: MAE, MFE, profit given back, hold time and the Phase 4b robustness numbers. | report | facts | SRD-BKT-002.070, .072 | Implemented |
+| SRD-GUI-031.047 | FO-GUI-031 | Must | The Group by picker also has Hold time, Score bucket and Rank. | report | table | SRD-BKT-002.071 | Implemented |
+| SRD-GUI-031.048 | FO-GUI-031 | Should | Compare panel shows the capital × per-trade % return heat map when it applies. | reports | grid | SRD-BKT-002.073 | Implemented |
+
+### Redesign — Dock Panels (Draft, design https://claude.ai/artifact/9sCtv7L7yPw4WEcsX9xVoX option C)
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-031.050 | FO-GUI-031 | Must | Results show in three sections (Trade Inspector, Detail Report, Reports) made of panels that a right icon strip turns on or off. | click | panels | User picked option C 2026-10-30; on/off remembered; existing tabs become panels | Implemented |
+| SRD-GUI-031.051 | FO-GUI-031 | Must | Inspector: a Sessions list (picks, trades, day P&L); picking a day shows that day in the Stocks, Signals, Trades, Day log and Money panels. | selected day | filtered panels | Reuses .012, .022, .032, .033, .034 | Implemented |
+| SRD-GUI-031.052 | FO-GUI-031 | Must | Inspector Chart panel: the selected trade's stock for that day with entry and exit markers. | trade, backtest store | chart | 15m default | Implemented |
+| SRD-GUI-031.053 | FO-GUI-031 | Must | Detail Report: the Report panels (.040–.045) plus a Trade list with Trade #, LONG/SHORT pill, times, prices, P&L, P&L %, qty and duration (hrs). | report, trades | panels | User screenshot 2026-10-30; row click opens that day in the Inspector | Implemented |
+| SRD-GUI-031.054 | FO-GUI-031 | Should | Detail Report panels for screener use (picks per day, picks traded) and margin use (deployed and lowest margin per day). | daily list, money rows | charts | — | Implemented |
+| SRD-GUI-031.055 | FO-GUI-031 | Must | Reports: a saved runs table; open a run into the other two sections, rename it, add a note or delete it. | results store | sections filled | No re-run of Step 3; Steps 1–2 from the step cache; delete asks to confirm | Implemented |
+| SRD-GUI-031.060 | FO-GUI-031 | Must | The builder Screener group has a "Use saved screener lists" tick that shows how many saved days the preset has. | preset | plan field | SRD-BKT-002.080 | Implemented |
+| SRD-GUI-031.061 | FO-GUI-031 | Should | The Screener screen has a Quick test button that opens Backtest with that preset and saved lists ticked. | click | Backtest screen | — | Implemented |
+
+### Setup window (Draft, design https://claude.ai/artifact/974y5KaeuTj5YP4QYSezaB option C1)
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-031.070 | FO-GUI-031 | Must | The left builder is removed; under the step strip a one-line plan summary shows with Edit setup and Run, and the results use the full width. | plan | summary chips | User picked C1 2026-10-30 | Implemented |
+| SRD-GUI-031.071 | FO-GUI-031 | Must | Edit setup opens a frameless Backtest setup window with a side menu (Run, Stocks, Screener, Strategies, Account); each item shows its current value and a ✓ or ! status. | click | window | ! when candles are missing or the section has an error | Implemented |
+| SRD-GUI-031.072 | FO-GUI-031 | Must | Each section shows titled cards with one help line, and rows with the label on the left and the control on the right. | plan | form | Same fields as today's builder | Implemented |
+| SRD-GUI-031.073 | FO-GUI-031 | Must | Screener source is a choice of Replay the screener or Saved lists; Strategies is a table of Use, Strategy, Allocation % and Per trade %. | presets, strategies | plan fields | Allocation and per-trade % shown from the live strategy, not edited | Implemented |
+| SRD-GUI-031.074 | FO-GUI-031 | Must | The window footer shows the data check line with Cancel, Save and Run; Run saves the plan, closes the window and starts the run. | click | plan, run | Cancel keeps the old plan | Implemented |
+| SRD-GUI-031.075 | FO-GUI-031 | Must | The header shows a numbered step stepper, a labelled field grid (Run, Stocks, Screener, Strategy, Account) and a data line with a status dot; Hide details folds the grid and data line and is remembered. | plan, estimate | header | Replaces the .070 one-line summary; no strategy shows in yellow | Implemented |
+| SRD-GUI-031.076 | FO-GUI-031 | Must | The trade chart loads candles from before entry to the exit day and shows ringed entry and exit dots joined by a path, IN / OUT price callouts and a P&L · % · sessions badge; candles outside the trade are dimmed. | trade, bars | chart | Extends .052; markers outside the loaded bars are not drawn | Implemented |
+| SRD-GUI-031.077 | FO-GUI-031 | Should | The Chart panel title row holds the trade line and a 3m / 15m / 1D toggle, styled like the Charts page; no second header row. | click | chart | 15m default | Implemented |
+| SRD-GUI-031.078 | FO-GUI-031 | Should | Names, Add stocks and Remove stocks suggest S&P 500 symbols for the name being typed; picking one keeps the earlier names. | typed text | name list | Starts-with match, any case | Implemented |

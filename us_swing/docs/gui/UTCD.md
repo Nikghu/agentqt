@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.34.0: UT-GUI-031.* added — Backtest workspace.
 > v1.33.0: UT-GUI-030.* added — Backtest data section.
 > v1.32.0: UT-GUI-019.009.* added — sidebar mini while a right panel is open.
 > v1.31.0: UT-GUI-000.008.* added — app stays responsive while ticks stream.
@@ -828,3 +829,81 @@ Test files:
 | UT-GUI-030.007.M05.T01 | MD-GUI-030.007.M05 | Positive | Status bar shows backtest state | progress 1d 35 of 503, then finished Done | text "Backtest data · 1d 35 of 503", then "Backtest data · Done", hidden after 15 s | Pass |
 | UT-GUI-030.008.M02.T01 | MD-GUI-030.008.M06 | Positive | Per-stock backtest coverage | AAPL 1d+3m to last day, MSFT 1d only, NVDA none | ok / 1d / none with dates | Pass |
 | UT-GUI-030.008.M03.T01 | MD-GUI-030.008.M06 | Positive | Universe HTML has backtest columns | one record with coverage | BT From column and dates in data | Pass |
+
+## FO-GUI-031 — Backtest Workspace
+
+| UT ID | MD | Type | Description | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-031.001.M01.T01 | MD-GUI-031.001.M01 | Positive | Backtest item after Charts | `_NAV_ITEMS` | index 4 is ("history", "Backtest"); page is wide | Pass |
+| UT-GUI-031.002.M02.T01 | MD-GUI-031.002.M02 | Positive | Plan from fields | Sectors mode, 2 sectors ticked, add "pltr, amd", remove "INTC" | plan mode sector, 2 sectors, add (PLTR, AMD), remove (INTC) | Pass |
+| UT-GUI-031.078.M02.T01 | MD-GUI-031.002.M02 | Positive | Name suggestions | 3 records; Add field "AAPL, c" | 1 match; completion "AAPL, CVX"; Names and Remove have suggestions too | Pass |
+| UT-GUI-031.002.M02.T02 | MD-GUI-031.002.M02 | Negative | Names mode with no names | Names mode, empty field | plan validate says "Type at least one stock name" | Pass |
+| UT-GUI-031.010.M02.T01 | MD-GUI-031.002.M02 | Positive | Screener fields | 2 presets, Stocks per day 0 then 5 | combo has 2 presets; spin shows All; plan top_n 5; AI tick disabled | Pass |
+| UT-GUI-031.003.M03.T01 | MD-GUI-031.003.M03 | Positive | Step strip states | waiting, running 3 of 10, done, cached | name only, "3 of 10", tick when done, "Cached" with matching state | Pass |
+| UT-GUI-031.004.M03.T01 | MD-GUI-031.003.M03 | Positive | Data check text | estimate 75 stocks, 1 missing 3m | "75 stocks · 0 missing 1d · 1 missing 3m candles" (no SPY note: S&P 500 only); Run enabled | Pass |
+| UT-GUI-031.004.M03.T02 | MD-GUI-031.003.M03 | Negative | Errors block Run and Download needs TWS | estimate with an error, TWS off | error shown; Run and Download disabled | Pass |
+| UT-GUI-031.011.M03.T01 | MD-GUI-031.003.M03 | Positive | Run and cancel button | click Run with fake service | button reads Cancel; after done reads Run; Stocks pill Done | Pass |
+| UT-GUI-031.012.M03.T01 | MD-GUI-031.003.M03 | Positive | Step 1 view | daily list of 2 days, top N 1 | day table 2 rows newest first; selected day shows 1 stock | Pass |
+| UT-GUI-031.013.M03.T01 | MD-GUI-031.003.M03 | Positive | Sessions oldest first with screened count | 2 sessions, 1 and 2 stocks screened | oldest session on top; Screened column shows count; heading names data day | Pass |
+| UT-GUI-031.020.M02.T01 | MD-GUI-031.002.M02 | Positive | Strategies list | 2 strategies, tick one | list shows "ST_A · 50% · 100% per trade"; plan has one StrategySpec with 50 / 100 | Pass |
+| UT-GUI-031.021.M03.T01 | MD-GUI-031.003.M03 | Positive | Run does both steps | fake service, one strategy ticked | Stocks and Signals pills Done; signals table filled | Pass |
+| UT-GUI-031.022.M03.T01 | MD-GUI-031.003.M03 | Positive | Strategy filter | 2 strategies' periods, pick one | only its rows shown | Pass |
+| UT-GUI-031.023.M03.T01 | MD-GUI-031.003.M03 | Positive | Double-click opens Charts | double-click AAPL row | `chart_requested("AAPL", "1d")` | Pass |
+| UT-GUI-031.030.M02.T01 | MD-GUI-031.002.M02 | Positive | Account fields | defaults 5,000 and 2 %, set slippage 10, highest score | plan capital (5000,), daily loss 2, when_full highest_score, slippage 10 | Pass |
+| UT-GUI-031.031.M03.T01 | MD-GUI-031.003.M03 | Positive | Run does Step 3 | fake service, one strategy | Portfolio pill Done; Trades tab shown | Pass |
+| UT-GUI-031.032.M03.T01 | MD-GUI-031.003.M03 | Positive | Trades tab | 2 trades, +30 and −10 | summary "2 trades · net P&L $20.00 · win rate 50%"; 2 rows | Pass |
+| UT-GUI-031.033.M03.T01 | MD-GUI-031.003.M03 | Positive | Day log and Money tabs | 3 decisions, 2 money rows | 3 and 2 rows | Pass |
+| UT-GUI-031.040.M04.T01 | MD-GUI-031.040.M04 | Positive | Stat formats | usd, pct, ratio, days, NaN | $ with sign, %, 2 decimals, days, dash | Pass |
+| UT-GUI-031.040.M04.T02 | MD-GUI-031.040.M04 | Positive | KPI row and stats | one report | KPIs, all-stats rows and skip line filled | Pass |
+| UT-GUI-031.040.M04.T03 | MD-GUI-031.040.M04 | Negative | No report | empty list | dashes; Export disabled | Pass |
+| UT-GUI-031.040.M04.T04 | MD-GUI-031.040.M04 | Edge | Skip line without skips | only entered | no skipped part | Pass |
+| UT-GUI-031.040.M03.T01 | MD-GUI-031.003.M03 | Positive | Run ends on Report | fake run with 2 variants | 4 Report · Done; Report tab open; KPIs filled | Pass |
+| UT-GUI-031.041.M04.T01 | MD-GUI-031.040.M04 | Positive | Chart data | report with benchmark | chart has benchmark per day; paints | Pass |
+| UT-GUI-031.042.M04.T01 | MD-GUI-031.040.M04 | Positive | Month heat map | March and April P&L | one year row; coloured cells; year total | Pass |
+| UT-GUI-031.043.M04.T01 | MD-GUI-031.040.M04 | Positive | Group by picker | pick Sector | table refilled by sector | Pass |
+| UT-GUI-031.044.M04.T01 | MD-GUI-031.040.M04 | Edge | One variant | one report | picker and compare hidden | Pass |
+| UT-GUI-031.044.M04.T02 | MD-GUI-031.040.M04 | Positive | Two variants | two reports | compare has 2 rows; picking B shows B | Pass |
+| UT-GUI-031.044.M03.T01 | MD-GUI-031.003.M03 | Positive | Picker drives tabs | pick 2nd variant | Trades tab and KPIs show variant 2 | Pass |
+| UT-GUI-031.045.M04.T01 | MD-GUI-031.040.M04 | Positive | CSV export | export to folder | stats and trades CSV written | Pass |
+| UT-GUI-031.045.M04.T02 | MD-GUI-031.040.M04 | Negative | Failed export | folder that does not exist | warning logged; app keeps running | Pass |
+| UT-GUI-031.046.M04.T01 | MD-GUI-031.040.M04 | Positive | Risk panel | report; then none | hold 1.0 h, without top 5 $0.00; dashes | Pass |
+| UT-GUI-031.047.M04.T01 | MD-GUI-031.040.M04 | Positive | New groups | pick Hold time | 3 new names; 1–3 h row | Pass |
+| UT-GUI-031.048.M04.T01 | MD-GUI-031.040.M04 | Edge | Heat map | 2 × 2 variants; then 2 same | shown with 2 rows; then hidden | Pass |
+| UT-GUI-031.050.M05.T01 | MD-GUI-031.050.M05 | Positive | ✕ hides and is kept | click ✕ on panel A, build again | A hidden, button off, still hidden next time | Pass |
+| UT-GUI-031.050.M05.T02 | MD-GUI-031.050.M05 | Edge | Strip toggles; empty row | turn C off then on | C hidden and its row hidden; both back | Pass |
+| UT-GUI-031.050.M03.T01 | MD-GUI-031.003.M03 | Positive | Sections | open screen | tabs Trade Inspector and Detail Report; variant picker by the tabs | Pass |
+| UT-GUI-031.051.M03.T01 | MD-GUI-031.003.M03 | Negative | Day with no trade | pick 2026-03-02 | Trades, Signals, Decisions empty; Money that day; chart says no trade | Pass |
+| UT-GUI-031.051.M03.T02 | MD-GUI-031.003.M03 | Positive | All sessions row | run with 2 trades | row 0 shows 2 trades and $20.00; no-trade day shows — | Pass |
+| UT-GUI-031.052.M03.T01 | MD-GUI-031.003.M03 | Positive | Chart follows trade | pick AAPL trade, then 1d | reads AAPL 15m from 3 days before entry to exit day; then 1d from 90 days back | Pass |
+| UT-GUI-031.052.M06.T01 | MD-GUI-031.052.M06 | Positive | Markers | short trade on 6 bars | entry bar 1, exit bar 5; chart paints | Pass |
+| UT-GUI-031.052.M06.T02 | MD-GUI-031.052.M06 | Negative | No bars | empty bars; time before first bar | message shown; no index | Pass |
+| UT-GUI-031.052.M06.T03 | MD-GUI-031.052.M06 | Negative | Time after last bar | exit a day after the bars | no index, so no marker | Pass |
+| UT-GUI-031.052.M06.T04 | MD-GUI-031.052.M06 | Positive | Axis labels | daily, one-session, multi-day bars | dates; times; date and time | Pass |
+| UT-GUI-031.052.M06.T05 | MD-GUI-031.052.M06 | Positive | Result badge and held span | long win, short loss, no P&L; trade with no exit | "+$18.94 · +1.06% · 15 sessions" etc.; span runs to chart end | Pass |
+| UT-GUI-031.053.M07.T01 | MD-GUI-031.053.M07 | Positive | Numbered trades | 3 trades out of order | entry order; #, P&L %, hours, ET day | Pass |
+| UT-GUI-031.053.M07.T02 | MD-GUI-031.053.M07 | Edge | Filters | wins, losses (0 P&L), LONG, SHORT | right rows; 0 P&L is a loss | Pass |
+| UT-GUI-031.053.M07.T03 | MD-GUI-031.053.M07 | Positive | Table and click | 3 trades; SHORT chip; click row | screenshot columns; 1 row; trade sent | Pass |
+| UT-GUI-031.053.M07.T04 | MD-GUI-031.053.M07 | Negative | No trades | empty frame | empty table; zero summary | Pass |
+| UT-GUI-031.053.M03.T01 | MD-GUI-031.003.M03 | Positive | Trade list opens day | click trade #2 | Inspector tab; day 2026-03-03; chart on MSFT | Pass |
+| UT-GUI-031.054.M08.T01 | MD-GUI-031.054.M08 | Positive | Screener use | 3 sessions, one with no picks | traded / not traded per day; facts line | Pass |
+| UT-GUI-031.054.M08.T02 | MD-GUI-031.054.M08 | Edge | Margin use | 2 days; then no days | peak = capital minus lowest margin; paints; empty safe | Pass |
+| UT-GUI-031.054.M03.T01 | MD-GUI-031.003.M03 | Positive | Detail panels | fake run | 4 panels; trade list, screener and margin use filled | Pass |
+| UT-GUI-031.055.M09.T01 | MD-GUI-031.055.M09 | Positive | Table and details | 2 saved runs | 2 rows; return, DD, stocks; details of row 1; picking row 2 updates | Pass |
+| UT-GUI-031.055.M09.T02 | MD-GUI-031.055.M09 | Negative | Empty list | no saved run | actions off; plain message | Pass |
+| UT-GUI-031.055.M09.T03 | MD-GUI-031.055.M09 | Positive | Rename, note, open | new name, note, Open | service calls; run sent | Pass |
+| UT-GUI-031.055.M09.T04 | MD-GUI-031.055.M09 | Negative | Delete confirm | No, then Yes | nothing, then delete call | Pass |
+| UT-GUI-031.055.M09.T05 | MD-GUI-031.055.M09 | Edge | Plan facts | names mode, no strategy | names, None, costs | Pass |
+| UT-GUI-031.055.M03.T01 | MD-GUI-031.003.M03 | Positive | Open saved run | Stocks per day 1 in builder, saved All | 4 steps Done; Detail tab; 2 trades; 3 picks | Pass |
+| UT-GUI-031.055.M03.T02 | MD-GUI-031.003.M03 | Positive | Reports tab refresh | show Reports tab | list reloaded | Pass |
+| UT-GUI-031.060.M02.T01 | MD-GUI-031.002.M02 | Positive | Saved lists tick | preset without, then with saved days | message; count and range; plan recorded | Pass |
+| UT-GUI-031.060.M03.T01 | MD-GUI-031.003.M03 | Positive | Data check text | recorded estimate 7 of 20 | saved screener lists for 7 of 20 sessions | Pass |
+| UT-GUI-031.061.M03.T01 | MD-GUI-031.003.M03 | Positive | Quick test | preset with saved days; then without | S&P 500, preset, tick, dates; nothing for none | Pass |
+| UT-GUI-031.070.M03.T01 | MD-GUI-031.003.M03 | Positive | Plan line and Edit setup | open screen; click Edit setup | builder hidden; plan line; window shown | Pass |
+| UT-GUI-031.071.M10.T01 | MD-GUI-031.071.M10 | Edge | Section marks | none; missing candles and two errors | all ✓; Stocks, Screener, Account ! | Pass |
+| UT-GUI-031.071.M10.T02 | MD-GUI-031.071.M10 | Positive | Menu values | estimate with a missing stock; capital change | 5 items; Stocks !; screener and account values update | Pass |
+| UT-GUI-031.075.M11.T01 | MD-GUI-031.075.M11 | Positive | Fields and Hide details | open screen; click Hide details; reopen | strategy None picked in yellow; grid and data line hidden; still hidden after reopen | Pass |
+| UT-GUI-031.072.M02.T01 | MD-GUI-031.002.M02 | Positive | Pages and rows | builder; Sectors mode | 5 pages; Sectors row hidden then shown | Pass |
+| UT-GUI-031.073.M02.T01 | MD-GUI-031.002.M02 | Positive | Strategy table | tick first row | Strategy, 50, 100; plan has ST_A | Pass |
+| UT-GUI-031.074.M02.T01 | MD-GUI-031.002.M02 | Positive | Plan round trip | plan with sector, saved lists, strategy, capital | same plan after load | Pass |
+| UT-GUI-031.074.M10.T01 | MD-GUI-031.071.M10 | Negative | Cancel and Save | change name, Cancel; change, Save | old name back; new name kept | Pass |
+| UT-GUI-031.074.M03.T01 | MD-GUI-031.003.M03 | Positive | Run from window | Run in footer | window closed; run done | Pass |

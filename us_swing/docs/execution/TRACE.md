@@ -3,7 +3,7 @@
 **Document ID:** TRACE-EXE
 **Version:** 1.23.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-10-27 (Session 97, SRD-EXE-007.010 complete live candles only — ISS-EXE-0013)
+**Last Updated:** 2026-10-29 (SRD-EXE-006.014 closed bars only; RN-EXE-1.38.0)
 
 ---
 
@@ -23,6 +23,7 @@
 | FO-EXE-006 | SRD-EXE-006.010 | DD-EXE-006.010.D01 | MD-EXE-006.001.M01 | UT-EXE-006.001.M01.T14, T15, T16 | `execution/intraday_candle_loader.py` | Implemented | RN-EXE-1.5.1-20260530 |
 | FO-EXE-006 | SRD-EXE-006.012 | DD-EXE-006.012.D01 | MD-EXE-006.001.M01 | UT-EXE-006.001.M01.T17, T18, T19 | `execution/intraday_candle_loader.py`, `gui/strategy_builder_dialog.py` | Implemented | RN-EXE-1.21.0-20260610 |
 | FO-EXE-006 | SRD-EXE-006.013 | DD-EXE-006.013.D01 | MD-EXE-006.013.M01 | UT-EXE-006.013.M01.T01–T04 | `gui/app_service.py` | Implemented | RN-EXE-1.29.0-20260616 |
+| FO-EXE-006 | SRD-EXE-006.014 | — (no DD) | MD-EXE-006.001.M01 | UT-EXE-006.001.M01.T22–T23 | `execution/intraday_candle_loader.py` | Implemented | RN-EXE-1.38.0-20261029 |
 | FO-EXE-007 | SRD-EXE-007.010 | DD-EXE-007.001.D03 | MD-EXE-007.001.M01 | UT-EXE-007.001.M01.T27–T29 | `execution/live_bar_worker.py` | Implemented | RN-EXE-1.37.1-20261027 |
 | FO-EXE-008 | SRD-EXE-008.001–006 | DD-EXE-008.001.D01 | MD-EXE-008.001.M01 | UT-EXE-008.001.M01.T01–T16 | `execution/live_tick_worker.py` | Implemented | RN-EXE-1.3.1-20260519 |
 | FO-EXE-009 | SRD-EXE-009.001–012 | DD-EXE-009.001.D01–D02, 009.002.D01–D02, 009.003.D01 | MD-EXE-009.001.M01–M03, 009.002.M01–M03 | UT-EXE-009.001.M01.T01–T04, 009.001.M02.T01–T03, 009.001.M03.T01–T06, 009.002.M01.T01–T14, 009.002.M02.T01–T22, 009.002.M02.T17–T17d, 009.002.M03.T01–T04; IT-EXE-009.001–005 | `core/monitoring_session/{_dto,_enums,_protocols,_events,_repository,_service}.py`, `core/monitoring_session/__init__.py` | Implemented | RN-EXE-1.3.0-20260518, RN-EXE-1.15.0-20260529, RN-EXE-1.19.0-20260608, RN-EXE-1.20.1-20260609 (ISS-EXE-0003 log level) |

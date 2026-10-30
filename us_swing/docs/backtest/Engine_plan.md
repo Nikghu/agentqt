@@ -1,10 +1,10 @@
 # Engine_plan — Backtest Engine (Stocks → Signals → Portfolio → Report)
 
-**Status:** Draft (planning) — no FO/SRD/code yet
+**Status:** Phase 0 to 3 done (code); Phase 4a done (code); Phase 4b and 5 next
 **Tool:** BKT (engine) + GUI (Backtest workspace) + MCP (last)
 **Author:** USSwing
 **Created:** 2026-10-29
-**Branch:** `feat/backtest-engine`
+**Branch:** `feat/backtest-phase0` (plan + 15m/1w merged via PR #93)
 **Design page:** https://claude.ai/artifact/EKKhu8pb3KSLYpXqpbsQrm (diagrams, mockups, worked example)
 
 This plan is the hand-over document between sessions. Read §0 (status) first, then the
@@ -16,12 +16,12 @@ section for the phase in progress. Update §0 at the end of every session.
 
 | Phase | Name | Docs (FO/SRD) | Backend | GUI | User check | Commit |
 |---|---|---|---|---|---|---|
-| 0 | Foundation | Not started | — | — | — | — |
-| 1 | Step 1 · Stocks | Not started | — | — | — | — |
-| 2 | Step 2 · Signals | Not started | — | — | — | — |
-| 3 | Step 3 · Portfolio | Not started | — | — | — | — |
-| 4 | Step 4 · Report | Not started | — | — | — | — |
-| 5 | Quick test in Screener | Not started | — | — | — | — |
+| 0 | Foundation | Approved | Done | Done | OK | see DEVLOG 2026-10-29 |
+| 1 | Step 1 · Stocks | Approved | Done | Done | OK | see DEVLOG 2026-10-29 |
+| 2 | Step 2 · Signals | Approved | Done | Done | OK | see DEVLOG 2026-10-29 |
+| 3 | Step 3 · Portfolio | Approved | Done | Done | Pending | see DEVLOG 2026-10-29 |
+| 4 | Step 4 · Report | Approved | Done (4a, 4b) | Done (4a, 4b) | Pending | see DEVLOG 2026-10-29, 2026-10-30 |
+| 5 | Quick test in Screener | Approved | Done | Done | Pending | see DEVLOG 2026-10-30 |
 | 6 | MCP tools | Not started | — | — | — | — |
 
 Cell values: `Not started` → `Draft` → `Approved` (docs) / `In progress` → `Done` (code) /
@@ -29,7 +29,17 @@ Cell values: `Not started` → `Draft` → `Approved` (docs) / `In progress` →
 
 **Done before Phase 0 (2026-10-29):** store keeps 15m and 1w built from 3m and 1d (SRD-BKT-001.012–.014, SRD-GUI-030.010, RN-BKT-1.1.0).
 
-**Next action:** write FO-BKT-002 + FO-GUI-031 and the Phase 0 + Phase 1 SRD rows as Draft.
+**Done 2026-10-29:** Phase 0 and 1 (FO-BKT-002, FO-GUI-031; SRD-BKT-002.001–.017, SRD-GUI-031.001–.004, .010–.012; RN-BKT-1.2.0, RN-GUI-1.39.0). Minimal requirements, approved by user for code. R2 answered: scores are per stock except the RS-rank rule, so Step 1 caches one file per day keyed by the whole stock list (not per stock). AI ranking tick and weekly presets are refused for now. SPY is not in the backtest store.
+
+**Done 2026-10-29 (Phase 2):** SRD-BKT-002.020–.029, SRD-GUI-031.020–.023 (minimal, approved by user for code; RN-BKT-1.3.0, RN-GUI-1.40.0). User choices: the parser is re-exported from live in `core/expr` (live code not moved, R7 avoided); VWAP resets each session (R5). Parity gate: 50 real stocks, 60,000 values, 0 mismatches. Price reads the forming 15m bar like live; other indicators use closed bars, so inside a forming 15m bar they can differ from live (R4). Found in live (not fixed): VWAP adds up 30 days with no daily reset; `PNL` always returns 0.
+
+**Done 2026-10-29 (Phase 3):** SRD-BKT-002.030–.039, SRD-GUI-031.030–.034 (minimal, approved by user for code; RN-BKT-1.4.0, RN-GUI-1.41.0). User choices (D10–D12): Rex count resets each day; daily loss stop blocks new entries (live only warns); stop counts when stop and target are in one bar (live checks ticks, target first). Money rules copy live `_size_entry` / `can_allocate` / `margin_available`. Deferred: shadow P&L, equity Parquet, variant pool, trailing levels, PNL conditions, Grow with P&L (refused with a message), trade detail drawer.
+
+**Done 2026-10-29 (closed candles + session dates):** user found the session-date issue while checking Step 3; fixed (SRD-BKT-002.050–.051, SRD-GUI-031.013, SRD-EXE-006.014; RN-BKT-1.5.0, RN-GUI-1.42.0, RN-EXE-1.38.0). PRICE reads closed bars only (replaces SRD-BKT-002.023). Step 1 lists are keyed by session date (built from the previous trading day). Phase 3 user check stays Pending. Open: ST_AUTO `Last` (TODO T63); 2026-10-29 session missing until its 1d bar is in the store.
+
+**Done 2026-10-29 (Phase 4a):** Step 4 Report: SRD-BKT-002.040–.047, SRD-GUI-031.040–.045 (RN-BKT-1.6.0, RN-GUI-1.43.0). Stats per variant from `results.db`, equal-weight benchmark ("S&P 500 (equal weight)", no SPY; TODO T64 Done), Report tab with KPIs, equity vs benchmark, drawdown, heat map, breakdown, compare, CSV. Real run (IT, Price Action, ST_AUTO, $2,000): 118 trades, net P&L -$544.36. Phase 4b (later, TODO T68): MAE / MFE and profit given back, hold time, P&L by score / rank, Monte Carlo, first vs second half, without top 5, shadow P&L, capital × per-trade heat map. Phase 4 user check Pending.
+
+**Next action:** user checks the Report tab in the app (Run, then Report, variant picker, CSV). Then Phase 4b, or Phase 5 if the user prefers. Phase 3 user check is still Pending. Open: ST_AUTO is `current` (T63 Done); SRD-BKT-002.023 status (TODO T66); 2026-10-29 session missing until its 1d bar is in the store (TODO T65). SPY is not downloaded: the user wants backtest data to be S&P 500 only (2026-10-29), so presets with the RS rule are refused with a plain message (SRD-BKT-002.018).
 
 ---
 
@@ -58,6 +68,9 @@ A flexible, fast backtest engine that:
 | D7 | Money | **Same rules as live** (see §6). Defaults from user/strategy settings; any value allowed in backtest. No broker leverage, no PDT. |
 | D8 | Strategies | Read from the **live strategy store**. Edits and new strategies appear automatically. |
 | D9 | Stocks | S&P 500, sector(s) or names, plus add/remove on top. |
+| D10 | Rex count | Resets each trading day in the backtest (live never resets). (user, 2026-10-29) |
+| D11 | Daily loss stop | Blocks new entries for the rest of the day (live only warns). (user, 2026-10-29) |
+| D12 | Stop and target in one bar | The stop counts. (user, 2026-10-29) |
 
 ---
 
@@ -236,7 +249,7 @@ Swing positions carry overnight. A gap through the stop fills at the open.
 
 | Item | Live | Backtest |
 |---|---|---|
-| Parser | `execution/strategy_engine/_evaluator.py` | Moved to `core/expr/`; live = last value, backtest = full series |
+| Parser | `execution/strategy_engine/_evaluator.py` | Re-exported by `core/expr/` (user choice 2026-10-29, live code unchanged); backtest = full series in `core/expr/series.py` |
 | Functions | Number, PNL, VWAP, Price, RSI, ADX, EMA, SUPERTREND, SWING, MACD | All 10, as series |
 | Timeframes | 3m, 15m, 1d, 1w | All 4 read from the store; 15m and 1w are built on every save (SRD-BKT-001.012–.014, done 2026-10-29). 1w has a `days` column; an unfinished week is never used before that day's close |
 | `PNL` | From open position | Checked in Step 3 per held bar |
@@ -394,6 +407,7 @@ The engine only reads the Parquet store. Downloads stay in FO-BKT-001 (about 25 
 | # | Risk / point | Plan |
 |---|---|---|
 | R1 | Survivorship bias (only today's S&P 500) | Warning on every report |
+| R9 | RS rule needs SPY, which is not an S&P 500 member | User 2026-10-29: S&P 500 only; RS presets refused (SRD-BKT-002.018) |
 | R2 | Screener scores may be normalised across stocks | Check in Phase 1 before building the per-stock cache |
 | R3 | Composite presets (groups, weights, logic) | Replay through the preset executor without the AI stage; check in Phase 1 |
 | R4 | Live checks inside forming bars; backtest at 3m close | Accept; note in report |

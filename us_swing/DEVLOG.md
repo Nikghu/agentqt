@@ -2,6 +2,146 @@
 
 ---
 
+## [20261030] GUI — Backtest setup window, option C1 (FO-GUI-031)
+
+- Type: Feature
+- RN: RN-GUI-1.49.0-20261030
+- Artifacts updated: SRD (SRD-GUI-031.070–.074 approved and Implemented), MD (MD-GUI-031.071.M10 + builder note), UTCD (8 Pass), TRACE, Code, Tests, RN, TODO T72, CONTEXT, DEVLOG
+- Decisions (user 2026-10-30): setup in its own window (option C, inner layout C1 cards); allocation and per-trade % shown, not edited.
+
+---
+
+## [20261030] BKT + GUI — Backtest Phase 5 · saved screener lists and Quick test (FO-BKT-002, FO-GUI-031)
+
+- Type: Feature
+- RN: RN-BKT-1.10.0-20261030, RN-GUI-1.48.0-20261030
+- Artifacts updated: SRD (SRD-BKT-002.080–.081, SRD-GUI-031.060–.061 Implemented), MD (MD-BKT-002.080.M14 + notes), UTCD (5 BKT + 3 GUI Pass), TRACE, Code, Tests, RN, Engine_plan §0, TODO T71, CONTEXT, DEVLOG
+- Decisions (user 2026-10-30): simple tick in the builder instead of a Screener drawer; run before 09:30 ET trades that day.
+- Findings: Momentun_Price 90 saved days → 74 sessions (weekend and after-open runs merge); ST_AUTO on them 173 trades, -14.9%.
+
+---
+
+## [20261030] BKT + GUI — Backtest Phase 4b · report extras (FO-BKT-002, FO-GUI-031)
+
+- Type: Feature
+- RN: RN-BKT-1.9.0-20261030, RN-GUI-1.47.0-20261030
+- Artifacts updated: SRD (SRD-BKT-002.070–.073, SRD-GUI-031.046–.048 approved and Implemented; Phase 5 rows .080–.081 / .060–.061 approved), MD notes, UTCD (8 BKT + 3 GUI Pass), TRACE, Code, Tests, RN, TODO T68 Done, DEVLOG
+- Findings: real IT run — 3 h–1 day holds (end-time exits) lost $1,009; under-3 h holds made $462.
+
+---
+
+## [20261030] GUI + BKT — Backtest redesign phase 3 · Reports (FO-GUI-031, FO-BKT-002)
+
+- Type: Feature
+- RN: RN-GUI-1.46.0-20261030, RN-BKT-1.8.0-20261030
+- Artifacts updated: SRD (SRD-GUI-031.055, SRD-BKT-002.060 Implemented), MD (MD-GUI-031.055.M09, BKT note), UTCD (7 GUI + 4 BKT Pass), TRACE (GUI, BKT), Code, Tests, RN, TODO T69, CONTEXT, DEVLOG
+- Findings: each Run press writes 3 run rows (Steps 1, 2, 3); the Reports list shows only runs with Step 3 rows. Opening a run re-reads Steps 1–2 from the cache without recording new rows. Real-window checks this session added several "Backtest" runs to the user's list.
+
+---
+
+## [20261030] GUI — Backtest redesign phase 2 · Detail Report (FO-GUI-031)
+
+- Type: Feature
+- RN: RN-GUI-1.45.0-20261030
+- Artifacts updated: SRD (SRD-GUI-031.053–.054 Implemented), MD (M07, M08), UTCD (8 Pass), TRACE, Code, Tests, RN, TODO T69, CONTEXT, DEVLOG
+- Findings: money table `deployed` is the value still open at the close, so intraday days show 0; Margin use draws the day's peak as start capital minus lowest margin (104 of 207 days, same as the report's time invested).
+
+---
+
+## [20261030] BKT — SPY daily candles for the RS rule (FO-BKT-001, FO-BKT-002)
+
+- Type: Feature
+- RN: RN-BKT-1.7.0-20261030
+- Artifacts updated: SRD (SRD-BKT-001.015, SRD-BKT-002.052 — Implemented), MD note, UTCD (4 Pass), TRACE, Code, Tests, RN, TODO T70, DEVLOG
+- Decision (user 2026-10-30): keep SPY in the backtest store for RS; reverses the "S&P 500 only, no SPY" choice for screeners (report benchmark stays equal weight).
+
+---
+
+## [20261030] GUI — Backtest redesign phase 1 · Dock Panels + Trade Inspector (FO-GUI-031)
+
+- Type: Feature
+- FO(s): FO-GUI-031
+- RN: RN-GUI-1.44.0-20261030
+- Artifacts updated: FO bullet, SRD (SRD-GUI-031.050–.055 and SRD-BKT-002.060 approved; .050–.052 Implemented), MD (MD-GUI-031.050.M05, MD-GUI-031.052.M06), UTCD (8 new Pass), TRACE, Code, Tests, RN, TODO T69, CONTEXT, DEVLOG
+- Decisions (user 2026-10-30): Dock Panels (option C); minimal rows that reuse the existing tabs as panels.
+- Findings: real run (IT, Price Action, ST_AUTO + ST_AUTO_10_2_SL5%, $2,000) 103 trades, -$499.41; picking a day 1–2 ms including the chart read.
+
+---
+
+## [20261029] BKT + GUI — Backtest engine Phase 4a · Step 4 Report (FO-BKT-002, FO-GUI-031)
+
+- Type: Feature
+- FO(s): FO-BKT-002, FO-GUI-031
+- RN: RN-BKT-1.6.0-20261029, RN-GUI-1.43.0-20261029
+- Artifacts updated: SRD (SRD-BKT-002.040–.047, SRD-GUI-031.040–.045 — Implemented), MD (MD-BKT-002.040.M13, MD-GUI-031.040.M04), UTCD (14 BKT + 12 GUI Pass), TRACE (BKT, GUI), Code, Tests, RN, Engine_plan §0, TODO T64 Done / T68 Open, CONTEXT, DEVLOG
+- Decisions (user 2026-10-29): benchmark is equal-weight average daily return of the run's stocks, no SPY (T64); Phase 4 split into 4a (now) and 4b (T68: MAE / MFE, hold time, P&L by score / rank, Monte Carlo, first vs second half, without top 5, shadow P&L, capital × per-trade heat map).
+- Findings: real run (IT, Price Action, ST_AUTO, $2,000, 2026-01-02..10-28): 118 trades, net P&L -$544.36, return -27.2%, max DD -31.9%, Sharpe -1.49, PF 0.66. Benchmark $2,022 → $3,049. Tests: 153 passed. Phase 4 user check Pending. No DD written for Phase 4a.
+
+---
+
+## [20261029] GUI — 2–3 s freezes with no TWS (ISS-GUI-0012)
+
+- Type: Bugfix
+- RN: RN-GUI-1.42.1-20261029
+- Cause (py-spy on the running app): the last-price refresh rebuilt 30 days of 3m bars per stock on the screen thread for each closed candle (287 ms per stock). Now reads the newest stored row (1.7 ms). Tests UT-EXE-006.001.M01.T24–T25; TODO T67.
+
+---
+
+## [20261029] BKT + EXE + GUI — Closed-bar PRICE and live candles; Step 1 lists keyed by session date (SRD-BKT-002.050–.051, SRD-EXE-006.014, SRD-GUI-031.013)
+
+- Type: Bugfix
+- FO(s): FO-BKT-002, FO-EXE-006, FO-GUI-031
+- RN: RN-BKT-1.5.0-20261029, RN-EXE-1.38.0-20261029, RN-GUI-1.42.0-20261029
+- Artifacts updated: SRD (SRD-BKT-002.050–.051, SRD-EXE-006.014, SRD-GUI-031.013 — Implemented; .050 replaces .023), UTCD (5 Pass), TRACE (BKT, EXE, GUI), Code, Tests, RN, Engine_plan §0, TODO T61–T66, CONTEXT, DEVLOG
+- Decisions (user 2026-10-29): strategy PRICE reads closed bars only; live entries/exits fire only after a 15m close; Step 1 list for a session is built from the previous trading day; session = the day the list is traded.
+- Findings: `Last` on 15m now means the bar before the last closed bar, so ST_AUTO compares a price one bar older than SUPERTREND (fixed: user set ST_AUTO to `current`, T63 Done). 2026-10-29 session missing: no 1d bar in the store yet. Tests: backtest + backtest GUI 126 passed; execution 329 passed.
+
+---
+
+## [20261029] BKT + GUI — Backtest engine Phase 3 · Step 3 Portfolio (FO-BKT-002, FO-GUI-031)
+
+- Type: Feature
+- FO(s): FO-BKT-002, FO-GUI-031
+- RN: RN-BKT-1.4.0-20261029, RN-GUI-1.41.0-20261029
+- Artifacts updated: FO (bullets), SRD (SRD-BKT-002.030–.039, SRD-GUI-031.030–.034 — minimal, approved by user for code, now Implemented), DD, MD, UTCD (20 Pass), TRACE, Code, Tests, RN, Engine_plan §0/§2 (D10–D12), TODO T61, CONTEXT, DEVLOG
+- Decisions (user 2026-10-29): Rex count resets each day; daily loss stop blocks new entries; stop counts when stop and target are in one bar.
+- Findings: live sizing is floor(capital × alloc % × per-trade % ÷ price), strategy limit is checked before entry, the order is cut to margin; live stop / target are % of entry, checked per tick on last price with target first; live daily loss only warns; live Rex never resets. Real run: ST_AUTO on IT top 5, $2,000 and $5,000 variants, ~104 trades each, 12 s for Steps 1–3. Also: section headings on the Stocks and Signals tabs (10c86ebc).
+
+---
+
+## [20261029] BKT — RS-rule presets refused plainly; worker errors not doubled (FO-BKT-002)
+
+- Type: Bugfix
+- FO(s): FO-BKT-002
+- RN: RN-BKT-1.3.1-20261029
+- Artifacts updated: SRD (SRD-BKT-002.018–.019, user decision), UTCD (4 Pass), TRACE, Code, Tests, RN, Engine_plan (R9), CONTEXT, DEVLOG
+- Decisions (user 2026-10-29): backtest data stays S&P 500 only; SPY (an ETF, not a member) is not downloaded.
+- Findings: user ran preset Momentun_Price (RS rule) → `BenchmarkDataUnavailableError` text doubled because the exception's `__init__(symbol)` runs again when it is unpickled from the worker process. Now the data check and Step 1 refuse RS presets with one sentence, and worker errors come back as plain `RuntimeError("<day>: <message>")`.
+
+---
+
+## [20261029] BKT + GUI — Backtest engine Phase 2 · Step 2 Signals (FO-BKT-002, FO-GUI-031)
+
+- Type: Feature
+- FO(s): FO-BKT-002, FO-GUI-031
+- RN: RN-BKT-1.3.0-20261029, RN-GUI-1.40.0-20261029
+- Artifacts updated: FO (bullets), SRD (SRD-BKT-002.020–.029, SRD-GUI-031.020–.023 — minimal, approved by user for code, now Implemented), DD, MD, UTCD (21 Pass), TRACE, Code, Tests, RN, Engine_plan §0/§7, TODO T61, CONTEXT, DEVLOG
+- Decisions (user 2026-10-29): parser re-exported from live in `core/expr` (not moved); VWAP resets each session; same minimal-SRD approach as Phase 0–1.
+- Findings: parity 50 real stocks / 60,000 values / 0 mismatches. Live builds 15m from 1m with a forming last bar and `Price('Last')` reads index -2, so the backtest builds the forming 15m bar from 3m for Price; other indicators use closed bars (can differ inside a forming bar). Live VWAP adds up 30 days (no daily reset) and live `PNL` always returns 0 — reported, not fixed. Importing the strategy engine first hits the db/data import cycle; `core/expr` loads `us_swing.data` first.
+
+---
+
+## [20261029] BKT + GUI — Backtest engine Phase 0 (Foundation) and Phase 1 (Step 1 Stocks) (FO-BKT-002, FO-GUI-031)
+
+- Type: Feature
+- FO(s): FO-BKT-002, FO-GUI-031
+- RN: RN-BKT-1.2.0-20261029, RN-GUI-1.39.0-20261029
+- Artifacts updated: FO, SRD (SRD-BKT-002.001–.017, SRD-GUI-031.001–.004, .010–.012 — minimal, approved by user for code, now Implemented), DD, MD, UTCD (41 Pass), TRACE, Code, Tests, RN, Engine_plan §0, TODO T61, CONTEXT, DEVLOG
+- Decisions: Step 1 cache is one file per day keyed by preset rules + whole stock list (R2: RS-rank rule compares stocks); preset AI stage always skipped in replay; plan AI tick and weekly presets refused until a later phase; `PresetExecutor.screen()` added so live and replay share one path; worker processes need `freeze_support()` in `run_gui.py`.
+- Findings: real IT sector run 207 days / 75 stocks in 10.6 s (4 workers), 3.6 s cached; SPY missing from the backtest store (RS rule cannot run). 11 old test failures and one broken old test file exist on clean HEAD too.
+
+---
+
 ## [20261029] BKT + GUI — Backtest engine plan; 15m and 1w built from 3m and 1d (FO-BKT-001, FO-GUI-030)
 
 - Type: Enhancement + Planning

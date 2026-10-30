@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.27.0: DD-GUI-031.001.D01 added — Backtest workspace.
 > v1.26.0: DD-GUI-030.001.D01 added — Backtest data section.
 > v1.25.0: DD-GUI-029.001.D01 added — Scheduler task table.
 > v1.24.0: DD-GUI-028.001.D01 added — Candle data panel redesign.
@@ -1754,3 +1755,19 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 - When the range fields differ from `settings.json` the button reads "Save range and download" and saves before starting; nothing is saved silently.
 - Fill delta is no longer a button; the auto delta timer still calls `fill_backtest_delta()`.
 - SRD-GUI-030.010: the coverage label gets a second line, "15-minute and weekly candles are built from these". `_BacktestStatsWorker` first calls `store.build_missing()` and logs `[Backtest] Built 15-minute and weekly candles for N stock(s)` when it built any.
+
+---
+
+## DD-GUI-031.001.D01 — Backtest Workspace (Phase 0 and 1)
+
+**Traces:** SRD-GUI-031.001–.004, SRD-GUI-031.010–.012
+
+**Navigation.** `_NAV_ITEMS` gets `("history", "Backtest")` at index 4; `MainWindow` adds `BacktestWorkspace(svc)` to the stack (it lays out its own cards) and to `_WIDE_PAGES`, so the sidebar shrinks there.
+
+**Builder (`backtest_builder.py`).** `BacktestBuilder(QWidget)`, fixed width 300, in a card. Fields: Name (`QLineEdit`), From/To (`QDateEdit`, default one year up to today), Stocks `ChipGroup` (S&P 500 / Sectors / Names), a checkable `QListWidget` of sectors from `svc.get_sp500_universe()` (shown in Sectors mode), Names, Add, Remove (`QLineEdit`, split on commas and spaces), Screener `QComboBox` filled from `list_presets(user_id)` (weekly presets marked "(weekly)"), Stocks per day `QSpinBox` 0–50 with special text "All", and "Use AI ranking" `QCheckBox` disabled with the tooltip "Comes in a later phase". `plan() -> RunPlan` reads the fields; every field change emits `changed`.
+
+**Workspace (`backtest_workspace.py`).** `BacktestWorkspace(QWidget)` on the gutter: builder card on the left; on the right a header card (page title "Backtest", step strip of four `data_pill` labels with `state` property `""` / `downloading` / `complete`, data check label, Download and Run Step 1 buttons) and a Step 1 card with a day table (Date, Stocks) and a stock table (Rank, Symbol, Score). A 500 ms single-shot `QTimer` restarts on `changed` and starts `_EstimateWorker(QThread)`, which calls `BacktestService.estimate()`; only the newest result is shown. `_RunWorker(QThread)` calls `run_stocks()` with `progress` → signal and `cancel` → a flag set by Cancel; it emits `done(DailyList)` or `failed(str)`. The service is built once with `svc.get_sp500_universe` and `load_preset_dict`. Download calls `svc.start_backtest_download()`; it is enabled only when TWS is connected, something is missing and no download runs. The Stocks pill shows `Cached` when the estimate has every day cached.
+
+**Phase 2 (SRD-GUI-031.020–.023).** The builder adds a STRATEGIES group: a checkable `QListWidget` filled by `set_strategies(list[dict])` with "name · alloc % · per-trade %"; ticked rows become `StrategySpec(name, (capital_max,), (per_trade_pct,))`. The workspace loads them with `load_strategies()` on show. The Run button (text "Run") runs `run_stocks()` and then `run_signals()` in `_RunWorker`, whose `progress(step, done, total)` drives pills 1 and 2. The lower card becomes a `QTabWidget`: "Stocks" (the Step 1 view) and "Signals" (strategy `QComboBox` + table Strategy, Symbol, Kind, Start, End, Close). A double-click emits `chart_requested(symbol, "1d")`, which `MainWindow` routes like the Screener's.
+
+**Phase 3 (SRD-GUI-031.030–.034).** The builder adds an ACCOUNT group (`QDoubleSpinBox` Capital $, Daily loss stop %, Commission $, `QSpinBox` Slippage bps, `QComboBox` When money short). `set_account_defaults(capital, daily_loss_pct)` fills them from `svc.get_active_user().risk_config` (`max_capital_value`, `max_daily_loss_pct`) when the screen first opens. `_RunWorker` calls `run_portfolio()` after `run_signals()` (progress on pill 3) and emits `portfolio_done(list[VariantResult])`. Three tabs are added: Trades (summary label + table), Day log, Money. With more than one variant the first is shown.

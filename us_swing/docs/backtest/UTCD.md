@@ -1,12 +1,13 @@
 # Unit Test Case Document — Backtest Module (BKT)
 
 **Document ID:** UTCD-BKT
-**Version:** 1.0.0
-**Traces To:** MD-BKT v1.0.0
+**Version:** 1.1.0
+**Traces To:** MD-BKT v1.1.0
 **Status:** Draft
-**Last Updated:** 2026-10-28
+**Last Updated:** 2026-10-29
 **Project:** US Swing Trading System
 
+> v1.1.0: UT-BKT-002.* added — engine Phase 0 and 1.
 > v1.0.0: UT-BKT-001.* added — store, settings, planner, downloader (fake IB), schedule.
 
 ---
@@ -38,6 +39,8 @@
 | UT-BKT-001.005.M03.T02 | MD-BKT-001.005.M03 | Negative | Fully saved store has no jobs | coverage equals range | empty plan | Pass |
 | UT-BKT-001.005.M03.T03 | MD-BKT-001.005.M03 | Edge | Earlier start back-fills only older windows | saved 2024–2025, start moved to 2023 | 3m jobs only for 2023 windows; one 1d back-fill job | Pass |
 | UT-BKT-001.005.M03.T04 | MD-BKT-001.005.M03 | Edge | Floor skips windows before first data | floor 2024-06-01 | no 3m job ending before the floor | Pass |
+| UT-BKT-001.015.M03.T01 | MD-BKT-001.005.M03 | Positive | SPY gets daily jobs | empty store, daily_only SPY | SPY 1d job; no SPY 3m job | Pass |
+| UT-BKT-001.015.M03.T02 | MD-BKT-001.005.M03 | Negative | Saved SPY | SPY 1d saved for range | no jobs | Pass |
 | UT-BKT-001.008.M03.T01 | MD-BKT-001.005.M03 | Positive | Delta asks days since last bar | last saved 3 trading days ago, `delta_only` | one job per stock and tf, duration "4 D" | Pass |
 | UT-BKT-001.008.M03.T02 | MD-BKT-001.005.M03 | Edge | Delta skips up-to-date stock | AAPL saved to last session, MSFT one day behind | no AAPL job; MSFT "2 D" for 1d and 3m | Pass |
 | UT-BKT-001.008.M03.T03 | MD-BKT-001.005.M03 | Negative | No delta with fixed end date | end date 2025-12-31, `delta_only` | empty plan | Pass |
@@ -51,3 +54,122 @@
 | UT-BKT-001.009.M05.T02 | MD-BKT-001.009.M05 | Negative | Not due before run time | Tue 17:00 ET, last delta Mon 17:35 | not due | Pass |
 | UT-BKT-001.009.M05.T03 | MD-BKT-001.009.M05 | Edge | Missed Friday caught up on Monday morning | Mon 09:00 ET, last delta Thu 17:35 | due | Pass |
 | UT-BKT-001.009.M05.T04 | MD-BKT-001.009.M05 | Negative | Off when fixed end date | end date set, Tue 17:31 ET | not due | Pass |
+
+## FO-BKT-002 — Backtest Engine (Phase 0 and 1)
+
+| UT ID | MD | Type | Description | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-BKT-002.001.M01.T01 | MD-BKT-002.001.M01 | Positive | Plan JSON round trip | Engine_plan §4 example | loaded plan equals saved; capital list kept, single values written as numbers | Pass |
+| UT-BKT-002.001.M01.T02 | MD-BKT-002.001.M01 | Negative | Unknown keys and missing parts | JSON with extra key and no `costs` | loads; defaults used | Pass |
+| UT-BKT-002.002.M01.T01 | MD-BKT-002.001.M01 | Positive | Good plan is valid | example plan | no messages | Pass |
+| UT-BKT-002.002.M01.T02 | MD-BKT-002.001.M01 | Negative | Bad values listed | start after end, sector mode with no sectors, capital 0, schema 2 | 4 plain messages | Pass |
+| UT-BKT-002.003.M01.T01 | MD-BKT-002.001.M01 | Positive | Variant grid | capital [2000, 5000], one strategy per-trade [50, 100] | 4 variants in order | Pass |
+| UT-BKT-002.003.M01.T02 | MD-BKT-002.001.M01 | Negative | Over 64 variants | capital list of 65 values | validation message about 64 | Pass |
+| UT-BKT-002.004.M02.T01 | MD-BKT-002.004.M02 | Positive | Each mode resolves | 4 records in 2 sectors; sp500, sector, names | 4; sector's 2; given names | Pass |
+| UT-BKT-002.004.M02.T02 | MD-BKT-002.004.M02 | Negative | Add and remove | sector mode, add PLTR, remove one sector stock, duplicate add | sorted unique; removed stock absent | Pass |
+| UT-BKT-002.005.M03.T01 | MD-BKT-002.005.M03 | Positive | Write then read | frame under a key | read equals frame; key stable for same params in other order | Pass |
+| UT-BKT-002.005.M03.T02 | MD-BKT-002.005.M03 | Negative | Miss and failed write | unknown key; write raises mid-save | `None`; no file and no temp left | Pass |
+| UT-BKT-002.006.M03.T01 | MD-BKT-002.005.M03 | Positive | Cleanup by age and size | one old file, three new files over the limit | old file gone, then oldest new file gone; bytes freed returned | Pass |
+| UT-BKT-002.007.M04.T01 | MD-BKT-002.007.M04 | Positive | Run row life | start, finish done | row has plan, status done, both times | Pass |
+| UT-BKT-002.007.M04.T02 | MD-BKT-002.007.M04 | Negative | Unknown run | `get_run("x")` | `None` | Pass |
+| UT-BKT-002.008.M05.T01 | MD-BKT-002.008.M05 | Positive | Estimate on a fake store | 3 stocks, one with no 3m, SPY saved | symbols 3; missing_3m 1; benchmark ok; days counted | Pass |
+| UT-BKT-002.008.M05.T02 | MD-BKT-002.008.M05 | Negative | Estimate with errors | plan with start after end | errors listed; day counts 0 | Pass |
+| UT-BKT-002.009.M06.T01 | MD-BKT-002.009.M06 | Positive | CLI estimate | plan file, fake service | exit 0; stock count printed | Pass |
+| UT-BKT-002.010.M07.T01 | MD-BKT-002.010.M07 | Positive | Days from SPY | SPY and AAPL saved, period inside | SPY dates in the period | Pass |
+| UT-BKT-002.010.M07.T02 | MD-BKT-002.010.M07 | Negative | No SPY | only AAPL and MSFT saved | union of their dates | Pass |
+| UT-BKT-002.011.M07.T01 | MD-BKT-002.010.M07 | Positive | Replay equals live screener | preset "close above EMA 20" over 3 stocks, one day | same passed and score as `PresetExecutor.screen()` on bars up to that day | Pass |
+| UT-BKT-002.011.M07.T02 | MD-BKT-002.010.M07 | Negative | No look-ahead | stock jumps the day after D | D result uses no bar after D | Pass |
+| UT-BKT-002.012.M07.T01 | MD-BKT-002.010.M07 | Positive | One file per day | 5-day run | 5 day files under one key | Pass |
+| UT-BKT-002.012.M07.T02 | MD-BKT-002.010.M07 | Negative | Rules change gives new key | change rule period | different key; nothing reused | Pass |
+| UT-BKT-002.013.M07.T01 | MD-BKT-002.010.M07 | Positive | Second run computes nothing | run twice; second with other top N | second run progress total 0 | Pass |
+| UT-BKT-002.013.M07.T02 | MD-BKT-002.010.M07 | Edge | Longer period computes only new days | run 5 days, then 7 | 2 days computed | Pass |
+| UT-BKT-002.014.M07.T01 | MD-BKT-002.010.M07 | Positive | Rank and top N | day with scores 0.9, 0.5, 0.9 | ranks 1, 2 (tie by symbol) and 3; top 1 keeps one row | Pass |
+| UT-BKT-002.014.M07.T02 | MD-BKT-002.010.M07 | Negative | Top N 0 keeps all | N 0 | all rows | Pass |
+| UT-BKT-002.015.M07.T01 | MD-BKT-002.010.M07 | Positive | Process pool run | 2 workers, 4 days | same frames as in-process; progress reaches 4 of 4 | Pass |
+| UT-BKT-002.015.M07.T02 | MD-BKT-002.010.M07 | Negative | Cancel keeps finished days | cancel after first day, in process | `StepCancelled`; first day cached | Pass |
+| UT-BKT-002.016.M07.T01 | MD-BKT-002.010.M07 | Negative | Weekly preset refused | preset timeframe 1w | `StepRefused` with plain message | Pass |
+| UT-BKT-002.016.M07.T02 | MD-BKT-002.010.M07 | Negative | AI tick refused | `ai_ranking` true | `StepRefused`; zero screener calls | Pass |
+| UT-BKT-002.018.M07.T01 | MD-BKT-002.010.M07 | Positive | RS rule detected | RS rule on, off, and no RS rule | true, false, false | Pass |
+| UT-BKT-002.018.M07.T02 | MD-BKT-002.010.M07 | Negative | RS rule refused without SPY | preset with RS rule, no SPY | `StepRefused` starting "This screener uses the RS rule"; SPY named once | Pass |
+| UT-BKT-002.018.M05.T01 | MD-BKT-002.008.M05 | Negative | Data check shows the RS message | estimate with RS preset | one error; 0 days | Pass |
+| UT-BKT-002.052.M05.T01 | MD-BKT-002.008.M05 | Positive | RS asks for SPY | RS preset, no SPY | SPY in missing 1d; message says press Download | Pass |
+| UT-BKT-002.052.M05.T02 | MD-BKT-002.008.M05 | Negative | No RS, no SPY needed | RSI preset | SPY not in missing 1d | Pass |
+| UT-BKT-002.060.M04.T01 | MD-BKT-002.007.M04 | Positive | Rename and note | old file without note column | column added; name and note saved | Pass |
+| UT-BKT-002.060.M04.T02 | MD-BKT-002.007.M04 | Negative | Delete | 2 runs, delete 1; empty file | run and its rows gone; other kept; no error | Pass |
+| UT-BKT-002.060.M05.T01 | MD-BKT-002.008.M05 | Positive | Saved reports list | 1 run with Step 3, 1 Step 1 row | only the first; trades, net, max DD | Pass |
+| UT-BKT-002.060.M05.T02 | MD-BKT-002.008.M05 | Positive | Open run | saved run; unknown id | daily, results, report; no new run row; ValueError | Pass |
+| UT-BKT-002.070.M13.T01 | MD-BKT-002.040.M13 | Positive | Exit and hold stats | 4 trades with MAE / MFE | averages, given back, median and longest hold | Pass |
+| UT-BKT-002.070.M13.T02 | MD-BKT-002.040.M13 | Negative | No trades | empty trades | NaN, no error | Pass |
+| UT-BKT-002.071.M13.T01 | MD-BKT-002.040.M13 | Positive | New groups | ranks 1, 2, 1, 3 | hold, score and rank groups | Pass |
+| UT-BKT-002.071.M13.T02 | MD-BKT-002.040.M13 | Edge | Score quartiles | 8 scores | 4 ranges | Pass |
+| UT-BKT-002.072.M13.T01 | MD-BKT-002.040.M13 | Positive | Robustness repeats | same trades twice | same Monte Carlo; halves add up; top 5 removed | Pass |
+| UT-BKT-002.072.M13.T02 | MD-BKT-002.040.M13 | Negative | No trades | empty trades | NaN drawdown; zero P&L | Pass |
+| UT-BKT-002.073.M13.T01 | MD-BKT-002.040.M13 | Positive | Heat map | 2 capitals × 2 per-trade % | 2 × 2 grid | Pass |
+| UT-BKT-002.073.M13.T02 | MD-BKT-002.040.M13 | Negative | One capital | 1 capital × 2 per-trade % | empty | Pass |
+| UT-BKT-002.081.M14.T01 | MD-BKT-002.080.M14 | Positive | Trade day | 09:00 ET and 09:52 ET runs | same day; next day | Pass |
+| UT-BKT-002.080.M14.T01 | MD-BKT-002.080.M14 | Positive | Load lists | 3 files, weekend, not passed, outside list | passed in list ranked by score; newer wins | Pass |
+| UT-BKT-002.080.M14.T02 | MD-BKT-002.080.M14 | Negative | Bad and old files | broken JSON; list 2 months early; no folder | left out with a warning; empty | Pass |
+| UT-BKT-002.081.M05.T01 | MD-BKT-002.008.M05 | Positive | Service uses saved lists | 1 saved list in 5 sessions | data check 1 of 5; Step 1 frame from the list | Pass |
+| UT-BKT-002.081.M05.T02 | MD-BKT-002.008.M05 | Negative | No saved list | none in period | plain error | Pass |
+| UT-BKT-002.019.M07.T01 | MD-BKT-002.010.M07 | Negative | Worker error is plain | screener raises an error that formats its argument | `RuntimeError("2025-03-03: Data for 'SPY' is missing")`; same text after pickling | Pass |
+| UT-BKT-002.017.M05.T01 | MD-BKT-002.008.M05 | Positive | Service run recorded | fake store, preset loader | daily list returned; run row done | Pass |
+| UT-BKT-002.017.M05.T02 | MD-BKT-002.008.M05 | Negative | Service cancel recorded | cancel at once | run row cancelled | Pass |
+
+## FO-BKT-002 — Backtest Engine (Phase 2)
+
+| UT ID | MD | Type | Description | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-BKT-002.020.M09.T01 | MD-BKT-002.020.M09 | Positive | Parser is the live parser | `parse("RSI('Spot', 14, '3m') > 50")` | same AST as live `_Parser` | Pass |
+| UT-BKT-002.020.M09.T02 | MD-BKT-002.020.M09 | Negative | Bad text raises | `"RSI(("` | `EvaluatorError` | Pass |
+| UT-BKT-002.021.M10.T01 | MD-BKT-002.021.M10 | Positive | Parity for every function and timeframe | random-walk 3m, 15m, 1d, 1w frames | series[i] equals live value on frame[:i+1] for RSI, ADX, EMA, MACD, SUPERTREND, SWING, VWAP (1d) | Pass |
+| UT-BKT-002.021.M10.T02 | MD-BKT-002.021.M10 | Negative | Too few bars | 5 bars, RSI 14 | NaN where live raises | Pass |
+| UT-BKT-002.022.M10.T01 | MD-BKT-002.021.M10 | Positive | Daily and 15m alignment | 3m timeline of 2 days | 1d value on day 2 is day 1's; 15m value changes only at bucket closes | Pass |
+| UT-BKT-002.022.M10.T02 | MD-BKT-002.021.M10 | Negative | No look-ahead | change day 2's 1d bar | day 2 3m results unchanged | Pass |
+| UT-BKT-002.050.M10.T01 | MD-BKT-002.021.M10 | Positive | Price current and Last on 15m read closed bars | 3m bar inside a 15m bucket | current = last closed 15m bar; Last = the one before | Pass |
+| UT-BKT-002.050.M10.T02 | MD-BKT-002.021.M10 | Negative | 15m current price never moves inside a forming bar | 3 days of 3m bars | values change only at 15m closes | Pass |
+| UT-BKT-002.024.M10.T01 | MD-BKT-002.021.M10 | Positive | VWAP resets per session | 2 sessions of 3m bars | first bar of day 2 VWAP = its typical price | Pass |
+| UT-BKT-002.025.M10.T01 | MD-BKT-002.021.M10 | Negative | NaN comparison is false | RSI 14 on first 10 bars `!= 0` | false on those bars | Pass |
+| UT-BKT-002.026.M11.T01 | MD-BKT-002.026.M11 | Positive | Periods from runs of true bars | fired F T T F T | 2 periods with start, end, close at start | Pass |
+| UT-BKT-002.026.M11.T02 | MD-BKT-002.026.M11 | Negative | Hours and days | bars closing 09:36, 10:00 and 15:30 ET on a Monday and a Saturday, hours 09:40–15:30 Mon–Fri | only the Monday 10:00 bar kept | Pass |
+| UT-BKT-002.027.M10.T01 | MD-BKT-002.021.M10 | Positive | PNL flagged | `PNL('Spot') > 1 OR RSI(…) > 0` | `uses_pnl` true; result equals the RSI part | Pass |
+| UT-BKT-002.028.M11.T01 | MD-BKT-002.026.M11 | Positive | Cache reuse | run twice | second run computes nothing | Pass |
+| UT-BKT-002.028.M11.T02 | MD-BKT-002.026.M11 | Negative | Stocks follow top N and include list | include mode with 1 stock, top N 1 | only that stock computed | Pass |
+| UT-BKT-002.028.M11.T03 | MD-BKT-002.026.M11 | Positive | Process pool equals in-process | 2 workers | same frames | Pass |
+| UT-BKT-002.029.M05.T01 | MD-BKT-002.008.M05 | Negative | Missing strategy name | plan names "X" | `ValueError` "Strategy X is not in the strategy list" | Pass |
+| UT-BKT-002.029.M05.T02 | MD-BKT-002.008.M05 | Positive | Service run of Step 2 | fake store and one strategy | signal list returned; run row done | Pass |
+
+## FO-BKT-002 — Backtest Engine (Phase 3)
+
+| UT ID | MD | Type | Description | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-BKT-002.030.M12.T01 | MD-BKT-002.030.M12 | Positive | Entry only from yesterday's list | entry window on day 2 for a stock picked on day 1 and one not picked | one trade, for the picked stock | Pass |
+| UT-BKT-002.030.M12.T02 | MD-BKT-002.030.M12 | Positive | First signal vs highest score | 2 stocks, money for one; earlier window has the lower score | first_signal takes the earlier; highest_score takes the higher score | Pass |
+| UT-BKT-002.031.M12.T01 | MD-BKT-002.030.M12 | Positive | Per-trade sizing | capital 10,000, alloc 50 %, per-trade 50 %, fill 100 | 25 shares | Pass |
+| UT-BKT-002.031.M12.T02 | MD-BKT-002.030.M12 | Negative | Too expensive | per-trade $50, fill 100 | no trade; day log too_expensive | Pass |
+| UT-BKT-002.032.M12.T01 | MD-BKT-002.030.M12 | Negative | Strategy limit | alloc 50 %, per-trade 100 %, 2 stocks signal | 1 trade; strategy_limit for the second | Pass |
+| UT-BKT-002.032.M12.T02 | MD-BKT-002.030.M12 | Negative | Margin across 2 strategies | 2 strategies 60 % each, per-trade 100 % | second cut to the margin left | Pass |
+| UT-BKT-002.033.M12.T01 | MD-BKT-002.030.M12 | Positive | Next-open fill with costs | signal at 10:00 close, slippage 10 bps, commission 1 | entry at 10:00 bar's next open × 1.001; 2 commissions in net P&L | Pass |
+| UT-BKT-002.034.M12.T01 | MD-BKT-002.030.M12 | Negative | Already held and Rex per day | 2 entry windows same day, Rex 0; then next day | 1 trade day 1 (rex_limit logged); a new trade day 2 | Pass |
+| UT-BKT-002.035.M12.T01 | MD-BKT-002.030.M12 | Negative | Stop and target in one bar | bar low under stop and high over target | exit reason stop at stop price | Pass |
+| UT-BKT-002.035.M12.T02 | MD-BKT-002.030.M12 | Edge | Gap through stop | swing LONG, next day opens below stop | exit at that open | Pass |
+| UT-BKT-002.036.M12.T01 | MD-BKT-002.030.M12 | Positive | SHORT levels and P&L | SHORT fill 100, stop 1 %, price falls to target 2 % | exit target at 98; P&L positive | Pass |
+| UT-BKT-002.036.M12.T02 | MD-BKT-002.030.M12 | Negative | Trailing stop refused | strategy with trailing stop on | `StepRefused` plain message | Pass |
+| UT-BKT-002.037.M12.T01 | MD-BKT-002.030.M12 | Positive | Intraday end time and swing overnight | Intraday end 15:30; Swing same signals | intraday exits at 15:30 open; swing still open next day | Pass |
+| UT-BKT-002.038.M12.T01 | MD-BKT-002.030.M12 | Negative | Daily loss stop | 1 % stop, loss 2 % after first trade | later entries that day blocked; daily_loss_stop logged once | Pass |
+| UT-BKT-002.039.M04.T01 | MD-BKT-002.007.M04 | Positive | Variant rows saved | one variant result | rows in variants, trades, day_log, money_daily | Pass |
+| UT-BKT-002.051.M07.T01 | MD-BKT-002.010.M07 | Positive | Sessions use the previous close | 5 sessions from Mon 2025-03-03 | each session maps to the trading day before; first maps to Fri 02-28; no list from the last close | Pass |
+| UT-BKT-002.051.M12.T01 | MD-BKT-002.030.M12 | Edge | First session trades its own list | list for session D1, days D1 and D2 | D1 has the stock; D2 has none | Pass |
+| UT-BKT-002.040.M13.T01 | MD-BKT-002.040.M13 | Positive | Report from a saved run | variant saved in results.db | same stats as in-memory; label and benchmark filled | Pass |
+| UT-BKT-002.040.M13.T02 | MD-BKT-002.040.M13 | Negative | Unknown run | run id not saved | ValueError | Pass |
+| UT-BKT-002.041.M13.T01 | MD-BKT-002.040.M13 | Positive | Returns on known days | 4 days, equity 1010/990/1020/1000 | P&L 0, return 0, CAGR 0, invested 100%, March P&L 0 | Pass |
+| UT-BKT-002.041.M13.T02 | MD-BKT-002.040.M13 | Edge | No trades | flat equity, no trades | P&L 0, invested 0, win rate NaN | Pass |
+| UT-BKT-002.042.M13.T01 | MD-BKT-002.040.M13 | Positive | Risk on known days | same 4 days | max DD 990/1010−1, $ −20, longest 1 day, worst day/trade −20, Sharpe by formula | Pass |
+| UT-BKT-002.042.M13.T02 | MD-BKT-002.040.M13 | Edge | Equity only rises | rising equity | no drawdown; Sortino and Calmar NaN | Pass |
+| UT-BKT-002.043.M13.T01 | MD-BKT-002.040.M13 | Positive | Trade quality | P&L 10, −20, 30, −20 | win 50%, avg ±20, payoff 1, PF 1, streaks 1/1 | Pass |
+| UT-BKT-002.043.M13.T02 | MD-BKT-002.040.M13 | Edge | Only winners | 4 trades of +5 | PF and payoff NaN, win streak 4 | Pass |
+| UT-BKT-002.044.M13.T01 | MD-BKT-002.040.M13 | Positive | Breakdowns | 2 strategies, 2 sectors | best group first; unknown sector named; weekday and hour groups | Pass |
+| UT-BKT-002.044.M13.T02 | MD-BKT-002.040.M13 | Negative | Unknown group | group 'colour' | ValueError | Pass |
+| UT-BKT-002.045.M13.T01 | MD-BKT-002.040.M13 | Positive | Skip counts | 4 entered, 2 no_margin | counts per decision | Pass |
+| UT-BKT-002.046.M13.T01 | MD-BKT-002.040.M13 | Positive | Equal-weight benchmark | 2 stocks, 2 days | 1050, 1050 | Pass |
+| UT-BKT-002.046.M13.T02 | MD-BKT-002.040.M13 | Negative | Benchmark without stocks | no closes | all NaN | Pass |
+| UT-BKT-002.047.M13.T01 | MD-BKT-002.040.M13 | Positive | Compare rows | 2 reports | one row each with key stats | Pass |
