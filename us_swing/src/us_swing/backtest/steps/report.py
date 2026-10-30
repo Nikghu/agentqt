@@ -1,10 +1,11 @@
 """
 Module: MD-BKT-002.040.M13 — backtest/steps/report.py
-Parent SRD: SRD-BKT-002.040
+Parent SRD: SRD-BKT-002.040, SRD-BKT-002.070–.073
 
 Step 4 · Report: stats of one variant from its saved Step 3 rows (trades, day
 log, money by day) — returns, risk, trade quality, breakdowns, skip counts, an
-equal-weight S&P 500 benchmark and a compare table (SRD-BKT-002.040–.047).
+equal-weight S&P 500 benchmark and a compare table (SRD-BKT-002.040–.047);
+Phase 4b adds exit / hold stats, robustness and the capital × per-trade grid (.070–.073).
 """
 from __future__ import annotations
 
@@ -19,7 +20,12 @@ import pandas as pd
 
 TRADING_DAYS = 252
 ET = "America/New_York"
-GROUPS = ("strategy", "symbol", "sector", "exit_reason", "hour", "weekday")
+GROUPS = ("strategy", "symbol", "sector", "exit_reason", "hour", "weekday", "hold",
+          "score_bucket", "rank")
+HOLD_BUCKETS = ((1.0, "under 1 h"), (3.0, "1–3 h"), (24.0, "3 h–1 day"),
+                (math.inf, "over 1 day"))
+MONTE_CARLO_RUNS = 1000
+MONTE_CARLO_SEED = 7
 BREAKDOWN_COLUMNS = ["group", "trades", "net_pnl", "win_rate", "avg_pnl"]
 COMPARE_STATS = ("Net P&L", "Return", "CAGR", "Max drawdown", "Sharpe", "Win rate",
                  "Profit factor", "Trades")
@@ -51,6 +57,7 @@ class Report:
     monthly: pd.DataFrame
     skips: pd.DataFrame
     trades: pd.DataFrame
+    per_trade_pct: float = math.nan
 
     def stat(self, name: str) -> float:
         """Value of the stat called ``name``."""
@@ -178,6 +185,60 @@ def trade_stats(trades: pd.DataFrame) -> list[Stat]:
     ]
 
 
+def _hours(trades: pd.DataFrame) -> pd.Series:
+    return (trades["exit_ts"] - trades["entry_ts"]).dt.total_seconds() / 3600.0
+
+
+def exit_hold_stats(trades: pd.DataFrame) -> list[Stat]:
+    """Average MAE, MFE, profit given back and hold time (SRD-BKT-002.070)."""
+    if trades.empty:
+        return [Stat(n, math.nan, k) for n, k in (
+            ("Average MAE", "usd"), ("Average MFE", "usd"), ("Profit given back", "usd"),
+            ("Median hold", "hours"), ("Longest hold", "hours"))]
+    mfe = trades["mfe"].astype(float)
+    hours = _hours(trades)
+    return [
+        Stat("Average MAE", float(trades["mae"].astype(float).mean()), "usd"),
+        Stat("Average MFE", float(mfe.mean()), "usd"),
+        Stat("Profit given back", float((mfe - trades["net_pnl"].astype(float)).mean()), "usd"),
+        Stat("Median hold", float(hours.median()), "hours"),
+        Stat("Longest hold", float(hours.max()), "hours"),
+    ]
+
+
+def _max_drawdowns(pnl: FloatArray, capital: float, runs: int, seed: int) -> FloatArray:
+    rng = np.random.default_rng(seed)
+    out = np.empty(runs)
+    for i in range(runs):
+        equity = capital + np.cumsum(rng.permutation(pnl))
+        peak = np.maximum.accumulate(np.concatenate(([capital], equity)))[1:]
+        out[i] = float((equity / peak - 1.0).min())
+    return out
+
+
+def robustness_stats(trades: pd.DataFrame, daily: pd.DataFrame, capital: float) -> list[Stat]:
+    """Monte Carlo drawdown, half-period P&L and P&L without the top 5 (SRD-BKT-002.072)."""
+    pnl = trades["net_pnl"].to_numpy(dtype=np.float64)
+    dds = (_max_drawdowns(pnl, capital, MONTE_CARLO_RUNS, MONTE_CARLO_SEED)
+           if len(pnl) and capital > 0 else np.array([math.nan]))
+    if daily.empty:
+        first = second = 0.0
+    else:
+        start, end = daily["date"].iloc[0], daily["date"].iloc[-1]
+        middle = start + (end - start) / 2
+        exits = trades["exit_ts"].dt.tz_convert(ET).dt.date
+        first = float(trades.loc[exits <= middle, "net_pnl"].sum())
+        second = float(trades.loc[exits > middle, "net_pnl"].sum())
+    return [
+        Stat("Monte Carlo drawdown, bad 5%", float(np.percentile(dds, 5)), "pct"),
+        Stat("Monte Carlo drawdown, median", float(np.percentile(dds, 50)), "pct"),
+        Stat("Monte Carlo drawdown, good 5%", float(np.percentile(dds, 95)), "pct"),
+        Stat("First half P&L", first, "usd"),
+        Stat("Second half P&L", second, "usd"),
+        Stat("P&L without top 5 trades", float(pnl.sum() - np.sort(pnl)[-5:].sum()), "usd"),
+    ]
+
+
 def monthly_pnl(daily: pd.DataFrame, capital: float) -> pd.DataFrame:
     """P&L per calendar month from day-to-day equity change (SRD-BKT-002.041)."""
     equity = daily["equity"].to_numpy(dtype=np.float64)
@@ -187,14 +248,31 @@ def monthly_pnl(daily: pd.DataFrame, capital: float) -> pd.DataFrame:
     return frame.groupby(["year", "month"])["pnl"].sum().reset_index()
 
 
+def _hold_bucket(hours: float) -> str:
+    return next(name for limit, name in HOLD_BUCKETS if hours < limit)
+
+
+def _score_buckets(scores: pd.Series) -> list[str]:
+    """Quartile ranges of the score, or the score itself when there are few values."""
+    values = scores.astype(float)
+    if values.nunique() < 4:
+        return [f"{v:.2f}" for v in values]
+    bins = pd.qcut(values, 4, duplicates="drop")
+    return [f"{iv.left:.2f}–{iv.right:.2f}" for iv in bins]
+
+
 def with_groups(trades: pd.DataFrame, sectors: Mapping[str, str]) -> pd.DataFrame:
-    """Add sector, entry hour (ET) and weekday columns used by breakdowns."""
+    """Add sector, entry hour (ET), weekday, hold time, score bucket and rank group columns."""
     local = trades["entry_ts"].dt.tz_convert(ET)
-    return trades.assign(
+    out = trades.assign(
         sector=[sectors.get(str(s), "Unknown") for s in trades["symbol"]],
         hour=[f"{h:02d}:00" for h in local.dt.hour],
         weekday=list(local.dt.day_name()),
+        hold=[_hold_bucket(h) for h in _hours(trades)],
     )
+    out["score_bucket"] = _score_buckets(trades["score"]) if not trades.empty else []
+    out["rank"] = [str(int(r)) for r in trades["rank"]]
+    return out
 
 
 def breakdown(trades: pd.DataFrame, by: str) -> pd.DataFrame:
@@ -247,9 +325,20 @@ def build_report(label: str, capital: float, trades: pd.DataFrame, money: pd.Dat
     daily["benchmark"] = (benchmark.reindex(list(daily["date"])).to_numpy()
                           if benchmark is not None else np.nan)
     stats = (*returns_stats(trades, daily, capital), *risk_stats(trades, daily, capital),
-             *trade_stats(trades))
+             *trade_stats(trades), *exit_hold_stats(trades),
+             *robustness_stats(trades, daily, capital))
     return Report(label, capital, stats, daily, monthly_pnl(daily, capital),
                   skip_counts(day_log), with_groups(trades, sectors))
+
+
+def heat_map(reports: Sequence[Report]) -> pd.DataFrame:
+    """Return by capital (rows) × per-trade % (columns), or empty when one of them is
+    the same for every variant (SRD-BKT-002.073)."""
+    rows = pd.DataFrame([{"capital": r.capital, "per_trade": r.per_trade_pct,
+                          "ret": r.stat("Return")} for r in reports])
+    if rows.empty or rows["capital"].nunique() < 2 or rows["per_trade"].nunique() < 2:
+        return pd.DataFrame()
+    return rows.pivot_table(index="capital", columns="per_trade", values="ret", aggfunc="mean")
 
 
 def compare(reports: Sequence[Report]) -> pd.DataFrame:

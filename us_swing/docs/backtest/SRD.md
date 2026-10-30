@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-29
 **Project:** US Swing Trading System
 
+> v1.8.0: SRD-BKT-002.070–.073 (Phase 4b) and .080–.081 (Phase 5) added; approved by user 2026-10-30.
 > v1.7.0: SRD-BKT-001.015 and SRD-BKT-002.052 added; approved by user 2026-10-30 — SPY for the RS rule.
 > v1.6.0: SRD-BKT-002.060 added; approved by user 2026-10-30 — saved reports for the redesign.
 > v1.1.0: SRD-BKT-002.001–.017 added — engine Phase 0 and 1; approved by user 2026-10-29.
@@ -119,3 +120,19 @@
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
 | SRD-BKT-002.060 | FO-BKT-002 | Must | The results store can rename a run, keep a note on it, and delete it with all its rows. | run id | updated or removed run | — | Implemented |
+
+## FO-BKT-002 — Backtest Engine (Phase 4b · Report extras)
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-BKT-002.070 | FO-BKT-002 | Must | Exit and holding: average MAE, MFE and profit given back (MFE minus P&L), and hold time (median, longest). | trades | stats | — | Implemented |
+| SRD-BKT-002.071 | FO-BKT-002 | Must | Breakdowns also by hold time (under 1 h, 1–3 h, 3 h–1 day, over 1 day), score bucket and rank. | trades | tables | Adds groups to SRD-BKT-002.044 | Implemented |
+| SRD-BKT-002.072 | FO-BKT-002 | Must | Robustness: Monte Carlo of trade order (1,000 runs, fixed seed) gives 5th/50th/95th max drawdown; first vs second half P&L; P&L without the top 5 trades. | trades | stats | Same result every time | Implemented |
+| SRD-BKT-002.073 | FO-BKT-002 | Should | Return heat map of capital × per-trade % when the variants differ in both. | reports | grid | — | Implemented |
+
+## FO-BKT-002 — Backtest Engine (Phase 5 · Recorded screener lists)
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-BKT-002.080 | FO-BKT-002 | Must | Step 1 can use the screener lists saved by the app for the preset instead of replaying it: passed stocks ranked by score. | `screener_results/preset_<id>/<date>.json` | daily list | Keeps the real lists, AI picks included | Approved |
+| SRD-BKT-002.081 | FO-BKT-002 | Must | A list run before 09:30 ET trades that day, a later run trades the next session; sessions with no saved list have no picks. | run time | session date | Data check shows how many sessions have a saved list | Approved |

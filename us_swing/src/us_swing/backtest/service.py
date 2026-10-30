@@ -10,8 +10,9 @@ Step 4 (Report).
 from __future__ import annotations
 
 import logging
+import math
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, TypeVar
 
@@ -223,8 +224,10 @@ class BacktestService:
         for res in results:
             days = sorted(pd.to_datetime(res.money["date"]).dt.date)
             bench = report.equal_weight_benchmark(closes, days, res.variant.capital)
-            out.append(report.build_report(variant_label(res.variant), res.variant.capital,
-                                           res.trades, res.money, res.day_log, sectors, bench))
+            rep = report.build_report(variant_label(res.variant), res.variant.capital,
+                                      res.trades, res.money, res.day_log, sectors, bench)
+            per_trade = res.variant.strategies[0][2] if res.variant.strategies else math.nan
+            out.append(replace(rep, per_trade_pct=per_trade))
         return out
 
     def saved_results(self, run_id: str) -> list[portfolio.VariantResult]:

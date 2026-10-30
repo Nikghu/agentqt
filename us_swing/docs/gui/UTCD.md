@@ -865,6 +865,9 @@ Test files:
 | UT-GUI-031.044.M03.T01 | MD-GUI-031.003.M03 | Positive | Picker drives tabs | pick 2nd variant | Trades tab and KPIs show variant 2 | Pass |
 | UT-GUI-031.045.M04.T01 | MD-GUI-031.040.M04 | Positive | CSV export | export to folder | stats and trades CSV written | Pass |
 | UT-GUI-031.045.M04.T02 | MD-GUI-031.040.M04 | Negative | Failed export | folder that does not exist | warning logged; app keeps running | Pass |
+| UT-GUI-031.046.M04.T01 | MD-GUI-031.040.M04 | Positive | Risk panel | report; then none | hold 1.0 h, without top 5 $0.00; dashes | Pass |
+| UT-GUI-031.047.M04.T01 | MD-GUI-031.040.M04 | Positive | New groups | pick Hold time | 3 new names; 1–3 h row | Pass |
+| UT-GUI-031.048.M04.T01 | MD-GUI-031.040.M04 | Edge | Heat map | 2 × 2 variants; then 2 same | shown with 2 rows; then hidden | Pass |
 | UT-GUI-031.050.M05.T01 | MD-GUI-031.050.M05 | Positive | ✕ hides and is kept | click ✕ on panel A, build again | A hidden, button off, still hidden next time | Pass |
 | UT-GUI-031.050.M05.T02 | MD-GUI-031.050.M05 | Edge | Strip toggles; empty row | turn C off then on | C hidden and its row hidden; both back | Pass |
 | UT-GUI-031.050.M03.T01 | MD-GUI-031.003.M03 | Positive | Sections | open screen | tabs Trade Inspector and Detail Report; variant picker by the tabs | Pass |

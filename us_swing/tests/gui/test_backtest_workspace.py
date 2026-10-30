@@ -483,7 +483,8 @@ def test_detail_panels_filled(workspace: BacktestWorkspace, qtbot: Any) -> None:
     """UT-GUI-031.054.M03.T01: Detail Report has Trade list, Screener use and Margin use filled."""
     _run_both(workspace, qtbot)
 
-    assert set(workspace.detail.panels) == {"report", "tradelist", "screener_use", "margin_use"}
+    assert set(workspace.detail.panels) == {"report", "tradelist", "screener_use", "margin_use",
+                                            "risk"}
     assert workspace.trade_list.table.rowCount() == 2
     assert workspace.screener_use.chart.use.days == ["2026-03-02", "2026-03-03"]
     assert workspace.margin_use.facts.text().startswith("Money deployed on 2 of 2 days")

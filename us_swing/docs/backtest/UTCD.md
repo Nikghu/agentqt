@@ -98,6 +98,14 @@
 | UT-BKT-002.060.M04.T02 | MD-BKT-002.007.M04 | Negative | Delete | 2 runs, delete 1; empty file | run and its rows gone; other kept; no error | Pass |
 | UT-BKT-002.060.M05.T01 | MD-BKT-002.008.M05 | Positive | Saved reports list | 1 run with Step 3, 1 Step 1 row | only the first; trades, net, max DD | Pass |
 | UT-BKT-002.060.M05.T02 | MD-BKT-002.008.M05 | Positive | Open run | saved run; unknown id | daily, results, report; no new run row; ValueError | Pass |
+| UT-BKT-002.070.M13.T01 | MD-BKT-002.040.M13 | Positive | Exit and hold stats | 4 trades with MAE / MFE | averages, given back, median and longest hold | Pass |
+| UT-BKT-002.070.M13.T02 | MD-BKT-002.040.M13 | Negative | No trades | empty trades | NaN, no error | Pass |
+| UT-BKT-002.071.M13.T01 | MD-BKT-002.040.M13 | Positive | New groups | ranks 1, 2, 1, 3 | hold, score and rank groups | Pass |
+| UT-BKT-002.071.M13.T02 | MD-BKT-002.040.M13 | Edge | Score quartiles | 8 scores | 4 ranges | Pass |
+| UT-BKT-002.072.M13.T01 | MD-BKT-002.040.M13 | Positive | Robustness repeats | same trades twice | same Monte Carlo; halves add up; top 5 removed | Pass |
+| UT-BKT-002.072.M13.T02 | MD-BKT-002.040.M13 | Negative | No trades | empty trades | NaN drawdown; zero P&L | Pass |
+| UT-BKT-002.073.M13.T01 | MD-BKT-002.040.M13 | Positive | Heat map | 2 capitals × 2 per-trade % | 2 × 2 grid | Pass |
+| UT-BKT-002.073.M13.T02 | MD-BKT-002.040.M13 | Negative | One capital | 1 capital × 2 per-trade % | empty | Pass |
 | UT-BKT-002.019.M07.T01 | MD-BKT-002.010.M07 | Negative | Worker error is plain | screener raises an error that formats its argument | `RuntimeError("2025-03-03: Data for 'SPY' is missing")`; same text after pickling | Pass |
 | UT-BKT-002.017.M05.T01 | MD-BKT-002.008.M05 | Positive | Service run recorded | fake store, preset loader | daily list returned; run row done | Pass |
 | UT-BKT-002.017.M05.T02 | MD-BKT-002.008.M05 | Negative | Service cancel recorded | cancel at once | run row cancelled | Pass |

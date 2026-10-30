@@ -2,6 +2,15 @@
 
 ---
 
+## [20261030] BKT + GUI — Backtest Phase 4b · report extras (FO-BKT-002, FO-GUI-031)
+
+- Type: Feature
+- RN: RN-BKT-1.9.0-20261030, RN-GUI-1.47.0-20261030
+- Artifacts updated: SRD (SRD-BKT-002.070–.073, SRD-GUI-031.046–.048 approved and Implemented; Phase 5 rows .080–.081 / .060–.061 approved), MD notes, UTCD (8 BKT + 3 GUI Pass), TRACE, Code, Tests, RN, TODO T68 Done, DEVLOG
+- Findings: real IT run — 3 h–1 day holds (end-time exits) lost $1,009; under-3 h holds made $462.
+
+---
+
 ## [20261030] GUI + BKT — Backtest redesign phase 3 · Reports (FO-GUI-031, FO-BKT-002)
 
 - Type: Feature

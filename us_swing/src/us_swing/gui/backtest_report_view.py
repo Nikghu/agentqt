@@ -15,6 +15,7 @@ import re
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 from PyQt6.QtCore import QPointF, QRectF, Qt
 from PyQt6.QtGui import QBrush, QColor, QPainter, QPainterPath, QPaintEvent, QPen
@@ -33,7 +34,14 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from us_swing.backtest.steps.report import GROUPS, Report, Stat, breakdown, compare
+from us_swing.backtest.steps.report import (
+    GROUPS,
+    Report,
+    Stat,
+    breakdown,
+    compare,
+    heat_map,
+)
 from us_swing.gui.icons import set_icon
 from us_swing.gui.strategy_pnl_chart import nice_ticks
 from us_swing.gui.theme import C
@@ -43,7 +51,12 @@ _log = logging.getLogger(__name__)
 KPIS = ("Net P&L", "Return", "Max drawdown", "Win rate", "Profit factor", "Trades")
 _SIGNED = ("Net P&L", "Return")
 _GROUP_NAMES = {"strategy": "Strategy", "symbol": "Stock", "sector": "Sector",
-                "exit_reason": "Exit reason", "hour": "Entry hour", "weekday": "Weekday"}
+                "exit_reason": "Exit reason", "hour": "Entry hour", "weekday": "Weekday",
+                "hold": "Hold time", "score_bucket": "Score bucket", "rank": "Rank"}
+RISK_STATS = ("Average MAE", "Average MFE", "Profit given back", "Median hold",
+              "Longest hold", "Monte Carlo drawdown, bad 5%", "Monte Carlo drawdown, median",
+              "Monte Carlo drawdown, good 5%", "First half P&L", "Second half P&L",
+              "P&L without top 5 trades")
 _MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 _AXIS_W = 70
 _AXIS_H = 20
@@ -62,6 +75,8 @@ def fmt(value: float, kind: str) -> str:
         return f"{value:.2f}"
     if kind == "days":
         return f"{value:.0f} days"
+    if kind == "hours":
+        return f"{value:.1f} h"
     return f"{value:,.0f}"
 
 
@@ -266,6 +281,10 @@ class ReportView(QWidget):
         self.compare_table = _table(["Variant"])
         body.addWidget(self.compare_head)
         body.addWidget(self.compare_table, 1)
+        self.heat_head = _head("RETURN BY CAPITAL × PER-TRADE %")
+        self.heat_table = _table(["Capital"])
+        body.addWidget(self.heat_head)
+        body.addWidget(self.heat_table, 1)
         self.set_reports([])
 
     def _kpi(self, name: str) -> QFrame:
@@ -300,8 +319,13 @@ class ReportView(QWidget):
         many = len(self.reports) > 1
         self.compare_head.setVisible(many)
         self.compare_table.setVisible(many)
+        grid = heat_map(self.reports) if many else pd.DataFrame()
+        self.heat_head.setVisible(not grid.empty)
+        self.heat_table.setVisible(not grid.empty)
         if many:
             self._render_compare()
+        if not grid.empty:
+            self._render_heat(grid)
         self._render()
 
     def current(self) -> Report | None:
@@ -372,6 +396,22 @@ class ReportView(QWidget):
             for _, row in table.iterrows()
         ])
 
+    def _render_heat(self, grid: pd.DataFrame) -> None:
+        """Return per capital (rows) and per-trade % (columns) (SRD-GUI-031.048)."""
+        headers = ["Capital", *[f"{c:g}% per trade" for c in grid.columns]]
+        values = grid.to_numpy(dtype=float)
+        self.heat_table.setColumnCount(len(headers))
+        self.heat_table.setHorizontalHeaderLabels(headers)
+        _fill(self.heat_table, [[fmt(cap, "usd"), *[fmt(v, "pct") for v in row]]
+                                for cap, row in zip(grid.index.astype(float), values,
+                                                    strict=True)])
+        scale = float(np.nanmax(np.abs(values))) or 1.0
+        for r, row in enumerate(values):
+            for c, value in enumerate(row, start=1):
+                item = self.heat_table.item(r, c)
+                if item is not None and not math.isnan(value):
+                    item.setBackground(_pnl_brush(value, scale))
+
     def _on_export(self) -> None:
         folder = QFileDialog.getExistingDirectory(self, "Export report")
         if not folder:
@@ -402,3 +442,30 @@ def skips_text(skips: pd.DataFrame) -> str:
     taken = int(counts.pop("entered", 0))
     rest = " · ".join(f"{k.replace('_', ' ')} {int(v)}" for k, v in counts.items())
     return f"Entries taken {taken}" + (f" · skipped: {rest}" if rest else "")
+
+
+class RiskFacts(QWidget):
+    """SRD-GUI-031.046 — MAE, MFE, profit given back, hold time and robustness."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        grid = QGridLayout(self)
+        grid.setContentsMargins(0, 0, 0, 0)
+        grid.setVerticalSpacing(4)
+        self.values: dict[str, QLabel] = {}
+        for row, name in enumerate(RISK_STATS):
+            key = QLabel(name)
+            key.setObjectName("details_key")
+            value = QLabel("—")
+            value.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            grid.addWidget(key, row, 0)
+            grid.addWidget(value, row, 1)
+            self.values[name] = value
+        grid.setRowStretch(len(RISK_STATS), 1)
+
+    def set_report(self, rep: Report | None) -> None:
+        """Show the variant's values, or dashes."""
+        stats = {} if rep is None else {s.name: s for s in rep.stats}
+        for name, label in self.values.items():
+            stat = stats.get(name)
+            label.setText("—" if stat is None else fmt(stat.value, stat.kind))

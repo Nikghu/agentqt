@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.54.0: SRD-GUI-031.046–.048 (Phase 4b) and .060–.061 (Phase 5) added; approved by user 2026-10-30.
 > v2.53.0: SRD-GUI-031.050–.055 added; approved by user 2026-10-30 — Backtest redesign, Dock Panels (option C).
 > v2.52.0: SRD-GUI-031.001–.004, .010–.012 added; approved by user 2026-10-29 — Backtest workspace.
 > v2.51.0: SRD-GUI-030.001–.006 added (Draft) — Backtest data section in Settings (Option A).
@@ -544,6 +545,9 @@
 | SRD-GUI-031.043 | FO-GUI-031 | Must | Breakdown table with a "Group by" picker. | trades | table | — | Implemented |
 | SRD-GUI-031.044 | FO-GUI-031 | Must | A variant picker, plus a compare table when the run has more than one variant. | reports | picker, table | — | Implemented |
 | SRD-GUI-031.045 | FO-GUI-031 | Must | Export trades and stats to CSV. | report | 2 CSV files | — | Implemented |
+| SRD-GUI-031.046 | FO-GUI-031 | Must | Detail Report Risk panel: MAE, MFE, profit given back, hold time and the Phase 4b robustness numbers. | report | facts | SRD-BKT-002.070, .072 | Implemented |
+| SRD-GUI-031.047 | FO-GUI-031 | Must | The Group by picker also has Hold time, Score bucket and Rank. | report | table | SRD-BKT-002.071 | Implemented |
+| SRD-GUI-031.048 | FO-GUI-031 | Should | Compare panel shows the capital × per-trade % return heat map when it applies. | reports | grid | SRD-BKT-002.073 | Implemented |
 
 ### Redesign — Dock Panels (Draft, design https://claude.ai/artifact/9sCtv7L7yPw4WEcsX9xVoX option C)
 
@@ -555,3 +559,5 @@
 | SRD-GUI-031.053 | FO-GUI-031 | Must | Detail Report: the Report panels (.040–.045) plus a Trade list with Trade #, LONG/SHORT pill, times, prices, P&L, P&L %, qty and duration (hrs). | report, trades | panels | User screenshot 2026-10-30; row click opens that day in the Inspector | Implemented |
 | SRD-GUI-031.054 | FO-GUI-031 | Should | Detail Report panels for screener use (picks per day, picks traded) and margin use (deployed and lowest margin per day). | daily list, money rows | charts | — | Implemented |
 | SRD-GUI-031.055 | FO-GUI-031 | Must | Reports: a saved runs table; open a run into the other two sections, rename it, add a note or delete it. | results store | sections filled | No re-run of Step 3; Steps 1–2 from the step cache; delete asks to confirm | Implemented |
+| SRD-GUI-031.060 | FO-GUI-031 | Must | The builder Screener group has a "Use saved screener lists" tick that shows how many saved days the preset has. | preset | plan field | SRD-BKT-002.080 | Approved |
+| SRD-GUI-031.061 | FO-GUI-031 | Should | The Screener screen has a Quick test button that opens Backtest with that preset and saved lists ticked. | click | Backtest screen | — | Approved |

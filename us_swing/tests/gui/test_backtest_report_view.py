@@ -153,3 +153,42 @@ def test_export_error_is_logged(view: ReportView, monkeypatch: pytest.MonkeyPatc
 def test_skips_text_without_skips() -> None:
     """UT-GUI-031.040.M04.T04: Only entries gives no "skipped" part."""
     assert skips_text(pd.DataFrame({"decision": ["entered"], "count": [3]})) == "Entries taken 3"
+
+
+def test_risk_facts(qtbot: Any) -> None:
+    """UT-GUI-031.046.M04.T01: Risk panel shows MAE, hold and robustness; no report shows dashes."""
+    from us_swing.gui.backtest_report_view import RiskFacts
+
+    facts = RiskFacts()
+    qtbot.addWidget(facts)
+    facts.set_report(_report())
+
+    assert facts.values["Median hold"].text() == "1.0 h"
+    assert facts.values["P&L without top 5 trades"].text() == "$0.00"
+    facts.set_report(None)
+    assert facts.values["Average MFE"].text() == "—"
+
+
+def test_new_group_choices(view: ReportView) -> None:
+    """UT-GUI-031.047.M04.T01: Group by offers Hold time, Score bucket and Rank."""
+    view.set_reports([_report()])
+    names = [view.group_pick.itemText(i) for i in range(view.group_pick.count())]
+
+    assert names[-3:] == ["Hold time", "Score bucket", "Rank"]
+    view.group_pick.setCurrentIndex(view.group_pick.findData("hold"))
+    assert view.group_table.item(0, 0).text() == "1–3 h"  # type: ignore[union-attr]
+
+
+def test_heat_map_shown_when_it_applies(view: ReportView) -> None:
+    """UT-GUI-031.048.M04.T01: The heat map shows for 2 capitals × 2 per-trade %, else hides."""
+    from dataclasses import replace
+
+    base = _report()
+    view.set_reports([replace(base, label=f"{c}/{p}", capital=c, per_trade_pct=p)
+                      for c in (1000.0, 2000.0) for p in (50.0, 100.0)])
+
+    assert not view.heat_table.isHidden()
+    assert view.heat_table.rowCount() == 2
+    assert view.heat_table.item(0, 0).text() == "$1,000.00"  # type: ignore[union-attr]
+    view.set_reports([_report("A"), _report("B")])
+    assert view.heat_table.isHidden()

@@ -45,6 +45,8 @@ Cross-tool note: `screener/executor.py` gets a public `PresetExecutor.screen()` 
 | MD-BKT-002.021.M10 | SRD-BKT-002.021 | `us_swing/src/us_swing/core/expr/series.py` | Series evaluator on the 3m timeline | `function_series()`, `evaluate()`, `Evaluation` | `core.expr`, `talib` | No |
 | MD-BKT-002.026.M11 | SRD-BKT-002.026 | `us_swing/src/us_swing/backtest/steps/signals.py` | Step 2 periods per strategy and stock, cache, pool | `load_frames()`, `schedule_mask()`, `periods()`, `signal_key()`, `stocks_for()`, `run_signals()` | `core.expr.series`, `cache`, `store` | Process pool |
 
+Also changed (SRD-BKT-002.070–.073, Phase 4b): `steps/report.py` (MD-BKT-002.040.M13) adds `exit_hold_stats()`, `robustness_stats()` (Monte Carlo 1,000 runs, seed 7), `heat_map()`, groups `hold` / `score_bucket` / `rank`, and `Report.per_trade_pct` (set by `service.build_reports()`).
+
 Also changed (SRD-BKT-002.060): `results.py` adds `note` column (added to old files), `list_reports()`, `rename_run()`, `set_note()`, `delete_run()`; `service.py` adds `SavedReport`, `OpenedRun`, `saved_reports()`, `open_run()` (Steps 1–2 with `record=False`), `rename_run()`, `set_note()`, `delete_run()`.
 
 Also changed (SRD-BKT-001.015, .002.052): `planner.plan()` takes `daily_only` (SPY gets 1d jobs only); `service.estimate()` lists SPY as missing 1d for an RS screener; `service.bars()` reads bars for the Inspector chart.

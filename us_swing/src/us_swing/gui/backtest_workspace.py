@@ -2,7 +2,7 @@
 Module: MD-GUI-031.003.M03 — Backtest workspace
 Parent SRD: SRD-GUI-031.003, SRD-GUI-031.004, SRD-GUI-031.011, SRD-GUI-031.012,
             SRD-GUI-031.021, SRD-GUI-031.022, SRD-GUI-031.023, SRD-GUI-031.031–.034,
-            SRD-GUI-031.040, SRD-GUI-031.044, SRD-GUI-031.050–.055
+            SRD-GUI-031.040, SRD-GUI-031.044, SRD-GUI-031.046, SRD-GUI-031.050–.055
 
 Builder on the left; step strip, data check and the Trade Inspector and Detail
 Report sections on the right.
@@ -43,7 +43,7 @@ from us_swing.core.backtest_bridge import list_presets, load_preset_dict, load_s
 from us_swing.data.models import ConnectionStatus
 from us_swing.gui.backtest_builder import BacktestBuilder
 from us_swing.gui.backtest_dock import DockSection, PanelSpec
-from us_swing.gui.backtest_report_view import ReportView
+from us_swing.gui.backtest_report_view import ReportView, RiskFacts
 from us_swing.gui.backtest_reports import ReportsView
 from us_swing.gui.backtest_trade_chart import TradeChart
 from us_swing.gui.backtest_trade_list import TradeList
@@ -356,11 +356,13 @@ class BacktestWorkspace(QWidget):
         self.screener_use = UsePanel((C.BLUE, C.MUTED), ("Traded", "Not traded"), money=False)
         self.margin_use = UsePanel((C.BLUE, C.TEAL), ("Deployed peak", "Lowest margin left"),
                                    money=True)
+        self.risk = RiskFacts()
         self.detail = DockSection("detail", [
             [PanelSpec("report", "Report", "chart-line", report_scroll)],
             [PanelSpec("tradelist", "Trade list", "list", self.trade_list)],
             [PanelSpec("screener_use", "Screener use", "filter", self.screener_use),
-             PanelSpec("margin_use", "Margin use", "briefcase", self.margin_use)],
+             PanelSpec("margin_use", "Margin use", "briefcase", self.margin_use),
+             PanelSpec("risk", "Risk", "shield", self.risk)],
         ], settings=self._settings)
         self.reports = ReportsView(self._service)
         self.reports.open_requested.connect(self._on_open_saved)
@@ -727,6 +729,7 @@ class BacktestWorkspace(QWidget):
         days = [] if self._daily is None else list(self._daily.days)
         self.screener_use.set_use(screener_use(days, self._shown(), res.trades))
         self.margin_use.set_use(margin_use(res.money))
+        self.risk.set_report(self.report_view.current())
 
     def _open_trade(self, trade: pd.Series) -> None:
         """Open the clicked trade's day in the Inspector with it selected (SRD-GUI-031.053)."""
@@ -809,4 +812,5 @@ class BacktestWorkspace(QWidget):
     def _on_report_done(self, reports: list[Report]) -> None:
         self.set_step(3, "done")
         self.report_view.set_reports(reports)
+        self.risk.set_report(self.report_view.current())
         self.tabs.setCurrentWidget(self.detail)

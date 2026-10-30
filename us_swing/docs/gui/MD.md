@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.39.0: MD-GUI-031.040.M04 adds `RiskFacts`, new Group by names, the heat map table and the `hours` format (SRD-GUI-031.046–.048).
 > v1.38.0: MD-GUI-031.055.M09 added — Backtest saved reports.
 > v1.37.0: MD-GUI-031.053.M07 and MD-GUI-031.054.M08 added — Trade list, screener and margin use.
 > v1.36.0: MD-GUI-031.050.M05 and MD-GUI-031.052.M06 added — Backtest dock panels and trade chart.
