@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.36.0: MD-GUI-031.050.M05 and MD-GUI-031.052.M06 added — Backtest dock panels and trade chart.
 > v1.35.0: MD-GUI-031.* added — Backtest workspace (new `backtest_builder.py`, `backtest_workspace.py`).
 > v1.34.0: MD-GUI-030.* added — Backtest data section (new `backtest_data_panel.py`).
 > v1.33.0: MD-GUI-019.009.M03 added (SRD-GUI-019.009) — `main_window.py` shrinks the sidebar on the right panel click.
@@ -336,4 +337,6 @@ us_swing/src/us_swing/gui/
 | MD-GUI-031.001.M01 | SRD-GUI-031.001 | `us_swing/src/us_swing/gui/main_window.py` | Backtest sidebar item and stack page | `_NAV_ITEMS`, `_WIDE_PAGES` | `backtest_workspace` | No |
 | MD-GUI-031.002.M02 | SRD-GUI-031.002 | `us_swing/src/us_swing/gui/backtest_builder.py` | Left builder that makes the run plan | `BacktestBuilder`, `plan()`, `changed` | `backtest.spec`, `core.backtest_bridge`, `screener_views.ChipGroup` | No |
 | MD-GUI-031.003.M03 | SRD-GUI-031.003 | `us_swing/src/us_swing/gui/backtest_workspace.py` | Step strip, data check, Step 1 run and view | `BacktestWorkspace` | `backtest.service`, `backtest_builder`, `app_service` | Yes (`QThread` workers) |
+| MD-GUI-031.050.M05 | SRD-GUI-031.050 | `us_swing/src/us_swing/gui/backtest_dock.py` | Section of titled panels in rows; right icon strip and ✕ turn panels on/off, kept in QSettings | `DockSection`, `Panel`, `PanelSpec` | `cards`, `icons` | No |
+| MD-GUI-031.052.M06 | SRD-GUI-031.052 | `us_swing/src/us_swing/gui/backtest_trade_chart.py` | Candles of one stock for a session with entry and exit markers | `TradeChart` | `theme`, `strategy_pnl_chart.nice_ticks` | No |
 | MD-GUI-031.040.M04 | SRD-GUI-031.040 | `us_swing/src/us_swing/gui/backtest_report_view.py` | Report tab: KPI row, equity vs benchmark and drawdown chart, all stats, month heat map, breakdown, compare, CSV export | `ReportView`, `ReportChart`, `fmt()`, `skips_text()` | `backtest.steps.report`, `theme` | No |

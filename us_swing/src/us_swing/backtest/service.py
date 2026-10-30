@@ -21,7 +21,7 @@ from us_swing.backtest.cache import StepCache
 from us_swing.backtest.results import ResultsStore
 from us_swing.backtest.spec import Period, RunPlan, Variant
 from us_swing.backtest.steps import portfolio, report, signals, stocks
-from us_swing.backtest.store import BacktestStore
+from us_swing.backtest.store import BacktestStore, StoredTf
 from us_swing.backtest.universe import UniverseRecord, resolve
 
 _log = logging.getLogger(__name__)
@@ -239,6 +239,10 @@ class BacktestService:
             for vid, variant in self._results.list_variants(run_id)
         ]
         return self.build_reports(RunPlan.from_json(run.plan_json), results)
+
+    def bars(self, symbol: str, tf: StoredTf, start: date, end: date) -> pd.DataFrame:
+        """Saved bars of one stock for the Inspector chart (SRD-GUI-031.052)."""
+        return self._store.read(symbol, tf, start, end)
 
     def _closes(self, symbols: Sequence[str], period: Period) -> dict[str, pd.Series]:
         start = period.start - timedelta(days=_BENCHMARK_LOOKBACK_DAYS)

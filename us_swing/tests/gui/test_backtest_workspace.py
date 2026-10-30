@@ -13,7 +13,7 @@ from typing import Any
 
 import pandas as pd
 import pytest
-from PyQt6.QtCore import QObject, Qt, pyqtSignal
+from PyQt6.QtCore import QObject, QSettings, Qt, pyqtSignal
 
 from us_swing.backtest.service import DailyList, Estimate
 from us_swing.backtest.spec import Variant
@@ -78,6 +78,7 @@ class _FakeService:
     def __init__(self, est: Estimate = _EST) -> None:
         self.est = est
         self.runs = 0
+        self.bar_reads: list[tuple[str, str, date, date]] = []
 
     def estimate(self, _plan: Any, _user: str) -> Estimate:
         return self.est
@@ -125,6 +126,12 @@ class _FakeService:
         return [VariantResult(Variant(100.0, ()), trades, log, money),
                 VariantResult(Variant(200.0, ()), trades.iloc[:1], log, money.assign(equity=230.0))]
 
+    def bars(self, symbol: str, tf: str, start: date, end: date) -> pd.DataFrame:
+        self.bar_reads.append((symbol, tf, start, end))
+        ts = pd.date_range("2026-03-03 14:30", periods=8, freq="15min", tz="UTC")
+        return pd.DataFrame({"ts": ts, "open": 10.0, "high": 11.0, "low": 9.0, "close": 10.5,
+                             "volume": 1})
+
     def build_reports(self, _plan: Any, results: list[VariantResult]) -> list[Report]:
         return [build_report(f"${r.variant.capital:,.0f}", r.variant.capital, r.trades, r.money,
                              r.day_log, {"AAPL": "Information Technology"}) for r in results]
@@ -137,10 +144,12 @@ _STRATEGIES = [
 
 
 @pytest.fixture()
-def workspace(qtbot: Any, monkeypatch: pytest.MonkeyPatch) -> BacktestWorkspace:
+def workspace(qtbot: Any, monkeypatch: pytest.MonkeyPatch, tmp_path: Any) -> BacktestWorkspace:
     monkeypatch.setattr(mod, "list_presets", lambda _user: _PRESETS)
     monkeypatch.setattr(mod, "load_strategies", lambda: _STRATEGIES)
-    ws = BacktestWorkspace(_FakeSvc(), service=_FakeService())  # type: ignore[arg-type]
+    settings = QSettings(str(tmp_path / "dock.ini"), QSettings.Format.IniFormat)
+    ws = BacktestWorkspace(_FakeSvc(), service=_FakeService(),  # type: ignore[arg-type]
+                           settings=settings)
     qtbot.addWidget(ws)
     return ws
 
@@ -254,9 +263,9 @@ def test_run_and_view(workspace: BacktestWorkspace, qtbot: Any) -> None:
 
     assert workspace.run_btn.text() == "Run"
     assert workspace.pills[0].text() == "1 Stocks · Done"
-    assert workspace.days_table.rowCount() == 2
-    assert workspace.days_table.item(0, 0).text() == "2026-03-03"  # type: ignore[union-attr]
-    assert workspace.days_table.item(0, 2).text() == "1"  # type: ignore[union-attr]
+    assert workspace.days_table.rowCount() == 3
+    assert workspace.days_table.item(1, 0).text() == "2026-03-03"  # type: ignore[union-attr]
+    assert workspace.days_table.item(1, 2).text() == "1"  # type: ignore[union-attr]
     assert workspace.stocks_table.rowCount() == 1
     assert workspace.stocks_table.item(0, 1).text() == "MSFT"  # type: ignore[union-attr]
 
@@ -269,10 +278,10 @@ def test_session_and_data_day_shown(workspace: BacktestWorkspace, qtbot: Any) ->
     workspace.run_btn.click()
     qtbot.waitUntil(lambda: workspace._runner is None)
 
-    assert workspace.days_table.item(1, 0).text() == "2026-03-02"  # type: ignore[union-attr]
-    assert workspace.days_table.item(1, 1).text() == "2026-02-27"  # type: ignore[union-attr]
+    assert workspace.days_table.item(2, 0).text() == "2026-03-02"  # type: ignore[union-attr]
+    assert workspace.days_table.item(2, 1).text() == "2026-02-27"  # type: ignore[union-attr]
     assert workspace.stocks_head.text().startswith(
-        "STOCKS FOR SESSION 2026-03-03 · DATA UP TO 2026-03-02 CLOSE")
+        "SESSION 2026-03-03 · DATA UP TO 2026-03-02 CLOSE")
 
 
 def _tick_strategy(ws: BacktestWorkspace, index: int) -> None:
@@ -367,12 +376,14 @@ def test_trades_tab(workspace: BacktestWorkspace, qtbot: Any) -> None:
 
 
 def test_day_log_and_money_tabs(workspace: BacktestWorkspace, qtbot: Any) -> None:
-    """UT-GUI-031.033.M03.T01: Day log and Money tabs list their rows."""
+    """UT-GUI-031.033.M03.T01: Day log and Money panels list the day's rows, or all."""
     _run_both(workspace, qtbot)
 
     assert workspace.log_table.rowCount() == 3
-    assert workspace.money_table.rowCount() == 2
+    assert workspace.money_table.rowCount() == 1
     assert workspace.money_table.item(0, 5).text() == "120.00"  # type: ignore[union-attr]
+    workspace.days_table.selectRow(0)
+    assert workspace.money_table.rowCount() == 2
 
 
 def test_run_does_step_4(workspace: BacktestWorkspace, qtbot: Any) -> None:
@@ -380,7 +391,7 @@ def test_run_does_step_4(workspace: BacktestWorkspace, qtbot: Any) -> None:
     _run_both(workspace, qtbot)
 
     assert workspace.pills[3].text() == "4 Report · Done"
-    assert workspace.tabs.tabText(workspace.tabs.currentIndex()) == "Report"
+    assert workspace.tabs.tabText(workspace.tabs.currentIndex()) == "Detail Report"
     assert workspace.report_view.kpi_values["Trades"].text() == "2"
     assert workspace.report_view.kpi_values["Net P&L"].text() == "$20.00"
 
@@ -396,3 +407,49 @@ def test_variant_picker_switches_tabs(workspace: BacktestWorkspace, qtbot: Any) 
 
     assert workspace.trades_table.rowCount() == 1
     assert view.kpi_values["Net P&L"].text() == "$30.00"
+
+
+def test_sections_and_variant_corner(workspace: BacktestWorkspace) -> None:
+    """UT-GUI-031.050.M03.T01: Two section tabs; the variant picker sits by the tabs."""
+    tabs = workspace.tabs
+
+    assert [tabs.tabText(i) for i in range(tabs.count())] == ["Trade Inspector", "Detail Report"]
+    assert tabs.cornerWidget() is workspace.report_view.variant
+
+
+def test_picking_a_day_filters_panels(workspace: BacktestWorkspace, qtbot: Any) -> None:
+    """UT-GUI-031.051.M03.T01: A day with no trades empties Trades, Signals and Decisions."""
+    _run_both(workspace, qtbot)
+
+    workspace.days_table.selectRow(2)  # 2026-03-02
+
+    assert workspace.trades_table.rowCount() == 0
+    assert workspace.signals_table.rowCount() == 0
+    assert workspace.log_table.rowCount() == 0
+    assert workspace.money_table.item(0, 0).text() == "2026-03-02"  # type: ignore[union-attr]
+    assert workspace.chart.message == "No trade on this session"
+
+
+def test_all_sessions_row_totals(workspace: BacktestWorkspace, qtbot: Any) -> None:
+    """UT-GUI-031.051.M03.T02: The All sessions row shows totals; a day with no trade shows —."""
+    _run_both(workspace, qtbot)
+    table = workspace.days_table
+
+    assert table.item(0, 0).text() == "All sessions"  # type: ignore[union-attr]
+    assert table.item(0, 3).text() == "2"  # type: ignore[union-attr]
+    assert table.item(0, 4).text() == "$20.00"  # type: ignore[union-attr]
+    assert table.item(2, 4).text() == "—"  # type: ignore[union-attr]
+
+
+def test_chart_shows_selected_trade(workspace: BacktestWorkspace, qtbot: Any) -> None:
+    """UT-GUI-031.052.M03.T01: The chart reads the trade's stock for its day, 15m first."""
+    _run_both(workspace, qtbot)
+    reads = workspace._service.bar_reads  # type: ignore[attr-defined]
+
+    workspace.trades_table.selectRow(1)  # newest first: row 0 MSFT, row 1 AAPL
+
+    assert reads[-1] == ("AAPL", "15m", date(2026, 3, 3), date(2026, 3, 3))
+    assert list(workspace.chart.trades["symbol"]) == ["AAPL"]
+    assert workspace.chart_head.text() == "AAPL · ST_A · 2026-03-03"
+    workspace.chart_tf.setCurrentText("1d")
+    assert reads[-1][1:3] == ("1d", date(2025, 12, 3))

@@ -2,10 +2,10 @@
 Module: MD-GUI-031.003.M03 — Backtest workspace
 Parent SRD: SRD-GUI-031.003, SRD-GUI-031.004, SRD-GUI-031.011, SRD-GUI-031.012,
             SRD-GUI-031.021, SRD-GUI-031.022, SRD-GUI-031.023, SRD-GUI-031.031–.034,
-            SRD-GUI-031.040, SRD-GUI-031.044
+            SRD-GUI-031.040, SRD-GUI-031.044, SRD-GUI-031.050–.052
 
-Builder on the left; step strip, data check and the Stocks / Signals views on
-the right.
+Builder on the left; step strip, data check and the Trade Inspector and Detail
+Report sections on the right.
 Estimates and runs go to ``BacktestService`` in worker threads.
 """
 from __future__ import annotations
@@ -15,7 +15,7 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
-from PyQt6.QtCore import Qt, QThread, QTimer, pyqtSignal
+from PyQt6.QtCore import QSettings, Qt, QThread, QTimer, pyqtSignal
 from PyQt6.QtGui import QShowEvent
 from PyQt6.QtWidgets import (
     QAbstractItemView,
@@ -42,7 +42,9 @@ from us_swing.backtest.store import BacktestStore
 from us_swing.core.backtest_bridge import list_presets, load_preset_dict, load_strategies
 from us_swing.data.models import ConnectionStatus
 from us_swing.gui.backtest_builder import BacktestBuilder
+from us_swing.gui.backtest_dock import DockSection, PanelSpec
 from us_swing.gui.backtest_report_view import ReportView
+from us_swing.gui.backtest_trade_chart import TradeChart
 from us_swing.gui.cards import GAP, card, gutter
 from us_swing.gui.icons import set_icon
 
@@ -56,6 +58,8 @@ _ESTIMATE_DELAY_MS = 500
 _RUN_TEXT = "Run"
 _ALL = "All strategies"
 _ET = "America/New_York"
+_ALL_DAYS = "All sessions"
+_DAILY_CHART_DAYS = 90
 
 
 class _EstimateWorker(QThread):
@@ -141,12 +145,18 @@ def _head(text: str) -> QLabel:
     return label
 
 
-def _page(head: QLabel, table: QTableWidget) -> QWidget:
+def _note(text: str) -> QLabel:
+    label = QLabel(text)
+    label.setObjectName("details_key")
+    return label
+
+
+def _stack(top: QWidget, table: QTableWidget) -> QWidget:
     box = QWidget()
     body = QVBoxLayout(box)
-    body.setContentsMargins(14, 12, 14, 12)
-    body.setSpacing(8)
-    body.addWidget(head)
+    body.setContentsMargins(0, 0, 0, 0)
+    body.setSpacing(6)
+    body.addWidget(top)
     body.addWidget(table, 1)
     return box
 
@@ -165,6 +175,12 @@ def _usd(value: float) -> str:
 
 def _et(values: pd.Series, fmt: str = "%Y-%m-%d %H:%M") -> list[str]:
     return list(pd.DatetimeIndex(pd.to_datetime(values, utc=True)).tz_convert(_ET).strftime(fmt))
+
+
+def _et_day(values: pd.Series) -> pd.Series:
+    """US/Eastern session date of each timestamp."""
+    times = pd.DatetimeIndex(pd.to_datetime(values, utc=True)).tz_convert(_ET)
+    return pd.Series(times.date, index=values.index)
 
 
 def trades_summary(trades: pd.DataFrame) -> str:
@@ -188,14 +204,15 @@ def _table(headers: list[str]) -> QTableWidget:
 
 
 class BacktestWorkspace(QWidget):
-    """SRD-GUI-031.003–.004, .011–.012, .021–.023 — the Backtest screen."""
+    """SRD-GUI-031.003–.004, .011–.012, .021–.023, .050–.052 — the Backtest screen."""
 
     chart_requested = pyqtSignal(str, str)  # (symbol, timeframe)
 
     def __init__(self, svc: AppService, service: BacktestService | None = None,
-                 parent: QWidget | None = None) -> None:
+                 parent: QWidget | None = None, settings: QSettings | None = None) -> None:
         super().__init__(parent)
         self._svc = svc
+        self._settings = settings or QSettings("USSwing", "BacktestDock")
         self._service = service or BacktestService(
             BacktestStore(), StepCache(), ResultsStore(),
             svc.get_sp500_universe, load_preset_dict, load_strategies,
@@ -207,6 +224,8 @@ class BacktestWorkspace(QWidget):
         self._daily: DailyList | None = None
         self._signals: pd.DataFrame | None = None
         self._results: list[VariantResult] = []
+        self._variant = 0
+        self._day_trades = pd.DataFrame(columns=["symbol", "direction", "entry_ts", "exit_ts"])
 
         gutter(self)
         main = QHBoxLayout(self)
@@ -286,19 +305,14 @@ class BacktestWorkspace(QWidget):
 
     def _build_views(self) -> QWidget:
         self.tabs = QTabWidget()
-        self.tabs.addTab(self._build_step1(), "Stocks")
-        self.tabs.addTab(self._build_step2(), "Signals")
-        self.trades_head = _head("TRADES")
-        self.trades_table = _table(["Strategy", "Symbol", "Side", "Entry", "Entry $", "Shares",
-                                    "Exit", "Exit $", "Reason", "Net P&L"])
-        self.log_table = _table(["Time", "Symbol", "Strategy", "Decision", "Margin left",
-                                 "Strategy deployed"])
-        self.money_table = _table(["Date", "Deployed", "Lowest margin", "Margin at close",
-                                   "Open value", "Equity"])
-        self.tabs.addTab(_page(self.trades_head, self.trades_table), "Trades")
-        self.tabs.addTab(_page(_head("DECISIONS · ENTERED OR WHY SKIPPED"), self.log_table),
-                         "Day log")
-        self.tabs.addTab(_page(_head("MONEY BY DAY"), self.money_table), "Money")
+        self.inspector = DockSection("inspector", [
+            [PanelSpec("chart", "Chart", "chart-candlestick", self._build_chart()),
+             PanelSpec("money", "Money", "briefcase", self._build_money())],
+            [PanelSpec("stocks", "Screener list", "filter", self._build_step1()),
+             PanelSpec("trades", "Trades", "list", self._build_trades())],
+            [PanelSpec("signals", "Signals", "activity", self._build_step2()),
+             PanelSpec("log", "Decisions", "clipboard-list", self._build_log())],
+        ], left=self._build_sessions(), settings=self._settings)
         self.report_view = ReportView()
         self.report_view.variant.currentIndexChanged.connect(self._render_variant)
         report_scroll = QScrollArea()
@@ -306,52 +320,82 @@ class BacktestWorkspace(QWidget):
         report_scroll.setWidgetResizable(True)
         report_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
         self.report_view.setMinimumHeight(980)
-        self.tabs.addTab(report_scroll, "Report")
+        self.detail = DockSection("detail", [
+            [PanelSpec("report", "Report", "chart-line", report_scroll)],
+        ], settings=self._settings)
+        self.tabs.addTab(self.inspector, "Trade Inspector")
+        self.tabs.addTab(self.detail, "Detail Report")
+        self.tabs.setCornerWidget(self.report_view.variant)
         return self.tabs
 
-    def _build_step2(self) -> QWidget:
+    def _build_sessions(self) -> QWidget:
+        box = QWidget()
+        box.setFixedWidth(480)
+        body = QVBoxLayout(box)
+        body.setContentsMargins(12, 8, 12, 10)
+        body.setSpacing(6)
+        body.addWidget(_head("SESSIONS"))
+        self.days_table = _table(["Session", "Data up to", "Picks", "Trades", "Day P&L"])
+        self.days_table.itemSelectionChanged.connect(self._render_day)
+        body.addWidget(self.days_table, 1)
+        return box
+
+    def _build_chart(self) -> QWidget:
         box = QWidget()
         body = QVBoxLayout(box)
-        body.setContentsMargins(14, 12, 14, 12)
-        body.setSpacing(8)
+        body.setContentsMargins(0, 0, 0, 0)
+        top = QHBoxLayout()
+        self.chart_head = _note("")
+        self.chart_tf = QComboBox()
+        self.chart_tf.addItems(["3m", "15m", "1d"])
+        self.chart_tf.setCurrentText("15m")
+        self.chart_tf.setFixedWidth(80)
+        self.chart_tf.currentIndexChanged.connect(self._render_chart)
+        top.addWidget(self.chart_head, 1)
+        top.addWidget(self.chart_tf)
+        body.addLayout(top)
+        self.chart = TradeChart()
+        body.addWidget(self.chart, 1)
+        return box
+
+    def _build_money(self) -> QWidget:
+        self.money_table = _table(["Date", "Deployed", "Lowest margin", "Margin at close",
+                                   "Open value", "Equity"])
+        return self.money_table
+
+    def _build_trades(self) -> QWidget:
+        self.trades_head = _note("TRADES")
+        self.trades_table = _table(["Strategy", "Symbol", "Side", "Entry", "Entry $", "Shares",
+                                    "Exit", "Exit $", "Reason", "Net P&L"])
+        self.trades_table.itemSelectionChanged.connect(self._render_chart)
+        return _stack(self.trades_head, self.trades_table)
+
+    def _build_log(self) -> QWidget:
+        self.log_table = _table(["Time", "Symbol", "Strategy", "Decision", "Margin left",
+                                 "Strategy deployed"])
+        return self.log_table
+
+    def _build_step2(self) -> QWidget:
         self.strategy_filter = QComboBox()
         self.strategy_filter.setFixedWidth(220)
         self.strategy_filter.addItem(_ALL)
         self.strategy_filter.currentIndexChanged.connect(self._render_signals)
-        top = QHBoxLayout()
-        self.signals_head = _head("SIGNAL WINDOWS")
-        top.addWidget(self.signals_head)
-        top.addStretch()
-        top.addWidget(self.strategy_filter)
-        body.addLayout(top)
+        top = QWidget()
+        row = QHBoxLayout(top)
+        row.setContentsMargins(0, 0, 0, 0)
+        self.signals_head = _note("SIGNAL WINDOWS")
+        row.addWidget(self.signals_head, 1)
+        row.addWidget(self.strategy_filter)
         self.signals_table = _table(["Strategy", "Symbol", "Kind", "Start", "End", "Close"])
         self.signals_table.cellDoubleClicked.connect(self._on_signal_double_clicked)
         for col in (3, 4):
             self.signals_table.setColumnWidth(col, 150)
-        body.addWidget(self.signals_table, 1)
-        return box
+        return _stack(top, self.signals_table)
 
     def _build_step1(self) -> QWidget:
-        box = QWidget()
-        body = QVBoxLayout(box)
-        body.setContentsMargins(14, 12, 14, 12)
-        body.setSpacing(8)
-        tables = QHBoxLayout()
-        tables.setSpacing(GAP)
-        self.days_table = _table(["Session", "Data up to", "Stocks"])
-        self.days_table.setFixedWidth(330)
-        self.days_table.itemSelectionChanged.connect(self._render_stocks)
-        self.stocks_table = _table(["Rank", "Symbol", "Score"])
-        left, right = QVBoxLayout(), QVBoxLayout()
-        left.addWidget(_head("SCREENER DAYS"))
-        left.addWidget(self.days_table, 1)
-        self.stocks_head = _head("STOCKS PICKED")
-        right.addWidget(self.stocks_head)
-        right.addWidget(self.stocks_table, 1)
-        tables.addLayout(left)
-        tables.addLayout(right, 1)
-        body.addLayout(tables, 1)
-        return box
+        self.stocks_head = _note("STOCKS FOR SESSION")
+        self.stocks_table = _table(["Rank", "Symbol", "Score", "Session"])
+        return _stack(self.stocks_head, self.stocks_table)
 
     # ── Inputs ────────────────────────────────────────────────────────────────
 
@@ -459,6 +503,7 @@ class BacktestWorkspace(QWidget):
         self.set_step(2, "waiting")
         self.set_step(3, "waiting")
         self._results = []
+        self._variant = 0
         self.report_view.set_reports([])
         runner.start()
 
@@ -477,7 +522,6 @@ class BacktestWorkspace(QWidget):
         self.strategy_filter.setCurrentText(current)
         self.strategy_filter.blockSignals(False)
         self._render_signals()
-        self.tabs.setCurrentIndex(1)
 
     def _running_steps(self) -> list[int]:
         return [i for i in (0, 1, 2, 3) if self.pills[i].property("state") == "downloading"]
@@ -499,49 +543,72 @@ class BacktestWorkspace(QWidget):
         self._render_buttons()
         self._timer.start()
 
-    # ── Step 1 view (SRD-GUI-031.012 / .013) ──────────────────────────────────
+    # ── Inspector (SRD-GUI-031.051, .012 / .013) ──────────────────────────────
 
     def _shown(self) -> pd.DataFrame:
         if self._daily is None:
             return pd.DataFrame(columns=["date", "symbol", "score", "rank"])
         return top_n(self._daily.frame, self.builder.top_n)
 
+    def _result(self) -> VariantResult | None:
+        return self._results[self._variant] if self._variant < len(self._results) else None
+
     def _render_days(self) -> None:
         if self._daily is None:
             return
-        counts = self._shown().groupby("date").size()
+        picks = self._shown().groupby("date").size()
+        res = self._result()
+        trades = res.trades if res is not None else pd.DataFrame(columns=["entry_ts", "net_pnl"])
+        by_day = trades.groupby(_et_day(trades["entry_ts"]))["net_pnl"]
+        counts, pnl = by_day.size(), by_day.sum()
         days = sorted(self._daily.days, reverse=True)
-        selected = self._selected_day()
+        selected, show_all = self._selected_day(), self._all_selected()
+        rows = [(_ALL_DAYS, "", int(picks.sum()), len(trades), float(trades["net_pnl"].sum()))]
+        rows += [(day.isoformat(), self._data_day(day), int(picks.get(day, 0)),
+                  int(counts.get(day, 0)), float(pnl.get(day, 0.0))) for day in days]
         self.days_table.blockSignals(True)
-        self.days_table.setRowCount(len(days))
-        for row, day in enumerate(days):
-            self.days_table.setItem(row, 0, QTableWidgetItem(day.isoformat()))
-            self.days_table.setItem(row, 1, QTableWidgetItem(self._data_day(day)))
-            self.days_table.setItem(row, 2, QTableWidgetItem(str(int(counts.get(day, 0)))))
+        self.days_table.setRowCount(len(rows))
+        for row, (name, data_day, n_picks, n_trades, value) in enumerate(rows):
+            for col, text in enumerate((name, data_day, str(n_picks), str(n_trades),
+                                        _usd(value) if n_trades else "—")):
+                self.days_table.setItem(row, col, QTableWidgetItem(text))
+        self.days_table.resizeColumnsToContents()
+        if show_all or not days:
+            self.days_table.selectRow(0)
+        else:
+            self.days_table.selectRow(days.index(selected) + 1 if selected in days else 1)
         self.days_table.blockSignals(False)
-        keep = days.index(selected) if selected in days else 0
-        if days:
-            self.days_table.selectRow(keep)
-        self._render_stocks()
+        self._render_day()
+
+    def _all_selected(self) -> bool:
+        rows = self.days_table.selectionModel()
+        return rows is not None and any(r.row() == 0 for r in rows.selectedRows())
 
     def _selected_day(self) -> datetime.date | None:
         rows = self.days_table.selectionModel()
         if rows is None or not rows.selectedRows():
             return None
         item = self.days_table.item(rows.selectedRows()[0].row(), 0)
-        return None if item is None else pd.Timestamp(item.text()).date()
+        if item is None or item.text() == _ALL_DAYS:
+            return None
+        return pd.Timestamp(item.text()).date()
 
     def _data_day(self, session: datetime.date) -> str:
         day = None if self._daily is None else self._daily.data_days.get(session)
         return "" if day is None else day.isoformat()
 
+    def _render_day(self) -> None:
+        self._render_stocks()
+        self._render_signals()
+        self._render_results()
+
     def _render_stocks(self) -> None:
         day = self._selected_day()
         frame = self._shown()
-        rows = frame[frame["date"] == day] if day is not None else frame.iloc[0:0]
+        rows = frame[frame["date"] == day] if day is not None else frame
         self.stocks_head.setText(
-            "STOCKS FOR SESSION" if day is None
-            else f"STOCKS FOR SESSION {day.isoformat()} · DATA UP TO {self._data_day(day)} "
+            f"ALL SESSIONS · {len(rows)}" if day is None
+            else f"SESSION {day.isoformat()} · DATA UP TO {self._data_day(day)} "
                  f"CLOSE · {len(rows)}"
         )
         self.stocks_table.setRowCount(len(rows))
@@ -549,8 +616,15 @@ class BacktestWorkspace(QWidget):
             self.stocks_table.setItem(i, 0, QTableWidgetItem(str(rec.rank)))
             self.stocks_table.setItem(i, 1, QTableWidgetItem(str(rec.symbol)))
             self.stocks_table.setItem(i, 2, QTableWidgetItem(f"{rec.score:.2f}"))
+            self.stocks_table.setItem(i, 3, QTableWidgetItem(str(rec.date)))
 
-    # ── Step 2 view (SRD-GUI-031.022 / .023) ──────────────────────────────────
+    def _on_day(self, frame: pd.DataFrame, column: str) -> pd.DataFrame:
+        day = self._selected_day()
+        if day is None or frame.empty:
+            return frame
+        return frame[_et_day(frame[column]) == day]
+
+    # ── Signals (SRD-GUI-031.022 / .023) ──────────────────────────────────────
 
     def _render_signals(self) -> None:
         frame = self._signals
@@ -559,16 +633,13 @@ class BacktestWorkspace(QWidget):
         name = self.strategy_filter.currentText()
         if name and name != _ALL:
             frame = frame[frame["strategy"] == name]
-        frame = frame.sort_values("start", ascending=False)
-        self.signals_head.setText(
-            f"SIGNAL WINDOWS · {len(frame):,} · WHEN ENTRY OR EXIT CONDITION IS TRUE"
-        )
-        starts = pd.DatetimeIndex(frame["start"]).tz_convert(_ET).strftime("%Y-%m-%d %H:%M")
-        ends = pd.DatetimeIndex(frame["end"]).tz_convert(_ET).strftime("%Y-%m-%d %H:%M")
+        frame = self._on_day(frame, "start").sort_values("start", ascending=False)
+        self.signals_head.setText(f"{len(frame):,} WINDOWS WHEN ENTRY OR EXIT CONDITION IS TRUE")
         self.signals_table.setRowCount(len(frame))
         cells: list[list[Any]] = [
             list(frame["strategy"]), list(frame["symbol"]), list(frame["kind"]),
-            list(starts), list(ends), [f"{v:.2f}" for v in frame["close_at_start"]],
+            _et(frame["start"]), _et(frame["end"]),
+            [f"{v:.2f}" for v in frame["close_at_start"]],
         ]
         for col, values in enumerate(cells):
             for row, value in enumerate(values):
@@ -579,23 +650,29 @@ class BacktestWorkspace(QWidget):
         if item is not None:
             self.chart_requested.emit(item.text(), "1d")
 
-    # ── Step 3 views (SRD-GUI-031.031–.034) ───────────────────────────────────
+    # ── Step 3 panels (SRD-GUI-031.031–.034) ──────────────────────────────────
 
     def _on_portfolio_done(self, results: list[VariantResult]) -> None:
         self._results = results
         self.set_step(2, "done")
-        if not results:
-            return
-        self._render_variant(0)
-        self.tabs.setCurrentIndex(2)
+        if results:
+            self._render_variant(0)
 
     def _render_variant(self, index: int) -> None:
-        """Trades, Day log and Money tabs of the picked variant (SRD-GUI-031.044)."""
+        """Show the picked variant in every panel (SRD-GUI-031.044)."""
         if not 0 <= index < len(self._results):
             return
-        res = self._results[index]
-        trades = res.trades.sort_values("entry_ts", ascending=False)
+        self._variant = index
+        self._render_days()
+
+    def _render_results(self) -> None:
+        res = self._result()
+        if res is None:
+            return
+        trades = self._on_day(res.trades, "entry_ts").sort_values("entry_ts", ascending=False)
+        self._day_trades = trades.reset_index(drop=True)
         self.trades_head.setText(trades_summary(trades))
+        self.trades_table.blockSignals(True)
         _fill(self.trades_table, [
             list(trades["strategy"]), list(trades["symbol"]), list(trades["direction"]),
             _et(trades["entry_ts"]), [f"{v:.2f}" for v in trades["entry_px"]],
@@ -603,22 +680,56 @@ class BacktestWorkspace(QWidget):
             [f"{v:.2f}" for v in trades["exit_px"]], list(trades["exit_reason"]),
             [f"{v:,.2f}" for v in trades["net_pnl"]],
         ])
-        log = res.day_log.sort_values("ts", ascending=False)
+        if len(trades):
+            self.trades_table.selectRow(0)
+        self.trades_table.blockSignals(False)
+        log = self._on_day(res.day_log, "ts").sort_values("ts", ascending=False)
         _fill(self.log_table, [
             _et(log["ts"]), list(log["symbol"]), list(log["strategy"]), list(log["decision"]),
             [f"{v:,.2f}" for v in log["margin_available"]],
             [f"{v:,.2f}" for v in log["strategy_deployed"]],
         ])
-        money = res.money.sort_values("date", ascending=False)
+        day = self._selected_day()
+        money = res.money if day is None else res.money[res.money["date"] == day]
+        money = money.sort_values("date", ascending=False)
         _fill(self.money_table, [
             [str(d) for d in money["date"]],
             *[[f"{v:,.2f}" for v in money[c]] for c in
               ("deployed", "margin_min", "margin_close", "open_value", "equity")],
         ])
+        self._render_chart()
+
+    # ── Chart (SRD-GUI-031.052) ───────────────────────────────────────────────
+
+    def _selected_trade(self) -> pd.Series | None:
+        rows = self.trades_table.selectionModel()
+        if rows is None or not rows.selectedRows():
+            return None
+        row = rows.selectedRows()[0].row()
+        return self._day_trades.iloc[row] if row < len(self._day_trades) else None
+
+    def _render_chart(self) -> None:
+        trade = self._selected_trade()
+        if trade is None:
+            self.chart_head.setText("")
+            self.chart.set_data(self.chart.bars.iloc[0:0], self._day_trades.iloc[0:0],
+                                "No trade on this session")
+            return
+        symbol, tf = str(trade["symbol"]), self.chart_tf.currentText()
+        day = _et_day(pd.Series([trade["entry_ts"]])).iloc[0]
+        start = day - datetime.timedelta(days=_DAILY_CHART_DAYS) if tf == "1d" else day
+        try:
+            bars = self._service.bars(symbol, tf, start, day)  # type: ignore[arg-type]
+        except Exception as exc:  # noqa: BLE001 — shown on the chart instead
+            _log.warning("[Backtest] Could not read candles for %s: %s", symbol, exc)
+            bars = self.chart.bars.iloc[0:0]
+        trades = self._day_trades[self._day_trades["symbol"] == symbol]
+        self.chart_head.setText(f"{symbol} · {trade['strategy']} · {day.isoformat()}")
+        self.chart.set_data(bars, trades, f"No {tf} candles saved for {symbol}")
 
     # ── Step 4 view (SRD-GUI-031.040–.045) ────────────────────────────────────
 
     def _on_report_done(self, reports: list[Report]) -> None:
         self.set_step(3, "done")
         self.report_view.set_reports(reports)
-        self.tabs.setCurrentIndex(self.tabs.count() - 1)
+        self.tabs.setCurrentWidget(self.detail)

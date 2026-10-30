@@ -2,6 +2,17 @@
 
 ---
 
+## [20261030] GUI — Backtest redesign phase 1 · Dock Panels + Trade Inspector (FO-GUI-031)
+
+- Type: Feature
+- FO(s): FO-GUI-031
+- RN: RN-GUI-1.44.0-20261030
+- Artifacts updated: FO bullet, SRD (SRD-GUI-031.050–.055 and SRD-BKT-002.060 approved; .050–.052 Implemented), MD (MD-GUI-031.050.M05, MD-GUI-031.052.M06), UTCD (8 new Pass), TRACE, Code, Tests, RN, TODO T69, CONTEXT, DEVLOG
+- Decisions (user 2026-10-30): Dock Panels (option C); minimal rows that reuse the existing tabs as panels.
+- Findings: real run (IT, Price Action, ST_AUTO + ST_AUTO_10_2_SL5%, $2,000) 103 trades, -$499.41; picking a day 1–2 ms including the chart read.
+
+---
+
 ## [20261029] BKT + GUI — Backtest engine Phase 4a · Step 4 Report (FO-BKT-002, FO-GUI-031)
 
 - Type: Feature

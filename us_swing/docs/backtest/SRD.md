@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-29
 **Project:** US Swing Trading System
 
+> v1.6.0: SRD-BKT-002.060 added; approved by user 2026-10-30 — saved reports for the redesign.
 > v1.1.0: SRD-BKT-002.001–.017 added — engine Phase 0 and 1; approved by user 2026-10-29.
 > v1.0.0: SRD-BKT-001.001–.011 added — backtest data store and downloader (Draft, waiting for user approval).
 
@@ -109,3 +110,9 @@
 | SRD-BKT-002.045 | FO-BKT-002 | Must | Capital use: entries taken vs each skip reason, counted from the day log. | day log | counts | — | Implemented |
 | SRD-BKT-002.046 | FO-BKT-002 | Must | Benchmark line over the same days: capital grown by the equal-weight average daily return of the run's stocks. | 1d closes | line | User 2026-10-29: equal weight, no SPY (T64) | Implemented |
 | SRD-BKT-002.047 | FO-BKT-002 | Must | Compare: one row of key stats per variant. | reports | table | — | Implemented |
+
+## FO-BKT-002 — Backtest Engine (Saved reports)
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-BKT-002.060 | FO-BKT-002 | Must | The results store can rename a run, keep a note on it, and delete it with all its rows. | run id | updated or removed run | — | Approved |

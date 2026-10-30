@@ -865,3 +865,11 @@ Test files:
 | UT-GUI-031.044.M03.T01 | MD-GUI-031.003.M03 | Positive | Picker drives tabs | pick 2nd variant | Trades tab and KPIs show variant 2 | Pass |
 | UT-GUI-031.045.M04.T01 | MD-GUI-031.040.M04 | Positive | CSV export | export to folder | stats and trades CSV written | Pass |
 | UT-GUI-031.045.M04.T02 | MD-GUI-031.040.M04 | Negative | Failed export | folder that does not exist | warning logged; app keeps running | Pass |
+| UT-GUI-031.050.M05.T01 | MD-GUI-031.050.M05 | Positive | ✕ hides and is kept | click ✕ on panel A, build again | A hidden, button off, still hidden next time | Pass |
+| UT-GUI-031.050.M05.T02 | MD-GUI-031.050.M05 | Edge | Strip toggles; empty row | turn C off then on | C hidden and its row hidden; both back | Pass |
+| UT-GUI-031.050.M03.T01 | MD-GUI-031.003.M03 | Positive | Sections | open screen | tabs Trade Inspector and Detail Report; variant picker by the tabs | Pass |
+| UT-GUI-031.051.M03.T01 | MD-GUI-031.003.M03 | Negative | Day with no trade | pick 2026-03-02 | Trades, Signals, Decisions empty; Money that day; chart says no trade | Pass |
+| UT-GUI-031.051.M03.T02 | MD-GUI-031.003.M03 | Positive | All sessions row | run with 2 trades | row 0 shows 2 trades and $20.00; no-trade day shows — | Pass |
+| UT-GUI-031.052.M03.T01 | MD-GUI-031.003.M03 | Positive | Chart follows trade | pick AAPL trade, then 1d | reads AAPL 15m for the day; then 1d from 90 days back | Pass |
+| UT-GUI-031.052.M06.T01 | MD-GUI-031.052.M06 | Positive | Markers | short trade on 6 bars | entry bar 1, exit bar 5; chart paints | Pass |
+| UT-GUI-031.052.M06.T02 | MD-GUI-031.052.M06 | Negative | No bars | empty bars; time before first bar | message shown; no index | Pass |
