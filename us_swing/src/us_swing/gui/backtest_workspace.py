@@ -2,7 +2,7 @@
 Module: MD-GUI-031.003.M03 — Backtest workspace
 Parent SRD: SRD-GUI-031.003, SRD-GUI-031.004, SRD-GUI-031.011, SRD-GUI-031.012,
             SRD-GUI-031.021, SRD-GUI-031.022, SRD-GUI-031.023, SRD-GUI-031.031–.034,
-            SRD-GUI-031.040, SRD-GUI-031.044, SRD-GUI-031.046, SRD-GUI-031.050–.055
+            SRD-GUI-031.040, SRD-GUI-031.044, SRD-GUI-031.046, SRD-GUI-031.050–.055, SRD-GUI-031.060–.061
 
 Builder on the left; step strip, data check and the Trade Inspector and Detail
 Report sections on the right.
@@ -164,7 +164,9 @@ def data_check_text(est: Estimate) -> str:
     """One line of counts, then any plan errors on their own lines."""
     line = (f"{len(est.symbols)} stocks · {len(est.missing_1d)} missing 1d · "
             f"{len(est.missing_3m)} missing 3m candles")
-    if est.days_total:
+    if est.days_total and est.recorded:
+        line += f" · saved screener lists for {est.days_cached} of {est.days_total} sessions"
+    elif est.days_total:
         line += f" · Step 1: {est.days_cached} of {est.days_total} days cached"
     return "\n".join([line, *est.errors])
 
@@ -284,6 +286,8 @@ class BacktestWorkspace(QWidget):
         self.builder.changed.connect(self._timer.start)
         # builder → changed → Step 1 view re-filtered by Stocks per day
         self.builder.changed.connect(self._render_days)
+        # builder → changed → saved screener list count (SRD-GUI-031.060)
+        self.builder.changed.connect(self._show_saved_days)
         svc.sp500_updated.connect(self._load_universe)
         svc.backtest_finished.connect(lambda _ok, _msg: self._timer.start())
         svc.feed_status_changed.connect(lambda _s: self._render_buttons())
@@ -491,7 +495,8 @@ class BacktestWorkspace(QWidget):
         self._estimate = est
         self.check_label.setText(data_check_text(est))
         if self._runner is None and self._daily is None:
-            cached = est.days_total > 0 and est.days_cached == est.days_total
+            cached = (not est.recorded and est.days_total > 0
+                      and est.days_cached == est.days_total)
             self.set_step(0, "cached" if cached else "waiting")
         self._render_buttons()
 
@@ -538,6 +543,16 @@ class BacktestWorkspace(QWidget):
             return
         self._top_n = None
         self._start(_RunWorker(self._service, self.builder.plan(), self._user_id(), self))
+
+    def _show_saved_days(self) -> None:
+        pid = self.builder.preset_id
+        self.builder.set_saved_days(self._service.saved_days(pid) if pid else [])
+
+    def quick_test(self, preset_id: str) -> None:
+        """Set up a test on the preset's saved lists over their dates (SRD-GUI-031.061)."""
+        days = self._service.saved_days(preset_id)
+        if days:
+            self.builder.quick_test(preset_id, days[0], days[-1])
 
     def _on_open_saved(self, saved: SavedReport) -> None:
         """Open a saved run in the Inspector and Detail Report (SRD-GUI-031.055)."""

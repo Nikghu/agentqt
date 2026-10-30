@@ -1,7 +1,7 @@
 """
 Module: MD-BKT-002.008.M05 — backtest/service.py
 Parent SRD: SRD-BKT-002.008, SRD-BKT-002.017, SRD-BKT-002.029, SRD-BKT-002.039,
-            SRD-BKT-002.040, SRD-BKT-002.060
+            SRD-BKT-002.040, SRD-BKT-002.060, SRD-BKT-002.080–.081
 
 ``BacktestService``: the one entry point for the GUI, the CLI and (later) MCP.
 Phase 0–4: data check estimate, Step 1 (Stocks), Step 2 (Signals), Step 3 (Portfolio),
@@ -14,6 +14,7 @@ import math
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, TypeVar
 
 import pandas as pd
@@ -21,7 +22,7 @@ import pandas as pd
 from us_swing.backtest.cache import StepCache
 from us_swing.backtest.results import ResultsStore, RunRow
 from us_swing.backtest.spec import Period, RunPlan, Variant
-from us_swing.backtest.steps import portfolio, report, signals, stocks
+from us_swing.backtest.steps import portfolio, recorded, report, signals, stocks
 from us_swing.backtest.store import BacktestStore, StoredTf
 from us_swing.backtest.universe import UniverseRecord, resolve
 
@@ -46,6 +47,7 @@ class Estimate:
     days_total: int
     days_cached: int
     errors: list[str]
+    recorded: bool = False  # days_cached counts sessions with a saved screener list
 
 
 @dataclass(frozen=True)
@@ -86,7 +88,9 @@ class BacktestService:
         records: Callable[[], Sequence[UniverseRecord]],
         presets: PresetLoader,
         strategies: StrategyLoader = tuple,
+        screener_results: Path = recorded.RESULTS_DIR,
     ) -> None:
+        self._screener_results = screener_results
         self._store = store
         self._cache = cache
         self._results = results
@@ -99,6 +103,8 @@ class BacktestService:
         today = today or datetime.now(timezone.utc).date()
         symbols = resolve(plan.universe, self._records())
         errors = plan.validate()
+        if plan.screener.recorded:
+            return self._estimate_recorded(plan, symbols, errors, today)
         preset: dict[str, Any] | None = None
         if plan.screener.preset_id:
             try:
@@ -124,6 +130,29 @@ class BacktestService:
             errors=errors,
         )
 
+    def _estimate_recorded(self, plan: RunPlan, symbols: list[str], errors: list[str],
+                           today: date) -> Estimate:
+        """Data check for saved screener lists: sessions with a list (SRD-BKT-002.081)."""
+        total = with_list = 0
+        if not errors:
+            sessions = list(stocks.sessions(self._store, plan.period, symbols))
+            frame = recorded.load_lists(plan.screener.preset_id, sessions, set(symbols),
+                                        self._screener_results)
+            total, with_list = len(sessions), frame["date"].nunique()
+            if total and not with_list:
+                errors.append("No saved screener list for this preset in the period")
+        return Estimate(
+            symbols=symbols,
+            missing_1d=[s for s in symbols if _misses(self._store, s, "1d", plan.period, today)],
+            missing_3m=[s for s in symbols if _misses(self._store, s, "3m", plan.period, today)],
+            benchmark_ok=self._store.coverage(stocks.BENCHMARK, "1d") is not None,
+            days_total=total, days_cached=with_list, errors=errors, recorded=True,
+        )
+
+    def saved_days(self, preset_id: str) -> list[date]:
+        """Dates of the screener lists the app saved for a preset (SRD-GUI-031.060)."""
+        return recorded.saved_days(preset_id, self._screener_results)
+
     def run_stocks(
         self,
         plan: RunPlan,
@@ -145,6 +174,8 @@ class BacktestService:
             raise ValueError("; ".join(errors))
         records = self._records()
         symbols = resolve(plan.universe, records)
+        if plan.screener.recorded:
+            return self._recorded(plan, lambda _run_id: self._saved_lists(plan, symbols), record)
         caps = {r.symbol: float(cap) for r in records
                 if (cap := getattr(r, "market_cap", None)) is not None}
         preset = self._presets(plan.screener.preset_id, user_id)
@@ -155,6 +186,16 @@ class BacktestService:
         ), record)
         _log.info("[Backtest] Stock lists ready for %d session(s)", len(by_session))
         return DailyList(key, list(by_session), stocks.daily_list(self._cache, key, by_session),
+                         by_session)
+
+    def _saved_lists(self, plan: RunPlan, symbols: list[str]) -> DailyList:
+        """Step 1 from the saved screener lists (SRD-BKT-002.080)."""
+        by_session = stocks.sessions(self._store, plan.period, symbols)
+        frame = recorded.load_lists(plan.screener.preset_id, list(by_session), set(symbols),
+                                    self._screener_results)
+        _log.info("[Backtest] Saved screener lists found for %d of %d session(s)",
+                  frame["date"].nunique(), len(by_session))
+        return DailyList(f"recorded-{plan.screener.preset_id}", list(by_session), frame,
                          by_session)
 
     def run_signals(

@@ -98,6 +98,11 @@ class BacktestBuilder(QWidget):
         self._top_n.setRange(0, _MAX_TOP_N)
         self._top_n.setSpecialValueText("All")
         self._top_n.setFixedWidth(80)
+        self._saved = QCheckBox("Use saved screener lists")
+        self._saved.setToolTip("Test on the lists the app saved for this preset (AI picks "
+                               "included) instead of running the screener again")
+        self._saved_count = QLabel("")
+        self._saved_count.setObjectName("details_key")
         self._ai = QCheckBox("Use AI ranking")
         self._ai.setEnabled(False)
         self._ai.setToolTip("Comes in a later phase")
@@ -132,6 +137,8 @@ class BacktestBuilder(QWidget):
         body.addWidget(_group_label("SCREENER"))
         body.addWidget(self._preset)
         body.addLayout(self._row("Stocks per day", self._top_n))
+        body.addWidget(self._saved)
+        body.addWidget(self._saved_count)
         body.addWidget(self._ai)
         body.addWidget(_group_label("STRATEGIES"))
         body.addWidget(self._strategies)
@@ -151,6 +158,7 @@ class BacktestBuilder(QWidget):
         self._sectors.itemChanged.connect(self.changed)
         self._preset.currentIndexChanged.connect(self.changed)
         self._top_n.valueChanged.connect(self.changed)
+        self._saved.toggled.connect(self.changed)
         self._strategies.itemChanged.connect(self.changed)
         for spin in (self._capital, self._loss, self._commission):
             spin.valueChanged.connect(self.changed)
@@ -264,6 +272,25 @@ class BacktestBuilder(QWidget):
         """Stocks per day; 0 means all."""
         return self._top_n.value()
 
+    @property
+    def preset_id(self) -> str:
+        """The picked screener preset's id."""
+        return str(self._preset.currentData() or "")
+
+    def set_saved_days(self, days: Sequence[datetime.date]) -> None:
+        """Show how many saved lists the preset has (SRD-GUI-031.060)."""
+        self._saved_count.setText(
+            "No saved lists for this preset" if not days
+            else f"{len(days)} saved days · {days[0]} → {days[-1]}")
+
+    def quick_test(self, preset_id: str, first: datetime.date, last: datetime.date) -> None:
+        """S&P 500, the preset, saved lists ticked and their period (SRD-GUI-031.061)."""
+        self._mode.buttons[0].click()
+        self._preset.setCurrentIndex(max(self._preset.findData(preset_id), 0))
+        self._saved.setChecked(True)
+        self._start.setDate(QDate(first.year, first.month, first.day))
+        self._end.setDate(QDate(last.year, last.month, last.day))
+
     def plan(self) -> RunPlan:
         """Return the run plan made from the fields."""
         return RunPlan(
@@ -280,6 +307,7 @@ class BacktestBuilder(QWidget):
                 preset_id=str(self._preset.currentData() or ""),
                 top_n=self._top_n.value(),
                 ai_ranking=self._ai.isChecked(),
+                recorded=self._saved.isChecked(),
             ),
             strategies=self._ticked_strategies(),
             account=AccountSpec(

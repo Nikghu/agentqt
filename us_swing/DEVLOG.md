@@ -2,6 +2,16 @@
 
 ---
 
+## [20261030] BKT + GUI — Backtest Phase 5 · saved screener lists and Quick test (FO-BKT-002, FO-GUI-031)
+
+- Type: Feature
+- RN: RN-BKT-1.10.0-20261030, RN-GUI-1.48.0-20261030
+- Artifacts updated: SRD (SRD-BKT-002.080–.081, SRD-GUI-031.060–.061 Implemented), MD (MD-BKT-002.080.M14 + notes), UTCD (5 BKT + 3 GUI Pass), TRACE, Code, Tests, RN, Engine_plan §0, TODO T71, CONTEXT, DEVLOG
+- Decisions (user 2026-10-30): simple tick in the builder instead of a Screener drawer; run before 09:30 ET trades that day.
+- Findings: Momentun_Price 90 saved days → 74 sessions (weekend and after-open runs merge); ST_AUTO on them 173 trades, -14.9%.
+
+---
+
 ## [20261030] BKT + GUI — Backtest Phase 4b · report extras (FO-BKT-002, FO-GUI-031)
 
 - Type: Feature

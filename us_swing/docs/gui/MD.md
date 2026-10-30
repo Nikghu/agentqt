@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.40.0: Phase 5 — `backtest_builder.py` (M02) saved-lists tick, `set_saved_days()`, `quick_test()`; `backtest_workspace.py` (M03) `quick_test()` and saved-list data check; `screener_panel.py` Quick test button and `main_window.py` wiring (SRD-GUI-031.060–.061).
 > v1.39.0: MD-GUI-031.040.M04 adds `RiskFacts`, new Group by names, the heat map table and the `hours` format (SRD-GUI-031.046–.048).
 > v1.38.0: MD-GUI-031.055.M09 added — Backtest saved reports.
 > v1.37.0: MD-GUI-031.053.M07 and MD-GUI-031.054.M08 added — Trade list, screener and margin use.

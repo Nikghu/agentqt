@@ -891,3 +891,6 @@ Test files:
 | UT-GUI-031.055.M09.T05 | MD-GUI-031.055.M09 | Edge | Plan facts | names mode, no strategy | names, None, costs | Pass |
 | UT-GUI-031.055.M03.T01 | MD-GUI-031.003.M03 | Positive | Open saved run | Stocks per day 1 in builder, saved All | 4 steps Done; Detail tab; 2 trades; 3 picks | Pass |
 | UT-GUI-031.055.M03.T02 | MD-GUI-031.003.M03 | Positive | Reports tab refresh | show Reports tab | list reloaded | Pass |
+| UT-GUI-031.060.M02.T01 | MD-GUI-031.002.M02 | Positive | Saved lists tick | preset without, then with saved days | message; count and range; plan recorded | Pass |
+| UT-GUI-031.060.M03.T01 | MD-GUI-031.003.M03 | Positive | Data check text | recorded estimate 7 of 20 | saved screener lists for 7 of 20 sessions | Pass |
+| UT-GUI-031.061.M03.T01 | MD-GUI-031.003.M03 | Positive | Quick test | preset with saved days; then without | S&P 500, preset, tick, dates; nothing for none | Pass |

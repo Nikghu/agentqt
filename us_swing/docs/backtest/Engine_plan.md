@@ -20,8 +20,8 @@ section for the phase in progress. Update §0 at the end of every session.
 | 1 | Step 1 · Stocks | Approved | Done | Done | OK | see DEVLOG 2026-10-29 |
 | 2 | Step 2 · Signals | Approved | Done | Done | OK | see DEVLOG 2026-10-29 |
 | 3 | Step 3 · Portfolio | Approved | Done | Done | Pending | see DEVLOG 2026-10-29 |
-| 4 | Step 4 · Report | Approved (4a) | Done (4a) | Done (4a) | Pending (4a) | see DEVLOG 2026-10-29 |
-| 5 | Quick test in Screener | Not started | — | — | — | — |
+| 4 | Step 4 · Report | Approved | Done (4a, 4b) | Done (4a, 4b) | Pending | see DEVLOG 2026-10-29, 2026-10-30 |
+| 5 | Quick test in Screener | Approved | Done | Done | Pending | see DEVLOG 2026-10-30 |
 | 6 | MCP tools | Not started | — | — | — | — |
 
 Cell values: `Not started` → `Draft` → `Approved` (docs) / `In progress` → `Done` (code) /

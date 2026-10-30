@@ -3,7 +3,7 @@
 **Document ID:** TRACE-BKT
 **Version:** 1.0.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-10-30 (Phase 4b report extras, SRD-BKT-002.070–.073; RN-BKT-1.9.0)
+**Last Updated:** 2026-10-30 (Phase 5 saved screener lists, SRD-BKT-002.080–.081; RN-BKT-1.10.0)
 
 ---
 
@@ -17,6 +17,7 @@
 | FO-BKT-002 | SRD-BKT-002.030–.039 | DD-BKT-002.030.D01 | MD-BKT-002.030.M12 (+ .007.M04, .008.M05, .009.M06) | UT-BKT-002.030–.039 (16 tests, Pass) | `backtest/steps/portfolio.py`, `backtest/results.py`, `backtest/service.py`, `backtest/cli.py` | Implemented (Phase 3) | RN-BKT-1.4.0-20261029 |
 | FO-BKT-002 | SRD-BKT-002.050 | DD-BKT-002.020.D01 | MD-BKT-002.021.M10 | UT-BKT-002.050.M10.T01–T02 (2 tests, Pass) | `core/expr/series.py` | Implemented (replaces .023) | RN-BKT-1.5.0-20261029 |
 | FO-BKT-002 | SRD-BKT-002.051 | DD-BKT-002.010.D01 | MD-BKT-002.010.M07, .008.M05, .030.M12 | UT-BKT-002.051.M07.T01, UT-BKT-002.051.M12.T01 (2 tests, Pass) | `backtest/steps/stocks.py`, `backtest/steps/portfolio.py`, `backtest/service.py` | Implemented | RN-BKT-1.5.0-20261029 |
+| FO-BKT-002 | SRD-BKT-002.080–.081 | None (small step) | MD-BKT-002.080.M14 (+ .008.M05) | UT-BKT-002.080–.081 (5 tests, Pass) | `backtest/steps/recorded.py`, `backtest/service.py`, `backtest/spec.py` | Implemented (Phase 5) | RN-BKT-1.10.0-20261030 |
 | FO-BKT-002 | SRD-BKT-002.070–.073 | None (stats only) | MD-BKT-002.040.M13 (+ .008.M05) | UT-BKT-002.070–.073.M13 (8 tests, Pass) | `backtest/steps/report.py`, `backtest/service.py` | Implemented (Phase 4b) | RN-BKT-1.9.0-20261030 |
 | FO-BKT-002 | SRD-BKT-002.060 | None (small change) | MD-BKT-002.007.M04, MD-BKT-002.008.M05 | UT-BKT-002.060.M04.T01–T02, M05.T01–T02 (Pass) | `backtest/results.py`, `backtest/service.py` | Implemented | RN-BKT-1.8.0-20261030 |
 | FO-BKT-001 / FO-BKT-002 | SRD-BKT-001.015, SRD-BKT-002.052 | None (small change) | MD-BKT-001.005.M03, MD-BKT-002.008.M05 | UT-BKT-001.015.M03.T01–T02, UT-BKT-002.052.M05.T01–T02 (Pass) | `backtest/planner.py`, `backtest/service.py`, `backtest/steps/stocks.py`, `gui/app_service.py` | Implemented | RN-BKT-1.7.0-20261030 |

@@ -580,6 +580,8 @@ class MainWindow(QMainWindow):
         self._screener_panel.chart_requested.connect(self._on_chart_requested)
         # backtest → chart_requested → Charts screen (SRD-GUI-031.023)
         self._backtest_panel.chart_requested.connect(self._on_chart_requested)
+        # screener → quick_test_requested → Backtest screen on saved lists (SRD-GUI-031.061)
+        self._screener_panel.quick_test_requested.connect(self._on_quick_test)
         # charts → execution_requested → Execution screen (SRD-GUI-026.010)
         self._chart_panel.execution_requested.connect(lambda _symbol: self._go_to(2))
         # ── Status bar widgets ─────────────────────────────────────────────────
@@ -713,6 +715,10 @@ class MainWindow(QMainWindow):
 
     def _on_details_chart(self, symbol: str) -> None:
         self._on_chart_requested(symbol, "1d")
+
+    def _on_quick_test(self, preset_id: str) -> None:
+        self._go_to(4)
+        self._backtest_panel.quick_test(preset_id)
 
     def _on_chart_requested(self, symbol: str, timeframe: str) -> None:
         self._go_to(3)

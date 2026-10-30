@@ -106,6 +106,11 @@
 | UT-BKT-002.072.M13.T02 | MD-BKT-002.040.M13 | Negative | No trades | empty trades | NaN drawdown; zero P&L | Pass |
 | UT-BKT-002.073.M13.T01 | MD-BKT-002.040.M13 | Positive | Heat map | 2 capitals × 2 per-trade % | 2 × 2 grid | Pass |
 | UT-BKT-002.073.M13.T02 | MD-BKT-002.040.M13 | Negative | One capital | 1 capital × 2 per-trade % | empty | Pass |
+| UT-BKT-002.081.M14.T01 | MD-BKT-002.080.M14 | Positive | Trade day | 09:00 ET and 09:52 ET runs | same day; next day | Pass |
+| UT-BKT-002.080.M14.T01 | MD-BKT-002.080.M14 | Positive | Load lists | 3 files, weekend, not passed, outside list | passed in list ranked by score; newer wins | Pass |
+| UT-BKT-002.080.M14.T02 | MD-BKT-002.080.M14 | Negative | Bad and old files | broken JSON; list 2 months early; no folder | left out with a warning; empty | Pass |
+| UT-BKT-002.081.M05.T01 | MD-BKT-002.008.M05 | Positive | Service uses saved lists | 1 saved list in 5 sessions | data check 1 of 5; Step 1 frame from the list | Pass |
+| UT-BKT-002.081.M05.T02 | MD-BKT-002.008.M05 | Negative | No saved list | none in period | plain error | Pass |
 | UT-BKT-002.019.M07.T01 | MD-BKT-002.010.M07 | Negative | Worker error is plain | screener raises an error that formats its argument | `RuntimeError("2025-03-03: Data for 'SPY' is missing")`; same text after pickling | Pass |
 | UT-BKT-002.017.M05.T01 | MD-BKT-002.008.M05 | Positive | Service run recorded | fake store, preset loader | daily list returned; run row done | Pass |
 | UT-BKT-002.017.M05.T02 | MD-BKT-002.008.M05 | Negative | Service cancel recorded | cancel at once | run row cancelled | Pass |

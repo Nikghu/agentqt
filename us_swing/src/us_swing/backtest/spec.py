@@ -56,11 +56,15 @@ class UniverseSpec:
 
 @dataclass(frozen=True)
 class ScreenerSpec:
-    """Screener preset replayed in Step 1; ``top_n`` 0 means all passing stocks."""
+    """Screener preset replayed in Step 1; ``top_n`` 0 means all passing stocks.
+
+    ``recorded`` uses the lists the app saved for the preset instead (SRD-BKT-002.080).
+    """
 
     preset_id: str = ""
     top_n: int = 0
     ai_ranking: bool = False
+    recorded: bool = False
 
 
 @dataclass(frozen=True)
@@ -158,6 +162,7 @@ class RunPlan:
             screener=ScreenerSpec(
                 preset_id=str(s.get("preset_id", "")), top_n=int(s.get("top_n", 0)),
                 ai_ranking=bool(s.get("ai_ranking", False)),
+                recorded=bool(s.get("recorded", False)),
             ),
             strategies=tuple(
                 StrategySpec(

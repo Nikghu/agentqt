@@ -135,6 +135,9 @@ class _FakeService:
     def saved_reports(self) -> list[SavedReport]:
         return []
 
+    def saved_days(self, preset_id: str) -> list[date]:
+        return [date(2026, 5, 1), date(2026, 10, 29)] if preset_id == "p1" else []
+
     def open_run(self, _run_id: str, _user: str, **kw: Any) -> OpenedRun:
         kw["progress"](1, 1)
         daily = self.run_stocks(None, "", progress=lambda *_: None)
@@ -512,3 +515,36 @@ def test_reports_tab_refreshes(workspace: BacktestWorkspace, qtbot: Any) -> None
 
     qtbot.waitUntil(lambda: not workspace.reports._workers)
     assert workspace.reports.count.text().startswith("0 saved run(s)")
+
+
+def test_saved_lists_tick(workspace: BacktestWorkspace) -> None:
+    """UT-GUI-031.060.M02.T01: The tick goes in the plan and the saved days are shown."""
+    builder = workspace.builder
+    builder._preset.setCurrentIndex(builder._preset.findData("p2"))
+    assert builder._saved_count.text() == "No saved lists for this preset"
+
+    builder._preset.setCurrentIndex(builder._preset.findData("p1"))
+    builder._saved.setChecked(True)
+
+    assert builder.plan().screener.recorded
+    assert builder._saved_count.text() == "2 saved days · 2026-05-01 → 2026-10-29"
+
+
+def test_saved_lists_data_check_text() -> None:
+    """UT-GUI-031.060.M03.T01: The data check says how many sessions have a saved list."""
+    est = Estimate(["A"], [], [], True, 20, 7, [], recorded=True)
+
+    assert data_check_text(est).endswith("saved screener lists for 7 of 20 sessions")
+
+
+def test_quick_test(workspace: BacktestWorkspace) -> None:
+    """UT-GUI-031.061.M03.T01: Quick test picks the preset, ticks saved lists, sets dates."""
+    workspace.quick_test("p1")
+    plan = workspace.builder.plan()
+
+    assert (plan.screener.preset_id, plan.screener.recorded) == ("p1", True)
+    assert plan.universe.mode == "sp500"
+    assert (plan.period.start, plan.period.end) == (date(2026, 5, 1), date(2026, 10, 29))
+    workspace.builder._saved.setChecked(False)
+    workspace.quick_test("p2")  # no saved lists: nothing changes
+    assert not workspace.builder.plan().screener.recorded

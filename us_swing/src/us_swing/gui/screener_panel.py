@@ -1732,6 +1732,7 @@ class ScreenerPanel(QWidget):
 
     watchlist_add_requested = pyqtSignal(str)   # preserved — wired in main_window
     chart_requested = pyqtSignal(str, str)      # symbol, timeframe → Charts screen
+    quick_test_requested = pyqtSignal(str)      # preset id → Backtest screen (SRD-GUI-031.061)
 
     def __init__(self, demo: AppService, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -1863,6 +1864,13 @@ class ScreenerPanel(QWidget):
         self._export_btn.setAccessibleName("Export results to CSV")
         self._export_btn.clicked.connect(self._export_csv)
 
+        self._quick_btn = QPushButton("Quick test")
+        set_icon(self._quick_btn, "zap", "neutral", 14)
+        self._quick_btn.setToolTip("Backtest strategies on this preset's saved lists")
+        self._quick_btn.setEnabled(False)
+        self._quick_btn.clicked.connect(
+            lambda: self.quick_test_requested.emit(self._selected_preset_id or ""))
+
         self._run_btn = QPushButton("Run now")
         set_icon(self._run_btn, "play", "inverse", 14)
         self._run_btn.setObjectName("primary_btn")
@@ -1883,6 +1891,7 @@ class ScreenerPanel(QWidget):
         row.addWidget(self._view_switch)
         row.addWidget(self._export_btn)
         row.addSpacing(4)
+        row.addWidget(self._quick_btn)
         row.addWidget(self._run_btn)
         return header
 
@@ -2109,6 +2118,7 @@ class ScreenerPanel(QWidget):
                 self._selected_preset_timeframe = "1d"
                 self._selected_preset = None
         self._run_btn.setEnabled(True)
+        self._quick_btn.setEnabled(True)
         self._update_header()
         self._refresh_date_nav()
         self._refresh_transcript_visibility()

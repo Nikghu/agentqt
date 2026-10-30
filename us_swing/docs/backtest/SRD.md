@@ -134,5 +134,5 @@
 
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
-| SRD-BKT-002.080 | FO-BKT-002 | Must | Step 1 can use the screener lists saved by the app for the preset instead of replaying it: passed stocks ranked by score. | `screener_results/preset_<id>/<date>.json` | daily list | Keeps the real lists, AI picks included | Approved |
-| SRD-BKT-002.081 | FO-BKT-002 | Must | A list run before 09:30 ET trades that day, a later run trades the next session; sessions with no saved list have no picks. | run time | session date | Data check shows how many sessions have a saved list | Approved |
+| SRD-BKT-002.080 | FO-BKT-002 | Must | Step 1 can use the screener lists saved by the app for the preset instead of replaying it: passed stocks ranked by score. | `screener_results/preset_<id>/<date>.json` | daily list | Keeps the real lists, AI picks included | Implemented |
+| SRD-BKT-002.081 | FO-BKT-002 | Must | A list run before 09:30 ET trades that day, a later run trades the next session; sessions with no saved list have no picks. | run time | session date | Data check shows how many sessions have a saved list | Implemented |
