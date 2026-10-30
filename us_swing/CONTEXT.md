@@ -2,12 +2,14 @@
 
 **Document:** CONTEXT.md
 **Project:** us_swing
-**Last Updated:** 2026-10-30 (Session 106)
+**Last Updated:** 2026-10-30 (Session 107)
 **Updated By:** Claude (Opus 5.5)
 
 ---
 
-**Current (Session 106, 2026-10-30):** **Backtest workspace polish (FO-GUI-031; SRD-GUI-031.075–.078; RN-GUI-1.50.0).** Header is a step stepper plus field grid with Hide details (remembered, option A). Trade chart shows candles from before entry to exit, IN / OUT dots, path, price callouts and a P&L · % · sessions badge, candles outside dimmed (option D). Chart title row holds a 3m / 15m / 1D toggle (15m default). Names / Add / Remove suggest S&P 500 symbols. Sessions oldest first with a Screened count; bold axis label fixed. 46 backtest GUI tests pass; ruff and mypy clean on changed files. Commit 55bee515 merged to main via PR #94 (c8fe982e); chore 8aba6ccd pushed to main. **Open (user):** manual check of the Backtest screen in the real app (TODO T73). **Next:** Backtest Phase 6 (MCP) on a new feature branch.
+**Current (Session 107, 2026-10-30):** **Backtest Phase 6 · MCP backtest server (FO-MCP-007; SRD-MCP-007.001–.010; RN-MCP-1.1.0).** Separate stdio server `python -m us_swing.mcp` with 8 `bt_` tools on `BacktestService`, sharing `results.db` with the app; `JobManager` (2 jobs, 30 min limit). 8 MCP tests Pass; real-data estimate OK. Commit 5950a3d4 pushed straight to main at user request (no PR). **Open (user):** register with `claude mcp add us_swing_backtest -e PYTHONPATH=F:\USMarket_Backtesting\us_swing\src -- F:\USMarket_Backtesting\.venv\Scripts\python.exe -m us_swing.mcp` and check in Claude Code (TODO T61). 4 tools deferred (TODO T74). **Next:** that user check; FO-MCP-001..006 stay Draft.
+
+**Previous (Session 106, 2026-10-30):** **Backtest workspace polish (FO-GUI-031; SRD-GUI-031.075–.078; RN-GUI-1.50.0).** Header is a step stepper plus field grid with Hide details (remembered, option A). Trade chart shows candles from before entry to exit, IN / OUT dots, path, price callouts and a P&L · % · sessions badge, candles outside dimmed (option D). Chart title row holds a 3m / 15m / 1D toggle (15m default). Names / Add / Remove suggest S&P 500 symbols. Sessions oldest first with a Screened count; bold axis label fixed. 46 backtest GUI tests pass; ruff and mypy clean on changed files. Commit 55bee515 merged to main via PR #94 (c8fe982e); chore 8aba6ccd pushed to main. **Open (user):** manual check of the Backtest screen in the real app (TODO T73). **Next:** Backtest Phase 6 (MCP) on a new feature branch.
 
 **Previous (Session 105, 2026-10-30):** **Backtest redesign phase 1 · Dock Panels + Trade Inspector (SRD-GUI-031.050–.052; RN-GUI-1.44.0).** User picked option C (https://claude.ai/artifact/9sCtv7L7yPw4WEcsX9xVoX) and approved a minimal set: SRD-GUI-031.050–.055, SRD-BKT-002.060. Result area is now Trade Inspector + Detail Report tabs of panels (right icon strip and ✕, kept in QSettings); Sessions list with All row; picking a day filters Screener list, Signals, Trades, Decisions, Money; new QPainter Chart panel with entry/exit markers. 38 backtest GUI tests pass; real-window check OK (day pick 2 ms). Branch feat/backtest-phase0, not pushed. **Next:** phase 2 Detail Report (Trade list, screener and margin panels, SRD-GUI-031.053–.054), then phase 3 Reports (SRD-GUI-031.055, SRD-BKT-002.060) (TODO T69). Phase 2 Detail Report also done (Trade list with click to Inspector, Screener use, Margin use; SRD-GUI-031.053–.054; RN-GUI-1.45.0); Phase 3 Reports also done (saved runs table, open / rename / note / delete; SRD-GUI-031.055, SRD-BKT-002.060; RN-GUI-1.46.0, RN-BKT-1.8.0); redesign complete, user check pending. Phase 4b report extras (RN-BKT-1.9.0, RN-GUI-1.47.0) and Phase 5 saved screener lists + Quick test (RN-BKT-1.10.0, RN-GUI-1.48.0) also done; next Phase 6 MCP (needs MCP server first) or PR. Setup moved to its own window (C1 cards, SRD-GUI-031.070–.074, RN-GUI-1.49.0). Also: SPY daily candles now downloaded for the RS rule (SRD-BKT-001.015, .002.052; RN-BKT-1.7.0); user to press Download with TWS on (T70).
 
@@ -457,6 +459,7 @@ Previous (Session 87, 2026-10-23): **Accumulation / Distribution screener (Featu
 | MD | `docs/mcp/MD.md` | Draft v1.0.0 | 6 modules: server, data_tools, screener_tools, analysis_tools, execution_tools, health_tools |
 | UTCD | `docs/mcp/UTCD.md` | Draft v1.0.0 | 20 tests across all tool modules |
 | TRACE | `docs/mcp/TRACE.md` | Draft v1.0.0 | Full forward/reverse trace |
+| Backtest MCP (FO-MCP-007) | `src/us_swing/mcp/` | Implemented, commit 5950a3d4 on main | SRD-MCP-007.001–.010 Implemented; 8 UT Pass; user check pending (TODO T61) |
 
 ---
 

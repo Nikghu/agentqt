@@ -2,6 +2,16 @@
 
 ---
 
+## [20261030] MCP — Backtest MCP server over stdio, 8 tools (FO-MCP-007)
+
+- Type: Feature
+- FO(s): FO-MCP-007
+- RN: RN-MCP-1.1.0-20261030
+- Artifacts updated: SRD (SRD-MCP-007.001–.010 Implemented), MD (MD-MCP-007.001.M01, .004.M02), UTCD (8 Pass), TRACE, Code, Tests, RN, Engine_plan §0, TODO T61 and T74, CONTEXT, DEVLOG
+- Decisions (user 2026-10-30): backtest-only stdio server as its own process (not in the app); core 8 tools, 4 deferred; empty user_id = first saved user. Commit 5950a3d4 pushed straight to main (no PR).
+
+---
+
 ## [20261030] GUI — Backtest workspace polish: header, trade chart, chart toggle, name suggestions (FO-GUI-031)
 
 - Type: Feature

@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-10-30 (Session 106)
+**Last Updated:** 2026-10-30 (Session 107)
 
 ---
 
@@ -70,7 +70,7 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T58 | GUI — KPI strip minimum width is its full text width; very long values could still push the maximized window past the screen with a right panel open (ISS-GUI-0010 note). | `gui/dashboard_tiles.py` | Low | Open |
 | T59 | BKT/GUI — Backtest data store + Settings section (FO-BKT-001, FO-GUI-030): tested on real TWS by user, follow-up fixes and Option D panel done; PR opened. Pending: user checks Option D, then merge. | `backtest/`, `gui/backtest_data_panel.py` | High | Open |
 | T60 | GUI — screen freeze seen again 28–29 Oct (source run). 3-min py-spy: no stall over 0.5 s; Charts SourceList rebuilds every 250 ms while open. Waiting for user details: symptom, time, screen. | `gui/chart_source_list.py` | High | Open — needs user details |
-| T61 | BKT/GUI — Backtest engine, 7 phases (Foundation, Stocks, Signals, Portfolio, Report, Screener quick test, MCP). Plan + status: `docs/backtest/Engine_plan.md` §0. Phase 0–3 done 2026-10-29 (RN-BKT-1.2.0–1.4.0, RN-GUI-1.39.0–1.41.0). Next: user check of Step 3, then Phase 4 (Report) SRDs. | `backtest/`, `gui/` | High | Open — Phase 4 next |
+| T61 | BKT/GUI — Backtest engine, 7 phases. Plan + status: `docs/backtest/Engine_plan.md` §0. Phases 0–5 done; Phase 6 MCP done 2026-10-30 (FO-MCP-007, RN-MCP-1.1.0). Next: user checks Backtest screens and the MCP server in Claude Code (not yet registered). | `backtest/`, `gui/`, `mcp/` | High | Open — user check pending |
 | T62 | BKT/EXE/GUI — Closed-bar and session-date fixes: strategy PRICE reads closed bars (SRD-BKT-002.050); live frames drop the forming bar (SRD-EXE-006.014); Step 1 lists keyed by session date (SRD-BKT-002.051, SRD-GUI-031.013). RN-BKT-1.5.0, RN-EXE-1.38.0, RN-GUI-1.42.0. | `backtest/`, `core/expr/`, `execution/`, `gui/` | High | Done |
 | T63 | EXE/BKT — ST_AUTO uses Price('Spot','Last','close','15m') but SUPERTREND reads the last closed bar. `Last` is now one bar older. Fixed 2026-10-29: user chose closed candles only; ST_AUTO entry and exit now use `current`. | `execution/` (ST_AUTO preset) | High | Done |
 | T64 | BKT — Phase 4 benchmark. User chose equal-weight average daily return of the run's stocks, no SPY. Built in Phase 4a (SRD-BKT-002.046, RN-BKT-1.6.0). | `backtest/steps/report.py` | Medium | Done |
@@ -83,3 +83,4 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T71 | BKT/GUI — Phase 5 saved screener lists + Quick test done (SRD-BKT-002.080–.081, SRD-GUI-031.060–.061; RN-BKT-1.10.0, RN-GUI-1.48.0). User check pending; real-window check added a run named "Quick test check" to Reports. Next: Phase 6 MCP (needs MCP server first). | `backtest/steps/recorded.py`, `gui/` | Medium | Done — user check pending |
 | T72 | GUI — Backtest setup window C1 done (SRD-GUI-031.070–.074, RN-GUI-1.49.0); left builder removed. User check pending. | `gui/backtest_setup.py`, `gui/backtest_builder.py` | Medium | Done — user check pending |
 | T73 | GUI — Backtest polish done (SRD-GUI-031.075–.078, RN-GUI-1.50.0): header stepper and fields, trade chart IN/OUT path, 3m/15m/1D toggle, S&P 500 name suggestions. User check pending. | `gui/backtest_header.py`, `gui/backtest_trade_chart.py`, `gui/backtest_builder.py` | Medium | Done — user check pending |
+| T74 | MCP — 4 deferred backtest tools (FO-MCP-007 scope): bt_validate_rule, bt_quick_from_screener, bt_day_log, bt_breakdown. Build only if the user asks. | `mcp/backtest_tools.py` | Low | Open |

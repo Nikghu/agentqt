@@ -1,6 +1,6 @@
 # Engine_plan — Backtest Engine (Stocks → Signals → Portfolio → Report)
 
-**Status:** Phase 0 to 3 done (code); Phase 4a done (code); Phase 4b and 5 next
+**Status:** Phase 0 to 6 done (code); user checks pending for Phases 3 to 6
 **Tool:** BKT (engine) + GUI (Backtest workspace) + MCP (last)
 **Author:** USSwing
 **Created:** 2026-10-29
@@ -22,7 +22,7 @@ section for the phase in progress. Update §0 at the end of every session.
 | 3 | Step 3 · Portfolio | Approved | Done | Done | Pending | see DEVLOG 2026-10-29 |
 | 4 | Step 4 · Report | Approved | Done (4a, 4b) | Done (4a, 4b) | Pending | see DEVLOG 2026-10-29, 2026-10-30 |
 | 5 | Quick test in Screener | Approved | Done | Done | Pending | see DEVLOG 2026-10-30 |
-| 6 | MCP tools | Approved (FO-MCP-007, SRD-MCP-007.001–.010) | Done | — (no GUI) | Pending | — |
+| 6 | MCP tools | Approved (FO-MCP-007, SRD-MCP-007.001–.010) | Done | — (no GUI) | Pending | 5950a3d4 |
 
 Cell values: `Not started` → `Draft` → `Approved` (docs) / `In progress` → `Done` (code) /
 `Pending` → `OK` (user check) / commit hash.
