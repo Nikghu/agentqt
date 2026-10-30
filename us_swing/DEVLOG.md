@@ -2,6 +2,16 @@
 
 ---
 
+## [20261030] GUI — Backtest workspace polish: header, trade chart, chart toggle, name suggestions (FO-GUI-031)
+
+- Type: Feature
+- FO(s): FO-GUI-031
+- RN: RN-GUI-1.50.0-20261030
+- Artifacts updated: SRD (SRD-GUI-031.075–.078 Implemented), MD (MD-GUI-031.075.M11 new; .052.M06, .050.M05, .003.M03, .002.M02 notes), UTCD (UT-GUI-031.075.M11.T01, .052.M06.T03–T05, .078.M02.T01 Pass), TRACE, Code, Tests, RN, TODO T73, CONTEXT, DEVLOG
+- Decisions (user 2026-10-30): header option A (stepper and field grid, Hide details remembered); trade chart option D (path with P&L badge); chart toggle 15m default in title row; sessions oldest first with Screened count.
+
+---
+
 ## [20261030] GUI — Backtest setup window, option C1 (FO-GUI-031)
 
 - Type: Feature

@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-10-29 (Session 103)
+**Last Updated:** 2026-10-30 (Session 106)
 
 ---
 
@@ -82,3 +82,4 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T70 | BKT — SPY for the RS rule (SRD-BKT-001.015, SRD-BKT-002.052, RN-BKT-1.7.0). User to press Download with TWS on, then run Momentun_Price and check RS picks. | `backtest/planner.py`, `gui/app_service.py` | High | Open — user TWS check |
 | T71 | BKT/GUI — Phase 5 saved screener lists + Quick test done (SRD-BKT-002.080–.081, SRD-GUI-031.060–.061; RN-BKT-1.10.0, RN-GUI-1.48.0). User check pending; real-window check added a run named "Quick test check" to Reports. Next: Phase 6 MCP (needs MCP server first). | `backtest/steps/recorded.py`, `gui/` | Medium | Done — user check pending |
 | T72 | GUI — Backtest setup window C1 done (SRD-GUI-031.070–.074, RN-GUI-1.49.0); left builder removed. User check pending. | `gui/backtest_setup.py`, `gui/backtest_builder.py` | Medium | Done — user check pending |
+| T73 | GUI — Backtest polish done (SRD-GUI-031.075–.078, RN-GUI-1.50.0): header stepper and fields, trade chart IN/OUT path, 3m/15m/1D toggle, S&P 500 name suggestions. User check pending. | `gui/backtest_header.py`, `gui/backtest_trade_chart.py`, `gui/backtest_builder.py` | Medium | Done — user check pending |
