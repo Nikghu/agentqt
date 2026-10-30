@@ -45,6 +45,8 @@ Cross-tool note: `screener/executor.py` gets a public `PresetExecutor.screen()` 
 | MD-BKT-002.021.M10 | SRD-BKT-002.021 | `us_swing/src/us_swing/core/expr/series.py` | Series evaluator on the 3m timeline | `function_series()`, `evaluate()`, `Evaluation` | `core.expr`, `talib` | No |
 | MD-BKT-002.026.M11 | SRD-BKT-002.026 | `us_swing/src/us_swing/backtest/steps/signals.py` | Step 2 periods per strategy and stock, cache, pool | `load_frames()`, `schedule_mask()`, `periods()`, `signal_key()`, `stocks_for()`, `run_signals()` | `core.expr.series`, `cache`, `store` | Process pool |
 
+Also changed (SRD-BKT-002.060): `results.py` adds `note` column (added to old files), `list_reports()`, `rename_run()`, `set_note()`, `delete_run()`; `service.py` adds `SavedReport`, `OpenedRun`, `saved_reports()`, `open_run()` (Steps 1–2 with `record=False`), `rename_run()`, `set_note()`, `delete_run()`.
+
 Also changed (SRD-BKT-001.015, .002.052): `planner.plan()` takes `daily_only` (SPY gets 1d jobs only); `service.estimate()` lists SPY as missing 1d for an RS screener; `service.bars()` reads bars for the Inspector chart.
 
 Also changed: `core/backtest_bridge.py` (MD-BKT-002.011.M08) adds `load_strategies()`; `backtest/service.py` (MD-BKT-002.008.M05) adds `run_signals()`; `backtest/cli.py` (MD-BKT-002.009.M06) runs Step 2.

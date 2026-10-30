@@ -118,4 +118,4 @@
 
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
-| SRD-BKT-002.060 | FO-BKT-002 | Must | The results store can rename a run, keep a note on it, and delete it with all its rows. | run id | updated or removed run | — | Approved |
+| SRD-BKT-002.060 | FO-BKT-002 | Must | The results store can rename a run, keep a note on it, and delete it with all its rows. | run id | updated or removed run | — | Implemented |

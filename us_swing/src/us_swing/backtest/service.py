@@ -1,7 +1,7 @@
 """
 Module: MD-BKT-002.008.M05 — backtest/service.py
 Parent SRD: SRD-BKT-002.008, SRD-BKT-002.017, SRD-BKT-002.029, SRD-BKT-002.039,
-            SRD-BKT-002.040
+            SRD-BKT-002.040, SRD-BKT-002.060
 
 ``BacktestService``: the one entry point for the GUI, the CLI and (later) MCP.
 Phase 0–4: data check estimate, Step 1 (Stocks), Step 2 (Signals), Step 3 (Portfolio),
@@ -18,7 +18,7 @@ from typing import Any, TypeVar
 import pandas as pd
 
 from us_swing.backtest.cache import StepCache
-from us_swing.backtest.results import ResultsStore
+from us_swing.backtest.results import ResultsStore, RunRow
 from us_swing.backtest.spec import Period, RunPlan, Variant
 from us_swing.backtest.steps import portfolio, report, signals, stocks
 from us_swing.backtest.store import BacktestStore, StoredTf
@@ -131,6 +131,7 @@ class BacktestService:
         workers: int = 4,
         progress: stocks.Progress | None = None,
         cancel: stocks.Cancel | None = None,
+        record: bool = True,
     ) -> DailyList:
         """Run Step 1 and record the run (SRD-BKT-002.017).
 
@@ -150,7 +151,7 @@ class BacktestService:
         key, by_session = self._recorded(plan, lambda _run_id: stocks.run_stocks(
             plan, preset, symbols, self._store, self._cache, caps,
             workers=workers, progress=progress, cancel=cancel,
-        ))
+        ), record)
         _log.info("[Backtest] Stock lists ready for %d session(s)", len(by_session))
         return DailyList(key, list(by_session), stocks.daily_list(self._cache, key, by_session),
                          by_session)
@@ -163,6 +164,7 @@ class BacktestService:
         workers: int = 4,
         progress: stocks.Progress | None = None,
         cancel: stocks.Cancel | None = None,
+        record: bool = True,
     ) -> pd.DataFrame:
         """Run Step 2 on Step 1's list and record the run (SRD-BKT-002.029).
 
@@ -174,7 +176,7 @@ class BacktestService:
         frame = self._recorded(plan, lambda _run_id: signals.run_signals(
             plan.period, chosen, daily.frame, plan.screener.top_n, self._store, self._cache,
             workers=workers, progress=progress, cancel=cancel,
-        ))
+        ), record)
         _log.info("[Backtest] Found %d signal period(s) for %d strategy(ies)",
                   len(frame), len(chosen))
         return frame
@@ -225,6 +227,62 @@ class BacktestService:
                                            res.trades, res.money, res.day_log, sectors, bench))
         return out
 
+    def saved_results(self, run_id: str) -> list[portfolio.VariantResult]:
+        """Step 3 rows of a saved run, one per variant, in order."""
+        return [
+            portfolio.VariantResult(variant, self._results.read_table("trades", vid),
+                                    self._results.read_table("day_log", vid),
+                                    self._results.read_table("money_daily", vid))
+            for vid, variant in self._results.list_variants(run_id)
+        ]
+
+    def saved_reports(self) -> list[SavedReport]:
+        """Saved runs with Step 3 results, newest first, with their first variant's numbers."""
+        out = []
+        for run in self._results.list_reports():
+            variants = self._results.list_variants(run.run_id)
+            vid, variant = variants[0]
+            trades = self._results.read_table("trades", vid)
+            equity = self._results.read_table("money_daily", vid)["equity"].astype(float)
+            net = float(trades["net_pnl"].astype(float).sum())
+            dd = float((equity / equity.cummax() - 1.0).min()) if len(equity) else 0.0
+            out.append(SavedReport(run, RunPlan.from_json(run.plan_json), len(trades), net,
+                                   net / variant.capital, dd))
+        return out
+
+    def open_run(self, run_id: str, user_id: str, *, workers: int = 4,
+                 progress: stocks.Progress | None = None,
+                 cancel: stocks.Cancel | None = None) -> OpenedRun:
+        """Read a saved run back: Steps 1–2 from the step cache, Step 3 from ``results.db``.
+
+        Raises:
+            ValueError: the run id is unknown.
+        """
+        run = self._results.get_run(run_id)
+        if run is None:
+            raise ValueError(f"No saved run {run_id}")
+        plan = RunPlan.from_json(run.plan_json)
+        daily = self.run_stocks(plan, user_id, workers=workers, progress=progress,
+                                cancel=cancel, record=False)
+        found = (self.run_signals(plan, daily, workers=workers, progress=progress,
+                                  cancel=cancel, record=False)
+                 if plan.strategies else None)
+        results = self.saved_results(run_id)
+        return OpenedRun(plan, daily, found, results, self.build_reports(plan, results))
+
+    def rename_run(self, run_id: str, name: str) -> None:
+        """Rename a saved run (SRD-BKT-002.060)."""
+        self._results.rename_run(run_id, name)
+
+    def set_note(self, run_id: str, note: str) -> None:
+        """Save a note on a run (SRD-BKT-002.060)."""
+        self._results.set_note(run_id, note)
+
+    def delete_run(self, run_id: str) -> None:
+        """Delete a saved run and all its rows (SRD-BKT-002.060)."""
+        self._results.delete_run(run_id)
+        _log.info("[Backtest] Saved run deleted")
+
     def report_for_run(self, run_id: str) -> list[report.Report]:
         """Step 4 from a saved run's rows in ``results.db``, without running Steps 1–3.
 
@@ -234,13 +292,7 @@ class BacktestService:
         run = self._results.get_run(run_id)
         if run is None:
             raise ValueError(f"No saved run {run_id}")
-        results = [
-            portfolio.VariantResult(variant, self._results.read_table("trades", vid),
-                                    self._results.read_table("day_log", vid),
-                                    self._results.read_table("money_daily", vid))
-            for vid, variant in self._results.list_variants(run_id)
-        ]
-        return self.build_reports(RunPlan.from_json(run.plan_json), results)
+        return self.build_reports(RunPlan.from_json(run.plan_json), self.saved_results(run_id))
 
     def bars(self, symbol: str, tf: StoredTf, start: date, end: date) -> pd.DataFrame:
         """Saved bars of one stock for the Inspector chart (SRD-GUI-031.052)."""
@@ -266,8 +318,10 @@ class BacktestService:
                                        for m in missing))
         return [dict(live[s.id]) for s in plan.strategies]
 
-    def _recorded(self, plan: RunPlan, work: Callable[[str], _T]) -> _T:
+    def _recorded(self, plan: RunPlan, work: Callable[[str], _T], record: bool = True) -> _T:
         """Run ``work(run_id)`` inside a results row: done, cancelled or failed."""
+        if not record:
+            return work("")
         run_id = self._results.start_run(plan, datetime.now(timezone.utc))
         status, message = "failed", ""
         try:
@@ -282,6 +336,39 @@ class BacktestService:
         finally:
             self._results.finish_run(run_id, status, datetime.now(timezone.utc), message)
         return result
+
+
+@dataclass(frozen=True)
+class SavedReport:
+    """One saved run for the Reports table: key numbers of its first variant."""
+
+    run: RunRow
+    plan: RunPlan
+    trades: int
+    net_pnl: float
+    return_pct: float
+    max_dd_pct: float
+
+
+@dataclass(frozen=True)
+class OpenedRun:
+    """A saved run read back for the Inspector and Detail Report (SRD-GUI-031.055)."""
+
+    plan: RunPlan
+    daily: DailyList
+    signals: pd.DataFrame | None
+    results: list[portfolio.VariantResult]
+    reports: list[report.Report]
+
+
+def stocks_text(plan: RunPlan) -> str:
+    """Short text for the run's stocks: "S&P 500", the sectors or the names."""
+    uni = plan.universe
+    if uni.mode == "sector":
+        return ", ".join(uni.sectors) or "No sector"
+    if uni.mode == "names":
+        return ", ".join(uni.names[:5]) + (" …" if len(uni.names) > 5 else "")
+    return "S&P 500"
 
 
 def variant_label(variant: Variant) -> str:

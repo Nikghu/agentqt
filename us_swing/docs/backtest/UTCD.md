@@ -94,6 +94,10 @@
 | UT-BKT-002.018.M05.T01 | MD-BKT-002.008.M05 | Negative | Data check shows the RS message | estimate with RS preset | one error; 0 days | Pass |
 | UT-BKT-002.052.M05.T01 | MD-BKT-002.008.M05 | Positive | RS asks for SPY | RS preset, no SPY | SPY in missing 1d; message says press Download | Pass |
 | UT-BKT-002.052.M05.T02 | MD-BKT-002.008.M05 | Negative | No RS, no SPY needed | RSI preset | SPY not in missing 1d | Pass |
+| UT-BKT-002.060.M04.T01 | MD-BKT-002.007.M04 | Positive | Rename and note | old file without note column | column added; name and note saved | Pass |
+| UT-BKT-002.060.M04.T02 | MD-BKT-002.007.M04 | Negative | Delete | 2 runs, delete 1; empty file | run and its rows gone; other kept; no error | Pass |
+| UT-BKT-002.060.M05.T01 | MD-BKT-002.008.M05 | Positive | Saved reports list | 1 run with Step 3, 1 Step 1 row | only the first; trades, net, max DD | Pass |
+| UT-BKT-002.060.M05.T02 | MD-BKT-002.008.M05 | Positive | Open run | saved run; unknown id | daily, results, report; no new run row; ValueError | Pass |
 | UT-BKT-002.019.M07.T01 | MD-BKT-002.010.M07 | Negative | Worker error is plain | screener raises an error that formats its argument | `RuntimeError("2025-03-03: Data for 'SPY' is missing")`; same text after pickling | Pass |
 | UT-BKT-002.017.M05.T01 | MD-BKT-002.008.M05 | Positive | Service run recorded | fake store, preset loader | daily list returned; run row done | Pass |
 | UT-BKT-002.017.M05.T02 | MD-BKT-002.008.M05 | Negative | Service cancel recorded | cancel at once | run row cancelled | Pass |

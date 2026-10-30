@@ -2,7 +2,7 @@
 Module: MD-GUI-031.003.M03 — Backtest workspace
 Parent SRD: SRD-GUI-031.003, SRD-GUI-031.004, SRD-GUI-031.011, SRD-GUI-031.012,
             SRD-GUI-031.021, SRD-GUI-031.022, SRD-GUI-031.023, SRD-GUI-031.031–.034,
-            SRD-GUI-031.040, SRD-GUI-031.044, SRD-GUI-031.050–.054
+            SRD-GUI-031.040, SRD-GUI-031.044, SRD-GUI-031.050–.055
 
 Builder on the left; step strip, data check and the Trade Inspector and Detail
 Report sections on the right.
@@ -33,7 +33,7 @@ from PyQt6.QtWidgets import (
 
 from us_swing.backtest.cache import StepCache
 from us_swing.backtest.results import ResultsStore
-from us_swing.backtest.service import BacktestService, DailyList, Estimate
+from us_swing.backtest.service import BacktestService, DailyList, Estimate, SavedReport
 from us_swing.backtest.spec import RunPlan
 from us_swing.backtest.steps.portfolio import VariantResult
 from us_swing.backtest.steps.report import Report
@@ -44,6 +44,7 @@ from us_swing.data.models import ConnectionStatus
 from us_swing.gui.backtest_builder import BacktestBuilder
 from us_swing.gui.backtest_dock import DockSection, PanelSpec
 from us_swing.gui.backtest_report_view import ReportView
+from us_swing.gui.backtest_reports import ReportsView
 from us_swing.gui.backtest_trade_chart import TradeChart
 from us_swing.gui.backtest_trade_list import TradeList
 from us_swing.gui.backtest_use_charts import UsePanel, margin_use, screener_use
@@ -130,6 +131,32 @@ class _RunWorker(QThread):
             self.cancelled.emit()
         except Exception as exc:  # noqa: BLE001 — shown to the user
             _log.warning("[Backtest] Run failed: %s", exc)
+            self.failed.emit(str(exc))
+
+
+class _OpenWorker(_RunWorker):
+    """Read a saved run back (SRD-GUI-031.055): Steps 1–2 from cache, Step 3 saved."""
+
+    def __init__(self, service: BacktestService, saved: SavedReport, user_id: str,
+                 parent: QWidget | None = None) -> None:
+        super().__init__(service, saved.plan, user_id, parent)
+        self._run_id = saved.run.run_id
+
+    def run(self) -> None:
+        try:
+            opened = self._service.open_run(
+                self._run_id, self._user, cancel=lambda: self._cancel,
+                progress=lambda d, t: self.progress.emit(0, d, t),
+            )
+            self.done.emit(opened.daily)
+            if opened.signals is not None:
+                self.signals_done.emit(opened.signals)
+            self.portfolio_done.emit(opened.results)
+            self.report_done.emit(opened.reports)
+        except StepCancelled:
+            self.cancelled.emit()
+        except Exception as exc:  # noqa: BLE001 — shown to the user
+            _log.warning("[Backtest] Could not open the saved run: %s", exc)
             self.failed.emit(str(exc))
 
 
@@ -228,6 +255,7 @@ class BacktestWorkspace(QWidget):
         self._signals: pd.DataFrame | None = None
         self._results: list[VariantResult] = []
         self._variant = 0
+        self._top_n: int | None = None  # Stocks per day of an opened saved run
         self._day_trades = pd.DataFrame(columns=["symbol", "direction", "entry_ts", "exit_ts"])
 
         gutter(self)
@@ -334,9 +362,18 @@ class BacktestWorkspace(QWidget):
             [PanelSpec("screener_use", "Screener use", "filter", self.screener_use),
              PanelSpec("margin_use", "Margin use", "briefcase", self.margin_use)],
         ], settings=self._settings)
+        self.reports = ReportsView(self._service)
+        self.reports.open_requested.connect(self._on_open_saved)
+        self.saved = DockSection("reports", [
+            [PanelSpec("saved", "Saved reports", "history", self.reports.list_box, stretch=3),
+             PanelSpec("details", "Report details", "clipboard-list", self.reports.details_box)],
+        ], settings=self._settings)
         self.tabs.addTab(self.inspector, "Trade Inspector")
         self.tabs.addTab(self.detail, "Detail Report")
+        self.tabs.addTab(self.saved, "Reports")
         self.tabs.setCornerWidget(self.report_view.variant)
+        self.tabs.currentChanged.connect(
+            lambda _i: self.reports.refresh() if self.tabs.currentWidget() is self.saved else None)
         return self.tabs
 
     def _build_sessions(self) -> QWidget:
@@ -497,7 +534,17 @@ class BacktestWorkspace(QWidget):
             self._runner.request_cancel()
             self.run_btn.setEnabled(False)
             return
-        runner = _RunWorker(self._service, self.builder.plan(), self._user_id(), self)
+        self._top_n = None
+        self._start(_RunWorker(self._service, self.builder.plan(), self._user_id(), self))
+
+    def _on_open_saved(self, saved: SavedReport) -> None:
+        """Open a saved run in the Inspector and Detail Report (SRD-GUI-031.055)."""
+        if self._runner is not None:
+            return
+        self._top_n = saved.plan.screener.top_n
+        self._start(_OpenWorker(self._service, saved, self._user_id(), self))
+
+    def _start(self, runner: _RunWorker) -> None:
         runner.progress.connect(lambda step, d, t: self.set_step(step, "running", d, t))
         runner.done.connect(self._on_run_done)
         runner.signals_done.connect(self._on_signals_done)
@@ -559,7 +606,7 @@ class BacktestWorkspace(QWidget):
     def _shown(self) -> pd.DataFrame:
         if self._daily is None:
             return pd.DataFrame(columns=["date", "symbol", "score", "rank"])
-        return top_n(self._daily.frame, self.builder.top_n)
+        return top_n(self._daily.frame, self.builder.top_n if self._top_n is None else self._top_n)
 
     def _result(self) -> VariantResult | None:
         return self._results[self._variant] if self._variant < len(self._results) else None

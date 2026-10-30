@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS runs (
     message  TEXT NOT NULL DEFAULT ''
 )
 """
+_VARIANT_TABLES = ("trades", "day_log", "money_daily")
 
 
 @dataclass(frozen=True)
@@ -46,6 +47,7 @@ class RunRow:
     started: datetime
     finished: datetime | None
     message: str
+    note: str = ""
 
 
 class ResultsStore:
@@ -56,6 +58,9 @@ class ResultsStore:
         path.parent.mkdir(parents=True, exist_ok=True)
         with closing(self._connect()) as conn, conn:
             conn.execute(_SCHEMA)
+            columns = {r[1] for r in conn.execute("PRAGMA table_info(runs)")}
+            if "note" not in columns:
+                conn.execute("ALTER TABLE runs ADD COLUMN note TEXT NOT NULL DEFAULT ''")
 
     def _connect(self) -> sqlite3.Connection:
         return sqlite3.connect(self.path)
@@ -83,8 +88,7 @@ class ResultsStore:
         """Return one run, or ``None`` when the id is unknown."""
         with closing(self._connect()) as conn, conn:
             row = conn.execute(
-                "SELECT run_id, name, plan_json, status, started, finished, message "
-                "FROM runs WHERE run_id = ?",
+                f"SELECT {_RUN_COLUMNS} FROM runs WHERE run_id = ?",
                 (run_id,),
             ).fetchone()
         return _row(row) if row else None
@@ -130,11 +134,53 @@ class ResultsStore:
         """Return the newest runs first."""
         with closing(self._connect()) as conn, conn:
             rows = conn.execute(
-                "SELECT run_id, name, plan_json, status, started, finished, message "
-                "FROM runs ORDER BY started DESC LIMIT ?",
+                f"SELECT {_RUN_COLUMNS} FROM runs ORDER BY started DESC LIMIT ?",
                 (limit,),
             ).fetchall()
         return [_row(r) for r in rows]
+
+    def list_reports(self, limit: int = 200) -> list[RunRow]:
+        """Newest runs that saved Step 3 results (one per Run press) (SRD-GUI-031.055)."""
+        with closing(self._connect()) as conn:
+            if not _has_table(conn, "variants"):
+                return []
+            rows = conn.execute(
+                f"SELECT {_RUN_COLUMNS} FROM runs WHERE run_id IN "
+                "(SELECT run_id FROM variants) ORDER BY started DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+        return [_row(r) for r in rows]
+
+    def rename_run(self, run_id: str, name: str) -> None:
+        """Give a run a new name (SRD-BKT-002.060)."""
+        with closing(self._connect()) as conn, conn:
+            conn.execute("UPDATE runs SET name = ? WHERE run_id = ?", (name, run_id))
+
+    def set_note(self, run_id: str, note: str) -> None:
+        """Keep a free-text note on a run (SRD-BKT-002.060)."""
+        with closing(self._connect()) as conn, conn:
+            conn.execute("UPDATE runs SET note = ? WHERE run_id = ?", (note, run_id))
+
+    def delete_run(self, run_id: str) -> None:
+        """Delete a run with its variants, trades, day log and money rows (SRD-BKT-002.060)."""
+        with closing(self._connect()) as conn, conn:
+            if _has_table(conn, "variants"):
+                ids = [r[0] for r in conn.execute(
+                    "SELECT variant_id FROM variants WHERE run_id = ?", (run_id,))]
+                for name in _VARIANT_TABLES:
+                    if _has_table(conn, name):
+                        conn.executemany(f"DELETE FROM {name} WHERE variant_id = ?",
+                                         [(v,) for v in ids])
+                conn.execute("DELETE FROM variants WHERE run_id = ?", (run_id,))
+            conn.execute("DELETE FROM runs WHERE run_id = ?", (run_id,))
+
+
+_RUN_COLUMNS = "run_id, name, plan_json, status, started, finished, message, note"
+
+
+def _has_table(conn: sqlite3.Connection, name: str) -> bool:
+    return conn.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+                        (name,)).fetchone() is not None
 
 
 def _as_text(frame: pd.DataFrame) -> pd.DataFrame:
@@ -146,10 +192,11 @@ def _as_text(frame: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-def _row(r: tuple[str, str, str, str, str, str | None, str]) -> RunRow:
+def _row(r: tuple[str, str, str, str, str, str | None, str, str]) -> RunRow:
     return RunRow(
         run_id=r[0], name=r[1], plan_json=r[2], status=r[3],
         started=datetime.fromisoformat(r[4]),
         finished=datetime.fromisoformat(r[5]) if r[5] else None,
         message=r[6],
+        note=r[7],
     )

@@ -33,6 +33,7 @@ class PanelSpec:
     title: str
     icon: str
     body: QWidget
+    stretch: int = 1
 
 
 class Panel(QWidget):
@@ -87,10 +88,11 @@ class DockSection(QWidget):
             row = gutter(QSplitter(Qt.Orientation.Horizontal))
             assert isinstance(row, QSplitter)
             row.setHandleWidth(GAP)
-            for spec in specs:
+            for i, spec in enumerate(specs):
                 panel = Panel(spec)
                 frame = card(panel)
                 row.addWidget(frame)
+                row.setStretchFactor(i, spec.stretch)
                 self.panels[spec.key] = frame
                 icons.addWidget(self._button(spec))
                 panel.close_btn.clicked.connect(

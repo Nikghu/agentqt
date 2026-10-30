@@ -15,7 +15,7 @@ import pandas as pd
 import pytest
 from PyQt6.QtCore import QObject, QSettings, Qt, pyqtSignal
 
-from us_swing.backtest.service import DailyList, Estimate
+from us_swing.backtest.service import DailyList, Estimate, OpenedRun, SavedReport
 from us_swing.backtest.spec import Variant
 from us_swing.backtest.steps.portfolio import VariantResult
 from us_swing.backtest.steps.report import Report, build_report
@@ -131,6 +131,17 @@ class _FakeService:
         ts = pd.date_range("2026-03-03 14:30", periods=8, freq="15min", tz="UTC")
         return pd.DataFrame({"ts": ts, "open": 10.0, "high": 11.0, "low": 9.0, "close": 10.5,
                              "volume": 1})
+
+    def saved_reports(self) -> list[SavedReport]:
+        return []
+
+    def open_run(self, _run_id: str, _user: str, **kw: Any) -> OpenedRun:
+        kw["progress"](1, 1)
+        daily = self.run_stocks(None, "", progress=lambda *_: None)
+        found = self.run_signals(None, daily, progress=lambda *_: None)
+        results = self.run_portfolio(None, daily, found, progress=lambda *_: None)
+        return OpenedRun(None, daily, found, results,  # type: ignore[arg-type]
+                         self.build_reports(None, results))
 
     def build_reports(self, _plan: Any, results: list[VariantResult]) -> list[Report]:
         return [build_report(f"${r.variant.capital:,.0f}", r.variant.capital, r.trades, r.money,
@@ -410,10 +421,11 @@ def test_variant_picker_switches_tabs(workspace: BacktestWorkspace, qtbot: Any) 
 
 
 def test_sections_and_variant_corner(workspace: BacktestWorkspace) -> None:
-    """UT-GUI-031.050.M03.T01: Two section tabs; the variant picker sits by the tabs."""
+    """UT-GUI-031.050.M03.T01: Three section tabs; the variant picker sits by the tabs."""
     tabs = workspace.tabs
 
-    assert [tabs.tabText(i) for i in range(tabs.count())] == ["Trade Inspector", "Detail Report"]
+    assert [tabs.tabText(i) for i in range(tabs.count())] == [
+        "Trade Inspector", "Detail Report", "Reports"]
     assert tabs.cornerWidget() is workspace.report_view.variant
 
 
@@ -475,3 +487,27 @@ def test_detail_panels_filled(workspace: BacktestWorkspace, qtbot: Any) -> None:
     assert workspace.trade_list.table.rowCount() == 2
     assert workspace.screener_use.chart.use.days == ["2026-03-02", "2026-03-03"]
     assert workspace.margin_use.facts.text().startswith("Money deployed on 2 of 2 days")
+
+
+def test_open_saved_run(workspace: BacktestWorkspace, qtbot: Any) -> None:
+    """UT-GUI-031.055.M03.T01: Opening a saved run fills the panels with its Stocks per day."""
+    from tests.gui.test_backtest_reports import saved_report
+
+    saved = saved_report()
+    workspace.builder._top_n.setValue(1)  # the saved plan says All
+
+    workspace.reports.open_requested.emit(saved)
+    qtbot.waitUntil(lambda: workspace._runner is None)
+
+    assert [p.text().split(" · ")[1] for p in workspace.pills] == ["Done"] * 4
+    assert workspace.tabs.currentWidget() is workspace.detail
+    assert workspace.trade_list.table.rowCount() == 2
+    assert workspace.days_table.item(0, 2).text() == "3"  # type: ignore[union-attr]
+
+
+def test_reports_tab_refreshes(workspace: BacktestWorkspace, qtbot: Any) -> None:
+    """UT-GUI-031.055.M03.T02: Showing the Reports tab reloads the saved runs."""
+    workspace.tabs.setCurrentWidget(workspace.saved)
+
+    qtbot.waitUntil(lambda: not workspace.reports._workers)
+    assert workspace.reports.count.text().startswith("0 saved run(s)")

@@ -2,6 +2,15 @@
 
 ---
 
+## [20261030] GUI + BKT — Backtest redesign phase 3 · Reports (FO-GUI-031, FO-BKT-002)
+
+- Type: Feature
+- RN: RN-GUI-1.46.0-20261030, RN-BKT-1.8.0-20261030
+- Artifacts updated: SRD (SRD-GUI-031.055, SRD-BKT-002.060 Implemented), MD (MD-GUI-031.055.M09, BKT note), UTCD (7 GUI + 4 BKT Pass), TRACE (GUI, BKT), Code, Tests, RN, TODO T69, CONTEXT, DEVLOG
+- Findings: each Run press writes 3 run rows (Steps 1, 2, 3); the Reports list shows only runs with Step 3 rows. Opening a run re-reads Steps 1–2 from the cache without recording new rows. Real-window checks this session added several "Backtest" runs to the user's list.
+
+---
+
 ## [20261030] GUI — Backtest redesign phase 2 · Detail Report (FO-GUI-031)
 
 - Type: Feature

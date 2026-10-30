@@ -881,3 +881,10 @@ Test files:
 | UT-GUI-031.054.M08.T01 | MD-GUI-031.054.M08 | Positive | Screener use | 3 sessions, one with no picks | traded / not traded per day; facts line | Pass |
 | UT-GUI-031.054.M08.T02 | MD-GUI-031.054.M08 | Edge | Margin use | 2 days; then no days | peak = capital minus lowest margin; paints; empty safe | Pass |
 | UT-GUI-031.054.M03.T01 | MD-GUI-031.003.M03 | Positive | Detail panels | fake run | 4 panels; trade list, screener and margin use filled | Pass |
+| UT-GUI-031.055.M09.T01 | MD-GUI-031.055.M09 | Positive | Table and details | 2 saved runs | 2 rows; return, DD, stocks; details of row 1; picking row 2 updates | Pass |
+| UT-GUI-031.055.M09.T02 | MD-GUI-031.055.M09 | Negative | Empty list | no saved run | actions off; plain message | Pass |
+| UT-GUI-031.055.M09.T03 | MD-GUI-031.055.M09 | Positive | Rename, note, open | new name, note, Open | service calls; run sent | Pass |
+| UT-GUI-031.055.M09.T04 | MD-GUI-031.055.M09 | Negative | Delete confirm | No, then Yes | nothing, then delete call | Pass |
+| UT-GUI-031.055.M09.T05 | MD-GUI-031.055.M09 | Edge | Plan facts | names mode, no strategy | names, None, costs | Pass |
+| UT-GUI-031.055.M03.T01 | MD-GUI-031.003.M03 | Positive | Open saved run | Stocks per day 1 in builder, saved All | 4 steps Done; Detail tab; 2 trades; 3 picks | Pass |
+| UT-GUI-031.055.M03.T02 | MD-GUI-031.003.M03 | Positive | Reports tab refresh | show Reports tab | list reloaded | Pass |
