@@ -113,8 +113,7 @@ def refusals(plan: RunPlan, preset_dict: dict[str, Any], benchmark: bool) -> lis
     errors: list[str] = []
     if needs_benchmark(preset_dict) and not benchmark:
         errors.append("This screener uses the RS rule, which compares stocks with SPY. "
-                      "The backtest uses S&P 500 stocks only, so turn the RS rule off "
-                      "or pick another screener")
+                      "Its daily candles are not saved yet, so press Download first")
     if preset_dict.get("timeframe", "1d") != "1d":
         errors.append("Weekly screener presets are not supported in backtest yet")
     if plan.screener.ai_ranking:

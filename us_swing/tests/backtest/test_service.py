@@ -106,3 +106,28 @@ def test_estimate_lists_rs_refusal(store: BacktestStore, tmp_path: Path) -> None
 
     assert len(est.errors) == 1 and est.errors[0].startswith("This screener uses the RS rule")
     assert est.days_total == 0
+
+
+def test_estimate_counts_spy_for_rs(store: BacktestStore, tmp_path: Path) -> None:
+    """UT-BKT-002.052.M05.T01: An RS screener with no SPY lists SPY as missing 1d."""
+    from tests.backtest.test_stocks import _rs_preset
+
+    svc = BacktestService(store, StepCache(tmp_path / "cache"),
+                          ResultsStore(tmp_path / "results.db"), lambda: _RECORDS,
+                          lambda _p, _u: _rs_preset())
+
+    est = svc.estimate(plan_for(date(2025, 3, 3), date(2025, 3, 7), _NAMES), "1")
+
+    assert "SPY" in est.missing_1d
+    assert "press Download first" in est.errors[0]
+
+
+def test_estimate_without_rs_skips_spy(store: BacktestStore, tmp_path: Path) -> None:
+    """UT-BKT-002.052.M05.T02: A screener with no RS rule does not ask for SPY."""
+    svc = BacktestService(store, StepCache(tmp_path / "cache"),
+                          ResultsStore(tmp_path / "results.db"), lambda: _RECORDS,
+                          lambda _p, _u: rsi_preset(0, 100))
+
+    est = svc.estimate(plan_for(date(2025, 3, 3), date(2025, 3, 7), _NAMES), "1")
+
+    assert "SPY" not in est.missing_1d

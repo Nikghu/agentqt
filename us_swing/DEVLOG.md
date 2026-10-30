@@ -2,6 +2,15 @@
 
 ---
 
+## [20261030] BKT — SPY daily candles for the RS rule (FO-BKT-001, FO-BKT-002)
+
+- Type: Feature
+- RN: RN-BKT-1.7.0-20261030
+- Artifacts updated: SRD (SRD-BKT-001.015, SRD-BKT-002.052 — Implemented), MD note, UTCD (4 Pass), TRACE, Code, Tests, RN, TODO T70, DEVLOG
+- Decision (user 2026-10-30): keep SPY in the backtest store for RS; reverses the "S&P 500 only, no SPY" choice for screeners (report benchmark stays equal weight).
+
+---
+
 ## [20261030] GUI — Backtest redesign phase 1 · Dock Panels + Trade Inspector (FO-GUI-031)
 
 - Type: Feature

@@ -39,6 +39,8 @@
 | UT-BKT-001.005.M03.T02 | MD-BKT-001.005.M03 | Negative | Fully saved store has no jobs | coverage equals range | empty plan | Pass |
 | UT-BKT-001.005.M03.T03 | MD-BKT-001.005.M03 | Edge | Earlier start back-fills only older windows | saved 2024–2025, start moved to 2023 | 3m jobs only for 2023 windows; one 1d back-fill job | Pass |
 | UT-BKT-001.005.M03.T04 | MD-BKT-001.005.M03 | Edge | Floor skips windows before first data | floor 2024-06-01 | no 3m job ending before the floor | Pass |
+| UT-BKT-001.015.M03.T01 | MD-BKT-001.005.M03 | Positive | SPY gets daily jobs | empty store, daily_only SPY | SPY 1d job; no SPY 3m job | Pass |
+| UT-BKT-001.015.M03.T02 | MD-BKT-001.005.M03 | Negative | Saved SPY | SPY 1d saved for range | no jobs | Pass |
 | UT-BKT-001.008.M03.T01 | MD-BKT-001.005.M03 | Positive | Delta asks days since last bar | last saved 3 trading days ago, `delta_only` | one job per stock and tf, duration "4 D" | Pass |
 | UT-BKT-001.008.M03.T02 | MD-BKT-001.005.M03 | Edge | Delta skips up-to-date stock | AAPL saved to last session, MSFT one day behind | no AAPL job; MSFT "2 D" for 1d and 3m | Pass |
 | UT-BKT-001.008.M03.T03 | MD-BKT-001.005.M03 | Negative | No delta with fixed end date | end date 2025-12-31, `delta_only` | empty plan | Pass |
@@ -90,6 +92,8 @@
 | UT-BKT-002.018.M07.T01 | MD-BKT-002.010.M07 | Positive | RS rule detected | RS rule on, off, and no RS rule | true, false, false | Pass |
 | UT-BKT-002.018.M07.T02 | MD-BKT-002.010.M07 | Negative | RS rule refused without SPY | preset with RS rule, no SPY | `StepRefused` starting "This screener uses the RS rule"; SPY named once | Pass |
 | UT-BKT-002.018.M05.T01 | MD-BKT-002.008.M05 | Negative | Data check shows the RS message | estimate with RS preset | one error; 0 days | Pass |
+| UT-BKT-002.052.M05.T01 | MD-BKT-002.008.M05 | Positive | RS asks for SPY | RS preset, no SPY | SPY in missing 1d; message says press Download | Pass |
+| UT-BKT-002.052.M05.T02 | MD-BKT-002.008.M05 | Negative | No RS, no SPY needed | RSI preset | SPY not in missing 1d | Pass |
 | UT-BKT-002.019.M07.T01 | MD-BKT-002.010.M07 | Negative | Worker error is plain | screener raises an error that formats its argument | `RuntimeError("2025-03-03: Data for 'SPY' is missing")`; same text after pickling | Pass |
 | UT-BKT-002.017.M05.T01 | MD-BKT-002.008.M05 | Positive | Service run recorded | fake store, preset loader | daily list returned; run row done | Pass |
 | UT-BKT-002.017.M05.T02 | MD-BKT-002.008.M05 | Negative | Service cancel recorded | cancel at once | run row cancelled | Pass |

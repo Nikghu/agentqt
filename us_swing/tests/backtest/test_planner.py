@@ -107,3 +107,22 @@ def test_no_delta_with_fixed_end_date() -> None:
     cov: Coverage = {("AAPL", "1d"): saved, ("AAPL", "3m"): saved}
 
     assert _plan(_RANGE_2025, cov, symbols=("AAPL",), delta_only=True) == []
+
+
+def test_spy_gets_daily_jobs_only() -> None:
+    """UT-BKT-001.015.M03.T01: SPY (daily only) gets 1d jobs and no 3m jobs."""
+    jobs = plan(["AAPL"], _RANGE_2025, lambda _s, _tf: None, {}, date(2025, 12, 31),
+                daily_only=("SPY",))
+
+    assert ("SPY", "1d") in {(j.symbol, j.tf) for j in jobs}
+    assert not [j for j in jobs if j.symbol == "SPY" and j.tf == "3m"]
+
+
+def test_saved_spy_has_no_jobs() -> None:
+    """UT-BKT-001.015.M03.T02: SPY already saved for the range gives no SPY job."""
+    cov: Coverage = {("SPY", "1d"): (date(2025, 1, 1), date(2025, 12, 31))}
+
+    jobs = plan([], _RANGE_2025, lambda s, tf: cov.get((s, tf)), {}, date(2025, 12, 31),
+                daily_only=("SPY",))
+
+    assert jobs == []

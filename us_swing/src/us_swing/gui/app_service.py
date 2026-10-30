@@ -124,6 +124,7 @@ from us_swing.backtest.downloader import BacktestDownloader
 from us_swing.backtest.planner import Job, plan
 from us_swing.backtest.schedule import delta_due
 from us_swing.backtest.settings import BacktestDataSettings, DownloadState
+from us_swing.backtest.steps.stocks import BENCHMARK
 from us_swing.backtest.store import BacktestStore
 from us_swing.gui.manual_picks_store import load_manual_picks, save_manual_picks
 from us_swing.gui.user_store import load_users, next_user_id, save_users
@@ -4577,7 +4578,8 @@ class AppService(QObject):
         def build_plan() -> list[Job]:
             floors = DownloadState.load(store.root).floors
             return plan(symbols, settings, store.coverage, floors,
-                        _compute_last_trading_day(), delta)
+                        _compute_last_trading_day(), delta,
+                        daily_only=(BENCHMARK,))  # SRD-BKT-001.015
 
         return build_plan
 

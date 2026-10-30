@@ -106,6 +106,7 @@ class BacktestService:
                 errors.append(f"Screener preset could not be loaded: {exc}")
         if preset is not None:
             errors += stocks.refusals(plan, preset, stocks.has_benchmark(self._store))
+        spy = [stocks.BENCHMARK] if preset and stocks.needs_benchmark(preset) else []
         days_total = days_cached = 0
         if not errors and preset is not None:
             days = list(stocks.sessions(self._store, plan.period, symbols).values())
@@ -113,7 +114,8 @@ class BacktestService:
             days_total, days_cached = len(days), len(days) - len(todo)
         return Estimate(
             symbols=symbols,
-            missing_1d=[s for s in symbols if _misses(self._store, s, "1d", plan.period, today)],
+            missing_1d=[s for s in [*symbols, *spy]
+                        if _misses(self._store, s, "1d", plan.period, today)],
             missing_3m=[s for s in symbols if _misses(self._store, s, "3m", plan.period, today)],
             benchmark_ok=self._store.coverage(stocks.BENCHMARK, "1d") is not None,
             days_total=days_total,

@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-29
 **Project:** US Swing Trading System
 
+> v1.7.0: SRD-BKT-001.015 and SRD-BKT-002.052 added; approved by user 2026-10-30 — SPY for the RS rule.
 > v1.6.0: SRD-BKT-002.060 added; approved by user 2026-10-30 — saved reports for the redesign.
 > v1.1.0: SRD-BKT-002.001–.017 added — engine Phase 0 and 1; approved by user 2026-10-29.
 > v1.0.0: SRD-BKT-001.001–.011 added — backtest data store and downloader (Draft, waiting for user approval).
@@ -31,6 +32,7 @@
 | SRD-BKT-001.012 | FO-BKT-001 | Must | Every 3m save rebuilds that stock's 15m bars for each year touched, five 3m bars per 15m bar from 09:30 ET. | saved 3m year file | `15m/<SYM>/<YYYY>.parquet` | Approved by user 2026-10-29; not downloaded from TWS | Implemented |
 | SRD-BKT-001.013 | FO-BKT-001 | Must | Every 1d save rebuilds that stock's 1w bars, Monday to Friday, dated by the Monday, with a day count. | saved 1d file | `1w/<SYM>.parquet` | Approved by user 2026-10-29; unfinished week kept with its day count | Implemented |
 | SRD-BKT-001.014 | FO-BKT-001 | Must | 15m and 1w files that are missing or older than their source are built in the background at app start. | 3m and 1d files | built files, stock count logged | Approved by user 2026-10-29; Clear also removes them | Implemented |
+| SRD-BKT-001.015 | FO-BKT-001 | Must | Download and delta also fetch SPY daily candles with the S&P 500 stocks. | S&P 500 list | SPY 1d in the store | Approved by user 2026-10-30 (RS rule needs SPY); no 3m for SPY | Implemented |
 
 ## FO-BKT-002 — Backtest Engine (Phase 0 · Foundation)
 
@@ -97,6 +99,7 @@
 |---|---|---|---|---|---|---|---|
 | SRD-BKT-002.050 | FO-BKT-002 | Must | Strategy PRICE reads only closed bars on every timeframe; "current" is the last closed bar. | bars | prices | User 2026-10-29: replaces SRD-BKT-002.023; live matches via SRD-EXE-006.014 | Implemented |
 | SRD-BKT-002.051 | FO-BKT-002 | Must | Step 1 keys each list by session date, built from the previous trading day's close, for every session from From to To. | 1d bars | daily list | User 2026-10-29: matches the pre-market screener run | Implemented |
+| SRD-BKT-002.052 | FO-BKT-002 | Must | When the screener uses RS and SPY daily candles are missing, the data check counts SPY as missing 1d and asks to download it. | preset, store | missing list, message | Approved by user 2026-10-30; replaces the "S&P 500 only" text of SRD-BKT-002.018 | Implemented |
 
 ## FO-BKT-002 — Backtest Engine (Phase 4a · Step 4 Report)
 
