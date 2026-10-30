@@ -1444,6 +1444,31 @@ QLabel#data_pill[state="downloading"] {{ color: {accent}; border-color: {accent}
 QLabel#data_pill[state="complete"] {{ color: #3cc583; border-color: #3cc583; }}
 QLabel#data_pill[state="partial"] {{ color: #e8c14d; border-color: #e8c14d; }}
 QLabel#data_pill[state="empty"] {{ color: #ef5a50; border-color: #ef5a50; }}
+QLabel#bt_step_num {{
+    border: 1px solid {line}; border-radius: 11px; color: {sub};
+    font-family: "IBM Plex Mono", Consolas, monospace; font-size: 8pt; font-weight: bold;
+}}
+QLabel#bt_step_num[state="downloading"] {{ color: {accent}; border-color: {accent}; }}
+QLabel#bt_step_num[state="complete"] {{
+    background: #3cc583; border-color: #3cc583; color: {bg};
+}}
+QLabel#bt_step_name {{ color: {sub}; font-size: 9pt; }}
+QLabel#bt_step_name[state="downloading"], QLabel#bt_step_name[state="complete"] {{
+    color: {text};
+}}
+QFrame#bt_step_bar {{ background: {line}; border: none; }}
+QFrame#bt_step_bar[state="complete"] {{ background: #3cc583; }}
+QFrame#bt_step_bar[state="downloading"] {{ background: {accent}; }}
+QFrame#bt_fields {{ background: {bg}; border: 1px solid {line}; border-radius: 4px; }}
+QFrame#bt_fields QWidget#bt_field, QFrame#bt_fields QLabel {{ background: transparent; }}
+QFrame#bt_field_div {{ background: {line}; border: none; }}
+QLabel#bt_field_label {{ color: {sub}; font-size: 7.5pt; font-weight: bold; letter-spacing: 1px; }}
+QLabel#bt_field_value {{ color: {text}; font-size: 9.5pt; }}
+QLabel#bt_field_value[state="warn"] {{ color: #e8c14d; }}
+QLabel#bt_health_dot {{ background: {sub}; border-radius: 4px; }}
+QLabel#bt_health_dot[state="ok"] {{ background: #3cc583; }}
+QLabel#bt_health_dot[state="warn"] {{ background: #e8c14d; }}
+QLabel#bt_health_dot[state="error"] {{ background: #ef5a50; }}
 QLabel#data_summary {{ color: {text}; font-size: 10.5pt; font-weight: bold; }}
 QLabel#data_headline {{ color: {text}; font-size: 13pt; font-weight: bold; }}
 QLabel#data_stat_value {{

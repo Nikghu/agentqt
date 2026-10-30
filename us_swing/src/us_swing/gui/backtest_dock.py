@@ -27,13 +27,14 @@ from us_swing.gui.icons import icon_button, set_icon
 
 @dataclass(frozen=True)
 class PanelSpec:
-    """One panel: settings key, title, strip icon and body widget."""
+    """One panel: settings key, title, strip icon, body widget and optional title-row widget."""
 
     key: str
     title: str
     icon: str
     body: QWidget
     stretch: int = 1
+    head: QWidget | None = None
 
 
 class Panel(QWidget):
@@ -51,7 +52,10 @@ class Panel(QWidget):
         self.close_btn = icon_button("x", "neutral", f"Hide {spec.title}")
         self.close_btn.setObjectName("strip_btn")
         self.close_btn.setFixedWidth(24)
-        top.addWidget(self.title, 1)
+        top.addWidget(self.title, 0 if spec.head else 1)
+        if spec.head is not None:
+            top.addSpacing(12)
+            top.addWidget(spec.head, 1)
         top.addWidget(self.close_btn)
         box.addLayout(top)
         box.addWidget(spec.body, 1)

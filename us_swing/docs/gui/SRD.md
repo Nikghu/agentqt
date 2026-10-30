@@ -5,6 +5,10 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.59.0: SRD-GUI-031.078 added; asked by user 2026-10-30 — stock name suggestions while typing in setup.
+> v2.58.0: SRD-GUI-031.077 added; approved by user 2026-10-30 — chart timeframe as 3m / 15m / 1D toggle in the panel title row.
+> v2.57.0: SRD-GUI-031.076 added; approved by user 2026-10-30 — trade chart option D (trade path with result badge).
+> v2.56.0: SRD-GUI-031.075 added; approved by user 2026-10-30 — Backtest header option A (stepper and field grid) with Hide details.
 > v2.55.0: SRD-GUI-031.070–.074 added; approved by user 2026-10-30 — Backtest setup window, option C1.
 > v2.54.0: SRD-GUI-031.046–.048 (Phase 4b) and .060–.061 (Phase 5) added; approved by user 2026-10-30.
 > v2.53.0: SRD-GUI-031.050–.055 added; approved by user 2026-10-30 — Backtest redesign, Dock Panels (option C).
@@ -572,3 +576,7 @@
 | SRD-GUI-031.072 | FO-GUI-031 | Must | Each section shows titled cards with one help line, and rows with the label on the left and the control on the right. | plan | form | Same fields as today's builder | Implemented |
 | SRD-GUI-031.073 | FO-GUI-031 | Must | Screener source is a choice of Replay the screener or Saved lists; Strategies is a table of Use, Strategy, Allocation % and Per trade %. | presets, strategies | plan fields | Allocation and per-trade % shown from the live strategy, not edited | Implemented |
 | SRD-GUI-031.074 | FO-GUI-031 | Must | The window footer shows the data check line with Cancel, Save and Run; Run saves the plan, closes the window and starts the run. | click | plan, run | Cancel keeps the old plan | Implemented |
+| SRD-GUI-031.075 | FO-GUI-031 | Must | The header shows a numbered step stepper, a labelled field grid (Run, Stocks, Screener, Strategy, Account) and a data line with a status dot; Hide details folds the grid and data line and is remembered. | plan, estimate | header | Replaces the .070 one-line summary; no strategy shows in yellow | Implemented |
+| SRD-GUI-031.076 | FO-GUI-031 | Must | The trade chart loads candles from before entry to the exit day and shows ringed entry and exit dots joined by a path, IN / OUT price callouts and a P&L · % · sessions badge; candles outside the trade are dimmed. | trade, bars | chart | Extends .052; markers outside the loaded bars are not drawn | Implemented |
+| SRD-GUI-031.077 | FO-GUI-031 | Should | The Chart panel title row holds the trade line and a 3m / 15m / 1D toggle, styled like the Charts page; no second header row. | click | chart | 15m default | Implemented |
+| SRD-GUI-031.078 | FO-GUI-031 | Should | Names, Add stocks and Remove stocks suggest S&P 500 symbols for the name being typed; picking one keeps the earlier names. | typed text | name list | Starts-with match, any case | Implemented |

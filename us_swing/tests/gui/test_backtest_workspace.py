@@ -202,6 +202,22 @@ def test_plan_from_fields(qtbot: Any) -> None:
     assert plan.universe.remove == ("INTC",)
 
 
+def test_name_suggestions(qtbot: Any) -> None:
+    """UT-GUI-031.078.M02.T01: Typing part of a name suggests symbols for the last name only."""
+    builder = BacktestBuilder()
+    qtbot.addWidget(builder)
+    builder.set_universe(_RECORDS)
+    completer = builder._add.completer()
+    assert completer is not None
+    builder._add.setText("AAPL, c")
+    completer.setCompletionPrefix(completer.splitPath(builder._add.text())[0])
+
+    assert completer.completionCount() == 1
+    assert completer.currentCompletion() == "AAPL, CVX"
+    assert builder._remove.completer() is not None
+    assert builder._names_edit.completer() is not None
+
+
 def test_names_mode_with_no_names(qtbot: Any) -> None:
     """UT-GUI-031.002.M02.T02: Names mode with an empty field fails validation."""
     builder = BacktestBuilder()
@@ -227,12 +243,13 @@ def test_screener_fields(qtbot: Any) -> None:
 
 
 def test_step_strip_states(workspace: BacktestWorkspace) -> None:
-    """UT-GUI-031.003.M03.T01: Pills read Waiting, n of m, Done and Cached."""
-    cases = [("waiting", "Waiting", ""), ("running", "3 of 10", "downloading"),
-             ("done", "Done", "complete"), ("cached", "Cached", "complete")]
-    for state, text, qss in cases:
+    """UT-GUI-031.003.M03.T01: Steps show waiting, n of m, a tick when done, and Cached."""
+    cases = [("waiting", "Stocks", "1", ""), ("running", "Stocks · 3 of 10", "1", "downloading"),
+             ("done", "Stocks", "✓", "complete"), ("cached", "Stocks · Cached", "✓", "complete")]
+    for state, text, num, qss in cases:
         workspace.set_step(0, state, 3, 10)
-        assert workspace.pills[0].text() == f"1 Stocks · {text}"
+        assert workspace.pills[0].text() == text
+        assert workspace.steps.nums[0].text() == num
         assert workspace.pills[0].property("state") == qss
 
 
@@ -246,6 +263,29 @@ def test_data_check_text(workspace: BacktestWorkspace, qtbot: Any) -> None:
     assert workspace.check_label.text() == data_check_text(_EST)
     assert workspace.run_btn.isEnabled()
     assert workspace.download_btn.isEnabled()
+    assert workspace.health_dot.property("state") == "warn"
+
+
+def test_header_fields_and_hide(workspace: BacktestWorkspace, qtbot: Any, tmp_path: Any,
+                                monkeypatch: pytest.MonkeyPatch) -> None:
+    """UT-GUI-031.075.M07.T01: Fields show each setup part, no strategy warns, and Hide
+    details is remembered."""
+    fields = workspace.plan_fields
+
+    assert fields.values["strategies"].text() == "None picked"
+    assert fields.values["strategies"].property("state") == "warn"
+    assert not fields.isHidden()
+
+    workspace.details_btn.click()
+
+    assert fields.isHidden() and workspace.health.isHidden()
+    assert workspace.details_btn.text() == "Show details"
+    monkeypatch.setattr(mod, "list_presets", lambda _user: _PRESETS)
+    settings = QSettings(str(tmp_path / "dock.ini"), QSettings.Format.IniFormat)
+    again = BacktestWorkspace(_FakeSvc(), service=_FakeService(),  # type: ignore[arg-type]
+                              settings=settings)
+    qtbot.addWidget(again)
+    assert again.plan_fields.isHidden()
 
 
 def test_errors_block_run_and_download_needs_tws(qtbot: Any,
@@ -276,24 +316,25 @@ def test_run_and_view(workspace: BacktestWorkspace, qtbot: Any) -> None:
     qtbot.waitUntil(lambda: workspace._runner is None)
 
     assert workspace.run_btn.text() == "Run"
-    assert workspace.pills[0].text() == "1 Stocks · Done"
+    assert workspace.pills[0].property("state") == "complete"
     assert workspace.days_table.rowCount() == 3
-    assert workspace.days_table.item(1, 0).text() == "2026-03-03"  # type: ignore[union-attr]
-    assert workspace.days_table.item(1, 2).text() == "1"  # type: ignore[union-attr]
+    assert workspace.days_table.item(2, 0).text() == "2026-03-03"  # type: ignore[union-attr]
+    assert workspace.days_table.item(2, 2).text() == "1"  # type: ignore[union-attr]
+    assert workspace.days_table.item(2, 1).text() == "2"  # type: ignore[union-attr]
     assert workspace.stocks_table.rowCount() == 1
     assert workspace.stocks_table.item(0, 1).text() == "MSFT"  # type: ignore[union-attr]
 
 
-def test_session_and_data_day_shown(workspace: BacktestWorkspace, qtbot: Any) -> None:
-    """UT-GUI-031.013.M03.T01: Each session row shows the day its list was made from."""
+def test_sessions_oldest_first(workspace: BacktestWorkspace, qtbot: Any) -> None:
+    """UT-GUI-031.013.M03.T01: Sessions run oldest first and show the screened stock count."""
     workspace._start_estimate()
     qtbot.waitUntil(lambda: workspace._estimate is not None)
 
     workspace.run_btn.click()
     qtbot.waitUntil(lambda: workspace._runner is None)
 
-    assert workspace.days_table.item(2, 0).text() == "2026-03-02"  # type: ignore[union-attr]
-    assert workspace.days_table.item(2, 1).text() == "2026-02-27"  # type: ignore[union-attr]
+    assert workspace.days_table.item(1, 0).text() == "2026-03-02"  # type: ignore[union-attr]
+    assert workspace.days_table.item(1, 1).text() == "1"  # type: ignore[union-attr]
     assert workspace.stocks_head.text().startswith(
         "SESSION 2026-03-03 · DATA UP TO 2026-03-02 CLOSE")
 
@@ -329,8 +370,8 @@ def test_run_does_both_steps(workspace: BacktestWorkspace, qtbot: Any) -> None:
     """UT-GUI-031.021.M03.T01: Run does Step 1 and Step 2; both pills Done; table filled."""
     _run_both(workspace, qtbot)
 
-    assert workspace.pills[0].text() == "1 Stocks · Done"
-    assert workspace.pills[1].text() == "2 Signals · Done"
+    assert workspace.pills[0].property("state") == "complete"
+    assert workspace.pills[1].property("state") == "complete"
     assert workspace.signals_table.rowCount() == 3
     assert workspace.signals_table.item(0, 2).text() == "exit"  # type: ignore[union-attr]
     assert workspace.signals_table.item(0, 3).text() == "2026-03-03 10:03"  # type: ignore[union-attr]
@@ -377,7 +418,7 @@ def test_run_does_step_3(workspace: BacktestWorkspace, qtbot: Any) -> None:
     """UT-GUI-031.031.M03.T01: Run does Step 3 and shows the Trades tab."""
     _run_both(workspace, qtbot)
 
-    assert workspace.pills[2].text() == "3 Portfolio · Done"
+    assert workspace.pills[2].property("state") == "complete"
     assert workspace.trades_table.rowCount() == 2
 
 
@@ -405,7 +446,7 @@ def test_run_does_step_4(workspace: BacktestWorkspace, qtbot: Any) -> None:
     """UT-GUI-031.040.M03.T01: Run ends with the Report tab and its KPI row filled."""
     _run_both(workspace, qtbot)
 
-    assert workspace.pills[3].text() == "4 Report · Done"
+    assert workspace.pills[3].property("state") == "complete"
     assert workspace.tabs.tabText(workspace.tabs.currentIndex()) == "Detail Report"
     assert workspace.report_view.kpi_values["Trades"].text() == "2"
     assert workspace.report_view.kpi_values["Net P&L"].text() == "$20.00"
@@ -437,7 +478,7 @@ def test_picking_a_day_filters_panels(workspace: BacktestWorkspace, qtbot: Any) 
     """UT-GUI-031.051.M03.T01: A day with no trades empties Trades, Signals and Decisions."""
     _run_both(workspace, qtbot)
 
-    workspace.days_table.selectRow(2)  # 2026-03-02
+    workspace.days_table.selectRow(1)  # 2026-03-02
 
     assert workspace.trades_table.rowCount() == 0
     assert workspace.signals_table.rowCount() == 0
@@ -454,7 +495,7 @@ def test_all_sessions_row_totals(workspace: BacktestWorkspace, qtbot: Any) -> No
     assert table.item(0, 0).text() == "All sessions"  # type: ignore[union-attr]
     assert table.item(0, 3).text() == "2"  # type: ignore[union-attr]
     assert table.item(0, 4).text() == "$20.00"  # type: ignore[union-attr]
-    assert table.item(2, 4).text() == "—"  # type: ignore[union-attr]
+    assert table.item(1, 4).text() == "—"  # type: ignore[union-attr]
 
 
 def test_chart_shows_selected_trade(workspace: BacktestWorkspace, qtbot: Any) -> None:
@@ -464,17 +505,17 @@ def test_chart_shows_selected_trade(workspace: BacktestWorkspace, qtbot: Any) ->
 
     workspace.trades_table.selectRow(1)  # newest first: row 0 MSFT, row 1 AAPL
 
-    assert reads[-1] == ("AAPL", "15m", date(2026, 3, 3), date(2026, 3, 3))
+    assert reads[-1] == ("AAPL", "15m", date(2026, 2, 28), date(2026, 3, 3))
     assert list(workspace.chart.trades["symbol"]) == ["AAPL"]
     assert workspace.chart_head.text() == "AAPL · ST_A · 2026-03-03"
-    workspace.chart_tf.setCurrentText("1d")
+    workspace.chart_tf.buttons[2].click()
     assert reads[-1][1:3] == ("1d", date(2025, 12, 3))
 
 
 def test_trade_list_opens_day(workspace: BacktestWorkspace, qtbot: Any) -> None:
     """UT-GUI-031.053.M03.T01: Clicking a Trade list row opens its day with that trade picked."""
     _run_both(workspace, qtbot)
-    workspace.days_table.selectRow(2)  # start on another day
+    workspace.days_table.selectRow(1)  # start on another day
 
     workspace.trade_list.table.cellClicked.emit(1, 0)  # trade #2, MSFT
 
@@ -504,7 +545,7 @@ def test_open_saved_run(workspace: BacktestWorkspace, qtbot: Any) -> None:
     workspace.reports.open_requested.emit(saved)
     qtbot.waitUntil(lambda: workspace._runner is None)
 
-    assert [p.text().split(" · ")[1] for p in workspace.pills] == ["Done"] * 4
+    assert [p.property("state") for p in workspace.pills] == ["complete"] * 4
     assert workspace.tabs.currentWidget() is workspace.detail
     assert workspace.trade_list.table.rowCount() == 2
     assert workspace.days_table.item(0, 2).text() == "3"  # type: ignore[union-attr]

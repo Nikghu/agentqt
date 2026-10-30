@@ -100,7 +100,7 @@ def test_cancel_restores_and_save_keeps(qtbot: Any) -> None:
 def test_plan_line_and_edit(workspace: BacktestWorkspace, qtbot: Any) -> None:  # noqa: F811
     """UT-GUI-031.070.M03.T01: No left builder; the plan line shows; Edit setup opens the window."""
     assert workspace.builder.isHidden()
-    assert workspace.plan_label.text().startswith("Backtest · ")
+    assert workspace.plan_fields.values["run"].text().startswith("Backtest · ")
 
     workspace.edit_btn.click()
 
@@ -119,5 +119,5 @@ def test_run_from_window(workspace: BacktestWorkspace, qtbot: Any) -> None:  # n
     assert not workspace.setup.isVisible()
     assert workspace._runner is not None
     qtbot.waitUntil(lambda: workspace._runner is None)
-    assert workspace.pills[0].text() == "1 Stocks · Done"
+    assert workspace.pills[0].property("state") == "complete"
     assert date(2026, 3, 3) in workspace._daily.days  # type: ignore[union-attr]

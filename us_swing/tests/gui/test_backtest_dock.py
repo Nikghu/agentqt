@@ -9,7 +9,7 @@ from PyQt6.QtCore import QSettings
 from PyQt6.QtWidgets import QLabel
 
 from us_swing.gui.backtest_dock import DockSection, Panel, PanelSpec
-from us_swing.gui.backtest_trade_chart import TradeChart
+from us_swing.gui.backtest_trade_chart import TradeChart, time_labels, trade_badge
 
 
 def _section(qtbot: Any, path: Path) -> DockSection:
@@ -82,3 +82,41 @@ def test_chart_without_bars_shows_message(qtbot: Any) -> None:
     assert not chart.grab().isNull()
     chart.set_data(_bars(), pd.DataFrame())
     assert chart._index(pd.Timestamp("2026-03-03 14:00", tz="UTC")) is None
+
+
+def test_chart_hides_marker_after_last_bar(qtbot: Any) -> None:
+    """UT-GUI-031.052.M06.T03: A time after the last bar has no index, so no marker is drawn."""
+    chart = TradeChart()
+    qtbot.addWidget(chart)
+    chart.set_data(_bars(), pd.DataFrame())
+
+    assert chart._index(pd.Timestamp("2026-03-03 15:59", tz="UTC")) == 5
+    assert chart._index(pd.Timestamp("2026-03-04 15:00", tz="UTC")) is None
+
+
+def test_time_labels_follow_bar_size() -> None:
+    """UT-GUI-031.052.M06.T04: Daily bars get dates; intraday bars over several days get
+    date and time."""
+    daily = pd.date_range("2025-11-26", periods=2, freq="1D", tz="UTC")
+    multi = pd.DatetimeIndex(["2026-03-03 20:45", "2026-03-04 14:30", "2026-03-04 14:45"],
+                             tz="UTC")
+
+    assert time_labels(daily) == ["Nov 26", "Nov 27"]
+    assert time_labels(_bars()["ts"].pipe(pd.DatetimeIndex))[0] == "09:30"
+    assert time_labels(multi) == ["03-03 15:45", "03-04 09:30", "03-04 09:45"]
+
+
+def test_trade_badge_and_held_span(qtbot: Any) -> None:
+    """UT-GUI-031.052.M06.T05: Badge shows P&L, % and sessions; bars outside the trade dim."""
+    assert trade_badge("LONG", 64.13, 64.81, 18.94, 15) == "+$18.94 · +1.06% · 15 sessions"
+    assert trade_badge("SHORT", 10.0, 11.0, -10.0, 0) == "-$10.00 · -10.00% · same day"
+    assert trade_badge("LONG", 10.0, 10.5, None, 1) == "+5.00% · 1 session"
+    chart = TradeChart()
+    qtbot.addWidget(chart)
+    trades = pd.DataFrame({"direction": ["LONG"],
+                           "entry_ts": [pd.Timestamp("2026-03-03 14:50", tz="UTC")],
+                           "entry_px": [11.5], "exit_ts": [pd.NaT], "exit_px": [11.0]})
+    chart.set_data(_bars(), trades)
+
+    assert chart._spans() == [(1, 5)]
+

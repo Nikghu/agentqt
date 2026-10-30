@@ -14,11 +14,12 @@ import re
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from PyQt6.QtCore import QDate, Qt, pyqtSignal
+from PyQt6.QtCore import QDate, QModelIndex, QStringListModel, Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
     QComboBox,
+    QCompleter,
     QDateEdit,
     QDoubleSpinBox,
     QFrame,
@@ -65,6 +66,25 @@ def _qdate(day: datetime.date) -> QDate:
 
 def _names(text: str) -> tuple[str, ...]:
     return tuple(dict.fromkeys(n.upper() for n in re.split(r"[\s,]+", text) if n))
+
+
+class _NameCompleter(QCompleter):
+    """Suggests stock symbols for the last name typed in a comma separated list."""
+
+    def __init__(self, edit: QLineEdit) -> None:
+        super().__init__(QStringListModel(edit), edit)
+        self.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self.setMaxVisibleItems(12)
+        self._edit = edit
+        edit.setCompleter(self)
+
+    def splitPath(self, path: str | None) -> list[str]:
+        return [re.split(r"[\s,]+", path or "")[-1]]
+
+    def pathFromIndex(self, index: QModelIndex) -> str:
+        text = self._edit.text()
+        head = text[: len(text) - len(self.splitPath(text)[0])]
+        return head + super().pathFromIndex(index)
 
 
 def _key_label(text: str) -> QLabel:
@@ -156,6 +176,7 @@ class BacktestBuilder(QWidget):
         self._remove = QLineEdit()
         self._remove.setPlaceholderText("e.g. TSLA")
         self._remove.setFixedWidth(300)
+        self._completers = [_NameCompleter(e) for e in (self._names_edit, self._add, self._remove)]
         self._preset = QComboBox()
         self._preset.setFixedWidth(260)
         self._top_n = QSpinBox()
@@ -279,7 +300,12 @@ class BacktestBuilder(QWidget):
         self.changed.emit()
 
     def set_universe(self, records: Sequence[UniverseRecord]) -> None:
-        """Fill the sector list, keeping ticked sectors ticked."""
+        """Fill the sector list, keeping ticked sectors ticked, and the name suggestions."""
+        symbols = sorted({r.symbol for r in records})
+        for completer in self._completers:
+            model = completer.model()
+            if isinstance(model, QStringListModel):
+                model.setStringList(symbols)
         ticked = self._ticked_sectors()
         self._sectors.blockSignals(True)
         self._sectors.clear()

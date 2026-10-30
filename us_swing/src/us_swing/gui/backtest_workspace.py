@@ -44,6 +44,7 @@ from us_swing.core.backtest_bridge import list_presets, load_preset_dict, load_s
 from us_swing.data.models import ConnectionStatus
 from us_swing.gui.backtest_builder import BacktestBuilder
 from us_swing.gui.backtest_dock import DockSection, PanelSpec
+from us_swing.gui.backtest_header import PlanFields, StepStrip, repolish
 from us_swing.gui.backtest_report_view import ReportView, RiskFacts
 from us_swing.gui.backtest_setup import BacktestSetupDialog
 from us_swing.gui.backtest_reports import ReportsView
@@ -52,6 +53,7 @@ from us_swing.gui.backtest_trade_list import TradeList
 from us_swing.gui.backtest_use_charts import UsePanel, margin_use, screener_use
 from us_swing.gui.cards import GAP, card, gutter
 from us_swing.gui.icons import set_icon
+from us_swing.gui.screener_views import ChipGroup
 from us_swing.gui.theme import C
 
 if TYPE_CHECKING:
@@ -59,13 +61,14 @@ if TYPE_CHECKING:
 
 _log = logging.getLogger(__name__)
 
-STEPS = ("Stocks", "Signals", "Portfolio", "Report")
 _ESTIMATE_DELAY_MS = 500
 _RUN_TEXT = "Run"
 _ALL = "All strategies"
 _ET = "America/New_York"
 _ALL_DAYS = "All sessions"
-_DAILY_CHART_DAYS = 90
+_CHART_TFS: tuple[tuple[str, str | None], ...] = (("3m", "3m"), ("15m", "15m"), ("1D", "1d"))
+_CHART_DAYS_BEFORE = {"3m": 1, "15m": 3, "1d": 90}
+_CHART_DAYS_AFTER = {"3m": 0, "15m": 0, "1d": 10}
 
 
 class _EstimateWorker(QThread):
@@ -306,36 +309,20 @@ class BacktestWorkspace(QWidget):
         body = QVBoxLayout(box)
         body.setContentsMargins(14, 12, 14, 12)
         body.setSpacing(10)
+        top = QHBoxLayout()
+        top.setSpacing(8)
         title = QLabel("Backtest")
         title.setObjectName("page_title")
-        body.addWidget(title)
-        strip = QHBoxLayout()
-        strip.setSpacing(8)
-        self.pills: list[QLabel] = []
-        for name in STEPS:
-            pill = QLabel()
-            pill.setObjectName("data_pill")
-            self.pills.append(pill)
-            strip.addWidget(pill)
-            self.set_step(len(self.pills) - 1, "waiting")
-        strip.addStretch()
-        body.addLayout(strip)
-        plan_row = QHBoxLayout()
-        plan_row.setSpacing(8)
-        self.plan_label = QLabel("")
-        self.plan_label.setObjectName("data_summary")
-        self.plan_label.setWordWrap(True)
+        self.steps = StepStrip()
+        self.pills = self.steps.names
+        for index in range(len(self.pills)):
+            self.set_step(index, "waiting")
+        self.details_btn = QPushButton()
+        self.details_btn.clicked.connect(
+            lambda: self._show_details(self.plan_fields.isHidden()))
         self.edit_btn = QPushButton("Edit setup")
         set_icon(self.edit_btn, "pencil")
         self.edit_btn.clicked.connect(lambda: self.setup.open_at())
-        plan_row.addWidget(self.plan_label, 1)
-        plan_row.addWidget(self.edit_btn)
-        body.addLayout(plan_row)
-        row = QHBoxLayout()
-        row.setSpacing(8)
-        self.check_label = QLabel("Checking data…")
-        self.check_label.setObjectName("details_key")
-        self.check_label.setWordWrap(True)
         self.download_btn = QPushButton("Download")
         set_icon(self.download_btn, "download")
         self.download_btn.clicked.connect(self._on_download)
@@ -343,22 +330,50 @@ class BacktestWorkspace(QWidget):
         self.run_btn.setObjectName("run_btn")
         set_icon(self.run_btn, "play", "inverse")
         self.run_btn.clicked.connect(self._on_run_clicked)
-        row.addWidget(self.check_label, 1)
-        row.addWidget(self.download_btn)
-        row.addWidget(self.run_btn)
-        body.addLayout(row)
+        top.addWidget(title)
+        top.addStretch(1)
+        top.addWidget(self.steps)
+        top.addStretch(1)
+        for button in (self.details_btn, self.edit_btn, self.download_btn, self.run_btn):
+            top.addWidget(button)
+        body.addLayout(top)
+        self.plan_fields = PlanFields()
+        body.addWidget(self.plan_fields)
+        self.health = QWidget()
+        health = QHBoxLayout(self.health)
+        health.setContentsMargins(0, 0, 0, 0)
+        health.setSpacing(8)
+        self.health_dot = QLabel()
+        self.health_dot.setObjectName("bt_health_dot")
+        self.health_dot.setFixedSize(8, 8)
+        self.check_label = QLabel("Checking data…")
+        self.check_label.setObjectName("details_key")
+        self.check_label.setWordWrap(True)
+        health.addWidget(self.health_dot)
+        health.addWidget(self.check_label, 1)
+        body.addWidget(self.health)
         self._render_buttons()
         self._render_plan_line()
+        self._show_details(self._settings.value("header/details", True, type=bool))
         return box
+
+    def _show_details(self, shown: bool) -> None:
+        """Show or hide the setup fields and data line; remembered (SRD-GUI-031.075)."""
+        self.plan_fields.setVisible(shown)
+        self.health.setVisible(shown)
+        self.details_btn.setText("Hide details" if shown else "Show details")
+        set_icon(self.details_btn, "chevron-up" if shown else "chevron-down", "neutral", 13)
+        self._settings.setValue("header/details", shown)
 
     def _render_plan_line(self) -> None:
         """One line with each setup section's value (SRD-GUI-031.070)."""
-        self.plan_label.setText("  ·  ".join(self.builder.summaries().values()))
+        self.plan_fields.set_summaries(self.builder.summaries())
 
     def _build_views(self) -> QWidget:
         self.tabs = QTabWidget()
         self.inspector = DockSection("inspector", [
-            [PanelSpec("chart", "Chart", "chart-candlestick", self._build_chart()),
+            [PanelSpec("chart", "Chart", "chart-candlestick", self._build_chart(),
+                       head=self.chart_bar),
              PanelSpec("money", "Money", "briefcase", self._build_money())],
             [PanelSpec("stocks", "Screener list", "filter", self._build_step1()),
              PanelSpec("trades", "Trades", "list", self._build_trades())],
@@ -406,28 +421,24 @@ class BacktestWorkspace(QWidget):
         body.setContentsMargins(12, 8, 12, 10)
         body.setSpacing(6)
         body.addWidget(_head("SESSIONS"))
-        self.days_table = _table(["Session", "Data up to", "Picks", "Trades", "Day P&L"])
+        self.days_table = _table(["Session", "Screened", "Picks", "Trades", "Day P&L"])
         self.days_table.itemSelectionChanged.connect(self._render_day)
         body.addWidget(self.days_table, 1)
         return box
 
     def _build_chart(self) -> QWidget:
-        box = QWidget()
-        body = QVBoxLayout(box)
-        body.setContentsMargins(0, 0, 0, 0)
-        top = QHBoxLayout()
+        self.chart_bar = QWidget()
+        top = QHBoxLayout(self.chart_bar)
+        top.setContentsMargins(0, 0, 0, 0)
+        top.setSpacing(8)
         self.chart_head = _note("")
-        self.chart_tf = QComboBox()
-        self.chart_tf.addItems(["3m", "15m", "1d"])
-        self.chart_tf.setCurrentText("15m")
-        self.chart_tf.setFixedWidth(80)
-        self.chart_tf.currentIndexChanged.connect(self._render_chart)
+        self.chart_tf = ChipGroup(list(_CHART_TFS))
+        self.chart_tf.buttons[1].setChecked(True)
+        self.chart_tf.changed.connect(self._render_chart)
         top.addWidget(self.chart_head, 1)
         top.addWidget(self.chart_tf)
-        body.addLayout(top)
         self.chart = TradeChart()
-        body.addWidget(self.chart, 1)
-        return box
+        return self.chart
 
     def _build_money(self) -> QWidget:
         self.money_table = _table(["Date", "Deployed", "Lowest margin", "Margin at close",
@@ -511,6 +522,10 @@ class BacktestWorkspace(QWidget):
             return
         self._estimate = est
         self.check_label.setText(data_check_text(est))
+        missing = bool(est.missing_1d or est.missing_3m)
+        self.health_dot.setProperty("state", "error" if est.errors else
+                                    "warn" if missing else "ok")
+        repolish(self.health_dot)
         if self._runner is None and self._daily is None:
             cached = (not est.recorded and est.days_total > 0
                       and est.days_cached == est.days_total)
@@ -539,19 +554,11 @@ class BacktestWorkspace(QWidget):
 
     def set_step(self, index: int, state: str, done: int = 0, total: int = 0) -> None:
         """Show a step as waiting, running (done of total), done or cached."""
-        text = {"waiting": "Waiting", "done": "Done", "cached": "Cached"}.get(
-            state, f"{done} of {total}"
-        )
+        note = {"waiting": "", "done": "", "cached": "Cached"}.get(state, f"{done} of {total}")
         qss_state = {"running": "downloading", "done": "complete", "cached": "complete"}.get(
             state, ""
         )
-        pill = self.pills[index]
-        pill.setText(f"{index + 1} {STEPS[index]} · {text}")
-        pill.setProperty("state", qss_state)
-        style = pill.style()
-        if style is not None:
-            style.unpolish(pill)
-            style.polish(pill)
+        self.steps.set_step(index, qss_state, note)
 
     # ── Run (SRD-GUI-031.011) ─────────────────────────────────────────────────
 
@@ -654,27 +661,29 @@ class BacktestWorkspace(QWidget):
     def _render_days(self) -> None:
         if self._daily is None:
             return
+        screened = self._daily.frame.groupby("date").size()
         picks = self._shown().groupby("date").size()
         res = self._result()
         trades = res.trades if res is not None else pd.DataFrame(columns=["entry_ts", "net_pnl"])
         by_day = trades.groupby(_et_day(trades["entry_ts"]))["net_pnl"]
         counts, pnl = by_day.size(), by_day.sum()
-        days = sorted(self._daily.days, reverse=True)
+        days = sorted(self._daily.days)
         selected, show_all = self._selected_day(), self._all_selected()
-        rows = [(_ALL_DAYS, "", int(picks.sum()), len(trades), float(trades["net_pnl"].sum()))]
-        rows += [(day.isoformat(), self._data_day(day), int(picks.get(day, 0)),
+        rows = [(_ALL_DAYS, int(screened.sum()), int(picks.sum()), len(trades),
+                 float(trades["net_pnl"].sum()))]
+        rows += [(day.isoformat(), int(screened.get(day, 0)), int(picks.get(day, 0)),
                   int(counts.get(day, 0)), float(pnl.get(day, 0.0))) for day in days]
         self.days_table.blockSignals(True)
         self.days_table.setRowCount(len(rows))
-        for row, (name, data_day, n_picks, n_trades, value) in enumerate(rows):
-            for col, text in enumerate((name, data_day, str(n_picks), str(n_trades),
+        for row, (name, n_screened, n_picks, n_trades, value) in enumerate(rows):
+            for col, text in enumerate((name, str(n_screened), str(n_picks), str(n_trades),
                                         _usd(value) if n_trades else "—")):
                 self.days_table.setItem(row, col, QTableWidgetItem(text))
         self.days_table.resizeColumnsToContents()
         if show_all or not days:
             self.days_table.selectRow(0)
         else:
-            self.days_table.selectRow(days.index(selected) + 1 if selected in days else 1)
+            self.days_table.selectRow(days.index(selected) + 1 if selected in days else len(days))
         self.days_table.blockSignals(False)
         self._render_day()
 
@@ -833,11 +842,14 @@ class BacktestWorkspace(QWidget):
             self.chart.set_data(self.chart.bars.iloc[0:0], self._day_trades.iloc[0:0],
                                 "No trade on this session")
             return
-        symbol, tf = str(trade["symbol"]), self.chart_tf.currentText()
+        symbol, tf = str(trade["symbol"]), self.chart_tf.value or "15m"
         day = _et_day(pd.Series([trade["entry_ts"]])).iloc[0]
-        start = day - datetime.timedelta(days=_DAILY_CHART_DAYS) if tf == "1d" else day
+        exit_day = day if pd.isna(trade["exit_ts"]) else _et_day(
+            pd.Series([trade["exit_ts"]])).iloc[0]
+        start = day - datetime.timedelta(days=_CHART_DAYS_BEFORE[tf])
+        end = exit_day + datetime.timedelta(days=_CHART_DAYS_AFTER[tf])
         try:
-            bars = self._service.bars(symbol, tf, start, day)  # type: ignore[arg-type]
+            bars = self._service.bars(symbol, tf, start, end)  # type: ignore[arg-type]
         except Exception as exc:  # noqa: BLE001 — shown on the chart instead
             _log.warning("[Backtest] Could not read candles for %s: %s", symbol, exc)
             bars = self.chart.bars.iloc[0:0]
