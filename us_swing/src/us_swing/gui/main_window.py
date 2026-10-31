@@ -584,32 +584,6 @@ class MainWindow(QMainWindow):
         self._screener_panel.quick_test_requested.connect(self._on_quick_test)
         # charts → execution_requested → Execution screen (SRD-GUI-026.010)
         self._chart_panel.execution_requested.connect(lambda _symbol: self._go_to(2))
-        # ── Status bar widgets ─────────────────────────────────────────────────
-        self._status = self.statusBar()
-        self._status.setSizeGripEnabled(False)
-        _sb_qss      = "background:transparent;color:#ffffff;font-weight:bold;padding:0 8px;"
-        _sb_qss_sm   = "background:transparent;color:#ffffff;font-weight:bold;padding:0 8px;font-size:8pt;"
-        _sb_pill_qss = "background:transparent;color:#ffffff;font-weight:bold;padding:0 10px;font-size:8pt;"
-        self._sb_conn    = QLabel("●  Internet: Checking…")
-        self._sb_conn.setStyleSheet(_sb_qss_sm)
-        self._status.addWidget(self._sb_conn)
-        # Backtest download status — shown only while a run is active (SRD-GUI-030.007)
-        self._sb_backtest = QLabel("")
-        self._sb_backtest.setStyleSheet(_sb_pill_qss)
-        self._sb_backtest.setToolTip("Settings → Backtest data")
-        self._sb_backtest.hide()
-        self._status.addPermanentWidget(self._sb_backtest)
-        self._sb_backtest_hide = QTimer(self)
-        self._sb_backtest_hide.setSingleShot(True)
-        self._sb_backtest_hide.setInterval(15_000)
-        self._sb_backtest_hide.timeout.connect(self._sb_backtest.hide)
-        # NYSE / NASDAQ market status — right side of status bar
-        self._sb_nyse   = QLabel("⬤  NYSE")
-        self._sb_nasdaq = QLabel("⬤  NASDAQ")
-        for pill in (self._sb_nyse, self._sb_nasdaq):
-            pill.setStyleSheet(_sb_pill_qss)
-            self._status.addPermanentWidget(pill)
-
         # ── Root widget ────────────────────────────────────────────────────────
         root = QWidget()
         root.setObjectName("root_widget")
@@ -624,15 +598,10 @@ class MainWindow(QMainWindow):
         svc.account_updated.connect(self._refresh_status)
         svc.positions_updated.connect(self._refresh_status)
         svc.viewing_changed.connect(self._refresh_status)
-        svc.internet_status_changed.connect(self._on_internet_status_changed)
-        svc.market_status_updated.connect(self._on_market_status)
         svc.candle_db_status_changed.connect(self._on_db_status_updated)
         svc.risk_warning_raised.connect(self._on_risk_warning)
-        svc.backtest_progress.connect(self._on_backtest_progress)
-        svc.backtest_finished.connect(self._on_backtest_finished)
         self._risk_warning_last: dict[str, float] = {}
         self._refresh_status()
-        self._on_market_status()
 
         # Auto-connect feed and auto-fill TWS credentials if scheduler is enabled
         if load_system_config().scheduler_enabled:
@@ -799,38 +768,6 @@ class MainWindow(QMainWindow):
         box.setStandardButtons(QMessageBox.StandardButton.Ok)
         box.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         box.show()
-
-    def _on_internet_status_changed(self, online: bool) -> None:
-        """Update the status-bar internet pill when connectivity flips."""
-        if online:
-            self._sb_conn.setText("●  Internet: Online")
-        else:
-            self._sb_conn.setText("●  Internet: Offline")
-
-    def _on_backtest_progress(self, tf: str, done: int, total: int, _symbol: str) -> None:
-        """Show backtest download progress in the status bar (SRD-GUI-030.007)."""
-        self._sb_backtest_hide.stop()
-        self._sb_backtest.setText(f"Backtest data · {tf} {done:,} of {total:,}")
-        self._sb_backtest.show()
-
-    def _on_backtest_finished(self, _ok: bool, message: str) -> None:
-        """Show the backtest result briefly, then hide the status bar item."""
-        self._sb_backtest.setText(f"Backtest data · {message}")
-        self._sb_backtest.show()
-        self._sb_backtest_hide.start()
-
-    def _on_market_status(self) -> None:
-        """Update NYSE / NASDAQ status bar pills from AppService market status."""
-        _tip_map = {
-            "open":        "Regular Trading Hours  09:30 – 16:00 ET",
-            "pre_market":  "Pre-Market Session  04:00 – 09:30 ET",
-            "after_hours": "After-Hours Session  16:00 – 20:00 ET",
-            "closed":      "Market Closed",
-        }
-        status = self._demo.get_market_status()
-        for pill, key in ((self._sb_nyse, "nyse"), (self._sb_nasdaq, "nasdaq")):
-            s = status.get(key, "closed")
-            pill.setToolTip(_tip_map.get(s, ""))
 
     def _on_db_status_updated(self, info: object) -> None:
         """Store latest database info for use during auto-connect."""

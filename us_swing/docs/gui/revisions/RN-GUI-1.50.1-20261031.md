@@ -10,7 +10,7 @@
 
 ## Summary
 
-Backtest header stepper now sits in a centred rounded capsule (3-column title row) with small step circles, solid green when done, and short thin connectors. Play / Cancel icons on Run and Open were drawn in the dark background colour; they now use the "go" colour. Saved Reports allows Ctrl / Shift multi-select; Delete removes all picked runs after one confirm.
+Backtest header stepper now sits in a centred rounded capsule (3-column title row) with small step circles, solid green when done, and short thin connectors. Play / Cancel icons on Run and Open were drawn in the dark background colour; they now use the "go" colour. Saved Reports allows Ctrl / Shift multi-select; Delete removes all picked runs after one confirm. The bottom status bar is removed: Internet and market status were already in the sidebar Connections box, and backtest download progress now shows there as a "Backtest data" row while a download runs.
 
 ---
 
@@ -22,6 +22,8 @@ Backtest header stepper now sits in a centred rounded capsule (3-column title ro
 | MD-GUI-031.003.M03 | `gui/backtest_workspace.py` | Title row is a 3-column grid; Run / Cancel icons use "go" |
 | MD-GUI-031.055.M09 | `gui/backtest_reports.py` | Extended selection, `selected_all()`, multi-delete, Open icon "go" |
 | — | `gui/backtest_setup.py` | Run icon uses "go" |
+| MD-GUI-030.007.M05 | `gui/sidebar.py` | "Backtest data" row in Connections, hidden 15 s after the end |
+| — | `gui/main_window.py` | Status bar and its Internet / NYSE / NASDAQ / backtest items removed |
 | — | `gui/theme.py` | Capsule and step circle QSS |
 
 ---
@@ -50,4 +52,4 @@ None
 
 ## Test Coverage
 
-UT-GUI-031.055.M09.T06 (Pass) added; 38 backtest reports and workspace tests pass; ruff clean, no new mypy errors. Real-app check by user pending.
+UT-GUI-031.055.M09.T06 (Pass) added; UT-GUI-030.007.M05.T01 moved to the sidebar, T02 added (Pass); full GUI suite 582 passed, same 22 test-order errors as main; 38 backtest reports and workspace tests pass; ruff clean, no new mypy errors. Real-app check by user pending.

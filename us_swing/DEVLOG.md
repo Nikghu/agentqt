@@ -8,7 +8,7 @@
 - MD: MD-GUI-031.075.M11
 - Artifacts updated: Code (backtest_header, backtest_workspace, backtest_reports, backtest_setup, theme), CONTEXT, DEVLOG
 - Stepper now sits in a rounded capsule, truly centred (title row is a 3-column grid); small outline step circles, short 1px connectors. Play / Cancel icons on Run and Open used the "inverse" (dark) role on dark buttons; now "go". User picked option A from https://claude.ai/artifact/2Y3fKMNjRpjoKLETA5pqxF. 92 backtest GUI tests pass. Branch fix/gui-backtest-stepper-capsule, not pushed.
-- Follow-ups: done steps solid green (user). Saved Reports multi-select delete with one confirm (MD-GUI-031.055.M09, UT T06 Pass). RN-GUI-1.50.1-20261031.
+- Follow-ups: done steps solid green (user). Saved Reports multi-select delete with one confirm (MD-GUI-031.055.M09, UT T06 Pass). RN-GUI-1.50.1-20261031. Status bar removed (duplicated sidebar); backtest download progress moved to a sidebar Connections row; SRD-GUI-030.007 wording left for the user (status guard).
 
 ---
 
