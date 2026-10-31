@@ -2,12 +2,14 @@
 
 **Document:** CONTEXT.md
 **Project:** us_swing
-**Last Updated:** 2026-10-30 (Session 107)
+**Last Updated:** 2026-10-31 (Session 108)
 **Updated By:** Claude (Opus 5.5)
 
 ---
 
-**Current (Session 107, 2026-10-30):** **Backtest Phase 6 · MCP backtest server (FO-MCP-007; SRD-MCP-007.001–.010; RN-MCP-1.1.0).** Separate stdio server `python -m us_swing.mcp` with 8 `bt_` tools on `BacktestService`, sharing `results.db` with the app; `JobManager` (2 jobs, 30 min limit). 8 MCP tests Pass; real-data estimate OK. Commit 5950a3d4 pushed straight to main at user request (no PR). **Open (user):** register with `claude mcp add us_swing_backtest -e PYTHONPATH=F:\USMarket_Backtesting\us_swing\src -- F:\USMarket_Backtesting\.venv\Scripts\python.exe -m us_swing.mcp` and check in Claude Code (TODO T61). 4 tools deferred (TODO T74). **Next:** that user check; FO-MCP-001..006 stay Draft.
+**Current (Session 108, 2026-10-31):** **Backtest header stepper capsule + play icon fix (SRD-GUI-031.075, MD-GUI-031.075.M11).** Stepper is a centred rounded capsule (3-column title row), small outline circles, short thin connectors. Run / Open / Cancel icons switched from the dark "inverse" role to "go" so they show on dark buttons. 92 backtest GUI tests pass; ruff clean, no new mypy errors. Branch fix/gui-backtest-stepper-capsule, committed, not pushed. **Open (user):** check in the real app; say when to push / PR.
+
+**Previous (Session 107, 2026-10-30):** **Backtest Phase 6 · MCP backtest server (FO-MCP-007; SRD-MCP-007.001–.010; RN-MCP-1.1.0).** Separate stdio server `python -m us_swing.mcp` with 8 `bt_` tools on `BacktestService`, sharing `results.db` with the app; `JobManager` (2 jobs, 30 min limit). 8 MCP tests Pass; real-data estimate OK. Commit 5950a3d4 pushed straight to main at user request (no PR). **Open (user):** register with `claude mcp add us_swing_backtest -e PYTHONPATH=F:\USMarket_Backtesting\us_swing\src -- F:\USMarket_Backtesting\.venv\Scripts\python.exe -m us_swing.mcp` and check in Claude Code (TODO T61). 4 tools deferred (TODO T74). **Next:** that user check; FO-MCP-001..006 stay Draft.
 
 **Previous (Session 106, 2026-10-30):** **Backtest workspace polish (FO-GUI-031; SRD-GUI-031.075–.078; RN-GUI-1.50.0).** Header is a step stepper plus field grid with Hide details (remembered, option A). Trade chart shows candles from before entry to exit, IN / OUT dots, path, price callouts and a P&L · % · sessions badge, candles outside dimmed (option D). Chart title row holds a 3m / 15m / 1D toggle (15m default). Names / Add / Remove suggest S&P 500 symbols. Sessions oldest first with a Screened count; bold axis label fixed. 46 backtest GUI tests pass; ruff and mypy clean on changed files. Commit 55bee515 merged to main via PR #94 (c8fe982e); chore 8aba6ccd pushed to main. **Open (user):** manual check of the Backtest screen in the real app (TODO T73). **Next:** Backtest Phase 6 (MCP) on a new feature branch.
 

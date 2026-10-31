@@ -2,6 +2,15 @@
 
 ---
 
+## [20261031] GUI — Backtest stepper capsule + visible play icon (SRD-GUI-031.075)
+
+- Type: Fix (visual)
+- MD: MD-GUI-031.075.M11
+- Artifacts updated: Code (backtest_header, backtest_workspace, backtest_reports, backtest_setup, theme), CONTEXT, DEVLOG
+- Stepper now sits in a rounded capsule, truly centred (title row is a 3-column grid); small outline step circles, short 1px connectors. Play / Cancel icons on Run and Open used the "inverse" (dark) role on dark buttons; now "go". User picked option A from https://claude.ai/artifact/2Y3fKMNjRpjoKLETA5pqxF. 92 backtest GUI tests pass. Branch fix/gui-backtest-stepper-capsule, not pushed.
+
+---
+
 ## [20261030] MCP — Backtest MCP server over stdio, 8 tools (FO-MCP-007)
 
 - Type: Feature

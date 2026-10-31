@@ -21,6 +21,7 @@ from PyQt6.QtGui import QShowEvent
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -309,8 +310,10 @@ class BacktestWorkspace(QWidget):
         body = QVBoxLayout(box)
         body.setContentsMargins(14, 12, 14, 12)
         body.setSpacing(10)
-        top = QHBoxLayout()
-        top.setSpacing(8)
+        top = QGridLayout()
+        top.setHorizontalSpacing(8)
+        top.setColumnStretch(0, 1)
+        top.setColumnStretch(2, 1)
         title = QLabel("Backtest")
         title.setObjectName("page_title")
         self.steps = StepStrip()
@@ -328,14 +331,16 @@ class BacktestWorkspace(QWidget):
         self.download_btn.clicked.connect(self._on_download)
         self.run_btn = QPushButton(_RUN_TEXT)
         self.run_btn.setObjectName("run_btn")
-        set_icon(self.run_btn, "play", "inverse")
+        set_icon(self.run_btn, "play", "go")
         self.run_btn.clicked.connect(self._on_run_clicked)
-        top.addWidget(title)
-        top.addStretch(1)
-        top.addWidget(self.steps)
-        top.addStretch(1)
+        buttons = QHBoxLayout()
+        buttons.setSpacing(8)
+        buttons.addStretch(1)
         for button in (self.details_btn, self.edit_btn, self.download_btn, self.run_btn):
-            top.addWidget(button)
+            buttons.addWidget(button)
+        top.addWidget(title, 0, 0)
+        top.addWidget(self.steps, 0, 1)
+        top.addLayout(buttons, 0, 2)
         body.addLayout(top)
         self.plan_fields = PlanFields()
         body.addWidget(self.plan_fields)
@@ -602,7 +607,7 @@ class BacktestWorkspace(QWidget):
         runner.finished.connect(self._on_runner_finished)
         self._runner = runner
         self.run_btn.setText("Cancel")
-        set_icon(self.run_btn, "square-x", "inverse")
+        set_icon(self.run_btn, "square-x", "go")
         self.set_step(0, "running")
         self.set_step(1, "waiting")
         self.set_step(2, "waiting")
@@ -644,7 +649,7 @@ class BacktestWorkspace(QWidget):
     def _on_runner_finished(self) -> None:
         self._runner = None
         self.run_btn.setText(_RUN_TEXT)
-        set_icon(self.run_btn, "play", "inverse")
+        set_icon(self.run_btn, "play", "go")
         self._render_buttons()
         self._timer.start()
 

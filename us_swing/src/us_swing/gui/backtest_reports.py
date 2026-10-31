@@ -132,7 +132,7 @@ class ReportsView(QWidget):
         buttons = QHBoxLayout()
         self.open_btn = QPushButton("Open")
         self.open_btn.setObjectName("run_btn")
-        set_icon(self.open_btn, "play", "inverse")
+        set_icon(self.open_btn, "play", "go")
         self.open_btn.clicked.connect(self._on_open)
         self.delete_btn = QPushButton("Delete")
         set_icon(self.delete_btn, "trash-2", "danger")
