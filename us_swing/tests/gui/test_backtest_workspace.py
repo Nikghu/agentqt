@@ -447,8 +447,11 @@ def test_run_does_step_4(workspace: BacktestWorkspace, qtbot: Any) -> None:
     _run_both(workspace, qtbot)
 
     assert workspace.pills[3].property("state") == "complete"
-    assert workspace.tabs.tabText(workspace.tabs.currentIndex()) == "Detail Report"
-    assert workspace.report_view.kpi_values["Trades"].text() == "2"
+    assert workspace.tabs.currentWidget() is workspace.detail
+    assert workspace.view_switch.value == "1"
+    assert workspace.report_view.stat_values["Trades"].text() == "2"
+    assert workspace.report_view.context.text().endswith(
+        f"{workspace.builder.plan().period.start} → {workspace.builder.plan().period.end}")
     assert workspace.report_view.kpi_values["Net P&L"].text() == "$20.00"
 
 
@@ -458,6 +461,7 @@ def test_variant_picker_switches_tabs(workspace: BacktestWorkspace, qtbot: Any) 
     view = workspace.report_view
 
     assert not view.variant.isHidden()
+    assert not workspace.variant_label.isHidden()
     assert view.compare_table.rowCount() == 2
     view.variant.setCurrentIndex(1)
 
@@ -466,12 +470,34 @@ def test_variant_picker_switches_tabs(workspace: BacktestWorkspace, qtbot: Any) 
 
 
 def test_sections_and_variant_corner(workspace: BacktestWorkspace) -> None:
-    """UT-GUI-031.050.M03.T01: Three section tabs; the variant picker sits by the tabs."""
-    tabs = workspace.tabs
+    """UT-GUI-031.050.M03.T01: Three views in a pill switch; the variant picker sits beside it."""
+    buttons = workspace.view_switch.buttons
 
-    assert [tabs.tabText(i) for i in range(tabs.count())] == [
-        "Trade Inspector", "Detail Report", "Reports"]
-    assert tabs.cornerWidget() is workspace.report_view.variant
+    assert [b.text() for b in buttons] == ["Inspector", "Report", "Saved runs"]
+    assert workspace.tabs.count() == 3
+    assert workspace.variant_label.isHidden()
+    assert workspace.report_view.variant.parentWidget() is workspace.view_switch.parentWidget()
+
+
+def test_view_switch_keys(workspace: BacktestWorkspace) -> None:
+    """UT-GUI-031.068.M03.T01: Pills and keys 1-3 switch views; a text field keeps the key."""
+    from PyQt6.QtCore import QEvent, Qt
+    from PyQt6.QtGui import QKeyEvent, QShortcut
+
+    workspace.view_switch.buttons[2].click()
+    assert workspace.tabs.currentWidget() is workspace.saved
+    assert workspace.view_note.text() == "Double-click a saved run to open it"
+    keys = {k.key().toString(): k for k in workspace.findChildren(QShortcut)}
+    assert {"1", "2", "3"} <= set(keys)
+    keys["2"].activated.emit()
+    assert workspace.tabs.currentWidget() is workspace.detail
+    assert workspace.view_switch.buttons[1].isChecked()
+    workspace.tabs.setCurrentWidget(workspace.inspector)
+    assert workspace.view_switch.value == "0"
+    override = QKeyEvent(QEvent.Type.ShortcutOverride, Qt.Key.Key_3,
+                         Qt.KeyboardModifier.NoModifier, "3")
+    workspace.breakdown.search.event(override)
+    assert override.isAccepted()
 
 
 def test_picking_a_day_filters_panels(workspace: BacktestWorkspace, qtbot: Any) -> None:
@@ -528,11 +554,25 @@ def test_detail_panels_filled(workspace: BacktestWorkspace, qtbot: Any) -> None:
     """UT-GUI-031.054.M03.T01: Detail Report has Trade list, Screener use and Margin use filled."""
     _run_both(workspace, qtbot)
 
-    assert set(workspace.detail.panels) == {"report", "tradelist", "screener_use", "margin_use",
-                                            "risk"}
+    assert set(workspace.detail.panels) == {"report", "breakdown", "tradelist", "screener_use",
+                                            "margin_use", "risk"}
     assert workspace.trade_list.table.rowCount() == 2
     assert workspace.screener_use.chart.use.days == ["2026-03-02", "2026-03-03"]
     assert workspace.margin_use.facts.text().startswith("Money deployed on 2 of 2 days")
+
+
+def test_breakdown_panel(workspace: BacktestWorkspace, qtbot: Any) -> None:
+    """UT-GUI-031.067.M03.T01: Breakdown is its own panel; it fills, filters and turns off."""
+    _run_both(workspace, qtbot)
+    breakdown = workspace.breakdown
+
+    assert workspace.detail.panels["breakdown"].isAncestorOf(breakdown)
+    assert not workspace.report_view.isAncestorOf(breakdown)
+    assert breakdown.table.rowCount() > 1
+    breakdown._on_clicked(0, 0)
+    assert ": " in workspace.trade_list.summary.text().split(" · ")[0]
+    workspace.detail.set_shown("breakdown", False)
+    assert not workspace.detail.is_shown("breakdown")
 
 
 def test_open_saved_run(workspace: BacktestWorkspace, qtbot: Any) -> None:

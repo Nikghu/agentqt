@@ -9,6 +9,8 @@ from __future__ import annotations
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
+from us_swing.gui.theme import C
+
 STEPS = ("Stocks", "Signals", "Portfolio", "Report")
 FIELDS = (("run", "Run"), ("stocks", "Stocks"), ("screener", "Screener"),
           ("strategies", "Strategy"), ("account", "Account"))
@@ -28,14 +30,16 @@ def _set_state(widget: QWidget, state: str) -> None:
     repolish(widget)
 
 
-class StepStrip(QWidget):
-    """Numbered circles joined by lines; done steps turn green with a tick."""
+class StepStrip(QFrame):
+    """Capsule of small numbered circles joined by short lines; done steps show a green tick."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        self.setObjectName("bt_step_capsule")
+        self.setFixedHeight(C.BTN_H)
         row = QHBoxLayout(self)
-        row.setContentsMargins(0, 0, 0, 0)
-        row.setSpacing(8)
+        row.setContentsMargins(12, 0, 12, 0)
+        row.setSpacing(6)
         self.nums: list[QLabel] = []
         self.names: list[QLabel] = []
         self._bars: list[QFrame] = []
@@ -43,12 +47,12 @@ class StepStrip(QWidget):
             if i:
                 bar = QFrame()
                 bar.setObjectName("bt_step_bar")
-                bar.setFixedSize(40, 2)
+                bar.setFixedSize(16, 1)
                 self._bars.append(bar)
                 row.addWidget(bar)
             num = QLabel(str(i + 1))
             num.setObjectName("bt_step_num")
-            num.setFixedSize(22, 22)
+            num.setFixedSize(16, 16)
             num.setAlignment(Qt.AlignmentFlag.AlignCenter)
             label = QLabel(name)
             label.setObjectName("bt_step_name")

@@ -543,16 +543,8 @@ class ExecutionPanel(QWidget):
         head_col.setContentsMargins(0, 0, 0, 0)
         head_col.setSpacing(0)
         head_col.addWidget(self._header)
-
-        # ── Circuit breaker banner (hidden by default) ─────────────────────────
-        self._cb_banner = QLabel(
-            "⚠  Circuit Breaker ACTIVE — daily loss limit reached. "
-            "New entries are disabled."
-        )
-        self._cb_banner.setObjectName("cb_banner")
-        self._cb_banner.setVisible(False)
-        self._cb_banner.setWordWrap(True)
-        head_col.addWidget(self._cb_banner)
+        # Circuit breaker banner sits on the header's screener-run line (hidden by default).
+        self._cb_banner = self._header.cb_banner
         main.addWidget(card(head_box))
         # Circuit breaker lives on AppService (toggled from the page header, SRD-GUI-027.009).
         demo.circuit_breaker_changed.connect(self.on_circuit_breaker)

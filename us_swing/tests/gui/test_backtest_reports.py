@@ -15,7 +15,7 @@ sys.modules.setdefault("PyQt6.QtWebEngineWidgets", _web_stub)
 from us_swing.backtest.results import RunRow  # noqa: E402
 from us_swing.backtest.service import SavedReport  # noqa: E402
 from us_swing.backtest.spec import Period, RunPlan, StrategySpec, UniverseSpec  # noqa: E402
-from us_swing.gui.backtest_reports import ReportsView, plan_text  # noqa: E402
+from us_swing.gui.backtest_reports import ReportsView, plan_sections  # noqa: E402
 
 
 def saved_report(run_id: str = "r1", name: str = "IT run", net: float = -25.0) -> SavedReport:
@@ -61,7 +61,9 @@ def test_table_and_details(view: ReportsView) -> None:
     assert view.table.item(0, 4).text() == "-30.4%"  # type: ignore[union-attr]
     assert view.name.text() == "IT run"
     assert view.note.toPlainText() == "my note"
-    assert "Strategies: ST_AUTO 100%/100%" in view.facts.text()
+    assert view.sheet_values()["ST_AUTO"] == "Allocation 100% · per trade 100%"
+    assert view.sheet_values()["Stocks"] == "Information Technology"
+    assert not view.facts.isVisibleTo(view)
     view.table.selectRow(1)
     assert view.name.text() == "Other"
 
@@ -106,13 +108,43 @@ def test_delete_needs_confirm(view: ReportsView, monkeypatch: pytest.MonkeyPatch
     qtbot.waitUntil(lambda: not view._workers)
 
 
-def test_plan_text_names_mode() -> None:
-    """UT-GUI-031.055.M09.T05: Plan facts list the names, capital and costs."""
+def test_multi_select_delete(view: ReportsView, monkeypatch: pytest.MonkeyPatch,
+                             qtbot: Any) -> None:
+    """UT-GUI-031.055.M09.T06: Several picked runs are deleted after one confirm."""
+    service = view._service
+    asked: list[int] = []
+    monkeypatch.setattr(view, "confirm_delete", lambda reps: asked.append(len(reps)) or True)
+
+    view.table.selectAll()
+    assert view.facts.text() == "2 runs selected"
+    assert view.delete_btn.text() == "Delete (2)"
+    assert not view.open_btn.isEnabled() and not view.rename_btn.isEnabled()
+    view.delete_btn.click()
+
+    assert asked == [2]
+    assert service.calls == [("delete", "r1"), ("delete", "r2")]  # type: ignore[attr-defined]
+    qtbot.waitUntil(lambda: not view._workers)
+
+
+def test_plan_sections_names_mode() -> None:
+    """UT-GUI-031.055.M09.T05: Plan facts group the names, strategy, capital and costs."""
     rep = saved_report()
     plan = RunPlan("x", rep.plan.period, universe=UniverseSpec("names", names=("AAPL", "MSFT")))
 
-    text = plan_text(SavedReport(rep.run, plan, 0, 0.0, 0.0, 0.0))
+    sections = dict(plan_sections(SavedReport(rep.run, plan, 0, 0.0, 0.0, 0.0)))
 
-    assert "Stocks: AAPL, MSFT" in text
-    assert "Strategies: None" in text
-    assert "Costs: $1 an order · 5 bps" in text
+    assert list(sections) == ["UNIVERSE", "STRATEGY", "MONEY"]
+    assert ("Stocks", "AAPL, MSFT") in sections["UNIVERSE"]
+    assert sections["STRATEGY"] == [("None", "")]
+    assert ("Costs", "$1 an order · 5 bps") in sections["MONEY"]
+
+
+def test_many_sectors_show_a_count() -> None:
+    """UT-GUI-031.055.M09.T07: More than two sectors show as a count."""
+    rep = saved_report()
+    plan = RunPlan("x", rep.plan.period,
+                   universe=UniverseSpec("sector", ("Energy", "Financials", "Utilities")))
+
+    sections = dict(plan_sections(SavedReport(rep.run, plan, 0, 0.0, 0.0, 0.0)))
+
+    assert ("Stocks", "3 sectors") in sections["UNIVERSE"]

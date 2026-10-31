@@ -16,6 +16,7 @@ _web_stub.QWebEngineView = object  # type: ignore[attr-defined]
 sys.modules.setdefault("PyQt6.QtWebEngineWidgets", _web_stub)
 
 from us_swing.backtest.steps.report import Report, build_report  # noqa: E402
+from us_swing.gui.backtest_breakdown import BreakdownView  # noqa: E402
 from us_swing.gui.backtest_report_view import ReportView, fmt, skips_text  # noqa: E402
 
 _DAYS = [date(2026, 3, 2), date(2026, 3, 3), date(2026, 4, 1)]
@@ -58,20 +59,21 @@ def test_fmt_kinds() -> None:
 
 
 def test_kpi_row_and_stats(view: ReportView) -> None:
-    """UT-GUI-031.040.M04.T02: KPI row and all-stats table show the selected variant."""
+    """UT-GUI-031.040.M04.T02: KPI row and every stat show the selected variant."""
     view.set_reports([_report()])
 
     assert view.kpi_values["Net P&L"].text() == "$20.00"
     assert view.kpi_values["Win rate"].text() == "50.0%"
-    assert view.stats_table.rowCount() == len(_report().stats)
-    assert view.skips_label.text() == "Entries taken 2 · skipped: strategy limit 1"
+    assert set(view.stat_values) == {s.name for s in _report().stats}
+    assert view.skips_label.text() == "2 of 3 entry signals were taken"
 
 
 def test_empty_view(view: ReportView) -> None:
     """UT-GUI-031.040.M04.T03: No report shows dashes and no export."""
     view.set_reports([])
 
-    assert view.kpi_values["Trades"].text() == "—"
+    assert view.kpi_values["Sharpe"].text() == "—"
+    assert view.stat_values == {}
     assert not view.export_btn.isEnabled()
 
 
@@ -92,21 +94,29 @@ def test_month_heat_map(view: ReportView) -> None:
     march, april = view.month_table.item(0, 3), view.month_table.item(0, 4)
 
     assert view.month_table.rowCount() == 1
-    assert (march.text(), april.text()) == ("20", "0")  # type: ignore[union-attr]
+    assert (march.text(), april.text()) == ("$20", "$0")  # type: ignore[union-attr]
     assert march.background().color().alpha() > 0  # type: ignore[union-attr]
-    assert view.month_table.item(0, 13).text() == "20"  # type: ignore[union-attr]
+    assert view.month_table.item(0, 13).text() == "$20"  # type: ignore[union-attr]
+    assert view.month_table.horizontalHeaderItem(13).text() == "Total"  # type: ignore[union-attr]
 
 
-def test_breakdown_group_picker(view: ReportView) -> None:
-    """UT-GUI-031.043.M04.T01: Changing Group by refills the breakdown table."""
+def _breakdown(view: ReportView, qtbot: Any) -> BreakdownView:
+    widget = BreakdownView()
+    qtbot.addWidget(widget)
+    view.report_changed.connect(widget.set_report)
     view.set_reports([_report()])
-    assert view.group_table.item(0, 0).text() == "S1"  # type: ignore[union-attr]
+    return widget
 
-    view.group_pick.setCurrentIndex(view.group_pick.findData("sector"))
 
-    groups = {view.group_table.item(r, 0).text()  # type: ignore[union-attr]
-              for r in range(view.group_table.rowCount())}
-    assert groups == {"Information Technology", "Unknown"}
+def test_breakdown_group_picker(view: ReportView, qtbot: Any) -> None:
+    """UT-GUI-031.062.M04.T01: Breakdown opens on the first chip with more than one group."""
+    breakdown = _breakdown(view, qtbot)
+    table = breakdown.table
+
+    assert breakdown.by == "sector"
+    names = [table.item(r, 0).text() for r in range(table.rowCount())]  # type: ignore[union-attr]
+    assert names[0].startswith("Information Technology")
+    assert names[1].startswith("Unknown") and names[2] == "All trades"
 
 
 def test_single_variant_hides_compare(view: ReportView) -> None:
@@ -124,7 +134,35 @@ def test_compare_two_variants(view: ReportView) -> None:
     assert view.compare_table.rowCount() == 2
     assert view.compare_table.item(1, 0).text() == "B"  # type: ignore[union-attr]
     view.variant.setCurrentIndex(1)
-    assert view.kpi_values["Trades"].text() == "1"
+    assert view.stat_values["Trades"].text() == "1"
+
+
+def test_tear_sheet_title_notes_and_groups(view: ReportView) -> None:
+    """UT-GUI-031.079.M04.T01: Title with context, KPI notes, signal pills and stat groups."""
+    view.set_reports([_report()], "Information Technology · 2026-03-02 → 2026-04-01")
+
+    assert view.head.text() == "$1,000"
+    assert view.context.text() == "Information Technology · 2026-03-02 → 2026-04-01"
+    assert view.kpi_notes["Net P&L"].text() == "ending equity $1,020"
+    assert view.kpi_notes["Return"].text().startswith("vs benchmark ")
+    assert view.kpi_notes["Win rate"].text() == "1 of 2 trades won"
+    pills = [view.signals.itemAt(i).widget() for i in range(view.signals.count())]
+    texts = [w.text() for w in pills if w is not None]
+    assert "Entries <b>2</b>" in texts and "Strategy limit <b>1</b>" in texts
+    assert view.groups.count() == 4
+    assert view.stat_values["Max drawdown"].styleSheet().startswith("color: ")
+
+
+def test_tone_only_for_money() -> None:
+    """UT-GUI-031.079.M04.T02: Only money and return values get green or red."""
+    from us_swing.backtest.steps.report import Stat
+    from us_swing.gui.backtest_report_view import _tone
+    from us_swing.gui.theme import C
+
+    assert _tone(Stat("Net P&L", 5.0, "usd")) == C.GREEN
+    assert _tone(Stat("Max drawdown", -0.2, "pct")) == C.RED
+    assert _tone(Stat("Average MAE", 47.0, "usd")) == C.TEXT
+    assert _tone(Stat("Sharpe", 1.6, "ratio")) == C.TEXT
 
 
 def test_export_csv(view: ReportView, tmp_path: Path) -> None:
@@ -169,14 +207,14 @@ def test_risk_facts(qtbot: Any) -> None:
     assert facts.values["Average MFE"].text() == "—"
 
 
-def test_new_group_choices(view: ReportView) -> None:
-    """UT-GUI-031.047.M04.T01: Group by offers Hold time, Score bucket and Rank."""
-    view.set_reports([_report()])
-    names = [view.group_pick.itemText(i) for i in range(view.group_pick.count())]
+def test_new_group_choices(view: ReportView, qtbot: Any) -> None:
+    """UT-GUI-031.062.M04.T02: Chips list every group with counts; single groups are off."""
+    breakdown = _breakdown(view, qtbot)
+    buttons = {b.text(): b for b in breakdown.chips.buttons}
 
-    assert names[-3:] == ["Hold time", "Score bucket", "Rank"]
-    view.group_pick.setCurrentIndex(view.group_pick.findData("hold"))
-    assert view.group_table.item(0, 0).text() == "1–3 h"  # type: ignore[union-attr]
+    assert "Strategy 2" in buttons and buttons["Strategy 2"].isEnabled()
+    assert not buttons["Hold time 1"].isEnabled()
+    assert buttons["Hold time 1"].toolTip() == "Only one hold time in this run"
 
 
 def test_heat_map_shown_when_it_applies(view: ReportView) -> None:

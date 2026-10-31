@@ -26,6 +26,8 @@ class _StubService(QObject):
     feed_status_changed = pyqtSignal(str)
     internet_status_changed = pyqtSignal(bool)
     market_status_updated = pyqtSignal()
+    backtest_progress = pyqtSignal(str, int, int, str)
+    backtest_finished = pyqtSignal(bool, str)
 
     def __init__(self, viewing: int | None = None) -> None:
         super().__init__()
@@ -292,6 +294,33 @@ def test_market_skips_weekend_and_holiday():
     assert market_text(before_thanksgiving)[2] == "opens in 1d 13h"
     before_dst_end = datetime.datetime(2026, 10, 30, 17, 0, tzinfo=ET)
     assert market_text(before_dst_end)[2] == "opens in 2d 17h"
+
+
+def test_connections_show_backtest_download(sidebar):
+    """UT-GUI-030.007.M05.T01: Sidebar shows download progress, then the result, then hides."""
+    conn = sidebar._conn
+    svc = sidebar._footer._svc
+    assert conn._bt_row.isHidden()
+
+    svc.backtest_progress.emit("1d", 35, 503, "AAPL")
+    assert not conn._bt_row.isHidden()
+    assert conn._bt_val.text() == "35 of 503"
+    assert conn._bt_sub.text() == "1d candles"
+
+    svc.backtest_finished.emit(True, "Download complete")
+    assert conn._bt_val.text() == "Done"
+    assert conn._bt_dot.property("colour") == active_palette().GREEN
+    assert conn._bt_hide.isActive()
+    conn._bt_hide.timeout.emit()
+    assert conn._bt_row.isHidden()
+
+
+def test_main_window_has_no_status_bar():
+    """UT-GUI-030.007.M05.T02: The bottom status bar is gone."""
+    from us_swing.gui.main_window import MainWindow
+
+    assert not hasattr(MainWindow, "_on_backtest_progress")
+    assert not hasattr(MainWindow, "_on_market_status")
 
 
 def test_mini_shows_plug_with_worst_status(sidebar):

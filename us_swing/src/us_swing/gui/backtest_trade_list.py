@@ -4,7 +4,8 @@ Parent SRD: SRD-GUI-031.053
 
 Every trade of the run: Trade #, LONG/SHORT pill, times, prices, P&L, P&L %, qty,
 duration and exit reason, with All / Wins / Losses / LONG / SHORT chips.
-Clicking a row asks the workspace to open that trade's day in the Inspector.
+Clicking a row asks the workspace to open that trade's day in the Inspector. A breakdown
+row click can narrow the list to one group's trades (SRD-GUI-031.066).
 """
 from __future__ import annotations
 
@@ -57,6 +58,12 @@ def keep(trades: pd.DataFrame, which: str) -> pd.DataFrame:
     return trades
 
 
+def trade_keys(trades: pd.DataFrame) -> list[tuple[str, int]]:
+    """(symbol, entry time in ns) per trade; the same trade gives the same key everywhere."""
+    entry = pd.DatetimeIndex(pd.to_datetime(trades["entry_ts"], utc=True))
+    return list(zip(trades["symbol"].astype(str), [int(ts.value) for ts in entry], strict=True))
+
+
 def _times(values: pd.Series) -> list[str]:
     return list(pd.DatetimeIndex(pd.to_datetime(values, utc=True)).tz_convert(_ET).strftime(_TIME))
 
@@ -72,6 +79,8 @@ class TradeList(QWidget):
             "strategy", "symbol", "direction", "entry_ts", "entry_px", "qty", "exit_ts",
             "exit_px", "exit_reason", "net_pnl"]))
         self._rows = self._all
+        self._group = ""
+        self._keys: set[tuple[str, int]] | None = None
         body = QVBoxLayout(self)
         body.setContentsMargins(0, 0, 0, 0)
         body.setSpacing(6)
@@ -97,12 +106,22 @@ class TradeList(QWidget):
     def set_trades(self, trades: pd.DataFrame) -> None:
         """Show every trade of the selected variant."""
         self._all = numbered(trades)
+        self._group, self._keys = "", None
+        self._render()
+
+    def set_group_filter(self, label: str, keys: set[tuple[str, int]] | None) -> None:
+        """Keep only the trades in ``keys`` (a breakdown group), or all when ``keys`` is None."""
+        self._group, self._keys = (label, keys) if keys is not None else ("", None)
         self._render()
 
     def _render(self) -> None:
-        rows = keep(self._all, self.chips.value or "all")
+        rows = self._all
+        if self._keys is not None:
+            rows = rows[[key in self._keys for key in trade_keys(rows)]]
+        rows = keep(rows, self.chips.value or "all")
         self._rows = rows.reset_index(drop=True)
-        self.summary.setText(f"{len(rows)} of {len(self._all)} trades · net P&L "
+        group = f"{self._group} · " if self._group else ""
+        self.summary.setText(f"{group}{len(rows)} of {len(self._all)} trades · net P&L "
                              f"{_usd(float(rows['net_pnl'].sum()))}")
         self.table.setRowCount(len(rows))
         cells = [

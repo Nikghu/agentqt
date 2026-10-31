@@ -140,6 +140,20 @@ class _ConnectionsPanel(QWidget):
         self._net_dot, self._net_val, _ = self._add_row(rows, "Internet", with_detail=False)
         self._feed_dot, self._feed_val, self._feed_sub = self._add_row(rows, "IBKR Feed")
         self._mkt_dot, self._mkt_val, self._mkt_sub = self._add_row(rows, "Market")
+        self._bt_row = QWidget()
+        self._bt_row.setStyleSheet("background: transparent;")
+        bt_rows = QVBoxLayout(self._bt_row)
+        bt_rows.setContentsMargins(0, 0, 0, 0)
+        bt_rows.setSpacing(6)
+        self._bt_dot, self._bt_val, self._bt_sub = self._add_row(bt_rows, "Backtest data")
+        self._bt_sub.setWordWrap(True)
+        self._bt_row.setToolTip("Settings → Backtest data")
+        self._bt_row.hide()
+        rows.addWidget(self._bt_row)
+        self._bt_hide = QTimer(self)
+        self._bt_hide.setSingleShot(True)
+        self._bt_hide.setInterval(15_000)
+        self._bt_hide.timeout.connect(self._bt_row.hide)
         self._layout.addWidget(self._full)
 
         self._plug = QPushButton()
@@ -156,7 +170,27 @@ class _ConnectionsPanel(QWidget):
         svc.feed_status_changed.connect(self.refresh)
         svc.internet_status_changed.connect(self.refresh)
         svc.market_status_updated.connect(self.refresh)
+        svc.backtest_progress.connect(self._on_backtest_progress)
+        svc.backtest_finished.connect(self._on_backtest_finished)
         self.refresh()
+
+    def _on_backtest_progress(self, tf: str, done: int, total: int, _symbol: str) -> None:
+        """Show backtest download progress while it runs (SRD-GUI-030.007)."""
+        self._bt_hide.stop()
+        _T: Any = active_palette()
+        self._bt_dot.set_colour(_T.BLUE)
+        self._bt_val.setText(f"{done:,} of {total:,}")
+        self._bt_sub.setText(f"{tf} candles")
+        self._bt_row.show()
+
+    def _on_backtest_finished(self, ok: bool, message: str) -> None:
+        """Show the result for 15 s, then hide the row."""
+        _T: Any = active_palette()
+        self._bt_dot.set_colour(_T.GREEN if ok else _T.RED)
+        self._bt_val.setText("Done" if ok else "Stopped")
+        self._bt_sub.setText(message)
+        self._bt_row.show()
+        self._bt_hide.start()
 
     @staticmethod
     def _add_row(parent: QVBoxLayout, name: str,

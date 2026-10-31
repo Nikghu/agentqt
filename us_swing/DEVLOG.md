@@ -2,6 +2,29 @@
 
 ---
 
+## [20261031] GUI — Backtest breakdown redesign, option A (SRD-GUI-031.062–.066)
+
+- Type: Feature
+- FO(s): FO-GUI-031
+- RN: RN-GUI-1.51.0-20261031
+- Artifacts updated: SRD (.062–.066 Draft → Approved by user → Implemented), MD (MD-GUI-031.062.M12 new), UTCD (10 rows Pass; 2 replaced), TRACE, Code, Tests, RN, CONTEXT, DEVLOG
+- Follow-up: Report panel tear sheet (option A of https://claude.ai/artifact/9FtQ5stYsFFDbewpJZUw9C) plus a mouse-following line on the chart; values show in the legend row so nothing covers the curves (SRD-GUI-031.079–.081 approved by user; RN-GUI-1.53.0).
+- Follow-up: view tabs replaced by a segmented pill bar (option B of https://claude.ai/artifact/DUW3e9Mv6kAzhi4zWTLDEG; SRD-GUI-031.068 approved by user; RN-GUI-1.52.0). Key test checks the shortcut and Qt ShortcutOverride directly, because the pytest window is not made active on this machine.
+- Follow-up: Breakdown moved to its own Detail Report panel beside the Trade list (SRD-GUI-031.067, approved by user; UT-GUI-031.067.M03.T01 Pass).
+- Design: https://claude.ai/artifact/EwvB839pqWBrsjbQy4TCRY, built from the real run's 9 groupings. Sorting kept in the GUI so SRD-BKT-002.044 stays unchanged. Branch feat/gui-breakdown-chips, stacked on fix/gui-backtest-stepper-capsule, not pushed.
+
+---
+
+## [20261031] GUI — Backtest stepper capsule + visible play icon (SRD-GUI-031.075)
+
+- Type: Fix (visual)
+- MD: MD-GUI-031.075.M11
+- Artifacts updated: Code (backtest_header, backtest_workspace, backtest_reports, backtest_setup, theme), CONTEXT, DEVLOG
+- Stepper now sits in a rounded capsule, truly centred (title row is a 3-column grid); small outline step circles, short 1px connectors. Play / Cancel icons on Run and Open used the "inverse" (dark) role on dark buttons; now "go". User picked option A from https://claude.ai/artifact/2Y3fKMNjRpjoKLETA5pqxF. 92 backtest GUI tests pass. Branch fix/gui-backtest-stepper-capsule, not pushed.
+- Follow-ups: done steps solid green (user). Saved Reports multi-select delete with one confirm (MD-GUI-031.055.M09, UT T06 Pass). RN-GUI-1.50.1-20261031. Status bar removed (duplicated sidebar); backtest download progress moved to a sidebar Connections row; SRD-GUI-030.007 reopened by user, reworded to the sidebar row, set back to Implemented.
+
+---
+
 ## [20261030] MCP — Backtest MCP server over stdio, 8 tools (FO-MCP-007)
 
 - Type: Feature

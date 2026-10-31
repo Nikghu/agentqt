@@ -16,25 +16,32 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
-from PyQt6.QtCore import QSettings, QThread, QTimer, pyqtSignal
-from PyQt6.QtGui import QShowEvent
+from PyQt6.QtCore import QSettings, Qt, QThread, QTimer, pyqtSignal
+from PyQt6.QtGui import QKeySequence, QShortcut, QShowEvent
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QPushButton,
     QScrollArea,
+    QStackedWidget,
     QTableWidget,
     QTableWidgetItem,
-    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
 
 from us_swing.backtest.cache import StepCache
 from us_swing.backtest.results import ResultsStore
-from us_swing.backtest.service import BacktestService, DailyList, Estimate, SavedReport
+from us_swing.backtest.service import (
+    BacktestService,
+    DailyList,
+    Estimate,
+    SavedReport,
+    stocks_text,
+)
 from us_swing.backtest.spec import RunPlan
 from us_swing.backtest.steps.portfolio import VariantResult
 from us_swing.backtest.steps.report import Report
@@ -42,6 +49,7 @@ from us_swing.backtest.steps.stocks import StepCancelled, top_n
 from us_swing.backtest.store import BacktestStore
 from us_swing.core.backtest_bridge import list_presets, load_preset_dict, load_strategies
 from us_swing.data.models import ConnectionStatus
+from us_swing.gui.backtest_breakdown import BreakdownView
 from us_swing.gui.backtest_builder import BacktestBuilder
 from us_swing.gui.backtest_dock import DockSection, PanelSpec
 from us_swing.gui.backtest_header import PlanFields, StepStrip, repolish
@@ -70,6 +78,10 @@ _CHART_TFS: tuple[tuple[str, str | None], ...] = (("3m", "3m"), ("15m", "15m"), 
 _CHART_DAYS_BEFORE = {"3m": 1, "15m": 3, "1d": 90}
 _CHART_DAYS_AFTER = {"3m": 0, "15m": 0, "1d": 10}
 
+
+_VIEWS = (("Inspector", "search", "One session: chart, picks, signals and trades"),
+          ("Report", "chart-line", "Stats, breakdown and the trade list of a variant"),
+          ("Saved runs", "history", "Double-click a saved run to open it"))
 
 class _EstimateWorker(QThread):
     done = pyqtSignal(int, object)  # (ticket, Estimate)
@@ -104,6 +116,11 @@ class _RunWorker(QThread):
         super().__init__(parent)
         self._service, self._plan, self._user = service, plan, user_id
         self._cancel = False
+
+    @property
+    def plan(self) -> RunPlan:
+        """The plan this worker runs or opens."""
+        return self._plan
 
     def request_cancel(self) -> None:
         self._cancel = True
@@ -309,8 +326,10 @@ class BacktestWorkspace(QWidget):
         body = QVBoxLayout(box)
         body.setContentsMargins(14, 12, 14, 12)
         body.setSpacing(10)
-        top = QHBoxLayout()
-        top.setSpacing(8)
+        top = QGridLayout()
+        top.setHorizontalSpacing(8)
+        top.setColumnStretch(0, 1)
+        top.setColumnStretch(2, 1)
         title = QLabel("Backtest")
         title.setObjectName("page_title")
         self.steps = StepStrip()
@@ -328,14 +347,16 @@ class BacktestWorkspace(QWidget):
         self.download_btn.clicked.connect(self._on_download)
         self.run_btn = QPushButton(_RUN_TEXT)
         self.run_btn.setObjectName("run_btn")
-        set_icon(self.run_btn, "play", "inverse")
+        set_icon(self.run_btn, "play", "go")
         self.run_btn.clicked.connect(self._on_run_clicked)
-        top.addWidget(title)
-        top.addStretch(1)
-        top.addWidget(self.steps)
-        top.addStretch(1)
+        buttons = QHBoxLayout()
+        buttons.setSpacing(8)
+        buttons.addStretch(1)
         for button in (self.details_btn, self.edit_btn, self.download_btn, self.run_btn):
-            top.addWidget(button)
+            buttons.addWidget(button)
+        top.addWidget(title, 0, 0)
+        top.addWidget(self.steps, 0, 1)
+        top.addLayout(buttons, 0, 2)
         body.addLayout(top)
         self.plan_fields = PlanFields()
         body.addWidget(self.plan_fields)
@@ -370,7 +391,7 @@ class BacktestWorkspace(QWidget):
         self.plan_fields.set_summaries(self.builder.summaries())
 
     def _build_views(self) -> QWidget:
-        self.tabs = QTabWidget()
+        self.tabs = QStackedWidget()
         self.inspector = DockSection("inspector", [
             [PanelSpec("chart", "Chart", "chart-candlestick", self._build_chart(),
                        head=self.chart_bar),
@@ -389,13 +410,17 @@ class BacktestWorkspace(QWidget):
         self.report_view.setMinimumHeight(980)
         self.trade_list = TradeList()
         self.trade_list.trade_clicked.connect(self._open_trade)
+        self.breakdown = BreakdownView()
+        self.report_view.report_changed.connect(self.breakdown.set_report)
+        self.breakdown.group_selected.connect(self.trade_list.set_group_filter)
         self.screener_use = UsePanel((C.BLUE, C.MUTED), ("Traded", "Not traded"), money=False)
         self.margin_use = UsePanel((C.BLUE, C.TEAL), ("Deployed peak", "Lowest margin left"),
                                    money=True)
         self.risk = RiskFacts()
         self.detail = DockSection("detail", [
             [PanelSpec("report", "Report", "chart-line", report_scroll)],
-            [PanelSpec("tradelist", "Trade list", "list", self.trade_list)],
+            [PanelSpec("breakdown", "Breakdown", "layout-grid", self.breakdown),
+             PanelSpec("tradelist", "Trade list", "list", self.trade_list)],
             [PanelSpec("screener_use", "Screener use", "filter", self.screener_use),
              PanelSpec("margin_use", "Margin use", "briefcase", self.margin_use),
              PanelSpec("risk", "Risk", "shield", self.risk)],
@@ -406,13 +431,53 @@ class BacktestWorkspace(QWidget):
             [PanelSpec("saved", "Saved reports", "history", self.reports.list_box, stretch=3),
              PanelSpec("details", "Report details", "clipboard-list", self.reports.details_box)],
         ], settings=self._settings)
-        self.tabs.addTab(self.inspector, "Trade Inspector")
-        self.tabs.addTab(self.detail, "Detail Report")
-        self.tabs.addTab(self.saved, "Reports")
-        self.tabs.setCornerWidget(self.report_view.variant)
+        for view in (self.inspector, self.detail, self.saved):
+            self.tabs.addWidget(view)
         self.tabs.currentChanged.connect(
             lambda _i: self.reports.refresh() if self.tabs.currentWidget() is self.saved else None)
-        return self.tabs
+        box = QWidget()
+        body = QVBoxLayout(box)
+        body.setContentsMargins(0, 0, 0, 0)
+        body.setSpacing(6)
+        body.addLayout(self._build_view_bar())
+        body.addWidget(self.tabs, 1)
+        return box
+
+    def _build_view_bar(self) -> QHBoxLayout:
+        """Pill switch for the three views, a note and the variant picker (SRD-GUI-031.068)."""
+        self.view_switch = ChipGroup([(name, str(i)) for i, (name, _icon, _note)
+                                      in enumerate(_VIEWS)])
+        self.view_switch.setFixedWidth(400)
+        for i, (button, (name, icon_name, _note)) in enumerate(
+                zip(self.view_switch.buttons, _VIEWS, strict=True)):
+            set_icon(button, icon_name, "neutral", 14)
+            button.setToolTip(f"{name} (key {i + 1})")
+        self.view_switch.changed.connect(
+            lambda: self.tabs.setCurrentIndex(int(self.view_switch.value or 0)))
+        self.view_note = QLabel(_VIEWS[0][2])
+        self.view_note.setObjectName("details_key")
+        self.tabs.currentChanged.connect(self._on_view_changed)
+        for i in range(len(_VIEWS)):
+            key = QShortcut(QKeySequence(str(i + 1)), self)
+            key.setContext(Qt.ShortcutContext.WindowShortcut)
+            key.activated.connect(lambda i=i: self.tabs.setCurrentIndex(i))
+        self.variant_label = QLabel("Variant")
+        self.variant_label.setObjectName("details_key")
+        self.variant_label.hide()
+        self.report_view.report_changed.connect(
+            lambda _rep: self.variant_label.setVisible(not self.report_view.variant.isHidden()))
+        bar = QHBoxLayout()
+        bar.setContentsMargins(6, 4, 6, 0)
+        bar.setSpacing(10)
+        bar.addWidget(self.view_switch)
+        bar.addWidget(self.view_note, 1)
+        bar.addWidget(self.variant_label)
+        bar.addWidget(self.report_view.variant)
+        return bar
+
+    def _on_view_changed(self, index: int) -> None:
+        self.view_switch.buttons[index].setChecked(True)
+        self.view_note.setText(_VIEWS[index][2])
 
     def _build_sessions(self) -> QWidget:
         box = QWidget()
@@ -601,8 +666,9 @@ class BacktestWorkspace(QWidget):
         runner.cancelled.connect(self._on_run_cancelled)
         runner.finished.connect(self._on_runner_finished)
         self._runner = runner
+        self._run_plan = runner.plan
         self.run_btn.setText("Cancel")
-        set_icon(self.run_btn, "square-x", "inverse")
+        set_icon(self.run_btn, "square-x", "go")
         self.set_step(0, "running")
         self.set_step(1, "waiting")
         self.set_step(2, "waiting")
@@ -644,7 +710,7 @@ class BacktestWorkspace(QWidget):
     def _on_runner_finished(self) -> None:
         self._runner = None
         self.run_btn.setText(_RUN_TEXT)
-        set_icon(self.run_btn, "play", "inverse")
+        set_icon(self.run_btn, "play", "go")
         self._render_buttons()
         self._timer.start()
 
@@ -861,6 +927,8 @@ class BacktestWorkspace(QWidget):
 
     def _on_report_done(self, reports: list[Report]) -> None:
         self.set_step(3, "done")
-        self.report_view.set_reports(reports)
+        plan = self._run_plan
+        self.report_view.set_reports(
+            reports, f"{stocks_text(plan)} · {plan.period.start} → {plan.period.end}")
         self.risk.set_report(self.report_view.current())
         self.tabs.setCurrentWidget(self.detail)

@@ -1,10 +1,10 @@
 """
 Module: MD-GUI-031.040.M04 — Backtest Report tab
-Parent SRD: SRD-GUI-031.040, SRD-GUI-031.041, SRD-GUI-031.042, SRD-GUI-031.043,
-            SRD-GUI-031.044, SRD-GUI-031.045
+Parent SRD: SRD-GUI-031.040, SRD-GUI-031.041, SRD-GUI-031.042, SRD-GUI-031.044,
+            SRD-GUI-031.045
 
 Step 4 view: KPI row, equity vs benchmark chart with drawdown, all stats, monthly
-P&L heat map, breakdown by group, variant picker with compare table, CSV export.
+P&L heat map, variant picker with compare table, CSV export.
 Shows ``Report`` objects built by ``BacktestService.build_reports``.
 """
 from __future__ import annotations
@@ -12,13 +12,13 @@ from __future__ import annotations
 import logging
 import math
 import re
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from PyQt6.QtCore import QPointF, QRectF, Qt
-from PyQt6.QtGui import QBrush, QColor, QPainter, QPainterPath, QPaintEvent, QPen
+from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtGui import QBrush, QColor
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
@@ -26,6 +26,7 @@ from PyQt6.QtWidgets import (
     QFrame,
     QGridLayout,
     QHBoxLayout,
+    QHeaderView,
     QLabel,
     QPushButton,
     QTableWidget,
@@ -34,33 +35,35 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from us_swing.backtest.steps.report import (
-    GROUPS,
-    Report,
-    Stat,
-    breakdown,
-    compare,
-    heat_map,
-)
+from us_swing.backtest.steps.report import Report, Stat, compare, heat_map
+from us_swing.gui.backtest_report_chart import ReportChart
 from us_swing.gui.icons import set_icon
-from us_swing.gui.strategy_pnl_chart import nice_ticks
 from us_swing.gui.theme import C
 
 _log = logging.getLogger(__name__)
 
-KPIS = ("Net P&L", "Return", "Max drawdown", "Win rate", "Profit factor", "Trades")
-_SIGNED = ("Net P&L", "Return")
-_GROUP_NAMES = {"strategy": "Strategy", "symbol": "Stock", "sector": "Sector",
-                "exit_reason": "Exit reason", "hour": "Entry hour", "weekday": "Weekday",
-                "hold": "Hold time", "score_bucket": "Score bucket", "rank": "Rank"}
+KPIS = ("Net P&L", "Return", "Max drawdown", "Win rate", "Profit factor", "Sharpe")
+STAT_GROUPS = (
+    ("Returns", ("Net P&L", "Return", "CAGR", "Time invested", "First half P&L",
+                 "Second half P&L")),
+    ("Risk", ("Max drawdown", "Max drawdown $", "Longest drawdown", "Sharpe", "Sortino", "Calmar",
+              "Worst day", "Worst trade")),
+    ("Trades", ("Trades", "Win rate", "Average win", "Average loss", "Payoff", "Profit factor",
+                "Expectancy", "Longest win streak", "Longest loss streak")),
+    ("Exits and robustness", ("Average MAE", "Average MFE", "Profit given back", "Median hold",
+                              "Longest hold", "Monte Carlo drawdown, bad 5%",
+                              "Monte Carlo drawdown, median", "Monte Carlo drawdown, good 5%",
+                              "P&L without top 5 trades")),
+)
+_NEUTRAL = frozenset({"Average MAE", "Average MFE", "Profit given back", "Win rate",
+                      "Time invested"})
+_DECISIONS = {"entered": "Entries", "no_margin": "No margin", "rex_limit": "Rex limit",
+              "already_held": "Already held", "strategy_limit": "Strategy limit"}
 RISK_STATS = ("Average MAE", "Average MFE", "Profit given back", "Median hold",
               "Longest hold", "Monte Carlo drawdown, bad 5%", "Monte Carlo drawdown, median",
               "Monte Carlo drawdown, good 5%", "First half P&L", "Second half P&L",
               "P&L without top 5 trades")
 _MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
-_AXIS_W = 70
-_AXIS_H = 20
-_DD_SHARE = 0.3
 
 
 def fmt(value: float, kind: str) -> str:
@@ -110,114 +113,10 @@ def _pnl_brush(value: float, scale: float) -> QBrush:
     return QBrush(colour)
 
 
-class ReportChart(QWidget):
-    """Equity and benchmark lines, with the drawdown area below (SRD-GUI-031.041)."""
-
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.daily = pd.DataFrame(columns=["date", "equity", "drawdown", "benchmark"])
-        self.setMinimumHeight(260)
-
-    def set_daily(self, daily: pd.DataFrame) -> None:
-        self.daily = daily
-        self.update()
-
-    def paintEvent(self, _event: QPaintEvent | None) -> None:  # noqa: N802
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        if len(self.daily) < 2:
-            painter.setPen(QColor(C.MUTED))
-            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter,
-                             "Run a backtest to see the equity curve")
-            painter.end()
-            return
-        width = self.width() - _AXIS_W - 8
-        top_h = (self.height() - _AXIS_H - 20) * (1 - _DD_SHARE)
-        equity = QRectF(4, 8, width, top_h)
-        dd = QRectF(4, equity.bottom() + 24, width, self.height() - equity.bottom() - _AXIS_H - 24)
-        bench = self.daily["benchmark"].astype(float)
-        values = [*self.daily["equity"].astype(float), *bench.dropna()]
-        ticks = nice_ticks(min(values), max(values))
-        self._line_panel(painter, equity, ticks)
-        self._drawdown_panel(painter, dd)
-        self._dates(painter, dd)
-        painter.end()
-
-    def _x(self, plot: QRectF) -> Callable[[int], float]:
-        span = max(len(self.daily) - 1, 1)
-        return lambda i: plot.left() + i / span * plot.width()
-
-    def _line_panel(self, painter: QPainter, plot: QRectF, ticks: list[float]) -> None:
-        lo, hi = ticks[0], ticks[-1]
-
-        def y(v: float) -> float:
-            return plot.bottom() - (v - lo) / ((hi - lo) or 1.0) * plot.height()
-
-        for t in ticks:
-            painter.setPen(QPen(QColor(C.OVERLAY), 1))
-            painter.drawLine(QPointF(plot.left(), y(t)), QPointF(plot.right(), y(t)))
-            painter.setPen(QColor(C.SUBTEXT))
-            painter.drawText(QRectF(plot.right() + 4, y(t) - 8, _AXIS_W - 4, 16),
-                             Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
-                             f"${t:,.0f}")
-        x = self._x(plot)
-        for column, colour, style in (("benchmark", C.MUTED, Qt.PenStyle.DashLine),
-                                      ("equity", C.BLUE, Qt.PenStyle.SolidLine)):
-            path: QPainterPath | None = None
-            for i, v in enumerate(self.daily[column].astype(float)):
-                if math.isnan(v):
-                    continue
-                point = QPointF(x(i), y(v))
-                if path is None:
-                    path = QPainterPath(point)
-                else:
-                    path.lineTo(point)
-            if path is not None:
-                painter.setPen(QPen(QColor(colour), 1.8, style))
-                painter.drawPath(path)
-        painter.setPen(QColor(C.BLUE))
-        painter.drawText(QRectF(plot.left() + 6, plot.top(), 200, 16), "— Strategy")
-        painter.setPen(QColor(C.MUTED))
-        painter.drawText(QRectF(plot.left() + 90, plot.top(), 260, 16),
-                         "- - S&P 500 (equal weight)")
-
-    def _drawdown_panel(self, painter: QPainter, plot: QRectF) -> None:
-        dd = self.daily["drawdown"].astype(float)
-        low = min(float(dd.min()), -0.0001)
-        x = self._x(plot)
-
-        def y(v: float) -> float:
-            return plot.top() + v / low * plot.height()
-
-        area = QPainterPath(QPointF(x(0), y(0)))
-        for i, v in enumerate(dd):
-            area.lineTo(QPointF(x(i), y(v)))
-        area.lineTo(QPointF(x(len(dd) - 1), y(0)))
-        area.closeSubpath()
-        fill = QColor(C.RED)
-        fill.setAlphaF(0.35)
-        painter.fillPath(area, fill)
-        painter.setPen(QPen(QColor(C.OVERLAY), 1))
-        painter.drawLine(QPointF(plot.left(), plot.top()), QPointF(plot.right(), plot.top()))
-        painter.setPen(QColor(C.SUBTEXT))
-        painter.drawText(QRectF(plot.right() + 4, plot.top() - 2, _AXIS_W - 4, 16),
-                         Qt.AlignmentFlag.AlignRight, "0%")
-        painter.drawText(QRectF(plot.right() + 4, plot.bottom() - 14, _AXIS_W - 4, 16),
-                         Qt.AlignmentFlag.AlignRight, f"{low:.1%}")
-        painter.drawText(QRectF(plot.left() + 6, plot.top() + 2, 200, 16), "Drawdown")
-
-    def _dates(self, painter: QPainter, plot: QRectF) -> None:
-        x = self._x(plot)
-        last = len(self.daily) - 1
-        painter.setPen(QColor(C.SUBTEXT))
-        for i in sorted({0, last // 2, last}):
-            left = min(max(x(i) - 40, 0.0), plot.right() - 80)
-            painter.drawText(QRectF(left, plot.bottom() + 4, 80, _AXIS_H - 4),
-                             Qt.AlignmentFlag.AlignCenter, str(self.daily["date"].iloc[i]))
-
-
 class ReportView(QWidget):
     """SRD-GUI-031.040–.045 — the Report tab of the Backtest screen."""
+
+    report_changed = pyqtSignal(object)  # selected Report, or None (feeds the Breakdown panel)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -227,7 +126,11 @@ class ReportView(QWidget):
         body.setSpacing(10)
 
         top = QHBoxLayout()
-        self.head = _head("REPORT")
+        top.setSpacing(10)
+        self.head = QLabel("Report")
+        self.head.setObjectName("page_title")
+        self.context = QLabel("")
+        self.context.setObjectName("details_key")
         self.variant = QComboBox()
         self.variant.setFixedWidth(300)
         self.variant.currentIndexChanged.connect(self._render)
@@ -235,7 +138,8 @@ class ReportView(QWidget):
         set_icon(self.export_btn, "download")
         self.export_btn.clicked.connect(self._on_export)
         self.export_btn.setEnabled(False)
-        top.addWidget(self.head, 1)
+        top.addWidget(self.head)
+        top.addWidget(self.context, 1)
         top.addWidget(self.variant)
         top.addWidget(self.export_btn)
         body.addLayout(top)
@@ -243,39 +147,30 @@ class ReportView(QWidget):
         kpis = QHBoxLayout()
         kpis.setSpacing(8)
         self.kpi_values: dict[str, QLabel] = {}
+        self.kpi_notes: dict[str, QLabel] = {}
         for name in KPIS:
             kpis.addWidget(self._kpi(name), 1)
         body.addLayout(kpis)
+        self.signals = QHBoxLayout()
+        self.signals.setSpacing(6)
         self.skips_label = QLabel("")
         self.skips_label.setObjectName("details_key")
-        body.addWidget(self.skips_label)
+        body.addLayout(self.signals)
 
         self.chart = ReportChart()
         body.addWidget(self.chart, 2)
 
-        grid = QGridLayout()
-        grid.setHorizontalSpacing(12)
-        self.stats_table = _table(["Measure", "Value"])
-        self.month_table = _table(["Year", *_MONTHS, "Year total"])
-        self.group_pick = QComboBox()
-        for key in GROUPS:
-            self.group_pick.addItem(_GROUP_NAMES[key], key)
-        self.group_pick.setFixedWidth(160)
-        self.group_pick.currentIndexChanged.connect(self._render_breakdown)
-        self.group_table = _table(["Group", "Trades", "Net P&L", "Win rate", "Avg P&L"])
-        group_head = QHBoxLayout()
-        group_head.addWidget(_head("BREAKDOWN · GROUP BY"))
-        group_head.addWidget(self.group_pick)
-        group_head.addStretch()
-        grid.addWidget(_head("ALL STATS"), 0, 0)
-        grid.addWidget(self.stats_table, 1, 0, 3, 1)
-        grid.addWidget(_head("MONTHLY P&L"), 0, 1)
-        grid.addWidget(self.month_table, 1, 1)
-        grid.addLayout(group_head, 2, 1)
-        grid.addWidget(self.group_table, 3, 1)
-        grid.setColumnStretch(0, 1)
-        grid.setColumnStretch(1, 3)
-        body.addLayout(grid, 3)
+        self.stat_values: dict[str, QLabel] = {}
+        self.groups = QHBoxLayout()
+        self.groups.setSpacing(10)
+        body.addLayout(self.groups)
+        self.month_table = _table(["Year", *_MONTHS, "Total"])
+        month_head = self.month_table.horizontalHeader()
+        if month_head is not None:
+            month_head.setStretchLastSection(False)
+            month_head.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        body.addWidget(_head("MONTHLY P&L"))
+        body.addWidget(self.month_table)
 
         self.compare_head = _head("COMPARE VARIANTS")
         self.compare_table = _table(["Variant"])
@@ -302,14 +197,22 @@ class ReportView(QWidget):
         key.setObjectName("view_head")
         value = QLabel("—")
         value.setObjectName("card_symbol")
+        note = QLabel("")
+        note.setObjectName("details_key")
         inner.addWidget(key)
         inner.addWidget(value)
+        inner.addWidget(note)
         self.kpi_values[name] = value
+        self.kpi_notes[name] = note
         return box
 
-    def set_reports(self, reports: Sequence[Report]) -> None:
-        """Show a run's reports; the first variant is selected (SRD-GUI-031.044)."""
+    def set_reports(self, reports: Sequence[Report], context: str = "") -> None:
+        """Show a run's reports; the first variant is selected (SRD-GUI-031.044).
+
+        ``context`` is the run's stocks and period, shown beside the title (SRD-GUI-031.079).
+        """
         self.reports = list(reports)
+        self.context.setText(context)
         self.variant.blockSignals(True)
         self.variant.clear()
         self.variant.addItems([r.label for r in self.reports])
@@ -334,26 +237,85 @@ class ReportView(QWidget):
 
     def _render(self) -> None:
         rep = self.current()
-        self.head.setText("REPORT" if rep is None else f"REPORT · {rep.label}")
+        self.head.setText("Report" if rep is None else rep.label)
+        stats = {} if rep is None else {s.name: s for s in rep.stats}
+        notes = {} if rep is None else kpi_notes(rep)
         for name, label in self.kpi_values.items():
-            stat = None if rep is None else next(s for s in rep.stats if s.name == name)
+            stat = stats.get(name)
             label.setText("—" if stat is None else fmt(stat.value, stat.kind))
-            colour = C.TEXT
-            if stat is not None and stat.name in _SIGNED and not math.isnan(stat.value):
-                colour = C.GREEN if stat.value > 0 else C.RED if stat.value < 0 else C.TEXT
-            label.setStyleSheet(f"color: {colour};")
+            label.setStyleSheet(f"color: {_tone(stat) if stat is not None else C.TEXT};")
+            self.kpi_notes[name].setText(notes.get(name, ""))
+        self._render_signals(rep)
+        self._render_groups(rep)
         if rep is None:
-            self.skips_label.setText("")
             self.chart.set_daily(self.chart.daily.iloc[0:0])
-            _fill(self.stats_table, [])
             _fill(self.month_table, [])
-            _fill(self.group_table, [])
+            self._fit_months()
+            self.report_changed.emit(None)
             return
-        self.skips_label.setText(skips_text(rep.skips))
-        self.chart.set_daily(rep.daily)
-        _fill(self.stats_table, [[s.name, fmt(s.value, s.kind)] for s in rep.stats])
+        self.chart.set_daily(rep.daily, rep.capital)
         self._render_months(rep)
-        self._render_breakdown()
+        self.report_changed.emit(rep)
+
+    def _render_signals(self, rep: Report | None) -> None:
+        """Entries and skip reasons as pills, then "N of M entry signals were taken"."""
+        _clear(self.signals)
+        self.skips_label = QLabel("")
+        if rep is None or rep.skips.empty:
+            return
+        counts = {str(k): int(v) for k, v in zip(rep.skips["decision"], rep.skips["count"],
+                                                  strict=True)}
+        self.signals.addWidget(_head("SIGNALS"))
+        taken = counts.pop("entered", 0)
+        for key, count in (("entered", taken), *counts.items()):
+            name = _DECISIONS.get(key, key.replace("_", " ").capitalize())
+            pill = QLabel(f"{name} <b>{count}</b>")
+            pill.setObjectName("exec_chip")
+            self.signals.addWidget(pill)
+        total = taken + sum(counts.values())
+        self.skips_label.setText(f"{taken} of {total} entry signals were taken")
+        self.skips_label.setObjectName("details_key")
+        self.signals.addWidget(self.skips_label)
+        self.signals.addStretch(1)
+
+    def _render_groups(self, rep: Report | None) -> None:
+        """All stats in named group cards; no scroll box (SRD-GUI-031.079)."""
+        _clear(self.groups)
+        self.stat_values = {}
+        if rep is None:
+            return
+        stats = {s.name: s for s in rep.stats}
+        known = {n for _g, names in STAT_GROUPS for n in names}
+        groups = [*STAT_GROUPS, ("Other", tuple(n for n in stats if n not in known))]
+        for title, names in groups:
+            present = [stats[n] for n in names if n in stats]
+            if not present:
+                continue
+            card = QFrame()
+            card.setObjectName("stat_card")
+            card.setStyleSheet("QLabel { background: transparent; }")
+            grid = QGridLayout(card)
+            grid.setContentsMargins(12, 10, 12, 10)
+            grid.setVerticalSpacing(4)
+            grid.addWidget(_head(title.upper()), 0, 0, 1, 2)
+            for row, stat in enumerate(present, start=1):
+                key = QLabel(stat.name.replace("Monte Carlo", "MC"))
+                key.setObjectName("details_key")
+                value = QLabel(fmt(stat.value, stat.kind))
+                value.setAlignment(Qt.AlignmentFlag.AlignRight)
+                value.setStyleSheet(f"color: {_tone(stat)}; font-family: 'IBM Plex Mono';")
+                grid.addWidget(key, row, 0)
+                grid.addWidget(value, row, 1)
+                self.stat_values[stat.name] = value
+            grid.setRowStretch(len(present) + 1, 1)
+            self.groups.addWidget(card, 1)
+
+    def _fit_months(self) -> None:
+        """Size the monthly table to its rows, so it has no empty space."""
+        table = self.month_table
+        head = table.horizontalHeader()
+        rows = sum(table.rowHeight(r) for r in range(table.rowCount()))
+        table.setFixedHeight((head.height() if head is not None else 24) + rows + 4)
 
     def _render_months(self, rep: Report) -> None:
         """Year × month heat map, green gains and red losses (SRD-GUI-031.042)."""
@@ -366,24 +328,17 @@ class ReportView(QWidget):
             for m in range(1, 13):
                 value = row.get(m)
                 item = QTableWidgetItem("" if value is None or pd.isna(value)
-                                        else f"{value:,.0f}")
+                                        else _whole_usd(float(value)))
+                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 if value is not None and not pd.isna(value) and value != 0:
                     item.setBackground(_pnl_brush(float(value), scale))
                 self.month_table.setItem(r, m, item)
             total = float(row.sum())
-            self.month_table.setItem(r, 13, QTableWidgetItem(f"{total:,.0f}"))
-        self.month_table.resizeColumnsToContents()
-
-    def _render_breakdown(self) -> None:
-        """Breakdown of the selected variant by the picked group (SRD-GUI-031.043)."""
-        rep = self.current()
-        if rep is None:
-            return
-        frame = breakdown(rep.trades, str(self.group_pick.currentData()))
-        _fill(self.group_table, [
-            [str(g), str(int(n)), fmt(p, "usd"), fmt(w, "pct"), fmt(a, "usd")]
-            for g, n, p, w, a in frame.itertuples(index=False)
-        ])
+            total_item = QTableWidgetItem(_whole_usd(total))
+            total_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            total_item.setForeground(QColor(C.GREEN if total > 0 else C.RED))
+            self.month_table.setItem(r, 13, total_item)
+        self._fit_months()
 
     def _render_compare(self) -> None:
         table = compare(self.reports)
@@ -434,6 +389,51 @@ class ReportView(QWidget):
         rep.trades.to_csv(trades_path, index=False)
         _log.info("[Backtest] Report saved to %s", folder)
         return [stats_path, trades_path]
+
+
+def _clear(layout: QHBoxLayout) -> None:
+    while layout.count():
+        item = layout.takeAt(0)
+        widget = item.widget() if item is not None else None
+        if widget is not None:
+            widget.deleteLater()
+
+
+def _whole_usd(value: float) -> str:
+    return f"-${-value:,.0f}" if value < 0 else f"${value:,.0f}"
+
+
+def _tone(stat: Stat) -> str:
+    """Green / red only for money and return values; neutral for everything else."""
+    if stat.name in _NEUTRAL or stat.kind not in ("usd", "pct") or math.isnan(stat.value):
+        return str(C.TEXT)
+    return str(C.GREEN if stat.value > 0 else C.RED if stat.value < 0 else C.TEXT)
+
+
+def kpi_notes(rep: Report) -> dict[str, str]:
+    """Second line of each KPI tile: the context that makes the number readable."""
+    stats = {s.name: s.value for s in rep.stats}
+
+    def get(name: str) -> float:
+        return float(stats.get(name, math.nan))
+
+    notes = {"Net P&L": f"ending equity {_whole_usd(rep.capital + get('Net P&L'))}",
+             "Max drawdown": f"lasted {fmt(get('Longest drawdown'), 'days')}",
+             "Win rate": f"{round(get('Win rate') * get('Trades')):.0f} of "
+                         f"{get('Trades'):.0f} trades won",
+             "Profit factor": f"payoff {fmt(get('Payoff'), 'ratio')} · avg win "
+                              f"{fmt(get('Average win'), 'usd')}",
+             "Sharpe": f"Sortino {fmt(get('Sortino'), 'ratio')} · Calmar "
+                       f"{fmt(get('Calmar'), 'ratio')}"}
+    bench = rep.daily["benchmark"].astype(float).dropna() if not rep.daily.empty else None
+    if bench is not None and len(bench) and rep.capital:
+        gap = (get("Return") - (float(bench.iloc[-1]) / rep.capital - 1)) * 100
+        notes["Return"] = f"vs benchmark {gap:+.1f} pts"
+    else:
+        notes["Return"] = f"CAGR {fmt(get('CAGR'), 'pct')}"
+    if math.isnan(get("Trades")) or math.isnan(get("Win rate")):
+        notes["Win rate"] = ""
+    return notes
 
 
 def skips_text(skips: pd.DataFrame) -> str:

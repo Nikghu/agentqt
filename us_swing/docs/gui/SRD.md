@@ -5,6 +5,11 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.63.0: SRD-GUI-031.079–.081 added and approved by user 2026-10-31 — Report tear sheet (option A of https://claude.ai/artifact/9FtQ5stYsFFDbewpJZUw9C) and a hover line on the chart.
+> v2.62.0: SRD-GUI-031.068 added and approved by user 2026-10-31 — Backtest views switch through a pill bar (option B of https://claude.ai/artifact/DUW3e9Mv6kAzhi4zWTLDEG).
+> v2.61.0: SRD-GUI-031.067 added and approved by user 2026-10-31 — Breakdown moves to its own Detail Report panel beside the Trade list.
+> v2.60.0: SRD-GUI-031.062–.066 added and approved by user 2026-10-31 — breakdown redesign, option A of https://claude.ai/artifact/EwvB839pqWBrsjbQy4TCRY.
+> v2.59.1: SRD-GUI-030.007 reopened by user 2026-10-31 — backtest download progress moves from the removed status bar to a sidebar Connections row.
 > v2.59.0: SRD-GUI-031.078 added; asked by user 2026-10-30 — stock name suggestions while typing in setup.
 > v2.58.0: SRD-GUI-031.077 added; approved by user 2026-10-30 — chart timeframe as 3m / 15m / 1D toggle in the panel title row.
 > v2.57.0: SRD-GUI-031.076 added; approved by user 2026-10-30 — trade chart option D (trade path with result badge).
@@ -518,7 +523,7 @@
 | SRD-GUI-030.004 | FO-GUI-030 | Must | Start download (Pause while running), Fill delta now and Clear database act at once and are disabled with "Connect TWS to download" when TWS is not connected. | click | download, delta, clear | Fill and Clear disabled while a download runs | Implemented |
 | SRD-GUI-030.005 | FO-GUI-030 | Must | Clear opens a frameless confirm showing the size to delete, whose Clear button enables only after typing CLEAR. | click, text | clear or nothing | Cancel deletes nothing | Implemented |
 | SRD-GUI-030.006 | FO-GUI-030 | Should | The section dot is green when up to date, amber while downloading or behind, and grey when empty. | stats, run state | dot | Uses the existing section dot | Implemented |
-| SRD-GUI-030.007 | FO-GUI-030 | Should | The main window status bar shows backtest download progress while a run is active and the result for 15 s after it ends. | progress, result | status text | Requested by user 2026-10-28 | Implemented |
+| SRD-GUI-030.007 | FO-GUI-030 | Should | A sidebar Connections row shows backtest download progress while a run is active and the result for 15 s after it ends. | progress, result | row text | Requested by user 2026-10-28; moved from the status bar 2026-10-31 (user reopened) | Implemented |
 | SRD-GUI-030.008 | FO-GUI-030 | Should | The Universe table shows each stock's backtest status, first date and last date. | backtest store | Backtest, BT From, BT To columns | Requested by user 2026-10-28; 3m dates, else 1d | Implemented |
 | SRD-GUI-030.009 | FO-GUI-030 | Must | The status shows one plain sentence, the saved coverage, what is still missing with its time, and a single button labelled Download, Download missing, Save range and download, Pause or Up to date. | stats, plan size, run state, range fields | sentence, progress, button | Requested by user 2026-10-29 (Option D); replaces the Fill delta button of .004 and the progress lines and stat strip of .001; auto delta unchanged | Implemented |
 | SRD-GUI-030.010 | FO-GUI-030 | Should | Under the coverage line, one short line says 15-minute and weekly candles are built from these. | stats | note line | Approved by user 2026-10-29 | Implemented |
@@ -566,6 +571,13 @@
 | SRD-GUI-031.055 | FO-GUI-031 | Must | Reports: a saved runs table; open a run into the other two sections, rename it, add a note or delete it. | results store | sections filled | No re-run of Step 3; Steps 1–2 from the step cache; delete asks to confirm | Implemented |
 | SRD-GUI-031.060 | FO-GUI-031 | Must | The builder Screener group has a "Use saved screener lists" tick that shows how many saved days the preset has. | preset | plan field | SRD-BKT-002.080 | Implemented |
 | SRD-GUI-031.061 | FO-GUI-031 | Should | The Screener screen has a Quick test button that opens Backtest with that preset and saved lists ticked. | click | Backtest screen | — | Implemented |
+| SRD-GUI-031.062 | FO-GUI-031 | Must | Breakdown groups are chips with their group count; a grouping with one group is off with a reason. | report | chips | Design https://claude.ai/artifact/EwvB839pqWBrsjbQy4TCRY option A; replaces the .043 picker | Implemented |
+| SRD-GUI-031.063 | FO-GUI-031 | Must | Hour, weekday, hold time, rank and score rows keep natural order with empty slots shown; other groups sort by net P&L. | breakdown | ordered rows | Sort in the GUI; SRD-BKT-002.044 unchanged | Implemented |
+| SRD-GUI-031.064 | FO-GUI-031 | Must | Breakdown rows show readable names, trades with share, win rate meter, avg and net P&L, a zero-line bar and an All trades total. | breakdown | table | Groups under 5 trades greyed and marked n<5 | Implemented |
+| SRD-GUI-031.065 | FO-GUI-031 | Should | Stock breakdown shows the best 5 and worst 5 with Show all, a search box and a minimum-trades filter. | breakdown | table | Collapse only above 10 rows | Implemented |
+| SRD-GUI-031.066 | FO-GUI-031 | Should | Clicking a breakdown row filters the Trade list to that group; clicking it again or the total clears it. | click | filtered trade list | Filter shown in the Trade list summary | Implemented |
+| SRD-GUI-031.067 | FO-GUI-031 | Should | The Breakdown shows in its own Detail Report panel beside the Trade list; panel on / off is remembered. | report | panel | Asked by user 2026-10-31: Report panel area too small | Implemented |
+| SRD-GUI-031.068 | FO-GUI-031 | Should | Backtest views switch through one pill bar (icon, label, 1 / 2 / 3 keys) with a context note and the Variant picker on the right. | click, key | view | Option B of https://claude.ai/artifact/DUW3e9Mv6kAzhi4zWTLDEG; keys ignored while typing in a field | Implemented |
 
 ### Setup window (Draft, design https://claude.ai/artifact/974y5KaeuTj5YP4QYSezaB option C1)
 
@@ -580,3 +592,6 @@
 | SRD-GUI-031.076 | FO-GUI-031 | Must | The trade chart loads candles from before entry to the exit day and shows ringed entry and exit dots joined by a path, IN / OUT price callouts and a P&L · % · sessions badge; candles outside the trade are dimmed. | trade, bars | chart | Extends .052; markers outside the loaded bars are not drawn | Implemented |
 | SRD-GUI-031.077 | FO-GUI-031 | Should | The Chart panel title row holds the trade line and a 3m / 15m / 1D toggle, styled like the Charts page; no second header row. | click | chart | 15m default | Implemented |
 | SRD-GUI-031.078 | FO-GUI-031 | Should | Names, Add stocks and Remove stocks suggest S&P 500 symbols for the name being typed; picking one keeps the earlier names. | typed text | name list | Starts-with match, any case | Implemented |
+| SRD-GUI-031.079 | FO-GUI-031 | Should | The Report panel is a tear sheet: one title row with strategy, capital, stocks and period; KPI tiles with a context line; a signals pill row; stats in 4 named groups; a compact monthly table with a Total column. | report, run plan | panel | Option A of https://claude.ai/artifact/9FtQ5stYsFFDbewpJZUw9C; extends .040–.042 | Implemented |
+| SRD-GUI-031.080 | FO-GUI-031 | Should | The report chart has a $ axis on the left, month ticks, end labels, a start-capital line, a max drawdown marker and a drawdown % scale. | daily equity | chart | Extends .041 | Implemented |
+| SRD-GUI-031.081 | FO-GUI-031 | Should | A vertical line follows the mouse over the report chart and shows that day's date, strategy equity, benchmark and drawdown. | mouse | line and value box | Asked by user 2026-10-31; hides when the mouse leaves | Implemented |

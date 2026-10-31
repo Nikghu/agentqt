@@ -97,7 +97,7 @@ class BacktestSetupDialog(QDialog):
         self.save_btn = QPushButton("Save")
         self.run_btn = QPushButton("Run")
         self.run_btn.setObjectName("run_btn")
-        set_icon(self.run_btn, "play", "inverse")
+        set_icon(self.run_btn, "play", "go")
         for btn in (self.cancel_btn, self.save_btn, self.run_btn):
             btn.setFixedWidth(90)
         self.cancel_btn.clicked.connect(self.reject)

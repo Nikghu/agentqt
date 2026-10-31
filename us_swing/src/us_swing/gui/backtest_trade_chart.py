@@ -7,6 +7,7 @@ IN / OUT price callouts, a result badge, and candles outside the trade dimmed.
 """
 from __future__ import annotations
 
+import math
 from collections.abc import Callable
 
 import pandas as pd
@@ -145,12 +146,14 @@ class TradeChart(QWidget):
 
     def _times(self, painter: QPainter, plot: QRectF, step: float) -> None:
         labels = time_labels(pd.DatetimeIndex(pd.to_datetime(self.bars["ts"], utc=True)))
-        width = 84.0 if len(labels[0]) > 6 else 60.0
+        width = max(painter.fontMetrics().horizontalAdvance(t) for t in labels) + 4.0
         painter.setPen(QColor(C.SUBTEXT))
-        every = max(1, int((width + 10) / max(step, 1.0)))
-        for i in range(0, len(labels), every):
+        every = max(1, math.ceil((width + 16) / step))
+        for i in range(math.ceil(width / 2 / step), len(labels), every):
             x = plot.left() + (i + 0.5) * step
-            painter.drawText(QRectF(max(x - width / 2, 0.0), plot.bottom() + 2, width, _AXIS_H),
+            if x + width / 2 > plot.right():
+                break
+            painter.drawText(QRectF(x - width / 2, plot.bottom() + 2, width, _AXIS_H),
                              Qt.AlignmentFlag.AlignCenter, labels[i])
 
 
