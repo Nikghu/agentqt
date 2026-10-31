@@ -98,15 +98,14 @@ def test_month_heat_map(view: ReportView) -> None:
 
 
 def test_breakdown_group_picker(view: ReportView) -> None:
-    """UT-GUI-031.043.M04.T01: Changing Group by refills the breakdown table."""
+    """UT-GUI-031.062.M04.T01: Breakdown opens on the first chip with more than one group."""
     view.set_reports([_report()])
-    assert view.group_table.item(0, 0).text() == "S1"  # type: ignore[union-attr]
+    table = view.breakdown.table
 
-    view.group_pick.setCurrentIndex(view.group_pick.findData("sector"))
-
-    groups = {view.group_table.item(r, 0).text()  # type: ignore[union-attr]
-              for r in range(view.group_table.rowCount())}
-    assert groups == {"Information Technology", "Unknown"}
+    assert view.breakdown.by == "sector"
+    names = [table.item(r, 0).text() for r in range(table.rowCount())]  # type: ignore[union-attr]
+    assert names[0].startswith("Information Technology")
+    assert names[1].startswith("Unknown") and names[2] == "All trades"
 
 
 def test_single_variant_hides_compare(view: ReportView) -> None:
@@ -170,13 +169,13 @@ def test_risk_facts(qtbot: Any) -> None:
 
 
 def test_new_group_choices(view: ReportView) -> None:
-    """UT-GUI-031.047.M04.T01: Group by offers Hold time, Score bucket and Rank."""
+    """UT-GUI-031.062.M04.T02: Chips list every group with counts; single groups are off."""
     view.set_reports([_report()])
-    names = [view.group_pick.itemText(i) for i in range(view.group_pick.count())]
+    buttons = {b.text(): b for b in view.breakdown.chips.buttons}
 
-    assert names[-3:] == ["Hold time", "Score bucket", "Rank"]
-    view.group_pick.setCurrentIndex(view.group_pick.findData("hold"))
-    assert view.group_table.item(0, 0).text() == "1–3 h"  # type: ignore[union-attr]
+    assert "Strategy 2" in buttons and buttons["Strategy 2"].isEnabled()
+    assert not buttons["Hold time 1"].isEnabled()
+    assert buttons["Hold time 1"].toolTip() == "Only one hold time in this run"
 
 
 def test_heat_map_shown_when_it_applies(view: ReportView) -> None:

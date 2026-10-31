@@ -2,6 +2,16 @@
 
 ---
 
+## [20261031] GUI — Backtest breakdown redesign, option A (SRD-GUI-031.062–.066)
+
+- Type: Feature
+- FO(s): FO-GUI-031
+- RN: RN-GUI-1.51.0-20261031
+- Artifacts updated: SRD (.062–.066 Draft → Approved by user → Implemented), MD (MD-GUI-031.062.M12 new), UTCD (10 rows Pass; 2 replaced), TRACE, Code, Tests, RN, CONTEXT, DEVLOG
+- Design: https://claude.ai/artifact/EwvB839pqWBrsjbQy4TCRY, built from the real run's 9 groupings. Sorting kept in the GUI so SRD-BKT-002.044 stays unchanged. Branch feat/gui-breakdown-chips, stacked on fix/gui-backtest-stepper-capsule, not pushed.
+
+---
+
 ## [20261031] GUI — Backtest stepper capsule + visible play icon (SRD-GUI-031.075)
 
 - Type: Fix (visual)

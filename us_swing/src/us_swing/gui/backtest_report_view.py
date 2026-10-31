@@ -1,7 +1,7 @@
 """
 Module: MD-GUI-031.040.M04 — Backtest Report tab
-Parent SRD: SRD-GUI-031.040, SRD-GUI-031.041, SRD-GUI-031.042, SRD-GUI-031.043,
-            SRD-GUI-031.044, SRD-GUI-031.045
+Parent SRD: SRD-GUI-031.040, SRD-GUI-031.041, SRD-GUI-031.042, SRD-GUI-031.044,
+            SRD-GUI-031.045, SRD-GUI-031.062
 
 Step 4 view: KPI row, equity vs benchmark chart with drawdown, all stats, monthly
 P&L heat map, breakdown by group, variant picker with compare table, CSV export.
@@ -34,14 +34,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from us_swing.backtest.steps.report import (
-    GROUPS,
-    Report,
-    Stat,
-    breakdown,
-    compare,
-    heat_map,
-)
+from us_swing.backtest.steps.report import Report, Stat, compare, heat_map
+from us_swing.gui.backtest_breakdown import BreakdownView
 from us_swing.gui.icons import set_icon
 from us_swing.gui.strategy_pnl_chart import nice_ticks
 from us_swing.gui.theme import C
@@ -50,9 +44,6 @@ _log = logging.getLogger(__name__)
 
 KPIS = ("Net P&L", "Return", "Max drawdown", "Win rate", "Profit factor", "Trades")
 _SIGNED = ("Net P&L", "Return")
-_GROUP_NAMES = {"strategy": "Strategy", "symbol": "Stock", "sector": "Sector",
-                "exit_reason": "Exit reason", "hour": "Entry hour", "weekday": "Weekday",
-                "hold": "Hold time", "score_bucket": "Score bucket", "rank": "Rank"}
 RISK_STATS = ("Average MAE", "Average MFE", "Profit given back", "Median hold",
               "Longest hold", "Monte Carlo drawdown, bad 5%", "Monte Carlo drawdown, median",
               "Monte Carlo drawdown, good 5%", "First half P&L", "Second half P&L",
@@ -257,22 +248,13 @@ class ReportView(QWidget):
         grid.setHorizontalSpacing(12)
         self.stats_table = _table(["Measure", "Value"])
         self.month_table = _table(["Year", *_MONTHS, "Year total"])
-        self.group_pick = QComboBox()
-        for key in GROUPS:
-            self.group_pick.addItem(_GROUP_NAMES[key], key)
-        self.group_pick.setFixedWidth(160)
-        self.group_pick.currentIndexChanged.connect(self._render_breakdown)
-        self.group_table = _table(["Group", "Trades", "Net P&L", "Win rate", "Avg P&L"])
-        group_head = QHBoxLayout()
-        group_head.addWidget(_head("BREAKDOWN · GROUP BY"))
-        group_head.addWidget(self.group_pick)
-        group_head.addStretch()
+        self.breakdown = BreakdownView()
         grid.addWidget(_head("ALL STATS"), 0, 0)
         grid.addWidget(self.stats_table, 1, 0, 3, 1)
         grid.addWidget(_head("MONTHLY P&L"), 0, 1)
         grid.addWidget(self.month_table, 1, 1)
-        grid.addLayout(group_head, 2, 1)
-        grid.addWidget(self.group_table, 3, 1)
+        grid.addWidget(_head("BREAKDOWN"), 2, 1)
+        grid.addWidget(self.breakdown, 3, 1)
         grid.setColumnStretch(0, 1)
         grid.setColumnStretch(1, 3)
         body.addLayout(grid, 3)
@@ -347,13 +329,13 @@ class ReportView(QWidget):
             self.chart.set_daily(self.chart.daily.iloc[0:0])
             _fill(self.stats_table, [])
             _fill(self.month_table, [])
-            _fill(self.group_table, [])
+            self.breakdown.set_report(None)
             return
         self.skips_label.setText(skips_text(rep.skips))
         self.chart.set_daily(rep.daily)
         _fill(self.stats_table, [[s.name, fmt(s.value, s.kind)] for s in rep.stats])
         self._render_months(rep)
-        self._render_breakdown()
+        self.breakdown.set_report(rep)
 
     def _render_months(self, rep: Report) -> None:
         """Year × month heat map, green gains and red losses (SRD-GUI-031.042)."""
@@ -373,17 +355,6 @@ class ReportView(QWidget):
             total = float(row.sum())
             self.month_table.setItem(r, 13, QTableWidgetItem(f"{total:,.0f}"))
         self.month_table.resizeColumnsToContents()
-
-    def _render_breakdown(self) -> None:
-        """Breakdown of the selected variant by the picked group (SRD-GUI-031.043)."""
-        rep = self.current()
-        if rep is None:
-            return
-        frame = breakdown(rep.trades, str(self.group_pick.currentData()))
-        _fill(self.group_table, [
-            [str(g), str(int(n)), fmt(p, "usd"), fmt(w, "pct"), fmt(a, "usd")]
-            for g, n, p, w, a in frame.itertuples(index=False)
-        ])
 
     def _render_compare(self) -> None:
         table = compare(self.reports)

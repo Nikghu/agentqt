@@ -394,6 +394,7 @@ class BacktestWorkspace(QWidget):
         self.report_view.setMinimumHeight(980)
         self.trade_list = TradeList()
         self.trade_list.trade_clicked.connect(self._open_trade)
+        self.report_view.breakdown.group_selected.connect(self.trade_list.set_group_filter)
         self.screener_use = UsePanel((C.BLUE, C.MUTED), ("Traded", "Not traded"), money=False)
         self.margin_use = UsePanel((C.BLUE, C.TEAL), ("Deployed peak", "Lowest margin left"),
                                    money=True)

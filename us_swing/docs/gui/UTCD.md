@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.35.0: UT-GUI-031.062–.066 added — breakdown redesign; UT-GUI-031.043.M04.T01 and .047.M04.T01 replaced by UT-GUI-031.062.M04.T01–T02.
 > v1.34.0: UT-GUI-031.* added — Backtest workspace.
 > v1.33.0: UT-GUI-030.* added — Backtest data section.
 > v1.32.0: UT-GUI-019.009.* added — sidebar mini while a right panel is open.
@@ -861,14 +862,14 @@ Test files:
 | UT-GUI-031.040.M03.T01 | MD-GUI-031.003.M03 | Positive | Run ends on Report | fake run with 2 variants | 4 Report · Done; Report tab open; KPIs filled | Pass |
 | UT-GUI-031.041.M04.T01 | MD-GUI-031.040.M04 | Positive | Chart data | report with benchmark | chart has benchmark per day; paints | Pass |
 | UT-GUI-031.042.M04.T01 | MD-GUI-031.040.M04 | Positive | Month heat map | March and April P&L | one year row; coloured cells; year total | Pass |
-| UT-GUI-031.043.M04.T01 | MD-GUI-031.040.M04 | Positive | Group by picker | pick Sector | table refilled by sector | Pass |
+| UT-GUI-031.043.M04.T01 | MD-GUI-031.040.M04 | Positive | Group by picker | pick Sector | table refilled by sector | Replaced by UT-GUI-031.062.M04.T01 |
 | UT-GUI-031.044.M04.T01 | MD-GUI-031.040.M04 | Edge | One variant | one report | picker and compare hidden | Pass |
 | UT-GUI-031.044.M04.T02 | MD-GUI-031.040.M04 | Positive | Two variants | two reports | compare has 2 rows; picking B shows B | Pass |
 | UT-GUI-031.044.M03.T01 | MD-GUI-031.003.M03 | Positive | Picker drives tabs | pick 2nd variant | Trades tab and KPIs show variant 2 | Pass |
 | UT-GUI-031.045.M04.T01 | MD-GUI-031.040.M04 | Positive | CSV export | export to folder | stats and trades CSV written | Pass |
 | UT-GUI-031.045.M04.T02 | MD-GUI-031.040.M04 | Negative | Failed export | folder that does not exist | warning logged; app keeps running | Pass |
 | UT-GUI-031.046.M04.T01 | MD-GUI-031.040.M04 | Positive | Risk panel | report; then none | hold 1.0 h, without top 5 $0.00; dashes | Pass |
-| UT-GUI-031.047.M04.T01 | MD-GUI-031.040.M04 | Positive | New groups | pick Hold time | 3 new names; 1–3 h row | Pass |
+| UT-GUI-031.047.M04.T01 | MD-GUI-031.040.M04 | Positive | New groups | pick Hold time | 3 new names; 1–3 h row | Replaced by UT-GUI-031.062.M04.T02 |
 | UT-GUI-031.048.M04.T01 | MD-GUI-031.040.M04 | Edge | Heat map | 2 × 2 variants; then 2 same | shown with 2 rows; then hidden | Pass |
 | UT-GUI-031.050.M05.T01 | MD-GUI-031.050.M05 | Positive | ✕ hides and is kept | click ✕ on panel A, build again | A hidden, button off, still hidden next time | Pass |
 | UT-GUI-031.050.M05.T02 | MD-GUI-031.050.M05 | Edge | Strip toggles; empty row | turn C off then on | C hidden and its row hidden; both back | Pass |
@@ -903,6 +904,16 @@ Test files:
 | UT-GUI-031.070.M03.T01 | MD-GUI-031.003.M03 | Positive | Plan line and Edit setup | open screen; click Edit setup | builder hidden; plan line; window shown | Pass |
 | UT-GUI-031.071.M10.T01 | MD-GUI-031.071.M10 | Edge | Section marks | none; missing candles and two errors | all ✓; Stocks, Screener, Account ! | Pass |
 | UT-GUI-031.071.M10.T02 | MD-GUI-031.071.M10 | Positive | Menu values | estimate with a missing stock; capital change | 5 items; Stocks !; screener and account values update | Pass |
+| UT-GUI-031.062.M04.T01 | MD-GUI-031.040.M04 | Positive | Breakdown first chip | report, single exit reason | opens on Sector; rows end with All trades | Pass |
+| UT-GUI-031.062.M04.T02 | MD-GUI-031.040.M04 | Negative | Single-group chip | one hold time | chip off with "Only one hold time in this run" | Pass |
+| UT-GUI-031.062.M12.T01 | MD-GUI-031.062.M12 | Negative | Single group off | all trades stop | Exit reason chip off; view moves to Entry hour | Pass |
+| UT-GUI-031.063.M12.T01 | MD-GUI-031.062.M12 | Positive | Natural order | hour, rank, weekday | time / number order; 11:00 and rank 2 empty slots | Pass |
+| UT-GUI-031.063.M12.T02 | MD-GUI-031.062.M12 | Positive | Named groups | exit reason | best net P&L first, plain names | Pass |
+| UT-GUI-031.064.M12.T01 | MD-GUI-031.062.M12 | Edge | Exit names | stop, end_of_test, end_time | Stop loss, End of test, End time | Pass |
+| UT-GUI-031.064.M12.T02 | MD-GUI-031.062.M12 | Positive | Table rows | Entry hour chip | No trades span; trades with share; All trades last; paints | Pass |
+| UT-GUI-031.065.M12.T01 | MD-GUI-031.062.M12 | Positive | Collapse and filters | 30 stocks | best 5 + gap + worst 5; search; min trades | Pass |
+| UT-GUI-031.065.M12.T02 | MD-GUI-031.062.M12 | Positive | Stock tools | Stock chip; gap click; search | tools shown; 12 → 25 → 11 rows | Pass |
+| UT-GUI-031.066.M12.T01 | MD-GUI-031.062.M12 | Positive | Row click filter | click row, again, total | Trade list narrowed with label; cleared | Pass |
 | UT-GUI-031.075.M11.T01 | MD-GUI-031.075.M11 | Positive | Fields and Hide details | open screen; click Hide details; reopen | strategy None picked in yellow; grid and data line hidden; still hidden after reopen | Pass |
 | UT-GUI-031.072.M02.T01 | MD-GUI-031.002.M02 | Positive | Pages and rows | builder; Sectors mode | 5 pages; Sectors row hidden then shown | Pass |
 | UT-GUI-031.073.M02.T01 | MD-GUI-031.002.M02 | Positive | Strategy table | tick first row | Strategy, 50, 100; plan has ST_A | Pass |

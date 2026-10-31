@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.60.0: SRD-GUI-031.062–.066 added and approved by user 2026-10-31 — breakdown redesign, option A of https://claude.ai/artifact/EwvB839pqWBrsjbQy4TCRY.
 > v2.59.1: SRD-GUI-030.007 reopened by user 2026-10-31 — backtest download progress moves from the removed status bar to a sidebar Connections row.
 > v2.59.0: SRD-GUI-031.078 added; asked by user 2026-10-30 — stock name suggestions while typing in setup.
 > v2.58.0: SRD-GUI-031.077 added; approved by user 2026-10-30 — chart timeframe as 3m / 15m / 1D toggle in the panel title row.
@@ -567,6 +568,11 @@
 | SRD-GUI-031.055 | FO-GUI-031 | Must | Reports: a saved runs table; open a run into the other two sections, rename it, add a note or delete it. | results store | sections filled | No re-run of Step 3; Steps 1–2 from the step cache; delete asks to confirm | Implemented |
 | SRD-GUI-031.060 | FO-GUI-031 | Must | The builder Screener group has a "Use saved screener lists" tick that shows how many saved days the preset has. | preset | plan field | SRD-BKT-002.080 | Implemented |
 | SRD-GUI-031.061 | FO-GUI-031 | Should | The Screener screen has a Quick test button that opens Backtest with that preset and saved lists ticked. | click | Backtest screen | — | Implemented |
+| SRD-GUI-031.062 | FO-GUI-031 | Must | Breakdown groups are chips with their group count; a grouping with one group is off with a reason. | report | chips | Design https://claude.ai/artifact/EwvB839pqWBrsjbQy4TCRY option A; replaces the .043 picker | Implemented |
+| SRD-GUI-031.063 | FO-GUI-031 | Must | Hour, weekday, hold time, rank and score rows keep natural order with empty slots shown; other groups sort by net P&L. | breakdown | ordered rows | Sort in the GUI; SRD-BKT-002.044 unchanged | Implemented |
+| SRD-GUI-031.064 | FO-GUI-031 | Must | Breakdown rows show readable names, trades with share, win rate meter, avg and net P&L, a zero-line bar and an All trades total. | breakdown | table | Groups under 5 trades greyed and marked n<5 | Implemented |
+| SRD-GUI-031.065 | FO-GUI-031 | Should | Stock breakdown shows the best 5 and worst 5 with Show all, a search box and a minimum-trades filter. | breakdown | table | Collapse only above 10 rows | Implemented |
+| SRD-GUI-031.066 | FO-GUI-031 | Should | Clicking a breakdown row filters the Trade list to that group; clicking it again or the total clears it. | click | filtered trade list | Filter shown in the Trade list summary | Implemented |
 
 ### Setup window (Draft, design https://claude.ai/artifact/974y5KaeuTj5YP4QYSezaB option C1)
 

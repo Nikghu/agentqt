@@ -1389,6 +1389,7 @@ QPushButton#filter_chip {{
 QPushButton#filter_chip:hover {{ color: {text}; }}
 QPushButton#filter_chip:checked {{ background: {line}; color: {text}; font-weight: bold; }}
 QPushButton#filter_chip:focus {{ outline: none; }}
+QPushButton#filter_chip:disabled {{ color: {line}; }}
 QListWidget#preset_list {{ background: transparent; border: none; outline: none; }}
 QListWidget#preset_list::item {{ border-radius: 4px; margin: 0 6px; }}
 QListWidget#preset_list::item:hover {{ background: {hover}; }}
