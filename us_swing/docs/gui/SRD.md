@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.59.1: SRD-GUI-030.007 reopened by user 2026-10-31 — backtest download progress moves from the removed status bar to a sidebar Connections row.
 > v2.59.0: SRD-GUI-031.078 added; asked by user 2026-10-30 — stock name suggestions while typing in setup.
 > v2.58.0: SRD-GUI-031.077 added; approved by user 2026-10-30 — chart timeframe as 3m / 15m / 1D toggle in the panel title row.
 > v2.57.0: SRD-GUI-031.076 added; approved by user 2026-10-30 — trade chart option D (trade path with result badge).
@@ -518,7 +519,7 @@
 | SRD-GUI-030.004 | FO-GUI-030 | Must | Start download (Pause while running), Fill delta now and Clear database act at once and are disabled with "Connect TWS to download" when TWS is not connected. | click | download, delta, clear | Fill and Clear disabled while a download runs | Implemented |
 | SRD-GUI-030.005 | FO-GUI-030 | Must | Clear opens a frameless confirm showing the size to delete, whose Clear button enables only after typing CLEAR. | click, text | clear or nothing | Cancel deletes nothing | Implemented |
 | SRD-GUI-030.006 | FO-GUI-030 | Should | The section dot is green when up to date, amber while downloading or behind, and grey when empty. | stats, run state | dot | Uses the existing section dot | Implemented |
-| SRD-GUI-030.007 | FO-GUI-030 | Should | The main window status bar shows backtest download progress while a run is active and the result for 15 s after it ends. | progress, result | status text | Requested by user 2026-10-28 | Implemented |
+| SRD-GUI-030.007 | FO-GUI-030 | Should | A sidebar Connections row shows backtest download progress while a run is active and the result for 15 s after it ends. | progress, result | row text | Requested by user 2026-10-28; moved from the status bar 2026-10-31 (user reopened) | Implemented |
 | SRD-GUI-030.008 | FO-GUI-030 | Should | The Universe table shows each stock's backtest status, first date and last date. | backtest store | Backtest, BT From, BT To columns | Requested by user 2026-10-28; 3m dates, else 1d | Implemented |
 | SRD-GUI-030.009 | FO-GUI-030 | Must | The status shows one plain sentence, the saved coverage, what is still missing with its time, and a single button labelled Download, Download missing, Save range and download, Pause or Up to date. | stats, plan size, run state, range fields | sentence, progress, button | Requested by user 2026-10-29 (Option D); replaces the Fill delta button of .004 and the progress lines and stat strip of .001; auto delta unchanged | Implemented |
 | SRD-GUI-030.010 | FO-GUI-030 | Should | Under the coverage line, one short line says 15-minute and weekly candles are built from these. | stats | note line | Approved by user 2026-10-29 | Implemented |
