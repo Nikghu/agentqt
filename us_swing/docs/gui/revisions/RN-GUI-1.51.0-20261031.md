@@ -55,4 +55,4 @@ None
 
 ## Test Coverage
 
-11 new or rewritten tests (UT-GUI-031.062–.067), all Pass; UT-GUI-031.043.M04.T01 and .047.M04.T01 replaced. Full GUI suite 590 passed, same 22 test-order errors as main. ruff clean, no mypy errors in changed files. Checked on the real saved run "Demo - Price Action + ST_AUTO_10_2_SL5%". Real-app check by user pending.
+11 new or rewritten tests (UT-GUI-031.062–.067), all Pass; UT-GUI-031.043.M04.T01 and .047.M04.T01 replaced. Full GUI suite 591 passed, same 22 test-order errors as main. ruff clean, no mypy errors in changed files. Checked on the real saved run "Demo - Price Action + ST_AUTO_10_2_SL5%". Real-app check by user pending.
