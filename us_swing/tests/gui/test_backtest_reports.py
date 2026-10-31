@@ -106,6 +106,24 @@ def test_delete_needs_confirm(view: ReportsView, monkeypatch: pytest.MonkeyPatch
     qtbot.waitUntil(lambda: not view._workers)
 
 
+def test_multi_select_delete(view: ReportsView, monkeypatch: pytest.MonkeyPatch,
+                             qtbot: Any) -> None:
+    """UT-GUI-031.055.M09.T06: Several picked runs are deleted after one confirm."""
+    service = view._service
+    asked: list[int] = []
+    monkeypatch.setattr(view, "confirm_delete", lambda reps: asked.append(len(reps)) or True)
+
+    view.table.selectAll()
+    assert view.facts.text() == "2 runs selected"
+    assert view.delete_btn.text() == "Delete (2)"
+    assert not view.open_btn.isEnabled() and not view.rename_btn.isEnabled()
+    view.delete_btn.click()
+
+    assert asked == [2]
+    assert service.calls == [("delete", "r1"), ("delete", "r2")]  # type: ignore[attr-defined]
+    qtbot.waitUntil(lambda: not view._workers)
+
+
 def test_plan_text_names_mode() -> None:
     """UT-GUI-031.055.M09.T05: Plan facts list the names, capital and costs."""
     rep = saved_report()

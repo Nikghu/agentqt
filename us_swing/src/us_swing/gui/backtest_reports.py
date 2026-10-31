@@ -97,7 +97,7 @@ class ReportsView(QWidget):
         self.table.horizontalHeader().setStretchLastSection(True)  # type: ignore[union-attr]
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.table.itemSelectionChanged.connect(self._show_details)
         self.table.cellDoubleClicked.connect(lambda *_: self._on_open())
         body.addWidget(self.count)
@@ -189,14 +189,28 @@ class ReportsView(QWidget):
         row = rows.selectedRows()[0].row()
         return self.saved[row] if row < len(self.saved) else None
 
+    def selected_all(self) -> list[SavedReport]:
+        """Every run picked in the table, top to bottom."""
+        rows = self.table.selectionModel()
+        if rows is None:
+            return []
+        picked = sorted(index.row() for index in rows.selectedRows())
+        return [self.saved[row] for row in picked if row < len(self.saved)]
+
     def _show_details(self) -> None:
-        rep = self.selected()
-        for widget in (self.name, self.note, self.rename_btn, self.note_btn, self.open_btn,
-                       self.delete_btn):
+        reps = self.selected_all()
+        rep = reps[0] if len(reps) == 1 else None
+        for widget in (self.name, self.note, self.rename_btn, self.note_btn, self.open_btn):
             widget.setEnabled(rep is not None)
+        self.delete_btn.setEnabled(bool(reps))
+        self.delete_btn.setText(f"Delete ({len(reps)})" if len(reps) > 1 else "Delete")
         self.name.setText("" if rep is None else rep.run.name)
         self.note.setPlainText("" if rep is None else rep.run.note)
-        self.facts.setText("Run a backtest to save a report" if rep is None else plan_text(rep))
+        if len(reps) > 1:
+            self.facts.setText(f"{len(reps)} runs selected")
+        else:
+            self.facts.setText("Run a backtest to save a report" if rep is None
+                               else plan_text(rep))
 
     # ── Actions ───────────────────────────────────────────────────────────────
 
@@ -218,20 +232,22 @@ class ReportsView(QWidget):
             self.open_requested.emit(rep)
 
     def _on_delete(self) -> None:
-        rep = self.selected()
-        if rep is None or not self.confirm_delete(rep):
+        reps = self.selected_all()
+        if not reps or not self.confirm_delete(reps):
             return
-        self._service.delete_run(rep.run.run_id)
+        for rep in reps:
+            self._service.delete_run(rep.run.run_id)
         self.refresh()
 
-    def confirm_delete(self, rep: SavedReport) -> bool:
+    def confirm_delete(self, reps: list[SavedReport]) -> bool:
         """Ask before deleting; tests replace this."""
         # Imported here: the module pulls in the execution package.
         from us_swing.gui.active_cycles_panel import _ConfirmDialog
 
-        dialog = _ConfirmDialog(
-            "DELETE REPORT", f"Delete the saved run \"{rep.run.name}\" and all its trades?",
-            confirm_text="Delete", accent=C.RED, parent=self)
+        text = (f"Delete the saved run \"{reps[0].run.name}\" and all its trades?"
+                if len(reps) == 1 else f"Delete {len(reps)} saved runs and all their trades?")
+        dialog = _ConfirmDialog("DELETE REPORT", text, confirm_text="Delete", accent=C.RED,
+                                parent=self)
         return dialog.exec() == QDialog.DialogCode.Accepted
 
 

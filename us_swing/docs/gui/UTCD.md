@@ -893,6 +893,7 @@ Test files:
 | UT-GUI-031.055.M09.T03 | MD-GUI-031.055.M09 | Positive | Rename, note, open | new name, note, Open | service calls; run sent | Pass |
 | UT-GUI-031.055.M09.T04 | MD-GUI-031.055.M09 | Negative | Delete confirm | No, then Yes | nothing, then delete call | Pass |
 | UT-GUI-031.055.M09.T05 | MD-GUI-031.055.M09 | Edge | Plan facts | names mode, no strategy | names, None, costs | Pass |
+| UT-GUI-031.055.M09.T06 | MD-GUI-031.055.M09 | Positive | Multi-select delete | 2 runs picked, Yes | one confirm; 2 delete calls; Delete (2) | Pass |
 | UT-GUI-031.055.M03.T01 | MD-GUI-031.003.M03 | Positive | Open saved run | Stocks per day 1 in builder, saved All | 4 steps Done; Detail tab; 2 trades; 3 picks | Pass |
 | UT-GUI-031.055.M03.T02 | MD-GUI-031.003.M03 | Positive | Reports tab refresh | show Reports tab | list reloaded | Pass |
 | UT-GUI-031.060.M02.T01 | MD-GUI-031.002.M02 | Positive | Saved lists tick | preset without, then with saved days | message; count and range; plan recorded | Pass |
