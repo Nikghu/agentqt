@@ -447,7 +447,8 @@ def test_run_does_step_4(workspace: BacktestWorkspace, qtbot: Any) -> None:
     _run_both(workspace, qtbot)
 
     assert workspace.pills[3].property("state") == "complete"
-    assert workspace.tabs.tabText(workspace.tabs.currentIndex()) == "Detail Report"
+    assert workspace.tabs.currentWidget() is workspace.detail
+    assert workspace.view_switch.value == "1"
     assert workspace.report_view.kpi_values["Trades"].text() == "2"
     assert workspace.report_view.kpi_values["Net P&L"].text() == "$20.00"
 
@@ -458,6 +459,7 @@ def test_variant_picker_switches_tabs(workspace: BacktestWorkspace, qtbot: Any) 
     view = workspace.report_view
 
     assert not view.variant.isHidden()
+    assert not workspace.variant_label.isHidden()
     assert view.compare_table.rowCount() == 2
     view.variant.setCurrentIndex(1)
 
@@ -466,12 +468,34 @@ def test_variant_picker_switches_tabs(workspace: BacktestWorkspace, qtbot: Any) 
 
 
 def test_sections_and_variant_corner(workspace: BacktestWorkspace) -> None:
-    """UT-GUI-031.050.M03.T01: Three section tabs; the variant picker sits by the tabs."""
-    tabs = workspace.tabs
+    """UT-GUI-031.050.M03.T01: Three views in a pill switch; the variant picker sits beside it."""
+    buttons = workspace.view_switch.buttons
 
-    assert [tabs.tabText(i) for i in range(tabs.count())] == [
-        "Trade Inspector", "Detail Report", "Reports"]
-    assert tabs.cornerWidget() is workspace.report_view.variant
+    assert [b.text() for b in buttons] == ["Inspector", "Report", "Saved runs"]
+    assert workspace.tabs.count() == 3
+    assert workspace.variant_label.isHidden()
+    assert workspace.report_view.variant.parentWidget() is workspace.view_switch.parentWidget()
+
+
+def test_view_switch_keys(workspace: BacktestWorkspace) -> None:
+    """UT-GUI-031.068.M03.T01: Pills and keys 1-3 switch views; a text field keeps the key."""
+    from PyQt6.QtCore import QEvent, Qt
+    from PyQt6.QtGui import QKeyEvent, QShortcut
+
+    workspace.view_switch.buttons[2].click()
+    assert workspace.tabs.currentWidget() is workspace.saved
+    assert workspace.view_note.text() == "Double-click a saved run to open it"
+    keys = {k.key().toString(): k for k in workspace.findChildren(QShortcut)}
+    assert {"1", "2", "3"} <= set(keys)
+    keys["2"].activated.emit()
+    assert workspace.tabs.currentWidget() is workspace.detail
+    assert workspace.view_switch.buttons[1].isChecked()
+    workspace.tabs.setCurrentWidget(workspace.inspector)
+    assert workspace.view_switch.value == "0"
+    override = QKeyEvent(QEvent.Type.ShortcutOverride, Qt.Key.Key_3,
+                         Qt.KeyboardModifier.NoModifier, "3")
+    workspace.breakdown.search.event(override)
+    assert override.isAccepted()
 
 
 def test_picking_a_day_filters_panels(workspace: BacktestWorkspace, qtbot: Any) -> None:

@@ -873,7 +873,7 @@ Test files:
 | UT-GUI-031.048.M04.T01 | MD-GUI-031.040.M04 | Edge | Heat map | 2 × 2 variants; then 2 same | shown with 2 rows; then hidden | Pass |
 | UT-GUI-031.050.M05.T01 | MD-GUI-031.050.M05 | Positive | ✕ hides and is kept | click ✕ on panel A, build again | A hidden, button off, still hidden next time | Pass |
 | UT-GUI-031.050.M05.T02 | MD-GUI-031.050.M05 | Edge | Strip toggles; empty row | turn C off then on | C hidden and its row hidden; both back | Pass |
-| UT-GUI-031.050.M03.T01 | MD-GUI-031.003.M03 | Positive | Sections | open screen | tabs Trade Inspector and Detail Report; variant picker by the tabs | Pass |
+| UT-GUI-031.050.M03.T01 | MD-GUI-031.003.M03 | Positive | Sections | open screen | pills Inspector, Report, Saved runs; variant picker in the same bar | Pass |
 | UT-GUI-031.051.M03.T01 | MD-GUI-031.003.M03 | Negative | Day with no trade | pick 2026-03-02 | Trades, Signals, Decisions empty; Money that day; chart says no trade | Pass |
 | UT-GUI-031.051.M03.T02 | MD-GUI-031.003.M03 | Positive | All sessions row | run with 2 trades | row 0 shows 2 trades and $20.00; no-trade day shows — | Pass |
 | UT-GUI-031.052.M03.T01 | MD-GUI-031.003.M03 | Positive | Chart follows trade | pick AAPL trade, then 1d | reads AAPL 15m from 3 days before entry to exit day; then 1d from 90 days back | Pass |
@@ -915,6 +915,7 @@ Test files:
 | UT-GUI-031.065.M12.T02 | MD-GUI-031.062.M12 | Positive | Stock tools | Stock chip; gap click; search | tools shown; 12 → 25 → 11 rows | Pass |
 | UT-GUI-031.066.M12.T01 | MD-GUI-031.062.M12 | Positive | Row click filter | click row, again, total | Trade list narrowed with label; cleared | Pass |
 | UT-GUI-031.067.M03.T01 | MD-GUI-031.003.M03 | Positive | Breakdown panel | run both steps; click a row; turn panel off | own panel, not in Report; rows filled; Trade list names the group; panel hides | Pass |
+| UT-GUI-031.068.M03.T01 | MD-GUI-031.003.M03 | Positive | View switch | pill click; key 2 shortcut; set view in code; key 3 in a text field | view and pill follow; note text; text field keeps the key | Pass |
 | UT-GUI-031.075.M11.T01 | MD-GUI-031.075.M11 | Positive | Fields and Hide details | open screen; click Hide details; reopen | strategy None picked in yellow; grid and data line hidden; still hidden after reopen | Pass |
 | UT-GUI-031.072.M02.T01 | MD-GUI-031.002.M02 | Positive | Pages and rows | builder; Sectors mode | 5 pages; Sectors row hidden then shown | Pass |
 | UT-GUI-031.073.M02.T01 | MD-GUI-031.002.M02 | Positive | Strategy table | tick first row | Strategy, 50, 100; plan has ST_A | Pass |

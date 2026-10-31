@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.62.0: SRD-GUI-031.068 added and approved by user 2026-10-31 — Backtest views switch through a pill bar (option B of https://claude.ai/artifact/DUW3e9Mv6kAzhi4zWTLDEG).
 > v2.61.0: SRD-GUI-031.067 added and approved by user 2026-10-31 — Breakdown moves to its own Detail Report panel beside the Trade list.
 > v2.60.0: SRD-GUI-031.062–.066 added and approved by user 2026-10-31 — breakdown redesign, option A of https://claude.ai/artifact/EwvB839pqWBrsjbQy4TCRY.
 > v2.59.1: SRD-GUI-030.007 reopened by user 2026-10-31 — backtest download progress moves from the removed status bar to a sidebar Connections row.
@@ -575,6 +576,7 @@
 | SRD-GUI-031.065 | FO-GUI-031 | Should | Stock breakdown shows the best 5 and worst 5 with Show all, a search box and a minimum-trades filter. | breakdown | table | Collapse only above 10 rows | Implemented |
 | SRD-GUI-031.066 | FO-GUI-031 | Should | Clicking a breakdown row filters the Trade list to that group; clicking it again or the total clears it. | click | filtered trade list | Filter shown in the Trade list summary | Implemented |
 | SRD-GUI-031.067 | FO-GUI-031 | Should | The Breakdown shows in its own Detail Report panel beside the Trade list; panel on / off is remembered. | report | panel | Asked by user 2026-10-31: Report panel area too small | Implemented |
+| SRD-GUI-031.068 | FO-GUI-031 | Should | Backtest views switch through one pill bar (icon, label, 1 / 2 / 3 keys) with a context note and the Variant picker on the right. | click, key | view | Option B of https://claude.ai/artifact/DUW3e9Mv6kAzhi4zWTLDEG; keys ignored while typing in a field | Implemented |
 
 ### Setup window (Draft, design https://claude.ai/artifact/974y5KaeuTj5YP4QYSezaB option C1)
 

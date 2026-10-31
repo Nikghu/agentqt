@@ -16,8 +16,8 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
-from PyQt6.QtCore import QSettings, QThread, QTimer, pyqtSignal
-from PyQt6.QtGui import QShowEvent
+from PyQt6.QtCore import QSettings, Qt, QThread, QTimer, pyqtSignal
+from PyQt6.QtGui import QKeySequence, QShortcut, QShowEvent
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
@@ -26,9 +26,9 @@ from PyQt6.QtWidgets import (
     QLabel,
     QPushButton,
     QScrollArea,
+    QStackedWidget,
     QTableWidget,
     QTableWidgetItem,
-    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -72,6 +72,10 @@ _CHART_TFS: tuple[tuple[str, str | None], ...] = (("3m", "3m"), ("15m", "15m"), 
 _CHART_DAYS_BEFORE = {"3m": 1, "15m": 3, "1d": 90}
 _CHART_DAYS_AFTER = {"3m": 0, "15m": 0, "1d": 10}
 
+
+_VIEWS = (("Inspector", "search", "One session: chart, picks, signals and trades"),
+          ("Report", "chart-line", "Stats, breakdown and the trade list of a variant"),
+          ("Saved runs", "history", "Double-click a saved run to open it"))
 
 class _EstimateWorker(QThread):
     done = pyqtSignal(int, object)  # (ticket, Estimate)
@@ -376,7 +380,7 @@ class BacktestWorkspace(QWidget):
         self.plan_fields.set_summaries(self.builder.summaries())
 
     def _build_views(self) -> QWidget:
-        self.tabs = QTabWidget()
+        self.tabs = QStackedWidget()
         self.inspector = DockSection("inspector", [
             [PanelSpec("chart", "Chart", "chart-candlestick", self._build_chart(),
                        head=self.chart_bar),
@@ -416,13 +420,53 @@ class BacktestWorkspace(QWidget):
             [PanelSpec("saved", "Saved reports", "history", self.reports.list_box, stretch=3),
              PanelSpec("details", "Report details", "clipboard-list", self.reports.details_box)],
         ], settings=self._settings)
-        self.tabs.addTab(self.inspector, "Trade Inspector")
-        self.tabs.addTab(self.detail, "Detail Report")
-        self.tabs.addTab(self.saved, "Reports")
-        self.tabs.setCornerWidget(self.report_view.variant)
+        for view in (self.inspector, self.detail, self.saved):
+            self.tabs.addWidget(view)
         self.tabs.currentChanged.connect(
             lambda _i: self.reports.refresh() if self.tabs.currentWidget() is self.saved else None)
-        return self.tabs
+        box = QWidget()
+        body = QVBoxLayout(box)
+        body.setContentsMargins(0, 0, 0, 0)
+        body.setSpacing(6)
+        body.addLayout(self._build_view_bar())
+        body.addWidget(self.tabs, 1)
+        return box
+
+    def _build_view_bar(self) -> QHBoxLayout:
+        """Pill switch for the three views, a note and the variant picker (SRD-GUI-031.068)."""
+        self.view_switch = ChipGroup([(name, str(i)) for i, (name, _icon, _note)
+                                      in enumerate(_VIEWS)])
+        self.view_switch.setFixedWidth(400)
+        for i, (button, (name, icon_name, _note)) in enumerate(
+                zip(self.view_switch.buttons, _VIEWS, strict=True)):
+            set_icon(button, icon_name, "neutral", 14)
+            button.setToolTip(f"{name} (key {i + 1})")
+        self.view_switch.changed.connect(
+            lambda: self.tabs.setCurrentIndex(int(self.view_switch.value or 0)))
+        self.view_note = QLabel(_VIEWS[0][2])
+        self.view_note.setObjectName("details_key")
+        self.tabs.currentChanged.connect(self._on_view_changed)
+        for i in range(len(_VIEWS)):
+            key = QShortcut(QKeySequence(str(i + 1)), self)
+            key.setContext(Qt.ShortcutContext.WindowShortcut)
+            key.activated.connect(lambda i=i: self.tabs.setCurrentIndex(i))
+        self.variant_label = QLabel("Variant")
+        self.variant_label.setObjectName("details_key")
+        self.variant_label.hide()
+        self.report_view.report_changed.connect(
+            lambda _rep: self.variant_label.setVisible(not self.report_view.variant.isHidden()))
+        bar = QHBoxLayout()
+        bar.setContentsMargins(6, 4, 6, 0)
+        bar.setSpacing(10)
+        bar.addWidget(self.view_switch)
+        bar.addWidget(self.view_note, 1)
+        bar.addWidget(self.variant_label)
+        bar.addWidget(self.report_view.variant)
+        return bar
+
+    def _on_view_changed(self, index: int) -> None:
+        self.view_switch.buttons[index].setChecked(True)
+        self.view_note.setText(_VIEWS[index][2])
 
     def _build_sessions(self) -> QWidget:
         box = QWidget()
