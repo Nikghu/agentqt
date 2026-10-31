@@ -916,6 +916,10 @@ Test files:
 | UT-GUI-031.066.M12.T01 | MD-GUI-031.062.M12 | Positive | Row click filter | click row, again, total | Trade list narrowed with label; cleared | Pass |
 | UT-GUI-031.067.M03.T01 | MD-GUI-031.003.M03 | Positive | Breakdown panel | run both steps; click a row; turn panel off | own panel, not in Report; rows filled; Trade list names the group; panel hides | Pass |
 | UT-GUI-031.068.M03.T01 | MD-GUI-031.003.M03 | Positive | View switch | pill click; key 2 shortcut; set view in code; key 3 in a text field | view and pill follow; note text; text field keeps the key | Pass |
+| UT-GUI-031.080.M13.T01 | MD-GUI-031.080.M13 | Edge | Empty chart | 1 day | message painted; no hover day | Pass |
+| UT-GUI-031.081.M13.T01 | MD-GUI-031.080.M13 | Positive | Pixel to day | left, right, middle, outside | 0, 59, middle day, None | Pass |
+| UT-GUI-031.081.M13.T02 | MD-GUI-031.080.M13 | Positive | Hover readout | day 3, day 0 | date, strategy, benchmark, drawdown; dash without benchmark | Pass |
+| UT-GUI-031.081.M13.T03 | MD-GUI-031.080.M13 | Positive | Mouse move and leave | move, leave | hover day set and painted; cleared on leave | Pass |
 | UT-GUI-031.075.M11.T01 | MD-GUI-031.075.M11 | Positive | Fields and Hide details | open screen; click Hide details; reopen | strategy None picked in yellow; grid and data line hidden; still hidden after reopen | Pass |
 | UT-GUI-031.072.M02.T01 | MD-GUI-031.002.M02 | Positive | Pages and rows | builder; Sectors mode | 5 pages; Sectors row hidden then shown | Pass |
 | UT-GUI-031.073.M02.T01 | MD-GUI-031.002.M02 | Positive | Strategy table | tick first row | Strategy, 50, 100; plan has ST_A | Pass |

@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.63.0: SRD-GUI-031.079–.081 added and approved by user 2026-10-31 — Report tear sheet (option A of https://claude.ai/artifact/9FtQ5stYsFFDbewpJZUw9C) and a hover line on the chart.
 > v2.62.0: SRD-GUI-031.068 added and approved by user 2026-10-31 — Backtest views switch through a pill bar (option B of https://claude.ai/artifact/DUW3e9Mv6kAzhi4zWTLDEG).
 > v2.61.0: SRD-GUI-031.067 added and approved by user 2026-10-31 — Breakdown moves to its own Detail Report panel beside the Trade list.
 > v2.60.0: SRD-GUI-031.062–.066 added and approved by user 2026-10-31 — breakdown redesign, option A of https://claude.ai/artifact/EwvB839pqWBrsjbQy4TCRY.
@@ -591,3 +592,6 @@
 | SRD-GUI-031.076 | FO-GUI-031 | Must | The trade chart loads candles from before entry to the exit day and shows ringed entry and exit dots joined by a path, IN / OUT price callouts and a P&L · % · sessions badge; candles outside the trade are dimmed. | trade, bars | chart | Extends .052; markers outside the loaded bars are not drawn | Implemented |
 | SRD-GUI-031.077 | FO-GUI-031 | Should | The Chart panel title row holds the trade line and a 3m / 15m / 1D toggle, styled like the Charts page; no second header row. | click | chart | 15m default | Implemented |
 | SRD-GUI-031.078 | FO-GUI-031 | Should | Names, Add stocks and Remove stocks suggest S&P 500 symbols for the name being typed; picking one keeps the earlier names. | typed text | name list | Starts-with match, any case | Implemented |
+| SRD-GUI-031.079 | FO-GUI-031 | Should | The Report panel is a tear sheet: one title row with strategy, capital, stocks and period; KPI tiles with a context line; a signals pill row; stats in 4 named groups; a compact monthly table with a Total column. | report, run plan | panel | Option A of https://claude.ai/artifact/9FtQ5stYsFFDbewpJZUw9C; extends .040–.042 | Approved |
+| SRD-GUI-031.080 | FO-GUI-031 | Should | The report chart has a $ axis on the left, month ticks, end labels, a start-capital line, a max drawdown marker and a drawdown % scale. | daily equity | chart | Extends .041 | Implemented |
+| SRD-GUI-031.081 | FO-GUI-031 | Should | A vertical line follows the mouse over the report chart and shows that day's date, strategy equity, benchmark and drawdown. | mouse | line and value box | Asked by user 2026-10-31; hides when the mouse leaves | Implemented |

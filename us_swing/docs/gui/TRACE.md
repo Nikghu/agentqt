@@ -134,6 +134,7 @@
 | `gui/backtest_use_charts.py` | MD-GUI-031.054.M08 | SRD-GUI-031.054 | FO-GUI-031 |
 | `gui/backtest_reports.py` | MD-GUI-031.055.M09 | SRD-GUI-031.055 | FO-GUI-031 |
 | `gui/backtest_breakdown.py` | MD-GUI-031.062.M12 | SRD-GUI-031.062 | FO-GUI-031 |
+| `gui/backtest_report_chart.py` | MD-GUI-031.080.M13 | SRD-GUI-031.080 | FO-GUI-031 |
 | `gui/backtest_setup.py` | MD-GUI-031.071.M10 | SRD-GUI-031.071, .074 | FO-GUI-031 |
 | `gui/backtest_report_view.py` | MD-GUI-031.040.M04 | SRD-GUI-031.040–.045 | FO-GUI-031 |
 

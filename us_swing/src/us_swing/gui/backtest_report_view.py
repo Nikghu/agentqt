@@ -12,13 +12,13 @@ from __future__ import annotations
 import logging
 import math
 import re
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from PyQt6.QtCore import QPointF, QRectF, Qt, pyqtSignal
-from PyQt6.QtGui import QBrush, QColor, QPainter, QPainterPath, QPaintEvent, QPen
+from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtGui import QBrush, QColor
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
@@ -35,8 +35,8 @@ from PyQt6.QtWidgets import (
 )
 
 from us_swing.backtest.steps.report import Report, Stat, compare, heat_map
+from us_swing.gui.backtest_report_chart import ReportChart
 from us_swing.gui.icons import set_icon
-from us_swing.gui.strategy_pnl_chart import nice_ticks
 from us_swing.gui.theme import C
 
 _log = logging.getLogger(__name__)
@@ -48,9 +48,6 @@ RISK_STATS = ("Average MAE", "Average MFE", "Profit given back", "Median hold",
               "Monte Carlo drawdown, good 5%", "First half P&L", "Second half P&L",
               "P&L without top 5 trades")
 _MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
-_AXIS_W = 70
-_AXIS_H = 20
-_DD_SHARE = 0.3
 
 
 def fmt(value: float, kind: str) -> str:
@@ -98,112 +95,6 @@ def _pnl_brush(value: float, scale: float) -> QBrush:
     colour = QColor(C.GREEN if value > 0 else C.RED)
     colour.setAlphaF(0.15 + 0.55 * min(1.0, abs(value) / scale) if scale else 0.15)
     return QBrush(colour)
-
-
-class ReportChart(QWidget):
-    """Equity and benchmark lines, with the drawdown area below (SRD-GUI-031.041)."""
-
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.daily = pd.DataFrame(columns=["date", "equity", "drawdown", "benchmark"])
-        self.setMinimumHeight(260)
-
-    def set_daily(self, daily: pd.DataFrame) -> None:
-        self.daily = daily
-        self.update()
-
-    def paintEvent(self, _event: QPaintEvent | None) -> None:  # noqa: N802
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        if len(self.daily) < 2:
-            painter.setPen(QColor(C.MUTED))
-            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter,
-                             "Run a backtest to see the equity curve")
-            painter.end()
-            return
-        width = self.width() - _AXIS_W - 8
-        top_h = (self.height() - _AXIS_H - 20) * (1 - _DD_SHARE)
-        equity = QRectF(4, 8, width, top_h)
-        dd = QRectF(4, equity.bottom() + 24, width, self.height() - equity.bottom() - _AXIS_H - 24)
-        bench = self.daily["benchmark"].astype(float)
-        values = [*self.daily["equity"].astype(float), *bench.dropna()]
-        ticks = nice_ticks(min(values), max(values))
-        self._line_panel(painter, equity, ticks)
-        self._drawdown_panel(painter, dd)
-        self._dates(painter, dd)
-        painter.end()
-
-    def _x(self, plot: QRectF) -> Callable[[int], float]:
-        span = max(len(self.daily) - 1, 1)
-        return lambda i: plot.left() + i / span * plot.width()
-
-    def _line_panel(self, painter: QPainter, plot: QRectF, ticks: list[float]) -> None:
-        lo, hi = ticks[0], ticks[-1]
-
-        def y(v: float) -> float:
-            return plot.bottom() - (v - lo) / ((hi - lo) or 1.0) * plot.height()
-
-        for t in ticks:
-            painter.setPen(QPen(QColor(C.OVERLAY), 1))
-            painter.drawLine(QPointF(plot.left(), y(t)), QPointF(plot.right(), y(t)))
-            painter.setPen(QColor(C.SUBTEXT))
-            painter.drawText(QRectF(plot.right() + 4, y(t) - 8, _AXIS_W - 4, 16),
-                             Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
-                             f"${t:,.0f}")
-        x = self._x(plot)
-        for column, colour, style in (("benchmark", C.MUTED, Qt.PenStyle.DashLine),
-                                      ("equity", C.BLUE, Qt.PenStyle.SolidLine)):
-            path: QPainterPath | None = None
-            for i, v in enumerate(self.daily[column].astype(float)):
-                if math.isnan(v):
-                    continue
-                point = QPointF(x(i), y(v))
-                if path is None:
-                    path = QPainterPath(point)
-                else:
-                    path.lineTo(point)
-            if path is not None:
-                painter.setPen(QPen(QColor(colour), 1.8, style))
-                painter.drawPath(path)
-        painter.setPen(QColor(C.BLUE))
-        painter.drawText(QRectF(plot.left() + 6, plot.top(), 200, 16), "— Strategy")
-        painter.setPen(QColor(C.MUTED))
-        painter.drawText(QRectF(plot.left() + 90, plot.top(), 260, 16),
-                         "- - S&P 500 (equal weight)")
-
-    def _drawdown_panel(self, painter: QPainter, plot: QRectF) -> None:
-        dd = self.daily["drawdown"].astype(float)
-        low = min(float(dd.min()), -0.0001)
-        x = self._x(plot)
-
-        def y(v: float) -> float:
-            return plot.top() + v / low * plot.height()
-
-        area = QPainterPath(QPointF(x(0), y(0)))
-        for i, v in enumerate(dd):
-            area.lineTo(QPointF(x(i), y(v)))
-        area.lineTo(QPointF(x(len(dd) - 1), y(0)))
-        area.closeSubpath()
-        fill = QColor(C.RED)
-        fill.setAlphaF(0.35)
-        painter.fillPath(area, fill)
-        painter.setPen(QPen(QColor(C.OVERLAY), 1))
-        painter.drawLine(QPointF(plot.left(), plot.top()), QPointF(plot.right(), plot.top()))
-        painter.setPen(QColor(C.SUBTEXT))
-        painter.drawText(QRectF(plot.right() + 4, plot.top() - 2, _AXIS_W - 4, 16),
-                         Qt.AlignmentFlag.AlignRight, "0%")
-        painter.drawText(QRectF(plot.right() + 4, plot.bottom() - 14, _AXIS_W - 4, 16),
-                         Qt.AlignmentFlag.AlignRight, f"{low:.1%}")
-        painter.drawText(QRectF(plot.left() + 6, plot.top() + 2, 200, 16), "Drawdown")
-
-    def _dates(self, painter: QPainter, plot: QRectF) -> None:
-        x = self._x(plot)
-        last = len(self.daily) - 1
-        painter.setPen(QColor(C.SUBTEXT))
-        for i in sorted({0, last // 2, last}):
-            left = min(max(x(i) - 40, 0.0), plot.right() - 80)
-            painter.drawText(QRectF(left, plot.bottom() + 4, 80, _AXIS_H - 4),
-                             Qt.AlignmentFlag.AlignCenter, str(self.daily["date"].iloc[i]))
 
 
 class ReportView(QWidget):
@@ -330,7 +221,7 @@ class ReportView(QWidget):
             self.report_changed.emit(None)
             return
         self.skips_label.setText(skips_text(rep.skips))
-        self.chart.set_daily(rep.daily)
+        self.chart.set_daily(rep.daily, rep.capital)
         _fill(self.stats_table, [[s.name, fmt(s.value, s.kind)] for s in rep.stats])
         self._render_months(rep)
         self.report_changed.emit(rep)
