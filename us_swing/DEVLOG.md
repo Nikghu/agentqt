@@ -2,6 +2,16 @@
 
 ---
 
+## [20261031] EXE — SWING Window fix: Previous / Current, shared live and backtest args (ISS-EXE-0014)
+
+- Type: Bugfix
+- FO(s): FO-EXE-011, FO-BKT-002, FO-GUI-013
+- RN: RN-EXE-1.39.0-20261031
+- Artifacts updated: SRD (SRD-EXE-011.026, SRD-BKT-002.082, SRD-GUI-013.022 Implemented), UTCD (Pass), TRACE (exe, bkt, gui), Code, Tests, RN, ISS-EXE-0014, TODO, CONTEXT, DEVLOG
+- Decisions: Window = Previous (N closed bars before latest) or Current (old behaviour); LookbackDays/Type removed from form; Candles 1–500; legacy 6-arg strings read as Current. Branch fix/swing-window-mode, not committed or pushed.
+
+---
+
 ## [20261031] GUI — Backtest breakdown redesign, option A (SRD-GUI-031.062–.066)
 
 - Type: Feature

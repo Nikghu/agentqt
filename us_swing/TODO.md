@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-10-30 (Session 107)
+**Last Updated:** 2026-10-31 (Session 108)
 
 ---
 
@@ -84,3 +84,6 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T72 | GUI — Backtest setup window C1 done (SRD-GUI-031.070–.074, RN-GUI-1.49.0); left builder removed. User check pending. | `gui/backtest_setup.py`, `gui/backtest_builder.py` | Medium | Done — user check pending |
 | T73 | GUI — Backtest polish done (SRD-GUI-031.075–.078, RN-GUI-1.50.0): header stepper and fields, trade chart IN/OUT path, 3m/15m/1D toggle, S&P 500 name suggestions. User check pending. | `gui/backtest_header.py`, `gui/backtest_trade_chart.py`, `gui/backtest_builder.py` | Medium | Done — user check pending |
 | T74 | MCP — 4 deferred backtest tools (FO-MCP-007 scope): bt_validate_rule, bt_quick_from_screener, bt_day_log, bt_breakdown. Build only if the user asks. | `mcp/backtest_tools.py` | Low | Open |
+| T75 | EXE/BKT/GUI — SWING Window fix (ISS-EXE-0014, FO-EXE-011, FO-BKT-002, FO-GUI-013): Previous / Current window, LookbackDays and Type removed, Candles 1–500, live and backtest share `swing_args`. RN-EXE-1.39.0. Tests 40 pass. Not committed. | `execution/`, `backtest/`, `gui/` | High | Done |
+| T76 | GUI/BKT — User check: build a SWING Previous breakout strategy in the Strategy Builder and run a backtest. | `gui/strategy_builder_dialog.py`, `backtest/` | Medium | Open |
+| T77 | INF — Pre-existing failing tests on main: test_candle_builder (9), test_preset (2), test_chart_workspace (22 errors, 'object' has no setSizePolicy), test_llm_claude_screener import error. | `tests/`, `screener/`, `gui/` | Medium | Open |

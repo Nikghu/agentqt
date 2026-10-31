@@ -358,6 +358,8 @@
 | UT-GUI-013.021.M01.T01 | MD-GUI-004.001.M01 | Positive | An open trade reports live trades | strategy with one open symbol | `has_live_or_pending_trades` True | Pass |
 | UT-GUI-013.021.M01.T02 | MD-GUI-004.001.M01 | Positive | A waiting signal counts too | no open trade, one pending signal for the strategy | `has_live_or_pending_trades` True | Pass |
 | UT-GUI-013.021.M01.T03 | MD-GUI-004.001.M01 | Negative | Another strategy's signal does not lock | pending signal for a different strategy | `has_live_or_pending_trades` False | Pass |
+| UT-GUI-013.022.M01.T01 | MD-GUI-013.001.M01 | Positive | SWING form has the new fields | choose SWING in the condition dialog | 5 fields, Window = Previous / Current, no LookbackDays; built text has 5 args | Pass |
+| UT-GUI-013.022.M01.T02 | MD-GUI-013.001.M01 | Negative | Candles 0 is refused | type `0` in Candles | validator rejects it | Pass |
 
 ---
 

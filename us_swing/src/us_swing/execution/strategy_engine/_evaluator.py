@@ -292,22 +292,41 @@ def _fn_supertrend(args: list[Any], c: dict[str, pd.DataFrame], _s: str) -> floa
     return _supertrend_value(df, int(atr_length), float(factor))
 
 
+def swing_args(args: list[Any]) -> tuple[int, str, bool]:
+    """Parse SWING args into (candles, price swing, previous window) (SRD-EXE-011.026).
+
+    Accepts ``SymbolType, Candles, PriceSwing, Window, Timeframe`` and the legacy
+    ``SymbolType, Candles, LookbackDays, PriceSwing, Type, Timeframe``, which always
+    reads as the ``Current`` window.
+
+    Raises:
+        EvaluatorError: wrong arg count, Candles below 1, or an unknown Price Swing or Window.
+    """
+    if len(args) == 6:
+        _symbol_type, candles, _lookback_days, price_swing, _type, _tf = args
+        window = "current"
+    else:
+        _require_args("SWING", args, 5)
+        _symbol_type, candles, price_swing, window, _tf = args
+    bars, kind, window = int(candles), str(price_swing).lower(), str(window).lower()
+    if bars < 1:
+        raise EvaluatorError(f"SWING: Candles must be 1 or more, got {candles!r}")
+    if kind not in ("high", "low", "range"):
+        raise EvaluatorError(f"SWING: unknown Price Swing {price_swing!r}")
+    if window not in ("previous", "current"):
+        raise EvaluatorError(f"SWING: unknown Window {window!r}")
+    return bars, kind, window == "previous"
+
+
 def _fn_swing(args: list[Any], c: dict[str, pd.DataFrame], _s: str) -> float:
-    _require_args("SWING", args, 6)
-    _symbol_type, lookback_bars, _lookback_days, price_swing, swing_type, tf = args
-    df = _frame_for_tf(c, str(tf))
-    n = min(int(lookback_bars), len(df))
-    window = df.tail(n)
-    kind = str(price_swing).lower()
+    bars, kind, previous = swing_args(args)
+    df = _frame_for_tf(c, str(args[-1]))
+    window = (df.iloc[:-1] if previous else df).tail(bars)
     if kind == "high":
         return float(window["high"].max())
     if kind == "low":
         return float(window["low"].min())
-    if kind == "range":
-        return float(window["high"].max() - window["low"].min())
-    raise EvaluatorError(f"SWING: unknown Price Swing {price_swing!r}")
-    # `swing_type` ('Day' / 'Recent' / 'Old') is currently informational; logic is window-based.
-    _ = swing_type  # keep arity check honest
+    return float(window["high"].max() - window["low"].min())
 
 
 def _fn_macd(args: list[Any], c: dict[str, pd.DataFrame], _s: str) -> float:

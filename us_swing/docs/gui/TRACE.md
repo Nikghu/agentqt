@@ -3,7 +3,7 @@
 **Document ID:** TRACE-GUI
 **Version:** 1.14.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-10-31 (Backtest breakdown redesign, SRD-GUI-031.062–.066; RN-GUI-1.51.0)
+**Last Updated:** 2026-10-31 (SRD-GUI-013.022 SWING form, ISS-EXE-0014, RN-EXE-1.39.0-20261031; Backtest breakdown redesign, SRD-GUI-031.062–.066, RN-GUI-1.51.0)
 
 ---
 
@@ -41,6 +41,7 @@
 | FO-GUI-014 | SRD-GUI-014.014 | — | MD-GUI-004.001.M01 | — | `gui/app_service.py`, `gui/execution_panel.py` | Implemented | Pending |
 | FO-GUI-014 | SRD-GUI-014.015 | — | MD-GUI-014.001.M01 | — | `gui/active_cycles_panel.py` | Implemented | RN-EXE-1.22.0-20260610 |
 | FO-GUI-013 | SRD-GUI-013.016–.021 | DD-GUI-013.016.D01 | MD-GUI-013.001.M01, MD-GUI-004.001.M01, MD-GUI-004.001.M02 | UT-GUI-013.016–.018.M01.T01–08, .020.M01.T01, .021.M01.T01–03, .019.M02.T01–02, .020.M02.T02 | `gui/strategy_builder_dialog.py`, `gui/execution_panel.py`, `gui/strategy_table_model.py` | Implemented | RN-GUI-1.5.0-20260917 (.020/.021 pending RN) |
+| FO-GUI-013 | SRD-GUI-013.022 | DD-EXE-011.026.D01 | MD-GUI-013.001.M01 | UT-GUI-013.022.M01.T01–T02 (2 tests, Pass) | `gui/strategy_builder_dialog.py` | Implemented | RN-EXE-1.39.0-20261031 |
 | FO-GUI-014 | SRD-GUI-014.016–.018 | DD-GUI-014.016.D01 | MD-GUI-014.001.M01–M03 | UT-GUI-014.016.M02.T01–03, .017.M01.T01–05, .018.M03.T01–04 | `gui/active_cycles_model.py`, `gui/active_cycles_panel.py`, `gui/risk_editor_widget.py` | Implemented | RN-GUI-1.5.0-20260917 |
 | FO-GUI-002 | SRD-GUI-002.005 (Reopen; fix conforms to SRD-EXE-018.003) | — | MD-GUI-004.001.M01 | UT-GUI-002.005.M01.T01–T03 | `gui/app_service.py` | Implemented (ISS-GUI-0002 fix only; SRD stays Reopen) | RN-GUI-1.5.1-20261016 |
 | FO-GUI-015 | SRD-GUI-015.002 | DD-GUI-015.001.D01 | MD-GUI-015.002.M01 | UT-GUI-015.002.M01.T01–T02 | `gui/frameless_dialog.py` | Implemented | RN-GUI-1.6.0-20261022 |

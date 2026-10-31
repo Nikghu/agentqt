@@ -157,3 +157,26 @@ def test_pnl_is_flagged(frames: dict[str, pd.DataFrame]) -> None:
 
     assert ev.uses_pnl
     np.testing.assert_array_equal(ev.fired, ~np.isnan(rsi) & (np.nan_to_num(rsi) > 0))
+
+
+def test_swing_window_parity(frames: dict[str, pd.DataFrame]) -> None:
+    """UT-BKT-002.082.M10.T01: SWING Previous and Current series equal live on bars up to i."""
+    for tf, frame in frames.items():
+        for kind in ("High", "Low", "Range"):
+            for window in ("Previous", "Current"):
+                args = ["Spot", 5, kind, window, tf]
+                series = function_series("SWING", args, frame, tf)
+                live = [_live("SWING", args, frame.iloc[:i + 1], tf) for i in range(len(frame))]
+                np.testing.assert_allclose(series, live, rtol=1e-9, equal_nan=True,
+                                           err_msg=f"SWING {kind} {window} {tf}")
+
+
+def test_swing_bad_candles_and_legacy_args(frames: dict[str, pd.DataFrame]) -> None:
+    """UT-BKT-002.082.M10.T02: Candles 0 raises; legacy 6 args give the Current series."""
+    with pytest.raises(EvaluatorError):
+        evaluate("SWING('Spot', 0, 'High', 'Previous', '3m') > 0", frames)
+
+    legacy = evaluate("SWING('Spot', 5, 3, 'High', 'Day', '3m') > 0", frames)
+    current = evaluate("SWING('Spot', 5, 'High', 'Current', '3m') > 0", frames)
+    np.testing.assert_array_equal(list(legacy.values.values())[0],
+                                  list(current.values.values())[0])

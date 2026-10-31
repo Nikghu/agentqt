@@ -21,7 +21,7 @@ import numpy.typing as npt
 import pandas as pd
 import talib
 
-from us_swing.core.expr import EvaluatorError, parse
+from us_swing.core.expr import EvaluatorError, parse, swing_args
 
 FloatArray = npt.NDArray[np.float64]
 BoolArray = npt.NDArray[np.bool_]
@@ -31,7 +31,8 @@ ET = ZoneInfo("America/New_York")
 INTRADAY_MINUTES = {"3m": 3, "15m": 15}
 _NS_PER_MIN = 60_000_000_000
 _ARITY = {"Number": 1, "PNL": 1, "VWAP": 2, "Price": 4, "RSI": 3, "ADX": 3, "EMA": 3,
-          "SUPERTREND": 5, "SWING": 6, "MACD": 5}
+          "SUPERTREND": 5, "SWING": 5, "MACD": 5}
+_LEGACY_ARITY = {"SWING": 6}
 _COMPARE: dict[str, Callable[[FloatArray, FloatArray], BoolArray]] = {
     ">": np.greater, "<": np.less, ">=": np.greater_equal, "<=": np.less_equal,
     "==": np.equal, "!=": np.not_equal,
@@ -116,18 +117,12 @@ def _supertrend(frame: pd.DataFrame, length: int, factor: float) -> FloatArray:
     return out
 
 
-def _swing(frame: pd.DataFrame, bars: int, kind: str) -> FloatArray:
-    if bars < 1:
-        return np.full(len(frame), np.nan)
-    high = pd.Series(_col(frame, "high")).rolling(bars, min_periods=1)
-    low = pd.Series(_col(frame, "low")).rolling(bars, min_periods=1)
-    if kind == "high":
-        return high.max().to_numpy()
-    if kind == "low":
-        return low.min().to_numpy()
-    if kind == "range":
-        return (high.max() - low.min()).to_numpy()
-    raise EvaluatorError(f"SWING: unknown Price Swing {kind!r}")
+def _swing(frame: pd.DataFrame, args: list[Any]) -> FloatArray:
+    bars, kind, previous = swing_args(args)
+    high = pd.Series(_col(frame, "high")).rolling(bars, min_periods=1).max()
+    low = pd.Series(_col(frame, "low")).rolling(bars, min_periods=1).min()
+    values = high if kind == "high" else low if kind == "low" else high - low
+    return (values.shift(1) if previous else values).to_numpy(dtype=np.float64)
 
 
 def function_series(name: str, args: list[Any], frame: pd.DataFrame, tf: str) -> FloatArray:
@@ -153,7 +148,7 @@ def function_series(name: str, args: list[Any], frame: pd.DataFrame, tf: str) ->
     if name == "SUPERTREND":
         return _supertrend(frame, int(args[1]), float(args[2]))
     if name == "SWING":
-        return _swing(frame, int(args[1]), str(args[3]).lower())
+        return _swing(frame, args)
     if name == "Price":
         values = _col(frame, str(args[2]).lower())
         if str(args[1]).lower() == "current":
@@ -196,7 +191,7 @@ class _Walker:
         if name not in _ARITY:
             raise EvaluatorError(f"Unknown indicator {name!r}")
         args = [self._constant(a) for a in node["args"]]
-        if len(args) != _ARITY[name]:
+        if len(args) not in (_ARITY[name], _LEGACY_ARITY.get(name)):
             raise EvaluatorError(f"Indicator {name!r} expects {_ARITY[name]} arg(s), "
                                  f"got {len(args)}")
         if name == "Number":

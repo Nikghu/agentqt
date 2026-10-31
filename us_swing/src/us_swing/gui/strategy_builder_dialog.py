@@ -129,14 +129,13 @@ _INDICATOR_DATA: list[dict] = [
         "name": "SWING",
         "parameters": [
             {"name": "Symbol Type", "Type": "DropDown", "Datatype": ["Spot", "RSP"]},
-            {"name": "Candles", "Type": "EditBox", "Datatype": "int"},
-            {"name": "LookbackDays", "Type": "EditBox", "Datatype": "int"},
+            {"name": "Candles", "Type": "EditBox", "Datatype": "int", "Range": [1, 500]},
             {
                 "name": "Price Swing",
                 "Type": "DropDown",
                 "Datatype": ["High", "Low", "Range"],
             },
-            {"name": "Type", "Type": "DropDown", "Datatype": ["Day", "Recent", "Old"]},
+            {"name": "Window", "Type": "DropDown", "Datatype": ["Previous", "Current"]},
             {
                 "name": "Timeframe",
                 "Type": "DropDown",
@@ -429,7 +428,7 @@ class _ConditionSelectorDialog(QDialog):
                     le.setFixedHeight(C.INPUT_H)
                     le.setStyleSheet(_line_ss())
                     if param["Datatype"] == "int":
-                        le.setValidator(QIntValidator())
+                        le.setValidator(QIntValidator(*param.get("Range", [])))
                     elif param["Datatype"] == "float":
                         le.setValidator(QDoubleValidator())
                     w = le
@@ -469,6 +468,9 @@ class _ConditionSelectorDialog(QDialog):
                 val = w.text().strip()
                 if not val:
                     self._err_lbl.setText(f"'{pname}' is required.")
+                    return
+                if not w.hasAcceptableInput():
+                    self._err_lbl.setText(f"'{pname}' is out of range.")
                     return
                 parts.append(val)
             elif isinstance(w, QComboBox):

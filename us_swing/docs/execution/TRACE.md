@@ -3,7 +3,7 @@
 **Document ID:** TRACE-EXE
 **Version:** 1.23.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-10-29 (SRD-EXE-006.014 closed bars only; RN-EXE-1.38.0)
+**Last Updated:** 2026-10-31 (SRD-EXE-011.026 SWING Window, ISS-EXE-0014; RN-EXE-1.39.0-20261031)
 
 ---
 
@@ -35,6 +35,7 @@
 | FO-EXE-011 | SRD-EXE-011.023 | DD-EXE-011.023.D01 | MD-EXE-011.001.M03 | UT-EXE-011.001.M03.T10–T13 | `execution/strategy_engine/_evaluator.py` | Implemented | RN-EXE-1.29.0-20260616 |
 | FO-EXE-011 | SRD-EXE-011.024 | DD-EXE-011.024.D01 | MD-EXE-011.024.M01 | UT-EXE-011.024.M01.T01–T04 | `execution/pending_signal_store.py`, `gui/app_service.py` | Implemented | RN-EXE-1.30.0-20260617 |
 | FO-EXE-011 | SRD-EXE-011.025 | — | MD-EXE-011.024.M01 | UT-EXE-011.025.M01.T01–T02 | `gui/app_service.py` | Implemented | RN-EXE-1.30.0-20260617 |
+| FO-EXE-011 | SRD-EXE-011.026 | DD-EXE-011.026.D01 | MD-EXE-011.001.M03 | UT-EXE-011.026.M03.T01–T05 (5 tests, Pass) | `execution/strategy_engine/_evaluator.py` | Implemented | RN-EXE-1.39.0-20261031 |
 | FO-EXE-012 | SRD-EXE-012.014 | — | MD-EXE-012.002.M02 | UT-EXE-012.002.M02.T19 | `execution/trade_cycle/_service.py`, `execution/trade_cycle/_protocols.py` | Implemented | RN-EXE-1.30.0-20260617 |
 | FO-GUI-013 | SRD-GUI-013.015 | — | MD-GUI-004.001.M01 | — | `gui/execution_panel.py`, `gui/strategy_builder_dialog.py` | Implemented | RN-EXE-1.9.0-20260527 |
 | FO-GUI-014 | SRD-GUI-014.013 | — | MD-GUI-014.001.M02 | — | `gui/active_cycles_model.py`, `gui/active_cycles_panel.py` | Implemented | RN-EXE-1.9.0-20260527 |

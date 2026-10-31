@@ -16,9 +16,10 @@ from us_swing.execution.strategy_engine._evaluator import (
     EvaluatorError,
     _Parser,
     _tokenize,
+    swing_args,
 )
 
-__all__ = ["ConditionEvaluator", "EvaluatorError", "parse"]
+__all__ = ["ConditionEvaluator", "EvaluatorError", "parse", "swing_args"]
 
 
 def parse(expr: str) -> dict[str, Any]:
