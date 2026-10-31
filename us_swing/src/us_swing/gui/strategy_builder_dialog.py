@@ -1308,6 +1308,8 @@ class StrategyBuilderDialog(QDialog):
 
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
         self.setMinimumSize(780, 480)
+        # Start tall enough for the largest page, so Windows never has to grow it on show.
+        self.resize(780, 560)
 
         root_lay = QVBoxLayout(self)
         root_lay.setSpacing(0)
