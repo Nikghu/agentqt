@@ -75,7 +75,18 @@ class ExecutionHeader(QFrame):
         title_box = QVBoxLayout()
         title_box.setSpacing(4)
         title_box.addLayout(title_row)
-        title_box.addWidget(self._last_run)
+        self.cb_banner = QLabel(
+            "⚠  Circuit Breaker ACTIVE — daily loss limit reached. "
+            "New entries are disabled."
+        )
+        self.cb_banner.setObjectName("cb_banner")
+        self.cb_banner.setVisible(False)
+        self.cb_banner.setWordWrap(True)
+        meta_row = QHBoxLayout()
+        meta_row.setSpacing(16)
+        meta_row.addWidget(self._last_run)
+        meta_row.addWidget(self.cb_banner, 1)
+        title_box.addLayout(meta_row)
 
         self.unrealised_chip = self._chip()
         self.running_chip = self._chip()
