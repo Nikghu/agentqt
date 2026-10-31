@@ -59,20 +59,21 @@ def test_fmt_kinds() -> None:
 
 
 def test_kpi_row_and_stats(view: ReportView) -> None:
-    """UT-GUI-031.040.M04.T02: KPI row and all-stats table show the selected variant."""
+    """UT-GUI-031.040.M04.T02: KPI row and every stat show the selected variant."""
     view.set_reports([_report()])
 
     assert view.kpi_values["Net P&L"].text() == "$20.00"
     assert view.kpi_values["Win rate"].text() == "50.0%"
-    assert view.stats_table.rowCount() == len(_report().stats)
-    assert view.skips_label.text() == "Entries taken 2 · skipped: strategy limit 1"
+    assert set(view.stat_values) == {s.name for s in _report().stats}
+    assert view.skips_label.text() == "2 of 3 entry signals were taken"
 
 
 def test_empty_view(view: ReportView) -> None:
     """UT-GUI-031.040.M04.T03: No report shows dashes and no export."""
     view.set_reports([])
 
-    assert view.kpi_values["Trades"].text() == "—"
+    assert view.kpi_values["Sharpe"].text() == "—"
+    assert view.stat_values == {}
     assert not view.export_btn.isEnabled()
 
 
@@ -93,9 +94,10 @@ def test_month_heat_map(view: ReportView) -> None:
     march, april = view.month_table.item(0, 3), view.month_table.item(0, 4)
 
     assert view.month_table.rowCount() == 1
-    assert (march.text(), april.text()) == ("20", "0")  # type: ignore[union-attr]
+    assert (march.text(), april.text()) == ("$20", "$0")  # type: ignore[union-attr]
     assert march.background().color().alpha() > 0  # type: ignore[union-attr]
-    assert view.month_table.item(0, 13).text() == "20"  # type: ignore[union-attr]
+    assert view.month_table.item(0, 13).text() == "$20"  # type: ignore[union-attr]
+    assert view.month_table.horizontalHeaderItem(13).text() == "Total"  # type: ignore[union-attr]
 
 
 def _breakdown(view: ReportView, qtbot: Any) -> BreakdownView:
@@ -132,7 +134,35 @@ def test_compare_two_variants(view: ReportView) -> None:
     assert view.compare_table.rowCount() == 2
     assert view.compare_table.item(1, 0).text() == "B"  # type: ignore[union-attr]
     view.variant.setCurrentIndex(1)
-    assert view.kpi_values["Trades"].text() == "1"
+    assert view.stat_values["Trades"].text() == "1"
+
+
+def test_tear_sheet_title_notes_and_groups(view: ReportView) -> None:
+    """UT-GUI-031.079.M04.T01: Title with context, KPI notes, signal pills and stat groups."""
+    view.set_reports([_report()], "Information Technology · 2026-03-02 → 2026-04-01")
+
+    assert view.head.text() == "$1,000"
+    assert view.context.text() == "Information Technology · 2026-03-02 → 2026-04-01"
+    assert view.kpi_notes["Net P&L"].text() == "ending equity $1,020"
+    assert view.kpi_notes["Return"].text().startswith("vs benchmark ")
+    assert view.kpi_notes["Win rate"].text() == "1 of 2 trades won"
+    pills = [view.signals.itemAt(i).widget() for i in range(view.signals.count())]
+    texts = [w.text() for w in pills if w is not None]
+    assert "Entries <b>2</b>" in texts and "Strategy limit <b>1</b>" in texts
+    assert view.groups.count() == 4
+    assert view.stat_values["Max drawdown"].styleSheet().startswith("color: ")
+
+
+def test_tone_only_for_money() -> None:
+    """UT-GUI-031.079.M04.T02: Only money and return values get green or red."""
+    from us_swing.backtest.steps.report import Stat
+    from us_swing.gui.backtest_report_view import _tone
+    from us_swing.gui.theme import C
+
+    assert _tone(Stat("Net P&L", 5.0, "usd")) == C.GREEN
+    assert _tone(Stat("Max drawdown", -0.2, "pct")) == C.RED
+    assert _tone(Stat("Average MAE", 47.0, "usd")) == C.TEXT
+    assert _tone(Stat("Sharpe", 1.6, "ratio")) == C.TEXT
 
 
 def test_export_csv(view: ReportView, tmp_path: Path) -> None:

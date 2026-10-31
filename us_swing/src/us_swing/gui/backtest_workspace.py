@@ -35,7 +35,13 @@ from PyQt6.QtWidgets import (
 
 from us_swing.backtest.cache import StepCache
 from us_swing.backtest.results import ResultsStore
-from us_swing.backtest.service import BacktestService, DailyList, Estimate, SavedReport
+from us_swing.backtest.service import (
+    BacktestService,
+    DailyList,
+    Estimate,
+    SavedReport,
+    stocks_text,
+)
 from us_swing.backtest.spec import RunPlan
 from us_swing.backtest.steps.portfolio import VariantResult
 from us_swing.backtest.steps.report import Report
@@ -110,6 +116,11 @@ class _RunWorker(QThread):
         super().__init__(parent)
         self._service, self._plan, self._user = service, plan, user_id
         self._cancel = False
+
+    @property
+    def plan(self) -> RunPlan:
+        """The plan this worker runs or opens."""
+        return self._plan
 
     def request_cancel(self) -> None:
         self._cancel = True
@@ -655,6 +666,7 @@ class BacktestWorkspace(QWidget):
         runner.cancelled.connect(self._on_run_cancelled)
         runner.finished.connect(self._on_runner_finished)
         self._runner = runner
+        self._run_plan = runner.plan
         self.run_btn.setText("Cancel")
         set_icon(self.run_btn, "square-x", "go")
         self.set_step(0, "running")
@@ -915,6 +927,8 @@ class BacktestWorkspace(QWidget):
 
     def _on_report_done(self, reports: list[Report]) -> None:
         self.set_step(3, "done")
-        self.report_view.set_reports(reports)
+        plan = self._run_plan
+        self.report_view.set_reports(
+            reports, f"{stocks_text(plan)} · {plan.period.start} → {plan.period.end}")
         self.risk.set_report(self.report_view.current())
         self.tabs.setCurrentWidget(self.detail)

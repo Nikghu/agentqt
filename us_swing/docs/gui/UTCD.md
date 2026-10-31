@@ -916,6 +916,8 @@ Test files:
 | UT-GUI-031.066.M12.T01 | MD-GUI-031.062.M12 | Positive | Row click filter | click row, again, total | Trade list narrowed with label; cleared | Pass |
 | UT-GUI-031.067.M03.T01 | MD-GUI-031.003.M03 | Positive | Breakdown panel | run both steps; click a row; turn panel off | own panel, not in Report; rows filled; Trade list names the group; panel hides | Pass |
 | UT-GUI-031.068.M03.T01 | MD-GUI-031.003.M03 | Positive | View switch | pill click; key 2 shortcut; set view in code; key 3 in a text field | view and pill follow; note text; text field keeps the key | Pass |
+| UT-GUI-031.079.M04.T01 | MD-GUI-031.040.M04 | Positive | Tear sheet parts | report with context | title and context; KPI notes; Entries and Strategy limit pills; 4 group cards | Pass |
+| UT-GUI-031.079.M04.T02 | MD-GUI-031.040.M04 | Negative | Value colours | Net P&L, Max drawdown, MAE, Sharpe | green, red, neutral, neutral | Pass |
 | UT-GUI-031.080.M13.T01 | MD-GUI-031.080.M13 | Edge | Empty chart | 1 day | message painted; no hover day | Pass |
 | UT-GUI-031.081.M13.T01 | MD-GUI-031.080.M13 | Positive | Pixel to day | left, right, middle, outside | 0, 59, middle day, None | Pass |
 | UT-GUI-031.081.M13.T02 | MD-GUI-031.080.M13 | Positive | Hover readout | day 3, day 0 | date, strategy, benchmark, drawdown; dash without benchmark | Pass |

@@ -8,6 +8,7 @@
 - FO(s): FO-GUI-031
 - RN: RN-GUI-1.51.0-20261031
 - Artifacts updated: SRD (.062–.066 Draft → Approved by user → Implemented), MD (MD-GUI-031.062.M12 new), UTCD (10 rows Pass; 2 replaced), TRACE, Code, Tests, RN, CONTEXT, DEVLOG
+- Follow-up: Report panel tear sheet (option A of https://claude.ai/artifact/9FtQ5stYsFFDbewpJZUw9C) plus a mouse-following line on the chart; values show in the legend row so nothing covers the curves (SRD-GUI-031.079–.081 approved by user; RN-GUI-1.53.0).
 - Follow-up: view tabs replaced by a segmented pill bar (option B of https://claude.ai/artifact/DUW3e9Mv6kAzhi4zWTLDEG; SRD-GUI-031.068 approved by user; RN-GUI-1.52.0). Key test checks the shortcut and Qt ShortcutOverride directly, because the pytest window is not made active on this machine.
 - Follow-up: Breakdown moved to its own Detail Report panel beside the Trade list (SRD-GUI-031.067, approved by user; UT-GUI-031.067.M03.T01 Pass).
 - Design: https://claude.ai/artifact/EwvB839pqWBrsjbQy4TCRY, built from the real run's 9 groupings. Sorting kept in the GUI so SRD-BKT-002.044 stays unchanged. Branch feat/gui-breakdown-chips, stacked on fix/gui-backtest-stepper-capsule, not pushed.

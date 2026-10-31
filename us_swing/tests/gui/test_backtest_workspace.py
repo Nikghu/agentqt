@@ -449,7 +449,9 @@ def test_run_does_step_4(workspace: BacktestWorkspace, qtbot: Any) -> None:
     assert workspace.pills[3].property("state") == "complete"
     assert workspace.tabs.currentWidget() is workspace.detail
     assert workspace.view_switch.value == "1"
-    assert workspace.report_view.kpi_values["Trades"].text() == "2"
+    assert workspace.report_view.stat_values["Trades"].text() == "2"
+    assert workspace.report_view.context.text().endswith(
+        f"{workspace.builder.plan().period.start} → {workspace.builder.plan().period.end}")
     assert workspace.report_view.kpi_values["Net P&L"].text() == "$20.00"
 
 
