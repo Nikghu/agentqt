@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
     QAbstractItemView,
@@ -32,6 +32,7 @@ from us_swing.gui.theme import C
 
 if TYPE_CHECKING:
     from us_swing.backtest.service import BacktestService
+    from us_swing.backtest.spec import RunPlan
 
 _log = logging.getLogger(__name__)
 
@@ -54,21 +55,49 @@ class _ListWorker(QThread):
             self.done.emit([])
 
 
-def plan_text(saved: SavedReport) -> str:
-    """Plan facts for the details panel, one per line."""
+Section = tuple[str, list[tuple[str, str]]]
+
+
+def plan_sections(saved: SavedReport) -> list[Section]:
+    """Plan facts for the details panel as (heading, [(label, value)]) groups."""
     plan = saved.plan
-    strategies = ", ".join(f"{s.id} {s.allocation_pct[0]:g}%/{s.per_trade_pct[0]:g}%"
-                           for s in plan.strategies) or "None"
+    strategies = [(s.id, f"Allocation {s.allocation_pct[0]:g}% · "
+                         f"per trade {s.per_trade_pct[0]:g}%")
+                  for s in plan.strategies] or [("None", "")]
     capital = ", ".join(f"${c:,.0f}" for c in plan.account.capital)
-    return "\n".join([
-        f"Period: {plan.period.start} → {plan.period.end}",
-        f"Stocks: {stocks_text(plan)}",
-        f"Stocks per day: {plan.screener.top_n or 'All'}",
-        f"Strategies: {strategies}",
-        f"Capital: {capital} · daily loss stop {plan.account.max_daily_loss_pct:g}%",
-        f"Costs: ${plan.costs.per_order:g} an order · "
-        f"{plan.costs.slippage_bps:g} bps",
-    ])
+    return [
+        ("UNIVERSE", [("Period", f"{plan.period.start} → {plan.period.end}"),
+                      ("Stocks", _short_stocks(plan)),
+                      ("Stocks per day", str(plan.screener.top_n or "All"))]),
+        ("STRATEGY", strategies),
+        ("MONEY", [("Capital", capital),
+                   ("Daily loss stop", f"{plan.account.max_daily_loss_pct:g}%"),
+                   ("Costs", f"${plan.costs.per_order:g} an order · "
+                             f"{plan.costs.slippage_bps:g} bps")]),
+    ]
+
+
+def _short_stocks(plan: RunPlan) -> str:
+    """A count for long sector lists; the full list goes in the tooltip."""
+    if plan.universe.mode == "sector" and len(plan.universe.sectors) > 2:
+        return f"{len(plan.universe.sectors)} sectors"
+    return stocks_text(plan)
+
+
+def _fact_row(key: str, value: str, tip: str = "") -> QWidget:
+    row = QWidget()
+    line = QHBoxLayout(row)
+    line.setContentsMargins(0, 0, 0, 0)
+    label = QLabel(key)
+    label.setObjectName("details_key")
+    shown = QLabel(value)
+    shown.setObjectName("fact_value")
+    shown.setWordWrap(True)
+    shown.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+    shown.setToolTip(tip)
+    line.addWidget(label)
+    line.addWidget(shown, 1)
+    return row
 
 
 class ReportsView(QWidget):
@@ -121,6 +150,11 @@ class ReportsView(QWidget):
         self.facts.setObjectName("details_key")
         self.facts.setWordWrap(True)
         body.addWidget(self.facts)
+        self.sheet = QWidget()
+        self._sheet_body = QVBoxLayout(self.sheet)
+        self._sheet_body.setContentsMargins(0, 0, 0, 4)
+        self._sheet_body.setSpacing(3)
+        body.addWidget(self.sheet)
         self.note = QTextEdit()
         self.note.setAcceptRichText(False)
         self.note.setPlaceholderText("Notes")
@@ -206,11 +240,35 @@ class ReportsView(QWidget):
         self.delete_btn.setText(f"Delete ({len(reps)})" if len(reps) > 1 else "Delete")
         self.name.setText("" if rep is None else rep.run.name)
         self.note.setPlainText("" if rep is None else rep.run.note)
+        self.facts.setVisible(rep is None)
+        self.sheet.setVisible(rep is not None)
         if len(reps) > 1:
             self.facts.setText(f"{len(reps)} runs selected")
+        elif rep is None:
+            self.facts.setText("Run a backtest to save a report")
         else:
-            self.facts.setText("Run a backtest to save a report" if rep is None
-                               else plan_text(rep))
+            self._fill_sheet(rep)
+
+    def _fill_sheet(self, rep: SavedReport) -> None:
+        while (item := self._sheet_body.takeAt(0)) is not None:
+            if (widget := item.widget()) is not None:
+                widget.setParent(None)
+                widget.deleteLater()
+        for n, (head, rows) in enumerate(plan_sections(rep)):
+            if n:
+                self._sheet_body.addSpacing(8)
+            title = QLabel(head)
+            title.setObjectName("view_head")
+            self._sheet_body.addWidget(title)
+            for key, value in rows:
+                tip = stocks_text(rep.plan) if key == "Stocks" else ""
+                self._sheet_body.addWidget(_fact_row(key, value, tip))
+
+    def sheet_values(self) -> dict[str, str]:
+        """Shown label → value pairs of the details sheet."""
+        rows = (r for r in self.sheet.findChildren(QWidget) if r.parent() is self.sheet)
+        pairs = (r.findChildren(QLabel) for r in rows)
+        return {p[0].text(): p[1].text() for p in pairs if len(p) == 2}
 
     # ── Actions ───────────────────────────────────────────────────────────────
 
