@@ -1454,7 +1454,8 @@ QLabel#bt_step_num[state="downloading"] {{
     background: {accent}; border-color: {accent}; color: {bg};
 }}
 QLabel#bt_step_num[state="complete"] {{
-    border-color: #3cc583; color: #3cc583; font-family: "Segoe UI Symbol"; font-size: 7.5pt;
+    background: #3cc583; border-color: #3cc583; color: {bg};
+    font-family: "Segoe UI Symbol"; font-size: 8pt;
 }}
 QLabel#bt_step_name {{ color: {sub}; font-size: 9pt; }}
 QLabel#bt_step_name[state="downloading"], QLabel#bt_step_name[state="complete"] {{
