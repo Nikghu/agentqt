@@ -2,12 +2,14 @@
 
 **Document:** CONTEXT.md
 **Project:** us_swing
-**Last Updated:** 2026-10-30 (Session 107)
+**Last Updated:** 2026-10-31 (Session 108)
 **Updated By:** Claude (Opus 5.5)
 
 ---
 
-**Current (Session 107, 2026-10-30):** **Backtest Phase 6 · MCP backtest server (FO-MCP-007; SRD-MCP-007.001–.010; RN-MCP-1.1.0).** Separate stdio server `python -m us_swing.mcp` with 8 `bt_` tools on `BacktestService`, sharing `results.db` with the app; `JobManager` (2 jobs, 30 min limit). 8 MCP tests Pass; real-data estimate OK. Commit 5950a3d4 pushed straight to main at user request (no PR). **Open (user):** register with `claude mcp add us_swing_backtest -e PYTHONPATH=F:\USMarket_Backtesting\us_swing\src -- F:\USMarket_Backtesting\.venv\Scripts\python.exe -m us_swing.mcp` and check in Claude Code (TODO T61). 4 tools deferred (TODO T74). **Next:** that user check; FO-MCP-001..006 stay Draft.
+**Current (Session 108, 2026-10-31):** **SWING Window fix (Bugfix, EXE + BKT + GUI; ISS-EXE-0014; RN-EXE-1.39.0-20261031; FO-EXE-011, FO-BKT-002, FO-GUI-013).** SWING takes a Window arg: Previous = N closed bars before the latest, so `close > SWING(High,N)` can fire; Current = old behaviour. LookbackDays / Type removed from the form; Candles 1–500. Live and backtest share `swing_args` (parity). Legacy 6-arg strings read as Current. 40 SWING tests pass; suite 1648 passed, 11 failed + 22 errors same as clean main (pre-existing, TODO). Branch fix/swing-window-mode (worktree F:\USMarket_swingfix), not committed or pushed. **Open (user):** build a SWING Previous breakout strategy in the Strategy Builder and run a backtest (TODO). **Next:** user check, then commit and PR.
+
+**Previous (Session 107, 2026-10-30):** **Backtest Phase 6 · MCP backtest server (FO-MCP-007; SRD-MCP-007.001–.010; RN-MCP-1.1.0).** Separate stdio server `python -m us_swing.mcp` with 8 `bt_` tools on `BacktestService`, sharing `results.db` with the app; `JobManager` (2 jobs, 30 min limit). 8 MCP tests Pass; real-data estimate OK. Commit 5950a3d4 pushed straight to main at user request (no PR). **Open (user):** register with `claude mcp add us_swing_backtest -e PYTHONPATH=F:\USMarket_Backtesting\us_swing\src -- F:\USMarket_Backtesting\.venv\Scripts\python.exe -m us_swing.mcp` and check in Claude Code (TODO T61). 4 tools deferred (TODO T74). **Next:** that user check; FO-MCP-001..006 stay Draft.
 
 **Previous (Session 106, 2026-10-30):** **Backtest workspace polish (FO-GUI-031; SRD-GUI-031.075–.078; RN-GUI-1.50.0).** Header is a step stepper plus field grid with Hide details (remembered, option A). Trade chart shows candles from before entry to exit, IN / OUT dots, path, price callouts and a P&L · % · sessions badge, candles outside dimmed (option D). Chart title row holds a 3m / 15m / 1D toggle (15m default). Names / Add / Remove suggest S&P 500 symbols. Sessions oldest first with a Screened count; bold axis label fixed. 46 backtest GUI tests pass; ruff and mypy clean on changed files. Commit 55bee515 merged to main via PR #94 (c8fe982e); chore 8aba6ccd pushed to main. **Open (user):** manual check of the Backtest screen in the real app (TODO T73). **Next:** Backtest Phase 6 (MCP) on a new feature branch.
 
@@ -429,7 +431,7 @@ Previous (Session 87, 2026-10-23): **Accumulation / Distribution screener (Featu
 | DD | `docs/execution/DD.md` | Draft v1.7.0 | DD-EXE-011.* (4 designs) and DD-EXE-012.* (2 designs); 21 items total; FO-EXE-011/012 designs Approved |
 | MD | `docs/execution/MD.md` | Draft v1.6.0 | MD-EXE-015.001–003 (order_ingestion, broker_adapter, broker_factory modules); 26 modules total |
 | UTCD | `docs/execution/UTCD.md` | Draft v1.2.0 | Tests for FO-EXE-011/012: 67 cases (38+29) all Pass; test_fill_arriving_before_acceptance_is_not_dropped regression added; 142 total cases specified |
-| TRACE | `docs/execution/TRACE.md` | Draft v1.23.0 — **updated** | FO-EXE-020 Implemented (RN-EXE-1.35.0-20261024, RN-EXE-1.36.0-20261024); Last Updated 2026-10-24 |
+| TRACE | `docs/execution/TRACE.md` | Draft v1.23.0 — **updated** | FO-EXE-020 Implemented (RN-EXE-1.35.0-20261024, RN-EXE-1.36.0-20261024); FO-EXE-011 SWING Window fix (RN-EXE-1.39.0-20261031, ISS-EXE-0014); Last Updated 2026-10-31 |
 
 ### GUI (NEW — created)
 

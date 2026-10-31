@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.64.0: SRD-GUI-013.022 added 2026-10-31 — SWING form: Window replaces Type, LookbackDays removed, Candles 1–500 (ISS-EXE-0014).
 > v2.59.0: SRD-GUI-031.078 added; asked by user 2026-10-30 — stock name suggestions while typing in setup.
 > v2.58.0: SRD-GUI-031.077 added; approved by user 2026-10-30 — chart timeframe as 3m / 15m / 1D toggle in the panel title row.
 > v2.57.0: SRD-GUI-031.076 added; approved by user 2026-10-30 — trade chart option D (trade path with result badge).
@@ -263,6 +264,7 @@
 | SRD-GUI-013.019 | FO-GUI-013 | Should | The Strategy Executor table shows a `Direction` column with `Long` / `Short` for each strategy. | `StrategyConfig` | table cell | Display-only; column placed beside Trade Type | Implemented |
 | SRD-GUI-013.020 | FO-GUI-013 | Should | Direction reads green for `Long` and red for `Short` in both the Strategy Builder combo (repainted on every change of selection) and the Strategy Executor `Direction` column. | direction choice / strategy row | coloured text | Display-only; the combo stylesheet carries `outline: none` in the base and `:focus` rules | Implemented |
 | SRD-GUI-013.021 | FO-GUI-013 | Must | A signal awaiting the user also locks the Direction field, not only an open trade; the tooltip reads `Close open trades and clear pending signals before changing direction`. | open cycles + pending signals of the strategy | disabled combo | Refines SRD-GUI-013.017; a waiting signal already carries the side that fired it | Implemented |
+| SRD-GUI-013.022 | FO-GUI-013 | Must | The SWING form offers Symbol Type, Candles (1–500), Price Swing, Window (Previous / Current) and Timeframe; LookbackDays is removed. | indicator selection | 5-field form | Window defaults to Previous; matches SRD-EXE-011.026 (ISS-EXE-0014) | Implemented |
 
 ---
 

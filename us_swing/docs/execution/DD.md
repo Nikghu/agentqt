@@ -1,7 +1,7 @@
 # Design Document — Execution & Risk Management (EXE)
 
 **Document ID:** DD-EXE
-**Version:** 1.18.0
+**Version:** 1.19.0
 **Traces To:** SRD-EXE v1.24.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
@@ -2289,6 +2289,19 @@ async def _maybe_emit_entry(ctx, symbol, signal):
 ```
 
 ---
+
+## DD-EXE-011.026.D01 — SWING Window and Arguments
+
+`swing_args(args) -> (bars, kind, previous)` in `_evaluator.py` is the one parser for both engines (re-exported by `core.expr`):
+
+| Form | Args | Window |
+|---|---|---|
+| New (5) | `SymbolType, Candles, PriceSwing, Window, Timeframe` | `Previous` or `Current` |
+| Legacy (6) | `SymbolType, Candles, LookbackDays, PriceSwing, Type, Timeframe` | always `Current` (LookbackDays, Type unused) |
+
+- `Candles < 1` or non-integer → `EvaluatorError`; unknown PriceSwing / Window → `EvaluatorError`.
+- Live: `Current` window = `df.tail(n)`; `Previous` window = `df.iloc[:-1].tail(n)`. Fewer bars → smaller window; empty window → NaN (surfaced by the FUNC NaN guard).
+- Backtest: `rolling(n, min_periods=1)` max / min / range; `Previous` = the same series shifted one bar, so `series[i]` equals live on `frame[:i+1]`.
 
 ## DD-EXE-011.006.D01 — `ConditionEvaluator` Class Breakdown
 

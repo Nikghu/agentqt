@@ -1,12 +1,13 @@
 # Software Requirements Document — Backtest Module (BKT)
 
 **Document ID:** SRD-BKT
-**Version:** 1.1.0
+**Version:** 1.9.0
 **Traces To:** FO-BKT v1.1.0
 **Status:** Draft
 **Last Updated:** 2026-10-29
 **Project:** US Swing Trading System
 
+> v1.9.0: SRD-BKT-002.082 added 2026-10-31 — SWING Window arg in the backtest series (ISS-EXE-0014).
 > v1.8.0: SRD-BKT-002.070–.073 (Phase 4b) and .080–.081 (Phase 5) added; approved by user 2026-10-30.
 > v1.7.0: SRD-BKT-001.015 and SRD-BKT-002.052 added; approved by user 2026-10-30 — SPY for the RS rule.
 > v1.6.0: SRD-BKT-002.060 added; approved by user 2026-10-30 — saved reports for the redesign.
@@ -136,3 +137,4 @@
 |---|---|---|---|---|---|---|---|
 | SRD-BKT-002.080 | FO-BKT-002 | Must | Step 1 can use the screener lists saved by the app for the preset instead of replaying it: passed stocks ranked by score. | `screener_results/preset_<id>/<date>.json` | daily list | Keeps the real lists, AI picks included | Implemented |
 | SRD-BKT-002.081 | FO-BKT-002 | Must | A list run before 09:30 ET trades that day, a later run trades the next session; sessions with no saved list have no picks. | run time | session date | Data check shows how many sessions have a saved list | Implemented |
+| SRD-BKT-002.082 | FO-BKT-002 | Must | The SWING series honours Window and both arg forms exactly as live SRD-EXE-011.026. | frames, args | series | Parity checked for Previous and Current; Candles < 1 raises (ISS-EXE-0014) | Implemented |

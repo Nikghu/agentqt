@@ -1,10 +1,10 @@
 # Software Requirement Document — Execution & Risk Management (EXE)
 
 **Document ID:** SRD-EXE
-**Version:** 1.31.0
+**Version:** 1.32.0
 **Traces To:** FO-EXE v1.14.0
 **Status:** Draft
-**Last Updated:** 2026-10-29
+**Last Updated:** 2026-10-31
 **Project:** US Swing Trading System
 
 > v1.7.0: Sections 11 + 12 added — SRD-EXE-011.001–015 (Strategy Engine) and SRD-EXE-012.001–013 (Trade Cycle Ledger).
@@ -225,6 +225,7 @@
 | SRD-EXE-011.023 | FO-EXE-011 | Must | When an indicator cannot be computed for lack of bars (e.g. ATR-based `SUPERTREND` on fewer than its period), the evaluator raises `EvaluatorError` instead of returning `NaN`, so the condition is logged as un-evaluable rather than silently read as false (ISS-EXE-0009). | indicator call with insufficient bars | `EvaluatorError`; condition skipped + WARNING `[Strategy]` log | Matches existing `Price()` behaviour; an un-evaluable EXIT must never be treated as "do not exit"; per-symbol, does not stop other evaluations | Implemented |
 | SRD-EXE-011.024 | FO-EXE-011 | Must | When a trade cycle reaches `CLOSED` by any route, `AppService` clears every matching pending `EXIT` signal from `PendingSignalStore` via `dismiss_for(strategy_id, symbol, action)`, so a stale exit can no longer be executed (ISS-EXE-0010). | `CycleClosed` event | matching pending exit signals dismissed | Marshalled to the GUI thread via `_clear_pending_exits_requested`; no-op when no pending exit matches | Implemented |
 | SRD-EXE-011.025 | FO-EXE-011 | Must | `AppService.execute_signal` drops a pending `EXIT` signal with a WARNING and submits no order when its `(strategy_id, symbol)` has no cycle in `OPEN` state, preventing a duplicate exit for a position already closed or exiting (ISS-EXE-0010). | pending EXIT signal execute | dropped + WARNING, else normal submit | `ENTRY` signals unaffected; guard checks strictly `OPEN` since a `CLOSING` cycle already has an exit in flight | Implemented |
+| SRD-EXE-011.026 | FO-EXE-011 | Must | `SWING(SymbolType, Candles, PriceSwing, Window, Timeframe)` returns the High max, Low min or Range of `Candles` closed bars; Window `Previous` ends one bar before the latest, `Current` includes it. | args, candles | float | Candles ≥ 1 else `EvaluatorError`; legacy 6-arg form (LookbackDays, Type) reads as `Current` (ISS-EXE-0014) | Implemented |
 
 ---
 

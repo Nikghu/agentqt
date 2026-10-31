@@ -42,7 +42,7 @@ Cross-tool note: `screener/executor.py` gets a public `PresetExecutor.screen()` 
 | MD ID | SRD | File | Purpose | Public API | Depends on | Async |
 |---|---|---|---|---|---|---|
 | MD-BKT-002.020.M09 | SRD-BKT-002.020 | `us_swing/src/us_swing/core/expr/__init__.py` | Re-export of the live condition parser | `parse()`, `ConditionEvaluator`, `EvaluatorError` | `execution.strategy_engine._evaluator` | No |
-| MD-BKT-002.021.M10 | SRD-BKT-002.021 | `us_swing/src/us_swing/core/expr/series.py` | Series evaluator on the 3m timeline | `function_series()`, `evaluate()`, `Evaluation` | `core.expr`, `talib` | No |
+| MD-BKT-002.021.M10 | SRD-BKT-002.021, .082 | `us_swing/src/us_swing/core/expr/series.py` | Series evaluator on the 3m timeline | `function_series()`, `evaluate()`, `Evaluation` | `core.expr`, `talib` | No |
 | MD-BKT-002.026.M11 | SRD-BKT-002.026 | `us_swing/src/us_swing/backtest/steps/signals.py` | Step 2 periods per strategy and stock, cache, pool | `load_frames()`, `schedule_mask()`, `periods()`, `signal_key()`, `stocks_for()`, `run_signals()` | `core.expr.series`, `cache`, `store` | Process pool |
 
 | MD-BKT-002.080.M14 | SRD-BKT-002.080 | `us_swing/src/us_swing/backtest/steps/recorded.py` | Step 1 from the screener lists the app saved | `load_lists()`, `saved_days()`, `trade_day()` | `pandas`, `json` | No |

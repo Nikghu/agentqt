@@ -496,6 +496,11 @@
 | UT-EXE-011.001.M03.T11 | MD-EXE-011.001.M03 | Negative | A NaN indicator result is surfaced, not silently compared false | candles too short for `RSI(14)`; `"RSI('Stock',14,'3m') < 30"` | `evaluate()` raises `EvaluatorError` (NaN guard at FUNC choke point); does not return `False` | Pass |
 | UT-EXE-011.001.M03.T12 | MD-EXE-011.001.M03 | Positive | A finite indicator result passes the guard unchanged | candles with ≥ 30 bars; `"RSI('Stock',14,'3m') < 30"` where RSI≈27 | `evaluate()` returns `True`; no `EvaluatorError` raised | Pass |
 | UT-EXE-011.001.M03.T13 | MD-EXE-011.001.M03 | Edge | Guard is generic — a short `EMA` also raises rather than returning NaN | candles with 3 bars; `"close('3m') > EMA('Stock',50,'3m')"` | `evaluate()` raises `EvaluatorError`; no silent `False` | Pass |
+| UT-EXE-011.026.M03.T01 | MD-EXE-011.001.M03 | Positive | Previous window gives a real breakout | 21 bars, last close above prior 20 highs; `Price(close) > SWING(20,'High','Previous')` | True | Pass |
+| UT-EXE-011.026.M03.T02 | MD-EXE-011.001.M03 | Negative | Current window can never be broken by the close | same bars, Window `Current` | False | Pass |
+| UT-EXE-011.026.M03.T03 | MD-EXE-011.001.M03 | Positive | High, Low and Range for both windows | known 4-bar frame, Candles 2 | exact max / min / range of the right bars | Pass |
+| UT-EXE-011.026.M03.T04 | MD-EXE-011.001.M03 | Negative | Candles below 1 or bad Window raise | Candles 0, -5; Window `Sideways` | `EvaluatorError` | Pass |
+| UT-EXE-011.026.M03.T05 | MD-EXE-011.001.M03 | Edge | Legacy 6-arg form reads as Current | `SWING('Spot',2,5,'High','Day','1d')` | equals the 5-arg `Current` value | Pass |
 
 ---
 

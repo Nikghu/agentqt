@@ -111,6 +111,8 @@
 | UT-BKT-002.080.M14.T02 | MD-BKT-002.080.M14 | Negative | Bad and old files | broken JSON; list 2 months early; no folder | left out with a warning; empty | Pass |
 | UT-BKT-002.081.M05.T01 | MD-BKT-002.008.M05 | Positive | Service uses saved lists | 1 saved list in 5 sessions | data check 1 of 5; Step 1 frame from the list | Pass |
 | UT-BKT-002.081.M05.T02 | MD-BKT-002.008.M05 | Negative | No saved list | none in period | plain error | Pass |
+| UT-BKT-002.082.M10.T01 | MD-BKT-002.021.M10 | Positive | SWING Previous and Current parity | random-walk frames, every timeframe | series[i] equals live on frame[:i+1] | Pass |
+| UT-BKT-002.082.M10.T02 | MD-BKT-002.021.M10 | Negative | Candles 0 raises; legacy 6 args gives Current | Candles 0; 6-arg SWING | `EvaluatorError`; same series as Current | Pass |
 | UT-BKT-002.019.M07.T01 | MD-BKT-002.010.M07 | Negative | Worker error is plain | screener raises an error that formats its argument | `RuntimeError("2025-03-03: Data for 'SPY' is missing")`; same text after pickling | Pass |
 | UT-BKT-002.017.M05.T01 | MD-BKT-002.008.M05 | Positive | Service run recorded | fake store, preset loader | daily list returned; run row done | Pass |
 | UT-BKT-002.017.M05.T02 | MD-BKT-002.008.M05 | Negative | Service cancel recorded | cancel at once | run row cancelled | Pass |

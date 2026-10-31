@@ -4,6 +4,8 @@ Parent SRD: SRD-EXE-011.006
 """
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -165,3 +167,62 @@ def test_short_ema_raises_generic_guard() -> None:
     evaluator = ConditionEvaluator()
     with pytest.raises(EvaluatorError):
         evaluator.evaluate("EMA('Stock', 50, '3m') > 0", _short_candles(3), "AAA")
+
+
+def _swing_candles() -> dict[str, pd.DataFrame]:
+    highs = [10.0, 12.0, 11.0, 15.0]
+    lows = [8.0, 9.0, 7.0, 13.0]
+    df = pd.DataFrame({
+        "open": [9.0, 10.0, 10.0, 13.5],
+        "high": highs,
+        "low": lows,
+        "close": [9.5, 11.0, 8.0, 14.0],
+        "volume": np.full(4, 1_000_000),
+    })
+    return {"1d": df}
+
+
+def _swing(args: list[Any], candles: dict[str, pd.DataFrame]) -> float:
+    return ConditionEvaluator.FUNCTION_MAP["SWING"](args, candles, "AAA")
+
+
+def test_swing_previous_window_fires_breakout() -> None:
+    """UT-EXE-011.026.M03.T01: Previous window gives a real breakout."""
+    expr = "Price('Spot', 'current', 'close', '1d') > SWING('Spot', 2, 'High', 'Previous', '1d')"
+
+    assert ConditionEvaluator().evaluate(expr, _swing_candles(), "AAA") is True
+
+
+def test_swing_current_window_never_broken_by_close() -> None:
+    """UT-EXE-011.026.M03.T02: Current window can never be broken by the close."""
+    expr = "Price('Spot', 'current', 'close', '1d') > SWING('Spot', 2, 'High', 'Current', '1d')"
+
+    assert ConditionEvaluator().evaluate(expr, _swing_candles(), "AAA") is False
+
+
+@pytest.mark.parametrize(("kind", "window", "expected"), [
+    ("High", "Current", 15.0), ("High", "Previous", 12.0),
+    ("Low", "Current", 7.0), ("Low", "Previous", 7.0),
+    ("Range", "Current", 8.0), ("Range", "Previous", 5.0),
+])
+def test_swing_values_for_both_windows(kind: str, window: str, expected: float) -> None:
+    """UT-EXE-011.026.M03.T03: High, Low and Range for both windows."""
+    assert _swing(["Spot", 2, kind, window, "1d"], _swing_candles()) == expected
+
+
+@pytest.mark.parametrize("args", [
+    ["Spot", 0, "High", "Previous", "1d"],
+    ["Spot", -5, "High", "Current", "1d"],
+    ["Spot", 2, "High", "Sideways", "1d"],
+])
+def test_swing_bad_candles_or_window_raises(args: list[Any]) -> None:
+    """UT-EXE-011.026.M03.T04: Candles below 1 or a bad Window raise."""
+    with pytest.raises(EvaluatorError):
+        _swing(args, _swing_candles())
+
+
+def test_swing_legacy_six_args_read_as_current() -> None:
+    """UT-EXE-011.026.M03.T05: Legacy 6-arg form reads as Current."""
+    legacy = _swing(["Spot", 2, 5, "High", "Day", "1d"], _swing_candles())
+
+    assert legacy == _swing(["Spot", 2, "High", "Current", "1d"], _swing_candles())
