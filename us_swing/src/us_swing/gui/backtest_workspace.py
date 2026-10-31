@@ -43,6 +43,7 @@ from us_swing.backtest.steps.stocks import StepCancelled, top_n
 from us_swing.backtest.store import BacktestStore
 from us_swing.core.backtest_bridge import list_presets, load_preset_dict, load_strategies
 from us_swing.data.models import ConnectionStatus
+from us_swing.gui.backtest_breakdown import BreakdownView
 from us_swing.gui.backtest_builder import BacktestBuilder
 from us_swing.gui.backtest_dock import DockSection, PanelSpec
 from us_swing.gui.backtest_header import PlanFields, StepStrip, repolish
@@ -394,14 +395,17 @@ class BacktestWorkspace(QWidget):
         self.report_view.setMinimumHeight(980)
         self.trade_list = TradeList()
         self.trade_list.trade_clicked.connect(self._open_trade)
-        self.report_view.breakdown.group_selected.connect(self.trade_list.set_group_filter)
+        self.breakdown = BreakdownView()
+        self.report_view.report_changed.connect(self.breakdown.set_report)
+        self.breakdown.group_selected.connect(self.trade_list.set_group_filter)
         self.screener_use = UsePanel((C.BLUE, C.MUTED), ("Traded", "Not traded"), money=False)
         self.margin_use = UsePanel((C.BLUE, C.TEAL), ("Deployed peak", "Lowest margin left"),
                                    money=True)
         self.risk = RiskFacts()
         self.detail = DockSection("detail", [
             [PanelSpec("report", "Report", "chart-line", report_scroll)],
-            [PanelSpec("tradelist", "Trade list", "list", self.trade_list)],
+            [PanelSpec("breakdown", "Breakdown", "layout-grid", self.breakdown),
+             PanelSpec("tradelist", "Trade list", "list", self.trade_list)],
             [PanelSpec("screener_use", "Screener use", "filter", self.screener_use),
              PanelSpec("margin_use", "Margin use", "briefcase", self.margin_use),
              PanelSpec("risk", "Risk", "shield", self.risk)],

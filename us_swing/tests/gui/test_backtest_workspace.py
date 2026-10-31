@@ -528,11 +528,25 @@ def test_detail_panels_filled(workspace: BacktestWorkspace, qtbot: Any) -> None:
     """UT-GUI-031.054.M03.T01: Detail Report has Trade list, Screener use and Margin use filled."""
     _run_both(workspace, qtbot)
 
-    assert set(workspace.detail.panels) == {"report", "tradelist", "screener_use", "margin_use",
-                                            "risk"}
+    assert set(workspace.detail.panels) == {"report", "breakdown", "tradelist", "screener_use",
+                                            "margin_use", "risk"}
     assert workspace.trade_list.table.rowCount() == 2
     assert workspace.screener_use.chart.use.days == ["2026-03-02", "2026-03-03"]
     assert workspace.margin_use.facts.text().startswith("Money deployed on 2 of 2 days")
+
+
+def test_breakdown_panel(workspace: BacktestWorkspace, qtbot: Any) -> None:
+    """UT-GUI-031.067.M03.T01: Breakdown is its own panel; it fills, filters and turns off."""
+    _run_both(workspace, qtbot)
+    breakdown = workspace.breakdown
+
+    assert workspace.detail.panels["breakdown"].isAncestorOf(breakdown)
+    assert not workspace.report_view.isAncestorOf(breakdown)
+    assert breakdown.table.rowCount() > 1
+    breakdown._on_clicked(0, 0)
+    assert ": " in workspace.trade_list.summary.text().split(" · ")[0]
+    workspace.detail.set_shown("breakdown", False)
+    assert not workspace.detail.is_shown("breakdown")
 
 
 def test_open_saved_run(workspace: BacktestWorkspace, qtbot: Any) -> None:

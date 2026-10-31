@@ -1,10 +1,10 @@
 """
 Module: MD-GUI-031.040.M04 — Backtest Report tab
 Parent SRD: SRD-GUI-031.040, SRD-GUI-031.041, SRD-GUI-031.042, SRD-GUI-031.044,
-            SRD-GUI-031.045, SRD-GUI-031.062
+            SRD-GUI-031.045
 
 Step 4 view: KPI row, equity vs benchmark chart with drawdown, all stats, monthly
-P&L heat map, breakdown by group, variant picker with compare table, CSV export.
+P&L heat map, variant picker with compare table, CSV export.
 Shows ``Report`` objects built by ``BacktestService.build_reports``.
 """
 from __future__ import annotations
@@ -17,7 +17,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from PyQt6.QtCore import QPointF, QRectF, Qt
+from PyQt6.QtCore import QPointF, QRectF, Qt, pyqtSignal
 from PyQt6.QtGui import QBrush, QColor, QPainter, QPainterPath, QPaintEvent, QPen
 from PyQt6.QtWidgets import (
     QAbstractItemView,
@@ -35,7 +35,6 @@ from PyQt6.QtWidgets import (
 )
 
 from us_swing.backtest.steps.report import Report, Stat, compare, heat_map
-from us_swing.gui.backtest_breakdown import BreakdownView
 from us_swing.gui.icons import set_icon
 from us_swing.gui.strategy_pnl_chart import nice_ticks
 from us_swing.gui.theme import C
@@ -210,6 +209,8 @@ class ReportChart(QWidget):
 class ReportView(QWidget):
     """SRD-GUI-031.040–.045 — the Report tab of the Backtest screen."""
 
+    report_changed = pyqtSignal(object)  # selected Report, or None (feeds the Breakdown panel)
+
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.reports: list[Report] = []
@@ -248,13 +249,10 @@ class ReportView(QWidget):
         grid.setHorizontalSpacing(12)
         self.stats_table = _table(["Measure", "Value"])
         self.month_table = _table(["Year", *_MONTHS, "Year total"])
-        self.breakdown = BreakdownView()
         grid.addWidget(_head("ALL STATS"), 0, 0)
         grid.addWidget(self.stats_table, 1, 0, 3, 1)
         grid.addWidget(_head("MONTHLY P&L"), 0, 1)
-        grid.addWidget(self.month_table, 1, 1)
-        grid.addWidget(_head("BREAKDOWN"), 2, 1)
-        grid.addWidget(self.breakdown, 3, 1)
+        grid.addWidget(self.month_table, 1, 1, 3, 1)
         grid.setColumnStretch(0, 1)
         grid.setColumnStretch(1, 3)
         body.addLayout(grid, 3)
@@ -329,13 +327,13 @@ class ReportView(QWidget):
             self.chart.set_daily(self.chart.daily.iloc[0:0])
             _fill(self.stats_table, [])
             _fill(self.month_table, [])
-            self.breakdown.set_report(None)
+            self.report_changed.emit(None)
             return
         self.skips_label.setText(skips_text(rep.skips))
         self.chart.set_daily(rep.daily)
         _fill(self.stats_table, [[s.name, fmt(s.value, s.kind)] for s in rep.stats])
         self._render_months(rep)
-        self.breakdown.set_report(rep)
+        self.report_changed.emit(rep)
 
     def _render_months(self, rep: Report) -> None:
         """Year × month heat map, green gains and red losses (SRD-GUI-031.042)."""

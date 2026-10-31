@@ -16,6 +16,7 @@ _web_stub.QWebEngineView = object  # type: ignore[attr-defined]
 sys.modules.setdefault("PyQt6.QtWebEngineWidgets", _web_stub)
 
 from us_swing.backtest.steps.report import Report, build_report  # noqa: E402
+from us_swing.gui.backtest_breakdown import BreakdownView  # noqa: E402
 from us_swing.gui.backtest_report_view import ReportView, fmt, skips_text  # noqa: E402
 
 _DAYS = [date(2026, 3, 2), date(2026, 3, 3), date(2026, 4, 1)]
@@ -97,12 +98,20 @@ def test_month_heat_map(view: ReportView) -> None:
     assert view.month_table.item(0, 13).text() == "20"  # type: ignore[union-attr]
 
 
-def test_breakdown_group_picker(view: ReportView) -> None:
-    """UT-GUI-031.062.M04.T01: Breakdown opens on the first chip with more than one group."""
+def _breakdown(view: ReportView, qtbot: Any) -> BreakdownView:
+    widget = BreakdownView()
+    qtbot.addWidget(widget)
+    view.report_changed.connect(widget.set_report)
     view.set_reports([_report()])
-    table = view.breakdown.table
+    return widget
 
-    assert view.breakdown.by == "sector"
+
+def test_breakdown_group_picker(view: ReportView, qtbot: Any) -> None:
+    """UT-GUI-031.062.M04.T01: Breakdown opens on the first chip with more than one group."""
+    breakdown = _breakdown(view, qtbot)
+    table = breakdown.table
+
+    assert breakdown.by == "sector"
     names = [table.item(r, 0).text() for r in range(table.rowCount())]  # type: ignore[union-attr]
     assert names[0].startswith("Information Technology")
     assert names[1].startswith("Unknown") and names[2] == "All trades"
@@ -168,10 +177,10 @@ def test_risk_facts(qtbot: Any) -> None:
     assert facts.values["Average MFE"].text() == "—"
 
 
-def test_new_group_choices(view: ReportView) -> None:
+def test_new_group_choices(view: ReportView, qtbot: Any) -> None:
     """UT-GUI-031.062.M04.T02: Chips list every group with counts; single groups are off."""
-    view.set_reports([_report()])
-    buttons = {b.text(): b for b in view.breakdown.chips.buttons}
+    breakdown = _breakdown(view, qtbot)
+    buttons = {b.text(): b for b in breakdown.chips.buttons}
 
     assert "Strategy 2" in buttons and buttons["Strategy 2"].isEnabled()
     assert not buttons["Hold time 1"].isEnabled()

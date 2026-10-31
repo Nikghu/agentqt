@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.61.0: SRD-GUI-031.067 added and approved by user 2026-10-31 — Breakdown moves to its own Detail Report panel beside the Trade list.
 > v2.60.0: SRD-GUI-031.062–.066 added and approved by user 2026-10-31 — breakdown redesign, option A of https://claude.ai/artifact/EwvB839pqWBrsjbQy4TCRY.
 > v2.59.1: SRD-GUI-030.007 reopened by user 2026-10-31 — backtest download progress moves from the removed status bar to a sidebar Connections row.
 > v2.59.0: SRD-GUI-031.078 added; asked by user 2026-10-30 — stock name suggestions while typing in setup.
@@ -573,6 +574,7 @@
 | SRD-GUI-031.064 | FO-GUI-031 | Must | Breakdown rows show readable names, trades with share, win rate meter, avg and net P&L, a zero-line bar and an All trades total. | breakdown | table | Groups under 5 trades greyed and marked n<5 | Implemented |
 | SRD-GUI-031.065 | FO-GUI-031 | Should | Stock breakdown shows the best 5 and worst 5 with Show all, a search box and a minimum-trades filter. | breakdown | table | Collapse only above 10 rows | Implemented |
 | SRD-GUI-031.066 | FO-GUI-031 | Should | Clicking a breakdown row filters the Trade list to that group; clicking it again or the total clears it. | click | filtered trade list | Filter shown in the Trade list summary | Implemented |
+| SRD-GUI-031.067 | FO-GUI-031 | Should | The Breakdown shows in its own Detail Report panel beside the Trade list; panel on / off is remembered. | report | panel | Asked by user 2026-10-31: Report panel area too small | Implemented |
 
 ### Setup window (Draft, design https://claude.ai/artifact/974y5KaeuTj5YP4QYSezaB option C1)
 
