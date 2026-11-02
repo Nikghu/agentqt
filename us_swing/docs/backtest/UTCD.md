@@ -7,6 +7,7 @@
 **Last Updated:** 2026-11-02
 **Project:** US Swing Trading System
 
+> v1.6.0: UT-BKT-002.087.M10.T01–T02 added — BOSS_ST series.
 > v1.5.0: UT-BKT-002.086.M01.T01, .M05.T01–T02 added — no-screener mode.
 > v1.4.0: UT-BKT-001.016.M01.T01–T02 and UT-BKT-002.085.M10.T01, .M11.T01 added — 30m timeframe.
 > v1.3.0: UT-BKT-002.083.M15.T01 updated and T04–T08 added — trade analysis layout (SRD-BKT-002.084); UT-BKT-002.037.M12.T02 — ISS-BKT-0001.
@@ -119,6 +120,8 @@
 | UT-BKT-002.081.M05.T02 | MD-BKT-002.008.M05 | Negative | No saved list | none in period | plain error | Pass |
 | UT-BKT-002.082.M10.T01 | MD-BKT-002.021.M10 | Positive | SWING Previous and Current parity | random-walk frames, every timeframe | series[i] equals live on frame[:i+1] | Pass |
 | UT-BKT-002.082.M10.T02 | MD-BKT-002.021.M10 | Negative | Candles 0 raises; legacy 6 args gives Current | Candles 0; 6-arg SWING | `EvaluatorError`; same series as Current | Pass |
+| UT-BKT-002.087.M10.T01 | MD-BKT-002.021.M10 | Positive | BOSS_ST State and Fresh parity | random-walk 3m, 15m, 30m frames | value at each 3m close equals live on the frames cut at that time | Pass |
+| UT-BKT-002.087.M10.T02 | MD-BKT-002.021.M10 | Negative | Bad BOSS_ST args raise | HTF = LTF; Signal `Maybe` | `EvaluatorError` | Pass |
 | UT-BKT-002.083.M15.T01 | MD-BKT-002.083.M15 | Positive | Export a saved run | saved run with 4 trades | one HTML page with setup, equity and per-trade charts, edge boxes, best and worst, all trade rows | Pass |
 | UT-BKT-002.083.M15.T02 | MD-BKT-002.083.M15 | Negative | Unknown run id | "nope" | `ValueError`; no file written | Pass |
 | UT-BKT-002.083.M15.T03 | MD-BKT-002.083.M15 | Edge | Escaping and empty run | name with `<b>`, no variants | name escaped; "This run has no results"; NaN shows — | Pass |

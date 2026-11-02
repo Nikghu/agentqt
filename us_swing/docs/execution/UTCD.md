@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-27
 **Project:** US Swing Trading System
 
+> v1.22.0: UT-EXE-011.027.M01.T01–T07 and UT-EXE-011.027.M03.T01–T03 added — BOSS_ST.
 > v1.21.0: UT-EXE-006.015.M01.T01–T02 and UT-EXE-007.011.M01.T01–T02 added; UT-EXE-009.002.M01.T09 covers price_30m — 30m timeframe.
 > v1.20.0: UT-EXE-007.001.M01.T27–T29 added (complete candles only, ISS-EXE-0013).
 > v1.19.0: UT-EXE-017.027.M14.T01–T03 added (paper account state).
@@ -506,6 +507,16 @@
 | UT-EXE-011.026.M03.T03 | MD-EXE-011.001.M03 | Positive | High, Low and Range for both windows | known 4-bar frame, Candles 2 | exact max / min / range of the right bars | Pass |
 | UT-EXE-011.026.M03.T04 | MD-EXE-011.001.M03 | Negative | Candles below 1 or bad Window raise | Candles 0, -5; Window `Sideways` | `EvaluatorError` | Pass |
 | UT-EXE-011.026.M03.T05 | MD-EXE-011.001.M03 | Edge | Legacy 6-arg form reads as Current | `SWING('Spot',2,5,'High','Day','1d')` | equals the 5-arg `Current` value | Pass |
+| UT-EXE-011.027.M01.T01 | MD-EXE-011.027.M01 | Positive | Swing pivots are causal | 7 bars with a peak at bar 3, lookback 2 | swing high shows at bar 5 with bar 3's high; not before | Pass |
+| UT-EXE-011.027.M01.T02 | MD-EXE-011.027.M01 | Positive | Every long entry meets all long rules | random-walk 15m + 30m frames | each 0→1 bar has HTF CHOCH up, LTF BOS up, close > EMA200, Supertrend up | Pass |
+| UT-EXE-011.027.M01.T03 | MD-EXE-011.027.M01 | Positive | Every short entry and every exit meets its rule | same frames | each 0→-1 bar meets the short rules; each exit bar has LTF CHOCH or Supertrend flip | Pass |
+| UT-EXE-011.027.M01.T04 | MD-EXE-011.027.M01 | Positive | Fresh is the state only on change bars | same frames | Fresh = state where it changed, else 0 | Pass |
+| UT-EXE-011.027.M01.T05 | MD-EXE-011.027.M01 | Edge | No look-ahead | same frames cut at several bars | values on the cut frame equal the full run up to the cut | Pass |
+| UT-EXE-011.027.M01.T06 | MD-EXE-011.027.M01 | Edge | ATR gate | MinBreakATR 0 and 5 | 0 lets every break count; 5 blocks all, state stays 0 | Pass |
+| UT-EXE-011.027.M01.T07 | MD-EXE-011.027.M01 | Negative | Too little history | 150 LTF bars; HTF with 3 bars | NaN on every bar that lacks history | Pass |
+| UT-EXE-011.027.M03.T01 | MD-EXE-011.001.M03 | Positive | Live value is the last series value | random-walk frames; `BOSS_ST(...,'State') == Number(x)` | True for the last state, False otherwise; same for Fresh | Pass |
+| UT-EXE-011.027.M03.T02 | MD-EXE-011.001.M03 | Negative | Bad arguments raise | lookback 0 / 21, ATR 6, HTF = LTF, Signal `Maybe`, 5 args | `EvaluatorError` | Pass |
+| UT-EXE-011.027.M03.T03 | MD-EXE-011.001.M03 | Negative | Too little history raises | 50 LTF bars | `EvaluatorError`, never 0 | Pass |
 
 ---
 

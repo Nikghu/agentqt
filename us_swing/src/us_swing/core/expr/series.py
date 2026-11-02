@@ -21,7 +21,8 @@ import numpy.typing as npt
 import pandas as pd
 import talib
 
-from us_swing.core.expr import EvaluatorError, parse, swing_args
+from us_swing.core.expr import EvaluatorError, boss_st_args, parse, swing_args
+from us_swing.core.market_structure import TIMEFRAME_MINUTES, bars_from_frame, boss_st
 
 FloatArray = npt.NDArray[np.float64]
 BoolArray = npt.NDArray[np.bool_]
@@ -31,7 +32,7 @@ ET = ZoneInfo("America/New_York")
 INTRADAY_MINUTES = {"3m": 3, "15m": 15, "30m": 30}
 _NS_PER_MIN = 60_000_000_000
 _ARITY = {"Number": 1, "PNL": 1, "VWAP": 2, "Price": 4, "RSI": 3, "ADX": 3, "EMA": 3,
-          "SUPERTREND": 5, "SWING": 5, "MACD": 5}
+          "SUPERTREND": 5, "SWING": 5, "MACD": 5, "BOSS_ST": 6}
 _LEGACY_ARITY = {"SWING": 6}
 _COMPARE: dict[str, Callable[[FloatArray, FloatArray], BoolArray]] = {
     ">": np.greater, "<": np.less, ">=": np.greater_equal, "<=": np.less_equal,
@@ -199,13 +200,22 @@ class _Walker:
         if name == "PNL":
             self.uses_pnl = True
             return self._full(np.nan)
-        tf = str(args[-1])
-        frame = self._frame(tf)
-        series = function_series(name, args, frame, tf)
-        out = _as_of(series, available_ns(frame, tf), self.close_ns)
+        if name == "BOSS_ST":
+            tf, series = self._boss_st(args)
+        else:
+            tf = str(args[-1])
+            series = function_series(name, args, self._frame(tf), tf)
+        out = _as_of(series, available_ns(self._frame(tf), tf), self.close_ns)
         label = f"{name}({', '.join(str(a) for a in args[1:])})"
         self.values[label] = out
         return out
+
+    def _boss_st(self, args: list[Any]) -> tuple[str, FloatArray]:
+        """BOSS_ST on its LTF bars (SRD-BKT-002.087); the timeframe is the LTF arg."""
+        params, htf, ltf, fresh = boss_st_args(args)
+        result = boss_st(bars_from_frame(self._frame(ltf), TIMEFRAME_MINUTES[ltf]),
+                         bars_from_frame(self._frame(htf), TIMEFRAME_MINUTES[htf]), params)
+        return ltf, result.fresh if fresh else result.state
 
     @staticmethod
     def _constant(node: dict[str, Any]) -> Any:

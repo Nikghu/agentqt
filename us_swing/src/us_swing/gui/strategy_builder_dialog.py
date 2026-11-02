@@ -159,7 +159,20 @@ _INDICATOR_DATA: list[dict] = [
             },
         ],
     },
+    {
+        "name": "BOSS_ST",
+        "parameters": [
+            {"name": "Symbol Type", "Type": "DropDown", "Datatype": ["Spot", "RSP"]},
+            {"name": "Swing Lookback", "Type": "EditBox", "Datatype": "int", "Range": [1, 20]},
+            {"name": "Min Break ATR", "Type": "EditBox", "Datatype": "float", "Range": [0, 5]},
+            {"name": "HTF", "Type": "DropDown", "Datatype": ["30m", "15m"]},
+            {"name": "LTF", "Type": "DropDown", "Datatype": ["15m", "3m"]},
+            {"name": "Signal", "Type": "DropDown", "Datatype": ["Fresh", "State"]},
+        ],
+    },
 ]
+
+_TF_MINUTES = {"3m": 3, "15m": 15, "30m": 30}
 
 _INDICATOR_NAMES = [ind["name"] for ind in _INDICATOR_DATA]
 
@@ -431,6 +444,9 @@ class _ConditionSelectorDialog(QDialog):
                     le.setStyleSheet(_line_ss())
                     if param["Datatype"] == "int":
                         le.setValidator(QIntValidator(*param.get("Range", [])))
+                    elif param["Datatype"] == "float" and "Range" in param:
+                        low, high = param["Range"]
+                        le.setValidator(QDoubleValidator(float(low), float(high), 2))
                     elif param["Datatype"] == "float":
                         le.setValidator(QDoubleValidator())
                     w = le
@@ -477,6 +493,12 @@ class _ConditionSelectorDialog(QDialog):
                 parts.append(val)
             elif isinstance(w, QComboBox):
                 parts.append(f"'{w.currentText()}'")
+
+        htf, ltf = self._inputs.get("HTF"), self._inputs.get("LTF")
+        if (isinstance(htf, QComboBox) and isinstance(ltf, QComboBox)
+                and _TF_MINUTES[htf.currentText()] <= _TF_MINUTES[ltf.currentText()]):
+            self._err_lbl.setText("HTF must be a bigger timeframe than LTF.")
+            return
 
         fn = f"{self._ind_combo.currentText()}({', '.join(parts)})"
         self._err_lbl.setText("")

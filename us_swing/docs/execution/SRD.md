@@ -40,6 +40,7 @@
 > v1.26.0: SRD-EXE-019.001–.004 added — Strategy P&L History; approved by user 2026-10-23 (plan).
 > v1.25.1: SRD-EXE-018.016 approved by user (2026-09-18) and set to Implemented — code and tests shipped with the requirement.
 > v1.33.0: SRD-EXE-006.015 and SRD-EXE-007.011 added and approved by user 2026-11-02 — 30m timeframe.
+> v1.34.0: SRD-EXE-011.027 added and approved by user 2026-11-02 — BOSS_ST trigger indicator; Implemented.
 
 ---
 
@@ -229,6 +230,7 @@
 | SRD-EXE-011.024 | FO-EXE-011 | Must | When a trade cycle reaches `CLOSED` by any route, `AppService` clears every matching pending `EXIT` signal from `PendingSignalStore` via `dismiss_for(strategy_id, symbol, action)`, so a stale exit can no longer be executed (ISS-EXE-0010). | `CycleClosed` event | matching pending exit signals dismissed | Marshalled to the GUI thread via `_clear_pending_exits_requested`; no-op when no pending exit matches | Implemented |
 | SRD-EXE-011.025 | FO-EXE-011 | Must | `AppService.execute_signal` drops a pending `EXIT` signal with a WARNING and submits no order when its `(strategy_id, symbol)` has no cycle in `OPEN` state, preventing a duplicate exit for a position already closed or exiting (ISS-EXE-0010). | pending EXIT signal execute | dropped + WARNING, else normal submit | `ENTRY` signals unaffected; guard checks strictly `OPEN` since a `CLOSING` cycle already has an exit in flight | Implemented |
 | SRD-EXE-011.026 | FO-EXE-011 | Must | `SWING(SymbolType, Candles, PriceSwing, Window, Timeframe)` returns the High max, Low min or Range of `Candles` closed bars; Window `Previous` ends one bar before the latest, `Current` includes it. | args, candles | float | Candles ≥ 1 else `EvaluatorError`; legacy 6-arg form (LookbackDays, Type) reads as `Current` (ISS-EXE-0014) | Implemented |
+| SRD-EXE-011.027 | FO-EXE-011 | Must | `BOSS_ST(SymbolType, SwingLookback, MinBreakATR, HTF, LTF, Signal)` returns the BOSS_ST position on the last closed LTF bar: 1 long, -1 short, 0 flat; Signal `Fresh` returns it only on the bar the position changed, else 0. | args, candles | float | SwingLookback 1–20, MinBreakATR 0–5, HTF above LTF (3m / 15m / 30m), Signal Fresh / State, else `EvaluatorError`; under 200 LTF bars or 2×lookback+1 HTF bars → NaN; no time window or forced exit | Implemented |
 
 ---
 

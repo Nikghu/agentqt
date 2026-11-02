@@ -7,6 +7,7 @@
 **Last Updated:** 2026-11-02
 **Project:** US Swing Trading System
 
+> v1.6.0: `core/expr/series.py` (MD-BKT-002.021.M10) reads BOSS_ST from `core.market_structure` on the LTF frame (SRD-BKT-002.087).
 > v1.5.0: no-screener mode — `spec.ScreenerSpec.skip` (MD-BKT-002.001.M01); `service.py` (MD-BKT-002.008.M05) `_fixed_lists()`, `_estimate_fixed()`, `Estimate.fixed`, Screener fact (SRD-BKT-002.086).
 > v1.4.0: 30m timeframe — `store.py` (MD-BKT-001.001.M01) `_to_30m()`, `_build_from_3m()`; `steps/signals.py` (MD-BKT-002.026.M11) and `core/expr/series.py` (MD-BKT-002.021.M10) accept 30m (SRD-BKT-001.016, .002.085).
 > v1.3.0: MD-BKT-002.083.M15 takes SRD-BKT-002.084 (trade analysis layout); MD-BKT-002.030.M12 `finish()` fix (ISS-BKT-0001).
@@ -46,7 +47,7 @@ Cross-tool note: `screener/executor.py` gets a public `PresetExecutor.screen()` 
 | MD ID | SRD | File | Purpose | Public API | Depends on | Async |
 |---|---|---|---|---|---|---|
 | MD-BKT-002.020.M09 | SRD-BKT-002.020 | `us_swing/src/us_swing/core/expr/__init__.py` | Re-export of the live condition parser | `parse()`, `ConditionEvaluator`, `EvaluatorError` | `execution.strategy_engine._evaluator` | No |
-| MD-BKT-002.021.M10 | SRD-BKT-002.021, .082 | `us_swing/src/us_swing/core/expr/series.py` | Series evaluator on the 3m timeline | `function_series()`, `evaluate()`, `Evaluation` | `core.expr`, `talib` | No |
+| MD-BKT-002.021.M10 | SRD-BKT-002.021, .082, .087 | `us_swing/src/us_swing/core/expr/series.py` | Series evaluator on the 3m timeline | `function_series()`, `evaluate()`, `Evaluation` | `core.expr`, `talib` | No |
 | MD-BKT-002.026.M11 | SRD-BKT-002.026 | `us_swing/src/us_swing/backtest/steps/signals.py` | Step 2 periods per strategy and stock, cache, pool | `load_frames()`, `schedule_mask()`, `periods()`, `signal_key()`, `stocks_for()`, `run_signals()` | `core.expr.series`, `cache`, `store` | Process pool |
 
 | MD-BKT-002.080.M14 | SRD-BKT-002.080 | `us_swing/src/us_swing/backtest/steps/recorded.py` | Step 1 from the screener lists the app saved | `load_lists()`, `saved_days()`, `trade_day()` | `pandas`, `json` | No |

@@ -27,6 +27,7 @@
 | FO-BKT-001 / FO-BKT-002 | SRD-BKT-001.015, SRD-BKT-002.052 | None (small change) | MD-BKT-001.005.M03, MD-BKT-002.008.M05 | UT-BKT-001.015.M03.T01–T02, UT-BKT-002.052.M05.T01–T02 (Pass) | `backtest/planner.py`, `backtest/service.py`, `backtest/steps/stocks.py`, `gui/app_service.py` | Implemented | RN-BKT-1.7.0-20261030 |
 | FO-BKT-002 | SRD-BKT-002.040–.047 | None yet (Phase 4a stats only) | MD-BKT-002.040.M13 (+ .007.M04, .008.M05) | UT-BKT-002.040–.047.M13 (14 tests, Pass) | `backtest/steps/report.py`, `backtest/results.py`, `backtest/service.py` | Implemented (Phase 4a) | RN-BKT-1.6.0-20261029 |
 | FO-BKT-002 | SRD-BKT-002.082 | DD-EXE-011.026.D01 | MD-BKT-002.021.M10 | UT-BKT-002.082.M10.T01–T02 (2 tests, Pass) | `core/expr/series.py`, `core/expr/__init__.py` | Implemented | RN-EXE-1.39.0-20261031 |
+| FO-BKT-002 | SRD-BKT-002.087 | DD-EXE-011.027.D01 | MD-BKT-002.021.M10 | UT-BKT-002.087.M10.T01–T02 (2 tests, Pass) | `core/expr/series.py`, `core/expr/__init__.py` | Implemented | RN-EXE-1.41.0-20261102 |
 
 ## Reverse Traceability: Code → MD → SRD → FO
 

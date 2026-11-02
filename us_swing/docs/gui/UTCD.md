@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.40.0: UT-GUI-013.024.M01.T01–T02 added — BOSS_ST form.
 > v1.39.0: UT-GUI-031.085.M01.T01 and .M03.T01 added — No screener choice.
 > v1.38.0: UT-GUI-013.023.M01.T01 and UT-GUI-031.084.M03.T01 added — 30m timeframe.
 > v1.37.0: UT-GUI-031.083.M14.T01 added — DD-MM-YYYY dates.
@@ -283,6 +284,8 @@
 | UT-GUI-013.001.M01.T21 | MD-GUI-013.001.M01 | Positive | `commit()` overwrites existing record by case-insensitive name | Registry `[cfg(name="boss_ema")]`; commit `cfg(name="BOSS_EMA")` | Registry length stays 1; record replaced | Not Run |
 | UT-GUI-013.001.M01.T22 | MD-GUI-013.001.M01 | Positive | `save_strategies()` writes via temp-file + atomic replace | Stub `Path.replace`; call `save_strategies([cfg])` | `Path.replace` called once with `.tmp` → final path; final file exists | Not Run |
 | UT-GUI-013.023.M01.T01 | MD-GUI-013.001.M01 | Positive | 30m in every Timeframe dropdown | indicator catalogue | each Timeframe list is 3m, 15m, 30m, 1d, 1w | Pass |
+| UT-GUI-013.024.M01.T01 | MD-GUI-013.001.M01 | Positive | BOSS_ST form | choose BOSS_ST, Lookback 2, ATR 0.5 | 6 fields; first choices 30m, 15m, Fresh; built text `BOSS_ST('Spot', 2, 0.5, '30m', '15m', 'Fresh')` | Pass |
+| UT-GUI-013.024.M01.T02 | MD-GUI-013.001.M01 | Negative | HTF not above LTF is refused | HTF 15m, LTF 15m; Lookback 0 | error shown, no condition built; validator rejects 0 | Pass |
 
 ---
 
