@@ -249,7 +249,7 @@ def test_evict_symbol_atomic_deletes_price_and_flips_ledger(
     seed_user: int,
     seed_price: Callable[[str, int], None],
 ) -> None:
-    """UT-EXE-009.002.M01.T09: evict_symbol_atomic deletes from all 3 price tables + flips ledger."""
+    """UT-EXE-009.002.M01.T09: evict_symbol_atomic deletes from all 4 price tables + flips ledger."""
     repo = MonitoringRepository(engine)
     # Seed price rows for B.
     seed_price("B", 5)
@@ -271,7 +271,7 @@ def test_evict_symbol_atomic_deletes_price_and_flips_ledger(
     assert _YESTERDAY_S in dates
 
     with engine.connect() as conn:
-        for tf in ("price_1m", "price_3m", "price_15m"):
+        for tf in ("price_1m", "price_3m", "price_15m", "price_30m"):
             cnt = conn.execute(
                 text(f"SELECT COUNT(*) FROM {tf} WHERE symbol = 'B'")
             ).scalar()

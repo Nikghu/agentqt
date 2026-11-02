@@ -121,6 +121,7 @@
   - Given a symbol with 350 existing 3 m bars, the system fetches only the missing bars and brings the count to ≥ 390 without duplicating existing rows.
   - Given a symbol that fails data fetch (IBKR error, rate-limit, etc.), that symbol is logged as failed and the download continues for remaining symbols.
   - The download job completes idempotently: running it twice on the same data produces no duplicate rows and no errors.
+- The system shall also build **30 m** candles from the 1 m source bars (13 a day from 09:30 ET), so strategies can use 30 m like 3 m and 15 m (added by user 2026-11-02).
 
 ---
 
@@ -138,6 +139,7 @@
 - After each 5-second tick update (before the bar closes), the system shall emit a `candle_updated(symbol: str, partial: PartialBar)` signal so the GUI can display a live in-progress candle without waiting for the 3-minute close.
 - The live feed shall subscribe only to symbols in the **current active screened list**. Symbols added or removed from the list shall be subscribed/unsubscribed dynamically without restarting the aggregator.
 - The system shall operate **only within RTH**. Outside RTH the aggregator discards incoming 5-second bars without updating any partial bar or emitting signals. If a partial bar is open at 16:00:00 ET it is discarded (not persisted).
+- The system shall form and save live **30 m** candles the same way as 15 m (IBKR or Yahoo Finance), in their own table (added by user 2026-11-02).
 - On **connection loss** mid-bar, the in-progress partial bar for each symbol is discarded. When the feed reconnects, a fresh partial bar starts on the next 3-minute boundary.
 - The live 3m candles produced by this feature extend the Phase 1 historical base: after a `candle_closed` event, the symbol's 3m candle count increases by 1 and `get_readiness_report()` must reflect the updated count.
 - **Acceptance Criteria:**

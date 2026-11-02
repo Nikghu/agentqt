@@ -26,7 +26,7 @@ log = logging.getLogger(__name__)
 # is ExecutionEnums — SRD-EXE-009.012).
 _LifecycleState = ExecutionEnums.LifecycleState
 
-_PRICE_TABLES_FOR_EVICTION: tuple[str, ...] = ("price_1m", "price_3m", "price_15m")
+_PRICE_TABLES_FOR_EVICTION: tuple[str, ...] = ("price_1m", "price_3m", "price_15m", "price_30m")
 
 
 def _utcnow_iso() -> str:

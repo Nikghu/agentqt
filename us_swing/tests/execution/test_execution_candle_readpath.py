@@ -72,13 +72,13 @@ def _one_minute_bars(symbol: str, count: int) -> list[OHLCVBar]:
 
 
 def test_frames_derived_from_1m(tmp_path):
-    """UT-EXE-006.001.M01.T14: 3m/15m derived from price_1m when live tables empty."""
+    """UT-EXE-006.001.M01.T14: 3m/15m/30m derived from price_1m when live tables empty."""
     db, hist = _make(tmp_path)
     db.insert_bars(_SYM, "1m", _one_minute_bars(_SYM, 900))
 
     frames = load_execution_frames(db, hist, _SYM)
 
-    assert set(frames) == {"3m", "15m"}
+    assert set(frames) == {"3m", "15m", "30m"}
     assert len(frames["3m"]) >= 250
     assert len(frames["15m"]) >= 50
     assert list(frames["3m"].columns) == [
@@ -153,7 +153,7 @@ def test_missing_daily_weekly_omitted(tmp_path):
 
     frames = load_execution_frames(db, hist, _SYM)
 
-    assert set(frames) == {"3m", "15m"}
+    assert set(frames) == {"3m", "15m", "30m"}
 
 
 def test_forming_bar_left_out_of_frames(tmp_path):
@@ -215,3 +215,44 @@ def test_latest_bar_returns_most_recent(tmp_path):
     latest = load_latest_execution_bar(db, hist, _SYM, "3m")
     assert latest is not None
     assert latest.datetime == bars[-1].datetime
+
+
+def test_frames_include_30m(tmp_path):
+    """UT-EXE-006.015.M01.T01: 30m is derived from price_1m; every bar starts on :00 or :30."""
+    db, hist = _make(tmp_path)
+    db.insert_bars(_SYM, "1m", _one_minute_bars(_SYM, 900))
+
+    frames = load_execution_frames(db, hist, _SYM)
+
+    assert "30m" in frames
+    assert len(frames["30m"]) >= 25
+    assert all(ts.minute in (0, 30) for ts in frames["30m"]["datetime"])
+
+
+def _session_1m(day: dt.date, tz_offset_h: int) -> list[OHLCVBar]:
+    """1m bars 09:30–15:59 ET for ``day``; ``tz_offset_h`` is the ET offset from UTC."""
+    open_utc = dt.datetime(day.year, day.month, day.day, 9 - tz_offset_h, 30, tzinfo=dt.timezone.utc)
+    return [
+        OHLCVBar(symbol=_SYM, datetime=open_utc + dt.timedelta(minutes=i), open=10.0, high=11.0,
+                 low=9.0, close=10.0, volume=100, timeframe="1m")
+        for i in range(390)
+    ]
+
+
+def test_30m_starts_at_open_and_live_row_wins(tmp_path):
+    """UT-EXE-006.015.M01.T02: 13 bars a day from 09:30 ET in winter and summer; live 30m wins."""
+    db, hist = _make(tmp_path)
+    for day, offset in ((dt.date(2026, 1, 5), -5), (dt.date(2026, 7, 6), -4)):
+        bars = hist.aggregate_timeframe(_SYM, "30m", _session_1m(day, offset))
+        starts = [(b.datetime + dt.timedelta(hours=offset)).strftime("%H:%M") for b in bars]
+        assert len(bars) == 13
+        assert starts[0] == "09:30" and starts[-1] == "15:30"
+
+    db.insert_bars(_SYM, "1m", _one_minute_bars(_SYM, 120))
+    base = assemble_execution_bars(db, hist, _SYM, "30m")
+    live = OHLCVBar(symbol=_SYM, datetime=base[0].datetime, open=1.0, high=1.0, low=1.0,
+                    close=999.0, volume=1, timeframe="30m")
+    db.insert_bars(_SYM, "30m", [live])
+
+    merged = assemble_execution_bars(db, hist, _SYM, "30m")
+    assert [b.close for b in merged if b.datetime == live.datetime] == [999.0]

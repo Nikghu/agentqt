@@ -1,12 +1,13 @@
 # Design Document — Execution & Risk Management (EXE)
 
 **Document ID:** DD-EXE
-**Version:** 1.19.0
+**Version:** 1.22.0
 **Traces To:** SRD-EXE v1.24.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.22.0: DD-EXE-006.015.D01 added — 30m timeframe, live.
 > v1.21.0: DD-EXE-017.027.D01 added — paper account state follows today's P&L and open positions.
 > v1.20.0: DD-EXE-020.001.D01 gains the equity curve (SRD-EXE-020.007–.008).
 > v1.19.0: DD-EXE-020.001.D01 added — Account Equity Snapshots.
@@ -4124,3 +4125,15 @@ read logs `[Strategy] Could not load P&L history for %s` and returns `StrategyPn
 | `open_position_value` | deployed |
 
 **Known limit.** Realised P&L from earlier days is not carried; each market day the paper account starts again at Max Capital. Sizing still uses `effective_capital`.
+
+## DD-EXE-006.015.D01 — 30m Timeframe (Live)
+
+**Traces:** SRD-EXE-006.015, SRD-EXE-007.011
+
+**Frames.** New `_FRAME_TIMEFRAMES = ("3m", "15m", "30m")` feeds `load_execution_frames()` and `load_latest_execution_bar()`; `_REQUIRED_TIMEFRAMES` (readiness, ≥ 390 bars) stays 3m/15m because 30 days of 1m give only ~270 30m bars. `load_execution_frames()` builds 30m from `price_1m` with `HistoricalDataEngine.aggregate_timeframe()` (epoch 30-minute buckets = 09:30, 10:00 … ET because ET is a whole number of hours from UTC) and merges `price_30m` rows; `_closed_bars()` drops the forming bar.
+
+**Live worker.** `_LIVE_TIMEFRAMES` / `_TF_LENGTH` gain 30m, so the IBKR `CandleBuilder` keeps a 30m window (`_TF_SECONDS["30m"] = 1800`) and saves closed candles in `price_30m`. The Yahoo poll adds `interval="30m", period="5d"` written by `_write_yfinance_direct()` (forming bar skipped).
+
+**Storage.** New `price_30m` table, same columns and key as `price_15m`; `create_schema()` (`create_all(checkfirst=True)`) adds it to existing `candles.db` files. The session cleanup list gains `price_30m`.
+
+Cross-tool note: touches `data/engine.py` (INF, `_TF_MINUTES`), `db/schema.py` (INF, new table), `analysis/candle_builder.py` (ANA, `_TF_SECONDS`).
