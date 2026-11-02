@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.30.0: Backtest data note and log line name 30-minute candles too (SRD-GUI-030.010 wording, after SRD-BKT-001.016).
 > v1.29.0: 30m timeframe — one shared `TIMEFRAMES` list feeds every strategy builder Timeframe dropdown (SRD-GUI-013.023); Inspector `_CHART_TFS` gains 30m with 5 days before entry (SRD-GUI-031.084).
 > v1.28.0: DD-GUI-031.001.D01 gets the HTML download design (SRD-GUI-031.082).
 > v1.27.0: DD-GUI-031.001.D01 added — Backtest workspace.
@@ -1756,7 +1757,7 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 - Time left = remaining 1d × 1 s + remaining 3m × 25 s; totals are seeded from the plan size and replaced by progress signals.
 - When the range fields differ from `settings.json` the button reads "Save range and download" and saves before starting; nothing is saved silently.
 - Fill delta is no longer a button; the auto delta timer still calls `fill_backtest_delta()`.
-- SRD-GUI-030.010: the coverage label gets a second line, "15-minute and weekly candles are built from these". `_BacktestStatsWorker` first calls `store.build_missing()` and logs `[Backtest] Built 15-minute and weekly candles for N stock(s)` when it built any.
+- SRD-GUI-030.010: the coverage label gets a second line, "15-minute, 30-minute and weekly candles are built from these" (30-minute added 2026-11-02 with SRD-BKT-001.016). `_BacktestStatsWorker` first calls `store.build_missing()` and logs `[Backtest] Built 15-minute, 30-minute and weekly candles for N stock(s)` when it built any.
 
 ---
 

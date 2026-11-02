@@ -50,7 +50,7 @@ _SECONDS_1D = 1.0   # measured on TWS: one 1d request per stock
 _SECONDS_3M = 25.0  # measured on TWS: one 3-month 3m request (parallel requests time out)
 _SECONDS = {"1d": _SECONDS_1D, "3m": _SECONDS_3M}
 _EMPTY = BacktestStats(0, 0, 0, None, None, 0, None)
-_BUILT_NOTE = "15-minute and weekly candles are built from these"
+_BUILT_NOTE = "15-minute, 30-minute and weekly candles are built from these"
 
 
 def _qdate(day: datetime.date) -> QDate:
