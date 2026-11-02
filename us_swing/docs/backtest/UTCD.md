@@ -7,6 +7,7 @@
 **Last Updated:** 2026-11-02
 **Project:** US Swing Trading System
 
+> v1.5.0: UT-BKT-002.086.M01.T01, .M05.T01–T02 added — no-screener mode.
 > v1.4.0: UT-BKT-001.016.M01.T01–T02 and UT-BKT-002.085.M10.T01, .M11.T01 added — 30m timeframe.
 > v1.3.0: UT-BKT-002.083.M15.T01 updated and T04–T08 added — trade analysis layout (SRD-BKT-002.084); UT-BKT-002.037.M12.T02 — ISS-BKT-0001.
 > v1.2.0: UT-BKT-002.083.M15.T01–T03 added — HTML report; UT-BKT-002.030.M12.T03 — candle loading progress.
@@ -149,6 +150,9 @@
 | UT-BKT-002.026.M11.T01 | MD-BKT-002.026.M11 | Positive | Periods from runs of true bars | fired F T T F T | 2 periods with start, end, close at start | Pass |
 | UT-BKT-002.026.M11.T02 | MD-BKT-002.026.M11 | Negative | Hours and days | bars closing 09:36, 10:00 and 15:30 ET on a Monday and a Saturday, hours 09:40–15:30 Mon–Fri | only the Monday 10:00 bar kept | Pass |
 | UT-BKT-002.085.M11.T01 | MD-BKT-002.026.M11 | Positive | 30m frame loaded | store with 3m bars | `load_frames()` has a 30m frame with intraday warm-up | Pass |
+| UT-BKT-002.086.M01.T01 | MD-BKT-002.001.M01 | Positive | No-screener plan | screener skip, no preset; old JSON | valid; skip kept in JSON; old plan reads False; empty screener still asks for a preset | Pass |
+| UT-BKT-002.086.M05.T01 | MD-BKT-002.008.M05 | Positive | Every stock every session | 3 stocks, 5 sessions, preset loader that fails | 15 rows; each session A to Z, rank 1–3, score 0; preset never loaded | Pass |
+| UT-BKT-002.086.M05.T02 | MD-BKT-002.008.M05 | Positive | Data check and facts | no-screener plan | fixed=True, 5 of 5 sessions, no errors; Screener fact "None · every stock every day" | Pass |
 | UT-BKT-002.027.M10.T01 | MD-BKT-002.021.M10 | Positive | PNL flagged | `PNL('Spot') > 1 OR RSI(…) > 0` | `uses_pnl` true; result equals the RSI part | Pass |
 | UT-BKT-002.028.M11.T01 | MD-BKT-002.026.M11 | Positive | Cache reuse | run twice | second run computes nothing | Pass |
 | UT-BKT-002.028.M11.T02 | MD-BKT-002.026.M11 | Negative | Stocks follow top N and include list | include mode with 1 stock, top N 1 | only that stock computed | Pass |

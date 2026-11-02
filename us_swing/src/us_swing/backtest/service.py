@@ -50,6 +50,7 @@ class Estimate:
     days_cached: int
     errors: list[str]
     recorded: bool = False  # days_cached counts sessions with a saved screener list
+    fixed: bool = False  # no screener: every stock on every session (SRD-BKT-002.086)
 
 
 @dataclass(frozen=True)
@@ -105,6 +106,8 @@ class BacktestService:
         today = today or datetime.now(timezone.utc).date()
         symbols = resolve(plan.universe, self._records())
         errors = plan.validate()
+        if plan.screener.skip:
+            return self._estimate_fixed(plan, symbols, errors, today)
         if plan.screener.recorded:
             return self._estimate_recorded(plan, symbols, errors, today)
         preset: dict[str, Any] | None = None
@@ -151,6 +154,18 @@ class BacktestService:
             days_total=total, days_cached=with_list, errors=errors, recorded=True,
         )
 
+    def _estimate_fixed(self, plan: RunPlan, symbols: list[str], errors: list[str],
+                        today: date) -> Estimate:
+        """Data check with no screener: every session is ready (SRD-BKT-002.086)."""
+        sessions = 0 if errors else len(stocks.sessions(self._store, plan.period, symbols))
+        return Estimate(
+            symbols=symbols,
+            missing_1d=[s for s in symbols if _misses(self._store, s, "1d", plan.period, today)],
+            missing_3m=[s for s in symbols if _misses(self._store, s, "3m", plan.period, today)],
+            benchmark_ok=self._store.coverage(stocks.BENCHMARK, "1d") is not None,
+            days_total=sessions, days_cached=sessions, errors=errors, fixed=True,
+        )
+
     def saved_days(self, preset_id: str) -> list[date]:
         """Dates of the screener lists the app saved for a preset (SRD-GUI-031.060)."""
         return recorded.saved_days(preset_id, self._screener_results)
@@ -176,6 +191,8 @@ class BacktestService:
             raise ValueError("; ".join(errors))
         records = self._records()
         symbols = resolve(plan.universe, records)
+        if plan.screener.skip:
+            return self._recorded(plan, lambda _run_id: self._fixed_lists(plan, symbols), record)
         if plan.screener.recorded:
             return self._recorded(plan, lambda _run_id: self._saved_lists(plan, symbols), record)
         caps = {r.symbol: float(cap) for r in records
@@ -199,6 +216,16 @@ class BacktestService:
                   frame["date"].nunique(), len(by_session))
         return DailyList(f"recorded-{plan.screener.preset_id}", list(by_session), frame,
                          by_session)
+
+    def _fixed_lists(self, plan: RunPlan, symbols: list[str]) -> DailyList:
+        """Step 1 with no screener: every stock, A to Z, on every session (SRD-BKT-002.086)."""
+        by_session = stocks.sessions(self._store, plan.period, symbols)
+        names = sorted(symbols)
+        rows = [(session, sym, 0.0, rank) for session in by_session
+                for rank, sym in enumerate(names, 1)]
+        _log.info("[Backtest] No screener — %d stock(s) used on every session", len(names))
+        return DailyList("fixed", list(by_session),
+                         pd.DataFrame(rows, columns=recorded.COLUMNS), by_session)
 
     def run_signals(
         self,
@@ -355,7 +382,9 @@ class BacktestService:
         plan = RunPlan.from_json(run.plan_json)
         reports = self.build_reports(plan, self.saved_results(run_id))
         saved_at = run.started.astimezone().strftime(DATE_TIME_FMT)
-        facts = run_facts(plan, self._preset_name(plan.screener.preset_id, user_id))
+        screener = "" if plan.screener.skip else self._preset_name(plan.screener.preset_id,
+                                                                   user_id)
+        facts = run_facts(plan, screener)
         path.write_text(html_report.render(run.name, saved_at, facts, reports),
                         encoding="utf-8")
         _log.info("[Backtest] Report saved to %s", path)
@@ -460,11 +489,12 @@ def run_facts(plan: RunPlan, screener: str) -> list[tuple[str, str]]:
     strategies = "; ".join(f"{s.id} {s.allocation_pct[0]:g}%/{s.per_trade_pct[0]:g}%"
                            for s in plan.strategies) or "None"
     source = "saved lists" if plan.screener.recorded else "replay"
+    screener_line = ("None · every stock every day" if plan.screener.skip
+                     else f"{screener} · {source} · {plan.screener.top_n or 'all'} per day")
     return [
         ("Period", f"{show_date(plan.period.start)} → {show_date(plan.period.end)}"),
         ("Stocks", stocks_text(plan)),
-        ("Screener", f"{screener} · {source} · "
-                     f"{plan.screener.top_n or 'all'} per day"),
+        ("Screener", screener_line),
         ("Strategies (allocation / per trade)", strategies),
         ("Capital", ", ".join(f"${c:,.0f}" for c in plan.account.capital)),
         ("Daily loss stop", f"{plan.account.max_daily_loss_pct:g}%"),

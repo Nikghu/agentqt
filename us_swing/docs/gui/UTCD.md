@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.39.0: UT-GUI-031.085.M01.T01 and .M03.T01 added — No screener choice.
 > v1.38.0: UT-GUI-013.023.M01.T01 and UT-GUI-031.084.M03.T01 added — 30m timeframe.
 > v1.37.0: UT-GUI-031.083.M14.T01 added — DD-MM-YYYY dates.
 > v1.36.0: UT-GUI-031.052.M03.T02 (chart trade dropdown) and UT-GUI-031.082.M09.T01 (HTML download) added.
@@ -907,6 +908,8 @@ Test files:
 | UT-GUI-031.082.M09.T01 | MD-GUI-031.055.M09 | Positive | Download HTML | Cancel, then a path | nothing, then one export call with the default file name offered; button back on; off with no run | Pass |
 | UT-GUI-031.083.M14.T01 | MD-GUI-031.083.M14 | Positive | Day-first date text | date, datetime, ET Timestamp | 04-03-2026, 02-11-2026, 31-12-2025 | Pass |
 | UT-GUI-031.084.M03.T01 | MD-GUI-031.003.M03 | Positive | Inspector 30m choice | chart timeframe picker | 30m offered between 15m and 1D; 5 days before entry | Pass |
+| UT-GUI-031.085.M01.T01 | MD-GUI-031.003.M03 | Positive | No screener choice | click No screener, then Replay, then load the plan | skip in plan; preset, stocks per day, AI disabled; side menu text; load restores | Pass |
+| UT-GUI-031.085.M03.T01 | MD-GUI-031.003.M03 | Edge | Data check warning | 50 and 51 stocks, no screener | "Step 1: no screener"; warning line only at 51 | Pass |
 | UT-GUI-031.055.M03.T01 | MD-GUI-031.003.M03 | Positive | Open saved run | Stocks per day 1 in builder, saved All | 4 steps Done; Detail tab; 2 trades; 3 picks | Pass |
 | UT-GUI-031.055.M03.T02 | MD-GUI-031.003.M03 | Positive | Reports tab refresh | show Reports tab | list reloaded | Pass |
 | UT-GUI-031.060.M02.T01 | MD-GUI-031.002.M02 | Positive | Saved lists tick | preset without, then with saved days | message; count and range; plan recorded | Pass |

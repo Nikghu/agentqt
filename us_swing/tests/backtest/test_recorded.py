@@ -99,3 +99,40 @@ def test_service_without_saved_lists(store: BacktestStore, tmp_path: Path) -> No
     est = svc.estimate(plan, "1")
 
     assert est.errors == ["No saved screener list for this preset in the period"]
+
+
+def _no_preset(_p: str, _u: str) -> dict[str, Any]:
+    raise AssertionError("no screener must not load a preset")
+
+
+def test_no_screener_uses_every_stock(store: BacktestStore, tmp_path: Path) -> None:
+    """UT-BKT-002.086.M05.T01: No screener picks every stock on every session, A to Z."""
+    records = [Record(s, "Information Technology", 1e9) for s in _NAMES]
+    svc = BacktestService(store, StepCache(tmp_path / "cache"), ResultsStore(tmp_path / "r.db"),
+                          lambda: records, _no_preset, screener_results=tmp_path / "sr")
+    plan = plan_for(date(2025, 3, 3), date(2025, 3, 7), ("NVDA", "AAPL", "MSFT"))
+    plan = replace(plan, screener=replace(plan.screener, preset_id="", skip=True))
+
+    daily = svc.run_stocks(plan, "1", workers=0)
+
+    assert len(daily.days) == 5
+    assert len(daily.frame) == 15
+    first = daily.frame[daily.frame["date"] == daily.days[0]]
+    assert list(first["symbol"]) == ["AAPL", "MSFT", "NVDA"]
+    assert list(first["rank"]) == [1, 2, 3] and set(daily.frame["score"]) == {0.0}
+
+
+def test_no_screener_data_check_and_facts(store: BacktestStore, tmp_path: Path) -> None:
+    """UT-BKT-002.086.M05.T02: The data check marks no screener; the report says None."""
+    from us_swing.backtest.service import run_facts
+
+    svc = BacktestService(store, StepCache(tmp_path / "cache"), ResultsStore(tmp_path / "r.db"),
+                          lambda: [Record(s, "IT", 1e9) for s in _NAMES], _no_preset,
+                          screener_results=tmp_path / "sr")
+    plan = plan_for(date(2025, 3, 3), date(2025, 3, 7), _NAMES)
+    plan = replace(plan, screener=replace(plan.screener, preset_id="", skip=True))
+
+    est = svc.estimate(plan, "1")
+
+    assert (est.fixed, est.days_total, est.days_cached, est.errors) == (True, 5, 5, [])
+    assert dict(run_facts(plan, "x"))["Screener"] == "None · every stock every day"

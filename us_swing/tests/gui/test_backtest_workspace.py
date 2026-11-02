@@ -637,6 +637,33 @@ def test_saved_lists_data_check_text() -> None:
     assert data_check_text(est).endswith("saved screener lists for 7 of 20 sessions")
 
 
+def test_no_screener_choice(workspace: BacktestWorkspace) -> None:
+    """UT-GUI-031.085.M01.T01: No screener disables preset, stocks per day and AI; plan keeps it."""
+    builder = workspace.builder
+    builder._source.buttons[2].click()
+
+    plan = builder.plan()
+    assert plan.screener.skip and not plan.screener.recorded
+    assert not (builder._preset.isEnabled() or builder._top_n.isEnabled() or builder._ai.isEnabled())
+    assert builder.summaries()["screener"] == "None · every stock every day"
+
+    builder._source.buttons[0].click()
+    assert builder._preset.isEnabled() and not builder.plan().screener.skip
+    builder.load_plan(plan)
+    assert builder._source.value == "none" and not builder._preset.isEnabled()
+
+
+def test_no_screener_data_check_text() -> None:
+    """UT-GUI-031.085.M03.T01: Data check says no screener and warns above 50 stocks."""
+    fifty = Estimate([f"S{i}" for i in range(50)], [], [], True, 20, 20, [], fixed=True)
+    many = Estimate([f"S{i}" for i in range(51)], [], [], True, 20, 20, [], fixed=True)
+
+    assert data_check_text(fifty).splitlines() == [
+        "50 stocks · 0 missing 1d · 0 missing 3m candles · Step 1: no screener"]
+    assert data_check_text(many).splitlines()[1] == (
+        "No screener on 51 stocks — Step 2 will be slow")
+
+
 def test_quick_test(workspace: BacktestWorkspace) -> None:
     """UT-GUI-031.061.M03.T01: Quick test picks the preset, ticks saved lists, sets dates."""
     workspace.quick_test("p1")

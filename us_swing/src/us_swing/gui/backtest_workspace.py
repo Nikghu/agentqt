@@ -80,6 +80,7 @@ _CHART_TFS: tuple[tuple[str, str | None], ...] = (
 )
 _CHART_DAYS_BEFORE = {"3m": 1, "15m": 3, "30m": 5, "1d": 90}
 _CHART_DAYS_AFTER = {"3m": 0, "15m": 0, "30m": 0, "1d": 10}
+_NO_SCREENER_WARN = 50  # stocks; above this Step 2 is slow (SRD-GUI-031.085)
 
 
 _VIEWS = (("Inspector", "search", "One session: chart, picks, signals and trades"),
@@ -196,11 +197,16 @@ def data_check_text(est: Estimate) -> str:
     """One line of counts, then any plan errors on their own lines."""
     line = (f"{len(est.symbols)} stocks · {len(est.missing_1d)} missing 1d · "
             f"{len(est.missing_3m)} missing 3m candles")
-    if est.days_total and est.recorded:
+    warnings: list[str] = []
+    if est.fixed:
+        line += " · Step 1: no screener"
+        if len(est.symbols) > _NO_SCREENER_WARN:
+            warnings.append(f"No screener on {len(est.symbols)} stocks — Step 2 will be slow")
+    elif est.days_total and est.recorded:
         line += f" · saved screener lists for {est.days_cached} of {est.days_total} sessions"
     elif est.days_total:
         line += f" · Step 1: {est.days_cached} of {est.days_total} days cached"
-    return "\n".join([line, *est.errors])
+    return "\n".join([line, *warnings, *est.errors])
 
 
 def _head(text: str) -> QLabel:

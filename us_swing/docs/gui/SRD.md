@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.68.0: SRD-GUI-031.085 added and approved by user 2026-11-02 — No screener choice.
 > v2.67.0: SRD-GUI-013.023 and SRD-GUI-031.084 added and approved by user 2026-11-02 — 30m timeframe.
 > v2.66.0: SRD-GUI-031.083 added and approved by user 2026-11-02 — DD-MM-YYYY dates in the Backtest screens and HTML report.
 > v2.65.0: SRD-GUI-031.082 added and approved by user 2026-11-02 — Download HTML report from Saved runs.
@@ -604,3 +605,4 @@
 | SRD-GUI-031.082 | FO-GUI-031 | Should | Report details has a Download button that saves the picked run as an HTML report without opening it. | picked run, file path | HTML file | Save runs in a worker; button reads "Saving…" until done | Implemented |
 | SRD-GUI-031.083 | FO-GUI-031 | Should | The Backtest screens and the HTML report show every date as DD-MM-YYYY. | dates | shown text | Stored data, cache keys and file names stay ISO; the session list keeps the real date behind the text | Implemented |
 | SRD-GUI-031.084 | FO-GUI-031 | Should | The Backtest Inspector chart offers a 30m choice next to 3m, 15m and 1D. | picked trade | 30m candles around the trade | Shows 5 days before the entry | Implemented |
+| SRD-GUI-031.085 | FO-GUI-031 | Should | The Screener page Source offers No screener; it disables Preset, Stocks per day and AI ranking, and the data check warns above 50 stocks. | Source choice | plan, data check line | Warning text: Step 2 will be slow | Implemented |

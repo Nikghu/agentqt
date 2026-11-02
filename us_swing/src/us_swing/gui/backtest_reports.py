@@ -98,7 +98,8 @@ def plan_sections(saved: SavedReport) -> list[Section]:
     return [
         ("UNIVERSE", [("Period", f"{show_date(plan.period.start)} → {show_date(plan.period.end)}"),
                       ("Stocks", _short_stocks(plan)),
-                      ("Stocks per day", str(plan.screener.top_n or "All"))]),
+                      ("Stocks per day", "All (no screener)" if plan.screener.skip
+                       else str(plan.screener.top_n or "All"))]),
         ("STRATEGY", strategies),
         ("MONEY", [("Capital", capital),
                    ("Daily loss stop", f"{plan.account.max_daily_loss_pct:g}%"),
