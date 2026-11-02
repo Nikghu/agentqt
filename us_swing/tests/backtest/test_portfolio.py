@@ -55,7 +55,8 @@ def _daily(rows: list[tuple[date, str, float]]) -> pd.DataFrame:
 
 def _run(tmp_path: Path, bars: dict[str, list[pd.DataFrame]], signals: list[dict[str, Any]],
          daily: pd.DataFrame, strategies: list[tuple[dict[str, Any], float, float]],
-         capital: float = 1000.0, days: tuple[date, ...] = (D1, D2), **account: Any
+         capital: float = 1000.0, days: tuple[date, ...] = (D1, D2),
+         loading: portfolio.Progress | None = None, **account: Any
          ) -> portfolio.VariantResult:
     store = BacktestStore(tmp_path / "store")
     for sym, frames in bars.items():
@@ -71,7 +72,7 @@ def _run(tmp_path: Path, bars: dict[str, list[pd.DataFrame]], signals: list[dict
     frame = pd.DataFrame(signals, columns=["strategy", "symbol", "kind", "start", "end",
                                            "close_at_start", "values", "pnl"])
     (result,) = portfolio.run_portfolio(plan, [cfg for cfg, _a, _p in strategies], daily,
-                                        list(days), frame, store)
+                                        list(days), frame, store, loading=loading)
     return result
 
 
@@ -101,6 +102,16 @@ def test_first_signal_or_highest_score(tmp_path: Path, rule: str, winner: str) -
                [(_strategy(), 100, 100)], when_full=rule)
 
     assert list(res.trades["symbol"])[:2] == ["TSLA", winner]
+
+
+def test_candle_loading_progress(tmp_path: Path) -> None:
+    """UT-BKT-002.030.M12.T03: Candle loading reports each picked stock read, in order."""
+    seen: list[tuple[int, int]] = []
+    _run(tmp_path, {"AAPL": [_bars(D2)], "MSFT": [_bars(D2)]}, [],
+         _daily([(D2, "AAPL", 1.0), (D2, "MSFT", 0.5)]), [(_strategy(), 50, 100)],
+         loading=lambda d, t: seen.append((d, t)))
+
+    assert seen == [(1, 2), (2, 2)]
 
 
 def test_per_trade_sizing(tmp_path: Path) -> None:
@@ -230,6 +241,19 @@ def test_intraday_end_time_and_swing_overnight(tmp_path: Path) -> None:
 
     assert (intraday.exit_reason, intraday.exit_ts) == ("end_time", _at(D2, "15:30"))
     assert (swing.exit_reason, swing.exit_ts) == ("end_of_test", _at(D3, "16:00"))
+
+
+def test_end_of_test_close_in_last_equity(tmp_path: Path) -> None:
+    """UT-BKT-002.037.M12.T02: The last equity row includes the test-end close and its costs."""
+    res = _run(tmp_path, {"AAPL": [_bars(D2), _bars(D3, price=103.0)]},
+               [_sig("S1", "AAPL", "entry", D2, "10:00", "10:00")],
+               _daily([(D2, "AAPL", 1.0)]), [(_strategy(trade_type="Swing"), 100, 100)],
+               days=(D1, D2, D3), costs=CostSpec(per_order=1.0, slippage_bps=10.0))
+    last = res.money.iloc[-1]
+
+    assert res.trades.iloc[0].exit_reason == "end_of_test"
+    assert last.equity == pytest.approx(1000.0 + res.trades["net_pnl"].sum())
+    assert (last.deployed, last.open_value) == (0.0, 0.0)
 
 
 def test_daily_loss_stop(tmp_path: Path) -> None:

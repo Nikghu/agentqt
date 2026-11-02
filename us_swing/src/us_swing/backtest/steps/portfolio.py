@@ -385,6 +385,9 @@ class _Sim:
         for pos in list(acc.positions.values()):
             bars = self.bars[pos.symbol]
             acc.close(pos, float(bars.close[-1]), int(bars.close_ns[-1]), "end_of_test")
+        if self.money:
+            day, capital, _deployed, margin_min, _free, _open, _equity = self.money[-1]
+            self.money[-1] = (day, capital, 0.0, margin_min, capital, 0.0, acc.equity())
         trades = pd.DataFrame(acc.trades, columns=TRADE_COLUMNS)
         log = pd.DataFrame(acc.log, columns=LOG_COLUMNS)
         for frame, cols in ((trades, ("entry_ts", "exit_ts")), (log, ("ts",))):
@@ -414,8 +417,11 @@ def run_portfolio(
     *,
     progress: Progress | None = None,
     cancel: Cancel | None = None,
+    loading: Progress | None = None,
 ) -> list[VariantResult]:
     """Run every variant of the plan (SRD-BKT-002.030–.038).
+
+    ``loading`` gets (stocks read, total) while 3m candles load, before ``progress`` starts.
 
     Raises:
         StepRefused: trailing levels, PNL conditions or Grow with P&L.
@@ -429,11 +435,15 @@ def run_portfolio(
     live = {str(cfg["name"]): cfg for cfg in strategies}
     picks = picks_by_day(daily, days, plan.screener.top_n)
     symbols = sorted({s for p in picks.values() for s in p})
+    loaded = loading or (lambda _done, _total: None)
     bars = {}
-    for sym in symbols:
+    for i, sym in enumerate(symbols, start=1):
         frame = store.read(sym, "3m", plan.period.start, plan.period.end)
         if not frame.empty:
             bars[sym] = _Bars(frame)
+        loaded(i, len(symbols))
+        if stop():
+            raise StepCancelled
     entry: dict[tuple[str, str], IntArray] = {}
     exits: dict[tuple[str, str], BoolArray] = {}
     for keys, rows in signals.groupby(["strategy", "symbol"]):

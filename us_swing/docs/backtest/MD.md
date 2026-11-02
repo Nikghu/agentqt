@@ -1,12 +1,15 @@
 # Module Decomposition — Backtest Module (BKT)
 
 **Document ID:** MD-BKT
-**Version:** 1.1.0
-**Traces To:** SRD-BKT v1.1.0 / DD-BKT v1.1.0
+**Version:** 1.4.0
+**Traces To:** SRD-BKT v1.12.0 / DD-BKT v1.4.0
 **Status:** Draft
-**Last Updated:** 2026-10-29
+**Last Updated:** 2026-11-02
 **Project:** US Swing Trading System
 
+> v1.4.0: 30m timeframe — `store.py` (MD-BKT-001.001.M01) `_to_30m()`, `_build_from_3m()`; `steps/signals.py` (MD-BKT-002.026.M11) and `core/expr/series.py` (MD-BKT-002.021.M10) accept 30m (SRD-BKT-001.016, .002.085).
+> v1.3.0: MD-BKT-002.083.M15 takes SRD-BKT-002.084 (trade analysis layout); MD-BKT-002.030.M12 `finish()` fix (ISS-BKT-0001).
+> v1.2.0: MD-BKT-002.083.M15 added — HTML report of a saved run.
 > v1.1.0: MD-BKT-002.* added — engine Phase 0 and 1 (spec, universe, cache, results, service, cli, steps/stocks, core bridge).
 > v1.0.0: MD-BKT-001.* added — new package `us_swing/src/us_swing/backtest/`.
 
@@ -46,6 +49,7 @@ Cross-tool note: `screener/executor.py` gets a public `PresetExecutor.screen()` 
 | MD-BKT-002.026.M11 | SRD-BKT-002.026 | `us_swing/src/us_swing/backtest/steps/signals.py` | Step 2 periods per strategy and stock, cache, pool | `load_frames()`, `schedule_mask()`, `periods()`, `signal_key()`, `stocks_for()`, `run_signals()` | `core.expr.series`, `cache`, `store` | Process pool |
 
 | MD-BKT-002.080.M14 | SRD-BKT-002.080 | `us_swing/src/us_swing/backtest/steps/recorded.py` | Step 1 from the screener lists the app saved | `load_lists()`, `saved_days()`, `trade_day()` | `pandas`, `json` | No |
+| MD-BKT-002.083.M15 | SRD-BKT-002.083, .084 | `us_swing/src/us_swing/backtest/html_report.py` | One offline HTML page of a saved run in the trade analysis layout; called by `BacktestService.export_html()` with `run_facts()` | `render()`, `equity_svg()`, `trade_bars_svg()`, `fmt()` | `steps.report`, `pandas`, `html` | No |
 
 Also changed (SRD-BKT-002.080–.081, Phase 5): `spec.ScreenerSpec.recorded`; `service.py` `Estimate.recorded`, `_estimate_recorded()`, `saved_days()`, `_saved_lists()`, `screener_results` argument.
 

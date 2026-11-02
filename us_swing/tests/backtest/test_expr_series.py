@@ -28,7 +28,7 @@ def frames(tmp_path: Path) -> dict[str, pd.DataFrame]:
     store = BacktestStore(tmp_path)
     store.save("AAPL", "1d", daily_bars("2025-01-01", 60, 3), LATE)
     store.save("AAPL", "3m", intraday_bars(_DAYS, 4), LATE)
-    return {tf: store.read("AAPL", tf) for tf in ("3m", "15m", "1d", "1w")}
+    return {tf: store.read("AAPL", tf) for tf in ("3m", "15m", "30m", "1d", "1w")}
 
 
 def _live(name: str, args: list[Any], frame: pd.DataFrame, tf: str) -> float:
@@ -61,7 +61,7 @@ def test_parity_every_function_and_timeframe(frames: dict[str, pd.DataFrame]) ->
     cases = [*_CASES, ("VWAP", ["Spot"])]
     for tf, frame in frames.items():
         for name, args in cases:
-            if name == "VWAP" and tf in ("3m", "15m"):
+            if name == "VWAP" and tf in ("3m", "15m", "30m"):
                 continue  # resets per session by design (UT-BKT-002.024.M10.T01)
             full = [*args, tf]
             series = function_series(name, full, frame, tf)
@@ -180,3 +180,15 @@ def test_swing_bad_candles_and_legacy_args(frames: dict[str, pd.DataFrame]) -> N
     current = evaluate("SWING('Spot', 5, 'High', 'Current', '3m') > 0", frames)
     np.testing.assert_array_equal(list(legacy.values.values())[0],
                                   list(current.values.values())[0])
+
+
+def test_price_30m_changes_only_at_bucket_close(frames: dict[str, pd.DataFrame]) -> None:
+    """UT-BKT-002.085.M10.T01: 30m current price moves only at :00 and :30 closes."""
+    ev = evaluate("Price('Spot', 'current', 'close', '30m') > 0", frames)
+    closes = pd.DatetimeIndex(frames["3m"]["ts"]) + pd.Timedelta(minutes=3)
+    values = ev.values["Price(current, close, 30m)"]
+    same = (values[1:] == values[:-1]) | (np.isnan(values[1:]) & np.isnan(values[:-1]))
+    changed = np.flatnonzero(~same) + 1
+
+    assert len(changed) > 0
+    assert all(closes[i].minute % 30 == 0 for i in changed)

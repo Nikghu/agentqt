@@ -1,12 +1,15 @@
 # Design Document — Backtest Module (BKT)
 
 **Document ID:** DD-BKT
-**Version:** 1.1.0
-**Traces To:** SRD-BKT v1.1.0
+**Version:** 1.4.0
+**Traces To:** SRD-BKT v1.12.0
 **Status:** Draft
-**Last Updated:** 2026-10-29
+**Last Updated:** 2026-11-02
 **Project:** US Swing Trading System
 
+> v1.4.0: DD-BKT-001.016.D01 added — 30m candles.
+> v1.3.0: DD-BKT-002.084.D01 added — trade analysis layout; ISS-BKT-0001 note on the last equity row.
+> v1.2.0: DD-BKT-002.083.D01 added — HTML report of a saved run.
 > v1.1.0: DD-BKT-002.001.D01 and DD-BKT-002.010.D01 added — engine foundation and Step 1.
 > v1.0.0: DD-BKT-001.001.D01 added — Parquet store, planner, downloader and auto delta schedule.
 
@@ -126,3 +129,43 @@ Blocked candidates are logged once per (strategy, stock, entry window, decision)
 **Daily loss (SRD .038).** `equity(t) − equity(day start) ≤ −pct/100 × equity(day start)` sets the day's stop flag; logged once as daily_loss_stop.
 
 **Results (SRD .039).** `ResultsStore.save_variant(run_id, index, variant, result)` writes `variants` (variant_id, run_id, capital, strategies JSON) and appends `trades`, `day_log`, `money_daily` with `pandas.to_sql`. `BacktestService.run_portfolio(plan, daily, signals)` loads the live strategies, runs every variant in turn and records the run.
+
+---
+
+## DD-BKT-002.083.D01 — HTML Report of a Saved Run
+
+**Traces:** SRD-BKT-002.083
+
+**Flow.** `BacktestService.export_html(run_id, path, user_id="")` reads the run row (unknown id → `ValueError`), its plan, and `saved_results(run_id)`; `build_reports()` gives one `Report` per variant. Steps 1 and 2 are not read, so it takes seconds, not minutes like Open. The screener preset name comes from the preset loader; on any error the preset id is shown.
+
+**Page (`backtest/html_report.py`).** `render(name, saved_at, facts, reports) -> str` returns one HTML string with inline CSS, no scripts, no outside links. `facts` is `run_facts(plan, screener)` (period, stocks, screener, strategies, capital, daily loss stop, costs). Per variant (titled with its label when there are several): KPI tiles for `KEY_STATS`, an inline SVG equity line with the benchmark (grey, when present) and a dashed start-capital line, P&L by strategy (`breakdown(trades, "strategy")`), monthly P&L, all measures, and the trade list with ET times. All text goes through `html.escape`.
+
+## DD-BKT-002.084.D01 — Trade Analysis Layout of the HTML Report
+
+**Traces:** SRD-BKT-002.084 (replaces the page layout of DD-BKT-002.083.D01; the flow is unchanged)
+
+**Page.** A grey band holds the run name, saved time and the setup facts. Per variant: trade count with wins and losses, big signed Net P&L, return and the benchmark return (last benchmark value / capital − 1, shown only when the benchmark exists). Then, in order:
+
+| Block | Content |
+|---|---|
+| Edge per trade | Expectancy, win rate, average win / loss, payoff |
+| Luck check | Sum of the best 5 trades, P&L without them, first / second half P&L, longest loss streak |
+| Trade quality | Average MFE, average MAE, profit given back, median hold |
+| Every trade, in exit order | `trade_bars_svg()`: one bar per trade, green ≥ 0, red < 0; each bar's SVG `<title>` gives stock, exit date, P&L, move and days held (native browser tooltip) |
+| Account value | `equity_svg()`: nice-number price axis, month labels, area under equity, dashed start capital, direct end labels pushed 26 px apart when close |
+| Groups | By hold time (Same day, 1–13 d, 2–4 wk, 1–2 mo, Over 2 mo; empty buckets hidden), by exit reason, by strategy when more than one |
+| Best / worst trades | Up to 5 winners (P&L > 0) and 5 losers (P&L < 0); fewer when there are fewer |
+| All trades | Number columns and their headers right-aligned; hold = ET calendar days between entry and exit; Move = sign × (exit / entry − 1); end_of_test tagged "Open at end" |
+| All measures | Every Step 4 stat in two columns; hours shown as days from 24 h |
+
+**Hover.** One inline `<script>` reads `data-*` attributes on the equity SVG (dates, series names, values, plot box, axis range) and moves a crosshair, dots and a tooltip. No script `src`, no `href`, no web address apart from the SVG namespace. Without the script the page still reads fully.
+
+**ISS-BKT-0001.** `_Sim.finish()` rewrites the last money row after the test-end closes (equity = capital + realized, nothing deployed or open), so Net P&L equals the trades' sum on new runs.
+
+## DD-BKT-001.016.D01 — 30m Candles
+
+**Traces:** SRD-BKT-001.016, SRD-BKT-002.085
+
+**Build.** `_to_30m()` groups the 3m bars of a year file by `ts.floor("30min")`, next to `_to_15m()`. US/Eastern is a whole number of hours from UTC, so the UTC 30-minute buckets start at 09:30, 10:00 … 15:30 ET in summer and winter: 13 full bars a day, none short. `_build_from_3m(symbol, year_file, tf)` writes 15m and 30m; `save()` and `build_missing()` call it for both, so stores saved before 30m existed get the files on the next start. `stats()` counts them in the size; `clear()` removes `30m/`.
+
+**Use in Step 2.** `INTRADAY_MINUTES["30m"] = 30`, so `available_ns()` makes a 30m bar visible at its close (the 09:30 bar at 10:00) and VWAP resets per session; `load_frames()` reads 30m with the intraday warm-up.

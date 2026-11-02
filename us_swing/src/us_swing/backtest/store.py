@@ -26,9 +26,10 @@ from us_swing.backtest import DEFAULT_ROOT
 from us_swing.backtest.settings import STATE_FILE, DownloadState
 
 Timeframe = Literal["1d", "3m"]
-StoredTf = Literal["1d", "3m", "15m", "1w"]
+StoredTf = Literal["1d", "3m", "15m", "30m", "1w"]
 
-_YEARLY: tuple[StoredTf, ...] = ("3m", "15m")
+_YEARLY: tuple[StoredTf, ...] = ("3m", "15m", "30m")
+_BUILT_FROM_3M: tuple[StoredTf, ...] = ("15m", "30m")
 _ET = ZoneInfo("America/New_York")
 _DAY_DONE = time(16, 15)
 _REPLACE_TRIES = 5
@@ -87,7 +88,7 @@ class BacktestStore:
 
         Bars of today's US/Eastern date are dropped when ``now`` is before 16:15 ET, and bars
         before ``start`` are dropped so the store keeps only the asked range. A 3m save rebuilds
-        the 15m file of each year it touched; a 1d save rebuilds the 1w file.
+        the 15m and 30m files of each year it touched; a 1d save rebuilds the 1w file.
 
         Args:
             symbol: Stock ticker.
@@ -114,11 +115,12 @@ class BacktestStore:
             years = pd.Series([d.year for d in _et_dates(bars["ts"], tf)], index=bars.index)
             for year, part in bars.groupby(years):
                 self._merge_write(self._yearly(symbol, "3m") / f"{year}.parquet", part)
-                self._build_15m(symbol, f"{year}.parquet")
+                for tf_built in _BUILT_FROM_3M:
+                    self._build_from_3m(symbol, f"{year}.parquet", tf_built)
         return len(bars)
 
     def build_missing(self) -> int:
-        """Build 15m and 1w files that are missing or older than their 3m or 1d source.
+        """Build 15m, 30m and 1w files that are missing or older than their 3m or 1d source.
 
         Returns:
             Number of stocks that got at least one file built.
@@ -126,9 +128,10 @@ class BacktestStore:
         built: set[str] = set()
         for src in self._glob("3m", "*/*.parquet"):
             symbol = src.parent.name
-            if _stale(self._yearly(symbol, "15m") / src.name, src):
-                self._build_15m(symbol, src.name)
-                built.add(symbol)
+            for tf in _BUILT_FROM_3M:
+                if _stale(self._yearly(symbol, tf) / src.name, src):
+                    self._build_from_3m(symbol, src.name, tf)
+                    built.add(symbol)
         for src in self._glob("1d", "*.parquet"):
             if _stale(self._single(src.stem, "1w"), src):
                 self._build_1w(src.stem)
@@ -182,7 +185,8 @@ class BacktestStore:
         symbols_3m = {p.name for p in (self.root / "3m").glob("*") if p.is_dir()}
         files_1d = self._glob("1d", "*.parquet")
         files_3m = self._glob("3m", "*/*.parquet")
-        files_built = self._glob("15m", "*/*.parquet") + self._glob("1w", "*.parquet")
+        files_built = [f for tf in _BUILT_FROM_3M for f in self._glob(tf, "*/*.parquet")]
+        files_built += self._glob("1w", "*.parquet")
         dates = [d for sym in symbols_1d if (cov := self.coverage(sym, "1d")) for d in cov]
         state = DownloadState.load(self.root)
         firsts_3m = [
@@ -202,7 +206,7 @@ class BacktestStore:
 
     def clear(self) -> None:
         """Delete all saved candles and the download state; keep ``settings.json``."""
-        for sub in ("1d", "3m", "15m", "1w"):
+        for sub in ("1d", "3m", "15m", "30m", "1w"):
             shutil.rmtree(self.root / sub, ignore_errors=True)
         (self.root / STATE_FILE).unlink(missing_ok=True)
 
@@ -221,9 +225,9 @@ class BacktestStore:
     def _glob(self, sub: str, pattern: str) -> list[Path]:
         return sorted((self.root / sub).glob(pattern))
 
-    def _build_15m(self, symbol: str, year_file: str) -> None:
+    def _build_from_3m(self, symbol: str, year_file: str, tf: StoredTf) -> None:
         bars = pd.read_parquet(self._yearly(symbol, "3m") / year_file)
-        _write(self._yearly(symbol, "15m") / year_file, _to_15m(bars))
+        _write(self._yearly(symbol, tf) / year_file, _to_15m(bars) if tf == "15m" else _to_30m(bars))
 
     def _build_1w(self, symbol: str) -> None:
         bars = pd.read_parquet(self._single(symbol, "1d"))
@@ -260,6 +264,11 @@ def _to_15m(bars: pd.DataFrame) -> pd.DataFrame:
     US/Eastern is a whole number of hours from UTC, so 15-minute UTC buckets match ET ones.
     """
     return _ohlcv(bars, bars["ts"].dt.floor("15min"))
+
+
+def _to_30m(bars: pd.DataFrame) -> pd.DataFrame:
+    """Group 3m bars into 30m bars timed by their start (09:30, 10:00 … 15:30 ET), 13 a day."""
+    return _ohlcv(bars, bars["ts"].dt.floor("30min"))
 
 
 def _to_1w(bars: pd.DataFrame) -> pd.DataFrame:

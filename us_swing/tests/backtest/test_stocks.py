@@ -246,5 +246,5 @@ def test_worker_error_is_plain(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(RuntimeError) as err:
         stocks._run_day({}, ["AAPL"], date(2025, 3, 3), {})
 
-    assert str(err.value) == "2025-03-03: Data for 'SPY' is missing"
+    assert str(err.value) == "03-03-2025: Data for 'SPY' is missing"
     assert pickle.loads(pickle.dumps(err.value)).args == err.value.args

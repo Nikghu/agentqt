@@ -28,7 +28,7 @@ BoolArray = npt.NDArray[np.bool_]
 IntArray = npt.NDArray[np.int64]
 
 ET = ZoneInfo("America/New_York")
-INTRADAY_MINUTES = {"3m": 3, "15m": 15}
+INTRADAY_MINUTES = {"3m": 3, "15m": 15, "30m": 30}
 _NS_PER_MIN = 60_000_000_000
 _ARITY = {"Number": 1, "PNL": 1, "VWAP": 2, "Price": 4, "RSI": 3, "ADX": 3, "EMA": 3,
           "SUPERTREND": 5, "SWING": 5, "MACD": 5}
