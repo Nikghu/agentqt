@@ -1,12 +1,13 @@
 # Unit Test Case Document â€” Execution & Risk Management (EXE)
 
 **Document ID:** UTCD-EXE
-**Version:** 1.16.0
+**Version:** 1.17.0
 **Traces To:** MD-EXE v1.15.0
 **Status:** Draft
 **Last Updated:** 2026-10-27
 **Project:** US Swing Trading System
 
+> v1.21.0: UT-EXE-006.015.M01.T01–T02 and UT-EXE-007.011.M01.T01–T02 added; UT-EXE-009.002.M01.T09 covers price_30m — 30m timeframe.
 > v1.20.0: UT-EXE-007.001.M01.T27–T29 added (complete candles only, ISS-EXE-0013).
 > v1.19.0: UT-EXE-017.027.M14.T01–T03 added (paper account state).
 > v1.18.0: UT-EXE-020.007–.008 added (6 tests, equity curve).
@@ -172,6 +173,8 @@
 | UT-EXE-006.001.M01.T23 | MD-EXE-006.001.M01 | Negative | No bar is dropped when the last bar has closed (SRD-EXE-006.014) | 90 1m bars from a day ago | 3m frame length = assembled bar count | Pass |
 | UT-EXE-006.001.M01.T24 | MD-EXE-006.001.M01 | Positive | Last price is the newest 1m or 3m close (ISS-GUI-0012) | 90 1m bars and one older 3m bar | close of the newest 1m bar | Pass |
 | UT-EXE-006.001.M01.T25 | MD-EXE-006.001.M01 | Negative | No stored bars gives no last price (ISS-GUI-0012) | empty database | None | Pass |
+| UT-EXE-006.015.M01.T01 | MD-EXE-006.001.M01 | Positive | 30m frame from 1m | 900 1m bars from a whole hour | frames include 30m; every bar starts on :00 or :30 | Pass |
+| UT-EXE-006.015.M01.T02 | MD-EXE-006.001.M01 | Positive | 30m starts 09:30 ET | 1m bars 09:30–16:00 ET on a winter and a summer day | 13 bars a day, first 09:30 ET; a live `price_30m` row overrides its bar | Pass |
 
 ---
 
@@ -261,6 +264,8 @@
 | UT-EXE-007.001.M01.T27 | MD-EXE-007.001.M01 | Negative | A Yahoo 15m bar still forming is not saved | One closed and one forming 15m bar | Only the closed bar is in `price_15m` | Pass |
 | UT-EXE-007.001.M01.T28 | MD-EXE-007.001.M01 | Negative | The first IBKR window after a mid-window start is not saved | Feed starts 8 min into a 15m window | No candle passed on for saving | Pass |
 | UT-EXE-007.001.M01.T29 | MD-EXE-007.001.M01 | Positive | Windows starting at or after the first bar are saved | Start on a boundary; start mid-window then two closes | One candle saved in each case | Pass |
+| UT-EXE-007.011.M01.T01 | MD-EXE-007.001.M01 | Positive | 30m saved in price_30m | Yahoo 30m rows, one still forming; one IBKR bar | closed row saved in `price_30m`; forming row skipped; `_write_bar` accepts 30m | Pass |
+| UT-EXE-007.011.M01.T02 | MD-EXE-007.001.M01 | Positive | IBKR 30m windows | 5-second bars from a 30m boundary to the next | one 30m candle passed on for saving | Pass |
 
 ---
 
@@ -355,7 +360,7 @@
 | UT-EXE-009.002.M01.T06 | MD-EXE-009.002.M01 | Positive | `transition_to_entered` flips MONITORING → ENTERED with timestamps | Existing MONITORING row for (`today`, "A"); call with `entered_at`, `trade_id` | Row's `lifecycle_state='ENTERED'`, `entered_at` and `trade_id` populated | Pass |
 | UT-EXE-009.002.M01.T07 | MD-EXE-009.002.M01 | Positive | `transition_to_exited` flips ENTERED → EXITED | ENTERED row for ("2026-05-14", "A"); call with `exited_at` | `lifecycle_state='EXITED'`, `exited_at` set | Pass |
 | UT-EXE-009.002.M01.T08 | MD-EXE-009.002.M01 | Positive | `bulk_skip_stale_monitoring` flips only stale MONITORING rows | Rows: ("2026-05-14","A")=MONITORING, ("2026-05-15","B")=MONITORING, today=2026-05-15 | Row A → SKIPPED; row B untouched; returned count == 1 | Pass |
-| UT-EXE-009.002.M01.T09 | MD-EXE-009.002.M01 | Positive | `evict_symbol_atomic` deletes from all 3 price tables + flips ledger | Seed 5 rows in each of price_1m/3m/15m for "B"; SKIPPED ledger row for ("2026-05-14","B") | All price_* rows for "B" deleted; ledger row → EVICTED with `evicted_at`; returned dates == ("2026-05-14",) | Pass |
+| UT-EXE-009.002.M01.T09 | MD-EXE-009.002.M01 | Positive | `evict_symbol_atomic` deletes from all 4 price tables + flips ledger | Seed 5 rows in each of price_1m/3m/15m/30m for "B" (price_30m added for SRD-EXE-007.011); SKIPPED ledger row for ("2026-05-14","B") | All price_* rows for "B" deleted; ledger row → EVICTED with `evicted_at`; returned dates == ("2026-05-14",) | Pass |
 | UT-EXE-009.002.M01.T10 | MD-EXE-009.002.M01 | Negative | `evict_symbol_atomic` rolls back fully on mid-transaction failure | Patch `price_15m` DELETE to raise `OperationalError` | price_1m and price_3m rows for "B" still present; ledger row still SKIPPED | Pass |
 | UT-EXE-009.002.M01.T11 | MD-EXE-009.002.M01 | Positive | `open_system_position_symbols` returns only system, non-CLOSED positions | Positions: A (system, OPEN), B (system, CLOSED), C (manual, OPEN) | Returned frozenset == `frozenset({"A"})` | Pass |
 | UT-EXE-009.002.M01.T12 | MD-EXE-009.002.M01 | Negative | `open_system_position_symbols` excludes legacy NULL-origin rows | Positions: D (origin=NULL, OPEN) | "D" not in returned set | Pass |

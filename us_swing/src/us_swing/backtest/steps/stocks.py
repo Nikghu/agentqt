@@ -25,6 +25,7 @@ from us_swing.backtest.cache import StepCache, make_key
 from us_swing.backtest.spec import Period, RunPlan
 from us_swing.backtest.store import BacktestStore
 from us_swing.core.backtest_bridge import screen_day
+from us_swing.core.dates import show_date
 from us_swing.core.indicator_rules import IndicatorRuleError, rules_from_config
 
 STEP = "stocks"
@@ -186,7 +187,7 @@ def _run_day(
     try:
         return day, compute_day(_history, preset_dict, symbols, day, market_caps)
     except Exception as exc:  # noqa: BLE001 — sent back once as plain text (SRD-BKT-002.019)
-        raise RuntimeError(f"{day.isoformat()}: {exc}") from None
+        raise RuntimeError(f"{show_date(day)}: {exc}") from None
 
 
 def run_stocks(

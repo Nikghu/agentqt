@@ -70,7 +70,7 @@ def seed_price(engine: Engine) -> Callable[[str, int], None]:
     intraday timeframe so eviction has something to delete."""
     def _seed(symbol: str, n: int = 3) -> None:
         with engine.begin() as conn:
-            for tf in ("price_1m", "price_3m", "price_15m"):
+            for tf in ("price_1m", "price_3m", "price_15m", "price_30m"):
                 for i in range(n):
                     conn.execute(
                         text(

@@ -19,12 +19,14 @@ from typing import Any, TypeVar
 
 import pandas as pd
 
+from us_swing.backtest import html_report
 from us_swing.backtest.cache import StepCache
 from us_swing.backtest.results import ResultsStore, RunRow
 from us_swing.backtest.spec import Period, RunPlan, Variant
 from us_swing.backtest.steps import portfolio, recorded, report, signals, stocks
 from us_swing.backtest.store import BacktestStore, StoredTf
 from us_swing.backtest.universe import UniverseRecord, resolve
+from us_swing.core.dates import DATE_TIME_FMT, show_date
 
 _log = logging.getLogger(__name__)
 
@@ -232,10 +234,12 @@ class BacktestService:
         progress: stocks.Progress | None = None,
         cancel: stocks.Cancel | None = None,
         started: Callable[[str], None] | None = None,
+        loading: stocks.Progress | None = None,
     ) -> list[portfolio.VariantResult]:
         """Run Step 3 for every variant and save the rows (SRD-BKT-002.039).
 
         ``started`` gets the saved run id before Step 3 begins (SRD-MCP-007.005).
+        ``loading`` gets (stocks read, total) while candles load.
 
         Raises:
             ValueError: no strategy picked, or a name is not in the live store.
@@ -248,7 +252,7 @@ class BacktestService:
                 started(run_id)
             results = portfolio.run_portfolio(
                 plan, chosen, daily.frame, daily.days, found, self._store,
-                progress=progress, cancel=cancel,
+                progress=progress, cancel=cancel, loading=loading,
             )
             for i, res in enumerate(results):
                 self._results.save_variant(run_id, i, res.variant, res.trades, res.day_log,
@@ -336,6 +340,33 @@ class BacktestService:
         self._results.delete_run(run_id)
         _log.info("[Backtest] Saved run deleted")
 
+    def export_html(self, run_id: str, path: Path, user_id: str = "") -> Path:
+        """Write a saved run as one HTML report from its Step 3 rows only (SRD-BKT-002.083).
+
+        ``user_id`` finds the screener preset's name; its id is shown when that fails.
+
+        Raises:
+            ValueError: the run id is unknown.
+            OSError: the file could not be written.
+        """
+        run = self._results.get_run(run_id)
+        if run is None:
+            raise ValueError(f"No saved run {run_id}")
+        plan = RunPlan.from_json(run.plan_json)
+        reports = self.build_reports(plan, self.saved_results(run_id))
+        saved_at = run.started.astimezone().strftime(DATE_TIME_FMT)
+        facts = run_facts(plan, self._preset_name(plan.screener.preset_id, user_id))
+        path.write_text(html_report.render(run.name, saved_at, facts, reports),
+                        encoding="utf-8")
+        _log.info("[Backtest] Report saved to %s", path)
+        return path
+
+    def _preset_name(self, preset_id: str, user_id: str) -> str:
+        try:
+            return str(self._presets(preset_id, user_id).get("name") or preset_id)
+        except Exception:  # noqa: BLE001 — a deleted or foreign preset shows its id
+            return preset_id
+
     def report_for_run(self, run_id: str) -> list[report.Report]:
         """Step 4 from a saved run's rows in ``results.db``, without running Steps 1–3.
 
@@ -422,6 +453,23 @@ def stocks_text(plan: RunPlan) -> str:
     if uni.mode == "names":
         return ", ".join(uni.names[:5]) + (" …" if len(uni.names) > 5 else "")
     return "S&P 500"
+
+
+def run_facts(plan: RunPlan, screener: str) -> list[tuple[str, str]]:
+    """Setup lines of a run for the HTML report: period, stocks, screener, strategies, money."""
+    strategies = "; ".join(f"{s.id} {s.allocation_pct[0]:g}%/{s.per_trade_pct[0]:g}%"
+                           for s in plan.strategies) or "None"
+    source = "saved lists" if plan.screener.recorded else "replay"
+    return [
+        ("Period", f"{show_date(plan.period.start)} → {show_date(plan.period.end)}"),
+        ("Stocks", stocks_text(plan)),
+        ("Screener", f"{screener} · {source} · "
+                     f"{plan.screener.top_n or 'all'} per day"),
+        ("Strategies (allocation / per trade)", strategies),
+        ("Capital", ", ".join(f"${c:,.0f}" for c in plan.account.capital)),
+        ("Daily loss stop", f"{plan.account.max_daily_loss_pct:g}%"),
+        ("Costs", f"${plan.costs.per_order:g} an order · {plan.costs.slippage_bps:g} bps"),
+    ]
 
 
 def variant_label(variant: Variant) -> str:

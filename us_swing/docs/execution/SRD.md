@@ -1,10 +1,10 @@
 # Software Requirement Document — Execution & Risk Management (EXE)
 
 **Document ID:** SRD-EXE
-**Version:** 1.32.0
+**Version:** 1.33.0
 **Traces To:** FO-EXE v1.14.0
 **Status:** Draft
-**Last Updated:** 2026-10-31
+**Last Updated:** 2026-11-02
 **Project:** US Swing Trading System
 
 > v1.7.0: Sections 11 + 12 added — SRD-EXE-011.001–015 (Strategy Engine) and SRD-EXE-012.001–013 (Trade Cycle Ledger).
@@ -39,6 +39,7 @@
 > v1.27.0: SRD-EXE-020.001–.006 added — Account Equity Snapshots; approved by user 2026-10-24.
 > v1.26.0: SRD-EXE-019.001–.004 added — Strategy P&L History; approved by user 2026-10-23 (plan).
 > v1.25.1: SRD-EXE-018.016 approved by user (2026-09-18) and set to Implemented — code and tests shipped with the requirement.
+> v1.33.0: SRD-EXE-006.015 and SRD-EXE-007.011 added and approved by user 2026-11-02 — 30m timeframe.
 
 ---
 
@@ -131,6 +132,7 @@
 | SRD-EXE-006.012 | FO-EXE-006 | Must | The execution candle provider also includes stored daily (1d) and weekly (1w) closed bars, read directly from `price_1d` / `price_1w` in candles.db, so both entry and exit conditions can reference daily/weekly timeframes. Strategy Builder Timeframe dropdowns offer `1d` and `1w`. | symbol; `price_1d` / `price_1w` rows in candles.db | `1d` / `1w` frames added to the `dict[str, pd.DataFrame]` | Closed bars only — no aggregation, no live merge, no synthetic current-day bar; timeframe omitted when no stored bars exist | Implemented |
 | SRD-EXE-006.013 | FO-EXE-006 | Must | When a trade cycle opens, `AppService` arms candle feeds for its symbol — triggers an `IntradayCandleLoader` delta-fetch and adds it to `LiveBarWorker.set_symbols` — so a held position always has historical + live bars for indicator evaluation even when its symbol is not in the current screened set (ISS-EXE-0009). | open-cycle symbol-set change (`_on_cycle_symbols_changed`) | symbol added to historical download + live-bar subscription | Idempotent (delta-fetch + set diff); mirrors the tick-subscription guarantee; extends the SRD-EXE-010.006 keep-set handoff to fire on cycle-open, not only at reconcile | Implemented |
 | SRD-EXE-006.014 | FO-EXE-006 | Must | Live strategy frames drop the unfinished last intraday bar, so every function reads closed bars only. | 3m/15m bars | closed frames | User 2026-10-29: matches backtest SRD-BKT-002.050; signals fire after a bar closes | Implemented |
+| SRD-EXE-006.015 | FO-EXE-006 | Must | Live strategy frames include 30m, built from 1m history and merged with live 30m bars. | 1m bars, `price_30m` | closed 30m frame | 13 bars a day from 09:30 ET; closed bars only (SRD-EXE-006.014) | Implemented |
 
 ---
 
@@ -148,6 +150,7 @@
 | SRD-EXE-007.008 | FO-EXE-007 | Must | **Disconnect / reconnect handling:** On IBKR disconnect, `LiveBarWorker` detects the dropped connection via `ib.isConnected()` returning False in the main loop, exits cleanly, and calls `builder.reset(symbol)` for each subscribed symbol — discarding all in-progress windows without persisting. Logs WARNING: `"[Live] IBKR real-time subscription ended"`. On reconnect (i.e., `AppService` calls `_start_live_bar_worker()` again), a fresh `LiveBarWorker` is constructed; fresh windows begin on the first incoming tick for each symbol. `request_stop()` triggers `ib.disconnect()` which tears down all tick subscriptions server-side; no per-symbol `cancelTickByTick` is needed in the stop path. No gap-fill fetch is performed on reconnect — `IntradayCandleLoader` (Phase 1) is responsible for back-filling missing historical bars. | — | in-progress windows discarded on disconnect; fresh worker created on reconnect | `request_stop()` is called by `AppService._stop_live_bar_worker()` before constructing a new worker; partial windows from the previous session are never persisted | Implemented |
 | SRD-EXE-007.009 | FO-EXE-007 | Should | **`get_readiness_report` consistency after live close:** After a `candle_closed` event persists a new 3m bar for `symbol` via `insert_bars()`, a subsequent call to `IntradayCandleLoader.get_readiness_report([symbol])` must return `candles_3m` = (prior count + 1). This holds automatically because `get_readiness_report` queries `price_3m` row counts from the database directly (no stale in-memory cache). No additional integration code is required; this requirement exists to specify the observable contract and to drive the integration test that verifies it. | `candle_closed` event → DB insert | `get_readiness_report` reflects updated count | `get_readiness_report` must query `price_3m` (not only the 1m-aggregated view) — requires SRD-EXE-006.006 to be updated so `candles_3m` reads from `price_3m` row count rather than aggregating from `price_1m`; this update is in scope for Phase 2 implementation | Approved |
 | SRD-EXE-007.010 | FO-EXE-007 | Must | `price_3m` / `price_15m` hold only complete candles: a Yahoo bar is saved only after its window ends, and the first IBKR window after a (re)start is not saved when it began before the first 5-second bar. | Yahoo bars; IBKR 5-second bars | rows in `price_3m` / `price_15m` | A forming or partial candle must never be saved; skipped windows are filled later from `price_1m` | Implemented |
+| SRD-EXE-007.011 | FO-EXE-007 | Must | The live worker forms 30m candles from IBKR 5-second bars or Yahoo 30m bars and saves them in `price_30m`. | IBKR 5-second bars; Yahoo bars | rows in `price_30m` | Complete candles only (SRD-EXE-007.010); the session cleanup clears `price_30m` too | Implemented |
 
 ---
 

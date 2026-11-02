@@ -3,7 +3,7 @@
 **Document ID:** TRACE-GUI
 **Version:** 1.14.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-10-31 (SRD-GUI-013.022 SWING form, ISS-EXE-0014, RN-EXE-1.39.0-20261031; Backtest breakdown redesign, SRD-GUI-031.062–.066, RN-GUI-1.51.0)
+**Last Updated:** 2026-11-02 (SRD-GUI-013.023, .031.084 30m timeframe; SRD-GUI-031.082–.083 HTML download and DD-MM-YYYY dates)
 
 ---
 
@@ -42,6 +42,7 @@
 | FO-GUI-014 | SRD-GUI-014.015 | — | MD-GUI-014.001.M01 | — | `gui/active_cycles_panel.py` | Implemented | RN-EXE-1.22.0-20260610 |
 | FO-GUI-013 | SRD-GUI-013.016–.021 | DD-GUI-013.016.D01 | MD-GUI-013.001.M01, MD-GUI-004.001.M01, MD-GUI-004.001.M02 | UT-GUI-013.016–.018.M01.T01–08, .020.M01.T01, .021.M01.T01–03, .019.M02.T01–02, .020.M02.T02 | `gui/strategy_builder_dialog.py`, `gui/execution_panel.py`, `gui/strategy_table_model.py` | Implemented | RN-GUI-1.5.0-20260917 (.020/.021 pending RN) |
 | FO-GUI-013 | SRD-GUI-013.022 | DD-EXE-011.026.D01 | MD-GUI-013.001.M01 | UT-GUI-013.022.M01.T01–T02 (2 tests, Pass) | `gui/strategy_builder_dialog.py` | Implemented | RN-EXE-1.39.0-20261031 |
+| FO-GUI-013 | SRD-GUI-013.023 | DD-GUI v1.29.0 note | MD-GUI-013.001.M01 | UT-GUI-013.023.M01.T01 | `gui/strategy_builder_dialog.py` | Implemented | RN-GUI-1.54.0-20261102 |
 | FO-GUI-014 | SRD-GUI-014.016–.018 | DD-GUI-014.016.D01 | MD-GUI-014.001.M01–M03 | UT-GUI-014.016.M02.T01–03, .017.M01.T01–05, .018.M03.T01–04 | `gui/active_cycles_model.py`, `gui/active_cycles_panel.py`, `gui/risk_editor_widget.py` | Implemented | RN-GUI-1.5.0-20260917 |
 | FO-GUI-002 | SRD-GUI-002.005 (Reopen; fix conforms to SRD-EXE-018.003) | — | MD-GUI-004.001.M01 | UT-GUI-002.005.M01.T01–T03 | `gui/app_service.py` | Implemented (ISS-GUI-0002 fix only; SRD stays Reopen) | RN-GUI-1.5.1-20261016 |
 | FO-GUI-015 | SRD-GUI-015.002 | DD-GUI-015.001.D01 | MD-GUI-015.002.M01 | UT-GUI-015.002.M01.T01–T02 | `gui/frameless_dialog.py` | Implemented | RN-GUI-1.6.0-20261022 |
@@ -87,6 +88,7 @@
 | FO-GUI-031 | SRD-GUI-031.053–.054 | None (minimal GUI docs) | MD-GUI-031.053.M07, MD-GUI-031.054.M08, MD-GUI-031.003.M03 | UT-GUI-031.053–.054 (8 tests: M07 ×4, M08 ×2, M03 ×2, Pass) | `gui/backtest_trade_list.py`, `gui/backtest_use_charts.py`, `gui/backtest_workspace.py` | Implemented (redesign phase 2) | RN-GUI-1.45.0-20261030 |
 | FO-GUI-031 | SRD-GUI-031.050–.052 | None (minimal GUI docs) | MD-GUI-031.050.M05, MD-GUI-031.052.M06, MD-GUI-031.003.M03 | UT-GUI-031.050–.052 (8 tests: M05 ×2, M06 ×2, M03 ×4, Pass) | `gui/backtest_dock.py`, `gui/backtest_trade_chart.py`, `gui/backtest_workspace.py` | Implemented (redesign phase 1) | RN-GUI-1.44.0-20261030 |
 | FO-GUI-031 | SRD-GUI-031.040–.045 | None yet (Phase 4a view only) | MD-GUI-031.040.M04, MD-GUI-031.003.M03 | UT-GUI-031.040–.045 (12 tests: M04 ×10, M03 ×2, Pass) | `gui/backtest_report_view.py`, `gui/backtest_workspace.py` | Implemented (Phase 4a) | RN-GUI-1.43.0-20261029 |
+| FO-GUI-031 | SRD-GUI-031.082–.084 | DD-GUI-031.001.D01 | MD-GUI-031.055.M09, MD-GUI-031.083.M14, MD-GUI-031.003.M03 | UT-GUI-031.082.M09.T01, UT-GUI-031.083.M14.T01, UT-GUI-031.084.M03.T01 | `gui/backtest_reports.py`, `core/dates.py`, `gui/backtest_workspace.py` | Implemented | RN-GUI-1.54.0-20261102 |
 
 ---
 

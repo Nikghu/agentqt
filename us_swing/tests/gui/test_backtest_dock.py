@@ -103,7 +103,7 @@ def test_time_labels_follow_bar_size() -> None:
 
     assert time_labels(daily) == ["Nov 26", "Nov 27"]
     assert time_labels(_bars()["ts"].pipe(pd.DatetimeIndex))[0] == "09:30"
-    assert time_labels(multi) == ["03-03 15:45", "03-04 09:30", "03-04 09:45"]
+    assert time_labels(multi) == ["03-03 15:45", "04-03 09:30", "04-03 09:45"]
 
 
 def test_trade_badge_and_held_span(qtbot: Any) -> None:

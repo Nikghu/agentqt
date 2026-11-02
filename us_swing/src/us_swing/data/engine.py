@@ -35,11 +35,12 @@ _TF_MINUTES: dict[str, int] = {
     "3m":  3,
     "5m":  5,
     "15m": 15,
+    "30m": 30,
     "1h":  60,
     "4h":  240,
 }
 
-DerivedTimeframe = Literal["3m", "5m", "15m", "1h", "4h"]
+DerivedTimeframe = Literal["3m", "5m", "15m", "30m", "1h", "4h"]
 
 
 @dataclass
@@ -169,7 +170,7 @@ class HistoricalDataEngine:
 
         Args:
             symbol:    Ticker symbol (attached to each output bar).
-            target_tf: One of ``'3m'``, ``'5m'``, ``'15m'``, ``'1h'``, ``'4h'``.
+            target_tf: One of ``'3m'``, ``'5m'``, ``'15m'``, ``'30m'``, ``'1h'``, ``'4h'``.
             bars_1m:   Source 1-minute bars, sorted ascending by datetime.
 
         Returns:

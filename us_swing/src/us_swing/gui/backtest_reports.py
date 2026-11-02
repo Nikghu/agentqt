@@ -3,11 +3,15 @@ Module: MD-GUI-031.055.M09 — Backtest saved reports
 Parent SRD: SRD-GUI-031.055
 
 Saved runs table and a details panel: open the run into the Inspector and Detail
-Report, rename it, keep a note, or delete it (with a confirm).
+Report, download it as an HTML report (SRD-GUI-031.082), rename it, keep a note, or
+delete it (with a confirm).
 """
 from __future__ import annotations
 
 import logging
+import re
+from collections.abc import Callable
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
@@ -15,6 +19,7 @@ from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QDialog,
+    QFileDialog,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -27,6 +32,7 @@ from PyQt6.QtWidgets import (
 )
 
 from us_swing.backtest.service import SavedReport, stocks_text
+from us_swing.core.dates import DATE_TIME_FMT, show_date
 from us_swing.gui.icons import mark_danger, set_icon
 from us_swing.gui.theme import C
 
@@ -55,6 +61,30 @@ class _ListWorker(QThread):
             self.done.emit([])
 
 
+class _HtmlWorker(QThread):
+    done = pyqtSignal(bool)  # True when the file was written
+
+    def __init__(self, service: BacktestService, run_id: str, path: Path, user_id: str,
+                 parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._service, self._run_id, self._path = service, run_id, path
+        self._user_id = user_id
+
+    def run(self) -> None:
+        try:
+            self._service.export_html(self._run_id, self._path, self._user_id)
+            self.done.emit(True)
+        except Exception as exc:  # noqa: BLE001 — logged for the user
+            _log.warning("[Backtest] Could not save the HTML report: %s", exc)
+            self.done.emit(False)
+
+
+def html_file_name(rep: SavedReport) -> str:
+    """"Backtest_2026-11-01_2344.html": run name and save time, safe for a file name."""
+    stem = re.sub(r"[^A-Za-z0-9]+", "_", rep.run.name).strip("_") or "Backtest"
+    return f"{stem}_{rep.run.started.astimezone().strftime('%Y-%m-%d_%H%M')}.html"
+
+
 Section = tuple[str, list[tuple[str, str]]]
 
 
@@ -66,7 +96,7 @@ def plan_sections(saved: SavedReport) -> list[Section]:
                   for s in plan.strategies] or [("None", "")]
     capital = ", ".join(f"${c:,.0f}" for c in plan.account.capital)
     return [
-        ("UNIVERSE", [("Period", f"{plan.period.start} → {plan.period.end}"),
+        ("UNIVERSE", [("Period", f"{show_date(plan.period.start)} → {show_date(plan.period.end)}"),
                       ("Stocks", _short_stocks(plan)),
                       ("Stocks per day", str(plan.screener.top_n or "All"))]),
         ("STRATEGY", strategies),
@@ -105,11 +135,14 @@ class ReportsView(QWidget):
 
     open_requested = pyqtSignal(object)  # SavedReport
 
-    def __init__(self, service: BacktestService, parent: QWidget | None = None) -> None:
+    def __init__(self, service: BacktestService, parent: QWidget | None = None,
+                 user_id: Callable[[], str] = lambda: "") -> None:
         super().__init__(parent)
         self._service = service
+        self._user_id = user_id
         self.saved: list[SavedReport] = []
-        self._workers: list[_ListWorker] = []
+        self._workers: list[QThread] = []
+        self._saving = False
         self.list_box = self._build_list()
         self.details_box = self._build_details()
         self._show_details()
@@ -168,6 +201,10 @@ class ReportsView(QWidget):
         self.open_btn.setObjectName("run_btn")
         set_icon(self.open_btn, "play", "go")
         self.open_btn.clicked.connect(self._on_open)
+        self.html_btn = QPushButton("Download")
+        set_icon(self.html_btn, "download")
+        self.html_btn.setToolTip("Save this run as an HTML report")
+        self.html_btn.clicked.connect(self._on_download)
         self.delete_btn = QPushButton("Delete")
         set_icon(self.delete_btn, "trash-2", "danger")
         mark_danger(self.delete_btn)
@@ -175,6 +212,7 @@ class ReportsView(QWidget):
         buttons.addWidget(self.note_btn)
         buttons.addStretch(1)
         buttons.addWidget(self.delete_btn)
+        buttons.addWidget(self.html_btn)
         buttons.addWidget(self.open_btn)
         body.addLayout(buttons)
         body.addStretch(1)
@@ -198,8 +236,8 @@ class ReportsView(QWidget):
         self.table.blockSignals(True)
         self.table.setRowCount(len(saved))
         for row, rep in enumerate(saved):
-            texts = [rep.run.name, rep.run.started.astimezone().strftime("%Y-%m-%d %H:%M"),
-                     f"{rep.plan.period.start} → {rep.plan.period.end}",
+            texts = [rep.run.name, rep.run.started.astimezone().strftime(DATE_TIME_FMT),
+                     f"{show_date(rep.plan.period.start)} → {show_date(rep.plan.period.end)}",
                      f"{rep.return_pct:+.1%}", f"{rep.max_dd_pct:.1%}", str(rep.trades),
                      _usd(rep.net_pnl), rep.run.status, stocks_text(rep.plan)]
             for col, text in enumerate(texts):
@@ -236,6 +274,7 @@ class ReportsView(QWidget):
         rep = reps[0] if len(reps) == 1 else None
         for widget in (self.name, self.note, self.rename_btn, self.note_btn, self.open_btn):
             widget.setEnabled(rep is not None)
+        self.html_btn.setEnabled(rep is not None and not self._saving)
         self.delete_btn.setEnabled(bool(reps))
         self.delete_btn.setText(f"Delete ({len(reps)})" if len(reps) > 1 else "Delete")
         self.name.setText("" if rep is None else rep.run.name)
@@ -288,6 +327,33 @@ class ReportsView(QWidget):
         rep = self.selected()
         if rep is not None:
             self.open_requested.emit(rep)
+
+    def _on_download(self) -> None:
+        rep = self.selected()
+        if rep is None:
+            return
+        path = self.ask_html_path(Path.home() / "Downloads" / html_file_name(rep))
+        if path is None:
+            return
+        self._saving = True
+        self.html_btn.setEnabled(False)
+        self.html_btn.setText("Saving…")
+        worker = _HtmlWorker(self._service, rep.run.run_id, path, self._user_id(), self)
+        worker.done.connect(self._on_download_done)
+        worker.finished.connect(lambda: self._workers.remove(worker))
+        self._workers.append(worker)
+        worker.start()
+
+    def _on_download_done(self, _ok: bool) -> None:
+        self._saving = False
+        self.html_btn.setText("Download")
+        self.html_btn.setEnabled(self.selected() is not None)
+
+    def ask_html_path(self, default: Path) -> Path | None:
+        """Ask where to save the HTML report; tests replace this."""
+        name, _ = QFileDialog.getSaveFileName(self, "Download report", str(default),
+                                              "HTML report (*.html)")
+        return Path(name) if name else None
 
     def _on_delete(self) -> None:
         reps = self.selected_all()

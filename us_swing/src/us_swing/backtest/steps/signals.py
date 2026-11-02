@@ -25,13 +25,20 @@ from us_swing.backtest.spec import Period
 from us_swing.backtest.steps.stocks import Cancel, Progress, StepCancelled
 from us_swing.backtest.store import BacktestStore
 from us_swing.core.expr import EvaluatorError
-from us_swing.core.expr.series import ET, BoolArray, Evaluation, FloatArray, evaluate
+from us_swing.core.expr.series import (
+    ET,
+    INTRADAY_MINUTES,
+    BoolArray,
+    Evaluation,
+    FloatArray,
+    evaluate,
+)
 
 STEP = "signals"
 STEP_VERSION = 2  # 2: PRICE reads closed bars only (SRD-BKT-002.050)
 INTRADAY_WARMUP_DAYS = 45
 DAILY_WARMUP_DAYS = 400
-_TIMEFRAMES = ("3m", "15m", "1d", "1w")
+_TIMEFRAMES = ("3m", "15m", "30m", "1d", "1w")
 _KINDS = (("entry", "entry_condition"), ("exit", "exit_condition"))
 PERIOD_COLUMNS = ["kind", "start", "end", "close_at_start", "values", "pnl"]
 SIGNAL_COLUMNS = ["strategy", "symbol", *PERIOD_COLUMNS]
@@ -43,10 +50,10 @@ Strategy = Mapping[str, Any]
 
 
 def load_frames(store: BacktestStore, symbol: str, period: Period) -> dict[str, pd.DataFrame]:
-    """Read 3m/15m from 45 days and 1d/1w from 400 days before the start."""
+    """Read 3m/15m/30m from 45 days and 1d/1w from 400 days before the start."""
     frames = {}
     for tf in _TIMEFRAMES:
-        warmup = INTRADAY_WARMUP_DAYS if tf in ("3m", "15m") else DAILY_WARMUP_DAYS
+        warmup = INTRADAY_WARMUP_DAYS if tf in INTRADAY_MINUTES else DAILY_WARMUP_DAYS
         frame = store.read(symbol, tf, period.start - timedelta(days=warmup), period.end)  # type: ignore[arg-type]  # tf is a StoredTf
         frames[tf] = frame.reset_index(drop=True)
     return frames

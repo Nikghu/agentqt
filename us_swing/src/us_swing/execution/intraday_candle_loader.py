@@ -25,8 +25,11 @@ _MIN_CANDLES: int = 390
 _IBKR_MAX_CAL_DAYS_PER_PAGE: int = 30
 _FULL_FETCH_CAL_DAYS: int = 30  # 21 trading days ≈ 30 calendar days; fits one IBKR page
 _REQUIRED_TIMEFRAMES: tuple[DerivedTimeframe, ...] = ("3m", "15m")
+# Strategy frames also carry 30m (SRD-EXE-006.015); readiness stays 3m/15m because
+# 30 days of 1m history give ~270 30m bars, under the 390-bar readiness bar.
+_FRAME_TIMEFRAMES: tuple[DerivedTimeframe, ...] = ("3m", "15m", "30m")
 _STORED_TIMEFRAMES: tuple[str, ...] = ("1d", "1w")  # SRD-EXE-006.012
-_TF_MINUTES: dict[str, int] = {"3m": 3, "5m": 5, "15m": 15, "1h": 60, "4h": 240}
+_TF_MINUTES: dict[str, int] = {"3m": 3, "5m": 5, "15m": 15, "30m": 30, "1h": 60, "4h": 240}
 _STORED_LOOKBACK_CAL_DAYS: int = 400  # ~1 yr: ≥ 250 daily / ≥ 52 weekly closed bars
 _SYMBOL_PAUSE_S: float = 0.3
 _MAX_CLIENT_ID_RETRIES: int = 5  # SRD-EXE-006.011
@@ -140,12 +143,12 @@ def load_execution_frames(
     db: DatabaseManager,
     hist_engine: HistoricalDataEngine,
     symbol: str,
-    timeframes: tuple[DerivedTimeframe, ...] = _REQUIRED_TIMEFRAMES,
+    timeframes: tuple[DerivedTimeframe, ...] = _FRAME_TIMEFRAMES,
     lookback_days: int = _FULL_FETCH_CAL_DAYS,
 ) -> dict[str, pd.DataFrame]:
     """Return ``{timeframe: frame}`` for strategy evaluation (SRD-EXE-006.010, .012).
 
-    Intraday timeframes (3m, 15m) are aggregated from 1m history and merged with
+    Intraday timeframes (3m, 15m, 30m) are aggregated from 1m history and merged with
     any live bars; stored daily/weekly closed bars (SRD-EXE-006.012) are added so
     entry and exit conditions can reference 1d / 1w. A timeframe is omitted when no
     source has data for it. Every frame holds closed bars only (SRD-EXE-006.014).
@@ -173,7 +176,7 @@ def load_latest_execution_bar(
 
     ``None`` when *tf* is not a supported derived timeframe or no bars exist.
     """
-    for derived_tf in _REQUIRED_TIMEFRAMES:
+    for derived_tf in _FRAME_TIMEFRAMES:
         if derived_tf == tf:
             bars = assemble_execution_bars(db, hist_engine, symbol, derived_tf, lookback_days)
             return bars[-1] if bars else None

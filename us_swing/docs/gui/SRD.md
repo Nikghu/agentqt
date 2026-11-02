@@ -5,6 +5,9 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.67.0: SRD-GUI-013.023 and SRD-GUI-031.084 added and approved by user 2026-11-02 — 30m timeframe.
+> v2.66.0: SRD-GUI-031.083 added and approved by user 2026-11-02 — DD-MM-YYYY dates in the Backtest screens and HTML report.
+> v2.65.0: SRD-GUI-031.082 added and approved by user 2026-11-02 — Download HTML report from Saved runs.
 > v2.64.0: SRD-GUI-013.022 added 2026-10-31 — SWING form: Window replaces Type, LookbackDays removed, Candles 1–500 (ISS-EXE-0014).
 > v2.63.0: SRD-GUI-031.079–.081 added and approved by user 2026-10-31 — Report tear sheet (option A of https://claude.ai/artifact/9FtQ5stYsFFDbewpJZUw9C) and a hover line on the chart.
 > v2.62.0: SRD-GUI-031.068 added and approved by user 2026-10-31 — Backtest views switch through a pill bar (option B of https://claude.ai/artifact/DUW3e9Mv6kAzhi4zWTLDEG).
@@ -270,6 +273,7 @@
 | SRD-GUI-013.020 | FO-GUI-013 | Should | Direction reads green for `Long` and red for `Short` in both the Strategy Builder combo (repainted on every change of selection) and the Strategy Executor `Direction` column. | direction choice / strategy row | coloured text | Display-only; the combo stylesheet carries `outline: none` in the base and `:focus` rules | Implemented |
 | SRD-GUI-013.021 | FO-GUI-013 | Must | A signal awaiting the user also locks the Direction field, not only an open trade; the tooltip reads `Close open trades and clear pending signals before changing direction`. | open cycles + pending signals of the strategy | disabled combo | Refines SRD-GUI-013.017; a waiting signal already carries the side that fired it | Implemented |
 | SRD-GUI-013.022 | FO-GUI-013 | Must | The SWING form offers Symbol Type, Candles (1–500), Price Swing, Window (Previous / Current) and Timeframe; LookbackDays is removed. | indicator selection | 5-field form | Window defaults to Previous; matches SRD-EXE-011.026 (ISS-EXE-0014) | Implemented |
+| SRD-GUI-013.023 | FO-GUI-013 | Must | Every Timeframe dropdown in the strategy builder offers 3m, 15m, 30m, 1d and 1w in that order. | indicator form | timeframe choice | One shared list for all forms | Implemented |
 
 ---
 
@@ -597,3 +601,6 @@
 | SRD-GUI-031.079 | FO-GUI-031 | Should | The Report panel is a tear sheet: one title row with strategy, capital, stocks and period; KPI tiles with a context line; a signals pill row; stats in 4 named groups; a compact monthly table with a Total column. | report, run plan | panel | Option A of https://claude.ai/artifact/9FtQ5stYsFFDbewpJZUw9C; extends .040–.042 | Implemented |
 | SRD-GUI-031.080 | FO-GUI-031 | Should | The report chart has a $ axis on the left, month ticks, end labels, a start-capital line, a max drawdown marker and a drawdown % scale. | daily equity | chart | Extends .041 | Implemented |
 | SRD-GUI-031.081 | FO-GUI-031 | Should | A vertical line follows the mouse over the report chart and shows that day's date, strategy equity, benchmark and drawdown. | mouse | line and value box | Asked by user 2026-10-31; hides when the mouse leaves | Implemented |
+| SRD-GUI-031.082 | FO-GUI-031 | Should | Report details has a Download button that saves the picked run as an HTML report without opening it. | picked run, file path | HTML file | Save runs in a worker; button reads "Saving…" until done | Implemented |
+| SRD-GUI-031.083 | FO-GUI-031 | Should | The Backtest screens and the HTML report show every date as DD-MM-YYYY. | dates | shown text | Stored data, cache keys and file names stay ISO; the session list keeps the real date behind the text | Implemented |
+| SRD-GUI-031.084 | FO-GUI-031 | Should | The Backtest Inspector chart offers a 30m choice next to 3m, 15m and 1D. | picked trade | 30m candles around the trade | Shows 5 days before the entry | Implemented |

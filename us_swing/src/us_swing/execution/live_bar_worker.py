@@ -22,8 +22,10 @@ log = logging.getLogger(__name__)
 _YFINANCE_POLL_SECS: int = 60
 _CONNECT_TIMEOUT: int = 10
 _ET = ZoneInfo("America/New_York")
-_LIVE_TIMEFRAMES: tuple[str, ...] = ("3m", "15m")
-_TF_LENGTH: dict[str, timedelta] = {"3m": timedelta(minutes=3), "15m": timedelta(minutes=15)}
+_LIVE_TIMEFRAMES: tuple[str, ...] = ("3m", "15m", "30m")
+_TF_LENGTH: dict[str, timedelta] = {
+    "3m": timedelta(minutes=3), "15m": timedelta(minutes=15), "30m": timedelta(minutes=30),
+}
 _RTH_OPEN  = _dtime(9, 30)
 _RTH_CLOSE = _dtime(16, 0)
 _SUB_BATCH_SIZE: int = 10        # pause after every N subscriptions
@@ -388,16 +390,17 @@ class LiveBarWorker(QThread):
                 pass
 
     def _poll_yfinance_once(self) -> None:
-        """Batch-download all symbols for both timeframes in two HTTP calls."""
+        """Batch-download all symbols for each live timeframe, one HTTP call per timeframe."""
         import yfinance as yf  # noqa: PLC0415
         symbols = list(self._symbols)
         if not symbols:
             return
 
-        # Two batch downloads replace 2×N per-symbol requests.
+        # Three batch downloads replace 3×N per-symbol requests.
         for interval, tf, period, group_minutes in [
             ("1m",  "3m",  "1d", 3),
             ("15m", "15m", "5d", None),
+            ("30m", "30m", "5d", None),
         ]:
             try:
                 df_all = yf.download(

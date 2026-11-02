@@ -41,7 +41,7 @@ def test_index_at_maps_pixels_to_days(chart: ReportChart) -> None:
 
 def test_hover_lines_show_values(chart: ReportChart) -> None:
     """UT-GUI-031.081.M13.T02: The readout gives date, strategy, benchmark and drawdown."""
-    assert chart.hover_lines(3) == ["2026-01-05", "Strategy   $2,030.00",
+    assert chart.hover_lines(3) == ["05-01-2026", "Strategy   $2,030.00",
                                     "Benchmark  $2,005.00", "Drawdown   -3.0%"]
     assert chart.hover_lines(0)[2] == "Benchmark  —"
 

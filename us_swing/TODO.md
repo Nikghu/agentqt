@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-10-31 (Session 108)
+**Last Updated:** 2026-11-02 (Session 109)
 
 ---
 
@@ -87,3 +87,7 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T75 | EXE/BKT/GUI — SWING Window fix (ISS-EXE-0014, FO-EXE-011, FO-BKT-002, FO-GUI-013): Previous / Current window, LookbackDays and Type removed, Candles 1–500, live and backtest share `swing_args`. RN-EXE-1.39.0. Tests 40 pass. Not committed. | `execution/`, `backtest/`, `gui/` | High | Done |
 | T76 | GUI/BKT — User check: build a SWING Previous breakout strategy in the Strategy Builder and run a backtest. | `gui/strategy_builder_dialog.py`, `backtest/` | Medium | Open |
 | T77 | INF — Pre-existing failing tests on main: test_candle_builder (9), test_preset (2), test_chart_workspace (22 errors, 'object' has no setSizePolicy), test_llm_claude_screener import error. | `tests/`, `screener/`, `gui/` | Medium | Open |
+| T78 | EXE — Check live 30m during NYSE market hours (SRD-EXE-006.015, SRD-EXE-007.011, RN-EXE-1.40.0). Confirm the live worker saves 30m rows in `price_30m` and strategy frames include 30m. Not yet run. | `execution/`, `data/engine.py` | High | Open |
+| T79 | ANA — Fix the 9 pre-existing test_candle_builder failures (naive vs aware datetime). They also fail on clean main, so not caused by the 30m change (RN-EXE-1.40.0). | `analysis/candle_builder.py`, `tests/analysis/` | Medium | Open |
+| T80 | GUI — test_backtest_item_after_charts is flaky: it passes when run alone but can fail in the full run. Find the shared state or timing cause and fix it. | `gui/backtest_workspace.py`, `tests/gui/` | Low | Open |
+| T81 | GUI — Optional 30m tab in the Execution chart (today 3m and 15m only). Needs an SRD before any code. | `gui/execution_panel.py`, `gui/chart_panel.py` | Low | Open |

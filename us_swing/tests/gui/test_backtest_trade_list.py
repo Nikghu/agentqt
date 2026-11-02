@@ -62,7 +62,7 @@ def test_table_and_click(qtbot: Any) -> None:
 
     assert view.table.rowCount() == 3
     assert view.table.item(0, 1).text() == "LONG"  # type: ignore[union-attr]
-    assert view.table.item(0, 4).text() == "2026-03-03 10:00:00"  # type: ignore[union-attr]
+    assert view.table.item(0, 4).text() == "03-03-2026 10:00:00"  # type: ignore[union-attr]
     assert view.table.item(0, 9).text() == "+100.00%"  # type: ignore[union-attr]
     view.chips.buttons[4].click()  # SHORT
     assert view.table.rowCount() == 1
@@ -105,7 +105,7 @@ def test_margin_use_and_panel(qtbot: Any) -> None:
     panel.resize(500, 220)
     panel.set_use(use)
 
-    assert use.days == ["2026-03-03", "2026-03-04"]
+    assert use.days == ["03-03-2026", "04-03-2026"]
     assert use.low == [800.0, 0.0]
     assert use.high == [200.0, 1000.0]
     assert use.facts == ("Money deployed on 1 of 2 days · average deployed peak $800 · "

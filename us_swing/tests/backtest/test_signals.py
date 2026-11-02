@@ -139,3 +139,14 @@ def test_service_runs_step_2(store: BacktestStore, tmp_path: Path) -> None:
 
     assert set(out["strategy"]) == {"ST_A"}
     assert [r.status for r in results.list_runs()] == ["done"]
+
+
+def test_load_frames_has_30m(tmp_path: Path) -> None:
+    """UT-BKT-002.085.M11.T01: load_frames reads a 30m frame with the intraday warm-up."""
+    store = BacktestStore(tmp_path)
+    store.save("AAPL", "3m", intraday_bars(["2025-03-20", "2025-03-21"], 4), LATE)
+
+    frames = signals.load_frames(store, "AAPL", Period(date(2025, 3, 21), date(2025, 3, 21)))
+
+    assert len(frames["30m"]) == 26
+    assert frames["30m"]["ts"].is_monotonic_increasing

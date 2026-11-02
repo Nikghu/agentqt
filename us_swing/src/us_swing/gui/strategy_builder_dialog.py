@@ -36,6 +36,8 @@ from us_swing.gui.theme import C, active_palette
 
 # ── Indicator catalogue ────────────────────────────────────────────────────────
 
+TIMEFRAMES: list[str] = ["3m", "15m", "30m", "1d", "1w"]
+
 _INDICATOR_DATA: list[dict] = [
     {
         "name": "Number",
@@ -44,14 +46,14 @@ _INDICATOR_DATA: list[dict] = [
     {
         "name": "PNL",
         "parameters": [
-            {"name": "Timeframe", "Type": "DropDown", "Datatype": ["3m", "15m", "1d", "1w"]},
+            {"name": "Timeframe", "Type": "DropDown", "Datatype": TIMEFRAMES},
         ],
     },
     {
         "name": "VWAP",
         "parameters": [
             {"name": "Symbol Type", "Type": "DropDown", "Datatype": ["Spot", "RSP"]},
-            {"name": "Timeframe", "Type": "DropDown", "Datatype": ["3m", "15m", "1d", "1w"]},
+            {"name": "Timeframe", "Type": "DropDown", "Datatype": TIMEFRAMES},
         ],
     },
     {
@@ -67,7 +69,7 @@ _INDICATOR_DATA: list[dict] = [
             {
                 "name": "Timeframe",
                 "Type": "DropDown",
-                "Datatype": ["3m", "15m", "1d", "1w"],
+                "Datatype": TIMEFRAMES,
             },
         ],
     },
@@ -79,7 +81,7 @@ _INDICATOR_DATA: list[dict] = [
             {
                 "name": "Timeframe",
                 "Type": "DropDown",
-                "Datatype": ["3m", "15m", "1d", "1w"],
+                "Datatype": TIMEFRAMES,
             },
         ],
     },
@@ -91,7 +93,7 @@ _INDICATOR_DATA: list[dict] = [
             {
                 "name": "Timeframe",
                 "Type": "DropDown",
-                "Datatype": ["3m", "15m", "1d", "1w"],
+                "Datatype": TIMEFRAMES,
             },
         ],
     },
@@ -103,7 +105,7 @@ _INDICATOR_DATA: list[dict] = [
             {
                 "name": "Timeframe",
                 "Type": "DropDown",
-                "Datatype": ["3m", "15m", "1d", "1w"],
+                "Datatype": TIMEFRAMES,
             },
         ],
     },
@@ -121,7 +123,7 @@ _INDICATOR_DATA: list[dict] = [
             {
                 "name": "Timeframe",
                 "Type": "DropDown",
-                "Datatype": ["3m", "15m", "1d", "1w"],
+                "Datatype": TIMEFRAMES,
             },
         ],
     },
@@ -139,7 +141,7 @@ _INDICATOR_DATA: list[dict] = [
             {
                 "name": "Timeframe",
                 "Type": "DropDown",
-                "Datatype": ["3m", "15m", "1d", "1w"],
+                "Datatype": TIMEFRAMES,
             },
         ],
     },
@@ -153,7 +155,7 @@ _INDICATOR_DATA: list[dict] = [
             {
                 "name": "Timeframe",
                 "Type": "DropDown",
-                "Datatype": ["3m", "15m", "1d", "1w"],
+                "Datatype": TIMEFRAMES,
             },
         ],
     },

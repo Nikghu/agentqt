@@ -1,12 +1,15 @@
 # Software Requirements Document — Backtest Module (BKT)
 
 **Document ID:** SRD-BKT
-**Version:** 1.9.0
+**Version:** 1.12.0
 **Traces To:** FO-BKT v1.1.0
 **Status:** Draft
-**Last Updated:** 2026-10-29
+**Last Updated:** 2026-11-02
 **Project:** US Swing Trading System
 
+> v1.12.0: SRD-BKT-001.016 and SRD-BKT-002.085 added and approved by user 2026-11-02 — 30m timeframe.
+> v1.11.0: SRD-BKT-002.084 added and approved by user 2026-11-02 — trade analysis layout for the HTML report.
+> v1.10.0: SRD-BKT-002.083 added and approved by user 2026-11-02 — saved run as one offline HTML report.
 > v1.9.0: SRD-BKT-002.082 added 2026-10-31 — SWING Window arg in the backtest series (ISS-EXE-0014).
 > v1.8.0: SRD-BKT-002.070–.073 (Phase 4b) and .080–.081 (Phase 5) added; approved by user 2026-10-30.
 > v1.7.0: SRD-BKT-001.015 and SRD-BKT-002.052 added; approved by user 2026-10-30 — SPY for the RS rule.
@@ -35,6 +38,7 @@
 | SRD-BKT-001.013 | FO-BKT-001 | Must | Every 1d save rebuilds that stock's 1w bars, Monday to Friday, dated by the Monday, with a day count. | saved 1d file | `1w/<SYM>.parquet` | Approved by user 2026-10-29; unfinished week kept with its day count | Implemented |
 | SRD-BKT-001.014 | FO-BKT-001 | Must | 15m and 1w files that are missing or older than their source are built in the background at app start. | 3m and 1d files | built files, stock count logged | Approved by user 2026-10-29; Clear also removes them | Implemented |
 | SRD-BKT-001.015 | FO-BKT-001 | Must | Download and delta also fetch SPY daily candles with the S&P 500 stocks. | S&P 500 list | SPY 1d in the store | Approved by user 2026-10-30 (RS rule needs SPY); no 3m for SPY | Implemented |
+| SRD-BKT-001.016 | FO-BKT-001 | Must | The store keeps 30m candles built from the saved 3m candles, one file per stock and year, like 15m. | 3m year files | 30m year files, 13 bars a day from 09:30 ET | Built on save and by build_missing for data already saved; clear and stats include them | Implemented |
 
 ## FO-BKT-002 — Backtest Engine (Phase 0 · Foundation)
 
@@ -138,3 +142,6 @@
 | SRD-BKT-002.080 | FO-BKT-002 | Must | Step 1 can use the screener lists saved by the app for the preset instead of replaying it: passed stocks ranked by score. | `screener_results/preset_<id>/<date>.json` | daily list | Keeps the real lists, AI picks included | Implemented |
 | SRD-BKT-002.081 | FO-BKT-002 | Must | A list run before 09:30 ET trades that day, a later run trades the next session; sessions with no saved list have no picks. | run time | session date | Data check shows how many sessions have a saved list | Implemented |
 | SRD-BKT-002.082 | FO-BKT-002 | Must | The SWING series honours Window and both arg forms exactly as live SRD-EXE-011.026. | frames, args | series | Parity checked for Previous and Current; Candles < 1 raises (ISS-EXE-0014) | Implemented |
+| SRD-BKT-002.083 | FO-BKT-002 | Should | A saved run can be written as one offline HTML report (setup, key stats, equity chart, P&L by strategy, monthly P&L, all measures, trades) from its saved Step 3 rows only. | run id, file path | HTML file | No scripts or outside links; unknown run raises | Implemented |
+| SRD-BKT-002.084 | FO-BKT-002 | Should | The HTML report uses the trade analysis layout: result header, edge/luck/quality boxes, P&L per trade, equity vs benchmark, hold time and exit groups, best and worst 5, full trade table. | saved Step 3 rows | HTML file | Small inline script for hover only; no outside links; replaces the .083 layout | Implemented |
+| SRD-BKT-002.085 | FO-BKT-002 | Must | Step 2 conditions can use the 30m timeframe; a 30m bar is visible only after it closes. | 30m bars | series on the 3m timeline | Same rule as 15m (SRD-BKT-002.050) | Implemented |

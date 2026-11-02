@@ -300,3 +300,36 @@ def test_build_missing_rebuilds_stale_only(tmp_path: Path) -> None:
     assert store.build_missing() == 1
     assert built.stat().st_mtime > old
     assert (tmp_path / "15m" / "MSFT" / "2026.parquet").stat().st_mtime == msft_before
+
+
+def test_30m_built_on_3m_save(tmp_path: Path) -> None:
+    """UT-BKT-001.016.M01.T01: A 3m save builds 13 30m bars a day from 09:30 ET, summer and winter."""
+    store = BacktestStore(tmp_path)
+    winter, summer = _session_3m("2026-01-05"), _session_3m("2026-07-06")
+
+    store.save("AAPL", "3m", pd.concat([winter, summer], ignore_index=True), _LATE)
+
+    out = store.read("AAPL", "30m")
+    starts = out["ts"].dt.tz_convert(_ET).dt.strftime("%H:%M")
+    assert len(out) == 26
+    assert list(starts[:13]) == [f"{h:02d}:{m:02d}" for h in range(9, 16) for m in (0, 30)][1:]
+    assert list(starts[13:]) == list(starts[:13])
+    first, src = out.iloc[0], winter.iloc[:10]
+    assert (first["open"], first["high"], first["low"], first["close"], first["volume"]) == (
+        src["open"].iloc[0], src["high"].max(), src["low"].min(), src["close"].iloc[-1],
+        src["volume"].sum(),
+    )
+
+
+def test_30m_for_old_data_and_clear(tmp_path: Path) -> None:
+    """UT-BKT-001.016.M01.T02: A store saved before 30m existed gets it once; clear removes it."""
+    store = BacktestStore(tmp_path)
+    store.save("AAPL", "3m", _session_3m("2026-03-04"), _LATE)
+    shutil.rmtree(tmp_path / "30m")
+
+    assert store.build_missing() == 1
+    assert len(store.read("AAPL", "30m")) == 13
+    assert store.build_missing() == 0
+
+    store.clear()
+    assert not (tmp_path / "30m").exists()

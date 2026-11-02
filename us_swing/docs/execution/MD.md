@@ -1,12 +1,13 @@
 # Module Decomposition — Execution & Risk Management (EXE)
 
 **Document ID:** MD-EXE
-**Version:** 1.16.0
+**Version:** 1.21.0
 **Traces To:** SRD-EXE v1.24.0 / DD-EXE v1.17.0
 **Status:** Draft
 **Last Updated:** 2026-10-27
 **Project:** US Swing Trading System
 
+> v1.21.0: 30m timeframe — MD-EXE-006.001.M01 (new `_FRAME_TIMEFRAMES`; readiness unchanged), MD-EXE-007.001.M01 (`_LIVE_TIMEFRAMES`, Yahoo 30m poll), MD-EXE-009.002.M01 (cleanup of `price_30m`) (SRD-EXE-006.015, .007.011). Cross-tool: `data/engine.py`, `db/schema.py`, `analysis/candle_builder.py` gain 30m.
 > v1.20.0: MD-EXE-007.001.M01 covers SRD-EXE-007.010 — skips forming Yahoo bars and the first partial IBKR window.
 > v1.19.0: MD-EXE-017.016.M14 gains `_paper_account_state`, `_realised_today` (SRD-EXE-017.027).
 > v1.18.0: MD-EXE-020.001.M01 adds `CurvePoint`, `curve_from_closed`; MD-EXE-020.004.M02 adds `get_equity_curve`.

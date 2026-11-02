@@ -166,7 +166,7 @@ def time_labels(times: pd.DatetimeIndex) -> list[str]:
     if len(times) > 1 and (times[1:] - times[:-1]).min() >= pd.Timedelta(days=1):
         return list(times.strftime("%b %d"))
     local = times.tz_convert(_ET)
-    fmt = "%H:%M" if len(set(local.date)) == 1 else "%m-%d %H:%M"
+    fmt = "%H:%M" if len(set(local.date)) == 1 else "%d-%m %H:%M"
     return list(local.strftime(fmt))
 
 

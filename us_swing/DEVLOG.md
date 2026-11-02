@@ -2,6 +2,16 @@
 
 ---
 
+## [20261102] BKT/EXE/GUI — 30m timeframe for live and backtest, backtest HTML report, ISS-BKT-0001 fix
+
+- Type: Feature (plus Bugfix ISS-BKT-0001)
+- FO(s): FO-BKT-001, FO-BKT-002, FO-EXE-006, FO-EXE-007, FO-GUI-013, FO-GUI-031
+- RN: RN-BKT-1.11.0-20261102, RN-EXE-1.40.0-20261102, RN-GUI-1.54.0-20261102
+- Artifacts updated: SRD (BKT-001.016, BKT-002.083–.085, EXE-006.015, EXE-007.011, GUI-013.023, GUI-031.082–.084), UTCD, TRACE (bkt, exe, gui), Code, Tests, RN, ISS-BKT-0001, TODO, CONTEXT, DEVLOG
+- Decisions: 30m built from 3m (13 bars a day from 09:30 ET); live readiness stays on 3m and 15m (30 days give about 270 30m bars, under the 390 minimum); one shared TIMEFRAMES list with 30m in all 9 GUI dropdowns; DD-MM-YYYY for shown dates only, stored data stays ISO. Branch feat/backtest-report-30m (commits 6bba8b03 BKT, b5139450 EXE, bcd806e9 GUI), not pushed. Pending: live 30m market-hours check, Download in the app, HTML hover, date screens.
+
+---
+
 ## [20261031] EXE — SWING Window fix: Previous / Current, shared live and backtest args (ISS-EXE-0014)
 
 - Type: Bugfix

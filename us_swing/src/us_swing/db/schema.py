@@ -60,6 +60,19 @@ price_15m = sa.Table(
     sa.PrimaryKeyConstraint("symbol", "datetime"),
 )
 
+price_30m = sa.Table(
+    "price_30m",
+    metadata,
+    sa.Column("symbol",   sa.Text,    nullable=False),
+    sa.Column("datetime", sa.Text,    nullable=False),
+    sa.Column("open",     sa.Float),
+    sa.Column("high",     sa.Float),
+    sa.Column("low",      sa.Float),
+    sa.Column("close",    sa.Float),
+    sa.Column("volume",   sa.Integer),
+    sa.PrimaryKeyConstraint("symbol", "datetime"),
+)
+
 price_1d = sa.Table(
     "price_1d",
     metadata,
@@ -172,6 +185,7 @@ PRICE_TABLES: dict[str, sa.Table] = {
     "1m":  price_1m,
     "3m":  price_3m,
     "15m": price_15m,
+    "30m": price_30m,
     "1d":  price_1d,
     "1w":  price_1w,
 }

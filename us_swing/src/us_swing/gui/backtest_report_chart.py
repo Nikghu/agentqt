@@ -26,6 +26,7 @@ from PyQt6.QtGui import (
 )
 from PyQt6.QtWidgets import QWidget
 
+from us_swing.core.dates import show_date
 from us_swing.gui.strategy_pnl_chart import nice_ticks
 from us_swing.gui.theme import C
 
@@ -86,7 +87,7 @@ class ReportChart(QWidget):
         """Date, strategy, benchmark and drawdown text for one day."""
         row = self.daily.iloc[index]
         bench = float(row["benchmark"])
-        return [str(row["date"]), f"Strategy   {_money(float(row['equity']))}",
+        return [show_date(pd.Timestamp(row["date"])), f"Strategy   {_money(float(row['equity']))}",
                 f"Benchmark  {'—' if math.isnan(bench) else _money(bench)}",
                 f"Drawdown   {float(row['drawdown']):.1%}"]
 

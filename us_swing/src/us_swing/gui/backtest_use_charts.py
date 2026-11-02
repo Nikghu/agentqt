@@ -15,6 +15,7 @@ from PyQt6.QtCore import QRectF, Qt
 from PyQt6.QtGui import QColor, QPainter, QPaintEvent, QPen
 from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
+from us_swing.core.dates import show_date
 from us_swing.gui.strategy_pnl_chart import nice_ticks
 from us_swing.gui.theme import C
 
@@ -48,7 +49,7 @@ def screener_use(days: list[date], picks: pd.DataFrame, trades: pd.DataFrame) ->
     facts = (f"{len(days)} sessions · {with_picks} with picks · "
              f"{(n_picks / len(days) if days else 0):.1f} picks a day · "
              f"{n_traded} of {n_picks} picks traded")
-    return Use([str(d) for d in days], traded, [t - x for t, x in zip(total, traded,
+    return Use([show_date(d) for d in days], traded, [t - x for t, x in zip(total, traded,
                                                                          strict=True)], facts)
 
 
@@ -62,7 +63,7 @@ def margin_use(money: pd.DataFrame) -> Use:
     facts = (f"Money deployed on {len(used)} of {len(deployed)} days · average deployed peak "
              f"${(sum(used) / len(used) if used else 0):,.0f} · lowest margin "
              f"${(min(margin) if margin else 0):,.0f}")
-    return Use([str(d) for d in money["date"]], deployed, margin, facts)
+    return Use([show_date(pd.Timestamp(d)) for d in money["date"]], deployed, margin, facts)
 
 
 class StackedBars(QWidget):

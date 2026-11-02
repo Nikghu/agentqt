@@ -108,6 +108,6 @@ def test_live_bar_poll_uses_vendor_symbol(tmp_path) -> None:
     with patch("yfinance.download", download):
         worker._poll_yfinance_once()
 
-    assert download.call_count == 2  # one per timeframe
+    assert download.call_count == 3  # one per timeframe
     for call in download.call_args_list:
         assert call.args[0] == ["BRK-B", "AAPL"]

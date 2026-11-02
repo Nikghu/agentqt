@@ -46,11 +46,13 @@ from us_swing.backtest.spec import (
 )
 from us_swing.backtest.universe import UniverseRecord
 from us_swing.core.backtest_bridge import PresetInfo
+from us_swing.core.dates import QT_DATE_FMT, show_date
 from us_swing.gui.screener_views import ChipGroup
 
 SECTIONS = (("run", "Run"), ("stocks", "Stocks"), ("screener", "Screener"),
             ("strategies", "Strategies"), ("account", "Account"))
 _MAX_TOP_N = 50
+_MAX_STRATEGY_ROWS = 12
 _LABEL_W = 160
 _FIELD_W = 140
 _MODE_TEXT = {"sp500": "S&P 500", "sector": "Sectors", "names": "Names"}
@@ -287,7 +289,7 @@ class BacktestBuilder(QWidget):
     def _date_edit() -> QDateEdit:
         edit = QDateEdit()
         edit.setCalendarPopup(True)
-        edit.setDisplayFormat("yyyy-MM-dd")
+        edit.setDisplayFormat(QT_DATE_FMT)
         edit.setMinimumDate(QDate(2000, 1, 1))
         edit.setMaximumDate(QDate.currentDate())
         edit.setFixedWidth(_FIELD_W)
@@ -351,7 +353,16 @@ class BacktestBuilder(QWidget):
             for col, text in ((1, name), (2, f"{alloc:g}"), (3, f"{per:g}")):
                 table.setItem(row, col, QTableWidgetItem(text))
         table.resizeColumnsToContents()
+        self._fit_strategy_rows()
         table.blockSignals(False)
+
+    def _fit_strategy_rows(self) -> None:
+        """Grow the table so every strategy shows without scrolling, up to a cap."""
+        table = self._strategies
+        shown = min(table.rowCount(), _MAX_STRATEGY_ROWS)
+        rows_h = sum(table.rowHeight(r) for r in range(shown))
+        header_h = table.horizontalHeader().sizeHint().height()  # type: ignore[union-attr]
+        table.setMinimumHeight(max(180, header_h + rows_h + 2 * table.frameWidth() + 2))
 
     def _strategy_rows(self) -> list[tuple[QTableWidgetItem, tuple[str, float, float]]]:
         rows = []
@@ -388,7 +399,7 @@ class BacktestBuilder(QWidget):
         """Show how many saved lists the preset has (SRD-GUI-031.060)."""
         self._saved_count.setText(
             "No saved lists for this preset" if not days
-            else f"{len(days)} saved days · {days[0]} → {days[-1]}")
+            else f"{len(days)} saved days · {show_date(days[0])} → {show_date(days[-1])}")
 
     def quick_test(self, preset_id: str, first: datetime.date, last: datetime.date) -> None:
         """S&P 500, the preset, saved lists and their period (SRD-GUI-031.061)."""
@@ -405,7 +416,7 @@ class BacktestBuilder(QWidget):
         stocks = {"sector": ", ".join(uni.sectors) or "No sector",
                   "names": ", ".join(uni.names[:4]) or "No names"}.get(uni.mode, "S&P 500")
         return {
-            "run": f"{plan.name} · {plan.period.start} → {plan.period.end}",
+            "run": f"{plan.name} · {show_date(plan.period.start)} → {show_date(plan.period.end)}",
             "stocks": stocks,
             "screener": f"{self._preset.currentText() or 'No preset'} · "
                         f"{'saved lists' if scr.recorded else 'replay'} · "
