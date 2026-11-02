@@ -616,6 +616,16 @@ QCheckBox::indicator:checked {
     background: #89b4fa;
     border-color: #89b4fa;
 }
+QTableWidget#bt_strategies::indicator, QListWidget#bt_sectors::indicator {
+    width: 14px; height: 14px;
+    border: 1px solid #7f849c;
+    border-radius: 3px;
+    background: #181825;
+}
+QTableWidget#bt_strategies::indicator:checked, QListWidget#bt_sectors::indicator:checked {
+    background: #89b4fa;
+    border-color: #89b4fa;
+}
 QStatusBar {
     background: #181825;
     color: #7f849c;

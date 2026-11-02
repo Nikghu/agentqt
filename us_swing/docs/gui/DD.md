@@ -7,6 +7,8 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.29.0: 30m timeframe — one shared `TIMEFRAMES` list feeds every strategy builder Timeframe dropdown (SRD-GUI-013.023); Inspector `_CHART_TFS` gains 30m with 5 days before entry (SRD-GUI-031.084).
+> v1.28.0: DD-GUI-031.001.D01 gets the HTML download design (SRD-GUI-031.082).
 > v1.27.0: DD-GUI-031.001.D01 added — Backtest workspace.
 > v1.26.0: DD-GUI-030.001.D01 added — Backtest data section.
 > v1.25.0: DD-GUI-029.001.D01 added — Scheduler task table.
@@ -1771,3 +1773,5 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 **Phase 2 (SRD-GUI-031.020–.023).** The builder adds a STRATEGIES group: a checkable `QListWidget` filled by `set_strategies(list[dict])` with "name · alloc % · per-trade %"; ticked rows become `StrategySpec(name, (capital_max,), (per_trade_pct,))`. The workspace loads them with `load_strategies()` on show. The Run button (text "Run") runs `run_stocks()` and then `run_signals()` in `_RunWorker`, whose `progress(step, done, total)` drives pills 1 and 2. The lower card becomes a `QTabWidget`: "Stocks" (the Step 1 view) and "Signals" (strategy `QComboBox` + table Strategy, Symbol, Kind, Start, End, Close). A double-click emits `chart_requested(symbol, "1d")`, which `MainWindow` routes like the Screener's.
 
 **Phase 3 (SRD-GUI-031.030–.034).** The builder adds an ACCOUNT group (`QDoubleSpinBox` Capital $, Daily loss stop %, Commission $, `QSpinBox` Slippage bps, `QComboBox` When money short). `set_account_defaults(capital, daily_loss_pct)` fills them from `svc.get_active_user().risk_config` (`max_capital_value`, `max_daily_loss_pct`) when the screen first opens. `_RunWorker` calls `run_portfolio()` after `run_signals()` (progress on pill 3) and emits `portfolio_done(list[VariantResult])`. Three tabs are added: Trades (summary label + table), Day log, Money. With more than one variant the first is shown.
+
+**HTML download (SRD-GUI-031.082).** `ReportsView` gets a Download button between Delete and Open, enabled for one picked run. `ask_html_path(default)` opens a save dialog at `~/Downloads/<name>_<YYYY-MM-DD_HHMM>.html` (`html_file_name()`); Cancel does nothing. `_HtmlWorker(QThread)` calls `service.export_html(run_id, path, user_id)`; the button reads "Saving…" and stays off until `done`. A failure is logged as a warning. `ReportsView(service, user_id=...)` gets the active user from the workspace so the screener shows its preset name.

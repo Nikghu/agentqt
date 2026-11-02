@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from PyQt6.QtWidgets import QComboBox, QLineEdit
 
-from us_swing.gui.strategy_builder_dialog import _ConditionSelectorDialog
+from us_swing.gui.strategy_builder_dialog import _INDICATOR_DATA, _ConditionSelectorDialog
 
 
 def _swing_dialog(qtbot) -> _ConditionSelectorDialog:  # type: ignore[no-untyped-def]
@@ -47,3 +47,12 @@ def test_swing_candles_zero_refused(qtbot) -> None:  # type: ignore[no-untyped-d
 
     assert not candles.hasAcceptableInput()
     assert built == []
+
+
+def test_timeframe_dropdowns_offer_30m() -> None:
+    """UT-GUI-013.023.M01.T01: every Timeframe dropdown lists 3m, 15m, 30m, 1d, 1w."""
+    lists = [p["Datatype"] for ind in _INDICATOR_DATA for p in ind["parameters"]
+             if p["name"] == "Timeframe"]
+
+    assert len(lists) == 9
+    assert all(lst == ["3m", "15m", "30m", "1d", "1w"] for lst in lists)

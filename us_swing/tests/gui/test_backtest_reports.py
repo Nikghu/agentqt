@@ -4,6 +4,7 @@ from __future__ import annotations
 import sys
 import types
 from datetime import date, datetime, timezone
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -15,7 +16,11 @@ sys.modules.setdefault("PyQt6.QtWebEngineWidgets", _web_stub)
 from us_swing.backtest.results import RunRow  # noqa: E402
 from us_swing.backtest.service import SavedReport  # noqa: E402
 from us_swing.backtest.spec import Period, RunPlan, StrategySpec, UniverseSpec  # noqa: E402
-from us_swing.gui.backtest_reports import ReportsView, plan_sections  # noqa: E402
+from us_swing.gui.backtest_reports import (  # noqa: E402
+    ReportsView,
+    html_file_name,
+    plan_sections,
+)
 
 
 def saved_report(run_id: str = "r1", name: str = "IT run", net: float = -25.0) -> SavedReport:
@@ -43,6 +48,10 @@ class _FakeService:
 
     def delete_run(self, run_id: str) -> None:
         self.calls.append(("delete", run_id))
+
+    def export_html(self, run_id: str, path: Path, _user_id: str = "") -> Path:
+        self.calls.append(("html", run_id, path.name))
+        return path
 
 
 @pytest.fixture()
@@ -92,6 +101,27 @@ def test_rename_note_open(view: ReportsView, qtbot: Any) -> None:
     assert service.calls == [("rename", "r1", "New name"), ("note", "r1", "better")]  # type: ignore[attr-defined]
     assert opened[0].run.run_id == "r1"
     qtbot.waitUntil(lambda: not view._workers)
+
+
+def test_download_html(view: ReportsView, monkeypatch: pytest.MonkeyPatch,
+                       qtbot: Any) -> None:
+    """UT-GUI-031.082.M09.T01: Download saves the picked run as HTML; Cancel in the dialog does nothing."""
+    service = view._service
+    asked: list[Path] = []
+    answers = iter([None, Path("C:/tmp/run.html")])
+    monkeypatch.setattr(view, "ask_html_path", lambda p: asked.append(p) or next(answers))
+
+    view.html_btn.click()
+    assert service.calls == []  # type: ignore[attr-defined]
+    view.html_btn.click()
+    qtbot.waitUntil(lambda: not view._workers)
+
+    assert asked[0].name == html_file_name(view.saved[0])
+    assert asked[0].name.startswith("IT_run_2026-10-30_") and asked[0].suffix == ".html"
+    assert service.calls == [("html", "r1", "run.html")]  # type: ignore[attr-defined]
+    assert view.html_btn.text() == "Download" and view.html_btn.isEnabled()
+    view.set_saved([])
+    assert not view.html_btn.isEnabled()
 
 
 def test_delete_needs_confirm(view: ReportsView, monkeypatch: pytest.MonkeyPatch,

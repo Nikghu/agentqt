@@ -318,7 +318,7 @@ def test_run_and_view(workspace: BacktestWorkspace, qtbot: Any) -> None:
     assert workspace.run_btn.text() == "Run"
     assert workspace.pills[0].property("state") == "complete"
     assert workspace.days_table.rowCount() == 3
-    assert workspace.days_table.item(2, 0).text() == "2026-03-03"  # type: ignore[union-attr]
+    assert workspace.days_table.item(2, 0).text() == "03-03-2026"  # type: ignore[union-attr]
     assert workspace.days_table.item(2, 2).text() == "1"  # type: ignore[union-attr]
     assert workspace.days_table.item(2, 1).text() == "2"  # type: ignore[union-attr]
     assert workspace.stocks_table.rowCount() == 1
@@ -333,10 +333,10 @@ def test_sessions_oldest_first(workspace: BacktestWorkspace, qtbot: Any) -> None
     workspace.run_btn.click()
     qtbot.waitUntil(lambda: workspace._runner is None)
 
-    assert workspace.days_table.item(1, 0).text() == "2026-03-02"  # type: ignore[union-attr]
+    assert workspace.days_table.item(1, 0).text() == "02-03-2026"  # type: ignore[union-attr]
     assert workspace.days_table.item(1, 1).text() == "1"  # type: ignore[union-attr]
     assert workspace.stocks_head.text().startswith(
-        "SESSION 2026-03-03 · DATA UP TO 2026-03-02 CLOSE")
+        "SESSION 03-03-2026 · DATA UP TO 02-03-2026 CLOSE")
 
 
 def _tick_strategy(ws: BacktestWorkspace, index: int) -> None:
@@ -374,7 +374,7 @@ def test_run_does_both_steps(workspace: BacktestWorkspace, qtbot: Any) -> None:
     assert workspace.pills[1].property("state") == "complete"
     assert workspace.signals_table.rowCount() == 3
     assert workspace.signals_table.item(0, 2).text() == "exit"  # type: ignore[union-attr]
-    assert workspace.signals_table.item(0, 3).text() == "2026-03-03 10:03"  # type: ignore[union-attr]
+    assert workspace.signals_table.item(0, 3).text() == "03-03-2026 10:03"  # type: ignore[union-attr]
 
 
 def test_strategy_filter(workspace: BacktestWorkspace, qtbot: Any) -> None:
@@ -509,7 +509,7 @@ def test_picking_a_day_filters_panels(workspace: BacktestWorkspace, qtbot: Any) 
     assert workspace.trades_table.rowCount() == 0
     assert workspace.signals_table.rowCount() == 0
     assert workspace.log_table.rowCount() == 0
-    assert workspace.money_table.item(0, 0).text() == "2026-03-02"  # type: ignore[union-attr]
+    assert workspace.money_table.item(0, 0).text() == "02-03-2026"  # type: ignore[union-attr]
     assert workspace.chart.message == "No trade on this session"
 
 
@@ -533,9 +533,27 @@ def test_chart_shows_selected_trade(workspace: BacktestWorkspace, qtbot: Any) ->
 
     assert reads[-1] == ("AAPL", "15m", date(2026, 2, 28), date(2026, 3, 3))
     assert list(workspace.chart.trades["symbol"]) == ["AAPL"]
-    assert workspace.chart_head.text() == "AAPL · ST_A · 2026-03-03"
-    workspace.chart_tf.buttons[2].click()
+    assert workspace.chart_head.text() == "AAPL · ST_A · 03-03-2026"
+    workspace.chart_tf.buttons[3].click()
     assert reads[-1][1:3] == ("1d", date(2025, 12, 3))
+
+
+def test_chart_trade_dropdown(workspace: BacktestWorkspace, qtbot: Any) -> None:
+    """UT-GUI-031.052.M03.T02: A session with 2 trades shows a dropdown that switches the chart."""
+    _run_both(workspace, qtbot)
+    workspace.days_table.selectRow(0)  # All sessions
+    assert workspace.chart_pick.isHidden()
+
+    workspace.days_table.selectRow(2)  # 2026-03-03, two trades
+    pick = workspace.chart_pick
+
+    assert not pick.isHidden()
+    assert pick.count() == 2
+    assert pick.itemText(1).startswith("2. AAPL · ST_A")
+    pick.setCurrentIndex(1)
+    assert workspace.chart_head.text() == "AAPL · ST_A · 03-03-2026"
+    workspace.trades_table.selectRow(0)
+    assert pick.currentIndex() == 0
 
 
 def test_trade_list_opens_day(workspace: BacktestWorkspace, qtbot: Any) -> None:
@@ -557,7 +575,7 @@ def test_detail_panels_filled(workspace: BacktestWorkspace, qtbot: Any) -> None:
     assert set(workspace.detail.panels) == {"report", "breakdown", "tradelist", "screener_use",
                                             "margin_use", "risk"}
     assert workspace.trade_list.table.rowCount() == 2
-    assert workspace.screener_use.chart.use.days == ["2026-03-02", "2026-03-03"]
+    assert workspace.screener_use.chart.use.days == ["02-03-2026", "03-03-2026"]
     assert workspace.margin_use.facts.text().startswith("Money deployed on 2 of 2 days")
 
 
@@ -609,7 +627,7 @@ def test_saved_lists_tick(workspace: BacktestWorkspace) -> None:
     builder._source.buttons[1].click()
 
     assert builder.plan().screener.recorded
-    assert builder._saved_count.text() == "2 saved days · 2026-05-01 → 2026-10-29"
+    assert builder._saved_count.text() == "2 saved days · 01-05-2026 → 29-10-2026"
 
 
 def test_saved_lists_data_check_text() -> None:
@@ -630,3 +648,14 @@ def test_quick_test(workspace: BacktestWorkspace) -> None:
     workspace.builder._source.buttons[0].click()
     workspace.quick_test("p2")  # no saved lists: nothing changes
     assert not workspace.builder.plan().screener.recorded
+
+
+def test_chart_30m_choice(workspace: BacktestWorkspace, qtbot: Any) -> None:
+    """UT-GUI-031.084.M03.T01: The Inspector offers 30m between 15m and 1D, 5 days before entry."""
+    _run_both(workspace, qtbot)
+    reads = workspace._service.bar_reads  # type: ignore[attr-defined]
+    workspace.trades_table.selectRow(1)
+
+    assert [b.text() for b in workspace.chart_tf.buttons] == ["3m", "15m", "30m", "1D"]
+    workspace.chart_tf.buttons[2].click()
+    assert reads[-1] == ("AAPL", "30m", date(2026, 2, 26), date(2026, 3, 3))

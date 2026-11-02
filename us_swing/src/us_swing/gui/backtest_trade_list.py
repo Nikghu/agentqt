@@ -22,6 +22,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from us_swing.core.dates import DATE_FMT
 from us_swing.gui.screener_views import ChipGroup
 from us_swing.gui.theme import C
 
@@ -30,7 +31,7 @@ HEADERS = ["Trade #", "Type", "Symbol", "Strategy", "Entry time", "Exit time", "
 FILTERS = [("All", "all"), ("Wins", "wins"), ("Losses", "losses"), ("LONG", "LONG"),
            ("SHORT", "SHORT")]
 _ET = "America/New_York"
-_TIME = "%Y-%m-%d %H:%M:%S"
+_TIME = f"{DATE_FMT} %H:%M:%S"
 
 
 def numbered(trades: pd.DataFrame) -> pd.DataFrame:

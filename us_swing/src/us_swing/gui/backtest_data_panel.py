@@ -33,6 +33,7 @@ from PyQt6.QtWidgets import (
 from us_swing.backtest import DEFAULT_ROOT
 from us_swing.backtest.settings import BacktestDataSettings
 from us_swing.backtest.store import BacktestStats
+from us_swing.core.dates import QT_DATE_FMT
 from us_swing.data.models import ConnectionStatus
 from us_swing.gui.icons import set_icon
 from us_swing.gui.theme import C
@@ -292,7 +293,7 @@ class BacktestDataPanel(QWidget):
     def _date_edit() -> QDateEdit:
         edit = QDateEdit()
         edit.setCalendarPopup(True)
-        edit.setDisplayFormat("yyyy-MM-dd")
+        edit.setDisplayFormat(QT_DATE_FMT)
         edit.setMinimumDate(QDate(2000, 1, 1))
         edit.setMaximumDate(QDate.currentDate())
         return edit

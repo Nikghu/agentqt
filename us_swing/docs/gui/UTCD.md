@@ -7,6 +7,9 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.38.0: UT-GUI-013.023.M01.T01 and UT-GUI-031.084.M03.T01 added — 30m timeframe.
+> v1.37.0: UT-GUI-031.083.M14.T01 added — DD-MM-YYYY dates.
+> v1.36.0: UT-GUI-031.052.M03.T02 (chart trade dropdown) and UT-GUI-031.082.M09.T01 (HTML download) added.
 > v1.35.0: UT-GUI-031.062–.066 added — breakdown redesign; UT-GUI-031.043.M04.T01 and .047.M04.T01 replaced by UT-GUI-031.062.M04.T01–T02.
 > v1.34.0: UT-GUI-031.* added — Backtest workspace.
 > v1.33.0: UT-GUI-030.* added — Backtest data section.
@@ -278,6 +281,7 @@
 | UT-GUI-013.001.M01.T20 | MD-GUI-013.001.M01 | Positive | `load_strategies()` forces `Status='Inactive'` on every record | File has record with `strategy_signal.Status='Running'` | Loaded record has `strategy_signal['Status'] == 'Inactive'` and `Running_Symbols == []` | Not Run |
 | UT-GUI-013.001.M01.T21 | MD-GUI-013.001.M01 | Positive | `commit()` overwrites existing record by case-insensitive name | Registry `[cfg(name="boss_ema")]`; commit `cfg(name="BOSS_EMA")` | Registry length stays 1; record replaced | Not Run |
 | UT-GUI-013.001.M01.T22 | MD-GUI-013.001.M01 | Positive | `save_strategies()` writes via temp-file + atomic replace | Stub `Path.replace`; call `save_strategies([cfg])` | `Path.replace` called once with `.tmp` → final path; final file exists | Not Run |
+| UT-GUI-013.023.M01.T01 | MD-GUI-013.001.M01 | Positive | 30m in every Timeframe dropdown | indicator catalogue | each Timeframe list is 3m, 15m, 30m, 1d, 1w | Pass |
 
 ---
 
@@ -879,6 +883,7 @@ Test files:
 | UT-GUI-031.051.M03.T01 | MD-GUI-031.003.M03 | Negative | Day with no trade | pick 2026-03-02 | Trades, Signals, Decisions empty; Money that day; chart says no trade | Pass |
 | UT-GUI-031.051.M03.T02 | MD-GUI-031.003.M03 | Positive | All sessions row | run with 2 trades | row 0 shows 2 trades and $20.00; no-trade day shows — | Pass |
 | UT-GUI-031.052.M03.T01 | MD-GUI-031.003.M03 | Positive | Chart follows trade | pick AAPL trade, then 1d | reads AAPL 15m from 3 days before entry to exit day; then 1d from 90 days back | Pass |
+| UT-GUI-031.052.M03.T02 | MD-GUI-031.003.M03 | Positive | Trade dropdown on chart | session with 2 trades; pick the 2nd | dropdown shown with 2 entries; chart shows the AAPL trade; hidden on All sessions | Pass |
 | UT-GUI-031.052.M06.T01 | MD-GUI-031.052.M06 | Positive | Markers | short trade on 6 bars | entry bar 1, exit bar 5; chart paints | Pass |
 | UT-GUI-031.052.M06.T02 | MD-GUI-031.052.M06 | Negative | No bars | empty bars; time before first bar | message shown; no index | Pass |
 | UT-GUI-031.052.M06.T03 | MD-GUI-031.052.M06 | Negative | Time after last bar | exit a day after the bars | no index, so no marker | Pass |
@@ -899,6 +904,9 @@ Test files:
 | UT-GUI-031.055.M09.T05 | MD-GUI-031.055.M09 | Edge | Plan facts | names mode, no strategy | Universe / Strategy / Money groups; names, None, costs | Pass |
 | UT-GUI-031.055.M09.T06 | MD-GUI-031.055.M09 | Positive | Multi-select delete | 2 runs picked, Yes | one confirm; 2 delete calls; Delete (2) | Pass |
 | UT-GUI-031.055.M09.T07 | MD-GUI-031.055.M09 | Edge | Many sectors | 3 sectors | shown as "3 sectors" | Pass |
+| UT-GUI-031.082.M09.T01 | MD-GUI-031.055.M09 | Positive | Download HTML | Cancel, then a path | nothing, then one export call with the default file name offered; button back on; off with no run | Pass |
+| UT-GUI-031.083.M14.T01 | MD-GUI-031.083.M14 | Positive | Day-first date text | date, datetime, ET Timestamp | 04-03-2026, 02-11-2026, 31-12-2025 | Pass |
+| UT-GUI-031.084.M03.T01 | MD-GUI-031.003.M03 | Positive | Inspector 30m choice | chart timeframe picker | 30m offered between 15m and 1D; 5 days before entry | Pass |
 | UT-GUI-031.055.M03.T01 | MD-GUI-031.003.M03 | Positive | Open saved run | Stocks per day 1 in builder, saved All | 4 steps Done; Detail tab; 2 trades; 3 picks | Pass |
 | UT-GUI-031.055.M03.T02 | MD-GUI-031.003.M03 | Positive | Reports tab refresh | show Reports tab | list reloaded | Pass |
 | UT-GUI-031.060.M02.T01 | MD-GUI-031.002.M02 | Positive | Saved lists tick | preset without, then with saved days | message; count and range; plan recorded | Pass |
