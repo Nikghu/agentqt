@@ -70,7 +70,7 @@ RN: RN-<TOOL>-<version>-<YYYYMMDD>
 FO(s): <FO_IDS>
 Type: <TYPE>
 
-Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 ```
 
 **d. Push**
