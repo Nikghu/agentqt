@@ -116,8 +116,8 @@ def test_list_and_detail(qtbot: QtBot) -> None:
     """UT-GUI-024.004.M04.T01: List rows and the first selection fill the detail."""
     pane, _ = _pane(qtbot, [_cfg("ST_AUTO"), _cfg("Trade1st")])
 
-    assert pane.list.count() == 2
-    assert pane.list.currentRow() == 0
+    assert pane.groups.names() == ["ST_AUTO", "Trade1st"]
+    assert pane._sel_row() == 0
     assert pane.title_lbl.text() == "ST_AUTO"
     assert pane.when_box.values["Entry window"].text() == "09:35 – 15:45"
 
