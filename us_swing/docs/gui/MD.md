@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.50.0: MD-GUI-031.002.M02 `set_account_defaults(capital)` — loss stop starts at 10 %, commission at $0 (SRD-GUI-031.086).
 > v1.49.0: MD-GUI-013.001.M01 adds BOSS_ST to the indicator catalogue and checks HTF above LTF (SRD-GUI-013.024).
 > v1.48.0: MD-GUI-031.003.M03 — builder Source gets No screener (`_on_source()`), data check warns above 50 stocks; Saved runs details show "All (no screener)" (SRD-GUI-031.085).
 > v1.47.0: MD-GUI-013.001.M01 uses one `TIMEFRAMES` list with 30m (SRD-GUI-013.023); MD-GUI-031.003.M03 Inspector offers 30m (SRD-GUI-031.084).

@@ -205,14 +205,14 @@ class BacktestBuilder(QWidget):
         self._strategies.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self._strategies.setMinimumHeight(180)
         self._capital = self._money(100, 10_000_000, 0, "$ ", 10_000)
-        self._loss = self._money(0, 100, 1, "", 2.0)
+        self._loss = self._money(0, 100, 1, "", 10.0)
         self._loss.setSuffix(" %")
         self._loss.setSpecialValueText("Off")
         self._when = QComboBox()
         self._when.addItem("First signal", "first_signal")
         self._when.addItem("Highest score", "highest_score")
         self._when.setFixedWidth(_FIELD_W)
-        self._commission = self._money(0, 100, 2, "$ ", 1.0)
+        self._commission = self._money(0, 100, 2, "$ ", 0.0)
         self._slippage = QSpinBox()
         self._slippage.setRange(0, 500)
         self._slippage.setSuffix(" bps")
@@ -284,10 +284,9 @@ class BacktestBuilder(QWidget):
         spin.setFixedWidth(_FIELD_W)
         return spin
 
-    def set_account_defaults(self, capital: float, daily_loss_pct: float) -> None:
-        """SRD-GUI-031.030 — start values from the user's Max capital and max daily loss."""
+    def set_account_defaults(self, capital: float) -> None:
+        """Start capital from the user's Max capital (SRD-GUI-031.030, .086)."""
         self._capital.setValue(capital)
-        self._loss.setValue(daily_loss_pct)
 
     @staticmethod
     def _date_edit() -> QDateEdit:

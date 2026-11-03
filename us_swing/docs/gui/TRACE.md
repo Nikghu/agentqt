@@ -91,6 +91,7 @@
 | FO-GUI-031 | SRD-GUI-031.040–.045 | None yet (Phase 4a view only) | MD-GUI-031.040.M04, MD-GUI-031.003.M03 | UT-GUI-031.040–.045 (12 tests: M04 ×10, M03 ×2, Pass) | `gui/backtest_report_view.py`, `gui/backtest_workspace.py` | Implemented (Phase 4a) | RN-GUI-1.43.0-20261029 |
 | FO-GUI-031 | SRD-GUI-031.082–.084 | DD-GUI-031.001.D01 | MD-GUI-031.055.M09, MD-GUI-031.083.M14, MD-GUI-031.003.M03 | UT-GUI-031.082.M09.T01, UT-GUI-031.083.M14.T01, UT-GUI-031.084.M03.T01 | `gui/backtest_reports.py`, `core/dates.py`, `gui/backtest_workspace.py` | Implemented | RN-GUI-1.54.0-20261102 |
 | FO-GUI-031 | SRD-GUI-031.085 | None (minimal GUI docs) | MD-GUI-031.003.M03 | UT-GUI-031.085.M01.T01, .M03.T01 | `gui/backtest_builder.py`, `gui/backtest_workspace.py`, `gui/backtest_reports.py` | Implemented | Pending |
+| FO-GUI-031 | SRD-GUI-031.086 | None (minimal GUI docs) | MD-GUI-031.002.M02 | UT-GUI-031.086.M02.T01 (Pass) | `gui/backtest_builder.py`, `gui/backtest_workspace.py` | Implemented | RN-GUI-1.55.0-20261103 |
 
 ---
 

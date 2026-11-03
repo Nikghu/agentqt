@@ -332,8 +332,7 @@ class BacktestWorkspace(QWidget):
         self.refresh_presets()
         risk = getattr(svc.get_active_user(), "risk_config", None)
         if risk is not None:
-            self.builder.set_account_defaults(float(risk.max_capital_value),
-                                              float(risk.max_daily_loss_pct))
+            self.builder.set_account_defaults(float(risk.max_capital_value))
 
     # ── Build ─────────────────────────────────────────────────────────────────
 

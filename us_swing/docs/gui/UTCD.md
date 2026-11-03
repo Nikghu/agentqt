@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.41.0: UT-GUI-031.086.M02.T01 added; UT-GUI-031.030.M02.T01 sets the loss stop itself — backtest start values.
 > v1.40.0: UT-GUI-013.024.M01.T01–T02 added — BOSS_ST form.
 > v1.39.0: UT-GUI-031.085.M01.T01 and .M03.T01 added — No screener choice.
 > v1.38.0: UT-GUI-013.023.M01.T01 and UT-GUI-031.084.M03.T01 added — 30m timeframe.
@@ -861,7 +862,7 @@ Test files:
 | UT-GUI-031.021.M03.T01 | MD-GUI-031.003.M03 | Positive | Run does both steps | fake service, one strategy ticked | Stocks and Signals pills Done; signals table filled | Pass |
 | UT-GUI-031.022.M03.T01 | MD-GUI-031.003.M03 | Positive | Strategy filter | 2 strategies' periods, pick one | only its rows shown | Pass |
 | UT-GUI-031.023.M03.T01 | MD-GUI-031.003.M03 | Positive | Double-click opens Charts | double-click AAPL row | `chart_requested("AAPL", "1d")` | Pass |
-| UT-GUI-031.030.M02.T01 | MD-GUI-031.002.M02 | Positive | Account fields | defaults 5,000 and 2 %, set slippage 10, highest score | plan capital (5000,), daily loss 2, when_full highest_score, slippage 10 | Pass |
+| UT-GUI-031.030.M02.T01 | MD-GUI-031.002.M02 | Positive | Account fields | capital default 5,000; set loss 2 %, slippage 10, highest score | plan capital (5000,), daily loss 2, when_full highest_score, slippage 10 | Pass |
 | UT-GUI-031.031.M03.T01 | MD-GUI-031.003.M03 | Positive | Run does Step 3 | fake service, one strategy | Portfolio pill Done; Trades tab shown | Pass |
 | UT-GUI-031.032.M03.T01 | MD-GUI-031.003.M03 | Positive | Trades tab | 2 trades, +30 and −10 | summary "2 trades · net P&L $20.00 · win rate 50%"; 2 rows | Pass |
 | UT-GUI-031.033.M03.T01 | MD-GUI-031.003.M03 | Positive | Day log and Money tabs | 3 decisions, 2 money rows | 3 and 2 rows | Pass |
@@ -913,6 +914,7 @@ Test files:
 | UT-GUI-031.084.M03.T01 | MD-GUI-031.003.M03 | Positive | Inspector 30m choice | chart timeframe picker | 30m offered between 15m and 1D; 5 days before entry | Pass |
 | UT-GUI-031.085.M01.T01 | MD-GUI-031.003.M03 | Positive | No screener choice | click No screener, then Replay, then load the plan | skip in plan; preset, stocks per day, AI disabled; side menu text; load restores | Pass |
 | UT-GUI-031.085.M03.T01 | MD-GUI-031.003.M03 | Edge | Data check warning | 50 and 51 stocks, no screener | "Step 1: no screener"; warning line only at 51 | Pass |
+| UT-GUI-031.086.M02.T01 | MD-GUI-031.002.M02 | Positive | New plan start values | capital default 5,000, nothing else set | capital (5000,), daily loss 10, commission 0 | Pass |
 | UT-GUI-031.055.M03.T01 | MD-GUI-031.003.M03 | Positive | Open saved run | Stocks per day 1 in builder, saved All | 4 steps Done; Detail tab; 2 trades; 3 picks | Pass |
 | UT-GUI-031.055.M03.T02 | MD-GUI-031.003.M03 | Positive | Reports tab refresh | show Reports tab | list reloaded | Pass |
 | UT-GUI-031.060.M02.T01 | MD-GUI-031.002.M02 | Positive | Saved lists tick | preset without, then with saved days | message; count and range; plan recorded | Pass |
