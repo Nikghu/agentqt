@@ -1,9 +1,9 @@
 # Traceability Matrix — Infrastructure (INF)
 
 **Document ID:** TRACE-INF
-**Version:** 1.5.0
+**Version:** 1.6.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-09-04 (Session 79, SRD-INF-007.006 approved)
+**Last Updated:** 2026-11-03 (SRD-INF-009.008 IBKR Adaptive market orders)
 
 ---
 
@@ -27,6 +27,7 @@
 | FO-INF-007 | SRD-INF-007.003, 005 | DD-INF-007.001.D01 | MD-INF-007.001.M02 | T01–T04 | `data/providers/dummy_provider.py` | Draft | — |
 | FO-INF-007 | SRD-INF-007.006 | — | MD-INF-007.001.M03 | UT-INF-007.001.M03.T01–T05 | `core/symbols.py` | Implemented | RN-INF-1.7.0-20260904 |
 | FO-INF-009 | SRD-INF-009.007 | — | MD-INF-009.004.M01 | UT-INF-009.004.M01.T01–T04 | `broker/sim.py` | Implemented | RN-INF-1.1.0-20260612 |
+| FO-INF-009 | SRD-INF-009.008 | — | MD-INF-009.005.M01 | UT-INF-009.005.M01.T01–T02 | `broker/ibkr.py` | Implemented | RN-INF-1.8.0-20261103 |
 | FO-INF-010 | SRD-INF-010.001–008 | DD-INF-010.001.D01 | MD-INF-010.001.M01–M07 | UT-INF-010.001.M01–M07.* | `core/notifications/` | Implemented | RN-INF-1.2.0-20260709 |
 | FO-INF-010 | SRD-INF-010.010–011 | DD-INF-010.001.D01 | MD-INF-010.001.M08–M09 | UT-INF-010.001.M08.* | `gui/telegram_token_store.py`, `gui/notification_worker.py` | Implemented | RN-INF-1.3.0-20260709 |
 | FO-INF-010 | SRD-INF-010.009, .012–.015 | DD-INF-010.001.D01 | MD-INF-010.001.M10–M11 | UT-INF-010.001.M10.*, M11.* | `core/notifications/_inbound.py`, `gui/telegram_commands.py` | Implemented | RN-INF-1.4.0-20260709 |
@@ -41,6 +42,7 @@
 | `broker/client.py` | MD-INF-001.001.M01 | SRD-INF-001.001–005 | FO-INF-001 |
 | `broker/pacing.py` | MD-INF-001.001.M02 | SRD-INF-001.005 | FO-INF-001 |
 | `broker/sim.py` | MD-INF-009.004.M01 | SRD-INF-009.004, .007 | FO-INF-009 |
+| `broker/ibkr.py` | MD-INF-009.005.M01 | SRD-INF-009.005, .008 | FO-INF-009 |
 | `universe/manager.py` | MD-INF-002.001.M01 | SRD-INF-002.001–004 | FO-INF-002 |
 | `data_engine/engine.py` | MD-INF-003.001.M01 | SRD-INF-003.001–005 | FO-INF-003 |
 | `db/manager.py` | MD-INF-004.001.M01 | SRD-INF-004.001–006 | FO-INF-004 |
