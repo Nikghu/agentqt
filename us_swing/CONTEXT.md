@@ -2,10 +2,12 @@
 
 **Document:** CONTEXT.md
 **Project:** us_swing
-**Last Updated:** 2026-11-03 (Session 113)
+**Last Updated:** 2026-11-03 (Session 114)
 **Updated By:** Claude (Opus 5.5)
 
 ---
+
+**Also (Session 114, 2026-11-03):** **Risk warning pop-up uses the app's frameless style (Bugfix, GUI; RN-GUI-1.56.5-20261103; SRD-EXE-017.013 unchanged).** `_on_risk_warning` now shows the shared `_ConfirmDialog` (one OK button, yellow accent, non-modal) instead of a native `QMessageBox`; 30 s debounce kept. UT-EXE-017.013.M09.T01 Pass. Branch fix/gui-risk-warning-popup, not pushed. Separate branch feat/gui-screener-plan-zone (Screener plan zone + hit tag, RN-GUI-1.57.0) also not pushed. **Next:** user checks both (TODO T91, T93).
 
 **Current (Session 113, 2026-11-03):** **Window fits the screen with a right panel open (Bugfix, GUI; ISS-GUI-0015; SRD-GUI-019.010 approved by user and Implemented; RN-GUI-1.56.4-20261103).** Running app measured 1962 px wide (minimum 1962) on a 1920 px screen, so ✕ was off screen. The screen stack now sits in a resizable scroll area (`MainWindow._fit_to_screen`); a too-wide screen scrolls instead of widening the window. Sandbox: forced 2400 px screen keeps window at 1920 (main: 2516). 2 UT Pass. Merged to main. **Next:** user checks in the real app (TODO T90).
 

@@ -2,6 +2,16 @@
 
 ---
 
+## [20261103] GUI — Risk warning pop-up uses the app's frameless style
+
+- Type: Bugfix
+- FO(s): FO-EXE-017
+- RN: RN-GUI-1.56.5-20261103
+- Artifacts updated: UTCD-EXE (UT-EXE-017.013.M09.T01 Pass), TRACE (execution), Code (gui/main_window.py), Tests (test_risk_warning_popup.py new), TODO (T93), CONTEXT, DEVLOG
+- Decisions: reuse the shared `_ConfirmDialog` from active_cycles_panel.py in one-button mode (already used by Backtest and Charts) instead of a new alert class; kept non-modal so the warning never blocks. Other native QMessageBox uses left as they are.
+
+---
+
 ## [20261103] GUI — Window fits the screen with a right panel open
 
 - Type: Bugfix
