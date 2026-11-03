@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.43.1: UT-GUI-006.001.M01.T19 added — tests keep users.json in a temp folder (ISS-GUI-0013).
 > v1.43.0: UT-GUI-032.001.M01.T01 – UT-GUI-032.007.M03.T01 added — Strategies grouped and table views.
 > v1.42.0: UT-GUI-031.087.M02.T01–T02 added — From / To follow the saved data.
 > v1.41.0: UT-GUI-031.086.M02.T01 added; UT-GUI-031.030.M02.T01 sets the loss stop itself — backtest start values.
@@ -160,6 +161,7 @@
 | UT-GUI-006.001.M01.T16 | MD-GUI-006.001.M01 | Negative | Symbol with no daily bars is reported and writes nothing | Fake IB returns no daily bars | `symbol_failed(symbol, "NO_DATA")` emitted; no `price_1w` rows (ISS-GUI-0003) | Pass |
 | UT-GUI-006.001.M01.T17 | MD-GUI-006.001.M01 | Negative | Editing a user keeps fields the dialog does not show | User with Telegram on, chat id, notify toggles, configs; change display name | All hidden fields unchanged (ISS-GUI-0005) | Pass |
 | UT-GUI-006.001.M01.T18 | MD-GUI-006.001.M01 | Positive | A new user starts with defaults | `_UserDialog(None)` | id -1, Telegram off, empty chat id (ISS-GUI-0005) | Pass |
+| UT-GUI-006.001.M01.T19 | MD-GUI-006.001.M01 | Negative | Tests never write the real users file | `save_users([user])` in a test | store path is not ~/.usswing/users.json; user reads back (ISS-GUI-0013) | Pass |
 
 ---
 

@@ -2,6 +2,16 @@
 
 ---
 
+## [20261103] GUI — Tests no longer reset the user's mode to paper
+
+- Type: Bugfix
+- FO(s): — (ISS-GUI-0013)
+- RN: RN-GUI-1.56.1-20261103
+- Artifacts updated: ISS-GUI-0013, UTCD (UT-GUI-006.001.M01.T19 Pass), Tests (tests/conftest.py autouse fixture), RN, TODO (T85), CONTEXT, DEVLOG
+- Decisions: 10 GUI test files patched load_users to [] but not save_users, so AppService saved a default paper user to the real ~/.usswing/users.json on every run (also the likely hidden cause of ISS-GUI-0005). Fixed in the root conftest for all tests. Guarded full run: 0 real-file writes.
+
+---
+
 ## [20261103] GUI — Strategies views: grouped and table views in Execution
 
 - Type: Feature

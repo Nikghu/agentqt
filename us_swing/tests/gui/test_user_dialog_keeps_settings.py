@@ -55,3 +55,16 @@ def test_new_user_gets_defaults(qapp: Any) -> None:
     assert profile.user_id == -1
     assert profile.username == "bob"
     assert (profile.telegram_enabled, profile.telegram_chat_id) == (False, "")
+
+
+def test_tests_never_write_real_users_file() -> None:
+    """UT-GUI-006.001.M01.T19: tests save users to a temp file, never ~/.usswing (ISS-GUI-0013)."""
+    from pathlib import Path
+
+    from us_swing.gui import user_store
+
+    real = Path.home() / ".usswing" / "users.json"
+    user_store.save_users([_user()])
+
+    assert user_store._STORE_FILE != real
+    assert user_store.load_users()[0].telegram_chat_id == "12345"
