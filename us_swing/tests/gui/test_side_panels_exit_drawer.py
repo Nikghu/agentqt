@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from PyQt6.QtCore import QObject, pyqtSignal
-from PyQt6.QtWidgets import QTableWidget
+from PyQt6.QtWidgets import QScrollArea, QStackedWidget, QTableWidget, QWidget
 
 from us_swing.gui._types import OpenPosition
 from us_swing.gui.dashboard_panel import _ExitForm, _SquareOffForm
@@ -186,3 +186,25 @@ def test_sidebar_stays_mini_while_right_panel_open():
     assert state.want_mini()
     state.set_page(0)
     assert state.want_mini()
+
+
+def test_screens_sit_in_resizable_scroll_area(qtbot):
+    """UT-GUI-019.010.M03.T01: The screens are held in a resizable scroll area."""
+    stack = QStackedWidget()
+    area = MainWindow._fit_to_screen(stack)
+    qtbot.addWidget(area)
+    assert isinstance(area, QScrollArea)
+    assert area.widget() is stack
+    assert area.widgetResizable()
+
+
+def test_wide_screen_does_not_widen_window(qtbot):
+    """UT-GUI-019.010.M03.T02: A screen wider than the monitor does not raise the minimum width."""
+    stack = QStackedWidget()
+    wide = QWidget()
+    wide.setMinimumWidth(2400)
+    stack.addWidget(wide)
+    area = MainWindow._fit_to_screen(stack)
+    qtbot.addWidget(area)
+    assert stack.minimumSizeHint().width() >= 2400
+    assert area.minimumSizeHint().width() < 1920
