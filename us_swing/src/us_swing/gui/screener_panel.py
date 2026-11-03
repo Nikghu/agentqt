@@ -1770,6 +1770,7 @@ class ScreenerPanel(QWidget):
         self._db_check_requested_at: float = float("-inf")
         self._behind_warned_for: str = ""  # trading day already warned about
         self._rows:              list[ResultRow] = []  # rows shown by both views
+        self._run_timestamp:     str | None = None     # run time of the rows shown
         self._run_meta:          dict[str, str] = {}   # preset id → last-run line
         self._names:             dict[str, str] = {}   # symbol → company name
 
@@ -2400,6 +2401,7 @@ class ScreenerPanel(QWidget):
         """Show a ScreenerRunResult in the result views."""
         self._rows = rows_from_result(getattr(result, "results", {}) or {},
                                       self._company_names())
+        self._run_timestamp = getattr(result, "run_timestamp", None)
         count = len(self._rows)
 
         mode = getattr(result, "execution_mode", "manual")
@@ -2475,7 +2477,8 @@ class ScreenerPanel(QWidget):
     def _refresh_views(self) -> None:
         """Load the current rows, in the chosen sort order, into both views."""
         rows = sort_rows(self._rows, str(self._sort_combo.currentData() or "score"))
-        self._list_view.load(rows, self._selected_preset_timeframe)
+        self._list_view.load(rows, self._selected_preset_timeframe,
+                             self._run_timestamp)
         self._cards_view.load(rows)
 
     def _make_chart(self) -> QWidget:

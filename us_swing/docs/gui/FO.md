@@ -7,6 +7,7 @@
 **Last Updated:** 2026-05-22
 **Project:** US Swing Trading System
 
+> v2.10.0: FO-GUI-022 requirement 8 and acceptance 5 added — Screener chart draws the AI plan from the next candle after the run, with a hit tag; reopened by user 2026-11-03.
 > v2.9.0: FO-GUI-032 added — Strategies views (grouped and table) in the Execution workspace; approved by user 2026-11-03.
 > v2.8.0: FO-GUI-031 added — Backtest workspace (Phase 0 and 1); approved by user 2026-10-29.
 
@@ -680,6 +681,7 @@ The system shall replace the screener results table with two views the user can 
 5. **Sort.** By AI score, reward : risk or rules passed.
 6. **Same actions.** Chart, Watchlist, CSV, date navigation and AI transcript keep working.
 7. **Preset rail.** Search, style chips and a last-run line per preset.
+8. **Plan on chart.** The detail chart draws the AI entry, stop and target from the first candle after the run, and the plan box says whether the plan was entered, hit its target or hit its stop.
 
 ### Acceptance Criteria
 
@@ -687,6 +689,7 @@ The system shall replace the screener results table with two views the user can 
 2. Selecting a stock in List shows its chart and plan.
 3. A run without a plan shows "—" for Entry, Stop, Target and R:R.
 4. CSV includes Entry, Stop, Target and R:R.
+5. An older run shows its plan zone starting at the next candle after the run, so later candles show if Target or Stop was hit.
 ## FO-GUI-023: Card Layout
 
 **Status:** Approved (user, 2026-10-23)

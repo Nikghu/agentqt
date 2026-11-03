@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.74.0: SRD-GUI-022.011 reopened by user 2026-11-03 — Screener chart draws the AI plan from the next candle after the run, with a hit tag.
 > v2.73.0: SRD-GUI-006.020–.021 added and approved by user 2026-11-03 — candle update no longer stuck when only some stocks are current; Retry Failed keeps the resume point (ISS-GUI-0014).
 > v2.72.0: SRD-GUI-032.001–.008 added and approved by user 2026-11-03 — Strategies grouped and table views; .001 replaces the tab order of SRD-GUI-024.003 and .003 replaces the list of SRD-GUI-024.004.
 > v2.71.0: SRD-GUI-031.087 added and approved by user 2026-11-03 — From / To follow the saved data.
@@ -423,7 +424,7 @@
 | SRD-GUI-022.008 | FO-GUI-022 | Must | A page header over the results shows the preset name, a Weighted / Composite tag, an Auto / Manual run tag and a run line (matches, ranking, run date and time); Run now is the only filled accent button and the toolbar Watchlist button is removed. | preset, result | header | Detail and cards keep their Watchlist buttons | Implemented |
 | SRD-GUI-022.009 | FO-GUI-022 | Must | A run stepper joins older / newer arrows and the run date ("Oct 22, 2026", Latest tag on the newest run); clicking the date lists all saved runs. | saved run dates | loaded run | Arrows disabled at either end | Implemented |
 | SRD-GUI-022.010 | FO-GUI-022 | Must | A header pill "AI transcript · N steps · $cost" opens the run transcript in a drawer over the right side of the results; the bottom transcript panel is removed. | transcript | drawer | Pill shown only for AI-ranked presets with a transcript | Implemented |
-| SRD-GUI-022.011 | FO-GUI-022 | Should | List rows show rank, symbol, company name, score bar and rules passed ("2/4"); the detail shows a company line, Open in Charts, Add to watchlist, a chart without its input bar, one plan box with a risk / reward bar and a ✓ / ✕ rule list. | rows | list, detail | Supersedes the rule dots of SRD-GUI-022.002 | Implemented |
+| SRD-GUI-022.011 | FO-GUI-022 | Should | List rows show rank, symbol, company name, score bar and rules passed ("2/4"); the detail shows a company line, Open in Charts, Add to watchlist, a chart without its input bar, one plan box with a risk / reward bar and a ✓ / ✕ rule list; on a daily chart the AI plan is drawn from the first candle after the run's last completed session, and the plan box shows Not entered, Open, Target hit or Stop hit with the date. | rows, run time, bars | list, detail | Supersedes the rule dots of SRD-GUI-022.002; Target and Stop in one candle count as Stop | Implemented |
 | SRD-GUI-022.012 | FO-GUI-022 | Should | Numbers use the UI font, the accent colour is kept for Run now and selection, rule chips are pills, the style chips are one segmented control, New preset is a + button in the rail header and preset rows drop the type tag. | — | — | Supersedes the per-row type tag of SRD-GUI-022.007 | Implemented |
 ## FO-GUI-023 — Card Layout
 
