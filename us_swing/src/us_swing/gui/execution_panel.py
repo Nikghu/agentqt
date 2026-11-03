@@ -98,6 +98,7 @@ class _DiagTitleBar(QWidget):
         self._win = window
         self._drag = QPoint()
         self.setObjectName("title_bar")
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setFixedHeight(40)
 
         row = QHBoxLayout(self)

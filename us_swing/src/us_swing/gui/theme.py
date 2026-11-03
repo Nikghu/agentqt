@@ -203,6 +203,7 @@ QWidget#dlg_title_bar {
     background: #1e1e2e;
 }
 QLabel#top_brand {
+    background: transparent;
     color: #89b4fa;
     font-size: 9pt;
     font-weight: bold;
@@ -717,6 +718,7 @@ QWidget#dlg_title_bar {
     background: #1e1e1e;
 }
 QLabel#top_brand {
+    background: transparent;
     color: #ffffff;
     font-size: 9pt;
     font-weight: bold;
@@ -1263,6 +1265,13 @@ QPushButton, QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, QTimeEdit, QDateEdi
 }
 QTableView, QTableWidget, QTreeView {
     font-family: "IBM Plex Mono", Consolas, monospace;
+}
+QDialog QWidget#title_bar, QWidget#dlg_title_bar {
+    background: #1a2029;
+    border-bottom: 1px solid #2f3845;
+}
+QDialog {
+    border: 1px solid #232a35;
 }
 """
 
