@@ -18,7 +18,7 @@
 | FO-INF-004 | SRD-INF-004.001–006 | DD-INF-004.001.D01 | MD-INF-004.001.M01 | T01–T06, T20–T21 | `db/manager.py` | Draft | — |
 | FO-INF-004 | SRD-INF-004.001–002 | DD-INF-004.001.D01 | MD-INF-004.001.M02 | T05 | `db/schema.py` | Draft | — |
 | FO-INF-001–005 | SRD-INF-001.001 | — | MD-INF-004.001.M03 | — | `data/models.py` | Draft | — |
-| FO-INF-005 | SRD-INF-005.001–002 | DD-INF-005.001.D01 | MD-INF-005.001.M01 | T01–T02 | `monitoring/logging_setup.py` | Draft | RN-INF-1.0.1-20260519 |
+| FO-INF-005 | SRD-INF-005.001–002 | DD-INF-005.001.D01 | MD-INF-005.001.M01 | T01–T05 | `monitoring/logging_setup.py` | Draft | RN-INF-1.0.1-20260519, RN-INF-1.8.1-20261103 |
 | FO-INF-005 | SRD-INF-005.003 | DD-INF-005.001.D01 | MD-INF-005.001.M02 | T01–T02 | `monitoring/alerts.py` | Draft | — |
 | FO-INF-005 | SRD-INF-005.004 | DD-INF-005.001.D01 | MD-INF-005.001.M03 | T01 | `monitoring/health.py` | Draft | — |
 | FO-INF-001 | SRD-INF-001.001 | — | MD-INF-001.001.M03 | — | `config/settings.py` | Draft | — |
