@@ -474,6 +474,7 @@ class _DialogTitleBar(QWidget):
         self._restore_geom = window.geometry()
 
         self.setObjectName("title_bar")
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setFixedHeight(40)
 
         row = QHBoxLayout(self)
