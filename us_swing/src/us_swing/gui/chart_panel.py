@@ -728,7 +728,8 @@ def _build_html(
     }});
   }}
 
-  // Trade plan zones and lines run from the last candle into the future (SRD-GUI-026.004).
+  // Trade plan zones and lines run from the start candle, or the last candle, into the future
+  // (SRD-GUI-026.004, SRD-GUI-022.011).
   class PlanPrimitive {{
     constructor(p) {{ this.p = p; this.chart = null; this.series = null; }}
     attached(a) {{ this.chart = a.chart; this.series = a.series; }}
@@ -743,8 +744,8 @@ def _build_html(
     }}
     draw(target) {{
       if (!this.chart || !this.series || !candleData.length) return;
-      const last = candleData[candleData.length - 1].time;
-      const x0 = this.chart.timeScale().timeToCoordinate(last);
+      const from = this.p.start ?? candleData[candleData.length - 1].time;
+      const x0 = this.chart.timeScale().timeToCoordinate(from);
       if (x0 === null) return;
       const p = this.p, y = v => this.series.priceToCoordinate(v);
       target.useBitmapCoordinateSpace(({{ context: ctx, bitmapSize, horizontalPixelRatio: hr,
@@ -828,7 +829,7 @@ def _build_html(
     if (!p) return;
     planPrim = new PlanPrimitive(p);
     candleSeries.attachPrimitive(planPrim);
-    // Axis labels only; the primitive draws the lines from the last candle onward.
+    // Axis labels only; the primitive draws the lines from the start candle onward.
     [['Entry', p.entry, '{ct.BLUE}'], ['Stop', p.stop, '{ct.RED}'],
      ['Target', p.target, '{ct.GREEN}']].forEach(([title, price, colour]) => {{
       planLines.push(candleSeries.createPriceLine({{
@@ -864,6 +865,7 @@ class CandleChartPanel(QWidget):
         self._candles: list[dict[str, Any]] = []
         self._overlays: list[tuple[str, int]] = []
         self._plan: tuple[float, float, float] | None = None
+        self._plan_start: int | None = None
         self._rsi_pane = False
         self._markers: list[dict[str, Any]] = []
         self._levels: list[float] = []
@@ -991,9 +993,15 @@ class CandleChartPanel(QWidget):
         self._overlays = list(overlays)
         self._push_studies()
 
-    def set_plan(self, plan: tuple[float, float, float] | None) -> None:
-        """Draw ``(entry, stop, target)`` lines and zones, or clear them (SRD-GUI-026.004)."""
+    def set_plan(self, plan: tuple[float, float, float] | None,
+                 start: int | None = None) -> None:
+        """Draw ``(entry, stop, target)`` lines and zones, or clear them (SRD-GUI-026.004).
+
+        ``start`` is the candle time the zones begin at (SRD-GUI-022.011); None
+        starts them at the last candle.
+        """
         self._plan = plan
+        self._plan_start = start
         self._push_studies()
 
     def set_markers(self, markers: list[dict[str, Any]]) -> None:
@@ -1049,7 +1057,7 @@ class CandleChartPanel(QWidget):
         plan = None
         if self._plan is not None:
             entry, stop, target = self._plan
-            plan = {"entry": entry, "stop": stop, "target": target}
+            plan = {"entry": entry, "stop": stop, "target": target, "start": self._plan_start}
         rsi = study_points(self._candles, "rsi", RSI_PERIOD) if self._rsi_pane else []
         return {"overlays": overlays, "rsi": rsi, "plan": plan,
                 "markers": self._markers, "levels": self._levels,

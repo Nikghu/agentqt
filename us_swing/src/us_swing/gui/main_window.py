@@ -769,18 +769,16 @@ class MainWindow(QMainWindow):
         Advisory only — never blocks, resizes, or closes an order.
         """
         import time
-        from PyQt6.QtWidgets import QMessageBox
+        from us_swing.gui.active_cycles_panel import _ConfirmDialog
 
         now = time.monotonic()
         if now - self._risk_warning_last.get(kind, 0.0) < 30.0:
             return
         self._risk_warning_last[kind] = now
 
-        box = QMessageBox(self)
-        box.setIcon(QMessageBox.Icon.Warning)
-        box.setWindowTitle("Risk Warning")
-        box.setText(message)
-        box.setStandardButtons(QMessageBox.StandardButton.Ok)
+        box = _ConfirmDialog("RISK WARNING", message, confirm_text="OK", accent=C.YELLOW,
+                             show_cancel=False, parent=self)
+        box.setModal(False)
         box.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         box.show()
 

@@ -12,6 +12,26 @@
 
 ---
 
+## [20261103] GUI — Risk warning pop-up uses the app's frameless style
+
+- Type: Bugfix
+- FO(s): FO-EXE-017
+- RN: RN-GUI-1.56.5-20261103
+- Artifacts updated: UTCD-EXE (UT-EXE-017.013.M09.T01 Pass), TRACE (execution), Code (gui/main_window.py), Tests (test_risk_warning_popup.py new), TODO (T93), CONTEXT, DEVLOG
+- Decisions: reuse the shared `_ConfirmDialog` from active_cycles_panel.py in one-button mode (already used by Backtest and Charts) instead of a new alert class; kept non-modal so the warning never blocks. Other native QMessageBox uses left as they are.
+
+---
+
+## [20261103] GUI — Screener chart draws the AI plan with a hit tag
+
+- Type: Enhancement
+- FO(s): FO-GUI-022
+- RN: RN-GUI-1.57.0-20261103
+- Artifacts updated: FO (FO-GUI-022 req 8, acceptance 5), SRD (GUI-022.011 reopened by user → Implemented), MD (MD-GUI-022.001.M01), UTCD (UT-GUI-022.011.M01.T02–T07 Pass), TRACE (gui), Code (gui/screener_views.py, gui/chart_panel.py, gui/screener_panel.py), Tests (test_screener_views.py), TODO (T91, T92), CONTEXT, DEVLOG
+- Decisions: user rules — screener uses completed candles, so the zone starts at the very next candle; zone runs to the right edge; entry must be reached first; Target and Stop in one candle count as Stop. Start date worked out from run time, not `candle_date` (only saved since PR #102). Visual check caught `candles` being a property, not a method — fixed before commit.
+
+---
+
 ## [20261103] GUI — Window fits the screen with a right panel open
 
 - Type: Bugfix

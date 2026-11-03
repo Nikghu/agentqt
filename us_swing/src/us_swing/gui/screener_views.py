@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import datetime
 import math
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
@@ -41,6 +41,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from us_swing.data.market_calendar import ET
 from us_swing.gui.icons import icon, set_icon
 from us_swing.gui.theme import C, active_palette, colors
 
@@ -56,6 +57,8 @@ CSV_HEADER = ["Symbol", "Score", "Details", "AI Reasoning", "Entry", "Stop", "Ta
 
 _CARD_MIN_W = 320
 _DASH = "—"
+_SESSION_CLOSE = datetime.time(16, 0)
+_ONE_DAY = datetime.timedelta(days=1)
 
 
 # ── Rows ──────────────────────────────────────────────────────────────────────
@@ -221,6 +224,59 @@ def _run_time(run_timestamp: str | None,
     except ValueError:
         return None
     return when.astimezone(tz) if when.tzinfo is not None else when
+
+
+def _bar_date(bar: Mapping[str, Any]) -> datetime.date:
+    return datetime.datetime.fromtimestamp(int(bar["time"]), tz=datetime.timezone.utc).date()
+
+
+def plan_start_index(run_timestamp: str | None,
+                     bars: Sequence[Mapping[str, Any]]) -> int | None:
+    """Index of the first daily bar after the run's last completed session (SRD-GUI-022.011).
+
+    A session is completed once the market closes at 16:00 New York time, so a
+    Sunday run starts on Monday and a pre-market run starts on the same day.
+    Returns None when the run time is unknown or no such bar exists yet.
+    """
+    when = _run_time(run_timestamp, ET)
+    if when is None or when.tzinfo is None:
+        return None
+    last_done = when.date() if when.time() >= _SESSION_CLOSE else when.date() - _ONE_DAY
+    return next((i for i, bar in enumerate(bars) if _bar_date(bar) > last_done), None)
+
+
+def plan_outcome(bars: Sequence[Mapping[str, Any]], start: int, entry: float, stop: float,
+                 target: float) -> tuple[str, datetime.date | None]:
+    """What a long plan did from ``bars[start]`` on (SRD-GUI-022.011).
+
+    The plan is entered when a bar reaches ``entry`` from the side of the last
+    close before ``start``, a gap past it included. After entry the first bar
+    reaching ``stop`` or ``target`` decides; a bar reaching both counts as stop.
+
+    Returns:
+        ``("not_entered" | "open", None)`` or ``("stop" | "target", bar date)``.
+    """
+    ref = float(bars[start - 1]["close"] if start > 0 else bars[start]["open"])
+    entered = False
+    for bar in bars[start:]:
+        low, high = float(bar["low"]), float(bar["high"])
+        if not entered:
+            entered = low <= entry if ref >= entry else high >= entry
+            if not entered:
+                continue
+        if low <= stop:
+            return "stop", _bar_date(bar)
+        if high >= target:
+            return "target", _bar_date(bar)
+    return ("open" if entered else "not_entered"), None
+
+
+def outcome_text(outcome: tuple[str, datetime.date | None]) -> str:
+    """Tag text, e.g. ``Target hit 30 Oct``."""
+    status, day = outcome
+    if day is not None:
+        return f"{'Target' if status == 'target' else 'Stop'} hit {day.day} {day:%b}"
+    return "Open" if status == "open" else "Not entered"
 
 
 def run_date_text(date_key: str) -> str:
@@ -693,6 +749,12 @@ class SideDrawer(QFrame):
 class _ChartLike(Protocol):
     def show_symbol(self, symbol: str, timeframe: str | None = None) -> None: ...
 
+    @property
+    def candles(self) -> list[dict[str, Any]]: ...
+
+    def set_plan(self, plan: tuple[float, float, float] | None,
+                 start: int | None = None) -> None: ...
+
 
 class _ListRow(QWidget):
     """One line of the ranked list: rank, symbol and company, score bar, rules passed."""
@@ -744,6 +806,7 @@ class ListDetailView(QWidget):
         super().__init__(parent)
         self._rows: list[ResultRow] = []
         self._timeframe = "1d"
+        self._run_timestamp: str | None = None
         self._chart_factory = chart_factory
         self._chart: QWidget | None = None
 
@@ -824,6 +887,11 @@ class ListDetailView(QWidget):
         self.risk_lbl = _key_label("")
         amounts.addWidget(self.risk_lbl)
         amounts.addStretch(1)
+        self.outcome_lbl = QLabel()
+        self.outcome_lbl.setObjectName("plan_outcome")
+        self.outcome_lbl.setVisible(False)
+        amounts.addWidget(self.outcome_lbl)
+        amounts.addStretch(1)
         self.reward_lbl = _key_label("")
         amounts.addWidget(self.reward_lbl)
         plan_box.addLayout(amounts)
@@ -858,10 +926,12 @@ class ListDetailView(QWidget):
         scroll.setWidget(detail)
         layout.addWidget(scroll, 1)
 
-    def load(self, rows: list[ResultRow], timeframe: str = "1d") -> None:
-        """Show ``rows`` and select the first one."""
+    def load(self, rows: list[ResultRow], timeframe: str = "1d",
+             run_timestamp: str | None = None) -> None:
+        """Show ``rows`` of the run made at ``run_timestamp`` and select the first one."""
         self._rows = rows
         self._timeframe = timeframe
+        self._run_timestamp = run_timestamp
         self.list.blockSignals(True)
         self.list.clear()
         for row in rows:
@@ -888,6 +958,7 @@ class ListDetailView(QWidget):
         if self._fill_detail(index):
             symbol = self._rows[index].symbol
             self._show_chart(symbol)
+            self._show_plan(self._rows[index])
             self.selection_changed.emit(symbol)
 
     def _fill_detail(self, index: int) -> bool:
@@ -903,6 +974,7 @@ class ListDetailView(QWidget):
             for value in self.tiles.values():
                 value.setText(_DASH)
             self.rr_bar.setVisible(False)
+            self.outcome_lbl.setVisible(False)
             self.risk_lbl.setText("")
             self.reward_lbl.setText("")
             return False
@@ -967,6 +1039,30 @@ class ListDetailView(QWidget):
         chart: _ChartLike = self._chart  # type: ignore[assignment]
         chart.show_symbol(symbol, self._timeframe)
 
+    def _show_plan(self, row: ResultRow) -> None:
+        """Draw the AI plan from the next candle after the run and tag what it did."""
+        self.outcome_lbl.setVisible(False)
+        if self._chart is None:
+            return
+        chart: _ChartLike = self._chart  # type: ignore[assignment]
+        entry, stop, target = row.entry, row.stop, row.target
+        if (self._timeframe != "1d" or row.rr is None
+                or entry is None or stop is None or target is None):
+            chart.set_plan(None)
+            return
+        bars = chart.candles
+        start = plan_start_index(self._run_timestamp, bars)
+        chart.set_plan((entry, stop, target), None if start is None else int(bars[start]["time"]))
+        if start is None:
+            return
+        outcome = plan_outcome(bars, start, entry, stop, target)
+        palette: Any = active_palette()
+        colour = {"target": palette.GREEN, "stop": palette.RED,
+                  "open": palette.YELLOW}.get(outcome[0], palette.MUTED)
+        self.outcome_lbl.setText(outcome_text(outcome))
+        self.outcome_lbl.setStyleSheet(f"color: {colour}; font-weight: bold;")
+        self.outcome_lbl.setVisible(True)
+
     def changeEvent(self, event: QEvent | None) -> None:
         super().changeEvent(event)
         if event is not None and event.type() == QEvent.Type.StyleChange and self._rows:
@@ -978,7 +1074,9 @@ class ListDetailView(QWidget):
             item = self.list.item(index)
             if item is not None:
                 self.list.setItemWidget(item, _ListRow(row))
-        self._fill_detail(self.list.currentRow())
+        index = self.list.currentRow()
+        if self._fill_detail(index):
+            self._show_plan(self._rows[index])
 
 
 # ── Cards view ────────────────────────────────────────────────────────────────

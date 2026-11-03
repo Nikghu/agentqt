@@ -21,6 +21,9 @@ from us_swing.gui.screener_views import (
     csv_rows,
     filter_presets,
     last_run_text,
+    outcome_text,
+    plan_outcome,
+    plan_start_index,
     rows_from_result,
     run_date_text,
     run_meta_text,
@@ -46,9 +49,19 @@ class _FakeChart(QWidget):
         super().__init__()
         _FakeChart.instances += 1
         self.shown: list[tuple[str, str | None]] = []
+        self.bars: list[dict] = []
+        self.plans: list[tuple[tuple[float, float, float] | None, int | None]] = []
 
     def show_symbol(self, symbol: str, timeframe: str | None = None) -> None:
         self.shown.append((symbol, timeframe))
+
+    @property
+    def candles(self) -> list[dict]:
+        return self.bars
+
+    def set_plan(self, plan: tuple[float, float, float] | None,
+                 start: int | None = None) -> None:
+        self.plans.append((plan, start))
 
 
 @pytest.fixture()
@@ -303,3 +316,84 @@ def test_list_row_and_plan_details(qtbot):
     view.list.setCurrentRow(2)
     assert view.rr_bar.isHidden()
     assert view.risk_lbl.text() == "No trade plan from the AI for this stock"
+
+
+def _bar(day: str, low: float, high: float, close: float | None = None,
+         open_: float | None = None) -> dict:
+    when = datetime.datetime.fromisoformat(day).replace(tzinfo=datetime.timezone.utc)
+    mid = (low + high) / 2
+    return {"time": int(when.timestamp()), "open": mid if open_ is None else open_,
+            "high": high, "low": low, "close": mid if close is None else close, "volume": 1}
+
+
+_WEEKS = [_bar(d, 99, 101, 100) for d in (
+    "2026-04-30", "2026-05-01", "2026-05-04", "2026-05-05",
+    "2026-10-23", "2026-10-26", "2026-11-02", "2026-11-03", "2026-11-04")]
+
+
+def _day(index: int | None) -> str | None:
+    if index is None:
+        return None
+    return datetime.datetime.fromtimestamp(
+        _WEEKS[index]["time"], tz=datetime.timezone.utc).date().isoformat()
+
+
+def test_plan_starts_at_next_candle():
+    """UT-GUI-022.011.M01.T02: Zone starts at the next candle after the last completed session."""
+    assert _day(plan_start_index("2026-05-03T05:25:46Z", _WEEKS)) == "2026-05-04"
+    assert _day(plan_start_index("2026-10-26T13:00:43Z", _WEEKS)) == "2026-10-26"
+    assert _day(plan_start_index("2026-11-03T23:00:00Z", _WEEKS)) == "2026-11-04"
+
+
+def test_plan_start_none_without_next_candle():
+    """UT-GUI-022.011.M01.T03: No candle after the run, or no run time, gives None."""
+    assert plan_start_index("2026-11-04T22:00:00Z", _WEEKS) is None
+    assert plan_start_index(None, _WEEKS) is None
+
+
+def test_plan_outcome_target_and_stop():
+    """UT-GUI-022.011.M01.T04: Entered, then Target or Stop decides."""
+    pullback = [_bar("2026-10-23", 94, 96, 95), _bar("2026-10-26", 92, 95),
+                _bar("2026-10-27", 93, 97), _bar("2026-10-28", 96, 101)]
+    assert plan_outcome(pullback, 1, 92.5, 90, 100) == ("target", datetime.date(2026, 10, 28))
+    breakout = [_bar("2026-10-23", 98, 100, 99), _bar("2026-10-26", 99, 101.5),
+                _bar("2026-10-27", 95, 100)]
+    assert plan_outcome(breakout, 1, 100.75, 95.8, 112) == ("stop", datetime.date(2026, 10, 27))
+    assert outcome_text(("target", datetime.date(2026, 10, 28))) == "Target hit 28 Oct"
+    assert outcome_text(("stop", datetime.date(2026, 10, 27))) == "Stop hit 27 Oct"
+
+
+def test_plan_outcome_not_entered_or_open():
+    """UT-GUI-022.011.M01.T05: Never reaches entry, or entered with no hit yet."""
+    bars = [_bar("2026-10-23", 94, 96, 95), _bar("2026-10-26", 93, 96)]
+    assert plan_outcome(bars, 1, 92.5, 90, 100) == ("not_entered", None)
+    bars.append(_bar("2026-10-27", 92, 95))
+    assert plan_outcome(bars, 1, 92.5, 90, 100) == ("open", None)
+    assert outcome_text(("open", None)) == "Open"
+    assert outcome_text(("not_entered", None)) == "Not entered"
+
+
+def test_plan_outcome_both_in_one_candle_and_gap():
+    """UT-GUI-022.011.M01.T06: Target and Stop in one candle count as Stop; a gap enters."""
+    wide = [_bar("2026-10-23", 94, 96, 95), _bar("2026-10-26", 89, 101)]
+    assert plan_outcome(wide, 1, 92.5, 90, 100) == ("stop", datetime.date(2026, 10, 26))
+    gap = [_bar("2026-10-23", 94, 96, 95), _bar("2026-10-26", 91, 92, open_=92)]
+    assert plan_outcome(gap, 1, 92.5, 90, 100) == ("open", None)
+
+
+def test_detail_draws_plan_and_tag(qtbot):
+    """UT-GUI-022.011.M01.T07: Detail draws the plan from the start candle and shows the tag."""
+    view = ListDetailView(_FakeChart)
+    qtbot.addWidget(view)
+    plan_rows = rows_from_result(_RESULTS)
+    view._show_chart("NVDA")
+    chart = view._chart
+    assert isinstance(chart, _FakeChart)
+    chart.bars = [_bar("2026-10-23", 225, 230, 228), _bar("2026-10-26", 220, 226),
+                  _bar("2026-10-27", 224, 256)]
+    view.load(plan_rows, "1d", "2026-10-26T13:00:00Z")
+    assert chart.plans[-1] == ((222.0, 212.0, 255.0), chart.bars[1]["time"])
+    assert view.outcome_lbl.text() == "Target hit 27 Oct" and not view.outcome_lbl.isHidden()
+    view.list.setCurrentRow(2)
+    assert chart.plans[-1] == (None, None)
+    assert view.outcome_lbl.isHidden()

@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.44.0: UT-GUI-022.011.M01.T02–T07 added — plan zone start and hit tag on the Screener chart.
 > v1.43.1: UT-GUI-006.001.M01.T19 added — tests keep users.json in a temp folder (ISS-GUI-0013).
 > v1.43.0: UT-GUI-032.001.M01.T01 – UT-GUI-032.007.M03.T01 added — Strategies grouped and table views.
 > v1.42.0: UT-GUI-031.087.M02.T01–T02 added — From / To follow the saved data.
@@ -619,6 +620,12 @@ Test files:
 | UT-GUI-022.010.M01.T01 | MD-GUI-022.001.M01 | Positive | Pill shows steps and cost | 2 turns with tokens; 1 turn without | "AI transcript · 2 steps · $0.04"; "AI transcript · 1 step" | Pass |
 | UT-GUI-022.010.M01.T02 | MD-GUI-022.001.M01 | Positive | Drawer opens and Esc closes it | host 1000 px; open; Esc | open, visible, 460 px wide; closed once | Pass |
 | UT-GUI-022.011.M01.T01 | MD-GUI-022.001.M01 | Positive | Company name, rules count, risk / reward | names for NVDA; select row without plan | company in meta; "RULES · 1 OF 3"; "$10.00" / "$33.00" lines; bar hidden and no-plan text | Pass |
+| UT-GUI-022.011.M01.T02 | MD-GUI-022.001.M01 | Positive | Zone starts at the next candle | Sun 3 May run; Mon 26 Oct 09:00 NY run; Tue 3 Nov 18:00 NY run | index of 4 May; 26 Oct; 4 Nov | Pass |
+| UT-GUI-022.011.M01.T03 | MD-GUI-022.001.M01 | Edge | No candle after the run | run after the last candle; no run time | None; None | Pass |
+| UT-GUI-022.011.M01.T04 | MD-GUI-022.001.M01 | Positive | Entered, then Target or Stop | pullback entry then high ≥ target; breakout entry then low ≤ stop | ("target", date); ("stop", date) | Pass |
+| UT-GUI-022.011.M01.T05 | MD-GUI-022.001.M01 | Negative | Not entered or still open | price never reaches entry; entry touched only | ("not_entered", None); ("open", None) | Pass |
+| UT-GUI-022.011.M01.T06 | MD-GUI-022.001.M01 | Edge | Target and Stop in one candle; gap past entry | one candle spans stop and target; candle opens below a pullback entry | ("stop", date); entered | Pass |
+| UT-GUI-022.011.M01.T07 | MD-GUI-022.001.M01 | Positive | Detail draws plan and tag | load rows with run time; select plan row; select no-plan row | chart gets plan with start time and tag text; no plan → plan cleared, tag hidden | Pass |
 ## FO-GUI-023 — Card Layout
 
 | ID | Module | Type | Description | Input | Expected | Status |
