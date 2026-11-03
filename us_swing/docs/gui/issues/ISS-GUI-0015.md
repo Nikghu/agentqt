@@ -5,6 +5,7 @@
 **Status:** Resolved (user check pending)
 **Date Opened:** 2026-11-03
 **Date Resolved:** 2026-11-03
+**Resolution:** RN-GUI-1.56.4-20261103
 **Reporter:** User — "the tool is overfitted on the right side when I click on a right panel button; I cannot see the cross"
 
 ---
@@ -21,7 +22,7 @@ With the main window maximized, clicking a right panel button left the window wi
 | Several labels size to their full text | With live data the widest screen plus the right panel passed 1920 px |
 | A maximized frameless window grows to its minimum and never shrinks back | Same mechanism as ISS-GUI-0010, now from screen content, not the sidebar |
 
-**SRD root cause:** no requirement capped the window at the screen width for screen content. SRD-GUI-019.010 added (Draft).
+**SRD root cause:** no requirement capped the window at the screen width for screen content. SRD-GUI-019.010 added (approved by user, Implemented).
 
 ## Fix
 
@@ -37,8 +38,8 @@ UT-GUI-019.010.M03.T01–T02 pass; tests/gui 629 passed (22 old test_chart_works
 
 | Artifact | Change | Status |
 |---|---|---|
-| SRD-GUI-019.010 | New | Draft |
-| MD-GUI-019.010.M03 | New row | Draft |
+| SRD-GUI-019.010 | New | Implemented |
+| MD-GUI-019.010.M03 | New row | Implemented |
 | UTCD (GUI) | UT-GUI-019.010.M03.T01–T02 | Pass |
 | TRACE (GUI) | SRD-GUI-019.010 row | Updated |
 

@@ -388,7 +388,7 @@
 | SRD-GUI-019.007 | FO-GUI-019 | Must | Square Off All opens the drawer in list mode with every open position and the total, then Review and Confirm. | click | close requests | Replaces the warning message box | Implemented |
 | SRD-GUI-019.008 | FO-GUI-019 | Should | Open in Chart switches to the Chart screen and loads the selected symbol. | click | chart | Uses the chart's own load path | Implemented |
 | SRD-GUI-019.009 | FO-GUI-019 | Must | On every screen, a right panel button click shrinks the sidebar to mini before the panel slides in, and the sidebar stays mini while the panel is open. | right panel click | sidebar mini | Window must not grow past the screen; Expand waits until the panel closes | Implemented |
-| SRD-GUI-019.010 | FO-GUI-019 | Must | No screen's content can make the main window wider than the screen; a screen that needs more room scrolls inside its own area. | any screen, right panel open or closed | window, ✕, right panel and icon strip stay on screen | Found with live data at 1962 px on a 1920 px screen (ISS-GUI-0015) | Draft |
+| SRD-GUI-019.010 | FO-GUI-019 | Must | No screen's content can make the main window wider than the screen; a screen that needs more room scrolls inside its own area. | any screen, right panel open or closed | window, ✕, right panel and icon strip stay on screen | Found with live data at 1962 px on a 1920 px screen (ISS-GUI-0015) | Implemented |
 
 ## FO-GUI-020 — Charts Workspace
 
