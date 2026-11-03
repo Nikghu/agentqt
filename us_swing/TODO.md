@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-11-02 (Session 110)
+**Last Updated:** 2026-11-03 (Session 111)
 
 ---
 
@@ -93,3 +93,4 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T81 | GUI — Optional 30m tab in the Execution chart (today 3m and 15m only). Needs an SRD before any code. | `gui/execution_panel.py`, `gui/chart_panel.py` | Low | Open |
 | T82 | BOSS_ST Phase 2: Direction = Both — one strategy with Long and Short entry/exit conditions; router picks side by which entry fires, exit by open cycle side; backtest support. | `execution/strategy_engine/_router.py`, `gui/strategy_builder_dialog.py`, `backtest/` | Medium | Open |
 | T83 | BOSS_ST manual check: run Long (Fresh == 1 / State != 1) and Short (Fresh == -1 / State != -1) strategies on 30m/15m in backtest and paper; compare signals with charts. | `core/market_structure.py` | High | Open |
+| T84 | GUI — Manual check of Strategies views (FO-GUI-032, RN-GUI-1.56.0): grouped and table views, inline detail, bulk bar, view memory in the real app window. Push / PR only when the user says. | `gui/strategies_views.py`, `gui/strategies_pane.py`, `gui/execution_panel.py` | Medium | Open |

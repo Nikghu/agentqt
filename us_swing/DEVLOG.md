@@ -2,6 +2,16 @@
 
 ---
 
+## [20261103] GUI — Strategies views: grouped and table views in Execution
+
+- Type: Feature
+- FO(s): FO-GUI-032
+- RN: RN-GUI-1.56.0-20261103
+- Artifacts updated: SRD (GUI-032.001–.008 approved by user → Implemented), DD (DD-GUI-032.001.D01), MD (MD-GUI-032.001.M01, .002.M02 new, .003.M03), UTCD (12 cases Pass), TRACE (gui), Code (strategies_views.py new, execution_panel.py, strategies_pane.py, theme.py, table.svg), Tests, RN, TODO (T84), CONTEXT, DEVLOG
+- Decisions: Strategies tab first; grouped view with Running / Stopped / Disabled; table view with inline detail on warm background; view kept in QSettings; row Start / Stop does not change the open detail (review HIGH, fixed). Branch feat/gui-strategies-views, not pushed.
+
+---
+
 ## [20261103] GUI/BKT — Backtest setup: 10 % loss stop, $0 commission, dates follow saved data
 
 - Type: Enhancement

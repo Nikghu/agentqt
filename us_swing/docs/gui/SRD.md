@@ -618,11 +618,11 @@
 
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
-| SRD-GUI-032.001 | FO-GUI-032 | Must | The Execution tabs read Strategies, Active trades, Closed today, and Strategies is open at start. | — | tab bar | Replaces the order of SRD-GUI-024.003 | Approved |
-| SRD-GUI-032.002 | FO-GUI-032 | Must | The right of the tab bar shows "N of M running", a Find strategy box, + Add and two view icons (Grouped, Table) while Strategies is open. | strategies | header row | Find filters names in both views | Approved |
-| SRD-GUI-032.003 | FO-GUI-032 | Must | The grouped view lists strategies under Running, Stopped and Disabled headers with counts; each row shows name, P&L and a direction · mode · type · trades line. | strategies, P&L | list and detail | Replaces the list of SRD-GUI-024.004; Disabled means mode Disabled | Approved |
-| SRD-GUI-032.004 | FO-GUI-032 | Must | The table view shows one row per strategy: Strategy, Status, Dir, Mode, Type, Entry window, Per trade, Trades, Win %, Total P&L, Today, Open and a Start / Stop / Enable button. | strategies, P&L | table | Running first, then Stopped, then Disabled | Approved |
-| SRD-GUI-032.005 | FO-GUI-032 | Must | Clicking a table row opens the strategy detail under it on a warm background with an accent left stripe; clicking it again closes it. | row click | inline detail | One row open at a time | Approved |
-| SRD-GUI-032.006 | FO-GUI-032 | Should | Table rows have check boxes; a bar shows "N selected" with Start, Stop and Reset count for the checked strategies. | checked rows | bulk action | Bar hidden when nothing is checked | Approved |
-| SRD-GUI-032.007 | FO-GUI-032 | Should | Switching views keeps the picked strategy, and the last view is restored on the next start. | view icon | view | Kept in QSettings | Approved |
-| SRD-GUI-032.008 | FO-GUI-032 | Should | Status pills show the status word only, with no dot. | status | pill | — | Approved |
+| SRD-GUI-032.001 | FO-GUI-032 | Must | The Execution tabs read Strategies, Active trades, Closed today, and Strategies is open at start. | — | tab bar | Replaces the order of SRD-GUI-024.003 | Implemented |
+| SRD-GUI-032.002 | FO-GUI-032 | Must | The right of the tab bar shows "N of M running", a Find strategy box, + Add and two view icons (Grouped, Table) while Strategies is open. | strategies | header row | Find filters names in both views | Implemented |
+| SRD-GUI-032.003 | FO-GUI-032 | Must | The grouped view lists strategies under Running, Stopped and Disabled headers with counts; each row shows name, P&L and a direction · mode · type · trades line. | strategies, P&L | list and detail | Replaces the list of SRD-GUI-024.004; Disabled means mode Disabled | Implemented |
+| SRD-GUI-032.004 | FO-GUI-032 | Must | The table view shows one row per strategy: Strategy, Status, Dir, Mode, Type, Entry window, Per trade, Trades, Win %, Total P&L, Today, Open and a Start / Stop / Enable button. | strategies, P&L | table | Running first, then Stopped, then Disabled | Implemented |
+| SRD-GUI-032.005 | FO-GUI-032 | Must | Clicking a table row opens the strategy detail under it on a warm background with an accent left stripe; clicking it again closes it. | row click | inline detail | One row open at a time | Implemented |
+| SRD-GUI-032.006 | FO-GUI-032 | Should | Table rows have check boxes; a bar shows "N selected" with Start, Stop and Reset count for the checked strategies. | checked rows | bulk action | Bar hidden when nothing is checked | Implemented |
+| SRD-GUI-032.007 | FO-GUI-032 | Should | Switching views keeps the picked strategy, and the last view is restored on the next start. | view icon | view | Kept in QSettings | Implemented |
+| SRD-GUI-032.008 | FO-GUI-032 | Should | Status pills show the status word only, with no dot. | status | pill | — | Implemented |
