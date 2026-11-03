@@ -2,6 +2,16 @@
 
 ---
 
+## [20261103] GUI — Candle data update no longer stuck
+
+- Type: Bugfix
+- FO(s): FO-GUI-006 (ISS-GUI-0014)
+- RN: RN-GUI-1.56.2-20261103
+- Artifacts updated: ISS-GUI-0014, SRD (GUI-006.020–.021 approved by user → Implemented), MD note, UTCD (UT-GUI-006.001.M01.T20–T23 Pass), TRACE (gui), Code (gui/app_service.py), Tests (test_app_service_candle_status.py new), RN, TODO (T87), CONTEXT, DEVLOG
+- Decisions: oldest per-stock last date decides status and delta start; failed-list and out-of-index stocks left out so a delisted stock (KVUE) cannot block forever; fix mode never touches the checkpoint. Review: approve, 2 optional mediums left as is (never-downloaded stocks covered by 95 % coverage rule). User DB repaired with backup. Installer template fix (no skipifsilent) done locally; installer/ is git-ignored.
+
+---
+
 ## [20261103] INF — IBKR market orders sent as Adaptive algo
 
 - Type: Enhancement

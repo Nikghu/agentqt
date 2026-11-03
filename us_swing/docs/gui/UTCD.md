@@ -162,6 +162,10 @@
 | UT-GUI-006.001.M01.T17 | MD-GUI-006.001.M01 | Negative | Editing a user keeps fields the dialog does not show | User with Telegram on, chat id, notify toggles, configs; change display name | All hidden fields unchanged (ISS-GUI-0005) | Pass |
 | UT-GUI-006.001.M01.T18 | MD-GUI-006.001.M01 | Positive | A new user starts with defaults | `_UserDialog(None)` | id -1, Telegram off, empty chat id (ISS-GUI-0005) | Pass |
 | UT-GUI-006.001.M01.T19 | MD-GUI-006.001.M01 | Negative | Tests never write the real users file | `save_users([user])` in a test | store path is not ~/.usswing/users.json; user reads back (ISS-GUI-0013) | Pass |
+| UT-GUI-006.001.M01.T20 | MD-GUI-006.001.M01 | Positive | Oldest last date among index stocks decides the data date (SRD-GUI-006.020) | AAA to 11-02, BBB to 10-30 | `2026-10-30` | Pass |
+| UT-GUI-006.001.M01.T21 | MD-GUI-006.001.M01 | Negative | Stocks out of the index or in the failed list do not hold the date back | AAA 11-02, OLD 09-01 (not in index), KVUE 10-29 (failed) | `2026-11-02` | Pass |
+| UT-GUI-006.001.M01.T22 | MD-GUI-006.001.M01 | Positive | Status is PARTIAL when one stock is current and the rest are a day behind | 1 of 2 index stocks at last trading day | `status == PARTIAL`, `last_candle_date` = older date | Pass |
+| UT-GUI-006.001.M01.T23 | MD-GUI-006.001.M01 | Negative | Retry Failed run leaves the saved resume point untouched (SRD-GUI-006.021) | Checkpoint file present; fix-mode worker downloads 1 stock | Checkpoint file unchanged | Pass |
 
 ---
 

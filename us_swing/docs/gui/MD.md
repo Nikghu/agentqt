@@ -51,6 +51,7 @@
 > v1.11.0: MD-GUI-004.001.M03 (intraday_cleanup.py) added; MD-GUI-004.001.M01 extended for startup cleanup (SRD-GUI-004.013).
 > v1.10.0: MD-GUI-004.001.M02 (manual_picks_store.py) added; MD-GUI-004.001.M01 extended for manual picks (SRD-GUI-004.010–.012).
 > v1.9.0: MD-GUI-004.001.M01 extended — Execution feed skips unassigned or missing presets (SRD-GUI-004.009, ISS-GUI-0004).
+> MD-GUI-006.001.M01 extended — `_oldest_last_candle_date()` in `app_service.py` drives candle status and Update now; fix-mode download keeps the checkpoint (SRD-GUI-006.020–.021, ISS-GUI-0014).
 > v1.8.0: MD-GUI-006.001.M01 extended — weekly candles built from daily in `app_service.py` (SRD-GUI-006.019, ISS-GUI-0003).
 > v1.7.0: Cross-module rows added for SRD-GUI-013.016–.019 and SRD-GUI-014.016–.018 — Short Trade Direction (FO-EXE-018) GUI surfaces.
 
