@@ -117,6 +117,31 @@ def _reason_from_trade(trade: Any) -> str:
         return ""
     return str(getattr(entries[-1], "message", "") or "")
 
+
+def build_ib_order(
+    side: str, quantity: int, order_type: str, limit_price: float | None
+) -> Any:
+    """Build the ib_insync order for a request (SRD-INF-009.008).
+
+    Market orders go out as IBKR Adaptive algo orders (priority Normal), which
+    still fill promptly but avoid the worst prices of a plain market order.
+    Limit orders are sent as plain limit orders.
+    """
+    from ib_insync import LimitOrder, MarketOrder, TagValue
+
+    order: Any
+    if order_type == "LIMIT":
+        order = LimitOrder(side, quantity, limit_price if limit_price is not None else 0.0)
+    else:
+        order = MarketOrder(side, quantity)
+        order.algoStrategy = "Adaptive"
+        order.algoParams = [TagValue("adaptivePriority", "Normal")]
+    # Pin the time-in-force.  Left unset, a TWS order preset rewrites it and
+    # TWS reports the order cancelled (error 10349) even as it goes on to fill.
+    order.tif = "DAY"
+    return order
+
+
 # Longest a caller thread waits for TWS to accept a placement or cancellation.
 _ORDER_TIMEOUT_S = 10.0
 
@@ -284,18 +309,11 @@ class IBKRClientGateway:
         order_type: str,
         limit_price: float | None,
     ) -> str:
-        from ib_insync import LimitOrder, MarketOrder, Stock
+        from ib_insync import Stock
 
         self._hook_errors()
         contract = Stock(symbol, "SMART", "USD")
-        order: Any = (
-            LimitOrder(side, quantity, limit_price if limit_price is not None else 0.0)
-            if order_type == "LIMIT"
-            else MarketOrder(side, quantity)
-        )
-        # Pin the time-in-force.  Left unset, a TWS order preset rewrites it and
-        # TWS reports the order cancelled (error 10349) even as it goes on to fill.
-        order.tif = "DAY"
+        order = build_ib_order(side, quantity, order_type, limit_price)
         trade = self._client.ib.placeOrder(contract, order)
         broker_order_id = str(trade.order.orderId)
         self._order_ids.add(broker_order_id)

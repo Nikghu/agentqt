@@ -1,10 +1,10 @@
 # Unit Test Case Document — Infrastructure (INF)
 
 **Document ID:** UTCD-INF
-**Version:** 1.6.0
+**Version:** 1.7.0
 **Traces To:** MD-INF v1.4.0
 **Status:** Draft
-**Last Updated:** 2026-07-10
+**Last Updated:** 2026-11-03
 **Project:** US Swing Trading System
 
 > Tests written BEFORE implementation per process.md §7.
@@ -34,6 +34,8 @@
 | UT-INF-009.004.M01.T02 | MD-INF-009.004.M01 | Negative | Falls back to `reference_price` when the provider returns no live price | `price_provider=lambda s: None`; market buy `reference_price=50.0` | `OrderEvent.fill_price == 50.0` | Pass |
 | UT-INF-009.004.M01.T03 | MD-INF-009.004.M01 | Edge | Non-positive (`0.0`) provider price falls back to `reference_price` | `price_provider=lambda s: 0.0`; market buy `reference_price=50.0` | `OrderEvent.fill_price == 50.0` | Pass |
 | UT-INF-009.004.M01.T04 | MD-INF-009.004.M01 | Edge | LIMIT order ignores the provider and fills at `limit_price` | `price_provider=lambda s: 191.3`; limit buy `limit_price=48.0` | `OrderEvent.fill_price == 48.0` | Pass |
+| UT-INF-009.005.M01.T01 | MD-INF-009.005.M01 | Positive | MARKET request builds an Adaptive (Normal) MKT order (SRD-INF-009.008) | `build_ib_order("BUY", 10, "MARKET", None)` | `orderType=MKT`, `algoStrategy=Adaptive`, `adaptivePriority=Normal`, `tif=DAY` | Pass |
+| UT-INF-009.005.M01.T02 | MD-INF-009.005.M01 | Negative | LIMIT request builds a plain LMT order with no algo | `build_ib_order("SELL", 5, "LIMIT", 48.5)` | `orderType=LMT`, `lmtPrice=48.5`, no algo, `tif=DAY` | Pass |
 
 ---
 

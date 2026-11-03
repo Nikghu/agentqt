@@ -2,6 +2,16 @@
 
 ---
 
+## [20261103] INF — IBKR market orders sent as Adaptive algo
+
+- Type: Enhancement
+- FO(s): FO-INF-009
+- RN: RN-INF-1.8.0-20261103
+- Artifacts updated: SRD (SRD-INF-009.008 approved by user → Implemented), UTCD (UT-INF-009.005.M01.T01–T02 Pass), TRACE (infrastructure), Code (broker/ibkr.py `build_ib_order`), Tests (tests/broker/test_ibkr.py new), RN, TODO (T86), CONTEXT, DEVLOG
+- Decisions: Adaptive priority Normal for MARKET only; LIMIT, paper broker and emergency close-all (plain MKT, fastest fill) unchanged. Regular hours only — the app sends no outsideRth orders. Branch feat/exe-ibkr-adaptive-mkt, not pushed.
+
+---
+
 ## [20261103] GUI — Tests no longer reset the user's mode to paper
 
 - Type: Bugfix
