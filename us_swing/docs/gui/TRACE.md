@@ -25,6 +25,7 @@
 | FO-GUI-006 | SRD-GUI-006.017 | — | MD-GUI-000.003, MD-GUI-000.004 | UT-GUI-000.003.T01–T04, UT-GUI-000.004.T01–T02 | `gui/scheduler_store.py`, `gui/scheduler_dialog.py` | Implemented | RN-GUI-1.3.2-20260625 |
 | FO-GUI-006 | SRD-GUI-006.018 | — | MD-GUI-006.001.M01 | UT-GUI-006.001.M01.T05–T06 | `gui/app_service.py`, `gui/settings_panel.py` | Implemented | RN-GUI-1.4.1-20260904 |
 | FO-GUI-006 | SRD-GUI-006.019 | — | MD-GUI-006.001.M01 | UT-GUI-006.001.M01.T11–T16 | `gui/app_service.py` | Implemented | RN-GUI-1.7.1-20261022 |
+| FO-GUI-006 | SRD-GUI-006.020–.021 | — | MD-GUI-006.001.M01 | UT-GUI-006.001.M01.T20–T23 | `gui/app_service.py` | Implemented | RN-GUI-1.56.2-20261103 |
 | FO-GUI-004 | SRD-GUI-004.009 | — | MD-GUI-004.001.M01 | UT-GUI-004.001.M01.T08–T10 | `gui/app_service.py` | Implemented | RN-GUI-1.7.2-20261022 |
 | FO-GUI-004 | SRD-GUI-004.010 | — | MD-GUI-004.001.M01, MD-GUI-004.001.M02 | UT-GUI-004.001.M01.T11–T14 | `gui/manual_picks_store.py`, `gui/app_service.py` | Implemented | RN-GUI-1.8.0-20261022 |
 | FO-GUI-004 | SRD-GUI-004.011 | — | MD-GUI-004.001.M01 | UT-GUI-004.001.M01.T15–T16, T19 | `gui/execution_panel.py`, `gui/app_service.py` | Implemented | RN-GUI-1.8.0-20261022 |

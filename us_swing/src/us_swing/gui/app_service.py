@@ -650,6 +650,19 @@ def _verify_resume_symbols(
     return stale
 
 
+def _oldest_last_candle_date(conn: sqlite3.Connection, symbols: list[str]) -> str | None:
+    """Oldest of the given stocks' last daily candle dates, as "YYYY-MM-DD".
+
+    One current stock must not make the whole database look up to date
+    (SRD-GUI-006.020).  With no stock list, falls back to the newest candle.
+    """
+    rows = conn.execute("SELECT symbol, MAX(datetime) FROM price_1d GROUP BY symbol").fetchall()
+    if not symbols:
+        return max((dt[:10] for _, dt in rows if dt), default=None)
+    wanted = set(symbols)
+    return min((dt[:10] for sym, dt in rows if dt and sym in wanted), default=None)
+
+
 # ── Background worker: query DB status ───────────────────────────────────────
 
 class _CandleDbStatusWorker(QThread):
@@ -658,9 +671,10 @@ class _CandleDbStatusWorker(QThread):
     done   = pyqtSignal(object)   # CandleDbInfo
     failed = pyqtSignal(str)
 
-    def __init__(self, universe_size: int) -> None:
+    def __init__(self, universe_size: int, symbols: list[str]) -> None:
         super().__init__()
         self._universe_size = universe_size
+        self._symbols = symbols
 
     def run(self) -> None:
         try:
@@ -695,8 +709,9 @@ class _CandleDbStatusWorker(QThread):
                 last  = row[3][:10] if row[3] else None
                 return syms, total, first, last
 
-            syms_1d, total_1d, first_1d, last_1d = _stats("price_1d")
+            syms_1d, total_1d, first_1d, _ = _stats("price_1d")
             syms_1w, total_1w, first_1w, last_1w = _stats("price_1w")
+            last_1d = _oldest_last_candle_date(conn, self._symbols)
             conn.close()
 
             # Aggregate across both timeframes
@@ -973,14 +988,16 @@ class _CandleDownloadWorker(QThread):
                 reason = str(exc) if str(exc) else type(exc).__name__
                 self.symbol_failed.emit(symbol, reason)
 
-            # Update checkpoint after each symbol (regardless of success/skip)
+            # Update checkpoint after each symbol (regardless of success/skip).
+            # A Retry Failed run keeps the unfinished update's checkpoint intact.
             done_count += 1
             symbols_done.append(symbol)
             remaining = symbols_todo[done_count:]
-            _save_checkpoint(
-                self._start_date, self._end_date, self._mode,
-                symbols_done, remaining,
-            )
+            if self._mode != "fix":
+                _save_checkpoint(
+                    self._start_date, self._end_date, self._mode,
+                    symbols_done, remaining,
+                )
 
             # Per-symbol rate-limit pause; interruptible in 0.1 s steps
             if not self._stop_flag:
@@ -996,7 +1013,8 @@ class _CandleDownloadWorker(QThread):
                 return
 
         if not self._stop_flag:
-            _delete_checkpoint()
+            if self._mode != "fix":
+                _delete_checkpoint()
             self.finished.emit(inserted_1d, inserted_1w)
         else:
             # Stopped by user — checkpoint persists for future resume
@@ -4206,7 +4224,9 @@ class AppService(QObject):
         Emits ``candle_db_status_changed(CandleDbInfo)`` when complete.
         Safe to call at any time; queues a new worker even if one is running.
         """
-        worker = _CandleDbStatusWorker(universe_size=len(self._sp500))
+        worker = _CandleDbStatusWorker(
+            universe_size=len(self._sp500), symbols=self._candle_check_symbols()
+        )
         worker.done.connect(self._on_candle_status_done)
         worker.failed.connect(self._on_candle_status_failed)
         worker.start()
@@ -4399,21 +4419,28 @@ class AppService(QObject):
             )
 
     def _last_known_candle_date(self) -> datetime.date | None:
-        """Return the most recent date present in price_1d, or None."""
+        """Return the oldest last daily candle date of the index stocks, or None."""
         db_path = _CANDLE_DB_PATH
         if not db_path.exists():
             return None
         try:
             conn = sqlite3.connect(str(db_path))
-            row = conn.execute(
-                "SELECT MAX(datetime) FROM price_1d"
-            ).fetchone()
+            last = _oldest_last_candle_date(conn, self._candle_check_symbols())
             conn.close()
-            if row and row[0]:
-                return datetime.date.fromisoformat(row[0][:10])
+            if last:
+                return datetime.date.fromisoformat(last)
         except Exception:
             pass
         return None
+
+    def _candle_check_symbols(self) -> list[str]:
+        """Index stocks that decide whether candles are current (SRD-GUI-006.020).
+
+        Stocks in the failed list are left out so one stock IBKR no longer
+        knows cannot keep the database behind forever.
+        """
+        failed = set(self.get_failed_symbols())
+        return [r.symbol for r in self._sp500 if r.symbol not in failed]
 
     def _on_candle_status_done(self, info: object) -> None:
         self.candle_db_status_changed.emit(info)
