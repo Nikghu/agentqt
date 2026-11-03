@@ -94,6 +94,7 @@ class ScreenerRunResult:
     execution_mode: str  # "manual" | "scheduled"
     results: dict[str, dict[str, Any]] = field(default_factory=dict)
     ai_transcript: list[AITranscriptTurn] = field(default_factory=list)
+    candle_date: str | None = None  # last daily candle date screened (SRD-SCR-004.009)
 
     @property
     def date(self) -> str:
@@ -107,6 +108,7 @@ class ScreenerRunResult:
             "execution_mode": self.execution_mode,
             "results": self.results,
             "ai_transcript": [t.to_dict() for t in self.ai_transcript],
+            "candle_date": self.candle_date,
         }
 
     @classmethod
@@ -120,6 +122,7 @@ class ScreenerRunResult:
                 AITranscriptTurn.from_dict(t)
                 for t in d.get("ai_transcript", [])
             ],
+            candle_date=d.get("candle_date"),
         )
 
 

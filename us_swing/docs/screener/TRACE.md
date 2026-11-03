@@ -4,7 +4,7 @@
 **Version:** 2.2.0
 **Traces To:** FO-SCR v2.1.0, SRD-SCR v2.3.0, DD-SCR v2.1.0, MD-SCR v2.2.0, UTCD-SCR v2.1.0
 **Status:** Draft
-**Last Updated:** 2026-10-22 (FO-SCR-013 indicator catalogue + rule list — implemented; RN-SCR-2.2.0-20261022)
+**Last Updated:** 2026-11-03 (ISS-SCR-0003 auto-run on up-to-date candles — SRD-SCR-004.007 / .009)
 **Project:** US Swing Trading System
 
 ---
@@ -210,6 +210,12 @@ FO-004
   │   ├─ DD-SCR-006.001: ScreenerResultsStorage.save_result()
   │   │   ├─ MD-SCR-M13: src/screener/storage.py
   │   │   │   └─ UT: test_storage.py T01–T06
+  ├─ SRD-004.007: Daily auto-run on up-to-date candles (ISS-SCR-0003)
+  │   ├─ MD-SCR-M16: src/gui/screener_panel.py (_maybe_auto_run)
+  │   │   └─ UT: test_screener_autorun.py UT-SCR-004.007.M16.T01–T06
+  ├─ SRD-004.009: candle_date on every saved result
+  │   ├─ MD-SCR-M13: src/screener/storage.py · MD-SCR-M10: src/screener/executor.py
+  │   │   └─ UT: UT-SCR-004.009.M13.T01–T02, UT-SCR-004.009.M10.T01
 ```
 
 ### FO-SCR-005: User-Accessible Preset Management
