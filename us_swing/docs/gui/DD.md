@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.31.0: DD-GUI-032.001.D01 added — Strategies grouped and table views.
 > v1.30.0: Backtest data note and log line name 30-minute candles too (SRD-GUI-030.010 wording, after SRD-BKT-001.016).
 > v1.29.0: 30m timeframe — one shared `TIMEFRAMES` list feeds every strategy builder Timeframe dropdown (SRD-GUI-013.023); Inspector `_CHART_TFS` gains 30m with 5 days before entry (SRD-GUI-031.084).
 > v1.28.0: DD-GUI-031.001.D01 gets the HTML download design (SRD-GUI-031.082).
@@ -1776,3 +1777,15 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 **Phase 3 (SRD-GUI-031.030–.034).** The builder adds an ACCOUNT group (`QDoubleSpinBox` Capital $, Daily loss stop %, Commission $, `QSpinBox` Slippage bps, `QComboBox` When money short). `set_account_defaults(capital, daily_loss_pct)` fills them from `svc.get_active_user().risk_config` (`max_capital_value`, `max_daily_loss_pct`) when the screen first opens. `_RunWorker` calls `run_portfolio()` after `run_signals()` (progress on pill 3) and emits `portfolio_done(list[VariantResult])`. Three tabs are added: Trades (summary label + table), Day log, Money. With more than one variant the first is shown.
 
 **HTML download (SRD-GUI-031.082).** `ReportsView` gets a Download button between Delete and Open, enabled for one picked run. `ask_html_path(default)` opens a save dialog at `~/Downloads/<name>_<YYYY-MM-DD_HHMM>.html` (`html_file_name()`); Cancel does nothing. `_HtmlWorker(QThread)` calls `service.export_html(run_id, path, user_id)`; the button reads "Saving…" and stays off until `done`. A failure is logged as a warning. `ReportsView(service, user_id=...)` gets the active user from the workspace so the screener shows its preset name.
+
+---
+
+## DD-GUI-032.001.D01 — Strategies Views
+
+**Traces:** SRD-GUI-032.001–.008
+
+**Tabs (`execution_panel.py`).** `_TAB_NAMES` becomes Strategies, Active trades, Closed today; stack page 0 is `StrategiesPane`, page 1 the Active Trades pane (filter "active" or "closed"). `StrategiesPane.tools` (running label, Find box, + Add, Grouped and Table icons) sits at the right of the tab bar row and shows only on tab 0.
+
+**Views (`strategies_views.py`).** `strategy_rows()` turns configs, statuses and `get_strategy_pnl()` summaries into `StrategyRow` items sorted Running, Stopped, Disabled (`group_of()`: live status → Running, mode `disabled` → Disabled, else Stopped). `GroupedList(QTreeWidget)` shows group headers (`execution_watchlist._GroupRow`) and one row widget per strategy; `picked(name)` on click. `StrategyTable(QTreeWidget)` has a check box column, the 12 data columns and a Start / Stop / Enable button; a click emits `row_clicked(name)`. `open_detail(name, widget)` puts the shared detail widget in a `QFrame#inline_detail` child row spanning all columns; `close_detail()` first moves the widget back to the pane, so clearing the tree never deletes it.
+
+**Pane (`strategies_pane.py`).** Selection is a strategy name, not a list row. The detail widget is built once and moved between the grouped scroll area (`setWidget` / `takeWidget`) and the table's inline row. A table row click opens that row, or closes it when it is already open. Switching to Table opens the picked row. The view is kept under QSettings key `strategies_view` (`grouped` / `table`). The bulk bar shows for checked rows: Start acts on stopped ones, Stop on running ones, Reset count asks once for all.
