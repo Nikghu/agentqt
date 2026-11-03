@@ -3,7 +3,7 @@
 **Document ID:** TRACE-GUI
 **Version:** 1.15.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-11-03 (FO-GUI-032 Strategies views, SRD-GUI-032.001–.008; RN-GUI-1.56.0-20261103)
+**Last Updated:** 2026-11-03 (ISS-GUI-0013 users file test isolation; RN-GUI-1.56.1-20261103)
 
 ---
 
@@ -118,6 +118,7 @@
 | `gui/position_monitor_panel.py` | MD-GUI-005.001.M01 | SRD-GUI-005.001–004 | FO-GUI-005 |
 | `gui/settings_panel.py` | MD-GUI-006.001.M01 | SRD-GUI-006.001–005, SRD-GUI-006.018 | FO-GUI-006 |
 | `gui/settings_panel.py` (ISS-GUI-0005 fix) | MD-GUI-006.001.M01 | SRD-GUI-006.002 | FO-GUI-006 |
+| `tests/conftest.py` (ISS-GUI-0013 fix, UT-GUI-006.001.M01.T19) | MD-GUI-006.001.M01 | SRD-GUI-006.002 | FO-GUI-006 |
 | `gui/scheduler_dialog.py` | MD-GUI-000.004 | SRD-GUI-006.005, SRD-GUI-006.017 | FO-GUI-006 |
 | `gui/scheduler_store.py` | MD-GUI-000.003 | SRD-GUI-006.005, SRD-GUI-006.017 | FO-GUI-006 |
 | `gui/log_viewer_panel.py` | MD-GUI-007.001.M01 | SRD-GUI-007.001–004 | FO-GUI-007 |
