@@ -981,3 +981,25 @@ def test_market_caps_passed_to_stage2(tmp_path: Path):
                         market_caps={"AAPL": 1e10})
     configs = [c.args[2] for c in screener.apply.call_args_list]
     assert configs and all(cfg["market_caps"] == {"AAPL": 1e10} for cfg in configs)
+
+
+# ---------------------------------------------------------------------------
+# SRD-SCR-004.009 — executor saves the candle date it was given
+# ---------------------------------------------------------------------------
+
+def test_run_preset_saves_candle_date(tmp_path: Path):
+    """UT-SCR-004.009.M10.T01: the saved result carries the given candle date."""
+    preset = make_weighted_preset("p1")
+    registry = ScreenerRegistry()
+    registry.register("indicator_composite", lambda: _make_screener())
+    registry.register("ml_ensemble", lambda: _make_screener())
+    registry.register("llm_claude_ranking", lambda: _make_screener())
+    storage = _mock_storage(tmp_path)
+    executor = PresetExecutor(
+        preset_manager=_mock_preset_manager(preset), storage=storage, registry=registry,
+    )
+    result = executor.run_preset(
+        "p1", "u", symbols=SYMBOLS_3, bars=BARS_3, candle_date="2026-10-30",
+    )
+    assert result.candle_date == "2026-10-30"
+    assert storage.load_result("p1", result.date).candle_date == "2026-10-30"

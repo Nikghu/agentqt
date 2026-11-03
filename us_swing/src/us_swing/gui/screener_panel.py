@@ -1,6 +1,6 @@
 """
 Module: MD-GUI-003.001.M01 — screener_panel.py  (v2 — Phase 5 GUI integration)
-Parent SRD: SRD-SCR-007.001–012
+Parent SRD: SRD-SCR-007.001–012, SRD-SCR-004.007
 
 Screener Panel — Preset-based v2 (layout: SRD-GUI-022.008–.012):
   ┌──────────────────────┬───────────────────────────────────────────────────┐
@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import csv
 import logging
+import time
 import uuid
 from pathlib import Path
 from typing import Any
@@ -122,6 +123,17 @@ _SCREENER_DISPLAY: dict[str, str] = {
 
 
 _log = logging.getLogger(__name__)
+
+# Auto-run asks for a fresh candle check at most this often (SRD-SCR-004.007).
+_DB_CHECK_GAP_S = 50.0
+
+
+def _in_auto_run_window() -> bool:
+    """True from 09:00 to 09:30 ET, the daily auto-run window (SRD-SCR-004.007)."""
+    import datetime as _dt
+    from us_swing.data.market_calendar import ET as _ET
+    now = _dt.datetime.now(_ET).time()
+    return _dt.time(9, 0) <= now < _dt.time(9, 30)
 
 
 def _view_settings() -> QSettings:
@@ -238,6 +250,7 @@ class _PresetRunWorker(QThread):
                 max_workers=4,
                 notify=self._svc.log_message.emit,
             )
+            last_candle = self._svc.last_candle_date()
             result = executor.run_preset(
                 preset_id=self._preset_id,
                 user_id=self._user_id,
@@ -245,6 +258,7 @@ class _PresetRunWorker(QThread):
                 symbols=symbols,
                 bars=bars,
                 market_caps=market_caps,
+                candle_date=last_candle.isoformat() if last_candle else None,
             )
             self.finished.emit(result)
         except Exception as exc:  # noqa: BLE001
@@ -1752,6 +1766,9 @@ class ScreenerPanel(QWidget):
         self._worker: _PresetRunWorker | None = None
         self._db_info:           Any        = None   # latest CandleDbInfo
         self._auto_run_queue:    list[str]  = []     # preset IDs pending auto-run
+        self._db_info_fresh: bool = False  # a status arrived since auto-run last used one
+        self._db_check_requested_at: float = float("-inf")
+        self._behind_warned_for: str = ""  # trading day already warned about
         self._rows:              list[ResultRow] = []  # rows shown by both views
         self._run_meta:          dict[str, str] = {}   # preset id → last-run line
         self._names:             dict[str, str] = {}   # symbol → company name
@@ -2160,17 +2177,19 @@ class ScreenerPanel(QWidget):
             self._show_error(f"Could not load result for {date}: {exc}")
 
     def _on_db_status_changed(self, info: Any) -> None:
-        """Cache latest CandleDbInfo and fire auto-run if DB just became CURRENT."""
+        """Cache the fresh CandleDbInfo and re-check the auto-run with it."""
         self._db_info = info
+        self._db_info_fresh = True
         self._maybe_auto_run()
 
     def _maybe_auto_run(self) -> None:
-        """Auto-run today's screener (SRD-SCR-004.007).
+        """Auto-run today's screener on up-to-date candles (SRD-SCR-004.007).
 
-        Fires when: flag ON, 09:00–09:30 ET window, DB CURRENT, no pending resume checkpoint, worker idle.
-        Candidates: all presets (admin + user) where assigned_to is non-empty.
-        Skips any preset that already has a scheduled result for today.
-        Multiple candidates are queued and drained one at a time.
+        Fires 09:00–09:30 ET with the scheduler on and no run active. Presets
+        whose latest result already used the last trading day's candles are left
+        alone. The rest run only after a fresh candle check says candles are
+        current; a cached status is never trusted. Candles behind means no run.
+        Multiple presets are queued and drained one at a time.
         """
         from us_swing.gui.system_store import load_system_config
         if not load_system_config().scheduler_enabled:
@@ -2179,45 +2198,84 @@ class ScreenerPanel(QWidget):
             return
         if self._worker is not None and self._worker.isRunning():
             return
-        import datetime as _dt
-        from us_swing.data.market_calendar import ET as _ET
-        _now = _dt.datetime.now(_ET).time()
-        if not (_dt.time(9, 0) <= _now < _dt.time(9, 30)):
+        if not _in_auto_run_window():
             return
-        try:
-            from us_swing.gui.app_service import CandleDbStatus
-            if self._db_info is None or self._db_info.status != CandleDbStatus.CURRENT:
-                return
-            if self._demo.has_candle_checkpoint():
-                return
-        except Exception:  # noqa: BLE001
-            return
-        try:
-            uid = str(self._demo.get_active_user().user_id)
-            admin_presets = self._mgr.list_admin_presets() or []
-            user_presets = self._mgr.list_user_presets(uid) or []
-        except Exception:  # noqa: BLE001
-            return
-        today = _date.today().isoformat()
-        to_run: list[str] = []
-        seen: set[str] = set()
-        for preset in admin_presets + user_presets:
-            if not getattr(preset, "assigned_to", []):
-                continue  # not assigned to anyone — not an auto-run candidate
-            if preset.id in seen:
-                continue
-            seen.add(preset.id)
-            try:
-                result = self._storage.load_result(preset.id, today)
-                if getattr(result, "execution_mode", "") == "scheduled":
-                    continue  # already auto-ran today
-            except FileNotFoundError:
-                pass
-            to_run.append(preset.id)
+        ltd = self._demo.last_trading_day().isoformat()
+        to_run = self._presets_needing_run(ltd)
         if not to_run:
+            return
+        if not self._db_info_fresh:
+            self._request_db_check()
+            return
+        self._db_info_fresh = False
+        if not self._candles_current(ltd):
+            self._warn_candles_behind(ltd)
             return
         self._auto_run_queue = to_run[1:]
         self._run_preset_as(preset_id=to_run[0], manual=False)
+
+    def _presets_needing_run(self, ltd: str) -> list[str]:
+        """Assigned presets whose latest result did not use candles from *ltd*."""
+        try:
+            uid = str(self._demo.get_active_user().user_id)
+            presets = (self._mgr.list_admin_presets() or []) + (
+                self._mgr.list_user_presets(uid) or []
+            )
+        except Exception:  # noqa: BLE001
+            return []
+        to_run: list[str] = []
+        seen: set[str] = set()
+        for preset in presets:
+            if not getattr(preset, "assigned_to", []) or preset.id in seen:
+                continue
+            seen.add(preset.id)
+            if self._latest_candle_date(preset.id) != ltd:
+                to_run.append(preset.id)
+        return to_run
+
+    def _latest_candle_date(self, preset_id: str) -> str | None:
+        """Candle date of the preset's newest saved result, auto or manual."""
+        try:
+            dates = self._storage.list_results(preset_id, limit=1)
+            if not dates:
+                return None
+            return self._storage.load_result(preset_id, dates[0]).candle_date
+        except Exception:  # noqa: BLE001
+            return None
+
+    def _request_db_check(self) -> None:
+        """Start a fresh candle check, at most once per minute."""
+        now = time.monotonic()
+        if now - self._db_check_requested_at < _DB_CHECK_GAP_S:
+            return
+        self._db_check_requested_at = now
+        self._demo.refresh_candle_db_status()
+
+    def _candles_current(self, ltd: str) -> bool:
+        from us_swing.gui.app_service import CandleDbStatus
+        info = self._db_info
+        try:
+            if self._demo.has_candle_checkpoint():
+                return False
+        except Exception:  # noqa: BLE001
+            return False
+        return (
+            info is not None
+            and info.status == CandleDbStatus.CURRENT
+            and info.last_trading_day == ltd
+        )
+
+    def _warn_candles_behind(self, ltd: str) -> None:
+        """Tell the user once per trading day why the auto-run did not start."""
+        if self._behind_warned_for == ltd:
+            return
+        self._behind_warned_for = ltd
+        last = getattr(self._db_info, "last_candle_date", None) or "none"
+        self._demo.log_message.emit(
+            "WARNING",
+            f"[Screener] Auto-run did not start — candles are behind "
+            f"(last {last}, need {ltd})",
+        )
 
     # ── Run preset ────────────────────────────────────────────────────────
 

@@ -4418,6 +4418,14 @@ class AppService(QObject):
                 "checkpoint saved for resume.",
             )
 
+    def last_trading_day(self) -> datetime.date:
+        """Most recent completed NYSE trading day (after its 16:00 ET close)."""
+        return _compute_last_trading_day()
+
+    def last_candle_date(self) -> datetime.date | None:
+        """Last daily candle date the index stocks share, or None (SRD-SCR-004.009)."""
+        return self._last_known_candle_date()
+
     def _last_known_candle_date(self) -> datetime.date | None:
         """Return the oldest last daily candle date of the index stocks, or None."""
         db_path = _CANDLE_DB_PATH

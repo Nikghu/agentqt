@@ -1,5 +1,5 @@
 """Module: MD-SCR-003.001.M10 — screener/executor.py
-Parent SRD: SRD-SCR-003.001–008, SRD-SCR-013.006, SRD-SCR-013.007
+Parent SRD: SRD-SCR-003.001–008, SRD-SCR-013.006, SRD-SCR-013.007, SRD-SCR-004.009
 
 PresetExecutor — orchestrates the 3-stage screening pipeline:
   Stage 1: PreFilter (price > $5, volume > 1 M)
@@ -80,6 +80,7 @@ class PresetExecutor:
         bars: dict[str, list[Any]] | None = None,
         preset: Preset | None = None,
         market_caps: dict[str, float] | None = None,
+        candle_date: str | None = None,
     ) -> ScreenerRunResult:
         """Execute a preset and persist the result.
 
@@ -92,6 +93,8 @@ class PresetExecutor:
             preset:    Inject a Preset directly, bypassing preset_manager.
             market_caps: Per-symbol market cap (USD), used to pick the top
                          symbols when Stage 3 exceeds its input cap.
+            candle_date: Last daily candle date of the screened data
+                         ("YYYY-MM-DD"), saved with the result.
 
         Returns:
             ScreenerRunResult with only the passing symbols.
@@ -166,6 +169,7 @@ class PresetExecutor:
             execution_mode="manual" if manual else "scheduled",
             results=passed,
             ai_transcript=ai_transcript,
+            candle_date=candle_date,
         )
 
         # --- Persist + notify ----------------------------------------------

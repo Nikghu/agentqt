@@ -232,3 +232,24 @@ def test_api_usage_tracker_cost_threshold_warning(
         usage_tracker.log_usage(tokens_in=1000, tokens_out=500)
 
     assert any("50" in rec.message for rec in caplog.records)
+
+
+# ---------------------------------------------------------------------------
+# SRD-SCR-004.009 — candle_date recorded with each result
+# ---------------------------------------------------------------------------
+
+def test_candle_date_round_trip(storage: ScreenerResultsStorage):
+    """UT-SCR-004.009.M13.T01: candle_date survives save and load."""
+    result = _make_result("p1", "2026-11-03")
+    result.candle_date = "2026-10-30"
+    storage.save_result(result, "p1")
+    assert storage.load_result("p1", "2026-11-03").candle_date == "2026-10-30"
+
+
+def test_candle_date_missing_in_old_file(storage: ScreenerResultsStorage, tmp_path: Path):
+    """UT-SCR-004.009.M13.T02: a file saved before the field loads with candle_date None."""
+    path = storage.save_result(_make_result("p1", "2026-11-03"), "p1")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    del data["candle_date"]
+    path.write_text(json.dumps(data), encoding="utf-8")
+    assert storage.load_result("p1", "2026-11-03").candle_date is None

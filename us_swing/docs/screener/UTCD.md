@@ -548,3 +548,21 @@ Test files:
 
 SRD-SCR-017.005 (relative volume) and .007 (score) are covered by T01 / T03 of .006 and T01 of .008.
 
+## FO-SCR-004 — Auto-run on up-to-date candles (ISS-SCR-0003)
+
+Test files:
+- `tests/screener/test_storage.py`, `tests/screener/test_executor.py` (M13, M10)
+- `tests/gui/test_screener_autorun.py` (M16)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-SCR-004.009.M13.T01 | MD-SCR-006.001.M13 | Positive | `candle_date` survives save and load | result with candle date 2026-10-30 | loaded `candle_date` = "2026-10-30" | Pass |
+| UT-SCR-004.009.M13.T02 | MD-SCR-006.001.M13 | Edge | Old file without the field | JSON with no `candle_date` key | loads with `candle_date` = `None` | Pass |
+| UT-SCR-004.009.M10.T01 | MD-SCR-003.001.M10 | Positive | Executor saves the given candle date | `run_preset(..., candle_date="2026-10-30")` | saved result `candle_date` = "2026-10-30" | Pass |
+| UT-SCR-004.007.M16.T01 | MD-SCR-007.010.M16 | Positive | Fresh check first, then run | 09:05 ET, no result, check says current | status check requested; after it, preset runs as scheduled | Pass |
+| UT-SCR-004.007.M16.T02 | MD-SCR-007.010.M16 | Negative | Candles behind: no run, one warning | 09:05 ET, fresh check says partial; two ticks | no run; one `[Screener]` warning | Pass |
+| UT-SCR-004.007.M16.T03 | MD-SCR-007.010.M16 | Negative | Already ran on latest candles | latest result (manual) `candle_date` = last trading day | no status check, no run | Pass |
+| UT-SCR-004.007.M16.T04 | MD-SCR-007.010.M16 | Edge | Ran on older candles counts as not done | latest result `candle_date` older or `None`; fresh check current | preset runs | Pass |
+| UT-SCR-004.007.M16.T05 | MD-SCR-007.010.M16 | Negative | Old cached status is not trusted | cached status current, no fresh check yet | no run; fresh check requested | Pass |
+| UT-SCR-004.007.M16.T06 | MD-SCR-007.010.M16 | Negative | Outside 09:00–09:30 ET | 09:45 ET | no status check, no run | Pass |
+

@@ -2,10 +2,12 @@
 
 **Document:** CONTEXT.md
 **Project:** us_swing
-**Last Updated:** 2026-11-03 (Session 112)
+**Last Updated:** 2026-11-03 (Session 113)
 **Updated By:** Claude (Opus 5.5)
 
 ---
+
+**Current (Session 113, 2026-11-03):** **Screener auto-run only on up-to-date candles (Bugfix, SCR; ISS-SCR-0003; SRD-SCR-004.007 reworded, SRD-SCR-004.009 added, approved by user and Implemented; RN-SCR-2.7.1-20261103).** At 09:00–09:30 ET, presets whose newest result (auto or manual) used the last trading day's candles are left alone; the rest run only after a fresh candle check says current (the cached status is never trusted). Candles behind → no run and one `[Screener]` warning per day. Results now save `candle_date`. 10 UT Pass. Branch fix/scr-autorun-latest-candles, not pushed. Also: popup title bars now paint a lighter header strip (Carbon option 1; WA_StyledBackground on 3 title bar classes) — commit 7d3f10b7 on fix/gui-dialog-title-contrast, not pushed. Both merged to main (PR #101 title bars, RN-GUI-1.56.3). **Next:** user checks both in the real app (TODO T88, T89).
 
 **Current (Session 112, 2026-11-03):** **Candle data update no longer stuck (Bugfix, GUI; ISS-GUI-0014; RN-GUI-1.56.2-20261103; SRD-GUI-006.020–.021 approved by user and Implemented).** Status and Update now start date use the oldest last daily candle among index stocks (failed and out-of-index stocks left out), not the newest in the table; Retry Failed keeps the resume checkpoint. User's DB repaired: 30 rows of 2026-11-02 deleted (backup candles_backup_20261103_before_stuck_update_fix.db), so the app shows 1 day behind. KVUE likely delisted (IBKR Error 200). 4 UT Pass. Branch fix/gui-candle-update-stuck, not pushed. Installer template also fixed locally (app reopens after silent update; installer/ is git-ignored). **Next:** user runs Update now with TWS on (TODO T87).
 
