@@ -175,6 +175,17 @@ def _build_html(
         "      },\n"
         "    },\n"
     ) if is_intraday else ""
+    # Axis labels in New York time too; the chart library itself labels in UTC.
+    tick_block = (
+        "      tickMarkFormatter: (time, type) => {\n"
+        "        const o = { timeZone: 'America/New_York' };\n"
+        "        if (type >= 3) { o.hour = '2-digit'; o.minute = '2-digit'; o.hourCycle = 'h23'; }\n"
+        "        else if (type === 2) { o.day = 'numeric'; }\n"
+        "        else if (type === 1) { o.month = 'short'; }\n"
+        "        else { o.year = 'numeric'; }\n"
+        "        return new Date(time * 1000).toLocaleString('en-US', o);\n"
+        "      },\n"
+    ) if is_intraday else ""
     crosshair_date_js = (
         "const _cd = new Date(param.time * 1000);\n"
         "    const d = _cd.toLocaleDateString('en-CA', { timeZone: 'America/New_York' })"
@@ -307,7 +318,7 @@ def _build_html(
       secondsVisible: false,
       timezone: '{timezone}',
       rightOffset: 12,
-    }},
+{tick_block}    }},
     watermark: {{
       visible: true,
       fontSize: 18,

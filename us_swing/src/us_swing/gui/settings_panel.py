@@ -439,8 +439,6 @@ class _SystemSections(QObject):
         self._log_level.setCurrentText(cfg.log_level)
         self._sched_en  = QCheckBox()
         self._sched_en.setChecked(cfg.scheduler_enabled)
-        self._open_t    = QLineEdit(cfg.market_open)
-        self._close_t   = QLineEdit(cfg.market_close)
         self._mkt_tz    = QComboBox()
         self._mkt_tz.addItems([
             "US/Eastern",
@@ -464,8 +462,6 @@ class _SystemSections(QObject):
         conn_form.addRow("IBKR TWS Port:",          self._port)
         conn_form.addRow("Tick Data Client ID:",    self._tick_id)
         conn_form.addRow("Log level:",              self._log_level)
-        sched_form.addRow("Market open time:",       self._open_t)
-        sched_form.addRow("Market close time:",      self._close_t)
         sched_form.addRow("Market timezone:",        self._mkt_tz)
         sched_form.addRow("Enable daily scheduler:", self._sched_en)
 
@@ -563,8 +559,6 @@ class _SystemSections(QObject):
             ibkr_tick_client_id   = self._tick_id.value(),
             log_level             = self._log_level.currentText(),
             scheduler_enabled     = self._sched_en.isChecked(),
-            market_open           = self._open_t.text().strip(),
-            market_close          = self._close_t.text().strip(),
             market_timezone       = self._mkt_tz.currentText(),
         )
         self._demo.save_system_config(cfg)
@@ -594,7 +588,7 @@ class _SystemSections(QObject):
 
     @property
     def scheduler_inputs(self) -> list[QWidget]:
-        return [self._open_t, self._close_t, self._mkt_tz, self._sched_en,
+        return [self._mkt_tz, self._sched_en,
                 *self.sched_table.inputs]
 
     @property
@@ -617,8 +611,6 @@ class _SystemSections(QObject):
     def load_scheduler(self, cfg: SystemConfig | None = None) -> None:
         """Fill Scheduler fields from ``cfg``, or from the saved config when ``None``."""
         cfg = cfg or self._demo.get_system_config()
-        self._open_t.setText(cfg.market_open)
-        self._close_t.setText(cfg.market_close)
         self._mkt_tz.setCurrentText(cfg.market_timezone)
         self._sched_en.setChecked(cfg.scheduler_enabled)
         self.sched_table.load()
