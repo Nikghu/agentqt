@@ -27,6 +27,7 @@ unchanged. Delete Preset now shows the preset's name instead of `""`.
 | `gui/screener_panel.py` | 2 popups; preset name from the row widget |
 | `gui/position_monitor_panel.py`, `gui/dashboard_panel.py` | 2 popups each |
 | `gui/sidebar.py` | 1 popup |
+| `gui/theme.py` | Strategies table bulk bar: the "N selected" label no longer paints a dark box (SRD-GUI-032.006) |
 | `tests/gui/test_popups.py` (new) | UT-GUI-000.009.M01.T01–T02, M02.T01–T02 |
 | `tests/gui/test_dashboard_tiles.py`, `test_settings_sections.py`, `test_sidebar_shell.py` | Patch the new helpers instead of `QMessageBox` |
 
