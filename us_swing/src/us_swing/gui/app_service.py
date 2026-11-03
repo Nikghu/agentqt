@@ -1132,7 +1132,8 @@ class _BacktestStatsWorker(QThread):
         try:
             built = self._store.build_missing()
             if built:
-                _log.info("[Backtest] Built 15-minute and weekly candles for %d stock(s)", built)
+                _log.info("[Backtest] Built 15-minute, 30-minute and weekly candles"
+                          " for %d stock(s)", built)
             stats = self._store.stats()
             if self._build_plan is not None:
                 jobs = self._build_plan()

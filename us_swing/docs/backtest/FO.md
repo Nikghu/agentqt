@@ -52,6 +52,7 @@ The system shall run a saved screener and the user's live strategies over histor
 - The system shall cache each step's output by a key of its inputs, so unchanged steps are reused.
 - The system shall replay the screener preset on each trading day using only candles up to that day's close.
 - The system shall give, for each day, the stocks that passed with score and rank; the list made on day D is for use on day D+1.
+- The system shall also run with no screener: every chosen stock is used on every session, so only the strategy decides (added by user 2026-11-02).
 - The system shall be usable from a command line as well as the GUI.
 - The system shall find, per stock and live strategy, the periods when the entry and exit conditions are true, using the live condition parser (Phase 2, approved by user 2026-10-29).
 - The system shall read each timeframe only as far as live could see it at that 3m bar close (no look-ahead).

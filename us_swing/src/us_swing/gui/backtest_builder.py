@@ -56,6 +56,9 @@ _MAX_STRATEGY_ROWS = 12
 _LABEL_W = 160
 _FIELD_W = 140
 _MODE_TEXT = {"sp500": "S&P 500", "sector": "Sectors", "names": "Names"}
+_NO_SCREENER_NOTE = "Every stock in Stocks is used every day, A to Z"
+_NO_SCREENER_TEXT = "None · every stock every day"
+_FIRST_DAY = datetime.date(2000, 1, 1)
 
 
 def _pydate(day: QDate) -> datetime.date:
@@ -164,6 +167,8 @@ class BacktestBuilder(QWidget):
         today = QDate.currentDate()
         self._end.setDate(today)
         self._start.setDate(today.addYears(-1))
+        self._auto_dates = True
+        self._setting_range = False
         self._mode = ChipGroup([("S&&P 500", "sp500"), ("Sectors", "sector"), ("Names", "names")])
         self._mode.setFixedWidth(300)
         self._sectors = QListWidget()
@@ -185,9 +190,11 @@ class BacktestBuilder(QWidget):
         self._top_n.setRange(0, _MAX_TOP_N)
         self._top_n.setSpecialValueText("All")
         self._top_n.setFixedWidth(_FIELD_W)
-        self._source = ChipGroup([("Replay the screener", "replay"), ("Saved lists", "saved")])
-        self._source.setFixedWidth(300)
+        self._source = ChipGroup([("Replay the screener", "replay"), ("Saved lists", "saved"),
+                                  ("No screener", "none")])
+        self._source.setFixedWidth(420)
         self._saved_count = _key_label("")
+        self._saved_text = ""
         self._ai = QCheckBox("Use AI ranking")
         self._ai.setEnabled(False)
         self._ai.setToolTip("Comes in a later phase")
@@ -201,14 +208,14 @@ class BacktestBuilder(QWidget):
         self._strategies.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self._strategies.setMinimumHeight(180)
         self._capital = self._money(100, 10_000_000, 0, "$ ", 10_000)
-        self._loss = self._money(0, 100, 1, "", 2.0)
+        self._loss = self._money(0, 100, 1, "", 10.0)
         self._loss.setSuffix(" %")
         self._loss.setSpecialValueText("Off")
         self._when = QComboBox()
         self._when.addItem("First signal", "first_signal")
         self._when.addItem("Highest score", "highest_score")
         self._when.setFixedWidth(_FIELD_W)
-        self._commission = self._money(0, 100, 2, "$ ", 1.0)
+        self._commission = self._money(0, 100, 2, "$ ", 0.0)
         self._slippage = QSpinBox()
         self._slippage.setRange(0, 500)
         self._slippage.setSuffix(" bps")
@@ -219,12 +226,13 @@ class BacktestBuilder(QWidget):
         for edit in (self._name, self._names_edit, self._add, self._remove):
             edit.textChanged.connect(self.changed)
         for date_edit in (self._start, self._end):
+            date_edit.dateChanged.connect(self._on_date)
             date_edit.dateChanged.connect(self.changed)
         self._mode.changed.connect(self._on_mode)
         self._sectors.itemChanged.connect(self.changed)
         self._preset.currentIndexChanged.connect(self.changed)
         self._top_n.valueChanged.connect(self.changed)
-        self._source.changed.connect(self.changed)
+        self._source.changed.connect(self._on_source)
         self._strategies.itemChanged.connect(self.changed)
         for spin in (self._capital, self._loss, self._commission):
             spin.valueChanged.connect(self.changed)
@@ -280,17 +288,34 @@ class BacktestBuilder(QWidget):
         spin.setFixedWidth(_FIELD_W)
         return spin
 
-    def set_account_defaults(self, capital: float, daily_loss_pct: float) -> None:
-        """SRD-GUI-031.030 — start values from the user's Max capital and max daily loss."""
+    def _on_date(self) -> None:
+        if not self._setting_range:
+            self._auto_dates = False
+
+    def set_data_range(self, span: tuple[datetime.date, datetime.date] | None) -> None:
+        """Keep From / To inside the saved data; fill them until the user picks (SRD-GUI-031.087).
+
+        ``None`` (no saved data) allows any day from 2000 to today.
+        """
+        first, last = span or (_FIRST_DAY, datetime.date.today())
+        self._setting_range = True
+        for edit in (self._start, self._end):
+            edit.setDateRange(_qdate(first), _qdate(last))
+        if span is not None and self._auto_dates:
+            self._end.setDate(_qdate(last))
+            self._start.setDate(_qdate(max(first, last - datetime.timedelta(days=365))))
+        self._setting_range = False
+
+    def set_account_defaults(self, capital: float) -> None:
+        """Start capital from the user's Max capital (SRD-GUI-031.030, .086)."""
         self._capital.setValue(capital)
-        self._loss.setValue(daily_loss_pct)
 
     @staticmethod
     def _date_edit() -> QDateEdit:
         edit = QDateEdit()
         edit.setCalendarPopup(True)
         edit.setDisplayFormat(QT_DATE_FMT)
-        edit.setMinimumDate(QDate(2000, 1, 1))
+        edit.setMinimumDate(_qdate(_FIRST_DAY))
         edit.setMaximumDate(QDate.currentDate())
         edit.setFixedWidth(_FIELD_W)
         return edit
@@ -397,9 +422,19 @@ class BacktestBuilder(QWidget):
 
     def set_saved_days(self, days: Sequence[datetime.date]) -> None:
         """Show how many saved lists the preset has (SRD-GUI-031.060)."""
-        self._saved_count.setText(
-            "No saved lists for this preset" if not days
-            else f"{len(days)} saved days · {show_date(days[0])} → {show_date(days[-1])}")
+        self._saved_text = ("No saved lists for this preset" if not days
+                            else f"{len(days)} saved days · {show_date(days[0])} → "
+                                 f"{show_date(days[-1])}")
+        if self._source.value != "none":
+            self._saved_count.setText(self._saved_text)
+
+    def _on_source(self) -> None:
+        """No screener greys out the preset and stocks per day (SRD-GUI-031.085)."""
+        skip = self._source.value == "none"
+        self._preset.setEnabled(not skip)
+        self._top_n.setEnabled(not skip)
+        self._saved_count.setText(_NO_SCREENER_NOTE if skip else self._saved_text)
+        self.changed.emit()
 
     def quick_test(self, preset_id: str, first: datetime.date, last: datetime.date) -> None:
         """S&P 500, the preset, saved lists and their period (SRD-GUI-031.061)."""
@@ -418,9 +453,9 @@ class BacktestBuilder(QWidget):
         return {
             "run": f"{plan.name} · {show_date(plan.period.start)} → {show_date(plan.period.end)}",
             "stocks": stocks,
-            "screener": f"{self._preset.currentText() or 'No preset'} · "
-                        f"{'saved lists' if scr.recorded else 'replay'} · "
-                        f"{scr.top_n or 'All'} a day",
+            "screener": _NO_SCREENER_TEXT if scr.skip else (
+                f"{self._preset.currentText() or 'No preset'} · "
+                f"{'saved lists' if scr.recorded else 'replay'} · {scr.top_n or 'All'} a day"),
             "strategies": ", ".join(s.id for s in plan.strategies) or "None picked",
             "account": f"${acc.capital[0]:,.0f} · loss stop {acc.max_daily_loss_pct:g}% · "
                        f"${plan.costs.per_order:g} · {plan.costs.slippage_bps:g} bps",
@@ -446,7 +481,8 @@ class BacktestBuilder(QWidget):
         self._remove.setText(", ".join(plan.universe.remove))
         self._preset.setCurrentIndex(max(self._preset.findData(plan.screener.preset_id), 0))
         self._top_n.setValue(plan.screener.top_n)
-        self._source.buttons[1 if plan.screener.recorded else 0].click()
+        self._source.buttons[2 if plan.screener.skip else 1 if plan.screener.recorded
+                             else 0].click()
         ticked = {s.id for s in plan.strategies}
         for use, (name, _alloc, _per) in self._strategy_rows():
             use.setCheckState(Qt.CheckState.Checked if name in ticked else Qt.CheckState.Unchecked)
@@ -472,9 +508,10 @@ class BacktestBuilder(QWidget):
             ),
             screener=ScreenerSpec(
                 preset_id=str(self._preset.currentData() or ""),
-                top_n=self._top_n.value(),
-                ai_ranking=self._ai.isChecked(),
+                top_n=0 if self._source.value == "none" else self._top_n.value(),
+                ai_ranking=self._ai.isChecked() and self._source.value != "none",
                 recorded=self._source.value == "saved",
+                skip=self._source.value == "none",
             ),
             strategies=self._ticked_strategies(),
             account=AccountSpec(

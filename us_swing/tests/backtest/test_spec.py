@@ -92,3 +92,17 @@ def test_over_64_variants() -> None:
     errors = RunPlan.from_dict(data).validate()
 
     assert errors == ["65 variants is more than the limit of 64"]
+
+
+def test_no_screener_plan() -> None:
+    """UT-BKT-002.086.M01.T01: A no-screener plan needs no preset, keeps skip, old JSON reads False."""
+    plain = RunPlan.from_dict(_EXAMPLE)
+    data = json.loads(plain.to_json())
+    data["screener"] = {"preset_id": "", "skip": True}
+
+    plan = RunPlan.from_dict(data)
+
+    assert plan.screener.skip and plan.validate() == []
+    assert RunPlan.from_json(plan.to_json()).screener.skip
+    assert not plain.screener.skip
+    assert "Pick a screener preset" in RunPlan.from_dict({**data, "screener": {}}).validate()

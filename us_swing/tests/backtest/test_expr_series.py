@@ -192,3 +192,48 @@ def test_price_30m_changes_only_at_bucket_close(frames: dict[str, pd.DataFrame])
 
     assert len(changed) > 0
     assert all(closes[i].minute % 30 == 0 for i in changed)
+
+
+_BOSS = "BOSS_ST('Spot', 2, 0.0, '30m', '15m', '{}') > -9"
+
+
+@pytest.fixture(scope="module")
+def boss_frames(tmp_path_factory: pytest.TempPathFactory) -> dict[str, pd.DataFrame]:
+    store = BacktestStore(tmp_path_factory.mktemp("boss"))
+    days = [d.strftime("%Y-%m-%d") for d in pd.bdate_range("2025-03-03", periods=14)]
+    store.save("AAPL", "3m", intraday_bars(days, 11), LATE)
+    return {tf: store.read("AAPL", tf) for tf in ("3m", "15m", "30m")}
+
+
+def _cut(frames: dict[str, pd.DataFrame], at: pd.Timestamp) -> dict[str, pd.DataFrame]:
+    minutes = {"15m": 15, "30m": 30}
+    return {tf: f[f["ts"] + pd.Timedelta(minutes=minutes[tf]) <= at]
+            for tf, f in frames.items() if tf in minutes}
+
+
+def test_boss_st_parity(boss_frames: dict[str, pd.DataFrame]) -> None:
+    """UT-BKT-002.087.M10.T01: BOSS_ST value at each 3m close equals live on frames cut then."""
+    closes = pd.DatetimeIndex(boss_frames["3m"]["ts"]) + pd.Timedelta(minutes=3)
+    for signal in ("State", "Fresh"):
+        values = list(evaluate(_BOSS.format(signal), boss_frames).values.values())[0]
+        changed = np.flatnonzero(np.nan_to_num(np.diff(values), nan=1.0)) + 1
+        picks = sorted(set(range(0, len(values), 23)) | set(changed.tolist()))
+        live = [_live_boss(signal, _cut(boss_frames, closes[i])) for i in picks]
+        np.testing.assert_array_equal(values[picks], live, err_msg=signal)
+        assert np.nanmax(np.abs(values)) == 1.0
+
+
+def _live_boss(signal: str, frames: dict[str, pd.DataFrame]) -> float:
+    try:
+        return ConditionEvaluator.FUNCTION_MAP["BOSS_ST"](
+            ["Spot", 2, 0.0, "30m", "15m", signal], frames, "AAPL")
+    except EvaluatorError:
+        return float("nan")
+
+
+def test_boss_st_bad_args_raise(boss_frames: dict[str, pd.DataFrame]) -> None:
+    """UT-BKT-002.087.M10.T02: Bad BOSS_ST args raise."""
+    with pytest.raises(EvaluatorError):
+        evaluate("BOSS_ST('Spot', 2, 0.0, '15m', '15m', 'State') > 0", boss_frames)
+    with pytest.raises(EvaluatorError):
+        evaluate("BOSS_ST('Spot', 2, 0.0, '30m', '15m', 'Maybe') > 0", boss_frames)

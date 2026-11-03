@@ -58,13 +58,15 @@ class UniverseSpec:
 class ScreenerSpec:
     """Screener preset replayed in Step 1; ``top_n`` 0 means all passing stocks.
 
-    ``recorded`` uses the lists the app saved for the preset instead (SRD-BKT-002.080).
+    ``recorded`` uses the lists the app saved for the preset instead (SRD-BKT-002.080);
+    ``skip`` uses no screener: every universe stock on every session (SRD-BKT-002.086).
     """
 
     preset_id: str = ""
     top_n: int = 0
     ai_ranking: bool = False
     recorded: bool = False
+    skip: bool = False
 
 
 @dataclass(frozen=True)
@@ -126,7 +128,7 @@ class RunPlan:
             "universe": {"mode": u.mode, "sectors": list(u.sectors), "names": list(u.names),
                          "add": list(u.add), "remove": list(u.remove)},
             "screener": {"preset_id": s.preset_id, "top_n": s.top_n,
-                         "ai_ranking": s.ai_ranking},
+                         "ai_ranking": s.ai_ranking, **({"skip": True} if s.skip else {})},
             "strategies": [
                 {"id": st.id, "allocation_pct": _one_or_list(st.allocation_pct),
                  "per_trade_pct": _one_or_list(st.per_trade_pct)}
@@ -163,6 +165,7 @@ class RunPlan:
                 preset_id=str(s.get("preset_id", "")), top_n=int(s.get("top_n", 0)),
                 ai_ranking=bool(s.get("ai_ranking", False)),
                 recorded=bool(s.get("recorded", False)),
+                skip=bool(s.get("skip", False)),
             ),
             strategies=tuple(
                 StrategySpec(
@@ -227,7 +230,7 @@ class RunPlan:
             errors.append("Pick at least one sector")
         if u.mode == "names" and not u.names:
             errors.append("Type at least one stock name")
-        if not self.screener.preset_id:
+        if not self.screener.preset_id and not self.screener.skip:
             errors.append("Pick a screener preset")
         if self.screener.top_n < 0:
             errors.append("Stocks per day cannot be negative")

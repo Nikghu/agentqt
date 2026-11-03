@@ -103,16 +103,16 @@ def test_evaluate_rsi_wrong_arity_raises_evaluator_error() -> None:
         evaluator.evaluate("RSI(14) < 30", candles, "AAPL")
 
 
-def test_function_map_has_exactly_10_keys() -> None:
-    """UT-EXE-011.001.M03.T08: FUNCTION_MAP keys == exactly the 10 implemented names.
+def test_function_map_has_exactly_11_keys() -> None:
+    """UT-EXE-011.001.M03.T08: FUNCTION_MAP keys == exactly the 11 implemented names.
 
-    The four BOSS/BOS entries were stubs and were removed in d6c4f4db; the
-    Strategy Builder offers the same 10, so no strategy can reference a missing
-    indicator.
+    The four BOSS/BOS entries were stubs and were removed in d6c4f4db; BOSS_ST
+    is real (SRD-EXE-011.027). The Strategy Builder offers the same 11, so no
+    strategy can reference a missing indicator.
     """
     expected = {
         "Number", "PNL", "VWAP", "Price", "RSI", "ADX", "EMA",
-        "SUPERTREND", "SWING", "MACD",
+        "SUPERTREND", "SWING", "MACD", "BOSS_ST",
     }
     assert set(ConditionEvaluator.FUNCTION_MAP.keys()) == expected
 
@@ -226,3 +226,64 @@ def test_swing_legacy_six_args_read_as_current() -> None:
     legacy = _swing(["Spot", 2, 5, "High", "Day", "1d"], _swing_candles())
 
     assert legacy == _swing(["Spot", 2, "High", "Current", "1d"], _swing_candles())
+
+
+def _boss_candles(cut: int | None = None) -> dict[str, pd.DataFrame]:
+    from tests.core.test_market_structure import boss_frames
+
+    ltf, htf = boss_frames(col="datetime")
+    if cut is not None:
+        ltf = ltf.iloc[:cut]
+        last_close = ltf["datetime"].iloc[-1] + pd.Timedelta(minutes=15)
+        htf = htf[htf["datetime"] + pd.Timedelta(minutes=30) <= last_close]
+    return {"15m": ltf, "30m": htf}
+
+
+def _boss(signal: str, candles: dict[str, pd.DataFrame]) -> float:
+    return ConditionEvaluator.FUNCTION_MAP["BOSS_ST"](
+        ["Spot", 2, 0.0, "30m", "15m", signal], candles, "AAPL"
+    )
+
+
+def test_boss_st_live_value_is_last_series_value() -> None:
+    """UT-EXE-011.027.M03.T01: Live value is the last series value."""
+    from us_swing.core.market_structure import BossStParams, bars_from_frame, boss_st
+
+    full = _boss_candles()
+    result = boss_st(bars_from_frame(full["15m"], 15), bars_from_frame(full["30m"], 30),
+                     BossStParams(2, 0.0))
+    turn = int(np.flatnonzero(np.nan_to_num(result.fresh))[-1])
+    candles = _boss_candles(cut=turn + 1)
+    ev = ConditionEvaluator()
+    fresh = int(result.fresh[turn])
+
+    assert _boss("State", candles) == result.state[turn]
+    assert ev.evaluate(f"BOSS_ST('Spot', 2, 0.0, '30m', '15m', 'Fresh') == Number({fresh})",
+                       candles, "AAPL")
+    assert not ev.evaluate("BOSS_ST('Spot', 2, 0.0, '30m', '15m', 'Fresh') == Number(0)",
+                           candles, "AAPL")
+    assert _boss("Fresh", _boss_candles(cut=turn + 2)) in (0.0, -fresh)
+
+
+@pytest.mark.parametrize("args", [
+    ["Spot", 0, 0.0, "30m", "15m", "Fresh"],
+    ["Spot", 21, 0.0, "30m", "15m", "Fresh"],
+    ["Spot", 2, 6.0, "30m", "15m", "Fresh"],
+    ["Spot", 2, 0.0, "15m", "15m", "Fresh"],
+    ["Spot", 2, 0.0, "1d", "15m", "Fresh"],
+    ["Spot", 2, 0.0, "30m", "15m", "Maybe"],
+    ["Spot", 2, 0.0, "30m", "15m"],
+])
+def test_boss_st_bad_args_raise(args: list[Any]) -> None:
+    """UT-EXE-011.027.M03.T02: Bad arguments raise."""
+    with pytest.raises(EvaluatorError):
+        ConditionEvaluator.FUNCTION_MAP["BOSS_ST"](args, _boss_candles(), "AAPL")
+
+
+def test_boss_st_too_little_history_raises() -> None:
+    """UT-EXE-011.027.M03.T03: Too little history raises, never 0."""
+    with pytest.raises(EvaluatorError):
+        ConditionEvaluator().evaluate(
+            "BOSS_ST('Spot', 2, 0.0, '30m', '15m', 'State') == Number(0)",
+            _boss_candles(cut=50), "AAPL",
+        )

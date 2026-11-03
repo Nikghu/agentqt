@@ -13,6 +13,13 @@ import numpy as np
 import pandas as pd
 import talib
 
+from us_swing.core.market_structure import (
+    TIMEFRAME_MINUTES,
+    BossStParams,
+    bars_from_frame,
+    boss_st,
+)
+
 
 class EvaluatorError(RuntimeError):
     """Raised on tokenizer / parser / arity / evaluation failures."""
@@ -329,6 +336,43 @@ def _fn_swing(args: list[Any], c: dict[str, pd.DataFrame], _s: str) -> float:
     return float(window["high"].max() - window["low"].min())
 
 
+def boss_st_args(args: list[Any]) -> tuple[BossStParams, str, str, bool]:
+    """Parse BOSS_ST args into (params, HTF, LTF, fresh) (SRD-EXE-011.027).
+
+    Accepts ``SymbolType, SwingLookback, MinBreakATR, HTF, LTF, Signal``.
+
+    Raises:
+        EvaluatorError: wrong arg count, a value out of range, HTF not above LTF,
+            or an unknown timeframe or Signal.
+    """
+    _require_args("BOSS_ST", args, 6)
+    _symbol_type, lookback, min_break_atr, htf, ltf, signal = args
+    params = BossStParams(int(lookback), float(min_break_atr))
+    htf, ltf, signal = str(htf), str(ltf), str(signal).lower()
+    if not 1 <= params.swing_lookback <= 20:
+        raise EvaluatorError(f"BOSS_ST: Swing Lookback must be 1 to 20, got {lookback!r}")
+    if not 0 <= params.min_break_atr <= 5:
+        raise EvaluatorError(f"BOSS_ST: Min Break ATR must be 0 to 5, got {min_break_atr!r}")
+    for tf in (htf, ltf):
+        if tf not in TIMEFRAME_MINUTES:
+            raise EvaluatorError(f"BOSS_ST: unknown timeframe {tf!r}")
+    if TIMEFRAME_MINUTES[htf] <= TIMEFRAME_MINUTES[ltf]:
+        raise EvaluatorError(f"BOSS_ST: HTF {htf!r} must be above LTF {ltf!r}")
+    if signal not in ("fresh", "state"):
+        raise EvaluatorError(f"BOSS_ST: unknown Signal {args[-1]!r}")
+    return params, htf, ltf, signal == "fresh"
+
+
+def _fn_boss_st(args: list[Any], c: dict[str, pd.DataFrame], _s: str) -> float:
+    params, htf, ltf, fresh = boss_st_args(args)
+    result = boss_st(
+        bars_from_frame(_frame_for_tf(c, ltf), TIMEFRAME_MINUTES[ltf]),
+        bars_from_frame(_frame_for_tf(c, htf), TIMEFRAME_MINUTES[htf]),
+        params,
+    )
+    return _last_arr(result.fresh if fresh else result.state)
+
+
 def _fn_macd(args: list[Any], c: dict[str, pd.DataFrame], _s: str) -> float:
     _require_args("MACD", args, 5)
     _symbol_type, fast, slow, signal, tf = args
@@ -359,6 +403,7 @@ class ConditionEvaluator:
         "SUPERTREND": _fn_supertrend,
         "SWING": _fn_swing,
         "MACD": _fn_macd,
+        "BOSS_ST": _fn_boss_st,
     }
 
     def evaluate(

@@ -13,7 +13,7 @@ from typing import Any
 
 import pandas as pd
 import pytest
-from PyQt6.QtCore import QObject, QSettings, Qt, pyqtSignal
+from PyQt6.QtCore import QDate, QObject, QSettings, Qt, pyqtSignal
 
 from us_swing.backtest.service import DailyList, Estimate, OpenedRun, SavedReport
 from us_swing.backtest.spec import Variant
@@ -402,7 +402,8 @@ def test_account_fields(qtbot: Any) -> None:
     """UT-GUI-031.030.M02.T01: Account fields and user defaults go into the plan."""
     builder = BacktestBuilder()
     qtbot.addWidget(builder)
-    builder.set_account_defaults(5000.0, 2.0)
+    builder.set_account_defaults(5000.0)
+    builder._loss.setValue(2.0)
     builder._slippage.setValue(10)
     builder._when.setCurrentIndex(1)
 
@@ -637,6 +638,33 @@ def test_saved_lists_data_check_text() -> None:
     assert data_check_text(est).endswith("saved screener lists for 7 of 20 sessions")
 
 
+def test_no_screener_choice(workspace: BacktestWorkspace) -> None:
+    """UT-GUI-031.085.M01.T01: No screener disables preset, stocks per day and AI; plan keeps it."""
+    builder = workspace.builder
+    builder._source.buttons[2].click()
+
+    plan = builder.plan()
+    assert plan.screener.skip and not plan.screener.recorded
+    assert not (builder._preset.isEnabled() or builder._top_n.isEnabled() or builder._ai.isEnabled())
+    assert builder.summaries()["screener"] == "None · every stock every day"
+
+    builder._source.buttons[0].click()
+    assert builder._preset.isEnabled() and not builder.plan().screener.skip
+    builder.load_plan(plan)
+    assert builder._source.value == "none" and not builder._preset.isEnabled()
+
+
+def test_no_screener_data_check_text() -> None:
+    """UT-GUI-031.085.M03.T01: Data check says no screener and warns above 50 stocks."""
+    fifty = Estimate([f"S{i}" for i in range(50)], [], [], True, 20, 20, [], fixed=True)
+    many = Estimate([f"S{i}" for i in range(51)], [], [], True, 20, 20, [], fixed=True)
+
+    assert data_check_text(fifty).splitlines() == [
+        "50 stocks · 0 missing 1d · 0 missing 3m candles · Step 1: no screener"]
+    assert data_check_text(many).splitlines()[1] == (
+        "No screener on 51 stocks — Step 2 will be slow")
+
+
 def test_quick_test(workspace: BacktestWorkspace) -> None:
     """UT-GUI-031.061.M03.T01: Quick test picks the preset, ticks saved lists, sets dates."""
     workspace.quick_test("p1")
@@ -659,3 +687,49 @@ def test_chart_30m_choice(workspace: BacktestWorkspace, qtbot: Any) -> None:
     assert [b.text() for b in workspace.chart_tf.buttons] == ["3m", "15m", "30m", "1D"]
     workspace.chart_tf.buttons[2].click()
     assert reads[-1] == ("AAPL", "30m", date(2026, 2, 26), date(2026, 3, 3))
+
+
+def test_account_start_values(qtbot: Any) -> None:
+    """UT-GUI-031.086.M02.T01: New plan starts at 10 % loss stop and $0 commission."""
+    builder = BacktestBuilder()
+    qtbot.addWidget(builder)
+    builder.set_account_defaults(5000.0)
+
+    plan = builder.plan()
+
+    assert plan.account.capital == (5000.0,)
+    assert plan.account.max_daily_loss_pct == 10.0
+    assert plan.costs.per_order == 0.0
+
+
+def test_dates_follow_saved_data(qtbot: Any) -> None:
+    """UT-GUI-031.087.M02.T01: Untouched dates fill from the saved data and stay inside it."""
+    builder = BacktestBuilder()
+    qtbot.addWidget(builder)
+
+    builder.set_data_range((date(2023, 5, 1), date(2025, 10, 31)))
+
+    plan = builder.plan()
+    assert (plan.period.start, plan.period.end) == (date(2024, 10, 31), date(2025, 10, 31))
+    builder.set_data_range((date(2025, 6, 2), date(2025, 10, 31)))
+    assert builder.plan().period.start == date(2025, 6, 2)
+    assert builder._end.maximumDate().toPyDate() == date(2025, 10, 31)
+
+
+def test_picked_dates_only_clamped(qtbot: Any) -> None:
+    """UT-GUI-031.087.M02.T02: Picked dates are kept when inside, moved to the edge when not."""
+    builder = BacktestBuilder()
+    qtbot.addWidget(builder)
+    builder.set_data_range((date(2023, 5, 1), date(2025, 10, 31)))
+    builder._start.setDate(QDate(2024, 1, 2))
+    builder._end.setDate(QDate(2024, 6, 28))
+
+    builder.set_data_range((date(2023, 5, 1), date(2025, 9, 30)))
+    assert (builder.plan().period.start, builder.plan().period.end) == \
+        (date(2024, 1, 2), date(2024, 6, 28))
+    builder.set_data_range((date(2024, 3, 1), date(2024, 5, 31)))
+    assert (builder.plan().period.start, builder.plan().period.end) == \
+        (date(2024, 3, 1), date(2024, 5, 31))
+    builder.set_data_range(None)
+    assert builder._start.minimumDate().toPyDate() == date(2000, 1, 1)
+    assert builder.plan().period.start == date(2024, 3, 1)

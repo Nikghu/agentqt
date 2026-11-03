@@ -91,7 +91,8 @@ def test_status_from_stats(make: Any) -> None:
 
     assert panel._headline.text() == "All candles saved"
     assert panel._detail.text() == (
-        "Daily Jan 4, 2016 – Oct 27, 2026\n15-minute and weekly candles are built from these"
+        "Daily Jan 4, 2016 – Oct 27, 2026\n"
+        "15-minute, 30-minute and weekly candles are built from these"
     )
     assert panel._facts.text() == "503 stocks · 3.9 GB"
     assert panel._start_btn.text() == "Up to date"

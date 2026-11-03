@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-11-02 (Session 109)
+**Last Updated:** 2026-11-02 (Session 110)
 
 ---
 
@@ -91,3 +91,5 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T79 | ANA — Fix the 9 pre-existing test_candle_builder failures (naive vs aware datetime). They also fail on clean main, so not caused by the 30m change (RN-EXE-1.40.0). | `analysis/candle_builder.py`, `tests/analysis/` | Medium | Open |
 | T80 | GUI — test_backtest_item_after_charts is flaky: it passes when run alone but can fail in the full run. Find the shared state or timing cause and fix it. | `gui/backtest_workspace.py`, `tests/gui/` | Low | Open |
 | T81 | GUI — Optional 30m tab in the Execution chart (today 3m and 15m only). Needs an SRD before any code. | `gui/execution_panel.py`, `gui/chart_panel.py` | Low | Open |
+| T82 | BOSS_ST Phase 2: Direction = Both — one strategy with Long and Short entry/exit conditions; router picks side by which entry fires, exit by open cycle side; backtest support. | `execution/strategy_engine/_router.py`, `gui/strategy_builder_dialog.py`, `backtest/` | Medium | Open |
+| T83 | BOSS_ST manual check: run Long (Fresh == 1 / State != 1) and Short (Fresh == -1 / State != -1) strategies on 30m/15m in backtest and paper; compare signals with charts. | `core/market_structure.py` | High | Open |

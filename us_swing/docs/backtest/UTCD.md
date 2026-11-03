@@ -7,6 +7,9 @@
 **Last Updated:** 2026-11-02
 **Project:** US Swing Trading System
 
+> v1.7.0: UT-BKT-002.088.M05.T01–T02 added — common saved range.
+> v1.6.0: UT-BKT-002.087.M10.T01–T02 added — BOSS_ST series.
+> v1.5.0: UT-BKT-002.086.M01.T01, .M05.T01–T02 added — no-screener mode.
 > v1.4.0: UT-BKT-001.016.M01.T01–T02 and UT-BKT-002.085.M10.T01, .M11.T01 added — 30m timeframe.
 > v1.3.0: UT-BKT-002.083.M15.T01 updated and T04–T08 added — trade analysis layout (SRD-BKT-002.084); UT-BKT-002.037.M12.T02 — ISS-BKT-0001.
 > v1.2.0: UT-BKT-002.083.M15.T01–T03 added — HTML report; UT-BKT-002.030.M12.T03 — candle loading progress.
@@ -118,6 +121,8 @@
 | UT-BKT-002.081.M05.T02 | MD-BKT-002.008.M05 | Negative | No saved list | none in period | plain error | Pass |
 | UT-BKT-002.082.M10.T01 | MD-BKT-002.021.M10 | Positive | SWING Previous and Current parity | random-walk frames, every timeframe | series[i] equals live on frame[:i+1] | Pass |
 | UT-BKT-002.082.M10.T02 | MD-BKT-002.021.M10 | Negative | Candles 0 raises; legacy 6 args gives Current | Candles 0; 6-arg SWING | `EvaluatorError`; same series as Current | Pass |
+| UT-BKT-002.087.M10.T01 | MD-BKT-002.021.M10 | Positive | BOSS_ST State and Fresh parity | random-walk 3m, 15m, 30m frames | value at each 3m close equals live on the frames cut at that time | Pass |
+| UT-BKT-002.087.M10.T02 | MD-BKT-002.021.M10 | Negative | Bad BOSS_ST args raise | HTF = LTF; Signal `Maybe` | `EvaluatorError` | Pass |
 | UT-BKT-002.083.M15.T01 | MD-BKT-002.083.M15 | Positive | Export a saved run | saved run with 4 trades | one HTML page with setup, equity and per-trade charts, edge boxes, best and worst, all trade rows | Pass |
 | UT-BKT-002.083.M15.T02 | MD-BKT-002.083.M15 | Negative | Unknown run id | "nope" | `ValueError`; no file written | Pass |
 | UT-BKT-002.083.M15.T03 | MD-BKT-002.083.M15 | Edge | Escaping and empty run | name with `<b>`, no variants | name escaped; "This run has no results"; NaN shows — | Pass |
@@ -149,6 +154,11 @@
 | UT-BKT-002.026.M11.T01 | MD-BKT-002.026.M11 | Positive | Periods from runs of true bars | fired F T T F T | 2 periods with start, end, close at start | Pass |
 | UT-BKT-002.026.M11.T02 | MD-BKT-002.026.M11 | Negative | Hours and days | bars closing 09:36, 10:00 and 15:30 ET on a Monday and a Saturday, hours 09:40–15:30 Mon–Fri | only the Monday 10:00 bar kept | Pass |
 | UT-BKT-002.085.M11.T01 | MD-BKT-002.026.M11 | Positive | 30m frame loaded | store with 3m bars | `load_frames()` has a 30m frame with intraday warm-up | Pass |
+| UT-BKT-002.086.M01.T01 | MD-BKT-002.001.M01 | Positive | No-screener plan | screener skip, no preset; old JSON | valid; skip kept in JSON; old plan reads False; empty screener still asks for a preset | Pass |
+| UT-BKT-002.086.M05.T01 | MD-BKT-002.008.M05 | Positive | Every stock every session | 3 stocks, 5 sessions, preset loader that fails | 15 rows; each session A to Z, rank 1–3, score 0; preset never loaded | Pass |
+| UT-BKT-002.086.M05.T02 | MD-BKT-002.008.M05 | Positive | Data check and facts | no-screener plan | fixed=True, 5 of 5 sessions, no errors; Screener fact "None · every stock every day" | Pass |
+| UT-BKT-002.088.M05.T01 | MD-BKT-002.008.M05 | Positive | Common saved range | 1d for 3 stocks; 3m Mar 3–7 and Mar 4–10; none for NVDA | span Mar 4 – Mar 7; NVDA missing 3m | Pass |
+| UT-BKT-002.088.M05.T02 | MD-BKT-002.008.M05 | Negative | No saved data | one unknown stock | span None | Pass |
 | UT-BKT-002.027.M10.T01 | MD-BKT-002.021.M10 | Positive | PNL flagged | `PNL('Spot') > 1 OR RSI(…) > 0` | `uses_pnl` true; result equals the RSI part | Pass |
 | UT-BKT-002.028.M11.T01 | MD-BKT-002.026.M11 | Positive | Cache reuse | run twice | second run computes nothing | Pass |
 | UT-BKT-002.028.M11.T02 | MD-BKT-002.026.M11 | Negative | Stocks follow top N and include list | include mode with 1 stock, top N 1 | only that stock computed | Pass |

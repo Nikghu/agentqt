@@ -2,6 +2,26 @@
 
 ---
 
+## [20261103] GUI/BKT — Backtest setup: 10 % loss stop, $0 commission, dates follow saved data
+
+- Type: Enhancement
+- FO(s): FO-GUI-031, FO-BKT-002
+- RN: RN-GUI-1.55.0-20261103, RN-BKT-1.12.0-20261103
+- Artifacts updated: SRD (GUI-031.086, .087, BKT-002.088 approved by user → Implemented), MD notes, UTCD (5 new Pass, 1 updated), TRACE (gui, bkt), Code, Tests, RN, CONTEXT, DEVLOG
+- Decisions: loss stop no longer copies the live setting; spec.py fallbacks kept so old plans read as before; date pickers use the common 1d + 3m range of the chosen stocks, filled until the user picks; no saved data allows 2000 to today.
+
+---
+
+## [20261102] EXE/BKT/GUI — BOSS_ST trigger indicator (Phase 1)
+
+- Type: Feature
+- FO(s): FO-EXE-011, FO-BKT-002, FO-GUI-013
+- RN: RN-EXE-1.41.0-20261102
+- Artifacts updated: SRD (EXE-011.027, BKT-002.087, GUI-013.024 approved by user → Implemented), DD (DD-EXE-011.027.D01), MD (MD-EXE-011.027.M01 new; M03, M10, GUI M01), UTCD (14 rows Pass), TRACE (exe, bkt, gui), Code, Tests, RN, TODO, CONTEXT, DEVLOG
+- Decisions: one indicator returning 1 / -1 / 0; Signal Fresh (turn bar only) for entry, State for exit; long and short as two strategies, Direction = Both deferred (T82); no time window or forced exit; EMA200 / Supertrend(10,3) / ATR14 fixed; too little history raises instead of 0. Branch feat/exe-boss-st stacked on feat/bkt-skip-screener; not pushed.
+
+---
+
 ## [20261102] BKT/EXE/GUI — 30m timeframe for live and backtest, backtest HTML report, ISS-BKT-0001 fix
 
 - Type: Feature (plus Bugfix ISS-BKT-0001)

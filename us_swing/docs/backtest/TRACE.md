@@ -20,12 +20,15 @@
 | FO-BKT-002 | SRD-BKT-002.080–.081 | None (small step) | MD-BKT-002.080.M14 (+ .008.M05) | UT-BKT-002.080–.081 (5 tests, Pass) | `backtest/steps/recorded.py`, `backtest/service.py`, `backtest/spec.py` | Implemented (Phase 5) | RN-BKT-1.10.0-20261030 |
 | FO-BKT-002 | SRD-BKT-002.083–.084 | DD-BKT-002.083.D01, DD-BKT-002.084.D01 | MD-BKT-002.083.M15 (+ .008.M05) | UT-BKT-002.083.M15.T01–T09 (9 tests, Pass) | `backtest/html_report.py`, `backtest/service.py` | Implemented | RN-BKT-1.11.0-20261102 |
 | FO-BKT-001/002 | SRD-BKT-001.016, SRD-BKT-002.085 | DD-BKT-001.016.D01 | MD-BKT-001.001.M01, .021.M10, .026.M11 | UT-BKT-001.016.M01.T01–T02, UT-BKT-002.085.M10.T01, .M11.T01 (4 tests, Pass) | `backtest/store.py`, `core/expr/series.py`, `backtest/steps/signals.py` | Implemented | RN-BKT-1.11.0-20261102 |
+| FO-BKT-002 | SRD-BKT-002.086 | None (small step) | MD-BKT-002.001.M01, .008.M05 | UT-BKT-002.086.M01.T01, .M05.T01–T02 (3 tests, Pass) | `backtest/spec.py`, `backtest/service.py` | Implemented | Pending |
 | FO-BKT-002 | SRD-BKT-002.037 (ISS-BKT-0001) | DD-BKT-002.084.D01 | MD-BKT-002.030.M12 | UT-BKT-002.037.M12.T02 (1 test, Pass) | `backtest/steps/portfolio.py` | Implemented | RN-BKT-1.11.0-20261102 |
 | FO-BKT-002 | SRD-BKT-002.070–.073 | None (stats only) | MD-BKT-002.040.M13 (+ .008.M05) | UT-BKT-002.070–.073.M13 (8 tests, Pass) | `backtest/steps/report.py`, `backtest/service.py` | Implemented (Phase 4b) | RN-BKT-1.9.0-20261030 |
 | FO-BKT-002 | SRD-BKT-002.060 | None (small change) | MD-BKT-002.007.M04, MD-BKT-002.008.M05 | UT-BKT-002.060.M04.T01–T02, M05.T01–T02 (Pass) | `backtest/results.py`, `backtest/service.py` | Implemented | RN-BKT-1.8.0-20261030 |
 | FO-BKT-001 / FO-BKT-002 | SRD-BKT-001.015, SRD-BKT-002.052 | None (small change) | MD-BKT-001.005.M03, MD-BKT-002.008.M05 | UT-BKT-001.015.M03.T01–T02, UT-BKT-002.052.M05.T01–T02 (Pass) | `backtest/planner.py`, `backtest/service.py`, `backtest/steps/stocks.py`, `gui/app_service.py` | Implemented | RN-BKT-1.7.0-20261030 |
 | FO-BKT-002 | SRD-BKT-002.040–.047 | None yet (Phase 4a stats only) | MD-BKT-002.040.M13 (+ .007.M04, .008.M05) | UT-BKT-002.040–.047.M13 (14 tests, Pass) | `backtest/steps/report.py`, `backtest/results.py`, `backtest/service.py` | Implemented (Phase 4a) | RN-BKT-1.6.0-20261029 |
 | FO-BKT-002 | SRD-BKT-002.082 | DD-EXE-011.026.D01 | MD-BKT-002.021.M10 | UT-BKT-002.082.M10.T01–T02 (2 tests, Pass) | `core/expr/series.py`, `core/expr/__init__.py` | Implemented | RN-EXE-1.39.0-20261031 |
+| FO-BKT-002 | SRD-BKT-002.087 | DD-EXE-011.027.D01 | MD-BKT-002.021.M10 | UT-BKT-002.087.M10.T01–T02 (2 tests, Pass) | `core/expr/series.py`, `core/expr/__init__.py` | Implemented | RN-EXE-1.41.0-20261102 |
+| FO-BKT-002 | SRD-BKT-002.088 | None (small step) | MD-BKT-002.008.M05 | UT-BKT-002.088.M05.T01–T02 (2 tests, Pass) | `backtest/service.py` | Implemented | RN-BKT-1.12.0-20261103 |
 
 ## Reverse Traceability: Code → MD → SRD → FO
 

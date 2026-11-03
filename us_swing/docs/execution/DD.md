@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.23.0: DD-EXE-011.027.D01 added — BOSS_ST trigger indicator.
 > v1.22.0: DD-EXE-006.015.D01 added — 30m timeframe, live.
 > v1.21.0: DD-EXE-017.027.D01 added — paper account state follows today's P&L and open positions.
 > v1.20.0: DD-EXE-020.001.D01 gains the equity curve (SRD-EXE-020.007–.008).
@@ -2303,6 +2304,26 @@ async def _maybe_emit_entry(ctx, symbol, signal):
 - `Candles < 1` or non-integer → `EvaluatorError`; unknown PriceSwing / Window → `EvaluatorError`.
 - Live: `Current` window = `df.tail(n)`; `Previous` window = `df.iloc[:-1].tail(n)`. Fewer bars → smaller window; empty window → NaN (surfaced by the FUNC NaN guard).
 - Backtest: `rolling(n, min_periods=1)` max / min / range; `Previous` = the same series shifted one bar, so `series[i]` equals live on `frame[:i+1]`.
+
+## DD-EXE-011.027.D01 — BOSS_ST Trigger Indicator
+
+`BOSS_ST(SymbolType, SwingLookback, MinBreakATR, HTF, LTF, Signal)`. Ported from the NSE `BOSS_ST` strategy, without its time window and 15:25 forced exit.
+
+- `boss_st_args(args)` in `_evaluator.py` parses and checks the 6 args for both engines (re-exported by `core.expr`).
+- `core/market_structure.boss_st(ltf, htf, params)` takes OHLC arrays plus bar-close times (ns) and returns `BossSt` arrays on the LTF bars. It imports nothing from `execution`.
+
+Steps, per timeframe:
+1. ATR(14) break gate: `break_ok = high − low ≥ MinBreakATR × ATR`; True when MinBreakATR is 0 or ATR is NaN.
+2. Causal swings: bar *j* is a swing high when its high beats both neighbours and is the max of the `2L+1` window centred on it; it becomes known at bar `j+L` and carries bar *j*'s price. Same for lows.
+3. Structure (only where `break_ok`): close above last swing high with trend ≥ 0 → BOS +1; below last swing low with trend ≤ 0 → BOS −1; a break against the trend → CHOCH ±1, BOS 0. Values carry forward.
+
+On the LTF: EMA200 and Supertrend(10, 3) direction (Wilder ATR, bands ratchet while direction holds). HTF CHOCH is taken from the last HTF bar whose close time is at or before the LTF bar's close time.
+
+State machine over LTF bars (flat → long if long entry, else short if short entry; long → flat on long exit; short → flat on short exit):
+- Long entry: HTF CHOCH = 1, LTF BOS = 1, close > EMA200, Supertrend up. Short entry is the mirror.
+- Long exit: LTF CHOCH = −1 or Supertrend down. Short exit is the mirror.
+
+Output per LTF bar: `state`; `fresh = state` where it differs from the previous bar, else 0. NaN while fewer than 200 LTF bars or fewer than `2L+1` closed HTF bars exist at that bar. Live returns the last value (NaN → `EvaluatorError` via the NaN guard). The backtest uses the same arrays, read as of each 3m close, so Fresh holds for one LTF bar in both engines.
 
 ## DD-EXE-011.006.D01 — `ConditionEvaluator` Class Breakdown
 

@@ -1,12 +1,15 @@
 # Software Requirements Document — Backtest Module (BKT)
 
 **Document ID:** SRD-BKT
-**Version:** 1.12.0
+**Version:** 1.13.0
 **Traces To:** FO-BKT v1.1.0
 **Status:** Draft
 **Last Updated:** 2026-11-02
 **Project:** US Swing Trading System
 
+> v1.15.0: SRD-BKT-002.088 added and approved by user 2026-11-03 — data check gives the common saved range.
+> v1.14.0: SRD-BKT-002.087 added and approved by user 2026-11-02 — BOSS_ST series.
+> v1.13.0: SRD-BKT-002.086 added and approved by user 2026-11-02 — no-screener mode.
 > v1.12.0: SRD-BKT-001.016 and SRD-BKT-002.085 added and approved by user 2026-11-02 — 30m timeframe.
 > v1.11.0: SRD-BKT-002.084 added and approved by user 2026-11-02 — trade analysis layout for the HTML report.
 > v1.10.0: SRD-BKT-002.083 added and approved by user 2026-11-02 — saved run as one offline HTML report.
@@ -145,3 +148,6 @@
 | SRD-BKT-002.083 | FO-BKT-002 | Should | A saved run can be written as one offline HTML report (setup, key stats, equity chart, P&L by strategy, monthly P&L, all measures, trades) from its saved Step 3 rows only. | run id, file path | HTML file | No scripts or outside links; unknown run raises | Implemented |
 | SRD-BKT-002.084 | FO-BKT-002 | Should | The HTML report uses the trade analysis layout: result header, edge/luck/quality boxes, P&L per trade, equity vs benchmark, hold time and exit groups, best and worst 5, full trade table. | saved Step 3 rows | HTML file | Small inline script for hover only; no outside links; replaces the .083 layout | Implemented |
 | SRD-BKT-002.085 | FO-BKT-002 | Must | Step 2 conditions can use the 30m timeframe; a 30m bar is visible only after it closes. | 30m bars | series on the 3m timeline | Same rule as 15m (SRD-BKT-002.050) | Implemented |
+| SRD-BKT-002.086 | FO-BKT-002 | Must | With no screener, Step 1 is skipped and every universe stock is picked on every session, ranked A to Z with score 0. | plan with no screener | daily list | No preset needed; plans saved before this load as before | Implemented |
+| SRD-BKT-002.087 | FO-BKT-002 | Must | The BOSS_ST series gives, at each 3m close, the live SRD-EXE-011.027 value of its LTF and HTF frames as seen then. | frames, args | series | Timeframe comes from the LTF arg, not the last arg | Implemented |
+| SRD-BKT-002.088 | FO-BKT-002 | Should | The data check also returns the days every chosen stock has in both 1d and 3m. | plan | first and last day, or none | Stocks with no saved data are skipped; each coverage is read once | Implemented |

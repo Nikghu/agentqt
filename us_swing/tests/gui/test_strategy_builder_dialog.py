@@ -56,3 +56,46 @@ def test_timeframe_dropdowns_offer_30m() -> None:
 
     assert len(lists) == 9
     assert all(lst == ["3m", "15m", "30m", "1d", "1w"] for lst in lists)
+
+
+def _boss_dialog(qtbot) -> tuple[_ConditionSelectorDialog, list[str]]:  # type: ignore[no-untyped-def]
+    dlg = _ConditionSelectorDialog("Condition 1")
+    qtbot.addWidget(dlg)
+    dlg._ind_combo.setCurrentText("BOSS_ST")
+    built: list[str] = []
+    dlg.condition_built.connect(built.append)
+    return dlg, built
+
+
+def test_boss_st_form(qtbot) -> None:  # type: ignore[no-untyped-def]
+    """UT-GUI-013.024.M01.T01: BOSS_ST form."""
+    dlg, built = _boss_dialog(qtbot)
+    lookback, atr = dlg._inputs["Swing Lookback"], dlg._inputs["Min Break ATR"]
+    assert isinstance(lookback, QLineEdit) and isinstance(atr, QLineEdit)
+
+    assert list(dlg._inputs) == ["Symbol Type", "Swing Lookback", "Min Break ATR",
+                                 "HTF", "LTF", "Signal"]
+    firsts = [w.currentText() for w in dlg._inputs.values() if isinstance(w, QComboBox)]
+    assert firsts == ["Spot", "30m", "15m", "Fresh"]
+    lookback.setText("2")
+    atr.setText("0.5")
+    dlg._on_add()
+    assert built == ["BOSS_ST('Spot', 2, 0.5, '30m', '15m', 'Fresh')"]
+
+
+def test_boss_st_htf_not_above_ltf_refused(qtbot) -> None:  # type: ignore[no-untyped-def]
+    """UT-GUI-013.024.M01.T02: HTF not above LTF is refused; Lookback 0 is rejected."""
+    dlg, built = _boss_dialog(qtbot)
+    lookback, atr, htf = (dlg._inputs[k] for k in ("Swing Lookback", "Min Break ATR", "HTF"))
+    assert isinstance(lookback, QLineEdit) and isinstance(atr, QLineEdit)
+    assert isinstance(htf, QComboBox)
+    lookback.setText("2")
+    atr.setText("0")
+    htf.setCurrentText("15m")
+
+    dlg._on_add()
+    assert built == []
+    assert "HTF" in dlg._err_lbl.text()
+
+    lookback.setText("0")
+    assert not lookback.hasAcceptableInput()

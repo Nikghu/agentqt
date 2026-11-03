@@ -5,6 +5,10 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.71.0: SRD-GUI-031.087 added and approved by user 2026-11-03 — From / To follow the saved data.
+> v2.70.0: SRD-GUI-031.086 added and approved by user 2026-11-03 — backtest start values: loss stop 10 %, commission $0.
+> v2.69.0: SRD-GUI-013.024 added and approved by user 2026-11-02 — BOSS_ST form.
+> v2.68.0: SRD-GUI-031.085 added and approved by user 2026-11-02 — No screener choice.
 > v2.67.0: SRD-GUI-013.023 and SRD-GUI-031.084 added and approved by user 2026-11-02 — 30m timeframe.
 > v2.66.0: SRD-GUI-031.083 added and approved by user 2026-11-02 — DD-MM-YYYY dates in the Backtest screens and HTML report.
 > v2.65.0: SRD-GUI-031.082 added and approved by user 2026-11-02 — Download HTML report from Saved runs.
@@ -274,6 +278,7 @@
 | SRD-GUI-013.021 | FO-GUI-013 | Must | A signal awaiting the user also locks the Direction field, not only an open trade; the tooltip reads `Close open trades and clear pending signals before changing direction`. | open cycles + pending signals of the strategy | disabled combo | Refines SRD-GUI-013.017; a waiting signal already carries the side that fired it | Implemented |
 | SRD-GUI-013.022 | FO-GUI-013 | Must | The SWING form offers Symbol Type, Candles (1–500), Price Swing, Window (Previous / Current) and Timeframe; LookbackDays is removed. | indicator selection | 5-field form | Window defaults to Previous; matches SRD-EXE-011.026 (ISS-EXE-0014) | Implemented |
 | SRD-GUI-013.023 | FO-GUI-013 | Must | Every Timeframe dropdown in the strategy builder offers 3m, 15m, 30m, 1d and 1w in that order. | indicator form | timeframe choice | One shared list for all forms | Implemented |
+| SRD-GUI-013.024 | FO-GUI-013 | Must | The condition dialog offers BOSS_ST with Symbol Type, Swing Lookback (1–20), Min Break ATR (0–5), HTF (30m / 15m), LTF (15m / 3m) and Signal (Fresh / State). | indicator selection | 6-field form | HTF must be above LTF, else an error and no condition; matches SRD-EXE-011.027 | Implemented |
 
 ---
 
@@ -604,3 +609,6 @@
 | SRD-GUI-031.082 | FO-GUI-031 | Should | Report details has a Download button that saves the picked run as an HTML report without opening it. | picked run, file path | HTML file | Save runs in a worker; button reads "Saving…" until done | Implemented |
 | SRD-GUI-031.083 | FO-GUI-031 | Should | The Backtest screens and the HTML report show every date as DD-MM-YYYY. | dates | shown text | Stored data, cache keys and file names stay ISO; the session list keeps the real date behind the text | Implemented |
 | SRD-GUI-031.084 | FO-GUI-031 | Should | The Backtest Inspector chart offers a 30m choice next to 3m, 15m and 1D. | picked trade | 30m candles around the trade | Shows 5 days before the entry | Implemented |
+| SRD-GUI-031.085 | FO-GUI-031 | Should | The Screener page Source offers No screener; it disables Preset, Stocks per day and AI ranking, and the data check warns above 50 stocks. | Source choice | plan, data check line | Warning text: Step 2 will be slow | Implemented |
+| SRD-GUI-031.086 | FO-GUI-031 | Should | A new backtest plan starts with Daily loss stop 10 % and Commission $0 per order; only Capital comes from the active user. | new plan | start values | Replaces the user loss default of .030; saved plans keep their values, and old plan files without a commission still read $1 | Implemented |
+| SRD-GUI-031.087 | FO-GUI-031 | Should | From and To only allow days inside the common saved range (SRD-BKT-002.088); until the user picks a date, To is the last saved day and From one year before it. | data check | date limits and values | Picked or loaded dates are kept, or moved to the nearest edge; no saved data allows 2000 to today | Implemented |

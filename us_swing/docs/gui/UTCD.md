@@ -7,6 +7,10 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.42.0: UT-GUI-031.087.M02.T01–T02 added — From / To follow the saved data.
+> v1.41.0: UT-GUI-031.086.M02.T01 added; UT-GUI-031.030.M02.T01 sets the loss stop itself — backtest start values.
+> v1.40.0: UT-GUI-013.024.M01.T01–T02 added — BOSS_ST form.
+> v1.39.0: UT-GUI-031.085.M01.T01 and .M03.T01 added — No screener choice.
 > v1.38.0: UT-GUI-013.023.M01.T01 and UT-GUI-031.084.M03.T01 added — 30m timeframe.
 > v1.37.0: UT-GUI-031.083.M14.T01 added — DD-MM-YYYY dates.
 > v1.36.0: UT-GUI-031.052.M03.T02 (chart trade dropdown) and UT-GUI-031.082.M09.T01 (HTML download) added.
@@ -282,6 +286,8 @@
 | UT-GUI-013.001.M01.T21 | MD-GUI-013.001.M01 | Positive | `commit()` overwrites existing record by case-insensitive name | Registry `[cfg(name="boss_ema")]`; commit `cfg(name="BOSS_EMA")` | Registry length stays 1; record replaced | Not Run |
 | UT-GUI-013.001.M01.T22 | MD-GUI-013.001.M01 | Positive | `save_strategies()` writes via temp-file + atomic replace | Stub `Path.replace`; call `save_strategies([cfg])` | `Path.replace` called once with `.tmp` → final path; final file exists | Not Run |
 | UT-GUI-013.023.M01.T01 | MD-GUI-013.001.M01 | Positive | 30m in every Timeframe dropdown | indicator catalogue | each Timeframe list is 3m, 15m, 30m, 1d, 1w | Pass |
+| UT-GUI-013.024.M01.T01 | MD-GUI-013.001.M01 | Positive | BOSS_ST form | choose BOSS_ST, Lookback 2, ATR 0.5 | 6 fields; first choices 30m, 15m, Fresh; built text `BOSS_ST('Spot', 2, 0.5, '30m', '15m', 'Fresh')` | Pass |
+| UT-GUI-013.024.M01.T02 | MD-GUI-013.001.M01 | Negative | HTF not above LTF is refused | HTF 15m, LTF 15m; Lookback 0 | error shown, no condition built; validator rejects 0 | Pass |
 
 ---
 
@@ -815,7 +821,7 @@ Test files:
 | UT ID | MD | Type | Description | Input | Expected | Status |
 |---|---|---|---|---|---|---|
 | UT-GUI-030.006.M03.T01 | MD-GUI-030.006.M03 | Positive | Section sits after Candle data | build `SettingsPanel` | "Backtest data" is the name right after "Candle data" | Pass |
-| UT-GUI-030.001.M01.T01 | MD-GUI-030.001.M01 | Positive | Status from stats | fake stats 503 stocks, nothing missing | "All candles saved"; coverage line plus the 15-minute and weekly note (SRD .010); "503 stocks · 3.9 GB"; button Up to date, disabled | Pass |
+| UT-GUI-030.001.M01.T01 | MD-GUI-030.001.M01 | Positive | Status from stats | fake stats 503 stocks, nothing missing | "All candles saved"; coverage line plus the 15-minute, 30-minute and weekly note (SRD .010); "503 stocks · 3.9 GB"; button Up to date, disabled | Pass |
 | UT-GUI-030.001.M01.T03 | MD-GUI-030.001.M01 | Negative | Empty store | stats with 0 stocks | "No backtest candles yet"; range estimate shown; button Download | Pass |
 | UT-GUI-030.001.M01.T02 | MD-GUI-030.001.M01 | Positive | Progress updates | progress 3m 191 of 503 (no click, as from auto delta) | running; bar 38%; "191 of 503 · AAPL · about 2 h 10 min left"; Done around; Pause | Pass |
 | UT-GUI-030.002.M01.T01 | MD-GUI-030.001.M01 | Positive | Load and save settings | saved start 2018-01-01, latest on | fields filled; End date disabled; save writes same values | Pass |
@@ -857,7 +863,7 @@ Test files:
 | UT-GUI-031.021.M03.T01 | MD-GUI-031.003.M03 | Positive | Run does both steps | fake service, one strategy ticked | Stocks and Signals pills Done; signals table filled | Pass |
 | UT-GUI-031.022.M03.T01 | MD-GUI-031.003.M03 | Positive | Strategy filter | 2 strategies' periods, pick one | only its rows shown | Pass |
 | UT-GUI-031.023.M03.T01 | MD-GUI-031.003.M03 | Positive | Double-click opens Charts | double-click AAPL row | `chart_requested("AAPL", "1d")` | Pass |
-| UT-GUI-031.030.M02.T01 | MD-GUI-031.002.M02 | Positive | Account fields | defaults 5,000 and 2 %, set slippage 10, highest score | plan capital (5000,), daily loss 2, when_full highest_score, slippage 10 | Pass |
+| UT-GUI-031.030.M02.T01 | MD-GUI-031.002.M02 | Positive | Account fields | capital default 5,000; set loss 2 %, slippage 10, highest score | plan capital (5000,), daily loss 2, when_full highest_score, slippage 10 | Pass |
 | UT-GUI-031.031.M03.T01 | MD-GUI-031.003.M03 | Positive | Run does Step 3 | fake service, one strategy | Portfolio pill Done; Trades tab shown | Pass |
 | UT-GUI-031.032.M03.T01 | MD-GUI-031.003.M03 | Positive | Trades tab | 2 trades, +30 and −10 | summary "2 trades · net P&L $20.00 · win rate 50%"; 2 rows | Pass |
 | UT-GUI-031.033.M03.T01 | MD-GUI-031.003.M03 | Positive | Day log and Money tabs | 3 decisions, 2 money rows | 3 and 2 rows | Pass |
@@ -907,6 +913,11 @@ Test files:
 | UT-GUI-031.082.M09.T01 | MD-GUI-031.055.M09 | Positive | Download HTML | Cancel, then a path | nothing, then one export call with the default file name offered; button back on; off with no run | Pass |
 | UT-GUI-031.083.M14.T01 | MD-GUI-031.083.M14 | Positive | Day-first date text | date, datetime, ET Timestamp | 04-03-2026, 02-11-2026, 31-12-2025 | Pass |
 | UT-GUI-031.084.M03.T01 | MD-GUI-031.003.M03 | Positive | Inspector 30m choice | chart timeframe picker | 30m offered between 15m and 1D; 5 days before entry | Pass |
+| UT-GUI-031.085.M01.T01 | MD-GUI-031.003.M03 | Positive | No screener choice | click No screener, then Replay, then load the plan | skip in plan; preset, stocks per day, AI disabled; side menu text; load restores | Pass |
+| UT-GUI-031.085.M03.T01 | MD-GUI-031.003.M03 | Edge | Data check warning | 50 and 51 stocks, no screener | "Step 1: no screener"; warning line only at 51 | Pass |
+| UT-GUI-031.086.M02.T01 | MD-GUI-031.002.M02 | Positive | New plan start values | capital default 5,000, nothing else set | capital (5000,), daily loss 10, commission 0 | Pass |
+| UT-GUI-031.087.M02.T01 | MD-GUI-031.002.M02 | Positive | Untouched dates fill from saved data | range 2023-05-01 – 2025-10-31, then 2025-06-02 – 2025-10-31 | 2024-10-31 – 2025-10-31; then From 2025-06-02; max date 2025-10-31 | Pass |
+| UT-GUI-031.087.M02.T02 | MD-GUI-031.002.M02 | Edge | Picked dates only clamped | pick 2024-01-02 – 2024-06-28; narrower ranges; then no data | kept, then moved to 2024-03-01 – 2024-05-31; no data allows from 2000 | Pass |
 | UT-GUI-031.055.M03.T01 | MD-GUI-031.003.M03 | Positive | Open saved run | Stocks per day 1 in builder, saved All | 4 steps Done; Detail tab; 2 trades; 3 picks | Pass |
 | UT-GUI-031.055.M03.T02 | MD-GUI-031.003.M03 | Positive | Reports tab refresh | show Reports tab | list reloaded | Pass |
 | UT-GUI-031.060.M02.T01 | MD-GUI-031.002.M02 | Positive | Saved lists tick | preset without, then with saved days | message; count and range; plan recorded | Pass |

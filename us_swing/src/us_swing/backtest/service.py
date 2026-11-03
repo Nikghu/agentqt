@@ -50,6 +50,8 @@ class Estimate:
     days_cached: int
     errors: list[str]
     recorded: bool = False  # days_cached counts sessions with a saved screener list
+    fixed: bool = False  # no screener: every stock on every session (SRD-BKT-002.086)
+    data_span: tuple[date, date] | None = None  # days every stock has in 1d and 3m (.088)
 
 
 @dataclass(frozen=True)
@@ -65,12 +67,30 @@ class DailyList:
     data_days: dict[date, date]
 
 
-def _misses(store: BacktestStore, symbol: str, tf: str, period: Period, today: date) -> bool:
-    span = store.coverage(symbol, tf)  # type: ignore[arg-type]  # tf is "1d" or "3m"
+Span = tuple[date, date]
+
+
+def _misses(span: Span | None, period: Period, today: date) -> bool:
     if span is None:
         return True
     end = min(period.end, today)
     return (span[0] - period.start).days > _EDGE_DAYS or (end - span[1]).days > _EDGE_DAYS
+
+
+def _common_span(spans: Sequence[Span | None]) -> Span | None:
+    """Days inside every known span (SRD-BKT-002.088); stocks with no data are skipped."""
+    known = [span for span in spans if span is not None]
+    if not known:
+        return None
+    first, last = max(sp[0] for sp in known), min(sp[1] for sp in known)
+    return (first, last) if first <= last else None
+
+
+@dataclass(frozen=True)
+class _DataCheck:
+    missing_1d: list[str]
+    missing_3m: list[str]
+    data_span: Span | None
 
 
 class BacktestService:
@@ -105,6 +125,8 @@ class BacktestService:
         today = today or datetime.now(timezone.utc).date()
         symbols = resolve(plan.universe, self._records())
         errors = plan.validate()
+        if plan.screener.skip:
+            return self._estimate_fixed(plan, symbols, errors, today)
         if plan.screener.recorded:
             return self._estimate_recorded(plan, symbols, errors, today)
         preset: dict[str, Any] | None = None
@@ -121,11 +143,12 @@ class BacktestService:
             days = list(stocks.sessions(self._store, plan.period, symbols).values())
             todo = stocks.missing_days(self._cache, stocks.rules_key(preset, symbols), days)
             days_total, days_cached = len(days), len(days) - len(todo)
+        check = self._data_check(symbols, plan.period, today, spy)
         return Estimate(
             symbols=symbols,
-            missing_1d=[s for s in [*symbols, *spy]
-                        if _misses(self._store, s, "1d", plan.period, today)],
-            missing_3m=[s for s in symbols if _misses(self._store, s, "3m", plan.period, today)],
+            missing_1d=check.missing_1d,
+            missing_3m=check.missing_3m,
+            data_span=check.data_span,
             benchmark_ok=self._store.coverage(stocks.BENCHMARK, "1d") is not None,
             days_total=days_total,
             days_cached=days_cached,
@@ -143,12 +166,41 @@ class BacktestService:
             total, with_list = len(sessions), frame["date"].nunique()
             if total and not with_list:
                 errors.append("No saved screener list for this preset in the period")
+        check = self._data_check(symbols, plan.period, today)
         return Estimate(
             symbols=symbols,
-            missing_1d=[s for s in symbols if _misses(self._store, s, "1d", plan.period, today)],
-            missing_3m=[s for s in symbols if _misses(self._store, s, "3m", plan.period, today)],
+            missing_1d=check.missing_1d,
+            missing_3m=check.missing_3m,
+            data_span=check.data_span,
             benchmark_ok=self._store.coverage(stocks.BENCHMARK, "1d") is not None,
             days_total=total, days_cached=with_list, errors=errors, recorded=True,
+        )
+
+    def _estimate_fixed(self, plan: RunPlan, symbols: list[str], errors: list[str],
+                        today: date) -> Estimate:
+        """Data check with no screener: every session is ready (SRD-BKT-002.086)."""
+        sessions = 0 if errors else len(stocks.sessions(self._store, plan.period, symbols))
+        check = self._data_check(symbols, plan.period, today)
+        return Estimate(
+            symbols=symbols,
+            missing_1d=check.missing_1d,
+            missing_3m=check.missing_3m,
+            data_span=check.data_span,
+            benchmark_ok=self._store.coverage(stocks.BENCHMARK, "1d") is not None,
+            days_total=sessions, days_cached=sessions, errors=errors, fixed=True,
+        )
+
+    def _data_check(self, symbols: list[str], period: Period, today: date,
+                    extra_1d: Sequence[str] = ()) -> _DataCheck:
+        """Missing candles and the common saved range; each coverage is read once."""
+        tfs: tuple[StoredTf, StoredTf] = ("1d", "3m")
+        spans = {tf: {s: self._store.coverage(s, tf) for s in symbols} for tf in tfs}
+        spans["1d"].update({s: self._store.coverage(s, "1d") for s in extra_1d})
+        return _DataCheck(
+            missing_1d=[s for s, sp in spans["1d"].items() if _misses(sp, period, today)],
+            missing_3m=[s for s, sp in spans["3m"].items() if _misses(sp, period, today)],
+            data_span=_common_span([*(spans["1d"][s] for s in symbols),
+                                    *(spans["3m"][s] for s in symbols)]),
         )
 
     def saved_days(self, preset_id: str) -> list[date]:
@@ -176,6 +228,8 @@ class BacktestService:
             raise ValueError("; ".join(errors))
         records = self._records()
         symbols = resolve(plan.universe, records)
+        if plan.screener.skip:
+            return self._recorded(plan, lambda _run_id: self._fixed_lists(plan, symbols), record)
         if plan.screener.recorded:
             return self._recorded(plan, lambda _run_id: self._saved_lists(plan, symbols), record)
         caps = {r.symbol: float(cap) for r in records
@@ -199,6 +253,16 @@ class BacktestService:
                   frame["date"].nunique(), len(by_session))
         return DailyList(f"recorded-{plan.screener.preset_id}", list(by_session), frame,
                          by_session)
+
+    def _fixed_lists(self, plan: RunPlan, symbols: list[str]) -> DailyList:
+        """Step 1 with no screener: every stock, A to Z, on every session (SRD-BKT-002.086)."""
+        by_session = stocks.sessions(self._store, plan.period, symbols)
+        names = sorted(symbols)
+        rows = [(session, sym, 0.0, rank) for session in by_session
+                for rank, sym in enumerate(names, 1)]
+        _log.info("[Backtest] No screener — %d stock(s) used on every session", len(names))
+        return DailyList("fixed", list(by_session),
+                         pd.DataFrame(rows, columns=recorded.COLUMNS), by_session)
 
     def run_signals(
         self,
@@ -355,7 +419,9 @@ class BacktestService:
         plan = RunPlan.from_json(run.plan_json)
         reports = self.build_reports(plan, self.saved_results(run_id))
         saved_at = run.started.astimezone().strftime(DATE_TIME_FMT)
-        facts = run_facts(plan, self._preset_name(plan.screener.preset_id, user_id))
+        screener = "" if plan.screener.skip else self._preset_name(plan.screener.preset_id,
+                                                                   user_id)
+        facts = run_facts(plan, screener)
         path.write_text(html_report.render(run.name, saved_at, facts, reports),
                         encoding="utf-8")
         _log.info("[Backtest] Report saved to %s", path)
@@ -460,11 +526,12 @@ def run_facts(plan: RunPlan, screener: str) -> list[tuple[str, str]]:
     strategies = "; ".join(f"{s.id} {s.allocation_pct[0]:g}%/{s.per_trade_pct[0]:g}%"
                            for s in plan.strategies) or "None"
     source = "saved lists" if plan.screener.recorded else "replay"
+    screener_line = ("None · every stock every day" if plan.screener.skip
+                     else f"{screener} · {source} · {plan.screener.top_n or 'all'} per day")
     return [
         ("Period", f"{show_date(plan.period.start)} → {show_date(plan.period.end)}"),
         ("Stocks", stocks_text(plan)),
-        ("Screener", f"{screener} · {source} · "
-                     f"{plan.screener.top_n or 'all'} per day"),
+        ("Screener", screener_line),
         ("Strategies (allocation / per trade)", strategies),
         ("Capital", ", ".join(f"${c:,.0f}" for c in plan.account.capital)),
         ("Daily loss stop", f"{plan.account.max_daily_loss_pct:g}%"),
