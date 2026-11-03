@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-27
 **Project:** US Swing Trading System
 
+> v1.23.0: UT-EXE-017.013.M09.T01 added — risk warning uses the frameless app pop-up.
 > v1.22.0: UT-EXE-011.027.M01.T01–T07 and UT-EXE-011.027.M03.T01–T03 added — BOSS_ST.
 > v1.21.0: UT-EXE-006.015.M01.T01–T02 and UT-EXE-007.011.M01.T01–T02 added; UT-EXE-009.002.M01.T09 covers price_30m — 30m timeframe.
 > v1.20.0: UT-EXE-007.001.M01.T27–T29 added (complete candles only, ISS-EXE-0013).
@@ -759,6 +760,7 @@
 | UT-EXE-017.002.M09.T03 | MD-EXE-017.009.M09 | Negative | Live budget over cash falls to 90% + warns | live, cap=$5000, `total_cash_value=$3000` | `effective_capital == 2700.0`; one `[Risk]` WARNING; stored cap still $5000 | Pass |
 | UT-EXE-017.007.M09.T04 | MD-EXE-017.009.M09 | Positive | Aggregate active-trade loss crosses threshold | open+closed cycles summing to −$2100; threshold −$2000 | one `RiskWarning(kind='daily_loss')`; no order blocked | Pass |
 | UT-EXE-017.007.M09.T05 | MD-EXE-017.009.M09 | Negative | Within threshold, and no duplicate warnings | day PnL −$500 (threshold −$2000); then a second tick still below | no `RiskWarning`; latch emits at most one per crossing | Pass |
+| UT-EXE-017.013.M09.T01 | MD-EXE-017.009.M09 | Positive | Risk warning pop-up matches the app | same warning twice within 30 s | one frameless, non-modal themed pop-up with OK | Pass |
 | UT-EXE-017.019.M14.T01 | MD-EXE-017.016.M14 | Positive | Paper `open_position_value` summed from open cycles | paper user; two open cycles worth $1300 total | `get_account_state().open_position_value == 1300.0` | Pass |
 | UT-EXE-017.021.M14.T02 | MD-EXE-017.016.M14 | Positive | `AppService.margin_available` nets deployed | eff_cap=$2000; deployed $1300 | `margin_available() == 700.0` | Pass |
 | UT-EXE-017.021.M14.T03 | MD-EXE-017.016.M14 | Edge | Margin floors at zero when over-deployed | eff_cap=$2000; deployed $2500 | `margin_available() == 0.0` | Pass |
