@@ -41,6 +41,7 @@ from PyQt6.QtWidgets import (
     QLabel,
     QMainWindow,
     QPushButton,
+    QScrollArea,
     QStackedWidget,
     QVBoxLayout,
     QWidget,
@@ -523,7 +524,7 @@ class MainWindow(QMainWindow):
         centre_col.setSpacing(0)
         top_row = QHBoxLayout()
         top_row.setSpacing(0)
-        top_row.addWidget(self._stack, 1)
+        top_row.addWidget(self._fit_to_screen(self._stack), 1)
         top_row.addWidget(self._right_panel)
         centre_col.addLayout(top_row, 1)
         centre_col.addWidget(self._log_panel)
@@ -713,6 +714,20 @@ class MainWindow(QMainWindow):
         self._peeking = peek
         self._sidebar.set_labels_visible(peek)
         self._sync_sidebar_geometry()
+
+    @staticmethod
+    def _fit_to_screen(stack: QStackedWidget) -> QScrollArea:
+        """Hold the screens in a scroll area so no screen can widen the window.
+
+        A maximized frameless window grows to its minimum width and never
+        shrinks back, so a wide screen would push the ✕ and the right strip
+        off screen. A screen that needs more room scrolls instead (SRD-GUI-019.010).
+        """
+        area = gutter(QScrollArea())
+        area.setWidgetResizable(True)
+        area.setFrameShape(QFrame.Shape.NoFrame)
+        area.setWidget(stack)
+        return area
 
     def _slide_in(self, page: QWidget | None) -> None:
         if page is None:

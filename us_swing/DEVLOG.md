@@ -2,6 +2,16 @@
 
 ---
 
+## [20261103] GUI — Window fits the screen with a right panel open
+
+- Type: Bugfix
+- FO(s): FO-GUI-019 (ISS-GUI-0015)
+- RN: RN-GUI-1.56.4-20261103
+- Artifacts updated: ISS-GUI-0015, SRD (GUI-019.010 new, approved by user → Implemented), MD (MD-GUI-019.010.M03), UTCD (UT-GUI-019.010.M03.T01–T02 Pass), TRACE (gui), Code (gui/main_window.py `_fit_to_screen`), Tests (test_side_panels_exit_drawer.py), TODO (T90), CONTEXT, DEVLOG
+- Decisions: fix the mechanism, not one widget — the screen stack sits in a resizable scroll area so no screen can raise the window minimum; the exact wide widget needs live data and was not found. Measured live window via WM_GETMINMAXINFO (min 1962). Sandbox runs used a temp home, mocked network and timers, users switched to paper in the copy only — no second engine or IBKR session.
+
+---
+
 ## [20261103] SCR — Screener auto-run only on up-to-date candles
 
 - Type: Bugfix
