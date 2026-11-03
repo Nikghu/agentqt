@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.53.0: MD-GUI-022.001.M01 adds `plan_start_index()`, `plan_outcome()`; `ListDetailView.load()` takes the run time; `CandleChartPanel.set_plan()` takes an optional start time (SRD-GUI-022.011).
 > v1.52.0: MD-GUI-032.001.M01–.003.M03 added — Strategies grouped and table views (SRD-GUI-032).
 > v1.51.0: MD-GUI-031.002.M02 `set_data_range()`, `_on_date()`; MD-GUI-031.003.M03 passes `Estimate.data_span` after each data check (SRD-GUI-031.087).
 > v1.50.0: MD-GUI-031.002.M02 `set_account_defaults(capital)` — loss stop starts at 10 %, commission at $0 (SRD-GUI-031.086).
@@ -262,7 +263,7 @@ us_swing/src/us_swing/gui/
 
 | ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
 |---|---|---|---|---|---|---|
-| MD-GUI-022.001.M01 | SRD-GUI-022.001 | `us_swing/src/us_swing/gui/screener_views.py` | Result rows, sort, CSV rows, view switch, List + detail view, Cards view, preset filter | `ResultRow`, `RuleCheck`, `rows_from_result()`, `sort_rows()`, `csv_rows()`, `filter_presets()`, `run_date_text()`, `run_meta_text()`, `transcript_pill_text()`, `ViewSwitch`, `RunStepper`, `SideDrawer`, `ListDetailView`, `CardsView` | `theme`, `icons` | No |
+| MD-GUI-022.001.M01 | SRD-GUI-022.001 | `us_swing/src/us_swing/gui/screener_views.py` | Result rows, sort, CSV rows, view switch, List + detail view, Cards view, preset filter | `ResultRow`, `RuleCheck`, `rows_from_result()`, `sort_rows()`, `csv_rows()`, `filter_presets()`, `run_date_text()`, `run_meta_text()`, `plan_start_index()`, `plan_outcome()`, `transcript_pill_text()`, `ViewSwitch`, `RunStepper`, `SideDrawer`, `ListDetailView`, `CardsView` | `theme`, `icons` | No |
 
 > `screener_panel.py` (MD-GUI-003.001.M01) hosts the views, the Sort box and the new preset rail; `theme.py` (MD-GUI-017) gains the screener view QSS rules.
 ## FO-GUI-023 — Card Layout
