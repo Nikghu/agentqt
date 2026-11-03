@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.52.0: MD-GUI-032.001.M01–.003.M03 added — Strategies grouped and table views (SRD-GUI-032).
 > v1.51.0: MD-GUI-031.002.M02 `set_data_range()`, `_on_date()`; MD-GUI-031.003.M03 passes `Estimate.data_span` after each data check (SRD-GUI-031.087).
 > v1.50.0: MD-GUI-031.002.M02 `set_account_defaults(capital)` — loss stop starts at 10 %, commission at $0 (SRD-GUI-031.086).
 > v1.49.0: MD-GUI-013.001.M01 adds BOSS_ST to the indicator catalogue and checks HTF above LTF (SRD-GUI-013.024).
@@ -363,3 +364,11 @@ us_swing/src/us_swing/gui/
 | MD-GUI-031.080.M13 | SRD-GUI-031.080 | `us_swing/src/us_swing/gui/backtest_report_chart.py` | Equity vs benchmark over a start line, drawdown band, month ticks, end labels, max drawdown marker; hover line with values in the legend row and a date tag | `ReportChart`, `index_at()`, `hover_lines()` | `strategy_pnl_chart.nice_ticks`, `theme` | No |
 | MD-GUI-031.062.M12 | SRD-GUI-031.062 | `us_swing/src/us_swing/gui/backtest_breakdown.py` | Breakdown chips with counts, natural order with empty slots, bars, total, Stock best / worst, row click filters the Trade list | `BreakdownView`, `rows()`, `visible()`, `group_label()`; own Detail Report panel fed by `ReportView.report_changed` (SRD-GUI-031.067) | `backtest.steps.report`, `backtest_trade_list.trade_keys`, `screener_views.ChipGroup` | No |
 | MD-GUI-031.040.M04 | SRD-GUI-031.040 | `us_swing/src/us_swing/gui/backtest_report_view.py` | Report tab as a tear sheet: title with stocks and period, KPI tiles with a context line, signal pills, stats in 4 group cards, compact monthly table, compare, CSV export (SRD-GUI-031.079) | `ReportView`, `ReportChart`, `fmt()`, `skips_text()` | `backtest.steps.report`, `theme` | No |
+
+## FO-GUI-032 — Strategies Views
+
+| MD ID | SRD | File | Purpose | Public API | Depends on | Async |
+|---|---|---|---|---|---|---|
+| MD-GUI-032.001.M01 | SRD-GUI-032.001 | `us_swing/src/us_swing/gui/execution_panel.py` | Tab order Strategies, Active trades, Closed today; Strategies tools in the tab bar row | `_TAB_NAMES`, `_build_bottom_tabs()` | `strategies_pane` | No |
+| MD-GUI-032.002.M02 | SRD-GUI-032.003 | `us_swing/src/us_swing/gui/strategies_views.py` | Row data, grouped list and table with inline detail row | `StrategyRow`, `strategy_rows()`, `group_of()`, `GroupedList`, `StrategyTable` | `execution_watchlist._GroupRow`, `theme` | No |
+| MD-GUI-032.003.M03 | SRD-GUI-032.002 | `us_swing/src/us_swing/gui/strategies_pane.py` | Header tools, view switch kept in QSettings, detail placement, bulk Start / Stop / Reset count | `StrategiesPane`, `tools`, `set_view()`, `strategy_count` | `strategies_views`, AppService | No |

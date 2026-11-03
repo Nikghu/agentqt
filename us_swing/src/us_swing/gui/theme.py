@@ -1280,7 +1280,8 @@ QPushButton[role="danger"]:disabled {{ color: {muted}; border-color: {line}; }}
 
 
 def _sidebar_qss(bg: str, line: str, text: str, sub: str, hover: str,
-                 active_bg: str, accent: str) -> str:
+                 active_bg: str, accent: str, detail_bg: str = "") -> str:
+    detail_bg = detail_bg or hover
     return f"""
 QFrame#sidebar {{ background: {bg}; border: 1px solid {line}; border-radius: 6px; }}
 QPushButton#side_btn {{
@@ -1436,6 +1437,24 @@ QTreeWidget#exec_watch {{ background: transparent; border: none; outline: none; 
 QTreeWidget#exec_watch::item {{ min-height: 26px; border-bottom: 1px solid {line}; }}
 QTreeWidget#exec_watch::item:hover {{ background: {hover}; }}
 QTreeWidget#exec_watch::item:selected {{ background: {active_bg}; color: {text}; }}
+QTreeWidget#strategy_groups, QTreeWidget#strategy_table {{
+    background: transparent; border: none; outline: none;
+}}
+QTreeWidget#strategy_groups::item, QTreeWidget#strategy_table::item {{
+    border-bottom: 1px solid {line};
+}}
+QTreeWidget#strategy_table::item {{ padding: 0 6px; }}
+QTreeWidget#strategy_groups::item:hover, QTreeWidget#strategy_table::item:hover {{
+    background: {hover};
+}}
+QTreeWidget#strategy_groups::item:selected, QTreeWidget#strategy_table::item:selected {{
+    background: {active_bg}; color: {text};
+}}
+QFrame#inline_detail {{
+    background: {detail_bg}; border-left: 3px solid {accent}; border-bottom: 1px solid {line};
+}}
+QFrame#inline_detail > QWidget, QFrame#inline_detail QLabel {{ background: transparent; }}
+QFrame#strategy_bulk {{ background: {hover}; border-bottom: 1px solid {line}; }}
 QLabel#exec_chip {{
     color: {sub}; background: transparent; border: 1px solid {line}; border-radius: 4px;
     padding: 2px 8px; font-size: 8.5pt;
@@ -1515,7 +1534,7 @@ QLabel#panel_group {{
 CARBON_QSS = _rgba_from_hex8(_to_carbon(MOCHA_QSS)) + _CARBON_EXTRA + _danger_qss(
     _CARBON.RED, _CARBON.MUTED, _CARBON.OVERLAY2
 ) + _sidebar_qss("#090b0e", _CARBON.OVERLAY, _CARBON.TEXT, _CARBON.SUBTEXT,
-                 "#1a2029", "#2a2213", _CARBON.MAUVE)
+                 "#1a2029", "#2a2213", _CARBON.MAUVE, "#17150f")
 MOCHA_QSS += _danger_qss(_MOCHA.RED, _MOCHA.MUTED, _MOCHA.OVERLAY2) + _sidebar_qss(
     "#11111b", _MOCHA.OVERLAY, _MOCHA.TEXT, _MOCHA.SUBTEXT, _MOCHA.OVERLAY, "#1a2d45", _MOCHA.BLUE
 )

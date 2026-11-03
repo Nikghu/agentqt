@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.72.0: SRD-GUI-032.001–.008 added and approved by user 2026-11-03 — Strategies grouped and table views; .001 replaces the tab order of SRD-GUI-024.003 and .003 replaces the list of SRD-GUI-024.004.
 > v2.71.0: SRD-GUI-031.087 added and approved by user 2026-11-03 — From / To follow the saved data.
 > v2.70.0: SRD-GUI-031.086 added and approved by user 2026-11-03 — backtest start values: loss stop 10 %, commission $0.
 > v2.69.0: SRD-GUI-013.024 added and approved by user 2026-11-02 — BOSS_ST form.
@@ -612,3 +613,16 @@
 | SRD-GUI-031.085 | FO-GUI-031 | Should | The Screener page Source offers No screener; it disables Preset, Stocks per day and AI ranking, and the data check warns above 50 stocks. | Source choice | plan, data check line | Warning text: Step 2 will be slow | Implemented |
 | SRD-GUI-031.086 | FO-GUI-031 | Should | A new backtest plan starts with Daily loss stop 10 % and Commission $0 per order; only Capital comes from the active user. | new plan | start values | Replaces the user loss default of .030; saved plans keep their values, and old plan files without a commission still read $1 | Implemented |
 | SRD-GUI-031.087 | FO-GUI-031 | Should | From and To only allow days inside the common saved range (SRD-BKT-002.088); until the user picks a date, To is the last saved day and From one year before it. | data check | date limits and values | Picked or loaded dates are kept, or moved to the nearest edge; no saved data allows 2000 to today | Implemented |
+
+## FO-GUI-032 — Strategies Views
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-032.001 | FO-GUI-032 | Must | The Execution tabs read Strategies, Active trades, Closed today, and Strategies is open at start. | — | tab bar | Replaces the order of SRD-GUI-024.003 | Implemented |
+| SRD-GUI-032.002 | FO-GUI-032 | Must | The right of the tab bar shows "N of M running", a Find strategy box, + Add and two view icons (Grouped, Table) while Strategies is open. | strategies | header row | Find filters names in both views | Implemented |
+| SRD-GUI-032.003 | FO-GUI-032 | Must | The grouped view lists strategies under Running, Stopped and Disabled headers with counts; each row shows name, P&L and a direction · mode · type · trades line. | strategies, P&L | list and detail | Replaces the list of SRD-GUI-024.004; Disabled means mode Disabled | Implemented |
+| SRD-GUI-032.004 | FO-GUI-032 | Must | The table view shows one row per strategy: Strategy, Status, Dir, Mode, Type, Entry window, Per trade, Trades, Win %, Total P&L, Today, Open and a Start / Stop / Enable button. | strategies, P&L | table | Running first, then Stopped, then Disabled | Implemented |
+| SRD-GUI-032.005 | FO-GUI-032 | Must | Clicking a table row opens the strategy detail under it on a warm background with an accent left stripe; clicking it again closes it. | row click | inline detail | One row open at a time | Implemented |
+| SRD-GUI-032.006 | FO-GUI-032 | Should | Table rows have check boxes; a bar shows "N selected" with Start, Stop and Reset count for the checked strategies. | checked rows | bulk action | Bar hidden when nothing is checked | Implemented |
+| SRD-GUI-032.007 | FO-GUI-032 | Should | Switching views keeps the picked strategy, and the last view is restored on the next start. | view icon | view | Kept in QSettings | Implemented |
+| SRD-GUI-032.008 | FO-GUI-032 | Should | Status pills show the status word only, with no dot. | status | pill | — | Implemented |

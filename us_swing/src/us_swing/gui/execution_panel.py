@@ -511,7 +511,7 @@ class _IntradayChartPane(QWidget):
 
 
 
-_TAB_NAMES = ("Active trades", "Strategies", "Closed today")
+_TAB_NAMES = ("Strategies", "Active trades", "Closed today")
 _GAP_HANDLE_QSS = "QSplitter::handle { background: transparent; }"
 
 
@@ -606,7 +606,7 @@ class ExecutionPanel(QWidget):
             self._v_splitter.setSizes([total * 3 // 5, total * 2 // 5])
 
     def _build_bottom_tabs(self, demo: AppService) -> QWidget:
-        """Tab card: Active trades | Strategies | Closed today (SRD-GUI-024.003)."""
+        """Tab card: Strategies | Active trades | Closed today (SRD-GUI-032.001)."""
         self._tab_bar = QTabBar()
         self._tab_bar.setObjectName("exec_tabs")
         self._tab_bar.setDrawBase(False)
@@ -615,17 +615,17 @@ class ExecutionPanel(QWidget):
             self._tab_bar.addTab(label)
 
         self._tab_stack = QStackedWidget()
-        self._tab_stack.addWidget(self._build_active_trades_pane(demo))
         self._strategy_pane = StrategiesPane(demo)
         self._tab_stack.addWidget(self._strategy_pane)
+        self._tab_stack.addWidget(self._build_active_trades_pane(demo))
         # Retained off-screen for the dormant legacy signals view's status text.
         self._status_lbl = QLabel()
 
         self._active_trades_panel.counts_changed.connect(self._on_trade_counts)
-        self._strategy_pane.count_changed.connect(lambda n: self._set_tab_count(1, n))
+        self._strategy_pane.count_changed.connect(lambda n: self._set_tab_count(0, n))
         self._tab_bar.currentChanged.connect(self._on_tab_changed)
         self._on_tab_changed(0)
-        self._set_tab_count(1, self._strategy_pane.list.count())
+        self._set_tab_count(0, self._strategy_pane.strategy_count)
 
         card = QWidget()
         box = QVBoxLayout(card)
@@ -635,6 +635,7 @@ class ExecutionPanel(QWidget):
         bar_row.setContentsMargins(14, 0, 14, 0)
         bar_row.addWidget(self._tab_bar)
         bar_row.addStretch(1)
+        bar_row.addWidget(self._strategy_pane.tools)
         box.addLayout(bar_row)
         box.addWidget(self._tab_stack, 1)
         return card
@@ -643,12 +644,13 @@ class ExecutionPanel(QWidget):
         self._tab_bar.setTabText(index, f"{_TAB_NAMES[index]} · {count}")
 
     def _on_trade_counts(self, active: int, closed: int) -> None:
-        self._set_tab_count(0, active)
+        self._set_tab_count(1, active)
         self._set_tab_count(2, closed)
 
     def _on_tab_changed(self, index: int) -> None:
-        self._tab_stack.setCurrentIndex(1 if index == 1 else 0)
-        if index != 1:
+        self._tab_stack.setCurrentIndex(0 if index == 0 else 1)
+        self._strategy_pane.tools.setVisible(index == 0)
+        if index != 0:
             self._active_trades_panel.set_row_filter("closed" if index == 2 else "active")
 
     def _build_active_trades_pane(self, demo: AppService) -> QWidget:

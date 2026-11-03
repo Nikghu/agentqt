@@ -7,6 +7,8 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.43.1: UT-GUI-006.001.M01.T19 added — tests keep users.json in a temp folder (ISS-GUI-0013).
+> v1.43.0: UT-GUI-032.001.M01.T01 – UT-GUI-032.007.M03.T01 added — Strategies grouped and table views.
 > v1.42.0: UT-GUI-031.087.M02.T01–T02 added — From / To follow the saved data.
 > v1.41.0: UT-GUI-031.086.M02.T01 added; UT-GUI-031.030.M02.T01 sets the loss stop itself — backtest start values.
 > v1.40.0: UT-GUI-013.024.M01.T01–T02 added — BOSS_ST form.
@@ -159,6 +161,7 @@
 | UT-GUI-006.001.M01.T16 | MD-GUI-006.001.M01 | Negative | Symbol with no daily bars is reported and writes nothing | Fake IB returns no daily bars | `symbol_failed(symbol, "NO_DATA")` emitted; no `price_1w` rows (ISS-GUI-0003) | Pass |
 | UT-GUI-006.001.M01.T17 | MD-GUI-006.001.M01 | Negative | Editing a user keeps fields the dialog does not show | User with Telegram on, chat id, notify toggles, configs; change display name | All hidden fields unchanged (ISS-GUI-0005) | Pass |
 | UT-GUI-006.001.M01.T18 | MD-GUI-006.001.M01 | Positive | A new user starts with defaults | `_UserDialog(None)` | id -1, Telegram off, empty chat id (ISS-GUI-0005) | Pass |
+| UT-GUI-006.001.M01.T19 | MD-GUI-006.001.M01 | Negative | Tests never write the real users file | `save_users([user])` in a test | store path is not ~/.usswing/users.json; user reads back (ISS-GUI-0013) | Pass |
 
 ---
 
@@ -950,3 +953,20 @@ Test files:
 | UT-GUI-031.074.M02.T01 | MD-GUI-031.002.M02 | Positive | Plan round trip | plan with sector, saved lists, strategy, capital | same plan after load | Pass |
 | UT-GUI-031.074.M10.T01 | MD-GUI-031.071.M10 | Negative | Cancel and Save | change name, Cancel; change, Save | old name back; new name kept | Pass |
 | UT-GUI-031.074.M03.T01 | MD-GUI-031.003.M03 | Positive | Run from window | Run in footer | window closed; run done | Pass |
+
+## FO-GUI-032 — Strategies Views
+
+| UT ID | MD | Type | Description | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-032.001.M01.T01 | MD-GUI-032.001.M01 | Positive | Tab order | `_TAB_NAMES` | Strategies, Active trades, Closed today | Pass |
+| UT-GUI-032.003.M02.T01 | MD-GUI-032.002.M02 | Positive | Group of a strategy | RUNNING auto; STOPPED disabled; STOPPED manual; SQUARING_OFF disabled | Running, Disabled, Stopped, Running | Pass |
+| UT-GUI-032.004.M02.T01 | MD-GUI-032.002.M02 | Positive | Table rows and order | 3 strategies, one running, one disabled | 3 rows, running first, disabled last; Total P&L text +$412.60 | Pass |
+| UT-GUI-032.008.M02.T01 | MD-GUI-032.002.M02 | Positive | Pill without dot | status SQUARING_OFF | text "SQUARING OFF", no "●" | Pass |
+| UT-GUI-032.002.M03.T01 | MD-GUI-032.003.M03 | Positive | Running label and Find | 3 strategies, 1 running; Find "brk" | "1 of 3 running"; only Breakout rows shown | Pass |
+| UT-GUI-032.002.M03.T02 | MD-GUI-032.003.M03 | Negative | Find with no match | Find "zzz" | no strategy rows; picked strategy unchanged | Pass |
+| UT-GUI-032.003.M03.T01 | MD-GUI-032.003.M03 | Positive | Grouped view | 3 strategies | headers Running 1, Stopped 1, Disabled 1; click row fills detail | Pass |
+| UT-GUI-032.005.M03.T01 | MD-GUI-032.003.M03 | Positive | Inline detail opens and closes | Table view; click row B; click B again | detail under B, title B; then no detail row; detail widget still alive | Pass |
+| UT-GUI-032.005.M03.T02 | MD-GUI-032.003.M03 | Negative | Row button keeps the open detail | Table view; open A; Start on row B | B is RUNNING; A still picked and open | Pass |
+| UT-GUI-032.006.M03.T01 | MD-GUI-032.003.M03 | Positive | Bulk Stop | check running and stopped rows; Stop | bar "2 selected"; only the running one is STOPPED; saved once | Pass |
+| UT-GUI-032.006.M03.T02 | MD-GUI-032.003.M03 | Negative | Bulk Start skips disabled and running | check all; Start | only the stopped manual/auto one becomes RUNNING | Pass |
+| UT-GUI-032.007.M03.T01 | MD-GUI-032.003.M03 | Positive | View kept | pick B; Table; new pane with same settings | B still picked and open; new pane opens in Table | Pass |

@@ -1,9 +1,9 @@
 # Traceability Matrix — GUI Module (GUI)
 
 **Document ID:** TRACE-GUI
-**Version:** 1.14.0
+**Version:** 1.15.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-11-02 (SRD-GUI-013.023, .031.084 30m timeframe; SRD-GUI-031.082–.083 HTML download and DD-MM-YYYY dates)
+**Last Updated:** 2026-11-03 (ISS-GUI-0013 users file test isolation; RN-GUI-1.56.1-20261103)
 
 ---
 
@@ -93,6 +93,14 @@
 | FO-GUI-031 | SRD-GUI-031.085 | None (minimal GUI docs) | MD-GUI-031.003.M03 | UT-GUI-031.085.M01.T01, .M03.T01 | `gui/backtest_builder.py`, `gui/backtest_workspace.py`, `gui/backtest_reports.py` | Implemented | Pending |
 | FO-GUI-031 | SRD-GUI-031.086 | None (minimal GUI docs) | MD-GUI-031.002.M02 | UT-GUI-031.086.M02.T01 (Pass) | `gui/backtest_builder.py`, `gui/backtest_workspace.py` | Implemented | RN-GUI-1.55.0-20261103 |
 | FO-GUI-031 | SRD-GUI-031.087 | None (minimal GUI docs) | MD-GUI-031.002.M02, MD-GUI-031.003.M03 | UT-GUI-031.087.M02.T01–T02 (2 tests, Pass) | `gui/backtest_builder.py`, `gui/backtest_workspace.py` | Implemented | RN-BKT-1.12.0-20261103 |
+| FO-GUI-032 | SRD-GUI-032.001 | DD-GUI-032.001.D01 | MD-GUI-032.001.M01 | UT-GUI-032.001.M01.T01 (Pass) | `gui/execution_panel.py`, `gui/theme.py` | Implemented | RN-GUI-1.56.0-20261103 |
+| FO-GUI-032 | SRD-GUI-032.002 | DD-GUI-032.001.D01 | MD-GUI-032.003.M03 | UT-GUI-032.002.M03.T01–T02 (Pass) | `gui/strategies_pane.py`, `assets/icons/table.svg` | Implemented | RN-GUI-1.56.0-20261103 |
+| FO-GUI-032 | SRD-GUI-032.003 | DD-GUI-032.001.D01 | MD-GUI-032.002.M02 | UT-GUI-032.003.M02.T01 (Pass); UT-GUI-032.003.M03.T01 (Pass) | `gui/strategies_views.py`, `gui/strategies_pane.py`, `gui/theme.py` | Implemented | RN-GUI-1.56.0-20261103 |
+| FO-GUI-032 | SRD-GUI-032.004 | DD-GUI-032.001.D01 | MD-GUI-032.002.M02 | UT-GUI-032.004.M02.T01 (Pass) | `gui/strategies_views.py`, `gui/theme.py` | Implemented | RN-GUI-1.56.0-20261103 |
+| FO-GUI-032 | SRD-GUI-032.005 | DD-GUI-032.001.D01 | MD-GUI-032.003.M03 | UT-GUI-032.005.M03.T01–T02 (Pass) | `gui/strategies_pane.py`, `gui/strategies_views.py`, `gui/theme.py` | Implemented | RN-GUI-1.56.0-20261103 |
+| FO-GUI-032 | SRD-GUI-032.006 | DD-GUI-032.001.D01 | MD-GUI-032.003.M03 | UT-GUI-032.006.M03.T01–T02 (Pass) | `gui/strategies_pane.py`, `gui/theme.py` | Implemented | RN-GUI-1.56.0-20261103 |
+| FO-GUI-032 | SRD-GUI-032.007 | DD-GUI-032.001.D01 | MD-GUI-032.003.M03 | UT-GUI-032.007.M03.T01 (Pass) | `gui/strategies_pane.py` | Implemented | RN-GUI-1.56.0-20261103 |
+| FO-GUI-032 | SRD-GUI-032.008 | DD-GUI-032.001.D01 | MD-GUI-032.002.M02 | UT-GUI-032.008.M02.T01 (Pass) | `gui/strategies_views.py`, `gui/theme.py` | Implemented | RN-GUI-1.56.0-20261103 |
 
 ---
 
@@ -110,6 +118,7 @@
 | `gui/position_monitor_panel.py` | MD-GUI-005.001.M01 | SRD-GUI-005.001–004 | FO-GUI-005 |
 | `gui/settings_panel.py` | MD-GUI-006.001.M01 | SRD-GUI-006.001–005, SRD-GUI-006.018 | FO-GUI-006 |
 | `gui/settings_panel.py` (ISS-GUI-0005 fix) | MD-GUI-006.001.M01 | SRD-GUI-006.002 | FO-GUI-006 |
+| `tests/conftest.py` (ISS-GUI-0013 fix, UT-GUI-006.001.M01.T19) | MD-GUI-006.001.M01 | SRD-GUI-006.002 | FO-GUI-006 |
 | `gui/scheduler_dialog.py` | MD-GUI-000.004 | SRD-GUI-006.005, SRD-GUI-006.017 | FO-GUI-006 |
 | `gui/scheduler_store.py` | MD-GUI-000.003 | SRD-GUI-006.005, SRD-GUI-006.017 | FO-GUI-006 |
 | `gui/log_viewer_panel.py` | MD-GUI-007.001.M01 | SRD-GUI-007.001–004 | FO-GUI-007 |

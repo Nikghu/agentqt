@@ -7,6 +7,7 @@
 **Last Updated:** 2026-05-22
 **Project:** US Swing Trading System
 
+> v2.9.0: FO-GUI-032 added — Strategies views (grouped and table) in the Execution workspace; approved by user 2026-11-03.
 > v2.8.0: FO-GUI-031 added — Backtest workspace (Phase 0 and 1); approved by user 2026-10-29.
 
 ---
@@ -910,3 +911,25 @@ The system shall give a Backtest workspace in the sidebar to build a run plan, c
 
 1. Picking a sector shows the stock count and the missing-candle line.
 2. Step 1 runs without freezing the window and shows each day's stocks with score and rank.
+
+---
+
+## FO-GUI-032: Strategies Views
+
+**Status:** Approved (user, 2026-11-03)
+**Priority:** Should
+**Depends on:** FO-GUI-024 (Execution workspace)
+**Source:** design page https://claude.ai/artifact/4ZoepH1m7GLTUqD1t1eXhE (Option E), picked by user 2026-11-03. Minimal requirements.
+
+The system shall make Strategies the first Execution tab and show strategies in a grouped view or a table view.
+
+- The system shall order the Execution tabs Strategies, Active trades, Closed today, and open Strategies first.
+- The system shall show a grouped view: strategies under Running, Stopped and Disabled, with the detail on the right.
+- The system shall show a table view: one row per strategy whose detail opens under the row on click.
+- The system shall switch views with two icons, keep the picked strategy, and remember the last view.
+
+### Acceptance Criteria
+
+1. The Execution workspace opens on the Strategies tab.
+2. Switching views keeps the same strategy picked, and the view is the same after a restart.
+3. In the table view, Start, Stop and Reset count work on all checked strategies.
