@@ -1,9 +1,23 @@
 {
-  "generated": "2026-10-30T13:06:53",
+  "generated": "2026-11-03T07:31:41",
   "subfolder": "mcp",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\mcp",
   "tool_code": "MCP",
   "files": {
+    "__init__.py": {},
+    "__main__.py": {
+      "module_id": "MD-MCP-007.001.M01",
+      "srd_id": "SRD-MCP-007.001",
+      "top_level_functions": [
+        {
+          "name": "main",
+          "signature": "def main() -> None",
+          "docstring": "Log to stderr (stdout carries the MCP messages), then serve over stdio.",
+          "line_start": 13,
+          "line_end": 19
+        }
+      ]
+    },
     "backtest_tools.py": {
       "module_id": "MD-MCP-007.001.M01",
       "srd_id": "SRD-MCP-007.001",
@@ -14,39 +28,45 @@
           "methods": [
             {
               "name": "__init__",
-              "signature": "def __init__(self, service: BacktestService, jobs: JobManager,\n                 presets: Callable[[str], Sequence[PresetInfo]],\n                 strategies: Callable[[], Sequence[dict[str, Any]]],\n                 records: Callable[[], Sequence[UniverseRecord]]) -> None",
-              "line_start": 70,
-              "line_end": 78
+              "signature": "def __init__(self, service: BacktestService, jobs: JobManager,\r\n                 presets: Callable[[str], Sequence[PresetInfo]],\r\n                 strategies: Callable[[], Sequence[dict[str, Any]]],\r\n                 records: Callable[[], Sequence[UniverseRecord]],\r\n                 default_user: Callable[[], str] = lambda: \"1\") -> None",
+              "line_start": 69,
+              "line_end": 79
+            },
+            {
+              "name": "_user",
+              "signature": "def _user(self, user_id: str) -> str",
+              "line_start": 81,
+              "line_end": 82
             },
             {
               "name": "bt_catalog",
-              "signature": "def bt_catalog(self, user_id: str = DEFAULT_USER) -> Result",
+              "signature": "def bt_catalog(self, user_id: str = \"\") -> Result",
               "docstring": "Screener presets, live strategy names and S&P 500 sectors for a run plan.",
               "decorators": [
                 "@_safe"
               ],
-              "line_start": 81,
-              "line_end": 88
+              "line_start": 85,
+              "line_end": 95
             },
             {
               "name": "bt_estimate",
-              "signature": "def bt_estimate(self, plan: dict[str, Any], user_id: str = DEFAULT_USER) -> Result",
+              "signature": "def bt_estimate(self, plan: dict[str, Any], user_id: str = \"\") -> Result",
               "docstring": "Data check for a run plan: stocks, missing candles, cached days and errors.",
               "decorators": [
                 "@_safe"
               ],
-              "line_start": 91,
-              "line_end": 96
+              "line_start": 98,
+              "line_end": 103
             },
             {
               "name": "bt_run",
-              "signature": "def bt_run(self, plan: dict[str, Any], user_id: str = DEFAULT_USER) -> Result",
+              "signature": "def bt_run(self, plan: dict[str, Any], user_id: str = \"\") -> Result",
               "docstring": "Start Steps 1\u20133 in the background; poll ``bt_status`` with the job id.",
               "decorators": [
                 "@_safe"
               ],
-              "line_start": 99,
-              "line_end": 110
+              "line_start": 106,
+              "line_end": 118
             },
             {
               "name": "bt_status",
@@ -55,8 +75,8 @@
               "decorators": [
                 "@_safe"
               ],
-              "line_start": 113,
-              "line_end": 115
+              "line_start": 121,
+              "line_end": 123
             },
             {
               "name": "bt_cancel",
@@ -65,8 +85,8 @@
               "decorators": [
                 "@_safe"
               ],
-              "line_start": 118,
-              "line_end": 120
+              "line_start": 126,
+              "line_end": 128
             },
             {
               "name": "bt_summary",
@@ -75,8 +95,8 @@
               "decorators": [
                 "@_safe"
               ],
-              "line_start": 123,
-              "line_end": 134
+              "line_start": 131,
+              "line_end": 142
             },
             {
               "name": "bt_trades",
@@ -85,8 +105,8 @@
               "decorators": [
                 "@_safe"
               ],
-              "line_start": 137,
-              "line_end": 146
+              "line_start": 145,
+              "line_end": 154
             },
             {
               "name": "bt_compare",
@@ -95,54 +115,54 @@
               "decorators": [
                 "@_safe"
               ],
-              "line_start": 149,
-              "line_end": 161
+              "line_start": 157,
+              "line_end": 169
             }
           ],
-          "line_start": 67,
-          "line_end": 161
+          "line_start": 66,
+          "line_end": 169
         }
       ],
       "top_level_functions": [
         {
           "name": "_num",
           "signature": "def _num(value: float) -> float | None",
-          "line_start": 38,
-          "line_end": 39
+          "line_start": 37,
+          "line_end": 38
         },
         {
           "name": "_rows",
           "signature": "def _rows(frame: pd.DataFrame) -> list[dict[str, Any]]",
           "docstring": "Frame rows as JSON-safe dicts: dates as ISO text, NaN as null.",
-          "line_start": 42,
-          "line_end": 45
+          "line_start": 41,
+          "line_end": 44
         },
         {
           "name": "_safe",
           "signature": "def _safe(tool: Callable[..., Result]) -> Callable[..., Result]",
           "docstring": "Return ``{\"error\": ...}`` instead of raising (SRD-MCP-007.010).",
-          "line_start": 48,
-          "line_end": 57
+          "line_start": 47,
+          "line_end": 56
         },
         {
           "name": "_plan",
           "signature": "def _plan(data: dict[str, Any]) -> RunPlan",
-          "line_start": 60,
-          "line_end": 64
+          "line_start": 59,
+          "line_end": 63
         },
         {
           "name": "build_server",
           "signature": "def build_server(tools: BacktestTools) -> FastMCP",
           "docstring": "Register the tools on a FastMCP server (SRD-MCP-007.001).",
-          "line_start": 168,
-          "line_end": 173
+          "line_start": 176,
+          "line_end": 181
         },
         {
           "name": "default_tools",
           "signature": "def default_tools() -> BacktestTools",
           "docstring": "Tools on the app's real store, cache, results and live strategies.",
-          "line_start": 176,
-          "line_end": 191
+          "line_start": 184,
+          "line_end": 200
         }
       ],
       "constants": [
@@ -150,7 +170,6 @@
         "MAX_VARIANTS = 64",
         "MAX_TRADES = 500",
         "MAX_COMPARE = 10",
-        "DEFAULT_USER = \"admin\"",
         "TOOL_NAMES = (\"bt_catalog\", \"bt_estimate\", \"bt_run\", \"bt_status\", \"bt_cancel\", \"bt_summary\","
       ]
     },
@@ -193,7 +212,7 @@
           "methods": [
             {
               "name": "__init__",
-              "signature": "def __init__(self, service: BacktestService, *, workers: int = 4,\n                 max_seconds: float = MAX_SECONDS,\n                 clock: Callable[[], float] = time.monotonic) -> None",
+              "signature": "def __init__(self, service: BacktestService, *, workers: int = 4,\r\n                 max_seconds: float = MAX_SECONDS,\r\n                 clock: Callable[[], float] = time.monotonic) -> None",
               "line_start": 54,
               "line_end": 62
             },

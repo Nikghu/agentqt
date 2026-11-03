@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-30T13:06:53",
+  "generated": "2026-11-03T07:31:41",
   "subfolder": "analysis",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\analysis",
   "tool_code": "ANA",
@@ -16,48 +16,48 @@
             {
               "name": "__init__",
               "signature": "def __init__(\r\n        self,\r\n        timeframes: list[str],\r\n        on_candle_closed: Callable[[str, str, OHLCVBar], None] | None = None,\r\n    ) -> None",
-              "line_start": 56,
-              "line_end": 73
+              "line_start": 57,
+              "line_end": 74
             },
             {
               "name": "register_callback",
               "signature": "def register_callback(\r\n        self, on_candle_closed: Callable[[str, str, OHLCVBar], None]\r\n    ) -> None",
               "docstring": "Replace the candle-closed callback (e.g. wired in by LiveEngine).",
-              "line_start": 77,
-              "line_end": 81
+              "line_start": 78,
+              "line_end": 82
             },
             {
               "name": "add_bar",
               "signature": "def add_bar(self, bar: RealtimeBar) -> None",
               "docstring": "Process one bar and close any completed time windows.",
-              "line_start": 83,
-              "line_end": 87
+              "line_start": 84,
+              "line_end": 88
             },
             {
               "name": "get_buffer",
               "signature": "def get_buffer(self, symbol: str, tf: str) -> list[OHLCVBar]",
               "docstring": "Return a copy of the completed candle list for (symbol, tf).",
-              "line_start": 89,
-              "line_end": 91
+              "line_start": 90,
+              "line_end": 92
             },
             {
               "name": "reset",
               "signature": "def reset(self, symbol: str) -> None",
               "docstring": "Clear all in-progress and completed state for *symbol*.",
-              "line_start": 93,
-              "line_end": 97
+              "line_start": 94,
+              "line_end": 98
             },
             {
               "name": "_ensure_symbol",
               "signature": "def _ensure_symbol(self, symbol: str) -> None",
-              "line_start": 101,
-              "line_end": 105
+              "line_start": 102,
+              "line_end": 106
             },
             {
               "name": "_process_bar",
               "signature": "def _process_bar(self, bar: RealtimeBar) -> None",
-              "line_start": 107,
-              "line_end": 130
+              "line_start": 108,
+              "line_end": 131
             },
             {
               "name": "_aggregate",
@@ -65,8 +65,8 @@
               "decorators": [
                 "@staticmethod"
               ],
-              "line_start": 133,
-              "line_end": 145
+              "line_start": 134,
+              "line_end": 146
             },
             {
               "name": "_noop",
@@ -74,12 +74,12 @@
               "decorators": [
                 "@staticmethod"
               ],
-              "line_start": 148,
-              "line_end": 149
+              "line_start": 149,
+              "line_end": 150
             }
           ],
-          "line_start": 38,
-          "line_end": 149
+          "line_start": 39,
+          "line_end": 150
         }
       ],
       "top_level_functions": [
@@ -87,8 +87,8 @@
           "name": "_floor_to_tf",
           "signature": "def _floor_to_tf(dt: datetime, tf_secs: int) -> datetime",
           "docstring": "Floor *dt* to the nearest *tf_secs* boundary (Unix-timestamp aligned).",
-          "line_start": 32,
-          "line_end": 35
+          "line_start": 33,
+          "line_end": 36
         }
       ],
       "constants": [

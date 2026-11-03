@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-30T13:06:53",
+  "generated": "2026-11-03T07:31:41",
   "subfolder": "core",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\core",
   "tool_code": "BKT",
@@ -48,22 +48,47 @@
           "line_end": 51
         },
         {
+          "name": "default_user_id",
+          "signature": "def default_user_id() -> str",
+          "docstring": "The app's first saved user, as the app uses at start; \"1\" before any user exists",
+          "line_start": 54,
+          "line_end": 59
+        },
+        {
           "name": "load_preset_dict",
           "signature": "def load_preset_dict(preset_id: str, user_id: str) -> dict[str, Any]",
           "docstring": "Return a preset as a plain dict (picklable for worker processes).",
-          "line_start": 54,
-          "line_end": 60
+          "line_start": 62,
+          "line_end": 68
         },
         {
           "name": "screen_day",
           "signature": "def screen_day(\r\n    preset_dict: dict[str, Any],\r\n    symbols: list[str],\r\n    bars: dict[str, list[Any]],\r\n    market_caps: dict[str, float],\r\n) -> dict[str, tuple[bool, float]]",
           "docstring": "Run the preset's rule stages (no AI, nothing saved) on one day's bars.",
-          "line_start": 63,
-          "line_end": 75
+          "line_start": 71,
+          "line_end": 83
         }
       ]
     },
     "candle_builder.py": {},
+    "dates.py": {
+      "module_id": "MD-GUI-031.083.M14",
+      "srd_id": "SRD-GUI-031.083",
+      "top_level_functions": [
+        {
+          "name": "show_date",
+          "signature": "def show_date(day: date) -> str",
+          "docstring": "``day`` as DD-MM-YYYY; a datetime or pandas Timestamp shows its date part.",
+          "line_start": 17,
+          "line_end": 19
+        }
+      ],
+      "constants": [
+        "DATE_FMT = \"%d-%m-%Y\"",
+        "DATE_TIME_FMT = \"%d-%m-%Y %H:%M\"",
+        "QT_DATE_FMT = \"dd-MM-yyyy\""
+      ]
+    },
     "series.py": {
       "module_id": "MD-BKT-002.021.M10",
       "srd_id": "SRD-BKT-002.021",
@@ -76,8 +101,8 @@
             "values: dict[str, FloatArray]",
             "uses_pnl: bool"
           ],
-          "line_start": 42,
-          "line_end": 47
+          "line_start": 44,
+          "line_end": 49
         },
         {
           "name": "_Walker",
@@ -86,32 +111,39 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, frames: Mapping[str, pd.DataFrame]) -> None",
-              "line_start": 168,
-              "line_end": 173
+              "line_start": 164,
+              "line_end": 169
             },
             {
               "name": "_frame",
               "signature": "def _frame(self, tf: str) -> pd.DataFrame",
-              "line_start": 175,
-              "line_end": 179
+              "line_start": 171,
+              "line_end": 175
             },
             {
               "name": "_full",
               "signature": "def _full(self, value: float) -> FloatArray",
-              "line_start": 181,
-              "line_end": 182
+              "line_start": 177,
+              "line_end": 178
             },
             {
               "name": "number",
               "signature": "def number(self, node: dict[str, Any]) -> FloatArray | BoolArray",
-              "line_start": 184,
-              "line_end": 192
+              "line_start": 180,
+              "line_end": 188
             },
             {
               "name": "_function",
               "signature": "def _function(self, node: dict[str, Any]) -> FloatArray",
-              "line_start": 194,
-              "line_end": 213
+              "line_start": 190,
+              "line_end": 211
+            },
+            {
+              "name": "_boss_st",
+              "signature": "def _boss_st(self, args: list[Any]) -> tuple[str, FloatArray]",
+              "docstring": "BOSS_ST on its LTF bars (SRD-BKT-002.087); the timeframe is the LTF arg.",
+              "line_start": 213,
+              "line_end": 218
             },
             {
               "name": "_constant",
@@ -119,97 +151,98 @@
               "decorators": [
                 "@staticmethod"
               ],
-              "line_start": 216,
-              "line_end": 219
+              "line_start": 221,
+              "line_end": 224
             },
             {
               "name": "_bin_op",
               "signature": "def _bin_op(self, node: dict[str, Any]) -> BoolArray",
-              "line_start": 221,
-              "line_end": 233
+              "line_start": 226,
+              "line_end": 238
             }
           ],
-          "line_start": 165,
-          "line_end": 233
+          "line_start": 161,
+          "line_end": 238
         }
       ],
       "top_level_functions": [
         {
           "name": "_col",
           "signature": "def _col(frame: pd.DataFrame, name: str) -> FloatArray",
-          "line_start": 50,
-          "line_end": 53
+          "line_start": 52,
+          "line_end": 55
         },
         {
           "name": "_ns",
           "signature": "def _ns(stamps: pd.DatetimeIndex) -> IntArray",
-          "line_start": 56,
-          "line_end": 58
+          "line_start": 58,
+          "line_end": 60
         },
         {
           "name": "_utc_ns",
           "signature": "def _utc_ns(frame: pd.DataFrame) -> IntArray",
-          "line_start": 61,
-          "line_end": 63
+          "line_start": 63,
+          "line_end": 65
         },
         {
           "name": "available_ns",
           "signature": "def available_ns(frame: pd.DataFrame, tf: str) -> IntArray",
           "docstring": "When each bar becomes visible: intraday at its close, 1d next day, 1w next week.",
-          "line_start": 66,
-          "line_end": 72
+          "line_start": 68,
+          "line_end": 74
         },
         {
           "name": "_as_of",
           "signature": "def _as_of(values: FloatArray, avail: IntArray, at: IntArray, back: int = 0) -> FloatArray",
-          "line_start": 75,
-          "line_end": 80
+          "line_start": 77,
+          "line_end": 82
         },
         {
           "name": "_vwap",
           "signature": "def _vwap(frame: pd.DataFrame, tf: str) -> FloatArray",
-          "line_start": 83,
-          "line_end": 91
+          "line_start": 85,
+          "line_end": 93
         },
         {
           "name": "_supertrend",
           "signature": "def _supertrend(frame: pd.DataFrame, length: int, factor: float) -> FloatArray",
-          "line_start": 94,
-          "line_end": 116
+          "line_start": 96,
+          "line_end": 118
         },
         {
           "name": "_swing",
-          "signature": "def _swing(frame: pd.DataFrame, bars: int, kind: str) -> FloatArray",
-          "line_start": 119,
-          "line_end": 130
+          "signature": "def _swing(frame: pd.DataFrame, args: list[Any]) -> FloatArray",
+          "line_start": 121,
+          "line_end": 126
         },
         {
           "name": "function_series",
           "signature": "def function_series(name: str, args: list[Any], frame: pd.DataFrame, tf: str) -> FloatArray",
           "docstring": "Value per bar equal to the live function on ``frame`` up to that bar.",
-          "line_start": 133,
-          "line_end": 162
+          "line_start": 129,
+          "line_end": 158
         },
         {
           "name": "truth",
           "signature": "def truth(values: FloatArray | BoolArray) -> BoolArray",
           "docstring": "True where a value is a true comparison or a non-zero, known number.",
-          "line_start": 236,
-          "line_end": 240
+          "line_start": 241,
+          "line_end": 245
         },
         {
           "name": "evaluate",
           "signature": "def evaluate(expr: str, frames: Mapping[str, pd.DataFrame]) -> Evaluation",
           "docstring": "Evaluate ``expr`` on every bar of ``frames[\"3m\"]`` (SRD-BKT-002.021\u2013.025, .027).",
-          "line_start": 243,
-          "line_end": 251
+          "line_start": 248,
+          "line_end": 256
         }
       ],
       "constants": [
         "ET = ZoneInfo(\"America/New_York\")",
-        "INTRADAY_MINUTES = {\"3m\": 3, \"15m\": 15}",
+        "INTRADAY_MINUTES = {\"3m\": 3, \"15m\": 15, \"30m\": 30}",
         "_NS_PER_MIN = 60_000_000_000",
         "_ARITY = {\"Number\": 1, \"PNL\": 1, \"VWAP\": 2, \"Price\": 4, \"RSI\": 3, \"ADX\": 3, \"EMA\": 3,",
+        "_LEGACY_ARITY = {\"SWING\": 6}",
         "_COMPARE: dict[str, Callable[[FloatArray, FloatArray], BoolArray]] = {"
       ]
     },
@@ -437,6 +470,108 @@
           "line_start": 111,
           "line_end": 115
         }
+      ]
+    },
+    "market_structure.py": {
+      "module_id": "MD-EXE-011.027.M01",
+      "srd_id": "SRD-EXE-011.027",
+      "classes": [
+        {
+          "name": "Bars",
+          "docstring": "One timeframe's closed bars, oldest first; ``close_ns`` is each bar's UTC close.",
+          "class_vars": [
+            "high: FloatArray",
+            "low: FloatArray",
+            "close: FloatArray",
+            "close_ns: IntArray"
+          ],
+          "line_start": 33,
+          "line_end": 39
+        },
+        {
+          "name": "BossStParams",
+          "docstring": "User inputs of BOSS_ST that shape the structure.",
+          "class_vars": [
+            "swing_lookback: int",
+            "min_break_atr: float"
+          ],
+          "line_start": 43,
+          "line_end": 47
+        },
+        {
+          "name": "BossSt",
+          "docstring": "BOSS_ST arrays on the LTF bars; ``state`` and ``fresh`` are NaN without enough h",
+          "class_vars": [
+            "state: FloatArray",
+            "fresh: FloatArray",
+            "bos: IntArray",
+            "choch: IntArray",
+            "choch_htf: FloatArray",
+            "ema: FloatArray",
+            "st_dir: IntArray"
+          ],
+          "line_start": 51,
+          "line_end": 60
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "bars_from_frame",
+          "signature": "def bars_from_frame(frame: pd.DataFrame, minutes: int) -> Bars",
+          "docstring": "Build ``Bars`` from a candle frame with a ``ts`` (backtest) or ``datetime`` (liv",
+          "line_start": 63,
+          "line_end": 73
+        },
+        {
+          "name": "break_ok",
+          "signature": "def break_ok(bars: Bars, min_break_atr: float) -> BoolArray",
+          "docstring": "True where the candle range is at least ``min_break_atr`` \u00d7 ATR(14).",
+          "line_start": 76,
+          "line_end": 83
+        },
+        {
+          "name": "swings",
+          "signature": "def swings(values: FloatArray, lookback: int, *, high: bool) -> FloatArray",
+          "docstring": "Swing price at the bar it is confirmed (``lookback`` bars after it), NaN elsewhe",
+          "line_start": 86,
+          "line_end": 101
+        },
+        {
+          "name": "structure",
+          "signature": "def structure(bars: Bars, lookback: int, ok: BoolArray) -> tuple[IntArray, IntArray]",
+          "docstring": "BOS and CHOCH per bar from causal swings; a break counts only where ``ok``.",
+          "line_start": 104,
+          "line_end": 129
+        },
+        {
+          "name": "supertrend_direction",
+          "signature": "def supertrend_direction(bars: Bars) -> IntArray",
+          "docstring": "Supertrend(10, 3) direction: 1 up, -1 down; bands ratchet while the direction ho",
+          "line_start": 132,
+          "line_end": 150
+        },
+        {
+          "name": "_positions",
+          "signature": "def _positions(long_entry: BoolArray, short_entry: BoolArray,\r\n               long_exit: BoolArray, short_exit: BoolArray) -> FloatArray",
+          "line_start": 153,
+          "line_end": 163
+        },
+        {
+          "name": "boss_st",
+          "signature": "def boss_st(ltf: Bars, htf: Bars, params: BossStParams) -> BossSt",
+          "docstring": "Run BOSS_ST on the LTF bars with HTF CHOCH from HTF bars closed by each LTF clos",
+          "line_start": 166,
+          "line_end": 191
+        }
+      ],
+      "constants": [
+        "TIMEFRAME_MINUTES = {\"3m\": 3, \"15m\": 15, \"30m\": 30}",
+        "MIN_LTF_BARS = 200",
+        "_EMA_PERIOD = 200",
+        "_ATR_PERIOD = 14",
+        "_ST_PERIOD = 10",
+        "_ST_FACTOR = 3.0",
+        "_NS_PER_MIN = 60_000_000_000"
       ]
     },
     "_dto.py": {
@@ -785,7 +920,7 @@
         }
       ],
       "constants": [
-        "_PRICE_TABLES_FOR_EVICTION: tuple[str, ...] = (\"price_1m\", \"price_3m\", \"price_15m\")"
+        "_PRICE_TABLES_FOR_EVICTION: tuple[str, ...] = (\"price_1m\", \"price_3m\", \"price_15m\", \"price_30m\")"
       ]
     },
     "_scheduler.py": {

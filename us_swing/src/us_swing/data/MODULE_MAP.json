@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-30T13:06:53",
+  "generated": "2026-11-03T07:31:41",
   "subfolder": "data",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\data",
   "tool_code": "INF",
@@ -17,8 +17,8 @@
             "bars_1d: int",
             "bars_1w: int"
           ],
-          "line_start": 46,
-          "line_end": 50
+          "line_start": 47,
+          "line_end": 51
         },
         {
           "name": "UpdateResult",
@@ -27,8 +27,8 @@
             "timeframe: str",
             "inserted: int"
           ],
-          "line_start": 54,
-          "line_end": 57
+          "line_start": 55,
+          "line_end": 58
         },
         {
           "name": "HistoricalDataEngine",
@@ -37,47 +37,47 @@
             {
               "name": "__init__",
               "signature": "def __init__(\r\n        self,\r\n        provider: DataProvider,\r\n        db: DatabaseManager,\r\n        cfg: DataConfig,\r\n    ) -> None",
-              "line_start": 69,
-              "line_end": 77
+              "line_start": 70,
+              "line_end": 78
             },
             {
               "name": "bootstrap_symbol",
               "signature": "def bootstrap_symbol(self, symbol: str) -> BootstrapResult",
               "docstring": "Fetch one year of 1m / 1d / 1w bars from the provider and store them.",
-              "line_start": 81,
-              "line_end": 103
+              "line_start": 82,
+              "line_end": 104
             },
             {
               "name": "bootstrap_all",
               "signature": "def bootstrap_all(\r\n        self,\r\n        universe: list[UniverseRecord],\r\n        max_concurrent: int | None = None,\r\n    ) -> None",
               "docstring": "Bootstrap all symbols with bounded concurrency.",
-              "line_start": 105,
-              "line_end": 124
+              "line_start": 106,
+              "line_end": 125
             },
             {
               "name": "update_missing_data",
               "signature": "def update_missing_data(self, symbol: str) -> list[UpdateResult]",
               "docstring": "Fetch only bars newer than the last stored timestamp for each TF.",
-              "line_start": 128,
-              "line_end": 155
+              "line_start": 129,
+              "line_end": 156
             },
             {
               "name": "aggregate_timeframe",
               "signature": "def aggregate_timeframe(\r\n        self,\r\n        symbol: str,\r\n        target_tf: DerivedTimeframe,\r\n        bars_1m: list[OHLCVBar],\r\n    ) -> list[OHLCVBar]",
               "docstring": "Synthesise a higher-timeframe bar series from 1m bars.",
-              "line_start": 159,
-              "line_end": 205
+              "line_start": 160,
+              "line_end": 206
             },
             {
               "name": "assert_candle_consistency",
               "signature": "def assert_candle_consistency(\r\n        self,\r\n        live_bar: OHLCVBar,\r\n        historical_bar: OHLCVBar,\r\n    ) -> None",
               "docstring": "Assert that a live-built bar equals its stored historical counterpart.",
-              "line_start": 209,
-              "line_end": 226
+              "line_start": 210,
+              "line_end": 227
             }
           ],
-          "line_start": 60,
-          "line_end": 226
+          "line_start": 61,
+          "line_end": 227
         }
       ],
       "top_level_functions": [
@@ -85,8 +85,8 @@
           "name": "create_provider",
           "signature": "def create_provider(cfg: DataConfig) -> DataProvider",
           "docstring": "Factory: return the correct DataProvider based on config.",
-          "line_start": 229,
-          "line_end": 249
+          "line_start": 230,
+          "line_end": 250
         }
       ],
       "constants": [
