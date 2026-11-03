@@ -301,7 +301,7 @@ def test_export_writes_shown_rows(qtbot, settings, tmp_path):
 def test_export_bad_path_logs_error(qtbot, settings, tmp_path, caplog):
     """UT-GUI-025.011.M02.T02: A path that cannot be written logs an error, no crash."""
     panel = _history_panel(qtbot, settings)
-    with patch("us_swing.gui.dashboard_panel.QMessageBox.warning") as warn:
+    with patch("us_swing.gui.dashboard_panel.notify") as warn:
         panel.export_history(str(tmp_path))      # a folder, not a file
     assert any("[Trade History] Could not save" in r.message for r in caplog.records)
     warn.assert_called_once()

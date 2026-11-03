@@ -31,7 +31,6 @@ from PyQt6.QtWidgets import (
     QHeaderView,
     QLabel,
     QLineEdit,
-    QMessageBox,
     QProgressBar,
     QPushButton,
     QSpinBox,
@@ -50,6 +49,7 @@ from us_swing.data.market_calendar import NYSE_HOLIDAYS
 from us_swing.data.models import ConnectionStatus, RiskConfig, UserProfile
 from us_swing.gui.icons import mark_danger, set_icon
 from us_swing.gui.system_store import SystemConfig
+from us_swing.gui.popups import confirm, notify
 from us_swing.gui.theme import C, active_palette
 
 _log = logging.getLogger(__name__)
@@ -275,7 +275,7 @@ class _UsersTab(QWidget):
                 return
             self._demo.update_user(profile)
             if profile.mode != user.mode:
-                QMessageBox.information(
+                notify(
                     self, "Restart Required",
                     "Restart the tool for the new trading mode to take effect.",
                 )
@@ -288,31 +288,24 @@ class _UsersTab(QWidget):
         """
         if new_mode != "live" or old_mode == "live":
             return True
-        ret = QMessageBox.warning(
+        return confirm(
             self, "Enable Live Trading",
             "Live mode sends real orders to whichever account is logged into "
             "Trader Workstation.\n\n"
             "If TWS holds a funded account, these orders trade real money.\n\n"
             "Continue?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
+            confirm_text="Enable live", danger=True,
         )
-        return ret == QMessageBox.StandardButton.Yes
 
     def _on_delete(self) -> None:
         user = self._get_selected_user()
         if user is None:
             return
-        from PyQt6.QtWidgets import QMessageBox
-        ret = QMessageBox.question(
-            self, "Delete User",
-            f"Delete user <b>{user.username}</b>?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-        )
-        if ret == QMessageBox.StandardButton.Yes:
+        if confirm(self, "Delete User", f"Delete user <b>{user.username}</b>?",
+                   confirm_text="Delete", danger=True):
             err = self._demo.delete_user(user.user_id)
             if err:
-                QMessageBox.warning(self, "Cannot Delete", err)
+                notify(self, "Cannot Delete", err, "warning")
 
 
 # ── Risk sub-tab ──────────────────────────────────────────────────────────────
@@ -1277,11 +1270,12 @@ class _DataPanel(QWidget):
 
         # ── IBKR connection gate (SRD-GUI-006.012) ───────────────────────────
         if self._svc.connection_status is not ConnectionStatus.CONNECTED:
-            QMessageBox.warning(
+            notify(
                 self,
                 "IBKR Not Connected",
                 "IBKR Gateway must be connected before downloading candle data.\n\n"
                 "Use the 'Connect Feed' button in the title bar to connect first.",
+                "warning",
             )
             return
 
@@ -1368,11 +1362,12 @@ class _DataPanel(QWidget):
         from us_swing.data.models import ConnectionStatus
 
         if self._svc.connection_status is not ConnectionStatus.CONNECTED:
-            QMessageBox.warning(
+            notify(
                 self,
                 "IBKR Not Connected",
                 "IBKR Gateway must be connected before downloading candle data.\n\n"
                 "Use the 'Connect Feed' button in the title bar to connect first.",
+                "warning",
             )
             return
 
@@ -1421,12 +1416,13 @@ class _DataPanel(QWidget):
             self._svc.reset_candle_db()
         except Exception as exc:
             _log.exception("[CandleDB] Database reset failed")
-            QMessageBox.critical(
+            notify(
                 self,
                 "Reset Failed",
                 "The candle database could not be reset.\n\n"
                 f"{exc}\n\n"
                 "Close any other program using the database and try again.",
+                "error",
             )
         finally:
             self._reset_db_btn.setEnabled(True)
@@ -1710,8 +1706,8 @@ class SettingsPanel(QWidget):
         editable = self._editable.get(name)
         if editable is None or editable.defaults is None:
             return
-        answer = QMessageBox.question(self, "Restore defaults", f"Restore defaults for {name}?")
-        if answer != QMessageBox.StandardButton.Yes:
+        if not confirm(self, "Restore defaults", f"Restore defaults for {name}?",
+                       confirm_text="Restore"):
             return
         editable.defaults()
         self._mark_dirty(name)

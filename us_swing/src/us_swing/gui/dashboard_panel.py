@@ -49,7 +49,6 @@ from PyQt6.QtWidgets import (
     QFileDialog,
     QLineEdit,
     QMenu,
-    QMessageBox,
     QProgressBar,
     QPushButton,
     QSpinBox,
@@ -79,6 +78,7 @@ from us_swing.gui.strategy_store import load_strategies
 from us_swing.gui._types import AccountState, OpenPosition
 from us_swing.gui.position_table_model import PositionTableModel, TradeHistoryModel
 from us_swing.gui.icons import icon_button, mark_danger, set_icon, set_tab_icon
+from us_swing.gui.popups import notify
 from us_swing.gui.theme import C
 from us_swing.data.models import WatchlistItem
 
@@ -1822,7 +1822,7 @@ class DashboardPanel(QWidget):
         """Explain why an unrouted position edit is unavailable in live mode."""
         if not self._demo.live_mutations_blocked():
             return False
-        QMessageBox.information(
+        notify(
             self, "Not Available in Live Mode",
             f"{action} is not available while the active user is in live mode.<br><br>"
             "This control only updates the on-screen position — it never sends an "
@@ -2010,8 +2010,8 @@ class DashboardPanel(QWidget):
                 csv.writer(handle).writerows(rows)
         except OSError as exc:
             _log.error("[Trade History] Could not save the file %s: %s", path, exc.strerror or exc)
-            QMessageBox.warning(self, "Export Failed",
-                                f"Could not save the file:\n{path}\n\n{exc.strerror or exc}")
+            notify(self, "Export Failed",
+                   f"Could not save the file:\n{path}\n\n{exc.strerror or exc}", "error")
             return
         _log.info("[Trade History] Saved %d order(s) to %s", max(len(rows) - 1, 0), path)
 

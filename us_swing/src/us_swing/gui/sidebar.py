@@ -22,7 +22,6 @@ from PyQt6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
-    QMessageBox,
     QPushButton,
     QVBoxLayout,
     QWidget,
@@ -33,6 +32,7 @@ from us_swing.data.models import ConnectionStatus
 from us_swing.gui.app_service import AppService
 from us_swing.gui.icons import icon as make_icon
 from us_swing.gui.icons import set_icon
+from us_swing.gui.popups import confirm
 from us_swing.gui.theme import C, active_palette
 from us_swing.gui.update_popup import UpdatePopup
 
@@ -297,12 +297,8 @@ class _ConnectionsPanel(QWidget):
     def _on_power_clicked(self) -> None:
         status = self._svc.connection_status
         if status is ConnectionStatus.CONNECTED:
-            ret = QMessageBox.question(
-                self, "Disconnect Feed",
-                "Disconnect data feed?\nPosition prices will stop updating.",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            )
-            if ret == QMessageBox.StandardButton.Yes:
+            if confirm(self, "Disconnect Feed",
+                       "Disconnect data feed?\nPosition prices will stop updating."):
                 self._svc.disconnect_feed()
         elif status is not ConnectionStatus.RECONNECTING:
             self._svc.connect_feed()

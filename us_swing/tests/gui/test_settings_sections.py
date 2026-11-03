@@ -197,8 +197,7 @@ def test_restore_defaults_asks_first(
     qapp: Any, panel: Any, monkeypatch: pytest.MonkeyPatch, answer: str, dirty: bool
 ) -> None:
     """UT-GUI-027.011.M04.T01–T02: Restore defaults fills defaults only after yes."""
-    button = getattr(settings_panel.QMessageBox.StandardButton, answer)
-    monkeypatch.setattr(settings_panel.QMessageBox, "question", lambda *_a: button)
+    monkeypatch.setattr(settings_panel, "confirm", lambda *_a, **_k: answer == "Yes")
     panel.show_section("Risk")
     tab = _risk_tab(panel)
     tab._risk.setValue(2.5)

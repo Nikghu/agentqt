@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 from PyQt6.QtCore import QObject, pyqtSignal
-from PyQt6.QtWidgets import QMessageBox, QWidget
+from PyQt6.QtWidgets import QWidget
 
 from us_swing.data.market_calendar import ET
 from us_swing.data.models import ConnectionStatus
@@ -252,9 +252,7 @@ def test_connections_offline_rows(sidebar):
 def test_power_button_connects_and_disconnects(sidebar, monkeypatch):
     """UT-GUI-018.008.M04.T03: Power button connects and disconnects."""
     svc = sidebar._footer._svc
-    monkeypatch.setattr(
-        QMessageBox, "question", lambda *_a, **_k: QMessageBox.StandardButton.Yes
-    )
+    monkeypatch.setattr("us_swing.gui.sidebar.confirm", lambda *_a, **_k: True)
     sidebar._conn._power.click()
     svc.set_feed(ConnectionStatus.CONNECTED)
     sidebar._conn._power.click()
