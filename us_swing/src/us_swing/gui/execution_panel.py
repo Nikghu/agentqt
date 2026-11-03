@@ -25,7 +25,6 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
     QLabel,
-    QMessageBox,
     QPushButton,
     QSizePolicy,
     QSplitter,
@@ -64,6 +63,7 @@ from us_swing.gui.pending_signals_table_model import (
     PendingSignalsTableModel,
 )
 from us_swing.gui.icons import mark_danger, set_icon
+from us_swing.gui.popups import confirm, notify
 from us_swing.gui.theme import C, active_palette, colors
 
 
@@ -262,7 +262,7 @@ class _CandleDbDiagDialog(QDialog):
         keep |= {p.symbol for p in self._svc.get_positions()}
 
         if not _INTRADAY_DB_PATH.exists():
-            QMessageBox.information(self, "Candle DB", "No database found.")
+            notify(self, "Candle DB", "No database found.")
             return
 
         try:
@@ -270,7 +270,7 @@ class _CandleDbDiagDialog(QDialog):
             data = self._query(conn)
             conn.close()
         except Exception as exc:
-            QMessageBox.warning(self, "Error", f"Could not read DB: {exc}")
+            notify(self, "Error", f"Could not read DB: {exc}", "error")
             return
 
         all_syms = set(data.keys())
@@ -278,22 +278,20 @@ class _CandleDbDiagDialog(QDialog):
         keep_in_db = all_syms & keep
 
         if not delete_syms:
-            QMessageBox.information(
+            notify(
                 self, "Candle DB",
                 "Nothing to delete — all symbols are already in the watch list or open positions.",
             )
             return
 
-        ret = QMessageBox.question(
+        if not confirm(
             self, "Confirm Delete",
             f"Delete intraday candle data for {len(delete_syms)} symbol(s)?\n\n"
             f"Keep:    {len(keep_in_db)} symbol(s)  (watch list + open positions)\n"
             f"Delete:  {len(delete_syms)} symbol(s)\n\n"
             f"This cannot be undone.",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
-        )
-        if ret != QMessageBox.StandardButton.Yes:
+            confirm_text="Delete", danger=True,
+        ):
             return
 
         try:
@@ -311,7 +309,7 @@ class _CandleDbDiagDialog(QDialog):
             conn.commit()
             conn.close()
         except Exception as exc:
-            QMessageBox.warning(self, "Error", f"Delete failed: {exc}")
+            notify(self, "Error", f"Delete failed: {exc}", "error")
             return
 
         self._load()
@@ -833,13 +831,7 @@ class ExecutionPanel(QWidget):
             f"Qty: {qty}&nbsp;&nbsp; Entry: {signal.entry_price:.2f}"
             f"&nbsp;&nbsp; Mode: {mode}"
         )
-        dlg = QMessageBox(self)
-        dlg.setWindowTitle("Confirm Order")
-        dlg.setIcon(QMessageBox.Icon.Question)
-        dlg.setText(msg)
-        dlg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-        dlg.setDefaultButton(QMessageBox.StandardButton.Yes)
-        if dlg.exec() != QMessageBox.StandardButton.Yes:
+        if not confirm(self, "Confirm Order", msg, confirm_text="Submit"):
             return
         order_id = self._demo.execute_signal(signal, qty)
         self._status_lbl.setText(
@@ -857,13 +849,7 @@ class ExecutionPanel(QWidget):
             f"Qty: {pos.quantity}&nbsp;&nbsp; Entry: {pos.average_price:.2f}"
             f"&nbsp;&nbsp; Exit @ {cur_str}"
         )
-        dlg = QMessageBox(self)
-        dlg.setWindowTitle("Confirm Force Exit")
-        dlg.setIcon(QMessageBox.Icon.Warning)
-        dlg.setText(msg)
-        dlg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-        dlg.setDefaultButton(QMessageBox.StandardButton.No)
-        if dlg.exec() != QMessageBox.StandardButton.Yes:
+        if not confirm(self, "Confirm Force Exit", msg, confirm_text="Exit", danger=True):
             return
         order_id = self._demo.force_exit_position(pos.strategy_id, pos.symbol)
         if order_id is None:

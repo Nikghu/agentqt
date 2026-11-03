@@ -22,6 +22,7 @@ from PyQt6.QtWidgets import (
 
 from us_swing.gui.app_service import AppService
 from us_swing.gui.position_table_model import PositionTableModel
+from us_swing.gui.popups import confirm, notify
 from us_swing.gui.theme import C
 
 
@@ -196,9 +197,8 @@ class PositionMonitorPanel(QWidget):
         )
 
     def _on_close(self) -> None:
-        from PyQt6.QtWidgets import QMessageBox
         if self._demo.live_mutations_blocked():
-            QMessageBox.information(
+            notify(
                 self, "Not Available in Live Mode",
                 "Closing a position from here is not available while the active user "
                 "is in live mode.<br><br>"
@@ -216,11 +216,5 @@ class PositionMonitorPanel(QWidget):
         if row >= len(positions):
             return
         symbol = positions[row].symbol
-        ret = QMessageBox.question(
-            self,
-            "Close Position",
-            f"Close <b>{symbol}</b> at market?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-        )
-        if ret == QMessageBox.StandardButton.Yes:
+        if confirm(self, "Close Position", f"Close <b>{symbol}</b> at market?"):
             self._demo.close_position(symbol)

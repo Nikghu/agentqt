@@ -49,7 +49,6 @@ from PyQt6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QMenu,
-    QMessageBox,
     QPlainTextEdit,
     QPushButton,
     QRadioButton,
@@ -90,6 +89,7 @@ from us_swing.gui.screener_views import (
     sort_rows,
     transcript_pill_text,
 )
+from us_swing.gui.popups import confirm, notify
 from us_swing.gui.theme import C, active_palette, colors
 from us_swing.screener.screeners import _api_key_store
 from us_swing.screener.storage import INPUT_COST_PER_1K, OUTPUT_COST_PER_1K
@@ -2593,21 +2593,16 @@ class ScreenerPanel(QWidget):
         pid = item.data(Qt.ItemDataRole.UserRole)
         if not pid:
             return
-        name = item.text().strip()
-        reply = QMessageBox.question(
-            self,
-            "Delete Preset",
-            f'Delete preset "{name}"?\nThis cannot be undone.',
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
-            QMessageBox.StandardButton.Cancel,
-        )
-        if reply != QMessageBox.StandardButton.Yes:
+        row = self._preset_list.itemWidget(item)
+        name = row.name_lbl.text() if isinstance(row, PresetItem) else item.text().strip()
+        if not confirm(self, "Delete Preset", f'Delete preset "{name}"?\nThis cannot be undone.',
+                       confirm_text="Delete", danger=True):
             return
         uid = str(self._demo.get_active_user().user_id)
         try:
             self._mgr.delete_preset(pid, uid)
         except Exception as exc:  # noqa: BLE001
-            QMessageBox.warning(self, "Delete Failed", str(exc))
+            notify(self, "Delete Failed", str(exc), "error")
             return
         if self._selected_preset_id == pid:
             self._selected_preset_id = None

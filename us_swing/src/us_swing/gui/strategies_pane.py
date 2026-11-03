@@ -22,7 +22,6 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
-    QMessageBox,
     QPushButton,
     QScrollArea,
     QStackedWidget,
@@ -58,6 +57,7 @@ from us_swing.gui.strategies_views import (
     status_colour,
     strategy_rows,
 )
+from us_swing.gui.popups import confirm, notify
 from us_swing.gui.theme import C
 
 _MONO = '"IBM Plex Mono", Consolas, monospace'
@@ -567,14 +567,9 @@ class StrategiesPane(QWidget):
         if src_row < 0 or src_row >= len(self._configs):
             return
         cfg = self._configs[src_row]
-        ret = QMessageBox.question(
-            self,
-            "Delete Strategy",
-            f"Delete strategy '{cfg.name}'?\n\nIts closed trades stay in the database.",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
-        )
-        if ret == QMessageBox.StandardButton.Yes:
+        if confirm(self, "Delete Strategy",
+                   f"Delete strategy '{cfg.name}'?\n\nIts closed trades stay in the database.",
+                   confirm_text="Delete", danger=True):
             self._configs.pop(src_row)
             save_strategies(self._configs)
             repo = getattr(self._demo, "rex_counters", None)
@@ -596,32 +591,31 @@ class StrategiesPane(QWidget):
             return
         repo = getattr(self._demo, "rex_counters", None)
         if repo is None:
-            QMessageBox.warning(
+            notify(
                 self,
                 "Reset unavailable",
                 "Rex counter repository is not initialized — restart the app and try again.",
+                "warning",
             )
             return
         label = f"'{names[0]}'" if len(names) == 1 else f"{len(names)} strategies"
-        ret = QMessageBox.question(
+        if not confirm(
             self,
             "Reset Strategy",
             f"Reset rex counters for {label}?\n\n"
             "This clears the per-stock re-entry budget so the strategy can take fresh entries.\n"
             "Open positions are NOT affected.",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
-        )
-        if ret != QMessageBox.StandardButton.Yes:
+            confirm_text="Reset",
+        ):
             return
         deleted = 0
         try:
             for name in names:
                 deleted += repo.reset(name)
         except Exception as exc:
-            QMessageBox.critical(self, "Reset failed", f"Could not reset counters:\n{exc}")
+            notify(self, "Reset failed", f"Could not reset counters:\n{exc}", "error")
             return
-        QMessageBox.information(
+        notify(
             self,
             "Reset complete",
             f"Cleared {deleted} rex counter row(s) for {label}.",

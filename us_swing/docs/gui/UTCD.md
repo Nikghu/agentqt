@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.45.0: UT-GUI-000.009.M01.T01–T02, M02.T01–T02 added — frameless popups (ISS-GUI-0016).
 > v1.44.0: UT-GUI-022.011.M01.T02–T07 added — plan zone start and hit tag on the Screener chart.
 > v1.43.1: UT-GUI-006.001.M01.T19 added — tests keep users.json in a temp folder (ISS-GUI-0013).
 > v1.43.0: UT-GUI-032.001.M01.T01 – UT-GUI-032.007.M03.T01 added — Strategies grouped and table views.
@@ -772,6 +773,10 @@ Test files:
 | UT-GUI-000.008.M02.T01 | MD-GUI-000.008.M02 | Negative | Hidden list skips tick rebuild | hidden list; watchlist signal; show | rows unchanged until shown | Pass |
 | UT-GUI-000.008.M03.T01 | MD-GUI-000.008.M03 | Positive | Ticks coalesce into one refresh | 3 watchlist + 3 position ticks; disconnect | one emit each; nothing pending | Pass |
 | UT-GUI-000.008.M03.T02 | MD-GUI-000.008.M03 | Edge | Refresh timer is 250 ms single-shot | queue same signal twice | one dirty entry; 250 ms single-shot | Pass |
+| UT-GUI-000.009.M01.T01 | MD-GUI-000.009.M01 | Positive | confirm returns the choice | accept, then cancel | True, then False; frameless; buttons Cancel, Delete | Pass |
+| UT-GUI-000.009.M01.T02 | MD-GUI-000.009.M01 | Positive | notify has one OK button | error message | one frameless popup; only OK | Pass |
+| UT-GUI-000.009.M02.T01 | MD-GUI-000.009.M02 | Negative | No native message box left | scan gui/*.py for `QMessageBox.` / `QMessageBox(` | none found | Pass |
+| UT-GUI-000.009.M02.T02 | MD-GUI-000.009.M02 | Negative | Delete Preset names the preset | preset row widget "Momentun_Price"; answer Cancel | question names it; nothing deleted | Pass |
 
 ## FO-GUI-027 — Settings Dialog
 

@@ -1464,6 +1464,7 @@ QFrame#inline_detail {{
 }}
 QFrame#inline_detail > QWidget, QFrame#inline_detail QLabel {{ background: transparent; }}
 QFrame#strategy_bulk {{ background: {hover}; border-bottom: 1px solid {line}; }}
+QFrame#strategy_bulk QLabel {{ background: transparent; }}
 QLabel#exec_chip {{
     color: {sub}; background: transparent; border: 1px solid {line}; border-radius: 4px;
     padding: 2px 8px; font-size: 8.5pt;
