@@ -2,6 +2,16 @@
 
 ---
 
+## [20261103] GUI — All popups in the app's frameless style
+
+- Type: Bugfix
+- FO(s): FO-GUI-000 (ISS-GUI-0016)
+- RN: RN-GUI-1.57.1-20261103
+- Artifacts updated: ISS-GUI-0016, SRD (GUI-000.009 new, approved by user → Implemented), MD (MD-GUI-000.009.M01–M02), UTCD (UT-GUI-000.009.M01.T01–T02, M02.T01–T02 Pass), TRACE (gui), Code (gui/popups.py new + 7 panels), Tests (test_popups.py new; 3 tests re-pointed), TODO (T96), CONTEXT, DEVLOG
+- Decisions: two helpers on the existing `_ConfirmDialog` (imported lazily, it pulls in the execution package) instead of a new dialog class; red accent for destructive actions; confirm buttons named after the action (Delete, Submit, Exit, Reset, Restore, Enable live). Older `main_window._ConfirmDialog` copy left as is.
+
+---
+
 ## [20261103] GUI + INF — US clock change review: chart axis, Settings fields, token in log
 
 - Type: Bugfix

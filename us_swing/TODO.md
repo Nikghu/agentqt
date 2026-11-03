@@ -105,3 +105,4 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T93 | GUI — risk warning pop-up is now the frameless app style; check it in the real app next time a margin warning shows. Branch fix/gui-risk-warning-popup. | `gui/main_window.py` | Low | Open |
 | T94 | GUI — check in the app: intraday chart axis reads 09:30 … 16:00 New York; Settings → Scheduler has no Market open / close fields. Branch fix/gui-et-axis-settings-log. | `gui/chart_panel.py`, `gui/settings_panel.py` | Medium | Open |
 | T95 | INF — revoke the Telegram bot token in BotFather and paste the new one in Settings; old logs in ~/.usswing/logs hold it (RN-INF-1.8.1). | `monitoring/logging_setup.py` | High | Open |
+| T96 | GUI — check the new frameless popups in the app (Delete Preset shows the name; Delete Strategy, Disconnect Feed, Restore defaults…). Branch fix/gui-frameless-popups. | `gui/popups.py` | Low | Open |

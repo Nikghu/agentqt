@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.75.0: SRD-GUI-000.009 added and approved by user 2026-11-03 — frameless confirm and message popups (ISS-GUI-0016).
 > v2.74.0: SRD-GUI-022.011 reopened by user 2026-11-03 — Screener chart draws the AI plan from the next candle after the run, with a hit tag.
 > v2.73.0: SRD-GUI-006.020–.021 added and approved by user 2026-11-03 — candle update no longer stuck when only some stocks are current; Retry Failed keeps the resume point (ISS-GUI-0014).
 > v2.72.0: SRD-GUI-032.001–.008 added and approved by user 2026-11-03 — Strategies grouped and table views; .001 replaces the tab order of SRD-GUI-024.003 and .003 replaces the list of SRD-GUI-024.004.
@@ -98,6 +99,7 @@
 | SRD-GUI-000.006 | FO-GUI-000 | Must | In single-user scope `_AdminContextBar` shows a capital cell `Cap $X · Avail $Y` from `AppService.effective_capital()` and `margin_available()`; green when `Y > 0`, red otherwise. Mirrors SRD-EXE-017.021. | `account_updated` | Rendered capital cell | Display-only; hidden in All-Users scope | Approved |
 | SRD-GUI-000.007 | FO-GUI-000 | Must | On Windows the app starts without any console window flashing; Python's Windows-version check is answered without running cmd.exe. | app start | no child process | Reported version unchanged; installed by `run_gui.py` and a PyInstaller runtime hook | Implemented |
 | SRD-GUI-000.008 | FO-GUI-000 | Must | The app stays responsive while live ticks stream: tick-driven view refreshes go out at most every 250 ms, hidden lists do not rebuild on ticks, and theme colours are not read from disk on each use. | live ticks | batched view signals | Non-tick refreshes (fills, user actions) stay immediate | Implemented |
+| SRD-GUI-000.009 | FO-GUI-000 | Should | Every confirm and message popup uses the app's frameless style (title bar, accent bar, Cancel / confirm or one OK button), never the native Windows message box. | title, text | user choice | Replaces 27 `QMessageBox` calls in 7 panels (ISS-GUI-0016) | Implemented |
 
 ---
 

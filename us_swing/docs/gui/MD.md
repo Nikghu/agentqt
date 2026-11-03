@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.54.0: MD-GUI-000.009.M01 `popups.py` and M02 call sites added (SRD-GUI-000.009).
 > v1.53.0: MD-GUI-022.001.M01 adds `plan_start_index()`, `plan_outcome()`; `ListDetailView.load()` takes the run time; `CandleChartPanel.set_plan()` takes an optional start time (SRD-GUI-022.011).
 > v1.52.0: MD-GUI-032.001.M01–.003.M03 added — Strategies grouped and table views (SRD-GUI-032).
 > v1.51.0: MD-GUI-031.002.M02 `set_data_range()`, `_on_date()`; MD-GUI-031.003.M03 passes `Estimate.data_span` after each data check (SRD-GUI-031.087).
@@ -300,6 +301,8 @@ us_swing/src/us_swing/gui/
 | MD-GUI-000.008.M01 | SRD-GUI-000.008 | `us_swing/src/us_swing/gui/theme.py` | Theme id read from disk once and kept in memory; `save_theme_id` updates it | `load_theme_id()`, `save_theme_id()` | pathlib | No | Implemented |
 | MD-GUI-000.008.M02 | SRD-GUI-000.008 | `us_swing/src/us_swing/gui/chart_source_list.py` | `SourceList` skips tick refreshes while hidden and catches up in `showEvent` | `_refresh_if()`, `showEvent()` | AppService | No | Implemented |
 | MD-GUI-000.008.M03 | SRD-GUI-000.008 | `us_swing/src/us_swing/gui/app_service.py` | Tick slots mark view signals dirty; a 250 ms single-shot timer emits each once | `_queue_tick_refresh()`, `_flush_tick_refresh()` | QTimer | No | Implemented |
+| MD-GUI-000.009.M01 | SRD-GUI-000.009 | `us_swing/src/us_swing/gui/popups.py` | Frameless confirm and message popups on the shared `_ConfirmDialog` | `confirm()`, `notify()` | `active_cycles_panel`, `theme` | No | Implemented |
+| MD-GUI-000.009.M02 | SRD-GUI-000.009 | `gui/settings_panel.py`, `execution_panel.py`, `strategies_pane.py`, `screener_panel.py`, `position_monitor_panel.py`, `dashboard_panel.py`, `sidebar.py` | Popups call `confirm()` / `notify()`; Delete Preset reads the name from the row widget | `_on_delete_preset()` | `popups` | No | Implemented |
 
 ## FO-GUI-026 — Charts Workspace (Focus + Inspector)
 
