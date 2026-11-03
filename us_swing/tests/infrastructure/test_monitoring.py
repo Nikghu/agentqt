@@ -61,6 +61,14 @@ def test_T04_unknown_timezone_falls_back_to_the_local_zone() -> None:
     assert _resolve_tz("US/Eastern") != datetime.timezone.utc
 
 
+def test_T05_request_urls_with_the_bot_token_are_not_logged(tmp_path: Path) -> None:
+    """UT-INF-005.001.M01.T05 — httpx request URLs (they hold the bot token) are not logged."""
+    configure_logging(tmp_path / "logs", "INFO")
+
+    assert not logging.getLogger("httpx").isEnabledFor(logging.INFO)
+    assert logging.getLogger("httpx").isEnabledFor(logging.WARNING)
+
+
 def test_T02_excepthook_logs_uncaught_exception(
     tmp_path: Path,
     caplog: pytest.LogCaptureFixture,

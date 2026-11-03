@@ -135,6 +135,8 @@ def configure_logging(
     root = logging.getLogger()
     root.setLevel(numeric_level)
     logging.getLogger("ib_insync").setLevel(logging.WARNING)
+    # httpx logs each request URL at INFO; Telegram URLs carry the bot token.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
 
     # Avoid duplicate handlers when called more than once (e.g. in tests).
     if not any(isinstance(h, _DailyDateHandler) for h in root.handlers):

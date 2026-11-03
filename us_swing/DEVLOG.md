@@ -2,6 +2,16 @@
 
 ---
 
+## [20261103] GUI + INF — US clock change review: chart axis, Settings fields, token in log
+
+- Type: Bugfix
+- FO(s): FO-GUI-026, FO-GUI-027, FO-INF-005
+- RN: RN-GUI-1.56.6-20261103, RN-INF-1.8.1-20261103
+- Artifacts updated: UTCD-INF (UT-INF-005.001.M01.T05 Pass), TRACE (gui, infrastructure), Code (gui/chart_panel.py, gui/settings_panel.py, monitoring/logging_setup.py), Tests (test_monitoring.py), TODO (T94, T95), CONTEXT, DEVLOG
+- Decisions: stored candles (UTC), screener auto-run and countdown already follow the US clock change; the Windows scheduler runs on India time, so the user moved Close both to 02:45 IST. Market open / close config fields kept in SystemConfig so old files load; only the UI was removed.
+
+---
+
 ## [20261103] GUI — Window fits the screen with a right panel open
 
 - Type: Bugfix
