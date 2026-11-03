@@ -210,10 +210,10 @@ FO-004
   │   ├─ DD-SCR-006.001: ScreenerResultsStorage.save_result()
   │   │   ├─ MD-SCR-M13: src/screener/storage.py
   │   │   │   └─ UT: test_storage.py T01–T06
-  ├─ SRD-004.007: Daily auto-run on up-to-date candles (ISS-SCR-0003)
+  ├─ SRD-004.007: Daily auto-run on up-to-date candles (ISS-SCR-0003) — Implemented, RN-SCR-2.7.1-20261103
   │   ├─ MD-SCR-M16: src/gui/screener_panel.py (_maybe_auto_run)
   │   │   └─ UT: test_screener_autorun.py UT-SCR-004.007.M16.T01–T06
-  ├─ SRD-004.009: candle_date on every saved result
+  ├─ SRD-004.009: candle_date on every saved result — Implemented, RN-SCR-2.7.1-20261103
   │   ├─ MD-SCR-M13: src/screener/storage.py · MD-SCR-M10: src/screener/executor.py
   │   │   └─ UT: UT-SCR-004.009.M13.T01–T02, UT-SCR-004.009.M10.T01
 ```

@@ -6,8 +6,8 @@
 
 - Type: Bugfix
 - FO(s): FO-SCR-004 (ISS-SCR-0003)
-- RN: none yet (write when the user approves the SRDs)
-- Artifacts updated: ISS-SCR-0003, SRD (SCR-004.007 reworded, SCR-004.009 new, both Draft), UTCD (UT-SCR-004.007.M16.T01–T06, UT-SCR-004.009.M13.T01–T02, M10.T01 Pass), TRACE (screener), Code (gui/screener_panel.py, gui/app_service.py, screener/storage.py, screener/executor.py), Tests (tests/gui/test_screener_autorun.py new; test_storage.py, test_executor.py), TODO (T88, T89), CONTEXT, DEVLOG
+- RN: RN-SCR-2.7.1-20261103
+- Artifacts updated: ISS-SCR-0003, SRD (SCR-004.007 reworded, SCR-004.009 new, approved by user → Implemented), UTCD (UT-SCR-004.007.M16.T01–T06, UT-SCR-004.009.M13.T01–T02, M10.T01 Pass), TRACE (screener), Code (gui/screener_panel.py, gui/app_service.py, screener/storage.py, screener/executor.py), Tests (tests/gui/test_screener_autorun.py new; test_storage.py, test_executor.py), TODO (T88, T89), CONTEXT, DEVLOG
 - Decisions: user rule — hard candle check at 09:00 ET, skip presets already run on latest candles (manual runs count), skip when candles are behind. "Latest" = result `candle_date` equals the last trading day; old files without it never count. Fresh check at most once per 50 s. Separate commit 7d3f10b7 (fix/gui-dialog-title-contrast): popup title bars paint a lighter header strip. Pre-existing failures left as is: test_llm_claude_screener.py import error, 2 test_preset.py fails, 22 test_chart_workspace.py order errors.
 
 ---

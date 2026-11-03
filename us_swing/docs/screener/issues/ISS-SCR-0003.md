@@ -17,7 +17,7 @@ When the app stays open for days, the 09:00 ET screener auto-run can start on ca
 | `_maybe_auto_run` trusted that cached status | Days later it still read "current" and started the run |
 | "Already ran" looked only for a scheduled result dated today | A manual run on the latest candles did not count; a result could not say which candles it used |
 
-**SRD root cause:** SRD-SCR-004.007 did not require fresh candles. Reworded (Draft) and SRD-SCR-004.009 added.
+**SRD root cause:** SRD-SCR-004.007 did not require fresh candles. Reworded and SRD-SCR-004.009 added (approved by user, Implemented).
 
 ## Fix
 
@@ -38,3 +38,4 @@ When the app stays open for days, the 09:00 ET screener auto-run can start on ca
 
 - SRD-SCR-004.007 (auto-run rule), SRD-SCR-004.009 (`candle_date`)
 - SRD-GUI-006.020 (how "candles current" is measured)
+- RN-SCR-2.7.1-20261103
