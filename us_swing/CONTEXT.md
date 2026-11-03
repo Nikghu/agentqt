@@ -2,10 +2,12 @@
 
 **Document:** CONTEXT.md
 **Project:** us_swing
-**Last Updated:** 2026-11-02 (Session 110)
+**Last Updated:** 2026-11-03 (Session 110)
 **Updated By:** Claude (Opus 5.5)
 
 ---
+
+**Also (Session 110, 2026-11-03):** **Backtest setup defaults and dates (RN-GUI-1.55.0-20261103, RN-BKT-1.12.0-20261103; SRD-GUI-031.086, .087, SRD-BKT-002.088 approved by user and Implemented).** New plans start at Daily loss stop 10 % (no longer the live Max daily loss) and Commission $0; old plan files without a commission still read $1. From / To are limited to the days all chosen stocks have in 1d and 3m; untouched dates fill as last saved day and one year before. Same branch feat/exe-boss-st, not pushed.
 
 **Current (Session 110, 2026-11-02):** **BOSS_ST trigger indicator, Phase 1 (Feature, EXE + BKT + GUI; RN-EXE-1.41.0-20261102; SRD-EXE-011.027, SRD-BKT-002.087, SRD-GUI-013.024 approved by user and Implemented).** New `core/market_structure.py` ports the NSE BOSS_ST (HTF CHOCH + LTF BOS, EMA200, Supertrend(10,3), ATR break gate) without time window or forced exit. `BOSS_ST(SymbolType, SwingLookback, MinBreakATR, HTF, LTF, Signal)` returns 1 / -1 / 0; Fresh = only on the turn bar, State = position. Use Entry Fresh, Exit State; long and short as two strategies (Phase 2 Direction = Both is T82). Too little history → stock skipped, never 0. Branch feat/exe-boss-st stacked on unpushed feat/bkt-skip-screener (no-screener backtest mode, b8f27a33) — merge that PR first. 784 tests pass in core/execution/backtest + builder GUI. Manual check pending (T83).
 

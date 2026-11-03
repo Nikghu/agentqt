@@ -7,6 +7,7 @@
 **Last Updated:** 2026-11-02
 **Project:** US Swing Trading System
 
+> v1.7.0: UT-BKT-002.088.M05.T01–T02 added — common saved range.
 > v1.6.0: UT-BKT-002.087.M10.T01–T02 added — BOSS_ST series.
 > v1.5.0: UT-BKT-002.086.M01.T01, .M05.T01–T02 added — no-screener mode.
 > v1.4.0: UT-BKT-001.016.M01.T01–T02 and UT-BKT-002.085.M10.T01, .M11.T01 added — 30m timeframe.
@@ -156,6 +157,8 @@
 | UT-BKT-002.086.M01.T01 | MD-BKT-002.001.M01 | Positive | No-screener plan | screener skip, no preset; old JSON | valid; skip kept in JSON; old plan reads False; empty screener still asks for a preset | Pass |
 | UT-BKT-002.086.M05.T01 | MD-BKT-002.008.M05 | Positive | Every stock every session | 3 stocks, 5 sessions, preset loader that fails | 15 rows; each session A to Z, rank 1–3, score 0; preset never loaded | Pass |
 | UT-BKT-002.086.M05.T02 | MD-BKT-002.008.M05 | Positive | Data check and facts | no-screener plan | fixed=True, 5 of 5 sessions, no errors; Screener fact "None · every stock every day" | Pass |
+| UT-BKT-002.088.M05.T01 | MD-BKT-002.008.M05 | Positive | Common saved range | 1d for 3 stocks; 3m Mar 3–7 and Mar 4–10; none for NVDA | span Mar 4 – Mar 7; NVDA missing 3m | Pass |
+| UT-BKT-002.088.M05.T02 | MD-BKT-002.008.M05 | Negative | No saved data | one unknown stock | span None | Pass |
 | UT-BKT-002.027.M10.T01 | MD-BKT-002.021.M10 | Positive | PNL flagged | `PNL('Spot') > 1 OR RSI(…) > 0` | `uses_pnl` true; result equals the RSI part | Pass |
 | UT-BKT-002.028.M11.T01 | MD-BKT-002.026.M11 | Positive | Cache reuse | run twice | second run computes nothing | Pass |
 | UT-BKT-002.028.M11.T02 | MD-BKT-002.026.M11 | Negative | Stocks follow top N and include list | include mode with 1 stock, top N 1 | only that stock computed | Pass |

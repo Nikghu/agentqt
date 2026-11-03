@@ -607,6 +607,7 @@ class BacktestWorkspace(QWidget):
         if ticket != self._ticket:
             return
         self._estimate = est
+        self.builder.set_data_range(est.data_span)
         self.check_label.setText(data_check_text(est))
         missing = bool(est.missing_1d or est.missing_3m)
         self.health_dot.setProperty("state", "error" if est.errors else

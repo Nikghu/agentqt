@@ -58,6 +58,7 @@ _FIELD_W = 140
 _MODE_TEXT = {"sp500": "S&P 500", "sector": "Sectors", "names": "Names"}
 _NO_SCREENER_NOTE = "Every stock in Stocks is used every day, A to Z"
 _NO_SCREENER_TEXT = "None · every stock every day"
+_FIRST_DAY = datetime.date(2000, 1, 1)
 
 
 def _pydate(day: QDate) -> datetime.date:
@@ -166,6 +167,8 @@ class BacktestBuilder(QWidget):
         today = QDate.currentDate()
         self._end.setDate(today)
         self._start.setDate(today.addYears(-1))
+        self._auto_dates = True
+        self._setting_range = False
         self._mode = ChipGroup([("S&&P 500", "sp500"), ("Sectors", "sector"), ("Names", "names")])
         self._mode.setFixedWidth(300)
         self._sectors = QListWidget()
@@ -223,6 +226,7 @@ class BacktestBuilder(QWidget):
         for edit in (self._name, self._names_edit, self._add, self._remove):
             edit.textChanged.connect(self.changed)
         for date_edit in (self._start, self._end):
+            date_edit.dateChanged.connect(self._on_date)
             date_edit.dateChanged.connect(self.changed)
         self._mode.changed.connect(self._on_mode)
         self._sectors.itemChanged.connect(self.changed)
@@ -284,6 +288,24 @@ class BacktestBuilder(QWidget):
         spin.setFixedWidth(_FIELD_W)
         return spin
 
+    def _on_date(self) -> None:
+        if not self._setting_range:
+            self._auto_dates = False
+
+    def set_data_range(self, span: tuple[datetime.date, datetime.date] | None) -> None:
+        """Keep From / To inside the saved data; fill them until the user picks (SRD-GUI-031.087).
+
+        ``None`` (no saved data) allows any day from 2000 to today.
+        """
+        first, last = span or (_FIRST_DAY, datetime.date.today())
+        self._setting_range = True
+        for edit in (self._start, self._end):
+            edit.setDateRange(_qdate(first), _qdate(last))
+        if span is not None and self._auto_dates:
+            self._end.setDate(_qdate(last))
+            self._start.setDate(_qdate(max(first, last - datetime.timedelta(days=365))))
+        self._setting_range = False
+
     def set_account_defaults(self, capital: float) -> None:
         """Start capital from the user's Max capital (SRD-GUI-031.030, .086)."""
         self._capital.setValue(capital)
@@ -293,7 +315,7 @@ class BacktestBuilder(QWidget):
         edit = QDateEdit()
         edit.setCalendarPopup(True)
         edit.setDisplayFormat(QT_DATE_FMT)
-        edit.setMinimumDate(QDate(2000, 1, 1))
+        edit.setMinimumDate(_qdate(_FIRST_DAY))
         edit.setMaximumDate(QDate.currentDate())
         edit.setFixedWidth(_FIELD_W)
         return edit

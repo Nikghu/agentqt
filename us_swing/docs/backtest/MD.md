@@ -7,6 +7,7 @@
 **Last Updated:** 2026-11-02
 **Project:** US Swing Trading System
 
+> v1.7.0: `service.py` (MD-BKT-002.008.M05) `_data_check()`, `_common_span()`, `Estimate.data_span` (SRD-BKT-002.088).
 > v1.6.0: `core/expr/series.py` (MD-BKT-002.021.M10) reads BOSS_ST from `core.market_structure` on the LTF frame (SRD-BKT-002.087).
 > v1.5.0: no-screener mode — `spec.ScreenerSpec.skip` (MD-BKT-002.001.M01); `service.py` (MD-BKT-002.008.M05) `_fixed_lists()`, `_estimate_fixed()`, `Estimate.fixed`, Screener fact (SRD-BKT-002.086).
 > v1.4.0: 30m timeframe — `store.py` (MD-BKT-001.001.M01) `_to_30m()`, `_build_from_3m()`; `steps/signals.py` (MD-BKT-002.026.M11) and `core/expr/series.py` (MD-BKT-002.021.M10) accept 30m (SRD-BKT-001.016, .002.085).

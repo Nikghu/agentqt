@@ -2,6 +2,16 @@
 
 ---
 
+## [20261103] GUI/BKT — Backtest setup: 10 % loss stop, $0 commission, dates follow saved data
+
+- Type: Enhancement
+- FO(s): FO-GUI-031, FO-BKT-002
+- RN: RN-GUI-1.55.0-20261103, RN-BKT-1.12.0-20261103
+- Artifacts updated: SRD (GUI-031.086, .087, BKT-002.088 approved by user → Implemented), MD notes, UTCD (5 new Pass, 1 updated), TRACE (gui, bkt), Code, Tests, RN, CONTEXT, DEVLOG
+- Decisions: loss stop no longer copies the live setting; spec.py fallbacks kept so old plans read as before; date pickers use the common 1d + 3m range of the chosen stocks, filled until the user picks; no saved data allows 2000 to today.
+
+---
+
 ## [20261102] EXE/BKT/GUI — BOSS_ST trigger indicator (Phase 1)
 
 - Type: Feature
