@@ -28,18 +28,34 @@ def _plan(
 
 
 def test_empty_store_plan() -> None:
-    """UT-BKT-001.005.M03.T01: Empty store gives 1d jobs first, then 3m newest end first."""
+    """UT-BKT-001.005.M03.T01: One stock at a time: its 1d, then its 3m newest end first."""
     jobs = _plan(_RANGE_2025, {})
 
-    assert [(j.symbol, j.tf) for j in jobs[:2]] == [("AAPL", "1d"), ("MSFT", "1d")]
-    assert all(j.duration == "1 Y" for j in jobs[:2])
-    m3 = jobs[2:]
-    assert all(j.tf == "3m" and j.duration == "3 M" for j in m3)
-    assert [j.end for j in m3] == sorted((j.end for j in m3), reverse=True)
-    assert [j.symbol for j in m3[:2]] == ["AAPL", "MSFT"]
-    assert m3[0].end == date(2025, 12, 31)
-    assert len(m3) == 8
-    assert min(j.end for j in m3) >= date(2025, 1, 1)
+    assert [(j.symbol, j.tf) for j in jobs] == (
+        [("AAPL", "1d")] + [("AAPL", "3m")] * 4 + [("MSFT", "1d")] + [("MSFT", "3m")] * 4
+    )
+    assert all(j.duration == "1 Y" for j in jobs if j.tf == "1d")
+    for symbol in ("AAPL", "MSFT"):
+        m3 = [j for j in jobs if j.symbol == symbol and j.tf == "3m"]
+        assert all(j.duration == "3 M" for j in m3)
+        assert [j.end for j in m3] == sorted((j.end for j in m3), reverse=True)
+        assert m3[0].end == date(2025, 12, 31)
+        assert min(j.end for j in m3) >= date(2025, 1, 1)
+
+
+def test_stock_with_saved_gap_finishes_before_next() -> None:
+    """UT-BKT-001.005.M03.T05: A stock needing new and old 3m finishes them all before the next."""
+    cov: Coverage = {("AAPL", "1d"): (date(2025, 1, 2), date(2025, 12, 31)),
+                     ("AAPL", "3m"): (date(2025, 7, 1), date(2025, 10, 31)),
+                     ("MSFT", "1d"): (date(2025, 1, 2), date(2025, 12, 31)),
+                     ("MSFT", "3m"): (date(2025, 1, 2), date(2025, 12, 31))}
+
+    jobs = _plan(_RANGE_2025, cov)
+
+    assert {j.symbol for j in jobs} == {"AAPL"}
+    assert [j.end for j in jobs] == sorted((j.end for j in jobs), reverse=True)
+    assert jobs[0].end == date(2025, 12, 31)
+    assert jobs[-1].start == date(2025, 1, 1)
 
 
 def test_fully_saved_store_has_no_jobs() -> None:

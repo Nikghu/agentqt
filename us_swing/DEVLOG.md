@@ -2,6 +2,16 @@
 
 ---
 
+## [20261104] BKT — Backtest download finishes one stock before the next
+
+- Type: Enhancement
+- FO(s): FO-BKT-001
+- RN: RN-BKT-1.13.1-20261104
+- Artifacts updated: FO (order bullet), SRD (BKT-001.005 reopened by user → Implemented), DD, UTCD (UT-BKT-001.005.M03.T01 changed, T05 new, Pass), TRACE, Code (backtest/planner.py), Tests (test_planner.py), CONTEXT, DEVLOG
+- Decisions: user rejected the interleaved order after hearing the trade-off; stock order and SPY-last kept; downloader untouched.
+
+---
+
 ## [20261104] BKT + GUI — 3m backtest candles asked from the start date
 
 - Type: Bugfix
