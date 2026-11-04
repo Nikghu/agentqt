@@ -117,6 +117,17 @@ def test_universe_coverage_late_3m_start(svc: Any) -> None:
     assert cov["NEWCO"][2] != "late"
 
 
+def test_coverage_for_one_stock(svc: Any) -> None:
+    """UT-GUI-030.012.M02.T01: One stock's coverage by IBKR symbol; None when not listed."""
+    svc._sp500 = [Sp500Record("BRK.B", "BRK B", "Berkshire", "Fin")]
+    store = svc._bkt_store
+    BacktestDataSettings(start_date=date(2024, 1, 1)).save(store.root)
+    store.save("BRK B", "1d", _bars("2024-01-02"), datetime(2030, 1, 1, tzinfo=timezone.utc))
+
+    assert svc.get_backtest_coverage_for("BRK B") == ("BRK.B", ("2024-01-02", "2024-01-02", "1d"))
+    assert svc.get_backtest_coverage_for("ZZZZ") is None
+
+
 def test_stats_worker_counts_missing(tmp_path: Path) -> None:
     """UT-GUI-030.009.M02.T01: The stats worker adds missing requests and stocks from the plan."""
     from datetime import date

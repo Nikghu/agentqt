@@ -703,6 +703,7 @@ let sc=4, sa=false, ft='';
 
 function fc(b){{if(b===null)return'\u2014';if(b>=1000)return'$'+(b/1000).toFixed(2)+'T';if(b>=1)return'$'+b.toFixed(1)+'B';return'$'+(b*1000).toFixed(0)+'M';}}
 function applyFilters(text,_mn,_mx){{ft=text.toLowerCase();render();}}
+function updateBt(sym,c){{const r=D.find(x=>x[1]===sym);if(!r)return;r[8]=c[0];r[9]=c[1];r[10]=c[2];render();}}
 function S(ci){{
   const di=COLS[colOrder[ci]][1];
   if(sc===di){{sa=!sa}}else{{sc=di;sa=(di!==-1&&di!==4)}};
@@ -886,6 +887,9 @@ class _UniverseTab(QWidget):
     def __init__(self, svc: AppService, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._svc = svc
+        self._backtest: dict[str, tuple[str | None, str | None, str]] = {}
+        self._bkt_symbol: str | None = None
+        self._meta_text = ""
 
         # ── Meta bar ──────────────────────────────────────────────────────────
         self._meta_label = QLabel("Loading…")
@@ -923,6 +927,7 @@ class _UniverseTab(QWidget):
         svc.sp500_updated.connect(self._load_from_cache)
         svc.candle_db_status_changed.connect(lambda _: self._load_from_cache())
         svc.backtest_finished.connect(lambda *_: self._load_from_cache())
+        svc.backtest_progress.connect(self._on_backtest_progress)
 
     # ── Slots ─────────────────────────────────────────────────────────────────
 
@@ -930,13 +935,35 @@ class _UniverseTab(QWidget):
         records  = self._svc.get_sp500_universe()
         coverage = self._svc.get_candle_symbol_coverage()
         ltd      = self._svc.get_last_trading_day()
-        backtest = self._svc.get_backtest_symbol_coverage()
-        self._web.setHtml(_build_universe_html(records, coverage, ltd, backtest))
+        self._backtest = self._svc.get_backtest_symbol_coverage()
+        self._web.setHtml(_build_universe_html(records, coverage, ltd, self._backtest))
         meta  = self._svc.get_sp500_meta()
         stale = " (stale)" if meta.is_stale() else ""
+        self._meta_text = f"{len(records)} constituents · last fetched: {meta.age_str()}{stale}"
+        self._show_meta()
+
+    def _show_meta(self) -> None:
+        done = sum(1 for _f, _l, status in self._backtest.values() if status == "ok")
         self._meta_label.setText(
-            f"{len(records)} constituents · last fetched: {meta.age_str()}{stale}"
+            f"{self._meta_text} · backtest complete for {done} of {len(self._backtest)} stocks"
         )
+
+    def _on_backtest_progress(self, _tf: str, _done: int, _total: int, symbol: str) -> None:
+        """A new stock in the progress means the previous one is done (SRD-GUI-030.012)."""
+        if self._bkt_symbol is not None and symbol != self._bkt_symbol:
+            self._update_backtest_row(self._bkt_symbol)
+        self._bkt_symbol = symbol
+
+    def _update_backtest_row(self, ibkr_symbol: str) -> None:
+        found = self._svc.get_backtest_coverage_for(ibkr_symbol)
+        if found is None:
+            return
+        symbol, cov = found
+        self._backtest[symbol] = cov
+        page = self._web.page()
+        if page is not None:
+            page.runJavaScript(f"updateBt({json.dumps(symbol)},{json.dumps(list(cov))});")
+        self._show_meta()
 
     def _push_filters(self) -> None:
         text = json.dumps(self._search.text())

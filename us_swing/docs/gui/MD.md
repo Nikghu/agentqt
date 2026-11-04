@@ -352,6 +352,8 @@ us_swing/src/us_swing/gui/
 | MD-GUI-030.007.M05 | SRD-GUI-030.007 | `us_swing/src/us_swing/gui/sidebar.py` | Sidebar Connections row for backtest progress (status bar removed 2026-10-31) | `_ConnectionsPanel._on_backtest_progress()`, `_on_backtest_finished()` | `app_service` | No |
 | MD-GUI-030.008.M06 | SRD-GUI-030.008 | `us_swing/src/us_swing/gui/settings_panel.py` | Universe table backtest columns | `_build_universe_html(backtest=…)`, `AppService.get_backtest_symbol_coverage()` | `app_service` | No |
 | MD-GUI-030.011.M02 | SRD-GUI-030.011 | `us_swing/src/us_swing/gui/app_service.py`, `settings_panel.py` | `late` status when 3m starts after the start date; amber BT From | `get_backtest_symbol_coverage()`, `_UNIVERSE_HTML` | `backtest.settings` | No |
+| MD-GUI-030.012.M02 | SRD-GUI-030.012 | `us_swing/src/us_swing/gui/app_service.py` | One stock's backtest coverage | `get_backtest_coverage_for()`, `_backtest_coverage_fn()` | `backtest.store` | No |
+| MD-GUI-030.012.M06 | SRD-GUI-030.012 | `us_swing/src/us_swing/gui/settings_panel.py` | Universe row update per finished stock; complete count | `_UniverseTab._on_backtest_progress()`, `_update_backtest_row()`, `_show_meta()`, JS `updateBt()` | `app_service` | No |
 
 ## FO-GUI-031 — Backtest Workspace
 

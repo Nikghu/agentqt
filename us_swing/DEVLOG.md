@@ -2,6 +2,16 @@
 
 ---
 
+## [20261104] GUI — Universe shows backtest progress per stock
+
+- Type: Enhancement
+- FO(s): FO-GUI-030
+- RN: RN-GUI-1.58.0-20261104
+- Artifacts updated: SRD (GUI-030.012 new, approved by user → Implemented), MD (MD-GUI-030.012.M02/.M06), UTCD (2 rows Pass), TRACE (gui), Code (gui/app_service.py, gui/settings_panel.py), Tests (test_settings_sections.py, test_app_service_backtest.py), CONTEXT, DEVLOG
+- Decisions: one-row JS update instead of a full reload (user: no lag); stock done = next symbol in progress; full reload kept at download end.
+
+---
+
 ## [20261104] BKT — Backtest download finishes one stock before the next
 
 - Type: Enhancement

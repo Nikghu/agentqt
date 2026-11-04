@@ -4564,23 +4564,37 @@ class AppService(QObject):
         Dates come from 3m data when saved, else 1d. Status is ``ok``, ``late`` (3m starts
         after the start date, SRD-GUI-030.011), ``behind``, ``1d`` (no 3m yet) or ``none``.
         """
+        cov = self._backtest_coverage_fn()
+        return {rec.symbol: cov(rec.ibkr_symbol) for rec in self._sp500}
+
+    def get_backtest_coverage_for(
+        self, ibkr_symbol: str,
+    ) -> tuple[str, tuple[str | None, str | None, str]] | None:
+        """One stock's Universe symbol and backtest coverage, or None when not listed.
+
+        Used to update a single Universe row while a download runs (SRD-GUI-030.012).
+        """
+        rec = next((r for r in self._sp500 if r.ibkr_symbol == ibkr_symbol), None)
+        return None if rec is None else (rec.symbol, self._backtest_coverage_fn()(ibkr_symbol))
+
+    def _backtest_coverage_fn(self) -> Callable[[str], tuple[str | None, str | None, str]]:
         store = self._bkt_store
         settings = BacktestDataSettings.load(store.root)
         floors = DownloadState.load(store.root).floors
         end = settings.end_date or _compute_last_trading_day()
-        out: dict[str, tuple[str | None, str | None, str]] = {}
-        for rec in self._sp500:
-            cov_3m = store.coverage(rec.ibkr_symbol, "3m")
-            cov = cov_3m or store.coverage(rec.ibkr_symbol, "1d")
+
+        def coverage(symbol: str) -> tuple[str | None, str | None, str]:
+            cov_3m = store.coverage(symbol, "3m")
+            cov = cov_3m or store.coverage(symbol, "1d")
             if cov is None:
-                out[rec.symbol] = (None, None, "none")
-                continue
-            start = max(settings.start_date, floors.get(rec.ibkr_symbol, settings.start_date))
+                return None, None, "none"
+            start = max(settings.start_date, floors.get(symbol, settings.start_date))
             status = ("1d" if cov_3m is None
                       else "late" if cov[0] > start + _BKT_START_SLACK
                       else "behind" if cov[1] < end else "ok")
-            out[rec.symbol] = (cov[0].isoformat(), cov[1].isoformat(), status)
-        return out
+            return cov[0].isoformat(), cov[1].isoformat(), status
+
+        return coverage
 
     def refresh_backtest_stats(self) -> None:
         """Read store stats in the background; emits ``backtest_stats_changed``."""
