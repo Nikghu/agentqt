@@ -89,6 +89,7 @@ if TYPE_CHECKING:
 _log = logging.getLogger(__name__)
 
 _CURVE_DAYS = {"1W": 7, "1M": 30, "3M": 90}
+_BKT_START_SLACK = datetime.timedelta(days=7)  # same as the download planner's backfill slack
 
 
 def _plan_price(plan: Any, key: str) -> float | None:
@@ -4560,11 +4561,13 @@ class AppService(QObject):
     def get_backtest_symbol_coverage(self) -> dict[str, tuple[str | None, str | None, str]]:
         """Per S&P 500 symbol: backtest first date, last date and status (SRD-GUI-030.008).
 
-        Dates come from 3m data when saved, else 1d. Status is ``ok``, ``behind``,
-        ``1d`` (no 3m yet) or ``none``.
+        Dates come from 3m data when saved, else 1d. Status is ``ok``, ``late`` (3m starts
+        after the start date, SRD-GUI-030.011), ``behind``, ``1d`` (no 3m yet) or ``none``.
         """
         store = self._bkt_store
-        end = BacktestDataSettings.load(store.root).end_date or _compute_last_trading_day()
+        settings = BacktestDataSettings.load(store.root)
+        floors = DownloadState.load(store.root).floors
+        end = settings.end_date or _compute_last_trading_day()
         out: dict[str, tuple[str | None, str | None, str]] = {}
         for rec in self._sp500:
             cov_3m = store.coverage(rec.ibkr_symbol, "3m")
@@ -4572,7 +4575,10 @@ class AppService(QObject):
             if cov is None:
                 out[rec.symbol] = (None, None, "none")
                 continue
-            status = "1d" if cov_3m is None else "behind" if cov[1] < end else "ok"
+            start = max(settings.start_date, floors.get(rec.ibkr_symbol, settings.start_date))
+            status = ("1d" if cov_3m is None
+                      else "late" if cov[0] > start + _BKT_START_SLACK
+                      else "behind" if cov[1] < end else "ok")
             out[rec.symbol] = (cov[0].isoformat(), cov[1].isoformat(), status)
         return out
 

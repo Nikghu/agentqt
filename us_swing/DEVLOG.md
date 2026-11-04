@@ -2,6 +2,16 @@
 
 ---
 
+## [20261104] BKT + GUI — 3m backtest candles asked from the start date
+
+- Type: Bugfix
+- FO(s): FO-BKT-001, FO-GUI-030 (ISS-BKT-0002)
+- RN: RN-BKT-1.13.0-20261104
+- Artifacts updated: ISS-BKT-0002, SRD (BKT-001.017, GUI-030.011 new, approved by user → Implemented), DD (backtest floors), MD (MD-BKT-001.017.M02/.M04, MD-GUI-030.011.M02), UTCD (4 rows Pass), TRACE (backtest, gui), Code (backtest/downloader.py, backtest/settings.py, gui/app_service.py, gui/settings_panel.py), Tests (test_downloader.py, test_settings.py, test_app_service_backtest.py), TODO (T97), CONTEXT, DEVLOG
+- Decisions: user picked "keep showing missing" over an IBKR-limit mark; old floors dropped by a new state key instead of a cleanup step; 7-day slack same as the planner.
+
+---
+
 ## [20261103] GUI — All popups in the app's frameless style
 
 - Type: Bugfix

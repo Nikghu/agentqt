@@ -806,7 +806,8 @@ function render(resort=true){{
       if(ci===5)  return `<td class="name" ${{style}}>${{r[5]}}</td>`;
       if(ci===6){{const st=r[7];const cl=st==='current'?'{st_ok}':st==='stale'?'{st_warn}':'{st_err}';const ic=st==='current'?'✔':st==='stale'?'⚠':'✘';return `<td style="width:${{w}}px;max-width:${{w}}px;color:${{cl}};font-size:13px;text-align:center">${{ic}}</td>`;}}
       if(ci===7){{const dt=r[6];const st=r[7];const cl=st==='current'?'{st_ok}':st==='stale'?'{st_warn}':'{st_err}';return `<td style="width:${{w}}px;max-width:${{w}}px;color:${{cl}};text-align:center">${{dt||'—'}}</td>`;}}
-      if(ci===8){{const st=r[10];const cl=st==='ok'?'{st_ok}':st==='none'?'{st_err}':'{st_warn}';const ic=st==='ok'?'✔':st==='none'?'✘':'⚠';const tip=st==='ok'?'Up to date':st==='behind'?'Behind':st==='1d'?'1d only, no 3m yet':'Not downloaded';return `<td title="${{tip}}" style="width:${{w}}px;max-width:${{w}}px;color:${{cl}};font-size:13px;text-align:center">${{ic}}</td>`;}}
+      if(ci===8){{const st=r[10];const cl=st==='ok'?'{st_ok}':st==='none'?'{st_err}':'{st_warn}';const ic=st==='ok'?'✔':st==='none'?'✘':'⚠';const tip=st==='ok'?'Up to date':st==='behind'?'Behind':st==='late'?'3m starts after the start date':st==='1d'?'1d only, no 3m yet':'Not downloaded';return `<td title="${{tip}}" style="width:${{w}}px;max-width:${{w}}px;color:${{cl}};font-size:13px;text-align:center">${{ic}}</td>`;}}
+      if(ci===9&&r[10]==='late'){{return `<td title="3m starts after the start date" style="width:${{w}}px;max-width:${{w}}px;color:{st_warn};font-weight:600">${{r[di]}}</td>`;}}
       if(ci===9||ci===10){{return `<td ${{style}}>${{r[di]||'—'}}</td>`;}}
       return `<td ${{style}}>${{r[di]}}</td>`;
     }}).join('');

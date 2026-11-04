@@ -351,6 +351,7 @@ us_swing/src/us_swing/gui/
 | MD-GUI-030.004.M04 | SRD-GUI-030.004 | `us_swing/src/us_swing/gui/system_store.py` | Add the backtest TWS client ID | `SystemConfig.ibkr_backtest_client_id` (default 16) | — | No |
 | MD-GUI-030.007.M05 | SRD-GUI-030.007 | `us_swing/src/us_swing/gui/sidebar.py` | Sidebar Connections row for backtest progress (status bar removed 2026-10-31) | `_ConnectionsPanel._on_backtest_progress()`, `_on_backtest_finished()` | `app_service` | No |
 | MD-GUI-030.008.M06 | SRD-GUI-030.008 | `us_swing/src/us_swing/gui/settings_panel.py` | Universe table backtest columns | `_build_universe_html(backtest=…)`, `AppService.get_backtest_symbol_coverage()` | `app_service` | No |
+| MD-GUI-030.011.M02 | SRD-GUI-030.011 | `us_swing/src/us_swing/gui/app_service.py`, `settings_panel.py` | `late` status when 3m starts after the start date; amber BT From | `get_backtest_symbol_coverage()`, `_UNIVERSE_HTML` | `backtest.settings` | No |
 
 ## FO-GUI-031 — Backtest Workspace
 

@@ -8,7 +8,7 @@ a download runs.
 from __future__ import annotations
 
 from collections.abc import Iterator
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -16,6 +16,7 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
+from us_swing.backtest.settings import BacktestDataSettings, DownloadState
 from us_swing.backtest.store import BacktestStore
 from us_swing.universe.store import Sp500Record
 
@@ -81,21 +82,39 @@ def test_universe_backtest_coverage(svc: Any) -> None:
     last = _compute_last_trading_day()
     svc._sp500 = [Sp500Record(s, s, s, "Tech") for s in ("AAPL", "MSFT", "NVDA")]
     store = svc._bkt_store
+    BacktestDataSettings(start_date=last).save(store.root)
     now = datetime(2030, 1, 1, tzinfo=timezone.utc)
 
-    def bars(day: str) -> pd.DataFrame:
-        return pd.DataFrame({"ts": [pd.Timestamp(day, tz="UTC")], "open": [1.0], "high": [1.0],
-                             "low": [1.0], "close": [1.0], "volume": [1.0]})
-
-    store.save("AAPL", "1d", bars("2026-01-02"), now)
-    store.save("AAPL", "3m", bars(f"{last} 15:00"), now)
-    store.save("MSFT", "1d", bars("2026-01-02"), now)
+    store.save("AAPL", "1d", _bars("2026-01-02"), now)
+    store.save("AAPL", "3m", _bars(f"{last} 15:00"), now)
+    store.save("MSFT", "1d", _bars("2026-01-02"), now)
 
     cov = svc.get_backtest_symbol_coverage()
 
     assert cov["AAPL"] == (last.isoformat(), last.isoformat(), "ok")
     assert cov["MSFT"] == ("2026-01-02", "2026-01-02", "1d")
     assert cov["NVDA"] == (None, None, "none")
+
+
+def _bars(day: str) -> pd.DataFrame:
+    return pd.DataFrame({"ts": [pd.Timestamp(day, tz="UTC")], "open": [1.0], "high": [1.0],
+                         "low": [1.0], "close": [1.0], "volume": [1.0]})
+
+
+def test_universe_coverage_late_3m_start(svc: Any) -> None:
+    """UT-GUI-030.011.M02.T01: 3m starting after the start date is late; a listed-late floor is not."""
+    svc._sp500 = [Sp500Record(s, s, s, "Tech") for s in ("AAPL", "NEWCO")]
+    store = svc._bkt_store
+    BacktestDataSettings(start_date=date(2024, 1, 1)).save(store.root)
+    DownloadState(floors={"NEWCO": date(2025, 3, 3)}).save(store.root)
+    now = datetime(2030, 1, 1, tzinfo=timezone.utc)
+    store.save("AAPL", "3m", _bars("2024-04-05 15:00"), now)
+    store.save("NEWCO", "3m", _bars("2025-03-03 15:00"), now)
+
+    cov = svc.get_backtest_symbol_coverage()
+
+    assert cov["AAPL"][2] == "late"
+    assert cov["NEWCO"][2] != "late"
 
 
 def test_stats_worker_counts_missing(tmp_path: Path) -> None:

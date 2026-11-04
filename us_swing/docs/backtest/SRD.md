@@ -7,6 +7,7 @@
 **Last Updated:** 2026-11-02
 **Project:** US Swing Trading System
 
+> v1.16.0: SRD-BKT-001.017 added and approved by user 2026-11-04 (chat) — no floor from an empty 3m answer (ISS-BKT-0002).
 > v1.15.0: SRD-BKT-002.088 added and approved by user 2026-11-03 — data check gives the common saved range.
 > v1.14.0: SRD-BKT-002.087 added and approved by user 2026-11-02 — BOSS_ST series.
 > v1.13.0: SRD-BKT-002.086 added and approved by user 2026-11-02 — no-screener mode.
@@ -42,6 +43,7 @@
 | SRD-BKT-001.014 | FO-BKT-001 | Must | 15m and 1w files that are missing or older than their source are built in the background at app start. | 3m and 1d files | built files, stock count logged | Approved by user 2026-10-29; Clear also removes them | Implemented |
 | SRD-BKT-001.015 | FO-BKT-001 | Must | Download and delta also fetch SPY daily candles with the S&P 500 stocks. | S&P 500 list | SPY 1d in the store | Approved by user 2026-10-30 (RS rule needs SPY); no 3m for SPY | Implemented |
 | SRD-BKT-001.016 | FO-BKT-001 | Must | The store keeps 30m candles built from the saved 3m candles, one file per stock and year, like 15m. | 3m year files | 30m year files, 13 bars a day from 09:30 ET | Built on save and by build_missing for data already saved; clear and stats include them | Implemented |
+| SRD-BKT-001.017 | FO-BKT-001 | Must | A stock's floor is set only when its daily data starts after the start date; an empty 3m answer sets no floor and is asked again next run. | 1d and 3m answers | floor per listed-late stock | Approved by user 2026-11-04 (ISS-BKT-0002); old 3m floors dropped on load | Implemented |
 
 ## FO-BKT-002 — Backtest Engine (Phase 0 · Foundation)
 

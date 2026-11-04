@@ -92,8 +92,8 @@ def test_retry_then_mark_failed(tmp_path: Path) -> None:
     assert len(BacktestStore(tmp_path).read("MSFT", "1d")) == 2
 
 
-def test_empty_window_sets_floor(tmp_path: Path) -> None:
-    """UT-BKT-001.006.M04.T03: An empty 3m window older than saved data sets the floor."""
+def test_empty_window_sets_no_floor(tmp_path: Path) -> None:
+    """UT-BKT-001.006.M04.T03: An empty 3m window sets no floor, so it is asked again."""
     store = BacktestStore(tmp_path)
     recent = [_Bar(datetime(2025, 1, 2, 15, 0, tzinfo=timezone.utc))]
     asyncio.run(_downloader(tmp_path, [
@@ -104,7 +104,16 @@ def test_empty_window_sets_floor(tmp_path: Path) -> None:
     old = Job("AAPL", "3m", date(2024, 7, 3), date(2024, 10, 3), "3 M")
     asyncio.run(_downloader(tmp_path, [old]).run_jobs(_FakeIB(lambda s, b: [])))
 
-    assert DownloadState.load(tmp_path).floors == {"AAPL": date(2024, 10, 3)}
+    assert DownloadState.load(tmp_path).floors == {}
+
+
+def test_late_listed_1d_sets_floor(tmp_path: Path) -> None:
+    """UT-BKT-001.017.M04.T01: A 1d answer starting well after the asked start sets the floor."""
+    job = Job("NEWCO", "1d", date(2024, 1, 1), date(2025, 1, 3), "2 Y")
+
+    asyncio.run(_downloader(tmp_path, [job]).run_jobs(_FakeIB(_daily)))
+
+    assert DownloadState.load(tmp_path).floors == {"NEWCO": date(2025, 1, 2)}
 
 
 def test_slow_empty_answer_is_timeout(tmp_path: Path) -> None:

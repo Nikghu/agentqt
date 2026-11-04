@@ -166,7 +166,7 @@ class BacktestDownloader(QThread):
             self._store.save(
                 job.symbol, job.tf, _to_frame(bars), datetime.now(timezone.utc), job.start
             )
-        self._update_floor(job, state, bool(bars))
+        self._update_floor(job, state)
 
     async def _request(self, ib: Any, job: Job) -> list[Any]:
         from ib_insync import Stock
@@ -189,12 +189,12 @@ class BacktestDownloader(QThread):
             raise asyncio.TimeoutError
         return list(result)
 
-    def _update_floor(self, job: Job, state: DownloadState, got_bars: bool) -> None:
+    def _update_floor(self, job: Job, state: DownloadState) -> None:
+        """Save a floor only for a stock listed late; an empty 3m answer is asked again."""
+        if job.tf != "1d":
+            return
         saved = self._store.coverage(job.symbol, job.tf)
-        if job.tf == "1d":
-            floor = saved[0] if saved and saved[0] > job.start + _IPO_SLACK else None
-        else:
-            floor = job.end if not got_bars and (saved is None or job.end <= saved[0]) else None
+        floor = saved[0] if saved and saved[0] > job.start + _IPO_SLACK else None
         if floor is not None:
             state.floors[job.symbol] = max(floor, state.floors.get(job.symbol, floor))
 

@@ -864,6 +864,7 @@ Test files:
 | UT-GUI-030.007.M05.T02 | MD-GUI-030.007.M05 | Negative | No status bar | main window class | no status bar handlers | Pass |
 | UT-GUI-030.008.M02.T01 | MD-GUI-030.008.M06 | Positive | Per-stock backtest coverage | AAPL 1d+3m to last day, MSFT 1d only, NVDA none | ok / 1d / none with dates | Pass |
 | UT-GUI-030.008.M03.T01 | MD-GUI-030.008.M06 | Positive | Universe HTML has backtest columns | one record with coverage | BT From column and dates in data | Pass |
+| UT-GUI-030.011.M02.T01 | MD-GUI-030.011.M02 | Positive | Late 3m start marked | start 2024-01-01; AAPL 3m from 2024-04-05; NEWCO floor 2025-03-03, 3m from then | AAPL `late`; NEWCO not `late` | Pass |
 
 ## FO-GUI-031 — Backtest Workspace
 

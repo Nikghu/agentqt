@@ -7,6 +7,7 @@
 **Last Updated:** 2026-11-02
 **Project:** US Swing Trading System
 
+> v1.8.0: UT-BKT-001.006.M04.T03 changed, UT-BKT-001.017.M02.T01 and .M04.T01 added — ISS-BKT-0002.
 > v1.7.0: UT-BKT-002.088.M05.T01–T02 added — common saved range.
 > v1.6.0: UT-BKT-002.087.M10.T01–T02 added — BOSS_ST series.
 > v1.5.0: UT-BKT-002.086.M01.T01, .M05.T01–T02 added — no-screener mode.
@@ -54,7 +55,9 @@
 | UT-BKT-001.008.M03.T03 | MD-BKT-001.005.M03 | Negative | No delta with fixed end date | end date 2025-12-31, `delta_only` | empty plan | Pass |
 | UT-BKT-001.006.M04.T01 | MD-BKT-001.006.M04 | Positive | Jobs saved with progress | fake IB returns bars for 2 jobs | both saved; progress emitted 1/2, 2/2; returns ok | Pass |
 | UT-BKT-001.006.M04.T02 | MD-BKT-001.006.M04 | Negative | Retry then mark failed | fake IB times out every time for AAPL | 3 tries; AAPL in failed; MSFT jobs still run | Pass |
-| UT-BKT-001.006.M04.T03 | MD-BKT-001.006.M04 | Edge | Empty window sets floor | 3m window returns no bars, newer data saved | floor set to window end | Pass |
+| UT-BKT-001.006.M04.T03 | MD-BKT-001.006.M04 | Edge | Empty window sets no floor | 3m window returns no bars, newer data saved | no floor (changed by ISS-BKT-0002) | Pass |
+| UT-BKT-001.017.M04.T01 | MD-BKT-001.017.M04 | Positive | Listed-late daily sets floor | 1d asked from 2024-01-01, bars from 2025-01-02 | floor 2025-01-02 | Pass |
+| UT-BKT-001.017.M02.T01 | MD-BKT-001.017.M02 | Negative | Old 3m floors dropped | `state.json` with old `floors` key | floors empty | Pass |
 | UT-BKT-001.006.M04.T04 | MD-BKT-001.006.M04 | Negative | Slow empty answer is a timeout | ib_insync times out and returns no bars | retried 3 times, marked failed, no floor | Pass |
 | UT-BKT-001.007.M04.T01 | MD-BKT-001.006.M04 | Positive | Stop ends after current job | stop requested during job 1 of 3 | job 1 saved; jobs 2–3 not requested | Pass |
 | UT-BKT-001.007.M04.T02 | MD-BKT-001.006.M04 | Negative | Stopped run is not reported complete | stop requested during job 1 of 3 | returns ok False with message "Stopped" | Pass |
