@@ -12,7 +12,7 @@
 
 | FO ID | SRD ID | DD ID | MD ID | UTCD IDs | Code File | Status | RN |
 |---|---|---|---|---|---|---|---|
-| FO-DSK-001 | — | — | — | — | — | Approved | — |
+| FO-DSK-001 | SRD-DSK-001.001–.020 | DD-DSK-001.001.D01 | MD-DSK-001.004.M01, .001.M02, .015.M03, .010.M04, .018.M05, .020.M06 | UT-DSK-001.* (57, Not Run) | — | SRD Approved | — |
 | FO-DSK-002 | — | — | — | — | — | Draft | — |
 | FO-DSK-003 | — | — | — | — | — | Draft | — |
 | FO-DSK-004 | — | — | — | — | — | Draft | — |

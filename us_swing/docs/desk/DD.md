@@ -1,11 +1,12 @@
 # Design Document — Desk Harness (DSK)
 
 **Document ID:** DD-DSK
-**Version:** 0.1.0
+**Version:** 0.2.0
 **Status:** Draft
 **Last Updated:** 2026-11-05
 **Project:** US Swing Trading System
 
+> v0.2.0: DD-DSK-001.001.D01 added — desk process shell (P0a).
 > v0.1.0: Architecture review (pre-SRD). Records the locked decisions, package layout, `desk.db` contract and phase plan for DSK + MKT. DD items with IDs are added per phase once their SRDs exist.
 
 ---
@@ -75,7 +76,7 @@ SQLite in WAL mode, kept in the user data folder next to the other app databases
 
 ### 0.5 Time
 
-The desk works in NY time (`core/dates.py`). Windows tasks are set in IST (memory: US DST vs IST). On 2026-11-05 EST applies, so IST = ET + 10:30. The evening run starts about 16:25 ET (02:55 IST).
+The desk works in NY time (`zoneinfo` "America/New_York"). Windows tasks are set in IST (memory: US DST vs IST). On 2026-11-05 EST applies, so IST = ET + 10:30. The evening run starts about 16:25 ET (02:55 IST).
 
 ### 0.6 Phase plan
 
@@ -103,3 +104,79 @@ The desk works in NY time (`core/dates.py`). Windows tasks are set in IST (memor
 | Q3 | Seat caps: 3 experts / 5 champions / 30 juniors? |
 | Q4 | Monthly AI budget (USD)? |
 | Q5 | Does HELM place trades itself, or does the user approve each one? (Needed before P7.) |
+
+---
+
+## DD-DSK-001.001.D01 — Desk Process Shell (P0a)
+
+**Traces:** SRD-DSK-001.001–.020
+
+**Files.** Root `~/.usswing/desk/` (injectable): `desk.db`, `desk.lock`.
+
+**Schema** (`schema_version` = 1, kept in `PRAGMA user_version`):
+
+```
+desk_state(id INTEGER PRIMARY KEY CHECK (id = 1), state TEXT, heartbeat_at TEXT,
+           pid INTEGER, message TEXT, resume_point TEXT /* JSON */, updated_at TEXT)
+commands(id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT, created_at TEXT,
+         status TEXT /* pending|done|rejected */, done_at TEXT, note TEXT)
+runs(id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT /* evening|manual */, started_at TEXT,
+     ended_at TEXT, result TEXT /* running|ok|failed|interrupted */, note TEXT)
+```
+
+Every connection runs `PRAGMA journal_mode=WAL` and `PRAGMA busy_timeout=5000`. The desk opens one
+connection for its life; the reader opens a short read-only connection (`mode=ro` URI) per call.
+
+**Reader status rule** (`core/desk_contract.read_status`):
+
+```
+no file or no row                          -> Off
+state in {Running, Sleeping, Paused, Stopping, Error}
+    and now - heartbeat_at > 60 s          -> Error, message "not responding"
+otherwise                                  -> stored state
+```
+
+**Command table** (state → allowed commands; anything else is `rejected` with the reason):
+
+| State | pause | resume | stop | run_now |
+|---|---|---|---|---|
+| Sleeping | → Paused | reject | → Stopping | start manual run |
+| Error | → Paused | reject | → Stopping | start manual run |
+| Paused | reject | → Sleeping | → Stopping | reject |
+| Running | → Paused after the run | reject | → Stopping | reject |
+
+**Main loop** (`desk/process.DeskProcess.run`, clock and sleep injected):
+
+```
+take lock (msvcrt.locking on desk.lock) or log "[Desk] Already running" and exit 0
+open store; if saved state is Stopped and not resume: exit 0          # SRD .013
+set Sleeping, pid; mark open runs interrupted and queue one rerun      # SRD .014
+sync evening task time (best effort)                                   # SRD .019
+loop every 2 s:
+    write heartbeat when 10 s passed                                   # SRD .009
+    apply pending commands in id order                                 # SRD .010-.012
+    if Stopping: save resume point {"last_run_id", "rerun"} , set Stopped, break
+    if Paused: continue
+    if rerun queued, run_now asked, or evening_due(now, last evening run): do_run()
+release lock
+```
+
+`do_run` sets Running, inserts a `runs` row, calls each `DeskStep` (a `Protocol` in
+`core/desk_contract.py`: `name: str`, `__call__(ctx) -> None`) in order, checking for a stop command
+between steps. Step error → run `failed`, state Error with message `"<step> failed: <reason>"`.
+All ok → run `ok`, state Sleeping. P0a registers no steps; MKT adds steps from P1.
+
+**Evening due** (`desk/clock.evening_due`): same shape as SRD-BKT-001.009 — find today's 16:25 ET
+on a weekday; due when it has passed and the last evening run started before it. Missed days are
+not replayed, only today's.
+
+**Windows tasks** (`desk/task.py`):
+
+| Task | Trigger | Command |
+|---|---|---|
+| `USSwing_Desk` | `/sc onlogon` | `<exe> desk` |
+| `USSwing_Desk_Evening` | `/sc weekly /d <days> /st HH:MM` — 16:20 ET Mon–Fri turned into local time and local days today (IST: TUE–SAT 02:50 in EST) | `<exe> desk` |
+
+`<exe>` is `sys.executable` when frozen, else `pythonw.exe -m us_swing`. `start` launches the same
+command plus `--resume` with `DETACHED_PROCESS | CREATE_NO_WINDOW`. The sync step reads the task
+time and days with `/query /xml` and re-creates the evening task when either differs.
