@@ -2,6 +2,26 @@
 
 ---
 
+## [20261105] GUI — Candle data stuck "1 day behind" by an IBKR gap (ISS-GUI-0017)
+
+- Type: Bugfix
+- FO(s): FO-GUI-006
+- RN: RN-GUI-1.59.2-20261105
+- Artifacts updated: Issue (ISS-GUI-0017), SRD (GUI-006.022, approved by user in chat → Implemented), UTCD (T24 Pass), TRACE (gui), Code (gui/app_service.py), Tests
+- Decisions: IBKR has no 2026-11-04 HLT bar; user picked "list it as failed" over a Yahoo fill or a 99% rule.
+
+---
+
+## [20261105] GUI — Test AI button removed
+
+- Type: Enhancement
+- FO(s): FO-GUI-033
+- RN: RN-GUI-1.59.1-20261105
+- Artifacts updated: SRD (GUI-033.006 text, .007 Removed), DD (gui, inf), UTCD (UT-GUI-033.007.* Removed), TRACE (gui), Code (gui/ai_settings_block.py), Tests
+- Decisions: user asked to remove the button; `ask_ai` stays for the Morning brief.
+
+---
+
 ## [20261105] INF — Daily Telegram briefs (Morning brief, Day-end v2)
 
 - Type: Feature

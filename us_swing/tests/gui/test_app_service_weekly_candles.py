@@ -147,3 +147,22 @@ def test_download_without_daily_bars_reports_no_data(worker: Any, tmp_path: Path
     assert failures == [("AAPL", "NO_DATA")]
     conn = sqlite3.connect(tmp_path / "candles.db")
     assert _weekly(conn, "AAPL") == []
+
+
+def test_daily_bars_stopping_early_mark_stock_failed(worker: Any, tmp_path: Path) -> None:
+    """UT-GUI-006.001.M01.T24: IBKR bars that end before the last trading day → failed, bars kept."""
+    daily = [
+        SimpleNamespace(date=_MON + datetime.timedelta(days=i), open=10.0, high=20.0,
+                        low=5.0, close=15.0, volume=100)
+        for i in range(4)
+    ]
+    failures: list[tuple[str, str]] = []
+    worker.symbol_failed.connect(lambda s, r: failures.append((s, r)))
+
+    asyncio.run(worker._download_all(_FakeIB(daily)))
+
+    last_day = (_MON + datetime.timedelta(days=4)).isoformat()
+    assert failures == [("AAPL", f"IBKR has no bar for {last_day}")]
+    conn = sqlite3.connect(tmp_path / "candles.db")
+    assert conn.execute("SELECT COUNT(*) FROM price_1d").fetchone()[0] == 4
+

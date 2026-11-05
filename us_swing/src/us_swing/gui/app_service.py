@@ -994,6 +994,9 @@ class _CandleDownloadWorker(QThread):
                     inserted_1w += _rebuild_weekly_from_daily(conn, symbol)
                     conn.commit()
                     conn.close()
+                    gap = _missing_last_day(bars_1d, self._end_date)
+                    if gap:
+                        self.symbol_failed.emit(symbol, gap)
 
             except Exception as exc:
                 reason = str(exc) if str(exc) else type(exc).__name__
@@ -1030,6 +1033,15 @@ class _CandleDownloadWorker(QThread):
         else:
             # Stopped by user — checkpoint persists for future resume
             self.finished.emit(inserted_1d, inserted_1w)
+
+
+def _missing_last_day(bars: list[Any], end_date: datetime.date) -> str:
+    """Failure reason when IBKR's daily bars stop before ``end_date`` (SRD-GUI-006.022)."""
+    last = bars[-1].date
+    last_day = last.date() if isinstance(last, datetime.datetime) else last
+    if isinstance(last_day, datetime.date) and last_day < end_date:
+        return f"IBKR has no bar for {end_date.isoformat()}"
+    return ""
 
 
 def _bar_date_str(bar_date: object) -> str:

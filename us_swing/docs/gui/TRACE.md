@@ -27,6 +27,7 @@
 | FO-GUI-006 | SRD-GUI-006.018 | — | MD-GUI-006.001.M01 | UT-GUI-006.001.M01.T05–T06 | `gui/app_service.py`, `gui/settings_panel.py` | Implemented | RN-GUI-1.4.1-20260904 |
 | FO-GUI-006 | SRD-GUI-006.019 | — | MD-GUI-006.001.M01 | UT-GUI-006.001.M01.T11–T16 | `gui/app_service.py` | Implemented | RN-GUI-1.7.1-20261022 |
 | FO-GUI-006 | SRD-GUI-006.020–.021 | — | MD-GUI-006.001.M01 | UT-GUI-006.001.M01.T20–T23 | `gui/app_service.py` | Implemented | RN-GUI-1.56.2-20261103 |
+| FO-GUI-006 | SRD-GUI-006.022 | — | MD-GUI-006.001.M01 | UT-GUI-006.001.M01.T24 | `gui/app_service.py` | Implemented | RN-GUI-1.59.2-20261105 |
 | FO-GUI-004 | SRD-GUI-004.009 | — | MD-GUI-004.001.M01 | UT-GUI-004.001.M01.T08–T10 | `gui/app_service.py` | Implemented | RN-GUI-1.7.2-20261022 |
 | FO-GUI-004 | SRD-GUI-004.010 | — | MD-GUI-004.001.M01, MD-GUI-004.001.M02 | UT-GUI-004.001.M01.T11–T14 | `gui/manual_picks_store.py`, `gui/app_service.py` | Implemented | RN-GUI-1.8.0-20261022 |
 | FO-GUI-004 | SRD-GUI-004.011 | — | MD-GUI-004.001.M01 | UT-GUI-004.001.M01.T15–T16, T19 | `gui/execution_panel.py`, `gui/app_service.py` | Implemented | RN-GUI-1.8.0-20261022 |
@@ -112,7 +113,7 @@
 | FO-GUI-033 | SRD-GUI-033.004 | DD-GUI-033.001.D01 | MD-GUI-033.001.M01, MD-GUI-033.004.M02 | UT-GUI-033.004.M01.T01, UT-GUI-033.004.M02.T01 (Pass) | `gui/ai_settings_block.py`, `gui/settings_panel.py`, `gui/settings_dialog.py` | Implemented | RN-GUI-1.59.0-20261105 |
 | FO-GUI-033 | SRD-GUI-033.005 | DD-GUI-033.001.D01 | MD-GUI-033.004.M02, MD-GUI-033.005.M03 | UT-GUI-033.005.M02.T01–T02 (Pass) | `gui/settings_panel.py`, `gui/user_store.py`, `data/models.py` | Implemented | RN-GUI-1.59.0-20261105 |
 | FO-GUI-033 | SRD-GUI-033.006 | DD-GUI-033.001.D01 | MD-GUI-033.001.M01, MD-GUI-033.004.M02 | UT-GUI-033.006.M01.T01, UT-GUI-033.006.M02.T01 (Pass) | `gui/ai_settings_block.py`, `gui/settings_panel.py` | Implemented | RN-GUI-1.59.0-20261105 |
-| FO-GUI-033 | SRD-GUI-033.007 | DD-GUI-033.001.D01 | MD-GUI-033.001.M01 | UT-GUI-033.007.M01.T01–T02 (Pass) | `gui/ai_settings_block.py` | Implemented | RN-INF-1.9.0-20261105 |
+| FO-GUI-033 | SRD-GUI-033.007 | DD-GUI-033.001.D01 | MD-GUI-033.001.M01 | UT-GUI-033.007.M01.T01–T02 (Pass) | `gui/ai_settings_block.py` | Removed (user, 2026-11-05) | RN-GUI-1.59.1-20261105 |
 
 ---
 
