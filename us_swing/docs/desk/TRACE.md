@@ -1,0 +1,20 @@
+# Traceability Matrix — Desk Harness (DSK)
+
+**Document ID:** TRACE-DSK
+**Version:** 0.1.0
+**Status:** Draft
+**Last Updated:** 2026-11-05
+**Project:** US Swing Trading System
+
+> v0.1.0: One row per Draft FO. Columns fill as each phase completes.
+
+---
+
+| FO ID | SRD ID | DD ID | MD ID | UTCD IDs | Code File | Status | RN |
+|---|---|---|---|---|---|---|---|
+| FO-DSK-001 | — | — | — | — | — | Approved | — |
+| FO-DSK-002 | — | — | — | — | — | Draft | — |
+| FO-DSK-003 | — | — | — | — | — | Draft | — |
+| FO-DSK-004 | — | — | — | — | — | Draft | — |
+| FO-DSK-005 | — | — | — | — | — | Draft | — |
+| FO-DSK-006 | — | — | — | — | — | Draft | — |
