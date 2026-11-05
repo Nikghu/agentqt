@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-05
 **Project:** US Swing Trading System
 
+> v0.4.0: SRD-MKT-003.001–.012 added as Draft — money flow, setups, readiness score and ideas (P3).
 > v0.3.0: SRD-MKT-002.001–.010 added as Draft — sector strength, rotation and stock RS (P2).
 > v0.2.0: SRD-MKT-001.001–.012 added as Draft — regime, breadth and fear (P1).
 > v0.1.0: Empty. Rows are added per phase, starting with the first FO of this tool.
@@ -43,3 +44,20 @@
 | SRD-MKT-002.008 | FO-MKT-002 | Must | Results are kept in `sector_daily` (one row per sector per day) and `stock_rs` (one row per stock per day) in `desk.db`. | rows | tables | Re-running a day replaces its rows | Implemented |
 | SRD-MKT-002.009 | FO-MKT-002 | Must | The desk step "Sectors" runs after "Market regime", fills history on its first run, recomputes the last 7 days and skips days with data for fewer than 80% of members. | desk run | rows | `market` never imports `desk`; a missing candle file never fails the run | Implemented |
 | SRD-MKT-002.010 | FO-MKT-002 | Should | Each run logs the days added, the top 3 sectors and sectors that changed quadrant. | step | log lines | `[Sectors]` prefix | Implemented |
+
+## FO-MKT-003: Money Flow, Setups, Readiness Score and Ideas
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-MKT-003.001 | FO-MKT-003 | Must | Daily bars include volume, and stocks whose 20-day average dollar volume is below $20M are not scored. | candles | bars, liquid set | Aligned to SPY's days | Draft |
+| SRD-MKT-003.002 | FO-MKT-003 | Must | Money flow (0–1) is the mean of net accumulation days over 25 sessions, 20-day Chaikin money flow and 50-day up against down volume; the short value is 1 minus the long value. | bars | flow per side | Each part clipped to 0–1 | Draft |
+| SRD-MKT-003.003 | FO-MKT-003 | Must | Long setups are Squeeze, Flat base and Pullback; each match gives a trigger, a stop and a tightness from 0 to 1. | bars | setup, trigger, stop | Best match kept | Draft |
+| SRD-MKT-003.004 | FO-MKT-003 | Must | Short setups are Failed breakout, Lower highs and Breakdown; each match gives a trigger, a stop and a tightness from 0 to 1. | bars | setup, trigger, stop | Best match kept | Draft |
+| SRD-MKT-003.005 | FO-MKT-003 | Must | The score is RS 20, money flow 20, setup 20, sector 15 and regime 15 points, scaled by 100/90 while news is not scored. | parts | score 0–100 per side | News 10 points join in P5c | Draft |
+| SRD-MKT-003.006 | FO-MKT-003 | Must | A stock more than 8% past its 20-day average in the idea's direction loses 10 points, and the score never goes below 0. | bars | penalty | — | Draft |
+| SRD-MKT-003.007 | FO-MKT-003 | Must | Per side, the 10 best stocks scoring 60 or more are the idea list; a stock with earnings within 5 trading days or against the regime goes to Watch. | scores | ideas, watch | Shorts are against the regime in an Uptrend, longs in a Downtrend | Draft |
+| SRD-MKT-003.008 | FO-MKT-003 | Must | Each idea and Watch name keeps up to 5 one-line reasons with its setup, trigger and stop. | parts | reasons | Plain words, no codes | Draft |
+| SRD-MKT-003.009 | FO-MKT-003 | Must | Next earnings dates come from Yahoo Finance for the 30 best-scored stocks per side on the latest day only. | symbols | dates | A failed fetch means no earnings check and a note | Draft |
+| SRD-MKT-003.010 | FO-MKT-003 | Must | Results are kept in `stock_score`, `ideas` and `idea_reasons` in `desk.db`. | rows | tables | Re-running a day replaces its rows | Draft |
+| SRD-MKT-003.011 | FO-MKT-003 | Must | The desk step "Ideas" runs after "Sectors", fills history on its first run, recomputes the last 7 days and skips days without regime and sector rows or with data for fewer than 80% of members. | desk run | rows | A missing candle file never fails the run | Draft |
+| SRD-MKT-003.012 | FO-MKT-003 | Should | Each run logs the days added, the idea and Watch counts per side and the top 3 ideas per side. | step | log lines | `[Ideas]` prefix | Draft |
