@@ -7,6 +7,7 @@
 **Last Updated:** 2026-11-02
 **Project:** US Swing Trading System
 
+> v1.8.0: MD-BKT-001.017.M02/.M04 — floors from listed-late daily data only (SRD-BKT-001.017, ISS-BKT-0002).
 > v1.7.0: `service.py` (MD-BKT-002.008.M05) `_data_check()`, `_common_span()`, `Estimate.data_span` (SRD-BKT-002.088).
 > v1.6.0: `core/expr/series.py` (MD-BKT-002.021.M10) reads BOSS_ST from `core.market_structure` on the LTF frame (SRD-BKT-002.087).
 > v1.5.0: no-screener mode — `spec.ScreenerSpec.skip` (MD-BKT-002.001.M01); `service.py` (MD-BKT-002.008.M05) `_fixed_lists()`, `_estimate_fixed()`, `Estimate.fixed`, Screener fact (SRD-BKT-002.086).
@@ -26,6 +27,8 @@
 | MD-BKT-001.004.M02 | SRD-BKT-001.004 | `us_swing/src/us_swing/backtest/settings.py` | Settings and download state files | `BacktestDataSettings`, `DownloadState`, `load()`, `save()` | — | No |
 | MD-BKT-001.005.M03 | SRD-BKT-001.005 | `us_swing/src/us_swing/backtest/planner.py` | Build the request list from settings and saved ranges | `Job`, `plan()` | `settings`, `store.Timeframe` | No |
 | MD-BKT-001.006.M04 | SRD-BKT-001.006 | `us_swing/src/us_swing/backtest/downloader.py` | Run jobs against TWS with pacing, retry and stop | `BacktestDownloader`, `request_stop()`, `progress`, `completed` | `store`, `planner`, `broker.pacing`, `ib_insync` | Yes (`QThread` + asyncio) |
+| MD-BKT-001.017.M04 | SRD-BKT-001.017 | `us_swing/src/us_swing/backtest/downloader.py` | Floor only from listed-late daily data | `_update_floor()` | `store` | No |
+| MD-BKT-001.017.M02 | SRD-BKT-001.017 | `us_swing/src/us_swing/backtest/settings.py` | Floors saved under `listed`; old `floors` key not read | `DownloadState.load()`, `save()` | — | No |
 | MD-BKT-001.009.M05 | SRD-BKT-001.009 | `us_swing/src/us_swing/backtest/schedule.py` | Decide when auto delta is due | `delta_due()` | `settings` | No |
 
 ## FO-BKT-002 — Backtest Engine (Phase 0 and 1)

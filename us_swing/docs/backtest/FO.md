@@ -24,7 +24,7 @@ The system shall keep a separate history of 1d and 3m candles for all S&P 500 st
 - The system shall keep 15m and 1w candles built from the saved 3m and 1d candles, so they are always available (added by user 2026-10-29).
 - The system shall also keep 30m candles built from the saved 3m candles, 13 a day from 09:30 ET, usable in strategies like 15m (added by user 2026-11-02).
 - The system shall download the range between a start date and an end date (or the latest trading day).
-- The system shall download 1d first, then 3m newest years first, and resume after a stop or TWS restart.
+- The system shall download one stock fully before the next (its 1d, then its 3m newest first), and resume after a stop or TWS restart (changed by user 2026-11-04).
 - The system shall never save the unfinished candles of the current trading day.
 - The system shall add new trading days automatically at a set US/Eastern time (auto delta), and catch up missed days.
 - The system shall clear all backtest candles on request, keeping the settings.

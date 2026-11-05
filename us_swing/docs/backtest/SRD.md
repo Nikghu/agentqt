@@ -7,6 +7,8 @@
 **Last Updated:** 2026-11-02
 **Project:** US Swing Trading System
 
+> v1.17.0: SRD-BKT-001.005 reopened by user 2026-11-04 (chat) — download one stock fully before the next.
+> v1.16.0: SRD-BKT-001.017 added and approved by user 2026-11-04 (chat) — no floor from an empty 3m answer (ISS-BKT-0002).
 > v1.15.0: SRD-BKT-002.088 added and approved by user 2026-11-03 — data check gives the common saved range.
 > v1.14.0: SRD-BKT-002.087 added and approved by user 2026-11-02 — BOSS_ST series.
 > v1.13.0: SRD-BKT-002.086 added and approved by user 2026-11-02 — no-screener mode.
@@ -30,7 +32,7 @@
 | SRD-BKT-001.002 | FO-BKT-001 | Must | Saving merges new bars with saved bars by timestamp, keeps one row per timestamp and replaces the file atomically. | bars | file | A crash mid-write leaves the old file intact | Implemented |
 | SRD-BKT-001.003 | FO-BKT-001 | Must | Bars of the current US trading day are not saved before 16:15 US/Eastern. | bars, clock | filtered bars | Applies to 1d and 3m | Implemented |
 | SRD-BKT-001.004 | FO-BKT-001 | Must | Settings hold start date, end date or latest, auto delta on/off, run time and run days, saved in `settings.json`. | settings | JSON file | Defaults 2016-01-01, latest, on, 17:30, Mon–Fri; bad file loads defaults | Implemented |
-| SRD-BKT-001.005 | FO-BKT-001 | Must | The download plan asks for 1d in one request per stock, then 3m in 3-month chunks newest first, skipping ranges already saved. | settings, saved ranges | request list | Chunks before a stock's first available bar are skipped | Implemented |
+| SRD-BKT-001.005 | FO-BKT-001 | Must | The download plan finishes one stock before the next: its 1d in one request, then its 3m in 3-month chunks newest first, skipping ranges already saved. | settings, saved ranges | request list | Chunks before a stock's first available bar are skipped; reopened by user 2026-11-04 for per-stock order | Implemented |
 | SRD-BKT-001.006 | FO-BKT-001 | Must | The downloader runs the plan in the background, waits and retries a failed request up to 3 times, then marks the stock failed and continues. | request list | bars, progress | Own TWS client ID; IBKR pacing limit respected | Implemented |
 | SRD-BKT-001.007 | FO-BKT-001 | Must | A stop request ends the run after the current request; the next run continues from the saved files. | stop | stopped run | No saved month is downloaded twice | Implemented |
 | SRD-BKT-001.008 | FO-BKT-001 | Must | Delta fill asks each stock for the days since its last saved bar, at least 2 days, and skips a stock whose last saved bar is the last session. | saved ranges | request list | Runs only when end date is latest; reopened by user 2026-10-29 | Implemented |
@@ -42,6 +44,7 @@
 | SRD-BKT-001.014 | FO-BKT-001 | Must | 15m and 1w files that are missing or older than their source are built in the background at app start. | 3m and 1d files | built files, stock count logged | Approved by user 2026-10-29; Clear also removes them | Implemented |
 | SRD-BKT-001.015 | FO-BKT-001 | Must | Download and delta also fetch SPY daily candles with the S&P 500 stocks. | S&P 500 list | SPY 1d in the store | Approved by user 2026-10-30 (RS rule needs SPY); no 3m for SPY | Implemented |
 | SRD-BKT-001.016 | FO-BKT-001 | Must | The store keeps 30m candles built from the saved 3m candles, one file per stock and year, like 15m. | 3m year files | 30m year files, 13 bars a day from 09:30 ET | Built on save and by build_missing for data already saved; clear and stats include them | Implemented |
+| SRD-BKT-001.017 | FO-BKT-001 | Must | A stock's floor is set only when its daily data starts after the start date; an empty 3m answer sets no floor and is asked again next run. | 1d and 3m answers | floor per listed-late stock | Approved by user 2026-11-04 (ISS-BKT-0002); old 3m floors dropped on load | Implemented |
 
 ## FO-BKT-002 — Backtest Engine (Phase 0 · Foundation)
 

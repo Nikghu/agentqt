@@ -2,10 +2,12 @@
 
 **Document:** CONTEXT.md
 **Project:** us_swing
-**Last Updated:** 2026-11-03 (Session 114)
+**Last Updated:** 2026-11-04 (Session 115)
 **Updated By:** Claude (Opus 5.5)
 
 ---
+
+**Current (Session 115, 2026-11-04):** **3m backtest candles now asked from the start date (Bugfix, BKT + GUI; ISS-BKT-0002; SRD-BKT-001.017, SRD-GUI-030.011 approved by user in chat and Implemented; RN-BKT-1.13.0-20261104).** Empty 3m answers had saved floors for 503 stocks (3m from Apr/Jul 2024 while start is 01-01-2024), so Download missing never asked for the gap. Floors now come only from listed-late daily data (`state.json` key `listed`; old `floors` key dropped); Universe shows `late` with amber BT From. User chose: no IBKR-limit mark — a stock with no 3m stays missing and is asked again each click. Dry run: 1,277 3m requests for 503 stocks. 4 UT Pass. Commit 85e45962. Then (RN-BKT-1.13.1, SRD-BKT-001.005 reopened by user): download now finishes one stock before the next (its 1d, then its 3m newest first). Then (RN-GUI-1.58.0, SRD-GUI-030.012 approved by user): Universe row updates per finished stock plus "backtest complete for N of M stocks". Branch fix/bkt-3m-start-floors, 3 commits, not pushed. **Next:** user runs Download missing with TWS on and watches Universe (T97).
 
 **Current (Session 114, 2026-11-03):** **All popups in the app's frameless style (Bugfix, GUI; ISS-GUI-0016; SRD-GUI-000.009 approved by user and Implemented; RN-GUI-1.57.1-20261103).** New `gui/popups.py` (`confirm()`, `notify()` on the shared `_ConfirmDialog`); all 27 native `QMessageBox` popups in 7 panels moved over, same wording; Delete Preset now shows the preset name. 4 UT Pass; tests/gui 649 passed (22 known chart_workspace errors). PRs #104–#106 merged earlier today. Branch fix/gui-frameless-popups, not pushed. **Next:** user check (T96).
 

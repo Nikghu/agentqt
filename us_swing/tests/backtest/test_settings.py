@@ -45,3 +45,11 @@ def test_download_state_round_trip(tmp_path: Path) -> None:
     state.save(tmp_path)
 
     assert DownloadState.load(tmp_path) == state
+
+
+def test_old_3m_floors_dropped_on_load(tmp_path: Path) -> None:
+    """UT-BKT-001.017.M02.T01: Floors saved under the old key are dropped, so 3m is asked again."""
+    (tmp_path / "state.json").write_text(
+        '{"last_delta": null, "floors": {"AAPL": "2024-04-04"}, "failed": []}', encoding="utf-8")
+
+    assert DownloadState.load(tmp_path).floors == {}

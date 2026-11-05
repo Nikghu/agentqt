@@ -7,6 +7,8 @@
 **Last Updated:** 2026-11-02
 **Project:** US Swing Trading System
 
+> v1.9.0: UT-BKT-001.005.M03.T01 changed and T05 added — one stock at a time (SRD-BKT-001.005 reopened by user 2026-11-04).
+> v1.8.0: UT-BKT-001.006.M04.T03 changed, UT-BKT-001.017.M02.T01 and .M04.T01 added — ISS-BKT-0002.
 > v1.7.0: UT-BKT-002.088.M05.T01–T02 added — common saved range.
 > v1.6.0: UT-BKT-002.087.M10.T01–T02 added — BOSS_ST series.
 > v1.5.0: UT-BKT-002.086.M01.T01, .M05.T01–T02 added — no-screener mode.
@@ -43,10 +45,11 @@
 | UT-BKT-001.016.M01.T02 | MD-BKT-001.001.M01 | Edge | 30m for old data and clear | store saved before 30m existed | build_missing builds 30m once; clear removes the 30m folder | Pass |
 | UT-BKT-001.004.M02.T01 | MD-BKT-001.004.M02 | Positive | Settings round trip | save custom settings, load | values equal | Pass |
 | UT-BKT-001.004.M02.T02 | MD-BKT-001.004.M02 | Negative | Broken file loads defaults | `settings.json` with bad JSON | defaults 2016-01-01, latest, on, 17:30, Mon–Fri | Pass |
-| UT-BKT-001.005.M03.T01 | MD-BKT-001.005.M03 | Positive | Empty store plan | 2 stocks, 2025-01-01 to 2025-12-31 | 2 1d jobs first; 3m jobs newest end first across both stocks | Pass |
+| UT-BKT-001.005.M03.T01 | MD-BKT-001.005.M03 | Positive | Empty store plan | 2 stocks, 2025-01-01 to 2025-12-31 | AAPL 1d then its 3m newest first, then MSFT the same (changed 2026-11-04) | Pass |
 | UT-BKT-001.005.M03.T02 | MD-BKT-001.005.M03 | Negative | Fully saved store has no jobs | coverage equals range | empty plan | Pass |
 | UT-BKT-001.005.M03.T03 | MD-BKT-001.005.M03 | Edge | Earlier start back-fills only older windows | saved 2024–2025, start moved to 2023 | 3m jobs only for 2023 windows; one 1d back-fill job | Pass |
 | UT-BKT-001.005.M03.T04 | MD-BKT-001.005.M03 | Edge | Floor skips windows before first data | floor 2024-06-01 | no 3m job ending before the floor | Pass |
+| UT-BKT-001.005.M03.T05 | MD-BKT-001.005.M03 | Edge | Stock with new and old 3m gaps finishes first | AAPL 3m saved Jul–Oct, MSFT full | only AAPL jobs, newest end first, last reaches start | Pass |
 | UT-BKT-001.015.M03.T01 | MD-BKT-001.005.M03 | Positive | SPY gets daily jobs | empty store, daily_only SPY | SPY 1d job; no SPY 3m job | Pass |
 | UT-BKT-001.015.M03.T02 | MD-BKT-001.005.M03 | Negative | Saved SPY | SPY 1d saved for range | no jobs | Pass |
 | UT-BKT-001.008.M03.T01 | MD-BKT-001.005.M03 | Positive | Delta asks days since last bar | last saved 3 trading days ago, `delta_only` | one job per stock and tf, duration "4 D" | Pass |
@@ -54,7 +57,9 @@
 | UT-BKT-001.008.M03.T03 | MD-BKT-001.005.M03 | Negative | No delta with fixed end date | end date 2025-12-31, `delta_only` | empty plan | Pass |
 | UT-BKT-001.006.M04.T01 | MD-BKT-001.006.M04 | Positive | Jobs saved with progress | fake IB returns bars for 2 jobs | both saved; progress emitted 1/2, 2/2; returns ok | Pass |
 | UT-BKT-001.006.M04.T02 | MD-BKT-001.006.M04 | Negative | Retry then mark failed | fake IB times out every time for AAPL | 3 tries; AAPL in failed; MSFT jobs still run | Pass |
-| UT-BKT-001.006.M04.T03 | MD-BKT-001.006.M04 | Edge | Empty window sets floor | 3m window returns no bars, newer data saved | floor set to window end | Pass |
+| UT-BKT-001.006.M04.T03 | MD-BKT-001.006.M04 | Edge | Empty window sets no floor | 3m window returns no bars, newer data saved | no floor (changed by ISS-BKT-0002) | Pass |
+| UT-BKT-001.017.M04.T01 | MD-BKT-001.017.M04 | Positive | Listed-late daily sets floor | 1d asked from 2024-01-01, bars from 2025-01-02 | floor 2025-01-02 | Pass |
+| UT-BKT-001.017.M02.T01 | MD-BKT-001.017.M02 | Negative | Old 3m floors dropped | `state.json` with old `floors` key | floors empty | Pass |
 | UT-BKT-001.006.M04.T04 | MD-BKT-001.006.M04 | Negative | Slow empty answer is a timeout | ib_insync times out and returns no bars | retried 3 times, marked failed, no floor | Pass |
 | UT-BKT-001.007.M04.T01 | MD-BKT-001.006.M04 | Positive | Stop ends after current job | stop requested during job 1 of 3 | job 1 saved; jobs 2–3 not requested | Pass |
 | UT-BKT-001.007.M04.T02 | MD-BKT-001.006.M04 | Negative | Stopped run is not reported complete | stop requested during job 1 of 3 | returns ok False with message "Stopped" | Pass |

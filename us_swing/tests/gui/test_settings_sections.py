@@ -284,3 +284,31 @@ def test_universe_html_has_backtest_columns() -> None:
 
     assert "['BT From',       8,100]" in html
     assert '"2026-01-02", "2026-10-27", "ok"' in html
+    assert "function updateBt(sym,c)" in html
+
+
+def test_universe_row_updates_when_stock_done() -> None:
+    """UT-GUI-030.012.M06.T01: The next stock in progress updates the previous stock's row only."""
+    from types import SimpleNamespace
+    from unittest.mock import MagicMock
+
+    tab_cls = settings_panel._UniverseTab
+    svc = MagicMock()
+    svc.get_backtest_coverage_for.return_value = ("BRK.B", ("2024-01-02", "2026-11-03", "ok"))
+    page = MagicMock()
+    tab = SimpleNamespace(
+        _svc=svc, _bkt_symbol=None, _meta_text="503 constituents",
+        _backtest={"BRK.B": (None, None, "none"), "MSFT": ("2024-01-02", "2026-11-03", "ok")},
+        _web=SimpleNamespace(page=lambda: page), _meta_label=MagicMock(),
+    )
+    tab._show_meta = lambda: tab_cls._show_meta(tab)
+    tab._update_backtest_row = lambda s: tab_cls._update_backtest_row(tab, s)
+
+    for symbol in ("BRK B", "BRK B", "MSFT"):
+        tab_cls._on_backtest_progress(tab, "3m", 1, 9, symbol)
+
+    svc.get_backtest_coverage_for.assert_called_once_with("BRK B")
+    page.runJavaScript.assert_called_once_with(
+        'updateBt("BRK.B",["2024-01-02", "2026-11-03", "ok"]);')
+    tab._meta_label.setText.assert_called_with(
+        "503 constituents · backtest complete for 2 of 2 stocks")

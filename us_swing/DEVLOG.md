@@ -2,6 +2,36 @@
 
 ---
 
+## [20261104] GUI — Universe shows backtest progress per stock
+
+- Type: Enhancement
+- FO(s): FO-GUI-030
+- RN: RN-GUI-1.58.0-20261104
+- Artifacts updated: SRD (GUI-030.012 new, approved by user → Implemented), MD (MD-GUI-030.012.M02/.M06), UTCD (2 rows Pass), TRACE (gui), Code (gui/app_service.py, gui/settings_panel.py), Tests (test_settings_sections.py, test_app_service_backtest.py), CONTEXT, DEVLOG
+- Decisions: one-row JS update instead of a full reload (user: no lag); stock done = next symbol in progress; full reload kept at download end.
+
+---
+
+## [20261104] BKT — Backtest download finishes one stock before the next
+
+- Type: Enhancement
+- FO(s): FO-BKT-001
+- RN: RN-BKT-1.13.1-20261104
+- Artifacts updated: FO (order bullet), SRD (BKT-001.005 reopened by user → Implemented), DD, UTCD (UT-BKT-001.005.M03.T01 changed, T05 new, Pass), TRACE, Code (backtest/planner.py), Tests (test_planner.py), CONTEXT, DEVLOG
+- Decisions: user rejected the interleaved order after hearing the trade-off; stock order and SPY-last kept; downloader untouched.
+
+---
+
+## [20261104] BKT + GUI — 3m backtest candles asked from the start date
+
+- Type: Bugfix
+- FO(s): FO-BKT-001, FO-GUI-030 (ISS-BKT-0002)
+- RN: RN-BKT-1.13.0-20261104
+- Artifacts updated: ISS-BKT-0002, SRD (BKT-001.017, GUI-030.011 new, approved by user → Implemented), DD (backtest floors), MD (MD-BKT-001.017.M02/.M04, MD-GUI-030.011.M02), UTCD (4 rows Pass), TRACE (backtest, gui), Code (backtest/downloader.py, backtest/settings.py, gui/app_service.py, gui/settings_panel.py), Tests (test_downloader.py, test_settings.py, test_app_service_backtest.py), TODO (T97), CONTEXT, DEVLOG
+- Decisions: user picked "keep showing missing" over an IBKR-limit mark; old floors dropped by a new state key instead of a cleanup step; 7-day slack same as the planner.
+
+---
+
 ## [20261103] GUI — All popups in the app's frameless style
 
 - Type: Bugfix

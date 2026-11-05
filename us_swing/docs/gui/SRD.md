@@ -5,6 +5,8 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.77.0: SRD-GUI-030.012 added and approved by user 2026-11-04 (chat) — Universe row updates per finished stock.
+> v2.76.0: SRD-GUI-030.011 added and approved by user 2026-11-04 (chat) — Universe marks a late 3m start (ISS-BKT-0002).
 > v2.75.0: SRD-GUI-000.009 added and approved by user 2026-11-03 — frameless confirm and message popups (ISS-GUI-0016).
 > v2.74.0: SRD-GUI-022.011 reopened by user 2026-11-03 — Screener chart draws the AI plan from the next candle after the run, with a hit tag.
 > v2.73.0: SRD-GUI-006.020–.021 added and approved by user 2026-11-03 — candle update no longer stuck when only some stocks are current; Retry Failed keeps the resume point (ISS-GUI-0014).
@@ -546,6 +548,8 @@
 | SRD-GUI-030.008 | FO-GUI-030 | Should | The Universe table shows each stock's backtest status, first date and last date. | backtest store | Backtest, BT From, BT To columns | Requested by user 2026-10-28; 3m dates, else 1d | Implemented |
 | SRD-GUI-030.009 | FO-GUI-030 | Must | The status shows one plain sentence, the saved coverage, what is still missing with its time, and a single button labelled Download, Download missing, Save range and download, Pause or Up to date. | stats, plan size, run state, range fields | sentence, progress, button | Requested by user 2026-10-29 (Option D); replaces the Fill delta button of .004 and the progress lines and stat strip of .001; auto delta unchanged | Implemented |
 | SRD-GUI-030.010 | FO-GUI-030 | Should | Under the coverage line, one short line says 15-minute and weekly candles are built from these. | stats | note line | Approved by user 2026-10-29 | Implemented |
+| SRD-GUI-030.011 | FO-GUI-030 | Must | The Universe table marks a stock whose 3m candles start more than 7 days after the start date (or its listing date) with a warning icon and an amber BT From. | backtest store, start date, floors | `late` status | Approved by user 2026-11-04 (ISS-BKT-0002) | Implemented |
+| SRD-GUI-030.012 | FO-GUI-030 | Should | During a backtest download, each stock's Universe row updates when that stock is done, and the top line shows how many stocks are complete. | progress symbol, one stock's coverage | updated row, "backtest complete for N of M stocks" | Approved by user 2026-11-04; only that row changes, no full reload; full reload at the end | Implemented |
 
 ## FO-GUI-031 — Backtest Workspace
 

@@ -23,7 +23,7 @@
 
 ```
 settings.json        start_date, end_date (null = latest), auto_delta, run_time "HH:MM", run_days [0..6]
-state.json           last_delta (ISO, UTC), floors {symbol: first date with 3m data}, failed [symbols]
+state.json           last_delta (ISO, UTC), listed {symbol: first daily bar, listed-late stocks only}, failed [symbols]
 1d/<SYM>.parquet     ts (date), open, high, low, close, volume
 3m/<SYM>/<YYYY>.parquet   ts (UTC timestamp), open, high, low, close, volume
 15m/<SYM>/<YYYY>.parquet  built from 3m — same columns (SRD .012)
@@ -39,8 +39,9 @@ state.json           last_delta (ISO, UTC), floors {symbol: first date with 3m d
 **Planner (`planner.py`, pure; trading days counted as weekdays).** `plan(symbols, settings, coverage, floors, last_session, delta_only) -> list[Job]`, `Job(symbol, tf, end, duration)`.
 - 1d: no file → one job `end=end_date`, `duration="<years> Y"`; first saved > start → back-fill job ending at first saved.
 - 3m: walk 3-month windows from end back to start; skip windows inside the saved range or before the stock's floor; `duration="3 M"`.
+- Floor (SRD-BKT-001.017): set only after a 1d answer whose first bar is more than 7 days after the asked start (listed late). An empty 3m answer sets no floor, so the window is planned again next run. The old `floors` key in `state.json` is not read, which drops floors saved from empty 3m answers before ISS-BKT-0002.
 - Forward gap (last saved < last session): `duration="<n> D"`, n = trading days since last saved + 1, minimum 2; no job when the last saved bar is the last session (delta too).
-- `delta_only=True` returns forward-gap jobs only. Order: all 1d jobs, then 3m jobs sorted by `end` descending (every stock gets recent years first).
+- `delta_only=True` returns forward-gap jobs only. Order (SRD-BKT-001.005, changed 2026-11-04): one stock at a time — its 1d job, then its 3m jobs sorted by `end` descending — then the next stock; SPY daily last.
 
 **Downloader (`downloader.py`).** `BacktestDownloader(QThread)` takes a job list or a function that builds it (run in the thread), with its own asyncio loop and `ib_insync.IB` on `ibkr_backtest_client_id` (default 16; the next ID is tried when it is in use, like `IntradayCandleLoader`). For each job (one after another, no fixed rate limit — same as the candle download; TWS throttles 1d/3m requests itself; a `PacingQueue` can be injected), call `reqHistoricalDataAsync(..., barSizeSetting="1 day" | "3 mins", whatToShow="TRADES", useRTH=True)` with a 90 s timeout, then `store.save`. On timeout or IBKR error: wait 30 s and retry, up to 3 tries, then add the stock to `failed` and skip its other jobs. A 3m window that returns no bars while newer data exists sets the stock's floor to that window's end. `request_stop()` sets a flag checked between jobs. Signals: `progress(tf, done, total, symbol)`, `completed(ok, message)` (`finished` is taken by `QThread`). Pause in the GUI = stop; Start runs a fresh plan from disk (SRD .007).
 

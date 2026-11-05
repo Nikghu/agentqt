@@ -55,7 +55,7 @@ def plan(
     delta_only: bool = False,
     daily_only: Sequence[str] = (),
 ) -> list[Job]:
-    """Return the jobs still needed: all 1d jobs, then 3m jobs newest end first.
+    """Return the jobs still needed, one stock at a time: its 1d, then its 3m newest end first.
 
     Args:
         symbols: Stocks to download.
@@ -72,18 +72,17 @@ def plan(
     if delta_only and settings.end_date is not None:
         return []
     end = min(settings.end_date or last_session, last_session)
-    jobs: dict[Timeframe, list[Job]] = {"1d": [], "3m": []}
+    out: list[Job] = []
     for symbol in [*symbols, *daily_only]:
         start = max(settings.start_date, floors.get(symbol, settings.start_date))
         for tf in ("1d",) if symbol in daily_only else _TIMEFRAMES:
             saved = coverage(symbol, tf)
             if delta_only:
-                if saved is not None:
-                    jobs[tf].extend(_forward(symbol, tf, saved[1], end))
-                continue
-            jobs[tf].extend(_missing(symbol, tf, start, end, saved, floors.get(symbol)))
-    jobs["3m"].sort(key=lambda j: j.end, reverse=True)
-    return jobs["1d"] + jobs["3m"]
+                tf_jobs = _forward(symbol, tf, saved[1], end) if saved is not None else []
+            else:
+                tf_jobs = _missing(symbol, tf, start, end, saved, floors.get(symbol))
+            out.extend(sorted(tf_jobs, key=lambda j: j.end, reverse=True))
+    return out
 
 
 def _missing(

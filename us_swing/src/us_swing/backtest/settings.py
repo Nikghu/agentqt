@@ -93,7 +93,7 @@ class DownloadState:
 
     Attributes:
         last_delta: When the last delta fill finished (timezone-aware).
-        floors: Per stock, the first date IBKR has 3m data for.
+        floors: Per stock listed after the start date, its first daily bar (SRD-BKT-001.017).
         failed: Stocks whose requests failed in the last run.
     """
 
@@ -111,7 +111,7 @@ class DownloadState:
             last = data.get("last_delta")
             return cls(
                 last_delta=datetime.fromisoformat(last) if last else None,
-                floors={s: date.fromisoformat(d) for s, d in data.get("floors", {}).items()},
+                floors={s: date.fromisoformat(d) for s, d in data.get("listed", {}).items()},
                 failed=[str(s) for s in data.get("failed", [])],
             )
         except (AttributeError, TypeError, ValueError):
@@ -122,6 +122,6 @@ class DownloadState:
         """Write state to ``root`` atomically."""
         _write_json(root / STATE_FILE, {
             "last_delta": self.last_delta.isoformat() if self.last_delta else None,
-            "floors": {s: d.isoformat() for s, d in self.floors.items()},
+            "listed": {s: d.isoformat() for s, d in self.floors.items()},
             "failed": self.failed,
         })

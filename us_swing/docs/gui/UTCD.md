@@ -864,6 +864,9 @@ Test files:
 | UT-GUI-030.007.M05.T02 | MD-GUI-030.007.M05 | Negative | No status bar | main window class | no status bar handlers | Pass |
 | UT-GUI-030.008.M02.T01 | MD-GUI-030.008.M06 | Positive | Per-stock backtest coverage | AAPL 1d+3m to last day, MSFT 1d only, NVDA none | ok / 1d / none with dates | Pass |
 | UT-GUI-030.008.M03.T01 | MD-GUI-030.008.M06 | Positive | Universe HTML has backtest columns | one record with coverage | BT From column and dates in data | Pass |
+| UT-GUI-030.011.M02.T01 | MD-GUI-030.011.M02 | Positive | Late 3m start marked | start 2024-01-01; AAPL 3m from 2024-04-05; NEWCO floor 2025-03-03, 3m from then | AAPL `late`; NEWCO not `late` | Pass |
+| UT-GUI-030.012.M02.T01 | MD-GUI-030.012.M02 | Positive | One stock's coverage | IBKR symbol "BRK B" listed as "BRK.B"; unknown "ZZZZ" | ("BRK.B", dates, status); None | Pass |
+| UT-GUI-030.012.M06.T01 | MD-GUI-030.012.M06 | Positive | Row updates when stock done | progress BRK B, BRK B, MSFT | one `updateBt("BRK.B", …)` call; "complete for 2 of 2 stocks" | Pass |
 
 ## FO-GUI-031 — Backtest Workspace
 
