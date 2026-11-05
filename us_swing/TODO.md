@@ -121,3 +121,5 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T109 | MKT P1–P4 — regime/breadth/fear, sectors/RS, flow/setups/score/ideas, proof on past data (FO-MKT-001–004). No AI. | `market/` | High | Open |
 | T110 | DSK+MKT P5–P7 — harness + AI employees, SCOUT, CANVAS, hiring/LEDGER, EXE link (FO-DSK-002–006, FO-MKT-005–008). | `desk/`, `market/` | Medium | Open |
 | T111 | User — answer DD-DSK §0.7: tool lists in CLAUDE.md/rules lack BKT/DSK/MKT; "Jev" model; seat caps; monthly AI budget; HELM trades vs user approves. | docs | Medium | Open |
+| T112 | Tests already failing on main: 5 in `test_candle_builder.py`, 6 in `test_preset.py` (AI fields); plus stray local `test_llm_claude_screener.py` for a removed module. Fix or delete. | `tests/analysis`, `tests/screener` | Medium | Open |
+| T113 | DSK — user check: run `python us_swing/run_gui.py desk install`, confirm both Windows tasks, let the evening run fire (~02:50 IST Tue–Sat), then `desk status`. | `desk/task.py` | Medium | Open |

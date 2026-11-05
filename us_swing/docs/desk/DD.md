@@ -177,6 +177,15 @@ not replayed, only today's.
 | `USSwing_Desk` | `/sc onlogon` | `<exe> desk` |
 | `USSwing_Desk_Evening` | `/sc weekly /d <days> /st HH:MM` — 16:20 ET Mon–Fri turned into local time and local days today (IST: TUE–SAT 02:50 in EST) | `<exe> desk` |
 
-`<exe>` is `sys.executable` when frozen, else `pythonw.exe -m us_swing`. `start` launches the same
+`<exe>` is `sys.executable` when frozen, else `pythonw.exe us_swing/run_gui.py` (adds `src/` to the path; the package is not installed in dev). `start` launches the same
 command plus `--resume` with `DETACHED_PROCESS | CREATE_NO_WINDOW`. The sync step reads the task
 time and days with `/query /xml` and re-creates the evening task when either differs.
+
+**After code review (2026-11-05).**
+
+- A side thread with its own connection writes the heartbeat every 10 s while steps run, so a long step never shows "not responding".
+- On start, every pending command is rejected with "desk was not running", so old commands never replay.
+- Any crash in the loop is logged, saved as Error "crashed: <reason>", and the process exits with code 1.
+- A pause taken during a run that then fails is honoured: the desk goes to Paused and keeps the failure message.
+- A pause clears a run-now from the same batch.
+- The task time sync (`daily_check`) runs at start and after each evening run, so a clock change is fixed within one day.
