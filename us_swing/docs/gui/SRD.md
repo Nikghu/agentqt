@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.78.0: FO-GUI-033 AI notes settings, SRD-GUI-033.001–.006 added as Draft 2026-11-05.
 > v2.77.0: SRD-GUI-030.012 added and approved by user 2026-11-04 (chat) — Universe row updates per finished stock.
 > v2.76.0: SRD-GUI-030.011 added and approved by user 2026-11-04 (chat) — Universe marks a late 3m start (ISS-BKT-0002).
 > v2.75.0: SRD-GUI-000.009 added and approved by user 2026-11-03 — frameless confirm and message popups (ISS-GUI-0016).
@@ -637,3 +638,14 @@
 | SRD-GUI-032.006 | FO-GUI-032 | Should | Table rows have check boxes; a bar shows "N selected" with Start, Stop and Reset count for the checked strategies. | checked rows | bulk action | Bar hidden when nothing is checked | Implemented |
 | SRD-GUI-032.007 | FO-GUI-032 | Should | Switching views keeps the picked strategy, and the last view is restored on the next start. | view icon | view | Kept in QSettings | Implemented |
 | SRD-GUI-032.008 | FO-GUI-032 | Should | Status pills show the status word only, with no dot. | status | pill | — | Implemented |
+
+## FO-GUI-033 — AI Notes Settings
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-033.001 | FO-GUI-033 | Must | The Telegram page starts with an Enable AI notes tick and two cards, Claude Code CLI and OpenRouter, above the existing fields. | — | AI block | Layout S3 of the proposal page; off by default | Implemented |
+| SRD-GUI-033.002 | FO-GUI-033 | Must | Each card has a Use tick, a Default radio, a model choice and a status line; OpenRouter also has an API key field. | user settings | card fields | Claude models Sonnet 5.5 (default), Haiku 5.5, Opus 5.5; card fields are off when its tick or AI notes is off | Implemented |
+| SRD-GUI-033.003 | FO-GUI-033 | Must | Default can only be a ticked provider, and AI Fallback can only be ticked when both providers are ticked. | ticks | default, fallback | Unticking a provider moves Default to the other and clears Fallback; hint "Tick both providers to use fallback" | Implemented |
+| SRD-GUI-033.004 | FO-GUI-033 | Must | Apply and OK stay disabled while AI notes are on with no provider ticked, or with OpenRouter ticked but no key or model. | AI block | footer buttons, red hint | Hint names what is missing | Implemented |
+| SRD-GUI-033.005 | FO-GUI-033 | Must | AI settings are saved per user on Apply and shown again when Settings opens. | AI block | users.json, OS keychain | The OpenRouter key is the Cloud AI screener key in the OS keychain, never in users.json; a blank field never deletes it | Implemented |
+| SRD-GUI-033.006 | FO-GUI-033 | Should | The Telegram dot shows warn when AI notes are on and the default AI is not ready; Test AI checks again. | saved settings | dot, status lines | Ready means the claude program is found, or the OpenRouter key and model are set; a live AI call comes with the AI notes service | Implemented |

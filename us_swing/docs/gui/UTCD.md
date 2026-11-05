@@ -991,3 +991,19 @@ Test files:
 | UT-GUI-032.006.M03.T01 | MD-GUI-032.003.M03 | Positive | Bulk Stop | check running and stopped rows; Stop | bar "2 selected"; only the running one is STOPPED; saved once | Pass |
 | UT-GUI-032.006.M03.T02 | MD-GUI-032.003.M03 | Negative | Bulk Start skips disabled and running | check all; Start | only the stopped manual/auto one becomes RUNNING | Pass |
 | UT-GUI-032.007.M03.T01 | MD-GUI-032.003.M03 | Positive | View kept | pick B; Table; new pane with same settings | B still picked and open; new pane opens in Table | Pass |
+
+## FO-GUI-033 — AI Notes Settings
+
+| UT ID | MD | Type | Description | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-033.001.M01.T01 | MD-GUI-033.001.M01 | Positive | Block layout | new block, AI off | AI tick off; both cards' fields disabled; Claude model Sonnet 5.5 | Pass |
+| UT-GUI-033.002.M01.T01 | MD-GUI-033.001.M01 | Positive | Card fields follow ticks | AI on; untick Claude; tick OpenRouter | Claude model disabled; OpenRouter key and model enabled | Pass |
+| UT-GUI-033.002.M01.T02 | MD-GUI-033.001.M01 | Negative | Key from environment | OPENROUTER_API_KEY set; AI on, OpenRouter ticked | key field disabled; model field enabled | Pass |
+| UT-GUI-033.003.M01.T01 | MD-GUI-033.001.M01 | Positive | Fallback needs both | AI on; Claude only; then tick OpenRouter | Fallback disabled with hint; then enabled | Pass |
+| UT-GUI-033.003.M01.T02 | MD-GUI-033.001.M01 | Negative | Unticking clears fallback and moves default | both ticked, default OpenRouter, fallback on; untick OpenRouter | fallback off; default Claude | Pass |
+| UT-GUI-033.004.M01.T01 | MD-GUI-033.001.M01 | Negative | Problem text | AI on, OpenRouter only, no key; AI on, nothing ticked; AI off | "API key" named; "provider" named; empty | Pass |
+| UT-GUI-033.006.M01.T01 | MD-GUI-033.001.M01 | Positive | Default ready | default Claude found / not found; default OpenRouter with key and model / no key | True, False, True, False | Pass |
+| UT-GUI-033.004.M02.T01 | MD-GUI-033.004.M02 | Negative | Apply gated | dialog; AI on, OpenRouter only, no key | Apply and OK disabled; key typed → both enabled | Pass |
+| UT-GUI-033.005.M02.T01 | MD-GUI-033.004.M02 | Positive | Save and load round trip | set both, default OpenRouter, fallback, key; Apply; new panel | same values shown; key in store; users.json has no key | Pass |
+| UT-GUI-033.005.M02.T02 | MD-GUI-033.004.M02 | Negative | Keychain error | key save raises; Apply | user AI settings saved; note names the keychain | Pass |
+| UT-GUI-033.006.M02.T01 | MD-GUI-033.004.M02 | Negative | Dot warns when default not ready | Telegram ready; AI on; default Claude; claude not found | Telegram dot warn | Pass |

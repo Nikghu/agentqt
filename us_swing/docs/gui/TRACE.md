@@ -1,9 +1,9 @@
 # Traceability Matrix — GUI Module (GUI)
 
 **Document ID:** TRACE-GUI
-**Version:** 1.15.0
+**Version:** 1.16.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-11-03 (Screener plan zone and hit tag; RN-GUI-1.57.0-20261103)
+**Last Updated:** 2026-11-05 (AI notes settings FO-GUI-033; RN-GUI-1.59.0-20261105)
 
 ---
 
@@ -106,6 +106,12 @@
 | FO-GUI-032 | SRD-GUI-032.006 | DD-GUI-032.001.D01 | MD-GUI-032.003.M03 | UT-GUI-032.006.M03.T01–T02 (Pass) | `gui/strategies_pane.py`, `gui/theme.py` | Implemented | RN-GUI-1.56.0-20261103 |
 | FO-GUI-032 | SRD-GUI-032.007 | DD-GUI-032.001.D01 | MD-GUI-032.003.M03 | UT-GUI-032.007.M03.T01 (Pass) | `gui/strategies_pane.py` | Implemented | RN-GUI-1.56.0-20261103 |
 | FO-GUI-032 | SRD-GUI-032.008 | DD-GUI-032.001.D01 | MD-GUI-032.002.M02 | UT-GUI-032.008.M02.T01 (Pass) | `gui/strategies_views.py`, `gui/theme.py` | Implemented | RN-GUI-1.56.0-20261103 |
+| FO-GUI-033 | SRD-GUI-033.001 | DD-GUI-033.001.D01 | MD-GUI-033.001.M01 | UT-GUI-033.001.M01.T01 (Pass) | `gui/ai_settings_block.py` | Implemented | RN-GUI-1.59.0-20261105 |
+| FO-GUI-033 | SRD-GUI-033.002 | DD-GUI-033.001.D01 | MD-GUI-033.001.M01 | UT-GUI-033.002.M01.T01–T02 (Pass) | `gui/ai_settings_block.py` | Implemented | RN-GUI-1.59.0-20261105 |
+| FO-GUI-033 | SRD-GUI-033.003 | DD-GUI-033.001.D01 | MD-GUI-033.001.M01 | UT-GUI-033.003.M01.T01–T02 (Pass) | `gui/ai_settings_block.py` | Implemented | RN-GUI-1.59.0-20261105 |
+| FO-GUI-033 | SRD-GUI-033.004 | DD-GUI-033.001.D01 | MD-GUI-033.001.M01, MD-GUI-033.004.M02 | UT-GUI-033.004.M01.T01, UT-GUI-033.004.M02.T01 (Pass) | `gui/ai_settings_block.py`, `gui/settings_panel.py`, `gui/settings_dialog.py` | Implemented | RN-GUI-1.59.0-20261105 |
+| FO-GUI-033 | SRD-GUI-033.005 | DD-GUI-033.001.D01 | MD-GUI-033.004.M02, MD-GUI-033.005.M03 | UT-GUI-033.005.M02.T01–T02 (Pass) | `gui/settings_panel.py`, `gui/user_store.py`, `data/models.py` | Implemented | RN-GUI-1.59.0-20261105 |
+| FO-GUI-033 | SRD-GUI-033.006 | DD-GUI-033.001.D01 | MD-GUI-033.001.M01, MD-GUI-033.004.M02 | UT-GUI-033.006.M01.T01, UT-GUI-033.006.M02.T01 (Pass) | `gui/ai_settings_block.py`, `gui/settings_panel.py` | Implemented | RN-GUI-1.59.0-20261105 |
 
 ---
 
@@ -159,6 +165,7 @@
 | `gui/backtest_report_chart.py` | MD-GUI-031.080.M13 | SRD-GUI-031.080 | FO-GUI-031 |
 | `gui/backtest_setup.py` | MD-GUI-031.071.M10 | SRD-GUI-031.071, .074 | FO-GUI-031 |
 | `gui/backtest_report_view.py` | MD-GUI-031.040.M04 | SRD-GUI-031.040–.045 | FO-GUI-031 |
+| `gui/ai_settings_block.py` | MD-GUI-033.001.M01 | SRD-GUI-033.001–.004, .006 | FO-GUI-033 |
 
 ---
 

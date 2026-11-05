@@ -2,6 +2,16 @@
 
 ---
 
+## [20261105] GUI — AI notes settings on the Telegram page
+
+- Type: Feature
+- FO(s): FO-GUI-033
+- RN: RN-GUI-1.59.0-20261105
+- Artifacts updated: SRD (GUI-033.001–.006 new, Implemented), DD (DD-GUI-033.001.D01), MD (MD-GUI-033.001.M01, .004.M02, .005.M03), UTCD (UT-GUI-033.* 11 rows Pass), TRACE (gui), Code (gui/ai_settings_block.py new; gui/settings_panel.py, gui/settings_dialog.py, gui/user_store.py, data/models.py), Tests (test_ai_settings_block.py new; tests/gui/conftest.py, test_settings_dialog.py), TODO (T98, T99), CONTEXT, DEVLOG, RN
+- Decisions: OpenRouter key reuses the Cloud AI keychain store (never in users.json; blank field keeps it); key field locked when OPENROUTER_API_KEY is set; Test AI is a local check only; Apply and OK gated on valid AI settings.
+
+---
+
 ## [20261104] GUI — Universe shows backtest progress per stock
 
 - Type: Enhancement

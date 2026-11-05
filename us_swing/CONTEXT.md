@@ -2,12 +2,14 @@
 
 **Document:** CONTEXT.md
 **Project:** us_swing
-**Last Updated:** 2026-11-04 (Session 115)
-**Updated By:** Claude (Opus 5.5)
+**Last Updated:** 2026-11-05 (Session 116)
+**Updated By:** Claude (Haiku 5.5)
 
 ---
 
-**Current (Session 115, 2026-11-04):** **3m backtest candles now asked from the start date (Bugfix, BKT + GUI; ISS-BKT-0002; SRD-BKT-001.017, SRD-GUI-030.011 approved by user in chat and Implemented; RN-BKT-1.13.0-20261104).** Empty 3m answers had saved floors for 503 stocks (3m from Apr/Jul 2024 while start is 01-01-2024), so Download missing never asked for the gap. Floors now come only from listed-late daily data (`state.json` key `listed`; old `floors` key dropped); Universe shows `late` with amber BT From. User chose: no IBKR-limit mark — a stock with no 3m stays missing and is asked again each click. Dry run: 1,277 3m requests for 503 stocks. 4 UT Pass. Commit 85e45962. Then (RN-BKT-1.13.1, SRD-BKT-001.005 reopened by user): download now finishes one stock before the next (its 1d, then its 3m newest first). Then (RN-GUI-1.58.0, SRD-GUI-030.012 approved by user): Universe row updates per finished stock plus "backtest complete for N of M stocks". Branch fix/bkt-3m-start-floors, 3 commits, not pushed. **Next:** user runs Download missing with TWS on and watches Universe (T97).
+**Current (Session 116, 2026-11-05):** **AI notes settings on the Telegram page (Feature, GUI; FO-GUI-033; RN-GUI-1.59.0-20261105; SRD-GUI-033.001–.006 Implemented).** New `gui/ai_settings_block.py`: Enable AI notes tick, Claude Code CLI and OpenRouter cards (Use, Default, model, status), fallback only when both ticked. Apply and OK stay off while invalid. OpenRouter key shares the Cloud AI keychain store; field locked when `OPENROUTER_API_KEY` is set. 11 UT Pass; GUI suite 691 passed. Branch feat/telegram-ai-support, not committed or pushed. Housekeeping: 4 merged branches deleted locally and on GitHub. **Next:** user checks the Telegram AI cards in the real app (TODO T98). Then AI notes service FO-INF-011 (TODO T99): FO-INF-011 is not written yet, so write FO first.
+
+**Previous (Session 115, 2026-11-04):** **3m backtest candles now asked from the start date (Bugfix, BKT + GUI; ISS-BKT-0002; SRD-BKT-001.017, SRD-GUI-030.011 approved by user in chat and Implemented; RN-BKT-1.13.0-20261104).** Empty 3m answers had saved floors for 503 stocks (3m from Apr/Jul 2024 while start is 01-01-2024), so Download missing never asked for the gap. Floors now come only from listed-late daily data (`state.json` key `listed`; old `floors` key dropped); Universe shows `late` with amber BT From. User chose: no IBKR-limit mark — a stock with no 3m stays missing and is asked again each click. Dry run: 1,277 3m requests for 503 stocks. 4 UT Pass. Commit 85e45962. Then (RN-BKT-1.13.1, SRD-BKT-001.005 reopened by user): download now finishes one stock before the next (its 1d, then its 3m newest first). Then (RN-GUI-1.58.0, SRD-GUI-030.012 approved by user): Universe row updates per finished stock plus "backtest complete for N of M stocks". Branch fix/bkt-3m-start-floors, 3 commits, not pushed. **Next:** user runs Download missing with TWS on and watches Universe (T97).
 
 **Current (Session 114, 2026-11-03):** **All popups in the app's frameless style (Bugfix, GUI; ISS-GUI-0016; SRD-GUI-000.009 approved by user and Implemented; RN-GUI-1.57.1-20261103).** New `gui/popups.py` (`confirm()`, `notify()` on the shared `_ConfirmDialog`); all 27 native `QMessageBox` popups in 7 panels moved over, same wording; Delete Preset now shows the preset name. 4 UT Pass; tests/gui 649 passed (22 known chart_workspace errors). PRs #104–#106 merged earlier today. Branch fix/gui-frameless-popups, not pushed. **Next:** user check (T96).
 
@@ -470,7 +472,7 @@ Previous (Session 87, 2026-10-23): **Accumulation / Distribution screener (Featu
 | DD | `docs/gui/DD.md` | Draft v1.2.0 | 9 DDs across FO-GUI-001, 002, 004, 007, 011, 012, 014; FO-GUI-011/012 DD Approved |
 | MD | `docs/gui/MD.md` | Draft v1.0.0 | 15 modules; FO-GUI-004 now includes pending_signals_table_model.py (new); MD-GUI-014 (3 modules) for Active Cycles |
 | UTCD | `docs/gui/UTCD.md` | Draft v1.1.0 | 81 test cases; FO-GUI-004/012/014 test specs updated |
-| TRACE | `docs/gui/TRACE.md` | Draft v1.15.0 — **updated** | FO-GUI-032 Strategies views Implemented (RN-GUI-1.56.0-20261103); FO-GUI-031 rows through RN-GUI-1.55.0 / RN-BKT-1.12.0; Last Updated 2026-11-03 |
+| TRACE | `docs/gui/TRACE.md` | Draft v1.16.0 — **updated** | FO-GUI-033 AI notes settings Implemented (RN-GUI-1.59.0-20261105); FO-GUI-032 Strategies views Implemented (RN-GUI-1.56.0-20261103); Last Updated 2026-11-05 |
 
 ### Indicator Rule Library (FO-SCR-013 / FO-GUI-015)
 

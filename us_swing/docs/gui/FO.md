@@ -936,3 +936,25 @@ The system shall make Strategies the first Execution tab and show strategies in 
 1. The Execution workspace opens on the Strategies tab.
 2. Switching views keeps the same strategy picked, and the view is the same after a restart.
 3. In the table view, Start, Stop and Reset count work on all checked strategies.
+
+---
+
+## FO-GUI-033: AI Notes Settings
+
+**Status:** Approved (user, 2026-11-05: "implement the GUI part, S3 two provider cards")
+**Priority:** Should
+**Depends on:** FO-GUI-027 (Settings dialog), FO-INF-010 (Telegram notifications)
+**Source:** proposal page https://claude.ai/artifact/YMqCSCJv4XFXpcmA1xKtrF (layout S3), picked by user 2026-11-05. Minimal requirements. The AI notes service itself is a later FO-INF item.
+
+The system shall let the user set up AI notes for Telegram messages on the Settings → Telegram page.
+
+- The system shall show an Enable AI notes tick and two provider cards, Claude Code CLI and OpenRouter, at the top of the Telegram page.
+- The system shall let the user pick a default AI and a model per provider, and allow AI Fallback only when both providers are ticked.
+- The system shall block Apply until the picked providers have what they need, and save the settings per user.
+- The system shall warn on the Telegram section dot when AI notes are on but the default AI is not ready.
+
+### Acceptance Criteria
+
+1. With one provider ticked, AI Fallback is off and cannot be ticked.
+2. With OpenRouter ticked and no API key, Apply and OK are disabled and a line says what is missing.
+3. After Apply and a restart, the same AI settings are shown.
