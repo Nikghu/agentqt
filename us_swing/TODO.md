@@ -115,3 +115,4 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T103 | TEST — 11 old failures (candle builder, screener preset) and `test_llm_claude_screener.py` imports a removed module. | `tests/analysis`, `tests/screener` | Medium | Open |
 | T104 | GUI — run Update now once; HLT should show as failed (IBKR has no bar for 2026-11-04) and Candle data up to date (ISS-GUI-0017). Then run the full tests (user asked to run later). | `gui/app_service.py` | Medium | Open |
 | T105 | INF — user: new Telegram bot token from BotFather, clean old logs in ~/.usswing/logs (token was logged before ISS-INF-0004), run one app copy (409 Conflict). | `~/.usswing/logs` | High | Open |
+| T106 | GUI — restart app, click Update now: only HLT should download, then show as failed with Candle data up to date (ISS-GUI-0018). | `gui/app_service.py` | Medium | Open |

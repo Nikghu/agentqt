@@ -2,6 +2,16 @@
 
 ---
 
+## [20261105] GUI — Update now downloads only stocks behind (ISS-GUI-0018)
+
+- Type: Bugfix
+- FO(s): FO-GUI-006
+- RN: RN-GUI-1.59.3-20261105
+- Artifacts updated: Issue (ISS-GUI-0018), SRD (GUI-006.023, asked by user in chat → Implemented), UTCD (T25–T27 Pass), TRACE (gui), Code (gui/app_service.py), Tests
+- Decisions: failed stocks that are behind are still asked again on Update now (one quick request), so they land back in the failed list.
+
+---
+
 ## [20261105] INF — Telegram bot token hidden in log tracebacks (ISS-INF-0004)
 
 - Type: Bugfix

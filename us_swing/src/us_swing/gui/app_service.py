@@ -674,6 +674,17 @@ def _oldest_last_candle_date(conn: sqlite3.Connection, symbols: list[str]) -> st
     return min((dt[:10] for sym, dt in rows if dt and sym in wanted), default=None)
 
 
+def _stocks_behind(
+    conn: sqlite3.Connection, symbols: list[str], last_day: datetime.date
+) -> list[str]:
+    """Stocks whose last daily candle is before ``last_day`` or missing (SRD-GUI-006.023)."""
+    lasts = dict(
+        conn.execute("SELECT symbol, MAX(datetime) FROM price_1d GROUP BY symbol").fetchall()
+    )
+    day = last_day.isoformat()
+    return [s for s in symbols if not lasts.get(s) or lasts[s][:10] < day]
+
+
 # ── Background worker: query DB status ───────────────────────────────────────
 
 class _CandleDbStatusWorker(QThread):
@@ -4434,16 +4445,17 @@ class AppService(QObject):
                 self.candle_download_failed.emit("UNIVERSE_NOT_LOADED")
                 return
 
-            # Delta mode: start from last known candle date + 1 day
+            # Delta mode: only stocks behind the last trading day (SRD-GUI-006.023)
             if mode == "delta":
-                last = self._last_known_candle_date()
+                behind = self._candle_stocks_behind(all_symbols, end_date)
+                if not behind:
+                    self.log_message.emit(
+                        "INFO", "[CandleDB] All stocks are already up to date"
+                    )
+                    return
+                all_symbols, last = behind
                 if last:
                     start_date = last + datetime.timedelta(days=1)
-                    if start_date > end_date:
-                        self.log_message.emit(
-                            "INFO", "[CandleDB] Delta: database already up to date."
-                        )
-                        return
 
             # ── Checkpoint / resume (SRD-GUI-006.013) ────────────────────────
             symbols_to_download = all_symbols
@@ -4530,6 +4542,22 @@ class AppService(QObject):
         except Exception:
             pass
         return None
+
+    def _candle_stocks_behind(
+        self, symbols: list[str], end_date: datetime.date
+    ) -> "tuple[list[str], datetime.date | None] | None":
+        """Stocks behind ``end_date`` and the oldest last candle date among them."""
+        if not _CANDLE_DB_PATH.exists():
+            return symbols, None
+        conn = sqlite3.connect(str(_CANDLE_DB_PATH))
+        try:
+            behind = _stocks_behind(conn, symbols, end_date)
+            last = _oldest_last_candle_date(conn, behind) if behind else None
+        finally:
+            conn.close()
+        if not behind:
+            return None
+        return behind, datetime.date.fromisoformat(last) if last else None
 
     def _candle_check_symbols(self) -> list[str]:
         """Index stocks that decide whether candles are current (SRD-GUI-006.020).
