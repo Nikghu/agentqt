@@ -169,6 +169,9 @@
 | UT-GUI-006.001.M01.T22 | MD-GUI-006.001.M01 | Positive | Status is PARTIAL when one stock is current and the rest are a day behind | 1 of 2 index stocks at last trading day | `status == PARTIAL`, `last_candle_date` = older date | Pass |
 | UT-GUI-006.001.M01.T23 | MD-GUI-006.001.M01 | Negative | Retry Failed run leaves the saved resume point untouched (SRD-GUI-006.021) | Checkpoint file present; fix-mode worker downloads 1 stock | Checkpoint file unchanged | Pass |
 | UT-GUI-006.001.M01.T24 | MD-GUI-006.001.M01 | Negative | IBKR daily bars ending before the last trading day mark the stock failed (SRD-GUI-006.022) | 4 daily bars Mon–Thu; last trading day Fri | failed with "IBKR has no bar for <Fri>"; 4 bars saved | Pass |
+| UT-GUI-006.001.M01.T25 | MD-GUI-006.001.M01 | Positive | Update now picks only stocks behind the last trading day (SRD-GUI-006.023) | AAA, BBB at 11-04; HLT at 11-03; NEW no candles | `["HLT", "NEW"]` | Pass |
+| UT-GUI-006.001.M01.T26 | MD-GUI-006.001.M01 | Negative | No stock picked when all have the last trading day | AAA, BBB at 11-04 | `[]` | Pass |
+| UT-GUI-006.001.M01.T27 | MD-GUI-006.001.M01 | Positive | Update now starts the day after the oldest stock behind | AAA 11-04, HLT 11-03 | `(["HLT"], 2026-11-03)` | Pass |
 
 ---
 

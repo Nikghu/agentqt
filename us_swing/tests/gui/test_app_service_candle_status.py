@@ -92,3 +92,36 @@ def test_retry_failed_keeps_checkpoint(
     asyncio.run(worker._download_all(_FakeIB()))
 
     assert checkpoint.read_text(encoding="utf-8") == '{"mode": "delta"}'
+
+
+def test_update_lists_only_stocks_behind(tmp_path: Path) -> None:
+    """UT-GUI-006.001.M01.T25: Update now picks only stocks behind the last trading day."""
+    conn = _db(tmp_path / "c.db",
+               {"AAA": "2026-11-04", "HLT": "2026-11-03", "BBB": "2026-11-04"})
+
+    behind = svc_mod._stocks_behind(conn, ["AAA", "HLT", "BBB", "NEW"],
+                                    datetime.date(2026, 11, 4))
+
+    assert behind == ["HLT", "NEW"]
+
+
+def test_update_skips_when_all_current(tmp_path: Path) -> None:
+    """UT-GUI-006.001.M01.T26: no stock is picked when every stock has the last trading day."""
+    conn = _db(tmp_path / "c.db", {"AAA": "2026-11-04", "BBB": "2026-11-04"})
+
+    assert svc_mod._stocks_behind(conn, ["AAA", "BBB"], datetime.date(2026, 11, 4)) == []
+
+
+def test_update_starts_after_oldest_behind_stock(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """UT-GUI-006.001.M01.T27: Update now starts the day after the oldest stock behind."""
+    db = tmp_path / "candles.db"
+    _db(db, {"AAA": "2026-11-04", "HLT": "2026-11-03"}).close()
+    monkeypatch.setattr(svc_mod, "_CANDLE_DB_PATH", db)
+
+    result = svc_mod.AppService._candle_stocks_behind(
+        None, ["AAA", "HLT"], datetime.date(2026, 11, 4)  # type: ignore[arg-type]
+    )
+
+    assert result == (["HLT"], datetime.date(2026, 11, 3))

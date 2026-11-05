@@ -28,6 +28,7 @@
 | FO-GUI-006 | SRD-GUI-006.019 | — | MD-GUI-006.001.M01 | UT-GUI-006.001.M01.T11–T16 | `gui/app_service.py` | Implemented | RN-GUI-1.7.1-20261022 |
 | FO-GUI-006 | SRD-GUI-006.020–.021 | — | MD-GUI-006.001.M01 | UT-GUI-006.001.M01.T20–T23 | `gui/app_service.py` | Implemented | RN-GUI-1.56.2-20261103 |
 | FO-GUI-006 | SRD-GUI-006.022 | — | MD-GUI-006.001.M01 | UT-GUI-006.001.M01.T24 | `gui/app_service.py` | Implemented | RN-GUI-1.59.2-20261105 |
+| FO-GUI-006 | SRD-GUI-006.023 | — | MD-GUI-006.001.M01 | UT-GUI-006.001.M01.T25, T26, T27 | `gui/app_service.py` | Implemented | RN-GUI-1.59.3-20261105 |
 | FO-GUI-004 | SRD-GUI-004.009 | — | MD-GUI-004.001.M01 | UT-GUI-004.001.M01.T08–T10 | `gui/app_service.py` | Implemented | RN-GUI-1.7.2-20261022 |
 | FO-GUI-004 | SRD-GUI-004.010 | — | MD-GUI-004.001.M01, MD-GUI-004.001.M02 | UT-GUI-004.001.M01.T11–T14 | `gui/manual_picks_store.py`, `gui/app_service.py` | Implemented | RN-GUI-1.8.0-20261022 |
 | FO-GUI-004 | SRD-GUI-004.011 | — | MD-GUI-004.001.M01 | UT-GUI-004.001.M01.T15–T16, T19 | `gui/execution_panel.py`, `gui/app_service.py` | Implemented | RN-GUI-1.8.0-20261022 |
