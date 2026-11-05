@@ -42,9 +42,9 @@ SRD coverage: .001 by M01; .002, .003, .004, .005 by M02; .006, .007 by M03; .00
 | ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
 |---|---|---|---|---|---|---|
 | MD-MKT-003.001.M01 | SRD-MKT-003.001 | `us_swing/src/us_swing/market/candles.py` | Volume in the daily bars (added to the P1 reader) | `DailyBars.volumes` | `pandas` | No |
-| MD-MKT-003.002.M02 | SRD-MKT-003.002 | `us_swing/src/us_swing/market/flow.py` | Pure rules: liquidity and money flow | `dollar_volume()`, `money_flow()` | `pandas`, `numpy` | No |
-| MD-MKT-003.003.M03 | SRD-MKT-003.003 | `us_swing/src/us_swing/market/setups.py` | Pure rules: long and short setups with trigger, stop and tightness | `long_setups()`, `short_setups()` | `pandas`, `numpy` | No |
-| MD-MKT-003.005.M04 | SRD-MKT-003.005 | `us_swing/src/us_swing/market/score.py` | Score parts, penalty, ideas, Watch and reasons | `score_frame()`, `pick_ideas()` | M02, M03 | No |
+| MD-MKT-003.002.M02 | SRD-MKT-003.002 | `us_swing/src/us_swing/market/flow.py` | Pure rules: liquidity and money flow | `dollar_volume()`, `money_flow()`, `roll()` | `pandas`, `numpy` | No |
+| MD-MKT-003.003.M03 | SRD-MKT-003.003 | `us_swing/src/us_swing/market/setups.py` | Pure rules: long and short setups with trigger, stop and tightness | `long_setups()`, `short_setups()`, `long_candidates()`, `short_candidates()` | `pandas`, `numpy` | No |
+| MD-MKT-003.005.M04 | SRD-MKT-003.005 | `us_swing/src/us_swing/market/score.py` | Score parts, penalty, ideas, Watch and reasons | `score_frame()`, `readiness_score()`, `pick_ideas()` | M02, M03 | No |
 | MD-MKT-003.009.M05 | SRD-MKT-003.009 | `us_swing/src/us_swing/market/earnings.py` | Next earnings dates from Yahoo Finance | `next_earnings()` | `yfinance` | No |
 | MD-MKT-003.010.M06 | SRD-MKT-003.010 | `us_swing/src/us_swing/market/store.py` | `stock_score`, `ideas` and `idea_reasons` tables (added to the P1 store) | `ScoreRow`, `IdeaRow`, `ReasonRow`, `MarketStore.write_idea_days()`, `stored_idea_dates()` | `sqlite3` | No |
 | MD-MKT-003.011.M07 | SRD-MKT-003.011 | `us_swing/src/us_swing/market/idea_step.py` | Desk step "Ideas" | `IdeaStep` | M01–M06, `core.desk_contract` | No |

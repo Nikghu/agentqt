@@ -63,7 +63,7 @@ The system shall show which of the 11 sectors money is moving into or out of, an
 
 ## FO-MKT-003: Money Flow, Setups, Readiness Score and Ideas
 
-**Status:** Draft
+**Status:** Approved (user, 2026-11-06)
 **Priority:** Must
 **Phase:** P3
 **Depends on:** FO-MKT-001 (regime), FO-MKT-002 (sectors and stock RS), daily candles with volume in `candles.db`

@@ -1064,5 +1064,5 @@ Test files:
 | UT-GUI-034.011.M10.T03 | MD-GUI-034.011.M10 | Positive | Refresh after a run | status Running then Sleeping | panels reload once | Pass |
 | UT-GUI-034.012.M11.T01 | MD-GUI-034.012.M11 | Positive | Real sectors and RS leaders | desk.db with 2 days of sector and stock rows | latest day rows; ranks in order; sector filter works; sample False | Pass |
 | UT-GUI-034.012.M11.T02 | MD-GUI-034.012.M11 | Negative | No sector data yet | desk.db with regime only | sector products are sample rows; rs.leaders not listed | Pass |
-| UT-GUI-034.013.M12.T01 | MD-GUI-034.013.M12 | Positive | Real idea list | desk.db with 2 days of ideas, list and watch | latest day; long and short filters; list by default; Watch on request; sample False | Not Run |
-| UT-GUI-034.013.M12.T02 | MD-GUI-034.013.M12 | Negative | No ideas yet | desk.db with sectors only | ideas.top stays sample | Not Run |
+| UT-GUI-034.013.M12.T01 | MD-GUI-034.013.M12 | Positive | Real idea list | desk.db with 2 days of ideas, list and watch | latest day; long and short filters; list by default; Watch on request; sample False | Pass |
+| UT-GUI-034.013.M12.T02 | MD-GUI-034.013.M12 | Negative | No ideas yet | desk.db with sectors only | ideas.top stays sample | Pass |
