@@ -1,16 +1,17 @@
 # Software Requirement Document — Infrastructure (INF)
 
 **Document ID:** SRD-INF
-**Version:** 1.10.0
+**Version:** 1.11.0
 **Traces To:** FO-INF v1.5.0
 **Status:** Draft
-**Last Updated:** 2026-11-03
+**Last Updated:** 2026-11-05
 **Project:** US Swing Trading System
 
 > v1.5.0: Section 9 added — SRD-INF-009.001–.006 (Pluggable Broker Abstraction; Broker_fix.md Phases 1/3/4).
 > v1.6.0: SRD-INF-009.007 added (ISS-INF-0002) — SimBroker fills MARKET orders at an injected live-price provider so paper fills mirror a real broker instead of echoing a caller-supplied reference price.
 > v1.7.0: Section 10 added — SRD-INF-010.001–.009 (Telegram Notification Integration; scalable business-event notification service).
 > v1.8.0: SRD-INF-010.010 (producer emit points) + .011 (bot token in OS keychain) added for the app wiring.
+> v1.11.0: Section 11 added — SRD-INF-011.001–.003 (AI Notes Client), Draft 2026-11-05.
 > v1.9.0: SRD-INF-010.012–.015 added — inbound two-way Telegram commands (long-poll receiver, chat authorization, 7 read-only command handlers, GUI-thread query adapter); .009 now Implemented.
 
 ---
@@ -174,3 +175,13 @@
 
 ---
 
+
+---
+
+## Section 11: Requirements for FO-INF-011 — AI Notes Client
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-INF-011.001 | FO-INF-011 | Must | `ask_ai(config, instruction, facts)` runs the Claude Code CLI headless and returns its answer text. | AI config, text | `AiAnswer` | No tools, no session saved, empty work folder, no API key in env, no console window; timeout | Implemented |
+| SRD-INF-011.002 | FO-INF-011 | Must | `ask_ai` calls OpenRouter chat completions with the user's key and model when OpenRouter is the provider. | AI config, text | `AiAnswer` | Key passed in by the caller; never logged | Implemented |
+| SRD-INF-011.003 | FO-INF-011 | Must | The default provider is tried first; the other is tried only when fallback is on and both providers are ticked. | AI config | `AiAnswer` | Never raises; all failures go into `AiAnswer.error` | Implemented |

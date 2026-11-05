@@ -285,3 +285,9 @@
 | UT-INF-010.001.M11.T01 | MD-INF-010.001.M11 | Positive | Bridge structurally satisfies `CommandPort` | `isinstance(bridge, CommandPort)` | `True` | Pass |
 | UT-INF-010.001.M11.T02 | MD-INF-010.001.M11 | Positive | `positions()` formats the open positions from `AppService` | Fake app with two open positions; call `positions()` on the GUI thread | Text names both symbols and the count | Pass |
 | UT-INF-010.001.M11.T03 | MD-INF-010.001.M11 | Edge | `pnl()` reports zero cleanly when there are no positions | Fake app with flat account and no positions | Text shows realized and unrealized P&L without error | Pass |
+
+| UT-INF-011.001.M01.T01 | MD-INF-011.001.M01 | Positive | Claude answer is read from the CLI JSON | fake run returning `{"is_error":false,"result":"OK"}` | `text == "OK"`, provider `claude`; no `ANTHROPIC_API_KEY` in env; instruction in input | Pass |
+| UT-INF-011.001.M01.T02 | MD-INF-011.001.M01 | Negative | CLI error JSON or missing exe becomes an error | `is_error: true`; exe not found | `error` names Claude; no exception | Pass |
+| UT-INF-011.002.M01.T01 | MD-INF-011.001.M01 | Positive | OpenRouter answer is read from chat completions | mock transport returning one choice | `text` = choice content; Bearer key sent | Pass |
+| UT-INF-011.003.M01.T01 | MD-INF-011.001.M01 | Positive | Fallback uses the other provider | default Claude fails; fallback on | provider `openrouter` | Pass |
+| UT-INF-011.003.M01.T02 | MD-INF-011.001.M01 | Negative | No fallback when off | default Claude fails; fallback off | OpenRouter not called; `error` set | Pass |

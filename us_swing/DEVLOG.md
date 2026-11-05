@@ -2,6 +2,16 @@
 
 ---
 
+## [20261105] INF — AI notes client, first basic AI call
+
+- Type: Feature
+- FO(s): FO-INF-011 (+ FO-GUI-033)
+- RN: RN-INF-1.9.0-20261105
+- Artifacts updated: FO (INF-011), SRD (INF-011.001–.003, GUI-033.007; approved by user → Implemented), DD (DD-INF-011.001.D01), MD (MD-INF-011.001.M01), UTCD (UT-INF-011.* 5 rows, UT-GUI-033.007.* 2 rows, Pass), TRACE (inf, gui), Code (core/notifications/_ai_client.py, gui/ai_settings_block.py), Tests
+- Decisions: sync client run off the GUI thread; system prompt via file and instruction also in stdin; taskkill on timeout; daemon thread + QObject relay for Test AI; Morning brief deferred to its own FO.
+
+---
+
 ## [20261105] GUI — AI notes settings on the Telegram page
 
 - Type: Feature

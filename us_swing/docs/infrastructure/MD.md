@@ -9,6 +9,7 @@
 
 > v1.2.0: MD-INF-010.001.M01–M07 added — Telegram Notification Service (`core/notifications/`).
 > v1.3.0: MD-INF-010.001.M08–M09 added — app wiring (keychain token store + notification worker thread).
+> v1.5.0: MD-INF-011.001.M01 added — AI Notes Client.
 > v1.4.0: M04 now enforces per-event toggles (adds SRD-INF-010.006); M09 extended with AppService per-event config mapping + guarded day-end trigger.
 
 ---
@@ -52,6 +53,7 @@
 | MD-INF-010.001.M09 | SRD-INF-010.004, .010 | `src/us_swing/gui/notification_worker.py`, `src/us_swing/gui/app_service.py` | `NotificationWorker(QThread)` hosts the async dispatcher + httpx + inbound poller; `AppService` emit points map per-user toggles into config and fire the guarded once-per-day day-end summary at market close (`_maybe_publish_day_end`) | `publish_event(event)`, `shutdown()`, `ready` signal, `_maybe_publish_day_end(today)` | `PyQt6`, `httpx`, `core/notifications` | No | Implemented |
 | MD-INF-010.001.M10 | SRD-INF-010.012, .013, .014 | `src/us_swing/core/notifications/_inbound.py` | `TelegramPoller` (getUpdates long-poll + chat authorization; registers the command menu via `setMyCommands` on start) and `CommandRouter` (parse, dispatch table for 7 read-only commands from the shared `_COMMANDS` list, unknown-command hint) | `TelegramPoller.run()` async, `CommandRouter.route(text)` | `httpx`, `_protocols.py` | No | Implemented |
 | MD-INF-010.001.M11 | SRD-INF-010.015 | `src/us_swing/gui/telegram_commands.py` | `TelegramCommandBridge(QObject)` — `CommandPort` adapter marshalling each query onto the GUI thread; formats `AppService` reads into reply text | `status()`, `pnl()`, `positions()`, `signals()`, `screener()`, `cycles()` | `PyQt6`, `gui/app_service.py` | No | Implemented |
+| MD-INF-011.001.M01 | SRD-INF-011.001 | `src/us_swing/core/notifications/_ai_client.py` | `ask_ai()` with Claude Code CLI and OpenRouter, default order and fallback | `AiConfig`, `AiAnswer`, `ask_ai()` | `subprocess`, `httpx` | No | Implemented |
 
 > Cross-tool wiring (not new MD rows — edits to existing modules): `gui/app_service.py` builds the worker + command bridge, publishes the three events, and exposes `reconfigure/send_test/shutdown_notifications`; `gui/settings_panel.py` adds the Telegram settings section; `gui/user_store.py` + `data/models.py` round-trip `telegram_enabled`/`telegram_chat_id`. Inbound support also extends `_protocols.py` (M02: `CommandPort`) and `__init__.py` (M07: `build_command_poller`) and `notification_worker.py` (M09: hosts the poller).
 
@@ -89,3 +91,4 @@ core/notifications/_telegram.py   ← httpx, _dto.py, _protocols.py
 core/notifications/_dispatcher.py ← _formatters.py, _protocols.py, asyncio
 core/notifications/__init__.py    ← all core/notifications submodules
 ```
+

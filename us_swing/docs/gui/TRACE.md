@@ -112,6 +112,7 @@
 | FO-GUI-033 | SRD-GUI-033.004 | DD-GUI-033.001.D01 | MD-GUI-033.001.M01, MD-GUI-033.004.M02 | UT-GUI-033.004.M01.T01, UT-GUI-033.004.M02.T01 (Pass) | `gui/ai_settings_block.py`, `gui/settings_panel.py`, `gui/settings_dialog.py` | Implemented | RN-GUI-1.59.0-20261105 |
 | FO-GUI-033 | SRD-GUI-033.005 | DD-GUI-033.001.D01 | MD-GUI-033.004.M02, MD-GUI-033.005.M03 | UT-GUI-033.005.M02.T01–T02 (Pass) | `gui/settings_panel.py`, `gui/user_store.py`, `data/models.py` | Implemented | RN-GUI-1.59.0-20261105 |
 | FO-GUI-033 | SRD-GUI-033.006 | DD-GUI-033.001.D01 | MD-GUI-033.001.M01, MD-GUI-033.004.M02 | UT-GUI-033.006.M01.T01, UT-GUI-033.006.M02.T01 (Pass) | `gui/ai_settings_block.py`, `gui/settings_panel.py` | Implemented | RN-GUI-1.59.0-20261105 |
+| FO-GUI-033 | SRD-GUI-033.007 | DD-GUI-033.001.D01 | MD-GUI-033.001.M01 | UT-GUI-033.007.M01.T01–T02 (Pass) | `gui/ai_settings_block.py` | Implemented | RN-INF-1.9.0-20261105 |
 
 ---
 

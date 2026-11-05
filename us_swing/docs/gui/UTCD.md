@@ -1007,3 +1007,5 @@ Test files:
 | UT-GUI-033.005.M02.T01 | MD-GUI-033.004.M02 | Positive | Save and load round trip | set both, default OpenRouter, fallback, key; Apply; new panel | same values shown; key in store; users.json has no key | Pass |
 | UT-GUI-033.005.M02.T02 | MD-GUI-033.004.M02 | Negative | Keychain error | key save raises; Apply | user AI settings saved; note names the keychain | Pass |
 | UT-GUI-033.006.M02.T01 | MD-GUI-033.004.M02 | Negative | Dot warns when default not ready | Telegram ready; AI on; default Claude; claude not found | Telegram dot warn | Pass |
+| UT-GUI-033.007.M01.T01 | MD-GUI-033.001.M01 | Positive | Test AI shows the answer | fake `ask_ai` returning OK from Claude | note names Claude Code CLI and the time; button on again | Pass |
+| UT-GUI-033.007.M01.T02 | MD-GUI-033.001.M01 | Negative | Test AI shows the error | fake `ask_ai` returning an error | note shows the error | Pass |

@@ -850,3 +850,18 @@ The bridge reuses existing `AppService` reads: `/status` → `get_feed_status` +
 `get_market_status`; `/pnl` → `get_account_state`; `/positions` → `get_positions`;
 `/signals` → `get_pending_signals`; `/screener` → `get_latest_screener_results`;
 `/cycles` → `get_recent_closed_cycles` + `get_strategies_with_open_cycles`.
+
+---
+
+## DD-INF-011.001.D01 — AI Notes Client
+
+**Parent SRD:** SRD-INF-011.001 — SRD-INF-011.003
+
+`core/notifications/_ai_client.py`, sync (callers run it off the GUI thread).
+
+- `AiConfig` (frozen): `claude_on`, `claude_model`, `openrouter_on`, `openrouter_model`, `openrouter_key`, `default`, `fallback`. `AiAnswer` (frozen): `text`, `provider` (`"claude"` / `"openrouter"` / `""`), `seconds`, `error`.
+- `ask_ai(config, instruction, facts, timeout_s=90)` builds the order: `[default]`, plus the other provider when `fallback` and both are on. Each step returns text or raises inside; the loop catches, records `"<Provider>: <reason>"`, and tries the next. No provider left → `AiAnswer(error="; ".join(reasons))`.
+- Claude: `shutil.which("claude")`; `Popen([exe, "-p", "--safe-mode", "--tools", "", "--system-prompt-file", <temp file>, "--model", model, "--effort", "low", "--output-format", "json", "--no-session-persistence", "--permission-prompts", "none"])` in an empty temp folder, env without `ANTHROPIC_API_KEY`, `CREATE_NO_WINDOW`; request text = instruction + facts on stdin (the model does not always follow the system prompt alone, probe 2026-11-05). The system prompt goes in a file so `.cmd` shims cannot mangle it. On timeout `taskkill /T /F` kills the process tree. Read JSON `is_error`, `result`, `api_error_status`, `subtype`. `--bare` is not used: it skips the subscription login.
+- Errors: `str(exc)` or the exception type name; OpenRouter adds the `error.message` from the reply to `HTTP <code>`; a reply without `choices` is "unexpected reply".
+- GUI Test AI (SRD-GUI-033.007): a daemon `threading.Thread` calls `ask_ai`, then emits on an `_AiTestRelay(QObject)` child of the block, so the answer lands on the GUI thread; app exit never waits on it.
+- OpenRouter: `httpx.post("https://openrouter.ai/api/v1/chat/completions", json={"model", "messages": [system, user]}, Authorization: Bearer <key>)`; answer is `choices[0].message.content`. The base URL is a constant here because core must not import the screener.

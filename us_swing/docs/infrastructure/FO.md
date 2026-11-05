@@ -199,3 +199,18 @@
   - Two users with different bot tokens each receive notifications only in their own chat.
   - Given a configured chat, sending `/pnl` returns the current profit-and-loss summary; sending `/help` returns the list of available commands.
   - A command sent from a chat other than the configured one receives no reply and is logged under `[Notify]`.
+
+---
+
+## FO-INF-011: AI Notes Client
+- **Status:** Approved (user, 2026-11-05)
+
+> Source: proposal page https://claude.ai/artifact/YMqCSCJv4XFXpcmA1xKtrF (Phase 2A), user 2026-11-05: "implement the basic small functionality". Minimal: the AI call only; the Morning brief is a later FO.
+
+- The system shall send a short request to the user's default AI, Claude Code CLI or OpenRouter, and return its answer text.
+- The system shall try the other provider when the default fails and AI Fallback is ticked.
+- The system shall return a plain error text, never raise, when no provider answers.
+- **Acceptance Criteria:**
+  - With Claude Code CLI logged in, a test request returns an answer and the provider name.
+  - With the default failing and fallback on, the answer comes from the other provider.
+  - With both failing, the caller gets an error text naming each failure.
