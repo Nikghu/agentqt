@@ -2,6 +2,15 @@
 
 ---
 
+## [20261106] MKT — Sector strength and rotation, phase P2 (FO-MKT-002) — docs drafted, handover
+
+- Type: Feature (in progress)
+- PR #115 (P1) merged to main (4adbde35); branch `feat/mkt-p2-sectors-rs` created from it.
+- Artifacts: FO-MKT-002 (Draft), SRD-MKT-002.001–.010 (Draft), DD-MKT-002.001.D01, MD-MKT-002.*.M01–M05, UTCD 22 rows, SRD-GUI-034.012 + MD M11 + UT T01–T02. Validator GO.
+- Next: user approves FO + SRDs, then phase-gate, code, real hand check on 2 dates.
+
+---
+
 ## [20261106] MKT — Market regime, breadth and fear, phase P1 (FO-MKT-001)
 
 - Type: Feature

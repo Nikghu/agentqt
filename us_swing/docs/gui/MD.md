@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.10.0: MD-GUI-034.012.M11 added (MKT P2).
 > v1.9.0: MD-GUI-034.011.M10 added (MKT P1).
 > v1.8.0: MD-GUI-034.* Market Floor and AI Desk frames added 2026-11-05.
 > v1.54.0: MD-GUI-000.009.M01 `popups.py` and M02 call sites added (SRD-GUI-000.009).
@@ -406,5 +407,6 @@ us_swing/src/us_swing/gui/
 | MD-GUI-034.009.M08 | SRD-GUI-034.009 | `us_swing/src/us_swing/gui/ai_desk.py`, `gui/ai_desk_sections.py`, `gui/ai_desk_sections2.py`, `gui/ai_desk_sections3.py`, `gui/ai_desk_sample.py` | AI Desk section list and section frames | `AiDeskWorkspace` | M02 | No |
 | MD-GUI-034.003.M09 | SRD-GUI-034.003 | `us_swing/src/us_swing/core/desk_contract.py`, `desk/task.py` | Shared desk launch command; `FloorData` interface | `desk_command()`, `launch_desk()`, `ProductDescriptor`, `FloorData` | — | No |
 | MD-GUI-034.011.M10 | SRD-GUI-034.011 | `us_swing/src/us_swing/core/desk_floor.py`, `gui/market_floor.py` | Desk-backed FloorData and panel refresh after a run | `DeskFloorData` | `core.desk_contract`, M03 | No |
+| MD-GUI-034.012.M11 | SRD-GUI-034.012 | `us_swing/src/us_swing/core/desk_floor.py` | Desk-backed sector and RS leader products | `DeskFloorData` | `core.desk_contract` | No |
 
 SRD coverage: .002 and .003 by M02 and M09; .004 by M04; .005 by M05; .006 and .007 by M06; .008 by M07; .009 by M08; .010 by M03 and M09.
