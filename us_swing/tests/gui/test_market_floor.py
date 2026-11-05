@@ -118,3 +118,108 @@ def test_bad_panel_shows_missing_card(qtbot: QtBot, tmp_path: Path) -> None:
     qtbot.addWidget(page)
     texts = [lbl.text() for p in page.panel_cards() for lbl in p.findChildren(QLabel)]
     assert "Missing product" in texts
+
+
+def test_edit_add_save_as_rebuild(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-034.008.M07.T05: an edited layout saved as Swing returns after a rebuild."""
+    path = tmp_path / "layouts.json"
+    page = MarketFloorWorkspace(DeskPoller(tmp_path), store=LayoutStore(path))
+    qtbot.addWidget(page)
+    assert not page.add_btn.isEnabled()
+    page.edit_btn.setChecked(True)
+    assert page.add_btn.isEnabled() and page.grid("Overview").is_edit()
+    before = len(page.grid("Overview").model.panels)
+    spec = page.add_product("flow.leaders", "Overview")
+    assert spec is not None
+    frame = page.grid("Overview").frames()[0]
+    page.apply_panel_settings(frame, "card", {}, "B")
+    page.save_layout_as("Swing")
+    again = MarketFloorWorkspace(DeskPoller(tmp_path), store=LayoutStore(path))
+    qtbot.addWidget(again)
+    assert again.layout_name() == "Swing"
+    panels = again.grid("Overview").model.panels
+    assert len(panels) == before + 1
+    assert panels[0].view == "card" and panels[0].link == "B"
+    assert panels[-1].product == "flow.leaders"
+    assert again.grid("Ideas").model.to_list() == page.grid("Ideas").model.to_list()
+
+
+def test_switch_and_delete_layout(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-034.008.M07.T06: switching reloads tabs; Default cannot be deleted."""
+    store = LayoutStore(tmp_path / "layouts.json")
+    page = MarketFloorWorkspace(DeskPoller(tmp_path), store=store)
+    qtbot.addWidget(page)
+    assert not page.delete_btn.isEnabled()
+    page.remove_panel("Overview", "p1")
+    page.save_layout_as("Swing")
+    page.switch_layout("Default")
+    page._confirm = lambda *_a, **_k: True
+    assert len(page.grid("Overview").model.panels) == 4
+    assert store.last() == "Default"
+    page.layout_combo.setCurrentText("Swing")
+    assert len(page.grid("Overview").model.panels) == 3 and page.delete_btn.isEnabled()
+    page.delete_layout()
+    assert page.layout_name() == "Default" and "Swing" not in store.names()
+    assert not store.delete("Default")
+
+
+def test_debounced_save(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-034.008.M07.T07: a change is written to the store after the save delay."""
+    path = tmp_path / "layouts.json"
+    page = MarketFloorWorkspace(DeskPoller(tmp_path), store=LayoutStore(path))
+    qtbot.addWidget(page)
+    page.remove_panel("Overview", "p1")
+    qtbot.waitUntil(lambda: path.exists(), timeout=3000)
+    assert len(LayoutStore(path).load("Default")["Overview"]) == 3
+
+
+def test_emptied_tab_stays_empty(tmp_path: Path) -> None:
+    """UT-GUI-034.008.M07.T08: an emptied tab is not refilled; a missing tab gets defaults."""
+    path = tmp_path / "layouts.json"
+    store = LayoutStore(path)
+    tabs = default_layout()
+    tabs["Ideas"] = []
+    store.save("Default", tabs)
+    again = LayoutStore(path).load("Default")
+    assert again["Ideas"] == []
+    assert again["Overview"] == default_layout()["Overview"]
+    del tabs["Sectors"]
+    store.save("Default", tabs)
+    assert LayoutStore(path).load("Default")["Sectors"] == default_layout()["Sectors"]
+
+
+def test_save_as_existing_name_needs_confirmation(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-034.008.M07.T09: Save as onto an existing name asks first and can be refused."""
+    store = LayoutStore(tmp_path / "layouts.json")
+    page = MarketFloorWorkspace(DeskPoller(tmp_path), store=store)
+    qtbot.addWidget(page)
+    page.save_layout_as("Swing")
+    page.remove_panel("Overview", "p1")
+    asked: list[str] = []
+
+    def refuse(*_a: object, **_k: object) -> bool:
+        asked.append("x")
+        return False
+
+    page._confirm = refuse
+    page.save_layout_as("Default")
+    assert asked and page.layout_name() == "Swing"
+    assert len(store.load("Default")["Overview"]) == 4
+    page._confirm = lambda *_a, **_k: True
+    page.save_layout_as("Default")
+    assert page.layout_name() == "Default" and len(store.load("Default")["Overview"]) == 3
+    page._confirm = lambda *_a, **_k: False
+    page.save_layout_as("Swing")
+    page.layout_combo.setCurrentText("Swing")
+    page.delete_layout()
+    assert "Swing" in store.names()
+
+
+def test_edit_button_text(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-034.004.M04.T03: the Edit button reads Done while editing."""
+    page = MarketFloorWorkspace(DeskPoller(tmp_path), store=LayoutStore(tmp_path / "l.json"))
+    qtbot.addWidget(page)
+    page.edit_btn.setChecked(True)
+    assert page.edit_btn.text() == "Done"
+    page.edit_btn.setChecked(False)
+    assert page.edit_btn.text() == "Edit"

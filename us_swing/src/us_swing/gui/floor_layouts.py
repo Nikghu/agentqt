@@ -26,30 +26,33 @@ def _panel(pid: str, product: str, x: int, y: int, w: int, h: int, view: str = "
 
 
 def default_layout() -> Panels:
-    """Return the default panels for each of the five Market Floor tabs (12-column grid)."""
+    """Return the default panels for each of the five Market Floor tabs (12-column grid).
+
+    Each tab is about 26 rows high so it fills the page at 1080p.
+    """
     return {
         "Overview": [
-            _panel("p1", "ideas.top", 0, 0, 8, 8, link="A"),
-            _panel("p2", "regime.today", 8, 0, 4, 4, view="card"),
-            _panel("p3", "breadth.daily", 8, 4, 4, 4),
-            _panel("p4", "news.latest", 0, 8, 12, 6),
+            _panel("p1", "ideas.top", 0, 0, 8, 13, link="A"),
+            _panel("p2", "regime.today", 8, 0, 4, 6, view="card"),
+            _panel("p3", "breadth.daily", 8, 6, 4, 7),
+            _panel("p4", "news.latest", 0, 13, 12, 13),
         ],
         "Ideas": [
-            _panel("p1", "ideas.top", 0, 0, 6, 8, filters={"side": "long"}, link="A"),
-            _panel("p2", "ideas.top", 6, 0, 6, 8, filters={"side": "short"}, link="A"),
-            _panel("p3", "flow.leaders", 0, 8, 12, 5),
+            _panel("p1", "ideas.top", 0, 0, 6, 13, filters={"side": "long"}, link="A"),
+            _panel("p2", "ideas.top", 6, 0, 6, 13, filters={"side": "short"}, link="A"),
+            _panel("p3", "flow.leaders", 0, 13, 12, 13),
         ],
         "Sectors": [
-            _panel("p1", "sectors.rank", 0, 0, 7, 9),
-            _panel("p2", "sectors.rrg", 7, 0, 5, 9),
+            _panel("p1", "sectors.rank", 0, 0, 7, 26),
+            _panel("p2", "sectors.rrg", 7, 0, 5, 26),
         ],
         "Regime & Breadth": [
-            _panel("p1", "regime.today", 0, 0, 5, 5, view="card"),
-            _panel("p2", "breadth.daily", 5, 0, 7, 8),
+            _panel("p1", "regime.today", 0, 0, 5, 26, view="card"),
+            _panel("p2", "breadth.daily", 5, 0, 7, 26),
         ],
         "News & Calendar": [
-            _panel("p1", "news.latest", 0, 0, 7, 10),
-            _panel("p2", "calendar.week", 7, 0, 5, 10),
+            _panel("p1", "news.latest", 0, 0, 7, 26),
+            _panel("p2", "calendar.week", 7, 0, 5, 26),
         ],
     }
 
@@ -89,6 +92,9 @@ class LayoutStore:
         defaults = default_layout()
         result: Panels = {}
         for tab in TAB_NAMES:
+            if tab not in tabs:
+                result[tab] = defaults[tab]
+                continue
             entry = tabs.get(tab)
             raw = entry.get("panels") if isinstance(entry, dict) else None
             panels: list[dict[str, Any]] = []
@@ -97,7 +103,8 @@ class LayoutStore:
                     panels.append(panel)
                 else:
                     _log.warning("[Floor] Layout %s, tab %s: a broken panel was dropped", name, tab)
-            result[tab] = panels or defaults[tab]
+            keep_empty = isinstance(raw, list) and not raw
+            result[tab] = panels if panels or keep_empty else defaults[tab]
         return result
 
     def save(self, name: str, tabs: Panels) -> None:
@@ -106,6 +113,16 @@ class LayoutStore:
             "tabs": {tab: {"panels": panels} for tab, panels in tabs.items()}
         }
         self._write()
+
+    def delete(self, name: str) -> bool:
+        """Delete layout ``name``; Default and unknown names are kept. Returns True if deleted."""
+        if name == DEFAULT_NAME or name not in self._data["layouts"]:
+            return False
+        del self._data["layouts"][name]
+        if self._data.get("last") == name:
+            self._data["last"] = DEFAULT_NAME
+        self._write()
+        return True
 
     def last(self) -> str:
         """Return the layout name to open at start."""

@@ -954,6 +954,7 @@ class MainWindow(QMainWindow):
             worker.quit()   # type: ignore[union-attr]
             worker.wait(6000)  # type: ignore[union-attr]
         self._desk_poller.shutdown()
+        self._floor_panel.flush()
         self._demo._stop_live_bar_worker()
         self._demo.shutdown_notifications()
         self._demo.shutdown_order_connection()
