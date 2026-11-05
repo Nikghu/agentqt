@@ -11,6 +11,7 @@ from pathlib import Path
 
 from us_swing.core.desk_contract import (
     LIVE_STATES,
+    NOT_RESPONDING,
     CommandKind,
     DeskState,
     desk_home,
@@ -44,7 +45,7 @@ def _sync_task() -> None:
 
 
 def _is_alive(state: DeskState, message: str) -> bool:
-    return state in LIVE_STATES and message != "not responding"
+    return state in LIVE_STATES and message != NOT_RESPONDING
 
 
 def main(argv: list[str], home: Path | None = None) -> int:

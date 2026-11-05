@@ -8,17 +8,24 @@ only this module to talk to the desk process, so ``gui`` never imports ``desk``.
 from __future__ import annotations
 
 import sqlite3
-from collections.abc import Generator
+import subprocess
+import sys
+from collections.abc import Generator, Mapping, Sequence
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
-from typing import Protocol
+from typing import Any, Protocol
 
 SCHEMA_VERSION = 1
 DB_NAME = "desk.db"
 STALE_AFTER_S = 60.0
+NOT_RESPONDING = "not responding"
+# The dev launcher adds src/ to sys.path, so the desk starts without an installed package.
+_RUN_GUI = Path(__file__).resolve().parents[3] / "run_gui.py"
+_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+_DETACHED = getattr(subprocess, "DETACHED_PROCESS", 0)
 
 
 class DeskState(str, Enum):
@@ -133,7 +140,7 @@ def read_status(home: Path | None = None, now: datetime | None = None) -> DeskSt
         return DeskStatus(DeskState.ERROR, "unknown state", beat, row[3])
     now = now or datetime.now(UTC)
     if state in LIVE_STATES and (beat is None or (now - beat).total_seconds() > STALE_AFTER_S):
-        return DeskStatus(DeskState.ERROR, "not responding", beat, row[3])
+        return DeskStatus(DeskState.ERROR, NOT_RESPONDING, beat, row[3])
     return DeskStatus(state, row[1] or "", beat, row[3])
 
 
@@ -156,3 +163,46 @@ def send_command(kind: CommandKind, home: Path | None = None) -> int:
         return int(cur.lastrowid or 0)
     finally:
         con.close()
+
+
+def desk_command() -> list[str]:
+    """Return the command line that runs the desk process."""
+    exe = Path(sys.executable)
+    if getattr(sys, "frozen", False):
+        return [str(exe), "desk"]
+    pythonw = exe.with_name("pythonw.exe")
+    return [str(pythonw if pythonw.exists() else exe), str(_RUN_GUI), "desk"]
+
+
+def launch_desk(resume: bool = True) -> None:
+    """Start the desk as a detached process with no console window."""
+    cmd = desk_command() + (["--resume"] if resume else [])
+    subprocess.Popen(  # noqa: S603 — fixed command built from our own executable
+        cmd, creationflags=_DETACHED | _NO_WINDOW, close_fds=True
+    )
+
+
+# ── Market Floor data interface (MD-GUI-034.003.M09) ─────────────────────────
+
+
+@dataclass(frozen=True)
+class ProductDescriptor:
+    """One desk output the Market Floor can show as a panel."""
+
+    id: str
+    title: str
+    kind: str
+    views: tuple[str, ...] = ("table",)
+    columns: tuple[str, ...] = ()
+    filters: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
+    sample: bool = False
+
+
+class FloorData(Protocol):
+    """Where Market Floor panels get their products and rows."""
+
+    def products(self) -> Sequence[ProductDescriptor]: ...
+
+    def rows(
+        self, product_id: str, filters: Mapping[str, str]
+    ) -> list[dict[str, Any]]: ...

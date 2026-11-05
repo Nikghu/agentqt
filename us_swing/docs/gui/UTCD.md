@@ -1019,19 +1019,24 @@ Test files:
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
 |---|---|---|---|---|---|---|
-| UT-GUI-034.001.M01.T01 | MD-GUI-034.001.M01 | Positive | Two new pages | main window built | nav has Market Floor and AI Desk at 5 and 6; first five unchanged | Not Run |
-| UT-GUI-034.002.M02.T01 | MD-GUI-034.002.M02 | Positive | Pill shows status | status Sleeping | pill text Sleeping | Not Run |
-| UT-GUI-034.003.M02.T01 | MD-GUI-034.002.M02 | Positive | Buttons per state | each of the 7 states | Start only for Off, Stopped, Error; Pause for Running, Sleeping; Resume for Paused; Stop for live | Not Run |
-| UT-GUI-034.003.M02.T02 | MD-GUI-034.002.M02 | Negative | No double launch | Start clicked, status already Sleeping | launch not called | Not Run |
-| UT-GUI-034.003.M09.T01 | MD-GUI-034.003.M09 | Positive | Launch is detached | fake Popen | command ends with `desk --resume`; no-window flags set | Not Run |
-| UT-GUI-034.004.M04.T01 | MD-GUI-034.004.M04 | Positive | Five tabs and feed fold | fold, rebuild | 5 tabs in order; feed folded after rebuild | Not Run |
+| UT-GUI-034.001.M01.T01 | MD-GUI-034.001.M01 | Positive | Two new pages | main window built | nav has Market Floor and AI Desk at 5 and 6; first five unchanged | Pass |
+| UT-GUI-034.002.M02.T01 | MD-GUI-034.002.M02 | Positive | Pill shows status | status Sleeping | pill text Sleeping | Pass |
+| UT-GUI-034.003.M02.T01 | MD-GUI-034.002.M02 | Positive | Buttons per state | each of the 7 states, Error live and not responding | Start for Off, Stopped, not-responding Error; Pause and Stop for Running, Sleeping, live Error; Resume and Stop for Paused; nothing for Stopping | Pass |
+| UT-GUI-034.003.M02.T02 | MD-GUI-034.002.M02 | Negative | No double launch | Start clicked, status already Sleeping | launch not called | Pass |
+| UT-GUI-034.003.M02.T03 | MD-GUI-034.002.M02 | Positive | Commands queue in order | pause then stop while busy | both sent in order; buttons locked while busy | Pass |
+| UT-GUI-034.003.M02.T04 | MD-GUI-034.002.M02 | Negative | Failed send is shown | send fails, desk off | bar shows "Could not send: desk is off" | Pass |
+| UT-GUI-034.003.M09.T01 | MD-GUI-034.003.M09 | Positive | Launch is detached | fake Popen | command ends with `desk --resume`; no-window flags set | Pass |
+| UT-GUI-034.004.M04.T01 | MD-GUI-034.004.M04 | Positive | Five tabs and feed fold | fold, rebuild | 5 tabs in order; feed folded after rebuild | Pass |
+| UT-GUI-034.004.M04.T02 | MD-GUI-034.004.M04 | Negative | Unknown product | panel with product "nope" | "Missing product" card, no error | Pass |
 | UT-GUI-034.005.M05.T01 | MD-GUI-034.005.M05 | Positive | Move snaps and pushes down | panel moved onto another | no overlap; other panel pushed below | Not Run |
 | UT-GUI-034.005.M05.T02 | MD-GUI-034.005.M05 | Negative | Clamp to 12 columns | resize to w 20 at x 4 | w 8; minimum 2 x 3 kept | Not Run |
 | UT-GUI-034.005.M05.T03 | MD-GUI-034.005.M05 | Edge | Free place for new panel | grid nearly full | new panel placed below the lowest panel | Not Run |
 | UT-GUI-034.006.M06.T01 | MD-GUI-034.006.M06 | Positive | View switch | table, then card, then chart | body changes; chart shows placeholder | Not Run |
 | UT-GUI-034.007.M06.T01 | MD-GUI-034.006.M06 | Positive | Linked panels update | click AAPL in group A | group A panels show AAPL; group B unchanged | Not Run |
 | UT-GUI-034.007.M06.T02 | MD-GUI-034.006.M06 | Negative | No group sends nothing | click in panel with no group | no panel changes | Not Run |
-| UT-GUI-034.008.M07.T01 | MD-GUI-034.008.M07 | Positive | Layout round trip | save Swing, reopen store | same panels; last is Swing | Not Run |
-| UT-GUI-034.008.M07.T02 | MD-GUI-034.008.M07 | Negative | Broken file | file with bad JSON | default layout; warning logged | Not Run |
-| UT-GUI-034.009.M08.T01 | MD-GUI-034.009.M08 | Positive | All sections open | click each of 11 sections | each shows its frame; Command is first | Not Run |
-| UT-GUI-034.010.M03.T01 | MD-GUI-034.010.M03 | Positive | Sample tag shown | sample provider | every panel and section shows Sample data | Not Run |
+| UT-GUI-034.008.M07.T01 | MD-GUI-034.008.M07 | Positive | Layout round trip | save Swing, reopen store | same panels; last is Swing | Pass |
+| UT-GUI-034.008.M07.T02 | MD-GUI-034.008.M07 | Negative | Broken file | file with bad JSON | default layout; warning logged | Pass |
+| UT-GUI-034.008.M07.T03 | MD-GUI-034.008.M07 | Negative | Wrong-shape file | layout null, panel without w | no error; default panels; `[Floor]` warning | Pass |
+| UT-GUI-034.008.M07.T04 | MD-GUI-034.008.M07 | Edge | Broken file kept | bad JSON, then save | old file renamed to `floor_layouts.json.bak` | Pass |
+| UT-GUI-034.009.M08.T01 | MD-GUI-034.009.M08 | Positive | All sections open | click each of 11 sections | each shows its frame; Command is first | Pass |
+| UT-GUI-034.010.M03.T01 | MD-GUI-034.010.M03 | Positive | Sample tag shown | sample provider | every panel and section shows Sample data | Pass |

@@ -8,22 +8,18 @@ from __future__ import annotations
 
 import logging
 import subprocess
-import sys
 import xml.etree.ElementTree as ET_XML
 from collections.abc import Callable
 from datetime import date, tzinfo
-from pathlib import Path
 
+from us_swing.core.desk_contract import desk_command, launch_desk
 from us_swing.desk.clock import evening_task_time
 
 log = logging.getLogger(__name__)
 
-# The dev launcher adds src/ to sys.path, so the task works without an installed package.
-_RUN_GUI = Path(__file__).resolve().parents[3] / "run_gui.py"
 LOGON_TASK = "USSwing_Desk"
 EVENING_TASK = "USSwing_Desk_Evening"
 _NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
-_DETACHED = getattr(subprocess, "DETACHED_PROCESS", 0)
 _XML_DAYS = {
     "Monday": "MON", "Tuesday": "TUE", "Wednesday": "WED", "Thursday": "THU",
     "Friday": "FRI", "Saturday": "SAT", "Sunday": "SUN",
@@ -47,15 +43,6 @@ def run_schtasks(*args: str) -> tuple[bool, str]:
     if result.returncode == 0:
         return True, result.stdout.strip()
     return False, (result.stderr.strip() or result.stdout.strip())
-
-
-def desk_command() -> list[str]:
-    """Return the command line that runs the desk process."""
-    exe = Path(sys.executable)
-    if getattr(sys, "frozen", False):
-        return [str(exe), "desk"]
-    pythonw = exe.with_name("pythonw.exe")
-    return [str(pythonw if pythonw.exists() else exe), str(_RUN_GUI), "desk"]
 
 
 def _task_line() -> str:
@@ -130,7 +117,4 @@ def sync_evening_task(day: date, local: tzinfo, runner: Runner = run_schtasks) -
 
 def launch(resume: bool = True) -> None:
     """Start the desk as a detached process with no console window."""
-    cmd = desk_command() + (["--resume"] if resume else [])
-    subprocess.Popen(  # noqa: S603 — fixed command built from our own executable
-        cmd, creationflags=_DETACHED | _NO_WINDOW, close_fds=True
-    )
+    launch_desk(resume)
