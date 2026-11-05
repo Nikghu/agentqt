@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.83.0: SRD-GUI-034.012 added as Draft — Floor shows real sector strength, rotation and RS leaders (MKT P2).
 > v2.82.0: SRD-GUI-034.011 added as Draft — Floor shows real regime and breadth (MKT P1).
 > v2.81.0: FO-GUI-034 Market Floor and AI Desk frames, SRD-GUI-034.001–.010 added as Draft 2026-11-05.
 > v2.80.0: SRD-GUI-006.023 added, asked by user 2026-11-05 in chat — Update now downloads only stocks behind (ISS-GUI-0018).
@@ -672,3 +673,4 @@
 | SRD-GUI-034.009 | FO-GUI-034 | Must | AI Desk has a section list with Command as home and the ten other sections, each showing its frame. | click | section | — | Implemented |
 | SRD-GUI-034.010 | FO-GUI-034 | Must | Panels and sections fed by sample data show a "Sample data" tag; data comes through the `FloorData` interface in `core/desk_contract.py`. | provider | tag | Sample provider is replaced later without GUI changes | Implemented |
 | SRD-GUI-034.011 | FO-GUI-034 | Must | The Market regime and Breadth panels read the latest rows from `desk.db` with their data date, without the Sample tag, and refresh after a desk run ends. | `desk.db` | panels | Falls back to sample rows when the desk has no data yet | Implemented |
+| SRD-GUI-034.012 | FO-GUI-034 | Must | The Sector strength, Sector rotation and new RS leaders panels read the latest sector and stock ratings from `desk.db` with their data date, without the Sample tag. | `desk.db` | panels | RS leaders shows the top 30 and can be filtered by sector | Implemented |

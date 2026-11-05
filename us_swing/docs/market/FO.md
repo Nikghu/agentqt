@@ -1,11 +1,12 @@
 # Functional Overview — Market Analytics (MKT)
 
 **Document ID:** FO-MKT
-**Version:** 0.2.0
+**Version:** 0.3.0
 **Status:** Draft
 **Last Updated:** 2026-11-05
 **Project:** US Swing Trading System
 
+> v0.3.0: FO-MKT-002 written in full as Draft (sector lines from member candles; industry groups later).
 > v0.2.0: FO-MKT-001 written in full and approved (user, 2026-11-06).
 > v0.1.0: Tool created by architecture review. All FOs are outlines; each is filled in full at the start of its phase.
 
@@ -39,13 +40,25 @@ The system shall describe the state of the whole US market each day, so later ph
 
 ## FO-MKT-002: Sector Strength and Rotation
 
-**Status:** Draft (outline)
+**Status:** Approved (user, 2026-11-06)
 **Priority:** Must
 **Phase:** P2
+**Depends on:** FO-MKT-001 (desk step and member candles), saved S&P 500 list with sectors
 
-- The system shall rank the 11 sectors and their industry groups by relative strength against SPY.
-- The system shall place each sector in a rotation quadrant (Leading, Weakening, Lagging, Improving).
-- The system shall rank every S&P 500 stock by relative strength.
+The system shall show which of the 11 sectors money is moving into or out of, and which stocks are the strongest, so later phases can favour strong stocks in strong sectors. No AI is used. Industry groups come later.
+
+- The system shall build a daily strength line for each sector from the equal-weight daily moves of its member stocks.
+- The system shall rank the sectors by their performance against SPY over 1, 3 and 6 months.
+- The system shall place each sector in a rotation quadrant: Leading, Weakening, Lagging or Improving.
+- The system shall give every member stock a relative strength rating from 1 to 99 and its rank inside its sector.
+- The system shall run this as a desk step after the market regime step and keep the results in `desk.db`.
+- The system shall show the real sector strength, sector rotation and the strongest stocks on the Market Floor.
+
+### Acceptance Criteria
+
+1. For 2 chosen dates the sector ranks, quadrants and three stock ratings match a hand check on the same candles.
+2. The evening run adds the latest day for sectors and stock ratings.
+3. The Sector strength, Sector rotation and RS leaders panels show real data with the data date and no "Sample data" tag.
 
 ## FO-MKT-003: Money Flow, Setups, Readiness Score and Ideas
 

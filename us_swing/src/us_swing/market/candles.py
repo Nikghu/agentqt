@@ -1,6 +1,7 @@
 """
 Module: MD-MKT-001.001.M01 — market/candles.py
 Parent SRD: SRD-MKT-001.001
+Also: MD-MKT-002.001.M01 — member sectors (SRD-MKT-002.001)
 
 Read-only daily bars from the app's ``candles.db`` for SPY and the S&P 500 members.
 """
@@ -105,7 +106,54 @@ def member_symbols(
     return Members(found, len(pairs))
 
 
+@dataclass(frozen=True)
+class SectorMembers:
+    """Sector of each member found in the candles, out of how many are listed."""
+
+    sectors: dict[str, str]
+    listed: int
+
+
+def member_sectors(
+    available: set[str],
+    universe: Callable[[], list[tuple[str, str, str]]] | None = None,
+) -> SectorMembers:
+    """Return the sector of each S&P 500 member that has daily bars, SPY excluded.
+
+    Args:
+        available: Symbols present in ``candles.db``.
+        universe: Returns ``(symbol, ibkr_symbol, sector)`` rows; defaults to the
+            saved S&P 500 list. When it fails, no sectors are returned.
+    """
+    try:
+        rows = (universe or _saved_sectors)()
+    except Exception as exc:  # noqa: BLE001 — no list means no sectors, never a failed run
+        log.warning("[Sectors] S&P 500 list not available, sectors not computed: %s", exc)
+        return SectorMembers({}, 0)
+    rows = [r for r in rows if BENCHMARK not in r[:2]]
+    out: dict[str, str] = {}
+    no_sector = 0
+    for symbol, ibkr_symbol, sector in rows:
+        found = next((s for s in (symbol, ibkr_symbol) if s in available), "")
+        if not found:
+            continue
+        if not sector.strip():
+            no_sector += 1
+            continue
+        out[found] = sector.strip()
+    if no_sector:
+        log.info("[Sectors] %d stock(s) have no sector in the S&P 500 list and are left out",
+                 no_sector)
+    return SectorMembers(out, len(rows))
+
+
 def _saved_universe() -> list[tuple[str, str]]:
     from us_swing.core.backtest_bridge import load_universe  # noqa: PLC0415 — heavy import
 
     return [(r.symbol, r.ibkr_symbol) for r in load_universe()]
+
+
+def _saved_sectors() -> list[tuple[str, str, str]]:
+    from us_swing.core.backtest_bridge import load_universe  # noqa: PLC0415 — heavy import
+
+    return [(r.symbol, r.ibkr_symbol, r.sector) for r in load_universe()]

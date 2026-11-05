@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.8.0: UT-GUI-034.012.M11.T01–T02 added (MKT P2).
 > v1.7.0: UT-GUI-034.011.M10.T01–T03 added (MKT P1).
 > v1.6.0: UT-GUI-034.* Market Floor and AI Desk frames added 2026-11-05.
 > v1.45.0: UT-GUI-000.009.M01.T01–T02, M02.T01–T02 added — frameless popups (ISS-GUI-0016).
@@ -1060,3 +1061,5 @@ Test files:
 | UT-GUI-034.011.M10.T01 | MD-GUI-034.011.M10 | Positive | Real regime and breadth | desk.db with 2 days | latest day rows; product sample False; data date shown | Pass |
 | UT-GUI-034.011.M10.T02 | MD-GUI-034.011.M10 | Negative | No desk data yet | no desk.db | sample rows with Sample tag | Pass |
 | UT-GUI-034.011.M10.T03 | MD-GUI-034.011.M10 | Positive | Refresh after a run | status Running then Sleeping | panels reload once | Pass |
+| UT-GUI-034.012.M11.T01 | MD-GUI-034.012.M11 | Positive | Real sectors and RS leaders | desk.db with 2 days of sector and stock rows | latest day rows; ranks in order; sector filter works; sample False | Pass |
+| UT-GUI-034.012.M11.T02 | MD-GUI-034.012.M11 | Negative | No sector data yet | desk.db with regime only | sector products are sample rows; rs.leaders not listed | Pass |

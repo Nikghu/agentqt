@@ -15,7 +15,10 @@ from us_swing.core.desk_contract import DeskStep
 
 log = logging.getLogger(__name__)
 
-STEP_PATHS: tuple[str, ...] = ("us_swing.market.step:RegimeStep",)
+STEP_PATHS: tuple[str, ...] = (
+    "us_swing.market.step:RegimeStep",
+    "us_swing.market.sector_step:SectorStep",
+)
 
 
 def load_steps(paths: Sequence[str] = STEP_PATHS) -> list[DeskStep]:
