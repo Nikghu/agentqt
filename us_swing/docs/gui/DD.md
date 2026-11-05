@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.8.0: DD-GUI-034.001.D01 Market Floor and AI Desk frames added 2026-11-05.
 > v1.31.0: DD-GUI-032.001.D01 added — Strategies grouped and table views.
 > v1.30.0: Backtest data note and log line name 30-minute candles too (SRD-GUI-030.010 wording, after SRD-BKT-001.016).
 > v1.29.0: 30m timeframe — one shared `TIMEFRAMES` list feeds every strategy builder Timeframe dropdown (SRD-GUI-013.023); Inspector `_CHART_TFS` gains 30m with 5 days before entry (SRD-GUI-031.084).
@@ -1803,3 +1804,32 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 **Panel and dialog.** `_SystemSections` puts the block first on the Telegram page; `telegram_inputs` adds `block.inputs`, so edits mark the section dirty. `_on_save_telegram` saves `block.settings()` into the user fields and calls `_api_key_store.save(key)` only when the key is not blank and differs from the stored one. `load_telegram` calls `block.load(settings, key)`. `telegram_state()` returns `warn` when the Telegram dot is `ok` but AI notes are on and `ai_ready` is false. `SettingsPanel.valid_changed` forwards the block signal and `is_valid` reads it; `SettingsDialog` sets Apply = dirty and valid, OK = valid.
 
 **Storage.** `UserProfile` gets `ai_enabled=False`, `ai_claude_on=True`, `ai_claude_model="claude-sonnet-5-5"`, `ai_openrouter_on=False`, `ai_openrouter_model=""`, `ai_default="claude"`, `ai_fallback=False`; `user_store` writes and reads them with these defaults.
+
+## DD-GUI-034.001.D01 — Market Floor and AI Desk Frames
+
+**Traces:** SRD-GUI-034.001–.010. Blueprint from pyqt-architect 2026-11-05.
+
+**Pages.** `_NAV_ITEMS` gains `("globe", "Market Floor")` and `("users", "AI Desk")` (indexes 5, 6); `_WIDE_PAGES` becomes `{2, 3, 4, 5, 6}`. Both pages lay out their own cards, like Backtest.
+
+**Desk control.** `desk_command()` and `launch_desk()` move from `desk/task.py` to `core/desk_contract.py` (`desk/task.py` imports them), so the GUI never imports `desk`. `DeskPoller` (one per window) runs `read_status`, `send_command` and `launch_desk` in a `_Job`-style `QThread`; a busy flag stops reads from stacking; after a click it reads every 1 s for 5 s. Buttons: Start when Off, Stopped or Error; Pause when Running or Sleeping; Resume when Paused; Stop when live. `MainWindow.closeEvent` waits for the job.
+
+**Data.** `core/desk_contract.py` adds `ProductDescriptor(id, title, kind, views, columns, filters)` and the `FloorData` Protocol (`products()`, `rows(product_id, filters)`). `gui/floor_sample.py` implements it with fixed sample rows. In P1 a desk.db reader replaces it.
+
+**Grid.** `floor_grid_model.py` (pure) holds `PanelSpec(id, product, view, filters, link, x, y, w, h)` and the rules: clamp to 12 columns, minimum 2 x 3 cells, push panels down on overlap (capped passes), find a free place for a new panel. `floor_grid.py` draws the panels with absolute geometry (column width from the widget width, row height 28 px, gap from theme) and handles drag and corner resize only in edit mode.
+
+**Layouts JSON** (`~/.usswing/floor_layouts.json`):
+
+```json
+{"version": 1, "last": "Default", "feed_folded": false,
+ "layouts": {"Default": {"tabs": {"Overview": {"panels": [
+   {"id": "p1", "product": "ideas.top", "view": "table", "filters": {"side": "long"},
+    "link": "A", "x": 0, "y": 0, "w": 6, "h": 8}]}}}}}
+```
+
+Missing tab: default panels for that tab. Unknown product: a "Missing product" card.
+
+**Link groups.** `PanelFrame.symbol_clicked` goes to `LinkBus.publish(group, symbol)`; frames of the same group call `set_symbol`; the sender ignores its own echo.
+
+**AI Desk.** `ai_desk.py` holds the section list and a stack; section frames live in `ai_desk_sections.py` and `ai_desk_sections2.py` on `ai_desk_sample.py` data.
+
+**Build steps.** (a) desk control, Floor tabs with fixed panels, feed, AI Desk shell; (b) grid, catalog, panel settings, link groups, layouts; (c) AI Desk sections.

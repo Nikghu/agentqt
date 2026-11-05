@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.8.0: MD-GUI-034.* Market Floor and AI Desk frames added 2026-11-05.
 > v1.54.0: MD-GUI-000.009.M01 `popups.py` and M02 call sites added (SRD-GUI-000.009).
 > v1.53.0: MD-GUI-022.001.M01 adds `plan_start_index()`, `plan_outcome()`; `ListDetailView.load()` takes the run time; `CandleChartPanel.set_plan()` takes an optional start time (SRD-GUI-022.011).
 > v1.52.0: MD-GUI-032.001.M01–.003.M03 added — Strategies grouped and table views (SRD-GUI-032).
@@ -389,3 +390,19 @@ us_swing/src/us_swing/gui/
 | MD-GUI-033.001.M01 | SRD-GUI-033.001 | `us_swing/src/us_swing/gui/ai_settings_block.py` | Enable AI notes tick, Claude and OpenRouter cards, fallback, validity and readiness rules | `AiSettingsBlock`, `AiSettings`, `ai_problem()`, `ai_ready()`, `claude_found()` | `screener._cloud_ai_models`, `theme` | No |
 | MD-GUI-033.004.M02 | SRD-GUI-033.004 | `us_swing/src/us_swing/gui/settings_panel.py`, `gui/settings_dialog.py` | AI block on the Telegram page, save and load, dot, Apply and OK gate | `SettingsPanel.valid_changed`, `is_valid`, `telegram_state()` | `ai_settings_block`, `screener._api_key_store` | No |
 | MD-GUI-033.005.M03 | SRD-GUI-033.005 | `us_swing/src/us_swing/data/models.py`, `gui/user_store.py` | Per-user AI fields with defaults | `UserProfile.ai_*` | — | No |
+
+## FO-GUI-034 — Market Floor and AI Desk Frames
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-GUI-034.001.M01 | SRD-GUI-034.001 | `us_swing/src/us_swing/gui/main_window.py` | Two nav items and pages, poller shutdown | `_NAV_ITEMS`, `_WIDE_PAGES` | M02, M04, M08 | No |
+| MD-GUI-034.002.M02 | SRD-GUI-034.002 | `us_swing/src/us_swing/gui/desk_control.py` | Desk pill, buttons and off-thread poller | `DeskBar`, `DeskPoller`, `allowed_actions()` | `core.desk_contract` | No |
+| MD-GUI-034.010.M03 | SRD-GUI-034.010 | `us_swing/src/us_swing/gui/floor_sample.py` | Sample products and rows behind `FloorData` | `SampleFloorData`, `SAMPLE_TAG` | `core.desk_contract` | No |
+| MD-GUI-034.004.M04 | SRD-GUI-034.004 | `us_swing/src/us_swing/gui/market_floor.py`, `gui/floor_feed.py` | Floor tabs, toolbar, AI feed column | `MarketFloorWorkspace`, `AiFeedColumn` | M02, M03, M05, M06 | No |
+| MD-GUI-034.005.M05 | SRD-GUI-034.005 | `us_swing/src/us_swing/gui/floor_grid_model.py`, `gui/floor_grid.py` | Pure grid rules and the grid widget | `PanelSpec`, `GridModel`, `PanelGrid` | — | No |
+| MD-GUI-034.006.M06 | SRD-GUI-034.006 | `us_swing/src/us_swing/gui/floor_panel.py`, `gui/floor_dialogs.py` | Panel frame, bodies, link bus, catalog and settings dialogs | `PanelFrame`, `LinkBus`, `CatalogDialog`, `PanelSettingsDialog` | M03, `frameless_dialog` | No |
+| MD-GUI-034.008.M07 | SRD-GUI-034.008 | `us_swing/src/us_swing/gui/floor_layouts.py` | Layout file, defaults, last layout, feed fold | `LayoutStore`, `default_layout()` | — | No |
+| MD-GUI-034.009.M08 | SRD-GUI-034.009 | `us_swing/src/us_swing/gui/ai_desk.py`, `gui/ai_desk_sections.py`, `gui/ai_desk_sections2.py`, `gui/ai_desk_sample.py` | AI Desk section list and section frames | `AiDeskWorkspace` | M02 | No |
+| MD-GUI-034.003.M09 | SRD-GUI-034.003 | `us_swing/src/us_swing/core/desk_contract.py`, `desk/task.py` | Shared desk launch command; `FloorData` interface | `desk_command()`, `launch_desk()`, `ProductDescriptor`, `FloorData` | — | No |
+
+SRD coverage: .002 and .003 by M02 and M09; .004 by M04; .005 by M05; .006 and .007 by M06; .008 by M07; .009 by M08; .010 by M03 and M09.

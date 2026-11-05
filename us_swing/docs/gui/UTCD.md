@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.6.0: UT-GUI-034.* Market Floor and AI Desk frames added 2026-11-05.
 > v1.45.0: UT-GUI-000.009.M01.T01–T02, M02.T01–T02 added — frameless popups (ISS-GUI-0016).
 > v1.44.0: UT-GUI-022.011.M01.T02–T07 added — plan zone start and hit tag on the Screener chart.
 > v1.43.1: UT-GUI-006.001.M01.T19 added — tests keep users.json in a temp folder (ISS-GUI-0013).
@@ -1013,3 +1014,24 @@ Test files:
 | UT-GUI-033.006.M02.T01 | MD-GUI-033.004.M02 | Negative | Dot warns when default not ready | Telegram ready; AI on; default Claude; claude not found | Telegram dot warn | Pass |
 | UT-GUI-033.007.M01.T01 | MD-GUI-033.001.M01 | Positive | Test AI shows the answer | fake `ask_ai` returning OK from Claude | note names Claude Code CLI and the time; button on again | Removed (user, 2026-11-05) |
 | UT-GUI-033.007.M01.T02 | MD-GUI-033.001.M01 | Negative | Test AI shows the error | fake `ask_ai` returning an error | note shows the error | Removed (user, 2026-11-05) |
+
+## FO-GUI-034 — Market Floor and AI Desk Frames
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-034.001.M01.T01 | MD-GUI-034.001.M01 | Positive | Two new pages | main window built | nav has Market Floor and AI Desk at 5 and 6; first five unchanged | Not Run |
+| UT-GUI-034.002.M02.T01 | MD-GUI-034.002.M02 | Positive | Pill shows status | status Sleeping | pill text Sleeping | Not Run |
+| UT-GUI-034.003.M02.T01 | MD-GUI-034.002.M02 | Positive | Buttons per state | each of the 7 states | Start only for Off, Stopped, Error; Pause for Running, Sleeping; Resume for Paused; Stop for live | Not Run |
+| UT-GUI-034.003.M02.T02 | MD-GUI-034.002.M02 | Negative | No double launch | Start clicked, status already Sleeping | launch not called | Not Run |
+| UT-GUI-034.003.M09.T01 | MD-GUI-034.003.M09 | Positive | Launch is detached | fake Popen | command ends with `desk --resume`; no-window flags set | Not Run |
+| UT-GUI-034.004.M04.T01 | MD-GUI-034.004.M04 | Positive | Five tabs and feed fold | fold, rebuild | 5 tabs in order; feed folded after rebuild | Not Run |
+| UT-GUI-034.005.M05.T01 | MD-GUI-034.005.M05 | Positive | Move snaps and pushes down | panel moved onto another | no overlap; other panel pushed below | Not Run |
+| UT-GUI-034.005.M05.T02 | MD-GUI-034.005.M05 | Negative | Clamp to 12 columns | resize to w 20 at x 4 | w 8; minimum 2 x 3 kept | Not Run |
+| UT-GUI-034.005.M05.T03 | MD-GUI-034.005.M05 | Edge | Free place for new panel | grid nearly full | new panel placed below the lowest panel | Not Run |
+| UT-GUI-034.006.M06.T01 | MD-GUI-034.006.M06 | Positive | View switch | table, then card, then chart | body changes; chart shows placeholder | Not Run |
+| UT-GUI-034.007.M06.T01 | MD-GUI-034.006.M06 | Positive | Linked panels update | click AAPL in group A | group A panels show AAPL; group B unchanged | Not Run |
+| UT-GUI-034.007.M06.T02 | MD-GUI-034.006.M06 | Negative | No group sends nothing | click in panel with no group | no panel changes | Not Run |
+| UT-GUI-034.008.M07.T01 | MD-GUI-034.008.M07 | Positive | Layout round trip | save Swing, reopen store | same panels; last is Swing | Not Run |
+| UT-GUI-034.008.M07.T02 | MD-GUI-034.008.M07 | Negative | Broken file | file with bad JSON | default layout; warning logged | Not Run |
+| UT-GUI-034.009.M08.T01 | MD-GUI-034.009.M08 | Positive | All sections open | click each of 11 sections | each shows its frame; Command is first | Not Run |
+| UT-GUI-034.010.M03.T01 | MD-GUI-034.010.M03 | Positive | Sample tag shown | sample provider | every panel and section shows Sample data | Not Run |
