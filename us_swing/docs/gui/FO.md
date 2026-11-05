@@ -7,6 +7,7 @@
 **Last Updated:** 2026-05-22
 **Project:** US Swing Trading System
 
+> v2.11.0: FO-GUI-034 added — Market Floor and AI Desk frames (Market Analytics P0b); Draft 2026-11-05.
 > v2.10.0: FO-GUI-022 requirement 8 and acceptance 5 added — Screener chart draws the AI plan from the next candle after the run, with a hit tag; reopened by user 2026-11-03.
 > v2.9.0: FO-GUI-032 added — Strategies views (grouped and table) in the Execution workspace; approved by user 2026-11-03.
 > v2.8.0: FO-GUI-031 added — Backtest workspace (Phase 0 and 1); approved by user 2026-10-29.
@@ -958,3 +959,31 @@ The system shall let the user set up AI notes for Telegram messages on the Setti
 1. With one provider ticked, AI Fallback is off and cannot be ticked.
 2. With OpenRouter ticked and no API key, Apply and OK are disabled and a line says what is missing.
 3. After Apply and a restart, the same AI settings are shown.
+
+## FO-GUI-034: Market Floor and AI Desk Frames
+
+**Status:** Approved (user, 2026-11-05)
+**Priority:** Must
+**Depends on:** FO-DSK-001 (desk process shell, `core/desk_contract.py`), FO-GUI-017 (Carbon workspace shell)
+**Source:** Market Analytics phase P0b. Round-2 screen design Option 1 (https://claude.ai/artifact/Se1b7cnEkGbqaak6d2j318), picked by user 2026-11-05, plus "Market Floor must be adjustable". Minimal requirements. Build in 3 steps: (a) both workspaces and the desk control, (b) adjustable panel grid, (c) AI Desk sections.
+
+The system shall add two workspaces, Market Floor and AI Desk, shown on sample data until the market analytics phases fill them.
+
+- The system shall add Market Floor and AI Desk to the sidebar next to the current workspaces.
+- The system shall show a desk status pill (the 7 desk states) with Start, Pause, Resume and Stop, using the real desk from FO-DSK-001.
+- The system shall give Market Floor five tabs: Overview, Ideas, Sectors, Regime & Breadth, News & Calendar.
+- The system shall show a foldable AI feed column on the right of every Market Floor tab.
+- The system shall lay out each Market Floor tab as a 12-column grid of panels that the user can add, move, resize and remove in edit mode.
+- The system shall let the user pick panels from a catalog of desk outputs, set each panel's view (table, chart, card) and filters, and link panels so a stock click in one updates the others.
+- The system shall save named layouts on this PC and restore the last one at start.
+- The system shall give AI Desk a section list with Command as home (HELM chat, approvals waiting, today's runs) and the sections Org chart, Employees, Hiring, Task board, Activity, Schedule, Studio, Reports, Cost & budget, Desk settings.
+- The system shall mark every panel and section that shows sample data with a "Sample data" tag.
+- The system shall read desk data only through `core/desk_contract.py` and never block the window while reading.
+
+### Acceptance Criteria
+
+1. With the desk off, the pill shows Off; pressing Start shows Sleeping within 5 seconds; Stop shows Stopped.
+2. In edit mode, adding a catalog panel, moving it and resizing it, then saving a layout and restarting the app shows the same layout.
+3. Clicking a stock in a linked Ideas panel updates a linked chart panel on the same tab.
+4. Folding the AI feed gives its width to the panel grid, and the choice is kept after a restart.
+5. Every AI Desk section opens and shows its frame with the "Sample data" tag; no other workspace changes.

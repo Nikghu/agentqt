@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-11-05 (Session 116)
+**Last Updated:** 2026-11-05 (Session 117)
 
 ---
 
@@ -116,3 +116,10 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T104 | GUI — run Update now once; HLT should show as failed (IBKR has no bar for 2026-11-04) and Candle data up to date (ISS-GUI-0017). Then run the full tests (user asked to run later). | `gui/app_service.py` | Medium | Open |
 | T105 | INF — user: new Telegram bot token from BotFather, clean old logs in ~/.usswing/logs (token was logged before ISS-INF-0004), run one app copy (409 Conflict). | `~/.usswing/logs` | High | Open |
 | T106 | GUI — restart app, click Update now: only HLT should download, then show as failed with Candle data up to date (ISS-GUI-0018). | `gui/app_service.py` | Medium | Open |
+| T107 | DSK P0a — desk process shell (FO-DSK-001): Windows task, 7 states, `commands` table, heartbeat, save/resume, `desk.db` base tables. Needs FO approval first. | `desk/`, `core/desk_contract.py` | High | Open |
+| T108 | GUI P0b — Market Floor + AI Desk frames on sample data (new FO-GUI-034): 5 Floor tabs, AI feed column, adjustable panel grid, catalog, layouts. | `gui/` | High | Open |
+| T109 | MKT P1–P4 — regime/breadth/fear, sectors/RS, flow/setups/score/ideas, proof on past data (FO-MKT-001–004). No AI. | `market/` | High | Open |
+| T110 | DSK+MKT P5–P7 — harness + AI employees, SCOUT, CANVAS, hiring/LEDGER, EXE link (FO-DSK-002–006, FO-MKT-005–008). | `desk/`, `market/` | Medium | Open |
+| T111 | DD-DSK §0.7 answered 2026-11-05: Jev (TypeSafe) shadow at P5a, seats 3/5/30, USD 10/month, user approves every trade. Only Q1 (tool lists in CLAUDE.md/rules) left for the user. | docs | Medium | Closed |
+| T112 | Tests already failing on main: 5 in `test_candle_builder.py`, 6 in `test_preset.py` (AI fields); plus stray local `test_llm_claude_screener.py` for a removed module. Fix or delete. | `tests/analysis`, `tests/screener` | Medium | Open |
+| T113 | DSK — user check: run `python us_swing/run_gui.py desk install`, confirm both Windows tasks, let the evening run fire (~02:50 IST Tue–Sat), then `desk status`. | `desk/task.py` | Medium | Open |

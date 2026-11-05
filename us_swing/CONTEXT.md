@@ -2,12 +2,14 @@
 
 **Document:** CONTEXT.md
 **Project:** us_swing
-**Last Updated:** 2026-11-05 (Session 116)
+**Last Updated:** 2026-11-05 (Session 117)
 **Updated By:** Claude (Haiku 5.5)
 
 ---
 
-**Current (Session 117, 2026-11-05):** **Update now downloads only stocks behind (Bugfix, GUI; ISS-GUI-0018; SRD-GUI-006.023 asked by user and Implemented; RN-GUI-1.59.3-20261105).** One stock behind (HLT) made Update now re-download all 503 stocks; now only stocks whose last daily candle is before the last trading day are downloaded. 3 UT Pass; candle tests 41 passed. Branch fix/gui-candle-delta-stale-only, not pushed. **Next:** user cancels the running download, restarts, clicks Update now; only HLT should run (TODO T106).
+**Current (Session 117, 2026-11-05):** **Desk process shell, phase P0a (Feature, DSK; FO-DSK-001; RN-DSK-0.1.0-20261105; SRD-DSK-001.001–.020 Implemented).** New tool DSK (`src/us_swing/desk/`) with its own `desk.db`; the app only sends commands and reads state. Covers states, single-instance lock, heartbeat, evening run at 16:25 ET, Windows tasks and `desk` CLI. 62 UT Pass; ruff and mypy --strict clean; coverage not measured. Real desk process driven by the CLI OK. Branch feat/dsk-p0a-desk-shell, 3 commits (cfe38bc2, bcf4b43c, b65b1f4d), not pushed. Full suite has 11 failures already on main plus a stray test file (TODO T112). **P0b done, same session (Feature, GUI; FO-GUI-034 Market Floor and AI Desk frames; RN-GUI-1.60.0-20261106; SRD-GUI-034.001–.010 Implemented).** Two sidebar pages: Market Floor (5 tabs, foldable AI feed, 12-column adjustable panel grid with edit mode, catalog, panel settings, link groups A/B/C, named layouts in `~/.usswing/floor_layouts.json`) and AI Desk (11 sections on sample data, Command home). Desk bar Start / Pause / Resume / Stop drives the real desk off the UI thread. Checked in the real app with mouse clicks, drag and screenshots. 37 UT-GUI-034 Pass; 99 tests pass across desk and GUI-034. Known: no undo for panel remove; Approve / Reject / chat disabled until P5b; sample data until P1. Branch feat/dsk-p0a-desk-shell, not pushed (commits aec0c0b4, 24e09b08, 2aa66cae, 84e67e72). **Next:** push / PR only when the user says (`/project:finish`), then P1 FO-MKT-001 regime / breadth / fear. Still open: user installs Windows desk tasks (TODO T113) and answers Q1–Q5 in `docs/desk/DD.md` §0.7 (TODO T111).
+
+**Also (Session 117, 2026-11-05):** **Update now downloads only stocks behind (Bugfix, GUI; ISS-GUI-0018; SRD-GUI-006.023 asked by user and Implemented; RN-GUI-1.59.3-20261105).** One stock behind (HLT) made Update now re-download all 503 stocks; now only stocks whose last daily candle is before the last trading day are downloaded. 3 UT Pass; candle tests 41 passed. Branch fix/gui-candle-delta-stale-only, not pushed. **Next:** user cancels the running download, restarts, clicks Update now; only HLT should run (TODO T106).
 
 **Also (Session 116, 2026-11-05):** **Daily Telegram briefs (Feature, INF + GUI; FO-INF-012; RN-INF-1.10.0-20261105; SRD-INF-012.001–.006 approved by user and Implemented).** No startup message; Morning brief once per trading day in pre-market (also on late launch) with SPY/QQQ/IWM, VIX, open trades, signals, screener and an AI note (number-checked); Day-end v2 with per-trade lines, win rate, best and worst from 16:05 ET; per-user send log `~/.usswing/notify_state.json`. Holiday table is 2026-only (T102). Test AI button removed by user (RN-GUI-1.59.1). Candle data "1 day behind" was one IBKR gap (HLT, no 2026-11-04 bar); such stocks now listed as failed (ISS-GUI-0017, RN-GUI-1.59.2). Bot token hidden in log tracebacks (ISS-INF-0004, RN-INF-1.10.1). Branch feat/telegram-ai-support, not pushed.
 
@@ -478,7 +480,7 @@ Previous (Session 87, 2026-10-23): **Accumulation / Distribution screener (Featu
 | DD | `docs/gui/DD.md` | Draft v1.2.0 | 9 DDs across FO-GUI-001, 002, 004, 007, 011, 012, 014; FO-GUI-011/012 DD Approved |
 | MD | `docs/gui/MD.md` | Draft v1.0.0 | 15 modules; FO-GUI-004 now includes pending_signals_table_model.py (new); MD-GUI-014 (3 modules) for Active Cycles |
 | UTCD | `docs/gui/UTCD.md` | Draft v1.1.0 | 81 test cases; FO-GUI-004/012/014 test specs updated |
-| TRACE | `docs/gui/TRACE.md` | Draft v1.16.0 — **updated** | FO-GUI-033 AI notes settings Implemented (RN-GUI-1.59.0-20261105); FO-GUI-032 Strategies views Implemented (RN-GUI-1.56.0-20261103); Last Updated 2026-11-05 |
+| TRACE | `docs/gui/TRACE.md` | Draft v1.16.0 — **updated** | FO-GUI-034 Market Floor and AI Desk frames Implemented (RN-GUI-1.60.0-20261106); FO-GUI-033 AI notes settings Implemented (RN-GUI-1.59.0-20261105); FO-GUI-032 Strategies views Implemented (RN-GUI-1.56.0-20261103); Last Updated 2026-11-05 |
 
 ### Indicator Rule Library (FO-SCR-013 / FO-GUI-015)
 
@@ -498,6 +500,20 @@ Previous (Session 87, 2026-10-23): **Accumulation / Distribution screener (Featu
 | UTCD | `docs/mcp/UTCD.md` | Draft v1.0.0 | 20 tests across all tool modules |
 | TRACE | `docs/mcp/TRACE.md` | Draft v1.0.0 | Full forward/reverse trace |
 | Backtest MCP (FO-MCP-007) | `src/us_swing/mcp/` | Implemented, commit 5950a3d4 on main | SRD-MCP-007.001–.010 Implemented; 8 UT Pass; user check pending (TODO T61) |
+
+---
+
+### Desk Harness (DSK)
+
+| Artifact | File | Status | Notes |
+|---|---|---|---|
+| FO | `docs/desk/FO.md` | Draft | FO-DSK-001 Approved and Implemented; FO-DSK-002..006 Draft |
+| SRD | `docs/desk/SRD.md` | Draft v0.2.0 | SRD-DSK-001.001–.020 Implemented (RN-DSK-0.1.0-20261105) |
+| DD | `docs/desk/DD.md` | Draft | §0 locked decisions, desk.db contract, phase plan P0a–P7, open Q1–Q5 |
+| MD | `docs/desk/MD.md` | Draft v0.2.0 | MD-DSK-001 M01–M06 |
+| UTCD | `docs/desk/UTCD.md` | Draft | FO-DSK-001: 62 UT Pass |
+| TRACE | `docs/desk/TRACE.md` | Draft v0.1.0 | FO-DSK-001 Implemented |
+| Code | `src/us_swing/desk/`, `core/desk_contract.py` | Implemented | Commit b65b1f4d on feat/dsk-p0a-desk-shell, not pushed |
 
 ---
 

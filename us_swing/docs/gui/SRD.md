@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.81.0: FO-GUI-034 Market Floor and AI Desk frames, SRD-GUI-034.001–.010 added as Draft 2026-11-05.
 > v2.80.0: SRD-GUI-006.023 added, asked by user 2026-11-05 in chat — Update now downloads only stocks behind (ISS-GUI-0018).
 > v2.79.0: SRD-GUI-006.022 added, approved by user 2026-11-05 (chat) — IBKR gap stock listed as failed (ISS-GUI-0017).
 > v2.78.0: FO-GUI-033 AI notes settings, SRD-GUI-033.001–.006 added as Draft 2026-11-05.
@@ -654,3 +655,18 @@
 | SRD-GUI-033.005 | FO-GUI-033 | Must | AI settings are saved per user on Apply and shown again when Settings opens. | AI block | users.json, OS keychain | The OpenRouter key is the Cloud AI screener key in the OS keychain, never in users.json; a blank field never deletes it | Implemented |
 | SRD-GUI-033.006 | FO-GUI-033 | Should | The Telegram dot shows warn when AI notes are on and the default AI is not ready. | saved settings | dot, status lines | Ready means the claude program is found, or the OpenRouter key and model are set; checked when Settings opens | Implemented |
 | SRD-GUI-033.007 | FO-GUI-033 | Should | Test AI sends a one-line request to the shown settings in a worker thread and shows the answer, provider and time, or the error. | AI block | note line | Button off while running; uses `ask_ai` (SRD-INF-011.003) | Removed (user, 2026-11-05) |
+
+## FO-GUI-034: Market Floor and AI Desk Frames
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-034.001 | FO-GUI-034 | Must | The sidebar shows Market Floor and AI Desk after Backtest, both as wide pages. | nav click | page | Existing page order unchanged | Implemented |
+| SRD-GUI-034.002 | FO-GUI-034 | Must | A desk bar on both pages shows the desk state as a pill, read every 2 seconds off the UI thread. | `desk.db` | pill | One shared poller; never stacks reads | Implemented |
+| SRD-GUI-034.003 | FO-GUI-034 | Must | Start launches the desk when it is Off, Stopped or Error; Pause, Resume and Stop send desk commands; each button is enabled only in the states that allow it. | click | command, launch | Start re-reads status first, so it never launches a second desk | Implemented |
+| SRD-GUI-034.004 | FO-GUI-034 | Must | Market Floor has five tabs and a foldable AI feed column on the right; the fold choice is kept. | click | layout | Feed shows sample items with Approve and Reject buttons that do nothing yet | Implemented |
+| SRD-GUI-034.005 | FO-GUI-034 | Must | Each tab is a 12-column grid of panels; edit mode allows add, move, resize and remove, snapped to the grid without overlap. | mouse | panel places | Outside edit mode panels do not move | Implemented |
+| SRD-GUI-034.006 | FO-GUI-034 | Must | Add panel opens a catalog of desk products; panel settings set the view (table, chart, card), filters and link group. | product list | panel | Chart view is a placeholder card in P0b | Implemented |
+| SRD-GUI-034.007 | FO-GUI-034 | Must | Clicking a stock in a panel sends it to the other panels in the same link group (A, B or C). | click | linked panels | A panel with no group sends nothing | Implemented |
+| SRD-GUI-034.008 | FO-GUI-034 | Must | Layouts are saved by name in `~/.usswing/floor_layouts.json` and the last one opens at start. | layout | JSON file | A broken file falls back to the default layout with a `[Floor]` warning | Implemented |
+| SRD-GUI-034.009 | FO-GUI-034 | Must | AI Desk has a section list with Command as home and the ten other sections, each showing its frame. | click | section | — | Implemented |
+| SRD-GUI-034.010 | FO-GUI-034 | Must | Panels and sections fed by sample data show a "Sample data" tag; data comes through the `FloorData` interface in `core/desk_contract.py`. | provider | tag | Sample provider is replaced later without GUI changes | Implemented |

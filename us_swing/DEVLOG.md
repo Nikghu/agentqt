@@ -2,6 +2,26 @@
 
 ---
 
+## [20261106] GUI — Market Floor and AI Desk frames, phase P0b (FO-GUI-034)
+
+- Type: Feature
+- FO(s): FO-GUI-034
+- RN: RN-GUI-1.60.0-20261106
+- Artifacts updated: FO, SRD (GUI-034.001–.010 Implemented), DD, MD, UTCD (37 Pass), TRACE (gui), Code (gui/market_floor.py, floor_*.py, ai_desk*.py, desk_control.py, main_window.py; core/desk_contract.py), Tests (99 across desk and GUI-034), RN
+- Decisions: panels and sections use sample data behind the `FloorData` interface until P1; desk bar drives the real desk off the UI thread; no undo for panel remove (follow-up).
+
+---
+
+## [20261105] DSK — Desk process shell, phase P0a (FO-DSK-001)
+
+- Type: Feature
+- FO(s): FO-DSK-001
+- RN: RN-DSK-0.1.0-20261105
+- Artifacts updated: Architecture review (DSK + MKT), SRD (DSK-001.001–.020 Implemented), DD, MD, UTCD, TRACE (dsk), Code (core/desk_contract.py, desk/*), Tests (62 Pass), RN
+- Decisions: desk is a separate process that talks to the app only through `desk.db`; Windows tasks not installed yet (user step, TODO T113).
+
+---
+
 ## [20261105] GUI — Update now downloads only stocks behind (ISS-GUI-0018)
 
 - Type: Bugfix

@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.6.0: UT-GUI-034.* Market Floor and AI Desk frames added 2026-11-05.
 > v1.45.0: UT-GUI-000.009.M01.T01–T02, M02.T01–T02 added — frameless popups (ISS-GUI-0016).
 > v1.44.0: UT-GUI-022.011.M01.T02–T07 added — plan zone start and hit tag on the Screener chart.
 > v1.43.1: UT-GUI-006.001.M01.T19 added — tests keep users.json in a temp folder (ISS-GUI-0013).
@@ -1013,3 +1014,45 @@ Test files:
 | UT-GUI-033.006.M02.T01 | MD-GUI-033.004.M02 | Negative | Dot warns when default not ready | Telegram ready; AI on; default Claude; claude not found | Telegram dot warn | Pass |
 | UT-GUI-033.007.M01.T01 | MD-GUI-033.001.M01 | Positive | Test AI shows the answer | fake `ask_ai` returning OK from Claude | note names Claude Code CLI and the time; button on again | Removed (user, 2026-11-05) |
 | UT-GUI-033.007.M01.T02 | MD-GUI-033.001.M01 | Negative | Test AI shows the error | fake `ask_ai` returning an error | note shows the error | Removed (user, 2026-11-05) |
+
+## FO-GUI-034 — Market Floor and AI Desk Frames
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-034.001.M01.T01 | MD-GUI-034.001.M01 | Positive | Two new pages | main window built | nav has Market Floor and AI Desk at 5 and 6; first five unchanged | Pass |
+| UT-GUI-034.002.M02.T01 | MD-GUI-034.002.M02 | Positive | Pill shows status | status Sleeping | pill text Sleeping | Pass |
+| UT-GUI-034.003.M02.T01 | MD-GUI-034.002.M02 | Positive | Buttons per state | each of the 7 states, Error live and not responding | Start for Off, Stopped, not-responding Error; Pause and Stop for Running, Sleeping, live Error; Resume and Stop for Paused; nothing for Stopping | Pass |
+| UT-GUI-034.003.M02.T02 | MD-GUI-034.002.M02 | Negative | No double launch | Start clicked, status already Sleeping | launch not called | Pass |
+| UT-GUI-034.003.M02.T03 | MD-GUI-034.002.M02 | Positive | Commands queue in order | pause then stop while busy | both sent in order; buttons locked while busy | Pass |
+| UT-GUI-034.003.M02.T04 | MD-GUI-034.002.M02 | Negative | Failed send is shown | send fails, desk off | bar shows "Could not send: desk is off" | Pass |
+| UT-GUI-034.003.M09.T01 | MD-GUI-034.003.M09 | Positive | Launch is detached | fake Popen | command ends with `desk --resume`; no-window flags set | Pass |
+| UT-GUI-034.004.M04.T01 | MD-GUI-034.004.M04 | Positive | Five tabs and feed fold | fold, rebuild | 5 tabs in order; feed folded after rebuild | Pass |
+| UT-GUI-034.004.M04.T02 | MD-GUI-034.004.M04 | Negative | Unknown product | panel with product "nope" | "Missing product" card, no error | Pass |
+| UT-GUI-034.004.M04.T03 | MD-GUI-034.004.M04 | Positive | Edit button state | edit on | button reads Done, checked | Pass |
+| UT-GUI-034.005.M05.T01 | MD-GUI-034.005.M05 | Positive | Move snaps and pushes down | panel moved onto another | no overlap; other panel pushed below | Pass |
+| UT-GUI-034.005.M05.T02 | MD-GUI-034.005.M05 | Negative | Clamp to 12 columns | resize to w 20 at x 4 | w 8; minimum 2 x 3 kept | Pass |
+| UT-GUI-034.005.M05.T03 | MD-GUI-034.005.M05 | Edge | Free place for new panel | grid nearly full | new panel placed below the lowest panel | Pass |
+| UT-GUI-034.005.M05.T04 | MD-GUI-034.005.M05 | Positive | First free spot | empty space in row 0 | new panel placed there | Pass |
+| UT-GUI-034.005.M05.T05 | MD-GUI-034.005.M05 | Positive | Remove and round trip | remove one, to_dict/from_dict | panel gone; specs equal | Pass |
+| UT-GUI-034.005.M05.T06 | MD-GUI-034.005.M05 | Edge | Chain push and duplicate ids | stack of 3 pushed; two panels with one id | no overlap; new id given | Pass |
+| UT-GUI-034.005.M05.T07 | MD-GUI-034.005.M05 | Positive | Snap to cells | pixel delta | whole cells | Pass |
+| UT-GUI-034.005.M05.T08 | MD-GUI-034.005.M05 | Negative | Drag only in edit mode | drag with edit off | panel stays | Pass |
+| UT-GUI-034.005.M05.T09 | MD-GUI-034.005.M05 | Negative | Wrong button and edit off mid-drag | right-click drag; edit off while dragging | no drag; drag cleared | Pass |
+| UT-GUI-034.006.M06.T01 | MD-GUI-034.006.M06 | Positive | View switch | table, then card, then chart | body changes; chart shows placeholder | Pass |
+| UT-GUI-034.007.M06.T01 | MD-GUI-034.006.M06 | Positive | Linked panels update | click AAPL in group A | group A panels show AAPL; group B unchanged | Pass |
+| UT-GUI-034.007.M06.T02 | MD-GUI-034.006.M06 | Negative | No group sends nothing | click in panel with no group | no panel changes | Pass |
+| UT-GUI-034.006.M06.T02 | MD-GUI-034.006.M06 | Negative | Missing product | unknown product id | Missing product card | Pass |
+| UT-GUI-034.006.M06.T03 | MD-GUI-034.006.M06 | Positive | Catalog and settings dialogs | pick product; set view, filter, link | values returned | Pass |
+| UT-GUI-034.008.M07.T01 | MD-GUI-034.008.M07 | Positive | Layout round trip | save Swing, reopen store | same panels; last is Swing | Pass |
+| UT-GUI-034.008.M07.T02 | MD-GUI-034.008.M07 | Negative | Broken file | file with bad JSON | default layout; warning logged | Pass |
+| UT-GUI-034.008.M07.T03 | MD-GUI-034.008.M07 | Negative | Wrong-shape file | layout null, panel without w | no error; default panels; `[Floor]` warning | Pass |
+| UT-GUI-034.008.M07.T04 | MD-GUI-034.008.M07 | Edge | Broken file kept | bad JSON, then save | old file renamed to `floor_layouts.json.bak` | Pass |
+| UT-GUI-034.008.M07.T05 | MD-GUI-034.008.M07 | Positive | Edited layout survives rebuild | edit, add, change, save as Swing, rebuild | same panels; last Swing | Pass |
+| UT-GUI-034.008.M07.T06 | MD-GUI-034.008.M07 | Positive | Switch and delete layout | switch, delete with confirm | layout gone; Default kept | Pass |
+| UT-GUI-034.008.M07.T07 | MD-GUI-034.008.M07 | Positive | Debounced save | two quick moves | one save after the delay | Pass |
+| UT-GUI-034.008.M07.T08 | MD-GUI-034.008.M07 | Edge | Emptied tab stays empty | remove all panels, reload | tab empty; missing tab gets defaults | Pass |
+| UT-GUI-034.008.M07.T09 | MD-GUI-034.008.M07 | Negative | Overwrite needs confirm | save as an existing name, refuse | old layout kept | Pass |
+| UT-GUI-034.009.M08.T01 | MD-GUI-034.009.M08 | Positive | All sections open | click each of 11 sections | each shows its frame; Command is first | Pass |
+| UT-GUI-034.010.M03.T01 | MD-GUI-034.010.M03 | Positive | Sample tag shown | sample provider | every panel and section shows Sample data | Pass |
+| UT-GUI-034.009.M08.T02 | MD-GUI-034.009.M08 | Positive | Seats within caps | sample org | experts 3 of 3, champions 3 of 5, juniors 18 of 30 | Pass |
+| UT-GUI-034.010.M03.T02 | MD-GUI-034.010.M03 | Positive | Every AI Desk section tagged | build all 11 sections | each shows one Sample data tag | Pass |

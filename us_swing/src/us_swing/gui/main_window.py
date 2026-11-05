@@ -50,7 +50,9 @@ from PyQt6.QtWidgets import (
 from us_swing import __version__
 from us_swing.data.models import ConnectionStatus
 from us_swing.gui.app_service import AppService
+from us_swing.gui.ai_desk import AiDeskWorkspace
 from us_swing.gui.backtest_workspace import BacktestWorkspace
+from us_swing.gui.desk_control import DeskPoller
 from us_swing.gui.cards import GAP, card, gutter
 from us_swing.gui.chart_workspace import ChartWorkspace
 from us_swing.gui.dashboard_panel import DashboardPanel
@@ -61,6 +63,7 @@ from us_swing.gui.settings_panel import SettingsPanel
 from us_swing.gui.system_store import load_system_config
 from us_swing.gui.icons import refresh_icons
 from us_swing.gui.log_viewer_panel import LogViewerPanel
+from us_swing.gui.market_floor import MarketFloorWorkspace
 from us_swing.gui.reveal import RevealController
 from us_swing.gui.side_panels import IconStrip, PositionDetails
 from us_swing.gui.sidebar import FULL_WIDTH, MINI_WIDTH, Sidebar
@@ -398,9 +401,11 @@ _NAV_ITEMS: list[tuple[str, str]] = [
     ("zap", "Execution"),
     ("chart-candlestick", "Charts"),
     ("history", "Backtest"),
+    ("globe", "Market Floor"),
+    ("users", "AI Desk"),
 ]
-_WIDE_PAGES = frozenset({2, 3, 4})   # Execution, Chart, Backtest
-_NO_PANEL_PAGES = frozenset({3})   # Chart
+_WIDE_PAGES = frozenset({2, 3, 4, 5, 6})   # Execution, Chart, Backtest, Market Floor, AI Desk
+_NO_PANEL_PAGES = frozenset({3, 5, 6})   # Chart, Market Floor, AI Desk
 _RIGHT_PANELS = ("details", "watch")
 
 
@@ -457,10 +462,14 @@ class MainWindow(QMainWindow):
         self._execution_panel  = ExecutionPanel(svc)
         self._chart_panel      = ChartWorkspace(svc)
         self._backtest_panel   = BacktestWorkspace(svc)
+        self._desk_poller      = DeskPoller(parent=self)
+        self._floor_panel      = MarketFloorWorkspace(self._desk_poller)
+        self._ai_desk_panel    = AiDeskWorkspace(self._desk_poller)
         self._settings_panel   = SettingsPanel(svc)
         panels = [
             self._dashboard_panel, self._screener_panel, self._execution_panel,
             self._chart_panel, self._backtest_panel,
+            self._floor_panel, self._ai_desk_panel,
         ]
 
         self._settings_panel.theme_changed.connect(self._chart_panel.refresh_theme)
@@ -477,12 +486,14 @@ class MainWindow(QMainWindow):
         gutter(self._stack)
         for p in panels:
             if p in (self._screener_panel, self._execution_panel, self._dashboard_panel,
-                     self._chart_panel, self._backtest_panel):
+                     self._chart_panel, self._backtest_panel,
+                     self._floor_panel, self._ai_desk_panel):
                 # These screens lay out their own cards on the gutter.
                 self._stack.addWidget(p)
             else:
                 self._stack.addWidget(card(p))
         self._stack.setCurrentIndex(0)
+        self._desk_poller.start()
 
         # ── Title bar (brand, index prices, feed, win controls) ────────────────
         self._title_bar = _TitleBar(svc, self)
@@ -942,6 +953,8 @@ class MainWindow(QMainWindow):
         if worker is not None and hasattr(worker, "isRunning") and worker.isRunning():  # type: ignore[union-attr]
             worker.quit()   # type: ignore[union-attr]
             worker.wait(6000)  # type: ignore[union-attr]
+        self._desk_poller.shutdown()
+        self._floor_panel.flush()
         self._demo._stop_live_bar_worker()
         self._demo.shutdown_notifications()
         self._demo.shutdown_order_connection()

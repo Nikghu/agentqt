@@ -3,6 +3,7 @@
 Commands:
     (none)   Launch the GUI in paper mode (default).
     health   Print a JSON health report and exit.
+    desk     Run or control the background desk process (``desk status`` etc.).
 """
 from __future__ import annotations
 
@@ -92,6 +93,10 @@ def main() -> None:
     command = sys.argv[1] if len(sys.argv) > 1 else "gui"
     if command == "health":
         _cmd_health()
+    elif command == "desk":
+        from us_swing.desk.cli import main as desk_main
+
+        sys.exit(desk_main(sys.argv[2:]))
     else:
         _cmd_gui()
 
