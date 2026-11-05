@@ -60,7 +60,10 @@ class SettingsDialog(QDialog):
         self._apply_btn.clicked.connect(self._on_apply)
         self._defaults_btn.clicked.connect(panel.restore_defaults)
         # panel → dirty_changed / section_changed → footer buttons
-        panel.dirty_changed.connect(self._apply_btn.setEnabled)
+        self._dirty = False
+        panel.dirty_changed.connect(self._on_dirty)
+        panel.valid_changed.connect(lambda _valid: self._sync_footer())
+        self._sync_footer()
         panel.section_changed.connect(
             lambda name: self._defaults_btn.setEnabled(panel.can_restore(name))
         )
@@ -101,6 +104,7 @@ class SettingsDialog(QDialog):
             self._panel.show_section(section)
         self._panel.revert()
         self._panel.refresh_states()
+        self._sync_footer()
         parent = self.parentWidget()
         if parent is not None:
             centre = parent.frameGeometry().center()
@@ -108,6 +112,19 @@ class SettingsDialog(QDialog):
         self.show()
         self.raise_()
         self.activateWindow()
+
+    def _on_dirty(self, dirty: bool) -> None:
+        self._dirty = dirty
+        self._sync_footer()
+
+    def _sync_footer(self) -> None:
+        """Apply needs edits and valid fields; OK needs valid fields (SRD-GUI-033.004)."""
+        valid = self._panel.is_valid
+        self._apply_btn.setEnabled(self._dirty and valid)
+        self._ok_btn.setEnabled(valid)
+        tip = "" if valid else "Fix the AI notes settings on the Telegram page first"
+        self._apply_btn.setToolTip(tip)
+        self._ok_btn.setToolTip(tip)
 
     def _on_apply(self) -> None:
         self._panel.apply()

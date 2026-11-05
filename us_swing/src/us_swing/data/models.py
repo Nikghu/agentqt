@@ -267,6 +267,13 @@ class UserProfile:
     notify_tool_started:      bool = True  # per-event toggle: tool startup message
     notify_screener_approved: bool = True  # per-event toggle: screener approval message
     notify_day_end_pnl:       bool = True  # per-event toggle: day-end P&L message
+    ai_enabled:          bool = False  # AI notes in Telegram messages (FO-GUI-033)
+    ai_claude_on:        bool = True
+    ai_claude_model:     str  = "claude-sonnet-5-5"
+    ai_openrouter_on:    bool = False
+    ai_openrouter_model: str  = ""  # key lives in the OS keychain
+    ai_default:          str  = "claude"  # "claude" or "openrouter"
+    ai_fallback:         bool = False
 
 
 @dataclass

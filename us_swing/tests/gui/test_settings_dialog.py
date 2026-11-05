@@ -27,7 +27,9 @@ from us_swing.gui.settings_dialog import SettingsDialog  # noqa: E402
 class _FakePanel(QWidget):
     dirty_changed = pyqtSignal(bool)
     section_changed = pyqtSignal(str)
+    valid_changed = pyqtSignal(bool)
     current_section = "Users"
+    is_valid = True
 
     def __init__(self) -> None:
         super().__init__()

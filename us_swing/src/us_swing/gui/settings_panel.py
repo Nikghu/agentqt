@@ -43,6 +43,13 @@ from PyQt6.QtWidgets import (
     QSizePolicy,
 )
 
+from us_swing.gui.ai_settings_block import (
+    AiSettingsBlock,
+    ai_ready,
+    claude_found,
+    store_ai_settings,
+    user_ai_settings,
+)
 from us_swing.gui.app_service import AppService
 from us_swing.gui.backtest_data_panel import BacktestDataPanel
 from us_swing.data.market_calendar import NYSE_HOLIDAYS
@@ -51,6 +58,7 @@ from us_swing.gui.icons import mark_danger, set_icon
 from us_swing.gui.system_store import SystemConfig
 from us_swing.gui.popups import confirm, notify
 from us_swing.gui.theme import C, active_palette
+from us_swing.screener.screeners import _api_key_store
 
 _log = logging.getLogger(__name__)
 
@@ -485,6 +493,9 @@ class _SystemSections(QObject):
         from us_swing.gui import telegram_token_store
         _active = self._demo.get_active_user()
 
+        self.ai_block = AiSettingsBlock()
+        self.ai_block.load(user_ai_settings(_active), _api_key_store.load())
+
         tg_form = QFormLayout()
         tg_form.setSpacing(8)
 
@@ -530,7 +541,7 @@ class _SystemSections(QObject):
         self.pages: list[tuple[str, QWidget]] = [
             ("Connection",  _page(conn_form)),
             ("Scheduler",   _page(sched_form, self.sched_table)),
-            ("Telegram",    _page(tg_form, tg_btn_row)),
+            ("Telegram",    _page(self.ai_block, tg_form, tg_btn_row)),
         ]
         # Shown after Universe and Candle data (SRD-GUI-027.005).
         theme_row.addStretch()
@@ -565,9 +576,18 @@ class _SystemSections(QObject):
         user.notify_tool_started      = self._tg_ev_tool.isChecked()
         user.notify_screener_approved = self._tg_ev_screener.isChecked()
         user.notify_day_end_pnl       = self._tg_ev_pnl.isChecked()
+        store_ai_settings(self.ai_block.settings(), user)
+        note = "✔  Telegram settings saved"
+        key = self.ai_block.key
+        if key and not self.ai_block.key_locked and key != _api_key_store.load():
+            try:
+                _api_key_store.save(key)
+            except Exception as exc:
+                _log.warning("[Settings] Could not save the OpenRouter key: %s", exc)
+                note = "Saved, but the OpenRouter key could not be stored in the keychain"
         self._demo.update_user(user)
         self._demo.reconfigure_notifications()
-        self._tg_note.setText("✔  Telegram settings saved")
+        self._tg_note.setText(note)
 
     def _on_test_telegram(self) -> None:
         self._demo.send_test_notification()
@@ -586,7 +606,7 @@ class _SystemSections(QObject):
 
     @property
     def telegram_inputs(self) -> list[QWidget]:
-        return [self._tg_enabled, self._tg_token, self._tg_chat,
+        return [*self.ai_block.inputs, self._tg_enabled, self._tg_token, self._tg_chat,
                 self._tg_ev_tool, self._tg_ev_screener, self._tg_ev_pnl]
 
     @property
@@ -618,6 +638,7 @@ class _SystemSections(QObject):
         self._tg_ev_tool.setChecked(user.notify_tool_started)
         self._tg_ev_screener.setChecked(user.notify_screener_approved)
         self._tg_ev_pnl.setChecked(user.notify_day_end_pnl)
+        self.ai_block.load(user_ai_settings(user), _api_key_store.load())
 
     def load_theme(self, theme_id: str | None = None) -> None:
         """Check the button of ``theme_id``, or of the saved theme when ``None``."""
@@ -637,8 +658,13 @@ class _SystemSections(QObject):
         """Dot state of the saved Telegram setup: ok, warn or off."""
         from us_swing.gui import telegram_token_store
         user = self._demo.get_active_user()
-        return telegram_dot(user.telegram_enabled, telegram_token_store.load(user.user_id),
-                            user.telegram_chat_id)
+        state = telegram_dot(user.telegram_enabled, telegram_token_store.load(user.user_id),
+                             user.telegram_chat_id)
+        if state == "ok" and user.ai_enabled and not ai_ready(
+            user_ai_settings(user), _api_key_store.load(), claude_found()
+        ):
+            return "warn"
+        return state
 
 
 # ── Universe Tab ─────────────────────────────────────────────────────────────
@@ -1587,6 +1613,7 @@ class SettingsPanel(QWidget):
     theme_changed = pyqtSignal(str)
     dirty_changed = pyqtSignal(bool)
     section_changed = pyqtSignal(str)
+    valid_changed = pyqtSignal(bool)
 
     def __init__(self, demo: AppService, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -1597,6 +1624,7 @@ class SettingsPanel(QWidget):
         self._sys          = _SystemSections(demo, self)
         self._universe_tab = _UniverseTab(demo)
         self._sys.theme_changed.connect(self.theme_changed)
+        self._sys.ai_block.valid_changed.connect(self.valid_changed)
         self._sys.theme_changed.connect(self._universe_tab.refresh_theme)
         risk = _RiskTab(demo)
         sys_ = self._sys
@@ -1691,6 +1719,11 @@ class SettingsPanel(QWidget):
     @property
     def is_dirty(self) -> bool:
         return bool(self._dirty)
+
+    @property
+    def is_valid(self) -> bool:
+        """False while an edit blocks Apply (SRD-GUI-033.004)."""
+        return self._sys.ai_block.is_valid
 
     def can_restore(self, name: str) -> bool:
         """True when section ``name`` has default values to restore (SRD-GUI-027.011)."""

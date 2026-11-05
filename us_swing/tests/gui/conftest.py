@@ -22,3 +22,15 @@ def _isolate_scheduler(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(sd, "_save_ibkr_password", lambda _user, _pwd: True)
     monkeypatch.setattr(sd, "_delete_ibkr_password", lambda _user: None)
     monkeypatch.setattr(sd, "_run_schtasks", lambda *_args: (False, "blocked in tests"))
+
+
+@pytest.fixture(autouse=True)
+def openrouter_key(monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
+    """Keep the OpenRouter key in memory instead of the real OS keychain (FO-GUI-033)."""
+    from us_swing.screener.screeners import _api_key_store
+
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    store = {"key": ""}
+    monkeypatch.setattr(_api_key_store, "load", lambda: store["key"])
+    monkeypatch.setattr(_api_key_store, "save", lambda key: store.__setitem__("key", key))
+    return store

@@ -50,6 +50,13 @@ def _to_dict(u: UserProfile) -> dict:
         "notify_tool_started":      u.notify_tool_started,
         "notify_screener_approved": u.notify_screener_approved,
         "notify_day_end_pnl":       u.notify_day_end_pnl,
+        "ai_enabled":          u.ai_enabled,
+        "ai_claude_on":        u.ai_claude_on,
+        "ai_claude_model":     u.ai_claude_model,
+        "ai_openrouter_on":    u.ai_openrouter_on,
+        "ai_openrouter_model": u.ai_openrouter_model,
+        "ai_default":          u.ai_default,
+        "ai_fallback":         u.ai_fallback,
     }
 
 
@@ -81,6 +88,13 @@ def _from_dict(d: dict) -> UserProfile:
         notify_tool_started      = bool(d.get("notify_tool_started",      True)),
         notify_screener_approved = bool(d.get("notify_screener_approved", True)),
         notify_day_end_pnl       = bool(d.get("notify_day_end_pnl",       True)),
+        ai_enabled          = bool(d.get("ai_enabled", False)),
+        ai_claude_on        = bool(d.get("ai_claude_on", True)),
+        ai_claude_model     = str(d.get("ai_claude_model", "claude-sonnet-5-5")),
+        ai_openrouter_on    = bool(d.get("ai_openrouter_on", False)),
+        ai_openrouter_model = str(d.get("ai_openrouter_model", "")),
+        ai_default          = str(d.get("ai_default", "claude")),
+        ai_fallback         = bool(d.get("ai_fallback", False)),
     )
 
 
