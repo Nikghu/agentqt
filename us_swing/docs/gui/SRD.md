@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.82.0: SRD-GUI-034.011 added as Draft — Floor shows real regime and breadth (MKT P1).
 > v2.81.0: FO-GUI-034 Market Floor and AI Desk frames, SRD-GUI-034.001–.010 added as Draft 2026-11-05.
 > v2.80.0: SRD-GUI-006.023 added, asked by user 2026-11-05 in chat — Update now downloads only stocks behind (ISS-GUI-0018).
 > v2.79.0: SRD-GUI-006.022 added, approved by user 2026-11-05 (chat) — IBKR gap stock listed as failed (ISS-GUI-0017).
@@ -670,3 +671,4 @@
 | SRD-GUI-034.008 | FO-GUI-034 | Must | Layouts are saved by name in `~/.usswing/floor_layouts.json` and the last one opens at start. | layout | JSON file | A broken file falls back to the default layout with a `[Floor]` warning | Implemented |
 | SRD-GUI-034.009 | FO-GUI-034 | Must | AI Desk has a section list with Command as home and the ten other sections, each showing its frame. | click | section | — | Implemented |
 | SRD-GUI-034.010 | FO-GUI-034 | Must | Panels and sections fed by sample data show a "Sample data" tag; data comes through the `FloorData` interface in `core/desk_contract.py`. | provider | tag | Sample provider is replaced later without GUI changes | Implemented |
+| SRD-GUI-034.011 | FO-GUI-034 | Must | The Market regime and Breadth panels read the latest rows from `desk.db` with their data date, without the Sample tag, and refresh after a desk run ends. | `desk.db` | panels | Falls back to sample rows when the desk has no data yet | Implemented |

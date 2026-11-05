@@ -1,11 +1,12 @@
 # Functional Overview — Market Analytics (MKT)
 
 **Document ID:** FO-MKT
-**Version:** 0.1.0
+**Version:** 0.2.0
 **Status:** Draft
 **Last Updated:** 2026-11-05
 **Project:** US Swing Trading System
 
+> v0.2.0: FO-MKT-001 written in full and approved (user, 2026-11-06).
 > v0.1.0: Tool created by architecture review. All FOs are outlines; each is filled in full at the start of its phase.
 
 MKT finds S&P 500 stocks before they move, long or short, with a top-down funnel: regime → sectors → industry groups → relative strength → money flow → pre-breakout setups → AI review. It produces a Swing Readiness Score (0–100) and a ranked idea list. MKT runs inside the DSK desk process and writes to `desk.db`. Phases P1–P4 use no AI. Design source: https://claude.ai/artifact/4JJKX2kVZ9bvNkurFRuQkx.
@@ -14,13 +15,27 @@ MKT finds S&P 500 stocks before they move, long or short, with a top-down funnel
 
 ## FO-MKT-001: Market Regime, Breadth and Fear
 
-**Status:** Draft (outline)
+**Status:** Approved (user, 2026-11-06: draft approved, VIX from Yahoo Finance, option A)
 **Priority:** Must
 **Phase:** P1
+**Depends on:** FO-DSK-001 (desk process), FO-GUI-034 (Market Floor panels), daily candles in `candles.db`
 
-- The system shall classify the daily market regime (trend and volatility) from SPY, index and VIX data.
-- The system shall compute daily breadth for the S&P 500 (above 20/50/200-day MA, new highs/lows, advance/decline).
-- The system shall compute a fear reading from VIX level, VIX term and breadth.
+The system shall describe the state of the whole US market each day, so later phases can judge every stock idea against it. No AI is used.
+
+- The system shall classify each day's market regime from SPY as Uptrend, Downtrend or Choppy.
+- The system shall classify market volatility as Calm, Normal or High from SPY's recent price swings compared with the past year.
+- The system shall compute daily breadth for S&P 500 stocks: share above their 20, 50 and 200-day averages, 52-week new highs and lows, and advancing against declining stocks.
+- The system shall give a daily fear reading (Calm, Nervous, Fearful) from volatility, breadth and VIX, using daily VIX and VIX3M from Yahoo Finance.
+- The system shall run this as a desk step in the evening run and keep the results in `desk.db`.
+- The system shall fill the whole available history on its first run, then add only new days.
+- The system shall show the real regime and breadth on the Market Floor in place of sample data.
+
+### Acceptance Criteria
+
+1. For 3 chosen dates the regime, volatility and breadth match a hand check on the same candles.
+2. With the app closed, the evening run adds the latest day and the Floor shows it after the app opens.
+3. When Yahoo Finance is not reachable, the day is still stored and the fear reading says it was made without VIX.
+4. The Market regime and Breadth panels show the data date and no "Sample data" tag.
 
 ## FO-MKT-002: Sector Strength and Rotation
 

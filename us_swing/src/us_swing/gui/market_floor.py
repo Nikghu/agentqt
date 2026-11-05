@@ -21,7 +21,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from us_swing.core.desk_contract import FloorData
+from us_swing.core.desk_contract import DeskState, DeskStatus, FloorData
+from us_swing.core.desk_floor import DeskFloorData
 from us_swing.gui.cards import GAP, card, gutter
 from us_swing.gui.desk_control import DeskBar, DeskPoller
 from us_swing.gui.floor_dialogs import CatalogDialog, NameDialog, PanelSettingsDialog
@@ -54,7 +55,8 @@ class MarketFloorWorkspace(QWidget):
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
-        self._data: FloorData = data or SampleFloorData()
+        self._data: FloorData = data or DeskFloorData(SampleFloorData())
+        self._was_running = poller.status.state is DeskState.RUNNING
         self._store = store or LayoutStore()
         self._products = {p.id: p for p in self._data.products()}
         self._grids: dict[str, PanelGrid] = {}
@@ -68,6 +70,8 @@ class MarketFloorWorkspace(QWidget):
         self._save_timer.setInterval(_SAVE_DELAY_MS)
         # timer → timeout → this page → flush
         self._save_timer.timeout.connect(self.flush)
+        # poller → status_changed → this page → _on_desk_status
+        poller.status_changed.connect(self._on_desk_status)
 
         gutter(self)
         main = QHBoxLayout(self)
@@ -84,6 +88,20 @@ class MarketFloorWorkspace(QWidget):
         # feed → folded_changed → store → set_feed_folded
         self.feed.folded_changed.connect(self._store.set_feed_folded)
         main.addWidget(card(self.feed))
+
+    def _on_desk_status(self, status: DeskStatus) -> None:
+        running = status.state is DeskState.RUNNING
+        ended = self._was_running and not running
+        self._was_running = running
+        if ended:
+            self.reload_panels()
+
+    def reload_panels(self) -> None:
+        """Rebuild every panel from fresh product data; layout and edit mode are kept."""
+        self._products = {p.id: p for p in self._data.products()}
+        for grid in self._grids.values():
+            grid.set_model(grid.model)
+        _log.info("[Floor] Panels refreshed after a desk run")
 
     def tab_names(self) -> list[str]:
         """Return the tab titles in order."""

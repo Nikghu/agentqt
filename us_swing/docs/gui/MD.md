@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.9.0: MD-GUI-034.011.M10 added (MKT P1).
 > v1.8.0: MD-GUI-034.* Market Floor and AI Desk frames added 2026-11-05.
 > v1.54.0: MD-GUI-000.009.M01 `popups.py` and M02 call sites added (SRD-GUI-000.009).
 > v1.53.0: MD-GUI-022.001.M01 adds `plan_start_index()`, `plan_outcome()`; `ListDetailView.load()` takes the run time; `CandleChartPanel.set_plan()` takes an optional start time (SRD-GUI-022.011).
@@ -404,5 +405,6 @@ us_swing/src/us_swing/gui/
 | MD-GUI-034.008.M07 | SRD-GUI-034.008 | `us_swing/src/us_swing/gui/floor_layouts.py` | Layout file, defaults, last layout, feed fold | `LayoutStore`, `default_layout()` | — | No |
 | MD-GUI-034.009.M08 | SRD-GUI-034.009 | `us_swing/src/us_swing/gui/ai_desk.py`, `gui/ai_desk_sections.py`, `gui/ai_desk_sections2.py`, `gui/ai_desk_sections3.py`, `gui/ai_desk_sample.py` | AI Desk section list and section frames | `AiDeskWorkspace` | M02 | No |
 | MD-GUI-034.003.M09 | SRD-GUI-034.003 | `us_swing/src/us_swing/core/desk_contract.py`, `desk/task.py` | Shared desk launch command; `FloorData` interface | `desk_command()`, `launch_desk()`, `ProductDescriptor`, `FloorData` | — | No |
+| MD-GUI-034.011.M10 | SRD-GUI-034.011 | `us_swing/src/us_swing/core/desk_floor.py`, `gui/market_floor.py` | Desk-backed FloorData and panel refresh after a run | `DeskFloorData` | `core.desk_contract`, M03 | No |
 
 SRD coverage: .002 and .003 by M02 and M09; .004 by M04; .005 by M05; .006 and .007 by M06; .008 by M07; .009 by M08; .010 by M03 and M09.

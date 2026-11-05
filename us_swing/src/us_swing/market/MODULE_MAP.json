@@ -1,0 +1,335 @@
+{
+  "generated": "2026-11-05T18:59:19",
+  "subfolder": "market",
+  "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\market",
+  "tool_code": "MKT",
+  "files": {
+    "__init__.py": {},
+    "candles.py": {
+      "module_id": "MD-MKT-001.001.M01",
+      "srd_id": "SRD-MKT-001.001",
+      "classes": [
+        {
+          "name": "DailyBars",
+          "docstring": "Wide daily frames: one column per symbol, one row per date.",
+          "class_vars": [
+            "closes: pd.DataFrame",
+            "highs: pd.DataFrame",
+            "lows: pd.DataFrame"
+          ],
+          "line_start": 24,
+          "line_end": 29
+        },
+        {
+          "name": "CandleReader",
+          "docstring": "Reads ``price_1d`` without ever writing to ``candles.db``.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, path: Path = CANDLE_DB) -> None",
+              "docstring": "Remember the file.",
+              "line_start": 35,
+              "line_end": 43
+            },
+            {
+              "name": "symbols",
+              "signature": "def symbols(self) -> set[str]",
+              "docstring": "Return every symbol with daily bars.",
+              "line_start": 45,
+              "line_end": 48
+            },
+            {
+              "name": "read",
+              "signature": "def read(self, symbols: Iterable[str]) -> DailyBars",
+              "docstring": "Return closes, highs and lows for ``symbols`` as wide frames by date.",
+              "line_start": 50,
+              "line_end": 70
+            }
+          ],
+          "line_start": 32,
+          "line_end": 70
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "member_symbols",
+          "signature": "def member_symbols(\r\n    available: set[str],\r\n    universe: Callable[[], list[tuple[str, str]]] | None = None,\r\n) -> list[str]",
+          "docstring": "Return S&P 500 member symbols that have daily bars, SPY excluded.",
+          "line_start": 73,
+          "line_end": 93
+        },
+        {
+          "name": "_saved_universe",
+          "signature": "def _saved_universe() -> list[tuple[str, str]]",
+          "line_start": 96,
+          "line_end": 99
+        }
+      ],
+      "constants": [
+        "CANDLE_DB = Path.home() / \".usswing\" / \"candles.db\"",
+        "BENCHMARK = \"SPY\""
+      ]
+    },
+    "regime.py": {
+      "module_id": "MD-MKT-001.002.M02",
+      "srd_id": "SRD-MKT-001.002",
+      "classes": [
+        {
+          "name": "Fear",
+          "docstring": "A day's fear reading.",
+          "class_vars": [
+            "label: str",
+            "score: int",
+            "note: str"
+          ],
+          "line_start": 72,
+          "line_end": 77
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "regime_series",
+          "signature": "def regime_series(close: pd.Series) -> pd.Series",
+          "docstring": "Return Uptrend, Downtrend or Choppy per day; ``None`` before 210 bars.",
+          "line_start": 22,
+          "line_end": 33
+        },
+        {
+          "name": "averages",
+          "signature": "def averages(close: pd.Series) -> pd.DataFrame",
+          "docstring": "Return the 50 and 200-day averages of ``close``.",
+          "line_start": 36,
+          "line_end": 38
+        },
+        {
+          "name": "volatility_series",
+          "signature": "def volatility_series(close: pd.Series) -> pd.DataFrame",
+          "docstring": "Return ``vol20`` (annualised), ``vol_pct`` (rank in the past year) and ``volatil",
+          "line_start": 41,
+          "line_end": 48
+        },
+        {
+          "name": "breadth_frame",
+          "signature": "def breadth_frame(closes: pd.DataFrame, highs: pd.DataFrame, lows: pd.DataFrame) -> pd.DataFrame",
+          "docstring": "Return daily breadth for the member columns of the wide frames.",
+          "line_start": 51,
+          "line_end": 68
+        },
+        {
+          "name": "fear_reading",
+          "signature": "def fear_reading(\r\n    vix: float | None, vix3m: float | None, volatility: str | None, pct_above_50: float | None\r\n) -> Fear",
+          "docstring": "Add fear points and map them to Calm (0\u20131), Nervous (2\u20133) or Fearful (4+).",
+          "line_start": 80,
+          "line_end": 97
+        }
+      ],
+      "constants": [
+        "REGIME_BARS = 210",
+        "YEAR = 252",
+        "VOL_WINDOW = 20",
+        "CALM_PCT = 30.0",
+        "HIGH_PCT = 70.0"
+      ]
+    },
+    "step.py": {
+      "module_id": "MD-MKT-001.011.M05",
+      "srd_id": "SRD-MKT-001.011",
+      "classes": [
+        {
+          "name": "RegimeStep",
+          "docstring": "Computes and stores market regime, breadth and fear for every new candle day.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(\r\n        self,\r\n        candles: Path = CANDLE_DB,\r\n        vix_fetch: Callable[[date], pd.DataFrame] = fetch_vix,\r\n        universe: Callable[[], list[tuple[str, str]]] | None = None,\r\n        today: Callable[[], date] | None = None,\r\n    ) -> None",
+              "docstring": "Set the data sources; all are injectable for tests.",
+              "line_start": 54,
+              "line_end": 65
+            },
+            {
+              "name": "__call__",
+              "signature": "def __call__(self, ctx: StepContext) -> None",
+              "docstring": "Run the step inside a desk run.",
+              "line_start": 67,
+              "line_end": 75
+            },
+            {
+              "name": "_update_vix",
+              "signature": "def _update_vix(self, store: MarketStore) -> None",
+              "line_start": 77,
+              "line_end": 84
+            },
+            {
+              "name": "_add_days",
+              "signature": "def _add_days(self, store: MarketStore) -> int",
+              "line_start": 86,
+              "line_end": 106
+            },
+            {
+              "name": "_write",
+              "signature": "def _write(\r\n        self, store: MarketStore, ready: pd.DataFrame, breadth: pd.DataFrame,\r\n        member_count: int, data_day: date,\r\n    ) -> int",
+              "line_start": 108,
+              "line_end": 147
+            }
+          ],
+          "line_start": 49,
+          "line_end": 147
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_weekdays_after",
+          "signature": "def _weekdays_after(first: date, last: date) -> int",
+          "docstring": "Count weekdays in (first, last].",
+          "line_start": 37,
+          "line_end": 39
+        },
+        {
+          "name": "_num",
+          "signature": "def _num(value: object) -> float | None",
+          "line_start": 42,
+          "line_end": 46
+        }
+      ],
+      "constants": [
+        "MIN_COVERAGE = 0.8",
+        "VIX_FIRST_DAY = date(2023, 1, 1)",
+        "_ET_OFFSET = timedelta(hours=-5)"
+      ]
+    },
+    "store.py": {
+      "module_id": "MD-MKT-001.007.M04",
+      "srd_id": "SRD-MKT-001.007",
+      "classes": [
+        {
+          "name": "RegimeRow",
+          "docstring": "One ``regime_snapshot`` row.",
+          "class_vars": [
+            "date: str",
+            "regime: str",
+            "volatility: str",
+            "vol20: float",
+            "vol_pct: float",
+            "spy_close: float",
+            "sma50: float",
+            "sma200: float",
+            "vix: float | None",
+            "vix3m: float | None",
+            "fear: str",
+            "fear_score: int",
+            "note: str",
+            "created_at: str"
+          ],
+          "line_start": 35,
+          "line_end": 51
+        },
+        {
+          "name": "BreadthRow",
+          "docstring": "One ``breadth_daily`` row.",
+          "class_vars": [
+            "date: str",
+            "members: int",
+            "pct_above_20: float | None",
+            "pct_above_50: float | None",
+            "pct_above_200: float | None",
+            "new_highs: int",
+            "new_lows: int",
+            "advancers: int",
+            "decliners: int"
+          ],
+          "line_start": 55,
+          "line_end": 66
+        },
+        {
+          "name": "MarketStore",
+          "docstring": "Read and write the market tables beside the desk tables.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, home: Path) -> None",
+              "docstring": "Open ``desk.db`` in ``home`` and create the market tables when missing.",
+              "line_start": 76,
+              "line_end": 83
+            },
+            {
+              "name": "close",
+              "signature": "def close(self) -> None",
+              "docstring": "Close the connection.",
+              "line_start": 85,
+              "line_end": 87
+            },
+            {
+              "name": "last_date",
+              "signature": "def last_date(self, table: str) -> date | None",
+              "docstring": "Return the newest date in ``regime_snapshot``, ``breadth_daily`` or ``vix_daily`",
+              "line_start": 89,
+              "line_end": 94
+            },
+            {
+              "name": "write_days",
+              "signature": "def write_days(self, regimes: list[RegimeRow], breadths: list[BreadthRow]) -> None",
+              "docstring": "Insert or replace whole days in one transaction.",
+              "line_start": 96,
+              "line_end": 106
+            },
+            {
+              "name": "_put",
+              "signature": "def _put(self, table: str, kind: type, rows: list[tuple[object, ...]]) -> None",
+              "line_start": 108,
+              "line_end": 112
+            },
+            {
+              "name": "write_vix",
+              "signature": "def write_vix(self, frame: pd.DataFrame) -> int",
+              "docstring": "Store VIX rows (index = date, columns ``vix``, ``vix3m``); return how many.",
+              "line_start": 114,
+              "line_end": 126
+            },
+            {
+              "name": "vix_by_date",
+              "signature": "def vix_by_date(self) -> dict[str, tuple[float | None, float | None]]",
+              "docstring": "Return stored VIX and VIX3M by ISO date.",
+              "line_start": 128,
+              "line_end": 133
+            }
+          ],
+          "line_start": 73,
+          "line_end": 133
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_clean",
+          "signature": "def _clean(value: object) -> object",
+          "line_start": 69,
+          "line_end": 70
+        }
+      ],
+      "constants": [
+        "_SCHEMA = \"\"\""
+      ]
+    },
+    "vix.py": {
+      "module_id": "MD-MKT-001.005.M03",
+      "srd_id": "SRD-MKT-001.005",
+      "top_level_functions": [
+        {
+          "name": "_yahoo_closes",
+          "signature": "def _yahoo_closes(tickers: list[str], start: date) -> pd.DataFrame",
+          "line_start": 22,
+          "line_end": 32
+        },
+        {
+          "name": "fetch_vix",
+          "signature": "def fetch_vix(start: date, downloader: Downloader | None = None) -> pd.DataFrame",
+          "docstring": "Return daily ``vix`` and ``vix3m`` closes from ``start``, indexed by date.",
+          "line_start": 35,
+          "line_end": 49
+        }
+      ],
+      "constants": [
+        "TICKERS = {\"^VIX\": \"vix\", \"^VIX3M\": \"vix3m\"}"
+      ]
+    }
+  }
+}
