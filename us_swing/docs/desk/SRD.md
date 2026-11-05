@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-05
 **Project:** US Swing Trading System
 
+> v0.3.0: SRD-DSK-001.021 added as Draft — desk loads registered steps (for MKT P1).
 > v0.2.0: SRD-DSK-001.001–.020 added — desk process shell (FO-DSK-001, phase P0a).
 > v0.1.0: Empty.
 
@@ -35,3 +36,4 @@
 | SRD-DSK-001.018 | FO-DSK-001 | Must | Install creates two Windows tasks: one at logon and one 5 minutes before each weekday evening run, set in local time and local days. | exe path | tasks | No console window | Implemented |
 | SRD-DSK-001.019 | FO-DSK-001 | Should | Each desk start re-checks the evening task time and updates it after a US or local clock change. | clock | task | Skipped when not installed | Implemented |
 | SRD-DSK-001.020 | FO-DSK-001 | Must | `python -m us_swing desk` runs the desk; `desk start/status/pause/resume/stop/run-now/install/uninstall` control it. | argv | exit code, text | `start` launches a detached process | Implemented |
+| SRD-DSK-001.021 | FO-DSK-001 | Must | The desk loads its steps from the step list in `core/desk_steps.py`, and each step gets the desk folder in its context. | step list | steps | A step that fails to load is logged and left out | Approved |

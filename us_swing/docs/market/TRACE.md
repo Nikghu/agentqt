@@ -12,7 +12,7 @@
 
 | FO ID | SRD ID | DD ID | MD ID | UTCD IDs | Code File | Status | RN |
 |---|---|---|---|---|---|---|---|
-| FO-MKT-001 | — | — | — | — | — | Draft | — |
+| FO-MKT-001 | SRD-MKT-001.001–.012 | DD-MKT-001.001.D01 | MD-MKT-001.001.M01, .002.M02, .005.M03, .007.M04, .011.M05 | UT-MKT-001.* (25, Not Run) | — | SRD Approved | — |
 | FO-MKT-002 | — | — | — | — | — | Draft | — |
 | FO-MKT-003 | — | — | — | — | — | Draft | — |
 | FO-MKT-004 | — | — | — | — | — | Draft | — |

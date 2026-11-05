@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.7.0: UT-GUI-034.011.M10.T01–T03 added (MKT P1).
 > v1.6.0: UT-GUI-034.* Market Floor and AI Desk frames added 2026-11-05.
 > v1.45.0: UT-GUI-000.009.M01.T01–T02, M02.T01–T02 added — frameless popups (ISS-GUI-0016).
 > v1.44.0: UT-GUI-022.011.M01.T02–T07 added — plan zone start and hit tag on the Screener chart.
@@ -1056,3 +1057,6 @@ Test files:
 | UT-GUI-034.010.M03.T01 | MD-GUI-034.010.M03 | Positive | Sample tag shown | sample provider | every panel and section shows Sample data | Pass |
 | UT-GUI-034.009.M08.T02 | MD-GUI-034.009.M08 | Positive | Seats within caps | sample org | experts 3 of 3, champions 3 of 5, juniors 18 of 30 | Pass |
 | UT-GUI-034.010.M03.T02 | MD-GUI-034.010.M03 | Positive | Every AI Desk section tagged | build all 11 sections | each shows one Sample data tag | Pass |
+| UT-GUI-034.011.M10.T01 | MD-GUI-034.011.M10 | Positive | Real regime and breadth | desk.db with 2 days | latest day rows; product sample False; data date shown | Not Run |
+| UT-GUI-034.011.M10.T02 | MD-GUI-034.011.M10 | Negative | No desk data yet | no desk.db | sample rows with Sample tag | Not Run |
+| UT-GUI-034.011.M10.T03 | MD-GUI-034.011.M10 | Positive | Refresh after a run | status Running then Sleeping | panels reload once | Not Run |
