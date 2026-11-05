@@ -56,9 +56,9 @@ The system shall run the desk as a separate background process that the main app
 **Priority:** Must
 **Phase:** P5a
 
-- The system shall call models through one gateway: OpenRouter (main), Claude Code CLI (rare heavy jobs), HuggingFace (special models as tools).
+- The system shall call models through one gateway: OpenRouter (main), Claude Code CLI (rare heavy jobs), HuggingFace (special models as tools), TypeSafe Jev (typed decisions).
 - The system shall check every answer against its output schema, retry once, then use a backup model.
-- The system shall stop AI calls when the daily or monthly budget is used up.
+- The system shall stop AI calls when the daily or monthly budget is used up (start: USD 10 per month).
 
 ## FO-DSK-005: Activity Recorder and Replay
 
@@ -76,5 +76,6 @@ The system shall run the desk as a separate background process that the main app
 **Phase:** P6
 
 - The system shall let HELM propose a new employee or process, which runs only after Master User approval.
+- The system shall cap seats at 3 experts, 5 champions and 30 juniors; the Master User can raise a cap.
 - The system shall run a new employee in shadow mode for two weeks before a second approval.
 - The system shall let LEDGER report workload, cost and process-improvement ideas.

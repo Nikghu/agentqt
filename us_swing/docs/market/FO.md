@@ -84,6 +84,7 @@ MKT finds S&P 500 stocks before they move, long or short, with a top-down funnel
 **Status:** Draft (outline)
 **Priority:** Should
 **Phase:** P7
-**Depends on:** open question — does HELM place trades or does the user approve each one
+**Depends on:** DD-DSK §0.7 Q5 — the Master User approves every trade
 
-- The system shall send approved ideas to the Execution tool as watchlist entries or trade signals.
+- The system shall send only Master-approved ideas to the Execution tool as watchlist entries or trade signals.
+- The system shall never let HELM place a trade without Master approval.

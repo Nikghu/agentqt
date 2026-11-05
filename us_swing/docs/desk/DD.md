@@ -25,7 +25,7 @@
 | 6 | The front-end design is approved before backend work (Market Floor + AI Desk, round-2 Option 1). | User, 2026-11-05 |
 | 7 | Agents sleep by default and wake on events or timers. Code watchers are always on (MoE-style router). | User, 2026-11-05 |
 | 8 | Every agent step is recorded in an append-only log. | User, 2026-11-05 |
-| 9 | LLM sources: OpenRouter (main), Claude Code CLI (rare, subprocess with no window), HuggingFace (special models as tools). | User, 2026-11-05 |
+| 9 | LLM sources: OpenRouter (main), Claude Code CLI (rare, subprocess with no window), HuggingFace (special models as tools), TypeSafe Jev (typed decisions, from P5a in shadow). | User, 2026-11-05 |
 | 10 | Master User talks only to HELM. Hiring a new employee or adding a process needs Master approval. | User, 2026-11-05 |
 | 11 | Job descriptions = `soul.md` + `job.yaml`. First versions are written by Claude Code; later HELM drafts and the Master approves. | User, 2026-11-05 |
 | 12 | P1–P4 use no AI. New dependencies (`langgraph`, `langgraph-checkpoint-sqlite`) arrive only at P5a; `huggingface_hub`, `feedparser` at P5c. | Review |
@@ -95,15 +95,15 @@ The desk works in NY time (`zoneinfo` "America/New_York"). Windows tasks are set
 | P6 | Hiring pipeline, LEDGER, cost views | DSK / FO-DSK-006 | One shadow hire approved end to end |
 | P7 | Link to Execution | MKT / FO-MKT-008 | Approved idea reaches EXE |
 
-### 0.7 Open questions (for the user)
+### 0.7 Questions and answers
 
-| # | Question |
-|---|---|
-| Q1 | The tool lists in `CLAUDE.md`, `artifact-conventions.md`, `workspace.md` and `process.md` §14.1 do not include BKT, DSK and MKT. These are user-maintained files. |
-| Q2 | Which HuggingFace model is "Jev"? |
-| Q3 | Seat caps: 3 experts / 5 champions / 30 juniors? |
-| Q4 | Monthly AI budget (USD)? |
-| Q5 | Does HELM place trades itself, or does the user approve each one? (Needed before P7.) |
+| # | Question | Answer (user, 2026-11-05) |
+|---|---|---|
+| Q1 | Tool lists in `CLAUDE.md`, `artifact-conventions.md`, `workspace.md` and `process.md` §14.1 lack BKT, DSK and MKT (user-maintained files). | Open — user to update |
+| Q2 | Which model is "Jev"? | Jev by TypeSafe AI: a typed decision model (Choice / Score with probability and confidence). Reached through Vercel AI Gateway or Cloudflare Workers AI. Add it at P5a as a 4th gateway source for junior and champion decisions, in shadow mode against a cheap OpenRouter model for 2 weeks; LEDGER compares accuracy and cost before any switch. |
+| Q3 | Seat caps? | 3 experts / 5 champions / 30 juniors. Can be raised later from AI Desk settings. |
+| Q4 | Monthly AI budget? | USD 10 per month while testing, cheap models only. Raise after the desk is set up. |
+| Q5 | Does HELM trade by itself? | No. HELM proposes; the Master User approves or rejects every trade. |
 
 ---
 
