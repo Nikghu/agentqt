@@ -34,6 +34,7 @@
 | FO-INF-010 | SRD-INF-010.006, .010 | DD-INF-010.001.D01 | MD-INF-010.001.M04, M09 | UT-INF-010.001.M04.T07–09, M07.T03, M08.T06–07, M09.T01–03 | `core/notifications/_dispatcher.py`, `gui/app_service.py`, `gui/settings_panel.py`, `gui/user_store.py`, `data/models.py` | Implemented | RN-INF-1.5.0-20260710 |
 | FO-INF-011 | SRD-INF-011.001–003 | DD-INF-011.001.D01 | MD-INF-011.001.M01 | UT-INF-011.001.M01.T01–T02, .002.M01.T01, .003.M01.T01–T02 | `core/notifications/_ai_client.py` | Implemented | RN-INF-1.9.0-20261105 |
 | FO-INF-012 | SRD-INF-012.001–006 | DD-INF-012.001.D01 | MD-INF-012.002.M01, .003.M02, .003.M03, .001.M04 | UT-INF-012.*, UT-INF-010.001.M09.T01–T03 | `core/notifications/_briefs.py`, `_events.py`, `_formatters.py`, `gui/morning_brief.py`, `gui/app_service.py`, `gui/notification_worker.py`, `gui/settings_panel.py`, `gui/user_store.py`, `data/models.py` | Implemented | RN-INF-1.10.0-20261105 |
+| FO-INF-005 | SRD-INF-005.001 | DD-INF-005.001.D01 | MD-INF-005.001.M01 | UT-INF-005.001.M01.T06 | `monitoring/logging_setup.py` | Implemented | RN-INF-1.10.1-20261105 |
 
 ---
 

@@ -114,3 +114,4 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T102 | INF — `NYSE_HOLIDAYS` is 2026-only with no early-close days; add 2027 before 1 Jan 2027. | `data/market_calendar.py` | High | Open |
 | T103 | TEST — 11 old failures (candle builder, screener preset) and `test_llm_claude_screener.py` imports a removed module. | `tests/analysis`, `tests/screener` | Medium | Open |
 | T104 | GUI — run Update now once; HLT should show as failed (IBKR has no bar for 2026-11-04) and Candle data up to date (ISS-GUI-0017). Then run the full tests (user asked to run later). | `gui/app_service.py` | Medium | Open |
+| T105 | INF — user: new Telegram bot token from BotFather, clean old logs in ~/.usswing/logs (token was logged before ISS-INF-0004), run one app copy (409 Conflict). | `~/.usswing/logs` | High | Open |

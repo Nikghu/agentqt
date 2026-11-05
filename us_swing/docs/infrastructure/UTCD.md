@@ -8,6 +8,7 @@
 **Project:** US Swing Trading System
 
 > Tests written BEFORE implementation per process.md §7.
+> v1.7.0: UT-INF-005.001.M01.T06 added — bot token hidden in log messages and tracebacks (ISS-INF-0004).
 > v1.4.0: UT-INF-005.001.M01.T05 added — httpx request URLs (Telegram bot token) kept out of the log.
 > v1.3.0: notification-service cases added (MD-INF-010.001.M01–M07).
 > v1.4.0: keychain token store + user-store persistence cases added (MD-INF-010.001.M08).
@@ -118,6 +119,7 @@
 | UT-INF-005.001.M01.T03 | MD-INF-005.001.M01 | Positive | Log timestamps use the configured market timezone | Format a record fixed at 16:35:45 UTC with zone `US/Eastern` | Stamp reads `2026-08-31T12:35:45-0400`, never a bare `Z` | Pass |
 | UT-INF-005.001.M01.T04 | MD-INF-005.001.M01 | Negative | An unusable timezone name falls back to the local zone | Resolve `"Not/AZone"` and `None` | Local zone returned; no exception raised | Pass |
 | UT-INF-005.001.M01.T05 | MD-INF-005.001.M01 | Negative | Request URLs holding the Telegram bot token are not logged | `configure_logging(tmp, "INFO")` | `httpx` logger off at INFO, on at WARNING | Pass |
+| UT-INF-005.001.M01.T06 | MD-INF-005.001.M01 | Negative | A Telegram bot token in a log message or traceback is hidden | ERROR record whose message and exception hold a `bot<id>:<token>` URL | token text absent; `bot<hidden>` twice | Pass |
 | UT-INF-005.001.M02.T01 | MD-INF-005.001.M02 | Unit | `AlertDispatcher.send()` appends to alerts.log | Send WARNING alert | `logs/alerts.log` contains the message | Draft |
 | UT-INF-005.001.M02.T02 | MD-INF-005.001.M02 | Edge | Webhook failure does not crash dispatcher | Configure bad URL; send alert | WARNING logged about webhook failure; no exception propagates | Draft |
 | UT-INF-005.001.M03.T01 | MD-INF-005.001.M03 | Unit | `HealthCheck.report()` returns expected keys | Mock broker connected, DB reachable | Dict has keys: `broker_connected`, `last_update`, `universe_count`, `open_positions`, `db_reachable` | Draft |

@@ -2,6 +2,16 @@
 
 ---
 
+## [20261105] INF — Telegram bot token hidden in log tracebacks (ISS-INF-0004)
+
+- Type: Bugfix
+- FO(s): FO-INF-005
+- RN: RN-INF-1.10.1-20261105
+- Artifacts updated: Issue (ISS-INF-0004), UTCD (UT-INF-005.001.M01.T06 Pass), TRACE (inf), Code (monitoring/logging_setup.py), Tests
+- Decisions: hide in the formatter so every message and traceback is covered; user to replace the token.
+
+---
+
 ## [20261105] GUI — Candle data stuck "1 day behind" by an IBKR gap (ISS-GUI-0017)
 
 - Type: Bugfix
