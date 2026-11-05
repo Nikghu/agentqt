@@ -2,12 +2,14 @@
 
 **Document:** CONTEXT.md
 **Project:** us_swing
-**Last Updated:** 2026-11-05 (Session 117)
+**Last Updated:** 2026-11-06 (Session 117)
 **Updated By:** Claude (Haiku 5.5)
 
 ---
 
-**Current (Session 117, 2026-11-05):** **Desk process shell, phase P0a (Feature, DSK; FO-DSK-001; RN-DSK-0.1.0-20261105; SRD-DSK-001.001–.020 Implemented).** New tool DSK (`src/us_swing/desk/`) with its own `desk.db`; the app only sends commands and reads state. Covers states, single-instance lock, heartbeat, evening run at 16:25 ET, Windows tasks and `desk` CLI. 62 UT Pass; ruff and mypy --strict clean; coverage not measured. Real desk process driven by the CLI OK. Branch feat/dsk-p0a-desk-shell, 3 commits (cfe38bc2, bcf4b43c, b65b1f4d), not pushed. Full suite has 11 failures already on main plus a stray test file (TODO T112). **P0b done, same session (Feature, GUI; FO-GUI-034 Market Floor and AI Desk frames; RN-GUI-1.60.0-20261106; SRD-GUI-034.001–.010 Implemented).** Two sidebar pages: Market Floor (5 tabs, foldable AI feed, 12-column adjustable panel grid with edit mode, catalog, panel settings, link groups A/B/C, named layouts in `~/.usswing/floor_layouts.json`) and AI Desk (11 sections on sample data, Command home). Desk bar Start / Pause / Resume / Stop drives the real desk off the UI thread. Checked in the real app with mouse clicks, drag and screenshots. 37 UT-GUI-034 Pass; 99 tests pass across desk and GUI-034. Known: no undo for panel remove; Approve / Reject / chat disabled until P5b; sample data until P1. Branch feat/dsk-p0a-desk-shell, not pushed (commits aec0c0b4, 24e09b08, 2aa66cae, 84e67e72). **Next:** push / PR only when the user says (`/project:finish`), then P1 FO-MKT-001 regime / breadth / fear. Still open: user installs Windows desk tasks (TODO T113) and answers Q1–Q5 in `docs/desk/DD.md` §0.7 (TODO T111).
+**Current (Session 117, 2026-11-06):** **Market regime, breadth and fear, phase P1 (Feature, MKT + DSK + GUI; FO-MKT-001; RN-MKT-0.1.0-20261106; SRD-MKT-001.001–.012, SRD-DSK-001.021, SRD-GUI-034.011 Implemented).** New `market/` package: read-only candles, regime rules, VIX fetch, store in `desk.db`, desk step "Market regime". Floor shows real regime and breadth. 28 UT-MKT Pass; 132 tests pass across desk, market and GUI desk/Floor. Real run filled 341 days (2025-06-30 to 2026-11-04). Known limits: history starts 2025-06 (fill older SPY before P4); breadth uses today's members; desk does not download candles yet. Branch feat/mkt-p1-regime-breadth, 2 commits (75acdf23, db0b2133) on top of merged PR #114, not pushed. **Next:** user decides push / PR (`/project:finish`) only when the user says; then P2 FO-MKT-002 sectors and relative strength.
+
+**Previous (Session 117, 2026-11-05):** **Desk process shell, phase P0a (Feature, DSK; FO-DSK-001; RN-DSK-0.1.0-20261105; SRD-DSK-001.001–.020 Implemented).** New tool DSK (`src/us_swing/desk/`) with its own `desk.db`; the app only sends commands and reads state. Covers states, single-instance lock, heartbeat, evening run at 16:25 ET, Windows tasks and `desk` CLI. 62 UT Pass; ruff and mypy --strict clean; coverage not measured. Real desk process driven by the CLI OK. Branch feat/dsk-p0a-desk-shell, 3 commits (cfe38bc2, bcf4b43c, b65b1f4d), not pushed. Full suite has 11 failures already on main plus a stray test file (TODO T112). **P0b done, same session (Feature, GUI; FO-GUI-034 Market Floor and AI Desk frames; RN-GUI-1.60.0-20261106; SRD-GUI-034.001–.010 Implemented).** Two sidebar pages: Market Floor (5 tabs, foldable AI feed, 12-column adjustable panel grid with edit mode, catalog, panel settings, link groups A/B/C, named layouts in `~/.usswing/floor_layouts.json`) and AI Desk (11 sections on sample data, Command home). Desk bar Start / Pause / Resume / Stop drives the real desk off the UI thread. Checked in the real app with mouse clicks, drag and screenshots. 37 UT-GUI-034 Pass; 99 tests pass across desk and GUI-034. Known: no undo for panel remove; Approve / Reject / chat disabled until P5b; sample data until P1. Branch feat/dsk-p0a-desk-shell, not pushed (commits aec0c0b4, 24e09b08, 2aa66cae, 84e67e72). **Next:** push / PR only when the user says (`/project:finish`), then P1 FO-MKT-001 regime / breadth / fear. Still open: user installs Windows desk tasks (TODO T113) and answers Q1–Q5 in `docs/desk/DD.md` §0.7 (TODO T111).
 
 **Also (Session 117, 2026-11-05):** **Update now downloads only stocks behind (Bugfix, GUI; ISS-GUI-0018; SRD-GUI-006.023 asked by user and Implemented; RN-GUI-1.59.3-20261105).** One stock behind (HLT) made Update now re-download all 503 stocks; now only stocks whose last daily candle is before the last trading day are downloaded. 3 UT Pass; candle tests 41 passed. Branch fix/gui-candle-delta-stale-only, not pushed. **Next:** user cancels the running download, restarts, clicks Update now; only HLT should run (TODO T106).
 
@@ -514,6 +516,19 @@ Previous (Session 87, 2026-10-23): **Accumulation / Distribution screener (Featu
 | UTCD | `docs/desk/UTCD.md` | Draft | FO-DSK-001: 62 UT Pass |
 | TRACE | `docs/desk/TRACE.md` | Draft v0.1.0 | FO-DSK-001 Implemented |
 | Code | `src/us_swing/desk/`, `core/desk_contract.py` | Implemented | Commit b65b1f4d on feat/dsk-p0a-desk-shell, not pushed |
+
+---
+
+### Market Analytics (MKT)
+
+| Artifact | File | Status | Notes |
+|---|---|---|---|
+| FO | `docs/market/FO.md` | Draft | FO-MKT-001 done (P1); FO-MKT-002..008 Draft |
+| SRD | `docs/market/SRD.md` | Draft v0.2.0 | SRD-MKT-001.001–.012 Implemented (RN-MKT-0.1.0-20261106) |
+| MD | `docs/market/MD.md` | Draft v0.2.0 | MD-MKT-001 M01–M05 |
+| UTCD | `docs/market/UTCD.md` | Draft | FO-MKT-001: 28 UT Pass |
+| TRACE | `docs/market/TRACE.md` | Draft v0.1.0 | FO-MKT-001 Implemented |
+| Code | `src/us_swing/market/` | Implemented | Branch feat/mkt-p1-regime-breadth, not pushed |
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-11-05 (Session 117)
+**Last Updated:** 2026-11-06 (Session 117)
 
 ---
 
@@ -118,7 +118,7 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T106 | GUI — restart app, click Update now: only HLT should download, then show as failed with Candle data up to date (ISS-GUI-0018). | `gui/app_service.py` | Medium | Open |
 | T107 | DSK P0a — desk process shell (FO-DSK-001): Windows task, 7 states, `commands` table, heartbeat, save/resume, `desk.db` base tables. Needs FO approval first. | `desk/`, `core/desk_contract.py` | High | Open |
 | T108 | GUI P0b — Market Floor + AI Desk frames on sample data (new FO-GUI-034): 5 Floor tabs, AI feed column, adjustable panel grid, catalog, layouts. | `gui/` | High | Open |
-| T109 | MKT P1–P4 — regime/breadth/fear, sectors/RS, flow/setups/score/ideas, proof on past data (FO-MKT-001–004). No AI. | `market/` | High | Open |
+| T109 | MKT P1–P4 — P1 done (FO-MKT-001 regime, breadth, fear; branch feat/mkt-p1-regime-breadth, unpushed). P2–P4 remain: sectors/RS, flow/setups/score/ideas, proof on past data (FO-MKT-002–004). No AI. | `market/` | High | Open |
 | T110 | DSK+MKT P5–P7 — harness + AI employees, SCOUT, CANVAS, hiring/LEDGER, EXE link (FO-DSK-002–006, FO-MKT-005–008). | `desk/`, `market/` | Medium | Open |
 | T111 | DD-DSK §0.7 answered 2026-11-05: Jev (TypeSafe) shadow at P5a, seats 3/5/30, USD 10/month, user approves every trade. Only Q1 (tool lists in CLAUDE.md/rules) left for the user. | docs | Medium | Closed |
 | T112 | Tests already failing on main: 5 in `test_candle_builder.py`, 6 in `test_preset.py` (AI fields); plus stray local `test_llm_claude_screener.py` for a removed module. Fix or delete. | `tests/analysis`, `tests/screener` | Medium | Open |

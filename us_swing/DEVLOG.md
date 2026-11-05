@@ -2,6 +2,16 @@
 
 ---
 
+## [20261106] MKT — Market regime, breadth and fear, phase P1 (FO-MKT-001)
+
+- Type: Feature
+- FO(s): FO-MKT-001
+- RN: RN-MKT-0.1.0-20261106
+- Artifacts updated: SRD (MKT-001.001–.012 Implemented), UTCD (28 Pass), TRACE (mkt, desk, gui), Code (market/*, core/desk_steps.py, core/desk_floor.py), Tests (132 across desk, market, GUI desk/Floor), RN, TODO (T109)
+- Decisions: breadth uses today's S&P 500 members (survivorship bias accepted for P1); desk does not download candles yet (stale note shown).
+
+---
+
 ## [20261106] GUI — Market Floor and AI Desk frames, phase P0b (FO-GUI-034)
 
 - Type: Feature
