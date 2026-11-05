@@ -2,6 +2,16 @@
 
 ---
 
+## [20261105] DSK — Desk process shell, phase P0a (FO-DSK-001)
+
+- Type: Feature
+- FO(s): FO-DSK-001
+- RN: RN-DSK-0.1.0-20261105
+- Artifacts updated: Architecture review (DSK + MKT), SRD (DSK-001.001–.020 Implemented), DD, MD, UTCD, TRACE (dsk), Code (core/desk_contract.py, desk/*), Tests (62 Pass), RN
+- Decisions: desk is a separate process that talks to the app only through `desk.db`; Windows tasks not installed yet (user step, TODO T113).
+
+---
+
 ## [20261105] GUI — Update now downloads only stocks behind (ISS-GUI-0018)
 
 - Type: Bugfix
