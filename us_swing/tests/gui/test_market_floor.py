@@ -307,3 +307,52 @@ def test_reload_after_run_ends(qtbot: QtBot, tmp_path: Path) -> None:
     poller.status_changed.emit(DeskStatus(DeskState.SLEEPING))
     assert _CountingData.reads == base + 1
     assert page.panel_cards()
+
+
+def _write_sectors(home: Path) -> None:
+    from us_swing.market.store import MarketStore, SectorRow, StockRsRow
+
+    store = MarketStore(home)
+    sectors, stocks = [], []
+    for day, top in (("2026-11-04", "Energy"), ("2026-11-05", "Technology")):
+        for rank, sector in enumerate((top, "Utilities"), start=1):
+            sectors.append(SectorRow(day, sector, 100.0, 0.02 / rank, 0.03, 0.05, rank,
+                                     101.0 - rank, 100.5, "Leading", 60))
+        stocks += [StockRsRow(day, "NVDA", "Technology", 0.9, 99, 1, 2),
+                   StockRsRow(day, "AAPL", "Technology", 0.5, 70, 2, 2),
+                   StockRsRow(day, "NEE", "Utilities", 0.7, 85, 1, 1)]
+    store.write_sector_days(sectors, stocks)
+    store.close()
+
+
+def test_real_sectors_and_leaders(tmp_path: Path) -> None:
+    """UT-GUI-034.012.M11.T01: latest sector and RS rows, in order, filterable, not sample."""
+    _write_sectors(tmp_path)
+    data = DeskFloorData(SampleFloorData(), tmp_path)
+    products = {p.id: p for p in data.products()}
+    for pid in ("sectors.rank", "sectors.rrg", "rs.leaders"):
+        assert products[pid].sample is False
+        assert "2026-11-05" in products[pid].title
+    assert products["rs.leaders"].filters == {"sector": ("Technology", "Utilities")}
+    ranks = data.rows("sectors.rank", {})
+    assert [(r["rank"], r["sector"]) for r in ranks] == [(1, "Technology"), (2, "Utilities")]
+    assert ranks[0]["rel_1m"] == "+2.0%"
+    assert data.rows("sectors.rrg", {})[0] == {
+        "sector": "Technology", "rs_ratio": "100.0", "rs_momentum": "100.5",
+        "quadrant": "Leading"}
+    leaders = data.rows("rs.leaders", {})
+    assert [r["symbol"] for r in leaders] == ["NVDA", "NEE", "AAPL"]
+    assert leaders[0]["sector_rank"] == "1 of 2"
+    tech = data.rows("rs.leaders", {"sector": "Technology"})
+    assert [r["symbol"] for r in tech] == ["NVDA", "AAPL"]
+
+
+def test_no_sector_data_gives_sample(tmp_path: Path) -> None:
+    """UT-GUI-034.012.M11.T02: with regime only, sector products stay sample; no RS leaders."""
+    _write_market(tmp_path)
+    data = DeskFloorData(SampleFloorData(), tmp_path)
+    products = {p.id: p for p in data.products()}
+    assert products["sectors.rank"].sample is True
+    assert products["sectors.rrg"].sample is True
+    assert "rs.leaders" not in products
+    assert data.rows("sectors.rank", {}) == SampleFloorData().rows("sectors.rank", {})

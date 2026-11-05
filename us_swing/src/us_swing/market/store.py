@@ -1,8 +1,10 @@
 """
 Module: MD-MKT-001.007.M04 — market/store.py
 Parent SRD: SRD-MKT-001.007
+Also: MD-MKT-002.008.M04 — sector and stock RS tables (SRD-MKT-002.008)
 
-Market tables in ``desk.db``: ``regime_snapshot``, ``breadth_daily`` and ``vix_daily``.
+Market tables in ``desk.db``: ``regime_snapshot``, ``breadth_daily``, ``vix_daily``,
+``sector_daily`` and ``stock_rs``.
 """
 from __future__ import annotations
 
@@ -28,6 +30,15 @@ CREATE TABLE IF NOT EXISTS breadth_daily (
     decliners INTEGER
 );
 CREATE TABLE IF NOT EXISTS vix_daily (date TEXT PRIMARY KEY, vix REAL, vix3m REAL);
+CREATE TABLE IF NOT EXISTS sector_daily (
+    date TEXT, sector TEXT, line REAL, rel_1m REAL, rel_3m REAL, rel_6m REAL,
+    rank INTEGER, rs_ratio REAL, rs_momentum REAL, quadrant TEXT, members INTEGER,
+    PRIMARY KEY (date, sector)
+);
+CREATE TABLE IF NOT EXISTS stock_rs (
+    date TEXT, symbol TEXT, sector TEXT, score REAL, rs_rating INTEGER,
+    sector_rank INTEGER, sector_size INTEGER, PRIMARY KEY (date, symbol)
+);
 """
 
 
@@ -64,6 +75,36 @@ class BreadthRow:
     new_lows: int
     advancers: int
     decliners: int
+
+
+@dataclass(frozen=True)
+class SectorRow:
+    """One ``sector_daily`` row."""
+
+    date: str
+    sector: str
+    line: float
+    rel_1m: float | None
+    rel_3m: float | None
+    rel_6m: float | None
+    rank: int | None
+    rs_ratio: float | None
+    rs_momentum: float | None
+    quadrant: str | None
+    members: int
+
+
+@dataclass(frozen=True)
+class StockRsRow:
+    """One ``stock_rs`` row."""
+
+    date: str
+    symbol: str
+    sector: str
+    score: float
+    rs_rating: int
+    sector_rank: int
+    sector_size: int
 
 
 def _clean(value: object) -> object:
@@ -108,6 +149,27 @@ class MarketStore:
         with self._con:
             self._put("regime_snapshot", RegimeRow, [astuple(r) for r in regimes])
             self._put("breadth_daily", BreadthRow, [astuple(r) for r in breadths])
+
+    def stored_sector_dates(self) -> set[str]:
+        """Return every ISO date already in ``sector_daily``."""
+        return {r[0] for r in self._con.execute("SELECT DISTINCT date FROM sector_daily")}
+
+    def write_sector_days(self, sectors: list[SectorRow], stocks: list[StockRsRow]) -> None:
+        """Replace whole days of sector and stock rows in one transaction.
+
+        Raises:
+            ValueError: When a row has no date.
+        """
+        if any(not r.date for r in sectors) or any(not r.date for r in stocks):
+            raise ValueError("sector row without a date")
+        days = sorted({r.date for r in sectors} | {r.date for r in stocks})
+        with self._con:
+            for table in ("sector_daily", "stock_rs"):
+                self._con.executemany(
+                    f"DELETE FROM {table} WHERE date = ?", [(d,) for d in days]  # noqa: S608
+                )
+            self._put("sector_daily", SectorRow, [tuple(vars(r).values()) for r in sectors])
+            self._put("stock_rs", StockRsRow, [tuple(vars(r).values()) for r in stocks])
 
     def _put(self, table: str, kind: type, rows: list[tuple[object, ...]]) -> None:
         names = [f.name for f in fields(kind)]
