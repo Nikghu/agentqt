@@ -66,13 +66,14 @@ class NotificationWorker(QThread):
                 with contextlib.suppress(asyncio.CancelledError):
                     await task
 
-    def publish_event(self, event: object) -> None:
-        """Publish an event from any thread. No-op until the loop is running."""
+    def publish_event(self, event: object) -> bool:
+        """Publish an event from any thread; False (nothing sent) until the loop runs."""
         loop = self._loop
         bus = self._bus
         if loop is None or bus is None:
-            return
+            return False
         loop.call_soon_threadsafe(bus.publish, event)
+        return True
 
     def shutdown(self) -> None:
         """Stop the loop and join the thread."""

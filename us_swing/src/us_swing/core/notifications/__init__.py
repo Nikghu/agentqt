@@ -21,9 +21,12 @@ from us_swing.core.notifications._dto import (
 )
 from us_swing.core.notifications._events import (
     DayEndPnLEvent,
+    MarketQuote,
+    MorningBriefEvent,
     NotificationEvent,
     ScreenerApprovedEvent,
     ToolStartedEvent,
+    TradeLine,
     _InProcessBus,
 )
 from us_swing.core.notifications._formatters import FormatterRegistry, default_registry
@@ -107,6 +110,9 @@ __all__ = [
     "ToolStartedEvent",
     "ScreenerApprovedEvent",
     "DayEndPnLEvent",
+    "MorningBriefEvent",
+    "MarketQuote",
+    "TradeLine",
     # DTOs
     "NotificationMessage",
     "NotificationConfig",

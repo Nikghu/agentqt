@@ -108,5 +108,8 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T96 | GUI — check the new frameless popups in the app (Delete Preset shows the name; Delete Strategy, Disconnect Feed, Restore defaults…). Branch fix/gui-frameless-popups. | `gui/popups.py` | Low | Open |
 | T97 | BKT — with TWS on, click Download missing (about 1,277 3m requests); then check Universe BT From is 2024-01-02 or amber, and rows plus "complete for N of M" update as each stock finishes. Branch fix/bkt-3m-start-floors. | `backtest/downloader.py` | High | Open |
 | T98 | GUI — check Settings → Telegram AI cards in the real app. Claude found status shows; OpenRouter key field is locked because OPENROUTER_API_KEY is set on this PC. Branch feat/telegram-ai-support. | `gui/ai_settings_block.py` | Medium | Open |
-| T99 | INF — Morning brief at premarket open (new FO): needs user picks (contents, quiet hours, OpenRouter may see trades?), uses `ask_ai`; also drop the startup message. AI call itself done (FO-INF-011). | `core/notifications/` | High | Open |
+| T99 | INF — Morning brief + Day-end v2 + no startup message done (FO-INF-012, RN-INF-1.10.0). | `core/notifications/` | High | Done |
 | T100 | GUI — press Test AI in the real app with Claude Code CLI, then with OpenRouter only. Branch feat/telegram-ai-support. | `gui/ai_settings_block.py` | Medium | Open |
+| T101 | INF — check the first real Morning brief (04:00 ET) and Day-end report (16:05 ET) in Telegram. Branch feat/telegram-ai-support. | `gui/morning_brief.py` | High | Open |
+| T102 | INF — `NYSE_HOLIDAYS` is 2026-only with no early-close days; add 2027 before 1 Jan 2027. | `data/market_calendar.py` | High | Open |
+| T103 | TEST — 11 old failures (candle builder, screener preset) and `test_llm_claude_screener.py` imports a removed module. | `tests/analysis`, `tests/screener` | Medium | Open |

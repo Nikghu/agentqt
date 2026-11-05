@@ -291,3 +291,17 @@
 | UT-INF-011.002.M01.T01 | MD-INF-011.001.M01 | Positive | OpenRouter answer is read from chat completions | mock transport returning one choice | `text` = choice content; Bearer key sent | Pass |
 | UT-INF-011.003.M01.T01 | MD-INF-011.001.M01 | Positive | Fallback uses the other provider | default Claude fails; fallback on | provider `openrouter` | Pass |
 | UT-INF-011.003.M01.T02 | MD-INF-011.001.M01 | Negative | No fallback when off | default Claude fails; fallback off | OpenRouter not called; `error` set | Pass |
+| UT-INF-012.002.M01.T01 | MD-INF-012.002.M01 | Positive | Brief due once in pre-market | Thu 07:00 ET, not sent; same day sent | True; False | Pass |
+| UT-INF-012.002.M01.T02 | MD-INF-012.002.M01 | Negative | Brief not due outside pre-market | Sat 07:00 ET; Thu 10:00 ET; Thanksgiving 07:00 ET | False each | Pass |
+| UT-INF-012.002.M01.T03 | MD-INF-012.002.M01 | Positive | Send log survives a restart | save date for user 1; new `SendLog` on same file; bad JSON file | date read back; bad file reads as empty | Pass |
+| UT-INF-012.004.M01.T01 | MD-INF-012.002.M01 | Negative | Number check | comment with only fact numbers; comment with a new number | True; False | Pass |
+| UT-INF-012.005.M01.T01 | MD-INF-012.002.M01 | Positive | Day-end due from 16:05 ET | 16:02 ET; 16:06 ET not sent; 16:06 ET sent | False; True; False | Pass |
+| UT-INF-012.003.M02.T01 | MD-INF-012.003.M02 | Positive | Morning brief text | event with 3 quotes, VIX, 2 trades, signals, screener, AI comment | all parts shown; signed money | Pass |
+| UT-INF-012.003.M02.T02 | MD-INF-012.003.M02 | Edge | Morning brief with no data | empty event | text says each part is not available | Pass |
+| UT-INF-012.005.M02.T01 | MD-INF-012.003.M02 | Positive | Day-end v2 text | trades +120 and −40 | both lines; win rate 50%; best +$120; worst −$40 | Pass |
+| UT-INF-012.003.M03.T01 | MD-INF-012.003.M03 | Positive | Quote from extended-hours bars | fake bars: prev close 100, last 101 | change +1.00% | Pass |
+| UT-INF-012.004.M03.T01 | MD-INF-012.003.M03 | Positive | AI comment kept or dropped | AI on with good comment; AI with new number; AI error; AI off | kept; dropped; dropped; `ask_ai` not called | Pass |
+| UT-INF-012.001.M04.T01 | MD-INF-012.001.M04 | Negative | No startup message | start notifications | no `ToolStartedEvent` published | Pass |
+| UT-INF-012.002.M04.T01 | MD-INF-012.001.M04 | Positive | Brief sent once per day | two ticks in pre-market | one brief job started; send log has today | Pass |
+| UT-INF-012.005.M04.T01 | MD-INF-012.001.M04 | Positive | Day-end uses today's closed trades | closed cycles today and yesterday | only today's trades in the event | Pass |
+| UT-INF-012.006.M04.T01 | MD-INF-012.001.M04 | Positive | Morning brief toggle | untick and Apply; reload | `notify_morning_brief` False; config maps it | Pass |

@@ -1,6 +1,7 @@
 """
 Module: MD-INF-010.001.M01 — core/notifications/_events.py
 Parent SRD: SRD-INF-010.001
+Also: MD-INF-012.003.M02 (SRD-INF-012.003) — MorningBriefEvent, DayEndPnLEvent v2
 
 Frozen ``NotificationEvent`` variants plus an in-process publish/subscribe bus.
 A new notification kind is a new frozen subclass here — nothing in the bus,
@@ -46,13 +47,52 @@ class ScreenerApprovedEvent(NotificationEvent):
 
 
 @dataclass(frozen=True, slots=True)
+class MarketQuote:
+    """Last price and move against the previous close (MD-INF-012.003.M02)."""
+
+    symbol: str
+    last: float
+    change_pct: float
+    as_of: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class TradeLine:
+    """One trade line: P&L in dollars and percent."""
+
+    symbol: str
+    pnl: float
+    pnl_pct: float | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class DayEndPnLEvent(NotificationEvent):
     realized: float = 0.0
     unrealized: float = 0.0
     trade_count: int = 0
+    session_date: str = ""
+    trades: tuple[TradeLine, ...] = ()
 
 
-NotificationEventType = Union[ToolStartedEvent, ScreenerApprovedEvent, DayEndPnLEvent]
+@dataclass(frozen=True, slots=True)
+class MorningBriefEvent(NotificationEvent):
+    """Pre-market brief (SRD-INF-012.003); empty parts mean no data."""
+
+    session_date: str = ""
+    quotes: tuple[MarketQuote, ...] = ()
+    vix: MarketQuote | None = None
+    open_trades: tuple[TradeLine, ...] = ()
+    open_count: int = 0
+    unrealized: float = 0.0
+    signals: tuple[str, ...] = ()
+    screener_time: str = ""
+    screener_top: tuple[str, ...] = ()
+    ai_comment: str = ""
+
+
+NotificationEventType = Union[
+    ToolStartedEvent, ScreenerApprovedEvent, DayEndPnLEvent, MorningBriefEvent
+]
 
 
 # ── In-process bus ───────────────────────────────────────────────────────────

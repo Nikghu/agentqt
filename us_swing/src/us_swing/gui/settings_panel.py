@@ -507,8 +507,8 @@ class _SystemSections(QObject):
         self._tg_chat = QLineEdit(_active.telegram_chat_id)
         self._tg_chat.setFixedWidth(260)
 
-        self._tg_ev_tool = QCheckBox("Tool started")
-        self._tg_ev_tool.setChecked(_active.notify_tool_started)
+        self._tg_ev_brief = QCheckBox("Morning brief")
+        self._tg_ev_brief.setChecked(_active.notify_morning_brief)
         self._tg_ev_screener = QCheckBox("Screener approved")
         self._tg_ev_screener.setChecked(_active.notify_screener_approved)
         self._tg_ev_pnl = QCheckBox("Day-end profit and loss")
@@ -516,7 +516,7 @@ class _SystemSections(QObject):
 
         tg_events = QVBoxLayout()
         tg_events.setSpacing(4)
-        tg_events.addWidget(self._tg_ev_tool)
+        tg_events.addWidget(self._tg_ev_brief)
         tg_events.addWidget(self._tg_ev_screener)
         tg_events.addWidget(self._tg_ev_pnl)
 
@@ -573,7 +573,7 @@ class _SystemSections(QObject):
         telegram_token_store.save(user.user_id, self._tg_token.text().strip())
         user.telegram_enabled = self._tg_enabled.isChecked()
         user.telegram_chat_id = self._tg_chat.text().strip()
-        user.notify_tool_started      = self._tg_ev_tool.isChecked()
+        user.notify_morning_brief     = self._tg_ev_brief.isChecked()
         user.notify_screener_approved = self._tg_ev_screener.isChecked()
         user.notify_day_end_pnl       = self._tg_ev_pnl.isChecked()
         store_ai_settings(self.ai_block.settings(), user)
@@ -607,7 +607,7 @@ class _SystemSections(QObject):
     @property
     def telegram_inputs(self) -> list[QWidget]:
         return [*self.ai_block.inputs, self._tg_enabled, self._tg_token, self._tg_chat,
-                self._tg_ev_tool, self._tg_ev_screener, self._tg_ev_pnl]
+                self._tg_ev_brief, self._tg_ev_screener, self._tg_ev_pnl]
 
     @property
     def theme_inputs(self) -> list[QWidget]:
@@ -635,7 +635,7 @@ class _SystemSections(QObject):
         self._tg_enabled.setChecked(user.telegram_enabled)
         self._tg_token.setText(telegram_token_store.load(user.user_id))
         self._tg_chat.setText(user.telegram_chat_id)
-        self._tg_ev_tool.setChecked(user.notify_tool_started)
+        self._tg_ev_brief.setChecked(user.notify_morning_brief)
         self._tg_ev_screener.setChecked(user.notify_screener_approved)
         self._tg_ev_pnl.setChecked(user.notify_day_end_pnl)
         self.ai_block.load(user_ai_settings(user), _api_key_store.load())

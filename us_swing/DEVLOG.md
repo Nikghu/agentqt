@@ -2,6 +2,16 @@
 
 ---
 
+## [20261105] INF — Daily Telegram briefs (Morning brief, Day-end v2)
+
+- Type: Feature
+- FO(s): FO-INF-012
+- RN: RN-INF-1.10.0-20261105
+- Artifacts updated: FO (INF-012), SRD (INF-012.001–.006, approved by user → Implemented), DD (DD-INF-012.001.D01), MD (MD-INF-012.* 4 rows), UTCD (UT-INF-012.* 14 rows Pass), TRACE (inf), Code (core/notifications/_briefs.py, _events.py, _formatters.py, gui/morning_brief.py, gui/app_service.py, gui/notification_worker.py, settings_panel, user_store, models), Tests
+- Decisions: user picked all four brief parts, send on launch, no quiet hours yet, Day-end v2 now; official previous close from daily bars; send log marked only after the worker takes the message; day-end until midnight ET.
+
+---
+
 ## [20261105] INF — AI notes client, first basic AI call
 
 - Type: Feature
