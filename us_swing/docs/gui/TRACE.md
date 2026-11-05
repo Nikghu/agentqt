@@ -3,7 +3,7 @@
 **Document ID:** TRACE-GUI
 **Version:** 1.16.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-11-05 (AI notes settings FO-GUI-033; RN-GUI-1.59.0-20261105)
+**Last Updated:** 2026-11-06 (Market Floor and AI Desk frames FO-GUI-034; RN-GUI-1.60.0-20261106)
 
 ---
 
@@ -115,6 +115,16 @@
 | FO-GUI-033 | SRD-GUI-033.005 | DD-GUI-033.001.D01 | MD-GUI-033.004.M02, MD-GUI-033.005.M03 | UT-GUI-033.005.M02.T01–T02 (Pass) | `gui/settings_panel.py`, `gui/user_store.py`, `data/models.py` | Implemented | RN-GUI-1.59.0-20261105 |
 | FO-GUI-033 | SRD-GUI-033.006 | DD-GUI-033.001.D01 | MD-GUI-033.001.M01, MD-GUI-033.004.M02 | UT-GUI-033.006.M01.T01, UT-GUI-033.006.M02.T01 (Pass) | `gui/ai_settings_block.py`, `gui/settings_panel.py` | Implemented | RN-GUI-1.59.0-20261105 |
 | FO-GUI-033 | SRD-GUI-033.007 | DD-GUI-033.001.D01 | MD-GUI-033.001.M01 | UT-GUI-033.007.M01.T01–T02 (Pass) | `gui/ai_settings_block.py` | Removed (user, 2026-11-05) | RN-GUI-1.59.1-20261105 |
+| FO-GUI-034 | SRD-GUI-034.001 | DD-GUI-034.001.D01 | MD-GUI-034.001.M01 | UT-GUI-034.001.M01.T01 (Pass) | `gui/main_window.py` | Implemented | RN-GUI-1.60.0-20261106 |
+| FO-GUI-034 | SRD-GUI-034.002 | DD-GUI-034.001.D01 | MD-GUI-034.002.M02 | UT-GUI-034.002.M02.T01 (Pass) | `gui/desk_control.py` | Implemented | RN-GUI-1.60.0-20261106 |
+| FO-GUI-034 | SRD-GUI-034.003 | DD-GUI-034.001.D01 | MD-GUI-034.002.M02, MD-GUI-034.003.M09 | UT-GUI-034.003.M02.T01–T04, UT-GUI-034.003.M09.T01 (Pass) | `gui/desk_control.py`, `core/desk_contract.py` | Implemented | RN-GUI-1.60.0-20261106 |
+| FO-GUI-034 | SRD-GUI-034.004 | DD-GUI-034.001.D01 | MD-GUI-034.004.M04 | UT-GUI-034.004.M04.T01–T03 (Pass) | `gui/market_floor.py`, `gui/floor_feed.py` | Implemented | RN-GUI-1.60.0-20261106 |
+| FO-GUI-034 | SRD-GUI-034.005 | DD-GUI-034.001.D01 | MD-GUI-034.005.M05 | UT-GUI-034.005.M05.T01–T09 (Pass) | `gui/floor_grid_model.py`, `gui/floor_grid.py` | Implemented | RN-GUI-1.60.0-20261106 |
+| FO-GUI-034 | SRD-GUI-034.006 | DD-GUI-034.001.D01 | MD-GUI-034.006.M06 | UT-GUI-034.006.M06.T01–T03 (Pass) | `gui/floor_panel.py`, `gui/floor_dialogs.py` | Implemented | RN-GUI-1.60.0-20261106 |
+| FO-GUI-034 | SRD-GUI-034.007 | DD-GUI-034.001.D01 | MD-GUI-034.006.M06 | UT-GUI-034.007.M06.T01–T02 (Pass) | `gui/floor_panel.py` | Implemented | RN-GUI-1.60.0-20261106 |
+| FO-GUI-034 | SRD-GUI-034.008 | DD-GUI-034.001.D01 | MD-GUI-034.008.M07 | UT-GUI-034.008.M07.T01–T09 (Pass) | `gui/floor_layouts.py` | Implemented | RN-GUI-1.60.0-20261106 |
+| FO-GUI-034 | SRD-GUI-034.009 | DD-GUI-034.001.D01 | MD-GUI-034.009.M08 | UT-GUI-034.009.M08.T01–T02 (Pass) | `gui/ai_desk.py`, `gui/ai_desk_sample.py`, `gui/ai_desk_sections.py`, `gui/ai_desk_sections2.py`, `gui/ai_desk_sections3.py` | Implemented | RN-GUI-1.60.0-20261106 |
+| FO-GUI-034 | SRD-GUI-034.010 | DD-GUI-034.001.D01 | MD-GUI-034.010.M03 | UT-GUI-034.010.M03.T01–T02 (Pass) | `gui/floor_sample.py`, `core/desk_contract.py` | Implemented | RN-GUI-1.60.0-20261106 |
 
 ---
 

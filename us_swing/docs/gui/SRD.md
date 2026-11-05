@@ -660,13 +660,13 @@
 
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
-| SRD-GUI-034.001 | FO-GUI-034 | Must | The sidebar shows Market Floor and AI Desk after Backtest, both as wide pages. | nav click | page | Existing page order unchanged | Approved |
-| SRD-GUI-034.002 | FO-GUI-034 | Must | A desk bar on both pages shows the desk state as a pill, read every 2 seconds off the UI thread. | `desk.db` | pill | One shared poller; never stacks reads | Approved |
-| SRD-GUI-034.003 | FO-GUI-034 | Must | Start launches the desk when it is Off, Stopped or Error; Pause, Resume and Stop send desk commands; each button is enabled only in the states that allow it. | click | command, launch | Start re-reads status first, so it never launches a second desk | Approved |
-| SRD-GUI-034.004 | FO-GUI-034 | Must | Market Floor has five tabs and a foldable AI feed column on the right; the fold choice is kept. | click | layout | Feed shows sample items with Approve and Reject buttons that do nothing yet | Approved |
-| SRD-GUI-034.005 | FO-GUI-034 | Must | Each tab is a 12-column grid of panels; edit mode allows add, move, resize and remove, snapped to the grid without overlap. | mouse | panel places | Outside edit mode panels do not move | Approved |
-| SRD-GUI-034.006 | FO-GUI-034 | Must | Add panel opens a catalog of desk products; panel settings set the view (table, chart, card), filters and link group. | product list | panel | Chart view is a placeholder card in P0b | Approved |
-| SRD-GUI-034.007 | FO-GUI-034 | Must | Clicking a stock in a panel sends it to the other panels in the same link group (A, B or C). | click | linked panels | A panel with no group sends nothing | Approved |
-| SRD-GUI-034.008 | FO-GUI-034 | Must | Layouts are saved by name in `~/.usswing/floor_layouts.json` and the last one opens at start. | layout | JSON file | A broken file falls back to the default layout with a `[Floor]` warning | Approved |
-| SRD-GUI-034.009 | FO-GUI-034 | Must | AI Desk has a section list with Command as home and the ten other sections, each showing its frame. | click | section | — | Approved |
-| SRD-GUI-034.010 | FO-GUI-034 | Must | Panels and sections fed by sample data show a "Sample data" tag; data comes through the `FloorData` interface in `core/desk_contract.py`. | provider | tag | Sample provider is replaced later without GUI changes | Approved |
+| SRD-GUI-034.001 | FO-GUI-034 | Must | The sidebar shows Market Floor and AI Desk after Backtest, both as wide pages. | nav click | page | Existing page order unchanged | Implemented |
+| SRD-GUI-034.002 | FO-GUI-034 | Must | A desk bar on both pages shows the desk state as a pill, read every 2 seconds off the UI thread. | `desk.db` | pill | One shared poller; never stacks reads | Implemented |
+| SRD-GUI-034.003 | FO-GUI-034 | Must | Start launches the desk when it is Off, Stopped or Error; Pause, Resume and Stop send desk commands; each button is enabled only in the states that allow it. | click | command, launch | Start re-reads status first, so it never launches a second desk | Implemented |
+| SRD-GUI-034.004 | FO-GUI-034 | Must | Market Floor has five tabs and a foldable AI feed column on the right; the fold choice is kept. | click | layout | Feed shows sample items with Approve and Reject buttons that do nothing yet | Implemented |
+| SRD-GUI-034.005 | FO-GUI-034 | Must | Each tab is a 12-column grid of panels; edit mode allows add, move, resize and remove, snapped to the grid without overlap. | mouse | panel places | Outside edit mode panels do not move | Implemented |
+| SRD-GUI-034.006 | FO-GUI-034 | Must | Add panel opens a catalog of desk products; panel settings set the view (table, chart, card), filters and link group. | product list | panel | Chart view is a placeholder card in P0b | Implemented |
+| SRD-GUI-034.007 | FO-GUI-034 | Must | Clicking a stock in a panel sends it to the other panels in the same link group (A, B or C). | click | linked panels | A panel with no group sends nothing | Implemented |
+| SRD-GUI-034.008 | FO-GUI-034 | Must | Layouts are saved by name in `~/.usswing/floor_layouts.json` and the last one opens at start. | layout | JSON file | A broken file falls back to the default layout with a `[Floor]` warning | Implemented |
+| SRD-GUI-034.009 | FO-GUI-034 | Must | AI Desk has a section list with Command as home and the ten other sections, each showing its frame. | click | section | — | Implemented |
+| SRD-GUI-034.010 | FO-GUI-034 | Must | Panels and sections fed by sample data show a "Sample data" tag; data comes through the `FloorData` interface in `core/desk_contract.py`. | provider | tag | Sample provider is replaced later without GUI changes | Implemented |
