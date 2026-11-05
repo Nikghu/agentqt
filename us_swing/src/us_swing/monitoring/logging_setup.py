@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import datetime
 import logging
+import re
 import sys
 import time
 import traceback
@@ -160,8 +161,14 @@ def configure_logging(
     )
 
 
+_BOT_TOKEN = re.compile(r"bot\d+:[A-Za-z0-9_-]{20,}")
+
+
 class _ZonedFormatter(logging.Formatter):
-    """Stamps every record in a fixed zone, with the true UTC offset."""
+    """Stamps every record in a fixed zone, with the true UTC offset.
+
+    Telegram bot tokens in the message or a traceback are hidden (ISS-INF-0004).
+    """
 
     def __init__(self, tz: datetime.tzinfo) -> None:
         super().__init__(
@@ -169,6 +176,9 @@ class _ZonedFormatter(logging.Formatter):
             datefmt = _DATEFMT,
         )
         self._tz = tz
+
+    def format(self, record: logging.LogRecord) -> str:
+        return _BOT_TOKEN.sub("bot<hidden>", super().format(record))
 
     def formatTime(
         self, record: logging.LogRecord, datefmt: str | None = None

@@ -850,3 +850,31 @@ The bridge reuses existing `AppService` reads: `/status` → `get_feed_status` +
 `get_market_status`; `/pnl` → `get_account_state`; `/positions` → `get_positions`;
 `/signals` → `get_pending_signals`; `/screener` → `get_latest_screener_results`;
 `/cycles` → `get_recent_closed_cycles` + `get_strategies_with_open_cycles`.
+
+---
+
+## DD-INF-011.001.D01 — AI Notes Client
+
+**Parent SRD:** SRD-INF-011.001 — SRD-INF-011.003
+
+`core/notifications/_ai_client.py`, sync (callers run it off the GUI thread).
+
+- `AiConfig` (frozen): `claude_on`, `claude_model`, `openrouter_on`, `openrouter_model`, `openrouter_key`, `default`, `fallback`. `AiAnswer` (frozen): `text`, `provider` (`"claude"` / `"openrouter"` / `""`), `seconds`, `error`.
+- `ask_ai(config, instruction, facts, timeout_s=90)` builds the order: `[default]`, plus the other provider when `fallback` and both are on. Each step returns text or raises inside; the loop catches, records `"<Provider>: <reason>"`, and tries the next. No provider left → `AiAnswer(error="; ".join(reasons))`.
+- Claude: `shutil.which("claude")`; `Popen([exe, "-p", "--safe-mode", "--tools", "", "--system-prompt-file", <temp file>, "--model", model, "--effort", "low", "--output-format", "json", "--no-session-persistence", "--permission-prompts", "none"])` in an empty temp folder, env without `ANTHROPIC_API_KEY`, `CREATE_NO_WINDOW`; request text = instruction + facts on stdin (the model does not always follow the system prompt alone, probe 2026-11-05). The system prompt goes in a file so `.cmd` shims cannot mangle it. On timeout `taskkill /T /F` kills the process tree. Read JSON `is_error`, `result`, `api_error_status`, `subtype`. `--bare` is not used: it skips the subscription login.
+- Errors: `str(exc)` or the exception type name; OpenRouter adds the `error.message` from the reply to `HTTP <code>`; a reply without `choices` is "unexpected reply".
+- OpenRouter: `httpx.post("https://openrouter.ai/api/v1/chat/completions", json={"model", "messages": [system, user]}, Authorization: Bearer <key>)`; answer is `choices[0].message.content`. The base URL is a constant here because core must not import the screener.
+
+---
+
+## DD-INF-012.001.D01 — Daily Telegram Briefs
+
+**Parent SRD:** SRD-INF-012.001 — SRD-INF-012.006
+
+**Events and text (`_events.py`, `_formatters.py`).** New frozen `MarketQuote(symbol, last, change_pct)` and `TradeLine(symbol, pnl, pnl_pct)`. `MorningBriefEvent(session_date, quotes, vix, open_trades, open_count, unrealized, signals, screener_time, screener_top, ai_comment)`. `DayEndPnLEvent` gains `session_date` and `trades: tuple[TradeLine, ...]` (defaults keep old callers working); `trade_count` becomes the number of trades closed that day. Formatters render a title line, short sections and signed money (`+$412`, `−$40`); a part with no data says so in one line.
+
+**Timing (`_briefs.py`, pure).** `brief_due(now_et, last_sent)` = `get_exchange_status(now_et) == "pre_market"` and `last_sent != now_et.date()`. `day_end_due(now_et, last_sent)` = trading day (`is_trading_day`: market status at 12:00 ET is `open`), time ≥ 16:05 and not sent today, so a launch after 20:00 ET still sends it. `SendLog(path)` reads and writes `{"<user_id>": {"morning_brief": "YYYY-MM-DD", "day_end": "YYYY-MM-DD"}}`; a bad or missing file reads as empty. `brief_facts(event)` is the plain fact text given to the AI; `numbers_ok(comment, facts)` is true when every number in the comment also appears in the facts.
+
+**Building the brief (`gui/morning_brief.py`).** On the GUI thread, `AppService` reads positions, pending signals and the latest screener rows (a read error sends a basic brief), sets `_brief_in_flight`, then starts a daemon thread with plain data. The thread calls `fetch_quotes(("SPY", "QQQ", "IWM", "^VIX"))` (yfinance 5-minute bars with `prepost=True` for the last price, daily bars for the official close of the day before the last bar; a quote whose last bar is not from today is marked `as_of="last close"`: index quotes like that are left out, VIX is shown with the mark), builds the event, and when AI notes are on calls `ask_ai` with a strict instruction and `brief_facts`; the comment is kept only if `numbers_ok`. It then calls the publish callback: `publish_notification` returns False while the worker loop is not running yet, and `SendLog` is marked only on True, so a brief the worker did not take is tried on the next tick. Any fetch error leaves that part empty; the brief is still sent.
+
+**Wiring (`gui/app_service.py`).** `_start_notifications` no longer publishes `ToolStartedEvent`. `_refresh_market_status` (60 s) calls `_maybe_send_morning_brief` and `_maybe_publish_day_end`, both guarded by `SendLog` and a running worker; day-end marks the day only when `publish_notification` returns True. `NotificationWorker.publish_event` now returns whether it queued the event. Day-end reads closed cycles of the active user whose `closed_at` falls in `_today_et_bounds_utc()`. `_build_notification_config` maps `MorningBriefEvent` to `notify_morning_brief` and sends `ToolStartedEvent` always (Send test only). Settings → Telegram: the Tool started tick becomes Morning brief.

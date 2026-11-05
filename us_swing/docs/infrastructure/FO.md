@@ -199,3 +199,36 @@
   - Two users with different bot tokens each receive notifications only in their own chat.
   - Given a configured chat, sending `/pnl` returns the current profit-and-loss summary; sending `/help` returns the list of available commands.
   - A command sent from a chat other than the configured one receives no reply and is logged under `[Notify]`.
+
+---
+
+## FO-INF-011: AI Notes Client
+- **Status:** Approved (user, 2026-11-05)
+
+> Source: proposal page https://claude.ai/artifact/YMqCSCJv4XFXpcmA1xKtrF (Phase 2A), user 2026-11-05: "implement the basic small functionality". Minimal: the AI call only; the Morning brief is a later FO.
+
+- The system shall send a short request to the user's default AI, Claude Code CLI or OpenRouter, and return its answer text.
+- The system shall try the other provider when the default fails and AI Fallback is ticked.
+- The system shall return a plain error text, never raise, when no provider answers.
+- **Acceptance Criteria:**
+  - With Claude Code CLI logged in, a test request returns an answer and the provider name.
+  - With the default failing and fallback on, the answer comes from the other provider.
+  - With both failing, the caller gets an error text naming each failure.
+
+---
+
+## FO-INF-012: Daily Telegram Briefs
+- **Status:** Approved (user, 2026-11-05)
+
+> Source: proposal page https://claude.ai/artifact/YMqCSCJv4XFXpcmA1xKtrF, Option A / Phase 1. User 2026-11-05: "start with A"; picked all four brief parts, send on launch, no quiet hours yet, Day-end v2 included.
+
+- The system shall stop sending a message every time the tool starts.
+- The system shall send a Morning brief once per US trading day during pre-market (04:00–09:30 ET), also when the tool is opened late in that window.
+- The system shall show in the brief the index pre-market move, VIX, open trades, waiting signals and the last screener run, plus a short AI comment when AI notes are on.
+- The system shall send a Day-end report once per US trading day after the close, with one line per trade closed that day, win rate, and best and worst trade.
+- The system shall never send the same brief or report twice in one day, even after a restart.
+- **Acceptance Criteria:**
+  - Opening the tool at 07:00 ET on a trading day sends one Morning brief; opening it again sends nothing.
+  - Opening the tool on a Saturday or after 09:30 ET sends no Morning brief.
+  - With AI notes off or the AI failing, the brief is still sent without the AI comment.
+  - With two trades closed today (+$120, −$40), the Day-end report shows both, win rate 50%, best +$120 and worst −$40.

@@ -5,6 +5,8 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.79.0: SRD-GUI-006.022 added, approved by user 2026-11-05 (chat) — IBKR gap stock listed as failed (ISS-GUI-0017).
+> v2.78.0: FO-GUI-033 AI notes settings, SRD-GUI-033.001–.006 added as Draft 2026-11-05.
 > v2.77.0: SRD-GUI-030.012 added and approved by user 2026-11-04 (chat) — Universe row updates per finished stock.
 > v2.76.0: SRD-GUI-030.011 added and approved by user 2026-11-04 (chat) — Universe marks a late 3m start (ISS-BKT-0002).
 > v2.75.0: SRD-GUI-000.009 added and approved by user 2026-11-03 — frameless confirm and message popups (ISS-GUI-0016).
@@ -196,6 +198,7 @@
 | SRD-GUI-006.019 | FO-GUI-006 | Must | The candle download builds each stock's weekly candles from its stored daily candles instead of requesting weekly bars from IBKR. | Daily candles saved for a symbol (universe or benchmark) | `price_1w` for that symbol replaced: one row per Mon–Fri week, dated on its last trading day | Open = first, high = max, low = min, close = last, volume = sum; a symbol with no daily bars is reported as NO_DATA (ISS-GUI-0003) | Implemented |
 | SRD-GUI-006.020 | FO-GUI-006 | Must | Candle data "Data to", the up-to-date check and the Update now start date use the oldest last daily candle among current index stocks. | `price_1d`, index list, failed list | Oldest last date; Update now on when any stock is behind | Stocks no longer in the index and stocks in the failed list are left out; approved by user 2026-11-03 (ISS-GUI-0014) | Implemented |
 | SRD-GUI-006.021 | FO-GUI-006 | Must | Retry Failed re-downloads only the failed stocks and leaves the saved resume point of an unfinished update unchanged. | Retry Failed click | Failed stocks re-downloaded | Fix-mode run never writes or deletes the checkpoint file; approved by user 2026-11-03 (ISS-GUI-0014) | Implemented |
+| SRD-GUI-006.022 | FO-GUI-006 | Must | A stock whose IBKR daily bars end before the last trading day is listed as failed after the download. | IBKR daily bars | failed list entry "IBKR has no bar for <day>" | Bars received are still saved; Retry Failed asks again; approved by user 2026-11-05 in chat (ISS-GUI-0017) | Implemented |
 | SRD-GUI-006.016 | FO-GUI-010 | Should | **Fix Discrepancies UI.** `_DatabaseTab` adds a "Discrepancies" `QGroupBox` (initially hidden) below the build group. Contents: warning label `"⚠  N symbols have no data:"`, a read-only `QLabel` listing symbols (comma-separated, truncated to 80 chars with "…" if longer), and a `"🔧  Fix Discrepancies"` `QPushButton`. Signal wiring: `svc.candle_symbol_failed` → `_on_symbol_failed(symbol, reason)` increments a live fail counter shown in the progress label suffix `"  (N failed)"`. `svc.candle_download_failures` → `_on_failures_ready(symbols)` shows/hides the discrepancies group and populates it. `_DatabaseTab` calls `_load_persisted_failures()` on init (after status refresh) to show the group immediately if a failures file exists from a prior session. Clicking "Fix Discrepancies" checks IBKR connection (same gate as SRD-GUI-006.012), then calls `svc.start_candle_download(start_date=today, mode="fix", symbols=failed_list)`. On `candle_download_failures([])` (empty list after fix run), the discrepancy group is hidden and the failures file deleted via `svc.clear_failed_symbols()`. | Download finish; app init | Discrepancy group shown/hidden; Fix button triggers targeted re-download | Group hidden during active download; re-shown after completion if failures remain | Approved |
 
 ---
@@ -637,3 +640,15 @@
 | SRD-GUI-032.006 | FO-GUI-032 | Should | Table rows have check boxes; a bar shows "N selected" with Start, Stop and Reset count for the checked strategies. | checked rows | bulk action | Bar hidden when nothing is checked | Implemented |
 | SRD-GUI-032.007 | FO-GUI-032 | Should | Switching views keeps the picked strategy, and the last view is restored on the next start. | view icon | view | Kept in QSettings | Implemented |
 | SRD-GUI-032.008 | FO-GUI-032 | Should | Status pills show the status word only, with no dot. | status | pill | — | Implemented |
+
+## FO-GUI-033 — AI Notes Settings
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-033.001 | FO-GUI-033 | Must | The Telegram page starts with an Enable AI notes tick and two cards, Claude Code CLI and OpenRouter, above the existing fields. | — | AI block | Layout S3 of the proposal page; off by default | Implemented |
+| SRD-GUI-033.002 | FO-GUI-033 | Must | Each card has a Use tick, a Default radio, a model choice and a status line; OpenRouter also has an API key field. | user settings | card fields | Claude models Sonnet 5.5 (default), Haiku 5.5, Opus 5.5; card fields are off when its tick or AI notes is off | Implemented |
+| SRD-GUI-033.003 | FO-GUI-033 | Must | Default can only be a ticked provider, and AI Fallback can only be ticked when both providers are ticked. | ticks | default, fallback | Unticking a provider moves Default to the other and clears Fallback; hint "Tick both providers to use fallback" | Implemented |
+| SRD-GUI-033.004 | FO-GUI-033 | Must | Apply and OK stay disabled while AI notes are on with no provider ticked, or with OpenRouter ticked but no key or model. | AI block | footer buttons, red hint | Hint names what is missing | Implemented |
+| SRD-GUI-033.005 | FO-GUI-033 | Must | AI settings are saved per user on Apply and shown again when Settings opens. | AI block | users.json, OS keychain | The OpenRouter key is the Cloud AI screener key in the OS keychain, never in users.json; a blank field never deletes it | Implemented |
+| SRD-GUI-033.006 | FO-GUI-033 | Should | The Telegram dot shows warn when AI notes are on and the default AI is not ready. | saved settings | dot, status lines | Ready means the claude program is found, or the OpenRouter key and model are set; checked when Settings opens | Implemented |
+| SRD-GUI-033.007 | FO-GUI-033 | Should | Test AI sends a one-line request to the shown settings in a worker thread and shows the answer, provider and time, or the error. | AI block | note line | Button off while running; uses `ask_ai` (SRD-INF-011.003) | Removed (user, 2026-11-05) |

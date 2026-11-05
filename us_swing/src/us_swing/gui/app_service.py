@@ -143,11 +143,21 @@ from us_swing.core.monitoring_session import (
     wire_cycle_ledger_projection,
 )
 from us_swing.core.notifications import (
+    AiConfig,
     DayEndPnLEvent,
+    MorningBriefEvent,
     NotificationConfig,
     ScreenerApprovedEvent,
     ToolStartedEvent,
+    TradeLine,
     load_config,
+)
+from us_swing.core.notifications._briefs import (
+    DAY_END,
+    MORNING_BRIEF,
+    SendLog,
+    brief_due,
+    day_end_due,
 )
 from us_swing.gui import telegram_token_store
 from us_swing.gui.notification_worker import NotificationWorker
@@ -984,6 +994,9 @@ class _CandleDownloadWorker(QThread):
                     inserted_1w += _rebuild_weekly_from_daily(conn, symbol)
                     conn.commit()
                     conn.close()
+                    gap = _missing_last_day(bars_1d, self._end_date)
+                    if gap:
+                        self.symbol_failed.emit(symbol, gap)
 
             except Exception as exc:
                 reason = str(exc) if str(exc) else type(exc).__name__
@@ -1020,6 +1033,15 @@ class _CandleDownloadWorker(QThread):
         else:
             # Stopped by user — checkpoint persists for future resume
             self.finished.emit(inserted_1d, inserted_1w)
+
+
+def _missing_last_day(bars: list[Any], end_date: datetime.date) -> str:
+    """Failure reason when IBKR's daily bars stop before ``end_date`` (SRD-GUI-006.022)."""
+    last = bars[-1].date
+    last_day = last.date() if isinstance(last, datetime.datetime) else last
+    if isinstance(last_day, datetime.date) and last_day < end_date:
+        return f"IBKR has no bar for {end_date.isoformat()}"
+    return ""
 
 
 def _bar_date_str(bar_date: object) -> str:
@@ -1299,7 +1321,8 @@ class AppService(QObject):
         # ── Telegram notifications (FO-INF-010) ──────────────────────────────
         self._notif_worker: NotificationWorker | None = None
         self._cmd_bridge: TelegramCommandBridge | None = None
-        self._day_end_sent_date: datetime.date | None = None
+        self._send_log = SendLog()
+        self._brief_in_flight = False
 
         # ── Market status (NYSE / NASDAQ) — always running, 60 s tick ────────
         self._market_status: dict[str, str] = {"nyse": "closed", "nasdaq": "closed"}
@@ -3819,11 +3842,10 @@ class AppService(QObject):
         elif status != "open" and prev == "open":
             self._stop_live_bar_worker()
 
-        # Day-end P&L: once per trading day, during the after-hours window
-        # (16:00–20:00 ET). after_hours only occurs on real trading days, so
-        # weekends and holidays are excluded automatically.
-        if status == "after_hours":
-            self._maybe_publish_day_end(now_et.date())
+        # Morning brief (pre-market) and Day-end report (from 16:05 ET), once per
+        # trading day each; the sent day is kept on disk (SRD-INF-012.002/.005).
+        self._maybe_send_morning_brief(now_et)
+        self._maybe_publish_day_end(now_et)
 
     # ── Telegram notifications (FO-INF-010) ──────────────────────────────────
 
@@ -3839,43 +3861,38 @@ class AppService(QObject):
                     "chat_id":   user.telegram_chat_id,
                 },
                 "events": {
-                    "ToolStartedEvent":      user.notify_tool_started,
+                    "ToolStartedEvent":      True,
                     "ScreenerApprovedEvent": user.notify_screener_approved,
                     "DayEndPnLEvent":        user.notify_day_end_pnl,
+                    "MorningBriefEvent":     user.notify_morning_brief,
                 },
             }
         })
 
-    def _start_notifications(self, announce: bool = True) -> None:
+    def _start_notifications(self) -> None:
+        """Start the notification worker; tool start sends no message (SRD-INF-012.001)."""
         try:
             from us_swing.gui.telegram_commands import TelegramCommandBridge
             config = self._build_notification_config()
             self._cmd_bridge = TelegramCommandBridge(self)
             worker = NotificationWorker(config, command_port=self._cmd_bridge)
-            if announce:
-                worker.ready.connect(self._on_notifications_ready)
             self._notif_worker = worker
             worker.start()
         except Exception as exc:
             _log.warning("[Notify] Could not start notification service: %r", exc)
 
-    def _on_notifications_ready(self) -> None:
-        from us_swing import __version__
-        self.publish_notification(ToolStartedEvent(app_version=__version__))
-
-    def publish_notification(self, event: object) -> None:
-        """Hand an event to the notification worker (no-op if not running)."""
+    def publish_notification(self, event: object) -> bool:
+        """Hand an event to the notification worker; False when it is not running yet."""
         worker = self._notif_worker
-        if worker is not None:
-            worker.publish_event(event)
+        return worker is not None and worker.publish_event(event)
 
     def reconfigure_notifications(self) -> None:
-        """Rebuild the worker after a settings change; does not re-announce startup."""
+        """Rebuild the worker after a settings change."""
         old = self._notif_worker
         self._notif_worker = None
         if old is not None:
             old.shutdown()
-        self._start_notifications(announce=False)
+        self._start_notifications()
 
     def send_test_notification(self) -> None:
         """Publish a message immediately so the user can confirm delivery works."""
@@ -3895,31 +3912,103 @@ class AppService(QObject):
         if connection is not None:
             connection.close()
 
-    def _maybe_publish_day_end(self, today: datetime.date) -> None:
-        """Send the day-end summary at most once per trading day.
-
-        Skips until the notification worker is running so the summary is never
-        lost during startup; the guard is only marked once a send is attempted.
-        """
-        if self._day_end_sent_date == today:
+    def _maybe_send_morning_brief(self, now_et: datetime.datetime) -> None:
+        """Start the Morning brief once per trading day in pre-market (SRD-INF-012.002)."""
+        uid = self._active_uid
+        if self._brief_in_flight or self._notif_worker is None:
             return
+        if not self.get_active_user().telegram_enabled:
+            return
+        if not brief_due(now_et, self._send_log.last_sent(uid, MORNING_BRIEF)):
+            return
+        try:
+            event = self._brief_base(now_et)
+            ai = self._brief_ai_config()
+        except Exception as exc:
+            _log.warning("[Notify] Could not read app data for the Morning brief: %r", exc)
+            event, ai = MorningBriefEvent(session_date=now_et.strftime("%a %d %b %Y")), None
+        day = now_et.date()
+
+        def _publish(brief: object) -> bool:
+            sent = self.publish_notification(brief)
+            if sent:
+                self._send_log.mark(uid, MORNING_BRIEF, day)
+            self._brief_in_flight = False
+            return sent
+
+        from us_swing.gui.morning_brief import send_brief_async
+        self._brief_in_flight = True
+        send_brief_async(event, ai, _publish)
+
+    def _brief_base(self, now_et: datetime.datetime) -> MorningBriefEvent:
+        """App data for the brief, read on the GUI thread (SRD-INF-012.003)."""
+        positions = self.get_positions(self._active_uid)
+        signals = self.get_pending_signals(self._active_uid)
+        rows = sorted(self.get_latest_screener_results(),
+                      key=lambda r: getattr(r, "score", 0.0) or 0.0, reverse=True)
+        screener_time = f"{rows[0].date} {rows[0].time}".strip() if rows else ""
+        return MorningBriefEvent(
+            session_date=now_et.strftime("%a %d %b %Y"),
+            open_trades=tuple(
+                TradeLine(p.symbol, float(p.unrealised_pnl))
+                for p in sorted(positions, key=lambda p: -abs(float(p.unrealised_pnl)))
+            ),
+            open_count=len(positions),
+            unrealized=sum(float(p.unrealised_pnl) for p in positions),
+            signals=tuple(dict.fromkeys(sig.symbol for sig in signals)),
+            screener_time=screener_time,
+            screener_top=tuple(dict.fromkeys(r.symbol for r in rows))[:5],
+        )
+
+    def _brief_ai_config(self) -> AiConfig | None:
+        """The AI config when the user's AI notes are on, else None (SRD-INF-012.004)."""
+        from us_swing.gui.ai_settings_block import ai_config, user_ai_settings
+        from us_swing.screener.screeners import _api_key_store
+
+        settings = user_ai_settings(self.get_active_user())
+        if not settings.enabled:
+            return None
+        return ai_config(settings, _api_key_store.load())
+
+    def _maybe_publish_day_end(self, now_et: datetime.datetime) -> None:
+        """Send the Day-end report once per trading day from 16:05 ET (SRD-INF-012.005).
+
+        The day is saved only after the worker took the report, so a report that
+        could not be handed over is tried again on the next tick.
+        """
+        uid = self._active_uid
         if self._notif_worker is None:
             return
-        self._day_end_sent_date = today
-        self._publish_day_end_pnl()
+        if not day_end_due(now_et, self._send_log.last_sent(uid, DAY_END)):
+            return
+        if self._publish_day_end_pnl(now_et):
+            self._send_log.mark(uid, DAY_END, now_et.date())
 
-    def _publish_day_end_pnl(self) -> None:
+    def _publish_day_end_pnl(self, now_et: datetime.datetime) -> bool:
+        from us_swing.gui.active_cycles_model import _today_et_bounds_utc
         try:
-            acct       = self.get_account_state(self._active_uid)
-            positions  = self.get_positions(self._active_uid)
+            uid        = self._active_uid
+            positions  = self.get_positions(uid)
             unrealized = sum(float(p.unrealised_pnl) for p in positions)
-            self.publish_notification(DayEndPnLEvent(
-                realized=acct.daily_pnl,
+            closed = (
+                self._tc_query.closed_between(*_today_et_bounds_utc())
+                if self._tc_query is not None else ()
+            )
+            trades = tuple(
+                TradeLine(c.symbol, float(c.realized_pnl_usd), c.realized_pnl_pct)
+                for c in closed
+                if c.user_id == uid and c.realized_pnl_usd is not None
+            )
+            return self.publish_notification(DayEndPnLEvent(
+                realized=sum(t.pnl for t in trades),
                 unrealized=unrealized,
-                trade_count=len(positions),
+                trade_count=len(trades),
+                session_date=now_et.strftime("%a %d %b %Y"),
+                trades=trades,
             ))
         except Exception as exc:
             _log.warning("[Notify] Could not build day-end P&L summary: %r", exc)
+            return False
 
     # ── S&P 500 universe ──────────────────────────────────────────────────────
 

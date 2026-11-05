@@ -8,6 +8,7 @@
 **Project:** US Swing Trading System
 
 > Tests written BEFORE implementation per process.md §7.
+> v1.7.0: UT-INF-005.001.M01.T06 added — bot token hidden in log messages and tracebacks (ISS-INF-0004).
 > v1.4.0: UT-INF-005.001.M01.T05 added — httpx request URLs (Telegram bot token) kept out of the log.
 > v1.3.0: notification-service cases added (MD-INF-010.001.M01–M07).
 > v1.4.0: keychain token store + user-store persistence cases added (MD-INF-010.001.M08).
@@ -118,6 +119,7 @@
 | UT-INF-005.001.M01.T03 | MD-INF-005.001.M01 | Positive | Log timestamps use the configured market timezone | Format a record fixed at 16:35:45 UTC with zone `US/Eastern` | Stamp reads `2026-08-31T12:35:45-0400`, never a bare `Z` | Pass |
 | UT-INF-005.001.M01.T04 | MD-INF-005.001.M01 | Negative | An unusable timezone name falls back to the local zone | Resolve `"Not/AZone"` and `None` | Local zone returned; no exception raised | Pass |
 | UT-INF-005.001.M01.T05 | MD-INF-005.001.M01 | Negative | Request URLs holding the Telegram bot token are not logged | `configure_logging(tmp, "INFO")` | `httpx` logger off at INFO, on at WARNING | Pass |
+| UT-INF-005.001.M01.T06 | MD-INF-005.001.M01 | Negative | A Telegram bot token in a log message or traceback is hidden | ERROR record whose message and exception hold a `bot<id>:<token>` URL | token text absent; `bot<hidden>` twice | Pass |
 | UT-INF-005.001.M02.T01 | MD-INF-005.001.M02 | Unit | `AlertDispatcher.send()` appends to alerts.log | Send WARNING alert | `logs/alerts.log` contains the message | Draft |
 | UT-INF-005.001.M02.T02 | MD-INF-005.001.M02 | Edge | Webhook failure does not crash dispatcher | Configure bad URL; send alert | WARNING logged about webhook failure; no exception propagates | Draft |
 | UT-INF-005.001.M03.T01 | MD-INF-005.001.M03 | Unit | `HealthCheck.report()` returns expected keys | Mock broker connected, DB reachable | Dict has keys: `broker_connected`, `last_update`, `universe_count`, `open_positions`, `db_reachable` | Draft |
@@ -285,3 +287,23 @@
 | UT-INF-010.001.M11.T01 | MD-INF-010.001.M11 | Positive | Bridge structurally satisfies `CommandPort` | `isinstance(bridge, CommandPort)` | `True` | Pass |
 | UT-INF-010.001.M11.T02 | MD-INF-010.001.M11 | Positive | `positions()` formats the open positions from `AppService` | Fake app with two open positions; call `positions()` on the GUI thread | Text names both symbols and the count | Pass |
 | UT-INF-010.001.M11.T03 | MD-INF-010.001.M11 | Edge | `pnl()` reports zero cleanly when there are no positions | Fake app with flat account and no positions | Text shows realized and unrealized P&L without error | Pass |
+
+| UT-INF-011.001.M01.T01 | MD-INF-011.001.M01 | Positive | Claude answer is read from the CLI JSON | fake run returning `{"is_error":false,"result":"OK"}` | `text == "OK"`, provider `claude`; no `ANTHROPIC_API_KEY` in env; instruction in input | Pass |
+| UT-INF-011.001.M01.T02 | MD-INF-011.001.M01 | Negative | CLI error JSON or missing exe becomes an error | `is_error: true`; exe not found | `error` names Claude; no exception | Pass |
+| UT-INF-011.002.M01.T01 | MD-INF-011.001.M01 | Positive | OpenRouter answer is read from chat completions | mock transport returning one choice | `text` = choice content; Bearer key sent | Pass |
+| UT-INF-011.003.M01.T01 | MD-INF-011.001.M01 | Positive | Fallback uses the other provider | default Claude fails; fallback on | provider `openrouter` | Pass |
+| UT-INF-011.003.M01.T02 | MD-INF-011.001.M01 | Negative | No fallback when off | default Claude fails; fallback off | OpenRouter not called; `error` set | Pass |
+| UT-INF-012.002.M01.T01 | MD-INF-012.002.M01 | Positive | Brief due once in pre-market | Thu 07:00 ET, not sent; same day sent | True; False | Pass |
+| UT-INF-012.002.M01.T02 | MD-INF-012.002.M01 | Negative | Brief not due outside pre-market | Sat 07:00 ET; Thu 10:00 ET; Thanksgiving 07:00 ET | False each | Pass |
+| UT-INF-012.002.M01.T03 | MD-INF-012.002.M01 | Positive | Send log survives a restart | save date for user 1; new `SendLog` on same file; bad JSON file | date read back; bad file reads as empty | Pass |
+| UT-INF-012.004.M01.T01 | MD-INF-012.002.M01 | Negative | Number check | comment with only fact numbers; comment with a new number | True; False | Pass |
+| UT-INF-012.005.M01.T01 | MD-INF-012.002.M01 | Positive | Day-end due from 16:05 ET | 16:02 ET; 16:06 ET not sent; 16:06 ET sent | False; True; False | Pass |
+| UT-INF-012.003.M02.T01 | MD-INF-012.003.M02 | Positive | Morning brief text | event with 3 quotes, VIX, 2 trades, signals, screener, AI comment | all parts shown; signed money | Pass |
+| UT-INF-012.003.M02.T02 | MD-INF-012.003.M02 | Edge | Morning brief with no data | empty event | text says each part is not available | Pass |
+| UT-INF-012.005.M02.T01 | MD-INF-012.003.M02 | Positive | Day-end v2 text | trades +120 and −40 | both lines; win rate 50%; best +$120; worst −$40 | Pass |
+| UT-INF-012.003.M03.T01 | MD-INF-012.003.M03 | Positive | Quote from extended-hours bars | fake bars: prev close 100, last 101 | change +1.00% | Pass |
+| UT-INF-012.004.M03.T01 | MD-INF-012.003.M03 | Positive | AI comment kept or dropped | AI on with good comment; AI with new number; AI error; AI off | kept; dropped; dropped; `ask_ai` not called | Pass |
+| UT-INF-012.001.M04.T01 | MD-INF-012.001.M04 | Negative | No startup message | start notifications | no `ToolStartedEvent` published | Pass |
+| UT-INF-012.002.M04.T01 | MD-INF-012.001.M04 | Positive | Brief sent once per day | two ticks in pre-market | one brief job started; send log has today | Pass |
+| UT-INF-012.005.M04.T01 | MD-INF-012.001.M04 | Positive | Day-end uses today's closed trades | closed cycles today and yesterday | only today's trades in the event | Pass |
+| UT-INF-012.006.M04.T01 | MD-INF-012.001.M04 | Positive | Morning brief toggle | untick and Apply; reload | `notify_morning_brief` False; config maps it | Pass |

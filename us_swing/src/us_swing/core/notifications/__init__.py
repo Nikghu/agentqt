@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import httpx
 
+from us_swing.core.notifications._ai_client import AiAnswer, AiConfig, ask_ai, provider_name
 from us_swing.core.notifications._dispatcher import NotificationDispatcher
 from us_swing.core.notifications._dto import (
     NotificationConfig,
@@ -20,9 +21,12 @@ from us_swing.core.notifications._dto import (
 )
 from us_swing.core.notifications._events import (
     DayEndPnLEvent,
+    MarketQuote,
+    MorningBriefEvent,
     NotificationEvent,
     ScreenerApprovedEvent,
     ToolStartedEvent,
+    TradeLine,
     _InProcessBus,
 )
 from us_swing.core.notifications._formatters import FormatterRegistry, default_registry
@@ -106,6 +110,9 @@ __all__ = [
     "ToolStartedEvent",
     "ScreenerApprovedEvent",
     "DayEndPnLEvent",
+    "MorningBriefEvent",
+    "MarketQuote",
+    "TradeLine",
     # DTOs
     "NotificationMessage",
     "NotificationConfig",
@@ -116,6 +123,11 @@ __all__ = [
     # Inbound commands
     "CommandRouter",
     "TelegramPoller",
+    # AI notes
+    "AiConfig",
+    "AiAnswer",
+    "ask_ai",
+    "provider_name",
     # Factory
     "build_default_dispatcher",
     "build_command_poller",

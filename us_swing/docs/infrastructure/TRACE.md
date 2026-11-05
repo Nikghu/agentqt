@@ -1,9 +1,9 @@
 # Traceability Matrix — Infrastructure (INF)
 
 **Document ID:** TRACE-INF
-**Version:** 1.6.0
+**Version:** 1.8.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-11-03 (SRD-INF-009.008 IBKR Adaptive market orders)
+**Last Updated:** 2026-11-05 (FO-INF-011 AI notes client, FO-INF-012 daily briefs)
 
 ---
 
@@ -32,6 +32,9 @@
 | FO-INF-010 | SRD-INF-010.010–011 | DD-INF-010.001.D01 | MD-INF-010.001.M08–M09 | UT-INF-010.001.M08.* | `gui/telegram_token_store.py`, `gui/notification_worker.py` | Implemented | RN-INF-1.3.0-20260709 |
 | FO-INF-010 | SRD-INF-010.009, .012–.015 | DD-INF-010.001.D01 | MD-INF-010.001.M10–M11 | UT-INF-010.001.M10.*, M11.* | `core/notifications/_inbound.py`, `gui/telegram_commands.py` | Implemented | RN-INF-1.4.0-20260709 |
 | FO-INF-010 | SRD-INF-010.006, .010 | DD-INF-010.001.D01 | MD-INF-010.001.M04, M09 | UT-INF-010.001.M04.T07–09, M07.T03, M08.T06–07, M09.T01–03 | `core/notifications/_dispatcher.py`, `gui/app_service.py`, `gui/settings_panel.py`, `gui/user_store.py`, `data/models.py` | Implemented | RN-INF-1.5.0-20260710 |
+| FO-INF-011 | SRD-INF-011.001–003 | DD-INF-011.001.D01 | MD-INF-011.001.M01 | UT-INF-011.001.M01.T01–T02, .002.M01.T01, .003.M01.T01–T02 | `core/notifications/_ai_client.py` | Implemented | RN-INF-1.9.0-20261105 |
+| FO-INF-012 | SRD-INF-012.001–006 | DD-INF-012.001.D01 | MD-INF-012.002.M01, .003.M02, .003.M03, .001.M04 | UT-INF-012.*, UT-INF-010.001.M09.T01–T03 | `core/notifications/_briefs.py`, `_events.py`, `_formatters.py`, `gui/morning_brief.py`, `gui/app_service.py`, `gui/notification_worker.py`, `gui/settings_panel.py`, `gui/user_store.py`, `data/models.py` | Implemented | RN-INF-1.10.0-20261105 |
+| FO-INF-005 | SRD-INF-005.001 | DD-INF-005.001.D01 | MD-INF-005.001.M01 | UT-INF-005.001.M01.T06 | `monitoring/logging_setup.py` | Implemented | RN-INF-1.10.1-20261105 |
 
 ---
 
@@ -56,6 +59,9 @@
 | `data/providers/ibkr_provider.py` | MD-INF-007.001.M01 | SRD-INF-007.001–002 | FO-INF-007 |
 | `data/providers/dummy_provider.py` | MD-INF-007.001.M02 | SRD-INF-007.003, 005 | FO-INF-007 |
 | `core/symbols.py` | MD-INF-007.001.M03 | SRD-INF-007.006 | FO-INF-007 |
+| `core/notifications/_ai_client.py` | MD-INF-011.001.M01 | SRD-INF-011.001 | FO-INF-011 |
+| `core/notifications/_briefs.py` | MD-INF-012.002.M01 | SRD-INF-012.002 | FO-INF-012 |
+| `gui/morning_brief.py` | MD-INF-012.003.M03 | SRD-INF-012.003 | FO-INF-012 |
 | `core/notifications/_events.py` | MD-INF-010.001.M01 | SRD-INF-010.001 | FO-INF-010 |
 | `core/notifications/_protocols.py` | MD-INF-010.001.M02 | SRD-INF-010.002, .014 | FO-INF-010 |
 | `core/notifications/_telegram.py` | MD-INF-010.001.M03 | SRD-INF-010.003 | FO-INF-010 |

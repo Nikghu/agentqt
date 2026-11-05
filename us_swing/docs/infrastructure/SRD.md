@@ -1,16 +1,18 @@
 # Software Requirement Document — Infrastructure (INF)
 
 **Document ID:** SRD-INF
-**Version:** 1.10.0
+**Version:** 1.12.0
 **Traces To:** FO-INF v1.5.0
 **Status:** Draft
-**Last Updated:** 2026-11-03
+**Last Updated:** 2026-11-05
 **Project:** US Swing Trading System
 
 > v1.5.0: Section 9 added — SRD-INF-009.001–.006 (Pluggable Broker Abstraction; Broker_fix.md Phases 1/3/4).
 > v1.6.0: SRD-INF-009.007 added (ISS-INF-0002) — SimBroker fills MARKET orders at an injected live-price provider so paper fills mirror a real broker instead of echoing a caller-supplied reference price.
 > v1.7.0: Section 10 added — SRD-INF-010.001–.009 (Telegram Notification Integration; scalable business-event notification service).
 > v1.8.0: SRD-INF-010.010 (producer emit points) + .011 (bot token in OS keychain) added for the app wiring.
+> v1.12.0: Section 12 added — SRD-INF-012.001–.006 (Daily Telegram Briefs), Draft 2026-11-05.
+> v1.11.0: Section 11 added — SRD-INF-011.001–.003 (AI Notes Client), Draft 2026-11-05.
 > v1.9.0: SRD-INF-010.012–.015 added — inbound two-way Telegram commands (long-poll receiver, chat authorization, 7 read-only command handlers, GUI-thread query adapter); .009 now Implemented.
 
 ---
@@ -174,3 +176,26 @@
 
 ---
 
+
+---
+
+## Section 11: Requirements for FO-INF-011 — AI Notes Client
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-INF-011.001 | FO-INF-011 | Must | `ask_ai(config, instruction, facts)` runs the Claude Code CLI headless and returns its answer text. | AI config, text | `AiAnswer` | No tools, no session saved, empty work folder, no API key in env, no console window; timeout | Implemented |
+| SRD-INF-011.002 | FO-INF-011 | Must | `ask_ai` calls OpenRouter chat completions with the user's key and model when OpenRouter is the provider. | AI config, text | `AiAnswer` | Key passed in by the caller; never logged | Implemented |
+| SRD-INF-011.003 | FO-INF-011 | Must | The default provider is tried first; the other is tried only when fallback is on and both providers are ticked. | AI config | `AiAnswer` | Never raises; all failures go into `AiAnswer.error` | Implemented |
+
+---
+
+## Section 12: Requirements for FO-INF-012 — Daily Telegram Briefs
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-INF-012.001 | FO-INF-012 | Must | Tool start sends no Telegram message; the Settings Send test button still sends one. | app start | — | Send test ignores event toggles | Implemented |
+| SRD-INF-012.002 | FO-INF-012 | Must | A Morning brief is sent once per trading day while the market is in pre-market, including on a late launch. | 60 s market tick | `MorningBriefEvent` | New York time; weekends and NYSE holidays skipped; sent date saved per user in `~/.usswing/notify_state.json` | Implemented |
+| SRD-INF-012.003 | FO-INF-012 | Must | The brief shows SPY, QQQ and IWM pre-market move against the previous close, VIX, open trades with unrealized P&L, waiting signals and the last screener run. | Yahoo quotes, app data | brief text | Yahoo 5-minute bars with extended hours; up to 5 trade lines, 5 signals, 5 screener stocks; a missing part says not available | Implemented |
+| SRD-INF-012.004 | FO-INF-012 | Should | When AI notes are on, the brief ends with a 2–3 line AI comment written from the brief facts. | brief facts | AI comment | Uses `ask_ai`; dropped when the AI fails or uses a number not in the facts | Implemented |
+| SRD-INF-012.005 | FO-INF-012 | Must | A Day-end report is sent once per trading day between 16:05 ET and midnight ET with one line per trade closed that day, win rate, best and worst trade, realized and unrealized P&L. | closed cycles of the ET day, positions | `DayEndPnLEvent` | Up to 10 trade lines; sent date saved like the brief | Implemented |
+| SRD-INF-012.006 | FO-INF-012 | Must | Settings → Telegram shows a Morning brief toggle in place of Tool started. | user settings | `notify_morning_brief` | Default on; saved per user | Implemented |

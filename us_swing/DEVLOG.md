@@ -2,6 +2,66 @@
 
 ---
 
+## [20261105] INF — Telegram bot token hidden in log tracebacks (ISS-INF-0004)
+
+- Type: Bugfix
+- FO(s): FO-INF-005
+- RN: RN-INF-1.10.1-20261105
+- Artifacts updated: Issue (ISS-INF-0004), UTCD (UT-INF-005.001.M01.T06 Pass), TRACE (inf), Code (monitoring/logging_setup.py), Tests
+- Decisions: hide in the formatter so every message and traceback is covered; user to replace the token.
+
+---
+
+## [20261105] GUI — Candle data stuck "1 day behind" by an IBKR gap (ISS-GUI-0017)
+
+- Type: Bugfix
+- FO(s): FO-GUI-006
+- RN: RN-GUI-1.59.2-20261105
+- Artifacts updated: Issue (ISS-GUI-0017), SRD (GUI-006.022, approved by user in chat → Implemented), UTCD (T24 Pass), TRACE (gui), Code (gui/app_service.py), Tests
+- Decisions: IBKR has no 2026-11-04 HLT bar; user picked "list it as failed" over a Yahoo fill or a 99% rule.
+
+---
+
+## [20261105] GUI — Test AI button removed
+
+- Type: Enhancement
+- FO(s): FO-GUI-033
+- RN: RN-GUI-1.59.1-20261105
+- Artifacts updated: SRD (GUI-033.006 text, .007 Removed), DD (gui, inf), UTCD (UT-GUI-033.007.* Removed), TRACE (gui), Code (gui/ai_settings_block.py), Tests
+- Decisions: user asked to remove the button; `ask_ai` stays for the Morning brief.
+
+---
+
+## [20261105] INF — Daily Telegram briefs (Morning brief, Day-end v2)
+
+- Type: Feature
+- FO(s): FO-INF-012
+- RN: RN-INF-1.10.0-20261105
+- Artifacts updated: FO (INF-012), SRD (INF-012.001–.006, approved by user → Implemented), DD (DD-INF-012.001.D01), MD (MD-INF-012.* 4 rows), UTCD (UT-INF-012.* 14 rows Pass), TRACE (inf), Code (core/notifications/_briefs.py, _events.py, _formatters.py, gui/morning_brief.py, gui/app_service.py, gui/notification_worker.py, settings_panel, user_store, models), Tests
+- Decisions: user picked all four brief parts, send on launch, no quiet hours yet, Day-end v2 now; official previous close from daily bars; send log marked only after the worker takes the message; day-end until midnight ET.
+
+---
+
+## [20261105] INF — AI notes client, first basic AI call
+
+- Type: Feature
+- FO(s): FO-INF-011 (+ FO-GUI-033)
+- RN: RN-INF-1.9.0-20261105
+- Artifacts updated: FO (INF-011), SRD (INF-011.001–.003, GUI-033.007; approved by user → Implemented), DD (DD-INF-011.001.D01), MD (MD-INF-011.001.M01), UTCD (UT-INF-011.* 5 rows, UT-GUI-033.007.* 2 rows, Pass), TRACE (inf, gui), Code (core/notifications/_ai_client.py, gui/ai_settings_block.py), Tests
+- Decisions: sync client run off the GUI thread; system prompt via file and instruction also in stdin; taskkill on timeout; daemon thread + QObject relay for Test AI; Morning brief deferred to its own FO.
+
+---
+
+## [20261105] GUI — AI notes settings on the Telegram page
+
+- Type: Feature
+- FO(s): FO-GUI-033
+- RN: RN-GUI-1.59.0-20261105
+- Artifacts updated: SRD (GUI-033.001–.006 new, Implemented), DD (DD-GUI-033.001.D01), MD (MD-GUI-033.001.M01, .004.M02, .005.M03), UTCD (UT-GUI-033.* 11 rows Pass), TRACE (gui), Code (gui/ai_settings_block.py new; gui/settings_panel.py, gui/settings_dialog.py, gui/user_store.py, data/models.py), Tests (test_ai_settings_block.py new; tests/gui/conftest.py, test_settings_dialog.py), TODO (T98, T99), CONTEXT, DEVLOG, RN
+- Decisions: OpenRouter key reuses the Cloud AI keychain store (never in users.json; blank field keeps it); key field locked when OPENROUTER_API_KEY is set; Test AI is a local check only; Apply and OK gated on valid AI settings.
+
+---
+
 ## [20261104] GUI — Universe shows backtest progress per stock
 
 - Type: Enhancement

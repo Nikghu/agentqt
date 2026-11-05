@@ -69,6 +69,21 @@ def test_T05_request_urls_with_the_bot_token_are_not_logged(tmp_path: Path) -> N
     assert logging.getLogger("httpx").isEnabledFor(logging.WARNING)
 
 
+def test_T06_bot_token_hidden_in_message_and_traceback() -> None:
+    """UT-INF-005.001.M01.T06 — a Telegram bot token never reaches the log text."""
+    url = "https://api.telegram.org/bot123456789:FAKE-token-for-tests-0000000000/getUpdates"
+    try:
+        raise RuntimeError(f"Client error '409 Conflict' for url '{url}'")
+    except RuntimeError:
+        record = logging.LogRecord("x", logging.ERROR, __file__, 1, "polling %s", (url,),
+                                   sys.exc_info())
+
+    text = _ZonedFormatter(datetime.timezone.utc).format(record)
+
+    assert "FAKE-token-for-tests" not in text
+    assert text.count("bot<hidden>/getUpdates") == 2
+
+
 def test_T02_excepthook_logs_uncaught_exception(
     tmp_path: Path,
     caplog: pytest.LogCaptureFixture,

@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-11-03 (Session 111)
+**Last Updated:** 2026-11-05 (Session 116)
 
 ---
 
@@ -107,3 +107,11 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T95 | INF — revoke the Telegram bot token in BotFather and paste the new one in Settings; old logs in ~/.usswing/logs hold it (RN-INF-1.8.1). | `monitoring/logging_setup.py` | High | Open |
 | T96 | GUI — check the new frameless popups in the app (Delete Preset shows the name; Delete Strategy, Disconnect Feed, Restore defaults…). Branch fix/gui-frameless-popups. | `gui/popups.py` | Low | Open |
 | T97 | BKT — with TWS on, click Download missing (about 1,277 3m requests); then check Universe BT From is 2024-01-02 or amber, and rows plus "complete for N of M" update as each stock finishes. Branch fix/bkt-3m-start-floors. | `backtest/downloader.py` | High | Open |
+| T98 | GUI — check Settings → Telegram AI cards in the real app. Claude found status shows; OpenRouter key field is locked because OPENROUTER_API_KEY is set on this PC. Branch feat/telegram-ai-support. | `gui/ai_settings_block.py` | Medium | Open |
+| T99 | INF — Morning brief + Day-end v2 + no startup message done (FO-INF-012, RN-INF-1.10.0). | `core/notifications/` | High | Done |
+| T100 | GUI — press Test AI in the real app with Claude Code CLI, then with OpenRouter only. Branch feat/telegram-ai-support. | `gui/ai_settings_block.py` | Medium | Closed (Test AI removed by user) |
+| T101 | INF — check the first real Morning brief (04:00 ET) and Day-end report (16:05 ET) in Telegram. Branch feat/telegram-ai-support. | `gui/morning_brief.py` | High | Open |
+| T102 | INF — `NYSE_HOLIDAYS` is 2026-only with no early-close days; add 2027 before 1 Jan 2027. | `data/market_calendar.py` | High | Open |
+| T103 | TEST — 11 old failures (candle builder, screener preset) and `test_llm_claude_screener.py` imports a removed module. | `tests/analysis`, `tests/screener` | Medium | Open |
+| T104 | GUI — run Update now once; HLT should show as failed (IBKR has no bar for 2026-11-04) and Candle data up to date (ISS-GUI-0017). Then run the full tests (user asked to run later). | `gui/app_service.py` | Medium | Open |
+| T105 | INF — user: new Telegram bot token from BotFather, clean old logs in ~/.usswing/logs (token was logged before ISS-INF-0004), run one app copy (409 Conflict). | `~/.usswing/logs` | High | Open |

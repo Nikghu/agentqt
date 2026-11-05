@@ -168,6 +168,7 @@
 | UT-GUI-006.001.M01.T21 | MD-GUI-006.001.M01 | Negative | Stocks out of the index or in the failed list do not hold the date back | AAA 11-02, OLD 09-01 (not in index), KVUE 10-29 (failed) | `2026-11-02` | Pass |
 | UT-GUI-006.001.M01.T22 | MD-GUI-006.001.M01 | Positive | Status is PARTIAL when one stock is current and the rest are a day behind | 1 of 2 index stocks at last trading day | `status == PARTIAL`, `last_candle_date` = older date | Pass |
 | UT-GUI-006.001.M01.T23 | MD-GUI-006.001.M01 | Negative | Retry Failed run leaves the saved resume point untouched (SRD-GUI-006.021) | Checkpoint file present; fix-mode worker downloads 1 stock | Checkpoint file unchanged | Pass |
+| UT-GUI-006.001.M01.T24 | MD-GUI-006.001.M01 | Negative | IBKR daily bars ending before the last trading day mark the stock failed (SRD-GUI-006.022) | 4 daily bars Mon–Thu; last trading day Fri | failed with "IBKR has no bar for <Fri>"; 4 bars saved | Pass |
 
 ---
 
@@ -991,3 +992,21 @@ Test files:
 | UT-GUI-032.006.M03.T01 | MD-GUI-032.003.M03 | Positive | Bulk Stop | check running and stopped rows; Stop | bar "2 selected"; only the running one is STOPPED; saved once | Pass |
 | UT-GUI-032.006.M03.T02 | MD-GUI-032.003.M03 | Negative | Bulk Start skips disabled and running | check all; Start | only the stopped manual/auto one becomes RUNNING | Pass |
 | UT-GUI-032.007.M03.T01 | MD-GUI-032.003.M03 | Positive | View kept | pick B; Table; new pane with same settings | B still picked and open; new pane opens in Table | Pass |
+
+## FO-GUI-033 — AI Notes Settings
+
+| UT ID | MD | Type | Description | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-033.001.M01.T01 | MD-GUI-033.001.M01 | Positive | Block layout | new block, AI off | AI tick off; both cards' fields disabled; Claude model Sonnet 5.5 | Pass |
+| UT-GUI-033.002.M01.T01 | MD-GUI-033.001.M01 | Positive | Card fields follow ticks | AI on; untick Claude; tick OpenRouter | Claude model disabled; OpenRouter key and model enabled | Pass |
+| UT-GUI-033.002.M01.T02 | MD-GUI-033.001.M01 | Negative | Key from environment | OPENROUTER_API_KEY set; AI on, OpenRouter ticked | key field disabled; model field enabled | Pass |
+| UT-GUI-033.003.M01.T01 | MD-GUI-033.001.M01 | Positive | Fallback needs both | AI on; Claude only; then tick OpenRouter | Fallback disabled with hint; then enabled | Pass |
+| UT-GUI-033.003.M01.T02 | MD-GUI-033.001.M01 | Negative | Unticking clears fallback and moves default | both ticked, default OpenRouter, fallback on; untick OpenRouter | fallback off; default Claude | Pass |
+| UT-GUI-033.004.M01.T01 | MD-GUI-033.001.M01 | Negative | Problem text | AI on, OpenRouter only, no key; AI on, nothing ticked; AI off | "API key" named; "provider" named; empty | Pass |
+| UT-GUI-033.006.M01.T01 | MD-GUI-033.001.M01 | Positive | Default ready | default Claude found / not found; default OpenRouter with key and model / no key | True, False, True, False | Pass |
+| UT-GUI-033.004.M02.T01 | MD-GUI-033.004.M02 | Negative | Apply gated | dialog; AI on, OpenRouter only, no key | Apply and OK disabled; key typed → both enabled | Pass |
+| UT-GUI-033.005.M02.T01 | MD-GUI-033.004.M02 | Positive | Save and load round trip | set both, default OpenRouter, fallback, key; Apply; new panel | same values shown; key in store; users.json has no key | Pass |
+| UT-GUI-033.005.M02.T02 | MD-GUI-033.004.M02 | Negative | Keychain error | key save raises; Apply | user AI settings saved; note names the keychain | Pass |
+| UT-GUI-033.006.M02.T01 | MD-GUI-033.004.M02 | Negative | Dot warns when default not ready | Telegram ready; AI on; default Claude; claude not found | Telegram dot warn | Pass |
+| UT-GUI-033.007.M01.T01 | MD-GUI-033.001.M01 | Positive | Test AI shows the answer | fake `ask_ai` returning OK from Claude | note names Claude Code CLI and the time; button on again | Removed (user, 2026-11-05) |
+| UT-GUI-033.007.M01.T02 | MD-GUI-033.001.M01 | Negative | Test AI shows the error | fake `ask_ai` returning an error | note shows the error | Removed (user, 2026-11-05) |

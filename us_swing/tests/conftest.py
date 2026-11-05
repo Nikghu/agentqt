@@ -22,3 +22,5 @@ def _private_users_file(
     folder = tmp_path_factory.mktemp("usswing")
     monkeypatch.setattr(user_store, "_APP_DIR", folder)
     monkeypatch.setattr(user_store, "_STORE_FILE", folder / "users.json")
+    from us_swing.core.notifications import _briefs
+    monkeypatch.setattr(_briefs, "SEND_LOG_PATH", folder / "notify_state.json")

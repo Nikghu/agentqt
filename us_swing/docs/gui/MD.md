@@ -381,3 +381,11 @@ us_swing/src/us_swing/gui/
 | MD-GUI-032.001.M01 | SRD-GUI-032.001 | `us_swing/src/us_swing/gui/execution_panel.py` | Tab order Strategies, Active trades, Closed today; Strategies tools in the tab bar row | `_TAB_NAMES`, `_build_bottom_tabs()` | `strategies_pane` | No |
 | MD-GUI-032.002.M02 | SRD-GUI-032.003 | `us_swing/src/us_swing/gui/strategies_views.py` | Row data, grouped list and table with inline detail row | `StrategyRow`, `strategy_rows()`, `group_of()`, `GroupedList`, `StrategyTable` | `execution_watchlist._GroupRow`, `theme` | No |
 | MD-GUI-032.003.M03 | SRD-GUI-032.002 | `us_swing/src/us_swing/gui/strategies_pane.py` | Header tools, view switch kept in QSettings, detail placement, bulk Start / Stop / Reset count | `StrategiesPane`, `tools`, `set_view()`, `strategy_count` | `strategies_views`, AppService | No |
+
+## FO-GUI-033 — AI Notes Settings
+
+| MD ID | SRD | File | Purpose | Public API | Depends on | Async |
+|---|---|---|---|---|---|---|
+| MD-GUI-033.001.M01 | SRD-GUI-033.001 | `us_swing/src/us_swing/gui/ai_settings_block.py` | Enable AI notes tick, Claude and OpenRouter cards, fallback, validity and readiness rules | `AiSettingsBlock`, `AiSettings`, `ai_problem()`, `ai_ready()`, `claude_found()` | `screener._cloud_ai_models`, `theme` | No |
+| MD-GUI-033.004.M02 | SRD-GUI-033.004 | `us_swing/src/us_swing/gui/settings_panel.py`, `gui/settings_dialog.py` | AI block on the Telegram page, save and load, dot, Apply and OK gate | `SettingsPanel.valid_changed`, `is_valid`, `telegram_state()` | `ai_settings_block`, `screener._api_key_store` | No |
+| MD-GUI-033.005.M03 | SRD-GUI-033.005 | `us_swing/src/us_swing/data/models.py`, `gui/user_store.py` | Per-user AI fields with defaults | `UserProfile.ai_*` | — | No |
