@@ -71,6 +71,7 @@ class StepContext:
     run_id: int
     kind: str
     started_at: datetime
+    home: Path | None = None
 
 
 class DeskStep(Protocol):

@@ -1,0 +1,137 @@
+"""
+Module: MD-MKT-001.007.M04 — market/store.py
+Parent SRD: SRD-MKT-001.007
+
+Market tables in ``desk.db``: ``regime_snapshot``, ``breadth_daily`` and ``vix_daily``.
+"""
+from __future__ import annotations
+
+import math
+import sqlite3
+from dataclasses import astuple, dataclass, fields
+from datetime import date
+from pathlib import Path
+
+import pandas as pd
+
+from us_swing.core.desk_contract import DB_NAME
+
+_SCHEMA = """
+CREATE TABLE IF NOT EXISTS regime_snapshot (
+    date TEXT PRIMARY KEY, regime TEXT, volatility TEXT, vol20 REAL, vol_pct REAL,
+    spy_close REAL, sma50 REAL, sma200 REAL, vix REAL, vix3m REAL,
+    fear TEXT, fear_score INTEGER, note TEXT, created_at TEXT
+);
+CREATE TABLE IF NOT EXISTS breadth_daily (
+    date TEXT PRIMARY KEY, members INTEGER, pct_above_20 REAL, pct_above_50 REAL,
+    pct_above_200 REAL, new_highs INTEGER, new_lows INTEGER, advancers INTEGER,
+    decliners INTEGER
+);
+CREATE TABLE IF NOT EXISTS vix_daily (date TEXT PRIMARY KEY, vix REAL, vix3m REAL);
+"""
+
+
+@dataclass(frozen=True)
+class RegimeRow:
+    """One ``regime_snapshot`` row."""
+
+    date: str
+    regime: str
+    volatility: str
+    vol20: float
+    vol_pct: float
+    spy_close: float
+    sma50: float
+    sma200: float
+    vix: float | None
+    vix3m: float | None
+    fear: str
+    fear_score: int
+    note: str
+    created_at: str
+
+
+@dataclass(frozen=True)
+class BreadthRow:
+    """One ``breadth_daily`` row."""
+
+    date: str
+    members: int
+    pct_above_20: float | None
+    pct_above_50: float | None
+    pct_above_200: float | None
+    new_highs: int
+    new_lows: int
+    advancers: int
+    decliners: int
+
+
+def _clean(value: object) -> object:
+    return None if isinstance(value, float) and math.isnan(value) else value
+
+
+class MarketStore:
+    """Read and write the market tables beside the desk tables."""
+
+    def __init__(self, home: Path) -> None:
+        """Open ``desk.db`` in ``home`` and create the market tables when missing."""
+        home.mkdir(parents=True, exist_ok=True)
+        self._con = sqlite3.connect(home / DB_NAME, timeout=5)
+        self._con.execute("PRAGMA journal_mode=WAL")
+        self._con.execute("PRAGMA busy_timeout=5000")
+        with self._con:
+            self._con.executescript(_SCHEMA)
+
+    def close(self) -> None:
+        """Close the connection."""
+        self._con.close()
+
+    def last_date(self, table: str) -> date | None:
+        """Return the newest date in ``regime_snapshot``, ``breadth_daily`` or ``vix_daily``."""
+        if table not in {"regime_snapshot", "breadth_daily", "vix_daily"}:
+            raise ValueError(f"unknown table {table}")
+        row = self._con.execute(f"SELECT MAX(date) FROM {table}").fetchone()  # noqa: S608
+        return date.fromisoformat(row[0]) if row and row[0] else None
+
+    def stored_dates(self) -> set[str]:
+        """Return every ISO date already in ``regime_snapshot``."""
+        return {r[0] for r in self._con.execute("SELECT date FROM regime_snapshot")}
+
+    def write_days(self, regimes: list[RegimeRow], breadths: list[BreadthRow]) -> None:
+        """Insert or replace whole days in one transaction.
+
+        Raises:
+            ValueError: When a row has no date.
+        """
+        if any(not r.date for r in regimes) or any(not r.date for r in breadths):
+            raise ValueError("market row without a date")
+        with self._con:
+            self._put("regime_snapshot", RegimeRow, [astuple(r) for r in regimes])
+            self._put("breadth_daily", BreadthRow, [astuple(r) for r in breadths])
+
+    def _put(self, table: str, kind: type, rows: list[tuple[object, ...]]) -> None:
+        names = [f.name for f in fields(kind)]
+        sql = (f"INSERT OR REPLACE INTO {table} ({', '.join(names)}) "  # noqa: S608
+               f"VALUES ({', '.join('?' * len(names))})")
+        self._con.executemany(sql, [tuple(_clean(v) for v in r) for r in rows])
+
+    def write_vix(self, frame: pd.DataFrame) -> int:
+        """Store VIX rows (index = date, columns ``vix``, ``vix3m``); return how many."""
+        vix: list[float] = frame["vix"].astype(float).tolist()
+        vix3m: list[float] = frame["vix3m"].astype(float).tolist()
+        rows = [
+            (ts.date().isoformat(), _clean(a), _clean(b))
+            for ts, a, b in zip(pd.DatetimeIndex(frame.index), vix, vix3m, strict=True)
+        ]
+        with self._con:
+            self._con.executemany(
+                "INSERT OR REPLACE INTO vix_daily (date, vix, vix3m) VALUES (?, ?, ?)", rows
+            )
+        return len(rows)
+
+    def vix_by_date(self) -> dict[str, tuple[float | None, float | None]]:
+        """Return stored VIX and VIX3M by ISO date."""
+        return {
+            r[0]: (r[1], r[2])
+            for r in self._con.execute("SELECT date, vix, vix3m FROM vix_daily")
+        }

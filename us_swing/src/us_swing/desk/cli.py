@@ -18,6 +18,7 @@ from us_swing.core.desk_contract import (
     read_status,
     send_command,
 )
+from us_swing.core.desk_steps import load_steps
 from us_swing.desk import task
 from us_swing.desk.process import DeskProcess
 
@@ -52,7 +53,9 @@ def main(argv: list[str], home: Path | None = None) -> int:
     """Run a desk sub-command and return the exit code."""
     home = home or desk_home()
     if not argv or argv == ["--resume"]:
-        return DeskProcess(home, resume=bool(argv), daily_check=_sync_task).run()
+        return DeskProcess(
+            home, load_steps(), resume=bool(argv), daily_check=_sync_task
+        ).run()
     name = argv[0]
     if name == "status":
         status = read_status(home)

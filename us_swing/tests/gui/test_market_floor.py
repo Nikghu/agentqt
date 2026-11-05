@@ -3,12 +3,15 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Sequence
 from pathlib import Path
 
 import pytest
 from PyQt6.QtWidgets import QLabel
 from pytestqt.qtbot import QtBot
 
+from us_swing.core.desk_contract import DeskState, DeskStatus, ProductDescriptor
+from us_swing.core.desk_floor import DeskFloorData
 from us_swing.gui import main_window
 from us_swing.gui.desk_control import DeskPoller
 from us_swing.gui.floor_layouts import LayoutStore, default_layout
@@ -223,3 +226,84 @@ def test_edit_button_text(qtbot: QtBot, tmp_path: Path) -> None:
     assert page.edit_btn.text() == "Done"
     page.edit_btn.setChecked(False)
     assert page.edit_btn.text() == "Edit"
+
+
+def _write_market(home: Path) -> None:
+    from us_swing.market.store import BreadthRow, MarketStore, RegimeRow
+
+    store = MarketStore(home)
+    regimes = [
+        RegimeRow(day, regime, "Calm", 10.0, 0.2, 500.0, 490.0, 480.0, 14.0, 16.0,
+                  "Low fear", 20, "n", "2026-11-05T00:00:00")
+        for day, regime in (("2026-11-03", "Downtrend"), ("2026-11-04", "Uptrend"))
+    ]
+    breadths = [
+        BreadthRow(day, 500, 60.0, 55.0, 50.0, 10, 5, 300, 200)
+        for day in ("2026-11-03", "2026-11-04")
+    ]
+    store.write_days(regimes, breadths)
+    store.close()
+
+
+def _tags(page: MarketFloorWorkspace, title: str) -> list[bool]:
+    out = []
+    for panel in page.panel_cards():
+        texts = [lbl.text() for lbl in panel.findChildren(QLabel)]
+        if title in texts:
+            out.append(SAMPLE_TAG in texts)
+    return out
+
+
+def test_real_regime_and_breadth(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-034.011.M10.T01: real regime and breadth rows lose the Sample tag."""
+    _write_market(tmp_path)
+    data = DeskFloorData(SampleFloorData(), tmp_path)
+    regime = next(p for p in data.products() if p.id == "regime.today")
+    assert regime.sample is False
+    row = data.rows("regime.today", {})[0]
+    assert row["regime"] == "Uptrend" and row["data_date"] == "2026-11-04"
+    page = MarketFloorWorkspace(DeskPoller(tmp_path), data, LayoutStore(tmp_path / "l.json"))
+    qtbot.addWidget(page)
+    titles = {p.id: p.title for p in data.products()}
+    for pid in ("regime.today", "breadth.daily"):
+        tags = _tags(page, titles[pid])
+        assert tags and not any(tags)
+    other = next(p for p in data.products() if p.sample)
+    assert other.title in {t for p in page.panel_cards() for t in
+                           (lbl.text() for lbl in p.findChildren(QLabel))}
+    assert all(_tags(page, other.title))
+    assert any(SAMPLE_TAG in [lbl.text() for lbl in c.findChildren(QLabel)]
+               for c in page.panel_cards())
+
+
+def test_no_desk_db_gives_sample(tmp_path: Path) -> None:
+    """UT-GUI-034.011.M10.T02: with no desk.db the sample regime row is shown."""
+    data = DeskFloorData(SampleFloorData(), tmp_path)
+    regime = next(p for p in data.products() if p.id == "regime.today")
+    assert regime.sample is True
+    assert data.rows("regime.today", {}) == SampleFloorData().rows("regime.today", {})
+
+
+class _CountingData(DeskFloorData):
+    reads = 0
+
+    def products(self) -> Sequence[ProductDescriptor]:
+        type(self).reads += 1
+        return super().products()
+
+
+def test_reload_after_run_ends(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-034.011.M10.T03: panels reload once when a Running desk stops running."""
+    _CountingData.reads = 0
+    data = _CountingData(SampleFloorData(), tmp_path)
+    poller = DeskPoller(tmp_path)
+    page = MarketFloorWorkspace(poller, data, LayoutStore(tmp_path / "l.json"))
+    qtbot.addWidget(page)
+    base = _CountingData.reads
+    poller.status_changed.emit(DeskStatus(DeskState.RUNNING))
+    assert _CountingData.reads == base
+    poller.status_changed.emit(DeskStatus(DeskState.SLEEPING))
+    assert _CountingData.reads == base + 1
+    poller.status_changed.emit(DeskStatus(DeskState.SLEEPING))
+    assert _CountingData.reads == base + 1
+    assert page.panel_cards()

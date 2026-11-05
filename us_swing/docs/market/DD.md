@@ -30,9 +30,11 @@ regime         = Uptrend   if close > sma50 and close > sma200 and sma50 > sma50
 vol20          = std(log returns, 20) * sqrt(252)
 vol_pct        = percent rank of vol20 within the past 252 values
 volatility     = Calm if vol_pct < 30, High if vol_pct > 70, else Normal
-breadth        = pct_above_20/50/200 (members with >= n bars), new_highs (close >= max high of
-                 past 252 days incl. today), new_lows (close <= min low ...), advancers (close >
+breadth        = pct_above_20/50/200 (members with >= n bars), new_highs (today's high is the highest
+                 high of the past 252 days incl. today), new_lows (today's low is the lowest low), advancers (close >
                  prev close), decliners (close < prev close)
+gaps           = a member needs 95% of the days in each window (one missing day must not
+                 drop it from the 200-day or 52-week measures)
 fear points    = VIX >= 30: 2 | VIX >= 20: 1 | else 0
                + 2 if VIX > VIX3M (fear curve inverted)
                + 1 if volatility == High
@@ -53,6 +55,8 @@ vix_daily(date TEXT PRIMARY KEY, vix REAL, vix3m REAL)
 ```
 
 **Step** (`market/step.py`, `RegimeStep`, name "Market regime"): open stores → fetch missing VIX days (from the last stored day, or 2023-01-01) → read bars → compute every candle date after the last stored date that has 210 SPY bars → skip days below 80% member coverage → write rows → log. The step opens `desk.db` itself from `StepContext.home`; it runs inside the desk process, so the desk stays the only writer.
+
+**After code review.** Members are aligned to SPY's trading days before breadth, so a stray date row cannot spoil the windows. Every run recomputes the last 7 days (and any earlier day not stored), so a day saved from a partial candle download or before Yahoo published VIX is corrected on the next run; VIX is re-fetched from 7 days before the last stored day. Coverage counts against the full S&P 500 list. A missing `candles.db` or missing SPY logs a warning and the step adds nothing instead of failing the desk run.
 
 **Registration.** `core/desk_steps.py` holds `STEP_PATHS = ("us_swing.market.step:RegimeStep",)` and `load_steps()` (importlib). The desk CLI passes `load_steps()` to `DeskProcess` (SRD-DSK-001.021), so `desk` never imports `market`.
 

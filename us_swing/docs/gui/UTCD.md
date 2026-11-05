@@ -1057,6 +1057,6 @@ Test files:
 | UT-GUI-034.010.M03.T01 | MD-GUI-034.010.M03 | Positive | Sample tag shown | sample provider | every panel and section shows Sample data | Pass |
 | UT-GUI-034.009.M08.T02 | MD-GUI-034.009.M08 | Positive | Seats within caps | sample org | experts 3 of 3, champions 3 of 5, juniors 18 of 30 | Pass |
 | UT-GUI-034.010.M03.T02 | MD-GUI-034.010.M03 | Positive | Every AI Desk section tagged | build all 11 sections | each shows one Sample data tag | Pass |
-| UT-GUI-034.011.M10.T01 | MD-GUI-034.011.M10 | Positive | Real regime and breadth | desk.db with 2 days | latest day rows; product sample False; data date shown | Not Run |
-| UT-GUI-034.011.M10.T02 | MD-GUI-034.011.M10 | Negative | No desk data yet | no desk.db | sample rows with Sample tag | Not Run |
-| UT-GUI-034.011.M10.T03 | MD-GUI-034.011.M10 | Positive | Refresh after a run | status Running then Sleeping | panels reload once | Not Run |
+| UT-GUI-034.011.M10.T01 | MD-GUI-034.011.M10 | Positive | Real regime and breadth | desk.db with 2 days | latest day rows; product sample False; data date shown | Pass |
+| UT-GUI-034.011.M10.T02 | MD-GUI-034.011.M10 | Negative | No desk data yet | no desk.db | sample rows with Sample tag | Pass |
+| UT-GUI-034.011.M10.T03 | MD-GUI-034.011.M10 | Positive | Refresh after a run | status Running then Sleeping | panels reload once | Pass |

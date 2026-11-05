@@ -237,7 +237,7 @@ class DeskProcess:
         run_id = self._db.start_run(kind, start)
         log.info("[Desk] Run %d started (%s)", run_id, kind)
         with self._beating():
-            result, message = self._run_steps(StepContext(run_id, kind, start))
+            result, message = self._run_steps(StepContext(run_id, kind, start, self._home))
         self._db.end_run(run_id, result, self._clock(), message)
         if result == "failed":
             failed_state = DeskState.PAUSED if self._pause_after_run else DeskState.ERROR
