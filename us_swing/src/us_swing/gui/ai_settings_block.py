@@ -3,18 +3,16 @@ Module: MD-GUI-033.001.M01 — AI Notes Settings Block
 Parent SRD: SRD-GUI-033.001
 
 Top block of Settings → Telegram: an Enable AI notes tick and two provider cards,
-Claude Code CLI and OpenRouter, with Default, model, AI Fallback and a Test AI check.
-Test AI sends one short request through the AI notes client (SRD-GUI-033.007).
+Claude Code CLI and OpenRouter, with Default, model and AI Fallback.
 """
 from __future__ import annotations
 
 import os
 import shutil
-import threading
 from dataclasses import dataclass
 from typing import Any
 
-from PyQt6.QtCore import QObject, Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QButtonGroup,
     QCheckBox,
@@ -23,14 +21,12 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
-    QPushButton,
     QRadioButton,
     QVBoxLayout,
     QWidget,
 )
 
-from us_swing.core.notifications import AiAnswer, AiConfig, ask_ai, provider_name
-from us_swing.gui.icons import set_icon
+from us_swing.core.notifications import AiConfig
 from us_swing.gui.theme import C
 from us_swing.screener.screeners._cloud_ai_models import ALL_MODEL_PRESETS, ENV_API_KEY
 
@@ -41,8 +37,6 @@ CLAUDE_MODELS: tuple[tuple[str, str], ...] = (
 )
 FALLBACK_HINT = "Tick both providers to use fallback"
 _CARD_W = 270
-_TEST_INSTRUCTION = "Reply with the single word OK and nothing else."
-_TEST_TIMEOUT_S = 60.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -118,20 +112,6 @@ def ai_config(settings: AiSettings, key: str) -> AiConfig:
     )
 
 
-class _AiTestRelay(QObject):
-    """Carries a Test AI answer from the worker thread back to the GUI thread."""
-
-    answered = pyqtSignal(object)
-
-
-def _run_test(relay: _AiTestRelay, config: AiConfig) -> None:
-    answer = ask_ai(config, _TEST_INSTRUCTION, "Connection test", _TEST_TIMEOUT_S)
-    try:
-        relay.answered.emit(answer)
-    except RuntimeError:
-        pass
-
-
 def _card(*items: QWidget) -> QFrame:
     card = QFrame()
     card.setObjectName("settings_card")
@@ -154,9 +134,6 @@ class AiSettingsBlock(QWidget):
         self._claude_ok = claude_found()
         self._valid = True
         self._syncing = False
-        self._testing = False
-        self._relay = _AiTestRelay(self)
-        self._relay.answered.connect(self._on_test_done)
 
         self._enabled = QCheckBox("Enable AI notes")
 
@@ -196,13 +173,6 @@ class AiSettingsBlock(QWidget):
         self._fallback.setToolTip("Use the other provider when the default AI fails")
         self._hint = QLabel(FALLBACK_HINT)
         self._hint.setStyleSheet(f"color: {C.SUBTEXT}; font-size: 9pt;")
-        self._test = QPushButton("Test AI")
-        set_icon(self._test, "zap", "info")
-        self._test.setFixedWidth(120)
-        self._test.clicked.connect(self._on_test)
-        self._note = QLabel("")
-        self._note.setWordWrap(True)
-        self._note.setStyleSheet(f"color: {C.SUBTEXT}; font-size: 9pt;")
         self._problem = QLabel("")
         self._problem.setStyleSheet(f"color: {C.RED}; font-size: 9pt;")
 
@@ -214,11 +184,6 @@ class AiSettingsBlock(QWidget):
                               self._or_status))
         cards.addStretch()
 
-        test_row = QHBoxLayout()
-        test_row.addWidget(self._test)
-        test_row.addWidget(self._note)
-        test_row.addStretch()
-
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
@@ -226,7 +191,6 @@ class AiSettingsBlock(QWidget):
         layout.addLayout(cards)
         layout.addWidget(self._fallback)
         layout.addWidget(self._hint)
-        layout.addLayout(test_row)
         layout.addWidget(self._problem)
 
         for box in (self._enabled, self._claude_on, self._or_on, self._claude_default,
@@ -276,34 +240,8 @@ class AiSettingsBlock(QWidget):
         default = self._or_default if settings.default == "openrouter" else self._claude_default
         default.setChecked(True)
         self._fallback.setChecked(settings.fallback)
-        self._note.setText("")
         self._syncing = False
         self._sync()
-
-    def _on_test(self) -> None:
-        self._claude_ok = claude_found()
-        self._sync()
-        if not self._valid:
-            self._note.setText("Fix the settings first")
-            return
-        self._testing = True
-        self._test.setEnabled(False)
-        self._note.setText("Asking the AI…")
-        threading.Thread(
-            target=_run_test, args=(self._relay, ai_config(self.settings(), self.key)),
-            name="ai-test", daemon=True,
-        ).start()
-
-    def _on_test_done(self, answer: AiAnswer) -> None:
-        self._testing = False
-        self._test.setEnabled(self._enabled.isChecked())
-        if answer.error:
-            self._note.setText(f"No answer: {answer.error}")
-            return
-        reply = " ".join(answer.text.split())[:40]
-        self._note.setText(
-            f"{provider_name(answer.provider)} answered in {answer.seconds:.1f} s: {reply}"
-        )
 
     def _sync(self) -> None:
         """Apply the enable, default and fallback rules, then refresh status lines."""
@@ -322,7 +260,7 @@ class AiSettingsBlock(QWidget):
 
         on = self._enabled.isChecked()
         for widget, state in (
-            (self._claude_on, on), (self._or_on, on), (self._test, on and not self._testing),
+            (self._claude_on, on), (self._or_on, on),
             (self._claude_default, on and claude), (self._claude_model, on and claude),
             (self._or_default, on and router), (self._or_key, on and router and not self.key_locked),
             (self._or_model, on and router), (self._fallback, on and both),

@@ -291,25 +291,3 @@ def test_env_key_locks_field(qtbot: Any, monkeypatch: pytest.MonkeyPatch) -> Non
 
     assert block.key_locked
     assert not block._or_key.isEnabled() and block._or_model.isEnabled()
-
-
-@pytest.mark.parametrize(
-    ("answer", "words"),
-    [
-        (asb.AiAnswer(text="OK", provider="claude", seconds=2.4),
-         ("Claude Code CLI", "2.4 s", "OK")),
-        (asb.AiAnswer(error="Claude Code CLI: Not logged in"), ("No answer", "Not logged in")),
-    ],
-)
-def test_test_ai_shows_result(
-    qtbot: Any, block: AiSettingsBlock, monkeypatch: pytest.MonkeyPatch,
-    answer: asb.AiAnswer, words: tuple[str, ...],
-) -> None:
-    """UT-GUI-033.007.M01.T01/T02: Test AI shows the answer or the error; button on again."""
-    monkeypatch.setattr(asb, "ask_ai", lambda *_a: answer)
-    block._enabled.setChecked(True)
-
-    block._test.click()
-
-    qtbot.waitUntil(lambda: block._test.isEnabled(), timeout=3000)
-    assert all(word in block._note.text() for word in words)
