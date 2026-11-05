@@ -18,6 +18,7 @@ log = logging.getLogger(__name__)
 STEP_PATHS: tuple[str, ...] = (
     "us_swing.market.step:RegimeStep",
     "us_swing.market.sector_step:SectorStep",
+    "us_swing.market.idea_step:IdeaStep",
 )
 
 

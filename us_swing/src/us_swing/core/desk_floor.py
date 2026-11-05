@@ -2,6 +2,7 @@
 Module: MD-GUI-034.011.M10 — core/desk_floor.py
 Parent SRD: SRD-GUI-034.011
 Also: MD-GUI-034.012.M11 — sector strength, rotation and RS leaders (SRD-GUI-034.012)
+Also: MD-GUI-034.013.M12 — idea list (SRD-GUI-034.013)
 
 Market Floor data from ``desk.db``: the real regime, breadth, sectors and RS leaders when
 the desk has them, the fallback provider (sample data) for every other product.
@@ -27,6 +28,9 @@ LEADERS_LIMIT = 30
 _SECTOR_COLUMNS = ("rank", "sector", "rel_1m", "rel_3m", "rel_6m", "quadrant")
 _RRG_COLUMNS = ("sector", "rs_ratio", "rs_momentum", "quadrant")
 _LEADER_COLUMNS = ("symbol", "sector", "rs_rating", "sector_rank")
+IDEAS_ID = "ideas.top"
+_IDEA_COLUMNS = ("symbol", "side", "score", "setup", "sector", "trigger", "stop", "why")
+_IDEA_FILTERS = {"side": ("long", "short"), "status": ("list", "watch")}
 
 
 def _signed_pct(value: float | None) -> str:
@@ -35,6 +39,10 @@ def _signed_pct(value: float | None) -> str:
 
 def _num(value: float | None) -> str:
     return "-" if value is None else f"{value:.1f}"
+
+
+def _price(value: float | None) -> str:
+    return "-" if value is None else f"{value:.2f}"
 
 
 def _matches(row: Mapping[str, Any], filters: Mapping[str, str]) -> bool:
@@ -112,11 +120,13 @@ class DeskFloorData:
         """
         sectors = self._latest_sectors()
         sector_day = sectors[0][0] if sectors else None
+        ideas_day = self._ideas_day()
         real: dict[str, tuple[object, tuple[str, ...], str | None]] = {
             REGIME_ID: (self._latest_regime(), _REGIME_COLUMNS, None),
             BREADTH_ID: (self._latest_breadth(), _BREADTH_COLUMNS, None),
             SECTORS_ID: (sector_day, _SECTOR_COLUMNS, sector_day),
             RRG_ID: (sector_day, _RRG_COLUMNS, sector_day),
+            IDEAS_ID: (ideas_day, _IDEA_COLUMNS, ideas_day),
         }
         out: list[ProductDescriptor] = []
         for product in self._fallback.products():
@@ -125,7 +135,9 @@ class DeskFloorData:
                 out.append(product)
                 continue
             title = f"{product.title} ({day})" if day else product.title
-            out.append(replace(product, title=title, columns=columns, sample=False))
+            filters = _IDEA_FILTERS if product.id == IDEAS_ID else product.filters
+            out.append(replace(product, title=title, columns=columns, filters=filters,
+                               sample=False))
         if leaders_day := self._leaders_day():
             out.append(ProductDescriptor(
                 LEADERS_ID, f"RS leaders ({leaders_day})", "table", ("table",), _LEADER_COLUMNS,
@@ -163,7 +175,29 @@ class DeskFloorData:
             return [r for r in rows if _matches(r, filters)]
         if product_id == LEADERS_ID:
             return self._leaders(filters.get("sector"))
+        if product_id == IDEAS_ID and (day := self._ideas_day()):
+            return self._ideas(day, filters.get("side"), filters.get("status") or "list")
         return self._fallback.rows(product_id, filters)
+
+    def _ideas_day(self) -> str | None:
+        row = self._query("SELECT MAX(date) FROM ideas")
+        return row[0] if row and row[0] else None
+
+    def _ideas(self, day: str, side: str | None, status: str) -> list[dict[str, Any]]:
+        rows = self._query_all(
+            "SELECT i.symbol, i.side, i.score, i.setup, i.sector, i.trigger, i.stop, r.reason "
+            "FROM ideas i LEFT JOIN idea_reasons r ON r.date = i.date AND r.side = i.side "
+            "AND r.symbol = i.symbol AND r.seq = 1 "
+            "WHERE i.date = ? AND i.status = ? AND (? IS NULL OR i.side = ?) "
+            "ORDER BY i.score DESC, i.symbol",
+            (day, status, side, side),
+        )
+        return [
+            {"symbol": sym, "side": sd, "score": f"{score:.0f}", "setup": setup,
+             "sector": sector, "trigger": _price(trigger), "stop": _price(stop),
+             "why": reason or "-"}
+            for sym, sd, score, setup, sector, trigger, stop, reason in rows
+        ]
 
     def _leaders(self, sector: str | None) -> list[dict[str, Any]]:
         day = self._leaders_day()

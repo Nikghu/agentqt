@@ -31,7 +31,7 @@ from us_swing.gui.theme import C
 
 ROW_PX = 28
 LINK_GROUPS = ("A", "B", "C")
-_WIDE_COLUMNS = ("headline", "trigger", "event", "setup")
+_WIDE_COLUMNS = ("headline", "why", "trigger", "event", "setup")
 _GRIP = 14
 
 

@@ -2,9 +2,10 @@
 Module: MD-MKT-001.007.M04 — market/store.py
 Parent SRD: SRD-MKT-001.007
 Also: MD-MKT-002.008.M04 — sector and stock RS tables (SRD-MKT-002.008)
+Also: MD-MKT-003.010.M06 — score, idea and reason tables (SRD-MKT-003.010)
 
 Market tables in ``desk.db``: ``regime_snapshot``, ``breadth_daily``, ``vix_daily``,
-``sector_daily`` and ``stock_rs``.
+``sector_daily``, ``stock_rs``, ``stock_score``, ``ideas`` and ``idea_reasons``.
 """
 from __future__ import annotations
 
@@ -38,6 +39,19 @@ CREATE TABLE IF NOT EXISTS sector_daily (
 CREATE TABLE IF NOT EXISTS stock_rs (
     date TEXT, symbol TEXT, sector TEXT, score REAL, rs_rating INTEGER,
     sector_rank INTEGER, sector_size INTEGER, PRIMARY KEY (date, symbol)
+);
+CREATE TABLE IF NOT EXISTS stock_score (
+    date TEXT, symbol TEXT, side TEXT, score REAL, rs_part REAL, flow_part REAL,
+    setup_part REAL, sector_part REAL, regime_part REAL, penalty REAL, setup TEXT,
+    trigger REAL, stop REAL, PRIMARY KEY (date, symbol, side)
+);
+CREATE TABLE IF NOT EXISTS ideas (
+    date TEXT, side TEXT, symbol TEXT, status TEXT, rank INTEGER, score REAL, sector TEXT,
+    setup TEXT, trigger REAL, stop REAL, PRIMARY KEY (date, side, symbol)
+);
+CREATE TABLE IF NOT EXISTS idea_reasons (
+    date TEXT, side TEXT, symbol TEXT, seq INTEGER, reason TEXT,
+    PRIMARY KEY (date, side, symbol, seq)
 );
 """
 
@@ -107,6 +121,52 @@ class StockRsRow:
     sector_size: int
 
 
+@dataclass(frozen=True)
+class ScoreRow:
+    """One ``stock_score`` row; parts are in points before the 100/90 scale."""
+
+    date: str
+    symbol: str
+    side: str
+    score: float
+    rs_part: float
+    flow_part: float
+    setup_part: float
+    sector_part: float
+    regime_part: float
+    penalty: float
+    setup: str
+    trigger: float | None
+    stop: float | None
+
+
+@dataclass(frozen=True)
+class IdeaRow:
+    """One ``ideas`` row; status is ``list`` or ``watch``."""
+
+    date: str
+    side: str
+    symbol: str
+    status: str
+    rank: int
+    score: float
+    sector: str
+    setup: str
+    trigger: float | None
+    stop: float | None
+
+
+@dataclass(frozen=True)
+class ReasonRow:
+    """One ``idea_reasons`` row."""
+
+    date: str
+    side: str
+    symbol: str
+    seq: int
+    reason: str
+
+
 def _clean(value: object) -> object:
     return None if isinstance(value, float) and math.isnan(value) else value
 
@@ -170,6 +230,38 @@ class MarketStore:
                 )
             self._put("sector_daily", SectorRow, [tuple(vars(r).values()) for r in sectors])
             self._put("stock_rs", StockRsRow, [tuple(vars(r).values()) for r in stocks])
+
+    def stored_idea_dates(self) -> set[str]:
+        """Return every ISO date already in ``stock_score``."""
+        return {r[0] for r in self._con.execute("SELECT DISTINCT date FROM stock_score")}
+
+    def write_idea_days(
+        self, days: list[str], scores: list[ScoreRow], ideas: list[IdeaRow],
+        reasons: list[ReasonRow],
+    ) -> None:
+        """Replace whole ``days`` of score, idea and reason rows in one transaction.
+
+        Every day in ``days`` is cleared first, so a day that now has no rows keeps none.
+
+        Raises:
+            ValueError: When a day or row has no date.
+        """
+        rows: list[ScoreRow | IdeaRow | ReasonRow] = [*scores, *ideas, *reasons]
+        if any(not d for d in days) or any(not r.date for r in rows):
+            raise ValueError("idea row without a date")
+        days = sorted(set(days) | {r.date for r in rows})
+        with self._con:
+            for table in ("stock_score", "ideas", "idea_reasons"):
+                self._con.executemany(
+                    f"DELETE FROM {table} WHERE date = ?", [(d,) for d in days]  # noqa: S608
+                )
+            self._put("stock_score", ScoreRow, [tuple(vars(r).values()) for r in scores])
+            self._put("ideas", IdeaRow, [tuple(vars(r).values()) for r in ideas])
+            self._put("idea_reasons", ReasonRow, [tuple(vars(r).values()) for r in reasons])
+
+    def read_frame(self, sql: str) -> pd.DataFrame:
+        """Return the result of a read-only ``SELECT`` on the market tables as a frame."""
+        return pd.read_sql_query(sql, self._con)
 
     def _put(self, table: str, kind: type, rows: list[tuple[object, ...]]) -> None:
         names = [f.name for f in fields(kind)]

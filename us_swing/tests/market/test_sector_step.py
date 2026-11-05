@@ -102,7 +102,7 @@ def test_no_candle_file(tmp_path: Path) -> None:
 
 def test_runs_after_regime_in_desk_run(tmp_path: Path) -> None:
     """UT-MKT-002.009.M05.T05: Sectors runs after Market regime; both ok, sector rows written."""
-    assert [s.name for s in load_steps(STEP_PATHS)] == ["Market regime", "Sectors"]
+    assert [s.name for s in load_steps(STEP_PATHS)][:2] == ["Market regime", "Sectors"]
     candles, home = tmp_path / "candles.db", tmp_path / "desk"
     _make(candles)
     last = bdays(N)[-1].date()
