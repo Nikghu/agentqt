@@ -2,6 +2,16 @@
 
 ---
 
+## [20261106] MKT — Sector strength, sector rotation and stock RS, phase P2 (FO-MKT-002)
+
+- Type: Feature
+- FO(s): FO-MKT-002
+- RN: RN-MKT-0.2.0-20261106
+- Artifacts updated: SRD (MKT-002.001–.010, GUI-034.012 Implemented), UTCD (22 MKT Pass, 2 GUI Pass), TRACE (mkt, gui), Code (market/sectors.py, market/rs.py, market/sector_step.py, market/candles.py, market/store.py, core/desk_steps.py, core/desk_floor.py), Tests (tests/market/test_sectors.py, test_sector_step.py, 2 in tests/gui/test_market_floor.py), RN, CONTEXT, TODO (T109, T112, T114, T115)
+- Decisions: sector lines equal weight from member candles; look-back close uses last close up to 5 days before when missing; stock rating is 1–99 percentile; a late backfill can shift a stored sector line (T115).
+
+---
+
 ## [20261106] MKT — Sector strength and rotation, phase P2 (FO-MKT-002) — docs drafted, handover
 
 - Type: Feature (in progress)

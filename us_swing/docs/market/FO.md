@@ -40,7 +40,7 @@ The system shall describe the state of the whole US market each day, so later ph
 
 ## FO-MKT-002: Sector Strength and Rotation
 
-**Status:** Draft
+**Status:** Approved (user, 2026-11-06)
 **Priority:** Must
 **Phase:** P2
 **Depends on:** FO-MKT-001 (desk step and member candles), saved S&P 500 list with sectors

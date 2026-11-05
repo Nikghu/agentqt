@@ -1061,5 +1061,5 @@ Test files:
 | UT-GUI-034.011.M10.T01 | MD-GUI-034.011.M10 | Positive | Real regime and breadth | desk.db with 2 days | latest day rows; product sample False; data date shown | Pass |
 | UT-GUI-034.011.M10.T02 | MD-GUI-034.011.M10 | Negative | No desk data yet | no desk.db | sample rows with Sample tag | Pass |
 | UT-GUI-034.011.M10.T03 | MD-GUI-034.011.M10 | Positive | Refresh after a run | status Running then Sleeping | panels reload once | Pass |
-| UT-GUI-034.012.M11.T01 | MD-GUI-034.012.M11 | Positive | Real sectors and RS leaders | desk.db with 2 days of sector and stock rows | latest day rows; ranks in order; sector filter works; sample False | Not Run |
-| UT-GUI-034.012.M11.T02 | MD-GUI-034.012.M11 | Negative | No sector data yet | desk.db with regime only | sector products are sample rows; rs.leaders not listed | Not Run |
+| UT-GUI-034.012.M11.T01 | MD-GUI-034.012.M11 | Positive | Real sectors and RS leaders | desk.db with 2 days of sector and stock rows | latest day rows; ranks in order; sector filter works; sample False | Pass |
+| UT-GUI-034.012.M11.T02 | MD-GUI-034.012.M11 | Negative | No sector data yet | desk.db with regime only | sector products are sample rows; rs.leaders not listed | Pass |
