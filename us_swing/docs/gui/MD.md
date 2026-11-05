@@ -402,7 +402,7 @@ us_swing/src/us_swing/gui/
 | MD-GUI-034.005.M05 | SRD-GUI-034.005 | `us_swing/src/us_swing/gui/floor_grid_model.py`, `gui/floor_grid.py` | Pure grid rules and the grid widget | `PanelSpec`, `GridModel`, `PanelGrid` | — | No |
 | MD-GUI-034.006.M06 | SRD-GUI-034.006 | `us_swing/src/us_swing/gui/floor_panel.py`, `gui/floor_dialogs.py` | Panel frame, bodies, link bus, catalog and settings dialogs | `PanelFrame`, `LinkBus`, `CatalogDialog`, `PanelSettingsDialog` | M03, `frameless_dialog` | No |
 | MD-GUI-034.008.M07 | SRD-GUI-034.008 | `us_swing/src/us_swing/gui/floor_layouts.py` | Layout file, defaults, last layout, feed fold | `LayoutStore`, `default_layout()` | — | No |
-| MD-GUI-034.009.M08 | SRD-GUI-034.009 | `us_swing/src/us_swing/gui/ai_desk.py`, `gui/ai_desk_sections.py`, `gui/ai_desk_sections2.py`, `gui/ai_desk_sample.py` | AI Desk section list and section frames | `AiDeskWorkspace` | M02 | No |
+| MD-GUI-034.009.M08 | SRD-GUI-034.009 | `us_swing/src/us_swing/gui/ai_desk.py`, `gui/ai_desk_sections.py`, `gui/ai_desk_sections2.py`, `gui/ai_desk_sections3.py`, `gui/ai_desk_sample.py` | AI Desk section list and section frames | `AiDeskWorkspace` | M02 | No |
 | MD-GUI-034.003.M09 | SRD-GUI-034.003 | `us_swing/src/us_swing/core/desk_contract.py`, `desk/task.py` | Shared desk launch command; `FloorData` interface | `desk_command()`, `launch_desk()`, `ProductDescriptor`, `FloorData` | — | No |
 
 SRD coverage: .002 and .003 by M02 and M09; .004 by M04; .005 by M05; .006 and .007 by M06; .008 by M07; .009 by M08; .010 by M03 and M09.

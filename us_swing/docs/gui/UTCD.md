@@ -1054,3 +1054,5 @@ Test files:
 | UT-GUI-034.008.M07.T09 | MD-GUI-034.008.M07 | Negative | Overwrite needs confirm | save as an existing name, refuse | old layout kept | Pass |
 | UT-GUI-034.009.M08.T01 | MD-GUI-034.009.M08 | Positive | All sections open | click each of 11 sections | each shows its frame; Command is first | Pass |
 | UT-GUI-034.010.M03.T01 | MD-GUI-034.010.M03 | Positive | Sample tag shown | sample provider | every panel and section shows Sample data | Pass |
+| UT-GUI-034.009.M08.T02 | MD-GUI-034.009.M08 | Positive | Seats within caps | sample org | experts 3 of 3, champions 3 of 5, juniors 18 of 30 | Pass |
+| UT-GUI-034.010.M03.T02 | MD-GUI-034.010.M03 | Positive | Every AI Desk section tagged | build all 11 sections | each shows one Sample data tag | Pass |
