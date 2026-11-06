@@ -956,21 +956,21 @@
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
 |---|---|---|---|---|---|---|
-| UT-EXE-021.001.M02.T01 | MD-EXE-021.001.M02 | Positive | AI Desk row made on start | strategy store with no AI Desk row | one row: type ai_desk, Positional, auto trade off, stopped | Not Run |
-| UT-EXE-021.001.M02.T02 | MD-EXE-021.001.M02 | Edge | Existing row kept | AI Desk row with Capital Max 25 and mode live | row unchanged; no second row | Not Run |
-| UT-EXE-021.001.M02.T03 | MD-EXE-021.001.M02 | Negative | Start refused | start the AI Desk strategy | stays stopped; one warning | Not Run |
-| UT-EXE-021.002.M01.T01 | MD-EXE-021.002.M01 | Positive | Long signal fields | long pick 2026-11-06 AAPL, qty 45 | ENTRY, AI Desk, LONG, entry, stop, target, qty 45, id desk:2026-11-06:long:AAPL | Not Run |
-| UT-EXE-021.002.M01.T02 | MD-EXE-021.002.M01 | Positive | Short signal | short pick | direction SHORT; id has short | Not Run |
-| UT-EXE-021.002.M02.T01 | MD-EXE-021.001.M02 | Positive | Send adds one signal | send a pick | (45, ""); one pending signal | Not Run |
-| UT-EXE-021.002.M02.T02 | MD-EXE-021.001.M02 | Edge | Same pick twice | send the same pick twice | one pending signal | Not Run |
-| UT-EXE-021.002.M02.T03 | MD-EXE-021.001.M02 | Negative | Unknown side refused | pick with side flat | (0, reason); no signal | Not Run |
-| UT-EXE-021.003.M02.T01 | MD-EXE-021.001.M02 | Positive | Capital Max quantity | capital 100 000, Capital Max 10, per trade 100, entry 101.2 | qty 98 | Not Run |
-| UT-EXE-021.003.M02.T02 | MD-EXE-021.001.M02 | Negative | Quantity 0 | Capital Max 0 | (0, reason); no signal; one warning | Not Run |
-| UT-EXE-021.004.M01.T01 | MD-EXE-021.002.M01 | Positive | Close time from id | desk:2026-11-06:long:AAPL; engine signal id | 2026-11-09 16:00 ET; None | Not Run |
-| UT-EXE-021.004.M02.T01 | MD-EXE-021.001.M02 | Positive | Close sweep | desk signal and engine signal; sweep before and after close | before: both kept; after: desk signal gone, engine signal kept | Not Run |
-| UT-EXE-021.004.M02.T02 | MD-EXE-021.001.M02 | Negative | Bad desk id kept | pending signal id desk:bad; empty store | no error; desk:bad kept | Not Run |
-| UT-EXE-021.005.M03.T01 | MD-EXE-021.005.M03 | Positive | Signal stop and target | ai_desk entry with stop 97.4 and target 108.8 | context hard stop 97.4, target 108.8 | Not Run |
-| UT-EXE-021.005.M03.T02 | MD-EXE-021.005.M03 | Negative | Other strategies unchanged | normal strategy with 1% stop and 2% target, signal levels set | levels from the config percentages | Not Run |
-| UT-EXE-021.006.M02.T01 | MD-EXE-021.001.M02 | Positive | Re-send on start | approved pick for today, no signal, no cycle | one pending signal | Not Run |
-| UT-EXE-021.006.M02.T02 | MD-EXE-021.001.M02 | Negative | No re-send | pick with a cycle today; pick after 16:00 ET; signal already pending | no new signal | Not Run |
-| UT-EXE-021.007.M02.T01 | MD-EXE-021.001.M02 | Positive | Logs | send, refuse and sweep one each | lines with [AI Desk] prefix, stock, side and quantity | Not Run |
+| UT-EXE-021.001.M02.T01 | MD-EXE-021.001.M02 | Positive | AI Desk row made on start | strategy store with no AI Desk row | one row: type ai_desk, Positional, auto trade off, stopped | Pass |
+| UT-EXE-021.001.M02.T02 | MD-EXE-021.001.M02 | Edge | Existing row kept | AI Desk row with Capital Max 25 and mode live | row unchanged; no second row | Pass |
+| UT-EXE-021.001.M04.T01 | MD-EXE-021.001.M04 | Negative | Never evaluated | RUNNING AI Desk and a normal strategy; a candle closes | only the normal strategy is evaluated | Pass |
+| UT-EXE-021.002.M01.T01 | MD-EXE-021.002.M01 | Positive | Long signal fields | long pick 2026-11-06 AAPL, qty 45 | ENTRY, AI Desk, LONG, entry, stop, target, qty 45, id desk:2026-11-06:long:AAPL | Pass |
+| UT-EXE-021.002.M01.T02 | MD-EXE-021.002.M01 | Positive | Short signal | short pick | direction SHORT; id has short | Pass |
+| UT-EXE-021.002.M02.T01 | MD-EXE-021.001.M02 | Positive | Send adds one signal | send a pick | (45, ""); one pending signal | Pass |
+| UT-EXE-021.002.M02.T02 | MD-EXE-021.001.M02 | Edge | Same pick twice | send the same pick twice | one pending signal | Pass |
+| UT-EXE-021.002.M02.T03 | MD-EXE-021.001.M02 | Negative | Unknown side refused | pick with side flat | (0, reason); no signal | Pass |
+| UT-EXE-021.003.M02.T01 | MD-EXE-021.001.M02 | Positive | Capital Max quantity | capital 100 000, Capital Max 10, per trade 100, entry 101.2 | qty 98 | Pass |
+| UT-EXE-021.003.M02.T02 | MD-EXE-021.001.M02 | Negative | Quantity 0 | Capital Max 0 | (0, reason); no signal; one warning | Pass |
+| UT-EXE-021.004.M01.T01 | MD-EXE-021.002.M01 | Positive | Close time from id | desk:2026-11-06:long:AAPL; engine signal id | 2026-11-09 16:00 ET; None | Pass |
+| UT-EXE-021.004.M02.T01 | MD-EXE-021.001.M02 | Positive | Close sweep | desk signal and engine signal; sweep before and after close | before: both kept; after: desk signal gone, engine signal kept | Pass |
+| UT-EXE-021.004.M02.T02 | MD-EXE-021.001.M02 | Negative | Bad desk id kept | pending signal id desk:bad; empty store | no error; desk:bad kept | Pass |
+| UT-EXE-021.005.M03.T01 | MD-EXE-021.005.M03 | Positive | Signal stop and target | ai_desk entry with stop 97.4 and target 108.8 | context hard stop 97.4, target 108.8 | Pass |
+| UT-EXE-021.005.M03.T02 | MD-EXE-021.005.M03 | Negative | Other strategies unchanged | normal strategy with 1% stop and 2% target, signal levels set | levels from the config percentages | Pass |
+| UT-EXE-021.006.M02.T01 | MD-EXE-021.001.M02 | Positive | Re-send on start | approved pick for today, no signal, no cycle | one pending signal | Pass |
+| UT-EXE-021.006.M02.T02 | MD-EXE-021.001.M02 | Negative | No re-send | pick with a cycle today; pick after 16:00 ET; signal already pending | no new signal | Pass |
+| UT-EXE-021.007.M02.T01 | MD-EXE-021.001.M02 | Positive | Logs | send, refuse and sweep one each | lines with [AI Desk] prefix, stock, side and quantity | Pass |

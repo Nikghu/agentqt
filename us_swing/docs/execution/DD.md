@@ -4164,7 +4164,7 @@ Cross-tool note: touches `data/engine.py` (INF, `_TF_MINUTES`), `db/schema.py` (
 
 **Parent SRD:** SRD-EXE-021.001 — SRD-EXE-021.007. Pick logic and the GUI are in `market/DD.md` DD-MKT-008.001.D01.
 
-**Strategy row.** `execution/desk_signals.py` holds `AI_DESK_STRATEGY = "AI Desk"` and `AI_DESK_TYPE = "ai_desk"`. On start, `AppService` loads the strategies; when no row has this name it saves one more `StrategyConfig(name="AI Desk", strategy_type="ai_desk", mode="paper", capital_max=10, trade_type="Positional", auto_trade=False, run_state="stopped", empty entry and exit conditions)` and reloads the engine registry. An existing row is never changed. The engine only evaluates RUNNING strategies, and the end-time sweep only touches Intraday ones, so the row never makes signals. Start on an `ai_desk` row is refused with one warning.
+**Strategy row.** `execution/desk_signals.py` holds `AI_DESK_STRATEGY = "AI Desk"` and `AI_DESK_TYPE = "ai_desk"`. On start, `AppService` loads the strategies; when no row has this name it saves one more `StrategyConfig(name="AI Desk", strategy_type="ai_desk", mode="paper", capital_max=10, trade_type="Positional", auto_trade=False, run_state="stopped", empty entry and exit conditions)` and reloads the engine registry. An existing row is never changed. The engine only evaluates RUNNING strategies, and the end-time sweep only touches Intraday ones, and the engine also skips every `ai_desk` strategy in its tick loop and candle fan-out (`_EXTERNAL_TYPES` in `strategy_engine/_engine.py`), so even a started row never makes signals.
 
 **Signal** (`build_desk_signal(pick, qty, user_id) -> TradeSignal`):
 
@@ -4178,7 +4178,7 @@ TradeSignal(action=ENTRY, symbol=pick.symbol, strategy_id="AI Desk",
 
 `desk_signal_close(signal_id) -> datetime | None` parses a `desk:` id and returns `next_trading_day(day)` at 16:00 ET; other ids give `None`.
 
-**Quantity** (`AppService.desk_pick_qty(pick)`): `RiskManager.size_for_strategy(pick.entry, cfg.capital_max * cfg.per_trade_pct / 100, self.effective_capital())` with the AI Desk row, as the router sizes engine entries (SRD-EXE-017.024).
+**Quantity** (`AppService.desk_pick_qty(pick)`): `floor(effective_capital() × capital_max × per_trade_pct / 10000 / pick.entry)` with the AI Desk row — the router's `_size_entry` formula (SRD-EXE-017.024); with the default per-trade 100% it equals `size_for_strategy`.
 
 **Send** (`AppService.send_desk_pick(pick) -> tuple[int, str]`):
 

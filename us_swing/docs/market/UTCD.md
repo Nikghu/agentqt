@@ -288,21 +288,21 @@
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
 |---|---|---|---|---|---|---|
-| UT-MKT-008.001.M01.T01 | MD-MKT-008.001.M01 | Positive | Trade picks listed (SRD-MKT-008.001) | long and short lead picks, both pass, with ideas | 2 picks with entry, stop and target; ordered by side and rank | Not Run |
-| UT-MKT-008.001.M01.T02 | MD-MKT-008.001.M01 | Negative | Not listed (SRD-MKT-008.001) | a vetoed pick; a pick with no risk row; an idea with no trigger | none of them listed | Not Run |
-| UT-MKT-008.001.M01.T03 | MD-MKT-008.001.M01 | Edge | Latest day only (SRD-MKT-008.001) | lead picks on two days; no lead_picks table | only the newer day; empty list, no error | Not Run |
-| UT-MKT-008.002.M01.T01 | MD-MKT-008.001.M01 | Positive | 2R target (SRD-MKT-008.002) | long 100 / 95, r 2; short 50 / 52, r 2 | 110.0; 46.0 | Not Run |
-| UT-MKT-008.002.M01.T02 | MD-MKT-008.001.M01 | Negative | Bad stop (SRD-MKT-008.002) | stop equals entry; long stop above entry; short stop below entry | None each; the pick is not listed | Not Run |
-| UT-MKT-008.002.M02.T01 | MD-MKT-008.002.M02 | Positive | R setting (SRD-MKT-008.002) | no file; file with trade_target_r 1.5 | 2.0; 1.5 | Not Run |
-| UT-MKT-008.002.M02.T02 | MD-MKT-008.002.M02 | Negative | R not above 0 (SRD-MKT-008.002) | trade_target_r 0 in code; -1 in the file | ValueError; defaults loaded with a warning | Not Run |
-| UT-MKT-008.003.M01.T01 | MD-MKT-008.001.M01 | Positive | Waiting until next open (SRD-MKT-008.003) | day Fri 2026-11-06, now Sat noon ET | waiting; expires Mon 2026-11-09 09:30 ET | Not Run |
-| UT-MKT-008.003.M01.T02 | MD-MKT-008.001.M01 | Edge | Expiry edge and holiday (SRD-MKT-008.003) | now exactly 09:30 ET on the next day; day 2026-11-25 | expired; expires 2026-11-27 09:30 ET | Not Run |
-| UT-MKT-008.003.M01.T03 | MD-MKT-008.001.M01 | Positive | Decided state (SRD-MKT-008.003) | approve row; reject row for another pick | approved; rejected | Not Run |
-| UT-MKT-008.003.M01.T04 | MD-MKT-008.001.M01 | Negative | Other rows ignored (SRD-MKT-008.003) | reject row for another pick; hire row with the same subject; no desk.db | waiting each time | Not Run |
-| UT-MKT-008.004.M01.T01 | MD-MKT-008.001.M01 | Positive | Approve row (SRD-MKT-008.004) | waiting pick, qty 45 | one row kind trade, subject day:side:symbol, detail JSON with entry, stop, target, qty | Not Run |
-| UT-MKT-008.004.M01.T02 | MD-MKT-008.001.M01 | Negative | Second or late decision (SRD-MKT-008.004) | decide twice; decide after expiry; decision 'maybe' | reason returned each time; one row only | Not Run |
-| UT-MKT-008.004.M01.T03 | MD-MKT-008.001.M01 | Edge | Table missing and append-only (SRD-MKT-008.004) | desk.db with no approvals table; then UPDATE the row | table made and row saved; UPDATE refused | Not Run |
-| UT-MKT-008.004.M01.T04 | MD-MKT-008.001.M01 | Positive | Approved picks for a day (SRD-MKT-008.004) | approve and reject rows for day Fri; trading day Mon | only the approved pick, with its detail values | Not Run |
-| UT-MKT-008.005.M01.T01 | MD-MKT-008.001.M01 | Positive | No desk or GUI import (SRD-MKT-008.005) | source of core/desk_trades.py | no import of desk, market or gui | Not Run |
-| UT-MKT-008.005.M01.T02 | MD-MKT-008.001.M01 | Negative | Desk process never writes (SRD-MKT-008.005) | source of the desk and market packages | no call to record_trade_decision and no trade approval insert | Not Run |
-| UT-MKT-008.006.M01.T01 | MD-MKT-008.001.M01 | Positive | Logs (SRD-MKT-008.006) | approve one pick; list with 2 expired picks | INFO lines with [AI Desk] prefix, side, stock and decision; expired count 2 | Not Run |
+| UT-MKT-008.001.M01.T01 | MD-MKT-008.001.M01 | Positive | Trade picks listed (SRD-MKT-008.001) | long and short lead picks, both pass, with ideas | 2 picks with entry, stop and target; ordered by side and rank | Pass |
+| UT-MKT-008.001.M01.T02 | MD-MKT-008.001.M01 | Negative | Not listed (SRD-MKT-008.001) | a vetoed pick; a pick with no risk row; an idea with no trigger | none of them listed | Pass |
+| UT-MKT-008.001.M01.T03 | MD-MKT-008.001.M01 | Edge | Latest day only (SRD-MKT-008.001) | lead picks on two days; no lead_picks table | only the newer day; empty list, no error | Pass |
+| UT-MKT-008.002.M01.T01 | MD-MKT-008.001.M01 | Positive | 2R target (SRD-MKT-008.002) | long 100 / 95, r 2; short 50 / 52, r 2 | 110.0; 46.0 | Pass |
+| UT-MKT-008.002.M01.T02 | MD-MKT-008.001.M01 | Negative | Bad stop (SRD-MKT-008.002) | stop equals entry; long stop above entry; short stop below entry | None each; the pick is not listed | Pass |
+| UT-MKT-008.002.M02.T01 | MD-MKT-008.002.M02 | Positive | R setting (SRD-MKT-008.002) | no file; file with trade_target_r 1.5 | 2.0; 1.5 | Pass |
+| UT-MKT-008.002.M02.T02 | MD-MKT-008.002.M02 | Negative | R not above 0 (SRD-MKT-008.002) | trade_target_r 0 in code; -1 in the file | ValueError; defaults loaded with a warning | Pass |
+| UT-MKT-008.003.M01.T01 | MD-MKT-008.001.M01 | Positive | Waiting until next open (SRD-MKT-008.003) | day Fri 2026-11-06, now Sat noon ET | waiting; expires Mon 2026-11-09 09:30 ET | Pass |
+| UT-MKT-008.003.M01.T02 | MD-MKT-008.001.M01 | Edge | Expiry edge and holiday (SRD-MKT-008.003) | now exactly 09:30 ET on the next day; day 2026-11-25 | expired; expires 2026-11-27 09:30 ET | Pass |
+| UT-MKT-008.003.M01.T03 | MD-MKT-008.001.M01 | Positive | Decided state (SRD-MKT-008.003) | approve row; reject row for another pick | approved; rejected | Pass |
+| UT-MKT-008.003.M01.T04 | MD-MKT-008.001.M01 | Negative | Other rows ignored (SRD-MKT-008.003) | reject row for another pick; hire row with the same subject; no desk.db | waiting each time | Pass |
+| UT-MKT-008.004.M01.T01 | MD-MKT-008.001.M01 | Positive | Approve row (SRD-MKT-008.004) | waiting pick, qty 45 | one row kind trade, subject day:side:symbol, detail JSON with entry, stop, target, qty | Pass |
+| UT-MKT-008.004.M01.T02 | MD-MKT-008.001.M01 | Negative | Second or late decision (SRD-MKT-008.004) | decide twice; decide after expiry; decision 'maybe' | reason returned each time; one row only | Pass |
+| UT-MKT-008.004.M01.T03 | MD-MKT-008.001.M01 | Edge | Table missing and append-only (SRD-MKT-008.004) | desk.db with no approvals table; then UPDATE the row | table made and row saved; UPDATE refused | Pass |
+| UT-MKT-008.004.M01.T04 | MD-MKT-008.001.M01 | Positive | Approved picks for a day (SRD-MKT-008.004) | approve and reject rows for day Fri; trading day Mon | only the approved pick, with its detail values | Pass |
+| UT-MKT-008.005.M01.T01 | MD-MKT-008.001.M01 | Positive | No desk or GUI import (SRD-MKT-008.005) | source of core/desk_trades.py | no import of desk, market or gui | Pass |
+| UT-MKT-008.005.M01.T02 | MD-MKT-008.001.M01 | Negative | Desk process never writes (SRD-MKT-008.005) | source of the desk and market packages | no call to record_trade_decision and no trade approval insert | Pass |
+| UT-MKT-008.006.M01.T01 | MD-MKT-008.001.M01 | Positive | Logs (SRD-MKT-008.006) | approve one pick; list with 2 expired picks | INFO lines with [AI Desk] prefix, side, stock and decision; expired count 2 | Pass |

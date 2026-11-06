@@ -679,7 +679,7 @@ The system shall save each user's account equity every 5 minutes while the marke
 
 ## FO-EXE-021: AI Desk Signal Intake
 
-**Status:** Approved (user, 2026-11-06)
+**Status:** Implemented (RN-MKT-0.9.0-20261106)
 **Priority:** Should
 **Depends on:** FO-EXE-011 (Strategy Engine pending signals), FO-EXE-017 (capital-max sizing), FO-EXE-018 (short direction)
 **Source:** User chose (2026-11-06) that an approved AI Desk pick becomes a pending signal under one fixed "AI Desk" strategy, sized by Capital Max, with a 2R target.

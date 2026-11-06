@@ -198,7 +198,7 @@ The system shall turn each evening's lead brief into one report page (HTML and C
 
 ## FO-MKT-008: Link to Execution
 
-**Status:** Approved (user, 2026-11-06)
+**Status:** Implemented (RN-MKT-0.9.0-20261106)
 **Priority:** Should
 **Phase:** P7
 **Depends on:** DD-DSK §0.7 Q5 (the Master User approves every trade), FO-EXE-021, FO-GUI-034
