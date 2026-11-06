@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.3.0: FO-DSK-006 written in full as Draft for P6 (Master-started hires, 14-evening shadow, seat caps 8/5/30, weekly code report); no employee names.
 > v0.2.1: FO-DSK-002 adds employee identity as data and generic levels; no employee names (user, 2026-11-06).
 > v0.2.0: FO-DSK-002â€“005 written in full as Draft for P5a (lean harness: registry, wake after run, gateway with budget, recorder); router, replay, Jev and HuggingFace later.
 > v0.1.0: Tool created by architecture review. FO-DSK-001 written in full (phase P0a); FO-DSK-002â€“006 are outlines to be filled at their phase.
@@ -124,11 +125,24 @@ The system shall record every agent step so any answer can be traced and checked
 
 ## FO-DSK-006: Hiring Pipeline and Process Analytics
 
-**Status:** Draft (outline)
+**Status:** Approved (user, 2026-11-06)
 **Priority:** Should
 **Phase:** P6
+**Depends on:** FO-DSK-002–005, FO-GUI-034
 
-- The system shall let the lead propose a new employee or process, which runs only after Master User approval.
-- The system shall cap seats at 3 experts, 5 champions and 30 juniors; the Master User can raise a cap.
-- The system shall run a new employee in shadow mode for two weeks before a second approval.
-- The system shall let LEDGER report workload, cost and process-improvement ideas.
+The system shall let the Master User try a new employee safely before it does real work, and show each week how the desk works and what it costs. A new hire always uses a skill the code already knows; its name, level, model and soul are data the Master User controls. No AI proposes hires, and the weekly report is made by code with no AI cost.
+
+- The system shall let the Master User start a hire by choosing an existing skill, a level, a name and a model.
+- The system shall cap seats at 8 experts, 5 champions and 30 juniors, counting shadow hires; the Master User can change a cap in Desk settings.
+- The system shall run a new hire in shadow for 14 evenings: it answers the same facts as the skill's current holder, but its answers never reach the views, picks or AI feed.
+- The system shall compare each shadow hire with the current holder by valid answers, tokens, cost and agreement.
+- The system shall let the Master User replace the holder, add the hire, or reject it once the shadow ends, and keep a record of every decision.
+- The system shall make a weekly process and cost report by code (workload, cost, failures and shadow results) and show it in AI Desk.
+
+### Acceptance Criteria
+
+1. A hire started in AI Desk → Hiring is refused when its level's seat cap is full.
+2. During shadow, the hire's answers are recorded but the views, picks and AI feed show only the holder's work.
+3. After 14 evenings the shadow report shows valid answers, tokens, cost and agreement for the hire and the holder.
+4. One shadow hire goes end to end: started, 14 evenings, approved as Replace; from the next evening only the new hire does the work.
+5. Every Friday a weekly report appears in AI Desk → Reports with no AI call.
