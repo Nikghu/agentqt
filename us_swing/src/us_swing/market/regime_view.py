@@ -1,10 +1,11 @@
 """
-Module: MD-MKT-005.001.M01 — market/atlas.py
+Module: MD-MKT-005.001.M01 — market/regime_view.py
 Parent SRD: SRD-MKT-005.001
 Also: SRD-MKT-005.002 (typed view), SRD-MKT-005.004 (feed brief)
 
-ATLAS, the desk's market regime expert. Reads the rule-based market data from
-``desk.db``, asks its model for a typed view and writes a brief for the AI feed.
+The regime view skill: reads the rule-based market data from ``desk.db``, asks the
+employee's model for a typed view of the market and returns a brief for the AI feed.
+Which employee uses this skill, and under what name, is data in the employee files.
 Uses only ``core`` types; it never imports the desk harness.
 """
 from __future__ import annotations
@@ -19,16 +20,15 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from us_swing.core.desk_agents import AgentContext, Facts, FeedItem
 from us_swing.market.candles import BENCHMARK, CANDLE_DB
-from us_swing.market.store import AtlasRow, MarketStore
+from us_swing.market.store import MarketStore, RegimeViewRow
 
-NAME = "ATLAS"
-FOLDER = Path(__file__).parent / "employees" / "atlas"
+KEY = "regime_view"
 HISTORY_DAYS = 20
 Reason = Annotated[str, StringConstraints(min_length=5, max_length=140)]
 
 
-class AtlasView(BaseModel):
-    """ATLAS's answer, checked by the gateway."""
+class RegimeView(BaseModel):
+    """The model's answer for the regime view skill, checked by the gateway."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -54,11 +54,10 @@ def _table(frame: pd.DataFrame) -> str:
     return frame.to_string(index=False) if not frame.empty else "(none)"
 
 
-class Atlas:
-    """The market regime expert (an ``Employee``)."""
+class RegimeViewSkill:
+    """The regime view skill (a ``Skill``)."""
 
-    name = NAME
-    folder = FOLDER
+    key = KEY
 
     def __init__(self, candles: Path = CANDLE_DB) -> None:
         """Use ``candles`` to check that the regime data is up to date."""
@@ -115,8 +114,8 @@ class Atlas:
         return Facts(text, day, True)
 
     def act(self, ctx: AgentContext, facts: Facts) -> list[FeedItem]:
-        """Ask for the view, keep it in ``atlas_view`` and return the feed brief."""
-        view = ctx.ask(facts.text, AtlasView)
+        """Ask for the view, keep it in ``regime_view`` and return the feed brief."""
+        view = ctx.ask(facts.text, RegimeView)
         if view is None:
             return []
         store = MarketStore(ctx.home)
@@ -125,12 +124,12 @@ class Atlas:
                                     (facts.data_day,))
             rule_regime = str(rule["regime"].iloc[0]) if not rule.empty else ""
             agrees = view.regime == rule_regime
-            store.write_atlas(AtlasRow(facts.data_day, view.regime, view.confidence,
-                                       json.dumps(view.reasons), view.brief, rule_regime,
-                                       agrees))
+            store.write_regime_view(RegimeViewRow(
+                facts.data_day, view.regime, view.confidence, json.dumps(view.reasons),
+                view.brief, rule_regime, agrees))
         finally:
             store.close()
         text = view.brief
         if not agrees:
             text += f" I read the market as {view.regime}; the rules say {rule_regime}."
-        return [FeedItem(NAME, "info", text, facts.data_day)]
+        return [FeedItem("info", text, facts.data_day)]

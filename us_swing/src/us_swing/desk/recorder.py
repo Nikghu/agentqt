@@ -21,15 +21,19 @@ NY = ZoneInfo("America/New_York")
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS activity (
-    id INTEGER PRIMARY KEY, run_id INTEGER, employee TEXT, version INTEGER, data_day TEXT,
+    id INTEGER PRIMARY KEY, run_id INTEGER, employee TEXT, employee_name TEXT, version INTEGER,
+    data_day TEXT,
     started TEXT, source TEXT, model TEXT, attempt INTEGER, prompt TEXT, answer TEXT,
     valid INTEGER, error TEXT, tokens_in INTEGER, tokens_out INTEGER, cost_usd REAL,
     seconds REAL
 );
 CREATE TABLE IF NOT EXISTS briefs (
-    id INTEGER PRIMARY KEY, created TEXT, data_day TEXT, author TEXT, kind TEXT, text TEXT
+    id INTEGER PRIMARY KEY, created TEXT, data_day TEXT, author TEXT, kind TEXT, text TEXT,
+    employee_id TEXT
 );
 """
+# Columns added after the first P5a tables were created on real desks.
+_ADDED = (("activity", "employee_name", "TEXT"), ("briefs", "employee_id", "TEXT"))
 _GUARDS = [
     f"CREATE TRIGGER IF NOT EXISTS {table}_no_{op.lower()} BEFORE {op} ON {table} "
     f"BEGIN SELECT RAISE(ABORT, '{table} is append-only'); END"
@@ -39,10 +43,14 @@ _GUARDS = [
 
 @dataclass(frozen=True)
 class Attempt:
-    """One gateway try; ``started`` is New York time (ISO), cost is 0 for Claude CLI."""
+    """One gateway try; ``employee`` is the stable id, ``employee_name`` the name at the time.
+
+    ``started`` is New York time (ISO); cost is 0 for Claude Code CLI.
+    """
 
     run_id: int
     employee: str
+    employee_name: str
     version: int
     data_day: str
     started: str
@@ -75,6 +83,10 @@ class Recorder:
         self._con.execute("PRAGMA busy_timeout=5000")
         with self._con:
             self._con.executescript(_SCHEMA)
+            for table, column, kind in _ADDED:
+                have = {r[1] for r in self._con.execute(f"PRAGMA table_info({table})")}
+                if column not in have:
+                    self._con.execute(f"ALTER TABLE {table} ADD COLUMN {column} {kind}")
             for sql in _GUARDS:
                 self._con.execute(sql)
 
@@ -90,20 +102,21 @@ class Recorder:
                 f"INSERT INTO activity ({', '.join(names)}) "  # noqa: S608
                 f"VALUES ({', '.join('?' * len(names))})", tuple(vars(attempt).values()))
 
-    def add_briefs(self, items: list[FeedItem], created: datetime | None = None) -> None:
-        """Append feed briefs."""
+    def add_briefs(self, items: list[FeedItem], employee_id: str, name: str,
+                   created: datetime | None = None) -> None:
+        """Append feed briefs from one employee (its id and its name at this time)."""
         when = (created or ny_now()).isoformat(timespec="seconds")
         with self._con:
             self._con.executemany(
-                "INSERT INTO briefs (created, data_day, author, kind, text) "
-                "VALUES (?, ?, ?, ?, ?)",
-                [(when, i.data_day, i.author, i.kind, i.text) for i in items])
+                "INSERT INTO briefs (created, data_day, author, kind, text, employee_id) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                [(when, i.data_day, name, i.kind, i.text, employee_id) for i in items])
 
-    def done_on(self, employee: str, data_day: str) -> bool:
-        """True when ``employee`` already posted a brief for ``data_day``."""
+    def done_on(self, employee_id: str, data_day: str) -> bool:
+        """True when the employee already posted a brief for ``data_day``."""
         row = self._con.execute(
-            "SELECT 1 FROM briefs WHERE author = ? AND data_day = ? LIMIT 1",
-            (employee, data_day)).fetchone()
+            "SELECT 1 FROM briefs WHERE employee_id = ? AND data_day = ? LIMIT 1",
+            (employee_id, data_day)).fetchone()
         return row is not None
 
     def month_cost(self, month: str, employee: str | None = None) -> float:

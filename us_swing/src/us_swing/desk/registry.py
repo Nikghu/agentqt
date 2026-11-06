@@ -1,19 +1,23 @@
 """
 Module: MD-DSK-002.002.M09 — desk/registry.py
 Parent SRD: SRD-DSK-002.002
-Also: SRD-DSK-002.001 (employees by import path), SRD-DSK-002.003 (job file wins),
-SRD-DSK-002.004 (``employees`` table)
+Also: SRD-DSK-002.001 (skills by key), SRD-DSK-002.003 (job file wins),
+SRD-DSK-002.004 (``employees`` table), SRD-DSK-002.006 (employee identity is data),
+SRD-DSK-002.007 (employee files in the desk folder)
 
-Loads AI employees by import path and checks their ``job.yaml`` against a fixed schema.
-``soul.md`` is only the system prompt; everything enforced comes from ``job.yaml``.
+Employees are folders of data in ``<desk>/employees/<id>/``: ``soul.md`` (the prompt) and
+``job.yaml`` (identity, level, reporting line, skill and rules). Defaults shipped with
+the app are copied there only when missing, so the Master user's edits are never
+overwritten. Code knows skills by key only, never employee names or titles.
 """
 from __future__ import annotations
 
 import hashlib
 import importlib
 import logging
+import shutil
 import sqlite3
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -21,7 +25,7 @@ from typing import Literal
 import yaml  # type: ignore[import-untyped]
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from us_swing.core.desk_agents import Employee
+from us_swing.core.desk_agents import Level, Skill
 from us_swing.core.desk_contract import DB_NAME
 from us_swing.desk.recorder import ny_now
 
@@ -29,6 +33,7 @@ log = logging.getLogger(__name__)
 
 SOUL_FILE = "soul.md"
 JOB_FILE = "job.yaml"
+EMPLOYEES_DIR = "employees"
 Source = Literal["openrouter", "claude"]
 
 
@@ -51,15 +56,18 @@ class Models(BaseModel):
 
 
 class JobSpec(BaseModel):
-    """The checked contents of ``job.yaml``."""
+    """The checked contents of ``job.yaml``; identity fields are free for the Master user."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
+    id: str = Field(min_length=1, pattern=r"^[A-Za-z0-9_-]+$")
     name: str = Field(min_length=1)
     title: str = Field(min_length=1)
+    level: Level
+    reports_to: str | None = None
+    skill: str = Field(min_length=1)
     version: int = Field(ge=1)
     trigger: Literal["after_run"]
-    output: str = Field(min_length=1)
     models: Models
     calls_per_day: int = Field(ge=1)
     monthly_cost_usd: float = Field(gt=0)
@@ -68,57 +76,113 @@ class JobSpec(BaseModel):
 
 @dataclass(frozen=True)
 class Hire:
-    """An employee with its checked job spec, its soul text and the files' hash."""
+    """An employee: checked job spec, soul text (names filled in), its skill and file hash."""
 
-    employee: Employee
     spec: JobSpec
     soul: str
+    skill: Skill
     hash: str
 
 
-def load_employees(paths: Sequence[str]) -> list[Employee]:
-    """Import and build each employee in ``paths`` (``"module:Class"``); bad ones are left out."""
-    out: list[Employee] = []
-    for path in paths:
-        module_name, _, class_name = path.partition(":")
+def default_folders(packages: Sequence[str]) -> list[Path]:
+    """Return the shipped default employee folders of ``packages`` (``<pkg>/employees/*``)."""
+    out: list[Path] = []
+    for name in packages:
         try:
-            out.append(getattr(importlib.import_module(module_name), class_name)())
-        except Exception as exc:  # noqa: BLE001 — one bad employee never stops the others
-            log.warning("[AI Desk] Could not load AI employee %s: %s", path, exc)
+            module = importlib.import_module(name)
+        except ImportError as exc:
+            log.warning("[AI Desk] Could not read default employees of %s: %s", name, exc)
+            continue
+        root = Path(str(module.__file__)).parent / EMPLOYEES_DIR
+        out.extend(sorted(p for p in root.iterdir() if p.is_dir()) if root.is_dir() else [])
     return out
 
 
-def load_employee(employee: Employee) -> Hire | None:
-    """Read and check the employee's ``soul.md`` and ``job.yaml``; ``None`` when not valid."""
+def seed_employees(home: Path, defaults: Sequence[Path]) -> int:
+    """Copy each default employee folder into ``<home>/employees`` when it is missing."""
+    target = home / EMPLOYEES_DIR
+    target.mkdir(parents=True, exist_ok=True)
+    added = 0
+    for folder in defaults:
+        if not (target / folder.name).exists():
+            shutil.copytree(folder, target / folder.name)
+            added += 1
+    if added:
+        log.info("[AI Desk] %d default employee(s) added to the desk folder", added)
+    return added
+
+
+def load_skill(key: str, paths: Mapping[str, str]) -> Skill | None:
+    """Build the skill named ``key`` from its import path; ``None`` when unknown or broken."""
+    path = paths.get(key)
+    if path is None:
+        return None
+    module_name, _, class_name = path.partition(":")
     try:
-        soul = (employee.folder / SOUL_FILE).read_text(encoding="utf-8")
-        job_text = (employee.folder / JOB_FILE).read_text(encoding="utf-8")
+        skill: Skill = getattr(importlib.import_module(module_name), class_name)()
+    except Exception as exc:  # noqa: BLE001 — a broken skill only keeps its employees asleep
+        log.warning("[AI Desk] Could not load skill %s: %s", key, exc)
+        return None
+    return skill
+
+
+def load_employee(folder: Path, skills: Mapping[str, str]) -> Hire | None:
+    """Read and check one employee folder; ``None`` (and a warning) when it is not valid."""
+    try:
+        soul_text = (folder / SOUL_FILE).read_text(encoding="utf-8")
+        job_text = (folder / JOB_FILE).read_text(encoding="utf-8")
         spec = JobSpec.model_validate(yaml.safe_load(job_text))
     except (OSError, yaml.YAMLError, ValidationError) as exc:
         reason = str(exc).splitlines()[0] if str(exc) else type(exc).__name__
-        log.warning("[AI Desk] %s job file is not valid, it stays asleep: %s",
-                    employee.name, reason)
+        log.warning("[AI Desk] Employee files in %s are not valid, it stays asleep: %s",
+                    folder.name, reason)
         return None
-    digest = hashlib.sha256(f"{soul}\0{job_text}".encode()).hexdigest()
-    return Hire(employee, spec, soul, digest)
+    skill = load_skill(spec.skill, skills)
+    if skill is None:
+        log.warning("[AI Desk] %s uses unknown skill %s and stays asleep", spec.name,
+                    spec.skill)
+        return None
+    soul = soul_text.replace("{name}", spec.name).replace("{title}", spec.title)
+    digest = hashlib.sha256(f"{soul_text}\0{job_text}".encode()).hexdigest()
+    return Hire(spec, soul, skill, digest)
+
+
+def load_employees(home: Path, skills: Mapping[str, str]) -> list[Hire]:
+    """Load every valid employee in ``<home>/employees``; ids must be unique."""
+    root = home / EMPLOYEES_DIR
+    hires: list[Hire] = []
+    seen: set[str] = set()
+    for folder in sorted(p for p in root.iterdir() if p.is_dir()) if root.is_dir() else []:
+        hire = load_employee(folder, skills)
+        if hire is None:
+            continue
+        if hire.spec.id in seen:
+            log.warning("[AI Desk] Employee id %s is used twice; %s stays asleep",
+                        hire.spec.id, folder.name)
+            continue
+        seen.add(hire.spec.id)
+        hires.append(hire)
+    return hires
 
 
 def record_employees(home: Path, hires: Sequence[Hire]) -> None:
-    """Keep the name, title, version and hash of each loaded employee in ``employees``."""
+    """Keep id, name, title, level, reporting line, skill, version and hash in ``employees``."""
     con = sqlite3.connect(home / DB_NAME, timeout=5)
     try:
         with con:
-            con.execute("CREATE TABLE IF NOT EXISTS employees (name TEXT PRIMARY KEY, "
-                        "title TEXT, version INTEGER, hash TEXT, loaded_at TEXT)")
+            con.execute("CREATE TABLE IF NOT EXISTS roster (id TEXT PRIMARY KEY, name TEXT, "
+                        "title TEXT, level TEXT, reports_to TEXT, skill TEXT, version INTEGER, "
+                        "hash TEXT, loaded_at TEXT)")
             for hire in hires:
-                old = con.execute("SELECT version, hash FROM employees WHERE name = ?",
-                                  (hire.spec.name,)).fetchone()
-                if old and old[0] == hire.spec.version and old[1] != hire.hash:
-                    log.warning("[AI Desk] %s files changed but version is still %d",
-                                hire.spec.name, hire.spec.version)
+                s = hire.spec
+                old = con.execute("SELECT version, hash FROM roster WHERE id = ?",
+                                  (s.id,)).fetchone()
+                if old and old[0] == s.version and old[1] != hire.hash:
+                    log.warning("[AI Desk] %s files changed but version is still %d", s.name,
+                                s.version)
                 con.execute(
-                    "INSERT OR REPLACE INTO employees VALUES (?, ?, ?, ?, ?)",
-                    (hire.spec.name, hire.spec.title, hire.spec.version, hire.hash,
-                     ny_now().isoformat(timespec="seconds")))
+                    "INSERT OR REPLACE INTO roster VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (s.id, s.name, s.title, s.level, s.reports_to, s.skill, s.version,
+                     hire.hash, ny_now().isoformat(timespec="seconds")))
     finally:
         con.close()

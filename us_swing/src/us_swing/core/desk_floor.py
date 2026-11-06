@@ -224,8 +224,9 @@ class DeskFloorData:
         month = month or datetime.now(ZoneInfo("America/New_York")).strftime("%Y-%m")
         where = "FROM activity WHERE substr(started, 1, 7) = ?"
         by_employee = self._query_all(
-            f"SELECT employee, COUNT(*), SUM(tokens_in + tokens_out), SUM(cost_usd) {where} "
-            "GROUP BY employee ORDER BY employee", (month,))
+            "SELECT COALESCE(MAX(employee_name), employee), COUNT(*), "
+            f"SUM(tokens_in + tokens_out), SUM(cost_usd) {where} "
+            "GROUP BY employee ORDER BY 1", (month,))
         if not by_employee:
             return None
         by_model = self._query_all(

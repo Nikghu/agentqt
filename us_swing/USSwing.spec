@@ -11,7 +11,7 @@ a = Analysis(
                    # loaded by import path in core/desk_steps.py
                    'us_swing.market.step', 'us_swing.market.sector_step',
                    'us_swing.market.idea_step', 'us_swing.market.proof',
-                   'us_swing.desk.employees_step', 'us_swing.market.atlas'],
+                   'us_swing.desk.employees_step', 'us_swing.market.regime_view'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=['pyi_rth_quiet_platform.py'],

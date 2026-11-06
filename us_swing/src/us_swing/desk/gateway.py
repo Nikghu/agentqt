@@ -179,8 +179,8 @@ class Gateway:
                 continue
             user = facts
             for _ in range(2):
-                why = self._budget.refusal(spec.name, spec.monthly_cost_usd, spec.calls_per_day,
-                                           choice.source)
+                why = self._budget.refusal(spec.id, spec.name, spec.monthly_cost_usd,
+                                           spec.calls_per_day, choice.source)
                 if why:
                     self.refused = why
                     log.warning("[AI Desk] %s not asked: %s", spec.name, why)
@@ -226,7 +226,7 @@ class Gateway:
         seconds = round(time.monotonic() - began, 2)
         spec = self._hire.spec
         self._rec.add(Attempt(
-            self._run_id, spec.name, spec.version, self._day,
+            self._run_id, spec.id, spec.name, spec.version, self._day,
             started.isoformat(timespec="seconds"), source, model, attempt,
             f"{system}\n\n---\n\n{user}", reply.text, result is not None, error,
             reply.tokens_in, reply.tokens_out, reply.cost_usd, seconds))

@@ -452,7 +452,7 @@ def _write_briefs(home: Path) -> None:
 
     rec = Recorder(home)
     for i, text in enumerate(("First note.", "Second note.", "Third note.")):
-        rec.add_briefs([FeedItem("ATLAS", "info", text, "2026-11-04")],
+        rec.add_briefs([FeedItem("info", text, "2026-11-04")], "t-1", "Tester A",
                        datetime(2026, 11, 4, 17, 30 + i, tzinfo=UTC))
     rec.close()
 
@@ -465,7 +465,7 @@ def test_real_feed(qtbot: QtBot, tmp_path: Path) -> None:
     items = DeskFloorData(SampleFloorData(), tmp_path).feed()
     assert items is not None
     assert [i["text"] for i in items] == ["Third note.", "Second note.", "First note."]
-    assert items[0] == {"time": "17:32 · 2026-11-04", "author": "ATLAS", "kind": "info",
+    assert items[0] == {"time": "17:32 · 2026-11-04", "author": "Tester A", "kind": "info",
                         "text": "Third note."}
     feed = AiFeedColumn()
     qtbot.addWidget(feed)
@@ -538,13 +538,13 @@ def test_real_month_cost(tmp_path: Path) -> None:
             ("2026-11-02T18:00:00-05:00", "claude", "claude-haiku-5-5", 1000, 0.0),
             ("2026-11-03T18:00:00-05:00", "openrouter", "cheap/m", 500, 0.25),
             ("2026-10-30T18:00:00-04:00", "openrouter", "cheap/m", 999, 9.0)):
-        rec.add(Attempt(1, "ATLAS", 1, "2026-11-01", started, src, model, 1, "p", "a", True,
-                        "", tokens, 0, cost, 1.0))
+        rec.add(Attempt(1, "t-1", "Tester A", 1, "2026-11-01", started, src, model, 1, "p", "a",
+                        True, "", tokens, 0, cost, 1.0))
     rec.close()
     cost = DeskFloorData(SampleFloorData(), tmp_path).month_cost("2026-11")
     assert cost is not None
     assert (cost.budget_usd, cost.spent_usd) == (10.0, 0.25)
-    assert cost.by_employee == [("ATLAS", "2", "1,500", "$0.2500")]
+    assert cost.by_employee == [("Tester A", "2", "1,500", "$0.2500")]
     assert cost.by_model == [("claude / claude-haiku-5-5", "1", "1,000", "$0.0000"),
                              ("openrouter / cheap/m", "1", "500", "$0.2500")]
     assert DeskFloorData(SampleFloorData(), tmp_path).month_cost("2026-09") is None

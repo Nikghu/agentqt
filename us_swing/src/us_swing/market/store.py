@@ -4,11 +4,11 @@ Parent SRD: SRD-MKT-001.007
 Also: MD-MKT-002.008.M04 — sector and stock RS tables (SRD-MKT-002.008)
 Also: MD-MKT-003.010.M06 — score, idea and reason tables (SRD-MKT-003.010)
 Also: MD-MKT-004.006.M03 — proof run and stat tables (SRD-MKT-004.006)
-Also: MD-MKT-005.003.M02 — ATLAS view table (SRD-MKT-005.003)
+Also: MD-MKT-005.003.M02 — regime view table (SRD-MKT-005.003)
 
 Market tables in ``desk.db``: ``regime_snapshot``, ``breadth_daily``, ``vix_daily``,
 ``sector_daily``, ``stock_rs``, ``stock_score``, ``ideas``, ``idea_reasons``,
-``proof_run``, ``proof_stats`` and ``atlas_view``.
+``proof_run``, ``proof_stats`` and ``regime_view``.
 """
 from __future__ import annotations
 
@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS proof_stats (
     days INTEGER, win_rate REAL, avg_ret REAL, avg_vs_spy REAL,
     PRIMARY KEY (run_id, side, kind, grp, horizon)
 );
-CREATE TABLE IF NOT EXISTS atlas_view (
+CREATE TABLE IF NOT EXISTS regime_view (
     date TEXT PRIMARY KEY, regime TEXT, confidence REAL, reasons TEXT, brief TEXT,
     rule_regime TEXT, agrees INTEGER
 );
@@ -217,8 +217,8 @@ class ProofStatRow:
 
 
 @dataclass(frozen=True)
-class AtlasRow:
-    """One ``atlas_view`` row; ``reasons`` is a JSON list."""
+class RegimeViewRow:
+    """One ``regime_view`` row; ``reasons`` is a JSON list."""
 
     date: str
     regime: str
@@ -350,10 +350,10 @@ class MarketStore:
             "ORDER BY side, kind, grp, horizon", (row[0],))]
         return int(row[0]), ProofRunRow(*row[1:]), stats
 
-    def write_atlas(self, row: AtlasRow) -> None:
-        """Insert or replace the ATLAS view of one day."""
+    def write_regime_view(self, row: RegimeViewRow) -> None:
+        """Insert or replace the regime view of one day."""
         with self._con:
-            self._put("atlas_view", AtlasRow, [tuple(vars(row).values())])
+            self._put("regime_view", RegimeViewRow, [tuple(vars(row).values())])
 
     def read_frame(self, sql: str, params: tuple[str, ...] = ()) -> pd.DataFrame:
         """Return the result of a read-only ``SELECT`` on the market tables as a frame."""

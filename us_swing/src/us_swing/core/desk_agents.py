@@ -1,27 +1,32 @@
 """
 Module: MD-DSK-002.001.M08 — core/desk_agents.py
 Parent SRD: SRD-DSK-002.001
-Also: SRD-DSK-002.005 — employees get only their folder, facts and an ask function
+Also: SRD-DSK-002.005 (skills get only their folder, facts and an ask function),
+SRD-DSK-002.006 (generic levels)
 
-Shared types for AI employees. The desk harness (``desk``) and the tools that provide
-employees (such as ``market``) both import these, so neither imports the other.
+Shared types for AI skills. Code knows only skills, named by what they do. Who uses a
+skill (name, title, level, reporting line) is data in each employee's own files, which
+the Master user can change at any time. The desk harness (``desk``) and the tools that
+provide skills (such as ``market``) both import these, so neither imports the other.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol, TypeVar
+from typing import Literal, Protocol, TypeVar
 
 from pydantic import BaseModel
 
 T = TypeVar("T", bound=BaseModel)
 
 FEED_KINDS = ("info", "idea", "approval")
+Level = Literal["lead", "expert", "champion", "junior"]
+LEVELS: tuple[Level, ...] = ("lead", "expert", "champion", "junior")
 
 
 @dataclass(frozen=True)
 class Facts:
-    """What an employee reads before it is woken; ``fresh`` False keeps it asleep."""
+    """What a skill reads before its employee is woken; ``fresh`` False keeps it asleep."""
 
     text: str
     data_day: str
@@ -31,9 +36,8 @@ class Facts:
 
 @dataclass(frozen=True)
 class FeedItem:
-    """One brief for the AI feed."""
+    """One brief for the AI feed; the desk adds the employee's name when it is stored."""
 
-    author: str
     kind: str
     text: str
     data_day: str
@@ -47,7 +51,7 @@ class FeedItem:
 
 
 class AgentContext(Protocol):
-    """What an employee may use while it acts: its desk folder and the gateway."""
+    """What a skill may use while it acts: the desk folder and the gateway."""
 
     @property
     def home(self) -> Path: ...
@@ -55,11 +59,10 @@ class AgentContext(Protocol):
     def ask(self, facts: str, schema: type[T]) -> T | None: ...
 
 
-class Employee(Protocol):
-    """An AI employee: ``folder`` holds its ``soul.md`` and ``job.yaml``."""
+class Skill(Protocol):
+    """Work an employee can do; ``key`` names the skill in employee job files."""
 
-    name: str
-    folder: Path
+    key: str
 
     def facts(self, home: Path) -> Facts: ...
 

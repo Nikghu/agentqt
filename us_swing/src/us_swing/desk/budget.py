@@ -28,18 +28,21 @@ class Budget:
         self._settings = settings
         self._clock = clock
 
-    def refusal(self, employee: str, monthly_cap: float, calls_per_day: int,
+    def refusal(self, employee_id: str, name: str, monthly_cap: float, calls_per_day: int,
                 source: str) -> str | None:
-        """Return why a call is refused, or ``None`` when it is allowed."""
+        """Return why a call is refused, or ``None`` when it is allowed.
+
+        Sums use the employee's stable id; ``name`` is only for the message.
+        """
         now = self._clock()
         month, day = now.strftime("%Y-%m"), now.strftime("%Y-%m-%d")
         budget = self._settings.monthly_budget_usd
         if source == "openrouter" and self._rec.month_cost(month) >= budget:
             return f"monthly budget USD {budget:.2f} used up"
-        if source == "openrouter" and self._rec.month_cost(month, employee) >= monthly_cap:
-            return f"{employee} monthly cap USD {monthly_cap:.2f} used up"
-        if self._rec.day_tries(day, employee) >= calls_per_day * TRIES_PER_CALL:
-            return f"{employee} reached {calls_per_day} call(s) for today"
+        if source == "openrouter" and self._rec.month_cost(month, employee_id) >= monthly_cap:
+            return f"{name} monthly cap USD {monthly_cap:.2f} used up"
+        if self._rec.day_tries(day, employee_id) >= calls_per_day * TRIES_PER_CALL:
+            return f"{name} reached {calls_per_day} call(s) for today"
         tokens_cap = self._settings.claude_tokens_per_day
         if source == "claude" and self._rec.day_tokens(day, "claude") >= tokens_cap:
             return f"Claude Code CLI reached {tokens_cap:,} tokens for today"
