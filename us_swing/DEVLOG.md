@@ -2,6 +2,16 @@
 
 ---
 
+## [20261106] DSK + MKT — P5b experts, risk check, lead brief, events, LangGraph and replay (FO-DSK-002/003/005, FO-MKT-005)
+
+- Type: Feature
+- FO(s): FO-DSK-002, FO-DSK-003, FO-DSK-005, FO-MKT-005 (P5b)
+- RN: RN-DSK-0.3.0-20261106, RN-MKT-0.6.0-20261106
+- Artifacts updated: SRD (DSK-002.008–.009, DSK-003.004–.012, DSK-005.005–.007, MKT-005.006–.018 Implemented), DD (DSK-003.004.D01, MKT-005.006.D01), MD, UTCD (48 DSK and 38 MKT P5b rows Pass), TRACE (desk, market), Code (core/desk_events.py, desk/router.py, desk/replay.py, desk/clock.py, desk/process.py, market/sector_view.py, market/setup_review.py, market/risk_limits.py, market/risk_check.py, market/lead_brief.py, market/employees/emp-002 to emp-005, market/store.py, market/step.py, USSwing.spec, pyproject.toml), RN, CONTEXT, DEVLOG, TODO (T123–T125)
+- Decisions: hard risk limits live only in code; the AI can only add vetoes; skills name the views they need by function, never by employee or reporting line; LangGraph is a desk-only dependency; replay tries do not count as live calls; no employee names in code or tests (user).
+
+---
+
 ## [20261106] DSK + MKT — P5a lean harness and the regime view skill (FO-DSK-002–005, FO-MKT-005)
 
 - Type: Feature

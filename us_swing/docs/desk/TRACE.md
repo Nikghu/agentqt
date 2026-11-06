@@ -16,7 +16,18 @@
 | FO-DSK-001 | SRD-DSK-001.021 | — | MD-DSK-001.021.M07 | UT-DSK-001.021.M07.T01–T02 (Pass) | `core/desk_steps.py` | Implemented | RN-MKT-0.1.0-20261106 |
 | FO-DSK-001 | SRD-DSK-001.022 | — | MD-DSK-001.020.M06, MD-DSK-001.021.M07 | UT-DSK-001.022.M06.T01–T02 (Pass) | `desk/cli.py`, `core/desk_steps.py` | Implemented | RN-MKT-0.4.0-20261106 |
 | FO-DSK-002 | SRD-DSK-002.001–.007 | DD-DSK-002.001.D01 | MD-DSK-002.001.M08, .002.M09 | UT-DSK-002.* (17, Pass) | `core/desk_agents.py`, `desk/registry.py`, `core/desk_steps.py` | Implemented (P5a) | RN-DSK-0.2.0-20261106 |
-| FO-DSK-003 | SRD-DSK-003.001–.003 | DD-DSK-002.001.D01 | MD-DSK-003.001.M10 | UT-DSK-003.* (8, Pass) | `desk/employees_step.py` | Implemented (P5a; router P5b) | RN-DSK-0.2.0-20261106 |
+| FO-DSK-003 | SRD-DSK-003.001–.003 | DD-DSK-002.001.D01 | MD-DSK-003.001.M10 | UT-DSK-003.* (8, Pass) | `desk/employees_step.py` | Implemented | RN-DSK-0.2.0-20261106 |
 | FO-DSK-004 | SRD-DSK-004.001–.005 | DD-DSK-002.001.D01 | MD-DSK-004.001.M11, .003.M12, .005.M13 | UT-DSK-004.* (14, Pass) | `desk/gateway.py`, `desk/budget.py`, `core/desk_ai_settings.py` | Implemented (P5a) | RN-DSK-0.2.0-20261106 |
-| FO-DSK-005 | SRD-DSK-005.001–.004 | DD-DSK-002.001.D01 | MD-DSK-005.001.M14 | UT-DSK-005.* (6, Pass) | `desk/recorder.py` | Implemented (P5a; replay P5b) | RN-DSK-0.2.0-20261106 |
+| FO-DSK-005 | SRD-DSK-005.001–.004 | DD-DSK-002.001.D01 | MD-DSK-005.001.M14 | UT-DSK-005.* (6, Pass) | `desk/recorder.py` | Implemented | RN-DSK-0.2.0-20261106 |
+| FO-DSK-002 | SRD-DSK-002.008–.009 | DD-DSK-003.004.D01 | MD-DSK-003.006.M16, MD-DSK-002.002.M09 | UT-DSK-002.008.M16.T01–T04, UT-DSK-002.009.M09.T01–T03 (7, Pass) | `core/desk_agents.py`, `desk/router.py`, `desk/registry.py` | Implemented | RN-DSK-0.3.0-20261106 |
+| FO-DSK-003 | SRD-DSK-003.001 | DD-DSK-003.004.D01 | MD-DSK-003.001.M10 | UT-DSK-003.001.M10.T04 (1, Pass) | `desk/employees_step.py` | Implemented | RN-DSK-0.3.0-20261106 |
+| FO-DSK-003 | SRD-DSK-003.004 | DD-DSK-003.004.D01 | MD-DSK-003.004.M15 | UT-DSK-003.004.M15.T01–T03 (3, Pass) | `core/desk_events.py` | Implemented | RN-DSK-0.3.0-20261106 |
+| FO-DSK-003 | SRD-DSK-003.005 | DD-DSK-003.004.D01 | MD-DSK-003.004.M15, MD-MKT-001.011.M05 | UT-DSK-003.005.M15.T01–T02 (2, Pass) | `core/desk_events.py`, `market/step.py` | Implemented | RN-DSK-0.3.0-20261106 |
+| FO-DSK-003 | SRD-DSK-003.006–.007 | DD-DSK-003.004.D01 | MD-DSK-003.006.M16 | UT-DSK-003.006.M16.T01–T03, UT-DSK-003.007.M16.T01–T03 (6, Pass) | `desk/router.py` | Implemented | RN-DSK-0.3.0-20261106 |
+| FO-DSK-003 | SRD-DSK-003.008 | DD-DSK-003.004.D01 | MD-DSK-001.015.M03, MD-DSK-001.010.M04 | UT-DSK-003.008.M03.T01–T04, UT-DSK-003.008.M04.T01–T03 (7, Pass) | `desk/clock.py`, `desk/process.py` | Implemented | RN-DSK-0.3.0-20261106 |
+| FO-DSK-003 | SRD-DSK-003.009 | DD-DSK-003.004.D01 | MD-DSK-003.006.M16, MD-DSK-005.001.M14 | UT-DSK-003.009.M16.T01–T02, UT-DSK-003.009.M14.T01 (3, Pass) | `desk/router.py`, `desk/recorder.py` | Implemented | RN-DSK-0.3.0-20261106 |
+| FO-DSK-003 | SRD-DSK-003.010–.012 | DD-DSK-003.004.D01 | MD-DSK-003.006.M16 | UT-DSK-003.010.M16.T01–T04, UT-DSK-003.011.M16.T01–T03, UT-DSK-003.012.M16.T01–T02 (9, Pass) | `desk/router.py` | Implemented | RN-DSK-0.3.0-20261106 |
+| FO-DSK-005 | SRD-DSK-005.005 | DD-DSK-003.004.D01 | MD-DSK-005.005.M17, MD-DSK-004.001.M11, MD-DSK-001.020.M06 | UT-DSK-005.005.M17.T01–T04 (4, Pass) | `desk/replay.py`, `desk/gateway.py`, `desk/cli.py` | Implemented | RN-DSK-0.3.0-20261106 |
+| FO-DSK-005 | SRD-DSK-005.006 | DD-DSK-003.004.D01 | MD-DSK-005.005.M17, MD-DSK-005.001.M14 | UT-DSK-005.006.M17.T01–T02, UT-DSK-005.006.M14.T01 (3, Pass) | `desk/replay.py`, `desk/recorder.py` | Implemented | RN-DSK-0.3.0-20261106 |
+| FO-DSK-005 | SRD-DSK-005.007 | DD-DSK-003.004.D01 | MD-DSK-005.005.M17 | UT-DSK-005.007.M17.T01–T03 (3, Pass) | `desk/replay.py`, `desk/cli.py` | Implemented | RN-DSK-0.3.0-20261106 |
 | FO-DSK-006 | — | — | — | — | — | Draft | — |
