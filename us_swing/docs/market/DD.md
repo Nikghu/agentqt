@@ -1,11 +1,12 @@
 # Design Document — Market Analytics (MKT)
 
 **Document ID:** DD-MKT
-**Version:** 0.4.0
+**Version:** 0.5.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.7.0: DD-MKT-006.001.D01 added — news, economic calendar and event risk (P5c).
 > v0.6.0: DD-MKT-005.006.D01 added — sector/flow view, setup review, risk check and lead brief (P5b).
 > v0.5.0: DD-MKT-005.001.D01 added — regime view skill (P5a).
 > v0.4.0: DD-MKT-004.001.D01 added — proof on past data (P4).
@@ -433,3 +434,123 @@ SKILL_PATHS = {
 
 **Regime change event** (cross-tool, for SRD-DSK-003.005). After writing its rows, the regime step (`market/step.py`, `RegimeStep`) calls `core.desk_events.post_event(home, "regime_change", latest_day, now)` when the latest day's regime differs from the day before. It is posted once per day.
 
+## DD-MKT-006.001.D01 — News, Economic Calendar and Event Risk (P5c)
+
+**Traces:** SRD-MKT-006.001–.012; reopened SRD-MKT-003.005, SRD-MKT-005.012, SRD-MKT-005.014; GUI SRD-GUI-034.018–.021
+
+**Files.**
+
+| File | What |
+|---|---|
+| `core/econ_calendar.py` | Yearly economic calendar as plain data, plus `events_between()` and `next_trading_day()`; in `core` because the Floor (`core/desk_floor.py`) and `market` both read it |
+| `market/news.py` | Headline fetch: `fetch_symbol()`, `fetch_market()`, `NEWS_FEEDS`; the HTTP getter is injectable |
+| `market/news_step.py` | Desk step "News" (`NewsStep`), after "Ideas" |
+| `market/news_review.py` | `NewsReviewSkill` (key `news_review`, needs nothing), `news_points()` |
+| `market/store.py` | `news_items`, `news_tags` tables |
+| `market/employees/emp-006/` | Default employee "Expert 5" (level expert) |
+
+**Sources** (checked 2026-11-06). The yfinance `Ticker.news` call fails with "Yahoo Finance is currently down", while Yahoo's per-symbol RSS works, so stock headlines come from RSS:
+
+```
+stock:  https://feeds.finance.yahoo.com/rss/2.0/headline?s=<SYM>&region=US&lang=en-US
+        (one call per stock; the multi-symbol form mixes stocks and caps at 20 items)
+market: CNBC top news   https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114
+        CNBC economy    https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=20910258
+        Yahoo SPY       the stock URL with s=SPY
+```
+
+Each feed is fetched with `httpx` (10 s time limit, user agent `USSwing/1.0`) and parsed with `feedparser` from the text, so a slow feed never blocks the run. A dot in a symbol (`BRK.B`) becomes a dash for Yahoo.
+
+**Tables** (`market/store.py`):
+
+```
+news_items(id INTEGER PK, date, symbol, source, published, title, link, fetched,
+           UNIQUE(symbol, link), UNIQUE(symbol, title))
+           date = ideas data day it was fetched for; symbol '' = market; published UTC ISO
+news_tags(date, side, symbol, tone, reason, points, final_score, PRIMARY KEY (date, side, symbol))
+           tone 'positive'|'neutral'|'negative'|'none' ('none' = no answer yet)
+```
+
+**News step** (`NewsStep`, `name = "News"`):
+
+```
+day = latest ideas day; no ideas -> log and return
+for each listed idea of day (best 10 per side, as setup review):
+    items = fetch_symbol(sym): published within 3 days of now, newest first, at most 10
+for market: fetch_market(): published within 24 hours, newest first, at most 30 in total
+INSERT OR IGNORE (date=day, ...)          # the unique keys stop repeats
+DELETE FROM news_items WHERE published < now - 30 days
+log: [News] Headlines for 18 of 20 stock(s), 27 market headline(s), 1 feed failed, 41 old row(s) deleted
+```
+
+A feed error, a bad XML document or a missing published time skips that item or feed with a log line, and the step never raises. `STEP_PATHS` gets "News" after "Ideas", before "AI employees".
+
+**Economic calendar** (`core/econ_calendar.py`). Dates come from the official schedules (Federal Reserve FOMC calendar, BLS CPI and Employment Situation schedules, BEA release schedule), taken on 2026-11-06 for 2026-11-01 to 2027-12-31:
+
+```
+EconEvent(day: date, time: time (NY), name: str, importance: "high"|"medium")
+FOMC decision 14:00 (high):   2026-12-09; 2027-01-27, 03-17, 04-28, 06-09, 07-28, 09-15, 10-27, 12-08
+CPI 08:30 (high):             2026-11-10, 12-10; 2027-01-13, 02-11, 03-10, 04-13, 05-12, 06-10,
+                              07-14, 08-11, 09-14, 10-14, 11-10, 12-10
+Jobs report 08:30 (high):     2026-11-06, 12-04; 2027-01-08, 02-05, 03-05, 04-02, 05-07, 06-04,
+                              07-02, 08-06, 09-03, 10-08, 11-05, 12-03
+PCE 08:30 (medium):           2026-11-25, 12-23; 2027-01-28, 02-25, 03-31, 04-29, 05-27, 06-25,
+                              07-29, 08-25, 09-30, 10-28, 11-24, 12-22
+GDP 08:30 (medium):           the same days as PCE (BEA releases both together)
+COVERED_YEARS = (2026, 2027)
+events_between(first, last) -> list[EconEvent]     # a year not covered: one warning per process
+next_trading_day(day) -> date                       # data/market_calendar NYSE rule
+```
+
+FOMC dates are tentative until the meeting before confirms them. BLS or BEA dates may move (for example in a shutdown). The file is updated once a year, with the NYSE holidays (T125).
+
+**News points** (`news_points(tone, day)`, pure):
+
+```
+base = {"positive": 10, "neutral": 6, "none": 6, "negative": 2}[tone]
+if any high event on next_trading_day(day): base -= 3
+return max(base, 0)
+final_score = round(0.9 * score + points, 1)        # score = the P3 idea score
+```
+
+**News review skill.** Facts are fresh when the newest `news_items.date` equals the latest ideas day and the SPY candle day. With listed ideas but no headlines at all, it is still fresh, and the facts say "no headlines". The facts text:
+
+```
+Data day, rule regime
+Economic events in the next 5 trading days: date, time, event, importance
+Listed ideas: side, symbol, sector, score
+Headlines per idea: up to 5 newest, "date | title"
+Market headlines: up to 15 newest
+```
+
+Answer:
+
+```
+class NewsTag:     side, symbol, tone: Literal["positive","neutral","negative"], reason: str (5..120)
+class NewsReview:  tags: list[NewsTag] (1..20)    market: str (20..400)
+```
+
+`act` follows the risk check pattern. First it writes code rows for every listed idea (tone `none`, reason "No news review yet", points from `news_points("none")`, final score), before any model call. Then it asks:
+- With no valid answer, the code rows stay (the event points hold) and it returns no brief, so a later run tries again.
+- With a valid answer, the tags of known ideas replace the code rows. Unknown or repeated ideas are dropped with one log line. It returns `FeedItem("info", market, day)`.
+
+**Risk check and lead (reopened rows).** `views_text` gets a `news_review` part: the day's `news_tags` (side, symbol, tone, points, final score, reason), or "News review: not available today". `RiskCheckSkill.needs` and `LeadBriefSkill.needs` add `news_review`, so LangGraph runs the news review first. The lead's passed-ideas table adds a `final` column (final score, or `-`). The risk limits and the rule that the lead picks only passed ideas do not change.
+
+**Floor panels** (`core/desk_floor.py`, GUI SRD-GUI-034.018–.021):
+
+```
+news.latest (real when news_items has rows):
+    columns time ("MM-DD HH:MM" NY), headline, symbol ("market" for ''), tone (latest news_tags
+    tone of that symbol, else "-"); newest 50; filter tone (positive, neutral, negative)
+news.tags (listed once news_tags has rows; title "News tags (<day>)"):
+    columns symbol, side, tone, points, final, reason; filter side; latest day; by final desc
+calendar.week (always real):
+    columns date ("Wed 11-10"), time, event, importance; events_between(today, 10th trading
+    day after today) in NY time; filter importance (high, medium)
+```
+
+`gui/floor_layouts.py` default "News & Calendar" tab: Latest news (cols 0–6, rows 0–13), News tags (cols 0–6, rows 13–26), Calendar (cols 7–11, rows 0–26). A layout the user already saved is kept.
+
+**Default employee** `emp-006`: name "Expert 5", title "Expert", level `expert`, reports_to `emp-005`, skill `news_review`, `trigger: after_run`, primary `claude/default`, backup `openrouter/default`, calls per day 3, monthly cap USD 3. The soul says to judge only the headlines given, to never invent news, to call a headline negative only for real risk (downgrade, guidance cut, probe, offering), and to keep the length limits.
+
+**Dependencies.** `feedparser>=6.0` in `pyproject.toml`. `USSwing.spec` hidden imports: `us_swing.market.news_step`, `us_swing.market.news_review`, `feedparser`.

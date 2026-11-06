@@ -93,7 +93,7 @@ The desk works in NY time (`zoneinfo` "America/New_York"). Windows tasks are set
 | P4 | Proof on past data | MKT / FO-MKT-004 | Top score band beats the S&P 500 average on forward returns |
 | P5a | Harness + first expert (regime view skill) | DSK / FO-DSK-002–005, MKT / FO-MKT-005 | One full recorded regime view run within budget |
 | P5b | Sector/flow and setup experts, risk manager, lead | MKT / FO-MKT-005 | Lead brief on the Floor each evening |
-| P5c | SCOUT news | MKT / FO-MKT-006 | News tags on ideas |
+| P5c | News review and economic calendar | MKT / FO-MKT-006 | News tags on ideas |
 | P5d | CANVAS pages and Studio | MKT / FO-MKT-007 | A sealed page renders with no network |
 | P6 | Hiring pipeline, LEDGER, cost views | DSK / FO-DSK-006 | One shadow hire approved end to end |
 | P7 | Link to Execution | MKT / FO-MKT-008 | Approved idea reaches EXE |

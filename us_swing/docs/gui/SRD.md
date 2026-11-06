@@ -1,10 +1,11 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.18.2
+**Version:** 2.87.0
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
-**Last Updated:** 2026-09-17
+**Last Updated:** 2026-11-06
+> v2.87.0: SRD-GUI-034.018–.021 added as Draft — real news, news tags and calendar panels (MKT P5c).
 > v2.86.0: SRD-GUI-034.015–.017 added as Draft — real AI feed, desk AI settings, real cost (MKT/DSK P5a).
 > v2.85.0: SRD-GUI-034.014 added as Draft — Score proof panel (MKT P4).
 > v2.84.0: SRD-GUI-034.013 added as Draft — Floor shows the real idea list (MKT P3).
@@ -682,3 +683,7 @@
 | SRD-GUI-034.015 | FO-GUI-034 | Must | The AI feed shows the latest briefs from `desk.db`, newest first, without the Sample tag. | `briefs` | feed cards | Sample items only while there are no briefs; refreshes after a desk run | Implemented |
 | SRD-GUI-034.016 | FO-GUI-034 | Must | AI Desk → Desk settings lets the user set the desk AI sources, models, backup, monthly budget and Claude CLI daily token cap, and the OpenRouter key. | user input | `desk_ai.json`, key | Key shown masked; other settings stay read-only until P6 | Implemented |
 | SRD-GUI-034.017 | FO-GUI-034 | Should | AI Desk → Cost & budget shows this month's real API spend against the budget and tokens, by employee and by model. | `activity` | bar, tables | Sample figures only while there is no activity | Implemented |
+| SRD-GUI-034.018 | FO-GUI-034 | Must | The "Latest news" panel shows the newest headlines from `desk.db` with time, headline, stock and the stock's news tone, without the Sample tag. | `news_items`, `news_tags` | table rows | Filter by tone; market headlines show "market"; sample rows only while there are no headlines | Approved |
+| SRD-GUI-034.019 | FO-GUI-034 | Must | A "News tags" panel lists the listed ideas of the latest day with side, tone, reason, news points and final score. | `news_tags` | table rows | Clicking a stock sends it to its link group; empty until the first news review | Approved |
+| SRD-GUI-034.020 | FO-GUI-034 | Must | The "Calendar" panel shows the economic events of the next 10 trading days with date, New York time, event and importance, without the Sample tag. | economic calendar | table rows | Filter by importance; read from code, no network | Approved |
+| SRD-GUI-034.021 | FO-GUI-034 | Should | The default News & Calendar tab holds Latest news, News tags and Calendar. | — | default layout | A layout the user already saved is kept; the new panel can be added with Add panel | Approved |

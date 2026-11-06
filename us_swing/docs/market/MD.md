@@ -1,11 +1,12 @@
 # Module Decomposition — Market Analytics (MKT)
 
 **Document ID:** MD-MKT
-**Version:** 0.4.0
+**Version:** 0.5.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.8.0: MD-MKT-006.*.M01–M06 added — news, economic calendar and event risk (P5c).
 > v0.7.0: MD-MKT-005.*.M04–M09 added — sector/flow view, setup review, risk limits, risk check, lead brief, defaults (P5b).
 > v0.6.0: MD-MKT-005.*.M01–M03 added — regime view skill (P5a).
 > v0.5.0: MD-MKT-004.*.M01–M03 added — proof on past data (P4).
@@ -90,3 +91,18 @@ SRD coverage: .001, .002, .004 by M01; .003 by M02; .005 by M03.
 Changed: M01 (`needs`, `answer`); M02 (`sector_view`, `setup_review`, `risk_check`, `lead_picks` tables); `market/step.py` (MD-MKT-001.*) posts `regime_change` through `core/desk_events.py`.
 
 SRD coverage: .006–.007 by M04, .008 by M04 and M02; .009–.010 by M05 (.010 also M02); .011 by M06; .012 by M07, .013 by M07 and M02; .014–.015 by M08, .016 by M08 and M02; .017 by M09; .018 by MD-DSK-001.021.M07 (`core/desk_steps.py`).
+
+## FO-MKT-006: News, Economic Calendar and Event Risk
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-MKT-006.001.M01 | SRD-MKT-006.001 | `us_swing/src/us_swing/market/news.py` | Fetch and read stock and market RSS headlines | `fetch_symbol()`, `fetch_market()`, `parse_feed()`, `Headline`, `NEWS_FEEDS` | `httpx`, `feedparser` | No |
+| MD-MKT-006.001.M02 | SRD-MKT-006.001 | `us_swing/src/us_swing/market/news_step.py` | Desk step "News": fetch, keep once, delete old, log | `NewsStep` | M01, M05 | No |
+| MD-MKT-006.004.M03 | SRD-MKT-006.004 | `us_swing/src/us_swing/core/econ_calendar.py` | Yearly economic calendar data and trading-day helper (shared with the Floor) | `EconEvent`, `events_between()`, `next_trading_day()`, `COVERED_YEARS` | `data.market_calendar` | No |
+| MD-MKT-006.005.M04 | SRD-MKT-006.005 | `us_swing/src/us_swing/market/news_review.py` | News review skill: facts, answer, code rows, points and final score | `NewsReviewSkill`, `NewsReview`, `NewsTag`, `news_points()` | `core.desk_agents`, M03, M05 | No |
+| MD-MKT-006.008.M05 | SRD-MKT-006.008 | `us_swing/src/us_swing/market/store.py` | `news_items` and `news_tags` tables (added to the P1 store) | `NewsItemRow`, `NewsTagRow`, `MarketStore.add_news()`, `MarketStore.delete_news_before()` | `sqlite3` | No |
+| MD-MKT-006.011.M06 | SRD-MKT-006.011 | `us_swing/src/us_swing/market/employees/emp-006/` | Default expert-level employee files for the news review | — | — | No |
+
+Changed: MD-MKT-005.012.M07 (`risk_check.py`: needs and facts add the news review) and MD-MKT-005.014.M08 (`lead_brief.py`: needs, facts and final column), for SRD-MKT-006.010, SRD-MKT-005.012 and SRD-MKT-005.014; `core/desk_steps.py` (MD-DSK-001.021.M07) gets the News step and `news_review` skill paths.
+
+SRD coverage: .001 by M01 and M02; .002, .003, .012 by M02 (with M01, M05); .004 by M03; .005–.007, .009 by M04; .008 by M04 and M05; .010 by MD-MKT-005.012.M07 and MD-MKT-005.014.M08; .011 by M06.
