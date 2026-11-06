@@ -97,6 +97,11 @@ class DeskPoller(QObject):
     command_failed = pyqtSignal(str)
     busy_changed = pyqtSignal(bool)
 
+    @property
+    def home(self) -> Path | None:
+        """The desk folder this poller reads (``None`` = the default folder)."""
+        return self._home
+
     def __init__(self, home: Path | None = None, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self._home = home

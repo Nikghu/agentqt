@@ -1,6 +1,7 @@
 """
 Module: MD-GUI-034.004.M04 — Floor AI feed column
 Parent SRD: SRD-GUI-034.004
+Also: MD-GUI-034.015.M14 — real briefs from the desk (SRD-GUI-034.015)
 """
 from __future__ import annotations
 
@@ -50,16 +51,23 @@ class AiFeedColumn(QWidget):
         self._body = QScrollArea()
         self._body.setWidgetResizable(True)
         self._body.setFrameShape(QFrame.Shape.NoFrame)
-        holder = QWidget()
-        items = QVBoxLayout(holder)
-        items.setContentsMargins(0, 0, 0, 0)
-        items.setSpacing(6)
-        for item in sample_feed_items():
-            items.addWidget(self._item_card(item))
-        items.addStretch(1)
-        self._body.setWidget(holder)
         outer.addWidget(self._body, 1)
+        self.set_items(None)
         self.set_folded(folded)
+
+    def set_items(self, items: list[dict[str, str]] | None) -> None:
+        """Show ``items`` (newest first); ``None`` shows the sample items with the Sample tag."""
+        sample = items is None
+        holder = QWidget()
+        layout = QVBoxLayout(holder)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(6)
+        for item in sample_feed_items() if items is None else items:
+            layout.addWidget(self._item_card(item))
+        layout.addStretch(1)
+        self._body.setWidget(holder)
+        self._sample = sample
+        self._tag.setVisible(sample and not self._folded)
 
     def is_folded(self) -> bool:
         """Return True when only the unfold button shows."""
@@ -69,8 +77,9 @@ class AiFeedColumn(QWidget):
         """Fold or unfold the column; emits ``folded_changed`` when the state changes."""
         changed = folded != self._folded
         self._folded = folded
-        for widget in (self._title, self._tag, self._body):
+        for widget in (self._title, self._body):
             widget.setVisible(not folded)
+        self._tag.setVisible(self._sample and not folded)
         set_icon(self._fold_btn, "panel-left-open" if folded else "panel-left-close")
         tip = "Show the AI feed" if folded else "Fold the AI feed"
         self._fold_btn.setToolTip(tip)
@@ -94,7 +103,9 @@ class AiFeedColumn(QWidget):
         box.setSpacing(4)
         who = QLabel(f"{item['author']}  {item['time']}")
         who.setStyleSheet(f"color: {C.MUTED};")
+        who.setTextFormat(Qt.TextFormat.PlainText)
         text = QLabel(item["text"])
+        text.setTextFormat(Qt.TextFormat.PlainText)
         text.setWordWrap(True)
         box.addWidget(who)
         box.addWidget(text)

@@ -87,6 +87,7 @@ class MarketFloorWorkspace(QWidget):
         self.feed = AiFeedColumn(self._store.feed_folded())
         # feed → folded_changed → store → set_feed_folded
         self.feed.folded_changed.connect(self._store.set_feed_folded)
+        self._reload_feed()
         main.addWidget(card(self.feed))
 
     def _on_desk_status(self, status: DeskStatus) -> None:
@@ -101,7 +102,12 @@ class MarketFloorWorkspace(QWidget):
         self._products = {p.id: p for p in self._data.products()}
         for grid in self._grids.values():
             grid.set_model(grid.model)
+        self._reload_feed()
         _log.info("[Floor] Panels refreshed after a desk run")
+
+    def _reload_feed(self) -> None:
+        feed = getattr(self._data, "feed", None)
+        self.feed.set_items(feed() if callable(feed) else None)
 
     def tab_names(self) -> list[str]:
         """Return the tab titles in order."""

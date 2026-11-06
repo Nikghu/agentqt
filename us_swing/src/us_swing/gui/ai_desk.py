@@ -37,6 +37,7 @@ SECTIONS = (
     "Schedule", "Studio", "Reports", "Cost & budget", "Desk settings",
 )
 
+_LIVE_SECTIONS = ("Cost & budget",)
 _BUILDERS: dict[str, Callable[[str], QWidget]] = {
     "Command": command_frame, "Org chart": org_frame, "Employees": employees_frame,
     "Hiring": hiring_frame, "Task board": tasks_frame, "Activity": activity_frame,
@@ -73,13 +74,31 @@ class AiDeskWorkspace(QWidget):
         right.setSpacing(GAP)
         right.addWidget(card(self._build_top(poller)))
         self._stack = QStackedWidget()
+        self._home = poller.home
         for name in SECTIONS:
-            self._stack.addWidget(card(_BUILDERS[name](name)))
+            self._stack.addWidget(card(self._build(name)))
         right.addWidget(self._stack, 1)
         main.addLayout(right, 1)
-        # list → currentRowChanged → stack → setCurrentIndex
-        self._list.currentRowChanged.connect(self._stack.setCurrentIndex)
+        # list → currentRowChanged → page → _show_section
+        self._list.currentRowChanged.connect(self._show_section)
         self._list.setCurrentRow(0)
+
+    def _show_section(self, row: int) -> None:
+        """Show section ``row``; Cost & budget is rebuilt so its figures are current."""
+        if 0 <= row < len(SECTIONS) and SECTIONS[row] in _LIVE_SECTIONS:
+            old = self._stack.widget(row)
+            self._stack.insertWidget(row, card(self._build(SECTIONS[row])))
+            if old is not None:
+                self._stack.removeWidget(old)
+                old.deleteLater()
+        self._stack.setCurrentIndex(row)
+
+    def _build(self, name: str) -> QWidget:
+        if name == "Cost & budget":
+            return cost_frame(name, self._home)
+        if name == "Desk settings":
+            return settings_frame(name, self._home)
+        return _BUILDERS[name](name)
 
     def section_names(self) -> list[str]:
         """Return the section names in list order."""

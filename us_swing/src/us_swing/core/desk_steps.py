@@ -2,6 +2,7 @@
 Module: MD-DSK-001.021.M07 — core/desk_steps.py
 Parent SRD: SRD-DSK-001.021
 Also: SRD-DSK-001.022 — score proof runner path
+Also: SRD-DSK-002.001, SRD-DSK-003.001 — AI employee list and the "AI employees" step
 
 The list of steps the desk runs, loaded by import path, so ``desk`` never imports
 the tools (such as ``market``) that provide the steps.
@@ -21,7 +22,9 @@ STEP_PATHS: tuple[str, ...] = (
     "us_swing.market.step:RegimeStep",
     "us_swing.market.sector_step:SectorStep",
     "us_swing.market.idea_step:IdeaStep",
+    "us_swing.desk.employees_step:EmployeesStep",
 )
+EMPLOYEE_PATHS: tuple[str, ...] = ("us_swing.market.atlas:Atlas",)
 PROOF_PATH = "us_swing.market.proof:run_proof"
 
 

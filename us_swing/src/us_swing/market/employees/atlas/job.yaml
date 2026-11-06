@@ -1,0 +1,19 @@
+# ATLAS job description. Enforced by the desk in code; wins over soul.md.
+# Edited only by a person (AI Desk editing comes in P6). Raise the version on every change.
+name: ATLAS
+title: Market regime expert
+version: 1
+trigger: after_run
+output: AtlasView
+models:
+  primary:
+    source: claude
+    model: default
+  backup:
+    source: openrouter
+    model: default
+calls_per_day: 3
+monthly_cost_usd: 3.0
+kpis:
+  - Share of valid answers
+  - Agreement rate with the rule regime

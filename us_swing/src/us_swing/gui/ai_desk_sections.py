@@ -41,8 +41,8 @@ def muted(text: str) -> QLabel:
     return label
 
 
-def section_frame(name: str) -> tuple[QWidget, QVBoxLayout]:
-    """Return a section frame titled ``name`` with the sample tag, and its body layout."""
+def section_frame(name: str, sample: bool = True) -> tuple[QWidget, QVBoxLayout]:
+    """Return a section frame titled ``name`` (with the sample tag when ``sample``) and its body."""
     box = QWidget()
     body = QVBoxLayout(box)
     body.setContentsMargins(14, 12, 14, 12)
@@ -54,7 +54,8 @@ def section_frame(name: str) -> tuple[QWidget, QVBoxLayout]:
     tag.setObjectName("sample_tag")
     tag.setStyleSheet(f"color: {C.MUTED};")
     head.addWidget(title)
-    head.addWidget(tag)
+    if sample:
+        head.addWidget(tag)
     head.addStretch(1)
     body.addLayout(head)
     return box, body

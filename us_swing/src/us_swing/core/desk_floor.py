@@ -4,6 +4,8 @@ Parent SRD: SRD-GUI-034.011
 Also: MD-GUI-034.012.M11 — sector strength, rotation and RS leaders (SRD-GUI-034.012)
 Also: MD-GUI-034.013.M12 — idea list (SRD-GUI-034.013)
 Also: MD-GUI-034.014.M13 — score proof (SRD-GUI-034.014)
+Also: MD-GUI-034.015.M14 — AI feed briefs (SRD-GUI-034.015)
+Also: MD-GUI-034.017.M16 — month AI cost (SRD-GUI-034.017)
 
 Market Floor data from ``desk.db``: the real regime, breadth, sectors and RS leaders when
 the desk has them, the fallback provider (sample data) for every other product.
@@ -12,10 +14,13 @@ from __future__ import annotations
 
 import sqlite3
 from collections.abc import Mapping, Sequence
-from dataclasses import replace
+from dataclasses import dataclass, replace
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from pathlib import Path
 from typing import Any
 
+from us_swing.core.desk_ai_settings import load_settings
 from us_swing.core.desk_contract import DB_NAME, FloorData, ProductDescriptor, desk_home
 
 REGIME_ID = "regime.today"
@@ -38,6 +43,18 @@ _PROOF_FILTERS = {"side": ("long", "short"), "kind": ("band", "setup", "status")
 _PROOF_ORDER = {"under 40": 0, "40-50": 1, "50-60": 2, "60-70": 3, "70-80": 4, "80+": 5,
                 "list": 0, "watch": 1, "none": 2}
 _FULL_YEARS = 5.0
+FEED_LIMIT = 20
+
+
+@dataclass(frozen=True)
+class MonthCost:
+    """This month's AI use: API spend against the budget, and rows by employee and model."""
+
+    month: str
+    budget_usd: float
+    spent_usd: float
+    by_employee: list[tuple[str, str, str, str]]
+    by_model: list[tuple[str, str, str, str]]
 
 
 def _signed_pct(value: float | None) -> str:
@@ -191,6 +208,37 @@ class DeskFloorData:
         if product_id == IDEAS_ID and (day := self._ideas_day()):
             return self._ideas(day, filters.get("side"), filters.get("status") or "list")
         return self._fallback.rows(product_id, filters)
+
+    def feed(self) -> list[dict[str, str]] | None:
+        """Return the latest AI feed briefs, newest first, or ``None`` when there are none."""
+        rows = self._query_all(
+            "SELECT created, data_day, author, kind, text FROM briefs ORDER BY id DESC LIMIT ?",
+            (FEED_LIMIT,))
+        if not rows:
+            return None
+        return [{"time": f"{str(created)[11:16]} · {day}", "author": author, "kind": kind,
+                 "text": text} for created, day, author, kind, text in rows]
+
+    def month_cost(self, month: str | None = None) -> MonthCost | None:
+        """Return this month's AI use (New York month), or ``None`` when nothing ran yet."""
+        month = month or datetime.now(ZoneInfo("America/New_York")).strftime("%Y-%m")
+        where = "FROM activity WHERE substr(started, 1, 7) = ?"
+        by_employee = self._query_all(
+            f"SELECT employee, COUNT(*), SUM(tokens_in + tokens_out), SUM(cost_usd) {where} "
+            "GROUP BY employee ORDER BY employee", (month,))
+        if not by_employee:
+            return None
+        by_model = self._query_all(
+            f"SELECT source || ' / ' || model, COUNT(*), SUM(tokens_in + tokens_out), "
+            f"SUM(cost_usd) {where} GROUP BY source, model ORDER BY 1", (month,))
+        spent = sum(float(r[3] or 0) for r in by_employee)
+
+        def fmt(rows: list[tuple[Any, ...]]) -> list[tuple[str, str, str, str]]:
+            return [(str(name), f"{calls:,}", f"{int(tokens or 0):,}", f"${float(cost or 0):.4f}")
+                    for name, calls, tokens, cost in rows]
+
+        budget = load_settings(self._path.parent).monthly_budget_usd
+        return MonthCost(month, budget, spent, fmt(by_employee), fmt(by_model))
 
     def _latest_proof(self) -> tuple[Any, ...] | None:
         return self._query(
