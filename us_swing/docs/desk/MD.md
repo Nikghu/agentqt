@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.7.0: MD-DSK M18–M20 added — hiring, shadow, weekly report (P6).
 > v0.6.0: MD-DSK M15–M17 added — events, router with LangGraph, replay (P5b).
 > v0.5.0: MD-DSK-002–005 M08–M14 added — lean harness (P5a).
 > v0.4.0: MD-DSK-001.020.M06 and .021.M07 also cover SRD-DSK-001.022 (`desk proof`).
@@ -68,3 +69,15 @@ Changed P0a/P5a modules: M08 (`needs`, `answer`, feed kind `evening`), M09 (trig
 SRD coverage: 002.008 by M08 and M16; 002.009 by M09; 003.004, .005 by M15; 003.006, .007, .009–.011 by M16 (.009 also M14); 003.008 by M03 and M04; 003.012 by M16 with `pyproject.toml` and `USSwing.spec`; 005.005–.007 by M17 (.005 also M11 and M06; .006 also M14).
 
 Cross-tool: `market/step.py` posts `regime_change` through M15 (see MKT DD-MKT-005.006.D01).
+
+## FO-DSK-006: Hiring Pipeline and Process Analytics
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-DSK-006.001.M18 | SRD-DSK-006.001 | `us_swing/src/us_swing/core/desk_hiring.py` | Start hires, seat check, list hires, shadow report, agreement, decisions and `approvals` | `start_hire()`, `list_hires()`, `shadow_report()`, `agreement()`, `decide()`, `seat_counts()` | `core.desk_steps`, `core.desk_ai_settings`, `yaml` | No |
+| MD-DSK-006.004.M19 | SRD-DSK-006.004 | `us_swing/src/us_swing/desk/shadow.py` | Ask and record only for a shadow employee, 14 data days | `run_shadow()`, `SHADOW_DAYS` | M11, M14 | No |
+| MD-DSK-006.009.M20 | SRD-DSK-006.009 | `us_swing/src/us_swing/desk/weekly_report.py` | Desk step "Weekly report": code-only weekly process and cost report | `WeeklyReportStep`, `build_report()` | `sqlite3` | No |
+
+Changed: MD-DSK-002.002.M09 (`registry.py`: `status`, `hired_on`, retired not loaded — SRD-DSK-006.008), MD-DSK-004.005.M13 (`desk_ai_settings.py`: seat caps — SRD-DSK-006.003), the recorder and gateway (`activity.shadow`), `employees_step.py` (shadow path) and `core/desk_steps.py` (MD-DSK-001.021.M07: "Weekly report" step path).
+
+SRD coverage: .001, .002, .005–.007 by M18 (.005 also M19); .003 by M13 and M18; .004 by M19; .008 by M09; .009 by M20; .010 by M18, M19 and M20.

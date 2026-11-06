@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.5.0: DD-DSK-006.001.D01 added — hiring pipeline, shadow and weekly report (P6).
 > v0.4.0: DD-DSK-003.004.D01 added — events, market clock, LangGraph run order and replay (P5b).
 > v0.3.1: P5a section rewritten without employee names: skills by function, employees as data in the desk folder, generic levels (user, 2026-11-06).
 > v0.3.0: DD-DSK-002.001.D01 added — lean harness for P5a.
@@ -396,3 +397,95 @@ for employee:
 
 **Dependency.** `langgraph>=1.2,<2` in `pyproject.toml`. `USSwing.spec` adds `langgraph` and `langchain_core` to `collect_submodules` for the frozen desk (checked with T121).
 
+## DD-DSK-006.001.D01 — Hiring Pipeline, Shadow and Weekly Report (P6)
+
+**Traces:** SRD-DSK-006.001–.010; GUI SRD-GUI-034.027–.033
+
+**Files.**
+
+| File | What |
+|---|---|
+| `core/desk_hiring.py` | Start a hire, seat check, list hires, shadow report, agreement, decisions, `approvals` table; in `core` because the GUI makes hires and decisions and the desk reads them |
+| `desk/shadow.py` | `run_shadow()`: ask and record only, for an employee with status `shadow` |
+| `desk/weekly_report.py` | `WeeklyReportStep` (desk step "Weekly report", after "AI employees"), `desk_reports` table |
+| `desk/registry.py` | `JobSpec` gets `status` (`active` default, `shadow`, `retired`) and `hired_on`; retired employees are not loaded |
+| `desk/recorder.py`, `desk/gateway.py` | `activity.shadow` column (added on open, default 0); `Gateway(shadow=True)` marks tries |
+| `desk/employees_step.py` | `_wake` sends shadow employees to `run_shadow()` |
+| `core/desk_ai_settings.py` | `expert_cap` 8, `champion_cap` 5, `junior_cap` 30 |
+| `gui/ai_desk_hiring.py` | Hiring section and the Command approvals box |
+| `gui/ai_desk_sections3.py`, `core/desk_floor.py` | Reports section from `desk_reports` |
+| `gui/ai_desk_settings.py` | Seat cap fields |
+
+**Employee status** (in `job.yaml`, data the Master user controls):
+
+```
+status: active | shadow | retired      # missing -> active
+hired_on: YYYY-MM-DD                   # only on hires made through the pipeline
+```
+
+**Start a hire** (`start_hire(home, skill, level, name, source, model, today)`):
+
+```
+refuse when: skill not in SKILL_PATHS; level == "lead"; name used by any employee (case-insensitive);
+             count(level, status in active|shadow) >= cap(level)
+id   = "emp-" + 3 digits, one above the highest number in <desk>/employees
+soul = soul.md of the shipped default employee with the same skill
+job  = that default's job.yaml with id, name, title = level title, level, version 1,
+       status shadow, hired_on today, models.primary = (source, model); reports_to kept
+write both files; log [Hiring] <name> started in shadow for <skill>
+```
+
+**Shadow run** (`run_shadow(hire, facts, gateway, recorder)`, called from `EmployeesStep._wake` after the fresh-facts check):
+
+```
+days = distinct data_day of this employee's shadow tries
+if len(days) >= 14: return                      # ready; no more calls
+if facts.data_day in days: return               # one answer per data day
+gateway.ask(facts.text, hire.skill.answer)      # tries written with shadow = 1
+if len(days) + 1 == 14: log [Hiring] <name> finished the shadow and is ready for a decision
+```
+
+`skill.act` is never called, so no views, picks, briefs or events come from a shadow. The run order is unchanged: a shadow employee runs after the skills its skill needs.
+
+**Shadow report** (`shadow_report(home, hire_id) -> list[ReportRow]`), over the hire's shadow days:
+
+```
+holders = active employees with the same skill (not the hire)
+row(hire):   days, valid share = days with a valid try / days, tokens, cost
+row(holder): the same, from its live tries (shadow 0, replay 0) on those days
+agreement    = mean over days where both have a valid answer of
+               jaccard(short_values(hire answer), short_values(holder answer))
+short_values = {"path=value"} for bool, number, and text of at most 20 characters;
+               list items keyed by side+symbol when present, else by position
+None ("-") when there is no holder or no common day
+```
+
+**Decisions** (`decide(home, hire_id, decision, now)`), table in `desk.db`:
+
+```
+approvals(id INTEGER PK, created TEXT, kind TEXT, subject TEXT, decision TEXT, detail TEXT)
+triggers approvals_no_update / approvals_no_delete
+replace: holders -> retired; hire -> active      (refused when the hire is not ready)
+add:     hire -> active                          (refused while the skill has an active holder)
+reject:  hire -> retired                         (allowed at any time)
+```
+
+Status changes edit only the `status:` and `version:` lines of `job.yaml` (version + 1), so the Master user's comments stay. The approvals row is written first; a file error is logged with `[Hiring]`.
+
+**Weekly report** (`WeeklyReportStep`, `name = "Weekly report"`):
+
+```
+friday = latest Friday <= today (New York)
+if desk_reports has week == friday: return
+period = Saturday before friday .. friday (by activity.started, New York)
+text:  per employee (current name): calls, valid share, tokens, cost, failed tries
+       totals; shadow hires: days done of 14, ready or not
+INSERT desk_reports(week, created, title "Weekly report <friday>", text)
+log [Report] Weekly report for <friday> written: <n> employee(s), cost USD <x>
+```
+
+No AI call. The GUI Reports section lists `desk_reports` newest first; sample reports show only while there are none.
+
+**Seat caps** live in `desk_ai.json` (`expert_cap`, `champion_cap`, `junior_cap`, each at least 1). Desk settings refuses a cap below the current count of active and shadow employees at that level.
+
+**GUI Hiring** (`hiring_frame(name, home)`, a live section): table Name · Skill · Level · Model · Started · Shadow days · Status (status shadow, ready, active or retired). Below: the Start hire form (skill combo from `SKILL_PATHS`, level combo expert/champion/junior, name, source combo, model text) with a status line for the refusal reason; the chosen hire's report table (Who · Days · Valid · Tokens · Cost · Agreement); Replace, Add and Reject buttons, enabled as in the decision rules. Command → Approvals waiting lists ready hires; a click opens Hiring.
