@@ -87,7 +87,7 @@ The system shall turn the regime, sector and RS results into a short daily list 
 
 ## FO-MKT-004: Proof on Past Data
 
-**Status:** Draft
+**Status:** Implemented (approved by user 2026-11-06)
 **Priority:** Must
 **Phase:** P4
 **Depends on:** FO-MKT-001–003 (score rules), FO-BKT-001 (daily candles in the Backtest Data store)

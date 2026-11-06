@@ -1067,5 +1067,5 @@ Test files:
 | UT-GUI-034.012.M11.T02 | MD-GUI-034.012.M11 | Negative | No sector data yet | desk.db with regime only | sector products are sample rows; rs.leaders not listed | Pass |
 | UT-GUI-034.013.M12.T01 | MD-GUI-034.013.M12 | Positive | Real idea list | desk.db with 2 days of ideas, list and watch | latest day; long and short filters; list by default; Watch on request; sample False | Pass |
 | UT-GUI-034.013.M12.T02 | MD-GUI-034.013.M12 | Negative | No ideas yet | desk.db with sectors only | ideas.top stays sample | Pass |
-| UT-GUI-034.014.M13.T01 | MD-GUI-034.014.M13 | Positive | Real proof table | desk.db with 2 proof runs | latest run; side and kind filters; title with range and results; short-history note | Not Run |
-| UT-GUI-034.014.M13.T02 | MD-GUI-034.014.M13 | Negative | No proof run yet | desk.db with ideas only | proof.bands not listed | Not Run |
+| UT-GUI-034.014.M13.T01 | MD-GUI-034.014.M13 | Positive | Real proof table | desk.db with 2 proof runs | latest run; side and kind filters; title with range and results; short-history note | Pass |
+| UT-GUI-034.014.M13.T02 | MD-GUI-034.014.M13 | Negative | No proof run yet | desk.db with ideas only | proof.bands not listed | Pass |

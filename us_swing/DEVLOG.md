@@ -2,6 +2,16 @@
 
 ---
 
+## [20261106] MKT — Proof on past data, phase P4 (FO-MKT-004)
+
+- Type: Feature
+- FO(s): FO-MKT-004
+- RN: RN-MKT-0.4.0-20261106
+- Artifacts updated: FO, SRD (MKT-004.001–.009, DSK-001.022, GUI-034.014 Implemented), DD (after code review note), MD, UTCD (23 MKT, 2 DSK, 2 GUI Pass), TRACE (mkt, desk, gui), Code (market/proof_data.py, market/proof.py, market/store.py, core/desk_steps.py, desk/cli.py, core/desk_floor.py), TODO (T117 updated, T118, T119)
+- Decisions: daily candles from Backtest Data (user); bands + setups + idea status; no tuning in P4 (user); results in desk.db + `desk proof` + Score proof panel (user); pass rule at 10 days with 100 stock-days per group.
+
+---
+
 ## [20261106] MKT — Money flow, setups, readiness score and daily ideas, phase P3 (FO-MKT-003)
 
 - Type: Feature

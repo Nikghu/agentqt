@@ -266,3 +266,5 @@ proof_stats(run_id INTEGER, side TEXT, kind TEXT, grp TEXT, horizon INTEGER, n I
 **Speed.** P3 scores 341 days in about 19 s. 6 years is about 1,250 scored days, so roughly 70 s for scoring plus reading about 500 files. Chunks of 250 days keep memory near the P3 first run.
 
 **Limits.** Survivorship (today's member list). No earnings Watch. Overlapping samples. No costs, slippage or stop exits. No tuning (T117 stays open until the proof is read).
+
+**After code review.** Group stats and the pass rule count only stock-days where both the return and the return against SPY exist, so `n` and the averages use the same rows; the Floor shows "-" for a missing average. The report says the S&P 500 list is today's. Report text is plain ASCII (bands `40-50`, `Settings > Backtest Data`) because the Windows console cannot print some symbols. Real run: candles 2024-01-02 to 2026-11-04, 503 stocks, 443 scored days, 21 s. On the same candles the replay equals the desk's `stock_score` exactly; against the Backtest Data candles 89.9–95.4% of scores are within 1 point on 3 days, the rest from price differences between the two candle sources.

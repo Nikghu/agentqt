@@ -118,26 +118,26 @@
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
 |---|---|---|---|---|---|---|
-| UT-MKT-004.001.M01.T01 | MD-MKT-004.001.M01 | Positive | Daily files read (SRD-MKT-004.001) | SPY + 3 stock files | closes, highs, lows, opens, volumes by SPY's days | Not Run |
-| UT-MKT-004.001.M01.T02 | MD-MKT-004.001.M01 | Negative | No Backtest Data folder (SRD-MKT-004.001) | missing folder | None; warning logged | Not Run |
-| UT-MKT-004.001.M01.T03 | MD-MKT-004.001.M01 | Edge | Stock missing a day (SRD-MKT-004.001) | one stock without one SPY day | that cell NaN; other days kept | Not Run |
-| UT-MKT-004.001.M02.T01 | MD-MKT-004.002.M02 | Negative | Run without data (SRD-MKT-004.001) | no daily files | None; nothing written | Not Run |
-| UT-MKT-004.002.M02.T01 | MD-MKT-004.002.M02 | Positive | Replay matches desk step (SRD-MKT-004.002) | same synthetic candles in candles.db and daily files | replayed scores, setups and statuses equal the IdeaStep rows | Not Run |
-| UT-MKT-004.002.M02.T02 | MD-MKT-004.002.M02 | Positive | No look-ahead (SRD-MKT-004.002) | change all bars after day d | scores up to day d unchanged | Not Run |
-| UT-MKT-004.002.M02.T03 | MD-MKT-004.002.M02 | Positive | No earnings Watch (SRD-MKT-004.002) | replay of a short in an Uptrend | status watch from regime only; no earnings note | Not Run |
-| UT-MKT-004.002.M02.T04 | MD-MKT-004.002.M02 | Negative | Thin day not scored (SRD-MKT-004.002) | one day with data for under 80% of members | no scores for that day | Not Run |
-| UT-MKT-004.003.M02.T01 | MD-MKT-004.002.M02 | Positive | Long forward return (SRD-MKT-004.003) | next open 100, close at t+5 110, SPY +5% | ret 10%; vs SPY 5% | Not Run |
-| UT-MKT-004.003.M02.T02 | MD-MKT-004.002.M02 | Positive | Short forward return (SRD-MKT-004.003) | same bars, short side | ret -10%; vs SPY -5% | Not Run |
-| UT-MKT-004.003.M02.T03 | MD-MKT-004.002.M02 | Edge | End of data (SRD-MKT-004.003) | day 10 sessions before the last | 5 and 10-day samples; no 20-day sample | Not Run |
-| UT-MKT-004.003.M02.T04 | MD-MKT-004.002.M02 | Negative | Missing exit bar (SRD-MKT-004.003) | close at t+10 missing | no 10-day sample for that stock-day | Not Run |
-| UT-MKT-004.004.M02.T01 | MD-MKT-004.002.M02 | Positive | Band edges (SRD-MKT-004.004) | scores 39.9, 40, 70, 80, 100 | under 40, 40–50, 70–80, 80+, 80+ | Not Run |
-| UT-MKT-004.004.M02.T02 | MD-MKT-004.002.M02 | Positive | Setup and status groups (SRD-MKT-004.004) | rows with setups, No setup, list, watch, none | one group each; counts, days, win rate and averages right | Not Run |
-| UT-MKT-004.004.M02.T03 | MD-MKT-004.002.M02 | Negative | Empty group left out (SRD-MKT-004.004) | no stock-day in the 80+ band | no 80+ row; other bands kept | Not Run |
-| UT-MKT-004.005.M02.T01 | MD-MKT-004.002.M02 | Positive | Side passes (SRD-MKT-004.005) | 70+ vs SPY +2%, under 40 -1%, 150 each | pass | Not Run |
-| UT-MKT-004.005.M02.T02 | MD-MKT-004.002.M02 | Negative | Side fails (SRD-MKT-004.005) | 70+ vs SPY -0.5%, under 40 -1% | fail | Not Run |
-| UT-MKT-004.005.M02.T03 | MD-MKT-004.002.M02 | Edge | Too few samples (SRD-MKT-004.005) | 70+ has 99 stock-days | not enough data | Not Run |
-| UT-MKT-004.006.M02.T01 | MD-MKT-004.002.M02 | Positive | Run stores and reports (SRD-MKT-004.006) | two runs on synthetic files | two proof_run rows; stats for both sides, 3 kinds, 3 horizons; report text returned | Not Run |
-| UT-MKT-004.007.M02.T01 | MD-MKT-004.002.M02 | Positive | Short history reminder (SRD-MKT-004.007) | 3.2 years of SPY bars | report ends with the Settings → Backtest Data reminder | Not Run |
-| UT-MKT-004.007.M02.T02 | MD-MKT-004.002.M02 | Negative | Long history, no reminder (SRD-MKT-004.007) | 6 years of SPY bars | no reminder line | Not Run |
-| UT-MKT-004.006.M03.T01 | MD-MKT-004.006.M03 | Positive | Proof round trip (SRD-MKT-004.006) | write run + stats; read latest | same values; latest run id | Not Run |
-| UT-MKT-004.006.M03.T02 | MD-MKT-004.006.M03 | Negative | No runs yet (SRD-MKT-004.006) | empty desk.db | latest_proof is None | Not Run |
+| UT-MKT-004.001.M01.T01 | MD-MKT-004.001.M01 | Positive | Daily files read (SRD-MKT-004.001) | SPY + 3 stock files | closes, highs, lows, opens, volumes by SPY's days | Pass |
+| UT-MKT-004.001.M01.T02 | MD-MKT-004.001.M01 | Negative | No Backtest Data folder (SRD-MKT-004.001) | missing folder | None; warning logged | Pass |
+| UT-MKT-004.001.M01.T03 | MD-MKT-004.001.M01 | Edge | Stock missing a day (SRD-MKT-004.001) | one stock without one SPY day | that cell NaN; other days kept | Pass |
+| UT-MKT-004.001.M02.T01 | MD-MKT-004.002.M02 | Negative | Run without data (SRD-MKT-004.001) | no daily files | None; nothing written | Pass |
+| UT-MKT-004.002.M02.T01 | MD-MKT-004.002.M02 | Positive | Replay matches desk step (SRD-MKT-004.002) | same synthetic candles in candles.db and daily files | replayed scores, setups and statuses equal the IdeaStep rows | Pass |
+| UT-MKT-004.002.M02.T02 | MD-MKT-004.002.M02 | Positive | No look-ahead (SRD-MKT-004.002) | change all bars after day d | scores up to day d unchanged | Pass |
+| UT-MKT-004.002.M02.T03 | MD-MKT-004.002.M02 | Positive | No earnings Watch (SRD-MKT-004.002) | replay of a short in an Uptrend | status watch from regime only; no earnings note | Pass |
+| UT-MKT-004.002.M02.T04 | MD-MKT-004.002.M02 | Negative | Thin day not scored (SRD-MKT-004.002) | one day with data for under 80% of members | no scores for that day | Pass |
+| UT-MKT-004.003.M02.T01 | MD-MKT-004.002.M02 | Positive | Long forward return (SRD-MKT-004.003) | next open 100, close at t+5 110, SPY +5% | ret 10%; vs SPY 5% | Pass |
+| UT-MKT-004.003.M02.T02 | MD-MKT-004.002.M02 | Positive | Short forward return (SRD-MKT-004.003) | same bars, short side | ret -10%; vs SPY -5% | Pass |
+| UT-MKT-004.003.M02.T03 | MD-MKT-004.002.M02 | Edge | End of data (SRD-MKT-004.003) | day 10 sessions before the last | 5 and 10-day samples; no 20-day sample | Pass |
+| UT-MKT-004.003.M02.T04 | MD-MKT-004.002.M02 | Negative | Missing exit bar (SRD-MKT-004.003) | close at t+10 missing | no 10-day sample for that stock-day | Pass |
+| UT-MKT-004.004.M02.T01 | MD-MKT-004.002.M02 | Positive | Band edges (SRD-MKT-004.004) | scores 39.9, 40, 70, 80, 100 | under 40, 40–50, 70–80, 80+, 80+ | Pass |
+| UT-MKT-004.004.M02.T02 | MD-MKT-004.002.M02 | Positive | Setup and status groups (SRD-MKT-004.004) | rows with setups, No setup, list, watch, none | one group each; counts, days, win rate and averages right | Pass |
+| UT-MKT-004.004.M02.T03 | MD-MKT-004.002.M02 | Negative | Empty group left out (SRD-MKT-004.004) | no stock-day in the 80+ band | no 80+ row; other bands kept | Pass |
+| UT-MKT-004.005.M02.T01 | MD-MKT-004.002.M02 | Positive | Side passes (SRD-MKT-004.005) | 70+ vs SPY +2%, under 40 -1%, 150 each | pass | Pass |
+| UT-MKT-004.005.M02.T02 | MD-MKT-004.002.M02 | Negative | Side fails (SRD-MKT-004.005) | 70+ vs SPY -0.5%, under 40 -1% | fail | Pass |
+| UT-MKT-004.005.M02.T03 | MD-MKT-004.002.M02 | Edge | Too few samples (SRD-MKT-004.005) | 70+ has 99 stock-days | not enough data | Pass |
+| UT-MKT-004.006.M02.T01 | MD-MKT-004.002.M02 | Positive | Run stores and reports (SRD-MKT-004.006) | two runs on synthetic files | two proof_run rows; stats for both sides, 3 kinds, 3 horizons; report text returned | Pass |
+| UT-MKT-004.007.M02.T01 | MD-MKT-004.002.M02 | Positive | Short history reminder (SRD-MKT-004.007) | 3.2 years of SPY bars | report ends with the Settings → Backtest Data reminder | Pass |
+| UT-MKT-004.007.M02.T02 | MD-MKT-004.002.M02 | Negative | Long history, no reminder (SRD-MKT-004.007) | 6 years of SPY bars | no reminder line | Pass |
+| UT-MKT-004.006.M03.T01 | MD-MKT-004.006.M03 | Positive | Proof round trip (SRD-MKT-004.006) | write run + stats; read latest | same values; latest run id | Pass |
+| UT-MKT-004.006.M03.T02 | MD-MKT-004.006.M03 | Negative | No runs yet (SRD-MKT-004.006) | empty desk.db | latest_proof is None | Pass |

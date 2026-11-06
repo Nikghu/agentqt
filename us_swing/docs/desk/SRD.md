@@ -38,4 +38,4 @@
 | SRD-DSK-001.019 | FO-DSK-001 | Should | Each desk start re-checks the evening task time and updates it after a US or local clock change. | clock | task | Skipped when not installed | Implemented |
 | SRD-DSK-001.020 | FO-DSK-001 | Must | `python -m us_swing desk` runs the desk; `desk start/status/pause/resume/stop/run-now/install/uninstall` control it. | argv | exit code, text | `start` launches a detached process | Implemented |
 | SRD-DSK-001.021 | FO-DSK-001 | Must | The desk loads its steps from the step list in `core/desk_steps.py`, and each step gets the desk folder in its context. | step list | steps | A step that fails to load is logged and left out | Implemented |
-| SRD-DSK-001.022 | FO-DSK-001 | Must | `desk proof` runs the score proof on past data and prints its report. | argv | report text, exit code | Loaded by import path; exit 1 when there is no data | Draft |
+| SRD-DSK-001.022 | FO-DSK-001 | Must | `desk proof` runs the score proof on past data and prints its report. | argv | report text, exit code | Loaded by import path; exit 1 when there is no data | Implemented |
