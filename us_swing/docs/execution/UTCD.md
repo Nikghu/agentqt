@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-27
 **Project:** US Swing Trading System
 
+> v1.24.0: 18 test cases for FO-EXE-021 AI Desk signal intake (MKT P7).
 > v1.23.0: UT-EXE-017.013.M09.T01 added — risk warning uses the frameless app pop-up.
 > v1.22.0: UT-EXE-011.027.M01.T01–T07 and UT-EXE-011.027.M03.T01–T03 added — BOSS_ST.
 > v1.21.0: UT-EXE-006.015.M01.T01–T02 and UT-EXE-007.011.M01.T01–T02 added; UT-EXE-009.002.M01.T09 covers price_30m — 30m timeframe.
@@ -950,3 +951,26 @@
 | UT-EXE-020.008.M02.T02 | MD-EXE-020.004.M02 | Positive | 1W from the viewing user's closes | user 1 +30, user 2 +500; viewing user 1 | 1000, 1030, 1030; start 7 days back | Pass |
 | UT-EXE-020.008.M02.T03 | MD-EXE-020.004.M02 | Edge | YTD start | 24 Oct 2026 | starts 2026-01-01T05:00:00 UTC | Pass |
 | UT-EXE-020.008.M02.T04 | MD-EXE-020.004.M02 | Negative | Unknown range or no ledger | "5Y"; `_tc_query` None | empty | Pass |
+
+## Module: `execution/desk_signals.py`, `broker_adapter.py` and `AppService` desk signals (FO-EXE-021)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-EXE-021.001.M02.T01 | MD-EXE-021.001.M02 | Positive | AI Desk row made on start | strategy store with no AI Desk row | one row: type ai_desk, Positional, auto trade off, stopped | Not Run |
+| UT-EXE-021.001.M02.T02 | MD-EXE-021.001.M02 | Edge | Existing row kept | AI Desk row with Capital Max 25 and mode live | row unchanged; no second row | Not Run |
+| UT-EXE-021.001.M02.T03 | MD-EXE-021.001.M02 | Negative | Start refused | start the AI Desk strategy | stays stopped; one warning | Not Run |
+| UT-EXE-021.002.M01.T01 | MD-EXE-021.002.M01 | Positive | Long signal fields | long pick 2026-11-06 AAPL, qty 45 | ENTRY, AI Desk, LONG, entry, stop, target, qty 45, id desk:2026-11-06:long:AAPL | Not Run |
+| UT-EXE-021.002.M01.T02 | MD-EXE-021.002.M01 | Positive | Short signal | short pick | direction SHORT; id has short | Not Run |
+| UT-EXE-021.002.M02.T01 | MD-EXE-021.001.M02 | Positive | Send adds one signal | send a pick | (45, ""); one pending signal | Not Run |
+| UT-EXE-021.002.M02.T02 | MD-EXE-021.001.M02 | Edge | Same pick twice | send the same pick twice | one pending signal | Not Run |
+| UT-EXE-021.002.M02.T03 | MD-EXE-021.001.M02 | Negative | Unknown side refused | pick with side flat | (0, reason); no signal | Not Run |
+| UT-EXE-021.003.M02.T01 | MD-EXE-021.001.M02 | Positive | Capital Max quantity | capital 100 000, Capital Max 10, per trade 100, entry 101.2 | qty 98 | Not Run |
+| UT-EXE-021.003.M02.T02 | MD-EXE-021.001.M02 | Negative | Quantity 0 | Capital Max 0 | (0, reason); no signal; one warning | Not Run |
+| UT-EXE-021.004.M01.T01 | MD-EXE-021.002.M01 | Positive | Close time from id | desk:2026-11-06:long:AAPL; engine signal id | 2026-11-09 16:00 ET; None | Not Run |
+| UT-EXE-021.004.M02.T01 | MD-EXE-021.001.M02 | Positive | Close sweep | desk signal and engine signal; sweep before and after close | before: both kept; after: desk signal gone, engine signal kept | Not Run |
+| UT-EXE-021.004.M02.T02 | MD-EXE-021.001.M02 | Negative | Bad desk id kept | pending signal id desk:bad; empty store | no error; desk:bad kept | Not Run |
+| UT-EXE-021.005.M03.T01 | MD-EXE-021.005.M03 | Positive | Signal stop and target | ai_desk entry with stop 97.4 and target 108.8 | context hard stop 97.4, target 108.8 | Not Run |
+| UT-EXE-021.005.M03.T02 | MD-EXE-021.005.M03 | Negative | Other strategies unchanged | normal strategy with 1% stop and 2% target, signal levels set | levels from the config percentages | Not Run |
+| UT-EXE-021.006.M02.T01 | MD-EXE-021.001.M02 | Positive | Re-send on start | approved pick for today, no signal, no cycle | one pending signal | Not Run |
+| UT-EXE-021.006.M02.T02 | MD-EXE-021.001.M02 | Negative | No re-send | pick with a cycle today; pick after 16:00 ET; signal already pending | no new signal | Not Run |
+| UT-EXE-021.007.M02.T01 | MD-EXE-021.001.M02 | Positive | Logs | send, refuse and sweep one each | lines with [AI Desk] prefix, stock, side and quantity | Not Run |
