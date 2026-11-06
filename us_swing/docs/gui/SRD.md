@@ -5,6 +5,8 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.92.1: SRD-GUI-034.039–.041 approved by user 2026-11-06.
+> v2.92.0: SRD-GUI-034.039–.041 added as Draft — real lead chat in Command (MKT P9).
 > v2.91.2: SRD-GUI-034.037–.038 Implemented (RN-MKT-0.10.0-20261106).
 > v2.91.1: SRD-GUI-034.037–.038 approved by user 2026-11-06.
 > v2.91.0: SRD-GUI-034.037–.038 added as Draft — AI Desk Results section (MKT P8).
@@ -714,3 +716,6 @@
 | SRD-GUI-034.036 | FO-GUI-034 | Should | A pick leaves the list once it is decided or expired. | pick state | list | Refreshed on each show of Command | Implemented |
 | SRD-GUI-034.037 | FO-GUI-034 | Must | AI Desk gets a live "Results" section with paper and real totals and the decision, grade and tone breakdowns. | results view | section | Empty note when there are no picks yet | Implemented |
 | SRD-GUI-034.038 | FO-GUI-034 | Must | The Results section lists each pick with day, side, stock, decision, paper status, paper R and real P&L, newest first. | results view | table | Real P&L blank when the pick was not traded | Implemented |
+| SRD-GUI-034.039 | FO-GUI-034 | Must | Command → Lead chat shows the chat turns, oldest at the top, with the chat employee's current name on answers. | chat rows | chat list | Replaces the sample chat; empty note when there are no turns | Approved39
+| SRD-GUI-034.040 | FO-GUI-034 | Must | An Ask box and button send a question; the box is cleared and a waiting note shows. | text | question | Ask is disabled while the box is empty or a question waits | Approved40
+| SRD-GUI-034.041 | FO-GUI-034 | Should | While a question waits, the chat checks every 2 seconds and shows the answer, the failed reply, a start-the-desk note when the desk is stopped, or an expired note after 30 minutes. | chat rows, desk state | notes | The check stops when nothing waits | Approved41
