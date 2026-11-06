@@ -225,7 +225,7 @@ The system shall show each lead pick to the Master user for approval and send on
 
 ## FO-MKT-009: Pick Results
 
-**Status:** Approved (user, 2026-11-06)
+**Status:** Implemented (RN-MKT-0.10.0-20261106)
 **Priority:** Should
 **Phase:** P8
 **Depends on:** FO-MKT-005 (lead picks), FO-MKT-008 (trade approvals), FO-EXE-021 (AI Desk trades)

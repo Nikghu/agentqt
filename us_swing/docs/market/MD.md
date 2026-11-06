@@ -139,6 +139,6 @@ SRD coverage: .001 and .003–.006 by M01; .002 by M01 and M02.
 | MD-MKT-009.005.M03 | SRD-MKT-009.005 | `us_swing/src/us_swing/core/desk_results.py` | Real trade rows and the shared results view | `record_pick_trade()`, `results_view()`, `results_lines()`, `ResultsView`, `Group` | `sqlite3`, `core.desk_trades`, `core.desk_hiring` | No |
 | MD-MKT-009.005.M04 | SRD-MKT-009.005 | `us_swing/src/us_swing/gui/app_service.py` | AI Desk cycle closed → real trade row | `_record_desk_trade()` | M03 | No |
 | MD-MKT-009.007.M05 | SRD-MKT-009.007 | `us_swing/src/us_swing/desk/weekly_report.py` | Pick results section (added to MD-DSK-006.009.M20) | `build_report()` | M03 | No |
-| MD-MKT-009.001.M06 | SRD-MKT-009.001 | `us_swing/src/us_swing/core/desk_steps.py` | Step path after Ideas | `STEP_PATHS` | — | No |
+| MD-MKT-009.001.M06 | SRD-MKT-009.001 | `us_swing/src/us_swing/core/desk_steps.py` | Step path after News (so after Ideas) | `STEP_PATHS` | — | No |
 
 SRD coverage: .001–.003 and .008 by M01 and M06; .004 by M02; .005 by M03 and M04; .006 by M03; .007 by M05.

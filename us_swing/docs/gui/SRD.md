@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.91.2: SRD-GUI-034.037–.038 Implemented (RN-MKT-0.10.0-20261106).
 > v2.91.1: SRD-GUI-034.037–.038 approved by user 2026-11-06.
 > v2.91.0: SRD-GUI-034.037–.038 added as Draft — AI Desk Results section (MKT P8).
 > v2.90.2: SRD-GUI-034.034–.036 Implemented (RN-MKT-0.9.0-20261106).
@@ -711,5 +712,5 @@
 | SRD-GUI-034.034 | FO-GUI-034 | Must | Command → "Approvals waiting" also lists each waiting trade pick with side, stock, entry, stop, target and quantity, and Approve and Reject buttons. | trade picks | rows | Hires stay listed as now; empty note when none | Implemented |
 | SRD-GUI-034.035 | FO-GUI-034 | Must | Approve sends the pick to Execution through AppService and then records the approve row; Reject records only the reject row. | click | signal, approval row | No row is written when the send is refused; the refusal shows in the row | Implemented |
 | SRD-GUI-034.036 | FO-GUI-034 | Should | A pick leaves the list once it is decided or expired. | pick state | list | Refreshed on each show of Command | Implemented |
-| SRD-GUI-034.037 | FO-GUI-034 | Must | AI Desk gets a live "Results" section with paper and real totals and the decision, grade and tone breakdowns. | results view | section | Empty note when there are no picks yet | Approved |
-| SRD-GUI-034.038 | FO-GUI-034 | Must | The Results section lists each pick with day, side, stock, decision, paper status, paper R and real P&L, newest first. | results view | table | Real P&L blank when the pick was not traded | Approved |
+| SRD-GUI-034.037 | FO-GUI-034 | Must | AI Desk gets a live "Results" section with paper and real totals and the decision, grade and tone breakdowns. | results view | section | Empty note when there are no picks yet | Implemented |
+| SRD-GUI-034.038 | FO-GUI-034 | Must | The Results section lists each pick with day, side, stock, decision, paper status, paper R and real P&L, newest first. | results view | table | Real P&L blank when the pick was not traded | Implemented |

@@ -2,6 +2,17 @@
 
 ---
 
+## [20261106] MKT + GUI — Pick results, phase P8 (FO-MKT-009)
+
+- Type: Feature
+- FO(s): FO-MKT-009; FO-GUI-034 (still at Reopen)
+- RN: RN-MKT-0.10.0-20261106
+- Artifacts updated: FO, SRD (MKT-009.001–.008, GUI-034.037–.038 Implemented), DD (DD-MKT-009.001.D01), MD, UTCD (23 MKT and 5 GUI rows Pass), TRACE, desk DD phase plan (P8 row), Code (market/pick_results.py, market/store.py, core/desk_results.py, core/desk_steps.py, desk/weekly_report.py, gui/app_service.py, gui/ai_desk_results.py, gui/ai_desk.py)
+- Decisions: user chose real + paper results, trigger within 5 days then stop/2R/10 days, credit by lead + setup grade + news tone, show in AI Desk Results and the weekly report; stop wins ties; step placed after News (an old test pins News right after Ideas); two old AI Desk tests updated for the 12th section
+- Tests: 2439 passed, 12 old failures (T112), 2 skipped; reviewers approved (exit price None now gives empty R)
+
+---
+
 ## [20261106] MKT + EXE + GUI — Link to Execution, phase P7 (FO-MKT-008, FO-EXE-021)
 
 - Type: Feature

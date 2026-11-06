@@ -1120,8 +1120,8 @@ Test files:
 | UT-GUI-034.035.M24.T03 | MD-GUI-034.034.M24 | Negative | Send refused (SRD-GUI-034.035) | sink returns (0, reason) | no row; reason shown; buttons on | Pass |
 | UT-GUI-034.035.M24.T04 | MD-GUI-034.034.M24 | Negative | Expired at click (SRD-GUI-034.035) | clock moves past next open, then Approve | sink not called; no row; reason shown | Pass |
 | UT-GUI-034.036.M24.T01 | MD-GUI-034.034.M24 | Positive | Decided and expired drop off (SRD-GUI-034.036) | one approved, one expired, one waiting pick; box rebuilt | only the waiting pick listed | Pass |
-| UT-GUI-034.037.M25.T01 | MD-GUI-034.037.M25 | Positive | Totals and breakdowns (SRD-GUI-034.037) | 3 scored picks, 1 real trade | top line with paper and real totals; three breakdown tables | Not Run |
-| UT-GUI-034.037.M25.T02 | MD-GUI-034.037.M25 | Negative | No picks (SRD-GUI-034.037) | empty desk folder | empty note; no error | Not Run |
-| UT-GUI-034.038.M25.T01 | MD-GUI-034.037.M25 | Positive | Pick table (SRD-GUI-034.038) | picks on 2 days, one traded | newest day first; real P&L only on the traded pick | Not Run |
-| UT-GUI-034.038.M25.T02 | MD-GUI-034.037.M25 | Edge | Section is live (SRD-GUI-034.038) | AI Desk page; show Results, add a pick, show again | Results in the section list; new pick shown after the second show | Not Run |
-| UT-GUI-034.038.M25.T03 | MD-GUI-034.037.M25 | Negative | Not worked out yet (SRD-GUI-034.038) | lead picks but no pick_results table | picks listed with a blank paper status; no error | Not Run |
+| UT-GUI-034.037.M25.T01 | MD-GUI-034.037.M25 | Positive | Totals and breakdowns (SRD-GUI-034.037) | 3 scored picks, 1 real trade | top line with paper and real totals; three breakdown tables | Pass |
+| UT-GUI-034.037.M25.T02 | MD-GUI-034.037.M25 | Negative | No picks (SRD-GUI-034.037) | empty desk folder | empty note; no error | Pass |
+| UT-GUI-034.038.M25.T01 | MD-GUI-034.037.M25 | Positive | Pick table (SRD-GUI-034.038) | picks on 2 days, one traded | newest day first; real P&L only on the traded pick | Pass |
+| UT-GUI-034.038.M25.T02 | MD-GUI-034.037.M25 | Edge | Section is live (SRD-GUI-034.038) | AI Desk page; show Results, add a pick, show again | Results in the section list; new pick shown after the second show | Pass |
+| UT-GUI-034.038.M25.T03 | MD-GUI-034.037.M25 | Negative | Not worked out yet (SRD-GUI-034.038) | lead picks but no pick_results table | picks listed with a blank paper status; no error | Pass |

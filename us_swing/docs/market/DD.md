@@ -777,7 +777,7 @@ The Command section is live, so a rebuild on each show drops decided and expired
 | `market/pick_results.py` (new) | `paper_result()` (pure rule) and the desk step `PickResultsStep` ("Pick results") |
 | `market/store.py` | Table `pick_results`, `MarketStore.replace_pick_results()` |
 | `core/desk_results.py` (new) | Table `pick_trades`, `record_pick_trade()` (app), `results_view()` and `results_lines()` (GUI and weekly report) |
-| `core/desk_steps.py` | `PickResultsStep` path after `IdeaStep` |
+| `core/desk_steps.py` | `PickResultsStep` path after `NewsStep` (so after Ideas), before AI employees |
 | `gui/app_service.py` | `CycleClosed` of the AI Desk strategy → `record_pick_trade()` |
 | `desk/weekly_report.py` | Pick results section |
 | `gui/ai_desk_results.py` (new), `gui/ai_desk.py` | Live AI Desk section "Results" after "Reports" |
@@ -799,7 +799,7 @@ R = (exit - entry) / (entry - stop) for long, (entry - exit) / (stop - entry) fo
 
 Entry is the trigger and exits are the stop or target price; daily bars have no open, so gaps are not modelled. Target is `pick_target(side, trigger, stop, trade_target_r)` from `core.desk_trades`, with the desk setting.
 
-**Step** (`PickResultsStep`, name "Pick results", after "Ideas"). Reads every `lead_picks` row joined with `ideas` (trigger, stop), the daily bars of those symbols from `candles.db` (`CandleReader`), works out each pick, and calls `replace_pick_results(rows)`. No candle file → one warning, nothing written. Logs `[Results] %d pick(s) worked out, %d still open`.
+**Step** (`PickResultsStep`, name "Pick results", after "Ideas" and "News", before "AI employees"). Reads every `lead_picks` row joined with `ideas` (trigger, stop), the daily bars of those symbols from `candles.db` (`CandleReader`), works out each pick, and calls `replace_pick_results(rows)`. No candle file → one warning, nothing written. Logs `[Results] %d pick(s) worked out, %d still open`.
 
 **Table** (`market/store.py`, in `desk.db`):
 
