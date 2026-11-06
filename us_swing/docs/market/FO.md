@@ -6,6 +6,8 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.10.1: FO-MKT-010 approved by user 2026-11-06.
+> v0.10.0: FO-MKT-010 added as Draft — Lead Chat (P9).
 > v0.9.1: FO-MKT-009 approved by user 2026-11-06.
 > v0.9.0: FO-MKT-009 added as Draft — Pick Results (P8).
 > v0.8.1: FO-MKT-008 approved by user 2026-11-06.
@@ -246,3 +248,28 @@ The system shall measure how the desk's lead picks turn out, both as paper resul
 3. When an AI Desk trade closes in the app, a real result row with its P&L and R is added.
 4. AI Desk → Results shows paper and real totals, the breakdowns and one row per pick.
 5. The Friday weekly report has a pick results section for the week's picks.
+
+## FO-MKT-010: Lead Chat
+
+**Status:** Implemented (RN-MKT-0.11.0-20261106)
+**Priority:** Should
+**Phase:** P9
+**Depends on:** FO-MKT-005 (lead brief and views), FO-MKT-009 (pick results), FO-DSK-003 (events)
+
+The system shall let the Master user ask the lead questions in AI Desk and get answers from the desk, so the desk's views and picks can be questioned in plain words. The desk process answers, so every answer is recorded and counted in the desk budget. The chat only explains; it never acts.
+
+- The system shall let the Master type a question in AI Desk → Command and send it to the desk.
+- The system shall wake a lead-level chat employee for each question and answer it from the latest day's facts, the last 10 trading days of picks with their paper results, and the last few chat turns.
+- The system shall show the answer under the question in Command.
+- The system shall save a failed reply when no valid answer comes, and show an expired note when the desk does not answer in 30 minutes.
+- The system shall never let the chat approve, reject or place a trade.
+- The system shall limit the chat only by the chat employee's monthly cost cap and the desk budget.
+- The system shall ship a default chat employee with a generic lead-level name only.
+
+### Acceptance Criteria
+
+1. With the desk running, a question sent in Command gets an answer in the chat within about a minute.
+2. The answer can name the day's picks and their paper results.
+3. With the desk stopped, the chat says to start the desk; the question expires after 30 minutes.
+4. A failed or refused answer shows a failed reply, and the next question still works.
+5. Nothing in the chat changes approvals, signals or orders.

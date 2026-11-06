@@ -26,6 +26,7 @@ from us_swing.gui.ai_desk_sections import (
     org_frame,
 )
 from us_swing.gui.ai_desk_hiring import approvals_box, hiring_frame
+from us_swing.gui.ai_desk_chat import ChatPanel
 from us_swing.gui.ai_desk_results import results_frame
 from us_swing.gui.ai_desk_sections2 import (
     activity_frame,
@@ -66,6 +67,7 @@ class AiDeskWorkspace(QWidget):
                  parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._sink = sink
+        self._poller = poller
         gutter(self)
         main = QHBoxLayout(self)
         main.setContentsMargins(0, 0, 0, 0)
@@ -102,7 +104,8 @@ class AiDeskWorkspace(QWidget):
     def _build(self, name: str) -> QWidget:
         if name == "Command":
             return command_frame(name, approvals_box(
-                self._home, lambda: self.select_section("Hiring"), self._sink))
+                self._home, lambda: self.select_section("Hiring"), self._sink),
+                ChatPanel(self._home, lambda: self._poller.status.state))
         if name == "Hiring":
             return hiring_frame(name, self._home)
         if name == "Reports":

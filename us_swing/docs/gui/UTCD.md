@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.17.0: UT-GUI-034.039–.041 added (MKT P9).
 > v1.16.0: UT-GUI-034.037–.038 added (MKT P8).
 > v1.15.0: UT-GUI-034.034–.036 added (MKT P7).
 > v1.14.0: UT-GUI-034.027–.033 added (DSK P6).
@@ -1125,3 +1126,10 @@ Test files:
 | UT-GUI-034.038.M25.T01 | MD-GUI-034.037.M25 | Positive | Pick table (SRD-GUI-034.038) | picks on 2 days, one traded | newest day first; real P&L only on the traded pick | Pass |
 | UT-GUI-034.038.M25.T02 | MD-GUI-034.037.M25 | Edge | Section is live (SRD-GUI-034.038) | AI Desk page; show Results, add a pick, show again | Results in the section list; new pick shown after the second show | Pass |
 | UT-GUI-034.038.M25.T03 | MD-GUI-034.037.M25 | Negative | Not worked out yet (SRD-GUI-034.038) | lead picks but no pick_results table | picks listed with a blank paper status; no error | Pass |
+| UT-GUI-034.039.M26.T01 | MD-GUI-034.039.M26 | Positive | Turns shown (SRD-GUI-034.039) | question and answer; chat employee named 'Chat Person' | Master line and a Chat Person line, oldest first | Pass |
+| UT-GUI-034.039.M26.T02 | MD-GUI-034.039.M26 | Edge | No turns (SRD-GUI-034.039) | empty desk folder | empty note; Ask box ready | Pass |
+| UT-GUI-034.040.M26.T01 | MD-GUI-034.039.M26 | Positive | Ask (SRD-GUI-034.040) | type a question; click Ask | chat row saved; box cleared; waiting note; Ask disabled | Pass |
+| UT-GUI-034.040.M26.T02 | MD-GUI-034.039.M26 | Negative | Empty box (SRD-GUI-034.040) | empty or blank box | Ask disabled; nothing saved | Pass |
+| UT-GUI-034.041.M26.T01 | MD-GUI-034.039.M26 | Positive | Answer arrives (SRD-GUI-034.041) | reply row added while waiting; tick | answer shown; note cleared; timer stopped | Pass |
+| UT-GUI-034.041.M26.T02 | MD-GUI-034.039.M26 | Negative | Desk stopped or expired (SRD-GUI-034.041) | poller Stopped; then 31 minutes later | start-the-desk note; then expired note and timer stopped | Pass |
+| UT-GUI-034.041.M26.T03 | MD-GUI-034.039.M26 | Positive | Resume after rebuild (SRD-GUI-034.041) | question waiting; Command built again | waiting note; check running; Ask disabled | Pass |

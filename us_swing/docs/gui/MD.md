@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.19.0: MD-GUI-034.039.M26 added (MKT P9).
 > v1.18.0: MD-GUI-034.037.M25 added (MKT P8).
 > v1.17.0: MD-GUI-034.034.M24 added (MKT P7).
 > v1.16.0: MD-GUI-034.027.M21, .032.M22 and .033.M23 added (DSK P6).
@@ -430,5 +431,6 @@ us_swing/src/us_swing/gui/
 | MD-GUI-034.033.M23 | SRD-GUI-034.033 | `us_swing/src/us_swing/gui/ai_desk_settings.py` | Seat cap fields in Desk settings | `DeskAiSettingsForm` | `core.desk_ai_settings`, `core.desk_hiring` | No |
 | MD-GUI-034.034.M24 | SRD-GUI-034.034 | `us_swing/src/us_swing/gui/ai_desk_hiring.py`, `gui/ai_desk.py`, `gui/main_window.py` | Trade pick rows with Approve and Reject in Command → Approvals waiting; the main window passes the app service as the sink | `approvals_box(home, open_hiring, sink)`, `AiDeskWorkspace(poller, sink)` | `core.desk_trades` | No |
 | MD-GUI-034.037.M25 | SRD-GUI-034.037 | `us_swing/src/us_swing/gui/ai_desk_results.py`, `gui/ai_desk.py` | Live AI Desk Results section: totals, breakdowns and the pick table | `results_frame()` | `core.desk_results` | No |
+| MD-GUI-034.039.M26 | SRD-GUI-034.039 | `us_swing/src/us_swing/gui/ai_desk_chat.py`, `gui/ai_desk_sections.py`, `gui/ai_desk.py` | Real lead chat in Command: turns, Ask box, 2-second check while a question waits | `ChatPanel`, `command_frame(name, approvals, chat)` | `core.desk_chat` | No |
 
-SRD coverage: .037–.038 by M25; .034–.036 by M24; .002 and .003 by M02 and M09; .004 by M04; .005 by M05; .006 and .007 by M06; .008 by M07; .009 by M08; .010 by M03 and M09.
+SRD coverage: .039–.041 by M26; .037–.038 by M25; .034–.036 by M24; .002 and .003 by M02 and M09; .004 by M04; .005 by M05; .006 and .007 by M06; .008 by M07; .009 by M08; .010 by M03 and M09.

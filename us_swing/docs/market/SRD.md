@@ -6,6 +6,9 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.12.2: SRD-MKT-010.001–.008 Implemented (RN-MKT-0.11.0-20261106).
+> v0.12.1: SRD-MKT-010.001–.008 approved by user 2026-11-06.
+> v0.12.0: SRD-MKT-010.001–.008 added as Draft — lead chat (P9).
 > v0.11.2: SRD-MKT-009.001–.008 Implemented (RN-MKT-0.10.0-20261106).
 > v0.11.1: SRD-MKT-009.001–.008 approved by user 2026-11-06.
 > v0.11.0: SRD-MKT-009.001–.008 added as Draft — pick results (P8).
@@ -165,3 +168,16 @@
 | SRD-MKT-009.006 | FO-MKT-009 | Must | A shared results view gives paper totals and breakdowns by Master decision, setup review grade and news tone, and real trade totals. | `desk.db` | results view | Lives in `core/`; grouped by skill input, never by employee name | Implemented |
 | SRD-MKT-009.007 | FO-MKT-009 | Should | The weekly report adds a pick results section for picks whose data day is in the week. | results view | report text | Paper picks, fills, hit rate, average R; real trades, wins, P&L | Implemented |
 | SRD-MKT-009.008 | FO-MKT-009 | Should | The Pick results step logs how many picks it worked out and how many are still open. | step | log lines | `[Results]` prefix | Implemented |
+
+## FO-MKT-010: Lead Chat
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-MKT-010.001 | FO-MKT-010 | Must | A Master question from Command is saved as a `chat` row and posts one `chat_question` event. | question text | chat row, event | 1 to 500 characters; the GUI only adds rows and never imports `desk` | Implemented |
+| SRD-MKT-010.002 | FO-MKT-010 | Must | A `chat_question` event has priority 0, a 2-minute deadline and a 30-minute expiry, one event per question. | question | event | Added to the desk event kinds; priority 0 skips the 30-minute wake gap | Implemented |
+| SRD-MKT-010.003 | FO-MKT-010 | Must | A lead chat skill answers the oldest open question from the latest day's facts, the last 10 trading days of picks with paper results, and the last 6 chat turns. | `desk.db` | facts text | No skill needs; a question older than 30 minutes is not answered | Implemented |
+| SRD-MKT-010.004 | FO-MKT-010 | Must | The answer is one text of at most 1500 characters, saved as a lead `chat` row linked to its question. | answer | chat row | Limit also in the JSON schema; `chat` is append-only | Implemented |
+| SRD-MKT-010.005 | FO-MKT-010 | Must | When no valid answer comes, a failed reply row is saved for the question. | no answer | chat row | Plain text says the desk could not answer; no retry | Implemented |
+| SRD-MKT-010.006 | FO-MKT-010 | Must | The chat answer has only text, and no chat code approves, rejects or places a trade. | — | — | No tools; schema has one text field | Implemented |
+| SRD-MKT-010.007 | FO-MKT-010 | Must | A default lead-level chat employee ships as `emp-008` (generic name "Lead 2") with trigger `chat_question`, and the skill is added to the skill list. | — | files, skill path | Calls per day 200 so only the monthly cap USD 3 and the desk budget limit it; `market` never imports `desk` | Implemented |
+| SRD-MKT-010.008 | FO-MKT-010 | Should | Each chat answer or failed reply logs the question number and the seconds it took. | answer | log line | `[Chat]` prefix | Implemented |

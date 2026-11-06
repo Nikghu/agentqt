@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.11.0: DD-MKT-010.001.D01 added — lead chat (P9).
 > v0.10.0: DD-MKT-009.001.D01 added — pick results (P8).
 > v0.9.0: DD-MKT-008.001.D01 added — link to Execution (P7).
 > v0.8.0: DD-MKT-007.001.D01 added — AI report pages (P5d).
@@ -844,3 +845,75 @@ real: trades, wins (pnl > 0), pnl, avg_r over pick_trades in the range (by exit 
 **Weekly report.** `build_report` adds a blank line, "Pick results", and `results_lines(results_view(home, first, friday))`.
 
 **GUI Results** (`results_frame(name, home)`). Top line: paper picks, fills, hit rate, average R; real trades, wins, P&L. Three small tables (Decision, Setup grade, News tone: Group · Picks · Fills · Finished · Hit rate · Avg R). Then the pick table: Day · Side · Stock · Decision · Paper · R · Real P&L, newest first. Empty note "No lead picks yet" when there are none. Labels are skills and inputs only; employee names never appear.
+
+## DD-MKT-010.001.D01 — Lead Chat (P9)
+
+**Traces:** SRD-MKT-010.001–.008; GUI SRD-GUI-034.039–.041
+
+**Files.**
+
+| File | What |
+|---|---|
+| `core/desk_chat.py` (new) | Append-only `chat` table; `ask_question()` (GUI), `open_question()`, `add_reply()` (desk), `chat_turns()`, `question_note()` |
+| `core/desk_events.py` | Event kind `chat_question`; one key per question |
+| `market/lead_chat.py` (new) | `LeadChatSkill` (key `lead_chat`, no needs) and `LeadChatAnswer` |
+| `market/employees/emp-008/` (new) | Default employee "Lead 2" (level lead, skill `lead_chat`, trigger `chat_question`) |
+| `core/desk_steps.py` | `lead_chat` skill path |
+| `gui/ai_desk_chat.py` (new) | `ChatPanel`: turns, Ask box, 2-second check while a question waits |
+| `gui/ai_desk_sections.py`, `gui/ai_desk.py` | `command_frame(name, approvals, chat)`; the workspace passes a `ChatPanel` with the poller |
+
+**Table** (`core/desk_chat.py`, in `desk.db`):
+
+```
+chat(id INTEGER PK, created TEXT, role TEXT, text TEXT, reply_to INTEGER, state TEXT)
+  role master: a question (state 'asked');  role lead: a reply (state 'answered' or 'failed')
+  + no-update and no-delete triggers
+ask_question(home, text, now) -> int:
+    text stripped; 1..500 chars else ValueError
+    INSERT master row; post_event(home, "chat_question", now date, now, run_id=id)
+open_question(home, now) -> ChatTurn | None:
+    oldest master row with no lead reply and created within 30 minutes
+add_reply(home, question_id, text, ok, now): INSERT lead row (answered / failed)
+chat_turns(home, limit=50) -> list[ChatTurn]   oldest first, last ``limit`` rows
+question_note(home, question_id, now, desk_up) -> str:
+    "" when replied; "Waiting for the answer" when desk_up; "Start the desk to get an answer"
+    otherwise; "No answer: the question expired" after 30 minutes
+```
+
+**Event.** `EVENT_RULES["chat_question"] = EventRule(0, 2 min, 30 min)`. The key is `chat_question|<day>|<question id>` (`post_event` uses `run_id` for `after_run` and `chat_question`), so every question is its own event. Priority 0 skips the 30-minute wake gap; the once-per-day rule is only for `after_run`.
+
+**Skill** (`LeadChatSkill`, key `lead_chat`, needs `()`):
+
+```
+facts(home):
+    q = open_question(home, now NY)              none -> fresh False, "no open question"
+    day = latest lead_picks / ideas day ("" when none)
+    text = "Question #<id>: <text>"
+         + "Recent chat:" last 6 turns before q (Master / Lead lines)
+         + "Today (<day>):" LeadBriefSkill().facts(home).text  (views, passed ideas, grades)
+         + "Picks of the last 10 trading days:" results_view(home, now, first) lines per pick:
+           day side symbol decision paper-status R real-P&L
+act(ctx, facts):
+    q = open_question(ctx.home, now)             gone -> []
+    ans = ctx.ask(facts.text, LeadChatAnswer)
+    add_reply(home, q.id, ans.answer if ans else FAILED_TEXT, ok=ans is not None, now)
+    log "[Chat] Question %d answered in %.1f s" / "[Chat] Question %d got no answer"
+    return []                                    no feed item
+```
+
+`LeadChatAnswer(answer: str, 1..1500 chars, extra forbid)`. The schema has one text field and the chat has no tools, so it cannot act (SRD-MKT-010.006). `FAILED_TEXT = "The desk could not answer this question. Please ask again later."`
+
+**Employee** `emp-008`: name "Lead 2", title "Chat lead", level lead, skill `lead_chat`, trigger `chat_question`, models as the lead, `calls_per_day: 200`, `monthly_cost_usd: 3.0`. The soul says: answer only from the facts, short plain words, say "I do not know" when the facts do not say, never claim to approve or trade.
+
+**GUI** (`ChatPanel(home, poller)`, built in the live Command section):
+
+```
+list of turns: "<b>Master</b>" or "<b><chat employee name></b>" (current name of the active
+               employee with skill lead_chat, else "Lead"), failed replies muted
+Ask box (QLineEdit, max 500) + Ask button; Ask disabled when empty or a question waits
+Ask: ask_question(); clear box; note = question_note(); start 2 s QTimer
+tick: rebuild turns; note = question_note(..., desk_up = poller state Running or Sleeping);
+      stop the timer when replied or expired
+```
+
+The panel reads `desk.db` on the GUI thread (small reads, as the other live sections) and only adds `chat` rows and one event through `core`.

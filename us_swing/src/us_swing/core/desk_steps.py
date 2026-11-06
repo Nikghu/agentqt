@@ -5,6 +5,7 @@ Also: SRD-DSK-001.022 — score proof runner path
 Also: SRD-DSK-002.001, SRD-DSK-003.001 — skill list, default employee files and the "AI employees" step
 Also: SRD-MKT-007.007 — report page skill path
 Also: SRD-DSK-006.009 — "Weekly report" step path
+Also: MD-MKT-010.007.M04 — ``lead_chat`` skill path (SRD-MKT-010.007)
 Also: MD-MKT-009.001.M06 — "Pick results" step path (SRD-MKT-009.001)
 
 The list of steps the desk runs, loaded by import path, so ``desk`` never imports
@@ -39,6 +40,7 @@ SKILL_PATHS: dict[str, str] = {
     "lead_brief": "us_swing.market.lead_brief:LeadBriefSkill",
     "news_review": "us_swing.market.news_review:NewsReviewSkill",
     "report_page": "us_swing.market.report_page:ReportPageSkill",
+    "lead_chat": "us_swing.market.lead_chat:LeadChatSkill",
 }
 # Packages whose ``employees/`` folder holds default employee files to copy on first run.
 DEFAULT_EMPLOYEE_PACKAGES: tuple[str, ...] = ("us_swing.market",)

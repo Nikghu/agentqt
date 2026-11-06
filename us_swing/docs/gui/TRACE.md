@@ -137,6 +137,7 @@
 | FO-GUI-034 | SRD-GUI-034.027–.033 | DD-DSK-006.001.D01 | MD-GUI-034.027.M21, .032.M22, .033.M23 | UT-GUI-034.027–.033 (13, Pass) | `gui/ai_desk_hiring.py`, `gui/ai_desk.py`, `gui/ai_desk_sections.py`, `gui/ai_desk_sections3.py`, `gui/ai_desk_settings.py`, `core/desk_floor.py` | Implemented | RN-DSK-0.4.0-20261106 |
 | FO-GUI-034 | SRD-GUI-034.034–.036 | DD-MKT-008.001.D01 | MD-GUI-034.034.M24 | UT-GUI-034.034.M24.T01–T03, .035.M24.T01–T04, .036.M24.T01 (Pass) | `gui/ai_desk_hiring.py`, `gui/ai_desk.py`, `gui/main_window.py` | Implemented | RN-MKT-0.9.0-20261106 |
 | FO-GUI-034 | SRD-GUI-034.037–.038 | DD-MKT-009.001.D01 | MD-GUI-034.037.M25 | UT-GUI-034.037.M25.T01–T02, .038.M25.T01–T03 (Pass) | `gui/ai_desk_results.py`, `gui/ai_desk.py` | Implemented | RN-MKT-0.10.0-20261106 |
+| FO-GUI-034 | SRD-GUI-034.039–.041 | DD-MKT-010.001.D01 | MD-GUI-034.039.M26 | UT-GUI-034.039.M26.T01–T02, .040.M26.T01–T02, .041.M26.T01–T03 (Pass) | `gui/ai_desk_chat.py`, `gui/ai_desk_sections.py`, `gui/ai_desk.py` | Implemented | RN-MKT-0.11.0-20261106 |
 
 ---
 

@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.12.0: MD-MKT-010.*.M01–M04 added — lead chat (P9).
 > v0.11.0: MD-MKT-009.*.M01–M06 added — pick results (P8).
 > v0.10.0: MD-MKT-008.*.M01–M02 added — link to Execution (P7).
 > v0.9.0: MD-MKT-007.*.M01–M04 added — AI report pages (P5d).
@@ -142,3 +143,14 @@ SRD coverage: .001 and .003–.006 by M01; .002 by M01 and M02.
 | MD-MKT-009.001.M06 | SRD-MKT-009.001 | `us_swing/src/us_swing/core/desk_steps.py` | Step path after News (so after Ideas) | `STEP_PATHS` | — | No |
 
 SRD coverage: .001–.003 and .008 by M01 and M06; .004 by M02; .005 by M03 and M04; .006 by M03; .007 by M05.
+
+## FO-MKT-010: Lead Chat
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-MKT-010.001.M01 | SRD-MKT-010.001 | `us_swing/src/us_swing/core/desk_chat.py` | Append-only chat table, questions, replies and notes (shared by the GUI and the desk) | `ChatTurn`, `ask_question()`, `open_question()`, `add_reply()`, `chat_turns()`, `question_note()` | `sqlite3`, `core.desk_events` | No |
+| MD-MKT-010.002.M02 | SRD-MKT-010.002 | `us_swing/src/us_swing/core/desk_events.py` | `chat_question` event kind and per-question key (added to MD-DSK-003.004.M15) | `EVENT_RULES`, `post_event()` | — | No |
+| MD-MKT-010.003.M03 | SRD-MKT-010.003 | `us_swing/src/us_swing/market/lead_chat.py` | Lead chat skill: facts, answer, reply row, log | `LeadChatSkill`, `LeadChatAnswer`, `FAILED_TEXT` | `core.desk_agents`, M01, `core.desk_results`, `market.lead_brief` | No |
+| MD-MKT-010.007.M04 | SRD-MKT-010.007 | `us_swing/src/us_swing/market/employees/emp-008/`, `core/desk_steps.py` | Default chat employee files and the skill path | `SKILL_PATHS` | — | No |
+
+SRD coverage: .001 by M01; .002 by M02; .003–.006 and .008 by M03; .007 by M04.
