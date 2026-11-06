@@ -3,8 +3,9 @@ Module: MD-GUI-034.009.M08 — AI Desk sections (Reports to Desk settings)
 Parent SRD: SRD-GUI-034.009
 Also: MD-GUI-034.016.M15 — editable desk AI settings (SRD-GUI-034.016)
 Also: MD-GUI-034.017.M16 — real month cost (SRD-GUI-034.017)
+Also: MD-GUI-034.032.M22 — weekly reports (SRD-GUI-034.032)
 
-Reports is sample content. Cost & budget shows the real month once the desk has used AI;
+Reports shows the desk's weekly reports (sample reports until the first one). Cost & budget shows the real month once the desk has used AI;
 Desk settings has the editable desk AI settings.
 """
 from __future__ import annotations
@@ -43,21 +44,26 @@ class _NoFallback:
         return []
 
 
-def reports_frame(name: str) -> QWidget:
-    """Build the report list and the text of the selected report."""
-    frame, body = section_frame(name)
+def reports_frame(name: str, home: Path | None = None) -> QWidget:
+    """Build the report list and the text of the selected report.
+
+    Weekly reports from the desk when there are any (SRD-GUI-034.032), else sample reports.
+    """
+    real = DeskFloorData(_NoFallback(), home).weekly_reports()
+    reports = dict(real) if real else dict(S.REPORTS)
+    frame, body = section_frame(name, sample=not real)
     row = QHBoxLayout()
     row.setSpacing(12)
-    names = list(S.REPORTS)
+    names = list(reports)
     listing = page_list(names)
-    text = read_only_text(S.REPORTS[names[0]], mono=False)
+    text = read_only_text(reports[names[0]], mono=bool(real))
     row.addWidget(listing, 1)
     row.addWidget(text, 3)
     body.addLayout(row, 1)
 
     def show(index: int) -> None:
         if index >= 0:
-            text.setPlainText(S.REPORTS[names[index]])
+            text.setPlainText(reports[names[index]])
 
     # list → currentRowChanged → frame → show
     listing.currentRowChanged.connect(show)

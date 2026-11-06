@@ -33,24 +33,6 @@ class OrgNode:
 
 
 @dataclass(frozen=True)
-class Approval:
-    """One item waiting for the Master."""
-
-    kind: str
-    title: str
-    detail: str
-
-
-@dataclass(frozen=True)
-class Candidate:
-    """One hiring proposal and the pipeline stage it sits in."""
-
-    name: str
-    stage: int
-    note: str
-
-
-@dataclass(frozen=True)
 class TaskCard:
     """One task on the board."""
 
@@ -61,9 +43,6 @@ class TaskCard:
     column: str
 
 
-HIRING_STAGES = (
-    "Proposed", "Master approval 1", "Shadow trial (2 weeks)", "Master approval 2", "Hired",
-)
 TASK_COLUMNS = ("Queued", "Running", "Done", "Failed")
 
 
@@ -157,12 +136,6 @@ max_cost_per_task_usd: 0.05
 reports_to: Lead 1
 """
 
-APPROVALS = (
-    Approval("Trade", "Long NVDA, 40 shares", "Entry 118.40, stop 114.90, target 127.00"),
-    Approval("Trade", "Short XLE, 60 shares", "Entry 91.20, stop 93.10, target 86.80"),
-    Approval("Hiring", "Jev decision junior (shadow)", "Typed decisions, 2 week shadow trial"),
-)
-
 RUN_COLUMNS = ("Time ET", "Run", "Result", "Duration", "Cost")
 RUNS = (
     ("08:30", "Morning brief", "Done", "1m 12s", "$0.03"),
@@ -176,11 +149,6 @@ CHAT = (
     ("Master", "Show me the risk on the NVDA idea."),
     ("Lead 1", "Expert 4 allows it at 40 shares. The stop risks 0.4% of the account."),
     ("Master", "Fine, I will check the card."),
-)
-
-CANDIDATES = (
-    Candidate("Jev decision junior (shadow)", 2, "Typed decisions; runs beside Expert 3"),
-    Candidate("Earnings calendar junior", 0, "Plain code; lists earnings dates"),
 )
 
 TASKS = (

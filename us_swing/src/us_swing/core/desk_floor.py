@@ -8,6 +8,7 @@ Also: MD-GUI-034.015.M14 — AI feed briefs (SRD-GUI-034.015)
 Also: MD-GUI-034.017.M16 — month AI cost (SRD-GUI-034.017)
 Also: MD-GUI-034.018.M17 — latest news, news tags and calendar (SRD-GUI-034.018–.020)
 Also: MD-GUI-034.022.M19 — report page versions for AI Desk Pages (SRD-GUI-034.022)
+Also: MD-GUI-034.032.M22 — weekly reports for AI Desk Reports (SRD-GUI-034.032)
 
 Market Floor data from ``desk.db``: the real regime, breadth, sectors and RS leaders when
 the desk has them, the fallback provider (sample data) for every other product.
@@ -328,6 +329,11 @@ class DeskFloorData:
                                "ORDER BY date DESC, version DESC")
         return [PageVersion(int(i), str(d), int(v), str(t), _ny_saved(str(c)))
                 for i, d, v, t, c in rows]
+
+    def weekly_reports(self) -> list[tuple[str, str]]:
+        """Return ``(title, text)`` of every weekly report, newest week first."""
+        rows = self._query_all("SELECT title, text FROM desk_reports ORDER BY week DESC")
+        return [(str(t), str(x)) for t, x in rows]
 
     def report_page(self, page_id: int) -> tuple[str, str] | None:
         """Return ``(title, html)`` of one report page version, or ``None``."""

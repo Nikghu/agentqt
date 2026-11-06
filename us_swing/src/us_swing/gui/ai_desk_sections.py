@@ -150,34 +150,17 @@ def _chat_frame() -> QWidget:
     return box
 
 
-def _approvals_frame() -> QWidget:
-    box = QWidget()
-    lines = QVBoxLayout(box)
-    lines.setContentsMargins(0, 0, 0, 0)
-    lines.addWidget(heading("Approvals waiting"))
-    for item in S.APPROVALS:
-        lines.addWidget(tile(item.title, item.detail, item.kind))
-        row = QHBoxLayout()
-        row.addStretch(1)
-        for label in ("Approve", "Reject"):
-            btn = QPushButton(label)
-            btn.setEnabled(False)
-            btn.setFixedWidth(80)
-            btn.setToolTip("Approvals come in phase P5b")
-            row.addWidget(btn)
-        lines.addLayout(row)
-    lines.addStretch(1)
-    return box
+def command_frame(name: str, approvals: QWidget | None = None) -> QWidget:
+    """Build the Command home: lead chat, approvals waiting and today's runs.
 
-
-def command_frame(name: str) -> QWidget:
-    """Build the Command home: lead chat, approvals waiting and today's runs."""
+    ``approvals`` is the real approvals box (SRD-GUI-034.031); chat and runs are samples.
+    """
     frame, body = section_frame(name)
     row = QHBoxLayout()
     row.setSpacing(12)
     row.addWidget(_chat_frame(), 3)
     right = QVBoxLayout()
-    right.addWidget(scroll_of(_approvals_frame()), 3)
+    right.addWidget(scroll_of(approvals or muted("No approvals")), 3)
     right.addWidget(heading("Today's runs"))
     right.addWidget(make_table(S.RUN_COLUMNS, S.RUNS), 2)
     row.addLayout(right, 2)
@@ -243,19 +226,3 @@ def employees_frame(name: str) -> QWidget:
     return frame
 
 
-def hiring_frame(name: str) -> QWidget:
-    """Build the hiring pipeline columns with sample candidates."""
-    frame, body = section_frame(name)
-    cols = QHBoxLayout()
-    cols.setSpacing(8)
-    for index, stage in enumerate(S.HIRING_STAGES):
-        col = QVBoxLayout()
-        col.addWidget(heading(stage))
-        for cand in S.CANDIDATES:
-            if cand.stage == index:
-                col.addWidget(tile(cand.name, cand.note))
-        col.addStretch(1)
-        cols.addLayout(col, 1)
-    body.addLayout(cols, 1)
-    body.addWidget(muted("The Master approves twice: before the shadow trial and after it."))
-    return frame
