@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-05
 **Project:** US Swing Trading System
 
+> v0.4.0: DD-MKT-004.001.D01 added — proof on past data (P4).
 > v0.3.0: DD-MKT-002.001.D01 added — sector strength, rotation and stock RS (P2).
 > v0.2.0: DD-MKT-001.001.D01 added — regime, breadth and fear (P1).
 > v0.1.0: Empty. Rows are added per phase, starting with the first FO of this tool.
@@ -205,3 +206,63 @@ idea_reasons(date TEXT, side TEXT, symbol TEXT, seq INTEGER, reason TEXT,
 **After code review.** Failed breakout's stop is the 10-day high (it always holds the breakout day). Watch notes come first in the reasons so they are never cut; the RS reason shows when the rating is 70+ (short: 30 or less) or the RS line is at its 3-month extreme; the sector reason reads "Financials sector leading, rank 3"; a setup within 0.05% of its trigger reads "at the trigger". A 50-day volume window with a gap gives no money flow, so the stock is not scored that day. Earnings: up to 6 Yahoo calls at once, 10 s per 30 names; a name not answered in time (or with no date on Yahoo) is "not checked". Trading days for earnings ignore market holidays. Only the 30 best per side are checked, so in a busy earnings week a name ranked 31+ can be listed without a check. Re-running a day clears it first even when it now has no rows. Speed: rolling windows use one numpy helper (`flow.roll`, same results as pandas) and only the last 460 rows before the first day to write; real data: first run about 19 s, daily run about 7 s including the Yahoo check.
 
 **Limits in P3.** No news, so no gap-risk penalty yet (P5c). Earnings are checked only for the latest day, so past days in `ideas` never carry the earnings Watch. Survivorship: the S&P 500 list is today's.
+
+## DD-MKT-004.001.D01 — Proof on Past Data (P4)
+
+**Traces:** SRD-MKT-004.001–.009, SRD-DSK-001.022, SRD-GUI-034.014
+
+**Data in** (`market/proof_data.py`). The Backtest Data store keeps one file per stock, `~/.usswing/backtest/1d/<SYM>.parquet`, with columns `ts, open, high, low, close, volume` (`ts` is the trading day). MKT reads these files with `pandas.read_parquet` and never imports `us_swing.backtest`: the file layout is the contract. Members and sectors come from `member_sectors(available, universe)` as in P2 (today's S&P 500 list). All frames are aligned to SPY's days; a stock-day missing a bar stays NaN. `history_years = (last SPY day − first SPY day) / 365.25`.
+
+**Replay** (`market/proof.py`), all in memory, nothing written to the daily desk tables:
+
+```
+regime     = regime_series(spy.close)                        P1
+lines      = sector_lines(closes, sector_of); table = sector_table(lines, spy)    P2
+ratings    = rs_table(rs_scores(closes), sector_of).rs_rating                     P2
+inputs     = MarketInputs(bars, spy, ratings, sector_of, quadrant, rank, regime)  P3
+days       = SPY days with a regime, quadrants and ratings, and data for >= 80% of members
+for each chunk of 250 days:  frames += score_frame(inputs, chunk)   (trims its own history)
+for each day and side:       status = pick_ideas(day_rows, side, day, earnings=None)
+                             -> list / watch ; every other scored stock = none
+```
+
+Every rule is a rolling window or a shift back in time, so the value on day d uses only bars up to d. A test changes later bars and checks that earlier scores stay the same. Earnings are not known for past days, so `earnings=None` (no earnings Watch); the regime Watch rule still applies.
+
+**Forward returns** for stock-day (s, d) and horizon h in (5, 10, 20), with t = position of d in SPY's days:
+
+```
+entry   = open[s, t+1]
+exit    = close[s, t+h]
+r       = exit / entry - 1               spy_r = spy.close[t+h] / spy.open[t+1] - 1
+long:   ret = r          vs_spy = r - spy_r
+short:  ret = -r         vs_spy = spy_r - r
+```
+
+Missing entry or exit means no sample for that horizon. Days in the last h sessions have no h-day sample.
+
+**Groups.** Band edges: `[0,40) [40,50) [50,60) [60,70) [70,80) [80,100]`. Setup = the stored setup name, or "No setup". Status = list, watch or none. Per (side, kind, group, horizon): `n` stock-days, `days` distinct dates, `win_rate = mean(ret > 0)`, `avg_ret = mean(ret)`, `avg_vs_spy = mean(vs_spy)`.
+
+**Pass rule** per side at h = 10. `top` = score ≥ 70, `low` = score < 40. If either has fewer than 100 samples, the result is "not enough data". Otherwise it is a pass when `top.avg_vs_spy > 0` and `top.avg_vs_spy > low.avg_vs_spy`, else a fail.
+
+**Tables** (`market/store.py`):
+
+```
+proof_run(run_id INTEGER PRIMARY KEY, created TEXT, data_first TEXT, data_last TEXT,
+          scored_first TEXT, scored_last TEXT, years REAL, stocks INTEGER, days INTEGER,
+          long_result TEXT, short_result TEXT, seconds REAL)
+proof_stats(run_id INTEGER, side TEXT, kind TEXT, grp TEXT, horizon INTEGER, n INTEGER,
+            days INTEGER, win_rate REAL, avg_ret REAL, avg_vs_spy REAL,
+            PRIMARY KEY (run_id, side, kind, grp, horizon))
+```
+
+`kind` is band, setup or status. A run's rows are written in one transaction after the replay finishes.
+
+**Report** (`report_text(run, stats)`), plain text. A header has the data range, years, stocks and scored days. Then for each side three tables (bands, setups, status), each row showing `group | stock-days | win 10d | vs SPY 5d / 10d / 20d`, then `Long: pass` / `Short: fail` with the two 10-day numbers. When `years < 5` it ends with: "Daily history covers N years from <date>. For a fuller test, set Start date in Settings → Backtest Data to 2020-01-01 and download (this also downloads 3-minute bars)."
+
+**CLI** (SRD-DSK-001.022). `desk proof` imports `PROOF_PATH = "us_swing.market.proof:run_proof"` from `core/desk_steps.py` by import path, as it does for steps, so `desk` never imports `market` directly. `run_proof(home, root) -> str | None` returns the report, or None when there is no data. Exit code 0 when a report is printed, 1 when there is no data. The proof can run while the desk is running; it only adds rows to the two proof tables.
+
+**Floor** (SRD-GUI-034.014). `DeskFloorData` serves `proof.bands` from the latest `proof_run`. Columns are `group, n, win_10d, vs_spy_5d, vs_spy_10d, vs_spy_20d`, shown as percentages. Filters are `side` (long, short; default long) and `kind` (band, setup, status; default band). The title is "Score proof (<scored_first> to <scored_last>) · Long <result> · Short <result>", plus "· only N years of data" when under 5 years. The product is listed in the catalog only when `proof_run` has a row.
+
+**Speed.** P3 scores 341 days in about 19 s. 6 years is about 1,250 scored days, so roughly 70 s for scoring plus reading about 500 files. Chunks of 250 days keep memory near the P3 first run.
+
+**Limits.** Survivorship (today's member list). No earnings Watch. Overlapping samples. No costs, slippage or stop exits. No tuning (T117 stays open until the proof is read).

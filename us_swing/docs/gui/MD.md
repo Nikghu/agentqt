@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.12.0: MD-GUI-034.014.M13 added (MKT P4).
 > v1.11.0: MD-GUI-034.013.M12 added (MKT P3).
 > v1.10.0: MD-GUI-034.012.M11 added (MKT P2).
 > v1.9.0: MD-GUI-034.011.M10 added (MKT P1).
@@ -410,5 +411,6 @@ us_swing/src/us_swing/gui/
 | MD-GUI-034.011.M10 | SRD-GUI-034.011 | `us_swing/src/us_swing/core/desk_floor.py`, `gui/market_floor.py` | Desk-backed FloorData and panel refresh after a run | `DeskFloorData` | `core.desk_contract`, M03 | No |
 | MD-GUI-034.012.M11 | SRD-GUI-034.012 | `us_swing/src/us_swing/core/desk_floor.py` | Desk-backed sector and RS leader products | `DeskFloorData` | `core.desk_contract` | No |
 | MD-GUI-034.013.M12 | SRD-GUI-034.013 | `us_swing/src/us_swing/core/desk_floor.py`, `gui/floor_panel.py` | Desk-backed idea list product; the why column takes the spare width | `DeskFloorData` | `core.desk_contract` | No |
+| MD-GUI-034.014.M13 | SRD-GUI-034.014 | `us_swing/src/us_swing/core/desk_floor.py` | Desk-backed Score proof product | `DeskFloorData` | `core.desk_contract` | No |
 
 SRD coverage: .002 and .003 by M02 and M09; .004 by M04; .005 by M05; .006 and .007 by M06; .008 by M07; .009 by M08; .010 by M03 and M09.

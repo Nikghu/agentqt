@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-05
 **Project:** US Swing Trading System
 
+> v0.5.0: FO-MKT-004 written in full as Draft (daily candles from the Backtest Data store; bands, setups and idea status; pass rule at 10 days; Score proof panel; no tuning).
 > v0.4.0: FO-MKT-003 written in full as Draft (news points rescaled until P5c; earnings from Yahoo for top names; shorts gated by regime; top 10 per side at 60+).
 > v0.3.0: FO-MKT-002 written in full as Draft (sector lines from member candles; industry groups later).
 > v0.2.0: FO-MKT-001 written in full and approved (user, 2026-11-06).
@@ -86,12 +87,32 @@ The system shall turn the regime, sector and RS results into a short daily list 
 
 ## FO-MKT-004: Proof on Past Data
 
-**Status:** Draft (outline)
+**Status:** Draft
 **Priority:** Must
 **Phase:** P4
-**Depends on:** FO-BKT-002 (backtest engine)
+**Depends on:** FO-MKT-001–003 (score rules), FO-BKT-001 (daily candles in the Backtest Data store)
 
-- The system shall replay the score on past data and report hit rate and forward returns per score band.
+The system shall replay the P1–P3 score on years of past daily candles and show whether high scores were followed by better moves, before any AI is added. No AI is used and no rule is tuned in P4.
+
+- The system shall read daily candles of the S&P 500 members and SPY from the Backtest Data store, read only.
+- The system shall recompute regime, sectors, RS ratings, scores, setups and the idea list for every past day, using only data up to that day.
+- The system shall measure the 5, 10 and 20-day return of every scored stock-day per side, entering at the next day's open, and its return against SPY.
+- The system shall report count, win rate, average return and average return against SPY by score band, by setup and by idea status.
+- The system shall give each side a pass or fail: at 10 days, stocks scoring 70+ beat SPY on average and beat stocks scoring under 40.
+- The system shall keep each run's results in `desk.db`; `desk proof` runs it and prints the report.
+- The system shall show the latest proof on the Market Floor in a Score proof panel.
+- The system shall warn when daily history is shorter than 5 years and say how to download more.
+
+### Acceptance Criteria
+
+1. For 3 chosen stock-days, the forward returns and returns against SPY match a hand check on the same candles.
+2. On 3 recent days, at least 90% of the replayed scores are within 1 point of the desk's stored scores; differences come only from the candle source.
+3. `desk proof` prints the band, setup and status tables with the pass result per side; the Score proof panel shows the same with the data range.
+4. With less than 5 years of daily data, the report and the panel show the download reminder.
+
+**Data note (user to do).** The Backtest Data store now starts on 2024-01-02. After the 1-year warm-up for RS ratings that leaves under 2 years of scored days. To test on 5–6 years, set Start date in Settings → Backtest Data to 2020-01-01 and download. That setting also downloads 3-minute bars for those years, which is very large (TODO T118).
+
+**Limits.** Today's S&P 500 list only (survivorship bias). No past earnings dates, so the earnings Watch rule is not applied. Daily samples overlap, so they are not independent. No costs, slippage or stop exits.
 
 ## FO-MKT-005: AI Experts, Risk Manager and Trade Manager
 
