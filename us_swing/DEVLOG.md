@@ -2,6 +2,16 @@
 
 ---
 
+## [20261106] MKT — AI report pages, phase P5d (FO-MKT-007; FO-GUI-034 reopened)
+
+- Type: Feature
+- FO(s): FO-MKT-007; FO-GUI-034 reopened by user (status left at Reopen)
+- RN: RN-MKT-0.8.0-20261106
+- Artifacts updated: SRD (MKT-007.001–.008, GUI-034.022–.026 Implemented), DD, MD, UTCD (23 MKT and 9 GUI rows Pass), TRACE, Code (market/report_page.py, core/report_html.py, market/store.py, market/employees/emp-007, gui/ai_desk_pages.py, gui/sealed_view.py, gui/ai_desk.py, gui/ai_desk_sections2.py, gui/ai_desk_sample.py, gui/floor_sample.py, core/desk_floor.py, core/desk_steps.py, USSwing.spec), Tests (tests/market/test_report_html.py, test_report_page.py, tests/gui/test_ai_desk_pages.py, test_sealed_view.py), RN, CONTEXT, TODO, DEVLOG
+- Decisions: allow-list HTML cleaner in core; page versions append-only; sealed preview off-the-record with all active content off; Pages view built on first show only; no employee column in the page row (a skill does not know its employee, user); generic names only in code and tests.
+
+---
+
 ## [20261106] MKT — P5c news, economic calendar and event risk (FO-MKT-006)
 
 - Type: Feature

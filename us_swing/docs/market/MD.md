@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.9.0: MD-MKT-007.*.M01–M04 added — AI report pages (P5d).
 > v0.8.0: MD-MKT-006.*.M01–M06 added — news, economic calendar and event risk (P5c).
 > v0.7.0: MD-MKT-005.*.M04–M09 added — sector/flow view, setup review, risk limits, risk check, lead brief, defaults (P5b).
 > v0.6.0: MD-MKT-005.*.M01–M03 added — regime view skill (P5a).
@@ -106,3 +107,14 @@ SRD coverage: .006–.007 by M04, .008 by M04 and M02; .009–.010 by M05 (.010 
 Changed: MD-MKT-005.012.M07 (`risk_check.py`: needs and facts add the news review) and MD-MKT-005.014.M08 (`lead_brief.py`: needs, facts and final column), for SRD-MKT-006.010, SRD-MKT-005.012 and SRD-MKT-005.014; `core/desk_steps.py` (MD-DSK-001.021.M07) gets the News step and `news_review` skill paths.
 
 SRD coverage: .001 by M01 and M02; .002, .003, .012 by M02 (with M01, M05); .004 by M03; .005–.007, .009 by M04; .008 by M04 and M05; .010 by MD-MKT-005.012.M07 and MD-MKT-005.014.M08; .011 by M06.
+
+## FO-MKT-007: AI Report Pages
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-MKT-007.003.M01 | SRD-MKT-007.003 | `us_swing/src/us_swing/core/report_html.py` | Allow-list HTML cleaner and sealed page shell (shared with the GUI) | `clean_page()`, `CleanPage`, `sealed_document()`, `MAX_PAGE_BYTES` | `html.parser` | No |
+| MD-MKT-007.001.M02 | SRD-MKT-007.001 | `us_swing/src/us_swing/market/report_page.py` | Report page skill: facts, answer, clean, store, feed brief, log | `ReportPageSkill`, `ReportPage` | `core.desk_agents`, M01, M03 | No |
+| MD-MKT-007.004.M03 | SRD-MKT-007.004 | `us_swing/src/us_swing/market/store.py` | Append-only `canvas_pages` table (added to the P1 store) | `MarketStore.add_page()` | `sqlite3` | No |
+| MD-MKT-007.007.M04 | SRD-MKT-007.007 | `us_swing/src/us_swing/market/employees/emp-007/` | Default expert-level employee files for report pages | — | — | No |
+
+SRD coverage: .001–.002 and .005–.006, .008 by M02; .003 by M01; .004 by M03; .007 by M04 and MD-DSK-001.021.M07 (`core/desk_steps.py` gets the `report_page` skill path).

@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-11-06 (Session 118)
+**Last Updated:** 2026-11-06 (Session 121)
 
 ---
 
@@ -119,7 +119,7 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T107 | DSK P0a — desk process shell (FO-DSK-001): Windows task, 7 states, `commands` table, heartbeat, save/resume, `desk.db` base tables. Needs FO approval first. | `desk/`, `core/desk_contract.py` | High | Open |
 | T108 | GUI P0b — Market Floor + AI Desk frames on sample data (new FO-GUI-034): 5 Floor tabs, AI feed column, adjustable panel grid, catalog, layouts. | `gui/` | High | Open |
 | T109 | MKT P1–P4 — P1 (PR #115) and P2 (PR #116) merged. P3 money flow, setups, score and ideas done 2026-11-06 on feat/mkt-p3-flow-setups-score (FO-MKT-003), unpushed. P4 proof on past data remains (FO-MKT-004). No AI. | `market/` | High | Open |
-| T110 | DSK+MKT P5–P7 — harness + AI employees, SCOUT, CANVAS, hiring/LEDGER, EXE link (FO-DSK-002–006, FO-MKT-005–008). | `desk/`, `market/` | Medium | Open |
+| T110 | DSK+MKT P5–P7 — harness + AI employees, intel champion, report pages (P5d done 2026-11-06, FO-MKT-007), hiring/cost secretary, EXE link (FO-DSK-002–006, FO-MKT-005–008). | `desk/`, `market/` | Medium | Open |
 | T111 | DD-DSK §0.7 answered 2026-11-05: Jev (TypeSafe) shadow at P5a, seats 3/5/30, USD 10/month, user approves every trade. Only Q1 (tool lists in CLAUDE.md/rules) left for the user. | docs | Medium | Closed |
 | T112 | Tests already failing on main: 8 in `test_candle_builder.py` (naive vs aware time), 2 in `test_preset.py`, 1 in `test_sidebar_shell.py` (Market Floor/AI Desk not expected); stray `test_llm_claude_screener.py` for a removed module. Fix or delete. | `tests/analysis`, `tests/screener`, `tests/gui` | Medium | Open |
 | T113 | DSK — user check: run `python us_swing/run_gui.py desk install`, confirm both Windows tasks, let the evening run fire (~02:50 IST Tue–Sat), then `desk status`. | `desk/task.py` | Medium | Open |
@@ -136,3 +136,4 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T124 | MKT P3 short setups give very wide stops (real run 2026-11-04: 12 shorts at 10–68% from trigger), so the P5b hard limit vetoes them all. Review short stop rules with T117. | `market/setups.py` | Medium | Open |
 | T125 | DSK market clock uses `data/market_calendar.py`, which lists 2026 NYSE holidays only; from 2027 holidays count as trading days. Add yearly holidays or a rule-based calendar. | `data/market_calendar.py` | Low | Open |
 | T126 | MKT P5c — user check after the next evening run: Floor News & Calendar tab shows real headlines, News tags (add with Add panel if your layout is saved) and Calendar; AI feed has the Expert 5 market note. Restart the desk first (new News step). | `market/`, `core/desk_floor.py` | High | Open |
+| T127 | MKT P5d — user check after the next evening run: AI Desk, Pages section shows the day's report page; try the version list and sealed preview. Restart the desk first so Expert 6 is seeded. Branch feat/p5d-canvas-pages, not pushed. | `market/report_page.py`, `gui/ai_desk_pages.py` | High | Open |

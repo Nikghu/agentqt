@@ -7,6 +7,7 @@
 **Last Updated:** 2026-05-22
 **Project:** US Swing Trading System
 
+> v2.12.0: FO-GUI-034 reopened by user 2026-11-06 — AI Desk section Studio renamed Pages; Command home chat named by role (MKT P5d).
 > v2.11.0: FO-GUI-034 added — Market Floor and AI Desk frames (Market Analytics P0b); Draft 2026-11-05.
 > v2.10.0: FO-GUI-022 requirement 8 and acceptance 5 added — Screener chart draws the AI plan from the next candle after the run, with a hit tag; reopened by user 2026-11-03.
 > v2.9.0: FO-GUI-032 added — Strategies views (grouped and table) in the Execution workspace; approved by user 2026-11-03.
@@ -962,7 +963,7 @@ The system shall let the user set up AI notes for Telegram messages on the Setti
 
 ## FO-GUI-034: Market Floor and AI Desk Frames
 
-**Status:** Approved (user, 2026-11-05)
+**Status:** Reopen (user, 2026-11-06)
 **Priority:** Must
 **Depends on:** FO-DSK-001 (desk process shell, `core/desk_contract.py`), FO-GUI-017 (Carbon workspace shell)
 **Source:** Market Analytics phase P0b. Round-2 screen design Option 1 (https://claude.ai/artifact/Se1b7cnEkGbqaak6d2j318), picked by user 2026-11-05, plus "Market Floor must be adjustable". Minimal requirements. Build in 3 steps: (a) both workspaces and the desk control, (b) adjustable panel grid, (c) AI Desk sections.
@@ -976,7 +977,7 @@ The system shall add two workspaces, Market Floor and AI Desk, shown on sample d
 - The system shall lay out each Market Floor tab as a 12-column grid of panels that the user can add, move, resize and remove in edit mode.
 - The system shall let the user pick panels from a catalog of desk outputs, set each panel's view (table, chart, card) and filters, and link panels so a stock click in one updates the others.
 - The system shall save named layouts on this PC and restore the last one at start.
-- The system shall give AI Desk a section list with Command as home (HELM chat, approvals waiting, today's runs) and the sections Org chart, Employees, Hiring, Task board, Activity, Schedule, Studio, Reports, Cost & budget, Desk settings.
+- The system shall give AI Desk a section list with Command as home (lead chat, approvals waiting, today's runs) and the sections Org chart, Employees, Hiring, Task board, Activity, Schedule, Pages, Reports, Cost & budget, Desk settings.
 - The system shall mark every panel and section that shows sample data with a "Sample data" tag.
 - The system shall read desk data only through `core/desk_contract.py` and never block the window while reading.
 

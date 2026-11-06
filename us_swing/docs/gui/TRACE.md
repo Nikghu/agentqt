@@ -133,6 +133,7 @@
 | FO-GUI-034 | SRD-GUI-034.018 | — | MD-GUI-034.018.M17 | UT-GUI-034.018.M17.T01–T03 (3, Pass) | `core/desk_floor.py` | Implemented | RN-MKT-0.7.0-20261106 |
 | FO-GUI-034 | SRD-GUI-034.019–.020 | — | MD-GUI-034.018.M17 | UT-GUI-034.019.M17.T01–T02, UT-GUI-034.020.M17.T01–T03 (5, Pass) | `core/desk_floor.py` | Implemented | RN-MKT-0.7.0-20261106 |
 | FO-GUI-034 | SRD-GUI-034.021 | — | MD-GUI-034.021.M18 | UT-GUI-034.021.M18.T01–T02 (2, Pass) | `gui/floor_layouts.py` | Implemented | RN-MKT-0.7.0-20261106 |
+| FO-GUI-034 | SRD-GUI-034.022–.026 | DD-MKT-007.001.D01 | MD-GUI-034.022.M19, .024.M20 | UT-GUI-034.022.M19.T01–T04, .023.M19.T01, .024.M20.T01, .025.M20.T01–T02, .026.M19.T01 (9, Pass) | `gui/ai_desk_pages.py`, `gui/sealed_view.py`, `core/desk_floor.py`, `gui/ai_desk.py` | Implemented | RN-MKT-0.8.0-20261106 |
 
 ---
 
