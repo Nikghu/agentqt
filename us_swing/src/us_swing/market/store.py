@@ -8,6 +8,7 @@ Also: MD-MKT-005.003.M02 — regime view table (SRD-MKT-005.003); P5b AI view ta
 (SRD-MKT-005.008, .010, .013, .016)
 Also: MD-MKT-006.008.M05 — news tables (SRD-MKT-006.001, .003, .008)
 Also: MD-MKT-007.004.M03 — append-only ``canvas_pages`` report page versions (SRD-MKT-007.004)
+Also: MD-MKT-009.004.M02 — ``pick_results`` paper results (SRD-MKT-009.004)
 
 Market tables in ``desk.db``: ``regime_snapshot``, ``breadth_daily``, ``vix_daily``,
 ``sector_daily``, ``stock_rs``, ``stock_score``, ``ideas``, ``idea_reasons``,
@@ -106,6 +107,10 @@ CREATE TRIGGER IF NOT EXISTS canvas_pages_no_update BEFORE UPDATE ON canvas_page
 BEGIN SELECT RAISE(ABORT, 'canvas_pages is append-only'); END;
 CREATE TRIGGER IF NOT EXISTS canvas_pages_no_delete BEFORE DELETE ON canvas_pages
 BEGIN SELECT RAISE(ABORT, 'canvas_pages is append-only'); END;
+CREATE TABLE IF NOT EXISTS pick_results (
+    date TEXT, side TEXT, symbol TEXT, status TEXT, entry_day TEXT, entry REAL, exit_day TEXT,
+    exit REAL, r REAL, PRIMARY KEY (date, side, symbol)
+);
 """
 
 
@@ -324,6 +329,24 @@ class NewsItemRow:
 
 
 @dataclass(frozen=True)
+class PickResultRow:
+    """One ``pick_results`` row: the paper result of one lead pick."""
+
+    date: str
+    side: str
+    symbol: str
+    status: str
+    entry_day: str | None
+    entry: float | None
+    exit_day: str | None
+    exit: float | None
+    r: float | None
+
+
+PICK_STATUSES = ("no_fill", "open", "stop", "target", "time")
+
+
+@dataclass(frozen=True)
 class NewsTagRow:
     """One ``news_tags`` row; ``tone`` is positive, neutral, negative or none (not asked yet)."""
 
@@ -481,6 +504,18 @@ class MarketStore:
         with self._con:
             self._con.execute(f"DELETE FROM {table} WHERE date = ?", (day,))  # noqa: S608
             self._put(table, kind, [tuple(vars(r).values()) for r in rows])
+
+    def replace_pick_results(self, rows: list[PickResultRow]) -> None:
+        """Replace every paper result in one transaction.
+
+        Raises:
+            ValueError: When a row has an unknown status.
+        """
+        if any(r.status not in PICK_STATUSES for r in rows):
+            raise ValueError("unknown pick result status")
+        with self._con:
+            self._con.execute("DELETE FROM pick_results")
+            self._put("pick_results", PickResultRow, [astuple(r) for r in rows])
 
     def add_news(self, rows: list[NewsItemRow]) -> int:
         """Store headlines; return how many are new.

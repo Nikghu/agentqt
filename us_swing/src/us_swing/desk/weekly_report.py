@@ -1,7 +1,7 @@
 """
 Module: MD-DSK-006.009.M20 — desk/weekly_report.py
 Parent SRD: SRD-DSK-006.009
-Also: SRD-DSK-006.010 (log line)
+Also: SRD-DSK-006.010 (log line); MD-MKT-009.007.M05 — pick results section (SRD-MKT-009.007)
 
 Desk step "Weekly report": the first desk run on or after each Friday (New York) writes
 one process and cost report by code, from the recorded tries and the hires. No AI call.
@@ -11,11 +11,12 @@ from __future__ import annotations
 import logging
 import sqlite3
 from collections.abc import Callable
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
 from us_swing.core.desk_contract import DB_NAME, StepContext, desk_home
 from us_swing.core.desk_hiring import SHADOW_DAYS, employees, list_hires
+from us_swing.core.desk_results import results_lines, results_view
 from us_swing.desk.recorder import NY, ny_now
 
 log = logging.getLogger(__name__)
@@ -65,6 +66,9 @@ def build_report(home: Path, friday: date) -> tuple[str, int, float]:
     lines += [f"{h.employee.name} ({h.employee.skill.replace('_', ' ')}): {h.days} of "
               f"{SHADOW_DAYS} days{' - ready for a decision' if h.ready else ''}"
               for h in shadows] or ["(none)"]
+    week_end = datetime.combine(friday, time(23, 59), tzinfo=NY)
+    lines += ["", "Pick results:", *results_lines(
+        results_view(home, week_end, first.isoformat(), friday.isoformat()))]
     return "\n".join(lines), len(rows), total_cost
 
 

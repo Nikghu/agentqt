@@ -3803,6 +3803,21 @@ class AppService(QObject):
         from us_swing.execution.trade_cycle import CycleClosed
         if isinstance(evt, CycleClosed):
             self._clear_pending_exits_requested.emit(evt.snapshot.strategy_id, evt.symbol)
+            self._record_desk_trade(evt.snapshot)
+
+    @staticmethod
+    def _record_desk_trade(snap: Any) -> None:
+        """Save the real result of a closed AI Desk trade (SRD-MKT-009.005)."""
+        from us_swing.core import desk_contract
+        from us_swing.core.desk_results import record_pick_trade
+        from us_swing.execution.desk_signals import AI_DESK_STRATEGY
+
+        if snap.strategy_id != AI_DESK_STRATEGY:
+            return
+        try:
+            record_pick_trade(desk_contract.desk_home(), snap, datetime.datetime.now(_ET))
+        except Exception:
+            _log.exception("[Results] Could not save the closed AI Desk trade")
 
     def _clear_pending_exits(self, strategy_id: str, symbol: str) -> None:
         """Drop any pending exit signal for a position that just closed (GUI thread)."""

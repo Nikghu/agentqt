@@ -26,6 +26,7 @@ from us_swing.gui.ai_desk_sections import (
     org_frame,
 )
 from us_swing.gui.ai_desk_hiring import approvals_box, hiring_frame
+from us_swing.gui.ai_desk_results import results_frame
 from us_swing.gui.ai_desk_sections2 import (
     activity_frame,
     schedule_frame,
@@ -37,10 +38,10 @@ from us_swing.gui.theme import C
 
 SECTIONS = (
     "Command", "Org chart", "Employees", "Hiring", "Task board", "Activity",
-    "Schedule", "Pages", "Reports", "Cost & budget", "Desk settings",
+    "Schedule", "Pages", "Reports", "Results", "Cost & budget", "Desk settings",
 )
 
-_LIVE_SECTIONS = ("Command", "Hiring", "Pages", "Reports", "Cost & budget")
+_LIVE_SECTIONS = ("Command", "Hiring", "Pages", "Reports", "Results", "Cost & budget")
 _BUILDERS: dict[str, Callable[[str], QWidget]] = {
     "Org chart": org_frame, "Employees": employees_frame,
     "Task board": tasks_frame, "Activity": activity_frame, "Schedule": schedule_frame,
@@ -106,6 +107,8 @@ class AiDeskWorkspace(QWidget):
             return hiring_frame(name, self._home)
         if name == "Reports":
             return reports_frame(name, self._home)
+        if name == "Results":
+            return results_frame(name, self._home)
         if name == "Pages":
             return pages_frame(name, self._home)
         if name == "Cost & budget":

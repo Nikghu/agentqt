@@ -16,11 +16,12 @@ def _titles(frame: QWidget) -> list[str]:
 
 
 def test_all_sections_open(qtbot: QtBot, tmp_path: Path) -> None:
-    """UT-GUI-034.009.M08.T01: 11 sections in order; each shows its own filled frame."""
+    """UT-GUI-034.009.M08.T01: 12 sections in order (Results added in P8); each shows its own
+    filled frame."""
     page = AiDeskWorkspace(DeskPoller(tmp_path))
     qtbot.addWidget(page)
     names = page.section_names()
-    assert len(names) == 11
+    assert len(names) == 12
     assert names[0] == "Command"
     assert names[-1] == "Desk settings"
     assert page.current_section() == "Command"
@@ -39,11 +40,12 @@ def test_every_section_shows_sample_tag(qtbot: QtBot, tmp_path: Path) -> None:
     """UT-GUI-034.010.M03.T02: every sample AI Desk section carries the Sample data tag.
 
     Desk settings is real from P5a (SRD-GUI-034.016); Cost & budget is sample until AI runs;
-    Pages is real from P5d (SRD-GUI-034.022); Hiring is real from P6 (SRD-GUI-034.027).
+    Pages is real from P5d (SRD-GUI-034.022); Hiring is real from P6 (SRD-GUI-034.027);
+    Results is real from P8 (SRD-GUI-034.037).
     """
     page = AiDeskWorkspace(DeskPoller(tmp_path))
     qtbot.addWidget(page)
-    for name in [n for n in page.section_names() if n not in ("Desk settings", "Pages", "Hiring")]:
+    for name in [n for n in page.section_names() if n not in ("Desk settings", "Pages", "Hiring", "Results")]:
         page.select_section(name)
         frame = page._stack.currentWidget()
         assert frame is not None
