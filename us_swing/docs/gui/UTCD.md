@@ -1132,3 +1132,4 @@ Test files:
 | UT-GUI-034.040.M26.T02 | MD-GUI-034.039.M26 | Negative | Empty box (SRD-GUI-034.040) | empty or blank box | Ask disabled; nothing saved | Not Run |
 | UT-GUI-034.041.M26.T01 | MD-GUI-034.039.M26 | Positive | Answer arrives (SRD-GUI-034.041) | reply row added while waiting; tick | answer shown; note cleared; timer stopped | Not Run |
 | UT-GUI-034.041.M26.T02 | MD-GUI-034.039.M26 | Negative | Desk stopped or expired (SRD-GUI-034.041) | poller Stopped; then 31 minutes later | start-the-desk note; then expired note and timer stopped | Not Run |
+| UT-GUI-034.041.M26.T03 | MD-GUI-034.039.M26 | Positive | Resume after rebuild (SRD-GUI-034.041) | question waiting; Command built again | waiting note; check running; Ask disabled | Not Run |
