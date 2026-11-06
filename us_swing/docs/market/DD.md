@@ -109,3 +109,99 @@ stock_rs(date TEXT, symbol TEXT, sector TEXT, score REAL, rs_rating INTEGER,
 **After code review.** `member_sectors()` returns `SectorMembers(sectors, listed)` so the step can apply the 80% rule to the full list. A look-back close (63–252 days ago) that is missing uses the last close up to 5 days before it, so one missing day does not drop a stock; today's close and the 95% rule still use the real bars. Re-running a day deletes its old rows first, so a stock that lost its rating does not keep a stale row. Rows are built in one pass, not row by row: the first run on 519 stocks takes about 15 s, a daily run about 5 s.
 
 **Floor** (SRD-GUI-034.012): `core/desk_floor.DeskFloorData` serves `sectors.rank` (rank, sector, rel_1m, rel_3m, rel_6m, quadrant), `sectors.rrg` (sector, rs_ratio, rs_momentum, quadrant) and a new product `rs.leaders` (symbol, sector, rs_rating, sector_rank; top 30 by rating; filter by sector) from the latest stored day. Each title carries the data date; `rs.leaders` is listed only once `stock_rs` has rows.
+
+---
+
+## DD-MKT-003.001.D01 — Money Flow, Setups, Readiness Score and Ideas (P3)
+
+**Traces:** SRD-MKT-003.001–.012
+
+**Data in.** `CandleReader.read()` also returns `volumes` (wide frame, like closes). Members, sectors and SPY alignment are as in P2. From `desk.db` the step reads `regime_snapshot.regime`, `sector_daily` (quadrant, rank) and `stock_rs` (rs_rating) for the same days. A day without a regime row or sector rows is not scored.
+
+**Liquidity** (`market/flow.py`): `dollar_vol20 = rolling mean(close * volume, 20)`; a stock-day with `dollar_vol20 < 20_000_000` gets no score.
+
+**Money flow** (`market/flow.py`, pure, wide frames):
+
+```
+avg50v      = rolling mean(volume, 50)
+acc_day     = close > prev close and volume > avg50v
+dist_day    = close < prev close and volume > avg50v
+net_ad      = sum(acc_day, 25) - sum(dist_day, 25)
+cmf20       = sum(((c - l) - (h - c)) / (h - l) * v, 20) / sum(v, 20)      (h == l → 0)
+ud50        = sum(v on up days, 50) / sum(v on down days, 50)
+flow_long   = mean( clip(net_ad / 10 + 0.5, 0, 1),
+                    clip(cmf20 / 0.4 + 0.5, 0, 1),
+                    clip((ud50 - 0.5) / 1.5, 0, 1) )
+flow_short  = 1 - flow_long
+```
+
+**Setups** (`market/setups.py`, pure; `atr_n` = mean true range over n days, `hi_n` / `lo_n` = highest high / lowest low of the last n days including today):
+
+```
+Long
+Squeeze     close > sma50, sma50 > sma50.shift(10),
+            bb_width20 (= 4 * std20 / sma20) <= 1.1 * its 126-day low, atr10 / atr50 < 0.8
+            trigger = hi_20      stop = lo_20
+Flat base   close >= 0.9 * hi_252, (hi_25 - lo_25) / hi_25 <= 0.15, close > sma50
+            trigger = hi_25      stop = lo_25
+Pullback    close > sma50, sma50 > sma50.shift(10), lo_3 <= sma21 * 1.02, close >= sma21
+            trigger = hi_3       stop = lo_5
+Short
+Failed breakout  some day in the last 10 closed above the 25-day high before it (pivot),
+                 and today's close is below that pivot and below sma20
+                 trigger = lo_5       stop = highest high since that breakout day
+Lower highs      close < sma50, sma50 < sma50.shift(10),
+                 hi of days 1–10 < hi of days 11–20 < hi of days 21–30 (day 1 = today)
+                 trigger = lo_10      stop = hi_10
+Breakdown        close < sma50, prev close >= prev sma50, volume >= 1.5 * avg50v
+                 trigger = low today  stop = max(sma50, hi_5)
+tightness   = 0.5 * clip(1 - atr10 / atr50, 0, 1)
+            + 0.5 * clip(1 - |trigger - close| / (2 * atr14), 0, 1)
+```
+
+When several setups match on one side, the one with the highest tightness is kept (ties: the order listed above). No match gives setup part 0.
+
+**Score** (`market/score.py`, per stock, day and side):
+
+```
+rs_part      long: 0.75 * rating / 99 + 0.25 * (rs line at its 63-day high)
+             short: 0.75 * (100 - rating) / 99 + 0.25 * (rs line at its 63-day low)
+             rs line = close / SPY close
+flow_part    flow_long or flow_short
+setup_part   tightness of the kept setup, else 0
+sector_part  0.7 * quadrant value + 0.3 * (11 - sector rank) / 10            (short: 0.3 * (rank - 1) / 10)
+             long quadrant value: Leading 1, Improving 0.75, Weakening 0.25, Lagging 0
+             short quadrant value: Lagging 1, Weakening 0.75, Improving 0.25, Leading 0
+regime_part  long: Uptrend 1, Choppy 0.5, Downtrend 0;  short: Downtrend 1, Choppy 0.5, Uptrend 0
+raw          = 20 * rs + 20 * flow + 20 * setup + 15 * sector + 15 * regime     (max 90)
+score        = max(0, raw * 100 / 90 - penalty), rounded to 1 decimal
+penalty      10 when long and close > 1.08 * sma20, or short and close < 0.92 * sma20; else 0
+```
+
+**Ideas** (`market/score.py`): per day and side, stocks with `score >= 60` sorted by score (ties: symbol). Watch when the side is against the regime (short in Uptrend, long in Downtrend) or the next earnings date is within 5 trading days after the data day. The first 10 not on Watch are `list` (rank 1–10); every Watch name scoring 60+ is kept as `watch` (no cap). A stock with no setup can still be listed; its trigger is `hi_20` (long) or `lo_20` (short) and its stop `lo_20` / `hi_20`, and its setup reads "No setup".
+
+**Reasons** (up to 5, in this order, only when they hold): "RS rating 94, RS line at a 3-month high" · "6 accumulation and 1 distribution days in 25 sessions" · "Sector Leading, rank 2 of 11" · "Squeeze, 3.1% below the trigger" · "Regime Uptrend" · Watch notes: "Earnings in 3 days", "Against the Uptrend". Extended penalty adds "8.6% above the 20-day average".
+
+**Earnings** (`market/earnings.py`): `next_earnings(symbols, today) -> {symbol: date | None}` from `yfinance.Ticker(s).calendar["Earnings Date"]`, one call per symbol with a 10 s total budget per 30 names; any failure gives `None` and the idea note "earnings not checked". Called once per run, for the latest scored day, on the 30 best-scored stocks per side (before Watch).
+
+**Tables in `desk.db`** (`market/store.py`, `CREATE TABLE IF NOT EXISTS`; a re-run deletes the day's rows first):
+
+```
+stock_score(date TEXT, symbol TEXT, side TEXT, score REAL, rs_part REAL, flow_part REAL,
+            setup_part REAL, sector_part REAL, regime_part REAL, penalty REAL, setup TEXT,
+            trigger REAL, stop REAL, PRIMARY KEY (date, symbol, side))
+ideas(date TEXT, side TEXT, symbol TEXT, status TEXT, rank INTEGER, score REAL, sector TEXT,
+      setup TEXT, trigger REAL, stop REAL, PRIMARY KEY (date, side, symbol))
+idea_reasons(date TEXT, side TEXT, symbol TEXT, seq INTEGER, reason TEXT,
+             PRIMARY KEY (date, side, symbol, seq))
+```
+
+`stock_score` keeps every liquid stock for both sides (about 1,000 rows a day) so P4 can test score buckets on history.
+
+**Step** (`market/idea_step.py`, `IdeaStep`, name "Ideas"): read members, sectors and bars (with volume) → read regime, sector and RS rows from `desk.db` → compute flow, setups and scores for every day → choose days as in P2 (not stored, or within 7 days of the last stored day; 80% coverage; needs regime, sector and RS rows) → fetch earnings for the latest chosen day → pick ideas and reasons → write → log. `core/desk_steps.STEP_PATHS` adds `"us_swing.market.idea_step:IdeaStep"` after the sector step.
+
+**Floor** (SRD-GUI-034.013): `core/desk_floor.DeskFloorData` serves `ideas.top` from the latest `ideas` day with columns `symbol, side, score, setup, sector, trigger, stop, why` (why = first reason), filters `side` (long, short) and `status` (list, watch; default list when no filter is set), title "Top ideas (date)". The Overview and Ideas tabs already show this product.
+
+**After code review.** Failed breakout's stop is the 10-day high (it always holds the breakout day). Watch notes come first in the reasons so they are never cut; the RS reason shows when the rating is 70+ (short: 30 or less) or the RS line is at its 3-month extreme; the sector reason reads "Financials sector leading, rank 3"; a setup within 0.05% of its trigger reads "at the trigger". A 50-day volume window with a gap gives no money flow, so the stock is not scored that day. Earnings: up to 6 Yahoo calls at once, 10 s per 30 names; a name not answered in time (or with no date on Yahoo) is "not checked". Trading days for earnings ignore market holidays. Only the 30 best per side are checked, so in a busy earnings week a name ranked 31+ can be listed without a check. Re-running a day clears it first even when it now has no rows. Speed: rolling windows use one numpy helper (`flow.roll`, same results as pandas) and only the last 460 rows before the first day to write; real data: first run about 19 s, daily run about 7 s including the Yahoo check.
+
+**Limits in P3.** No news, so no gap-risk penalty yet (P5c). Earnings are checked only for the latest day, so past days in `ideas` never carry the earnings Watch. Survivorship: the S&P 500 list is today's.

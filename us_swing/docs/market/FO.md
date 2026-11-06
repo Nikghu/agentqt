@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-05
 **Project:** US Swing Trading System
 
+> v0.4.0: FO-MKT-003 written in full as Draft (news points rescaled until P5c; earnings from Yahoo for top names; shorts gated by regime; top 10 per side at 60+).
 > v0.3.0: FO-MKT-002 written in full as Draft (sector lines from member candles; industry groups later).
 > v0.2.0: FO-MKT-001 written in full and approved (user, 2026-11-06).
 > v0.1.0: Tool created by architecture review. All FOs are outlines; each is filled in full at the start of its phase.
@@ -62,14 +63,26 @@ The system shall show which of the 11 sectors money is moving into or out of, an
 
 ## FO-MKT-003: Money Flow, Setups, Readiness Score and Ideas
 
-**Status:** Draft (outline)
+**Status:** Approved (user, 2026-11-06)
 **Priority:** Must
 **Phase:** P3
+**Depends on:** FO-MKT-001 (regime), FO-MKT-002 (sectors and stock RS), daily candles with volume in `candles.db`
 
-- The system shall measure money flow per stock (volume, accumulation and distribution).
-- The system shall detect pre-breakout setups, long and short.
-- The system shall score each stock 0–100 (RS 20, flow 20, setup 20, sector 15, regime 15, news 10) minus penalties.
-- The system shall publish a ranked idea list with reasons and trigger prices.
+The system shall turn the regime, sector and RS results into a short daily list of long and short stock ideas, each with a trigger, a stop and its reasons, before the move starts. No AI is used. News joins the score in P5c.
+
+- The system shall measure money flow for each stock from price and volume: accumulation and distribution days, Chaikin money flow and up against down volume.
+- The system shall detect pre-breakout setups for longs (squeeze, flat base, pullback) and shorts (failed breakout, lower highs, breakdown), each with a trigger price and a stop.
+- The system shall give each stock a Swing Readiness Score from 0 to 100 for long and for short, from RS, money flow, setup, sector and regime, minus penalties.
+- The system shall leave out stocks that trade less than $20M a day.
+- The system shall publish up to 10 long and 10 short ideas a day with a score of 60 or more; ideas with earnings within 5 days or against the regime go to a Watch list.
+- The system shall run this as a desk step after the sector step and keep scores, ideas and reasons in `desk.db`.
+- The system shall show the real idea list on the Market Floor.
+
+### Acceptance Criteria
+
+1. For 2 chosen dates, the score parts, setup, trigger and stop of three stocks match a hand check on the same candles.
+2. The evening run adds the latest day of scores and ideas; earnings are checked for the latest day.
+3. The Top ideas panels show real long and short ideas with the data date and no "Sample data" tag.
 
 ## FO-MKT-004: Proof on Past Data
 

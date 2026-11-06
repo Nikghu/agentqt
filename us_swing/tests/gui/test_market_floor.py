@@ -356,3 +356,48 @@ def test_no_sector_data_gives_sample(tmp_path: Path) -> None:
     assert products["sectors.rrg"].sample is True
     assert "rs.leaders" not in products
     assert data.rows("sectors.rank", {}) == SampleFloorData().rows("sectors.rank", {})
+
+
+def _write_ideas(home: Path) -> None:
+    from us_swing.market.store import IdeaRow, MarketStore, ReasonRow
+
+    store = MarketStore(home)
+    ideas, reasons = [], []
+    for day in ("2026-11-04", "2026-11-05"):
+        ideas += [
+            IdeaRow(day, "long", "TRV", "list", 1, 71.6, "Financials", "Flat base", 409.31, 353.8),
+            IdeaRow(day, "long", "CAH", "watch", 1, 70.4, "Health Care", "Flat base", 262.3, 224.5),
+            IdeaRow(day, "short", "NVDA", "list", 1, 72.9, "Information Technology",
+                    "Lower highs", 199.68, 219.99),
+        ]
+        reasons += [ReasonRow(day, "long", "TRV", 1, "RS rating 90"),
+                    ReasonRow(day, "long", "CAH", 1, "Earnings in 1 day")]
+    store.write_idea_days([], [], ideas, reasons)
+    store.close()
+
+
+def test_real_idea_list(tmp_path: Path) -> None:
+    """UT-GUI-034.013.M12.T01: latest ideas; side filter; list by default; Watch on request."""
+    _write_ideas(tmp_path)
+    data = DeskFloorData(SampleFloorData(), tmp_path)
+    product = next(p for p in data.products() if p.id == "ideas.top")
+    assert product.sample is False
+    assert product.title == "Top ideas (2026-11-05)"
+    assert product.filters == {"side": ("long", "short"), "status": ("list", "watch")}
+    rows = data.rows("ideas.top", {})
+    assert [r["symbol"] for r in rows] == ["NVDA", "TRV"]
+    assert rows[1] == {"symbol": "TRV", "side": "long", "score": "72", "setup": "Flat base",
+                       "sector": "Financials", "trigger": "409.31", "stop": "353.80",
+                       "why": "RS rating 90"}
+    assert [r["symbol"] for r in data.rows("ideas.top", {"side": "long"})] == ["TRV"]
+    watch = data.rows("ideas.top", {"status": "watch"})
+    assert [(r["symbol"], r["why"]) for r in watch] == [("CAH", "Earnings in 1 day")]
+
+
+def test_no_ideas_gives_sample(tmp_path: Path) -> None:
+    """UT-GUI-034.013.M12.T02: with sector rows only, the idea list stays sample data."""
+    _write_sectors(tmp_path)
+    data = DeskFloorData(SampleFloorData(), tmp_path)
+    product = next(p for p in data.products() if p.id == "ideas.top")
+    assert product.sample is True
+    assert data.rows("ideas.top", {}) == SampleFloorData().rows("ideas.top", {})

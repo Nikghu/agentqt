@@ -16,7 +16,9 @@ def bdays(n: int, start: str = START) -> pd.DatetimeIndex:
     return pd.bdate_range(start, periods=n)
 
 
-def write_candles(path: Path, series: dict[str, Sequence[float]], start: str = START) -> None:
+def write_candles(
+    path: Path, series: dict[str, Sequence[float]], start: str = START, volume: float = 1000.0
+) -> None:
     """Write ``price_1d`` rows (high = close + 1%, low = close - 1%) for each symbol."""
     con = sqlite3.connect(path)
     con.execute(
@@ -27,7 +29,7 @@ def write_candles(path: Path, series: dict[str, Sequence[float]], start: str = S
         days = bdays(len(closes), start)
         con.executemany(
             "INSERT INTO price_1d VALUES (?, ?, ?, ?, ?, ?, ?)",
-            [(sym, d.isoformat(), c, c * 1.01, c * 0.99, c, 1000.0)
+            [(sym, d.isoformat(), c, c * 1.01, c * 0.99, c, volume)
              for d, c in zip(days, closes, strict=True)],
         )
     con.commit()

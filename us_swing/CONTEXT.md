@@ -7,9 +7,11 @@
 
 ---
 
-**Next (handover, 2026-11-06):** P3 of MKT: FO-MKT-003 (money flow, setups, readiness score, ideas). FO not written yet, so write FO first. Before that, user checks the P2 panels in the app (TODO T114) and decides push / PR for `feat/mkt-p2-sectors-rs` (only when the user says).
+**Next (handover, 2026-11-06):** P4 of MKT: FO-MKT-004 proof on past data (score buckets vs next 5/10/20-day returns; fill older SPY first). FO not written yet, so write FO first. Push / PR for `feat/mkt-p3-flow-setups-score` only when the user says.
 
-**Current (Session 118, 2026-11-06):** **Sector strength, sector rotation and stock RS, phase P2 (Feature, MKT + GUI; FO-MKT-002; RN-MKT-0.2.0-20261106; SRD-MKT-002.001–.010 and SRD-GUI-034.012 approved by user and Implemented).** Desk step "Sectors" writes `sector_daily` and `stock_rs` to `desk.db`. Floor shows real Sector strength, Sector rotation and RS leaders (sector filter) with data date, no Sample tag. Latest real reading 2026-11-04: top sectors Health Care, Consumer Staples, Financials; Energy went from Weakening to Lagging; Communication Services Improving. 22 UT-MKT-002 and 2 UT-GUI-034.012 Pass; market 52 and floor 19 tests pass; ruff and mypy clean on changed files. Full suite 1999 pass, 12 pre-existing fails (TODO T112). Real run: 360 days, 487 rated stocks; hand check matches. Branch feat/mkt-p2-sectors-rs, not pushed. Known limit: a late backfill can shift a stored sector line; ranks unaffected (TODO T115).
+**Current (Session 118b, 2026-11-06):** **Money flow, setups, readiness score and daily ideas, phase P3 (Feature, MKT + GUI; FO-MKT-003; RN-MKT-0.3.0-20261106; SRD-MKT-003.001–.012 and SRD-GUI-034.013 approved by user and Implemented).** Desk step "Ideas" writes `stock_score`, `ideas` and `idea_reasons` to `desk.db`. Each side: top 10 with score 60+; earnings within 5 days or against the regime goes to Watch. Floor shows real Top ideas with data date, no Sample tag. Latest real reading 2026-11-04 (regime Choppy): top longs TRV, EL, WSM; top shorts NVDA, AVGO, TER. 35 UT-MKT-003 and 2 UT-GUI-034.013 Pass; market 87 and floor 21 tests pass; ruff and mypy --strict clean on changed files. Full suite 2036 pass, 12 pre-existing fails (TODO T112). Real run: 341 days, 329,714 score rows; hand check matches. Branch feat/mkt-p3-flow-setups-score, not pushed. Known limits: no news or gap-risk penalty until P5c; earnings only for latest day and top 30 per side; Squeeze rare (TODO T117); survivorship (today's S&P 500 list).
+
+**Also (Session 118, 2026-11-06):** **Sector strength, sector rotation and stock RS, phase P2 (Feature, MKT + GUI; FO-MKT-002; RN-MKT-0.2.0-20261106; SRD-MKT-002.001–.010 and SRD-GUI-034.012 approved by user and Implemented).** Desk step "Sectors" writes `sector_daily` and `stock_rs` to `desk.db`. Floor shows real Sector strength, Sector rotation and RS leaders (sector filter) with data date, no Sample tag. Latest real reading 2026-11-04: top sectors Health Care, Consumer Staples, Financials; Energy went from Weakening to Lagging; Communication Services Improving. 22 UT-MKT-002 and 2 UT-GUI-034.012 Pass; market 52 and floor 19 tests pass; ruff and mypy clean on changed files. Full suite 1999 pass, 12 pre-existing fails (TODO T112). Real run: 360 days, 487 rated stocks; hand check matches. Branch feat/mkt-p2-sectors-rs, not pushed. Known limit: a late backfill can shift a stored sector line; ranks unaffected (TODO T115).
 
 **Previous (Session 117, 2026-11-06):** **Market regime, breadth and fear, phase P1 (Feature, MKT + DSK + GUI; FO-MKT-001; RN-MKT-0.1.0-20261106; SRD-MKT-001.001–.012, SRD-DSK-001.021, SRD-GUI-034.011 Implemented).** New `market/` package: read-only candles, regime rules, VIX fetch, store in `desk.db`, desk step "Market regime". Floor shows real regime and breadth. 28 UT-MKT Pass; 132 tests pass across desk, market and GUI desk/Floor. Real run filled 341 days (2025-06-30 to 2026-11-04). Known limits: history starts 2025-06 (fill older SPY before P4); breadth uses today's members; desk does not download candles yet. Branch feat/mkt-p1-regime-breadth, 2 commits (75acdf23, db0b2133) on top of merged PR #114, not pushed. **Next:** user decides push / PR (`/project:finish`) only when the user says; then P2 FO-MKT-002 sectors and relative strength.
 
@@ -527,12 +529,12 @@ Previous (Session 87, 2026-10-23): **Accumulation / Distribution screener (Featu
 
 | Artifact | File | Status | Notes |
 |---|---|---|---|
-| FO | `docs/market/FO.md` | Draft | FO-MKT-001 and FO-MKT-002 Implemented (P1, P2); FO-MKT-003..008 Draft |
-| SRD | `docs/market/SRD.md` | Draft v0.3.0 | SRD-MKT-001.001–.012 Implemented (RN-MKT-0.1.0-20261106); SRD-MKT-002.001–.010 Implemented (RN-MKT-0.2.0-20261106) |
-| MD | `docs/market/MD.md` | Draft v0.3.0 | MD-MKT-001 M01–M05; MD-MKT-002 M01–M05 |
-| UTCD | `docs/market/UTCD.md` | Draft | FO-MKT-001: 28 UT Pass; FO-MKT-002: 22 UT Pass |
-| TRACE | `docs/market/TRACE.md` | Draft v0.1.0 | FO-MKT-001 and FO-MKT-002 Implemented |
-| Code | `src/us_swing/market/` | Implemented | P1 and P2 code; branch feat/mkt-p2-sectors-rs, not pushed |
+| FO | `docs/market/FO.md` | Draft | FO-MKT-001 to FO-MKT-003 Implemented (P1–P3); FO-MKT-004..008 Draft |
+| SRD | `docs/market/SRD.md` | Draft v0.4.0 | SRD-MKT-001.001–.012 Implemented (RN-MKT-0.1.0-20261106); SRD-MKT-002.001–.010 Implemented (RN-MKT-0.2.0-20261106); SRD-MKT-003.001–.012 Implemented (RN-MKT-0.3.0-20261106) |
+| MD | `docs/market/MD.md` | Draft v0.4.0 | MD-MKT-001 M01–M05; MD-MKT-002 M01–M05; MD-MKT-003 M01–M07 |
+| UTCD | `docs/market/UTCD.md` | Draft | FO-MKT-001: 28 UT Pass; FO-MKT-002: 22 UT Pass; FO-MKT-003: 35 UT Pass |
+| TRACE | `docs/market/TRACE.md` | Draft v0.1.0 | FO-MKT-001 to FO-MKT-003 Implemented |
+| Code | `src/us_swing/market/` | Implemented | P1–P3 code; branch feat/mkt-p3-flow-setups-score, not pushed |
 
 ---
 

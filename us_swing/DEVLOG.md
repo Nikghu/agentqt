@@ -2,6 +2,16 @@
 
 ---
 
+## [20261106] MKT — Money flow, setups, readiness score and daily ideas, phase P3 (FO-MKT-003)
+
+- Type: Feature
+- FO(s): FO-MKT-003
+- RN: RN-MKT-0.3.0-20261106
+- Artifacts updated: SRD (MKT-003.001–.012, GUI-034.013 Implemented), DD (after code review note), UTCD (35 MKT Pass, 2 GUI Pass), TRACE (mkt, gui), Code (market/candles.py, flow.py, setups.py, score.py, earnings.py, store.py, idea_step.py, core/desk_steps.py, core/desk_floor.py, gui/floor_panel.py), Tests (tests/market/test_ideas.py, test_idea_step.py, 2 in tests/gui/test_market_floor.py), RN, CONTEXT, TODO (T109, T116, T117)
+- Decisions: news 10 points left out until P5c (score × 100/90); earnings from Yahoo only for top 30 per side on latest day; against-regime side goes to Watch on both sides; top 10 per side at score 60+.
+
+---
+
 ## [20261106] MKT — Sector strength, sector rotation and stock RS, phase P2 (FO-MKT-002)
 
 - Type: Feature

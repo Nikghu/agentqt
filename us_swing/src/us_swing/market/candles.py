@@ -2,6 +2,7 @@
 Module: MD-MKT-001.001.M01 — market/candles.py
 Parent SRD: SRD-MKT-001.001
 Also: MD-MKT-002.001.M01 — member sectors (SRD-MKT-002.001)
+Also: MD-MKT-003.001.M01 — daily volume (SRD-MKT-003.001)
 
 Read-only daily bars from the app's ``candles.db`` for SPY and the S&P 500 members.
 """
@@ -29,6 +30,7 @@ class DailyBars:
     closes: pd.DataFrame
     highs: pd.DataFrame
     lows: pd.DataFrame
+    volumes: pd.DataFrame
 
 
 class CandleReader:
@@ -50,13 +52,13 @@ class CandleReader:
             return {r[0] for r in con.execute("SELECT DISTINCT symbol FROM price_1d")}
 
     def read(self, symbols: Iterable[str]) -> DailyBars:
-        """Return closes, highs and lows for ``symbols`` as wide frames by date."""
+        """Return closes, highs, lows and volumes for ``symbols`` as wide frames by date."""
         wanted = sorted(set(symbols))
         marks = ",".join("?" * len(wanted))
         con = sqlite3.connect(self._uri, uri=True)
         try:
             frame = pd.read_sql_query(
-                f"SELECT symbol, datetime, high, low, close FROM price_1d "  # noqa: S608
+                f"SELECT symbol, datetime, high, low, close, volume FROM price_1d "  # noqa: S608
                 f"WHERE symbol IN ({marks}) ORDER BY symbol, datetime",
                 con,
                 params=tuple(wanted),
@@ -69,7 +71,7 @@ class CandleReader:
         def wide(col: str) -> pd.DataFrame:
             return frame.pivot(index="date", columns="symbol", values=col).sort_index()
 
-        return DailyBars(wide("close"), wide("high"), wide("low"))
+        return DailyBars(wide("close"), wide("high"), wide("low"), wide("volume"))
 
 
 @dataclass(frozen=True)
