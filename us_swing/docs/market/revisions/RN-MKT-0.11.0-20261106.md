@@ -52,6 +52,7 @@ P9 adds a real lead chat to AI Desk → Command. The Master types a question and
 - `calls_per_day` is 200 because every employee file needs a number; the cost cap does the real limiting.
 - The chat reuses the lead brief's facts, so it sees the same data the lead used in the evening.
 - A shadow chat employee never replies (shadow only records), so its questions expire after 30 minutes. This is by design.
+- Fixed in this phase: the P9 SRD approval script damaged the status cell of SRD-GUI-034.039–.041 ("Approved39"); repaired before they were set to Implemented.
 - Review fixes (both reviewers approved): the turn list is rebuilt only when it changes and scrolls to the newest turn; a Command section rebuilt while a question waits keeps checking; a unique index allows only one reply per question.
 
 ---
@@ -60,7 +61,7 @@ P9 adds a real lead chat to AI Desk → Command. The Master types a question and
 
 - New tests: 17 MKT (`tests/market/test_lead_chat.py`, including an end-to-end desk run with a fake model) and 7 GUI (`tests/gui/test_ai_desk_chat.py`); all Pass.
 - Real check on a copy of the desk: Lead 2 was seeded, and one real question was answered through the Claude CLI in 12.7 s.
-- Full suite: see DEVLOG.
+- Full suite: 2463 passed, 12 old failures (T112), 2 skipped. No new failure.
 
 ---
 

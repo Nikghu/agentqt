@@ -343,20 +343,20 @@
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
 |---|---|---|---|---|---|---|
-| UT-MKT-010.001.M01.T01 | MD-MKT-010.001.M01 | Positive | Question saved (SRD-MKT-010.001) | ask 'Why AAPL?' | one master chat row; one waiting chat_question event | Not Run |
-| UT-MKT-010.001.M01.T02 | MD-MKT-010.001.M01 | Negative | Bad question (SRD-MKT-010.001) | empty text; 501 characters | ValueError; no row, no event | Not Run |
-| UT-MKT-010.001.M01.T03 | MD-MKT-010.001.M01 | Positive | Notes and turns (SRD-MKT-010.001) | question with desk up, desk down, 31 minutes later, then a reply | waiting; start the desk; expired; empty note; turns oldest first | Not Run |
-| UT-MKT-010.001.M01.T04 | MD-MKT-010.001.M01 | Edge | Append-only (SRD-MKT-010.001) | UPDATE a chat row | refused | Not Run |
-| UT-MKT-010.002.M02.T01 | MD-MKT-010.002.M02 | Positive | One event per question (SRD-MKT-010.002) | two questions on one day | two events, priority 0, 2-minute deadline, 30-minute expiry | Not Run |
-| UT-MKT-010.002.M02.T02 | MD-MKT-010.002.M02 | Negative | Unknown kind still refused (SRD-MKT-010.002) | post 'chat_answer' | ValueError | Not Run |
-| UT-MKT-010.003.M03.T01 | MD-MKT-010.003.M03 | Positive | Chat facts (SRD-MKT-010.003) | open question, 2 earlier turns, picks with paper results | fresh; text has the question, recent chat, today and the picks | Not Run |
-| UT-MKT-010.003.M03.T02 | MD-MKT-010.003.M03 | Negative | Nothing to answer (SRD-MKT-010.003) | no question; a question 31 minutes old | fresh False each time | Not Run |
-| UT-MKT-010.003.M03.T03 | MD-MKT-010.003.M03 | Positive | Oldest first (SRD-MKT-010.003) | two open questions | facts and reply are for the older one | Not Run |
-| UT-MKT-010.004.M03.T01 | MD-MKT-010.003.M03 | Positive | Answer saved (SRD-MKT-010.004) | fake gateway answers 'Because ...' | lead row answered, reply_to the question | Not Run |
-| UT-MKT-010.004.M03.T02 | MD-MKT-010.003.M03 | Negative | Answer too long (SRD-MKT-010.004) | 1501 characters; extra field | refused by the schema | Not Run |
-| UT-MKT-010.005.M03.T01 | MD-MKT-010.003.M03 | Negative | No answer (SRD-MKT-010.005) | fake gateway returns None | lead row failed with the failed text | Not Run |
-| UT-MKT-010.006.M03.T01 | MD-MKT-010.003.M03 | Positive | Answers only (SRD-MKT-010.006) | answer schema fields; skill source | only 'answer'; no approvals, signal or order code | Not Run |
-| UT-MKT-010.007.M04.T01 | MD-MKT-010.007.M04 | Positive | Default chat employee (SRD-MKT-010.007) | emp-008 job.yaml; SKILL_PATHS | level lead, skill lead_chat, trigger chat_question, 200 calls; skill loads | Not Run |
-| UT-MKT-010.007.M04.T02 | MD-MKT-010.007.M04 | Negative | No real names (SRD-MKT-010.007) | emp-008 files | generic name only; market does not import desk | Not Run |
-| UT-MKT-010.008.M03.T01 | MD-MKT-010.003.M03 | Positive | Logs (SRD-MKT-010.008) | one answer and one failure | [Chat] lines with the question numbers | Not Run |
-| UT-MKT-010.002.M02.T03 | MD-MKT-010.002.M02 | Positive | Desk answers end to end (SRD-MKT-010.002) | EmployeesStep events with a fake caller; one question | the chat employee is woken and a reply row is saved | Not Run |
+| UT-MKT-010.001.M01.T01 | MD-MKT-010.001.M01 | Positive | Question saved (SRD-MKT-010.001) | ask 'Why AAPL?' | one master chat row; one waiting chat_question event | Pass |
+| UT-MKT-010.001.M01.T02 | MD-MKT-010.001.M01 | Negative | Bad question (SRD-MKT-010.001) | empty text; 501 characters | ValueError; no row, no event | Pass |
+| UT-MKT-010.001.M01.T03 | MD-MKT-010.001.M01 | Positive | Notes and turns (SRD-MKT-010.001) | question with desk up, desk down, 31 minutes later, then a reply | waiting; start the desk; expired; empty note; turns oldest first | Pass |
+| UT-MKT-010.001.M01.T04 | MD-MKT-010.001.M01 | Edge | Append-only (SRD-MKT-010.001) | UPDATE a chat row | refused | Pass |
+| UT-MKT-010.002.M02.T01 | MD-MKT-010.002.M02 | Positive | One event per question (SRD-MKT-010.002) | two questions on one day | two events, priority 0, 2-minute deadline, 30-minute expiry | Pass |
+| UT-MKT-010.002.M02.T02 | MD-MKT-010.002.M02 | Negative | Unknown kind still refused (SRD-MKT-010.002) | post 'chat_answer' | ValueError | Pass |
+| UT-MKT-010.003.M03.T01 | MD-MKT-010.003.M03 | Positive | Chat facts (SRD-MKT-010.003) | open question, 2 earlier turns, picks with paper results | fresh; text has the question, recent chat, today and the picks | Pass |
+| UT-MKT-010.003.M03.T02 | MD-MKT-010.003.M03 | Negative | Nothing to answer (SRD-MKT-010.003) | no question; a question 31 minutes old | fresh False each time | Pass |
+| UT-MKT-010.003.M03.T03 | MD-MKT-010.003.M03 | Positive | Oldest first (SRD-MKT-010.003) | two open questions | facts and reply are for the older one | Pass |
+| UT-MKT-010.004.M03.T01 | MD-MKT-010.003.M03 | Positive | Answer saved (SRD-MKT-010.004) | fake gateway answers 'Because ...' | lead row answered, reply_to the question | Pass |
+| UT-MKT-010.004.M03.T02 | MD-MKT-010.003.M03 | Negative | Answer too long (SRD-MKT-010.004) | 1501 characters; extra field | refused by the schema | Pass |
+| UT-MKT-010.005.M03.T01 | MD-MKT-010.003.M03 | Negative | No answer (SRD-MKT-010.005) | fake gateway returns None | lead row failed with the failed text | Pass |
+| UT-MKT-010.006.M03.T01 | MD-MKT-010.003.M03 | Positive | Answers only (SRD-MKT-010.006) | answer schema fields; skill source | only 'answer'; no approvals, signal or order code | Pass |
+| UT-MKT-010.007.M04.T01 | MD-MKT-010.007.M04 | Positive | Default chat employee (SRD-MKT-010.007) | emp-008 job.yaml; SKILL_PATHS | level lead, skill lead_chat, trigger chat_question, 200 calls; skill loads | Pass |
+| UT-MKT-010.007.M04.T02 | MD-MKT-010.007.M04 | Negative | No real names (SRD-MKT-010.007) | emp-008 files | generic name only; market does not import desk | Pass |
+| UT-MKT-010.008.M03.T01 | MD-MKT-010.003.M03 | Positive | Logs (SRD-MKT-010.008) | one answer and one failure | [Chat] lines with the question numbers | Pass |
+| UT-MKT-010.002.M02.T03 | MD-MKT-010.002.M02 | Positive | Desk answers end to end (SRD-MKT-010.002) | EmployeesStep events with a fake caller; one question | the chat employee is woken and a reply row is saved | Pass |

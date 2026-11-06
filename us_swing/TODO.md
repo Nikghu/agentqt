@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-11-06 (Session 124)
+**Last Updated:** 2026-11-06 (Session 125)
 
 ---
 
@@ -140,3 +140,4 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T128 | DSK P6 — user check: restart the desk; AI Desk → Hiring, start one hire and watch its shadow days grow after evening runs; try Desk settings seat caps; after the first Friday run, Reports shows the weekly report. | `core/desk_hiring.py`, `gui/ai_desk_hiring.py` | High | Open |
 | T129 | MKT P7 — user check: restart the app; after an evening run, AI Desk → Command → Approvals waiting shows picks; Approve one (signal in Execution under AI Desk), Reject one; after the next open undecided picks are gone. | `core/desk_trades.py`, `gui/ai_desk_hiring.py` | High | Open |
 | T130 | MKT P8 — user check: restart the desk; after the next evening run AI Desk → Results shows each lead pick with its paper result and the breakdown tables; Friday weekly report has Pick results; a closed AI Desk trade shows real P&L. | `market/pick_results.py`, `gui/ai_desk_results.py` | High | Open |
+| T131 | MKT P9 — user check: restart the desk (seeds Lead 2, emp-008); AI Desk → Command, ask a question; the answer shows in about a minute; desk stopped → start-the-desk note. | `market/lead_chat.py`, `gui/ai_desk_chat.py` | High | Open |

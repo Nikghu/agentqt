@@ -251,7 +251,7 @@ The system shall measure how the desk's lead picks turn out, both as paper resul
 
 ## FO-MKT-010: Lead Chat
 
-**Status:** Approved (user, 2026-11-06)
+**Status:** Implemented (RN-MKT-0.11.0-20261106)
 **Priority:** Should
 **Phase:** P9
 **Depends on:** FO-MKT-005 (lead brief and views), FO-MKT-009 (pick results), FO-DSK-003 (events)

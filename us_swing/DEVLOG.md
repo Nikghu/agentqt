@@ -2,6 +2,17 @@
 
 ---
 
+## [20261106] MKT + GUI — Lead chat, phase P9 (FO-MKT-010)
+
+- Type: Feature
+- FO(s): FO-MKT-010; FO-GUI-034 (still at Reopen)
+- RN: RN-MKT-0.11.0-20261106
+- Artifacts updated: FO, SRD (MKT-010.001–.008, GUI-034.039–.041 Implemented), DD (DD-MKT-010.001.D01), MD, UTCD (17 MKT and 7 GUI rows Pass), TRACE, desk DD phase plan (P9, P10 planned), Code (core/desk_chat.py, core/desk_events.py, market/lead_chat.py, market/employees/emp-008/, core/desk_steps.py, gui/ai_desk_chat.py, gui/ai_desk_sections.py, gui/ai_desk.py, USSwing.spec)
+- Decisions: user chose desk-process answers, today + 10 days of picks, answers only, budget only, a new lead-level chat employee; calls_per_day 200; no retry; spec now lists market.pick_results (missed in P8) and market.lead_chat; two old tests updated (event kinds, skill list)
+- Tests: 2463 passed, 12 old failures (T112), 2 skipped; reviewers approved; fixes: rebuild turns only on change and scroll to the newest, resume waiting after Command is rebuilt, one reply per question index
+
+---
+
 ## [20261106] MKT + GUI — Pick results, phase P8 (FO-MKT-009)
 
 - Type: Feature
