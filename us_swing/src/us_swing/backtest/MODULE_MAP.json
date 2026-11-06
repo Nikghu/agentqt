@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-03T07:31:41",
+  "generated": "2026-11-06T13:15:28",
   "subfolder": "backtest",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\backtest",
   "tool_code": "BKT",
@@ -153,7 +153,8 @@
             },
             {
               "name": "_update_floor",
-              "signature": "def _update_floor(self, job: Job, state: DownloadState, got_bars: bool) -> None",
+              "signature": "def _update_floor(self, job: Job, state: DownloadState) -> None",
+              "docstring": "Save a floor only for a stock listed late; an empty 3m answer is asked again.",
               "line_start": 192,
               "line_end": 199
             },
@@ -391,46 +392,46 @@
         {
           "name": "plan",
           "signature": "def plan(\r\n    symbols: list[str],\r\n    settings: BacktestDataSettings,\r\n    coverage: CoverageFn,\r\n    floors: Mapping[str, date],\r\n    last_session: date,\r\n    delta_only: bool = False,\r\n    daily_only: Sequence[str] = (),\r\n) -> list[Job]",
-          "docstring": "Return the jobs still needed: all 1d jobs, then 3m jobs newest end first.",
+          "docstring": "Return the jobs still needed, one stock at a time: its 1d, then its 3m newest en",
           "line_start": 49,
-          "line_end": 86
+          "line_end": 85
         },
         {
           "name": "_missing",
           "signature": "def _missing(\r\n    symbol: str,\r\n    tf: Timeframe,\r\n    start: date,\r\n    end: date,\r\n    saved: tuple[date, date] | None,\r\n    floor: date | None,\r\n) -> list[Job]",
-          "line_start": 89,
-          "line_end": 105
+          "line_start": 88,
+          "line_end": 104
         },
         {
           "name": "_back",
           "signature": "def _back(symbol: str, tf: Timeframe, start: date, end: date, floor: date | None) -> list[Job]",
-          "line_start": 108,
-          "line_end": 115
+          "line_start": 107,
+          "line_end": 114
         },
         {
           "name": "_forward",
           "signature": "def _forward(symbol: str, tf: Timeframe, last: date, end: date) -> list[Job]",
-          "line_start": 118,
-          "line_end": 130
+          "line_start": 117,
+          "line_end": 129
         },
         {
           "name": "_windows",
           "signature": "def _windows(start: date, end: date) -> list[tuple[date, date]]",
           "docstring": "3-month windows ``(w_start, w_end]`` from ``end`` back until one reaches ``start",
-          "line_start": 133,
-          "line_end": 144
+          "line_start": 132,
+          "line_end": 143
         },
         {
           "name": "_weekdays_after",
           "signature": "def _weekdays_after(last: date, end: date) -> int",
-          "line_start": 147,
-          "line_end": 150
+          "line_start": 146,
+          "line_end": 149
         },
         {
           "name": "_years",
           "signature": "def _years(start: date, end: date) -> str",
-          "line_start": 153,
-          "line_end": 154
+          "line_start": 152,
+          "line_end": 153
         }
       ],
       "constants": [

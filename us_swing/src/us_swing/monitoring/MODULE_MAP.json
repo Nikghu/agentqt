@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-03T07:31:41",
+  "generated": "2026-11-06T13:15:28",
   "subfolder": "monitoring",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\monitoring",
   "tool_code": "INF",
@@ -190,43 +190,43 @@
             {
               "name": "__init__",
               "signature": "def __init__(\r\n        self,\r\n        log_dir: Path,\r\n        backup_count: int = 30,\r\n        encoding: str = \"utf-8\",\r\n        tz: datetime.tzinfo | None = None,\r\n    ) -> None",
-              "line_start": 61,
-              "line_end": 74
+              "line_start": 62,
+              "line_end": 75
             },
             {
               "name": "_dated_path",
               "signature": "def _dated_path(self, date: datetime.date) -> Path",
-              "line_start": 78,
-              "line_end": 79
+              "line_start": 79,
+              "line_end": 80
             },
             {
               "name": "_today",
               "signature": "def _today(self) -> datetime.date",
-              "line_start": 81,
-              "line_end": 82
+              "line_start": 82,
+              "line_end": 83
             },
             {
               "name": "_compute_next_rollover",
               "signature": "def _compute_next_rollover(self) -> None",
               "docstring": "Set self.rolloverAt to the next midnight in the logging zone.",
-              "line_start": 84,
-              "line_end": 88
+              "line_start": 85,
+              "line_end": 89
             },
             {
               "name": "shouldRollover",
               "signature": "def shouldRollover(self, record: logging.LogRecord) -> bool",
-              "line_start": 90,
-              "line_end": 91
+              "line_start": 91,
+              "line_end": 92
             },
             {
               "name": "doRollover",
               "signature": "def doRollover(self) -> None",
-              "line_start": 93,
-              "line_end": 111
+              "line_start": 94,
+              "line_end": 112
             }
           ],
-          "line_start": 45,
-          "line_end": 111
+          "line_start": 46,
+          "line_end": 112
         },
         {
           "name": "_ZonedFormatter",
@@ -235,18 +235,24 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, tz: datetime.tzinfo) -> None",
-              "line_start": 164,
-              "line_end": 169
+              "line_start": 173,
+              "line_end": 178
+            },
+            {
+              "name": "format",
+              "signature": "def format(self, record: logging.LogRecord) -> str",
+              "line_start": 180,
+              "line_end": 181
             },
             {
               "name": "formatTime",
               "signature": "def formatTime(\r\n        self, record: logging.LogRecord, datefmt: str | None = None\r\n    ) -> str",
-              "line_start": 171,
-              "line_end": 175
+              "line_start": 183,
+              "line_end": 187
             }
           ],
-          "line_start": 161,
-          "line_end": 175
+          "line_start": 167,
+          "line_end": 187
         }
       ],
       "top_level_functions": [
@@ -254,32 +260,33 @@
           "name": "_resolve_tz",
           "signature": "def _resolve_tz(name: str | None) -> datetime.tzinfo",
           "docstring": "Return the zone for *name*, falling back to the machine's local zone.",
-          "line_start": 28,
-          "line_end": 40
+          "line_start": 29,
+          "line_end": 41
         },
         {
           "name": "configure_logging",
           "signature": "def configure_logging(\r\n    log_dir: Path,\r\n    level: str = \"INFO\",\r\n    retention_days: int = 30,\r\n    timezone: str | None = None,\r\n) -> None",
           "docstring": "Set up root logger with a daily dated file handler + stderr stream.",
-          "line_start": 116,
-          "line_end": 158
+          "line_start": 117,
+          "line_end": 161
         },
         {
           "name": "_formatter",
           "signature": "def _formatter(tz: datetime.tzinfo) -> logging.Formatter",
-          "line_start": 178,
-          "line_end": 179
+          "line_start": 190,
+          "line_end": 191
         },
         {
           "name": "_install_excepthook",
           "signature": "def _install_excepthook() -> None",
           "docstring": "Replace sys.excepthook to log all uncaught exceptions at CRITICAL.",
-          "line_start": 182,
-          "line_end": 196
+          "line_start": 194,
+          "line_end": 208
         }
       ],
       "constants": [
-        "_DATEFMT = \"%Y-%m-%dT%H:%M:%S%z\""
+        "_DATEFMT = \"%Y-%m-%dT%H:%M:%S%z\"",
+        "_BOT_TOKEN = re.compile(r\"bot\\d+:[A-Za-z0-9_-]{20,}\")"
       ]
     }
   }

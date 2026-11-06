@@ -1,0 +1,1184 @@
+{
+  "generated": "2026-11-06T13:15:28",
+  "subfolder": "desk",
+  "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\desk",
+  "tool_code": "DSK",
+  "files": {
+    "__init__.py": {},
+    "budget.py": {
+      "module_id": "MD-DSK-004.003.M12",
+      "srd_id": "SRD-DSK-004.003",
+      "classes": [
+        {
+          "name": "Budget",
+          "docstring": "Checks the monthly budget, the employee's cap and the daily limits.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, recorder: Recorder, settings: DeskAiSettings,\r\n                 clock: Callable[[], datetime] = ny_now) -> None",
+              "docstring": "Use ``recorder`` for the sums and ``clock`` for New York time.",
+              "line_start": 24,
+              "line_end": 29
+            },
+            {
+              "name": "refusal",
+              "signature": "def refusal(self, employee_id: str, name: str, monthly_cap: float, calls_per_day: int,\r\n                source: str) -> str | None",
+              "docstring": "Return why a call is refused, or ``None`` when it is allowed.",
+              "line_start": 31,
+              "line_end": 49
+            }
+          ],
+          "line_start": 21,
+          "line_end": 49
+        }
+      ],
+      "constants": [
+        "TRIES_PER_CALL = 4"
+      ]
+    },
+    "cli.py": {
+      "module_id": "MD-DSK-001.020.M06",
+      "srd_id": "SRD-DSK-001.020",
+      "top_level_functions": [
+        {
+          "name": "_local_tz",
+          "signature": "def _local_tz() -> tzinfo",
+          "line_start": 41,
+          "line_end": 45
+        },
+        {
+          "name": "_sync_task",
+          "signature": "def _sync_task() -> None",
+          "line_start": 48,
+          "line_end": 49
+        },
+        {
+          "name": "_is_alive",
+          "signature": "def _is_alive(state: DeskState, message: str) -> bool",
+          "line_start": 52,
+          "line_end": 53
+        },
+        {
+          "name": "main",
+          "signature": "def main(\r\n    argv: list[str],\r\n    home: Path | None = None,\r\n    proof: Callable[[], Callable[[Path], str | None]] = load_proof,\r\n) -> int",
+          "docstring": "Run a desk sub-command and return the exit code; ``proof`` loads the proof runne",
+          "line_start": 56,
+          "line_end": 102
+        },
+        {
+          "name": "_replay",
+          "signature": "def _replay(args: list[str], home: Path) -> int",
+          "line_start": 105,
+          "line_end": 119
+        },
+        {
+          "name": "_send",
+          "signature": "def _send(kind: CommandKind, home: Path) -> int",
+          "line_start": 122,
+          "line_end": 129
+        }
+      ],
+      "constants": [
+        "USAGE = (",
+        "_COMMANDS = {"
+      ]
+    },
+    "clock.py": {
+      "module_id": "MD-DSK-001.015.M03",
+      "srd_id": "SRD-DSK-001.015",
+      "top_level_functions": [
+        {
+          "name": "evening_due",
+          "signature": "def evening_due(now: datetime, last_start: datetime | None) -> bool",
+          "docstring": "Return True when today's weekday evening run time has passed and has not run yet",
+          "line_start": 24,
+          "line_end": 37
+        },
+        {
+          "name": "is_trading_day",
+          "signature": "def is_trading_day(day: date) -> bool",
+          "docstring": "True when the NYSE opens on ``day`` (not a weekend or market holiday).",
+          "line_start": 40,
+          "line_end": 42
+        },
+        {
+          "name": "market_events_due",
+          "signature": "def market_events_due(now: datetime) -> list[tuple[str, str]]",
+          "docstring": "Return the market clock events due at ``now`` as ``(kind, day)`` pairs.",
+          "line_start": 45,
+          "line_end": 61
+        },
+        {
+          "name": "evening_task_time",
+          "signature": "def evening_task_time(day: date, local: tzinfo) -> tuple[str, list[str]]",
+          "docstring": "Return the local ``HH:MM`` and local weekday codes for the evening Windows task.",
+          "line_start": 64,
+          "line_end": 78
+        }
+      ],
+      "constants": [
+        "ET = ZoneInfo(\"America/New_York\")",
+        "EVENING_RUN = time(16, 25)",
+        "MARKET_OPEN = time(9, 30)",
+        "MARKET_CLOSE = time(16, 0)",
+        "CLOCK_WINDOW = timedelta(minutes=30)",
+        "TASK_LEAD = timedelta(minutes=5)",
+        "_DAY_CODES = (\"MON\", \"TUE\", \"WED\", \"THU\", \"FRI\", \"SAT\", \"SUN\")"
+      ]
+    },
+    "employees_step.py": {
+      "module_id": "MD-DSK-003.001.M10",
+      "srd_id": "SRD-DSK-003.001",
+      "classes": [
+        {
+          "name": "EmployeesStep",
+          "docstring": "Wakes the AI employees after a desk run and on other events.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(\r\n        self,\r\n        skills: Callable[[], Mapping[str, str]] = _skill_paths,\r\n        defaults: Callable[[], Sequence[Path]] = _default_folders,\r\n        settings: Callable[[], DeskAiSettings] | None = None,\r\n        key: Callable[[], str] = load_key,\r\n        caller: Caller = call_model,\r\n        clock: Callable[[], datetime] = ny_now,\r\n    ) -> None",
+              "docstring": "Set the skill list, default files, settings, key, model caller and clock.",
+              "line_start": 54,
+              "line_end": 69
+            },
+            {
+              "name": "__call__",
+              "signature": "def __call__(self, ctx: StepContext) -> None",
+              "docstring": "Post ``after_run`` and handle the events; one failing employee never fails the r",
+              "line_start": 71,
+              "line_end": 76
+            },
+            {
+              "name": "has_work",
+              "signature": "def has_work(self, home: Path) -> bool",
+              "docstring": "True when a waiting event wakes at least one employee (files read only then).",
+              "line_start": 78,
+              "line_end": 82
+            },
+            {
+              "name": "handle_events",
+              "signature": "def handle_events(self, ctx: StepContext) -> None",
+              "docstring": "Handle every waiting event with the employees loaded now.",
+              "line_start": 84,
+              "line_end": 88
+            },
+            {
+              "name": "_router",
+              "signature": "def _router(self, home: Path, run_id: int) -> tuple[Router, list[Hire]]",
+              "line_start": 90,
+              "line_end": 101
+            },
+            {
+              "name": "_wake",
+              "signature": "def _wake(self, hire: Hire, event: Event, run_id: int, home: Path,\r\n              settings: DeskAiSettings) -> None",
+              "line_start": 103,
+              "line_end": 127
+            }
+          ],
+          "line_start": 49,
+          "line_end": 127
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_skill_paths",
+          "signature": "def _skill_paths() -> Mapping[str, str]",
+          "line_start": 37,
+          "line_end": 40
+        },
+        {
+          "name": "_default_folders",
+          "signature": "def _default_folders() -> Sequence[Path]",
+          "line_start": 43,
+          "line_end": 46
+        }
+      ]
+    },
+    "gateway.py": {
+      "module_id": "MD-DSK-004.001.M11",
+      "srd_id": "SRD-DSK-004.001",
+      "classes": [
+        {
+          "name": "Reply",
+          "docstring": "A model's answer text and usage; cost is 0 for Claude Code CLI.",
+          "class_vars": [
+            "text: str",
+            "tokens_in: int",
+            "tokens_out: int",
+            "cost_usd: float"
+          ],
+          "line_start": 44,
+          "line_end": 50
+        },
+        {
+          "name": "Answered",
+          "docstring": "Summary of the last valid answer, for the run log.",
+          "class_vars": [
+            "model: str",
+            "seconds: float",
+            "tokens: int",
+            "cost_usd: float"
+          ],
+          "line_start": 137,
+          "line_end": 143
+        },
+        {
+          "name": "Gateway",
+          "docstring": "``AgentContext`` for one employee run: home plus a checked, recorded ``ask``.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, home: Path, hire: Hire, recorder: Recorder, settings: DeskAiSettings,\r\n                 key: str, run_id: int, data_day: str, caller: Caller = call_model,\r\n                 clock: Callable[[], datetime] = ny_now, replay: bool = False) -> None",
+              "docstring": "Bind the employee, the run and the sources; ``caller`` is injectable for tests.",
+              "line_start": 149,
+              "line_end": 168
+            },
+            {
+              "name": "home",
+              "signature": "def home(self) -> Path",
+              "docstring": "The desk folder.",
+              "decorators": [
+                "@property"
+              ],
+              "line_start": 171,
+              "line_end": 173
+            },
+            {
+              "name": "ask",
+              "signature": "def ask(self, facts: str, schema: type[T]) -> T | None",
+              "docstring": "Return a checked answer, or ``None`` after all tries fail or a cap refuses.",
+              "line_start": 175,
+              "line_end": 197
+            },
+            {
+              "name": "_model",
+              "signature": "def _model(self, choice: ModelChoice) -> str | None",
+              "line_start": 199,
+              "line_end": 213
+            },
+            {
+              "name": "_try",
+              "signature": "def _try(self, source: str, model: str, system: str, user: str, schema: type[T],\r\n             attempt: int) -> tuple[T | None, str]",
+              "line_start": 215,
+              "line_end": 243
+            }
+          ],
+          "line_start": 146,
+          "line_end": 243
+        },
+        {
+          "name": "ReplayGateway",
+          "docstring": "A gateway for ``desk replay`` only: tries are marked as replays, and it can send",
+          "methods": [
+            {
+              "name": "resend",
+              "signature": "def resend(self, system: str, user: str, schema: type[T], source: str,\r\n               model: str) -> T | None",
+              "docstring": "Send a recorded prompt again to one model (one retry); caps apply as usual.",
+              "line_start": 250,
+              "line_end": 265
+            }
+          ],
+          "line_start": 246,
+          "line_end": 265
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "call_model",
+          "signature": "def call_model(source: str, model: str, system: str, user: str, key: str) -> Reply",
+          "docstring": "Send one request to ``source``; raise ``RuntimeError`` with a plain reason on fa",
+          "line_start": 56,
+          "line_end": 60
+        },
+        {
+          "name": "_openrouter",
+          "signature": "def _openrouter(model: str, system: str, user: str, key: str) -> Reply",
+          "line_start": 63,
+          "line_end": 87
+        },
+        {
+          "name": "_claude",
+          "signature": "def _claude(model: str, system: str, user: str) -> Reply",
+          "line_start": 90,
+          "line_end": 104
+        },
+        {
+          "name": "parse_claude",
+          "signature": "def parse_claude(stdout: str, stderr: str, code: int) -> Reply",
+          "docstring": "Read the CLI's JSON output; its cost is ignored (subscription).",
+          "line_start": 107,
+          "line_end": 121
+        },
+        {
+          "name": "json_part",
+          "signature": "def json_part(text: str) -> str",
+          "docstring": "Return the text from the first ``{`` to the last ``}`` (models often add words).",
+          "line_start": 124,
+          "line_end": 127
+        },
+        {
+          "name": "system_prompt",
+          "signature": "def system_prompt(soul: str, schema: type[BaseModel]) -> str",
+          "docstring": "The soul text followed by the answer rules.",
+          "line_start": 130,
+          "line_end": 133
+        }
+      ],
+      "constants": [
+        "TIMEOUT_S = 90.0",
+        "DEFAULT_MODEL = \"default\"",
+        "_SOURCE_NAMES = {\"openrouter\": \"OpenRouter\", \"claude\": \"Claude Code CLI\"}"
+      ]
+    },
+    "process.py": {
+      "module_id": "MD-DSK-001.010.M04",
+      "srd_id": "SRD-DSK-001.010",
+      "classes": [
+        {
+          "name": "EventHandler",
+          "docstring": "Handles waiting events between desk runs.",
+          "methods": [
+            {
+              "name": "has_work",
+              "signature": "def has_work(self, home: Path) -> bool",
+              "line_start": 43,
+              "line_end": 43
+            },
+            {
+              "name": "handle_events",
+              "signature": "def handle_events(self, ctx: StepContext) -> None",
+              "line_start": 45,
+              "line_end": 45
+            }
+          ],
+          "line_start": 40,
+          "line_end": 45
+        },
+        {
+          "name": "_EventStep",
+          "docstring": "The only step of an ``event`` run.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, events: EventHandler) -> None",
+              "line_start": 53,
+              "line_end": 54
+            },
+            {
+              "name": "__call__",
+              "signature": "def __call__(self, ctx: StepContext) -> None",
+              "line_start": 56,
+              "line_end": 57
+            }
+          ],
+          "line_start": 48,
+          "line_end": 57
+        },
+        {
+          "name": "DeskProcess",
+          "docstring": "Runs the desk until a stop command; clock and sleep are injectable for tests.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(\r\n        self,\r\n        home: Path,\r\n        steps: Sequence[DeskStep] = (),\r\n        *,\r\n        resume: bool = False,\r\n        clock: Callable[[], datetime] = _utc_now,\r\n        sleep: Callable[[float], None] = time.sleep,\r\n        daily_check: Callable[[], object] | None = None,\r\n        poll_s: float = 2.0,\r\n        beat_s: float = 10.0,\r\n        events: EventHandler | None = None,\r\n    ) -> None",
+              "docstring": "Set up the desk; nothing is opened until :meth:`start`.",
+              "line_start": 88,
+              "line_end": 122
+            },
+            {
+              "name": "state",
+              "signature": "def state(self) -> DeskState",
+              "docstring": "The current desk state.",
+              "decorators": [
+                "@property"
+              ],
+              "line_start": 125,
+              "line_end": 127
+            },
+            {
+              "name": "run",
+              "signature": "def run(self) -> int",
+              "docstring": "Start, loop until stopped, then clean up; returns the exit code.",
+              "line_start": 131,
+              "line_end": 143
+            },
+            {
+              "name": "_record_crash",
+              "signature": "def _record_crash(self, reason: str) -> None",
+              "line_start": 145,
+              "line_end": 151
+            },
+            {
+              "name": "start",
+              "signature": "def start(self) -> bool",
+              "docstring": "Take the lock and open the store; False means the process should exit.",
+              "line_start": 153,
+              "line_end": 174
+            },
+            {
+              "name": "_run_daily_check",
+              "signature": "def _run_daily_check(self) -> None",
+              "line_start": 176,
+              "line_end": 182
+            },
+            {
+              "name": "close",
+              "signature": "def close(self) -> None",
+              "docstring": "Close the store and release the lock.",
+              "line_start": 184,
+              "line_end": 191
+            },
+            {
+              "name": "tick",
+              "signature": "def tick(self) -> bool",
+              "docstring": "Do one loop step; False when the desk has stopped.",
+              "line_start": 193,
+              "line_end": 211
+            },
+            {
+              "name": "_stopping",
+              "signature": "def _stopping(self) -> bool",
+              "line_start": 213,
+              "line_end": 214
+            },
+            {
+              "name": "_apply_commands",
+              "signature": "def _apply_commands(self, now: datetime) -> None",
+              "line_start": 218,
+              "line_end": 223
+            },
+            {
+              "name": "_apply",
+              "signature": "def _apply(self, kind: str, now: datetime) -> str",
+              "docstring": "Apply one command; return the reason when it is rejected.",
+              "line_start": 225,
+              "line_end": 248
+            },
+            {
+              "name": "_commands_during_run",
+              "signature": "def _commands_during_run(self, now: datetime) -> bool",
+              "docstring": "Read commands between steps; True when a stop was asked.",
+              "line_start": 250,
+              "line_end": 261
+            },
+            {
+              "name": "_event_tick",
+              "signature": "def _event_tick(self, now: datetime) -> None",
+              "docstring": "Post due market clock events, then run the event handler when it has work.",
+              "line_start": 265,
+              "line_end": 279
+            },
+            {
+              "name": "_do_run",
+              "signature": "def _do_run(self, kind: str, steps: Sequence[DeskStep] | None = None) -> None",
+              "line_start": 281,
+              "line_end": 305
+            },
+            {
+              "name": "_run_steps",
+              "signature": "def _run_steps(self, ctx: StepContext, steps: Sequence[DeskStep]) -> tuple[str, str]",
+              "docstring": "Call each step; return (result, note) for the run row.",
+              "line_start": 307,
+              "line_end": 320
+            },
+            {
+              "name": "_beating",
+              "signature": "def _beating(self) -> Iterator[None]",
+              "docstring": "Keep the heartbeat fresh from a side thread while steps run.",
+              "decorators": [
+                "@contextmanager"
+              ],
+              "line_start": 323,
+              "line_end": 341
+            },
+            {
+              "name": "_finish_stop",
+              "signature": "def _finish_stop(self) -> None",
+              "line_start": 343,
+              "line_end": 346
+            },
+            {
+              "name": "_db",
+              "signature": "def _db(self) -> DeskStore",
+              "decorators": [
+                "@property"
+              ],
+              "line_start": 351,
+              "line_end": 354
+            },
+            {
+              "name": "_set",
+              "signature": "def _set(\r\n        self, state: DeskState, now: datetime, message: str = \"\", pid: int | None = None\r\n    ) -> None",
+              "line_start": 356,
+              "line_end": 361
+            }
+          ],
+          "line_start": 85,
+          "line_end": 361
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_utc_now",
+          "signature": "def _utc_now() -> datetime",
+          "line_start": 60,
+          "line_end": 61
+        },
+        {
+          "name": "_take_lock",
+          "signature": "def _take_lock(path: Path) -> IO[bytes] | None",
+          "line_start": 64,
+          "line_end": 73
+        },
+        {
+          "name": "_release_lock",
+          "signature": "def _release_lock(handle: IO[bytes]) -> None",
+          "line_start": 76,
+          "line_end": 82
+        }
+      ],
+      "constants": [
+        "LOCK_NAME = \"desk.lock\"",
+        "_EVENING = \"evening\"",
+        "_MANUAL = \"manual\"",
+        "_EVENT = \"event\""
+      ]
+    },
+    "recorder.py": {
+      "module_id": "MD-DSK-005.001.M14",
+      "srd_id": "SRD-DSK-005.001",
+      "classes": [
+        {
+          "name": "Attempt",
+          "docstring": "One gateway try; ``employee`` is the stable id, ``employee_name`` the name at th",
+          "class_vars": [
+            "run_id: int",
+            "employee: str",
+            "employee_name: str",
+            "version: int",
+            "data_day: str",
+            "started: str",
+            "source: str",
+            "model: str",
+            "attempt: int",
+            "prompt: str",
+            "answer: str",
+            "valid: bool",
+            "error: str",
+            "tokens_in: int",
+            "tokens_out: int",
+            "cost_usd: float",
+            "seconds: float",
+            "replay: int"
+          ],
+          "line_start": 47,
+          "line_end": 70
+        },
+        {
+          "name": "RecordedTry",
+          "docstring": "One stored try, as a replay reads it.",
+          "class_vars": [
+            "employee: str",
+            "employee_name: str",
+            "data_day: str",
+            "source: str",
+            "model: str",
+            "attempt: int",
+            "prompt: str",
+            "answer: str",
+            "valid: bool"
+          ],
+          "line_start": 74,
+          "line_end": 85
+        },
+        {
+          "name": "Recorder",
+          "docstring": "Writes and sums the append-only AI records.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, home: Path) -> None",
+              "docstring": "Open ``desk.db`` in ``home`` and create the tables and guards when missing.",
+              "line_start": 96,
+              "line_end": 109
+            },
+            {
+              "name": "close",
+              "signature": "def close(self) -> None",
+              "docstring": "Close the connection.",
+              "line_start": 111,
+              "line_end": 113
+            },
+            {
+              "name": "add",
+              "signature": "def add(self, attempt: Attempt) -> None",
+              "docstring": "Append one try.",
+              "line_start": 115,
+              "line_end": 121
+            },
+            {
+              "name": "add_briefs",
+              "signature": "def add_briefs(self, items: list[FeedItem], employee_id: str, name: str,\r\n                   created: datetime | None = None) -> None",
+              "docstring": "Append feed briefs from one employee (its id and its name at this time).",
+              "line_start": 123,
+              "line_end": 131
+            },
+            {
+              "name": "done_on",
+              "signature": "def done_on(self, employee_id: str, data_day: str) -> bool",
+              "docstring": "True when the employee already posted a brief for ``data_day``.",
+              "line_start": 133,
+              "line_end": 138
+            },
+            {
+              "name": "month_cost",
+              "signature": "def month_cost(self, month: str, employee: str | None = None) -> float",
+              "docstring": "API cost in ``month`` (``YYYY-MM``, New York time), for one employee or all.",
+              "line_start": 140,
+              "line_end": 145
+            },
+            {
+              "name": "day_tries",
+              "signature": "def day_tries(self, day: str, employee: str) -> int",
+              "docstring": "Live tries by ``employee`` on ``day`` (New York time); replays use no live quota",
+              "line_start": 147,
+              "line_end": 153
+            },
+            {
+              "name": "last_wake",
+              "signature": "def last_wake(self, employee: str) -> datetime | None",
+              "docstring": "Start of the employee's latest try that was not a replay, or ``None``.",
+              "line_start": 155,
+              "line_end": 160
+            },
+            {
+              "name": "run_tries",
+              "signature": "def run_tries(self, run_id: int) -> list[RecordedTry]",
+              "docstring": "All tries of one desk run that were not replays, oldest first.",
+              "line_start": 162,
+              "line_end": 169
+            },
+            {
+              "name": "day_tokens",
+              "signature": "def day_tokens(self, day: str, source: str) -> int",
+              "docstring": "Tokens in and out used by ``source`` on ``day`` (New York time).",
+              "line_start": 171,
+              "line_end": 176
+            }
+          ],
+          "line_start": 93,
+          "line_end": 176
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "ny_now",
+          "signature": "def ny_now() -> datetime",
+          "docstring": "The current time in New York.",
+          "line_start": 88,
+          "line_end": 90
+        }
+      ],
+      "constants": [
+        "NY = ZoneInfo(\"America/New_York\")",
+        "_SCHEMA = \"\"\"",
+        "_ADDED = ((\"activity\", \"employee_name\", \"TEXT\"), (\"briefs\", \"employee_id\", \"TEXT\"),",
+        "_GUARDS = ["
+      ]
+    },
+    "registry.py": {
+      "module_id": "MD-DSK-002.002.M09",
+      "srd_id": "SRD-DSK-002.002",
+      "classes": [
+        {
+          "name": "ModelChoice",
+          "docstring": "One model and the source that serves it.",
+          "class_vars": [
+            "source: Source",
+            "model: str"
+          ],
+          "line_start": 41,
+          "line_end": 47
+        },
+        {
+          "name": "Models",
+          "docstring": "Primary model and backup model.",
+          "class_vars": [
+            "primary: ModelChoice",
+            "backup: ModelChoice"
+          ],
+          "line_start": 50,
+          "line_end": 56
+        },
+        {
+          "name": "JobSpec",
+          "docstring": "The checked contents of ``job.yaml``; identity fields are free for the Master us",
+          "class_vars": [
+            "id: str",
+            "name: str",
+            "title: str",
+            "level: Level",
+            "reports_to: str | None",
+            "skill: str",
+            "version: int",
+            "trigger: tuple[str, ...]",
+            "models: Models",
+            "calls_per_day: int",
+            "monthly_cost_usd: float",
+            "kpis: list[str]"
+          ],
+          "methods": [
+            {
+              "name": "_trigger_list",
+              "signature": "def _trigger_list(cls, value: object) -> object",
+              "docstring": "Accept one event kind or a list, and allow only known kinds.",
+              "decorators": [
+                "@field_validator(\"trigger\", mode=\"before\")",
+                "@classmethod"
+              ],
+              "line_start": 79,
+              "line_end": 87
+            }
+          ],
+          "line_start": 59,
+          "line_end": 87
+        },
+        {
+          "name": "Hire",
+          "docstring": "An employee: checked job spec, soul text (names filled in), its skill and file h",
+          "class_vars": [
+            "spec: JobSpec",
+            "soul: str",
+            "skill: Skill",
+            "hash: str"
+          ],
+          "line_start": 91,
+          "line_end": 97
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "default_folders",
+          "signature": "def default_folders(packages: Sequence[str]) -> list[Path]",
+          "docstring": "Return the shipped default employee folders of ``packages`` (``<pkg>/employees/*",
+          "line_start": 100,
+          "line_end": 111
+        },
+        {
+          "name": "seed_employees",
+          "signature": "def seed_employees(home: Path, defaults: Sequence[Path]) -> int",
+          "docstring": "Copy each default employee folder into ``<home>/employees`` when it is missing.",
+          "line_start": 114,
+          "line_end": 125
+        },
+        {
+          "name": "load_skill",
+          "signature": "def load_skill(key: str, paths: Mapping[str, str]) -> Skill | None",
+          "docstring": "Build the skill named ``key`` from its import path; ``None`` when unknown or bro",
+          "line_start": 128,
+          "line_end": 139
+        },
+        {
+          "name": "load_employee",
+          "signature": "def load_employee(folder: Path, skills: Mapping[str, str]) -> Hire | None",
+          "docstring": "Read and check one employee folder; ``None`` (and a warning) when it is not vali",
+          "line_start": 142,
+          "line_end": 160
+        },
+        {
+          "name": "load_employees",
+          "signature": "def load_employees(home: Path, skills: Mapping[str, str]) -> list[Hire]",
+          "docstring": "Load every valid employee in ``<home>/employees``; ids must be unique.",
+          "line_start": 163,
+          "line_end": 178
+        },
+        {
+          "name": "record_employees",
+          "signature": "def record_employees(home: Path, hires: Sequence[Hire]) -> None",
+          "docstring": "Keep id, name, title, level, reporting line, skill, version and hash in ``employ",
+          "line_start": 181,
+          "line_end": 201
+        }
+      ],
+      "constants": [
+        "SOUL_FILE = \"soul.md\"",
+        "JOB_FILE = \"job.yaml\"",
+        "EMPLOYEES_DIR = \"employees\""
+      ]
+    },
+    "replay.py": {
+      "module_id": "MD-DSK-005.005.M17",
+      "srd_id": "SRD-DSK-005.005",
+      "classes": [
+        {
+          "name": "ReplayLine",
+          "docstring": "The result for one employee in a replay.",
+          "class_vars": [
+            "name: str",
+            "model: str",
+            "old_valid: bool",
+            "new_valid: bool",
+            "changed: tuple[str, ...]",
+            "note: str"
+          ],
+          "line_start": 30,
+          "line_end": 38
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_skill_paths",
+          "signature": "def _skill_paths() -> Mapping[str, str]",
+          "line_start": 41,
+          "line_end": 44
+        },
+        {
+          "name": "_parse",
+          "signature": "def _parse(schema: type[BaseModel], text: str) -> BaseModel | None",
+          "line_start": 47,
+          "line_end": 51
+        },
+        {
+          "name": "_changed",
+          "signature": "def _changed(old: BaseModel | None, new: BaseModel | None) -> tuple[str, ...]",
+          "line_start": 54,
+          "line_end": 57
+        },
+        {
+          "name": "replay",
+          "signature": "def replay(home: Path, run_id: int, employee: str | None = None, model: str | None = None,\r\n           settings: DeskAiSettings | None = None, key: Callable[[], str] = load_key,\r\n           caller: Caller = call_model,\r\n           skills: Callable[[], Mapping[str, str]] = _skill_paths) -> list[ReplayLine] | None",
+          "docstring": "Replay one desk run; ``None`` when the run has no recorded tries.",
+          "line_start": 60,
+          "line_end": 106
+        },
+        {
+          "name": "report",
+          "signature": "def report(run_id: int, lines: list[ReplayLine]) -> str",
+          "docstring": "Plain ASCII report of a replay.",
+          "line_start": 109,
+          "line_end": 118
+        }
+      ],
+      "constants": [
+        "_PROMPT_SPLIT = \"\\n\\n---\\n\\n\""
+      ]
+    },
+    "router.py": {
+      "module_id": "MD-DSK-003.006.M16",
+      "srd_id": "SRD-DSK-003.006",
+      "classes": [
+        {
+          "name": "_GraphState",
+          "class_vars": [
+            "done: Annotated[list[str], operator.add]"
+          ],
+          "line_start": 35,
+          "line_end": 36
+        },
+        {
+          "name": "Router",
+          "docstring": "Expires, orders and handles waiting events for one set of loaded employees.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, home: Path, hires: Sequence[Hire], wake: Wake,\r\n                 known: Collection[str], clock: Callable[[], datetime] = ny_now) -> None",
+              "docstring": "Bind the desk folder, employees, the wake function and the known skill keys.",
+              "line_start": 73,
+              "line_end": 80
+            },
+            {
+              "name": "has_work",
+              "signature": "def has_work(self) -> bool",
+              "docstring": "True when a waiting event wakes someone; events nobody listens to are closed.",
+              "line_start": 82,
+              "line_end": 97
+            },
+            {
+              "name": "handle",
+              "signature": "def handle(self) -> None",
+              "docstring": "Handle every waiting event, most urgent first.",
+              "line_start": 99,
+              "line_end": 124
+            },
+            {
+              "name": "_listeners",
+              "signature": "def _listeners(self, event: Event) -> list[Hire]",
+              "line_start": 126,
+              "line_end": 127
+            },
+            {
+              "name": "_waiting",
+              "signature": "def _waiting(self, con: sqlite3.Connection) -> list[Event]",
+              "line_start": 129,
+              "line_end": 133
+            },
+            {
+              "name": "_expire",
+              "signature": "def _expire(self, con: sqlite3.Connection) -> None",
+              "line_start": 135,
+              "line_end": 141
+            },
+            {
+              "name": "_finish",
+              "signature": "def _finish(self, con: sqlite3.Connection, event: Event, state: str, note: str) -> None",
+              "line_start": 143,
+              "line_end": 146
+            },
+            {
+              "name": "_run_graph",
+              "signature": "def _run_graph(self, event: Event, woken: Sequence[Hire]) -> str | None",
+              "docstring": "Run the woken employees as one graph; return a note when nobody was run.",
+              "line_start": 148,
+              "line_end": 169
+            },
+            {
+              "name": "_node",
+              "signature": "def _node(self, hire: Hire, event: Event) -> Callable[[_GraphState], dict[str, list[str]]]",
+              "line_start": 171,
+              "line_end": 180
+            },
+            {
+              "name": "_too_soon",
+              "signature": "def _too_soon(self, hire: Hire, event: Event) -> bool",
+              "line_start": 182,
+              "line_end": 197
+            }
+          ],
+          "line_start": 70,
+          "line_end": 197
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_edges",
+          "signature": "def _edges(hires: Sequence[Hire], known: Collection[str]) -> dict[str, list[str]]",
+          "docstring": "Map each employee id to the ids it must wait for; unknown need keys are logged.",
+          "line_start": 39,
+          "line_end": 55
+        },
+        {
+          "name": "run_order",
+          "signature": "def run_order(hires: Sequence[Hire], known: Collection[str]) -> list[str] | None",
+          "docstring": "Return employee ids in a valid run order, or ``None`` when the needs form a loop",
+          "line_start": 58,
+          "line_end": 60
+        },
+        {
+          "name": "_order",
+          "signature": "def _order(edges: dict[str, list[str]]) -> list[str] | None",
+          "line_start": 63,
+          "line_end": 67
+        },
+        {
+          "name": "_label",
+          "signature": "def _label(kind: str) -> str",
+          "line_start": 200,
+          "line_end": 201
+        }
+      ],
+      "constants": [
+        "REWAKE_GAP = timedelta(minutes=30)"
+      ]
+    },
+    "store.py": {
+      "module_id": "MD-DSK-001.001.M02",
+      "srd_id": "SRD-DSK-001.001",
+      "classes": [
+        {
+          "name": "Command",
+          "docstring": "A pending command row.",
+          "class_vars": [
+            "id: int",
+            "kind: str"
+          ],
+          "line_start": 36,
+          "line_end": 40
+        },
+        {
+          "name": "SavedState",
+          "docstring": "The stored ``desk_state`` row.",
+          "class_vars": [
+            "state: DeskState",
+            "resume_point: dict[str, Any]"
+          ],
+          "line_start": 44,
+          "line_end": 48
+        },
+        {
+          "name": "DeskStore",
+          "docstring": "Read and write ``desk.db`` for the desk process.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, home: Path) -> None",
+              "docstring": "Open (and create when needed) ``desk.db`` in ``home``.",
+              "line_start": 54,
+              "line_end": 71
+            },
+            {
+              "name": "close",
+              "signature": "def close(self) -> None",
+              "docstring": "Close the connection.",
+              "line_start": 73,
+              "line_end": 75
+            },
+            {
+              "name": "saved_state",
+              "signature": "def saved_state(self) -> SavedState | None",
+              "docstring": "Return the stored state row, or ``None`` before the first write.",
+              "line_start": 79,
+              "line_end": 86
+            },
+            {
+              "name": "set_state",
+              "signature": "def set_state(\r\n        self, state: DeskState, now: datetime, message: str = \"\", pid: int | None = None\r\n    ) -> None",
+              "docstring": "Write the state, message and heartbeat; keep the saved resume point.",
+              "line_start": 88,
+              "line_end": 100
+            },
+            {
+              "name": "beat",
+              "signature": "def beat(self, now: datetime) -> None",
+              "docstring": "Write the heartbeat time.",
+              "line_start": 102,
+              "line_end": 107
+            },
+            {
+              "name": "heartbeat_at",
+              "signature": "def heartbeat_at(self) -> datetime | None",
+              "docstring": "Return the stored heartbeat time.",
+              "line_start": 109,
+              "line_end": 112
+            },
+            {
+              "name": "save_resume_point",
+              "signature": "def save_resume_point(self, point: dict[str, Any]) -> None",
+              "docstring": "Store the resume point as JSON.",
+              "line_start": 114,
+              "line_end": 119
+            },
+            {
+              "name": "pending_commands",
+              "signature": "def pending_commands(self) -> list[Command]",
+              "docstring": "Return pending commands, oldest first.",
+              "line_start": 123,
+              "line_end": 128
+            },
+            {
+              "name": "finish_command",
+              "signature": "def finish_command(self, command_id: int, ok: bool, now: datetime, note: str = \"\") -> None",
+              "docstring": "Mark a command done or rejected.",
+              "line_start": 130,
+              "line_end": 136
+            },
+            {
+              "name": "start_run",
+              "signature": "def start_run(self, kind: str, now: datetime) -> int",
+              "docstring": "Insert a running run row and return its id.",
+              "line_start": 140,
+              "line_end": 147
+            },
+            {
+              "name": "end_run",
+              "signature": "def end_run(self, run_id: int, result: str, now: datetime, note: str = \"\") -> None",
+              "docstring": "Close a run with ``ok``, ``failed`` or ``interrupted``.",
+              "line_start": 149,
+              "line_end": 155
+            },
+            {
+              "name": "interrupt_open_runs",
+              "signature": "def interrupt_open_runs(self, now: datetime) -> int",
+              "docstring": "Mark every run with no end as interrupted; return how many.",
+              "line_start": 157,
+              "line_end": 164
+            },
+            {
+              "name": "last_run_start",
+              "signature": "def last_run_start(self, kind: str) -> datetime | None",
+              "docstring": "Return the start of the newest run of ``kind``.",
+              "line_start": 166,
+              "line_end": 171
+            },
+            {
+              "name": "last_run_id",
+              "signature": "def last_run_id(self) -> int | None",
+              "docstring": "Return the newest run id.",
+              "line_start": 173,
+              "line_end": 176
+            }
+          ],
+          "line_start": 51,
+          "line_end": 176
+        }
+      ],
+      "constants": [
+        "_SCHEMA = \"\"\""
+      ]
+    },
+    "task.py": {
+      "module_id": "MD-DSK-001.018.M05",
+      "srd_id": "SRD-DSK-001.018",
+      "top_level_functions": [
+        {
+          "name": "run_schtasks",
+          "signature": "def run_schtasks(*args: str) -> tuple[bool, str]",
+          "docstring": "Run ``schtasks.exe`` with no console window; return (ok, output or error).",
+          "line_start": 31,
+          "line_end": 45
+        },
+        {
+          "name": "_task_line",
+          "signature": "def _task_line() -> str",
+          "line_start": 48,
+          "line_end": 49
+        },
+        {
+          "name": "_create_evening",
+          "signature": "def _create_evening(day: date, local: tzinfo, runner: Runner) -> tuple[bool, str]",
+          "line_start": 52,
+          "line_end": 57
+        },
+        {
+          "name": "install",
+          "signature": "def install(day: date, local: tzinfo, runner: Runner = run_schtasks) -> tuple[bool, str]",
+          "docstring": "Create the logon task and the evening task.",
+          "line_start": 60,
+          "line_end": 70
+        },
+        {
+          "name": "uninstall",
+          "signature": "def uninstall(runner: Runner = run_schtasks) -> tuple[bool, str]",
+          "docstring": "Delete both desk tasks; a task that is already gone is not an error.",
+          "line_start": 73,
+          "line_end": 80
+        },
+        {
+          "name": "_task_schedule",
+          "signature": "def _task_schedule(xml_text: str) -> tuple[str, list[str]] | None",
+          "line_start": 83,
+          "line_end": 98
+        },
+        {
+          "name": "sync_evening_task",
+          "signature": "def sync_evening_task(day: date, local: tzinfo, runner: Runner = run_schtasks) -> bool",
+          "docstring": "Re-create the evening task when its time or days no longer match; True if change",
+          "line_start": 101,
+          "line_end": 115
+        },
+        {
+          "name": "launch",
+          "signature": "def launch(resume: bool = True) -> None",
+          "docstring": "Start the desk as a detached process with no console window.",
+          "line_start": 118,
+          "line_end": 120
+        }
+      ],
+      "constants": [
+        "LOGON_TASK = \"USSwing_Desk\"",
+        "EVENING_TASK = \"USSwing_Desk_Evening\"",
+        "_NO_WINDOW = getattr(subprocess, \"CREATE_NO_WINDOW\", 0)",
+        "_XML_DAYS = {"
+      ]
+    }
+  }
+}

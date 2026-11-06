@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-03T07:31:41",
+  "generated": "2026-11-06T13:15:28",
   "subfolder": "screener",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\screener",
   "tool_code": "SCR",
@@ -103,67 +103,67 @@
             },
             {
               "name": "run_preset",
-              "signature": "def run_preset(\r\n        self,\r\n        preset_id: str,\r\n        user_id: str,\r\n        manual: bool = True,\r\n        *,\r\n        symbols: list[str] | None = None,\r\n        bars: dict[str, list[Any]] | None = None,\r\n        preset: Preset | None = None,\r\n        market_caps: dict[str, float] | None = None,\r\n    ) -> ScreenerRunResult",
+              "signature": "def run_preset(\r\n        self,\r\n        preset_id: str,\r\n        user_id: str,\r\n        manual: bool = True,\r\n        *,\r\n        symbols: list[str] | None = None,\r\n        bars: dict[str, list[Any]] | None = None,\r\n        preset: Preset | None = None,\r\n        market_caps: dict[str, float] | None = None,\r\n        candle_date: str | None = None,\r\n    ) -> ScreenerRunResult",
               "docstring": "Execute a preset and persist the result.",
               "line_start": 73,
-              "line_end": 176
+              "line_end": 180
             },
             {
               "name": "screen",
               "signature": "def screen(\r\n        self,\r\n        preset: Preset,\r\n        symbols: list[str],\r\n        bars: dict[str, list[Any]],\r\n        market_caps: dict[str, float] | None = None,\r\n    ) -> dict[str, dict[str, Any]]",
               "docstring": "Run the rule stages only: pre-filter, screeners and group/weight logic.",
-              "line_start": 178,
-              "line_end": 203
+              "line_start": 182,
+              "line_end": 207
             },
             {
               "name": "_run_stage2",
               "signature": "def _run_stage2(\r\n        self,\r\n        preset: Preset,\r\n        symbols: list[str],\r\n        bars: dict[str, list[Any]],\r\n        market_caps: dict[str, float] | None = None,\r\n    ) -> dict[str, dict[str, tuple[bool, float]]]",
               "docstring": "Call every enabled screener and collect per-symbol (passed, score).",
-              "line_start": 209,
-              "line_end": 263
+              "line_start": 213,
+              "line_end": 267
             },
             {
               "name": "_combine_results",
               "signature": "def _combine_results(\r\n        self,\r\n        preset: Preset,\r\n        stage2: dict[str, dict[str, tuple[bool, float]]],\r\n        symbols: list[str],\r\n    ) -> dict[str, dict[str, Any]]",
-              "line_start": 269,
-              "line_end": 277
+              "line_start": 273,
+              "line_end": 281
             },
             {
               "name": "_composite_logic",
               "signature": "def _composite_logic(\r\n        self,\r\n        preset: Preset,\r\n        stage2: dict[str, dict[str, tuple[bool, float]]],\r\n        symbols: list[str],\r\n    ) -> dict[str, dict[str, Any]]",
               "docstring": "Symbol passes if ANY group passes (groups are OR-ed together).",
-              "line_start": 279,
-              "line_end": 317
+              "line_start": 283,
+              "line_end": 321
             },
             {
               "name": "_weighted_logic",
               "signature": "def _weighted_logic(\r\n        self,\r\n        preset: Preset,\r\n        stage2: dict[str, dict[str, tuple[bool, float]]],\r\n        symbols: list[str],\r\n    ) -> dict[str, dict[str, Any]]",
               "docstring": "Score = \u03a3(score_i \u00d7 weight_i) / \u03a3(weights) for enabled screeners.",
-              "line_start": 319,
-              "line_end": 342
+              "line_start": 323,
+              "line_end": 346
             },
             {
               "name": "_run_stage3",
               "signature": "def _run_stage3(\r\n        self,\r\n        preset: Preset,\r\n        combined: dict[str, dict[str, Any]],\r\n        bars: dict[str, list[Any]],\r\n        market_caps: dict[str, float] | None = None,\r\n    ) -> tuple[dict[str, dict[str, Any]], list[AITranscriptTurn]]",
               "docstring": "Re-rank Stage 2 passing symbols with CloudAIScreener.",
-              "line_start": 348,
-              "line_end": 439
+              "line_start": 352,
+              "line_end": 443
             },
             {
               "name": "_get_registry",
               "signature": "def _get_registry(self) -> ScreenerRegistry",
-              "line_start": 445,
-              "line_end": 446
+              "line_start": 449,
+              "line_end": 450
             },
             {
               "name": "_get_storage",
               "signature": "def _get_storage(self) -> ScreenerResultsStorage",
-              "line_start": 448,
-              "line_end": 449
+              "line_start": 452,
+              "line_end": 453
             }
           ],
           "line_start": 32,
-          "line_end": 449
+          "line_end": 453
         }
       ],
       "constants": [
@@ -1331,7 +1331,8 @@
             "run_timestamp: str",
             "execution_mode: str",
             "results: dict[str, dict[str, Any]]",
-            "ai_transcript: list[AITranscriptTurn]"
+            "ai_transcript: list[AITranscriptTurn]",
+            "candle_date: str | None"
           ],
           "methods": [
             {
@@ -1341,14 +1342,14 @@
               "decorators": [
                 "@property"
               ],
-              "line_start": 99,
-              "line_end": 101
+              "line_start": 100,
+              "line_end": 102
             },
             {
               "name": "to_dict",
               "signature": "def to_dict(self) -> dict[str, Any]",
-              "line_start": 103,
-              "line_end": 110
+              "line_start": 104,
+              "line_end": 112
             },
             {
               "name": "from_dict",
@@ -1356,12 +1357,12 @@
               "decorators": [
                 "@classmethod"
               ],
-              "line_start": 113,
-              "line_end": 123
+              "line_start": 115,
+              "line_end": 126
             }
           ],
           "line_start": 82,
-          "line_end": 123
+          "line_end": 126
         },
         {
           "name": "ScreenerResultsStorage",
@@ -1370,46 +1371,46 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, base_dir: Path | None = None) -> None",
-              "line_start": 137,
-              "line_end": 138
+              "line_start": 140,
+              "line_end": 141
             },
             {
               "name": "_preset_dir",
               "signature": "def _preset_dir(self, preset_id: str) -> Path",
-              "line_start": 140,
-              "line_end": 141
+              "line_start": 143,
+              "line_end": 144
             },
             {
               "name": "save_result",
               "signature": "def save_result(self, result: ScreenerRunResult, preset_id: str) -> Path",
               "docstring": "Atomically write *result* to ``preset_{id}/{date}.json``.",
-              "line_start": 143,
-              "line_end": 154
+              "line_start": 146,
+              "line_end": 157
             },
             {
               "name": "load_result",
               "signature": "def load_result(self, preset_id: str, date: str) -> ScreenerRunResult",
               "docstring": "Load and deserialize the result for *preset_id* on *date*.",
-              "line_start": 156,
-              "line_end": 173
+              "line_start": 159,
+              "line_end": 176
             },
             {
               "name": "list_results",
               "signature": "def list_results(self, preset_id: str, limit: int = 30) -> list[str]",
               "docstring": "Return up to *limit* result dates for *preset_id*, newest first.",
-              "line_start": 175,
-              "line_end": 187
+              "line_start": 178,
+              "line_end": 190
             },
             {
               "name": "load_for_execution",
-              "signature": "def load_for_execution(\n        self,\n        preset_id: str,\n        prefer_scheduled: bool = True,\n    ) -> \"ScreenerRunResult | None\"",
+              "signature": "def load_for_execution(\r\n        self,\r\n        preset_id: str,\r\n        prefer_scheduled: bool = True,\r\n    ) -> \"ScreenerRunResult | None\"",
               "docstring": "Return today's result for *preset_id*, or None if unavailable.",
-              "line_start": 189,
-              "line_end": 215
+              "line_start": 192,
+              "line_end": 218
             }
           ],
-          "line_start": 130,
-          "line_end": 215
+          "line_start": 133,
+          "line_end": 218
         },
         {
           "name": "FeatureCache",
@@ -1418,32 +1419,32 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, cache_dir: Path | None = None) -> None",
-              "line_start": 229,
-              "line_end": 230
+              "line_start": 232,
+              "line_end": 233
             },
             {
               "name": "_path",
               "signature": "def _path(self, date: str) -> Path",
-              "line_start": 232,
-              "line_end": 233
+              "line_start": 235,
+              "line_end": 236
             },
             {
               "name": "get",
               "signature": "def get(self, symbol: str, date: str | None = None) -> dict[str, Any] | None",
               "docstring": "Return cached features for *symbol* on *date* if still fresh (< 24 h).",
-              "line_start": 235,
-              "line_end": 257
+              "line_start": 238,
+              "line_end": 260
             },
             {
               "name": "set",
               "signature": "def set(self, symbol: str, features: dict[str, Any], date: str | None = None) -> None",
               "docstring": "Store *features* for *symbol* on *date* with the current timestamp.",
-              "line_start": 259,
-              "line_end": 277
+              "line_start": 262,
+              "line_end": 280
             }
           ],
-          "line_start": 222,
-          "line_end": 277
+          "line_start": 225,
+          "line_end": 280
         },
         {
           "name": "APIUsageTracker",
@@ -1452,26 +1453,26 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, usage_file: Path | None = None) -> None",
-              "line_start": 291,
-              "line_end": 292
+              "line_start": 294,
+              "line_end": 295
             },
             {
               "name": "log_usage",
-              "signature": "def log_usage(\n        self,\n        tokens_in: int,\n        tokens_out: int,\n        preset_id: str = \"\",\n    ) -> float",
+              "signature": "def log_usage(\r\n        self,\r\n        tokens_in: int,\r\n        tokens_out: int,\r\n        preset_id: str = \"\",\r\n    ) -> float",
               "docstring": "Append a usage entry and return the cost in USD for this call.",
-              "line_start": 294,
-              "line_end": 339
+              "line_start": 297,
+              "line_end": 342
             },
             {
               "name": "get_monthly_cost",
               "signature": "def get_monthly_cost(self) -> float",
               "docstring": "Return the total USD cost logged for the current calendar month.",
-              "line_start": 341,
-              "line_end": 356
+              "line_start": 344,
+              "line_end": 359
             }
           ],
-          "line_start": 284,
-          "line_end": 356
+          "line_start": 287,
+          "line_end": 359
         }
       ],
       "constants": [

@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-03T07:31:41",
+  "generated": "2026-11-06T13:15:28",
   "subfolder": "core",
   "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\core",
   "tool_code": "BKT",
@@ -87,6 +87,718 @@
         "DATE_FMT = \"%d-%m-%Y\"",
         "DATE_TIME_FMT = \"%d-%m-%Y %H:%M\"",
         "QT_DATE_FMT = \"dd-MM-yyyy\""
+      ]
+    },
+    "desk_agents.py": {
+      "module_id": "MD-DSK-002.001.M08",
+      "srd_id": "SRD-DSK-002.001",
+      "classes": [
+        {
+          "name": "Facts",
+          "docstring": "What a skill reads before its employee is woken; ``fresh`` False keeps it asleep",
+          "class_vars": [
+            "text: str",
+            "data_day: str",
+            "fresh: bool",
+            "why_stale: str"
+          ],
+          "line_start": 28,
+          "line_end": 34
+        },
+        {
+          "name": "FeedItem",
+          "docstring": "One brief for the AI feed; the desk adds the employee's name when it is stored.",
+          "class_vars": [
+            "kind: str",
+            "text: str",
+            "data_day: str"
+          ],
+          "methods": [
+            {
+              "name": "__post_init__",
+              "signature": "def __post_init__(self) -> None",
+              "docstring": "Refuse an empty text or an unknown kind.",
+              "line_start": 45,
+              "line_end": 50
+            }
+          ],
+          "line_start": 38,
+          "line_end": 50
+        },
+        {
+          "name": "AgentContext",
+          "docstring": "What a skill may use while it acts: the desk folder and the gateway.",
+          "methods": [
+            {
+              "name": "home",
+              "signature": "def home(self) -> Path",
+              "decorators": [
+                "@property"
+              ],
+              "line_start": 57,
+              "line_end": 57
+            },
+            {
+              "name": "ask",
+              "signature": "def ask(self, facts: str, schema: type[T]) -> T | None",
+              "line_start": 59,
+              "line_end": 59
+            }
+          ],
+          "line_start": 53,
+          "line_end": 59
+        },
+        {
+          "name": "Skill",
+          "docstring": "Work an employee can do; ``key`` names the skill in employee job files.",
+          "class_vars": [
+            "key: str",
+            "needs: tuple[str, ...]",
+            "answer: type[BaseModel]"
+          ],
+          "methods": [
+            {
+              "name": "facts",
+              "signature": "def facts(self, home: Path) -> Facts",
+              "line_start": 74,
+              "line_end": 74
+            },
+            {
+              "name": "act",
+              "signature": "def act(self, ctx: AgentContext, facts: Facts) -> list[FeedItem]",
+              "line_start": 76,
+              "line_end": 76
+            }
+          ],
+          "line_start": 62,
+          "line_end": 76
+        }
+      ],
+      "constants": [
+        "T = TypeVar(\"T\", bound=BaseModel)",
+        "FEED_KINDS = (\"info\", \"idea\", \"approval\", \"evening\")",
+        "LEVELS: tuple[Level, ...] = (\"lead\", \"expert\", \"champion\", \"junior\")"
+      ]
+    },
+    "desk_ai_settings.py": {
+      "module_id": "MD-DSK-004.005.M13",
+      "srd_id": "SRD-DSK-004.005",
+      "classes": [
+        {
+          "name": "DeskAiSettings",
+          "docstring": "Desk AI settings; both sources start off, so no AI runs until the user sets it u",
+          "class_vars": [
+            "openrouter_on: bool",
+            "openrouter_model: str",
+            "claude_on: bool",
+            "claude_model: str",
+            "monthly_budget_usd: float",
+            "claude_tokens_per_day: int"
+          ],
+          "methods": [
+            {
+              "name": "__post_init__",
+              "signature": "def __post_init__(self) -> None",
+              "docstring": "Refuse a budget or token cap that is not above 0.",
+              "line_start": 38,
+              "line_end": 41
+            }
+          ],
+          "line_start": 28,
+          "line_end": 41
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "load_settings",
+          "signature": "def load_settings(home: Path | None = None) -> DeskAiSettings",
+          "docstring": "Return the saved settings, or the defaults when the file is missing or broken.",
+          "line_start": 44,
+          "line_end": 55
+        },
+        {
+          "name": "save_settings",
+          "signature": "def save_settings(settings: DeskAiSettings, home: Path | None = None) -> None",
+          "docstring": "Write the settings file.",
+          "line_start": 58,
+          "line_end": 63
+        },
+        {
+          "name": "load_key",
+          "signature": "def load_key() -> str",
+          "docstring": "Return the desk OpenRouter key, or an empty string.",
+          "line_start": 66,
+          "line_end": 74
+        },
+        {
+          "name": "save_key",
+          "signature": "def save_key(key: str) -> None",
+          "docstring": "Store the desk OpenRouter key, or remove it when ``key`` is blank.",
+          "line_start": 77,
+          "line_end": 90
+        }
+      ],
+      "constants": [
+        "SETTINGS_FILE: Final[str] = \"desk_ai.json\"",
+        "_KEY_SERVICE: Final[str] = \"usswing_desk_openrouter\"",
+        "_KEY_USER: Final[str] = \"desk\""
+      ]
+    },
+    "desk_contract.py": {
+      "module_id": "MD-DSK-001.004.M01",
+      "srd_id": "SRD-DSK-001.004",
+      "classes": [
+        {
+          "name": "DeskState",
+          "docstring": "The seven desk states.",
+          "line_start": 31,
+          "line_end": 40
+        },
+        {
+          "name": "CommandKind",
+          "docstring": "Commands the app may send to the desk.",
+          "line_start": 48,
+          "line_end": 54
+        },
+        {
+          "name": "DeskStatus",
+          "docstring": "What the app shows about the desk.",
+          "class_vars": [
+            "state: DeskState",
+            "message: str",
+            "heartbeat_at: datetime | None",
+            "pid: int | None"
+          ],
+          "line_start": 58,
+          "line_end": 64
+        },
+        {
+          "name": "StepContext",
+          "docstring": "Passed to every desk step during a run.",
+          "class_vars": [
+            "run_id: int",
+            "kind: str",
+            "started_at: datetime",
+            "home: Path | None"
+          ],
+          "line_start": 68,
+          "line_end": 74
+        },
+        {
+          "name": "DeskStep",
+          "docstring": "One unit of work in a desk run (added by tools such as MKT).",
+          "class_vars": [
+            "name: str"
+          ],
+          "methods": [
+            {
+              "name": "__call__",
+              "signature": "def __call__(self, ctx: StepContext) -> None",
+              "line_start": 82,
+              "line_end": 82
+            }
+          ],
+          "line_start": 77,
+          "line_end": 82
+        },
+        {
+          "name": "ProductDescriptor",
+          "docstring": "One desk output the Market Floor can show as a panel.",
+          "class_vars": [
+            "id: str",
+            "title: str",
+            "kind: str",
+            "views: tuple[str, ...]",
+            "columns: tuple[str, ...]",
+            "filters: Mapping[str, tuple[str, ...]]",
+            "sample: bool"
+          ],
+          "line_start": 190,
+          "line_end": 199
+        },
+        {
+          "name": "FloorData",
+          "docstring": "Where Market Floor panels get their products and rows.",
+          "methods": [
+            {
+              "name": "products",
+              "signature": "def products(self) -> Sequence[ProductDescriptor]",
+              "line_start": 205,
+              "line_end": 205
+            },
+            {
+              "name": "rows",
+              "signature": "def rows(\r\n        self, product_id: str, filters: Mapping[str, str]\r\n    ) -> list[dict[str, Any]]",
+              "line_start": 207,
+              "line_end": 209
+            }
+          ],
+          "line_start": 202,
+          "line_end": 209
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "desk_home",
+          "signature": "def desk_home() -> Path",
+          "docstring": "Default desk folder: ``~/.usswing/desk``.",
+          "line_start": 85,
+          "line_end": 87
+        },
+        {
+          "name": "utc_text",
+          "signature": "def utc_text(moment: datetime) -> str",
+          "docstring": "Store a time-zone-aware moment as UTC ISO text.",
+          "line_start": 90,
+          "line_end": 98
+        },
+        {
+          "name": "parse_utc",
+          "signature": "def parse_utc(text: str | None) -> datetime | None",
+          "docstring": "Read UTC ISO text back, or ``None``.",
+          "line_start": 101,
+          "line_end": 103
+        },
+        {
+          "name": "_read_only",
+          "signature": "def _read_only(path: Path) -> Generator[sqlite3.Connection, None, None]",
+          "decorators": [
+            "@contextmanager"
+          ],
+          "line_start": 107,
+          "line_end": 112
+        },
+        {
+          "name": "read_status",
+          "signature": "def read_status(home: Path | None = None, now: datetime | None = None) -> DeskStatus",
+          "docstring": "Return the desk status without creating or changing anything.",
+          "line_start": 115,
+          "line_end": 145
+        },
+        {
+          "name": "send_command",
+          "signature": "def send_command(kind: CommandKind, home: Path | None = None) -> int",
+          "docstring": "Add a pending command for the desk and return its id.",
+          "line_start": 148,
+          "line_end": 166
+        },
+        {
+          "name": "desk_command",
+          "signature": "def desk_command() -> list[str]",
+          "docstring": "Return the command line that runs the desk process.",
+          "line_start": 169,
+          "line_end": 175
+        },
+        {
+          "name": "launch_desk",
+          "signature": "def launch_desk(resume: bool = True) -> None",
+          "docstring": "Start the desk as a detached process with no console window.",
+          "line_start": 178,
+          "line_end": 183
+        }
+      ],
+      "constants": [
+        "SCHEMA_VERSION = 1",
+        "DB_NAME = \"desk.db\"",
+        "STALE_AFTER_S = 60.0",
+        "NOT_RESPONDING = \"not responding\"",
+        "_RUN_GUI = Path(__file__).resolve().parents[3] / \"run_gui.py\"",
+        "_NO_WINDOW = getattr(subprocess, \"CREATE_NO_WINDOW\", 0)",
+        "_DETACHED = getattr(subprocess, \"DETACHED_PROCESS\", 0)",
+        "LIVE_STATES = frozenset("
+      ]
+    },
+    "desk_events.py": {
+      "module_id": "MD-DSK-003.004.M15",
+      "srd_id": "SRD-DSK-003.004",
+      "classes": [
+        {
+          "name": "EventRule",
+          "docstring": "Priority (0 is the most urgent), deadline and expiry of one event kind.",
+          "class_vars": [
+            "priority: int",
+            "deadline: timedelta | None",
+            "expiry: timedelta"
+          ],
+          "line_start": 28,
+          "line_end": 33
+        },
+        {
+          "name": "Event",
+          "docstring": "One stored event; times are ISO text in New York time.",
+          "class_vars": [
+            "id: int",
+            "kind: str",
+            "priority: int",
+            "data_day: str",
+            "created: str",
+            "deadline: str | None",
+            "expires: str"
+          ],
+          "line_start": 46,
+          "line_end": 55
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "open_events",
+          "signature": "def open_events(home: Path) -> sqlite3.Connection",
+          "docstring": "Open ``desk.db`` in ``home`` with the ``events`` table ready.",
+          "line_start": 58,
+          "line_end": 64
+        },
+        {
+          "name": "waiting_count",
+          "signature": "def waiting_count(home: Path) -> int",
+          "docstring": "Number of waiting events; 0 when there is no desk database yet.",
+          "line_start": 67,
+          "line_end": 76
+        },
+        {
+          "name": "post_event",
+          "signature": "def post_event(home: Path, kind: str, data_day: str, now: datetime,\r\n               run_id: int | None = None) -> bool",
+          "docstring": "Post one waiting event; ``False`` when the same event was already posted.",
+          "line_start": 79,
+          "line_end": 108
+        }
+      ],
+      "constants": [
+        "SCHEMA = \"\"\"",
+        "EVENT_RULES: dict[str, EventRule] = {",
+        "EVENT_KINDS: tuple[str, ...] = tuple(EVENT_RULES)"
+      ]
+    },
+    "desk_floor.py": {
+      "module_id": "MD-GUI-034.011.M10",
+      "srd_id": "SRD-GUI-034.011",
+      "classes": [
+        {
+          "name": "MonthCost",
+          "docstring": "This month's AI use: API spend against the budget, and rows by employee and mode",
+          "class_vars": [
+            "month: str",
+            "budget_usd: float",
+            "spent_usd: float",
+            "by_employee: list[tuple[str, str, str, str]]",
+            "by_model: list[tuple[str, str, str, str]]"
+          ],
+          "line_start": 67,
+          "line_end": 74
+        },
+        {
+          "name": "DeskFloorData",
+          "docstring": "``FloorData`` that reads the market tables in ``desk.db`` read-only.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, fallback: FloorData, home: Path | None = None,\r\n                 clock: Callable[[], datetime] | None = None) -> None",
+              "docstring": "Use ``fallback`` for products the desk does not provide yet; ``clock`` is for te",
+              "line_start": 106,
+              "line_end": 111
+            },
+            {
+              "name": "_query",
+              "signature": "def _query(self, sql: str) -> tuple[Any, ...] | None",
+              "line_start": 113,
+              "line_end": 115
+            },
+            {
+              "name": "_query_all",
+              "signature": "def _query_all(self, sql: str, params: tuple[Any, ...] = ()) -> list[tuple[Any, ...]]",
+              "line_start": 117,
+              "line_end": 127
+            },
+            {
+              "name": "_latest_sectors",
+              "signature": "def _latest_sectors(self) -> list[tuple[Any, ...]]",
+              "line_start": 129,
+              "line_end": 134
+            },
+            {
+              "name": "_leaders_day",
+              "signature": "def _leaders_day(self) -> str | None",
+              "line_start": 136,
+              "line_end": 138
+            },
+            {
+              "name": "_leader_sectors",
+              "signature": "def _leader_sectors(self, day: str) -> tuple[str, ...]",
+              "line_start": 140,
+              "line_end": 144
+            },
+            {
+              "name": "_latest_regime",
+              "signature": "def _latest_regime(self) -> tuple[Any, ...] | None",
+              "line_start": 146,
+              "line_end": 150
+            },
+            {
+              "name": "_latest_breadth",
+              "signature": "def _latest_breadth(self) -> tuple[Any, ...] | None",
+              "line_start": 152,
+              "line_end": 156
+            },
+            {
+              "name": "products",
+              "signature": "def products(self) -> Sequence[ProductDescriptor]",
+              "docstring": "Return the fallback products, marking the ones stored in ``desk.db`` real.",
+              "line_start": 158,
+              "line_end": 200
+            },
+            {
+              "name": "rows",
+              "signature": "def rows(self, product_id: str, filters: Mapping[str, str]) -> list[dict[str, Any]]",
+              "docstring": "Return desk rows for regime and breadth when stored, else fallback rows.",
+              "line_start": 202,
+              "line_end": 242
+            },
+            {
+              "name": "_news",
+              "signature": "def _news(self, tone: str | None) -> list[dict[str, Any]] | None",
+              "docstring": "Newest headlines with the latest news tone of their stock; ``None`` when none.",
+              "line_start": 244,
+              "line_end": 254
+            },
+            {
+              "name": "_tags_day",
+              "signature": "def _tags_day(self) -> str | None",
+              "line_start": 256,
+              "line_end": 258
+            },
+            {
+              "name": "_tags",
+              "signature": "def _tags(self, side: str | None) -> list[dict[str, Any]]",
+              "line_start": 260,
+              "line_end": 270
+            },
+            {
+              "name": "_calendar",
+              "signature": "def _calendar(self, importance: str | None) -> list[dict[str, Any]]",
+              "docstring": "Economic events from today to ``CALENDAR_DAYS`` trading days ahead (New York).",
+              "line_start": 272,
+              "line_end": 279
+            },
+            {
+              "name": "feed",
+              "signature": "def feed(self) -> list[dict[str, str]] | None",
+              "docstring": "Return the latest AI feed briefs, newest first, or ``None`` when there are none.",
+              "line_start": 281,
+              "line_end": 289
+            },
+            {
+              "name": "month_cost",
+              "signature": "def month_cost(self, month: str | None = None) -> MonthCost | None",
+              "docstring": "Return this month's AI use (New York month), or ``None`` when nothing ran yet.",
+              "line_start": 291,
+              "line_end": 311
+            },
+            {
+              "name": "_latest_proof",
+              "signature": "def _latest_proof(self) -> tuple[Any, ...] | None",
+              "line_start": 313,
+              "line_end": 317
+            },
+            {
+              "name": "_proof",
+              "signature": "def _proof(self, side: str, kind: str) -> list[dict[str, Any]]",
+              "line_start": 319,
+              "line_end": 337
+            },
+            {
+              "name": "_ideas_day",
+              "signature": "def _ideas_day(self) -> str | None",
+              "line_start": 339,
+              "line_end": 341
+            },
+            {
+              "name": "_ideas",
+              "signature": "def _ideas(self, day: str, side: str | None, status: str) -> list[dict[str, Any]]",
+              "line_start": 343,
+              "line_end": 357
+            },
+            {
+              "name": "_leaders",
+              "signature": "def _leaders(self, sector: str | None) -> list[dict[str, Any]]",
+              "line_start": 359,
+              "line_end": 373
+            }
+          ],
+          "line_start": 103,
+          "line_end": 373
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_signed_pct",
+          "signature": "def _signed_pct(value: float | None) -> str",
+          "line_start": 77,
+          "line_end": 78
+        },
+        {
+          "name": "_num",
+          "signature": "def _num(value: float | None) -> str",
+          "line_start": 81,
+          "line_end": 82
+        },
+        {
+          "name": "_price",
+          "signature": "def _price(value: float | None) -> str",
+          "line_start": 85,
+          "line_end": 86
+        },
+        {
+          "name": "_matches",
+          "signature": "def _matches(row: Mapping[str, Any], filters: Mapping[str, str]) -> bool",
+          "line_start": 89,
+          "line_end": 90
+        },
+        {
+          "name": "_pct",
+          "signature": "def _pct(value: float | None) -> str",
+          "line_start": 93,
+          "line_end": 94
+        },
+        {
+          "name": "_reading",
+          "signature": "def _reading(value: float | None, good: float, weak: float) -> str",
+          "line_start": 97,
+          "line_end": 100
+        },
+        {
+          "name": "_ny_time",
+          "signature": "def _ny_time(published: str) -> str",
+          "line_start": 376,
+          "line_end": 380
+        },
+        {
+          "name": "_proof_title",
+          "signature": "def _proof_title(run: tuple[Any, ...]) -> str",
+          "line_start": 383,
+          "line_end": 386
+        },
+        {
+          "name": "_sector_row",
+          "signature": "def _sector_row(product_id: str, row: tuple[Any, ...]) -> dict[str, Any]",
+          "line_start": 389,
+          "line_end": 396
+        }
+      ],
+      "constants": [
+        "REGIME_ID = \"regime.today\"",
+        "BREADTH_ID = \"breadth.daily\"",
+        "_REGIME_COLUMNS = (\"regime\", \"volatility\", \"fear\", \"vix\", \"data_date\", \"note\")",
+        "_BREADTH_COLUMNS = (\"measure\", \"value\", \"reading\")",
+        "SECTORS_ID = \"sectors.rank\"",
+        "RRG_ID = \"sectors.rrg\"",
+        "LEADERS_ID = \"rs.leaders\"",
+        "LEADERS_LIMIT = 30",
+        "_SECTOR_COLUMNS = (\"rank\", \"sector\", \"rel_1m\", \"rel_3m\", \"rel_6m\", \"quadrant\")",
+        "_RRG_COLUMNS = (\"sector\", \"rs_ratio\", \"rs_momentum\", \"quadrant\")",
+        "_LEADER_COLUMNS = (\"symbol\", \"sector\", \"rs_rating\", \"sector_rank\")",
+        "IDEAS_ID = \"ideas.top\"",
+        "_IDEA_COLUMNS = (\"symbol\", \"side\", \"score\", \"setup\", \"sector\", \"trigger\", \"stop\", \"why\")",
+        "_IDEA_FILTERS: dict[str, tuple[str, ...]] = {\"side\": (\"long\", \"short\"),",
+        "PROOF_ID = \"proof.bands\"",
+        "_PROOF_COLUMNS = (\"group\", \"n\", \"win_10d\", \"vs_spy_5d\", \"vs_spy_10d\", \"vs_spy_20d\")",
+        "_PROOF_FILTERS = {\"side\": (\"long\", \"short\"), \"kind\": (\"band\", \"setup\", \"status\")}",
+        "_PROOF_ORDER = {\"under 40\": 0, \"40-50\": 1, \"50-60\": 2, \"60-70\": 3, \"70-80\": 4, \"80+\": 5,",
+        "_FULL_YEARS = 5.0",
+        "FEED_LIMIT = 20",
+        "NEWS_ID = \"news.latest\"",
+        "TAGS_ID = \"news.tags\"",
+        "CALENDAR_ID = \"calendar.week\"",
+        "NEWS_LIMIT = 50",
+        "CALENDAR_DAYS = 10",
+        "_NEWS_COLUMNS = (\"time\", \"headline\", \"symbol\", \"tone\")",
+        "_TONES = (\"positive\", \"neutral\", \"negative\")",
+        "_TAG_COLUMNS = (\"symbol\", \"side\", \"tone\", \"points\", \"final\", \"reason\")",
+        "_CALENDAR_COLUMNS = (\"date\", \"time\", \"event\", \"importance\")",
+        "_REAL_FILTERS: dict[str, dict[str, tuple[str, ...]]] = {",
+        "NY = ZoneInfo(\"America/New_York\")"
+      ]
+    },
+    "desk_steps.py": {
+      "module_id": "MD-DSK-001.021.M07",
+      "srd_id": "SRD-DSK-001.021",
+      "top_level_functions": [
+        {
+          "name": "load_steps",
+          "signature": "def load_steps(paths: Sequence[str] = STEP_PATHS) -> list[DeskStep]",
+          "docstring": "Import and build each step in ``paths`` (``\"module:Class\"``), in order.",
+          "line_start": 42,
+          "line_end": 57
+        },
+        {
+          "name": "load_proof",
+          "signature": "def load_proof(path: str = PROOF_PATH) -> Callable[[Path], str | None]",
+          "docstring": "Import the score proof runner (``\"module:function\"``); given the desk folder it ",
+          "line_start": 60,
+          "line_end": 66
+        }
+      ],
+      "constants": [
+        "STEP_PATHS: tuple[str, ...] = (",
+        "SKILL_PATHS: dict[str, str] = {",
+        "DEFAULT_EMPLOYEE_PACKAGES: tuple[str, ...] = (\"us_swing.market\",)",
+        "PROOF_PATH = \"us_swing.market.proof:run_proof\""
+      ]
+    },
+    "econ_calendar.py": {
+      "module_id": "MD-MKT-006.004.M03",
+      "srd_id": "SRD-MKT-006.004",
+      "classes": [
+        {
+          "name": "EconEvent",
+          "docstring": "One scheduled release; ``time`` is New York time.",
+          "class_vars": [
+            "day: date",
+            "time: time",
+            "name: str",
+            "importance: Importance"
+          ],
+          "line_start": 26,
+          "line_end": 32
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "events_between",
+          "signature": "def events_between(first: date, last: date) -> list[EconEvent]",
+          "docstring": "Events from ``first`` to ``last`` (both included); a year not listed warns once.",
+          "line_start": 71,
+          "line_end": 78
+        },
+        {
+          "name": "is_trading_day",
+          "signature": "def is_trading_day(day: date) -> bool",
+          "docstring": "True when the NYSE opens on ``day`` (weekday and not a listed market holiday).",
+          "line_start": 81,
+          "line_end": 83
+        },
+        {
+          "name": "next_trading_day",
+          "signature": "def next_trading_day(day: date) -> date",
+          "docstring": "The first NYSE trading day after ``day``.",
+          "line_start": 86,
+          "line_end": 91
+        },
+        {
+          "name": "trading_days_after",
+          "signature": "def trading_days_after(day: date, count: int) -> date",
+          "docstring": "The ``count``-th NYSE trading day after ``day``.",
+          "line_start": 94,
+          "line_end": 99
+        }
+      ],
+      "constants": [
+        "COVERED_YEARS: tuple[int, ...] = (2026, 2027)",
+        "_FOMC = (\"2026-12-09\", \"2027-01-27\", \"2027-03-17\", \"2027-04-28\", \"2027-06-09\", \"2027-07-28\",",
+        "_CPI = (\"2026-11-10\", \"2026-12-10\", \"2027-01-13\", \"2027-02-11\", \"2027-03-10\", \"2027-04-13\",",
+        "_JOBS = (\"2026-11-06\", \"2026-12-04\", \"2027-01-08\", \"2027-02-05\", \"2027-03-05\", \"2027-04-02\",",
+        "_BEA = (\"2026-11-25\", \"2026-12-23\", \"2027-01-28\", \"2027-02-25\", \"2027-03-31\", \"2027-04-29\",",
+        "_GROUPS: tuple[tuple[tuple[str, ...], time, str, Importance], ...] = (",
+        "EVENTS: tuple[EconEvent, ...] = tuple(sorted(",
+        "NYSE_CLOSED: dict[int, frozenset[date]] = {"
       ]
     },
     "series.py": {
@@ -638,16 +1350,16 @@
             "occurred_at: datetime",
             "schema_version: int"
           ],
-          "line_start": 29,
-          "line_end": 34
+          "line_start": 30,
+          "line_end": 35
         },
         {
           "name": "ToolStartedEvent",
           "class_vars": [
             "app_version: str"
           ],
-          "line_start": 38,
-          "line_end": 39
+          "line_start": 39,
+          "line_end": 40
         },
         {
           "name": "ScreenerApprovedEvent",
@@ -655,18 +1367,61 @@
             "symbols: tuple[str, ...]",
             "run_id: str"
           ],
-          "line_start": 43,
-          "line_end": 45
+          "line_start": 44,
+          "line_end": 46
+        },
+        {
+          "name": "MarketQuote",
+          "docstring": "Last price and move against the previous close (MD-INF-012.003.M02).",
+          "class_vars": [
+            "symbol: str",
+            "last: float",
+            "change_pct: float",
+            "as_of: str"
+          ],
+          "line_start": 50,
+          "line_end": 56
+        },
+        {
+          "name": "TradeLine",
+          "docstring": "One trade line: P&L in dollars and percent.",
+          "class_vars": [
+            "symbol: str",
+            "pnl: float",
+            "pnl_pct: float | None"
+          ],
+          "line_start": 60,
+          "line_end": 65
         },
         {
           "name": "DayEndPnLEvent",
           "class_vars": [
             "realized: float",
             "unrealized: float",
-            "trade_count: int"
+            "trade_count: int",
+            "session_date: str",
+            "trades: tuple[TradeLine, ...]"
           ],
-          "line_start": 49,
-          "line_end": 52
+          "line_start": 69,
+          "line_end": 74
+        },
+        {
+          "name": "MorningBriefEvent",
+          "docstring": "Pre-market brief (SRD-INF-012.003); empty parts mean no data.",
+          "class_vars": [
+            "session_date: str",
+            "quotes: tuple[MarketQuote, ...]",
+            "vix: MarketQuote | None",
+            "open_trades: tuple[TradeLine, ...]",
+            "open_count: int",
+            "unrealized: float",
+            "signals: tuple[str, ...]",
+            "screener_time: str",
+            "screener_top: tuple[str, ...]",
+            "ai_comment: str"
+          ],
+          "line_start": 78,
+          "line_end": 90
         },
         {
           "name": "_InProcessBus",
@@ -675,32 +1430,32 @@
             {
               "name": "__init__",
               "signature": "def __init__(self) -> None",
-              "line_start": 65,
-              "line_end": 67
+              "line_start": 105,
+              "line_end": 107
             },
             {
               "name": "subscribe",
               "signature": "def subscribe(self, handler: Callable[[Any], None]) -> None",
-              "line_start": 69,
-              "line_end": 71
+              "line_start": 109,
+              "line_end": 111
             },
             {
               "name": "publish",
               "signature": "def publish(self, event: Any) -> None",
-              "line_start": 73,
-              "line_end": 85
+              "line_start": 113,
+              "line_end": 125
             }
           ],
-          "line_start": 60,
-          "line_end": 85
+          "line_start": 100,
+          "line_end": 125
         }
       ],
       "top_level_functions": [
         {
           "name": "_now",
           "signature": "def _now() -> datetime",
-          "line_start": 22,
-          "line_end": 23
+          "line_start": 23,
+          "line_end": 24
         }
       ]
     },
@@ -1074,6 +1829,185 @@
         "_SKIPPED_REPORT = ReconcileReport("
       ]
     },
+    "_ai_client.py": {
+      "module_id": "MD-INF-011.001.M01",
+      "srd_id": "SRD-INF-011.001",
+      "classes": [
+        {
+          "name": "AiConfig",
+          "docstring": "What ``ask_ai`` needs from the user's AI notes settings.",
+          "class_vars": [
+            "claude_on: bool",
+            "claude_model: str",
+            "openrouter_on: bool",
+            "openrouter_model: str",
+            "openrouter_key: str",
+            "default: str",
+            "fallback: bool"
+          ],
+          "line_start": 31,
+          "line_end": 40
+        },
+        {
+          "name": "AiAnswer",
+          "docstring": "The answer text and who gave it, or an error when no provider answered.",
+          "class_vars": [
+            "text: str",
+            "provider: str",
+            "seconds: float",
+            "error: str"
+          ],
+          "line_start": 44,
+          "line_end": 50
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "provider_name",
+          "signature": "def provider_name(provider: str) -> str",
+          "docstring": "The user-facing name of a provider id.",
+          "line_start": 53,
+          "line_end": 55
+        },
+        {
+          "name": "ask_ai",
+          "signature": "def ask_ai(\r\n    config: AiConfig, instruction: str, facts: str, timeout_s: float = 90.0\r\n) -> AiAnswer",
+          "docstring": "Ask the default AI, then the other one when fallback is on (SRD-INF-011.003).",
+          "line_start": 58,
+          "line_end": 95
+        },
+        {
+          "name": "_ask_claude",
+          "signature": "def _ask_claude(config: AiConfig, instruction: str, facts: str, timeout_s: float) -> str",
+          "docstring": "Run the Claude Code CLI headless with no tools and no saved session (SRD-INF-011",
+          "line_start": 98,
+          "line_end": 123
+        },
+        {
+          "name": "_run_with_timeout",
+          "signature": "def _run_with_timeout(\r\n    command: list[str], stdin: str, cwd: str, env: dict[str, str], timeout_s: float\r\n) -> tuple[str, str, int]",
+          "docstring": "Run ``command``; on timeout kill it and its child processes.",
+          "line_start": 126,
+          "line_end": 140
+        },
+        {
+          "name": "_kill_tree",
+          "signature": "def _kill_tree(process: subprocess.Popen[str]) -> None",
+          "line_start": 143,
+          "line_end": 150
+        },
+        {
+          "name": "_ask_openrouter",
+          "signature": "def _ask_openrouter(config: AiConfig, instruction: str, facts: str, timeout_s: float) -> str",
+          "docstring": "Call OpenRouter chat completions with the user's key and model (SRD-INF-011.002)",
+          "line_start": 153,
+          "line_end": 182
+        }
+      ],
+      "constants": [
+        "OPENROUTER_URL = \"https://openrouter.ai/api/v1/chat/completions\"",
+        "_NAMES = {\"claude\": \"Claude Code CLI\", \"openrouter\": \"OpenRouter\"}"
+      ]
+    },
+    "_briefs.py": {
+      "module_id": "MD-INF-012.002.M01",
+      "srd_id": "SRD-INF-012.002",
+      "classes": [
+        {
+          "name": "SendLog",
+          "docstring": "The day each daily message was last sent, per user, kept in one JSON file.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, path: Path | None = None) -> None",
+              "line_start": 52,
+              "line_end": 53
+            },
+            {
+              "name": "_path",
+              "signature": "def _path(self) -> Path",
+              "decorators": [
+                "@property"
+              ],
+              "line_start": 56,
+              "line_end": 57
+            },
+            {
+              "name": "last_sent",
+              "signature": "def last_sent(self, user_id: int, kind: str) -> datetime.date | None",
+              "docstring": "The last sent day of ``kind`` for ``user_id``, or None.",
+              "line_start": 59,
+              "line_end": 65
+            },
+            {
+              "name": "mark",
+              "signature": "def mark(self, user_id: int, kind: str, day: datetime.date) -> None",
+              "docstring": "Record that ``kind`` was sent to ``user_id`` on ``day``.",
+              "line_start": 67,
+              "line_end": 75
+            },
+            {
+              "name": "_read",
+              "signature": "def _read(self) -> dict[str, dict[str, str]]",
+              "line_start": 77,
+              "line_end": 82
+            }
+          ],
+          "line_start": 49,
+          "line_end": 82
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "brief_due",
+          "signature": "def brief_due(now_et: datetime.datetime, last_sent: datetime.date | None) -> bool",
+          "docstring": "True in pre-market on a trading day when today's brief is not sent yet.",
+          "line_start": 29,
+          "line_end": 31
+        },
+        {
+          "name": "day_end_due",
+          "signature": "def day_end_due(now_et: datetime.datetime, last_sent: datetime.date | None) -> bool",
+          "docstring": "True from 16:05 ET until midnight ET on a trading day when not sent yet.",
+          "line_start": 34,
+          "line_end": 40
+        },
+        {
+          "name": "is_trading_day",
+          "signature": "def is_trading_day(day: datetime.date) -> bool",
+          "docstring": "True when the US market opens on ``day`` (not a weekend or NYSE holiday).",
+          "line_start": 43,
+          "line_end": 46
+        },
+        {
+          "name": "brief_facts",
+          "signature": "def brief_facts(event: MorningBriefEvent) -> str",
+          "docstring": "Plain facts of the brief for the AI comment.",
+          "line_start": 85,
+          "line_end": 94
+        },
+        {
+          "name": "numbers_ok",
+          "signature": "def numbers_ok(comment: str, facts: str) -> bool",
+          "docstring": "True when every number in ``comment`` also appears in ``facts``.",
+          "line_start": 97,
+          "line_end": 100
+        },
+        {
+          "name": "_plain",
+          "signature": "def _plain(number: str) -> str",
+          "line_start": 103,
+          "line_end": 104
+        }
+      ],
+      "constants": [
+        "MORNING_BRIEF = \"morning_brief\"",
+        "DAY_END = \"day_end\"",
+        "DAY_END_FROM = datetime.time(16, 5)",
+        "SEND_LOG_PATH = Path.home() / \".usswing\" / \"notify_state.json\"",
+        "_NUMBER = re.compile(r\"\\d+(?:[.,]\\d+)*\")"
+      ]
+    },
     "_dispatcher.py": {
       "module_id": "MD-INF-010.001.M04",
       "srd_id": "SRD-INF-010.004",
@@ -1156,54 +2090,95 @@
             {
               "name": "__init__",
               "signature": "def __init__(self) -> None",
-              "line_start": 27,
-              "line_end": 28
+              "line_start": 34,
+              "line_end": 35
             },
             {
               "name": "register",
               "signature": "def register(self, event_type: type, formatter: Formatter) -> None",
               "docstring": "Register the formatter used to render ``event_type``.",
-              "line_start": 30,
-              "line_end": 32
+              "line_start": 37,
+              "line_end": 39
             },
             {
               "name": "render",
               "signature": "def render(self, event: NotificationEvent) -> NotificationMessage",
               "docstring": "Render ``event`` into a channel-ready message.",
-              "line_start": 34,
-              "line_end": 46
+              "line_start": 41,
+              "line_end": 53
             }
           ],
-          "line_start": 24,
-          "line_end": 46
+          "line_start": 31,
+          "line_end": 53
         }
       ],
       "top_level_functions": [
         {
           "name": "_fmt_tool_started",
           "signature": "def _fmt_tool_started(event: NotificationEvent) -> NotificationMessage",
-          "line_start": 49,
-          "line_end": 55
+          "line_start": 56,
+          "line_end": 62
         },
         {
           "name": "_fmt_screener_approved",
           "signature": "def _fmt_screener_approved(event: NotificationEvent) -> NotificationMessage",
-          "line_start": 58,
-          "line_end": 64
+          "line_start": 65,
+          "line_end": 71
+        },
+        {
+          "name": "money",
+          "signature": "def money(value: float) -> str",
+          "docstring": "Signed whole dollars: ``+$412``, ``\u2212$40``.",
+          "line_start": 74,
+          "line_end": 77
+        },
+        {
+          "name": "_pct",
+          "signature": "def _pct(value: float) -> str",
+          "line_start": 80,
+          "line_end": 82
+        },
+        {
+          "name": "_trade_line",
+          "signature": "def _trade_line(trade: TradeLine) -> str",
+          "line_start": 85,
+          "line_end": 87
+        },
+        {
+          "name": "_quote_line",
+          "signature": "def _quote_line(quote: MarketQuote) -> str",
+          "line_start": 90,
+          "line_end": 92
+        },
+        {
+          "name": "_title",
+          "signature": "def _title(name: str, session_date: str) -> str",
+          "line_start": 95,
+          "line_end": 96
         },
         {
           "name": "_fmt_day_end_pnl",
           "signature": "def _fmt_day_end_pnl(event: NotificationEvent) -> NotificationMessage",
-          "line_start": 67,
-          "line_end": 75
+          "line_start": 99,
+          "line_end": 120
+        },
+        {
+          "name": "_fmt_morning_brief",
+          "signature": "def _fmt_morning_brief(event: NotificationEvent) -> NotificationMessage",
+          "line_start": 123,
+          "line_end": 146
         },
         {
           "name": "default_registry",
           "signature": "def default_registry() -> FormatterRegistry",
           "docstring": "Build a registry pre-populated with the built-in event formatters.",
-          "line_start": 78,
-          "line_end": 84
+          "line_start": 149,
+          "line_end": 156
         }
+      ],
+      "constants": [
+        "_MAX_LIST = 5",
+        "_MAX_TRADES = 10"
       ]
     },
     "_inbound.py": {
@@ -1603,6 +2578,140 @@
           "line_start": 45,
           "line_end": 58
         }
+      ]
+    },
+    "report_html.py": {
+      "module_id": "MD-MKT-007.003.M01",
+      "srd_id": "SRD-MKT-007.003",
+      "classes": [
+        {
+          "name": "CleanPage",
+          "docstring": "A cleaned page body and how many tags, attributes and CSS parts were taken out.",
+          "class_vars": [
+            "html: str",
+            "removed: int"
+          ],
+          "line_start": 47,
+          "line_end": 51
+        },
+        {
+          "name": "_Cleaner",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self) -> None",
+              "line_start": 62,
+              "line_end": 67
+            },
+            {
+              "name": "_attrs",
+              "signature": "def _attrs(self, tag: str, attrs: list[tuple[str, str | None]]) -> str",
+              "line_start": 69,
+              "line_end": 83
+            },
+            {
+              "name": "_start",
+              "signature": "def _start(self, tag: str, attrs: list[tuple[str, str | None]], closed: bool) -> None",
+              "line_start": 85,
+              "line_end": 103
+            },
+            {
+              "name": "handle_starttag",
+              "signature": "def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None",
+              "line_start": 105,
+              "line_end": 106
+            },
+            {
+              "name": "handle_startendtag",
+              "signature": "def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None",
+              "line_start": 108,
+              "line_end": 109
+            },
+            {
+              "name": "handle_endtag",
+              "signature": "def handle_endtag(self, tag: str) -> None",
+              "line_start": 111,
+              "line_end": 121
+            },
+            {
+              "name": "handle_data",
+              "signature": "def handle_data(self, data: str) -> None",
+              "line_start": 123,
+              "line_end": 131
+            },
+            {
+              "name": "handle_comment",
+              "signature": "def handle_comment(self, data: str) -> None",
+              "line_start": 133,
+              "line_end": 134
+            },
+            {
+              "name": "handle_decl",
+              "signature": "def handle_decl(self, decl: str) -> None",
+              "line_start": 136,
+              "line_end": 137
+            },
+            {
+              "name": "handle_pi",
+              "signature": "def handle_pi(self, data: str) -> None",
+              "line_start": 139,
+              "line_end": 140
+            },
+            {
+              "name": "unknown_decl",
+              "signature": "def unknown_decl(self, data: str) -> None",
+              "line_start": 142,
+              "line_end": 143
+            },
+            {
+              "name": "result",
+              "signature": "def result(self) -> CleanPage",
+              "line_start": 145,
+              "line_end": 148
+            }
+          ],
+          "line_start": 61,
+          "line_end": 148
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "clean_css",
+          "signature": "def clean_css(css: str) -> tuple[str, int]",
+          "docstring": "Remove imports, ``url()``, expressions and every ``<`` from CSS text.",
+          "line_start": 54,
+          "line_end": 58
+        },
+        {
+          "name": "clean_page",
+          "signature": "def clean_page(body: str) -> CleanPage",
+          "docstring": "Return ``body`` rebuilt from the allowed tags and attributes only.",
+          "line_start": 151,
+          "line_end": 161
+        },
+        {
+          "name": "sealed_document",
+          "signature": "def sealed_document(body: str, title: str) -> str",
+          "docstring": "Wrap a cleaned ``body`` in a full page whose content policy allows no loads.",
+          "line_start": 164,
+          "line_end": 170
+        }
+      ],
+      "constants": [
+        "MAX_PAGE_BYTES = 200_000",
+        "_TEXT_TAGS = frozenset(",
+        "_SVG_TAGS = frozenset(",
+        "_ALLOWED_TAGS = _TEXT_TAGS | _SVG_TAGS",
+        "_DROP_WITH_CONTENT = frozenset(",
+        "_VOID_TAGS = frozenset(\"br hr img col\".split())",
+        "_DROP_VOID = frozenset(\"input link meta base source embed\".split())",
+        "_GLOBAL_ATTRS = frozenset(\"class style title colspan rowspan align width height\".split())",
+        "_IMG_ATTRS = frozenset({\"src\", \"alt\"})",
+        "_SVG_ATTRS = frozenset(",
+        "_SVG_CASE = {\"viewbox\": \"viewBox\", \"preserveaspectratio\": \"preserveAspectRatio\"}",
+        "_DATA_IMAGE = re.compile(r\"^data:image/(png|jpeg|gif|webp);base64,[A-Za-z0-9+/=\\s]+$\")",
+        "_CSS_BAD = re.compile(",
+        "_CSP = \"default-src 'none'; style-src 'unsafe-inline'; img-src data:\""
       ]
     },
     "symbols.py": {
