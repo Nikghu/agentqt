@@ -343,9 +343,9 @@ def test_failing_employee(home: Path, caplog: pytest.LogCaptureFixture) -> None:
 
 
 def test_step_order() -> None:
-    """UT-DSK-003.001.M10.T03: AI employees runs right after Ideas."""
+    """UT-DSK-003.001.M10.T03: AI employees runs after Ideas (and News), as the last step."""
     names = [s.name for s in load_steps(STEP_PATHS)]
-    assert names[names.index("Ideas") + 1] == "AI employees"
+    assert names.index("Ideas") < names.index("AI employees") == len(names) - 1
 
 
 def test_once_per_data_day(home: Path) -> None:

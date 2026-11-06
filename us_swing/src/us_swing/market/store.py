@@ -6,6 +6,7 @@ Also: MD-MKT-003.010.M06 — score, idea and reason tables (SRD-MKT-003.010)
 Also: MD-MKT-004.006.M03 — proof run and stat tables (SRD-MKT-004.006)
 Also: MD-MKT-005.003.M02 — regime view table (SRD-MKT-005.003); P5b AI view tables
 (SRD-MKT-005.008, .010, .013, .016)
+Also: MD-MKT-006.008.M05 — news tables (SRD-MKT-006.001, .003, .008)
 
 Market tables in ``desk.db``: ``regime_snapshot``, ``breadth_daily``, ``vix_daily``,
 ``sector_daily``, ``stock_rs``, ``stock_score``, ``ideas``, ``idea_reasons``,
@@ -86,6 +87,14 @@ CREATE TABLE IF NOT EXISTS risk_check (
 );
 CREATE TABLE IF NOT EXISTS lead_picks (
     date TEXT, side TEXT, symbol TEXT, rank INTEGER, reason TEXT,
+    PRIMARY KEY (date, side, symbol)
+);
+CREATE TABLE IF NOT EXISTS news_items (
+    id INTEGER PRIMARY KEY, date TEXT, symbol TEXT, source TEXT, published TEXT, title TEXT,
+    link TEXT, fetched TEXT, UNIQUE (symbol, link), UNIQUE (symbol, title)
+);
+CREATE TABLE IF NOT EXISTS news_tags (
+    date TEXT, side TEXT, symbol TEXT, tone TEXT, reason TEXT, points REAL, final_score REAL,
     PRIMARY KEY (date, side, symbol)
 );
 """
@@ -292,11 +301,37 @@ class LeadPickRow:
     reason: str
 
 
+@dataclass(frozen=True)
+class NewsItemRow:
+    """One ``news_items`` row; ``symbol`` is empty for market headlines, times are UTC ISO."""
+
+    date: str
+    symbol: str
+    source: str
+    published: str
+    title: str
+    link: str | None
+    fetched: str
+
+
+@dataclass(frozen=True)
+class NewsTagRow:
+    """One ``news_tags`` row; ``tone`` is positive, neutral, negative or none (not asked yet)."""
+
+    date: str
+    side: str
+    symbol: str
+    tone: str
+    reason: str
+    points: float
+    final_score: float
+
+
 _DAY_TABLES: dict[str, type] = {
     "sector_view": SectorViewRow, "setup_review": SetupReviewRow,
-    "risk_check": RiskCheckRow, "lead_picks": LeadPickRow,
+    "risk_check": RiskCheckRow, "lead_picks": LeadPickRow, "news_tags": NewsTagRow,
 }
-DayRow = SectorViewRow | SetupReviewRow | RiskCheckRow | LeadPickRow
+DayRow = SectorViewRow | SetupReviewRow | RiskCheckRow | LeadPickRow | NewsTagRow
 
 
 def _clean(value: object) -> object:
@@ -437,6 +472,31 @@ class MarketStore:
         with self._con:
             self._con.execute(f"DELETE FROM {table} WHERE date = ?", (day,))  # noqa: S608
             self._put(table, kind, [tuple(vars(r).values()) for r in rows])
+
+    def add_news(self, rows: list[NewsItemRow]) -> int:
+        """Store headlines; return how many are new.
+
+        A headline already stored for the stock (same link or same title) is moved to the
+        new day instead, so a story seen again stays in that day's facts.
+        """
+        names = [f.name for f in fields(NewsItemRow)]
+        insert = (f"INSERT OR IGNORE INTO news_items ({', '.join(names)}) "  # noqa: S608
+                  f"VALUES ({', '.join('?' * len(names))})")
+        added = 0
+        with self._con:
+            for r in rows:
+                cur = self._con.execute(
+                    "UPDATE news_items SET date = ?, fetched = ? WHERE symbol = ? "
+                    "AND (link = ? OR title = ?)", (r.date, r.fetched, r.symbol, r.link, r.title))
+                if cur.rowcount == 0:
+                    added += self._con.execute(insert, astuple(r)).rowcount
+        return added
+
+    def delete_news_before(self, published: str) -> int:
+        """Delete headlines published before ``published`` (UTC ISO); return how many."""
+        with self._con:
+            cur = self._con.execute("DELETE FROM news_items WHERE published < ?", (published,))
+        return cur.rowcount
 
     def read_frame(self, sql: str, params: tuple[str, ...] = ()) -> pd.DataFrame:
         """Return the result of a read-only ``SELECT`` on the market tables as a frame."""

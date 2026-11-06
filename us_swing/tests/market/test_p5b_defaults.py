@@ -68,8 +68,8 @@ def test_no_real_names_in_defaults() -> None:
 
 
 def test_skill_list() -> None:
-    """UT-MKT-005.018.M09.T01: The five skill keys load to skills with a matching key."""
-    assert set(SKILL_PATHS) == {"regime_view", "sector_flow_view", "setup_review", "risk_check",
+    """UT-MKT-005.018.M09.T01: The skill keys (five plus news_review in P5c) load to skills with a matching key."""
+    assert set(SKILL_PATHS) == {"regime_view", "sector_flow_view", "setup_review", "risk_check", "news_review",
                                 "lead_brief"}
     for key, path in SKILL_PATHS.items():
         module, _, cls = path.partition(":")
@@ -181,3 +181,28 @@ def test_full_evening_chain(p5b: Env) -> None:
 def test_soul_has_name_placeholder(emp: str) -> None:
     """UT-MKT-005.017.M09.T03: Each default soul holds the name placeholder to fill in."""
     assert "{name}" in (_folders()[emp] / "soul.md").read_text(encoding="utf-8")
+
+
+def test_news_default_file_valid() -> None:
+    """UT-MKT-006.011.M06.T01: emp-006 loads with news_review, after_run, caps 3 and USD 3."""
+    hire = load_employee(_folders()["emp-006"], SKILL_PATHS)
+    assert hire is not None
+    spec = hire.spec
+    assert (spec.skill, spec.trigger, spec.calls_per_day, spec.monthly_cost_usd) == (
+        "news_review", ("after_run",), 3, 3.0)
+    assert GENERIC_NAME.match(spec.name)
+    assert "{name}" not in hire.soul and spec.name in hire.soul
+
+
+def test_news_skill_step_order_and_boundary() -> None:
+    """UT-MKT-006.011.M06.T02: news_review loads, News runs after Ideas, no desk import."""
+    from us_swing.core.desk_steps import STEP_PATHS  # noqa: PLC0415
+
+    module, _, cls = SKILL_PATHS["news_review"].partition(":")
+    assert getattr(importlib.import_module(module), cls)().key == "news_review"
+    names = [p.partition(":")[0].rsplit(".", 1)[1] for p in STEP_PATHS]
+    assert names.index("news_step") == names.index("idea_step") + 1
+    root = Path(us_swing.market.__file__).parent
+    pattern = re.compile(r"^\s*(from|import)\s+us_swing\.desk(\.|\s|$)", re.MULTILINE)
+    for name in ("news.py", "news_step.py", "news_review.py"):
+        assert not pattern.search((root / name).read_text(encoding="utf-8")), name

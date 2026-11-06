@@ -22,6 +22,7 @@ STEP_PATHS: tuple[str, ...] = (
     "us_swing.market.step:RegimeStep",
     "us_swing.market.sector_step:SectorStep",
     "us_swing.market.idea_step:IdeaStep",
+    "us_swing.market.news_step:NewsStep",
     "us_swing.desk.employees_step:EmployeesStep",
 )
 # Skills by key (named by what they do, never by who does them).
@@ -31,6 +32,7 @@ SKILL_PATHS: dict[str, str] = {
     "setup_review": "us_swing.market.setup_review:SetupReviewSkill",
     "risk_check": "us_swing.market.risk_check:RiskCheckSkill",
     "lead_brief": "us_swing.market.lead_brief:LeadBriefSkill",
+    "news_review": "us_swing.market.news_review:NewsReviewSkill",
 }
 # Packages whose ``employees/`` folder holds default employee files to copy on first run.
 DEFAULT_EMPLOYEE_PACKAGES: tuple[str, ...] = ("us_swing.market",)

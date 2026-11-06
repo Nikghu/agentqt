@@ -96,3 +96,23 @@ def test_second_wake_keeps_ai_vetoes(p5b: Env) -> None:
     assert items == []
     assert _rows(p5b)["LNG01"] == ("veto", "ai", "Looks stretched today")
     assert _rows(p5b)["LNG03"][:2] == ("veto", "code")
+
+
+def test_facts_show_news(p5b: Env) -> None:
+    """UT-MKT-006.010.M07.T01: news_tags for the day show tone, points and final score in facts."""
+    from us_swing.market.store import MarketStore, NewsTagRow
+
+    skill = _staged(p5b)
+    store = MarketStore(p5b.home)
+    store.replace_day("news_tags", p5b.day, [
+        NewsTagRow(p5b.day, "long", "LNG01", "positive", "Good news", 10.0, 82.5)])
+    store.close()
+    text = skill.facts(p5b.home).text
+    assert "News review (points out of 10" in text
+    assert "positive" in text and "82.5" in text and "LNG01" in text
+
+
+def test_facts_news_missing(p5b: Env) -> None:
+    """UT-MKT-006.010.M07.T02: without news_tags the facts say the news review is not available."""
+    text = _staged(p5b).facts(p5b.home).text
+    assert "News review: not available today" in text

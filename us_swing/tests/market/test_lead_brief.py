@@ -130,3 +130,21 @@ def test_no_lead_answer(p5b: Env) -> None:
     skill = _stage(p5b)
     assert skill.act(FakeCtx(p5b.home, None), skill.facts(p5b.home)) == []
     assert query(p5b.home, "SELECT * FROM lead_picks") == []
+
+
+def test_lead_sees_final_score(p5b: Env) -> None:
+    """UT-MKT-006.010.M08.T01: news_tags for passed ideas put a final column in the facts."""
+    from us_swing.market.store import NewsTagRow
+
+    skill = _stage(p5b)
+    store = MarketStore(p5b.home)
+    store.replace_day("news_tags", p5b.day, [
+        NewsTagRow(p5b.day, "long", "LNG01", "positive", "Good news", 10.0, 91.7)])
+    store.close()
+    pickable = _pickable(skill.facts(p5b.home).text)
+    assert "final" in pickable.splitlines()[1] and "91.7" in pickable
+
+
+def test_news_review_runs_before_risk_and_lead() -> None:
+    """UT-MKT-006.010.M08.T02: the risk check and lead brief needs include news_review."""
+    assert "news_review" in RiskCheckSkill.needs and "news_review" in LeadBriefSkill.needs

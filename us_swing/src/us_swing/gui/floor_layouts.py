@@ -1,6 +1,7 @@
 """
 Module: MD-GUI-034.008.M07 — Floor layouts
 Parent SRD: SRD-GUI-034.008
+Also: MD-GUI-034.021.M18 — default News & Calendar tab (SRD-GUI-034.021)
 """
 from __future__ import annotations
 
@@ -51,7 +52,8 @@ def default_layout() -> Panels:
             _panel("p2", "breadth.daily", 5, 0, 7, 26),
         ],
         "News & Calendar": [
-            _panel("p1", "news.latest", 0, 0, 7, 26),
+            _panel("p1", "news.latest", 0, 0, 7, 13, link="A"),
+            _panel("p3", "news.tags", 0, 13, 7, 13, link="A"),
             _panel("p2", "calendar.week", 7, 0, 5, 26),
         ],
     }
