@@ -6,6 +6,9 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.10.2: SRD-MKT-008.001–.006 Implemented (RN-MKT-0.9.0-20261106).
+> v0.10.1: SRD-MKT-008.001–.006 approved by user 2026-11-06.
+> v0.10.0: SRD-MKT-008.001–.006 added as Draft — link to Execution (P7).
 > v0.9.1: SRD-MKT-007.001–.008 approved by user 2026-11-06; .004 reopened by user and reworded (no employee in the page row).
 > v0.9.0: SRD-MKT-007.001–.008 added as Draft — AI report pages (P5d).
 > v0.8.0: SRD-MKT-006.001–.012 added as Draft — news, economic calendar and event risk (P5c).
@@ -135,3 +138,14 @@
 | SRD-MKT-007.006 | FO-MKT-007 | Must | After a version is added, the report page skill posts a short feed brief with the page title to mark its day done. | page | feed item | Author is the employee's current name | Implemented |
 | SRD-MKT-007.007 | FO-MKT-007 | Must | A default expert-level employee for report pages ships as `emp-007` (generic name "Expert 6") with trigger `after_run`, and the skill is added to the skill list. | — | files, skill path | Calls per day 3; monthly cap USD 3; `market` never imports `desk` | Implemented |
 | SRD-MKT-007.008 | FO-MKT-007 | Should | The report page skill logs the data day, version, page size before and after cleaning, and the number of items removed. | step | log lines | `[Report]` prefix | Implemented |
+
+## FO-MKT-008: Link to Execution
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-MKT-008.001 | FO-MKT-008 | Must | Trade picks are the lead picks of the latest data day whose risk check verdict is pass, with trigger and stop from `ideas`. | `desk.db` | pick list | Long and short both; a pick with no trigger or stop is not listed | Implemented |
+| SRD-MKT-008.002 | FO-MKT-008 | Must | A pick's target is the trigger plus `trade_target_r` × R for a long and minus it for a short, where R is the gap between trigger and stop. | pick, desk settings | target | `trade_target_r` in `desk_ai.json`, default 2.0; a pick with R = 0 or a stop on the wrong side is not listed | Implemented |
+| SRD-MKT-008.003 | FO-MKT-008 | Must | A pick is waiting until a `trade` approval row exists for it or the next NYSE market open after its data day has passed. | approvals, clock | pick state | Waiting, approved, rejected and expired are worked out, never stored; open time from `data/market_calendar` | Implemented |
+| SRD-MKT-008.004 | FO-MKT-008 | Must | Each Master decision adds one `approvals` row with kind `trade`, subject `date:side:symbol`, decision approve or reject, and the entry, stop, target and quantity in detail. | decision | row | Append-only; a second decision on the same pick or on an expired pick is refused | Implemented |
+| SRD-MKT-008.005 | FO-MKT-008 | Must | The pick and decision logic lives in `core/` so the GUI can use it, and only the app process writes trade approvals. | — | — | `market` never imports `desk`; the GUI never imports `desk`; no AI employee calls it | Implemented |
+| SRD-MKT-008.006 | FO-MKT-008 | Should | Each trade decision logs the side, stock and decision, and the waiting list logs how many picks expired. | decision | log lines | `[AI Desk]` prefix; no employee names | Implemented |

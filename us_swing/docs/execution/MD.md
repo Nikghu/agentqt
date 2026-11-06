@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-27
 **Project:** US Swing Trading System
 
+> v1.23.0: MD-EXE-021.*.M01–M04 added — AI Desk signal intake (MKT P7).
 > v1.22.0: MD-EXE-011.027.M01 added — `core/market_structure.py` (BOSS_ST); MD-EXE-011.001.M03 gains `boss_st_args()` and `BOSS_ST` (SRD-EXE-011.027).
 > v1.21.0: 30m timeframe — MD-EXE-006.001.M01 (new `_FRAME_TIMEFRAMES`; readiness unchanged), MD-EXE-007.001.M01 (`_LIVE_TIMEFRAMES`, Yahoo 30m poll), MD-EXE-009.002.M01 (cleanup of `price_30m`) (SRD-EXE-006.015, .007.011). Cross-tool: `data/engine.py`, `db/schema.py`, `analysis/candle_builder.py` gain 30m.
 > v1.20.0: MD-EXE-007.001.M01 covers SRD-EXE-007.010 — skips forming Yahoo bars and the first partial IBKR window.
@@ -378,3 +379,18 @@ Account Equity Snapshots. One new file (`execution/equity_snapshot.py`).
 | MD-EXE-020.004.M02 | `src/us_swing/gui/app_service.py` | Create the store and prune at start; 60 s `_equity_timer` → `_record_equity_snapshots()` (closing slot, one warning per slot) and `_prune_equity_daily()`; `get_equity_snapshots(since_iso)`; `get_equity_curve(range_key)`. | SRD-EXE-020.004, .005, .006, .008 |
 
 **Cross-tool surface (GUI tool — see `gui/MD.md`):** Performance band equity graph (FO-GUI-025, Phase 4).
+
+## Module Modifications for FO-EXE-021
+
+AI Desk Signal Intake. One new file (`execution/desk_signals.py`).
+
+| Module ID | File | Change Required | SRD |
+|---|---|---|---|
+| MD-EXE-021.002.M01 | `src/us_swing/execution/desk_signals.py` (new) | `AI_DESK_STRATEGY`, `AI_DESK_TYPE`, `build_desk_signal(pick, qty, user_id)`, `desk_signal_close(signal_id)` | SRD-EXE-021.002 |
+| MD-EXE-021.001.M02 | `src/us_swing/gui/app_service.py` | Add the AI Desk row on start; `desk_pick_qty()`, `send_desk_pick()`, `dismiss_desk_pick()`; `_on_desk_signal_done()` notes executed or dismissed desk signals; 60 s `_desk_signal_timer` → `_desk_signal_tick()` (re-send once, live waits for the account) → `_dismiss_closed_desk_signals()` | SRD-EXE-021.001 |
+| MD-EXE-021.005.M03 | `src/us_swing/execution/broker_adapter.py` | `_build_context`: `ai_desk` entries take stop and target from the signal | SRD-EXE-021.005 |
+| MD-EXE-021.001.M04 | `src/us_swing/execution/strategy_engine/_engine.py` | `_EXTERNAL_TYPES`: the tick loop and candle fan-out skip `ai_desk` strategies | SRD-EXE-021.001 |
+
+SRD coverage: .001 by M02 and M04; .003, .004, .006 and .007 by M02; .002 by M01 and M02; .004 also by M01 (`desk_signal_close`); .005 by M03.
+
+**Cross-tool surface (MKT and GUI — see `market/MD.md`, `gui/MD.md`):** `core/desk_trades.py` (MD-MKT-008.001.M01), Approvals waiting rows (MD-GUI-034.034.M24).

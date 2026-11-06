@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.9.0: DD-MKT-008.001.D01 added — link to Execution (P7).
 > v0.8.0: DD-MKT-007.001.D01 added — AI report pages (P5d).
 > v0.7.0: DD-MKT-006.001.D01 added — news, economic calendar and event risk (P5c).
 > v0.6.0: DD-MKT-005.006.D01 added — sector/flow view, setup review, risk check and lead brief (P5b).
@@ -675,3 +676,91 @@ no context menu; show_page(body, title): setHtml(sealed_document(clean_page(body
 **Sample data.** `gui/ai_desk_sample.py` and `gui/floor_sample.py` use generic names only (Lead 1, Expert 1–6, Champion 1–3, Engineer 1, Secretary 1). The old Studio sample rows are removed.
 
 **Limits.** The gateway time limit is 90 s (SRD-DSK); a very large page may time out, so the schema asks for 20–40 KB.
+
+## DD-MKT-008.001.D01 — Link to Execution (P7)
+
+**Traces:** SRD-MKT-008.001–.006; EXE SRD-EXE-021.001–.007 (see `execution/DD.md` DD-EXE-021.001.D01); GUI SRD-GUI-034.034–.036
+
+**Files.**
+
+| File | What |
+|---|---|
+| `core/desk_trades.py` (new) | Trade picks, target, state and expiry, trade approval rows, approved picks; the `DeskTradeSink` Protocol |
+| `core/desk_ai_settings.py` | New field `trade_target_r: float = 2.0` (above 0) |
+| `execution/desk_signals.py` (new) | AI Desk strategy name and type, `build_desk_signal()`, `desk_signal_close()` |
+| `execution/broker_adapter.py` | AI Desk entries take stop and target from the signal |
+| `gui/app_service.py` | AI Desk strategy row, `desk_pick_qty()`, `send_desk_pick()`, `dismiss_desk_pick()`, close sweep, re-send on start |
+| `gui/ai_desk_hiring.py` | `approvals_box()` gains trade pick rows with Approve and Reject |
+| `gui/ai_desk.py`, `gui/main_window.py` | `AiDeskWorkspace(poller, sink)`; the main window passes the `AppService` |
+
+**Process rule.** Only the app process writes trade approvals and signals. `core/desk_trades.py` reads `desk.db` with plain SQL and imports neither `desk`, `market` nor `gui`; the desk process never calls it.
+
+**Trade picks** (`trade_picks(home, now, r) -> list[TradePick]`):
+
+```
+day = SELECT MAX(date) FROM lead_picks          -- no table or no rows -> []
+rows = SELECT l.date, l.side, l.symbol, l.rank, l.reason, i.trigger, i.stop
+       FROM lead_picks l
+       JOIN ideas i      ON (i.date, i.side, i.symbol) = (l.date, l.side, l.symbol)
+       JOIN risk_check r ON (r.date, r.side, r.symbol) = (l.date, l.side, l.symbol)
+       WHERE l.date = day AND r.verdict = 'pass'
+       ORDER BY l.side, l.rank
+for each row: target = pick_target(side, trigger, stop, r); skip when None or trigger/stop NULL
+state = pick_state(...)                         -- every state is returned; the GUI shows waiting only
+```
+
+`TradePick` (frozen): `day, side, symbol, rank, reason, entry, stop, target, expires, state`; property `subject = f"{day}:{side}:{symbol}"`.
+
+**Target** (`pick_target(side, entry, stop, r) -> float | None`), rounded to 2 places:
+
+```
+long : stop < entry -> entry + r * (entry - stop)   else None
+short: stop > entry -> entry - r * (stop - entry)   else None
+```
+
+**State and expiry.** `pick_expiry(day) = datetime.combine(next_trading_day(day), 09:30, ET)` with `core.econ_calendar.next_trading_day`. `pick_state` reads the newest `approvals` row with `kind = 'trade'` and this subject: decision approve → `approved`, reject → `rejected`; no row and `now >= expires` → `expired`; else `waiting`. Nothing is stored for waiting or expired.
+
+**Decision** (`record_trade_decision(home, pick, decision, qty, now) -> str`; empty string means saved):
+
+```
+decision not in {approve, reject}          -> "unknown decision"
+executescript(_APPROVALS)                  -- from core.desk_hiring, creates table + triggers if missing
+state(pick, now) != waiting                -> "already decided" / "expired"
+INSERT approvals (created, kind, subject, decision, detail)
+       VALUES (now ISO, 'trade', subject, decision,
+               json {"entry", "stop", "target", "qty", "side", "symbol", "day"})
+log INFO "[AI Desk] Trade pick %s %s %s"  (side, stock, approved/rejected)
+sqlite3.Error -> log ERROR, return "could not save"
+```
+
+`trade_picks` logs `[AI Desk] %d trade pick(s) expired` at INFO when the count of expired picks is above 0.
+
+**Approved picks** (`approved_picks(home, trading_day) -> list[TradePick]`): `approve` rows of kind `trade` whose `next_trading_day(day) == trading_day` and that have no `trade_done` row, rebuilt from the detail JSON (state `approved`). Used by the restart re-send. `record_trade_outcome(home, subject, outcome, now)` adds the `trade_done` row (`executed` or `dismissed`) when a desk signal leaves Execution.
+
+**Sink Protocol** (in `core/desk_trades.py`, so the GUI types it without importing `gui.app_service`):
+
+```
+class DeskTradeSink(Protocol):
+    def desk_pick_qty(self, pick: TradePick) -> int: ...
+    def send_desk_pick(self, pick: TradePick) -> tuple[int, str]: ...   # (qty, "") or (0, reason)
+    def dismiss_desk_pick(self, pick: TradePick) -> None: ...
+```
+
+**GUI — Approvals waiting** (`approvals_box(home, open_hiring, sink=None)`). Hire lines stay as today. Below them, one row per waiting pick, newest day only:
+
+```
+LONG  AAPL  entry 101.20  stop 97.40  target 108.80  qty 45   [Approve] [Reject]
+```
+
+Quantity comes from `sink.desk_pick_qty(pick)`; with no sink the quantity shows "—" and both buttons are disabled. The empty note shows only when there are no hires and no waiting picks. Buttons use `C.BTN_H` from the global QSS; no fixed heights.
+
+```
+Approve: state now != waiting -> show reason, disable row
+         qty, why = sink.send_desk_pick(pick); why -> show why in the row, keep buttons on
+         err = record_trade_decision(home, pick, "approve", qty, now)
+         err -> sink.dismiss_desk_pick(pick); show err
+         ok  -> remove the row
+Reject : err = record_trade_decision(home, pick, "reject", 0, now); ok -> remove the row
+```
+
+The Command section is live, so a rebuild on each show drops decided and expired picks (SRD-GUI-034.036).

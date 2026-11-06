@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.10.0: MD-MKT-008.*.M01–M02 added — link to Execution (P7).
 > v0.9.0: MD-MKT-007.*.M01–M04 added — AI report pages (P5d).
 > v0.8.0: MD-MKT-006.*.M01–M06 added — news, economic calendar and event risk (P5c).
 > v0.7.0: MD-MKT-005.*.M04–M09 added — sector/flow view, setup review, risk limits, risk check, lead brief, defaults (P5b).
@@ -118,3 +119,12 @@ SRD coverage: .001 by M01 and M02; .002, .003, .012 by M02 (with M01, M05); .004
 | MD-MKT-007.007.M04 | SRD-MKT-007.007 | `us_swing/src/us_swing/market/employees/emp-007/` | Default expert-level employee files for report pages | — | — | No |
 
 SRD coverage: .001–.002 and .005–.006, .008 by M02; .003 by M01; .004 by M03; .007 by M04 and MD-DSK-001.021.M07 (`core/desk_steps.py` gets the `report_page` skill path).
+
+## FO-MKT-008: Link to Execution
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-MKT-008.001.M01 | SRD-MKT-008.001 | `us_swing/src/us_swing/core/desk_trades.py` | Trade picks, target, state and expiry, trade approval rows, approved picks (shared with the GUI and app) | `TradePick`, `DeskTradeSink`, `pick_target()`, `pick_expiry()`, `pick_state()`, `trade_picks()`, `record_trade_decision()`, `record_trade_outcome()`, `approved_picks()` | `sqlite3`, `core.desk_hiring`, `core.econ_calendar` | No |
+| MD-MKT-008.002.M02 | SRD-MKT-008.002 | `us_swing/src/us_swing/core/desk_ai_settings.py` | `trade_target_r` setting (added to MD-DSK-004.005.M13) | `DeskAiSettings.trade_target_r` | — | No |
+
+SRD coverage: .001 and .003–.006 by M01; .002 by M01 and M02.

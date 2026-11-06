@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.15.0: UT-GUI-034.034–.036 added (MKT P7).
 > v1.14.0: UT-GUI-034.027–.033 added (DSK P6).
 > v1.13.0: UT-GUI-034.022–.026 added (MKT P5d).
 > v1.12.0: UT-GUI-034.018–.021 added (MKT P5c).
@@ -1110,3 +1111,11 @@ Test files:
 | UT-GUI-034.032.M22.T02 | MD-GUI-034.032.M22 | Edge | No reports (SRD-GUI-034.032) | no desk_reports table | sample reports with the Sample tag | Pass |
 | UT-GUI-034.033.M23.T01 | MD-GUI-034.033.M23 | Positive | Seat caps saved (SRD-GUI-034.033) | change expert cap to 9; Save | desk_ai.json has 9 | Pass |
 | UT-GUI-034.033.M23.T02 | MD-GUI-034.033.M23 | Negative | Cap below count (SRD-GUI-034.033) | 6 active experts; set cap 5; Save | refused with a reason; file unchanged | Pass |
+| UT-GUI-034.034.M24.T01 | MD-GUI-034.034.M24 | Positive | Pick rows (SRD-GUI-034.034) | 1 ready hire, 2 waiting picks, fake sink qty 45 | hire line kept; 2 rows with side, stock, entry, stop, target, qty 45, Approve and Reject | Pass |
+| UT-GUI-034.034.M24.T02 | MD-GUI-034.034.M24 | Edge | No picks or no sink (SRD-GUI-034.034) | no hires, no picks; then picks with no sink | empty note; then qty — and both buttons disabled | Pass |
+| UT-GUI-034.034.M24.T03 | MD-GUI-034.034.M24 | Negative | No desk data (SRD-GUI-034.034) | 1 ready hire; desk.db missing or with no lead_picks table | hire line shown; no pick rows; no error | Pass |
+| UT-GUI-034.035.M24.T01 | MD-GUI-034.034.M24 | Positive | Approve (SRD-GUI-034.035) | click Approve | sink sent once; approve row with qty; row removed | Pass |
+| UT-GUI-034.035.M24.T02 | MD-GUI-034.034.M24 | Positive | Reject (SRD-GUI-034.035) | click Reject | reject row; sink not called; row removed | Pass |
+| UT-GUI-034.035.M24.T03 | MD-GUI-034.034.M24 | Negative | Send refused (SRD-GUI-034.035) | sink returns (0, reason) | no row; reason shown; buttons on | Pass |
+| UT-GUI-034.035.M24.T04 | MD-GUI-034.034.M24 | Negative | Expired at click (SRD-GUI-034.035) | clock moves past next open, then Approve | sink not called; no row; reason shown | Pass |
+| UT-GUI-034.036.M24.T01 | MD-GUI-034.034.M24 | Positive | Decided and expired drop off (SRD-GUI-034.036) | one approved, one expired, one waiting pick; box rebuilt | only the waiting pick listed | Pass |

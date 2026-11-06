@@ -1,5 +1,6 @@
 """Module: MD-EXE-015.002.M01 — execution/broker_adapter.py
 Parent SRD: SRD-EXE-015.001, SRD-EXE-015.004
+Also: SRD-EXE-021.005 (AI Desk entries keep the signal's stop and target)
 
 Broker adapter (Broker_fix.md Phase 5).
 
@@ -24,6 +25,7 @@ from collections.abc import Callable
 from typing import Any
 
 from us_swing.broker.broker import Broker, OrderEvent, OrderRequest, OrderSide, OrderType
+from us_swing.execution.desk_signals import AI_DESK_TYPE
 from us_swing.execution.direction import order_side, risk_levels
 from us_swing.execution.order_ingestion import OrderContext, OrderIngestion
 from us_swing.execution.strategy_engine._signals import Action, TradeSignal
@@ -99,11 +101,14 @@ class BrokerAdapter:
         is_entry: bool,
     ) -> OrderContext:
         price = signal.entry_price or 0.0
+        config = self._config_provider(signal.strategy_id) if is_entry else None
         hard_sl, target_price, target_type, stoploss_type = self._entry_risk(
-            self._config_provider(signal.strategy_id) if is_entry else None,
-            price,
-            signal.direction,
+            config, price, signal.direction,
         )
+        # AI Desk picks carry absolute levels from the idea, not config percentages
+        # (SRD-EXE-021.005).
+        if getattr(config, "strategy_type", "") == AI_DESK_TYPE:
+            hard_sl, target_price = signal.stop_loss or 0.0, signal.target
         return OrderContext(
             broker_order_id="",  # backfilled at on_order_accepted once the broker assigns it
             signal_id=signal.signal_id,

@@ -6,6 +6,8 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.8.1: FO-MKT-008 approved by user 2026-11-06.
+> v0.8.0: FO-MKT-008 written in full as Draft — Link to Execution (P7).
 > v0.7.0: FO-MKT-007 written in full as Draft and renamed by function, AI Report Pages (P5d).
 > v0.6.1: FO-MKT-005 reworded by skill and level; no employee names (user, 2026-11-06).
 > v0.6.0: FO-MKT-005 written as Draft for its first skill, the regime view (P5a); the other experts, risk manager and lead stay for P5b.
@@ -196,10 +198,25 @@ The system shall turn each evening's lead brief into one report page (HTML and C
 
 ## FO-MKT-008: Link to Execution
 
-**Status:** Draft (outline)
+**Status:** Implemented (RN-MKT-0.9.0-20261106)
 **Priority:** Should
 **Phase:** P7
-**Depends on:** DD-DSK §0.7 Q5 — the Master User approves every trade
+**Depends on:** DD-DSK §0.7 Q5 (the Master User approves every trade), FO-EXE-021, FO-GUI-034
 
-- The system shall send only Master-approved ideas to the Execution tool as watchlist entries or trade signals.
-- The system shall never let any AI employee place a trade without Master approval.
+The system shall show each lead pick to the Master user for approval and send only approved picks to Execution as pending trade signals. No AI employee approves a pick or places a trade; the Master places the order in Execution.
+
+- The system shall list each lead pick that passed the risk check in Command → Approvals waiting until the Master decides or it expires.
+- The system shall give each pick an entry at the idea trigger, a stop at the idea stop and a target at 2R, where the R multiple is one desk setting.
+- The system shall allow both long and short picks.
+- The system shall record each Master decision as a new `trade` row in the append-only `approvals` table.
+- The system shall send an approved pick to Execution as one pending trade signal.
+- The system shall expire a pick that is not decided by the next NYSE market open.
+- The system shall never let any AI employee approve a pick or place a trade.
+
+### Acceptance Criteria
+
+1. After an evening run, each risk-passed lead pick shows in Approvals waiting with side, entry, stop, target and quantity.
+2. Approve adds one pending signal under the AI Desk strategy in Execution and one `trade` approval row.
+3. Reject adds one `trade` approval row and no signal.
+4. After the next market open, an undecided pick can no longer be approved.
+5. No code in the desk process writes a trade approval, a pending signal or an order.

@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.24.0: DD-EXE-021.001.D01 added — AI Desk signal intake (MKT P7).
 > v1.23.0: DD-EXE-011.027.D01 added — BOSS_ST trigger indicator.
 > v1.22.0: DD-EXE-006.015.D01 added — 30m timeframe, live.
 > v1.21.0: DD-EXE-017.027.D01 added — paper account state follows today's P&L and open positions.
@@ -4158,3 +4159,46 @@ read logs `[Strategy] Could not load P&L history for %s` and returns `StrategyPn
 **Storage.** New `price_30m` table, same columns and key as `price_15m`; `create_schema()` (`create_all(checkfirst=True)`) adds it to existing `candles.db` files. The session cleanup list gains `price_30m`.
 
 Cross-tool note: touches `data/engine.py` (INF, `_TF_MINUTES`), `db/schema.py` (INF, new table), `analysis/candle_builder.py` (ANA, `_TF_SECONDS`).
+
+## DD-EXE-021.001.D01 — AI Desk Signal Intake
+
+**Parent SRD:** SRD-EXE-021.001 — SRD-EXE-021.007. Pick logic and the GUI are in `market/DD.md` DD-MKT-008.001.D01.
+
+**Strategy row.** `execution/desk_signals.py` holds `AI_DESK_STRATEGY = "AI Desk"` and `AI_DESK_TYPE = "ai_desk"`. On start, `AppService` loads the strategies; when no row has this name it saves one more `StrategyConfig(name="AI Desk", strategy_type="ai_desk", mode="paper", capital_max=10, trade_type="Positional", auto_trade=False, run_state="stopped", empty entry and exit conditions)` and reloads the engine registry. An existing row is never changed. The engine only evaluates RUNNING strategies, and the end-time sweep only touches Intraday ones, and the engine also skips every `ai_desk` strategy in its tick loop and candle fan-out (`_EXTERNAL_TYPES` in `strategy_engine/_engine.py`), so even a started row never makes signals.
+
+**Signal** (`build_desk_signal(pick, qty, user_id) -> TradeSignal`):
+
+```
+TradeSignal(action=ENTRY, symbol=pick.symbol, strategy_id="AI Desk",
+            entry_price=pick.entry, stop_loss=pick.stop, target=pick.target,
+            qty_recommended=qty, user_id=user_id, direction=pick.side.upper(),
+            reason=f"AI Desk pick {pick.day} rank {pick.rank}: {pick.reason}"[:200],
+            signal_id=f"desk:{pick.day}:{pick.side}:{pick.symbol}")
+```
+
+`desk_signal_close(signal_id) -> datetime | None` parses a `desk:` id and returns `next_trading_day(day)` at 16:00 ET; other ids give `None`.
+
+**Quantity** (`AppService.desk_pick_qty(pick)`): `floor(effective_capital() × capital_max × per_trade_pct / 10000 / pick.entry)` with the AI Desk row — the router's `_size_entry` formula (SRD-EXE-017.024); with the default per-trade 100% it equals `size_for_strategy`.
+
+**Send** (`AppService.send_desk_pick(pick) -> tuple[int, str]`):
+
+```
+pick.side not in (long, short) -> return (0, "unknown side")
+qty = desk_pick_qty(pick); qty <= 0 -> log WARNING, return (0, "quantity is 0 — raise AI Desk Capital Max")
+signal = build_desk_signal(pick, qty, active user id)
+self._pending_store.add(signal)          -- same id twice is dropped by the store
+log INFO "[AI Desk] Sent %s %s to Execution, %d share(s)"
+return (qty, "")
+```
+
+`dismiss_desk_pick(pick)` dismisses the `desk:` id from the pending store.
+
+**Close sweep.** A 60 s `_desk_signal_timer` calls `_dismiss_closed_desk_signals()`: every pending signal whose `desk_signal_close()` is at or before now (ET) is dismissed and logged `[AI Desk] %s pick was not executed by the close and was removed`.
+
+**Outcome rows.** `pending_signal_executed` and `pending_signal_dismissed` call `_on_desk_signal_done()`: for a `desk:` id it adds an `approvals` row with kind `trade_done`, the pick subject and decision `executed` or `dismissed` (`record_trade_outcome()`).
+
+**Restart.** `_desk_signal_tick()` runs at start and every 60 s. The first time the active user is paper, or live with a known broker account, it calls `_resend_desk_picks()` once: for `approved_picks(desk_home(), today ET)` while now is before 16:00 ET, a pick is sent again unless its signal is pending. `approved_picks()` leaves out picks with a `trade_done` row, so an executed or dismissed pick never comes back. Then it runs the close sweep. Review fix (2026-11-06): replaces a symbol plus one-day cycle check, which missed dismissals and could match an older pick.
+
+**Stop and target.** `BrokerAdapter._build_context` keeps the config path for every strategy except `ai_desk`: when the entry's config has `strategy_type == "ai_desk"`, `hard_stop_loss = signal.stop_loss or 0.0` and `target_price = signal.target`, with types `fixed`. The trade-cycle tick path then watches them as for other strategies.
+
+**Orders.** Execute stays the user's action and uses the existing checks (open cycle, direction conflict) and market order.

@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-11-06 (Session 121)
+**Last Updated:** 2026-11-06 (Session 123)
 
 ---
 
@@ -138,3 +138,4 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T126 | MKT P5c — user check after the next evening run: Floor News & Calendar tab shows real headlines, News tags (add with Add panel if your layout is saved) and Calendar; AI feed has the Expert 5 market note. Restart the desk first (new News step). | `market/`, `core/desk_floor.py` | High | Open |
 | T127 | MKT P5d — user check after the next evening run: AI Desk, Pages section shows the day's report page; try the version list and sealed preview. Restart the desk first so Expert 6 is seeded. Branch feat/p5d-canvas-pages, not pushed. | `market/report_page.py`, `gui/ai_desk_pages.py` | High | Open |
 | T128 | DSK P6 — user check: restart the desk; AI Desk → Hiring, start one hire and watch its shadow days grow after evening runs; try Desk settings seat caps; after the first Friday run, Reports shows the weekly report. | `core/desk_hiring.py`, `gui/ai_desk_hiring.py` | High | Open |
+| T129 | MKT P7 — user check: restart the app; after an evening run, AI Desk → Command → Approvals waiting shows picks; Approve one (signal in Execution under AI Desk), Reject one; after the next open undecided picks are gone. | `core/desk_trades.py`, `gui/ai_desk_hiring.py` | High | Open |

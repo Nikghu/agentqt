@@ -1,6 +1,7 @@
 """
 Module: MD-EXE-011.001.M01 — StrategyEngine (Qt + asyncio bridge)
 Parent SRD: SRD-EXE-011.001 — .003, .013, .014, SRD-EXE-013.001 — .008
+Also: MD-EXE-021.001.M04 — SRD-EXE-021.001 (AI Desk strategies are never evaluated)
 
 This is the only file under `strategy_engine/` permitted to import PyQt6
 — it is the explicit boundary between the Qt-driven AppService world and
@@ -50,6 +51,9 @@ _WRITEBACK_DEBOUNCE_S = 0.25
 _TICK_INTERVAL_S = 1.0
 _SQUARING_OFF_POLL_S = 2.0
 _ET = ZoneInfo("America/New_York")
+# Strategy types fed from outside the engine, never evaluated here: the AI Desk strategy
+# gets its signals from Master-approved picks (SRD-EXE-021.001).
+_EXTERNAL_TYPES = frozenset({"ai_desk"})
 
 _StrategyRunState = ExecutionEnums.StrategyRunState
 
@@ -183,6 +187,8 @@ class StrategyEngine(QThread):
             now = datetime.now(_ET)
             for ctx in list(self._registry.values()):
                 if ctx.run_state is not _StrategyRunState.RUNNING:
+                    continue
+                if getattr(ctx.cfg, "strategy_type", "") in _EXTERNAL_TYPES:
                     continue
                 if not ctx.within_schedule(now):
                     continue
@@ -425,7 +431,8 @@ class StrategyEngine(QThread):
         if not candles:
             return
         accepting = [
-            ctx for ctx in self._registry.values() if ctx.accepts(symbol)
+            ctx for ctx in self._registry.values()
+            if ctx.accepts(symbol) and getattr(ctx.cfg, "strategy_type", "") not in _EXTERNAL_TYPES
         ]
         if not accepting:
             return
