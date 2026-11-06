@@ -46,3 +46,22 @@ def test_command_with_no_desk(home: Path, capsys: pytest.CaptureFixture[str]) ->
     """UT-DSK-001.020.M06.T04: Command with no desk."""
     assert main(["stop"], home) == 1
     assert "Desk is off" in capsys.readouterr().out
+
+
+def test_proof_prints_report(home: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """UT-DSK-001.022.M06.T01: `desk proof` prints the runner's report and exits 0."""
+    seen: list[Path] = []
+
+    def runner(where: Path) -> str:
+        seen.append(where)
+        return "Score proof report"
+
+    assert main(["proof"], home, proof=lambda: runner) == 0
+    assert seen == [home]
+    assert "Score proof report" in capsys.readouterr().out
+
+
+def test_proof_without_data(home: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """UT-DSK-001.022.M06.T02: With no data `desk proof` prints a message and exits 1."""
+    assert main(["proof"], home, proof=lambda: lambda _home: None) == 1
+    assert "Backtest Data" in capsys.readouterr().out

@@ -3,9 +3,11 @@ Module: MD-MKT-001.007.M04 — market/store.py
 Parent SRD: SRD-MKT-001.007
 Also: MD-MKT-002.008.M04 — sector and stock RS tables (SRD-MKT-002.008)
 Also: MD-MKT-003.010.M06 — score, idea and reason tables (SRD-MKT-003.010)
+Also: MD-MKT-004.006.M03 — proof run and stat tables (SRD-MKT-004.006)
 
 Market tables in ``desk.db``: ``regime_snapshot``, ``breadth_daily``, ``vix_daily``,
-``sector_daily``, ``stock_rs``, ``stock_score``, ``ideas`` and ``idea_reasons``.
+``sector_daily``, ``stock_rs``, ``stock_score``, ``ideas``, ``idea_reasons``,
+``proof_run`` and ``proof_stats``.
 """
 from __future__ import annotations
 
@@ -52,6 +54,16 @@ CREATE TABLE IF NOT EXISTS ideas (
 CREATE TABLE IF NOT EXISTS idea_reasons (
     date TEXT, side TEXT, symbol TEXT, seq INTEGER, reason TEXT,
     PRIMARY KEY (date, side, symbol, seq)
+);
+CREATE TABLE IF NOT EXISTS proof_run (
+    run_id INTEGER PRIMARY KEY, created TEXT, data_first TEXT, data_last TEXT,
+    scored_first TEXT, scored_last TEXT, years REAL, stocks INTEGER, days INTEGER,
+    long_result TEXT, short_result TEXT, seconds REAL
+);
+CREATE TABLE IF NOT EXISTS proof_stats (
+    run_id INTEGER, side TEXT, kind TEXT, grp TEXT, horizon INTEGER, n INTEGER,
+    days INTEGER, win_rate REAL, avg_ret REAL, avg_vs_spy REAL,
+    PRIMARY KEY (run_id, side, kind, grp, horizon)
 );
 """
 
@@ -167,6 +179,38 @@ class ReasonRow:
     reason: str
 
 
+@dataclass(frozen=True)
+class ProofRunRow:
+    """One ``proof_run`` row without its id; results are pass, fail or not enough data."""
+
+    created: str
+    data_first: str
+    data_last: str
+    scored_first: str
+    scored_last: str
+    years: float
+    stocks: int
+    days: int
+    long_result: str
+    short_result: str
+    seconds: float
+
+
+@dataclass(frozen=True)
+class ProofStatRow:
+    """One ``proof_stats`` row without its run id; kind is band, setup or status."""
+
+    side: str
+    kind: str
+    grp: str
+    horizon: int
+    n: int
+    days: int
+    win_rate: float
+    avg_ret: float
+    avg_vs_spy: float
+
+
 def _clean(value: object) -> object:
     return None if isinstance(value, float) and math.isnan(value) else value
 
@@ -258,6 +302,35 @@ class MarketStore:
             self._put("stock_score", ScoreRow, [tuple(vars(r).values()) for r in scores])
             self._put("ideas", IdeaRow, [tuple(vars(r).values()) for r in ideas])
             self._put("idea_reasons", ReasonRow, [tuple(vars(r).values()) for r in reasons])
+
+    def write_proof(self, run: ProofRunRow, stats: list[ProofStatRow]) -> int:
+        """Add one proof run and its stats in one transaction; return the new run id."""
+        names = [f.name for f in fields(ProofRunRow)]
+        with self._con:
+            cur = self._con.execute(
+                f"INSERT INTO proof_run ({', '.join(names)}) "  # noqa: S608
+                f"VALUES ({', '.join('?' * len(names))})", tuple(vars(run).values()))
+            run_id = int(cur.lastrowid or 0)
+            stat_names = ["run_id", *(f.name for f in fields(ProofStatRow))]
+            self._con.executemany(
+                f"INSERT INTO proof_stats ({', '.join(stat_names)}) "  # noqa: S608
+                f"VALUES ({', '.join('?' * len(stat_names))})",
+                [(run_id, *(_clean(v) for v in vars(r).values())) for r in stats])
+        return run_id
+
+    def latest_proof(self) -> tuple[int, ProofRunRow, list[ProofStatRow]] | None:
+        """Return the newest proof run with its stats, or ``None`` when there is none."""
+        names = [f.name for f in fields(ProofRunRow)]
+        row = self._con.execute(
+            f"SELECT run_id, {', '.join(names)} FROM proof_run "  # noqa: S608
+            "ORDER BY run_id DESC LIMIT 1").fetchone()
+        if row is None:
+            return None
+        stat_names = [f.name for f in fields(ProofStatRow)]
+        stats = [ProofStatRow(*r) for r in self._con.execute(
+            f"SELECT {', '.join(stat_names)} FROM proof_stats WHERE run_id = ? "  # noqa: S608
+            "ORDER BY side, kind, grp, horizon", (row[0],))]
+        return int(row[0]), ProofRunRow(*row[1:]), stats
 
     def read_frame(self, sql: str) -> pd.DataFrame:
         """Return the result of a read-only ``SELECT`` on the market tables as a frame."""

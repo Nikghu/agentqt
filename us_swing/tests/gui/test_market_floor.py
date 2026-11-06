@@ -401,3 +401,45 @@ def test_no_ideas_gives_sample(tmp_path: Path) -> None:
     product = next(p for p in data.products() if p.id == "ideas.top")
     assert product.sample is True
     assert data.rows("ideas.top", {}) == SampleFloorData().rows("ideas.top", {})
+
+
+def _write_proof(home: Path) -> None:
+    from us_swing.market.store import MarketStore, ProofRunRow, ProofStatRow
+
+    store = MarketStore(home)
+    old = ProofRunRow("t1", "2024-01-02", "2026-11-03", "2025-01-31", "2026-11-03", 2.8, 503,
+                      442, "fail", "fail", 20.0)
+    new = ProofRunRow("t2", "2024-01-02", "2026-11-04", "2025-01-31", "2026-11-04", 2.84, 503,
+                      443, "pass", "fail", 21.0)
+    stats = [ProofStatRow("long", "band", g, h, 1000 + h, 400, 0.53, 0.01, v / 100)
+             for g, v in (("80+", 0.25), ("under 40", -0.04)) for h in (5, 10, 20)]
+    stats.append(ProofStatRow("short", "setup", "Breakdown", 10, 50, 40, 0.49, 0.0, 0.0034))
+    store.write_proof(old, [])
+    store.write_proof(new, stats)
+    store.close()
+
+
+def test_real_score_proof(tmp_path: Path) -> None:
+    """UT-GUI-034.014.M13.T01: latest proof run; side and kind filters; title with results."""
+    _write_proof(tmp_path)
+    data = DeskFloorData(SampleFloorData(), tmp_path)
+    product = next(p for p in data.products() if p.id == "proof.bands")
+    assert product.title == ("Score proof (2025-01-31 to 2026-11-04) · Long pass · Short fail"
+                             " · only 2.8 years of data")
+    assert product.filters == {"side": ("long", "short"), "kind": ("band", "setup", "status")}
+    assert product.sample is False
+    rows = data.rows("proof.bands", {})
+    assert [r["group"] for r in rows] == ["under 40", "80+"]
+    assert rows[1] == {"group": "80+", "n": "1,005", "win_10d": "53%", "vs_spy_5d": "+0.25%",
+                       "vs_spy_10d": "+0.25%", "vs_spy_20d": "+0.25%"}
+    short = data.rows("proof.bands", {"side": "short", "kind": "setup"})
+    assert short == [{"group": "Breakdown", "n": "-", "win_10d": "49%", "vs_spy_5d": "-",
+                      "vs_spy_10d": "+0.34%", "vs_spy_20d": "-"}]
+
+
+def test_no_proof_run_not_listed(tmp_path: Path) -> None:
+    """UT-GUI-034.014.M13.T02: without a proof run the Score proof product is not listed."""
+    _write_ideas(tmp_path)
+    data = DeskFloorData(SampleFloorData(), tmp_path)
+    assert "proof.bands" not in {p.id for p in data.products()}
+    assert data.rows("proof.bands", {}) == []

@@ -3,6 +3,7 @@ Module: MD-GUI-034.011.M10 — core/desk_floor.py
 Parent SRD: SRD-GUI-034.011
 Also: MD-GUI-034.012.M11 — sector strength, rotation and RS leaders (SRD-GUI-034.012)
 Also: MD-GUI-034.013.M12 — idea list (SRD-GUI-034.013)
+Also: MD-GUI-034.014.M13 — score proof (SRD-GUI-034.014)
 
 Market Floor data from ``desk.db``: the real regime, breadth, sectors and RS leaders when
 the desk has them, the fallback provider (sample data) for every other product.
@@ -31,6 +32,12 @@ _LEADER_COLUMNS = ("symbol", "sector", "rs_rating", "sector_rank")
 IDEAS_ID = "ideas.top"
 _IDEA_COLUMNS = ("symbol", "side", "score", "setup", "sector", "trigger", "stop", "why")
 _IDEA_FILTERS = {"side": ("long", "short"), "status": ("list", "watch")}
+PROOF_ID = "proof.bands"
+_PROOF_COLUMNS = ("group", "n", "win_10d", "vs_spy_5d", "vs_spy_10d", "vs_spy_20d")
+_PROOF_FILTERS = {"side": ("long", "short"), "kind": ("band", "setup", "status")}
+_PROOF_ORDER = {"under 40": 0, "40-50": 1, "50-60": 2, "60-70": 3, "70-80": 4, "80+": 5,
+                "list": 0, "watch": 1, "none": 2}
+_FULL_YEARS = 5.0
 
 
 def _signed_pct(value: float | None) -> str:
@@ -138,6 +145,10 @@ class DeskFloorData:
             filters = _IDEA_FILTERS if product.id == IDEAS_ID else product.filters
             out.append(replace(product, title=title, columns=columns, filters=filters,
                                sample=False))
+        if run := self._latest_proof():
+            out.append(ProductDescriptor(
+                PROOF_ID, _proof_title(run), "table", ("table",), _PROOF_COLUMNS, _PROOF_FILTERS,
+            ))
         if leaders_day := self._leaders_day():
             out.append(ProductDescriptor(
                 LEADERS_ID, f"RS leaders ({leaders_day})", "table", ("table",), _LEADER_COLUMNS,
@@ -175,9 +186,37 @@ class DeskFloorData:
             return [r for r in rows if _matches(r, filters)]
         if product_id == LEADERS_ID:
             return self._leaders(filters.get("sector"))
+        if product_id == PROOF_ID:
+            return self._proof(filters.get("side") or "long", filters.get("kind") or "band")
         if product_id == IDEAS_ID and (day := self._ideas_day()):
             return self._ideas(day, filters.get("side"), filters.get("status") or "list")
         return self._fallback.rows(product_id, filters)
+
+    def _latest_proof(self) -> tuple[Any, ...] | None:
+        return self._query(
+            "SELECT run_id, scored_first, scored_last, years, long_result, short_result "
+            "FROM proof_run ORDER BY run_id DESC LIMIT 1"
+        )
+
+    def _proof(self, side: str, kind: str) -> list[dict[str, Any]]:
+        run = self._latest_proof()
+        if run is None:
+            return []
+        rows = self._query_all(
+            "SELECT grp, horizon, n, win_rate, avg_vs_spy FROM proof_stats "
+            "WHERE run_id = ? AND side = ? AND kind = ?", (run[0], side, kind),
+        )
+        groups: dict[str, dict[str, Any]] = {}
+        for grp, horizon, n, win, vs_spy in rows:
+            row = groups.setdefault(grp, {"group": grp, "n": "-", "win_10d": "-",
+                                          "vs_spy_5d": "-", "vs_spy_10d": "-",
+                                          "vs_spy_20d": "-"})
+            row[f"vs_spy_{horizon}d"] = "-" if vs_spy is None else f"{vs_spy * 100:+.2f}%"
+            if horizon == 5:
+                row["n"] = f"{n:,}"
+            if horizon == 10:
+                row["win_10d"] = _pct(win * 100)
+        return [groups[g] for g in sorted(groups, key=lambda g: (_PROOF_ORDER.get(g, 9), g))]
 
     def _ideas_day(self) -> str | None:
         row = self._query("SELECT MAX(date) FROM ideas")
@@ -214,6 +253,12 @@ class DeskFloorData:
              "sector_rank": f"{rank} of {size}"}
             for sym, sec, rating, rank, size in rows
         ]
+
+
+def _proof_title(run: tuple[Any, ...]) -> str:
+    _, first, last, years, long_result, short_result = run
+    title = f"Score proof ({first} to {last}) · Long {long_result} · Short {short_result}"
+    return title + (f" · only {years:.1f} years of data" if years < _FULL_YEARS else "")
 
 
 def _sector_row(product_id: str, row: tuple[Any, ...]) -> dict[str, Any]:

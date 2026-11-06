@@ -1,6 +1,7 @@
 """
 Module: MD-DSK-001.021.M07 — core/desk_steps.py
 Parent SRD: SRD-DSK-001.021
+Also: SRD-DSK-001.022 — score proof runner path
 
 The list of steps the desk runs, loaded by import path, so ``desk`` never imports
 the tools (such as ``market``) that provide the steps.
@@ -9,7 +10,8 @@ from __future__ import annotations
 
 import importlib
 import logging
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
+from pathlib import Path
 
 from us_swing.core.desk_contract import DeskStep
 
@@ -20,6 +22,7 @@ STEP_PATHS: tuple[str, ...] = (
     "us_swing.market.sector_step:SectorStep",
     "us_swing.market.idea_step:IdeaStep",
 )
+PROOF_PATH = "us_swing.market.proof:run_proof"
 
 
 def load_steps(paths: Sequence[str] = STEP_PATHS) -> list[DeskStep]:
@@ -38,3 +41,12 @@ def load_steps(paths: Sequence[str] = STEP_PATHS) -> list[DeskStep]:
             continue
         steps.append(step)
     return steps
+
+
+def load_proof(path: str = PROOF_PATH) -> Callable[[Path], str | None]:
+    """Import the score proof runner (``"module:function"``); given the desk folder it returns
+    the report text, or ``None`` when there is no data.
+    """
+    module_name, _, func_name = path.partition(":")
+    runner: Callable[[Path], str | None] = getattr(importlib.import_module(module_name), func_name)
+    return runner

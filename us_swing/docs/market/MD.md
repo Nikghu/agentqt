@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-05
 **Project:** US Swing Trading System
 
+> v0.5.0: MD-MKT-004.*.M01–M03 added — proof on past data (P4).
 > v0.4.0: MD-MKT-003.*.M01–M07 added — money flow, setups, readiness score and ideas (P3).
 > v0.3.0: MD-MKT-002.*.M01–M05 added — sector strength, rotation and stock RS (P2).
 > v0.2.0: MD-MKT-001.*.M01–M05 added — regime, breadth and fear (P1).
@@ -50,3 +51,15 @@ SRD coverage: .001 by M01; .002, .003, .004, .005 by M02; .006, .007 by M03; .00
 | MD-MKT-003.011.M07 | SRD-MKT-003.011 | `us_swing/src/us_swing/market/idea_step.py` | Desk step "Ideas" | `IdeaStep` | M01–M06, `core.desk_contract` | No |
 
 SRD coverage: .001 by M01 and M02; .002 by M02; .003, .004 by M03; .005, .006, .007, .008 by M04; .009 by M05; .010 by M06; .011, .012 by M07.
+
+## FO-MKT-004: Proof on Past Data
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-MKT-004.001.M01 | SRD-MKT-004.001 | `us_swing/src/us_swing/market/proof_data.py` | Read the Backtest Data daily files into daily bars | `read_daily()`, `history_years()` | `pandas`, `pyarrow` | No |
+| MD-MKT-004.002.M02 | SRD-MKT-004.002 | `us_swing/src/us_swing/market/proof.py` | Replay, forward returns, groups, pass rule, report and run | `replay()`, `forward_returns()`, `group_stats()`, `verdict()`, `report_text()`, `run_proof()` | M01, P1–P3 modules | No |
+| MD-MKT-004.006.M03 | SRD-MKT-004.006 | `us_swing/src/us_swing/market/store.py` | `proof_run` and `proof_stats` tables (added to the P1 store) | `ProofRunRow`, `ProofStatRow`, `MarketStore.write_proof()`, `latest_proof()` | `sqlite3` | No |
+
+SRD coverage: .001 by M01; .002, .003, .004, .005, .007, .008, .009 by M02; .006 by M03.
+
+Cross-tool: `desk proof` (SRD-DSK-001.022) is in `desk/cli.py` (MD-DSK-001.020.M06) with `PROOF_PATH` in `core/desk_steps.py` (MD-DSK-001.021.M07); the Score proof panel (SRD-GUI-034.014) is MD-GUI-034.014.M13.

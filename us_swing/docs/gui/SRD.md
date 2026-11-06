@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.85.0: SRD-GUI-034.014 added as Draft — Score proof panel (MKT P4).
 > v2.84.0: SRD-GUI-034.013 added as Draft — Floor shows the real idea list (MKT P3).
 > v2.83.0: SRD-GUI-034.012 added as Draft — Floor shows real sector strength, rotation and RS leaders (MKT P2).
 > v2.82.0: SRD-GUI-034.011 added as Draft — Floor shows real regime and breadth (MKT P1).
@@ -676,3 +677,4 @@
 | SRD-GUI-034.011 | FO-GUI-034 | Must | The Market regime and Breadth panels read the latest rows from `desk.db` with their data date, without the Sample tag, and refresh after a desk run ends. | `desk.db` | panels | Falls back to sample rows when the desk has no data yet | Implemented |
 | SRD-GUI-034.012 | FO-GUI-034 | Must | The Sector strength, Sector rotation and new RS leaders panels read the latest sector and stock ratings from `desk.db` with their data date, without the Sample tag. | `desk.db` | panels | RS leaders shows the top 30 and can be filtered by sector | Implemented |
 | SRD-GUI-034.013 | FO-GUI-034 | Must | The Top ideas panels read the latest ideas from `desk.db` with their data date, trigger, stop and first reason, without the Sample tag. | `desk.db` | panels | Filter by side and by list or Watch; list is shown when no status is chosen | Implemented |
+| SRD-GUI-034.014 | FO-GUI-034 | Must | A Score proof panel reads the latest proof run from `desk.db` and shows per side the bands, setups or idea status with their returns, data range and result. | `desk.db` | panel | Filter by side and group kind; listed in the catalog only after a proof run | Implemented |

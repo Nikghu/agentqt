@@ -1,11 +1,13 @@
 """
 Module: MD-DSK-001.020.M06 — desk/cli.py
 Parent SRD: SRD-DSK-001.020
+Also: SRD-DSK-001.022 — ``desk proof``
 
 ``python -m us_swing desk [sub-command]``. With no sub-command the desk process runs.
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import date, datetime, tzinfo
 from pathlib import Path
 
@@ -18,13 +20,13 @@ from us_swing.core.desk_contract import (
     read_status,
     send_command,
 )
-from us_swing.core.desk_steps import load_steps
+from us_swing.core.desk_steps import load_proof, load_steps
 from us_swing.desk import task
 from us_swing.desk.process import DeskProcess
 
 USAGE = (
     "usage: desk [--resume] | desk start | status | pause | resume | stop | run-now"
-    " | install | uninstall"
+    " | install | uninstall | proof"
 )
 _COMMANDS = {
     "pause": CommandKind.PAUSE,
@@ -49,8 +51,12 @@ def _is_alive(state: DeskState, message: str) -> bool:
     return state in LIVE_STATES and message != NOT_RESPONDING
 
 
-def main(argv: list[str], home: Path | None = None) -> int:
-    """Run a desk sub-command and return the exit code."""
+def main(
+    argv: list[str],
+    home: Path | None = None,
+    proof: Callable[[], Callable[[Path], str | None]] = load_proof,
+) -> int:
+    """Run a desk sub-command and return the exit code; ``proof`` loads the proof runner."""
     home = home or desk_home()
     if not argv or argv == ["--resume"]:
         return DeskProcess(
@@ -79,6 +85,13 @@ def main(argv: list[str], home: Path | None = None) -> int:
         ok, msg = task.uninstall()
         print("Desk tasks removed" if ok else f"Could not remove desk tasks: {msg}")
         return 0 if ok else 1
+    if name == "proof":
+        report = proof()(home)
+        if report is None:
+            print("No daily candles to test; download them in Settings > Backtest Data")
+            return 1
+        print(report)
+        return 0
     print(USAGE)
     return 2
 

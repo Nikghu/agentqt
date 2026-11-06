@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-05
 **Project:** US Swing Trading System
 
+> v0.4.0: MD-DSK-001.020.M06 and .021.M07 also cover SRD-DSK-001.022 (`desk proof`).
 > v0.3.0: MD-DSK-001.021.M07 added.
 > v0.2.0: MD-DSK-001.*.M01–M06 added — desk process shell (P0a).
 > v0.1.0: Empty.
@@ -34,4 +35,4 @@
 | MD-DSK-001.015.M03 | SRD-DSK-001.015, .018 (task time) |
 | MD-DSK-001.010.M04 | SRD-DSK-001.008, .009, .010, .011, .012, .013, .014, .016, .017 |
 | MD-DSK-001.018.M05 | SRD-DSK-001.018, .019 |
-| MD-DSK-001.020.M06 | SRD-DSK-001.020 |
+| MD-DSK-001.020.M06 | SRD-DSK-001.020, .022 (`desk proof`) |
