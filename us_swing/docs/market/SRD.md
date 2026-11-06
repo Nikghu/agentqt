@@ -1,9 +1,9 @@
 # Software Requirements — Market Analytics (MKT)
 
 **Document ID:** SRD-MKT
-**Version:** 0.3.0
+**Version:** 0.4.0
 **Status:** Draft
-**Last Updated:** 2026-11-05
+**Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
 > v0.6.1: SRD-MKT-005.001–.005 reworded by skill; no employee names (user, 2026-11-06).
@@ -88,3 +88,16 @@
 | SRD-MKT-005.003 | FO-MKT-005 | Must | Each view is kept in `regime_view` per data day with the rule regime and whether they agree. | view | `regime_view` row | A new run on the same day replaces it | Implemented |
 | SRD-MKT-005.004 | FO-MKT-005 | Must | The regime view adds its brief to the AI feed; when it disagrees with the rule regime the brief ends with a plain note. | view | feed item | Author is the employee's current name | Implemented |
 | SRD-MKT-005.005 | FO-MKT-005 | Must | A default expert-level employee for the regime view ships in `market/employees/emp-001/` (generic name "Expert 1") with trigger `after_run`. | — | files | Calls per day 3; monthly cap USD 3; the Master user may rename or re-level it | Implemented |
+| SRD-MKT-005.006 | FO-MKT-005 | Must | Sector/flow view facts are the last 5 days of sector ranks, quadrants and 1 and 3-month relative moves, each sector's average money flow per side and the rule regime. | `desk.db` | facts text | Fresh only when the latest sector day equals the latest SPY candle day; needs nothing | Implemented |
+| SRD-MKT-005.007 | FO-MKT-005 | Must | The sector/flow answer is 1 to 3 sectors to favour, 0 to 3 to avoid, a rotation note of at most 200 characters and a brief of at most 400. | facts | view | Sector names must be from the saved list | Implemented |
+| SRD-MKT-005.008 | FO-MKT-005 | Must | Each sector/flow view is kept in `sector_view` per data day and its brief goes to the AI feed. | view | row, feed item | A new run on the same day replaces it | Implemented |
+| SRD-MKT-005.009 | FO-MKT-005 | Must | Setup review facts are the day's listed ideas per side with score parts, setup, trigger, stop and reasons, plus the rule regime. | `ideas`, `idea_reasons`, `stock_score` | facts text | At most 20 ideas; needs nothing | Implemented |
+| SRD-MKT-005.010 | FO-MKT-005 | Must | The setup review answer gives each idea a grade (A, B or C) and a note of at most 120 characters; it is kept in `setup_review`. | facts | rows | Ideas not in the facts are dropped and logged | Implemented |
+| SRD-MKT-005.011 | FO-MKT-005 | Must | Hard risk limits in code veto a listed idea that is long in a Downtrend or short in an Uptrend, has a stop under 1% or over 10% from its trigger, has a trigger under $5, or is past the third idea of its sector on its side. | ideas, regime | code vetoes | Limits are constants in code, not in any file an agent can read or write | Implemented |
+| SRD-MKT-005.012 | FO-MKT-005 | Must | The risk check AI reads the ideas that passed the code limits with their grades and the regime and sector views, and may veto more ideas with a reason of at most 120 characters. | facts | AI vetoes | Needs regime view, sector/flow view and setup review; cannot undo a code veto; unknown ideas are dropped and logged | Implemented |
+| SRD-MKT-005.013 | FO-MKT-005 | Must | Each listed idea gets one `risk_check` row per data day: pass or veto, by code or AI, and the reason. | vetoes | rows | Code limits are applied even when the AI call fails or the budget is used up | Implemented |
+| SRD-MKT-005.014 | FO-MKT-005 | Must | Lead brief facts are the day's regime, sector/flow, setup and risk views, with a note for any view that is missing, and the ideas that passed. | `desk.db` | facts text | Needs all four skills above | Implemented |
+| SRD-MKT-005.015 | FO-MKT-005 | Must | The lead answer is up to 5 picks per side, each with a reason of at most 120 characters, and an evening brief of at most 1,200 characters. | facts | picks, brief | A pick that did not pass the risk check is dropped and logged | Implemented |
+| SRD-MKT-005.016 | FO-MKT-005 | Must | Picks are kept in `lead_picks` per data day and the evening brief goes to the AI feed as kind `evening`. | picks, brief | rows, feed item | A new run on the same day replaces the picks | Implemented |
+| SRD-MKT-005.017 | FO-MKT-005 | Must | Default employees ship as `emp-002` "Expert 2" (sector/flow view), `emp-003` "Expert 3" (setup review), `emp-004` "Expert 4" (risk check) and `emp-005` "Lead 1" (lead brief), all on `after_run`. | — | files | Experts report to `emp-005` as data only; calls per day 3, monthly cap USD 3 each | Implemented |
+| SRD-MKT-005.018 | FO-MKT-005 | Must | The four new skills are added to the skill list in `core/desk_steps.py`. | — | skill paths | `market` never imports `desk` | Implemented |

@@ -1,9 +1,9 @@
 # Functional Overview — Market Analytics (MKT)
 
 **Document ID:** FO-MKT
-**Version:** 0.3.0
+**Version:** 0.4.0
 **Status:** Draft
-**Last Updated:** 2026-11-05
+**Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
 > v0.6.1: FO-MKT-005 reworded by skill and level; no employee names (user, 2026-11-06).
@@ -118,24 +118,31 @@ The system shall replay the P1–P3 score on years of past daily candles and sho
 
 ## FO-MKT-005: AI Experts, Risk Manager and Trade Manager
 
-**Status:** Regime view part Implemented (approved by user 2026-11-06); P5b open
+**Status:** Regime view part Implemented (approved by user 2026-11-06); P5b part Implemented (approved by user 2026-11-06)
 **Priority:** Must
-**Phase:** P5a (regime view expert); P5b (sector/flow and setup experts, risk manager, lead)
+**Phase:** P5a (regime view expert); P5b (sector/flow view, setup review, risk check, lead brief)
 **Depends on:** FO-DSK-002–005, FO-MKT-001–004
 
-The system shall add AI experts on top of the funnel. P5a adds the first skill, the regime view, used by one expert-level employee. Who does the work, and under what name, is data the Master user controls.
+The system shall add AI experts on top of the funnel. P5a adds the first skill, the regime view, used by one expert-level employee. P5b adds four more skills by function. Who does the work, and under what name, is data the Master user controls.
 
 - The system shall wake the regime view employee after each desk run to read the regime, breadth, fear, sectors, idea counts and the latest proof.
 - The system shall have it give a typed view: regime, confidence and up to 3 reasons, plus a short brief.
 - The system shall keep each view with the rule regime and whether the view agrees.
 - The system shall show the brief in the AI feed under the employee's current name, and say so when the view disagrees with the rule regime.
-- Later (P5b): sector/flow and setup skills for expert-level employees, a risk skill that vetoes ideas breaking hard risk limits kept in code, and a lead-level skill that picks the final ideas and writes the evening brief.
+- The system shall add a sector/flow view skill that names the sectors to favour and to avoid, from sector ranks, quadrants and money flow.
+- The system shall add a setup review skill that grades each listed idea A, B or C with a one-line note.
+- The system shall add a risk check skill: hard risk limits kept in code veto ideas first, then the AI may veto more ideas with a reason but never undo a code veto.
+- The system shall add a lead brief skill that picks the final ideas only from ideas that passed the risk check, and writes the evening brief for the Floor.
+- The system shall ship default employees for the new skills with generic level names only; the Master user may rename, re-level or re-link them.
 
 ### Acceptance Criteria
 
 1. One full regime view run on real data with a real model is recorded in `activity` within budget.
 2. The AI feed on the Market Floor shows the brief with the employee's name, time and data day.
 3. `regime_view` holds the typed view; a disagreement with the rule regime shows in the brief.
+4. One evening run on real data wakes the sector/flow, setup review, risk check and lead employees in that order; each view is saved in `desk.db`.
+5. An idea that breaks a hard limit is vetoed by code even when the AI says pass; the lead never picks a vetoed idea.
+6. The evening brief shows on the Floor under the lead employee's current name, with the picks and their reasons.
 
 ## FO-MKT-006: News and Global Events (SCOUT)
 

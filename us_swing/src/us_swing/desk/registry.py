@@ -3,7 +3,7 @@ Module: MD-DSK-002.002.M09 — desk/registry.py
 Parent SRD: SRD-DSK-002.002
 Also: SRD-DSK-002.001 (skills by key), SRD-DSK-002.003 (job file wins),
 SRD-DSK-002.004 (``employees`` table), SRD-DSK-002.006 (employee identity is data),
-SRD-DSK-002.007 (employee files in the desk folder)
+SRD-DSK-002.007 (employee files in the desk folder), SRD-DSK-002.009 (trigger list)
 
 Employees are folders of data in ``<desk>/employees/<id>/``: ``soul.md`` (the prompt) and
 ``job.yaml`` (identity, level, reporting line, skill and rules). Defaults shipped with
@@ -23,10 +23,11 @@ from pathlib import Path
 from typing import Literal
 
 import yaml  # type: ignore[import-untyped]
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from us_swing.core.desk_agents import Level, Skill
 from us_swing.core.desk_contract import DB_NAME
+from us_swing.core.desk_events import EVENT_KINDS
 from us_swing.desk.recorder import ny_now
 
 log = logging.getLogger(__name__)
@@ -67,11 +68,23 @@ class JobSpec(BaseModel):
     reports_to: str | None = None
     skill: str = Field(min_length=1)
     version: int = Field(ge=1)
-    trigger: Literal["after_run"]
+    trigger: tuple[str, ...] = Field(min_length=1)
     models: Models
     calls_per_day: int = Field(ge=1)
     monthly_cost_usd: float = Field(gt=0)
     kpis: list[str] = Field(min_length=1)
+
+    @field_validator("trigger", mode="before")
+    @classmethod
+    def _trigger_list(cls, value: object) -> object:
+        """Accept one event kind or a list, and allow only known kinds."""
+        kinds = [value] if isinstance(value, str) else value
+        if isinstance(kinds, list | tuple):
+            unknown = [k for k in kinds if k not in EVENT_KINDS]
+            if unknown:
+                raise ValueError(f"unknown event kind {unknown[0]}")
+            return tuple(kinds)
+        return value
 
 
 @dataclass(frozen=True)

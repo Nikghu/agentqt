@@ -4,6 +4,7 @@ from __future__ import annotations
 import sqlite3
 from collections.abc import Callable, Sequence
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 import pytest
@@ -46,3 +47,27 @@ def candle_file(tmp_path: Path) -> Callable[[dict[str, Sequence[float]]], Path]:
         return path
 
     return make
+
+
+@pytest.fixture(scope="session")
+def p5b_market(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, Path]:
+    """A desk.db filled by the real P1-P3 steps on synthetic candles (read-only, shared)."""
+    from datetime import UTC, datetime
+
+    from tests.market.test_idea_step import N, _Earnings, _make, _steps
+    from us_swing.core.desk_contract import StepContext
+
+    root = tmp_path_factory.mktemp("p5b_market")
+    candles, home = root / "candles.db", root / "desk"
+    _make(candles)
+    for step in _steps(candles, N, _Earnings()):
+        step(StepContext(1, "manual", datetime.now(UTC), home))
+    return candles, home
+
+
+@pytest.fixture
+def p5b(p5b_market: tuple[Path, Path], tmp_path: Path) -> Any:
+    """A private copy of the shared P5b market data for one test."""
+    from tests.market.p5b_support import copy_env
+
+    return copy_env(p5b_market, tmp_path)

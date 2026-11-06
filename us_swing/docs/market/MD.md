@@ -1,11 +1,12 @@
 # Module Decomposition — Market Analytics (MKT)
 
 **Document ID:** MD-MKT
-**Version:** 0.3.0
+**Version:** 0.4.0
 **Status:** Draft
-**Last Updated:** 2026-11-05
+**Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.7.0: MD-MKT-005.*.M04–M09 added — sector/flow view, setup review, risk limits, risk check, lead brief, defaults (P5b).
 > v0.6.0: MD-MKT-005.*.M01–M03 added — regime view skill (P5a).
 > v0.5.0: MD-MKT-004.*.M01–M03 added — proof on past data (P4).
 > v0.4.0: MD-MKT-003.*.M01–M07 added — money flow, setups, readiness score and ideas (P3).
@@ -74,3 +75,18 @@ Cross-tool: `desk proof` (SRD-DSK-001.022) is in `desk/cli.py` (MD-DSK-001.020.M
 | MD-MKT-005.005.M03 | SRD-MKT-005.005 | `us_swing/src/us_swing/market/employees/emp-001/` | Default expert-level employee files for the regime view |  — | — | No |
 
 SRD coverage: .001, .002, .004 by M01; .003 by M02; .005 by M03.
+
+### P5b — sector/flow view, setup review, risk check, lead brief
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-MKT-005.006.M04 | SRD-MKT-005.006 | `us_swing/src/us_swing/market/sector_view.py` | Sector/flow view skill: facts, answer schema and act | `SectorViewSkill`, `SectorView` | `core.desk_agents`, M02 | No |
+| MD-MKT-005.009.M05 | SRD-MKT-005.009 | `us_swing/src/us_swing/market/setup_review.py` | Setup review skill: facts, grades and act | `SetupReviewSkill`, `SetupReview`, `SetupGrade` | `core.desk_agents`, M02 | No |
+| MD-MKT-005.011.M06 | SRD-MKT-005.011 | `us_swing/src/us_swing/market/risk_limits.py` | Hard risk limits as constants and the code veto rules | `code_vetoes()`, `MIN_TRIGGER_USD`, `STOP_MIN_PCT`, `STOP_MAX_PCT`, `MAX_PER_SECTOR_SIDE` | — | No |
+| MD-MKT-005.012.M07 | SRD-MKT-005.012 | `us_swing/src/us_swing/market/risk_check.py` | Risk check skill: code vetoes first, then AI vetoes | `RiskCheckSkill`, `RiskVetoes`, `RiskVeto` | `core.desk_agents`, M02, M06 | No |
+| MD-MKT-005.014.M08 | SRD-MKT-005.014 | `us_swing/src/us_swing/market/lead_brief.py` | Lead brief skill: picks from passed ideas and the evening brief | `LeadBriefSkill`, `LeadBrief`, `LeadPick` | `core.desk_agents`, M02, M06 | No |
+| MD-MKT-005.017.M09 | SRD-MKT-005.017 | `us_swing/src/us_swing/market/employees/emp-002/` … `emp-005/` | Default employee files for the four new skills | — | — | No |
+
+Changed: M01 (`needs`, `answer`); M02 (`sector_view`, `setup_review`, `risk_check`, `lead_picks` tables); `market/step.py` (MD-MKT-001.*) posts `regime_change` through `core/desk_events.py`.
+
+SRD coverage: .006–.007 by M04, .008 by M04 and M02; .009–.010 by M05 (.010 also M02); .011 by M06; .012 by M07, .013 by M07 and M02; .014–.015 by M08, .016 by M08 and M02; .017 by M09; .018 by MD-DSK-001.021.M07 (`core/desk_steps.py`).

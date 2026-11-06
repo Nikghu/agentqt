@@ -193,7 +193,7 @@ def test_default_files_valid() -> None:
     assert hire is not None
     spec = hire.spec
     assert (spec.skill, spec.trigger, spec.calls_per_day, spec.monthly_cost_usd) == (
-        "regime_view", "after_run", 3, 3.0)
+        "regime_view", ("after_run",), 3, 3.0)
     assert (spec.models.primary.source, spec.models.backup.source) == ("claude", "openrouter")
     assert "{name}" not in hire.soul and spec.name in hire.soul
 

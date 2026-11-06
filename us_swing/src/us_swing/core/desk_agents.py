@@ -2,7 +2,7 @@
 Module: MD-DSK-002.001.M08 — core/desk_agents.py
 Parent SRD: SRD-DSK-002.001
 Also: SRD-DSK-002.005 (skills get only their folder, facts and an ask function),
-SRD-DSK-002.006 (generic levels)
+SRD-DSK-002.006 (generic levels), SRD-DSK-002.008 (skill needs)
 
 Shared types for AI skills. Code knows only skills, named by what they do. Who uses a
 skill (name, title, level, reporting line) is data in each employee's own files, which
@@ -19,7 +19,7 @@ from pydantic import BaseModel
 
 T = TypeVar("T", bound=BaseModel)
 
-FEED_KINDS = ("info", "idea", "approval")
+FEED_KINDS = ("info", "idea", "approval", "evening")
 Level = Literal["lead", "expert", "champion", "junior"]
 LEVELS: tuple[Level, ...] = ("lead", "expert", "champion", "junior")
 
@@ -60,9 +60,16 @@ class AgentContext(Protocol):
 
 
 class Skill(Protocol):
-    """Work an employee can do; ``key`` names the skill in employee job files."""
+    """Work an employee can do; ``key`` names the skill in employee job files.
+
+    ``needs`` lists the skill keys whose views this skill reads, so the desk runs those
+    first; it is about the work, never about who does it. ``answer`` is the base answer
+    schema, which a replay uses to check new answers.
+    """
 
     key: str
+    needs: tuple[str, ...]
+    answer: type[BaseModel]
 
     def facts(self, home: Path) -> Facts: ...
 

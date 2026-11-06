@@ -1,8 +1,11 @@
 """
 Module: MD-DSK-001.010.M04 — desk/process.py
 Parent SRD: SRD-DSK-001.010
+Also: SRD-DSK-003.008 (market clock events and event runs)
 
-The desk main loop: one copy only, heartbeat, commands, runs, stop and resume.
+The desk main loop: one copy only, heartbeat, commands, runs, stop and resume. Between
+runs it posts market clock events and starts a short ``event`` run when one wakes an
+employee; only the evening and manual runs call the market steps.
 """
 from __future__ import annotations
 
@@ -15,10 +18,11 @@ from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import IO
+from typing import IO, Protocol, runtime_checkable
 
 from us_swing.core.desk_contract import CommandKind, DeskState, DeskStep, StepContext
-from us_swing.desk.clock import evening_due
+from us_swing.core.desk_events import post_event
+from us_swing.desk.clock import evening_due, market_events_due
 from us_swing.desk.store import DeskStore
 
 if sys.platform == "win32":
@@ -29,6 +33,28 @@ log = logging.getLogger(__name__)
 LOCK_NAME = "desk.lock"
 _EVENING = "evening"
 _MANUAL = "manual"
+_EVENT = "event"
+
+
+@runtime_checkable
+class EventHandler(Protocol):
+    """Handles waiting events between desk runs."""
+
+    def has_work(self, home: Path) -> bool: ...
+
+    def handle_events(self, ctx: StepContext) -> None: ...
+
+
+class _EventStep:
+    """The only step of an ``event`` run."""
+
+    name = "AI events"
+
+    def __init__(self, events: EventHandler) -> None:
+        self._events = events
+
+    def __call__(self, ctx: StepContext) -> None:
+        self._events.handle_events(ctx)
 
 
 def _utc_now() -> datetime:
@@ -70,11 +96,15 @@ class DeskProcess:
         daily_check: Callable[[], object] | None = None,
         poll_s: float = 2.0,
         beat_s: float = 10.0,
+        events: EventHandler | None = None,
     ) -> None:
         """Set up the desk; nothing is opened until :meth:`start`.
 
         ``daily_check`` runs at start and after each evening run (task time sync).
+        ``events`` handles market clock and other events between runs.
         """
+        self._events = events
+        self._posted: set[tuple[str, str]] = set()
         self._home = home
         self._steps = list(steps)
         self._resume = resume
@@ -173,6 +203,8 @@ class DeskProcess:
             elif evening_due(now, self._db.last_run_start(_EVENING)):
                 self._do_run(_EVENING)
                 self._run_daily_check()
+            else:
+                self._event_tick(now)
         if self._stopping():
             self._finish_stop()
             return False
@@ -230,14 +262,31 @@ class DeskProcess:
 
     # ── runs ──────────────────────────────────────────────────────────────
 
-    def _do_run(self, kind: str) -> None:
+    def _event_tick(self, now: datetime) -> None:
+        """Post due market clock events, then run the event handler when it has work."""
+        if self._events is None:
+            return
+        try:
+            for kind, day in market_events_due(now):
+                if (kind, day) not in self._posted:
+                    post_event(self._home, kind, day, now)
+                    self._posted.add((kind, day))
+            work = self._events.has_work(self._home)
+        except Exception:  # noqa: BLE001 — a bad event check must never stop the desk
+            log.exception("[Desk] Could not check for AI events")
+            return
+        if work:
+            self._do_run(_EVENT, [_EventStep(self._events)])
+
+    def _do_run(self, kind: str, steps: Sequence[DeskStep] | None = None) -> None:
         self._rerun = self._run_now = False
         start = self._clock()
         self._set(DeskState.RUNNING, start)
         run_id = self._db.start_run(kind, start)
         log.info("[Desk] Run %d started (%s)", run_id, kind)
         with self._beating():
-            result, message = self._run_steps(StepContext(run_id, kind, start, self._home))
+            result, message = self._run_steps(StepContext(run_id, kind, start, self._home),
+                                              self._steps if steps is None else steps)
         self._db.end_run(run_id, result, self._clock(), message)
         if result == "failed":
             failed_state = DeskState.PAUSED if self._pause_after_run else DeskState.ERROR
@@ -255,10 +304,10 @@ class DeskProcess:
         self._pause_after_run = False
         self._set(next_state, self._clock())
 
-    def _run_steps(self, ctx: StepContext) -> tuple[str, str]:
+    def _run_steps(self, ctx: StepContext, steps: Sequence[DeskStep]) -> tuple[str, str]:
         """Call each step; return (result, note) for the run row."""
-        last = len(self._steps) - 1
-        for index, step in enumerate(self._steps):
+        last = len(steps) - 1
+        for index, step in enumerate(steps):
             try:
                 step(ctx)
             except Exception as exc:  # noqa: BLE001 — any step failure ends the run
