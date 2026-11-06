@@ -1,11 +1,12 @@
 # Design Document — Market Analytics (MKT)
 
 **Document ID:** DD-MKT
-**Version:** 0.3.0
+**Version:** 0.4.0
 **Status:** Draft
-**Last Updated:** 2026-11-05
+**Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.6.0: DD-MKT-005.006.D01 added — sector/flow view, setup review, risk check and lead brief (P5b).
 > v0.5.0: DD-MKT-005.001.D01 added — regime view skill (P5a).
 > v0.4.0: DD-MKT-004.001.D01 added — proof on past data (P4).
 > v0.3.0: DD-MKT-002.001.D01 added — sector strength, rotation and stock RS (P2).
@@ -306,4 +307,121 @@ class RegimeView:
 **job.yaml.** id `emp-001`, name `Expert 1`, title `Expert`, level `expert`, skill `regime_view`; trigger `after_run`; primary `claude` / `default`, backup `openrouter` / `default`; `calls_per_day: 3`; `monthly_cost_usd: 3.0`. KPIs: agreement rate with the rule regime, and the share of valid answers.
 
 **After the real run.** The first real answers broke the 140-character reason rule, which was checked in code but not shown in the JSON schema. The limit is now in the schema (`StringConstraints`), and `soul.md` says so too. Real run 2026-11-06 (Claude Code CLI, claude-haiku-5-5): valid on the 4th try, about 3,400 tokens, 7 s, cost 0; view Choppy 0.55, agreeing with the rule regime.
+
+## DD-MKT-005.006.D01 — Sector/Flow View, Setup Review, Risk Check and Lead Brief (P5b)
+
+**Traces:** SRD-MKT-005.006–.018
+
+**Files.** One skill per file, each a `Skill` from `core/desk_agents.py` with `key`, `needs` and `answer`. None imports `desk`, and none knows which employee runs it:
+
+| File | Class | key | needs |
+|---|---|---|---|
+| `market/sector_view.py` | `SectorViewSkill` | `sector_flow_view` | — |
+| `market/setup_review.py` | `SetupReviewSkill` | `setup_review` | — |
+| `market/risk_limits.py` | `code_vetoes()` + constants | — | — |
+| `market/risk_check.py` | `RiskCheckSkill` | `risk_check` | `regime_view`, `sector_flow_view`, `setup_review` |
+| `market/lead_brief.py` | `LeadBriefSkill` | `lead_brief` | `regime_view`, `sector_flow_view`, `setup_review`, `risk_check` |
+
+`RegimeViewSkill` gets `needs = ()` and `answer = RegimeView`. Tables are added to `market/store.py`; every write for a data day is a delete-then-insert in one transaction, so a re-run replaces it.
+
+```
+sector_view(date PK, employee_id, favour JSON, avoid JSON, rotation, brief)
+setup_review(date, side, symbol, grade, note, employee_id, PRIMARY KEY (date, side, symbol))
+risk_check(date, side, symbol, verdict ('pass'|'veto'), by ('code'|'ai'), reason,
+           PRIMARY KEY (date, side, symbol))
+lead_picks(date, side, symbol, rank, reason, employee_id, PRIMARY KEY (date, side, symbol))
+```
+
+**Freshness.** All four use the P5a check with their own source day: the sector view uses the latest `sector_daily` day, and the others use the latest `ideas` day. Each must equal the latest SPY candle day. "Listed ideas" are `ideas` rows with `status = 'list'` for that day.
+
+**Sector/flow view.** Facts: rule regime; for the last 5 sector days, rank, sector, quadrant, rel_1m and rel_3m; and for today, each sector's average `flow_part` per side over its scored stocks (`stock_score` joined with `stock_rs.sector`). Answer:
+
+```
+class SectorView:   favour: list[str] (1..3)   avoid: list[str] (0..3)
+                    rotation: str (10..200)    brief: str (20..400)
+```
+
+`act` asks with a subclass whose list items are `Literal[<that day's sector names>]`, so the JSON schema lists the allowed names. A sector in both lists fails the check (model validator). It writes `sector_view` and returns `FeedItem("info", brief, day)`.
+
+**Setup review.** Facts: rule regime, then per listed idea (at most 10 per side, by rank) side, symbol, score, the five parts, penalty, setup, trigger, stop and its reasons. Answer:
+
+```
+class SetupGrade:   side: Literal["long","short"]  symbol: str  grade: Literal["A","B","C"]
+                    note: str (5..120)
+class SetupReview:  grades: list[SetupGrade] (1..20)
+```
+
+Grades for an idea not in the facts, or a second grade for the same idea, are dropped with one log line: `[AI Desk] Setup review named 2 stock(s) not in today's ideas`. It writes `setup_review` and returns no feed item.
+
+**Hard risk limits** (`market/risk_limits.py`). These are plain constants in code. No file an agent reads or writes holds them, and no prompt can change them:
+
+```
+MIN_TRIGGER_USD = 5.0          STOP_MIN_PCT = 1.0         STOP_MAX_PCT = 10.0
+MAX_PER_SECTOR_SIDE = 3
+
+def code_vetoes(ideas, rule_regime) -> dict[(side, symbol), reason]:
+    long  and regime == "Downtrend"           -> "Long idea while the market is in a Downtrend"
+    short and regime == "Uptrend"             -> "Short idea while the market is in an Uptrend"
+    stop_pct = abs(trigger - stop) / trigger * 100
+    stop_pct < 1 or > 10                      -> "Stop is 0.6% from the trigger (allowed 1% to 10%)"
+    trigger < 5                               -> "Trigger is below $5"
+    per (side, sector), by rank: 4th and later -> "Fourth idea in Technology on the long side"
+```
+
+The sector count counts only ideas not already vetoed by an earlier rule, so one bad idea does not push out a good one. Ideas missing a trigger or stop are vetoed: "No trigger or stop".
+
+**Risk check.** `act`:
+
+```
+vetoes = code_vetoes(listed ideas, rule regime)
+write risk_check: code vetoes as veto/code; all others as pass/code ("Within the hard limits")
+passed = listed ideas not vetoed
+if passed:
+    view = ctx.ask(facts + passed list, RiskVetoes)     # facts: regime, sector and setup views
+    for v in view.vetoes if view else []:
+        if (v.side, v.symbol) in passed: update row to veto/ai with v.reason
+        else: count as dropped (logged)
+return [FeedItem("info", "Risk check: 3 of 14 ideas vetoed (2 by the hard limits, 1 by review)", day)]
+```
+
+```
+class RiskVeto:    side, symbol, reason: str (5..120)
+class RiskVetoes:  vetoes: list[RiskVeto] (0..20)
+```
+
+The code rows are written before the model is asked. A failed call, a used-up budget or a refusal still leaves the code vetoes in place. An AI answer can only turn a `pass` into a `veto`; a `veto/code` row is never touched. The facts list each missing view as `Sector view: not available today`.
+
+**Lead brief.** Facts: the regime view, sector view, setup grades and risk rows of the day (each missing view noted), and the passed ideas with score, setup, trigger, stop, grade and reasons. Passed means not vetoed in `risk_check`, and `code_vetoes` is always applied again here. So with no risk employee at all, the lead still never sees an idea that breaks a hard limit. Answer:
+
+```
+class LeadPick:    side, symbol, reason: str (5..120)
+class LeadBrief:   picks: list[LeadPick] (0..10)     evening: str (40..1200)
+```
+
+`act` keeps at most 5 picks per side, in the given order, and drops picks that are not in the passed list (logged). It writes `lead_picks` (rank = order) and returns `FeedItem("evening", evening, day)`. The evening brief is the model's own text; the picks are not added by code, so the soul tells the lead to name each pick and why.
+
+**Default employees** (`market/employees/`), all `trigger: after_run`, `calls_per_day: 3`, `monthly_cost_usd: 3.0`, primary `claude/default`, backup `openrouter/default`:
+
+| Folder | name | title | level | reports_to | skill |
+|---|---|---|---|---|---|
+| `emp-002` | Expert 2 | Expert | expert | emp-005 | sector_flow_view |
+| `emp-003` | Expert 3 | Expert | expert | emp-005 | setup_review |
+| `emp-004` | Expert 4 | Expert | expert | emp-005 | risk_check |
+| `emp-005` | Lead 1 | Lead | lead | null | lead_brief |
+
+`reports_to` is data only and does not decide the run order. The shipped `emp-001` stays as it is; the Master user may set its `reports_to` to `emp-005`. Each `soul.md` uses `{name}` and `{title}` and covers its work: it never gives trade orders, never makes up numbers that are not in the facts, and keeps the length limits that are also in the schema.
+
+**Skill list** (`core/desk_steps.py`, cross-tool note in DSK):
+
+```
+SKILL_PATHS = {
+    "regime_view":      "us_swing.market.regime_view:RegimeViewSkill",
+    "sector_flow_view": "us_swing.market.sector_view:SectorViewSkill",
+    "setup_review":     "us_swing.market.setup_review:SetupReviewSkill",
+    "risk_check":       "us_swing.market.risk_check:RiskCheckSkill",
+    "lead_brief":       "us_swing.market.lead_brief:LeadBriefSkill",
+}
+```
+
+**Regime change event** (cross-tool, for SRD-DSK-003.005). After writing its rows, the regime step (`market/step.py`, `RegimeStep`) calls `core.desk_events.post_event(home, "regime_change", latest_day, now)` when the latest day's regime differs from the day before. It is posted once per day.
 

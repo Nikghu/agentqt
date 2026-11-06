@@ -1,11 +1,12 @@
 # Design Document — Desk Harness (DSK)
 
 **Document ID:** DD-DSK
-**Version:** 0.2.0
+**Version:** 0.4.0
 **Status:** Draft
-**Last Updated:** 2026-11-05
+**Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.4.0: DD-DSK-003.004.D01 added — events, market clock, LangGraph run order and replay (P5b).
 > v0.3.1: P5a section rewritten without employee names: skills by function, employees as data in the desk folder, generic levels (user, 2026-11-06).
 > v0.3.0: DD-DSK-002.001.D01 added — lean harness for P5a.
 > v0.2.0: DD-DSK-001.001.D01 added — desk process shell (P0a).
@@ -283,4 +284,107 @@ Records use the stable id (`activity.employee`, `briefs.employee_id`) plus the n
 **Limits in P5a.** One trigger only (`after_run`). No priorities, deadlines, expiry or market clock (P5b). No replay (P5b). No HuggingFace or Jev source. Job files are edited by hand (P6 adds editing, rollback and approval).
 
 **After code review and the real run.** A call allows 4 tries (primary twice, backup twice), so `calls_per_day` counts 4 tries per call. Cost checks apply only to OpenRouter, so a used-up API budget never blocks the free Claude CLI. An OpenRouter reply without `usage.cost` fails that try, so spend is never unchecked. A day counts as done only once a brief is posted (`briefs`), so a crash after a valid answer is tried again. Model names starting with `-` are refused. Feed text is shown as plain text. AI Desk gets the desk folder from its poller; Cost & budget is rebuilt each time it opens. The keychain is not read while the window is built.
+
+## DD-DSK-003.004.D01 — Events, Market Clock, LangGraph Run Order and Replay (P5b)
+
+**Traces:** SRD-DSK-002.008–.009, SRD-DSK-003.004–.012, SRD-DSK-005.005–.007
+
+**Boundaries.** `desk` still never imports `market`. Tools post events through `core/desk_events.py`; only `desk/router.py` imports `langgraph`. The market clock uses the app's NYSE calendar in `data/market_calendar.py`, which `core` already uses. LangSmith tracing stays off: the desk process sets `LANGSMITH_TRACING=false` before it imports `langgraph`, so nothing leaves the PC.
+
+**Skill additions** (`core/desk_agents.py`):
+
+```
+class Skill(Protocol):
+    key: str
+    needs: tuple[str, ...]          # skill keys whose views this skill reads; () for none
+    answer: type[BaseModel]         # base answer schema; replay checks new answers with it
+    def facts(self, home) -> Facts
+    def act(self, ctx, facts) -> list[FeedItem]
+FEED_KINDS = ("info", "idea", "approval", "evening")
+```
+
+`needs` is about function only (for example, the lead brief needs the risk check). It never names an employee and never uses `reports_to`. A skill may ask with a narrower subclass of `answer` built for the day (for example, one whose sector field allows only that day's sectors).
+
+**Job file.** `trigger: after_run` or `trigger: [after_run, market_close]`. The loader turns either form into a tuple and checks each kind against `EVENT_KINDS`; an unknown kind keeps that employee asleep with a warning. P5a files load unchanged.
+
+**Events** (`core/desk_events.py`, shared by tools and the desk):
+
+```
+events(id INTEGER PK, key UNIQUE, kind, priority, data_day, created, deadline, expires,
+       state ('waiting'|'done'|'late'|'expired'), handled, note)
+key = "<kind>|<data_day>", or "after_run|<data_day>|<run_id>" for after_run
+
+EVENT_RULES = {               priority  deadline   expiry
+    "regime_change":            P0,     15 min,    2 h
+    "after_run":                P1,      2 h,      6 h
+    "market_open":              P2,     none,     30 min
+    "market_close":             P2,     none,     30 min }
+
+post_event(home, kind, data_day, now, run_id=None) -> bool   # INSERT OR IGNORE on key
+```
+
+Clock and regime events come once per kind and data day, so a second desk start or a rebuild of past regime days never posts a second one. `after_run` comes once per run; the P5a once-per-data-day rule (brief posted) still stops a second wake, and a failed day is still tried again on the next run. `regime_change` is posted by the market regime step (cross-tool note in MKT): after its rows are written, it compares the latest day's regime with the day before and posts when they differ. Only the router changes `state`.
+
+**Router** (`desk/router.py`), called by the "AI employees" step and by the desk loop:
+
+```
+def handle(home, run_id, now, hires):
+    expire: UPDATE waiting events SET state='expired' WHERE expires < now   (log each)
+    for event in waiting ORDER BY priority, created:
+        woken = [h for h in hires if event.kind in h.spec.trigger]
+        if woken: run_graph(event, woken)
+        state = 'late' if event.deadline and now_after > event.deadline else 'done'
+        (log "late" with the minutes past the deadline)
+
+def has_work(home, now, hires) -> bool     # waiting events that some employee listens to
+```
+
+Events nobody listens to are marked done without a run (debug log only), so the clock does not create empty runs.
+
+**Run order with LangGraph** (`run_graph`):
+
+```
+by_skill = {skill key: [nodes]} for the woken employees
+check:    graphlib.TopologicalSorter(edges).prepare()  — on CycleError log once, wake nobody
+graph = StateGraph(GraphState)          # GraphState: {"done": Annotated[list[str], add]}
+for node in woken: graph.add_node(node.id, wake_fn(node))
+for node in woken:
+    before = [n.id for k in node.skill.needs for n in by_skill.get(k, [])]
+    graph.add_edge(before or START, node.id)          # list = wait for all of them
+    terminal nodes -> END
+graph.compile().invoke({"done": []}, {"max_concurrency": 1})
+```
+
+A needs key with no woken employee (asleep, not hired, or another trigger) is left out of the edges, and the skill finds the view missing when it reads `desk.db` for the data day, so its facts say so. `wake_fn` wraps the P5a wake rule (fresh facts, once per data day for `after_run`, 30-minute rule, gateway, briefs) in `try/except`. A failed node logs with `log.exception`, returns normally and so never stops the graph. Each node opens its own `Recorder` and gateway, because LangGraph may run a node on a worker thread and a `sqlite3` connection must stay on its own thread. `max_concurrency: 1` keeps one model call at a time, within the caps.
+
+**30-minute rule.** `Recorder.last_wake(id)` = latest `started` in `activity` for that employee with `replay = 0`. When it is less than 30 minutes ago and the event is not P0, the employee is not woken: `[AI Desk] <name> woke 12 minutes ago; next wake after 30 minutes`.
+
+**"AI employees" step** (P5a M10, changed). Seeds and loads employees as before, posts `after_run` for the latest data day (from the freshest skill's facts), then calls `router.handle`. A regime change posted earlier in the same run is handled first, because it is P0.
+
+**Market clock** (`desk/clock.py` + `desk/process.py`):
+
+```
+def market_events_due(now) -> list[(kind, day)]:
+    now_et on an NYSE trading day (get_exchange_status at noon == "open"):
+        09:30 <= now_et        -> ("market_open",  today)
+        16:00 <= now_et        -> ("market_close", today)
+```
+
+Each `tick()`, when not running or paused, posts what is due (`post_event` ignores repeats), then, if `router.has_work`, starts a run of kind `event` that calls only `router.handle` (not the market steps), and ends it like any run. An open event that expires while the desk is off is marked expired on the next start. Only the evening run calls the market steps.
+
+**Replay** (`desk/replay.py`, `desk replay <run> [--employee ID] [--model NAME]`):
+
+```
+rows = activity WHERE run_id = run AND replay = 0, last try per employee
+for row:
+    hire = loaded employee with row.employee  (missing -> report "employee not found", no call)
+    system, user = row.prompt.split("\n\n---\n\n", 1)
+    new = gateway.resend(system, user, hire.skill.answer, model=--model or row.model, replay=True)
+    old = hire.skill.answer.model_validate_json(json_part(row.answer)) or None
+    report: employee name, old valid?, new valid?, fields that differ (top-level names)
+```
+
+`Gateway.resend` is the inner part of `ask` (same tries, budget and caps), and the recorder writes those tries with `replay = 1` (column added on open, default 0). A replay never calls `act`, so it writes no views, picks, briefs or events. The report is ASCII; the exit code is 1 when the run has no recorded tries.
+
+**Dependency.** `langgraph>=1.2,<2` in `pyproject.toml`. `USSwing.spec` adds `langgraph` and `langchain_core` to `collect_submodules` for the frozen desk (checked with T121).
 

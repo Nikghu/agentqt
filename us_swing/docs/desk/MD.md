@@ -1,11 +1,12 @@
 # Module Decomposition — Desk Harness (DSK)
 
 **Document ID:** MD-DSK
-**Version:** 0.2.0
+**Version:** 0.3.0
 **Status:** Draft
-**Last Updated:** 2026-11-05
+**Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.6.0: MD-DSK M15–M17 added — events, router with LangGraph, replay (P5b).
 > v0.5.0: MD-DSK-002–005 M08–M14 added — lean harness (P5a).
 > v0.4.0: MD-DSK-001.020.M06 and .021.M07 also cover SRD-DSK-001.022 (`desk proof`).
 > v0.3.0: MD-DSK-001.021.M07 added.
@@ -53,3 +54,17 @@
 SRD coverage: 002.001 by M08 and M09 (skills by key); 002.002–.004, .006, .007 by M09; 002.005 by M08 and M10; 003.001–.003 by M10; 004.001, .002 by M11; 004.003, .004 by M12; 004.005 by M13; 005.001–.004 by M14 (005.004 also M10).
 
 Cross-tool: `core/desk_steps.py` (MD-DSK-001.021.M07) gets `SKILL_PATHS`, `DEFAULT_EMPLOYEE_PACKAGES` and the "AI employees" step path.
+
+## FO-DSK-002, -003, -005: Events, Market Clock, LangGraph Order and Replay (P5b)
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-DSK-003.004.M15 | SRD-DSK-003.004 | `us_swing/src/us_swing/core/desk_events.py` | `events` table, event kinds and rules, posting from any tool | `EVENT_KINDS`, `EVENT_RULES`, `Event`, `post_event()` | `sqlite3` | No |
+| MD-DSK-003.006.M16 | SRD-DSK-003.006 | `us_swing/src/us_swing/desk/router.py` | Expire, order and handle events; build and run the LangGraph graph of woken employees | `Router`, `run_order()` | M09, M11, M14, M15, `langgraph` | No |
+| MD-DSK-005.005.M17 | SRD-DSK-005.005 | `us_swing/src/us_swing/desk/replay.py` | Re-send a recorded run's prompts and compare the answers | `replay()`, `ReplayLine` | M09, M11, M14 | No |
+
+Changed P0a/P5a modules: M08 (`needs`, `answer`, feed kind `evening`), M09 (trigger list), M10 (posts `after_run`, then calls the router), M03 (`market_events_due()`), M04 (posts clock events, `event` runs), M11 (`Gateway.resend()`), M14 (`replay` column, `last_wake()`), M06 (`desk replay`).
+
+SRD coverage: 002.008 by M08 and M16; 002.009 by M09; 003.004, .005 by M15; 003.006, .007, .009–.011 by M16 (.009 also M14); 003.008 by M03 and M04; 003.012 by M16 with `pyproject.toml` and `USSwing.spec`; 005.005–.007 by M17 (.005 also M11 and M06; .006 also M14).
+
+Cross-tool: `market/step.py` posts `regime_change` through M15 (see MKT DD-MKT-005.006.D01).

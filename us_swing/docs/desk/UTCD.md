@@ -1,11 +1,12 @@
 # Unit Test Cases — Desk Harness (DSK)
 
 **Document ID:** UTCD-DSK
-**Version:** 0.2.0
+**Version:** 0.3.0
 **Status:** Draft
-**Last Updated:** 2026-11-05
+**Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.6.0: 41 test cases for P5b (events, market clock, LangGraph order, replay).
 > v0.5.1: P5a cases reworded without employee names; 6 cases added for identity as data (user, 2026-11-06).
 > v0.5.0: 38 test cases for the P5a lean harness.
 > v0.4.0: UT-DSK-001.022.M06.T01–T02 added (`desk proof`).
@@ -137,3 +138,49 @@
 | UT-DSK-005.002.M14.T02 | MD-DSK-005.001.M14 | Positive | Inserts still work (SRD-DSK-005.002) | refused update, then new try | new row added | Pass |
 | UT-DSK-005.003.M14.T01 | MD-DSK-005.001.M14 | Positive | Brief stored (SRD-DSK-005.003) | feed item | briefs row with time and data day | Pass |
 | UT-DSK-005.003.M14.T02 | MD-DSK-005.001.M14 | Negative | Empty brief (SRD-DSK-005.003) | feed item with empty text | ValueError; nothing stored | Pass |
+
+## FO-DSK-002, -003, -005: Events, Market Clock, LangGraph Order and Replay (P5b)
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-DSK-002.008.M16.T01 | MD-DSK-003.006.M16 | Positive | Needs set the order (SRD-DSK-002.008) | fake skills A, B needs A, C needs A and B | order A, B, C | Not Run |
+| UT-DSK-002.008.M16.T02 | MD-DSK-003.006.M16 | Negative | Unknown need key (SRD-DSK-002.008) | skill needs a key nobody has | left out; warning; skill still runs | Not Run |
+| UT-DSK-002.008.M16.T03 | MD-DSK-003.006.M16 | Edge | reports_to is not order (SRD-DSK-002.008) | lead skill's employee reports to an expert | lead still runs after that expert's skill | Not Run |
+| UT-DSK-002.009.M09.T01 | MD-DSK-002.002.M09 | Positive | Trigger list (SRD-DSK-002.009) | `trigger: [after_run, market_close]` | spec trigger has both kinds | Not Run |
+| UT-DSK-002.009.M09.T02 | MD-DSK-002.002.M09 | Positive | Single trigger still loads (SRD-DSK-002.009) | P5a file with `trigger: after_run` | trigger ("after_run",) | Not Run |
+| UT-DSK-002.009.M09.T03 | MD-DSK-002.002.M09 | Negative | Unknown event kind (SRD-DSK-002.009) | `trigger: [after_run, lunch]` | asleep; warning | Not Run |
+| UT-DSK-003.004.M15.T01 | MD-DSK-003.004.M15 | Positive | Event stored (SRD-DSK-003.004) | post `market_close` | row with priority, deadline, expiry, state waiting | Not Run |
+| UT-DSK-003.004.M15.T02 | MD-DSK-003.004.M15 | Negative | Repeat ignored (SRD-DSK-003.004) | post `market_close` twice for one day | one row; second post returns False | Not Run |
+| UT-DSK-003.004.M15.T03 | MD-DSK-003.004.M15 | Edge | after_run per run (SRD-DSK-003.004) | post `after_run` for runs 7 and 8, same day | two rows | Not Run |
+| UT-DSK-003.005.M15.T01 | MD-DSK-003.004.M15 | Positive | Kind rules (SRD-DSK-003.005) | each kind | P0 regime_change, P1 after_run, P2 clock events | Not Run |
+| UT-DSK-003.005.M15.T02 | MD-DSK-003.004.M15 | Negative | Unknown kind (SRD-DSK-003.005) | post `lunch` | ValueError; no row | Not Run |
+| UT-DSK-003.006.M16.T01 | MD-DSK-003.006.M16 | Positive | Priority order (SRD-DSK-003.006) | waiting P2, P1, P0 posted in that order | handled P0, P1, P2 | Not Run |
+| UT-DSK-003.006.M16.T02 | MD-DSK-003.006.M16 | Edge | Same priority by time (SRD-DSK-003.006) | two P2 events, 09:30 then 16:00 | older first | Not Run |
+| UT-DSK-003.006.M16.T03 | MD-DSK-003.006.M16 | Negative | No listener (SRD-DSK-003.006) | event no employee listens to | marked done; nobody woken; has_work False | Not Run |
+| UT-DSK-003.007.M16.T01 | MD-DSK-003.006.M16 | Negative | Expired (SRD-DSK-003.007) | P2 event 31 minutes old | state expired; not handled; logged | Not Run |
+| UT-DSK-003.007.M16.T02 | MD-DSK-003.006.M16 | Negative | Late (SRD-DSK-003.007) | P0 event handled 20 minutes after posting | state late; logged | Not Run |
+| UT-DSK-003.007.M16.T03 | MD-DSK-003.006.M16 | Positive | On time (SRD-DSK-003.007) | P1 event handled after 10 minutes | state done | Not Run |
+| UT-DSK-003.008.M03.T01 | MD-DSK-001.015.M03 | Positive | Clock events due (SRD-DSK-003.008) | trading day 09:31 and 16:01 New York | market_open; then both | Not Run |
+| UT-DSK-003.008.M03.T02 | MD-DSK-001.015.M03 | Negative | Not a trading day (SRD-DSK-003.008) | Saturday; NYSE holiday | nothing due | Not Run |
+| UT-DSK-003.008.M03.T03 | MD-DSK-001.015.M03 | Negative | Before the open (SRD-DSK-003.008) | trading day 09:29 | nothing due | Not Run |
+| UT-DSK-003.008.M04.T01 | MD-DSK-001.010.M04 | Positive | Event run from the loop (SRD-DSK-003.008) | fake clock 16:01, employee on market_close | one `event` run; market steps not called; employee woken | Not Run |
+| UT-DSK-003.008.M04.T02 | MD-DSK-001.010.M04 | Negative | Paused desk (SRD-DSK-003.008) | paused, 16:01 | no run | Not Run |
+| UT-DSK-003.009.M16.T01 | MD-DSK-003.006.M16 | Negative | No wake within 30 minutes (SRD-DSK-003.009) | last wake 12 minutes ago, P2 event | not woken; reason logged | Not Run |
+| UT-DSK-003.009.M16.T02 | MD-DSK-003.006.M16 | Positive | P0 passes the 30-minute rule (SRD-DSK-003.009) | last wake 12 minutes ago, P0 event | woken | Not Run |
+| UT-DSK-003.009.M14.T01 | MD-DSK-005.001.M14 | Edge | Replay is not a wake (SRD-DSK-003.009) | only replay tries 5 minutes ago | last_wake None | Not Run |
+| UT-DSK-003.010.M16.T01 | MD-DSK-003.006.M16 | Positive | Graph run order (SRD-DSK-003.010) | 3 experts, risk, lead with real skill needs, fake model | lead last; risk after setup review; each once | Not Run |
+| UT-DSK-003.010.M16.T02 | MD-DSK-003.006.M16 | Negative | Loop in needs (SRD-DSK-003.010) | A needs B, B needs A | nobody woken; one warning | Not Run |
+| UT-DSK-003.010.M16.T03 | MD-DSK-003.006.M16 | Edge | Own connection per node (SRD-DSK-003.010) | node runs on a worker thread | no sqlite thread error; tries recorded | Not Run |
+| UT-DSK-003.011.M16.T01 | MD-DSK-003.006.M16 | Negative | Failed node (SRD-DSK-003.011) | one expert raises | logged; the others and the lead still run | Not Run |
+| UT-DSK-003.011.M16.T02 | MD-DSK-003.006.M16 | Positive | Missing view noted (SRD-DSK-003.011) | needed expert asleep (stale) | dependent runs; its facts say the view is missing | Not Run |
+| UT-DSK-003.012.M16.T01 | MD-DSK-003.006.M16 | Positive | LangGraph available (SRD-DSK-003.012) | import router | `langgraph` imports; tracing off | Not Run |
+| UT-DSK-003.012.M16.T02 | MD-DSK-003.006.M16 | Negative | Only desk imports it (SRD-DSK-003.012) | scan `core`, `market`, `gui` sources | no `langgraph` import | Not Run |
+| UT-DSK-003.001.M10.T04 | MD-DSK-003.001.M10 | Positive | Step posts after_run (SRD-DSK-003.001) | desk run with fresh facts | one after_run event, then done | Not Run |
+| UT-DSK-005.005.M17.T01 | MD-DSK-005.005.M17 | Positive | Replay re-sends (SRD-DSK-005.005) | recorded run, fake model | same system and user text sent; recorded model used | Not Run |
+| UT-DSK-005.005.M17.T02 | MD-DSK-005.005.M17 | Positive | Options (SRD-DSK-005.005) | `--employee` and `--model` | only that employee; given model | Not Run |
+| UT-DSK-005.005.M17.T03 | MD-DSK-005.005.M17 | Negative | Budget applies (SRD-DSK-005.005) | budget used up | no call; report says refused | Not Run |
+| UT-DSK-005.006.M17.T01 | MD-DSK-005.005.M17 | Positive | Replay tries marked (SRD-DSK-005.006) | replay one employee | activity rows with replay 1 | Not Run |
+| UT-DSK-005.006.M17.T02 | MD-DSK-005.005.M17 | Negative | Nothing else written (SRD-DSK-005.006) | replay a run | briefs, events and view tables unchanged; act not called | Not Run |
+| UT-DSK-005.007.M17.T01 | MD-DSK-005.005.M17 | Positive | Report (SRD-DSK-005.007) | old valid, new valid with one field changed | ASCII lines name the employee, both checks and the field | Not Run |
+| UT-DSK-005.007.M17.T02 | MD-DSK-005.005.M17 | Negative | Unknown run (SRD-DSK-005.007) | run id with no tries | exit 1; message | Not Run |
+| UT-DSK-005.007.M17.T03 | MD-DSK-005.005.M17 | Edge | Employee gone (SRD-DSK-005.007) | recorded employee folder removed | "employee not found"; no call | Not Run |
