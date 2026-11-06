@@ -2,6 +2,16 @@
 
 ---
 
+## [20261106] MKT — P5c news, economic calendar and event risk (FO-MKT-006)
+
+- Type: Feature
+- FO(s): FO-MKT-006; reopened SRD-MKT-003.005, SRD-MKT-005.012, SRD-MKT-005.014
+- RN: RN-MKT-0.7.0-20261106
+- Artifacts updated: SRD (MKT-006.001–.012 Implemented; GUI-034.018–.021 Implemented), DD (DD-MKT-006.001.D01), MD, UTCD (43 MKT and 10 GUI rows Pass), TRACE (market, gui), Code (market/news.py, news_step.py, news_review.py, core/econ_calendar.py, store.py, core/desk_floor.py, gui/floor_layouts.py, emp-006), pyproject.toml, USSwing.spec, RN, CONTEXT, DEVLOG
+- Decisions: news from Yahoo per-stock feeds and CNBC / Yahoo market feeds (yfinance news is down); tone judged for the idea's side; minus 3 points before a high event; final score = 0.9 × score + news points; calendar and NYSE closures in code for 2026–2027.
+
+---
+
 ## [20261106] DSK + MKT — P5b experts, risk check, lead brief, events, LangGraph and replay (FO-DSK-002/003/005, FO-MKT-005)
 
 - Type: Feature

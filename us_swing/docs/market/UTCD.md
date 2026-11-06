@@ -6,7 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
-> v0.8.0: 35 test cases for FO-MKT-006 news, economic calendar and event risk (P5c).
+> v0.8.0: 43 test cases for FO-MKT-006 news, economic calendar and event risk (P5c).
 > v0.7.0: 35 test cases for the P5b skills (sector/flow view, setup review, risk limits, risk check, lead brief, defaults).
 > v0.6.0: 13 test cases for the FO-MKT-005 regime view skill (P5a).
 > v0.5.0: 23 test cases for FO-MKT-004 (P4).
