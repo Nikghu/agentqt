@@ -118,7 +118,7 @@ The system shall replay the P1–P3 score on years of past daily candles and sho
 
 ## FO-MKT-005: AI Experts, Risk Manager and Trade Manager
 
-**Status:** Regime view part Implemented (approved by user 2026-11-06); P5b part Approved (approved by user 2026-11-06)
+**Status:** Regime view part Implemented (approved by user 2026-11-06); P5b part Implemented (approved by user 2026-11-06)
 **Priority:** Must
 **Phase:** P5a (regime view expert); P5b (sector/flow view, setup review, risk check, lead brief)
 **Depends on:** FO-DSK-002–005, FO-MKT-001–004

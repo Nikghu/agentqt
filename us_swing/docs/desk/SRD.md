@@ -53,8 +53,8 @@
 | SRD-DSK-002.005 | FO-DSK-002 | Must | Skills get only the desk folder, their facts and an ask function, with no way to write employee files. | — | — | Editing and rollback from AI Desk come in P6 | Implemented |
 | SRD-DSK-002.006 | FO-DSK-002 | Must | Name, title, level (lead, expert, champion, junior) and reporting line are data in `job.yaml`; code, tests and labels use no employee names, and records key on a stable id. | `job.yaml` | identity | Asked by user 2026-11-06; a repeated id keeps the second folder asleep | Implemented |
 | SRD-DSK-002.007 | FO-DSK-002 | Must | Employee files live in `<desk>/employees/<id>/`; shipped defaults with generic level names are copied there only when missing. | default folders | employee folders | Never overwrites the Master user's edits | Implemented |
-| SRD-DSK-002.008 | FO-DSK-002 | Must | Each skill names the skill keys whose views it needs; these are about function, never about employees or reporting lines. | skill | needs list | Empty for P5a skills; an unknown key is logged and left out | Approved |
-| SRD-DSK-002.009 | FO-DSK-002 | Must | `trigger` in `job.yaml` may be one event kind or a list of event kinds. | `job.yaml` | trigger list | A single value, as in P5a files, still loads | Approved |
+| SRD-DSK-002.008 | FO-DSK-002 | Must | Each skill names the skill keys whose views it needs; these are about function, never about employees or reporting lines. | skill | needs list | Empty for P5a skills; an unknown key is logged and left out | Implemented |
+| SRD-DSK-002.009 | FO-DSK-002 | Must | `trigger` in `job.yaml` may be one event kind or a list of event kinds. | `job.yaml` | trigger list | A single value, as in P5a files, still loads | Implemented |
 
 ## FO-DSK-003: Event Router, Market Clock and Wake Rules
 
@@ -63,15 +63,15 @@
 | SRD-DSK-003.001 | FO-DSK-003 | Must | A desk step "AI employees" runs after "Ideas" and wakes each employee whose trigger is `after_run`. | desk run | employee runs | One failing employee never fails the run | Implemented |
 | SRD-DSK-003.002 | FO-DSK-003 | Must | An employee wakes at most once per data day. | `activity` | skip or wake | A failed day may be tried again on the next run | Implemented |
 | SRD-DSK-003.003 | FO-DSK-003 | Must | An employee wakes only when its facts say the data is fresh. | facts | skip or wake | The reason for a skip is logged | Implemented |
-| SRD-DSK-003.004 | FO-DSK-003 | Must | Wake-ups are events kept in `events` in `desk.db` with kind, priority, data day, created time, deadline, expiry and state (waiting, done, late, expired). | event | `events` row | Only the router changes the state | Approved |
-| SRD-DSK-003.005 | FO-DSK-003 | Must | Event kinds are `after_run` (P1), `regime_change` (P0), `market_open` (P2) and `market_close` (P2). | — | kinds | `regime_change` is posted when today's rule regime differs from the day before | Approved |
-| SRD-DSK-003.006 | FO-DSK-003 | Must | The router handles waiting events by priority, then by created time. | `events` | wake order | P0 first | Approved |
-| SRD-DSK-003.007 | FO-DSK-003 | Must | An event past its expiry is marked expired and not handled; one handled after its deadline is marked late; both are logged. | event, clock | state, log line | Expiry: P0 2 h, P1 6 h, P2 30 min; deadline: P0 15 min, P1 2 h, P2 none | Approved |
-| SRD-DSK-003.008 | FO-DSK-003 | Must | While the desk runs, a market clock posts `market_open` at 09:30 and `market_close` at 16:00 New York time on NYSE trading days. | clock | events | Uses the app's NYSE calendar; each is posted once per day | Approved |
-| SRD-DSK-003.009 | FO-DSK-003 | Must | An employee is not woken again within 30 minutes of its last wake, except by a P0 event. | `activity` | skip or wake | The once-per-data-day rule still applies to `after_run` | Approved |
-| SRD-DSK-003.010 | FO-DSK-003 | Must | The employees woken by one event run as one LangGraph graph; an employee runs after the employees whose skills its skill needs. | woken employees, needs | run order | A loop in the needs keeps the whole graph asleep and is logged | Approved |
-| SRD-DSK-003.011 | FO-DSK-003 | Must | A failed or sleeping employee never stops the graph; those that need its view still run and their facts say the view is missing. | node result | facts note | — | Approved |
-| SRD-DSK-003.012 | FO-DSK-003 | Must | `langgraph` is a desk dependency and the installer bundles it for the frozen desk. | — | package | Only `desk` imports it | Approved |
+| SRD-DSK-003.004 | FO-DSK-003 | Must | Wake-ups are events kept in `events` in `desk.db` with kind, priority, data day, created time, deadline, expiry and state (waiting, done, late, expired). | event | `events` row | Only the router changes the state | Implemented |
+| SRD-DSK-003.005 | FO-DSK-003 | Must | Event kinds are `after_run` (P1), `regime_change` (P0), `market_open` (P2) and `market_close` (P2). | — | kinds | `regime_change` is posted when today's rule regime differs from the day before | Implemented |
+| SRD-DSK-003.006 | FO-DSK-003 | Must | The router handles waiting events by priority, then by created time. | `events` | wake order | P0 first | Implemented |
+| SRD-DSK-003.007 | FO-DSK-003 | Must | An event past its expiry is marked expired and not handled; one handled after its deadline is marked late; both are logged. | event, clock | state, log line | Expiry: P0 2 h, P1 6 h, P2 30 min; deadline: P0 15 min, P1 2 h, P2 none | Implemented |
+| SRD-DSK-003.008 | FO-DSK-003 | Must | While the desk runs, a market clock posts `market_open` at 09:30 and `market_close` at 16:00 New York time on NYSE trading days. | clock | events | Uses the app's NYSE calendar; each is posted once per day | Implemented |
+| SRD-DSK-003.009 | FO-DSK-003 | Must | An employee is not woken again within 30 minutes of its last wake, except by a P0 event. | `activity` | skip or wake | The once-per-data-day rule still applies to `after_run` | Implemented |
+| SRD-DSK-003.010 | FO-DSK-003 | Must | The employees woken by one event run as one LangGraph graph; an employee runs after the employees whose skills its skill needs. | woken employees, needs | run order | A loop in the needs keeps the whole graph asleep and is logged | Implemented |
+| SRD-DSK-003.011 | FO-DSK-003 | Must | A failed or sleeping employee never stops the graph; those that need its view still run and their facts say the view is missing. | node result | facts note | — | Implemented |
+| SRD-DSK-003.012 | FO-DSK-003 | Must | `langgraph` is a desk dependency and the installer bundles it for the frozen desk. | — | package | Only `desk` imports it | Implemented |
 
 ## FO-DSK-004: LLM Gateway and Budget Guard
 
@@ -91,6 +91,6 @@
 | SRD-DSK-005.002 | FO-DSK-005 | Must | `activity` and `briefs` are append-only; the database refuses updates and deletes. | — | — | Database triggers | Implemented |
 | SRD-DSK-005.003 | FO-DSK-005 | Must | Briefs for the AI feed are kept in `briefs` with time, data day, author, kind and text. | feed item | `briefs` row | — | Implemented |
 | SRD-DSK-005.004 | FO-DSK-005 | Should | Each employee run logs the employee, model, result, cost and time. | run | log line | `[AI Desk]` prefix | Implemented |
-| SRD-DSK-005.005 | FO-DSK-005 | Must | `desk replay <run>` sends the recorded prompts of that run again through the gateway, with the recorded model or one given by `--model`, for all employees or one given by `--employee`. | run id, options | answers | Budget and caps apply as for normal calls | Approved |
-| SRD-DSK-005.006 | FO-DSK-005 | Must | A replay writes its tries to `activity` marked as replay, and writes no views, picks, briefs or events. | replay | `activity` rows | Replay tries never count as a wake | Approved |
-| SRD-DSK-005.007 | FO-DSK-005 | Must | The replay report prints, per employee, whether the old and new answers pass the check and which typed fields differ. | answers | report text, exit code | ASCII only; exit 1 when the run is not found | Approved |
+| SRD-DSK-005.005 | FO-DSK-005 | Must | `desk replay <run>` sends the recorded prompts of that run again through the gateway, with the recorded model or one given by `--model`, for all employees or one given by `--employee`. | run id, options | answers | Budget and caps apply as for normal calls | Implemented |
+| SRD-DSK-005.006 | FO-DSK-005 | Must | A replay writes its tries to `activity` marked as replay, and writes no views, picks, briefs or events. | replay | `activity` rows | Replay tries never count as a wake | Implemented |
+| SRD-DSK-005.007 | FO-DSK-005 | Must | The replay report prints, per employee, whether the old and new answers pass the check and which typed fields differ. | answers | report text, exit code | ASCII only; exit 1 when the run is not found | Implemented |

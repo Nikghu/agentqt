@@ -166,38 +166,41 @@
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
 |---|---|---|---|---|---|---|
-| UT-MKT-005.006.M04.T01 | MD-MKT-005.006.M04 | Positive | Sector facts (SRD-MKT-005.006) | desk.db with 5 sector days, scores, regime | text has ranks, quadrants, moves, flow per side; fresh True | Not Run |
-| UT-MKT-005.006.M04.T02 | MD-MKT-005.006.M04 | Negative | Stale sectors (SRD-MKT-005.006) | sector day older than SPY day | fresh False; both days named | Not Run |
-| UT-MKT-005.007.M04.T01 | MD-MKT-005.006.M04 | Positive | Valid sector view (SRD-MKT-005.007) | 2 favour, 1 avoid from the day's sectors | SectorView | Not Run |
-| UT-MKT-005.007.M04.T02 | MD-MKT-005.006.M04 | Negative | Bad sector view (SRD-MKT-005.007) | unknown sector; 4 favour; same sector in both; long brief | each refused by the schema | Not Run |
-| UT-MKT-005.008.M04.T01 | MD-MKT-005.006.M04 | Positive | Stored and in feed (SRD-MKT-005.008) | valid answer, run twice | one sector_view row with the second view; info feed item | Not Run |
-| UT-MKT-005.008.M04.T02 | MD-MKT-005.006.M04 | Negative | No answer (SRD-MKT-005.008) | ask returns None | no row; no feed item | Not Run |
-| UT-MKT-005.009.M05.T01 | MD-MKT-005.009.M05 | Positive | Setup facts (SRD-MKT-005.009) | 12 long and 3 short listed ideas plus Watch names | 10 long and 3 short in text with parts and reasons; no Watch names | Not Run |
-| UT-MKT-005.009.M05.T02 | MD-MKT-005.009.M05 | Negative | No listed ideas (SRD-MKT-005.009) | only Watch rows | fresh False; reason says no ideas | Not Run |
-| UT-MKT-005.010.M05.T01 | MD-MKT-005.009.M05 | Positive | Grades stored (SRD-MKT-005.010) | A, B, C for 3 ideas | 3 setup_review rows | Not Run |
-| UT-MKT-005.010.M05.T02 | MD-MKT-005.009.M05 | Negative | Unknown or repeated idea (SRD-MKT-005.010) | grade for a stock not in facts; two grades for one | both dropped; one log line | Not Run |
-| UT-MKT-005.010.M05.T03 | MD-MKT-005.009.M05 | Negative | Bad grade (SRD-MKT-005.010) | grade D; 130-char note | refused by the schema | Not Run |
-| UT-MKT-005.011.M06.T01 | MD-MKT-005.011.M06 | Positive | Within limits (SRD-MKT-005.011) | long, Uptrend, trigger 50, stop 47 | no veto | Not Run |
-| UT-MKT-005.011.M06.T02 | MD-MKT-005.011.M06 | Negative | Against the regime (SRD-MKT-005.011) | long in Downtrend; short in Uptrend | both vetoed with the plain reason | Not Run |
-| UT-MKT-005.011.M06.T03 | MD-MKT-005.011.M06 | Negative | Stop distance (SRD-MKT-005.011) | stop 0.5% and 12% from trigger | both vetoed | Not Run |
-| UT-MKT-005.011.M06.T04 | MD-MKT-005.011.M06 | Edge | Limits exact (SRD-MKT-005.011) | stop exactly 1% and 10%; trigger exactly $5 | no veto | Not Run |
-| UT-MKT-005.011.M06.T05 | MD-MKT-005.011.M06 | Negative | Low trigger and missing stop (SRD-MKT-005.011) | trigger 4.9; stop missing | both vetoed | Not Run |
-| UT-MKT-005.011.M06.T06 | MD-MKT-005.011.M06 | Negative | Sector cap (SRD-MKT-005.011) | 5 long Technology ideas, rank 2 breaks the stop rule | ranks 1, 3, 4 pass; 2 and 5 vetoed | Not Run |
-| UT-MKT-005.012.M07.T01 | MD-MKT-005.012.M07 | Positive | AI adds a veto (SRD-MKT-005.012) | AI vetoes one passed idea | that row veto by ai with the reason | Not Run |
-| UT-MKT-005.012.M07.T02 | MD-MKT-005.012.M07 | Negative | AI cannot undo a code veto (SRD-MKT-005.012) | AI answer names a code-vetoed idea; facts list it as vetoed | row stays veto by code | Not Run |
-| UT-MKT-005.012.M07.T03 | MD-MKT-005.012.M07 | Negative | Unknown idea (SRD-MKT-005.012) | AI vetoes a stock not listed | dropped; logged | Not Run |
-| UT-MKT-005.012.M07.T04 | MD-MKT-005.012.M07 | Edge | Missing views (SRD-MKT-005.012) | no sector_view row for the day | facts say the sector view is not available | Not Run |
-| UT-MKT-005.013.M07.T01 | MD-MKT-005.012.M07 | Positive | One row per idea (SRD-MKT-005.013) | 6 listed ideas, 2 code vetoes | 6 risk_check rows; feed item counts both kinds | Not Run |
-| UT-MKT-005.013.M07.T02 | MD-MKT-005.012.M07 | Negative | Code vetoes without AI (SRD-MKT-005.013) | ask returns None | code vetoes stored; others pass by code | Not Run |
-| UT-MKT-005.014.M08.T01 | MD-MKT-005.014.M08 | Positive | Lead facts (SRD-MKT-005.014) | all four views and risk rows | text holds each view and only passed ideas | Not Run |
-| UT-MKT-005.014.M08.T02 | MD-MKT-005.014.M08 | Negative | No risk rows (SRD-MKT-005.014) | risk employee not hired; an idea breaks a hard limit | idea not in the facts; risk view noted missing | Not Run |
-| UT-MKT-005.015.M08.T01 | MD-MKT-005.014.M08 | Positive | Valid lead answer (SRD-MKT-005.015) | 3 long and 2 short picks, 600-char brief | LeadBrief | Not Run |
-| UT-MKT-005.015.M08.T02 | MD-MKT-005.014.M08 | Negative | Vetoed or extra picks (SRD-MKT-005.015) | a vetoed pick; 7 long picks | vetoed dropped and logged; first 5 long kept | Not Run |
-| UT-MKT-005.015.M08.T03 | MD-MKT-005.014.M08 | Negative | Bad lead answer (SRD-MKT-005.015) | 1,300-char brief; 130-char reason | refused by the schema | Not Run |
-| UT-MKT-005.016.M08.T01 | MD-MKT-005.014.M08 | Positive | Picks and evening brief (SRD-MKT-005.016) | valid answer, run twice | lead_picks rows of the second run with rank; feed item kind evening | Not Run |
-| UT-MKT-005.016.M08.T02 | MD-MKT-005.014.M08 | Negative | No answer (SRD-MKT-005.016) | ask returns None | no picks; no feed item | Not Run |
-| UT-MKT-005.017.M09.T01 | MD-MKT-005.017.M09 | Positive | Default files valid (SRD-MKT-005.017) | shipped emp-002 to emp-005 | each loads with its skill, after_run, caps 3 and USD 3, generic name filled into the soul | Not Run |
-| UT-MKT-005.017.M09.T02 | MD-MKT-005.017.M09 | Negative | No real names in defaults (SRD-MKT-005.017) | scan default files | names match generic level pattern only | Not Run |
-| UT-MKT-005.018.M09.T01 | MD-MKT-005.017.M09 | Positive | Skill list (SRD-MKT-005.018) | SKILL_PATHS | five keys load to skills with matching key | Not Run |
-| UT-MKT-005.018.M09.T02 | MD-MKT-005.017.M09 | Negative | No desk import (SRD-MKT-005.018) | scan `market` sources | no `us_swing.desk` import | Not Run |
-| UT-MKT-005.018.M09.T03 | MD-MKT-005.017.M09 | Positive | Full evening chain (SRD-MKT-005.018) | real steps on synthetic candles, made-up employees, fake model | views, risk rows, picks and evening brief stored; lead ran last | Not Run |
+| UT-MKT-005.006.M04.T01 | MD-MKT-005.006.M04 | Positive | Sector facts (SRD-MKT-005.006) | desk.db with 5 sector days, scores, regime | text has ranks, quadrants, moves, flow per side; fresh True | Pass |
+| UT-MKT-005.006.M04.T02 | MD-MKT-005.006.M04 | Negative | Stale sectors (SRD-MKT-005.006) | sector day older than SPY day | fresh False; both days named | Pass |
+| UT-MKT-005.007.M04.T01 | MD-MKT-005.006.M04 | Positive | Valid sector view (SRD-MKT-005.007) | 2 favour, 1 avoid from the day's sectors | SectorView | Pass |
+| UT-MKT-005.007.M04.T02 | MD-MKT-005.006.M04 | Negative | Bad sector view (SRD-MKT-005.007) | unknown sector; 4 favour; same sector in both; long brief | each refused by the schema | Pass |
+| UT-MKT-005.008.M04.T01 | MD-MKT-005.006.M04 | Positive | Stored and in feed (SRD-MKT-005.008) | valid answer, run twice | one sector_view row with the second view; info feed item | Pass |
+| UT-MKT-005.008.M04.T02 | MD-MKT-005.006.M04 | Negative | No answer (SRD-MKT-005.008) | ask returns None | no row; no feed item | Pass |
+| UT-MKT-005.008.M04.T03 | MD-MKT-005.006.M04 | Edge | No sectors for the day (SRD-MKT-005.008) | sector rows missing for the data day | no question asked; no feed item | Pass |
+| UT-MKT-005.009.M05.T01 | MD-MKT-005.009.M05 | Positive | Setup facts (SRD-MKT-005.009) | 12 long and 3 short listed ideas plus Watch names | 10 long and 3 short in text with parts and reasons; no Watch names | Pass |
+| UT-MKT-005.009.M05.T02 | MD-MKT-005.009.M05 | Negative | No listed ideas (SRD-MKT-005.009) | only Watch rows | fresh False; reason says no ideas | Pass |
+| UT-MKT-005.010.M05.T01 | MD-MKT-005.009.M05 | Positive | Grades stored (SRD-MKT-005.010) | A, B, C for 3 ideas | 3 setup_review rows | Pass |
+| UT-MKT-005.010.M05.T02 | MD-MKT-005.009.M05 | Negative | Unknown or repeated idea (SRD-MKT-005.010) | grade for a stock not in facts; two grades for one | both dropped; one log line | Pass |
+| UT-MKT-005.010.M05.T03 | MD-MKT-005.009.M05 | Negative | Bad grade (SRD-MKT-005.010) | grade D; 130-char note | refused by the schema | Pass |
+| UT-MKT-005.011.M06.T01 | MD-MKT-005.011.M06 | Positive | Within limits (SRD-MKT-005.011) | long, Uptrend, trigger 50, stop 47 | no veto | Pass |
+| UT-MKT-005.011.M06.T02 | MD-MKT-005.011.M06 | Negative | Against the regime (SRD-MKT-005.011) | long in Downtrend; short in Uptrend | both vetoed with the plain reason | Pass |
+| UT-MKT-005.011.M06.T03 | MD-MKT-005.011.M06 | Negative | Stop distance (SRD-MKT-005.011) | stop 0.5% and 12% from trigger | both vetoed | Pass |
+| UT-MKT-005.011.M06.T04 | MD-MKT-005.011.M06 | Edge | Limits exact (SRD-MKT-005.011) | stop exactly 1% and 10%; trigger exactly $5 | no veto | Pass |
+| UT-MKT-005.011.M06.T05 | MD-MKT-005.011.M06 | Negative | Low trigger and missing stop (SRD-MKT-005.011) | trigger 4.9; stop missing | both vetoed | Pass |
+| UT-MKT-005.011.M06.T06 | MD-MKT-005.011.M06 | Negative | Sector cap (SRD-MKT-005.011) | 5 long Technology ideas, rank 2 breaks the stop rule | ranks 1, 3, 4 pass; 2 and 5 vetoed | Pass |
+| UT-MKT-005.012.M07.T01 | MD-MKT-005.012.M07 | Positive | AI adds a veto (SRD-MKT-005.012) | AI vetoes one passed idea | that row veto by ai with the reason | Pass |
+| UT-MKT-005.012.M07.T02 | MD-MKT-005.012.M07 | Negative | AI cannot undo a code veto (SRD-MKT-005.012) | AI answer names a code-vetoed idea; facts list it as vetoed | row stays veto by code | Pass |
+| UT-MKT-005.012.M07.T03 | MD-MKT-005.012.M07 | Negative | Unknown idea (SRD-MKT-005.012) | AI vetoes a stock not listed | dropped; logged | Pass |
+| UT-MKT-005.012.M07.T04 | MD-MKT-005.012.M07 | Edge | Missing views (SRD-MKT-005.012) | no sector_view row for the day | facts say the sector view is not available | Pass |
+| UT-MKT-005.013.M07.T01 | MD-MKT-005.012.M07 | Positive | One row per idea (SRD-MKT-005.013) | 6 listed ideas, 2 code vetoes | 6 risk_check rows; feed item counts both kinds | Pass |
+| UT-MKT-005.013.M07.T02 | MD-MKT-005.012.M07 | Negative | Code vetoes without AI (SRD-MKT-005.013) | ask returns None | code vetoes stored; others pass by code | Pass |
+| UT-MKT-005.014.M08.T01 | MD-MKT-005.014.M08 | Positive | Lead facts (SRD-MKT-005.014) | all four views and risk rows | text holds each view and only passed ideas | Pass |
+| UT-MKT-005.014.M08.T02 | MD-MKT-005.014.M08 | Negative | No risk rows (SRD-MKT-005.014) | risk employee not hired; an idea breaks a hard limit | idea not in the facts; risk view noted missing | Pass |
+| UT-MKT-005.015.M08.T01 | MD-MKT-005.014.M08 | Positive | Valid lead answer (SRD-MKT-005.015) | 3 long and 2 short picks, 600-char brief | LeadBrief | Pass |
+| UT-MKT-005.015.M08.T02 | MD-MKT-005.014.M08 | Negative | Vetoed or extra picks (SRD-MKT-005.015) | a vetoed pick; 7 long picks | vetoed dropped and logged; first 5 long kept | Pass |
+| UT-MKT-005.015.M08.T03 | MD-MKT-005.014.M08 | Negative | Bad lead answer (SRD-MKT-005.015) | 1,300-char brief; 130-char reason | refused by the schema | Pass |
+| UT-MKT-005.016.M08.T01 | MD-MKT-005.014.M08 | Positive | Picks and evening brief (SRD-MKT-005.016) | valid answer, run twice | lead_picks rows of the second run with rank; feed item kind evening | Pass |
+| UT-MKT-005.016.M08.T02 | MD-MKT-005.014.M08 | Negative | No answer (SRD-MKT-005.016) | ask returns None | no picks; no feed item | Pass |
+| UT-MKT-005.017.M09.T01 | MD-MKT-005.017.M09 | Positive | Default files valid (SRD-MKT-005.017) | shipped emp-002 to emp-005 | each loads with its skill, after_run, caps 3 and USD 3, generic name filled into the soul | Pass |
+| UT-MKT-005.017.M09.T02 | MD-MKT-005.017.M09 | Negative | No real names in defaults (SRD-MKT-005.017) | scan default files | names match generic level pattern only | Pass |
+| UT-MKT-005.017.M09.T03 | MD-MKT-005.017.M09 | Positive | Name placeholder in souls (SRD-MKT-005.017) | each shipped soul.md | holds {name} to fill in | Pass |
+| UT-MKT-005.018.M09.T01 | MD-MKT-005.017.M09 | Positive | Skill list (SRD-MKT-005.018) | SKILL_PATHS | five keys load to skills with matching key | Pass |
+| UT-MKT-005.018.M09.T02 | MD-MKT-005.017.M09 | Negative | No desk import (SRD-MKT-005.018) | scan `market` sources | no `us_swing.desk` import | Pass |
+| UT-MKT-005.018.M09.T03 | MD-MKT-005.017.M09 | Positive | Full evening chain (SRD-MKT-005.018) | real steps on synthetic candles, made-up employees, fake model | views, risk rows, picks and evening brief stored; lead ran last | Pass |
+| UT-MKT-005.013.M07.T03 | MD-MKT-005.012.M07 | Edge | Second wake keeps AI vetoes (SRD-MKT-005.013) | AI veto, then a wake with no valid answer | AI veto kept; code vetoes kept; no feed item | Pass |

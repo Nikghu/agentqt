@@ -57,7 +57,7 @@ The system shall load each AI employee from two files written by people, and enf
 
 ## FO-DSK-003: Event Router, Market Clock and Wake Rules
 
-**Status:** Implemented for P5a (approved by user 2026-11-06); P5b part Approved (approved by user 2026-11-06)
+**Status:** Implemented for P5a (approved by user 2026-11-06); P5b part Implemented (approved by user 2026-11-06)
 **Priority:** Must
 **Phase:** P5a (wake after a desk run); P5b (events, priorities, deadlines, expiry, market clock, LangGraph)
 **Depends on:** FO-DSK-001, FO-DSK-002
@@ -103,7 +103,7 @@ The system shall send every model call through one gateway that checks the answe
 
 ## FO-DSK-005: Activity Recorder and Replay
 
-**Status:** Implemented for P5a (approved by user 2026-11-06); P5b part Approved (approved by user 2026-11-06)
+**Status:** Implemented for P5a (approved by user 2026-11-06); P5b part Implemented (approved by user 2026-11-06)
 **Priority:** Must
 **Phase:** P5a (recorder); P5b (sandbox replay)
 **Depends on:** FO-DSK-004

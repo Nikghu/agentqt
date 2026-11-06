@@ -359,7 +359,7 @@ A needs key with no woken employee (asleep, not hired, or another trigger) is le
 
 **30-minute rule.** `Recorder.last_wake(id)` = latest `started` in `activity` for that employee with `replay = 0`. When it is less than 30 minutes ago and the event is not P0, the employee is not woken: `[AI Desk] <name> woke 12 minutes ago; next wake after 30 minutes`.
 
-**"AI employees" step** (P5a M10, changed). Seeds and loads employees as before, posts `after_run` for the latest data day (from the freshest skill's facts), then calls `router.handle`. A regime change posted earlier in the same run is handled first, because it is P0.
+**"AI employees" step** (P5a M10, changed). It posts `after_run` with the run's start date in New York as its day, then seeds and loads employees as before and calls `router.handle`. A regime change posted earlier in the same run is handled first, because it is P0. The step, router and gateway share one injectable clock, so the 30-minute rule and `activity.started` agree. `has_work(home)` first counts waiting events in SQL and reads the employee files only when there is one, because the desk loop asks every 2 seconds.
 
 **Market clock** (`desk/clock.py` + `desk/process.py`):
 
@@ -375,16 +375,24 @@ Each `tick()`, when not running or paused, posts what is due (`post_event` ignor
 **Replay** (`desk/replay.py`, `desk replay <run> [--employee ID] [--model NAME]`):
 
 ```
-rows = activity WHERE run_id = run AND replay = 0, last try per employee
-for row:
-    hire = loaded employee with row.employee  (missing -> report "employee not found", no call)
-    system, user = row.prompt.split("\n\n---\n\n", 1)
-    new = gateway.resend(system, user, hire.skill.answer, model=--model or row.model, replay=True)
-    old = hire.skill.answer.model_validate_json(json_part(row.answer)) or None
+tries = activity WHERE run_id = run AND replay = 0, grouped per employee
+for employee:
+    first = its first try (the prompt without any retry text); old = its last valid try, else last
+    hire = loaded employee with that id  (missing -> report "employee not found", no call)
+    system, user = first.prompt.split("\n\n---\n\n", 1)
+    new = ReplayGateway.resend(system, user, hire.skill.answer, first.source, --model or first.model)
     report: employee name, old valid?, new valid?, fields that differ (top-level names)
 ```
 
-`Gateway.resend` is the inner part of `ask` (same tries, budget and caps), and the recorder writes those tries with `replay = 1` (column added on open, default 0). A replay never calls `act`, so it writes no views, picks, briefs or events. The report is ASCII; the exit code is 1 when the run has no recorded tries.
+`ReplayGateway` is a `Gateway` subclass used only by the replay. Its `resend` sends one prompt to one model with one retry, under the same budget and caps, and its tries are written with `replay = 1` (column added on open, default 0). Skills only ever get the plain `Gateway`, so a skill can never choose its own system prompt. A replay never calls `act`, so it writes no views, picks, briefs or events. The report is ASCII; the exit code is 1 when the run has no recorded tries.
+
+**After code review.**
+- An error while running a graph (outside a node) is logged, and the event is closed with the note `failed`, so it is not retried every tick. An event skipped for a loop in needs is closed with the note `loop in needs`.
+- The desk loop logs and carries on when the event check itself fails.
+- Clock events are due only in the 30 minutes after 09:30 or 16:00, so a desk started later posts no stale event.
+- Replay tries do not count in the live calls-per-day quota; their cost and CLI tokens still count.
+- The replay splits the recorded prompt at the last separator, so a `soul.md` with `---` lines is safe.
+- Two employees with the same skill never wait for each other.
 
 **Dependency.** `langgraph>=1.2,<2` in `pyproject.toml`. `USSwing.spec` adds `langgraph` and `langchain_core` to `collect_submodules` for the frozen desk (checked with T121).
 

@@ -325,12 +325,14 @@ class RegimeView:
 `RegimeViewSkill` gets `needs = ()` and `answer = RegimeView`. Tables are added to `market/store.py`; every write for a data day is a delete-then-insert in one transaction, so a re-run replaces it.
 
 ```
-sector_view(date PK, employee_id, favour JSON, avoid JSON, rotation, brief)
-setup_review(date, side, symbol, grade, note, employee_id, PRIMARY KEY (date, side, symbol))
+sector_view(date PK, favour JSON, avoid JSON, rotation, brief)
+setup_review(date, side, symbol, grade, note, PRIMARY KEY (date, side, symbol))
 risk_check(date, side, symbol, verdict ('pass'|'veto'), by ('code'|'ai'), reason,
            PRIMARY KEY (date, side, symbol))
-lead_picks(date, side, symbol, rank, reason, employee_id, PRIMARY KEY (date, side, symbol))
+lead_picks(date, side, symbol, rank, reason, PRIMARY KEY (date, side, symbol))
 ```
+
+The view tables have no employee column. A skill gets only the desk folder and `ask` (SRD-DSK-002.005), so it never knows who runs it; `activity` and `briefs` already record the employee for every answer.
 
 **Freshness.** All four use the P5a check with their own source day: the sector view uses the latest `sector_daily` day, and the others use the latest `ideas` day. Each must equal the latest SPY candle day. "Listed ideas" are `ideas` rows with `status = 'list'` for that day.
 
@@ -351,7 +353,7 @@ class SetupGrade:   side: Literal["long","short"]  symbol: str  grade: Literal["
 class SetupReview:  grades: list[SetupGrade] (1..20)
 ```
 
-Grades for an idea not in the facts, or a second grade for the same idea, are dropped with one log line: `[AI Desk] Setup review named 2 stock(s) not in today's ideas`. It writes `setup_review` and returns no feed item.
+Grades for an idea not in the facts, or a second grade for the same idea, are dropped with one log line: `[AI Desk] Setup review named 2 stock(s) not in today's ideas or twice`. It writes `setup_review` and returns one short feed item, `Setup review: 12 idea(s) graded - A 4, B 5, C 3`. That brief also marks the day done (P5a rule), so the employee is not asked again on a second run.
 
 **Hard risk limits** (`market/risk_limits.py`). These are plain constants in code. No file an agent reads or writes holds them, and no prompt can change them:
 
@@ -389,7 +391,7 @@ class RiskVeto:    side, symbol, reason: str (5..120)
 class RiskVetoes:  vetoes: list[RiskVeto] (0..20)
 ```
 
-The code rows are written before the model is asked. A failed call, a used-up budget or a refusal still leaves the code vetoes in place. An AI answer can only turn a `pass` into a `veto`; a `veto/code` row is never touched. The facts list each missing view as `Sector view: not available today`.
+The code rows are written before the model is asked. A failed call, a used-up budget or a refusal still leaves the code vetoes in place. In that case no brief is posted, so the day stays open and a later run tries the review again. When every listed idea is already vetoed by code, the model is not asked. An AI answer can only turn a `pass` into a `veto`; a `veto/code` row is never touched. The facts list each missing view as `Sector view: not available today`.
 
 **Lead brief.** Facts: the regime view, sector view, setup grades and risk rows of the day (each missing view noted), and the passed ideas with score, setup, trigger, stop, grade and reasons. Passed means not vetoed in `risk_check`, and `code_vetoes` is always applied again here. So with no risk employee at all, the lead still never sees an idea that breaks a hard limit. Answer:
 
@@ -422,6 +424,12 @@ SKILL_PATHS = {
     "lead_brief":       "us_swing.market.lead_brief:LeadBriefSkill",
 }
 ```
+
+**After code review and the real run.**
+- Code review changes: when a second wake of the risk check gets no valid answer, it keeps the AI vetoes already stored for that day.
+- Real run on 2026-11-06, on a copy of the desk folder with data day 2026-11-04 (Claude Code CLI, claude-haiku-5-5): all four employees answered validly on the first try, lead last. That was about 19,000 tokens in about 34 s, cost 0.
+- Results: sector view favoured Health Care and Consumer Staples. Setup grades were A 3, B 13, C 4. The risk check vetoed 15 of 20 ideas (14 by the hard limits, 1 by review), and the lead picked 4 longs.
+- All 14 code vetoes were "stop over 10% from the trigger". 12 were shorts, with stops 10–68% away, so the P3 short setups give very wide stops (see T117).
 
 **Regime change event** (cross-tool, for SRD-DSK-003.005). After writing its rows, the regime step (`market/step.py`, `RegimeStep`) calls `core.desk_events.post_event(home, "regime_change", latest_day, now)` when the latest day's regime differs from the day before. It is posted once per day.
 
