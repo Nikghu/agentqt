@@ -3,6 +3,7 @@ Module: MD-GUI-034.027.M21 — gui/ai_desk_hiring.py
 Parent SRD: SRD-GUI-034.027
 Also: SRD-GUI-034.028 (Start hire form), SRD-GUI-034.029 (shadow report),
 SRD-GUI-034.030 (decision buttons), SRD-GUI-034.031 (Command approvals box)
+Also: MD-GUI-034.034.M24 — SRD-GUI-034.034–.036 (trade pick rows in Approvals waiting)
 
 The AI Desk Hiring section: hires made through the pipeline, the Start hire form, the
 chosen hire's shadow report and the Replace / Add / Reject decision. All rules live in
@@ -29,6 +30,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from us_swing.core.desk_ai_settings import load_settings
 from us_swing.core.desk_contract import desk_home
 from us_swing.core.desk_hiring import (
     HIRE_LEVELS,
@@ -41,6 +43,13 @@ from us_swing.core.desk_hiring import (
     start_hire,
 )
 from us_swing.core.desk_steps import SKILL_PATHS
+from us_swing.core.desk_trades import (
+    DeskTradeSink,
+    TradePick,
+    pick_state,
+    record_trade_decision,
+    trade_picks,
+)
 from us_swing.gui.ai_desk_sections import heading, make_table, muted, section_frame
 
 NY = ZoneInfo("America/New_York")
@@ -214,17 +223,99 @@ def hiring_frame(name: str, home: Path | None = None) -> QWidget:
     return frame
 
 
-def approvals_box(home: Path | None, open_hiring: Callable[[], None]) -> QWidget:
-    """The Command "Approvals waiting" box: hires ready for a decision; a click opens Hiring."""
+class TradePickRow(QWidget):
+    """One waiting lead pick with Approve and Reject; the Master's decision goes to ``approvals``."""
+
+    def __init__(self, home: Path, pick: TradePick, sink: DeskTradeSink | None,
+                 clock: Callable[[], datetime], parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._home, self._pick, self._sink, self._clock = home, pick, sink, clock
+        qty = sink.desk_pick_qty(pick) if sink is not None else None
+        row = QHBoxLayout(self)
+        row.setContentsMargins(0, 0, 0, 0)
+        self.text = QLabel(
+            f"{pick.side.upper()}  {pick.symbol}  entry {pick.entry:.2f}  stop {pick.stop:.2f}  "
+            f"target {pick.target:.2f}  qty {qty if qty is not None else '—'}")
+        self.note = muted("")
+        self.approve_btn = QPushButton("Approve")
+        self.reject_btn = QPushButton("Reject")
+        for btn in (self.approve_btn, self.reject_btn):
+            btn.setEnabled(sink is not None)
+        row.addWidget(self.text, 1)
+        row.addWidget(self.note)
+        row.addWidget(self.approve_btn)
+        row.addWidget(self.reject_btn)
+        # Approve / Reject → clicked → decision row (and the pending signal on Approve)
+        self.approve_btn.clicked.connect(self._approve)
+        self.reject_btn.clicked.connect(self._reject)
+
+    def _still_waiting(self) -> bool:
+        state = pick_state(self._home, self._pick, self._clock())
+        if state == "waiting":
+            return True
+        self._done("expired at the market open" if state == "expired" else "already decided")
+        return False
+
+    def _done(self, note: str) -> None:
+        self.note.setText(note)
+        self.approve_btn.setEnabled(False)
+        self.reject_btn.setEnabled(False)
+
+    def _approve(self) -> None:
+        if self._sink is None or not self._still_waiting():
+            return
+        qty, why = self._sink.send_desk_pick(self._pick)
+        if why:
+            self.note.setText(why)
+            return
+        err = record_trade_decision(self._home, self._pick, "approve", qty, self._clock())
+        if err:
+            self._sink.dismiss_desk_pick(self._pick)
+            self._done(err)
+            return
+        self.hide()
+
+    def _reject(self) -> None:
+        if not self._still_waiting():
+            return
+        err = record_trade_decision(self._home, self._pick, "reject", 0, self._clock())
+        if err:
+            self._done(err)
+            return
+        self.hide()
+
+
+def approvals_box(home: Path | None, open_hiring: Callable[[], None],
+                  sink: DeskTradeSink | None = None,
+                  clock: Callable[[], datetime] | None = None) -> QWidget:
+    """The Command "Approvals waiting" box: ready hires (a click opens Hiring) and waiting picks."""
+    folder = home or desk_home()
+    now = clock or (lambda: datetime.now(NY))
     box = QWidget()
     lines = QVBoxLayout(box)
     lines.setContentsMargins(0, 0, 0, 0)
     lines.addWidget(heading("Approvals waiting"))
-    ready = [h for h in list_hires(home or desk_home()) if h.ready]
-    if not ready:
+    ready = [h for h in list_hires(folder) if h.ready]
+    picks = [p for p in trade_picks(folder, now(), load_settings(folder).trade_target_r)
+             if p.state == "waiting"]
+    if not ready and not picks:
         lines.addWidget(muted(NO_APPROVALS))
         lines.addStretch(1)
         return box
+    if ready:
+        listing = QListWidget()
+        listing.setObjectName("approvals_list")
+        listing.setStyleSheet("QListWidget { outline: none; }")
+        listing.addItems([f"Hire: {h.employee.name} ({_skill(h.employee.skill)}) finished the "
+                          "shadow" for h in ready])
+        # approvals list → itemClicked → Command → open Hiring
+        listing.itemClicked.connect(lambda _item: open_hiring())
+        lines.addWidget(listing, 1)
+    for pick in picks:
+        lines.addWidget(TradePickRow(folder, pick, sink, now))
+    if not ready:
+        lines.addStretch(1)
+    return box
     listing = QListWidget()
     listing.setObjectName("approvals_list")
     listing.setStyleSheet("QListWidget { outline: none; }")

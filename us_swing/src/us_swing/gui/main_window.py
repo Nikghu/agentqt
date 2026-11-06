@@ -464,7 +464,7 @@ class MainWindow(QMainWindow):
         self._backtest_panel   = BacktestWorkspace(svc)
         self._desk_poller      = DeskPoller(parent=self)
         self._floor_panel      = MarketFloorWorkspace(self._desk_poller)
-        self._ai_desk_panel    = AiDeskWorkspace(self._desk_poller)
+        self._ai_desk_panel    = AiDeskWorkspace(self._desk_poller, svc)
         self._settings_panel   = SettingsPanel(svc)
         panels = [
             self._dashboard_panel, self._screener_panel, self._execution_panel,

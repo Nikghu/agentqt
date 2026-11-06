@@ -1,7 +1,7 @@
 """
 Module: MD-DSK-004.005.M13 — core/desk_ai_settings.py
 Parent SRD: SRD-DSK-004.005
-Also: SRD-DSK-006.003 — seat caps per level
+Also: SRD-DSK-006.003 — seat caps per level; SRD-MKT-008.002 — trade target R multiple
 
 Desk AI settings, separate from the AI notes settings: which sources may run, their
 models, the monthly API budget and the daily Claude Code CLI token cap. Kept in
@@ -38,13 +38,16 @@ class DeskAiSettings:
     expert_cap: int = 8
     champion_cap: int = 5
     junior_cap: int = 30
+    trade_target_r: float = 2.0
 
     def __post_init__(self) -> None:
-        """Refuse a budget, token cap or seat cap that is not above 0."""
+        """Refuse a budget, token cap, seat cap or R multiple that is not above 0."""
         if self.monthly_budget_usd <= 0 or self.claude_tokens_per_day <= 0:
             raise ValueError("budget and token cap must be above 0")
         if min(self.expert_cap, self.champion_cap, self.junior_cap) < 1:
             raise ValueError("seat caps must be at least 1")
+        if self.trade_target_r <= 0:
+            raise ValueError("trade target R multiple must be above 0")
 
     def cap(self, level: str) -> int | None:
         """Seat cap of ``level``; ``None`` for the lead level, which has no cap."""

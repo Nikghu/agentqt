@@ -57,6 +57,7 @@ import datetime
 import enum
 import json
 import logging
+import math
 import sqlite3
 import socket
 import threading
@@ -81,6 +82,7 @@ if TYPE_CHECKING:
         EquitySnapshot,
         EquitySnapshotRepository,
     )
+    from us_swing.core.desk_trades import TradePick
     from us_swing.execution.trade_cycle import CycleSnapshot, StrategyPnlSummary
     from us_swing.gui.chart_drawings import DrawingStore
     from us_swing.gui.telegram_commands import TelegramCommandBridge
@@ -1573,6 +1575,7 @@ class AppService(QObject):
             warning_sink=lambda w: self._event_bus.publish(w),
         )
 
+        self._ensure_ai_desk_strategy(load_strategies, save_strategies)
         self._strategy_engine = StrategyEngine(
             registry_loader=load_strategies,
             registry_saver=save_strategies,
@@ -1597,6 +1600,13 @@ class AppService(QObject):
             lifecycle_bus=self._lifecycle_bus,
             strategy_bus=self._event_bus,
         )
+
+        # ── AI Desk picks (FO-EXE-021) — close sweep every minute, re-send once ──
+        self._desk_signal_timer = QTimer(self)
+        self._desk_signal_timer.setInterval(60_000)
+        self._desk_signal_timer.timeout.connect(self._dismiss_closed_desk_signals)
+        self._desk_signal_timer.start()
+        self._resend_desk_picks()
 
     # ── Architecture-level connection status ──────────────────────────────────
 
@@ -2361,6 +2371,102 @@ class AppService(QObject):
         except Exception:
             _log.warning("[Strategy] Failed to load latest bar for %s (%s)", symbol, tf)
             return None
+
+    # ── AI Desk picks (FO-EXE-021) ────────────────────────────────────────────
+
+    @staticmethod
+    def _ensure_ai_desk_strategy(
+        load: Callable[[], list[Any]], save: Callable[[list[Any]], None]
+    ) -> None:
+        """Add the fixed AI Desk strategy row when it is missing (SRD-EXE-021.001)."""
+        from us_swing.execution.desk_signals import AI_DESK_STRATEGY, AI_DESK_TYPE
+        from us_swing.gui.strategy_store import StrategyConfig
+
+        try:
+            configs = load()
+            if any(c.name == AI_DESK_STRATEGY for c in configs):
+                return
+            configs.append(StrategyConfig(
+                name=AI_DESK_STRATEGY, mode="paper", capital_max=10,
+                start_time="09:30", end_time="16:00", start_date="", end_date="",
+                days=["Mon", "Tue", "Wed", "Thu", "Fri"], entry_condition="",
+                exit_condition="", strategy_type=AI_DESK_TYPE, auto_trade=False,
+                trade_type="Positional", run_state="STOPPED",
+            ))
+            save(configs)
+            _log.info("[AI Desk] Added the AI Desk strategy for approved picks")
+        except Exception:
+            _log.exception("[AI Desk] Could not add the AI Desk strategy")
+
+    def _ai_desk_config(self) -> Any:
+        from us_swing.execution.desk_signals import AI_DESK_STRATEGY
+        from us_swing.gui.strategy_store import load_strategies
+
+        return next((c for c in load_strategies() if c.name == AI_DESK_STRATEGY), None)
+
+    def desk_pick_qty(self, pick: TradePick) -> int:
+        """Shares for a pick from the AI Desk Capital Max, as engine entries are sized."""
+        cfg = self._ai_desk_config()
+        if cfg is None or pick.entry <= 0:
+            return 0
+        budget = self.effective_capital() * cfg.capital_max * cfg.per_trade_pct / 10000.0
+        return math.floor(budget / pick.entry)
+
+    def send_desk_pick(self, pick: TradePick) -> tuple[int, str]:
+        """Add an approved pick as a pending entry signal; ``(qty, "")`` or ``(0, reason)``."""
+        from us_swing.execution.desk_signals import build_desk_signal
+
+        if pick.side not in ("long", "short"):
+            return 0, "unknown side"
+        qty = self.desk_pick_qty(pick)
+        if qty <= 0:
+            _log.warning("[AI Desk] %s %s was not sent because the quantity is 0",
+                         pick.side, pick.symbol)
+            return 0, "quantity is 0, raise the AI Desk Capital Max"
+        self._pending_store.add(build_desk_signal(pick, qty, self._active_uid))
+        _log.info("[AI Desk] Sent %s %s to Execution, %d share(s)", pick.side, pick.symbol, qty)
+        return qty, ""
+
+    def dismiss_desk_pick(self, pick: TradePick) -> None:
+        """Remove a pick's pending signal again."""
+        from us_swing.execution.desk_signals import desk_signal_id
+
+        self._pending_store.dismiss(desk_signal_id(pick))
+
+    def _dismiss_closed_desk_signals(self, now: datetime.datetime | None = None) -> None:
+        """Dismiss desk signals whose trading day has closed (SRD-EXE-021.004)."""
+        from us_swing.execution.desk_signals import desk_signal_close
+
+        now = now or datetime.datetime.now(_ET)
+        for sig in self._pending_store.list():
+            close = desk_signal_close(sig.signal_id)
+            if close is None or close > now:
+                continue
+            if self._pending_store.dismiss(sig.signal_id) is not None:
+                _log.info("[AI Desk] %s %s was not executed by the close and was removed",
+                          sig.direction.lower(), sig.symbol)
+
+    def _resend_desk_picks(self, now: datetime.datetime | None = None) -> None:
+        """Send today's approved picks again after a restart (SRD-EXE-021.006)."""
+        from us_swing.core import desk_contract
+        from us_swing.core.desk_trades import approved_picks
+        from us_swing.execution.desk_signals import AI_DESK_STRATEGY, desk_signal_id
+
+        now = now or datetime.datetime.now(_ET)
+        if now.time() >= datetime.time(16, 0):
+            return
+        try:
+            pending = {s.signal_id for s in self._pending_store.list()}
+            for pick in approved_picks(desk_contract.desk_home(), now.date()):
+                if desk_signal_id(pick) in pending:
+                    continue
+                if self._tc_query is not None and self._tc_query.history(
+                    symbol=pick.symbol, strategy_id=AI_DESK_STRATEGY, days=1
+                ):
+                    continue
+                self.send_desk_pick(pick)
+        except Exception:
+            _log.exception("[AI Desk] Could not send approved picks again after the restart")
 
     def get_pending_signals(self, user_id: int | None = None) -> list[TradeSignal]:
         from us_swing.execution.signal_bridge import engine_to_gui

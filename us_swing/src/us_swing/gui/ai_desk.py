@@ -17,6 +17,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from us_swing.core.desk_trades import DeskTradeSink
 from us_swing.gui.cards import GAP, card, gutter
 from us_swing.gui.desk_control import DeskBar, DeskPoller
 from us_swing.gui.ai_desk_sections import (
@@ -60,8 +61,10 @@ def _nav_style() -> str:
 class AiDeskWorkspace(QWidget):
     """AI Desk page: section list on the left, section frame on the right."""
 
-    def __init__(self, poller: DeskPoller, parent: QWidget | None = None) -> None:
+    def __init__(self, poller: DeskPoller, sink: DeskTradeSink | None = None,
+                 parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        self._sink = sink
         gutter(self)
         main = QHBoxLayout(self)
         main.setContentsMargins(0, 0, 0, 0)
@@ -98,7 +101,7 @@ class AiDeskWorkspace(QWidget):
     def _build(self, name: str) -> QWidget:
         if name == "Command":
             return command_frame(name, approvals_box(
-                self._home, lambda: self.select_section("Hiring")))
+                self._home, lambda: self.select_section("Hiring"), self._sink))
         if name == "Hiring":
             return hiring_frame(name, self._home)
         if name == "Reports":
