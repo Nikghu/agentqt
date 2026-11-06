@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.11.0: 23 test cases for FO-MKT-009 pick results (P8).
 > v0.10.1: UT-MKT-008.004.M01.T05 added (review fix).
 > v0.10.0: 18 test cases for FO-MKT-008 link to Execution (P7).
 > v0.9.0: 23 test cases for FO-MKT-007 AI report pages (P5d).
@@ -308,3 +309,31 @@
 | UT-MKT-008.005.M01.T01 | MD-MKT-008.001.M01 | Positive | No desk or GUI import (SRD-MKT-008.005) | source of core/desk_trades.py | no import of desk, market or gui | Pass |
 | UT-MKT-008.005.M01.T02 | MD-MKT-008.001.M01 | Negative | Desk process never writes (SRD-MKT-008.005) | source of the desk and market packages | no call to record_trade_decision and no trade approval insert | Pass |
 | UT-MKT-008.006.M01.T01 | MD-MKT-008.001.M01 | Positive | Logs (SRD-MKT-008.006) | approve one pick; list with 2 expired picks | INFO lines with [AI Desk] prefix, side, stock and decision; expired count 2 | Pass |
+
+## FO-MKT-009: Pick Results
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-MKT-009.001.M01.T01 | MD-MKT-009.001.M01 | Positive | Step scores every pick (SRD-MKT-009.001) | 2 lead picks on 2 days with ideas and candles | 2 pick_results rows | Not Run |
+| UT-MKT-009.001.M01.T02 | MD-MKT-009.001.M01 | Negative | No candle file (SRD-MKT-009.001) | candle path missing | one warning; no rows; no error | Not Run |
+| UT-MKT-009.002.M01.T01 | MD-MKT-009.001.M01 | Positive | Long entry (SRD-MKT-009.002) | trigger 100; high 99, 99, 101 | entry day 3 at 100 | Not Run |
+| UT-MKT-009.002.M01.T02 | MD-MKT-009.001.M01 | Negative | No fill (SRD-MKT-009.002) | trigger touched only on bar 6 | no_fill | Not Run |
+| UT-MKT-009.002.M01.T03 | MD-MKT-009.001.M01 | Positive | Short entry (SRD-MKT-009.002) | short trigger 50; low 49 on bar 1 | entry day 1 at 50 | Not Run |
+| UT-MKT-009.003.M01.T01 | MD-MKT-009.001.M01 | Positive | Target (SRD-MKT-009.003) | long 100 / 95 / 110; later high 111 | target; exit 110; R 2.0 | Not Run |
+| UT-MKT-009.003.M01.T02 | MD-MKT-009.001.M01 | Positive | Stop (SRD-MKT-009.003) | long 100 / 95; later low 94 | stop; exit 95; R -1.0 | Not Run |
+| UT-MKT-009.003.M01.T03 | MD-MKT-009.001.M01 | Edge | Stop and target one day (SRD-MKT-009.003) | bar with low 94 and high 111 | stop | Not Run |
+| UT-MKT-009.003.M01.T04 | MD-MKT-009.001.M01 | Edge | Time exit and open (SRD-MKT-009.003) | 10 quiet bars after entry; then only 4 bars | time at close of day 10; open marked at latest close, no exit day | Not Run |
+| UT-MKT-009.003.M01.T05 | MD-MKT-009.001.M01 | Negative | Bad levels (SRD-MKT-009.003) | long stop above trigger; short target above trigger | None; not scored | Not Run |
+| UT-MKT-009.004.M02.T01 | MD-MKT-009.004.M02 | Positive | Rows replaced (SRD-MKT-009.004) | replace the same 2 rows twice | 2 rows, no duplicates | Not Run |
+| UT-MKT-009.004.M02.T02 | MD-MKT-009.004.M02 | Negative | Bad status (SRD-MKT-009.004) | status 'won' | ValueError; table unchanged | Not Run |
+| UT-MKT-009.005.M03.T01 | MD-MKT-009.005.M03 | Positive | Real trade matched (SRD-MKT-009.005) | executed trade_done row; closed long cycle 100 → 110, stop 95, qty 10 | row with subject, pnl 100, R 2.0 | Not Run |
+| UT-MKT-009.005.M03.T02 | MD-MKT-009.005.M03 | Negative | No pick and append-only (SRD-MKT-009.005) | cycle with no approval row; then UPDATE the row | row with empty subject; UPDATE refused | Not Run |
+| UT-MKT-009.005.M04.T01 | MD-MKT-009.005.M04 | Positive | App hook (SRD-MKT-009.005) | CycleClosed for AI Desk and for another strategy | one row, for AI Desk only | Not Run |
+| UT-MKT-009.006.M03.T01 | MD-MKT-009.005.M03 | Positive | Totals (SRD-MKT-009.006) | picks with target, stop, no_fill and open | picks 4, fills 3, finished 2, hit rate 50%, avg R 0.5 | Not Run |
+| UT-MKT-009.006.M03.T02 | MD-MKT-009.005.M03 | Positive | Breakdowns (SRD-MKT-009.006) | grades A and B, tones positive and none, one approved and one rejected pick | groups per decision, grade and tone with their counts | Not Run |
+| UT-MKT-009.006.M03.T03 | MD-MKT-009.005.M03 | Edge | Empty desk (SRD-MKT-009.006) | no desk.db; no pick_results table | zero totals; no error | Not Run |
+| UT-MKT-009.006.M03.T04 | MD-MKT-009.005.M03 | Negative | No employee names (SRD-MKT-009.006) | employee folder with a made-up name; results lines | the name is in no group label or line | Not Run |
+| UT-MKT-009.007.M05.T01 | MD-MKT-009.007.M05 | Positive | Weekly section (SRD-MKT-009.007) | picks in the week and one before | Pick results section counts only the week's picks | Not Run |
+| UT-MKT-009.007.M05.T02 | MD-MKT-009.007.M05 | Edge | No picks (SRD-MKT-009.007) | week with no lead picks | section says no lead picks this week | Not Run |
+| UT-MKT-009.001.M06.T01 | MD-MKT-009.001.M06 | Positive | Step order (SRD-MKT-009.001) | STEP_PATHS | Pick results right after Ideas | Not Run |
+| UT-MKT-009.008.M01.T01 | MD-MKT-009.001.M01 | Positive | Logs (SRD-MKT-009.008) | run with one open pick | [Results] line with counts | Not Run |
