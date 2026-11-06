@@ -98,6 +98,7 @@ The desk works in NY time (`zoneinfo` "America/New_York"). Windows tasks are set
 | P5d | AI report pages and the AI Desk Pages section | MKT / FO-MKT-007 | A sealed page renders with no network |
 | P6 | Hiring pipeline, LEDGER, cost views | DSK / FO-DSK-006 | One shadow hire approved end to end |
 | P7 | Link to Execution | MKT / FO-MKT-008 | Approved idea reaches EXE |
+| P8 | Pick results: paper and real results, breakdowns, Results section, weekly report | MKT / FO-MKT-009 | Every lead pick has a paper result; a closed AI Desk trade has a real result |
 
 ### 0.7 Questions and answers
 
