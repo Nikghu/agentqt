@@ -1,7 +1,8 @@
 """
 Module: MD-MKT-005.012.M07 — market/risk_check.py
 Parent SRD: SRD-MKT-005.012
-Also: SRD-MKT-005.013 (one ``risk_check`` row per listed idea)
+Also: SRD-MKT-005.013 (one ``risk_check`` row per listed idea), SRD-MKT-006.010 (news tags
+in the facts)
 
 The risk check skill. The hard limits in code veto listed ideas first and are stored
 before any model is asked, so they hold even when the call fails or the budget is used
@@ -75,6 +76,13 @@ def views_text(store: MarketStore, day: str, keys: tuple[str, ...]) -> str:
                              "WHERE date = ? ORDER BY side, grade, symbol", (day,))
         parts.append("Setup review: not available today" if f.empty else
                      f"Setup review grades:\n{table(f)}")
+    if "news_review" in keys:
+        f = store.read_frame("SELECT side, symbol, tone, points, final_score AS final, reason "
+                             "FROM news_tags WHERE date = ? ORDER BY side, final_score DESC",
+                             (day,))
+        parts.append("News review: not available today" if f.empty else
+                     f"News review (points out of 10; final = 0.9 x score + points):\n"
+                     f"{table(f)}")
     if "risk_check" in keys:
         f = store.read_frame("SELECT side, symbol, verdict, by, reason FROM risk_check "
                              "WHERE date = ? ORDER BY side, verdict, symbol", (day,))
@@ -87,7 +95,7 @@ class RiskCheckSkill:
     """The risk check skill (a ``Skill``)."""
 
     key = KEY
-    needs: tuple[str, ...] = ("regime_view", "sector_flow_view", "setup_review")
+    needs: tuple[str, ...] = ("regime_view", "sector_flow_view", "setup_review", "news_review")
     answer = RiskVetoes
 
     def __init__(self, candles: Path = CANDLE_DB) -> None:

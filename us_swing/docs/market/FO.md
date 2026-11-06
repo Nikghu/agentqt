@@ -1,7 +1,7 @@
 # Functional Overview — Market Analytics (MKT)
 
 **Document ID:** FO-MKT
-**Version:** 0.4.0
+**Version:** 0.5.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
@@ -144,13 +144,29 @@ The system shall add AI experts on top of the funnel. P5a adds the first skill, 
 5. An idea that breaks a hard limit is vetoed by code even when the AI says pass; the lead never picks a vetoed idea.
 6. The evening brief shows on the Floor under the lead employee's current name, with the picks and their reasons.
 
-## FO-MKT-006: News and Global Events (SCOUT)
+## FO-MKT-006: News, Economic Calendar and Event Risk
 
-**Status:** Draft (outline)
+**Status:** Implemented (approved by user 2026-11-06)
 **Priority:** Should
 **Phase:** P5c
+**Depends on:** FO-MKT-003, FO-MKT-005, FO-DSK-002–005
 
-- The system shall collect news and calendar events and tag their impact on sectors and stocks.
+The system shall add news and the economic calendar to the evening funnel. Free sources only (Yahoo Finance and public RSS feeds); a news review skill tags the listed ideas, and code turns the tags and event risk into the 10 news points of the score. Who does the work, and under what name, is data the Master user controls.
+
+- The system shall collect recent headlines for each listed idea and recent market headlines after each Ideas step, and keep them in `desk.db` for 30 days.
+- The system shall keep a yearly economic calendar in code (FOMC decisions, CPI, jobs report, PCE, GDP) with the importance of each event.
+- The system shall add a news review skill that tags each listed idea positive, neutral or negative with a short reason, and writes a short market note.
+- The system shall turn each tag and the next day's high-impact events into 0 to 10 news points, and give each listed idea a final score that includes them.
+- The system shall let the risk check and the lead brief read the news tags and final scores.
+- The system shall show headlines, tags and the coming economic events in the Market Floor "News & Calendar" tab.
+- The system shall ship a default employee for the new skill with a generic level name only.
+
+### Acceptance Criteria
+
+1. After an evening run, `desk.db` holds the day's headlines for the listed ideas and the market, and nothing older than 30 days.
+2. The news review employee tags every listed idea; each tag has its points and final score, and its market note shows in the AI feed.
+3. On a day before a CPI release, every listed idea loses the event points.
+4. The News & Calendar tab shows real headlines, tags and the next two weeks of economic events.
 
 ## FO-MKT-007: AI Canvas Pages (CANVAS)
 

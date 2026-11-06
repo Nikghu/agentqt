@@ -6,6 +6,7 @@ Also: MD-GUI-034.013.M12 — idea list (SRD-GUI-034.013)
 Also: MD-GUI-034.014.M13 — score proof (SRD-GUI-034.014)
 Also: MD-GUI-034.015.M14 — AI feed briefs (SRD-GUI-034.015)
 Also: MD-GUI-034.017.M16 — month AI cost (SRD-GUI-034.017)
+Also: MD-GUI-034.018.M17 — latest news, news tags and calendar (SRD-GUI-034.018–.020)
 
 Market Floor data from ``desk.db``: the real regime, breadth, sectors and RS leaders when
 the desk has them, the fallback provider (sample data) for every other product.
@@ -13,7 +14,7 @@ the desk has them, the fallback provider (sample data) for every other product.
 from __future__ import annotations
 
 import sqlite3
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -22,6 +23,7 @@ from typing import Any
 
 from us_swing.core.desk_ai_settings import load_settings
 from us_swing.core.desk_contract import DB_NAME, FloorData, ProductDescriptor, desk_home
+from us_swing.core.econ_calendar import events_between, trading_days_after
 
 REGIME_ID = "regime.today"
 BREADTH_ID = "breadth.daily"
@@ -36,7 +38,8 @@ _RRG_COLUMNS = ("sector", "rs_ratio", "rs_momentum", "quadrant")
 _LEADER_COLUMNS = ("symbol", "sector", "rs_rating", "sector_rank")
 IDEAS_ID = "ideas.top"
 _IDEA_COLUMNS = ("symbol", "side", "score", "setup", "sector", "trigger", "stop", "why")
-_IDEA_FILTERS = {"side": ("long", "short"), "status": ("list", "watch")}
+_IDEA_FILTERS: dict[str, tuple[str, ...]] = {"side": ("long", "short"),
+                                              "status": ("list", "watch")}
 PROOF_ID = "proof.bands"
 _PROOF_COLUMNS = ("group", "n", "win_10d", "vs_spy_5d", "vs_spy_10d", "vs_spy_20d")
 _PROOF_FILTERS = {"side": ("long", "short"), "kind": ("band", "setup", "status")}
@@ -44,6 +47,20 @@ _PROOF_ORDER = {"under 40": 0, "40-50": 1, "50-60": 2, "60-70": 3, "70-80": 4, "
                 "list": 0, "watch": 1, "none": 2}
 _FULL_YEARS = 5.0
 FEED_LIMIT = 20
+NEWS_ID = "news.latest"
+TAGS_ID = "news.tags"
+CALENDAR_ID = "calendar.week"
+NEWS_LIMIT = 50
+CALENDAR_DAYS = 10
+_NEWS_COLUMNS = ("time", "headline", "symbol", "tone")
+_TONES = ("positive", "neutral", "negative")
+_TAG_COLUMNS = ("symbol", "side", "tone", "points", "final", "reason")
+_CALENDAR_COLUMNS = ("date", "time", "event", "importance")
+_REAL_FILTERS: dict[str, dict[str, tuple[str, ...]]] = {
+    IDEAS_ID: _IDEA_FILTERS, NEWS_ID: {"tone": _TONES},
+    CALENDAR_ID: {"importance": ("high", "medium")},
+}
+NY = ZoneInfo("America/New_York")
 
 
 @dataclass(frozen=True)
@@ -86,10 +103,12 @@ def _reading(value: float | None, good: float, weak: float) -> str:
 class DeskFloorData:
     """``FloorData`` that reads the market tables in ``desk.db`` read-only."""
 
-    def __init__(self, fallback: FloorData, home: Path | None = None) -> None:
-        """Use ``fallback`` for products the desk does not provide yet."""
+    def __init__(self, fallback: FloorData, home: Path | None = None,
+                 clock: Callable[[], datetime] | None = None) -> None:
+        """Use ``fallback`` for products the desk does not provide yet; ``clock`` is for tests."""
         self._fallback = fallback
         self._path = (home or desk_home()) / DB_NAME
+        self._clock = clock or (lambda: datetime.now(NY))
 
     def _query(self, sql: str) -> tuple[Any, ...] | None:
         rows = self._query_all(sql)
@@ -151,6 +170,8 @@ class DeskFloorData:
             SECTORS_ID: (sector_day, _SECTOR_COLUMNS, sector_day),
             RRG_ID: (sector_day, _RRG_COLUMNS, sector_day),
             IDEAS_ID: (ideas_day, _IDEA_COLUMNS, ideas_day),
+            NEWS_ID: (self._query("SELECT 1 FROM news_items LIMIT 1"), _NEWS_COLUMNS, None),
+            CALENDAR_ID: (True, _CALENDAR_COLUMNS, None),
         }
         out: list[ProductDescriptor] = []
         for product in self._fallback.products():
@@ -159,9 +180,14 @@ class DeskFloorData:
                 out.append(product)
                 continue
             title = f"{product.title} ({day})" if day else product.title
-            filters = _IDEA_FILTERS if product.id == IDEAS_ID else product.filters
+            filters = _REAL_FILTERS.get(product.id, product.filters)
             out.append(replace(product, title=title, columns=columns, filters=filters,
                                sample=False))
+        tags_day = self._tags_day()
+        out.append(ProductDescriptor(
+            TAGS_ID, f"News tags ({tags_day})" if tags_day else "News tags", "table",
+            ("table",), _TAG_COLUMNS, {"side": ("long", "short")},
+        ))
         if run := self._latest_proof():
             out.append(ProductDescriptor(
                 PROOF_ID, _proof_title(run), "table", ("table",), _PROOF_COLUMNS, _PROOF_FILTERS,
@@ -207,7 +233,50 @@ class DeskFloorData:
             return self._proof(filters.get("side") or "long", filters.get("kind") or "band")
         if product_id == IDEAS_ID and (day := self._ideas_day()):
             return self._ideas(day, filters.get("side"), filters.get("status") or "list")
+        if product_id == NEWS_ID and (news := self._news(filters.get("tone"))) is not None:
+            return news
+        if product_id == TAGS_ID:
+            return self._tags(filters.get("side"))
+        if product_id == CALENDAR_ID:
+            return self._calendar(filters.get("importance"))
         return self._fallback.rows(product_id, filters)
+
+    def _news(self, tone: str | None) -> list[dict[str, Any]] | None:
+        """Newest headlines with the latest news tone of their stock; ``None`` when none."""
+        rows = self._query_all(
+            "SELECT n.published, n.title, n.symbol, (SELECT t.tone FROM news_tags t WHERE "
+            "t.symbol = n.symbol AND n.symbol <> '' ORDER BY t.date DESC LIMIT 1) "
+            "FROM news_items n ORDER BY n.published DESC LIMIT ?", (NEWS_LIMIT,))
+        if not rows:
+            return None
+        out = [{"time": _ny_time(published), "headline": title, "symbol": symbol or "market",
+                "tone": t if t in _TONES else "-"} for published, title, symbol, t in rows]
+        return [r for r in out if not tone or r["tone"] == tone]
+
+    def _tags_day(self) -> str | None:
+        row = self._query("SELECT MAX(date) FROM news_tags")
+        return row[0] if row and row[0] else None
+
+    def _tags(self, side: str | None) -> list[dict[str, Any]]:
+        day = self._tags_day()
+        if day is None:
+            return []
+        rows = self._query_all(
+            "SELECT symbol, side, tone, points, final_score, reason FROM news_tags "
+            "WHERE date = ? AND (? IS NULL OR side = ?) ORDER BY final_score DESC, symbol",
+            (day, side, side))
+        return [{"symbol": sym, "side": sd, "tone": tone, "points": f"{points:.0f}",
+                 "final": f"{final:.1f}", "reason": reason}
+                for sym, sd, tone, points, final, reason in rows]
+
+    def _calendar(self, importance: str | None) -> list[dict[str, Any]]:
+        """Economic events from today to ``CALENDAR_DAYS`` trading days ahead (New York)."""
+        today = self._clock().astimezone(NY).date()
+        last = trading_days_after(today, CALENDAR_DAYS)
+        return [{"date": e.day.strftime("%a %m-%d"), "time": e.time.strftime("%H:%M"),
+                 "event": e.name, "importance": e.importance}
+                for e in events_between(today, last)
+                if not importance or e.importance == importance]
 
     def feed(self) -> list[dict[str, str]] | None:
         """Return the latest AI feed briefs, newest first, or ``None`` when there are none."""
@@ -302,6 +371,13 @@ class DeskFloorData:
              "sector_rank": f"{rank} of {size}"}
             for sym, sec, rating, rank, size in rows
         ]
+
+
+def _ny_time(published: str) -> str:
+    try:
+        return datetime.fromisoformat(published).astimezone(NY).strftime("%m-%d %H:%M")
+    except ValueError:
+        return "-"
 
 
 def _proof_title(run: tuple[Any, ...]) -> str:

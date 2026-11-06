@@ -1,11 +1,12 @@
 # Unit Test Cases — Market Analytics (MKT)
 
 **Document ID:** UTCD-MKT
-**Version:** 0.4.0
+**Version:** 0.5.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.8.0: 43 test cases for FO-MKT-006 news, economic calendar and event risk (P5c).
 > v0.7.0: 35 test cases for the P5b skills (sector/flow view, setup review, risk limits, risk check, lead brief, defaults).
 > v0.6.0: 13 test cases for the FO-MKT-005 regime view skill (P5a).
 > v0.5.0: 23 test cases for FO-MKT-004 (P4).
@@ -204,3 +205,51 @@
 | UT-MKT-005.018.M09.T02 | MD-MKT-005.017.M09 | Negative | No desk import (SRD-MKT-005.018) | scan `market` sources | no `us_swing.desk` import | Pass |
 | UT-MKT-005.018.M09.T03 | MD-MKT-005.017.M09 | Positive | Full evening chain (SRD-MKT-005.018) | real steps on synthetic candles, made-up employees, fake model | views, risk rows, picks and evening brief stored; lead ran last | Pass |
 | UT-MKT-005.013.M07.T03 | MD-MKT-005.012.M07 | Edge | Second wake keeps AI vetoes (SRD-MKT-005.013) | AI veto, then a wake with no valid answer | AI veto kept; code vetoes kept; no feed item | Pass |
+
+## FO-MKT-006: News, Economic Calendar and Event Risk
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-MKT-006.001.M01.T01 | MD-MKT-006.001.M01 | Positive | Read a feed (SRD-MKT-006.001) | RSS text with 3 items | 3 headlines with title, link and UTC time | Pass |
+| UT-MKT-006.001.M01.T02 | MD-MKT-006.001.M01 | Negative | Bad feed (SRD-MKT-006.001) | broken XML; item without a time; HTTP error | no headlines or that item skipped; no exception | Pass |
+| UT-MKT-006.001.M01.T03 | MD-MKT-006.001.M01 | Edge | Symbol with a dot (SRD-MKT-006.001) | BRK.B | URL asks for BRK-B | Pass |
+| UT-MKT-006.001.M01.T04 | MD-MKT-006.001.M01 | Negative | Plain failure log (SRD-MKT-006.001) | time-out, HTTP 404, refused connection | one [News] line each: timed out, HTTP 404, connection failed | Pass |
+| UT-MKT-006.001.M02.T01 | MD-MKT-006.001.M02 | Positive | Stock headlines kept (SRD-MKT-006.001) | 3 listed ideas, fake getter | rows for each with the ideas day | Pass |
+| UT-MKT-006.001.M02.T02 | MD-MKT-006.001.M02 | Negative | One stock fails (SRD-MKT-006.001) | getter raises for one stock | others kept; logged; step does not raise | Pass |
+| UT-MKT-006.001.M02.T03 | MD-MKT-006.001.M02 | Edge | Window and cap (SRD-MKT-006.001) | 14 items, 2 older than 3 days | 10 newest within 3 days | Pass |
+| UT-MKT-006.001.M02.T04 | MD-MKT-006.001.M02 | Edge | Time limit (SRD-MKT-006.001) | timer past 90 seconds after the first stock | no more stocks fetched; [News] line says how many were not fetched | Pass |
+| UT-MKT-006.001.M02.T05 | MD-MKT-006.001.M02 | Negative | Step never raises (SRD-MKT-006.001) | error inside the run | logged with [News]; step returns | Pass |
+| UT-MKT-006.002.M02.T01 | MD-MKT-006.001.M02 | Positive | Market headlines (SRD-MKT-006.002) | 3 feeds, 50 items, some older than 24 hours | at most 30, all within 24 hours, symbol empty | Pass |
+| UT-MKT-006.002.M02.T02 | MD-MKT-006.001.M02 | Negative | All feeds fail (SRD-MKT-006.002) | getter raises | 0 market rows; logged | Pass |
+| UT-MKT-006.003.M02.T01 | MD-MKT-006.001.M02 | Positive | Kept once (SRD-MKT-006.003) | run twice; same title with a new link | no repeated rows | Pass |
+| UT-MKT-006.003.M02.T02 | MD-MKT-006.001.M02 | Negative | Old rows deleted (SRD-MKT-006.003) | rows 31 and 29 days old | 31-day row gone, 29-day row kept | Pass |
+| UT-MKT-006.003.M02.T03 | MD-MKT-006.001.M02 | Positive | Seen again moves day (SRD-MKT-006.003) | same headline on the next day | row has the new day; counted as not new | Pass |
+| UT-MKT-006.003.M02.T04 | MD-MKT-006.001.M02 | Edge | No link (SRD-MKT-006.003) | two headlines without a link, different titles | both kept | Pass |
+| UT-MKT-006.004.M03.T01 | MD-MKT-006.004.M03 | Positive | Events listed (SRD-MKT-006.004) | 2026-11-09 to 2026-11-13 | CPI 2026-11-10 08:30 high | Pass |
+| UT-MKT-006.004.M03.T02 | MD-MKT-006.004.M03 | Negative | Year not covered (SRD-MKT-006.004) | days in 2029, asked twice | empty; one warning only | Pass |
+| UT-MKT-006.004.M03.T03 | MD-MKT-006.004.M03 | Edge | Next trading day (SRD-MKT-006.004) | 2026-11-25; 2026-11-06 | 2026-11-27 (Thanksgiving skipped); 2026-11-09 | Pass |
+| UT-MKT-006.004.M03.T04 | MD-MKT-006.004.M03 | Positive | Calendar data sane (SRD-MKT-006.004) | all events | sorted, known names, high for FOMC, CPI, jobs; medium for PCE, GDP | Pass |
+| UT-MKT-006.004.M03.T05 | MD-MKT-006.004.M03 | Positive | Covered year (SRD-MKT-006.004) | days in 2026 | no warning | Pass |
+| UT-MKT-006.004.M03.T06 | MD-MKT-006.004.M03 | Edge | 2027 holidays (SRD-MKT-006.004) | 2027-11-24, 2027-12-23, 2027-01-15 | 2027-11-26, 2027-12-27, 2027-01-19 | Pass |
+| UT-MKT-006.005.M04.T01 | MD-MKT-006.005.M04 | Positive | News facts (SRD-MKT-006.005) | ideas, headlines, market headlines | text holds ideas, headlines, market lines and events; fresh True | Pass |
+| UT-MKT-006.005.M04.T02 | MD-MKT-006.005.M04 | Negative | Stale news (SRD-MKT-006.005) | news day older than ideas day | fresh False; days named | Pass |
+| UT-MKT-006.005.M04.T03 | MD-MKT-006.005.M04 | Edge | No headlines (SRD-MKT-006.005) | ideas but no stock headlines | fresh True; facts say no headlines | Pass |
+| UT-MKT-006.006.M04.T01 | MD-MKT-006.005.M04 | Positive | Valid answer (SRD-MKT-006.006) | 2 tags and a 200-char note | NewsReview | Pass |
+| UT-MKT-006.006.M04.T02 | MD-MKT-006.005.M04 | Negative | Bad answer (SRD-MKT-006.006) | tone great; 130-char reason; 500-char note | each refused by the schema | Pass |
+| UT-MKT-006.006.M04.T03 | MD-MKT-006.005.M04 | Negative | Unknown or repeated idea (SRD-MKT-006.006) | tag for a stock not listed; two tags for one | dropped; one log line | Pass |
+| UT-MKT-006.007.M04.T01 | MD-MKT-006.005.M04 | Positive | Points table (SRD-MKT-006.007) | each tone, no event | 10, 6, 6, 2 | Pass |
+| UT-MKT-006.007.M04.T02 | MD-MKT-006.005.M04 | Negative | High event next day (SRD-MKT-006.007) | day before CPI; negative tone | 3 less; never below 0 | Pass |
+| UT-MKT-006.007.M04.T03 | MD-MKT-006.005.M04 | Edge | Medium event only (SRD-MKT-006.007) | day before PCE | no change | Pass |
+| UT-MKT-006.008.M04.T01 | MD-MKT-006.005.M04 | Positive | Final score stored (SRD-MKT-006.008) | score 70, positive | final 73.0 in news_tags; ideas table unchanged | Pass |
+| UT-MKT-006.008.M04.T02 | MD-MKT-006.005.M04 | Negative | No answer (SRD-MKT-006.008) | ask returns None, day before CPI | code rows tone none, points 3; no feed item | Pass |
+| UT-MKT-006.008.M04.T03 | MD-MKT-006.005.M04 | Edge | Earlier tags kept (SRD-MKT-006.008) | real tags, then a failed second ask | earlier tags stay | Pass |
+| UT-MKT-006.008.M05.T01 | MD-MKT-006.008.M05 | Edge | Rerun replaces (SRD-MKT-006.008) | write tags twice for one day | one set of rows | Pass |
+| UT-MKT-006.009.M04.T01 | MD-MKT-006.005.M04 | Positive | Market note in feed (SRD-MKT-006.009) | valid answer | info feed item with the note | Pass |
+| UT-MKT-006.009.M04.T02 | MD-MKT-006.005.M04 | Negative | No note without answer (SRD-MKT-006.009) | ask returns None | no feed item | Pass |
+| UT-MKT-006.010.M07.T01 | MD-MKT-005.012.M07 | Positive | Risk facts show news (SRD-MKT-006.010) | news_tags for the day | facts list tone, points and final score | Pass |
+| UT-MKT-006.010.M07.T02 | MD-MKT-005.012.M07 | Negative | News missing (SRD-MKT-006.010) | no news_tags | facts say the news review is not available | Pass |
+| UT-MKT-006.010.M08.T01 | MD-MKT-005.014.M08 | Positive | Lead sees final score (SRD-MKT-006.010) | news_tags for passed ideas | final column in the facts | Pass |
+| UT-MKT-006.010.M08.T02 | MD-MKT-005.014.M08 | Positive | Run order (SRD-MKT-006.010) | needs of risk check and lead | both include news_review | Pass |
+| UT-MKT-006.011.M06.T01 | MD-MKT-006.011.M06 | Positive | Default file valid (SRD-MKT-006.011) | shipped emp-006 | loads; skill news_review; after_run; caps 3 and USD 3; generic name | Pass |
+| UT-MKT-006.011.M06.T02 | MD-MKT-006.011.M06 | Negative | Skill list and boundary (SRD-MKT-006.011) | SKILL_PATHS, STEP_PATHS, market sources | news_review loads; News after Ideas; no desk import | Pass |
+| UT-MKT-006.012.M02.T01 | MD-MKT-006.001.M02 | Positive | Run log (SRD-MKT-006.012) | one run with one failed feed | one [News] line with the counts | Pass |

@@ -548,3 +548,145 @@ def test_real_month_cost(tmp_path: Path) -> None:
     assert cost.by_model == [("claude / claude-haiku-5-5", "1", "1,000", "$0.0000"),
                              ("openrouter / cheap/m", "1", "500", "$0.2500")]
     assert DeskFloorData(SampleFloorData(), tmp_path).month_cost("2026-09") is None
+
+
+def _write_news(home: Path) -> None:
+    from us_swing.market.store import MarketStore, NewsItemRow, NewsTagRow
+
+    store = MarketStore(home)
+    store.add_news([
+        NewsItemRow("2026-11-05", "AAA", "Src", "2026-11-05T15:00:00+00:00", "Older AAA story",
+                    "https://x/1", "2026-11-05T16:00:00+00:00"),
+        NewsItemRow("2026-11-05", "", "Src", "2026-11-05T17:00:00+00:00", "Newest market story",
+                    "https://x/2", "2026-11-05T18:00:00+00:00"),
+        NewsItemRow("2026-11-05", "BBB", "Src", "2026-11-05T16:00:00+00:00", "BBB story",
+                    "https://x/3", "2026-11-05T18:00:00+00:00")])
+    store.replace_day("news_tags", "2026-11-04", [
+        NewsTagRow("2026-11-04", "long", "AAA", "positive", "Old tone", 10.0, 80.0)])
+    store.replace_day("news_tags", "2026-11-05", [
+        NewsTagRow("2026-11-05", "long", "AAA", "negative", "Probe opened", 2.0, 70.0),
+        NewsTagRow("2026-11-05", "long", "BBB", "positive", "Upgrade", 10.0, 90.0),
+        NewsTagRow("2026-11-05", "short", "CCC", "neutral", "No news", 6.0, 75.0)])
+    store.close()
+
+
+def test_real_news(tmp_path: Path) -> None:
+    """UT-GUI-034.018.M17.T01: newest first; symbol or market; tone from the tags; not sample."""
+    _write_news(tmp_path)
+    data = DeskFloorData(SampleFloorData(), tmp_path)
+    product = next(p for p in data.products() if p.id == "news.latest")
+    assert product.sample is False
+    rows = data.rows("news.latest", {})
+    assert [r["headline"] for r in rows] == [
+        "Newest market story", "BBB story", "Older AAA story"]
+    assert [r["symbol"] for r in rows] == ["market", "BBB", "AAA"]
+    assert [r["tone"] for r in rows] == ["-", "positive", "negative"]
+    assert rows[0]["time"] == "11-05 12:00"
+
+
+def test_no_news_gives_sample(tmp_path: Path) -> None:
+    """UT-GUI-034.018.M17.T02: with empty news_items the rows are sample rows, tag kept."""
+    from us_swing.market.store import MarketStore
+
+    MarketStore(tmp_path).close()
+    data = DeskFloorData(SampleFloorData(), tmp_path)
+    product = next(p for p in data.products() if p.id == "news.latest")
+    assert product.sample is True
+    assert data.rows("news.latest", {}) == SampleFloorData().rows("news.latest", {})
+
+
+def test_news_tone_filter(tmp_path: Path) -> None:
+    """UT-GUI-034.018.M17.T03: the negative filter keeps only negative rows."""
+    _write_news(tmp_path)
+    data = DeskFloorData(SampleFloorData(), tmp_path)
+    rows = data.rows("news.latest", {"tone": "negative"})
+    assert [r["headline"] for r in rows] == ["Older AAA story"]
+
+
+def test_news_tags_product(tmp_path: Path) -> None:
+    """UT-GUI-034.019.M17.T01: tags of the latest day, final score high first, day in the title."""
+    _write_news(tmp_path)
+    data = DeskFloorData(SampleFloorData(), tmp_path)
+    product = next(p for p in data.products() if p.id == "news.tags")
+    assert product.title == "News tags (2026-11-05)" and product.sample is False
+    rows = data.rows("news.tags", {})
+    assert [r["symbol"] for r in rows] == ["BBB", "CCC", "AAA"]
+    assert rows[0] == {"symbol": "BBB", "side": "long", "tone": "positive", "points": "10",
+                       "final": "90.0", "reason": "Upgrade"}
+    assert [r["symbol"] for r in data.rows("news.tags", {"side": "short"})] == ["CCC"]
+
+
+def test_no_news_tags(tmp_path: Path) -> None:
+    """UT-GUI-034.019.M17.T02: empty news_tags lists "News tags" with no rows, not sample."""
+    from us_swing.market.store import MarketStore
+
+    MarketStore(tmp_path).close()
+    data = DeskFloorData(SampleFloorData(), tmp_path)
+    product = next(p for p in data.products() if p.id == "news.tags")
+    assert product.title == "News tags" and product.sample is False
+    assert data.rows("news.tags", {}) == []
+
+
+def _calendar_data(tmp_path: Path, today: datetime) -> DeskFloorData:
+    return DeskFloorData(SampleFloorData(), tmp_path, clock=lambda: today)
+
+
+def test_real_calendar(tmp_path: Path) -> None:
+    """UT-GUI-034.020.M17.T01: today 2026-11-06 lists events 10 trading days ahead; not sample."""
+    from zoneinfo import ZoneInfo
+
+    ny = ZoneInfo("America/New_York")
+    data = _calendar_data(tmp_path, datetime(2026, 11, 6, 10, 0, tzinfo=ny))
+    assert next(p for p in data.products() if p.id == "calendar.week").sample is False
+    assert data.rows("calendar.week", {}) == [
+        {"date": "Fri 11-06", "time": "08:30", "event": "Jobs report", "importance": "high"},
+        {"date": "Tue 11-10", "time": "08:30", "event": "CPI inflation report",
+         "importance": "high"}]
+
+
+def test_calendar_importance_filter(tmp_path: Path) -> None:
+    """UT-GUI-034.020.M17.T02: the high filter keeps only high events."""
+    from zoneinfo import ZoneInfo
+
+    ny = ZoneInfo("America/New_York")
+    data = _calendar_data(tmp_path, datetime(2026, 11, 20, 10, 0, tzinfo=ny))
+    everything = data.rows("calendar.week", {})
+    assert {r["importance"] for r in everything} == {"high", "medium"}
+    high = data.rows("calendar.week", {"importance": "high"})
+    assert [r["event"] for r in high] == ["Jobs report"]
+    assert {r["event"] for r in everything if r not in high} == {"PCE inflation", "GDP report"}
+
+
+def test_calendar_year_not_covered(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    """UT-GUI-034.020.M17.T03: a year without a list gives no rows, no error, one warning."""
+    from zoneinfo import ZoneInfo
+
+    from us_swing.core import econ_calendar
+
+    econ_calendar._warned.discard(2029)
+    ny = ZoneInfo("America/New_York")
+    data = _calendar_data(tmp_path, datetime(2029, 3, 1, 10, 0, tzinfo=ny))
+    with caplog.at_level(logging.WARNING):
+        assert data.rows("calendar.week", {}) == []
+    assert len([r for r in caplog.records if "2029" in r.getMessage()]) == 1
+    econ_calendar._warned.discard(2029)
+
+
+def test_default_news_tab() -> None:
+    """UT-GUI-034.021.M18.T01: News & Calendar holds Latest news, News tags and Calendar apart."""
+    panels = default_layout()["News & Calendar"]
+    assert sorted(p["product"] for p in panels) == ["calendar.week", "news.latest", "news.tags"]
+    for i, a in enumerate(panels):
+        for b in panels[i + 1:]:
+            apart = (a["x"] + a["w"] <= b["x"] or b["x"] + b["w"] <= a["x"]
+                     or a["y"] + a["h"] <= b["y"] or b["y"] + b["h"] <= a["y"])
+            assert apart, (a["product"], b["product"])
+
+
+def test_saved_news_layout_kept(tmp_path: Path) -> None:
+    """UT-GUI-034.021.M18.T02: a saved News & Calendar tab with two panels still has two."""
+    store = LayoutStore(tmp_path / "layouts.json")
+    tabs = default_layout()
+    tabs["News & Calendar"] = tabs["News & Calendar"][:2]
+    store.save("Default", tabs)
+    assert len(LayoutStore(tmp_path / "layouts.json").load("Default")["News & Calendar"]) == 2

@@ -1,7 +1,8 @@
 """
 Module: MD-MKT-005.014.M08 — market/lead_brief.py
 Parent SRD: SRD-MKT-005.014
-Also: SRD-MKT-005.015 (picks and evening brief), SRD-MKT-005.016 (``lead_picks``, feed)
+Also: SRD-MKT-005.015 (picks and evening brief), SRD-MKT-005.016 (``lead_picks``, feed),
+SRD-MKT-006.010 (news view and final scores in the facts)
 
 The lead brief skill: reads the day's views and picks the final ideas, only from ideas
 that passed the risk check, then writes the evening brief for the Floor. The hard limits
@@ -75,7 +76,8 @@ class LeadBriefSkill:
     """The lead brief skill (a ``Skill``)."""
 
     key = KEY
-    needs: tuple[str, ...] = ("regime_view", "sector_flow_view", "setup_review", "risk_check")
+    needs: tuple[str, ...] = ("regime_view", "sector_flow_view", "setup_review", "news_review",
+                              "risk_check")
     answer = LeadBrief
 
     def __init__(self, candles: Path = CANDLE_DB) -> None:
@@ -93,11 +95,16 @@ class LeadBriefSkill:
             grades = store.read_frame("SELECT side, symbol, grade FROM setup_review "
                                       "WHERE date = ?", (day,))
             grade = {(str(s), str(y)): str(g) for s, y, g in grades.itertuples(index=False)}
+            tags = store.read_frame("SELECT side, symbol, final_score FROM news_tags "
+                                    "WHERE date = ?", (day,))
+            final = {(str(s), str(y)): f"{float(v):.1f}" for s, y, v in
+                     tags.itertuples(index=False)}
             reasons = reasons_text(store, day)
             keys = list(zip(passed["side"].astype(str), passed["symbol"].astype(str),
                             strict=True))
             shown = passed[["side", "symbol", "score", "sector", "setup", "trigger", "stop"]]
-            shown = shown.assign(grade=[grade.get(k, "-") for k in keys],
+            shown = shown.assign(final=[final.get(k, "-") for k in keys],
+                                 grade=[grade.get(k, "-") for k in keys],
                                  reasons=[reasons.get(k, "") for k in keys])
             text = "\n\n".join([
                 f"Data day: {day}",
