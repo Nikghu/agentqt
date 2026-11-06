@@ -6,7 +6,7 @@
 **Last Updated:** 2026-11-05
 **Project:** US Swing Trading System
 
-> v0.6.0: MD-MKT-005.*.M01–M03 added — ATLAS (P5a).
+> v0.6.0: MD-MKT-005.*.M01–M03 added — regime view skill (P5a).
 > v0.5.0: MD-MKT-004.*.M01–M03 added — proof on past data (P4).
 > v0.4.0: MD-MKT-003.*.M01–M07 added — money flow, setups, readiness score and ideas (P3).
 > v0.3.0: MD-MKT-002.*.M01–M05 added — sector strength, rotation and stock RS (P2).
@@ -69,8 +69,8 @@ Cross-tool: `desk proof` (SRD-DSK-001.022) is in `desk/cli.py` (MD-DSK-001.020.M
 
 | ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
 |---|---|---|---|---|---|---|
-| MD-MKT-005.001.M01 | SRD-MKT-005.001 | `us_swing/src/us_swing/market/atlas.py` | ATLAS facts, answer schema and act | `Atlas`, `AtlasView` | `core.desk_agents`, M02 | No |
-| MD-MKT-005.003.M02 | SRD-MKT-005.003 | `us_swing/src/us_swing/market/store.py` | `atlas_view` table (added to the P1 store) | `AtlasRow`, `MarketStore.write_atlas()` | `sqlite3` | No |
-| MD-MKT-005.005.M03 | SRD-MKT-005.005 | `us_swing/src/us_swing/market/employees/atlas/` | ATLAS `soul.md` and `job.yaml` | — | — | No |
+| MD-MKT-005.001.M01 | SRD-MKT-005.001 | `us_swing/src/us_swing/market/regime_view.py` | Regime view skill: facts, answer schema and act | `RegimeViewSkill`, `RegimeView` | `core.desk_agents`, M02 | No |
+| MD-MKT-005.003.M02 | SRD-MKT-005.003 | `us_swing/src/us_swing/market/store.py` | `regime_view` table (added to the P1 store) | `RegimeViewRow`, `MarketStore.write_regime_view()` | `sqlite3` | No |
+| MD-MKT-005.005.M03 | SRD-MKT-005.005 | `us_swing/src/us_swing/market/employees/emp-001/` | Default expert-level employee files for the regime view |  — | — | No |
 
 SRD coverage: .001, .002, .004 by M01; .003 by M02; .005 by M03.

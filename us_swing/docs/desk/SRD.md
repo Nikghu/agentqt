@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-05
 **Project:** US Swing Trading System
 
+> v0.5.1: SRD-DSK-002.001/.002/.004/.005 reworded and .006–.007 added — skills by key, identity as data, generic levels (asked by user, 2026-11-06).
 > v0.5.0: SRD-DSK-002.001–.005, 003.001–.003, 004.001–.005, 005.001–.004 added as Draft (P5a harness).
 > v0.4.0: SRD-DSK-001.022 added as Draft — `desk proof` sub-command (for MKT P4).
 > v0.3.0: SRD-DSK-001.021 added as Draft — desk loads registered steps (for MKT P1).
@@ -45,11 +46,13 @@
 
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
-| SRD-DSK-002.001 | FO-DSK-002 | Must | Each employee ships a `soul.md` and a `job.yaml` in its own folder, and the desk finds employees through the employee list in `core/desk_steps.py`. | employee list | employees | `desk` never imports a tool directly | Implemented |
-| SRD-DSK-002.002 | FO-DSK-002 | Must | `job.yaml` must match a fixed schema: name, title, version, trigger, output, primary and backup model, calls per day, monthly cost cap and KPIs. | `job.yaml` | job spec | A bad file keeps that employee asleep and is logged | Implemented |
+| SRD-DSK-002.001 | FO-DSK-002 | Must | Code knows skills only, by key, through the skill list in `core/desk_steps.py`; each employee's `job.yaml` names the skill it uses. | skill list, job files | skills | `desk` never imports a tool directly; an unknown skill keeps that employee asleep | Implemented |
+| SRD-DSK-002.002 | FO-DSK-002 | Must | `job.yaml` must match a fixed schema: id, name, title, level, reports_to, skill, version, trigger, primary and backup model, calls per day, monthly cost cap and KPIs. | `job.yaml` | job spec | A bad file keeps that employee asleep and is logged | Implemented |
 | SRD-DSK-002.003 | FO-DSK-002 | Must | Trigger, models and caps come only from `job.yaml`; `soul.md` is used only as the system prompt. | job spec | rules in code | — | Implemented |
-| SRD-DSK-002.004 | FO-DSK-002 | Must | Each loaded name, title, version and file hash is kept in `employees` in `desk.db`. | job spec | `employees` rows | A changed file with the same version is logged as a warning | Implemented |
-| SRD-DSK-002.005 | FO-DSK-002 | Must | Employees get only an ask function and their facts, with no way to write job files. | — | — | Editing and rollback from AI Desk come in P6 | Implemented |
+| SRD-DSK-002.004 | FO-DSK-002 | Must | Each loaded id, name, title, level, reporting line, skill, version and file hash is kept in `roster` in `desk.db`. | job spec | `roster` rows | A changed file with the same version is logged as a warning | Implemented |
+| SRD-DSK-002.005 | FO-DSK-002 | Must | Skills get only the desk folder, their facts and an ask function, with no way to write employee files. | — | — | Editing and rollback from AI Desk come in P6 | Implemented |
+| SRD-DSK-002.006 | FO-DSK-002 | Must | Name, title, level (lead, expert, champion, junior) and reporting line are data in `job.yaml`; code, tests and labels use no employee names, and records key on a stable id. | `job.yaml` | identity | Asked by user 2026-11-06; a repeated id keeps the second folder asleep | Implemented |
+| SRD-DSK-002.007 | FO-DSK-002 | Must | Employee files live in `<desk>/employees/<id>/`; shipped defaults with generic level names are copied there only when missing. | default folders | employee folders | Never overwrites the Master user's edits | Implemented |
 
 ## FO-DSK-003: Event Router, Market Clock and Wake Rules
 

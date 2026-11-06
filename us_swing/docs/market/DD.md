@@ -6,7 +6,7 @@
 **Last Updated:** 2026-11-05
 **Project:** US Swing Trading System
 
-> v0.5.0: DD-MKT-005.001.D01 added — ATLAS (P5a).
+> v0.5.0: DD-MKT-005.001.D01 added — regime view skill (P5a).
 > v0.4.0: DD-MKT-004.001.D01 added — proof on past data (P4).
 > v0.3.0: DD-MKT-002.001.D01 added — sector strength, rotation and stock RS (P2).
 > v0.2.0: DD-MKT-001.001.D01 added — regime, breadth and fear (P1).
@@ -270,13 +270,13 @@ proof_stats(run_id INTEGER, side TEXT, kind TEXT, grp TEXT, horizon INTEGER, n I
 
 **After code review.** Group stats and the pass rule count only stock-days where both the return and the return against SPY exist, so `n` and the averages use the same rows; the Floor shows "-" for a missing average. The report says the S&P 500 list is today's. Report text is plain ASCII (bands `40-50`, `Settings > Backtest Data`) because the Windows console cannot print some symbols. Real run: candles 2024-01-02 to 2026-11-04, 503 stocks, 443 scored days, 21 s. On the same candles the replay equals the desk's `stock_score` exactly; against the Backtest Data candles 89.9–95.4% of scores are within 1 point on 3 days, the rest from price differences between the two candle sources.
 
-## DD-MKT-005.001.D01 — ATLAS, Market Regime Expert (P5a)
+## DD-MKT-005.001.D01 — Regime View Skill (P5a)
 
 **Traces:** SRD-MKT-005.001–.005
 
-**Files.** `market/atlas.py` (class `Atlas`, the `Employee` from `core/desk_agents.py`), `market/employees/atlas/soul.md`, `market/employees/atlas/job.yaml`, plus the `atlas_view` table in `market/store.py`. ATLAS uses only `core` types; it does not import `desk`.
+**Files.** `market/regime_view.py` (class `RegimeViewSkill`, key `regime_view`, the `Skill` from `core/desk_agents.py`), the default employee `market/employees/emp-001/` (`soul.md`, `job.yaml`; generic name "Expert 1", level expert), plus the `regime_view` table in `market/store.py`. The skill uses only `core` types, does not import `desk`, and never knows which employee runs it.
 
-**Facts** (`Atlas.facts(home)`), plain text from `desk.db`:
+**Facts** (`RegimeViewSkill.facts(home)`), plain text from `desk.db`:
 
 ```
 Data day: 2026-11-04 (fresh)
@@ -292,18 +292,18 @@ Score proof: data range, long result, short result, 70+ vs SPY at 10 days per si
 **Answer schema** (pydantic, `extra="forbid"`):
 
 ```
-class AtlasView:
+class RegimeView:
     regime: Literal["Uptrend", "Choppy", "Downtrend"]
     confidence: float  (0..1)
     reasons: list[str] (1..3 items, each 5..140 chars)
     brief: str (20..400 chars)
 ```
 
-**Act.** `view = ctx.ask(facts.text, AtlasView)`. When None, nothing is stored and there is no feed item. Otherwise `agrees = view.regime == rule regime`, and `atlas_view(date PK, regime, confidence, reasons (JSON list), brief, rule_regime, agrees)` is written (insert or replace). It returns `FeedItem("ATLAS", "info", brief + note, day)`, where note = `" I read the market as <regime>; the rules say <rule regime>."` when it disagrees.
+**Act.** `view = ctx.ask(facts.text, RegimeView)`. When None, nothing is stored and there is no feed item. Otherwise `agrees = view.regime == rule regime`, and `regime_view(date PK, regime, confidence, reasons (JSON list), brief, rule_regime, agrees)` is written (insert or replace). It returns `FeedItem("info", brief + note, day)` (the desk adds the employee's id and name), where note = `" I read the market as <regime>; the rules say <rule regime>."` when it disagrees.
 
-**soul.md** (system prompt). ATLAS is the desk's market regime expert. It weighs trend, breadth, volatility, fear and sector rotation. It is careful and plain-spoken, says when signals conflict, never gives trade orders, and never makes up numbers that are not in the facts.
+**soul.md** (system prompt). The default soul uses `{name}` and `{title}` from `job.yaml`; it describes the regime view work. It weighs trend, breadth, volatility, fear and sector rotation. It is careful and plain-spoken, says when signals conflict, never gives trade orders, and never makes up numbers that are not in the facts.
 
-**job.yaml.** trigger `after_run`; primary `openrouter` with a cheap model; backup `claude` / `claude-haiku-5-5`; `calls_per_day: 3`; `monthly_cost_usd: 3.0`. KPIs: agreement rate with the rule regime, and the share of valid answers.
+**job.yaml.** id `emp-001`, name `Expert 1`, title `Expert`, level `expert`, skill `regime_view`; trigger `after_run`; primary `claude` / `default`, backup `openrouter` / `default`; `calls_per_day: 3`; `monthly_cost_usd: 3.0`. KPIs: agreement rate with the rule regime, and the share of valid answers.
 
 **After the real run.** The first real answers broke the 140-character reason rule, which was checked in code but not shown in the JSON schema. The limit is now in the schema (`StringConstraints`), and `soul.md` says so too. Real run 2026-11-06 (Claude Code CLI, claude-haiku-5-5): valid on the 4th try, about 3,400 tokens, 7 s, cost 0; view Choppy 0.55, agreeing with the rule regime.
 

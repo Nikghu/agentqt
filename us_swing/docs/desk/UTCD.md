@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-05
 **Project:** US Swing Trading System
 
+> v0.5.1: P5a cases reworded without employee names; 6 cases added for identity as data (user, 2026-11-06).
 > v0.5.0: 38 test cases for the P5a lean harness.
 > v0.4.0: UT-DSK-001.022.M06.T01–T02 added (`desk proof`).
 > v0.3.0: UT-DSK-001.021.M07.T01–T02 added.
@@ -91,23 +92,28 @@
 | ID | Module | Type | Objective | Input | Expected Output | Status |
 |---|---|---|---|---|---|---|
 | UT-DSK-002.002.M09.T01 | MD-DSK-002.002.M09 | Positive | Job file loads (SRD-DSK-002.002) | valid soul.md + job.yaml | Hire with spec, soul text and hash | Pass |
-| UT-DSK-002.002.M09.T02 | MD-DSK-002.002.M09 | Negative | Bad job file (SRD-DSK-002.002) | missing models; unknown key; bad trigger | None; one warning each | Pass |
+| UT-DSK-002.002.M09.T02 | MD-DSK-002.002.M09 | Negative | Bad job file (SRD-DSK-002.002) | missing models or id; unknown key; bad trigger or level | None; one warning each | Pass |
 | UT-DSK-002.002.M09.T03 | MD-DSK-002.002.M09 | Negative | Missing soul.md (SRD-DSK-002.002) | folder without soul.md | None; warning | Pass |
-| UT-DSK-002.004.M09.T01 | MD-DSK-002.002.M09 | Positive | Employees table (SRD-DSK-002.004) | load twice | one row with name, title, version, hash | Pass |
+| UT-DSK-002.004.M09.T01 | MD-DSK-002.002.M09 | Positive | Roster table (SRD-DSK-002.004) | load twice | one row with id, name, title, level, reports_to, skill, version, hash | Pass |
 | UT-DSK-002.004.M09.T02 | MD-DSK-002.002.M09 | Edge | Changed file, same version (SRD-DSK-002.004) | edit soul.md, keep version | new hash stored; warning logged | Pass |
-| UT-DSK-002.001.M09.T01 | MD-DSK-002.002.M09 | Negative | Bad employee path (SRD-DSK-002.001) | path to a missing class | left out; warning; others load | Pass |
-| UT-DSK-002.001.M09.T02 | MD-DSK-002.002.M09 | Positive | Employee list loads (SRD-DSK-002.001) | EMPLOYEE_PATHS | ATLAS loaded from its folder | Pass |
+| UT-DSK-002.001.M09.T01 | MD-DSK-002.002.M09 | Negative | Unknown skill (SRD-DSK-002.001) | job file naming a skill not in the list | that employee asleep; warning; others load | Pass |
+| UT-DSK-002.001.M09.T02 | MD-DSK-002.002.M09 | Positive | Defaults seeded (SRD-DSK-002.001) | shipped default folders | copied once; each uses a known skill | Pass |
 | UT-DSK-002.003.M11.T01 | MD-DSK-004.001.M11 | Positive | Soul is the system prompt (SRD-DSK-002.003) | fake model records its input | system text starts with soul.md; model from job.yaml | Pass |
 | UT-DSK-002.003.M11.T02 | MD-DSK-004.001.M11 | Negative | Soul cannot change rules (SRD-DSK-002.003) | soul.md names another model | job.yaml model still used | Pass |
-| UT-DSK-002.004.M09.T03 | MD-DSK-002.002.M09 | Negative | Bad file not stored (SRD-DSK-002.004) | invalid job.yaml | no employees row | Pass |
+| UT-DSK-002.004.M09.T03 | MD-DSK-002.002.M09 | Negative | Bad file not stored (SRD-DSK-002.004) | invalid job.yaml | no roster row | Pass |
 | UT-DSK-002.005.M10.T01 | MD-DSK-003.001.M10 | Positive | Context is ask only (SRD-DSK-002.005) | employee inspects its context | only home and ask | Pass |
 | UT-DSK-002.005.M10.T02 | MD-DSK-003.001.M10 | Negative | Job files untouched (SRD-DSK-002.005) | full run | job file hashes unchanged | Pass |
+| UT-DSK-002.006.M09.T01 | MD-DSK-002.002.M09 | Positive | Rename and restructure (SRD-DSK-002.006) | change name, level and reports_to in job.yaml | loaded with the new values; no code change | Pass |
+| UT-DSK-002.006.M09.T02 | MD-DSK-002.002.M09 | Negative | Repeated id (SRD-DSK-002.006) | two folders with one id | second stays asleep; warning | Pass |
+| UT-DSK-002.007.M09.T01 | MD-DSK-002.002.M09 | Negative | Edits never overwritten (SRD-DSK-002.007) | edited copy, seed again | 0 copied; edit kept | Pass |
+| UT-DSK-002.007.M09.T02 | MD-DSK-002.002.M09 | Positive | Defaults seeded into the desk folder (SRD-DSK-002.007) | empty desk folder | default folders copied | Pass |
 | UT-DSK-003.001.M10.T01 | MD-DSK-003.001.M10 | Positive | Wakes after run (SRD-DSK-003.001) | fake employee, fresh facts, fake model | act called once; brief written | Pass |
 | UT-DSK-003.001.M10.T02 | MD-DSK-003.001.M10 | Negative | Failing employee (SRD-DSK-003.001) | act raises; second employee ok | error logged; second runs; desk run ok | Pass |
 | UT-DSK-003.001.M10.T03 | MD-DSK-003.001.M10 | Positive | Step order (SRD-DSK-003.001) | loaded step list | AI employees after Ideas | Pass |
 | UT-DSK-003.002.M10.T01 | MD-DSK-003.001.M10 | Negative | Once per data day (SRD-DSK-003.002) | run twice on same day | act called once | Pass |
 | UT-DSK-003.002.M10.T02 | MD-DSK-003.001.M10 | Edge | Failed day tried again (SRD-DSK-003.002) | first run no valid answer | second run calls again | Pass |
 | UT-DSK-003.002.M10.T03 | MD-DSK-003.001.M10 | Positive | Next day wakes again (SRD-DSK-003.002) | done yesterday, new data day | act called | Pass |
+| UT-DSK-003.002.M10.T04 | MD-DSK-003.001.M10 | Negative | Rename keeps the day (SRD-DSK-003.002) | rename after a run, same day | not woken again | Pass |
 | UT-DSK-003.003.M10.T01 | MD-DSK-003.001.M10 | Negative | Stale data (SRD-DSK-003.003) | facts fresh False | act not called; reason logged | Pass |
 | UT-DSK-003.003.M10.T02 | MD-DSK-003.001.M10 | Positive | Fresh data wakes (SRD-DSK-003.003) | facts fresh True | act called | Pass |
 | UT-DSK-004.001.M11.T01 | MD-DSK-004.001.M11 | Positive | OpenRouter reply read (SRD-DSK-004.001) | fake HTTP reply with usage | text, tokens and cost | Pass |
@@ -126,6 +132,7 @@
 | UT-DSK-004.005.M13.T02 | MD-DSK-004.005.M13 | Negative | No or broken settings file (SRD-DSK-004.005) | missing or bad JSON | defaults: both sources off, USD 10, 200,000 CLI tokens | Pass |
 | UT-DSK-005.001.M14.T01 | MD-DSK-005.001.M14 | Positive | Try recorded (SRD-DSK-005.001) | one attempt | row with every field | Pass |
 | UT-DSK-005.001.M14.T02 | MD-DSK-005.001.M14 | Negative | Call error recorded (SRD-DSK-005.001) | source raises | invalid row with error text, no answer | Pass |
+| UT-DSK-005.001.M14.T03 | MD-DSK-005.001.M14 | Edge | Old tables get id columns (SRD-DSK-005.001) | briefs made before employee_id | column added on open | Pass |
 | UT-DSK-005.002.M14.T01 | MD-DSK-005.001.M14 | Negative | Append-only (SRD-DSK-005.002) | UPDATE and DELETE on activity and briefs | sqlite error; rows unchanged | Pass |
 | UT-DSK-005.002.M14.T02 | MD-DSK-005.001.M14 | Positive | Inserts still work (SRD-DSK-005.002) | refused update, then new try | new row added | Pass |
 | UT-DSK-005.003.M14.T01 | MD-DSK-005.001.M14 | Positive | Brief stored (SRD-DSK-005.003) | feed item | briefs row with time and data day | Pass |

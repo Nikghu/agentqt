@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-05
 **Project:** US Swing Trading System
 
+> v0.2.1: FO-DSK-002 adds employee identity as data and generic levels; no employee names (user, 2026-11-06).
 > v0.2.0: FO-DSK-002–005 written in full as Draft for P5a (lean harness: registry, wake after run, gateway with budget, recorder); router, replay, Jev and HuggingFace later.
 > v0.1.0: Tool created by architecture review. FO-DSK-001 written in full (phase P0a); FO-DSK-002–006 are outlines to be filled at their phase.
 
@@ -35,12 +36,14 @@ The system shall run the desk as a separate background process that the main app
 
 **Status:** Implemented for P5a (approved by user 2026-11-06)
 **Priority:** Must
-**Phase:** P5a (editing, rollback and HELM drafts in P6)
+**Phase:** P5a (editing, rollback and lead drafts in P6)
 **Depends on:** FO-DSK-001
 
 The system shall load each AI employee from two files written by people, and enforce the job file in code.
 
-- The system shall keep each AI employee as a `soul.md` (mission, style, values) plus a `job.yaml` (triggers, output, models, call and cost caps, KPIs).
+- The system shall keep each AI employee as a `soul.md` (mission, style, values) plus a `job.yaml` (id, name, title, level, reporting line, skill, trigger, models, call and cost caps, KPIs).
+- The system shall treat name, title, level and reporting line as data the Master user can change at any time; code knows only skills and generic levels (lead, expert, champion, junior).
+- The system shall keep employee files in the desk folder and add shipped defaults only when missing, never overwriting them.
 - The system shall check every `job.yaml` against a fixed schema and keep an employee with a bad file asleep.
 - The system shall enforce `job.yaml` in code; it wins over `soul.md`, which is only the system prompt.
 - The system shall keep the name, version and file hash of every loaded job description in `desk.db`.
@@ -48,8 +51,9 @@ The system shall load each AI employee from two files written by people, and enf
 
 ### Acceptance Criteria
 
-1. ATLAS loads from its two files; a broken `job.yaml` keeps it asleep with one clear log line.
-2. `employees` in `desk.db` shows ATLAS with its version and hash.
+1. The default regime view employee loads from its two files; a broken `job.yaml` keeps it asleep with one clear log line.
+2. `roster` in `desk.db` shows the employee's id, name, level, skill, version and hash.
+3. Renaming an employee or changing its level or boss in `job.yaml` needs no code change.
 
 ## FO-DSK-003: Event Router, Market Clock and Wake Rules
 
@@ -66,8 +70,8 @@ The system shall keep agents asleep and wake them only by rule. In P5a the only 
 
 ### Acceptance Criteria
 
-1. The evening run wakes ATLAS once; a second run on the same data day does not.
-2. With stale data ATLAS stays asleep and the log says why.
+1. The evening run wakes the regime view employee once; a second run on the same data day does not.
+2. With stale data the employee stays asleep and the log says why.
 
 ## FO-DSK-004: LLM Gateway and Budget Guard
 
@@ -103,7 +107,7 @@ The system shall record every agent step so any answer can be traced and checked
 
 ### Acceptance Criteria
 
-1. One ATLAS run leaves its full prompt, answer, cost and time in `activity`.
+1. One regime view run leaves its full prompt, answer, tokens, cost and time in `activity`.
 2. An update or delete on `activity` fails.
 
 ## FO-DSK-006: Hiring Pipeline and Process Analytics
@@ -112,7 +116,7 @@ The system shall record every agent step so any answer can be traced and checked
 **Priority:** Should
 **Phase:** P6
 
-- The system shall let HELM propose a new employee or process, which runs only after Master User approval.
+- The system shall let the lead propose a new employee or process, which runs only after Master User approval.
 - The system shall cap seats at 3 experts, 5 champions and 30 juniors; the Master User can raise a cap.
 - The system shall run a new employee in shadow mode for two weeks before a second approval.
 - The system shall let LEDGER report workload, cost and process-improvement ideas.
