@@ -418,6 +418,6 @@ us_swing/src/us_swing/gui/
 | MD-GUI-034.016.M15 | SRD-GUI-034.016 | `us_swing/src/us_swing/gui/ai_desk_settings.py` | Editable desk AI settings in AI Desk → Desk settings | `DeskAiSettingsForm` | `core.desk_ai_settings` | No |
 | MD-GUI-034.017.M16 | SRD-GUI-034.017 | `us_swing/src/us_swing/core/desk_floor.py`, `gui/ai_desk_sections3.py` | Real month spend by employee and model | `DeskFloorData.costs()`, `cost_frame()` | `core.desk_contract` | No |
 | MD-GUI-034.018.M17 | SRD-GUI-034.018 | `us_swing/src/us_swing/core/desk_floor.py` | Desk-backed Latest news, News tags and Calendar products | `DeskFloorData` | `core.desk_contract`, `core.econ_calendar` | No |
-| MD-GUI-034.021.M18 | SRD-GUI-034.021 | `us_swing/src/us_swing/gui/floor_layouts.py` | Default News & Calendar tab with three panels | `default_layouts()` | — | No |
+| MD-GUI-034.021.M18 | SRD-GUI-034.021 | `us_swing/src/us_swing/gui/floor_layouts.py` | Default News & Calendar tab with three panels | `default_layout()` | — | No |
 
 SRD coverage: .002 and .003 by M02 and M09; .004 by M04; .005 by M05; .006 and .007 by M06; .008 by M07; .009 by M08; .010 by M03 and M09.

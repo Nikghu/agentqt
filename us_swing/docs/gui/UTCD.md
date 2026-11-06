@@ -1076,13 +1076,13 @@ Test files:
 | UT-GUI-034.016.M15.T01 | MD-GUI-034.016.M15 | Positive | Settings saved (SRD-GUI-034.016) | change model, budget, CLI token cap, key; Save | desk_ai.json and key updated | Pass |
 | UT-GUI-034.016.M15.T02 | MD-GUI-034.016.M15 | Negative | Bad budget (SRD-GUI-034.016) | budget 0 or text | not saved; message shown | Pass |
 | UT-GUI-034.017.M16.T01 | MD-GUI-034.017.M16 | Positive | Real cost (SRD-GUI-034.017) | activity rows this and last month | this month only; by employee and by model | Pass |
-| UT-GUI-034.018.M17.T01 | MD-GUI-034.018.M17 | Positive | Real headlines (SRD-GUI-034.018) | news_items and news_tags | newest first; symbol or market; tone from tags; not sample | Not Run |
-| UT-GUI-034.018.M17.T02 | MD-GUI-034.018.M17 | Negative | No headlines (SRD-GUI-034.018) | empty news_items | sample rows; sample tag kept | Not Run |
-| UT-GUI-034.018.M17.T03 | MD-GUI-034.018.M17 | Edge | Tone filter (SRD-GUI-034.018) | filter negative | only negative rows | Not Run |
-| UT-GUI-034.019.M17.T01 | MD-GUI-034.018.M17 | Positive | News tags product (SRD-GUI-034.019) | news_tags for two days | listed with the day; latest day; final score high first | Not Run |
-| UT-GUI-034.019.M17.T02 | MD-GUI-034.018.M17 | Negative | No tags (SRD-GUI-034.019) | empty news_tags | product not listed | Not Run |
-| UT-GUI-034.020.M17.T01 | MD-GUI-034.018.M17 | Positive | Real calendar (SRD-GUI-034.020) | today 2026-11-06 | events up to 10 trading days ahead with date, time, event, importance; not sample | Not Run |
-| UT-GUI-034.020.M17.T02 | MD-GUI-034.018.M17 | Edge | Importance filter (SRD-GUI-034.020) | filter high | only high events | Not Run |
-| UT-GUI-034.020.M17.T03 | MD-GUI-034.018.M17 | Negative | Year not covered (SRD-GUI-034.020) | today in a year without a calendar list | no rows, no error; one warning | Not Run |
-| UT-GUI-034.021.M18.T01 | MD-GUI-034.021.M18 | Positive | Default tab (SRD-GUI-034.021) | no saved layout | News & Calendar has Latest news, News tags and Calendar without overlap | Not Run |
-| UT-GUI-034.021.M18.T02 | MD-GUI-034.021.M18 | Negative | Saved layout kept (SRD-GUI-034.021) | saved layout with two panels | still two panels | Not Run |
+| UT-GUI-034.018.M17.T01 | MD-GUI-034.018.M17 | Positive | Real headlines (SRD-GUI-034.018) | news_items and news_tags | newest first; symbol or market; tone from tags; not sample | Pass |
+| UT-GUI-034.018.M17.T02 | MD-GUI-034.018.M17 | Negative | No headlines (SRD-GUI-034.018) | empty news_items | sample rows; sample tag kept | Pass |
+| UT-GUI-034.018.M17.T03 | MD-GUI-034.018.M17 | Edge | Tone filter (SRD-GUI-034.018) | filter negative | only negative rows | Pass |
+| UT-GUI-034.019.M17.T01 | MD-GUI-034.018.M17 | Positive | News tags product (SRD-GUI-034.019) | news_tags for two days | listed with the day; latest day; final score high first | Pass |
+| UT-GUI-034.019.M17.T02 | MD-GUI-034.018.M17 | Negative | No tags (SRD-GUI-034.019) | empty news_tags | listed as "News tags" with no rows, not sample | Pass |
+| UT-GUI-034.020.M17.T01 | MD-GUI-034.018.M17 | Positive | Real calendar (SRD-GUI-034.020) | today 2026-11-06 | events up to 10 trading days ahead with date, time, event, importance; not sample | Pass |
+| UT-GUI-034.020.M17.T02 | MD-GUI-034.018.M17 | Edge | Importance filter (SRD-GUI-034.020) | filter high | only high events | Pass |
+| UT-GUI-034.020.M17.T03 | MD-GUI-034.018.M17 | Negative | Year not covered (SRD-GUI-034.020) | today in a year without a calendar list | no rows, no error; one warning | Pass |
+| UT-GUI-034.021.M18.T01 | MD-GUI-034.021.M18 | Positive | Default tab (SRD-GUI-034.021) | no saved layout | News & Calendar has Latest news, News tags and Calendar without overlap | Pass |
+| UT-GUI-034.021.M18.T02 | MD-GUI-034.021.M18 | Negative | Saved layout kept (SRD-GUI-034.021) | saved layout with two panels | still two panels | Pass |

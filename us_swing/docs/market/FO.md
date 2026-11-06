@@ -146,7 +146,7 @@ The system shall add AI experts on top of the funnel. P5a adds the first skill, 
 
 ## FO-MKT-006: News, Economic Calendar and Event Risk
 
-**Status:** Approved (user, 2026-11-06)
+**Status:** Implemented (approved by user 2026-11-06)
 **Priority:** Should
 **Phase:** P5c
 **Depends on:** FO-MKT-003, FO-MKT-005, FO-DSK-002–005

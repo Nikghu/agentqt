@@ -542,7 +542,7 @@ class NewsReview:  tags: list[NewsTag] (1..20)    market: str (20..400)
 news.latest (real when news_items has rows):
     columns time ("MM-DD HH:MM" NY), headline, symbol ("market" for ''), tone (latest news_tags
     tone of that symbol, else "-"); newest 50; filter tone (positive, neutral, negative)
-news.tags (listed once news_tags has rows; title "News tags (<day>)"):
+news.tags (always listed; title "News tags (<day>)" once tags exist, empty before):
     columns symbol, side, tone, points, final, reason; filter side; latest day; by final desc
 calendar.week (always real):
     columns date ("Wed 11-10"), time, event, importance; events_between(today, 10th trading
@@ -552,5 +552,18 @@ calendar.week (always real):
 `gui/floor_layouts.py` default "News & Calendar" tab: Latest news (cols 0–6, rows 0–13), News tags (cols 0–6, rows 13–26), Calendar (cols 7–11, rows 0–26). A layout the user already saved is kept.
 
 **Default employee** `emp-006`: name "Expert 5", title "Expert", level `expert`, reports_to `emp-005`, skill `news_review`, `trigger: after_run`, primary `claude/default`, backup `openrouter/default`, calls per day 3, monthly cap USD 3. The soul says to judge only the headlines given, to never invent news, to call a headline negative only for real risk (downgrade, guidance cut, probe, offering), and to keep the length limits.
+
+**After the real run** (2026-11-06, copy of the desk folder, data day 2026-11-04, Claude Code CLI haiku):
+- The News step kept 203 headlines (all 20 listed stocks plus 30 market headlines; no feed failed).
+- In the first pass, good company news on short ideas was tagged positive, so their final score went up. The tone is now judged **for the idea's side**: for a short, bad company news is positive and good company news is negative. This is said in both the soul and the `tone` field description of the schema, so `news_points` needs no flip by side.
+- Second pass: the order was Expert 2 → Expert 3 → Expert 5 (news) → Expert 4 (risk) → Lead 1, with 5 of 5 answers valid on the first try, about 30,700 tokens and cost 0. Shorts with buybacks or beats fell to final 58–61, and the lead's facts held the news view and the `final` column.
+
+**After code review.**
+- A headline seen again on a later day is moved to that day (`add_news` updates `date` and `fetched` on the same link or title), so the story stays in the day's facts.
+- A missing link is stored as NULL, so two linkless headlines don't collide.
+- The News step catches every error (`[News] Could not collect headlines`), so it never fails the desk run. It stops fetching more stocks after a 90-second budget (`[News] Time limit reached; N stock(s) not fetched`).
+- `is_trading_day` uses year-aware NYSE closures (`NYSE_CLOSED`, 2026 and 2027). The app-wide `data/market_calendar.py` list has no year (T125).
+- A later news review that fails keeps the day's earlier real tags.
+- Failed-feed log lines say only "timed out", "HTTP 404" or "connection failed", and name the stock.
 
 **Dependencies.** `feedparser>=6.0` in `pyproject.toml`. `USSwing.spec` hidden imports: `us_swing.market.news_step`, `us_swing.market.news_review`, `feedparser`.
