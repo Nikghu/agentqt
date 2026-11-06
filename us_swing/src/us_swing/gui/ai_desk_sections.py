@@ -150,15 +150,17 @@ def _chat_frame() -> QWidget:
     return box
 
 
-def command_frame(name: str, approvals: QWidget | None = None) -> QWidget:
+def command_frame(name: str, approvals: QWidget | None = None,
+                  chat: QWidget | None = None) -> QWidget:
     """Build the Command home: lead chat, approvals waiting and today's runs.
 
-    ``approvals`` is the real approvals box (SRD-GUI-034.031); chat and runs are samples.
+    ``approvals`` is the real approvals box (SRD-GUI-034.031) and ``chat`` the real lead
+    chat (SRD-GUI-034.039); without them the samples show. Today's runs are a sample.
     """
     frame, body = section_frame(name)
     row = QHBoxLayout()
     row.setSpacing(12)
-    row.addWidget(_chat_frame(), 3)
+    row.addWidget(chat or _chat_frame(), 3)
     right = QVBoxLayout()
     right.addWidget(scroll_of(approvals or muted("No approvals")), 3)
     right.addWidget(heading("Today's runs"))
