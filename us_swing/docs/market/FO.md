@@ -6,6 +6,8 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.9.1: FO-MKT-009 approved by user 2026-11-06.
+> v0.9.0: FO-MKT-009 added as Draft — Pick Results (P8).
 > v0.8.1: FO-MKT-008 approved by user 2026-11-06.
 > v0.8.0: FO-MKT-008 written in full as Draft — Link to Execution (P7).
 > v0.7.0: FO-MKT-007 written in full as Draft and renamed by function, AI Report Pages (P5d).
@@ -220,3 +222,27 @@ The system shall show each lead pick to the Master user for approval and send on
 3. Reject adds one `trade` approval row and no signal.
 4. After the next market open, an undecided pick can no longer be approved.
 5. No code in the desk process writes a trade approval, a pending signal or an order.
+
+## FO-MKT-009: Pick Results
+
+**Status:** Implemented (RN-MKT-0.10.0-20261106)
+**Priority:** Should
+**Phase:** P8
+**Depends on:** FO-MKT-005 (lead picks), FO-MKT-008 (trade approvals), FO-EXE-021 (AI Desk trades)
+
+The system shall measure how the desk's lead picks turn out, both as paper results for every pick and as real results for the trades the Master user placed, so the desk's work can be judged by results. Results are shown by skill and input, never by employee name.
+
+- The system shall work out a paper result for every lead pick from daily candles, whether the pick was approved, rejected or expired.
+- The system shall count a paper pick as entered only when price reaches its trigger within 5 trading days after the pick.
+- The system shall end an entered paper pick at its stop, its 2R target, or the close of its 10th trading day, whichever comes first.
+- The system shall record the real result of each closed AI Desk trade against its pick.
+- The system shall break results down by Master decision, setup review grade and news tone.
+- The system shall show the results in a new AI Desk Results section and in the weekly report.
+
+### Acceptance Criteria
+
+1. After an evening run, every lead pick has a paper result: no fill, open, stop, target or time.
+2. A pick whose trigger is not reached in 5 trading days shows no fill.
+3. When an AI Desk trade closes in the app, a real result row with its P&L and R is added.
+4. AI Desk → Results shows paper and real totals, the breakdowns and one row per pick.
+5. The Friday weekly report has a pick results section for the week's picks.

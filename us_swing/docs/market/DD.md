@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.10.0: DD-MKT-009.001.D01 added — pick results (P8).
 > v0.9.0: DD-MKT-008.001.D01 added — link to Execution (P7).
 > v0.8.0: DD-MKT-007.001.D01 added — AI report pages (P5d).
 > v0.7.0: DD-MKT-006.001.D01 added — news, economic calendar and event risk (P5c).
@@ -764,3 +765,82 @@ Reject : err = record_trade_decision(home, pick, "reject", 0, now); ok -> remove
 ```
 
 The Command section is live, so a rebuild on each show drops decided and expired picks (SRD-GUI-034.036).
+
+## DD-MKT-009.001.D01 — Pick Results (P8)
+
+**Traces:** SRD-MKT-009.001–.008; GUI SRD-GUI-034.037–.038
+
+**Files.**
+
+| File | What |
+|---|---|
+| `market/pick_results.py` (new) | `paper_result()` (pure rule) and the desk step `PickResultsStep` ("Pick results") |
+| `market/store.py` | Table `pick_results`, `MarketStore.replace_pick_results()` |
+| `core/desk_results.py` (new) | Table `pick_trades`, `record_pick_trade()` (app), `results_view()` and `results_lines()` (GUI and weekly report) |
+| `core/desk_steps.py` | `PickResultsStep` path after `NewsStep` (so after Ideas), before AI employees |
+| `gui/app_service.py` | `CycleClosed` of the AI Desk strategy → `record_pick_trade()` |
+| `desk/weekly_report.py` | Pick results section |
+| `gui/ai_desk_results.py` (new), `gui/ai_desk.py` | Live AI Desk section "Results" after "Reports" |
+
+**Paper rule** (`paper_result(side, trigger, stop, target, bars, day) -> PaperResult | None`). `bars` holds the daily highs, lows and closes of one stock with dates after the pick's data day, oldest first.
+
+```
+valid: long needs stop < trigger < target; short needs target < trigger < stop; else None
+entry: first of the first 5 bars where (long) high >= trigger / (short) low <= trigger
+       none of 5 bars touched -> no_fill (when 5 bars exist), else open with no entry yet
+from the entry bar (day 1) to day 10:
+       stop reached  (long low <= stop / short high >= stop)        -> stop,   exit = stop
+       target reached (long high >= target / short low <= target)   -> target, exit = target
+       both on one bar                                              -> stop
+       day 10 without either                                        -> time,   exit = close of day 10
+fewer bars than needed -> open, exit = latest close (mark), exit day blank
+R = (exit - entry) / (entry - stop) for long, (entry - exit) / (stop - entry) for short, 2 places
+```
+
+Entry is the trigger and exits are the stop or target price; daily bars have no open, so gaps are not modelled. Target is `pick_target(side, trigger, stop, trade_target_r)` from `core.desk_trades`, with the desk setting.
+
+**Step** (`PickResultsStep`, name "Pick results", after "Ideas" and "News", before "AI employees"). Reads every `lead_picks` row joined with `ideas` (trigger, stop), the daily bars of those symbols from `candles.db` (`CandleReader`), works out each pick, and calls `replace_pick_results(rows)`. No candle file → one warning, nothing written. Logs `[Results] %d pick(s) worked out, %d still open`.
+
+**Table** (`market/store.py`, in `desk.db`):
+
+```
+pick_results(date, side, symbol, status, entry_day, entry, exit_day, exit, r,
+             PRIMARY KEY (date, side, symbol))
+replace_pick_results(rows): one transaction, DELETE all, INSERT rows; status not in
+             (no_fill, open, stop, target, time) -> ValueError
+```
+
+**Real trades** (`core/desk_results.py`, written by the app only):
+
+```
+pick_trades(id INTEGER PK, created, subject, symbol, side, entry_time, entry, exit_time, exit,
+            qty, pnl, r, exit_reason)   + no-update and no-delete triggers
+record_pick_trade(home, snap, now):
+    side = "long" if snap.direction == "LONG" else "short"
+    subject = newest approvals row kind 'trade_done', decision 'executed',
+              subject ending ":{side}:{symbol}"  ("" when none)
+    r = from entry, exit and snap.hard_stop_loss as in the paper rule (None when risk is 0)
+    one INSERT; sqlite3.Error -> log ERROR
+```
+
+`AppService._on_cycle_closed_clear_pending` also calls `_record_desk_trade(evt.snapshot)` when `strategy_id == "AI Desk"`; it runs on the cycle thread and opens its own connection.
+
+**Results view** (`results_view(home, first=None, last=None) -> ResultsView`), plain SQL, every table optional:
+
+```
+picks: lead_picks LEFT JOIN pick_results, setup_review (grade), news_tags (tone)
+       decision = first 'trade' approvals row of the subject, else expired/waiting by pick_expiry
+       real P&L = SUM(pick_trades.pnl) for the subject
+       only data days in [first, last] when given; newest first
+Group(label, picks, fills, finished, targets, hit_rate, avg_r)
+       fills = status not in (no_fill) and has entry; finished = stop/target/time
+       hit_rate = targets / finished; avg_r over finished
+totals: Group("All", ...); breakdowns: "Decision", "Setup grade" (A/B/C/none), "News tone"
+real: trades, wins (pnl > 0), pnl, avg_r over pick_trades in the range (by exit day)
+```
+
+`results_lines(view)` gives short text lines for the weekly report: paper totals, the three breakdowns, real totals; "No lead picks this week" when there are none.
+
+**Weekly report.** `build_report` adds a blank line, "Pick results", and `results_lines(results_view(home, first, friday))`.
+
+**GUI Results** (`results_frame(name, home)`). Top line: paper picks, fills, hit rate, average R; real trades, wins, P&L. Three small tables (Decision, Setup grade, News tone: Group · Picks · Fills · Finished · Hit rate · Avg R). Then the pick table: Day · Side · Stock · Decision · Paper · R · Real P&L, newest first. Empty note "No lead picks yet" when there are none. Labels are skills and inputs only; employee names never appear.

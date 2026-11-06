@@ -6,6 +6,9 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.11.2: SRD-MKT-009.001–.008 Implemented (RN-MKT-0.10.0-20261106).
+> v0.11.1: SRD-MKT-009.001–.008 approved by user 2026-11-06.
+> v0.11.0: SRD-MKT-009.001–.008 added as Draft — pick results (P8).
 > v0.10.2: SRD-MKT-008.001–.006 Implemented (RN-MKT-0.9.0-20261106).
 > v0.10.1: SRD-MKT-008.001–.006 approved by user 2026-11-06.
 > v0.10.0: SRD-MKT-008.001–.006 added as Draft — link to Execution (P7).
@@ -149,3 +152,16 @@
 | SRD-MKT-008.004 | FO-MKT-008 | Must | Each Master decision adds one `approvals` row with kind `trade`, subject `date:side:symbol`, decision approve or reject, and the entry, stop, target and quantity in detail. | decision | row | Append-only; a second decision on the same pick or on an expired pick is refused | Implemented |
 | SRD-MKT-008.005 | FO-MKT-008 | Must | The pick and decision logic lives in `core/` so the GUI can use it, and only the app process writes trade approvals. | — | — | `market` never imports `desk`; the GUI never imports `desk`; no AI employee calls it | Implemented |
 | SRD-MKT-008.006 | FO-MKT-008 | Should | Each trade decision logs the side, stock and decision, and the waiting list logs how many picks expired. | decision | log lines | `[AI Desk]` prefix; no employee names | Implemented |
+
+## FO-MKT-009: Pick Results
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-MKT-009.001 | FO-MKT-009 | Must | A "Pick results" desk step runs after the Ideas step and works out a paper result for every lead pick from daily candles. | `lead_picks`, `ideas`, `candles.db` | `pick_results` rows | No AI call; every pick is worked out again on each run; `market` never imports `desk` | Implemented |
+| SRD-MKT-009.002 | FO-MKT-009 | Must | A paper pick is entered on the first day its high (long) or low (short) reaches the trigger within 5 trading days after its data day, else it is no fill. | daily bars | entry day, entry | Entry price is the trigger; gaps are not modelled because daily bars have no open | Implemented |
+| SRD-MKT-009.003 | FO-MKT-009 | Must | An entered paper pick ends on the first day its stop or target is reached, or at the close of its 10th trading day from entry. | daily bars | status, exit, R | Stop wins when both are reached on one day; until it ends the pick is open and marked at the latest close; target uses `trade_target_r` | Implemented |
+| SRD-MKT-009.004 | FO-MKT-009 | Must | `pick_results` keeps one row per pick with date, side, symbol, status, entry day, entry, exit day, exit and R. | results | table | Status is no_fill, open, stop, target or time; rows are replaced on each run | Implemented |
+| SRD-MKT-009.005 | FO-MKT-009 | Must | When an AI Desk trade cycle closes, the app adds one `pick_trades` row with the pick, side, entry, exit, quantity, P&L, R and exit reason. | closed cycle | row | Append-only; the pick is the newest executed approval for that stock and side; app process only | Implemented |
+| SRD-MKT-009.006 | FO-MKT-009 | Must | A shared results view gives paper totals and breakdowns by Master decision, setup review grade and news tone, and real trade totals. | `desk.db` | results view | Lives in `core/`; grouped by skill input, never by employee name | Implemented |
+| SRD-MKT-009.007 | FO-MKT-009 | Should | The weekly report adds a pick results section for picks whose data day is in the week. | results view | report text | Paper picks, fills, hit rate, average R; real trades, wins, P&L | Implemented |
+| SRD-MKT-009.008 | FO-MKT-009 | Should | The Pick results step logs how many picks it worked out and how many are still open. | step | log lines | `[Results]` prefix | Implemented |
