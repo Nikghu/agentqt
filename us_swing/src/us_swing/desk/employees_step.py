@@ -3,7 +3,8 @@ Module: MD-DSK-003.001.M10 — desk/employees_step.py
 Parent SRD: SRD-DSK-003.001
 Also: SRD-DSK-003.002 (once per data day), SRD-DSK-003.003 (fresh data only),
 SRD-DSK-002.005 (skills get only home and ask), SRD-DSK-002.007 (default employee files),
-SRD-DSK-005.004 (run log), SRD-DSK-003.004 (posts ``after_run``)
+SRD-DSK-005.004 (run log), SRD-DSK-003.004 (posts ``after_run``),
+SRD-DSK-006.004 (a shadow employee is only asked and recorded)
 
 Desk step "AI employees": after the market steps, copies any missing default employee
 files into the desk folder, posts an ``after_run`` event and lets the router handle every
@@ -30,6 +31,7 @@ from us_swing.desk.registry import (
     seed_employees,
 )
 from us_swing.desk.router import Router
+from us_swing.desk.shadow import run_shadow
 
 log = logging.getLogger(__name__)
 
@@ -109,6 +111,11 @@ class EmployeesStep:
             return
         recorder = Recorder(home)
         try:
+            if spec.status == "shadow":
+                gateway = Gateway(home, hire, recorder, settings, self._key(), run_id,
+                                  facts.data_day, self._caller, self._clock, shadow=True)
+                run_shadow(hire, facts, gateway, recorder)
+                return
             if event.kind == "after_run" and recorder.done_on(spec.id, facts.data_day):
                 log.info("[AI Desk] %s already answered for %s", spec.name, facts.data_day)
                 return

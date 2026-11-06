@@ -148,12 +148,15 @@ class Gateway:
 
     def __init__(self, home: Path, hire: Hire, recorder: Recorder, settings: DeskAiSettings,
                  key: str, run_id: int, data_day: str, caller: Caller = call_model,
-                 clock: Callable[[], datetime] = ny_now, replay: bool = False) -> None:
+                 clock: Callable[[], datetime] = ny_now, replay: bool = False,
+                 shadow: bool = False) -> None:
         """Bind the employee, the run and the sources; ``caller`` is injectable for tests.
 
-        With ``replay`` every try is recorded as a replay, so it never counts as a wake.
+        With ``replay`` every try is recorded as a replay, so it never counts as a wake;
+        with ``shadow`` every try is marked as a shadow try (SRD-DSK-006.004).
         """
         self._replay = replay
+        self._shadow = shadow
         self._home = home
         self._hire = hire
         self._rec = recorder
@@ -233,7 +236,8 @@ class Gateway:
             self._run_id, spec.id, spec.name, spec.version, self._day,
             started.isoformat(timespec="seconds"), source, model, attempt,
             f"{system}\n\n---\n\n{user}", reply.text, result is not None, error,
-            reply.tokens_in, reply.tokens_out, reply.cost_usd, seconds, int(self._replay)))
+            reply.tokens_in, reply.tokens_out, reply.cost_usd, seconds, int(self._replay),
+            int(self._shadow)))
         if result is not None:
             self.answered = Answered(model, seconds, reply.tokens_in + reply.tokens_out,
                                      reply.cost_usd)

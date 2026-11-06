@@ -2,6 +2,7 @@
 Module: MD-GUI-034.009.M08 — AI Desk workspace
 Parent SRD: SRD-GUI-034.009
 Also: SRD-GUI-034.022 — the Pages section (was Studio), rebuilt each time it is shown
+Also: SRD-GUI-034.027–.032 — real Hiring, Command approvals and Reports (live sections)
 """
 from __future__ import annotations
 
@@ -21,9 +22,9 @@ from us_swing.gui.desk_control import DeskBar, DeskPoller
 from us_swing.gui.ai_desk_sections import (
     command_frame,
     employees_frame,
-    hiring_frame,
     org_frame,
 )
+from us_swing.gui.ai_desk_hiring import approvals_box, hiring_frame
 from us_swing.gui.ai_desk_sections2 import (
     activity_frame,
     schedule_frame,
@@ -38,11 +39,10 @@ SECTIONS = (
     "Schedule", "Pages", "Reports", "Cost & budget", "Desk settings",
 )
 
-_LIVE_SECTIONS = ("Pages", "Cost & budget")
+_LIVE_SECTIONS = ("Command", "Hiring", "Pages", "Reports", "Cost & budget")
 _BUILDERS: dict[str, Callable[[str], QWidget]] = {
-    "Command": command_frame, "Org chart": org_frame, "Employees": employees_frame,
-    "Hiring": hiring_frame, "Task board": tasks_frame, "Activity": activity_frame,
-    "Schedule": schedule_frame, "Reports": reports_frame,
+    "Org chart": org_frame, "Employees": employees_frame,
+    "Task board": tasks_frame, "Activity": activity_frame, "Schedule": schedule_frame,
     "Cost & budget": cost_frame, "Desk settings": settings_frame,
 }
 
@@ -86,7 +86,7 @@ class AiDeskWorkspace(QWidget):
         self._list.setCurrentRow(0)
 
     def _show_section(self, row: int) -> None:
-        """Show section ``row``; Pages and Cost & budget are rebuilt so they are current."""
+        """Show section ``row``; live sections are rebuilt so they are current."""
         if 0 <= row < len(SECTIONS) and SECTIONS[row] in _LIVE_SECTIONS:
             old = self._stack.widget(row)
             self._stack.insertWidget(row, card(self._build(SECTIONS[row])))
@@ -96,6 +96,13 @@ class AiDeskWorkspace(QWidget):
         self._stack.setCurrentIndex(row)
 
     def _build(self, name: str) -> QWidget:
+        if name == "Command":
+            return command_frame(name, approvals_box(
+                self._home, lambda: self.select_section("Hiring")))
+        if name == "Hiring":
+            return hiring_frame(name, self._home)
+        if name == "Reports":
+            return reports_frame(name, self._home)
         if name == "Pages":
             return pages_frame(name, self._home)
         if name == "Cost & budget":

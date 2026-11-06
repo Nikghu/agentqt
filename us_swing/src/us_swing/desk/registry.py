@@ -3,7 +3,8 @@ Module: MD-DSK-002.002.M09 — desk/registry.py
 Parent SRD: SRD-DSK-002.002
 Also: SRD-DSK-002.001 (skills by key), SRD-DSK-002.003 (job file wins),
 SRD-DSK-002.004 (``employees`` table), SRD-DSK-002.006 (employee identity is data),
-SRD-DSK-002.007 (employee files in the desk folder), SRD-DSK-002.009 (trigger list)
+SRD-DSK-002.007 (employee files in the desk folder), SRD-DSK-002.009 (trigger list),
+SRD-DSK-006.008 (status: retired employees are not loaded)
 
 Employees are folders of data in ``<desk>/employees/<id>/``: ``soul.md`` (the prompt) and
 ``job.yaml`` (identity, level, reporting line, skill and rules). Defaults shipped with
@@ -19,6 +20,7 @@ import shutil
 import sqlite3
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 from typing import Literal
 
@@ -36,6 +38,7 @@ SOUL_FILE = "soul.md"
 JOB_FILE = "job.yaml"
 EMPLOYEES_DIR = "employees"
 Source = Literal["openrouter", "claude"]
+Status = Literal["active", "shadow", "retired"]
 
 
 class ModelChoice(BaseModel):
@@ -73,6 +76,14 @@ class JobSpec(BaseModel):
     calls_per_day: int = Field(ge=1)
     monthly_cost_usd: float = Field(gt=0)
     kpis: list[str] = Field(min_length=1)
+    status: Status = "active"
+    hired_on: str | None = None
+
+    @field_validator("hired_on", mode="before")
+    @classmethod
+    def _day_text(cls, value: object) -> object:
+        """Accept an unquoted YAML date as its ISO text."""
+        return value.isoformat() if isinstance(value, date) else value
 
     @field_validator("trigger", mode="before")
     @classmethod
@@ -167,7 +178,7 @@ def load_employees(home: Path, skills: Mapping[str, str]) -> list[Hire]:
     seen: set[str] = set()
     for folder in sorted(p for p in root.iterdir() if p.is_dir()) if root.is_dir() else []:
         hire = load_employee(folder, skills)
-        if hire is None:
+        if hire is None or hire.spec.status == "retired":
             continue
         if hire.spec.id in seen:
             log.warning("[AI Desk] Employee id %s is used twice; %s stays asleep",

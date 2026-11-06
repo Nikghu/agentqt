@@ -4,6 +4,7 @@ Parent SRD: SRD-DSK-001.021
 Also: SRD-DSK-001.022 — score proof runner path
 Also: SRD-DSK-002.001, SRD-DSK-003.001 — skill list, default employee files and the "AI employees" step
 Also: SRD-MKT-007.007 — report page skill path
+Also: SRD-DSK-006.009 — "Weekly report" step path
 
 The list of steps the desk runs, loaded by import path, so ``desk`` never imports
 the tools (such as ``market``) that provide the steps.
@@ -25,6 +26,7 @@ STEP_PATHS: tuple[str, ...] = (
     "us_swing.market.idea_step:IdeaStep",
     "us_swing.market.news_step:NewsStep",
     "us_swing.desk.employees_step:EmployeesStep",
+    "us_swing.desk.weekly_report:WeeklyReportStep",
 )
 # Skills by key (named by what they do, never by who does them).
 SKILL_PATHS: dict[str, str] = {

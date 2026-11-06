@@ -1,10 +1,12 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.88.0
+**Version:** 2.89.0
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.89.1: SRD-GUI-034.027–.033 approved by user 2026-11-06.
+> v2.89.0: SRD-GUI-034.027–.033 added as Draft — real Hiring, approvals, Reports and seat caps (DSK P6).
 > v2.88.1: SRD-GUI-034.022–.026 approved by user 2026-11-06.
 > v2.88.0: SRD-GUI-034.022–.026 added as Draft — AI Desk Pages section and sealed preview (MKT P5d).
 > v2.87.0: SRD-GUI-034.018–.021 added as Draft — real news, news tags and calendar panels (MKT P5c).
@@ -694,3 +696,10 @@
 | SRD-GUI-034.024 | FO-GUI-034 | Must | The sealed preview uses its own off-the-record profile with JavaScript, local file access and remote URL access turned off. | — | web view | Other web views in the app are unchanged | Implemented |
 | SRD-GUI-034.025 | FO-GUI-034 | Must | A request filter in the sealed preview blocks every request except the page itself. | request | blocked request | Each block is logged at DEBUG with the `[Pages]` prefix | Implemented |
 | SRD-GUI-034.026 | FO-GUI-034 | Should | When there is no page yet, the Pages section shows a short empty note instead of a blank preview. | — | note | — | Implemented |
+| SRD-GUI-034.027 | FO-GUI-034 | Must | AI Desk → Hiring lists real hires with skill, level, name, model, start day, shadow days done and status. | employee files, `activity` | table rows | Sample columns removed; read-only list | Implemented |
+| SRD-GUI-034.028 | FO-GUI-034 | Must | A "Start hire" form in Hiring takes a skill from the skill list, a level, a name and a model, and shows the reason when the hire is refused. | form | new hire | Seat caps checked before the hire is made | Implemented |
+| SRD-GUI-034.029 | FO-GUI-034 | Must | Choosing a hire shows its shadow report next to the holder's figures. | hire | report table | Shows "-" for agreement when the skill has no holder | Implemented |
+| SRD-GUI-034.030 | FO-GUI-034 | Must | Replace, Add and Reject buttons record the Master decision for a hire that is ready. | click | decision | Disabled until ready; Add disabled while the skill has an active holder | Implemented |
+| SRD-GUI-034.031 | FO-GUI-034 | Should | Command → "Approvals waiting" lists hires ready for a decision and opens Hiring on click. | hires | list | Empty note when none | Implemented |
+| SRD-GUI-034.032 | FO-GUI-034 | Must | AI Desk → Reports lists the weekly reports newest first and shows the chosen one. | `desk_reports` | list, text | Sample reports only while there are none | Implemented |
+| SRD-GUI-034.033 | FO-GUI-034 | Should | Desk settings shows the seat caps for experts, champions and juniors and saves changes. | form | desk settings | A cap below the current count is refused | Implemented |

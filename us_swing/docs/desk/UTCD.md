@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.7.0: 23 test cases for P6 (hiring, shadow, seat caps, weekly report).
 > v0.6.0: 41 test cases for P5b (events, market clock, LangGraph order, replay).
 > v0.5.1: P5a cases reworded without employee names; 6 cases added for identity as data (user, 2026-11-06).
 > v0.5.0: 38 test cases for the P5a lean harness.
@@ -191,3 +192,31 @@
 | UT-DSK-003.011.M16.T03 | MD-DSK-003.006.M16 | Negative | Graph error (SRD-DSK-003.011) | graph run raises outside a node | logged; event closed with note failed | Pass |
 | UT-DSK-005.005.M17.T04 | MD-DSK-005.005.M17 | Edge | Soul with rule lines (SRD-DSK-005.005) | soul.md holds --- between blank lines | same system and user text sent again | Pass |
 | UT-DSK-005.006.M14.T01 | MD-DSK-005.001.M14 | Positive | Replays use no live quota (SRD-DSK-005.006) | one live and one replay try today | day_tries 1; cost of both counted | Pass |
+
+## FO-DSK-006: Hiring Pipeline and Process Analytics
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-DSK-006.001.M18.T01 | MD-DSK-006.001.M18 | Positive | Start a hire (SRD-DSK-006.001) | skill setup_review, expert, made-up name, claude default | new folder with status shadow, hired_on, version 1, chosen model; soul from the default | Pass |
+| UT-DSK-006.001.M18.T02 | MD-DSK-006.001.M18 | Edge | Next id (SRD-DSK-006.001) | folders emp-001, emp-003, emp-010 | new id emp-011 | Pass |
+| UT-DSK-006.002.M18.T01 | MD-DSK-006.001.M18 | Negative | Refused hires (SRD-DSK-006.002) | unknown skill; lead level; name used (other case); expert cap full | each refused with a reason; no folder made | Pass |
+| UT-DSK-006.003.M13.T01 | MD-DSK-004.005.M13 | Positive | Cap defaults and save (SRD-DSK-006.003) | no file; save caps 9/6/31 | 8/5/30; then 9/6/31 after load | Pass |
+| UT-DSK-006.003.M13.T02 | MD-DSK-004.005.M13 | Negative | Bad cap (SRD-DSK-006.003) | cap 0 | refused | Pass |
+| UT-DSK-006.003.M18.T01 | MD-DSK-006.001.M18 | Positive | Seat count (SRD-DSK-006.003) | 2 active, 1 shadow, 1 retired experts | expert count 3 | Pass |
+| UT-DSK-006.004.M19.T01 | MD-DSK-006.004.M19 | Positive | Shadow answer recorded only (SRD-DSK-006.004) | shadow hire, fresh facts, valid answer | activity rows with shadow 1; act not called; no briefs | Pass |
+| UT-DSK-006.004.M19.T02 | MD-DSK-006.004.M19 | Negative | One answer per day (SRD-DSK-006.004) | shadow already answered for the data day | not asked again | Pass |
+| UT-DSK-006.004.M19.T03 | MD-DSK-006.004.M19 | Positive | Through the employees step (SRD-DSK-006.004) | holder and shadow for one skill, after_run | holder writes its brief; shadow writes only shadow tries | Pass |
+| UT-DSK-006.005.M18.T01 | MD-DSK-006.001.M18 | Positive | Ready after 14 days (SRD-DSK-006.005) | 13, then 14 shadow data days | not ready, then ready | Pass |
+| UT-DSK-006.005.M19.T01 | MD-DSK-006.004.M19 | Negative | No calls after 14 days (SRD-DSK-006.005) | shadow with 14 days | not asked; one [Hiring] line when day 14 is reached | Pass |
+| UT-DSK-006.006.M18.T01 | MD-DSK-006.001.M18 | Positive | Shadow report (SRD-DSK-006.006) | 3 shadow days, holder tries on 2 of them | days, valid share, tokens, cost per row; agreement over common days | Pass |
+| UT-DSK-006.006.M18.T02 | MD-DSK-006.001.M18 | Edge | No holder (SRD-DSK-006.006) | skill without an active holder | holder rows empty; agreement None | Pass |
+| UT-DSK-006.006.M18.T03 | MD-DSK-006.001.M18 | Positive | Agreement values (SRD-DSK-006.006) | same answers; one grade differs; only free text differs | 1.0; between 0 and 1; 1.0 | Pass |
+| UT-DSK-006.007.M18.T01 | MD-DSK-006.001.M18 | Positive | Replace (SRD-DSK-006.007) | ready hire with one holder | approvals row; holder retired, hire active; versions + 1; comments kept | Pass |
+| UT-DSK-006.007.M18.T02 | MD-DSK-006.001.M18 | Positive | Add and Reject (SRD-DSK-006.007) | ready hire without holder; another hire | Add makes it active; Reject retires it | Pass |
+| UT-DSK-006.007.M18.T03 | MD-DSK-006.001.M18 | Negative | Refused decisions (SRD-DSK-006.007) | Replace before ready; Add with an active holder; unknown hire | refused with a reason; no row; files unchanged | Pass |
+| UT-DSK-006.007.M18.T04 | MD-DSK-006.001.M18 | Negative | Approvals append-only (SRD-DSK-006.007) | UPDATE and DELETE on approvals | both refused | Pass |
+| UT-DSK-006.008.M09.T01 | MD-DSK-002.002.M09 | Positive | Status read (SRD-DSK-006.008) | files with retired, shadow and no status | retired not loaded; shadow loaded; no status = active | Pass |
+| UT-DSK-006.009.M20.T01 | MD-DSK-006.009.M20 | Positive | Friday report (SRD-DSK-006.009) | Friday run, tries of 2 employees and a shadow hire | one desk_reports row with per-employee figures and shadow days | Pass |
+| UT-DSK-006.009.M20.T02 | MD-DSK-006.009.M20 | Negative | Once per week (SRD-DSK-006.009) | second run the same week | no new row | Pass |
+| UT-DSK-006.009.M20.T03 | MD-DSK-006.009.M20 | Edge | Missed Friday (SRD-DSK-006.009) | first run on Monday | report for the Friday before; Saturday–Friday period | Pass |
+| UT-DSK-006.010.M18.T01 | MD-DSK-006.001.M18 | Positive | Log lines (SRD-DSK-006.010) | start, decide, weekly report | [Hiring] and [Report] lines with no internal names | Pass |

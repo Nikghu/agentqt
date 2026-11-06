@@ -2,7 +2,7 @@
 Module: MD-DSK-005.001.M14 — desk/recorder.py
 Parent SRD: SRD-DSK-005.001
 Also: SRD-DSK-005.002 (append-only), SRD-DSK-005.003 (briefs), SRD-DSK-003.009 (last wake),
-SRD-DSK-005.006 (replay tries are marked)
+SRD-DSK-005.006 (replay tries are marked), SRD-DSK-006.004 (shadow tries are marked)
 
 Append-only records of every AI try (``activity``) and every AI feed brief (``briefs``)
 in ``desk.db``. The database itself refuses updates and deletes on both tables.
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS briefs (
 """
 # Columns added after the first P5a tables were created on real desks.
 _ADDED = (("activity", "employee_name", "TEXT"), ("briefs", "employee_id", "TEXT"),
-          ("activity", "replay", "INTEGER DEFAULT 0"))
+          ("activity", "replay", "INTEGER DEFAULT 0"), ("activity", "shadow", "INTEGER DEFAULT 0"))
 _GUARDS = [
     f"CREATE TRIGGER IF NOT EXISTS {table}_no_{op.lower()} BEFORE {op} ON {table} "
     f"BEGIN SELECT RAISE(ABORT, '{table} is append-only'); END"
@@ -68,6 +68,7 @@ class Attempt:
     cost_usd: float
     seconds: float
     replay: int = 0
+    shadow: int = 0
 
 
 @dataclass(frozen=True)
@@ -129,6 +130,13 @@ class Recorder:
                 "INSERT INTO briefs (created, data_day, author, kind, text, employee_id) "
                 "VALUES (?, ?, ?, ?, ?, ?)",
                 [(when, i.data_day, name, i.kind, i.text, employee_id) for i in items])
+
+    def shadow_days(self, employee_id: str) -> set[str]:
+        """Data days on which a shadow employee was asked (shadow tries only)."""
+        rows = self._con.execute(
+            "SELECT DISTINCT data_day FROM activity WHERE employee = ? AND shadow = 1",
+            (employee_id,)).fetchall()
+        return {str(r[0]) for r in rows}
 
     def done_on(self, employee_id: str, data_day: str) -> bool:
         """True when the employee already posted a brief for ``data_day``."""

@@ -2,6 +2,17 @@
 
 ---
 
+## [20261106] DSK + GUI — Hiring pipeline, shadow, seat caps and weekly report, phase P6 (FO-DSK-006)
+
+- Type: Feature
+- FO(s): FO-DSK-006; FO-GUI-034
+- RN: RN-DSK-0.4.0-20261106
+- Artifacts updated: SRD (DSK-006.001–.010, GUI-034.027–.033 Implemented), DD (DD-DSK-006.001.D01), MD, UTCD (23 DSK and 13 GUI rows Pass), TRACE, Code (core/desk_hiring.py, desk/shadow.py, desk/weekly_report.py, gui/ai_desk_hiring.py and changes in registry, recorder, gateway, employees_step, settings, AI Desk sections)
+- Decisions: Master starts every hire, no AI proposer; 14-data-day shadow that only records; Add only when the skill has no active holder; status lives in job.yaml (line edits keep comments); seat caps 8/5/30; weekly report by code only
+- Tests: 2365 passed, 12 old failures (T112), 2 skipped; reviewers hit the usage limit, manual review done
+
+---
+
 ## [20261106] MKT — AI report pages, phase P5d (FO-MKT-007; FO-GUI-034 reopened)
 
 - Type: Feature

@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.16.0: MD-GUI-034.027.M21, .032.M22 and .033.M23 added (DSK P6).
 > v1.15.0: MD-GUI-034.022.M19 and .024.M20 added (MKT P5d).
 > v1.14.0: MD-GUI-034.018.M17 and .021.M18 added (MKT P5c).
 > v1.13.0: MD-GUI-034.015.M14–.017.M16 added (P5a).
@@ -422,5 +423,8 @@ us_swing/src/us_swing/gui/
 | MD-GUI-034.021.M18 | SRD-GUI-034.021 | `us_swing/src/us_swing/gui/floor_layouts.py` | Default News & Calendar tab with three panels | `default_layout()` | — | No |
 | MD-GUI-034.022.M19 | SRD-GUI-034.022 | `us_swing/src/us_swing/gui/ai_desk_pages.py`, `core/desk_floor.py` | AI Desk Pages section: version list, preview, empty note; read-only page reader | `pages_frame()`, `DeskFloorData.report_pages()`, `DeskFloorData.report_page()` | M20, `core.report_html` | No |
 | MD-GUI-034.024.M20 | SRD-GUI-034.024 | `us_swing/src/us_swing/gui/sealed_view.py` | Sealed web view: off-the-record profile, request filter, JavaScript and file access off | `SealedView`, `allowed_scheme()` | `PyQt6.QtWebEngineCore`, `core.report_html` | No |
+| MD-GUI-034.027.M21 | SRD-GUI-034.027 | `us_swing/src/us_swing/gui/ai_desk_hiring.py` | Hiring section (hires, Start hire, shadow report, decisions) and Command approvals box | `hiring_frame()`, `approvals_box()` | `core.desk_hiring` | No |
+| MD-GUI-034.032.M22 | SRD-GUI-034.032 | `us_swing/src/us_swing/gui/ai_desk_sections3.py`, `core/desk_floor.py` | Reports section from weekly reports | `reports_frame()`, `DeskFloorData.weekly_reports()` | `core.desk_contract` | No |
+| MD-GUI-034.033.M23 | SRD-GUI-034.033 | `us_swing/src/us_swing/gui/ai_desk_settings.py` | Seat cap fields in Desk settings | `DeskAiSettingsForm` | `core.desk_ai_settings`, `core.desk_hiring` | No |
 
 SRD coverage: .002 and .003 by M02 and M09; .004 by M04; .005 by M05; .006 and .007 by M06; .008 by M07; .009 by M08; .010 by M03 and M09.

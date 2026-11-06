@@ -1,6 +1,7 @@
 """
 Module: MD-GUI-034.016.M15 — gui/ai_desk_settings.py
 Parent SRD: SRD-GUI-034.016
+Also: MD-GUI-034.033.M23 — seat caps (SRD-GUI-034.033)
 
 Editable desk AI settings in AI Desk → Desk settings: which sources the desk may use,
 their models, the monthly API budget, the daily Claude Code CLI token cap and the
@@ -29,6 +30,8 @@ from us_swing.core.desk_ai_settings import (
     save_key,
     save_settings,
 )
+from us_swing.core.desk_contract import desk_home
+from us_swing.core.desk_hiring import seat_counts
 from us_swing.gui.theme import C
 
 _log = logging.getLogger(__name__)
@@ -66,6 +69,10 @@ class DeskAiSettingsForm(QWidget):
         form.addRow("OpenRouter model", self.openrouter_model)
         form.addRow("OpenRouter key", self.key)
         form.addRow("Monthly API budget (USD)", self.budget)
+        self.caps = {level: self._line(str(self._settings.cap(level)))
+                     for level in ("expert", "champion", "junior")}
+        for level, edit in self.caps.items():
+            form.addRow(f"Seats for {level}s", edit)
         outer.addLayout(form)
         row = QHBoxLayout()
         self.save_btn = QPushButton("Save")
@@ -94,11 +101,20 @@ class DeskAiSettingsForm(QWidget):
                 claude_model=self.claude_model.text().strip(),
                 openrouter_on=self.openrouter_on.isChecked(),
                 openrouter_model=self.openrouter_model.text().strip(),
-                monthly_budget_usd=budget, claude_tokens_per_day=tokens)
+                monthly_budget_usd=budget, claude_tokens_per_day=tokens,
+                expert_cap=int(self.caps["expert"].text().strip()),
+                champion_cap=int(self.caps["champion"].text().strip()),
+                junior_cap=int(self.caps["junior"].text().strip()))
             if not math.isfinite(budget):
                 raise ValueError("budget")
         except ValueError:
-            self.status.setText("Budget and tokens per day must be numbers above 0")
+            self.status.setText("Budget, tokens per day and seats must be numbers above 0")
+            return False
+        used = seat_counts(self._home or desk_home())
+        low = [level for level in self.caps if (settings.cap(level) or 0) < used.get(level, 0)]
+        if low:
+            self.status.setText(f"{used[low[0]]} {low[0]}s already work at the desk; "
+                                f"the cap cannot be lower")
             return False
         if ((settings.claude_on and not settings.claude_model)
                 or (settings.openrouter_on and not settings.openrouter_model)):

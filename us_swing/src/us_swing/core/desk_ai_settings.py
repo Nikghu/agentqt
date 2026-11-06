@@ -1,6 +1,7 @@
 """
 Module: MD-DSK-004.005.M13 — core/desk_ai_settings.py
 Parent SRD: SRD-DSK-004.005
+Also: SRD-DSK-006.003 — seat caps per level
 
 Desk AI settings, separate from the AI notes settings: which sources may run, their
 models, the monthly API budget and the daily Claude Code CLI token cap. Kept in
@@ -34,11 +35,21 @@ class DeskAiSettings:
     claude_model: str = "claude-haiku-5-5"
     monthly_budget_usd: float = 10.0
     claude_tokens_per_day: int = 200_000
+    expert_cap: int = 8
+    champion_cap: int = 5
+    junior_cap: int = 30
 
     def __post_init__(self) -> None:
-        """Refuse a budget or token cap that is not above 0."""
+        """Refuse a budget, token cap or seat cap that is not above 0."""
         if self.monthly_budget_usd <= 0 or self.claude_tokens_per_day <= 0:
             raise ValueError("budget and token cap must be above 0")
+        if min(self.expert_cap, self.champion_cap, self.junior_cap) < 1:
+            raise ValueError("seat caps must be at least 1")
+
+    def cap(self, level: str) -> int | None:
+        """Seat cap of ``level``; ``None`` for the lead level, which has no cap."""
+        return {"expert": self.expert_cap, "champion": self.champion_cap,
+                "junior": self.junior_cap}.get(level)
 
 
 def load_settings(home: Path | None = None) -> DeskAiSettings:

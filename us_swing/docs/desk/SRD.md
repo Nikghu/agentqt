@@ -1,11 +1,13 @@
 # Software Requirements — Desk Harness (DSK)
 
 **Document ID:** SRD-DSK
-**Version:** 0.3.0
+**Version:** 0.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.6.1: SRD-DSK-006.001–.010 approved by user 2026-11-06.
+> v0.6.0: SRD-DSK-006.001–.010 added as Draft — hiring pipeline, shadow, seat caps, weekly report (P6).
 > v0.5.1: SRD-DSK-002.001/.002/.004/.005 reworded and .006–.007 added — skills by key, identity as data, generic levels (asked by user, 2026-11-06).
 > v0.5.0: SRD-DSK-002.001–.005, 003.001–.003, 004.001–.005, 005.001–.004 added as Draft (P5a harness).
 > v0.4.0: SRD-DSK-001.022 added as Draft — `desk proof` sub-command (for MKT P4).
@@ -94,3 +96,18 @@
 | SRD-DSK-005.005 | FO-DSK-005 | Must | `desk replay <run>` sends the recorded prompts of that run again through the gateway, with the recorded model or one given by `--model`, for all employees or one given by `--employee`. | run id, options | answers | Budget and caps apply as for normal calls | Implemented |
 | SRD-DSK-005.006 | FO-DSK-005 | Must | A replay writes its tries to `activity` marked as replay, and writes no views, picks, briefs or events. | replay | `activity` rows | Replay tries never count as a wake | Implemented |
 | SRD-DSK-005.007 | FO-DSK-005 | Must | The replay report prints, per employee, whether the old and new answers pass the check and which typed fields differ. | answers | report text, exit code | ASCII only; exit 1 when the run is not found | Implemented |
+
+## FO-DSK-006: Hiring Pipeline and Process Analytics
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-DSK-006.001 | FO-DSK-006 | Must | Starting a hire creates a new employee folder with the next free id, the chosen skill, level, name and model, and status `shadow`. | skill, level, name, model | employee folder | Soul copied from the skill's shipped default; the Master User may edit it later | Implemented |
+| SRD-DSK-006.002 | FO-DSK-006 | Must | A hire is refused when the skill is unknown, the name is already used, or the level's seat cap is full. | request | reason | Active and shadow employees count against the cap | Implemented |
+| SRD-DSK-006.003 | FO-DSK-006 | Must | Seat caps default to 8 experts, 5 champions and 30 juniors and are kept in the desk settings. | settings | caps | The lead level has no cap | Implemented |
+| SRD-DSK-006.004 | FO-DSK-006 | Must | A shadow employee wakes with its skill's holder and gets the same facts, but its answer is only checked and recorded. | event, facts | `activity` rows marked shadow | The skill's act is never called, so no views, picks, briefs or events are written | Implemented |
+| SRD-DSK-006.005 | FO-DSK-006 | Must | A shadow ends after 14 data days with a recorded shadow answer, and the hire becomes ready for a decision. | `activity` | hire state | A failed or missing answer still counts as a day only when the facts were fresh | Implemented |
+| SRD-DSK-006.006 | FO-DSK-006 | Must | The shadow report gives, for the hire and the holder over the same days, the share of valid answers, tokens, cost and agreement. | `activity` | report rows | Agreement compares the short typed values of both valid answers on the same day; free text is left out | Implemented |
+| SRD-DSK-006.007 | FO-DSK-006 | Must | A decision Replace, Add or Reject is kept in an append-only `approvals` table and applied to the employee files. | decision | `approvals` row, statuses | Replace retires the holder; Add only when the skill has no active holder; Reject retires the hire; no decision before ready | Implemented |
+| SRD-DSK-006.008 | FO-DSK-006 | Must | A retired employee never wakes, and its records stay. | status | — | Status `active` is the default for files without one | Implemented |
+| SRD-DSK-006.009 | FO-DSK-006 | Must | The first desk run on or after each Friday (New York) writes one weekly report by code: calls, valid share, tokens, cost and failures per employee, and shadow progress. | `activity`, employees | `desk_reports` row | No AI call; one report per week | Implemented |
+| SRD-DSK-006.010 | FO-DSK-006 | Should | Starting a hire, the end of a shadow, each decision and each weekly report are logged. | event | log line | `[Hiring]` and `[Report]` prefixes | Implemented |
