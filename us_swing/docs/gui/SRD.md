@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
+> v2.86.0: SRD-GUI-034.015–.017 added as Draft — real AI feed, desk AI settings, real cost (MKT/DSK P5a).
 > v2.85.0: SRD-GUI-034.014 added as Draft — Score proof panel (MKT P4).
 > v2.84.0: SRD-GUI-034.013 added as Draft — Floor shows the real idea list (MKT P3).
 > v2.83.0: SRD-GUI-034.012 added as Draft — Floor shows real sector strength, rotation and RS leaders (MKT P2).
@@ -678,3 +679,6 @@
 | SRD-GUI-034.012 | FO-GUI-034 | Must | The Sector strength, Sector rotation and new RS leaders panels read the latest sector and stock ratings from `desk.db` with their data date, without the Sample tag. | `desk.db` | panels | RS leaders shows the top 30 and can be filtered by sector | Implemented |
 | SRD-GUI-034.013 | FO-GUI-034 | Must | The Top ideas panels read the latest ideas from `desk.db` with their data date, trigger, stop and first reason, without the Sample tag. | `desk.db` | panels | Filter by side and by list or Watch; list is shown when no status is chosen | Implemented |
 | SRD-GUI-034.014 | FO-GUI-034 | Must | A Score proof panel reads the latest proof run from `desk.db` and shows per side the bands, setups or idea status with their returns, data range and result. | `desk.db` | panel | Filter by side and group kind; listed in the catalog only after a proof run | Implemented |
+| SRD-GUI-034.015 | FO-GUI-034 | Must | The AI feed shows the latest briefs from `desk.db`, newest first, without the Sample tag. | `briefs` | feed cards | Sample items only while there are no briefs; refreshes after a desk run | Implemented |
+| SRD-GUI-034.016 | FO-GUI-034 | Must | AI Desk → Desk settings lets the user set the desk AI sources, models, backup, monthly budget and Claude CLI daily token cap, and the OpenRouter key. | user input | `desk_ai.json`, key | Key shown masked; other settings stay read-only until P6 | Implemented |
+| SRD-GUI-034.017 | FO-GUI-034 | Should | AI Desk → Cost & budget shows this month's real API spend against the budget and tokens, by employee and by model. | `activity` | bar, tables | Sample figures only while there is no activity | Implemented |

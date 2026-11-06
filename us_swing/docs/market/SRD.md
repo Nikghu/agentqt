@@ -6,6 +6,8 @@
 **Last Updated:** 2026-11-05
 **Project:** US Swing Trading System
 
+> v0.6.1: SRD-MKT-005.001–.005 reworded by skill; no employee names (user, 2026-11-06).
+> v0.6.0: SRD-MKT-005.001–.005 added as Draft — regime view skill (P5a).
 > v0.5.0: SRD-MKT-004.001–.009 added as Draft — proof on past data (P4).
 > v0.4.0: SRD-MKT-003.001–.012 added as Draft — money flow, setups, readiness score and ideas (P3).
 > v0.3.0: SRD-MKT-002.001–.010 added as Draft — sector strength, rotation and stock RS (P2).
@@ -76,3 +78,13 @@
 | SRD-MKT-004.007 | FO-MKT-004 | Must | When daily history is shorter than 5 years, the report and the panel say so and point to Settings → Backtest Data. | data range | reminder text | — | Implemented |
 | SRD-MKT-004.008 | FO-MKT-004 | Should | Each run logs the data range, stock count, scored days, time taken and result per side. | run | log lines | `[Proof]` prefix | Implemented |
 | SRD-MKT-004.009 | FO-MKT-004 | Should | A run on 6 years of about 500 stocks finishes in under 10 minutes. | bars | — | Score worked out in yearly chunks | Implemented |
+
+## FO-MKT-005: AI Experts, Risk Manager and Trade Manager
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-MKT-005.001 | FO-MKT-005 | Must | Regime view facts are the last 20 days of regime, volatility, fear and VIX, the latest breadth, sector ranks and quadrants, today's idea counts and the latest proof result. | `desk.db` | facts text | Fresh only when the latest regime day equals the latest SPY candle day | Implemented |
+| SRD-MKT-005.002 | FO-MKT-005 | Must | The regime view answer is a typed view: regime (Uptrend, Choppy or Downtrend), confidence 0–1, 1 to 3 reasons and a brief of at most 400 characters. | facts | view | Checked by the gateway | Implemented |
+| SRD-MKT-005.003 | FO-MKT-005 | Must | Each view is kept in `regime_view` per data day with the rule regime and whether they agree. | view | `regime_view` row | A new run on the same day replaces it | Implemented |
+| SRD-MKT-005.004 | FO-MKT-005 | Must | The regime view adds its brief to the AI feed; when it disagrees with the rule regime the brief ends with a plain note. | view | feed item | Author is the employee's current name | Implemented |
+| SRD-MKT-005.005 | FO-MKT-005 | Must | A default expert-level employee for the regime view ships in `market/employees/emp-001/` (generic name "Expert 1") with trigger `after_run`. | — | files | Calls per day 3; monthly cap USD 3; the Master user may rename or re-level it | Implemented |

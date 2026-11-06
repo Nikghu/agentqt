@@ -65,12 +65,12 @@ def schedule_frame(name: str) -> QWidget:
 
 
 def studio_frame(name: str) -> QWidget:
-    """Build the CANVAS page list and the preview placeholder."""
+    """Build the AI page list and the preview placeholder."""
     frame, body = section_frame(name)
     row = QHBoxLayout()
     row.setSpacing(12)
     left = QVBoxLayout()
-    left.addWidget(heading("CANVAS pages"))
+    left.addWidget(heading("AI pages"))
     left.addWidget(make_table(S.STUDIO_COLUMNS, S.STUDIO), 1)
     row.addLayout(left, 2)
     preview = tile("Preview", "Sealed web view comes in phase P5d")

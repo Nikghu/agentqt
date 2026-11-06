@@ -6,6 +6,8 @@
 **Last Updated:** 2026-11-05
 **Project:** US Swing Trading System
 
+> v0.6.1: FO-MKT-005 reworded by skill and level; no employee names (user, 2026-11-06).
+> v0.6.0: FO-MKT-005 written as Draft for its first skill, the regime view (P5a); the other experts, risk manager and lead stay for P5b.
 > v0.5.0: FO-MKT-004 written in full as Draft (daily candles from the Backtest Data store; bands, setups and idea status; pass rule at 10 days; Score proof panel; no tuning).
 > v0.4.0: FO-MKT-003 written in full as Draft (news points rescaled until P5c; earnings from Yahoo for top names; shorts gated by regime; top 10 per side at 60+).
 > v0.3.0: FO-MKT-002 written in full as Draft (sector lines from member candles; industry groups later).
@@ -116,14 +118,24 @@ The system shall replay the P1–P3 score on years of past daily candles and sho
 
 ## FO-MKT-005: AI Experts, Risk Manager and Trade Manager
 
-**Status:** Draft (outline)
+**Status:** Regime view part Implemented (approved by user 2026-11-06); P5b open
 **Priority:** Must
-**Phase:** P5a–P5b
-**Depends on:** FO-DSK-002–005
+**Phase:** P5a (regime view expert); P5b (sector/flow and setup experts, risk manager, lead)
+**Depends on:** FO-DSK-002–005, FO-MKT-001–004
 
-- The system shall run ATLAS (regime), TIDE (sector and flow) and PIVOT (setup) as expert agents over the funnel output.
-- The system shall let SENTINEL veto any idea that breaks hard risk limits kept in code.
-- The system shall let HELM pick the final ideas and write a brief to the AI feed.
+The system shall add AI experts on top of the funnel. P5a adds the first skill, the regime view, used by one expert-level employee. Who does the work, and under what name, is data the Master user controls.
+
+- The system shall wake the regime view employee after each desk run to read the regime, breadth, fear, sectors, idea counts and the latest proof.
+- The system shall have it give a typed view: regime, confidence and up to 3 reasons, plus a short brief.
+- The system shall keep each view with the rule regime and whether the view agrees.
+- The system shall show the brief in the AI feed under the employee's current name, and say so when the view disagrees with the rule regime.
+- Later (P5b): sector/flow and setup skills for expert-level employees, a risk skill that vetoes ideas breaking hard risk limits kept in code, and a lead-level skill that picks the final ideas and writes the evening brief.
+
+### Acceptance Criteria
+
+1. One full regime view run on real data with a real model is recorded in `activity` within budget.
+2. The AI feed on the Market Floor shows the brief with the employee's name, time and data day.
+3. `regime_view` holds the typed view; a disagreement with the rule regime shows in the brief.
 
 ## FO-MKT-006: News and Global Events (SCOUT)
 
@@ -149,4 +161,4 @@ The system shall replay the P1–P3 score on years of past daily candles and sho
 **Depends on:** DD-DSK §0.7 Q5 — the Master User approves every trade
 
 - The system shall send only Master-approved ideas to the Execution tool as watchlist entries or trade signals.
-- The system shall never let HELM place a trade without Master approval.
+- The system shall never let any AI employee place a trade without Master approval.

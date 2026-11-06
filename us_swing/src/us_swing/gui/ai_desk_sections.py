@@ -41,8 +41,8 @@ def muted(text: str) -> QLabel:
     return label
 
 
-def section_frame(name: str) -> tuple[QWidget, QVBoxLayout]:
-    """Return a section frame titled ``name`` with the sample tag, and its body layout."""
+def section_frame(name: str, sample: bool = True) -> tuple[QWidget, QVBoxLayout]:
+    """Return a section frame titled ``name`` (with the sample tag when ``sample``) and its body."""
     box = QWidget()
     body = QVBoxLayout(box)
     body.setContentsMargins(14, 12, 14, 12)
@@ -54,7 +54,8 @@ def section_frame(name: str) -> tuple[QWidget, QVBoxLayout]:
     tag.setObjectName("sample_tag")
     tag.setStyleSheet(f"color: {C.MUTED};")
     head.addWidget(title)
-    head.addWidget(tag)
+    if sample:
+        head.addWidget(tag)
     head.addStretch(1)
     body.addLayout(head)
     return box, body
@@ -122,12 +123,12 @@ def _chat_frame() -> QWidget:
     box = QWidget()
     lines = QVBoxLayout(box)
     lines.setContentsMargins(0, 0, 0, 0)
-    lines.addWidget(heading("HELM chat"))
+    lines.addWidget(heading("Lead chat"))
     feed = QWidget()
     msgs = QVBoxLayout(feed)
     msgs.setSpacing(6)
     for who, text in S.CHAT:
-        colour = C.BLUE if who == "HELM" else C.GREEN
+        colour = C.GREEN if who == "Master" else C.BLUE
         label = QLabel(f"<b style='color:{colour}'>{who}</b><br>{text}")
         label.setWordWrap(True)
         msgs.addWidget(label)
@@ -135,12 +136,12 @@ def _chat_frame() -> QWidget:
     lines.addWidget(scroll_of(feed), 1)
     row = QHBoxLayout()
     entry = QLineEdit()
-    entry.setPlaceholderText("Write to HELM")
+    entry.setPlaceholderText("Write to the lead")
     entry.setEnabled(False)
     send = QPushButton("Send")
     send.setEnabled(False)
     send.setFixedWidth(80)
-    tip = "Chat comes with HELM in phase P5b"
+    tip = "Chat with the lead comes in phase P5b"
     entry.setToolTip(tip)
     send.setToolTip(tip)
     row.addWidget(entry, 1)
@@ -162,7 +163,7 @@ def _approvals_frame() -> QWidget:
             btn = QPushButton(label)
             btn.setEnabled(False)
             btn.setFixedWidth(80)
-            btn.setToolTip("Approvals come with HELM in phase P5b")
+            btn.setToolTip("Approvals come in phase P5b")
             row.addWidget(btn)
         lines.addLayout(row)
     lines.addStretch(1)
@@ -170,7 +171,7 @@ def _approvals_frame() -> QWidget:
 
 
 def command_frame(name: str) -> QWidget:
-    """Build the Command home: HELM chat, approvals waiting and today's runs."""
+    """Build the Command home: lead chat, approvals waiting and today's runs."""
     frame, body = section_frame(name)
     row = QHBoxLayout()
     row.setSpacing(12)
@@ -229,7 +230,7 @@ def employees_frame(name: str) -> QWidget:
     wrap = QWidget()
     stack = QVBoxLayout(wrap)
     stack.setContentsMargins(0, 0, 0, 0)
-    stack.addWidget(muted("soul.md and job.yaml. HELM drafts changes; the Master approves."))
+    stack.addWidget(muted("soul.md and job.yaml. The lead drafts changes; the Master approves."))
     stack.addWidget(job, 1)
     tabs.addTab(wrap, "Job")
     body.addWidget(tabs, 3)

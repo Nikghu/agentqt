@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 import logging
 from collections.abc import Sequence
 from pathlib import Path
@@ -443,3 +444,107 @@ def test_no_proof_run_not_listed(tmp_path: Path) -> None:
     data = DeskFloorData(SampleFloorData(), tmp_path)
     assert "proof.bands" not in {p.id for p in data.products()}
     assert data.rows("proof.bands", {}) == []
+
+
+def _write_briefs(home: Path) -> None:
+    from us_swing.core.desk_agents import FeedItem
+    from us_swing.desk.recorder import Recorder
+
+    rec = Recorder(home)
+    for i, text in enumerate(("First note.", "Second note.", "Third note.")):
+        rec.add_briefs([FeedItem("info", text, "2026-11-04")], "t-1", "Tester A",
+                       datetime(2026, 11, 4, 17, 30 + i, tzinfo=UTC))
+    rec.close()
+
+
+def test_real_feed(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-034.015.M14.T01: briefs show newest first with time and author; no Sample tag."""
+    from us_swing.gui.floor_feed import AiFeedColumn
+
+    _write_briefs(tmp_path)
+    items = DeskFloorData(SampleFloorData(), tmp_path).feed()
+    assert items is not None
+    assert [i["text"] for i in items] == ["Third note.", "Second note.", "First note."]
+    assert items[0] == {"time": "17:32 · 2026-11-04", "author": "Tester A", "kind": "info",
+                        "text": "Third note."}
+    feed = AiFeedColumn()
+    qtbot.addWidget(feed)
+    feed.set_items(items)
+    texts = [w.text() for w in feed.findChildren(QLabel)]
+    assert "Third note." in texts and SAMPLE_TAG not in [
+        w.text() for w in feed.findChildren(QLabel) if w.isVisibleTo(feed)]
+
+
+def test_no_briefs_gives_sample(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-034.015.M14.T02: without briefs the feed shows sample items with the Sample tag."""
+    from us_swing.gui.floor_feed import AiFeedColumn
+
+    _write_ideas(tmp_path)
+    assert DeskFloorData(SampleFloorData(), tmp_path).feed() is None
+    feed = AiFeedColumn()
+    qtbot.addWidget(feed)
+    feed.set_items(None)
+    assert SAMPLE_TAG in [w.text() for w in feed.findChildren(QLabel) if w.isVisibleTo(feed)]
+
+
+def test_desk_ai_settings_saved(qtbot: QtBot, tmp_path: Path,
+                                monkeypatch: pytest.MonkeyPatch) -> None:
+    """UT-GUI-034.016.M15.T01: Save writes desk_ai.json and the key."""
+    from us_swing.core.desk_ai_settings import DeskAiSettings, load_settings
+    from us_swing.gui import ai_desk_settings as form_mod
+
+    keys: list[str] = []
+    monkeypatch.setattr(form_mod, "save_key", keys.append)
+    form = form_mod.DeskAiSettingsForm(tmp_path)
+    qtbot.addWidget(form)
+    form.claude_on.setChecked(True)
+    form.claude_model.setText("claude-sonnet-5-5")
+    form.claude_tokens.setText("150,000")
+    form.openrouter_on.setChecked(True)
+    form.openrouter_model.setText("cheap/model")
+    form.budget.setText("7.5")
+    form.key.setText("sk-test")
+    assert form.save() is True
+    assert load_settings(tmp_path) == DeskAiSettings(True, "cheap/model", True,
+                                                     "claude-sonnet-5-5", 7.5, 150_000)
+    assert keys == ["sk-test"] and form.key.text() == ""
+
+
+@pytest.mark.parametrize("budget", ["0", "ten", "nan"])
+def test_desk_ai_settings_bad_budget(qtbot: QtBot, tmp_path: Path,
+                                     monkeypatch: pytest.MonkeyPatch, budget: str) -> None:
+    """UT-GUI-034.016.M15.T02: a budget of 0 or text is not saved and a message shows."""
+    from us_swing.gui import ai_desk_settings as form_mod
+
+    monkeypatch.setattr(form_mod, "save_key", lambda _k: None)
+    form = form_mod.DeskAiSettingsForm(tmp_path)
+    qtbot.addWidget(form)
+    form.budget.setText(budget)
+    assert form.save() is False
+    assert not (tmp_path / "desk_ai.json").exists()
+    assert "numbers above 0" in form.status.text()
+    form.budget.setText("10")
+    form.openrouter_on.setChecked(True)
+    form.openrouter_model.setText("")
+    assert form.save() is False and "Set a model" in form.status.text()
+
+
+def test_real_month_cost(tmp_path: Path) -> None:
+    """UT-GUI-034.017.M16.T01: only this month counts, by employee and by model."""
+    from us_swing.desk.recorder import Attempt, Recorder
+
+    rec = Recorder(tmp_path)
+    for started, src, model, tokens, cost in (
+            ("2026-11-02T18:00:00-05:00", "claude", "claude-haiku-5-5", 1000, 0.0),
+            ("2026-11-03T18:00:00-05:00", "openrouter", "cheap/m", 500, 0.25),
+            ("2026-10-30T18:00:00-04:00", "openrouter", "cheap/m", 999, 9.0)):
+        rec.add(Attempt(1, "t-1", "Tester A", 1, "2026-11-01", started, src, model, 1, "p", "a",
+                        True, "", tokens, 0, cost, 1.0))
+    rec.close()
+    cost = DeskFloorData(SampleFloorData(), tmp_path).month_cost("2026-11")
+    assert cost is not None
+    assert (cost.budget_usd, cost.spent_usd) == (10.0, 0.25)
+    assert cost.by_employee == [("Tester A", "2", "1,500", "$0.2500")]
+    assert cost.by_model == [("claude / claude-haiku-5-5", "1", "1,000", "$0.0000"),
+                             ("openrouter / cheap/m", "1", "500", "$0.2500")]
+    assert DeskFloorData(SampleFloorData(), tmp_path).month_cost("2026-09") is None

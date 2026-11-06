@@ -2,6 +2,16 @@
 
 ---
 
+## [20261106] DSK + MKT — P5a lean harness and the regime view skill (FO-DSK-002–005, FO-MKT-005)
+
+- Type: Feature
+- FO(s): FO-DSK-002, FO-DSK-003, FO-DSK-004, FO-DSK-005, FO-MKT-005 (regime view)
+- RN: RN-DSK-0.2.0-20261106, RN-MKT-0.5.0-20261106
+- Artifacts updated: FO, SRD (DSK-002–005, MKT-005, GUI-034.015–.017 Implemented), DD (after review notes), MD, UTCD (40 DSK, 13 MKT, 5 GUI Pass), TRACE (desk, market, gui), Code (core/desk_agents.py, core/desk_ai_settings.py, desk/registry.py, desk/employees_step.py, desk/gateway.py, desk/budget.py, desk/recorder.py, market/regime_view.py, market/employees/emp-001/, market/store.py, core/desk_floor.py, gui/floor_feed.py, gui/market_floor.py, gui/ai_desk*.py, gui/desk_control.py, USSwing.spec)
+- Decisions: lean harness, LangGraph in P5b, separate desk AI settings (user); Claude CLI subscription = tokens only, cost 0; API cost only for OpenRouter (user); typed regime view + brief; no employee names in code/tests/labels — skills by function, employees as data with generic levels (user).
+
+---
+
 ## [20261106] MKT — Proof on past data, phase P4 (FO-MKT-004)
 
 - Type: Feature
