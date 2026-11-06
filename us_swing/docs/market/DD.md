@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-05
 **Project:** US Swing Trading System
 
+> v0.5.0: DD-MKT-005.001.D01 added — ATLAS (P5a).
 > v0.4.0: DD-MKT-004.001.D01 added — proof on past data (P4).
 > v0.3.0: DD-MKT-002.001.D01 added — sector strength, rotation and stock RS (P2).
 > v0.2.0: DD-MKT-001.001.D01 added — regime, breadth and fear (P1).
@@ -268,3 +269,38 @@ proof_stats(run_id INTEGER, side TEXT, kind TEXT, grp TEXT, horizon INTEGER, n I
 **Limits.** Survivorship (today's member list). No earnings Watch. Overlapping samples. No costs, slippage or stop exits. No tuning (T117 stays open until the proof is read).
 
 **After code review.** Group stats and the pass rule count only stock-days where both the return and the return against SPY exist, so `n` and the averages use the same rows; the Floor shows "-" for a missing average. The report says the S&P 500 list is today's. Report text is plain ASCII (bands `40-50`, `Settings > Backtest Data`) because the Windows console cannot print some symbols. Real run: candles 2024-01-02 to 2026-11-04, 503 stocks, 443 scored days, 21 s. On the same candles the replay equals the desk's `stock_score` exactly; against the Backtest Data candles 89.9–95.4% of scores are within 1 point on 3 days, the rest from price differences between the two candle sources.
+
+## DD-MKT-005.001.D01 — ATLAS, Market Regime Expert (P5a)
+
+**Traces:** SRD-MKT-005.001–.005
+
+**Files.** `market/atlas.py` (class `Atlas`, the `Employee` from `core/desk_agents.py`), `market/employees/atlas/soul.md`, `market/employees/atlas/job.yaml`, plus the `atlas_view` table in `market/store.py`. ATLAS uses only `core` types; it does not import `desk`.
+
+**Facts** (`Atlas.facts(home)`), plain text from `desk.db`:
+
+```
+Data day: 2026-11-04 (fresh)
+Regime (rules) last 20 days: date regime volatility fear vix
+Breadth today: % above 20/50/200-day, new highs, new lows, advancing, declining
+Sectors today: rank, sector, quadrant, rel_1m (and rank 5 days ago)
+Ideas today: long N (watch M), short N (watch M)
+Score proof: data range, long result, short result, 70+ vs SPY at 10 days per side
+```
+
+`fresh` is true when the latest `regime_snapshot` day equals the latest SPY day in `candles.db`; otherwise `why_stale` names both days.
+
+**Answer schema** (pydantic, `extra="forbid"`):
+
+```
+class AtlasView:
+    regime: Literal["Uptrend", "Choppy", "Downtrend"]
+    confidence: float  (0..1)
+    reasons: list[str] (1..3 items, each 5..140 chars)
+    brief: str (20..400 chars)
+```
+
+**Act.** `view = ctx.ask(facts.text, AtlasView)`. When None, nothing is stored and there is no feed item. Otherwise `agrees = view.regime == rule regime`, and `atlas_view(date PK, regime, confidence, reasons (JSON list), brief, rule_regime, agrees)` is written (insert or replace). It returns `FeedItem("ATLAS", "info", brief + note, day)`, where note = `" I read the market as <regime>; the rules say <rule regime>."` when it disagrees.
+
+**soul.md** (system prompt). ATLAS is the desk's market regime expert. It weighs trend, breadth, volatility, fear and sector rotation. It is careful and plain-spoken, says when signals conflict, never gives trade orders, and never makes up numbers that are not in the facts.
+
+**job.yaml.** trigger `after_run`; primary `openrouter` with a cheap model; backup `claude` / `claude-haiku-5-5`; `calls_per_day: 3`; `monthly_cost_usd: 3.0`. KPIs: agreement rate with the rule regime, and the share of valid answers.

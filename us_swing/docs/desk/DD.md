@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-05
 **Project:** US Swing Trading System
 
+> v0.3.0: DD-DSK-002.001.D01 added — lean harness for P5a.
 > v0.2.0: DD-DSK-001.001.D01 added — desk process shell (P0a).
 > v0.1.0: Architecture review (pre-SRD). Records the locked decisions, package layout, `desk.db` contract and phase plan for DSK + MKT. DD items with IDs are added per phase once their SRDs exist.
 
@@ -189,3 +190,92 @@ time and days with `/query /xml` and re-creates the evening task when either dif
 - A pause taken during a run that then fails is honoured: the desk goes to Paused and keeps the failure message.
 - A pause clears a run-now from the same batch.
 - The task time sync (`daily_check`) runs at start and after each evening run, so a clock change is fixed within one day.
+
+## DD-DSK-002.001.D01 — Lean Harness: Registry, Wake Rule, Gateway, Budget, Recorder (P5a)
+
+**Traces:** SRD-DSK-002.001–.005, SRD-DSK-003.001–.003, SRD-DSK-004.001–.005, SRD-DSK-005.001–.004
+
+**Boundaries.** `desk` never imports `market`. Shared types live in `core/desk_agents.py`, and the employee list `EMPLOYEE_PATHS = ("us_swing.market.atlas:Atlas",)` lives in `core/desk_steps.py` (loaded by import path, like the steps). Agents are plain typed Python; LangGraph comes in P5b.
+
+**Shared types** (`core/desk_agents.py`):
+
+```
+class FeedItem(frozen):  author, kind ("info" | "idea" | "approval"), text, data_day
+class AgentContext(Protocol):
+    home: Path
+    def ask(self, facts: str, schema: type[T]) -> T | None      # gateway; None = no valid answer
+class Employee(Protocol):
+    name: str            # "ATLAS"
+    folder: Path         # holds soul.md and job.yaml
+    def facts(self, home: Path) -> Facts                       # Facts(text, data_day, fresh, why_stale)
+    def act(self, ctx: AgentContext, facts: Facts) -> list[FeedItem]
+```
+
+**Job file** (`desk/registry.py`, pydantic, `extra="forbid"`):
+
+```
+name: ATLAS                 title: Market regime expert       version: 1
+trigger: after_run          output: AtlasView (name only, for people)
+models: {primary: {source: openrouter, model: ...}, backup: {source: claude, model: ...}}
+calls_per_day: 3            monthly_cost_usd: 3.0             kpis: [list of strings]
+```
+
+`load_employee(emp)` reads both files, validates `job.yaml`, and returns `Hire(emp, spec, soul, hash)`. `hash` is the sha256 of both files. An error gives `None` plus `[AI Desk] <name> job file is not valid: <reason>`. `employees(name PK, title, version, hash, loaded_at)`: upsert per run; a new hash with the same version logs a warning.
+
+**Wake rule** (`desk/employees_step.py`, desk step "AI employees", appended to `STEP_PATHS` after Ideas):
+
+```
+for emp in load_employees(EMPLOYEE_PATHS):
+    hire = load_employee(emp)            -> skip when None
+    if hire.spec.trigger != "after_run": continue
+    facts = emp.facts(home)
+    if not facts.fresh: log skip (facts.why_stale); continue
+    if recorder.done_today(name, facts.data_day): continue   # a valid try exists for that day
+    items = emp.act(Context(home, gateway(hire, run_id, facts.data_day)), facts)
+    recorder.add_briefs(items)
+```
+
+Any exception inside one employee is logged with `log.exception` and the next employee runs.
+
+**Gateway** (`desk/gateway.py`). `ask(facts, schema)`:
+
+```
+system  = soul.md + "\n\nAnswer with JSON only, matching this schema:\n" + schema.model_json_schema()
+for model in (primary, backup):
+    for attempt in (1, 2):
+        if budget.refuse(hire, model): record refusal; return None
+        text, usage = call(model.source, model.model, system, user)      # 90 s limit
+        try: return schema.model_validate_json(first_json_object(text))   # record valid
+        except: record invalid with error; user += "\n\nYour last answer was not valid: <error>"
+return None
+```
+
+Sources: OpenRouter is called with `httpx` and `"usage": {"include": true}`, so the reply carries `usage.prompt_tokens`, `completion_tokens` and `cost`. Claude Code CLI uses the same headless command as the AI notes client (`core/notifications/_ai_client._run_with_timeout`); its JSON gives `usage` and `total_cost_usd`. A call error is recorded as an invalid try with the error text.
+
+**Budget** (`desk/budget.py`), from `activity` only:
+
+```
+spent_month   = SUM(cost_usd) this calendar month (NY time)
+refuse when   spent_month >= settings.monthly_budget_usd
+          or  employee spent_month >= spec.monthly_cost_usd
+          or  employee tries today >= spec.calls_per_day * 2      (2 tries per call)
+          or  source == claude and claude tries today >= settings.claude_calls_per_day
+```
+
+Claude CLI cost is recorded but counted at 0 against the budget, because it runs on the user's subscription. The cap on daily CLI calls limits it instead.
+
+**Desk AI settings** (`core/desk_ai_settings.py`, shared with the GUI). `desk_ai.json` in the desk folder holds `openrouter_on, openrouter_model, claude_on, claude_model, monthly_budget_usd (10.0), claude_calls_per_day (5)`. The key is stored with `keyring` (service `USSwing-Desk-OpenRouter`). `job.yaml` picks the source and model per employee; the settings can switch a source off, and an off source is skipped (an employee with both sources off makes no call). A missing file means the defaults (both off), so no AI runs until the user sets it up.
+
+**Recorder** (`desk/recorder.py`):
+
+```
+activity(id INTEGER PK, run_id, employee, version, data_day, started, source, model, attempt,
+         prompt, answer, valid INTEGER, error, tokens_in, tokens_out, cost_usd, seconds)
+briefs(id INTEGER PK, created, data_day, author, kind, text)
+CREATE TRIGGER activity_no_update BEFORE UPDATE ON activity BEGIN SELECT RAISE(ABORT, 'append-only'); END
+(same for DELETE, and for briefs)
+```
+
+`done_today(name, day)` is true when a valid row exists for that employee and day. Log lines: `[AI Desk] ATLAS answered with <model> in 4.2 s, cost USD 0.0012`, `[AI Desk] ATLAS skipped: data for 2026-11-04 already done`, `[AI Desk] ATLAS refused: monthly budget USD 10.00 used up`.
+
+**Limits in P5a.** One trigger only (`after_run`). No priorities, deadlines, expiry or market clock (P5b). No replay (P5b). No HuggingFace or Jev source. Job files are edited by hand (P6 adds editing, rollback and approval).

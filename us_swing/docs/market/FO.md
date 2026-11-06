@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-05
 **Project:** US Swing Trading System
 
+> v0.6.0: FO-MKT-005 written as Draft for its ATLAS part (P5a); TIDE, PIVOT, SENTINEL and HELM stay for P5b.
 > v0.5.0: FO-MKT-004 written in full as Draft (daily candles from the Backtest Data store; bands, setups and idea status; pass rule at 10 days; Score proof panel; no tuning).
 > v0.4.0: FO-MKT-003 written in full as Draft (news points rescaled until P5c; earnings from Yahoo for top names; shorts gated by regime; top 10 per side at 60+).
 > v0.3.0: FO-MKT-002 written in full as Draft (sector lines from member candles; industry groups later).
@@ -116,14 +117,24 @@ The system shall replay the P1–P3 score on years of past daily candles and sho
 
 ## FO-MKT-005: AI Experts, Risk Manager and Trade Manager
 
-**Status:** Draft (outline)
+**Status:** Draft (ATLAS part for P5a)
 **Priority:** Must
-**Phase:** P5a–P5b
-**Depends on:** FO-DSK-002–005
+**Phase:** P5a (ATLAS); P5b (TIDE, PIVOT, SENTINEL, HELM)
+**Depends on:** FO-DSK-002–005, FO-MKT-001–004
 
-- The system shall run ATLAS (regime), TIDE (sector and flow) and PIVOT (setup) as expert agents over the funnel output.
-- The system shall let SENTINEL veto any idea that breaks hard risk limits kept in code.
-- The system shall let HELM pick the final ideas and write a brief to the AI feed.
+The system shall add AI experts on top of the funnel. P5a adds the first one, ATLAS, the market regime expert.
+
+- The system shall wake ATLAS after each desk run to read the regime, breadth, fear, sectors, idea counts and the latest proof.
+- The system shall have ATLAS give a typed view: regime, confidence and up to 3 reasons, plus a short brief.
+- The system shall keep each view with the rule regime and whether ATLAS agrees.
+- The system shall show the ATLAS brief in the AI feed, and say so when ATLAS disagrees with the rule regime.
+- Later (P5b): TIDE (sector and flow) and PIVOT (setup) experts, SENTINEL vetoes ideas that break hard risk limits kept in code, and HELM picks the final ideas and writes the evening brief.
+
+### Acceptance Criteria
+
+1. One full ATLAS run on real data with a real model is recorded in `activity` within budget.
+2. The AI feed on the Market Floor shows the ATLAS brief with its time and data day.
+3. `atlas_view` holds the typed view; a disagreement with the rule regime shows in the brief.
 
 ## FO-MKT-006: News and Global Events (SCOUT)
 

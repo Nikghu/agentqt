@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-05
 **Project:** US Swing Trading System
 
+> v0.5.0: SRD-DSK-002.001–.005, 003.001–.003, 004.001–.005, 005.001–.004 added as Draft (P5a harness).
 > v0.4.0: SRD-DSK-001.022 added as Draft — `desk proof` sub-command (for MKT P4).
 > v0.3.0: SRD-DSK-001.021 added as Draft — desk loads registered steps (for MKT P1).
 > v0.2.0: SRD-DSK-001.001–.020 added — desk process shell (FO-DSK-001, phase P0a).
@@ -39,3 +40,40 @@
 | SRD-DSK-001.020 | FO-DSK-001 | Must | `python -m us_swing desk` runs the desk; `desk start/status/pause/resume/stop/run-now/install/uninstall` control it. | argv | exit code, text | `start` launches a detached process | Implemented |
 | SRD-DSK-001.021 | FO-DSK-001 | Must | The desk loads its steps from the step list in `core/desk_steps.py`, and each step gets the desk folder in its context. | step list | steps | A step that fails to load is logged and left out | Implemented |
 | SRD-DSK-001.022 | FO-DSK-001 | Must | `desk proof` runs the score proof on past data and prints its report. | argv | report text, exit code | Loaded by import path; exit 1 when there is no data | Implemented |
+
+## FO-DSK-002: Employee Registry and Job Descriptions
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-DSK-002.001 | FO-DSK-002 | Must | Each employee ships a `soul.md` and a `job.yaml` in its own folder, and the desk finds employees through the employee list in `core/desk_steps.py`. | employee list | employees | `desk` never imports a tool directly | Draft |
+| SRD-DSK-002.002 | FO-DSK-002 | Must | `job.yaml` must match a fixed schema: name, title, version, trigger, output, primary and backup model, calls per day, monthly cost cap and KPIs. | `job.yaml` | job spec | A bad file keeps that employee asleep and is logged | Draft |
+| SRD-DSK-002.003 | FO-DSK-002 | Must | Trigger, models and caps come only from `job.yaml`; `soul.md` is used only as the system prompt. | job spec | rules in code | — | Draft |
+| SRD-DSK-002.004 | FO-DSK-002 | Must | Each loaded name, title, version and file hash is kept in `employees` in `desk.db`. | job spec | `employees` rows | A changed file with the same version is logged as a warning | Draft |
+| SRD-DSK-002.005 | FO-DSK-002 | Must | Employees get only an ask function and their facts, with no way to write job files. | — | — | Editing and rollback from AI Desk come in P6 | Draft |
+
+## FO-DSK-003: Event Router, Market Clock and Wake Rules
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-DSK-003.001 | FO-DSK-003 | Must | A desk step "AI employees" runs after "Ideas" and wakes each employee whose trigger is `after_run`. | desk run | employee runs | One failing employee never fails the run | Draft |
+| SRD-DSK-003.002 | FO-DSK-003 | Must | An employee wakes at most once per data day. | `activity` | skip or wake | A failed day may be tried again on the next run | Draft |
+| SRD-DSK-003.003 | FO-DSK-003 | Must | An employee wakes only when its facts say the data is fresh. | facts | skip or wake | The reason for a skip is logged | Draft |
+
+## FO-DSK-004: LLM Gateway and Budget Guard
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-DSK-004.001 | FO-DSK-004 | Must | Every model call goes through one gateway with two sources: OpenRouter and Claude Code CLI. | prompt, model | answer text, usage | 90 s time limit per call | Draft |
+| SRD-DSK-004.002 | FO-DSK-004 | Must | An answer must be JSON that matches the employee's output schema; a bad answer is retried once with the error, then the backup model is tried, then the step ends without output. | answer | typed result or none | Every try is recorded | Draft |
+| SRD-DSK-004.003 | FO-DSK-004 | Must | No call is made once this month's spend reaches the desk budget or the employee's own monthly cap. | `activity` cost | allow or refuse | Default budget USD 10 per month; spend comes from OpenRouter usage | Draft |
+| SRD-DSK-004.004 | FO-DSK-004 | Must | Claude Code CLI calls are capped per day and per employee calls per day come from `job.yaml`. | `activity` count | allow or refuse | Default 5 CLI calls per day | Draft |
+| SRD-DSK-004.005 | FO-DSK-004 | Must | Desk AI settings (sources on or off, models, backup, budget, CLI cap) are kept in `desk_ai.json` in the desk folder and the OpenRouter key in the Windows credential store. | settings | file, key | Separate from the AI notes settings | Draft |
+
+## FO-DSK-005: Activity Recorder and Replay
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-DSK-005.001 | FO-DSK-005 | Must | Every gateway try is written to `activity` with run, employee, version, data day, source, model, prompt, answer, check result, error, tokens, cost and time. | try | `activity` row | — | Draft |
+| SRD-DSK-005.002 | FO-DSK-005 | Must | `activity` and `briefs` are append-only; the database refuses updates and deletes. | — | — | Database triggers | Draft |
+| SRD-DSK-005.003 | FO-DSK-005 | Must | Briefs for the AI feed are kept in `briefs` with time, data day, author, kind and text. | feed item | `briefs` row | — | Draft |
+| SRD-DSK-005.004 | FO-DSK-005 | Should | Each employee run logs the employee, model, result, cost and time. | run | log line | `[AI Desk]` prefix | Draft |

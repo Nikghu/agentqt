@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-05
 **Project:** US Swing Trading System
 
+> v0.6.0: 13 test cases for FO-MKT-005 ATLAS (P5a).
 > v0.5.0: 23 test cases for FO-MKT-004 (P4).
 > v0.4.0: 35 test cases for FO-MKT-003 (P3).
 > v0.3.0: 22 test cases for FO-MKT-002 (P2).
@@ -141,3 +142,21 @@
 | UT-MKT-004.007.M02.T02 | MD-MKT-004.002.M02 | Negative | Long history, no reminder (SRD-MKT-004.007) | 6 years of SPY bars | no reminder line | Pass |
 | UT-MKT-004.006.M03.T01 | MD-MKT-004.006.M03 | Positive | Proof round trip (SRD-MKT-004.006) | write run + stats; read latest | same values; latest run id | Pass |
 | UT-MKT-004.006.M03.T02 | MD-MKT-004.006.M03 | Negative | No runs yet (SRD-MKT-004.006) | empty desk.db | latest_proof is None | Pass |
+
+## FO-MKT-005: AI Experts, Risk Manager and Trade Manager
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-MKT-005.001.M01.T01 | MD-MKT-005.001.M01 | Positive | Facts built (SRD-MKT-005.001) | desk.db with regime, breadth, sectors, ideas, proof | text holds each part; fresh True | Not Run |
+| UT-MKT-005.001.M01.T02 | MD-MKT-005.001.M01 | Negative | Stale data (SRD-MKT-005.001) | regime day older than SPY day | fresh False; both days named | Not Run |
+| UT-MKT-005.001.M01.T03 | MD-MKT-005.001.M01 | Negative | No regime rows (SRD-MKT-005.001) | empty desk.db | fresh False | Not Run |
+| UT-MKT-005.002.M01.T01 | MD-MKT-005.001.M01 | Negative | Answer schema (SRD-MKT-005.002) | regime Sideways; confidence 1.4; 4 reasons; long brief | each refused by the schema | Not Run |
+| UT-MKT-005.002.M01.T02 | MD-MKT-005.001.M01 | Positive | Valid view accepted (SRD-MKT-005.002) | Choppy, 0.6, 2 reasons, 200-char brief | AtlasView | Not Run |
+| UT-MKT-005.004.M01.T01 | MD-MKT-005.001.M01 | Positive | Agreeing view (SRD-MKT-005.004) | answer Choppy, rules Choppy | brief only; atlas_view agrees 1 | Not Run |
+| UT-MKT-005.004.M01.T02 | MD-MKT-005.001.M01 | Positive | Disagreeing view (SRD-MKT-005.004) | answer Downtrend, rules Choppy | brief ends with the plain note; agrees 0 | Not Run |
+| UT-MKT-005.004.M01.T03 | MD-MKT-005.001.M01 | Negative | No valid answer (SRD-MKT-005.004) | ask returns None | no feed item; no atlas_view row | Not Run |
+| UT-MKT-005.003.M02.T01 | MD-MKT-005.003.M02 | Positive | View stored and replaced (SRD-MKT-005.003) | write twice for one day | one row with the second view | Not Run |
+| UT-MKT-005.003.M01.T01 | MD-MKT-005.001.M01 | Negative | No view, no row (SRD-MKT-005.003) | ask returns None | atlas_view empty | Not Run |
+| UT-MKT-005.005.M03.T01 | MD-MKT-005.005.M03 | Positive | ATLAS job files valid (SRD-MKT-005.005) | shipped soul.md and job.yaml | loads; trigger after_run; caps 3 and USD 3 | Not Run |
+| UT-MKT-005.005.M03.T02 | MD-MKT-005.005.M03 | Positive | Full run in a desk run (SRD-MKT-005.005) | real steps on synthetic candles, fake model | activity rows, atlas_view row, one brief | Not Run |
+| UT-MKT-005.005.M03.T03 | MD-MKT-005.005.M03 | Negative | Broken ATLAS job copy (SRD-MKT-005.005) | job.yaml copy without trigger | ATLAS stays asleep; warning | Not Run |
