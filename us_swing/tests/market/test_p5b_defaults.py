@@ -68,9 +68,9 @@ def test_no_real_names_in_defaults() -> None:
 
 
 def test_skill_list() -> None:
-    """UT-MKT-005.018.M09.T01: The skill keys (five plus news_review in P5c) load to skills with a matching key."""
+    """UT-MKT-005.018.M09.T01: The skill keys (five, news_review in P5c, report_page in P5d) load to skills with a matching key."""
     assert set(SKILL_PATHS) == {"regime_view", "sector_flow_view", "setup_review", "risk_check", "news_review",
-                                "lead_brief"}
+                                "lead_brief", "report_page"}
     for key, path in SKILL_PATHS.items():
         module, _, cls = path.partition(":")
         skill = getattr(importlib.import_module(module), cls)()
@@ -206,3 +206,24 @@ def test_news_skill_step_order_and_boundary() -> None:
     pattern = re.compile(r"^\s*(from|import)\s+us_swing\.desk(\.|\s|$)", re.MULTILINE)
     for name in ("news.py", "news_step.py", "news_review.py"):
         assert not pattern.search((root / name).read_text(encoding="utf-8")), name
+
+
+def test_report_default_file_valid() -> None:
+    """UT-MKT-007.007.M04.T01: emp-007 loads with report_page, after_run, caps 3 and USD 3."""
+    hire = load_employee(_folders()["emp-007"], SKILL_PATHS)
+    assert hire is not None
+    spec = hire.spec
+    assert (spec.skill, spec.trigger, spec.calls_per_day, spec.monthly_cost_usd) == (
+        "report_page", ("after_run",), 3, 3.0)
+    assert GENERIC_NAME.match(spec.name) and spec.level == "expert"
+    assert "{name}" not in hire.soul and spec.name in hire.soul
+
+
+def test_report_skill_and_boundary() -> None:
+    """UT-MKT-007.007.M04.T02: report_page loads from the skill list; market never imports desk."""
+    module, _, cls = SKILL_PATHS["report_page"].partition(":")
+    assert getattr(importlib.import_module(module), cls)().key == "report_page"
+    root = Path(us_swing.market.__file__).parent
+    pattern = re.compile(r"^\s*(from|import)\s+us_swing\.desk(\.|\s|$)", re.MULTILINE)
+    for path in root.glob("*.py"):
+        assert not pattern.search(path.read_text(encoding="utf-8")), path.name

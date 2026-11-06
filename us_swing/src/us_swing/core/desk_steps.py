@@ -3,6 +3,7 @@ Module: MD-DSK-001.021.M07 — core/desk_steps.py
 Parent SRD: SRD-DSK-001.021
 Also: SRD-DSK-001.022 — score proof runner path
 Also: SRD-DSK-002.001, SRD-DSK-003.001 — skill list, default employee files and the "AI employees" step
+Also: SRD-MKT-007.007 — report page skill path
 
 The list of steps the desk runs, loaded by import path, so ``desk`` never imports
 the tools (such as ``market``) that provide the steps.
@@ -33,6 +34,7 @@ SKILL_PATHS: dict[str, str] = {
     "risk_check": "us_swing.market.risk_check:RiskCheckSkill",
     "lead_brief": "us_swing.market.lead_brief:LeadBriefSkill",
     "news_review": "us_swing.market.news_review:NewsReviewSkill",
+    "report_page": "us_swing.market.report_page:ReportPageSkill",
 }
 # Packages whose ``employees/`` folder holds default employee files to copy on first run.
 DEFAULT_EMPLOYEE_PACKAGES: tuple[str, ...] = ("us_swing.market",)

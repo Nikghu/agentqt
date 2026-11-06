@@ -7,6 +7,7 @@ Also: MD-GUI-034.014.M13 — score proof (SRD-GUI-034.014)
 Also: MD-GUI-034.015.M14 — AI feed briefs (SRD-GUI-034.015)
 Also: MD-GUI-034.017.M16 — month AI cost (SRD-GUI-034.017)
 Also: MD-GUI-034.018.M17 — latest news, news tags and calendar (SRD-GUI-034.018–.020)
+Also: MD-GUI-034.022.M19 — report page versions for AI Desk Pages (SRD-GUI-034.022)
 
 Market Floor data from ``desk.db``: the real regime, breadth, sectors and RS leaders when
 the desk has them, the fallback provider (sample data) for every other product.
@@ -98,6 +99,17 @@ def _reading(value: float | None, good: float, weak: float) -> str:
     if value is None:
         return "-"
     return "Healthy" if value >= good else "Weak" if value < weak else "Mixed"
+
+
+@dataclass(frozen=True)
+class PageVersion:
+    """One report page version for the AI Desk Pages list; ``saved`` is New York time."""
+
+    page_id: int
+    day: str
+    version: int
+    title: str
+    saved: str
 
 
 class DeskFloorData:
@@ -310,6 +322,18 @@ class DeskFloorData:
         budget = load_settings(self._path.parent).monthly_budget_usd
         return MonthCost(month, budget, spent, fmt(by_employee), fmt(by_model))
 
+    def report_pages(self) -> list[PageVersion]:
+        """Return every report page version, newest day first and newest version first."""
+        rows = self._query_all("SELECT id, date, version, title, created FROM canvas_pages "
+                               "ORDER BY date DESC, version DESC")
+        return [PageVersion(int(i), str(d), int(v), str(t), _ny_saved(str(c)))
+                for i, d, v, t, c in rows]
+
+    def report_page(self, page_id: int) -> tuple[str, str] | None:
+        """Return ``(title, html)`` of one report page version, or ``None``."""
+        rows = self._query_all("SELECT title, html FROM canvas_pages WHERE id = ?", (page_id,))
+        return (str(rows[0][0]), str(rows[0][1])) if rows else None
+
     def _latest_proof(self) -> tuple[Any, ...] | None:
         return self._query(
             "SELECT run_id, scored_first, scored_last, years, long_result, short_result "
@@ -371,6 +395,14 @@ class DeskFloorData:
              "sector_rank": f"{rank} of {size}"}
             for sym, sec, rating, rank, size in rows
         ]
+
+
+def _ny_saved(created: str) -> str:
+    """A UTC ISO time as ``YYYY-MM-DD HH:MM`` New York time; unreadable text is kept."""
+    try:
+        return datetime.fromisoformat(created).astimezone(NY).strftime("%Y-%m-%d %H:%M")
+    except ValueError:
+        return created
 
 
 def _ny_time(published: str) -> str:

@@ -107,15 +107,15 @@ _FLOW = [
 ]
 
 _FEED: tuple[dict[str, str], ...] = (
-    {"time": "09:14", "author": "HELM", "kind": "info",
+    {"time": "09:14", "author": "Lead 1", "kind": "info",
      "text": "Market opens in an uptrend with calm volatility."},
-    {"time": "09:10", "author": "ATLAS", "kind": "idea",
+    {"time": "09:10", "author": "Expert 1", "kind": "idea",
      "text": "NVDA breakout idea scored 92; trigger above 131.40."},
-    {"time": "09:05", "author": "TIDE", "kind": "info",
+    {"time": "09:05", "author": "Expert 2", "kind": "info",
      "text": "Technology and Financials lead the sector ranking."},
-    {"time": "08:58", "author": "PIVOT", "kind": "approval",
+    {"time": "08:58", "author": "Expert 3", "kind": "approval",
      "text": "Buy 40 NVDA at 131.40 with stop 127.90. Approve?"},
-    {"time": "08:40", "author": "ATLAS", "kind": "approval",
+    {"time": "08:40", "author": "Expert 1", "kind": "approval",
      "text": "Sell short 60 XOM at 112.30 with stop 114.60. Approve?"},
 )
 

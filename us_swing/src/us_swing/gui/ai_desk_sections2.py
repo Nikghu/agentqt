@@ -1,5 +1,5 @@
 """
-Module: MD-GUI-034.009.M08 — AI Desk sections (Task board to Studio)
+Module: MD-GUI-034.009.M08 — AI Desk sections (Task board to Schedule)
 Parent SRD: SRD-GUI-034.009
 
 Frames only: sample content, no real data and no actions.
@@ -61,24 +61,6 @@ def schedule_frame(name: str) -> QWidget:
     body.addWidget(muted("Agents sleep until an event or timer wakes them"))
     body.addWidget(make_table(S.SCHEDULE_COLUMNS, S.SCHEDULE), 1)
     body.addWidget(muted("Evening run 16:25 New York time (02:55 IST in winter)"))
-    return frame
-
-
-def studio_frame(name: str) -> QWidget:
-    """Build the AI page list and the preview placeholder."""
-    frame, body = section_frame(name)
-    row = QHBoxLayout()
-    row.setSpacing(12)
-    left = QVBoxLayout()
-    left.addWidget(heading("AI pages"))
-    left.addWidget(make_table(S.STUDIO_COLUMNS, S.STUDIO), 1)
-    row.addLayout(left, 2)
-    preview = tile("Preview", "Sealed web view comes in phase P5d")
-    inner = QVBoxLayout()
-    inner.addWidget(preview)
-    inner.addStretch(1)
-    row.addLayout(inner, 3)
-    body.addLayout(row, 1)
     return frame
 
 

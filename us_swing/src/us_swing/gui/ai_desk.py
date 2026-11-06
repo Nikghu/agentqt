@@ -1,6 +1,7 @@
 """
 Module: MD-GUI-034.009.M08 — AI Desk workspace
 Parent SRD: SRD-GUI-034.009
+Also: SRD-GUI-034.022 — the Pages section (was Studio), rebuilt each time it is shown
 """
 from __future__ import annotations
 
@@ -26,22 +27,22 @@ from us_swing.gui.ai_desk_sections import (
 from us_swing.gui.ai_desk_sections2 import (
     activity_frame,
     schedule_frame,
-    studio_frame,
     tasks_frame,
 )
+from us_swing.gui.ai_desk_pages import pages_frame
 from us_swing.gui.ai_desk_sections3 import cost_frame, reports_frame, settings_frame
 from us_swing.gui.theme import C
 
 SECTIONS = (
     "Command", "Org chart", "Employees", "Hiring", "Task board", "Activity",
-    "Schedule", "Studio", "Reports", "Cost & budget", "Desk settings",
+    "Schedule", "Pages", "Reports", "Cost & budget", "Desk settings",
 )
 
-_LIVE_SECTIONS = ("Cost & budget",)
+_LIVE_SECTIONS = ("Pages", "Cost & budget")
 _BUILDERS: dict[str, Callable[[str], QWidget]] = {
     "Command": command_frame, "Org chart": org_frame, "Employees": employees_frame,
     "Hiring": hiring_frame, "Task board": tasks_frame, "Activity": activity_frame,
-    "Schedule": schedule_frame, "Studio": studio_frame, "Reports": reports_frame,
+    "Schedule": schedule_frame, "Reports": reports_frame,
     "Cost & budget": cost_frame, "Desk settings": settings_frame,
 }
 
@@ -76,7 +77,8 @@ class AiDeskWorkspace(QWidget):
         self._stack = QStackedWidget()
         self._home = poller.home
         for name in SECTIONS:
-            self._stack.addWidget(card(self._build(name)))
+            # live sections are built when first shown, so no web view starts with the desk
+            self._stack.addWidget(QWidget() if name in _LIVE_SECTIONS else card(self._build(name)))
         right.addWidget(self._stack, 1)
         main.addLayout(right, 1)
         # list → currentRowChanged → page → _show_section
@@ -84,7 +86,7 @@ class AiDeskWorkspace(QWidget):
         self._list.setCurrentRow(0)
 
     def _show_section(self, row: int) -> None:
-        """Show section ``row``; Cost & budget is rebuilt so its figures are current."""
+        """Show section ``row``; Pages and Cost & budget are rebuilt so they are current."""
         if 0 <= row < len(SECTIONS) and SECTIONS[row] in _LIVE_SECTIONS:
             old = self._stack.widget(row)
             self._stack.insertWidget(row, card(self._build(SECTIONS[row])))
@@ -94,6 +96,8 @@ class AiDeskWorkspace(QWidget):
         self._stack.setCurrentIndex(row)
 
     def _build(self, name: str) -> QWidget:
+        if name == "Pages":
+            return pages_frame(name, self._home)
         if name == "Cost & budget":
             return cost_frame(name, self._home)
         if name == "Desk settings":

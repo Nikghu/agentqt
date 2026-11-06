@@ -7,6 +7,7 @@ Also: MD-MKT-004.006.M03 — proof run and stat tables (SRD-MKT-004.006)
 Also: MD-MKT-005.003.M02 — regime view table (SRD-MKT-005.003); P5b AI view tables
 (SRD-MKT-005.008, .010, .013, .016)
 Also: MD-MKT-006.008.M05 — news tables (SRD-MKT-006.001, .003, .008)
+Also: MD-MKT-007.004.M03 — append-only ``canvas_pages`` report page versions (SRD-MKT-007.004)
 
 Market tables in ``desk.db``: ``regime_snapshot``, ``breadth_daily``, ``vix_daily``,
 ``sector_daily``, ``stock_rs``, ``stock_score``, ``ideas``, ``idea_reasons``,
@@ -97,6 +98,14 @@ CREATE TABLE IF NOT EXISTS news_tags (
     date TEXT, side TEXT, symbol TEXT, tone TEXT, reason TEXT, points REAL, final_score REAL,
     PRIMARY KEY (date, side, symbol)
 );
+CREATE TABLE IF NOT EXISTS canvas_pages (
+    id INTEGER PRIMARY KEY, date TEXT, version INTEGER, title TEXT, html TEXT, created TEXT,
+    UNIQUE (date, version)
+);
+CREATE TRIGGER IF NOT EXISTS canvas_pages_no_update BEFORE UPDATE ON canvas_pages
+BEGIN SELECT RAISE(ABORT, 'canvas_pages is append-only'); END;
+CREATE TRIGGER IF NOT EXISTS canvas_pages_no_delete BEFORE DELETE ON canvas_pages
+BEGIN SELECT RAISE(ABORT, 'canvas_pages is append-only'); END;
 """
 
 
@@ -497,6 +506,16 @@ class MarketStore:
         with self._con:
             cur = self._con.execute("DELETE FROM news_items WHERE published < ?", (published,))
         return cur.rowcount
+
+    def add_page(self, day: str, title: str, html: str, created: str) -> int:
+        """Add a report page as the next version of ``day``; return the version number."""
+        with self._con:
+            row = self._con.execute("SELECT COALESCE(MAX(version), 0) + 1 FROM canvas_pages "
+                                    "WHERE date = ?", (day,)).fetchone()
+            version = int(row[0])
+            self._con.execute("INSERT INTO canvas_pages (date, version, title, html, created) "
+                              "VALUES (?, ?, ?, ?, ?)", (day, version, title, html, created))
+        return version
 
     def read_frame(self, sql: str, params: tuple[str, ...] = ()) -> pd.DataFrame:
         """Return the result of a read-only ``SELECT`` on the market tables as a frame."""

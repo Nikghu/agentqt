@@ -38,11 +38,12 @@ def test_all_sections_open(qtbot: QtBot, tmp_path: Path) -> None:
 def test_every_section_shows_sample_tag(qtbot: QtBot, tmp_path: Path) -> None:
     """UT-GUI-034.010.M03.T02: every sample AI Desk section carries the Sample data tag.
 
-    Desk settings is real from P5a (SRD-GUI-034.016); Cost & budget is sample until AI runs.
+    Desk settings is real from P5a (SRD-GUI-034.016); Cost & budget is sample until AI runs;
+    Pages is real from P5d (SRD-GUI-034.022).
     """
     page = AiDeskWorkspace(DeskPoller(tmp_path))
     qtbot.addWidget(page)
-    for name in [n for n in page.section_names() if n != "Desk settings"]:
+    for name in [n for n in page.section_names() if n not in ("Desk settings", "Pages")]:
         page.select_section(name)
         frame = page._stack.currentWidget()
         assert frame is not None
