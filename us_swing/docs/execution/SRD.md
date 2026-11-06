@@ -41,6 +41,7 @@
 > v1.25.1: SRD-EXE-018.016 approved by user (2026-09-18) and set to Implemented — code and tests shipped with the requirement.
 > v1.33.0: SRD-EXE-006.015 and SRD-EXE-007.011 added and approved by user 2026-11-02 — 30m timeframe.
 > v1.34.0: SRD-EXE-011.027 added and approved by user 2026-11-02 — BOSS_ST trigger indicator; Implemented.
+> v1.35.0: Section 21 added — SRD-EXE-021.001–.007 (AI Desk Signal Intake; MKT P7); approved by user 2026-11-06.
 
 ---
 
@@ -401,3 +402,17 @@
 | SRD ID | Parent FO | Priority | Description | Inputs | Outputs | Constraints | Status |
 |---|---|---|---|---|---|---|---|
 | SRD-EXE-017.027 | FO-EXE-017 | Must | For a paper user, `get_account_state` returns start-of-day equity = Max Capital, daily P&L = realised P&L of cycles closed today (ET), equity = Max Capital + daily P&L + unrealised P&L, cash = Max Capital + daily P&L − entry value of open positions, and gross position value = market value of open positions. | Max Capital, today's closed cycles, open positions | `AccountState` | Sizing still uses Max Capital (`effective_capital`); live accounts unchanged | Implemented |
+
+---
+
+## Section 21: Requirements for FO-EXE-021 — AI Desk Signal Intake
+
+| SRD ID | Parent FO | Priority | Description | Inputs | Outputs | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-EXE-021.001 | FO-EXE-021 | Must | A strategy named "AI Desk" with type `ai_desk` and auto trade off is added to the strategy store on start when it is missing. | strategy store | strategy row | Its entry and exit conditions never run; the user can change Capital Max and mode | Approved |
+| SRD-EXE-021.002 | FO-EXE-021 | Must | `AppService.send_desk_pick(pick)` adds one ENTRY `TradeSignal` for AI Desk with the pick's direction, entry, stop, target and reason. | approved pick | pending signal | App process only; signal id `desk:date:side:symbol`, so a second send is dropped by the store | Approved |
+| SRD-EXE-021.003 | FO-EXE-021 | Must | The signal quantity is `size_for_strategy(entry, AI Desk capital_max, effective_capital)`. | entry, strategy, budget | `qty_recommended` | Quantity 0 adds no signal, returns a refusal and logs one warning | Approved |
+| SRD-EXE-021.004 | FO-EXE-021 | Must | A desk signal not executed by the close of its trading day is dismissed. | clock | dismissed signal | Close time from `data/market_calendar` | Approved |
+| SRD-EXE-021.005 | FO-EXE-021 | Must | An executed desk entry opens a cycle that exits on the signal's stop and target like other strategies. | fill | trade cycle | How the stop and target are watched is set in the DD | Approved |
+| SRD-EXE-021.006 | FO-EXE-021 | Should | On app start, approved picks of the current trading day that have no pending signal and no cycle are sent again. | approvals | pending signals | Pending signals live in memory and are lost on restart | Approved |
+| SRD-EXE-021.007 | FO-EXE-021 | Should | Each desk signal added, refused or dismissed logs the stock, side and quantity. | signal | log lines | `[AI Desk]` prefix | Approved |

@@ -5,6 +5,8 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.90.1: SRD-GUI-034.034–.036 approved by user 2026-11-06.
+> v2.90.0: SRD-GUI-034.034–.036 added as Draft — trade pick approvals in Command (MKT P7).
 > v2.89.1: SRD-GUI-034.027–.033 approved by user 2026-11-06.
 > v2.89.0: SRD-GUI-034.027–.033 added as Draft — real Hiring, approvals, Reports and seat caps (DSK P6).
 > v2.88.1: SRD-GUI-034.022–.026 approved by user 2026-11-06.
@@ -703,3 +705,6 @@
 | SRD-GUI-034.031 | FO-GUI-034 | Should | Command → "Approvals waiting" lists hires ready for a decision and opens Hiring on click. | hires | list | Empty note when none | Implemented |
 | SRD-GUI-034.032 | FO-GUI-034 | Must | AI Desk → Reports lists the weekly reports newest first and shows the chosen one. | `desk_reports` | list, text | Sample reports only while there are none | Implemented |
 | SRD-GUI-034.033 | FO-GUI-034 | Should | Desk settings shows the seat caps for experts, champions and juniors and saves changes. | form | desk settings | A cap below the current count is refused | Implemented |
+| SRD-GUI-034.034 | FO-GUI-034 | Must | Command → "Approvals waiting" also lists each waiting trade pick with side, stock, entry, stop, target and quantity, and Approve and Reject buttons. | trade picks | rows | Hires stay listed as now; empty note when none | Approved |
+| SRD-GUI-034.035 | FO-GUI-034 | Must | Approve sends the pick to Execution through AppService and then records the approve row; Reject records only the reject row. | click | signal, approval row | No row is written when the send is refused; the refusal shows in the row | Approved |
+| SRD-GUI-034.036 | FO-GUI-034 | Should | A pick leaves the list once it is decided or expired. | pick state | list | Refreshed on each show of Command | Approved |
