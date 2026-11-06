@@ -626,9 +626,13 @@ attributes: global class style title colspan rowspan align width height
             text-anchor font-size font-family font-weight dominant-baseline
             preserveAspectRatio
             any on* attribute, href, xlink:href, src outside img: removed
+            a repeated attribute: only the first is kept; every value but img src is CSS-cleaned
 img src: only ^data:image/(png|jpeg|gif|webp);base64,[A-Za-z0-9+/=\s]+$  else the img is removed
-CSS (<style> text and style=""): remove @import ..., url(...), expression(...),
-            behavior:, -moz-binding, and every '<'; a value with 'javascript:' is removed
+CSS (<style> text, style="" and other attribute values): first remove every '<' and '\'
+            (no CSS escapes), then remove @import, @font-face, url(), image-set(), image(),
+            src(), cross-fade(), element(), expression(), local() (also -webkit- forms),
+            behavior:, -moz-binding and javascript:, again and again until nothing changes
+a self-closed <style/> is removed (a browser would read the rest of the page as CSS)
 text: re-escaped; comments, doctype and processing instructions removed
 removed = count of tags, attributes and CSS parts taken out
 ```

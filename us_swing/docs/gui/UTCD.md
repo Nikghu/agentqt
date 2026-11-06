@@ -1087,12 +1087,12 @@ Test files:
 | UT-GUI-034.020.M17.T03 | MD-GUI-034.018.M17 | Negative | Year not covered (SRD-GUI-034.020) | today in a year without a calendar list | no rows, no error; one warning | Pass |
 | UT-GUI-034.021.M18.T01 | MD-GUI-034.021.M18 | Positive | Default tab (SRD-GUI-034.021) | no saved layout | News & Calendar has Latest news, News tags and Calendar without overlap | Pass |
 | UT-GUI-034.021.M18.T02 | MD-GUI-034.021.M18 | Negative | Saved layout kept (SRD-GUI-034.021) | saved layout with two panels | still two panels | Pass |
-| UT-GUI-034.022.M19.T01 | MD-GUI-034.022.M19 | Positive | Page reader (SRD-GUI-034.022) | 3 versions over 2 days in canvas_pages | newest day first, newest version first; html read by id | Not Run |
-| UT-GUI-034.022.M19.T02 | MD-GUI-034.022.M19 | Negative | No table (SRD-GUI-034.022) | desk.db without canvas_pages; no desk.db | empty list; None for html; no error | Not Run |
-| UT-GUI-034.022.M19.T03 | MD-GUI-034.022.M19 | Positive | Section renamed (SRD-GUI-034.022) | AI Desk sections | "Pages" listed where "Studio" was; no "Studio" | Not Run |
-| UT-GUI-034.022.M19.T04 | MD-GUI-034.022.M19 | Positive | Version list (SRD-GUI-034.022) | 3 versions | table has 3 rows with day, version, title and time | Not Run |
-| UT-GUI-034.023.M19.T01 | MD-GUI-034.022.M19 | Positive | Preview follows the row (SRD-GUI-034.023) | click the second row (fake preview) | preview gets that version's html, cleaned again | Not Run |
-| UT-GUI-034.024.M20.T01 | MD-GUI-034.024.M20 | Positive | Sealed settings (SRD-GUI-034.024) | new SealedView | profile off the record; JavaScript, local file and remote URL access off | Not Run |
-| UT-GUI-034.025.M20.T01 | MD-GUI-034.024.M20 | Positive | Request rule (SRD-GUI-034.025) | schemes data, about, http, https, file, qrc, ws | only data and about allowed | Not Run |
-| UT-GUI-034.025.M20.T02 | MD-GUI-034.024.M20 | Negative | Blocked request logged (SRD-GUI-034.025) | fake request to https | blocked; one DEBUG [Pages] line | Not Run |
-| UT-GUI-034.026.M19.T01 | MD-GUI-034.022.M19 | Edge | Empty note (SRD-GUI-034.026) | no pages | note shown; no web view built | Not Run |
+| UT-GUI-034.022.M19.T01 | MD-GUI-034.022.M19 | Positive | Page reader (SRD-GUI-034.022) | 3 versions over 2 days in canvas_pages | newest day first, newest version first; html read by id | Pass |
+| UT-GUI-034.022.M19.T02 | MD-GUI-034.022.M19 | Negative | No table (SRD-GUI-034.022) | desk.db without canvas_pages; no desk.db | empty list; None for html; no error | Pass |
+| UT-GUI-034.022.M19.T03 | MD-GUI-034.022.M19 | Positive | Section renamed (SRD-GUI-034.022) | AI Desk sections | "Pages" listed where "Studio" was; no "Studio" | Pass |
+| UT-GUI-034.022.M19.T04 | MD-GUI-034.022.M19 | Positive | Version list (SRD-GUI-034.022) | 3 versions | table has 3 rows with day, version, title and time | Pass |
+| UT-GUI-034.023.M19.T01 | MD-GUI-034.022.M19 | Positive | Preview follows the row (SRD-GUI-034.023) | move to the second row by mouse or keys (fake preview) | preview gets that version's html; SealedView cleans it again (UT-GUI-034.024.M20.T01) | Pass |
+| UT-GUI-034.024.M20.T01 | MD-GUI-034.024.M20 | Positive | Sealed settings (SRD-GUI-034.024) | new SealedView | profile off the record; JavaScript, local file and remote URL access off | Pass |
+| UT-GUI-034.025.M20.T01 | MD-GUI-034.024.M20 | Positive | Request rule (SRD-GUI-034.025) | schemes data, about, http, https, file, qrc, ws | only data and about allowed | Pass |
+| UT-GUI-034.025.M20.T02 | MD-GUI-034.024.M20 | Negative | Blocked request logged (SRD-GUI-034.025) | fake request to https | blocked; one DEBUG [Pages] line | Pass |
+| UT-GUI-034.026.M19.T01 | MD-GUI-034.022.M19 | Edge | Empty note (SRD-GUI-034.026) | no pages | note shown; no web view built | Pass |

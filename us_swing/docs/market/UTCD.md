@@ -6,7 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
-> v0.9.0: 21 test cases for FO-MKT-007 AI report pages (P5d).
+> v0.9.0: 23 test cases for FO-MKT-007 AI report pages (P5d).
 > v0.8.0: 43 test cases for FO-MKT-006 news, economic calendar and event risk (P5c).
 > v0.7.0: 35 test cases for the P5b skills (sector/flow view, setup review, risk limits, risk check, lead brief, defaults).
 > v0.6.0: 13 test cases for the FO-MKT-005 regime view skill (P5a).
@@ -259,24 +259,26 @@
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
 |---|---|---|---|---|---|---|
-| UT-MKT-007.001.M02.T01 | MD-MKT-007.001.M02 | Positive | Report facts (SRD-MKT-007.001) | ideas, lead picks, evening brief, views for the day | text holds the brief, picks and views; fresh True | Not Run |
-| UT-MKT-007.001.M02.T02 | MD-MKT-007.001.M02 | Negative | No lead brief (SRD-MKT-007.001) | ideas for the day, no evening brief | fresh False; reason names the day | Not Run |
-| UT-MKT-007.001.M02.T03 | MD-MKT-007.001.M02 | Edge | No briefs table (SRD-MKT-007.001) | fresh ideas, `briefs` table missing | fresh False; no exception | Not Run |
-| UT-MKT-007.001.M02.T04 | MD-MKT-007.001.M02 | Positive | Run order (SRD-MKT-007.001) | skill needs | needs is ("lead_brief",) | Not Run |
-| UT-MKT-007.002.M02.T01 | MD-MKT-007.001.M02 | Positive | Valid answer (SRD-MKT-007.002) | 20-char title, 2 KB html | ReportPage | Not Run |
-| UT-MKT-007.002.M02.T02 | MD-MKT-007.001.M02 | Negative | Bad answer (SRD-MKT-007.002) | 81-char title; 50-char html; html over 200 000 chars; extra field | each refused by the schema | Not Run |
-| UT-MKT-007.003.M01.T01 | MD-MKT-007.003.M01 | Positive | Allowed content kept (SRD-MKT-007.003) | table, h2, style block, inline svg chart | same tags and text kept; removed 0 | Not Run |
-| UT-MKT-007.003.M01.T02 | MD-MKT-007.003.M01 | Negative | Scripts and handlers (SRD-MKT-007.003) | script with code, onclick, onload on svg, iframe, a href javascript: | no script text, no on* attribute, no iframe, no href; removed counted | Not Run |
-| UT-MKT-007.003.M01.T03 | MD-MKT-007.003.M01 | Negative | Outside and local images (SRD-MKT-007.003) | img src https, file:, data:image/svg+xml, data:image/png;base64 | only the png img kept | Not Run |
-| UT-MKT-007.003.M01.T04 | MD-MKT-007.003.M01 | Negative | CSS loads (SRD-MKT-007.003) | style with @import, url(), expression(); style attribute with url() | those parts removed; other rules kept | Not Run |
-| UT-MKT-007.003.M01.T05 | MD-MKT-007.003.M01 | Edge | Tricky markup (SRD-MKT-007.003) | escaped script text, upper-case SCRIPT, unclosed tags, comment, doctype, closing style tag inside CSS | text stays escaped; script dropped; comment and doctype gone; output parses | Not Run |
-| UT-MKT-007.003.M01.T06 | MD-MKT-007.003.M01 | Positive | Sealed shell (SRD-MKT-007.003) | clean body and a title with < | full page with the CSP meta; title escaped | Not Run |
-| UT-MKT-007.004.M03.T01 | MD-MKT-007.004.M03 | Positive | Versions (SRD-MKT-007.004) | two pages on one day, one on the next | versions 1, 2, then 1 | Not Run |
-| UT-MKT-007.004.M03.T02 | MD-MKT-007.004.M03 | Negative | Append-only (SRD-MKT-007.004) | UPDATE and DELETE on canvas_pages | both refused; rows unchanged | Not Run |
-| UT-MKT-007.005.M02.T01 | MD-MKT-007.001.M02 | Negative | No answer (SRD-MKT-007.005) | ask returns None | no page row; no feed item | Not Run |
-| UT-MKT-007.005.M02.T02 | MD-MKT-007.001.M02 | Negative | Empty after cleaning (SRD-MKT-007.005) | html made only of script and iframe | no page row; no feed item; [Report] warning | Not Run |
-| UT-MKT-007.005.M02.T03 | MD-MKT-007.001.M02 | Edge | Last good version stays (SRD-MKT-007.005) | one saved version, then a failed answer | still one version, unchanged | Not Run |
-| UT-MKT-007.006.M02.T01 | MD-MKT-007.001.M02 | Positive | Feed brief (SRD-MKT-007.006) | valid answer | one info feed item with the title and version; html stored cleaned | Not Run |
-| UT-MKT-007.007.M04.T01 | MD-MKT-007.007.M04 | Positive | Default file valid (SRD-MKT-007.007) | shipped emp-007 | loads; skill report_page; after_run; caps 3 and USD 3; generic name | Not Run |
-| UT-MKT-007.007.M04.T02 | MD-MKT-007.007.M04 | Negative | Skill list and boundary (SRD-MKT-007.007) | SKILL_PATHS, market sources | report_page loads; no desk import in market | Not Run |
-| UT-MKT-007.008.M02.T01 | MD-MKT-007.001.M02 | Positive | Run log (SRD-MKT-007.008) | valid answer with one script | one [Report] line with day, version, sizes and 1 item removed | Not Run |
+| UT-MKT-007.001.M02.T01 | MD-MKT-007.001.M02 | Positive | Report facts (SRD-MKT-007.001) | ideas, lead picks, evening brief, views for the day | text holds the brief, picks and views; fresh True | Pass |
+| UT-MKT-007.001.M02.T02 | MD-MKT-007.001.M02 | Negative | No lead brief (SRD-MKT-007.001) | ideas for the day, no evening brief | fresh False; reason names the day | Pass |
+| UT-MKT-007.001.M02.T03 | MD-MKT-007.001.M02 | Edge | No briefs table (SRD-MKT-007.001) | fresh ideas, `briefs` table missing | fresh False; no exception | Pass |
+| UT-MKT-007.001.M02.T04 | MD-MKT-007.001.M02 | Positive | Run order (SRD-MKT-007.001) | skill needs | needs is ("lead_brief",) | Pass |
+| UT-MKT-007.002.M02.T01 | MD-MKT-007.001.M02 | Positive | Valid answer (SRD-MKT-007.002) | 20-char title, 2 KB html | ReportPage | Pass |
+| UT-MKT-007.002.M02.T02 | MD-MKT-007.001.M02 | Negative | Bad answer (SRD-MKT-007.002) | 81-char title; 50-char html; html over 200 000 chars; extra field | each refused by the schema | Pass |
+| UT-MKT-007.003.M01.T01 | MD-MKT-007.003.M01 | Positive | Allowed content kept (SRD-MKT-007.003) | table, h2, style block, inline svg chart | same tags and text kept; removed 0 | Pass |
+| UT-MKT-007.003.M01.T02 | MD-MKT-007.003.M01 | Negative | Scripts and handlers (SRD-MKT-007.003) | script with code, onclick, onload on svg, iframe, a href javascript: | no script text, no on* attribute, no iframe, no href; removed counted | Pass |
+| UT-MKT-007.003.M01.T03 | MD-MKT-007.003.M01 | Negative | Outside and local images (SRD-MKT-007.003) | img src https, file:, data:image/svg+xml, data:image/png;base64 | only the png img kept | Pass |
+| UT-MKT-007.003.M01.T04 | MD-MKT-007.003.M01 | Negative | CSS loads (SRD-MKT-007.003) | style with @import, url(), expression(); style attribute with url() | those parts removed; other rules kept | Pass |
+| UT-MKT-007.003.M01.T05 | MD-MKT-007.003.M01 | Edge | Tricky markup (SRD-MKT-007.003) | escaped script text, upper-case SCRIPT, unclosed tags, comment, doctype, closing style tag inside CSS | text stays escaped; script dropped; comment and doctype gone; output parses | Pass |
+| UT-MKT-007.003.M01.T06 | MD-MKT-007.003.M01 | Positive | Sealed shell (SRD-MKT-007.003) | clean body and a title with < | full page with the CSP meta; title escaped | Pass |
+| UT-MKT-007.003.M01.T07 | MD-MKT-007.003.M01 | Negative | CSS rebuilt loads (SRD-MKT-007.003) | ur<l(...), ur@import a;l(...), CSS escapes, image-set(), @font-face local() | no url(, image-set, @import, local( or backslash left | Pass |
+| UT-MKT-007.003.M01.T08 | MD-MKT-007.003.M01 | Negative | Repeated and SVG attributes (SRD-MKT-007.003) | img with two src; svg fill url(); self-closed style | only a data src kept; fill cleaned; style dropped; later text kept | Pass |
+| UT-MKT-007.004.M03.T01 | MD-MKT-007.004.M03 | Positive | Versions (SRD-MKT-007.004) | two pages on one day, one on the next | versions 1, 2, then 1 | Pass |
+| UT-MKT-007.004.M03.T02 | MD-MKT-007.004.M03 | Negative | Append-only (SRD-MKT-007.004) | UPDATE and DELETE on canvas_pages | both refused; rows unchanged | Pass |
+| UT-MKT-007.005.M02.T01 | MD-MKT-007.001.M02 | Negative | No answer (SRD-MKT-007.005) | ask returns None | no page row; no feed item | Pass |
+| UT-MKT-007.005.M02.T02 | MD-MKT-007.001.M02 | Negative | Empty after cleaning (SRD-MKT-007.005) | html made only of script and iframe | no page row; no feed item; [Report] warning | Pass |
+| UT-MKT-007.005.M02.T03 | MD-MKT-007.001.M02 | Edge | Last good version stays (SRD-MKT-007.005) | one saved version, then a failed answer | still one version, unchanged | Pass |
+| UT-MKT-007.006.M02.T01 | MD-MKT-007.001.M02 | Positive | Feed brief (SRD-MKT-007.006) | valid answer | one info feed item with the title and version; html stored cleaned | Pass |
+| UT-MKT-007.007.M04.T01 | MD-MKT-007.007.M04 | Positive | Default file valid (SRD-MKT-007.007) | shipped emp-007 | loads; skill report_page; after_run; caps 3 and USD 3; generic name | Pass |
+| UT-MKT-007.007.M04.T02 | MD-MKT-007.007.M04 | Negative | Skill list and boundary (SRD-MKT-007.007) | SKILL_PATHS, market sources | report_page loads; no desk import in market | Pass |
+| UT-MKT-007.008.M02.T01 | MD-MKT-007.001.M02 | Positive | Run log (SRD-MKT-007.008) | valid answer with one script | one [Report] line with day, version, sizes and 1 item removed | Pass |

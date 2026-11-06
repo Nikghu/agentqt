@@ -31,5 +31,5 @@
 | FO-MKT-006 | SRD-MKT-006.010 | DD-MKT-006.001.D01 | MD-MKT-005.012.M07, MD-MKT-005.014.M08 | UT-MKT-006.010.M07.T01–T02, UT-MKT-006.010.M08.T01–T02 (4, Pass) | `market/risk_check.py`, `market/lead_brief.py` | Implemented | RN-MKT-0.7.0-20261106 |
 | FO-MKT-006 | SRD-MKT-006.011 | DD-MKT-006.001.D01 | MD-MKT-006.011.M06 | UT-MKT-006.011.M06.T01–T02 (2, Pass) | `market/employees/emp-006/`, `core/desk_steps.py` | Implemented | RN-MKT-0.7.0-20261106 |
 | FO-MKT-006 | SRD-MKT-006.012 | DD-MKT-006.001.D01 | MD-MKT-006.001.M02 | UT-MKT-006.012.M02.T01 (1, Pass) | `market/news_step.py` | Implemented | RN-MKT-0.7.0-20261106 |
-| FO-MKT-007 | SRD-MKT-007.001–.008 | DD-MKT-007.001.D01 | MD-MKT-007.003.M01, .001.M02, .004.M03, .007.M04 | UT-MKT-007.* (21, Not Run) | — | Approved | — |
+| FO-MKT-007 | SRD-MKT-007.001–.008 | DD-MKT-007.001.D01 | MD-MKT-007.003.M01, .001.M02, .004.M03, .007.M04 | UT-MKT-007.001.M02.T01–T04, .002.M02.T01–T02, .003.M01.T01–T08, .004.M03.T01–T02, .005.M02.T01–T03, .006.M02.T01, .007.M04.T01–T02, .008.M02.T01 (23, Pass) | `core/report_html.py`, `market/report_page.py`, `market/store.py`, `market/employees/emp-007/`, `core/desk_steps.py` | Implemented | RN-MKT-0.8.0-20261106 |
 | FO-MKT-008 | — | — | — | — | — | Draft | — |

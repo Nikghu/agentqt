@@ -171,7 +171,7 @@ The system shall add news and the economic calendar to the evening funnel. Free 
 
 ## FO-MKT-007: AI Report Pages
 
-**Status:** Approved (user, 2026-11-06)
+**Status:** Implemented (approved by user 2026-11-06)
 **Priority:** Could
 **Phase:** P5d
 **Depends on:** FO-MKT-005, FO-DSK-002–005, FO-GUI-034
