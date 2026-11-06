@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-27
 **Project:** US Swing Trading System
 
+> v1.24.1: UT-EXE-021.006.M02.T02 reworded and T03 added (review fix).
 > v1.24.0: 18 test cases for FO-EXE-021 AI Desk signal intake (MKT P7).
 > v1.23.0: UT-EXE-017.013.M09.T01 added — risk warning uses the frameless app pop-up.
 > v1.22.0: UT-EXE-011.027.M01.T01–T07 and UT-EXE-011.027.M03.T01–T03 added — BOSS_ST.
@@ -972,5 +973,6 @@
 | UT-EXE-021.005.M03.T01 | MD-EXE-021.005.M03 | Positive | Signal stop and target | ai_desk entry with stop 97.4 and target 108.8 | context hard stop 97.4, target 108.8 | Pass |
 | UT-EXE-021.005.M03.T02 | MD-EXE-021.005.M03 | Negative | Other strategies unchanged | normal strategy with 1% stop and 2% target, signal levels set | levels from the config percentages | Pass |
 | UT-EXE-021.006.M02.T01 | MD-EXE-021.001.M02 | Positive | Re-send on start | approved pick for today, no signal, no cycle | one pending signal | Pass |
-| UT-EXE-021.006.M02.T02 | MD-EXE-021.001.M02 | Negative | No re-send | pick with a cycle today; pick after 16:00 ET; signal already pending | no new signal | Pass |
+| UT-EXE-021.006.M02.T02 | MD-EXE-021.001.M02 | Negative | No re-send | pick executed or dismissed earlier; after 16:00 ET; signal already pending | no new signal | Pass |
+| UT-EXE-021.006.M02.T03 | MD-EXE-021.001.M02 | Positive | Outcome noted; live waits | dismiss a desk signal; live user with no account, then with one | trade_done dismissed row; re-send only after the account is known, once | Pass |
 | UT-EXE-021.007.M02.T01 | MD-EXE-021.001.M02 | Positive | Logs | send, refuse and sweep one each | lines with [AI Desk] prefix, stock, side and quantity | Pass |

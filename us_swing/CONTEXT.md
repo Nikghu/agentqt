@@ -7,7 +7,7 @@
 
 ---
 
-**Next (handover, 2026-11-06):** User check T129 (P7: restart the app, and after the next evening run open AI Desk → Command → Approvals waiting; Approve one pick and see it in Execution under "AI Desk"; Reject one; after the next open the undecided picks are gone). Also still open: restart the desk (T123, T126–T128). Branch feat/p7-exe-link is not pushed; push/PR when the user says. Reviewer agents not run yet for P7.
+**Next (handover, 2026-11-06):** User check T129 (P7: restart the app, and after the next evening run open AI Desk → Command → Approvals waiting; Approve one pick and see it in Execution under "AI Desk"; Reject one; after the next open the undecided picks are gone). Also still open: restart the desk (T123, T126–T128). Branch feat/p7-exe-link is not pushed; push/PR when the user says. Reviewer agents run for P7 and their fixes are in.
 
 **Current (Session 123, 2026-11-06):** **Link to Execution, phase P7 (Feature, MKT + EXE + GUI; FO-MKT-008, FO-EXE-021; RN-MKT-0.9.0-20261106; SRD-MKT-008.001–.006, SRD-EXE-021.001–.007 and SRD-GUI-034.034–.036 approved by user and Implemented).** Each risk-passed lead pick shows in Command → Approvals waiting with entry (trigger), stop, 2R target and Capital Max quantity; Approve adds one pending entry signal under the fixed "AI Desk" strategy (user still clicks Execute), Reject only records. Decisions are `trade` rows in the append-only `approvals` table. A pick expires at the next NYSE open; its signal is removed at that day's close; today's approved picks are sent again after an app restart. The engine never evaluates `ai_desk` strategies. New `core/desk_trades.py`, `execution/desk_signals.py`. 44 new tests Pass; full suite 2408 passed, 13 failed (12 old T112 + 1 timing flake), 2 skipped.
 

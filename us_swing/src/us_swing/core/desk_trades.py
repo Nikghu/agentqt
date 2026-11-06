@@ -2,7 +2,7 @@
 Module: MD-MKT-008.001.M01 — core/desk_trades.py
 Parent SRD: SRD-MKT-008.001
 Also: SRD-MKT-008.002 (target), SRD-MKT-008.003 (state and expiry), SRD-MKT-008.004
-(trade approval rows), SRD-MKT-008.005 (app process only), SRD-MKT-008.006 (log lines)
+(trade approval and outcome rows), SRD-MKT-008.005 (app process only), SRD-MKT-008.006 (log lines)
 
 Lead picks the Master user may send to Execution. Shared by the GUI (Approvals waiting)
 and the app service (re-send on start); it reads ``desk.db`` with plain SQL and never
@@ -189,8 +189,25 @@ def record_trade_decision(home: Path, pick: TradePick, decision: str, qty: int,
     return ""
 
 
+def record_trade_outcome(home: Path, subject: str, outcome: str, now: datetime) -> None:
+    """Note that a pick's signal left Execution (``executed`` or ``dismissed``), so a restart
+    does not send it again."""
+    con = sqlite3.connect(home / DB_NAME, timeout=5)
+    try:
+        with con:
+            con.executescript(_APPROVALS)
+            con.execute("INSERT INTO approvals (created, kind, subject, decision, detail) "
+                        "VALUES (?, 'trade_done', ?, ?, '')",
+                        (now.isoformat(timespec="seconds"), subject, outcome))
+    except sqlite3.Error as exc:
+        log.error("[AI Desk] Could not note the %s signal for %s: %s", outcome, subject, exc)
+    finally:
+        con.close()
+
+
 def approved_picks(home: Path, trading_day: date) -> list[TradePick]:
-    """Approved picks whose trading day (the day after their data day) is ``trading_day``."""
+    """Approved picks of ``trading_day`` (the day after their data day) whose signal has not
+    yet been executed or dismissed."""
     con = _connect(home)
     if con is None:
         return []
@@ -198,11 +215,13 @@ def approved_picks(home: Path, trading_day: date) -> list[TradePick]:
         try:
             rows = con.execute("SELECT subject, decision, detail FROM approvals "
                                "WHERE kind = 'trade' ORDER BY id").fetchall()
+            done = {r[0] for r in con.execute(
+                "SELECT subject FROM approvals WHERE kind = 'trade_done'")}
         except sqlite3.OperationalError:
             return []
     finally:
         con.close()
-    seen: set[str] = set()
+    seen: set[str] = set(done)
     out: list[TradePick] = []
     for subject, decision, detail in rows:
         if subject in seen:

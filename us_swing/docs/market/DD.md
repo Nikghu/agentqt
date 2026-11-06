@@ -735,7 +735,7 @@ sqlite3.Error -> log ERROR, return "could not save"
 
 `trade_picks` logs `[AI Desk] %d trade pick(s) expired` at INFO when the count of expired picks is above 0.
 
-**Approved picks** (`approved_picks(home, trading_day) -> list[TradePick]`): `approve` rows of kind `trade` whose `next_trading_day(day) == trading_day`, rebuilt from the detail JSON (state `approved`). Used by the restart re-send.
+**Approved picks** (`approved_picks(home, trading_day) -> list[TradePick]`): `approve` rows of kind `trade` whose `next_trading_day(day) == trading_day` and that have no `trade_done` row, rebuilt from the detail JSON (state `approved`). Used by the restart re-send. `record_trade_outcome(home, subject, outcome, now)` adds the `trade_done` row (`executed` or `dismissed`) when a desk signal leaves Execution.
 
 **Sink Protocol** (in `core/desk_trades.py`, so the GUI types it without importing `gui.app_service`):
 

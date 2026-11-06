@@ -387,7 +387,7 @@ AI Desk Signal Intake. One new file (`execution/desk_signals.py`).
 | Module ID | File | Change Required | SRD |
 |---|---|---|---|
 | MD-EXE-021.002.M01 | `src/us_swing/execution/desk_signals.py` (new) | `AI_DESK_STRATEGY`, `AI_DESK_TYPE`, `build_desk_signal(pick, qty, user_id)`, `desk_signal_close(signal_id)` | SRD-EXE-021.002 |
-| MD-EXE-021.001.M02 | `src/us_swing/gui/app_service.py` | Add the AI Desk row on start; `desk_pick_qty()`, `send_desk_pick()`, `dismiss_desk_pick()`; 60 s `_desk_signal_timer` → `_dismiss_closed_desk_signals()`; `_resend_desk_picks()` once at start | SRD-EXE-021.001 |
+| MD-EXE-021.001.M02 | `src/us_swing/gui/app_service.py` | Add the AI Desk row on start; `desk_pick_qty()`, `send_desk_pick()`, `dismiss_desk_pick()`; `_on_desk_signal_done()` notes executed or dismissed desk signals; 60 s `_desk_signal_timer` → `_desk_signal_tick()` (re-send once, live waits for the account) → `_dismiss_closed_desk_signals()` | SRD-EXE-021.001 |
 | MD-EXE-021.005.M03 | `src/us_swing/execution/broker_adapter.py` | `_build_context`: `ai_desk` entries take stop and target from the signal | SRD-EXE-021.005 |
 | MD-EXE-021.001.M04 | `src/us_swing/execution/strategy_engine/_engine.py` | `_EXTERNAL_TYPES`: the tick loop and candle fan-out skip `ai_desk` strategies | SRD-EXE-021.001 |
 

@@ -1604,9 +1604,14 @@ class AppService(QObject):
         # ── AI Desk picks (FO-EXE-021) — close sweep every minute, re-send once ──
         self._desk_signal_timer = QTimer(self)
         self._desk_signal_timer.setInterval(60_000)
-        self._desk_signal_timer.timeout.connect(self._dismiss_closed_desk_signals)
+        self._desk_resent = False
+        self._pending_store.pending_signal_executed.connect(
+            lambda sid: self._on_desk_signal_done(sid, "executed"))
+        self._pending_store.pending_signal_dismissed.connect(
+            lambda sid: self._on_desk_signal_done(sid, "dismissed"))
+        self._desk_signal_timer.timeout.connect(self._desk_signal_tick)
         self._desk_signal_timer.start()
-        self._resend_desk_picks()
+        self._desk_signal_tick()
 
     # ── Architecture-level connection status ──────────────────────────────────
 
@@ -2446,11 +2451,29 @@ class AppService(QObject):
                 _log.info("[AI Desk] %s %s was not executed by the close and was removed",
                           sig.direction.lower(), sig.symbol)
 
+    def _desk_signal_tick(self) -> None:
+        """Re-send once (live mode waits for the broker account), then sweep closed signals."""
+        if not self._desk_resent and (
+            self.get_active_user().mode != "live" or self._ibkr_acct is not None
+        ):
+            self._desk_resent = True
+            self._resend_desk_picks()
+        self._dismiss_closed_desk_signals()
+
+    def _on_desk_signal_done(self, signal_id: str, outcome: str) -> None:
+        """Note an executed or dismissed desk signal so a restart does not send it again."""
+        from us_swing.core import desk_contract
+        from us_swing.core.desk_trades import record_trade_outcome
+
+        if signal_id.startswith("desk:"):
+            record_trade_outcome(desk_contract.desk_home(), signal_id[len("desk:"):], outcome,
+                                 datetime.datetime.now(_ET))
+
     def _resend_desk_picks(self, now: datetime.datetime | None = None) -> None:
         """Send today's approved picks again after a restart (SRD-EXE-021.006)."""
         from us_swing.core import desk_contract
         from us_swing.core.desk_trades import approved_picks
-        from us_swing.execution.desk_signals import AI_DESK_STRATEGY, desk_signal_id
+        from us_swing.execution.desk_signals import desk_signal_id
 
         now = now or datetime.datetime.now(_ET)
         if now.time() >= datetime.time(16, 0):
@@ -2458,13 +2481,8 @@ class AppService(QObject):
         try:
             pending = {s.signal_id for s in self._pending_store.list()}
             for pick in approved_picks(desk_contract.desk_home(), now.date()):
-                if desk_signal_id(pick) in pending:
-                    continue
-                if self._tc_query is not None and self._tc_query.history(
-                    symbol=pick.symbol, strategy_id=AI_DESK_STRATEGY, days=1
-                ):
-                    continue
-                self.send_desk_pick(pick)
+                if desk_signal_id(pick) not in pending:
+                    self.send_desk_pick(pick)
         except Exception:
             _log.exception("[AI Desk] Could not send approved picks again after the restart")
 

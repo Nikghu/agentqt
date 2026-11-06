@@ -184,6 +184,14 @@ def test_approved_picks_for_day(tmp_path: Path) -> None:
     assert dt.approved_picks(tmp_path, date(2026, 11, 10)) == []
 
 
+def test_done_picks_left_out(tmp_path: Path) -> None:
+    """UT-MKT-008.004.M01.T05: a pick whose signal was executed or dismissed is not approved-open."""
+    dt.record_trade_decision(tmp_path, _pick(symbol="EXE"), "approve", 3, SAT_NOON)
+    dt.record_trade_decision(tmp_path, _pick(symbol="OPEN"), "approve", 3, SAT_NOON)
+    dt.record_trade_outcome(tmp_path, _pick(symbol="EXE").subject, "executed", SAT_NOON)
+    assert [p.symbol for p in dt.approved_picks(tmp_path, date(2026, 11, 9))] == ["OPEN"]
+
+
 def test_no_desk_or_gui_import() -> None:
     """UT-MKT-008.005.M01.T01: core/desk_trades.py imports neither desk, market nor gui."""
     text = (SRC / "core" / "desk_trades.py").read_text(encoding="utf-8")

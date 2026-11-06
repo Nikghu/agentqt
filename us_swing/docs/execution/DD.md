@@ -4195,7 +4195,9 @@ return (qty, "")
 
 **Close sweep.** A 60 s `_desk_signal_timer` calls `_dismiss_closed_desk_signals()`: every pending signal whose `desk_signal_close()` is at or before now (ET) is dismissed and logged `[AI Desk] %s pick was not executed by the close and was removed`.
 
-**Restart.** After the pending store and trade-cycle query exist, `_resend_desk_picks()` runs once: for `approved_picks(desk_home(), today ET)` while now is before 16:00 ET, a pick is sent again unless its signal is pending or `history(symbol=..., strategy_id="AI Desk", days=1)` is not empty.
+**Outcome rows.** `pending_signal_executed` and `pending_signal_dismissed` call `_on_desk_signal_done()`: for a `desk:` id it adds an `approvals` row with kind `trade_done`, the pick subject and decision `executed` or `dismissed` (`record_trade_outcome()`).
+
+**Restart.** `_desk_signal_tick()` runs at start and every 60 s. The first time the active user is paper, or live with a known broker account, it calls `_resend_desk_picks()` once: for `approved_picks(desk_home(), today ET)` while now is before 16:00 ET, a pick is sent again unless its signal is pending. `approved_picks()` leaves out picks with a `trade_done` row, so an executed or dismissed pick never comes back. Then it runs the close sweep. Review fix (2026-11-06): replaces a symbol plus one-day cycle check, which missed dismissals and could match an older pick.
 
 **Stop and target.** `BrokerAdapter._build_context` keeps the config path for every strategy except `ai_desk`: when the entry's config has `strategy_type == "ai_desk"`, `hard_stop_loss = signal.stop_loss or 0.0` and `target_price = signal.target`, with types `fixed`. The trade-cycle tick path then watches them as for other strategies.
 

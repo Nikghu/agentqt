@@ -316,12 +316,3 @@ def approvals_box(home: Path | None, open_hiring: Callable[[], None],
     if not ready:
         lines.addStretch(1)
     return box
-    listing = QListWidget()
-    listing.setObjectName("approvals_list")
-    listing.setStyleSheet("QListWidget { outline: none; }")
-    listing.addItems([f"Hire: {h.employee.name} ({_skill(h.employee.skill)}) finished the "
-                      "shadow" for h in ready])
-    # approvals list → itemClicked → Command → open Hiring
-    listing.itemClicked.connect(lambda _item: open_hiring())
-    lines.addWidget(listing, 1)
-    return box

@@ -3,6 +3,7 @@ AI Desk picks) and MD-EXE-021.005.M03 (broker adapter levels)."""
 from __future__ import annotations
 
 import logging
+import sqlite3
 import time
 from dataclasses import dataclass, replace
 from datetime import datetime
@@ -17,7 +18,12 @@ from tests.execution.test_broker_adapter import _make_db, _StubConfig, _StubCycl
 from tests.execution.test_strategy_engine import _Cfg, _make_engine
 from us_swing.broker.sim import ImmediateFillModel, SimBroker
 from us_swing.core import desk_contract
-from us_swing.core.desk_trades import TradePick, pick_expiry, record_trade_decision
+from us_swing.core.desk_trades import (
+    TradePick,
+    pick_expiry,
+    record_trade_decision,
+    record_trade_outcome,
+)
 from us_swing.data.market_calendar import ET
 from us_swing.execution.broker_adapter import BrokerAdapter
 from us_swing.execution.desk_signals import (
@@ -50,11 +56,10 @@ def _cfg(**kw: Any) -> StrategyConfig:
     return replace(base, **kw)
 
 
-def _svc(qtbot: QtBot, cfg: StrategyConfig | None = None, history: tuple[Any, ...] = ()
-         ) -> SimpleNamespace:
+def _svc(qtbot: QtBot, cfg: StrategyConfig | None = None) -> SimpleNamespace:
     store = PendingSignalStore()
     svc = SimpleNamespace(_pending_store=store, _active_uid=1,
-                          _tc_query=SimpleNamespace(history=lambda **k: history))
+                          _tc_query=None)
     svc._ai_desk_config = lambda: cfg if cfg is not None else _cfg()
     svc.effective_capital = lambda: 100_000.0
     svc.desk_pick_qty = lambda p: AppService.desk_pick_qty(svc, p)  # type: ignore[arg-type]
@@ -250,12 +255,10 @@ def test_resend_on_start(qtbot: QtBot, tmp_path: Path, monkeypatch: pytest.Monke
 
 
 def test_no_resend(qtbot: QtBot, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """UT-EXE-021.006.M02.T02: no re-send with a cycle today, after the close, or when pending."""
+    """UT-EXE-021.006.M02.T02: no re-send once executed or dismissed, after the close, or when
+    pending."""
     monkeypatch.setattr(desk_contract, "desk_home", lambda: tmp_path)
     _approve(tmp_path)
-    with_cycle = _svc(qtbot, history=(object(),))
-    AppService._resend_desk_picks(with_cycle, MON_10)  # type: ignore[arg-type]
-    assert with_cycle._pending_store.list() == ()
     late = _svc(qtbot)
     AppService._resend_desk_picks(late, datetime(2026, 11, 9, 16, 5, tzinfo=ET))  # type: ignore[arg-type]
     assert late._pending_store.list() == ()
@@ -263,6 +266,44 @@ def test_no_resend(qtbot: QtBot, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     pending.send_desk_pick(_pick())
     pending.send_desk_pick = lambda p: pytest.fail("sent twice")
     AppService._resend_desk_picks(pending, MON_10)  # type: ignore[arg-type]
+    for outcome in ("executed", "dismissed"):
+        home = tmp_path / outcome
+        home.mkdir()
+        monkeypatch.setattr(desk_contract, "desk_home", lambda h=home: h)
+        _approve(home)
+        record_trade_outcome(home, _pick().subject, outcome, MON_10)
+        done = _svc(qtbot)
+        AppService._resend_desk_picks(done, MON_10)  # type: ignore[arg-type]
+        assert done._pending_store.list() == ()
+
+
+def test_outcome_noted_and_live_waits(qtbot: QtBot, tmp_path: Path,
+                                      monkeypatch: pytest.MonkeyPatch) -> None:
+    """UT-EXE-021.006.M02.T03: a dismissed desk signal is noted; live mode re-sends only once
+    the broker account is known."""
+    monkeypatch.setattr(desk_contract, "desk_home", lambda: tmp_path)
+    svc = _svc(qtbot)
+    svc._on_desk_signal_done = lambda sid, out: AppService._on_desk_signal_done(  # type: ignore[arg-type]
+        svc, sid, out)
+    svc._pending_store.pending_signal_dismissed.connect(
+        lambda sid: svc._on_desk_signal_done(sid, "dismissed"))
+    svc.send_desk_pick(_pick())
+    svc._pending_store.dismiss("desk:2026-11-06:long:AAPL")
+    con = sqlite3.connect(tmp_path / "desk.db")
+    assert con.execute("SELECT kind, decision FROM approvals").fetchall() == [
+        ("trade_done", "dismissed")]
+    con.close()
+    calls: list[str] = []
+    live = SimpleNamespace(_desk_resent=False, _ibkr_acct=None,
+                           get_active_user=lambda: SimpleNamespace(mode="live"),
+                           _resend_desk_picks=lambda: calls.append("resend"),
+                           _dismiss_closed_desk_signals=lambda: calls.append("sweep"))
+    AppService._desk_signal_tick(live)  # type: ignore[arg-type]
+    assert calls == ["sweep"]
+    live._ibkr_acct = object()
+    AppService._desk_signal_tick(live)  # type: ignore[arg-type]
+    AppService._desk_signal_tick(live)  # type: ignore[arg-type]
+    assert calls == ["sweep", "resend", "sweep", "sweep"]
 
 
 # ── logs (SRD-EXE-021.007) ──────────────────────────────────────────────────

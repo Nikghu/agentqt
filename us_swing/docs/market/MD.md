@@ -124,7 +124,7 @@ SRD coverage: .001–.002 and .005–.006, .008 by M02; .003 by M01; .004 by M03
 
 | ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
 |---|---|---|---|---|---|---|
-| MD-MKT-008.001.M01 | SRD-MKT-008.001 | `us_swing/src/us_swing/core/desk_trades.py` | Trade picks, target, state and expiry, trade approval rows, approved picks (shared with the GUI and app) | `TradePick`, `DeskTradeSink`, `pick_target()`, `pick_expiry()`, `pick_state()`, `trade_picks()`, `record_trade_decision()`, `approved_picks()` | `sqlite3`, `core.desk_hiring`, `core.econ_calendar` | No |
+| MD-MKT-008.001.M01 | SRD-MKT-008.001 | `us_swing/src/us_swing/core/desk_trades.py` | Trade picks, target, state and expiry, trade approval rows, approved picks (shared with the GUI and app) | `TradePick`, `DeskTradeSink`, `pick_target()`, `pick_expiry()`, `pick_state()`, `trade_picks()`, `record_trade_decision()`, `record_trade_outcome()`, `approved_picks()` | `sqlite3`, `core.desk_hiring`, `core.econ_calendar` | No |
 | MD-MKT-008.002.M02 | SRD-MKT-008.002 | `us_swing/src/us_swing/core/desk_ai_settings.py` | `trade_target_r` setting (added to MD-DSK-004.005.M13) | `DeskAiSettings.trade_target_r` | — | No |
 
 SRD coverage: .001 and .003–.006 by M01; .002 by M01 and M02.

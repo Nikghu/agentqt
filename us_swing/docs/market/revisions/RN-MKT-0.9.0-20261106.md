@@ -18,7 +18,7 @@ P7 links AI Desk to Execution. Each risk-passed lead pick shows in AI Desk → C
 
 | MD ID | File | Change |
 |---|---|---|
-| MD-MKT-008.001.M01 | `us_swing/src/us_swing/core/desk_trades.py` | New: `TradePick`, `DeskTradeSink`, `pick_target()`, `pick_expiry()`, `pick_state()`, `trade_picks()`, `record_trade_decision()`, `approved_picks()`; plain SQL on `desk.db`; imports no `desk`, `market` or `gui` |
+| MD-MKT-008.001.M01 | `us_swing/src/us_swing/core/desk_trades.py` | New: `TradePick`, `DeskTradeSink`, `pick_target()`, `pick_expiry()`, `pick_state()`, `trade_picks()`, `record_trade_decision()`, `record_trade_outcome()`, `approved_picks()`; plain SQL on `desk.db`; imports no `desk`, `market` or `gui` |
 | MD-MKT-008.002.M02 | `us_swing/src/us_swing/core/desk_ai_settings.py` | Changed: `trade_target_r` (default 2.0, must be above 0) |
 | MD-EXE-021.002.M01 | `us_swing/src/us_swing/execution/desk_signals.py` | New: `AI_DESK_STRATEGY`, `AI_DESK_TYPE`, `desk_signal_id()`, `build_desk_signal()`, `desk_signal_close()` |
 | MD-EXE-021.001.M02 | `us_swing/src/us_swing/gui/app_service.py` | Changed: AI Desk strategy row added on start; `desk_pick_qty()`, `send_desk_pick()`, `dismiss_desk_pick()`; 60 s close sweep; re-send of today's approved picks once at start |
@@ -61,12 +61,13 @@ P7 links AI Desk to Execution. Each risk-passed lead pick shows in AI Desk → C
 - Changed from the first DD: Start on AI Desk is not refused, because the Strategies pane saves `run_state` before the engine hears; instead the engine always skips `ai_desk` strategies. MD-EXE-021.001.M04 and UT-EXE-021.001.M04.T01 replace the Start refusal test.
 - Quantity uses the router's formula (Capital Max × per-trade % of the effective capital), which equals `size_for_strategy` (SRD-EXE-021.003 wording) at the default per-trade 100%.
 - Shorts are allowed, but today the risk check vetoes every short (T124), so none will show until T124 is fixed.
+- Review fixes (code and PyQt reviewers): an executed or dismissed desk signal now adds a `trade_done` row, so a restart never sends it again (the old symbol plus one-day cycle check missed dismissals); in live mode the re-send waits for the broker account, so sizing does not use Max Capital before cash is known; an unreachable leftover block in `approvals_box()` was removed. SRD-EXE-021.006 still says "no cycle"; an executed pick has a cycle, and the new rule is stricter.
 
 ---
 
 ## Test Results
 
-- New tests: 18 MKT (`tests/market/test_desk_trades.py`), 18 EXE (`tests/execution/test_desk_signals.py`), 8 GUI (`tests/gui/test_ai_desk_trades.py`); all Pass.
+- New tests: 19 MKT (`tests/market/test_desk_trades.py`), 19 EXE (`tests/execution/test_desk_signals.py`), 8 GUI (`tests/gui/test_ai_desk_trades.py`); all Pass.
 - Coverage: `core/desk_trades.py` 93%, `execution/desk_signals.py` 100%.
 - Full suite: 2408 passed, 13 failed, 2 skipped. The 12 old failures (T112) plus `test_slow_empty_answer_is_timeout`, which passes alone (timing under load). No new failure from P7.
 

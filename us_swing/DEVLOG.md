@@ -9,7 +9,8 @@
 - RN: RN-MKT-0.9.0-20261106
 - Artifacts updated: FO, SRD (MKT-008.001–.006, EXE-021.001–.007, GUI-034.034–.036 Implemented), DD (DD-MKT-008.001.D01, DD-EXE-021.001.D01), MD, UTCD (18 MKT, 18 EXE, 8 GUI rows Pass), TRACE, Code (core/desk_trades.py, execution/desk_signals.py, app_service, broker_adapter, strategy engine, ai_desk_hiring, ai_desk, main_window, desk_ai_settings)
 - Decisions: user chose pending signal, Approvals waiting, expire at next open, shorts allowed, one "AI Desk" strategy, Capital Max quantity, 2R target; signal lives until the day's close; re-send after restart; engine skips `ai_desk` (Start refusal dropped, pane saves run_state first)
-- Tests: 2408 passed, 13 failed (12 old T112 + downloader timing flake that passes alone), 2 skipped; reviewer agents not run yet
+- Tests: 2408 passed, 13 failed (12 old T112 + downloader timing flake that passes alone), 2 skipped; after review fixes 182 related tests pass
+- Review: code and PyQt reviewers run; fixed re-send after dismiss (trade_done rows), live re-send waits for the account, removed dead code in approvals_box
 
 ---
 

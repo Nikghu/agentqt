@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.10.1: UT-MKT-008.004.M01.T05 added (review fix).
 > v0.10.0: 18 test cases for FO-MKT-008 link to Execution (P7).
 > v0.9.0: 23 test cases for FO-MKT-007 AI report pages (P5d).
 > v0.8.0: 43 test cases for FO-MKT-006 news, economic calendar and event risk (P5c).
@@ -303,6 +304,7 @@
 | UT-MKT-008.004.M01.T02 | MD-MKT-008.001.M01 | Negative | Second or late decision (SRD-MKT-008.004) | decide twice; decide after expiry; decision 'maybe' | reason returned each time; one row only | Pass |
 | UT-MKT-008.004.M01.T03 | MD-MKT-008.001.M01 | Edge | Table missing and append-only (SRD-MKT-008.004) | desk.db with no approvals table; then UPDATE the row | table made and row saved; UPDATE refused | Pass |
 | UT-MKT-008.004.M01.T04 | MD-MKT-008.001.M01 | Positive | Approved picks for a day (SRD-MKT-008.004) | approve and reject rows for day Fri; trading day Mon | only the approved pick, with its detail values | Pass |
+| UT-MKT-008.004.M01.T05 | MD-MKT-008.001.M01 | Positive | Done picks left out (SRD-MKT-008.004) | two approved picks; one has an executed outcome row | only the other pick comes back | Pass |
 | UT-MKT-008.005.M01.T01 | MD-MKT-008.001.M01 | Positive | No desk or GUI import (SRD-MKT-008.005) | source of core/desk_trades.py | no import of desk, market or gui | Pass |
 | UT-MKT-008.005.M01.T02 | MD-MKT-008.001.M01 | Negative | Desk process never writes (SRD-MKT-008.005) | source of the desk and market packages | no call to record_trade_decision and no trade approval insert | Pass |
 | UT-MKT-008.006.M01.T01 | MD-MKT-008.001.M01 | Positive | Logs (SRD-MKT-008.006) | approve one pick; list with 2 expired picks | INFO lines with [AI Desk] prefix, side, stock and decision; expired count 2 | Pass |
