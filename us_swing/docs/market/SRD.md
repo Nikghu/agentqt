@@ -1,11 +1,13 @@
 # Software Requirements — Market Analytics (MKT)
 
 **Document ID:** SRD-MKT
-**Version:** 0.5.0
+**Version:** 0.9.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.9.1: SRD-MKT-007.001–.008 approved by user 2026-11-06; .004 reopened by user and reworded (no employee in the page row).
+> v0.9.0: SRD-MKT-007.001–.008 added as Draft — AI report pages (P5d).
 > v0.8.0: SRD-MKT-006.001–.012 added as Draft — news, economic calendar and event risk (P5c).
 > v0.7.0: SRD-MKT-005.006–.018 — sector/flow view, setup review, risk check, lead brief (P5b).
 > v0.6.1: SRD-MKT-005.001–.005 reworded by skill; no employee names (user, 2026-11-06).
@@ -120,3 +122,16 @@
 | SRD-MKT-006.010 | FO-MKT-006 | Must | The risk check and the lead brief also need the news review, and their facts show each idea's tone, reason and final score. | `news_tags` | facts text | A missing news view is noted, as for other views | Implemented |
 | SRD-MKT-006.011 | FO-MKT-006 | Must | A default expert-level employee for the news review ships as `emp-006` (generic name "Expert 5") with trigger `after_run`, and the skill is added to the skill list. | — | files, skill path | Calls per day 3; monthly cap USD 3; `market` never imports `desk` | Implemented |
 | SRD-MKT-006.012 | FO-MKT-006 | Should | The News step logs the stocks fetched, headlines kept, feeds that failed and rows deleted. | step | log lines | `[News]` prefix | Implemented |
+
+## FO-MKT-007: AI Report Pages
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-MKT-007.001 | FO-MKT-007 | Must | Report page facts are the lead brief of the latest data day with its picks, and the regime, sector and news views of that day. | `desk.db` | facts text | Fresh only when the lead brief day equals the latest ideas day; needs the lead brief | Approved |
+| SRD-MKT-007.002 | FO-MKT-007 | Must | The report page answer gives a title of at most 80 characters and one HTML page with inline CSS of at most 200 KB. | facts | answer | HTML and CSS only; images only as inline data; limits are also in the JSON schema | Approved |
+| SRD-MKT-007.003 | FO-MKT-007 | Must | Code cleans the page before it is kept, removing scripts, event handler attributes, outside or local links and images, and any tag or attribute not on an allowed list. | answer | clean HTML | Allowed lists are in the DD; the cleaner lives in `core/` so the GUI can use it too | Approved |
+| SRD-MKT-007.004 | FO-MKT-007 | Must | Each clean page is added to `canvas_pages` as a new version with data day, version number, title, HTML and time. | clean HTML | row | Append-only; old versions are never changed or deleted | Approved |
+| SRD-MKT-007.005 | FO-MKT-007 | Must | When the answer is missing, invalid or still over 200 KB after cleaning, no version is added and no brief is posted. | answer | log line | The last good version stays; a later run on the same day tries again | Approved |
+| SRD-MKT-007.006 | FO-MKT-007 | Must | After a version is added, the report page skill posts a short feed brief with the page title to mark its day done. | page | feed item | Author is the employee's current name | Approved |
+| SRD-MKT-007.007 | FO-MKT-007 | Must | A default expert-level employee for report pages ships as `emp-007` (generic name "Expert 6") with trigger `after_run`, and the skill is added to the skill list. | — | files, skill path | Calls per day 3; monthly cap USD 3; `market` never imports `desk` | Approved |
+| SRD-MKT-007.008 | FO-MKT-007 | Should | The report page skill logs the data day, version, page size before and after cleaning, and the number of items removed. | step | log lines | `[Report]` prefix | Approved |

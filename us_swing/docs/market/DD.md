@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.8.0: DD-MKT-007.001.D01 added — AI report pages (P5d).
 > v0.7.0: DD-MKT-006.001.D01 added — news, economic calendar and event risk (P5c).
 > v0.6.0: DD-MKT-005.006.D01 added — sector/flow view, setup review, risk check and lead brief (P5b).
 > v0.5.0: DD-MKT-005.001.D01 added — regime view skill (P5a).
@@ -567,3 +568,106 @@ calendar.week (always real):
 - Failed-feed log lines say only "timed out", "HTTP 404" or "connection failed", and name the stock.
 
 **Dependencies.** `feedparser>=6.0` in `pyproject.toml`. `USSwing.spec` hidden imports: `us_swing.market.news_step`, `us_swing.market.news_review`, `feedparser`.
+
+## DD-MKT-007.001.D01 — AI Report Pages (P5d)
+
+**Traces:** SRD-MKT-007.001–.008; GUI SRD-GUI-034.022–.026
+
+**Files.**
+
+| File | What |
+|---|---|
+| `core/report_html.py` | Allow-list HTML cleaner `clean_page()` and the sealed page shell `sealed_document()`; in `core` because `market` (before store) and the GUI (before show) both use it |
+| `market/report_page.py` | `ReportPageSkill` (key `report_page`, needs `lead_brief`) |
+| `market/store.py` | `canvas_pages` table, `MarketStore.add_page()` |
+| `market/employees/emp-007/` | Default employee "Expert 6" (level expert) |
+| `core/desk_floor.py` | `DeskFloorData.report_pages()`, `report_page()` (read-only) |
+| `gui/ai_desk_pages.py` | AI Desk "Pages" section: version list and sealed preview |
+| `gui/sealed_view.py` | `SealedView`: QWebEngineView with a sealed profile and request filter |
+
+**Table** (`market/store.py`, in `desk.db`):
+
+```
+canvas_pages(id INTEGER PK, date TEXT, version INTEGER, title TEXT, html TEXT, created TEXT,
+             UNIQUE(date, version))
+TRIGGER canvas_pages_no_update  BEFORE UPDATE  -> RAISE(ABORT, 'canvas_pages is append-only')
+TRIGGER canvas_pages_no_delete  BEFORE DELETE  -> RAISE(ABORT, 'canvas_pages is append-only')
+add_page(day, title, html, created) -> version
+    in one transaction: version = COALESCE(MAX(version), 0) + 1 WHERE date = day; INSERT
+```
+
+On a copy of the real desk, drop both triggers before removing rows (as for `briefs_no_delete`).
+
+**Facts** (`ReportPageSkill.facts`). Fresh when `ideas_day()` is fresh (ideas day = SPY candle day) and an evening brief exists for that day. The evening brief text is read with plain SQL from the desk `briefs` table (`kind = 'evening' AND data_day = day`, newest row); `market` still never imports `desk`. A missing `briefs` table counts as no brief.
+
+```
+Data day, rule regime
+Lead evening brief: <text>
+Lead picks: side, symbol, rank, reason, score, final, setup, trigger, stop
+views_text(store, day, ("regime_view", "sector_flow_view", "news_review"))
+```
+
+**Answer** (`ReportPage`, `extra="forbid"`): `title` 5–80 chars; `html` 200 to 200 000 chars. Schema descriptions repeat the rules: body HTML with one `<style>` block, tables and inline SVG charts, no scripts, no links, no outside images, images only as `data:image/png|jpeg|gif|webp;base64`, aim for 20–40 KB.
+
+**Cleaner** (`clean_page(html) -> CleanPage(html, removed)`), built on `html.parser.HTMLParser`; the output is rebuilt from scratch, never patched:
+
+```
+ALLOWED tags: div span p br hr h1-h6 strong b em i u small sub sup ul ol li dl dt dd
+              table thead tbody tfoot tr th td caption colgroup col section article header
+              footer figure figcaption blockquote pre code img style
+              svg g rect line polyline polygon circle ellipse path text tspan title
+DROP WITH CONTENT: script iframe object embed frame frameset noscript template applet
+                   link meta base form input button select textarea audio video source
+                   canvas math foreignobject
+other tags (html, head, body, a, font, ...): tag removed, text kept
+attributes: global class style title colspan rowspan align width height
+            img: src, alt;  svg/shapes: viewBox x y x1 y1 x2 y2 cx cy r rx ry d points fill
+            stroke stroke-width opacity fill-opacity stroke-dasharray transform
+            text-anchor font-size font-family font-weight dominant-baseline
+            preserveAspectRatio
+            any on* attribute, href, xlink:href, src outside img: removed
+img src: only ^data:image/(png|jpeg|gif|webp);base64,[A-Za-z0-9+/=\s]+$  else the img is removed
+CSS (<style> text and style=""): remove @import ..., url(...), expression(...),
+            behavior:, -moz-binding, and every '<'; a value with 'javascript:' is removed
+text: re-escaped; comments, doctype and processing instructions removed
+removed = count of tags, attributes and CSS parts taken out
+```
+
+`sealed_document(body, title)` wraps the clean body in a fixed page with
+`<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:">`,
+so even a cleaner miss cannot load anything.
+
+**Act** (`ReportPageSkill.act`):
+
+```
+page = ctx.ask(facts.text, ReportPage)
+if page is None: return []                                  # no row, no brief -> retried later
+clean = clean_page(page.html)
+size = len(clean.html.encode("utf-8"))
+if size > 200_000 or not clean.html.strip():
+    log.warning("[Report] Page for %s is too big or empty after cleaning ..."); return []
+version = store.add_page(day, page.title, clean.html, now UTC ISO)
+log.info("[Report] Page for %s saved as version %d: %d KB written, %d KB kept, %d item(s) removed")
+return [FeedItem("info", f"Report page ready: {title} (version {version})", day)]
+```
+
+**Sealed view** (`gui/sealed_view.py`, GUI only):
+
+```
+one shared QWebEngineProfile(parent=QApplication)  # no storage name -> off the record
+    setHttpCacheType(NoCache); setPersistentCookiesPolicy(NoPersistentCookies)
+    setUrlRequestInterceptor(_PageOnly)
+_PageOnly.interceptRequest(info): if not allowed_scheme(scheme): info.block(True); DEBUG [Pages] log
+allowed_scheme(s) = s in {"data", "about"}           # setHtml loads the page itself as data:
+_SealedPage(QWebEnginePage).acceptNavigationRequest: only data/about
+settings off: JavascriptEnabled, JavascriptCanOpenWindows, JavascriptCanAccessClipboard,
+    LocalContentCanAccessRemoteUrls, LocalContentCanAccessFileUrls, LocalStorageEnabled,
+    PluginsEnabled, PdfViewerEnabled, ScreenCaptureEnabled, WebGLEnabled
+no context menu; show_page(body, title): setHtml(sealed_document(clean_page(body).html, title))
+```
+
+**Pages section** (`pages_frame(name, home)`): a live section (rebuilt each time it is shown). Left: table Day · Version · Title · Saved (NY time), newest day first and newest version first, from `report_pages()`. Right: one `SealedView`, created only when there is a page; the first row is shown. A row click loads `report_page(id)`. No pages, or no table yet: a muted note and no web view.
+
+**Sample data.** `gui/ai_desk_sample.py` and `gui/floor_sample.py` use generic names only (Lead 1, Expert 1–6, Champion 1–3, Engineer 1, Secretary 1). The old Studio sample rows are removed.
+
+**Limits.** The gateway time limit is 90 s (SRD-DSK); a very large page may time out, so the schema asks for 20–40 KB.

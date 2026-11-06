@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.7.0: FO-MKT-007 written in full as Draft and renamed by function, AI Report Pages (P5d).
 > v0.6.1: FO-MKT-005 reworded by skill and level; no employee names (user, 2026-11-06).
 > v0.6.0: FO-MKT-005 written as Draft for its first skill, the regime view (P5a); the other experts, risk manager and lead stay for P5b.
 > v0.5.0: FO-MKT-004 written in full as Draft (daily candles from the Backtest Data store; bands, setups and idea status; pass rule at 10 days; Score proof panel; no tuning).
@@ -168,13 +169,30 @@ The system shall add news and the economic calendar to the evening funnel. Free 
 3. On a day before a CPI release, every listed idea loses the event points.
 4. The News & Calendar tab shows real headlines, tags and the next two weeks of economic events.
 
-## FO-MKT-007: AI Canvas Pages (CANVAS)
+## FO-MKT-007: AI Report Pages
 
-**Status:** Draft (outline)
+**Status:** Approved (user, 2026-11-06)
 **Priority:** Could
 **Phase:** P5d
+**Depends on:** FO-MKT-005, FO-DSK-002–005, FO-GUI-034
 
-- The system shall let CANVAS write HTML/CSS pages shown in a sealed web view with no network access.
+The system shall turn each evening's lead brief into one report page (HTML and CSS, with tables and simple charts) and show it in a sealed view in AI Desk. A report page skill writes the page, and code cleans it before it is kept and before it is shown. Who does the work, and under what name, is data the Master user controls.
+
+- The system shall add a report page skill that writes one HTML/CSS page per data day from the lead brief and the day's views.
+- The system shall clean every page in code before it is kept and before it is shown: no scripts, no event handlers, no outside or local links and images.
+- The system shall keep every page version in `desk.db`; a new version never changes an old one.
+- The system shall keep the last good page when a new answer is missing or fails the checks.
+- The system shall show the pages in an AI Desk Pages section: a list of pages with their versions, and a view-only preview of the chosen version.
+- The system shall show each page in a sealed view with JavaScript off and no network or local file access.
+- The system shall ship a default employee for the new skill with a generic level name only.
+
+### Acceptance Criteria
+
+1. After an evening run, `desk.db` holds a new page version for the day, written after the lead brief.
+2. A page with a script, an event handler, or an outside link or image is cleaned before it is kept, and none of it reaches the view.
+3. AI Desk → Pages lists the day's page with its versions, and the preview shows the chosen version.
+4. In the real window, the sealed view makes no network or local file request.
+5. A missing or invalid answer keeps the previous good version and posts no brief, so a later run tries again.
 
 ## FO-MKT-008: Link to Execution
 

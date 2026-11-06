@@ -1,10 +1,12 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.87.0
+**Version:** 2.88.0
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.88.1: SRD-GUI-034.022–.026 approved by user 2026-11-06.
+> v2.88.0: SRD-GUI-034.022–.026 added as Draft — AI Desk Pages section and sealed preview (MKT P5d).
 > v2.87.0: SRD-GUI-034.018–.021 added as Draft — real news, news tags and calendar panels (MKT P5c).
 > v2.86.0: SRD-GUI-034.015–.017 added as Draft — real AI feed, desk AI settings, real cost (MKT/DSK P5a).
 > v2.85.0: SRD-GUI-034.014 added as Draft — Score proof panel (MKT P4).
@@ -687,3 +689,8 @@
 | SRD-GUI-034.019 | FO-GUI-034 | Must | A "News tags" panel lists the listed ideas of the latest day with side, tone, reason, news points and final score. | `news_tags` | table rows | Clicking a stock sends it to its link group; empty until the first news review | Implemented |
 | SRD-GUI-034.020 | FO-GUI-034 | Must | The "Calendar" panel shows the economic events of the next 10 trading days with date, New York time, event and importance, without the Sample tag. | economic calendar | table rows | Filter by importance; read from code, no network | Implemented |
 | SRD-GUI-034.021 | FO-GUI-034 | Should | The default News & Calendar tab holds Latest news, News tags and Calendar. | — | default layout | A layout the user already saved is kept; the new panel can be added with Add panel | Implemented |
+| SRD-GUI-034.022 | FO-GUI-034 | Must | The AI Desk "Studio" section is renamed "Pages" and lists report pages from `canvas_pages`, newest day first, with the versions of each day. | `canvas_pages` | list | Read-only; no sample rows | Approved |
+| SRD-GUI-034.023 | FO-GUI-034 | Must | Choosing a page version shows it in a sealed preview next to the list. | row | preview | View only; the page is cleaned again by the same `core/` cleaner before it is shown | Approved |
+| SRD-GUI-034.024 | FO-GUI-034 | Must | The sealed preview uses its own off-the-record profile with JavaScript, local file access and remote URL access turned off. | — | web view | Other web views in the app are unchanged | Approved |
+| SRD-GUI-034.025 | FO-GUI-034 | Must | A request filter in the sealed preview blocks every request except the page itself. | request | blocked request | Each block is logged at DEBUG with the `[Pages]` prefix | Approved |
+| SRD-GUI-034.026 | FO-GUI-034 | Should | When there is no page yet, the Pages section shows a short empty note instead of a blank preview. | — | note | — | Approved |

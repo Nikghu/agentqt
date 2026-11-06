@@ -63,7 +63,7 @@ SQLite in WAL mode, kept in the user data folder next to the other app databases
 | `tasks`, `activity` | desk | GUI | Task cards and the append-only step log | P5a |
 | `approvals`, `messages` | desk + GUI | both | Master approvals and lead chat (GUI writes only new rows) | P5b |
 | `budget` | desk | GUI | AI spend per day, month, employee | P5a |
-| `canvas_pages` | desk | GUI | AI Canvas page versions | P5d |
+| `canvas_pages` | desk | GUI | Report page versions (append-only) | P5d |
 
 ### 0.4 Desk states
 
@@ -94,7 +94,7 @@ The desk works in NY time (`zoneinfo` "America/New_York"). Windows tasks are set
 | P5a | Harness + first expert (regime view skill) | DSK / FO-DSK-002–005, MKT / FO-MKT-005 | One full recorded regime view run within budget |
 | P5b | Sector/flow and setup experts, risk manager, lead | MKT / FO-MKT-005 | Lead brief on the Floor each evening |
 | P5c | News review and economic calendar | MKT / FO-MKT-006 | News tags on ideas |
-| P5d | CANVAS pages and Studio | MKT / FO-MKT-007 | A sealed page renders with no network |
+| P5d | AI report pages and the AI Desk Pages section | MKT / FO-MKT-007 | A sealed page renders with no network |
 | P6 | Hiring pipeline, LEDGER, cost views | DSK / FO-DSK-006 | One shadow hire approved end to end |
 | P7 | Link to Execution | MKT / FO-MKT-008 | Approved idea reaches EXE |
 
