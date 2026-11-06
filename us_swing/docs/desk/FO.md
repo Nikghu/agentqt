@@ -125,7 +125,7 @@ The system shall record every agent step so any answer can be traced and checked
 
 ## FO-DSK-006: Hiring Pipeline and Process Analytics
 
-**Status:** Approved (user, 2026-11-06)
+**Status:** Implemented (approved by user 2026-11-06)
 **Priority:** Should
 **Phase:** P6
 **Depends on:** FO-DSK-002–005, FO-GUI-034

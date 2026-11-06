@@ -1097,16 +1097,16 @@ Test files:
 | UT-GUI-034.025.M20.T01 | MD-GUI-034.024.M20 | Positive | Request rule (SRD-GUI-034.025) | schemes data, about, http, https, file, qrc, ws | only data and about allowed | Pass |
 | UT-GUI-034.025.M20.T02 | MD-GUI-034.024.M20 | Negative | Blocked request logged (SRD-GUI-034.025) | fake request to https | blocked; one DEBUG [Pages] line | Pass |
 | UT-GUI-034.026.M19.T01 | MD-GUI-034.022.M19 | Edge | Empty note (SRD-GUI-034.026) | no pages | note shown; no web view built | Pass |
-| UT-GUI-034.027.M21.T01 | MD-GUI-034.027.M21 | Positive | Hires listed (SRD-GUI-034.027) | one shadow and one active hire | rows with skill, level, name, model, started, days, status | Not Run |
-| UT-GUI-034.027.M21.T02 | MD-GUI-034.027.M21 | Edge | No hires (SRD-GUI-034.027) | desk folder without hires | empty note; form still shown | Not Run |
-| UT-GUI-034.028.M21.T01 | MD-GUI-034.027.M21 | Positive | Start hire form (SRD-GUI-034.028) | fill skill, level, name, model; click Start hire | new hire listed as shadow | Not Run |
-| UT-GUI-034.028.M21.T02 | MD-GUI-034.027.M21 | Negative | Refused hire (SRD-GUI-034.028) | used name | reason shown; no new row | Not Run |
-| UT-GUI-034.029.M21.T01 | MD-GUI-034.027.M21 | Positive | Shadow report shown (SRD-GUI-034.029) | choose a hire with shadow tries | report rows for hire and holder | Not Run |
-| UT-GUI-034.030.M21.T01 | MD-GUI-034.027.M21 | Positive | Buttons follow the rules (SRD-GUI-034.030) | not ready; ready with holder; ready without holder | all off but Reject; Replace on; Add on | Not Run |
-| UT-GUI-034.030.M21.T02 | MD-GUI-034.027.M21 | Positive | Replace click (SRD-GUI-034.030) | ready hire, click Replace | approvals row; hire listed active | Not Run |
-| UT-GUI-034.031.M21.T01 | MD-GUI-034.027.M21 | Positive | Approvals waiting (SRD-GUI-034.031) | one ready hire; click it | listed; open-Hiring callback called | Not Run |
-| UT-GUI-034.031.M21.T02 | MD-GUI-034.027.M21 | Edge | Nothing waiting (SRD-GUI-034.031) | no ready hire | empty note | Not Run |
-| UT-GUI-034.032.M22.T01 | MD-GUI-034.032.M22 | Positive | Weekly reports (SRD-GUI-034.032) | 2 reports | newest first; text of the chosen one; no Sample tag | Not Run |
-| UT-GUI-034.032.M22.T02 | MD-GUI-034.032.M22 | Edge | No reports (SRD-GUI-034.032) | no desk_reports table | sample reports with the Sample tag | Not Run |
-| UT-GUI-034.033.M23.T01 | MD-GUI-034.033.M23 | Positive | Seat caps saved (SRD-GUI-034.033) | change expert cap to 9; Save | desk_ai.json has 9 | Not Run |
-| UT-GUI-034.033.M23.T02 | MD-GUI-034.033.M23 | Negative | Cap below count (SRD-GUI-034.033) | 6 active experts; set cap 5; Save | refused with a reason; file unchanged | Not Run |
+| UT-GUI-034.027.M21.T01 | MD-GUI-034.027.M21 | Positive | Hires listed (SRD-GUI-034.027) | one shadow and one active hire | rows with skill, level, name, model, started, days, status | Pass |
+| UT-GUI-034.027.M21.T02 | MD-GUI-034.027.M21 | Edge | No hires (SRD-GUI-034.027) | desk folder without hires | empty note; form still shown | Pass |
+| UT-GUI-034.028.M21.T01 | MD-GUI-034.027.M21 | Positive | Start hire form (SRD-GUI-034.028) | fill skill, level, name, model; click Start hire | new hire listed as shadow | Pass |
+| UT-GUI-034.028.M21.T02 | MD-GUI-034.027.M21 | Negative | Refused hire (SRD-GUI-034.028) | used name | reason shown; no new row | Pass |
+| UT-GUI-034.029.M21.T01 | MD-GUI-034.027.M21 | Positive | Shadow report shown (SRD-GUI-034.029) | choose a hire with shadow tries | report rows for hire and holder | Pass |
+| UT-GUI-034.030.M21.T01 | MD-GUI-034.027.M21 | Positive | Buttons follow the rules (SRD-GUI-034.030) | not ready; ready with holder; ready without holder | all off but Reject; Replace on; Add on | Pass |
+| UT-GUI-034.030.M21.T02 | MD-GUI-034.027.M21 | Positive | Replace click (SRD-GUI-034.030) | ready hire, click Replace | approvals row; hire listed active | Pass |
+| UT-GUI-034.031.M21.T01 | MD-GUI-034.027.M21 | Positive | Approvals waiting (SRD-GUI-034.031) | one ready hire; click it | listed; open-Hiring callback called | Pass |
+| UT-GUI-034.031.M21.T02 | MD-GUI-034.027.M21 | Edge | Nothing waiting (SRD-GUI-034.031) | no ready hire | empty note | Pass |
+| UT-GUI-034.032.M22.T01 | MD-GUI-034.032.M22 | Positive | Weekly reports (SRD-GUI-034.032) | 2 reports | newest first; text of the chosen one; no Sample tag | Pass |
+| UT-GUI-034.032.M22.T02 | MD-GUI-034.032.M22 | Edge | No reports (SRD-GUI-034.032) | no desk_reports table | sample reports with the Sample tag | Pass |
+| UT-GUI-034.033.M23.T01 | MD-GUI-034.033.M23 | Positive | Seat caps saved (SRD-GUI-034.033) | change expert cap to 9; Save | desk_ai.json has 9 | Pass |
+| UT-GUI-034.033.M23.T02 | MD-GUI-034.033.M23 | Negative | Cap below count (SRD-GUI-034.033) | 6 active experts; set cap 5; Save | refused with a reason; file unchanged | Pass |

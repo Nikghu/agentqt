@@ -30,4 +30,4 @@
 | FO-DSK-005 | SRD-DSK-005.005 | DD-DSK-003.004.D01 | MD-DSK-005.005.M17, MD-DSK-004.001.M11, MD-DSK-001.020.M06 | UT-DSK-005.005.M17.T01–T04 (4, Pass) | `desk/replay.py`, `desk/gateway.py`, `desk/cli.py` | Implemented | RN-DSK-0.3.0-20261106 |
 | FO-DSK-005 | SRD-DSK-005.006 | DD-DSK-003.004.D01 | MD-DSK-005.005.M17, MD-DSK-005.001.M14 | UT-DSK-005.006.M17.T01–T02, UT-DSK-005.006.M14.T01 (3, Pass) | `desk/replay.py`, `desk/recorder.py` | Implemented | RN-DSK-0.3.0-20261106 |
 | FO-DSK-005 | SRD-DSK-005.007 | DD-DSK-003.004.D01 | MD-DSK-005.005.M17 | UT-DSK-005.007.M17.T01–T03 (3, Pass) | `desk/replay.py`, `desk/cli.py` | Implemented | RN-DSK-0.3.0-20261106 |
-| FO-DSK-006 | SRD-DSK-006.001–.010 | — | — | — | — | Approved | — |
+| FO-DSK-006 | SRD-DSK-006.001–.010 | DD-DSK-006.001.D01 | MD-DSK-006.001.M18, .004.M19, .009.M20; MD-DSK-002.002.M09, MD-DSK-004.005.M13 | UT-DSK-006.001–.010 (23, Pass) | `core/desk_hiring.py`, `desk/shadow.py`, `desk/weekly_report.py`, `desk/registry.py`, `desk/recorder.py`, `desk/gateway.py`, `desk/employees_step.py`, `core/desk_ai_settings.py`, `core/desk_steps.py` | Implemented | RN-DSK-0.4.0-20261106 |
