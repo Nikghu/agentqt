@@ -117,7 +117,7 @@ The system shall replay the P1–P3 score on years of past daily candles and sho
 
 ## FO-MKT-005: AI Experts, Risk Manager and Trade Manager
 
-**Status:** Draft (ATLAS part for P5a)
+**Status:** ATLAS part Implemented (approved by user 2026-11-06); P5b open
 **Priority:** Must
 **Phase:** P5a (ATLAS); P5b (TIDE, PIVOT, SENTINEL, HELM)
 **Depends on:** FO-DSK-002–005, FO-MKT-001–004

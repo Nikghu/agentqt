@@ -90,43 +90,43 @@
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
 |---|---|---|---|---|---|---|
-| UT-DSK-002.002.M09.T01 | MD-DSK-002.002.M09 | Positive | Job file loads (SRD-DSK-002.002) | valid soul.md + job.yaml | Hire with spec, soul text and hash | Not Run |
-| UT-DSK-002.002.M09.T02 | MD-DSK-002.002.M09 | Negative | Bad job file (SRD-DSK-002.002) | missing models; unknown key; bad trigger | None; one warning each | Not Run |
-| UT-DSK-002.002.M09.T03 | MD-DSK-002.002.M09 | Negative | Missing soul.md (SRD-DSK-002.002) | folder without soul.md | None; warning | Not Run |
-| UT-DSK-002.004.M09.T01 | MD-DSK-002.002.M09 | Positive | Employees table (SRD-DSK-002.004) | load twice | one row with name, title, version, hash | Not Run |
-| UT-DSK-002.004.M09.T02 | MD-DSK-002.002.M09 | Edge | Changed file, same version (SRD-DSK-002.004) | edit soul.md, keep version | new hash stored; warning logged | Not Run |
-| UT-DSK-002.001.M09.T01 | MD-DSK-002.002.M09 | Negative | Bad employee path (SRD-DSK-002.001) | path to a missing class | left out; warning; others load | Not Run |
-| UT-DSK-002.001.M09.T02 | MD-DSK-002.002.M09 | Positive | Employee list loads (SRD-DSK-002.001) | EMPLOYEE_PATHS | ATLAS loaded from its folder | Not Run |
-| UT-DSK-002.003.M11.T01 | MD-DSK-004.001.M11 | Positive | Soul is the system prompt (SRD-DSK-002.003) | fake model records its input | system text starts with soul.md; model from job.yaml | Not Run |
-| UT-DSK-002.003.M11.T02 | MD-DSK-004.001.M11 | Negative | Soul cannot change rules (SRD-DSK-002.003) | soul.md names another model | job.yaml model still used | Not Run |
-| UT-DSK-002.004.M09.T03 | MD-DSK-002.002.M09 | Negative | Bad file not stored (SRD-DSK-002.004) | invalid job.yaml | no employees row | Not Run |
-| UT-DSK-002.005.M10.T01 | MD-DSK-003.001.M10 | Positive | Context is ask only (SRD-DSK-002.005) | employee inspects its context | only home and ask | Not Run |
-| UT-DSK-002.005.M10.T02 | MD-DSK-003.001.M10 | Negative | Job files untouched (SRD-DSK-002.005) | full run | job file hashes unchanged | Not Run |
-| UT-DSK-003.001.M10.T01 | MD-DSK-003.001.M10 | Positive | Wakes after run (SRD-DSK-003.001) | fake employee, fresh facts, fake model | act called once; brief written | Not Run |
-| UT-DSK-003.001.M10.T02 | MD-DSK-003.001.M10 | Negative | Failing employee (SRD-DSK-003.001) | act raises; second employee ok | error logged; second runs; desk run ok | Not Run |
-| UT-DSK-003.001.M10.T03 | MD-DSK-003.001.M10 | Positive | Step order (SRD-DSK-003.001) | loaded step list | AI employees after Ideas | Not Run |
-| UT-DSK-003.002.M10.T01 | MD-DSK-003.001.M10 | Negative | Once per data day (SRD-DSK-003.002) | run twice on same day | act called once | Not Run |
-| UT-DSK-003.002.M10.T02 | MD-DSK-003.001.M10 | Edge | Failed day tried again (SRD-DSK-003.002) | first run no valid answer | second run calls again | Not Run |
-| UT-DSK-003.002.M10.T03 | MD-DSK-003.001.M10 | Positive | Next day wakes again (SRD-DSK-003.002) | done yesterday, new data day | act called | Not Run |
-| UT-DSK-003.003.M10.T01 | MD-DSK-003.001.M10 | Negative | Stale data (SRD-DSK-003.003) | facts fresh False | act not called; reason logged | Not Run |
-| UT-DSK-003.003.M10.T02 | MD-DSK-003.001.M10 | Positive | Fresh data wakes (SRD-DSK-003.003) | facts fresh True | act called | Not Run |
-| UT-DSK-004.001.M11.T01 | MD-DSK-004.001.M11 | Positive | OpenRouter reply read (SRD-DSK-004.001) | fake HTTP reply with usage | text, tokens and cost | Not Run |
-| UT-DSK-004.001.M11.T02 | MD-DSK-004.001.M11 | Positive | Claude CLI reply read (SRD-DSK-004.001) | fake CLI JSON with usage | text, tokens and cost | Not Run |
-| UT-DSK-004.001.M11.T03 | MD-DSK-004.001.M11 | Negative | Source switched off (SRD-DSK-004.001) | primary source off in settings | primary skipped; backup used | Not Run |
-| UT-DSK-004.002.M11.T01 | MD-DSK-004.001.M11 | Positive | Valid answer (SRD-DSK-004.002) | JSON inside text | typed result; 1 valid try | Not Run |
-| UT-DSK-004.002.M11.T02 | MD-DSK-004.001.M11 | Negative | Retry then backup (SRD-DSK-004.002) | primary bad twice, backup good | result from backup; 3 tries, 2 invalid with errors | Not Run |
-| UT-DSK-004.002.M11.T03 | MD-DSK-004.001.M11 | Negative | All tries bad (SRD-DSK-004.002) | all answers bad or errors | None; 4 tries recorded | Not Run |
-| UT-DSK-004.003.M12.T01 | MD-DSK-004.003.M12 | Negative | Budget used up (SRD-DSK-004.003) | spent 10.00 of 10.00 | refused; no call; refusal logged | Not Run |
-| UT-DSK-004.003.M12.T02 | MD-DSK-004.003.M12 | Negative | Employee cap used up (SRD-DSK-004.003) | employee spent 3.00 of 3.00 | refused | Not Run |
-| UT-DSK-004.003.M12.T03 | MD-DSK-004.003.M12 | Positive | Last month not counted (SRD-DSK-004.003) | 9.99 spent last month | allowed | Not Run |
-| UT-DSK-004.004.M12.T01 | MD-DSK-004.003.M12 | Negative | Claude CLI daily cap (SRD-DSK-004.004) | 5 CLI tries today, cap 5 | refused; OpenRouter still allowed | Not Run |
-| UT-DSK-004.004.M12.T02 | MD-DSK-004.003.M12 | Negative | Employee calls per day (SRD-DSK-004.004) | calls_per_day 3, 6 tries today | refused | Not Run |
-| UT-DSK-004.004.M12.T03 | MD-DSK-004.003.M12 | Positive | Under the caps (SRD-DSK-004.004) | 4 CLI tries, cap 5 | allowed | Not Run |
-| UT-DSK-004.005.M13.T01 | MD-DSK-004.005.M13 | Positive | Settings round trip (SRD-DSK-004.005) | save then load | same values | Not Run |
-| UT-DSK-004.005.M13.T02 | MD-DSK-004.005.M13 | Negative | No or broken settings file (SRD-DSK-004.005) | missing or bad JSON | defaults: both sources off, USD 10, 5 CLI calls | Not Run |
-| UT-DSK-005.001.M14.T01 | MD-DSK-005.001.M14 | Positive | Try recorded (SRD-DSK-005.001) | one attempt | row with every field | Not Run |
-| UT-DSK-005.001.M14.T02 | MD-DSK-005.001.M14 | Negative | Call error recorded (SRD-DSK-005.001) | source raises | invalid row with error text, no answer | Not Run |
-| UT-DSK-005.002.M14.T01 | MD-DSK-005.001.M14 | Negative | Append-only (SRD-DSK-005.002) | UPDATE and DELETE on activity and briefs | sqlite error; rows unchanged | Not Run |
-| UT-DSK-005.002.M14.T02 | MD-DSK-005.001.M14 | Positive | Inserts still work (SRD-DSK-005.002) | refused update, then new try | new row added | Not Run |
-| UT-DSK-005.003.M14.T01 | MD-DSK-005.001.M14 | Positive | Brief stored (SRD-DSK-005.003) | feed item | briefs row with time and data day | Not Run |
-| UT-DSK-005.003.M14.T02 | MD-DSK-005.001.M14 | Negative | Empty brief (SRD-DSK-005.003) | feed item with empty text | ValueError; nothing stored | Not Run |
+| UT-DSK-002.002.M09.T01 | MD-DSK-002.002.M09 | Positive | Job file loads (SRD-DSK-002.002) | valid soul.md + job.yaml | Hire with spec, soul text and hash | Pass |
+| UT-DSK-002.002.M09.T02 | MD-DSK-002.002.M09 | Negative | Bad job file (SRD-DSK-002.002) | missing models; unknown key; bad trigger | None; one warning each | Pass |
+| UT-DSK-002.002.M09.T03 | MD-DSK-002.002.M09 | Negative | Missing soul.md (SRD-DSK-002.002) | folder without soul.md | None; warning | Pass |
+| UT-DSK-002.004.M09.T01 | MD-DSK-002.002.M09 | Positive | Employees table (SRD-DSK-002.004) | load twice | one row with name, title, version, hash | Pass |
+| UT-DSK-002.004.M09.T02 | MD-DSK-002.002.M09 | Edge | Changed file, same version (SRD-DSK-002.004) | edit soul.md, keep version | new hash stored; warning logged | Pass |
+| UT-DSK-002.001.M09.T01 | MD-DSK-002.002.M09 | Negative | Bad employee path (SRD-DSK-002.001) | path to a missing class | left out; warning; others load | Pass |
+| UT-DSK-002.001.M09.T02 | MD-DSK-002.002.M09 | Positive | Employee list loads (SRD-DSK-002.001) | EMPLOYEE_PATHS | ATLAS loaded from its folder | Pass |
+| UT-DSK-002.003.M11.T01 | MD-DSK-004.001.M11 | Positive | Soul is the system prompt (SRD-DSK-002.003) | fake model records its input | system text starts with soul.md; model from job.yaml | Pass |
+| UT-DSK-002.003.M11.T02 | MD-DSK-004.001.M11 | Negative | Soul cannot change rules (SRD-DSK-002.003) | soul.md names another model | job.yaml model still used | Pass |
+| UT-DSK-002.004.M09.T03 | MD-DSK-002.002.M09 | Negative | Bad file not stored (SRD-DSK-002.004) | invalid job.yaml | no employees row | Pass |
+| UT-DSK-002.005.M10.T01 | MD-DSK-003.001.M10 | Positive | Context is ask only (SRD-DSK-002.005) | employee inspects its context | only home and ask | Pass |
+| UT-DSK-002.005.M10.T02 | MD-DSK-003.001.M10 | Negative | Job files untouched (SRD-DSK-002.005) | full run | job file hashes unchanged | Pass |
+| UT-DSK-003.001.M10.T01 | MD-DSK-003.001.M10 | Positive | Wakes after run (SRD-DSK-003.001) | fake employee, fresh facts, fake model | act called once; brief written | Pass |
+| UT-DSK-003.001.M10.T02 | MD-DSK-003.001.M10 | Negative | Failing employee (SRD-DSK-003.001) | act raises; second employee ok | error logged; second runs; desk run ok | Pass |
+| UT-DSK-003.001.M10.T03 | MD-DSK-003.001.M10 | Positive | Step order (SRD-DSK-003.001) | loaded step list | AI employees after Ideas | Pass |
+| UT-DSK-003.002.M10.T01 | MD-DSK-003.001.M10 | Negative | Once per data day (SRD-DSK-003.002) | run twice on same day | act called once | Pass |
+| UT-DSK-003.002.M10.T02 | MD-DSK-003.001.M10 | Edge | Failed day tried again (SRD-DSK-003.002) | first run no valid answer | second run calls again | Pass |
+| UT-DSK-003.002.M10.T03 | MD-DSK-003.001.M10 | Positive | Next day wakes again (SRD-DSK-003.002) | done yesterday, new data day | act called | Pass |
+| UT-DSK-003.003.M10.T01 | MD-DSK-003.001.M10 | Negative | Stale data (SRD-DSK-003.003) | facts fresh False | act not called; reason logged | Pass |
+| UT-DSK-003.003.M10.T02 | MD-DSK-003.001.M10 | Positive | Fresh data wakes (SRD-DSK-003.003) | facts fresh True | act called | Pass |
+| UT-DSK-004.001.M11.T01 | MD-DSK-004.001.M11 | Positive | OpenRouter reply read (SRD-DSK-004.001) | fake HTTP reply with usage | text, tokens and cost | Pass |
+| UT-DSK-004.001.M11.T02 | MD-DSK-004.001.M11 | Positive | Claude CLI reply read (SRD-DSK-004.001) | fake CLI JSON with usage and total_cost_usd | text and tokens; cost 0 | Pass |
+| UT-DSK-004.001.M11.T03 | MD-DSK-004.001.M11 | Negative | Source switched off (SRD-DSK-004.001) | primary source off in settings | primary skipped; backup used | Pass |
+| UT-DSK-004.002.M11.T01 | MD-DSK-004.001.M11 | Positive | Valid answer (SRD-DSK-004.002) | JSON inside text | typed result; 1 valid try | Pass |
+| UT-DSK-004.002.M11.T02 | MD-DSK-004.001.M11 | Negative | Retry then backup (SRD-DSK-004.002) | primary bad twice, backup good | result from backup; 3 tries, 2 invalid with errors | Pass |
+| UT-DSK-004.002.M11.T03 | MD-DSK-004.001.M11 | Negative | All tries bad (SRD-DSK-004.002) | all answers bad or errors | None; 4 tries recorded | Pass |
+| UT-DSK-004.003.M12.T01 | MD-DSK-004.003.M12 | Negative | Budget used up (SRD-DSK-004.003) | spent 10.00 of 10.00 | refused; no call; refusal logged | Pass |
+| UT-DSK-004.003.M12.T02 | MD-DSK-004.003.M12 | Negative | Employee cap used up (SRD-DSK-004.003) | employee spent 3.00 of 3.00 | refused | Pass |
+| UT-DSK-004.003.M12.T03 | MD-DSK-004.003.M12 | Positive | Last month not counted (SRD-DSK-004.003) | 9.99 spent last month | allowed | Pass |
+| UT-DSK-004.004.M12.T01 | MD-DSK-004.003.M12 | Negative | Claude CLI daily token cap (SRD-DSK-004.004) | 200,000 CLI tokens today, cap 200,000 | refused; OpenRouter still allowed | Pass |
+| UT-DSK-004.004.M12.T02 | MD-DSK-004.003.M12 | Negative | Employee calls per day (SRD-DSK-004.004) | calls_per_day 3, 12 tries today (4 per call) | refused | Pass |
+| UT-DSK-004.004.M12.T03 | MD-DSK-004.003.M12 | Positive | Under the caps (SRD-DSK-004.004) | 150,000 CLI tokens, cap 200,000 | allowed | Pass |
+| UT-DSK-004.005.M13.T01 | MD-DSK-004.005.M13 | Positive | Settings round trip (SRD-DSK-004.005) | save then load | same values | Pass |
+| UT-DSK-004.005.M13.T02 | MD-DSK-004.005.M13 | Negative | No or broken settings file (SRD-DSK-004.005) | missing or bad JSON | defaults: both sources off, USD 10, 200,000 CLI tokens | Pass |
+| UT-DSK-005.001.M14.T01 | MD-DSK-005.001.M14 | Positive | Try recorded (SRD-DSK-005.001) | one attempt | row with every field | Pass |
+| UT-DSK-005.001.M14.T02 | MD-DSK-005.001.M14 | Negative | Call error recorded (SRD-DSK-005.001) | source raises | invalid row with error text, no answer | Pass |
+| UT-DSK-005.002.M14.T01 | MD-DSK-005.001.M14 | Negative | Append-only (SRD-DSK-005.002) | UPDATE and DELETE on activity and briefs | sqlite error; rows unchanged | Pass |
+| UT-DSK-005.002.M14.T02 | MD-DSK-005.001.M14 | Positive | Inserts still work (SRD-DSK-005.002) | refused update, then new try | new row added | Pass |
+| UT-DSK-005.003.M14.T01 | MD-DSK-005.001.M14 | Positive | Brief stored (SRD-DSK-005.003) | feed item | briefs row with time and data day | Pass |
+| UT-DSK-005.003.M14.T02 | MD-DSK-005.001.M14 | Negative | Empty brief (SRD-DSK-005.003) | feed item with empty text | ValueError; nothing stored | Pass |

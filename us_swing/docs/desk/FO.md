@@ -33,7 +33,7 @@ The system shall run the desk as a separate background process that the main app
 
 ## FO-DSK-002: Employee Registry and Job Descriptions
 
-**Status:** Draft
+**Status:** Implemented for P5a (approved by user 2026-11-06)
 **Priority:** Must
 **Phase:** P5a (editing, rollback and HELM drafts in P6)
 **Depends on:** FO-DSK-001
@@ -53,7 +53,7 @@ The system shall load each AI employee from two files written by people, and enf
 
 ## FO-DSK-003: Event Router, Market Clock and Wake Rules
 
-**Status:** Draft
+**Status:** Implemented for P5a (approved by user 2026-11-06)
 **Priority:** Must
 **Phase:** P5a (wake after a desk run); P5b (events, priorities, deadlines, expiry, market clock)
 **Depends on:** FO-DSK-001, FO-DSK-002
@@ -71,7 +71,7 @@ The system shall keep agents asleep and wake them only by rule. In P5a the only 
 
 ## FO-DSK-004: LLM Gateway and Budget Guard
 
-**Status:** Draft
+**Status:** Implemented for P5a (approved by user 2026-11-06)
 **Priority:** Must
 **Phase:** P5a (OpenRouter, Claude Code CLI); later (HuggingFace, TypeSafe Jev)
 **Depends on:** FO-DSK-002
@@ -91,7 +91,7 @@ The system shall send every model call through one gateway that checks the answe
 
 ## FO-DSK-005: Activity Recorder and Replay
 
-**Status:** Draft
+**Status:** Implemented for P5a (approved by user 2026-11-06)
 **Priority:** Must
 **Phase:** P5a (recorder); P5b (sandbox replay)
 **Depends on:** FO-DSK-004

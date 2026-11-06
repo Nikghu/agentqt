@@ -304,3 +304,6 @@ class AtlasView:
 **soul.md** (system prompt). ATLAS is the desk's market regime expert. It weighs trend, breadth, volatility, fear and sector rotation. It is careful and plain-spoken, says when signals conflict, never gives trade orders, and never makes up numbers that are not in the facts.
 
 **job.yaml.** trigger `after_run`; primary `openrouter` with a cheap model; backup `claude` / `claude-haiku-5-5`; `calls_per_day: 3`; `monthly_cost_usd: 3.0`. KPIs: agreement rate with the rule regime, and the share of valid answers.
+
+**After the real run.** The first real answers broke the 140-character reason rule, which was checked in code but not shown in the JSON schema. The limit is now in the schema (`StringConstraints`), and `soul.md` says so too. Real run 2026-11-06 (Claude Code CLI, claude-haiku-5-5): valid on the 4th try, about 3,400 tokens, 7 s, cost 0; view Choppy 0.55, agreeing with the rule regime.
+

@@ -250,7 +250,7 @@ for model in (primary, backup):
 return None
 ```
 
-Sources: OpenRouter is called with `httpx` and `"usage": {"include": true}`, so the reply carries `usage.prompt_tokens`, `completion_tokens` and `cost`. Claude Code CLI uses the same headless command as the AI notes client (`core/notifications/_ai_client._run_with_timeout`); its JSON gives `usage` and `total_cost_usd`. A call error is recorded as an invalid try with the error text.
+Sources: OpenRouter is called with `httpx` and `"usage": {"include": true}`, so the reply carries `usage.prompt_tokens`, `completion_tokens` and `cost`. Claude Code CLI uses the same headless command as the AI notes client (`core/notifications/_ai_client._run_with_timeout`); its JSON gives `usage` (input, cache and output tokens); `total_cost_usd` is ignored. A call error is recorded as an invalid try with the error text.
 
 **Budget** (`desk/budget.py`), from `activity` only:
 
@@ -259,12 +259,12 @@ spent_month   = SUM(cost_usd) this calendar month (NY time)
 refuse when   spent_month >= settings.monthly_budget_usd
           or  employee spent_month >= spec.monthly_cost_usd
           or  employee tries today >= spec.calls_per_day * 2      (2 tries per call)
-          or  source == claude and claude tries today >= settings.claude_calls_per_day
+          or  source == claude and claude tokens today >= settings.claude_tokens_per_day
 ```
 
-Claude CLI cost is recorded but counted at 0 against the budget, because it runs on the user's subscription. The cap on daily CLI calls limits it instead.
+Claude CLI runs on the user's subscription (user, 2026-11-06): its `cost_usd` is always recorded as 0 and only its tokens count, against the daily token cap. Only OpenRouter (API) calls carry cost.
 
-**Desk AI settings** (`core/desk_ai_settings.py`, shared with the GUI). `desk_ai.json` in the desk folder holds `openrouter_on, openrouter_model, claude_on, claude_model, monthly_budget_usd (10.0), claude_calls_per_day (5)`. The key is stored with `keyring` (service `USSwing-Desk-OpenRouter`). `job.yaml` picks the source and model per employee; the settings can switch a source off, and an off source is skipped (an employee with both sources off makes no call). A missing file means the defaults (both off), so no AI runs until the user sets it up.
+**Desk AI settings** (`core/desk_ai_settings.py`, shared with the GUI). `desk_ai.json` in the desk folder holds `openrouter_on, openrouter_model, claude_on, claude_model, monthly_budget_usd (10.0), claude_tokens_per_day (200000)`. The key is stored with `keyring` (service `USSwing-Desk-OpenRouter`). `job.yaml` picks the source and model per employee; the settings can switch a source off, and an off source is skipped (an employee with both sources off makes no call). A missing file means the defaults (both off), so no AI runs until the user sets it up.
 
 **Recorder** (`desk/recorder.py`):
 
@@ -279,3 +279,6 @@ CREATE TRIGGER activity_no_update BEFORE UPDATE ON activity BEGIN SELECT RAISE(A
 `done_today(name, day)` is true when a valid row exists for that employee and day. Log lines: `[AI Desk] ATLAS answered with <model> in 4.2 s, cost USD 0.0012`, `[AI Desk] ATLAS skipped: data for 2026-11-04 already done`, `[AI Desk] ATLAS refused: monthly budget USD 10.00 used up`.
 
 **Limits in P5a.** One trigger only (`after_run`). No priorities, deadlines, expiry or market clock (P5b). No replay (P5b). No HuggingFace or Jev source. Job files are edited by hand (P6 adds editing, rollback and approval).
+
+**After code review and the real run.** A call allows 4 tries (primary twice, backup twice), so `calls_per_day` counts 4 tries per call. Cost checks apply only to OpenRouter, so a used-up API budget never blocks the free Claude CLI. An OpenRouter reply without `usage.cost` fails that try, so spend is never unchecked. A day counts as done only once a brief is posted (`briefs`), so a crash after a valid answer is tried again. Model names starting with `-` are refused. Feed text is shown as plain text. AI Desk gets the desk folder from its poller; Cost & budget is rebuilt each time it opens. The keychain is not read while the window is built.
+

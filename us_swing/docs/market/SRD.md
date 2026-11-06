@@ -82,8 +82,8 @@
 
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
-| SRD-MKT-005.001 | FO-MKT-005 | Must | ATLAS facts are the last 20 days of regime, volatility, fear and VIX, the latest breadth, sector ranks and quadrants, today's idea counts and the latest proof result. | `desk.db` | facts text | Fresh only when the latest regime day equals the latest SPY candle day | Draft |
-| SRD-MKT-005.002 | FO-MKT-005 | Must | ATLAS answers with a typed view: regime (Uptrend, Choppy or Downtrend), confidence 0–1, 1 to 3 reasons and a brief of at most 400 characters. | facts | view | Checked by the gateway | Draft |
-| SRD-MKT-005.003 | FO-MKT-005 | Must | Each view is kept in `atlas_view` per data day with the rule regime and whether they agree. | view | `atlas_view` row | A new run on the same day replaces it | Draft |
-| SRD-MKT-005.004 | FO-MKT-005 | Must | ATLAS adds its brief to the AI feed; when it disagrees with the rule regime the brief ends with a plain note. | view | feed item | Author ATLAS | Draft |
-| SRD-MKT-005.005 | FO-MKT-005 | Must | ATLAS ships `soul.md` and `job.yaml` in `market/employees/atlas/` with trigger `after_run`. | — | files | Calls per day 3; monthly cap USD 3 | Draft |
+| SRD-MKT-005.001 | FO-MKT-005 | Must | ATLAS facts are the last 20 days of regime, volatility, fear and VIX, the latest breadth, sector ranks and quadrants, today's idea counts and the latest proof result. | `desk.db` | facts text | Fresh only when the latest regime day equals the latest SPY candle day | Implemented |
+| SRD-MKT-005.002 | FO-MKT-005 | Must | ATLAS answers with a typed view: regime (Uptrend, Choppy or Downtrend), confidence 0–1, 1 to 3 reasons and a brief of at most 400 characters. | facts | view | Checked by the gateway | Implemented |
+| SRD-MKT-005.003 | FO-MKT-005 | Must | Each view is kept in `atlas_view` per data day with the rule regime and whether they agree. | view | `atlas_view` row | A new run on the same day replaces it | Implemented |
+| SRD-MKT-005.004 | FO-MKT-005 | Must | ATLAS adds its brief to the AI feed; when it disagrees with the rule regime the brief ends with a plain note. | view | feed item | Author ATLAS | Implemented |
+| SRD-MKT-005.005 | FO-MKT-005 | Must | ATLAS ships `soul.md` and `job.yaml` in `market/employees/atlas/` with trigger `after_run`. | — | files | Calls per day 3; monthly cap USD 3 | Implemented |

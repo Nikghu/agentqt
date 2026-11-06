@@ -3,7 +3,7 @@
 **Document ID:** TRACE-GUI
 **Version:** 1.16.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-11-06 (Market Floor and AI Desk frames FO-GUI-034; SRD-GUI-034.011 with RN-MKT-0.1.0-20261106; SRD-GUI-034.012 with RN-MKT-0.2.0-20261106; SRD-GUI-034.013 with RN-MKT-0.3.0-20261106; SRD-GUI-034.014 with RN-MKT-0.4.0-20261106)
+**Last Updated:** 2026-11-06 (Market Floor and AI Desk frames FO-GUI-034; SRD-GUI-034.011 with RN-MKT-0.1.0-20261106; SRD-GUI-034.012 with RN-MKT-0.2.0-20261106; SRD-GUI-034.013 with RN-MKT-0.3.0-20261106; SRD-GUI-034.014 with RN-MKT-0.4.0-20261106; SRD-GUI-034.015–.017 with RN-DSK-0.2.0-20261106)
 
 ---
 
@@ -129,6 +129,7 @@
 | FO-GUI-034 | SRD-GUI-034.012 | — | MD-GUI-034.012.M11 | UT-GUI-034.012.M11.T01–T02 (Pass) | `core/desk_floor.py` | Implemented | RN-MKT-0.2.0-20261106 |
 | FO-GUI-034 | SRD-GUI-034.013 | — | MD-GUI-034.013.M12 | UT-GUI-034.013.M12.T01–T02 (Pass) | `core/desk_floor.py`, `gui/floor_panel.py` | Implemented | RN-MKT-0.3.0-20261106 |
 | FO-GUI-034 | SRD-GUI-034.014 | — | MD-GUI-034.014.M13 | UT-GUI-034.014.M13.T01–T02 (Pass) | `core/desk_floor.py` | Implemented | RN-MKT-0.4.0-20261106 |
+| FO-GUI-034 | SRD-GUI-034.015–.017 | — | MD-GUI-034.015.M14, .016.M15, .017.M16 | UT-GUI-034.015–.017 (Pass) | `core/desk_floor.py`, `gui/floor_feed.py`, `gui/market_floor.py`, `gui/ai_desk_settings.py`, `gui/ai_desk.py`, `gui/ai_desk_sections3.py` | Implemented | RN-DSK-0.2.0-20261106 |
 
 ---
 

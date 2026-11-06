@@ -1070,8 +1070,8 @@ Test files:
 | UT-GUI-034.013.M12.T02 | MD-GUI-034.013.M12 | Negative | No ideas yet | desk.db with sectors only | ideas.top stays sample | Pass |
 | UT-GUI-034.014.M13.T01 | MD-GUI-034.014.M13 | Positive | Real proof table | desk.db with 2 proof runs | latest run; side and kind filters; title with range and results; short-history note | Pass |
 | UT-GUI-034.014.M13.T02 | MD-GUI-034.014.M13 | Negative | No proof run yet | desk.db with ideas only | proof.bands not listed | Pass |
-| UT-GUI-034.015.M14.T01 | MD-GUI-034.015.M14 | Positive | Real feed (SRD-GUI-034.015) | desk.db with 3 briefs | newest first; time, author, text; no Sample tag | Not Run |
-| UT-GUI-034.015.M14.T02 | MD-GUI-034.015.M14 | Negative | No briefs yet (SRD-GUI-034.015) | desk.db without briefs | sample items with Sample tag | Not Run |
-| UT-GUI-034.016.M15.T01 | MD-GUI-034.016.M15 | Positive | Settings saved (SRD-GUI-034.016) | change model, budget, CLI cap, key; Save | desk_ai.json and key updated | Not Run |
-| UT-GUI-034.016.M15.T02 | MD-GUI-034.016.M15 | Negative | Bad budget (SRD-GUI-034.016) | budget 0 or text | not saved; message shown | Not Run |
-| UT-GUI-034.017.M16.T01 | MD-GUI-034.017.M16 | Positive | Real cost (SRD-GUI-034.017) | activity rows this and last month | this month only; by employee and by model | Not Run |
+| UT-GUI-034.015.M14.T01 | MD-GUI-034.015.M14 | Positive | Real feed (SRD-GUI-034.015) | desk.db with 3 briefs | newest first; time, author, text; no Sample tag | Pass |
+| UT-GUI-034.015.M14.T02 | MD-GUI-034.015.M14 | Negative | No briefs yet (SRD-GUI-034.015) | desk.db without briefs | sample items with Sample tag | Pass |
+| UT-GUI-034.016.M15.T01 | MD-GUI-034.016.M15 | Positive | Settings saved (SRD-GUI-034.016) | change model, budget, CLI token cap, key; Save | desk_ai.json and key updated | Pass |
+| UT-GUI-034.016.M15.T02 | MD-GUI-034.016.M15 | Negative | Bad budget (SRD-GUI-034.016) | budget 0 or text | not saved; message shown | Pass |
+| UT-GUI-034.017.M16.T01 | MD-GUI-034.017.M16 | Positive | Real cost (SRD-GUI-034.017) | activity rows this and last month | this month only; by employee and by model | Pass |
