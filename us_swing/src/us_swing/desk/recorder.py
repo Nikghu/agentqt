@@ -1,7 +1,8 @@
 """
 Module: MD-DSK-005.001.M14 — desk/recorder.py
 Parent SRD: SRD-DSK-005.001
-Also: SRD-DSK-005.002 (append-only), SRD-DSK-005.003 (briefs)
+Also: SRD-DSK-005.002 (append-only), SRD-DSK-005.003 (briefs), SRD-DSK-003.009 (last wake),
+SRD-DSK-005.006 (replay tries are marked)
 
 Append-only records of every AI try (``activity``) and every AI feed brief (``briefs``)
 in ``desk.db``. The database itself refuses updates and deletes on both tables.
@@ -33,7 +34,8 @@ CREATE TABLE IF NOT EXISTS briefs (
 );
 """
 # Columns added after the first P5a tables were created on real desks.
-_ADDED = (("activity", "employee_name", "TEXT"), ("briefs", "employee_id", "TEXT"))
+_ADDED = (("activity", "employee_name", "TEXT"), ("briefs", "employee_id", "TEXT"),
+          ("activity", "replay", "INTEGER DEFAULT 0"))
 _GUARDS = [
     f"CREATE TRIGGER IF NOT EXISTS {table}_no_{op.lower()} BEFORE {op} ON {table} "
     f"BEGIN SELECT RAISE(ABORT, '{table} is append-only'); END"
@@ -65,6 +67,22 @@ class Attempt:
     tokens_out: int
     cost_usd: float
     seconds: float
+    replay: int = 0
+
+
+@dataclass(frozen=True)
+class RecordedTry:
+    """One stored try, as a replay reads it."""
+
+    employee: str
+    employee_name: str
+    data_day: str
+    source: str
+    model: str
+    attempt: int
+    prompt: str
+    answer: str
+    valid: bool
 
 
 def ny_now() -> datetime:
@@ -127,11 +145,28 @@ class Recorder:
         return float(row[0])
 
     def day_tries(self, day: str, employee: str) -> int:
-        """Number of tries by ``employee`` on ``day`` (``YYYY-MM-DD``, New York time)."""
+        """Live tries by ``employee`` on ``day`` (New York time); replays use no live quota."""
         row = self._con.execute(
-            "SELECT COUNT(*) FROM activity WHERE substr(started, 1, 10) = ? AND employee = ?",
+            "SELECT COUNT(*) FROM activity WHERE substr(started, 1, 10) = ? AND employee = ? "
+            "AND COALESCE(replay, 0) = 0",
             (day, employee)).fetchone()
         return int(row[0])
+
+    def last_wake(self, employee: str) -> datetime | None:
+        """Start of the employee's latest try that was not a replay, or ``None``."""
+        row = self._con.execute(
+            "SELECT MAX(started) FROM activity WHERE employee = ? AND COALESCE(replay, 0) = 0",
+            (employee,)).fetchone()
+        return datetime.fromisoformat(row[0]) if row and row[0] else None
+
+    def run_tries(self, run_id: int) -> list[RecordedTry]:
+        """All tries of one desk run that were not replays, oldest first."""
+        rows = self._con.execute(
+            "SELECT employee, employee_name, data_day, source, model, attempt, prompt, answer, "
+            "valid FROM activity WHERE run_id = ? AND COALESCE(replay, 0) = 0 ORDER BY id",
+            (run_id,)).fetchall()
+        return [RecordedTry(str(r[0]), str(r[1] or r[0]), str(r[2]), str(r[3]), str(r[4]),
+                            int(r[5]), str(r[6]), str(r[7] or ""), bool(r[8])) for r in rows]
 
     def day_tokens(self, day: str, source: str) -> int:
         """Tokens in and out used by ``source`` on ``day`` (New York time)."""

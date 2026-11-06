@@ -2,7 +2,7 @@
 Module: MD-DSK-004.001.M11 — desk/gateway.py
 Parent SRD: SRD-DSK-004.001
 Also: SRD-DSK-004.002 (schema check, retry, backup), SRD-DSK-002.003 (soul is the prompt,
-job file picks the models)
+job file picks the models), SRD-DSK-005.005 (resend a recorded prompt for a replay)
 
 The one way AI employees reach a model. Sources: OpenRouter (API, has cost) and Claude
 Code CLI (subscription: tokens only, cost 0). Every answer must be JSON matching the
@@ -148,8 +148,12 @@ class Gateway:
 
     def __init__(self, home: Path, hire: Hire, recorder: Recorder, settings: DeskAiSettings,
                  key: str, run_id: int, data_day: str, caller: Caller = call_model,
-                 clock: Callable[[], datetime] = ny_now) -> None:
-        """Bind the employee, the run and the sources; ``caller`` is injectable for tests."""
+                 clock: Callable[[], datetime] = ny_now, replay: bool = False) -> None:
+        """Bind the employee, the run and the sources; ``caller`` is injectable for tests.
+
+        With ``replay`` every try is recorded as a replay, so it never counts as a wake.
+        """
+        self._replay = replay
         self._home = home
         self._hire = hire
         self._rec = recorder
@@ -229,7 +233,7 @@ class Gateway:
             self._run_id, spec.id, spec.name, spec.version, self._day,
             started.isoformat(timespec="seconds"), source, model, attempt,
             f"{system}\n\n---\n\n{user}", reply.text, result is not None, error,
-            reply.tokens_in, reply.tokens_out, reply.cost_usd, seconds))
+            reply.tokens_in, reply.tokens_out, reply.cost_usd, seconds, int(self._replay)))
         if result is not None:
             self.answered = Answered(model, seconds, reply.tokens_in + reply.tokens_out,
                                      reply.cost_usd)
@@ -237,3 +241,25 @@ class Gateway:
             log.warning("[AI Desk] %s answer %d from %s was not valid: %s", spec.name, attempt,
                         model, error)
         return result, error
+
+
+class ReplayGateway(Gateway):
+    """A gateway for ``desk replay`` only: tries are marked as replays, and it can send a
+    recorded prompt again. Skills never get this object, so they cannot set a prompt."""
+
+    def resend(self, system: str, user: str, schema: type[T], source: str,
+               model: str) -> T | None:
+        """Send a recorded prompt again to one model (one retry); caps apply as usual."""
+        spec = self._hire.spec
+        text = user
+        for attempt in (1, 2):
+            why = self._budget.refusal(spec.id, spec.name, spec.monthly_cost_usd,
+                                       spec.calls_per_day, source)
+            if why:
+                self.refused = why
+                return None
+            result, error = self._try(source, model, system, text, schema, attempt)
+            if result is not None:
+                return result
+            text = f"{user}\n\nYour last answer was not valid: {error}. Answer again."
+        return None

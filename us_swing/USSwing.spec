@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-
+from PyInstaller.utils.hooks import collect_submodules
 
 a = Analysis(
     ['run_gui.py'],
@@ -11,7 +11,11 @@ a = Analysis(
                    # loaded by import path in core/desk_steps.py
                    'us_swing.market.step', 'us_swing.market.sector_step',
                    'us_swing.market.idea_step', 'us_swing.market.proof',
-                   'us_swing.desk.employees_step', 'us_swing.market.regime_view'],
+                   'us_swing.desk.employees_step', 'us_swing.market.regime_view',
+                   'us_swing.market.sector_view', 'us_swing.market.setup_review',
+                   'us_swing.market.risk_check', 'us_swing.market.lead_brief',
+                   # the desk router imports LangGraph when it first runs a graph
+                   *collect_submodules('langgraph'), *collect_submodules('langchain_core')],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=['pyi_rth_quiet_platform.py'],

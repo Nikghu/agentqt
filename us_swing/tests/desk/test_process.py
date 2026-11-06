@@ -2,16 +2,24 @@
 from __future__ import annotations
 
 import os
+import logging
 import sqlite3
 import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+import pytest
+
+from datetime import UTC, datetime
+
+from tests.desk import test_harness as th
 from tests.desk.conftest import FakeClock
+from tests.desk.test_harness import _reset_state  # noqa: F401 - autouse fixture
 from us_swing.core.desk_contract import CommandKind, DeskState, StepContext, send_command
-from us_swing.desk.store import DeskStore
+from us_swing.desk.employees_step import EmployeesStep
 from us_swing.desk.process import DeskProcess
+from us_swing.desk.store import DeskStore
 
 
 class Step:
@@ -386,3 +394,54 @@ def test_run_now_then_pause_in_one_batch(home: Path, clock: FakeClock) -> None:
     desk.tick()
     desk.close()
     assert _rows(home, "SELECT COUNT(*) FROM runs")[0][0] == 0
+
+
+FRI_1601_ET = datetime(2026, 11, 6, 21, 1, tzinfo=UTC)
+
+
+def _event_desk(home: Path) -> tuple[DeskProcess, Step, FakeClock]:
+    th.employee(home, "t-1", th.job("t-1").replace("trigger: after_run",
+                                                   "trigger: market_close"))
+    clock = FakeClock(FRI_1601_ET)
+    events = EmployeesStep(lambda: th.SKILLS, lambda: [], lambda: th.ON, lambda: "key",
+                           th.FakeCaller(th.GOOD), clock)
+    market = Step("market")
+    return _desk(home, clock, steps=[market], events=events), market, clock
+
+
+def test_event_run_from_loop(home: Path) -> None:
+    """UT-DSK-003.008.M04.T01: At 16:01 one event run wakes the employee; market steps stay idle."""
+    desk, market, _ = _event_desk(home)
+    desk.start()
+    desk.tick()
+    desk.close()
+    assert _rows(home, "SELECT kind FROM runs") == [("event",)]
+    assert market.calls == [] and len(th.STATE.seen) == 1
+    assert _rows(home, "SELECT kind, state FROM events") == [("market_close", "done")]
+
+
+def test_no_event_run_when_paused(home: Path) -> None:
+    """UT-DSK-003.008.M04.T02: A paused desk starts no event run at 16:01."""
+    desk, _, _ = _event_desk(home)
+    desk.start()
+    send_command(CommandKind.PAUSE, home)
+    desk.tick()
+    desk.close()
+    assert _rows(home, "SELECT COUNT(*) FROM runs") == [(0,)]
+    assert th.STATE.seen == []
+
+def test_event_check_error_keeps_desk_alive(home: Path, monkeypatch: pytest.MonkeyPatch,
+                                            caplog: pytest.LogCaptureFixture) -> None:
+    """UT-DSK-003.008.M04.T03: An error while checking events is logged; the desk keeps going."""
+    desk, _, _ = _event_desk(home)
+
+    def broken(_home: Path) -> bool:
+        raise sqlite3.OperationalError("database is locked")
+
+    monkeypatch.setattr(desk._events, "has_work", broken)
+    desk.start()
+    with caplog.at_level(logging.ERROR):
+        assert desk.tick() is True
+    desk.close()
+    assert _rows(home, "SELECT COUNT(*) FROM runs") == [(0,)]
+    assert "Could not check for AI events" in caplog.text

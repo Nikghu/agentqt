@@ -3,22 +3,25 @@ Module: MD-DSK-003.001.M10 — desk/employees_step.py
 Parent SRD: SRD-DSK-003.001
 Also: SRD-DSK-003.002 (once per data day), SRD-DSK-003.003 (fresh data only),
 SRD-DSK-002.005 (skills get only home and ask), SRD-DSK-002.007 (default employee files),
-SRD-DSK-005.004 (run log)
+SRD-DSK-005.004 (run log), SRD-DSK-003.004 (posts ``after_run``)
 
 Desk step "AI employees": after the market steps, copies any missing default employee
-files into the desk folder, then wakes each employee whose trigger is ``after_run``, at
-most once per data day and only on fresh data. Employees are known only from their files.
+files into the desk folder, posts an ``after_run`` event and lets the router handle every
+waiting event. The desk loop also uses it to handle events between runs. Employees are
+known only from their files.
 """
 from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Mapping, Sequence
+from datetime import datetime
 from pathlib import Path
 
 from us_swing.core.desk_ai_settings import DeskAiSettings, load_key, load_settings
 from us_swing.core.desk_contract import StepContext, desk_home
+from us_swing.core.desk_events import Event, post_event, waiting_count
 from us_swing.desk.gateway import Caller, Gateway, call_model
-from us_swing.desk.recorder import Recorder
+from us_swing.desk.recorder import NY, Recorder, ny_now
 from us_swing.desk.registry import (
     Hire,
     default_folders,
@@ -26,6 +29,7 @@ from us_swing.desk.registry import (
     record_employees,
     seed_employees,
 )
+from us_swing.desk.router import Router
 
 log = logging.getLogger(__name__)
 
@@ -43,7 +47,7 @@ def _default_folders() -> Sequence[Path]:
 
 
 class EmployeesStep:
-    """Wakes the AI employees after a desk run."""
+    """Wakes the AI employees after a desk run and on other events."""
 
     name = "AI employees"
 
@@ -54,47 +58,66 @@ class EmployeesStep:
         settings: Callable[[], DeskAiSettings] | None = None,
         key: Callable[[], str] = load_key,
         caller: Caller = call_model,
+        clock: Callable[[], datetime] = ny_now,
     ) -> None:
-        """Set the skill list, default files, settings, key and model caller (all injectable)."""
+        """Set the skill list, default files, settings, key, model caller and clock."""
         self._skills = skills
         self._defaults = defaults
         self._settings = settings
         self._key = key
         self._caller = caller
+        self._clock = clock
 
     def __call__(self, ctx: StepContext) -> None:
-        """Run the step inside a desk run; one failing employee never fails the run."""
+        """Post ``after_run`` and handle the events; one failing employee never fails the run."""
         home = ctx.home or desk_home()
-        recorder = Recorder(home)
-        try:
-            seed_employees(home, self._defaults())
-            hires = load_employees(home, self._skills())
-            record_employees(home, hires)
-            settings = self._settings() if self._settings else load_settings(home)
-            for hire in hires:
-                if hire.spec.trigger != "after_run":
-                    continue
-                try:
-                    self._wake(hire, ctx.run_id, home, recorder, settings)
-                except Exception:  # noqa: BLE001 — logged; the next employee still runs
-                    log.exception("[AI Desk] %s failed", hire.spec.name)
-        finally:
-            recorder.close()
+        day = ctx.started_at.astimezone(NY).date().isoformat()
+        post_event(home, "after_run", day, self._clock(), ctx.run_id)
+        self.handle_events(ctx)
 
-    def _wake(self, hire: Hire, run_id: int, home: Path, recorder: Recorder,
+    def has_work(self, home: Path) -> bool:
+        """True when a waiting event wakes at least one employee (files read only then)."""
+        if not waiting_count(home):
+            return False
+        return self._router(home, -1)[0].has_work()
+
+    def handle_events(self, ctx: StepContext) -> None:
+        """Handle every waiting event with the employees loaded now."""
+        home = ctx.home or desk_home()
+        router, _ = self._router(home, ctx.run_id)
+        router.handle()
+
+    def _router(self, home: Path, run_id: int) -> tuple[Router, list[Hire]]:
+        seed_employees(home, self._defaults())
+        skills = self._skills()
+        hires = load_employees(home, skills)
+        if run_id >= 0:
+            record_employees(home, hires)
+        settings = self._settings() if self._settings else load_settings(home)
+
+        def wake(hire: Hire, event: Event) -> None:
+            self._wake(hire, event, run_id, home, settings)
+
+        return Router(home, hires, wake, set(skills), self._clock), hires
+
+    def _wake(self, hire: Hire, event: Event, run_id: int, home: Path,
               settings: DeskAiSettings) -> None:
         spec = hire.spec
         facts = hire.skill.facts(home)
         if not facts.fresh:
             log.info("[AI Desk] %s stays asleep: %s", spec.name, facts.why_stale)
             return
-        if recorder.done_on(spec.id, facts.data_day):
-            log.info("[AI Desk] %s already answered for %s", spec.name, facts.data_day)
-            return
-        gateway = Gateway(home, hire, recorder, settings, self._key(), run_id,
-                          facts.data_day, self._caller)
-        items = hire.skill.act(gateway, facts)
-        recorder.add_briefs(items, spec.id, spec.name)
+        recorder = Recorder(home)
+        try:
+            if event.kind == "after_run" and recorder.done_on(spec.id, facts.data_day):
+                log.info("[AI Desk] %s already answered for %s", spec.name, facts.data_day)
+                return
+            gateway = Gateway(home, hire, recorder, settings, self._key(), run_id,
+                              facts.data_day, self._caller, self._clock)
+            items = hire.skill.act(gateway, facts)
+            recorder.add_briefs(items, spec.id, spec.name)
+        finally:
+            recorder.close()
         if gateway.answered:
             a = gateway.answered
             cost = f", cost USD {a.cost_usd:.4f}" if a.cost_usd else ""

@@ -1,7 +1,8 @@
 """
 Module: MD-DSK-001.020.M06 — desk/cli.py
 Parent SRD: SRD-DSK-001.020
-Also: SRD-DSK-001.022 — ``desk proof``
+Also: SRD-DSK-001.022 — ``desk proof``; SRD-DSK-005.005 — ``desk replay``;
+SRD-DSK-003.008 — the desk loop gets the event handler
 
 ``python -m us_swing desk [sub-command]``. With no sub-command the desk process runs.
 """
@@ -22,11 +23,12 @@ from us_swing.core.desk_contract import (
 )
 from us_swing.core.desk_steps import load_proof, load_steps
 from us_swing.desk import task
-from us_swing.desk.process import DeskProcess
+from us_swing.desk.process import DeskProcess, EventHandler
+from us_swing.desk.replay import replay, report
 
 USAGE = (
     "usage: desk [--resume] | desk start | status | pause | resume | stop | run-now"
-    " | install | uninstall | proof"
+    " | install | uninstall | proof | replay RUN [--employee ID] [--model NAME]"
 )
 _COMMANDS = {
     "pause": CommandKind.PAUSE,
@@ -59,10 +61,14 @@ def main(
     """Run a desk sub-command and return the exit code; ``proof`` loads the proof runner."""
     home = home or desk_home()
     if not argv or argv == ["--resume"]:
+        steps = load_steps()
+        events = next((s for s in steps if isinstance(s, EventHandler)), None)
         return DeskProcess(
-            home, load_steps(), resume=bool(argv), daily_check=_sync_task
+            home, steps, resume=bool(argv), daily_check=_sync_task, events=events
         ).run()
     name = argv[0]
+    if name == "replay":
+        return _replay(argv[1:], home)
     if name == "status":
         status = read_status(home)
         print(f"Desk is {status.state.value}" + (f": {status.message}" if status.message else ""))
@@ -94,6 +100,23 @@ def main(
         return 0
     print(USAGE)
     return 2
+
+
+def _replay(args: list[str], home: Path) -> int:
+    if not args or not args[0].isdigit():
+        print(USAGE)
+        return 2
+    options = dict(zip(args[1::2], args[2::2], strict=False))
+    if set(options) - {"--employee", "--model"} or len(args[1:]) % 2:
+        print(USAGE)
+        return 2
+    run_id = int(args[0])
+    lines = replay(home, run_id, options.get("--employee"), options.get("--model"))
+    if lines is None:
+        print(f"Desk run {run_id} has no recorded AI tries")
+        return 1
+    print(report(run_id, lines))
+    return 0
 
 
 def _send(kind: CommandKind, home: Path) -> int:

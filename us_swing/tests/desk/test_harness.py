@@ -8,8 +8,8 @@ import json
 import logging
 import sqlite3
 from collections.abc import Iterator
-from dataclasses import dataclass, field
-from datetime import datetime
+from dataclasses import dataclass, field, replace
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -84,6 +84,8 @@ class FakeSkill:
     """A skill that asks once and returns one brief with the answer."""
 
     key = "fake"
+    needs: tuple[str, ...] = ()
+    answer = View
 
     def facts(self, home: Path) -> Facts:
         return Facts("facts text", STATE.day, STATE.fresh, "" if STATE.fresh else "old data")
@@ -100,6 +102,7 @@ class FakeSkill:
 def _reset_state() -> Iterator[None]:
     global STATE
     STATE = FakeState()
+    CLOCK[0] = NOW
     yield
 
 
@@ -167,12 +170,17 @@ def _rows(home: Path, sql: str) -> list[Any]:
         con.close()
 
 
+CLOCK = [NOW]
+
+
 def _step(caller: FakeCaller) -> EmployeesStep:
-    return EmployeesStep(lambda: SKILLS, lambda: [], lambda: ON, lambda: "key", caller)
+    return EmployeesStep(lambda: SKILLS, lambda: [], lambda: ON, lambda: "key", caller,
+                         lambda: CLOCK[0])
 
 
 def _run(step: EmployeesStep, home: Path, run_id: int = 1) -> None:
-    step(StepContext(run_id, "manual", NOW, home))
+    CLOCK[0] += timedelta(hours=1)  # each run is more than 30 minutes after the last
+    step(StepContext(run_id, "manual", CLOCK[0], home))
 
 
 # ---------------- registry ----------------
@@ -635,3 +643,49 @@ def test_empty_brief(home: Path, rec: Recorder) -> None:
     with pytest.raises(ValueError):
         rec.add_briefs([FeedItem("info", "  ", "2026-11-05")], "t-1", "Tester A")
     assert _rows(home, "SELECT COUNT(*) FROM briefs") == [(0,)]
+
+
+# ---------------- P5b: trigger list, after_run event, replay is not a wake ----------------
+
+def test_trigger_list(home: Path) -> None:
+    """UT-DSK-002.009.M09.T01: A trigger list gives a spec with both kinds."""
+    text = job().replace("trigger: after_run", "trigger: [after_run, market_close]")
+    hire = load_employee(employee(home, job_text=text), SKILLS)
+    assert hire is not None and hire.spec.trigger == ("after_run", "market_close")
+
+
+def test_single_trigger(home: Path) -> None:
+    """UT-DSK-002.009.M09.T02: A P5a file with one trigger string still loads as a tuple."""
+    hire = load_employee(employee(home), SKILLS)
+    assert hire is not None and hire.spec.trigger == ("after_run",)
+
+
+def test_unknown_trigger_kind(home: Path, caplog: pytest.LogCaptureFixture) -> None:
+    """UT-DSK-002.009.M09.T03: One unknown kind in the list keeps the employee asleep."""
+    text = job().replace("trigger: after_run", "trigger: [after_run, lunch]")
+    with caplog.at_level(logging.WARNING):
+        assert load_employee(employee(home, job_text=text), SKILLS) is None
+    assert "stays asleep" in caplog.text
+
+
+def test_step_posts_after_run(home: Path) -> None:
+    """UT-DSK-003.001.M10.T04: A desk run with fresh facts posts one after_run, then it is done."""
+    employee(home)
+    _run(_step(FakeCaller(GOOD)), home)
+    assert _rows(home, "SELECT kind, state FROM events") == [("after_run", "done")]
+
+
+def test_replay_is_not_a_wake(rec: Recorder) -> None:
+    """UT-DSK-003.009.M14.T01: Only replay tries 5 minutes ago: last_wake is None."""
+    rec.add(replace(_attempt("2026-11-06T10:00:00-05:00"), replay=1))
+    assert rec.last_wake("t-1") is None
+    rec.add(_attempt("2026-11-06T09:00:00-05:00"))
+    assert rec.last_wake("t-1") == datetime(2026, 11, 6, 9, 0, tzinfo=NY)
+
+
+def test_day_tries_ignore_replays(rec: Recorder) -> None:
+    """UT-DSK-005.006.M14.T01: Replay tries do not use up live calls; their cost still counts."""
+    rec.add(_attempt())
+    rec.add(replace(_attempt(cost=2.0), replay=1))
+    assert rec.day_tries("2026-11-06", "t-1") == 1
+    assert rec.month_cost("2026-11") == 2.0

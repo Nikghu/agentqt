@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
-from us_swing.desk.clock import ET, evening_due, evening_task_time
+from us_swing.desk.clock import ET, evening_due, evening_task_time, market_events_due
 
 IST = ZoneInfo("Asia/Kolkata")
 
@@ -45,3 +45,31 @@ def test_task_time_ist_edt() -> None:
     assert evening_task_time(date(2026, 7, 1), IST) == (
         "01:50", ["TUE", "WED", "THU", "FRI", "SAT"],
     )
+
+
+def test_clock_events_due() -> None:
+    """UT-DSK-003.008.M03.T01: On a trading day market_open is due at 09:31, market_close at 16:01."""
+    assert market_events_due(_et(2026, 11, 6, 9, 31)) == [("market_open", "2026-11-06")]
+    assert market_events_due(_et(2026, 11, 6, 16, 1)) == [("market_close", "2026-11-06")]
+
+
+def test_clock_events_not_trading_day() -> None:
+    """UT-DSK-003.008.M03.T02: Nothing is due on a Saturday or a NYSE holiday."""
+    assert market_events_due(_et(2026, 11, 7, 16, 1)) == []
+    assert market_events_due(_et(2026, 11, 26, 16, 1)) == []
+    assert market_events_due(_et(2026, 11, 27, 16, 1)) != []
+
+
+def test_clock_events_before_open() -> None:
+    """UT-DSK-003.008.M03.T03: Nothing is due at 09:29 on a trading day."""
+    assert market_events_due(_et(2026, 11, 6, 9, 29)) == []
+
+
+def test_clock_events_window() -> None:
+    """UT-DSK-003.008.M03.T04: Events are due only in the 30 minutes after their time."""
+    assert market_events_due(_et(2026, 11, 6, 9, 59)) == [("market_open", "2026-11-06")]
+    assert market_events_due(_et(2026, 11, 6, 10, 0)) == []
+    assert market_events_due(_et(2026, 11, 6, 12, 0)) == []
+    assert market_events_due(_et(2026, 11, 6, 16, 29)) == [("market_close", "2026-11-06")]
+    assert market_events_due(_et(2026, 11, 6, 16, 30)) == []
+    assert market_events_due(_et(2026, 11, 6, 17, 0)) == []

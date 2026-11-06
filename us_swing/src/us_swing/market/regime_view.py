@@ -38,7 +38,8 @@ class RegimeView(BaseModel):
     brief: str = Field(min_length=20, max_length=400)
 
 
-def _latest_spy_day(candles: Path) -> str | None:
+def latest_spy_day(candles: Path) -> str | None:
+    """The newest SPY daily candle day in `candles`, or `None`."""
     if not candles.exists():
         return None
     con = sqlite3.connect(f"{candles.as_uri()}?mode=ro", uri=True)
@@ -58,6 +59,8 @@ class RegimeViewSkill:
     """The regime view skill (a ``Skill``)."""
 
     key = KEY
+    needs: tuple[str, ...] = ()
+    answer = RegimeView
 
     def __init__(self, candles: Path = CANDLE_DB) -> None:
         """Use ``candles`` to check that the regime data is up to date."""
@@ -78,7 +81,7 @@ class RegimeViewSkill:
         if regime.empty:
             return Facts("", "", False, "no market regime data yet")
         day = str(regime["date"].iloc[0])
-        spy_day = _latest_spy_day(self._candles)
+        spy_day = latest_spy_day(self._candles)
         if spy_day != day:
             return Facts("", day, False,
                          f"regime data is for {day} but the latest SPY candle is {spy_day}")

@@ -2,6 +2,8 @@
 Module: MD-MKT-001.011.M05 — market/step.py
 Parent SRD: SRD-MKT-001.011
 
+Also: SRD-DSK-003.005 (posts ``regime_change`` when the latest regime differs)
+
 Desk step "Market regime": adds every new day of regime, volatility, breadth and fear.
 """
 from __future__ import annotations
@@ -11,11 +13,13 @@ import math
 from collections.abc import Callable
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
 
 from us_swing.core.desk_contract import StepContext, desk_home
+from us_swing.core.desk_events import post_event
 from us_swing.market.candles import BENCHMARK, CANDLE_DB, CandleReader, member_symbols
 from us_swing.market.regime import (
     averages,
@@ -33,6 +37,7 @@ MIN_COVERAGE = 0.8
 RECOMPUTE_DAYS = 7
 VIX_FIRST_DAY = date(2023, 1, 1)
 _ET_OFFSET = timedelta(hours=-5)
+NY = ZoneInfo("America/New_York")
 
 
 def _weekdays_after(first: date, last: date) -> int:
@@ -45,6 +50,15 @@ def _num(value: object) -> float | None:
         return None
     out = float(value)  # type: ignore[arg-type]
     return None if math.isnan(out) else out
+
+
+def _regime_change(store: MarketStore) -> tuple[str, str] | None:
+    """``(day, "Choppy to Uptrend")`` when the latest regime differs from the day before."""
+    rows = store.read_frame("SELECT date, regime FROM regime_snapshot ORDER BY date DESC "
+                            "LIMIT 2")
+    if len(rows) < 2 or rows["regime"].iloc[0] == rows["regime"].iloc[1]:
+        return None
+    return str(rows["date"].iloc[0]), f"{rows['regime'].iloc[1]} to {rows['regime'].iloc[0]}"
 
 
 class RegimeStep:
@@ -67,13 +81,17 @@ class RegimeStep:
 
     def __call__(self, ctx: StepContext) -> None:
         """Run the step inside a desk run."""
-        store = MarketStore(ctx.home or desk_home())
+        home = ctx.home or desk_home()
+        store = MarketStore(home)
         try:
             self._update_vix(store)
             added = self._add_days(store)
+            change = _regime_change(store)
         finally:
             store.close()
         log.info("[Regime] %d day(s) added", added)
+        if change and post_event(home, "regime_change", change[0], datetime.now(NY)):
+            log.info("[Regime] Regime changed on %s: %s", change[0], change[1])
 
     def _update_vix(self, store: MarketStore) -> None:
         last = store.last_date("vix_daily")

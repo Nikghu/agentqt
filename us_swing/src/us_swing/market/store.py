@@ -4,11 +4,13 @@ Parent SRD: SRD-MKT-001.007
 Also: MD-MKT-002.008.M04 — sector and stock RS tables (SRD-MKT-002.008)
 Also: MD-MKT-003.010.M06 — score, idea and reason tables (SRD-MKT-003.010)
 Also: MD-MKT-004.006.M03 — proof run and stat tables (SRD-MKT-004.006)
-Also: MD-MKT-005.003.M02 — regime view table (SRD-MKT-005.003)
+Also: MD-MKT-005.003.M02 — regime view table (SRD-MKT-005.003); P5b AI view tables
+(SRD-MKT-005.008, .010, .013, .016)
 
 Market tables in ``desk.db``: ``regime_snapshot``, ``breadth_daily``, ``vix_daily``,
 ``sector_daily``, ``stock_rs``, ``stock_score``, ``ideas``, ``idea_reasons``,
-``proof_run``, ``proof_stats`` and ``regime_view``.
+``proof_run``, ``proof_stats``, ``regime_view``, ``sector_view``, ``setup_review``,
+``risk_check`` and ``lead_picks``.
 """
 from __future__ import annotations
 
@@ -69,6 +71,22 @@ CREATE TABLE IF NOT EXISTS proof_stats (
 CREATE TABLE IF NOT EXISTS regime_view (
     date TEXT PRIMARY KEY, regime TEXT, confidence REAL, reasons TEXT, brief TEXT,
     rule_regime TEXT, agrees INTEGER
+);
+CREATE TABLE IF NOT EXISTS sector_view (
+    date TEXT PRIMARY KEY, favour TEXT, avoid TEXT, rotation TEXT,
+    brief TEXT
+);
+CREATE TABLE IF NOT EXISTS setup_review (
+    date TEXT, side TEXT, symbol TEXT, grade TEXT, note TEXT,
+    PRIMARY KEY (date, side, symbol)
+);
+CREATE TABLE IF NOT EXISTS risk_check (
+    date TEXT, side TEXT, symbol TEXT, verdict TEXT, by TEXT, reason TEXT,
+    PRIMARY KEY (date, side, symbol)
+);
+CREATE TABLE IF NOT EXISTS lead_picks (
+    date TEXT, side TEXT, symbol TEXT, rank INTEGER, reason TEXT,
+    PRIMARY KEY (date, side, symbol)
 );
 """
 
@@ -229,6 +247,58 @@ class RegimeViewRow:
     agrees: bool
 
 
+@dataclass(frozen=True)
+class SectorViewRow:
+    """One ``sector_view`` row; ``favour`` and ``avoid`` are JSON lists."""
+
+    date: str
+    favour: str
+    avoid: str
+    rotation: str
+    brief: str
+
+
+@dataclass(frozen=True)
+class SetupReviewRow:
+    """One ``setup_review`` row: the grade (A, B or C) of one listed idea."""
+
+    date: str
+    side: str
+    symbol: str
+    grade: str
+    note: str
+
+
+@dataclass(frozen=True)
+class RiskCheckRow:
+    """One ``risk_check`` row: ``verdict`` is pass or veto, ``by`` is code or ai."""
+
+    date: str
+    side: str
+    symbol: str
+    verdict: str
+    by: str
+    reason: str
+
+
+@dataclass(frozen=True)
+class LeadPickRow:
+    """One ``lead_picks`` row; ``rank`` is the lead's order within the side."""
+
+    date: str
+    side: str
+    symbol: str
+    rank: int
+    reason: str
+
+
+_DAY_TABLES: dict[str, type] = {
+    "sector_view": SectorViewRow, "setup_review": SetupReviewRow,
+    "risk_check": RiskCheckRow, "lead_picks": LeadPickRow,
+}
+DayRow = SectorViewRow | SetupReviewRow | RiskCheckRow | LeadPickRow
+
+
 def _clean(value: object) -> object:
     return None if isinstance(value, float) and math.isnan(value) else value
 
@@ -354,6 +424,19 @@ class MarketStore:
         """Insert or replace the regime view of one day."""
         with self._con:
             self._put("regime_view", RegimeViewRow, [tuple(vars(row).values())])
+
+    def replace_day(self, table: str, day: str, rows: list[DayRow]) -> None:
+        """Replace one day of an AI view table in one transaction.
+
+        Raises:
+            ValueError: When ``table`` is not an AI view table or a row is for another day.
+        """
+        kind = _DAY_TABLES.get(table)
+        if kind is None or not day or any(type(r) is not kind or r.date != day for r in rows):
+            raise ValueError(f"rows do not fit {table} for {day}")
+        with self._con:
+            self._con.execute(f"DELETE FROM {table} WHERE date = ?", (day,))  # noqa: S608
+            self._put(table, kind, [tuple(vars(r).values()) for r in rows])
 
     def read_frame(self, sql: str, params: tuple[str, ...] = ()) -> pd.DataFrame:
         """Return the result of a read-only ``SELECT`` on the market tables as a frame."""
