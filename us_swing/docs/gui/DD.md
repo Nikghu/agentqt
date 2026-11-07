@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.9.0: DD-GUI-034.045.D01 added — Market Floor design match (phase 1), 2026-11-07.
 > v1.8.0: DD-GUI-034.001.D01 Market Floor and AI Desk frames added 2026-11-05.
 > v1.31.0: DD-GUI-032.001.D01 added — Strategies grouped and table views.
 > v1.30.0: Backtest data note and log line name 30-minute candles too (SRD-GUI-030.010 wording, after SRD-BKT-001.016).
@@ -1833,3 +1834,41 @@ Missing tab: default panels for that tab. Unknown product: a "Missing product" c
 **AI Desk.** `ai_desk.py` holds the section list and a stack; section frames live in `ai_desk_sections.py` and `ai_desk_sections2.py` on `ai_desk_sample.py` data.
 
 **Build steps.** (a) desk control, Floor tabs with fixed panels, feed, AI Desk shell; (b) grid, catalog, panel settings, link groups, layouts; (c) AI Desk sections.
+
+## DD-GUI-034.045.D01 — Market Floor Design Match (phase 1)
+
+**Traces:** SRD-GUI-034.045–.052. Design https://claude.ai/artifact/Se1b7cnEkGbqaak6d2j318 Option 1, screen 1A.
+
+**Header.** `MarketFloorWorkspace._build_top` builds: title, a chip row, stretch, layout combo, the edit-only buttons (Add panel, Reset tab, Save as, Delete), Edit, then Fold feed. `DeskBar` is no longer added to the Floor. `set_edit(on)` shows or hides the edit-only buttons. Fold feed calls `feed.set_folded(not feed.is_folded())`.
+
+**Chips.** `DeskFloorData.chips() -> list[tuple[str, str]]` returns `(text, tone)` with tone in `good | warn | bad | info`. Regime: Uptrend good, Downtrend bad, other warn. Fear: the fear label, info. VIX: `VIX 16.6 · contango` when `vix3m > vix`, else `backwardation` (warn). Above 50-day: `Above 50-day 57%`, good at 60 or more, bad under 40. Next event: first high-importance calendar event from today, `CPI Thu 08:30`. A chip is skipped when its value is missing. The page reads chips with `getattr(data, "chips", None)`, like `feed`, so `SampleFloorData` shows none.
+
+**New products.** `market.tiles` (views `tiles`; columns `title, value, note`) and `breadth.history` (views `line, table`; columns `date, value`). Real rows from desk.db when `regime_snapshot` / `breadth_daily` have rows, else sample rows.
+
+| Tile | Value | Note |
+|---|---|---|
+| Regime | latest regime | `trend · day N`, N = days in a row with the same regime (last 60) |
+| Above 50-day | `pct_above_50` % | change in points against 5 rows back |
+| New highs · lows | `highs · lows` | data date |
+| Ideas | `nL · mS` on the latest idea day, list status | idea day |
+| Leading sector | rank 1 sector | its `rel_1m` against SPY |
+
+`breadth.history` = the last 60 `breadth_daily` rows, oldest first, `value = pct_above_50`.
+
+**Views** (`gui/floor_charts.py`, plain `QWidget.paintEvent`, colours from `C`):
+
+- `TilesView(rows)`: one framed box per row in a row layout: muted title, large value, muted note.
+- `HeatMapView(rows)`: cells in a grid of 4 columns; label = `sector`, value = first of `rel_1m`, `change_5d` read as a float (`+4.3%` gives 4.3). Colour = mix of `C.SURFACE` and `C.GREEN` (or `C.RED` below 0) with weight `min(abs(v) / 5, 1) * 0.8 + 0.2`.
+- `LineView(rows)`: y fixed 0–100, guide lines at 20, 50, 80; polyline of `value` with a light fill under it; last value written at the end.
+- `RotationView(rows)`: centre (100, 100); half range = largest distance of any point from 100 plus 0.5, at least 2. Quadrants: top-right Leading (green tint), bottom-right Weakening (amber), bottom-left Lagging (red), top-left Improving (blue). One dot and label per sector.
+- `ScoreDelegate` (column `score`): bar at score/100 of the cell width with the number. `SideDelegate` (column `side`): rounded label, green Long, red Short.
+- Empty rows: a muted "No data yet" label instead of the view.
+
+`PanelFrame._make_body` maps `tiles`, `heatmap`, `line`, `rotation` to these views. A saved view the product no longer lists falls back to `product.views[0]`, so old `chart` panels open in the new first view.
+
+**Product views.** `sectors.rank` gives `heatmap, table`; `sectors.rrg` gives `rotation, table`; `breadth.daily` gives `table`.
+
+**Default Overview** (12 columns, x y w h): tiles `0 0 12 4`; sector heat map `0 4 5 9`; ideas table `5 4 7 9` link A; breadth line `0 13 5 9`; rotation `5 13 7 9`.
+
+**Layout file v2.** `VERSION = 2`. On read, a file with version below 2 gets `layouts.Default` replaced by the new default and version 2 written; other named layouts are kept. Reset tab replaces the panels of the current tab with its default panels and saves.
+

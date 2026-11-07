@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.18.0: UT-GUI-034.045–.052 added (Floor design phase 1).
 > v1.17.0: UT-GUI-034.039–.041 added (MKT P9).
 > v1.16.0: UT-GUI-034.037–.038 added (MKT P8).
 > v1.15.0: UT-GUI-034.034–.036 added (MKT P7).
@@ -1133,3 +1134,15 @@ Test files:
 | UT-GUI-034.041.M26.T01 | MD-GUI-034.039.M26 | Positive | Answer arrives (SRD-GUI-034.041) | reply row added while waiting; tick | answer shown; note cleared; timer stopped | Pass |
 | UT-GUI-034.041.M26.T02 | MD-GUI-034.039.M26 | Negative | Desk stopped or expired (SRD-GUI-034.041) | poller Stopped; then 31 minutes later | start-the-desk note; then expired note and timer stopped | Pass |
 | UT-GUI-034.041.M26.T03 | MD-GUI-034.039.M26 | Positive | Resume after rebuild (SRD-GUI-034.041) | question waiting; Command built again | waiting note; check running; Ask disabled | Pass |
+| UT-GUI-034.045.M28.T01 | MD-GUI-034.045.M28 | Positive | Chips from desk data (SRD-GUI-034.045) | desk.db with regime and breadth | regime, fear, VIX contango and above 50-day chips shown | Pass |
+| UT-GUI-034.045.M28.T02 | MD-GUI-034.045.M28 | Negative | No desk data (SRD-GUI-034.045) | sample data only | no chips | Pass |
+| UT-GUI-034.046.M28.T01 | MD-GUI-034.045.M28 | Positive | Edit-only buttons (SRD-GUI-034.046) | Edit off, then on | Add, Reset, Save as, Delete hidden then shown; no desk bar on the page | Pass |
+| UT-GUI-034.046.M28.T02 | MD-GUI-034.045.M28 | Positive | Fold feed and Reset tab (SRD-GUI-034.046) | press Fold feed; remove a panel then Reset tab | feed folded; tab back to default panels | Pass |
+| UT-GUI-034.047.M29.T01 | MD-GUI-034.047.M29 | Positive | Real tiles and history (SRD-GUI-034.047) | desk.db with 3 regime and breadth days | five tiles; regime day count 2; history oldest first | Pass |
+| UT-GUI-034.047.M27.T01 | MD-GUI-034.047.M27 | Positive | Tiles view (SRD-GUI-034.047) | five tile rows | five tiles with value text | Pass |
+| UT-GUI-034.048.M27.T01 | MD-GUI-034.047.M27 | Positive | Heat colour (SRD-GUI-034.048) | +4, -4, 0 | green mix, red mix, near surface | Pass |
+| UT-GUI-034.049.M27.T01 | MD-GUI-034.047.M27 | Edge | Line and rotation paint (SRD-GUI-034.049) | rows; then no rows | paints without error; empty note shown | Pass |
+| UT-GUI-034.050.M27.T01 | MD-GUI-034.047.M27 | Positive | Rotation mapping (SRD-GUI-034.050) | points 102,101 and 98,99 | top-right and bottom-left of the plot | Pass |
+| UT-GUI-034.051.M27.T01 | MD-GUI-034.047.M27 | Positive | Idea cell delegates (SRD-GUI-034.051) | ideas table; news table | score and side delegates only on ideas | Pass |
+| UT-GUI-034.052.M30.T01 | MD-GUI-034.052.M30 | Positive | Default refresh (SRD-GUI-034.052) | version 1 file with Default and Swing | Default gets new Overview; Swing kept; version 2 | Pass |
+| UT-GUI-034.052.M30.T02 | MD-GUI-034.052.M30 | Negative | Gone view (SRD-GUI-034.052) | sectors.rank panel saved as chart | opens as heat map | Pass |

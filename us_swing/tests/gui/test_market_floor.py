@@ -129,13 +129,13 @@ def test_edit_add_save_as_rebuild(qtbot: QtBot, tmp_path: Path) -> None:
     path = tmp_path / "layouts.json"
     page = MarketFloorWorkspace(DeskPoller(tmp_path), store=LayoutStore(path))
     qtbot.addWidget(page)
-    assert not page.add_btn.isEnabled()
+    assert page.add_btn.isHidden()
     page.edit_btn.setChecked(True)
-    assert page.add_btn.isEnabled() and page.grid("Overview").is_edit()
+    assert not page.add_btn.isHidden() and page.grid("Overview").is_edit()
     before = len(page.grid("Overview").model.panels)
     spec = page.add_product("flow.leaders", "Overview")
     assert spec is not None
-    frame = page.grid("Overview").frames()[0]
+    frame = next(f for f in page.grid("Overview").frames() if f.spec.product == "ideas.top")
     page.apply_panel_settings(frame, "card", {}, "B")
     page.save_layout_as("Swing")
     again = MarketFloorWorkspace(DeskPoller(tmp_path), store=LayoutStore(path))
@@ -143,7 +143,8 @@ def test_edit_add_save_as_rebuild(qtbot: QtBot, tmp_path: Path) -> None:
     assert again.layout_name() == "Swing"
     panels = again.grid("Overview").model.panels
     assert len(panels) == before + 1
-    assert panels[0].view == "card" and panels[0].link == "B"
+    ideas = next(p for p in panels if p.product == "ideas.top")
+    assert ideas.view == "card" and ideas.link == "B"
     assert panels[-1].product == "flow.leaders"
     assert again.grid("Ideas").model.to_list() == page.grid("Ideas").model.to_list()
 
@@ -158,10 +159,10 @@ def test_switch_and_delete_layout(qtbot: QtBot, tmp_path: Path) -> None:
     page.save_layout_as("Swing")
     page.switch_layout("Default")
     page._confirm = lambda *_a, **_k: True
-    assert len(page.grid("Overview").model.panels) == 4
+    assert len(page.grid("Overview").model.panels) == 5
     assert store.last() == "Default"
     page.layout_combo.setCurrentText("Swing")
-    assert len(page.grid("Overview").model.panels) == 3 and page.delete_btn.isEnabled()
+    assert len(page.grid("Overview").model.panels) == 4 and page.delete_btn.isEnabled()
     page.delete_layout()
     assert page.layout_name() == "Default" and "Swing" not in store.names()
     assert not store.delete("Default")
@@ -174,7 +175,7 @@ def test_debounced_save(qtbot: QtBot, tmp_path: Path) -> None:
     qtbot.addWidget(page)
     page.remove_panel("Overview", "p1")
     qtbot.waitUntil(lambda: path.exists(), timeout=3000)
-    assert len(LayoutStore(path).load("Default")["Overview"]) == 3
+    assert len(LayoutStore(path).load("Default")["Overview"]) == 4
 
 
 def test_emptied_tab_stays_empty(tmp_path: Path) -> None:
@@ -208,10 +209,10 @@ def test_save_as_existing_name_needs_confirmation(qtbot: QtBot, tmp_path: Path) 
     page._confirm = refuse
     page.save_layout_as("Default")
     assert asked and page.layout_name() == "Swing"
-    assert len(store.load("Default")["Overview"]) == 4
+    assert len(store.load("Default")["Overview"]) == 5
     page._confirm = lambda *_a, **_k: True
     page.save_layout_as("Default")
-    assert page.layout_name() == "Default" and len(store.load("Default")["Overview"]) == 3
+    assert page.layout_name() == "Default" and len(store.load("Default")["Overview"]) == 4
     page._confirm = lambda *_a, **_k: False
     page.save_layout_as("Swing")
     page.layout_combo.setCurrentText("Swing")

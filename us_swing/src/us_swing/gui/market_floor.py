@@ -1,6 +1,7 @@
 """
 Module: MD-GUI-034.004.M04 — Market Floor workspace
 Parent SRD: SRD-GUI-034.004
+Also: MD-GUI-034.045.M28 — header chips, tidy toolbar, Fold feed, Reset tab (SRD-GUI-034.045–.046)
 """
 from __future__ import annotations
 
@@ -24,12 +25,12 @@ from PyQt6.QtWidgets import (
 from us_swing.core.desk_contract import DeskState, DeskStatus, FloorData
 from us_swing.core.desk_floor import DeskFloorData
 from us_swing.gui.cards import GAP, card, gutter
-from us_swing.gui.desk_control import DeskBar, DeskPoller
+from us_swing.gui.desk_control import DeskPoller
 from us_swing.gui.floor_dialogs import CatalogDialog, NameDialog, PanelSettingsDialog
 from us_swing.gui.floor_feed import AiFeedColumn
 from us_swing.gui.floor_grid import PanelGrid
 from us_swing.gui.floor_grid_model import GridModel, PanelSpec
-from us_swing.gui.floor_layouts import DEFAULT_NAME, TAB_NAMES, LayoutStore
+from us_swing.gui.floor_layouts import DEFAULT_NAME, TAB_NAMES, LayoutStore, default_layout
 from us_swing.gui.floor_panel import LinkBus, PanelFrame
 from us_swing.gui.floor_sample import SampleFloorData
 from us_swing.gui.popups import confirm
@@ -37,6 +38,7 @@ from us_swing.gui.theme import C
 
 _log = logging.getLogger(__name__)
 _SAVE_DELAY_MS = 500
+_CHIP_TONES = {"good": "GREEN", "warn": "YELLOW", "bad": "RED", "info": "SUBTEXT"}
 
 
 def _tab_label(name: str) -> str:
@@ -79,7 +81,7 @@ class MarketFloorWorkspace(QWidget):
         main.setSpacing(GAP)
         left = QVBoxLayout()
         left.setSpacing(GAP)
-        left.addWidget(card(self._build_top(poller)))
+        left.addWidget(card(self._build_top()))
         self.tabs = QTabWidget()
         self._load_layout()
         left.addWidget(card(self.tabs), 1)
@@ -87,8 +89,12 @@ class MarketFloorWorkspace(QWidget):
         self.feed = AiFeedColumn(self._store.feed_folded())
         # feed → folded_changed → store → set_feed_folded
         self.feed.folded_changed.connect(self._store.set_feed_folded)
+        # feed → folded_changed → this page → _on_feed_folded
+        self.feed.folded_changed.connect(self._on_feed_folded)
+        self._on_feed_folded(self.feed.is_folded())
         self._reload_feed()
         main.addWidget(card(self.feed))
+        self.set_edit(False)
 
     def _on_desk_status(self, status: DeskStatus) -> None:
         running = status.state is DeskState.RUNNING
@@ -103,11 +109,35 @@ class MarketFloorWorkspace(QWidget):
         for grid in self._grids.values():
             grid.set_model(grid.model)
         self._reload_feed()
+        self._reload_chips()
         _log.info("[Floor] Panels refreshed after a desk run")
 
     def _reload_feed(self) -> None:
         feed = getattr(self._data, "feed", None)
         self.feed.set_items(feed() if callable(feed) else None)
+
+    def _reload_chips(self) -> None:
+        while (item := self._chips.takeAt(0)) is not None:
+            widget = item.widget()
+            if widget is not None:
+                widget.hide()
+                widget.setParent(None)
+                widget.deleteLater()
+        chips = getattr(self._data, "chips", None)
+        for text, tone in chips() if callable(chips) else []:
+            colour = getattr(C, _CHIP_TONES.get(tone, "SUBTEXT"))
+            chip = QLabel(text)
+            chip.setObjectName("floor_chip")
+            chip.setStyleSheet(
+                f"QLabel#floor_chip {{ color: {colour}; border: 1px solid {colour};"
+                " border-radius: 9px; padding: 1px 8px; }"
+            )
+            self._chips.addWidget(chip)
+
+    def chip_texts(self) -> list[str]:
+        """Return the header chip texts in order."""
+        return [lbl.text() for lbl in self.findChildren(QLabel, "floor_chip")
+                if not lbl.isHidden()]
 
     def tab_names(self) -> list[str]:
         """Return the tab titles in order."""
@@ -129,14 +159,37 @@ class MarketFloorWorkspace(QWidget):
         """Return whether edit mode is on."""
         return self._edit
 
-    def _build_top(self, poller: DeskPoller) -> QWidget:
+    def _build_top(self) -> QWidget:
         box = QWidget()
         row = QHBoxLayout(box)
         row.setContentsMargins(14, 10, 14, 10)
         title = QLabel("Market Floor")
         title.setObjectName("page_title")
         row.addWidget(title)
+        row.addSpacing(GAP * 3)
+        self._chips = QHBoxLayout()
+        self._chips.setSpacing(GAP + 2)
+        row.addLayout(self._chips)
+        self._reload_chips()
         row.addStretch(1)
+        self.layout_combo = QComboBox()
+        self.layout_combo.setFixedWidth(130)
+        self.layout_combo.setToolTip("Layout")
+        # layout combo → currentTextChanged → this page → _on_layout_picked
+        self.layout_combo.currentTextChanged.connect(self._on_layout_picked)
+        self.add_btn = QPushButton("Add panel")
+        # add button → clicked → this page → _choose_product
+        self.add_btn.clicked.connect(self._choose_product)
+        self.reset_btn = QPushButton("Reset tab")
+        # reset button → clicked → this page → reset_tab
+        self.reset_btn.clicked.connect(self.reset_tab)
+        self.save_as_btn = QPushButton("Save as…")
+        # save as button → clicked → this page → _prompt_save_as
+        self.save_as_btn.clicked.connect(self._prompt_save_as)
+        self.delete_btn = QPushButton("Delete")
+        # delete button → clicked → this page → delete_layout
+        self.delete_btn.clicked.connect(self.delete_layout)
+        self._edit_only = (self.add_btn, self.reset_btn, self.save_as_btn, self.delete_btn)
         self.edit_btn = QPushButton("Edit")
         self.edit_btn.setCheckable(True)
         self.edit_btn.setFixedWidth(64)
@@ -146,28 +199,31 @@ class MarketFloorWorkspace(QWidget):
         )
         # edit button → toggled → this page → set_edit
         self.edit_btn.toggled.connect(self.set_edit)
-        self.add_btn = QPushButton("Add panel")
-        self.add_btn.setFixedWidth(90)
-        self.add_btn.setEnabled(False)
-        # add button → clicked → this page → _choose_product
-        self.add_btn.clicked.connect(self._choose_product)
-        self.layout_combo = QComboBox()
-        self.layout_combo.setFixedWidth(130)
-        # layout combo → currentTextChanged → this page → _on_layout_picked
-        self.layout_combo.currentTextChanged.connect(self._on_layout_picked)
-        self.save_as_btn = QPushButton("Save as…")
-        # save as button → clicked → this page → _prompt_save_as
-        self.save_as_btn.clicked.connect(self._prompt_save_as)
-        self.delete_btn = QPushButton("Delete")
-        # delete button → clicked → this page → delete_layout
-        self.delete_btn.clicked.connect(self.delete_layout)
-        for widget in (self.edit_btn, self.add_btn, self.layout_combo, self.save_as_btn,
-                       self.delete_btn):
+        self.fold_btn = QPushButton("Fold feed")
+        # fold button → clicked → this page → _toggle_feed
+        self.fold_btn.clicked.connect(self._toggle_feed)
+        for widget in (self.layout_combo, *self._edit_only, self.edit_btn, self.fold_btn):
             row.addWidget(widget)
-        row.addSpacing(GAP * 3)
-        row.addWidget(DeskBar(poller))
         self._refresh_layout_combo()
         return box
+
+    def _toggle_feed(self) -> None:
+        self.feed.set_folded(not self.feed.is_folded())
+
+    def _on_feed_folded(self, folded: bool) -> None:
+        self.fold_btn.setText("Show feed" if folded else "Fold feed")
+
+    def reset_tab(self) -> None:
+        """Put the default panels back on the current tab and save."""
+        tab = self._current_tab()
+        if not self._confirm(self, "Reset Tab", f"Put the default panels back on {tab}?\n"
+                             "Its current panels will be lost.", confirm_text="Reset",
+                             danger=True):
+            return
+        grid = self._grids[tab]
+        grid.set_model(GridModel([PanelSpec.from_dict(raw) for raw in default_layout()[tab]]))
+        self._schedule_save()
+        _log.info("[Floor] Tab %s reset to its default panels", tab)
 
     def _refresh_layout_combo(self) -> None:
         self._busy = True
@@ -224,7 +280,8 @@ class MarketFloorWorkspace(QWidget):
         """Turn edit mode on or off for every tab."""
         self._edit = on
         self.edit_btn.setText("Done" if on else "Edit")
-        self.add_btn.setEnabled(on)
+        for button in self._edit_only:
+            button.setVisible(on)
         for grid in self._grids.values():
             grid.set_edit(on)
 

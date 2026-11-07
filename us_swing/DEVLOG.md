@@ -2,6 +2,17 @@
 
 ---
 
+## [20261107] GUI — Market Floor design match, phase 1 (FO-GUI-034)
+
+- Type: Feature
+- FO(s): FO-GUI-034 (still at Reopen)
+- RN: RN-GUI-1.10.0-20261107
+- Artifacts updated: FO bullet, SRD (GUI-034.045–.052 Implemented), DD (DD-GUI-034.045.D01), MD (M27–M30), UTCD (12 rows Pass), TRACE, Code (floor_charts new; floor_panel, market_floor, floor_layouts, floor_sample, desk_floor)
+- Decisions: user chose Floor first and QPainter charts; Default layout refreshed once, named layouts kept; bias chip, idea state, Ideas to Watchlist and rotation tails left for later
+- Tests: 2475 passed, 12 old failures (same on main), 2 skipped
+
+---
+
 ## [20261106] MKT + GUI — Lead chat, phase P9 (FO-MKT-010)
 
 - Type: Feature

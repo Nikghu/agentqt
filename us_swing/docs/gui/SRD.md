@@ -5,6 +5,8 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.94.1: SRD-GUI-034.045–.052 Implemented (RN-GUI-1.10.0-20261107).
+> v2.94.0: SRD-GUI-034.045–.052 added and approved by user 2026-11-07 — Market Floor design match (phase 1).
 > v2.92.2: SRD-GUI-034.039–.041 Implemented (RN-MKT-0.11.0-20261106).
 > v2.92.1: SRD-GUI-034.039–.041 approved by user 2026-11-06.
 > v2.92.0: SRD-GUI-034.039–.041 added as Draft — real lead chat in Command (MKT P9).
@@ -720,3 +722,11 @@
 | SRD-GUI-034.039 | FO-GUI-034 | Must | Command → Lead chat shows the chat turns, oldest at the top, with the chat employee's current name on answers. | chat rows | chat list | Replaces the sample chat; empty note when there are no turns | Implemented |
 | SRD-GUI-034.040 | FO-GUI-034 | Must | An Ask box and button send a question; the box is cleared and a waiting note shows. | text | question | Ask is disabled while the box is empty or a question waits | Implemented |
 | SRD-GUI-034.041 | FO-GUI-034 | Should | While a question waits, the chat checks every 2 seconds and shows the answer, the failed reply, a start-the-desk note when the desk is stopped, or an expired note after 30 minutes. | chat rows, desk state | notes | The check stops when nothing waits | Implemented |
+| SRD-GUI-034.045 | FO-GUI-034 | Must | The Market Floor header shows chips for regime, fear, VIX with its term shape, stocks above the 50-day line and the next high-importance event. | desk.db, calendar | chips | A chip with no data is hidden | Implemented |
+| SRD-GUI-034.046 | FO-GUI-034 | Must | The header shows only the layout picker, Edit and Fold feed; Add panel, Reset tab, Save as and Delete show only in edit mode, and the desk bar leaves the Floor. | edit mode | toolbar | Desk controls stay in AI Desk | Implemented |
+| SRD-GUI-034.047 | FO-GUI-034 | Must | A tiles view shows five market tiles: regime, above 50-day, new highs and lows, ideas long and short, leading sector. | market.tiles | tiles | Sample tiles when the desk has no data | Implemented |
+| SRD-GUI-034.048 | FO-GUI-034 | Must | A heat map view shows each sector coloured by its 1-month strength against SPY. | sectors.rank | heat map | Green for above SPY, red for below | Implemented |
+| SRD-GUI-034.049 | FO-GUI-034 | Must | A line view shows the share of stocks above the 50-day line for the last 60 days. | breadth.history | line chart | Empty note when there are no days | Implemented |
+| SRD-GUI-034.050 | FO-GUI-034 | Must | A rotation view shows the four quadrants with one dot per sector at its RS ratio and RS momentum. | sectors.rrg | rotation chart | Empty note when there are no sectors | Implemented |
+| SRD-GUI-034.051 | FO-GUI-034 | Should | Idea tables draw the score as a bar and the side as a green Long or red Short label. | ideas.top | table cells | Other tables are unchanged | Implemented |
+| SRD-GUI-034.052 | FO-GUI-034 | Must | The default Overview tab follows the design, and the saved Default layout gets it once; other named layouts are kept. | layout file | layouts | A panel whose view is gone opens in the product's first view | Implemented |

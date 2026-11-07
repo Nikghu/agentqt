@@ -138,6 +138,7 @@
 | FO-GUI-034 | SRD-GUI-034.034–.036 | DD-MKT-008.001.D01 | MD-GUI-034.034.M24 | UT-GUI-034.034.M24.T01–T03, .035.M24.T01–T04, .036.M24.T01 (Pass) | `gui/ai_desk_hiring.py`, `gui/ai_desk.py`, `gui/main_window.py` | Implemented | RN-MKT-0.9.0-20261106 |
 | FO-GUI-034 | SRD-GUI-034.037–.038 | DD-MKT-009.001.D01 | MD-GUI-034.037.M25 | UT-GUI-034.037.M25.T01–T02, .038.M25.T01–T03 (Pass) | `gui/ai_desk_results.py`, `gui/ai_desk.py` | Implemented | RN-MKT-0.10.0-20261106 |
 | FO-GUI-034 | SRD-GUI-034.039–.041 | DD-MKT-010.001.D01 | MD-GUI-034.039.M26 | UT-GUI-034.039.M26.T01–T02, .040.M26.T01–T02, .041.M26.T01–T03 (Pass) | `gui/ai_desk_chat.py`, `gui/ai_desk_sections.py`, `gui/ai_desk.py` | Implemented | RN-MKT-0.11.0-20261106 |
+| FO-GUI-034 | SRD-GUI-034.045–.052 | DD-GUI-034.045.D01 | MD-GUI-034.045.M28, MD-GUI-034.047.M27, MD-GUI-034.047.M29, MD-GUI-034.052.M30 | UT-GUI-034.045.M28.T01–T02, .046.M28.T01–T02, .047.M29.T01, .047.M27.T01, .048.M27.T01, .049.M27.T01, .050.M27.T01, .051.M27.T01, .052.M30.T01–T02 (Pass) | `gui/floor_charts.py`, `gui/floor_panel.py`, `gui/market_floor.py`, `gui/floor_layouts.py`, `gui/floor_sample.py`, `core/desk_floor.py` | Implemented | RN-GUI-1.10.0-20261107 |
 
 ---
 

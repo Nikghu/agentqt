@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.20.0: MD-GUI-034.045.M28, .047.M27, .047.M29, .052.M30 added (Floor design phase 1).
 > v1.19.0: MD-GUI-034.039.M26 added (MKT P9).
 > v1.18.0: MD-GUI-034.037.M25 added (MKT P8).
 > v1.17.0: MD-GUI-034.034.M24 added (MKT P7).
@@ -432,5 +433,9 @@ us_swing/src/us_swing/gui/
 | MD-GUI-034.034.M24 | SRD-GUI-034.034 | `us_swing/src/us_swing/gui/ai_desk_hiring.py`, `gui/ai_desk.py`, `gui/main_window.py` | Trade pick rows with Approve and Reject in Command → Approvals waiting; the main window passes the app service as the sink | `approvals_box(home, open_hiring, sink)`, `AiDeskWorkspace(poller, sink)` | `core.desk_trades` | No |
 | MD-GUI-034.037.M25 | SRD-GUI-034.037 | `us_swing/src/us_swing/gui/ai_desk_results.py`, `gui/ai_desk.py` | Live AI Desk Results section: totals, breakdowns and the pick table | `results_frame()` | `core.desk_results` | No |
 | MD-GUI-034.039.M26 | SRD-GUI-034.039 | `us_swing/src/us_swing/gui/ai_desk_chat.py`, `gui/ai_desk_sections.py`, `gui/ai_desk.py` | Real lead chat in Command: turns, Ask box, 2-second check while a question waits | `ChatPanel`, `command_frame(name, approvals, chat)` | `core.desk_chat` | No |
+| MD-GUI-034.045.M28 | SRD-GUI-034.045 | `us_swing/src/us_swing/gui/market_floor.py` | Floor header: chips, layout picker, Edit, edit-only buttons, Fold feed, Reset tab | `MarketFloorWorkspace.chip_texts()`, `reset_tab()` | `core.desk_floor` | No |
+| MD-GUI-034.047.M27 | SRD-GUI-034.047 | `us_swing/src/us_swing/gui/floor_charts.py`, `gui/floor_panel.py` | Painted panel views (tiles, heat map, line, rotation) and the score and side cell delegates | `TilesView`, `HeatMapView`, `LineView`, `RotationView`, `ScoreDelegate`, `SideDelegate`, `heat_colour()` | `gui.theme` | No |
+| MD-GUI-034.047.M29 | SRD-GUI-034.047 | `us_swing/src/us_swing/core/desk_floor.py`, `gui/floor_sample.py` | Tiles, breadth history and header chip data from desk.db, sample rows otherwise | `DeskFloorData.chips()`, products `market.tiles`, `breadth.history` | `core.econ_calendar` | No |
+| MD-GUI-034.052.M30 | SRD-GUI-034.052 | `us_swing/src/us_swing/gui/floor_layouts.py` | New default Overview and the one-time Default refresh (file version 2) | `default_layout()`, `LayoutStore` | — | No |
 
-SRD coverage: .039–.041 by M26; .037–.038 by M25; .034–.036 by M24; .002 and .003 by M02 and M09; .004 by M04; .005 by M05; .006 and .007 by M06; .008 by M07; .009 by M08; .010 by M03 and M09.
+SRD coverage: .045–.046 by M28; .047–.051 by M27 and M29; .052 by M30; .039–.041 by M26; .037–.038 by M25; .034–.036 by M24; .002 and .003 by M02 and M09; .004 by M04; .005 by M05; .006 and .007 by M06; .008 by M07; .009 by M08; .010 by M03 and M09.

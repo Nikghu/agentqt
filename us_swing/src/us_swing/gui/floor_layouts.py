@@ -2,18 +2,20 @@
 Module: MD-GUI-034.008.M07 — Floor layouts
 Parent SRD: SRD-GUI-034.008
 Also: MD-GUI-034.021.M18 — default News & Calendar tab (SRD-GUI-034.021)
+Also: MD-GUI-034.052.M30 — design Overview and the one-time Default refresh (SRD-GUI-034.052)
 """
 from __future__ import annotations
 
 import json
 import logging
 import os
+import shutil
 from pathlib import Path
 from typing import Any
 
 _log = logging.getLogger(__name__)
 
-VERSION = 1
+VERSION = 2
 DEFAULT_NAME = "Default"
 TAB_NAMES = ("Overview", "Ideas", "Sectors", "Regime & Breadth", "News & Calendar")
 
@@ -33,10 +35,11 @@ def default_layout() -> Panels:
     """
     return {
         "Overview": [
-            _panel("p1", "ideas.top", 0, 0, 8, 13, link="A"),
-            _panel("p2", "regime.today", 8, 0, 4, 6, view="card"),
-            _panel("p3", "breadth.daily", 8, 6, 4, 7),
-            _panel("p4", "news.latest", 0, 13, 12, 13),
+            _panel("p1", "market.tiles", 0, 0, 12, 4, view="tiles"),
+            _panel("p2", "sectors.rank", 0, 4, 5, 9, view="heatmap"),
+            _panel("p3", "ideas.top", 5, 4, 7, 9, link="A"),
+            _panel("p4", "breadth.history", 0, 13, 5, 9, view="line"),
+            _panel("p5", "sectors.rrg", 5, 13, 7, 9, view="rotation"),
         ],
         "Ideas": [
             _panel("p1", "ideas.top", 0, 0, 6, 13, filters={"side": "long"}, link="A"),
@@ -44,12 +47,13 @@ def default_layout() -> Panels:
             _panel("p3", "flow.leaders", 0, 13, 12, 13),
         ],
         "Sectors": [
-            _panel("p1", "sectors.rank", 0, 0, 7, 26),
-            _panel("p2", "sectors.rrg", 7, 0, 5, 26),
+            _panel("p1", "sectors.rank", 0, 0, 7, 26, view="heatmap"),
+            _panel("p2", "sectors.rrg", 7, 0, 5, 26, view="rotation"),
         ],
         "Regime & Breadth": [
             _panel("p1", "regime.today", 0, 0, 5, 26, view="card"),
-            _panel("p2", "breadth.daily", 5, 0, 7, 26),
+            _panel("p2", "breadth.daily", 5, 0, 7, 9),
+            _panel("p3", "breadth.history", 5, 9, 7, 17, view="line"),
         ],
         "News & Calendar": [
             _panel("p1", "news.latest", 0, 0, 7, 13, link="A"),
@@ -162,6 +166,16 @@ class LayoutStore:
             self._back_up()
             return self._fresh()
         data["layouts"].setdefault(DEFAULT_NAME, self._fresh()["layouts"][DEFAULT_NAME])
+        if not _is_int(data.get("version")) or data["version"] < VERSION:
+            try:
+                shutil.copyfile(self._path, self._path.with_name(self._path.name + ".v1.bak"))
+            except OSError as exc:
+                _log.warning("[Floor] Old layout file could not be backed up: %s", exc)
+            data["layouts"][DEFAULT_NAME] = self._fresh()["layouts"][DEFAULT_NAME]
+            data["version"] = VERSION
+            self._data = data
+            if self._write():
+                _log.info("[Floor] The Default layout was updated to the new design")
         return data
 
     def _back_up(self) -> None:
@@ -170,7 +184,8 @@ class LayoutStore:
         except OSError as exc:
             _log.warning("[Floor] Layout file could not be backed up: %s", exc)
 
-    def _write(self) -> None:
+    def _write(self) -> bool:
+        """Write the file; return whether it was saved."""
         try:
             self._path.parent.mkdir(parents=True, exist_ok=True)
             tmp = self._path.with_suffix(".tmp")
@@ -178,3 +193,5 @@ class LayoutStore:
             os.replace(tmp, self._path)
         except OSError as exc:
             _log.warning("[Floor] Layout file could not be saved: %s", exc)
+            return False
+        return True
