@@ -42,14 +42,9 @@ from us_swing.core.desk_hiring import (
     shadow_report,
     start_hire,
 )
+from us_swing.core.desk_feed import approve_pick, reject_pick
 from us_swing.core.desk_steps import SKILL_PATHS
-from us_swing.core.desk_trades import (
-    DeskTradeSink,
-    TradePick,
-    pick_state,
-    record_trade_decision,
-    trade_picks,
-)
+from us_swing.core.desk_trades import DeskTradeSink, TradePick, trade_picks
 from us_swing.gui.ai_desk_sections import heading, make_table, muted, section_frame
 
 NY = ZoneInfo("America/New_York")
@@ -249,40 +244,26 @@ class TradePickRow(QWidget):
         self.approve_btn.clicked.connect(self._approve)
         self.reject_btn.clicked.connect(self._reject)
 
-    def _still_waiting(self) -> bool:
-        state = pick_state(self._home, self._pick, self._clock())
-        if state == "waiting":
-            return True
-        self._done("expired at the market open" if state == "expired" else "already decided")
-        return False
-
     def _done(self, note: str) -> None:
         self.note.setText(note)
         self.approve_btn.setEnabled(False)
         self.reject_btn.setEnabled(False)
 
+    def _show(self, result: tuple[str, bool]) -> None:
+        note, closed = result
+        if not note and closed:
+            self.hide()
+        elif closed:
+            self._done(note)
+        else:
+            self.note.setText(note)
+
     def _approve(self) -> None:
-        if self._sink is None or not self._still_waiting():
-            return
-        qty, why = self._sink.send_desk_pick(self._pick)
-        if why:
-            self.note.setText(why)
-            return
-        err = record_trade_decision(self._home, self._pick, "approve", qty, self._clock())
-        if err:
-            self._sink.dismiss_desk_pick(self._pick)
-            self._done(err)
-            return
-        self.hide()
+        if self._sink is not None:
+            self._show(approve_pick(self._home, self._pick, self._sink, self._clock()))
 
     def _reject(self) -> None:
-        if not self._still_waiting():
-            return
-        err = record_trade_decision(self._home, self._pick, "reject", 0, self._clock())
-        if err:
-            self._done(err)
-            return
-        self.hide()
+        self._show(reject_pick(self._home, self._pick, self._clock()))
 
 
 def approvals_box(home: Path | None, open_hiring: Callable[[], None],

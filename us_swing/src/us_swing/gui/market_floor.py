@@ -1,6 +1,7 @@
 """
 Module: MD-GUI-034.004.M04 — Market Floor workspace
 Parent SRD: SRD-GUI-034.004
+Also: MD-GUI-034.053.M31 — feed cards wiring, live dot, reload (SRD-GUI-034.056–.058)
 Also: MD-GUI-034.045.M28 — header chips, tidy toolbar, Fold feed, Reset tab (SRD-GUI-034.045–.046)
 """
 from __future__ import annotations
@@ -8,8 +9,8 @@ from __future__ import annotations
 import logging
 from functools import partial
 
-from PyQt6.QtCore import QTimer
-from PyQt6.QtGui import QCloseEvent
+from PyQt6.QtCore import QTimer, pyqtSignal
+from PyQt6.QtGui import QCloseEvent, QShowEvent
 from PyQt6.QtWidgets import (
     QComboBox,
     QFrame,
@@ -22,7 +23,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from us_swing.core.desk_contract import DeskState, DeskStatus, FloorData
+from us_swing.core.desk_contract import LIVE_STATES, DeskState, DeskStatus, FloorData, desk_home
+from us_swing.core.desk_trades import DeskTradeSink
 from us_swing.core.desk_floor import DeskFloorData
 from us_swing.gui.cards import GAP, card, gutter
 from us_swing.gui.desk_control import DeskPoller
@@ -49,12 +51,16 @@ def _tab_label(name: str) -> str:
 class MarketFloorWorkspace(QWidget):
     """Market Floor page: five tabs of panels and a foldable AI feed (SRD-GUI-034.004)."""
 
+    chart_requested = pyqtSignal(str)
+    desk_section_requested = pyqtSignal(str)
+
     def __init__(
         self,
         poller: DeskPoller,
         data: FloorData | None = None,
         store: LayoutStore | None = None,
         parent: QWidget | None = None,
+        sink: DeskTradeSink | None = None,
     ) -> None:
         super().__init__(parent)
         self._data: FloorData = data or DeskFloorData(SampleFloorData())
@@ -91,12 +97,21 @@ class MarketFloorWorkspace(QWidget):
         self.feed.folded_changed.connect(self._store.set_feed_folded)
         # feed → folded_changed → this page → _on_feed_folded
         self.feed.folded_changed.connect(self._on_feed_folded)
+        self.feed.context.home = getattr(self._data, "home", None) or poller.home or desk_home()
+        self.feed.context.sink = sink
+        # feed → chart_requested / section_requested → this page → main window
+        self.feed.chart_requested.connect(self.chart_requested)
+        self.feed.section_requested.connect(self.desk_section_requested)
+        # feed → decided → this page → _reload_feed
+        self.feed.decided.connect(self._reload_feed)
+        self.feed.set_live(poller.status.state in LIVE_STATES)
         self._on_feed_folded(self.feed.is_folded())
         self._reload_feed()
         main.addWidget(card(self.feed))
         self.set_edit(False)
 
     def _on_desk_status(self, status: DeskStatus) -> None:
+        self.feed.set_live(status.state in LIVE_STATES)
         running = status.state is DeskState.RUNNING
         ended = self._was_running and not running
         self._was_running = running
@@ -113,8 +128,13 @@ class MarketFloorWorkspace(QWidget):
         _log.info("[Floor] Panels refreshed after a desk run")
 
     def _reload_feed(self) -> None:
-        feed = getattr(self._data, "feed", None)
-        self.feed.set_items(feed() if callable(feed) else None)
+        cards = getattr(self._data, "feed_cards", None)
+        self.feed.set_cards(cards() if callable(cards) else None)
+
+    def showEvent(self, event: QShowEvent | None) -> None:  # noqa: N802
+        """Read the feed again each time the page is shown."""
+        super().showEvent(event)
+        self._reload_feed()
 
     def _reload_chips(self) -> None:
         while (item := self._chips.takeAt(0)) is not None:

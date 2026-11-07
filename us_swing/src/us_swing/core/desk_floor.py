@@ -9,6 +9,7 @@ Also: MD-GUI-034.017.M16 — month AI cost (SRD-GUI-034.017)
 Also: MD-GUI-034.018.M17 — latest news, news tags and calendar (SRD-GUI-034.018–.020)
 Also: MD-GUI-034.022.M19 — report page versions for AI Desk Pages (SRD-GUI-034.022)
 Also: MD-GUI-034.032.M22 — weekly reports for AI Desk Reports (SRD-GUI-034.032)
+Also: MD-GUI-034.054.M32 — AI feed cards (SRD-GUI-034.054)
 Also: MD-GUI-034.047.M29 — market tiles, breadth history and header chips (SRD-GUI-034.045, .047, .049)
 
 Market Floor data from ``desk.db``: the real regime, breadth, sectors and RS leaders when
@@ -26,6 +27,7 @@ from typing import Any
 
 from us_swing.core.desk_ai_settings import load_settings
 from us_swing.core.desk_contract import DB_NAME, FloorData, ProductDescriptor, desk_home
+from us_swing.core.desk_feed import FeedCard, feed_cards
 from us_swing.core.econ_calendar import events_between, trading_days_after
 
 REGIME_ID = "regime.today"
@@ -382,6 +384,15 @@ class DeskFloorData:
             return None
         return [{"time": f"{str(created)[11:16]} · {day}", "author": author, "kind": kind,
                  "text": text} for created, day, author, kind, text in rows]
+
+    @property
+    def home(self) -> Path:
+        """The desk folder this reader uses."""
+        return self._path.parent
+
+    def feed_cards(self, now: datetime | None = None) -> list[FeedCard] | None:
+        """Return the AI feed cards, newest first, or ``None`` when the desk has none."""
+        return feed_cards(self._path.parent, now or self._clock()) or None
 
     def month_cost(self, month: str | None = None) -> MonthCost | None:
         """Return this month's AI use (New York month), or ``None`` when nothing ran yet."""

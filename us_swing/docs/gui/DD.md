@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.10.0: DD-GUI-034.053.D01 added — AI feed cards (phase 2), 2026-11-07.
 > v1.9.0: DD-GUI-034.045.D01 added — Market Floor design match (phase 1), 2026-11-07.
 > v1.8.0: DD-GUI-034.001.D01 Market Floor and AI Desk frames added 2026-11-05.
 > v1.31.0: DD-GUI-032.001.D01 added — Strategies grouped and table views.
@@ -1871,4 +1872,30 @@ Missing tab: default panels for that tab. Unknown product: a "Missing product" c
 **Default Overview** (12 columns, x y w h): tiles `0 0 12 4`; sector heat map `0 4 5 9`; ideas table `5 4 7 9` link A; breadth line `0 13 5 9`; rotation `5 13 7 9`.
 
 **Layout file v2.** `VERSION = 2`. On read, a file with version below 2 gets `layouts.Default` replaced by the new default and version 2 written; other named layouts are kept. Reset tab replaces the panels of the current tab with its default panels and saves.
+
+## DD-GUI-034.053.D01 — AI Feed Cards (design phase 2)
+
+**Traces:** SRD-GUI-034.053–.058. Design Option 1, screen 1A feed column and section 04.
+
+**Data.** New `core/desk_feed.py`: frozen `FeedCard(kind, sender, subject, when, text, symbol, ref, pick)` with `kind` in `result | ask | answer | desk`, `when` an aware datetime or `None`, `pick` the `TradePick` of a pick Ask. `feed_cards(home, now) -> list[FeedCard]`, newest first:
+
+| Kind | Source | Sender / subject |
+|---|---|---|
+| result | `briefs` (last 20) | author / "Evening result" for `evening`, else "Desk note" |
+| ask | `trade_picks()` with state waiting | "Lead" / "Trade pick · LONG AAA" (ref `pick`) |
+| ask | `list_hires()` with `ready` | "Hiring" / "Hire · name" (ref `hire`) |
+| answer | `chat` rows with role `lead` (last 5) | "Lead" / "Answer" |
+| desk | `runs` with result not `ok` (last 5) | "Desk" / "Run kind failed" |
+
+Picks and hires have no row time; they take `now` so they sit on top. `DeskFloorData.feed_cards(now)` calls it with the desk folder; the page reads it with `getattr`, so sample data shows sample cards built from `sample_feed_items()`.
+
+**Pick decisions.** `TradePickRow._approve` / `_reject` move into `core/desk_feed.py` (GUI-owned; `core/desk_trades.py` is an MKT module) as `approve_pick(home, pick, sink, now) -> str` and `reject_pick(home, pick, now) -> str` (empty text = done, else the note to show). `TradePickRow` and the feed card both call them, so the rules stay in one place.
+
+**Widget.** `AiFeedColumn` keeps fold, width and `folded_changed`. New parts: head label "AI feed · from desk", live dot (`set_live(bool)`: `C.GREEN` / `C.MUTED`), a row of four checkable flat buttons in a `QButtonGroup` (All, Ideas, Asks n, Alerts), the scroll body, footer button "Talk to lead in AI Desk". `set_cards(cards)` rebuilds the body for the current filter only when the cards changed; the old body is freed with `deleteLater` because a card may still be in its own click handler. Filter map: Ideas = result, Asks = ask, Alerts = desk.
+
+**Card.** `FeedCardWidget(card)`: top line = type label (bold, colour: result `C.ORANGE`, ask `C.YELLOW`, answer `C.TEAL`, desk `C.RED`), sender and subject muted, time right (`HH:MM ET`, with `MM-DD` when not today; tooltip `HH:MM IST`). Text over 220 characters is cut with "…" and a More button toggles the full text. Border: ask `C.YELLOW`, desk `C.RED`, else `C.OVERLAY`.
+
+**Signals.** Column: `chart_requested(str)`, `section_requested(str)`, `decided()`. Pick Ask: Approve / Reject call the core functions with the sink; a non-empty note shows on the card; success emits `decided`. Open in Charts emits `chart_requested(symbol)`. Open Hiring emits `section_requested("Hiring")`; Open chat and the footer emit `section_requested("Command")`.
+
+**Page and window.** `MarketFloorWorkspace(poller, data, store, parent, sink=None)`; it forwards the column signals as its own `chart_requested(str)` and `desk_section_requested(str)`, reloads the feed on `decided`, on `showEvent` and after a run, and calls `feed.set_live(state in LIVE_STATES)` on each status. `MainWindow` passes `svc` as the sink and connects `chart_requested` to `_on_chart_requested(symbol, "1d")` and `desk_section_requested` to `_go_to(6)` plus `AiDeskWorkspace.select_section(name)`.
 

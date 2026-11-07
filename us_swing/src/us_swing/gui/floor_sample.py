@@ -2,6 +2,7 @@
 Module: MD-GUI-034.010.M03 — Floor sample data
 Parent SRD: SRD-GUI-034.010
 Also: SRD-GUI-034.047 — sample market tiles and breadth history
+Also: SRD-GUI-034.054 — sample feed cards
 
 Fixed sample products and rows behind the ``FloorData`` interface. A desk.db reader
 replaces this later without any GUI change.
@@ -12,6 +13,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from us_swing.core.desk_contract import ProductDescriptor
+from us_swing.core.desk_feed import FeedCard
 
 SAMPLE_TAG = "Sample data"
 
@@ -175,3 +177,10 @@ class SampleFloorData:
 def sample_feed_items() -> list[dict[str, str]]:
     """Return sample AI feed items (time, author, text, kind info, idea or approval)."""
     return [dict(item) for item in _FEED]
+
+
+def sample_feed_cards() -> list[FeedCard]:
+    """Return the sample feed items as cards; approval items become Asks without a pick."""
+    kinds = {"approval": "ask", "idea": "result", "info": "result"}
+    return [FeedCard(kinds.get(i["kind"], "result"), i["author"],  # type: ignore[arg-type]
+                     "Sample", None, i["text"]) for i in sample_feed_items()]

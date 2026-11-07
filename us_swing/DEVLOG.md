@@ -2,6 +2,17 @@
 
 ---
 
+## [20261107] GUI — AI feed cards, design phase 2 (FO-GUI-034)
+
+- Type: Feature
+- FO(s): FO-GUI-034 (still at Reopen)
+- RN: RN-GUI-1.11.0-20261107
+- Artifacts updated: FO bullet, SRD (GUI-034.053–.058 Implemented), DD (DD-GUI-034.053.D01), MD (M31, M32), UTCD (8 rows Pass), TRACE, Code (core/desk_feed new; floor_feed rewritten; market_floor, main_window, floor_sample, desk_floor, ai_desk_hiring)
+- Decisions: user approved and named the second tab Ideas; no Trigger or Alert source yet; approve/reject shared in core/desk_feed.py
+- Tests: 9 new Pass; GUI + market + desk suites pass except the old sidebar list test; reviewer HIGH (card deleted in its own click) fixed with deleteLater
+
+---
+
 ## [20261107] GUI — Market Floor design match, phase 1 (FO-GUI-034)
 
 - Type: Feature

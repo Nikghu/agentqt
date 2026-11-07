@@ -470,7 +470,7 @@ def test_real_feed(qtbot: QtBot, tmp_path: Path) -> None:
                         "text": "Third note."}
     feed = AiFeedColumn()
     qtbot.addWidget(feed)
-    feed.set_items(items)
+    feed.set_cards(DeskFloorData(SampleFloorData(), tmp_path).feed_cards())
     texts = [w.text() for w in feed.findChildren(QLabel)]
     assert "Third note." in texts and SAMPLE_TAG not in [
         w.text() for w in feed.findChildren(QLabel) if w.isVisibleTo(feed)]
@@ -482,9 +482,10 @@ def test_no_briefs_gives_sample(qtbot: QtBot, tmp_path: Path) -> None:
 
     _write_ideas(tmp_path)
     assert DeskFloorData(SampleFloorData(), tmp_path).feed() is None
+    assert DeskFloorData(SampleFloorData(), tmp_path).feed_cards() is None
     feed = AiFeedColumn()
     qtbot.addWidget(feed)
-    feed.set_items(None)
+    feed.set_cards(None)
     assert SAMPLE_TAG in [w.text() for w in feed.findChildren(QLabel) if w.isVisibleTo(feed)]
 
 

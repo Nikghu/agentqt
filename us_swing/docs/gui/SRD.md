@@ -5,6 +5,8 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.95.1: SRD-GUI-034.053–.058 Implemented (RN-GUI-1.11.0-20261107).
+> v2.95.0: SRD-GUI-034.053–.058 added and approved by user 2026-11-07 — AI feed cards (design phase 2).
 > v2.94.1: SRD-GUI-034.045–.052 Implemented (RN-GUI-1.10.0-20261107).
 > v2.94.0: SRD-GUI-034.045–.052 added and approved by user 2026-11-07 — Market Floor design match (phase 1).
 > v2.92.2: SRD-GUI-034.039–.041 Implemented (RN-MKT-0.11.0-20261106).
@@ -730,3 +732,9 @@
 | SRD-GUI-034.050 | FO-GUI-034 | Must | A rotation view shows the four quadrants with one dot per sector at its RS ratio and RS momentum. | sectors.rrg | rotation chart | Empty note when there are no sectors | Implemented |
 | SRD-GUI-034.051 | FO-GUI-034 | Should | Idea tables draw the score as a bar and the side as a green Long or red Short label. | ideas.top | table cells | Other tables are unchanged | Implemented |
 | SRD-GUI-034.052 | FO-GUI-034 | Must | The default Overview tab follows the design, and the saved Default layout gets it once; other named layouts are kept. | layout file | layouts | A panel whose view is gone opens in the product's first view | Implemented |
+| SRD-GUI-034.053 | FO-GUI-034 | Must | Each AI feed card shows a coloured type label (Result, Ask, Answer, Desk), the sender, the time in ET with India time on hover, and text cut to about 4 lines with More to open it. | feed card | card | Ask cards have an amber border, Desk cards a red one | Implemented |
+| SRD-GUI-034.054 | FO-GUI-034 | Must | Feed cards come from desk.db: briefs as Result, waiting trade picks and ready hires as Ask, lead chat replies as Answer, failed runs as Desk, newest first. | desk.db | cards | Sample cards when the desk has no data | Implemented |
+| SRD-GUI-034.055 | FO-GUI-034 | Must | Filter tabs All, Ideas, Asks with its count, and Alerts show only the matching cards. | cards | filtered list | Ideas shows Result cards; Alerts shows Desk cards | Implemented |
+| SRD-GUI-034.056 | FO-GUI-034 | Must | Pick Ask cards have Approve, Reject and Open in Charts; hire Asks have Open Hiring; Answers have Open chat. | click | decision, page change | Approve and Reject use the same rules as Command | Implemented |
+| SRD-GUI-034.057 | FO-GUI-034 | Should | The feed head reads "AI feed · from desk" with a dot that is green while the desk is live, and a footer button opens AI Desk → Command. | desk state | head, footer | Dot is grey when the desk is off or stopped | Implemented |
+| SRD-GUI-034.058 | FO-GUI-034 | Should | The feed reloads after a desk run, after Approve or Reject, and each time Market Floor is shown. | events | cards | Reads are read-only | Implemented |

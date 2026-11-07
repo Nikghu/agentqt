@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.19.0: UT-GUI-034.053–.058 added (AI feed cards).
 > v1.18.0: UT-GUI-034.045–.052 added (Floor design phase 1).
 > v1.17.0: UT-GUI-034.039–.041 added (MKT P9).
 > v1.16.0: UT-GUI-034.037–.038 added (MKT P8).
@@ -1146,3 +1147,11 @@ Test files:
 | UT-GUI-034.051.M27.T01 | MD-GUI-034.047.M27 | Positive | Idea cell delegates (SRD-GUI-034.051) | ideas table; news table | score and side delegates only on ideas | Pass |
 | UT-GUI-034.052.M30.T01 | MD-GUI-034.052.M30 | Positive | Default refresh (SRD-GUI-034.052) | version 1 file with Default and Swing | Default gets new Overview; Swing kept; version 2 | Pass |
 | UT-GUI-034.052.M30.T02 | MD-GUI-034.052.M30 | Negative | Gone view (SRD-GUI-034.052) | sectors.rank panel saved as chart | opens as heat map | Pass |
+| UT-GUI-034.053.M31.T01 | MD-GUI-034.053.M31 | Positive | Card look (SRD-GUI-034.053) | Ask card with long text | type label Ask, ET time, text cut; More shows all | Pass |
+| UT-GUI-034.054.M32.T01 | MD-GUI-034.054.M32 | Positive | Cards from desk.db (SRD-GUI-034.054) | brief, waiting pick, lead reply, failed run | result, ask, answer, desk cards; asks first | Pass |
+| UT-GUI-034.054.M32.T02 | MD-GUI-034.054.M32 | Negative | No desk data (SRD-GUI-034.054) | empty folder | no cards; page shows sample cards | Pass |
+| UT-GUI-034.055.M31.T01 | MD-GUI-034.053.M31 | Positive | Filter tabs (SRD-GUI-034.055) | one card of each kind; press Asks, Ideas, Alerts | Asks 1 label; only matching cards shown | Pass |
+| UT-GUI-034.056.M31.T01 | MD-GUI-034.053.M31 | Positive | Approve and Reject (SRD-GUI-034.056) | pick Ask; Approve; second pick Reject | sink gets the pick; decision rows; decided emitted | Pass |
+| UT-GUI-034.056.M31.T02 | MD-GUI-034.053.M31 | Positive | Open buttons (SRD-GUI-034.056) | Open in Charts, Open Hiring, Open chat | chart AAA; sections Hiring and Command | Pass |
+| UT-GUI-034.057.M31.T01 | MD-GUI-034.053.M31 | Positive | Live dot and footer (SRD-GUI-034.057) | Sleeping then Off; footer click | dot green then grey; section Command | Pass |
+| UT-GUI-034.058.M31.T01 | MD-GUI-034.053.M31 | Positive | Reload (SRD-GUI-034.058) | decided signal; page shown | feed read again each time | Pass |

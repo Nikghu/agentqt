@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.21.0: MD-GUI-034.053.M31 and .054.M32 added (AI feed cards).
 > v1.20.0: MD-GUI-034.045.M28, .047.M27, .047.M29, .052.M30 added (Floor design phase 1).
 > v1.19.0: MD-GUI-034.039.M26 added (MKT P9).
 > v1.18.0: MD-GUI-034.037.M25 added (MKT P8).
@@ -437,5 +438,7 @@ us_swing/src/us_swing/gui/
 | MD-GUI-034.047.M27 | SRD-GUI-034.047 | `us_swing/src/us_swing/gui/floor_charts.py`, `gui/floor_panel.py` | Painted panel views (tiles, heat map, line, rotation) and the score and side cell delegates | `TilesView`, `HeatMapView`, `LineView`, `RotationView`, `ScoreDelegate`, `SideDelegate`, `heat_colour()` | `gui.theme` | No |
 | MD-GUI-034.047.M29 | SRD-GUI-034.047 | `us_swing/src/us_swing/core/desk_floor.py`, `gui/floor_sample.py` | Tiles, breadth history and header chip data from desk.db, sample rows otherwise | `DeskFloorData.chips()`, products `market.tiles`, `breadth.history` | `core.econ_calendar` | No |
 | MD-GUI-034.052.M30 | SRD-GUI-034.052 | `us_swing/src/us_swing/gui/floor_layouts.py` | New default Overview and the one-time Default refresh (file version 2) | `default_layout()`, `LayoutStore` | — | No |
+| MD-GUI-034.053.M31 | SRD-GUI-034.053 | `us_swing/src/us_swing/gui/floor_feed.py`, `gui/market_floor.py`, `gui/main_window.py` | Feed column with typed cards, filter tabs, live dot, footer and action signals; page and window wiring | `AiFeedColumn.set_cards()`, `set_live()`, `FeedCardWidget` | `core.desk_feed`, `core.desk_trades` | No |
+| MD-GUI-034.054.M32 | SRD-GUI-034.054 | `us_swing/src/us_swing/core/desk_feed.py`, `core/desk_floor.py`, `core/desk_trades.py`, `gui/ai_desk_hiring.py` | Feed cards from desk.db; shared approve and reject of a trade pick | `FeedCard`, `feed_cards()`, `approve_pick()`, `reject_pick()` | `core.desk_trades`, `core.desk_hiring` | No |
 
-SRD coverage: .045–.046 by M28; .047–.051 by M27 and M29; .052 by M30; .039–.041 by M26; .037–.038 by M25; .034–.036 by M24; .002 and .003 by M02 and M09; .004 by M04; .005 by M05; .006 and .007 by M06; .008 by M07; .009 by M08; .010 by M03 and M09.
+SRD coverage: .053, .055–.058 by M31; .054 and .056 by M32; .045–.046 by M28; .047–.051 by M27 and M29; .052 by M30; .039–.041 by M26; .037–.038 by M25; .034–.036 by M24; .002 and .003 by M02 and M09; .004 by M04; .005 by M05; .006 and .007 by M06; .008 by M07; .009 by M08; .010 by M03 and M09.
