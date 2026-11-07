@@ -2,6 +2,17 @@
 
 ---
 
+## [20261107] GUI — AI Desk design match, phase 3 (FO-GUI-034)
+
+- Type: Feature
+- FO(s): FO-GUI-034 (still at Reopen)
+- RN: RN-GUI-1.12.0-20261107
+- Artifacts updated: FO bullet, SRD (GUI-034.059–.064 Implemented; .034–.036 Reopen then Implemented), DD (DD-GUI-034.059.D01), MD (M33–M36), UTCD (9 rows Pass), TRACE, Code (core/desk_overview new; ai_desk, ai_desk_chat, ai_desk_hiring, ai_desk_sections, floor_feed, desk_feed, main_window)
+- Decisions: user approved and reopened .034–.036 for cards; heading kept as "Approvals waiting"; no Next wake chip (desk-only data)
+- Tests: 9 new Pass; old pick and hire approval tests moved to cards; GUI + desk + market suites pass except the old sidebar list test
+
+---
+
 ## [20261107] GUI — AI feed cards, design phase 2 (FO-GUI-034)
 
 - Type: Feature

@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.20.0: UT-GUI-034.059–.064 added; UT-GUI-034.031 and .034–.036 tests moved to approval cards (AI Desk design phase 3).
 > v1.19.0: UT-GUI-034.053–.058 added (AI feed cards).
 > v1.18.0: UT-GUI-034.045–.052 added (Floor design phase 1).
 > v1.17.0: UT-GUI-034.039–.041 added (MKT P9).
@@ -1155,3 +1156,12 @@ Test files:
 | UT-GUI-034.056.M31.T02 | MD-GUI-034.053.M31 | Positive | Open buttons (SRD-GUI-034.056) | Open in Charts, Open Hiring, Open chat | chart AAA; sections Hiring and Command | Pass |
 | UT-GUI-034.057.M31.T01 | MD-GUI-034.053.M31 | Positive | Live dot and footer (SRD-GUI-034.057) | Sleeping then Off; footer click | dot green then grey; section Command | Pass |
 | UT-GUI-034.058.M31.T01 | MD-GUI-034.053.M31 | Positive | Reload (SRD-GUI-034.058) | decided signal; page shown | feed read again each time | Pass |
+| UT-GUI-034.059.M33.T01 | MD-GUI-034.059.M33 | Positive | Grouped list (SRD-GUI-034.059) | open AI Desk | 6 headings, 12 sections in order; heading not selectable; select by name works | Pass |
+| UT-GUI-034.059.M33.T02 | MD-GUI-034.059.M33 | Positive | Command badge (SRD-GUI-034.059) | 2 waiting picks; then 0 | Command shows 2; then plain Command | Pass |
+| UT-GUI-034.060.M34.T01 | MD-GUI-034.060.M34 | Positive | Runs, last run, spend, team (SRD-GUI-034.060) | desk.db with runs, activity, employees | events summed; last run; today and month spend; counts | Pass |
+| UT-GUI-034.060.M33.T01 | MD-GUI-034.059.M33 | Positive | Header chips (SRD-GUI-034.060) | desk.db with a finished run and spend | last run chip and spend text with bar percent | Pass |
+| UT-GUI-034.060.M33.T02 | MD-GUI-034.059.M33 | Negative | No desk data (SRD-GUI-034.060) | empty folder | chips hidden | Pass |
+| UT-GUI-034.061.M35.T01 | MD-GUI-034.061.M35 | Positive | Chat bubbles (SRD-GUI-034.061) | one question and one reply | two bubbles; Master right, lead left; ET time shown | Pass |
+| UT-GUI-034.062.M36.T01 | MD-GUI-034.062.M36 | Positive | Approval cards (SRD-GUI-034.062) | ready hire and 2 picks | heading count 3; pick cards with qty; Open Hiring opens Hiring | Pass |
+| UT-GUI-034.063.M36.T01 | MD-GUI-034.062.M36 | Positive | Today's runs (SRD-GUI-034.063) | runs today | one line per run; events one row with count; no Sample tag | Pass |
+| UT-GUI-034.064.M36.T01 | MD-GUI-034.062.M36 | Positive | Team now (SRD-GUI-034.064) | 2 active, 1 shadow | Team now: 2 active · 1 shadow | Pass |

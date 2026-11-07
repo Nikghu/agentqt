@@ -2,6 +2,7 @@
 Module: MD-GUI-034.004.M04 — Floor AI feed column
 Parent SRD: SRD-GUI-034.004
 Also: MD-GUI-034.015.M14 — real briefs from the desk (SRD-GUI-034.015)
+Also: MD-GUI-034.062.M36 — quantity on pick cards (SRD-GUI-034.034)
 Also: MD-GUI-034.053.M31 — typed cards, filter tabs, live dot, footer, actions
 (SRD-GUI-034.053, .055–.057)
 """
@@ -99,6 +100,13 @@ class FeedCardWidget(QFrame):
         self.text.setTextFormat(Qt.TextFormat.PlainText)
         self.text.setWordWrap(True)
         box.addWidget(self.text)
+        if card.pick is not None:
+            sink = context.sink
+            qty = sink.desk_pick_qty(card.pick) if sink is not None else None
+            self.qty = QLabel(f"Qty {qty}" if qty else "Qty —")
+            self.qty.setObjectName("feed_qty")
+            self.qty.setStyleSheet(f"color: {C.SUBTEXT};")
+            box.addWidget(self.qty)
         self.note = QLabel("")
         self.note.setStyleSheet(f"color: {C.MUTED};")
         self.note.setWordWrap(True)

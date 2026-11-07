@@ -480,6 +480,8 @@ class MainWindow(QMainWindow):
         self._floor_panel.chart_requested.connect(lambda s: self._on_chart_requested(s, "1d"))
         # floor feed → desk_section_requested → MainWindow → _open_desk_section
         self._floor_panel.desk_section_requested.connect(self._open_desk_section)
+        # AI Desk approval card → chart_requested → MainWindow → Charts on that stock (daily)
+        self._ai_desk_panel.chart_requested.connect(lambda s: self._on_chart_requested(s, "1d"))
 
         # The log panel is listening now, so a failed live-broker start can surface.
         svc.flush_broker_fallback_message()

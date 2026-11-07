@@ -2,6 +2,7 @@
 Module: MD-GUI-034.054.M32 — core/desk_feed.py
 Parent SRD: SRD-GUI-034.054
 Also: SRD-GUI-034.056 — shared approve and reject of a trade pick
+Also: MD-GUI-034.062.M36 — ask cards for Command (SRD-GUI-034.062)
 
 AI feed cards for Market Floor, read from ``desk.db`` read-only: briefs, waiting trade picks,
 ready hires, lead chat replies and failed runs. Never imports ``desk``, ``market`` or ``gui``.
@@ -67,7 +68,8 @@ def _rows(home: Path, sql: str, params: tuple[Any, ...]) -> list[tuple[Any, ...]
         return []
 
 
-def _asks(home: Path, now: datetime) -> list[FeedCard]:
+def ask_cards(home: Path, now: datetime) -> list[FeedCard]:
+    """Waiting trade picks and ready hires as Ask cards, timed ``now``."""
     r = load_settings(home).trade_target_r
     cards = [
         FeedCard("ask", "Lead", f"Trade pick · {p.side.upper()} {p.symbol}", now,
@@ -86,7 +88,7 @@ def _asks(home: Path, now: datetime) -> list[FeedCard]:
 
 def feed_cards(home: Path, now: datetime) -> list[FeedCard]:
     """Return every feed card, newest first; Asks (timed ``now``) come first."""
-    cards = _asks(home, now)
+    cards = ask_cards(home, now)
     for created, author, kind, text in _rows(
             home, "SELECT created, author, kind, text FROM briefs ORDER BY id DESC LIMIT ?",
             (BRIEF_LIMIT,)):

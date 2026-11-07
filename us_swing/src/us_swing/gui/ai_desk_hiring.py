@@ -3,7 +3,8 @@ Module: MD-GUI-034.027.M21 — gui/ai_desk_hiring.py
 Parent SRD: SRD-GUI-034.027
 Also: SRD-GUI-034.028 (Start hire form), SRD-GUI-034.029 (shadow report),
 SRD-GUI-034.030 (decision buttons), SRD-GUI-034.031 (Command approvals box)
-Also: MD-GUI-034.034.M24 — SRD-GUI-034.034–.036 (trade pick rows in Approvals waiting)
+Also: MD-GUI-034.034.M24 — SRD-GUI-034.034–.036 (trade picks in Approvals waiting)
+Also: MD-GUI-034.062.M36 — approval cards (SRD-GUI-034.062)
 
 The AI Desk Hiring section: hires made through the pipeline, the Start hire form, the
 chosen hire's shadow report and the Replace / Add / Reject decision. All rules live in
@@ -16,13 +17,13 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from PyQt6.QtCore import QTimer, pyqtSignal
 from PyQt6.QtWidgets import (
     QComboBox,
     QFormLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
-    QListWidget,
     QPushButton,
     QTableWidget,
     QTableWidgetItem,
@@ -30,7 +31,6 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from us_swing.core.desk_ai_settings import load_settings
 from us_swing.core.desk_contract import desk_home
 from us_swing.core.desk_hiring import (
     HIRE_LEVELS,
@@ -42,10 +42,11 @@ from us_swing.core.desk_hiring import (
     shadow_report,
     start_hire,
 )
-from us_swing.core.desk_feed import approve_pick, reject_pick
+from us_swing.core.desk_feed import ask_cards
 from us_swing.core.desk_steps import SKILL_PATHS
-from us_swing.core.desk_trades import DeskTradeSink, TradePick, trade_picks
+from us_swing.core.desk_trades import DeskTradeSink
 from us_swing.gui.ai_desk_sections import heading, make_table, muted, section_frame
+from us_swing.gui.floor_feed import FeedCardWidget, FeedContext
 
 NY = ZoneInfo("America/New_York")
 HIRE_COLUMNS = ("Name", "Skill", "Level", "Model", "Started", "Shadow days", "Status")
@@ -218,82 +219,57 @@ def hiring_frame(name: str, home: Path | None = None) -> QWidget:
     return frame
 
 
-class TradePickRow(QWidget):
-    """One waiting lead pick with Approve and Reject; the Master's decision goes to ``approvals``."""
+class WaitingBox(QWidget):
+    """Command "Approvals waiting": one feed card per waiting pick or ready hire."""
 
-    def __init__(self, home: Path, pick: TradePick, sink: DeskTradeSink | None,
-                 clock: Callable[[], datetime], parent: QWidget | None = None) -> None:
+    chart_requested = pyqtSignal(str)
+    count_changed = pyqtSignal(int)
+
+    def __init__(self, home: Path, open_hiring: Callable[[], None],
+                 sink: DeskTradeSink | None, clock: Callable[[], datetime],
+                 parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self._home, self._pick, self._sink, self._clock = home, pick, sink, clock
-        qty = sink.desk_pick_qty(pick) if sink is not None else None
-        row = QHBoxLayout(self)
-        row.setContentsMargins(0, 0, 0, 0)
-        self.text = QLabel(
-            f"{pick.side.upper()}  {pick.symbol}  entry {pick.entry:.2f}  stop {pick.stop:.2f}  "
-            f"target {pick.target:.2f}  qty {qty if qty is not None else '—'}")
-        self.note = muted("")
-        self.approve_btn = QPushButton("Approve")
-        self.reject_btn = QPushButton("Reject")
-        for btn in (self.approve_btn, self.reject_btn):
-            btn.setEnabled(sink is not None)
-        row.addWidget(self.text, 1)
-        row.addWidget(self.note)
-        row.addWidget(self.approve_btn)
-        row.addWidget(self.reject_btn)
-        # Approve / Reject → clicked → decision row (and the pending signal on Approve)
-        self.approve_btn.clicked.connect(self._approve)
-        self.reject_btn.clicked.connect(self._reject)
+        self._home, self._open_hiring = home, open_hiring
+        self._context = FeedContext(home, sink, clock)
+        self._lines = QVBoxLayout(self)
+        self._lines.setContentsMargins(0, 0, 0, 0)
+        self._lines.setSpacing(6)
+        self.count = 0
+        self.reload()
 
-    def _done(self, note: str) -> None:
-        self.note.setText(note)
-        self.approve_btn.setEnabled(False)
-        self.reject_btn.setEnabled(False)
+    def cards(self) -> list[FeedCardWidget]:
+        """Return the cards on show, top first."""
+        return self.findChildren(FeedCardWidget)
 
-    def _show(self, result: tuple[str, bool]) -> None:
-        note, closed = result
-        if not note and closed:
-            self.hide()
-        elif closed:
-            self._done(note)
-        else:
-            self.note.setText(note)
-
-    def _approve(self) -> None:
-        if self._sink is not None:
-            self._show(approve_pick(self._home, self._pick, self._sink, self._clock()))
-
-    def _reject(self) -> None:
-        self._show(reject_pick(self._home, self._pick, self._clock()))
+    def reload(self) -> None:
+        """Read the waiting asks again and rebuild the cards."""
+        while (item := self._lines.takeAt(0)) is not None:
+            widget = item.widget()
+            if widget is not None:
+                widget.hide()
+                widget.setParent(None)
+                widget.deleteLater()  # a card may still be inside its own click handler
+        asks = ask_cards(self._home, self._context.clock())
+        self.count = len(asks)
+        self._lines.addWidget(heading(f"Approvals waiting · {self.count}" if asks
+                                      else "Approvals waiting"))
+        if not asks:
+            self._lines.addWidget(muted(NO_APPROVALS))
+        for ask in asks:
+            card = FeedCardWidget(ask, self._context)
+            # card → section_requested → box → open Hiring; chart_requested → page → window
+            card.section_requested.connect(lambda _name: self._open_hiring())
+            card.chart_requested.connect(self.chart_requested)
+            # card → decided → box → reload after the click has finished
+            card.decided.connect(lambda: QTimer.singleShot(0, self.reload))
+            self._lines.addWidget(card)
+        self._lines.addStretch(1)
+        self.count_changed.emit(self.count)
 
 
 def approvals_box(home: Path | None, open_hiring: Callable[[], None],
                   sink: DeskTradeSink | None = None,
-                  clock: Callable[[], datetime] | None = None) -> QWidget:
-    """The Command "Approvals waiting" box: ready hires (a click opens Hiring) and waiting picks."""
-    folder = home or desk_home()
-    now = clock or (lambda: datetime.now(NY))
-    box = QWidget()
-    lines = QVBoxLayout(box)
-    lines.setContentsMargins(0, 0, 0, 0)
-    lines.addWidget(heading("Approvals waiting"))
-    ready = [h for h in list_hires(folder) if h.ready]
-    picks = [p for p in trade_picks(folder, now(), load_settings(folder).trade_target_r)
-             if p.state == "waiting"]
-    if not ready and not picks:
-        lines.addWidget(muted(NO_APPROVALS))
-        lines.addStretch(1)
-        return box
-    if ready:
-        listing = QListWidget()
-        listing.setObjectName("approvals_list")
-        listing.setStyleSheet("QListWidget { outline: none; }")
-        listing.addItems([f"Hire: {h.employee.name} ({_skill(h.employee.skill)}) finished the "
-                          "shadow" for h in ready])
-        # approvals list → itemClicked → Command → open Hiring
-        listing.itemClicked.connect(lambda _item: open_hiring())
-        lines.addWidget(listing, 1)
-    for pick in picks:
-        lines.addWidget(TradePickRow(folder, pick, sink, now))
-    if not ready:
-        lines.addStretch(1)
-    return box
+                  clock: Callable[[], datetime] | None = None) -> WaitingBox:
+    """The Command "Approvals waiting" box: cards for ready hires and waiting picks."""
+    return WaitingBox(home or desk_home(), open_hiring, sink,
+                      clock or (lambda: datetime.now(NY)))

@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.11.0: DD-GUI-034.059.D01 added — AI Desk design match (phase 3), 2026-11-07.
 > v1.10.0: DD-GUI-034.053.D01 added — AI feed cards (phase 2), 2026-11-07.
 > v1.9.0: DD-GUI-034.045.D01 added — Market Floor design match (phase 1), 2026-11-07.
 > v1.8.0: DD-GUI-034.001.D01 Market Floor and AI Desk frames added 2026-11-05.
@@ -1898,4 +1899,29 @@ Picks and hires have no row time; they take `now` so they sit on top. `DeskFloor
 **Signals.** Column: `chart_requested(str)`, `section_requested(str)`, `decided()`. Pick Ask: Approve / Reject call the core functions with the sink; a non-empty note shows on the card; success emits `decided`. Open in Charts emits `chart_requested(symbol)`. Open Hiring emits `section_requested("Hiring")`; Open chat and the footer emit `section_requested("Command")`.
 
 **Page and window.** `MarketFloorWorkspace(poller, data, store, parent, sink=None)`; it forwards the column signals as its own `chart_requested(str)` and `desk_section_requested(str)`, reloads the feed on `decided`, on `showEvent` and after a run, and calls `feed.set_live(state in LIVE_STATES)` on each status. `MainWindow` passes `svc` as the sink and connects `chart_requested` to `_on_chart_requested(symbol, "1d")` and `desk_section_requested` to `_go_to(6)` plus `AiDeskWorkspace.select_section(name)`.
+
+## DD-GUI-034.059.D01 — AI Desk Design Match (phase 3)
+
+**Traces:** SRD-GUI-034.059–.064 and the reopened SRD-GUI-034.034–.036. Design Option 1, screen 1B.
+
+**Data.** New `core/desk_overview.py` (read-only SQL on `desk.db`, never imports `desk`):
+
+| Function | Returns |
+|---|---|
+| `todays_runs(home, now)` | `RunRow(when, name, result, count)` for runs started on the ET day of `now`, oldest first; all `event` runs become one row "Event runs" with their count, last time and the worst result |
+| `last_run(home)` | latest finished non-event run, or `None` |
+| `spend(home, now)` | `Spend(today_usd, month_usd, budget_usd)` from `activity.cost_usd` (ET day and month) and `load_settings().monthly_budget_usd` |
+| `team_counts(home)` | status → count from `desk_hiring.employees()` |
+
+Run names: `evening` "Evening run", `manual` "Manual run", other kinds title-cased. Result order for "worst": failed > running > ok.
+
+**Section list.** `QListWidget` with heading items (no flags, small muted bold) and section items holding the name in `Qt.ItemDataRole.UserRole`. Groups: TALK Command; TEAM Org chart, Employees, Hiring; WORK Task board, Activity, Schedule; CREATE Pages; REVIEW Reports, Results, Cost & budget; SETUP Desk settings. `section_names()`, `current_section()` and `select_section()` read `UserRole`; the stack index stays `SECTIONS.index(name)`. Selected style: `C.OVERLAY` band, `C.BLUE` (accent) text. `set_ask_count(n)` sets the Command text to `Command  n` (plain `Command` at 0).
+
+**Header.** Chips row after the title: last run `Last run: Evening run · ok 17:06 ET` (green ok, red failed, amber running) and a spend block `AI spend $0.31 today · 43% of month` with a thin `QProgressBar` (0–100, text hidden). Refreshed on build, on `showEvent`, and on `status_changed` only when the desk state changed and the page is visible (no desk.db reads every poll). On show, Command is rebuilt when it is the current section, else only the badge is read; the badge does not change while another page is open. `DeskBar` stays at the right.
+
+**Chat.** `ChatPanel._show_turns` puts each turn in a `QFrame#chat_bubble` (radius 6, padding 8) inside an `QHBoxLayout` with a stretch on the other side: lead left on `mix(C.SURFACE, C.BLUE, 0.12)`, Master right on `mix(C.SURFACE, C.GREEN, 0.15)`. The label text stays one rich-text label: `<b>name</b> · HH:MM ET<br>body`. Placeholder "Message the lead".
+
+**Approvals.** `approvals_box(home, open_hiring, sink, clock)` now returns `WaitingBox`: heading `Approvals waiting · n`, one `FeedCardWidget` per ask from `desk_feed.ask_cards(home, now)`, empty note `NO_APPROVALS`. Card `section_requested("Hiring")` calls `open_hiring`; `chart_requested` is re-emitted and reaches the main window through `AiDeskWorkspace.chart_requested`. On `decided` the box rebuilds through `QTimer.singleShot(0, ...)` and emits `count_changed(n)` for the Command badge. `FeedCardWidget` shows `Qty n` (or `Qty —` without a sink) under a pick's text. `TradePickRow` is removed.
+
+**Runs and team.** `command_frame(name, approvals, chat, runs, team)`: real widgets drop the Sample tag. `runs_box(rows)` = one line per row: ET time, name (with `×n` for events), result label coloured as the chips. Team line: `Team now: 8 active · 1 shadow`.
 
