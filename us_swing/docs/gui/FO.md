@@ -7,6 +7,7 @@
 **Last Updated:** 2026-05-22
 **Project:** US Swing Trading System
 
+> v2.19.0: FO-GUI-036 Implemented 2026-11-10 (Team setup tab, side pane trim, review fixes).
 > v2.18.0: FO-GUI-036 AI Desk Team setup added as Draft (user chose Option 1, 2026-11-10).
 > v2.17.0: FO-GUI-034 gets the section tabs bullet (2026-11-10).
 > v2.16.0: FO-GUI-034 gets the AI Desk console look bullet (design phase 4, 2026-11-10).
@@ -1025,7 +1026,7 @@ The system shall show how the AI employee team works, from real desk records.
 
 ## FO-GUI-036: AI Desk Team Setup
 
-**Status:** Draft
+**Status:** Implemented
 **Priority:** Must
 **Depends on:** FO-DSK-008 (employee file and versions), FO-GUI-035 (Team at work)
 **Source:** User 2026-11-10: a dedicated section to edit each AI employee's system prompt, model and more; the Team at work side pane shows only a summary. Design Option 1: https://claude.ai/artifact/CSVvoYH32gNQzivr8L9bbE. Phase 2 (not now): temperature, max tokens, timeout, effort, data blocks, guardrails.

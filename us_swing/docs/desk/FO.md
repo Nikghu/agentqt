@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.5.0: FO-DSK-008 Implemented (user approved 2026-11-10; code and tests done).
 > v0.4.0: FO-DSK-008 added as Draft — one employee.md file, versions and draft test (user, 2026-11-10).
 > v0.3.0: FO-DSK-006 written in full as Draft for P6 (Master-started hires, 14-evening shadow, seat caps 8/5/30, weekly code report); no employee names.
 > v0.2.1: FO-DSK-002 adds employee identity as data and generic levels; no employee names (user, 2026-11-06).
@@ -171,7 +172,7 @@ The system shall tell the Master User when the AI desk hits a problem only the u
 
 ## FO-DSK-008: Employee File and Versions
 
-**Status:** Draft
+**Status:** Implemented
 **Priority:** Must
 **Depends on:** FO-DSK-002 (registry), FO-DSK-005 (replay), FO-DSK-006 (hiring)
 **Source:** User 2026-11-10: edit each AI employee in a Team setup tab; all details in one .md file; new hires added by themselves. Design: https://claude.ai/artifact/CSVvoYH32gNQzivr8L9bbE (Option 1).
