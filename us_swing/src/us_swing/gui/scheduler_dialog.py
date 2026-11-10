@@ -2,6 +2,7 @@
 Module: MD-GUI-000.004 — scheduler_dialog.py
 Parent SRD: SRD-GUI-006.005
 Task helpers: MD-GUI-029.004.M02 (Parent SRD: SRD-GUI-029.004)
+Also: SRD-GUI-029.007 (start tasks 60 min before open), SRD-GUI-029.008 (start-up sync)
 
 Windows Task Scheduler helpers for two independent scheduled tasks:
   • USSwing_App  — launches USSwing.exe
@@ -15,9 +16,13 @@ Uses only stdlib (winreg, subprocess, pathlib) — no 3rd-party dependencies.
 from __future__ import annotations
 
 import dataclasses
+import logging
 import subprocess
+import xml.etree.ElementTree as ET_XML
 from collections.abc import Callable
+from datetime import UTC, date, datetime, time, timedelta, tzinfo
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from PyQt6.QtCore import QObject, QPoint, QThread, Qt, pyqtSignal
 from PyQt6.QtGui import QCursor
@@ -37,11 +42,22 @@ from us_swing.gui.scheduler_store import (
     delete_close_config,
     delete_scheduler_config,
     delete_usswing_config,
+    load_scheduler_config,
+    load_usswing_config,
     save_close_config,
     save_scheduler_config,
     save_usswing_config,
 )
 from us_swing.gui.theme import C
+
+_log = logging.getLogger(__name__)
+
+_ET = ZoneInfo("America/New_York")
+START_BEFORE_OPEN = time(8, 30)   # 60 min before the 09:30 ET open (SRD-GUI-029.007)
+_DAY_CODES = ("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
+_WEEKDAYS = list(_DAY_CODES[:5])
+_XML_DAYS = {"Monday": "MON", "Tuesday": "TUE", "Wednesday": "WED", "Thursday": "THU",
+             "Friday": "FRI", "Saturday": "SAT", "Sunday": "SUN"}
 
 # ── Auto-detection helpers ────────────────────────────────────────────────────
 
@@ -137,29 +153,53 @@ def _run_schtasks(*args: str) -> tuple[bool, str]:
         return False, str(exc)
 
 
+def before_open_time(day: date, local: tzinfo) -> tuple[str, list[str]]:
+    """Local ``HH:MM`` and weekday codes of a start 60 min before the 09:30 ET open.
+
+    Uses the New York and local clock offsets of ``day``; the Mon–Fri codes shift when the
+    local date differs from the New York date (SRD-GUI-029.007).
+    """
+    start = datetime.combine(day, START_BEFORE_OPEN, _ET).astimezone(local)
+    shift = (start.date() - day).days
+    return start.strftime("%H:%M"), [_DAY_CODES[(wd + shift) % 7] for wd in range(5)]
+
+
+def _local_zone() -> tzinfo:
+    zone = datetime.now().astimezone().tzinfo
+    return zone if zone is not None else UTC
+
+
+def _start_days() -> list[str]:
+    return before_open_time(date.today() + timedelta(days=1), _local_zone())[1]
+
+
 def _create_schtask(
     task_name: str,
     exe_path: str,
     launch_time: str,
     days: str,
     extra_args: str = "",
+    day_codes: list[str] | None = None,
 ) -> tuple[bool, str]:
     tr = f'"{exe_path}"{extra_args}'
     base = ["/create", "/tn", task_name, "/tr", tr, "/st", launch_time, "/f"]
     if days == "weekdays":
-        return _run_schtasks(*base, "/sc", "weekly", "/d", "MON,TUE,WED,THU,FRI")
+        codes = ",".join(day_codes or _WEEKDAYS)
+        return _run_schtasks(*base, "/sc", "weekly", "/d", codes)
     return _run_schtasks(*base, "/sc", "daily")
 
 
 def create_usswing_task(cfg: USSwingConfig) -> tuple[bool, str]:
-    return _create_schtask(cfg.task_name, cfg.exe_path, cfg.launch_time, cfg.days)
+    return _create_schtask(cfg.task_name, cfg.exe_path, cfg.launch_time, cfg.days,
+                           day_codes=_start_days())
 
 
 def create_ibkr_task(cfg: SchedulerConfig, password: str = "") -> tuple[bool, str]:
     extra = ""
     if cfg.auto_login and cfg.ibkr_username and password:
         extra = f" -username {cfg.ibkr_username} -password {password}"
-    return _create_schtask(cfg.task_name, cfg.exe_path, cfg.launch_time, cfg.days, extra)
+    return _create_schtask(cfg.task_name, cfg.exe_path, cfg.launch_time, cfg.days, extra,
+                           day_codes=_start_days())
 
 
 def delete_task(task_name: str) -> tuple[bool, str]:
@@ -611,6 +651,60 @@ def write_tasks(
             delete_task(close_task_name(cfg.task_name))
     save_close_config(close)
     return errors
+
+
+def _task_schedule(xml_text: str) -> tuple[str, list[str]] | None:
+    """Start ``HH:MM`` and weekday codes from ``schtasks /query /xml`` output."""
+    try:
+        root = ET_XML.fromstring(xml_text.strip())
+    except ET_XML.ParseError:
+        return None
+    start = next((el.text for el in root.iter() if el.tag.endswith("StartBoundary")), None)
+    days = [
+        _XML_DAYS[name]
+        for el in root.iter()
+        if el.tag.endswith("DaysOfWeek")
+        for child in el
+        if (name := child.tag.rsplit("}", 1)[-1]) in _XML_DAYS
+    ]
+    if not start or "T" not in start:
+        return None
+    return start.split("T", 1)[1][:5], days
+
+
+def sync_start_tasks(day: date, local: tzinfo) -> list[str]:
+    """Re-create switched-on start tasks whose time or days no longer match 60 min before open.
+
+    Runs off the GUI thread at app start (SRD-GUI-029.008). Returns the task names changed.
+    """
+    hhmm, codes = before_open_time(day, local)
+    changed: list[str] = []
+    for cfg in (load_scheduler_config(), load_usswing_config()):
+        if cfg is None or not cfg.enabled or not cfg.exe_path:
+            continue
+        ok, xml_text = _run_schtasks("/query", "/tn", cfg.task_name, "/xml")
+        current = _task_schedule(xml_text) if ok else None
+        if current is None:
+            continue
+        days_ok = cfg.days != "weekdays" or sorted(current[1]) == sorted(codes)
+        if current[0] == hhmm and days_ok:
+            continue
+        cfg.launch_time = hhmm
+        if isinstance(cfg, SchedulerConfig):
+            password = _load_ibkr_password(cfg.ibkr_username) if cfg.auto_login else ""
+            ok, msg = create_ibkr_task(cfg, password)
+            save_scheduler_config(dataclasses.replace(load_scheduler_config() or cfg,
+                                                      launch_time=hhmm))
+        else:
+            ok, msg = create_usswing_task(cfg)
+            save_usswing_config(dataclasses.replace(load_usswing_config() or cfg,
+                                                    launch_time=hhmm))
+        if ok:
+            changed.append(cfg.task_name)
+            _log.info("[Scheduler] Start task moved to %s local time", hhmm)
+        else:
+            _log.warning("[Scheduler] Could not move the start task: %s", msg)
+    return changed
 
 
 def remove_tasks(us: USSwingConfig, ibkr: SchedulerConfig) -> list[str]:

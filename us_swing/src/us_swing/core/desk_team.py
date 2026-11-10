@@ -28,13 +28,13 @@ from us_swing.core.desk_employee import read_employee
 log = logging.getLogger(__name__)
 
 NY = ZoneInfo("America/New_York")
-EVENING_KINDS = ("evening", "manual")
+DAY_RUN_KINDS = ("morning", "evening", "manual")  # evening: runs before 2026-11-11
 URGENT = 0
 _CALL_COLS = ("run_id, employee, employee_name, started, source, model, attempt, valid, error, "
               "tokens_in, tokens_out, cost_usd, seconds, prompt, answer")
 _REAL = "COALESCE(replay, 0) = 0 AND COALESCE(shadow, 0) = 0"
 _EVENT_NAMES = {
-    "after_run": "Evening run", "regime_change": "Regime change", "market_open": "Market open",
+    "after_run": "Morning run", "regime_change": "Regime change", "market_open": "Market open",
     "market_close": "Market close", "chat_question": "Chat question", "data_request": "Data ask",
 }
 _EVENT_WHY = {
@@ -68,7 +68,7 @@ class Member:
 
     @property
     def on_demand(self) -> bool:
-        """True when the member does not wake on the evening run."""
+        """True when the member does not wake on the morning run."""
         return "after_run" not in self.triggers
 
 
@@ -295,7 +295,7 @@ def _ordered(members: Sequence[Member]) -> list[Member]:
 
 
 def levels(members: Sequence[Member]) -> list[list[Member]]:
-    """Group evening-run members into columns: each column needs only earlier columns."""
+    """Group morning-run members into columns: each column needs only earlier columns."""
     depth: dict[str, int] = {}
     evening = [m for m in members if not m.on_demand]
     for m in evening:
@@ -307,11 +307,11 @@ def levels(members: Sequence[Member]) -> list[list[Member]]:
 
 
 def runs(home: Path, limit: int = 30) -> list[Run]:
-    """Recent evening and manual runs, newest first."""
-    marks = ",".join("?" * len(EVENING_KINDS))
+    """Recent morning, evening and manual runs, newest first."""
+    marks = ",".join("?" * len(DAY_RUN_KINDS))
     rows = _rows(home, f"SELECT id, kind, started_at, ended_at, result FROM runs "
                        f"WHERE kind IN ({marks}) ORDER BY id DESC LIMIT ?",
-                 (*EVENING_KINDS, limit))
+                 (*DAY_RUN_KINDS, limit))
     out: list[Run] = []
     for rid, kind, start, end, result in rows:
         started = parse_utc(start)
@@ -360,7 +360,7 @@ def _done_state(member: Member, mine: Sequence[Call]) -> MemberState:
 
 
 def run_view(home: Path, run: Run, members: Sequence[Member]) -> RunView:
-    """Each evening-run employee's state in ``run``; on-demand employees are asleep."""
+    """Each morning-run employee's state in ``run``; on-demand employees are asleep."""
     calls = run_calls(home, run.id)
     ai_started = _ai_start(home, run.id)
     running = run.ended is None
@@ -393,7 +393,7 @@ def day_events(home: Path, day: date, members: Sequence[Member],
                now: datetime | None = None) -> list[DeskEvent]:
     """The events created on New York ``day``, newest first, each with the calls it caused.
 
-    An evening run event takes its run's calls; other events take the calls of the employees
+    A morning run event takes its run's calls; other events take the calls of the employees
     that listen to them, made between the event and its handling.
     """
     rows = _rows(home, "SELECT id, key, kind, priority, data_day, created, deadline, handled, "

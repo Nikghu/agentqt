@@ -56,7 +56,7 @@ def test_event_log(qtbot: QtBot, tmp_path: Path) -> None:
     page._tabs.button(1).click()  # type: ignore[union-attr]
     tree = page.log.tree
     names = [tree.topLevelItem(i).text(1) for i in range(tree.topLevelItemCount())]  # type: ignore[union-attr]
-    assert names == ["Evening run", "Chat question"]
+    assert names == ["Morning run", "Chat question"]
     evening = tree.topLevelItem(0)
     assert evening is not None and evening.childCount() == 3
     assert evening.child(1).text(5) == "answer missing a field"  # type: ignore[union-attr]

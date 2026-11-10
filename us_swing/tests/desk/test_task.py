@@ -1,21 +1,19 @@
-"""Tests for MD-DSK-001.018.M05 — desk/task.py."""
+"""Tests for MD-DSK-001.018.M05 — desk/task.py, and the desk launch in core/desk_contract.py."""
 from __future__ import annotations
 
 import sys
-from datetime import date
 from pathlib import Path
-from zoneinfo import ZoneInfo
+from typing import Any
 
 import pytest
 
+from us_swing.core import desk_contract
+from us_swing.core.desk_contract import desk_command, launch_desk
 from us_swing.desk import task
-
-IST = ZoneInfo("Asia/Kolkata")
-DAY = date(2026, 11, 5)
 
 
 class FakeRunner:
-    """Records schtasks calls and returns set answers."""
+    """Records schtasks calls and returns set answers by task name."""
 
     def __init__(self, answers: dict[str, tuple[bool, str]] | None = None) -> None:
         self.calls: list[tuple[str, ...]] = []
@@ -23,26 +21,13 @@ class FakeRunner:
 
     def __call__(self, *args: str) -> tuple[bool, str]:
         self.calls.append(args)
-        return self._answers.get(args[0], (True, ""))
-
-
-def _xml(start: str, days: list[str]) -> str:
-    day_tags = "".join(f"<{d}/>" for d in days)
-    return (
-        '<Task xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task"><Triggers>'
-        f"<CalendarTrigger><StartBoundary>2026-11-05T{start}:00</StartBoundary>"
-        f"<ScheduleByWeek><DaysOfWeek>{day_tags}</DaysOfWeek></ScheduleByWeek>"
-        "</CalendarTrigger></Triggers></Task>"
-    )
-
-
-_TUE_SAT = ["Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+        return self._answers.get(args[2], (True, ""))
 
 
 def test_desk_command_not_frozen(monkeypatch: pytest.MonkeyPatch) -> None:
     """UT-DSK-001.018.M05.T01: Desk command when not frozen."""
     monkeypatch.delattr(sys, "frozen", raising=False)
-    cmd = task.desk_command()
+    cmd = desk_command()
     assert cmd[1].endswith("run_gui.py") and Path(cmd[1]).exists()
     assert cmd[2] == "desk"
     assert cmd[0].lower().endswith(("pythonw.exe", "python.exe"))
@@ -51,38 +36,45 @@ def test_desk_command_not_frozen(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_desk_command_frozen(monkeypatch: pytest.MonkeyPatch) -> None:
     """UT-DSK-001.018.M05.T02: Desk command when frozen."""
     monkeypatch.setattr(sys, "frozen", True, raising=False)
-    assert task.desk_command() == [sys.executable, "desk"]
+    assert desk_command() == [sys.executable, "desk"]
 
 
-def test_install_creates_two_tasks() -> None:
-    """UT-DSK-001.018.M05.T03: Install creates two tasks."""
+def test_old_tasks_deleted() -> None:
+    """UT-DSK-001.018.M05.T03: Old desk tasks deleted (SRD-DSK-001.018)."""
     runner = FakeRunner()
-    assert task.install(DAY, IST, runner) == (True, "")
-    logon, evening = runner.calls
-    assert task.LOGON_TASK in logon and "onlogon" in logon
-    assert task.EVENING_TASK in evening and "weekly" in evening
-    assert "02:50" in evening and "TUE,WED,THU,FRI,SAT" in evening
+    assert task.remove_old_tasks(runner) == (True, "")
+    assert runner.calls == [("/delete", "/tn", "USSwing_Desk", "/f"),
+                            ("/delete", "/tn", "USSwing_Desk_Evening", "/f")]
 
 
-def test_install_reports_failure() -> None:
-    """UT-DSK-001.018.M05.T04: Install reports schtasks failure."""
-    runner = FakeRunner({"/create": (False, "Access is denied.")})
-    assert task.install(DAY, IST, runner) == (False, "Access is denied.")
+def test_missing_task_is_not_an_error() -> None:
+    """UT-DSK-001.018.M05.T04: Missing task is not an error; other failure is."""
+    gone = (False, "ERROR: The system cannot find the file specified.")
+    assert task.remove_old_tasks(FakeRunner({"USSwing_Desk": gone,
+                                             "USSwing_Desk_Evening": gone})) == (True, "")
+    denied = FakeRunner({"USSwing_Desk_Evening": (False, "access denied")})
+    assert task.remove_old_tasks(denied) == (False, "access denied")
 
 
-def test_sync_recreates_on_mismatch() -> None:
-    """UT-DSK-001.018.M05.T05: Sync re-creates on mismatch."""
-    runner = FakeRunner({"/query": (True, _xml("01:50", _TUE_SAT))})
-    assert task.sync_evening_task(DAY, IST, runner) is True
-    creates = [c for c in runner.calls if c[0] == "/create"]
-    assert len(creates) == 1 and "02:50" in creates[0]
-    matching = FakeRunner({"/query": (True, _xml("02:50", _TUE_SAT))})
-    assert task.sync_evening_task(DAY, IST, matching) is False
+def _record_popen(monkeypatch: pytest.MonkeyPatch) -> list[list[str]]:
+    seen: list[list[str]] = []
+
+    def fake_popen(cmd: list[str], **_kw: Any) -> None:
+        seen.append(cmd)
+
+    monkeypatch.setattr(desk_contract.subprocess, "Popen", fake_popen)
+    return seen
 
 
-def test_sync_skips_when_not_installed() -> None:
-    """UT-DSK-001.018.M05.T06: Sync skips when not installed."""
-    runner = FakeRunner({"/query": (False, "ERROR: The system cannot find the file specified.")})
-    assert task.sync_evening_task(DAY, IST, runner) is False
-    assert [c for c in runner.calls if c[0] == "/create"] == []
+def test_launch_passes_parent(monkeypatch: pytest.MonkeyPatch) -> None:
+    """UT-DSK-001.018.M05.T05: Launch passes the parent pid (SRD-DSK-001.019, .020)."""
+    seen = _record_popen(monkeypatch)
+    launch_desk(True, parent=1234)
+    assert seen[0][-3:] == ["--resume", "--parent", "1234"]
 
+
+def test_launch_without_parent(monkeypatch: pytest.MonkeyPatch) -> None:
+    """UT-DSK-001.018.M05.T06: Launch without a parent (SRD-DSK-001.020)."""
+    seen = _record_popen(monkeypatch)
+    launch_desk(True)
+    assert seen[0][-1] == "--resume" and "--parent" not in seen[0]

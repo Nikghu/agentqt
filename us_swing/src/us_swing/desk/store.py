@@ -163,12 +163,13 @@ class DeskStore:
             )
         return cur.rowcount
 
-    def last_run_start(self, kind: str) -> datetime | None:
-        """Return the start of the newest run of ``kind``."""
-        row = self._con.execute(
-            "SELECT started_at FROM runs WHERE kind = ? ORDER BY id DESC LIMIT 1", (kind,)
-        ).fetchone()
-        return parse_utc(row[0]) if row else None
+    def runs_since(self, since: datetime) -> list[tuple[str, datetime, str]]:
+        """Return ``(kind, start, result)`` of runs started at or after ``since``, oldest first."""
+        rows = self._con.execute(
+            "SELECT kind, started_at, result FROM runs WHERE started_at >= ? ORDER BY id",
+            (utc_text(since),),
+        ).fetchall()
+        return [(str(kind), datetime.fromisoformat(at), str(result)) for kind, at, result in rows]
 
     def last_run_id(self) -> int | None:
         """Return the newest run id."""

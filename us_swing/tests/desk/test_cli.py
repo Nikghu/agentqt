@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -65,3 +66,32 @@ def test_proof_without_data(home: Path, capsys: pytest.CaptureFixture[str]) -> N
     """UT-DSK-001.022.M06.T02: With no data `desk proof` prints a message and exits 1."""
     assert main(["proof"], home, proof=lambda: lambda _home: None) == 1
     assert "Backtest Data" in capsys.readouterr().out
+
+
+def test_parent_option_gives_parent_watch(home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """UT-DSK-001.020.M06.T05: ``--parent PID`` gives the loop a parent watch (SRD-DSK-001.020)."""
+    built: dict[str, Any] = {}
+    seen: list[int] = []
+
+    class FakeProcess:
+        def __init__(self, *_a: Any, **kw: Any) -> None:
+            built.update(kw)
+
+        def run(self) -> int:
+            return 0
+
+    monkeypatch.setattr("us_swing.desk.cli.load_steps", lambda: [])
+    monkeypatch.setattr("us_swing.desk.cli.pid_alive", lambda pid: seen.append(pid) or True)
+    assert main(["--resume", "--parent", "1234"], home, process=FakeProcess) == 0
+    assert built["resume"] is True
+    assert built["parent_alive"]() is True and seen == [1234]
+    assert main([], home, process=FakeProcess) == 0
+    assert built["resume"] is False and built["parent_alive"] is None
+
+
+def test_install_is_gone(home: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """UT-DSK-001.020.M06.T06: ``install`` is gone (SRD-DSK-001.020)."""
+    assert main(["install"], home) == 2
+    out = capsys.readouterr().out
+    assert "usage" in out and "install" not in out
+    assert main(["--parent", "x"], home) == 2

@@ -2,10 +2,13 @@
 Module: MD-GUI-034.002.M02 — Desk control
 Parent SRD: SRD-GUI-034.002
 Also: SRD-GUI-034.065 — dot state chip and the joined Start / Pause / Resume / Stop group
+Also: SRD-GUI-034.068 — the desk starts with the app's process id and is stopped on close
 """
 from __future__ import annotations
 
 import logging
+import os
+import threading
 from collections import deque
 from collections.abc import Callable
 from pathlib import Path
@@ -33,6 +36,7 @@ _POLL_MS = 2000
 _FAST_MS = 1000
 _FAST_TICKS = 5
 _SHUTDOWN_WAIT_MS = 1500
+_STOP_WAIT_S = 2.0
 
 
 def _is_alive(state: DeskState, message: str) -> bool:
@@ -141,24 +145,44 @@ class DeskPoller(QObject):
 
         self._submit(work, fast=True)
 
-    def start_desk(self) -> None:
-        """Launch the desk unless a live one already exists (checked just before)."""
+    def start_desk(self, parent: int | None = None) -> None:
+        """Launch the desk unless a live one already exists (checked just before).
+
+        The desk watches ``parent`` (this app's process id by default) and stops with it.
+        """
+        pid = os.getpid() if parent is None else parent
 
         def work() -> object:
             current = read_status(self._home)
             if not _is_alive(current.state, current.message):
-                launch_desk()
+                launch_desk(resume=True, parent=pid)
             return read_status(self._home)
 
         self._submit(work, fast=True)
 
-    def shutdown(self) -> None:
-        """Stop polling and wait briefly; a job still running is left to finish on its own."""
+    def shutdown(self, stop_desk: bool = False) -> None:
+        """Stop polling and wait briefly; a job still running is left to finish on its own.
+
+        With ``stop_desk`` a live desk is sent Stop from a short thread; the app waits at most
+        ``_STOP_WAIT_S`` and never for the desk's run (SRD-GUI-034.068).
+        """
         self._timer.stop()
         self._queue.clear()
         job = self._job
         if job is not None and job.isRunning():
             job.wait(_SHUTDOWN_WAIT_MS)
+        if stop_desk:
+            sender = threading.Thread(target=self._send_stop, name="desk-stop", daemon=True)
+            sender.start()
+            sender.join(_STOP_WAIT_S)
+
+    def _send_stop(self) -> None:
+        try:
+            current = read_status(self._home)
+            if _is_alive(current.state, current.message):
+                send_command(CommandKind.STOP, self._home)
+        except Exception:  # noqa: BLE001 — the desk's parent watch stops it anyway
+            _log.warning("[Desk] Could not ask the desk to stop", exc_info=True)
 
     def _tick(self) -> None:
         if self._fast_left > 0:

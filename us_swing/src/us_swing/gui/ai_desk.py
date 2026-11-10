@@ -37,7 +37,7 @@ from us_swing.core.desk_contract import DeskState, DeskStatus, desk_home
 from us_swing.core.desk_feed import ask_cards
 from us_swing.core.desk_overview import (
     last_run,
-    next_evening_run,
+    next_morning_run,
     spend,
     team_counts,
     todays_runs,
@@ -312,7 +312,7 @@ class AiDeskWorkspace(QWidget):
             self.last_run_title.setText(f"Last run · {run.result}")
             self.last_run_chip.setText(f"{run.name} · {run.when:%H:%M} ET")
             self.last_run_chip.setStyleSheet(f"font-size: 15px; font-weight: bold; {bar_style(colour)}")
-        upcoming = next_evening_run(now)
+        upcoming = next_morning_run(now, folder)
         day = "" if upcoming.date() == now.astimezone(NY).date() else f"{upcoming:%a} "
         self.next_run_label.setText(f"{day}{upcoming:%H:%M} ET&nbsp; "
                                     + _small(f"{upcoming.astimezone(IST):%H:%M} IST"))

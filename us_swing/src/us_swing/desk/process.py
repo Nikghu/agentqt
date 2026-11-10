@@ -1,11 +1,13 @@
 """
 Module: MD-DSK-001.010.M04 — desk/process.py
 Parent SRD: SRD-DSK-001.010
-Also: SRD-DSK-003.008 (market clock events and event runs)
+Also: SRD-DSK-003.008 (market clock events and event runs), SRD-DSK-001.015 (morning run),
+SRD-DSK-001.019 (parent watch), SRD-DSK-003.013 (run kinds)
 
-The desk main loop: one copy only, heartbeat, commands, runs, stop and resume. Between
-runs it posts market clock events and starts a short ``event`` run when one wakes an
-employee; only the evening and manual runs call the market steps.
+The desk main loop: one copy only, heartbeat, commands, runs, stop and resume. The morning
+run is due by ``morning_due``; between runs the loop posts market clock events and starts a
+short ``event`` run when one wakes an employee; only the morning and manual runs call the
+market steps. A desk launched by the app stops when the app's process ends.
 """
 from __future__ import annotations
 
@@ -16,24 +18,29 @@ import threading
 import time
 from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import IO, Protocol, runtime_checkable
 
 from us_swing.core.desk_contract import CommandKind, DeskState, DeskStep, StepContext
 from us_swing.core.desk_events import post_event
-from us_swing.desk.clock import evening_due, market_events_due
+from us_swing.desk.clock import MANUAL, MORNING, market_events_due, morning_due
 from us_swing.desk.store import DeskStore
 
 if sys.platform == "win32":
+    import ctypes
     import msvcrt
 
 log = logging.getLogger(__name__)
 
 LOCK_NAME = "desk.lock"
-_EVENING = "evening"
-_MANUAL = "manual"
+_MORNING = MORNING
+_MANUAL = MANUAL
 _EVENT = "event"
+_RUN_LOOKBACK = timedelta(days=1)
+_SYNCHRONIZE = 0x00100000
+_WAIT_TIMEOUT = 0x00000102
+_ACCESS_DENIED = 5
 
 
 @runtime_checkable
@@ -73,6 +80,27 @@ def _take_lock(path: Path) -> IO[bytes] | None:
     return handle
 
 
+def pid_alive(pid: int) -> bool:
+    """True while the process ``pid`` is running."""
+    if sys.platform == "win32":
+        kernel = ctypes.windll.kernel32
+        kernel.OpenProcess.restype = ctypes.c_void_p
+        kernel.WaitForSingleObject.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+        kernel.CloseHandle.argtypes = [ctypes.c_void_p]
+        handle = kernel.OpenProcess(_SYNCHRONIZE, False, pid)
+        if not handle:
+            return bool(kernel.GetLastError() == _ACCESS_DENIED)
+        try:
+            return bool(kernel.WaitForSingleObject(handle, 0) == _WAIT_TIMEOUT)
+        finally:
+            kernel.CloseHandle(handle)
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    return True
+
+
 def _release_lock(handle: IO[bytes]) -> None:
     handle.seek(0)
     try:
@@ -97,13 +125,16 @@ class DeskProcess:
         poll_s: float = 2.0,
         beat_s: float = 10.0,
         events: EventHandler | None = None,
+        parent_alive: Callable[[], bool] | None = None,
     ) -> None:
         """Set up the desk; nothing is opened until :meth:`start`.
 
-        ``daily_check`` runs at start and after each evening run (task time sync).
+        ``daily_check`` runs once at start (old desk task clean-up).
         ``events`` handles market clock and other events between runs.
+        ``parent_alive`` says whether the app that launched the desk still runs.
         """
         self._events = events
+        self._parent_alive = parent_alive
         self._posted: set[tuple[str, str]] = set()
         self._home = home
         self._steps = list(steps)
@@ -197,12 +228,13 @@ class DeskProcess:
             self._db.beat(now)
             self._last_beat = now
         self._apply_commands(now)
+        if not self._stopping() and self._parent_gone():
+            self._set(DeskState.STOPPING, now)
         if not self._stopping() and self._state is not DeskState.PAUSED:
             if self._rerun or self._run_now:
                 self._do_run(_MANUAL)
-            elif evening_due(now, self._db.last_run_start(_EVENING)):
-                self._do_run(_EVENING)
-                self._run_daily_check()
+            elif morning_due(now, self._db.runs_since(now - _RUN_LOOKBACK)):
+                self._do_run(_MORNING)
             else:
                 self._event_tick(now)
         if self._stopping():
@@ -212,6 +244,12 @@ class DeskProcess:
 
     def _stopping(self) -> bool:
         return self._state is DeskState.STOPPING
+
+    def _parent_gone(self) -> bool:
+        if self._parent_alive is None or self._parent_alive():
+            return False
+        log.info("[Desk] The app has closed; stopping the desk")
+        return True
 
     # ── commands ──────────────────────────────────────────────────────────
 
@@ -258,7 +296,7 @@ class DeskProcess:
             else:
                 reason = "desk is busy with a run"
             self._db.finish_command(cmd.id, reason == "", now, reason)
-        return stop
+        return stop or self._parent_gone()
 
     # ── runs ──────────────────────────────────────────────────────────────
 

@@ -2,7 +2,8 @@
 Module: MD-DSK-007.001.M21 — core/desk_alerts.py
 Parent SRD: SRD-DSK-007.001
 Also: SRD-DSK-007.002 (once a day), SRD-DSK-007.003 (Telegram), SRD-DSK-007.005 (whole run
-failed), SRD-DSK-007.006 (open alerts close when the source works again)
+failed), SRD-DSK-007.006 (open alerts close when the source works again), SRD-DSK-007.007
+(candles not up to date, closed by a later ok run)
 
 AI problem alerts: sorts an LLM error into a problem the user must fix (Claude login, OpenRouter
 key or credit), keeps one alert per problem per day in ``desk.db``, sends it to Telegram and
@@ -22,7 +23,7 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
-from us_swing.core.desk_contract import DB_NAME
+from us_swing.core.desk_contract import DB_NAME, utc_text
 
 log = logging.getLogger(__name__)
 
@@ -53,7 +54,12 @@ _FIX = {
                "AI Desk → Desk settings."),
     "run_failed": ("No employee gave a valid answer",
                    "Open AI Desk → Team at work → Event log to see each error."),
+    "candles": ("Candles not up to date",
+                "Open Settings → Candle data and press Update now with TWS connected. The desk "
+                "tries again after 15 minutes, up to 3 times a day; after that press Run now "
+                "in AI Desk."),
 }
+DATA_PROBLEMS = ("candles",)
 USER_PROBLEMS = ("login", "key", "credit")
 
 Sender = Callable[[str], bool]
@@ -103,7 +109,7 @@ def raise_alert(home: Path, kind: str, source: str, run_id: int, detail: str,
 
     Args:
         home: Desk folder.
-        kind: ``login``, ``key``, ``credit`` or ``run_failed``.
+        kind: ``login``, ``key``, ``credit``, ``run_failed`` or ``candles``.
         source: The model source (``claude``, ``openrouter``) or empty.
         run_id: Desk run that found the problem.
         detail: What happened, in a line.
@@ -170,7 +176,8 @@ def open_alerts(home: Path, now: datetime) -> list[Alert]:
     """Alerts of the last day that are not fixed yet, newest first.
 
     A login, key or credit alert closes once its source gives a valid answer later; a whole-run
-    alert closes once any valid answer comes later.
+    alert closes once any valid answer comes later; a candles alert closes once a later morning
+    or manual run ends ok.
     """
     since = (now - timedelta(hours=OPEN_HOURS)).astimezone(NY).isoformat(timespec="seconds")
     rows = _read(home, "SELECT id, created, kind, source, run_id, title, text, fix, sent "
@@ -178,14 +185,22 @@ def open_alerts(home: Path, now: datetime) -> list[Alert]:
     out: list[Alert] = []
     for aid, created, kind, source, run_id, title, text, fix, sent in rows:
         when = datetime.fromisoformat(str(created))
-        same = "AND source = ?" if kind in USER_PROBLEMS else ""
-        params: tuple[object, ...] = (str(created), source) if same else (str(created),)
-        fixed = _read(home, "SELECT 1 FROM activity WHERE valid = 1 AND started > ? "
-                            f"{same} LIMIT 1", params)
-        if not fixed:
+        if not _fixed(home, str(kind), str(source), when):
             out.append(Alert(int(str(aid)), when, str(kind), str(source), int(str(run_id)),
                              str(title), str(text), str(fix), bool(sent)))
     return out
+
+
+def _fixed(home: Path, kind: str, source: str, when: datetime) -> bool:
+    """True when something after ``when`` shows the alert's problem is gone."""
+    if kind in DATA_PROBLEMS:
+        return bool(_read(home, "SELECT 1 FROM runs WHERE kind IN ('morning', 'manual') AND "
+                                "result = 'ok' AND started_at > ? LIMIT 1", (utc_text(when),)))
+    same = "AND source = ?" if kind in USER_PROBLEMS else ""
+    params: tuple[object, ...] = (when.isoformat(timespec="seconds"), source) if same else (
+        when.isoformat(timespec="seconds"),)
+    return bool(_read(home, "SELECT 1 FROM activity WHERE valid = 1 AND started > ? "
+                            f"{same} LIMIT 1", params))
 
 
 def run_outcome(home: Path, run_id: int) -> tuple[int, int, str]:

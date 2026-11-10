@@ -267,7 +267,7 @@ class PipelineView(QWidget):
     def _build(self, members: Sequence[Member]) -> None:
         self._clear()
         cols: list[tuple[str, list[StageCard]]] = [
-            ("Trigger", [StageCard("trigger", "Evening run", "US weekdays, 16:25 ET")]),
+            ("Trigger", [StageCard("trigger", "Morning run", "Trading days, from 04:00 ET")]),
             ("Data steps", [StageCard("data", "Market data", "Regime, sectors, ideas, news")]),
         ]
         for n, group in enumerate(levels(members), start=1):
@@ -358,7 +358,7 @@ class PipelineView(QWidget):
         if trigger is None or data is None:
             return
         if view is None:
-            trigger.set_state("asleep", "Upcoming", "Next: 16:25 ET · 02:55 IST")
+            trigger.set_state("asleep", "Upcoming", "Pre-market, from 04:00 ET")
             data.set_state("asleep", "Asleep", "No AI, no cost")
             return
         run = view.run
@@ -767,7 +767,7 @@ class TeamAtWork(QWidget):
     def _now_text(self, working: Member | None) -> str:
         view = self._view
         if view is None:
-            return "The desk has not run yet. The evening run starts at 16:25 ET (02:55 IST)."
+            return "The desk has not run yet. The morning run starts from 04:00 ET on trading days."
         run = view.run
         if run.ended is None and view.ai_started is None:
             return "Data steps are saving market data. No AI and no cost yet."

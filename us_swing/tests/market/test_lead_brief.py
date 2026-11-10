@@ -13,7 +13,7 @@ from us_swing.market.risk_check import RiskCheckSkill, RiskVeto, RiskVetoes
 from us_swing.market.setup_review import SetupReview, SetupReviewSkill
 from us_swing.market.store import MarketStore, RegimeViewRow, SectorViewRow
 
-EVENING = "The market is choppy; favour Tech longs near their triggers and wait for a breakout."
+MORNING = "The market is choppy; favour Tech longs near their triggers and wait for a breakout."
 
 # 8 long and 3 short ideas inside the limits (three sectors, so no cap is hit), plus one long (LNGBAD) that breaks the stop rule.
 SECTORS = ("Tech", "Energy", "Health Care")
@@ -30,7 +30,7 @@ def _picks(*items: tuple[str, str]) -> list[dict[str, str]]:
 
 
 def _brief(*items: tuple[str, str]) -> LeadBrief:
-    return LeadBrief.model_validate({"picks": _picks(*items), "evening": EVENING})
+    return LeadBrief.model_validate({"picks": _picks(*items), "morning": MORNING})
 
 
 def _stage(env: Env, risk: bool = True) -> LeadBriefSkill:
@@ -85,8 +85,8 @@ def test_valid_answer() -> None:
     answer = LeadBrief.model_validate({
         "picks": _picks(*[("long", f"LNG0{i}") for i in (1, 2, 3)],
                         *[("short", f"SHT0{i}") for i in (1, 2)]),
-        "evening": "x" * 600})
-    assert len(answer.picks) == 5 and len(answer.evening) == 600
+        "morning": "x" * 600})
+    assert len(answer.picks) == 5 and len(answer.morning) == 600
     assert isinstance(answer.picks[0], LeadPick)
 
 
@@ -102,24 +102,24 @@ def test_vetoed_or_extra_picks(p5b: Env, caplog: pytest.LogCaptureFixture) -> No
     assert len(logs) == 1 and "3 pick(s)" in logs[0].getMessage()
 
 
-@pytest.mark.parametrize("data", [{"evening": "x" * 1300}, {"evening": "short"}])
+@pytest.mark.parametrize("data", [{"morning": "x" * 1300}, {"morning": "short"}])
 def test_bad_lead_answer(data: dict[str, Any]) -> None:
     """UT-MKT-005.015.M08.T03: A 1,300-character brief or a 130-character reason is refused."""
-    base: dict[str, Any] = {"picks": _picks(("long", "LNG01")), "evening": EVENING}
+    base: dict[str, Any] = {"picks": _picks(("long", "LNG01")), "morning": MORNING}
     with pytest.raises(ValidationError):
         LeadBrief.model_validate({**base, **data})
     with pytest.raises(ValidationError):
         LeadPick.model_validate({"side": "long", "symbol": "AAA", "reason": "x" * 130})
 
 
-def test_picks_and_evening_brief(p5b: Env) -> None:
-    """UT-MKT-005.016.M08.T01: Run twice; rows of the second run with rank; feed kind evening."""
+def test_picks_and_morning_brief(p5b: Env) -> None:
+    """UT-MKT-005.016.M08.T01: Run twice; rows of the second run with rank; feed kind morning."""
     skill = _stage(p5b)
     facts = skill.facts(p5b.home)
     skill.act(FakeCtx(p5b.home, _brief(("long", "LNG01"), ("short", "SHT01"))), facts)
     items = skill.act(FakeCtx(p5b.home, _brief(("long", "LNG04"), ("long", "LNG03"),
                                                ("short", "SHT02"))), facts)
-    assert [(i.kind, i.text, i.data_day) for i in items] == [("evening", EVENING, p5b.day)]
+    assert [(i.kind, i.text, i.data_day) for i in items] == [("morning", MORNING, p5b.day)]
     assert query(p5b.home, "SELECT side, symbol, rank FROM lead_picks "
                  "ORDER BY side, rank") == [
         ("long", "LNG04", 1), ("long", "LNG03", 2), ("short", "SHT02", 1)]

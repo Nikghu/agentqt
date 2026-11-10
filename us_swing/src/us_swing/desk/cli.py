@@ -3,15 +3,17 @@ Module: MD-DSK-001.020.M06 — desk/cli.py
 Parent SRD: SRD-DSK-001.020
 Also: SRD-DSK-001.022 — ``desk proof``; SRD-DSK-005.005 — ``desk replay``;
 SRD-DSK-008.008 — ``desk replay --draft FILE --out FILE``;
-SRD-DSK-003.008 — the desk loop gets the event handler
+SRD-DSK-003.008 — the desk loop gets the event handler;
+SRD-DSK-001.019 — ``--parent PID`` gives the loop a parent watch
 
 ``python -m us_swing desk [sub-command]``. With no sub-command the desk process runs.
 """
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import Callable
-from datetime import date, datetime, tzinfo
+from functools import partial
 from pathlib import Path
 
 from us_swing.core.desk_contract import (
@@ -26,12 +28,14 @@ from us_swing.core.desk_contract import (
 from us_swing.core.desk_employee import parse
 from us_swing.core.desk_steps import load_proof, load_steps
 from us_swing.desk import task
-from us_swing.desk.process import DeskProcess, EventHandler
+from us_swing.desk.process import DeskProcess, EventHandler, pid_alive
 from us_swing.desk.replay import replay, report
 
+log = logging.getLogger(__name__)
+
 USAGE = (
-    "usage: desk [--resume] | desk start | status | pause | resume | stop | run-now"
-    " | install | uninstall | proof | replay RUN [--employee ID] [--model NAME]"
+    "usage: desk [--resume] [--parent PID] | desk start | status | pause | resume | stop"
+    " | run-now | proof | replay RUN [--employee ID] [--model NAME]"
     " [--draft FILE --out FILE]"
 )
 _COMMANDS = {
@@ -42,15 +46,24 @@ _COMMANDS = {
 }
 
 
-def _local_tz() -> tzinfo:
-    zone = datetime.now().astimezone().tzinfo
-    if zone is None:
-        raise RuntimeError("no local time zone")
-    return zone
+def _remove_old_tasks() -> None:
+    ok, msg = task.remove_old_tasks()
+    if not ok:
+        log.warning("[Desk] Could not delete the old desk Windows tasks: %s", msg)
 
 
-def _sync_task() -> None:
-    task.sync_evening_task(date.today(), _local_tz())
+def _run_options(argv: list[str]) -> tuple[bool, int | None] | None:
+    """Return (resume, parent pid) for ``[--resume] [--parent PID]``, or ``None`` if bad."""
+    resume, parent, rest = False, None, list(argv)
+    while rest:
+        flag = rest.pop(0)
+        if flag == "--resume":
+            resume = True
+        elif flag == "--parent" and rest and rest[0].isdigit():
+            parent = int(rest.pop(0))
+        else:
+            return None
+    return resume, parent
 
 
 def _is_alive(state: DeskState, message: str) -> bool:
@@ -61,14 +74,24 @@ def main(
     argv: list[str],
     home: Path | None = None,
     proof: Callable[[], Callable[[Path], str | None]] = load_proof,
+    process: Callable[..., DeskProcess] = DeskProcess,
 ) -> int:
-    """Run a desk sub-command and return the exit code; ``proof`` loads the proof runner."""
+    """Run a desk sub-command and return the exit code.
+
+    ``proof`` loads the proof runner; ``process`` builds the desk loop (a fake in tests).
+    """
     home = home or desk_home()
-    if not argv or argv == ["--resume"]:
+    if not argv or argv[0].startswith("--"):
+        options = _run_options(argv)
+        if options is None:
+            print(USAGE)
+            return 2
+        resume, parent = options
         steps = load_steps()
         events = next((s for s in steps if isinstance(s, EventHandler)), None)
-        return DeskProcess(
-            home, steps, resume=bool(argv), daily_check=_sync_task, events=events
+        return process(
+            home, steps, resume=resume, daily_check=_remove_old_tasks, events=events,
+            parent_alive=None if parent is None else partial(pid_alive, parent),
         ).run()
     name = argv[0]
     if name == "replay":
@@ -87,14 +110,6 @@ def main(
         task.launch(resume=True)
         print("Desk is starting")
         return 0
-    if name == "install":
-        ok, msg = task.install(date.today(), _local_tz())
-        print("Desk tasks installed" if ok else f"Could not install desk tasks: {msg}")
-        return 0 if ok else 1
-    if name == "uninstall":
-        ok, msg = task.uninstall()
-        print("Desk tasks removed" if ok else f"Could not remove desk tasks: {msg}")
-        return 0 if ok else 1
     if name == "proof":
         report = proof()(home)
         if report is None:

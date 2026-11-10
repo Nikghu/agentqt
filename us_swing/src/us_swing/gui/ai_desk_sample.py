@@ -9,7 +9,6 @@ from __future__ import annotations
 
 SEAT_CAPS = {"Experts": 3, "Champions": 5, "Juniors": 30}
 MONTHLY_BUDGET = 10.0
-EVENING_RUN_ET = "16:25"
 DATA_FOLDER = "~/.usswing/desk/"
 LLM_SOURCES = (
     "OpenRouter (main)",

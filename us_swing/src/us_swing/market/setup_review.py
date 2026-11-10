@@ -55,7 +55,7 @@ def ideas_day(store: MarketStore, candles: Path) -> tuple[str, str]:
     day = str(frame["day"].iloc[0]) if not frame.empty and frame["day"].iloc[0] else ""
     if not day:
         return "", "no ideas yet"
-    spy_day = latest_spy_day(candles)
+    spy_day = latest_spy_day(candles, store)
     if spy_day != day:
         return day, f"ideas are for {day} but the latest SPY candle is {spy_day}"
     return day, ""

@@ -1074,6 +1074,7 @@ reader = CandleReader(candles)                      # missing file -> CandleChec
 wanted = member_symbols(reader.symbols(), universe).symbols + [SPY]
 db_last = last candles.db day per wanted symbol
 store.trim_topup(db_last)                           # delete copy rows on/before db_last[sym]
+store.drop_unsettled_topup()                        # copy rows fetched before 16:30 ET of their day (bar may not be final)
 behind = [s for s in wanted if max(db_last[s], copy_last[s]) < target]
 if behind:
     yahoo = fetch(behind, start = min(db_last of behind) - 20 days, end = target)

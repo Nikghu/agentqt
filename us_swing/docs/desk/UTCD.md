@@ -45,23 +45,23 @@
 | UT-DSK-001.001.M02.T09 | MD-DSK-001.001.M02 | Negative | Root path is a file (SRD-DSK-001.001) | root points to a file | raises `OSError`; nothing written | Pass |
 | UT-DSK-001.001.M02.T10 | MD-DSK-001.001.M02 | Negative | Newer schema refused (SRD-DSK-001.002) | `desk.db` with `user_version` 2 | raises `ValueError` "newer desk data" | Pass |
 | UT-DSK-001.001.M02.T11 | MD-DSK-001.001.M02 | Negative | Naive time refused (SRD-DSK-001.003) | heartbeat without time zone | raises `ValueError` | Pass |
-| UT-DSK-001.015.M03.T01 | MD-DSK-001.015.M03 | Positive | Due at the open of the morning window (SRD-DSK-001.015) | Wed 2026-11-11 04:00 ET, no runs | True | Not Run |
-| UT-DSK-001.015.M03.T02 | MD-DSK-001.015.M03 | Negative | Not due before 04:00 ET or from 16:00 ET (SRD-DSK-001.015) | Wed 03:59 ET; Wed 16:00 ET | False; False | Not Run |
-| UT-DSK-001.015.M03.T03 | MD-DSK-001.015.M03 | Negative | Not due after an ok morning or manual run today (SRD-DSK-001.015) | Wed 09:00 ET, morning ok at 08:31; or manual ok at 08:40 | False | Not Run |
-| UT-DSK-001.015.M03.T04 | MD-DSK-001.015.M03 | Edge | Weekend and NYSE holiday (SRD-DSK-001.015) | Sat 2026-11-14 09:00 ET; Thu 2026-11-26 09:00 ET | False | Not Run |
-| UT-DSK-001.015.M03.T05 | MD-DSK-001.015.M03 | Positive | Retry 15 min after a failed try, at most 3 (SRD-DSK-001.015) | failed morning at 08:31; now 08:45 / 08:46; 3 failed tries | False / True; False | Not Run |
-| UT-DSK-001.015.M03.T06 | MD-DSK-001.015.M03 | Edge | Yesterday's ok run and an interrupted try do not count (SRD-DSK-001.015, SRD-DSK-003.013) | ok morning yesterday, interrupted morning today 08:31, now 08:35 | True | Not Run |
+| UT-DSK-001.015.M03.T01 | MD-DSK-001.015.M03 | Positive | Due at the open of the morning window (SRD-DSK-001.015) | Wed 2026-11-11 04:00 ET, no runs | True | Pass |
+| UT-DSK-001.015.M03.T02 | MD-DSK-001.015.M03 | Negative | Not due before 04:00 ET or from 16:00 ET (SRD-DSK-001.015) | Wed 03:59 ET; Wed 16:00 ET | False; False | Pass |
+| UT-DSK-001.015.M03.T03 | MD-DSK-001.015.M03 | Negative | Not due after an ok morning or manual run today (SRD-DSK-001.015) | Wed 09:00 ET, morning ok at 08:31; or manual ok at 08:40 | False | Pass |
+| UT-DSK-001.015.M03.T04 | MD-DSK-001.015.M03 | Edge | Weekend and NYSE holiday (SRD-DSK-001.015) | Sat 2026-11-14 09:00 ET; Thu 2026-11-26 09:00 ET | False | Pass |
+| UT-DSK-001.015.M03.T05 | MD-DSK-001.015.M03 | Positive | Retry 15 min after a failed try, at most 3 (SRD-DSK-001.015) | failed morning at 08:31; now 08:45 / 08:46; 3 failed tries | False / True; False | Pass |
+| UT-DSK-001.015.M03.T06 | MD-DSK-001.015.M03 | Edge | Yesterday's ok run and an interrupted try do not count (SRD-DSK-001.015, SRD-DSK-003.013) | ok morning yesterday, interrupted morning today 08:31; now 08:35 / 08:46 | False (15 min spacing) / True | Pass |
 | UT-DSK-001.010.M04.T01 | MD-DSK-001.010.M04 | Negative | Second instance exits (SRD-DSK-001.008) | lock held by first `DeskProcess` | second returns at once; state not changed | Pass |
 | UT-DSK-001.010.M04.T02 | MD-DSK-001.010.M04 | Positive | Heartbeat written (SRD-DSK-001.009) | fake clock moves 10 s | heartbeat updated | Pass |
 | UT-DSK-001.010.M04.T03 | MD-DSK-001.010.M04 | Positive | Pause then resume (SRD-DSK-001.011) | pause, then resume commands | Paused, then Sleeping; both done | Pass |
 | UT-DSK-001.010.M04.T04 | MD-DSK-001.010.M04 | Negative | Resume when Sleeping (SRD-DSK-001.011) | resume command | rejected with reason; state Sleeping | Pass |
-| UT-DSK-001.010.M04.T05 | MD-DSK-001.010.M04 | Positive | No run while Paused (SRD-DSK-001.011) | Paused at 09:00 ET on a trading day | no run row | Not Run |
+| UT-DSK-001.010.M04.T05 | MD-DSK-001.010.M04 | Positive | No run while Paused (SRD-DSK-001.011) | Paused at 09:00 ET on a trading day | no run row | Pass |
 | UT-DSK-001.010.M04.T06 | MD-DSK-001.010.M04 | Positive | Stop saves and exits (SRD-DSK-001.012) | stop command | state Stopped; resume point saved; loop ends | Pass |
 | UT-DSK-001.010.M04.T07 | MD-DSK-001.010.M04 | Edge | Stop during run ends after current step (SRD-DSK-001.012) | stop sent by step 1 of 2 | step 2 not called; run interrupted; Stopped | Pass |
 | UT-DSK-001.010.M04.T08 | MD-DSK-001.010.M04 | Positive | Task start honours Stopped (SRD-DSK-001.013) | saved Stopped, `resume=False` | exits at once; state Stopped | Pass |
 | UT-DSK-001.010.M04.T09 | MD-DSK-001.010.M04 | Positive | Start clears Stopped (SRD-DSK-001.013) | saved Stopped, `resume=True` | state Sleeping | Pass |
 | UT-DSK-001.010.M04.T10 | MD-DSK-001.010.M04 | Positive | Interrupted run is rerun (SRD-DSK-001.014) | open run row at start | old row interrupted; new manual run ok | Pass |
-| UT-DSK-001.010.M04.T11 | MD-DSK-001.010.M04 | Positive | Morning run calls steps (SRD-DSK-001.016, SRD-DSK-003.013) | 2 steps, clock Wed 08:31 ET | both called in order; run kind morning, ok; Sleeping | Not Run |
+| UT-DSK-001.010.M04.T11 | MD-DSK-001.010.M04 | Positive | Morning run calls steps (SRD-DSK-001.016, SRD-DSK-003.013) | 2 steps, clock Wed 08:31 ET | both called in order; run kind morning, ok; Sleeping | Pass |
 | UT-DSK-001.010.M04.T12 | MD-DSK-001.010.M04 | Edge | Zero steps (SRD-DSK-001.016) | no steps, run-now | run ok | Pass |
 | UT-DSK-001.010.M04.T13 | MD-DSK-001.010.M04 | Negative | Failed step sets Error (SRD-DSK-001.017) | step raises ValueError | run failed; state Error; message names the step | Pass |
 | UT-DSK-001.010.M04.T14 | MD-DSK-001.010.M04 | Positive | Good run clears Error (SRD-DSK-001.017) | Error, then run-now with good step | state Sleeping | Pass |
@@ -77,24 +77,24 @@
 | UT-DSK-001.010.M04.T24 | MD-DSK-001.010.M04 | Negative | A crash in the loop is saved as Error (SRD-DSK-001.017) | sleep raises RuntimeError | exit code 1; state Error with the reason | Pass |
 | UT-DSK-001.010.M04.T25 | MD-DSK-001.010.M04 | Negative | A pause taken during a failed run is honoured once (SRD-DSK-001.011) | step 1 sends pause, step 2 fails; resume; good run | Paused with the failure message; then Sleeping after the good run | Pass |
 | UT-DSK-001.010.M04.T26 | MD-DSK-001.010.M04 | Negative | Pause cancels a run-now from the same batch (SRD-DSK-001.011) | run-now, pause, then resume | no run row | Pass |
-| UT-DSK-001.010.M04.T27 | MD-DSK-001.010.M04 | Positive | Parent gone stops the desk (SRD-DSK-001.019) | `parent_alive` returns False on the 2nd tick | state Stopped; resume point saved; loop ends | Not Run |
-| UT-DSK-001.010.M04.T28 | MD-DSK-001.010.M04 | Edge | Parent gone during a run (SRD-DSK-001.019) | parent dies during step 1 of 2 | step 2 not called; run interrupted; rerun saved | Not Run |
-| UT-DSK-001.010.M04.T29 | MD-DSK-001.010.M04 | Negative | No parent watch without a parent (SRD-DSK-001.019) | `parent_alive=None`, 3 ticks | state Sleeping | Not Run |
-| UT-DSK-001.010.M04.T30 | MD-DSK-001.010.M04 | Positive | Failed morning try is retried after 15 min (SRD-DSK-001.015) | failing step; clock 08:31, 08:40, 08:47 ET | run rows at 08:31 and 08:47 only | Not Run |
-| UT-DSK-001.010.M04.T31 | MD-DSK-001.010.M04 | Positive | pid_alive for this process and a dead pid (SRD-DSK-001.019) | `os.getpid()`; pid of a finished child | True; False | Not Run |
+| UT-DSK-001.010.M04.T27 | MD-DSK-001.010.M04 | Positive | Parent gone stops the desk (SRD-DSK-001.019) | `parent_alive` returns False on the 2nd tick | state Stopped; resume point saved; loop ends | Pass |
+| UT-DSK-001.010.M04.T28 | MD-DSK-001.010.M04 | Edge | Parent gone during a run (SRD-DSK-001.019) | parent dies during step 1 of 2 | step 2 not called; run interrupted; rerun saved | Pass |
+| UT-DSK-001.010.M04.T29 | MD-DSK-001.010.M04 | Negative | No parent watch without a parent (SRD-DSK-001.019) | `parent_alive=None`, 3 ticks | state Sleeping | Pass |
+| UT-DSK-001.010.M04.T30 | MD-DSK-001.010.M04 | Positive | Failed morning try is retried after 15 min (SRD-DSK-001.015) | failing step; clock 08:31, 08:40, 08:47 ET | run rows at 08:31 and 08:47 only | Pass |
+| UT-DSK-001.010.M04.T31 | MD-DSK-001.010.M04 | Positive | pid_alive for this process and a dead pid (SRD-DSK-001.019) | `os.getpid()`; pid of a finished child | True; False | Pass |
 | UT-DSK-001.018.M05.T01 | MD-DSK-001.018.M05 | Positive | Desk command when not frozen (SRD-DSK-001.018) | `sys.frozen` unset | `pythonw.exe <repo>/us_swing/run_gui.py desk` | Pass |
 | UT-DSK-001.018.M05.T02 | MD-DSK-001.018.M05 | Positive | Desk command when frozen (SRD-DSK-001.018) | `sys.frozen` set | `<exe> desk` | Pass |
-| UT-DSK-001.018.M05.T03 | MD-DSK-001.018.M05 | Positive | Old desk tasks deleted (SRD-DSK-001.018) | fake schtasks runner | 2 delete calls: USSwing_Desk, USSwing_Desk_Evening; (True, "") | Not Run |
-| UT-DSK-001.018.M05.T04 | MD-DSK-001.018.M05 | Negative | Missing task is not an error; other failure is (SRD-DSK-001.018) | runner says "cannot find"; runner says "access denied" | (True, ""); (False, "access denied") | Not Run |
-| UT-DSK-001.018.M05.T05 | MD-DSK-001.004.M01 | Positive | Launch passes the parent pid (SRD-DSK-001.019, .020) | `launch_desk(True, parent=1234)` with a fake Popen | command ends with `--resume --parent 1234` | Not Run |
-| UT-DSK-001.018.M05.T06 | MD-DSK-001.004.M01 | Edge | Launch without a parent (SRD-DSK-001.020) | `launch_desk(True)` | no `--parent` in the command | Not Run |
+| UT-DSK-001.018.M05.T03 | MD-DSK-001.018.M05 | Positive | Old desk tasks deleted (SRD-DSK-001.018) | fake schtasks runner | 2 delete calls: USSwing_Desk, USSwing_Desk_Evening; (True, "") | Pass |
+| UT-DSK-001.018.M05.T04 | MD-DSK-001.018.M05 | Negative | Missing task is not an error; other failure is (SRD-DSK-001.018) | runner says "cannot find"; runner says "access denied" | (True, ""); (False, "access denied") | Pass |
+| UT-DSK-001.018.M05.T05 | MD-DSK-001.004.M01 | Positive | Launch passes the parent pid (SRD-DSK-001.019, .020) | `launch_desk(True, parent=1234)` with a fake Popen | command ends with `--resume --parent 1234` | Pass |
+| UT-DSK-001.018.M05.T06 | MD-DSK-001.004.M01 | Edge | Launch without a parent (SRD-DSK-001.020) | `launch_desk(True)` | no `--parent` in the command | Pass |
 | UT-DSK-001.020.M06.T01 | MD-DSK-001.020.M06 | Positive | Status prints state (SRD-DSK-001.020) | Sleeping store | exit 0; text contains "Sleeping" | Pass |
 | UT-DSK-001.020.M06.T02 | MD-DSK-001.020.M06 | Positive | Pause sends command (SRD-DSK-001.020) | `desk pause` | pending pause row; exit 0 | Pass |
 | UT-DSK-001.020.M06.T03 | MD-DSK-001.020.M06 | Negative | Unknown sub-command (SRD-DSK-001.020) | `desk fly` | exit 2; usage text | Pass |
 | UT-DSK-001.020.M06.T04 | MD-DSK-001.020.M06 | Negative | Command with no desk (SRD-DSK-001.020) | `desk stop`, no `desk.db` | exit 1; text "Desk is off" | Pass |
-| UT-DSK-001.020.M06.T05 | MD-DSK-001.020.M06 | Positive | `--parent PID` gives the loop a parent watch (SRD-DSK-001.020) | `desk --resume --parent 1234` with a fake process class | process built with resume True and a parent check for 1234 | Not Run |
-| UT-DSK-001.020.M06.T06 | MD-DSK-001.020.M06 | Negative | `install` is gone (SRD-DSK-001.020) | `desk install` | exit 2; usage text without install | Not Run |
-| UT-DSK-001.001.M02.T12 | MD-DSK-001.001.M02 | Positive | Runs since a time (SRD-DSK-001.015) | 3 runs, one older than the cut | 2 (kind, start, result) tuples, oldest first | Not Run |
+| UT-DSK-001.020.M06.T05 | MD-DSK-001.020.M06 | Positive | `--parent PID` gives the loop a parent watch (SRD-DSK-001.020) | `desk --resume --parent 1234` with a fake process class | process built with resume True and a parent check for 1234 | Pass |
+| UT-DSK-001.020.M06.T06 | MD-DSK-001.020.M06 | Negative | `install` is gone (SRD-DSK-001.020) | `desk install` | exit 2; usage text without install | Pass |
+| UT-DSK-001.001.M02.T12 | MD-DSK-001.001.M02 | Positive | Runs since a time (SRD-DSK-001.015) | 3 runs, one older than the cut | 2 (kind, start, result) tuples, oldest first | Pass |
 | UT-DSK-001.021.M07.T01 | MD-DSK-001.021.M07 | Positive | Steps load from the list (SRD-DSK-001.021) | list with one test step path | one step with its name | Pass |
 | UT-DSK-001.021.M07.T02 | MD-DSK-001.021.M07 | Negative | Bad path is left out (SRD-DSK-001.021) | list with a missing module | empty list; warning logged | Pass |
 | UT-DSK-001.022.M06.T01 | MD-DSK-001.020.M06 | Positive | Proof report printed (SRD-DSK-001.022) | `desk proof`; runner returns a report | report printed; exit 0 | Pass |
@@ -244,9 +244,9 @@
 | UT-DSK-007.004.M11.T02 | MD-DSK-004.001.M11 | Negative | Bad form is not a problem (SRD-DSK-007.001) | wrong answer form | retried on the same source; no alert | Pass |
 | UT-DSK-007.005.M10.T01 | MD-DSK-003.001.M10 | Positive | Whole run failed (SRD-DSK-007.005) | all calls bad; all good | one alert; none | Pass |
 | UT-DSK-007.006.M21.T01 | MD-DSK-007.001.M21 | Positive | Close when fixed (SRD-DSK-007.006) | later valid calls; 25 hours later | closes by source; run alert by any; old alerts gone | Pass |
-| UT-DSK-007.007.M21.T01 | MD-DSK-007.001.M21 | Positive | Candles alert stored and sent once a day (SRD-DSK-007.007) | `raise_alert(kind='candles')` twice the same day | one row titled "Candles not up to date"; one send | Not Run |
-| UT-DSK-007.007.M21.T02 | MD-DSK-007.001.M21 | Positive | Candles alert closed by a later ok run (SRD-DSK-007.007) | alert at 08:31 ET; morning run ok at 08:47 | not in `open_alerts` | Not Run |
-| UT-DSK-007.007.M21.T03 | MD-DSK-007.001.M21 | Negative | Candles alert stays after a failed run or a valid AI answer (SRD-DSK-007.007) | failed morning run later; valid activity row later | still open | Not Run |
+| UT-DSK-007.007.M21.T01 | MD-DSK-007.001.M21 | Positive | Candles alert stored and sent once a day (SRD-DSK-007.007) | `raise_alert(kind='candles')` twice the same day | one row titled "Candles not up to date"; one send | Pass |
+| UT-DSK-007.007.M21.T02 | MD-DSK-007.001.M21 | Positive | Candles alert closed by a later ok run (SRD-DSK-007.007) | alert at 08:31 ET; morning run ok at 08:47 | not in `open_alerts` | Pass |
+| UT-DSK-007.007.M21.T03 | MD-DSK-007.001.M21 | Negative | Candles alert stays after a failed run or a valid AI answer (SRD-DSK-007.007) | failed morning run later; valid activity row later | still open | Pass |
 
 ## FO-DSK-008: Employee File and Versions
 

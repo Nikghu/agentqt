@@ -570,7 +570,7 @@ morning_due(now, runs):          # runs = (kind, started_at, result) of the last
 
 **Loop (`desk/process.py`).** `tick()` order: heartbeat → commands → parent check → `rerun`/`run_now` → `morning_due(now, store.runs_since(now - 1 day))` → event tick. `daily_check` now runs once at start only (old-task clean-up).
 
-**Parent watch.** `DeskProcess(parent_alive=...)`. When it returns False the desk logs `[Desk] The app has closed; stopping the desk` and goes to Stopping; between steps of a run `_commands_during_run` also returns stop, so the run ends `interrupted` and `rerun` is saved (caught up at the next start). `pid_alive(pid)` (Windows): `OpenProcess(SYNCHRONIZE)` then `WaitForSingleObject(h, 0) == WAIT_TIMEOUT`; no handle = gone. Elsewhere `os.kill(pid, 0)`.
+**Parent watch.** `DeskProcess(parent_alive=...)`. When it returns False the desk logs `[Desk] The app has closed; stopping the desk` and goes to Stopping; between steps of a run `_commands_during_run` also returns stop, so the run ends `interrupted` and `rerun` is saved (caught up at the next start). `pid_alive(pid)` (Windows): `OpenProcess(SYNCHRONIZE)` then `WaitForSingleObject(h, 0) == WAIT_TIMEOUT`; no handle = gone, except access denied (error 5) = alive. Elsewhere `os.kill(pid, 0)`.
 
 **CLI.** `desk [--resume] [--parent PID]`; `install`/`uninstall` removed. `launch_desk(resume=True, parent=None)` adds `--parent <pid>`. Start-up `daily_check` = `task.remove_old_tasks()`: `schtasks /delete /tn USSwing_Desk /f` and `USSwing_Desk_Evening`; "cannot find" is not an error; failures are logged once as a warning.
 

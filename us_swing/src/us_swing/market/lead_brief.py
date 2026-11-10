@@ -1,11 +1,11 @@
 """
 Module: MD-MKT-005.014.M08 — market/lead_brief.py
 Parent SRD: SRD-MKT-005.014
-Also: SRD-MKT-005.015 (picks and evening brief), SRD-MKT-005.016 (``lead_picks``, feed),
-SRD-MKT-006.010 (news view and final scores in the facts)
+Also: SRD-MKT-005.015 (picks and morning brief), SRD-MKT-005.016 (``lead_picks``, feed kind
+``morning``), SRD-MKT-006.010 (news view and final scores in the facts)
 
 The lead brief skill: reads the day's views and picks the final ideas, only from ideas
-that passed the risk check, then writes the evening brief for the Floor. The hard limits
+that passed the risk check, then writes the morning brief for the Floor. The hard limits
 are applied again here, so a vetoed idea is never offered even without a risk check.
 Uses only ``core`` types; it never imports the desk harness.
 """
@@ -55,7 +55,7 @@ class LeadBrief(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     picks: list[LeadPick] = Field(default_factory=list, max_length=10)
-    evening: str = Field(min_length=40, max_length=1200)
+    morning: str = Field(min_length=40, max_length=1200)
 
 
 def passed_frame(store: MarketStore, day: str) -> pd.DataFrame:
@@ -118,7 +118,7 @@ class LeadBriefSkill:
             store.close()
 
     def act(self, ctx: AgentContext, facts: Facts) -> list[FeedItem]:
-        """Ask for the picks and the evening brief; keep only picks that passed."""
+        """Ask for the picks and the morning brief; keep only picks that passed."""
         brief = ctx.ask(facts.text, LeadBrief)
         if brief is None:
             return []
@@ -144,4 +144,4 @@ class LeadBriefSkill:
             store.replace_day("lead_picks", day, list(rows.values()))
         finally:
             store.close()
-        return [FeedItem("evening", brief.evening, day)]
+        return [FeedItem("morning", brief.morning, day)]

@@ -20,7 +20,7 @@ from us_swing.gui.ai_desk_sections import make_table, muted, section_frame
 from us_swing.gui.ai_desk_sections3 import _NoFallback
 
 COLUMNS = ("Day", "Version", "Title", "Saved (NY)")
-EMPTY_NOTE = "No report page yet. The first page comes after an evening run with a lead brief"
+EMPTY_NOTE = "No report page yet. The first page comes after a morning run with a lead brief"
 
 
 def _sealed_view() -> QWidget:

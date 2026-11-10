@@ -85,7 +85,7 @@ class SectorViewSkill:
         if days.empty:
             return Facts("", "", False, "no sector data yet")
         day = str(days["date"].iloc[0])
-        spy_day = latest_spy_day(self._candles)
+        spy_day = latest_spy_day(self._candles, store)
         if spy_day != day:
             return Facts("", day, False,
                          f"sector data is for {day} but the latest SPY candle is {spy_day}")

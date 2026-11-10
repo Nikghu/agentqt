@@ -67,7 +67,7 @@ class IdeaStep:
 
     def _inputs(self, store: MarketStore) -> tuple[MarketInputs, int] | None:
         try:
-            reader = CandleReader(self._candles)
+            reader = CandleReader(self._candles, store.home)
         except FileNotFoundError:
             log.warning("[Ideas] No candle file yet; open the app to download candles")
             return None
