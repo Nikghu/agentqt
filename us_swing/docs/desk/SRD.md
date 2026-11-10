@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.9.1: Step B rows SRD-DSK-003.014–.019 and 007.008 approved by user 2026-11-11.
 > v0.9.0: Autonomous desk step B (user, 2026-11-11): baton `step_done` events; SRD-DSK-003.014–.019 and 007.008 added as Draft. SRD-DSK-003.010–.012 need Reopen (one LangGraph graph replaced by events; dependents of a failed step no longer run).
 > v0.8.2: Step A rows Implemented 2026-11-11.
 > v0.8.1: Step A rows approved by user 2026-11-11.
@@ -82,12 +83,12 @@
 | SRD-DSK-003.011 | FO-DSK-003 | Must | A failed or sleeping employee never stops the graph; those that need its view still run and their facts say the view is missing. | node result | facts note | — | Implemented |
 | SRD-DSK-003.012 | FO-DSK-003 | Must | `langgraph` is a desk dependency and the installer bundles it for the frozen desk. | — | package | Only `desk` imports it | Implemented |
 | SRD-DSK-003.013 | FO-DSK-003 | Must | Run kinds are `morning`, `manual` and `event`; runs kept as `evening` stay readable as history. | `runs` | kinds | Only `morning` and `manual` runs call the market steps | Implemented |
-| SRD-DSK-003.014 | FO-DSK-003 | Must | When an employee's turn ends, the router posts a `step_done` event naming the employee, its trigger event and whether it gave a valid result. | employee result | `events` row | Takes the priority, data day and expiry of its trigger event; only the router posts it | Draft |
-| SRD-DSK-003.015 | FO-DSK-003 | Must | For one trigger event, the router wakes a listening employee once every employee it needs has a valid `step_done` for that event. | `events` | wake | Needs not woken by that event count as met; a loop in the needs keeps the chain asleep and is logged | Draft |
-| SRD-DSK-003.016 | FO-DSK-003 | Must | An employee with no valid result is woken again at most twice, 5 minutes apart, then its step is marked failed. | `step_done` row | retry or failed | Tries are kept in `desk.db`; retries skip the 30-minute gap and the once-per-data-day rule | Draft |
-| SRD-DSK-003.017 | FO-DSK-003 | Must | When a step has failed, employees that need it, directly or through others, are not woken and the chain stops there. | failed step | skips, log line | Each skipped employee is logged once | Draft |
-| SRD-DSK-003.018 | FO-DSK-003 | Must | When a chain stops, the employee at level `lead` still runs once and posts a short plan marked partial that lists the missing views. | stopped chain | partial plan | No partial plan when the lead's own step failed | Draft |
-| SRD-DSK-003.019 | FO-DSK-003 | Should | A chain cut off by closing the app carries on from its `step_done` rows at the next start while its trigger event has not expired. | `events` | resumed chain | Finished employees are not woken again | Draft |
+| SRD-DSK-003.014 | FO-DSK-003 | Must | When an employee's turn ends, the router posts a `step_done` event naming the employee, its trigger event and whether it gave a valid result. | employee result | `events` row | Takes the priority, data day and expiry of its trigger event; only the router posts it | Approved |
+| SRD-DSK-003.015 | FO-DSK-003 | Must | For one trigger event, the router wakes a listening employee once every employee it needs has a valid `step_done` for that event. | `events` | wake | Needs not woken by that event count as met; a loop in the needs keeps the chain asleep and is logged | Approved |
+| SRD-DSK-003.016 | FO-DSK-003 | Must | An employee with no valid result is woken again at most twice, 5 minutes apart, then its step is marked failed. | `step_done` row | retry or failed | Tries are kept in `desk.db`; retries skip the 30-minute gap and the once-per-data-day rule | Approved |
+| SRD-DSK-003.017 | FO-DSK-003 | Must | When a step has failed, employees that need it, directly or through others, are not woken and the chain stops there. | failed step | skips, log line | Each skipped employee is logged once | Approved |
+| SRD-DSK-003.018 | FO-DSK-003 | Must | When a chain stops, the employee at level `lead` still runs once and posts a short plan marked partial that lists the missing views. | stopped chain | partial plan | No partial plan when the lead's own step failed | Approved |
+| SRD-DSK-003.019 | FO-DSK-003 | Should | A chain cut off by closing the app carries on from its `step_done` rows at the next start while its trigger event has not expired. | `events` | resumed chain | Finished employees are not woken again | Approved |
 
 ## FO-DSK-004: LLM Gateway and Budget Guard
 
@@ -137,7 +138,7 @@
 | SRD-DSK-007.005 | FO-DSK-007 | Must | A morning or manual run whose employees made calls but gave no valid answer raises a whole-run alert. | run calls | alert | Holds the call count and last error; reopened 2026-11-10: wording only | Implemented |
 | SRD-DSK-007.006 | FO-DSK-007 | Must | An alert stays open for a day until a later valid answer (same source for sign-in problems) closes it. | alerts, activity | open alerts | Read-only for the GUI | Implemented |
 | SRD-DSK-007.007 | FO-DSK-007 | Must | A run stopped by the candle check raises a "Candles not up to date" alert with the number of stocks still behind. | check result | alert | Same once-per-day and Telegram rules; closed by the next run that passes the check | Implemented |
-| SRD-DSK-007.008 | FO-DSK-007 | Must | A chain stopped by a failed step raises one "Desk plan is partial" alert naming the failed step and its last error. | failed step | alert | Same once-per-day and Telegram rules; closed by the next chain that finishes in full | Draft |
+| SRD-DSK-007.008 | FO-DSK-007 | Must | A chain stopped by a failed step raises one "Desk plan is partial" alert naming the failed step and its last error. | failed step | alert | Same once-per-day and Telegram rules; closed by the next chain that finishes in full | Approved |
 
 ## FO-DSK-008: Employee File and Versions
 
