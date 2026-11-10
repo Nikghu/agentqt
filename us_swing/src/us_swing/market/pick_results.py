@@ -125,7 +125,7 @@ class PickResultsStep:
                 log.info("[Results] No lead picks yet")
                 return
             try:
-                bars = CandleReader(self._candles).read(picks["symbol"].unique())
+                bars = CandleReader(self._candles, home).read(picks["symbol"].unique())
             except FileNotFoundError:
                 log.warning("[Results] No candle file yet; open the app to download candles")
                 return

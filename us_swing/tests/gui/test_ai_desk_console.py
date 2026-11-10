@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -11,10 +11,11 @@ from pytestqt.qtbot import QtBot
 
 from tests.desk.test_hiring import _emp
 from us_swing.core.desk_contract import DeskState, DeskStatus
-from us_swing.core.desk_overview import next_evening_run
+from us_swing.core.desk_overview import next_morning_run, run_name
 from us_swing.gui.ai_desk import AiDeskWorkspace
 from us_swing.gui.ai_desk_hiring import hiring_frame
 from us_swing.gui.ai_desk_sections3 import cost_frame, settings_frame
+from us_swing.desk.store import DeskStore
 from us_swing.gui.desk_control import DeskPoller
 
 NY = ZoneInfo("America/New_York")
@@ -27,13 +28,23 @@ def _page(qtbot: QtBot, home: Path) -> AiDeskWorkspace:
     return page
 
 
-def test_next_evening_run() -> None:
-    """UT-GUI-034.065.M34.T01: the next run skips the weekend and a passed 16:25."""
-    assert next_evening_run(SAT) == datetime(2026, 11, 9, 16, 25, tzinfo=NY)
-    tue = datetime(2026, 11, 10, 10, 0, tzinfo=NY)
-    assert next_evening_run(tue) == datetime(2026, 11, 10, 16, 25, tzinfo=NY)
-    late = datetime(2026, 11, 10, 17, 0, tzinfo=NY)
-    assert next_evening_run(late) == datetime(2026, 11, 11, 16, 25, tzinfo=NY)
+def test_next_morning_run(tmp_path: Path) -> None:
+    """UT-GUI-034.065.M34.T01: Next morning run (SRD-GUI-034.065, .069)."""
+    assert next_morning_run(SAT, tmp_path) == datetime(2026, 11, 9, 4, 0, tzinfo=NY)
+    wed = datetime(2026, 11, 11, 3, 0, tzinfo=NY)
+    assert next_morning_run(wed, tmp_path) == datetime(2026, 11, 11, 4, 0, tzinfo=NY)
+    nine = datetime(2026, 11, 11, 9, 0, tzinfo=NY)
+    assert next_morning_run(nine, tmp_path) == nine
+    store = DeskStore(tmp_path)
+    store.end_run(store.start_run("morning", nine - timedelta(minutes=30)), "ok", nine)
+    store.close()
+    assert next_morning_run(nine, tmp_path) == datetime(2026, 11, 12, 4, 0, tzinfo=NY)
+
+
+def test_run_names() -> None:
+    """UT-GUI-034.069.M34.T01: Run names (SRD-GUI-034.069)."""
+    assert [run_name(k) for k in ("morning", "evening", "manual")] == [
+        "Morning run", "Evening run", "Manual run"]
 
 
 def test_header_tiles_and_controls(qtbot: QtBot, tmp_path: Path) -> None:
@@ -46,7 +57,7 @@ def test_header_tiles_and_controls(qtbot: QtBot, tmp_path: Path) -> None:
     assert seg is not None
     assert [b.text() for b in seg.findChildren(QPushButton)] == ["Start", "Pause", "Resume",
                                                                  "Stop"]
-    assert page.next_run_label.text().startswith("Mon 16:25 ET")
+    assert page.next_run_label.text().startswith("Mon 04:00 ET")
     assert "IST" in page.next_run_label.text()
 
 

@@ -2,7 +2,7 @@
 Module: MD-GUI-034.060.M34 — core/desk_overview.py
 Parent SRD: SRD-GUI-034.060
 Also: SRD-GUI-034.063 (today's runs), SRD-GUI-034.064 (team counts)
-Also: SRD-GUI-034.065 (next evening run for the header tiles)
+Also: SRD-GUI-034.065 (next run for the header tiles), SRD-GUI-034.069 (morning run)
 
 AI Desk header and Command facts read from ``desk.db`` read-only: today's runs, the last run,
 AI spend against the month budget and employee counts. Never imports ``desk``.
@@ -12,17 +12,20 @@ from __future__ import annotations
 import sqlite3
 from collections import Counter
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
 from us_swing.core.desk_ai_settings import load_settings
-from us_swing.core.desk_contract import DB_NAME, EVENING_RUN
+from us_swing.core.desk_contract import DB_NAME, MORNING_RUN, utc_text
 from us_swing.core.desk_hiring import employees
+from us_swing.data.market_calendar import get_exchange_status
 
 NY = ZoneInfo("America/New_York")
-_NAMES = {"evening": "Evening run", "manual": "Manual run", "event": "Event runs"}
+_CLOSE = time(16, 0)
+_NAMES = {"morning": "Morning run", "evening": "Evening run", "manual": "Manual run",
+          "event": "Event runs"}
 _WORST = {"failed": 3, "error": 3, "running": 2, "ok": 1}
 
 
@@ -126,12 +129,27 @@ def team_counts(home: Path) -> dict[str, int]:
     return dict(Counter(e.status for e in employees(home)).most_common())
 
 
-def next_evening_run(now: datetime) -> datetime:
-    """The next weekday evening run time (New York) after ``now``."""
+def _trading_day(day: date) -> bool:
+    return get_exchange_status(datetime.combine(day, time(12, 0), NY)) == "open"
+
+
+def next_morning_run(now: datetime, home: Path) -> datetime:
+    """When the next morning run is due (New York).
+
+    Today at the later of 04:00 and ``now`` while today's run is still due (a trading day
+    before 16:00 with no ok morning or manual run since 04:00), else 04:00 on the next
+    trading day.
+    """
     et = now.astimezone(NY)
-    day = et.date()
-    while True:
-        moment = datetime.combine(day, EVENING_RUN, NY)
-        if day.weekday() < 5 and moment > et:
-            return moment
+    start = datetime.combine(et.date(), MORNING_RUN, NY)
+    if _trading_day(et.date()) and et.time() < _CLOSE and not _ran_ok_since(home, start):
+        return max(start, et)
+    day = et.date() + timedelta(days=1)
+    while not _trading_day(day):
         day += timedelta(days=1)
+    return datetime.combine(day, MORNING_RUN, NY)
+
+
+def _ran_ok_since(home: Path, start: datetime) -> bool:
+    return bool(_rows(home, "SELECT 1 FROM runs WHERE kind IN ('morning', 'manual') AND "
+                            "result = 'ok' AND started_at >= ? LIMIT 1", (utc_text(start),)))

@@ -3,7 +3,7 @@
 **Document ID:** TRACE-DSK
 **Version:** 0.1.0
 **Status:** Draft
-**Last Updated:** 2026-11-10
+**Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
 > v0.1.0: One row per Draft FO. Columns fill as each phase completes.
@@ -33,3 +33,6 @@
 | FO-DSK-006 | SRD-DSK-006.001–.010 | DD-DSK-006.001.D01 | MD-DSK-006.001.M18, .004.M19, .009.M20; MD-DSK-002.002.M09, MD-DSK-004.005.M13 | UT-DSK-006.001–.010 (23, Pass) | `core/desk_hiring.py`, `desk/shadow.py`, `desk/weekly_report.py`, `desk/registry.py`, `desk/recorder.py`, `desk/gateway.py`, `desk/employees_step.py`, `core/desk_ai_settings.py`, `core/desk_steps.py` | Implemented | RN-DSK-0.4.0-20261106 |
 | FO-DSK-007 | SRD-DSK-007.001–.006 | DD-DSK-007.001.D01 | MD-DSK-007.001.M21; MD-DSK-004.001.M11, MD-DSK-003.001.M10 | UT-DSK-007.001–.006 (8, Pass) | `core/desk_alerts.py`, `desk/gateway.py`, `desk/employees_step.py` | Implemented | RN-DSK-0.5.0-20261110 |
 | FO-DSK-008 | SRD-DSK-008.001–.009 | DD-DSK-008.001.D01 | MD-DSK-008.001.M22; MD-DSK-002.002.M09, MD-DSK-006.001.M18, MD-DSK-005.005.M17 | UT-DSK-008.001–.009 (17, Pass) | `core/desk_employee.py`, `desk/registry.py`, `desk/replay.py`, `desk/cli.py`, `desk/gateway.py`, `core/desk_hiring.py`, `core/desk_team.py`, `market/employees/*/employee.md` | Implemented | RN-DSK-0.6.0-20261110 |
+| FO-DSK-001 | SRD-DSK-001.013, .015, .018, .019, .020 (reopened 2026-11-10) | DD-DSK-001.015.D02 | MD-DSK-001.015.M03, .010.M04, .018.M05, .020.M06, .001.M02, .004.M01 | UT-DSK-001.015.M03.T01–T06, UT-DSK-001.018.M05.T03–T06, UT-DSK-001.010.M04.T05, T11, T27–T31, UT-DSK-001.020.M06.T05–T06, UT-DSK-001.001.M02.T12 (20, Pass) | `desk/clock.py`, `desk/process.py`, `desk/task.py`, `desk/cli.py`, `desk/store.py`, `core/desk_contract.py` | Implemented | RN-DSK-0.7.0-20261111 |
+| FO-DSK-003 | SRD-DSK-003.013 | DD-DSK-001.015.D02 | MD-DSK-001.015.M03, MD-DSK-001.010.M04 | Shared with UT-DSK-001.015.M03 and UT-DSK-001.010.M04 (Pass) | `desk/clock.py`, `desk/process.py` | Implemented | RN-DSK-0.7.0-20261111 |
+| FO-DSK-007 | SRD-DSK-007.005 (reopened, wording), .007 | DD-DSK-007.001.D01 | MD-DSK-007.001.M21; MD-MKT-001.013.M06 | UT-DSK-007.007.M21.T01–T03 (3, Pass) | `core/desk_alerts.py` | Implemented | RN-DSK-0.7.0-20261111 |

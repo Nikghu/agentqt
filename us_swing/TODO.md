@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-11-10 (Session 127)
+**Last Updated:** 2026-11-11 (Session 131)
 
 ---
 
@@ -159,3 +159,6 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T147 | GUI FO-GUI-036 user check: restart the app; AI Desk, Team setup lists all 9 employees; edit a prompt, Save shows version 2; History restore works; Test on yesterday answers. Folders now hold employee.md and history/. | `gui/ai_desk_setup.py` | High | Open |
 | T148 | Team setup phase 2 fields: temperature, max tokens, timeout, Claude effort, data blocks, guardrails. | `core/desk_employee.py`, `gui/ai_desk_setup.py` | Medium | Open |
 | T149 | `core/desk_team.history` and `DayWork` are unused by the GUI now. Decide whether to remove them. | `core/desk_team.py` | Low | Open |
+| T150 | Autonomous desk step A (morning run): code done e6b72948, unpushed; user real-app check pending (T151). Then steps B–F. | `desk/`, `market/`, `gui/` | High | Open |
+| T151 | User check step A: restart app; desk starts with app (AI Desk pill), Settings → Scheduler shows Start TWS/USSwing at 19:00 read-only; tomorrow pre-market the morning run runs Candle check first; closing the app stops the desk. | `desk/`, `gui/` | High | Open |
+| T152 | Scheduler row Changed check compares time only, not days (cosmetic). | `gui/scheduler_table.py` | Low | Open |

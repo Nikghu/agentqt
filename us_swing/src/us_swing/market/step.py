@@ -104,7 +104,7 @@ class RegimeStep:
 
     def _add_days(self, store: MarketStore) -> int:
         try:
-            reader = CandleReader(self._candles)
+            reader = CandleReader(self._candles, store.home)
         except FileNotFoundError:
             log.warning("[Regime] No candle file yet; open the app to download candles")
             return 0

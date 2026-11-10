@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.7.0: DD-DSK-001.015.D02 added — morning run, desk lives with the app (Autonomous desk step A, 2026-11-10); §0.1 #3 and §0.5 updated.
 > v0.6.0: DD-DSK-008.001.D01 added — employee.md file, migration, versions, draft test.
 > v0.5.0: DD-DSK-006.001.D01 added — hiring pipeline, shadow and weekly report (P6).
 > v0.4.0: DD-DSK-003.004.D01 added — events, market clock, LangGraph run order and replay (P5b).
@@ -24,7 +25,7 @@
 |---|---|---|
 | 1 | LangGraph is the base. Our own harness sits on top: registry, task cards, event router, market clock, LLM gateway, recorder, budget guard, graph builder. | User, 2026-11-05 |
 | 2 | Agents are plain typed Python functions, so LangGraph stays swappable. | Review |
-| 3 | The desk runs as a separate process started by its own Windows task. The app can stop it. The last state is saved and can be resumed. | User, 2026-11-05 |
+| 3 | The desk runs as a separate process. Since 2026-11-10 the app starts it on open and stops it on close (no desk Windows task). The last state is saved and can be resumed. | User, 2026-11-05; changed 2026-11-10 |
 | 4 | The GUI only reads `desk.db`. It writes to only one table, `commands`. | User, 2026-11-05 |
 | 5 | Two packages: `desk` (general harness, DSK) and `market` (market analytics, MKT). | User, Option A |
 | 6 | The front-end design is approved before backend work (Market Floor + AI Desk, round-2 Option 1). | User, 2026-11-05 |
@@ -81,7 +82,7 @@ SQLite in WAL mode, kept in the user data folder next to the other app databases
 
 ### 0.5 Time
 
-The desk works in NY time (`zoneinfo` "America/New_York"). Windows tasks are set in IST (memory: US DST vs IST). On 2026-11-05 EST applies, so IST = ET + 10:30. The evening run starts about 16:25 ET (02:55 IST).
+The desk works in NY time (`zoneinfo` "America/New_York"). Since 2026-11-10 the daily run is the morning run (from 04:00 ET pre-market, see DD-DSK-001.015.D02); the 16:25 ET evening run is gone. The app's start tasks are set in the PC's local time, 60 minutes before the 09:30 ET open.
 
 ### 0.6 Phase plan
 
@@ -542,3 +543,37 @@ Front matter is the text between the first two `---` lines, read with `yaml.safe
 **Draft test.** `desk/cli.py _replay` accepts `--draft FILE`. `replay(..., draft=Path)` parses the draft with `parse`, builds `system = gateway.system_prompt(filled draft prompt, schema)`, keeps the recorded user part and resends with the draft's main model. It prints the usual report plus the new answer text. `core/desk_employee.try_draft(home, emp_id, text, timeout=180) -> DraftResult(valid, answer, note)` writes the draft to a temp file and runs `desk_command() + ["replay", run, "--employee", id, "--draft", path]` with no window, reading stdout; the run is the employee's newest run with recorded tries in `activity`. It returns a note when there is no such run.
 
 **Models list.** `known_models(home) -> dict[source, list[str]]`: `default`, the desk settings model of each source, and the models seen in `activity` for that source.
+
+## DD-DSK-001.015.D02 — Morning Run and Desk Lifetime (Autonomous desk step A)
+
+**Traces:** SRD-DSK-001.013, .015, .018, .019, .020, SRD-DSK-003.013, SRD-DSK-007.005, .007. Design page: https://claude.ai/artifact/J7AexvWdqDNujADoc9dJkJ. Supersedes the evening run and Windows tasks of DD-DSK-001.001.D01.
+
+**Run kinds.** `morning` (the daily run: every desk step), `manual` (run-now and the catch-up of an interrupted run), `event` (only the event handler). Old `evening` rows stay in `runs` and `briefs` and are read as history (labels map `evening` → "Evening run").
+
+**Morning due (`desk/clock.py`).** Pure function, clock passed in:
+
+```
+MORNING_START = 04:00 ET, MORNING_END = 16:00 ET, RETRY_AFTER = 15 min, MAX_TRIES = 3
+
+morning_due(now, runs):          # runs = (kind, started_at, result) of the last day
+    et = now in ET
+    if not is_trading_day(et.date) or not (MORNING_START <= et.time < MORNING_END): False
+    today = runs of kind morning or manual started today at or after 04:00 ET
+    if any(result == "ok" for today): False          # a manual ok run counts as done
+    tries = [r for r in today if kind == morning and result == "failed"]
+    if len(tries) >= MAX_TRIES: False
+    last = newest morning start today
+    return last is None or now - last >= RETRY_AFTER
+```
+
+`interrupted` and `running` morning rows do not count as tries: an interrupted run is caught up at once as `manual` (SRD-DSK-001.014), and an ok manual run closes the day. The trading-day check uses the app's NYSE calendar (2026 holidays only, T125).
+
+**Loop (`desk/process.py`).** `tick()` order: heartbeat → commands → parent check → `rerun`/`run_now` → `morning_due(now, store.runs_since(now - 1 day))` → event tick. `daily_check` now runs once at start only (old-task clean-up).
+
+**Parent watch.** `DeskProcess(parent_alive=...)`. When it returns False the desk logs `[Desk] The app has closed; stopping the desk` and goes to Stopping; between steps of a run `_commands_during_run` also returns stop, so the run ends `interrupted` and `rerun` is saved (caught up at the next start). `pid_alive(pid)` (Windows): `OpenProcess(SYNCHRONIZE)` then `WaitForSingleObject(h, 0) == WAIT_TIMEOUT`; no handle = gone, except access denied (error 5) = alive. Elsewhere `os.kill(pid, 0)`.
+
+**CLI.** `desk [--resume] [--parent PID]`; `install`/`uninstall` removed. `launch_desk(resume=True, parent=None)` adds `--parent <pid>`. Start-up `daily_check` = `task.remove_old_tasks()`: `schtasks /delete /tn USSwing_Desk /f` and `USSwing_Desk_Evening`; "cannot find" is not an error; failures are logged once as a warning.
+
+**App close.** The app sends Stop through `commands` from a short thread and waits at most 2 s; if that fails, the parent watch stops the desk within one poll (2 s). The scheduled close task (`taskkill /IM USSwing.exe /F`) also kills the frozen desk, which runs as `USSwing.exe desk`; its open run is marked interrupted and caught up at the next start.
+
+**Candles alert (`core/desk_alerts.py`).** New kind `candles`: title "Candles not up to date", fix "Open Settings → Candle data and press Update now with TWS connected; the desk tries again in 15 minutes." Raised by the MKT candle check (DD-MKT-001.013.D01) with the run id. `open_alerts` closes a `candles` alert when a later `morning` or `manual` run ended `ok` (compared in UTC: `runs.started_at > utc_text(created)`). Whole-run alert (SRD-DSK-007.005) is unchanged in code; it fires for any run whose employees step ran.

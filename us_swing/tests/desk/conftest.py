@@ -23,8 +23,10 @@ class FakeClock:
         self.now += timedelta(seconds=seconds)
 
 
-# Thursday 2026-11-05 15:00 ET (EST, UTC-5) — before the evening run.
+# Thursday 2026-11-05 15:00 ET (EST, UTC-5).
 THU_1500_ET = datetime(2026, 11, 5, 20, 0, tzinfo=UTC)
+# Thursday 2026-11-05 02:30 ET — 90 minutes before the morning run window opens at 04:00.
+THU_0230_ET = datetime(2026, 11, 5, 7, 30, tzinfo=UTC)
 
 
 @pytest.fixture
@@ -34,7 +36,7 @@ def home(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def clock() -> FakeClock:
-    return FakeClock(THU_1500_ET)
+    return FakeClock(THU_0230_ET)
 
 
 @pytest.fixture

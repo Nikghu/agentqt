@@ -18,7 +18,7 @@ from tests.desk.conftest import FakeClock
 from tests.desk.test_harness import _reset_state  # noqa: F401 - autouse fixture
 from us_swing.core.desk_contract import CommandKind, DeskState, StepContext, send_command
 from us_swing.desk.employees_step import EmployeesStep
-from us_swing.desk.process import DeskProcess
+from us_swing.desk.process import DeskProcess, pid_alive
 from us_swing.desk.store import DeskStore
 
 
@@ -110,7 +110,7 @@ def test_resume_when_sleeping_rejected(home: Path, clock: FakeClock) -> None:
 
 
 def test_no_run_while_paused(home: Path, clock: FakeClock) -> None:
-    """UT-DSK-001.010.M04.T05: No run while Paused."""
+    """UT-DSK-001.010.M04.T05: No run while Paused, even in the morning window."""
     desk = _desk(home, clock)
     desk.start()
     send_command(CommandKind.PAUSE, home)
@@ -178,17 +178,20 @@ def test_interrupted_run_is_rerun(home: Path, clock: FakeClock) -> None:
     ]
 
 
-def test_evening_run_calls_steps(home: Path, clock: FakeClock) -> None:
-    """UT-DSK-001.010.M04.T11: Evening run calls steps."""
+def test_morning_run_calls_steps(home: Path, clock: FakeClock) -> None:
+    """UT-DSK-001.010.M04.T11: Morning run calls steps (SRD-DSK-001.016, SRD-DSK-003.013)."""
     order: list[str] = []
     steps = [Step("a", lambda _c: order.append("a")), Step("b", lambda _c: order.append("b"))]
     desk = _desk(home, clock, steps=steps)
     desk.start()
-    clock.move(90 * 60)  # 16:30 ET Thursday
+    desk.tick()
+    assert order == []
+    clock.move(90 * 60)  # 04:00 ET Thursday
+    desk.tick()
     desk.tick()
     desk.close()
     assert order == ["a", "b"]
-    assert _rows(home, "SELECT kind, result FROM runs") == [("evening", "ok")]
+    assert _rows(home, "SELECT kind, result FROM runs") == [("morning", "ok")]
     assert _state(home) == "Sleeping"
 
 
@@ -381,6 +384,68 @@ def test_pause_cleared_when_run_fails(home: Path, clock: FakeClock) -> None:
     desk.tick()
     desk.close()
     assert _state(home) == "Sleeping"
+
+
+def test_parent_gone_stops_desk(home: Path, clock: FakeClock) -> None:
+    """UT-DSK-001.010.M04.T27: Parent gone stops the desk (SRD-DSK-001.019)."""
+    alive = iter([True, False])
+    desk = _desk(home, clock, parent_alive=lambda: next(alive))
+    desk.start()
+    assert desk.tick() is True
+    assert desk.tick() is False
+    desk.close()
+    assert _state(home) == "Stopped"
+    assert _rows(home, "SELECT resume_point FROM desk_state")[0][0]
+
+
+def test_parent_gone_during_run(home: Path, clock: FakeClock) -> None:
+    """UT-DSK-001.010.M04.T28: Parent gone during a run (SRD-DSK-001.019)."""
+    state = {"alive": True}
+    first = Step("first", lambda _c: state.update(alive=False))
+    second = Step("second")
+    desk = _desk(home, clock, steps=[first, second], parent_alive=lambda: state["alive"])
+    desk.start()
+    send_command(CommandKind.RUN_NOW, home)
+    assert desk.tick() is False
+    desk.close()
+    assert second.calls == []
+    assert _rows(home, "SELECT result FROM runs") == [("interrupted",)]
+    assert '"rerun": true' in _rows(home, "SELECT resume_point FROM desk_state")[0][0]
+
+
+def test_no_parent_watch_without_parent(home: Path, clock: FakeClock) -> None:
+    """UT-DSK-001.010.M04.T29: No parent watch without a parent (SRD-DSK-001.019)."""
+    desk = _desk(home, clock)
+    desk.start()
+    assert all(desk.tick() for _ in range(3))
+    desk.close()
+    assert _state(home) == "Sleeping"
+
+
+def test_failed_morning_retried_after_15_min(home: Path, clock: FakeClock) -> None:
+    """UT-DSK-001.010.M04.T30: Failed morning try is retried after 15 min (SRD-DSK-001.015)."""
+    desk = _desk(home, clock, steps=[Step("bad", _boom)])
+    desk.start()
+    clock.move(90 * 60 + 31 * 60)   # 04:31 ET
+    desk.tick()
+    clock.move(9 * 60)              # 04:40 ET
+    desk.tick()
+    clock.move(7 * 60)              # 04:47 ET
+    desk.tick()
+    desk.close()
+    starts = [r[0][11:16] for r in _rows(home, "SELECT started_at FROM runs ORDER BY id")]
+    assert starts == ["09:31", "09:47"]   # UTC = ET + 5 h
+
+
+def test_pid_alive() -> None:
+    """UT-DSK-001.010.M04.T31: pid_alive for this process and a dead pid (SRD-DSK-001.019)."""
+    import subprocess  # noqa: PLC0415
+    import sys  # noqa: PLC0415
+
+    child = subprocess.Popen([sys.executable, "-c", "pass"])  # noqa: S603
+    child.wait()
+    assert pid_alive(os.getpid())
+    assert not pid_alive(child.pid)
 
 
 def test_run_now_then_pause_in_one_batch(home: Path, clock: FakeClock) -> None:

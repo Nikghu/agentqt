@@ -19,7 +19,7 @@ from pydantic import BaseModel
 
 T = TypeVar("T", bound=BaseModel)
 
-FEED_KINDS = ("info", "idea", "approval", "evening")
+FEED_KINDS = ("info", "idea", "approval", "morning", "evening")  # evening: rows before 2026-11-11
 Level = Literal["lead", "expert", "champion", "junior"]
 LEVELS: tuple[Level, ...] = ("lead", "expert", "champion", "junior")
 

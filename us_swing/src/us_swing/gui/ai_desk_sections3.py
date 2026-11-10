@@ -117,7 +117,7 @@ def settings_frame(name: str, home: Path | None = None) -> QWidget:
     caps = " · ".join(f"{k} {v}" for k, v in S.SEAT_CAPS.items())
     form.addRow("Seat caps", QLabel(caps))
     form.addRow("Trade approval", QLabel("Master approves every trade"))
-    form.addRow("Evening run", QLabel(f"{S.EVENING_RUN_ET} New York time (02:55 IST in winter)"))
+    form.addRow("Morning run", QLabel("From 04:00 New York time on trading days, while the app is open"))
     form.addRow("Data folder", QLabel(S.DATA_FOLDER))
     facts_body.addLayout(form)
     body.addWidget(facts)

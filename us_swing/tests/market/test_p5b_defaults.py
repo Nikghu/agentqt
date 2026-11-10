@@ -1,4 +1,4 @@
-"""Tests for MD-MKT-005.017.M09 — default employee files, skill list and the evening chain.
+"""Tests for MD-MKT-005.017.M09 — default employee files, skill list and the morning chain.
 
 Employee names here are made up: the skills must never depend on who uses them.
 """
@@ -121,8 +121,8 @@ def _hire(home: Path, number: int, source: str) -> None:
     (folder / "employee.md").write_text(text, encoding="utf-8")
 
 
-def test_full_evening_chain(p5b: Env) -> None:
-    """UT-MKT-005.018.M09.T03: Views, risk rows, picks and evening brief stored; lead ran last."""
+def test_full_morning_chain(p5b: Env) -> None:
+    """UT-MKT-005.018.M09.T03: Views, risk rows, picks and morning brief stored; lead ran last."""
     _CANDLES[0] = p5b.candles
     for number, source in enumerate(("emp-001", "emp-002", "emp-003", "emp-004", "emp-005"), 1):
         _hire(p5b.home, number, source)
@@ -143,7 +143,7 @@ def test_full_evening_chain(p5b: Env) -> None:
         "Tester D": {"vetoes": []},
         "Tester E": {"picks": [{"side": side, "symbol": symbol,
                                 "reason": "Best setup that passed the risk check"}],
-                     "evening": "The market is mixed today; one idea passed every check and "
+                     "morning": "The market is mixed today; one idea passed every check and "
                                 "it is the only pick for tomorrow."},
     }
 
@@ -173,7 +173,7 @@ def test_full_evening_chain(p5b: Env) -> None:
         con.close()
     assert sorted(order) == ["x-1", "x-2", "x-3", "x-4", "x-5"]
     assert order[-1] == "x-5" and order.index("x-4") > order.index("x-3")
-    assert kinds["x-5"] == "evening"
+    assert kinds["x-5"] == "morning"
 
 
 @pytest.mark.parametrize("emp", sorted(P5B_SKILLS))

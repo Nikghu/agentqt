@@ -1,6 +1,7 @@
 """
 Module: MD-DSK-001.004.M01 — core/desk_contract.py
 Parent SRD: SRD-DSK-001.004
+Also: SRD-DSK-001.019/.020 (launch with the app's process id)
 
 Shared desk types, a read-only status reader and the command sender. The app uses
 only this module to talk to the desk process, so ``gui`` never imports ``desk``.
@@ -21,7 +22,7 @@ from typing import Any, Protocol
 SCHEMA_VERSION = 1
 DB_NAME = "desk.db"
 STALE_AFTER_S = 60.0
-EVENING_RUN = time(16, 25)  # New York time, Monday to Friday
+MORNING_RUN = time(4, 0)  # New York time: the morning run may start from pre-market
 NOT_RESPONDING = "not responding"
 # The dev launcher adds src/ to sys.path, so the desk starts without an installed package.
 _RUN_GUI = Path(__file__).resolve().parents[3] / "run_gui.py"
@@ -176,9 +177,16 @@ def desk_command() -> list[str]:
     return [str(pythonw if pythonw.exists() else exe), str(_RUN_GUI), "desk"]
 
 
-def launch_desk(resume: bool = True) -> None:
-    """Start the desk as a detached process with no console window."""
+def launch_desk(resume: bool = True, parent: int | None = None) -> None:
+    """Start the desk as a detached process with no console window.
+
+    Args:
+        resume: Clear a saved Stopped state.
+        parent: Process id the desk watches; it stops when that process ends.
+    """
     cmd = desk_command() + (["--resume"] if resume else [])
+    if parent is not None:
+        cmd += ["--parent", str(parent)]
     subprocess.Popen(  # noqa: S603 — fixed command built from our own executable
         cmd, creationflags=_DETACHED | _NO_WINDOW, close_fds=True
     )

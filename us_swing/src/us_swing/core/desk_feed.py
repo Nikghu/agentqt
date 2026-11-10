@@ -4,6 +4,7 @@ Parent SRD: SRD-GUI-034.054
 Also: SRD-GUI-034.056 — shared approve and reject of a trade pick
 Also: MD-GUI-034.062.M36 — ask cards for Command (SRD-GUI-034.062)
 Also: MD-GUI-034.043.M38 — asked panel cards and failed requests (SRD-GUI-034.043, .044)
+Also: SRD-GUI-034.069 — the morning brief card is titled "Morning plan"
 
 AI feed cards for Market Floor, read from ``desk.db`` read-only: briefs, waiting trade picks,
 ready hires, lead chat replies and failed runs. Never imports ``desk``, ``market`` or ``gui``.
@@ -33,6 +34,7 @@ from us_swing.core.desk_trades import (
 CardKind = Literal["result", "ask", "answer", "desk"]
 BRIEF_LIMIT = 20
 ANSWER_LIMIT = 5
+_SUBJECTS = {"morning": "Morning plan", "evening": "Evening result"}
 RUN_LIMIT = 5
 PREVIEW_ROWS = 5
 NO_ROWS = "No rows on the latest day"
@@ -117,7 +119,7 @@ def feed_cards(home: Path, now: datetime) -> list[FeedCard]:
     for created, author, kind, text in _rows(
             home, "SELECT created, author, kind, text FROM briefs ORDER BY id DESC LIMIT ?",
             (BRIEF_LIMIT,)):
-        subject = "Evening result" if kind == "evening" else "Desk note"
+        subject = _SUBJECTS.get(str(kind), "Desk note")
         cards.append(FeedCard("result", str(author), subject, _when(created), str(text)))
     for created, text in _rows(
             home, "SELECT created, text FROM chat WHERE role = 'lead' ORDER BY id DESC LIMIT ?",

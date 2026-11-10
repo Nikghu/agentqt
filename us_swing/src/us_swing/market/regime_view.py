@@ -1,7 +1,8 @@
 """
 Module: MD-MKT-005.001.M01 — market/regime_view.py
 Parent SRD: SRD-MKT-005.001
-Also: SRD-MKT-005.002 (typed view), SRD-MKT-005.004 (feed brief)
+Also: SRD-MKT-005.002 (typed view), SRD-MKT-005.004 (feed brief), SRD-MKT-001.015 (latest SPY
+day includes the desk copy)
 
 The regime view skill: reads the rule-based market data from ``desk.db``, asks the
 employee's model for a typed view of the market and returns a brief for the AI feed.
@@ -38,17 +39,21 @@ class RegimeView(BaseModel):
     brief: str = Field(min_length=20, max_length=400)
 
 
-def latest_spy_day(candles: Path) -> str | None:
-    """The newest SPY daily candle day in `candles`, or `None`."""
-    if not candles.exists():
-        return None
-    con = sqlite3.connect(f"{candles.as_uri()}?mode=ro", uri=True)
-    try:
-        row = con.execute("SELECT MAX(datetime) FROM price_1d WHERE symbol = ?",
-                          (BENCHMARK,)).fetchone()
-    finally:
-        con.close()
-    return str(row[0])[:10] if row and row[0] else None
+def latest_spy_day(candles: Path, store: MarketStore | None = None) -> str | None:
+    """The newest SPY daily candle day in `candles` or the desk copy in `store`, or `None`."""
+    days: list[str] = []
+    if candles.exists():
+        con = sqlite3.connect(f"{candles.as_uri()}?mode=ro", uri=True)
+        try:
+            row = con.execute("SELECT MAX(datetime) FROM price_1d WHERE symbol = ?",
+                              (BENCHMARK,)).fetchone()
+        finally:
+            con.close()
+        if row and row[0]:
+            days.append(str(row[0])[:10])
+    if store is not None and (copy := store.topup_last_days().get(BENCHMARK)):
+        days.append(copy)
+    return max(days, default=None)
 
 
 def _table(frame: pd.DataFrame) -> str:
@@ -81,7 +86,7 @@ class RegimeViewSkill:
         if regime.empty:
             return Facts("", "", False, "no market regime data yet")
         day = str(regime["date"].iloc[0])
-        spy_day = latest_spy_day(self._candles)
+        spy_day = latest_spy_day(self._candles, store)
         if spy_day != day:
             return Facts("", day, False,
                          f"regime data is for {day} but the latest SPY candle is {spy_day}")

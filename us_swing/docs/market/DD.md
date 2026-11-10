@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.13.0: DD-MKT-001.013.D01 added — candle check with a Yahoo desk-only copy, morning brief (Autonomous desk step A, 2026-11-10).
 > v0.12.0: DD-MKT-011.001.D01 added — ask the desk for new data (P10).
 > v0.11.0: DD-MKT-010.001.D01 added — lead chat (P9).
 > v0.10.0: DD-MKT-009.001.D01 added — pick results (P8).
@@ -1054,3 +1055,47 @@ act(ctx, facts):
 **GUI — Ask box** (`CatalogDialog(products, parent, ask=None)`). Under the list: a `QLineEdit` (max 300, placeholder "Ask the desk for new data") and an Ask button, disabled while the box is empty. `ask(text) -> str` returns an empty string when the request was saved (the box is cleared and "Sent. The new panel will wait for you in AI Desk → Command." shows) or the reason it was not (the text is kept). Ask is the default button while the box has text, so Enter sends the request instead of adding a panel. `MarketFloor` passes `_ask_desk`, which calls `ask_data(feed home, text, now)`, and refreshes its product list each time the catalog opens. With no `ask` the box is hidden.
 
 **GUI — Approvals waiting.** `ask_cards()` adds one Ask card per waiting product: sender "Data", subject `New panel · <title>`, time = created, text = recipe words + the first 5 preview rows (`a · b · c` per row, or "No rows on the latest day"), `ref = "data"`, `item = product id`. The card has Approve and Reject; each calls `decide_product()`, and the box reloads, so a decided product leaves the list. `failed_cards()` gives one Desk card per failed request of the last day (subject `Request not built`, text `<request> — <reason>`, no buttons). `WaitingBox` shows them after the Asks; they do not count in the heading.
+
+## DD-MKT-001.013.D01 — Candle Check, Yahoo Desk Copy and Morning Brief (Autonomous desk step A)
+
+**Traces:** SRD-MKT-001.013–.017, SRD-MKT-005.015–.016, SRD-DSK-007.007.
+
+**Why a desk copy.** `candles.db` daily bars come only from IBKR "Update now", which downloads only stocks that are behind (ISS-GUI-0018). Writing Yahoo bars there would mix sources for good. The desk keeps its own short copy in `desk.db` and drops each row as soon as IBKR has that day.
+
+**Table.** `candle_topup(symbol TEXT, date TEXT, open REAL, high REAL, low REAL, close REAL, volume INTEGER, fetched TEXT, PRIMARY KEY (symbol, date))`, created by `MarketStore` like the other market tables. `symbol` uses the `candles.db` spelling (e.g. `BRK.B`).
+
+**Target day.** `last_closed_day(now)`: in ET, today when it is an NYSE trading day and the time is 16:00 or later, else the trading day before (walk back over weekends and holidays).
+
+**Step `CandleCheckStep` ("Candle check", first in `STEP_PATHS`).**
+
+```
+target = last_closed_day(now)
+reader = CandleReader(candles)                      # missing file -> CandleCheckError
+wanted = member_symbols(reader.symbols(), universe).symbols + [SPY]
+db_last = last candles.db day per wanted symbol
+store.trim_topup(db_last)                           # delete copy rows on/before db_last[sym]
+store.drop_unsettled_topup()                        # copy rows fetched before 16:30 ET of their day (bar may not be final)
+behind = [s for s in wanted if max(db_last[s], copy_last[s]) < target]
+if behind:
+    yahoo = fetch(behind, start = min(db_last of behind) - 20 days, end = target)
+    rows  = topup_rows(db_bars(behind, last 20 days), yahoo, target)
+    store.write_topup(rows)
+still = behind after the copy
+log "[Candles] %d stock(s) behind %s, %d filled from Yahoo, %d still behind"
+if SPY in still or len(still - {SPY}) > 2% of members:
+    raise_alert(home, "candles", "", run_id, "...N of M stocks still behind <target>")
+    raise CandleCheckError("Candles not up to date: N of M stocks behind <target>")
+```
+
+The error fails the run before any AI step; the desk retries per SRD-DSK-001.015. A stock not in `candles.db` at all (new to the index) is not counted, as the other steps already leave it out.
+
+**`topup_rows` (pure).** Per stock, the overlap is the days in both sources (up to the last 10):
+- fewer than 3 overlap days, or any overlap close off by more than 0.5% → skip the stock (logged at DEBUG); this guards against split or symbol mix-ups.
+- volume scale = median of IBKR volume / Yahoo volume on the overlap days. IBKR counts regular-hours trades only; on 2026-11-09 the ratio was 0.36–0.63 (SPY, AAPL, BRK.B, JPM). Prices matched exactly with `auto_adjust=False`.
+- new rows = Yahoo days after the stock's last `candles.db` day and on or before `target`; volume = round(Yahoo volume × scale).
+
+**Fetch.** `fetch_daily(symbols, start, end)`: `yf.download(tickers=[yahoo_symbol(s)...], start, end + 1 day, interval="1d", auto_adjust=False, group_by="ticker", threads=True, progress=False)`; returns `{symbol: frame(open, high, low, close, volume)}` by our spelling; any error → empty dict (logged as a warning). Injectable for tests.
+
+**Reader merge.** `CandleReader(path, topup=home)`: `read()` reads `price_1d` (dedupe keep last, as today), then `candle_topup` rows of the same symbols from `home/desk.db` (read-only; missing table = none), concat with `candles.db` first and `drop_duplicates(["symbol", "date"], keep="first")`, so IBKR always wins. `symbols()` returns the union. Steps pass `topup=ctx.home`. `latest_spy_day(candles, store)` returns the later of the `candles.db` SPY day and the copy's SPY day, so skill freshness checks (`ideas_day`, regime and sector views) see the filled day.
+
+**Morning brief.** `LeadBrief.evening` is renamed `morning` (same limits); the skill posts `FeedItem("morning", ...)`. `core/desk_agents.FEED_KINDS` adds `morning`; `core/desk_feed` titles it "Morning plan" and keeps "Evening result" for old rows. `report_page` reads the newest brief of kind `morning` or `evening` for the day and labels it "Lead brief". The shipped lead `employee.md` prompt says "morning brief".

@@ -16,6 +16,7 @@ from us_swing.desk.employees_step import EmployeesStep
 from us_swing.desk.gateway import Gateway
 from us_swing.desk.recorder import Attempt, Recorder
 from us_swing.desk.registry import load_employee
+from us_swing.desk.store import DeskStore
 
 NY = desk_alerts.NY
 NOW = datetime(2026, 11, 9, 16, 26, tzinfo=NY)
@@ -92,6 +93,41 @@ def test_open_until_fixed(tmp_path: Path) -> None:
     assert open_alerts(tmp_path, NOW) == []
     raise_alert(tmp_path, "key", "openrouter", 2, "bad key", NOW, FakeSend())
     assert open_alerts(tmp_path, NOW + timedelta(hours=25)) == []
+
+
+def _run(home: Path, kind: str, started: datetime, result: str) -> None:
+    store = DeskStore(home)
+    try:
+        store.end_run(store.start_run(kind, started), result, started)
+    finally:
+        store.close()
+
+
+def test_candles_alert_once_a_day(tmp_path: Path) -> None:
+    """UT-DSK-007.007.M21.T01: Candles alert stored and sent once a day (SRD-DSK-007.007)."""
+    send = FakeSend()
+    first = raise_alert(tmp_path, "candles", "", 1, "7 of 504 stocks behind", NOW, send)
+    assert first is not None and first.title == "Candles not up to date"
+    assert raise_alert(tmp_path, "candles", "", 2, "again", NOW, send) is None
+    assert len(send.sent) == 1 and "Update now" in send.sent[0]
+
+
+def test_candles_alert_closed_by_ok_run(tmp_path: Path) -> None:
+    """UT-DSK-007.007.M21.T02: Candles alert closed by a later ok run (SRD-DSK-007.007)."""
+    at = datetime(2026, 11, 11, 8, 31, tzinfo=NY)
+    raise_alert(tmp_path, "candles", "", 1, "behind", at, FakeSend())
+    _run(tmp_path, "morning", at + timedelta(minutes=16), "ok")
+    assert open_alerts(tmp_path, at + timedelta(minutes=20)) == []
+
+
+def test_candles_alert_stays_open(tmp_path: Path) -> None:
+    """UT-DSK-007.007.M21.T03: Candles alert stays after a failed run or a valid AI answer."""
+    at = datetime(2026, 11, 9, 16, 0, tzinfo=NY)
+    raise_alert(tmp_path, "candles", "", 1, "behind", at, FakeSend())
+    _run(tmp_path, "morning", at + timedelta(minutes=16), "failed")
+    _run(tmp_path, "event", at + timedelta(minutes=17), "ok")
+    _valid(tmp_path, "2026-11-09T16:40:00-05:00", "claude")
+    assert [a.kind for a in open_alerts(tmp_path, at + timedelta(hours=1))] == ["candles"]
 
 
 def test_telegram_target(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -6,7 +6,7 @@ version), SRD-MKT-007.006 (feed brief), SRD-MKT-007.008 (log line)
 
 The report page skill: turns the day's lead brief, picks and views into one HTML/CSS
 page. Code cleans the page (``core.report_html``) before it is added as a new version
-in ``canvas_pages``. The evening brief is read with plain SQL from the desk ``briefs``
+in ``canvas_pages``. The lead brief is read with plain SQL from the desk ``briefs``
 table; it uses only ``core`` types and never imports the desk harness.
 """
 from __future__ import annotations
@@ -46,11 +46,11 @@ class ReportPage(BaseModel):
     html: str = Field(min_length=200, max_length=MAX_PAGE_BYTES, description=_HTML_RULES)
 
 
-def evening_brief(store: MarketStore, day: str) -> str:
-    """The newest evening brief text for ``day``, or an empty text when there is none."""
+def lead_brief_text(store: MarketStore, day: str) -> str:
+    """The newest lead brief text for ``day`` (morning, or evening before 2026-11-11)."""
     try:
-        frame = store.read_frame("SELECT text FROM briefs WHERE kind = 'evening' AND "
-                                 "data_day = ? ORDER BY id DESC LIMIT 1", (day,))
+        frame = store.read_frame("SELECT text FROM briefs WHERE kind IN ('morning', 'evening') "
+                                 "AND data_day = ? ORDER BY id DESC LIMIT 1", (day,))
     except pd.errors.DatabaseError:
         return ""
     return str(frame["text"].iloc[0]) if not frame.empty else ""
@@ -83,13 +83,13 @@ class ReportPageSkill:
             day, why = ideas_day(store, self._candles)
             if why:
                 return Facts("", day, False, why)
-            brief = evening_brief(store, day)
+            brief = lead_brief_text(store, day)
             if not brief:
                 return Facts("", day, False, f"no lead brief for {day} yet")
             text = "\n\n".join([
                 f"Data day: {day}",
                 f"Regime by the rules: {rule_regime(store, day) or 'unknown'}",
-                f"Lead evening brief:\n{brief}",
+                f"Lead brief:\n{brief}",
                 f"Lead picks:\n{table(_picks(store, day))}",
                 views_text(store, day, VIEW_KEYS),
                 f"Page rules: {_HTML_RULES}",

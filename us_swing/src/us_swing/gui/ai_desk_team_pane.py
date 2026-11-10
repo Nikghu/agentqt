@@ -424,7 +424,7 @@ class ProfilePane(QWidget):
 def _calls_html(calls: Sequence[Call], on_demand: bool) -> str:
     if not calls:
         return (f"<span style='color:{C.MUTED}'>"
-                + ("Not part of the evening run; wakes when you ask" if on_demand
+                + ("Not part of the morning run; wakes when you ask" if on_demand
                    else "No calls in this run") + "</span>")
     rows = []
     for c in calls:

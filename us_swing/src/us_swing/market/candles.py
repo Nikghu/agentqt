@@ -3,8 +3,10 @@ Module: MD-MKT-001.001.M01 — market/candles.py
 Parent SRD: SRD-MKT-001.001
 Also: MD-MKT-002.001.M01 — member sectors (SRD-MKT-002.001)
 Also: MD-MKT-003.001.M01 — daily volume (SRD-MKT-003.001)
+Also: SRD-MKT-001.015 — desk-copy bars from ``candle_topup`` fill days ``candles.db`` lacks
 
-Read-only daily bars from the app's ``candles.db`` for SPY and the S&P 500 members.
+Read-only daily bars from the app's ``candles.db`` for SPY and the S&P 500 members, plus the
+desk's own copy of days IBKR has not delivered yet.
 """
 from __future__ import annotations
 
@@ -16,6 +18,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
+
+from us_swing.core.desk_contract import DB_NAME
 
 log = logging.getLogger(__name__)
 
@@ -36,8 +40,8 @@ class DailyBars:
 class CandleReader:
     """Reads ``price_1d`` without ever writing to ``candles.db``."""
 
-    def __init__(self, path: Path = CANDLE_DB) -> None:
-        """Remember the file.
+    def __init__(self, path: Path = CANDLE_DB, topup: Path | None = None) -> None:
+        """Remember the file and, optionally, the desk folder whose ``candle_topup`` adds days.
 
         Raises:
             FileNotFoundError: When ``path`` does not exist.
@@ -45,11 +49,20 @@ class CandleReader:
         if not path.exists():
             raise FileNotFoundError(path)
         self._uri = f"{path.as_uri()}?mode=ro"
+        copy = topup / DB_NAME if topup is not None else None
+        self._copy_uri = f"{copy.as_uri()}?mode=ro" if copy is not None and copy.exists() else ""
 
     def symbols(self) -> set[str]:
         """Return every symbol with daily bars."""
         with closing(sqlite3.connect(self._uri, uri=True)) as con:
-            return {r[0] for r in con.execute("SELECT DISTINCT symbol FROM price_1d")}
+            found = {r[0] for r in con.execute("SELECT DISTINCT symbol FROM price_1d")}
+        return found | set(self._copy("SELECT DISTINCT symbol FROM candle_topup", ())["symbol"])
+
+    def last_days(self) -> dict[str, str]:
+        """Return the last ``candles.db`` day (ISO) of each symbol; the desk copy is left out."""
+        with closing(sqlite3.connect(self._uri, uri=True)) as con:
+            rows = con.execute("SELECT symbol, MAX(datetime) FROM price_1d GROUP BY symbol")
+            return {str(s): str(d)[:10] for s, d in rows if d}
 
     def read(self, symbols: Iterable[str]) -> DailyBars:
         """Return closes, highs, lows and volumes for ``symbols`` as wide frames by date."""
@@ -67,11 +80,27 @@ class CandleReader:
             con.close()
         frame["date"] = pd.to_datetime(frame["datetime"]).dt.normalize()
         frame = frame.drop_duplicates(["symbol", "date"], keep="last")
+        copy = self._copy(f"SELECT symbol, date AS datetime, high, low, close, volume "  # noqa: S608
+                          f"FROM candle_topup WHERE symbol IN ({marks})", tuple(wanted))
+        if not copy.empty:
+            copy["date"] = pd.to_datetime(copy["datetime"]).dt.normalize()
+            frame = pd.concat([frame, copy], ignore_index=True).drop_duplicates(
+                ["symbol", "date"], keep="first")
 
         def wide(col: str) -> pd.DataFrame:
             return frame.pivot(index="date", columns="symbol", values=col).sort_index()
 
         return DailyBars(wide("close"), wide("high"), wide("low"), wide("volume"))
+
+    def _copy(self, sql: str, params: tuple[str, ...]) -> pd.DataFrame:
+        """Rows from the desk copy; empty when there is no copy file or table yet."""
+        if not self._copy_uri:
+            return pd.DataFrame(columns=["symbol"])
+        try:
+            with closing(sqlite3.connect(self._copy_uri, uri=True)) as con:
+                return pd.read_sql_query(sql, con, params=params)
+        except (sqlite3.Error, pd.errors.DatabaseError):
+            return pd.DataFrame(columns=["symbol"])
 
 
 @dataclass(frozen=True)

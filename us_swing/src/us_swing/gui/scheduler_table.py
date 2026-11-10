@@ -4,11 +4,13 @@ Parent SRD: SRD-GUI-029.001
 
 Settings → Scheduler task table (FO-GUI-029): one row each for Start TWS, Start USSwing
 and Close both with a Windows status pill, a folded TWS login and Remove all tasks.
+Start times are read-only, 60 min before the 09:30 ET open (SRD-GUI-029.007).
 Windows calls (schtasks, Credential Manager) run on background threads.
 """
 from __future__ import annotations
 
 import dataclasses
+import datetime
 import logging
 from collections.abc import Callable
 from pathlib import Path
@@ -24,6 +26,7 @@ from PyQt6.QtCore import (
 )
 from PyQt6.QtGui import QShowEvent
 from PyQt6.QtWidgets import (
+    QAbstractSpinBox,
     QCheckBox,
     QComboBox,
     QDialog,
@@ -56,6 +59,13 @@ _DAYS = (("Mon–Fri", "weekdays"), ("Every day", "daily"))
 _PILL_TEXT = {"installed": "INSTALLED", "missing": "MISSING", "changed": "CHANGED",
               "off": "OFF", "checking": "…", "failed": "FAILED"}
 _ROW_LABEL = {"tws": "Start TWS", "app": "Start USSwing", "close": "Close both"}
+_START_TIP = "60 min before open: 09:30 ET minus one hour, in this PC's time"
+
+
+def _start_time() -> str:
+    """Local start time for tomorrow, 60 min before the open (SRD-GUI-029.007)."""
+    local = datetime.datetime.now().astimezone().tzinfo or datetime.UTC
+    return sd.before_open_time(datetime.date.today() + datetime.timedelta(days=1), local)[0]
 
 
 def _repolish(widget: QWidget, state: str) -> None:
@@ -218,6 +228,10 @@ class SchedulerTable(QWidget):
         time = QTimeEdit()
         time.setDisplayFormat("HH:mm")
         time.setFixedWidth(80)
+        if key != "close":
+            time.setReadOnly(True)
+            time.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
+            time.setToolTip(_START_TIP)
         grid.addWidget(on, index, 0)
         grid.addWidget(QLabel(_ROW_LABEL[key]), index, 1)
         grid.addWidget(time, index, 2)
@@ -282,10 +296,13 @@ class SchedulerTable(QWidget):
         self._us, self._ibkr, self._close = us, ibkr, load_close_config()
         for widget in self.inputs:
             widget.blockSignals(True)
+        start = _start_time()
+        stale = {key for key, cfg in (("tws", ibkr), ("app", us))
+                 if cfg.enabled and cfg.launch_time != start}
         for key, cfg in (("tws", ibkr), ("app", us)):
             row = self._rows[key]
             row.on.setChecked(cfg.enabled)
-            row.time.setTime(_to_qtime(cfg.launch_time))
+            row.time.setTime(_to_qtime(start))
             assert row.days is not None and row.exe is not None
             row.days.setCurrentIndex(0 if cfg.days == "weekdays" else 1)
             row.exe.setText(cfg.exe_path)
@@ -297,7 +314,7 @@ class SchedulerTable(QWidget):
         self._auto.setChecked(ibkr.auto_login)
         for widget in self.inputs:
             widget.blockSignals(False)
-        self._changed.clear()
+        self._changed = stale
         self._errors.clear()
         self._refresh_login_text()
         self._paint_pills()
@@ -369,8 +386,8 @@ class SchedulerTable(QWidget):
         else:
             self._states = {str(k): str(v) for k, v in result.items()}
         self._paint_pills()
-        if any(self._states.get(key) == "missing" for key in self._rows
-               if key not in self._errors):
+        if self._changed or any(self._states.get(key) == "missing" for key in self._rows
+                                if key not in self._errors):
             self.repair_needed.emit()
 
     def remove_all(self) -> None:

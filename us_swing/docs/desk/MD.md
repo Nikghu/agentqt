@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.9.0: Autonomous desk step A (2026-11-11): M03 morning due, M04 parent watch, M05 old-task clean-up only, M06 `--parent`, M21 `candles` alert.
 > v0.8.0: MD-DSK-008.001.M22 added — employee file, versions, draft test.
 > v0.7.0: MD-DSK M18–M20 added — hiring, shadow, weekly report (P6).
 > v0.6.0: MD-DSK M15–M17 added — events, router with LangGraph, replay (P5b).
@@ -23,9 +24,9 @@
 |---|---|---|---|---|---|---|
 | MD-DSK-001.004.M01 | SRD-DSK-001.004 | `us_swing/src/us_swing/core/desk_contract.py` | Shared desk types, read-only status reader and command sender used by the app | `DeskState`, `CommandKind`, `DeskStatus`, `DeskStep`, `desk_home()`, `read_status()`, `send_command()` | `sqlite3` | No |
 | MD-DSK-001.001.M02 | SRD-DSK-001.001 | `us_swing/src/us_swing/desk/store.py` | Opens `desk.db` (WAL), creates tables, writes state, heartbeat, commands and runs | `DeskStore` | `sqlite3`, M01 | No |
-| MD-DSK-001.015.M03 | SRD-DSK-001.015 | `us_swing/src/us_swing/desk/clock.py` | Pure time rules: evening due, local time and days of the evening task | `evening_due()`, `evening_task_time()` | `zoneinfo` | No |
-| MD-DSK-001.010.M04 | SRD-DSK-001.010 | `us_swing/src/us_swing/desk/process.py` | Single-instance main loop, command handling, runs, stop and resume | `DeskProcess` | M01–M03 | No |
-| MD-DSK-001.018.M05 | SRD-DSK-001.018 | `us_swing/src/us_swing/desk/task.py` | Install, remove and sync Windows tasks; launch a detached desk | `desk_command()`, `install()`, `uninstall()`, `sync_evening_task()`, `launch()` | `subprocess`, M03 | No |
+| MD-DSK-001.015.M03 | SRD-DSK-001.015 | `us_swing/src/us_swing/desk/clock.py` | Pure time rules: morning run due, trading day, market clock events | `morning_due()`, `is_trading_day()`, `market_events_due()` | `zoneinfo` | No |
+| MD-DSK-001.010.M04 | SRD-DSK-001.010 | `us_swing/src/us_swing/desk/process.py` | Single-instance main loop, command handling, runs, parent watch, stop and resume | `DeskProcess`, `pid_alive()` | M01–M03 | No |
+| MD-DSK-001.018.M05 | SRD-DSK-001.018 | `us_swing/src/us_swing/desk/task.py` | Delete the old desk Windows tasks; launch a detached desk | `remove_old_tasks()`, `launch()` | `subprocess` | No |
 | MD-DSK-001.020.M06 | SRD-DSK-001.020 | `us_swing/src/us_swing/desk/cli.py` | `desk` sub-commands for `python -m us_swing` | `main(argv)` | M01, M04, M05 | No |
 
 | MD-DSK-001.021.M07 | SRD-DSK-001.021 | `us_swing/src/us_swing/core/desk_steps.py` | Step list and loader; desk CLI passes the steps | `STEP_PATHS`, `load_steps()` | `importlib` | No |
@@ -35,11 +36,12 @@
 | Module | Covers SRDs |
 |---|---|
 | MD-DSK-001.004.M01 | SRD-DSK-001.004, .005, .006, .007 |
-| MD-DSK-001.001.M02 | SRD-DSK-001.001, .002, .003, .016 (run rows) |
-| MD-DSK-001.015.M03 | SRD-DSK-001.015, .018 (task time) |
-| MD-DSK-001.010.M04 | SRD-DSK-001.008, .009, .010, .011, .012, .013, .014, .016, .017 |
-| MD-DSK-001.018.M05 | SRD-DSK-001.018, .019 |
-| MD-DSK-001.020.M06 | SRD-DSK-001.020, .022 (`desk proof`) |
+| MD-DSK-001.001.M02 | SRD-DSK-001.001, .002, .003, .016 (run rows), .015 (`runs_since`) |
+| MD-DSK-001.015.M03 | SRD-DSK-001.015, SRD-DSK-003.013 (run kinds counted) |
+| MD-DSK-001.010.M04 | SRD-DSK-001.008, .009, .010, .011, .012, .013, .014, .016, .017, .019 (parent watch), SRD-DSK-003.013 |
+| MD-DSK-001.018.M05 | SRD-DSK-001.018 |
+| MD-DSK-001.020.M06 | SRD-DSK-001.020, .022 (`desk proof`), .019 (`--parent`) |
+| MD-DSK-001.004.M01 | also SRD-DSK-001.020 (`launch_desk(parent=)`) |
 
 ## FO-DSK-002–005: Lean Harness (P5a)
 
@@ -91,7 +93,7 @@ SRD coverage: .001, .002, .005–.007 by M18 (.005 also M19); .003 by M13 and M1
 
 Changed: MD-DSK-004.001.M11 (`gateway.py`: `_report`, per-run skip, `send=` — SRD-DSK-007.001, .004) and MD-DSK-003.001.M10 (`employees_step.py`: `_check_run`, `send=` — SRD-DSK-007.005).
 
-SRD coverage: .001–.003 and .006 by M21; .001 and .004 by M11; .005 by M10 and M21.
+SRD coverage: .001–.003 and .006 by M21; .001 and .004 by M11; .005 by M10 and M21; .007 by M21 (`candles` kind, closed by a later ok run) and MD-MKT-001.013.M06 (raises it).
 
 ## FO-DSK-008: Employee File and Versions
 

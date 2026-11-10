@@ -121,7 +121,7 @@ def test_no_candle_file(tmp_path: Path) -> None:
 
 def test_runs_third_in_desk_run(tmp_path: Path) -> None:
     """UT-MKT-003.011.M07.T05: Regime, Sectors and Ideas all run ok; score rows are written."""
-    assert [s.name for s in load_steps(STEP_PATHS)][:3] == ["Market regime", "Sectors", "Ideas"]
+    assert [s.name for s in load_steps(STEP_PATHS)][1:4] == ["Market regime", "Sectors", "Ideas"]
     candles, home = tmp_path / "candles.db", tmp_path / "desk"
     _make(candles)
     desk = DeskProcess(home, _steps(candles, N, _Earnings()), sleep=lambda _s: None)

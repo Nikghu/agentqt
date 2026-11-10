@@ -1,50 +1,54 @@
 """Tests for MD-DSK-001.015.M03 — desk/clock.py."""
 from __future__ import annotations
 
-from datetime import date, datetime
-from zoneinfo import ZoneInfo
+from datetime import datetime
 
-from us_swing.desk.clock import ET, evening_due, evening_task_time, market_events_due
-
-IST = ZoneInfo("Asia/Kolkata")
+from us_swing.desk.clock import ET, market_events_due, morning_due
 
 
 def _et(y: int, mo: int, d: int, h: int, mi: int) -> datetime:
     return datetime(y, mo, d, h, mi, tzinfo=ET)
 
 
-def test_due_after_time_on_weekday() -> None:
-    """UT-DSK-001.015.M03.T01: Due after 16:25 ET on a weekday."""
-    assert evening_due(_et(2026, 11, 5, 16, 30), _et(2026, 11, 4, 16, 25))
+def test_due_at_window_start() -> None:
+    """UT-DSK-001.015.M03.T01: Due at the open of the morning window (SRD-DSK-001.015)."""
+    assert morning_due(_et(2026, 11, 11, 4, 0), [])
 
 
-def test_not_due_before_time() -> None:
-    """UT-DSK-001.015.M03.T02: Not due before time."""
-    assert not evening_due(_et(2026, 11, 5, 16, 20), _et(2026, 11, 4, 16, 25))
+def test_not_due_outside_window() -> None:
+    """UT-DSK-001.015.M03.T02: Not due before 04:00 ET or from 16:00 ET (SRD-DSK-001.015)."""
+    assert not morning_due(_et(2026, 11, 11, 3, 59), [])
+    assert not morning_due(_et(2026, 11, 11, 16, 0), [])
 
 
-def test_not_due_twice() -> None:
-    """UT-DSK-001.015.M03.T03: Not due twice."""
-    assert not evening_due(_et(2026, 11, 5, 17, 0), _et(2026, 11, 5, 16, 25))
+def test_not_due_after_ok_run() -> None:
+    """UT-DSK-001.015.M03.T03: Not due after an ok morning or manual run today."""
+    now = _et(2026, 11, 11, 9, 0)
+    assert not morning_due(now, [("morning", _et(2026, 11, 11, 8, 31), "ok")])
+    assert not morning_due(now, [("manual", _et(2026, 11, 11, 8, 40), "ok")])
 
 
-def test_weekend() -> None:
-    """UT-DSK-001.015.M03.T04: Weekend."""
-    assert not evening_due(_et(2026, 11, 7, 18, 0), _et(2026, 11, 6, 16, 25))
+def test_weekend_and_holiday() -> None:
+    """UT-DSK-001.015.M03.T04: Weekend and NYSE holiday (SRD-DSK-001.015)."""
+    assert not morning_due(_et(2026, 11, 14, 9, 0), [])
+    assert not morning_due(_et(2026, 11, 26, 9, 0), [])
 
 
-def test_task_time_ist_est() -> None:
-    """UT-DSK-001.015.M03.T05: Evening task time in IST (EST)."""
-    assert evening_task_time(date(2026, 11, 5), IST) == (
-        "02:50", ["TUE", "WED", "THU", "FRI", "SAT"],
-    )
+def test_retry_after_failed_try() -> None:
+    """UT-DSK-001.015.M03.T05: Retry 15 min after a failed try, at most 3 (SRD-DSK-001.015)."""
+    failed = [("morning", _et(2026, 11, 11, 8, 31), "failed")]
+    assert not morning_due(_et(2026, 11, 11, 8, 45), failed)
+    assert morning_due(_et(2026, 11, 11, 8, 46), failed)
+    three = [("morning", _et(2026, 11, 11, 8, m), "failed") for m in (1, 16, 31)]
+    assert not morning_due(_et(2026, 11, 11, 10, 0), three)
 
 
-def test_task_time_ist_edt() -> None:
-    """UT-DSK-001.015.M03.T06: Evening task time in IST (EDT)."""
-    assert evening_task_time(date(2026, 7, 1), IST) == (
-        "01:50", ["TUE", "WED", "THU", "FRI", "SAT"],
-    )
+def test_old_and_interrupted_runs_do_not_count() -> None:
+    """UT-DSK-001.015.M03.T06: Yesterday's ok run and an interrupted try do not count."""
+    runs = [("morning", _et(2026, 11, 10, 8, 31), "ok"),
+            ("morning", _et(2026, 11, 11, 8, 31), "interrupted")]
+    assert not morning_due(_et(2026, 11, 11, 8, 35), runs)
+    assert morning_due(_et(2026, 11, 11, 8, 46), runs)
 
 
 def test_clock_events_due() -> None:

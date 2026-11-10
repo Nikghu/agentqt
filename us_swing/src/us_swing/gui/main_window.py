@@ -2,6 +2,7 @@
 Module: MD-GUI-000 — main_window.py
 Shell: MD-GUI-018.005.M03 (Parent SRD: SRD-GUI-018.005)
 Settings dialog wiring: MD-GUI-027.004.M03 (Parent SRD: SRD-GUI-027.004)
+Desk with the app: SRD-GUI-034.068; start task sync at start: SRD-GUI-029.008
 QMainWindow: Frameless terminal UI — title bar, left sidebar, stacked screens.
 
 Layout:
@@ -17,8 +18,10 @@ Layout:
 """
 from __future__ import annotations
 
+import datetime as dt
 import logging
 import sys
+import threading
 from pathlib import Path
 
 from PyQt6.QtCore import (
@@ -65,11 +68,22 @@ from us_swing.gui.icons import refresh_icons
 from us_swing.gui.log_viewer_panel import LogViewerPanel
 from us_swing.gui.market_floor import MarketFloorWorkspace
 from us_swing.gui.reveal import RevealController
+from us_swing.gui.scheduler_dialog import sync_start_tasks
 from us_swing.gui.side_panels import IconStrip, PositionDetails
 from us_swing.gui.sidebar import FULL_WIDTH, MINI_WIDTH, Sidebar
 from us_swing.gui.theme import C, active_palette
 
 _log = logging.getLogger(__name__)
+
+
+def _sync_start_tasks() -> None:
+    """Move the Windows start tasks to 60 min before the open (SRD-GUI-029.008)."""
+    try:
+        local = dt.datetime.now().astimezone().tzinfo
+        if local is not None:
+            sync_start_tasks(dt.date.today() + dt.timedelta(days=1), local)
+    except Exception:  # noqa: BLE001 — a failed check must never stop the app
+        _log.warning("[Scheduler] Could not check the start task times", exc_info=True)
 
 
 def _asset_path(name: str) -> Path:
@@ -500,6 +514,8 @@ class MainWindow(QMainWindow):
                 self._stack.addWidget(card(p))
         self._stack.setCurrentIndex(0)
         self._desk_poller.start()
+        self._desk_poller.start_desk()
+        threading.Thread(target=_sync_start_tasks, name="scheduler-sync", daemon=True).start()
 
         # ── Title bar (brand, index prices, feed, win controls) ────────────────
         self._title_bar = _TitleBar(svc, self)
@@ -963,7 +979,7 @@ class MainWindow(QMainWindow):
         if worker is not None and hasattr(worker, "isRunning") and worker.isRunning():  # type: ignore[union-attr]
             worker.quit()   # type: ignore[union-attr]
             worker.wait(6000)  # type: ignore[union-attr]
-        self._desk_poller.shutdown()
+        self._desk_poller.shutdown(stop_desk=True)
         self._floor_panel.flush()
         self._demo._stop_live_bar_worker()
         self._demo.shutdown_notifications()

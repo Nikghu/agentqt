@@ -868,6 +868,7 @@ The system shall show the Windows start and close tasks as a table inside Settin
 3. **TWS login.** A folded line opens username, password, fill-in-automatically and a fill-now action.
 4. **One save.** Apply or OK writes the tasks and the password; switched-on tasks missing in Windows are re-created.
 5. **Remove all.** A red link removes every task and the saved password after a confirm.
+6. **Start before open.** Start TWS and Start USSwing run 60 minutes before the 09:30 ET open in local time, and follow US and local clock changes by themselves (user, 2026-11-10).
 
 ### Acceptance Criteria
 
@@ -992,6 +993,7 @@ The system shall add two workspaces, Market Floor and AI Desk, shown on sample d
 - The system shall make AI Desk look like the approved design: grouped section list, header chips, chat bubbles, approval cards and real runs (design phase 3, 2026-11-07).
 - The system shall give the AI Desk header and the Hiring, Pages, Reports, Results, Cost & budget and Desk settings sections the console card look of design Option A (design phase 4, 2026-11-10).
 - The system shall switch AI Desk sections with a tab row under the header instead of a menu in the left panel (2026-11-10).
+- The system shall start the desk when the app opens and stop it when the app closes, and name the desk's daily run the morning run (Autonomous desk step A, user 2026-11-10).
 
 ### Acceptance Criteria
 

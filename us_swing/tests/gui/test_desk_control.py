@@ -1,6 +1,7 @@
 """Tests for the desk bar and poller (MD-GUI-034.002.M02)."""
 from __future__ import annotations
 
+import time
 from pathlib import Path
 from typing import Any
 
@@ -80,3 +81,45 @@ def test_failed_command_shows_reason(qtbot: QtBot, tmp_path: Path) -> None:
     poller.shutdown()
     assert bar.note.text() == "Could not send: desk is off"
     assert "desk is off" in bar.pill.toolTip()
+
+
+def test_app_start_launches_desk_with_pid(
+    qtbot: QtBot, tmp_path: Path, monkeypatch: Any
+) -> None:
+    """UT-GUI-034.068.M02.T01: App start launches the desk with its pid (SRD-GUI-034.068)."""
+    launched: list[tuple[bool, int | None]] = []
+    monkeypatch.setattr(desk_control, "read_status", lambda _h=None: DeskStatus(DeskState.OFF))
+    monkeypatch.setattr(desk_control, "launch_desk",
+                        lambda resume=True, parent=None: launched.append((resume, parent)))
+    poller = DeskPoller(tmp_path)
+    poller.start_desk(parent=99)
+    qtbot.waitUntil(lambda: not poller.busy, timeout=5000)
+    poller.shutdown()
+    assert launched == [(True, 99)]
+
+
+def test_no_second_desk_at_app_start(qtbot: QtBot, tmp_path: Path, monkeypatch: Any) -> None:
+    """UT-GUI-034.068.M02.T02: No second desk (SRD-GUI-034.068)."""
+    launched: list[bool] = []
+    monkeypatch.setattr(desk_control, "read_status",
+                        lambda _h=None: DeskStatus(DeskState.SLEEPING))
+    monkeypatch.setattr(desk_control, "launch_desk", lambda *a, **k: launched.append(True))
+    poller = DeskPoller(tmp_path)
+    poller.start_desk(parent=99)
+    qtbot.waitUntil(lambda: not poller.busy, timeout=5000)
+    poller.shutdown()
+    assert launched == []
+
+
+def test_close_sends_stop(tmp_path: Path, monkeypatch: Any) -> None:
+    """UT-GUI-034.068.M02.T03: Close sends Stop without waiting for the run (SRD-GUI-034.068)."""
+    sent: list[CommandKind] = []
+    monkeypatch.setattr(desk_control, "read_status",
+                        lambda _h=None: DeskStatus(DeskState.RUNNING))
+    monkeypatch.setattr(desk_control, "send_command", lambda kind, _h=None: sent.append(kind))
+    poller = DeskPoller(tmp_path)
+    began = time.monotonic()
+    poller.shutdown(stop_desk=True)
+    assert sent == [CommandKind.STOP] and time.monotonic() - began < 2.5
+    poller.shutdown()
+    assert sent == [CommandKind.STOP]

@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.26.0: Autonomous desk step A (2026-11-11): M02 (desk_control) start/stop with the app, M34 next morning run, 029.004.M02 start tasks before open; also changed `main_window.py`, `core/desk_team.py`, `ai_desk.py`, `ai_desk_team.py`, `ai_desk_sections3.py`, `ai_desk_pages.py`, `ai_desk_results.py`, `ai_desk_team_pane.py` (labels, SRD-GUI-034.069).
 > v1.25.0: MD-GUI-036.001.M01 added (AI Desk Team setup).
 > v1.24.1: MD-GUI-018.012.M05 no longer used by AI Desk (SRD-GUI-034.067).
 > v1.24.0: MD-GUI-034.065.M39 added (AI Desk console look, design phase 4).
@@ -359,7 +360,7 @@ us_swing/src/us_swing/gui/
 | MD ID | SRD | File | Purpose | Public API | Depends on | Async |
 |---|---|---|---|---|---|---|
 | MD-GUI-029.001.M01 | SRD-GUI-029.001 | `us_swing/src/us_swing/gui/scheduler_table.py` | Task table, status pills, TWS login fold, apply and remove all | `SchedulerTable`, `inputs`, `load()`, `apply()`, `refresh_status()`, `repair_needed` | `scheduler_dialog`, `scheduler_store` | Yes (`QThread` jobs) |
-| MD-GUI-029.004.M02 | SRD-GUI-029.004 | `us_swing/src/us_swing/gui/scheduler_dialog.py` | Windows task and keyring helpers; dialog class removed | `task_states()`, `write_tasks()`, `remove_tasks()` | `scheduler_store` | No |
+| MD-GUI-029.004.M02 | SRD-GUI-029.004 | `us_swing/src/us_swing/gui/scheduler_dialog.py` | Windows task and keyring helpers; dialog class removed; start tasks 60 min before open and start-up sync (SRD-GUI-029.007–.008) | `task_states()`, `write_tasks()`, `remove_tasks()`, `before_open_time()`, `sync_start_tasks()` | `scheduler_store` | No |
 
 ## FO-GUI-030 — Backtest Data Settings
 
@@ -415,7 +416,7 @@ us_swing/src/us_swing/gui/
 | ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
 |---|---|---|---|---|---|---|
 | MD-GUI-034.001.M01 | SRD-GUI-034.001 | `us_swing/src/us_swing/gui/main_window.py` | Two nav items and pages, poller shutdown | `_NAV_ITEMS`, `_WIDE_PAGES` | M02, M04, M08 | No |
-| MD-GUI-034.002.M02 | SRD-GUI-034.002 | `us_swing/src/us_swing/gui/desk_control.py` | Desk pill, buttons and off-thread poller | `DeskBar`, `DeskPoller`, `allowed_actions()` | `core.desk_contract` | No |
+| MD-GUI-034.002.M02 | SRD-GUI-034.002 | `us_swing/src/us_swing/gui/desk_control.py` | Desk pill, buttons and off-thread poller; start with the app's pid and stop on close (SRD-GUI-034.068) | `DeskBar`, `DeskPoller`, `allowed_actions()` | `core.desk_contract` | No |
 | MD-GUI-034.010.M03 | SRD-GUI-034.010 | `us_swing/src/us_swing/gui/floor_sample.py` | Sample products and rows behind `FloorData` | `SampleFloorData`, `SAMPLE_TAG` | `core.desk_contract` | No |
 | MD-GUI-034.004.M04 | SRD-GUI-034.004 | `us_swing/src/us_swing/gui/market_floor.py`, `gui/floor_feed.py` | Floor tabs, toolbar, AI feed column | `MarketFloorWorkspace`, `AiFeedColumn` | M02, M03, M05, M06 | No |
 | MD-GUI-034.005.M05 | SRD-GUI-034.005 | `us_swing/src/us_swing/gui/floor_grid_model.py`, `gui/floor_grid.py` | Pure grid rules and the grid widget | `PanelSpec`, `GridModel`, `PanelGrid` | — | No |
@@ -447,7 +448,7 @@ us_swing/src/us_swing/gui/
 | MD-GUI-034.053.M31 | SRD-GUI-034.053 | `us_swing/src/us_swing/gui/floor_feed.py`, `gui/market_floor.py`, `gui/main_window.py` | Feed column with typed cards, filter tabs, live dot, footer and action signals; page and window wiring | `AiFeedColumn.set_cards()`, `set_live()`, `FeedCardWidget` | `core.desk_feed`, `core.desk_trades` | No |
 | MD-GUI-034.054.M32 | SRD-GUI-034.054 | `us_swing/src/us_swing/core/desk_feed.py`, `core/desk_floor.py`, `core/desk_trades.py`, `gui/ai_desk_hiring.py` | Feed cards from desk.db; shared approve and reject of a trade pick | `FeedCard`, `feed_cards()`, `approve_pick()`, `reject_pick()` | `core.desk_trades`, `core.desk_hiring` | No |
 | MD-GUI-034.059.M33 | SRD-GUI-034.059 | `us_swing/src/us_swing/gui/ai_desk.py`, `gui/main_window.py` | Grouped section list with Command badge; header chips and spend bar; chart signal to the window | `AiDeskWorkspace.set_ask_count()`, `chart_requested` | `core.desk_overview` | No |
-| MD-GUI-034.060.M34 | SRD-GUI-034.060 | `us_swing/src/us_swing/core/desk_overview.py` | Today's runs, last run, AI spend and team counts from desk.db | `todays_runs()`, `last_run()`, `spend()`, `team_counts()` | `core.desk_hiring`, `core.desk_ai_settings` | No |
+| MD-GUI-034.060.M34 | SRD-GUI-034.060 | `us_swing/src/us_swing/core/desk_overview.py` | Today's runs, last run, AI spend, team counts and next morning run from desk.db (SRD-GUI-034.069) | `todays_runs()`, `last_run()`, `spend()`, `team_counts()`, `next_morning_run()` | `core.desk_hiring`, `core.desk_ai_settings` | No |
 | MD-GUI-034.061.M35 | SRD-GUI-034.061 | `us_swing/src/us_swing/gui/ai_desk_chat.py` | Chat turns as left and right bubbles | `ChatPanel` | — | No |
 | MD-GUI-034.062.M36 | SRD-GUI-034.062 | `us_swing/src/us_swing/gui/ai_desk_hiring.py`, `gui/ai_desk_sections.py`, `gui/floor_feed.py`, `core/desk_feed.py` | Approval cards box, real Today's runs and Team now in Command; quantity on pick cards | `WaitingBox`, `approvals_box()`, `runs_box()`, `command_frame()`, `ask_cards()` | `core.desk_feed`, `core.desk_overview` | No |
 | MD-GUI-034.042.M37 | SRD-GUI-034.042 | `us_swing/src/us_swing/gui/floor_dialogs.py`, `gui/market_floor.py` | Ask the desk for new data box in the Add panel catalog | `CatalogDialog`, `MarketFloor` | `core.desk_data_asks` | No |

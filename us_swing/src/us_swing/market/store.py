@@ -9,6 +9,7 @@ Also: MD-MKT-005.003.M02 — regime view table (SRD-MKT-005.003); P5b AI view ta
 Also: MD-MKT-006.008.M05 — news tables (SRD-MKT-006.001, .003, .008)
 Also: MD-MKT-007.004.M03 — append-only ``canvas_pages`` report page versions (SRD-MKT-007.004)
 Also: MD-MKT-009.004.M02 — ``pick_results`` paper results (SRD-MKT-009.004)
+Also: ``candle_topup`` desk copy of daily bars (SRD-MKT-001.014, .015)
 
 Market tables in ``desk.db``: ``regime_snapshot``, ``breadth_daily``, ``vix_daily``,
 ``sector_daily``, ``stock_rs``, ``stock_score``, ``ideas``, ``idea_reasons``,
@@ -19,6 +20,7 @@ from __future__ import annotations
 
 import math
 import sqlite3
+from collections.abc import Callable
 from dataclasses import astuple, dataclass, fields
 from datetime import date
 from pathlib import Path
@@ -111,7 +113,25 @@ CREATE TABLE IF NOT EXISTS pick_results (
     date TEXT, side TEXT, symbol TEXT, status TEXT, entry_day TEXT, entry REAL, exit_day TEXT,
     exit REAL, r REAL, PRIMARY KEY (date, side, symbol)
 );
+CREATE TABLE IF NOT EXISTS candle_topup (
+    symbol TEXT, date TEXT, open REAL, high REAL, low REAL, close REAL, volume INTEGER,
+    fetched TEXT, PRIMARY KEY (symbol, date)
+);
 """
+
+
+@dataclass(frozen=True)
+class TopupRow:
+    """One ``candle_topup`` row: a daily bar from Yahoo Finance kept only by the desk."""
+
+    symbol: str
+    date: str
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: int
+    fetched: str
 
 
 @dataclass(frozen=True)
@@ -375,6 +395,7 @@ class MarketStore:
 
     def __init__(self, home: Path) -> None:
         """Open ``desk.db`` in ``home`` and create the market tables when missing."""
+        self.home = home
         home.mkdir(parents=True, exist_ok=True)
         self._con = sqlite3.connect(home / DB_NAME, timeout=5)
         self._con.execute("PRAGMA journal_mode=WAL")
@@ -392,6 +413,31 @@ class MarketStore:
             raise ValueError(f"unknown table {table}")
         row = self._con.execute(f"SELECT MAX(date) FROM {table}").fetchone()  # noqa: S608
         return date.fromisoformat(row[0]) if row and row[0] else None
+
+    def write_topup(self, rows: list[TopupRow]) -> None:
+        """Insert or replace desk-copy daily bars in one transaction."""
+        with self._con:
+            self._put("candle_topup", TopupRow, [astuple(r) for r in rows])
+
+    def drop_unsettled_topup(self, settled: Callable[[str], str]) -> int:
+        """Delete copy rows fetched before ``settled(date)`` (UTC ISO); return how many."""
+        rows = self._con.execute("SELECT symbol, date, fetched FROM candle_topup").fetchall()
+        early = [(s, d) for s, d, fetched in rows if str(fetched) < settled(str(d))]
+        with self._con:
+            self._con.executemany("DELETE FROM candle_topup WHERE symbol = ? AND date = ?",
+                                  early)
+        return len(early)
+
+    def topup_last_days(self) -> dict[str, str]:
+        """Return the newest desk-copy day of each symbol."""
+        return dict(self._con.execute("SELECT symbol, MAX(date) FROM candle_topup GROUP BY symbol"))
+
+    def trim_topup(self, db_last: dict[str, str]) -> int:
+        """Delete desk-copy rows on or before each symbol's last ``candles.db`` day; return count."""
+        with self._con:
+            cur = self._con.executemany("DELETE FROM candle_topup WHERE symbol = ? AND date <= ?",
+                                        list(db_last.items()))
+        return cur.rowcount
 
     def stored_dates(self) -> set[str]:
         """Return every ISO date already in ``regime_snapshot``."""

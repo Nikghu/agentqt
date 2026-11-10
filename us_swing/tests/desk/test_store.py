@@ -117,3 +117,15 @@ def test_naive_time_refused(store: DeskStore) -> None:
     """UT-DSK-001.001.M02.T11: Naive time refused."""
     with pytest.raises(ValueError):
         store.set_state(DeskState.SLEEPING, datetime(2026, 11, 5, 15, 0))
+
+
+def test_runs_since(store: DeskStore) -> None:
+    """UT-DSK-001.001.M02.T12: Runs since a time (SRD-DSK-001.015)."""
+    old = store.start_run("morning", THU_1500_ET - timedelta(days=2))
+    store.end_run(old, "ok", THU_1500_ET - timedelta(days=2))
+    a = store.start_run("morning", THU_1500_ET)
+    store.end_run(a, "failed", THU_1500_ET)
+    store.start_run("manual", THU_1500_ET + timedelta(minutes=5))
+    rows = store.runs_since(THU_1500_ET - timedelta(hours=1))
+    assert rows == [("morning", THU_1500_ET, "failed"),
+                    ("manual", THU_1500_ET + timedelta(minutes=5), "running")]

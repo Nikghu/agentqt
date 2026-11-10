@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.6.0: Autonomous desk step A (user, 2026-11-10): FO-DSK-001 desk runs only while the app is open and runs in the morning (no evening run); FO-DSK-003 morning run by event; FO-DSK-007 candles alert. Older acceptance lines that say "evening run" describe the run in place when they were written.
 > v0.5.0: FO-DSK-008 Implemented (user approved 2026-11-10; code and tests done).
 > v0.4.0: FO-DSK-008 added as Draft — one employee.md file, versions and draft test (user, 2026-11-10).
 > v0.3.0: FO-DSK-006 written in full as Draft for P6 (Master-started hires, 14-evening shadow, seat caps 8/5/30, weekly code report); no employee names.
@@ -26,14 +27,14 @@ DSK is a general multi-agent "desk" harness. It runs as its own background proce
 
 The system shall run the desk as a separate background process that the main app controls but does not host.
 
-- The system shall start the desk as its own Windows task, so it runs even when the app is closed.
+- The system shall start the desk when the app opens and stop it when the app closes; the desk runs only while the app is open, weekends too (user, 2026-11-10; replaces "own Windows task").
 - The system shall keep all desk output in one SQLite file, `desk.db`, opened in WAL mode.
 - The system shall let the app send commands (start, pause, resume, stop) only by writing rows to the `commands` table.
 - The system shall show one of seven desk states: Running, Sleeping, Paused, Stopping, Stopped, Off, Error.
 - The system shall save the last desk state on stop, so the Master User can resume it later.
 - The system shall write a heartbeat, so the app can show Off or Error when the desk process is not alive.
 - The system shall never block the app: the app only reads `desk.db` and writes `commands`.
-- The system shall schedule the evening run after the US close (about 16:25 ET), using NY time inside the desk and IST for the Windows task.
+- The system shall run the day's market steps and AI employees once per trading day in the morning, from pre-market (04:00 ET), using NY time inside the desk; there is no evening run (user, 2026-11-10).
 
 ## FO-DSK-002: Employee Registry and Job Descriptions
 
@@ -75,14 +76,15 @@ The system shall keep agents asleep and wake them only by rule. In P5a the only 
 - The system shall post market open and close events from a market clock on NYSE trading days.
 - The system shall not wake the same employee again within 30 minutes, except for P0 events.
 - The system shall run the employees woken by one event as one LangGraph graph, where a skill runs after the skills whose views it needs.
+- The system shall start the morning run by event, not by a fixed clock: the app is open, the market day has reached pre-market, and the candles are checked; a run that fails is tried again later the same day (Autonomous desk step A, user 2026-11-10).
 
 ### Acceptance Criteria
 
-1. The evening run wakes the regime view employee once; a second run on the same data day does not.
+1. The morning run wakes the regime view employee once; a second run on the same data day does not.
 2. With stale data the employee stays asleep and the log says why.
 3. A P0 event is handled before waiting P1 and P2 events; an expired event is not handled and the log says so.
 4. A second wake of the same employee within 30 minutes is refused unless the event is P0.
-5. In the evening run the lead runs last; when one expert fails, the others still run and the lead's facts say which view is missing.
+5. In the morning run the lead runs last; when one expert fails, the others still run and the lead's facts say which view is missing.
 
 ## FO-DSK-004: LLM Gateway and Budget Guard
 
@@ -162,6 +164,7 @@ The system shall tell the Master User when the AI desk hits a problem only the u
 - The system shall raise one alert per problem per day, in the app and on Telegram.
 - The system shall stop trying a source that could not sign in for the rest of that run and use the backup model.
 - The system shall raise an alert when no employee of a run gave a valid answer.
+- The system shall raise an alert when the morning run stops because the candles are not up to date (user, 2026-11-10).
 - The system shall close an alert in the app once the problem is fixed.
 
 ### Acceptance Criteria

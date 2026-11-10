@@ -10,11 +10,13 @@ Two independent tasks are stored under top-level keys "usswing" and "ibkr".
 from __future__ import annotations
 
 import json
+import threading
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
 _APP_DIR    = Path.home() / ".usswing"
 _STORE_FILE = _APP_DIR / "scheduler.json"
+_LOCK = threading.Lock()   # the start-up sync and Settings Apply both save from threads
 
 _USSWING_EXE_DEFAULT = r"C:\Program Files (x86)\USSwing\USSwing.exe"
 
@@ -117,39 +119,45 @@ def _save_raw(data: dict[str, object]) -> None:
 
 
 def save_usswing_config(cfg: USSwingConfig) -> None:
-    raw = _load_raw()
-    raw.pop("task_name", None)   # remove old flat-key format if present
-    raw["usswing"] = asdict(cfg)
-    _save_raw(raw)
+    with _LOCK:
+        raw = _load_raw()
+        raw.pop("task_name", None)   # remove old flat-key format if present
+        raw["usswing"] = asdict(cfg)
+        _save_raw(raw)
 
 
 def save_scheduler_config(cfg: SchedulerConfig) -> None:
-    raw = _load_raw()
-    raw.pop("task_name", None)   # remove old flat-key format if present
-    raw["ibkr"] = asdict(cfg)
-    _save_raw(raw)
+    with _LOCK:
+        raw = _load_raw()
+        raw.pop("task_name", None)   # remove old flat-key format if present
+        raw["ibkr"] = asdict(cfg)
+        _save_raw(raw)
 
 
 def save_close_config(cfg: CloseConfig) -> None:
-    raw = _load_raw()
-    raw["close"] = asdict(cfg)
-    _save_raw(raw)
+    with _LOCK:
+        raw = _load_raw()
+        raw["close"] = asdict(cfg)
+        _save_raw(raw)
 
 
 def delete_close_config() -> None:
-    raw = _load_raw()
-    raw.pop("close", None)
-    _save_raw(raw)
+    with _LOCK:
+        raw = _load_raw()
+        raw.pop("close", None)
+        _save_raw(raw)
 
 
 def delete_usswing_config() -> None:
-    raw = _load_raw()
-    raw.pop("usswing", None)
-    _save_raw(raw)
+    with _LOCK:
+        raw = _load_raw()
+        raw.pop("usswing", None)
+        _save_raw(raw)
 
 
 def delete_scheduler_config() -> None:
-    raw = _load_raw()
-    raw.pop("ibkr", None)
-    raw.pop("task_name", None)   # old flat-key cleanup
-    _save_raw(raw)
+    with _LOCK:
+        raw = _load_raw()
+        raw.pop("ibkr", None)
+        raw.pop("task_name", None)   # old flat-key cleanup
+        _save_raw(raw)

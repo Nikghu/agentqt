@@ -65,7 +65,7 @@ from us_swing.gui.theme import C
 NY = ZoneInfo("America/New_York")
 HIRE_COLUMNS = ("Name", "Skill", "Level", "Model", "Started", "Shadow days", "Status")
 REPORT_COLUMNS = ("Who", "Days", "Valid", "Tokens", "Cost")
-NO_HIRES = "No hires yet. Start one below; it runs in shadow for 14 evenings"
+NO_HIRES = "No hires yet. Start one below; it runs in shadow for 14 data days"
 NO_APPROVALS = "Nothing waits for your approval"
 SEAT_LEVELS = (("expert", "Experts"), ("champion", "Champions"), ("junior", "Juniors"))
 

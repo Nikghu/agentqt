@@ -24,7 +24,7 @@ from us_swing.gui.ai_desk_sections import make_table, muted, section_frame
 from us_swing.gui.theme import C
 
 NY = ZoneInfo("America/New_York")
-NO_PICKS = "No lead picks yet. Results show after the desk's first evening with picks"
+NO_PICKS = "No lead picks yet. Results show after the desk's first morning run with picks"
 GROUP_COLUMNS = ("Group", "Picks", "Fills", "Finished", "Hit rate", "Avg R")
 PICK_COLUMNS = ("Day", "Side", "Stock", "Decision", "Paper", "R", "Real P&L")
 
