@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.21.1: UT-GUI-034.042–.044 run — 7 Pass.
 > v1.21.0: UT-GUI-034.042–.044 added (MKT P10 ask the desk for new data).
 > v1.20.0: UT-GUI-034.059–.064 added; UT-GUI-034.031 and .034–.036 tests moved to approval cards (AI Desk design phase 3).
 > v1.19.0: UT-GUI-034.053–.058 added (AI feed cards).
@@ -1166,10 +1167,10 @@ Test files:
 | UT-GUI-034.062.M36.T01 | MD-GUI-034.062.M36 | Positive | Approval cards (SRD-GUI-034.062) | ready hire and 2 picks | heading count 3; pick cards with qty; Open Hiring opens Hiring | Pass |
 | UT-GUI-034.063.M36.T01 | MD-GUI-034.062.M36 | Positive | Today's runs (SRD-GUI-034.063) | runs today | one line per run; events one row with count; no Sample tag | Pass |
 | UT-GUI-034.064.M36.T01 | MD-GUI-034.062.M36 | Positive | Team now (SRD-GUI-034.064) | 2 active, 1 shadow | Team now: 2 active · 1 shadow | Pass |
-| UT-GUI-034.042.M37.T01 | MD-GUI-034.042.M37 | Positive | Ask box sends (SRD-GUI-034.042) | type a request, click Ask | ask called with the text; sent note shown; box cleared | Not Run |
-| UT-GUI-034.042.M37.T02 | MD-GUI-034.042.M37 | Negative | Ask box guards (SRD-GUI-034.042) | empty box; no ask given; ask returns an error | Ask disabled; box hidden; error shown and text kept | Not Run |
-| UT-GUI-034.043.M38.T01 | MD-GUI-034.043.M38 | Positive | Product card (SRD-GUI-034.043) | waiting product with 7 matching rows | Ask card with title, recipe in words and 5 preview rows; counted in the heading | Not Run |
-| UT-GUI-034.043.M38.T02 | MD-GUI-034.043.M38 | Positive | Approve and Reject (SRD-GUI-034.043) | click Approve on one card, Reject on another | approvals rows saved; both cards leave the list; only the approved one is in the catalog | Not Run |
-| UT-GUI-034.043.M38.T03 | MD-GUI-034.043.M38 | Negative | Already decided (SRD-GUI-034.043) | product decided elsewhere, then Approve clicked | note 'already decided'; buttons off | Not Run |
-| UT-GUI-034.044.M38.T01 | MD-GUI-034.043.M38 | Positive | Failed note (SRD-GUI-034.044) | request failed 2 hours ago | card with the request and reason; no buttons; not counted | Not Run |
-| UT-GUI-034.044.M38.T02 | MD-GUI-034.043.M38 | Negative | Old failure hidden (SRD-GUI-034.044) | request failed 25 hours ago | no card | Not Run |
+| UT-GUI-034.042.M37.T01 | MD-GUI-034.042.M37 | Positive | Ask box sends (SRD-GUI-034.042) | type a request, click Ask | ask called with the text; sent note shown; box cleared | Pass |
+| UT-GUI-034.042.M37.T02 | MD-GUI-034.042.M37 | Negative | Ask box guards (SRD-GUI-034.042) | empty box; no ask given; ask returns an error | Ask disabled; box hidden; error shown and text kept | Pass |
+| UT-GUI-034.043.M38.T01 | MD-GUI-034.043.M38 | Positive | Product card (SRD-GUI-034.043) | waiting product with 7 matching rows | Ask card with title, recipe in words and 5 preview rows; counted in the heading | Pass |
+| UT-GUI-034.043.M38.T02 | MD-GUI-034.043.M38 | Positive | Approve and Reject (SRD-GUI-034.043) | click Approve on one card, Reject on another | approvals rows saved; both cards leave the list; only the approved one is in the catalog | Pass |
+| UT-GUI-034.043.M38.T03 | MD-GUI-034.043.M38 | Negative | Already decided (SRD-GUI-034.043) | product decided elsewhere, then Approve clicked | note 'already decided'; buttons off | Pass |
+| UT-GUI-034.044.M38.T01 | MD-GUI-034.043.M38 | Positive | Failed note (SRD-GUI-034.044) | request failed 2 hours ago | card with the request and reason; no buttons; not counted | Pass |
+| UT-GUI-034.044.M38.T02 | MD-GUI-034.043.M38 | Negative | Old failure hidden (SRD-GUI-034.044) | request failed 25 hours ago | no card | Pass |

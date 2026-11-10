@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.11.2: FO-MKT-011 Implemented (RN-MKT-0.12.0-20261110).
 > v0.11.1: FO-MKT-011 approved by user 2026-11-10.
 > v0.11.0: FO-MKT-011 added as Draft — Ask the Desk for New Data (P10).
 > v0.10.1: FO-MKT-010 approved by user 2026-11-06.
@@ -278,7 +279,7 @@ The system shall let the Master user ask the lead questions in AI Desk and get a
 
 ## FO-MKT-011: Ask the Desk for New Data
 
-**Status:** Approved
+**Status:** Implemented (RN-MKT-0.12.0-20261110)
 **Priority:** Could
 **Phase:** P10
 **Depends on:** FO-GUI-034 (Floor catalog), FO-MKT-003 (scores and ideas), FO-MKT-009 (pick results), FO-DSK-003 (events)

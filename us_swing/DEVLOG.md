@@ -2,6 +2,18 @@
 
 ---
 
+## [20261110] MKT + GUI — Ask the desk for new data, phase P10 (FO-MKT-011)
+
+- Type: Feature
+- FO(s): FO-MKT-011 (Implemented); FO-GUI-034 (still at Reopen)
+- RN: RN-MKT-0.12.0-20261110
+- Artifacts updated: FO, SRD (MKT-011.001–.009, GUI-034.042–.044 Implemented), DD (DD-MKT-011.001.D01), MD (MKT M01–M06, GUI M37–M38), UTCD (32 rows Pass), TRACE, Code (core/desk_recipes, core/desk_data_asks, market/data_recipe, emp-009 new; desk_events, desk_steps, desk_floor, desk_feed, floor_dialogs, market_floor, floor_feed, ai_desk_hiring, USSwing.spec changed)
+- Decisions: user approved FO and SRDs 2026-11-10; names only from the menu, values bound, read-only; Ask is the default button while the box has text; decision check and insert in one locked transaction
+- Tests: 32 new Pass (coverage 96–100%); full suite 12 old failures (T112) only; stray screener test left out (T136)
+- Also: Floor design PR #127 merged (9b3718af); worktree and branch removed
+
+---
+
 ## [20261107] GUI — AI Desk design match, phase 3 (FO-GUI-034)
 
 - Type: Feature

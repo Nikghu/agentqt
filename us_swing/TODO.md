@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-11-06 (Session 125)
+**Last Updated:** 2026-11-10 (Session 127)
 
 ---
 
@@ -143,4 +143,6 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T131 | MKT P9 — user check: restart the desk (seeds Lead 2, emp-008); AI Desk → Command, ask a question; the answer shows in about a minute; desk stopped → start-the-desk note. | `market/lead_chat.py`, `gui/ai_desk_chat.py` | High | Open |
 | T132 | GUI Floor design phase 1 — user check: restart the app; Market Floor shows chips, tiles, heat map, ideas with score bars, breadth line, rotation; Edit shows the edit tools. Next: feed cards, AI Desk restyle. | `gui/market_floor.py`, `gui/floor_charts.py` | High | Open |
 | T133 | GUI Floor design phase 2 — user check: AI feed shows typed cards and filter tabs; after an evening run Approve or Reject a pick in the feed; Open in Charts and Talk to lead open the right pages. Next: AI Desk restyle. | `gui/floor_feed.py`, `core/desk_feed.py` | High | Open |
-| T134 | GUI design phase 3 — user check: AI Desk shows the grouped list with Command count, last run and spend chips, chat bubbles, approval cards, today's runs and Team now; then push and PR feat/gui-floor-design. | `gui/ai_desk.py` | High | Open |
+| T134 | GUI design phase 3 — user check: AI Desk shows the grouped list with Command count, last run and spend chips, chat bubbles, approval cards, today's runs and Team now (merged to main via PR #127 on 2026-11-10). | `gui/ai_desk.py` | High | Open |
+| T135 | MKT P10 — user check: restart the desk (seeds Expert 7, emp-009); Floor → Add panel, ask for new data; approve it in AI Desk → Command; add the asked panel to a tab. | `market/data_recipe.py` | High | Open |
+| T136 | Broken test `tests/screener/test_llm_claude_screener.py` imports `screener.screeners.llm_claude`, which is not in git; delete the test or add the module. | `tests/screener` | Low | Open |
