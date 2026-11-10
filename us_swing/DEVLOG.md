@@ -2,6 +2,17 @@
 
 ---
 
+## [20261110] GUI — AI Desk status bar instead of dot (SRD-GUI-035.013)
+
+- Type: Enhancement
+- FO(s): FO-GUI-035 (SRD .013 added)
+- RN: RN-GUI-1.18.0-20261110
+- Artifacts updated: SRD, DD (DD-GUI-035.001.D01 Status bar), UTCD, TRACE, TODO (T146), Code (gui/ai_desk_team_pane, gui/ai_desk_team, gui/ai_desk, gui/desk_control)
+- Decisions: user picked Option 3 (left colour bar) of 4 mock-ups; rich-text lines use a 3 px filled table cell; Floor, timeline and backtest dots left as they are
+- Tests: 1 new; AI Desk/Team/Floor GUI tests 159 pass
+
+---
+
 ## [20261110] GUI — AI Desk section tabs (SRD-GUI-034.067)
 
 - Type: Enhancement

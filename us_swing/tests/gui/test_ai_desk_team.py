@@ -8,6 +8,8 @@ from pytestqt.qtbot import QtBot
 
 from tests.gui.team_fixtures import NOW, desk
 from us_swing.gui.ai_desk_team import TeamAtWork
+from us_swing.gui.ai_desk_team_pane import bar_rows, tone
+from us_swing.gui.theme import C
 
 
 def _page(qtbot: QtBot, home: Path) -> TeamAtWork:
@@ -166,3 +168,15 @@ def test_alert_banner_and_feed(qtbot: QtBot, tmp_path: Path) -> None:
     assert "No employee gave a valid answer" in page.alert_banner.text()
     cards = [c for c in feed_cards(tmp_path, NOW) if c.subject == "No employee gave a valid answer"]
     assert len(cards) == 1 and "What to do:" in cards[0].text
+
+
+def test_status_bars_not_dots(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-035.013.M04.T01: pills, Right now and This run show a left colour bar, no dot."""
+    desk(tmp_path, finished=False)
+    page = _page(qtbot, tmp_path)
+    card = page.pipeline._cards["emp-a"]
+    assert card.state_label.text() and "●" not in card.state_label.text()
+    assert f"border-left: 3px solid {tone('done')}" in card.state_label.styleSheet()
+    assert f"border-left: 3px solid {C.BLUE}" in page.now_head.styleSheet()
+    assert "●" not in page.profile.calls_label.text()
+    assert "bgcolor=" in bar_rows([(C.RED, "16:26:00 · try 1")])

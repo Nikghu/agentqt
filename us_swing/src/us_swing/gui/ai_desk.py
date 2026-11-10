@@ -52,7 +52,7 @@ from us_swing.gui.ai_desk_results import results_frame
 from us_swing.gui.ai_desk_pages import pages_frame
 from us_swing.gui.ai_desk_sections3 import cost_frame, reports_frame, settings_frame
 from us_swing.gui.ai_desk_team import TeamAtWork
-from us_swing.gui.ai_desk_team_pane import tab_style
+from us_swing.gui.ai_desk_team_pane import bar_style, tab_style
 from us_swing.gui.theme import C
 
 NY = ZoneInfo("America/New_York")
@@ -291,11 +291,12 @@ class AiDeskWorkspace(QWidget):
         if run is None:
             self.last_run_title.setText("Last run")
             self.last_run_chip.setText("No runs yet")
+            self.last_run_chip.setStyleSheet(f"font-size: 15px; font-weight: bold; {bar_style(C.MUTED)}")
         else:
             colour = getattr(C, _RESULT_TONE.get(run.result, "SUBTEXT"))
             self.last_run_title.setText(f"Last run · {run.result}")
-            self.last_run_chip.setText(f"<span style='color:{colour}'>●</span>&nbsp;"
-                                       f"{run.name} · {run.when:%H:%M} ET")
+            self.last_run_chip.setText(f"{run.name} · {run.when:%H:%M} ET")
+            self.last_run_chip.setStyleSheet(f"font-size: 15px; font-weight: bold; {bar_style(colour)}")
         upcoming = next_evening_run(now)
         day = "" if upcoming.date() == now.astimezone(NY).date() else f"{upcoming:%a} "
         self.next_run_label.setText(f"{day}{upcoming:%H:%M} ET&nbsp; "

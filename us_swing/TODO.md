@@ -155,3 +155,4 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T143 | GUI SRD-GUI-034.065–.066 — user check: restart the app; AI Desk header shows tiles and the joined control group; Hiring, Pages, Reports, Results, Cost and Settings show tiles and icon cards. | `gui/ai_desk.py` | High | Open |
 | T144 | Desk settings: "Seat caps" in Schedule and rules shows sample caps (3/5/30) and the P6 note is out of date; real caps are in the Seats card. Decide to remove. | `gui/ai_desk_sections3.py` | Low | Open |
 | T145 | GUI SRD-GUI-034.067 — user check: restart the app; AI Desk shows the section tabs under the header (Command count included); the left panel shows no AI Desk menu. | `gui/ai_desk.py` | High | Open |
+| T146 | GUI SRD-GUI-035.013 — user check: restart the app; AI Desk status shows a left colour bar, no dots (pills, Sleeping chip, Last run, Right now, This run). | `gui/ai_desk_team_pane.py` | High | Open |

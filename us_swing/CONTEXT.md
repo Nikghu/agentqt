@@ -2,10 +2,12 @@
 
 **Document:** CONTEXT.md
 **Project:** us_swing
-**Last Updated:** 2026-11-10 (Session 129)
+**Last Updated:** 2026-11-10 (Session 130)
 **Updated By:** Claude (Opus 5.5)
 
 ---
+
+**Current (Session 130, 2026-11-10):** **AI Desk status bar instead of dot (Enhancement, GUI; FO-GUI-035; RN-GUI-1.18.0-20261110; SRD-GUI-035.013 chosen by user and Implemented).** Status pills, the desk state chip, Last run, Right now and This run lines show a 3 px left colour bar; no dots. Floor, timeline and backtest dots unchanged. Branch `feat/gui-desk-status-bar`, committed, not pushed. User check T146. Mock-ups: https://claude.ai/artifact/92UfDzucLYx2rWC63Q4HRS.
 
 **Also (Session 129d, 2026-11-10):** **AI Desk section tabs (Enhancement, GUI; FO-GUI-034; RN-GUI-1.17.0-20261110; SRD-GUI-034.067 Implemented).** Sections are underline tabs under the header; the left panel AI Desk menu is gone. Same branch, committed, not pushed. User check T145.
 

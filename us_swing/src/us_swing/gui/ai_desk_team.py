@@ -66,6 +66,7 @@ from us_swing.gui.ai_desk_team_pane import (
     WheelItem,
     arrow_button,
     checked_style,
+    bar_style,
     chip_style,
     chip_text,
     panel,
@@ -171,8 +172,8 @@ class StageCard(QFrame):
     def set_state(self, key: str, label: str, meta: str) -> None:
         """Show state ``key`` with ``label`` and the fact line ``meta``."""
         self.state_key = key
-        self.state_label.setText(chip_text(key, label))
-        self.state_label.setStyleSheet(chip_style())
+        self.state_label.setText(chip_text(label))
+        self.state_label.setStyleSheet(chip_style(key))
         self.meta.setText(meta)
         self.busy.setVisible(key == "working")
         if key != "working":
@@ -612,15 +613,12 @@ class TeamAtWork(QWidget):
         now_box = panel()
         now_row = QHBoxLayout(now_box)
         now_row.setContentsMargins(12, 8, 12, 8)
-        self.now_dot = QLabel("●")
-        self.now_dot.setStyleSheet(f"color: {C.MUTED}; border: none;")
-        head = QLabel("Right now")
-        head.setStyleSheet("font-weight: bold; border: none;")
+        self.now_head = QLabel("Right now")
+        self.now_head.setStyleSheet(f"font-weight: bold; {bar_style(C.MUTED)}")
         self.now_label = QLabel()
         self.now_label.setWordWrap(True)
         self.now_label.setStyleSheet(f"color: {C.SUBTEXT}; border: none;")
-        now_row.addWidget(self.now_dot)
-        now_row.addWidget(head)
+        now_row.addWidget(self.now_head)
         now_row.addWidget(self.now_label, 1)
         self._views = QButtonGroup(self)
         view_row, _ = _toggle_row(("Pipeline", "Timeline"), self._views,
@@ -743,7 +741,7 @@ class TeamAtWork(QWidget):
         if not self._selected and self._members:
             self._selected = self._members[0].id
         self.now_label.setText(self._now_text(working))
-        self.now_dot.setStyleSheet(f"color: {self._now_colour(working)}; border: none;")
+        self.now_head.setStyleSheet(f"font-weight: bold; {bar_style(self._now_colour(working))}")
         self.pipeline.show_view(self._members, self._view, self._selected)
         self.timeline.show_view(self._members, self._view, self._clock())
         self.wheel.set_items([

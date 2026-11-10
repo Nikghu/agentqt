@@ -75,15 +75,28 @@ def tab_style() -> str:
             f" outline: none; }}")
 
 
-def chip_style() -> str:
-    """Filled pill for a state chip; the dot carries the colour."""
-    return (f"color: {C.TEXT}; background: {C.OVERLAY}; border: 1px solid {C.OVERLAY2};"
-            " border-radius: 9px; padding: 1px 8px;")
+def bar_style(colour: str) -> str:
+    """Plain label with a thin ``colour`` bar on its left edge."""
+    return (f"background: transparent; border: none; border-left: 3px solid {colour};"
+            " border-radius: 0; padding-left: 8px;")
 
 
-def chip_text(key: str, label: str) -> str:
-    """Rich text for a state chip: a dot in the state colour, then ``label``."""
-    return f"<span style='color:{tone(key)}'>●</span>&nbsp;{html.escape(label)}"
+def chip_style(key: str) -> str:
+    """Pill for a state chip; a left bar in the state colour carries the status."""
+    return (f"color: {C.TEXT}; background: {C.OVERLAY}; border: none;"
+            f" border-left: 3px solid {tone(key)}; border-radius: 3px; padding: 1px 8px;")
+
+
+def chip_text(label: str) -> str:
+    """Escaped text for a state chip."""
+    return html.escape(label)
+
+
+def bar_rows(rows: Sequence[tuple[str, str]]) -> str:
+    """Rich text lines, each with a thin bar in its colour on the left."""
+    cells = "".join(f"<tr><td width='3' bgcolor='{colour}'></td><td>&nbsp;{text}</td></tr>"
+                    for colour, text in rows)
+    return f"<table cellspacing='3' cellpadding='0'>{cells}</table>"
 
 
 def panel(child: QWidget | None = None, name: str = "team_panel") -> QFrame:
@@ -369,8 +382,8 @@ class ProfilePane(QWidget):
         boss = names.get(member.reports_to, "nobody")
         self.sub_label.setText(f"{member.title or member.level} · {skill_text(member.skill)} · "
                                f"reports to {boss}")
-        self.state_label.setText(chip_text(state.key, state.label))
-        self.state_label.setStyleSheet(chip_style())
+        self.state_label.setText(chip_text(state.label))
+        self.state_label.setStyleSheet(chip_style(state.key))
         self._facts["Wakes on"].setText(", ".join(_trigger_text(t) for t in member.triggers)
                                         or "nothing")
         self._facts["Waits for"].setText(", ".join(names.get(n, n) for n in member.needs)
@@ -429,10 +442,10 @@ def _calls_html(calls: Sequence[Call], on_demand: bool) -> str:
     for c in calls:
         colour = C.GREEN if c.valid else C.RED
         answer = "valid" if c.valid else html.escape(c.error[:60] or "bad answer")
-        rows.append(f"<span style='color:{colour}'>●</span> {c.started:%H:%M:%S} · try "
+        rows.append((colour, f"{c.started:%H:%M:%S} · try "
                     f"{c.attempt} · {html.escape(c.source)} · {c.seconds:.1f} s · "
-                    f"{c.tokens_in + c.tokens_out:,} tok · {answer}")
-    return "<br>".join(rows)
+                    f"{c.tokens_in + c.tokens_out:,} tok · {answer}"))
+    return bar_rows(rows)
 
 
 def _history_html(days: Sequence[DayWork]) -> str:
@@ -441,9 +454,9 @@ def _history_html(days: Sequence[DayWork]) -> str:
     rows = []
     for d in days:
         colour = C.GREEN if d.valid else C.RED
-        rows.append(f"<span style='color:{colour}'>●</span> {html.escape(d.day)} · {d.calls} call(s) · "
-                    f"{d.seconds:.1f} s · ${d.cost_usd:.3f}")
-    return "<br>".join(rows)
+        rows.append((colour, f"{html.escape(d.day)} · {d.calls} call(s) · "
+                    f"{d.seconds:.1f} s · ${d.cost_usd:.3f}"))
+    return bar_rows(rows)
 
 
 SCORE_HEADERS = ("Employee", "Skill", "Runs", "Calls", "Valid", "Retries", "Backup",
