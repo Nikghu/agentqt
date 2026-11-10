@@ -111,3 +111,14 @@
 | SRD-DSK-006.008 | FO-DSK-006 | Must | A retired employee never wakes, and its records stay. | status | — | Status `active` is the default for files without one | Implemented |
 | SRD-DSK-006.009 | FO-DSK-006 | Must | The first desk run on or after each Friday (New York) writes one weekly report by code: calls, valid share, tokens, cost and failures per employee, and shadow progress. | `activity`, employees | `desk_reports` row | No AI call; one report per week | Implemented |
 | SRD-DSK-006.010 | FO-DSK-006 | Should | Starting a hire, the end of a shadow, each decision and each weekly report are logged. | event | log line | `[Hiring]` and `[Report]` prefixes | Implemented |
+
+## FO-DSK-007: AI Problem Alerts
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-DSK-007.001 | FO-DSK-007 | Must | A failed model call whose error is a Claude login, OpenRouter key or credit problem raises an alert with a plain fix step. | call error | `alerts` row | Answers in the wrong form never raise one | Implemented |
+| SRD-DSK-007.002 | FO-DSK-007 | Must | An alert is stored once per kind, source and New York day. | alert | row | Repeats the same day are dropped | Implemented |
+| SRD-DSK-007.003 | FO-DSK-007 | Must | A new alert is sent to Telegram for the first user with Telegram on. | alert | message | A failed or off Telegram keeps the alert in the app | Implemented |
+| SRD-DSK-007.004 | FO-DSK-007 | Must | After a source fails to sign in, the rest of that run skips it and uses the backup model. | run | calls | The next run tries the source again | Implemented |
+| SRD-DSK-007.005 | FO-DSK-007 | Must | An evening or manual run whose employees made calls but gave no valid answer raises a whole-run alert. | run calls | alert | Holds the call count and last error | Implemented |
+| SRD-DSK-007.006 | FO-DSK-007 | Must | An alert stays open for a day until a later valid answer (same source for sign-in problems) closes it. | alerts, activity | open alerts | Read-only for the GUI | Implemented |

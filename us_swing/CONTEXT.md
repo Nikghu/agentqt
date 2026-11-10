@@ -2,12 +2,14 @@
 
 **Document:** CONTEXT.md
 **Project:** us_swing
-**Last Updated:** 2026-11-10 (Session 128)
+**Last Updated:** 2026-11-10 (Session 128b)
 **Updated By:** Claude (Opus 5.5)
 
 ---
 
-**Next (handover, 2026-11-10, Session 128):** AI Desk Team at work (FO-GUI-035) is done on branch `feat/gui-team-at-work`, committed, not pushed. User check T137, then push and PR when the user says. The real 2026-11-09 evening run failed for every employee because the Claude CLI login expired (T138). User checks still open: T132–T134, T123–T131.
+**Next (handover, 2026-11-10, Session 128):** AI Desk Team at work (FO-GUI-035) is done on branch `feat/gui-team-at-work`, committed, not pushed. User check T137, then push and PR when the user says. The real 2026-11-09 evening run failed for every employee because the Claude CLI login expired (T138); the desk now alerts on this (FO-DSK-007, same branch). User checks still open: T132–T134, T123–T131, T139.
+
+**Also (Session 128b, 2026-11-10):** **AI problem alerts (Feature, DSK + GUI; FO-DSK-007; RN-DSK-0.5.0-20261110; SRD-DSK-007.001–.006 and SRD-GUI-035.010–.011 approved by user and Implemented).** Claude login, OpenRouter key or credit problems and whole-run failures raise one alert a day: Telegram plus a red banner in Team at work and an AI feed card. A source that failed to sign in is skipped for the rest of the run. New `core/desk_alerts.py` (`alerts` table).
 
 **Current (Session 128, 2026-11-10):** **AI Desk Team at work (Feature, GUI; FO-GUI-035; RN-GUI-1.13.0-20261110; SRD-GUI-035.001–.009 approved by user and Implemented).** New section replaces Org chart, Employees, Task board, Activity and Schedule (all sample). Run bar; Live tab with Pipeline / Timeline switch; Event log tab with day strip, filters and every LLM call; Team tab 30-day scorecard; side pane team wheel (Follow live) and profile. Data from new `core/desk_team.py` (read-only). Design: https://claude.ai/artifact/PgkHVTcXYThWAUnX5itPMR.
 

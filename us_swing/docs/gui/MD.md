@@ -460,4 +460,4 @@ SRD coverage: .059 by M33; .060 by M33 and M34; .061 by M35; .062–.064 and the
 | MD-GUI-035.006.M03 | SRD-GUI-035.006 | `us_swing/src/us_swing/gui/ai_desk_team_log.py` | Event log tab: day strip, filters, event tree with calls | `EventLogView`, `DayStrip` | M02 | No |
 | MD-GUI-035.007.M04 | SRD-GUI-035.008 | `us_swing/src/us_swing/gui/ai_desk_team_pane.py` | Team wheel, profile pane and scorecard table | `TeamWheel`, `ProfilePane`, `ScoreTable` | M02 | No |
 
-SRD coverage: .001, .003–.005 and .009 by M01; .002 and .009 by M01 and M02; .004–.007 data by M02; .006 by M03; .007 and .008 by M04. Sample frames for Org chart, Employees, Task board, Activity and Schedule were removed from `ai_desk_sections.py`, `ai_desk_sections2.py` and `ai_desk_sample.py`.
+SRD coverage: .001, .003–.005, .009 and .010 by M01; .011 by MD-GUI-034.054.M32 (`core/desk_feed.py`, alert cards); .002 and .009 by M01 and M02; .004–.007 data by M02; .006 by M03; .007 and .008 by M04. Sample frames for Org chart, Employees, Task board, Activity and Schedule were removed from `ai_desk_sections.py`, `ai_desk_sections2.py` and `ai_desk_sample.py`.

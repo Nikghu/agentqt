@@ -81,3 +81,13 @@ Cross-tool: `market/step.py` posts `regime_change` through M15 (see MKT DD-MKT-0
 Changed: MD-DSK-002.002.M09 (`registry.py`: `status`, `hired_on`, retired not loaded — SRD-DSK-006.008), MD-DSK-004.005.M13 (`desk_ai_settings.py`: seat caps — SRD-DSK-006.003), the recorder and gateway (`activity.shadow`), `employees_step.py` (shadow path) and `core/desk_steps.py` (MD-DSK-001.021.M07: "Weekly report" step path).
 
 SRD coverage: .001, .002, .005–.007 by M18 (.005 also M19); .003 by M13 and M18; .004 by M19; .008 by M09; .009 by M20; .010 by M18, M19 and M20.
+
+## FO-DSK-007: AI Problem Alerts
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-DSK-007.001.M21 | SRD-DSK-007.001 | `us_swing/src/us_swing/core/desk_alerts.py` | Spot user problems, store one alert a day, send to Telegram, list open alerts | `classify()`, `raise_alert()`, `open_alerts()`, `run_outcome()`, `send_telegram()` | `core.desk_contract`, `httpx`, `keyring` | No |
+
+Changed: MD-DSK-004.001.M11 (`gateway.py`: `_report`, per-run skip, `send=` — SRD-DSK-007.001, .004) and MD-DSK-003.001.M10 (`employees_step.py`: `_check_run`, `send=` — SRD-DSK-007.005).
+
+SRD coverage: .001–.003 and .006 by M21; .001 and .004 by M11; .005 by M10 and M21.

@@ -149,3 +149,20 @@ def test_wheel_inputs_and_peek(qtbot: QtBot, tmp_path: Path) -> None:
     page.timeline.resize(900, 300)
     page.timeline.grab()
     page.pipeline.grab()
+
+
+def test_alert_banner_and_feed(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-035.010.M01.T01: an open alert shows as a banner and an AI feed card."""
+    from us_swing.core.desk_alerts import raise_alert
+    from us_swing.core.desk_feed import feed_cards
+
+    desk(tmp_path, finished=True)
+    page = _page(qtbot, tmp_path)
+    assert page.alert_banner.isHidden()
+    raise_alert(tmp_path, "run_failed", "", 1, "Run 1: 3 LLM call(s), none valid", NOW,
+                lambda _text: False)
+    page.refresh()
+    assert not page.alert_banner.isHidden()
+    assert "No employee gave a valid answer" in page.alert_banner.text()
+    cards = [c for c in feed_cards(tmp_path, NOW) if c.subject == "No employee gave a valid answer"]
+    assert len(cards) == 1 and "What to do:" in cards[0].text

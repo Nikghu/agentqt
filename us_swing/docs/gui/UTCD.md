@@ -1191,3 +1191,4 @@ Test files:
 | UT-GUI-035.006.M03.T02 | MD-GUI-035.006.M03 | Positive | Day strip, filters, paging (SRD-GUI-035.006) | dot hit, Urgent, With AI work, day before | event opened; 1 and 2 rows; empty day note | Pass |
 | UT-GUI-035.007.M04.T01 | MD-GUI-035.007.M04 | Positive | Scorecard tab (SRD-GUI-035.007) | finished run | 4 rows and total; 50% valid and backup; row click picks | Pass |
 | UT-GUI-035.009.M01.T01 | MD-GUI-035.001.M01 | Negative | Empty desk page (SRD-GUI-035.009) | no desk data | No desk run yet; plain notes; tabs open | Pass |
+| UT-GUI-035.010.M01.T01 | MD-GUI-035.001.M01 | Positive | Alert banner and feed card (SRD-GUI-035.010–.011) | open whole-run alert | banner shows title and fix; one feed card with What to do | Pass |

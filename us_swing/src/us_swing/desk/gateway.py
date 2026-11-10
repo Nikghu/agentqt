@@ -2,7 +2,9 @@
 Module: MD-DSK-004.001.M11 — desk/gateway.py
 Parent SRD: SRD-DSK-004.001
 Also: SRD-DSK-004.002 (schema check, retry, backup), SRD-DSK-002.003 (soul is the prompt,
-job file picks the models), SRD-DSK-005.005 (resend a recorded prompt for a replay)
+job file picks the models), SRD-DSK-005.005 (resend a recorded prompt for a replay),
+SRD-DSK-007.001 (raise an alert for a login, key or credit problem), SRD-DSK-007.004 (skip a
+source that failed to sign in for the rest of the run)
 
 The one way AI employees reach a model. Sources: OpenRouter (API, has cost) and Claude
 Code CLI (subscription: tokens only, cost 0). Every answer must be JSON matching the
@@ -28,6 +30,7 @@ from pydantic import BaseModel, ValidationError
 
 from us_swing.core.desk_agents import T
 from us_swing.core.desk_ai_settings import DeskAiSettings
+from us_swing.core.desk_alerts import Sender, classify, raise_alert
 from us_swing.core.notifications._ai_client import OPENROUTER_URL, _run_with_timeout
 from us_swing.desk.budget import Budget
 from us_swing.desk.recorder import Attempt, Recorder, ny_now
@@ -38,6 +41,8 @@ log = logging.getLogger(__name__)
 TIMEOUT_S = 90.0
 DEFAULT_MODEL = "default"
 _SOURCE_NAMES = {"openrouter": "OpenRouter", "claude": "Claude Code CLI"}
+# (desk folder, run id) → sources that failed to sign in during that run
+_BROKEN: dict[tuple[str, int], set[str]] = {}
 
 
 @dataclass(frozen=True)
@@ -149,7 +154,7 @@ class Gateway:
     def __init__(self, home: Path, hire: Hire, recorder: Recorder, settings: DeskAiSettings,
                  key: str, run_id: int, data_day: str, caller: Caller = call_model,
                  clock: Callable[[], datetime] = ny_now, replay: bool = False,
-                 shadow: bool = False) -> None:
+                 shadow: bool = False, send: Sender | None = None) -> None:
         """Bind the employee, the run and the sources; ``caller`` is injectable for tests.
 
         With ``replay`` every try is recorded as a replay, so it never counts as a wake;
@@ -157,6 +162,7 @@ class Gateway:
         """
         self._replay = replay
         self._shadow = shadow
+        self._send = send
         self._home = home
         self._hire = hire
         self._rec = recorder
@@ -184,6 +190,10 @@ class Gateway:
             model = self._model(choice)
             if model is None:
                 continue
+            if choice.source in self._broken():
+                log.info("[AI Desk] %s skips %s: it could not sign in earlier in this run",
+                         spec.name, _SOURCE_NAMES[choice.source])
+                continue
             user = facts
             for _ in range(2):
                 why = self._budget.refusal(spec.id, spec.name, spec.monthly_cost_usd,
@@ -196,8 +206,25 @@ class Gateway:
                 result, error = self._try(choice.source, model, system, user, schema, attempt)
                 if result is not None:
                     return result
+                if choice.source in self._broken():
+                    break
                 user = f"{facts}\n\nYour last answer was not valid: {error}. Answer again."
         return None
+
+    def _broken(self) -> set[str]:
+        home = str(self._home)
+        for key in [k for k in _BROKEN if k[0] == home and k[1] != self._run_id]:
+            del _BROKEN[key]
+        return _BROKEN.setdefault((home, self._run_id), set())
+
+    def _report(self, source: str, error: str) -> None:
+        """Raise an alert and stop using ``source`` this run when the error needs the user."""
+        kind = classify(source, error)
+        if kind is None or self._replay:
+            return
+        self._broken().add(source)
+        raise_alert(self._home, kind, source, self._run_id,
+                    f"{self._hire.spec.name}: {error}", self._clock(), self._send)
 
     def _model(self, choice: ModelChoice) -> str | None:
         s = self._settings
@@ -221,8 +248,10 @@ class Gateway:
         began = time.monotonic()
         reply = Reply("", 0, 0, 0.0)
         result: T | None = None
+        call_failed = True
         try:
             reply = self._caller(source, model, system, user, self._key)
+            call_failed = False
             result = schema.model_validate_json(json_part(reply.text))
             error = ""
         except ValidationError as exc:
@@ -244,6 +273,8 @@ class Gateway:
         else:
             log.warning("[AI Desk] %s answer %d from %s was not valid: %s", spec.name, attempt,
                         model, error)
+            if call_failed:
+                self._report(source, error)
         return result, error
 
 

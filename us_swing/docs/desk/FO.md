@@ -146,3 +146,24 @@ The system shall let the Master User try a new employee safely before it does re
 3. After 14 evenings the shadow report shows valid answers, tokens, cost and agreement for the hire and the holder.
 4. One shadow hire goes end to end: started, 14 evenings, approved as Replace; from the next evening only the new hire does the work.
 5. Every Friday a weekly report appears in AI Desk → Reports with no AI call.
+
+## FO-DSK-007: AI Problem Alerts
+
+**Status:** Implemented (approved by user 2026-11-10)
+**Priority:** Must
+**Depends on:** FO-DSK-004 (gateway), FO-INF-010 (Telegram), FO-GUI-035 (Team at work)
+**Source:** User 2026-11-10: the evening run of 2026-11-09 failed for every employee because the Claude login expired, and nobody was told. User chose app + Telegram, login/key and whole-run problems, and skip to the backup.
+
+The system shall tell the Master User when the AI desk hits a problem only the user can fix.
+
+- The system shall spot a Claude login, OpenRouter key or AI credit problem in a model call.
+- The system shall raise one alert per problem per day, in the app and on Telegram.
+- The system shall stop trying a source that could not sign in for the rest of that run and use the backup model.
+- The system shall raise an alert when no employee of a run gave a valid answer.
+- The system shall close an alert in the app once the problem is fixed.
+
+### Acceptance Criteria
+
+1. With the Claude login expired, the next evening run sends one Telegram message and shows a red banner and an AI feed card with the fix.
+2. In that run each later employee goes straight to OpenRouter when it is on.
+3. After `claude auth login` and one valid Claude answer, the banner and card are gone.

@@ -766,3 +766,5 @@
 | SRD-GUI-035.007 | FO-GUI-035 | Must | The Team tab shows a 30-day scorecard per employee with a team total row. | activity | table | Shadow and replay calls are left out | Implemented |
 | SRD-GUI-035.008 | FO-GUI-035 | Must | The side pane shows a rolling team picker (2 above, 2 below) and the picked employee's profile. | click, wheel | profile | Follow live moves the picker to the working employee | Implemented |
 | SRD-GUI-035.009 | FO-GUI-035 | Must | Team at work reads desk.db read-only through core and refreshes every 3 seconds while shown and the desk runs. | desk.db | views | Never imports `desk` | Implemented |
+| SRD-GUI-035.010 | FO-GUI-035 | Must | Team at work shows a red banner for each open AI problem alert with its time and fix step. | alerts | banner | Hidden when no alert is open | Implemented |
+| SRD-GUI-035.011 | FO-GUI-035 | Must | The AI feed shows each open alert as a Desk card with the fix step. | alerts | card | Card leaves when the alert closes | Implemented |

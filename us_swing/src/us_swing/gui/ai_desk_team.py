@@ -1,7 +1,8 @@
 """
 Module: MD-GUI-035.001.M01 — AI Desk Team at work section
 Parent SRD: SRD-GUI-035.001
-Also: SRD-GUI-035.002–.005 (run bar, Live tab, pipeline, timeline), SRD-GUI-035.009 (refresh)
+Also: SRD-GUI-035.002–.005 (run bar, Live tab, pipeline, timeline), SRD-GUI-035.009 (refresh),
+SRD-GUI-035.010 (alert banner)
 
 One section that shows how the AI employee team works: a run bar, the Live tab (pipeline or
 timeline), the Event log tab, the Team scorecard tab and a side pane with the team wheel and
@@ -36,6 +37,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from us_swing.core.desk_alerts import open_alerts
 from us_swing.core.desk_contract import desk_home
 from us_swing.core.desk_overview import run_name
 from us_swing.core.desk_team import (
@@ -446,6 +448,13 @@ class TeamAtWork(QWidget):
         outer.setContentsMargins(0, 0, 0, 0)
         frame, body = section_frame(NAME, sample=False)
         outer.addWidget(frame)
+        self.alert_banner = QLabel()
+        self.alert_banner.setWordWrap(True)
+        self.alert_banner.setTextFormat(Qt.TextFormat.PlainText)
+        self.alert_banner.setStyleSheet(
+            f"color: {C.RED}; border: 1px solid {C.RED}; border-radius: 6px; padding: 8px;")
+        self.alert_banner.hide()
+        body.addWidget(self.alert_banner)
         main = QHBoxLayout()
         main.setSpacing(14)
         body.addLayout(main, 1)
@@ -582,9 +591,17 @@ class TeamAtWork(QWidget):
             self._run_id = ids[0] if ids else None
         run = next((r for r in self._runs if r.id == self._run_id), None)
         self._view = run_view(home, run, self._members) if run else None
+        self._show_alerts()
         self._show_run_bar()
         self._show_live()
         self._refresh_tab()
+
+    def _show_alerts(self) -> None:
+        alerts = open_alerts(self._folder(), self._clock())
+        self.alert_banner.setVisible(bool(alerts))
+        self.alert_banner.setText("\n".join(
+            f"Problem: {a.title} ({a.created:%d %b %H:%M} ET). What to do: {a.fix}"
+            for a in alerts))
 
     def _refresh_tab(self) -> None:
         home, now = self._folder(), self._clock()

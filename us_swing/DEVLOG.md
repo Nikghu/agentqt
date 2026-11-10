@@ -2,6 +2,17 @@
 
 ---
 
+## [20261110] DSK + GUI — AI problem alerts (FO-DSK-007)
+
+- Type: Feature
+- FO(s): FO-DSK-007 (Implemented); FO-GUI-035 (SRD .010–.011 added)
+- RN: RN-DSK-0.5.0-20261110
+- Artifacts updated: FO, SRD (DSK-007.001–.006, GUI-035.010–.011 Implemented), DD (DD-DSK-007.001.D01), MD (DSK M21; M11, M10 changed), UTCD (9 rows Pass), TRACE, Code (core/desk_alerts, desk/gateway, desk/employees_step, core/desk_feed, gui/ai_desk_team, tests/conftest)
+- Decisions: user chose app + Telegram; alert on login/key/credit and whole-run failure; skip to backup for the rest of the run
+- Tests: 9 new Pass; gui, desk, market, core suites 1664 pass (old sidebar test fails on main too)
+
+---
+
 ## [20261110] GUI — AI Desk Team at work (FO-GUI-035)
 
 - Type: Feature
