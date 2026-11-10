@@ -4,7 +4,8 @@ Parent SRD: SRD-DSK-003.001
 Also: SRD-DSK-003.002 (once per data day), SRD-DSK-003.003 (fresh data only),
 SRD-DSK-002.005 (skills get only home and ask), SRD-DSK-002.007 (default employee files),
 SRD-DSK-005.004 (run log), SRD-DSK-003.004 (posts ``after_run``),
-SRD-DSK-006.004 (a shadow employee is only asked and recorded)
+SRD-DSK-006.004 (a shadow employee is only asked and recorded), SRD-DSK-007.005 (alert when
+no employee of a run gave a valid answer)
 
 Desk step "AI employees": after the market steps, copies any missing default employee
 files into the desk folder, posts an ``after_run`` event and lets the router handle every
@@ -19,6 +20,7 @@ from datetime import datetime
 from pathlib import Path
 
 from us_swing.core.desk_ai_settings import DeskAiSettings, load_key, load_settings
+from us_swing.core.desk_alerts import Sender, raise_alert, run_outcome
 from us_swing.core.desk_contract import StepContext, desk_home
 from us_swing.core.desk_events import Event, post_event, waiting_count
 from us_swing.desk.gateway import Caller, Gateway, call_model
@@ -61,14 +63,17 @@ class EmployeesStep:
         key: Callable[[], str] = load_key,
         caller: Caller = call_model,
         clock: Callable[[], datetime] = ny_now,
+        send: Sender | None = None,
     ) -> None:
-        """Set the skill list, default files, settings, key, model caller and clock."""
+        """Set the skill list, default files, settings, key, model caller, clock and the alert
+        sender (Telegram when ``None``)."""
         self._skills = skills
         self._defaults = defaults
         self._settings = settings
         self._key = key
         self._caller = caller
         self._clock = clock
+        self._send = send
 
     def __call__(self, ctx: StepContext) -> None:
         """Post ``after_run`` and handle the events; one failing employee never fails the run."""
@@ -76,6 +81,16 @@ class EmployeesStep:
         day = ctx.started_at.astimezone(NY).date().isoformat()
         post_event(home, "after_run", day, self._clock(), ctx.run_id)
         self.handle_events(ctx)
+        self._check_run(home, ctx.run_id)
+
+    def _check_run(self, home: Path, run_id: int) -> None:
+        """Raise an alert when the run's employees made calls and none gave a valid answer."""
+        calls, valid, last_error = run_outcome(home, run_id)
+        if calls and not valid:
+            raise_alert(home, "run_failed", "", run_id,
+                        f"Run {run_id}: {calls} LLM call(s), none valid. Last error: "
+                        f"{last_error or 'answers did not match the expected form'}",
+                        self._clock(), self._send)
 
     def has_work(self, home: Path) -> bool:
         """True when a waiting event wakes at least one employee (files read only then)."""
@@ -113,14 +128,15 @@ class EmployeesStep:
         try:
             if spec.status == "shadow":
                 gateway = Gateway(home, hire, recorder, settings, self._key(), run_id,
-                                  facts.data_day, self._caller, self._clock, shadow=True)
+                                  facts.data_day, self._caller, self._clock, shadow=True,
+                                  send=self._send)
                 run_shadow(hire, facts, gateway, recorder)
                 return
             if event.kind == "after_run" and recorder.done_on(spec.id, facts.data_day):
                 log.info("[AI Desk] %s already answered for %s", spec.name, facts.data_day)
                 return
             gateway = Gateway(home, hire, recorder, settings, self._key(), run_id,
-                              facts.data_day, self._caller, self._clock)
+                              facts.data_day, self._caller, self._clock, send=self._send)
             items = hire.skill.act(gateway, facts)
             recorder.add_briefs(items, spec.id, spec.name)
         finally:

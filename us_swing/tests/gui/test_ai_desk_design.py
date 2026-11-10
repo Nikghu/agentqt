@@ -44,12 +44,13 @@ def _page(qtbot: QtBot, home: Path, sink: _Sink | None = None) -> AiDeskWorkspac
 
 
 def test_grouped_list(qtbot: QtBot, tmp_path: Path) -> None:
-    """UT-GUI-034.059.M33.T01: six headings, twelve sections; headings cannot be chosen."""
+    """UT-GUI-034.059.M33.T01: five headings, eight sections (SRD-GUI-035.001); headings cannot be
+    chosen."""
     page = _page(qtbot, tmp_path)
     items = [page._list.item(r) for r in range(page._list.count())]
     heads = [i.text() for i in items if i is not None and i.flags() == Qt.ItemFlag.NoItemFlags]
     assert heads == [g for g, _names in GROUPS]
-    assert page.section_names() == list(SECTIONS) and len(SECTIONS) == 12
+    assert page.section_names() == list(SECTIONS) and len(SECTIONS) == 8
     page.select_section("Reports")
     assert page.current_section() == "Reports"
     assert page._stack.currentIndex() == SECTIONS.index("Reports")

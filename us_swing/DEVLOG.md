@@ -2,6 +2,29 @@
 
 ---
 
+## [20261110] DSK + GUI — AI problem alerts (FO-DSK-007)
+
+- Type: Feature
+- FO(s): FO-DSK-007 (Implemented); FO-GUI-035 (SRD .010–.011 added)
+- RN: RN-DSK-0.5.0-20261110
+- Artifacts updated: FO, SRD (DSK-007.001–.006, GUI-035.010–.011 Implemented), DD (DD-DSK-007.001.D01), MD (DSK M21; M11, M10 changed), UTCD (9 rows Pass), TRACE, Code (core/desk_alerts, desk/gateway, desk/employees_step, core/desk_feed, gui/ai_desk_team, tests/conftest)
+- Decisions: user chose app + Telegram; alert on login/key/credit and whole-run failure; skip to backup for the rest of the run
+- Tests: 9 new Pass; gui, desk, market, core suites 1664 pass (old sidebar test fails on main too)
+
+---
+
+## [20261110] GUI — AI Desk Team at work (FO-GUI-035)
+
+- Type: Feature
+- FO(s): FO-GUI-035 (Implemented)
+- RN: RN-GUI-1.13.0-20261110
+- Artifacts updated: FO, SRD (GUI-035.001–.009 Implemented), DD (DD-GUI-035.001.D01), MD (M01–M04), UTCD (12 rows Pass; UT-GUI-034.009.M08.T02 retired), TRACE, Code (core/desk_team, gui/ai_desk_team, ai_desk_team_log, ai_desk_team_pane, ai_desk; sample frames removed)
+- Decisions: user picked the Console design with a view switch and a team wheel; Team tab shows 30-day stats the side pane does not; the five sample team sections are replaced (user choice)
+- Tests: 12 new Pass (coverage 89–98%); gui, desk and market suites green except the old sidebar test that also fails on main
+- Found: the 2026-11-09 evening run failed for all employees (Claude CLI login expired) — T138
+
+---
+
 ## [20261110] MKT + GUI — Ask the desk for new data, phase P10 (FO-MKT-011)
 
 - Type: Feature

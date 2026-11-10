@@ -1070,7 +1070,7 @@ Test files:
 | UT-GUI-034.008.M07.T09 | MD-GUI-034.008.M07 | Negative | Overwrite needs confirm | save as an existing name, refuse | old layout kept | Pass |
 | UT-GUI-034.009.M08.T01 | MD-GUI-034.009.M08 | Positive | All sections open | click each of 11 sections | each shows its frame; Command is first | Pass |
 | UT-GUI-034.010.M03.T01 | MD-GUI-034.010.M03 | Positive | Sample tag shown | sample provider | every panel and section shows Sample data | Pass |
-| UT-GUI-034.009.M08.T02 | MD-GUI-034.009.M08 | Positive | Seats within caps | sample org | experts 3 of 3, champions 3 of 5, juniors 18 of 30 | Pass |
+| UT-GUI-034.009.M08.T02 | MD-GUI-034.009.M08 | Positive | Seats within caps | sample org | Retired 2026-11-10: sample org chart removed (SRD-GUI-035.001) | Retired |
 | UT-GUI-034.010.M03.T02 | MD-GUI-034.010.M03 | Positive | Every AI Desk section tagged | build all 11 sections | each shows one Sample data tag | Pass |
 | UT-GUI-034.011.M10.T01 | MD-GUI-034.011.M10 | Positive | Real regime and breadth | desk.db with 2 days | latest day rows; product sample False; data date shown | Pass |
 | UT-GUI-034.011.M10.T02 | MD-GUI-034.011.M10 | Negative | No desk data yet | no desk.db | sample rows with Sample tag | Pass |
@@ -1174,3 +1174,21 @@ Test files:
 | UT-GUI-034.043.M38.T03 | MD-GUI-034.043.M38 | Negative | Already decided (SRD-GUI-034.043) | product decided elsewhere, then Approve clicked | note 'already decided'; buttons off | Pass |
 | UT-GUI-034.044.M38.T01 | MD-GUI-034.043.M38 | Positive | Failed note (SRD-GUI-034.044) | request failed 2 hours ago | card with the request and reason; no buttons; not counted | Pass |
 | UT-GUI-034.044.M38.T02 | MD-GUI-034.043.M38 | Negative | Old failure hidden (SRD-GUI-034.044) | request failed 25 hours ago | no card | Pass |
+
+## FO-GUI-035 — AI Desk Team at Work
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-035.002.M02.T01 | MD-GUI-035.002.M02 | Positive | Team order and needs (SRD-GUI-035.004) | 3 evening members, 1 on demand | run order; needs as ids; columns by level | Pass |
+| UT-GUI-035.004.M02.T01 | MD-GUI-035.002.M02 | Positive | Running run states (SRD-GUI-035.004) | run running, one valid call, one bad try | Done, Working · try 2, Waiting, Asleep | Pass |
+| UT-GUI-035.004.M02.T02 | MD-GUI-035.002.M02 | Positive | Finished run states (SRD-GUI-035.004) | backup try valid, one member never called | Done · backup used; No call | Pass |
+| UT-GUI-035.006.M02.T01 | MD-GUI-035.002.M02 | Positive | Events and scorecard (SRD-GUI-035.006–.007) | evening run and chat question | calls linked to each event; retries, backup, valid share, last error, total cost | Pass |
+| UT-GUI-035.009.M02.T01 | MD-GUI-035.002.M02 | Negative | Empty desk (SRD-GUI-035.009) | no desk folder | empty lists; total row with no calls | Pass |
+| UT-GUI-035.002.M01.T01 | MD-GUI-035.001.M01 | Positive | Live tab (SRD-GUI-035.002–.004) | running run | run label with ET and IST; chips; Right now names the worker; card states; view switch | Pass |
+| UT-GUI-035.008.M04.T01 | MD-GUI-035.007.M04 | Positive | Follow live and wheel (SRD-GUI-035.008) | running run, wheel step | worker picked first; step picks next; Follow live off; Team · 3 of 4 | Pass |
+| UT-GUI-035.008.M04.T02 | MD-GUI-035.007.M04 | Positive | Wheel input and peek (SRD-GUI-035.008) | key, scroll, click, Prompt, Answer | wheel rolls; prompt and error text shown; no-call note | Pass |
+| UT-GUI-035.006.M03.T01 | MD-GUI-035.006.M03 | Positive | Event log rows (SRD-GUI-035.006) | finished run and chat | 2 events; 3 calls with error; call click picks; Problems keeps 1 | Pass |
+| UT-GUI-035.006.M03.T02 | MD-GUI-035.006.M03 | Positive | Day strip, filters, paging (SRD-GUI-035.006) | dot hit, Urgent, With AI work, day before | event opened; 1 and 2 rows; empty day note | Pass |
+| UT-GUI-035.007.M04.T01 | MD-GUI-035.007.M04 | Positive | Scorecard tab (SRD-GUI-035.007) | finished run | 4 rows and total; 50% valid and backup; row click picks | Pass |
+| UT-GUI-035.009.M01.T01 | MD-GUI-035.001.M01 | Negative | Empty desk page (SRD-GUI-035.009) | no desk data | No desk run yet; plain notes; tabs open | Pass |
+| UT-GUI-035.010.M01.T01 | MD-GUI-035.001.M01 | Positive | Alert banner and feed card (SRD-GUI-035.010–.011) | open whole-run alert | banner shows title and fix; one feed card with What to do | Pass |

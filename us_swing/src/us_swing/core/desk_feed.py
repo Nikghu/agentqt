@@ -16,6 +16,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
 
+from us_swing.core.desk_alerts import open_alerts
 from us_swing.core.desk_ai_settings import load_settings
 from us_swing.core.desk_contract import DB_NAME
 from us_swing.core.desk_data_asks import AskedProduct, failed_products, waiting_products
@@ -127,6 +128,9 @@ def feed_cards(home: Path, now: datetime) -> list[FeedCard]:
             "WHERE result NOT IN ('ok', 'running') ORDER BY id DESC LIMIT ?", (RUN_LIMIT,)):
         cards.append(FeedCard("desk", "Desk", f"Run {kind} {result}", _when(started),
                               str(note or "The run did not finish.")))
+    for alert in open_alerts(home, now):
+        cards.append(FeedCard("desk", "Desk", alert.title, alert.created,
+                              f"{alert.text}\nWhat to do: {alert.fix}"))
     oldest = datetime.min.replace(tzinfo=now.tzinfo)
     return sorted(cards, key=lambda c: c.when or oldest, reverse=True)
 

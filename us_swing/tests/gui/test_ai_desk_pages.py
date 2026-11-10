@@ -64,9 +64,10 @@ def test_page_reader_without_table(tmp_path: Path) -> None:
 
 
 def test_section_renamed() -> None:
-    """UT-GUI-034.022.M19.T03: Pages sits where Studio was; Studio is gone."""
+    """UT-GUI-034.022.M19.T03: Pages sits where Studio was; Studio is gone. The WORK group
+    left with SRD-GUI-035.001, so Pages now follows Hiring."""
     assert "Studio" not in SECTIONS
-    assert SECTIONS.index("Pages") == SECTIONS.index("Schedule") + 1
+    assert SECTIONS.index("Pages") == SECTIONS.index("Hiring") + 1
 
 
 def test_version_list(qtbot: QtBot, tmp_path: Path) -> None:

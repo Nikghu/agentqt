@@ -492,3 +492,19 @@ No AI call. The GUI Reports section lists `desk_reports` newest first; sample re
 **Seat caps** live in `desk_ai.json` (`expert_cap`, `champion_cap`, `junior_cap`, each at least 1). Desk settings refuses a cap below the current count of active and shadow employees at that level.
 
 **GUI Hiring** (`hiring_frame(name, home)`, a live section): table Name · Skill · Level · Model · Started · Shadow days · Status (status shadow, ready, active or retired). Below: the Start hire form (skill combo from `SKILL_PATHS`, level combo expert/champion/junior, name, source combo, model text) with a status line for the refusal reason; the chosen hire's report table (Who · Days · Valid · Tokens · Cost · Agreement); Replace, Add and Reject buttons, enabled as in the decision rules. Command → Approvals waiting lists ready hires; a click opens Hiring.
+
+## DD-DSK-007.001.D01 — AI Problem Alerts
+
+**Traces:** SRD-DSK-007.001–.006.
+
+**Store.** New table `alerts(id, key UNIQUE, created, kind, source, run_id, title, text, fix, sent)` in `desk.db`, created by `core/desk_alerts.py`. `key = kind|source|NY day` gives one row per problem per day (`INSERT OR IGNORE`).
+
+**Spotting.** `classify(source, error)`: `credit` for 402 or credit words; `login` (source `claude`) or `key` (other sources) for sign-in words (authenticate, auth login, not logged in, oauth, 401, unauthorized, invalid api key, no auth credentials). Anything else is a normal bad answer.
+
+**Gateway.** After a failed try, `Gateway._report` classifies the error; a user problem adds the source to a per-run set (`_BROKEN[(home, run_id)]`) and calls `raise_alert`. `ask()` skips a source in that set (no second try either) and goes to the backup. Replays never alert.
+
+**Whole run.** `EmployeesStep.__call__` ends with `_check_run`: `run_outcome(run_id)` = real calls, valid calls, last error; calls > 0 and valid = 0 raises `run_failed`.
+
+**Telegram.** `send_telegram(text)`: `telegram_target()` reads `~/.usswing/users.json` (first user with `telegram_enabled` and a chat id) and the token from the keychain service `usswing_telegram` (the same place the GUI keeps it), then posts `sendMessage` with a 10 s timeout. Success sets `sent = 1`. The sender is injectable (`send=`) on `Gateway`, `EmployeesStep` and `raise_alert`; tests point `USERS_FILE` at a temp folder.
+
+**Open alerts.** `open_alerts(home, now)`: rows from the last 24 hours with no later valid `activity` row (same source for login, key and credit). Shown by the GUI as a red banner in Team at work and a Desk card in the AI feed (SRD-GUI-035.010–.011).

@@ -220,3 +220,16 @@
 | UT-DSK-006.009.M20.T02 | MD-DSK-006.009.M20 | Negative | Once per week (SRD-DSK-006.009) | second run the same week | no new row | Pass |
 | UT-DSK-006.009.M20.T03 | MD-DSK-006.009.M20 | Edge | Missed Friday (SRD-DSK-006.009) | first run on Monday | report for the Friday before; Saturday–Friday period | Pass |
 | UT-DSK-006.010.M18.T01 | MD-DSK-006.001.M18 | Positive | Log lines (SRD-DSK-006.010) | start, decide, weekly report | [Hiring] and [Report] lines with no internal names | Pass |
+
+## FO-DSK-007: AI Problem Alerts
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-DSK-007.001.M21.T01 | MD-DSK-007.001.M21 | Positive | Spot problems (SRD-DSK-007.001) | login, key, credit and form errors | login, key, credit, none | Pass |
+| UT-DSK-007.002.M21.T01 | MD-DSK-007.001.M21 | Positive | Once a day (SRD-DSK-007.002) | same problem twice, then next day | one row and one send; new row next day | Pass |
+| UT-DSK-007.003.M21.T01 | MD-DSK-007.001.M21 | Negative | Failed send (SRD-DSK-007.003) | Telegram send fails | alert not marked sent; still open | Pass |
+| UT-DSK-007.003.M21.T02 | MD-DSK-007.001.M21 | Positive | Telegram target (SRD-DSK-007.003) | users file, keychain | first user with Telegram on; none sends nothing | Pass |
+| UT-DSK-007.004.M11.T01 | MD-DSK-004.001.M11 | Positive | Skip to backup (SRD-DSK-007.004) | Claude login error | alert; backup used; next employee skips Claude; next run tries Claude | Pass |
+| UT-DSK-007.004.M11.T02 | MD-DSK-004.001.M11 | Negative | Bad form is not a problem (SRD-DSK-007.001) | wrong answer form | retried on the same source; no alert | Pass |
+| UT-DSK-007.005.M10.T01 | MD-DSK-003.001.M10 | Positive | Whole run failed (SRD-DSK-007.005) | all calls bad; all good | one alert; none | Pass |
+| UT-DSK-007.006.M21.T01 | MD-DSK-007.001.M21 | Positive | Close when fixed (SRD-DSK-007.006) | later valid calls; 25 hours later | closes by source; run alert by any; old alerts gone | Pass |

@@ -19,10 +19,7 @@ from PyQt6.QtWidgets import (
     QPlainTextEdit,
     QPushButton,
     QScrollArea,
-    QTabWidget,
     QTableWidget,
-    QTreeWidget,
-    QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
 )
@@ -211,63 +208,3 @@ def command_frame(name: str, approvals: QWidget | None = None, chat: QWidget | N
     row.addLayout(right, 2)
     body.addLayout(row, 1)
     return frame
-
-
-def _fill_tree(parent: QTreeWidgetItem, node: S.OrgNode) -> None:
-    item = QTreeWidgetItem(parent, [node.name, node.role, node.state])
-    for kid in node.children:
-        _fill_tree(item, kid)
-
-
-def org_frame(name: str) -> QWidget:
-    """Build the org chart tree and the seats strip."""
-    frame, body = section_frame(name)
-    used = S.seats_used()
-    strip = " · ".join(f"{k} {used[k]} of {S.SEAT_CAPS[k]}" for k in S.SEAT_CAPS)
-    seats = QLabel(strip)
-    seats.setObjectName("seats_strip")
-    body.addWidget(seats)
-    tree = QTreeWidget()
-    tree.setHeaderLabels(["Employee", "Role", "State"])
-    tree.setColumnWidth(0, 260)
-    tree.setColumnWidth(1, 260)
-    root = QTreeWidgetItem(tree, [S.ORG_TREE.name, S.ORG_TREE.role, S.ORG_TREE.state])
-    for kid in S.ORG_TREE.children:
-        _fill_tree(root, kid)
-    tree.expandToDepth(3)
-    body.addWidget(tree, 1)
-    return frame
-
-
-def _profile_text(row: Sequence[str]) -> str:
-    return "\n".join(f"{h}: {v}" for h, v in zip(S.EMPLOYEE_COLUMNS, row, strict=False))
-
-
-def employees_frame(name: str) -> QWidget:
-    """Build the employee table with Profile and Job tabs."""
-    frame, body = section_frame(name)
-    table = make_table(S.EMPLOYEE_COLUMNS, S.EMPLOYEES)
-    body.addWidget(table, 3)
-    tabs = QTabWidget()
-    profile = read_only_text(_profile_text(S.EMPLOYEES[0]), mono=False)
-    tabs.addTab(profile, "Profile")
-    job = QWidget()
-    cols = QHBoxLayout(job)
-    cols.addWidget(read_only_text(S.SOUL_TEXT), 1)
-    cols.addWidget(read_only_text(S.JOB_YAML), 1)
-    wrap = QWidget()
-    stack = QVBoxLayout(wrap)
-    stack.setContentsMargins(0, 0, 0, 0)
-    stack.addWidget(muted("soul.md and job.yaml. The lead drafts changes; the Master approves."))
-    stack.addWidget(job, 1)
-    tabs.addTab(wrap, "Job")
-    body.addWidget(tabs, 3)
-
-    def show_profile(row: int, _col: int) -> None:
-        profile.setPlainText(_profile_text(S.EMPLOYEES[row]))
-
-    # table → cellClicked → frame → show_profile
-    table.cellClicked.connect(show_profile)
-    return frame
-
-
