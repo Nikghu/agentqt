@@ -10,6 +10,7 @@
 - Artifacts updated: SRD, DD (DD-GUI-035.001.D01 Status bar), UTCD, TRACE, TODO (T146), Code (gui/ai_desk_team_pane, gui/ai_desk_team, gui/ai_desk, gui/desk_control)
 - Decisions: user picked Option 3 (left colour bar) of 4 mock-ups; rich-text lines use a 3 px filled table cell; Floor, timeline and backtest dots left as they are
 - Also: selected card and Team row use a lighter fill and grey border, not amber (user chose Option A)
+- Also: Desk settings source labels shortened to "Use Claude Code CLI" / "Use OpenRouter"; cost note moved to tooltip
 - Tests: 2 new; AI Desk/Team/Floor GUI tests 160 pass
 
 ---
