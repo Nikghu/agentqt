@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.100.0: SRD-GUI-034.065–.066 added and Implemented — AI Desk console look, design Option A (user chose 2026-11-10).
 > v2.99.0: SRD-GUI-035.012 added and Implemented — Team at work clean look (user asked 2026-11-10).
 > v2.98.0: SRD-GUI-018.012 added and Implemented — AI Desk sections in the sidebar (user chose the layout 2026-11-10).
 > v2.97.2: SRD-GUI-034.042–.044 Implemented (RN-MKT-0.12.0-20261110).
@@ -755,6 +756,8 @@
 | SRD-GUI-034.062 | FO-GUI-034 | Must | Command → Approvals waiting uses the feed card for each ask, with a count in the heading. | asks | cards | Same decision rules as SRD-GUI-034.035 | Implemented |
 | SRD-GUI-034.063 | FO-GUI-034 | Must | Command → Today's runs lists today's desk runs (ET time, run name, coloured result); event runs are one summed row. | runs | list | Replaces the sample table; empty note when none | Implemented |
 | SRD-GUI-034.064 | FO-GUI-034 | Should | Command shows a Team now line with the employee count by status. | employees | line | Hidden when there are no employees | Implemented |
+| SRD-GUI-034.065 | FO-GUI-034 | Should | The AI Desk header shows an icon, a state note, a dot state chip, one joined Start / Pause / Resume / Stop group and four tiles: Last run, Next run, AI spend today, Month budget. | desk status, desk.db | header card | Next run in ET and IST; controls work as before | Implemented |
+| SRD-GUI-034.066 | FO-GUI-034 | Should | Hiring, Pages, Reports, Results, Cost & budget and Desk settings use stat tiles and titled icon cards. | theme tokens, icons | restyled sections | Look only; data and actions unchanged | Implemented |
 
 ## FO-GUI-035: AI Desk Team at Work
 

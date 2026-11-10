@@ -82,20 +82,24 @@ def test_overview_data(tmp_path: Path) -> None:
 
 
 def test_header_chips(qtbot: QtBot, tmp_path: Path) -> None:
-    """UT-GUI-034.060.M33.T01: last run chip and the spend text with the bar percent."""
+    """UT-GUI-034.060.M33.T01: last run tile, today's spend and the month bar percent."""
     _runs(tmp_path)
     _try(tmp_path, "emp-002", "2026-11-07", {"a": 1}, 0, cost=1.0)
     page = _page(qtbot, tmp_path)
-    assert page.last_run_chip.text() == "Last run: Evening run · ok 16:05 ET"
-    assert page.spend_label.text().startswith("AI spend $1.00 today")
-    assert page.spend_bar.value() == round(spend(tmp_path, SAT).month_share * 100)  # type: ignore[union-attr]
+    assert page.last_run_title.text() == "Last run · ok"
+    assert page.last_run_chip.text().endswith("Evening run · 16:05 ET")
+    assert page.spend_label.text() == "$1.00"
+    share = round(spend(tmp_path, SAT).month_share * 100)  # type: ignore[union-attr]
+    assert page.spend_bar.value() == share
+    assert page.budget_title.text() == f"Month budget · {share}% used"
 
 
 def test_header_no_data(qtbot: QtBot, tmp_path: Path) -> None:
-    """UT-GUI-034.060.M33.T02: with no desk data the chips are hidden."""
+    """UT-GUI-034.060.M33.T02: with no desk data the tiles show no runs and zero spend."""
     page = _page(qtbot, tmp_path)
-    assert page.last_run_chip.isHidden() and page.spend_label.isHidden()
-    assert page.spend_bar.isHidden()
+    assert page.last_run_chip.text() == "No runs yet"
+    assert page.spend_label.text() == "$0.00"
+    assert page.spend_bar.value() == 0
 
 
 def test_chat_bubbles(qtbot: QtBot, tmp_path: Path) -> None:

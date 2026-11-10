@@ -7,7 +7,8 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
-> v1.13.0: DD-GUI-035.001.D01 gains the clean look (SRD-GUI-035.012), 2026-11-10.
+> v1.14.0: DD-GUI-034.065.D01 added — AI Desk console look (SRD-GUI-034.065–.066), 2026-11-10.
+> v1.13.0:.001.D01 gains the clean look (SRD-GUI-035.012), 2026-11-10.
 > v1.12.0: DD-GUI-018.001.D01 gains the screen sub-menu (SRD-GUI-018.012), 2026-11-10.
 > v1.11.0: DD-GUI-034.059.D01 added — AI Desk design match (phase 3), 2026-11-07.
 > v1.10.0: DD-GUI-034.053.D01 added — AI feed cards (phase 2), 2026-11-07.
@@ -1928,6 +1929,16 @@ Run names: `evening` "Evening run", `manual` "Manual run", other kinds title-cas
 **Approvals.** `approvals_box(home, open_hiring, sink, clock)` now returns `WaitingBox`: heading `Approvals waiting · n`, one `FeedCardWidget` per ask from `desk_feed.ask_cards(home, now)`, empty note `NO_APPROVALS`. Card `section_requested("Hiring")` calls `open_hiring`; `chart_requested` is re-emitted and reaches the main window through `AiDeskWorkspace.chart_requested`. On `decided` the box rebuilds through `QTimer.singleShot(0, ...)` and emits `count_changed(n)` for the Command badge. `FeedCardWidget` shows `Qty n` (or `Qty —` without a sink) under a pick's text. `TradePickRow` is removed.
 
 **Runs and team.** `command_frame(name, approvals, chat, runs, team)`: real widgets drop the Sample tag. `runs_box(rows)` = one line per row: ET time, name (with `×n` for events), result label coloured as the chips. Team line: `Team now: 8 active · 1 shadow`.
+
+## DD-GUI-034.065.D01 — AI Desk Console Look (phase 4)
+
+**Traces:** SRD-GUI-034.065–.066. Design canvas Option A (Console cards).
+
+**Helpers.** New `gui/ai_desk_console.py`: `stat_tile(title, value, bar)` (SURFACE tile, OVERLAY2 border, muted title over a bold value), `tile_row()`, `thin_bar()` + `bar_tone()` (6 px bar), `icon_badge()`, `icon_card(icon, title, side)` (BG card, OVERLAY2 border, 10 px radius, title label `card_title`), `primary()` (`primary_btn`), `danger()` (`role="danger"`), `seg_style()` (joined group, thin dividers, Stop red).
+
+**Header.** Icon badge, title and a state note (plain line per `DeskState`; an Error shows its message). `DeskBar` keeps `pill`, `note` and `buttons`; the pill sits in a dot chip and the buttons sit in the `desk_seg` group. Tiles: Last run (result in the title, dot in the result colour), Next run (`core.desk_overview.next_evening_run(now)` — next weekday 16:25 ET after now, with IST beside it), AI spend today, Month budget (percent in the title, bar). With no data the tiles show "No runs yet" and $0.00. `EVENING_RUN` moves to `core/desk_contract.py`; `desk/clock.py` imports it.
+
+**Sections.** Hiring: seat tiles (count of cap per level, bar turns yellow when full; In shadow with ready count), then Hires, Start hire and Shadow report cards; the empty Hires card does not stretch. Pages and Reports: list card plus a preview / reader card whose title follows the choice. Results: six total tiles (paper picks, filled, hit rate, average R, real trades, real P&L) replace the summary line; breakdown and Picks tables sit in cards. Cost: three tiles, a Budget used card with bar, two table cards. Desk settings: Schedule and rules card; the AI form splits into Claude Code CLI, OpenRouter API and Seats cards; Save sits at the bottom right.
 
 ## DD-GUI-035.001.D01 — AI Desk Team at Work
 

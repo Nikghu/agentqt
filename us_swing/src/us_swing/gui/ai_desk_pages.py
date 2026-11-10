@@ -2,6 +2,7 @@
 Module: MD-GUI-034.022.M19 — gui/ai_desk_pages.py
 Parent SRD: SRD-GUI-034.022
 Also: SRD-GUI-034.023 (sealed preview of the chosen version), SRD-GUI-034.026 (empty note)
+Also: SRD-GUI-034.066 — list and preview in icon cards (console look)
 
 The AI Desk "Pages" section: every report page version from ``desk.db`` on the left
 and a view-only sealed preview of the chosen version on the right.
@@ -11,10 +12,11 @@ from __future__ import annotations
 from collections.abc import Callable
 from pathlib import Path
 
-from PyQt6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QHBoxLayout, QLabel, QWidget
 
 from us_swing.core.desk_floor import DeskFloorData
-from us_swing.gui.ai_desk_sections import heading, make_table, muted, section_frame
+from us_swing.gui.ai_desk_console import icon_card
+from us_swing.gui.ai_desk_sections import make_table, muted, section_frame
 from us_swing.gui.ai_desk_sections3 import _NoFallback
 
 COLUMNS = ("Day", "Version", "Title", "Saved (NY)")
@@ -34,20 +36,24 @@ def pages_frame(name: str, home: Path | None = None,
     pages = data.report_pages()
     frame, body = section_frame(name, sample=False)
     if not pages:
-        body.addWidget(muted(EMPTY_NOTE))
+        empty, empty_body = icon_card("list", "Report pages")
+        empty_body.addWidget(muted(EMPTY_NOTE))
+        body.addWidget(empty)
         body.addStretch(1)
         return frame
     row = QHBoxLayout()
     row.setSpacing(12)
-    left = QVBoxLayout()
-    left.addWidget(heading("Report pages"))
+    left, left_body = icon_card("list", f"Report pages · {len(pages)} versions")
     table = make_table(COLUMNS, [(p.day, str(p.version), p.title, p.saved) for p in pages])
     table.setObjectName("pages_table")
-    left.addWidget(table, 1)
-    row.addLayout(left, 2)
+    left_body.addWidget(table, 1)
+    row.addWidget(left, 2)
+    right, right_body = icon_card("eye", "Preview")
+    preview_title = right.findChild(QLabel, "card_title")
     preview = make_preview()
     preview.setObjectName("pages_preview")
-    row.addWidget(preview, 3)
+    right_body.addWidget(preview, 1)
+    row.addWidget(right, 3)
     body.addLayout(row, 1)
 
     def show_row(index: int, *_: int) -> None:
@@ -57,6 +63,8 @@ def pages_frame(name: str, home: Path | None = None,
         if page is not None:
             title, html = page
             preview.show_page(html, title)  # type: ignore[attr-defined]
+            if preview_title is not None:
+                preview_title.setText(title)
 
     # table → currentCellChanged (mouse or arrow keys) → frame → show_row
     table.currentCellChanged.connect(show_row)

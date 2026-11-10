@@ -152,3 +152,5 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T140 | GUI SRD-GUI-018.012 — user check: restart the app; open AI Desk; the sections show under the AI Desk item in the left panel (hover when it is small); other screens hide them. | `gui/sidebar.py` | High | Open |
 | T141 | `test_main_window_lists_screens` still expects 5 screens; update it for Market Floor and AI Desk. | `tests/gui` | Low | Open |
 | T142 | GUI SRD-GUI-035.012 — user check: restart the app; AI Desk → Team at work shows icon cards, clear borders, stat tiles and underline tabs like the design. | `gui/ai_desk_team.py` | High | Open |
+| T143 | GUI SRD-GUI-034.065–.066 — user check: restart the app; AI Desk header shows tiles and the joined control group; Hiring, Pages, Reports, Results, Cost and Settings show tiles and icon cards. | `gui/ai_desk.py` | High | Open |
+| T144 | Desk settings: "Seat caps" in Schedule and rules shows sample caps (3/5/30) and the P6 note is out of date; real caps are in the Seats card. Decide to remove. | `gui/ai_desk_sections3.py` | Low | Open |

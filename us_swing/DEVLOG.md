@@ -2,6 +2,17 @@
 
 ---
 
+## [20261110] GUI — AI Desk console look (SRD-GUI-034.065–.066)
+
+- Type: Enhancement
+- FO(s): FO-GUI-034 (bullet + SRD .065–.066 added)
+- RN: RN-GUI-1.16.0-20261110
+- Artifacts updated: FO, SRD, DD (DD-GUI-034.065.D01), MD (M39), UTCD, TRACE, Code (gui/ai_desk_console new; ai_desk, desk_control, hiring, pages, results, sections3, settings; core/desk_overview, desk_contract; desk/clock)
+- Decisions: user chose design Option A; tables kept inside cards (no new features); 16:25 constant shared from core
+- Tests: 5 new + 4 updated; AI Desk suites 65 pass; full GUI 866 pass, T141 old fail
+
+---
+
 ## [20261110] GUI — Team at work clean look (SRD-GUI-035.012)
 
 - Type: Enhancement
