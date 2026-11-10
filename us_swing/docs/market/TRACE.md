@@ -3,7 +3,7 @@
 **Document ID:** TRACE-MKT
 **Version:** 0.1.0
 **Status:** Draft
-**Last Updated:** 2026-11-10 (FO-MKT-011 ask the desk for new data)
+**Last Updated:** 2026-11-11 (morning run step A: FO-MKT-001 SRD .013–.017 and SRD-MKT-005.015–.016 with RN-MKT-0.13.0-20261111; FO-MKT-011 ask the desk for new data)
 **Project:** US Swing Trading System
 
 > v0.1.0: One row per Draft FO. Columns fill as each phase completes.
@@ -22,6 +22,8 @@
 | FO-MKT-005 | SRD-MKT-005.011 | DD-MKT-005.006.D01 | MD-MKT-005.011.M06 | UT-MKT-005.011.M06.T01–T06 (6, Pass) | `market/risk_limits.py` | Implemented | RN-MKT-0.6.0-20261106 |
 | FO-MKT-005 | SRD-MKT-005.012–.013 | DD-MKT-005.006.D01 | MD-MKT-005.012.M07, MD-MKT-005.003.M02 | UT-MKT-005.012.M07.T01–T04, UT-MKT-005.013.M07.T01–T03 (7, Pass) | `market/risk_check.py`, `market/store.py` | Implemented | RN-MKT-0.6.0-20261106, RN-MKT-0.7.0-20261106 (reopened) |
 | FO-MKT-005 | SRD-MKT-005.014–.016 | DD-MKT-005.006.D01 | MD-MKT-005.014.M08, MD-MKT-005.003.M02 | UT-MKT-005.014.M08.T01–T02, UT-MKT-005.015.M08.T01–T03, UT-MKT-005.016.M08.T01–T02 (7, Pass) | `market/lead_brief.py`, `market/store.py` | Implemented | RN-MKT-0.6.0-20261106, RN-MKT-0.7.0-20261106 (reopened) |
+| FO-MKT-001 | SRD-MKT-001.013–.017 | DD-MKT-001.013.D01 | MD-MKT-001.013.M06, MD-MKT-001.001.M01, MD-MKT-001.007.M04 | UT-MKT-001.013–.017 (15, Pass) | `market/candle_check.py`, `market/candles.py`, `market/store.py` | Implemented | RN-MKT-0.13.0-20261111 |
+| FO-MKT-005 | SRD-MKT-005.015–.016 (reopened 2026-11-10) | DD-MKT-005.006.D01 | MD-MKT-005.014.M08 | UT-MKT-005.016.M08.T01, UT-MKT-005.018.M09.T03, UT-MKT-007.001.M02.T01 (Pass) | `market/lead_brief.py`, `market/store.py` | Implemented | RN-MKT-0.13.0-20261111 |
 | FO-MKT-005 | SRD-MKT-005.017 | DD-MKT-005.006.D01 | MD-MKT-005.017.M09 | UT-MKT-005.017.M09.T01–T03 (3, Pass) | `market/employees/emp-002/` to `emp-005/` | Implemented | RN-MKT-0.6.0-20261106 |
 | FO-MKT-005 | SRD-MKT-005.018 | DD-MKT-005.006.D01 | MD-DSK-001.021.M07, MD-MKT-005.017.M09 | UT-MKT-005.018.M09.T01–T03 (3, Pass) | `core/desk_steps.py` | Implemented | RN-MKT-0.6.0-20261106 |
 | FO-MKT-006 | SRD-MKT-006.001–.003 | DD-MKT-006.001.D01 | MD-MKT-006.001.M01, MD-MKT-006.001.M02 | UT-MKT-006.001.M01.T01–T04, UT-MKT-006.001.M02.T01–T05, UT-MKT-006.002.M02.T01–T02, UT-MKT-006.003.M02.T01–T04 (15, Pass) | `market/news.py`, `market/news_step.py`, `market/store.py` | Implemented | RN-MKT-0.7.0-20261106 |

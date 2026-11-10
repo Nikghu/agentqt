@@ -2,12 +2,14 @@
 
 **Document:** CONTEXT.md
 **Project:** us_swing
-**Last Updated:** 2026-11-10 (Session 130)
+**Last Updated:** 2026-11-11 (Session 131)
 **Updated By:** Claude (Opus 5.5)
 
 ---
 
-**Current (Session 130b, 2026-11-10):** **AI Desk Team setup and employee.md (Feature, DSK + GUI; FO-DSK-008, FO-GUI-036; RN-DSK-0.6.0-20261110, RN-GUI-1.19.0-20261110; SRD-DSK-008.001–.009 and SRD-GUI-036.001–.008 Implemented; FO-DSK-008 and FO-GUI-036 user-approved).** Each AI employee is one `employee.md` (settings block plus prompt). Old `job.yaml` and `soul.md` move to `history/` once. Saves keep `history/v<N>.md` and raise the version; restore saves an old version as the next one. New Team setup tab in AI Desk lists all 9 employees with Prompt, Profile, Model, Limits and wake, and History tabs; Test on yesterday makes one real AI call in the background. Team at work side pane trimmed. Branch `feat/desk-team-setup`, stacked on `feat/gui-desk-status-bar`, committed, not pushed. User check T147. Phase 2 ideas (T148): temperature, max tokens, timeout, effort, data blocks, tool use, guardrails. Mock-up: https://claude.ai/artifact/CSVvoYH32gNQzivr8L9bbE.
+**Current (Session 131, 2026-11-11):** **Autonomous AI Desk step A, morning run trigger (Feature, DSK + MKT + GUI; FO-DSK-001/003/007, FO-MKT-001/005, FO-GUI-029/034; RN-DSK-0.7.0-20261111, RN-MKT-0.13.0-20261111, RN-GUI-1.61.0-20261111; all reopened and new SRDs user-approved and Implemented).** One morning run per trading day from 04:00 ET replaces the 16:25 evening run. Desk starts and stops with the app; old Windows desk tasks removed. Candle check runs first: fills only missing daily bars from Yahoo into a desk-only copy; stops the run if SPY or more than 2% of stocks are still behind. Start TWS and Start USSwing set 60 min before the 09:30 ET open (read-only). Lead brief is now the morning brief. Branch `feat/dsk-morning-trigger`, code committed e6b72948, not pushed. Tests: 23 DSK, 18 MKT, 9 GUI Pass; full suite 2624 passed, 12 old failures (T112). **Next:** user real-app check T151, then push / PR only when the user says, then step B (baton done events).
+
+**Previous (Session 130b, 2026-11-10):** **AI Desk Team setup and employee.md (Feature, DSK + GUI; FO-DSK-008, FO-GUI-036; RN-DSK-0.6.0-20261110, RN-GUI-1.19.0-20261110; SRD-DSK-008.001–.009 and SRD-GUI-036.001–.008 Implemented; FO-DSK-008 and FO-GUI-036 user-approved).** Each AI employee is one `employee.md` (settings block plus prompt). Old `job.yaml` and `soul.md` move to `history/` once. Saves keep `history/v<N>.md` and raise the version; restore saves an old version as the next one. New Team setup tab in AI Desk lists all 9 employees with Prompt, Profile, Model, Limits and wake, and History tabs; Test on yesterday makes one real AI call in the background. Team at work side pane trimmed. Branch `feat/desk-team-setup`, stacked on `feat/gui-desk-status-bar`, committed, not pushed. User check T147. Phase 2 ideas (T148): temperature, max tokens, timeout, effort, data blocks, tool use, guardrails. Mock-up: https://claude.ai/artifact/CSVvoYH32gNQzivr8L9bbE.
 
 **Current (Session 130, 2026-11-10):** **AI Desk status bar instead of dot (Enhancement, GUI; FO-GUI-035; RN-GUI-1.18.0-20261110; SRD-GUI-035.013 chosen by user and Implemented).** Status pills, the desk state chip, Last run, Right now and This run lines show a 3 px left colour bar; no dots. Floor, timeline and backtest dots unchanged. Also SRD-GUI-035.014: the selected card and Team row use a lighter fill and grey border instead of amber (user chose Option A). Branch `feat/gui-desk-status-bar`, committed, not pushed. User check T146. Mock-ups: https://claude.ai/artifact/92UfDzucLYx2rWC63Q4HRS.
 
@@ -19,7 +21,7 @@
 
 **Current (Session 129, 2026-11-10):** **AI Desk menu in the sidebar (Feature, GUI; FO-GUI-018; RN-GUI-1.14.0-20261110; SRD-GUI-018.012 chosen by user and Implemented).** The AI Desk sections now sit under the AI Desk item in the left sidebar and show only on that screen; the page drops its 190 px list. Branch `feat/gui-desk-nav-sidebar`, committed, not pushed. User check T140.
 
-**Next (handover, 2026-11-10, Session 128):** AI Desk Team at work (FO-GUI-035) is done on branch `feat/gui-team-at-work`, committed, not pushed. User check T137, then push and PR when the user says. The real 2026-11-09 evening run failed for every employee because the Claude CLI login expired (T138); the desk now alerts on this (FO-DSK-007, same branch). User checks still open: T132–T134, T123–T131, T139.
+**Handover (2026-11-10, Session 128):** AI Desk Team at work (FO-GUI-035) is done on branch `feat/gui-team-at-work`, committed, not pushed. User check T137, then push and PR when the user says. The real 2026-11-09 evening run failed for every employee because the Claude CLI login expired (T138); the desk now alerts on this (FO-DSK-007, same branch). User checks still open: T132–T134, T123–T131, T139.
 
 **Also (Session 128b, 2026-11-10):** **AI problem alerts (Feature, DSK + GUI; FO-DSK-007; RN-DSK-0.5.0-20261110; SRD-DSK-007.001–.006 and SRD-GUI-035.010–.011 approved by user and Implemented).** Claude login, OpenRouter key or credit problems and whole-run failures raise one alert a day: Telegram plus a red banner in Team at work and an AI feed card. A source that failed to sign in is skipped for the rest of the run. New `core/desk_alerts.py` (`alerts` table).
 
@@ -530,7 +532,7 @@ Previous (Session 87, 2026-10-23): **Accumulation / Distribution screener (Featu
 | DD | `docs/gui/DD.md` | Draft v1.2.0 | 9 DDs across FO-GUI-001, 002, 004, 007, 011, 012, 014; FO-GUI-011/012 DD Approved |
 | MD | `docs/gui/MD.md` | Draft v1.0.0 | 15 modules; FO-GUI-004 now includes pending_signals_table_model.py (new); MD-GUI-014 (3 modules) for Active Cycles |
 | UTCD | `docs/gui/UTCD.md` | Draft v1.1.0 | 81 test cases; FO-GUI-004/012/014 test specs updated |
-| TRACE | `docs/gui/TRACE.md` | Draft v1.16.0 — **updated** | FO-GUI-034 Market Floor and AI Desk frames Implemented (RN-GUI-1.60.0-20261106); FO-GUI-033 AI notes settings Implemented (RN-GUI-1.59.0-20261105); FO-GUI-032 Strategies views Implemented (RN-GUI-1.56.0-20261103); Last Updated 2026-11-05 |
+| TRACE | `docs/gui/TRACE.md` | Draft v1.16.0 — **updated** | FO-GUI-029 SRD .007–.008 and FO-GUI-034 SRD .068–.069 Implemented (RN-GUI-1.61.0-20261111); FO-GUI-034 Market Floor and AI Desk frames Implemented (RN-GUI-1.60.0-20261106); FO-GUI-033 AI notes settings Implemented (RN-GUI-1.59.0-20261105); FO-GUI-032 Strategies views Implemented (RN-GUI-1.56.0-20261103); Last Updated 2026-11-05 |
 
 ### Indicator Rule Library (FO-SCR-013 / FO-GUI-015)
 
@@ -558,12 +560,12 @@ Previous (Session 87, 2026-10-23): **Accumulation / Distribution screener (Featu
 | Artifact | File | Status | Notes |
 |---|---|---|---|
 | FO | `docs/desk/FO.md` | Draft | FO-DSK-001 Approved and Implemented; FO-DSK-002..006 Draft |
-| SRD | `docs/desk/SRD.md` | Draft v0.2.0 | SRD-DSK-001.001–.020 Implemented (RN-DSK-0.1.0-20261105) |
+| SRD | `docs/desk/SRD.md` | Draft v0.8.0 | SRD-DSK-001.001–.020 Implemented (RN-DSK-0.1.0-20261105); morning run SRD-DSK-001.013/.015/.018–.020, 003.013, 007.005/.007 Implemented (RN-DSK-0.7.0-20261111) |
 | DD | `docs/desk/DD.md` | Draft | §0 locked decisions, desk.db contract, phase plan P0a–P7, open Q1–Q5 |
 | MD | `docs/desk/MD.md` | Draft v0.2.0 | MD-DSK-001 M01–M06 |
 | UTCD | `docs/desk/UTCD.md` | Draft | FO-DSK-001: 62 UT Pass |
 | TRACE | `docs/desk/TRACE.md` | Draft v0.1.0 | FO-DSK-001 Implemented |
-| Code | `src/us_swing/desk/`, `core/desk_contract.py` | Implemented | Commit b65b1f4d on feat/dsk-p0a-desk-shell, not pushed |
+| Code | `src/us_swing/desk/`, `core/desk_contract.py` | Implemented | Morning run code commit e6b72948 on feat/dsk-morning-trigger, not pushed; user check T151 |
 
 ---
 
@@ -576,7 +578,8 @@ Previous (Session 87, 2026-10-23): **Accumulation / Distribution screener (Featu
 | MD | `docs/market/MD.md` | Draft v0.4.0 | MD-MKT-001 M01–M05; MD-MKT-002 M01–M05; MD-MKT-003 M01–M07 |
 | UTCD | `docs/market/UTCD.md` | Draft | FO-MKT-001: 28 UT Pass; FO-MKT-002: 22 UT Pass; FO-MKT-003: 35 UT Pass |
 | TRACE | `docs/market/TRACE.md` | Draft v0.1.0 | FO-MKT-001 to FO-MKT-003 Implemented |
-| Code | `src/us_swing/market/` | Implemented | P1–P3 code; branch feat/mkt-p3-flow-setups-score, not pushed |
+| SRD | `docs/market/SRD.md` | Draft v0.14.0 | SRD-MKT-001.013–.017 Implemented and SRD-MKT-005.015–.016 Implemented (RN-MKT-0.13.0-20261111) |
+| Code | `src/us_swing/market/` | Implemented | P1–P3 code; morning run code (candle check) commit e6b72948 on feat/dsk-morning-trigger, not pushed |
 
 ---
 

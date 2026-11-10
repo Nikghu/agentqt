@@ -2,6 +2,18 @@
 
 ---
 
+## [20261111] DSK+MKT+GUI — Autonomous AI Desk step A: morning run trigger (FO-DSK-001/003/007, FO-MKT-001/005, FO-GUI-029/034)
+
+- Type: Feature
+- FO(s): FO-DSK-001, FO-DSK-003, FO-DSK-007, FO-MKT-001, FO-MKT-005, FO-GUI-029, FO-GUI-034
+- RN: RN-DSK-0.7.0-20261111, RN-MKT-0.13.0-20261111, RN-GUI-1.61.0-20261111
+- Artifacts updated: SRD, DD, MD, UTCD, TRACE, CONTEXT, TODO (T150–T152), Code (desk clock/process/task/cli/store, core/desk_contract, core/desk_alerts, market candle_check/candles/store/lead_brief, gui scheduler_dialog/scheduler_table/scheduler_store, gui desk_control, core/desk_overview), Tests, RN
+- Decisions: one morning run per trading day from 04:00 ET, replaces the 16:25 evening run; desk starts and stops with the app; no desk Windows tasks; Candle check fills only missing bars from Yahoo into a desk-only copy; candles.db never written; run stops if SPY or more than 2% of stocks still behind; Start TWS and Start USSwing fixed at 60 min before open, read-only; lead brief becomes morning brief
+- Review fixes: scheduler.json save lock and reload before save; candle alert says up to 3 tries then press Run now; unsettled Yahoo bars fetched again; pid_alive treats access denied as alive
+- Tests: DSK 23 Pass; MKT 18 Pass; GUI 9 Pass; full suite 2624 passed, 12 failed (same 12 as clean base, T112); ruff clean; mypy --strict no new errors
+
+---
+
 ## [20261110] DSK+GUI — AI Desk Team setup and employee.md (FO-DSK-008, FO-GUI-036)
 
 - Type: Feature
