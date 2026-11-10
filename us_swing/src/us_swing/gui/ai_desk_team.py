@@ -48,7 +48,6 @@ from us_swing.core.desk_team import (
     Run,
     RunView,
     day_events,
-    history,
     last_brief,
     levels,
     month_cost,
@@ -497,6 +496,8 @@ class TimelineView(QWidget):
 class TeamAtWork(QWidget):
     """AI Desk → Team at work."""
 
+    edit_requested = pyqtSignal(str)
+
     def __init__(self, home: Path | None = None,
                  clock: Callable[[], datetime] | None = None,
                  parent: QWidget | None = None) -> None:
@@ -664,6 +665,8 @@ class TeamAtWork(QWidget):
         lines.addLayout(head)
         lines.addWidget(panel(self.wheel))
         self.profile = ProfilePane()
+        # profile → edit_requested → section → edit_requested
+        self.profile.edit_requested.connect(self.edit_requested)
         lines.addWidget(panel(scroll_of(self.profile)), 1)
         # wheel → picked → section → _on_wheel
         self.wheel.picked.connect(self._on_wheel)
@@ -793,8 +796,7 @@ class TeamAtWork(QWidget):
         home = self._folder()
         state = self._view.states.get(member.id, _ASLEEP) if self._view else _ASLEEP
         self.profile.show_member(member, state, names, last_brief(home, member.id),
-                                 history(home, member.id), month_cost(home, member.id,
-                                                                      self._clock()))
+                                 month_cost(home, member.id, self._clock()))
 
     # ── user actions ──────────────────────────────────────────────────────
 

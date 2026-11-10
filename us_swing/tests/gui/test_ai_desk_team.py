@@ -191,3 +191,38 @@ def test_selected_card_lift(qtbot: QtBot, tmp_path: Path) -> None:
     assert f"background: {lift_fill()}; border: 1px solid {C.MUTED}" in picked.styleSheet()
     assert C.BLUE not in picked.styleSheet()
     assert f"background: {C.SURFACE}" in other.styleSheet()
+
+
+def test_trimmed_pane_and_edit_link(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-036.008.M04.T01: no KPIs or Daily limit rows; Edit opens Team setup on the member."""
+    from PyQt6.QtWidgets import QLabel
+
+    from us_swing.gui.ai_desk import AiDeskWorkspace
+    from us_swing.gui.desk_control import DeskPoller
+
+    desk(tmp_path, finished=True)
+    page = _page(qtbot, tmp_path)
+    page.select_member("emp-b")
+    texts = [w.text() for w in page.profile.findChildren(QLabel)]
+    assert "KPIs" not in texts and "Daily limit" not in texts and "Last 4 days" not in texts
+    assert page.profile.model_label.text() == "claude / default · backup openrouter / default"
+    assert page.profile.edit_btn.isEnabled()
+    with qtbot.waitSignal(page.edit_requested) as seen:
+        page.profile.edit_btn.click()
+    assert seen.args == ["emp-b"]
+
+    work = AiDeskWorkspace(DeskPoller(tmp_path), clock=lambda: NOW)
+    qtbot.addWidget(work)
+    team = work.findChild(TeamAtWork)
+    assert team is not None
+    team.refresh()
+    team.select_member("emp-c")
+    team.profile.edit_btn.click()
+    assert work.current_section() == "Team setup"
+    assert work._setup.current_id() == "emp-c"
+
+
+def test_edit_link_off_without_member(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-036.008.M04.T02: with an empty team Edit in Team setup is off."""
+    page = _page(qtbot, tmp_path)
+    assert not page.profile.edit_btn.isEnabled()

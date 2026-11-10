@@ -25,7 +25,6 @@ from PyQt6.QtGui import (
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QFrame,
-    QGridLayout,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -37,7 +36,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from us_swing.core.desk_team import Call, DayWork, Member, MemberState, Score
+from us_swing.core.desk_team import Call, Member, MemberState, Score
 from us_swing.gui.ai_desk_sections import heading, muted, read_only_text
 from us_swing.gui.icons import set_icon
 from us_swing.gui.theme import C
@@ -308,7 +307,9 @@ class TeamWheel(QWidget):
 
 
 class ProfilePane(QWidget):
-    """The picked employee: job, plan, this run's calls, last answer, history and spend."""
+    """The picked employee: role, model, this run's calls, last answer and spend."""
+
+    edit_requested = pyqtSignal(str)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -322,21 +323,14 @@ class ProfilePane(QWidget):
         lines.addWidget(self.name_label)
         lines.addWidget(self.sub_label)
         lines.addWidget(self.state_label, 0, Qt.AlignmentFlag.AlignLeft)
-        grid = QGridLayout()
-        grid.setHorizontalSpacing(10)
-        grid.setVerticalSpacing(4)
-        self._facts: dict[str, QLabel] = {}
-        for row, key in enumerate(("Wakes on", "Waits for", "Model", "Backup", "Daily limit",
-                                   "KPIs")):
-            key_label = QLabel(key)
-            key_label.setStyleSheet(f"color: {C.MUTED};")
-            value = QLabel()
-            value.setWordWrap(True)
-            grid.addWidget(key_label, row, 0, Qt.AlignmentFlag.AlignTop)
-            grid.addWidget(value, row, 1)
-            self._facts[key] = value
-        grid.setColumnStretch(1, 1)
-        lines.addLayout(grid)
+        model_row = QHBoxLayout()
+        model_key = QLabel("Model")
+        model_key.setStyleSheet(f"color: {C.MUTED};")
+        self.model_label = QLabel()
+        self.model_label.setWordWrap(True)
+        model_row.addWidget(model_key, 0, Qt.AlignmentFlag.AlignTop)
+        model_row.addWidget(self.model_label, 1)
+        lines.addLayout(model_row)
         lines.addWidget(heading("This run"))
         self.calls_label = QLabel()
         self.calls_label.setWordWrap(True)
@@ -365,10 +359,6 @@ class ProfilePane(QWidget):
         # prompt/answer buttons → toggled → pane → _on_peek
         self.prompt_btn.toggled.connect(lambda on: self._on_peek("prompt", on))
         self.answer_btn.toggled.connect(lambda on: self._on_peek("answer", on))
-        lines.addWidget(heading("Last 4 days"))
-        self.history_label = QLabel()
-        self.history_label.setTextFormat(Qt.TextFormat.RichText)
-        lines.addWidget(self.history_label)
         month = QHBoxLayout()
         month.addWidget(QLabel("Month"))
         self.month_bar = QProgressBar()
@@ -379,30 +369,30 @@ class ProfilePane(QWidget):
         month.addWidget(self.month_bar, 1)
         month.addWidget(self.month_label)
         lines.addLayout(month)
+        self.edit_btn = QPushButton("Edit in Team setup")
+        self.edit_btn.setEnabled(False)
+        lines.addWidget(self.edit_btn, 0, Qt.AlignmentFlag.AlignLeft)
         lines.addStretch(1)
         self._call: Call | None = None
+        self._member_id = ""
+        # edit button → clicked → pane → edit_requested(member id)
+        self.edit_btn.clicked.connect(lambda: self.edit_requested.emit(self._member_id))
 
     def show_member(self, member: Member, state: MemberState, names: dict[str, str],
-                    brief: str, days: Sequence[DayWork], month_usd: float) -> None:
+                    brief: str, month_usd: float) -> None:
         """Fill the pane for ``member`` in its ``state``."""
+        self._member_id = member.id
+        self.edit_btn.setEnabled(True)
         self.name_label.setText(member.name)
         boss = names.get(member.reports_to, "nobody")
         self.sub_label.setText(f"{member.title or member.level} · {skill_text(member.skill)} · "
                                f"reports to {boss}")
         self.state_label.setText(chip_text(state.label))
         self.state_label.setStyleSheet(chip_style(state.key))
-        self._facts["Wakes on"].setText(", ".join(_trigger_text(t) for t in member.triggers)
-                                        or "nothing")
-        self._facts["Waits for"].setText(", ".join(names.get(n, n) for n in member.needs)
-                                         or "nobody, starts first")
-        self._facts["Model"].setText(member.primary or "—")
-        self._facts["Backup"].setText(member.backup or "none")
-        self._facts["Daily limit"].setText(f"{member.calls_per_day} calls")
-        self._facts["KPIs"].setText("\n".join(member.kpis) or "—")
+        self.model_label.setText(f"{member.primary or '—'} · backup {member.backup or 'none'}")
         self.calls_label.setText(_calls_html(state.calls, member.on_demand))
         self._call = state.calls[-1] if state.calls else None
         self.brief_label.setText(f"“{brief}”" if brief else "No answer saved yet")
-        self.history_label.setText(_history_html(days))
         share = min(100, round(month_usd / member.month_cap_usd * 100)) if \
             member.month_cap_usd > 0 else 0
         self.month_bar.setValue(share)
@@ -431,15 +421,6 @@ class ProfilePane(QWidget):
             self.peek.setPlainText(text or "(empty)")
 
 
-_TRIGGERS = {"after_run": "Evening run (16:25 ET)", "chat_question": "Your chat question",
-             "data_request": "Your data ask", "regime_change": "Regime change",
-             "market_open": "Market open", "market_close": "Market close"}
-
-
-def _trigger_text(kind: str) -> str:
-    return _TRIGGERS.get(kind, kind.replace("_", " "))
-
-
 def _calls_html(calls: Sequence[Call], on_demand: bool) -> str:
     if not calls:
         return (f"<span style='color:{C.MUTED}'>"
@@ -452,17 +433,6 @@ def _calls_html(calls: Sequence[Call], on_demand: bool) -> str:
         rows.append((colour, f"{c.started:%H:%M:%S} · try "
                     f"{c.attempt} · {html.escape(c.source)} · {c.seconds:.1f} s · "
                     f"{c.tokens_in + c.tokens_out:,} tok · {answer}"))
-    return bar_rows(rows)
-
-
-def _history_html(days: Sequence[DayWork]) -> str:
-    if not days:
-        return f"<span style='color:{C.MUTED}'>No work yet</span>"
-    rows = []
-    for d in days:
-        colour = C.GREEN if d.valid else C.RED
-        rows.append((colour, f"{html.escape(d.day)} · {d.calls} call(s) · "
-                    f"{d.seconds:.1f} s · ${d.cost_usd:.3f}"))
     return bar_rows(rows)
 
 

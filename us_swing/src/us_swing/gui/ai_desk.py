@@ -7,6 +7,7 @@ Also: MD-GUI-034.059.M33 — grouped section list, Command badge, header chips a
 (SRD-GUI-034.059–.060)
 Also: MD-GUI-035.001.M01 — Team at work replaces the five sample team sections (SRD-GUI-035.001)
 Also: SRD-GUI-034.067 — sections are underline tabs under the header (not in the sidebar)
+Also: MD-GUI-036.001.M01 — Team setup tab after Team at work (SRD-GUI-036.001)
 Also: SRD-GUI-034.065 — console header: icon, state note, desk controls and four tiles
 """
 from __future__ import annotations
@@ -51,6 +52,7 @@ from us_swing.gui.ai_desk_console import icon_badge, stat_tile, thin_bar
 from us_swing.gui.ai_desk_results import results_frame
 from us_swing.gui.ai_desk_pages import pages_frame
 from us_swing.gui.ai_desk_sections3 import cost_frame, reports_frame, settings_frame
+from us_swing.gui.ai_desk_setup import TeamSetup
 from us_swing.gui.ai_desk_team import TeamAtWork
 from us_swing.gui.ai_desk_team_pane import bar_style, tab_style
 from us_swing.gui.theme import C
@@ -59,7 +61,7 @@ NY = ZoneInfo("America/New_York")
 IST = ZoneInfo("Asia/Kolkata")
 GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("TALK", ("Command",)),
-    ("TEAM", ("Team at work", "Hiring")),
+    ("TEAM", ("Team at work", "Team setup", "Hiring")),
     ("CREATE", ("Pages",)),
     ("REVIEW", ("Reports", "Results", "Cost & budget")),
     ("SETUP", ("Desk settings",)),
@@ -107,6 +109,7 @@ class AiDeskWorkspace(QWidget):
         self._poller = poller
         self._clock = clock or (lambda: datetime.now(NY))
         self._home = poller.home
+        self._setup: TeamSetup | None = None
         gutter(self)
         main = QHBoxLayout(self)
         main.setContentsMargins(0, 0, 0, 0)
@@ -181,8 +184,20 @@ class AiDeskWorkspace(QWidget):
         if name == "Cost & budget":
             return cost_frame(name, self._home)
         if name == "Team at work":
-            return TeamAtWork(self._home, self._clock)
+            team = TeamAtWork(self._home, self._clock)
+            # team at work → edit_requested → page → _open_setup
+            team.edit_requested.connect(self._open_setup)
+            return team
+        if name == "Team setup":
+            self._setup = TeamSetup(self._folder())
+            return self._setup
         return settings_frame(name, self._home)
+
+    def _open_setup(self, emp_id: str) -> None:
+        """Show Team setup with ``emp_id`` picked."""
+        self.select_section("Team setup")
+        if self._setup is not None:
+            self._setup.select(emp_id)
 
     def _command(self, name: str) -> QWidget:
         folder = self._folder()
