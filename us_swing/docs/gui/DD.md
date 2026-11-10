@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.18.0: DD-GUI-036.001.D01 added — AI Desk Team setup, 2026-11-10.
 > v1.17.0: DD-GUI-035.001.D01 selected card lift (SRD-GUI-035.014), 2026-11-10.
 > v1.16.0: DD-GUI-035.001.D01 status bar replaces the dot (SRD-GUI-035.013), 2026-11-10.
 > v1.15.0: DD-GUI-034.065.D01 gains the section tabs (SRD-GUI-034.067), 2026-11-10.
@@ -1960,3 +1961,19 @@ Run names: `evening` "Evening run", `manual` "Manual run", other kinds title-cas
 **Selected lift (SRD-GUI-035.014).** `lift_fill()` is halfway between SURFACE and OVERLAY. `StageCard.paint_border()` uses it as the fill when the card is selected, with a MUTED border (was the accent). The team wheel's centre band uses the same fill and a MUTED pen. A working card keeps its pulsing border.
 
 **Refresh.** On show, then a 3 s timer while shown: every tick while the newest run is running, else every 5th tick. Hidden: the timer, pulse and ring stop. The Event log opens on the shown run's day.
+
+## DD-GUI-036.001.D01 — AI Desk Team Setup
+
+**Traces:** SRD-GUI-036.001–.008. Design Option 1: https://claude.ai/artifact/CSVvoYH32gNQzivr8L9bbE.
+
+**Place.** `gui/ai_desk.py` `SECTIONS` gets "Team setup" after "Team at work" (tab row, same `select_section`). The page is `TeamSetup(home)` in new `gui/ai_desk_setup.py`. It reads and writes only through `core/desk_employee.py` (DD-DSK-008.001.D01), never `desk`.
+
+**Layout.** `QHBoxLayout`: left `panel()` 260 px with "Team · N" and a `QListWidget` (initials, name, skill words, status); right `panel()` with a header (name, role line, status chip), underline tab buttons (`tab_style()`) over a `QStackedWidget`, and a save bar (version note, Test on yesterday, Save). Widgets use `C.BTN_H` / `C.INPUT_H`; the selected row uses `lift_fill()`.
+
+**Tabs.** Prompt: `QPlainTextEdit` (mono) + muted read-only line "Added by code: answer with one JSON object matching the skill's schema" + hint "{name} and {title} are filled in". Profile: name, title (`QLineEdit`), level (`QComboBox` lead/expert/champion/junior), reports to (`QComboBox` of other employees + none), skill (read-only label), KPIs (`QPlainTextEdit`, one per line). Model: main source + model and backup source + model; model is an editable `QComboBox` filled from `known_models(home)[source]` (typing gives Other). Limits & wake: calls per day (`QSpinBox` 1–500), month cap (`QDoubleSpinBox`), status (`QComboBox` active/shadow/retired), wake events (one `QCheckBox` per `EVENT_KINDS`). History: `QListWidget` of versions (v N · date · current) + read-only prompt view + Restore.
+
+**Flow.** `showEvent` → `migrate_all(home)` then `reload()` (keeps the picked id). Picking a row: when the form is dirty, ask (`ask` injectable, default `QMessageBox`); then `read_employee` fills the form and keeps a clean copy. Any edit marks dirty and enables Save. Save → `save_employee(...)`; a reason shows in red in the save bar; else the note "Saved as version N · applies from the next wake" and reload. Restore → ask → `restore()` → reload. Test on yesterday → `try_draft()` in a `QThreadPool` worker (`runner` injectable); the button shows "Testing…" and is off while it runs; the result shows under the prompt with a green or red left bar and the answer text, or the "no recorded run" note. Logs: `[Team setup] Saved %s as version %d`, `[Team setup] Save refused for %s: %s`.
+
+**Public API.** `TeamSetup.reload()`, `.select(emp_id)`, `.employee_ids()`, `.current_id()`; signal `saved(str)`.
+
+**Side pane trim (SRD-GUI-036.008).** `ProfilePane` keeps name, role line, state chip, one Model line (`main · backup`), month bar, This run calls and the Prompt / Answer peek; it drops Wakes on, Waits for, Backup, Daily limit, KPIs and Last 4 days. A new "Edit in Team setup" button emits `edit_requested(str)`; `TeamAtWork` re-emits it and `AiDeskWorkspace` calls `select_section("Team setup")` then `setup.select(id)`.

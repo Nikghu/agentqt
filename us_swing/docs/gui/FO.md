@@ -7,6 +7,7 @@
 **Last Updated:** 2026-05-22
 **Project:** US Swing Trading System
 
+> v2.18.0: FO-GUI-036 AI Desk Team setup added as Draft (user chose Option 1, 2026-11-10).
 > v2.17.0: FO-GUI-034 gets the section tabs bullet (2026-11-10).
 > v2.16.0: FO-GUI-034 gets the AI Desk console look bullet (design phase 4, 2026-11-10).
 > v2.15.0: FO-GUI-034 gets the AI Desk design bullet (design phase 3, 2026-11-07).
@@ -1021,3 +1022,28 @@ The system shall show how the AI employee team works, from real desk records.
 2. Opening an evening run event in the log lists each call with model, try, seconds, tokens and cost.
 3. The scorecard numbers match the `activity` rows of the last 30 days.
 4. No section shows sample data for the team.
+
+## FO-GUI-036: AI Desk Team Setup
+
+**Status:** Draft
+**Priority:** Must
+**Depends on:** FO-DSK-008 (employee file and versions), FO-GUI-035 (Team at work)
+**Source:** User 2026-11-10: a dedicated section to edit each AI employee's system prompt, model and more; the Team at work side pane shows only a summary. Design Option 1: https://claude.ai/artifact/CSVvoYH32gNQzivr8L9bbE. Phase 2 (not now): temperature, max tokens, timeout, effort, data blocks, guardrails.
+
+The system shall let the Master user set up each AI employee in one place.
+
+- The system shall add a Team setup tab that lists every employee in the desk folder, new hires included.
+- The system shall let the Master user change an employee's prompt, name, title, level, boss, status, main and backup model, calls per day, month cap, wake events and KPIs.
+- The system shall show the employee's skill without letting it change.
+- The system shall save a change as a new version that applies from the next wake.
+- The system shall show earlier versions and bring one back.
+- The system shall try a changed prompt on yesterday's data before saving.
+- The system shall keep the Team at work side pane to a short summary with a link to Team setup.
+
+### Acceptance Criteria
+
+1. A new hire shows in Team setup without restarting the app.
+2. Changing a prompt and pressing Save shows the new version and "applies from the next wake".
+3. Restoring version 1 saves it as the next version with the version 1 prompt.
+4. Test on yesterday shows whether the answer is valid and the answer text.
+5. Edit in Team setup on the side pane opens Team setup on that employee.

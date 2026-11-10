@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.8.0: MD-DSK-008.001.M22 added — employee file, versions, draft test.
 > v0.7.0: MD-DSK M18–M20 added — hiring, shadow, weekly report (P6).
 > v0.6.0: MD-DSK M15–M17 added — events, router with LangGraph, replay (P5b).
 > v0.5.0: MD-DSK-002–005 M08–M14 added — lean harness (P5a).
@@ -91,3 +92,13 @@ SRD coverage: .001, .002, .005–.007 by M18 (.005 also M19); .003 by M13 and M1
 Changed: MD-DSK-004.001.M11 (`gateway.py`: `_report`, per-run skip, `send=` — SRD-DSK-007.001, .004) and MD-DSK-003.001.M10 (`employees_step.py`: `_check_run`, `send=` — SRD-DSK-007.005).
 
 SRD coverage: .001–.003 and .006 by M21; .001 and .004 by M11; .005 by M10 and M21.
+
+## FO-DSK-008: Employee File and Versions
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-DSK-008.001.M22 | SRD-DSK-008.001 | `us_swing/src/us_swing/core/desk_employee.py` | Employee file rules, read and write, migration, versions, restore, draft test, known models | `JobSpec`, `EmployeeFile`, `parse()`, `render()`, `read_employee()`, `migrate_all()`, `save_employee()`, `versions()`, `restore()`, `try_draft()`, `known_models()` | `core.desk_contract`, `core.desk_hiring`, `core.desk_ai_settings`, `yaml`, `pydantic` | No |
+
+Changed: MD-DSK-002.002.M09 (`registry.py`: rules from core, reads `employee.md`, migrates on seed — SRD-DSK-008.001, .003, .004), MD-DSK-006.001.M18 (`core/desk_hiring.py`: writes `employee.md` — .007), MD-DSK-005.005.M17 (`replay.py`, `cli.py`: `--draft` — .008), shipped `market/employees/*/employee.md` (.004). Cross-tool note: `core/desk_team.py` (GUI module MD-GUI-035.002.M02) reads through `read_employee`.
+
+SRD coverage: .001–.003, .005, .006, .009 by M22; .004 by M09; .007 by M18; .008 by M17 and M22.

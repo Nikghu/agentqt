@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.4.0: FO-DSK-008 added as Draft — one employee.md file, versions and draft test (user, 2026-11-10).
 > v0.3.0: FO-DSK-006 written in full as Draft for P6 (Master-started hires, 14-evening shadow, seat caps 8/5/30, weekly code report); no employee names.
 > v0.2.1: FO-DSK-002 adds employee identity as data and generic levels; no employee names (user, 2026-11-06).
 > v0.2.0: FO-DSK-002â€“005 written in full as Draft for P5a (lean harness: registry, wake after run, gateway with budget, recorder); router, replay, Jev and HuggingFace later.
@@ -167,3 +168,26 @@ The system shall tell the Master User when the AI desk hits a problem only the u
 1. With the Claude login expired, the next evening run sends one Telegram message and shows a red banner and an AI feed card with the fix.
 2. In that run each later employee goes straight to OpenRouter when it is on.
 3. After `claude auth login` and one valid Claude answer, the banner and card are gone.
+
+## FO-DSK-008: Employee File and Versions
+
+**Status:** Draft
+**Priority:** Must
+**Depends on:** FO-DSK-002 (registry), FO-DSK-005 (replay), FO-DSK-006 (hiring)
+**Source:** User 2026-11-10: edit each AI employee in a Team setup tab; all details in one .md file; new hires added by themselves. Design: https://claude.ai/artifact/CSVvoYH32gNQzivr8L9bbE (Option 1).
+
+The system shall keep each AI employee in one readable file that the Master user can change safely.
+
+- The system shall keep each employee in one `employee.md`: settings at the top, system prompt below.
+- The system shall move an employee kept as `job.yaml` and `soul.md` into `employee.md` once, by itself, losing nothing.
+- The system shall check an employee file with one set of rules shared by the desk and the app.
+- The system shall keep every earlier version of an employee file and let the Master user bring one back.
+- The system shall give each new hire its own `employee.md`.
+- The system shall try a changed prompt on the employee's last recorded run without saving it.
+
+### Acceptance Criteria
+
+1. After the update every employee folder has `employee.md`, the old files sit in `history/`, and the evening run works as before.
+2. Saving a change raises the version, keeps the old file, and the next wake uses the new prompt.
+3. A file with a wrong value is refused with a plain reason, and the employee stays as it was.
+4. A new hire's folder holds `employee.md`.

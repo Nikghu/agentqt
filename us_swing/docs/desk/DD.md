@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.6.0: DD-DSK-008.001.D01 added — employee.md file, migration, versions, draft test.
 > v0.5.0: DD-DSK-006.001.D01 added — hiring pipeline, shadow and weekly report (P6).
 > v0.4.0: DD-DSK-003.004.D01 added — events, market clock, LangGraph run order and replay (P5b).
 > v0.3.1: P5a section rewritten without employee names: skills by function, employees as data in the desk folder, generic levels (user, 2026-11-06).
@@ -508,3 +509,36 @@ No AI call. The GUI Reports section lists `desk_reports` newest first; sample re
 **Telegram.** `send_telegram(text)`: `telegram_target()` reads `~/.usswing/users.json` (first user with `telegram_enabled` and a chat id) and the token from the keychain service `usswing_telegram` (the same place the GUI keeps it), then posts `sendMessage` with a 10 s timeout. Success sets `sent = 1`. The sender is injectable (`send=`) on `Gateway`, `EmployeesStep` and `raise_alert`; tests point `USERS_FILE` at a temp folder.
 
 **Open alerts.** `open_alerts(home, now)`: rows from the last 24 hours with no later valid `activity` row (same source for login, key and credit). Shown by the GUI as a red banner in Team at work and a Desk card in the AI feed (SRD-GUI-035.010–.011).
+
+## DD-DSK-008.001.D01 — Employee File and Versions
+
+**Traces:** SRD-DSK-008.001–.009.
+
+**File.** `<desk>/employees/<id>/employee.md`:
+
+```
+---
+id: emp-006
+name: Expert 5
+... (every JobSpec field, same names as job.yaml)
+---
+You are {name}, {title} ...   <- system prompt (soul)
+```
+
+Front matter is the text between the first two `---` lines, read with `yaml.safe_load`; the body after the second `---` (one leading newline dropped) is the prompt. `{name}` and `{title}` stay as placeholders in the file and are filled at load, as today.
+
+**Shared rules (`core/desk_employee.py`).** `JobSpec`, `ModelChoice`, `Models` move here from `desk/registry.py` (registry re-imports them, so other `desk` code is unchanged). `EmployeeFile(spec, prompt, text)`; `parse(text) -> EmployeeFile` raises `ValueError` with the first plain reason; `render(spec, prompt) -> str` writes the front matter with `yaml.safe_dump(sort_keys=False)` in JobSpec field order; `read_employee(folder) -> EmployeeFile | None` reads `employee.md`, else the old pair (no write). The roster hash is sha256 of the file text.
+
+**Migration.** `migrate_folder(folder) -> bool`: when `employee.md` is missing and both old files exist and pass the rules, write `employee.md` from them, then move `job.yaml` and `soul.md` into `history/` as `v<N>-job.yaml` / `v<N>-soul.md`. `migrate_all(home)` loops the folders and logs `[AI Desk] Moved %d employee(s) to employee.md`. Called by `registry.seed_employees` and by Team setup when it opens. A folder whose old files fail the rules is left as is (it stays asleep, as today).
+
+**Defaults.** `market/employees/emp-NNN/` hold one `employee.md` each (made from the old pair; the comment header kept as YAML comments). `seed_employees` copies a folder only when `<desk>/employees/<id>` is missing.
+
+**Save.** `save_employee(home, emp_id, fields, prompt) -> str`: build the spec with `version = old + 1`, check it with `JobSpec`, check seats when the level changes (`desk_hiring.seat_counts` and the caps in `desk_ai_settings`), then copy the old `employee.md` to `history/v<old>.md` and write the new one through a temp file + `os.replace`. Returns `""` or the reason. `id` and `skill` cannot change. `versions(folder) -> list[Version(number, saved, path)]` lists `history/v<N>.md` plus the current file. `restore(home, emp_id, number)` reads that version and calls `save_employee` with its fields and prompt, so it becomes the next version.
+
+**Registry.** `load_employee(folder)` calls `read_employee`; hash input is the file text. Every event still reloads the folder, so a save applies from the next wake.
+
+**Hiring.** `start_hire` reads the default `employee.md`, sets id, name, level, status shadow, models, hired_on and version 1, and writes `employee.md` with `render`. `_set_status` writes through the same save path (version + 1, history kept).
+
+**Draft test.** `desk/cli.py _replay` accepts `--draft FILE`. `replay(..., draft=Path)` parses the draft with `parse`, builds `system = gateway.system_prompt(filled draft prompt, schema)`, keeps the recorded user part and resends with the draft's main model. It prints the usual report plus the new answer text. `core/desk_employee.try_draft(home, emp_id, text, timeout=180) -> DraftResult(valid, answer, note)` writes the draft to a temp file and runs `desk_command() + ["replay", run, "--employee", id, "--draft", path]` with no window, reading stdout; the run is the employee's newest run with recorded tries in `activity`. It returns a note when there is no such run.
+
+**Models list.** `known_models(home) -> dict[source, list[str]]`: `default`, the desk settings model of each source, and the models seen in `activity` for that source.
