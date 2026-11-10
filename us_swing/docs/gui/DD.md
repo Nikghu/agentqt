@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.15.0: DD-GUI-034.065.D01 gains the section tabs (SRD-GUI-034.067), 2026-11-10.
 > v1.14.0: DD-GUI-034.065.D01 added — AI Desk console look (SRD-GUI-034.065–.066), 2026-11-10.
 > v1.13.0:.001.D01 gains the clean look (SRD-GUI-035.012), 2026-11-10.
 > v1.12.0: DD-GUI-018.001.D01 gains the screen sub-menu (SRD-GUI-018.012), 2026-11-10.
@@ -1932,13 +1933,15 @@ Run names: `evening` "Evening run", `manual` "Manual run", other kinds title-cas
 
 ## DD-GUI-034.065.D01 — AI Desk Console Look (phase 4)
 
-**Traces:** SRD-GUI-034.065–.066. Design canvas Option A (Console cards).
+**Traces:** SRD-GUI-034.065–.067. Design canvas Option A (Console cards).
 
 **Helpers.** New `gui/ai_desk_console.py`: `stat_tile(title, value, bar)` (SURFACE tile, OVERLAY2 border, muted title over a bold value), `tile_row()`, `thin_bar()` + `bar_tone()` (6 px bar), `icon_badge()`, `icon_card(icon, title, side)` (BG card, OVERLAY2 border, 10 px radius, title label `card_title`), `primary()` (`primary_btn`), `danger()` (`role="danger"`), `seg_style()` (joined group, thin dividers, Stop red).
 
 **Header.** Icon badge, title and a state note (plain line per `DeskState`; an Error shows its message). `DeskBar` keeps `pill`, `note` and `buttons`; the pill sits in a dot chip and the buttons sit in the `desk_seg` group. Tiles: Last run (result in the title, dot in the result colour), Next run (`core.desk_overview.next_evening_run(now)` — next weekday 16:25 ET after now, with IST beside it), AI spend today, Month budget (percent in the title, bar). With no data the tiles show "No runs yet" and $0.00. `EVENING_RUN` moves to `core/desk_contract.py`; `desk/clock.py` imports it.
 
 **Sections.** Hiring: seat tiles (count of cap per level, bar turns yellow when full; In shadow with ready count), then Hires, Start hire and Shadow report cards; the empty Hires card does not stretch. Pages and Reports: list card plus a preview / reader card whose title follows the choice. Results: six total tiles (paper picks, filled, hit rate, average R, real trades, real P&L) replace the summary line; breakdown and Picks tables sit in cards. Cost: three tiles, a Budget used card with bar, two table cards. Desk settings: Schedule and rules card; the AI form splits into Claude Code CLI, OpenRouter API and Seats cards; Save sits at the bottom right.
+
+**Tabs (SRD-GUI-034.067).** The header card ends with `desk_tabs`: one checkable `tab_style()` button per section in a `QButtonGroup` (`&` written as `&&`). A tab click calls `select_section()`; the hidden list stays the one selection and checks the matching tab in `_on_item`. `set_ask_count()` sets the Command item and tab text. `main_window` no longer calls `Sidebar.add_sub_nav()` for AI Desk; the sidebar helper stays for other screens.
 
 ## DD-GUI-035.001.D01 — AI Desk Team at Work
 

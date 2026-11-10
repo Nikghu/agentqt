@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.23.0: UT-GUI-034.067.M33.T01–T02 added; UT-GUI-034.059.M33.T01 updated (AI Desk section tabs).
 > v1.22.0: UT-GUI-034.065–.066 added; UT-GUI-034.060.M33.T01–T02 and UT-GUI-034.037.M25.T01, .038.M25.T02 updated for tiles (AI Desk console look).
 > v1.21.1: UT-GUI-034.042–.044 run — 7 Pass.
 > v1.21.0: UT-GUI-034.042–.044 added (MKT P10 ask the desk for new data).
@@ -1175,6 +1176,8 @@ Test files:
 | UT-GUI-034.065.M39.T02 | MD-GUI-034.065.M39 | Edge | State note (SRD-GUI-034.065) | Paused; Error with a message | paused line; the error message | Pass |
 | UT-GUI-034.066.M39.T01 | MD-GUI-034.065.M39 | Positive | Section cards (SRD-GUI-034.066) | empty folder | card titles of Hiring, Cost and Settings | Pass |
 | UT-GUI-034.066.M21.T01 | MD-GUI-034.027.M21 | Positive | Seat tiles (SRD-GUI-034.066) | 1 active expert | 1 of N seats; In shadow tile | Pass |
+| UT-GUI-034.067.M33.T01 | MD-GUI-034.059.M33 | Positive | Section tabs (SRD-GUI-034.067) | empty folder | tabs in section order; click shows the section; list and tab agree; & shown plain | Pass |
+| UT-GUI-034.067.M33.T02 | MD-GUI-034.059.M33 | Positive | Command tab count (SRD-GUI-034.067) | count 3, then 0 | Command   3, then Command | Pass |
 | UT-GUI-034.042.M37.T01 | MD-GUI-034.042.M37 | Positive | Ask box sends (SRD-GUI-034.042) | type a request, click Ask | ask called with the text; sent note shown; box cleared | Pass |
 | UT-GUI-034.042.M37.T02 | MD-GUI-034.042.M37 | Negative | Ask box guards (SRD-GUI-034.042) | empty box; no ask given; ask returns an error | Ask disabled; box hidden; error shown and text kept | Pass |
 | UT-GUI-034.043.M38.T01 | MD-GUI-034.043.M38 | Positive | Product card (SRD-GUI-034.043) | waiting product with 7 matching rows | Ask card with title, recipe in words and 5 preview rows; counted in the heading | Pass |

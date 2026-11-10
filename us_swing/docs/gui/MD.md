@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.24.1: MD-GUI-018.012.M05 no longer used by AI Desk (SRD-GUI-034.067).
 > v1.24.0: MD-GUI-034.065.M39 added (AI Desk console look, design phase 4).
 > v1.23.0: MD-GUI-034.042.M37 and .043.M38 added (MKT P10 ask the desk for new data).
 > v1.22.0: MD-GUI-034.059.M33, .060.M34, .061.M35, .062.M36 added (AI Desk design phase 3).
@@ -250,7 +251,7 @@ us_swing/src/us_swing/gui/
 | MD-GUI-018.006.M02 | SRD-GUI-018.006 | `us_swing/src/us_swing/gui/reveal.py` | Size animation for hide/show panels | `RevealController`, `register()`, `on_reveal_requested()`, `revealed` | `QtCore` | No |
 | MD-GUI-018.005.M03 | SRD-GUI-018.005 | `us_swing/src/us_swing/gui/main_window.py` | Shell layout, mini state, peek geometry, screen slide | `MainWindow` | `sidebar`, `reveal` | No |
 | MD-GUI-018.008.M04 | SRD-GUI-018.008 | `us_swing/src/us_swing/gui/sidebar.py` | Connections panel, retry text, market countdown, mini plug | `_ConnectionsPanel`, `market_text()`, `Sidebar.set_feed_retry()`, `Sidebar.clear_feed_retry()` | `AppService`, `market_calendar`, `icons`, `theme` | No |
-| MD-GUI-018.012.M05 | SRD-GUI-018.012 | `us_swing/src/us_swing/gui/sidebar.py` | Screen sub-menu under a nav item | `Sidebar.add_sub_nav()`, `AiDeskWorkspace.nav` | `ai_desk`, `main_window` | No |
+| MD-GUI-018.012.M05 | SRD-GUI-018.012 | `us_swing/src/us_swing/gui/sidebar.py` | Screen sub-menu under a nav item (AI Desk uses tabs instead since SRD-GUI-034.067) | `Sidebar.add_sub_nav()` | — | No |
 
 ## FO-GUI-019 — Side Panels and Exit Drawer
 

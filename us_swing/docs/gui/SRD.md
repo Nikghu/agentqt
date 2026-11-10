@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.101.0: SRD-GUI-034.067 added and Implemented — AI Desk section tabs; replaces the sidebar menu of SRD-GUI-018.012 (user asked 2026-11-10).
 > v2.100.0: SRD-GUI-034.065–.066 added and Implemented — AI Desk console look, design Option A (user chose 2026-11-10).
 > v2.99.0: SRD-GUI-035.012 added and Implemented — Team at work clean look (user asked 2026-11-10).
 > v2.98.0: SRD-GUI-018.012 added and Implemented — AI Desk sections in the sidebar (user chose the layout 2026-11-10).
@@ -758,6 +759,7 @@
 | SRD-GUI-034.064 | FO-GUI-034 | Should | Command shows a Team now line with the employee count by status. | employees | line | Hidden when there are no employees | Implemented |
 | SRD-GUI-034.065 | FO-GUI-034 | Should | The AI Desk header shows an icon, a state note, a dot state chip, one joined Start / Pause / Resume / Stop group and four tiles: Last run, Next run, AI spend today, Month budget. | desk status, desk.db | header card | Next run in ET and IST; controls work as before | Implemented |
 | SRD-GUI-034.066 | FO-GUI-034 | Should | Hiring, Pages, Reports, Results, Cost & budget and Desk settings use stat tiles and titled icon cards. | theme tokens, icons | restyled sections | Look only; data and actions unchanged | Implemented |
+| SRD-GUI-034.067 | FO-GUI-034 | Should | AI Desk shows its eight sections as underline tabs under the header, Command first with its waiting count; the left panel shows no AI Desk menu. | section list | tab row | Replaces the sidebar menu of SRD-GUI-018.012 | Implemented |
 
 ## FO-GUI-035: AI Desk Team at Work
 

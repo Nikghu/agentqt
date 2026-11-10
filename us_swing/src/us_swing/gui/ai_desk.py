@@ -6,7 +6,7 @@ Also: SRD-GUI-034.027–.032 — real Hiring, Command approvals and Reports (liv
 Also: MD-GUI-034.059.M33 — grouped section list, Command badge, header chips and spend bar
 (SRD-GUI-034.059–.060)
 Also: MD-GUI-035.001.M01 — Team at work replaces the five sample team sections (SRD-GUI-035.001)
-Also: SRD-GUI-018.012 — the section list moves to the sidebar under the AI Desk item
+Also: SRD-GUI-034.067 — sections are underline tabs under the header (not in the sidebar)
 Also: SRD-GUI-034.065 — console header: icon, state note, desk controls and four tiles
 """
 from __future__ import annotations
@@ -19,10 +19,13 @@ from zoneinfo import ZoneInfo
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QShowEvent
 from PyQt6.QtWidgets import (
+    QButtonGroup,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QListWidget,
     QListWidgetItem,
+    QPushButton,
     QStackedWidget,
     QVBoxLayout,
     QWidget,
@@ -49,6 +52,7 @@ from us_swing.gui.ai_desk_results import results_frame
 from us_swing.gui.ai_desk_pages import pages_frame
 from us_swing.gui.ai_desk_sections3 import cost_frame, reports_frame, settings_frame
 from us_swing.gui.ai_desk_team import TeamAtWork
+from us_swing.gui.ai_desk_team_pane import tab_style
 from us_swing.gui.theme import C
 
 NY = ZoneInfo("America/New_York")
@@ -91,7 +95,7 @@ def _small(text: str) -> str:
 
 
 class AiDeskWorkspace(QWidget):
-    """AI Desk page: header and section frame; the grouped section list is ``nav``."""
+    """AI Desk page: header with section tabs, and the section frame."""
 
     chart_requested = pyqtSignal(str)
 
@@ -130,11 +134,6 @@ class AiDeskWorkspace(QWidget):
         self.select_section("Command")
         self.refresh_header()
 
-    @property
-    def nav(self) -> QListWidget:
-        """The grouped section list, for the main window to place in the sidebar."""
-        return self._list
-
     def _folder(self) -> Path:
         return self._home or desk_home()
 
@@ -154,6 +153,7 @@ class AiDeskWorkspace(QWidget):
     def _on_item(self, item: QListWidgetItem | None, _old: QListWidgetItem | None) -> None:
         name = item.data(_ROLE) if item is not None else None
         if name in SECTIONS:
+            self.tabs[str(name)].setChecked(True)
             self._show_section(str(name))
 
     def _show_section(self, name: str) -> None:
@@ -198,9 +198,11 @@ class AiDeskWorkspace(QWidget):
 
     def set_ask_count(self, count: int) -> None:
         """Show ``count`` waiting asks next to Command (plain Command at 0)."""
+        text = f"Command   {count}" if count else "Command"
         item = self._item("Command")
         if item is not None:
-            item.setText(f"Command   {count}" if count else "Command")
+            item.setText(text)
+        self.tabs["Command"].setText(text)
 
     def section_names(self) -> list[str]:
         """Return the section names in list order."""
@@ -252,7 +254,29 @@ class AiDeskWorkspace(QWidget):
         for tile in (run_tile, next_tile, spend_tile, month_tile):
             tiles.addWidget(tile, 1)
         lines.addLayout(tiles)
+        lines.addWidget(self._tab_row())
         return box
+
+    def _tab_row(self) -> QFrame:
+        row = QFrame()
+        row.setObjectName("desk_tabs")
+        row.setStyleSheet(f"QFrame#desk_tabs {{ border: none;"
+                          f" border-top: 1px solid {C.OVERLAY2}; }} {tab_style()}")
+        line = QHBoxLayout(row)
+        line.setContentsMargins(0, 6, 0, 0)
+        line.setSpacing(18)
+        group = QButtonGroup(row)
+        self.tabs: dict[str, QPushButton] = {}
+        for name in SECTIONS:
+            tab = QPushButton(name.replace("&", "&&"))
+            tab.setCheckable(True)
+            group.addButton(tab)
+            self.tabs[name] = tab
+            # tab → clicked → page → select_section
+            tab.clicked.connect(lambda _=False, n=name: self.select_section(n))
+            line.addWidget(tab)
+        line.addStretch(1)
+        return row
 
     def show_state_note(self, status: DeskStatus) -> None:
         """Show one plain line about the desk state under the title."""

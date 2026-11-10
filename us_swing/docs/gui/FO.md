@@ -7,6 +7,7 @@
 **Last Updated:** 2026-05-22
 **Project:** US Swing Trading System
 
+> v2.17.0: FO-GUI-034 gets the section tabs bullet (2026-11-10).
 > v2.16.0: FO-GUI-034 gets the AI Desk console look bullet (design phase 4, 2026-11-10).
 > v2.15.0: FO-GUI-034 gets the AI Desk design bullet (design phase 3, 2026-11-07).
 > v2.14.0: FO-GUI-034 gets the AI feed cards bullet (design phase 2, 2026-11-07).
@@ -988,6 +989,7 @@ The system shall add two workspaces, Market Floor and AI Desk, shown on sample d
 - The system shall show the AI feed as typed cards with filter tabs and action buttons, as in the approved design (design phase 2, 2026-11-07).
 - The system shall make AI Desk look like the approved design: grouped section list, header chips, chat bubbles, approval cards and real runs (design phase 3, 2026-11-07).
 - The system shall give the AI Desk header and the Hiring, Pages, Reports, Results, Cost & budget and Desk settings sections the console card look of design Option A (design phase 4, 2026-11-10).
+- The system shall switch AI Desk sections with a tab row under the header instead of a menu in the left panel (2026-11-10).
 
 ### Acceptance Criteria
 

@@ -43,10 +43,10 @@ def _page(qtbot: QtBot, home: Path, sink: _Sink | None = None) -> AiDeskWorkspac
 
 
 def test_grouped_list(qtbot: QtBot, tmp_path: Path) -> None:
-    """UT-GUI-034.059.M33.T01: eight sections in group order, no headings; the list is handed
-    out as ``nav`` for the sidebar (SRD-GUI-018.012)."""
+    """UT-GUI-034.059.M33.T01: eight sections in group order, no headings; the list stays
+    hidden (sections are tabs, SRD-GUI-034.067)."""
     page = _page(qtbot, tmp_path)
-    assert page.nav is page._list and page.nav.isHidden()
+    assert page._list.isHidden()
     assert page._list.count() == len(SECTIONS)
     assert page.section_names() == list(SECTIONS) and len(SECTIONS) == 8
     page.select_section("Reports")

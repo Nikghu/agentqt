@@ -7,6 +7,8 @@
 
 ---
 
+**Also (Session 129d, 2026-11-10):** **AI Desk section tabs (Enhancement, GUI; FO-GUI-034; RN-GUI-1.17.0-20261110; SRD-GUI-034.067 Implemented).** Sections are underline tabs under the header; the left panel AI Desk menu is gone. Same branch, committed, not pushed. User check T145.
+
 **Also (Session 129c, 2026-11-10):** **AI Desk console look (Enhancement, GUI; FO-GUI-034; RN-GUI-1.16.0-20261110; SRD-GUI-034.065–.066 Implemented).** Design Option A: header card with tiles and joined controls; Hiring, Pages, Reports, Results, Cost and Settings in tiles and icon cards. Command and Team at work unchanged. Same branch, committed, not pushed. User check T143.
 
 **Also (Session 129b, 2026-11-10):** **Team at work clean look (Enhancement, GUI; FO-GUI-035; RN-GUI-1.15.0-20261110; SRD-GUI-035.012 Implemented).** Icon cards, clear borders, stat tiles, underline tabs and panels to match the Final draft design. Same branch, committed, not pushed. User check T142.

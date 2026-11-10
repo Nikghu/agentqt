@@ -81,3 +81,24 @@ def test_hiring_seat_tiles(qtbot: QtBot, tmp_path: Path) -> None:
     texts = [w.text() for w in frame.findChildren(QLabel)]
     assert any(t.startswith("1 ") and "of " in t and "seats" in t for t in texts)
     assert "In shadow" in texts
+
+
+def test_section_tabs(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-034.067.M33.T01: one tab per section in order; a click shows it; list and tab agree."""
+    page = _page(qtbot, tmp_path)
+    assert list(page.tabs) == page.section_names()
+    assert page.tabs["Command"].isChecked()
+    assert page.tabs["Cost & budget"].text() == "Cost && budget"  # shows a plain &
+    page.tabs["Results"].click()
+    assert page.current_section() == "Results" and page.tabs["Results"].isChecked()
+    page.select_section("Hiring")
+    assert page.tabs["Hiring"].isChecked() and not page.tabs["Results"].isChecked()
+
+
+def test_command_tab_badge(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-034.067.M33.T02: the Command tab shows the waiting count, plain at 0."""
+    page = _page(qtbot, tmp_path)
+    page.set_ask_count(3)
+    assert page.tabs["Command"].text() == "Command   3"
+    page.set_ask_count(0)
+    assert page.tabs["Command"].text() == "Command"

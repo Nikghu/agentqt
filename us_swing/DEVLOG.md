@@ -2,6 +2,17 @@
 
 ---
 
+## [20261110] GUI — AI Desk section tabs (SRD-GUI-034.067)
+
+- Type: Enhancement
+- FO(s): FO-GUI-034 (bullet + SRD .067 added)
+- RN: RN-GUI-1.17.0-20261110
+- Artifacts updated: FO, SRD, DD (DD-GUI-034.065.D01 Tabs), UTCD, TRACE, TODO (T140 closed, T145), Code (gui/ai_desk, gui/main_window)
+- Decisions: user asked for the design's tab row with Command; hidden list stays the one selection; `Sidebar.add_sub_nav` kept for other screens
+- Tests: 2 new + 1 updated; full GUI 868 pass, T141 old fail
+
+---
+
 ## [20261110] GUI — AI Desk console look (SRD-GUI-034.065–.066)
 
 - Type: Enhancement
