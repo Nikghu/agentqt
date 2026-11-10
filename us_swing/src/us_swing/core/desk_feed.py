@@ -3,6 +3,7 @@ Module: MD-GUI-034.054.M32 — core/desk_feed.py
 Parent SRD: SRD-GUI-034.054
 Also: SRD-GUI-034.056 — shared approve and reject of a trade pick
 Also: MD-GUI-034.062.M36 — ask cards for Command (SRD-GUI-034.062)
+Also: MD-GUI-034.043.M38 — asked panel cards and failed requests (SRD-GUI-034.043, .044)
 
 AI feed cards for Market Floor, read from ``desk.db`` read-only: briefs, waiting trade picks,
 ready hires, lead chat replies and failed runs. Never imports ``desk``, ``market`` or ``gui``.
@@ -17,7 +18,9 @@ from typing import Any, Literal
 
 from us_swing.core.desk_ai_settings import load_settings
 from us_swing.core.desk_contract import DB_NAME
+from us_swing.core.desk_data_asks import AskedProduct, failed_products, waiting_products
 from us_swing.core.desk_hiring import list_hires
+from us_swing.core.desk_recipes import recipe_words, run_recipe
 from us_swing.core.desk_trades import (
     DeskTradeSink,
     TradePick,
@@ -30,11 +33,14 @@ CardKind = Literal["result", "ask", "answer", "desk"]
 BRIEF_LIMIT = 20
 ANSWER_LIMIT = 5
 RUN_LIMIT = 5
+PREVIEW_ROWS = 5
+NO_ROWS = "No rows on the latest day"
 
 
 @dataclass(frozen=True)
 class FeedCard:
-    """One AI feed card; ``pick`` is set on a trade pick Ask, ``ref`` names the Ask kind."""
+    """One AI feed card; ``pick`` is set on a trade pick Ask, ``ref`` names the Ask kind and
+    ``item`` is the asked product id of a ``data`` Ask."""
 
     kind: CardKind
     sender: str
@@ -44,6 +50,7 @@ class FeedCard:
     symbol: str = ""
     ref: str = ""
     pick: TradePick | None = None
+    item: int = 0
 
 
 def _when(text: object) -> datetime | None:
@@ -83,7 +90,24 @@ def ask_cards(home: Path, now: datetime) -> list[FeedCard]:
                  ref="hire")
         for h in list_hires(home) if h.ready
     ]
+    cards += [FeedCard("ask", "Data", f"New panel · {p.title}", _when(p.created),
+                       _product_text(home, p), ref="data", item=p.id)
+              for p in waiting_products(home)]
     return cards
+
+
+def _product_text(home: Path, product: AskedProduct) -> str:
+    if product.recipe is None:
+        return ""
+    rows = run_recipe(home, product.recipe)[:PREVIEW_ROWS]
+    preview = [" · ".join("-" if v is None else str(v) for v in r.values()) for r in rows]
+    return "\n".join([recipe_words(product.recipe), *(preview or [NO_ROWS])])
+
+
+def failed_cards(home: Path, now: datetime) -> list[FeedCard]:
+    """Data requests the desk could not build in the last day, as Desk cards without buttons."""
+    return [FeedCard("desk", "Data", "Request not built", _when(p.created),
+                     f"{p.request} — {p.reason}") for p in failed_products(home, now)]
 
 
 def feed_cards(home: Path, now: datetime) -> list[FeedCard]:

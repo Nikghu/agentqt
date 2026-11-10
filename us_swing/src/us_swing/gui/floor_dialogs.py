@@ -1,12 +1,13 @@
 """
 Module: MD-GUI-034.006.M06 — Floor dialogs
 Parent SRD: SRD-GUI-034.006
+Also: MD-GUI-034.042.M37 — Ask the desk for new data box (SRD-GUI-034.042)
 
 Frameless dialogs of the Market Floor: product catalog, panel settings and a name prompt.
 """
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
@@ -22,12 +23,14 @@ from PyQt6.QtWidgets import (
 )
 
 from us_swing.core.desk_contract import ProductDescriptor
+from us_swing.core.desk_data_asks import MAX_REQUEST
 from us_swing.gui.floor_panel import LINK_GROUPS
 from us_swing.gui.floor_sample import SAMPLE_TAG
 from us_swing.gui.frameless_dialog import FramelessDialog
 
 ANY = "Any"
 NO_LINK = "None"
+ASK_SENT = "Sent. The new panel will wait for you in AI Desk → Command."
 _FIELD_QSS = (
     "QComboBox, QLineEdit { outline: none; }"
     " QComboBox:focus, QLineEdit:focus { outline: none; }"
@@ -53,10 +56,16 @@ def _button_row(dialog: FramelessDialog, ok_text: str) -> QPushButton:
 
 
 class CatalogDialog(FramelessDialog):
-    """Lists the available products; ``chosen()`` returns the selected one after Add."""
+    """Lists the available products; ``chosen()`` returns the selected one after Add.
 
-    def __init__(self, products: Sequence[ProductDescriptor], parent: QWidget | None = None):
+    With ``ask`` given, a box below the list sends a data request to the desk; ``ask`` returns
+    an empty string when the request was sent, else the reason it was not.
+    """
+
+    def __init__(self, products: Sequence[ProductDescriptor], parent: QWidget | None = None,
+                 ask: Callable[[str], str] | None = None):
         super().__init__("Add Panel", min_width=380, parent=parent)
+        self._ask = ask
         self._products = list(products)
         self.list = QListWidget()
         for product in self._products:
@@ -69,7 +78,49 @@ class CatalogDialog(FramelessDialog):
         # list → itemDoubleClicked → dialog → accept
         self.list.itemDoubleClicked.connect(lambda _item: self.accept())
         self.content_layout().addWidget(self.list, 1)
+        self._ask_row()
         self.add_button = _button_row(self, "Add")
+        # ask box → textChanged → dialog → Enter sends the request while the box has text
+        self.ask_box.textChanged.connect(self._ask_default)
+
+    def _ask_default(self, text: str) -> None:
+        has_text = bool(text.strip())
+        if has_text:
+            self.ask_note.hide()
+        self.ask_button.setEnabled(has_text)
+        self.ask_button.setDefault(has_text)
+        self.add_button.setDefault(not has_text)
+
+    def _ask_row(self) -> None:
+        self.ask_box = QLineEdit()
+        self.ask_box.setMaxLength(MAX_REQUEST)
+        self.ask_box.setPlaceholderText("Ask the desk for new data")
+        self.ask_box.setStyleSheet(_FIELD_QSS)
+        self.ask_button = QPushButton("Ask")
+        self.ask_button.setFixedWidth(80)
+        self.ask_button.setEnabled(False)
+        self.ask_note = QLabel("")
+        self.ask_note.setWordWrap(True)
+        self.ask_note.hide()
+        # Ask → clicked → dialog → send request
+        self.ask_button.clicked.connect(self._send_ask)
+        row = QHBoxLayout()
+        row.addWidget(self.ask_box, 1)
+        row.addWidget(self.ask_button)
+        self.content_layout().addLayout(row)
+        self.content_layout().addWidget(self.ask_note)
+        for widget in (self.ask_box, self.ask_button):
+            widget.setVisible(self._ask is not None)
+
+    def _send_ask(self) -> None:
+        text = self.ask_box.text().strip()
+        if self._ask is None or not text:
+            return
+        why = self._ask(text)
+        if not why:
+            self.ask_box.clear()
+        self.ask_note.setText(why or ASK_SENT)
+        self.ask_note.show()
 
     def chosen(self) -> ProductDescriptor | None:
         """Return the selected product, or ``None`` when nothing is selected."""
