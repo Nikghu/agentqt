@@ -2,12 +2,14 @@
 Module: MD-DSK-001.020.M06 — desk/cli.py
 Parent SRD: SRD-DSK-001.020
 Also: SRD-DSK-001.022 — ``desk proof``; SRD-DSK-005.005 — ``desk replay``;
+SRD-DSK-008.008 — ``desk replay --draft FILE --out FILE``;
 SRD-DSK-003.008 — the desk loop gets the event handler
 
 ``python -m us_swing desk [sub-command]``. With no sub-command the desk process runs.
 """
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from datetime import date, datetime, tzinfo
 from pathlib import Path
@@ -21,6 +23,7 @@ from us_swing.core.desk_contract import (
     read_status,
     send_command,
 )
+from us_swing.core.desk_employee import parse
 from us_swing.core.desk_steps import load_proof, load_steps
 from us_swing.desk import task
 from us_swing.desk.process import DeskProcess, EventHandler
@@ -29,6 +32,7 @@ from us_swing.desk.replay import replay, report
 USAGE = (
     "usage: desk [--resume] | desk start | status | pause | resume | stop | run-now"
     " | install | uninstall | proof | replay RUN [--employee ID] [--model NAME]"
+    " [--draft FILE --out FILE]"
 )
 _COMMANDS = {
     "pause": CommandKind.PAUSE,
@@ -107,15 +111,33 @@ def _replay(args: list[str], home: Path) -> int:
         print(USAGE)
         return 2
     options = dict(zip(args[1::2], args[2::2], strict=False))
-    if set(options) - {"--employee", "--model"} or len(args[1:]) % 2:
+    if set(options) - {"--employee", "--model", "--draft", "--out"} or len(args[1:]) % 2:
         print(USAGE)
         return 2
     run_id = int(args[0])
+    if "--draft" in options:
+        return _draft(home, run_id, options)
     lines = replay(home, run_id, options.get("--employee"), options.get("--model"))
     if lines is None:
         print(f"Desk run {run_id} has no recorded AI tries")
         return 1
     print(report(run_id, lines))
+    return 0
+
+
+def _draft(home: Path, run_id: int, options: dict[str, str]) -> int:
+    out = Path(options.get("--out") or "draft-result.json")
+    try:
+        draft = parse(Path(options["--draft"]).read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        out.write_text(json.dumps({"valid": False, "note": str(exc)}), encoding="utf-8")
+        return 1
+    lines = replay(home, run_id, options.get("--employee") or draft.spec.id,
+                   options.get("--model"), draft=draft) or []
+    line = lines[0] if lines else None
+    result = {"valid": bool(line and line.new_valid), "answer": line.answer if line else "",
+              "note": (line.note if line else "no recorded AI tries in that run")}
+    out.write_text(json.dumps(result), encoding="utf-8")
     return 0
 
 

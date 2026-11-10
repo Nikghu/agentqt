@@ -3,7 +3,8 @@ Module: MD-DSK-006.001.M18 — core/desk_hiring.py
 Parent SRD: SRD-DSK-006.001
 Also: SRD-DSK-006.002 (refused hires), SRD-DSK-006.003 (seat count), SRD-DSK-006.005 (ready
 after 14 data days), SRD-DSK-006.006 (shadow report and agreement), SRD-DSK-006.007
-(decisions and ``approvals``), SRD-DSK-006.010 (log lines)
+(decisions and ``approvals``), SRD-DSK-006.010 (log lines), SRD-DSK-008.007 (a hire
+writes ``employee.md``)
 
 The hiring pipeline, shared by the GUI (which starts hires and records decisions) and
 the desk. Employees are folders of data in ``<desk>/employees/<id>/``; a hire always uses
@@ -21,10 +22,10 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
-import yaml  # type: ignore[import-untyped]
-
 from us_swing.core.desk_ai_settings import load_settings
 from us_swing.core.desk_contract import DB_NAME
+from us_swing.core.desk_employee import check, read_employee, save_employee, write_new
+from us_swing.core.desk_employee import seat_counts as _seats
 from us_swing.core.desk_steps import DEFAULT_EMPLOYEE_PACKAGES, SKILL_PATHS
 
 log = logging.getLogger(__name__)
@@ -89,16 +90,13 @@ class ShadowReport:
 
 
 def _employee(folder: Path) -> Employee | None:
-    try:
-        data = yaml.safe_load((folder / "job.yaml").read_text(encoding="utf-8"))
-        primary = data["models"]["primary"]
-        hired = data.get("hired_on")
-        return Employee(folder, str(data["id"]), str(data["name"]), str(data["level"]),
-                        str(data["skill"]), str(data.get("status") or "active"),
-                        f"{primary['source']} / {primary['model']}",
-                        hired.isoformat() if isinstance(hired, date) else hired)
-    except (OSError, yaml.YAMLError, KeyError, TypeError):
+    found = read_employee(folder)
+    if found is None:
         return None
+    s = found.spec
+    primary = s.models.primary
+    return Employee(folder, s.id, s.name, s.level, s.skill, s.status,
+                    f"{primary.source} / {primary.model}", s.hired_on)
 
 
 def employees(home: Path) -> list[Employee]:
@@ -110,11 +108,7 @@ def employees(home: Path) -> list[Employee]:
 
 def seat_counts(home: Path) -> dict[str, int]:
     """Active and shadow employees per level."""
-    counts: dict[str, int] = {}
-    for e in employees(home):
-        if e.status in ("active", "shadow"):
-            counts[e.level] = counts.get(e.level, 0) + 1
-    return counts
+    return _seats(home)
 
 
 def _default_folder(skill: str) -> Path | None:
@@ -165,18 +159,17 @@ def start_hire(home: Path, skill: str, level: str, name: str, source: str, model
     default = _default_folder(skill)
     if default is None:
         return None, f"no default files for skill {skill}"
-    job: dict[str, Any] = yaml.safe_load((default / "job.yaml").read_text(encoding="utf-8"))
+    template = read_employee(default)
+    if template is None:
+        return None, f"no default files for skill {skill}"
+    job: dict[str, Any] = template.spec.model_dump(mode="json")
     new_id = _next_id(home)
     job.update({"id": new_id, "name": name.strip(), "title": level.title(), "level": level,
                 "version": 1, "status": "shadow", "hired_on": today.isoformat()})
     job["models"]["primary"] = {"source": source, "model": model.strip()}
-    folder = home / "employees" / new_id
-    folder.mkdir(parents=True)
-    (folder / "soul.md").write_bytes((default / "soul.md").read_bytes())
     header = (f"# Hired by the Master user on {today.isoformat()}; it runs in shadow until a "
               "decision.\n")
-    (folder / "job.yaml").write_text(header + yaml.safe_dump(job, sort_keys=False),
-                                     encoding="utf-8")
+    write_new(home / "employees" / new_id, check(job), template.prompt, header)
     log.info("[Hiring] %s started in shadow for the %s skill", name.strip(),
              skill.replace("_", " "))
     return new_id, ""
@@ -307,15 +300,13 @@ def shadow_report(home: Path, hire_id: str) -> ShadowReport:
 
 
 def _set_status(folder: Path, status: str) -> None:
-    path = folder / "job.yaml"
-    text = path.read_text(encoding="utf-8")
-    if re.search(r"^status:.*$", text, flags=re.MULTILINE):
-        text = re.sub(r"^status:.*$", f"status: {status}", text, flags=re.MULTILINE)
-    else:
-        text = text.rstrip("\n") + f"\nstatus: {status}\n"
-    text = re.sub(r"^version:\s*(\d+)", lambda m: f"version: {int(m.group(1)) + 1}", text,
-                  count=1, flags=re.MULTILINE)
-    path.write_text(text, encoding="utf-8")
+    current = read_employee(folder)
+    if current is None:
+        raise OSError(f"cannot read {folder.name}")
+    reason = save_employee(folder.parent.parent, folder.name, {"status": status},
+                           current.prompt)
+    if reason:
+        raise OSError(reason)
 
 
 def decide(home: Path, hire_id: str, decision: str, now: datetime) -> str:

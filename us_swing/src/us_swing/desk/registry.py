@@ -4,12 +4,14 @@ Parent SRD: SRD-DSK-002.002
 Also: SRD-DSK-002.001 (skills by key), SRD-DSK-002.003 (job file wins),
 SRD-DSK-002.004 (``employees`` table), SRD-DSK-002.006 (employee identity is data),
 SRD-DSK-002.007 (employee files in the desk folder), SRD-DSK-002.009 (trigger list),
-SRD-DSK-006.008 (status: retired employees are not loaded)
+SRD-DSK-006.008 (status: retired employees are not loaded), SRD-DSK-008.001 (employee.md),
+SRD-DSK-008.003 (old files moved on seed), SRD-DSK-008.004 (defaults copied when missing)
 
-Employees are folders of data in ``<desk>/employees/<id>/``: ``soul.md`` (the prompt) and
-``job.yaml`` (identity, level, reporting line, skill and rules). Defaults shipped with
-the app are copied there only when missing, so the Master user's edits are never
-overwritten. Code knows skills by key only, never employee names or titles.
+Employees are folders of data in ``<desk>/employees/<id>/``: one ``employee.md`` with the
+job settings (identity, level, reporting line, skill and rules) and the prompt. The rules
+live in ``core.desk_employee``, shared with the app. Defaults shipped with the app are
+copied there only when missing, so the Master user's edits are never overwritten. Code
+knows skills by key only, never employee names or titles.
 """
 from __future__ import annotations
 
@@ -20,82 +22,28 @@ import shutil
 import sqlite3
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import date
 from pathlib import Path
-from typing import Literal
 
-import yaml  # type: ignore[import-untyped]
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
-
-from us_swing.core.desk_agents import Level, Skill
+from us_swing.core.desk_agents import Skill
 from us_swing.core.desk_contract import DB_NAME
-from us_swing.core.desk_events import EVENT_KINDS
+from us_swing.core.desk_employee import (
+    EMPLOYEES_DIR,
+    JOB_FILE,
+    SOUL_FILE,
+    JobSpec,
+    ModelChoice,
+    Models,
+    Source,
+    Status,
+    filled,
+    load,
+    migrate_all,
+)
 from us_swing.desk.recorder import ny_now
 
 log = logging.getLogger(__name__)
 
-SOUL_FILE = "soul.md"
-JOB_FILE = "job.yaml"
-EMPLOYEES_DIR = "employees"
-Source = Literal["openrouter", "claude"]
-Status = Literal["active", "shadow", "retired"]
-
-
-class ModelChoice(BaseModel):
-    """One model and the source that serves it."""
-
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    source: Source
-    model: str = Field(min_length=1)
-
-
-class Models(BaseModel):
-    """Primary model and backup model."""
-
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    primary: ModelChoice
-    backup: ModelChoice
-
-
-class JobSpec(BaseModel):
-    """The checked contents of ``job.yaml``; identity fields are free for the Master user."""
-
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    id: str = Field(min_length=1, pattern=r"^[A-Za-z0-9_-]+$")
-    name: str = Field(min_length=1)
-    title: str = Field(min_length=1)
-    level: Level
-    reports_to: str | None = None
-    skill: str = Field(min_length=1)
-    version: int = Field(ge=1)
-    trigger: tuple[str, ...] = Field(min_length=1)
-    models: Models
-    calls_per_day: int = Field(ge=1)
-    monthly_cost_usd: float = Field(gt=0)
-    kpis: list[str] = Field(min_length=1)
-    status: Status = "active"
-    hired_on: str | None = None
-
-    @field_validator("hired_on", mode="before")
-    @classmethod
-    def _day_text(cls, value: object) -> object:
-        """Accept an unquoted YAML date as its ISO text."""
-        return value.isoformat() if isinstance(value, date) else value
-
-    @field_validator("trigger", mode="before")
-    @classmethod
-    def _trigger_list(cls, value: object) -> object:
-        """Accept one event kind or a list, and allow only known kinds."""
-        kinds = [value] if isinstance(value, str) else value
-        if isinstance(kinds, list | tuple):
-            unknown = [k for k in kinds if k not in EVENT_KINDS]
-            if unknown:
-                raise ValueError(f"unknown event kind {unknown[0]}")
-            return tuple(kinds)
-        return value
+__all__ = ["EMPLOYEES_DIR", "JOB_FILE", "SOUL_FILE", "JobSpec", "ModelChoice", "Models", "Source", "Status"]
 
 
 @dataclass(frozen=True)
@@ -133,6 +81,7 @@ def seed_employees(home: Path, defaults: Sequence[Path]) -> int:
             added += 1
     if added:
         log.info("[AI Desk] %d default employee(s) added to the desk folder", added)
+    migrate_all(home)
     return added
 
 
@@ -153,22 +102,19 @@ def load_skill(key: str, paths: Mapping[str, str]) -> Skill | None:
 def load_employee(folder: Path, skills: Mapping[str, str]) -> Hire | None:
     """Read and check one employee folder; ``None`` (and a warning) when it is not valid."""
     try:
-        soul_text = (folder / SOUL_FILE).read_text(encoding="utf-8")
-        job_text = (folder / JOB_FILE).read_text(encoding="utf-8")
-        spec = JobSpec.model_validate(yaml.safe_load(job_text))
-    except (OSError, yaml.YAMLError, ValidationError) as exc:
-        reason = str(exc).splitlines()[0] if str(exc) else type(exc).__name__
+        employee = load(folder)
+    except ValueError as exc:
         log.warning("[AI Desk] Employee files in %s are not valid, it stays asleep: %s",
-                    folder.name, reason)
+                    folder.name, exc)
         return None
+    spec = employee.spec
     skill = load_skill(spec.skill, skills)
     if skill is None:
         log.warning("[AI Desk] %s uses unknown skill %s and stays asleep", spec.name,
                     spec.skill)
         return None
-    soul = soul_text.replace("{name}", spec.name).replace("{title}", spec.title)
-    digest = hashlib.sha256(f"{soul_text}\0{job_text}".encode()).hexdigest()
-    return Hire(spec, soul, skill, digest)
+    digest = hashlib.sha256(employee.text.encode()).hexdigest()
+    return Hire(spec, filled(employee), skill, digest)
 
 
 def load_employees(home: Path, skills: Mapping[str, str]) -> list[Hire]:

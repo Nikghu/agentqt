@@ -16,6 +16,7 @@ from typing import Any
 import pytest
 
 import tests.desk.test_harness as th
+from us_swing.core.desk_employee import load
 from us_swing.core.desk_ai_settings import DeskAiSettings, load_settings, save_settings
 from us_swing.core.desk_contract import StepContext
 from us_swing.core.desk_hiring import (
@@ -70,12 +71,8 @@ def _days(n: int) -> list[str]:
 
 
 def _status(folder: Path) -> tuple[str, str]:
-    text = (folder / "job.yaml").read_text(encoding="utf-8")
-    status = next((ln.split(":", 1)[1].strip() for ln in text.splitlines()
-                   if ln.startswith("status:")), "active")
-    version = next(ln.split(":", 1)[1].strip() for ln in text.splitlines()
-                   if ln.startswith("version:"))
-    return status, version
+    spec = load(folder).spec
+    return spec.status, str(spec.version)
 
 
 # ---------------- start a hire ----------------
@@ -90,7 +87,7 @@ def test_start_hire(home: Path) -> None:
     e = hires[0].employee
     assert (e.name, e.level, e.skill, e.status, e.hired_on, e.model) == (
         "Made Up One", "expert", "setup_review", "shadow", "2026-11-06", "claude / default")
-    soul = (home / "employees" / "emp-001" / "soul.md").read_text(encoding="utf-8")
+    soul = load(home / "employees" / "emp-001").prompt
     assert "{name}" in soul and "setup" in soul.lower()
     loaded = load_employees(home, {"setup_review": "us_swing.market.setup_review:SetupReviewSkill"})
     assert loaded[0].spec.status == "shadow" and loaded[0].spec.version == 1
@@ -286,7 +283,7 @@ def test_replace(home: Path) -> None:
     assert decide(home, "emp-002", "replace", NOW) == ""
     assert _status(holder) == ("retired", "2")
     assert _status(home / "employees" / "emp-002") == ("active", "2")
-    assert COMMENT.strip() in (holder / "job.yaml").read_text(encoding="utf-8")
+    assert COMMENT.strip() in (holder / "history" / "v1-job.yaml").read_text(encoding="utf-8")
     assert th._rows(home, "SELECT subject, decision, detail FROM approvals") == [
         ("emp-002", "replace", "emp-001")]
     assert [h.spec.id for h in load_employees(home, th.SKILLS)] == ["emp-002"]

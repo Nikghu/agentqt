@@ -12,10 +12,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
-import yaml  # type: ignore[import-untyped]
 
 import us_swing.market
 from tests.market.p5b_support import Env, query, set_ideas, set_regime
+from us_swing.core.desk_employee import load
 from us_swing.core.desk_ai_settings import DeskAiSettings
 from us_swing.core.desk_contract import StepContext
 from us_swing.core.desk_steps import DEFAULT_EMPLOYEE_PACKAGES, SKILL_PATHS
@@ -38,9 +38,7 @@ def _folders() -> dict[str, Path]:
 
 
 def _job(folder: Path) -> dict[str, object]:
-    data = yaml.safe_load((folder / "job.yaml").read_text(encoding="utf-8"))
-    assert isinstance(data, dict)
-    return data
+    return load(folder).spec.model_dump(mode="json")
 
 
 def test_default_files_valid() -> None:
@@ -63,7 +61,7 @@ def test_no_real_names_in_defaults() -> None:
     for folder in folders.values():
         name = str(_job(folder)["name"])
         assert GENERIC_NAME.match(name), f"{folder.name}: {name}"
-        soul = (folder / "soul.md").read_text(encoding="utf-8")
+        soul = load(folder).prompt
         assert not re.search(r"\b[A-Z]{4,}\b(?= (is|will|speaks))", soul)
 
 
@@ -116,11 +114,11 @@ def _hire(home: Path, number: int, source: str) -> None:
 
     folder = home / "employees" / f"x-{number}"
     shutil.copytree(_folders()[source], folder)
-    text = (folder / "job.yaml").read_text(encoding="utf-8")
+    text = (folder / "employee.md").read_text(encoding="utf-8")
     text = re.sub(r"(?m)^id: .*$", f"id: x-{number}", text)
     text = re.sub(r"(?m)^name: .*$", f"name: Tester {'ABCDE'[number - 1]}", text)
     text = re.sub(r"(?m)^reports_to: .*$", "reports_to: null", text)
-    (folder / "job.yaml").write_text(text, encoding="utf-8")
+    (folder / "employee.md").write_text(text, encoding="utf-8")
 
 
 def test_full_evening_chain(p5b: Env) -> None:
@@ -181,7 +179,7 @@ def test_full_evening_chain(p5b: Env) -> None:
 @pytest.mark.parametrize("emp", sorted(P5B_SKILLS))
 def test_soul_has_name_placeholder(emp: str) -> None:
     """UT-MKT-005.017.M09.T03: Each default soul holds the name placeholder to fill in."""
-    assert "{name}" in (_folders()[emp] / "soul.md").read_text(encoding="utf-8")
+    assert "{name}" in load(_folders()[emp]).prompt
 
 
 def test_news_default_file_valid() -> None:

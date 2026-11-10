@@ -13,11 +13,11 @@ from pathlib import Path
 from typing import Any, TypeVar
 
 import pytest
-import yaml  # type: ignore[import-untyped]
 from pydantic import BaseModel, ValidationError
 
 import tests.desk.test_harness as th
 from tests.market.test_desk_results import _four
+from us_swing.core.desk_employee import load
 from us_swing.core import desk_chat as dc
 from us_swing.core.desk_contract import DB_NAME, StepContext
 from us_swing.core.desk_events import post_event
@@ -194,17 +194,17 @@ def test_answers_only() -> None:
 
 def test_default_chat_employee() -> None:
     """UT-MKT-010.007.M04.T01: emp-008 is a lead-level chat employee and the skill loads."""
-    spec = yaml.safe_load((EMP / "job.yaml").read_text(encoding="utf-8"))
+    spec = load(EMP).spec.model_dump(mode="json")
     assert (spec["id"], spec["level"], spec["skill"], spec["trigger"], spec["calls_per_day"]) == (
-        "emp-008", "lead", "lead_chat", "chat_question", 200)
+        "emp-008", "lead", "lead_chat", ["chat_question"], 200)
     module, _, cls = SKILL_PATHS["lead_chat"].partition(":")
     assert getattr(importlib.import_module(module), cls)().key == "lead_chat"
 
 
 def test_no_real_names() -> None:
     """UT-MKT-010.007.M04.T02: generic name only, and market does not import desk."""
-    assert yaml.safe_load((EMP / "job.yaml").read_text(encoding="utf-8"))["name"] == "Lead 2"
-    assert "{name}" in (EMP / "soul.md").read_text(encoding="utf-8")
+    assert load(EMP).spec.model_dump(mode="json")["name"] == "Lead 2"
+    assert "{name}" in load(EMP).prompt
     src = Path(lc.__file__).read_text(encoding="utf-8")
     assert not re.search(r"^\s*(from|import) us_swing\.desk\b", src, re.M)
 

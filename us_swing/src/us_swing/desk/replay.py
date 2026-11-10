@@ -1,7 +1,8 @@
 """
 Module: MD-DSK-005.005.M17 — desk/replay.py
 Parent SRD: SRD-DSK-005.005
-Also: SRD-DSK-005.006 (replay tries marked, nothing else written), SRD-DSK-005.007 (report)
+Also: SRD-DSK-005.006 (replay tries marked, nothing else written), SRD-DSK-005.007 (report),
+SRD-DSK-008.008 (``--draft``: a changed prompt answers the recorded question)
 
 ``desk replay <run>``: sends the recorded prompts of one desk run again, with the recorded
 model or another one, and compares the answers. A replay never calls a skill's ``act``,
@@ -17,7 +18,14 @@ from pathlib import Path
 from pydantic import BaseModel, ValidationError
 
 from us_swing.core.desk_ai_settings import DeskAiSettings, load_key, load_settings
-from us_swing.desk.gateway import Caller, ReplayGateway, call_model, json_part
+from us_swing.core.desk_employee import DEFAULT_MODEL, EmployeeFile, filled
+from us_swing.desk.gateway import (
+    Caller,
+    ReplayGateway,
+    call_model,
+    json_part,
+    system_prompt,
+)
 from us_swing.desk.recorder import RecordedTry, Recorder
 from us_swing.desk.registry import load_employees
 
@@ -36,6 +44,7 @@ class ReplayLine:
     new_valid: bool
     changed: tuple[str, ...]
     note: str = ""
+    answer: str = ""
 
 
 def _skill_paths() -> Mapping[str, str]:
@@ -60,7 +69,8 @@ def _changed(old: BaseModel | None, new: BaseModel | None) -> tuple[str, ...]:
 def replay(home: Path, run_id: int, employee: str | None = None, model: str | None = None,
            settings: DeskAiSettings | None = None, key: Callable[[], str] = load_key,
            caller: Caller = call_model,
-           skills: Callable[[], Mapping[str, str]] = _skill_paths) -> list[ReplayLine] | None:
+           skills: Callable[[], Mapping[str, str]] = _skill_paths,
+           draft: EmployeeFile | None = None) -> list[ReplayLine] | None:
     """Replay one desk run; ``None`` when the run has no recorded tries.
 
     Args:
@@ -72,6 +82,7 @@ def replay(home: Path, run_id: int, employee: str | None = None, model: str | No
         key: Returns the OpenRouter key.
         caller: Model caller (injectable for tests).
         skills: Returns the skill list.
+        draft: Ask with this unsaved employee file's prompt and main model instead.
     """
     recorder = Recorder(home)
     try:
@@ -94,13 +105,24 @@ def replay(home: Path, run_id: int, employee: str | None = None, model: str | No
                                         "employee not found"))
                 continue
             system, _, user = first.prompt.rpartition(_PROMPT_SPLIT)
+            schema = hire.skill.answer
+            source = first.source
+            if draft is not None:
+                choice = draft.spec.models.primary
+                system, source = system_prompt(filled(draft), schema), choice.source
+                use_model = model or (choice.model if choice.model != DEFAULT_MODEL else (
+                    chosen.openrouter_model if source == "openrouter" else chosen.claude_model))
+                if not (chosen.openrouter_on if source == "openrouter" else chosen.claude_on):
+                    lines.append(ReplayLine(hire.spec.name, use_model, old.valid, False, (),
+                                            f"not asked: {source} is off in desk AI settings"))
+                    continue
             gateway = ReplayGateway(home, hire, recorder, chosen, key(), run_id, first.data_day,
                               caller, replay=True)
-            schema = hire.skill.answer
-            new = gateway.resend(system, user, schema, first.source, use_model)
+            new = gateway.resend(system, user, schema, source, use_model)
             note = f"not asked: {gateway.refused}" if gateway.refused else ""
             lines.append(ReplayLine(hire.spec.name, use_model, old.valid, new is not None,
-                                    _changed(_parse(schema, old.answer), new), note))
+                                    _changed(_parse(schema, old.answer), new), note,
+                                    new.model_dump_json(indent=2) if new is not None else ""))
         return lines
     finally:
         recorder.close()

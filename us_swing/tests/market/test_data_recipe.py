@@ -14,10 +14,10 @@ from pathlib import Path
 from typing import Any, TypeVar
 
 import pytest
-import yaml  # type: ignore[import-untyped]
 from pydantic import BaseModel, ValidationError
 
 import tests.desk.test_harness as th
+from us_swing.core.desk_employee import load
 from us_swing.core import desk_data_asks as da
 from us_swing.core.desk_contract import DB_NAME, StepContext
 from us_swing.core.desk_events import post_event
@@ -354,9 +354,9 @@ def test_not_listed(tmp_path: Path) -> None:
 
 def test_default_data_employee() -> None:
     """UT-MKT-011.008.M06.T01: emp-009 is an expert data employee and the skill loads."""
-    spec = yaml.safe_load((EMP / "job.yaml").read_text(encoding="utf-8"))
+    spec = load(EMP).spec.model_dump(mode="json")
     assert (spec["id"], spec["level"], spec["skill"], spec["trigger"], spec["calls_per_day"],
-            spec["monthly_cost_usd"]) == ("emp-009", "expert", "data_recipe", "data_request",
+            spec["monthly_cost_usd"]) == ("emp-009", "expert", "data_recipe", ["data_request"],
                                           20, 3.0)
     module, _, cls = SKILL_PATHS["data_recipe"].partition(":")
     assert getattr(importlib.import_module(module), cls)().key == "data_recipe"
@@ -364,8 +364,8 @@ def test_default_data_employee() -> None:
 
 def test_no_real_names() -> None:
     """UT-MKT-011.008.M06.T02: generic name only, and market does not import desk."""
-    assert yaml.safe_load((EMP / "job.yaml").read_text(encoding="utf-8"))["name"] == "Expert 7"
-    assert "{name}" in (EMP / "soul.md").read_text(encoding="utf-8")
+    assert load(EMP).spec.model_dump(mode="json")["name"] == "Expert 7"
+    assert "{name}" in load(EMP).prompt
     src = Path(dr.__file__).read_text(encoding="utf-8")
     assert not re.search(r"^\s*(from|import) us_swing\.desk\b", src, re.M)
 
