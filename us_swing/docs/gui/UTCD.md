@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.25.0: UT-GUI-035.014.M01.T01 added (selected card lift).
 > v1.24.0: UT-GUI-035.013.M04.T01 added (AI Desk status bar).
 > v1.23.0: UT-GUI-034.067.M33.T01–T02 added; UT-GUI-034.059.M33.T01 updated (AI Desk section tabs).
 > v1.22.0: UT-GUI-034.065–.066 added; UT-GUI-034.060.M33.T01–T02 and UT-GUI-034.037.M25.T01, .038.M25.T02 updated for tiles (AI Desk console look).
@@ -1205,3 +1206,4 @@ Test files:
 | UT-GUI-035.009.M01.T01 | MD-GUI-035.001.M01 | Negative | Empty desk page (SRD-GUI-035.009) | no desk data | No desk run yet; plain notes; tabs open | Pass |
 | UT-GUI-035.010.M01.T01 | MD-GUI-035.001.M01 | Positive | Alert banner and feed card (SRD-GUI-035.010–.011) | open whole-run alert | banner shows title and fix; one feed card with What to do | Pass |
 | UT-GUI-035.013.M04.T01 | MD-GUI-035.007.M04 | Positive | Status bar, no dot (SRD-GUI-035.013) | running desk | pill, Right now and This run have a left bar in the state colour; no dot | Pass |
+| UT-GUI-035.014.M01.T01 | MD-GUI-035.001.M01 | Positive | Selected card lift (SRD-GUI-035.014) | finished run | picked card has lift fill and grey border, no accent; others plain | Pass |

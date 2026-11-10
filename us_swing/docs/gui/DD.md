@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.17.0: DD-GUI-035.001.D01 selected card lift (SRD-GUI-035.014), 2026-11-10.
 > v1.16.0: DD-GUI-035.001.D01 status bar replaces the dot (SRD-GUI-035.013), 2026-11-10.
 > v1.15.0: DD-GUI-034.065.D01 gains the section tabs (SRD-GUI-034.067), 2026-11-10.
 > v1.14.0: DD-GUI-034.065.D01 added — AI Desk console look (SRD-GUI-034.065–.066), 2026-11-10.
@@ -1955,5 +1956,7 @@ Run names: `evening` "Evening run", `manual` "Manual run", other kinds title-cas
 **Look (SRD-GUI-035.012).** Pane helpers: `panel()` (BG fill, OVERLAY border, 10 px radius), `chip_style()` + `chip_text()` (filled pill, dot in the state colour), `tab_style()` (underline tabs), chevron `arrow_button()`. `StageCard` has a 26 px icon badge (`calendar`, `database`, else `skill_icon()` by skill words, `user` when none match), OVERLAY2 border, 10 px radius, mono fact line. `FlowArrow` paints the arrow between columns in the flow colour. The run bar shows five stat tiles (title + value; the time title is Took or Running). Right now, the pipeline, the timeline, the wheel and the profile sit in panels; the Right now dot is blue while working, red when someone failed, green when done. The wheel draws rounded-square avatars.
 
 **Status bar (SRD-GUI-035.013).** No status dots. `chip_style(key)` gives the pill an OVERLAY fill, 3 px radius and a 3 px left border in `tone(key)`; `chip_text(label)` is the escaped label. `bar_style(colour)` puts the same left bar on a plain label: the Right now head (blue working, red failed, green done) and the Last run value. `bar_rows()` draws This run and history lines as a table whose first 3 px cell is filled with the row colour (rich text cannot draw a border). The desk state chip (`DeskBar.chip`) takes the left bar in its `_PILL_COLOURS` colour.
+
+**Selected lift (SRD-GUI-035.014).** `lift_fill()` is halfway between SURFACE and OVERLAY. `StageCard.paint_border()` uses it as the fill when the card is selected, with a MUTED border (was the accent). The team wheel's centre band uses the same fill and a MUTED pen. A working card keeps its pulsing border.
 
 **Refresh.** On show, then a 3 s timer while shown: every tick while the newest run is running, else every 5th tick. Hidden: the timer, pulse and ring stop. The Event log opens on the shown run's day.
