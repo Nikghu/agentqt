@@ -26,6 +26,7 @@ P10 lets the Master ask the desk for a new Market Floor panel in plain words. Th
 | MD-MKT-011.008.M06 | `us_swing/src/us_swing/market/employees/emp-009/`, `core/desk_steps.py` | New default employee "Expert 7" (expert, `data_recipe`, trigger `data_request`, 20 calls a day, USD 3 a month); skill path |
 | MD-GUI-034.042.M37 | `us_swing/src/us_swing/gui/floor_dialogs.py`, `gui/market_floor.py` | Changed: Ask box and button in the Add panel catalog; the catalog refreshes its products each time it opens |
 | MD-GUI-034.043.M38 | `us_swing/src/us_swing/core/desk_feed.py`, `gui/floor_feed.py`, `gui/ai_desk_hiring.py` | Changed: asked panel Ask cards with Approve and Reject; failed request cards in Approvals waiting |
+| MD-GUI-034.053.M31 | `us_swing/src/us_swing/gui/floor_feed.py`, `gui/ai_desk_sections.py`, `tests/gui/test_ai_desk_design.py` | Fixed: no tiny window flash on feed and Command rebuilds |
 | — | `us_swing/USSwing.spec` | Changed: hidden import `us_swing.market.data_recipe` |
 | — | `us_swing/tests/desk/test_desk_events.py`, `tests/market/test_p5b_defaults.py` | Changed: event kinds and skill list now include P10 (intended) |
 
@@ -58,6 +59,7 @@ P10 lets the Master ask the desk for a new Market Floor panel in plain words. Th
 - The menu and the request code live in `core`, so the GUI never imports `market` and the desk never imports `gui`.
 - Ask is the default button while the box has text, so Enter sends the request instead of adding the selected panel.
 - Review fixes (both reviewers approved): the decision check and insert run inside one locked transaction (`BEGIN IMMEDIATE`); the sent note hides once a new request is typed.
+- GUI fix found in the user check (commit 982d38e5): the feed card More button and the Command Team now line were shown before they had a parent, so each rebuild flashed a tiny window. Both are now created inside their box. Found with a probe that logs every widget shown as its own window.
 
 ---
 
@@ -70,4 +72,5 @@ P10 lets the Master ask the desk for a new Market Floor panel in plain words. Th
 
 ## Open
 
-- T135: user check. Restart the desk first, so `emp-009` is seeded. Then ask for a panel from the Floor Add panel box, approve it in AI Desk → Command, and add it to a Floor tab.
+- T135: user check done 2026-11-10 (request proposed in 14 s, approved, panel listed; flash fixed and confirmed by the user).
+- Earlier T135 text: user check. Restart the desk first, so `emp-009` is seeded. Then ask for a panel from the Floor Add panel box, approve it in AI Desk → Command, and add it to a Floor tab.

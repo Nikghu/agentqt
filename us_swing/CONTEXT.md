@@ -7,7 +7,7 @@
 
 ---
 
-**Next (handover, 2026-11-10):** P10 is done on `feat/p10-ask-data` (committed, not pushed); push and PR when the user says. User checks open: T135 (P10), T132–T134 (Floor design, merged via PR #127), T123–T131.
+**Next (handover, 2026-11-10):** P10 is merged to main (PR from `feat/p10-ask-data`). P10 user check T135 done (flash fix confirmed). User checks open: T132–T134 (Floor design, merged via PR #127), T123–T131.
 
 **Current (Session 127, 2026-11-10):** **Ask the desk for new data, phase P10 (Feature, MKT + GUI; FO-MKT-011; RN-MKT-0.12.0-20261110; SRD-MKT-011.001–.009 and SRD-GUI-034.042–.044 approved by user and Implemented).** The Floor Add panel catalog has an Ask box; the request becomes a `data_request` event; new data employee Expert 7 (`emp-009`, skill `data_recipe`) fills a recipe from a fixed menu (no SQL); code checks it and runs it read-only on the latest day. The proposed panel waits in Approvals waiting with 5 preview rows; Approve adds it to the catalog as "(asked)". Also this session: Floor design branch merged via PR #127 (9b3718af); P10 docs moved onto the new main.
 

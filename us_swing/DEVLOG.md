@@ -11,6 +11,7 @@
 - Decisions: user approved FO and SRDs 2026-11-10; names only from the menu, values bound, read-only; Ask is the default button while the box has text; decision check and insert in one locked transaction
 - Tests: 32 new Pass (coverage 96–100%); full suite 12 old failures (T112) only; stray screener test left out (T136)
 - Also: Floor design PR #127 merged (9b3718af); worktree and branch removed
+- Fix: tiny window flash on AI feed and Command rebuilds (More button, Team now line shown before parenting); user confirmed fixed
 
 ---
 
