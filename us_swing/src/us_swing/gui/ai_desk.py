@@ -5,6 +5,7 @@ Also: SRD-GUI-034.022 — the Pages section (was Studio), rebuilt each time it i
 Also: SRD-GUI-034.027–.032 — real Hiring, Command approvals and Reports (live sections)
 Also: MD-GUI-034.059.M33 — grouped section list, Command badge, header chips and spend bar
 (SRD-GUI-034.059–.060)
+Also: MD-GUI-035.001.M01 — Team at work replaces the five sample team sections (SRD-GUI-035.001)
 """
 from __future__ import annotations
 
@@ -32,30 +33,19 @@ from us_swing.core.desk_overview import last_run, spend, team_counts, todays_run
 from us_swing.core.desk_trades import DeskTradeSink
 from us_swing.gui.cards import GAP, card, gutter
 from us_swing.gui.desk_control import DeskBar, DeskPoller
-from us_swing.gui.ai_desk_sections import (
-    command_frame,
-    employees_frame,
-    org_frame,
-    runs_box,
-    team_line,
-)
+from us_swing.gui.ai_desk_sections import command_frame, runs_box, team_line
 from us_swing.gui.ai_desk_hiring import approvals_box, hiring_frame
 from us_swing.gui.ai_desk_chat import ChatPanel
 from us_swing.gui.ai_desk_results import results_frame
-from us_swing.gui.ai_desk_sections2 import (
-    activity_frame,
-    schedule_frame,
-    tasks_frame,
-)
 from us_swing.gui.ai_desk_pages import pages_frame
 from us_swing.gui.ai_desk_sections3 import cost_frame, reports_frame, settings_frame
+from us_swing.gui.ai_desk_team import TeamAtWork
 from us_swing.gui.theme import C
 
 NY = ZoneInfo("America/New_York")
 GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("TALK", ("Command",)),
-    ("TEAM", ("Org chart", "Employees", "Hiring")),
-    ("WORK", ("Task board", "Activity", "Schedule")),
+    ("TEAM", ("Team at work", "Hiring")),
     ("CREATE", ("Pages",)),
     ("REVIEW", ("Reports", "Results", "Cost & budget")),
     ("SETUP", ("Desk settings",)),
@@ -65,11 +55,6 @@ _ROLE = Qt.ItemDataRole.UserRole
 _RESULT_TONE = {"ok": "GREEN", "failed": "RED", "error": "RED", "running": "YELLOW"}
 
 _LIVE_SECTIONS = ("Command", "Hiring", "Pages", "Reports", "Results", "Cost & budget")
-_BUILDERS: dict[str, Callable[[str], QWidget]] = {
-    "Org chart": org_frame, "Employees": employees_frame,
-    "Task board": tasks_frame, "Activity": activity_frame, "Schedule": schedule_frame,
-    "Cost & budget": cost_frame, "Desk settings": settings_frame,
-}
 
 
 def _nav_style() -> str:
@@ -186,9 +171,9 @@ class AiDeskWorkspace(QWidget):
             return pages_frame(name, self._home)
         if name == "Cost & budget":
             return cost_frame(name, self._home)
-        if name == "Desk settings":
-            return settings_frame(name, self._home)
-        return _BUILDERS[name](name)
+        if name == "Team at work":
+            return TeamAtWork(self._home, self._clock)
+        return settings_frame(name, self._home)
 
     def _command(self, name: str) -> QWidget:
         folder = self._folder()

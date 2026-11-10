@@ -450,3 +450,14 @@ us_swing/src/us_swing/gui/
 | MD-GUI-034.043.M38 | SRD-GUI-034.043 | `us_swing/src/us_swing/core/desk_feed.py`, `gui/floor_feed.py`, `gui/ai_desk_hiring.py` | Data product Ask cards with Approve and Reject, and failed request cards | `ask_cards()`, `failed_cards()`, `FeedCardWidget`, `WaitingBox` | `core.desk_data_asks`, `core.desk_recipes` | No |
 
 SRD coverage: .059 by M33; .060 by M33 and M34; .061 by M35; .062–.064 and the reopened .034–.036 by M36; .053, .055–.058 by M31; .054 and .056 by M32; .045–.046 by M28; .047–.051 by M27 and M29; .052 by M30; .039–.041 by M26; .037–.038 by M25; .034–.036 by M24; .002 and .003 by M02 and M09; .004 by M04; .005 by M05; .006 and .007 by M06; .008 by M07; .009 by M08; .010 by M03 and M09.
+
+## FO-GUI-035 — AI Desk Team at Work
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-GUI-035.001.M01 | SRD-GUI-035.001 | `us_swing/src/us_swing/gui/ai_desk_team.py`, `gui/ai_desk.py` | Team at work section: run bar, tabs, Live pipeline and timeline, refresh; wiring in AI Desk | `TeamAtWork`, `PipelineView`, `TimelineView` | M02, M03, M04 | No |
+| MD-GUI-035.002.M02 | SRD-GUI-035.002 | `us_swing/src/us_swing/core/desk_team.py` | Team, runs, run states, events with calls, scorecard and history from desk.db and job files | `team()`, `levels()`, `runs()`, `run_view()`, `day_events()`, `scorecard()`, `history()` | `core.desk_contract`, `core.desk_steps` | No |
+| MD-GUI-035.006.M03 | SRD-GUI-035.006 | `us_swing/src/us_swing/gui/ai_desk_team_log.py` | Event log tab: day strip, filters, event tree with calls | `EventLogView`, `DayStrip` | M02 | No |
+| MD-GUI-035.007.M04 | SRD-GUI-035.008 | `us_swing/src/us_swing/gui/ai_desk_team_pane.py` | Team wheel, profile pane and scorecard table | `TeamWheel`, `ProfilePane`, `ScoreTable` | M02 | No |
+
+SRD coverage: .001, .003–.005 and .009 by M01; .002 and .009 by M01 and M02; .004–.007 data by M02; .006 by M03; .007 and .008 by M04. Sample frames for Org chart, Employees, Task board, Activity and Schedule were removed from `ai_desk_sections.py`, `ai_desk_sections2.py` and `ai_desk_sample.py`.

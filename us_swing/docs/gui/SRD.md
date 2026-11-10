@@ -752,3 +752,17 @@
 | SRD-GUI-034.062 | FO-GUI-034 | Must | Command → Approvals waiting uses the feed card for each ask, with a count in the heading. | asks | cards | Same decision rules as SRD-GUI-034.035 | Implemented |
 | SRD-GUI-034.063 | FO-GUI-034 | Must | Command → Today's runs lists today's desk runs (ET time, run name, coloured result); event runs are one summed row. | runs | list | Replaces the sample table; empty note when none | Implemented |
 | SRD-GUI-034.064 | FO-GUI-034 | Should | Command shows a Team now line with the employee count by status. | employees | line | Hidden when there are no employees | Implemented |
+
+## FO-GUI-035: AI Desk Team at Work
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-035.001 | FO-GUI-035 | Must | The TEAM group lists Team at work and Hiring; Org chart, Employees, Task board, Activity and Schedule are removed. | sections | list | Team at work has no Sample tag | Implemented |
+| SRD-GUI-035.002 | FO-GUI-035 | Must | A run bar picks a desk run (newest first, ‹ ›) and shows its start in ET and IST, time taken, employees done, LLM calls, tokens and cost. | runs, activity | chips | Event runs are left out of the picker | Implemented |
+| SRD-GUI-035.003 | FO-GUI-035 | Must | The Live tab shows a Right now line and a Pipeline / Timeline switch; only the chosen view shows. | click | view | The choice is kept while the app runs | Implemented |
+| SRD-GUI-035.004 | FO-GUI-035 | Must | The pipeline shows Trigger, Data steps, one column per skill need level and an On demand row, with a state card per employee. | employees, run calls | cards | The working card animates | Implemented |
+| SRD-GUI-035.005 | FO-GUI-035 | Must | The timeline shows one row per employee and one bar per LLM call, coloured by main model, backup or bad answer. | run calls | bars | A now line shows while the run runs | Implemented |
+| SRD-GUI-035.006 | FO-GUI-035 | Must | The Event log tab lists a day's events with time, kind, urgency, who it woke, result, time taken and cost; a row opens to its calls. | events, activity | rows | Filters All, Urgent, With AI work, Problems | Implemented |
+| SRD-GUI-035.007 | FO-GUI-035 | Must | The Team tab shows a 30-day scorecard per employee with a team total row. | activity | table | Shadow and replay calls are left out | Implemented |
+| SRD-GUI-035.008 | FO-GUI-035 | Must | The side pane shows a rolling team picker (2 above, 2 below) and the picked employee's profile. | click, wheel | profile | Follow live moves the picker to the working employee | Implemented |
+| SRD-GUI-035.009 | FO-GUI-035 | Must | Team at work reads desk.db read-only through core and refreshes every 3 seconds while shown and the desk runs. | desk.db | views | Never imports `desk` | Implemented |

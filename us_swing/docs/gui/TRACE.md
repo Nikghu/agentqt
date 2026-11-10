@@ -3,7 +3,7 @@
 **Document ID:** TRACE-GUI
 **Version:** 1.16.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-11-06 (Market Floor and AI Desk frames FO-GUI-034; SRD-GUI-034.011 with RN-MKT-0.1.0-20261106; SRD-GUI-034.012 with RN-MKT-0.2.0-20261106; SRD-GUI-034.013 with RN-MKT-0.3.0-20261106; SRD-GUI-034.014 with RN-MKT-0.4.0-20261106; SRD-GUI-034.015–.017 with RN-DSK-0.2.0-20261106)
+**Last Updated:** 2026-11-10 (AI Desk Team at work FO-GUI-035 with RN-GUI-1.13.0-20261110; Market Floor and AI Desk frames FO-GUI-034; SRD-GUI-034.011 with RN-MKT-0.1.0-20261106; SRD-GUI-034.012 with RN-MKT-0.2.0-20261106; SRD-GUI-034.013 with RN-MKT-0.3.0-20261106; SRD-GUI-034.014 with RN-MKT-0.4.0-20261106; SRD-GUI-034.015–.017 with RN-DSK-0.2.0-20261106)
 
 ---
 
@@ -142,6 +142,7 @@
 | FO-GUI-034 | SRD-GUI-034.045–.052 | DD-GUI-034.045.D01 | MD-GUI-034.045.M28, MD-GUI-034.047.M27, MD-GUI-034.047.M29, MD-GUI-034.052.M30 | UT-GUI-034.045.M28.T01–T02, .046.M28.T01–T02, .047.M29.T01, .047.M27.T01, .048.M27.T01, .049.M27.T01, .050.M27.T01, .051.M27.T01, .052.M30.T01–T02 (Pass) | `gui/floor_charts.py`, `gui/floor_panel.py`, `gui/market_floor.py`, `gui/floor_layouts.py`, `gui/floor_sample.py`, `core/desk_floor.py` | Implemented | RN-GUI-1.10.0-20261107 |
 | FO-GUI-034 | SRD-GUI-034.053–.058 | DD-GUI-034.053.D01 | MD-GUI-034.053.M31, MD-GUI-034.054.M32 | UT-GUI-034.053.M31.T01, .054.M32.T01–T02, .055.M31.T01, .056.M31.T01–T02, .057.M31.T01, .058.M31.T01 (Pass) | `gui/floor_feed.py`, `core/desk_feed.py`, `gui/market_floor.py`, `gui/main_window.py`, `gui/floor_sample.py`, `core/desk_floor.py`, `gui/ai_desk_hiring.py` | Implemented | RN-GUI-1.11.0-20261107 |
 | FO-GUI-034 | SRD-GUI-034.059–.064 | DD-GUI-034.059.D01 | MD-GUI-034.059.M33, MD-GUI-034.060.M34, MD-GUI-034.061.M35, MD-GUI-034.062.M36 | UT-GUI-034.059.M33.T01–T02, .060.M34.T01, .060.M33.T01–T02, .061.M35.T01, .062.M36.T01, .063.M36.T01, .064.M36.T01 (Pass); reopened .034–.036 retested as cards (UT-GUI-034.034–.036.M24, Pass) | `gui/ai_desk.py`, `core/desk_overview.py`, `gui/ai_desk_chat.py`, `gui/ai_desk_hiring.py`, `gui/ai_desk_sections.py`, `gui/floor_feed.py`, `core/desk_feed.py`, `gui/main_window.py` | Implemented | RN-GUI-1.12.0-20261107 |
+| FO-GUI-035 | SRD-GUI-035.001–.009 | DD-GUI-035.001.D01 | MD-GUI-035.001.M01, MD-GUI-035.002.M02, MD-GUI-035.006.M03, MD-GUI-035.007.M04 | UT-GUI-035.002.M02.T01, .004.M02.T01–T02, .006.M02.T01, .009.M02.T01, .002.M01.T01, .008.M04.T01–T02, .006.M03.T01–T02, .007.M04.T01, .009.M01.T01 (Pass) | `gui/ai_desk_team.py`, `gui/ai_desk_team_log.py`, `gui/ai_desk_team_pane.py`, `core/desk_team.py`, `gui/ai_desk.py` | Implemented | RN-GUI-1.13.0-20261110 |
 
 ---
 
@@ -196,6 +197,10 @@
 | `gui/backtest_setup.py` | MD-GUI-031.071.M10 | SRD-GUI-031.071, .074 | FO-GUI-031 |
 | `gui/backtest_report_view.py` | MD-GUI-031.040.M04 | SRD-GUI-031.040–.045 | FO-GUI-031 |
 | `gui/ai_settings_block.py` | MD-GUI-033.001.M01 | SRD-GUI-033.001–.004, .006 | FO-GUI-033 |
+| `gui/ai_desk_team.py` | MD-GUI-035.001.M01 | SRD-GUI-035.001, .003–.005, .009 | FO-GUI-035 |
+| `core/desk_team.py` | MD-GUI-035.002.M02 | SRD-GUI-035.002, .004–.007 | FO-GUI-035 |
+| `gui/ai_desk_team_log.py` | MD-GUI-035.006.M03 | SRD-GUI-035.006 | FO-GUI-035 |
+| `gui/ai_desk_team_pane.py` | MD-GUI-035.007.M04 | SRD-GUI-035.007–.008 | FO-GUI-035 |
 
 ---
 

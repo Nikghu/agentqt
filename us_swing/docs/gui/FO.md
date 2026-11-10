@@ -994,3 +994,26 @@ The system shall add two workspaces, Market Floor and AI Desk, shown on sample d
 3. Clicking a stock in a linked Ideas panel updates a linked chart panel on the same tab.
 4. Folding the AI feed gives its width to the panel grid, and the choice is kept after a restart.
 5. Every AI Desk section opens and shows its frame with the "Sample data" tag; no other workspace changes.
+
+## FO-GUI-035: AI Desk Team at Work
+
+**Status:** Implemented (approved by user 2026-11-10)
+**Priority:** Must
+**Depends on:** FO-GUI-034 (AI Desk workspace), FO-DSK-003 (events and employees), FO-DSK-005 (run log)
+**Source:** User 2026-11-10: "not getting how the AI Employees are working". Design final draft (Console + view switch + team wheel) at https://claude.ai/artifact/PgkHVTcXYThWAUnX5itPMR, plus a richer Team tab. Replaces the five sample sections.
+
+The system shall show how the AI employee team works, from real desk records.
+
+- The system shall replace Org chart, Employees, Task board, Activity and Schedule with one "Team at work" section.
+- The system shall show a desk run as a pipeline of stages or as a timeline of LLM calls, one view at a time.
+- The system shall show the state of each employee now: asleep, waiting, working, done, failed or skipped.
+- The system shall give the event log its own tab: what woke the team, who it woke, the result, time and cost, and every LLM call.
+- The system shall show a Team scorecard with 30-day numbers per employee.
+- The system shall show a rolling team picker and the picked employee's profile in a side pane.
+
+### Acceptance Criteria
+
+1. During an evening run the pipeline shows the working employee and updates within 5 seconds of each new call.
+2. Opening an evening run event in the log lists each call with model, try, seconds, tokens and cost.
+3. The scorecard numbers match the `activity` rows of the last 30 days.
+4. No section shows sample data for the team.

@@ -2,14 +2,16 @@
 
 **Document:** CONTEXT.md
 **Project:** us_swing
-**Last Updated:** 2026-11-10 (Session 127)
+**Last Updated:** 2026-11-10 (Session 128)
 **Updated By:** Claude (Opus 5.5)
 
 ---
 
-**Next (handover, 2026-11-10):** P10 is merged to main (PR from `feat/p10-ask-data`). P10 user check T135 done (flash fix confirmed). User checks open: T132–T134 (Floor design, merged via PR #127), T123–T131.
+**Next (handover, 2026-11-10, Session 128):** AI Desk Team at work (FO-GUI-035) is done on branch `feat/gui-team-at-work`, committed, not pushed. User check T137, then push and PR when the user says. The real 2026-11-09 evening run failed for every employee because the Claude CLI login expired (T138). User checks still open: T132–T134, T123–T131.
 
-**Current (Session 127, 2026-11-10):** **Ask the desk for new data, phase P10 (Feature, MKT + GUI; FO-MKT-011; RN-MKT-0.12.0-20261110; SRD-MKT-011.001–.009 and SRD-GUI-034.042–.044 approved by user and Implemented).** The Floor Add panel catalog has an Ask box; the request becomes a `data_request` event; new data employee Expert 7 (`emp-009`, skill `data_recipe`) fills a recipe from a fixed menu (no SQL); code checks it and runs it read-only on the latest day. The proposed panel waits in Approvals waiting with 5 preview rows; Approve adds it to the catalog as "(asked)". Also this session: Floor design branch merged via PR #127 (9b3718af); P10 docs moved onto the new main.
+**Current (Session 128, 2026-11-10):** **AI Desk Team at work (Feature, GUI; FO-GUI-035; RN-GUI-1.13.0-20261110; SRD-GUI-035.001–.009 approved by user and Implemented).** New section replaces Org chart, Employees, Task board, Activity and Schedule (all sample). Run bar; Live tab with Pipeline / Timeline switch; Event log tab with day strip, filters and every LLM call; Team tab 30-day scorecard; side pane team wheel (Follow live) and profile. Data from new `core/desk_team.py` (read-only). Design: https://claude.ai/artifact/PgkHVTcXYThWAUnX5itPMR.
+
+**Previous (Session 127, 2026-11-10):** **Ask the desk for new data, phase P10 (Feature, MKT + GUI; FO-MKT-011; RN-MKT-0.12.0-20261110; SRD-MKT-011.001–.009 and SRD-GUI-034.042–.044 approved by user and Implemented).** The Floor Add panel catalog has an Ask box; the request becomes a `data_request` event; new data employee Expert 7 (`emp-009`, skill `data_recipe`) fills a recipe from a fixed menu (no SQL); code checks it and runs it read-only on the latest day. The proposed panel waits in Approvals waiting with 5 preview rows; Approve adds it to the catalog as "(asked)". Also this session: Floor design branch merged via PR #127 (9b3718af); P10 docs moved onto the new main.
 
 **Also (Session 126c, 2026-11-07):** **AI Desk design match, phase 3 (Feature, GUI; FO-GUI-034; RN-GUI-1.12.0-20261107; SRD-GUI-034.059–.064 approved and Implemented; SRD-GUI-034.034–.036 reopened by user, done as cards and Implemented again).** Grouped section list with Command count, last run and AI spend header, chat bubbles, approval feed cards, real Today's runs, Team now. 9 new tests Pass.
 

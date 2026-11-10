@@ -6,7 +6,6 @@ from pathlib import Path
 from PyQt6.QtWidgets import QLabel, QWidget
 from pytestqt.qtbot import QtBot
 
-from us_swing.gui import ai_desk_sample
 from us_swing.gui.ai_desk import AiDeskWorkspace
 from us_swing.gui.desk_control import DeskPoller
 
@@ -16,12 +15,12 @@ def _titles(frame: QWidget) -> list[str]:
 
 
 def test_all_sections_open(qtbot: QtBot, tmp_path: Path) -> None:
-    """UT-GUI-034.009.M08.T01: 12 sections in order (Results added in P8); each shows its own
-    filled frame."""
+    """UT-GUI-034.009.M08.T01: 8 sections in order (five sample team sections became Team at
+    work, SRD-GUI-035.001); each shows its own filled frame."""
     page = AiDeskWorkspace(DeskPoller(tmp_path))
     qtbot.addWidget(page)
     names = page.section_names()
-    assert len(names) == 12
+    assert len(names) == 8
     assert names[0] == "Command"
     assert names[-1] == "Desk settings"
     assert page.current_section() == "Command"
@@ -42,11 +41,11 @@ def test_every_section_shows_sample_tag(qtbot: QtBot, tmp_path: Path) -> None:
     Desk settings is real from P5a (SRD-GUI-034.016); Cost & budget is sample until AI runs;
     Pages is real from P5d (SRD-GUI-034.022); Hiring is real from P6 (SRD-GUI-034.027);
     Results is real from P8 (SRD-GUI-034.037); Command is real from design phase 3
-    (SRD-GUI-034.063).
+    (SRD-GUI-034.063); Team at work is real (SRD-GUI-035.001).
     """
     page = AiDeskWorkspace(DeskPoller(tmp_path))
     qtbot.addWidget(page)
-    real = ("Desk settings", "Pages", "Hiring", "Results", "Command")
+    real = ("Desk settings", "Pages", "Hiring", "Results", "Command", "Team at work")
     for name in [n for n in page.section_names() if n not in real]:
         page.select_section(name)
         frame = page._stack.currentWidget()
@@ -54,11 +53,3 @@ def test_every_section_shows_sample_tag(qtbot: QtBot, tmp_path: Path) -> None:
         tags = [w.text() for w in frame.findChildren(QLabel) if w.objectName() == "sample_tag"]
         assert tags == ["Sample data"]
 
-
-def test_sample_seats_within_caps() -> None:
-    """UT-GUI-034.009.M08.T02: sample seats stay within caps 3 / 5 / 30."""
-    assert ai_desk_sample.SEAT_CAPS == {"Experts": 3, "Champions": 5, "Juniors": 30}
-    used = ai_desk_sample.seats_used()
-    for key, cap in ai_desk_sample.SEAT_CAPS.items():
-        assert 0 < used[key] <= cap
-    assert used == {"Experts": 3, "Champions": 3, "Juniors": 18}
