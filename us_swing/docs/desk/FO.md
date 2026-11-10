@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.7.0: Autonomous desk step B (user, 2026-11-11): FO-DSK-003 baton by `done` events with retries and a partial plan on failure.
 > v0.6.0: Autonomous desk step A (user, 2026-11-10): FO-DSK-001 desk runs only while the app is open and runs in the morning (no evening run); FO-DSK-003 morning run by event; FO-DSK-007 candles alert. Older acceptance lines that say "evening run" describe the run in place when they were written.
 > v0.5.0: FO-DSK-008 Implemented (user approved 2026-11-10; code and tests done).
 > v0.4.0: FO-DSK-008 added as Draft — one employee.md file, versions and draft test (user, 2026-11-10).
@@ -77,6 +78,7 @@ The system shall keep agents asleep and wake them only by rule. In P5a the only 
 - The system shall not wake the same employee again within 30 minutes, except for P0 events.
 - The system shall run the employees woken by one event as one LangGraph graph, where a skill runs after the skills whose views it needs.
 - The system shall start the morning run by event, not by a fixed clock: the app is open, the market day has reached pre-market, and the candles are checked; a run that fails is tried again later the same day (Autonomous desk step A, user 2026-11-10).
+- The system shall pass work between employees by `done` events: an employee wakes when every employee it needs is done; a failed step is retried at most twice, then the chain stops, the lead posts a short partial plan and the user gets one alert (Autonomous desk step B, user 2026-11-11).
 
 ### Acceptance Criteria
 
