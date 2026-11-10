@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.9.2: SRD-DSK-003.010–.012 reopened by user 2026-11-11 and reworded (events instead of one LangGraph graph; failed step stops the chain; LangGraph removed).
 > v0.9.1: Step B rows SRD-DSK-003.014–.019 and 007.008 approved by user 2026-11-11.
 > v0.9.0: Autonomous desk step B (user, 2026-11-11): baton `step_done` events; SRD-DSK-003.014–.019 and 007.008 added as Draft. SRD-DSK-003.010–.012 need Reopen (one LangGraph graph replaced by events; dependents of a failed step no longer run).
 > v0.8.2: Step A rows Implemented 2026-11-11.
@@ -79,9 +80,9 @@
 | SRD-DSK-003.007 | FO-DSK-003 | Must | An event past its expiry is marked expired and not handled; one handled after its deadline is marked late; both are logged. | event, clock | state, log line | Expiry: P0 2 h, P1 6 h, P2 30 min; deadline: P0 15 min, P1 2 h, P2 none | Implemented |
 | SRD-DSK-003.008 | FO-DSK-003 | Must | While the desk runs, a market clock posts `market_open` at 09:30 and `market_close` at 16:00 New York time on NYSE trading days. | clock | events | Uses the app's NYSE calendar; each is posted once per day | Implemented |
 | SRD-DSK-003.009 | FO-DSK-003 | Must | An employee is not woken again within 30 minutes of its last wake, except by a P0 event. | `activity` | skip or wake | The once-per-data-day rule still applies to `after_run` | Implemented |
-| SRD-DSK-003.010 | FO-DSK-003 | Must | The employees woken by one event run as one LangGraph graph; an employee runs after the employees whose skills its skill needs. | woken employees, needs | run order | A loop in the needs keeps the whole graph asleep and is logged | Implemented |
-| SRD-DSK-003.011 | FO-DSK-003 | Must | A failed or sleeping employee never stops the graph; those that need its view still run and their facts say the view is missing. | node result | facts note | — | Implemented |
-| SRD-DSK-003.012 | FO-DSK-003 | Must | `langgraph` is a desk dependency and the installer bundles it for the frozen desk. | — | package | Only `desk` imports it | Implemented |
+| SRD-DSK-003.010 | FO-DSK-003 | Must | The employees woken by one event run one at a time in needs order, driven by `step_done` events (SRD-DSK-003.015). | woken employees, needs | run order | A loop in the needs keeps the chain asleep and is logged; reopened 2026-11-11: no LangGraph graph | Reopen |
+| SRD-DSK-003.011 | FO-DSK-003 | Must | A sleeping employee never stops the chain; those that need its view still run and their facts say the view is missing. | `step_done` row | facts note | A failed employee stops the chain instead (SRD-DSK-003.017); reopened 2026-11-11 | Reopen |
+| SRD-DSK-003.012 | FO-DSK-003 | Must | The desk does not use `langgraph`; it is removed from the desk dependencies and the installer. | — | package | Reopened 2026-11-11: removed by step B | Reopen |
 | SRD-DSK-003.013 | FO-DSK-003 | Must | Run kinds are `morning`, `manual` and `event`; runs kept as `evening` stay readable as history. | `runs` | kinds | Only `morning` and `manual` runs call the market steps | Implemented |
 | SRD-DSK-003.014 | FO-DSK-003 | Must | When an employee's turn ends, the router posts a `step_done` event naming the employee, its trigger event and whether it gave a valid result. | employee result | `events` row | Takes the priority, data day and expiry of its trigger event; only the router posts it | Approved |
 | SRD-DSK-003.015 | FO-DSK-003 | Must | For one trigger event, the router wakes a listening employee once every employee it needs has a valid `step_done` for that event. | `events` | wake | Needs not woken by that event count as met; a loop in the needs keeps the chain asleep and is logged | Approved |

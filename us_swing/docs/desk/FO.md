@@ -76,7 +76,7 @@ The system shall keep agents asleep and wake them only by rule. In P5a the only 
 - The system shall handle events by priority, drop expired events and log late ones.
 - The system shall post market open and close events from a market clock on NYSE trading days.
 - The system shall not wake the same employee again within 30 minutes, except for P0 events.
-- The system shall run the employees woken by one event as one LangGraph graph, where a skill runs after the skills whose views it needs.
+- The system shall run the employees woken by one event in needs order, where a skill runs after the skills whose views it needs.
 - The system shall start the morning run by event, not by a fixed clock: the app is open, the market day has reached pre-market, and the candles are checked; a run that fails is tried again later the same day (Autonomous desk step A, user 2026-11-10).
 - The system shall pass work between employees by `done` events: an employee wakes when every employee it needs is done; a failed step is retried at most twice, then the chain stops, the lead posts a short partial plan and the user gets one alert (Autonomous desk step B, user 2026-11-11).
 
