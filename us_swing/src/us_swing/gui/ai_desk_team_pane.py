@@ -81,6 +81,13 @@ def bar_style(colour: str) -> str:
             " border-radius: 0; padding-left: 8px;")
 
 
+def lift_fill() -> str:
+    """Background for a selected card or row: a step lighter than the panel."""
+    base, top = QColor(C.SURFACE), QColor(C.OVERLAY)
+    return QColor((base.red() + top.red()) // 2, (base.green() + top.green()) // 2,
+                  (base.blue() + top.blue()) // 2).name()
+
+
 def chip_style(key: str) -> str:
     """Pill for a state chip; a left bar in the state colour carries the status."""
     return (f"color: {C.TEXT}; background: {C.OVERLAY}; border: none;"
@@ -230,8 +237,8 @@ class TeamWheel(QWidget):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         mid = self.height() / 2
-        p.setPen(QPen(QColor(C.BLUE), 1))
-        p.setBrush(QColor(C.SURFACE))
+        p.setPen(QPen(QColor(C.MUTED), 1))
+        p.setBrush(QColor(lift_fill()))
         p.drawRoundedRect(QRectF(4, mid - ROW / 2 + 2, self.width() - 8, ROW - 4), 8, 8)
         for i, item in enumerate(self._items):
             d = self._offset(i)

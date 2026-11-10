@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.103.0: SRD-GUI-035.014 added and Implemented — selected card and team row use a lighter fill and grey border, not the accent (user chose Option A, 2026-11-10).
 > v2.102.0: SRD-GUI-035.013 added and Implemented — AI Desk status shown by a left colour bar, no dot (user chose Option 3, 2026-11-10).
 > v2.101.0: SRD-GUI-034.067 added and Implemented — AI Desk section tabs; replaces the sidebar menu of SRD-GUI-018.012 (user asked 2026-11-10).
 > v2.100.0: SRD-GUI-034.065–.066 added and Implemented — AI Desk console look, design Option A (user chose 2026-11-10).
@@ -779,3 +780,4 @@
 | SRD-GUI-035.011 | FO-GUI-035 | Must | The AI feed shows each open alert as a Desk card with the fix step. | alerts | card | Card leaves when the alert closes | Implemented |
 | SRD-GUI-035.012 | FO-GUI-035 | Should | Team at work matches the design look: icon cards with clear borders, dot chips, drawn arrows, stat tiles, underline tabs and bordered panels. | theme tokens, icons | restyled section | Look only; data and actions unchanged | Implemented |
 | SRD-GUI-035.013 | FO-GUI-035 | Should | AI Desk status pills, Right now, Last run, the desk state chip and This run lines show a 3 px left bar in the status colour instead of a dot. | state key | restyled status | Look only; Floor, timeline and backtest dots unchanged | Implemented |
+| SRD-GUI-035.014 | FO-GUI-035 | Should | The selected pipeline card and the selected Team row show a lighter fill and a grey border instead of the accent border. | selection | restyled card | Working pulse border unchanged | Implemented |

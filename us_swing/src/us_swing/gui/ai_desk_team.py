@@ -69,6 +69,7 @@ from us_swing.gui.ai_desk_team_pane import (
     bar_style,
     chip_style,
     chip_text,
+    lift_fill,
     panel,
     skill_text,
     tab_style,
@@ -177,11 +178,12 @@ class StageCard(QFrame):
         self.meta.setText(meta)
         self.busy.setVisible(key == "working")
         if key != "working":
-            self.paint_border(C.BLUE if self.selected else C.OVERLAY2)
+            self.paint_border(C.MUTED if self.selected else C.OVERLAY2)
 
     def paint_border(self, colour: str) -> None:
-        """Draw the card border in ``colour``."""
-        self.setStyleSheet(f"QFrame#team_card {{ background: {C.SURFACE};"
+        """Draw the card border in ``colour``; a selected card has a lighter fill."""
+        fill = lift_fill() if self.selected else C.SURFACE
+        self.setStyleSheet(f"QFrame#team_card {{ background: {fill};"
                            f" border: 1px solid {colour}; border-radius: 10px; }}")
 
     def mousePressEvent(self, event: QMouseEvent | None) -> None:  # noqa: N802

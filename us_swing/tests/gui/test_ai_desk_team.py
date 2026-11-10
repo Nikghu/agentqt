@@ -8,7 +8,7 @@ from pytestqt.qtbot import QtBot
 
 from tests.gui.team_fixtures import NOW, desk
 from us_swing.gui.ai_desk_team import TeamAtWork
-from us_swing.gui.ai_desk_team_pane import bar_rows, tone
+from us_swing.gui.ai_desk_team_pane import bar_rows, lift_fill, tone
 from us_swing.gui.theme import C
 
 
@@ -180,3 +180,14 @@ def test_status_bars_not_dots(qtbot: QtBot, tmp_path: Path) -> None:
     assert f"border-left: 3px solid {C.BLUE}" in page.now_head.styleSheet()
     assert "●" not in page.profile.calls_label.text()
     assert "bgcolor=" in bar_rows([(C.RED, "16:26:00 · try 1")])
+
+
+def test_selected_card_lift(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-035.014.M01.T01: the picked card has a lighter fill and grey border, no accent."""
+    desk(tmp_path, finished=True)
+    page = _page(qtbot, tmp_path)
+    picked = next(c for c in page.pipeline._cards.values() if c.selected)
+    other = next(c for c in page.pipeline._cards.values() if not c.selected)
+    assert f"background: {lift_fill()}; border: 1px solid {C.MUTED}" in picked.styleSheet()
+    assert C.BLUE not in picked.styleSheet()
+    assert f"background: {C.SURFACE}" in other.styleSheet()
