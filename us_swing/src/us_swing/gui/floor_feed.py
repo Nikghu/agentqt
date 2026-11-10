@@ -114,7 +114,7 @@ class FeedCardWidget(QFrame):
         self.note.setWordWrap(True)
         self.note.hide()
         box.addWidget(self.note)
-        self.more_btn = QPushButton("More")
+        self.more_btn = QPushButton("More", self)
         # more button → clicked → card → _toggle_text
         self.more_btn.clicked.connect(self._toggle_text)
         self.more_btn.setVisible(len(card.text) > CUT_CHARS)
