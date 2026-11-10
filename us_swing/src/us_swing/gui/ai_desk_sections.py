@@ -187,7 +187,8 @@ def team_line(counts: dict[str, int]) -> QLabel:
     """The Team now line, e.g. ``Team now: 8 active · 1 shadow``; hidden with no employees."""
     label = muted("Team now: " + " · ".join(f"{n} {s}" for s, n in counts.items()))
     label.setObjectName("team_now")
-    label.setVisible(bool(counts))
+    if not counts:
+        label.hide()
     return label
 
 

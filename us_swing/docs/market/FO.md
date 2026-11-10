@@ -6,6 +6,9 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.11.2: FO-MKT-011 Implemented (RN-MKT-0.12.0-20261110).
+> v0.11.1: FO-MKT-011 approved by user 2026-11-10.
+> v0.11.0: FO-MKT-011 added as Draft — Ask the Desk for New Data (P10).
 > v0.10.1: FO-MKT-010 approved by user 2026-11-06.
 > v0.10.0: FO-MKT-010 added as Draft — Lead Chat (P9).
 > v0.9.1: FO-MKT-009 approved by user 2026-11-06.
@@ -273,3 +276,28 @@ The system shall let the Master user ask the lead questions in AI Desk and get a
 3. With the desk stopped, the chat says to start the desk; the question expires after 30 minutes.
 4. A failed or refused answer shows a failed reply, and the next question still works.
 5. Nothing in the chat changes approvals, signals or orders.
+
+## FO-MKT-011: Ask the Desk for New Data
+
+**Status:** Implemented (RN-MKT-0.12.0-20261110)
+**Priority:** Could
+**Phase:** P10
+**Depends on:** FO-GUI-034 (Floor catalog), FO-MKT-003 (scores and ideas), FO-MKT-009 (pick results), FO-DSK-003 (events)
+
+The system shall let the Master user ask the desk for a new Floor panel in plain words. A desk employee turns the request into a safe recipe from a fixed menu; code checks it and runs it read-only. The Master previews and approves it before it joins the Floor catalog. The model never writes SQL.
+
+- The system shall let the Master type a data request in the Floor Add panel catalog and send it to the desk.
+- The system shall wake a data employee for each request and have it fill a recipe: source, columns, filters, sort and row limit, from a fixed menu.
+- The system shall check every recipe against the menu in code and run it read-only.
+- The system shall show each proposed panel with its recipe in words and a preview in AI Desk → Approvals waiting for the Master to approve or reject.
+- The system shall add approved panels to the Floor catalog, with rows from the latest data day each time they are shown.
+- The system shall show the reason when the desk cannot build a request.
+- The system shall ship a default data employee with a generic expert-level name only.
+
+### Acceptance Criteria
+
+1. With the desk running, a request such as "long scores above 80 in Technology" is proposed in Approvals waiting with a preview within a few minutes.
+2. Approve adds the panel to the Floor catalog; Reject does not.
+3. After the next evening run, an approved panel shows the new day's rows.
+4. A request the menu cannot serve shows a failed note with the reason.
+5. No model answer ever runs as SQL; only menu columns and tables are used.

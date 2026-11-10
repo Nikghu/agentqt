@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.13.0: MD-MKT-011.*.M01–M06 added — ask the desk for new data (P10).
 > v0.12.0: MD-MKT-010.*.M01–M04 added — lead chat (P9).
 > v0.11.0: MD-MKT-009.*.M01–M06 added — pick results (P8).
 > v0.10.0: MD-MKT-008.*.M01–M02 added — link to Execution (P7).
@@ -154,3 +155,14 @@ SRD coverage: .001–.003 and .008 by M01 and M06; .004 by M02; .005 by M03 and 
 | MD-MKT-010.007.M04 | SRD-MKT-010.007 | `us_swing/src/us_swing/market/employees/emp-008/`, `core/desk_steps.py` | Default chat employee files and the skill path | `SKILL_PATHS` | — | No |
 
 SRD coverage: .001 by M01; .002 by M02; .003–.006 and .008 by M03; .007 by M04.
+
+## FO-MKT-011: Ask the Desk for New Data
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-MKT-011.001.M01 | SRD-MKT-011.001 | `us_swing/src/us_swing/core/desk_data_asks.py` | Append-only data requests and asked products, and their decisions (shared by the GUI and the desk) | `DataRequest`, `AskedProduct`, `ask_data()`, `open_request()`, `add_asked()`, `waiting_products()`, `failed_products()`, `approved_products()`, `decide_product()` | `sqlite3`, `core.desk_events`, M03 | No |
+| MD-MKT-011.002.M02 | SRD-MKT-011.002 | `us_swing/src/us_swing/core/desk_events.py` | `data_request` event kind and per-request key (added to MD-DSK-003.004.M15) | `EVENT_RULES`, `post_event()` | — | No |
+| MD-MKT-011.004.M03 | SRD-MKT-011.004 | `us_swing/src/us_swing/core/desk_recipes.py` | Fixed menu, recipe model, check, read-only run and recipe in words | `MENU`, `DataRecipe`, `RecipeFilter`, `check_recipe()`, `run_recipe()`, `recipe_words()` | `pydantic`, `sqlite3` | No |
+| MD-MKT-011.003.M04 | SRD-MKT-011.003 | `us_swing/src/us_swing/market/data_recipe.py` | Data recipe skill: facts, answer, asked product row, log | `DataRecipeSkill`, `DataRecipeAnswer` | `core.desk_agents`, M01, M03 | No |
+| MD-MKT-011.007.M05 | SRD-MKT-011.007 | `us_swing/src/us_swing/core/desk_floor.py` | Approved asked products in the Floor catalog and their rows (added to MD-GUI-034.011.M10) | `DeskFloorData.products()`, `DeskFloorData.rows()` | M01, M03 | No |
+| MD-MKT-011.008.M06 | SRD-MKT-011.008 | `us_swing/src/us_swing/market/employees/emp-009/`, `core/desk_steps.py` | Default data employee files and the skill path | `SKILL_PATHS` | — | No |

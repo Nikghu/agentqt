@@ -16,7 +16,7 @@ a = Analysis(
                    'us_swing.market.risk_check', 'us_swing.market.lead_brief',
                    'us_swing.market.news_step', 'us_swing.market.news_review', 'feedparser',
                    'us_swing.market.report_page', 'us_swing.market.pick_results',
-                   'us_swing.market.lead_chat', 'us_swing.desk.weekly_report',
+                   'us_swing.market.lead_chat', 'us_swing.market.data_recipe', 'us_swing.desk.weekly_report',
                    # the desk router imports LangGraph when it first runs a graph
                    *collect_submodules('langgraph'), *collect_submodules('langchain_core')],
     hookspath=[],

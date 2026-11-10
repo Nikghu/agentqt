@@ -5,6 +5,9 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.97.2: SRD-GUI-034.042–.044 Implemented (RN-MKT-0.12.0-20261110).
+> v2.97.1: SRD-GUI-034.042–.044 approved by user 2026-11-10.
+> v2.97.0: SRD-GUI-034.042–.044 added as Draft — ask the desk for new data (MKT P10).
 > v2.96.1: SRD-GUI-034.059–.064 and the reopened .034–.036 Implemented (RN-GUI-1.12.0-20261107).
 > v2.96.0: SRD-GUI-034.059–.064 added and approved by user 2026-11-07 (AI Desk design, phase 3); SRD-GUI-034.034–.036 set Reopen by user 2026-11-07 for approval cards.
 > v2.95.1: SRD-GUI-034.053–.058 Implemented (RN-GUI-1.11.0-20261107).
@@ -726,6 +729,9 @@
 | SRD-GUI-034.039 | FO-GUI-034 | Must | Command → Lead chat shows the chat turns, oldest at the top, with the chat employee's current name on answers. | chat rows | chat list | Replaces the sample chat; empty note when there are no turns | Implemented |
 | SRD-GUI-034.040 | FO-GUI-034 | Must | An Ask box and button send a question; the box is cleared and a waiting note shows. | text | question | Ask is disabled while the box is empty or a question waits | Implemented |
 | SRD-GUI-034.041 | FO-GUI-034 | Should | While a question waits, the chat checks every 2 seconds and shows the answer, the failed reply, a start-the-desk note when the desk is stopped, or an expired note after 30 minutes. | chat rows, desk state | notes | The check stops when nothing waits | Implemented |
+| SRD-GUI-034.042 | FO-GUI-034 | Must | The Floor Add panel catalog has an "Ask the desk for new data" box and button that send the request and show a sent note. | text | request | Ask disabled while the box is empty | Implemented |
+| SRD-GUI-034.043 | FO-GUI-034 | Must | Command → Approvals waiting lists each proposed product with its title, its recipe in words and the first 5 preview rows, with Approve and Reject. | proposals | rows | The product leaves the list once decided | Implemented |
+| SRD-GUI-034.044 | FO-GUI-034 | Should | A failed request shows its reason in Approvals waiting for one day, without buttons. | failed rows | note | Older failed rows are not shown | Implemented |
 | SRD-GUI-034.045 | FO-GUI-034 | Must | The Market Floor header shows chips for regime, fear, VIX with its term shape, stocks above the 50-day line and the next high-importance event. | desk.db, calendar | chips | A chip with no data is hidden | Implemented |
 | SRD-GUI-034.046 | FO-GUI-034 | Must | The header shows only the layout picker, Edit and Fold feed; Add panel, Reset tab, Save as and Delete show only in edit mode, and the desk bar leaves the Floor. | edit mode | toolbar | Desk controls stay in AI Desk | Implemented |
 | SRD-GUI-034.047 | FO-GUI-034 | Must | A tiles view shows five market tiles: regime, above 50-day, new highs and lows, ideas long and short, leading sector. | market.tiles | tiles | Sample tiles when the desk has no data | Implemented |

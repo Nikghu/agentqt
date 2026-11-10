@@ -3,10 +3,12 @@ Module: MD-GUI-034.004.M04 — Market Floor workspace
 Parent SRD: SRD-GUI-034.004
 Also: MD-GUI-034.053.M31 — feed cards wiring, live dot, reload (SRD-GUI-034.056–.058)
 Also: MD-GUI-034.045.M28 — header chips, tidy toolbar, Fold feed, Reset tab (SRD-GUI-034.045–.046)
+Also: MD-GUI-034.042.M37 — data requests from the Add panel catalog (SRD-GUI-034.042)
 """
 from __future__ import annotations
 
 import logging
+import sqlite3
 from functools import partial
 
 from PyQt6.QtCore import QTimer, pyqtSignal
@@ -24,6 +26,7 @@ from PyQt6.QtWidgets import (
 )
 
 from us_swing.core.desk_contract import LIVE_STATES, DeskState, DeskStatus, FloorData, desk_home
+from us_swing.core.desk_data_asks import ask_data
 from us_swing.core.desk_trades import DeskTradeSink
 from us_swing.core.desk_floor import DeskFloorData
 from us_swing.gui.cards import GAP, card, gutter
@@ -332,9 +335,27 @@ class MarketFloorWorkspace(QWidget):
         self._schedule_save()
 
     def _choose_product(self) -> None:
-        dialog = CatalogDialog(self._data.products(), self)
+        products = self._data.products()
+        self._products = {p.id: p for p in products}
+        dialog = CatalogDialog(products, self, ask=self._ask_desk)
         if dialog.exec() and (product := dialog.chosen()) is not None:
             self.add_product(product.id)
+
+    def _ask_desk(self, text: str) -> str:
+        """Send a data request to the desk; an empty string means it was saved."""
+        home = self.feed.context.home
+        if home is None:
+            return "The desk folder is not set"
+        try:
+            request = ask_data(home, text, self.feed.context.clock())
+        except ValueError as exc:
+            why = str(exc)
+            return why[:1].upper() + why[1:]
+        except sqlite3.Error as exc:
+            _log.error("[AI Desk] Could not save the data request: %s", exc)
+            return "Could not save the request"
+        _log.info("[AI Desk] Data request %d sent to the desk", request)
+        return ""
 
     def _open_settings(self, frame: PanelFrame) -> None:
         product = self._products.get(frame.spec.product)

@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.12.0: DD-MKT-011.001.D01 added — ask the desk for new data (P10).
 > v0.11.0: DD-MKT-010.001.D01 added — lead chat (P9).
 > v0.10.0: DD-MKT-009.001.D01 added — pick results (P8).
 > v0.9.0: DD-MKT-008.001.D01 added — link to Execution (P7).
@@ -917,3 +918,139 @@ tick: rebuild turns; note = question_note(..., desk_up = poller state Running or
 ```
 
 The panel reads `desk.db` on the GUI thread (small reads, as the other live sections) and only adds `chat` rows and one event through `core`.
+
+## DD-MKT-011.001.D01 — Ask the Desk for New Data (P10)
+
+**Traces:** SRD-MKT-011.001–.009; GUI SRD-GUI-034.042–.044
+
+**Files.**
+
+| File | What |
+|---|---|
+| `core/desk_recipes.py` (new) | The fixed menu, `DataRecipe` (pydantic), `check_recipe()`, `run_recipe()`, `recipe_words()` |
+| `core/desk_data_asks.py` (new) | Append-only `data_requests` and `asked_products` tables; `ask_data()` (GUI), `open_request()`, `add_asked()` (desk), `waiting_products()`, `failed_products()`, `approved_products()`, `decide_product()` |
+| `core/desk_events.py` | Event kind `data_request`; one key per request |
+| `market/data_recipe.py` (new) | `DataRecipeSkill` (key `data_recipe`, no needs) and `DataRecipeAnswer` |
+| `market/employees/emp-009/` (new) | Default employee "Expert 7" (level expert, skill `data_recipe`, trigger `data_request`) |
+| `core/desk_steps.py` | `data_recipe` skill path |
+| `core/desk_floor.py` | Approved asked products in `products()` and `rows()` |
+| `core/desk_feed.py`, `gui/floor_feed.py`, `gui/ai_desk_hiring.py` | Data product Ask cards with Approve and Reject; failed request cards |
+| `gui/floor_dialogs.py`, `gui/market_floor.py` | Ask box in the Add panel catalog |
+
+**Process rule.** The GUI only adds `data_requests` rows, `approvals` rows and one event through `core`. The desk adds `asked_products` rows. Every recipe runs on a read-only connection (`?mode=ro`). No model text is ever put into SQL: table and column names come only from the menu in code, and filter values are bound as parameters.
+
+**Menu** (`core/desk_recipes.py`). Each source is a fixed `FROM` text, a day column and a map of column name → (SQL expression, type):
+
+```
+scores       stock_score s LEFT JOIN stock_rs r ON r.date = s.date AND r.symbol = s.symbol
+             day s.date; symbol, side, score, setup, sector (r.sector), trigger, stop,
+             rs_part, flow_part, setup_part, sector_part, regime_part, penalty
+ideas        ideas; day date; symbol, side, status, rank, score, sector, setup, trigger, stop
+stock_rs     stock_rs; day date; symbol, sector, score, rs_rating, sector_rank, sector_size
+sectors      sector_daily; day date; sector, rank, rel_1m, rel_3m, rel_6m, rs_ratio,
+             rs_momentum, quadrant, members
+pick_results pick_results; day date; symbol, side, status, entry_day, entry, exit_day, exit, r
+```
+
+Types are `text` or `number`. Labels for words: Scores, Ideas, Stock RS, Sectors, Pick results.
+
+**Recipe** (`DataRecipe`, pydantic, `extra="forbid"`, frozen):
+
+```
+title: str 1..60
+source: Literal["scores", "ideas", "stock_rs", "sectors", "pick_results"]
+columns: list[str] 1..8
+filters: list[RecipeFilter] 0..5   RecipeFilter(column: str, op: Literal["=", "!=", ">",
+                                   ">=", "<", "<="], value: str | float)
+sort: str | None = None;  descending: bool = True
+limit: int 1..100 = 20
+```
+
+**Check** (`check_recipe(recipe) -> str`; empty string means fine):
+
+```
+column not in menu[source]               -> "unknown column <c>"
+duplicate column                         -> "column <c> twice"
+filter column not in menu                -> "unknown filter column <c>"
+text column with op not in (=, !=)       -> "<c> takes = or != only"
+number column with a non-number value    -> "<c> needs a number"
+sort not None and not in menu            -> "unknown sort column <c>"
+```
+
+**Run** (`run_recipe(home, recipe) -> list[dict[str, Any]]`):
+
+```
+check_recipe(recipe) != ""   -> ValueError
+no desk.db                   -> []
+sql = SELECT <expr AS name, ...> FROM <from>
+      WHERE <day> = (SELECT MAX(<day col>) FROM <day table>)
+        AND <expr> <op> ? ...                  -- values bound, op from the Literal set
+      ORDER BY <sort expr> IS NULL, <sort expr> DESC|ASC   (when sort is set)
+      LIMIT ?                                  -- min(limit, 100)
+connect f"{path.as_uri()}?mode=ro"; sqlite3.Error -> []
+```
+
+Number values are rounded to 2 places. The latest data day is found again on every call, so an approved panel shows the new day's rows after each evening run without a rebuild (refresh choice).
+
+**Words** (`recipe_words(recipe) -> str`), for example: `Scores · symbol, side, score, sector · side = long, score > 80, sector = Technology · score high to low · up to 20 rows`.
+
+**Tables** (`core/desk_data_asks.py`, in `desk.db`):
+
+```
+data_requests(id INTEGER PK, created TEXT, text TEXT)
+asked_products(id INTEGER PK, created TEXT, request_id INTEGER UNIQUE, state TEXT,
+               title TEXT, recipe TEXT, reason TEXT)     state 'proposed' or 'failed'
+  + no-update and no-delete triggers on both tables
+ask_data(home, text, now) -> int:
+    text stripped; 1..300 chars else ValueError
+    INSERT data_requests; post_event(home, "data_request", now date, now, run_id=id)
+open_request(home, now) -> DataRequest | None:
+    oldest request with no asked_products row and created within 2 hours
+add_asked(home, request_id, recipe | None, reason, now) -> int:
+    INSERT asked_products: proposed (title, recipe JSON) when recipe, else failed (reason)
+waiting_products(home) -> list[AskedProduct]     proposed with no 'data_product' approval
+failed_products(home, now) -> list[AskedProduct]  failed within the last day, newest first
+approved_products(home) -> list[AskedProduct]    proposed with an 'approve' row
+decide_product(home, product_id, decision, now) -> str:
+    decision not in {approve, reject} -> "unknown decision"
+    not a proposed product            -> "not found"
+    a decision row exists             -> "already decided"
+    INSERT approvals (now, 'data_product', str(id), decision, title)
+    sqlite3.Error                     -> "could not save"
+```
+
+`AskedProduct` (frozen): `id, created, request_id, request, state, title, recipe (DataRecipe | None), reason`. A stored recipe that no longer parses or checks is `None`, and the product is left out of the catalog.
+
+**Event.** `EVENT_RULES["data_request"] = EventRule(0, 5 min, 2 h)`. The key is `data_request|<day>|<request id>`, like `chat_question`.
+
+**Skill** (`DataRecipeSkill`, key `data_recipe`, needs `()`):
+
+```
+facts(home):
+    r = open_request(home, now NY)              none -> fresh False, "no open request"
+    text = "Request #<id>: <text>"
+         + "Menu:" one line per source: label (key): column (type), ...
+         + "Known values:" sides long/short, idea status list/watch, pick status list,
+           sector names of the latest sector_daily day
+         + the rules: one source; menu columns only; empty recipe and a reason when the
+           menu cannot serve the request
+act(ctx, facts):
+    r = open_request(ctx.home, now)             gone -> []
+    ans = ctx.ask(facts.text, DataRecipeAnswer)
+    ans None                -> failed "The desk could not answer this request"
+    ans.recipe None         -> failed ans.reason (or "The menu cannot serve this request")
+    check_recipe() != ""    -> failed "The recipe did not pass the check: <why>"
+    else                    -> proposed
+    log INFO "[Data] Request %d proposed: %s" (title) / WARNING "[Data] Request %d failed: %s"
+    return []                                   no feed item
+```
+
+`DataRecipeAnswer(recipe: DataRecipe | None, reason: str 0..300, extra forbid)`.
+
+**Employee** `emp-009`: name "Expert 7", title "Data analyst", level expert, skill `data_recipe`, trigger `data_request`, models as the other experts, `calls_per_day: 20`, `monthly_cost_usd: 3.0`. The soul says: choose from the menu only, never write SQL, keep the title short, say why when the menu cannot serve the request.
+
+**Floor catalog** (`DeskFloorData`). `products()` appends one product per approved asked product: id `asked.<id>`, title `<title> (asked)`, kind `table`, views `("table",)`, columns the recipe columns, no filters. `rows("asked.<id>", _)` runs the recipe; an unknown id gives `[]`.
+
+**GUI — Ask box** (`CatalogDialog(products, parent, ask=None)`). Under the list: a `QLineEdit` (max 300, placeholder "Ask the desk for new data") and an Ask button, disabled while the box is empty. `ask(text) -> str` returns an empty string when the request was saved (the box is cleared and "Sent. The new panel will wait for you in AI Desk → Command." shows) or the reason it was not (the text is kept). Ask is the default button while the box has text, so Enter sends the request instead of adding a panel. `MarketFloor` passes `_ask_desk`, which calls `ask_data(feed home, text, now)`, and refreshes its product list each time the catalog opens. With no `ask` the box is hidden.
+
+**GUI — Approvals waiting.** `ask_cards()` adds one Ask card per waiting product: sender "Data", subject `New panel · <title>`, time = created, text = recipe words + the first 5 preview rows (`a · b · c` per row, or "No rows on the latest day"), `ref = "data"`, `item = product id`. The card has Approve and Reject; each calls `decide_product()`, and the box reloads, so a decided product leaves the list. `failed_cards()` gives one Desk card per failed request of the last day (subject `Request not built`, text `<request> — <reason>`, no buttons). `WaitingBox` shows them after the Asks; they do not count in the heading.

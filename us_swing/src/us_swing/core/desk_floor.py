@@ -11,6 +11,7 @@ Also: MD-GUI-034.022.M19 — report page versions for AI Desk Pages (SRD-GUI-034
 Also: MD-GUI-034.032.M22 — weekly reports for AI Desk Reports (SRD-GUI-034.032)
 Also: MD-GUI-034.054.M32 — AI feed cards (SRD-GUI-034.054)
 Also: MD-GUI-034.047.M29 — market tiles, breadth history and header chips (SRD-GUI-034.045, .047, .049)
+Also: MD-MKT-011.007.M05 — approved asked panels (SRD-MKT-011.007)
 
 Market Floor data from ``desk.db``: the real regime, breadth, sectors and RS leaders when
 the desk has them, the fallback provider (sample data) for every other product.
@@ -27,7 +28,9 @@ from typing import Any
 
 from us_swing.core.desk_ai_settings import load_settings
 from us_swing.core.desk_contract import DB_NAME, FloorData, ProductDescriptor, desk_home
+from us_swing.core.desk_data_asks import approved_products
 from us_swing.core.desk_feed import FeedCard, feed_cards
+from us_swing.core.desk_recipes import DataRecipe, run_recipe
 from us_swing.core.econ_calendar import events_between, trading_days_after
 
 REGIME_ID = "regime.today"
@@ -71,6 +74,7 @@ _REAL_FILTERS: dict[str, dict[str, tuple[str, ...]]] = {
     CALENDAR_ID: {"importance": ("high", "medium")},
 }
 NY = ZoneInfo("America/New_York")
+ASKED_PREFIX = "asked."
 
 
 @dataclass(frozen=True)
@@ -128,7 +132,8 @@ class DeskFloorData:
                  clock: Callable[[], datetime] | None = None) -> None:
         """Use ``fallback`` for products the desk does not provide yet; ``clock`` is for tests."""
         self._fallback = fallback
-        self._path = (home or desk_home()) / DB_NAME
+        self._home = home or desk_home()
+        self._path = self._home / DB_NAME
         self._clock = clock or (lambda: datetime.now(NY))
 
     def _query(self, sql: str) -> tuple[Any, ...] | None:
@@ -220,7 +225,17 @@ class DeskFloorData:
                 LEADERS_ID, f"RS leaders ({leaders_day})", "table", ("table",), _LEADER_COLUMNS,
                 {"sector": self._leader_sectors(leaders_day)},
             ))
+        out += [ProductDescriptor(f"{ASKED_PREFIX}{p.id}", f"{p.title} (asked)", "table",
+                                  ("table",), tuple(p.recipe.columns))
+                for p in approved_products(self._home) if p.recipe is not None]
         return out
+
+    def _asked(self, product_id: str) -> list[dict[str, Any]]:
+        recipes: dict[str, DataRecipe] = {f"{ASKED_PREFIX}{p.id}": p.recipe
+                                          for p in approved_products(self._home)
+                                          if p.recipe is not None}
+        recipe = recipes.get(product_id)
+        return run_recipe(self._home, recipe) if recipe is not None else []
 
     def rows(self, product_id: str, filters: Mapping[str, str]) -> list[dict[str, Any]]:
         """Return desk rows for regime and breadth when stored, else fallback rows."""
@@ -266,6 +281,8 @@ class DeskFloorData:
             return tiles
         if product_id == HISTORY_ID and (history := self._history()):
             return history
+        if product_id.startswith(ASKED_PREFIX):
+            return self._asked(product_id)
         return self._fallback.rows(product_id, filters)
 
     def _tiles(self) -> list[dict[str, Any]]:

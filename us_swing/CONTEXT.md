@@ -2,14 +2,16 @@
 
 **Document:** CONTEXT.md
 **Project:** us_swing
-**Last Updated:** 2026-11-07 (Session 126)
+**Last Updated:** 2026-11-10 (Session 127)
 **Updated By:** Claude (Opus 5.5)
 
 ---
 
-**Next (handover, 2026-11-07):** User checks T132–T134 (design phases 1–3, branch `feat/gui-floor-design` in worktree `F:\USMarket_floor`, not pushed). All 3 design phases are done; push and PR when the user says. P10 docs stay uncommitted on `feat/p10-ask-data`. Earlier handover: User check T131 (P9: restart the desk so Lead 2, emp-008, is seeded; in AI Desk → Command type a question and press Ask; the answer shows in about 10–60 s; with the desk stopped the chat says to start it). Then P10 (ask the desk for new data, Floor; FO-MKT-011 to be designed with the user). Also open: T129, T130 and the desk restart checks (T123, T126–T128). Branch feat/p9-lead-chat not pushed; push/PR when the user says.
+**Next (handover, 2026-11-10):** P10 is merged to main (PR from `feat/p10-ask-data`). P10 user check T135 done (flash fix confirmed). User checks open: T132–T134 (Floor design, merged via PR #127), T123–T131.
 
-**Current (Session 126c, 2026-11-07):** **AI Desk design match, phase 3 (Feature, GUI; FO-GUI-034; RN-GUI-1.12.0-20261107; SRD-GUI-034.059–.064 approved and Implemented; SRD-GUI-034.034–.036 reopened by user, done as cards and Implemented again).** Grouped section list with Command count, last run and AI spend header, chat bubbles, approval feed cards, real Today's runs, Team now. 9 new tests Pass.
+**Current (Session 127, 2026-11-10):** **Ask the desk for new data, phase P10 (Feature, MKT + GUI; FO-MKT-011; RN-MKT-0.12.0-20261110; SRD-MKT-011.001–.009 and SRD-GUI-034.042–.044 approved by user and Implemented).** The Floor Add panel catalog has an Ask box; the request becomes a `data_request` event; new data employee Expert 7 (`emp-009`, skill `data_recipe`) fills a recipe from a fixed menu (no SQL); code checks it and runs it read-only on the latest day. The proposed panel waits in Approvals waiting with 5 preview rows; Approve adds it to the catalog as "(asked)". Also this session: Floor design branch merged via PR #127 (9b3718af); P10 docs moved onto the new main.
+
+**Also (Session 126c, 2026-11-07):** **AI Desk design match, phase 3 (Feature, GUI; FO-GUI-034; RN-GUI-1.12.0-20261107; SRD-GUI-034.059–.064 approved and Implemented; SRD-GUI-034.034–.036 reopened by user, done as cards and Implemented again).** Grouped section list with Command count, last run and AI spend header, chat bubbles, approval feed cards, real Today's runs, Team now. 9 new tests Pass.
 
 **Also (Session 126b, 2026-11-07):** **AI feed cards, design phase 2 (Feature, GUI; FO-GUI-034; RN-GUI-1.11.0-20261107; SRD-GUI-034.053–.058 approved by user and Implemented).** Typed feed cards (Result, Ask, Answer, Desk) from briefs, waiting picks, ready hires, lead replies and failed runs; filter tabs All / Ideas / Asks n / Alerts; Approve and Reject in the feed through shared `core/desk_feed.py`; Open in Charts and AI Desk sections from the feed; live dot and Talk to lead footer. 9 new tests Pass.
 

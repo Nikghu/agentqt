@@ -5,6 +5,7 @@ Also: SRD-GUI-034.028 (Start hire form), SRD-GUI-034.029 (shadow report),
 SRD-GUI-034.030 (decision buttons), SRD-GUI-034.031 (Command approvals box)
 Also: MD-GUI-034.034.M24 — SRD-GUI-034.034–.036 (trade picks in Approvals waiting)
 Also: MD-GUI-034.062.M36 — approval cards (SRD-GUI-034.062)
+Also: MD-GUI-034.043.M38 — asked panel cards and failed requests (SRD-GUI-034.043, .044)
 
 The AI Desk Hiring section: hires made through the pipeline, the Start hire form, the
 chosen hire's shadow report and the Replace / Add / Reject decision. All rules live in
@@ -42,7 +43,7 @@ from us_swing.core.desk_hiring import (
     shadow_report,
     start_hire,
 )
-from us_swing.core.desk_feed import ask_cards
+from us_swing.core.desk_feed import ask_cards, failed_cards
 from us_swing.core.desk_steps import SKILL_PATHS
 from us_swing.core.desk_trades import DeskTradeSink
 from us_swing.gui.ai_desk_sections import heading, make_table, muted, section_frame
@@ -249,13 +250,14 @@ class WaitingBox(QWidget):
                 widget.hide()
                 widget.setParent(None)
                 widget.deleteLater()  # a card may still be inside its own click handler
-        asks = ask_cards(self._home, self._context.clock())
+        now = self._context.clock()
+        asks = ask_cards(self._home, now)
         self.count = len(asks)
         self._lines.addWidget(heading(f"Approvals waiting · {self.count}" if asks
                                       else "Approvals waiting"))
         if not asks:
             self._lines.addWidget(muted(NO_APPROVALS))
-        for ask in asks:
+        for ask in asks + failed_cards(self._home, now):
             card = FeedCardWidget(ask, self._context)
             # card → section_requested → box → open Hiring; chart_requested → page → window
             card.section_requested.connect(lambda _name: self._open_hiring())

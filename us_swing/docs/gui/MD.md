@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.23.0: MD-GUI-034.042.M37 and .043.M38 added (MKT P10 ask the desk for new data).
 > v1.22.0: MD-GUI-034.059.M33, .060.M34, .061.M35, .062.M36 added (AI Desk design phase 3).
 > v1.21.0: MD-GUI-034.053.M31 and .054.M32 added (AI feed cards).
 > v1.20.0: MD-GUI-034.045.M28, .047.M27, .047.M29, .052.M30 added (Floor design phase 1).
@@ -445,5 +446,7 @@ us_swing/src/us_swing/gui/
 | MD-GUI-034.060.M34 | SRD-GUI-034.060 | `us_swing/src/us_swing/core/desk_overview.py` | Today's runs, last run, AI spend and team counts from desk.db | `todays_runs()`, `last_run()`, `spend()`, `team_counts()` | `core.desk_hiring`, `core.desk_ai_settings` | No |
 | MD-GUI-034.061.M35 | SRD-GUI-034.061 | `us_swing/src/us_swing/gui/ai_desk_chat.py` | Chat turns as left and right bubbles | `ChatPanel` | — | No |
 | MD-GUI-034.062.M36 | SRD-GUI-034.062 | `us_swing/src/us_swing/gui/ai_desk_hiring.py`, `gui/ai_desk_sections.py`, `gui/floor_feed.py`, `core/desk_feed.py` | Approval cards box, real Today's runs and Team now in Command; quantity on pick cards | `WaitingBox`, `approvals_box()`, `runs_box()`, `command_frame()`, `ask_cards()` | `core.desk_feed`, `core.desk_overview` | No |
+| MD-GUI-034.042.M37 | SRD-GUI-034.042 | `us_swing/src/us_swing/gui/floor_dialogs.py`, `gui/market_floor.py` | Ask the desk for new data box in the Add panel catalog | `CatalogDialog`, `MarketFloor` | `core.desk_data_asks` | No |
+| MD-GUI-034.043.M38 | SRD-GUI-034.043 | `us_swing/src/us_swing/core/desk_feed.py`, `gui/floor_feed.py`, `gui/ai_desk_hiring.py` | Data product Ask cards with Approve and Reject, and failed request cards | `ask_cards()`, `failed_cards()`, `FeedCardWidget`, `WaitingBox` | `core.desk_data_asks`, `core.desk_recipes` | No |
 
 SRD coverage: .059 by M33; .060 by M33 and M34; .061 by M35; .062–.064 and the reopened .034–.036 by M36; .053, .055–.058 by M31; .054 and .056 by M32; .045–.046 by M28; .047–.051 by M27 and M29; .052 by M30; .039–.041 by M26; .037–.038 by M25; .034–.036 by M24; .002 and .003 by M02 and M09; .004 by M04; .005 by M05; .006 and .007 by M06; .008 by M07; .009 by M08; .010 by M03 and M09.

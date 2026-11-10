@@ -100,7 +100,7 @@ The desk works in NY time (`zoneinfo` "America/New_York"). Windows tasks are set
 | P7 | Link to Execution | MKT / FO-MKT-008 | Approved idea reaches EXE |
 | P8 | Pick results: paper and real results, breakdowns, Results section, weekly report | MKT / FO-MKT-009 | Every lead pick has a paper result; a closed AI Desk trade has a real result |
 | P9 | Lead chat: Master questions in Command answered by a lead-level chat employee | MKT / FO-MKT-010 | A question in Command gets a recorded answer |
-| P10 | Ask the desk for new data (Floor) | MKT / FO-MKT-011 (planned) | To be designed |
+| P10 | Ask the desk for new data: request in the Floor catalog, recipe from a fixed menu, preview and approval | MKT / FO-MKT-011 | An approved asked panel shows the latest day's rows |
 
 ### 0.7 Questions and answers
 

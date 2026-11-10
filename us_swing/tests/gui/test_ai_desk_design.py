@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QFrame, QLabel, QPushButton
+from PyQt6.QtWidgets import QFrame, QLabel, QPushButton, QWidget
 from pytestqt.qtbot import QtBot
 
 from tests.desk.test_hiring import _emp, _try
@@ -146,9 +146,11 @@ def test_todays_runs_box(qtbot: QtBot, tmp_path: Path) -> None:
 
 def test_team_line(qtbot: QtBot) -> None:
     """UT-GUI-034.064.M36.T01: the Team now line lists counts; hidden with no employees."""
-    label = team_line({"active": 2, "shadow": 1})
-    qtbot.addWidget(label)
-    assert label.text() == "Team now: 2 active · 1 shadow" and not label.isHidden()
-    empty = team_line({})
-    qtbot.addWidget(empty)
-    assert empty.isHidden()
+    holder = QWidget()
+    qtbot.addWidget(holder)
+    label, empty = team_line({"active": 2, "shadow": 1}), team_line({})
+    for line in (label, empty):
+        line.setParent(holder)
+    holder.show()
+    assert label.text() == "Team now: 2 active · 1 shadow" and label.isVisible()
+    assert not empty.isVisible()

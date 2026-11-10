@@ -2,6 +2,7 @@
 Module: MD-DSK-003.004.M15 — core/desk_events.py
 Parent SRD: SRD-DSK-003.004
 Also: SRD-DSK-003.005 (event kinds and priorities); MD-MKT-010.002.M02 — ``chat_question`` (SRD-MKT-010.002)
+Also: MD-MKT-011.002.M02 — ``data_request`` (SRD-MKT-011.002)
 
 Wake-up events in ``desk.db``. Any tool may post one (for example the market regime step
 posts ``regime_change``); only the desk router changes an event's state. Clock and regime
@@ -39,8 +40,10 @@ EVENT_RULES: dict[str, EventRule] = {
     "market_open": EventRule(2, None, timedelta(minutes=30)),
     "market_close": EventRule(2, None, timedelta(minutes=30)),
     "chat_question": EventRule(0, timedelta(minutes=2), timedelta(minutes=30)),
+    "data_request": EventRule(0, timedelta(minutes=5), timedelta(hours=2)),
 }
 EVENT_KINDS: tuple[str, ...] = tuple(EVENT_RULES)
+_PER_ID = ("after_run", "chat_question", "data_request")
 
 
 @dataclass(frozen=True)
@@ -86,8 +89,8 @@ def post_event(home: Path, kind: str, data_day: str, now: datetime,
         kind: One of ``EVENT_KINDS``.
         data_day: Data day (``YYYY-MM-DD``) the event is about.
         now: Time-zone aware time of posting.
-        run_id: Desk run for ``after_run``, or the question id for ``chat_question``, so
-            each run or question posts its own event.
+        run_id: Desk run for ``after_run``, the question id for ``chat_question`` or the
+            request id for ``data_request``, so each one posts its own event.
 
     Raises:
         ValueError: When ``kind`` is not a known event kind.
@@ -95,7 +98,7 @@ def post_event(home: Path, kind: str, data_day: str, now: datetime,
     rule = EVENT_RULES.get(kind)
     if rule is None:
         raise ValueError(f"unknown event kind {kind}")
-    key = (f"{kind}|{data_day}|{run_id}" if kind in ("after_run", "chat_question")
+    key = (f"{kind}|{data_day}|{run_id}" if kind in _PER_ID
            else f"{kind}|{data_day}")
     deadline = (now + rule.deadline).isoformat(timespec="seconds") if rule.deadline else None
     con = open_events(home)
