@@ -1186,7 +1186,7 @@ Test files:
 | UT-GUI-035.004.M02.T02 | MD-GUI-035.002.M02 | Positive | Finished run states (SRD-GUI-035.004) | backup try valid, one member never called | Done · backup used; No call | Pass |
 | UT-GUI-035.006.M02.T01 | MD-GUI-035.002.M02 | Positive | Events and scorecard (SRD-GUI-035.006–.007) | evening run and chat question | calls linked to each event; retries, backup, valid share, last error, total cost | Pass |
 | UT-GUI-035.009.M02.T01 | MD-GUI-035.002.M02 | Negative | Empty desk (SRD-GUI-035.009) | no desk folder | empty lists; total row with no calls | Pass |
-| UT-GUI-035.002.M01.T01 | MD-GUI-035.001.M01 | Positive | Live tab (SRD-GUI-035.002–.004) | running run | run label with ET and IST; chips; Right now names the worker; card states; view switch | Pass |
+| UT-GUI-035.002.M01.T01 | MD-GUI-035.001.M01 | Positive | Live tab (SRD-GUI-035.002–.004, .012) | running run | run label with ET and IST; stat tile values (`2`, `1 of 3`); Right now names the worker; card states; view switch | Pass |
 | UT-GUI-035.008.M04.T01 | MD-GUI-035.007.M04 | Positive | Follow live and wheel (SRD-GUI-035.008) | running run, wheel step | worker picked first; step picks next; Follow live off; Team · 3 of 4 | Pass |
 | UT-GUI-035.008.M04.T02 | MD-GUI-035.007.M04 | Positive | Wheel input and peek (SRD-GUI-035.008) | key, scroll, click, Prompt, Answer | wheel rolls; prompt and error text shown; no-call note | Pass |
 | UT-GUI-035.006.M03.T01 | MD-GUI-035.006.M03 | Positive | Event log rows (SRD-GUI-035.006) | finished run and chat | 2 events; 3 calls with error; call click picks; Problems keeps 1 | Pass |

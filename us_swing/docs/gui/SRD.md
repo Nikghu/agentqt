@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.99.0: SRD-GUI-035.012 added and Implemented — Team at work clean look (user asked 2026-11-10).
 > v2.98.0: SRD-GUI-018.012 added and Implemented — AI Desk sections in the sidebar (user chose the layout 2026-11-10).
 > v2.97.2: SRD-GUI-034.042–.044 Implemented (RN-MKT-0.12.0-20261110).
 > v2.97.1: SRD-GUI-034.042–.044 approved by user 2026-11-10.
@@ -770,3 +771,4 @@
 | SRD-GUI-035.009 | FO-GUI-035 | Must | Team at work reads desk.db read-only through core and refreshes every 3 seconds while shown and the desk runs. | desk.db | views | Never imports `desk` | Implemented |
 | SRD-GUI-035.010 | FO-GUI-035 | Must | Team at work shows a red banner for each open AI problem alert with its time and fix step. | alerts | banner | Hidden when no alert is open | Implemented |
 | SRD-GUI-035.011 | FO-GUI-035 | Must | The AI feed shows each open alert as a Desk card with the fix step. | alerts | card | Card leaves when the alert closes | Implemented |
+| SRD-GUI-035.012 | FO-GUI-035 | Should | Team at work matches the design look: icon cards with clear borders, dot chips, drawn arrows, stat tiles, underline tabs and bordered panels. | theme tokens, icons | restyled section | Look only; data and actions unchanged | Implemented |

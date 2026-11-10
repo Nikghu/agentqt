@@ -2,6 +2,17 @@
 
 ---
 
+## [20261110] GUI — Team at work clean look (SRD-GUI-035.012)
+
+- Type: Enhancement
+- FO(s): FO-GUI-035 (SRD .012 added)
+- RN: RN-GUI-1.15.0-20261110
+- Artifacts updated: SRD, DD (DD-GUI-035.001.D01 Look), UTCD (T01 updated), TRACE, Code (gui/ai_desk_team, gui/ai_desk_team_pane)
+- Decisions: follow the Final draft board of the design canvas; skill icons picked by skill words, never by employee names
+- Tests: AI Desk + sidebar suites 89 pass; old `test_main_window_lists_screens` fails on main too (T141)
+
+---
+
 ## [20261110] GUI — AI Desk menu in the sidebar (SRD-GUI-018.012)
 
 - Type: Feature
