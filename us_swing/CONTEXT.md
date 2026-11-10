@@ -2,10 +2,12 @@
 
 **Document:** CONTEXT.md
 **Project:** us_swing
-**Last Updated:** 2026-11-10 (Session 128b)
+**Last Updated:** 2026-11-10 (Session 129)
 **Updated By:** Claude (Opus 5.5)
 
 ---
+
+**Current (Session 129, 2026-11-10):** **AI Desk menu in the sidebar (Feature, GUI; FO-GUI-018; RN-GUI-1.14.0-20261110; SRD-GUI-018.012 chosen by user and Implemented).** The AI Desk sections now sit under the AI Desk item in the left sidebar and show only on that screen; the page drops its 190 px list. Branch `feat/gui-desk-nav-sidebar`, committed, not pushed. User check T140.
 
 **Next (handover, 2026-11-10, Session 128):** AI Desk Team at work (FO-GUI-035) is done on branch `feat/gui-team-at-work`, committed, not pushed. User check T137, then push and PR when the user says. The real 2026-11-09 evening run failed for every employee because the Claude CLI login expired (T138); the desk now alerts on this (FO-DSK-007, same branch). User checks still open: T132–T134, T123–T131, T139.
 

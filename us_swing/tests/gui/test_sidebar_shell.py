@@ -331,3 +331,28 @@ def test_mini_shows_plug_with_worst_status(sidebar):
     assert conn._badge.property("colour") == active_palette().RED
     tip = conn._plug.toolTip().splitlines()
     assert [line.split(":")[0] for line in tip] == ["Internet", "IBKR Feed", "Market"]
+
+
+def test_sub_nav_shows_on_its_screen(sidebar):
+    """UT-GUI-018.012.M05.T01: Sub-menu shows under its item only while that screen is
+    checked."""
+    sub = QWidget()
+    sidebar.add_sub_nav(3, sub)
+    layout = sidebar.layout()
+    assert layout.indexOf(sub) == layout.indexOf(sidebar._nav[3]) + 1
+    assert sub.isHidden()
+    sidebar.set_current(3)
+    assert not sub.isHidden()
+    sidebar._nav[1].click()
+    assert sub.isHidden()
+
+
+def test_sub_nav_hidden_without_labels(sidebar):
+    """UT-GUI-018.012.M05.T02: Mini mode hides the sub-menu; hover peek shows it again."""
+    sub = QWidget()
+    sidebar.add_sub_nav(3, sub)
+    sidebar.set_current(3)
+    sidebar.set_mini(True)
+    assert sub.isHidden()
+    sidebar.set_labels_visible(True)
+    assert not sub.isHidden()

@@ -6,6 +6,7 @@ Also: SRD-GUI-034.027–.032 — real Hiring, Command approvals and Reports (liv
 Also: MD-GUI-034.059.M33 — grouped section list, Command badge, header chips and spend bar
 (SRD-GUI-034.059–.060)
 Also: MD-GUI-035.001.M01 — Team at work replaces the five sample team sections (SRD-GUI-035.001)
+Also: SRD-GUI-018.012 — the section list moves to the sidebar under the AI Desk item
 """
 from __future__ import annotations
 
@@ -15,7 +16,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QShowEvent
+from PyQt6.QtGui import QShowEvent
 from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -60,7 +61,7 @@ _LIVE_SECTIONS = ("Command", "Hiring", "Pages", "Reports", "Results", "Cost & bu
 def _nav_style() -> str:
     return (
         f"QListWidget {{ background: transparent; border: none; outline: none; }}"
-        f"QListWidget::item {{ padding: 6px 12px; border-radius: 4px; margin: 1px 4px; }}"
+        f"QListWidget::item {{ padding: 4px 10px; border-radius: 4px; margin: 1px 4px; }}"
         f"QListWidget::item:hover:!selected {{ background: {C.OVERLAY}; }}"
         f"QListWidget::item:selected {{ background: {C.OVERLAY}; color: {C.BLUE}; }}"
         f"QListWidget::item:focus {{ outline: none; border: none; }}"
@@ -79,7 +80,7 @@ def _chip(text: str, tone: str) -> QLabel:
 
 
 class AiDeskWorkspace(QWidget):
-    """AI Desk page: grouped section list on the left, section frame on the right."""
+    """AI Desk page: header and section frame; the grouped section list is ``nav``."""
 
     chart_requested = pyqtSignal(str)
 
@@ -95,11 +96,10 @@ class AiDeskWorkspace(QWidget):
         main = QHBoxLayout(self)
         main.setContentsMargins(0, 0, 0, 0)
         main.setSpacing(GAP)
-        self._list = QListWidget()
-        self._list.setFixedWidth(190)
+        self._list = QListWidget(self)
+        self._list.hide()
         self._list.setStyleSheet(_nav_style())
         self._fill_list()
-        main.addWidget(card(self._list))
         right = QVBoxLayout()
         right.setSpacing(GAP)
         right.addWidget(card(self._build_top(poller)))
@@ -117,23 +117,19 @@ class AiDeskWorkspace(QWidget):
         self.select_section("Command")
         self.refresh_header()
 
+    @property
+    def nav(self) -> QListWidget:
+        """The grouped section list, for the main window to place in the sidebar."""
+        return self._list
+
     def _folder(self) -> Path:
         return self._home or desk_home()
 
     def _fill_list(self) -> None:
-        small = self._list.font()
-        small.setPointSizeF(max(small.pointSizeF() - 1.5, 6.0))
-        small.setBold(True)
-        for group, names in GROUPS:
-            head = QListWidgetItem(group)
-            head.setFlags(Qt.ItemFlag.NoItemFlags)
-            head.setFont(small)
-            head.setForeground(QColor(C.MUTED))
-            self._list.addItem(head)
-            for name in names:
-                item = QListWidgetItem(name)
-                item.setData(_ROLE, name)
-                self._list.addItem(item)
+        for name in SECTIONS:
+            item = QListWidgetItem(name)
+            item.setData(_ROLE, name)
+            self._list.addItem(item)
 
     def _item(self, name: str) -> QListWidgetItem | None:
         for row in range(self._list.count()):

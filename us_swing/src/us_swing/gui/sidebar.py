@@ -4,6 +4,7 @@ Parent SRD: SRD-GUI-018.001
 Connections panel: MD-GUI-018.008.M04 (Parent SRD: SRD-GUI-018.008)
 Settings item: MD-GUI-027.004.M02 (Parent SRD: SRD-GUI-027.004)
 Updates item: MD-GUI-027.004.M02 (Parent SRD: SRD-GUI-027.005)
+Screen sub-menu: MD-GUI-018.012.M05 (Parent SRD: SRD-GUI-018.012)
 
 Left navigation for the four screens plus a Settings item, with a mini (icon-only) mode, a
 Connections panel (internet, IBKR feed, market), an Updates item and an account footer that
@@ -407,7 +408,9 @@ class Sidebar(QFrame):
         super().__init__(parent)
         self.setObjectName("sidebar")
         self._mini = False
+        self._labels_on = True
         self._labels: dict[QPushButton, str] = {}
+        self._subs: dict[int, QWidget] = {}
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
@@ -432,6 +435,8 @@ class Sidebar(QFrame):
             self._nav.append(btn)
             layout.addWidget(btn)
         self._group.idClicked.connect(self.page_requested)
+        # group → idToggled → sidebar → show the checked screen's sub-menu
+        self._group.idToggled.connect(lambda *_: self._sync_subs())
 
         layout.addStretch(1)
         # Outside the screen group: opening Settings never changes the checked screen.
@@ -478,6 +483,21 @@ class Sidebar(QFrame):
         self._labels[btn] = label
         return btn
 
+    def add_sub_nav(self, index: int, widget: QWidget) -> None:
+        """Place ``widget`` under nav item ``index``; it shows only while that screen is
+        checked and labels are visible (SRD-GUI-018.012)."""
+        layout = self.layout()
+        assert isinstance(layout, QVBoxLayout)
+        widget.setContentsMargins(20, 0, 0, 0)
+        layout.insertWidget(layout.indexOf(self._nav[index]) + 1, widget, 10)
+        self._subs[index] = widget
+        self._sync_subs()
+
+    def _sync_subs(self) -> None:
+        checked = self._group.checkedId()
+        for index, widget in self._subs.items():
+            widget.setVisible(self._labels_on and index == checked)
+
     @property
     def is_mini(self) -> bool:
         return self._mini
@@ -512,6 +532,8 @@ class Sidebar(QFrame):
         """Show or hide button labels and footer details (used for mini and peek)."""
         for btn, label in self._labels.items():
             btn.setText(label if visible else "")
+        self._labels_on = visible
+        self._sync_subs()
         self._conn.set_mini(not visible)
         self._footer.set_mini(not visible)
 

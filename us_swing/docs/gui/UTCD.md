@@ -567,6 +567,8 @@ Test files:
 | UT-GUI-018.010.M04.T01 | MD-GUI-018.008.M04 | Positive | Open market counts to close | Wed 2026-10-21 13:46 ET | ("open", "Open", "closes in 2h 14m") | Pass |
 | UT-GUI-018.010.M04.T02 | MD-GUI-018.008.M04 | Edge | Weekend and holiday skipped | Fri 2026-10-23 17:00; Wed 2026-11-25 20:30; Fri 2026-10-30 17:00 (DST ends) | "opens in 2d 16h"; "opens in 1d 13h"; "opens in 2d 17h" | Pass |
 | UT-GUI-018.011.M04.T01 | MD-GUI-018.008.M04 | Positive | Mini shows plug with worst status | `set_mini(True)`, offline | rows hidden; plug shown; badge red; tooltip has 3 rows | Pass |
+| UT-GUI-018.012.M05.T01 | MD-GUI-018.012.M05 | Positive | Sub-menu shows on its screen | `add_sub_nav(3, w)`, `set_current(3)`, click item 1 | placed after item 3; hidden, shown, hidden | Pass |
+| UT-GUI-018.012.M05.T02 | MD-GUI-018.012.M05 | Edge | Mini hides, peek shows | screen 3 on, `set_mini(True)`, `set_labels_visible(True)` | hidden, then shown | Pass |
 
 ## FO-GUI-019 — Side Panels and Exit Drawer
 
@@ -1158,7 +1160,7 @@ Test files:
 | UT-GUI-034.056.M31.T02 | MD-GUI-034.053.M31 | Positive | Open buttons (SRD-GUI-034.056) | Open in Charts, Open Hiring, Open chat | chart AAA; sections Hiring and Command | Pass |
 | UT-GUI-034.057.M31.T01 | MD-GUI-034.053.M31 | Positive | Live dot and footer (SRD-GUI-034.057) | Sleeping then Off; footer click | dot green then grey; section Command | Pass |
 | UT-GUI-034.058.M31.T01 | MD-GUI-034.053.M31 | Positive | Reload (SRD-GUI-034.058) | decided signal; page shown | feed read again each time | Pass |
-| UT-GUI-034.059.M33.T01 | MD-GUI-034.059.M33 | Positive | Grouped list (SRD-GUI-034.059) | open AI Desk | 6 headings, 12 sections in order; heading not selectable; select by name works | Pass |
+| UT-GUI-034.059.M33.T01 | MD-GUI-034.059.M33 | Positive | Section list (SRD-GUI-034.059, SRD-GUI-018.012) | open AI Desk | 8 sections in group order, no headings; list handed out as hidden `nav`; select by name works | Pass |
 | UT-GUI-034.059.M33.T02 | MD-GUI-034.059.M33 | Positive | Command badge (SRD-GUI-034.059) | 2 waiting picks; then 0 | Command shows 2; then plain Command | Pass |
 | UT-GUI-034.060.M34.T01 | MD-GUI-034.060.M34 | Positive | Runs, last run, spend, team (SRD-GUI-034.060) | desk.db with runs, activity, employees | events summed; last run; today and month spend; counts | Pass |
 | UT-GUI-034.060.M33.T01 | MD-GUI-034.059.M33 | Positive | Header chips (SRD-GUI-034.060) | desk.db with a finished run and spend | last run chip and spend text with bar percent | Pass |

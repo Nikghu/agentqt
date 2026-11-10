@@ -2,6 +2,17 @@
 
 ---
 
+## [20261110] GUI — AI Desk menu in the sidebar (SRD-GUI-018.012)
+
+- Type: Feature
+- FO(s): FO-GUI-018 (SRD .012 added)
+- RN: RN-GUI-1.14.0-20261110
+- Artifacts updated: SRD (GUI-018.012 Implemented), DD (DD-GUI-018.001.D01), MD (M05), UTCD (2 new, 1 updated, Pass), TRACE, Code (gui/sidebar, gui/ai_desk, gui/main_window)
+- Decisions: user chose sections nested under the AI Desk item, shown only on AI Desk; headings dropped so the list fits
+- Tests: sidebar + AI Desk suites 65 pass; old `test_main_window_lists_screens` fails on main too (T141)
+
+---
+
 ## [20261110] DSK + GUI — AI problem alerts (FO-DSK-007)
 
 - Type: Feature

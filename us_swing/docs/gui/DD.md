@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.12.0: DD-GUI-018.001.D01 gains the screen sub-menu (SRD-GUI-018.012), 2026-11-10.
 > v1.11.0: DD-GUI-034.059.D01 added — AI Desk design match (phase 3), 2026-11-07.
 > v1.10.0: DD-GUI-034.053.D01 added — AI feed cards (phase 2), 2026-11-07.
 > v1.9.0: DD-GUI-034.045.D01 added — Market Floor design match (phase 1), 2026-11-07.
@@ -1526,7 +1527,7 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 
 ## DD-GUI-018.001.D01 — Sidebar Workspace Shell
 
-**Traces:** SRD-GUI-018.001–.011
+**Traces:** SRD-GUI-018.001–.012
 
 **Layout.** Title bar (40 px) on top; below it a row: sidebar slot | `QStackedWidget`; status bar at the bottom. The accent line and `_AdminContextBar` are removed.
 
@@ -1550,6 +1551,8 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 - `market_text(now_et)` returns `(status, label, detail)`: open → "closes in Xh Ym" (to 16:00); otherwise "opens in …" to the next 09:30 on a weekday not in `NYSE_HOLIDAYS`. Spans ≥ 1 day show "Xd Yh".
 - Power button and plug click: CONNECTED → `QMessageBox.question` then `disconnect_feed()`; not RECONNECTING → `connect_feed()` (the old `_TitleBar._on_feed_btn_clicked` logic). `_FeedToggle` and its colour keys are removed.
 - Badge colour: RED if offline, YELLOW if retrying or connecting, MUTED if not connected, GREEN if live.
+
+**Screen sub-menu (SRD-GUI-018.012).** `Sidebar.add_sub_nav(index, widget)` inserts the widget right after nav item `index` (stretch 10, 20 px left margin). `_sync_subs()` runs on `QButtonGroup.idToggled` and in `set_labels_visible()`; the widget shows only when its item is checked and labels show, so mini mode hides it and hover peek shows it. `MainWindow` passes `AiDeskWorkspace.nav` (the section `QListWidget`, created hidden with the page as parent) for index 6. The list keeps its signals, so section switching and the Command badge do not change; it lists the eight sections in group order without headings so it fits without a scroll bar.
 
 ---
 

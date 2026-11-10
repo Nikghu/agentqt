@@ -249,6 +249,7 @@ us_swing/src/us_swing/gui/
 | MD-GUI-018.006.M02 | SRD-GUI-018.006 | `us_swing/src/us_swing/gui/reveal.py` | Size animation for hide/show panels | `RevealController`, `register()`, `on_reveal_requested()`, `revealed` | `QtCore` | No |
 | MD-GUI-018.005.M03 | SRD-GUI-018.005 | `us_swing/src/us_swing/gui/main_window.py` | Shell layout, mini state, peek geometry, screen slide | `MainWindow` | `sidebar`, `reveal` | No |
 | MD-GUI-018.008.M04 | SRD-GUI-018.008 | `us_swing/src/us_swing/gui/sidebar.py` | Connections panel, retry text, market countdown, mini plug | `_ConnectionsPanel`, `market_text()`, `Sidebar.set_feed_retry()`, `Sidebar.clear_feed_retry()` | `AppService`, `market_calendar`, `icons`, `theme` | No |
+| MD-GUI-018.012.M05 | SRD-GUI-018.012 | `us_swing/src/us_swing/gui/sidebar.py` | Screen sub-menu under a nav item | `Sidebar.add_sub_nav()`, `AiDeskWorkspace.nav` | `ai_desk`, `main_window` | No |
 
 ## FO-GUI-019 — Side Panels and Exit Drawer
 

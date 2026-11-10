@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.98.0: SRD-GUI-018.012 added and Implemented — AI Desk sections in the sidebar (user chose the layout 2026-11-10).
 > v2.97.2: SRD-GUI-034.042–.044 Implemented (RN-MKT-0.12.0-20261110).
 > v2.97.1: SRD-GUI-034.042–.044 approved by user 2026-11-10.
 > v2.97.0: SRD-GUI-034.042–.044 added as Draft — ask the desk for new data (MKT P10).
@@ -413,6 +414,7 @@
 | SRD-GUI-018.009 | FO-GUI-018 | Should | While auto-connect retries, the Feed row shows the attempt number and a countdown to the next try; the power button tries at once. | `set_feed_retry()`, `clear_feed_retry()` | Feed row text | Retry loop timing unchanged | Implemented |
 | SRD-GUI-018.010 | FO-GUI-018 | Should | The Market row shows the session and the time until the close or the next regular open, skipping weekends and NYSE holidays. | clock (ET) | Market row text | Same session rules as `get_exchange_status` | Implemented |
 | SRD-GUI-018.011 | FO-GUI-018 | Must | In mini mode the panel is a plug button with a worst-status dot and a tooltip of all rows; a click acts like the power button. | `set_mini()` | plug button, badge | Badge: offline > retrying > not connected > live | Implemented |
+| SRD-GUI-018.012 | FO-GUI-018 | Should | A screen can put its own section menu under its sidebar item; the AI Desk sections move there and the page drops its 190 px list. | `add_sub_nav()`, checked item, labels shown | menu shown or hidden | Shown only while that screen is on and labels show (full or hover peek); no group headings | Implemented |
 
 ## FO-GUI-019 — Side Panels and Exit Drawer
 

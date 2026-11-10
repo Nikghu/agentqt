@@ -550,6 +550,7 @@ class MainWindow(QMainWindow):
         body_row.addWidget(self._strip)
         self._sidebar = Sidebar(svc, _NAV_ITEMS, body)
         self._sidebar.set_current(0)
+        self._sidebar.add_sub_nav(6, self._ai_desk_panel.nav)
         self._body = body
         self._peeking = False
         self._mini_state = _MiniState(bool(QSettings("USSwing", "MainWindow").value(

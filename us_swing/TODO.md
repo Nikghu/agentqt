@@ -149,3 +149,5 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T137 | GUI FO-GUI-035 — user check: restart the app; AI Desk → Team at work; try Live Pipeline and Timeline, Event log (open the evening run), Team scorecard and the team wheel with Follow live during the 16:25 ET run. | `gui/ai_desk_team.py` | High | Open |
 | T138 | DSK — the 2026-11-09 evening run failed for every employee: Claude CLI login expired. Run `claude auth login` (or set a long-lived token) on this PC. | `desk/gateway.py` | High | Open |
 | T139 | DSK FO-DSK-007 — user check: before `claude auth login`, run the desk once; one Telegram alert arrives, Team at work shows the red banner, the AI feed shows the card; after login and one valid answer they are gone. | `core/desk_alerts.py` | High | Open |
+| T140 | GUI SRD-GUI-018.012 — user check: restart the app; open AI Desk; the sections show under the AI Desk item in the left panel (hover when it is small); other screens hide them. | `gui/sidebar.py` | High | Open |
+| T141 | `test_main_window_lists_screens` still expects 5 screens; update it for Market Floor and AI Desk. | `tests/gui` | Low | Open |

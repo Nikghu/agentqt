@@ -5,7 +5,6 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from pathlib import Path
 
-from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QFrame, QLabel, QPushButton, QWidget
 from pytestqt.qtbot import QtBot
 
@@ -14,7 +13,7 @@ from tests.gui.test_ai_desk_hiring import _ready
 from tests.gui.test_ai_desk_trades import FRI, SAT, _Sink, _two
 from us_swing.core import desk_chat as dc
 from us_swing.core.desk_overview import last_run, spend, team_counts, todays_runs
-from us_swing.gui.ai_desk import GROUPS, SECTIONS, AiDeskWorkspace
+from us_swing.gui.ai_desk import SECTIONS, AiDeskWorkspace
 from us_swing.gui.ai_desk_chat import ChatPanel
 from us_swing.gui.ai_desk_hiring import approvals_box
 from us_swing.gui.ai_desk_sections import runs_box, team_line
@@ -44,12 +43,11 @@ def _page(qtbot: QtBot, home: Path, sink: _Sink | None = None) -> AiDeskWorkspac
 
 
 def test_grouped_list(qtbot: QtBot, tmp_path: Path) -> None:
-    """UT-GUI-034.059.M33.T01: five headings, eight sections (SRD-GUI-035.001); headings cannot be
-    chosen."""
+    """UT-GUI-034.059.M33.T01: eight sections in group order, no headings; the list is handed
+    out as ``nav`` for the sidebar (SRD-GUI-018.012)."""
     page = _page(qtbot, tmp_path)
-    items = [page._list.item(r) for r in range(page._list.count())]
-    heads = [i.text() for i in items if i is not None and i.flags() == Qt.ItemFlag.NoItemFlags]
-    assert heads == [g for g, _names in GROUPS]
+    assert page.nav is page._list and page.nav.isHidden()
+    assert page._list.count() == len(SECTIONS)
     assert page.section_names() == list(SECTIONS) and len(SECTIONS) == 8
     page.select_section("Reports")
     assert page.current_section() == "Reports"
