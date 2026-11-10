@@ -2,6 +2,7 @@
 Module: MD-GUI-034.060.M34 — core/desk_overview.py
 Parent SRD: SRD-GUI-034.060
 Also: SRD-GUI-034.063 (today's runs), SRD-GUI-034.064 (team counts)
+Also: SRD-GUI-034.065 (next evening run for the header tiles)
 
 AI Desk header and Command facts read from ``desk.db`` read-only: today's runs, the last run,
 AI spend against the month budget and employee counts. Never imports ``desk``.
@@ -11,13 +12,13 @@ from __future__ import annotations
 import sqlite3
 from collections import Counter
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
 from us_swing.core.desk_ai_settings import load_settings
-from us_swing.core.desk_contract import DB_NAME
+from us_swing.core.desk_contract import DB_NAME, EVENING_RUN
 from us_swing.core.desk_hiring import employees
 
 NY = ZoneInfo("America/New_York")
@@ -123,3 +124,14 @@ def spend(home: Path, now: datetime) -> Spend | None:
 def team_counts(home: Path) -> dict[str, int]:
     """Employee count by status, most common first."""
     return dict(Counter(e.status for e in employees(home)).most_common())
+
+
+def next_evening_run(now: datetime) -> datetime:
+    """The next weekday evening run time (New York) after ``now``."""
+    et = now.astimezone(NY)
+    day = et.date()
+    while True:
+        moment = datetime.combine(day, EVENING_RUN, NY)
+        if day.weekday() < 5 and moment > et:
+            return moment
+        day += timedelta(days=1)

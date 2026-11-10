@@ -1,6 +1,7 @@
 """
 Module: MD-GUI-034.002.M02 — Desk control
 Parent SRD: SRD-GUI-034.002
+Also: SRD-GUI-034.065 — dot state chip and the joined Start / Pause / Resume / Stop group
 """
 from __future__ import annotations
 
@@ -10,7 +11,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from PyQt6.QtCore import QObject, QThread, QTimer, pyqtSignal
-from PyQt6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QWidget
+from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QWidget
 
 from us_swing.core.desk_contract import (
     LIVE_STATES,
@@ -22,6 +23,7 @@ from us_swing.core.desk_contract import (
     read_status,
     send_command,
 )
+from us_swing.gui.ai_desk_console import seg_style
 from us_swing.gui.icons import set_icon
 from us_swing.gui.theme import C
 
@@ -235,12 +237,30 @@ class DeskBar(QWidget):
         self._poller = poller
         row = QHBoxLayout(self)
         row.setContentsMargins(0, 0, 0, 0)
-        row.setSpacing(6)
-        self.pill = QLabel()
-        row.addWidget(self.pill)
+        row.setSpacing(10)
         self.note = QLabel()
         self.note.setStyleSheet(f"color: {C.MUTED};")
         row.addWidget(self.note)
+        chip = QFrame()
+        chip.setObjectName("state_chip")
+        chip.setStyleSheet(f"QFrame#state_chip {{ background: {C.OVERLAY};"
+                           f" border: 1px solid {C.OVERLAY2}; border-radius: 11px; }}")
+        chip_row = QHBoxLayout(chip)
+        chip_row.setContentsMargins(10, 3, 10, 3)
+        chip_row.setSpacing(6)
+        self.dot = QLabel("●")
+        self.pill = QLabel()
+        self.pill.setStyleSheet("background: transparent; border: none;")
+        chip_row.addWidget(self.dot)
+        chip_row.addWidget(self.pill)
+        row.addWidget(chip)
+        seg = QFrame()
+        seg.setObjectName("desk_seg")
+        seg.setStyleSheet(seg_style())
+        seg_row = QHBoxLayout(seg)
+        seg_row.setContentsMargins(0, 0, 0, 0)
+        seg_row.setSpacing(0)
+        row.addWidget(seg)
         self._status = poller.status
         self._pill_state: DeskState | None = None
         self._error = ""
@@ -255,7 +275,8 @@ class DeskBar(QWidget):
             button = QPushButton(text)
             set_icon(button, icon_name, role)
             self.buttons[key] = button
-            row.addWidget(button)
+            seg_row.addWidget(button)
+        self.buttons["stop"].setProperty("seg", "last")
         # buttons → clicked → poller → start_desk / command
         self.buttons["start"].clicked.connect(self._poller.start_desk)
         self.buttons["pause"].clicked.connect(lambda: self._poller.command(CommandKind.PAUSE))
@@ -275,10 +296,7 @@ class DeskBar(QWidget):
         if status.state is not self._pill_state:
             self._pill_state = status.state
             colour = getattr(C, _PILL_COLOURS[status.state])
-            self.pill.setStyleSheet(
-                f"color: {colour}; border: 1px solid {colour}; border-radius: 9px;"
-                " padding: 2px 10px;"
-            )
+            self.dot.setStyleSheet(f"color: {colour}; background: transparent; border: none;")
         self._refresh_tooltip()
         self._refresh_buttons()
 

@@ -7,6 +7,8 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.23.0: UT-GUI-034.067.M33.T01–T02 added; UT-GUI-034.059.M33.T01 updated (AI Desk section tabs).
+> v1.22.0: UT-GUI-034.065–.066 added; UT-GUI-034.060.M33.T01–T02 and UT-GUI-034.037.M25.T01, .038.M25.T02 updated for tiles (AI Desk console look).
 > v1.21.1: UT-GUI-034.042–.044 run — 7 Pass.
 > v1.21.0: UT-GUI-034.042–.044 added (MKT P10 ask the desk for new data).
 > v1.20.0: UT-GUI-034.059–.064 added; UT-GUI-034.031 and .034–.036 tests moved to approval cards (AI Desk design phase 3).
@@ -567,6 +569,8 @@ Test files:
 | UT-GUI-018.010.M04.T01 | MD-GUI-018.008.M04 | Positive | Open market counts to close | Wed 2026-10-21 13:46 ET | ("open", "Open", "closes in 2h 14m") | Pass |
 | UT-GUI-018.010.M04.T02 | MD-GUI-018.008.M04 | Edge | Weekend and holiday skipped | Fri 2026-10-23 17:00; Wed 2026-11-25 20:30; Fri 2026-10-30 17:00 (DST ends) | "opens in 2d 16h"; "opens in 1d 13h"; "opens in 2d 17h" | Pass |
 | UT-GUI-018.011.M04.T01 | MD-GUI-018.008.M04 | Positive | Mini shows plug with worst status | `set_mini(True)`, offline | rows hidden; plug shown; badge red; tooltip has 3 rows | Pass |
+| UT-GUI-018.012.M05.T01 | MD-GUI-018.012.M05 | Positive | Sub-menu shows on its screen | `add_sub_nav(3, w)`, `set_current(3)`, click item 1 | placed after item 3; hidden, shown, hidden | Pass |
+| UT-GUI-018.012.M05.T02 | MD-GUI-018.012.M05 | Edge | Mini hides, peek shows | screen 3 on, `set_mini(True)`, `set_labels_visible(True)` | hidden, then shown | Pass |
 
 ## FO-GUI-019 — Side Panels and Exit Drawer
 
@@ -1158,15 +1162,22 @@ Test files:
 | UT-GUI-034.056.M31.T02 | MD-GUI-034.053.M31 | Positive | Open buttons (SRD-GUI-034.056) | Open in Charts, Open Hiring, Open chat | chart AAA; sections Hiring and Command | Pass |
 | UT-GUI-034.057.M31.T01 | MD-GUI-034.053.M31 | Positive | Live dot and footer (SRD-GUI-034.057) | Sleeping then Off; footer click | dot green then grey; section Command | Pass |
 | UT-GUI-034.058.M31.T01 | MD-GUI-034.053.M31 | Positive | Reload (SRD-GUI-034.058) | decided signal; page shown | feed read again each time | Pass |
-| UT-GUI-034.059.M33.T01 | MD-GUI-034.059.M33 | Positive | Grouped list (SRD-GUI-034.059) | open AI Desk | 6 headings, 12 sections in order; heading not selectable; select by name works | Pass |
+| UT-GUI-034.059.M33.T01 | MD-GUI-034.059.M33 | Positive | Section list (SRD-GUI-034.059, SRD-GUI-018.012) | open AI Desk | 8 sections in group order, no headings; list handed out as hidden `nav`; select by name works | Pass |
 | UT-GUI-034.059.M33.T02 | MD-GUI-034.059.M33 | Positive | Command badge (SRD-GUI-034.059) | 2 waiting picks; then 0 | Command shows 2; then plain Command | Pass |
 | UT-GUI-034.060.M34.T01 | MD-GUI-034.060.M34 | Positive | Runs, last run, spend, team (SRD-GUI-034.060) | desk.db with runs, activity, employees | events summed; last run; today and month spend; counts | Pass |
-| UT-GUI-034.060.M33.T01 | MD-GUI-034.059.M33 | Positive | Header chips (SRD-GUI-034.060) | desk.db with a finished run and spend | last run chip and spend text with bar percent | Pass |
-| UT-GUI-034.060.M33.T02 | MD-GUI-034.059.M33 | Negative | No desk data (SRD-GUI-034.060) | empty folder | chips hidden | Pass |
+| UT-GUI-034.060.M33.T01 | MD-GUI-034.059.M33 | Positive | Header tiles (SRD-GUI-034.060, .065) | desk.db with a finished run and spend | Last run · ok title, run text, $1.00 today, bar and title percent | Pass |
+| UT-GUI-034.060.M33.T02 | MD-GUI-034.059.M33 | Negative | No desk data (SRD-GUI-034.060, .065) | empty folder | No runs yet, $0.00, bar 0 | Pass |
 | UT-GUI-034.061.M35.T01 | MD-GUI-034.061.M35 | Positive | Chat bubbles (SRD-GUI-034.061) | one question and one reply | two bubbles; Master right, lead left; ET time shown | Pass |
 | UT-GUI-034.062.M36.T01 | MD-GUI-034.062.M36 | Positive | Approval cards (SRD-GUI-034.062) | ready hire and 2 picks | heading count 3; pick cards with qty; Open Hiring opens Hiring | Pass |
 | UT-GUI-034.063.M36.T01 | MD-GUI-034.062.M36 | Positive | Today's runs (SRD-GUI-034.063) | runs today | one line per run; events one row with count; no Sample tag | Pass |
 | UT-GUI-034.064.M36.T01 | MD-GUI-034.062.M36 | Positive | Team now (SRD-GUI-034.064) | 2 active, 1 shadow | Team now: 2 active · 1 shadow | Pass |
+| UT-GUI-034.065.M34.T01 | MD-GUI-034.060.M34 | Positive | Next evening run (SRD-GUI-034.065) | Saturday, Tuesday 10:00, Tuesday 17:00 ET | Monday, same day, next day at 16:25 ET | Pass |
+| UT-GUI-034.065.M39.T01 | MD-GUI-034.065.M39 | Positive | Header tiles and controls (SRD-GUI-034.065) | empty folder, Saturday | 4 tile titles; Start, Pause, Resume, Stop in one group; Mon 16:25 ET with IST | Pass |
+| UT-GUI-034.065.M39.T02 | MD-GUI-034.065.M39 | Edge | State note (SRD-GUI-034.065) | Paused; Error with a message | paused line; the error message | Pass |
+| UT-GUI-034.066.M39.T01 | MD-GUI-034.065.M39 | Positive | Section cards (SRD-GUI-034.066) | empty folder | card titles of Hiring, Cost and Settings | Pass |
+| UT-GUI-034.066.M21.T01 | MD-GUI-034.027.M21 | Positive | Seat tiles (SRD-GUI-034.066) | 1 active expert | 1 of N seats; In shadow tile | Pass |
+| UT-GUI-034.067.M33.T01 | MD-GUI-034.059.M33 | Positive | Section tabs (SRD-GUI-034.067) | empty folder | tabs in section order; click shows the section; list and tab agree; & shown plain | Pass |
+| UT-GUI-034.067.M33.T02 | MD-GUI-034.059.M33 | Positive | Command tab count (SRD-GUI-034.067) | count 3, then 0 | Command   3, then Command | Pass |
 | UT-GUI-034.042.M37.T01 | MD-GUI-034.042.M37 | Positive | Ask box sends (SRD-GUI-034.042) | type a request, click Ask | ask called with the text; sent note shown; box cleared | Pass |
 | UT-GUI-034.042.M37.T02 | MD-GUI-034.042.M37 | Negative | Ask box guards (SRD-GUI-034.042) | empty box; no ask given; ask returns an error | Ask disabled; box hidden; error shown and text kept | Pass |
 | UT-GUI-034.043.M38.T01 | MD-GUI-034.043.M38 | Positive | Product card (SRD-GUI-034.043) | waiting product with 7 matching rows | Ask card with title, recipe in words and 5 preview rows; counted in the heading | Pass |
@@ -1184,7 +1195,7 @@ Test files:
 | UT-GUI-035.004.M02.T02 | MD-GUI-035.002.M02 | Positive | Finished run states (SRD-GUI-035.004) | backup try valid, one member never called | Done · backup used; No call | Pass |
 | UT-GUI-035.006.M02.T01 | MD-GUI-035.002.M02 | Positive | Events and scorecard (SRD-GUI-035.006–.007) | evening run and chat question | calls linked to each event; retries, backup, valid share, last error, total cost | Pass |
 | UT-GUI-035.009.M02.T01 | MD-GUI-035.002.M02 | Negative | Empty desk (SRD-GUI-035.009) | no desk folder | empty lists; total row with no calls | Pass |
-| UT-GUI-035.002.M01.T01 | MD-GUI-035.001.M01 | Positive | Live tab (SRD-GUI-035.002–.004) | running run | run label with ET and IST; chips; Right now names the worker; card states; view switch | Pass |
+| UT-GUI-035.002.M01.T01 | MD-GUI-035.001.M01 | Positive | Live tab (SRD-GUI-035.002–.004, .012) | running run | run label with ET and IST; stat tile values (`2`, `1 of 3`); Right now names the worker; card states; view switch | Pass |
 | UT-GUI-035.008.M04.T01 | MD-GUI-035.007.M04 | Positive | Follow live and wheel (SRD-GUI-035.008) | running run, wheel step | worker picked first; step picks next; Follow live off; Team · 3 of 4 | Pass |
 | UT-GUI-035.008.M04.T02 | MD-GUI-035.007.M04 | Positive | Wheel input and peek (SRD-GUI-035.008) | key, scroll, click, Prompt, Answer | wheel rolls; prompt and error text shown; no-call note | Pass |
 | UT-GUI-035.006.M03.T01 | MD-GUI-035.006.M03 | Positive | Event log rows (SRD-GUI-035.006) | finished run and chat | 2 events; 3 calls with error; call click picks; Problems keeps 1 | Pass |

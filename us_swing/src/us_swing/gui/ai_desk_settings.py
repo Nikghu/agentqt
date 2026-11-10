@@ -2,6 +2,7 @@
 Module: MD-GUI-034.016.M15 — gui/ai_desk_settings.py
 Parent SRD: SRD-GUI-034.016
 Also: MD-GUI-034.033.M23 — seat caps (SRD-GUI-034.033)
+Also: SRD-GUI-034.066 — fields grouped in icon cards (console look)
 
 Editable desk AI settings in AI Desk → Desk settings: which sources the desk may use,
 their models, the monthly API budget, the daily Claude Code CLI token cap and the
@@ -17,6 +18,7 @@ from pathlib import Path
 from PyQt6.QtWidgets import (
     QCheckBox,
     QFormLayout,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -32,6 +34,7 @@ from us_swing.core.desk_ai_settings import (
 )
 from us_swing.core.desk_contract import desk_home
 from us_swing.core.desk_hiring import seat_counts
+from us_swing.gui.ai_desk_console import icon_card, primary
 from us_swing.gui.theme import C
 
 _log = logging.getLogger(__name__)
@@ -50,7 +53,7 @@ class DeskAiSettingsForm(QWidget):
         self._settings = load_settings(home)
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
-        form = QFormLayout()
+        outer.setSpacing(12)
         self.claude_on = QCheckBox("Use Claude Code CLI (subscription: tokens only, no cost)")
         self.claude_model = self._line(self._settings.claude_model)
         self.claude_tokens = self._line(str(self._settings.claude_tokens_per_day))
@@ -62,28 +65,41 @@ class DeskAiSettingsForm(QWidget):
         self.budget = self._line(f"{self._settings.monthly_budget_usd:.2f}")
         self.claude_on.setChecked(self._settings.claude_on)
         self.openrouter_on.setChecked(self._settings.openrouter_on)
-        form.addRow("", self.claude_on)
-        form.addRow("Claude model", self.claude_model)
-        form.addRow("Claude tokens per day", self.claude_tokens)
-        form.addRow("", self.openrouter_on)
-        form.addRow("OpenRouter model", self.openrouter_model)
-        form.addRow("OpenRouter key", self.key)
-        form.addRow("Monthly API budget (USD)", self.budget)
         self.caps = {level: self._line(str(self._settings.cap(level)))
                      for level in ("expert", "champion", "junior")}
-        for level, edit in self.caps.items():
-            form.addRow(f"Seats for {level}s", edit)
-        outer.addLayout(form)
+        grid = QGridLayout()
+        grid.setSpacing(12)
+        grid.addWidget(self._card("zap", "Claude Code CLI", (
+            ("", self.claude_on), ("Model", self.claude_model),
+            ("Tokens per day", self.claude_tokens))), 0, 0)
+        grid.addWidget(self._card("globe", "OpenRouter API", (
+            ("", self.openrouter_on), ("Model", self.openrouter_model), ("API key", self.key),
+            ("Monthly budget (USD)", self.budget))), 0, 1)
+        grid.addWidget(self._card("users", "Seats", tuple(
+            (f"{level.capitalize()}s", edit) for level, edit in self.caps.items())), 1, 0)
+        outer.addLayout(grid)
         row = QHBoxLayout()
-        self.save_btn = QPushButton("Save")
+        self.save_btn = primary(QPushButton("Save"))
         self.save_btn.setFixedWidth(90)
         # save button → clicked → form → save
         self.save_btn.clicked.connect(self.save)
         self.status = QLabel("")
         self.status.setStyleSheet(f"color: {C.MUTED};")
-        row.addWidget(self.save_btn)
         row.addWidget(self.status, 1)
+        row.addWidget(self.save_btn)
         outer.addLayout(row)
+
+    @staticmethod
+    def _card(icon_name: str, title: str,
+              rows: tuple[tuple[str, QWidget], ...]) -> QWidget:
+        card, body = icon_card(icon_name, title)
+        form = QFormLayout()
+        form.setHorizontalSpacing(16)
+        for label, field in rows:
+            form.addRow(label, field)
+        body.addLayout(form)
+        body.addStretch(1)
+        return card
 
     @staticmethod
     def _line(text: str) -> QLineEdit:

@@ -13,7 +13,7 @@ import sys
 from collections.abc import Generator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, datetime, time
 from enum import Enum
 from pathlib import Path
 from typing import Any, Protocol
@@ -21,6 +21,7 @@ from typing import Any, Protocol
 SCHEMA_VERSION = 1
 DB_NAME = "desk.db"
 STALE_AFTER_S = 60.0
+EVENING_RUN = time(16, 25)  # New York time, Monday to Friday
 NOT_RESPONDING = "not responding"
 # The dev launcher adds src/ to sys.path, so the desk starts without an installed package.
 _RUN_GUI = Path(__file__).resolve().parents[3] / "run_gui.py"

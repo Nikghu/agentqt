@@ -37,15 +37,17 @@ def _cells(table: QTableWidget) -> list[list[str]]:
 
 
 def test_totals_and_breakdowns(qtbot: QtBot, tmp_path: Path) -> None:
-    """UT-GUI-034.037.M25.T01: the top line has paper and real totals; three breakdown tables."""
+    """UT-GUI-034.037.M25.T01: tiles show paper and real totals; three breakdown tables."""
     _four(tmp_path)
     pick = TradePick(FRI, "long", "TGT", 1, "", 100.0, 95.0, 110.0, pick_expiry(FRI))
     record_trade_decision(tmp_path, pick, "approve", 10, SAT)
     record_trade_outcome(tmp_path, pick.subject, "executed", SAT)
     record_pick_trade(tmp_path, _snap("TGT"), SAT)
     frame = _frame(qtbot, tmp_path)
-    assert any(t.startswith("Paper: 4 picks, 3 filled, hit rate 50%") and "Real: 1 trades, 1 wins"
-               in t for t in _labels(frame))
+    labels = _labels(frame)
+    for title, value in (("Paper picks", "4"), ("Filled", "3"), ("Hit rate", "50%"),
+                         ("Real trades", "1 · 1 wins")):
+        assert labels[labels.index(title) + 1] == value
     assert {"Decision", "Setup grade", "News tone", "Picks"} <= set(_labels(frame))
     assert len(frame.findChildren(QTableWidget)) == 4
 
@@ -85,7 +87,8 @@ def test_section_is_live(qtbot: QtBot, tmp_path: Path) -> None:
     _four(tmp_path)
     page.select_section("Command")
     page.select_section("Results")
-    assert any(t.startswith("Paper: 4 picks") for t in _labels(page))
+    labels = _labels(page)
+    assert labels[labels.index("Paper picks") + 1] == "4"
 
 
 def test_not_worked_out_yet(qtbot: QtBot, tmp_path: Path) -> None:

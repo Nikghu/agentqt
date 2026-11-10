@@ -7,6 +7,10 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.15.0: DD-GUI-034.065.D01 gains the section tabs (SRD-GUI-034.067), 2026-11-10.
+> v1.14.0: DD-GUI-034.065.D01 added — AI Desk console look (SRD-GUI-034.065–.066), 2026-11-10.
+> v1.13.0:.001.D01 gains the clean look (SRD-GUI-035.012), 2026-11-10.
+> v1.12.0: DD-GUI-018.001.D01 gains the screen sub-menu (SRD-GUI-018.012), 2026-11-10.
 > v1.11.0: DD-GUI-034.059.D01 added — AI Desk design match (phase 3), 2026-11-07.
 > v1.10.0: DD-GUI-034.053.D01 added — AI feed cards (phase 2), 2026-11-07.
 > v1.9.0: DD-GUI-034.045.D01 added — Market Floor design match (phase 1), 2026-11-07.
@@ -1526,7 +1530,7 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 
 ## DD-GUI-018.001.D01 — Sidebar Workspace Shell
 
-**Traces:** SRD-GUI-018.001–.011
+**Traces:** SRD-GUI-018.001–.012
 
 **Layout.** Title bar (40 px) on top; below it a row: sidebar slot | `QStackedWidget`; status bar at the bottom. The accent line and `_AdminContextBar` are removed.
 
@@ -1550,6 +1554,8 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 - `market_text(now_et)` returns `(status, label, detail)`: open → "closes in Xh Ym" (to 16:00); otherwise "opens in …" to the next 09:30 on a weekday not in `NYSE_HOLIDAYS`. Spans ≥ 1 day show "Xd Yh".
 - Power button and plug click: CONNECTED → `QMessageBox.question` then `disconnect_feed()`; not RECONNECTING → `connect_feed()` (the old `_TitleBar._on_feed_btn_clicked` logic). `_FeedToggle` and its colour keys are removed.
 - Badge colour: RED if offline, YELLOW if retrying or connecting, MUTED if not connected, GREEN if live.
+
+**Screen sub-menu (SRD-GUI-018.012).** `Sidebar.add_sub_nav(index, widget)` inserts the widget right after nav item `index` (stretch 10, 20 px left margin). `_sync_subs()` runs on `QButtonGroup.idToggled` and in `set_labels_visible()`; the widget shows only when its item is checked and labels show, so mini mode hides it and hover peek shows it. `MainWindow` passes `AiDeskWorkspace.nav` (the section `QListWidget`, created hidden with the page as parent) for index 6. The list keeps its signals, so section switching and the Command badge do not change; it lists the eight sections in group order without headings so it fits without a scroll bar.
 
 ---
 
@@ -1925,12 +1931,26 @@ Run names: `evening` "Evening run", `manual` "Manual run", other kinds title-cas
 
 **Runs and team.** `command_frame(name, approvals, chat, runs, team)`: real widgets drop the Sample tag. `runs_box(rows)` = one line per row: ET time, name (with `×n` for events), result label coloured as the chips. Team line: `Team now: 8 active · 1 shadow`.
 
+## DD-GUI-034.065.D01 — AI Desk Console Look (phase 4)
+
+**Traces:** SRD-GUI-034.065–.067. Design canvas Option A (Console cards).
+
+**Helpers.** New `gui/ai_desk_console.py`: `stat_tile(title, value, bar)` (SURFACE tile, OVERLAY2 border, muted title over a bold value), `tile_row()`, `thin_bar()` + `bar_tone()` (6 px bar), `icon_badge()`, `icon_card(icon, title, side)` (BG card, OVERLAY2 border, 10 px radius, title label `card_title`), `primary()` (`primary_btn`), `danger()` (`role="danger"`), `seg_style()` (joined group, thin dividers, Stop red).
+
+**Header.** Icon badge, title and a state note (plain line per `DeskState`; an Error shows its message). `DeskBar` keeps `pill`, `note` and `buttons`; the pill sits in a dot chip and the buttons sit in the `desk_seg` group. Tiles: Last run (result in the title, dot in the result colour), Next run (`core.desk_overview.next_evening_run(now)` — next weekday 16:25 ET after now, with IST beside it), AI spend today, Month budget (percent in the title, bar). With no data the tiles show "No runs yet" and $0.00. `EVENING_RUN` moves to `core/desk_contract.py`; `desk/clock.py` imports it.
+
+**Sections.** Hiring: seat tiles (count of cap per level, bar turns yellow when full; In shadow with ready count), then Hires, Start hire and Shadow report cards; the empty Hires card does not stretch. Pages and Reports: list card plus a preview / reader card whose title follows the choice. Results: six total tiles (paper picks, filled, hit rate, average R, real trades, real P&L) replace the summary line; breakdown and Picks tables sit in cards. Cost: three tiles, a Budget used card with bar, two table cards. Desk settings: Schedule and rules card; the AI form splits into Claude Code CLI, OpenRouter API and Seats cards; Save sits at the bottom right.
+
+**Tabs (SRD-GUI-034.067).** The header card ends with `desk_tabs`: one checkable `tab_style()` button per section in a `QButtonGroup` (`&` written as `&&`). A tab click calls `select_section()`; the hidden list stays the one selection and checks the matching tab in `_on_item`. `set_ask_count()` sets the Command item and tab text. `main_window` no longer calls `Sidebar.add_sub_nav()` for AI Desk; the sidebar helper stays for other screens.
+
 ## DD-GUI-035.001.D01 — AI Desk Team at Work
 
-**Traces:** SRD-GUI-035.001–.009. Design: https://claude.ai/artifact/PgkHVTcXYThWAUnX5itPMR (Final draft).
+**Traces:** SRD-GUI-035.001–.009, .012. Design: https://claude.ai/artifact/PgkHVTcXYThWAUnX5itPMR (Final draft).
 
 **Data (`core/desk_team.py`, read-only SQL on `desk.db`, never imports `desk`).** `team(home)` reads each `employees/*/job.yaml` into `Member` (trigger list, reports_to, primary and backup model, daily calls, month cap, KPIs) and turns skill needs (read once from the skill classes in `SKILL_PATHS`) into employee ids, sorted in run order (`graphlib`), on-demand members last. `levels()` groups evening members into pipeline columns by need depth. `runs()` = evening and manual runs, newest first. `run_view(run)` = the run's calls (`activity.run_id`, shadow and replay left out) and a state per member: AI start is the `after_run` event of the run; with the run running and AI started, the first member with no valid answer and no later member's call is *working*; valid call → *done* (`Done · n retry`, `Done · backup used` when the source is not the main source); only bad calls → *failed*; no call → *waiting* while running, else *skipped*; on-demand → *asleep*. `day_events(day)` = events created that New York day, newest first; an `after_run` event takes its run's calls, other events take calls of members that list the kind in `trigger`, made between `created` and `handled`. `scorecard()` = per member and team total over 30 days: runs, calls, valid, retries (attempt > 1), backup calls, average and slowest seconds, average tokens in and out, cost, cost per valid answer, last bad call and its error. `history()` = last 4 working days; `month_cost()`; `last_brief()`.
 
 **GUI.** `gui/ai_desk_team.py` `TeamAtWork`: run bar (arrows, run name, ET and IST start, chips), tab buttons Live, Event log, Team over a `QStackedWidget`, side pane 340 px. Live: Right now line plus a Pipeline / Timeline switch over a stack. `PipelineView` keeps one `StageCard` per member and rebuilds only when the team shape changes; a working card shows a busy bar and a 90 ms border pulse; arrows turn blue into a working column, green after a done one. `TimelineView` paints one row per member and one bar per call (blue main source, yellow backup, red bad), the data steps bar and a dashed now line; hover shows the call. `gui/ai_desk_team_log.py` `EventLogView`: day arrows, filter buttons, `DayStrip` (08:00–20:00 ET, dots by result, click opens the event), a tree of events with call children; it redraws only when the events change and keeps the scroll place. `gui/ai_desk_team_pane.py`: `TeamWheel` paints 5 rows around the picked one, rolls with a 380 ms `QVariantAnimation` on arrows, wheel, keys or click, and spins a ring on the working member; `ProfilePane` shows job facts, this run's calls, the last brief (plain text), Prompt and Answer of the last call, last 4 days and a month bar; `ScoreTable` fills the scorecard. Picking anywhere (card, bar, log call, table row, wheel) selects the member everywhere and turns Follow live off.
+
+**Look (SRD-GUI-035.012).** Pane helpers: `panel()` (BG fill, OVERLAY border, 10 px radius), `chip_style()` + `chip_text()` (filled pill, dot in the state colour), `tab_style()` (underline tabs), chevron `arrow_button()`. `StageCard` has a 26 px icon badge (`calendar`, `database`, else `skill_icon()` by skill words, `user` when none match), OVERLAY2 border, 10 px radius, mono fact line. `FlowArrow` paints the arrow between columns in the flow colour. The run bar shows five stat tiles (title + value; the time title is Took or Running). Right now, the pipeline, the timeline, the wheel and the profile sit in panels; the Right now dot is blue while working, red when someone failed, green when done. The wheel draws rounded-square avatars.
 
 **Refresh.** On show, then a 3 s timer while shown: every tick while the newest run is running, else every 5th tick. Hidden: the timer, pulse and ring stop. The Event log opens on the shown run's day.

@@ -2,7 +2,7 @@
 Module: MD-GUI-035.001.M01 — AI Desk Team at work section
 Parent SRD: SRD-GUI-035.001
 Also: SRD-GUI-035.002–.005 (run bar, Live tab, pipeline, timeline), SRD-GUI-035.009 (refresh),
-SRD-GUI-035.010 (alert banner)
+SRD-GUI-035.010 (alert banner), SRD-GUI-035.012 (clean look: icons, borders, stat tiles, tabs)
 
 One section that shows how the AI employee team works: a run bar, the Live tab (pipeline or
 timeline), the Event log tab, the Team scorecard tab and a side pane with the team wheel and
@@ -15,9 +15,10 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from PyQt6.QtCore import QPointF, QRectF, Qt, QTimer, pyqtSignal
+from PyQt6.QtCore import QPointF, QRectF, QSize, Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import (
     QColor,
+    QPainterPath,
     QHideEvent,
     QMouseEvent,
     QPainter,
@@ -65,10 +66,14 @@ from us_swing.gui.ai_desk_team_pane import (
     WheelItem,
     arrow_button,
     checked_style,
+    chip_style,
+    chip_text,
+    panel,
     skill_text,
-    tone,
+    tab_style,
     wheel_buttons,
 )
+from us_swing.gui.icons import icon, set_icon
 from us_swing.gui.theme import C
 
 NY = ZoneInfo("America/New_York")
@@ -77,6 +82,18 @@ NAME = "Team at work"
 TICK_MS = 3000
 IDLE_TICKS = 5
 _ASLEEP = MemberState("asleep", "Asleep")
+_STAGE_ICONS = {"trigger": "calendar", "data": "database"}
+# skill words → icon; skills are desk config, so anything unknown gets the plain user icon
+_SKILL_ICONS = (("regime", "activity"), ("sector", "layout-grid"), ("setup", "chart-candlestick"),
+                ("news", "globe"), ("risk", "shield"), ("brief", "clipboard-list"),
+                ("report", "scroll-text"), ("chat", "message-square"), ("recipe", "database"))
+_STATS = (("time", "Took"), ("done", "Employees done"), ("calls", "LLM calls"),
+          ("tokens", "Tokens"), ("cost", "Cost this run"))
+
+
+def skill_icon(skill: str) -> str:
+    """Icon name for a skill key (``user`` when no word matches)."""
+    return next((name for word, name in _SKILL_ICONS if word in skill), "user")
 
 
 def _dur(seconds: float) -> str:
@@ -84,8 +101,8 @@ def _dur(seconds: float) -> str:
     return f"{secs // 60}m {secs % 60:02d}s"
 
 
-def _toggle_row(names: Sequence[str], group: QButtonGroup) -> tuple[QHBoxLayout,
-                                                                   list[QPushButton]]:
+def _toggle_row(names: Sequence[str], group: QButtonGroup, icons: Sequence[str] = (),
+                style: str = "") -> tuple[QHBoxLayout, list[QPushButton]]:
     row = QHBoxLayout()
     row.setSpacing(4)
     buttons = []
@@ -93,7 +110,9 @@ def _toggle_row(names: Sequence[str], group: QButtonGroup) -> tuple[QHBoxLayout,
         btn = QPushButton(name)
         btn.setCheckable(True)
         btn.setChecked(i == 0)
-        btn.setStyleSheet(checked_style())
+        btn.setStyleSheet(style or checked_style())
+        if i < len(icons):
+            set_icon(btn, icons[i], "neutral", 16)
         group.addButton(btn, i)
         row.addWidget(btn)
         buttons.append(btn)
@@ -112,14 +131,23 @@ class StageCard(QFrame):
         self.selected = False
         self.setObjectName("team_card")
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setMinimumWidth(140)
+        self.setMinimumWidth(150)
         lines = QVBoxLayout(self)
-        lines.setContentsMargins(10, 8, 10, 8)
-        lines.setSpacing(3)
+        lines.setContentsMargins(12, 10, 12, 10)
+        lines.setSpacing(4)
         top = QHBoxLayout()
+        top.setSpacing(8)
+        badge = QLabel()
+        badge.setObjectName("stage_icon")
+        badge.setFixedSize(26, 26)
+        badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        name_icon = _STAGE_ICONS.get(key) or skill_icon(skill.lower().replace(" ", "_"))
+        badge.setPixmap(icon(name_icon, "info").pixmap(QSize(16, 16)))
+        badge.setStyleSheet(f"background: {C.OVERLAY}; border: none; border-radius: 7px;")
         title = QLabel(name)
         title.setStyleSheet("font-weight: bold; background: transparent; border: none;")
         self.state_label = QLabel()
+        top.addWidget(badge)
         top.addWidget(title)
         top.addStretch(1)
         top.addWidget(self.state_label)
@@ -129,7 +157,8 @@ class StageCard(QFrame):
         lines.addWidget(sub)
         self.meta = QLabel()
         self.meta.setWordWrap(True)
-        self.meta.setStyleSheet(f"color: {C.SUBTEXT}; background: transparent; border: none;")
+        self.meta.setStyleSheet(f"color: {C.SUBTEXT}; background: transparent; border: none;"
+                                " font-family: Consolas, monospace; font-size: 11px;")
         lines.addWidget(self.meta)
         self.busy = QProgressBar()
         self.busy.setRange(0, 0)
@@ -137,25 +166,22 @@ class StageCard(QFrame):
         self.busy.setMaximumHeight(4)
         self.busy.hide()
         lines.addWidget(self.busy)
-        self.paint_border(C.OVERLAY)
+        self.paint_border(C.OVERLAY2)
 
     def set_state(self, key: str, label: str, meta: str) -> None:
         """Show state ``key`` with ``label`` and the fact line ``meta``."""
         self.state_key = key
-        colour = tone(key)
-        self.state_label.setText(label)
-        self.state_label.setStyleSheet(
-            f"color: {colour}; border: 1px solid {colour}; border-radius: 8px;"
-            " padding: 0 6px; background: transparent;")
+        self.state_label.setText(chip_text(key, label))
+        self.state_label.setStyleSheet(chip_style())
         self.meta.setText(meta)
         self.busy.setVisible(key == "working")
         if key != "working":
-            self.paint_border(C.BLUE if self.selected else C.OVERLAY)
+            self.paint_border(C.BLUE if self.selected else C.OVERLAY2)
 
     def paint_border(self, colour: str) -> None:
         """Draw the card border in ``colour``."""
         self.setStyleSheet(f"QFrame#team_card {{ background: {C.SURFACE};"
-                           f" border: 1px solid {colour}; border-radius: 8px; }}")
+                           f" border: 1px solid {colour}; border-radius: 10px; }}")
 
     def mousePressEvent(self, event: QMouseEvent | None) -> None:  # noqa: N802
         """Tell listeners this card was clicked."""
@@ -178,6 +204,37 @@ def _mix(a: str, b: str, t: float) -> str:
                   round(ca.blue() + (cb.blue() - ca.blue()) * t)).name()
 
 
+class FlowArrow(QWidget):
+    """A drawn arrow between pipeline columns; its colour shows the flow state."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.colour = C.OVERLAY2
+        self.setFixedWidth(26)
+
+    def set_colour(self, colour: str) -> None:
+        """Draw the arrow in ``colour``."""
+        if colour != self.colour:
+            self.colour = colour
+            self.update()
+
+    def paintEvent(self, _event: QPaintEvent | None) -> None:  # noqa: N802
+        """Draw a shaft and head at the height of the first card."""
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        pen = QPen(QColor(self.colour), 1.8)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        p.setPen(pen)
+        y = 58.0
+        path = QPainterPath(QPointF(3, y))
+        path.lineTo(23, y)
+        path.moveTo(17, y - 5)
+        path.lineTo(23, y)
+        path.lineTo(17, y + 5)
+        p.drawPath(path)
+        p.end()
+
+
 class PipelineView(QWidget):
     """Trigger, data steps, one column per skill need level and an on-demand row."""
 
@@ -187,7 +244,7 @@ class PipelineView(QWidget):
         super().__init__(parent)
         self._shape: tuple[tuple[str, ...], ...] = ()
         self._cards: dict[str, StageCard] = {}
-        self._arrows: list[tuple[QLabel, list[str]]] = []
+        self._arrows: list[tuple[FlowArrow, list[str]]] = []
         self._phase = 0
         self._lines = QVBoxLayout(self)
         self._lines.setContentsMargins(0, 0, 0, 0)
@@ -218,17 +275,17 @@ class PipelineView(QWidget):
         row = QWidget()
         flow = QHBoxLayout(row)
         flow.setContentsMargins(0, 0, 0, 0)
-        flow.setSpacing(6)
+        flow.setSpacing(4)
         for i, (title, cards) in enumerate(cols):
             if i:
-                arrow = QLabel("→")
-                arrow.setStyleSheet(f"color: {C.OVERLAY2}; font-size: 18px;")
+                arrow = FlowArrow()
                 flow.addWidget(arrow)
                 self._arrows.append((arrow, [c.key for c in cards]))
             col = QVBoxLayout()
-            col.setSpacing(6)
+            col.setSpacing(8)
             head = QLabel(title.upper())
-            head.setStyleSheet(f"color: {C.MUTED}; font-size: 10px; letter-spacing: 1px;")
+            head.setStyleSheet(f"color: {C.SUBTEXT}; font-size: 10px; font-weight: bold;"
+                               " letter-spacing: 1px;")
             col.addWidget(head)
             for card in cards:
                 self._add(card)
@@ -239,13 +296,20 @@ class PipelineView(QWidget):
         demand = [m for m in members if m.on_demand]
         if demand:
             line = QFrame()
-            line.setFrameShape(QFrame.Shape.HLine)
-            line.setStyleSheet(f"color: {C.OVERLAY};")
+            line.setFixedHeight(1)
+            line.setStyleSheet(f"border: none; border-top: 1px dashed {C.OVERLAY2};")
+            self._lines.addSpacing(6)
             self._lines.addWidget(line)
+            self._lines.addSpacing(6)
             box = QWidget()
             drow = QHBoxLayout(box)
             drow.setContentsMargins(0, 0, 0, 0)
-            drow.addWidget(muted("ON DEMAND · wake when you ask"))
+            drow.setSpacing(8)
+            label = QLabel("ON DEMAND\nwake when you ask")
+            label.setFixedWidth(130)
+            label.setStyleSheet(f"color: {C.SUBTEXT}; font-size: 10px; font-weight: bold;"
+                                " letter-spacing: 1px;")
+            drow.addWidget(label, 0, Qt.AlignmentFlag.AlignTop)
             for m in demand:
                 card = StageCard(m.id, m.name, skill_text(m.skill))
                 self._add(card)
@@ -279,9 +343,8 @@ class PipelineView(QWidget):
             card.set_state(state.key, state.label, meta)
         for arrow, keys in self._arrows:
             states = [self._cards[k].state_key for k in keys if k in self._cards]
-            colour = C.BLUE if "working" in states else (
-                C.GREEN if states and all(s == "done" for s in states) else C.OVERLAY2)
-            arrow.setStyleSheet(f"color: {colour}; font-size: 18px;")
+            arrow.set_colour(C.BLUE if "working" in states else (
+                C.GREEN if states and all(s == "done" for s in states) else C.OVERLAY2))
         working = any(c.state_key == "working" for c in self._cards.values())
         if working and not self._pulse.isActive():
             self._pulse.start()
@@ -463,9 +526,17 @@ class TeamAtWork(QWidget):
         main.addLayout(left, 1)
         left.addLayout(self._run_bar())
         self._tabs = QButtonGroup(self)
-        tab_row, _ = _toggle_row(("Live", "Event log", "Team"), self._tabs)
+        tab_row, _ = _toggle_row(("Live", "Event log", "Team"), self._tabs,
+                                 ("activity", "scroll-text", "users"), tab_style())
+        tab_row.setSpacing(18)
+        tab_row.setContentsMargins(0, 0, 0, 0)
         tab_row.addStretch(1)
-        left.addLayout(tab_row)
+        tab_bar = QFrame()
+        tab_bar.setObjectName("team_tabs")
+        tab_bar.setStyleSheet(f"QFrame#team_tabs {{ border: none;"
+                              f" border-bottom: 1px solid {C.OVERLAY2}; }}")
+        tab_bar.setLayout(tab_row)
+        left.addWidget(tab_bar)
         self.pages = QStackedWidget()
         self.pages.addWidget(self._live_page())
         self.log = EventLogView()
@@ -506,13 +577,28 @@ class TeamAtWork(QWidget):
         row.addWidget(self.next_run)
         row.addSpacing(12)
         self.chips: dict[str, QLabel] = {}
-        for key in ("time", "done", "calls", "tokens", "cost"):
-            chip = QLabel()
-            chip.setStyleSheet(f"color: {C.SUBTEXT}; border: 1px solid {C.OVERLAY};"
-                               " border-radius: 9px; padding: 1px 8px;")
-            self.chips[key] = chip
-            row.addWidget(chip)
-        row.addStretch(1)
+        self.chip_titles: dict[str, QLabel] = {}
+        self._tiles: list[QFrame] = []
+        for key, title in _STATS:
+            tile = QFrame()
+            tile.setObjectName("stat_tile")
+            tile.setStyleSheet(f"QFrame#stat_tile {{ background: {C.SURFACE};"
+                               f" border: 1px solid {C.OVERLAY2}; border-radius: 8px; }}")
+            box = QVBoxLayout(tile)
+            box.setContentsMargins(12, 6, 12, 6)
+            box.setSpacing(1)
+            head = QLabel(title)
+            head.setStyleSheet(f"color: {C.MUTED}; font-size: 11px; border: none;"
+                               " background: transparent;")
+            value = QLabel()
+            value.setStyleSheet("font-size: 14px; font-weight: bold; border: none;"
+                                " background: transparent;")
+            box.addWidget(head)
+            box.addWidget(value)
+            self.chips[key] = value
+            self.chip_titles[key] = head
+            self._tiles.append(tile)
+            row.addWidget(tile, 1)
         # run buttons → clicked → section → _move_run
         self.prev_run.clicked.connect(lambda: self._move_run(1))
         self.next_run.clicked.connect(lambda: self._move_run(-1))
@@ -523,23 +609,29 @@ class TeamAtWork(QWidget):
         lines = QVBoxLayout(page)
         lines.setContentsMargins(0, 0, 0, 0)
         lines.setSpacing(8)
-        now_row = QHBoxLayout()
+        now_box = panel()
+        now_row = QHBoxLayout(now_box)
+        now_row.setContentsMargins(12, 8, 12, 8)
+        self.now_dot = QLabel("●")
+        self.now_dot.setStyleSheet(f"color: {C.MUTED}; border: none;")
         head = QLabel("Right now")
-        head.setStyleSheet("font-weight: bold;")
+        head.setStyleSheet("font-weight: bold; border: none;")
         self.now_label = QLabel()
         self.now_label.setWordWrap(True)
-        self.now_label.setStyleSheet(f"color: {C.SUBTEXT};")
+        self.now_label.setStyleSheet(f"color: {C.SUBTEXT}; border: none;")
+        now_row.addWidget(self.now_dot)
         now_row.addWidget(head)
         now_row.addWidget(self.now_label, 1)
         self._views = QButtonGroup(self)
-        view_row, _ = _toggle_row(("Pipeline", "Timeline"), self._views)
+        view_row, _ = _toggle_row(("Pipeline", "Timeline"), self._views,
+                                  ("layout-grid", "chart-line"))
         now_row.addLayout(view_row)
-        lines.addLayout(now_row)
+        lines.addWidget(now_box)
         self.live = QStackedWidget()
         self.pipeline = PipelineView()
         self.timeline = TimelineView()
-        self.live.addWidget(scroll_of(self.pipeline))
-        self.live.addWidget(scroll_of(self.timeline))
+        self.live.addWidget(panel(scroll_of(self.pipeline)))
+        self.live.addWidget(panel(scroll_of(self.timeline)))
         lines.addWidget(self.live, 1)
         # view switch → idClicked → live stack → setCurrentIndex
         self._views.idClicked.connect(self.live.setCurrentIndex)
@@ -570,9 +662,9 @@ class TeamAtWork(QWidget):
         head.addWidget(up)
         head.addWidget(down)
         lines.addLayout(head)
-        lines.addWidget(self.wheel)
+        lines.addWidget(panel(self.wheel))
         self.profile = ProfilePane()
-        lines.addWidget(scroll_of(self.profile), 1)
+        lines.addWidget(panel(scroll_of(self.profile)), 1)
         # wheel → picked → section → _on_wheel
         self.wheel.picked.connect(self._on_wheel)
         # follow → toggled → section → _show_live
@@ -618,8 +710,8 @@ class TeamAtWork(QWidget):
         index = next((i for i, r in enumerate(self._runs) if r.id == self._run_id), 0)
         self.prev_run.setEnabled(index < len(self._runs) - 1)
         self.next_run.setEnabled(index > 0)
-        for chip in self.chips.values():
-            chip.setVisible(view is not None)
+        for tile in self._tiles:
+            tile.setVisible(view is not None)
         if view is None:
             self.run_label.setText("No desk run yet")
             return
@@ -630,12 +722,13 @@ class TeamAtWork(QWidget):
         woken = [s for m, s in ((m, view.states.get(m.id)) for m in self._members)
                  if s is not None and not m.on_demand and m.status == "active"]
         done = sum(1 for s in woken if s.key == "done")
-        self.chips["time"].setText(("Running " if run.ended is None else "Took ") + _dur(taken))
-        self.chips["done"].setText(f"Done {done} of {len(woken)}")
-        self.chips["calls"].setText(f"LLM calls {len(view.calls)}")
+        self.chip_titles["time"].setText("Running" if run.ended is None else "Took")
+        self.chips["time"].setText(_dur(taken))
+        self.chips["done"].setText(f"{done} of {len(woken)}")
+        self.chips["calls"].setText(str(len(view.calls)))
         tokens = sum(c.tokens_in + c.tokens_out for c in view.calls)
-        self.chips["tokens"].setText(f"Tokens {tokens / 1000:.1f}k")
-        self.chips["cost"].setText(f"Cost ${sum(c.cost_usd for c in view.calls):.3f}")
+        self.chips["tokens"].setText(f"{tokens / 1000:.1f}k")
+        self.chips["cost"].setText(f"${sum(c.cost_usd for c in view.calls):.3f}")
 
     def _working(self) -> Member | None:
         if self._view is None:
@@ -650,6 +743,7 @@ class TeamAtWork(QWidget):
         if not self._selected and self._members:
             self._selected = self._members[0].id
         self.now_label.setText(self._now_text(working))
+        self.now_dot.setStyleSheet(f"color: {self._now_colour(working)}; border: none;")
         self.pipeline.show_view(self._members, self._view, self._selected)
         self.timeline.show_view(self._members, self._view, self._clock())
         self.wheel.set_items([
@@ -658,6 +752,14 @@ class TeamAtWork(QWidget):
             for s in [self._view.states.get(m.id, _ASLEEP) if self._view else _ASLEEP]])
         self.wheel.set_current(self._selected)
         self._show_profile()
+
+    def _now_colour(self, working: Member | None) -> str:
+        view = self._view
+        if working is not None or (view is not None and view.run.ended is None):
+            return str(C.BLUE)
+        if view is not None and any(s.key == "failed" for s in view.states.values()):
+            return str(C.RED)
+        return str(C.GREEN if view is not None else C.MUTED)
 
     def _now_text(self, working: Member | None) -> str:
         view = self._view

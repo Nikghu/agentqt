@@ -5,7 +5,6 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from pathlib import Path
 
-from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QFrame, QLabel, QPushButton, QWidget
 from pytestqt.qtbot import QtBot
 
@@ -14,7 +13,7 @@ from tests.gui.test_ai_desk_hiring import _ready
 from tests.gui.test_ai_desk_trades import FRI, SAT, _Sink, _two
 from us_swing.core import desk_chat as dc
 from us_swing.core.desk_overview import last_run, spend, team_counts, todays_runs
-from us_swing.gui.ai_desk import GROUPS, SECTIONS, AiDeskWorkspace
+from us_swing.gui.ai_desk import SECTIONS, AiDeskWorkspace
 from us_swing.gui.ai_desk_chat import ChatPanel
 from us_swing.gui.ai_desk_hiring import approvals_box
 from us_swing.gui.ai_desk_sections import runs_box, team_line
@@ -44,12 +43,11 @@ def _page(qtbot: QtBot, home: Path, sink: _Sink | None = None) -> AiDeskWorkspac
 
 
 def test_grouped_list(qtbot: QtBot, tmp_path: Path) -> None:
-    """UT-GUI-034.059.M33.T01: five headings, eight sections (SRD-GUI-035.001); headings cannot be
-    chosen."""
+    """UT-GUI-034.059.M33.T01: eight sections in group order, no headings; the list stays
+    hidden (sections are tabs, SRD-GUI-034.067)."""
     page = _page(qtbot, tmp_path)
-    items = [page._list.item(r) for r in range(page._list.count())]
-    heads = [i.text() for i in items if i is not None and i.flags() == Qt.ItemFlag.NoItemFlags]
-    assert heads == [g for g, _names in GROUPS]
+    assert page._list.isHidden()
+    assert page._list.count() == len(SECTIONS)
     assert page.section_names() == list(SECTIONS) and len(SECTIONS) == 8
     page.select_section("Reports")
     assert page.current_section() == "Reports"
@@ -84,20 +82,24 @@ def test_overview_data(tmp_path: Path) -> None:
 
 
 def test_header_chips(qtbot: QtBot, tmp_path: Path) -> None:
-    """UT-GUI-034.060.M33.T01: last run chip and the spend text with the bar percent."""
+    """UT-GUI-034.060.M33.T01: last run tile, today's spend and the month bar percent."""
     _runs(tmp_path)
     _try(tmp_path, "emp-002", "2026-11-07", {"a": 1}, 0, cost=1.0)
     page = _page(qtbot, tmp_path)
-    assert page.last_run_chip.text() == "Last run: Evening run · ok 16:05 ET"
-    assert page.spend_label.text().startswith("AI spend $1.00 today")
-    assert page.spend_bar.value() == round(spend(tmp_path, SAT).month_share * 100)  # type: ignore[union-attr]
+    assert page.last_run_title.text() == "Last run · ok"
+    assert page.last_run_chip.text().endswith("Evening run · 16:05 ET")
+    assert page.spend_label.text() == "$1.00"
+    share = round(spend(tmp_path, SAT).month_share * 100)  # type: ignore[union-attr]
+    assert page.spend_bar.value() == share
+    assert page.budget_title.text() == f"Month budget · {share}% used"
 
 
 def test_header_no_data(qtbot: QtBot, tmp_path: Path) -> None:
-    """UT-GUI-034.060.M33.T02: with no desk data the chips are hidden."""
+    """UT-GUI-034.060.M33.T02: with no desk data the tiles show no runs and zero spend."""
     page = _page(qtbot, tmp_path)
-    assert page.last_run_chip.isHidden() and page.spend_label.isHidden()
-    assert page.spend_bar.isHidden()
+    assert page.last_run_chip.text() == "No runs yet"
+    assert page.spend_label.text() == "$0.00"
+    assert page.spend_bar.value() == 0
 
 
 def test_chat_bubbles(qtbot: QtBot, tmp_path: Path) -> None:

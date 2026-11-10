@@ -5,6 +5,10 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.101.0: SRD-GUI-034.067 added and Implemented — AI Desk section tabs; replaces the sidebar menu of SRD-GUI-018.012 (user asked 2026-11-10).
+> v2.100.0: SRD-GUI-034.065–.066 added and Implemented — AI Desk console look, design Option A (user chose 2026-11-10).
+> v2.99.0: SRD-GUI-035.012 added and Implemented — Team at work clean look (user asked 2026-11-10).
+> v2.98.0: SRD-GUI-018.012 added and Implemented — AI Desk sections in the sidebar (user chose the layout 2026-11-10).
 > v2.97.2: SRD-GUI-034.042–.044 Implemented (RN-MKT-0.12.0-20261110).
 > v2.97.1: SRD-GUI-034.042–.044 approved by user 2026-11-10.
 > v2.97.0: SRD-GUI-034.042–.044 added as Draft — ask the desk for new data (MKT P10).
@@ -413,6 +417,7 @@
 | SRD-GUI-018.009 | FO-GUI-018 | Should | While auto-connect retries, the Feed row shows the attempt number and a countdown to the next try; the power button tries at once. | `set_feed_retry()`, `clear_feed_retry()` | Feed row text | Retry loop timing unchanged | Implemented |
 | SRD-GUI-018.010 | FO-GUI-018 | Should | The Market row shows the session and the time until the close or the next regular open, skipping weekends and NYSE holidays. | clock (ET) | Market row text | Same session rules as `get_exchange_status` | Implemented |
 | SRD-GUI-018.011 | FO-GUI-018 | Must | In mini mode the panel is a plug button with a worst-status dot and a tooltip of all rows; a click acts like the power button. | `set_mini()` | plug button, badge | Badge: offline > retrying > not connected > live | Implemented |
+| SRD-GUI-018.012 | FO-GUI-018 | Should | A screen can put its own section menu under its sidebar item; the AI Desk sections move there and the page drops its 190 px list. | `add_sub_nav()`, checked item, labels shown | menu shown or hidden | Shown only while that screen is on and labels show (full or hover peek); no group headings | Implemented |
 
 ## FO-GUI-019 — Side Panels and Exit Drawer
 
@@ -752,6 +757,9 @@
 | SRD-GUI-034.062 | FO-GUI-034 | Must | Command → Approvals waiting uses the feed card for each ask, with a count in the heading. | asks | cards | Same decision rules as SRD-GUI-034.035 | Implemented |
 | SRD-GUI-034.063 | FO-GUI-034 | Must | Command → Today's runs lists today's desk runs (ET time, run name, coloured result); event runs are one summed row. | runs | list | Replaces the sample table; empty note when none | Implemented |
 | SRD-GUI-034.064 | FO-GUI-034 | Should | Command shows a Team now line with the employee count by status. | employees | line | Hidden when there are no employees | Implemented |
+| SRD-GUI-034.065 | FO-GUI-034 | Should | The AI Desk header shows an icon, a state note, a dot state chip, one joined Start / Pause / Resume / Stop group and four tiles: Last run, Next run, AI spend today, Month budget. | desk status, desk.db | header card | Next run in ET and IST; controls work as before | Implemented |
+| SRD-GUI-034.066 | FO-GUI-034 | Should | Hiring, Pages, Reports, Results, Cost & budget and Desk settings use stat tiles and titled icon cards. | theme tokens, icons | restyled sections | Look only; data and actions unchanged | Implemented |
+| SRD-GUI-034.067 | FO-GUI-034 | Should | AI Desk shows its eight sections as underline tabs under the header, Command first with its waiting count; the left panel shows no AI Desk menu. | section list | tab row | Replaces the sidebar menu of SRD-GUI-018.012 | Implemented |
 
 ## FO-GUI-035: AI Desk Team at Work
 
@@ -768,3 +776,4 @@
 | SRD-GUI-035.009 | FO-GUI-035 | Must | Team at work reads desk.db read-only through core and refreshes every 3 seconds while shown and the desk runs. | desk.db | views | Never imports `desk` | Implemented |
 | SRD-GUI-035.010 | FO-GUI-035 | Must | Team at work shows a red banner for each open AI problem alert with its time and fix step. | alerts | banner | Hidden when no alert is open | Implemented |
 | SRD-GUI-035.011 | FO-GUI-035 | Must | The AI feed shows each open alert as a Desk card with the fix step. | alerts | card | Card leaves when the alert closes | Implemented |
+| SRD-GUI-035.012 | FO-GUI-035 | Should | Team at work matches the design look: icon cards with clear borders, dot chips, drawn arrows, stat tiles, underline tabs and bordered panels. | theme tokens, icons | restyled section | Look only; data and actions unchanged | Implemented |

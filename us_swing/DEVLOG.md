@@ -2,6 +2,50 @@
 
 ---
 
+## [20261110] GUI — AI Desk section tabs (SRD-GUI-034.067)
+
+- Type: Enhancement
+- FO(s): FO-GUI-034 (bullet + SRD .067 added)
+- RN: RN-GUI-1.17.0-20261110
+- Artifacts updated: FO, SRD, DD (DD-GUI-034.065.D01 Tabs), UTCD, TRACE, TODO (T140 closed, T145), Code (gui/ai_desk, gui/main_window)
+- Decisions: user asked for the design's tab row with Command; hidden list stays the one selection; `Sidebar.add_sub_nav` kept for other screens
+- Tests: 2 new + 1 updated; full GUI 868 pass, T141 old fail
+
+---
+
+## [20261110] GUI — AI Desk console look (SRD-GUI-034.065–.066)
+
+- Type: Enhancement
+- FO(s): FO-GUI-034 (bullet + SRD .065–.066 added)
+- RN: RN-GUI-1.16.0-20261110
+- Artifacts updated: FO, SRD, DD (DD-GUI-034.065.D01), MD (M39), UTCD, TRACE, Code (gui/ai_desk_console new; ai_desk, desk_control, hiring, pages, results, sections3, settings; core/desk_overview, desk_contract; desk/clock)
+- Decisions: user chose design Option A; tables kept inside cards (no new features); 16:25 constant shared from core
+- Tests: 5 new + 4 updated; AI Desk suites 65 pass; full GUI 866 pass, T141 old fail
+
+---
+
+## [20261110] GUI — Team at work clean look (SRD-GUI-035.012)
+
+- Type: Enhancement
+- FO(s): FO-GUI-035 (SRD .012 added)
+- RN: RN-GUI-1.15.0-20261110
+- Artifacts updated: SRD, DD (DD-GUI-035.001.D01 Look), UTCD (T01 updated), TRACE, Code (gui/ai_desk_team, gui/ai_desk_team_pane)
+- Decisions: follow the Final draft board of the design canvas; skill icons picked by skill words, never by employee names
+- Tests: AI Desk + sidebar suites 89 pass; old `test_main_window_lists_screens` fails on main too (T141)
+
+---
+
+## [20261110] GUI — AI Desk menu in the sidebar (SRD-GUI-018.012)
+
+- Type: Feature
+- FO(s): FO-GUI-018 (SRD .012 added)
+- RN: RN-GUI-1.14.0-20261110
+- Artifacts updated: SRD (GUI-018.012 Implemented), DD (DD-GUI-018.001.D01), MD (M05), UTCD (2 new, 1 updated, Pass), TRACE, Code (gui/sidebar, gui/ai_desk, gui/main_window)
+- Decisions: user chose sections nested under the AI Desk item, shown only on AI Desk; headings dropped so the list fits
+- Tests: sidebar + AI Desk suites 65 pass; old `test_main_window_lists_screens` fails on main too (T141)
+
+---
+
 ## [20261110] DSK + GUI — AI problem alerts (FO-DSK-007)
 
 - Type: Feature

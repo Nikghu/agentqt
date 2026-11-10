@@ -2,10 +2,18 @@
 
 **Document:** CONTEXT.md
 **Project:** us_swing
-**Last Updated:** 2026-11-10 (Session 128b)
+**Last Updated:** 2026-11-10 (Session 129)
 **Updated By:** Claude (Opus 5.5)
 
 ---
+
+**Also (Session 129d, 2026-11-10):** **AI Desk section tabs (Enhancement, GUI; FO-GUI-034; RN-GUI-1.17.0-20261110; SRD-GUI-034.067 Implemented).** Sections are underline tabs under the header; the left panel AI Desk menu is gone. Same branch, committed, not pushed. User check T145.
+
+**Also (Session 129c, 2026-11-10):** **AI Desk console look (Enhancement, GUI; FO-GUI-034; RN-GUI-1.16.0-20261110; SRD-GUI-034.065–.066 Implemented).** Design Option A: header card with tiles and joined controls; Hiring, Pages, Reports, Results, Cost and Settings in tiles and icon cards. Command and Team at work unchanged. Same branch, committed, not pushed. User check T143.
+
+**Also (Session 129b, 2026-11-10):** **Team at work clean look (Enhancement, GUI; FO-GUI-035; RN-GUI-1.15.0-20261110; SRD-GUI-035.012 Implemented).** Icon cards, clear borders, stat tiles, underline tabs and panels to match the Final draft design. Same branch, committed, not pushed. User check T142.
+
+**Current (Session 129, 2026-11-10):** **AI Desk menu in the sidebar (Feature, GUI; FO-GUI-018; RN-GUI-1.14.0-20261110; SRD-GUI-018.012 chosen by user and Implemented).** The AI Desk sections now sit under the AI Desk item in the left sidebar and show only on that screen; the page drops its 190 px list. Branch `feat/gui-desk-nav-sidebar`, committed, not pushed. User check T140.
 
 **Next (handover, 2026-11-10, Session 128):** AI Desk Team at work (FO-GUI-035) is done on branch `feat/gui-team-at-work`, committed, not pushed. User check T137, then push and PR when the user says. The real 2026-11-09 evening run failed for every employee because the Claude CLI login expired (T138); the desk now alerts on this (FO-DSK-007, same branch). User checks still open: T132–T134, T123–T131, T139.
 

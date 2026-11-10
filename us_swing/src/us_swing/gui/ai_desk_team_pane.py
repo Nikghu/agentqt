@@ -24,13 +24,13 @@ from PyQt6.QtGui import (
 )
 from PyQt6.QtWidgets import (
     QAbstractItemView,
+    QFrame,
     QGridLayout,
     QHBoxLayout,
     QHeaderView,
     QLabel,
     QProgressBar,
     QPushButton,
-    QStyle,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -39,6 +39,7 @@ from PyQt6.QtWidgets import (
 
 from us_swing.core.desk_team import Call, DayWork, Member, MemberState, Score
 from us_swing.gui.ai_desk_sections import heading, muted, read_only_text
+from us_swing.gui.icons import set_icon
 from us_swing.gui.theme import C
 
 ROW = 52
@@ -64,14 +65,46 @@ def checked_style() -> str:
             f" background: {C.OVERLAY}; outline: none; }}")
 
 
+def tab_style() -> str:
+    """Underline tab look for checkable buttons (SRD-GUI-035.012)."""
+    return (f"QPushButton {{ background: transparent; border: none; outline: none;"
+            f" border-bottom: 2px solid transparent; border-radius: 0; color: {C.SUBTEXT};"
+            f" font-weight: bold; padding: 0 6px; }}"
+            f" QPushButton:hover {{ color: {C.TEXT}; }}"
+            f" QPushButton:checked {{ color: {C.TEXT}; border-bottom: 2px solid {C.BLUE};"
+            f" outline: none; }}")
+
+
+def chip_style() -> str:
+    """Filled pill for a state chip; the dot carries the colour."""
+    return (f"color: {C.TEXT}; background: {C.OVERLAY}; border: 1px solid {C.OVERLAY2};"
+            " border-radius: 9px; padding: 1px 8px;")
+
+
+def chip_text(key: str, label: str) -> str:
+    """Rich text for a state chip: a dot in the state colour, then ``label``."""
+    return f"<span style='color:{tone(key)}'>●</span>&nbsp;{html.escape(label)}"
+
+
+def panel(child: QWidget | None = None, name: str = "team_panel") -> QFrame:
+    """A bordered panel on the page colour; holds ``child`` when given."""
+    frame = QFrame()
+    frame.setObjectName(name)
+    frame.setStyleSheet(f"QFrame#{name} {{ background: {C.BG}; border: 1px solid {C.OVERLAY};"
+                        " border-radius: 10px; }")
+    if child is not None:
+        box = QVBoxLayout(frame)
+        box.setContentsMargins(12, 10, 12, 10)
+        box.addWidget(child)
+    return frame
+
+
 def arrow_button(kind: str, tip: str) -> QPushButton:
-    """A small button with the platform arrow icon ``kind`` (Up, Down, Left, Right)."""
+    """A small button with the chevron icon ``kind`` (Up, Down, Left, Right)."""
     btn = QPushButton()
-    style = btn.style()
-    if style is not None:
-        pixmap = getattr(QStyle.StandardPixmap, f"SP_Arrow{kind}")
-        btn.setIcon(style.standardIcon(pixmap))
+    set_icon(btn, f"chevron-{kind.lower()}", "neutral", 16)
     btn.setToolTip(tip)
+    btn.setAccessibleName(tip)
     btn.setFixedWidth(36)
     return btn
 
@@ -185,7 +218,7 @@ class TeamWheel(QWidget):
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         mid = self.height() / 2
         p.setPen(QPen(QColor(C.BLUE), 1))
-        p.setBrush(QColor(C.OVERLAY))
+        p.setBrush(QColor(C.SURFACE))
         p.drawRoundedRect(QRectF(4, mid - ROW / 2 + 2, self.width() - 8, ROW - 4), 8, 8)
         for i, item in enumerate(self._items):
             d = self._offset(i)
@@ -201,8 +234,8 @@ class TeamWheel(QWidget):
         centre_pt = QPointF(14 + size / 2, y)
         colour = QColor(tone(item.key))
         p.setPen(QPen(colour, 2))
-        p.setBrush(QColor(C.SURFACE))
-        p.drawEllipse(centre_pt, size / 2, size / 2)
+        p.setBrush(QColor(C.OVERLAY))
+        p.drawRoundedRect(QRectF(centre_pt.x() - size / 2, y - size / 2, size, size), 9, 9)
         if item.key == "working":
             p.setPen(QPen(QColor(C.BLUE), 3))
             p.setBrush(Qt.BrushStyle.NoBrush)
@@ -293,8 +326,8 @@ class ProfilePane(QWidget):
         self.brief_label.setWordWrap(True)
         self.brief_label.setTextFormat(Qt.TextFormat.PlainText)
         self.brief_label.setStyleSheet(
-            f"color: {C.SUBTEXT}; background: {C.SURFACE}; border: 1px solid {C.OVERLAY};"
-            " border-radius: 6px; padding: 6px;")
+            f"color: {C.SUBTEXT}; background: {C.SURFACE}; border: 1px solid {C.OVERLAY2};"
+            " border-radius: 8px; padding: 8px;")
         lines.addWidget(self.brief_label)
         buttons = QHBoxLayout()
         self.prompt_btn = QPushButton("Prompt")
@@ -336,11 +369,8 @@ class ProfilePane(QWidget):
         boss = names.get(member.reports_to, "nobody")
         self.sub_label.setText(f"{member.title or member.level} · {skill_text(member.skill)} · "
                                f"reports to {boss}")
-        colour = tone(state.key)
-        self.state_label.setText(state.label)
-        self.state_label.setStyleSheet(
-            f"color: {colour}; border: 1px solid {colour}; border-radius: 9px;"
-            " padding: 1px 8px;")
+        self.state_label.setText(chip_text(state.key, state.label))
+        self.state_label.setStyleSheet(chip_style())
         self._facts["Wakes on"].setText(", ".join(_trigger_text(t) for t in member.triggers)
                                         or "nothing")
         self._facts["Waits for"].setText(", ".join(names.get(n, n) for n in member.needs)

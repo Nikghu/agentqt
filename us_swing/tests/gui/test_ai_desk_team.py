@@ -22,8 +22,8 @@ def test_live_tab(qtbot: QtBot, tmp_path: Path) -> None:
     desk(tmp_path, finished=False)
     page = _page(qtbot, tmp_path)
     assert page.run_label.text().startswith("Evening run #1 · Mon 09 Nov · 16:25 ET (02:55 IST)")
-    assert page.chips["calls"].text() == "LLM calls 2"
-    assert page.chips["done"].text() == "Done 1 of 3"
+    assert page.chips["calls"].text() == "2"
+    assert page.chips["done"].text() == "1 of 3"
     assert "Beta is working" in page.now_label.text()
     cards = page.pipeline._cards
     assert (cards["emp-a"].state_key, cards["emp-b"].state_key, cards["emp-c"].state_key) == (

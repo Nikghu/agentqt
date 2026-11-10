@@ -6,6 +6,7 @@ SRD-GUI-034.030 (decision buttons), SRD-GUI-034.031 (Command approvals box)
 Also: MD-GUI-034.034.M24 — SRD-GUI-034.034–.036 (trade picks in Approvals waiting)
 Also: MD-GUI-034.062.M36 — approval cards (SRD-GUI-034.062)
 Also: MD-GUI-034.043.M38 — asked panel cards and failed requests (SRD-GUI-034.043, .044)
+Also: SRD-GUI-034.066 — seat tiles and icon cards (console look)
 
 The AI Desk Hiring section: hires made through the pipeline, the Start hire form, the
 chosen hire's shadow report and the Replace / Add / Reject decision. All rules live in
@@ -25,6 +26,7 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QProgressBar,
     QPushButton,
     QTableWidget,
     QTableWidgetItem,
@@ -32,6 +34,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from us_swing.core.desk_ai_settings import load_settings
 from us_swing.core.desk_contract import desk_home
 from us_swing.core.desk_hiring import (
     HIRE_LEVELS,
@@ -40,20 +43,31 @@ from us_swing.core.desk_hiring import (
     HireInfo,
     decide,
     list_hires,
+    seat_counts,
     shadow_report,
     start_hire,
 )
 from us_swing.core.desk_feed import ask_cards, failed_cards
 from us_swing.core.desk_steps import SKILL_PATHS
 from us_swing.core.desk_trades import DeskTradeSink
+from us_swing.gui.ai_desk_console import (
+    bar_tone,
+    danger,
+    icon_card,
+    primary,
+    stat_tile,
+    thin_bar,
+)
 from us_swing.gui.ai_desk_sections import heading, make_table, muted, section_frame
 from us_swing.gui.floor_feed import FeedCardWidget, FeedContext
+from us_swing.gui.theme import C
 
 NY = ZoneInfo("America/New_York")
 HIRE_COLUMNS = ("Name", "Skill", "Level", "Model", "Started", "Shadow days", "Status")
 REPORT_COLUMNS = ("Who", "Days", "Valid", "Tokens", "Cost")
 NO_HIRES = "No hires yet. Start one below; it runs in shadow for 14 evenings"
 NO_APPROVALS = "Nothing waits for your approval"
+SEAT_LEVELS = (("expert", "Experts"), ("champion", "Champions"), ("junior", "Juniors"))
 
 
 def _status(hire: HireInfo) -> str:
@@ -83,24 +97,58 @@ class HiringPanel(QWidget):
         self._chosen: HireInfo | None = None
         body = QVBoxLayout(self)
         body.setContentsMargins(0, 0, 0, 0)
-        body.addWidget(heading("Hires"))
+        body.setSpacing(12)
+        self._body = body
+        body.addLayout(self._seat_tiles())
+        hires, hires_body = icon_card("users", "Hires")
         self.empty = muted(NO_HIRES)
         self.table = make_table(HIRE_COLUMNS, [])
         self.table.setObjectName("hires_table")
-        body.addWidget(self.empty)
-        body.addWidget(self.table, 2)
+        hires_body.addWidget(self.empty)
+        hires_body.addWidget(self.table, 1)
+        self._hires_card = hires
+        body.addWidget(hires, 2)
         row = QHBoxLayout()
         row.setSpacing(12)
-        row.addLayout(self._form(), 2)
-        row.addLayout(self._report_box(), 3)
+        row.addWidget(self._form(), 2)
+        row.addWidget(self._report_box(), 3)
         body.addLayout(row, 3)
         # table → currentCellChanged → panel → _choose
         self.table.currentCellChanged.connect(self._choose)
         self.reload()
 
-    def _form(self) -> QVBoxLayout:
-        box = QVBoxLayout()
-        box.addWidget(heading("Start hire"))
+    def _seat_tiles(self) -> QHBoxLayout:
+        row = QHBoxLayout()
+        row.setSpacing(10)
+        self.seat_values: dict[str, QLabel] = {}
+        self.seat_bars: dict[str, QProgressBar] = {}
+        for level, title in SEAT_LEVELS:
+            bar = thin_bar(0, "TEAL")
+            tile, _head, value = stat_tile(title, bar=bar)
+            self.seat_values[level] = value
+            self.seat_bars[level] = bar
+            row.addWidget(tile, 1)
+        tile, _head, self.shadow_value = stat_tile("In shadow")
+        row.addWidget(tile, 1)
+        return row
+
+    def _show_seats(self) -> None:
+        used = seat_counts(self._home)
+        settings = load_settings(self._home)
+        for level, value in self.seat_values.items():
+            cap = settings.cap(level) or 0
+            count = used.get(level, 0)
+            value.setText(f"{count} <span style='color:{C.MUTED}; font-size:11px;"
+                          f" font-weight:normal'>of {cap} seats</span>")
+            self.seat_bars[level].setValue(round(100 * count / cap) if cap else 0)
+            bar_tone(self.seat_bars[level], "YELLOW" if cap and count >= cap else "TEAL")
+        shadow = [h for h in self._hires if h.employee.status == "shadow"]
+        ready = sum(1 for h in shadow if h.ready)
+        self.shadow_value.setText(f"{len(shadow)} <span style='color:{C.MUTED}; font-size:11px;"
+                                  f" font-weight:normal'>ready to decide: {ready}</span>")
+
+    def _form(self) -> QWidget:
+        card, box = icon_card("user-plus", "Start hire")
         form = QFormLayout()
         self.skill = QComboBox()
         for key in SKILL_PATHS:
@@ -118,7 +166,7 @@ class HiringPanel(QWidget):
         form.addRow("Source", self.source)
         form.addRow("Model", self.model)
         box.addLayout(form)
-        self.start_btn = QPushButton("Start hire")
+        self.start_btn = primary(QPushButton("Start hire"))
         self.start_btn.setFixedWidth(110)
         # start button → clicked → panel → start
         self.start_btn.clicked.connect(self.start)
@@ -127,18 +175,17 @@ class HiringPanel(QWidget):
         box.addWidget(self.start_btn)
         box.addWidget(self.form_status)
         box.addStretch(1)
-        return box
+        return card
 
-    def _report_box(self) -> QVBoxLayout:
-        box = QVBoxLayout()
-        box.addWidget(heading("Shadow report"))
+    def _report_box(self) -> QWidget:
+        card, box = icon_card("clipboard-list", "Shadow report")
         self.report: QTableWidget = make_table(REPORT_COLUMNS, [])
         self.report.setObjectName("shadow_report")
         self.agreement = QLabel("")
         buttons = QHBoxLayout()
-        self.replace_btn = QPushButton("Replace")
+        self.replace_btn = primary(QPushButton("Replace"))
         self.add_btn = QPushButton("Add")
-        self.reject_btn = QPushButton("Reject")
+        self.reject_btn = danger(QPushButton("Reject"))
         for btn, decision in ((self.replace_btn, "replace"), (self.add_btn, "add"),
                               (self.reject_btn, "reject")):
             btn.setFixedWidth(90)
@@ -152,7 +199,7 @@ class HiringPanel(QWidget):
         box.addWidget(self.agreement)
         box.addLayout(buttons)
         box.addWidget(self.decision_status)
-        return box
+        return card
 
     def reload(self) -> None:
         """Read the hires again and refill the list; keep the chosen hire when it is still there."""
@@ -166,6 +213,8 @@ class HiringPanel(QWidget):
         self.table.blockSignals(False)
         self.empty.setVisible(not rows)
         self.table.setVisible(bool(rows))
+        self._body.setStretchFactor(self._hires_card, 2 if rows else 0)
+        self._show_seats()
         index = next((i for i, h in enumerate(self._hires) if h.employee.id == chosen), 0)
         if rows:
             self.table.setCurrentCell(index, 0)

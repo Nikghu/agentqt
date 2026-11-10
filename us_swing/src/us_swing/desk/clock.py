@@ -10,10 +10,10 @@ from __future__ import annotations
 from datetime import date, datetime, time, timedelta, tzinfo
 from zoneinfo import ZoneInfo
 
+from us_swing.core.desk_contract import EVENING_RUN
 from us_swing.data.market_calendar import get_exchange_status
 
 ET = ZoneInfo("America/New_York")
-EVENING_RUN = time(16, 25)
 MARKET_OPEN = time(9, 30)
 MARKET_CLOSE = time(16, 0)
 CLOCK_WINDOW = timedelta(minutes=30)
