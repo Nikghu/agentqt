@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.8.0: Autonomous desk step A (user, 2026-11-10): SRD-DSK-001.013/.015/.018/.019/.020 and 007.005 reopened and reworded (morning run, desk lives with the app); SRD-DSK-003.013 and 007.007 added as Draft.
 > v0.7.2: SRD-DSK-008.001–.009 Implemented 2026-11-10 (employee.md, versions, draft test).
 > v0.7.1: SRD-DSK-008.001–.009 approved by user 2026-11-10.
 > v0.7.0: SRD-DSK-008.001–.009 added as Draft — employee.md, shared rules, migration, versions, draft test.
@@ -36,14 +37,14 @@
 | SRD-DSK-001.010 | FO-DSK-001 | Must | The desk reads pending commands every 2 seconds, applies them in order and marks each done or rejected with a reason. | `commands` | status | A command not valid in the current state is rejected | Implemented |
 | SRD-DSK-001.011 | FO-DSK-001 | Must | Pause holds all timers and resume returns the desk to Sleeping. | command | state | Commands still read while Paused | Implemented |
 | SRD-DSK-001.012 | FO-DSK-001 | Must | Stop moves to Stopping, finishes the current step, saves the resume point, sets Stopped and exits. | command | state | No step is cut half way | Implemented |
-| SRD-DSK-001.013 | FO-DSK-001 | Must | A desk started by the Windows task exits at once when the saved state is Stopped. | saved state | exit | Only `start` clears Stopped | Implemented |
+| SRD-DSK-001.013 | FO-DSK-001 | Must | A desk started without `--resume` exits at once when the saved state is Stopped; the app and `desk start` launch with `--resume`, which clears it. | saved state | exit | Reopened 2026-11-10: no desk Windows task any more | Reopen |
 | SRD-DSK-001.014 | FO-DSK-001 | Must | On start, a run with no end time is marked interrupted and run again. | `runs` | new run | — | Implemented |
-| SRD-DSK-001.015 | FO-DSK-001 | Must | The evening run is due on weekdays at 16:25 New York time and is caught up once if missed that day. | clock, last run | due flag | Pure function, clock passed in | Implemented |
+| SRD-DSK-001.015 | FO-DSK-001 | Must | The morning run is due on NYSE trading days from 04:00 to 16:00 New York time until one ends ok that day; a failed try is repeated after 15 minutes, at most 3 tries a day. | clock, today's morning runs | due flag | Pure function, clock passed in; reopened 2026-11-10: replaces the 16:25 evening run | Reopen |
 | SRD-DSK-001.016 | FO-DSK-001 | Must | Each run is a `runs` row (kind, start, end, result, note) and calls the registered desk steps in order. | steps | row | Zero steps in P0a gives result ok | Implemented |
 | SRD-DSK-001.017 | FO-DSK-001 | Must | A failed step ends the run as failed and sets Error with a short message; the next good run sets Sleeping. | exception | state | Process keeps running | Implemented |
-| SRD-DSK-001.018 | FO-DSK-001 | Must | Install creates two Windows tasks: one at logon and one 5 minutes before each weekday evening run, set in local time and local days. | exe path | tasks | No console window | Implemented |
-| SRD-DSK-001.019 | FO-DSK-001 | Should | Each desk start re-checks the evening task time and updates it after a US or local clock change. | clock | task | Skipped when not installed | Implemented |
-| SRD-DSK-001.020 | FO-DSK-001 | Must | `python -m us_swing desk` runs the desk; `desk start/status/pause/resume/stop/run-now/install/uninstall` control it. | argv | exit code, text | `start` launches a detached process | Implemented |
+| SRD-DSK-001.018 | FO-DSK-001 | Must | The desk has no Windows tasks; each desk start deletes the old `USSwing_Desk` and `USSwing_Desk_Evening` tasks when they exist. | task names | none | No console window; a missing task is not an error; reopened 2026-11-10 | Reopen |
+| SRD-DSK-001.019 | FO-DSK-001 | Must | A desk launched with `--parent PID` checks every poll that the process is alive and, when it is gone, stops as on a Stop command. | parent pid | Stopping state | Reopened 2026-11-10: replaces the evening task re-check; the unfinished run is caught up at the next start | Reopen |
+| SRD-DSK-001.020 | FO-DSK-001 | Must | `python -m us_swing desk [--resume] [--parent PID]` runs the desk; `desk start/status/pause/resume/stop/run-now/proof/replay` control it. | argv | exit code, text | `start` launches a detached process; reopened 2026-11-10: `install`/`uninstall` removed | Reopen |
 | SRD-DSK-001.021 | FO-DSK-001 | Must | The desk loads its steps from the step list in `core/desk_steps.py`, and each step gets the desk folder in its context. | step list | steps | A step that fails to load is logged and left out | Implemented |
 | SRD-DSK-001.022 | FO-DSK-001 | Must | `desk proof` runs the score proof on past data and prints its report. | argv | report text, exit code | Loaded by import path; exit 1 when there is no data | Implemented |
 
@@ -77,6 +78,7 @@
 | SRD-DSK-003.010 | FO-DSK-003 | Must | The employees woken by one event run as one LangGraph graph; an employee runs after the employees whose skills its skill needs. | woken employees, needs | run order | A loop in the needs keeps the whole graph asleep and is logged | Implemented |
 | SRD-DSK-003.011 | FO-DSK-003 | Must | A failed or sleeping employee never stops the graph; those that need its view still run and their facts say the view is missing. | node result | facts note | — | Implemented |
 | SRD-DSK-003.012 | FO-DSK-003 | Must | `langgraph` is a desk dependency and the installer bundles it for the frozen desk. | — | package | Only `desk` imports it | Implemented |
+| SRD-DSK-003.013 | FO-DSK-003 | Must | Run kinds are `morning`, `manual` and `event`; runs kept as `evening` stay readable as history. | `runs` | kinds | Only `morning` and `manual` runs call the market steps | Draft |
 
 ## FO-DSK-004: LLM Gateway and Budget Guard
 
@@ -123,8 +125,9 @@
 | SRD-DSK-007.002 | FO-DSK-007 | Must | An alert is stored once per kind, source and New York day. | alert | row | Repeats the same day are dropped | Implemented |
 | SRD-DSK-007.003 | FO-DSK-007 | Must | A new alert is sent to Telegram for the first user with Telegram on. | alert | message | A failed or off Telegram keeps the alert in the app | Implemented |
 | SRD-DSK-007.004 | FO-DSK-007 | Must | After a source fails to sign in, the rest of that run skips it and uses the backup model. | run | calls | The next run tries the source again | Implemented |
-| SRD-DSK-007.005 | FO-DSK-007 | Must | An evening or manual run whose employees made calls but gave no valid answer raises a whole-run alert. | run calls | alert | Holds the call count and last error | Implemented |
+| SRD-DSK-007.005 | FO-DSK-007 | Must | A morning or manual run whose employees made calls but gave no valid answer raises a whole-run alert. | run calls | alert | Holds the call count and last error; reopened 2026-11-10: wording only | Reopen |
 | SRD-DSK-007.006 | FO-DSK-007 | Must | An alert stays open for a day until a later valid answer (same source for sign-in problems) closes it. | alerts, activity | open alerts | Read-only for the GUI | Implemented |
+| SRD-DSK-007.007 | FO-DSK-007 | Must | A run stopped by the candle check raises a "Candles not up to date" alert with the number of stocks still behind. | check result | alert | Same once-per-day and Telegram rules; closed by the next run that passes the check | Draft |
 
 ## FO-DSK-008: Employee File and Versions
 

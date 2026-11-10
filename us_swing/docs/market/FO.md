@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.12.0: Autonomous desk step A (user, 2026-11-10): FO-MKT-001 runs in the morning run and adds the candle check with a Yahoo desk-only copy; FO-MKT-005 brief becomes the morning brief. Older acceptance lines that say "evening run" describe the run in place when they were written.
 > v0.11.2: FO-MKT-011 Implemented (RN-MKT-0.12.0-20261110).
 > v0.11.1: FO-MKT-011 approved by user 2026-11-10.
 > v0.11.0: FO-MKT-011 added as Draft — Ask the Desk for New Data (P10).
@@ -41,7 +42,8 @@ The system shall describe the state of the whole US market each day, so later ph
 - The system shall classify market volatility as Calm, Normal or High from SPY's recent price swings compared with the past year.
 - The system shall compute daily breadth for S&P 500 stocks: share above their 20, 50 and 200-day averages, 52-week new highs and lows, and advancing against declining stocks.
 - The system shall give a daily fear reading (Calm, Nervous, Fearful) from volatility, breadth and VIX, using daily VIX and VIX3M from Yahoo Finance.
-- The system shall run this as a desk step in the evening run and keep the results in `desk.db`.
+- The system shall run this as a desk step in the morning run and keep the results in `desk.db`.
+- The system shall check, before any market step, that the daily candles reach the last closed trading day; stocks still behind get only their missing days from Yahoo Finance, kept as a desk-only copy so `candles.db` stays IBKR-only; when the candles are still not up to date the run stops before any AI call (user, 2026-11-10).
 - The system shall fill the whole available history on its first run, then add only new days.
 - The system shall show the real regime and breadth on the Market Floor in place of sample data.
 
@@ -142,7 +144,7 @@ The system shall add AI experts on top of the funnel. P5a adds the first skill, 
 - The system shall add a sector/flow view skill that names the sectors to favour and to avoid, from sector ranks, quadrants and money flow.
 - The system shall add a setup review skill that grades each listed idea A, B or C with a one-line note.
 - The system shall add a risk check skill: hard risk limits kept in code veto ideas first, then the AI may veto more ideas with a reason but never undo a code veto.
-- The system shall add a lead brief skill that picks the final ideas only from ideas that passed the risk check, and writes the evening brief for the Floor.
+- The system shall add a lead brief skill that picks the final ideas only from ideas that passed the risk check, and writes the morning brief for the Floor (evening until 2026-11-10).
 - The system shall ship default employees for the new skills with generic level names only; the Master user may rename, re-level or re-link them.
 
 ### Acceptance Criteria
