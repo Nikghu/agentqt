@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.14.0: MD-MKT-001.013.M06 added — candle check and Yahoo desk copy; M08 morning brief (Autonomous desk step A, 2026-11-11).
 > v0.13.0: MD-MKT-011.*.M01–M06 added — ask the desk for new data (P10).
 > v0.12.0: MD-MKT-010.*.M01–M04 added — lead chat (P9).
 > v0.11.0: MD-MKT-009.*.M01–M06 added — pick results (P8).
@@ -31,8 +32,11 @@
 | MD-MKT-001.005.M03 | SRD-MKT-001.005 | `us_swing/src/us_swing/market/vix.py` | Fetch daily VIX and VIX3M from Yahoo Finance | `fetch_vix()` | `yfinance` | No |
 | MD-MKT-001.007.M04 | SRD-MKT-001.007 | `us_swing/src/us_swing/market/store.py` | Market tables in `desk.db` | `MarketStore` | `sqlite3` | No |
 | MD-MKT-001.011.M05 | SRD-MKT-001.011 | `us_swing/src/us_swing/market/step.py` | Desk step: incremental compute and save | `RegimeStep` | M01–M04, `core.desk_contract` | No |
+| MD-MKT-001.013.M06 | SRD-MKT-001.013 | `us_swing/src/us_swing/market/candle_check.py` | Desk step "Candle check": target day, stocks behind, Yahoo fill into the desk copy, stop the run when still behind | `CandleCheckStep`, `CandleCheckError`, `last_closed_day()`, `topup_rows()`, `fetch_daily()` | M01, M04, `core.desk_alerts`, `core.symbols`, `yfinance` | No |
 
-SRD coverage: .001 by M01; .002, .003, .004, .006 by M02; .005 by M03; .007 by M04; .008, .009, .010, .011, .012 by M05.
+SRD coverage: .001 by M01; .002, .003, .004, .006 by M02; .005 by M03; .007 by M04; .008, .009, .010, .011, .012 by M05; .013, .014, .016, .017 by M06; .014 also M04 (`candle_topup`); .015 by M01 (`CandleReader(topup=)`), M04 (`trim_topup`) and `market/regime_view.py` (`latest_spy_day`).
+
+Changed for .015: `step.py`, `sector_step.py`, `idea_step.py`, `pick_results.py` pass `topup=` to `CandleReader`; `setup_review.ideas_day`, `regime_view`, `sector_view` pass the store to `latest_spy_day`. `core/desk_steps.py` (MD-DSK-001.021.M07) puts the Candle check first.
 
 ## FO-MKT-002: Sector Strength and Rotation
 
@@ -90,7 +94,7 @@ SRD coverage: .001, .002, .004 by M01; .003 by M02; .005 by M03.
 | MD-MKT-005.009.M05 | SRD-MKT-005.009 | `us_swing/src/us_swing/market/setup_review.py` | Setup review skill: facts, grades and act | `SetupReviewSkill`, `SetupReview`, `SetupGrade` | `core.desk_agents`, M02 | No |
 | MD-MKT-005.011.M06 | SRD-MKT-005.011 | `us_swing/src/us_swing/market/risk_limits.py` | Hard risk limits as constants and the code veto rules | `code_vetoes()`, `MIN_TRIGGER_USD`, `STOP_MIN_PCT`, `STOP_MAX_PCT`, `MAX_PER_SECTOR_SIDE` | — | No |
 | MD-MKT-005.012.M07 | SRD-MKT-005.012 | `us_swing/src/us_swing/market/risk_check.py` | Risk check skill: code vetoes first, then AI vetoes | `RiskCheckSkill`, `RiskVetoes`, `RiskVeto` | `core.desk_agents`, M02, M06 | No |
-| MD-MKT-005.014.M08 | SRD-MKT-005.014 | `us_swing/src/us_swing/market/lead_brief.py` | Lead brief skill: picks from passed ideas and the evening brief | `LeadBriefSkill`, `LeadBrief`, `LeadPick` | `core.desk_agents`, M02, M06 | No |
+| MD-MKT-005.014.M08 | SRD-MKT-005.014 | `us_swing/src/us_swing/market/lead_brief.py` | Lead brief skill: picks from passed ideas and the morning brief (feed kind `morning`; SRD-MKT-005.015–.016) | `LeadBriefSkill`, `LeadBrief`, `LeadPick` | `core.desk_agents`, M02, M06 | No |
 | MD-MKT-005.017.M09 | SRD-MKT-005.017 | `us_swing/src/us_swing/market/employees/emp-002/` … `emp-005/` | Default employee files for the four new skills | — | — | No |
 
 Changed: M01 (`needs`, `answer`); M02 (`sector_view`, `setup_review`, `risk_check`, `lead_picks` tables); `market/step.py` (MD-MKT-001.*) posts `regime_change` through `core/desk_events.py`.

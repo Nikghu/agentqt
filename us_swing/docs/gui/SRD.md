@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.105.1: Step A rows approved by user 2026-11-11.
 > v2.105.0: Autonomous desk step A (user, 2026-11-10): SRD-GUI-029.007–.008 (start tasks 60 min before open) and SRD-GUI-034.068–.069 (desk lives with the app, morning-run labels) added as Draft.
 > v2.104.2: SRD-GUI-036.001–.008 Implemented 2026-11-10 (Team setup tab, side pane trim, review fixes).
 > v2.104.1: SRD-GUI-036.001–.008 approved by user 2026-11-10.
@@ -578,8 +579,8 @@
 | SRD-GUI-029.004 | FO-GUI-029 | Must | Apply writes switched-on tasks, deletes switched-off ones and saves the password; a Missing switched-on task marks the section changed so Apply re-creates it. | Apply | Windows tasks | Writes run in the background; errors show on the pill | Implemented |
 | SRD-GUI-029.005 | FO-GUI-029 | Should | A red Remove all tasks link deletes every task, the saved configs and the password after a frameless confirm. | click | none | Cancel keeps everything | Implemented |
 | SRD-GUI-029.006 | FO-GUI-029 | Must | The Edit Scheduler button and the Windows Task Scheduler window are removed; task names are kept internally. | — | — | Saved task names still used | Implemented |
-| SRD-GUI-029.007 | FO-GUI-029 | Must | Start TWS and Start USSwing times are fixed at 60 minutes before the 09:30 ET open, shown read-only in local time with the note "60 min before open". | clock | time cell | Days shift with the local date when needed; Close both stays editable | Draft |
-| SRD-GUI-029.008 | FO-GUI-029 | Must | At app start a background check re-creates a switched-on start task whose Windows time or days no longer match .007. | schtasks query, clock | Windows task | Never on the GUI thread; logged with a `[Scheduler]` prefix | Draft |
+| SRD-GUI-029.007 | FO-GUI-029 | Must | Start TWS and Start USSwing times are fixed at 60 minutes before the 09:30 ET open, shown read-only in local time with the note "60 min before open". | clock | time cell | Days shift with the local date when needed; Close both stays editable | Approved |
+| SRD-GUI-029.008 | FO-GUI-029 | Must | At app start a background check re-creates a switched-on start task whose Windows time or days no longer match .007. | schtasks query, clock | Windows task | Never on the GUI thread; logged with a `[Scheduler]` prefix | Approved |
 
 ## FO-GUI-030 — Backtest Data Settings
 
@@ -768,8 +769,8 @@
 | SRD-GUI-034.065 | FO-GUI-034 | Should | The AI Desk header shows an icon, a state note, a dot state chip, one joined Start / Pause / Resume / Stop group and four tiles: Last run, Next run, AI spend today, Month budget. | desk status, desk.db | header card | Next run in ET and IST; controls work as before | Implemented |
 | SRD-GUI-034.066 | FO-GUI-034 | Should | Hiring, Pages, Reports, Results, Cost & budget and Desk settings use stat tiles and titled icon cards. | theme tokens, icons | restyled sections | Look only; data and actions unchanged | Implemented |
 | SRD-GUI-034.067 | FO-GUI-034 | Should | AI Desk shows its eight sections as underline tabs under the header, Command first with its waiting count; the left panel shows no AI Desk menu. | section list | tab row | Replaces the sidebar menu of SRD-GUI-018.012 | Implemented |
-| SRD-GUI-034.068 | FO-GUI-034 | Must | The app starts the desk with its own process id when it opens and sends Stop when it closes. | app start, close | launch, command | Off the GUI thread; never a second desk; close does not wait for the run | Draft |
-| SRD-GUI-034.069 | FO-GUI-034 | Should | Desk labels name the morning run: the Next run tile, Desk settings, Team at work trigger, empty notes and the feed card title. | clock, runs | labels | Next run = today from 04:00 ET while due, else the next trading day; old `evening` runs and briefs still show | Draft |
+| SRD-GUI-034.068 | FO-GUI-034 | Must | The app starts the desk with its own process id when it opens and sends Stop when it closes. | app start, close | launch, command | Off the GUI thread; never a second desk; close does not wait for the run | Approved |
+| SRD-GUI-034.069 | FO-GUI-034 | Should | Desk labels name the morning run: the Next run tile, Desk settings, Team at work trigger, empty notes and the feed card title. | clock, runs | labels | Next run = today from 04:00 ET while due, else the next trading day; old `evening` runs and briefs still show | Approved |
 
 ## FO-GUI-035: AI Desk Team at Work
 

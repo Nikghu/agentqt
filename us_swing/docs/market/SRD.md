@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.14.1: Step A rows approved by user 2026-11-11.
 > v0.14.0: Autonomous desk step A (user, 2026-11-10): SRD-MKT-001.013–.017 added as Draft (candle check, Yahoo desk-only copy); SRD-MKT-005.015/.016 reopened (morning brief, feed kind `morning`).
 > v0.13.2: SRD-MKT-011.001–.009 Implemented (RN-MKT-0.12.0-20261110).
 > v0.13.1: SRD-MKT-011.001–.009 approved by user 2026-11-10.
@@ -49,11 +50,11 @@
 | SRD-MKT-001.010 | FO-MKT-001 | Must | The data date is the latest SPY candle; when it is older than the last weekday the note says the candles are stale. | SPY dates, clock | note | Stale data is not an error | Implemented |
 | SRD-MKT-001.011 | FO-MKT-001 | Must | The work runs as the desk step "Market regime" registered for the desk. | desk run | step | `market` never imports `desk` | Implemented |
 | SRD-MKT-001.012 | FO-MKT-001 | Should | Each run logs the days added, the latest regime and fear, and the data date. | step | log lines | `[Regime]` prefix | Implemented |
-| SRD-MKT-001.013 | FO-MKT-001 | Must | A desk step "Candle check" runs first and finds SPY and the members whose last daily bar is before the last closed trading day. | `candles.db`, desk copy, clock | stocks behind | Last closed trading day: today after 16:00 ET, else the trading day before | Draft |
-| SRD-MKT-001.014 | FO-MKT-001 | Must | Stocks behind get only their missing daily bars from Yahoo Finance, kept in `candle_topup` in `desk.db`. | stocks behind | copy rows | `candles.db` is never written; prices not dividend-adjusted, as IBKR | Draft |
-| SRD-MKT-001.015 | FO-MKT-001 | Must | The candle reader adds desk-copy bars only for days `candles.db` does not have for that stock. | both sources | bars | Copy rows on or before the stock's last `candles.db` day are deleted at each check | Draft |
-| SRD-MKT-001.016 | FO-MKT-001 | Must | When SPY or more than 2% of members are still behind after the top-up, the step stops the run before any AI call. | stocks behind | failed run | The error names the count; the desk retries per SRD-DSK-001.015 | Draft |
-| SRD-MKT-001.017 | FO-MKT-001 | Should | The check logs how many stocks were behind, how many were filled from Yahoo and how many are still behind. | step | log lines | `[Candles]` prefix | Draft |
+| SRD-MKT-001.013 | FO-MKT-001 | Must | A desk step "Candle check" runs first and finds SPY and the members whose last daily bar is before the last closed trading day. | `candles.db`, desk copy, clock | stocks behind | Last closed trading day: today after 16:00 ET, else the trading day before | Approved |
+| SRD-MKT-001.014 | FO-MKT-001 | Must | Stocks behind get only their missing daily bars from Yahoo Finance, kept in `candle_topup` in `desk.db`. | stocks behind | copy rows | `candles.db` is never written; prices not dividend-adjusted, as IBKR | Approved |
+| SRD-MKT-001.015 | FO-MKT-001 | Must | The candle reader adds desk-copy bars only for days `candles.db` does not have for that stock. | both sources | bars | Copy rows on or before the stock's last `candles.db` day are deleted at each check | Approved |
+| SRD-MKT-001.016 | FO-MKT-001 | Must | When SPY or more than 2% of members are still behind after the top-up, the step stops the run before any AI call. | stocks behind | failed run | The error names the count; the desk retries per SRD-DSK-001.015 | Approved |
+| SRD-MKT-001.017 | FO-MKT-001 | Should | The check logs how many stocks were behind, how many were filled from Yahoo and how many are still behind. | step | log lines | `[Candles]` prefix | Approved |
 
 ## FO-MKT-002: Sector Strength and Rotation
 
@@ -119,8 +120,8 @@
 | SRD-MKT-005.012 | FO-MKT-005 | Must | The risk check AI reads the ideas that passed the code limits with their grades, news tags and the regime and sector views, and may veto more ideas with a reason of at most 120 characters. | facts | AI vetoes | Needs regime view, sector/flow view, setup review and news review; cannot undo a code veto; unknown ideas are dropped and logged; reopened by user 2026-11-06 | Implemented |
 | SRD-MKT-005.013 | FO-MKT-005 | Must | Each listed idea gets one `risk_check` row per data day: pass or veto, by code or AI, and the reason. | vetoes | rows | Code limits are applied even when the AI call fails or the budget is used up | Implemented |
 | SRD-MKT-005.014 | FO-MKT-005 | Must | Lead brief facts are the day's regime, sector/flow, setup, news and risk views, with a note for any view that is missing, and the ideas that passed with their final scores. | `desk.db` | facts text | Needs the four skills above and the news review; reopened by user 2026-11-06 | Implemented |
-| SRD-MKT-005.015 | FO-MKT-005 | Must | The lead answer is up to 5 picks per side, each with a reason of at most 120 characters, and a morning brief of at most 1,200 characters. | facts | picks, brief | A pick that did not pass the risk check is dropped and logged; reopened 2026-11-10: evening → morning | Reopen |
-| SRD-MKT-005.016 | FO-MKT-005 | Must | Picks are kept in `lead_picks` per data day and the morning brief goes to the AI feed as kind `morning`. | picks, brief | rows, feed item | A new run on the same day replaces the picks; old `evening` briefs stay readable; reopened 2026-11-10 | Reopen |
+| SRD-MKT-005.015 | FO-MKT-005 | Must | The lead answer is up to 5 picks per side, each with a reason of at most 120 characters, and a morning brief of at most 1,200 characters. | facts | picks, brief | A pick that did not pass the risk check is dropped and logged; reopened 2026-11-10: evening → morning | Approved |
+| SRD-MKT-005.016 | FO-MKT-005 | Must | Picks are kept in `lead_picks` per data day and the morning brief goes to the AI feed as kind `morning`. | picks, brief | rows, feed item | A new run on the same day replaces the picks; old `evening` briefs stay readable; reopened 2026-11-10 | Approved |
 | SRD-MKT-005.017 | FO-MKT-005 | Must | Default employees ship as `emp-002` "Expert 2" (sector/flow view), `emp-003` "Expert 3" (setup review), `emp-004` "Expert 4" (risk check) and `emp-005` "Lead 1" (lead brief), all on `after_run`. | — | files | Experts report to `emp-005` as data only; calls per day 3, monthly cap USD 3 each | Implemented |
 | SRD-MKT-005.018 | FO-MKT-005 | Must | The four new skills are added to the skill list in `core/desk_steps.py`. | — | skill paths | `market` never imports `desk` | Implemented |
 

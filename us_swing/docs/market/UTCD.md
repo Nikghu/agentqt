@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.14.0: Autonomous desk step A (2026-11-11): 14 cases for the candle check and desk copy (UT-MKT-001.013–.017); morning brief rows reworded.
 > v0.13.1: UT-MKT-011 test cases run — 25 Pass.
 > v0.13.0: 25 test cases for FO-MKT-011 ask the desk for new data (P10).
 > v0.12.0: 17 test cases for FO-MKT-010 lead chat (P9).
@@ -56,6 +57,20 @@
 | UT-MKT-001.011.M05.T01 | MD-MKT-001.011.M05 | Positive | Step runs in a desk run (SRD-MKT-001.011) | DeskProcess with loaded steps, run-now | run ok; rows written | Pass |
 | UT-MKT-001.011.M05.T02 | MD-MKT-001.011.M05 | Negative | VIX down, step still ok (SRD-MKT-001.011) | fake VIX fetch fails | rows written; note no VIX | Pass |
 | UT-MKT-001.011.M05.T03 | MD-MKT-001.011.M05 | Negative | No candle file yet (SRD-MKT-001.011) | missing candles.db | no rows; run not failed | Pass |
+| UT-MKT-001.013.M06.T01 | MD-MKT-001.013.M06 | Positive | Target day (SRD-MKT-001.013) | Wed 2026-11-11 08:30 ET; Wed 16:05 ET; Mon 2026-11-16 08:30 ET | 2026-11-10; 2026-11-11; 2026-11-13 | Not Run |
+| UT-MKT-001.013.M06.T02 | MD-MKT-001.013.M06 | Positive | Up to date: no fetch (SRD-MKT-001.013) | all members and SPY at the target day | fetch not called; step returns; no copy rows | Not Run |
+| UT-MKT-001.014.M06.T01 | MD-MKT-001.013.M06 | Positive | Behind stocks filled into the desk copy (SRD-MKT-001.014) | 3 of 100 members one day behind; fake Yahoo with 10 overlap days | 3 copy rows on the target day; `candles.db` unchanged | Not Run |
+| UT-MKT-001.014.M06.T02 | MD-MKT-001.013.M06 | Positive | Volume scaled by the IBKR/Yahoo median (SRD-MKT-001.014) | overlap volume ratios 0.5, 0.5, 0.6; new Yahoo volume 1,000,000 | copy volume 500,000 | Not Run |
+| UT-MKT-001.014.M06.T03 | MD-MKT-001.013.M06 | Negative | Price mismatch or short overlap skips the stock (SRD-MKT-001.014) | overlap close off by 2%; only 2 overlap days | no copy row for those stocks | Not Run |
+| UT-MKT-001.015.M01.T01 | MD-MKT-001.001.M01 | Positive | Reader adds copy days candles.db lacks (SRD-MKT-001.015) | candles.db to 11-09, copy 11-10 | read() ends 11-10; symbols() includes copy-only stocks | Not Run |
+| UT-MKT-001.015.M01.T02 | MD-MKT-001.001.M01 | Edge | candles.db wins over the copy (SRD-MKT-001.015) | both have 11-10 with different closes | candles.db close used | Not Run |
+| UT-MKT-001.015.M04.T01 | MD-MKT-001.007.M04 | Positive | Copy rows trimmed once IBKR has the day (SRD-MKT-001.015) | copy 11-10; candles.db now to 11-10 | copy row deleted | Not Run |
+| UT-MKT-001.015.M01.T03 | MD-MKT-001.001.M01 | Positive | Latest SPY day sees the copy (SRD-MKT-001.015) | SPY in candles.db to 11-09, copy 11-10 | `latest_spy_day` returns 2026-11-10 | Not Run |
+| UT-MKT-001.016.M06.T01 | MD-MKT-001.013.M06 | Negative | Still behind stops the run with an alert (SRD-MKT-001.016, SRD-DSK-007.007) | Yahoo returns nothing; 5 of 100 behind | raises `CandleCheckError` naming 5 of 101; one `candles` alert | Not Run |
+| UT-MKT-001.016.M06.T02 | MD-MKT-001.013.M06 | Edge | 2% rule and SPY (SRD-MKT-001.016) | 2 of 100 members behind; SPY alone behind | no error; error | Not Run |
+| UT-MKT-001.016.M06.T03 | MD-MKT-001.013.M06 | Negative | No candle file (SRD-MKT-001.016) | missing candles.db | raises `CandleCheckError` | Not Run |
+| UT-MKT-001.017.M06.T01 | MD-MKT-001.013.M06 | Positive | Check logs the counts (SRD-MKT-001.017) | 3 behind, 2 filled | one `[Candles]` line with 3, 2 and 1 | Not Run |
+| UT-MKT-001.013.M06.T03 | MD-MKT-001.013.M06 | Positive | Candle check is the first desk step (SRD-MKT-001.013) | `STEP_PATHS` | first path is the candle check | Not Run |
 
 ## FO-MKT-002: Sector Strength and Rotation
 
@@ -203,14 +218,14 @@
 | UT-MKT-005.015.M08.T01 | MD-MKT-005.014.M08 | Positive | Valid lead answer (SRD-MKT-005.015) | 3 long and 2 short picks, 600-char brief | LeadBrief | Pass |
 | UT-MKT-005.015.M08.T02 | MD-MKT-005.014.M08 | Negative | Vetoed or extra picks (SRD-MKT-005.015) | a vetoed pick; 7 long picks | vetoed dropped and logged; first 5 long kept | Pass |
 | UT-MKT-005.015.M08.T03 | MD-MKT-005.014.M08 | Negative | Bad lead answer (SRD-MKT-005.015) | 1,300-char brief; 130-char reason | refused by the schema | Pass |
-| UT-MKT-005.016.M08.T01 | MD-MKT-005.014.M08 | Positive | Picks and evening brief (SRD-MKT-005.016) | valid answer, run twice | lead_picks rows of the second run with rank; feed item kind evening | Pass |
+| UT-MKT-005.016.M08.T01 | MD-MKT-005.014.M08 | Positive | Picks and morning brief (SRD-MKT-005.015, .016) | valid answer with a `morning` field, run twice | lead_picks rows of the second run with rank; feed item kind morning | Not Run |
 | UT-MKT-005.016.M08.T02 | MD-MKT-005.014.M08 | Negative | No answer (SRD-MKT-005.016) | ask returns None | no picks; no feed item | Pass |
 | UT-MKT-005.017.M09.T01 | MD-MKT-005.017.M09 | Positive | Default files valid (SRD-MKT-005.017) | shipped emp-002 to emp-005 | each loads with its skill, after_run, caps 3 and USD 3, generic name filled into the soul | Pass |
 | UT-MKT-005.017.M09.T02 | MD-MKT-005.017.M09 | Negative | No real names in defaults (SRD-MKT-005.017) | scan default files | names match generic level pattern only | Pass |
 | UT-MKT-005.017.M09.T03 | MD-MKT-005.017.M09 | Positive | Name placeholder in souls (SRD-MKT-005.017) | each shipped soul.md | holds {name} to fill in | Pass |
 | UT-MKT-005.018.M09.T01 | MD-MKT-005.017.M09 | Positive | Skill list (SRD-MKT-005.018) | SKILL_PATHS | five keys load to skills with matching key | Pass |
 | UT-MKT-005.018.M09.T02 | MD-MKT-005.017.M09 | Negative | No desk import (SRD-MKT-005.018) | scan `market` sources | no `us_swing.desk` import | Pass |
-| UT-MKT-005.018.M09.T03 | MD-MKT-005.017.M09 | Positive | Full evening chain (SRD-MKT-005.018) | real steps on synthetic candles, made-up employees, fake model | views, risk rows, picks and evening brief stored; lead ran last | Pass |
+| UT-MKT-005.018.M09.T03 | MD-MKT-005.017.M09 | Positive | Full morning chain (SRD-MKT-005.018) | real steps on synthetic candles, made-up employees, fake model | views, risk rows, picks and morning brief stored; lead ran last | Not Run |
 | UT-MKT-005.013.M07.T03 | MD-MKT-005.012.M07 | Edge | Second wake keeps AI vetoes (SRD-MKT-005.013) | AI veto, then a wake with no valid answer | AI veto kept; code vetoes kept; no feed item | Pass |
 
 ## FO-MKT-006: News, Economic Calendar and Event Risk
@@ -265,7 +280,7 @@
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
 |---|---|---|---|---|---|---|
-| UT-MKT-007.001.M02.T01 | MD-MKT-007.001.M02 | Positive | Report facts (SRD-MKT-007.001) | ideas, lead picks, evening brief, views for the day | text holds the brief, picks and views; fresh True | Pass |
+| UT-MKT-007.001.M02.T01 | MD-MKT-007.001.M02 | Positive | Report facts (SRD-MKT-007.001) | ideas, lead picks, morning brief (and an old evening brief on another day), views for the day | text holds the day's brief, picks and views; fresh True | Not Run |
 | UT-MKT-007.001.M02.T02 | MD-MKT-007.001.M02 | Negative | No lead brief (SRD-MKT-007.001) | ideas for the day, no evening brief | fresh False; reason names the day | Pass |
 | UT-MKT-007.001.M02.T03 | MD-MKT-007.001.M02 | Edge | No briefs table (SRD-MKT-007.001) | fresh ideas, `briefs` table missing | fresh False; no exception | Pass |
 | UT-MKT-007.001.M02.T04 | MD-MKT-007.001.M02 | Positive | Run order (SRD-MKT-007.001) | skill needs | needs is ("lead_brief",) | Pass |

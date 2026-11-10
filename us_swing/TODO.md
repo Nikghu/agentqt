@@ -159,3 +159,4 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T147 | GUI FO-GUI-036 user check: restart the app; AI Desk, Team setup lists all 9 employees; edit a prompt, Save shows version 2; History restore works; Test on yesterday answers. Folders now hold employee.md and history/. | `gui/ai_desk_setup.py` | High | Open |
 | T148 | Team setup phase 2 fields: temperature, max tokens, timeout, Claude effort, data blocks, guardrails. | `core/desk_employee.py`, `gui/ai_desk_setup.py` | Medium | Open |
 | T149 | `core/desk_team.history` and `DayWork` are unused by the GUI now. Decide whether to remove them. | `core/desk_team.py` | Low | Open |
+| T150 | Autonomous desk step A (morning run): FO/SRD written 830bd203 on feat/dsk-morning-trigger; user to approve Reopen/Draft rows, then DD/MD/UTCD, code, tests. Then steps B–F. | `desk/`, `market/`, `gui/` | High | Open |

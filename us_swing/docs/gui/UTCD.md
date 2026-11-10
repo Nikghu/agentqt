@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.28.0: Autonomous desk step A (2026-11-11): UT-GUI-029.007–.008 (4) and UT-GUI-034.068–.069 (4) added; UT-GUI-034.065.M34.T01 reworded for the morning run.
 > v1.27.0: UT-GUI-036.001–.008 Pass (15 cases, 2026-11-10).
 > v1.26.0: UT-GUI-036.001–.008 added (AI Desk Team setup).
 > v1.25.0: UT-GUI-035.014.M01.T01 added (selected card lift).
@@ -865,6 +866,10 @@ Test files:
 | UT-GUI-029.002.M01.T02 | MD-GUI-029.001.M01 | Edge | Old status result dropped | result from before a reload | pills keep the fresh check | Pass |
 | UT-GUI-029.005.M01.T01 | MD-GUI-029.001.M01 | Negative | Remove all cancelled | confirm returns Cancel | `remove_tasks` not called | Pass |
 | UT-GUI-029.006.M01.T01 | MD-GUI-029.001.M01 | Positive | Scheduler page has the table, no Edit button | build `_SystemSections` | page holds `SchedulerTable`; no `_sched_btn` | Pass |
+| UT-GUI-029.007.M02.T01 | MD-GUI-029.004.M02 | Positive | Start time 60 min before open in local time (SRD-GUI-029.007) | 2026-11-12 Asia/Kolkata; 2026-07-01 Asia/Kolkata; 2026-11-12 Pacific/Auckland | 19:00 MON–FRI; 18:00 MON–FRI; 02:30 TUE–SAT | Not Run |
+| UT-GUI-029.007.M01.T01 | MD-GUI-029.001.M01 | Positive | Start times read-only, Close both editable (SRD-GUI-029.007) | table loaded with saved 19:30 | TWS and USSwing show the computed time, read-only, rows Changed; Close keeps its saved time | Not Run |
+| UT-GUI-029.008.M02.T01 | MD-GUI-029.004.M02 | Positive | Start-up sync re-creates a wrong start task (SRD-GUI-029.008) | fake schtasks: task at 19:30 MON–FRI, wanted 19:00 | one create call at 19:00; config saved; name returned | Not Run |
+| UT-GUI-029.008.M02.T02 | MD-GUI-029.004.M02 | Negative | Sync leaves a right, missing or switched-off task (SRD-GUI-029.008) | task already 19:00; query fails; config off | no create call | Not Run |
 
 ## FO-GUI-030 — Backtest Data Settings
 
@@ -1175,13 +1180,17 @@ Test files:
 | UT-GUI-034.062.M36.T01 | MD-GUI-034.062.M36 | Positive | Approval cards (SRD-GUI-034.062) | ready hire and 2 picks | heading count 3; pick cards with qty; Open Hiring opens Hiring | Pass |
 | UT-GUI-034.063.M36.T01 | MD-GUI-034.062.M36 | Positive | Today's runs (SRD-GUI-034.063) | runs today | one line per run; events one row with count; no Sample tag | Pass |
 | UT-GUI-034.064.M36.T01 | MD-GUI-034.062.M36 | Positive | Team now (SRD-GUI-034.064) | 2 active, 1 shadow | Team now: 2 active · 1 shadow | Pass |
-| UT-GUI-034.065.M34.T01 | MD-GUI-034.060.M34 | Positive | Next evening run (SRD-GUI-034.065) | Saturday, Tuesday 10:00, Tuesday 17:00 ET | Monday, same day, next day at 16:25 ET | Pass |
+| UT-GUI-034.065.M34.T01 | MD-GUI-034.060.M34 | Positive | Next morning run (SRD-GUI-034.065, .069) | Sat 10:00; Wed 03:00; Wed 09:00 with no ok run; Wed 09:00 after an ok run | Mon 04:00; Wed 04:00; Wed 09:00; Thu 04:00 ET | Not Run |
 | UT-GUI-034.065.M39.T01 | MD-GUI-034.065.M39 | Positive | Header tiles and controls (SRD-GUI-034.065) | empty folder, Saturday | 4 tile titles; Start, Pause, Resume, Stop in one group; Mon 16:25 ET with IST | Pass |
 | UT-GUI-034.065.M39.T02 | MD-GUI-034.065.M39 | Edge | State note (SRD-GUI-034.065) | Paused; Error with a message | paused line; the error message | Pass |
 | UT-GUI-034.066.M39.T01 | MD-GUI-034.065.M39 | Positive | Section cards (SRD-GUI-034.066) | empty folder | card titles of Hiring, Cost and Settings | Pass |
 | UT-GUI-034.066.M21.T01 | MD-GUI-034.027.M21 | Positive | Seat tiles (SRD-GUI-034.066) | 1 active expert | 1 of N seats; In shadow tile | Pass |
 | UT-GUI-034.067.M33.T01 | MD-GUI-034.059.M33 | Positive | Section tabs (SRD-GUI-034.067) | empty folder | tabs in section order; click shows the section; list and tab agree; & shown plain | Pass |
 | UT-GUI-034.067.M33.T02 | MD-GUI-034.059.M33 | Positive | Command tab count (SRD-GUI-034.067) | count 3, then 0 | Command   3, then Command | Pass |
+| UT-GUI-034.068.M02.T01 | MD-GUI-034.002.M02 | Positive | App start launches the desk with its pid (SRD-GUI-034.068) | desk Off; `start_desk(parent=99)` with a fake launch | launch called once with resume and parent 99 | Not Run |
+| UT-GUI-034.068.M02.T02 | MD-GUI-034.002.M02 | Negative | No second desk (SRD-GUI-034.068) | desk Sleeping with a fresh heartbeat | launch not called | Not Run |
+| UT-GUI-034.068.M02.T03 | MD-GUI-034.002.M02 | Positive | Close sends Stop without waiting for the run (SRD-GUI-034.068) | live desk; `shutdown(stop_desk=True)` | one pending stop command; returns within 2 s | Not Run |
+| UT-GUI-034.069.M34.T01 | MD-GUI-034.060.M34 | Positive | Run names (SRD-GUI-034.069) | kinds morning, evening, manual | Morning run, Evening run, Manual run | Not Run |
 | UT-GUI-034.042.M37.T01 | MD-GUI-034.042.M37 | Positive | Ask box sends (SRD-GUI-034.042) | type a request, click Ask | ask called with the text; sent note shown; box cleared | Pass |
 | UT-GUI-034.042.M37.T02 | MD-GUI-034.042.M37 | Negative | Ask box guards (SRD-GUI-034.042) | empty box; no ask given; ask returns an error | Ask disabled; box hidden; error shown and text kept | Pass |
 | UT-GUI-034.043.M38.T01 | MD-GUI-034.043.M38 | Positive | Product card (SRD-GUI-034.043) | waiting product with 7 matching rows | Ask card with title, recipe in words and 5 preview rows; counted in the heading | Pass |

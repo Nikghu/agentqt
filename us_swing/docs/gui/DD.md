@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.19.0: DD-GUI-034.068.D01 added — desk lives with the app, start tasks 60 min before open, morning-run labels (Autonomous desk step A), 2026-11-11.
 > v1.18.0: DD-GUI-036.001.D01 added — AI Desk Team setup, 2026-11-10.
 > v1.17.0: DD-GUI-035.001.D01 selected card lift (SRD-GUI-035.014), 2026-11-10.
 > v1.16.0: DD-GUI-035.001.D01 status bar replaces the dot (SRD-GUI-035.013), 2026-11-10.
@@ -1977,3 +1978,15 @@ Run names: `evening` "Evening run", `manual` "Manual run", other kinds title-cas
 **Public API.** `TeamSetup.reload()`, `.select(emp_id)`, `.employee_ids()`, `.current_id()`; signal `saved(str)`.
 
 **Side pane trim (SRD-GUI-036.008).** `ProfilePane` keeps name, role line, state chip, one Model line (`main · backup`), month bar, This run calls and the Prompt / Answer peek; it drops Wakes on, Waits for, Backup, Daily limit, KPIs and Last 4 days. A new "Edit in Team setup" button emits `edit_requested(str)`; `TeamAtWork` re-emits it and `AiDeskWorkspace` calls `select_section("Team setup")` then `setup.select(id)`.
+
+## DD-GUI-034.068.D01 — Desk Lives with the App, Start Tasks Before Open, Morning-Run Labels (Autonomous desk step A)
+
+**Traces:** SRD-GUI-034.068–.069, SRD-GUI-029.007–.008.
+
+**Start and stop.** `main_window` starts the shared `DeskPoller`, then calls `start_desk(parent=os.getpid())`: off the GUI thread it reads the status and, when no live desk exists, `launch_desk(resume=True, parent=pid)`. A desk already running (for example started from the CLI) is left alone. On close, `DeskPoller.shutdown(stop_desk=True)` stops polling, then sends `CommandKind.STOP` from a daemon thread and joins it for at most 2 s; it never waits for the run. The desk's parent watch is the backup (DD-DSK-001.015.D02).
+
+**Start tasks before open.** `scheduler_dialog.before_open_time(day, local) -> (HH:MM, day codes)`: 08:30 ET on `day` turned into the PC's time zone; Mon–Fri codes shift by the local date difference (no shift for zones west of +13:30 from ET such as IST). The table shows that time read-only (no step buttons) for Start TWS and Start USSwing with the tooltip "60 min before the 09:30 ET open, in this PC's time"; Close both stays editable. `_collect` saves the computed time. `load` marks a row Changed when the saved time differs, so Apply writes the new time. `day` is tomorrow, so a US clock change on the weekend is picked up on Friday.
+
+**Start-up sync.** `scheduler_dialog.sync_start_tasks(day, local) -> list[str]` runs in a daemon thread from `main_window` at start: for each switched-on start config with a program, read the task with `schtasks /query /tn NAME /xml` (`StartBoundary` time, `DaysOfWeek`), and when the time or days (weekdays mode) differ from `before_open_time`, save the config with the new time and re-create the task (TWS keeps its saved password). Each change logs `[Scheduler] Start task moved to HH:MM local time`. A missing task is left to the Settings pill (SRD-GUI-029.004).
+
+**Labels.** `core/desk_overview.next_morning_run(now, home)`: today at the later of 04:00 ET and now, when today is a trading day before 16:00 ET with no ok `morning` or `manual` run since 04:00; else 04:00 ET of the next trading day. The header tile shows it as today. `run_name("morning")` = "Morning run"; `evening` keeps "Evening run" for old rows. `core/desk_team` run kinds become `("morning", "evening", "manual")` and `after_run` reads "Morning run". Team at work trigger card: "Morning run · trading days, from 04:00 ET"; empty notes and Desk settings say "morning run".
