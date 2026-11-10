@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.7.1: SRD-DSK-008.001–.009 approved by user 2026-11-10.
 > v0.7.0: SRD-DSK-008.001–.009 added as Draft — employee.md, shared rules, migration, versions, draft test.
 > v0.6.1: SRD-DSK-006.001–.010 approved by user 2026-11-06.
 > v0.6.0: SRD-DSK-006.001–.010 added as Draft — hiring pipeline, shadow, seat caps, weekly report (P6).
@@ -128,12 +129,12 @@
 
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
-| SRD-DSK-008.001 | FO-DSK-008 | Must | An employee is one `employee.md`: YAML front matter with the job fields, body with the system prompt. | folder | job, prompt | Same fields and rules as `job.yaml` (SRD-DSK-002.002) | Draft |
-| SRD-DSK-008.002 | FO-DSK-008 | Must | The job rules and the employee file read and write live in `core`, used by the desk and the app. | file text | checked job | The app never imports `desk` | Draft |
-| SRD-DSK-008.003 | FO-DSK-008 | Must | A folder with `job.yaml` and `soul.md` but no `employee.md` is turned into `employee.md` once; the old files move to `history/`. | old folder | `employee.md` | Version unchanged; runs on desk load and Team setup open | Draft |
-| SRD-DSK-008.004 | FO-DSK-008 | Must | Shipped default employees are `employee.md` files, copied only when missing. | defaults | folders | Master user edits never overwritten | Draft |
-| SRD-DSK-008.005 | FO-DSK-008 | Must | Saving an employee checks it, raises the version by one and keeps the old file as `history/v<N>.md`. | job, prompt | new file | A wrong file is refused with the first reason; nothing written | Draft |
-| SRD-DSK-008.006 | FO-DSK-008 | Should | Restoring an old version saves its content as the next version. | version | new file | History is never deleted | Draft |
-| SRD-DSK-008.007 | FO-DSK-008 | Must | Starting a hire writes `employee.md` from the skill's default employee. | hire | `employee.md` | Status shadow, as today | Draft |
-| SRD-DSK-008.008 | FO-DSK-008 | Should | `desk replay RUN --employee ID --draft FILE` resends the employee's recorded question with the draft prompt. | draft file | answer, valid | Tries recorded as replay; no views, picks or briefs written | Draft |
-| SRD-DSK-008.009 | FO-DSK-008 | Must | A level change is refused when the new level's seats are full. | level | reason | Same caps as hiring (SRD-DSK-006.002) | Draft |
+| SRD-DSK-008.001 | FO-DSK-008 | Must | An employee is one `employee.md`: YAML front matter with the job fields, body with the system prompt. | folder | job, prompt | Same fields and rules as `job.yaml` (SRD-DSK-002.002) | Approved |
+| SRD-DSK-008.002 | FO-DSK-008 | Must | The job rules and the employee file read and write live in `core`, used by the desk and the app. | file text | checked job | The app never imports `desk` | Approved |
+| SRD-DSK-008.003 | FO-DSK-008 | Must | A folder with `job.yaml` and `soul.md` but no `employee.md` is turned into `employee.md` once; the old files move to `history/`. | old folder | `employee.md` | Version unchanged; runs on desk load and Team setup open | Approved |
+| SRD-DSK-008.004 | FO-DSK-008 | Must | Shipped default employees are `employee.md` files, copied only when missing. | defaults | folders | Master user edits never overwritten | Approved |
+| SRD-DSK-008.005 | FO-DSK-008 | Must | Saving an employee checks it, raises the version by one and keeps the old file as `history/v<N>.md`. | job, prompt | new file | A wrong file is refused with the first reason; nothing written | Approved |
+| SRD-DSK-008.006 | FO-DSK-008 | Should | Restoring an old version saves its content as the next version. | version | new file | History is never deleted | Approved |
+| SRD-DSK-008.007 | FO-DSK-008 | Must | Starting a hire writes `employee.md` from the skill's default employee. | hire | `employee.md` | Status shadow, as today | Approved |
+| SRD-DSK-008.008 | FO-DSK-008 | Should | `desk replay RUN --employee ID --draft FILE` resends the employee's recorded question with the draft prompt. | draft file | answer, valid | Tries recorded as replay; no views, picks or briefs written | Approved |
+| SRD-DSK-008.009 | FO-DSK-008 | Must | A level change is refused when the new level's seats are full. | level | reason | Same caps as hiring (SRD-DSK-006.002) | Approved |
