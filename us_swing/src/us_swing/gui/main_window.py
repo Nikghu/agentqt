@@ -463,7 +463,7 @@ class MainWindow(QMainWindow):
         self._chart_panel      = ChartWorkspace(svc)
         self._backtest_panel   = BacktestWorkspace(svc)
         self._desk_poller      = DeskPoller(parent=self)
-        self._floor_panel      = MarketFloorWorkspace(self._desk_poller)
+        self._floor_panel      = MarketFloorWorkspace(self._desk_poller, sink=svc)
         self._ai_desk_panel    = AiDeskWorkspace(self._desk_poller, svc)
         self._settings_panel   = SettingsPanel(svc)
         panels = [
@@ -476,6 +476,12 @@ class MainWindow(QMainWindow):
         self._settings_panel.theme_changed.connect(self._execution_panel.refresh_theme)
         # settings_panel → theme_changed → MainWindow → _on_theme_changed
         self._settings_panel.theme_changed.connect(self._on_theme_changed)
+        # floor feed → chart_requested → MainWindow → Charts on that stock (daily)
+        self._floor_panel.chart_requested.connect(lambda s: self._on_chart_requested(s, "1d"))
+        # floor feed → desk_section_requested → MainWindow → _open_desk_section
+        self._floor_panel.desk_section_requested.connect(self._open_desk_section)
+        # AI Desk approval card → chart_requested → MainWindow → Charts on that stock (daily)
+        self._ai_desk_panel.chart_requested.connect(lambda s: self._on_chart_requested(s, "1d"))
 
         # The log panel is listening now, so a failed live-broker start can surface.
         svc.flush_broker_fallback_message()
@@ -700,6 +706,10 @@ class MainWindow(QMainWindow):
     def _on_quick_test(self, preset_id: str) -> None:
         self._go_to(4)
         self._backtest_panel.quick_test(preset_id)
+
+    def _open_desk_section(self, name: str) -> None:
+        self._go_to(6)
+        self._ai_desk_panel.select_section(name)
 
     def _on_chart_requested(self, symbol: str, timeframe: str) -> None:
         self._go_to(3)

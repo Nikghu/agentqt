@@ -41,11 +41,13 @@ def test_every_section_shows_sample_tag(qtbot: QtBot, tmp_path: Path) -> None:
 
     Desk settings is real from P5a (SRD-GUI-034.016); Cost & budget is sample until AI runs;
     Pages is real from P5d (SRD-GUI-034.022); Hiring is real from P6 (SRD-GUI-034.027);
-    Results is real from P8 (SRD-GUI-034.037).
+    Results is real from P8 (SRD-GUI-034.037); Command is real from design phase 3
+    (SRD-GUI-034.063).
     """
     page = AiDeskWorkspace(DeskPoller(tmp_path))
     qtbot.addWidget(page)
-    for name in [n for n in page.section_names() if n not in ("Desk settings", "Pages", "Hiring", "Results")]:
+    real = ("Desk settings", "Pages", "Hiring", "Results", "Command")
+    for name in [n for n in page.section_names() if n not in real]:
         page.select_section(name)
         frame = page._stack.currentWidget()
         assert frame is not None

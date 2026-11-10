@@ -1,6 +1,7 @@
 """
 Module: MD-GUI-034.009.M08 — AI Desk sections (Command to Hiring)
 Parent SRD: SRD-GUI-034.009
+Also: MD-GUI-034.062.M36 — real Today's runs and Team now in Command (SRD-GUI-034.063–.064)
 
 Frames only: sample content, no real data and no actions. Shared helpers live here too.
 """
@@ -8,8 +9,10 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QFrame,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -25,11 +28,13 @@ from PyQt6.QtWidgets import (
 )
 
 from us_swing.core.desk_contract import ProductDescriptor
+from us_swing.core.desk_overview import RunRow
 from us_swing.gui import ai_desk_sample as S
 from us_swing.gui.floor_panel import table_body
 from us_swing.gui.floor_sample import SAMPLE_TAG
 from us_swing.gui.theme import C
 
+NO_RUNS = "No desk runs today"
 MONO = "font-family: Consolas, 'Courier New', monospace;"
 
 
@@ -150,21 +155,58 @@ def _chat_frame() -> QWidget:
     return box
 
 
-def command_frame(name: str, approvals: QWidget | None = None,
-                  chat: QWidget | None = None) -> QWidget:
-    """Build the Command home: lead chat, approvals waiting and today's runs.
+_RESULT_COLOURS = {"ok": "GREEN", "failed": "RED", "error": "RED", "running": "YELLOW"}
 
-    ``approvals`` is the real approvals box (SRD-GUI-034.031) and ``chat`` the real lead
-    chat (SRD-GUI-034.039); without them the samples show. Today's runs are a sample.
+
+def runs_box(rows: Sequence[RunRow]) -> QWidget:
+    """Today's runs: ET time, run name (with the event count) and a coloured result."""
+    box = QWidget()
+    grid = QGridLayout(box)
+    grid.setContentsMargins(0, 0, 0, 0)
+    grid.setHorizontalSpacing(12)
+    if not rows:
+        grid.addWidget(muted(NO_RUNS), 0, 0)
+    for r, run in enumerate(rows):
+        name = f"{run.name} (×{run.count})" if run.count > 1 else run.name
+        colour = getattr(C, _RESULT_COLOURS.get(run.result, "SUBTEXT"))
+        result = QLabel(run.result)
+        result.setObjectName("run_result")
+        result.setStyleSheet(f"color: {colour}; border: 1px solid {colour};"
+                             " border-radius: 8px; padding: 0 8px;")
+        when = QLabel(run.when.strftime("%H:%M ET"))
+        when.setStyleSheet(f"color: {C.MUTED};")
+        grid.addWidget(when, r, 0)
+        grid.addWidget(QLabel(name), r, 1)
+        grid.addWidget(result, r, 2, Qt.AlignmentFlag.AlignRight)
+    grid.setColumnStretch(1, 1)
+    grid.setRowStretch(max(len(rows), 1), 1)
+    return box
+
+
+def team_line(counts: dict[str, int]) -> QLabel:
+    """The Team now line, e.g. ``Team now: 8 active · 1 shadow``; hidden with no employees."""
+    label = muted("Team now: " + " · ".join(f"{n} {s}" for s, n in counts.items()))
+    label.setObjectName("team_now")
+    label.setVisible(bool(counts))
+    return label
+
+
+def command_frame(name: str, approvals: QWidget | None = None, chat: QWidget | None = None,
+                  runs: QWidget | None = None, team: QWidget | None = None) -> QWidget:
+    """Build the Command home: lead chat, approvals waiting, today's runs and the team line.
+
+    Without real widgets the samples show with the Sample tag.
     """
-    frame, body = section_frame(name)
+    frame, body = section_frame(name, sample=runs is None)
     row = QHBoxLayout()
     row.setSpacing(12)
     row.addWidget(chat or _chat_frame(), 3)
     right = QVBoxLayout()
     right.addWidget(scroll_of(approvals or muted("No approvals")), 3)
     right.addWidget(heading("Today's runs"))
-    right.addWidget(make_table(S.RUN_COLUMNS, S.RUNS), 2)
+    right.addWidget(runs or make_table(S.RUN_COLUMNS, S.RUNS), 2)
+    if team is not None:
+        right.addWidget(team)
     row.addLayout(right, 2)
     body.addLayout(row, 1)
     return frame

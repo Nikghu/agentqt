@@ -2,6 +2,7 @@
 Module: MD-GUI-034.039.M26 — gui/ai_desk_chat.py
 Parent SRD: SRD-GUI-034.039
 Also: SRD-GUI-034.040 (Ask box), SRD-GUI-034.041 (waiting check)
+Also: MD-GUI-034.061.M35 — chat bubbles (SRD-GUI-034.061)
 
 The real lead chat in AI Desk → Command. Questions go to ``desk.db`` through
 ``core.desk_chat``; the desk process answers. This panel only shows the turns and asks.
@@ -15,7 +16,15 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from PyQt6.QtCore import QTimer
-from PyQt6.QtWidgets import QHBoxLayout, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import (
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 from us_swing.core.desk_chat import (
     EXPIRED,
@@ -28,6 +37,7 @@ from us_swing.core.desk_chat import (
 from us_swing.core.desk_contract import DeskState, desk_home
 from us_swing.core.desk_hiring import employees
 from us_swing.gui.ai_desk_sections import heading, muted, scroll_of
+from us_swing.gui.floor_charts import mix
 from us_swing.gui.theme import C
 
 NY = ZoneInfo("America/New_York")
@@ -40,6 +50,42 @@ def chat_name(home: Path) -> str:
     """Current name of the active chat employee, or "Lead" when there is none."""
     return next((e.name for e in employees(home) if e.skill == "lead_chat"
                  and e.status == "active"), "Lead")
+
+
+def _et_time(created: str) -> str:
+    try:
+        return datetime.fromisoformat(created).astimezone(NY).strftime("%H:%M ET")
+    except ValueError:
+        return ""
+
+
+def _bubble(mine: bool, who: str, text: str, created: str, failed: bool) -> QWidget:
+    """One chat turn as a bubble: the Master on the right in green, the lead on the left."""
+    colour = C.GREEN if mine else C.BLUE
+    body = html.escape(text).replace("\n", "<br>")
+    if failed:
+        body = f"<span style='color:{C.MUTED}'>{body}</span>"
+    label = QLabel(f"<b style='color:{colour}'>{html.escape(who)}</b>"
+                   f"<span style='color:{C.MUTED}'> · {_et_time(created)}</span><br>{body}")
+    label.setWordWrap(True)
+    bubble = QFrame()
+    bubble.setObjectName("chat_bubble")
+    bubble.setProperty("mine", mine)
+    tint = mix(C.SURFACE, colour, 0.15 if mine else 0.12).name()
+    bubble.setStyleSheet(f"QFrame#chat_bubble {{ background: {tint}; border-radius: 6px; }}"
+                         " QLabel { background: transparent; }")
+    inner = QVBoxLayout(bubble)
+    inner.setContentsMargins(10, 6, 10, 6)
+    inner.addWidget(label)
+    holder = QWidget()
+    row = QHBoxLayout(holder)
+    row.setContentsMargins(0, 0, 0, 0)
+    if mine:
+        row.addStretch(1)
+    row.addWidget(bubble, 4)
+    if not mine:
+        row.addStretch(1)
+    return holder
 
 
 class ChatPanel(QWidget):
@@ -66,7 +112,7 @@ class ChatPanel(QWidget):
         lines.addWidget(self.note)
         row = QHBoxLayout()
         self.entry = QLineEdit()
-        self.entry.setPlaceholderText("Ask the lead")
+        self.entry.setPlaceholderText("Message the lead")
         self.entry.setMaxLength(MAX_QUESTION)
         self.ask_btn = QPushButton("Ask")
         self.ask_btn.setFixedWidth(80)
@@ -115,13 +161,9 @@ class ChatPanel(QWidget):
             self._msgs.addWidget(muted(NO_TURNS))
         lead = chat_name(self._home)
         for t in turns:
-            who, colour = ("Master", C.GREEN) if t.role == "master" else (lead, C.BLUE)
-            body = html.escape(t.text).replace("\n", "<br>")
-            if t.state == "failed":
-                body = f"<span style='color:{C.MUTED}'>{body}</span>"
-            label = QLabel(f"<b style='color:{colour}'>{html.escape(who)}</b><br>{body}")
-            label.setWordWrap(True)
-            self._msgs.addWidget(label)
+            mine = t.role == "master"
+            self._msgs.addWidget(_bubble(mine, "Master" if mine else lead, t.text, t.created,
+                                         t.state == "failed"))
         self._msgs.addStretch(1)
         # after the layout settles → scroll to the newest turn
         QTimer.singleShot(0, self._to_bottom)

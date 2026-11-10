@@ -1,6 +1,8 @@
 """
 Module: MD-GUI-034.010.M03 — Floor sample data
 Parent SRD: SRD-GUI-034.010
+Also: SRD-GUI-034.047 — sample market tiles and breadth history
+Also: SRD-GUI-034.054 — sample feed cards
 
 Fixed sample products and rows behind the ``FloorData`` interface. A desk.db reader
 replaces this later without any GUI change.
@@ -11,6 +13,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from us_swing.core.desk_contract import ProductDescriptor
+from us_swing.core.desk_feed import FeedCard
 
 SAMPLE_TAG = "Sample data"
 
@@ -25,16 +28,16 @@ _PRODUCTS: tuple[ProductDescriptor, ...] = (
         ("regime", "volatility", "fear"), sample=True,
     ),
     ProductDescriptor(
-        "breadth.daily", "Breadth", "table", ("table", "chart"),
+        "breadth.daily", "Breadth", "table", ("table",),
         ("measure", "value", "reading"), sample=True,
     ),
     ProductDescriptor(
-        "sectors.rank", "Sector strength", "table", ("table", "chart"),
+        "sectors.rank", "Sector strength", "table", ("heatmap", "table"),
         ("sector", "rs", "quadrant", "change_5d"), {"quadrant": ("Leading", "Improving",
         "Weakening", "Lagging")}, sample=True,
     ),
     ProductDescriptor(
-        "sectors.rrg", "Sector rotation", "table", ("table", "chart"),
+        "sectors.rrg", "Sector rotation", "table", ("rotation", "table"),
         ("sector", "rs_ratio", "rs_momentum", "quadrant"), sample=True,
     ),
     ProductDescriptor(
@@ -49,6 +52,14 @@ _PRODUCTS: tuple[ProductDescriptor, ...] = (
     ProductDescriptor(
         "flow.leaders", "Flow leaders", "table", ("table",),
         ("symbol", "flow", "volume_x", "sector"), sample=True,
+    ),
+    ProductDescriptor(
+        "market.tiles", "Market tiles", "tiles", ("tiles",), ("title", "value", "note"),
+        sample=True,
+    ),
+    ProductDescriptor(
+        "breadth.history", "Breadth · % above 50-day", "line", ("line", "table"),
+        ("date", "value"), sample=True,
     ),
 )
 
@@ -85,6 +96,15 @@ _RRG = [
     ("Consumer Discretionary", 98.8, 99.3, "Weakening"),
     ("Energy", 96.5, 98.7, "Lagging"),
 ]
+_TILES = [
+    ("Regime", "Uptrend", "trend · day 13"),
+    ("Above 50-day", "64%", "+3 pts in 5 days"),
+    ("New highs · lows", "38 · 7", "today"),
+    ("Ideas", "6 L · 2 S", "today's list"),
+    ("Leading sector", "Technology", "+4.3% vs SPY 1M"),
+]
+_HISTORY = [(f"day {i + 1}", v) for i, v in enumerate(
+    (48, 47, 49, 46, 50, 52, 51, 54, 56, 55, 57, 59, 58, 61, 60, 62, 64))]
 _NEWS = [
     ("09:12", "Chipmaker lifts full-year revenue outlook", "high", "NVDA, AMD"),
     ("08:47", "Bank earnings beat on trading income", "medium", "JPM, GS"),
@@ -137,6 +157,8 @@ class SampleFloorData:
             "news.latest": _dicts(_PRODUCTS[5].columns, _NEWS),
             "calendar.week": _dicts(_PRODUCTS[6].columns, _CALENDAR),
             "flow.leaders": _dicts(_PRODUCTS[7].columns, _FLOW),
+            "market.tiles": _dicts(_PRODUCTS[8].columns, _TILES),
+            "breadth.history": _dicts(_PRODUCTS[9].columns, _HISTORY),
         }
 
     def products(self) -> Sequence[ProductDescriptor]:
@@ -155,3 +177,10 @@ class SampleFloorData:
 def sample_feed_items() -> list[dict[str, str]]:
     """Return sample AI feed items (time, author, text, kind info, idea or approval)."""
     return [dict(item) for item in _FEED]
+
+
+def sample_feed_cards() -> list[FeedCard]:
+    """Return the sample feed items as cards; approval items become Asks without a pick."""
+    kinds = {"approval": "ask", "idea": "result", "info": "result"}
+    return [FeedCard(kinds.get(i["kind"], "result"), i["author"],  # type: ignore[arg-type]
+                     "Sample", None, i["text"]) for i in sample_feed_items()]

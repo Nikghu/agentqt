@@ -2,6 +2,39 @@
 
 ---
 
+## [20261107] GUI — AI Desk design match, phase 3 (FO-GUI-034)
+
+- Type: Feature
+- FO(s): FO-GUI-034 (still at Reopen)
+- RN: RN-GUI-1.12.0-20261107
+- Artifacts updated: FO bullet, SRD (GUI-034.059–.064 Implemented; .034–.036 Reopen then Implemented), DD (DD-GUI-034.059.D01), MD (M33–M36), UTCD (9 rows Pass), TRACE, Code (core/desk_overview new; ai_desk, ai_desk_chat, ai_desk_hiring, ai_desk_sections, floor_feed, desk_feed, main_window)
+- Decisions: user approved and reopened .034–.036 for cards; heading kept as "Approvals waiting"; no Next wake chip (desk-only data)
+- Tests: 9 new Pass; old pick and hire approval tests moved to cards; GUI + desk + market suites pass except the old sidebar list test
+
+---
+
+## [20261107] GUI — AI feed cards, design phase 2 (FO-GUI-034)
+
+- Type: Feature
+- FO(s): FO-GUI-034 (still at Reopen)
+- RN: RN-GUI-1.11.0-20261107
+- Artifacts updated: FO bullet, SRD (GUI-034.053–.058 Implemented), DD (DD-GUI-034.053.D01), MD (M31, M32), UTCD (8 rows Pass), TRACE, Code (core/desk_feed new; floor_feed rewritten; market_floor, main_window, floor_sample, desk_floor, ai_desk_hiring)
+- Decisions: user approved and named the second tab Ideas; no Trigger or Alert source yet; approve/reject shared in core/desk_feed.py
+- Tests: 9 new Pass; GUI + market + desk suites pass except the old sidebar list test; reviewer HIGH (card deleted in its own click) fixed with deleteLater
+
+---
+
+## [20261107] GUI — Market Floor design match, phase 1 (FO-GUI-034)
+
+- Type: Feature
+- FO(s): FO-GUI-034 (still at Reopen)
+- RN: RN-GUI-1.10.0-20261107
+- Artifacts updated: FO bullet, SRD (GUI-034.045–.052 Implemented), DD (DD-GUI-034.045.D01), MD (M27–M30), UTCD (12 rows Pass), TRACE, Code (floor_charts new; floor_panel, market_floor, floor_layouts, floor_sample, desk_floor)
+- Decisions: user chose Floor first and QPainter charts; Default layout refreshed once, named layouts kept; bias chip, idea state, Ideas to Watchlist and rotation tails left for later
+- Tests: 2475 passed, 12 old failures (same on main), 2 skipped
+
+---
+
 ## [20261106] MKT + GUI — Lead chat, phase P9 (FO-MKT-010)
 
 - Type: Feature

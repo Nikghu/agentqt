@@ -7,7 +7,7 @@ import json
 import sqlite3
 from pathlib import Path
 
-from PyQt6.QtWidgets import QLabel, QListWidget, QTableWidget, QWidget
+from PyQt6.QtWidgets import QLabel, QListWidget, QPushButton, QTableWidget, QWidget
 from pytestqt.qtbot import QtBot
 
 import tests.desk.test_harness as th
@@ -127,10 +127,10 @@ def test_approvals_waiting(qtbot: QtBot, tmp_path: Path) -> None:
     opened: list[bool] = []
     box = approvals_box(tmp_path, lambda: opened.append(True))
     qtbot.addWidget(box)
-    listing = box.findChild(QListWidget, "approvals_list")
-    assert listing is not None and listing.count() == 1
-    assert "Shadow emp-002" in listing.item(0).text()  # type: ignore[union-attr]
-    listing.itemClicked.emit(listing.item(0))
+    cards = box.cards()
+    assert len(cards) == 1 and cards[0].card.subject == "Hire · Shadow emp-002"
+    button = next(b for b in cards[0].findChildren(QPushButton) if b.text() == "Open Hiring")
+    button.click()
     assert opened == [True]
 
 

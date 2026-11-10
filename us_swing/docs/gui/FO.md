@@ -7,6 +7,9 @@
 **Last Updated:** 2026-05-22
 **Project:** US Swing Trading System
 
+> v2.15.0: FO-GUI-034 gets the AI Desk design bullet (design phase 3, 2026-11-07).
+> v2.14.0: FO-GUI-034 gets the AI feed cards bullet (design phase 2, 2026-11-07).
+> v2.13.0: FO-GUI-034 gets a design-match bullet for Market Floor (design phase 1, 2026-11-07).
 > v2.12.0: FO-GUI-034 reopened by user 2026-11-06 — AI Desk section Studio renamed Pages; Command home chat named by role (MKT P5d).
 > v2.11.0: FO-GUI-034 added — Market Floor and AI Desk frames (Market Analytics P0b); Draft 2026-11-05.
 > v2.10.0: FO-GUI-022 requirement 8 and acceptance 5 added — Screener chart draws the AI plan from the next candle after the run, with a hit tag; reopened by user 2026-11-03.
@@ -980,6 +983,9 @@ The system shall add two workspaces, Market Floor and AI Desk, shown on sample d
 - The system shall give AI Desk a section list with Command as home (lead chat, approvals waiting, today's runs) and the sections Org chart, Employees, Hiring, Task board, Activity, Schedule, Pages, Reports, Cost & budget, Desk settings.
 - The system shall mark every panel and section that shows sample data with a "Sample data" tag.
 - The system shall read desk data only through `core/desk_contract.py` and never block the window while reading.
+- The system shall make Market Floor look like the approved design: header chips, a tidy toolbar, tiles, heat map, breadth line, rotation chart and score bars (design phase 1, 2026-11-07).
+- The system shall show the AI feed as typed cards with filter tabs and action buttons, as in the approved design (design phase 2, 2026-11-07).
+- The system shall make AI Desk look like the approved design: grouped section list, header chips, chat bubbles, approval cards and real runs (design phase 3, 2026-11-07).
 
 ### Acceptance Criteria
 

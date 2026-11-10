@@ -9,6 +9,8 @@ Also: MD-GUI-034.017.M16 — month AI cost (SRD-GUI-034.017)
 Also: MD-GUI-034.018.M17 — latest news, news tags and calendar (SRD-GUI-034.018–.020)
 Also: MD-GUI-034.022.M19 — report page versions for AI Desk Pages (SRD-GUI-034.022)
 Also: MD-GUI-034.032.M22 — weekly reports for AI Desk Reports (SRD-GUI-034.032)
+Also: MD-GUI-034.054.M32 — AI feed cards (SRD-GUI-034.054)
+Also: MD-GUI-034.047.M29 — market tiles, breadth history and header chips (SRD-GUI-034.045, .047, .049)
 
 Market Floor data from ``desk.db``: the real regime, breadth, sectors and RS leaders when
 the desk has them, the fallback provider (sample data) for every other product.
@@ -25,6 +27,7 @@ from typing import Any
 
 from us_swing.core.desk_ai_settings import load_settings
 from us_swing.core.desk_contract import DB_NAME, FloorData, ProductDescriptor, desk_home
+from us_swing.core.desk_feed import FeedCard, feed_cards
 from us_swing.core.econ_calendar import events_between, trading_days_after
 
 REGIME_ID = "regime.today"
@@ -33,6 +36,11 @@ _REGIME_COLUMNS = ("regime", "volatility", "fear", "vix", "data_date", "note")
 _BREADTH_COLUMNS = ("measure", "value", "reading")
 SECTORS_ID = "sectors.rank"
 RRG_ID = "sectors.rrg"
+TILES_ID = "market.tiles"
+HISTORY_ID = "breadth.history"
+HISTORY_DAYS = 60
+_TILE_COLUMNS = ("title", "value", "note")
+_HISTORY_COLUMNS = ("date", "value")
 LEADERS_ID = "rs.leaders"
 LEADERS_LIMIT = 30
 _SECTOR_COLUMNS = ("rank", "sector", "rel_1m", "rel_3m", "rel_6m", "quadrant")
@@ -185,6 +193,8 @@ class DeskFloorData:
             IDEAS_ID: (ideas_day, _IDEA_COLUMNS, ideas_day),
             NEWS_ID: (self._query("SELECT 1 FROM news_items LIMIT 1"), _NEWS_COLUMNS, None),
             CALENDAR_ID: (True, _CALENDAR_COLUMNS, None),
+            TILES_ID: (self._latest_regime(), _TILE_COLUMNS, None),
+            HISTORY_ID: (self._latest_breadth(), _HISTORY_COLUMNS, None),
         }
         out: list[ProductDescriptor] = []
         for product in self._fallback.products():
@@ -252,7 +262,81 @@ class DeskFloorData:
             return self._tags(filters.get("side"))
         if product_id == CALENDAR_ID:
             return self._calendar(filters.get("importance"))
+        if product_id == TILES_ID and (tiles := self._tiles()):
+            return tiles
+        if product_id == HISTORY_ID and (history := self._history()):
+            return history
         return self._fallback.rows(product_id, filters)
+
+    def _tiles(self) -> list[dict[str, Any]]:
+        """Five market tiles: regime, above 50-day, highs and lows, ideas, leading sector."""
+        regimes = self._query_all(
+            "SELECT regime FROM regime_snapshot ORDER BY date DESC LIMIT ?", (HISTORY_DAYS,))
+        if not regimes:
+            return []
+        current = regimes[0][0]
+        streak = next((i for i, r in enumerate(regimes) if r[0] != current), len(regimes))
+        tiles = [{"title": "Regime", "value": current, "note": f"trend · day {streak}"}]
+        breadth = self._query_all(
+            "SELECT date, pct_above_50, new_highs, new_lows FROM breadth_daily "
+            "ORDER BY date DESC LIMIT 6")
+        if breadth:
+            day, p50, highs, lows = breadth[0]
+            back = breadth[-1][1] if len(breadth) == 6 else None
+            change = "-" if p50 is None or back is None else f"{p50 - back:+.0f} pts in 5 days"
+            tiles += [{"title": "Above 50-day", "value": _pct(p50), "note": change},
+                      {"title": "New highs · lows", "value": f"{highs} · {lows}", "note": day}]
+        if ideas_day := self._ideas_day():
+            counts = dict(self._query_all(
+                "SELECT side, COUNT(*) FROM ideas WHERE date = ? AND status = 'list' "
+                "GROUP BY side", (ideas_day,)))
+            tiles.append({"title": "Ideas", "note": ideas_day,
+                          "value": f"{counts.get('long', 0)} L · {counts.get('short', 0)} S"})
+        if sectors := self._latest_sectors():
+            _day, _rank, sector, rel_1m, *_rest = sectors[0]
+            tiles.append({"title": "Leading sector", "value": sector,
+                          "note": f"{_signed_pct(rel_1m)} vs SPY 1M"})
+        return tiles
+
+    def _history(self) -> list[dict[str, Any]]:
+        """Share of stocks above the 50-day line for the last 60 days, oldest first."""
+        rows = self._query_all(
+            "SELECT date, pct_above_50 FROM breadth_daily WHERE pct_above_50 IS NOT NULL "
+            "ORDER BY date DESC LIMIT ?", (HISTORY_DAYS,))
+        return [{"date": day, "value": f"{value:.2f}"} for day, value in reversed(rows)]
+
+    def chips(self) -> list[tuple[str, str]]:
+        """Header chips as ``(text, tone)``; tone is good, warn, bad or info.
+
+        Chips with no data are left out.
+        """
+        out: list[tuple[str, str]] = []
+        regime = self._query(
+            "SELECT regime, fear, vix, vix3m FROM regime_snapshot ORDER BY date DESC LIMIT 1")
+        if regime:
+            name, fear, vix, vix3m = regime
+            tone = {"Uptrend": "good", "Downtrend": "bad"}.get(str(name), "warn")
+            out.append((f"{name} trend", tone))
+            if fear:
+                out.append((f"Fear: {fear}", "info"))
+            if vix is not None:
+                if vix3m is None:
+                    out.append((f"VIX {vix:.1f}", "info"))
+                elif vix3m > vix:
+                    out.append((f"VIX {vix:.1f} · contango", "info"))
+                else:
+                    out.append((f"VIX {vix:.1f} · backwardation", "warn"))
+        breadth = self._query("SELECT pct_above_50 FROM breadth_daily ORDER BY date DESC LIMIT 1")
+        if breadth and breadth[0] is not None:
+            p50 = float(breadth[0])
+            tone = "good" if p50 >= 60 else "bad" if p50 < 40 else "warn"
+            out.append((f"Above 50-day {p50:.0f}%", tone))
+        today = self._clock().astimezone(NY).date()
+        event = next((e for e in events_between(today, trading_days_after(today, CALENDAR_DAYS))
+                      if e.importance == "high"), None)
+        if event is not None:
+            out.append((f"{event.name} {event.day:%a} {event.time:%H:%M}", "info"))
+        return out
 
     def _news(self, tone: str | None) -> list[dict[str, Any]] | None:
         """Newest headlines with the latest news tone of their stock; ``None`` when none."""
@@ -300,6 +384,15 @@ class DeskFloorData:
             return None
         return [{"time": f"{str(created)[11:16]} · {day}", "author": author, "kind": kind,
                  "text": text} for created, day, author, kind, text in rows]
+
+    @property
+    def home(self) -> Path:
+        """The desk folder this reader uses."""
+        return self._path.parent
+
+    def feed_cards(self, now: datetime | None = None) -> list[FeedCard] | None:
+        """Return the AI feed cards, newest first, or ``None`` when the desk has none."""
+        return feed_cards(self._path.parent, now or self._clock()) or None
 
     def month_cost(self, month: str | None = None) -> MonthCost | None:
         """Return this month's AI use (New York month), or ``None`` when nothing ran yet."""

@@ -5,6 +5,12 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.96.1: SRD-GUI-034.059–.064 and the reopened .034–.036 Implemented (RN-GUI-1.12.0-20261107).
+> v2.96.0: SRD-GUI-034.059–.064 added and approved by user 2026-11-07 (AI Desk design, phase 3); SRD-GUI-034.034–.036 set Reopen by user 2026-11-07 for approval cards.
+> v2.95.1: SRD-GUI-034.053–.058 Implemented (RN-GUI-1.11.0-20261107).
+> v2.95.0: SRD-GUI-034.053–.058 added and approved by user 2026-11-07 — AI feed cards (design phase 2).
+> v2.94.1: SRD-GUI-034.045–.052 Implemented (RN-GUI-1.10.0-20261107).
+> v2.94.0: SRD-GUI-034.045–.052 added and approved by user 2026-11-07 — Market Floor design match (phase 1).
 > v2.92.2: SRD-GUI-034.039–.041 Implemented (RN-MKT-0.11.0-20261106).
 > v2.92.1: SRD-GUI-034.039–.041 approved by user 2026-11-06.
 > v2.92.0: SRD-GUI-034.039–.041 added as Draft — real lead chat in Command (MKT P9).
@@ -712,11 +718,31 @@
 | SRD-GUI-034.031 | FO-GUI-034 | Should | Command → "Approvals waiting" lists hires ready for a decision and opens Hiring on click. | hires | list | Empty note when none | Implemented |
 | SRD-GUI-034.032 | FO-GUI-034 | Must | AI Desk → Reports lists the weekly reports newest first and shows the chosen one. | `desk_reports` | list, text | Sample reports only while there are none | Implemented |
 | SRD-GUI-034.033 | FO-GUI-034 | Should | Desk settings shows the seat caps for experts, champions and juniors and saves changes. | form | desk settings | A cap below the current count is refused | Implemented |
-| SRD-GUI-034.034 | FO-GUI-034 | Must | Command → "Approvals waiting" also lists each waiting trade pick with side, stock, entry, stop, target and quantity, and Approve and Reject buttons. | trade picks | rows | Hires stay listed as now; empty note when none | Implemented |
-| SRD-GUI-034.035 | FO-GUI-034 | Must | Approve sends the pick to Execution through AppService and then records the approve row; Reject records only the reject row. | click | signal, approval row | No row is written when the send is refused; the refusal shows in the row | Implemented |
-| SRD-GUI-034.036 | FO-GUI-034 | Should | A pick leaves the list once it is decided or expired. | pick state | list | Refreshed on each show of Command | Implemented |
+| SRD-GUI-034.034 | FO-GUI-034 | Must | Command → "Approvals waiting" shows each waiting trade pick as a card with side, stock, entry, stop, target and quantity, and Approve, Reject and Open in Charts buttons. | trade picks | cards | Hires show as cards too; empty note when none | Implemented |
+| SRD-GUI-034.035 | FO-GUI-034 | Must | Approve sends the pick to Execution through AppService and then records the approve row; Reject records only the reject row. | click | signal, approval row | No row is written when the send is refused; the refusal shows on the card | Implemented |
+| SRD-GUI-034.036 | FO-GUI-034 | Should | A pick leaves the list once it is decided or expired. | pick state | list | Refreshed on each show of Command and after each decision | Implemented |
 | SRD-GUI-034.037 | FO-GUI-034 | Must | AI Desk gets a live "Results" section with paper and real totals and the decision, grade and tone breakdowns. | results view | section | Empty note when there are no picks yet | Implemented |
 | SRD-GUI-034.038 | FO-GUI-034 | Must | The Results section lists each pick with day, side, stock, decision, paper status, paper R and real P&L, newest first. | results view | table | Real P&L blank when the pick was not traded | Implemented |
 | SRD-GUI-034.039 | FO-GUI-034 | Must | Command → Lead chat shows the chat turns, oldest at the top, with the chat employee's current name on answers. | chat rows | chat list | Replaces the sample chat; empty note when there are no turns | Implemented |
 | SRD-GUI-034.040 | FO-GUI-034 | Must | An Ask box and button send a question; the box is cleared and a waiting note shows. | text | question | Ask is disabled while the box is empty or a question waits | Implemented |
 | SRD-GUI-034.041 | FO-GUI-034 | Should | While a question waits, the chat checks every 2 seconds and shows the answer, the failed reply, a start-the-desk note when the desk is stopped, or an expired note after 30 minutes. | chat rows, desk state | notes | The check stops when nothing waits | Implemented |
+| SRD-GUI-034.045 | FO-GUI-034 | Must | The Market Floor header shows chips for regime, fear, VIX with its term shape, stocks above the 50-day line and the next high-importance event. | desk.db, calendar | chips | A chip with no data is hidden | Implemented |
+| SRD-GUI-034.046 | FO-GUI-034 | Must | The header shows only the layout picker, Edit and Fold feed; Add panel, Reset tab, Save as and Delete show only in edit mode, and the desk bar leaves the Floor. | edit mode | toolbar | Desk controls stay in AI Desk | Implemented |
+| SRD-GUI-034.047 | FO-GUI-034 | Must | A tiles view shows five market tiles: regime, above 50-day, new highs and lows, ideas long and short, leading sector. | market.tiles | tiles | Sample tiles when the desk has no data | Implemented |
+| SRD-GUI-034.048 | FO-GUI-034 | Must | A heat map view shows each sector coloured by its 1-month strength against SPY. | sectors.rank | heat map | Green for above SPY, red for below | Implemented |
+| SRD-GUI-034.049 | FO-GUI-034 | Must | A line view shows the share of stocks above the 50-day line for the last 60 days. | breadth.history | line chart | Empty note when there are no days | Implemented |
+| SRD-GUI-034.050 | FO-GUI-034 | Must | A rotation view shows the four quadrants with one dot per sector at its RS ratio and RS momentum. | sectors.rrg | rotation chart | Empty note when there are no sectors | Implemented |
+| SRD-GUI-034.051 | FO-GUI-034 | Should | Idea tables draw the score as a bar and the side as a green Long or red Short label. | ideas.top | table cells | Other tables are unchanged | Implemented |
+| SRD-GUI-034.052 | FO-GUI-034 | Must | The default Overview tab follows the design, and the saved Default layout gets it once; other named layouts are kept. | layout file | layouts | A panel whose view is gone opens in the product's first view | Implemented |
+| SRD-GUI-034.053 | FO-GUI-034 | Must | Each AI feed card shows a coloured type label (Result, Ask, Answer, Desk), the sender, the time in ET with India time on hover, and text cut to about 4 lines with More to open it. | feed card | card | Ask cards have an amber border, Desk cards a red one | Implemented |
+| SRD-GUI-034.054 | FO-GUI-034 | Must | Feed cards come from desk.db: briefs as Result, waiting trade picks and ready hires as Ask, lead chat replies as Answer, failed runs as Desk, newest first. | desk.db | cards | Sample cards when the desk has no data | Implemented |
+| SRD-GUI-034.055 | FO-GUI-034 | Must | Filter tabs All, Ideas, Asks with its count, and Alerts show only the matching cards. | cards | filtered list | Ideas shows Result cards; Alerts shows Desk cards | Implemented |
+| SRD-GUI-034.056 | FO-GUI-034 | Must | Pick Ask cards have Approve, Reject and Open in Charts; hire Asks have Open Hiring; Answers have Open chat. | click | decision, page change | Approve and Reject use the same rules as Command | Implemented |
+| SRD-GUI-034.057 | FO-GUI-034 | Should | The feed head reads "AI feed · from desk" with a dot that is green while the desk is live, and a footer button opens AI Desk → Command. | desk state | head, footer | Dot is grey when the desk is off or stopped | Implemented |
+| SRD-GUI-034.058 | FO-GUI-034 | Should | The feed reloads after a desk run, after Approve or Reject, and each time Market Floor is shown. | events | cards | Reads are read-only | Implemented |
+| SRD-GUI-034.059 | FO-GUI-034 | Must | The AI Desk section list is grouped under TALK, TEAM, WORK, CREATE, REVIEW and SETUP, the chosen section shows in accent text on a soft band, and Command shows the count of waiting asks. | sections, asks | list | Headings cannot be chosen | Implemented |
+| SRD-GUI-034.060 | FO-GUI-034 | Must | The AI Desk header shows the last run (kind, ET time, result) and today's AI spend with a bar for the share of the month budget used. | runs, activity | chips, bar | Chips with no data are hidden | Implemented |
+| SRD-GUI-034.061 | FO-GUI-034 | Must | Lead chat turns show as bubbles: the lead on the left, the Master on the right in green, each with name and ET time. | chat rows | bubbles | Failed replies stay muted | Implemented |
+| SRD-GUI-034.062 | FO-GUI-034 | Must | Command → Approvals waiting uses the feed card for each ask, with a count in the heading. | asks | cards | Same decision rules as SRD-GUI-034.035 | Implemented |
+| SRD-GUI-034.063 | FO-GUI-034 | Must | Command → Today's runs lists today's desk runs (ET time, run name, coloured result); event runs are one summed row. | runs | list | Replaces the sample table; empty note when none | Implemented |
+| SRD-GUI-034.064 | FO-GUI-034 | Should | Command shows a Team now line with the employee count by status. | employees | line | Hidden when there are no employees | Implemented |

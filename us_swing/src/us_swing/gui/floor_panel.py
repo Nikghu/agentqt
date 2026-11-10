@@ -1,6 +1,7 @@
 """
 Module: MD-GUI-034.006.M06 — Floor panel
 Parent SRD: SRD-GUI-034.006
+Also: SRD-GUI-034.047–.052 — painted views, idea cell delegates, view fallback
 
 One Market Floor panel: title row, body for the chosen view, link group dot and the bus that
 carries a clicked symbol to other panels of the same group.
@@ -24,6 +25,7 @@ from PyQt6.QtWidgets import (
 )
 
 from us_swing.core.desk_contract import FloorData, ProductDescriptor
+from us_swing.gui.floor_charts import ScoreDelegate, SideDelegate, view_body
 from us_swing.gui.floor_grid_model import PanelSpec
 from us_swing.gui.floor_sample import SAMPLE_TAG
 from us_swing.gui.icons import icon_button
@@ -72,6 +74,7 @@ def table_body(product: ProductDescriptor, rows: list[dict[str, Any]]) -> QTable
         for c, name in enumerate(product.columns):
             table.setItem(r, c, QTableWidgetItem(str(row.get(name, ""))))
     table.resizeColumnsToContents()
+    _add_idea_delegates(table, product.columns)
     header = table.horizontalHeader()
     cols = list(product.columns)
     wide = next((cols.index(n) for n in _WIDE_COLUMNS if n in cols), len(cols) - 1)
@@ -79,6 +82,15 @@ def table_body(product: ProductDescriptor, rows: list[dict[str, Any]]) -> QTable
         header.setStretchLastSection(False)
         header.setSectionResizeMode(wide, QHeaderView.ResizeMode.Stretch)
     return table
+
+
+def _add_idea_delegates(table: QTableWidget, columns: tuple[str, ...]) -> None:
+    """Draw score as a bar and side as a label when a table has both columns."""
+    if "score" not in columns or "side" not in columns:
+        return
+    table.setItemDelegateForColumn(columns.index("score"), ScoreDelegate(table))
+    table.setItemDelegateForColumn(columns.index("side"), SideDelegate(table))
+    table.setColumnWidth(columns.index("score"), 110)
 
 
 def card_body(rows: list[dict[str, Any]]) -> QWidget:
@@ -132,6 +144,8 @@ class PanelFrame(QFrame):
         for handle, kind in ((self.title_bar, "move"), (self.grip, "resize")):
             handle.setProperty("floor_handle", kind)
             handle.setProperty("panel_id", spec.id)
+        if product is not None and product.views and spec.view not in product.views:
+            spec.view = product.views[0]
         self.set_edit(False)
         self._rebuild_body()
         if bus is not None:
@@ -243,6 +257,9 @@ class PanelFrame(QFrame):
         if self.spec.view == "chart":
             return self._chart_body()
         rows = self._data.rows(product.id, self.spec.filters)
+        painted = view_body(self.spec.view, rows)
+        if painted is not None:
+            return painted
         if self.spec.view == "card":
             return card_body(rows)
         table = table_body(product, rows)

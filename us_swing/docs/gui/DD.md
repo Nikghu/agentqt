@@ -7,6 +7,9 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.11.0: DD-GUI-034.059.D01 added — AI Desk design match (phase 3), 2026-11-07.
+> v1.10.0: DD-GUI-034.053.D01 added — AI feed cards (phase 2), 2026-11-07.
+> v1.9.0: DD-GUI-034.045.D01 added — Market Floor design match (phase 1), 2026-11-07.
 > v1.8.0: DD-GUI-034.001.D01 Market Floor and AI Desk frames added 2026-11-05.
 > v1.31.0: DD-GUI-032.001.D01 added — Strategies grouped and table views.
 > v1.30.0: Backtest data note and log line name 30-minute candles too (SRD-GUI-030.010 wording, after SRD-BKT-001.016).
@@ -1833,3 +1836,92 @@ Missing tab: default panels for that tab. Unknown product: a "Missing product" c
 **AI Desk.** `ai_desk.py` holds the section list and a stack; section frames live in `ai_desk_sections.py` and `ai_desk_sections2.py` on `ai_desk_sample.py` data.
 
 **Build steps.** (a) desk control, Floor tabs with fixed panels, feed, AI Desk shell; (b) grid, catalog, panel settings, link groups, layouts; (c) AI Desk sections.
+
+## DD-GUI-034.045.D01 — Market Floor Design Match (phase 1)
+
+**Traces:** SRD-GUI-034.045–.052. Design https://claude.ai/artifact/Se1b7cnEkGbqaak6d2j318 Option 1, screen 1A.
+
+**Header.** `MarketFloorWorkspace._build_top` builds: title, a chip row, stretch, layout combo, the edit-only buttons (Add panel, Reset tab, Save as, Delete), Edit, then Fold feed. `DeskBar` is no longer added to the Floor. `set_edit(on)` shows or hides the edit-only buttons. Fold feed calls `feed.set_folded(not feed.is_folded())`.
+
+**Chips.** `DeskFloorData.chips() -> list[tuple[str, str]]` returns `(text, tone)` with tone in `good | warn | bad | info`. Regime: Uptrend good, Downtrend bad, other warn. Fear: the fear label, info. VIX: `VIX 16.6 · contango` when `vix3m > vix`, else `backwardation` (warn). Above 50-day: `Above 50-day 57%`, good at 60 or more, bad under 40. Next event: first high-importance calendar event from today, `CPI Thu 08:30`. A chip is skipped when its value is missing. The page reads chips with `getattr(data, "chips", None)`, like `feed`, so `SampleFloorData` shows none.
+
+**New products.** `market.tiles` (views `tiles`; columns `title, value, note`) and `breadth.history` (views `line, table`; columns `date, value`). Real rows from desk.db when `regime_snapshot` / `breadth_daily` have rows, else sample rows.
+
+| Tile | Value | Note |
+|---|---|---|
+| Regime | latest regime | `trend · day N`, N = days in a row with the same regime (last 60) |
+| Above 50-day | `pct_above_50` % | change in points against 5 rows back |
+| New highs · lows | `highs · lows` | data date |
+| Ideas | `nL · mS` on the latest idea day, list status | idea day |
+| Leading sector | rank 1 sector | its `rel_1m` against SPY |
+
+`breadth.history` = the last 60 `breadth_daily` rows, oldest first, `value = pct_above_50`.
+
+**Views** (`gui/floor_charts.py`, plain `QWidget.paintEvent`, colours from `C`):
+
+- `TilesView(rows)`: one framed box per row in a row layout: muted title, large value, muted note.
+- `HeatMapView(rows)`: cells in a grid of 4 columns; label = `sector`, value = first of `rel_1m`, `change_5d` read as a float (`+4.3%` gives 4.3). Colour = mix of `C.SURFACE` and `C.GREEN` (or `C.RED` below 0) with weight `min(abs(v) / 5, 1) * 0.8 + 0.2`.
+- `LineView(rows)`: y fixed 0–100, guide lines at 20, 50, 80; polyline of `value` with a light fill under it; last value written at the end.
+- `RotationView(rows)`: centre (100, 100); half range = largest distance of any point from 100 plus 0.5, at least 2. Quadrants: top-right Leading (green tint), bottom-right Weakening (amber), bottom-left Lagging (red), top-left Improving (blue). One dot and label per sector.
+- `ScoreDelegate` (column `score`): bar at score/100 of the cell width with the number. `SideDelegate` (column `side`): rounded label, green Long, red Short.
+- Empty rows: a muted "No data yet" label instead of the view.
+
+`PanelFrame._make_body` maps `tiles`, `heatmap`, `line`, `rotation` to these views. A saved view the product no longer lists falls back to `product.views[0]`, so old `chart` panels open in the new first view.
+
+**Product views.** `sectors.rank` gives `heatmap, table`; `sectors.rrg` gives `rotation, table`; `breadth.daily` gives `table`.
+
+**Default Overview** (12 columns, x y w h): tiles `0 0 12 4`; sector heat map `0 4 5 9`; ideas table `5 4 7 9` link A; breadth line `0 13 5 9`; rotation `5 13 7 9`.
+
+**Layout file v2.** `VERSION = 2`. On read, a file with version below 2 gets `layouts.Default` replaced by the new default and version 2 written; other named layouts are kept. Reset tab replaces the panels of the current tab with its default panels and saves.
+
+## DD-GUI-034.053.D01 — AI Feed Cards (design phase 2)
+
+**Traces:** SRD-GUI-034.053–.058. Design Option 1, screen 1A feed column and section 04.
+
+**Data.** New `core/desk_feed.py`: frozen `FeedCard(kind, sender, subject, when, text, symbol, ref, pick)` with `kind` in `result | ask | answer | desk`, `when` an aware datetime or `None`, `pick` the `TradePick` of a pick Ask. `feed_cards(home, now) -> list[FeedCard]`, newest first:
+
+| Kind | Source | Sender / subject |
+|---|---|---|
+| result | `briefs` (last 20) | author / "Evening result" for `evening`, else "Desk note" |
+| ask | `trade_picks()` with state waiting | "Lead" / "Trade pick · LONG AAA" (ref `pick`) |
+| ask | `list_hires()` with `ready` | "Hiring" / "Hire · name" (ref `hire`) |
+| answer | `chat` rows with role `lead` (last 5) | "Lead" / "Answer" |
+| desk | `runs` with result not `ok` (last 5) | "Desk" / "Run kind failed" |
+
+Picks and hires have no row time; they take `now` so they sit on top. `DeskFloorData.feed_cards(now)` calls it with the desk folder; the page reads it with `getattr`, so sample data shows sample cards built from `sample_feed_items()`.
+
+**Pick decisions.** `TradePickRow._approve` / `_reject` move into `core/desk_feed.py` (GUI-owned; `core/desk_trades.py` is an MKT module) as `approve_pick(home, pick, sink, now) -> str` and `reject_pick(home, pick, now) -> str` (empty text = done, else the note to show). `TradePickRow` and the feed card both call them, so the rules stay in one place.
+
+**Widget.** `AiFeedColumn` keeps fold, width and `folded_changed`. New parts: head label "AI feed · from desk", live dot (`set_live(bool)`: `C.GREEN` / `C.MUTED`), a row of four checkable flat buttons in a `QButtonGroup` (All, Ideas, Asks n, Alerts), the scroll body, footer button "Talk to lead in AI Desk". `set_cards(cards)` rebuilds the body for the current filter only when the cards changed; the old body is freed with `deleteLater` because a card may still be in its own click handler. Filter map: Ideas = result, Asks = ask, Alerts = desk.
+
+**Card.** `FeedCardWidget(card)`: top line = type label (bold, colour: result `C.ORANGE`, ask `C.YELLOW`, answer `C.TEAL`, desk `C.RED`), sender and subject muted, time right (`HH:MM ET`, with `MM-DD` when not today; tooltip `HH:MM IST`). Text over 220 characters is cut with "…" and a More button toggles the full text. Border: ask `C.YELLOW`, desk `C.RED`, else `C.OVERLAY`.
+
+**Signals.** Column: `chart_requested(str)`, `section_requested(str)`, `decided()`. Pick Ask: Approve / Reject call the core functions with the sink; a non-empty note shows on the card; success emits `decided`. Open in Charts emits `chart_requested(symbol)`. Open Hiring emits `section_requested("Hiring")`; Open chat and the footer emit `section_requested("Command")`.
+
+**Page and window.** `MarketFloorWorkspace(poller, data, store, parent, sink=None)`; it forwards the column signals as its own `chart_requested(str)` and `desk_section_requested(str)`, reloads the feed on `decided`, on `showEvent` and after a run, and calls `feed.set_live(state in LIVE_STATES)` on each status. `MainWindow` passes `svc` as the sink and connects `chart_requested` to `_on_chart_requested(symbol, "1d")` and `desk_section_requested` to `_go_to(6)` plus `AiDeskWorkspace.select_section(name)`.
+
+## DD-GUI-034.059.D01 — AI Desk Design Match (phase 3)
+
+**Traces:** SRD-GUI-034.059–.064 and the reopened SRD-GUI-034.034–.036. Design Option 1, screen 1B.
+
+**Data.** New `core/desk_overview.py` (read-only SQL on `desk.db`, never imports `desk`):
+
+| Function | Returns |
+|---|---|
+| `todays_runs(home, now)` | `RunRow(when, name, result, count)` for runs started on the ET day of `now`, oldest first; all `event` runs become one row "Event runs" with their count, last time and the worst result |
+| `last_run(home)` | latest finished non-event run, or `None` |
+| `spend(home, now)` | `Spend(today_usd, month_usd, budget_usd)` from `activity.cost_usd` (ET day and month) and `load_settings().monthly_budget_usd` |
+| `team_counts(home)` | status → count from `desk_hiring.employees()` |
+
+Run names: `evening` "Evening run", `manual` "Manual run", other kinds title-cased. Result order for "worst": failed > running > ok.
+
+**Section list.** `QListWidget` with heading items (no flags, small muted bold) and section items holding the name in `Qt.ItemDataRole.UserRole`. Groups: TALK Command; TEAM Org chart, Employees, Hiring; WORK Task board, Activity, Schedule; CREATE Pages; REVIEW Reports, Results, Cost & budget; SETUP Desk settings. `section_names()`, `current_section()` and `select_section()` read `UserRole`; the stack index stays `SECTIONS.index(name)`. Selected style: `C.OVERLAY` band, `C.BLUE` (accent) text. `set_ask_count(n)` sets the Command text to `Command  n` (plain `Command` at 0).
+
+**Header.** Chips row after the title: last run `Last run: Evening run · ok 17:06 ET` (green ok, red failed, amber running) and a spend block `AI spend $0.31 today · 43% of month` with a thin `QProgressBar` (0–100, text hidden). Refreshed on build, on `showEvent`, and on `status_changed` only when the desk state changed and the page is visible (no desk.db reads every poll). On show, Command is rebuilt when it is the current section, else only the badge is read; the badge does not change while another page is open. `DeskBar` stays at the right.
+
+**Chat.** `ChatPanel._show_turns` puts each turn in a `QFrame#chat_bubble` (radius 6, padding 8) inside an `QHBoxLayout` with a stretch on the other side: lead left on `mix(C.SURFACE, C.BLUE, 0.12)`, Master right on `mix(C.SURFACE, C.GREEN, 0.15)`. The label text stays one rich-text label: `<b>name</b> · HH:MM ET<br>body`. Placeholder "Message the lead".
+
+**Approvals.** `approvals_box(home, open_hiring, sink, clock)` now returns `WaitingBox`: heading `Approvals waiting · n`, one `FeedCardWidget` per ask from `desk_feed.ask_cards(home, now)`, empty note `NO_APPROVALS`. Card `section_requested("Hiring")` calls `open_hiring`; `chart_requested` is re-emitted and reaches the main window through `AiDeskWorkspace.chart_requested`. On `decided` the box rebuilds through `QTimer.singleShot(0, ...)` and emits `count_changed(n)` for the Command badge. `FeedCardWidget` shows `Qty n` (or `Qty —` without a sink) under a pick's text. `TradePickRow` is removed.
+
+**Runs and team.** `command_frame(name, approvals, chat, runs, team)`: real widgets drop the Sample tag. `runs_box(rows)` = one line per row: ET time, name (with `×n` for events), result label coloured as the chips. Team line: `Team now: 8 active · 1 shadow`.
+
