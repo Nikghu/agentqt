@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.13.0: 25 test cases for FO-MKT-011 ask the desk for new data (P10).
 > v0.12.0: 17 test cases for FO-MKT-010 lead chat (P9).
 > v0.11.0: 23 test cases for FO-MKT-009 pick results (P8).
 > v0.10.1: UT-MKT-008.004.M01.T05 added (review fix).
@@ -360,3 +361,33 @@
 | UT-MKT-010.007.M04.T02 | MD-MKT-010.007.M04 | Negative | No real names (SRD-MKT-010.007) | emp-008 files | generic name only; market does not import desk | Pass |
 | UT-MKT-010.008.M03.T01 | MD-MKT-010.003.M03 | Positive | Logs (SRD-MKT-010.008) | one answer and one failure | [Chat] lines with the question numbers | Pass |
 | UT-MKT-010.002.M02.T03 | MD-MKT-010.002.M02 | Positive | Desk answers end to end (SRD-MKT-010.002) | EmployeesStep events with a fake caller; one question | the chat employee is woken and a reply row is saved | Pass |
+
+## FO-MKT-011: Ask the Desk for New Data
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-MKT-011.001.M01.T01 | MD-MKT-011.001.M01 | Positive | Request saved (SRD-MKT-011.001) | ask 'long scores above 80' | one data_requests row; one waiting data_request event | Not Run |
+| UT-MKT-011.001.M01.T02 | MD-MKT-011.001.M01 | Negative | Bad request (SRD-MKT-011.001) | empty text; 301 characters | ValueError; no row, no event | Not Run |
+| UT-MKT-011.001.M01.T03 | MD-MKT-011.001.M01 | Edge | Append-only (SRD-MKT-011.001) | UPDATE a request row; DELETE an asked product row | refused | Not Run |
+| UT-MKT-011.002.M02.T01 | MD-MKT-011.002.M02 | Positive | One event per request (SRD-MKT-011.002) | two requests on one day | two events, priority 0, 5-minute deadline, 2-hour expiry | Not Run |
+| UT-MKT-011.002.M02.T02 | MD-MKT-011.002.M02 | Negative | Unknown kind still refused (SRD-MKT-011.002) | post 'data_answer' | ValueError | Not Run |
+| UT-MKT-011.002.M02.T03 | MD-MKT-011.002.M02 | Positive | Desk answers end to end (SRD-MKT-011.002) | EmployeesStep events with a fake caller; one request | the data employee is woken and an asked product row is saved | Not Run |
+| UT-MKT-011.003.M04.T01 | MD-MKT-011.003.M04 | Positive | Recipe facts (SRD-MKT-011.003) | open request; sectors stored | fresh; text has the request, every menu source and the sector names | Not Run |
+| UT-MKT-011.003.M04.T02 | MD-MKT-011.003.M04 | Negative | Nothing to build (SRD-MKT-011.003) | no request; a request 3 hours old | fresh False each time | Not Run |
+| UT-MKT-011.003.M04.T03 | MD-MKT-011.003.M04 | Positive | Oldest first (SRD-MKT-011.003) | two open requests | facts and asked product are for the older one | Not Run |
+| UT-MKT-011.004.M03.T01 | MD-MKT-011.004.M03 | Positive | Recipe runs (SRD-MKT-011.004) | scores on 2 days; long, score > 80, sector = Technology, sort score, limit 2 | latest day only, matching rows, high to low, 2 rows | Not Run |
+| UT-MKT-011.004.M03.T02 | MD-MKT-011.004.M03 | Negative | Check refuses (SRD-MKT-011.004) | unknown column; text column with >; number column with text; unknown sort | a reason each; run raises ValueError | Not Run |
+| UT-MKT-011.004.M03.T03 | MD-MKT-011.004.M03 | Negative | No SQL from the model (SRD-MKT-011.004) | filter value "x'; DROP TABLE ideas;--"; column named with SQL; limit 101 | 0 rows and tables kept; refused by check; refused by the schema | Not Run |
+| UT-MKT-011.004.M03.T04 | MD-MKT-011.004.M03 | Edge | Read-only and empty (SRD-MKT-011.004) | no desk.db; table missing | [] each time; no file created | Not Run |
+| UT-MKT-011.004.M03.T05 | MD-MKT-011.004.M03 | Positive | Recipe in words (SRD-MKT-011.004) | recipe with 2 filters and a sort | source label, columns, filters, sort and row limit in words | Not Run |
+| UT-MKT-011.005.M04.T01 | MD-MKT-011.003.M04 | Positive | Proposed product (SRD-MKT-011.005) | fake gateway answers a good recipe | one proposed row with title and recipe | Not Run |
+| UT-MKT-011.005.M04.T02 | MD-MKT-011.003.M04 | Negative | Failed product (SRD-MKT-011.005) | gateway None; recipe None with reason; recipe that fails the check | one failed row each, with the reason | Not Run |
+| UT-MKT-011.005.M01.T01 | MD-MKT-011.001.M01 | Edge | One answer per request (SRD-MKT-011.005) | second asked product for the same request | refused | Not Run |
+| UT-MKT-011.006.M01.T01 | MD-MKT-011.001.M01 | Positive | Decision saved (SRD-MKT-011.006) | approve a proposed product | approvals row kind data_product; no longer waiting; listed as approved | Not Run |
+| UT-MKT-011.006.M01.T02 | MD-MKT-011.001.M01 | Negative | Decision refused (SRD-MKT-011.006) | second decision; unknown decision; unknown or failed product | already decided; unknown decision; not found | Not Run |
+| UT-MKT-011.007.M05.T01 | MD-MKT-011.007.M05 | Positive | Asked panel in the catalog (SRD-MKT-011.007) | one approved product | product asked.<id> titled '(asked)' with the recipe columns; rows from the recipe | Not Run |
+| UT-MKT-011.007.M05.T02 | MD-MKT-011.007.M05 | Positive | New day without a rebuild (SRD-MKT-011.007) | approved product, then a new data day stored | rows are the new day's rows | Not Run |
+| UT-MKT-011.007.M05.T03 | MD-MKT-011.007.M05 | Negative | Not listed (SRD-MKT-011.007) | waiting, rejected and failed products; stored recipe that no longer parses | none in the catalog; unknown asked id gives [] | Not Run |
+| UT-MKT-011.008.M06.T01 | MD-MKT-011.008.M06 | Positive | Default data employee (SRD-MKT-011.008) | emp-009 job.yaml; SKILL_PATHS | level expert, skill data_recipe, trigger data_request, 20 calls, USD 3; skill loads | Not Run |
+| UT-MKT-011.008.M06.T02 | MD-MKT-011.008.M06 | Negative | No real names (SRD-MKT-011.008) | emp-009 files | generic name only; market does not import desk | Not Run |
+| UT-MKT-011.009.M04.T01 | MD-MKT-011.003.M04 | Positive | Logs (SRD-MKT-011.009) | one proposed and one failed request | [Data] lines with the request numbers | Not Run |

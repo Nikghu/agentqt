@@ -6,6 +6,8 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.13.1: SRD-MKT-011.001–.009 approved by user 2026-11-10.
+> v0.13.0: SRD-MKT-011.001–.009 added as Draft — ask the desk for new data (P10).
 > v0.12.2: SRD-MKT-010.001–.008 Implemented (RN-MKT-0.11.0-20261106).
 > v0.12.1: SRD-MKT-010.001–.008 approved by user 2026-11-06.
 > v0.12.0: SRD-MKT-010.001–.008 added as Draft — lead chat (P9).
@@ -181,3 +183,17 @@
 | SRD-MKT-010.006 | FO-MKT-010 | Must | The chat answer has only text, and no chat code approves, rejects or places a trade. | — | — | No tools; schema has one text field | Implemented |
 | SRD-MKT-010.007 | FO-MKT-010 | Must | A default lead-level chat employee ships as `emp-008` (generic name "Lead 2") with trigger `chat_question`, and the skill is added to the skill list. | — | files, skill path | Calls per day 200 so only the monthly cap USD 3 and the desk budget limit it; `market` never imports `desk` | Implemented |
 | SRD-MKT-010.008 | FO-MKT-010 | Should | Each chat answer or failed reply logs the question number and the seconds it took. | answer | log line | `[Chat]` prefix | Implemented |
+
+## FO-MKT-011: Ask the Desk for New Data
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-MKT-011.001 | FO-MKT-011 | Must | A Master data request from the Floor catalog is saved as a `data_requests` row and posts one `data_request` event. | request text | row, event | 1 to 300 characters; the GUI only adds rows and never imports `desk` | Approved |
+| SRD-MKT-011.002 | FO-MKT-011 | Must | A `data_request` event has priority 0, a 5-minute deadline and a 2-hour expiry, one event per request. | request | event | Added to the desk event kinds | Approved |
+| SRD-MKT-011.003 | FO-MKT-011 | Must | A data recipe skill turns the oldest open request into a recipe of source, columns, filters, sort and row limit from a fixed menu. | request, menu | recipe | Sources: scores, ideas, stock RS, sectors, pick results; the answer has no SQL | Approved |
+| SRD-MKT-011.004 | FO-MKT-011 | Must | Code checks each recipe against the menu and runs it read-only on the latest data day, with at most 100 rows. | recipe | rows | Table and column names only from the menu; filter values passed as parameters | Approved |
+| SRD-MKT-011.005 | FO-MKT-011 | Must | Each answer adds one `asked_products` row: proposed with its title and recipe, or failed with the reason. | answer | row | Append-only; one row per request; a recipe that fails the check is failed | Approved |
+| SRD-MKT-011.006 | FO-MKT-011 | Must | The Master approves or rejects a proposed product, and each decision is an `approvals` row of kind `data_product`. | decision | row | Append-only; a second decision on the same product is refused | Approved |
+| SRD-MKT-011.007 | FO-MKT-011 | Must | Approved products are listed in the Floor catalog and their rows come from the recipe on the latest data day each time they are shown. | approvals, recipe | product, rows | Title marked "asked"; a new evening run gives new rows without a rebuild | Approved |
+| SRD-MKT-011.008 | FO-MKT-011 | Must | A default expert-level data employee ships as `emp-009` (generic name "Expert 7") with trigger `data_request`, and the skill is added to the skill list. | — | files, skill path | Calls per day 20; monthly cap USD 3; `market` never imports `desk` | Approved |
+| SRD-MKT-011.009 | FO-MKT-011 | Should | Each request logs whether a product was proposed or failed, with the request number. | answer | log line | `[Data]` prefix | Approved |
