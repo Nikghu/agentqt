@@ -57,3 +57,9 @@ None
 ## Test Coverage
 
 UT-GUI-036.001–.008: 15 cases, all Pass. Full `tests/gui`: 884 pass. Before the popup fix 2 failed; after it the only failure is `test_sidebar_shell::test_main_window_lists_screens`, which already fails on main (T141). `test_sidebar_shell::test_footer_all_users_and_missing_user` failed once in one baseline run; treated as pre-existing and flaky.
+
+---
+
+## Follow-up (same day)
+
+Team setup shows level, status, model source and None with a capital first letter (Active, Expert, OpenRouter, None). Stored values in `employee.md` stay lowercase; each list item keeps the value as data. Commit 5552d6c0.

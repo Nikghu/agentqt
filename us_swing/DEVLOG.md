@@ -9,6 +9,7 @@
 - RN: RN-DSK-0.6.0-20261110, RN-GUI-1.19.0-20261110
 - Artifacts updated: SRD, FO, UTCD, TRACE, TODO (T147–T149), Code (core/desk_employee, core/desk_team, core/desk_hiring, desk/registry, desk/replay, desk/cli, desk/gateway, gui/ai_desk_setup, gui/ai_desk_team_pane), Tests, RN
 - Decisions: one employee.md per employee with a shared check in core; history/v<N>.md kept on every save; restore saves as next version; Test on yesterday is one real AI call in the background; side pane trimmed to a summary with Edit in Team setup
+- Follow-up: Team setup words start with a capital letter (Active, Expert, None); stored values stay lowercase
 - Tests: DSK UT-DSK-008 17 cases (19 runs) Pass; GUI UT-GUI-036 15 cases Pass; full tests/gui 884 pass; desk+market no new failures vs baseline; known: first load after upgrade logs one version warning per employee; T141 and a flaky sidebar test pre-existing
 
 ---
