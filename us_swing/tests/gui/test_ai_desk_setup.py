@@ -74,14 +74,14 @@ def test_form_fills(qtbot: QtBot, tmp_path: Path) -> None:
     page.select("emp-b")
     assert page.current_id() == "emp-b"
     assert page.name_edit.text() == "Beta" and page.title_edit.text() == "Tester"
-    assert page.level_box.currentText() == "expert" and page.boss_box.currentText() == "none"
+    assert page.level_box.currentText() == "Expert" and page.boss_box.currentText() == "None"
     assert page.boss_box.findData("emp-a") >= 0 and page.boss_box.findData("emp-b") < 0
     assert page.kpis_edit.toPlainText() == "valid answers\nfast"
-    assert (page.main_source.currentText(), page.main_model.currentText()) == (
+    assert (page.main_source.currentData(), page.main_model.currentText()) == (
         "claude", "default")
-    assert page.backup_source.currentText() == "openrouter"
+    assert page.backup_source.currentData() == "openrouter"
     assert page.calls_spin.value() == 3 and page.cap_spin.value() == 3.0
-    assert page.status_box.currentText() == "active"
+    assert page.status_box.currentText() == "Active"
     assert [k for k, b in page.wake_checks.items() if b.isChecked()] == ["after_run"]
     assert page.skill_label.text() == "Fake"
     assert not page.save_btn.isEnabled()
@@ -126,9 +126,9 @@ def test_model_list(qtbot: QtBot, tmp_path: Path) -> None:
     page = _page(qtbot, tmp_path)
     items = [page.main_model.itemText(i) for i in range(page.main_model.count())]
     assert items == ["default", "claude-x", "m"]
-    page.main_source.setCurrentText("openrouter")
+    page.main_source.setCurrentText("OpenRouter")
     assert "or-x" in [page.main_model.itemText(i) for i in range(page.main_model.count())]
-    page.main_source.setCurrentText("claude")
+    page.main_source.setCurrentText("Claude")
     page.main_model.setEditText("my-own")
     page.save_btn.click()
     saved = de.load(folder).spec.models.primary

@@ -71,7 +71,29 @@ from us_swing.gui.theme import C
 TABS = ("Prompt", "Profile", "Model", "Limits & wake", "History")
 SOURCES = ("claude", "openrouter")
 STATUSES = ("active", "shadow", "retired")
-NO_BOSS = "none"
+NO_BOSS = "None"
+_SOURCE_LABELS = {"claude": "Claude", "openrouter": "OpenRouter"}
+
+
+def _label(value: str) -> str:
+    """A stored value as shown: first letter capital (sources keep their brand case)."""
+    return _SOURCE_LABELS.get(value, value[:1].upper() + value[1:])
+
+
+def _fill(box: QComboBox, values: tuple[str, ...]) -> None:
+    """Show each value with a capital first letter; the stored value is the item data."""
+    for value in values:
+        box.addItem(_label(value), value)
+
+
+def _pick(box: QComboBox, value: str) -> None:
+    """Select the item whose stored value is ``value``."""
+    box.setCurrentIndex(max(0, box.findData(value)))
+
+
+def _value(box: QComboBox) -> str:
+    """The stored value of the selected item."""
+    return str(box.currentData())
 NO_RUN_NOTE = "No recorded run yet"
 RULES_TEXT = ("Added by code: answer with one JSON object matching the skill's schema. "
               "{name} and {title} are filled in.")
@@ -245,7 +267,7 @@ class TeamSetup(QWidget):
         self.name_edit = QLineEdit()
         self.title_edit = QLineEdit()
         self.level_box = QComboBox()
-        self.level_box.addItems(list(LEVELS))
+        _fill(self.level_box, tuple(LEVELS))
         self.boss_box = QComboBox()
         self.skill_label = QLabel()
         self.kpis_edit = QPlainTextEdit()
@@ -273,7 +295,7 @@ class TeamSetup(QWidget):
     def _model_row(self, grid: QGridLayout, row: int,
                    caption: str) -> tuple[QComboBox, QComboBox]:
         source = QComboBox()
-        source.addItems(list(SOURCES))
+        _fill(source, SOURCES)
         source.setFixedWidth(130)
         model = QComboBox()
         model.setEditable(True)
@@ -297,7 +319,7 @@ class TeamSetup(QWidget):
         self.cap_spin.setDecimals(2)
         self.cap_spin.setPrefix("$")
         self.status_box = QComboBox()
-        self.status_box.addItems(list(STATUSES))
+        _fill(self.status_box, STATUSES)
         grid.addRow("Calls per day", self.calls_spin)
         grid.addRow("Month cap", self.cap_spin)
         grid.addRow("Status", self.status_box)
@@ -420,7 +442,7 @@ class TeamSetup(QWidget):
             spec = emp.spec
             self._people[emp_id] = spec.name
             item = QListWidgetItem(f"{initials(spec.name)}  {spec.name}\n"
-                                   f"{skill_text(spec.skill)} · {spec.status}")
+                                   f"{skill_text(spec.skill)} · {_label(spec.status)}")
         item.setData(_ROLE, emp_id)
         self.emp_list.addItem(item)
         self._ids.append(emp_id)
@@ -493,13 +515,13 @@ class TeamSetup(QWidget):
         try:
             self.name_label.setText(spec.name)
             self.role_label.setText(f"{spec.title} · {skill_text(spec.skill)}")
-            self.status_chip.setText(chip_text(spec.status))
+            self.status_chip.setText(chip_text(_label(spec.status)))
             self.status_chip.setStyleSheet(chip_style(_STATUS_KEY[spec.status]))
             self.status_chip.show()
             self.prompt_edit.setPlainText(emp.prompt)
             self.name_edit.setText(spec.name)
             self.title_edit.setText(spec.title)
-            self.level_box.setCurrentText(spec.level)
+            _pick(self.level_box, spec.level)
             self._fill_boss(spec)
             self.skill_label.setText(skill_text(spec.skill))
             self.kpis_edit.setPlainText("\n".join(spec.kpis))
@@ -507,12 +529,12 @@ class TeamSetup(QWidget):
                                            spec.models.primary),
                                           (self.backup_source, self.backup_model,
                                            spec.models.backup)):
-                source.setCurrentText(choice.source)
+                _pick(source, choice.source)
                 self._fill_models(source, model)
                 model.setEditText(choice.model)
             self.calls_spin.setValue(spec.calls_per_day)
             self.cap_spin.setValue(spec.monthly_cost_usd)
-            self.status_box.setCurrentText(spec.status)
+            _pick(self.status_box, spec.status)
             for kind, box in self.wake_checks.items():
                 box.setChecked(kind in spec.trigger)
         finally:
@@ -532,7 +554,7 @@ class TeamSetup(QWidget):
         keep = model.currentText()
         model.blockSignals(True)
         model.clear()
-        model.addItems(self._models.get(source.currentText(), []))
+        model.addItems(self._models.get(_value(source), []))
         model.setEditText(keep)
         model.blockSignals(False)
 
@@ -541,20 +563,20 @@ class TeamSetup(QWidget):
         return {
             "name": self.name_edit.text(),
             "title": self.title_edit.text(),
-            "level": self.level_box.currentText(),
+            "level": _value(self.level_box),
             "reports_to": boss if boss else None,
             "kpis": [k.strip() for k in self.kpis_edit.toPlainText().splitlines()
                      if k.strip()],
             "models": {
-                "primary": {"source": self.main_source.currentText(),
+                "primary": {"source": _value(self.main_source),
                             "model": self.main_model.currentText().strip()},
-                "backup": {"source": self.backup_source.currentText(),
+                "backup": {"source": _value(self.backup_source),
                            "model": self.backup_model.currentText().strip()},
             },
             "trigger": [k for k, box in self.wake_checks.items() if box.isChecked()],
             "calls_per_day": self.calls_spin.value(),
             "monthly_cost_usd": round(self.cap_spin.value(), 2),
-            "status": self.status_box.currentText(),
+            "status": _value(self.status_box),
         }
 
     def _mark_dirty(self, *_args: object) -> None:
