@@ -2,10 +2,14 @@
 
 **Document:** CONTEXT.md
 **Project:** us_swing
-**Last Updated:** 2026-11-10 (Session 129)
+**Last Updated:** 2026-11-10 (Session 130)
 **Updated By:** Claude (Opus 5.5)
 
 ---
+
+**Current (Session 130b, 2026-11-10):** **AI Desk Team setup and employee.md (Feature, DSK + GUI; FO-DSK-008, FO-GUI-036; RN-DSK-0.6.0-20261110, RN-GUI-1.19.0-20261110; SRD-DSK-008.001–.009 and SRD-GUI-036.001–.008 Implemented; FO-DSK-008 and FO-GUI-036 user-approved).** Each AI employee is one `employee.md` (settings block plus prompt). Old `job.yaml` and `soul.md` move to `history/` once. Saves keep `history/v<N>.md` and raise the version; restore saves an old version as the next one. New Team setup tab in AI Desk lists all 9 employees with Prompt, Profile, Model, Limits and wake, and History tabs; Test on yesterday makes one real AI call in the background. Team at work side pane trimmed. Branch `feat/desk-team-setup`, stacked on `feat/gui-desk-status-bar`, committed, not pushed. User check T147. Phase 2 ideas (T148): temperature, max tokens, timeout, effort, data blocks, tool use, guardrails. Mock-up: https://claude.ai/artifact/CSVvoYH32gNQzivr8L9bbE.
+
+**Current (Session 130, 2026-11-10):** **AI Desk status bar instead of dot (Enhancement, GUI; FO-GUI-035; RN-GUI-1.18.0-20261110; SRD-GUI-035.013 chosen by user and Implemented).** Status pills, the desk state chip, Last run, Right now and This run lines show a 3 px left colour bar; no dots. Floor, timeline and backtest dots unchanged. Also SRD-GUI-035.014: the selected card and Team row use a lighter fill and grey border instead of amber (user chose Option A). Branch `feat/gui-desk-status-bar`, committed, not pushed. User check T146. Mock-ups: https://claude.ai/artifact/92UfDzucLYx2rWC63Q4HRS.
 
 **Also (Session 129d, 2026-11-10):** **AI Desk section tabs (Enhancement, GUI; FO-GUI-034; RN-GUI-1.17.0-20261110; SRD-GUI-034.067 Implemented).** Sections are underline tabs under the header; the left panel AI Desk menu is gone. Same branch, committed, not pushed. User check T145.
 

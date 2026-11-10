@@ -5,6 +5,11 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.104.2: SRD-GUI-036.001–.008 Implemented 2026-11-10 (Team setup tab, side pane trim, review fixes).
+> v2.104.1: SRD-GUI-036.001–.008 approved by user 2026-11-10.
+> v2.104.0: SRD-GUI-036.001–.008 added as Draft — AI Desk Team setup.
+> v2.103.0: SRD-GUI-035.014 added and Implemented — selected card and team row use a lighter fill and grey border, not the accent (user chose Option A, 2026-11-10).
+> v2.102.0: SRD-GUI-035.013 added and Implemented — AI Desk status shown by a left colour bar, no dot (user chose Option 3, 2026-11-10).
 > v2.101.0: SRD-GUI-034.067 added and Implemented — AI Desk section tabs; replaces the sidebar menu of SRD-GUI-018.012 (user asked 2026-11-10).
 > v2.100.0: SRD-GUI-034.065–.066 added and Implemented — AI Desk console look, design Option A (user chose 2026-11-10).
 > v2.99.0: SRD-GUI-035.012 added and Implemented — Team at work clean look (user asked 2026-11-10).
@@ -777,3 +782,18 @@
 | SRD-GUI-035.010 | FO-GUI-035 | Must | Team at work shows a red banner for each open AI problem alert with its time and fix step. | alerts | banner | Hidden when no alert is open | Implemented |
 | SRD-GUI-035.011 | FO-GUI-035 | Must | The AI feed shows each open alert as a Desk card with the fix step. | alerts | card | Card leaves when the alert closes | Implemented |
 | SRD-GUI-035.012 | FO-GUI-035 | Should | Team at work matches the design look: icon cards with clear borders, dot chips, drawn arrows, stat tiles, underline tabs and bordered panels. | theme tokens, icons | restyled section | Look only; data and actions unchanged | Implemented |
+| SRD-GUI-035.013 | FO-GUI-035 | Should | AI Desk status pills, Right now, Last run, the desk state chip and This run lines show a 3 px left bar in the status colour instead of a dot. | state key | restyled status | Look only; Floor, timeline and backtest dots unchanged | Implemented |
+| SRD-GUI-035.014 | FO-GUI-035 | Should | The selected pipeline card and the selected Team row show a lighter fill and a grey border instead of the accent border. | selection | restyled card | Working pulse border unchanged | Implemented |
+
+## FO-GUI-036: AI Desk Team Setup
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-036.001 | FO-GUI-036 | Must | A Team setup tab after Team at work lists every employee in the desk folder with its role and status. | employee folders | list | Re-read each time the tab shows; no names in code | Implemented |
+| SRD-GUI-036.002 | FO-GUI-036 | Must | The picked employee opens in a form with tabs Prompt, Profile, Model, Limits & wake and History. | employee | form | Skill shown read-only | Implemented |
+| SRD-GUI-036.003 | FO-GUI-036 | Must | The Prompt tab edits the prompt and shows the answer rules the code adds as read-only text. | prompt | text | Hint for {name} and {title} | Implemented |
+| SRD-GUI-036.004 | FO-GUI-036 | Must | The Model tab picks main and backup source and model from a list, with Other for free text. | known models | choice | List: default, desk settings models, models used before | Implemented |
+| SRD-GUI-036.005 | FO-GUI-036 | Must | Save checks the form through core and shows the reason, or the new version and "applies from the next wake". | form | employee.md | Unsaved changes are asked about before switching employee | Implemented |
+| SRD-GUI-036.006 | FO-GUI-036 | Should | The History tab lists versions with date, shows a picked version's prompt and restores it. | versions | new version | Restore asks first | Implemented |
+| SRD-GUI-036.007 | FO-GUI-036 | Should | Test on yesterday tries the unsaved prompt on the employee's last recorded run and shows valid or not and the answer. | draft | result | Runs in the background; one real AI call; off when no recorded run | Implemented |
+| SRD-GUI-036.008 | FO-GUI-036 | Must | The Team at work side pane shows name, role, state, model line, month cost, this run, Prompt and Answer, and Edit in Team setup. | member | pane | Edit opens Team setup on that employee | Implemented |

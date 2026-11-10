@@ -32,6 +32,7 @@ def hire(home: Path, emp: str, name: str, skill: str, trigger: str) -> None:
                       "backup": {"source": "openrouter", "model": "default"}},
            "calls_per_day": 3, "monthly_cost_usd": 3.0, "kpis": ["Share of valid answers"]}
     (folder / "job.yaml").write_text(yaml.safe_dump(job), encoding="utf-8")
+    (folder / "soul.md").write_text("You are {name}.", encoding="utf-8")
 
 
 def call(home: Path, run_id: int, emp: str, hhmmss: str, valid: bool, attempt: int = 1,

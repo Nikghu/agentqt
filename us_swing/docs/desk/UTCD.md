@@ -6,6 +6,8 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.8.1: UT-DSK-008.* Pass (17 cases, 19 test runs incl. parametrize, 2026-11-10).
+> v0.8.0: 17 test cases for FO-DSK-008 (employee file, migration, versions, draft test).
 > v0.7.0: 23 test cases for P6 (hiring, shadow, seat caps, weekly report).
 > v0.6.0: 41 test cases for P5b (events, market clock, LangGraph order, replay).
 > v0.5.1: P5a cases reworded without employee names; 6 cases added for identity as data (user, 2026-11-06).
@@ -233,3 +235,25 @@
 | UT-DSK-007.004.M11.T02 | MD-DSK-004.001.M11 | Negative | Bad form is not a problem (SRD-DSK-007.001) | wrong answer form | retried on the same source; no alert | Pass |
 | UT-DSK-007.005.M10.T01 | MD-DSK-003.001.M10 | Positive | Whole run failed (SRD-DSK-007.005) | all calls bad; all good | one alert; none | Pass |
 | UT-DSK-007.006.M21.T01 | MD-DSK-007.001.M21 | Positive | Close when fixed (SRD-DSK-007.006) | later valid calls; 25 hours later | closes by source; run alert by any; old alerts gone | Pass |
+
+## FO-DSK-008: Employee File and Versions
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-DSK-008.001.M22.T01 | MD-DSK-008.001.M22 | Positive | Read employee.md (SRD-DSK-008.001) | valid file | spec fields and prompt; render then parse gives the same | Pass |
+| UT-DSK-008.001.M22.T02 | MD-DSK-008.001.M22 | Negative | Wrong file (SRD-DSK-008.001) | no front matter; unknown source | ValueError with a plain reason | Pass |
+| UT-DSK-008.002.M22.T01 | MD-DSK-008.001.M22 | Positive | One set of rules (SRD-DSK-008.002) | registry and core | registry uses the core JobSpec; same file checks the same in both | Pass |
+| UT-DSK-008.002.M22.T02 | MD-DSK-008.001.M22 | Negative | No desk import (SRD-DSK-008.002) | import core.desk_employee in a clean process | no `us_swing.desk` module loaded | Pass |
+| UT-DSK-008.003.M22.T01 | MD-DSK-008.001.M22 | Positive | Move old pair (SRD-DSK-008.003) | job.yaml + soul.md | employee.md with same spec and prompt; old files in history; version same | Pass |
+| UT-DSK-008.003.M22.T02 | MD-DSK-008.001.M22 | Negative | Broken old pair (SRD-DSK-008.003) | job.yaml with an unknown source | not moved; old files stay; employee stays asleep | Pass |
+| UT-DSK-008.003.M22.T03 | MD-DSK-008.001.M22 | Edge | Already moved (SRD-DSK-008.003) | employee.md present | nothing changed | Pass |
+| UT-DSK-008.004.M09.T01 | MD-DSK-002.002.M09 | Positive | Defaults load (SRD-DSK-008.004) | empty desk folder | every shipped employee seeded as employee.md and loaded with its skill | Pass |
+| UT-DSK-008.004.M09.T02 | MD-DSK-002.002.M09 | Negative | Edits kept (SRD-DSK-008.004) | edited employee.md, seed again | file not overwritten | Pass |
+| UT-DSK-008.005.M22.T01 | MD-DSK-008.001.M22 | Positive | Save (SRD-DSK-008.005) | new prompt | version + 1; old file in history/v1.md; registry loads new prompt | Pass |
+| UT-DSK-008.005.M22.T02 | MD-DSK-008.001.M22 | Negative | Refused save (SRD-DSK-008.005) | calls_per_day 0 | reason returned; file and history unchanged | Pass |
+| UT-DSK-008.006.M22.T01 | MD-DSK-008.001.M22 | Positive | Restore (SRD-DSK-008.006) | restore v1 after 2 saves | version 4 with v1 prompt; versions lists 1–4 | Pass |
+| UT-DSK-008.007.M18.T01 | MD-DSK-006.001.M18 | Positive | Hire file (SRD-DSK-008.007) | start a hire | new folder with employee.md, status shadow, version 1 | Pass |
+| UT-DSK-008.007.M18.T02 | MD-DSK-006.001.M18 | Negative | Refused hire (SRD-DSK-008.007) | seats full | reason; no new folder | Pass |
+| UT-DSK-008.008.M17.T01 | MD-DSK-005.005.M17 | Positive | Draft replay (SRD-DSK-008.008) | recorded run + draft | fake caller gets the draft prompt as system; try recorded as replay | Pass |
+| UT-DSK-008.009.M22.T01 | MD-DSK-008.001.M22 | Negative | Seats full (SRD-DSK-008.009) | junior to expert with expert seats full | reason names the full level; file unchanged | Pass |
+| UT-DSK-008.009.M22.T02 | MD-DSK-008.001.M22 | Positive | Free seat (SRD-DSK-008.009) | junior to expert with a free expert seat | saved; level expert | Pass |

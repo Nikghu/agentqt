@@ -13,10 +13,10 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-import yaml  # type: ignore[import-untyped]
 from pydantic import BaseModel, ValidationError
 
 from tests.market.test_idea_step import N, _Earnings, _make, _steps
+from us_swing.core.desk_employee import load
 from us_swing.core.desk_agents import Facts
 from us_swing.core.desk_ai_settings import DeskAiSettings
 from us_swing.core.desk_contract import StepContext
@@ -181,8 +181,7 @@ def test_view_replaced(tmp_path: Path) -> None:
 
 def _default_folder() -> Path:
     folders = [f for f in default_folders(DEFAULT_EMPLOYEE_PACKAGES)
-               if yaml.safe_load((f / "job.yaml").read_text(encoding="utf-8"))["skill"]
-               == regime_view.KEY]
+               if load(f).spec.skill == regime_view.KEY]
     assert len(folders) == 1
     return folders[0]
 
@@ -203,11 +202,11 @@ def test_full_run(market: tuple[Path, Path], tmp_path: Path) -> None:
     candles, home = _copy(market, tmp_path)
     folder = home / "employees" / "x-7"
     shutil.copytree(_default_folder(), folder)
-    job = (folder / "job.yaml").read_text(encoding="utf-8")
-    spec = yaml.safe_load(job)
-    job = job.replace(f"id: {spec['id']}", "id: x-7").replace(f"name: {spec['name']}",
-                                                              "name: Made Up Name")
-    (folder / "job.yaml").write_text(job, encoding="utf-8")
+    job = (folder / "employee.md").read_text(encoding="utf-8")
+    spec = load(folder).spec
+    job = job.replace(f"id: {spec.id}", "id: x-7").replace(f"name: {spec.name}",
+                                                          "name: Made Up Name")
+    (folder / "employee.md").write_text(job, encoding="utf-8")
 
     def caller(source: str, model: str, system: str, user: str, key: str) -> Reply:
         assert "Made Up Name" in system
@@ -242,8 +241,8 @@ def test_broken_default_copy(tmp_path: Path, caplog: pytest.LogCaptureFixture) -
     """UT-MKT-005.005.M03.T03: A copy of the default job file without a trigger stays asleep."""
     folder = tmp_path / "copy"
     shutil.copytree(_default_folder(), folder)
-    job = folder / "job.yaml"
-    job.write_text(job.read_text(encoding="utf-8").replace("trigger: after_run\n", ""),
+    job = folder / "employee.md"
+    job.write_text(job.read_text(encoding="utf-8").replace("trigger:\n- after_run\n", ""),
                    encoding="utf-8")
     with caplog.at_level(logging.WARNING):
         assert load_employee(folder, SKILL_PATHS) is None

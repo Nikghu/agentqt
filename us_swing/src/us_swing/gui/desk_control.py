@@ -241,19 +241,14 @@ class DeskBar(QWidget):
         self.note = QLabel()
         self.note.setStyleSheet(f"color: {C.MUTED};")
         row.addWidget(self.note)
-        chip = QFrame()
-        chip.setObjectName("state_chip")
-        chip.setStyleSheet(f"QFrame#state_chip {{ background: {C.OVERLAY};"
-                           f" border: 1px solid {C.OVERLAY2}; border-radius: 11px; }}")
-        chip_row = QHBoxLayout(chip)
+        self.chip = QFrame()
+        self.chip.setObjectName("state_chip")
+        chip_row = QHBoxLayout(self.chip)
         chip_row.setContentsMargins(10, 3, 10, 3)
-        chip_row.setSpacing(6)
-        self.dot = QLabel("●")
         self.pill = QLabel()
         self.pill.setStyleSheet("background: transparent; border: none;")
-        chip_row.addWidget(self.dot)
         chip_row.addWidget(self.pill)
-        row.addWidget(chip)
+        row.addWidget(self.chip)
         seg = QFrame()
         seg.setObjectName("desk_seg")
         seg.setStyleSheet(seg_style())
@@ -296,7 +291,9 @@ class DeskBar(QWidget):
         if status.state is not self._pill_state:
             self._pill_state = status.state
             colour = getattr(C, _PILL_COLOURS[status.state])
-            self.dot.setStyleSheet(f"color: {colour}; background: transparent; border: none;")
+            self.chip.setStyleSheet(f"QFrame#state_chip {{ background: {C.OVERLAY};"
+                                    f" border: none; border-left: 3px solid {colour};"
+                                    " border-radius: 3px; }")
         self._refresh_tooltip()
         self._refresh_buttons()
 

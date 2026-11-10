@@ -8,6 +8,8 @@ from pytestqt.qtbot import QtBot
 
 from tests.gui.team_fixtures import NOW, desk
 from us_swing.gui.ai_desk_team import TeamAtWork
+from us_swing.gui.ai_desk_team_pane import bar_rows, lift_fill, tone
+from us_swing.gui.theme import C
 
 
 def _page(qtbot: QtBot, home: Path) -> TeamAtWork:
@@ -166,3 +168,61 @@ def test_alert_banner_and_feed(qtbot: QtBot, tmp_path: Path) -> None:
     assert "No employee gave a valid answer" in page.alert_banner.text()
     cards = [c for c in feed_cards(tmp_path, NOW) if c.subject == "No employee gave a valid answer"]
     assert len(cards) == 1 and "What to do:" in cards[0].text
+
+
+def test_status_bars_not_dots(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-035.013.M04.T01: pills, Right now and This run show a left colour bar, no dot."""
+    desk(tmp_path, finished=False)
+    page = _page(qtbot, tmp_path)
+    card = page.pipeline._cards["emp-a"]
+    assert card.state_label.text() and "●" not in card.state_label.text()
+    assert f"border-left: 3px solid {tone('done')}" in card.state_label.styleSheet()
+    assert f"border-left: 3px solid {C.BLUE}" in page.now_head.styleSheet()
+    assert "●" not in page.profile.calls_label.text()
+    assert "bgcolor=" in bar_rows([(C.RED, "16:26:00 · try 1")])
+
+
+def test_selected_card_lift(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-035.014.M01.T01: the picked card has a lighter fill and grey border, no accent."""
+    desk(tmp_path, finished=True)
+    page = _page(qtbot, tmp_path)
+    picked = next(c for c in page.pipeline._cards.values() if c.selected)
+    other = next(c for c in page.pipeline._cards.values() if not c.selected)
+    assert f"background: {lift_fill()}; border: 1px solid {C.MUTED}" in picked.styleSheet()
+    assert C.BLUE not in picked.styleSheet()
+    assert f"background: {C.SURFACE}" in other.styleSheet()
+
+
+def test_trimmed_pane_and_edit_link(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-036.008.M04.T01: no KPIs or Daily limit rows; Edit opens Team setup on the member."""
+    from PyQt6.QtWidgets import QLabel
+
+    from us_swing.gui.ai_desk import AiDeskWorkspace
+    from us_swing.gui.desk_control import DeskPoller
+
+    desk(tmp_path, finished=True)
+    page = _page(qtbot, tmp_path)
+    page.select_member("emp-b")
+    texts = [w.text() for w in page.profile.findChildren(QLabel)]
+    assert "KPIs" not in texts and "Daily limit" not in texts and "Last 4 days" not in texts
+    assert page.profile.model_label.text() == "claude / default · backup openrouter / default"
+    assert page.profile.edit_btn.isEnabled()
+    with qtbot.waitSignal(page.edit_requested) as seen:
+        page.profile.edit_btn.click()
+    assert seen.args == ["emp-b"]
+
+    work = AiDeskWorkspace(DeskPoller(tmp_path), clock=lambda: NOW)
+    qtbot.addWidget(work)
+    team = work.findChild(TeamAtWork)
+    assert team is not None
+    team.refresh()
+    team.select_member("emp-c")
+    team.profile.edit_btn.click()
+    assert work.current_section() == "Team setup"
+    assert work._setup.current_id() == "emp-c"
+
+
+def test_edit_link_off_without_member(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-036.008.M04.T02: with an empty team Edit in Team setup is off."""
+    page = _page(qtbot, tmp_path)
+    assert not page.profile.edit_btn.isEnabled()

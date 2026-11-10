@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.25.0: MD-GUI-036.001.M01 added (AI Desk Team setup).
 > v1.24.1: MD-GUI-018.012.M05 no longer used by AI Desk (SRD-GUI-034.067).
 > v1.24.0: MD-GUI-034.065.M39 added (AI Desk console look, design phase 4).
 > v1.23.0: MD-GUI-034.042.M37 and .043.M38 added (MKT P10 ask the desk for new data).
@@ -465,3 +466,13 @@ SRD coverage: .059 by M33; .060 by M33 and M34; .061 by M35; .062–.064 and the
 | MD-GUI-035.007.M04 | SRD-GUI-035.008 | `us_swing/src/us_swing/gui/ai_desk_team_pane.py` | Team wheel, profile pane and scorecard table | `TeamWheel`, `ProfilePane`, `ScoreTable` | M02 | No |
 
 SRD coverage: .001, .003–.005, .009 and .010 by M01; .011 by MD-GUI-034.054.M32 (`core/desk_feed.py`, alert cards); .002 and .009 by M01 and M02; .004–.007 data by M02; .006 by M03; .007 and .008 by M04. Sample frames for Org chart, Employees, Task board, Activity and Schedule were removed from `ai_desk_sections.py`, `ai_desk_sections2.py` and `ai_desk_sample.py`.
+
+## FO-GUI-036 — AI Desk Team Setup
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-GUI-036.001.M01 | SRD-GUI-036.001 | `us_swing/src/us_swing/gui/ai_desk_setup.py` | Team setup section: employee list, tabbed form, save, history, test on yesterday | `TeamSetup` | `core.desk_employee`, `gui.ai_desk_team_pane` | No |
+
+Changed: MD-GUI-034.059.M33 (`gui/ai_desk.py`: Team setup tab, Edit link wiring), MD-GUI-035.007.M04 (`ai_desk_team_pane.py`: `ProfilePane` trimmed, `edit_requested`), MD-GUI-035.001.M01 (`ai_desk_team.py`: re-emits `edit_requested`).
+
+SRD coverage: .001–.007 by M01; .008 by MD-GUI-035.007.M04 and MD-GUI-034.059.M33.

@@ -6,6 +6,9 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.7.2: SRD-DSK-008.001–.009 Implemented 2026-11-10 (employee.md, versions, draft test).
+> v0.7.1: SRD-DSK-008.001–.009 approved by user 2026-11-10.
+> v0.7.0: SRD-DSK-008.001–.009 added as Draft — employee.md, shared rules, migration, versions, draft test.
 > v0.6.1: SRD-DSK-006.001–.010 approved by user 2026-11-06.
 > v0.6.0: SRD-DSK-006.001–.010 added as Draft — hiring pipeline, shadow, seat caps, weekly report (P6).
 > v0.5.1: SRD-DSK-002.001/.002/.004/.005 reworded and .006–.007 added — skills by key, identity as data, generic levels (asked by user, 2026-11-06).
@@ -122,3 +125,17 @@
 | SRD-DSK-007.004 | FO-DSK-007 | Must | After a source fails to sign in, the rest of that run skips it and uses the backup model. | run | calls | The next run tries the source again | Implemented |
 | SRD-DSK-007.005 | FO-DSK-007 | Must | An evening or manual run whose employees made calls but gave no valid answer raises a whole-run alert. | run calls | alert | Holds the call count and last error | Implemented |
 | SRD-DSK-007.006 | FO-DSK-007 | Must | An alert stays open for a day until a later valid answer (same source for sign-in problems) closes it. | alerts, activity | open alerts | Read-only for the GUI | Implemented |
+
+## FO-DSK-008: Employee File and Versions
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-DSK-008.001 | FO-DSK-008 | Must | An employee is one `employee.md`: YAML front matter with the job fields, body with the system prompt. | folder | job, prompt | Same fields and rules as `job.yaml` (SRD-DSK-002.002) | Implemented |
+| SRD-DSK-008.002 | FO-DSK-008 | Must | The job rules and the employee file read and write live in `core`, used by the desk and the app. | file text | checked job | The app never imports `desk` | Implemented |
+| SRD-DSK-008.003 | FO-DSK-008 | Must | A folder with `job.yaml` and `soul.md` but no `employee.md` is turned into `employee.md` once; the old files move to `history/`. | old folder | `employee.md` | Version unchanged; runs on desk load and Team setup open | Implemented |
+| SRD-DSK-008.004 | FO-DSK-008 | Must | Shipped default employees are `employee.md` files, copied only when missing. | defaults | folders | Master user edits never overwritten | Implemented |
+| SRD-DSK-008.005 | FO-DSK-008 | Must | Saving an employee checks it, raises the version by one and keeps the old file as `history/v<N>.md`. | job, prompt | new file | A wrong file is refused with the first reason; nothing written | Implemented |
+| SRD-DSK-008.006 | FO-DSK-008 | Should | Restoring an old version saves its content as the next version. | version | new file | History is never deleted | Implemented |
+| SRD-DSK-008.007 | FO-DSK-008 | Must | Starting a hire writes `employee.md` from the skill's default employee. | hire | `employee.md` | Status shadow, as today | Implemented |
+| SRD-DSK-008.008 | FO-DSK-008 | Should | `desk replay RUN --employee ID --draft FILE` resends the employee's recorded question with the draft prompt. | draft file | answer, valid | Tries recorded as replay; no views, picks or briefs written | Implemented |
+| SRD-DSK-008.009 | FO-DSK-008 | Must | A level change is refused when the new level's seats are full. | level | reason | Same caps as hiring (SRD-DSK-006.002) | Implemented |

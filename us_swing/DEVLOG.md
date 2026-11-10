@@ -2,6 +2,31 @@
 
 ---
 
+## [20261110] DSK+GUI — AI Desk Team setup and employee.md (FO-DSK-008, FO-GUI-036)
+
+- Type: Feature
+- FO(s): FO-DSK-008, FO-GUI-036
+- RN: RN-DSK-0.6.0-20261110, RN-GUI-1.19.0-20261110
+- Artifacts updated: SRD, FO, UTCD, TRACE, TODO (T147–T149), Code (core/desk_employee, core/desk_team, core/desk_hiring, desk/registry, desk/replay, desk/cli, desk/gateway, gui/ai_desk_setup, gui/ai_desk_team_pane), Tests, RN
+- Decisions: one employee.md per employee with a shared check in core; history/v<N>.md kept on every save; restore saves as next version; Test on yesterday is one real AI call in the background; side pane trimmed to a summary with Edit in Team setup
+- Follow-up: Team setup words start with a capital letter (Active, Expert, None); stored values stay lowercase
+- Tests: DSK UT-DSK-008 17 cases (19 runs) Pass; GUI UT-GUI-036 15 cases Pass; full tests/gui 884 pass; desk+market no new failures vs baseline; known: first load after upgrade logs one version warning per employee; T141 and a flaky sidebar test pre-existing
+
+---
+
+## [20261110] GUI — AI Desk status bar instead of dot + selected card lift (SRD-GUI-035.013–.014)
+
+- Type: Enhancement
+- FO(s): FO-GUI-035 (SRD .013 added)
+- RN: RN-GUI-1.18.0-20261110
+- Artifacts updated: SRD, DD (DD-GUI-035.001.D01 Status bar), UTCD, TRACE, TODO (T146), Code (gui/ai_desk_team_pane, gui/ai_desk_team, gui/ai_desk, gui/desk_control)
+- Decisions: user picked Option 3 (left colour bar) of 4 mock-ups; rich-text lines use a 3 px filled table cell; Floor, timeline and backtest dots left as they are
+- Also: selected card and Team row use a lighter fill and grey border, not amber (user chose Option A)
+- Also: Desk settings source labels shortened to "Use Claude Code CLI" / "Use OpenRouter"; cost note moved to tooltip
+- Tests: 2 new; AI Desk/Team/Floor GUI tests 160 pass
+
+---
+
 ## [20261110] GUI — AI Desk section tabs (SRD-GUI-034.067)
 
 - Type: Enhancement

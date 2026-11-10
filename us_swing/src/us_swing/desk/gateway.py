@@ -28,6 +28,7 @@ from typing import Any
 import httpx
 from pydantic import BaseModel, ValidationError
 
+from us_swing.core.desk_employee import DEFAULT_MODEL
 from us_swing.core.desk_agents import T
 from us_swing.core.desk_ai_settings import DeskAiSettings
 from us_swing.core.desk_alerts import Sender, classify, raise_alert
@@ -39,7 +40,6 @@ from us_swing.desk.registry import Hire, ModelChoice
 log = logging.getLogger(__name__)
 
 TIMEOUT_S = 90.0
-DEFAULT_MODEL = "default"
 _SOURCE_NAMES = {"openrouter": "OpenRouter", "claude": "Claude Code CLI"}
 # (desk folder, run id) → sources that failed to sign in during that run
 _BROKEN: dict[tuple[str, int], set[str]] = {}

@@ -7,6 +7,10 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.27.0: UT-GUI-036.001–.008 Pass (15 cases, 2026-11-10).
+> v1.26.0: UT-GUI-036.001–.008 added (AI Desk Team setup).
+> v1.25.0: UT-GUI-035.014.M01.T01 added (selected card lift).
+> v1.24.0: UT-GUI-035.013.M04.T01 added (AI Desk status bar).
 > v1.23.0: UT-GUI-034.067.M33.T01–T02 added; UT-GUI-034.059.M33.T01 updated (AI Desk section tabs).
 > v1.22.0: UT-GUI-034.065–.066 added; UT-GUI-034.060.M33.T01–T02 and UT-GUI-034.037.M25.T01, .038.M25.T02 updated for tiles (AI Desk console look).
 > v1.21.1: UT-GUI-034.042–.044 run — 7 Pass.
@@ -1203,3 +1207,25 @@ Test files:
 | UT-GUI-035.007.M04.T01 | MD-GUI-035.007.M04 | Positive | Scorecard tab (SRD-GUI-035.007) | finished run | 4 rows and total; 50% valid and backup; row click picks | Pass |
 | UT-GUI-035.009.M01.T01 | MD-GUI-035.001.M01 | Negative | Empty desk page (SRD-GUI-035.009) | no desk data | No desk run yet; plain notes; tabs open | Pass |
 | UT-GUI-035.010.M01.T01 | MD-GUI-035.001.M01 | Positive | Alert banner and feed card (SRD-GUI-035.010–.011) | open whole-run alert | banner shows title and fix; one feed card with What to do | Pass |
+| UT-GUI-035.013.M04.T01 | MD-GUI-035.007.M04 | Positive | Status bar, no dot (SRD-GUI-035.013) | running desk | pill, Right now and This run have a left bar in the state colour; no dot | Pass |
+| UT-GUI-035.014.M01.T01 | MD-GUI-035.001.M01 | Positive | Selected card lift (SRD-GUI-035.014) | finished run | picked card has lift fill and grey border, no accent; others plain | Pass |
+
+## FO-GUI-036 — AI Desk Team Setup
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-036.001.M01.T01 | MD-GUI-036.001.M01 | Positive | List every employee (SRD-GUI-036.001) | 3 folders, then a 4th added and tab shown again | 3 rows, then 4; old files moved to employee.md | Pass |
+| UT-GUI-036.001.M01.T02 | MD-GUI-036.001.M01 | Negative | Broken file (SRD-GUI-036.001) | one employee.md without front matter | row says not valid; form off for it | Pass |
+| UT-GUI-036.002.M01.T01 | MD-GUI-036.001.M01 | Positive | Form fills (SRD-GUI-036.002) | pick one employee | profile, models, limits match the file; skill read-only | Pass |
+| UT-GUI-036.002.M01.T02 | MD-GUI-036.001.M01 | Negative | No employees (SRD-GUI-036.002) | empty desk folder | plain note; form and Save off | Pass |
+| UT-GUI-036.003.M01.T01 | MD-GUI-036.001.M01 | Positive | Prompt tab (SRD-GUI-036.003) | pick, type in prompt | file prompt shown; answer rules read-only; Save on | Pass |
+| UT-GUI-036.003.M01.T02 | MD-GUI-036.001.M01 | Negative | Empty prompt (SRD-GUI-036.003) | clear prompt, Save | reason shown; file unchanged | Pass |
+| UT-GUI-036.004.M01.T01 | MD-GUI-036.001.M01 | Positive | Model list (SRD-GUI-036.004) | settings models + one used model | list has default, settings model and used model; typed name saved | Pass |
+| UT-GUI-036.004.M01.T02 | MD-GUI-036.001.M01 | Negative | Blank model (SRD-GUI-036.004) | backup model blank, Save | reason shown; file unchanged | Pass |
+| UT-GUI-036.005.M01.T01 | MD-GUI-036.001.M01 | Positive | Save (SRD-GUI-036.005) | new prompt, Save | file version + 1; note says applies from the next wake; Save off again | Pass |
+| UT-GUI-036.005.M01.T02 | MD-GUI-036.001.M01 | Negative | Refused save (SRD-GUI-036.005) | blank name, Save | reason shown; file unchanged | Pass |
+| UT-GUI-036.005.M01.T03 | MD-GUI-036.001.M01 | Edge | Unsaved switch (SRD-GUI-036.005) | edit then pick another; answer No, then Yes | stays; then moves and drops the edit | Pass |
+| UT-GUI-036.006.M01.T01 | MD-GUI-036.001.M01 | Positive | History restore (SRD-GUI-036.006) | 2 saves, restore v1 | 3 versions listed, then v4 with v1 prompt | Pass |
+| UT-GUI-036.007.M01.T01 | MD-GUI-036.001.M01 | Positive | Test on yesterday (SRD-GUI-036.007) | fake runner valid; no recorded run | answer shown with green bar; button off with a note | Pass |
+| UT-GUI-036.008.M04.T01 | MD-GUI-035.007.M04 | Positive | Trimmed pane and Edit link (SRD-GUI-036.008) | pick a member, press Edit | no KPIs or Daily limit rows; AI Desk shows Team setup with that employee picked | Pass |
+| UT-GUI-036.008.M04.T02 | MD-GUI-035.007.M04 | Negative | No member (SRD-GUI-036.008) | empty team | Edit in Team setup off | Pass |

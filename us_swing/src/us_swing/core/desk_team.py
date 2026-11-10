@@ -21,9 +21,9 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-import yaml  # type: ignore[import-untyped]
 
 from us_swing.core.desk_contract import DB_NAME, parse_utc
+from us_swing.core.desk_employee import read_employee
 
 log = logging.getLogger(__name__)
 
@@ -244,7 +244,10 @@ def _model(data: dict[str, Any], which: str) -> str:
 
 def _member(folder: Path) -> Member | None:
     try:
-        data = yaml.safe_load((folder / "job.yaml").read_text(encoding="utf-8"))
+        found = read_employee(folder)
+        if found is None:
+            raise ValueError("not valid")
+        data = found.spec.model_dump(mode="json")
         trig = data.get("trigger") or ()
         triggers = (trig,) if isinstance(trig, str) else tuple(str(t) for t in trig)
         return Member(
@@ -254,8 +257,8 @@ def _member(folder: Path) -> Member | None:
             _model(data, "backup"), int(data.get("calls_per_day") or 0),
             float(data.get("monthly_cost_usd") or 0.0),
             tuple(str(k) for k in data.get("kpis") or ()))
-    except (OSError, yaml.YAMLError, KeyError, TypeError, ValueError, AttributeError):
-        log.warning("[AI Desk] Could not read the job file in %s", folder.name)
+    except (KeyError, TypeError, ValueError, AttributeError):
+        log.warning("[AI Desk] Could not read the employee file in %s", folder.name)
         return None
 
 

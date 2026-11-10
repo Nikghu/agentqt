@@ -19,6 +19,7 @@ from pydantic import BaseModel
 from us_swing.core.desk_agents import AgentContext, Facts, FeedItem
 from us_swing.core.desk_ai_settings import DeskAiSettings, load_settings, save_settings
 from us_swing.core.desk_contract import StepContext
+from us_swing.core.desk_employee import migrate_all
 from us_swing.core.desk_steps import DEFAULT_EMPLOYEE_PACKAGES, SKILL_PATHS, STEP_PATHS, load_steps
 from us_swing.desk import gateway as gw
 from us_swing.desk.budget import Budget
@@ -272,7 +273,7 @@ def test_seed_never_overwrites(home: Path) -> None:
     """UT-DSK-002.007.M09.T01: A user's edited copy is kept when defaults are seeded again."""
     defaults = default_folders(DEFAULT_EMPLOYEE_PACKAGES)
     seed_employees(home, defaults)
-    copy = home / "employees" / defaults[0].name / "job.yaml"
+    copy = home / "employees" / defaults[0].name / "employee.md"
     edited = copy.read_text(encoding="utf-8").replace("name:", "name: Renamed #", 1)
     copy.write_text(edited, encoding="utf-8")
     assert seed_employees(home, defaults) == 0
@@ -418,9 +419,10 @@ def test_context_is_ask_only(home: Path) -> None:
 def test_job_files_untouched(home: Path) -> None:
     """UT-DSK-002.005.M10.T02: A full run leaves the employee files as they were."""
     folder = employee(home)
-    before = {p.name: p.read_bytes() for p in folder.iterdir()}
+    migrate_all(home)
+    before = {p.name: p.read_bytes() for p in folder.rglob("*") if p.is_file()}
     _run(_step(FakeCaller(GOOD)), home)
-    assert {p.name: p.read_bytes() for p in folder.iterdir()} == before
+    assert {p.name: p.read_bytes() for p in folder.rglob("*") if p.is_file()} == before
 
 
 # ---------------- gateway sources ----------------

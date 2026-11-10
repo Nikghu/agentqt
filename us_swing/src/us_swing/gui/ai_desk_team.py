@@ -48,7 +48,6 @@ from us_swing.core.desk_team import (
     Run,
     RunView,
     day_events,
-    history,
     last_brief,
     levels,
     month_cost,
@@ -66,8 +65,10 @@ from us_swing.gui.ai_desk_team_pane import (
     WheelItem,
     arrow_button,
     checked_style,
+    bar_style,
     chip_style,
     chip_text,
+    lift_fill,
     panel,
     skill_text,
     tab_style,
@@ -171,16 +172,17 @@ class StageCard(QFrame):
     def set_state(self, key: str, label: str, meta: str) -> None:
         """Show state ``key`` with ``label`` and the fact line ``meta``."""
         self.state_key = key
-        self.state_label.setText(chip_text(key, label))
-        self.state_label.setStyleSheet(chip_style())
+        self.state_label.setText(chip_text(label))
+        self.state_label.setStyleSheet(chip_style(key))
         self.meta.setText(meta)
         self.busy.setVisible(key == "working")
         if key != "working":
-            self.paint_border(C.BLUE if self.selected else C.OVERLAY2)
+            self.paint_border(C.MUTED if self.selected else C.OVERLAY2)
 
     def paint_border(self, colour: str) -> None:
-        """Draw the card border in ``colour``."""
-        self.setStyleSheet(f"QFrame#team_card {{ background: {C.SURFACE};"
+        """Draw the card border in ``colour``; a selected card has a lighter fill."""
+        fill = lift_fill() if self.selected else C.SURFACE
+        self.setStyleSheet(f"QFrame#team_card {{ background: {fill};"
                            f" border: 1px solid {colour}; border-radius: 10px; }}")
 
     def mousePressEvent(self, event: QMouseEvent | None) -> None:  # noqa: N802
@@ -494,6 +496,8 @@ class TimelineView(QWidget):
 class TeamAtWork(QWidget):
     """AI Desk → Team at work."""
 
+    edit_requested = pyqtSignal(str)
+
     def __init__(self, home: Path | None = None,
                  clock: Callable[[], datetime] | None = None,
                  parent: QWidget | None = None) -> None:
@@ -612,15 +616,12 @@ class TeamAtWork(QWidget):
         now_box = panel()
         now_row = QHBoxLayout(now_box)
         now_row.setContentsMargins(12, 8, 12, 8)
-        self.now_dot = QLabel("●")
-        self.now_dot.setStyleSheet(f"color: {C.MUTED}; border: none;")
-        head = QLabel("Right now")
-        head.setStyleSheet("font-weight: bold; border: none;")
+        self.now_head = QLabel("Right now")
+        self.now_head.setStyleSheet(f"font-weight: bold; {bar_style(C.MUTED)}")
         self.now_label = QLabel()
         self.now_label.setWordWrap(True)
         self.now_label.setStyleSheet(f"color: {C.SUBTEXT}; border: none;")
-        now_row.addWidget(self.now_dot)
-        now_row.addWidget(head)
+        now_row.addWidget(self.now_head)
         now_row.addWidget(self.now_label, 1)
         self._views = QButtonGroup(self)
         view_row, _ = _toggle_row(("Pipeline", "Timeline"), self._views,
@@ -664,6 +665,8 @@ class TeamAtWork(QWidget):
         lines.addLayout(head)
         lines.addWidget(panel(self.wheel))
         self.profile = ProfilePane()
+        # profile → edit_requested → section → edit_requested
+        self.profile.edit_requested.connect(self.edit_requested)
         lines.addWidget(panel(scroll_of(self.profile)), 1)
         # wheel → picked → section → _on_wheel
         self.wheel.picked.connect(self._on_wheel)
@@ -743,7 +746,7 @@ class TeamAtWork(QWidget):
         if not self._selected and self._members:
             self._selected = self._members[0].id
         self.now_label.setText(self._now_text(working))
-        self.now_dot.setStyleSheet(f"color: {self._now_colour(working)}; border: none;")
+        self.now_head.setStyleSheet(f"font-weight: bold; {bar_style(self._now_colour(working))}")
         self.pipeline.show_view(self._members, self._view, self._selected)
         self.timeline.show_view(self._members, self._view, self._clock())
         self.wheel.set_items([
@@ -793,8 +796,7 @@ class TeamAtWork(QWidget):
         home = self._folder()
         state = self._view.states.get(member.id, _ASLEEP) if self._view else _ASLEEP
         self.profile.show_member(member, state, names, last_brief(home, member.id),
-                                 history(home, member.id), month_cost(home, member.id,
-                                                                      self._clock()))
+                                 month_cost(home, member.id, self._clock()))
 
     # ── user actions ──────────────────────────────────────────────────────
 
