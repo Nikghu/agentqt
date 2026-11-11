@@ -6,6 +6,9 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.16.2: Step D rows Implemented (12, 2026-11-11).
+> v0.16.1: SRD-MKT-013.001–.012 approved by user 2026-11-11.
+> v0.16.0: Autonomous desk step D (user, 2026-11-11): SRD-MKT-013.001–.012 added as Draft — check-ins and watchers.
 > v0.15.2: SRD-MKT-012.001–.006 Implemented 2026-11-11.
 > v0.15.1: SRD-MKT-012.001–.006 approved by user 2026-11-11.
 > v0.15.0: Autonomous desk step C (user, 2026-11-11): SRD-MKT-012.001–.006 added as Draft — memory v1.
@@ -220,3 +223,20 @@
 | SRD-MKT-012.004 | FO-MKT-012 | Must | A default expert-level employee ships as `emp-010` (generic name "Expert 8") with trigger `after_run` and skill `lesson_reflect`. | default files | employee | Copied only when missing; the Master may rename it | Implemented |
 | SRD-MKT-012.005 | FO-MKT-012 | Must | Setup review, news review, risk check and lead brief facts end with the lessons block from SRD-DSK-009.004. | lessons | facts text | Regime view and sector view get none | Implemented |
 | SRD-MKT-012.006 | FO-MKT-012 | Should | Each reflect run logs how many candidates were kept and dropped. | answer | log line | `[Memory]` prefix | Implemented |
+
+## FO-MKT-013: Intraday Watchers and Check-in Notes
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-MKT-013.001 | FO-MKT-013 | Must | Watchers read the latest 3-minute bars of plan stocks, open-trade stocks and SPY from `price_3m` in `candles.db`. | `candles.db` | bars | Read-only; a stock whose newest bar is over 15 minutes old gives no flag | Implemented |
+| SRD-MKT-013.002 | FO-MKT-013 | Must | The trigger watcher flags a listed idea of the day whose bar high (long) or low (short) reaches its trigger. | ideas, bars | flag `trigger_hit` | Once per idea a day | Implemented |
+| SRD-MKT-013.003 | FO-MKT-013 | Must | The stop and target watcher flags an open trade whose bar low or high reaches its stop or target. | `open_trades`, bars | flag `stop_touch`, `target_touch` | Covers every open trade the app lists; short trades use the other side | Implemented |
+| SRD-MKT-013.004 | FO-MKT-013 | Must | The volume watcher flags a plan stock whose last bar volume is at least 3 times the average of its previous 20 bars. | bars | flag `volume_spike` | Needs 20 earlier bars | Implemented |
+| SRD-MKT-013.005 | FO-MKT-013 | Must | The gap watcher flags a plan stock whose first bar of the day opens more than 3% away from the previous close. | bars, daily close | flag `gap` | Once a day | Implemented |
+| SRD-MKT-013.006 | FO-MKT-013 | Must | The regime watcher flags when SPY is more than 1.5% up or down from the previous close. | SPY bars | flag `regime_move` | Once per direction a day; VIX is not watched in step D | Implemented |
+| SRD-MKT-013.007 | FO-MKT-013 | Should | The news watcher reads headlines of lead picks and open-trade stocks every 15 minutes and flags one not seen before. | RSS | flag `headline` | Headlines older than the day's open are left out | Implemented |
+| SRD-MKT-013.008 | FO-MKT-013 | Must | The flag skill (`watch_flag`) asks whether the plan for the oldest unanswered flag still holds. | flag, plan, bars | verdict | Facts hold the flag, the idea or trade plan and the last 12 bars | Implemented |
+| SRD-MKT-013.009 | FO-MKT-013 | Must | The flag answer is a typed form: verdict holds, watch or broken, and a note of at most 300 characters; it is kept and shown as a feed note. | answer | row, brief | A broken verdict raises the alert of SRD-DSK-007.009 | Implemented |
+| SRD-MKT-013.010 | FO-MKT-013 | Must | The check-in skill (`checkin_note`) writes a note of at most 600 characters on plan stocks against trigger, open trades against stop and target, SPY and the flags since the last check-in. | bars, trades, flags | brief | One note per check-in time | Implemented |
+| SRD-MKT-013.011 | FO-MKT-013 | Must | Default employees ship as `emp-011` ("Expert 9", skill `watch_flag`, trigger `watch_flag`) and `emp-012` ("Lead 3", skill `checkin_note`, trigger `market_checkin`). | default files | employees | Copied only when missing; generic names | Implemented |
+| SRD-MKT-013.012 | FO-MKT-013 | Should | Each flag answer logs the stock, flag kind and verdict. | answer | log line | `[Watch]` prefix | Implemented |

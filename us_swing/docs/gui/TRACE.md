@@ -3,7 +3,7 @@
 **Document ID:** TRACE-GUI
 **Version:** 1.16.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-11-11 (memory v1 step C: FO-GUI-037 with RN-GUI-1.62.0-20261111; morning run step A: FO-GUI-029 SRD .007–.008 and FO-GUI-034 SRD .068–.069 with RN-GUI-1.61.0-20261111; AI Desk Team at work FO-GUI-035 with RN-GUI-1.13.0-20261110; Market Floor and AI Desk frames FO-GUI-034; SRD-GUI-034.011 with RN-MKT-0.1.0-20261106; SRD-GUI-034.012 with RN-MKT-0.2.0-20261106; SRD-GUI-034.013 with RN-MKT-0.3.0-20261106; SRD-GUI-034.014 with RN-MKT-0.4.0-20261106; SRD-GUI-034.015–.017 with RN-DSK-0.2.0-20261106)
+**Last Updated:** 2026-11-11 (autonomous desk step D: FO-GUI-038 with RN-GUI-1.63.0-20261111; memory v1 step C: FO-GUI-037 with RN-GUI-1.62.0-20261111; morning run step A: FO-GUI-029 SRD .007–.008 and FO-GUI-034 SRD .068–.069 with RN-GUI-1.61.0-20261111; AI Desk Team at work FO-GUI-035 with RN-GUI-1.13.0-20261110; Market Floor and AI Desk frames FO-GUI-034; SRD-GUI-034.011 with RN-MKT-0.1.0-20261106; SRD-GUI-034.012 with RN-MKT-0.2.0-20261106; SRD-GUI-034.013 with RN-MKT-0.3.0-20261106; SRD-GUI-034.014 with RN-MKT-0.4.0-20261106; SRD-GUI-034.015–.017 with RN-DSK-0.2.0-20261106)
 
 ---
 
@@ -148,6 +148,7 @@
 | FO-GUI-035 | SRD-GUI-035.001–.014 | DD-GUI-035.001.D01 | MD-GUI-035.001.M01, MD-GUI-035.002.M02, MD-GUI-035.006.M03, MD-GUI-035.007.M04 | UT-GUI-035.002.M02.T01, .004.M02.T01–T02, .006.M02.T01, .009.M02.T01, .002.M01.T01, .008.M04.T01–T02, .006.M03.T01–T02, .007.M04.T01, .009.M01.T01, .010.M01.T01, .013.M04.T01, .014.M01.T01 (Pass) | `gui/ai_desk_team.py`, `gui/ai_desk_team_log.py`, `gui/ai_desk_team_pane.py`, `core/desk_team.py`, `gui/ai_desk.py`, `core/desk_feed.py`, `gui/desk_control.py` | Implemented | RN-GUI-1.13.0-20261110, RN-DSK-0.5.0-20261110, RN-GUI-1.18.0-20261110 |
 | FO-GUI-036 | SRD-GUI-036.001–.008 | DD-GUI-036.001.D01 | MD-GUI-036.001.M01; MD-GUI-035.007.M04, MD-GUI-034.059.M33 | UT-GUI-036.001–.008 (15, Pass) | `gui/ai_desk_setup.py`, `gui/ai_desk.py`, `gui/ai_desk_team.py`, `gui/ai_desk_team_pane.py` | Implemented | RN-GUI-1.19.0-20261110 |
 | FO-GUI-037 | SRD-GUI-037.001–.004 | DD-GUI-037.001.D01 | MD-GUI-037.001.M01 | UT-GUI-037.* (7, Pass) | `gui/ai_desk_memory.py`, `gui/ai_desk.py` | Implemented | RN-GUI-1.62.0-20261111 |
+| FO-GUI-038 | SRD-GUI-038.001–.003 | DD-GUI-038.001.D01 | MD-GUI-038.001.M01 | UT-GUI-038.* (5, Pass) | `gui/app_service.py` | Implemented | RN-GUI-1.63.0-20261111 |
 
 ---
 

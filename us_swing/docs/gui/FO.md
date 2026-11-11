@@ -7,6 +7,7 @@
 **Last Updated:** 2026-05-22
 **Project:** US Swing Trading System
 
+> v2.21.0: Autonomous desk step D (user, 2026-11-11): FO-GUI-038 added as Draft — check-ins and watchers.
 > v2.20.0: Autonomous desk step C (user, 2026-11-11): FO-GUI-037 added as Draft — memory v1.
 > v2.19.0: FO-GUI-036 Implemented 2026-11-10 (Team setup tab, side pane trim, review fixes).
 > v2.18.0: FO-GUI-036 AI Desk Team setup added as Draft (user chose Option 1, 2026-11-10).
@@ -1070,3 +1071,20 @@ The system shall let the Master user see and control what the desk has learned.
 
 1. AI Desk → Memory lists active lessons first; a filter shows candidates and retired ones.
 2. Pinning a lesson shows it pinned after the desk's next tick.
+
+## FO-GUI-038: App Feeds for the Desk Watchers
+
+**Status:** Implemented (approved by user 2026-11-11)
+**Priority:** Must
+**Depends on:** FO-MKT-013 (watchers), FO-EXE-008 (live market data), FO-EXE-016 (trade cycles)
+**Source: User 2026-11-11 (Autonomous desk step D): prices from the app's intraday candles; stop/target watcher covers all open trades; watchers every 5 minutes; an AI note at each check-in. Design §4 and §6: https://claude.ai/artifact/J7AexvWdqDNujADoc9dJkJ.**
+
+The system shall give the desk the live bars and the open trades it watches.
+
+- The system shall add the desk's plan stocks of the day and SPY to the app's live bar feed.
+- The system shall keep the desk's list of open trades current.
+
+### Acceptance Criteria
+
+1. During market hours `price_3m` gets new bars for today's lead picks and SPY.
+2. Opening or closing a trade updates `open_trades` in `desk.db` within a few seconds.

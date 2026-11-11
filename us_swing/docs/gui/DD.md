@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.21.0: DD-GUI-038.001.D01 added — app feeds for the desk watchers (Autonomous desk step D (2026-11-11)).
 > v1.20.0: DD-GUI-037.001.D01 added — AI Desk Memory (Autonomous desk step C (2026-11-11)).
 > v1.19.0: DD-GUI-034.068.D01 added — desk lives with the app, start tasks 60 min before open, morning-run labels (Autonomous desk step A), 2026-11-11.
 > v1.18.0: DD-GUI-036.001.D01 added — AI Desk Team setup, 2026-11-10.
@@ -1995,3 +1996,7 @@ Run names: `evening` "Evening run", `manual` "Manual run", other kinds title-cas
 ## DD-GUI-037.001.D01 — AI Desk Memory (Autonomous desk step C)
 
 **Traces:** SRD-GUI-037.001–.004. Design in DSK DD-DSK-009.001.D01 ("Memory view"). `gui/ai_desk_memory.py` holds `MemoryView`; it reads lessons and proof picks through `core/desk_lessons.py` in the GUI thread, as Results does, and writes only new `lesson_edits` rows. `gui/ai_desk.py` adds "Memory" after "Results" in the review group and to the live sections.
+
+## DD-GUI-038.001.D01 — App Feeds for the Desk Watchers (Autonomous desk step D)
+
+**Traces:** SRD-GUI-038.001–.003. Design in DSK DD-DSK-003.020.D01 ("App"). `gui/app_service.py` adds `desk_live_symbols()` to the live bar feed (held and screened stocks first, at most 100) and publishes open trade cycles to `desk.db` `open_trades` at start, on cycle changes and on the 60-second market status timer. Pure helpers `live_symbols()` and `trade_rows()` carry the rules so they are unit tested.

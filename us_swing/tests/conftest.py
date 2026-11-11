@@ -26,3 +26,5 @@ def _private_users_file(
     monkeypatch.setattr(_briefs, "SEND_LOG_PATH", folder / "notify_state.json")
     from us_swing.core import desk_alerts
     monkeypatch.setattr(desk_alerts, "USERS_FILE", folder / "users.json")
+    from us_swing.core import desk_contract
+    monkeypatch.setattr(desk_contract, "desk_home", lambda: folder / "desk")

@@ -9,6 +9,8 @@ Also: MD-MKT-010.007.M04 — ``lead_chat`` skill path (SRD-MKT-010.007)
 Also: MD-MKT-011.008.M06 — ``data_recipe`` skill path (SRD-MKT-011.008)
 Also: MD-MKT-009.001.M06 — "Pick results" step path (SRD-MKT-009.001)
 Also: MD-MKT-012.004.M02 — ``lesson_reflect`` skill path (SRD-MKT-012.004)
+Also: SRD-DSK-003.023 — watcher pass path; MD-MKT-013.011.M04 — ``watch_flag`` and ``checkin_note``
+skill paths (SRD-MKT-013.011)
 
 The list of steps the desk runs, loaded by import path, so ``desk`` never imports
 the tools (such as ``market``) that provide the steps.
@@ -18,6 +20,7 @@ from __future__ import annotations
 import importlib
 import logging
 from collections.abc import Callable, Sequence
+from datetime import datetime
 from pathlib import Path
 
 from us_swing.core.desk_contract import DeskStep
@@ -46,10 +49,13 @@ SKILL_PATHS: dict[str, str] = {
     "lead_chat": "us_swing.market.lead_chat:LeadChatSkill",
     "data_recipe": "us_swing.market.data_recipe:DataRecipeSkill",
     "lesson_reflect": "us_swing.market.lesson_reflect:LessonReflectSkill",
+    "watch_flag": "us_swing.market.watch_flag:WatchFlagSkill",
+    "checkin_note": "us_swing.market.checkin_note:CheckinNoteSkill",
 }
 # Packages whose ``employees/`` folder holds default employee files to copy on first run.
 DEFAULT_EMPLOYEE_PACKAGES: tuple[str, ...] = ("us_swing.market",)
 PROOF_PATH = "us_swing.market.proof:run_proof"
+WATCH_PATH = "us_swing.market.watch:run_watch"
 
 
 def load_steps(paths: Sequence[str] = STEP_PATHS) -> list[DeskStep]:
@@ -76,4 +82,13 @@ def load_proof(path: str = PROOF_PATH) -> Callable[[Path], str | None]:
     """
     module_name, _, func_name = path.partition(":")
     runner: Callable[[Path], str | None] = getattr(importlib.import_module(module_name), func_name)
+    return runner
+
+
+def load_watch(path: str = WATCH_PATH) -> Callable[[Path, datetime], int]:
+    """Import the market watcher pass (``"module:function"``); given the desk folder and the
+    time it returns the number of new flags (SRD-DSK-003.023)."""
+    module_name, _, func_name = path.partition(":")
+    runner: Callable[[Path, datetime], int] = getattr(importlib.import_module(module_name),
+                                                      func_name)
     return runner

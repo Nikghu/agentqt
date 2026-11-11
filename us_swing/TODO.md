@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-11-11 (Session 133)
+**Last Updated:** 2026-11-11 (Session 134)
 
 ---
 
@@ -165,3 +165,6 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T153 | DSK step B baton — app check: morning run chain runs in order; after a forced failure, retry after 5 min, partial plan line from the lead, and one "Desk plan is partial" alert. | `desk/router.py`, `core/desk_alerts.py` | High | Open |
 | T154 | DSK/GUI step C memory v1 — app check: AI Desk → Memory shows lessons; after picks close, Expert 8 writes candidates; pin/edit/retire/delete apply within seconds; pick-maker prompts hold lessons. | `core/desk_lessons.py`, `gui/ai_desk_memory.py` | High | Open |
 | T155 | DSK memory — known gap: a pick made before last_confirmed but closed after it does not refresh confirmation (90-day rule). | `core/desk_lessons.py` | Low | Open |
+| T156 | DSK/MKT/GUI step D watchers — app check during market hours: plan stocks + SPY get live 3m bars; a trigger or stop touch gives a feed note, an Expert 9 verdict and an alert; Lead 3 posts check-ins at 10:00/12:30/15:30 ET. | `desk/`, `market/`, `gui/` | High | Open |
+| T157 | Real trades show stop 0.0 (no stop) in trade cycles. Check why hard_stop_loss is 0 for the WTrend_DTrigger cycles. | `execution/trade_cycle/` | Low | Open |
+| T158 | Tests that build AppService read the real us_swing.db trade cycles. Isolate the app DB in tests as was done for desk_home. | `tests/gui/` | Low | Open |

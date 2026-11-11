@@ -1,7 +1,8 @@
 """
 Module: MD-DSK-001.015.M03 — desk/clock.py
 Parent SRD: SRD-DSK-001.015
-Also: SRD-DSK-003.008 (market clock events), SRD-DSK-003.013 (run kinds counted)
+Also: SRD-DSK-003.008 (market clock events), SRD-DSK-003.013 (run kinds counted),
+SRD-DSK-003.020 (check-in times), SRD-DSK-003.023 (market hours for the watchers)
 
 Pure time rules for the desk. The caller always passes the clock.
 """
@@ -18,6 +19,7 @@ ET = ZoneInfo("America/New_York")
 MARKET_OPEN = time(9, 30)
 MARKET_CLOSE = time(16, 0)
 CLOCK_WINDOW = timedelta(minutes=30)
+CHECKINS = (time(10, 0), time(12, 30), time(15, 30))
 RETRY_AFTER = timedelta(minutes=15)
 MAX_TRIES = 3
 MORNING = "morning"
@@ -74,3 +76,27 @@ def market_events_due(now: datetime) -> list[tuple[str, str]]:
         if start <= now_et < start + CLOCK_WINDOW:
             due.append((kind, day.isoformat()))
     return due
+
+
+def checkins_due(now: datetime) -> list[tuple[str, int]]:
+    """Return the check-ins due at ``now`` as ``(day, slot)`` pairs, slot like ``1000``.
+
+    On NYSE trading days each check-in time is due only for ``CLOCK_WINDOW`` after it
+    (SRD-DSK-003.020); the caller ignores repeats.
+    """
+    now_et = now.astimezone(ET)
+    if not is_trading_day(now_et.date()):
+        return []
+    day = now_et.date()
+    due: list[tuple[str, int]] = []
+    for at in CHECKINS:
+        start = datetime.combine(day, at, ET)
+        if start <= now_et < start + CLOCK_WINDOW:
+            due.append((day.isoformat(), at.hour * 100 + at.minute))
+    return due
+
+
+def in_market_hours(now: datetime) -> bool:
+    """True from 09:30 to 16:00 New York time on NYSE trading days."""
+    now_et = now.astimezone(ET)
+    return is_trading_day(now_et.date()) and MARKET_OPEN <= now_et.time() < MARKET_CLOSE

@@ -6,6 +6,8 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.12.1: Step D cases Pass (18, 2026-11-11).
+> v0.12.0: Autonomous desk step D (2026-11-11): UT-DSK-003.020–.025, 007.009 added (18 cases).
 > v0.11.1: Step C cases Pass (23 cases, 2026-11-11).
 > v0.11.0: Autonomous desk step C (2026-11-11): UT-DSK-009.* added (26 cases incl. 3 after code review).
 > v0.10.1: Step B cases Pass (32 cases incl. 6 rewritten, 2026-11-11).
@@ -335,3 +337,26 @@
 | UT-DSK-009.008.M23.T02 | MD-DSK-009.001.M23 | Negative | Unknown lesson (SRD-DSK-009.008) | edit for a missing id | applied with note lesson not found | Pass |
 | UT-DSK-009.008.M04.T01 | MD-DSK-001.010.M04 | Positive | Tick applies edits (SRD-DSK-009.008) | pending pin row, one desk tick | lesson pinned; row applied | Pass |
 | UT-DSK-009.009.M23.T01 | MD-DSK-009.001.M23 | Positive | Log lines (SRD-DSK-009.009) | add, promote, retire | three `[Memory]` lines | Pass |
+
+## FO-DSK-003, -007 (step D): Check-ins and Watchers
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-DSK-003.020.M03.T01 | MD-DSK-001.015.M03 | Positive | Check-ins due (SRD-DSK-003.020) | trading day 10:01, 12:31, 15:31 | slots 1000, 1230, 1530 | Pass |
+| UT-DSK-003.020.M03.T02 | MD-DSK-001.015.M03 | Negative | No check-in (SRD-DSK-003.020) | Saturday 10:01; trading day 10:31 | nothing due | Pass |
+| UT-DSK-003.020.M04.T01 | MD-DSK-001.010.M04 | Positive | Loop posts each check-in once (SRD-DSK-003.020) | ticks at 10:01 and 10:05 | one market_checkin event for slot 1000 | Pass |
+| UT-DSK-003.021.M15.T01 | MD-DSK-003.004.M15 | Positive | Event rules (SRD-DSK-003.021) | post market_checkin and watch_flag | P2 30 min expiry; P0, 5 min deadline, 30 min expiry; one row per id | Pass |
+| UT-DSK-003.021.M24.T01 | MD-DSK-003.021.M24 | Positive | Flag stored with event (SRD-DSK-003.021) | add_flag trigger_hit | watch_flags row; waiting watch_flag event with the flag id | Pass |
+| UT-DSK-003.022.M24.T01 | MD-DSK-003.021.M24 | Negative | Once an hour (SRD-DSK-003.022) | same stock and kind twice in one hour | second add_flag None; one event | Pass |
+| UT-DSK-003.022.M24.T02 | MD-DSK-003.021.M24 | Positive | Next hour (SRD-DSK-003.022) | same stock and kind an hour later | new flag | Pass |
+| UT-DSK-003.023.M04.T01 | MD-DSK-001.010.M04 | Positive | Watch every 5 minutes (SRD-DSK-003.023) | ticks at 10:00, 10:02, 10:05 New York | watch called at 10:00 and 10:05 | Pass |
+| UT-DSK-003.023.M04.T02 | MD-DSK-001.010.M04 | Negative | Not out of hours or paused (SRD-DSK-003.023) | tick at 08:00; paused at 11:00 | watch not called | Pass |
+| UT-DSK-003.023.M04.T03 | MD-DSK-001.010.M04 | Negative | Watch error (SRD-DSK-003.023) | watch raises | logged; desk keeps going | Pass |
+| UT-DSK-003.023.M07.T01 | MD-DSK-001.021.M07 | Positive | Watch path loads (SRD-DSK-003.023) | load_watch() | the market run_watch function | Pass |
+| UT-DSK-003.021.M24.T03 | MD-DSK-003.021.M24 | Negative | Unknown flag kind (SRD-DSK-003.021) | add_flag kind lunch | ValueError; no row, no event | Pass |
+| UT-DSK-003.024.M24.T02 | MD-DSK-003.021.M24 | Negative | No note for a repeat (SRD-DSK-003.024) | same flag twice in one hour | one briefs row | Pass |
+| UT-DSK-003.024.M24.T01 | MD-DSK-003.021.M24 | Positive | Code feed note (SRD-DSK-003.024) | add_flag stop_touch at 47.10 | briefs row by Watchers with stock, label and price | Pass |
+| UT-DSK-003.025.M01.T01 | MD-MKT-013.001.M01 | Positive | Pass log (SRD-DSK-003.025) | pass with 2 flags | `[Watch] 2 new flag(s)` with the kinds | Pass |
+| UT-DSK-007.009.M21.T01 | MD-DSK-007.001.M21 | Positive | Trade and plan alerts (SRD-DSK-007.009) | raise trade_stop, trade_target, plan_broken | titles Trade at stop, Trade at target, Plan broken | Pass |
+| UT-DSK-007.009.M21.T02 | MD-DSK-007.001.M21 | Negative | Once a day (SRD-DSK-007.009) | trade_stop for one stock twice a day | one alert | Pass |
+| UT-DSK-003.021.M24.T02 | MD-DSK-003.021.M24 | Positive | Open trades and live symbols (SRD-DSK-003.021) | write 2 trades; ideas and picks of the day | trades read back; live symbols listed, picks, then SPY | Pass |

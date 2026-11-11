@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.16.0: MD-MKT-013.*.M01–M04 added — intraday watchers and check-in notes (step D).
 > v0.15.0: MD-MKT-012.*.M01–M03 added — learning from pick results (step C).
 > v0.14.0: MD-MKT-001.013.M06 added — candle check and Yahoo desk copy; M08 morning brief (Autonomous desk step A, 2026-11-11).
 > v0.13.0: MD-MKT-011.*.M01–M06 added — ask the desk for new data (P10).
@@ -183,3 +184,14 @@ SRD coverage: .001 by M01; .002 by M02; .003–.006 and .008 by M03; .007 by M04
 Changed: MD-MKT-009.001.M01 (`pick_results.py`: calls `review_lessons()` after writing results — SRD-DSK-009.002, .007).
 
 SRD coverage: 012.001–.003 and .006 by M01; .004 by M02; .005 by M03.
+
+## FO-MKT-013: Intraday Watchers and Check-in Notes
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-MKT-013.001.M01 | SRD-MKT-013.001 | `us_swing/src/us_swing/market/watch.py` | Read today's 3-minute bars; trigger, stop and target, volume, gap, SPY and headline watchers; flags and alerts | `run_watch()`, `today_bars()` | `core.desk_watch`, `core.desk_alerts`, `market.candles`, `market.news` | No |
+| MD-MKT-013.008.M02 | SRD-MKT-013.008 | `us_swing/src/us_swing/market/watch_flag.py` | Flag skill: facts for the oldest unanswered flag, verdict form, verdict row, feed item, broken alert, log | `WatchFlagSkill`, `WatchVerdict` | `core.desk_watch`, M01 | No |
+| MD-MKT-013.010.M03 | SRD-MKT-013.010 | `us_swing/src/us_swing/market/checkin_note.py` | Check-in skill: plan, trades, SPY and flags since the last check-in; note form; feed item | `CheckinNoteSkill`, `CheckinNote` | `core.desk_watch`, M01 | No |
+| MD-MKT-013.011.M04 | SRD-MKT-013.011 | `us_swing/src/us_swing/market/employees/emp-011/`, `emp-012/`, `core/desk_steps.py` | Default watcher and market lead employees and their skill paths | — | M02, M03 | No |
+
+SRD coverage: 013.001–.007 by M01; .008, .009, .012 by M02; .010 by M03; .011 by M04.

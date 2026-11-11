@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.9.0: Autonomous desk step D (user, 2026-11-11): FO-DSK-003 check-ins and watchers; FO-DSK-007 trade and plan alerts.
 > v0.8.0: Autonomous desk step C (user, 2026-11-11): FO-DSK-009 added as Draft — memory v1.
 > v0.7.0: Autonomous desk step B (user, 2026-11-11): FO-DSK-003 baton by `done` events with retries and a partial plan on failure.
 > v0.6.0: Autonomous desk step A (user, 2026-11-10): FO-DSK-001 desk runs only while the app is open and runs in the morning (no evening run); FO-DSK-003 morning run by event; FO-DSK-007 candles alert. Older acceptance lines that say "evening run" describe the run in place when they were written.
@@ -80,6 +81,7 @@ The system shall keep agents asleep and wake them only by rule. In P5a the only 
 - The system shall run the employees woken by one event in needs order, where a skill runs after the skills whose views it needs.
 - The system shall start the morning run by event, not by a fixed clock: the app is open, the market day has reached pre-market, and the candles are checked; a run that fails is tried again later the same day (Autonomous desk step A, user 2026-11-10).
 - The system shall pass work between employees by `done` events: an employee wakes when every employee it needs is done; a failed step is retried at most twice, then the chain stops, the lead posts a short partial plan and the user gets one alert (Autonomous desk step B, user 2026-11-11).
+- The system shall post check-in events at 10:00, 12:30 and 15:30 New York time and run code watchers every 5 minutes in market hours, waking an AI employee only for a watcher flag, at most once per stock and flag kind an hour (Autonomous desk step D, user 2026-11-11).
 
 ### Acceptance Criteria
 

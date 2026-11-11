@@ -2,6 +2,17 @@
 
 ---
 
+## [20261111] DSK+MKT+GUI — Autonomous AI Desk step D: check-ins and intraday watchers (FO-DSK-003, FO-DSK-007, FO-MKT-013, FO-GUI-038)
+
+- Type: Feature
+- FO(s): FO-DSK-003, FO-DSK-007, FO-MKT-013, FO-GUI-038
+- RN: RN-DSK-0.10.0-20261111, RN-MKT-0.15.0-20261111, RN-GUI-1.63.0-20261111
+- Artifacts updated: SRD, DD, MD, UTCD, TRACE, CONTEXT, TODO (T156–T158), Code (core/desk_watch, market/watch, watch_flag, checkin_note, employees emp-011/emp-012, desk/clock, desk/process, desk/cli, core/desk_steps, core/desk_events, core/desk_alerts, gui/app_service), Tests, RN, DEVLOG
+- Decisions: watchers loaded by import path; flags stored once per stock, kind and New York hour; stop/target watcher covers all open trades, stop 0 skipped; no VIX in step D; Expert 9 broken verdict raises Plan broken alert; app writes open trades to desk.db only on change, on a background thread
+- Tests: 54 step D cases Pass (DSK 18, MKT 31, GUI 5); full suite 2759 passed, 12 old failures (TODO T112) plus the old screener collection error (T136); tests now isolate desk_home() (before this, tests wrote 7 real open-trade rows into desk.db)
+
+---
+
 ## [20261111] DSK+MKT+GUI — Autonomous AI Desk step C: memory v1, lessons, reflect skill and Memory view (FO-DSK-009, FO-MKT-012, FO-GUI-037)
 
 - Type: Feature

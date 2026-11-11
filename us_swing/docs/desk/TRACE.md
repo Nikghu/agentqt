@@ -3,7 +3,7 @@
 **Document ID:** TRACE-DSK
 **Version:** 0.1.0
 **Status:** Draft
-**Last Updated:** 2026-11-11 (memory v1, step C: FO-DSK-009 with RN-DSK-0.9.0-20261111)
+**Last Updated:** 2026-11-11 (autonomous desk step D: FO-DSK-003 SRD .020–.025 and FO-DSK-007 SRD .009 with RN-DSK-0.10.0-20261111; memory v1, step C: FO-DSK-009 with RN-DSK-0.9.0-20261111)
 **Project:** US Swing Trading System
 
 > v0.1.0: One row per Draft FO. Columns fill as each phase completes.
@@ -41,3 +41,5 @@
 | FO-DSK-003 | SRD-DSK-003.015–.019 | DD-DSK-003.014.D01 | MD-DSK-003.006.M16, MD-DSK-003.001.M10 | UT-DSK-003.015.M16.T01–T04, UT-DSK-003.016.M16.T01–T04, UT-DSK-003.017.M16.T01–T02, UT-DSK-003.018.M16.T01–T03, UT-DSK-003.018.M10.T01, UT-DSK-003.019.M16.T01–T03 (Pass) | `desk/router.py`, `desk/employees_step.py` | Implemented | RN-DSK-0.8.0-20261111 |
 | FO-DSK-007 | SRD-DSK-007.008 | DD-DSK-003.014.D01 | MD-DSK-007.001.M21, MD-DSK-003.001.M10 | UT-DSK-007.008.M21.T01–T03 (Pass) | `core/desk_alerts.py`, `desk/employees_step.py` | Implemented | RN-DSK-0.8.0-20261111 |
 | FO-DSK-009 | SRD-DSK-009.001–.009 | DD-DSK-009.001.D01 | MD-DSK-009.001.M23, MD-DSK-001.010.M04 | UT-DSK-009.* (26, Pass) | `core/desk_lessons.py`, `desk/process.py` | Implemented | RN-DSK-0.9.0-20261111 |
+| FO-DSK-003 | SRD-DSK-003.020–.025 | DD-DSK-003.020.D01 | MD-DSK-003.021.M24 (new); MD-DSK-001.015.M03, MD-DSK-001.010.M04, MD-DSK-001.020.M06, MD-DSK-001.021.M07, MD-DSK-003.004.M15 (changed) | UT-DSK-003.020–.025 (16, Pass) | `core/desk_watch.py`, `desk/clock.py`, `desk/process.py`, `desk/cli.py`, `core/desk_steps.py`, `core/desk_events.py` | Implemented | RN-DSK-0.10.0-20261111 |
+| FO-DSK-007 | SRD-DSK-007.009 | DD-DSK-003.020.D01 | MD-DSK-007.001.M21 | UT-DSK-007.009.M21.T01–T02 (2, Pass) | `core/desk_alerts.py` | Implemented | RN-DSK-0.10.0-20261111 |
