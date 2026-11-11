@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.10.0: Autonomous desk step B (2026-11-11): M15 `steps` table, `parent`/`due` columns, `post_step_done()`; M16 baton without LangGraph; M10 wake returns ok/slept/failed, retry flag and partial-plan line; M21 `partial` alert kind.
 > v0.9.0: Autonomous desk step A (2026-11-11): M03 morning due, M04 parent watch, M05 old-task clean-up only, M06 `--parent`, M21 `candles` alert.
 > v0.8.0: MD-DSK-008.001.M22 added — employee file, versions, draft test.
 > v0.7.0: MD-DSK M18–M20 added — hiring, shadow, weekly report (P6).
@@ -63,13 +64,13 @@ Cross-tool: `core/desk_steps.py` (MD-DSK-001.021.M07) gets `SKILL_PATHS`, `DEFAU
 
 | ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
 |---|---|---|---|---|---|---|
-| MD-DSK-003.004.M15 | SRD-DSK-003.004 | `us_swing/src/us_swing/core/desk_events.py` | `events` table, event kinds and rules, posting from any tool | `EVENT_KINDS`, `EVENT_RULES`, `Event`, `post_event()` | `sqlite3` | No |
-| MD-DSK-003.006.M16 | SRD-DSK-003.006 | `us_swing/src/us_swing/desk/router.py` | Expire, order and handle events; build and run the LangGraph graph of woken employees | `Router`, `run_order()` | M09, M11, M14, M15, `langgraph` | No |
+| MD-DSK-003.004.M15 | SRD-DSK-003.004 | `us_swing/src/us_swing/core/desk_events.py` | `events` and `steps` tables, event kinds and rules, posting from any tool, `step_done` posting for the router | `EVENT_KINDS`, `EVENT_RULES`, `Event`, `post_event()`, `post_step_done()` | `sqlite3` | No |
+| MD-DSK-003.006.M16 | SRD-DSK-003.006 | `us_swing/src/us_swing/desk/router.py` | Expire, order and handle events; move each chain on by `step_done` events in needs order, with retries, skips and the lead's partial run | `Router`, `run_order()` | M09, M14, M15, M21, `graphlib` | No |
 | MD-DSK-005.005.M17 | SRD-DSK-005.005 | `us_swing/src/us_swing/desk/replay.py` | Re-send a recorded run's prompts and compare the answers | `replay()`, `ReplayLine` | M09, M11, M14 | No |
 
 Changed P0a/P5a modules: M08 (`needs`, `answer`, feed kind `evening`), M09 (trigger list), M10 (posts `after_run`, then calls the router), M03 (`market_events_due()`), M04 (posts clock events, `event` runs), M11 (`Gateway.resend()`), M14 (`replay` column, `last_wake()`), M06 (`desk replay`).
 
-SRD coverage: 002.008 by M08 and M16; 002.009 by M09; 003.004, .005 by M15; 003.006, .007, .009–.011 by M16 (.009 also M14); 003.008 by M03 and M04; 003.012 by M16 with `pyproject.toml` and `USSwing.spec`; 005.005–.007 by M17 (.005 also M11 and M06; .006 also M14).
+SRD coverage: 002.008 by M08 and M16; 002.009 by M09; 003.004, .005 by M15; 003.006, .007, .009–.011 by M16 (.009 also M14); 003.008 by M03 and M04; 003.012 by M16 with `pyproject.toml` and `USSwing.spec`; 005.005–.007 by M17 (.005 also M11 and M06; .006 also M14). Step B (2026-11-11): 003.010, .011, .015–.019 by M16; .014 by M15 and M16; .012 by M16 with `pyproject.toml` and `USSwing.spec` (LangGraph removed); 007.008 by M21 and M16.
 
 Cross-tool: `market/step.py` posts `regime_change` through M15 (see MKT DD-MKT-005.006.D01).
 
