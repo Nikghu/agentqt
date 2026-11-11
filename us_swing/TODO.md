@@ -172,6 +172,6 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T160 | Research tickets wait with "no employee can work" until step F ships each skill; setup tuning done 2026-11-11, post-mortem, stock study, sentiment, book and strategy test still wait. | `desk/research.py`, `market/` | Medium | Open |
 | T161 | Team setup tab cannot edit `tokens_per_day` yet (default 60,000; edit employee.md by hand). | `gui/ai_desk_setup.py` | Low | Open |
 | T162 | MKT step F setup tuning — app check: an approved setup_tuning ticket is worked by emp-013 (Expert 10) in quiet time, ends done with a table and verdict; a gain adds a candidate lesson in AI Desk → Memory. | `market/setup_tuning.py` | High | Open |
-| T163 | SRD-MKT-015 cell fixes need Reopen: .004 In says `candles.db` but code uses Backtest Data daily files; .011 says "Researcher 1" but generic-name rule forced "Expert 10". | `docs/market/SRD.md` | Low | Open |
-| T164 | Backtest Data daily store holds only about 2.8 years (718 days), so "5-year" setup tuning runs on less; download more 1d history for full 5 years. | `backtest/downloader.py` | Medium | Open |
+| T163 | SRD-MKT-015 cell fixes need Reopen: .004 In says `candles.db` but code correctly uses Backtest Data (user rule: analysis reads Backtest Data); .011 says "Researcher 1" but generic-name rule forced "Expert 10". | `docs/market/SRD.md` | Low | Open |
+| T164 | Backtest Data daily store holds only about 2.8 years (718 days), so "5-year" setup tuning runs on less; user is downloading more history, which tuning picks up on its own. | `backtest/downloader.py` | Medium | Open |
 | T165 | pytest-cov is not installed in .venv, so the 80% coverage gate for MKT-015 modules could not be measured. | `.venv`, `tests/` | Low | Open |
