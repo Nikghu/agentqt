@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.17.0: MD-MKT-014.001.M01–M02 added — lead research tickets (step E).
 > v0.16.0: MD-MKT-013.*.M01–M04 added — intraday watchers and check-in notes (step D).
 > v0.15.0: MD-MKT-012.*.M01–M03 added — learning from pick results (step C).
 > v0.14.0: MD-MKT-001.013.M06 added — candle check and Yahoo desk copy; M08 morning brief (Autonomous desk step A, 2026-11-11).
@@ -195,3 +196,12 @@ SRD coverage: 012.001–.003 and .006 by M01; .004 by M02; .005 by M03.
 | MD-MKT-013.011.M04 | SRD-MKT-013.011 | `us_swing/src/us_swing/market/employees/emp-011/`, `emp-012/`, `core/desk_steps.py` | Default watcher and market lead employees and their skill paths | — | M02, M03 | No |
 
 SRD coverage: 013.001–.007 by M01; .008, .009, .012 by M02; .010 by M03; .011 by M04.
+
+## FO-MKT-014: Lead Research Tickets
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-MKT-014.001.M01 | SRD-MKT-014.001 | `us_swing/src/us_swing/market/lead_brief.py` | `tickets` field in the lead brief answer, research block in the facts, tickets handed to the queue | `LeadBrief.tickets` | `core.desk_research` | No |
+| MD-MKT-014.001.M02 | SRD-MKT-014.001 | `us_swing/src/us_swing/market/checkin_note.py` | `tickets` field in the check-in answer, research block in the facts, tickets handed to the queue | `CheckinNote.tickets` | `core.desk_research` | No |
+
+SRD coverage: 014.001, .004, .005 by M01 and M02; .002 and .003 are checked in `core.desk_research` (MD-DSK-010.001.M25) and tested through M01.

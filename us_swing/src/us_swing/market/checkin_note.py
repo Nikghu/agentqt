@@ -1,6 +1,8 @@
 """
 Module: MD-MKT-013.010.M03 — market/checkin_note.py
 Parent SRD: SRD-MKT-013.010
+Also: MD-MKT-014.001.M02 — tickets in the answer, research block, tickets to the queue
+(SRD-MKT-014.001, .004, .005)
 
 The check-in skill: at 10:00, 12:30 and 15:30 New York time it shows the model the plan
 stocks against their triggers, the open trades against stop and target, the SPY move and
@@ -15,6 +17,7 @@ from pathlib import Path
 from pydantic import BaseModel, ConfigDict, Field
 
 from us_swing.core.desk_agents import AgentContext, Facts, FeedItem
+from us_swing.core.desk_research import TicketAsk, raise_tickets, with_research
 from us_swing.core.desk_watch import BENCHMARK, NY, flags_since, label, open_trades
 from us_swing.data.market_calendar import get_exchange_status
 from us_swing.market.candles import CANDLE_DB
@@ -33,6 +36,7 @@ class CheckinNote(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     note: str = Field(min_length=10, max_length=600)
+    tickets: list[TicketAsk] = Field(default_factory=list, max_length=3)
 
 
 def _now() -> datetime:
@@ -98,12 +102,14 @@ class CheckinNoteSkill:
             spy, "", "Flags since the last check-in:", *(flags or ["(none)"]), "",
             _RULES,
         ])
-        return Facts(text, day, True)
+        return Facts(with_research(text, home, KEY, self._clock()), day, True)
 
     def act(self, ctx: AgentContext, facts: Facts) -> list[FeedItem]:
         """Ask for the note and post it to the feed."""
         reply = ctx.ask(facts.text, CheckinNote)
         if reply is None:
             return []
+        if reply.tickets:
+            raise_tickets(ctx.home, KEY, reply.tickets, self._clock())
         return [FeedItem("info", f"Check-in {_slot(self._clock())}: {reply.note}",
                          facts.data_day)]

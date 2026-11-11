@@ -5,6 +5,9 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.108.2: Step E rows Implemented (5, 2026-11-11).
+> v2.108.1: SRD-GUI-039.001–.005 approved by user 2026-11-11.
+> v2.108.0: Autonomous desk step E (user, 2026-11-11): SRD-GUI-039.001–.005 added as Draft — research queue.
 > v2.107.2: Step D rows Implemented (3, 2026-11-11).
 > v2.107.1: SRD-GUI-038.001–.003 approved by user 2026-11-11.
 > v2.107.0: Autonomous desk step D (user, 2026-11-11): SRD-GUI-038.001–.003 added as Draft — check-ins and watchers.
@@ -827,3 +830,13 @@
 | SRD-GUI-038.001 | FO-GUI-038 | Must | The app's live bar feed also covers the desk's plan stocks of the day (listed ideas and lead picks) and SPY. | `desk.db` ideas | live symbols | Held stocks first; within the 100-stock feed cap | Implemented |
 | SRD-GUI-038.002 | FO-GUI-038 | Must | The app writes its open trades (stock, side, stop, target, strategy, mode) to `open_trades` in `desk.db` at start and whenever open trades change. | trade cycles | `open_trades` rows | Replaces the whole list; the only GUI-written market table | Implemented |
 | SRD-GUI-038.003 | FO-GUI-038 | Should | Adding desk stocks to the live feed logs how many were added. | symbols | log line | `[Live]` prefix | Implemented |
+
+## FO-GUI-039: AI Desk Research
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-039.001 | FO-GUI-039 | Must | The AI Desk has a Research tab that lists tickets with kind, goal, token cap, tokens spent, raised by and status. | `tickets` | list | Order: waiting, running or paused, approved, then ended in the last 7 days; read-only from `desk.db` | Implemented |
+| SRD-GUI-039.002 | FO-GUI-039 | Must | Approve, Reject and Change cap on a waiting ticket write one new `ticket_edits` row. | click | `ticket_edits` row | Master user only; the list updates when the desk applies it | Implemented |
+| SRD-GUI-039.003 | FO-GUI-039 | Must | Selecting an ended ticket shows its result and end reason. | ticket | detail text | — | Implemented |
+| SRD-GUI-039.004 | FO-GUI-039 | Should | The Research tab shows each lead's research tokens used and left today. | `activity` | numbers | — | Implemented |
+| SRD-GUI-039.005 | FO-GUI-039 | Should | Each approve, reject and cap change is logged. | edit | log line | `[Research]` prefix | Implemented |

@@ -4,7 +4,8 @@ Parent SRD: SRD-DSK-004.001
 Also: SRD-DSK-004.002 (schema check, retry, backup), SRD-DSK-002.003 (soul is the prompt,
 job file picks the models), SRD-DSK-005.005 (resend a recorded prompt for a replay),
 SRD-DSK-007.001 (raise an alert for a login, key or credit problem), SRD-DSK-007.004 (skip a
-source that failed to sign in for the rest of the run)
+source that failed to sign in for the rest of the run), SRD-DSK-004.008, .009 (each try is paid
+from a budget part; a ticket try is paid by the raiser and stops at the ticket cap)
 
 The one way AI employees reach a model. Sources: OpenRouter (API, has cost) and Claude
 Code CLI (subscription: tokens only, cost 0). Every answer must be JSON matching the
@@ -33,7 +34,7 @@ from us_swing.core.desk_agents import T
 from us_swing.core.desk_ai_settings import DeskAiSettings
 from us_swing.core.desk_alerts import Sender, classify, raise_alert
 from us_swing.core.notifications._ai_client import OPENROUTER_URL, _run_with_timeout
-from us_swing.desk.budget import Budget
+from us_swing.desk.budget import Budget, Part
 from us_swing.desk.recorder import Attempt, Recorder, ny_now
 from us_swing.desk.registry import Hire, ModelChoice
 
@@ -154,12 +155,16 @@ class Gateway:
     def __init__(self, home: Path, hire: Hire, recorder: Recorder, settings: DeskAiSettings,
                  key: str, run_id: int, data_day: str, caller: Caller = call_model,
                  clock: Callable[[], datetime] = ny_now, replay: bool = False,
-                 shadow: bool = False, send: Sender | None = None) -> None:
+                 shadow: bool = False, send: Sender | None = None,
+                 part: Part | None = None) -> None:
         """Bind the employee, the run and the sources; ``caller`` is injectable for tests.
 
         With ``replay`` every try is recorded as a replay, so it never counts as a wake;
         with ``shadow`` every try is marked as a shadow try (SRD-DSK-006.004).
+        ``part`` is the budget part the tries are paid from; by default the employee's plan.
         """
+        spec = hire.spec
+        self._part = part or Part("plan", spec.id, spec.name, spec.tokens_per_day)
         self._replay = replay
         self._shadow = shadow
         self._send = send
@@ -197,7 +202,7 @@ class Gateway:
             user = facts
             for _ in range(2):
                 why = self._budget.refusal(spec.id, spec.name, spec.monthly_cost_usd,
-                                           spec.calls_per_day, choice.source)
+                                           spec.calls_per_day, choice.source, self._part)
                 if why:
                     self.refused = why
                     log.warning("[AI Desk] %s not asked: %s", spec.name, why)
@@ -266,7 +271,7 @@ class Gateway:
             started.isoformat(timespec="seconds"), source, model, attempt,
             f"{system}\n\n---\n\n{user}", reply.text, result is not None, error,
             reply.tokens_in, reply.tokens_out, reply.cost_usd, seconds, int(self._replay),
-            int(self._shadow)))
+            int(self._shadow), self._part.name, self._part.payer, self._part.ticket))
         if result is not None:
             self.answered = Answered(model, seconds, reply.tokens_in + reply.tokens_out,
                                      reply.cost_usd)
@@ -289,7 +294,7 @@ class ReplayGateway(Gateway):
         text = user
         for attempt in (1, 2):
             why = self._budget.refusal(spec.id, spec.name, spec.monthly_cost_usd,
-                                       spec.calls_per_day, source)
+                                       spec.calls_per_day, source, self._part)
             if why:
                 self.refused = why
                 return None

@@ -7,7 +7,7 @@ SRD-DSK-005.004 (run log), SRD-DSK-003.004 (posts ``after_run``),
 SRD-DSK-006.004 (a shadow employee is only asked and recorded), SRD-DSK-007.005 (alert when
 no employee of a run gave a valid answer), SRD-DSK-003.014 (wake result ok, slept or failed),
 SRD-DSK-003.016 (a retry skips the once-per-day check), SRD-DSK-003.018 (partial plan line),
-SRD-DSK-007.008 (partial plan alert)
+SRD-DSK-007.008 (partial plan alert), SRD-DSK-004.008 (market or plan budget part by event)
 
 Desk step "AI employees": after the market steps, copies any missing default employee
 files into the desk folder, posts an ``after_run`` event and lets the router handle every
@@ -26,6 +26,7 @@ from us_swing.core.desk_ai_settings import DeskAiSettings, load_key, load_settin
 from us_swing.core.desk_alerts import Sender, last_error, raise_alert, run_outcome
 from us_swing.core.desk_contract import StepContext, desk_home
 from us_swing.core.desk_events import Event, post_event, waiting_count
+from us_swing.desk.budget import Part
 from us_swing.desk.gateway import Caller, Gateway, call_model
 from us_swing.desk.recorder import NY, Recorder, ny_now
 from us_swing.desk.registry import (
@@ -39,6 +40,8 @@ from us_swing.desk.router import Router
 from us_swing.desk.shadow import run_shadow
 
 log = logging.getLogger(__name__)
+
+MARKET_KINDS = ("market_checkin", "watch_flag")
 
 
 def _skill_paths() -> Mapping[str, str]:
@@ -146,8 +149,11 @@ class EmployeesStep:
                     and recorder.done_on(spec.id, facts.data_day)):
                 log.info("[AI Desk] %s already answered for %s", spec.name, facts.data_day)
                 return "ok"
+            part = Part("market" if event.kind in MARKET_KINDS else "plan", spec.id, spec.name,
+                        spec.tokens_per_day)
             gateway = Gateway(home, hire, recorder, settings, self._key(), run_id,
-                              facts.data_day, self._caller, self._clock, send=self._send)
+                              facts.data_day, self._caller, self._clock, send=self._send,
+                              part=part)
             items = hire.skill.act(gateway, facts)
             if missing:
                 line = f"Partial plan: no view from {', '.join(missing)}."

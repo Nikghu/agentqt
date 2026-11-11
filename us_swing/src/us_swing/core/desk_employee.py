@@ -3,7 +3,7 @@ Module: MD-DSK-008.001.M22 — core/desk_employee.py
 Parent SRD: SRD-DSK-008.001
 Also: SRD-DSK-008.002 (shared rules), SRD-DSK-008.003 (move old files), SRD-DSK-008.005
 (save with history), SRD-DSK-008.006 (restore), SRD-DSK-008.008 (draft test),
-SRD-DSK-008.009 (seat caps)
+SRD-DSK-008.009 (seat caps), SRD-DSK-004.006 (daily token budget)
 
 An AI employee is one ``employee.md`` in ``<desk>/employees/<id>/``: a YAML block between
 two ``---`` lines with the job settings, then the system prompt. The desk and the app both
@@ -38,6 +38,7 @@ from us_swing.core.desk_events import EVENT_KINDS
 log = logging.getLogger(__name__)
 
 EMPLOYEE_FILE = "employee.md"
+TOKENS_PER_DAY = 60_000
 JOB_FILE = "job.yaml"
 SOUL_FILE = "soul.md"
 EMPLOYEES_DIR = "employees"
@@ -84,6 +85,7 @@ class JobSpec(BaseModel):
     models: Models
     calls_per_day: int = Field(ge=1)
     monthly_cost_usd: float = Field(gt=0)
+    tokens_per_day: int = Field(default=TOKENS_PER_DAY, ge=1_000)
     kpis: list[str] = Field(min_length=1)
     status: Status = "active"
     hired_on: str | None = None

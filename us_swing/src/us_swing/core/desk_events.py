@@ -5,6 +5,7 @@ Also: SRD-DSK-003.005 (event kinds and priorities); MD-MKT-010.002.M02 — ``cha
 Also: MD-MKT-011.002.M02 — ``data_request`` (SRD-MKT-011.002)
 Also: SRD-DSK-003.014 (``step_done`` events and the ``steps`` table for the baton)
 Also: SRD-DSK-003.020, .021 (``market_checkin`` per time slot, ``watch_flag`` per flag)
+Also: SRD-DSK-010.013 (``research_done`` per ticket)
 
 Wake-up events in ``desk.db``. Any tool may post one (for example the market regime step
 posts ``regime_change``); only the desk router changes an event's state. Clock and regime
@@ -52,9 +53,11 @@ EVENT_RULES: dict[str, EventRule] = {
     "data_request": EventRule(0, timedelta(minutes=5), timedelta(hours=2)),
     "market_checkin": EventRule(2, None, timedelta(minutes=30)),
     "watch_flag": EventRule(0, timedelta(minutes=5), timedelta(minutes=30)),
+    "research_done": EventRule(2, None, timedelta(days=1)),
 }
 EVENT_KINDS: tuple[str, ...] = tuple(EVENT_RULES)
-_PER_ID = ("after_run", "chat_question", "data_request", "market_checkin", "watch_flag")
+_PER_ID = ("after_run", "chat_question", "data_request", "market_checkin", "watch_flag",
+           "research_done")
 
 
 @dataclass(frozen=True)

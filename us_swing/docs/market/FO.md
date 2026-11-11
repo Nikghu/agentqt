@@ -6,6 +6,8 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.15.1: FO-MKT-014 approved by user 2026-11-11.
+> v0.15.0: Autonomous desk step E (user, 2026-11-11): FO-MKT-014 added as Draft — lead research tickets.
 > v0.14.0: Autonomous desk step D (user, 2026-11-11): FO-MKT-013 added as Draft — check-ins and watchers.
 > v0.13.0: Autonomous desk step C (user, 2026-11-11): FO-MKT-012 added as Draft — memory v1.
 > v0.12.0: Autonomous desk step A (user, 2026-11-10): FO-MKT-001 runs in the morning run and adds the candle check with a Yahoo desk-only copy; FO-MKT-005 brief becomes the morning brief. Older acceptance lines that say "evening run" describe the run in place when they were written.
@@ -350,3 +352,22 @@ The system shall watch the plan and the open trades during market hours with pla
 1. When a listed idea's price reaches its trigger, a feed note and an AI answer for it appear within about 5 minutes.
 2. A stop touch on any open trade raises a "Trade at stop" alert on the app and Telegram.
 3. Each trading day the feed has three check-in notes when the app is open from 10:00 to 15:30 New York time.
+
+## FO-MKT-014: Lead Research Tickets
+
+**Status:** Implemented (approved by user 2026-11-11)
+**Priority:** Must
+**Phase:** Autonomous desk step E
+**Depends on:** FO-DSK-010 (research queue), FO-MKT-005 (lead plan), FO-MKT-013 (check-in notes)
+**Source: User 2026-11-11 (Autonomous desk step E): leads raise research tickets. Design §7: https://claude.ai/artifact/J7AexvWdqDNujADoc9dJkJ.**
+
+The system shall let the lead skills ask for research as tickets inside their normal answers.
+
+- The system shall let a lead's plan or check-in answer hold a few research tickets.
+- The system shall tell the lead its research tokens left today and its open tickets, so it does not ask twice or over its share.
+- The system shall pass each ticket to the research queue and never start research work itself.
+
+### Acceptance Criteria
+
+1. A lead plan answer with one ticket adds one row to the research queue.
+2. A lead with no research tokens left gets a prompt that says so, and a ticket it still raises is refused.

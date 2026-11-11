@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.22.0: DD-GUI-039.001.D01 added — AI Desk Research (Autonomous desk step E (2026-11-11)).
 > v1.21.0: DD-GUI-038.001.D01 added — app feeds for the desk watchers (Autonomous desk step D (2026-11-11)).
 > v1.20.0: DD-GUI-037.001.D01 added — AI Desk Memory (Autonomous desk step C (2026-11-11)).
 > v1.19.0: DD-GUI-034.068.D01 added — desk lives with the app, start tasks 60 min before open, morning-run labels (Autonomous desk step A), 2026-11-11.
@@ -2000,3 +2001,7 @@ Run names: `evening` "Evening run", `manual` "Manual run", other kinds title-cas
 ## DD-GUI-038.001.D01 — App Feeds for the Desk Watchers (Autonomous desk step D)
 
 **Traces:** SRD-GUI-038.001–.003. Design in DSK DD-DSK-003.020.D01 ("App"). `gui/app_service.py` adds `desk_live_symbols()` to the live bar feed (held and screened stocks first, at most 100) and publishes open trade cycles to `desk.db` `open_trades` at start, on cycle changes and on the 60-second market status timer. Pure helpers `live_symbols()` and `trade_rows()` carry the rules so they are unit tested.
+
+## DD-GUI-039.001.D01 — AI Desk Research (Autonomous desk step E)
+
+**Traces:** SRD-GUI-039.001–.005. Design in DSK DD-DSK-010.001.D01 ("GUI"). `gui/ai_desk_research.py` (`ResearchView`) is the "Research" section in the TEAM group: lead research line, ticket table, Approve / Reject / Change cap writing `ticket_edits`, detail label. `gui/ai_desk.py` adds the section and keeps it live.

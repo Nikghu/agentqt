@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.13.0: MD-DSK-010.001.M25 and MD-DSK-010.008.M26 added — token split and research queue (step E); M04, M06, M10, M11, M12, M14, M15, M21, M22 changed.
 > v0.12.0: MD-DSK-003.021.M24 added — watch flags and open trades (step D); M03, M04, M06, M07, M15, M21 changed.
 > v0.11.0: MD-DSK-009.001.M23 added — lessons (step C); M04 applies lesson edits.
 > v0.10.0: Autonomous desk step B (2026-11-11): M15 `steps` table, `parent`/`due` columns, `post_step_done()`; M16 baton without LangGraph; M10 wake returns ok/slept/failed, retry flag and partial-plan line; M21 `partial` alert kind.
@@ -129,3 +130,16 @@ Cross-tool: MKT `market/pick_results.py` calls `review_lessons()`; MKT pick-maki
 Changed: M03 (`desk/clock.py`: `CHECKINS`, `checkins_due()`, `in_market_hours()`), M04 (`desk/process.py`: posts check-ins, watcher pass every 5 minutes), M06 (`desk/cli.py`: passes `watch=load_watch()`), M07 (`core/desk_steps.py`: `WATCH_PATH`, `load_watch()`, two skill paths), M15 (`core/desk_events.py`: `market_checkin`, `watch_flag`), M21 (`core/desk_alerts.py`: `trade_stop`, `trade_target`, `plan_broken`).
 
 SRD coverage: 003.020 by M03 and M04; .021, .022, .024 by M24 and M15; .023 by M04, M06 and M07; .025 by MKT M01; 007.009 by M21.
+
+## FO-DSK-010 (step E): Token Split and Research Queue
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-DSK-010.001.M25 | SRD-DSK-010.001 | `us_swing/src/us_swing/core/desk_research.py` | Ticket tables, raise rules, auto approval and alert, research block, edits, expiry, pause, research skill contract, rows for the GUI | `Ticket`, `TicketAsk`, `StepResult`, `ResearchSkill`, `KINDS`, `raise_tickets()`, `with_research()`, `add_ticket_edit()`, `apply_ticket_edits()`, `expire_waiting()`, `pause_running()`, `ticket_rows()`, `pending_ticket_edits()`, `lead_research()` | `sqlite3`, M15, M21, M22 | No |
+| MD-DSK-010.008.M26 | SRD-DSK-010.008 | `us_swing/src/us_swing/desk/research.py` | Quiet test, ticket pick, doer by kind, cap checks, one step, stall and done checks, pause, end and `research_done` event | `ResearchRunner` (`has_work()`, `__call__()`), `quiet()` | M25, M11, M14, M16 | No |
+
+Changed: M12 (`desk/budget.py`: `Part`, `SHARES`, `part_cap()`, part and ticket checks — SRD-DSK-004.007, .009, .010), M14 (`desk/recorder.py`: `part`, `payer`, `ticket` columns, `part_tokens()`, `ticket_tokens()`, `ticket_seconds()` — .008), M11 (`desk/gateway.py`: takes `part`, records it — .008, .009), M10 (`desk/employees_step.py`: market or plan part by event kind — .008), M22 (`core/desk_employee.py`: `tokens_per_day` — .006), M04 (`desk/process.py`: applies ticket edits and expiry each tick, pauses on start, runs research when quiet — 010.004, .005, .008, .012), M06 (`desk/cli.py`: passes the runner), M15 (`core/desk_events.py`: `research_done` — 010.013), M21 (`core/desk_alerts.py`: `ticket_waiting` — 007.010).
+
+SRD coverage: 004.006 by M22; .007 and .010 by M12; .008 by M14, M11 and M10; .009 by M12 and M11; 007.010 by M21 and M25; 010.001–.007 by M25; .008–.011 and .013 by M26 (with M04, M15); .012 by M26 and M25; .014 by M25 and M26.
+
+Cross-tool: MKT `market/lead_brief.py` and `market/checkin_note.py` call `with_research()` and `raise_tickets()`; GUI `gui/ai_desk_research.py` calls `ticket_rows()`, `pending_ticket_edits()`, `lead_research()` and `add_ticket_edit()`.

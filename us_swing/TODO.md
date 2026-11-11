@@ -168,3 +168,6 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T156 | DSK/MKT/GUI step D watchers — app check during market hours: plan stocks + SPY get live 3m bars; a trigger or stop touch gives a feed note, an Expert 9 verdict and an alert; Lead 3 posts check-ins at 10:00/12:30/15:30 ET. | `desk/`, `market/`, `gui/` | High | Open |
 | T157 | Real trades show stop 0.0 (no stop) in trade cycles. Check why hard_stop_loss is 0 for the WTrend_DTrigger cycles. | `execution/trade_cycle/` | Low | Open |
 | T158 | Tests that build AppService read the real us_swing.db trade cycles. Isolate the app DB in tests as was done for desk_home. | `tests/gui/` | Low | Open |
+| T159 | DSK/MKT/GUI step E research queue — app check: AI Desk → Research lists lead tickets; a big ticket raises a Telegram alert; Approve/Reject/Change cap apply at the next tick; [Budget] lines when a part is used up. | `core/desk_research.py`, `gui/ai_desk_research.py` | High | Open |
+| T160 | Research tickets wait with "no employee can work" until step F ships research skills (setup tuning first). | `desk/research.py`, `market/` | Medium | Open |
+| T161 | Team setup tab cannot edit `tokens_per_day` yet (default 60,000; edit employee.md by hand). | `gui/ai_desk_setup.py` | Low | Open |

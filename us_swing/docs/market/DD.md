@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.16.0: DD-MKT-014.001.D01 added — lead research tickets (Autonomous desk step E (2026-11-11)).
 > v0.15.0: DD-MKT-013.001.D01 added — intraday watchers and check-in notes (Autonomous desk step D (2026-11-11)).
 > v0.14.0: DD-MKT-012.001.D01 added — learning from pick results (Autonomous desk step C (2026-11-11)).
 > v0.13.0: DD-MKT-001.013.D01 added — candle check with a Yahoo desk-only copy, morning brief (Autonomous desk step A, 2026-11-10).
@@ -1109,3 +1110,7 @@ The error fails the run before any AI step; the desk retries per SRD-DSK-001.015
 ## DD-MKT-013.001.D01 — Intraday Watchers and Check-in Notes (Autonomous desk step D)
 
 **Traces:** SRD-MKT-013.001–.012. Full design (bars, watcher rules, flag and check-in skills, default employees) is in DSK DD-DSK-003.020.D01. MKT owns `market/watch.py`, `market/watch_flag.py`, `market/checkin_note.py` and `market/employees/emp-011/`, `emp-012/`.
+
+## DD-MKT-014.001.D01 — Lead Research Tickets (Autonomous desk step E)
+
+**Traces:** SRD-MKT-014.001–.005. Full design (ticket form, rules, research block) is in DSK DD-DSK-010.001.D01. MKT owns the `tickets` field of `LeadBrief` and `CheckinNote`, the `with_research()` wrap in both skills' facts and the `raise_tickets()` call in both skills' `act`.
