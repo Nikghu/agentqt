@@ -1,11 +1,13 @@
 # Functional Overview — Market Analytics (MKT)
 
 **Document ID:** FO-MKT
-**Version:** 0.8.1
+**Version:** 0.9.1
 **Status:** Draft
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.19.1: FO-MKT-018 approved by user 2026-11-11.
+> v0.19.0: Autonomous desk step F (user, 2026-11-11): FO-MKT-018 added as Draft — book to strategy research.
 > v0.18.1: FO-MKT-017 approved by user 2026-11-11.
 > v0.18.0: Autonomous desk step F (user, 2026-11-11): FO-MKT-017 added as Draft — sentiment research.
 > v0.17.1: FO-MKT-016 approved by user 2026-11-11.
@@ -446,3 +448,27 @@ The system shall give the desk an employee that works sentiment tickets: it judg
 1. An approved sentiment ticket on 5 watch ideas ends `done` with 5 tone cards and a summary in its result.
 2. A long idea with bad news is judged against, and the ticket gain is yes.
 3. The next lead plan prompt shows that stock's card; its idea score is unchanged.
+
+## FO-MKT-018: Book to Strategy Research
+
+**Status:** Approved (approved by user 2026-11-11)
+**Priority:** Must
+**Phase:** Autonomous desk step F (skill 4 of 4)
+**Depends on:** FO-DSK-010 (research queue; book tickets never auto-approve), FO-MKT-005 (lead plan), FO-MKT-014 (lead tickets)
+**Source: User 2026-11-11 (Autonomous desk step F): ticket approval is the permission to read; text only from the user's uploads or Project Gutenberg (public domain); text, HTML and PDF; output a strategy card only; gain = card with entry, exit and stop. Design §7: https://claude.ai/artifact/J7AexvWdqDNujADoc9dJkJ.**
+
+The system shall give the desk an employee that turns one approved chapter of a trading book into a short strategy card, and never reads a book without the owner's approval.
+
+- The system shall read a book chapter only for an approved book ticket that names its source and chapter.
+- The system shall take book text only from the owner's uploads in the desk books folder or from a public-domain Project Gutenberg download.
+- The system shall read plain text, Markdown, HTML and PDF files.
+- The system shall read each chapter once and never read it again.
+- The system shall let one AI call write a strategy card with idea, market, entry, exit, stop and short quotes from the chapter, and keep only quotes found in the text.
+- The system shall show the lead which books it may propose and which chapters were already read.
+- The system shall ship a default book employee with a generic name.
+
+### Acceptance Criteria
+
+1. An approved ticket `upload:my_book.txt ch 2` ends `done` with one strategy card in its result and in `strategy_cards`.
+2. A second ticket for the same chapter ends `failed` without reading the file again.
+3. A ticket naming any other website ends `failed` and nothing is downloaded.
