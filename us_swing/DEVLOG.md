@@ -2,6 +2,17 @@
 
 ---
 
+## [20261111] DSK — Autonomous AI Desk step B: baton with step_done events, retries and partial plan (FO-DSK-003, FO-DSK-007)
+
+- Type: Feature
+- FO(s): FO-DSK-003, FO-DSK-007
+- RN: RN-DSK-0.8.0-20261111
+- Artifacts updated: SRD, DD, MD, UTCD, TRACE, CONTEXT, TODO (T153), Code (desk/router, desk/employees_step, core/desk_events, core/desk_alerts, pyproject.toml, USSwing.spec), Tests, RN
+- Decisions: chain moves by step_done events, not one LangGraph graph; LangGraph removed from desk, pyproject and installer; failed step gets 2 retries, 5 min apart; dependants skipped and lead runs once with a partial plan; one "Desk plan is partial" alert per failed step per day; a step left running at restart counts as a failed try; budget refused counts as slept
+- Tests: DSK 35 UT step B cases Pass; desk suite 254 passed; full suite 12 failed (same as TODO T112) plus a collection error in test_llm_claude_screener.py (TODO T136)
+
+---
+
 ## [20261111] DSK+MKT+GUI — Autonomous AI Desk step A: morning run trigger (FO-DSK-001/003/007, FO-MKT-001/005, FO-GUI-029/034)
 
 - Type: Feature

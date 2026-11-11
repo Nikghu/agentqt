@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-11-11 (Session 131)
+**Last Updated:** 2026-11-11 (Session 132)
 
 ---
 
@@ -162,3 +162,4 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T150 | Autonomous desk step A (morning run): code done e6b72948, unpushed; user real-app check pending (T151). Then steps B–F. | `desk/`, `market/`, `gui/` | High | Open |
 | T151 | User check step A: restart app; desk starts with app (AI Desk pill), Settings → Scheduler shows Start TWS/USSwing at 19:00 read-only; tomorrow pre-market the morning run runs Candle check first; closing the app stops the desk. | `desk/`, `gui/` | High | Open |
 | T152 | Scheduler row Changed check compares time only, not days (cosmetic). | `gui/scheduler_table.py` | Low | Open |
+| T153 | DSK step B baton — app check: morning run chain runs in order; after a forced failure, retry after 5 min, partial plan line from the lead, and one "Desk plan is partial" alert. | `desk/router.py`, `core/desk_alerts.py` | High | Open |
