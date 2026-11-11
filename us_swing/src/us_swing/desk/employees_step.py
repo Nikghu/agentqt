@@ -5,7 +5,9 @@ Also: SRD-DSK-003.002 (once per data day), SRD-DSK-003.003 (fresh data only),
 SRD-DSK-002.005 (skills get only home and ask), SRD-DSK-002.007 (default employee files),
 SRD-DSK-005.004 (run log), SRD-DSK-003.004 (posts ``after_run``),
 SRD-DSK-006.004 (a shadow employee is only asked and recorded), SRD-DSK-007.005 (alert when
-no employee of a run gave a valid answer)
+no employee of a run gave a valid answer), SRD-DSK-003.014 (wake result ok, slept or failed),
+SRD-DSK-003.016 (a retry skips the once-per-day check), SRD-DSK-003.018 (partial plan line),
+SRD-DSK-007.008 (partial plan alert)
 
 Desk step "AI employees": after the market steps, copies any missing default employee
 files into the desk folder, posts an ``after_run`` event and lets the router handle every
@@ -15,12 +17,13 @@ known only from their files.
 from __future__ import annotations
 
 import logging
+from dataclasses import replace
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
 from pathlib import Path
 
 from us_swing.core.desk_ai_settings import DeskAiSettings, load_key, load_settings
-from us_swing.core.desk_alerts import Sender, raise_alert, run_outcome
+from us_swing.core.desk_alerts import Sender, last_error, raise_alert, run_outcome
 from us_swing.core.desk_contract import StepContext, desk_home
 from us_swing.core.desk_events import Event, post_event, waiting_count
 from us_swing.desk.gateway import Caller, Gateway, call_model
@@ -94,7 +97,7 @@ class EmployeesStep:
 
     def has_work(self, home: Path) -> bool:
         """True when a waiting event wakes at least one employee (files read only then)."""
-        if not waiting_count(home):
+        if not waiting_count(home, self._clock()):
             return False
         return self._router(home, -1)[0].has_work()
 
@@ -112,18 +115,25 @@ class EmployeesStep:
             record_employees(home, hires)
         settings = self._settings() if self._settings else load_settings(home)
 
-        def wake(hire: Hire, event: Event) -> None:
-            self._wake(hire, event, run_id, home, settings)
+        def wake(hire: Hire, event: Event, retry: bool, missing: tuple[str, ...]) -> str:
+            return self._wake(hire, event, run_id, home, settings, retry, missing)
 
-        return Router(home, hires, wake, set(skills), self._clock), hires
+        def alert(hire: Hire, event: Event) -> None:
+            error = last_error(home, hire.spec.id) or "see the desk log"
+            raise_alert(home, "partial", hire.spec.id, run_id,
+                        f"{hire.spec.name} failed 3 times: {error}", self._clock(), self._send)
+
+        return Router(home, hires, wake, set(skills), self._clock, alert), hires
 
     def _wake(self, hire: Hire, event: Event, run_id: int, home: Path,
-              settings: DeskAiSettings) -> None:
+              settings: DeskAiSettings, retry: bool = False,
+              missing: tuple[str, ...] = ()) -> str:
+        """Wake one employee; return ``ok``, ``slept`` (by a rule) or ``failed``."""
         spec = hire.spec
         facts = hire.skill.facts(home)
         if not facts.fresh:
             log.info("[AI Desk] %s stays asleep: %s", spec.name, facts.why_stale)
-            return
+            return "slept"
         recorder = Recorder(home)
         try:
             if spec.status == "shadow":
@@ -131,13 +141,17 @@ class EmployeesStep:
                                   facts.data_day, self._caller, self._clock, shadow=True,
                                   send=self._send)
                 run_shadow(hire, facts, gateway, recorder)
-                return
-            if event.kind == "after_run" and recorder.done_on(spec.id, facts.data_day):
+                return "slept"
+            if (not retry and event.kind == "after_run"
+                    and recorder.done_on(spec.id, facts.data_day)):
                 log.info("[AI Desk] %s already answered for %s", spec.name, facts.data_day)
-                return
+                return "ok"
             gateway = Gateway(home, hire, recorder, settings, self._key(), run_id,
                               facts.data_day, self._caller, self._clock, send=self._send)
             items = hire.skill.act(gateway, facts)
+            if missing:
+                line = f"Partial plan: no view from {', '.join(missing)}."
+                items = [replace(i, text=f"{line}\n{i.text}") for i in items]
             recorder.add_briefs(items, spec.id, spec.name)
         finally:
             recorder.close()
@@ -146,5 +160,8 @@ class EmployeesStep:
             cost = f", cost USD {a.cost_usd:.4f}" if a.cost_usd else ""
             log.info("[AI Desk] %s answered with %s in %.1f s, %d tokens%s", spec.name, a.model,
                      a.seconds, a.tokens, cost)
-        elif not gateway.refused:
-            log.warning("[AI Desk] %s gave no valid answer for %s", spec.name, facts.data_day)
+            return "ok"
+        if gateway.refused:
+            return "slept"
+        log.warning("[AI Desk] %s gave no valid answer for %s", spec.name, facts.data_day)
+        return "failed"

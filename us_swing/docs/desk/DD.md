@@ -662,3 +662,7 @@ A need is settled when its result is `ok`, `slept`, `skipped` or `failed` after 
 - `The lead is writing a partial plan without <names>`
 
 **LangGraph removed** (SRD-DSK-003.012). Remove `langgraph` from `pyproject.toml`, and remove `langgraph` and `langchain_core` from `USSwing.spec` `collect_submodules`. Remove the `LANGSMITH_TRACING` line and `_GraphState`. The run order uses `graphlib` from the standard library, as the loop check already does.
+
+**After code review.**
+- A retry whose `step_done` expires (the chain's expiry passed before the next try) is marked failed and raises the `partial` alert, so the user still hears about it.
+- `waiting_count(home, now)` counts only due events, so the desk loop does not rebuild the router every 2 s during a retry wait.

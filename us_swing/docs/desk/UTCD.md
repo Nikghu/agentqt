@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.10.1: Step B cases Pass (32 cases incl. 6 rewritten, 2026-11-11).
 > v0.10.0: Autonomous desk step B (2026-11-11): UT-DSK-003.010.M16.T01/T03, 003.011.M16.T01/T03, 003.012.M16.T01/T02 rewritten (no LangGraph); UT-DSK-003.014–.019 and 007.008 added (26 cases).
 > v0.9.0: Autonomous desk step A (2026-11-11): UT-DSK-001.015.M03.T01–T06, 001.018.M05.T03–T06, 001.010.M04.T05/T11 rewritten; M04.T27–T31, M06.T05–T06, M02.T12, UT-DSK-007.007.M21.T01–T03 added.
 > v0.8.1: UT-DSK-008.* Pass (17 cases, 19 test runs incl. parametrize, 2026-11-10).
@@ -181,13 +182,13 @@
 | UT-DSK-003.009.M16.T01 | MD-DSK-003.006.M16 | Negative | No wake within 30 minutes (SRD-DSK-003.009) | last wake 12 minutes ago, P2 event | not woken; reason logged | Pass |
 | UT-DSK-003.009.M16.T02 | MD-DSK-003.006.M16 | Positive | P0 passes the 30-minute rule (SRD-DSK-003.009) | last wake 12 minutes ago, P0 event | woken | Pass |
 | UT-DSK-003.009.M14.T01 | MD-DSK-005.001.M14 | Edge | Replay is not a wake (SRD-DSK-003.009) | only replay tries 5 minutes ago | last_wake None | Pass |
-| UT-DSK-003.010.M16.T01 | MD-DSK-003.006.M16 | Positive | Chain run order (SRD-DSK-003.010) | 3 experts, risk, lead with real skill needs, fake model | lead last; risk after setup review; each once | Not Run |
+| UT-DSK-003.010.M16.T01 | MD-DSK-003.006.M16 | Positive | Chain run order (SRD-DSK-003.010) | 3 experts, risk, lead with real skill needs, fake model | lead last; risk after setup review; each once | Pass |
 | UT-DSK-003.010.M16.T02 | MD-DSK-003.006.M16 | Negative | Loop in needs (SRD-DSK-003.010) | A needs B, B needs A | nobody woken; one warning | Pass |
-| UT-DSK-003.010.M16.T03 | MD-DSK-003.006.M16 | Edge | Whole chain in one pass (SRD-DSK-003.010) | nothing fails | one `handle()` wakes every employee; all events done | Not Run |
-| UT-DSK-003.011.M16.T01 | MD-DSK-003.006.M16 | Negative | Failed step (SRD-DSK-003.011) | one expert fails 3 times | experts that do not need it still run; lead runs partial | Not Run |
+| UT-DSK-003.010.M16.T03 | MD-DSK-003.006.M16 | Edge | Whole chain in one pass (SRD-DSK-003.010) | nothing fails | one `handle()` wakes every employee; all events done | Pass |
+| UT-DSK-003.011.M16.T01 | MD-DSK-003.006.M16 | Negative | Failed step (SRD-DSK-003.011) | one expert fails 3 times | experts that do not need it still run; lead runs partial | Pass |
 | UT-DSK-003.011.M16.T02 | MD-DSK-003.006.M16 | Positive | Missing view noted (SRD-DSK-003.011) | needed expert asleep (stale) | dependent runs; its facts say the view is missing | Pass |
-| UT-DSK-003.012.M16.T01 | MD-DSK-003.006.M16 | Positive | No LangGraph in the desk (SRD-DSK-003.012) | scan all `us_swing` sources | no `langgraph` import | Not Run |
-| UT-DSK-003.012.M16.T02 | MD-DSK-003.006.M16 | Negative | Dependency removed (SRD-DSK-003.012) | read `pyproject.toml` and `USSwing.spec` | no `langgraph` or `langchain_core` | Not Run |
+| UT-DSK-003.012.M16.T01 | MD-DSK-003.006.M16 | Positive | No LangGraph in the desk (SRD-DSK-003.012) | scan all `us_swing` sources | no `langgraph` import | Pass |
+| UT-DSK-003.012.M16.T02 | MD-DSK-003.006.M16 | Negative | Dependency removed (SRD-DSK-003.012) | read `pyproject.toml` and `USSwing.spec` | no `langgraph` or `langchain_core` | Pass |
 | UT-DSK-003.001.M10.T04 | MD-DSK-003.001.M10 | Positive | Step posts after_run (SRD-DSK-003.001) | desk run with fresh facts | one after_run event, then done | Pass |
 | UT-DSK-005.005.M17.T01 | MD-DSK-005.005.M17 | Positive | Replay re-sends (SRD-DSK-005.005) | recorded run, fake model | same system and user text sent; recorded model used | Pass |
 | UT-DSK-005.005.M17.T02 | MD-DSK-005.005.M17 | Positive | Options (SRD-DSK-005.005) | `--employee` and `--model` | only that employee; given model | Pass |
@@ -201,7 +202,7 @@
 | UT-DSK-003.008.M03.T04 | MD-DSK-001.015.M03 | Edge | Clock window (SRD-DSK-003.008) | trading day 12:00, 16:01, 16:31 | nothing; market_close; nothing | Pass |
 | UT-DSK-003.008.M04.T03 | MD-DSK-001.010.M04 | Negative | Event check error (SRD-DSK-003.008) | has_work raises a locked-database error | logged; no run; desk keeps going | Pass |
 | UT-DSK-003.010.M16.T04 | MD-DSK-003.006.M16 | Negative | Loop event closed (SRD-DSK-003.010) | woken skills need each other | event done with note loop in needs | Pass |
-| UT-DSK-003.011.M16.T03 | MD-DSK-003.006.M16 | Negative | Pass error (SRD-DSK-003.011) | router raises outside a wake | logged; event closed with note failed | Not Run |
+| UT-DSK-003.011.M16.T03 | MD-DSK-003.006.M16 | Negative | Pass error (SRD-DSK-003.011) | router raises outside a wake | logged; event closed with note failed | Pass |
 | UT-DSK-005.005.M17.T04 | MD-DSK-005.005.M17 | Edge | Soul with rule lines (SRD-DSK-005.005) | soul.md holds --- between blank lines | same system and user text sent again | Pass |
 | UT-DSK-005.006.M14.T01 | MD-DSK-005.001.M14 | Positive | Replays use no live quota (SRD-DSK-005.006) | one live and one replay try today | day_tries 1; cost of both counted | Pass |
 
@@ -275,29 +276,29 @@
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
 |---|---|---|---|---|---|---|
-| UT-DSK-003.014.M15.T01 | MD-DSK-003.004.M15 | Positive | step_done stored (SRD-DSK-003.014) | post for a P1 trigger | row with parent, trigger's priority, day and expiry; waiting | Not Run |
-| UT-DSK-003.014.M15.T02 | MD-DSK-003.004.M15 | Negative | Repeat ignored (SRD-DSK-003.014) | same trigger, employee and try twice | one row | Not Run |
-| UT-DSK-003.014.M15.T03 | MD-DSK-003.004.M15 | Edge | Old desk.db (SRD-DSK-003.014) | events table without parent and due | columns added; old rows load | Not Run |
-| UT-DSK-003.014.M15.T04 | MD-DSK-003.004.M15 | Negative | Tools cannot post it (SRD-DSK-003.014) | `post_event('step_done')` | ValueError; no row | Not Run |
-| UT-DSK-003.014.M16.T01 | MD-DSK-003.006.M16 | Positive | One step_done per step (SRD-DSK-003.014) | chain of 3, all ok | 3 step_done rows with result ok | Not Run |
-| UT-DSK-003.014.M10.T01 | MD-DSK-003.001.M10 | Positive | Wake result (SRD-DSK-003.014) | valid answer; stale facts; budget refused; no valid answer; exception | ok; slept; slept; failed; failed | Not Run |
-| UT-DSK-003.015.M16.T01 | MD-DSK-003.006.M16 | Positive | Wake when need is done (SRD-DSK-003.015) | B needs A | B woken only after A's step_done ok | Not Run |
-| UT-DSK-003.015.M16.T02 | MD-DSK-003.006.M16 | Positive | Wait for all needs (SRD-DSK-003.015) | C needs A and B | C woken once, after both | Not Run |
-| UT-DSK-003.015.M16.T03 | MD-DSK-003.006.M16 | Edge | Need outside the chain (SRD-DSK-003.015) | B needs a skill nobody in the chain has | B runs at once | Not Run |
-| UT-DSK-003.015.M16.T04 | MD-DSK-003.006.M16 | Negative | Need not done yet (SRD-DSK-003.015) | B needs A; A failed once and waits for its retry | B not woken | Not Run |
-| UT-DSK-003.016.M16.T01 | MD-DSK-003.006.M16 | Positive | Retry after 5 minutes (SRD-DSK-003.016) | A fails once, then ok | not woken at +4 min; woken at +5 min; chain goes on | Not Run |
-| UT-DSK-003.016.M16.T02 | MD-DSK-003.006.M16 | Negative | At most 2 retries (SRD-DSK-003.016) | A always fails | 3 wakes; step failed; no 4th wake | Not Run |
-| UT-DSK-003.016.M16.T03 | MD-DSK-003.006.M16 | Edge | Retry skips wake rules (SRD-DSK-003.016) | A woke 5 minutes ago and failed | retry passes the 30-minute rule; wake gets retry True | Not Run |
-| UT-DSK-003.016.M16.T04 | MD-DSK-003.006.M16 | Positive | Retry wakes the desk (SRD-DSK-003.016) | step_done due in 5 minutes | has_work False before due, True at due | Not Run |
-| UT-DSK-003.017.M16.T01 | MD-DSK-003.006.M16 | Negative | Chain stops (SRD-DSK-003.017) | A fails 3 times; B needs A; C needs B | B and C skipped, not woken; one log line each | Not Run |
-| UT-DSK-003.017.M16.T02 | MD-DSK-003.006.M16 | Positive | Other branch goes on (SRD-DSK-003.017) | A fails 3 times; D needs nothing | D still runs | Not Run |
-| UT-DSK-003.018.M16.T01 | MD-DSK-003.006.M16 | Positive | Lead runs partial (SRD-DSK-003.018) | lead needs A and B; A fails 3 times | lead runs once after B; gets A's name as missing | Not Run |
-| UT-DSK-003.018.M16.T02 | MD-DSK-003.006.M16 | Negative | Lead fails (SRD-DSK-003.018) | lead fails 3 times | no plan; alert for the lead | Not Run |
-| UT-DSK-003.018.M16.T03 | MD-DSK-003.006.M16 | Edge | Full chain (SRD-DSK-003.018) | nothing fails | lead gets no missing names; trigger note chain full | Not Run |
-| UT-DSK-003.018.M10.T01 | MD-DSK-003.001.M10 | Positive | Partial plan line (SRD-DSK-003.018) | wake with one missing name | each brief starts with the partial plan line naming it | Not Run |
-| UT-DSK-003.019.M16.T01 | MD-DSK-003.006.M16 | Positive | Carry on after restart (SRD-DSK-003.019) | new router over a desk.db with a waiting step_done | chain goes on; finished employees not woken again | Not Run |
-| UT-DSK-003.019.M16.T02 | MD-DSK-003.006.M16 | Edge | Cut wake (SRD-DSK-003.019) | steps row running at restart | counts as failed try 1; retried after 5 minutes | Not Run |
-| UT-DSK-003.019.M16.T03 | MD-DSK-003.006.M16 | Negative | Expired chain (SRD-DSK-003.019) | restart after the trigger expired | step_done expired; nobody woken | Not Run |
-| UT-DSK-007.008.M21.T01 | MD-DSK-007.001.M21 | Positive | Partial alert (SRD-DSK-007.008) | step failed 3 times | one partial alert with name and last error; Telegram sent | Not Run |
-| UT-DSK-007.008.M21.T02 | MD-DSK-007.001.M21 | Negative | Once a day (SRD-DSK-007.008) | same step fails in 2 chains on one day | one alert | Not Run |
-| UT-DSK-007.008.M21.T03 | MD-DSK-007.001.M21 | Positive | Alert closes (SRD-DSK-007.008) | later event with note chain full | alert no longer open | Not Run |
+| UT-DSK-003.014.M15.T01 | MD-DSK-003.004.M15 | Positive | step_done stored (SRD-DSK-003.014) | post for a P1 trigger | row with parent, trigger's priority, day and expiry; waiting | Pass |
+| UT-DSK-003.014.M15.T02 | MD-DSK-003.004.M15 | Negative | Repeat ignored (SRD-DSK-003.014) | same trigger, employee and try twice | one row | Pass |
+| UT-DSK-003.014.M15.T03 | MD-DSK-003.004.M15 | Edge | Old desk.db (SRD-DSK-003.014) | events table without parent and due | columns added; old rows load | Pass |
+| UT-DSK-003.014.M15.T04 | MD-DSK-003.004.M15 | Negative | Tools cannot post it (SRD-DSK-003.014) | `post_event('step_done')` | ValueError; no row | Pass |
+| UT-DSK-003.014.M16.T01 | MD-DSK-003.006.M16 | Positive | One step_done per step (SRD-DSK-003.014) | chain of 3, all ok | 3 step_done rows with result ok | Pass |
+| UT-DSK-003.014.M10.T01 | MD-DSK-003.001.M10 | Positive | Wake result (SRD-DSK-003.014) | valid answer; stale facts; budget refused; no valid answer; exception | ok; slept; slept; failed; failed | Pass |
+| UT-DSK-003.015.M16.T01 | MD-DSK-003.006.M16 | Positive | Wake when need is done (SRD-DSK-003.015) | B needs A | B woken only after A's step_done ok | Pass |
+| UT-DSK-003.015.M16.T02 | MD-DSK-003.006.M16 | Positive | Wait for all needs (SRD-DSK-003.015) | C needs A and B | C woken once, after both | Pass |
+| UT-DSK-003.015.M16.T03 | MD-DSK-003.006.M16 | Edge | Need outside the chain (SRD-DSK-003.015) | B needs a skill nobody in the chain has | B runs at once | Pass |
+| UT-DSK-003.015.M16.T04 | MD-DSK-003.006.M16 | Negative | Need not done yet (SRD-DSK-003.015) | B needs A; A failed once and waits for its retry | B not woken | Pass |
+| UT-DSK-003.016.M16.T01 | MD-DSK-003.006.M16 | Positive | Retry after 5 minutes (SRD-DSK-003.016) | A fails once, then ok | not woken at +4 min; woken at +5 min; chain goes on | Pass |
+| UT-DSK-003.016.M16.T02 | MD-DSK-003.006.M16 | Negative | At most 2 retries (SRD-DSK-003.016) | A always fails | 3 wakes; step failed; no 4th wake | Pass |
+| UT-DSK-003.016.M16.T03 | MD-DSK-003.006.M16 | Edge | Retry skips wake rules (SRD-DSK-003.016) | A woke 5 minutes ago and failed | retry passes the 30-minute rule; wake gets retry True | Pass |
+| UT-DSK-003.016.M16.T04 | MD-DSK-003.006.M16 | Positive | Retry wakes the desk (SRD-DSK-003.016) | step_done due in 5 minutes | has_work False before due, True at due | Pass |
+| UT-DSK-003.017.M16.T01 | MD-DSK-003.006.M16 | Negative | Chain stops (SRD-DSK-003.017) | A fails 3 times; B needs A; C needs B | B and C skipped, not woken; one log line each | Pass |
+| UT-DSK-003.017.M16.T02 | MD-DSK-003.006.M16 | Positive | Other branch goes on (SRD-DSK-003.017) | A fails 3 times; D needs nothing | D still runs | Pass |
+| UT-DSK-003.018.M16.T01 | MD-DSK-003.006.M16 | Positive | Lead runs partial (SRD-DSK-003.018) | lead needs A and B; A fails 3 times | lead runs once after B; gets A's name as missing | Pass |
+| UT-DSK-003.018.M16.T02 | MD-DSK-003.006.M16 | Negative | Lead fails (SRD-DSK-003.018) | lead fails 3 times | no plan; alert for the lead | Pass |
+| UT-DSK-003.018.M16.T03 | MD-DSK-003.006.M16 | Edge | Full chain (SRD-DSK-003.018) | nothing fails | lead gets no missing names; trigger note chain full | Pass |
+| UT-DSK-003.018.M10.T01 | MD-DSK-003.001.M10 | Positive | Partial plan line (SRD-DSK-003.018) | wake with one missing name | each brief starts with the partial plan line naming it | Pass |
+| UT-DSK-003.019.M16.T01 | MD-DSK-003.006.M16 | Positive | Carry on after restart (SRD-DSK-003.019) | new router over a desk.db with a waiting step_done | chain goes on; finished employees not woken again | Pass |
+| UT-DSK-003.019.M16.T02 | MD-DSK-003.006.M16 | Edge | Cut wake (SRD-DSK-003.019) | steps row running at restart | counts as failed try 1; retried after 5 minutes | Pass |
+| UT-DSK-003.019.M16.T03 | MD-DSK-003.006.M16 | Negative | Expired chain (SRD-DSK-003.019) | restart after the trigger expired | step_done expired; nobody woken | Pass |
+| UT-DSK-007.008.M21.T01 | MD-DSK-007.001.M21 | Positive | Partial alert (SRD-DSK-007.008) | step failed 3 times | one partial alert with name and last error; Telegram sent | Pass |
+| UT-DSK-007.008.M21.T02 | MD-DSK-007.001.M21 | Negative | Once a day (SRD-DSK-007.008) | same step fails in 2 chains on one day | one alert | Pass |
+| UT-DSK-007.008.M21.T03 | MD-DSK-007.001.M21 | Positive | Alert closes (SRD-DSK-007.008) | later event with note chain full | alert no longer open | Pass |

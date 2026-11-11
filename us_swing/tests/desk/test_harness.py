@@ -19,6 +19,7 @@ from pydantic import BaseModel
 from us_swing.core.desk_agents import AgentContext, Facts, FeedItem
 from us_swing.core.desk_ai_settings import DeskAiSettings, load_settings, save_settings
 from us_swing.core.desk_contract import StepContext
+from us_swing.core.desk_events import Event
 from us_swing.core.desk_employee import migrate_all
 from us_swing.core.desk_steps import DEFAULT_EMPLOYEE_PACKAGES, SKILL_PATHS, STEP_PATHS, load_steps
 from us_swing.desk import gateway as gw
@@ -675,7 +676,8 @@ def test_step_posts_after_run(home: Path) -> None:
     """UT-DSK-003.001.M10.T04: A desk run with fresh facts posts one after_run, then it is done."""
     employee(home)
     _run(_step(FakeCaller(GOOD)), home)
-    assert _rows(home, "SELECT kind, state FROM events") == [("after_run", "done")]
+    assert _rows(home, "SELECT kind, state FROM events WHERE kind != 'step_done'") == [
+        ("after_run", "done")]
 
 
 def test_replay_is_not_a_wake(rec: Recorder) -> None:
@@ -692,3 +694,45 @@ def test_day_tries_ignore_replays(rec: Recorder) -> None:
     rec.add(replace(_attempt(cost=2.0), replay=1))
     assert rec.day_tries("2026-11-06", "t-1") == 1
     assert rec.month_cost("2026-11") == 2.0
+
+
+# ---------------- baton wake result (step B) ----------------
+
+TRIGGER = Event(1, "after_run", 1, "2026-11-05", "2026-11-06T17:30:00-05:00",
+                "2026-11-06T19:30:00-05:00", "2026-11-06T23:30:00-05:00")
+
+
+def _wake(home: Path, caller: FakeCaller, job_text: str | None = None,
+          missing: tuple[str, ...] = ()) -> str:
+    hire = load_employee(employee(home, job_text=job_text), SKILLS)
+    assert hire is not None
+    step = _step(caller)
+    return step._wake(hire, TRIGGER, 1, home, ON, False, missing)
+
+
+@pytest.mark.parametrize("case, want", [
+    ("valid", "ok"), ("stale", "slept"), ("refused", "slept"), ("invalid", "failed")])
+def test_wake_result(home: Path, case: str, want: str) -> None:
+    """UT-DSK-003.014.M10.T01: Valid ok; stale or budget refused slept; no valid answer failed."""
+    caller = FakeCaller(GOOD)
+    job_text = None
+    if case == "stale":
+        STATE.fresh = False
+    elif case == "invalid":
+        caller = FakeCaller(BAD, BAD, BAD, BAD)
+    elif case == "refused":
+        job_text = job().replace("calls_per_day: 3", "calls_per_day: 1")
+        rec = Recorder(home)
+        try:
+            for _ in range(4):
+                rec.add(_attempt())
+        finally:
+            rec.close()
+    assert _wake(home, caller, job_text) == want
+
+
+def test_partial_plan_line(home: Path) -> None:
+    """UT-DSK-003.018.M10.T01: With a missing name each brief starts with the partial line."""
+    assert _wake(home, FakeCaller(GOOD), missing=("Tester X",)) == "ok"
+    assert _rows(home, "SELECT text FROM briefs") == [
+        ("Partial plan: no view from Tester X.\nword calm",)]

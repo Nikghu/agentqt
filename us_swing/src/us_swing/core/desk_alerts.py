@@ -3,7 +3,8 @@ Module: MD-DSK-007.001.M21 — core/desk_alerts.py
 Parent SRD: SRD-DSK-007.001
 Also: SRD-DSK-007.002 (once a day), SRD-DSK-007.003 (Telegram), SRD-DSK-007.005 (whole run
 failed), SRD-DSK-007.006 (open alerts close when the source works again), SRD-DSK-007.007
-(candles not up to date, closed by a later ok run)
+(candles not up to date, closed by a later ok run), SRD-DSK-007.008 (desk plan is partial,
+closed by a later full chain)
 
 AI problem alerts: sorts an LLM error into a problem the user must fix (Claude login, OpenRouter
 key or credit), keeps one alert per problem per day in ``desk.db``, sends it to Telegram and
@@ -58,6 +59,9 @@ _FIX = {
                 "Open Settings → Candle data and press Update now with TWS connected. The desk "
                 "tries again after 15 minutes, up to 3 times a day; after that press Run now "
                 "in AI Desk."),
+    "partial": ("Desk plan is partial",
+                "Open AI Desk → Team at work → Event log to see the error; the next run tries "
+                "again."),
 }
 DATA_PROBLEMS = ("candles",)
 USER_PROBLEMS = ("login", "key", "credit")
@@ -109,7 +113,7 @@ def raise_alert(home: Path, kind: str, source: str, run_id: int, detail: str,
 
     Args:
         home: Desk folder.
-        kind: ``login``, ``key``, ``credit``, ``run_failed`` or ``candles``.
+        kind: ``login``, ``key``, ``credit``, ``run_failed``, ``candles`` or ``partial``.
         source: The model source (``claude``, ``openrouter``) or empty.
         run_id: Desk run that found the problem.
         detail: What happened, in a line.
@@ -177,7 +181,7 @@ def open_alerts(home: Path, now: datetime) -> list[Alert]:
 
     A login, key or credit alert closes once its source gives a valid answer later; a whole-run
     alert closes once any valid answer comes later; a candles alert closes once a later morning
-    or manual run ends ok.
+    or manual run ends ok; a partial alert closes once a later chain finishes in full.
     """
     since = (now - timedelta(hours=OPEN_HOURS)).astimezone(NY).isoformat(timespec="seconds")
     rows = _read(home, "SELECT id, created, kind, source, run_id, title, text, fix, sent "
@@ -196,6 +200,9 @@ def _fixed(home: Path, kind: str, source: str, when: datetime) -> bool:
     if kind in DATA_PROBLEMS:
         return bool(_read(home, "SELECT 1 FROM runs WHERE kind IN ('morning', 'manual') AND "
                                 "result = 'ok' AND started_at > ? LIMIT 1", (utc_text(when),)))
+    if kind == "partial":
+        return bool(_read(home, "SELECT 1 FROM events WHERE note = 'chain full' AND handled > ? "
+                                "LIMIT 1", (when.isoformat(timespec="seconds"),)))
     same = "AND source = ?" if kind in USER_PROBLEMS else ""
     params: tuple[object, ...] = (when.isoformat(timespec="seconds"), source) if same else (
         when.isoformat(timespec="seconds"),)
@@ -212,6 +219,14 @@ def run_outcome(home: Path, run_id: int) -> tuple[int, int, str]:
                        "ORDER BY id DESC LIMIT 1", (run_id,))
     calls, valid = (int(str(rows[0][0])), int(str(rows[0][1]))) if rows else (0, 0)
     return calls, valid, str(last[0][0]) if last else ""
+
+
+def last_error(home: Path, employee: str) -> str:
+    """The newest error an employee's LLM calls gave; empty when there is none."""
+    rows = _read(home, "SELECT error FROM activity WHERE employee = ? AND valid = 0 "
+                       "AND error != '' AND COALESCE(replay, 0) = 0 ORDER BY id DESC LIMIT 1",
+                 (employee,))
+    return str(rows[0][0]) if rows else ""
 
 
 def telegram_target(users_file: Path | None = None) -> tuple[str, str] | None:
