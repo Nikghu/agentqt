@@ -2,6 +2,17 @@
 
 ---
 
+## [20261111] MKT — Autonomous AI Desk step F skill 3: sentiment research (FO-MKT-017)
+
+- Type: Feature
+- FO(s): FO-MKT-017
+- RN: RN-MKT-0.19.0-20261111
+- Artifacts updated: SRD, DD, MD, UTCD, TRACE, CONTEXT, Code (market/sentiment, sentiment_news, sentiment_cards, lead_brief, employees/emp-015, SKILL_PATHS, USSwing.spec), Tests, RN, DEVLOG
+- Decisions: AI picks up to 30 stocks from latest listed and watch ideas and open trades; stored headlines first (7 days, at most 5 per stock); Yahoo fetch only for stocks with none in 3 days, 90 s budget, fetched ones stored; tone cards (supports, neutral, against, none) for the lead's plan prompt, scores never changed; gain = at least 1 stock against its side; steps pick (AI), gather (code), judge (AI); default employee emp-015 "Expert 12"; code review fix: weekend-ticket cards show to the lead, cards read problem gives empty block
+- Tests: 22 UT-MKT-017 cases Pass (tests/market/test_sentiment.py); market 486 pass, desk 347, core 276, AI Desk GUI 194; real-data read-only check: 22 choices, 54 headlines in 0.06 s, 9 stocks would be fetched
+
+---
+
 ## [20261111] MKT+DSK — Autonomous AI Desk step F skill 2: pick post-mortem research (FO-MKT-016, SRD-DSK-010.015)
 
 - Type: Feature
