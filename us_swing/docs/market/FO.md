@@ -401,7 +401,7 @@ The system shall give the desk an employee that works setup tuning tickets: it t
 
 ## FO-MKT-016: Pick Post-Mortem Research
 
-**Status:** Approved (approved by user 2026-11-11)
+**Status:** Implemented (approved by user 2026-11-11)
 **Priority:** Must
 **Phase:** Autonomous desk step F (skill 2 of 4)
 **Depends on:** FO-DSK-010 (research queue), FO-MKT-009 (pick results), FO-MKT-012 (lessons)

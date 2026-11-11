@@ -1262,7 +1262,7 @@ Record line: `2026-10-30|long|AAPL: Pullback, score 72, trigger 101.2, stop 98.4
 
 - Notes: kept when `pick` is a studied key; shown as `key: note` lines.
 - Lessons: `add_candidate(home, text, tags, claim, picks, now)` only when every proof pick is studied (stricter than the daily reflect step); `ValueError` drops the lesson.
-- Follow-ups: `raise_follow_ups(home, ticket.raised_by, asks, now, send)`; each note ("ticket 9 approved", "refused: …") goes into the result.
+- Follow-ups: asks of kind `post_mortem` are dropped (no post-mortem chains); the rest go to `raise_follow_ups(home, ticket.raised_by, asks, now, send)`; each note ("ticket 9 approved", "refused: …") goes into the result.
 - Result note: `Summary: …`, the pick notes, `Lessons kept: n`, the follow-up notes. Gain = lessons kept ≥ 1.
 
 ### 5. Follow-up tickets (SRD-DSK-010.015) — `core/desk_research.py`
