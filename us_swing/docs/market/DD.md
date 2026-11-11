@@ -1,11 +1,12 @@
 # Design Document — Market Analytics (MKT)
 
 **Document ID:** DD-MKT
-**Version:** 0.8.0
+**Version:** 0.9.0
 **Status:** Draft
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.20.0: DD-MKT-018.001.D01 added — book to strategy research (Autonomous desk step F (2026-11-11)).
 > v0.19.0: DD-MKT-017.001.D01 added — sentiment research (Autonomous desk step F (2026-11-11)).
 > v0.18.0: DD-MKT-016.001.D01 added — pick post-mortem research (Autonomous desk step F (2026-11-11)).
 > v0.17.0: DD-MKT-015.001.D01 added — setup tuning research (Autonomous desk step F (2026-11-11)).
@@ -1331,3 +1332,68 @@ Result note: `Summary: …`, then one line per card `side|symbol: tone, reason`.
 - `market/employees/emp-015/employee.md`: "Expert 12", title "Sentiment analyst", level expert, skill `sentiment`, trigger `research_done`; `facts()` never wakes it.
 - `SKILL_PATHS["sentiment"] = "us_swing.market.sentiment:SentimentSkill"`; `USSwing.spec` hidden import `us_swing.market.sentiment`.
 - Logs: "[Research] Ticket 11 will judge 12 stock(s)", "[Research] Ticket 11 gathered 31 headline(s), 4 stock(s) fetched", "[Research] Ticket 11 judged 12 stock(s), 2 against their side".
+
+## DD-MKT-018.001.D01 — Book to Strategy Research (Autonomous desk step F, skill 4)
+
+**Traces:** SRD-MKT-018.001–.012. Book tickets never auto-approve (SRD-DSK-010.003, `BOOK` in `core/desk_research.py`), so the runner only hands this skill tickets the Master approved: approval is the permission to read that one chapter.
+
+### 1. Steps of one ticket
+
+| Step | Kind | What happens | Note / call |
+|---|---|---|---|
+| 1 `read` | code | Parse the topic; refuse a chapter already read; load the text (§3); split chapters (§4); keep chapter text in state. | "Read chapter 2 of upload:my_book.txt (4,812 words)" / `read` |
+| 2 `card` | AI (1 call) + code | Facts: ticket goal, chapter text, rules. Answer `StrategyCard`. Code checks quotes, saves the card, marks the chapter read. Outcome `done`. | card text / `card` |
+
+`step_tokens = 9_000` (about 6,000 tokens of chapter plus the answer). A missing AI answer gives an empty note; the runner's stall rule ends the ticket after 2. State: `{"phase": "card", "source": "upload:my_book.txt", "chapter": 2, "title": "...", "text": "..."}`.
+
+### 2. Topic form (SRD-MKT-018.002)
+
+Regex, case-insensitive, whole topic: `^(upload):([^/\\:]+\.(txt|md|html?|pdf)) ch (\d{1,3})$` or `^(gutenberg):(\d{1,6}) ch (\d{1,3})$`. File names may not hold a path. Anything else → `failed` "Book tickets need the topic form upload:<file> ch <n> or gutenberg:<number> ch <n>", before any file or web read.
+
+### 3. Sources and readers (SRD-MKT-018.003, .004) — `market/book_text.py`
+
+- Books folder: `desk_home() / "books"` (created when missing; the owner copies files in).
+- `upload:<file>`: that file in the books folder; missing → `failed`.
+- `gutenberg:<n>`: the cached file `books/gutenberg-<n>.txt` if present; otherwise one GET of `https://www.gutenberg.org/cache/epub/<n>/pg<n>.txt` with `news.http_get` (10-second timeout), saved as that cache file. The Gutenberg header and licence footer (`*** START OF` … `*** END OF`) are cut off. A failed download → `failed`. No other URL is ever built.
+- Readers: `.txt`, `.md` read as UTF-8 (errors replaced); `.html`/`.htm` through `html.parser.HTMLParser` collecting text outside `script` and `style`; `.pdf` through `pypdf.PdfReader`, page texts joined. Any other type → `failed`.
+
+### 4. Chapters (SRD-MKT-018.005)
+
+Heading lines match `^\s*(chapter|chap\.)\s+([0-9]+|[ivxlcdm]+)\b` (case-insensitive) on their own line. With 2 or more headings, chapter n is the text from the n-th heading to the next one. With fewer, the text is cut into parts of 5,000 words and chapter n is part n. Text is cut to 24,000 characters. A chapter number beyond the last → `failed` "The book has only N chapter(s)".
+
+### 5. Cards and the read list (SRD-MKT-018.006, .008, .010) — `market/book_cards.py`
+
+```sql
+CREATE TABLE IF NOT EXISTS strategy_cards (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, source TEXT, chapter INTEGER, ticket_id INTEGER,
+    name TEXT, idea TEXT, market TEXT, entry TEXT, exit TEXT, stop TEXT, quotes TEXT,
+    made TEXT);
+CREATE TABLE IF NOT EXISTS books_read (
+    source TEXT, chapter INTEGER, card_id INTEGER, ticket_id INTEGER, made TEXT,
+    PRIMARY KEY (source, chapter));
+```
+
+- `already_read(home, source, chapter)` returns the earlier card id or `None`; the read step checks it first and ends `failed` "Chapter 2 of upload:my_book.txt was read by ticket 7; see card SC-3".
+- `save_card()` inserts the card and the `books_read` row in one transaction.
+- `books_block(home)`: header "Books you may propose (kind book_to_strategy; topic upload:<file> ch <n> or gutenberg:<number> ch <n>; public-domain Gutenberg books only):", then the uploaded file names (`.txt .md .html .htm .pdf`), then "Already read: …" — at most 15 lines; empty-folder text "No uploaded books yet". `lead_brief.facts()` adds it after the cards block; any error gives an empty block.
+
+### 6. Card answer (SRD-MKT-018.007–.009)
+
+```python
+class StrategyCard(BaseModel):    # extra="forbid"
+    name: str = Field(min_length=3, max_length=80)
+    idea: str = Field(min_length=10, max_length=300)
+    market: str = Field(max_length=300)
+    entry: str = Field(max_length=300)
+    exit: str = Field(max_length=300)
+    stop: str = Field(max_length=300)
+    quotes: list[str] = Field(min_length=1, max_length=3)   # each 10..200 characters
+```
+
+Quote check: whitespace collapsed, lower case, typographic quotes made plain, then a substring test against the chapter text; quotes not found are dropped. The card is saved even with no quote found (it still marks the chapter read), but then gain is no. Gain = entry, exit and stop each non-blank and at least one quote kept. Result note: `Card SC-<id>: <name>`, then `Idea / Market / Entry / Exit / Stop` lines and `Quotes kept: n of m`.
+
+### 7. Employee and wiring (SRD-MKT-018.011, .012)
+
+- `market/employees/emp-016/employee.md`: "Expert 13", title "Book analyst", level expert, skill `book_to_strategy`, trigger `research_done`; `facts()` never wakes it.
+- `SKILL_PATHS["book_to_strategy"] = "us_swing.market.book_strategy:BookStrategySkill"`; `USSwing.spec` hidden imports `us_swing.market.book_strategy` and `pypdf`; `pyproject.toml` gains `pypdf>=5.1`.
+- Logs: "[Research] Ticket 7 read chapter 2 of upload:my_book.txt (4,812 words)", "[Research] Ticket 7 saved card SC-3, 2 of 3 quotes found".

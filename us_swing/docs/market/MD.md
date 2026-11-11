@@ -1,11 +1,12 @@
 # Module Decomposition — Market Analytics (MKT)
 
 **Document ID:** MD-MKT
-**Version:** 0.8.0
+**Version:** 0.9.0
 **Status:** Draft
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.21.0: MD-MKT-018.001.M01, .002.M02, .006.M03 added — book to strategy research (step F); M08 lead_brief changed.
 > v0.20.0: MD-MKT-017.001.M01, .004.M02, .006.M03 added — sentiment research (step F); M08 lead_brief changed.
 > v0.19.0: MD-MKT-016.001.M01 and .004.M02 added — pick post-mortem research (step F).
 > v0.18.0: MD-MKT-015.001.M01, .002.M02, .004.M03, .005.M04 added — setup tuning research (step F).
@@ -238,3 +239,13 @@ SRD coverage: .001–.003, .006–.011 by M01; .004 and .005 by M02. Cross-tool:
 | MD-MKT-017.006.M03 | SRD-MKT-017.006 | `us_swing/src/us_swing/market/sentiment_cards.py` | `sentiment_cards` table, saving cards, the lead's cards block | `save_cards`, `cards_block` | `core.desk_contract` | No |
 
 SRD coverage: .001–.003, .005, .008–.010 by M01; .004 by M02; .006 and .007 by M03. Changed: `market/lead_brief.py` (MD-MKT-005.014.M08) adds `cards_block()` to its facts — SRD-MKT-017.007.
+
+## FO-MKT-018: Book to Strategy Research
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-MKT-018.001.M01 | SRD-MKT-018.001 | `us_swing/src/us_swing/market/book_strategy.py` | Research skill: read and card steps, quote check, result, gain, logs | `BookStrategySkill`, `StrategyCard` | `core.desk_research`, M02, M03 | No |
+| MD-MKT-018.002.M02 | SRD-MKT-018.002 | `us_swing/src/us_swing/market/book_text.py` | Topic form, books folder and Gutenberg source, readers, chapter split | `BookRef`, `parse_topic`, `load_text`, `chapter` | `market.news`, `pypdf` | No |
+| MD-MKT-018.006.M03 | SRD-MKT-018.006 | `us_swing/src/us_swing/market/book_cards.py` | `strategy_cards` and `books_read` tables, read check, lead books block | `already_read`, `save_card`, `books_block` | `core.desk_contract` | No |
+
+SRD coverage: .001, .007, .009, .011, .012 by M01; .002–.005 by M02; .006, .008, .010 by M03 (quote check in M01). Changed: `market/lead_brief.py` (MD-MKT-005.014.M08) adds `books_block()` — SRD-MKT-018.010.
