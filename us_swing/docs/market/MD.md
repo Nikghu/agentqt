@@ -1,11 +1,12 @@
 # Module Decomposition — Market Analytics (MKT)
 
 **Document ID:** MD-MKT
-**Version:** 0.6.0
+**Version:** 0.7.0
 **Status:** Draft
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.19.0: MD-MKT-016.001.M01 and .004.M02 added — pick post-mortem research (step F).
 > v0.18.0: MD-MKT-015.001.M01, .002.M02, .004.M03, .005.M04 added — setup tuning research (step F).
 > v0.17.0: MD-MKT-014.001.M01–M02 added — lead research tickets (step E).
 > v0.16.0: MD-MKT-013.*.M01–M04 added — intraday watchers and check-in notes (step D).
@@ -217,3 +218,12 @@ SRD coverage: 014.001, .004, .005 by M01 and M02; .002 and .003 are checked in `
 | MD-MKT-015.005.M04 | SRD-MKT-015.005 | `us_swing/src/us_swing/market/tuning_strategy.py` | Strategy knobs, renamed copies, backtest run, R per trade | `strategy_knobs`, `apply_changes`, `stop_problem`, `pick_stocks`, `run_strategy` | `backtest` (loaded in the run), `core.backtest_bridge` | No |
 
 SRD coverage: .001, .003, .008–.012 by M01; .002 by M02 (read by `market/setups.py`, MD-MKT-003.003.M03); .004, .006, .007 by M03; .005 by M04 (rows by M03 `Row`). Cross-tool: M04 runs the BKT engine through its public service; no BKT file changes.
+
+## FO-MKT-016: Pick Post-Mortem Research
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-MKT-016.001.M01 | SRD-MKT-016.001 | `us_swing/src/us_swing/market/post_mortem.py` | Research skill: pick, gather and study steps, lessons, follow-ups, logs | `PostMortemSkill`, `PickChoice`, `PostMortem` | `core.desk_research`, `core.desk_lessons`, `market.lesson_reflect`, M02 | No |
+| MD-MKT-016.004.M02 | SRD-MKT-016.004 | `us_swing/src/us_swing/market/post_mortem_facts.py` | Stored facts per pick, daily bars from Backtest Data then candles.db, price path | `pick_records`, `pick_bars`, `path_line` | `market.proof_data`, `market.candles` | No |
+
+SRD coverage: .001–.003, .006–.011 by M01; .004 and .005 by M02. Cross-tool: M01 calls DSK `raise_follow_ups()` (MD-DSK-010.001.M25, SRD-DSK-010.015).

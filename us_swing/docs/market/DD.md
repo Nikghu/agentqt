@@ -1,11 +1,12 @@
 # Design Document — Market Analytics (MKT)
 
 **Document ID:** DD-MKT
-**Version:** 0.6.0
+**Version:** 0.7.0
 **Status:** Draft
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.18.0: DD-MKT-016.001.D01 added — pick post-mortem research (Autonomous desk step F (2026-11-11)).
 > v0.17.0: DD-MKT-015.001.D01 added — setup tuning research (Autonomous desk step F (2026-11-11)).
 > v0.16.0: DD-MKT-014.001.D01 added — lead research tickets (Autonomous desk step E (2026-11-11)).
 > v0.15.0: DD-MKT-013.001.D01 added — intraday watchers and check-in notes (Autonomous desk step D (2026-11-11)).
@@ -1214,3 +1215,62 @@ Lesson (desk-setup gain only): `add_candidate(home, text, {"setup": target, "sid
 - `market/employees/emp-013/employee.md`: name "Expert 10" (generic Level N rule of UT-MKT-005.017; SRD cell says "Researcher 1"), title "Research analyst", level expert, `reports_to: null`, skill `setup_tuning`, trigger `research_done` (the trigger list may not be empty; `facts()` always says it works research tickets only, so the event only gives one sleep log line).
 - `SKILL_PATHS["setup_tuning"] = "us_swing.market.setup_tuning:SetupTuningSkill"`; the `USSwing.spec` hidden imports gain `us_swing.market.setup_tuning` (it imports the other three).
 - Logs (`[Research]`): "Ticket 12 will test 3 variant(s) of Pullback", "Ticket 12 Pullback v1: 1,180 trades, +0.15R", "Ticket 12 Pullback found a gain: v1 +0.07R" or "found no gain".
+
+## DD-MKT-016.001.D01 — Pick Post-Mortem Research (Autonomous desk step F, skill 2)
+
+**Traces:** SRD-MKT-016.001–.011 and SRD-DSK-010.015. Runner, caps, stalls and pauses stay in DSK (DD-DSK-010.001.D01).
+
+### 1. Steps of one ticket
+
+| Step | Kind | What happens | Note / call |
+|---|---|---|---|
+| 1 `pick` | AI (1 call) | Facts: ticket topic, goal, done test; closed lead picks of the last 30 days (newest first, at most 120) as `key: tags, R`. Answer `PickChoice`. Code keeps known keys with the right sign of R. | "Chose 4 loser(s) and 2 winner(s)" / `pick` |
+| 2 `gather` | code | One record per chosen pick: stored facts and price path. | "Gathered 6 pick(s), 1 with no bars" / `gather` |
+| 3 `study` | AI (1 call) + code | Facts: the records, active lessons, rules. Answer `PostMortem`. Code keeps notes for studied picks, saves lessons whose proof picks are all studied, raises follow-ups for the ticket's lead. Outcome `done`. | notes + summary / `study` |
+
+`step_tokens = 6_000`. A missing AI answer returns an empty note; the runner's stall rule ends the ticket after 2 such steps. Fewer than 2 losers after the code check ends `failed`. State: `{"phase": "gather" | "study", "losers": [...], "winners": [...], "records": [...]}`.
+
+### 2. Answer forms
+
+```python
+class PickChoice(BaseModel):          # extra="forbid"
+    losers: list[str] = Field(min_length=1, max_length=10)   # keys date|side|symbol
+    winners: list[str] = Field(default_factory=list, max_length=5)
+class PickNote(BaseModel):
+    pick: str = Field(min_length=5, max_length=40)
+    note: str = Field(min_length=3, max_length=150)
+class PostMortem(BaseModel):
+    notes: list[PickNote] = Field(default_factory=list, max_length=15)
+    lessons: list[Candidate] = Field(default_factory=list, max_length=3)   # lesson_reflect.Candidate
+    follow_ups: list[TicketAsk] = Field(default_factory=list, max_length=2)
+    summary: str = Field(min_length=10, max_length=600)
+```
+
+Pick list source: `desk_lessons.cases()` (closed lead picks with setup, regime, sector, grade, tone tags and R), days on or after today − 30.
+
+### 3. Records (SRD-MKT-016.004, .005) — `market/post_mortem_facts.py`
+
+Facts per key from `desk.db`, each table read only when it exists: `ideas` (score, setup, trigger, stop), `idea_reasons` (first 2), `setup_review` (grade, note), `risk_check` (verdict, reason), `lead_picks` (reason), `news_tags` (tone), `regime_snapshot` (regime), `pick_results` (status, entry and exit day, R). Text pieces are cut to 120 characters.
+
+Bars: `pick_bars(symbols)` reads Backtest Data (`proof_data.read_daily`, with opens) for the picks plus SPY, then `CandleReader(candles.db).read()` for the same symbols; `combine_first` keeps Backtest Data and fills only missing days. Both indexes are made time-zone free.
+
+Path (from the first bar after the data day to the exit day, or 15 bars when open): risk = |trigger − stop|; entry gap = entry-day open vs trigger in % (blank when no open); best = most favourable high (long) or low (short) vs trigger in R; worst = the opposite extreme in R; SPY = close on the last path day vs close on the data day in %. A pick with no bars gets "no bars".
+
+Record line: `2026-10-30|long|AAPL: Pullback, score 72, trigger 101.2, stop 98.4; grade B (note); risk ok; tone positive; regime bull; idea: …; lead: …; result stop -1.00R (in 11-02, out 11-05); path gap +0.3%, best +0.6R, worst -1.1R, SPY -1.2%`.
+
+### 4. Study (SRD-MKT-016.006–.009)
+
+- Notes: kept when `pick` is a studied key; shown as `key: note` lines.
+- Lessons: `add_candidate(home, text, tags, claim, picks, now)` only when every proof pick is studied (stricter than the daily reflect step); `ValueError` drops the lesson.
+- Follow-ups: `raise_follow_ups(home, ticket.raised_by, asks, now, send)`; each note ("ticket 9 approved", "refused: …") goes into the result.
+- Result note: `Summary: …`, the pick notes, `Lessons kept: n`, the follow-up notes. Gain = lessons kept ≥ 1.
+
+### 5. Follow-up tickets (SRD-DSK-010.015) — `core/desk_research.py`
+
+`raise_follow_ups(home, lead_id, asks, now, send=None)`: finds the employee file whose id is `lead_id`; if it is not an active lead, every ask is refused ("the raising lead is no longer an active lead"). Otherwise each ask goes through the same `_raise_one()` as `raise_tickets()`, so the 3-a-day limit, repeat rule, parked topics, auto approval and waiting alert all apply to that lead. The doer's id is never used as raiser.
+
+### 6. Employee and wiring (SRD-MKT-016.010, .011)
+
+- `market/employees/emp-014/employee.md`: "Expert 11", title "Post-mortem analyst", level expert, skill `post_mortem`, trigger `research_done`; `facts()` never wakes it.
+- `SKILL_PATHS["post_mortem"] = "us_swing.market.post_mortem:PostMortemSkill"`; `USSwing.spec` hidden import `us_swing.market.post_mortem`.
+- Logs: "[Research] Ticket 9 will study 4 loser(s) and 2 winner(s)", "[Research] Ticket 9 gathered 6 pick(s)", "[Research] Ticket 9 kept 1 lesson(s), raised 1 follow-up ticket(s)".
