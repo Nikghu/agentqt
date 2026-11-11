@@ -451,7 +451,7 @@ The system shall give the desk an employee that works sentiment tickets: it judg
 
 ## FO-MKT-018: Book to Strategy Research
 
-**Status:** Approved (approved by user 2026-11-11)
+**Status:** Implemented (approved by user 2026-11-11)
 **Priority:** Must
 **Phase:** Autonomous desk step F (skill 4 of 4)
 **Depends on:** FO-DSK-010 (research queue; book tickets never auto-approve), FO-MKT-005 (lead plan), FO-MKT-014 (lead tickets)

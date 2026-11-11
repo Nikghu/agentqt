@@ -1357,6 +1357,8 @@ Regex, case-insensitive, whole topic: `^(upload):([^/\\:]+\.(txt|md|html?|pdf)) 
 - `gutenberg:<n>`: the cached file `books/gutenberg-<n>.txt` if present; otherwise one GET of `https://www.gutenberg.org/cache/epub/<n>/pg<n>.txt` with `news.http_get` (10-second timeout), saved as that cache file. The Gutenberg header and licence footer (`*** START OF` … `*** END OF`) are cut off. A failed download → `failed`. No other URL is ever built.
 - Readers: `.txt`, `.md` read as UTF-8 (errors replaced); `.html`/`.htm` through `html.parser.HTMLParser` collecting text outside `script` and `style`; `.pdf` through `pypdf.PdfReader`, page texts joined. Any other type → `failed`.
 
+**Safety limits (code review 2026-11-11):** files over 20 MB and PDFs over 500 pages are refused before reading; the Gutenberg download is streamed with a 20 MB cap and refused if any redirect leaves gutenberg.org; the cache is written to a temp file and swapped in, and an empty body is refused; heading match uses `^[ 	]*` (no slow match on blank runs); heading sections under 100 words (a table of contents) are left out; the read list key is the source in lower case; `INSERT OR IGNORE` keeps the first read record; the done state drops the chapter text.
+
 ### 4. Chapters (SRD-MKT-018.005)
 
 Heading lines match `^\s*(chapter|chap\.)\s+([0-9]+|[ivxlcdm]+)\b` (case-insensitive) on their own line. With 2 or more headings, chapter n is the text from the n-th heading to the next one. With fewer, the text is cut into parts of 5,000 words and chapter n is part n. Text is cut to 24,000 characters. A chapter number beyond the last → `failed` "The book has only N chapter(s)".

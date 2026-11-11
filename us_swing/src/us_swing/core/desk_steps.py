@@ -54,6 +54,7 @@ SKILL_PATHS: dict[str, str] = {
     "setup_tuning": "us_swing.market.setup_tuning:SetupTuningSkill",
     "post_mortem": "us_swing.market.post_mortem:PostMortemSkill",
     "sentiment": "us_swing.market.sentiment:SentimentSkill",
+    "book_to_strategy": "us_swing.market.book_strategy:BookStrategySkill",
 }
 # Packages whose ``employees/`` folder holds default employee files to copy on first run.
 DEFAULT_EMPLOYEE_PACKAGES: tuple[str, ...] = ("us_swing.market",)

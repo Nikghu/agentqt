@@ -1,11 +1,12 @@
 # Unit Test Cases — Market Analytics (MKT)
 
 **Document ID:** UTCD-MKT
-**Version:** 0.9.0
+**Version:** 0.9.1
 **Status:** Draft
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.21.1: Step F book cases Pass (23, 2026-11-11).
 > v0.21.0: UT-MKT-018.* added (23, Not Run) — book to strategy research (step F).
 > v0.20.1: Step F sentiment cases Pass (22, 2026-11-11).
 > v0.20.0: UT-MKT-017.* added (22, Not Run) — sentiment research (step F).
@@ -587,26 +588,26 @@
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
 |---|---|---|---|---|---|---|
-| UT-MKT-018.001.M01.T01 | MD-MKT-018.001.M01 | Positive | Two steps (SRD-MKT-018.001) | upload ticket, fake card answer | calls read, card; outcome done | Not Run |
-| UT-MKT-018.001.M01.T02 | MD-MKT-018.001.M01 | Negative | No answer (SRD-MKT-018.001) | ask returns None at card | empty note; outcome go | Not Run |
-| UT-MKT-018.002.M02.T01 | MD-MKT-018.002.M02 | Positive | Topic forms (SRD-MKT-018.002) | `upload:My Book.pdf ch 3`, `gutenberg:12345 ch 1` | both parsed with source and chapter | Not Run |
-| UT-MKT-018.002.M02.T02 | MD-MKT-018.002.M02 | Negative | Bad topics (SRD-MKT-018.002) | `https://x.com/b.pdf ch 1`, `upload:../a.txt ch 1`, `upload:a.exe ch 1`, `Read chapter 2` | none parsed; ticket failed with no read | Not Run |
-| UT-MKT-018.003.M02.T01 | MD-MKT-018.002.M02 | Positive | Gutenberg once (SRD-MKT-018.003) | fake getter; two loads of the same number | one GET to the gutenberg.org URL; cache file kept; header and footer cut | Not Run |
-| UT-MKT-018.003.M02.T02 | MD-MKT-018.002.M02 | Negative | Missing or failed (SRD-MKT-018.003) | upload file not in folder; getter raises | `failed` both; no other URL called | Not Run |
-| UT-MKT-018.004.M02.T01 | MD-MKT-018.002.M02 | Positive | Readers (SRD-MKT-018.004) | `.txt`, `.md`, `.html` with a script tag, a small `.pdf` | plain text of each; script text left out | Not Run |
-| UT-MKT-018.004.M02.T02 | MD-MKT-018.002.M02 | Negative | Bad PDF (SRD-MKT-018.004) | file named `.pdf` that is not a PDF | `failed`; no error raised | Not Run |
-| UT-MKT-018.005.M02.T01 | MD-MKT-018.002.M02 | Positive | Headings (SRD-MKT-018.005) | text with CHAPTER I, CHAPTER II, CHAPTER III | chapter 2 is the middle part | Not Run |
-| UT-MKT-018.005.M02.T02 | MD-MKT-018.002.M02 | Edge | No headings, cut (SRD-MKT-018.005) | 12,000 words with no heading; very long chapter | 3 parts of up to 5,000 words; text cut to 24,000 characters | Not Run |
-| UT-MKT-018.005.M02.T03 | MD-MKT-018.002.M02 | Negative | Missing chapter (SRD-MKT-018.005) | chapter 9 of a 3-chapter book | `failed` naming the chapter count | Not Run |
-| UT-MKT-018.006.M03.T01 | MD-MKT-018.006.M03 | Negative | Never re-read (SRD-MKT-018.006) | second ticket for a read chapter | `failed` naming the card; file not opened | Not Run |
-| UT-MKT-018.006.M03.T02 | MD-MKT-018.006.M03 | Positive | Other chapter allowed (SRD-MKT-018.006) | chapter 2 read; ticket for chapter 3 | read goes ahead | Not Run |
-| UT-MKT-018.007.M01.T01 | MD-MKT-018.001.M01 | Negative | Answer limits (SRD-MKT-018.007) | 4 quotes; entry of 301 characters; no quote | answer not valid | Not Run |
-| UT-MKT-018.008.M01.T01 | MD-MKT-018.001.M01 | Positive | Quotes checked (SRD-MKT-018.008) | 3 quotes, one with other spacing and curly quotes, one made up | 2 kept; card row and books_read row saved | Not Run |
-| UT-MKT-018.008.M01.T02 | MD-MKT-018.001.M01 | Negative | No quote found (SRD-MKT-018.008) | only made-up quotes | card saved with no quotes; chapter marked read | Not Run |
-| UT-MKT-018.009.M01.T01 | MD-MKT-018.001.M01 | Positive | Gain yes (SRD-MKT-018.009) | entry, exit, stop and a found quote | gain True; result holds the card | Not Run |
-| UT-MKT-018.009.M01.T02 | MD-MKT-018.001.M01 | Negative | Gain no (SRD-MKT-018.009) | blank stop | gain False; outcome done | Not Run |
-| UT-MKT-018.010.M03.T01 | MD-MKT-018.006.M03 | Positive | Lead books block (SRD-MKT-018.010) | 2 uploads, 1 chapter read; lead facts | block lists both files, the topic form and the read chapter | Not Run |
-| UT-MKT-018.010.M03.T02 | MD-MKT-018.006.M03 | Negative | Empty and limits (SRD-MKT-018.010) | no books folder; 20 uploads | "No uploaded books yet"; at most 15 lines | Not Run |
-| UT-MKT-018.011.M01.T01 | MD-MKT-018.001.M01 | Positive | Default employee (SRD-MKT-018.011) | shipped emp-016 file, `SKILL_PATHS` | valid file, skill `book_to_strategy`, path loads | Not Run |
-| UT-MKT-018.011.M01.T02 | MD-MKT-018.001.M01 | Negative | Never wakes (SRD-MKT-018.011) | `facts()` on an event | not fresh; `act` returns no items | Not Run |
-| UT-MKT-018.012.M01.T01 | MD-MKT-018.001.M01 | Positive | Logs (SRD-MKT-018.012) | full ticket | `[Research]` lines with book, chapter, words and quotes kept | Not Run |
+| UT-MKT-018.001.M01.T01 | MD-MKT-018.001.M01 | Positive | Two steps (SRD-MKT-018.001) | upload ticket, fake card answer | calls read, card; outcome done | Pass |
+| UT-MKT-018.001.M01.T02 | MD-MKT-018.001.M01 | Negative | No answer (SRD-MKT-018.001) | ask returns None at card | empty note; outcome go | Pass |
+| UT-MKT-018.002.M02.T01 | MD-MKT-018.002.M02 | Positive | Topic forms (SRD-MKT-018.002) | `upload:My Book.pdf ch 3`, `gutenberg:12345 ch 1` | both parsed with source and chapter | Pass |
+| UT-MKT-018.002.M02.T02 | MD-MKT-018.002.M02 | Negative | Bad topics (SRD-MKT-018.002) | `https://x.com/b.pdf ch 1`, `upload:../a.txt ch 1`, `upload:a.exe ch 1`, `Read chapter 2` | none parsed; ticket failed with no read | Pass |
+| UT-MKT-018.003.M02.T01 | MD-MKT-018.002.M02 | Positive | Gutenberg once (SRD-MKT-018.003) | fake getter; two loads of the same number | one GET to the gutenberg.org URL; cache file kept; header and footer cut | Pass |
+| UT-MKT-018.003.M02.T02 | MD-MKT-018.002.M02 | Negative | Missing or failed (SRD-MKT-018.003) | upload file not in folder; getter raises | `failed` both; no other URL called | Pass |
+| UT-MKT-018.004.M02.T01 | MD-MKT-018.002.M02 | Positive | Readers (SRD-MKT-018.004) | `.txt`, `.md`, `.html` with a script tag, a small `.pdf` | plain text of each; script text left out | Pass |
+| UT-MKT-018.004.M02.T02 | MD-MKT-018.002.M02 | Negative | Bad PDF (SRD-MKT-018.004) | file named `.pdf` that is not a PDF | `failed`; no error raised | Pass |
+| UT-MKT-018.005.M02.T01 | MD-MKT-018.002.M02 | Positive | Headings (SRD-MKT-018.005) | text with CHAPTER I, CHAPTER II, CHAPTER III | chapter 2 is the middle part | Pass |
+| UT-MKT-018.005.M02.T02 | MD-MKT-018.002.M02 | Edge | No headings, cut (SRD-MKT-018.005) | 12,000 words with no heading; very long chapter | 3 parts of up to 5,000 words; text cut to 24,000 characters | Pass |
+| UT-MKT-018.005.M02.T03 | MD-MKT-018.002.M02 | Negative | Missing chapter (SRD-MKT-018.005) | chapter 9 of a 3-chapter book | `failed` naming the chapter count | Pass |
+| UT-MKT-018.006.M03.T01 | MD-MKT-018.006.M03 | Negative | Never re-read (SRD-MKT-018.006) | second ticket for a read chapter | `failed` naming the card; file not opened | Pass |
+| UT-MKT-018.006.M03.T02 | MD-MKT-018.006.M03 | Positive | Other chapter allowed (SRD-MKT-018.006) | chapter 2 read; ticket for chapter 3 | read goes ahead | Pass |
+| UT-MKT-018.007.M01.T01 | MD-MKT-018.001.M01 | Negative | Answer limits (SRD-MKT-018.007) | 4 quotes; entry of 301 characters; no quote | answer not valid | Pass |
+| UT-MKT-018.008.M01.T01 | MD-MKT-018.001.M01 | Positive | Quotes checked (SRD-MKT-018.008) | 3 quotes, one with other spacing and curly quotes, one made up | 2 kept; card row and books_read row saved | Pass |
+| UT-MKT-018.008.M01.T02 | MD-MKT-018.001.M01 | Negative | No quote found (SRD-MKT-018.008) | only made-up quotes | card saved with no quotes; chapter marked read | Pass |
+| UT-MKT-018.009.M01.T01 | MD-MKT-018.001.M01 | Positive | Gain yes (SRD-MKT-018.009) | entry, exit, stop and a found quote | gain True; result holds the card | Pass |
+| UT-MKT-018.009.M01.T02 | MD-MKT-018.001.M01 | Negative | Gain no (SRD-MKT-018.009) | blank stop | gain False; outcome done | Pass |
+| UT-MKT-018.010.M03.T01 | MD-MKT-018.006.M03 | Positive | Lead books block (SRD-MKT-018.010) | 2 uploads, 1 chapter read; lead facts | block lists both files, the topic form and the read chapter | Pass |
+| UT-MKT-018.010.M03.T02 | MD-MKT-018.006.M03 | Negative | Empty and limits (SRD-MKT-018.010) | no books folder; 20 uploads | "No uploaded books yet"; at most 15 lines | Pass |
+| UT-MKT-018.011.M01.T01 | MD-MKT-018.001.M01 | Positive | Default employee (SRD-MKT-018.011) | shipped emp-016 file, `SKILL_PATHS` | valid file, skill `book_to_strategy`, path loads | Pass |
+| UT-MKT-018.011.M01.T02 | MD-MKT-018.001.M01 | Negative | Never wakes (SRD-MKT-018.011) | `facts()` on an event | not fresh; `act` returns no items | Pass |
+| UT-MKT-018.012.M01.T01 | MD-MKT-018.001.M01 | Positive | Logs (SRD-MKT-018.012) | full ticket | `[Research]` lines with book, chapter, words and quotes kept | Pass |

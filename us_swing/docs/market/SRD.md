@@ -1,11 +1,12 @@
 # Software Requirements — Market Analytics (MKT)
 
 **Document ID:** SRD-MKT
-**Version:** 0.13.1
+**Version:** 0.13.2
 **Status:** Draft
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.21.2: Step F book rows Implemented (12, 2026-11-11).
 > v0.21.1: SRD-MKT-018.001–.012 approved by user 2026-11-11.
 > v0.21.0: Autonomous desk step F (user, 2026-11-11): SRD-MKT-018.001–.012 added as Draft — book to strategy research.
 > v0.20.2: Step F sentiment rows Implemented (10, 2026-11-11).
@@ -317,15 +318,15 @@
 
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
-| SRD-MKT-018.001 | FO-MKT-018 | Must | The book skill (`book_to_strategy`) works `book_to_strategy` tickets in two steps: read (code) and card (one AI call). | ticket | steps | The runner only gives it approved tickets | Approved |
-| SRD-MKT-018.002 | FO-MKT-018 | Must | The ticket topic names the source and chapter as `upload:<file> ch <n>` or `gutenberg:<number> ch <n>`; any other topic ends the ticket `failed`. | topic | source, chapter | Checked before any file or web read | Approved |
-| SRD-MKT-018.003 | FO-MKT-018 | Must | Book text comes only from the desk `books` folder or from the Project Gutenberg plain-text file of that number. | source | text | No other site; a Gutenberg file is downloaded once and kept in the books folder | Approved |
-| SRD-MKT-018.004 | FO-MKT-018 | Must | The reader takes `.txt`, `.md`, `.html` and `.pdf` files. | file | plain text | PDF through `pypdf`; other types end `failed` | Approved |
-| SRD-MKT-018.005 | FO-MKT-018 | Must | Chapters are split at chapter headings, or into 5,000-word parts when the book has none. | text | chapter text | Cut to 24,000 characters; a missing chapter ends `failed` | Approved |
-| SRD-MKT-018.006 | FO-MKT-018 | Must | A chapter already read is never read again; its ticket ends `failed` and names the earlier card. | `books_read` | refusal | Checked before reading | Approved |
-| SRD-MKT-018.007 | FO-MKT-018 | Must | The card step makes one AI call that returns a name, idea, market, entry, exit, stop and 1 to 3 short quotes. | chapter text | answer | Each field at most 300 characters; each quote at most 200 | Approved |
-| SRD-MKT-018.008 | FO-MKT-018 | Must | Code keeps only quotes found in the chapter text and saves the card in `strategy_cards` with book, chapter and ticket id. | answer | card row | The chapter is marked read in `books_read` | Approved |
-| SRD-MKT-018.009 | FO-MKT-018 | Must | The ticket ends `done` with the card in its result, and gain is yes only when entry, exit and stop are filled and at least one quote was found. | card | result, gain | — | Approved |
-| SRD-MKT-018.010 | FO-MKT-018 | Must | The lead plan facts list the uploaded books, the topic form for book tickets and the chapters already read. | books folder, `books_read` | prompt text | At most 15 lines | Approved |
-| SRD-MKT-018.011 | FO-MKT-018 | Must | Default employee ships as `emp-016` ("Expert 13", skill `book_to_strategy`) and its skill path is in `SKILL_PATHS` and the app build. | default files | employee | Copied only when missing; generic name | Approved |
-| SRD-MKT-018.012 | FO-MKT-018 | Should | Each step logs the book, chapter, word count and quotes kept. | step | log line | `[Research]` prefix | Approved |
+| SRD-MKT-018.001 | FO-MKT-018 | Must | The book skill (`book_to_strategy`) works `book_to_strategy` tickets in two steps: read (code) and card (one AI call). | ticket | steps | The runner only gives it approved tickets | Implemented |
+| SRD-MKT-018.002 | FO-MKT-018 | Must | The ticket topic names the source and chapter as `upload:<file> ch <n>` or `gutenberg:<number> ch <n>`; any other topic ends the ticket `failed`. | topic | source, chapter | Checked before any file or web read | Implemented |
+| SRD-MKT-018.003 | FO-MKT-018 | Must | Book text comes only from the desk `books` folder or from the Project Gutenberg plain-text file of that number. | source | text | No other site; a Gutenberg file is downloaded once and kept in the books folder | Implemented |
+| SRD-MKT-018.004 | FO-MKT-018 | Must | The reader takes `.txt`, `.md`, `.html` and `.pdf` files. | file | plain text | PDF through `pypdf`; other types end `failed` | Implemented |
+| SRD-MKT-018.005 | FO-MKT-018 | Must | Chapters are split at chapter headings, or into 5,000-word parts when the book has none. | text | chapter text | Cut to 24,000 characters; a missing chapter ends `failed` | Implemented |
+| SRD-MKT-018.006 | FO-MKT-018 | Must | A chapter already read is never read again; its ticket ends `failed` and names the earlier card. | `books_read` | refusal | Checked before reading | Implemented |
+| SRD-MKT-018.007 | FO-MKT-018 | Must | The card step makes one AI call that returns a name, idea, market, entry, exit, stop and 1 to 3 short quotes. | chapter text | answer | Each field at most 300 characters; each quote at most 200 | Implemented |
+| SRD-MKT-018.008 | FO-MKT-018 | Must | Code keeps only quotes found in the chapter text and saves the card in `strategy_cards` with book, chapter and ticket id. | answer | card row | The chapter is marked read in `books_read` | Implemented |
+| SRD-MKT-018.009 | FO-MKT-018 | Must | The ticket ends `done` with the card in its result, and gain is yes only when entry, exit and stop are filled and at least one quote was found. | card | result, gain | — | Implemented |
+| SRD-MKT-018.010 | FO-MKT-018 | Must | The lead plan facts list the uploaded books, the topic form for book tickets and the chapters already read. | books folder, `books_read` | prompt text | At most 15 lines | Implemented |
+| SRD-MKT-018.011 | FO-MKT-018 | Must | Default employee ships as `emp-016` ("Expert 13", skill `book_to_strategy`) and its skill path is in `SKILL_PATHS` and the app build. | default files | employee | Copied only when missing; generic name | Implemented |
+| SRD-MKT-018.012 | FO-MKT-018 | Should | Each step logs the book, chapter, word count and quotes kept. | step | log line | `[Research]` prefix | Implemented |
