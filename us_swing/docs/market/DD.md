@@ -1,11 +1,12 @@
 # Design Document — Market Analytics (MKT)
 
 **Document ID:** DD-MKT
-**Version:** 0.5.0
+**Version:** 0.6.0
 **Status:** Draft
-**Last Updated:** 2026-11-06
+**Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.17.0: DD-MKT-015.001.D01 added — setup tuning research (Autonomous desk step F (2026-11-11)).
 > v0.16.0: DD-MKT-014.001.D01 added — lead research tickets (Autonomous desk step E (2026-11-11)).
 > v0.15.0: DD-MKT-013.001.D01 added — intraday watchers and check-in notes (Autonomous desk step D (2026-11-11)).
 > v0.14.0: DD-MKT-012.001.D01 added — learning from pick results (Autonomous desk step C (2026-11-11)).
@@ -1114,3 +1115,102 @@ The error fails the run before any AI step; the desk retries per SRD-DSK-001.015
 ## DD-MKT-014.001.D01 — Lead Research Tickets (Autonomous desk step E)
 
 **Traces:** SRD-MKT-014.001–.005. Full design (ticket form, rules, research block) is in DSK DD-DSK-010.001.D01. MKT owns the `tickets` field of `LeadBrief` and `CheckinNote`, the `with_research()` wrap in both skills' facts and the `raise_tickets()` call in both skills' `act`.
+
+## DD-MKT-015.001.D01 — Setup Tuning Research (Autonomous desk step F, skill 1)
+
+**Traces:** SRD-MKT-015.001–.012. Runner, caps, stalls, pauses and `research_done` stay in DSK (DD-DSK-010.001.D01); this skill only implements `ResearchSkill.step`.
+
+### 1. Steps of one ticket
+
+The runner does one `step()` per desk tick, so a ticket runs as a short chain and a watcher flag can pause it between any two steps. The plan lives in `ticket.state` (JSON).
+
+| Step | Kind | What happens | Note / call |
+|---|---|---|---|
+| 1 `pick` | AI (1 call) | Facts: ticket topic, goal, done test; the 6 desk setups with knobs (default, low, high); live strategies with a fixed stop and their numeric values. Answer `TuningPlan`. Code checks the target and drops bad changes. | "Picked 3 variant(s) for Pullback" / `pick` |
+| 2 `run base` | code | Baseline (default values, or the live strategy as it is). | "Baseline: 1,204 trades, win 47%, +0.08R" / `run base` |
+| 3..5 `run v1..v3` | code | One variant per step. | same form / `run v1` |
+| last `verdict` | AI (1 call) + code | Code computes the gain; AI reads the table and writes `TuningVerdict`. A desk-setup gain writes the candidate lesson. Outcome `done`. | verdict text / `verdict` |
+
+Worst case 6 steps, inside the default step cap of 8. Code steps spend no tokens. `step_tokens = 3_000` (one AI step). A failed AI answer returns an empty note; the runner's stall rule ends the ticket after 2 such steps.
+
+State:
+
+```json
+{"phase": "run", "target": "Pullback", "kind": "setup", "side": "long",
+ "variants": [{"label": "v1", "changes": {"near_sma": 1.01}}],
+ "stocks": [], "rows": [{"label": "base", "changes": {}, "trades": 1204,
+ "win": 0.47, "exp_r": 0.08}]}
+```
+
+Ends `failed` (SRD-MKT-015.001/.003/.005): target is not a desk setup or a live strategy; no valid variant left; strategy with no fixed stop; strategy with no stocks; backtest estimate errors; no data at all.
+
+### 2. Answer forms
+
+```python
+class Change(BaseModel):      # extra="forbid" on all four
+    knob: str = Field(min_length=1, max_length=40)
+    value: float
+class VariantAsk(BaseModel):
+    changes: list[Change] = Field(min_length=1, max_length=2)
+class TuningPlan(BaseModel):
+    target: str = Field(min_length=1, max_length=60)
+    variants: list[VariantAsk] = Field(min_length=1, max_length=3)
+    stocks: list[str] = Field(default_factory=list, max_length=30)
+class TuningVerdict(BaseModel):
+    verdict: str = Field(min_length=10, max_length=600)
+```
+
+Change checks: a knob not in the target's list, a value outside its range, a repeat knob in one variant, or a variant equal to the baseline is dropped. Whole-number knobs are rounded.
+
+### 3. Desk setup knobs (SRD-MKT-015.002)
+
+`market/setup_knobs.py` holds `Knob(name, default, low, high, whole)` and `KNOBS: dict[setup, tuple[Knob, ...]]`. `setups.long_candidates(bars, values=None)` and `short_candidates(bars, values=None)` read each limit through `knob_value(values, setup, name)`. With `values=None` every limit is today's number, so live picks stay exactly the same.
+
+| Setup | Knob | Default | Range |
+|---|---|---|---|
+| Squeeze | `width_vs_min` | 1.1 | 1.0–1.5 |
+| Squeeze | `atr_ratio` | 0.8 | 0.5–1.0 |
+| Flat base | `near_high` | 0.9 | 0.8–0.97 |
+| Flat base | `depth` | 0.15 | 0.08–0.25 |
+| Pullback | `near_sma` | 1.02 | 1.0–1.05 |
+| Pullback | `sma_days` | 21 (whole) | 10–50 |
+| Failed breakout | `pivot_days` | 25 (whole) | 10–50 |
+| Failed breakout | `recent_days` | 10 (whole) | 5–20 |
+| Lower highs | `swing_days` | 10 (whole) | 5–20 |
+| Breakdown | `volume_x` | 1.5 | 1.0–3.0 |
+
+### 4. Desk setup replay (SRD-MKT-015.004, .006, .007)
+
+`market/tuning_replay.py`:
+
+1. Data: `proof_data.read_daily` on the S&P 500 members (`candles.member_sectors`) plus SPY, from the Backtest Data daily files, aligned to SPY days. This is the same input as the score proof (the SRD In cell says `candles.db`; the desk's 5-year replay data is the Backtest Data daily store). No SPY or no members → `None` (ticket `failed`).
+2. Window: signals only on the last 5 years of SPY days (`proof.FULL_YEARS`); older bars only warm up the averages.
+3. Signals: the target setup's own match, trigger and stop from `long_candidates` / `short_candidates` with the variant values (not the best-of-six pick).
+4. Trades: per stock, oldest first. On a match day with a valid trigger and stop, target = trigger ± 2 × |trigger − stop|; `pick_results.paper_result` runs on the bars after that day. The stock is busy until the exit day (filled) or for 5 days (no fill), so one setup run gives one trade.
+5. Row: closed trades (stop, target, time), win = share with R > 0, `exp_r` = mean R.
+
+Gain (SRD-MKT-015.007), `gain(rows)`: the best variant by `exp_r − base.exp_r`; a gain when that change is ≥ 0.05 and the variant has ≥ 100 trades. Pure code; the AI only sees the table.
+
+### 5. Strategy run (SRD-MKT-015.005)
+
+`market/tuning_strategy.py`. The backtest service is imported inside the run function (heavy; the desk loads it only when a strategy ticket runs).
+
+- Knobs: `target_value`, `stoploss_value` and each number in `entry_condition` / `exit_condition` as `entry#1`, `entry#2`, `exit#1`… (number tokens counted left to right). Range 0.5× to 1.5× the current value.
+- Copy: `dict(live)`, name `"<name> (tune <label>)"`, each change replaces that one number in the text.
+- Fixed stop needed: `stoploss_enabled` and `stoploss_type == "fixed"`; else `failed`.
+- Stocks (user 2026-11-11): the strategy's `symbols_include` when `symbol_mode` is not `all` and the list is not empty; else the AI's `stocks` (≤ 30), kept only if in the S&P 500 list; none left → `failed`.
+- Plan: `RunPlan(period = last 5 years, universe names, screener skip, one strategy, default account and costs)`. `estimate()` first; errors → `failed`; `data_span` narrows the period.
+- Run: a `BacktestService` whose strategy loader returns only the copy; `run_stocks(record=False)`, `run_signals(record=False)`, then `steps.portfolio.run_portfolio` directly, so nothing is saved as a Backtest run and the live list is never written. `workers=0` (no child processes in the desk).
+- R per trade = `net_pnl / (qty × entry_px × stoploss_value / 100)`. Row as in §4.
+
+### 6. Verdict, lesson and report (SRD-MKT-015.008–.010)
+
+Verdict facts: target, the table rows (label, changes, trades, win, R, change), the code's gain line, and the done test. The note is the verdict, so the ticket result holds every step's row plus the verdict.
+
+Lesson (desk-setup gain only): `add_candidate(home, text, {"setup": target, "side": side}, "worse", proof, now)`. Text: "<Setup> <side>s with today's limits did worse than <changes> over 5 years (<base>R vs <best>R)", cut to 200 characters. Proof: one line with the ticket id and both rows. `claim = "worse"` because a lesson may only make the desk stricter: it tells the desk the current setup is weaker, and real pick cases decide whether it goes active (FO-MKT-012). A strategy gain writes no lesson. Nothing writes to the setup limits, the strategies table or employee files.
+
+### 7. Employee and wiring (SRD-MKT-015.011, .012)
+
+- `market/employees/emp-013/employee.md`: name "Researcher 1", title "Research analyst", level expert, `reports_to: null`, skill `setup_tuning`, trigger `research_done` (the trigger list may not be empty; `facts()` always says it works research tickets only, so the event only gives one sleep log line).
+- `SKILL_PATHS["setup_tuning"] = "us_swing.market.setup_tuning:SetupTuningSkill"`; the `USSwing.spec` hidden imports gain the four new modules.
+- Logs (`[Research]`): "Ticket 12 will test 3 variant(s) of Pullback", "Ticket 12 Pullback v1: 1,180 trades, +0.15R", "Ticket 12 Pullback found a gain: v1 +0.07R" or "found no gain".

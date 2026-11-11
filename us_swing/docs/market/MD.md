@@ -1,11 +1,12 @@
 # Module Decomposition — Market Analytics (MKT)
 
 **Document ID:** MD-MKT
-**Version:** 0.5.0
+**Version:** 0.6.0
 **Status:** Draft
-**Last Updated:** 2026-11-06
+**Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.18.0: MD-MKT-015.001.M01, .002.M02, .004.M03, .005.M04 added — setup tuning research (step F).
 > v0.17.0: MD-MKT-014.001.M01–M02 added — lead research tickets (step E).
 > v0.16.0: MD-MKT-013.*.M01–M04 added — intraday watchers and check-in notes (step D).
 > v0.15.0: MD-MKT-012.*.M01–M03 added — learning from pick results (step C).
@@ -205,3 +206,14 @@ SRD coverage: 013.001–.007 by M01; .008, .009, .012 by M02; .010 by M03; .011 
 | MD-MKT-014.001.M02 | SRD-MKT-014.001 | `us_swing/src/us_swing/market/checkin_note.py` | `tickets` field in the check-in answer, research block in the facts, tickets handed to the queue | `CheckinNote.tickets` | `core.desk_research` | No |
 
 SRD coverage: 014.001, .004, .005 by M01 and M02; .002 and .003 are checked in `core.desk_research` (MD-DSK-010.001.M25) and tested through M01.
+
+## FO-MKT-015: Setup Tuning Research
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-MKT-015.001.M01 | SRD-MKT-015.001 | `us_swing/src/us_swing/market/setup_tuning.py` | Research skill: pick step, run steps, verdict, candidate lesson, logs | `SetupTuningSkill`, `TuningPlan`, `TuningVerdict` | `core.desk_research`, `core.desk_lessons`, M02–M04 | No |
+| MD-MKT-015.002.M02 | SRD-MKT-015.002 | `us_swing/src/us_swing/market/setup_knobs.py` | Named setup limits with default and range; change checks | `Knob`, `KNOBS`, `knob_value`, `check_changes` | — | No |
+| MD-MKT-015.004.M03 | SRD-MKT-015.004 | `us_swing/src/us_swing/market/tuning_replay.py` | 5-year replay of one desk setup, result rows, gain rule | `Row`, `replay_setup`, `table_text`, `gain` | `market.setups`, `market.proof_data`, `market.pick_results` | No |
+| MD-MKT-015.005.M04 | SRD-MKT-015.005 | `us_swing/src/us_swing/market/tuning_strategy.py` | Strategy knobs, renamed copies, backtest run, R per trade | `strategy_knobs`, `apply_changes`, `stop_problem`, `pick_stocks`, `run_strategy` | `backtest` (loaded in the run), `core.backtest_bridge` | No |
+
+SRD coverage: .001, .003, .008–.012 by M01; .002 by M02 (read by `market/setups.py`, MD-MKT-003.003.M03); .004, .006, .007 by M03; .005 by M04 (rows by M03 `Row`). Cross-tool: M04 runs the BKT engine through its public service; no BKT file changes.

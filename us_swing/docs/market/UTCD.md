@@ -1,11 +1,12 @@
 # Unit Test Cases — Market Analytics (MKT)
 
 **Document ID:** UTCD-MKT
-**Version:** 0.5.0
+**Version:** 0.6.0
 **Status:** Draft
-**Last Updated:** 2026-11-06
+**Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.18.0: UT-MKT-015.* added (31, Not Run) — setup tuning research (step F).
 > v0.17.1: Step E cases Pass (12, 2026-11-11).
 > v0.17.0: Autonomous desk step E (2026-11-11): UT-MKT-014.001–.005 added (12 cases).
 > v0.16.1: Step D cases Pass (31, 2026-11-11).
@@ -485,3 +486,39 @@
 | UT-MKT-014.003.M01.T02 | MD-MKT-014.001.M01 | Positive | Cap inside the range (SRD-MKT-014.003) | cap 5,000 | added with cap 5,000 | Pass |
 | UT-MKT-014.005.M01.T02 | MD-MKT-014.001.M01 | Positive | Queue decides (SRD-MKT-014.005) | tickets with caps 8,000 and 30,000 | first approved by auto; second waiting | Pass |
 | UT-MKT-014.005.M01.T03 | MD-MKT-014.001.M01 | Negative | Queue error keeps the brief (SRD-MKT-014.005) | tickets table cannot be written | brief and picks kept; error logged | Pass |
+
+## FO-MKT-015: Setup Tuning Research
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-MKT-015.001.M01.T01 | MD-MKT-015.001.M01 | Positive | Skill kinds (SRD-MKT-015.001) | skill class | kinds = (`setup_tuning`,); step_tokens set | Not Run |
+| UT-MKT-015.001.M01.T02 | MD-MKT-015.001.M01 | Negative | Unknown target (SRD-MKT-015.001) | plan target `Moonshot` | outcome failed; note names the target | Not Run |
+| UT-MKT-015.002.M02.T01 | MD-MKT-015.002.M02 | Positive | Defaults unchanged (SRD-MKT-015.002) | random bars; candidates with no values vs all defaults given | same match, trigger and stop frames | Not Run |
+| UT-MKT-015.002.M02.T02 | MD-MKT-015.002.M02 | Negative | Range check (SRD-MKT-015.002) | Pullback `near_sma` 1.2; unknown knob `foo` | both changes dropped | Not Run |
+| UT-MKT-015.002.M02.T03 | MD-MKT-015.002.M02 | Edge | Whole knobs (SRD-MKT-015.002) | `sma_days` 20.6 | kept as 21 | Not Run |
+| UT-MKT-015.003.M01.T01 | MD-MKT-015.001.M01 | Positive | Pick step (SRD-MKT-015.003) | plan with 3 Pullback variants | state phase run, 3 variants, side long; outcome go | Not Run |
+| UT-MKT-015.003.M01.T02 | MD-MKT-015.001.M01 | Negative | No valid variant (SRD-MKT-015.003) | all variants out of range | outcome failed | Not Run |
+| UT-MKT-015.003.M01.T03 | MD-MKT-015.001.M01 | Negative | Too many (SRD-MKT-015.003) | 4 variants, or 3 changes in one | answer not valid | Not Run |
+| UT-MKT-015.004.M03.T01 | MD-MKT-015.004.M03 | Positive | Replay trade (SRD-MKT-015.004) | match with trigger 101, stop 99, later bar high 106 | one trade, R 2.0, win 1.0 | Not Run |
+| UT-MKT-015.004.M03.T02 | MD-MKT-015.004.M03 | Edge | Busy stock (SRD-MKT-015.004) | match on 3 days in a row, one fill | one trade only | Not Run |
+| UT-MKT-015.004.M03.T03 | MD-MKT-015.004.M03 | Negative | No data (SRD-MKT-015.004) | empty Backtest Data folder | `None` | Not Run |
+| UT-MKT-015.004.M03.T04 | MD-MKT-015.004.M03 | Edge | 5-year window (SRD-MKT-015.004) | 7 years of bars with a match in year 1 | old match not traded | Not Run |
+| UT-MKT-015.005.M04.T01 | MD-MKT-015.005.M04 | Positive | Strategy knobs and copy (SRD-MKT-015.005) | entry `RSI(14) < 30`, change `entry#2` 35 | copy entry `RSI(14) < 35`, new name, live dict unchanged | Not Run |
+| UT-MKT-015.005.M04.T02 | MD-MKT-015.005.M04 | Negative | No fixed stop (SRD-MKT-015.005) | stop off; trailing stop | a reason for each | Not Run |
+| UT-MKT-015.005.M04.T03 | MD-MKT-015.005.M04 | Positive | Stocks (SRD-MKT-015.005) | include list; `all` mode with AI list of 35 incl. 1 unknown | include list; first 30 known | Not Run |
+| UT-MKT-015.005.M04.T04 | MD-MKT-015.005.M04 | Positive | R per trade (SRD-MKT-015.005) | qty 10, entry 100, stop 2%, net pnl 40 | R 2.0 | Not Run |
+| UT-MKT-015.005.M04.T05 | MD-MKT-015.005.M04 | Positive | Run not saved (SRD-MKT-015.005) | fake service | record False on both steps; loader gives only the copy | Not Run |
+| UT-MKT-015.006.M03.T01 | MD-MKT-015.004.M03 | Positive | Result table (SRD-MKT-015.006) | rows base and v1 | text lists trades, win, R and change | Not Run |
+| UT-MKT-015.006.M03.T02 | MD-MKT-015.004.M03 | Negative | No trades (SRD-MKT-015.006) | variant with no closed trade | row 0 trades, win 0%, +0.00R; no error | Not Run |
+| UT-MKT-015.007.M03.T01 | MD-MKT-015.004.M03 | Positive | Gain (SRD-MKT-015.007) | base +0.10R, v1 +0.16R on 120 trades | gain v1 | Not Run |
+| UT-MKT-015.007.M03.T02 | MD-MKT-015.004.M03 | Edge | Gain limits (SRD-MKT-015.007) | +0.04R on 500 trades; +0.20R on 99 trades | no gain both | Not Run |
+| UT-MKT-015.007.M03.T03 | MD-MKT-015.004.M03 | Negative | No variant or worse (SRD-MKT-015.007) | baseline only; variant below the baseline | no gain both | Not Run |
+| UT-MKT-015.008.M01.T01 | MD-MKT-015.001.M01 | Positive | Full ticket (SRD-MKT-015.008) | loop of steps, Pullback, fake replay | 5 steps; done; notes hold rows and verdict | Not Run |
+| UT-MKT-015.008.M01.T02 | MD-MKT-015.001.M01 | Negative | No verdict answer (SRD-MKT-015.008) | ask returns None at verdict | empty note; outcome go | Not Run |
+| UT-MKT-015.009.M01.T01 | MD-MKT-015.001.M01 | Positive | Candidate lesson (SRD-MKT-015.009) | setup gain | one candidate lesson, tags setup and side, claim worse | Not Run |
+| UT-MKT-015.009.M01.T02 | MD-MKT-015.001.M01 | Negative | No lesson (SRD-MKT-015.009) | no gain; strategy gain | no lesson rows | Not Run |
+| UT-MKT-015.010.M01.T01 | MD-MKT-015.001.M01 | Negative | Report only (SRD-MKT-015.010) | strategy ticket with a gain | live strategy dict and knob defaults unchanged | Not Run |
+| UT-MKT-015.010.M01.T02 | MD-MKT-015.001.M01 | Positive | Winning values named (SRD-MKT-015.010) | desk-setup ticket with a gain | verdict note names v1 and its values; knob defaults unchanged | Not Run |
+| UT-MKT-015.011.M01.T01 | MD-MKT-015.001.M01 | Positive | Default employee (SRD-MKT-015.011) | shipped emp-013 file, `SKILL_PATHS` | valid file, skill `setup_tuning`, path loads | Not Run |
+| UT-MKT-015.011.M01.T02 | MD-MKT-015.001.M01 | Negative | Never wakes on events (SRD-MKT-015.011) | `facts()` on a `research_done` event | not fresh; `act` returns no feed items | Not Run |
+| UT-MKT-015.012.M01.T01 | MD-MKT-015.001.M01 | Positive | Logs (SRD-MKT-015.012) | pick and run steps | `[Research]` lines with target, count and gain | Not Run |
