@@ -3,7 +3,7 @@
 **Document ID:** TRACE-MKT
 **Version:** 0.1.0
 **Status:** Draft
-**Last Updated:** 2026-11-11 (morning run step A: FO-MKT-001 SRD .013–.017 and SRD-MKT-005.015–.016 with RN-MKT-0.13.0-20261111; FO-MKT-011 ask the desk for new data)
+**Last Updated:** 2026-11-11 (memory v1 step C: FO-MKT-012 with RN-MKT-0.14.0-20261111; morning run step A: FO-MKT-001 SRD .013–.017 and SRD-MKT-005.015–.016 with RN-MKT-0.13.0-20261111; FO-MKT-011 ask the desk for new data)
 **Project:** US Swing Trading System
 
 > v0.1.0: One row per Draft FO. Columns fill as each phase completes.
@@ -38,3 +38,4 @@
 | FO-MKT-009 | SRD-MKT-009.001–.008 | DD-MKT-009.001.D01 | MD-MKT-009.001.M01, .004.M02, .005.M03, .005.M04, .007.M05, .001.M06 | UT-MKT-009.001.M01.T01–T02, .002.M01.T01–T03, .003.M01.T01–T05, .004.M02.T01–T02, .005.M03.T01–T02, .005.M04.T01, .006.M03.T01–T04, .007.M05.T01–T02, .001.M06.T01, .008.M01.T01 (23, Pass) | `market/pick_results.py`, `market/store.py`, `core/desk_results.py`, `gui/app_service.py`, `desk/weekly_report.py`, `core/desk_steps.py` | Implemented | RN-MKT-0.10.0-20261106 |
 | FO-MKT-010 | SRD-MKT-010.001–.008 | DD-MKT-010.001.D01 | MD-MKT-010.001.M01, .002.M02, .003.M03, .007.M04 | UT-MKT-010.001.M01.T01–T04, .002.M02.T01–T03, .003.M03.T01–T03, .004.M03.T01–T02, .005.M03.T01, .006.M03.T01, .007.M04.T01–T02, .008.M03.T01 (17, Pass) | `core/desk_chat.py`, `core/desk_events.py`, `market/lead_chat.py`, `market/employees/emp-008/`, `core/desk_steps.py` | Implemented | RN-MKT-0.11.0-20261106 |
 | FO-MKT-011 | SRD-MKT-011.001–.009 | DD-MKT-011.001.D01 | MD-MKT-011.001.M01, .002.M02, .004.M03, .003.M04, .007.M05, .008.M06 | UT-MKT-011.001.M01.T01–T03, .002.M02.T01–T03, .003.M04.T01–T03, .004.M03.T01–T05, .005.M04.T01–T02, .005.M01.T01, .006.M01.T01–T02, .007.M05.T01–T03, .008.M06.T01–T02, .009.M04.T01 (25, Pass) | `core/desk_recipes.py`, `core/desk_data_asks.py`, `core/desk_events.py`, `market/data_recipe.py`, `market/employees/emp-009/`, `core/desk_steps.py`, `core/desk_floor.py` | Implemented | RN-MKT-0.12.0-20261110 |
+| FO-MKT-012 | SRD-MKT-012.001–.006 | DD-MKT-012.001.D01 | MD-MKT-012.002.M01, MD-MKT-012.004.M02, MD-MKT-012.005.M03, MD-MKT-009.001.M01 (changed) | UT-MKT-012.* (13, Pass) | `market/lesson_reflect.py`, `market/employees/emp-010/`, `core/desk_steps.py`, `market/setup_review.py`, `market/news_review.py`, `market/risk_check.py`, `market/lead_brief.py`, `market/pick_results.py` | Implemented | RN-MKT-0.14.0-20261111 |

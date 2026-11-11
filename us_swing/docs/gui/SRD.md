@@ -5,6 +5,9 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.106.2: SRD-GUI-037.001–.004 Implemented 2026-11-11.
+> v2.106.1: SRD-GUI-037.001–.004 approved by user 2026-11-11.
+> v2.106.0: Autonomous desk step C (user, 2026-11-11): SRD-GUI-037.001–.004 added as Draft — memory v1.
 > v2.105.2: Step A rows Implemented 2026-11-11.
 > v2.105.1: Step A rows approved by user 2026-11-11.
 > v2.105.0: Autonomous desk step A (user, 2026-11-10): SRD-GUI-029.007–.008 (start tasks 60 min before open) and SRD-GUI-034.068–.069 (desk lives with the app, morning-run labels) added as Draft.
@@ -804,3 +807,12 @@
 | SRD-GUI-036.006 | FO-GUI-036 | Should | The History tab lists versions with date, shows a picked version's prompt and restores it. | versions | new version | Restore asks first | Implemented |
 | SRD-GUI-036.007 | FO-GUI-036 | Should | Test on yesterday tries the unsaved prompt on the employee's last recorded run and shows valid or not and the answer. | draft | result | Runs in the background; one real AI call; off when no recorded run | Implemented |
 | SRD-GUI-036.008 | FO-GUI-036 | Must | The Team at work side pane shows name, role, state, model line, month cost, this run, Prompt and Answer, and Edit in Team setup. | member | pane | Edit opens Team setup on that employee | Implemented |
+
+## FO-GUI-037: AI Desk Memory
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-037.001 | FO-GUI-037 | Must | AI Desk gets a Memory section in the review group, after Results. | — | section | Reads `desk.db` only | Implemented |
+| SRD-GUI-037.002 | FO-GUI-037 | Must | The Memory table lists lessons with status, pinned, text, tags, cases, average R, confidence and last confirmed. | `lessons` | table | Active first; a filter picks active, candidate or retired | Implemented |
+| SRD-GUI-037.003 | FO-GUI-037 | Must | Pin, Unpin, Edit, Retire and Delete add a `lesson_edits` row; the row shows "applies at the next desk tick" until done. | button | `lesson_edits` row | Delete asks first | Implemented |
+| SRD-GUI-037.004 | FO-GUI-037 | Should | Choosing a lesson shows its proof picks with date, side, stock and R. | lesson | proof list | — | Implemented |

@@ -8,6 +8,7 @@ The risk check skill. The hard limits in code veto listed ideas first and are st
 before any model is asked, so they hold even when the call fails or the budget is used
 up. The model may then veto more of the ideas that passed, never fewer.
 Uses only ``core`` types; it never imports the desk harness.
+Also: MD-MKT-012.005.M03 — lessons block at the end of the facts (SRD-MKT-012.005)
 """
 from __future__ import annotations
 
@@ -19,6 +20,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from us_swing.core.desk_agents import AgentContext, Facts, FeedItem
+from us_swing.core.desk_lessons import with_lessons
 from us_swing.market.candles import CANDLE_DB
 from us_swing.market.risk_limits import code_vetoes
 from us_swing.market.setup_review import (
@@ -126,7 +128,7 @@ class RiskCheckSkill:
                 f"Ideas that passed the hard limits (you may veto any of these):\n"
                 f"{table(passed)}",
             ])
-            return Facts(text, day, True)
+            return Facts(with_lessons(text, home, KEY, day), day, True)
         finally:
             store.close()
 

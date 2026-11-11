@@ -6,6 +6,7 @@ Also: SRD-MKT-005.010 (grades kept in ``setup_review``)
 The setup review skill: grades each listed idea of the day A, B or C with a short note.
 Also holds the readers for the day's listed ideas that the risk check and the lead use.
 Uses only ``core`` types; it never imports the desk harness.
+Also: MD-MKT-012.005.M03 — lessons block at the end of the facts (SRD-MKT-012.005)
 """
 from __future__ import annotations
 
@@ -17,6 +18,7 @@ import pandas as pd
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from us_swing.core.desk_agents import AgentContext, Facts, FeedItem
+from us_swing.core.desk_lessons import with_lessons
 from us_swing.market.candles import CANDLE_DB
 from us_swing.market.regime_view import latest_spy_day
 from us_swing.market.risk_limits import ListedIdea
@@ -134,7 +136,7 @@ class SetupReviewSkill:
                 f"Listed ideas (score parts out of 20, 15 for sector and regime):\n"
                 f"{table(listed)}",
             ])
-            return Facts(text, day, True)
+            return Facts(with_lessons(text, home, KEY, day), day, True)
         finally:
             store.close()
 

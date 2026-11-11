@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.9.0: DD-DSK-009.001.D01 added — desk memory: lessons, learning loop and Memory view (Autonomous desk step C (2026-11-11)).
 > v0.8.0: DD-DSK-003.014.D01 added — baton by `step_done` events, retries, partial plan, LangGraph removed (Autonomous desk step B, 2026-11-11).
 > v0.7.0: DD-DSK-001.015.D02 added — morning run, desk lives with the app (Autonomous desk step A, 2026-11-10); §0.1 #3 and §0.5 updated.
 > v0.6.0: DD-DSK-008.001.D01 added — employee.md file, migration, versions, draft test.
@@ -666,3 +667,87 @@ A need is settled when its result is `ok`, `slept`, `skipped` or `failed` after 
 **After code review.**
 - A retry whose `step_done` expires (the chain's expiry passed before the next try) is marked failed and raises the `partial` alert, so the user still hears about it.
 - `waiting_count(home, now)` counts only due events, so the desk loop does not rebuild the router every 2 s during a retry wait.
+
+## DD-DSK-009.001.D01 — Desk Memory: Lessons, Learning Loop and Memory View (Autonomous desk step C)
+
+**Traces:** SRD-DSK-009.001–.009, SRD-MKT-012.001–.006, SRD-GUI-037.001–.004. Design page §8: https://claude.ai/artifact/J7AexvWdqDNujADoc9dJkJ. User answers (2026-11-11): lessons only for pick makers; active at 5 cases (backtest check later, step E/F); one reflect call a day after pick results.
+
+**Boundaries.** All lesson rules live in `core/desk_lessons.py`, because the market skills (MKT), the desk loop (DSK) and the GUI all use them. It reads the market tables in `desk.db` with plain SQL and never imports `market`. Risk check code, EXE capital and approval code never import it (SRD-DSK-009.005, checked by a source scan test).
+
+**Tables** (`desk.db`, made on open):
+
+```
+lessons(id INTEGER PK, text, tags TEXT /* JSON {key: value} */, claim 'better'|'worse',
+        proof TEXT /* JSON ["date|side|symbol", ...] */, cases INTEGER, avg_r REAL,
+        confidence REAL, status 'candidate'|'active'|'retired', made, active_on,
+        last_confirmed, retired_on, pinned INTEGER, author 'desk'|'master', why TEXT)
+lesson_uses(day, skill, lesson_id, PRIMARY KEY (day, skill, lesson_id))
+lesson_edits(id INTEGER PK, lesson_id, action 'pin'|'unpin'|'edit'|'retire'|'delete',
+             text, created, applied NULL, note)      # GUI writes only new rows
+memory_state(key PRIMARY KEY, value)                 # 'reflected_closed' = count at last reflect
+```
+
+**Tags.** `TAG_KEYS = ("side", "setup", "regime", "sector", "grade", "tone")`. A lesson holds 1 to 3 of them. Each closed pick gets its tags by joining `pick_results` (status stop, target or time) with `ideas` (setup, sector), `regime_snapshot` (regime on the pick date), `setup_review` (grade) and `news_tags` (tone), all on (date, side, symbol). A missing value is left out. A pick matches a lesson when every lesson tag is equal to the pick's tag.
+
+```
+cases(home) -> list[Case(key, day, tags, r)]           # closed paper picks
+check(tags, claim, cases) -> Proof(n, avg_r, agree, confidence)
+    m = matching cases; base = mean r of all cases
+    avg_r = mean r of m; agree = avg_r < base (worse) or avg_r > base (better)
+    confidence = share of m with r on the claimed side of base
+```
+
+**Add a candidate** (`add_candidate(home, text, tags, claim, proof, now)`, SRD-DSK-009.003). A kept, not retired lesson with the same tags and claim gets the new text and proof, and is checked again. Otherwise a new candidate row is added. Then `check()` runs. With `n >= 5` and `agree`, the lesson becomes active at once (`active_on = last_confirmed = now`).
+
+**Daily review** (`review_lessons(home, now)`), called at the end of the "Pick results" step:
+
+```
+candidate: n >= 5 and agree        -> active
+           made older than 30 days -> retired ("not proved in 30 days")
+active (not pinned):
+    later = matching cases dated after active_on whose day+skill is in lesson_uses
+    a new later case on the claimed side            -> last_confirmed = now
+    len(later) >= 10 and check(later) does not agree -> retired ("later picks do not back it")
+    last_confirmed older than 90 days                -> retired ("not confirmed in 90 days")
+cases, avg_r, confidence are refreshed for every non-retired lesson
+```
+
+**Lessons block** (`lessons_block(home, skill, day) -> str`, SRD-DSK-009.004 and .006). It takes the active lessons that match at least one of `day`'s ideas, puts pinned ones first, then sorts by confidence, keeps at most 5, and cuts at 800 tokens (3,200 characters, 4 characters a token). It writes one `lesson_uses` row for each lesson shown and returns an empty string when there is none. The text looks like this:
+
+```
+Lessons from past picks (use them only to be stricter: lower a grade, add a veto or
+skip a pick; never loosen a rule):
+- L-17: Pullback longs in a high volatility regime fail more often (8 cases, average -0.42R).
+```
+
+**Edits** (`add_edit(home, lesson_id, action, text, now)` from the GUI; `apply_edits(home, now) -> int` in the desk loop, SRD-DSK-009.008). Each `DeskProcess.tick()` applies pending rows oldest first. Pin and unpin set `pinned`. Edit sets the text and `author = 'master'`. Retire sets `status = 'retired'`. Delete removes the row and its `lesson_uses`. An unknown lesson id sets the note "lesson not found". Every row gets `applied = now`. `apply_edits` first checks for a pending row with one SELECT, so the 2-second tick stays cheap.
+
+**Reflect skill** (`market/lesson_reflect.py`, key `lesson_reflect`, needs `()`):
+
+```
+facts: closed = cases(home); fresh when len(closed) > memory_state.reflected_closed
+       text = stats table (count, win rate, average R by each tag key and value, n >= 2)
+            + today's newly closed picks with tags and R + active lessons (id, text)
+answer: LessonReflect{lessons: list[Candidate] (max 3)}
+        Candidate{text: str (<=200), tags: dict[TagKey, str] (1-3), claim: Literal[better, worse],
+                  picks: list[str] (1-20)}
+act:   drop picks not in closed; drop a candidate with no pick left -> add_candidate each;
+       set reflected_closed = len(closed); log "[Memory] Kept %d candidate lesson(s), dropped %d"
+       returns one info brief "New candidate lessons: ..." when one was kept
+```
+
+The default employee `emp-010` ("Expert 8", title "Learning analyst", level expert, reports to the lead `emp-005`, trigger `after_run`, 3 calls a day, USD 2 a month) ships in `market/employees/emp-010/employee.md`. The skill path is added to `SKILL_PATHS`. The once-per-data-day rule and the budget guard work as for every employee, so a refused call just sleeps.
+
+**Pick makers** (SRD-MKT-012.005). `setup_review`, `news_review`, `risk_check` and `lead_brief` add `lessons_block(home, KEY, day)` as the last part of `Facts.text`. `regime_view` and `sector_view` do not change.
+
+**Memory view** (`gui/ai_desk_memory.py`, SRD-GUI-037.*). `MemoryView(QWidget)` reads `lesson_rows(home, status)`, `pending_edits(home)` and `proof_rows(home, lesson_id)` from core on each refresh, in the GUI thread like Results (small read-only SQLite reads). It has a status filter (Active, Candidate, Retired), a table (Status, Pinned, Lesson, Tags, Cases, Avg R, Confidence, Last confirmed), and the buttons Pin/Unpin, Edit, Retire and Delete (Delete asks first). Each button calls `add_edit`; Edit uses the text box under the table and Save text (no dialog). A lesson with a pending edit shows "applies at the next desk tick" in its status cell. The proof list under the table shows date, side, stock and R for the chosen lesson. In `gui/ai_desk.py`, "Memory" joins the review group after "Results" and `_LIVE_SECTIONS`.
+
+**Log lines** (`[Memory]`): "New candidate lesson L-%d: %s", "Lesson L-%d is active (%d cases)", "Lesson L-%d retired: %s", "Kept %d candidate lesson(s), dropped %d".
+
+**After code review (step C).**
+- `with_lessons` returns the plain facts and logs a warning on any memory error, so a lesson problem never stops a pick maker.
+- A desk candidate never replaces the text of a Master-edited or pinned lesson; only its proof is updated.
+- A candidate like a lesson retired in the last 90 days stays a candidate (no retire and re-activate loop).
+- A pinned candidate is never retired after 30 days; `lessons.id` uses AUTOINCREMENT so a deleted id is not reused.
+- The reflect prompt lists at most the 50 newest closed picks.
+- Known gap: a pick made before the last confirmation but closed after it does not refresh the confirmation (90-day rule only).

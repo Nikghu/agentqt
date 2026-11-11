@@ -8,6 +8,7 @@ Also: MD-GUI-034.059.M33 — grouped section list, Command badge, header chips a
 Also: MD-GUI-035.001.M01 — Team at work replaces the five sample team sections (SRD-GUI-035.001)
 Also: SRD-GUI-034.067 — sections are underline tabs under the header (not in the sidebar)
 Also: MD-GUI-036.001.M01 — Team setup tab after Team at work (SRD-GUI-036.001)
+Also: MD-GUI-037.001.M01 — Memory section after Results (SRD-GUI-037.001)
 Also: SRD-GUI-034.065 — console header: icon, state note, desk controls and four tiles
 """
 from __future__ import annotations
@@ -49,6 +50,7 @@ from us_swing.gui.ai_desk_sections import command_frame, runs_box, team_line
 from us_swing.gui.ai_desk_hiring import approvals_box, hiring_frame
 from us_swing.gui.ai_desk_chat import ChatPanel
 from us_swing.gui.ai_desk_console import icon_badge, stat_tile, thin_bar
+from us_swing.gui.ai_desk_memory import memory_frame
 from us_swing.gui.ai_desk_results import results_frame
 from us_swing.gui.ai_desk_pages import pages_frame
 from us_swing.gui.ai_desk_sections3 import cost_frame, reports_frame, settings_frame
@@ -63,7 +65,7 @@ GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("TALK", ("Command",)),
     ("TEAM", ("Team at work", "Team setup", "Hiring")),
     ("CREATE", ("Pages",)),
-    ("REVIEW", ("Reports", "Results", "Cost & budget")),
+    ("REVIEW", ("Reports", "Results", "Memory", "Cost & budget")),
     ("SETUP", ("Desk settings",)),
 )
 SECTIONS = tuple(name for _group, names in GROUPS for name in names)
@@ -79,7 +81,8 @@ _STATE_NOTES = {
     DeskState.ERROR: "The desk needs attention",
 }
 
-_LIVE_SECTIONS = ("Command", "Hiring", "Pages", "Reports", "Results", "Cost & budget")
+_LIVE_SECTIONS = ("Command", "Hiring", "Pages", "Reports", "Results", "Memory",
+                  "Cost & budget")
 
 
 def _nav_style() -> str:
@@ -179,6 +182,8 @@ class AiDeskWorkspace(QWidget):
             return reports_frame(name, self._home)
         if name == "Results":
             return results_frame(name, self._home)
+        if name == "Memory":
+            return memory_frame(name, self._home)
         if name == "Pages":
             return pages_frame(name, self._home)
         if name == "Cost & budget":

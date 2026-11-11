@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.8.0: Autonomous desk step C (user, 2026-11-11): FO-DSK-009 added as Draft — memory v1.
 > v0.7.0: Autonomous desk step B (user, 2026-11-11): FO-DSK-003 baton by `done` events with retries and a partial plan on failure.
 > v0.6.0: Autonomous desk step A (user, 2026-11-10): FO-DSK-001 desk runs only while the app is open and runs in the morning (no evening run); FO-DSK-003 morning run by event; FO-DSK-007 candles alert. Older acceptance lines that say "evening run" describe the run in place when they were written.
 > v0.5.0: FO-DSK-008 Implemented (user approved 2026-11-10; code and tests done).
@@ -197,3 +198,26 @@ The system shall keep each AI employee in one readable file that the Master user
 2. Saving a change raises the version, keeps the old file, and the next wake uses the new prompt.
 3. A file with a wrong value is refused with a plain reason, and the employee stays as it was.
 4. A new hire's folder holds `employee.md`.
+
+## FO-DSK-009: Desk Memory — Lessons
+
+**Status:** Implemented (approved by user 2026-11-11)
+**Priority:** Must
+**Depends on:** FO-DSK-005 (activity log is the journal), FO-MKT-009 (pick results), FO-MKT-012 (learning)
+**Source: User 2026-11-11 (Autonomous desk step C, memory v1): lessons only for pick makers; active at 5 cases (backtest later); one reflect call a day after pick results. Design §8: https://claude.ai/artifact/J7AexvWdqDNujADoc9dJkJ.**
+
+The system shall keep short lessons learned from pick results, prove them before use, show the useful few to the pick makers, and retire the ones that stop working.
+
+- The system shall keep each lesson with its text, tags, claim, proof, numbers, status and dates in `desk.db`.
+- The system shall start a lesson as a candidate and make it active only when at least 5 closed picks back it.
+- The system shall give each pick-making skill at most 5 matching active lessons in its prompt, pinned first.
+- The system shall never let a lesson change risk limits, stop size, capital or approval rules.
+- The system shall retire a lesson that later picks no longer back, or that nothing backs for 90 days.
+- The system shall apply the Master user's pin, edit, retire and delete from the app.
+
+### Acceptance Criteria
+
+1. A new lesson backed by 3 picks stays a candidate; at 5 backing picks it becomes active.
+2. The next morning the setup review prompt holds the active lesson whose tags match the day's ideas.
+3. A pinned lesson is never retired by the desk.
+4. Risk limits and the risk check code are the same with or without lessons.

@@ -8,6 +8,7 @@ The news review skill: reads the day's headlines and economic events, tags each 
 idea positive, neutral or negative, and turns the tags into news points and a final
 score. Event points are stored by code before any model call, so they hold without an
 answer. Uses only ``core`` types; it never imports the desk harness.
+Also: MD-MKT-012.005.M03 — lessons block at the end of the facts (SRD-MKT-012.005)
 """
 from __future__ import annotations
 
@@ -21,6 +22,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from us_swing.core.desk_agents import AgentContext, Facts, FeedItem
 from us_swing.core.econ_calendar import events_between, next_trading_day, trading_days_after
+from us_swing.core.desk_lessons import with_lessons
 from us_swing.market.candles import CANDLE_DB
 from us_swing.market.setup_review import ideas_day, listed_frame, rule_regime, table
 from us_swing.market.store import MarketStore, NewsTagRow
@@ -114,7 +116,8 @@ class NewsReviewSkill:
             listed = listed_frame(store, day)
             if listed.empty:
                 return Facts("", day, False, f"no listed ideas for {day}")
-            return Facts(self._text(store, day, listed), day, True)
+            return Facts(with_lessons(self._text(store, day, listed), home, KEY, day), day,
+                         True)
         finally:
             store.close()
 

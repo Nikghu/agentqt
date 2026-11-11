@@ -6,6 +6,8 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.15.1: Step C cases Pass (13 cases, 2026-11-11).
+> v0.15.0: Autonomous desk step C (2026-11-11): UT-MKT-012.* added (13 cases).
 > v0.14.0: Autonomous desk step A (2026-11-11): 14 cases for the candle check and desk copy (UT-MKT-001.013–.017); morning brief rows reworded.
 > v0.13.1: UT-MKT-011 test cases run — 25 Pass.
 > v0.13.0: 25 test cases for FO-MKT-011 ask the desk for new data (P10).
@@ -408,3 +410,21 @@
 | UT-MKT-011.008.M06.T01 | MD-MKT-011.008.M06 | Positive | Default data employee (SRD-MKT-011.008) | emp-009 job.yaml; SKILL_PATHS | level expert, skill data_recipe, trigger data_request, 20 calls, USD 3; skill loads | Pass |
 | UT-MKT-011.008.M06.T02 | MD-MKT-011.008.M06 | Negative | No real names (SRD-MKT-011.008) | emp-009 files | generic name only; market does not import desk | Pass |
 | UT-MKT-011.009.M04.T01 | MD-MKT-011.003.M04 | Positive | Logs (SRD-MKT-011.009) | one proposed and one failed request | [Data] lines with the request numbers | Pass |
+
+## FO-MKT-012: Learning from Pick Results
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-MKT-012.001.M01.T01 | MD-MKT-012.002.M01 | Positive | Stats by tag (SRD-MKT-012.001) | 6 closed picks, 2 setups | count, win rate and average R per setup | Pass |
+| UT-MKT-012.001.M01.T02 | MD-MKT-012.002.M01 | Negative | Open picks left out (SRD-MKT-012.001) | open and no-fill picks | not counted | Pass |
+| UT-MKT-012.001.M01.T03 | MD-MKT-009.001.M01 | Positive | Pick results reviews lessons (SRD-MKT-012.001) | candidate with 5 backing closed picks, run the step | lesson active | Pass |
+| UT-MKT-012.002.M01.T01 | MD-MKT-012.002.M01 | Positive | Fresh with new closed picks (SRD-MKT-012.002) | closed count above the last reflect | fresh; facts hold stats, new picks and active lessons | Pass |
+| UT-MKT-012.002.M01.T02 | MD-MKT-012.002.M01 | Negative | No new closed picks (SRD-MKT-012.002) | closed count equal to the last reflect | not fresh; no call | Pass |
+| UT-MKT-012.003.M01.T01 | MD-MKT-012.002.M01 | Positive | Candidates kept (SRD-MKT-012.003) | valid answer with 2 lessons | 2 candidates; reflected count saved; one brief | Pass |
+| UT-MKT-012.003.M01.T02 | MD-MKT-012.002.M01 | Negative | Bad form (SRD-MKT-012.003) | 4 lessons; text over 200; unknown tag | schema rejects | Pass |
+| UT-MKT-012.003.M01.T03 | MD-MKT-012.002.M01 | Edge | Unknown picks dropped (SRD-MKT-012.003) | one lesson with only unknown pick keys | that lesson dropped; the other kept | Pass |
+| UT-MKT-012.004.M02.T01 | MD-MKT-012.004.M02 | Positive | Default reflect employee (SRD-MKT-012.004) | load shipped defaults | emp-010 expert, skill lesson_reflect, trigger after_run | Pass |
+| UT-MKT-012.004.M02.T02 | MD-MKT-012.004.M02 | Negative | Unknown skill guard (SRD-MKT-012.004) | SKILL_PATHS without lesson_reflect | emp-010 asleep; others load | Pass |
+| UT-MKT-012.005.M03.T01 | MD-MKT-012.005.M03 | Positive | Pick makers get lessons (SRD-MKT-012.005) | one matching active lesson | facts of the four skills end with the block | Pass |
+| UT-MKT-012.005.M03.T02 | MD-MKT-012.005.M03 | Negative | Views get none (SRD-MKT-012.005) | same lesson | regime view and sector view facts have no lessons | Pass |
+| UT-MKT-012.006.M01.T01 | MD-MKT-012.002.M01 | Positive | Log line (SRD-MKT-012.006) | answer with 1 kept, 1 dropped | `[Memory] Kept 1 candidate lesson(s), dropped 1` | Pass |

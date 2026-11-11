@@ -6,6 +6,9 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.10.2: SRD-DSK-009.001–.009 Implemented 2026-11-11.
+> v0.10.1: SRD-DSK-009.001–.009 approved by user 2026-11-11.
+> v0.10.0: Autonomous desk step C (user, 2026-11-11): SRD-DSK-009.001–.009 added as Draft — memory v1.
 > v0.9.4: Step B rows SRD-DSK-003.010–.012, .014–.019 and 007.008 Implemented 2026-11-11.
 > v0.9.3: SRD-DSK-003.010–.012 approved by user 2026-11-11.
 > v0.9.2: SRD-DSK-003.010–.012 reopened by user 2026-11-11 and reworded (events instead of one LangGraph graph; failed step stops the chain; LangGraph removed).
@@ -156,3 +159,17 @@
 | SRD-DSK-008.007 | FO-DSK-008 | Must | Starting a hire writes `employee.md` from the skill's default employee. | hire | `employee.md` | Status shadow, as today | Implemented |
 | SRD-DSK-008.008 | FO-DSK-008 | Should | `desk replay RUN --employee ID --draft FILE` resends the employee's recorded question with the draft prompt. | draft file | answer, valid | Tries recorded as replay; no views, picks or briefs written | Implemented |
 | SRD-DSK-008.009 | FO-DSK-008 | Must | A level change is refused when the new level's seats are full. | level | reason | Same caps as hiring (SRD-DSK-006.002) | Implemented |
+
+## FO-DSK-009: Desk Memory — Lessons
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-DSK-009.001 | FO-DSK-009 | Must | Each lesson is a `lessons` row with id, text, tags, claim (better or worse), proof picks, cases, average R, confidence, status, made, last confirmed, pinned and author. | lesson | `lessons` row | Status is candidate, active or retired; author is desk or Master | Implemented |
+| SRD-DSK-009.002 | FO-DSK-009 | Must | Code makes a candidate active when at least 5 closed picks match its tags and their average R is on its claimed side of the all-picks average. | `lessons`, pick results | status | A candidate not proved in 30 days is retired | Implemented |
+| SRD-DSK-009.003 | FO-DSK-009 | Must | A new candidate with the same tags and claim as a kept lesson updates that lesson instead of adding a row. | candidate | updated row | Weekly merge of similar lessons comes later | Implemented |
+| SRD-DSK-009.004 | FO-DSK-009 | Must | Each pick-making skill gets at most 5 active lessons whose tags match the day's ideas, pinned first, then by confidence. | `lessons`, ideas | lessons text | At most 800 tokens; the text says lessons may only make the answer stricter | Implemented |
+| SRD-DSK-009.005 | FO-DSK-009 | Must | Lessons are prompt text only; risk limits, stop size, capital and approval code never read `lessons`. | — | — | Checked by a test | Implemented |
+| SRD-DSK-009.006 | FO-DSK-009 | Must | The lessons shown to each skill on each data day are kept in `lesson_uses`. | shown lessons | `lesson_uses` rows | — | Implemented |
+| SRD-DSK-009.007 | FO-DSK-009 | Must | An active lesson retires when 10 later matching picks shown it no longer back its claim, or when no new case backs it for 90 days. | `lessons`, `lesson_uses`, pick results | status | Pinned lessons never retire by themselves | Implemented |
+| SRD-DSK-009.008 | FO-DSK-009 | Must | The Master's pin, unpin, edit text, retire and delete arrive as new `lesson_edits` rows that the desk applies at its next tick. | `lesson_edits` | `lessons` | The GUI writes only new rows; an edited lesson keeps its id and numbers | Implemented |
+| SRD-DSK-009.009 | FO-DSK-009 | Should | A new candidate, a lesson made active and a retired lesson are each logged. | lesson | log line | `[Memory]` prefix | Implemented |

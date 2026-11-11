@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.11.0: MD-DSK-009.001.M23 added — lessons (step C); M04 applies lesson edits.
 > v0.10.0: Autonomous desk step B (2026-11-11): M15 `steps` table, `parent`/`due` columns, `post_step_done()`; M16 baton without LangGraph; M10 wake returns ok/slept/failed, retry flag and partial-plan line; M21 `partial` alert kind.
 > v0.9.0: Autonomous desk step A (2026-11-11): M03 morning due, M04 parent watch, M05 old-task clean-up only, M06 `--parent`, M21 `candles` alert.
 > v0.8.0: MD-DSK-008.001.M22 added — employee file, versions, draft test.
@@ -105,3 +106,15 @@ SRD coverage: .001–.003 and .006 by M21; .001 and .004 by M11; .005 by M10 and
 Changed: MD-DSK-002.002.M09 (`registry.py`: rules from core, reads `employee.md`, migrates on seed — SRD-DSK-008.001, .003, .004), MD-DSK-006.001.M18 (`core/desk_hiring.py`: writes `employee.md` — .007), MD-DSK-005.005.M17 (`replay.py`, `cli.py`: `--draft` — .008), shipped `market/employees/*/employee.md` (.004). Cross-tool note: `core/desk_team.py` (GUI module MD-GUI-035.002.M02) reads through `read_employee`.
 
 SRD coverage: .001–.003, .005, .006, .009 by M22; .004 by M09; .007 by M18; .008 by M17 and M22.
+
+## FO-DSK-009: Desk Memory — Lessons
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-DSK-009.001.M23 | SRD-DSK-009.001 | `us_swing/src/us_swing/core/desk_lessons.py` | Lesson tables, closed pick cases and tags, check, add, daily review, lessons block, edits, rows for the GUI | `Lesson`, `Case`, `cases()`, `check()`, `add_candidate()`, `review_lessons()`, `lessons_block()`, `add_edit()`, `apply_edits()`, `lesson_rows()`, `proof_rows()` | `sqlite3`, `core.desk_contract` | No |
+
+Changed: MD-DSK-001.010.M04 (`desk/process.py`: `tick()` calls `apply_edits()` — SRD-DSK-009.008).
+
+SRD coverage: 009.001–.007 and .009 by M23; .008 by M23 and M04.
+
+Cross-tool: MKT `market/pick_results.py` calls `review_lessons()`; MKT pick-making skills call `lessons_block()`; GUI `gui/ai_desk_memory.py` calls `lesson_rows()`, `proof_rows()` and `add_edit()`.

@@ -3,7 +3,7 @@
 **Document ID:** TRACE-GUI
 **Version:** 1.16.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-11-11 (morning run step A: FO-GUI-029 SRD .007–.008 and FO-GUI-034 SRD .068–.069 with RN-GUI-1.61.0-20261111; AI Desk Team at work FO-GUI-035 with RN-GUI-1.13.0-20261110; Market Floor and AI Desk frames FO-GUI-034; SRD-GUI-034.011 with RN-MKT-0.1.0-20261106; SRD-GUI-034.012 with RN-MKT-0.2.0-20261106; SRD-GUI-034.013 with RN-MKT-0.3.0-20261106; SRD-GUI-034.014 with RN-MKT-0.4.0-20261106; SRD-GUI-034.015–.017 with RN-DSK-0.2.0-20261106)
+**Last Updated:** 2026-11-11 (memory v1 step C: FO-GUI-037 with RN-GUI-1.62.0-20261111; morning run step A: FO-GUI-029 SRD .007–.008 and FO-GUI-034 SRD .068–.069 with RN-GUI-1.61.0-20261111; AI Desk Team at work FO-GUI-035 with RN-GUI-1.13.0-20261110; Market Floor and AI Desk frames FO-GUI-034; SRD-GUI-034.011 with RN-MKT-0.1.0-20261106; SRD-GUI-034.012 with RN-MKT-0.2.0-20261106; SRD-GUI-034.013 with RN-MKT-0.3.0-20261106; SRD-GUI-034.014 with RN-MKT-0.4.0-20261106; SRD-GUI-034.015–.017 with RN-DSK-0.2.0-20261106)
 
 ---
 
@@ -147,6 +147,7 @@
 | FO-GUI-034 | SRD-GUI-034.065–.067 | DD-GUI-034.065.D01 | MD-GUI-034.065.M39, MD-GUI-034.060.M34, MD-GUI-034.002.M02, MD-GUI-034.027.M21 | UT-GUI-034.065.M34.T01, .065.M39.T01–T02, .066.M39.T01, .066.M21.T01, .067.M33.T01–T02; .060.M33.T01–T02 and .037–.038.M25 updated (Pass) | `gui/ai_desk_console.py`, `gui/ai_desk.py`, `gui/desk_control.py`, `gui/ai_desk_hiring.py`, `gui/ai_desk_pages.py`, `gui/ai_desk_results.py`, `gui/ai_desk_sections3.py`, `gui/ai_desk_settings.py`, `core/desk_overview.py`, `core/desk_contract.py`, `gui/main_window.py` | Implemented | RN-GUI-1.16.0-20261110, RN-GUI-1.17.0-20261110 |
 | FO-GUI-035 | SRD-GUI-035.001–.014 | DD-GUI-035.001.D01 | MD-GUI-035.001.M01, MD-GUI-035.002.M02, MD-GUI-035.006.M03, MD-GUI-035.007.M04 | UT-GUI-035.002.M02.T01, .004.M02.T01–T02, .006.M02.T01, .009.M02.T01, .002.M01.T01, .008.M04.T01–T02, .006.M03.T01–T02, .007.M04.T01, .009.M01.T01, .010.M01.T01, .013.M04.T01, .014.M01.T01 (Pass) | `gui/ai_desk_team.py`, `gui/ai_desk_team_log.py`, `gui/ai_desk_team_pane.py`, `core/desk_team.py`, `gui/ai_desk.py`, `core/desk_feed.py`, `gui/desk_control.py` | Implemented | RN-GUI-1.13.0-20261110, RN-DSK-0.5.0-20261110, RN-GUI-1.18.0-20261110 |
 | FO-GUI-036 | SRD-GUI-036.001–.008 | DD-GUI-036.001.D01 | MD-GUI-036.001.M01; MD-GUI-035.007.M04, MD-GUI-034.059.M33 | UT-GUI-036.001–.008 (15, Pass) | `gui/ai_desk_setup.py`, `gui/ai_desk.py`, `gui/ai_desk_team.py`, `gui/ai_desk_team_pane.py` | Implemented | RN-GUI-1.19.0-20261110 |
+| FO-GUI-037 | SRD-GUI-037.001–.004 | DD-GUI-037.001.D01 | MD-GUI-037.001.M01 | UT-GUI-037.* (7, Pass) | `gui/ai_desk_memory.py`, `gui/ai_desk.py` | Implemented | RN-GUI-1.62.0-20261111 |
 
 ---
 

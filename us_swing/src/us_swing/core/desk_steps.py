@@ -8,6 +8,7 @@ Also: SRD-DSK-006.009 — "Weekly report" step path
 Also: MD-MKT-010.007.M04 — ``lead_chat`` skill path (SRD-MKT-010.007)
 Also: MD-MKT-011.008.M06 — ``data_recipe`` skill path (SRD-MKT-011.008)
 Also: MD-MKT-009.001.M06 — "Pick results" step path (SRD-MKT-009.001)
+Also: MD-MKT-012.004.M02 — ``lesson_reflect`` skill path (SRD-MKT-012.004)
 
 The list of steps the desk runs, loaded by import path, so ``desk`` never imports
 the tools (such as ``market``) that provide the steps.
@@ -44,6 +45,7 @@ SKILL_PATHS: dict[str, str] = {
     "report_page": "us_swing.market.report_page:ReportPageSkill",
     "lead_chat": "us_swing.market.lead_chat:LeadChatSkill",
     "data_recipe": "us_swing.market.data_recipe:DataRecipeSkill",
+    "lesson_reflect": "us_swing.market.lesson_reflect:LessonReflectSkill",
 }
 # Packages whose ``employees/`` folder holds default employee files to copy on first run.
 DEFAULT_EMPLOYEE_PACKAGES: tuple[str, ...] = ("us_swing.market",)

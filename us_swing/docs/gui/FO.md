@@ -7,6 +7,7 @@
 **Last Updated:** 2026-05-22
 **Project:** US Swing Trading System
 
+> v2.20.0: Autonomous desk step C (user, 2026-11-11): FO-GUI-037 added as Draft — memory v1.
 > v2.19.0: FO-GUI-036 Implemented 2026-11-10 (Team setup tab, side pane trim, review fixes).
 > v2.18.0: FO-GUI-036 AI Desk Team setup added as Draft (user chose Option 1, 2026-11-10).
 > v2.17.0: FO-GUI-034 gets the section tabs bullet (2026-11-10).
@@ -1050,3 +1051,22 @@ The system shall let the Master user set up each AI employee in one place.
 3. Restoring version 1 saves it as the next version with the version 1 prompt.
 4. Test on yesterday shows whether the answer is valid and the answer text.
 5. Edit in Team setup on the side pane opens Team setup on that employee.
+
+## FO-GUI-037: AI Desk Memory
+
+**Status:** Implemented (approved by user 2026-11-11)
+**Priority:** Must
+**Depends on:** FO-DSK-009 (lessons), FO-GUI-034 (AI Desk tabs)
+**Source: User 2026-11-11 (Autonomous desk step C, memory v1): lessons only for pick makers; active at 5 cases (backtest later); one reflect call a day after pick results. Design §8: https://claude.ai/artifact/J7AexvWdqDNujADoc9dJkJ.**
+
+The system shall let the Master user see and control what the desk has learned.
+
+- The system shall add a Memory section to AI Desk, next to Results.
+- The system shall list lessons with status, text, tags, cases, average R, confidence and dates.
+- The system shall let the Master user pin, unpin, edit, retire or delete a lesson.
+- The system shall show the picks that back a chosen lesson.
+
+### Acceptance Criteria
+
+1. AI Desk → Memory lists active lessons first; a filter shows candidates and retired ones.
+2. Pinning a lesson shows it pinned after the desk's next tick.

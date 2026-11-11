@@ -15,7 +15,7 @@ a = Analysis(
                    'us_swing.market.risk_check', 'us_swing.market.lead_brief',
                    'us_swing.market.news_step', 'us_swing.market.news_review', 'feedparser',
                    'us_swing.market.report_page', 'us_swing.market.pick_results',
-                   'us_swing.market.lead_chat', 'us_swing.market.data_recipe', 'us_swing.desk.weekly_report'],
+                   'us_swing.market.lead_chat', 'us_swing.market.data_recipe', 'us_swing.market.lesson_reflect', 'us_swing.desk.weekly_report'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=['pyi_rth_quiet_platform.py'],
