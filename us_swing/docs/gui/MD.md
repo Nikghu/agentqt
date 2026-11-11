@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.27.0: MD-GUI-037.001.M01 added — AI Desk Memory (step C).
 > v1.26.0: Autonomous desk step A (2026-11-11): M02 (desk_control) start/stop with the app, M34 next morning run, 029.004.M02 start tasks before open; also changed `main_window.py`, `core/desk_team.py`, `ai_desk.py`, `ai_desk_team.py`, `ai_desk_sections3.py`, `ai_desk_pages.py`, `ai_desk_results.py`, `ai_desk_team_pane.py` (labels, SRD-GUI-034.069).
 > v1.25.0: MD-GUI-036.001.M01 added (AI Desk Team setup).
 > v1.24.1: MD-GUI-018.012.M05 no longer used by AI Desk (SRD-GUI-034.067).
@@ -477,3 +478,11 @@ SRD coverage: .001, .003–.005, .009 and .010 by M01; .011 by MD-GUI-034.054.M3
 Changed: MD-GUI-034.059.M33 (`gui/ai_desk.py`: Team setup tab, Edit link wiring), MD-GUI-035.007.M04 (`ai_desk_team_pane.py`: `ProfilePane` trimmed, `edit_requested`), MD-GUI-035.001.M01 (`ai_desk_team.py`: re-emits `edit_requested`).
 
 SRD coverage: .001–.007 by M01; .008 by MD-GUI-035.007.M04 and MD-GUI-034.059.M33.
+
+## FO-GUI-037: AI Desk Memory
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-GUI-037.001.M01 | SRD-GUI-037.001 | `us_swing/src/us_swing/gui/ai_desk_memory.py`, `gui/ai_desk.py` | Memory section: filter, lessons table, Pin/Unpin/Edit/Retire/Delete, proof list; wiring in AI Desk | `MemoryView` | `core.desk_lessons` | No |
+
+SRD coverage: 037.001–.004 by M01.

@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.20.0: DD-GUI-037.001.D01 added — AI Desk Memory (Autonomous desk step C (2026-11-11)).
 > v1.19.0: DD-GUI-034.068.D01 added — desk lives with the app, start tasks 60 min before open, morning-run labels (Autonomous desk step A), 2026-11-11.
 > v1.18.0: DD-GUI-036.001.D01 added — AI Desk Team setup, 2026-11-10.
 > v1.17.0: DD-GUI-035.001.D01 selected card lift (SRD-GUI-035.014), 2026-11-10.
@@ -1990,3 +1991,7 @@ Run names: `evening` "Evening run", `manual` "Manual run", other kinds title-cas
 **Start-up sync.** `scheduler_dialog.sync_start_tasks(day, local) -> list[str]` runs in a daemon thread from `main_window` at start: for each switched-on start config with a program, read the task with `schtasks /query /tn NAME /xml` (`StartBoundary` time, `DaysOfWeek`), and when the time or days (weekdays mode) differ from `before_open_time`, save the config with the new time and re-create the task (TWS keeps its saved password). Each change logs `[Scheduler] Start task moved to HH:MM local time`. A missing task is left to the Settings pill (SRD-GUI-029.004).
 
 **Labels.** `core/desk_overview.next_morning_run(now, home)`: today at the later of 04:00 ET and now, when today is a trading day before 16:00 ET with no ok `morning` or `manual` run since 04:00; else 04:00 ET of the next trading day. The header tile shows it as today. `run_name("morning")` = "Morning run"; `evening` keeps "Evening run" for old rows. `core/desk_team` run kinds become `("morning", "evening", "manual")` and `after_run` reads "Morning run". Team at work trigger card: "Morning run · trading days, from 04:00 ET"; empty notes and Desk settings say "morning run".
+
+## DD-GUI-037.001.D01 — AI Desk Memory (Autonomous desk step C)
+
+**Traces:** SRD-GUI-037.001–.004. Design in DSK DD-DSK-009.001.D01 ("Memory view"). `gui/ai_desk_memory.py` holds `MemoryView`; it reads lessons and proof picks through `core/desk_lessons.py` on a worker thread and writes only new `lesson_edits` rows. `gui/ai_desk.py` adds "Memory" after "Results" in the review group and to the live sections.

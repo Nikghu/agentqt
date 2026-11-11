@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.106.1: SRD-GUI-037.001–.004 approved by user 2026-11-11.
 > v2.106.0: Autonomous desk step C (user, 2026-11-11): SRD-GUI-037.001–.004 added as Draft — memory v1.
 > v2.105.2: Step A rows Implemented 2026-11-11.
 > v2.105.1: Step A rows approved by user 2026-11-11.
@@ -810,7 +811,7 @@
 
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
-| SRD-GUI-037.001 | FO-GUI-037 | Must | AI Desk gets a Memory section in the review group, after Results. | — | section | Reads `desk.db` only | Draft |
-| SRD-GUI-037.002 | FO-GUI-037 | Must | The Memory table lists lessons with status, pinned, text, tags, cases, average R, confidence and last confirmed. | `lessons` | table | Active first; a filter picks active, candidate or retired | Draft |
-| SRD-GUI-037.003 | FO-GUI-037 | Must | Pin, Unpin, Edit, Retire and Delete add a `lesson_edits` row; the row shows "applies at the next desk tick" until done. | button | `lesson_edits` row | Delete asks first | Draft |
-| SRD-GUI-037.004 | FO-GUI-037 | Should | Choosing a lesson shows its proof picks with date, side, stock and R. | lesson | proof list | — | Draft |
+| SRD-GUI-037.001 | FO-GUI-037 | Must | AI Desk gets a Memory section in the review group, after Results. | — | section | Reads `desk.db` only | Approved |
+| SRD-GUI-037.002 | FO-GUI-037 | Must | The Memory table lists lessons with status, pinned, text, tags, cases, average R, confidence and last confirmed. | `lessons` | table | Active first; a filter picks active, candidate or retired | Approved |
+| SRD-GUI-037.003 | FO-GUI-037 | Must | Pin, Unpin, Edit, Retire and Delete add a `lesson_edits` row; the row shows "applies at the next desk tick" until done. | button | `lesson_edits` row | Delete asks first | Approved |
+| SRD-GUI-037.004 | FO-GUI-037 | Should | Choosing a lesson shows its proof picks with date, side, stock and R. | lesson | proof list | — | Approved |

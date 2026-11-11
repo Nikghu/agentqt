@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.14.0: DD-MKT-012.001.D01 added — learning from pick results (Autonomous desk step C (2026-11-11)).
 > v0.13.0: DD-MKT-001.013.D01 added — candle check with a Yahoo desk-only copy, morning brief (Autonomous desk step A, 2026-11-10).
 > v0.12.0: DD-MKT-011.001.D01 added — ask the desk for new data (P10).
 > v0.11.0: DD-MKT-010.001.D01 added — lead chat (P9).
@@ -1099,3 +1100,7 @@ The error fails the run before any AI step; the desk retries per SRD-DSK-001.015
 **Reader merge.** `CandleReader(path, topup=home)`: `read()` reads `price_1d` (dedupe keep last, as today), then `candle_topup` rows of the same symbols from `home/desk.db` (read-only; missing table = none), concat with `candles.db` first and `drop_duplicates(["symbol", "date"], keep="first")`, so IBKR always wins. `symbols()` returns the union. Steps pass `topup=ctx.home`. `latest_spy_day(candles, store)` returns the later of the `candles.db` SPY day and the copy's SPY day, so skill freshness checks (`ideas_day`, regime and sector views) see the filled day.
 
 **Morning brief.** `LeadBrief.evening` is renamed `morning` (same limits); the skill posts `FeedItem("morning", ...)`. `core/desk_agents.FEED_KINDS` adds `morning`; `core/desk_feed` titles it "Morning plan" and keeps "Evening result" for old rows. `report_page` reads the newest brief of kind `morning` or `evening` for the day and labels it "Lead brief". The shipped lead `employee.md` prompt says "morning brief".
+
+## DD-MKT-012.001.D01 — Learning from Pick Results (Autonomous desk step C)
+
+**Traces:** SRD-MKT-012.001–.006. The full design (tags, stats, reflect skill, default employee, lessons block in the four pick-making skills, daily review called by the "Pick results" step) is in DSK DD-DSK-009.001.D01, because the lesson rules live in `core/desk_lessons.py`. MKT owns `market/lesson_reflect.py`, `market/employees/emp-010/` and the one-line facts change in `setup_review.py`, `news_review.py`, `risk_check.py` and `lead_brief.py`; `pick_results.py` calls `review_lessons()` after it writes the results.

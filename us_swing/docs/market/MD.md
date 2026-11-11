@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.15.0: MD-MKT-012.*.M01–M03 added — learning from pick results (step C).
 > v0.14.0: MD-MKT-001.013.M06 added — candle check and Yahoo desk copy; M08 morning brief (Autonomous desk step A, 2026-11-11).
 > v0.13.0: MD-MKT-011.*.M01–M06 added — ask the desk for new data (P10).
 > v0.12.0: MD-MKT-010.*.M01–M04 added — lead chat (P9).
@@ -170,3 +171,15 @@ SRD coverage: .001 by M01; .002 by M02; .003–.006 and .008 by M03; .007 by M04
 | MD-MKT-011.003.M04 | SRD-MKT-011.003 | `us_swing/src/us_swing/market/data_recipe.py` | Data recipe skill: facts, answer, asked product row, log | `DataRecipeSkill`, `DataRecipeAnswer` | `core.desk_agents`, M01, M03 | No |
 | MD-MKT-011.007.M05 | SRD-MKT-011.007 | `us_swing/src/us_swing/core/desk_floor.py` | Approved asked products in the Floor catalog and their rows (added to MD-GUI-034.011.M10) | `DeskFloorData.products()`, `DeskFloorData.rows()` | M01, M03 | No |
 | MD-MKT-011.008.M06 | SRD-MKT-011.008 | `us_swing/src/us_swing/market/employees/emp-009/`, `core/desk_steps.py` | Default data employee files and the skill path | `SKILL_PATHS` | — | No |
+
+## FO-MKT-012: Learning from Pick Results
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-MKT-012.002.M01 | SRD-MKT-012.002 | `us_swing/src/us_swing/market/lesson_reflect.py` | Stats of closed picks by tag, reflect skill, answer form, candidates kept, log | `LessonReflectSkill`, `LessonReflect`, `stats_text()` | `core.desk_lessons` | No |
+| MD-MKT-012.004.M02 | SRD-MKT-012.004 | `us_swing/src/us_swing/market/employees/emp-010/`, `core/desk_steps.py` | Default reflect employee and the `lesson_reflect` skill path | — | M01 | No |
+| MD-MKT-012.005.M03 | SRD-MKT-012.005 | `us_swing/src/us_swing/market/setup_review.py`, `news_review.py`, `risk_check.py`, `lead_brief.py` | Lessons block at the end of the facts of the four pick makers | — | `core.desk_lessons` | No |
+
+Changed: MD-MKT-009.001.M01 (`pick_results.py`: calls `review_lessons()` after writing results — SRD-DSK-009.002, .007).
+
+SRD coverage: 012.001–.003 and .006 by M01; .004 by M02; .005 by M03.

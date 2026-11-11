@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.11.0: Autonomous desk step C (2026-11-11): UT-DSK-009.* added (23 cases).
 > v0.10.1: Step B cases Pass (32 cases incl. 6 rewritten, 2026-11-11).
 > v0.10.0: Autonomous desk step B (2026-11-11): UT-DSK-003.010.M16.T01/T03, 003.011.M16.T01/T03, 003.012.M16.T01/T02 rewritten (no LangGraph); UT-DSK-003.014–.019 and 007.008 added (26 cases).
 > v0.9.0: Autonomous desk step A (2026-11-11): UT-DSK-001.015.M03.T01–T06, 001.018.M05.T03–T06, 001.010.M04.T05/T11 rewritten; M04.T27–T31, M06.T05–T06, M02.T12, UT-DSK-007.007.M21.T01–T03 added.
@@ -302,3 +303,31 @@
 | UT-DSK-007.008.M21.T01 | MD-DSK-007.001.M21 | Positive | Partial alert (SRD-DSK-007.008) | step failed 3 times | one partial alert with name and last error; Telegram sent | Pass |
 | UT-DSK-007.008.M21.T02 | MD-DSK-007.001.M21 | Negative | Once a day (SRD-DSK-007.008) | same step fails in 2 chains on one day | one alert | Pass |
 | UT-DSK-007.008.M21.T03 | MD-DSK-007.001.M21 | Positive | Alert closes (SRD-DSK-007.008) | later event with note chain full | alert no longer open | Pass |
+
+## FO-DSK-009: Desk Memory — Lessons
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-DSK-009.001.M23.T01 | MD-DSK-009.001.M23 | Positive | Lesson stored (SRD-DSK-009.001) | add a candidate | row with tags, claim, proof, numbers, status candidate, author desk | Not Run |
+| UT-DSK-009.001.M23.T02 | MD-DSK-009.001.M23 | Negative | Bad lesson (SRD-DSK-009.001) | claim `maybe`; 4 tags; unknown tag key | ValueError; no row | Not Run |
+| UT-DSK-009.002.M23.T01 | MD-DSK-009.001.M23 | Positive | Active at 5 cases (SRD-DSK-009.002) | worse claim; 5 matching picks below the average | status active; active_on set | Not Run |
+| UT-DSK-009.002.M23.T02 | MD-DSK-009.001.M23 | Negative | Too few cases (SRD-DSK-009.002) | 3 matching picks | stays candidate | Not Run |
+| UT-DSK-009.002.M23.T03 | MD-DSK-009.001.M23 | Negative | Cases do not back it (SRD-DSK-009.002) | worse claim; 5 matching picks above the average | stays candidate | Not Run |
+| UT-DSK-009.002.M23.T04 | MD-DSK-009.001.M23 | Edge | Unproved for 30 days (SRD-DSK-009.002) | candidate made 31 days ago | retired by the review | Not Run |
+| UT-DSK-009.003.M23.T01 | MD-DSK-009.001.M23 | Positive | Same lesson updated (SRD-DSK-009.003) | two candidates, same tags and claim | one row; newer text | Not Run |
+| UT-DSK-009.003.M23.T02 | MD-DSK-009.001.M23 | Edge | Other claim is new (SRD-DSK-009.003) | same tags, claims better and worse | two rows | Not Run |
+| UT-DSK-009.003.M23.T03 | MD-DSK-009.001.M23 | Negative | Retired lesson not revived (SRD-DSK-009.003) | candidate matching a retired lesson | new candidate row; retired row unchanged | Not Run |
+| UT-DSK-009.004.M23.T01 | MD-DSK-009.001.M23 | Positive | Top 5, pinned first (SRD-DSK-009.004) | 7 matching active lessons, one pinned with low confidence | 5 lines; pinned first, then by confidence | Not Run |
+| UT-DSK-009.004.M23.T02 | MD-DSK-009.001.M23 | Negative | Nothing to show (SRD-DSK-009.004) | only candidates; or no idea matches | empty text | Not Run |
+| UT-DSK-009.004.M23.T03 | MD-DSK-009.001.M23 | Edge | Token cap (SRD-DSK-009.004) | 5 long lessons | block at most 3,200 characters | Not Run |
+| UT-DSK-009.005.M23.T01 | MD-DSK-009.001.M23 | Negative | Limits never read lessons (SRD-DSK-009.005) | scan `execution`, `broker`, `core/desk_trades.py`, `market/idea_step.py` | no `desk_lessons` import | Not Run |
+| UT-DSK-009.005.M23.T02 | MD-DSK-009.001.M23 | Positive | Same risk result (SRD-DSK-009.005) | risk check passed list with and without an active lesson | identical | Not Run |
+| UT-DSK-009.006.M23.T01 | MD-DSK-009.001.M23 | Positive | Uses kept (SRD-DSK-009.006) | block shows 2 lessons to setup review | 2 `lesson_uses` rows for that day and skill | Not Run |
+| UT-DSK-009.006.M23.T02 | MD-DSK-009.001.M23 | Negative | No uses when nothing shown (SRD-DSK-009.006) | block with no matching lesson | no `lesson_uses` row | Not Run |
+| UT-DSK-009.007.M23.T01 | MD-DSK-009.001.M23 | Negative | Later picks do not back it (SRD-DSK-009.007) | active worse lesson; 10 later shown picks above the average | retired with the reason | Not Run |
+| UT-DSK-009.007.M23.T02 | MD-DSK-009.001.M23 | Positive | Confirmed (SRD-DSK-009.007) | a later shown pick on the claimed side | last_confirmed moves; stays active | Not Run |
+| UT-DSK-009.007.M23.T03 | MD-DSK-009.001.M23 | Edge | 90 days and pinned (SRD-DSK-009.007) | two lessons last confirmed 91 days ago, one pinned | unpinned retired; pinned stays active | Not Run |
+| UT-DSK-009.008.M23.T01 | MD-DSK-009.001.M23 | Positive | Edits applied (SRD-DSK-009.008) | pin, edit, retire, delete rows | each applied; edit keeps id and numbers, author master | Not Run |
+| UT-DSK-009.008.M23.T02 | MD-DSK-009.001.M23 | Negative | Unknown lesson (SRD-DSK-009.008) | edit for a missing id | applied with note lesson not found | Not Run |
+| UT-DSK-009.008.M04.T01 | MD-DSK-001.010.M04 | Positive | Tick applies edits (SRD-DSK-009.008) | pending pin row, one desk tick | lesson pinned; row applied | Not Run |
+| UT-DSK-009.009.M23.T01 | MD-DSK-009.001.M23 | Positive | Log lines (SRD-DSK-009.009) | add, promote, retire | three `[Memory]` lines | Not Run |

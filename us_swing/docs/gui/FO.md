@@ -1054,7 +1054,7 @@ The system shall let the Master user set up each AI employee in one place.
 
 ## FO-GUI-037: AI Desk Memory
 
-**Status:** Draft
+**Status:** Approved (user 2026-11-11)
 **Priority:** Must
 **Depends on:** FO-DSK-009 (lessons), FO-GUI-034 (AI Desk tabs)
 **Source: User 2026-11-11 (Autonomous desk step C, memory v1): lessons only for pick makers; active at 5 cases (backtest later); one reflect call a day after pick results. Design §8: https://claude.ai/artifact/J7AexvWdqDNujADoc9dJkJ.**

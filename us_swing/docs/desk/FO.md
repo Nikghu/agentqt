@@ -201,7 +201,7 @@ The system shall keep each AI employee in one readable file that the Master user
 
 ## FO-DSK-009: Desk Memory — Lessons
 
-**Status:** Draft
+**Status:** Approved (user 2026-11-11)
 **Priority:** Must
 **Depends on:** FO-DSK-005 (activity log is the journal), FO-MKT-009 (pick results), FO-MKT-012 (learning)
 **Source: User 2026-11-11 (Autonomous desk step C, memory v1): lessons only for pick makers; active at 5 cases (backtest later); one reflect call a day after pick results. Design §8: https://claude.ai/artifact/J7AexvWdqDNujADoc9dJkJ.**
