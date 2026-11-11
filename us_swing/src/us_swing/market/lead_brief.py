@@ -10,6 +10,7 @@ are applied again here, so a vetoed idea is never offered even without a risk ch
 Uses only ``core`` types; it never imports the desk harness.
 Also: MD-MKT-012.005.M03 — lessons block at the end of the facts (SRD-MKT-012.005)
 Also: MD-MKT-014.001.M01 — tickets in the answer, research block, tickets to the queue
+Also: SRD-MKT-017.007 — sentiment cards block after the ideas table
 (SRD-MKT-014.001, .004, .005)
 """
 from __future__ import annotations
@@ -30,6 +31,7 @@ from us_swing.core.desk_research import TicketAsk, raise_tickets, with_research
 from us_swing.market.candles import CANDLE_DB
 from us_swing.market.risk_check import views_text
 from us_swing.market.risk_limits import code_vetoes
+from us_swing.market.sentiment_cards import cards_block
 from us_swing.market.setup_review import (
     ideas_day,
     listed_frame,
@@ -128,6 +130,8 @@ class LeadBriefSkill:
                 f"Ideas you may pick (they passed the risk check), at most {PICKS_PER_SIDE} "
                 f"per side:\n{table(shown)}",
             ])
+            cards = cards_block(home, keys, day)
+            text = f"{text}\n\n{cards}" if cards else text
             text = with_lessons(text, home, KEY, day)
             return Facts(with_research(text, home, KEY, self._clock()), day, True)
         finally:

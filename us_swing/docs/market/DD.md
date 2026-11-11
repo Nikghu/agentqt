@@ -1320,7 +1320,7 @@ CREATE TABLE IF NOT EXISTS sentiment_cards (
     reason TEXT, headlines INTEGER, ticket_id INTEGER, made TEXT);
 ```
 
-`save_cards()` writes one row per judged chosen stock (first card per stock wins; unknown stocks dropped). `cards_block(home, keys, day)` returns, for each `(side, symbol)` in `keys`, the newest card with `day` in the last 7 days, at most 30 lines: `long AAPL: against, <reason> (2026-11-10, 3 headlines)`, under the header "News tone cards from research (last 7 days; information only, scores unchanged):". Empty when no card fits. `lead_brief.facts()` adds it after the ideas table, before the lessons block. Nothing writes `news_tags` or scores.
+`save_cards()` writes one row per judged chosen stock (first card per stock wins; unknown stocks dropped). `cards_block(home, keys, day)` returns, for each `(side, symbol)` in `keys`, the newest card made from 7 days before the ideas day on (cards made after the ideas day, such as on a weekend, count), at most 30 lines; any read problem gives an empty block so the plan never fails: `long AAPL: against, <reason> (2026-11-10, 3 headlines)`, under the header "News tone cards from research (last 7 days; information only, scores unchanged):". Empty when no card fits. `lead_brief.facts()` adds it after the ideas table, before the lessons block. Nothing writes `news_tags` or scores.
 
 ### 5. Result and gain (SRD-MKT-017.008)
 

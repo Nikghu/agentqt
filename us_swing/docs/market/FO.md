@@ -426,7 +426,7 @@ The system shall give the desk an employee that works post-mortem tickets: it st
 
 ## FO-MKT-017: Sentiment Research
 
-**Status:** Approved (approved by user 2026-11-11)
+**Status:** Implemented (approved by user 2026-11-11)
 **Priority:** Must
 **Phase:** Autonomous desk step F (skill 3 of 4)
 **Depends on:** FO-DSK-010 (research queue), FO-MKT-006 (news review), FO-MKT-005 (lead plan), FO-MKT-013 (open trades)
