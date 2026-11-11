@@ -7,6 +7,7 @@
 **Last Updated:** 2026-05-22
 **Project:** US Swing Trading System
 
+> v2.22.0: Autonomous desk step E (user, 2026-11-11): FO-GUI-039 added as Draft — research queue.
 > v2.21.0: Autonomous desk step D (user, 2026-11-11): FO-GUI-038 added as Draft — check-ins and watchers.
 > v2.20.0: Autonomous desk step C (user, 2026-11-11): FO-GUI-037 added as Draft — memory v1.
 > v2.19.0: FO-GUI-036 Implemented 2026-11-10 (Team setup tab, side pane trim, review fixes).
@@ -1088,3 +1089,21 @@ The system shall give the desk the live bars and the open trades it watches.
 
 1. During market hours `price_3m` gets new bars for today's lead picks and SPY.
 2. Opening or closing a trade updates `open_trades` in `desk.db` within a few seconds.
+
+## FO-GUI-039: AI Desk Research
+
+**Status:** Approved (user, 2026-11-11)
+**Priority:** Must
+**Depends on:** FO-DSK-010 (research queue), FO-DSK-004 (token split), FO-GUI-035 (AI Desk)
+**Source: User 2026-11-11 (Autonomous desk step E): a big ticket waits for approval in the AI Desk and on Telegram. Design §7: https://claude.ai/artifact/J7AexvWdqDNujADoc9dJkJ.**
+
+The system shall show the research queue in the AI Desk and let the Master user approve or reject waiting tickets.
+
+- The system shall list research tickets, waiting ones first, with their goal, cap, spent tokens and status.
+- The system shall let the Master user approve, reject or change the cap of a waiting ticket.
+- The system shall show the result and end reason of an ended ticket.
+
+### Acceptance Criteria
+
+1. A waiting ticket appears at the top of AI Desk → Research; Approve starts it at the next quiet gap.
+2. Reject moves it to the ended list as rejected.

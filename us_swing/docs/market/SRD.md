@@ -6,6 +6,8 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.17.1: SRD-MKT-014.001–.005 approved by user 2026-11-11.
+> v0.17.0: Autonomous desk step E (user, 2026-11-11): SRD-MKT-014.001–.005 added as Draft — lead research tickets.
 > v0.16.2: Step D rows Implemented (12, 2026-11-11).
 > v0.16.1: SRD-MKT-013.001–.012 approved by user 2026-11-11.
 > v0.16.0: Autonomous desk step D (user, 2026-11-11): SRD-MKT-013.001–.012 added as Draft — check-ins and watchers.
@@ -240,3 +242,13 @@
 | SRD-MKT-013.010 | FO-MKT-013 | Must | The check-in skill (`checkin_note`) writes a note of at most 600 characters on plan stocks against trigger, open trades against stop and target, SPY and the flags since the last check-in. | bars, trades, flags | brief | One note per check-in time | Implemented |
 | SRD-MKT-013.011 | FO-MKT-013 | Must | Default employees ship as `emp-011` ("Expert 9", skill `watch_flag`, trigger `watch_flag`) and `emp-012` ("Lead 3", skill `checkin_note`, trigger `market_checkin`). | default files | employees | Copied only when missing; generic names | Implemented |
 | SRD-MKT-013.012 | FO-MKT-013 | Should | Each flag answer logs the stock, flag kind and verdict. | answer | log line | `[Watch]` prefix | Implemented |
+
+## FO-MKT-014: Lead Research Tickets
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-MKT-014.001 | FO-MKT-014 | Must | The lead plan (`lead_brief`) and check-in (`checkin_note`) answers may hold up to 3 tickets, each with kind, topic, goal, done test and token cap. | answer | tickets | Typed form; an empty list is valid | Approved |
+| SRD-MKT-014.002 | FO-MKT-014 | Must | Ticket kinds come from a fixed list: setup tuning, pick post-mortem, stock study, sentiment, book to strategy and strategy test. | kind | checked kind | An unknown kind makes the ticket invalid, not the answer | Approved |
+| SRD-MKT-014.003 | FO-MKT-014 | Must | A ticket's token cap is between 1,000 and 100,000 tokens. | cap | checked cap | — | Approved |
+| SRD-MKT-014.004 | FO-MKT-014 | Must | The lead's prompt shows its research tokens left today, its open tickets and its results from the last 30 days. | `tickets`, `activity` | prompt text | At most 600 tokens | Approved |
+| SRD-MKT-014.005 | FO-MKT-014 | Must | Valid tickets of a kept answer are handed to the research queue. | tickets | `tickets` rows | Queue rules of FO-DSK-010 decide approve, wait or refuse | Approved |

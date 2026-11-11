@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.10.0: Autonomous desk step E (user, 2026-11-11): FO-DSK-004 daily token split 50/20/30; FO-DSK-010 added as Draft — research queue; FO-DSK-007 ticket alert.
 > v0.9.0: Autonomous desk step D (user, 2026-11-11): FO-DSK-003 check-ins and watchers; FO-DSK-007 trade and plan alerts.
 > v0.8.0: Autonomous desk step C (user, 2026-11-11): FO-DSK-009 added as Draft — memory v1.
 > v0.7.0: Autonomous desk step B (user, 2026-11-11): FO-DSK-003 baton by `done` events with retries and a partial plan on failure.
@@ -105,11 +106,13 @@ The system shall send every model call through one gateway that checks the answe
 - The system shall check every answer against the employee's output schema, retry once, then try the backup model.
 - The system shall make no call once the monthly budget (start: USD 10) or the employee's own cap is used up.
 - The system shall cap Claude Code CLI calls per day, because their cost is not reported.
+- The system shall give each employee a daily token budget split 50% plan, 20% market hours and 30% research, and make no call once that part is used up (Autonomous desk step E, user 2026-11-11).
 
 ### Acceptance Criteria
 
 1. A bad answer is retried once and then sent to the backup model; both tries are recorded.
 2. With the budget used up, no call is made and the log says so.
+3. An employee whose market-hours part is used up answers no more watch flags that day, while its plan part is still usable.
 
 ## FO-DSK-005: Activity Recorder and Replay
 
@@ -170,6 +173,7 @@ The system shall tell the Master User when the AI desk hits a problem only the u
 - The system shall stop trying a source that could not sign in for the rest of that run and use the backup model.
 - The system shall raise an alert when no employee of a run gave a valid answer.
 - The system shall raise an alert when the morning run stops because the candles are not up to date (user, 2026-11-10).
+- The system shall raise an alert when a research ticket waits for the user's approval (Autonomous desk step E, user 2026-11-11).
 - The system shall close an alert in the app once the problem is fixed.
 
 ### Acceptance Criteria
@@ -223,3 +227,28 @@ The system shall keep short lessons learned from pick results, prove them before
 2. The next morning the setup review prompt holds the active lesson whose tags match the day's ideas.
 3. A pinned lesson is never retired by the desk.
 4. Risk limits and the risk check code are the same with or without lessons.
+
+## FO-DSK-010: Research Queue
+
+**Status:** Approved (user, 2026-11-11)
+**Priority:** Must
+**Phase:** Autonomous desk step E
+**Depends on:** FO-DSK-003 (events and quiet gaps), FO-DSK-004 (research share), FO-DSK-007 (alerts)
+**Source: User 2026-11-11 (Autonomous desk step E): leads raise tickets; a ticket of 10k tokens or less is approved by itself, a bigger one waits for the user; the cap is hard and the raising lead's research share pays; approval in AI Desk and Telegram. Design §7 and §9 (stop rules R1–R8): https://claude.ai/artifact/J7AexvWdqDNujADoc9dJkJ.**
+
+The system shall run research only from tickets that leads raise, each with its own goal, done test and token cap, and only in quiet time.
+
+- The system shall keep each research ticket with its kind, goal, done test, caps, status and result in `desk.db`.
+- The system shall let only lead-level employees raise tickets, a few a day each.
+- The system shall approve a ticket of 10,000 tokens or less by itself and keep a bigger one waiting for the user.
+- The system shall run one ticket at a time, only when no plan run is active and no watcher flag came in the last 20 minutes.
+- The system shall end a ticket at its done test, at its token, step or time cap, or when it makes no progress.
+- The system shall pause research for market work and resume it at the next quiet gap.
+- The system shall not raise a ticket that repeats a recent one, and shall park a topic that gives no gain three times.
+
+### Acceptance Criteria
+
+1. A lead ticket with an 8,000-token cap starts by itself at the next quiet gap; one with a 30,000-token cap waits and raises an alert.
+2. A running ticket stops at its token cap and keeps what it found.
+3. A watcher flag pauses the running ticket after its current step, and it resumes 20 minutes after the last flag.
+4. The same goal raised again within 30 days is not added.
