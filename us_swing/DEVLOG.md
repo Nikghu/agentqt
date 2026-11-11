@@ -2,6 +2,50 @@
 
 ---
 
+## [20261111] MKT — Autonomous AI Desk step F skill 4: book to strategy research (FO-MKT-018)
+
+- Type: Feature
+- FO(s): FO-MKT-018
+- RN: RN-MKT-0.20.0-20261111
+- Artifacts updated: TRACE, CONTEXT, RN, DEVLOG (SRD and FO in 6b31b2fe; DD, MD, UTCD in a49905aa; Code in e099584f: market/book_strategy, book_text, book_cards, lead_brief, employees/emp-016, SKILL_PATHS, USSwing.spec, pyproject.toml)
+- Decisions: book tickets never auto-approve (approval is the permission); text only from desk books folder or Project Gutenberg plain text, Gutenberg cached once; upload and gutenberg topic forms; txt, md, html, pdf (pypdf>=5.1); one strategy card only; each chapter read once; gain = entry, exit and stop filled and at least one quote found; default employee emp-016 "Expert 13"; code review fixes: 20 MB and 500-page caps, capped gutenberg.org-only download, atomic cache write; live check fixed table-of-contents split (sections under 100 words skipped)
+- Tests: 23 UT-MKT-018 cases Pass (tests/market/test_book_strategy.py); market 509 pass, desk 347, core 276, AI Desk GUI 194
+
+---
+
+## [20261111] MKT — Autonomous AI Desk step F skill 3: sentiment research (FO-MKT-017)
+
+- Type: Feature
+- FO(s): FO-MKT-017
+- RN: RN-MKT-0.19.0-20261111
+- Artifacts updated: SRD, DD, MD, UTCD, TRACE, CONTEXT, Code (market/sentiment, sentiment_news, sentiment_cards, lead_brief, employees/emp-015, SKILL_PATHS, USSwing.spec), Tests, RN, DEVLOG
+- Decisions: AI picks up to 30 stocks from latest listed and watch ideas and open trades; stored headlines first (7 days, at most 5 per stock); Yahoo fetch only for stocks with none in 3 days, 90 s budget, fetched ones stored; tone cards (supports, neutral, against, none) for the lead's plan prompt, scores never changed; gain = at least 1 stock against its side; steps pick (AI), gather (code), judge (AI); default employee emp-015 "Expert 12"; code review fix: weekend-ticket cards show to the lead, cards read problem gives empty block
+- Tests: 22 UT-MKT-017 cases Pass (tests/market/test_sentiment.py); market 486 pass, desk 347, core 276, AI Desk GUI 194; real-data read-only check: 22 choices, 54 headlines in 0.06 s, 9 stocks would be fetched
+
+---
+
+## [20261111] MKT+DSK — Autonomous AI Desk step F skill 2: pick post-mortem research (FO-MKT-016, SRD-DSK-010.015)
+
+- Type: Feature
+- FO(s): FO-MKT-016, FO-DSK-010 (SRD-DSK-010.015)
+- RN: RN-MKT-0.18.0-20261111, RN-DSK-0.12.0-20261111
+- Artifacts updated: SRD, DD, MD, UTCD, TRACE, CONTEXT, Code (market/post_mortem, market/post_mortem_facts, market/employees/emp-014, core/desk_research, SKILL_PATHS, USSwing.spec), Tests, RN, DEVLOG
+- Decisions: AI picks up to 10 losers and 5 winners from closed lead picks of the last 30 days (120 shown at most); bars from Backtest Data first, candles.db only for missing days; gain = at least one lesson saved; follow-ups in the raising lead's name; post_mortem follow-ups dropped (no chains); default employee emp-014 "Expert 11"
+- Tests: 22 UT-MKT-016 and 3 UT-DSK-010.015 cases Pass; market 464, desk 347, core 276 pass; no coverage run
+
+---
+
+## [20261111] MKT — Autonomous AI Desk step F skill 1: setup tuning research (FO-MKT-015)
+
+- Type: Feature
+- FO(s): FO-MKT-015
+- RN: RN-MKT-0.17.0-20261111
+- Artifacts updated: SRD, DD, MD, UTCD, TRACE, CONTEXT, Code (market/setup_tuning, setup_knobs, setups, tuning_replay, tuning_strategy, employees/emp-013, SKILL_PATHS, USSwing.spec), Tests, RN, DEVLOG
+- Decisions: desk setup tested by 5-year replay on Backtest Data daily bars; live strategy tested on the backtest engine with renamed copies (not saved as runs, workers 0); gain = +0.05R on 100+ trades, decided by code; desk-setup gain writes one candidate lesson; report only, live setups and strategies never change; strategy stocks = own include list, else up to 30 AI-picked S&P 500 stocks; default employee emp-013 "Expert 10"
+- Tests: 31 UT-MKT-015 cases Pass (tests/market/test_setup_tuning.py); market 442 pass; no new failures (old failures, TODO T112); coverage not measured (TODO T165)
+
+---
+
 ## [20261111] DSK+MKT+GUI — Autonomous AI Desk step E: token split and research queue (FO-DSK-004, FO-DSK-007, FO-DSK-010, FO-MKT-014, FO-GUI-039)
 
 - Type: Feature

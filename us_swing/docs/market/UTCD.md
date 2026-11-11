@@ -1,11 +1,19 @@
 # Unit Test Cases — Market Analytics (MKT)
 
 **Document ID:** UTCD-MKT
-**Version:** 0.5.0
+**Version:** 0.9.1
 **Status:** Draft
-**Last Updated:** 2026-11-06
+**Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.21.1: Step F book cases Pass (23, 2026-11-11).
+> v0.21.0: UT-MKT-018.* added (23, Not Run) — book to strategy research (step F).
+> v0.20.1: Step F sentiment cases Pass (22, 2026-11-11).
+> v0.20.0: UT-MKT-017.* added (22, Not Run) — sentiment research (step F).
+> v0.19.1: Step F post-mortem cases Pass (22, 2026-11-11).
+> v0.19.0: UT-MKT-016.* added (22, Not Run) — pick post-mortem research (step F).
+> v0.18.1: Step F setup tuning cases Pass (31, 2026-11-11).
+> v0.18.0: UT-MKT-015.* added (31, Not Run) — setup tuning research (step F).
 > v0.17.1: Step E cases Pass (12, 2026-11-11).
 > v0.17.0: Autonomous desk step E (2026-11-11): UT-MKT-014.001–.005 added (12 cases).
 > v0.16.1: Step D cases Pass (31, 2026-11-11).
@@ -485,3 +493,121 @@
 | UT-MKT-014.003.M01.T02 | MD-MKT-014.001.M01 | Positive | Cap inside the range (SRD-MKT-014.003) | cap 5,000 | added with cap 5,000 | Pass |
 | UT-MKT-014.005.M01.T02 | MD-MKT-014.001.M01 | Positive | Queue decides (SRD-MKT-014.005) | tickets with caps 8,000 and 30,000 | first approved by auto; second waiting | Pass |
 | UT-MKT-014.005.M01.T03 | MD-MKT-014.001.M01 | Negative | Queue error keeps the brief (SRD-MKT-014.005) | tickets table cannot be written | brief and picks kept; error logged | Pass |
+
+## FO-MKT-015: Setup Tuning Research
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-MKT-015.001.M01.T01 | MD-MKT-015.001.M01 | Positive | Skill kinds (SRD-MKT-015.001) | skill class | kinds = (`setup_tuning`,); step_tokens set | Pass |
+| UT-MKT-015.001.M01.T02 | MD-MKT-015.001.M01 | Negative | Unknown target (SRD-MKT-015.001) | plan target `Moonshot` | outcome failed; note names the target | Pass |
+| UT-MKT-015.002.M02.T01 | MD-MKT-015.002.M02 | Positive | Defaults unchanged (SRD-MKT-015.002) | random bars; candidates with no values vs all defaults given | same match, trigger and stop frames | Pass |
+| UT-MKT-015.002.M02.T02 | MD-MKT-015.002.M02 | Negative | Range check (SRD-MKT-015.002) | Pullback `near_sma` 1.2; unknown knob `foo` | both changes dropped | Pass |
+| UT-MKT-015.002.M02.T03 | MD-MKT-015.002.M02 | Edge | Whole knobs (SRD-MKT-015.002) | `sma_days` 20.6 | kept as 21 | Pass |
+| UT-MKT-015.003.M01.T01 | MD-MKT-015.001.M01 | Positive | Pick step (SRD-MKT-015.003) | plan with 3 Pullback variants | state phase run, 3 variants, side long; outcome go | Pass |
+| UT-MKT-015.003.M01.T02 | MD-MKT-015.001.M01 | Negative | No valid variant (SRD-MKT-015.003) | all variants out of range | outcome failed | Pass |
+| UT-MKT-015.003.M01.T03 | MD-MKT-015.001.M01 | Negative | Too many (SRD-MKT-015.003) | 4 variants, or 3 changes in one | answer not valid | Pass |
+| UT-MKT-015.004.M03.T01 | MD-MKT-015.004.M03 | Positive | Replay trade (SRD-MKT-015.004) | match with trigger 101, stop 99, later bar high 106 | one trade, R 2.0, win 1.0 | Pass |
+| UT-MKT-015.004.M03.T02 | MD-MKT-015.004.M03 | Edge | Busy stock (SRD-MKT-015.004) | match on 3 days in a row, one fill | one trade only | Pass |
+| UT-MKT-015.004.M03.T03 | MD-MKT-015.004.M03 | Negative | No data (SRD-MKT-015.004) | empty Backtest Data folder | `None` | Pass |
+| UT-MKT-015.004.M03.T04 | MD-MKT-015.004.M03 | Edge | 5-year window (SRD-MKT-015.004) | 7 years of bars with a match in year 1 | old match not traded | Pass |
+| UT-MKT-015.005.M04.T01 | MD-MKT-015.005.M04 | Positive | Strategy knobs and copy (SRD-MKT-015.005) | entry `RSI(14) < 30`, change `entry#2` 35 | copy entry `RSI(14) < 35`, new name, live dict unchanged | Pass |
+| UT-MKT-015.005.M04.T02 | MD-MKT-015.005.M04 | Negative | No fixed stop (SRD-MKT-015.005) | stop off; trailing stop | a reason for each | Pass |
+| UT-MKT-015.005.M04.T03 | MD-MKT-015.005.M04 | Positive | Stocks (SRD-MKT-015.005) | include list; `all` mode with AI list of 35 incl. 1 unknown | include list; first 30 known | Pass |
+| UT-MKT-015.005.M04.T04 | MD-MKT-015.005.M04 | Positive | R per trade (SRD-MKT-015.005) | qty 10, entry 100, stop 2%, net pnl 40 | R 2.0 | Pass |
+| UT-MKT-015.005.M04.T05 | MD-MKT-015.005.M04 | Positive | Run not saved (SRD-MKT-015.005) | fake service | record False on both steps; loader gives only the copy | Pass |
+| UT-MKT-015.006.M03.T01 | MD-MKT-015.004.M03 | Positive | Result table (SRD-MKT-015.006) | rows base and v1 | text lists trades, win, R and change | Pass |
+| UT-MKT-015.006.M03.T02 | MD-MKT-015.004.M03 | Negative | No trades (SRD-MKT-015.006) | variant with no closed trade | row 0 trades, win 0%, +0.00R; no error | Pass |
+| UT-MKT-015.007.M03.T01 | MD-MKT-015.004.M03 | Positive | Gain (SRD-MKT-015.007) | base +0.10R, v1 +0.16R on 120 trades | gain v1 | Pass |
+| UT-MKT-015.007.M03.T02 | MD-MKT-015.004.M03 | Edge | Gain limits (SRD-MKT-015.007) | +0.04R on 500 trades; +0.20R on 99 trades | no gain both | Pass |
+| UT-MKT-015.007.M03.T03 | MD-MKT-015.004.M03 | Negative | No variant or worse (SRD-MKT-015.007) | baseline only; variant below the baseline | no gain both | Pass |
+| UT-MKT-015.008.M01.T01 | MD-MKT-015.001.M01 | Positive | Full ticket (SRD-MKT-015.008) | loop of steps, Pullback, fake replay | 5 steps; done; notes hold rows and verdict | Pass |
+| UT-MKT-015.008.M01.T02 | MD-MKT-015.001.M01 | Negative | No verdict answer (SRD-MKT-015.008) | ask returns None at verdict | empty note; outcome go | Pass |
+| UT-MKT-015.009.M01.T01 | MD-MKT-015.001.M01 | Positive | Candidate lesson (SRD-MKT-015.009) | setup gain | one candidate lesson, tags setup and side, claim worse | Pass |
+| UT-MKT-015.009.M01.T02 | MD-MKT-015.001.M01 | Negative | No lesson (SRD-MKT-015.009) | no gain; strategy gain | no lesson rows | Pass |
+| UT-MKT-015.010.M01.T01 | MD-MKT-015.001.M01 | Negative | Report only (SRD-MKT-015.010) | strategy ticket with a gain | live strategy dict and knob defaults unchanged | Pass |
+| UT-MKT-015.010.M01.T02 | MD-MKT-015.001.M01 | Positive | Winning values named (SRD-MKT-015.010) | desk-setup ticket with a gain | verdict note names v1 and its values; knob defaults unchanged | Pass |
+| UT-MKT-015.011.M01.T01 | MD-MKT-015.001.M01 | Positive | Default employee (SRD-MKT-015.011) | shipped emp-013 file, `SKILL_PATHS` | valid file, skill `setup_tuning`, path loads | Pass |
+| UT-MKT-015.011.M01.T02 | MD-MKT-015.001.M01 | Negative | Never wakes on events (SRD-MKT-015.011) | `facts()` on a `research_done` event | not fresh; `act` returns no feed items | Pass |
+| UT-MKT-015.012.M01.T01 | MD-MKT-015.001.M01 | Positive | Logs (SRD-MKT-015.012) | pick and run steps | `[Research]` lines with target, count and gain | Pass |
+
+## FO-MKT-016: Pick Post-Mortem Research
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-MKT-016.001.M01.T01 | MD-MKT-016.001.M01 | Positive | Three steps (SRD-MKT-016.001) | full ticket with fake answers | calls pick, gather, study; outcome done | Pass |
+| UT-MKT-016.001.M01.T02 | MD-MKT-016.001.M01 | Negative | No answer (SRD-MKT-016.001) | ask returns None at pick | empty note; outcome go | Pass |
+| UT-MKT-016.002.M01.T01 | MD-MKT-016.001.M01 | Positive | Pick list (SRD-MKT-016.002) | closed picks 10 and 40 days old | facts list the 10-day pick only | Pass |
+| UT-MKT-016.002.M01.T02 | MD-MKT-016.001.M01 | Edge | List size (SRD-MKT-016.002) | 150 closed picks | 120 shown, newest first | Pass |
+| UT-MKT-016.003.M01.T01 | MD-MKT-016.001.M01 | Negative | Bad keys dropped (SRD-MKT-016.003) | unknown key, a winner named as loser | both dropped | Pass |
+| UT-MKT-016.003.M01.T02 | MD-MKT-016.001.M01 | Negative | Too few losers (SRD-MKT-016.003) | 1 valid loser | outcome failed | Pass |
+| UT-MKT-016.004.M02.T01 | MD-MKT-016.004.M02 | Positive | Record facts (SRD-MKT-016.004) | desk.db with idea, reasons, grade, risk, lead reason, tone, regime, result | one line holding each fact | Pass |
+| UT-MKT-016.004.M02.T02 | MD-MKT-016.004.M02 | Negative | Missing tables (SRD-MKT-016.004) | desk.db with pick_results only | line with result; no error | Pass |
+| UT-MKT-016.005.M02.T01 | MD-MKT-016.004.M02 | Positive | Price path (SRD-MKT-016.005) | long, trigger 100, stop 98, bars up to 103 and down to 97 | best +1.5R, worst -1.5R, gap and SPY % | Pass |
+| UT-MKT-016.005.M02.T02 | MD-MKT-016.004.M02 | Positive | Backtest Data first (SRD-MKT-016.005) | same day in both stores; one day only in candles.db | Backtest Data value kept; missing day filled | Pass |
+| UT-MKT-016.005.M02.T03 | MD-MKT-016.004.M02 | Negative | No bars (SRD-MKT-016.005) | symbol in neither store | path shows no bars | Pass |
+| UT-MKT-016.006.M01.T01 | MD-MKT-016.001.M01 | Positive | Study answer (SRD-MKT-016.006) | answer with notes, 1 lesson, 1 follow-up, summary | result holds summary and notes | Pass |
+| UT-MKT-016.006.M01.T02 | MD-MKT-016.001.M01 | Negative | Answer limits (SRD-MKT-016.006) | 4 lessons; 3 follow-ups; note of 151 characters | answer not valid | Pass |
+| UT-MKT-016.007.M01.T01 | MD-MKT-016.001.M01 | Positive | Lesson kept (SRD-MKT-016.007) | lesson whose picks are all studied | one candidate lesson | Pass |
+| UT-MKT-016.007.M01.T02 | MD-MKT-016.001.M01 | Negative | Lesson dropped (SRD-MKT-016.007) | lesson naming one unstudied pick | no lesson | Pass |
+| UT-MKT-016.008.M01.T01 | MD-MKT-016.001.M01 | Positive | Follow-up (SRD-MKT-016.008) | follow-up setup tuning ask, cap 8,000 | tickets row raised by the ticket's lead, approved | Pass |
+| UT-MKT-016.008.M01.T02 | MD-MKT-016.001.M01 | Negative | Follow-up refused (SRD-MKT-016.008) | lead already raised 3 tickets today | refusal in the result; ticket still done | Pass |
+| UT-MKT-016.009.M01.T01 | MD-MKT-016.001.M01 | Positive | Gain yes (SRD-MKT-016.009) | one lesson kept | gain True | Pass |
+| UT-MKT-016.009.M01.T02 | MD-MKT-016.001.M01 | Negative | Gain no (SRD-MKT-016.009) | no lesson kept | gain False; outcome done | Pass |
+| UT-MKT-016.010.M01.T01 | MD-MKT-016.001.M01 | Positive | Default employee (SRD-MKT-016.010) | shipped emp-014 file, `SKILL_PATHS` | valid file, skill `post_mortem`, path loads | Pass |
+| UT-MKT-016.010.M01.T02 | MD-MKT-016.001.M01 | Negative | Never wakes (SRD-MKT-016.010) | `facts()` on an event | not fresh; `act` returns no items | Pass |
+| UT-MKT-016.011.M01.T01 | MD-MKT-016.001.M01 | Positive | Logs (SRD-MKT-016.011) | full ticket | `[Research]` lines with pick count, lessons and follow-ups | Pass |
+
+## FO-MKT-017: Sentiment Research
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-MKT-017.001.M01.T01 | MD-MKT-017.001.M01 | Positive | Three steps (SRD-MKT-017.001) | full ticket with fake answers | calls pick, gather, judge; outcome done | Pass |
+| UT-MKT-017.001.M01.T02 | MD-MKT-017.001.M01 | Negative | No answer (SRD-MKT-017.001) | ask returns None at pick | empty note; outcome go | Pass |
+| UT-MKT-017.002.M01.T01 | MD-MKT-017.001.M01 | Positive | Pick list (SRD-MKT-017.002) | listed, watch and none ideas on the latest day, an older day, one open trade | facts list listed, watch and the trade only | Pass |
+| UT-MKT-017.002.M01.T02 | MD-MKT-017.001.M01 | Negative | Too many (SRD-MKT-017.002) | 31 stocks | answer not valid | Pass |
+| UT-MKT-017.003.M01.T01 | MD-MKT-017.001.M01 | Positive | Unknown stocks (SRD-MKT-017.003) | one known, one unknown | only the known kept | Pass |
+| UT-MKT-017.003.M01.T02 | MD-MKT-017.001.M01 | Negative | Nothing left (SRD-MKT-017.003) | only unknown; no ideas or trades | outcome failed both | Pass |
+| UT-MKT-017.004.M02.T01 | MD-MKT-017.004.M02 | Positive | Stored first (SRD-MKT-017.004) | stock with a headline from yesterday | no fetch; record holds it | Pass |
+| UT-MKT-017.004.M02.T02 | MD-MKT-017.004.M02 | Positive | Gap fetched and stored (SRD-MKT-017.004) | stock with only a 5-day-old headline; fake feed with 2 new | one fetch; 2 rows added; record has 3 | Pass |
+| UT-MKT-017.004.M02.T03 | MD-MKT-017.004.M02 | Edge | Limits (SRD-MKT-017.004) | 8 stored headlines; one 9 days old; budget used up | 5 newest shown; old one left out; no fetch after budget | Pass |
+| UT-MKT-017.004.M02.T04 | MD-MKT-017.004.M02 | Negative | Feed fails (SRD-MKT-017.004) | fake feed returns None | record shows no news; no error | Pass |
+| UT-MKT-017.005.M01.T01 | MD-MKT-017.001.M01 | Negative | Answer limits (SRD-MKT-017.005) | tone `bullish`; reason of 151 characters | answer not valid | Pass |
+| UT-MKT-017.005.M01.T02 | MD-MKT-017.001.M01 | Positive | All tones (SRD-MKT-017.005) | cards with supports, neutral, against and none | all four kept | Pass |
+| UT-MKT-017.006.M03.T01 | MD-MKT-017.006.M03 | Positive | Cards saved (SRD-MKT-017.006) | judge answer with 2 known stocks | 2 rows with tone, reason, headline count, ticket id | Pass |
+| UT-MKT-017.006.M03.T02 | MD-MKT-017.006.M03 | Negative | Unknown and scores (SRD-MKT-017.006) | card for an unchosen stock; news_tags row | card dropped; news_tags unchanged | Pass |
+| UT-MKT-017.007.M03.T01 | MD-MKT-017.006.M03 | Positive | Lead sees cards (SRD-MKT-017.007) | card 2 days old for a passed idea | lead facts hold the card line | Pass |
+| UT-MKT-017.007.M03.T02 | MD-MKT-017.006.M03 | Edge | Card limits (SRD-MKT-017.007) | 10-day-old card; two cards for one stock; 35 stocks | old one left out; newest only; 30 lines | Pass |
+| UT-MKT-017.007.M03.T03 | MD-MKT-017.006.M03 | Negative | No cards (SRD-MKT-017.007) | no card table; cards only for other stocks | block empty; lead facts unchanged | Pass |
+| UT-MKT-017.008.M01.T01 | MD-MKT-017.001.M01 | Positive | Gain yes (SRD-MKT-017.008) | one card against | gain True; result lists tones and summary | Pass |
+| UT-MKT-017.008.M01.T02 | MD-MKT-017.001.M01 | Negative | Gain no (SRD-MKT-017.008) | supports and neutral only | gain False; outcome done | Pass |
+| UT-MKT-017.009.M01.T01 | MD-MKT-017.001.M01 | Positive | Default employee (SRD-MKT-017.009) | shipped emp-015 file, `SKILL_PATHS` | valid file, skill `sentiment`, path loads | Pass |
+| UT-MKT-017.009.M01.T02 | MD-MKT-017.001.M01 | Negative | Never wakes (SRD-MKT-017.009) | `facts()` on an event | not fresh; `act` returns no items | Pass |
+| UT-MKT-017.010.M01.T01 | MD-MKT-017.001.M01 | Positive | Logs (SRD-MKT-017.010) | full ticket | `[Research]` lines with stock count, fetched count and against count | Pass |
+
+## FO-MKT-018: Book to Strategy Research
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-MKT-018.001.M01.T01 | MD-MKT-018.001.M01 | Positive | Two steps (SRD-MKT-018.001) | upload ticket, fake card answer | calls read, card; outcome done | Pass |
+| UT-MKT-018.001.M01.T02 | MD-MKT-018.001.M01 | Negative | No answer (SRD-MKT-018.001) | ask returns None at card | empty note; outcome go | Pass |
+| UT-MKT-018.002.M02.T01 | MD-MKT-018.002.M02 | Positive | Topic forms (SRD-MKT-018.002) | `upload:My Book.pdf ch 3`, `gutenberg:12345 ch 1` | both parsed with source and chapter | Pass |
+| UT-MKT-018.002.M02.T02 | MD-MKT-018.002.M02 | Negative | Bad topics (SRD-MKT-018.002) | `https://x.com/b.pdf ch 1`, `upload:../a.txt ch 1`, `upload:a.exe ch 1`, `Read chapter 2` | none parsed; ticket failed with no read | Pass |
+| UT-MKT-018.003.M02.T01 | MD-MKT-018.002.M02 | Positive | Gutenberg once (SRD-MKT-018.003) | fake getter; two loads of the same number | one GET to the gutenberg.org URL; cache file kept; header and footer cut | Pass |
+| UT-MKT-018.003.M02.T02 | MD-MKT-018.002.M02 | Negative | Missing or failed (SRD-MKT-018.003) | upload file not in folder; getter raises | `failed` both; no other URL called | Pass |
+| UT-MKT-018.004.M02.T01 | MD-MKT-018.002.M02 | Positive | Readers (SRD-MKT-018.004) | `.txt`, `.md`, `.html` with a script tag, a small `.pdf` | plain text of each; script text left out | Pass |
+| UT-MKT-018.004.M02.T02 | MD-MKT-018.002.M02 | Negative | Bad PDF (SRD-MKT-018.004) | file named `.pdf` that is not a PDF | `failed`; no error raised | Pass |
+| UT-MKT-018.005.M02.T01 | MD-MKT-018.002.M02 | Positive | Headings (SRD-MKT-018.005) | text with CHAPTER I, CHAPTER II, CHAPTER III | chapter 2 is the middle part | Pass |
+| UT-MKT-018.005.M02.T02 | MD-MKT-018.002.M02 | Edge | No headings, cut (SRD-MKT-018.005) | 12,000 words with no heading; very long chapter | 3 parts of up to 5,000 words; text cut to 24,000 characters | Pass |
+| UT-MKT-018.005.M02.T03 | MD-MKT-018.002.M02 | Negative | Missing chapter (SRD-MKT-018.005) | chapter 9 of a 3-chapter book | `failed` naming the chapter count | Pass |
+| UT-MKT-018.006.M03.T01 | MD-MKT-018.006.M03 | Negative | Never re-read (SRD-MKT-018.006) | second ticket for a read chapter | `failed` naming the card; file not opened | Pass |
+| UT-MKT-018.006.M03.T02 | MD-MKT-018.006.M03 | Positive | Other chapter allowed (SRD-MKT-018.006) | chapter 2 read; ticket for chapter 3 | read goes ahead | Pass |
+| UT-MKT-018.007.M01.T01 | MD-MKT-018.001.M01 | Negative | Answer limits (SRD-MKT-018.007) | 4 quotes; entry of 301 characters; no quote | answer not valid | Pass |
+| UT-MKT-018.008.M01.T01 | MD-MKT-018.001.M01 | Positive | Quotes checked (SRD-MKT-018.008) | 3 quotes, one with other spacing and curly quotes, one made up | 2 kept; card row and books_read row saved | Pass |
+| UT-MKT-018.008.M01.T02 | MD-MKT-018.001.M01 | Negative | No quote found (SRD-MKT-018.008) | only made-up quotes | card saved with no quotes; chapter marked read | Pass |
+| UT-MKT-018.009.M01.T01 | MD-MKT-018.001.M01 | Positive | Gain yes (SRD-MKT-018.009) | entry, exit, stop and a found quote | gain True; result holds the card | Pass |
+| UT-MKT-018.009.M01.T02 | MD-MKT-018.001.M01 | Negative | Gain no (SRD-MKT-018.009) | blank stop | gain False; outcome done | Pass |
+| UT-MKT-018.010.M03.T01 | MD-MKT-018.006.M03 | Positive | Lead books block (SRD-MKT-018.010) | 2 uploads, 1 chapter read; lead facts | block lists both files, the topic form and the read chapter | Pass |
+| UT-MKT-018.010.M03.T02 | MD-MKT-018.006.M03 | Negative | Empty and limits (SRD-MKT-018.010) | no books folder; 20 uploads | "No uploaded books yet"; at most 15 lines | Pass |
+| UT-MKT-018.011.M01.T01 | MD-MKT-018.001.M01 | Positive | Default employee (SRD-MKT-018.011) | shipped emp-016 file, `SKILL_PATHS` | valid file, skill `book_to_strategy`, path loads | Pass |
+| UT-MKT-018.011.M01.T02 | MD-MKT-018.001.M01 | Negative | Never wakes (SRD-MKT-018.011) | `facts()` on an event | not fresh; `act` returns no items | Pass |
+| UT-MKT-018.012.M01.T01 | MD-MKT-018.001.M01 | Positive | Logs (SRD-MKT-018.012) | full ticket | `[Research]` lines with book, chapter, words and quotes kept | Pass |

@@ -1,11 +1,15 @@
 # Module Decomposition — Market Analytics (MKT)
 
 **Document ID:** MD-MKT
-**Version:** 0.5.0
+**Version:** 0.9.0
 **Status:** Draft
-**Last Updated:** 2026-11-06
+**Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.21.0: MD-MKT-018.001.M01, .002.M02, .006.M03 added — book to strategy research (step F); M08 lead_brief changed.
+> v0.20.0: MD-MKT-017.001.M01, .004.M02, .006.M03 added — sentiment research (step F); M08 lead_brief changed.
+> v0.19.0: MD-MKT-016.001.M01 and .004.M02 added — pick post-mortem research (step F).
+> v0.18.0: MD-MKT-015.001.M01, .002.M02, .004.M03, .005.M04 added — setup tuning research (step F).
 > v0.17.0: MD-MKT-014.001.M01–M02 added — lead research tickets (step E).
 > v0.16.0: MD-MKT-013.*.M01–M04 added — intraday watchers and check-in notes (step D).
 > v0.15.0: MD-MKT-012.*.M01–M03 added — learning from pick results (step C).
@@ -205,3 +209,43 @@ SRD coverage: 013.001–.007 by M01; .008, .009, .012 by M02; .010 by M03; .011 
 | MD-MKT-014.001.M02 | SRD-MKT-014.001 | `us_swing/src/us_swing/market/checkin_note.py` | `tickets` field in the check-in answer, research block in the facts, tickets handed to the queue | `CheckinNote.tickets` | `core.desk_research` | No |
 
 SRD coverage: 014.001, .004, .005 by M01 and M02; .002 and .003 are checked in `core.desk_research` (MD-DSK-010.001.M25) and tested through M01.
+
+## FO-MKT-015: Setup Tuning Research
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-MKT-015.001.M01 | SRD-MKT-015.001 | `us_swing/src/us_swing/market/setup_tuning.py` | Research skill: pick step, run steps, verdict, candidate lesson, logs | `SetupTuningSkill`, `TuningPlan`, `TuningVerdict` | `core.desk_research`, `core.desk_lessons`, M02–M04 | No |
+| MD-MKT-015.002.M02 | SRD-MKT-015.002 | `us_swing/src/us_swing/market/setup_knobs.py` | Named setup limits with default and range; change checks | `Knob`, `KNOBS`, `knob_value`, `check_changes` | — | No |
+| MD-MKT-015.004.M03 | SRD-MKT-015.004 | `us_swing/src/us_swing/market/tuning_replay.py` | 5-year replay of one desk setup, result rows, gain rule | `Row`, `replay_setup`, `table_text`, `gain` | `market.setups`, `market.proof_data`, `market.pick_results` | No |
+| MD-MKT-015.005.M04 | SRD-MKT-015.005 | `us_swing/src/us_swing/market/tuning_strategy.py` | Strategy knobs, renamed copies, backtest run, R per trade | `strategy_knobs`, `apply_changes`, `stop_problem`, `pick_stocks`, `run_strategy` | `backtest` (loaded in the run), `core.backtest_bridge` | No |
+
+SRD coverage: .001, .003, .008–.012 by M01; .002 by M02 (read by `market/setups.py`, MD-MKT-003.003.M03); .004, .006, .007 by M03; .005 by M04 (rows by M03 `Row`). Cross-tool: M04 runs the BKT engine through its public service; no BKT file changes.
+
+## FO-MKT-016: Pick Post-Mortem Research
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-MKT-016.001.M01 | SRD-MKT-016.001 | `us_swing/src/us_swing/market/post_mortem.py` | Research skill: pick, gather and study steps, lessons, follow-ups, logs | `PostMortemSkill`, `PickChoice`, `PostMortem` | `core.desk_research`, `core.desk_lessons`, `market.lesson_reflect`, M02 | No |
+| MD-MKT-016.004.M02 | SRD-MKT-016.004 | `us_swing/src/us_swing/market/post_mortem_facts.py` | Stored facts per pick, daily bars from Backtest Data then candles.db, price path | `pick_records`, `pick_bars`, `path_line` | `market.proof_data`, `market.candles` | No |
+
+SRD coverage: .001–.003, .006–.011 by M01; .004 and .005 by M02. Cross-tool: M01 calls DSK `raise_follow_ups()` (MD-DSK-010.001.M25, SRD-DSK-010.015).
+
+## FO-MKT-017: Sentiment Research
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-MKT-017.001.M01 | SRD-MKT-017.001 | `us_swing/src/us_swing/market/sentiment.py` | Research skill: pick, gather and judge steps, result, gain, logs | `SentimentSkill`, `StockChoice`, `SentimentJudge` | `core.desk_research`, `core.desk_watch`, M02, M03 | No |
+| MD-MKT-017.004.M02 | SRD-MKT-017.004 | `us_swing/src/us_swing/market/sentiment_news.py` | Stored headlines first, fetch only gaps within the budget, record lines | `Gathered`, `gather_news` | `market.news`, `market.store` | No |
+| MD-MKT-017.006.M03 | SRD-MKT-017.006 | `us_swing/src/us_swing/market/sentiment_cards.py` | `sentiment_cards` table, saving cards, the lead's cards block | `save_cards`, `cards_block` | `core.desk_contract` | No |
+
+SRD coverage: .001–.003, .005, .008–.010 by M01; .004 by M02; .006 and .007 by M03. Changed: `market/lead_brief.py` (MD-MKT-005.014.M08) adds `cards_block()` to its facts — SRD-MKT-017.007.
+
+## FO-MKT-018: Book to Strategy Research
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-MKT-018.001.M01 | SRD-MKT-018.001 | `us_swing/src/us_swing/market/book_strategy.py` | Research skill: read and card steps, quote check, result, gain, logs | `BookStrategySkill`, `StrategyCard` | `core.desk_research`, M02, M03 | No |
+| MD-MKT-018.002.M02 | SRD-MKT-018.002 | `us_swing/src/us_swing/market/book_text.py` | Topic form, books folder and Gutenberg source, readers, chapter split | `BookRef`, `parse_topic`, `load_text`, `chapter` | `market.news`, `pypdf` | No |
+| MD-MKT-018.006.M03 | SRD-MKT-018.006 | `us_swing/src/us_swing/market/book_cards.py` | `strategy_cards` and `books_read` tables, read check, lead books block | `already_read`, `save_card`, `books_block` | `core.desk_contract` | No |
+
+SRD coverage: .001, .007, .009, .011, .012 by M01; .002–.005 by M02; .006, .008, .010 by M03 (quote check in M01). Changed: `market/lead_brief.py` (MD-MKT-005.014.M08) adds `books_block()` — SRD-MKT-018.010.

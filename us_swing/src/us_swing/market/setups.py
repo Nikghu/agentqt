@@ -1,6 +1,7 @@
 """
 Module: MD-MKT-003.003.M03 — market/setups.py
 Parent SRD: SRD-MKT-003.003
+Also: SRD-MKT-015.002 (limits read from the setup knobs)
 
 Pure setup rules on wide daily frames: long (Squeeze, Flat base, Pullback) and short
 (Failed breakout, Lower highs, Breakdown), each with trigger, stop and tightness
@@ -8,12 +9,16 @@ Pure setup rules on wide daily frames: long (Squeeze, Flat base, Pullback) and s
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
 
 from us_swing.market.flow import roll
+from us_swing.market.setup_knobs import Values, knob_value, window
+
+Tests = Mapping[str, Values] | None
 
 
 Candidate = tuple[str, pd.DataFrame, pd.DataFrame, pd.DataFrame]
@@ -94,17 +99,25 @@ def short_setups(bars: Bars) -> SetupResult:
     return _best(bars, short_candidates(bars))
 
 
-def long_candidates(bars: Bars) -> list[Candidate]:
-    """Return each long setup as (name, match, trigger, stop) frames."""
+def long_candidates(bars: Bars, values: Tests = None) -> list[Candidate]:
+    """Return each long setup as (name, match, trigger, stop) frames.
+
+    ``values`` holds tested knob values by setup; missing knobs keep their defaults.
+    """
     c = bars.closes
-    sma20, sma21, sma50 = sma(c, 20), sma(c, 21), sma(c, 50)
+    sma20, sma50 = sma(c, 20), sma(c, 50)
+    sma_pull = sma(c, window(values, "Pullback", "sma_days"))
     uptrend = (c > sma50) & _rising(sma50)
     width = 4 * roll(c, 20, "std") / sma20
-    squeeze = (uptrend & (width <= 1.1 * roll(width, 126, "min"))
-               & (atr(bars, 10) / atr(bars, 50) < 0.8))
+    squeeze = (uptrend
+               & (width <= knob_value(values, "Squeeze", "width_vs_min")
+                  * roll(width, 126, "min"))
+               & (atr(bars, 10) / atr(bars, 50) < knob_value(values, "Squeeze", "atr_ratio")))
     hi25, lo25 = _hi(bars, 25), _lo(bars, 25)
-    flat = (c >= 0.9 * _hi(bars, 252)) & ((hi25 - lo25) / hi25 <= 0.15) & (c > sma50)
-    pullback = uptrend & (_lo(bars, 3) <= sma21 * 1.02) & (c >= sma21)
+    flat = ((c >= knob_value(values, "Flat base", "near_high") * _hi(bars, 252))
+            & ((hi25 - lo25) / hi25 <= knob_value(values, "Flat base", "depth")) & (c > sma50))
+    pullback = (uptrend & (_lo(bars, 3) <= sma_pull * knob_value(values, "Pullback", "near_sma"))
+                & (c >= sma_pull))
     return [
         ("Squeeze", squeeze, _hi(bars, 20), _lo(bars, 20)),
         ("Flat base", flat, hi25, lo25),
@@ -112,24 +125,30 @@ def long_candidates(bars: Bars) -> list[Candidate]:
     ]
 
 
-def short_candidates(bars: Bars) -> list[Candidate]:
-    """Return each short setup as (name, match, trigger, stop) frames."""
+def short_candidates(bars: Bars, values: Tests = None) -> list[Candidate]:
+    """Return each short setup as (name, match, trigger, stop) frames.
+
+    ``values`` holds tested knob values by setup; missing knobs keep their defaults.
+    """
     c = bars.closes
     sma20, sma50 = sma(c, 20), sma(c, 50)
-    pivot = roll(bars.highs, 25, "max").shift(1)
+    recent_days = window(values, "Failed breakout", "recent_days")
+    pivot = roll(bars.highs, window(values, "Failed breakout", "pivot_days"), "max").shift(1)
     broke = c > pivot
-    last_pivot = pivot.where(broke).ffill(limit=9)
-    recent = roll(broke.astype(float), 10, "max") > 0
+    last_pivot = pivot.where(broke).ffill(limit=recent_days - 1)
+    recent = roll(broke.astype(float), recent_days, "max") > 0
     failed = recent & (c < last_pivot) & (c < sma20)
-    h1 = _hi(bars, 10)
-    h2, h3 = h1.shift(10), h1.shift(20)
+    h10 = _hi(bars, 10)
+    swing = window(values, "Lower highs", "swing_days")
+    h1 = _hi(bars, swing)
+    h2, h3 = h1.shift(swing), h1.shift(2 * swing)
     lower = (c < sma50) & (sma50 < sma50.shift(10)) & (h1 < h2) & (h2 < h3)
     avg_vol = roll(bars.volumes, 50, "mean")
     hi5 = _hi(bars, 5)
     breakdown = ((c < sma50) & (c.shift(1) >= sma50.shift(1))
-                 & (bars.volumes >= 1.5 * avg_vol))
+                 & (bars.volumes >= knob_value(values, "Breakdown", "volume_x") * avg_vol))
     return [
-        ("Failed breakout", failed, _lo(bars, 5), h1),
+        ("Failed breakout", failed, _lo(bars, 5), h10),
         ("Lower highs", lower, _lo(bars, 10), h1),
         ("Breakdown", breakdown, bars.lows, sma50.where(sma50 >= hi5, hi5)),
     ]

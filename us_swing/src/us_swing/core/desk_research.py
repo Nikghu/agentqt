@@ -3,7 +3,8 @@ Module: MD-DSK-010.001.M25 — core/desk_research.py
 Parent SRD: SRD-DSK-010.001
 Also: SRD-DSK-010.002–.007 (who raises, auto approval, Master edits, expiry, repeats, parked
 topics), SRD-DSK-010.012 (pause on app close), SRD-DSK-010.014 (logs), SRD-DSK-007.010
-(waiting alert), SRD-MKT-014.002–.004 (kinds, cap range, research block)
+(waiting alert), SRD-MKT-014.002–.004 (kinds, cap range, research block), SRD-DSK-010.015
+(follow-up tickets in the raising lead's name)
 
 The research queue in ``desk.db``. Lead skills raise tickets here, the Master user approves
 or rejects waiting ones from the app through ``ticket_edits``, and the desk's research
@@ -225,6 +226,39 @@ def raise_tickets(home: Path, skill_key: str, asks: Sequence[TicketAsk], now: da
             con.close()
     except Exception:  # noqa: BLE001 — a ticket problem must never lose the lead's answer
         log.exception("[Research] Could not add the lead's tickets")
+        return ["refused: the queue could not be written" for _ in asks]
+
+
+def _employee_by_id(home: Path, emp_id: str) -> JobSpec | None:
+    for folder in employee_folders(home):
+        employee = read_employee(folder)
+        if employee and employee.spec.id == emp_id:
+            return employee.spec
+    return None
+
+
+def raise_follow_ups(home: Path, lead_id: str, asks: Sequence[TicketAsk], now: datetime,
+                     send: Sender | None = None) -> list[str]:
+    """Add a research skill's follow-up tickets in the name of the lead that raised its ticket.
+
+    The same rules as :func:`raise_tickets` apply to that lead; return one note per ticket.
+    """
+    if not asks:
+        return []
+    try:
+        spec = _employee_by_id(home, lead_id)
+        if spec is None or spec.level != "lead" or spec.status != "active":
+            why = "the raising lead is no longer an active lead"
+            for ask in asks:
+                log.info("[Research] Follow-up ticket on %s refused: %s", ask.topic, why)
+            return [f"refused: {why}" for _ in asks]
+        con = connect(home)
+        try:
+            return [_raise_one(con, home, spec, ask, now, send) for ask in asks]
+        finally:
+            con.close()
+    except Exception:  # noqa: BLE001 — a ticket problem must never lose the research result
+        log.exception("[Research] Could not add the follow-up tickets")
         return ["refused: the queue could not be written" for _ in asks]
 
 

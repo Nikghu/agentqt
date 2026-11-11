@@ -1,11 +1,12 @@
 # Module Decomposition — Desk Harness (DSK)
 
 **Document ID:** MD-DSK
-**Version:** 0.3.0
+**Version:** 0.4.0
 **Status:** Draft
-**Last Updated:** 2026-11-06
+**Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.14.0: M25 changed — `raise_follow_ups()` for SRD-DSK-010.015 (step F).
 > v0.13.0: MD-DSK-010.001.M25 and MD-DSK-010.008.M26 added — token split and research queue (step E); M04, M06, M10, M11, M12, M14, M15, M21, M22 changed.
 > v0.12.0: MD-DSK-003.021.M24 added — watch flags and open trades (step D); M03, M04, M06, M07, M15, M21 changed.
 > v0.11.0: MD-DSK-009.001.M23 added — lessons (step C); M04 applies lesson edits.
@@ -143,3 +144,5 @@ Changed: M12 (`desk/budget.py`: `Part`, `SHARES`, `part_cap()`, part and ticket 
 SRD coverage: 004.006 by M22; .007 and .010 by M12; .008 by M14, M11 and M10; .009 by M12 and M11; 007.010 by M21 and M25; 010.001–.007 by M25; .008–.011 and .013 by M26 (with M04, M15); .012 by M26 and M25; .014 by M25 and M26.
 
 Cross-tool: MKT `market/lead_brief.py` and `market/checkin_note.py` call `with_research()` and `raise_tickets()`; GUI `gui/ai_desk_research.py` calls `ticket_rows()`, `pending_ticket_edits()`, `lead_research()` and `add_ticket_edit()`.
+
+Changed (step F): M25 gains `raise_follow_ups()` — SRD-DSK-010.015; MKT `market/post_mortem.py` calls it.

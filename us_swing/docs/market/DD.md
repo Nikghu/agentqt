@@ -1,11 +1,15 @@
 # Design Document — Market Analytics (MKT)
 
 **Document ID:** DD-MKT
-**Version:** 0.5.0
+**Version:** 0.9.0
 **Status:** Draft
-**Last Updated:** 2026-11-06
+**Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.20.0: DD-MKT-018.001.D01 added — book to strategy research (Autonomous desk step F (2026-11-11)).
+> v0.19.0: DD-MKT-017.001.D01 added — sentiment research (Autonomous desk step F (2026-11-11)).
+> v0.18.0: DD-MKT-016.001.D01 added — pick post-mortem research (Autonomous desk step F (2026-11-11)).
+> v0.17.0: DD-MKT-015.001.D01 added — setup tuning research (Autonomous desk step F (2026-11-11)).
 > v0.16.0: DD-MKT-014.001.D01 added — lead research tickets (Autonomous desk step E (2026-11-11)).
 > v0.15.0: DD-MKT-013.001.D01 added — intraday watchers and check-in notes (Autonomous desk step D (2026-11-11)).
 > v0.14.0: DD-MKT-012.001.D01 added — learning from pick results (Autonomous desk step C (2026-11-11)).
@@ -1114,3 +1118,284 @@ The error fails the run before any AI step; the desk retries per SRD-DSK-001.015
 ## DD-MKT-014.001.D01 — Lead Research Tickets (Autonomous desk step E)
 
 **Traces:** SRD-MKT-014.001–.005. Full design (ticket form, rules, research block) is in DSK DD-DSK-010.001.D01. MKT owns the `tickets` field of `LeadBrief` and `CheckinNote`, the `with_research()` wrap in both skills' facts and the `raise_tickets()` call in both skills' `act`.
+
+## DD-MKT-015.001.D01 — Setup Tuning Research (Autonomous desk step F, skill 1)
+
+**Traces:** SRD-MKT-015.001–.012. Runner, caps, stalls, pauses and `research_done` stay in DSK (DD-DSK-010.001.D01); this skill only implements `ResearchSkill.step`.
+
+### 1. Steps of one ticket
+
+The runner does one `step()` per desk tick, so a ticket runs as a short chain and a watcher flag can pause it between any two steps. The plan lives in `ticket.state` (JSON).
+
+| Step | Kind | What happens | Note / call |
+|---|---|---|---|
+| 1 `pick` | AI (1 call) | Facts: ticket topic, goal, done test; the 6 desk setups with knobs (default, low, high); live strategies with a fixed stop and their numeric values. Answer `TuningPlan`. Code checks the target and drops bad changes. | "Picked 3 variant(s) for Pullback" / `pick` |
+| 2 `run base` | code | Baseline (default values, or the live strategy as it is). | "Baseline: 1,204 trades, win 47%, +0.08R" / `run base` |
+| 3..5 `run v1..v3` | code | One variant per step. | same form / `run v1` |
+| last `verdict` | AI (1 call) + code | Code computes the gain; AI reads the table and writes `TuningVerdict`. A desk-setup gain writes the candidate lesson. Outcome `done`. | verdict text / `verdict` |
+
+Worst case 6 steps, inside the default step cap of 8. Code steps spend no tokens. `step_tokens = 3_000` (one AI step). A failed AI answer returns an empty note; the runner's stall rule ends the ticket after 2 such steps.
+
+State:
+
+```json
+{"phase": "run", "target": "Pullback", "kind": "setup", "side": "long",
+ "variants": [{"label": "v1", "changes": {"near_sma": 1.01}}],
+ "stocks": [], "rows": [{"label": "base", "changes": {}, "trades": 1204,
+ "win": 0.47, "exp_r": 0.08}]}
+```
+
+Ends `failed` (SRD-MKT-015.001/.003/.005): target is not a desk setup or a live strategy; no valid variant left; strategy with no fixed stop; strategy with no stocks; backtest estimate errors; no data at all.
+
+### 2. Answer forms
+
+```python
+class Change(BaseModel):      # extra="forbid" on all four
+    knob: str = Field(min_length=1, max_length=40)
+    value: float
+class VariantAsk(BaseModel):
+    changes: list[Change] = Field(min_length=1, max_length=2)
+class TuningPlan(BaseModel):
+    target: str = Field(min_length=1, max_length=60)
+    variants: list[VariantAsk] = Field(min_length=1, max_length=3)
+    stocks: list[str] = Field(default_factory=list, max_length=30)
+class TuningVerdict(BaseModel):
+    verdict: str = Field(min_length=10, max_length=600)
+```
+
+Change checks: a knob not in the target's list, a value outside its range, a repeat knob in one variant, or a variant equal to the baseline is dropped. Whole-number knobs are rounded.
+
+### 3. Desk setup knobs (SRD-MKT-015.002)
+
+`market/setup_knobs.py` holds `Knob(name, default, low, high, whole)` and `KNOBS: dict[setup, tuple[Knob, ...]]`. `setups.long_candidates(bars, values=None)` and `short_candidates(bars, values=None)` read each limit through `knob_value(values, setup, name)`. With `values=None` every limit is today's number, so live picks stay exactly the same.
+
+| Setup | Knob | Default | Range |
+|---|---|---|---|
+| Squeeze | `width_vs_min` | 1.1 | 1.0–1.5 |
+| Squeeze | `atr_ratio` | 0.8 | 0.5–1.0 |
+| Flat base | `near_high` | 0.9 | 0.8–0.97 |
+| Flat base | `depth` | 0.15 | 0.08–0.25 |
+| Pullback | `near_sma` | 1.02 | 1.0–1.05 |
+| Pullback | `sma_days` | 21 (whole) | 10–50 |
+| Failed breakout | `pivot_days` | 25 (whole) | 10–50 |
+| Failed breakout | `recent_days` | 10 (whole) | 5–20 |
+| Lower highs | `swing_days` | 10 (whole) | 5–20 |
+| Breakdown | `volume_x` | 1.5 | 1.0–3.0 |
+
+### 4. Desk setup replay (SRD-MKT-015.004, .006, .007)
+
+`market/tuning_replay.py`:
+
+1. Data: `proof_data.read_daily` on the S&P 500 members (`candles.member_sectors`) plus SPY, from the Backtest Data daily files, aligned to SPY days. This is the same input as the score proof (the SRD In cell says `candles.db`; the desk's 5-year replay data is the Backtest Data daily store). No SPY or no members → `None` (ticket `failed`).
+2. Window: signals only on the last 5 years of SPY days (`proof.FULL_YEARS`); older bars only warm up the averages.
+3. Signals: the target setup's own match, trigger and stop from `long_candidates` / `short_candidates` with the variant values (not the best-of-six pick).
+4. Trades: per stock, oldest first. On a match day with a valid trigger and stop, target = trigger ± 2 × |trigger − stop|; `pick_results.paper_result` runs on the bars after that day. The stock is busy until the exit day (filled) or for 5 days (no fill), so one setup run gives one trade.
+5. Row: closed trades (stop, target, time), win = share with R > 0, `exp_r` = mean R.
+
+Gain (SRD-MKT-015.007), `gain(rows)`: the best variant by `exp_r − base.exp_r`; a gain when that change is ≥ 0.05 and the variant has ≥ 100 trades. Pure code; the AI only sees the table.
+
+### 5. Strategy run (SRD-MKT-015.005)
+
+`market/tuning_strategy.py`. The backtest service is imported inside the run function (heavy; the desk loads it only when a strategy ticket runs).
+
+- Knobs: `target_value`, `stoploss_value` and each number in `entry_condition` / `exit_condition` as `entry#1`, `entry#2`, `exit#1`… (number tokens counted left to right). Range 0.5× to 1.5× the current value.
+- Copy: `dict(live)`, name `"<name> (tune <label>)"`, each change replaces that one number in the text.
+- Fixed stop needed: `stoploss_enabled` and `stoploss_type == "fixed"`; else `failed`.
+- Stocks (user 2026-11-11): the strategy's `symbols_include` when `symbol_mode` is not `all` and the list is not empty; else the AI's `stocks` (≤ 30), kept only if in the S&P 500 list; none left → `failed`.
+- Plan: `RunPlan(period = last 5 years, universe names, screener skip, one strategy, default account and costs)`. `estimate()` first; errors → `failed`; `data_span` narrows the period.
+- Run: a `BacktestService` whose strategy loader returns only the copy; `run_stocks(record=False)`, `run_signals(record=False)`, then `steps.portfolio.run_portfolio` directly, so nothing is saved as a Backtest run and the live list is never written. `workers=0` (no child processes in the desk).
+- R per trade = `net_pnl / (qty × entry_px × stoploss_value / 100)`. Row as in §4.
+
+### 6. Verdict, lesson and report (SRD-MKT-015.008–.010)
+
+Verdict facts: target, the table rows (label, changes, trades, win, R, change), the code's gain line, and the done test. The note is the verdict, so the ticket result holds every step's row plus the verdict.
+
+Lesson (desk-setup gain only): `add_candidate(home, text, {"setup": target, "side": side}, "worse", proof, now)`. Text: "<Setup> <side>s with today's limits did worse than <changes> in the backtest (<base>R vs <best>R)", cut to 200 characters. Proof: one line with the ticket id and both rows. `claim = "worse"` because a lesson may only make the desk stricter: it tells the desk the current setup is weaker, and real pick cases decide whether it goes active (FO-MKT-012). A strategy gain writes no lesson. Nothing writes to the setup limits, the strategies table or employee files.
+
+### 7. Employee and wiring (SRD-MKT-015.011, .012)
+
+- `market/employees/emp-013/employee.md`: name "Expert 10" (generic Level N rule of UT-MKT-005.017; SRD cell says "Researcher 1"), title "Research analyst", level expert, `reports_to: null`, skill `setup_tuning`, trigger `research_done` (the trigger list may not be empty; `facts()` always says it works research tickets only, so the event only gives one sleep log line).
+- `SKILL_PATHS["setup_tuning"] = "us_swing.market.setup_tuning:SetupTuningSkill"`; the `USSwing.spec` hidden imports gain `us_swing.market.setup_tuning` (it imports the other three).
+- Logs (`[Research]`): "Ticket 12 will test 3 variant(s) of Pullback", "Ticket 12 Pullback v1: 1,180 trades, +0.15R", "Ticket 12 Pullback found a gain: v1 +0.07R" or "found no gain".
+
+## DD-MKT-016.001.D01 — Pick Post-Mortem Research (Autonomous desk step F, skill 2)
+
+**Traces:** SRD-MKT-016.001–.011 and SRD-DSK-010.015. Runner, caps, stalls and pauses stay in DSK (DD-DSK-010.001.D01).
+
+### 1. Steps of one ticket
+
+| Step | Kind | What happens | Note / call |
+|---|---|---|---|
+| 1 `pick` | AI (1 call) | Facts: ticket topic, goal, done test; closed lead picks of the last 30 days (newest first, at most 120) as `key: tags, R`. Answer `PickChoice`. Code keeps known keys with the right sign of R. | "Chose 4 loser(s) and 2 winner(s)" / `pick` |
+| 2 `gather` | code | One record per chosen pick: stored facts and price path. | "Gathered 6 pick(s), 1 with no bars" / `gather` |
+| 3 `study` | AI (1 call) + code | Facts: the records, active lessons, rules. Answer `PostMortem`. Code keeps notes for studied picks, saves lessons whose proof picks are all studied, raises follow-ups for the ticket's lead. Outcome `done`. | notes + summary / `study` |
+
+`step_tokens = 6_000`. A missing AI answer returns an empty note; the runner's stall rule ends the ticket after 2 such steps. Fewer than 2 losers after the code check ends `failed`. State: `{"phase": "gather" | "study", "losers": [...], "winners": [...], "records": [...]}`.
+
+### 2. Answer forms
+
+```python
+class PickChoice(BaseModel):          # extra="forbid"
+    losers: list[str] = Field(min_length=1, max_length=10)   # keys date|side|symbol
+    winners: list[str] = Field(default_factory=list, max_length=5)
+class PickNote(BaseModel):
+    pick: str = Field(min_length=5, max_length=40)
+    note: str = Field(min_length=3, max_length=150)
+class PostMortem(BaseModel):
+    notes: list[PickNote] = Field(default_factory=list, max_length=15)
+    lessons: list[Candidate] = Field(default_factory=list, max_length=3)   # lesson_reflect.Candidate
+    follow_ups: list[TicketAsk] = Field(default_factory=list, max_length=2)
+    summary: str = Field(min_length=10, max_length=600)
+```
+
+Pick list source: `desk_lessons.cases()` (closed lead picks with setup, regime, sector, grade, tone tags and R), days on or after today − 30.
+
+### 3. Records (SRD-MKT-016.004, .005) — `market/post_mortem_facts.py`
+
+Facts per key from `desk.db`, each table read only when it exists: `ideas` (score, setup, trigger, stop), `idea_reasons` (first 2), `setup_review` (grade, note), `risk_check` (verdict, reason), `lead_picks` (reason), `news_tags` (tone), `regime_snapshot` (regime), `pick_results` (status, entry and exit day, R). Text pieces are cut to 120 characters.
+
+Bars: `pick_bars(symbols)` reads Backtest Data (`proof_data.read_daily`, with opens) for the picks plus SPY, then `CandleReader(candles.db).read()` for the same symbols; `combine_first` keeps Backtest Data and fills only missing days. Both indexes are made time-zone free.
+
+Path (from the first bar after the data day to the exit day, or 15 bars when open): risk = |trigger − stop|; entry gap = entry-day open vs trigger in % (blank when no open); best = most favourable high (long) or low (short) vs trigger in R; worst = the opposite extreme in R; SPY = close on the last path day vs close on the data day in %. A pick with no bars gets "no bars".
+
+Record line: `2026-10-30|long|AAPL: Pullback, score 72, trigger 101.2, stop 98.4; grade B (note); risk ok; tone positive; regime bull; idea: …; lead: …; result stop -1.00R (in 11-02, out 11-05); path gap +0.3%, best +0.6R, worst -1.1R, SPY -1.2%`.
+
+### 4. Study (SRD-MKT-016.006–.009)
+
+- Notes: kept when `pick` is a studied key; shown as `key: note` lines.
+- Lessons: `add_candidate(home, text, tags, claim, picks, now)` only when every proof pick is studied (stricter than the daily reflect step); `ValueError` drops the lesson.
+- Follow-ups: asks of kind `post_mortem` are dropped (no post-mortem chains); the rest go to `raise_follow_ups(home, ticket.raised_by, asks, now, send)`; each note ("ticket 9 approved", "refused: …") goes into the result.
+- Result note: `Summary: …`, the pick notes, `Lessons kept: n`, the follow-up notes. Gain = lessons kept ≥ 1.
+
+### 5. Follow-up tickets (SRD-DSK-010.015) — `core/desk_research.py`
+
+`raise_follow_ups(home, lead_id, asks, now, send=None)`: finds the employee file whose id is `lead_id`; if it is not an active lead, every ask is refused ("the raising lead is no longer an active lead"). Otherwise each ask goes through the same `_raise_one()` as `raise_tickets()`, so the 3-a-day limit, repeat rule, parked topics, auto approval and waiting alert all apply to that lead. The doer's id is never used as raiser.
+
+### 6. Employee and wiring (SRD-MKT-016.010, .011)
+
+- `market/employees/emp-014/employee.md`: "Expert 11", title "Post-mortem analyst", level expert, skill `post_mortem`, trigger `research_done`; `facts()` never wakes it.
+- `SKILL_PATHS["post_mortem"] = "us_swing.market.post_mortem:PostMortemSkill"`; `USSwing.spec` hidden import `us_swing.market.post_mortem`.
+- Logs: "[Research] Ticket 9 will study 4 loser(s) and 2 winner(s)", "[Research] Ticket 9 gathered 6 pick(s)", "[Research] Ticket 9 kept 1 lesson(s), raised 1 follow-up ticket(s)".
+
+## DD-MKT-017.001.D01 — Sentiment Research (Autonomous desk step F, skill 3)
+
+**Traces:** SRD-MKT-017.001–.010. Runner, caps, stalls and pauses stay in DSK (DD-DSK-010.001.D01).
+
+### 1. Steps of one ticket
+
+| Step | Kind | What happens | Note / call |
+|---|---|---|---|
+| 1 `pick` | AI (1 call) | Facts: ticket; latest ideas day's listed and watch ideas (`side|symbol`, status, setup, score), then open trades (`side|symbol`, strategy); at most 150 lines. Answer `StockChoice`. Code keeps listed keys. | "Chose 12 stock(s)" / `pick` |
+| 2 `gather` | code | Headlines per stock (§3). | "Gathered 31 headline(s) for 12 stock(s), 4 fetched" / `gather` |
+| 3 `judge` | AI (1 call) + code | Facts: the headline records and rules. Answer `SentimentJudge`. Code saves cards for chosen stocks. Outcome `done`. | tones + summary / `judge` |
+
+`step_tokens = 6_000`. A missing AI answer gives an empty note (the runner's stall rule ends the ticket after 2). No ideas and no open trades, or no valid choice, ends `failed`. State: `{"phase": "gather" | "judge", "stocks": [...], "records": [...]}`.
+
+### 2. Answer forms
+
+```python
+class StockChoice(BaseModel):            # extra="forbid"
+    stocks: list[str] = Field(min_length=1, max_length=30)   # side|symbol
+class Card(BaseModel):
+    stock: str = Field(min_length=3, max_length=30)
+    tone: Literal["supports", "neutral", "against", "none"]
+    reason: str = Field(min_length=3, max_length=150)
+class SentimentJudge(BaseModel):
+    cards: list[Card] = Field(default_factory=list, max_length=30)
+    summary: str = Field(min_length=10, max_length=600)
+```
+
+### 3. Headlines (SRD-MKT-017.004) — `market/sentiment_news.py`
+
+- Stored: `news_items` rows for the symbol with `published` in the last 7 days, newest first, at most 5.
+- Gap: a stock with no stored row published in the last 3 days is fetched with `news.fetch_symbol()` while the 90-second budget lasts; new headlines are saved with `MarketStore.add_news()` (day = New York date), then the stored read runs again. A failed feed or a used-up budget leaves the stock with what is stored.
+- Record: `long|AAPL (watch, Pullback, score 64): 2026-11-10 Title…; …` or `…: no news`. Titles cut to 110 characters.
+
+### 4. Cards (SRD-MKT-017.006, .007) — `market/sentiment_cards.py`
+
+Table in `desk.db`:
+
+```sql
+CREATE TABLE IF NOT EXISTS sentiment_cards (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, day TEXT, side TEXT, symbol TEXT, tone TEXT,
+    reason TEXT, headlines INTEGER, ticket_id INTEGER, made TEXT);
+```
+
+`save_cards()` writes one row per judged chosen stock (first card per stock wins; unknown stocks dropped). `cards_block(home, keys, day)` returns, for each `(side, symbol)` in `keys`, the newest card made from 7 days before the ideas day on (cards made after the ideas day, such as on a weekend, count), at most 30 lines; any read problem gives an empty block so the plan never fails: `long AAPL: against, <reason> (2026-11-10, 3 headlines)`, under the header "News tone cards from research (last 7 days; information only, scores unchanged):". Empty when no card fits. `lead_brief.facts()` adds it after the ideas table, before the lessons block. Nothing writes `news_tags` or scores.
+
+### 5. Result and gain (SRD-MKT-017.008)
+
+Result note: `Summary: …`, then one line per card `side|symbol: tone, reason`. Gain = any saved card with tone `against`.
+
+### 6. Employee and wiring (SRD-MKT-017.009, .010)
+
+- `market/employees/emp-015/employee.md`: "Expert 12", title "Sentiment analyst", level expert, skill `sentiment`, trigger `research_done`; `facts()` never wakes it.
+- `SKILL_PATHS["sentiment"] = "us_swing.market.sentiment:SentimentSkill"`; `USSwing.spec` hidden import `us_swing.market.sentiment`.
+- Logs: "[Research] Ticket 11 will judge 12 stock(s)", "[Research] Ticket 11 gathered 31 headline(s), 4 stock(s) fetched", "[Research] Ticket 11 judged 12 stock(s), 2 against their side".
+
+## DD-MKT-018.001.D01 — Book to Strategy Research (Autonomous desk step F, skill 4)
+
+**Traces:** SRD-MKT-018.001–.012. Book tickets never auto-approve (SRD-DSK-010.003, `BOOK` in `core/desk_research.py`), so the runner only hands this skill tickets the Master approved: approval is the permission to read that one chapter.
+
+### 1. Steps of one ticket
+
+| Step | Kind | What happens | Note / call |
+|---|---|---|---|
+| 1 `read` | code | Parse the topic; refuse a chapter already read; load the text (§3); split chapters (§4); keep chapter text in state. | "Read chapter 2 of upload:my_book.txt (4,812 words)" / `read` |
+| 2 `card` | AI (1 call) + code | Facts: ticket goal, chapter text, rules. Answer `StrategyCard`. Code checks quotes, saves the card, marks the chapter read. Outcome `done`. | card text / `card` |
+
+`step_tokens = 9_000` (about 6,000 tokens of chapter plus the answer). A missing AI answer gives an empty note; the runner's stall rule ends the ticket after 2. State: `{"phase": "card", "source": "upload:my_book.txt", "chapter": 2, "title": "...", "text": "..."}`.
+
+### 2. Topic form (SRD-MKT-018.002)
+
+Regex, case-insensitive, whole topic: `^(upload):([^/\\:]+\.(txt|md|html?|pdf)) ch (\d{1,3})$` or `^(gutenberg):(\d{1,6}) ch (\d{1,3})$`. File names may not hold a path. Anything else → `failed` "Book tickets need the topic form upload:<file> ch <n> or gutenberg:<number> ch <n>", before any file or web read.
+
+### 3. Sources and readers (SRD-MKT-018.003, .004) — `market/book_text.py`
+
+- Books folder: `desk_home() / "books"` (created when missing; the owner copies files in).
+- `upload:<file>`: that file in the books folder; missing → `failed`.
+- `gutenberg:<n>`: the cached file `books/gutenberg-<n>.txt` if present; otherwise one GET of `https://www.gutenberg.org/cache/epub/<n>/pg<n>.txt` with `news.http_get` (10-second timeout), saved as that cache file. The Gutenberg header and licence footer (`*** START OF` … `*** END OF`) are cut off. A failed download → `failed`. No other URL is ever built.
+- Readers: `.txt`, `.md` read as UTF-8 (errors replaced); `.html`/`.htm` through `html.parser.HTMLParser` collecting text outside `script` and `style`; `.pdf` through `pypdf.PdfReader`, page texts joined. Any other type → `failed`.
+
+**Safety limits (code review 2026-11-11):** files over 20 MB and PDFs over 500 pages are refused before reading; the Gutenberg download is streamed with a 20 MB cap and refused if any redirect leaves gutenberg.org; the cache is written to a temp file and swapped in, and an empty body is refused; heading match uses `^[ 	]*` (no slow match on blank runs); heading sections under 100 words (a table of contents) are left out; the read list key is the source in lower case; `INSERT OR IGNORE` keeps the first read record; the done state drops the chapter text.
+
+### 4. Chapters (SRD-MKT-018.005)
+
+Heading lines match `^\s*(chapter|chap\.)\s+([0-9]+|[ivxlcdm]+)\b` (case-insensitive) on their own line. With 2 or more headings, chapter n is the text from the n-th heading to the next one. With fewer, the text is cut into parts of 5,000 words and chapter n is part n. Text is cut to 24,000 characters. A chapter number beyond the last → `failed` "The book has only N chapter(s)".
+
+### 5. Cards and the read list (SRD-MKT-018.006, .008, .010) — `market/book_cards.py`
+
+```sql
+CREATE TABLE IF NOT EXISTS strategy_cards (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, source TEXT, chapter INTEGER, ticket_id INTEGER,
+    name TEXT, idea TEXT, market TEXT, entry TEXT, exit TEXT, stop TEXT, quotes TEXT,
+    made TEXT);
+CREATE TABLE IF NOT EXISTS books_read (
+    source TEXT, chapter INTEGER, card_id INTEGER, ticket_id INTEGER, made TEXT,
+    PRIMARY KEY (source, chapter));
+```
+
+- `already_read(home, source, chapter)` returns the earlier card id or `None`; the read step checks it first and ends `failed` "Chapter 2 of upload:my_book.txt was read by ticket 7; see card SC-3".
+- `save_card()` inserts the card and the `books_read` row in one transaction.
+- `books_block(home)`: header "Books you may propose (kind book_to_strategy; topic upload:<file> ch <n> or gutenberg:<number> ch <n>; public-domain Gutenberg books only):", then the uploaded file names (`.txt .md .html .htm .pdf`), then "Already read: …" — at most 15 lines; empty-folder text "No uploaded books yet". `lead_brief.facts()` adds it after the cards block; any error gives an empty block.
+
+### 6. Card answer (SRD-MKT-018.007–.009)
+
+```python
+class StrategyCard(BaseModel):    # extra="forbid"
+    name: str = Field(min_length=3, max_length=80)
+    idea: str = Field(min_length=10, max_length=300)
+    market: str = Field(max_length=300)
+    entry: str = Field(max_length=300)
+    exit: str = Field(max_length=300)
+    stop: str = Field(max_length=300)
+    quotes: list[str] = Field(min_length=1, max_length=3)   # each 10..200 characters
+```
+
+Quote check: whitespace collapsed, lower case, typographic quotes made plain, then a substring test against the chapter text; quotes not found are dropped. The card is saved even with no quote found (it still marks the chapter read), but then gain is no. Gain = entry, exit and stop each non-blank and at least one quote kept. Result note: `Card SC-<id>: <name>`, then `Idea / Market / Entry / Exit / Stop` lines and `Quotes kept: n of m`.
+
+### 7. Employee and wiring (SRD-MKT-018.011, .012)
+
+- `market/employees/emp-016/employee.md`: "Expert 13", title "Book analyst", level expert, skill `book_to_strategy`, trigger `research_done`; `facts()` never wakes it.
+- `SKILL_PATHS["book_to_strategy"] = "us_swing.market.book_strategy:BookStrategySkill"`; `USSwing.spec` hidden imports `us_swing.market.book_strategy` and `pypdf`; `pyproject.toml` gains `pypdf>=5.1`.
+- Logs: "[Research] Ticket 7 read chapter 2 of upload:my_book.txt (4,812 words)", "[Research] Ticket 7 saved card SC-3, 2 of 3 quotes found".

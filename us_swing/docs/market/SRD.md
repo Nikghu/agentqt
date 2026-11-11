@@ -1,11 +1,23 @@
 # Software Requirements — Market Analytics (MKT)
 
 **Document ID:** SRD-MKT
-**Version:** 0.9.0
+**Version:** 0.13.2
 **Status:** Draft
-**Last Updated:** 2026-11-06
+**Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.21.2: Step F book rows Implemented (12, 2026-11-11).
+> v0.21.1: SRD-MKT-018.001–.012 approved by user 2026-11-11.
+> v0.21.0: Autonomous desk step F (user, 2026-11-11): SRD-MKT-018.001–.012 added as Draft — book to strategy research.
+> v0.20.2: Step F sentiment rows Implemented (10, 2026-11-11).
+> v0.20.1: SRD-MKT-017.001–.010 approved by user 2026-11-11.
+> v0.20.0: Autonomous desk step F (user, 2026-11-11): SRD-MKT-017.001–.010 added as Draft — sentiment research.
+> v0.19.2: Step F post-mortem rows Implemented (11, 2026-11-11).
+> v0.19.1: SRD-MKT-016.001–.011 approved by user 2026-11-11.
+> v0.19.0: Autonomous desk step F (user, 2026-11-11): SRD-MKT-016.001–.011 added as Draft — pick post-mortem research.
+> v0.18.2: Step F setup tuning rows Implemented (12, 2026-11-11).
+> v0.18.1: SRD-MKT-015.001–.012 approved by user 2026-11-11.
+> v0.18.0: Autonomous desk step F (user, 2026-11-11): SRD-MKT-015.001–.012 added as Draft — setup tuning research.
 > v0.17.2: Step E rows Implemented (5, 2026-11-11).
 > v0.17.1: SRD-MKT-014.001–.005 approved by user 2026-11-11.
 > v0.17.0: Autonomous desk step E (user, 2026-11-11): SRD-MKT-014.001–.005 added as Draft — lead research tickets.
@@ -253,3 +265,68 @@
 | SRD-MKT-014.003 | FO-MKT-014 | Must | A ticket's token cap is between 1,000 and 100,000 tokens. | cap | checked cap | — | Implemented |
 | SRD-MKT-014.004 | FO-MKT-014 | Must | The lead's prompt shows its research tokens left today, its open tickets and its results from the last 30 days. | `tickets`, `activity` | prompt text | At most 600 tokens | Implemented |
 | SRD-MKT-014.005 | FO-MKT-014 | Must | Valid tickets of a kept answer are handed to the research queue. | tickets | `tickets` rows | Queue rules of FO-DSK-010 decide approve, wait or refuse | Implemented |
+
+## FO-MKT-015: Setup Tuning Research
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-MKT-015.001 | FO-MKT-015 | Must | The setup tuning skill (`setup_tuning`) works `setup_tuning` tickets, whose target is one desk setup or one live strategy. | ticket | target | Unknown target ends the ticket `failed` | Implemented |
+| SRD-MKT-015.002 | FO-MKT-015 | Must | Each desk setup exposes its fixed limits as named knobs, each with today's value as default and a fixed allowed range. | `setups` | knobs | Live picks unchanged at default values | Implemented |
+| SRD-MKT-015.003 | FO-MKT-015 | Must | The first step makes one AI call that picks up to 3 variants, each changing at most 2 knobs or numeric strategy values. | ticket, knobs | variants | Values outside the range are dropped; no valid variant ends `failed` | Implemented |
+| SRD-MKT-015.004 | FO-MKT-015 | Must | Code replays the baseline and each desk-setup variant on the last 5 years of daily bars for S&P 500 members. | `candles.db` | trades | No tokens; entry at trigger, setup stop, 2R target, 10-day exit | Implemented |
+| SRD-MKT-015.005 | FO-MKT-015 | Must | Code runs the baseline and each strategy variant on the backtest engine as renamed copies fed by its strategy loader. | backtest store | trades | Up to 5 years held; not saved as Backtest runs; no fixed stop ends `failed` | Implemented |
+| SRD-MKT-015.006 | FO-MKT-015 | Must | Code builds a result table of trades, win rate, expectancy in R and change against the baseline per variant. | trades | table | Kept in the ticket state | Implemented |
+| SRD-MKT-015.007 | FO-MKT-015 | Must | Code marks a gain when a variant's expectancy beats the baseline by at least 0.05R on at least 100 trades. | table | gain | AI never sets the gain | Implemented |
+| SRD-MKT-015.008 | FO-MKT-015 | Must | The last step makes one AI call that reads the table and writes a verdict of at most 600 characters, then ends `done`. | table | result | — | Implemented |
+| SRD-MKT-015.009 | FO-MKT-015 | Must | A desk-setup gain writes one candidate lesson tagged with the setup and side, claim worse, with the backtest numbers as proof. | gain | lesson | Goes active only by FO-MKT-012 case rules; strategy gains write none | Implemented |
+| SRD-MKT-015.010 | FO-MKT-015 | Must | The skill never changes a live setup, a strategy or the strategy list; the result only names the winning values. | — | — | Master user applies changes by hand | Implemented |
+| SRD-MKT-015.011 | FO-MKT-015 | Must | Default employee ships as `emp-013` ("Researcher 1", skill `setup_tuning`) and its skill path is in `SKILL_PATHS` and the app build. | default files | employee | Copied only when missing; generic name | Implemented |
+| SRD-MKT-015.012 | FO-MKT-015 | Should | Each step logs the target, the variant count and the gain. | step | log line | `[Research]` prefix | Implemented |
+
+## FO-MKT-016: Pick Post-Mortem Research
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-MKT-016.001 | FO-MKT-016 | Must | The post-mortem skill (`post_mortem`) works `post_mortem` tickets in three steps: pick, gather and study. | ticket | steps | One AI call in pick and in study; gather is code only | Implemented |
+| SRD-MKT-016.002 | FO-MKT-016 | Must | The pick step shows the closed lead picks of the last 30 days and asks for up to 10 losers and 5 winners that fit the ticket goal. | `pick_results`, ticket | chosen picks | At most 120 picks shown, newest first | Implemented |
+| SRD-MKT-016.003 | FO-MKT-016 | Must | Code keeps only chosen picks that exist and are closed with the right sign of R; fewer than 2 losers ends the ticket `failed`. | answer | pick set | Loser R below 0, winner R above 0 | Implemented |
+| SRD-MKT-016.004 | FO-MKT-016 | Must | The gather step builds one record per pick from stored desk facts: score, setup, levels, idea reasons, grade, risk verdict, lead reason, news tone, regime and result. | `desk.db` | records | No tokens | Implemented |
+| SRD-MKT-016.005 | FO-MKT-016 | Must | Code adds each pick's price path from its data day to its exit: entry gap, best and worst move in R, and SPY's move over the hold. | daily bars | path line | Backtest Data first; `candles.db` only for days it lacks | Implemented |
+| SRD-MKT-016.006 | FO-MKT-016 | Must | The study step makes one AI call that returns a note per pick, up to 3 candidate lessons, up to 2 follow-up tickets and a summary. | records, active lessons | answer | Note at most 150 characters; summary at most 600 | Implemented |
+| SRD-MKT-016.007 | FO-MKT-016 | Must | Each lesson is stored as a candidate only when all its proof picks are in the studied set. | answer | lesson | Goes active only by FO-MKT-012 case rules | Implemented |
+| SRD-MKT-016.008 | FO-MKT-016 | Must | Follow-up tickets are handed to the research queue in the name of the lead that raised the post-mortem. | answer | ticket rows | Queue rules of FO-DSK-010 apply | Implemented |
+| SRD-MKT-016.009 | FO-MKT-016 | Must | The ticket ends `done` with the notes and summary in its result, and gain is yes only when at least one lesson was saved. | study | result, gain | — | Implemented |
+| SRD-MKT-016.010 | FO-MKT-016 | Must | Default employee ships as `emp-014` ("Expert 11", skill `post_mortem`) and its skill path is in `SKILL_PATHS` and the app build. | default files | employee | Copied only when missing; generic name | Implemented |
+| SRD-MKT-016.011 | FO-MKT-016 | Should | Each step logs the pick count, lessons kept and follow-up tickets raised. | step | log line | `[Research]` prefix | Implemented |
+
+## FO-MKT-017: Sentiment Research
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-MKT-017.001 | FO-MKT-017 | Must | The sentiment skill (`sentiment`) works `sentiment` tickets in three steps: pick, gather and judge. | ticket | steps | One AI call in pick and in judge; gather is code only | Implemented |
+| SRD-MKT-017.002 | FO-MKT-017 | Must | The pick step shows the latest day's listed and watch ideas and the open trades, and asks for up to 30 that fit the ticket goal. | ideas, open trades | chosen stocks | Each choice is a side and a symbol | Implemented |
+| SRD-MKT-017.003 | FO-MKT-017 | Must | Code keeps only chosen stocks that are in that list; none left ends the ticket `failed`. | answer | stock set | — | Implemented |
+| SRD-MKT-017.004 | FO-MKT-017 | Must | The gather step uses stored headlines of the last 7 days and fetches fresh ones only for stocks with none stored in the last 3 days. | `news_items`, RSS | headlines | At most 5 per stock; fetched ones are stored; 90-second fetch budget | Implemented |
+| SRD-MKT-017.005 | FO-MKT-017 | Must | The judge step makes one AI call that returns, per stock, a tone for its side (supports, neutral, against or no news) with a reason, and a summary. | headlines | answer | Reason at most 150 characters; summary at most 600 | Implemented |
+| SRD-MKT-017.006 | FO-MKT-017 | Must | Each judged stock is saved as a sentiment card with day, side, symbol, tone, reason, headline count and ticket id. | answer | `sentiment_cards` rows | Unknown stocks dropped; idea scores are not changed | Implemented |
+| SRD-MKT-017.007 | FO-MKT-017 | Must | The lead plan facts show the newest card of the last 7 days for each idea it may pick. | cards | prompt text | At most 30 lines | Implemented |
+| SRD-MKT-017.008 | FO-MKT-017 | Must | The ticket ends `done` with the tones and summary in its result, and gain is yes only when at least one stock is judged against its side. | judge | result, gain | — | Implemented |
+| SRD-MKT-017.009 | FO-MKT-017 | Must | Default employee ships as `emp-015` ("Expert 12", skill `sentiment`) and its skill path is in `SKILL_PATHS` and the app build. | default files | employee | Copied only when missing; generic name | Implemented |
+| SRD-MKT-017.010 | FO-MKT-017 | Should | Each step logs the stock count, headlines fetched and stocks judged against. | step | log line | `[Research]` prefix | Implemented |
+
+## FO-MKT-018: Book to Strategy Research
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-MKT-018.001 | FO-MKT-018 | Must | The book skill (`book_to_strategy`) works `book_to_strategy` tickets in two steps: read (code) and card (one AI call). | ticket | steps | The runner only gives it approved tickets | Implemented |
+| SRD-MKT-018.002 | FO-MKT-018 | Must | The ticket topic names the source and chapter as `upload:<file> ch <n>` or `gutenberg:<number> ch <n>`; any other topic ends the ticket `failed`. | topic | source, chapter | Checked before any file or web read | Implemented |
+| SRD-MKT-018.003 | FO-MKT-018 | Must | Book text comes only from the desk `books` folder or from the Project Gutenberg plain-text file of that number. | source | text | No other site; a Gutenberg file is downloaded once and kept in the books folder | Implemented |
+| SRD-MKT-018.004 | FO-MKT-018 | Must | The reader takes `.txt`, `.md`, `.html` and `.pdf` files. | file | plain text | PDF through `pypdf`; other types end `failed` | Implemented |
+| SRD-MKT-018.005 | FO-MKT-018 | Must | Chapters are split at chapter headings, or into 5,000-word parts when the book has none. | text | chapter text | Cut to 24,000 characters; a missing chapter ends `failed` | Implemented |
+| SRD-MKT-018.006 | FO-MKT-018 | Must | A chapter already read is never read again; its ticket ends `failed` and names the earlier card. | `books_read` | refusal | Checked before reading | Implemented |
+| SRD-MKT-018.007 | FO-MKT-018 | Must | The card step makes one AI call that returns a name, idea, market, entry, exit, stop and 1 to 3 short quotes. | chapter text | answer | Each field at most 300 characters; each quote at most 200 | Implemented |
+| SRD-MKT-018.008 | FO-MKT-018 | Must | Code keeps only quotes found in the chapter text and saves the card in `strategy_cards` with book, chapter and ticket id. | answer | card row | The chapter is marked read in `books_read` | Implemented |
+| SRD-MKT-018.009 | FO-MKT-018 | Must | The ticket ends `done` with the card in its result, and gain is yes only when entry, exit and stop are filled and at least one quote was found. | card | result, gain | — | Implemented |
+| SRD-MKT-018.010 | FO-MKT-018 | Must | The lead plan facts list the uploaded books, the topic form for book tickets and the chapters already read. | books folder, `books_read` | prompt text | At most 15 lines | Implemented |
+| SRD-MKT-018.011 | FO-MKT-018 | Must | Default employee ships as `emp-016` ("Expert 13", skill `book_to_strategy`) and its skill path is in `SKILL_PATHS` and the app build. | default files | employee | Copied only when missing; generic name | Implemented |
+| SRD-MKT-018.012 | FO-MKT-018 | Should | Each step logs the book, chapter, word count and quotes kept. | step | log line | `[Research]` prefix | Implemented |

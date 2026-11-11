@@ -1,11 +1,19 @@
 # Functional Overview — Market Analytics (MKT)
 
 **Document ID:** FO-MKT
-**Version:** 0.5.0
+**Version:** 0.9.1
 **Status:** Draft
-**Last Updated:** 2026-11-06
+**Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.19.1: FO-MKT-018 approved by user 2026-11-11.
+> v0.19.0: Autonomous desk step F (user, 2026-11-11): FO-MKT-018 added as Draft — book to strategy research.
+> v0.18.1: FO-MKT-017 approved by user 2026-11-11.
+> v0.18.0: Autonomous desk step F (user, 2026-11-11): FO-MKT-017 added as Draft — sentiment research.
+> v0.17.1: FO-MKT-016 approved by user 2026-11-11.
+> v0.17.0: Autonomous desk step F (user, 2026-11-11): FO-MKT-016 added as Draft — pick post-mortem research.
+> v0.16.1: FO-MKT-015 approved by user 2026-11-11.
+> v0.16.0: Autonomous desk step F (user, 2026-11-11): FO-MKT-015 added as Draft — setup tuning research.
 > v0.15.1: FO-MKT-014 approved by user 2026-11-11.
 > v0.15.0: Autonomous desk step E (user, 2026-11-11): FO-MKT-014 added as Draft — lead research tickets.
 > v0.14.0: Autonomous desk step D (user, 2026-11-11): FO-MKT-013 added as Draft — check-ins and watchers.
@@ -371,3 +379,96 @@ The system shall let the lead skills ask for research as tickets inside their no
 
 1. A lead plan answer with one ticket adds one row to the research queue.
 2. A lead with no research tokens left gets a prompt that says so, and a ticket it still raises is refused.
+
+## FO-MKT-015: Setup Tuning Research
+
+**Status:** Implemented (approved by user 2026-11-11)
+**Priority:** Must
+**Phase:** Autonomous desk step F (skill 1 of 4)
+**Depends on:** FO-DSK-010 (research queue), FO-MKT-003 (setups), FO-MKT-012 (lessons), FO-BKT-002 (backtest engine)
+**Source: User 2026-11-11 (Autonomous desk step F): first research skill is setup tuning; engine by ticket target, gain = +0.05R on 100+ trades, gain may write a candidate lesson, report only. Design §7, §9: https://claude.ai/artifact/J7AexvWdqDNujADoc9dJkJ.**
+
+The system shall give the desk an employee that works setup tuning tickets: it tries a few changed limits for one setup or strategy, tests them in code and reports which one did better.
+
+- The system shall let a setup tuning ticket name either a desk setup or a live execution strategy as its target.
+- The system shall test a desk setup on the desk's own 5-year replay, and a strategy on the backtest engine.
+- The system shall let AI only pick the variants and read the result table; code runs the tests and decides the gain.
+- The system shall count a gain only when a variant beats the current limits by at least 0.05R over at least 100 trades.
+- The system shall write a candidate lesson for a desk-setup gain, and never change a live setup or strategy.
+- The system shall ship a default research employee with a generic name.
+
+### Acceptance Criteria
+
+1. An approved Pullback tuning ticket ends `done` with a result table of the baseline and up to 3 variants.
+2. A variant that beats the baseline by 0.05R on 100 or more trades marks the ticket gain = yes and adds one candidate lesson.
+3. After the ticket, the live setups and the strategy list are unchanged.
+
+## FO-MKT-016: Pick Post-Mortem Research
+
+**Status:** Implemented (approved by user 2026-11-11)
+**Priority:** Must
+**Phase:** Autonomous desk step F (skill 2 of 4)
+**Depends on:** FO-DSK-010 (research queue), FO-MKT-009 (pick results), FO-MKT-012 (lessons)
+**Source: User 2026-11-11 (Autonomous desk step F): pick post-mortem studies losers and winners of the last 30 days; bars from Backtest Data, candles.db only for missing days; may write candidate lessons, follow-up tickets and per-pick notes; gain = a lesson saved. Design §7: https://claude.ai/artifact/J7AexvWdqDNujADoc9dJkJ.**
+
+The system shall give the desk an employee that works post-mortem tickets: it studies a chosen set of closed lead picks in depth and says why the losers failed compared with the winners.
+
+- The system shall let the AI choose up to 10 losing and 5 winning closed lead picks of the last 30 days that fit the ticket's goal.
+- The system shall gather, in code, each pick's stored desk facts and its price path after the data day.
+- The system shall read price paths from Backtest Data first and from `candles.db` only for days Backtest Data does not have yet.
+- The system shall let one AI call write a note per pick, up to 3 candidate lessons, up to 2 follow-up tickets and a summary.
+- The system shall keep a lesson only when its proof picks are in the studied set, and count a gain only when a lesson is saved.
+- The system shall ship a default post-mortem employee with a generic name.
+
+### Acceptance Criteria
+
+1. An approved post-mortem ticket on 4 losers and 2 winners ends `done` with one note per pick and a summary in its result.
+2. A lesson that names a studied loser is saved as a candidate and the ticket gain is yes; a lesson naming an unknown pick is dropped.
+3. A follow-up setup tuning ticket appears in the research queue under the lead that raised the post-mortem.
+
+## FO-MKT-017: Sentiment Research
+
+**Status:** Implemented (approved by user 2026-11-11)
+**Priority:** Must
+**Phase:** Autonomous desk step F (skill 3 of 4)
+**Depends on:** FO-DSK-010 (research queue), FO-MKT-006 (news review), FO-MKT-005 (lead plan), FO-MKT-013 (open trades)
+**Source: User 2026-11-11 (Autonomous desk step F): AI picks up to 30 stocks from today's ideas and open trades; stored headlines first, fetch only gaps; save tone cards the lead's next plan reads, scores unchanged; gain = a warning found. Design §7: https://claude.ai/artifact/J7AexvWdqDNujADoc9dJkJ.**
+
+The system shall give the desk an employee that works sentiment tickets: it judges the news tone of chosen stocks for their idea's side and leaves short tone cards for the lead.
+
+- The system shall let the AI choose up to 30 stocks from the latest listed and watch ideas and the open trades that fit the ticket's goal.
+- The system shall use the desk's stored headlines first and fetch fresh ones only for stocks with no recent stored headline.
+- The system shall let one AI call judge each stock's news as supporting, neutral or against its side, with a short reason.
+- The system shall save one tone card per judged stock and show the cards of the last 7 days in the lead's plan prompt, without changing idea scores.
+- The system shall count a gain only when at least one stock's news is against its side.
+- The system shall ship a default sentiment employee with a generic name.
+
+### Acceptance Criteria
+
+1. An approved sentiment ticket on 5 watch ideas ends `done` with 5 tone cards and a summary in its result.
+2. A long idea with bad news is judged against, and the ticket gain is yes.
+3. The next lead plan prompt shows that stock's card; its idea score is unchanged.
+
+## FO-MKT-018: Book to Strategy Research
+
+**Status:** Implemented (approved by user 2026-11-11)
+**Priority:** Must
+**Phase:** Autonomous desk step F (skill 4 of 4)
+**Depends on:** FO-DSK-010 (research queue; book tickets never auto-approve), FO-MKT-005 (lead plan), FO-MKT-014 (lead tickets)
+**Source: User 2026-11-11 (Autonomous desk step F): ticket approval is the permission to read; text only from the user's uploads or Project Gutenberg (public domain); text, HTML and PDF; output a strategy card only; gain = card with entry, exit and stop. Design §7: https://claude.ai/artifact/J7AexvWdqDNujADoc9dJkJ.**
+
+The system shall give the desk an employee that turns one approved chapter of a trading book into a short strategy card, and never reads a book without the owner's approval.
+
+- The system shall read a book chapter only for an approved book ticket that names its source and chapter.
+- The system shall take book text only from the owner's uploads in the desk books folder or from a public-domain Project Gutenberg download.
+- The system shall read plain text, Markdown, HTML and PDF files.
+- The system shall read each chapter once and never read it again.
+- The system shall let one AI call write a strategy card with idea, market, entry, exit, stop and short quotes from the chapter, and keep only quotes found in the text.
+- The system shall show the lead which books it may propose and which chapters were already read.
+- The system shall ship a default book employee with a generic name.
+
+### Acceptance Criteria
+
+1. An approved ticket `upload:my_book.txt ch 2` ends `done` with one strategy card in its result and in `strategy_cards`.
+2. A second ticket for the same chapter ends `failed` without reading the file again.
+3. A ticket naming any other website ends `failed` and nothing is downloaded.

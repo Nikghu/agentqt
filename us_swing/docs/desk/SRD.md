@@ -1,11 +1,14 @@
 # Software Requirements — Desk Harness (DSK)
 
 **Document ID:** SRD-DSK
-**Version:** 0.6.0
+**Version:** 0.7.2
 **Status:** Draft
-**Last Updated:** 2026-11-06
+**Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.13.2: SRD-DSK-010.015 Implemented (2026-11-11).
+> v0.13.1: SRD-DSK-010.015 approved by user 2026-11-11.
+> v0.13.0: Autonomous desk step F (user, 2026-11-11): SRD-DSK-010.015 added as Draft — follow-up tickets from research skills.
 > v0.12.2: Step E rows Implemented (20, 2026-11-11).
 > v0.12.1: SRD-DSK-004.006–.010, 007.010 and 010.001–.014 approved by user 2026-11-11.
 > v0.12.0: Autonomous desk step E (user, 2026-11-11): SRD-DSK-004.006–.010, 007.010 and 010.001–.014 added as Draft — token split and research queue.
@@ -211,3 +214,4 @@
 | SRD-DSK-010.012 | FO-DSK-010 | Must | A watcher flag, a plan run, a used-up research part or the app closing pauses the running ticket after its current step; it resumes at the next quiet gap. | events | status paused | Its state is saved in `tickets` | Implemented |
 | SRD-DSK-010.013 | FO-DSK-010 | Must | An ended ticket posts a `research_done` event with its id, status and result. | ticket | event | — | Implemented |
 | SRD-DSK-010.014 | FO-DSK-010 | Should | Raise, approve, start, pause and end of each ticket are logged. | ticket | log line | `[Research]` prefix | Implemented |
+| SRD-DSK-010.015 | FO-DSK-010 | Must | A research skill may hand follow-up tickets to the queue in the name of the lead that raised its own ticket. | asks, ticket | ticket rows | Rules .002–.007 apply to that lead; never in the doer's name | Implemented |

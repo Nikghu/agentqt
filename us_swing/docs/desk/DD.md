@@ -1,11 +1,12 @@
 # Design Document — Desk Harness (DSK)
 
 **Document ID:** DD-DSK
-**Version:** 0.4.0
+**Version:** 0.5.0
 **Status:** Draft
-**Last Updated:** 2026-11-06
+**Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.12.0: DD-DSK-010.015.D01 added — follow-up tickets from research skills (step F).
 > v0.11.0: DD-DSK-010.001.D01 added — token split and research queue (Autonomous desk step E (2026-11-11)).
 > v0.10.0: DD-DSK-003.020.D01 added — check-ins and watchers (Autonomous desk step D (2026-11-11)).
 > v0.9.0: DD-DSK-009.001.D01 added — desk memory: lessons, learning loop and Memory view (Autonomous desk step C (2026-11-11)).
@@ -975,3 +976,7 @@ The desk loop (`_event_tick`) runs the runner only when `has_work` from events i
 - Buttons Approve, Reject and Change cap, enabled only for a waiting ticket. Change cap asks for a number from 1,000 to 100,000. Each button writes one `add_ticket_edit()` row and logs `[Research] Ticket <id> approved|rejected|cap set to <n> from the app`.
 - The detail label under the table shows, for the selected ticket, its done test and, once ended, its result and end reason.
 - The GUI reads `desk.db` read-only and writes only `ticket_edits`. The AI Desk is the Master user's view, as for Memory.
+
+## DD-DSK-010.015.D01 — Follow-up Tickets from Research Skills (Autonomous desk step F)
+
+**Traces:** SRD-DSK-010.015. `raise_follow_ups(home, lead_id, asks, now, send=None)` in `core/desk_research.py` looks up the employee file whose id is `lead_id` (the `raised_by` of the research ticket). Not an active lead → every ask is refused with "the raising lead is no longer an active lead". Otherwise each ask runs through `_raise_one()` exactly as in `raise_tickets()`, so limits, repeats, parked topics, auto approval and the waiting alert all count against that lead. Errors are logged and every ask is refused; the caller's work is never lost. Full use in DD-MKT-016.001.D01 §5.

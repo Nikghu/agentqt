@@ -1,11 +1,13 @@
 # Unit Test Cases — Desk Harness (DSK)
 
 **Document ID:** UTCD-DSK
-**Version:** 0.3.0
+**Version:** 0.4.1
 **Status:** Draft
-**Last Updated:** 2026-11-06
+**Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.14.1: UT-DSK-010.015.M25.T01–T03 Pass (2026-11-11).
+> v0.14.0: UT-DSK-010.015.M25.T01–T03 added (Not Run) — follow-up tickets (step F).
 > v0.13.1: Step E cases Pass (46, 2026-11-11).
 > v0.13.0: Autonomous desk step E (2026-11-11): UT-DSK-004.006–.010, 007.010, 010.001–.014 added (46 cases).
 > v0.12.1: Step D cases Pass (18, 2026-11-11).
@@ -413,3 +415,6 @@
 | UT-DSK-010.011.M26.T02 | MD-DSK-010.008.M26 | Positive | Progress keeps it running (SRD-DSK-010.011) | 3 steps each with a new note and a new call | still running; 3 notes in result | Pass |
 | UT-DSK-010.013.M26.T02 | MD-DSK-010.008.M26 | Negative | No event for rejected or expired (SRD-DSK-010.013) | ticket rejected; ticket expired | no research_done event | Pass |
 | UT-DSK-010.012.M26.T03 | MD-DSK-010.008.M26 | Edge | Other refusal backs off (SRD-DSK-010.012) | doer over its calls a day | ticket paused with the reason; no work for 15 minutes | Pass |
+| UT-DSK-010.015.M25.T01 | MD-DSK-010.001.M25 | Positive | Follow-up in the lead's name (SRD-DSK-010.015) | active lead id, ask with cap 8,000 | row raised by that lead, approved by auto | Pass |
+| UT-DSK-010.015.M25.T02 | MD-DSK-010.001.M25 | Negative | Lead gone (SRD-DSK-010.015) | retired lead id; expert id | every ask refused; no rows | Pass |
+| UT-DSK-010.015.M25.T03 | MD-DSK-010.001.M25 | Negative | Lead limits (SRD-DSK-010.015) | lead with 3 tickets today | refused: 3 tickets a day | Pass |
