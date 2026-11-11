@@ -1,11 +1,13 @@
 # Software Requirements — Market Analytics (MKT)
 
 **Document ID:** SRD-MKT
-**Version:** 0.11.2
+**Version:** 0.12.1
 **Status:** Draft
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.20.1: SRD-MKT-017.001–.010 approved by user 2026-11-11.
+> v0.20.0: Autonomous desk step F (user, 2026-11-11): SRD-MKT-017.001–.010 added as Draft — sentiment research.
 > v0.19.2: Step F post-mortem rows Implemented (11, 2026-11-11).
 > v0.19.1: SRD-MKT-016.001–.011 approved by user 2026-11-11.
 > v0.19.0: Autonomous desk step F (user, 2026-11-11): SRD-MKT-016.001–.011 added as Draft — pick post-mortem research.
@@ -292,3 +294,18 @@
 | SRD-MKT-016.009 | FO-MKT-016 | Must | The ticket ends `done` with the notes and summary in its result, and gain is yes only when at least one lesson was saved. | study | result, gain | — | Implemented |
 | SRD-MKT-016.010 | FO-MKT-016 | Must | Default employee ships as `emp-014` ("Expert 11", skill `post_mortem`) and its skill path is in `SKILL_PATHS` and the app build. | default files | employee | Copied only when missing; generic name | Implemented |
 | SRD-MKT-016.011 | FO-MKT-016 | Should | Each step logs the pick count, lessons kept and follow-up tickets raised. | step | log line | `[Research]` prefix | Implemented |
+
+## FO-MKT-017: Sentiment Research
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-MKT-017.001 | FO-MKT-017 | Must | The sentiment skill (`sentiment`) works `sentiment` tickets in three steps: pick, gather and judge. | ticket | steps | One AI call in pick and in judge; gather is code only | Approved |
+| SRD-MKT-017.002 | FO-MKT-017 | Must | The pick step shows the latest day's listed and watch ideas and the open trades, and asks for up to 30 that fit the ticket goal. | ideas, open trades | chosen stocks | Each choice is a side and a symbol | Approved |
+| SRD-MKT-017.003 | FO-MKT-017 | Must | Code keeps only chosen stocks that are in that list; none left ends the ticket `failed`. | answer | stock set | — | Approved |
+| SRD-MKT-017.004 | FO-MKT-017 | Must | The gather step uses stored headlines of the last 7 days and fetches fresh ones only for stocks with none stored in the last 3 days. | `news_items`, RSS | headlines | At most 5 per stock; fetched ones are stored; 90-second fetch budget | Approved |
+| SRD-MKT-017.005 | FO-MKT-017 | Must | The judge step makes one AI call that returns, per stock, a tone for its side (supports, neutral, against or no news) with a reason, and a summary. | headlines | answer | Reason at most 150 characters; summary at most 600 | Approved |
+| SRD-MKT-017.006 | FO-MKT-017 | Must | Each judged stock is saved as a sentiment card with day, side, symbol, tone, reason, headline count and ticket id. | answer | `sentiment_cards` rows | Unknown stocks dropped; idea scores are not changed | Approved |
+| SRD-MKT-017.007 | FO-MKT-017 | Must | The lead plan facts show the newest card of the last 7 days for each idea it may pick. | cards | prompt text | At most 30 lines | Approved |
+| SRD-MKT-017.008 | FO-MKT-017 | Must | The ticket ends `done` with the tones and summary in its result, and gain is yes only when at least one stock is judged against its side. | judge | result, gain | — | Approved |
+| SRD-MKT-017.009 | FO-MKT-017 | Must | Default employee ships as `emp-015` ("Expert 12", skill `sentiment`) and its skill path is in `SKILL_PATHS` and the app build. | default files | employee | Copied only when missing; generic name | Approved |
+| SRD-MKT-017.010 | FO-MKT-017 | Should | Each step logs the stock count, headlines fetched and stocks judged against. | step | log line | `[Research]` prefix | Approved |

@@ -1,11 +1,13 @@
 # Functional Overview — Market Analytics (MKT)
 
 **Document ID:** FO-MKT
-**Version:** 0.7.1
+**Version:** 0.8.1
 **Status:** Draft
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.18.1: FO-MKT-017 approved by user 2026-11-11.
+> v0.18.0: Autonomous desk step F (user, 2026-11-11): FO-MKT-017 added as Draft — sentiment research.
 > v0.17.1: FO-MKT-016 approved by user 2026-11-11.
 > v0.17.0: Autonomous desk step F (user, 2026-11-11): FO-MKT-016 added as Draft — pick post-mortem research.
 > v0.16.1: FO-MKT-015 approved by user 2026-11-11.
@@ -421,3 +423,26 @@ The system shall give the desk an employee that works post-mortem tickets: it st
 1. An approved post-mortem ticket on 4 losers and 2 winners ends `done` with one note per pick and a summary in its result.
 2. A lesson that names a studied loser is saved as a candidate and the ticket gain is yes; a lesson naming an unknown pick is dropped.
 3. A follow-up setup tuning ticket appears in the research queue under the lead that raised the post-mortem.
+
+## FO-MKT-017: Sentiment Research
+
+**Status:** Approved (approved by user 2026-11-11)
+**Priority:** Must
+**Phase:** Autonomous desk step F (skill 3 of 4)
+**Depends on:** FO-DSK-010 (research queue), FO-MKT-006 (news review), FO-MKT-005 (lead plan), FO-MKT-013 (open trades)
+**Source: User 2026-11-11 (Autonomous desk step F): AI picks up to 30 stocks from today's ideas and open trades; stored headlines first, fetch only gaps; save tone cards the lead's next plan reads, scores unchanged; gain = a warning found. Design §7: https://claude.ai/artifact/J7AexvWdqDNujADoc9dJkJ.**
+
+The system shall give the desk an employee that works sentiment tickets: it judges the news tone of chosen stocks for their idea's side and leaves short tone cards for the lead.
+
+- The system shall let the AI choose up to 30 stocks from the latest listed and watch ideas and the open trades that fit the ticket's goal.
+- The system shall use the desk's stored headlines first and fetch fresh ones only for stocks with no recent stored headline.
+- The system shall let one AI call judge each stock's news as supporting, neutral or against its side, with a short reason.
+- The system shall save one tone card per judged stock and show the cards of the last 7 days in the lead's plan prompt, without changing idea scores.
+- The system shall count a gain only when at least one stock's news is against its side.
+- The system shall ship a default sentiment employee with a generic name.
+
+### Acceptance Criteria
+
+1. An approved sentiment ticket on 5 watch ideas ends `done` with 5 tone cards and a summary in its result.
+2. A long idea with bad news is judged against, and the ticket gain is yes.
+3. The next lead plan prompt shows that stock's card; its idea score is unchanged.
