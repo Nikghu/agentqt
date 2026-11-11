@@ -10,6 +10,7 @@
 - Artifacts updated: TRACE, CONTEXT, RN, DEVLOG (SRD and FO in 6b31b2fe; DD, MD, UTCD in a49905aa; Code in e099584f: market/book_strategy, book_text, book_cards, lead_brief, employees/emp-016, SKILL_PATHS, USSwing.spec, pyproject.toml)
 - Decisions: book tickets never auto-approve (approval is the permission); text only from desk books folder or Project Gutenberg plain text, Gutenberg cached once; upload and gutenberg topic forms; txt, md, html, pdf (pypdf>=5.1); one strategy card only; each chapter read once; gain = entry, exit and stop filled and at least one quote found; default employee emp-016 "Expert 13"; code review fixes: 20 MB and 500-page caps, capped gutenberg.org-only download, atomic cache write; live check fixed table-of-contents split (sections under 100 words skipped)
 - Tests: 23 UT-MKT-018 cases Pass (tests/market/test_book_strategy.py); market 509 pass, desk 347, core 276, AI Desk GUI 194
+- Merged: all of step F (FO-MKT-015..018, SRD-DSK-010.015) merged to main in one PR #137, merge commit 2db57546; 4 branches deleted; 114 step F tests pass on main
 
 ---
 
