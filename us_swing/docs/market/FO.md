@@ -1,11 +1,13 @@
 # Functional Overview — Market Analytics (MKT)
 
 **Document ID:** FO-MKT
-**Version:** 0.5.0
+**Version:** 0.6.1
 **Status:** Draft
-**Last Updated:** 2026-11-06
+**Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.16.1: FO-MKT-015 approved by user 2026-11-11.
+> v0.16.0: Autonomous desk step F (user, 2026-11-11): FO-MKT-015 added as Draft — setup tuning research.
 > v0.15.1: FO-MKT-014 approved by user 2026-11-11.
 > v0.15.0: Autonomous desk step E (user, 2026-11-11): FO-MKT-014 added as Draft — lead research tickets.
 > v0.14.0: Autonomous desk step D (user, 2026-11-11): FO-MKT-013 added as Draft — check-ins and watchers.
@@ -371,3 +373,26 @@ The system shall let the lead skills ask for research as tickets inside their no
 
 1. A lead plan answer with one ticket adds one row to the research queue.
 2. A lead with no research tokens left gets a prompt that says so, and a ticket it still raises is refused.
+
+## FO-MKT-015: Setup Tuning Research
+
+**Status:** Approved (approved by user 2026-11-11)
+**Priority:** Must
+**Phase:** Autonomous desk step F (skill 1 of 4)
+**Depends on:** FO-DSK-010 (research queue), FO-MKT-003 (setups), FO-MKT-012 (lessons), FO-BKT-002 (backtest engine)
+**Source: User 2026-11-11 (Autonomous desk step F): first research skill is setup tuning; engine by ticket target, gain = +0.05R on 100+ trades, gain may write a candidate lesson, report only. Design §7, §9: https://claude.ai/artifact/J7AexvWdqDNujADoc9dJkJ.**
+
+The system shall give the desk an employee that works setup tuning tickets: it tries a few changed limits for one setup or strategy, tests them in code and reports which one did better.
+
+- The system shall let a setup tuning ticket name either a desk setup or a live execution strategy as its target.
+- The system shall test a desk setup on the desk's own 5-year replay, and a strategy on the backtest engine.
+- The system shall let AI only pick the variants and read the result table; code runs the tests and decides the gain.
+- The system shall count a gain only when a variant beats the current limits by at least 0.05R over at least 100 trades.
+- The system shall write a candidate lesson for a desk-setup gain, and never change a live setup or strategy.
+- The system shall ship a default research employee with a generic name.
+
+### Acceptance Criteria
+
+1. An approved Pullback tuning ticket ends `done` with a result table of the baseline and up to 3 variants.
+2. A variant that beats the baseline by 0.05R on 100 or more trades marks the ticket gain = yes and adds one candidate lesson.
+3. After the ticket, the live setups and the strategy list are unchanged.

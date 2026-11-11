@@ -1,11 +1,13 @@
 # Software Requirements — Market Analytics (MKT)
 
 **Document ID:** SRD-MKT
-**Version:** 0.9.0
+**Version:** 0.10.1
 **Status:** Draft
-**Last Updated:** 2026-11-06
+**Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.18.1: SRD-MKT-015.001–.012 approved by user 2026-11-11.
+> v0.18.0: Autonomous desk step F (user, 2026-11-11): SRD-MKT-015.001–.012 added as Draft — setup tuning research.
 > v0.17.2: Step E rows Implemented (5, 2026-11-11).
 > v0.17.1: SRD-MKT-014.001–.005 approved by user 2026-11-11.
 > v0.17.0: Autonomous desk step E (user, 2026-11-11): SRD-MKT-014.001–.005 added as Draft — lead research tickets.
@@ -253,3 +255,20 @@
 | SRD-MKT-014.003 | FO-MKT-014 | Must | A ticket's token cap is between 1,000 and 100,000 tokens. | cap | checked cap | — | Implemented |
 | SRD-MKT-014.004 | FO-MKT-014 | Must | The lead's prompt shows its research tokens left today, its open tickets and its results from the last 30 days. | `tickets`, `activity` | prompt text | At most 600 tokens | Implemented |
 | SRD-MKT-014.005 | FO-MKT-014 | Must | Valid tickets of a kept answer are handed to the research queue. | tickets | `tickets` rows | Queue rules of FO-DSK-010 decide approve, wait or refuse | Implemented |
+
+## FO-MKT-015: Setup Tuning Research
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-MKT-015.001 | FO-MKT-015 | Must | The setup tuning skill (`setup_tuning`) works `setup_tuning` tickets, whose target is one desk setup or one live strategy. | ticket | target | Unknown target ends the ticket `failed` | Approved |
+| SRD-MKT-015.002 | FO-MKT-015 | Must | Each desk setup exposes its fixed limits as named knobs, each with today's value as default and a fixed allowed range. | `setups` | knobs | Live picks unchanged at default values | Approved |
+| SRD-MKT-015.003 | FO-MKT-015 | Must | The first step makes one AI call that picks up to 3 variants, each changing at most 2 knobs or numeric strategy values. | ticket, knobs | variants | Values outside the range are dropped; no valid variant ends `failed` | Approved |
+| SRD-MKT-015.004 | FO-MKT-015 | Must | Code replays the baseline and each desk-setup variant on the last 5 years of daily bars for S&P 500 members. | `candles.db` | trades | No tokens; entry at trigger, setup stop, 2R target, 10-day exit | Approved |
+| SRD-MKT-015.005 | FO-MKT-015 | Must | Code runs the baseline and each strategy variant on the backtest engine as renamed copies fed by its strategy loader. | backtest store | trades | Up to 5 years held; not saved as Backtest runs; no fixed stop ends `failed` | Approved |
+| SRD-MKT-015.006 | FO-MKT-015 | Must | Code builds a result table of trades, win rate, expectancy in R and change against the baseline per variant. | trades | table | Kept in the ticket state | Approved |
+| SRD-MKT-015.007 | FO-MKT-015 | Must | Code marks a gain when a variant's expectancy beats the baseline by at least 0.05R on at least 100 trades. | table | gain | AI never sets the gain | Approved |
+| SRD-MKT-015.008 | FO-MKT-015 | Must | The last step makes one AI call that reads the table and writes a verdict of at most 600 characters, then ends `done`. | table | result | — | Approved |
+| SRD-MKT-015.009 | FO-MKT-015 | Must | A desk-setup gain writes one candidate lesson tagged with the setup and side, claim worse, with the backtest numbers as proof. | gain | lesson | Goes active only by FO-MKT-012 case rules; strategy gains write none | Approved |
+| SRD-MKT-015.010 | FO-MKT-015 | Must | The skill never changes a live setup, a strategy or the strategy list; the result only names the winning values. | — | — | Master user applies changes by hand | Approved |
+| SRD-MKT-015.011 | FO-MKT-015 | Must | Default employee ships as `emp-013` ("Researcher 1", skill `setup_tuning`) and its skill path is in `SKILL_PATHS` and the app build. | default files | employee | Copied only when missing; generic name | Approved |
+| SRD-MKT-015.012 | FO-MKT-015 | Should | Each step logs the target, the variant count and the gain. | step | log line | `[Research]` prefix | Approved |
