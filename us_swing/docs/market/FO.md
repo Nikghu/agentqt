@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.13.0: Autonomous desk step C (user, 2026-11-11): FO-MKT-012 added as Draft — memory v1.
 > v0.12.0: Autonomous desk step A (user, 2026-11-10): FO-MKT-001 runs in the morning run and adds the candle check with a Yahoo desk-only copy; FO-MKT-005 brief becomes the morning brief. Older acceptance lines that say "evening run" describe the run in place when they were written.
 > v0.11.2: FO-MKT-011 Implemented (RN-MKT-0.12.0-20261110).
 > v0.11.1: FO-MKT-011 approved by user 2026-11-10.
@@ -303,3 +304,25 @@ The system shall let the Master user ask the desk for a new Floor panel in plain
 3. After the next evening run, an approved panel shows the new day's rows.
 4. A request the menu cannot serve shows a failed note with the reason.
 5. No model answer ever runs as SQL; only menu columns and tables are used.
+
+## FO-MKT-012: Learning from Pick Results
+
+**Status:** Draft
+**Priority:** Must
+**Phase:** Autonomous desk step C
+**Depends on:** FO-MKT-009 (pick results), FO-MKT-005 (pick-making skills), FO-DSK-009 (lessons)
+**Source: User 2026-11-11 (Autonomous desk step C, memory v1): lessons only for pick makers; active at 5 cases (backtest later); one reflect call a day after pick results. Design §8: https://claude.ai/artifact/J7AexvWdqDNujADoc9dJkJ.**
+
+The system shall turn closed pick results into a few candidate lessons each day and give the active lessons to the skills that make picks.
+
+- The system shall work out, in code, win rate and average R of closed picks by side, setup, regime, sector, setup review grade and news tone.
+- The system shall ask one AI call a day, only on days with new closed picks, for at most 3 candidate lessons with their proof.
+- The system shall check the reflect answer against a fixed form before any lesson is kept.
+- The system shall ship a default expert-level employee that owns the reflect skill.
+- The system shall add the matching active lessons to the facts of setup review, news review, risk check and the lead brief.
+
+### Acceptance Criteria
+
+1. On a day with new closed picks the reflect employee runs once and adds at most 3 candidates.
+2. On a day with no new closed picks it stays asleep and makes no call.
+3. Regime view and sector view prompts hold no lessons.

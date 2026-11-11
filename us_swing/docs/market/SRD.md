@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.15.0: Autonomous desk step C (user, 2026-11-11): SRD-MKT-012.001–.006 added as Draft — memory v1.
 > v0.14.2: Step A rows Implemented 2026-11-11.
 > v0.14.1: Step A rows approved by user 2026-11-11.
 > v0.14.0: Autonomous desk step A (user, 2026-11-10): SRD-MKT-001.013–.017 added as Draft (candle check, Yahoo desk-only copy); SRD-MKT-005.015/.016 reopened (morning brief, feed kind `morning`).
@@ -206,3 +207,14 @@
 | SRD-MKT-011.007 | FO-MKT-011 | Must | Approved products are listed in the Floor catalog and their rows come from the recipe on the latest data day each time they are shown. | approvals, recipe | product, rows | Title marked "asked"; a new evening run gives new rows without a rebuild | Implemented |
 | SRD-MKT-011.008 | FO-MKT-011 | Must | A default expert-level data employee ships as `emp-009` (generic name "Expert 7") with trigger `data_request`, and the skill is added to the skill list. | — | files, skill path | Calls per day 20; monthly cap USD 3; `market` never imports `desk` | Implemented |
 | SRD-MKT-011.009 | FO-MKT-011 | Should | Each request logs whether a product was proposed or failed, with the request number. | answer | log line | `[Data]` prefix | Implemented |
+
+## FO-MKT-012: Learning from Pick Results
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-MKT-012.001 | FO-MKT-012 | Must | Code builds count, win rate and average R of closed paper picks by side, setup, regime, sector, grade and news tone. | `pick_results`, ideas, reviews | stats table | Closed means stop, target or time | Draft |
+| SRD-MKT-012.002 | FO-MKT-012 | Must | The reflect skill (`lesson_reflect`) asks for at most 3 candidate lessons from the stats, today's closed picks and the active lessons. | stats, picks, lessons | candidates | Fresh only on a data day with new closed picks | Draft |
+| SRD-MKT-012.003 | FO-MKT-012 | Must | The reflect answer is a typed form: text of at most 200 characters, tags from a fixed list, claim better or worse, and 1 to 20 pick keys. | answer | candidates | Checked by the gateway; unknown pick keys are dropped | Draft |
+| SRD-MKT-012.004 | FO-MKT-012 | Must | A default expert-level employee ships as `emp-010` (generic name "Expert 8") with trigger `after_run` and skill `lesson_reflect`. | default files | employee | Copied only when missing; the Master may rename it | Draft |
+| SRD-MKT-012.005 | FO-MKT-012 | Must | Setup review, news review, risk check and lead brief facts end with the lessons block from SRD-DSK-009.004. | lessons | facts text | Regime view and sector view get none | Draft |
+| SRD-MKT-012.006 | FO-MKT-012 | Should | Each reflect run logs how many candidates were kept and dropped. | answer | log line | `[Memory]` prefix | Draft |
