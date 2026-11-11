@@ -1,11 +1,12 @@
 # Design Document — Market Analytics (MKT)
 
 **Document ID:** DD-MKT
-**Version:** 0.7.0
+**Version:** 0.8.0
 **Status:** Draft
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.19.0: DD-MKT-017.001.D01 added — sentiment research (Autonomous desk step F (2026-11-11)).
 > v0.18.0: DD-MKT-016.001.D01 added — pick post-mortem research (Autonomous desk step F (2026-11-11)).
 > v0.17.0: DD-MKT-015.001.D01 added — setup tuning research (Autonomous desk step F (2026-11-11)).
 > v0.16.0: DD-MKT-014.001.D01 added — lead research tickets (Autonomous desk step E (2026-11-11)).
@@ -1274,3 +1275,59 @@ Record line: `2026-10-30|long|AAPL: Pullback, score 72, trigger 101.2, stop 98.4
 - `market/employees/emp-014/employee.md`: "Expert 11", title "Post-mortem analyst", level expert, skill `post_mortem`, trigger `research_done`; `facts()` never wakes it.
 - `SKILL_PATHS["post_mortem"] = "us_swing.market.post_mortem:PostMortemSkill"`; `USSwing.spec` hidden import `us_swing.market.post_mortem`.
 - Logs: "[Research] Ticket 9 will study 4 loser(s) and 2 winner(s)", "[Research] Ticket 9 gathered 6 pick(s)", "[Research] Ticket 9 kept 1 lesson(s), raised 1 follow-up ticket(s)".
+
+## DD-MKT-017.001.D01 — Sentiment Research (Autonomous desk step F, skill 3)
+
+**Traces:** SRD-MKT-017.001–.010. Runner, caps, stalls and pauses stay in DSK (DD-DSK-010.001.D01).
+
+### 1. Steps of one ticket
+
+| Step | Kind | What happens | Note / call |
+|---|---|---|---|
+| 1 `pick` | AI (1 call) | Facts: ticket; latest ideas day's listed and watch ideas (`side|symbol`, status, setup, score), then open trades (`side|symbol`, strategy); at most 150 lines. Answer `StockChoice`. Code keeps listed keys. | "Chose 12 stock(s)" / `pick` |
+| 2 `gather` | code | Headlines per stock (§3). | "Gathered 31 headline(s) for 12 stock(s), 4 fetched" / `gather` |
+| 3 `judge` | AI (1 call) + code | Facts: the headline records and rules. Answer `SentimentJudge`. Code saves cards for chosen stocks. Outcome `done`. | tones + summary / `judge` |
+
+`step_tokens = 6_000`. A missing AI answer gives an empty note (the runner's stall rule ends the ticket after 2). No ideas and no open trades, or no valid choice, ends `failed`. State: `{"phase": "gather" | "judge", "stocks": [...], "records": [...]}`.
+
+### 2. Answer forms
+
+```python
+class StockChoice(BaseModel):            # extra="forbid"
+    stocks: list[str] = Field(min_length=1, max_length=30)   # side|symbol
+class Card(BaseModel):
+    stock: str = Field(min_length=3, max_length=30)
+    tone: Literal["supports", "neutral", "against", "none"]
+    reason: str = Field(min_length=3, max_length=150)
+class SentimentJudge(BaseModel):
+    cards: list[Card] = Field(default_factory=list, max_length=30)
+    summary: str = Field(min_length=10, max_length=600)
+```
+
+### 3. Headlines (SRD-MKT-017.004) — `market/sentiment_news.py`
+
+- Stored: `news_items` rows for the symbol with `published` in the last 7 days, newest first, at most 5.
+- Gap: a stock with no stored row published in the last 3 days is fetched with `news.fetch_symbol()` while the 90-second budget lasts; new headlines are saved with `MarketStore.add_news()` (day = New York date), then the stored read runs again. A failed feed or a used-up budget leaves the stock with what is stored.
+- Record: `long|AAPL (watch, Pullback, score 64): 2026-11-10 Title…; …` or `…: no news`. Titles cut to 110 characters.
+
+### 4. Cards (SRD-MKT-017.006, .007) — `market/sentiment_cards.py`
+
+Table in `desk.db`:
+
+```sql
+CREATE TABLE IF NOT EXISTS sentiment_cards (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, day TEXT, side TEXT, symbol TEXT, tone TEXT,
+    reason TEXT, headlines INTEGER, ticket_id INTEGER, made TEXT);
+```
+
+`save_cards()` writes one row per judged chosen stock (first card per stock wins; unknown stocks dropped). `cards_block(home, keys, day)` returns, for each `(side, symbol)` in `keys`, the newest card with `day` in the last 7 days, at most 30 lines: `long AAPL: against, <reason> (2026-11-10, 3 headlines)`, under the header "News tone cards from research (last 7 days; information only, scores unchanged):". Empty when no card fits. `lead_brief.facts()` adds it after the ideas table, before the lessons block. Nothing writes `news_tags` or scores.
+
+### 5. Result and gain (SRD-MKT-017.008)
+
+Result note: `Summary: …`, then one line per card `side|symbol: tone, reason`. Gain = any saved card with tone `against`.
+
+### 6. Employee and wiring (SRD-MKT-017.009, .010)
+
+- `market/employees/emp-015/employee.md`: "Expert 12", title "Sentiment analyst", level expert, skill `sentiment`, trigger `research_done`; `facts()` never wakes it.
+- `SKILL_PATHS["sentiment"] = "us_swing.market.sentiment:SentimentSkill"`; `USSwing.spec` hidden import `us_swing.market.sentiment`.
+- Logs: "[Research] Ticket 11 will judge 12 stock(s)", "[Research] Ticket 11 gathered 31 headline(s), 4 stock(s) fetched", "[Research] Ticket 11 judged 12 stock(s), 2 against their side".

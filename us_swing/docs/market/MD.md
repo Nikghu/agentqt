@@ -1,11 +1,12 @@
 # Module Decomposition — Market Analytics (MKT)
 
 **Document ID:** MD-MKT
-**Version:** 0.7.0
+**Version:** 0.8.0
 **Status:** Draft
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.20.0: MD-MKT-017.001.M01, .004.M02, .006.M03 added — sentiment research (step F); M08 lead_brief changed.
 > v0.19.0: MD-MKT-016.001.M01 and .004.M02 added — pick post-mortem research (step F).
 > v0.18.0: MD-MKT-015.001.M01, .002.M02, .004.M03, .005.M04 added — setup tuning research (step F).
 > v0.17.0: MD-MKT-014.001.M01–M02 added — lead research tickets (step E).
@@ -227,3 +228,13 @@ SRD coverage: .001, .003, .008–.012 by M01; .002 by M02 (read by `market/setup
 | MD-MKT-016.004.M02 | SRD-MKT-016.004 | `us_swing/src/us_swing/market/post_mortem_facts.py` | Stored facts per pick, daily bars from Backtest Data then candles.db, price path | `pick_records`, `pick_bars`, `path_line` | `market.proof_data`, `market.candles` | No |
 
 SRD coverage: .001–.003, .006–.011 by M01; .004 and .005 by M02. Cross-tool: M01 calls DSK `raise_follow_ups()` (MD-DSK-010.001.M25, SRD-DSK-010.015).
+
+## FO-MKT-017: Sentiment Research
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-MKT-017.001.M01 | SRD-MKT-017.001 | `us_swing/src/us_swing/market/sentiment.py` | Research skill: pick, gather and judge steps, result, gain, logs | `SentimentSkill`, `StockChoice`, `SentimentJudge` | `core.desk_research`, `core.desk_watch`, M02, M03 | No |
+| MD-MKT-017.004.M02 | SRD-MKT-017.004 | `us_swing/src/us_swing/market/sentiment_news.py` | Stored headlines first, fetch only gaps within the budget, record lines | `Gathered`, `gather_news` | `market.news`, `market.store` | No |
+| MD-MKT-017.006.M03 | SRD-MKT-017.006 | `us_swing/src/us_swing/market/sentiment_cards.py` | `sentiment_cards` table, saving cards, the lead's cards block | `save_cards`, `cards_block` | `core.desk_contract` | No |
+
+SRD coverage: .001–.003, .005, .008–.010 by M01; .004 by M02; .006 and .007 by M03. Changed: `market/lead_brief.py` (MD-MKT-005.014.M08) adds `cards_block()` to its facts — SRD-MKT-017.007.

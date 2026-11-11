@@ -1,11 +1,12 @@
 # Unit Test Cases — Market Analytics (MKT)
 
 **Document ID:** UTCD-MKT
-**Version:** 0.7.1
+**Version:** 0.8.0
 **Status:** Draft
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.20.0: UT-MKT-017.* added (22, Not Run) — sentiment research (step F).
 > v0.19.1: Step F post-mortem cases Pass (22, 2026-11-11).
 > v0.19.0: UT-MKT-016.* added (22, Not Run) — pick post-mortem research (step F).
 > v0.18.1: Step F setup tuning cases Pass (31, 2026-11-11).
@@ -552,3 +553,30 @@
 | UT-MKT-016.010.M01.T01 | MD-MKT-016.001.M01 | Positive | Default employee (SRD-MKT-016.010) | shipped emp-014 file, `SKILL_PATHS` | valid file, skill `post_mortem`, path loads | Pass |
 | UT-MKT-016.010.M01.T02 | MD-MKT-016.001.M01 | Negative | Never wakes (SRD-MKT-016.010) | `facts()` on an event | not fresh; `act` returns no items | Pass |
 | UT-MKT-016.011.M01.T01 | MD-MKT-016.001.M01 | Positive | Logs (SRD-MKT-016.011) | full ticket | `[Research]` lines with pick count, lessons and follow-ups | Pass |
+
+## FO-MKT-017: Sentiment Research
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-MKT-017.001.M01.T01 | MD-MKT-017.001.M01 | Positive | Three steps (SRD-MKT-017.001) | full ticket with fake answers | calls pick, gather, judge; outcome done | Not Run |
+| UT-MKT-017.001.M01.T02 | MD-MKT-017.001.M01 | Negative | No answer (SRD-MKT-017.001) | ask returns None at pick | empty note; outcome go | Not Run |
+| UT-MKT-017.002.M01.T01 | MD-MKT-017.001.M01 | Positive | Pick list (SRD-MKT-017.002) | listed, watch and none ideas on the latest day, an older day, one open trade | facts list listed, watch and the trade only | Not Run |
+| UT-MKT-017.002.M01.T02 | MD-MKT-017.001.M01 | Negative | Too many (SRD-MKT-017.002) | 31 stocks | answer not valid | Not Run |
+| UT-MKT-017.003.M01.T01 | MD-MKT-017.001.M01 | Positive | Unknown stocks (SRD-MKT-017.003) | one known, one unknown | only the known kept | Not Run |
+| UT-MKT-017.003.M01.T02 | MD-MKT-017.001.M01 | Negative | Nothing left (SRD-MKT-017.003) | only unknown; no ideas or trades | outcome failed both | Not Run |
+| UT-MKT-017.004.M02.T01 | MD-MKT-017.004.M02 | Positive | Stored first (SRD-MKT-017.004) | stock with a headline from yesterday | no fetch; record holds it | Not Run |
+| UT-MKT-017.004.M02.T02 | MD-MKT-017.004.M02 | Positive | Gap fetched and stored (SRD-MKT-017.004) | stock with only a 5-day-old headline; fake feed with 2 new | one fetch; 2 rows added; record has 3 | Not Run |
+| UT-MKT-017.004.M02.T03 | MD-MKT-017.004.M02 | Edge | Limits (SRD-MKT-017.004) | 8 stored headlines; one 9 days old; budget used up | 5 newest shown; old one left out; no fetch after budget | Not Run |
+| UT-MKT-017.004.M02.T04 | MD-MKT-017.004.M02 | Negative | Feed fails (SRD-MKT-017.004) | fake feed returns None | record shows no news; no error | Not Run |
+| UT-MKT-017.005.M01.T01 | MD-MKT-017.001.M01 | Negative | Answer limits (SRD-MKT-017.005) | tone `bullish`; reason of 151 characters | answer not valid | Not Run |
+| UT-MKT-017.005.M01.T02 | MD-MKT-017.001.M01 | Positive | All tones (SRD-MKT-017.005) | cards with supports, neutral, against and none | all four kept | Not Run |
+| UT-MKT-017.006.M03.T01 | MD-MKT-017.006.M03 | Positive | Cards saved (SRD-MKT-017.006) | judge answer with 2 known stocks | 2 rows with tone, reason, headline count, ticket id | Not Run |
+| UT-MKT-017.006.M03.T02 | MD-MKT-017.006.M03 | Negative | Unknown and scores (SRD-MKT-017.006) | card for an unchosen stock; news_tags row | card dropped; news_tags unchanged | Not Run |
+| UT-MKT-017.007.M03.T01 | MD-MKT-017.006.M03 | Positive | Lead sees cards (SRD-MKT-017.007) | card 2 days old for a passed idea | lead facts hold the card line | Not Run |
+| UT-MKT-017.007.M03.T02 | MD-MKT-017.006.M03 | Edge | Card limits (SRD-MKT-017.007) | 10-day-old card; two cards for one stock; 35 stocks | old one left out; newest only; 30 lines | Not Run |
+| UT-MKT-017.007.M03.T03 | MD-MKT-017.006.M03 | Negative | No cards (SRD-MKT-017.007) | no card table; cards only for other stocks | block empty; lead facts unchanged | Not Run |
+| UT-MKT-017.008.M01.T01 | MD-MKT-017.001.M01 | Positive | Gain yes (SRD-MKT-017.008) | one card against | gain True; result lists tones and summary | Not Run |
+| UT-MKT-017.008.M01.T02 | MD-MKT-017.001.M01 | Negative | Gain no (SRD-MKT-017.008) | supports and neutral only | gain False; outcome done | Not Run |
+| UT-MKT-017.009.M01.T01 | MD-MKT-017.001.M01 | Positive | Default employee (SRD-MKT-017.009) | shipped emp-015 file, `SKILL_PATHS` | valid file, skill `sentiment`, path loads | Not Run |
+| UT-MKT-017.009.M01.T02 | MD-MKT-017.001.M01 | Negative | Never wakes (SRD-MKT-017.009) | `facts()` on an event | not fresh; `act` returns no items | Not Run |
+| UT-MKT-017.010.M01.T01 | MD-MKT-017.001.M01 | Positive | Logs (SRD-MKT-017.010) | full ticket | `[Research]` lines with stock count, fetched count and against count | Not Run |
