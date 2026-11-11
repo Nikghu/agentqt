@@ -7,7 +7,7 @@
 **Project:** US Swing Trading System
 
 > v0.11.1: Step C cases Pass (23 cases, 2026-11-11).
-> v0.11.0: Autonomous desk step C (2026-11-11): UT-DSK-009.* added (23 cases).
+> v0.11.0: Autonomous desk step C (2026-11-11): UT-DSK-009.* added (26 cases incl. 3 after code review).
 > v0.10.1: Step B cases Pass (32 cases incl. 6 rewritten, 2026-11-11).
 > v0.10.0: Autonomous desk step B (2026-11-11): UT-DSK-003.010.M16.T01/T03, 003.011.M16.T01/T03, 003.012.M16.T01/T02 rewritten (no LangGraph); UT-DSK-003.014–.019 and 007.008 added (26 cases).
 > v0.9.0: Autonomous desk step A (2026-11-11): UT-DSK-001.015.M03.T01–T06, 001.018.M05.T03–T06, 001.010.M04.T05/T11 rewritten; M04.T27–T31, M06.T05–T06, M02.T12, UT-DSK-007.007.M21.T01–T03 added.

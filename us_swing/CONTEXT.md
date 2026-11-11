@@ -2,12 +2,14 @@
 
 **Document:** CONTEXT.md
 **Project:** us_swing
-**Last Updated:** 2026-11-11 (Session 132)
+**Last Updated:** 2026-11-11 (Session 133)
 **Updated By:** Claude (Opus 5.5)
 
 ---
 
-**Current (Session 132, 2026-11-11):** **Autonomous AI Desk step B, baton (Feature, DSK; FO-DSK-003, FO-DSK-007; RN-DSK-0.8.0-20261111; SRD-DSK-003.010–.012, .014–.019 and SRD-DSK-007.008 approved by user and Implemented).** Each AI employee posts `step_done` when its turn ends; the router wakes the next one once its needs are ok or asleep. A failed step gets 2 retries, 5 minutes apart; then its dependants are skipped and the lead runs once with a "Partial plan" first line. One "Desk plan is partial" alert per failed step per day, closed by a later full chain. LangGraph removed from the desk, `pyproject.toml` and `USSwing.spec`, so the installer shrinks. New `steps` table and `parent` / `due` columns on `events`. Tests: 35 UT-DSK step B cases Pass; desk 254 pass; full suite 12 failures (same as TODO T112) plus a collection error in `tests/screener/test_llm_claude_screener.py` (TODO T136). Branch `feat/dsk-step-done-baton`, commits 5975cbff, d936eaee, 0aff7392, 9dddf689, f0b71973; not pushed, no PR yet. **Next:** user app check of step B (TODO T153), then step C (memory v1).
+**Current (Session 133, 2026-11-11):** **Autonomous AI Desk step C, memory v1 (Feature, DSK + MKT + GUI; FO-DSK-009, FO-MKT-012, FO-GUI-037; RN-DSK-0.9.0-20261111, RN-MKT-0.14.0-20261111, RN-GUI-1.62.0-20261111; SRD-DSK-009.001–.009, SRD-MKT-012.001–.006 and SRD-GUI-037.001–.004 approved by user and Implemented).** Lessons table in `desk.db`: active at 5 backing picks; retire rules; pinned never retire; pick makers get at most 5 lessons as prompt text only (memory error falls back to facts). Expert 8 (`emp-010`, skill `lesson_reflect`) runs once a day after new closed picks, ≤3 candidates. AI Desk → Memory section with filter, Pin / Unpin / Edit / Retire / Delete (via `lesson_edits`) and proof picks. Tests: 26 DSK, 13 MKT, 7 GUI UT Pass; full suite 12 failures (same as TODO T112) plus the collection error (T136). Branch `feat/dsk-memory-v1`, commits 08bdf5ee (FO/SRD), 08b1f036 (DD/MD/UTCD), 5ce78bad (code); not pushed, no PR. **Next:** user app check of step C (TODO T154), then step D (check-ins and watchers).
+
+**Previous (Session 132, 2026-11-11):** **Autonomous AI Desk step B, baton (Feature, DSK; FO-DSK-003, FO-DSK-007; RN-DSK-0.8.0-20261111; SRD-DSK-003.010–.012, .014–.019 and SRD-DSK-007.008 approved by user and Implemented).** Each AI employee posts `step_done` when its turn ends; the router wakes the next one once its needs are ok or asleep. A failed step gets 2 retries, 5 minutes apart; then its dependants are skipped and the lead runs once with a "Partial plan" first line. One "Desk plan is partial" alert per failed step per day, closed by a later full chain. LangGraph removed from the desk, `pyproject.toml` and `USSwing.spec`, so the installer shrinks. New `steps` table and `parent` / `due` columns on `events`. Tests: 35 UT-DSK step B cases Pass; desk 254 pass; full suite 12 failures (same as TODO T112) plus a collection error in `tests/screener/test_llm_claude_screener.py` (TODO T136). Branch `feat/dsk-step-done-baton`, commits 5975cbff, d936eaee, 0aff7392, 9dddf689, f0b71973; not pushed, no PR yet. **Next:** user app check of step B (TODO T153), then step C (memory v1).
 
 **Previous (Session 131, 2026-11-11):** **Autonomous AI Desk step A, morning run trigger (Feature, DSK + MKT + GUI; FO-DSK-001/003/007, FO-MKT-001/005, FO-GUI-029/034; RN-DSK-0.7.0-20261111, RN-MKT-0.13.0-20261111, RN-GUI-1.61.0-20261111; all reopened and new SRDs user-approved and Implemented).** One morning run per trading day from 04:00 ET replaces the 16:25 evening run. Desk starts and stops with the app; old Windows desk tasks removed. Candle check runs first: fills only missing daily bars from Yahoo into a desk-only copy; stops the run if SPY or more than 2% of stocks are still behind. Start TWS and Start USSwing set 60 min before the 09:30 ET open (read-only). Lead brief is now the morning brief. Branch `feat/dsk-morning-trigger`, code committed e6b72948, not pushed. Tests: 23 DSK, 18 MKT, 9 GUI Pass; full suite 2624 passed, 12 old failures (T112). **Next:** user real-app check T151, then push / PR only when the user says, then step B (baton done events).
 
@@ -534,7 +536,7 @@ Previous (Session 87, 2026-10-23): **Accumulation / Distribution screener (Featu
 | DD | `docs/gui/DD.md` | Draft v1.2.0 | 9 DDs across FO-GUI-001, 002, 004, 007, 011, 012, 014; FO-GUI-011/012 DD Approved |
 | MD | `docs/gui/MD.md` | Draft v1.0.0 | 15 modules; FO-GUI-004 now includes pending_signals_table_model.py (new); MD-GUI-014 (3 modules) for Active Cycles |
 | UTCD | `docs/gui/UTCD.md` | Draft v1.1.0 | 81 test cases; FO-GUI-004/012/014 test specs updated |
-| TRACE | `docs/gui/TRACE.md` | Draft v1.16.0 — **updated** | FO-GUI-029 SRD .007–.008 and FO-GUI-034 SRD .068–.069 Implemented (RN-GUI-1.61.0-20261111); FO-GUI-034 Market Floor and AI Desk frames Implemented (RN-GUI-1.60.0-20261106); FO-GUI-033 AI notes settings Implemented (RN-GUI-1.59.0-20261105); FO-GUI-032 Strategies views Implemented (RN-GUI-1.56.0-20261103); Last Updated 2026-11-05 |
+| TRACE | `docs/gui/TRACE.md` | Draft v1.16.0 — **updated** | FO-GUI-037 AI Desk Memory Implemented (RN-GUI-1.62.0-20261111); FO-GUI-029 SRD .007–.008 and FO-GUI-034 SRD .068–.069 Implemented (RN-GUI-1.61.0-20261111); FO-GUI-034 Market Floor and AI Desk frames Implemented (RN-GUI-1.60.0-20261106); FO-GUI-033 AI notes settings Implemented (RN-GUI-1.59.0-20261105); FO-GUI-032 Strategies views Implemented (RN-GUI-1.56.0-20261103); Last Updated 2026-11-05 |
 
 ### Indicator Rule Library (FO-SCR-013 / FO-GUI-015)
 
@@ -562,12 +564,12 @@ Previous (Session 87, 2026-10-23): **Accumulation / Distribution screener (Featu
 | Artifact | File | Status | Notes |
 |---|---|---|---|
 | FO | `docs/desk/FO.md` | Draft | FO-DSK-001 Approved and Implemented; FO-DSK-002..006 Draft |
-| SRD | `docs/desk/SRD.md` | Draft v0.9.4 | SRD-DSK-001.001–.020 Implemented (RN-DSK-0.1.0-20261105); morning run SRD-DSK-001.013/.015/.018–.020, 003.013, 007.005/.007 Implemented (RN-DSK-0.7.0-20261111); baton SRD-DSK-003.010–.012, .014–.019, 007.008 Implemented (RN-DSK-0.8.0-20261111) |
+| SRD | `docs/desk/SRD.md` | Draft v0.10.2 | SRD-DSK-001.001–.020 Implemented (RN-DSK-0.1.0-20261105); morning run SRD-DSK-001.013/.015/.018–.020, 003.013, 007.005/.007 Implemented (RN-DSK-0.7.0-20261111); baton SRD-DSK-003.010–.012, .014–.019, 007.008 Implemented (RN-DSK-0.8.0-20261111); memory SRD-DSK-009.001–.009 Implemented (RN-DSK-0.9.0-20261111) |
 | DD | `docs/desk/DD.md` | Draft | §0 locked decisions, desk.db contract, phase plan P0a–P7, open Q1–Q5 |
 | MD | `docs/desk/MD.md` | Draft v0.2.0 | MD-DSK-001 M01–M06 |
 | UTCD | `docs/desk/UTCD.md` | Draft | FO-DSK-001: 62 UT Pass |
 | TRACE | `docs/desk/TRACE.md` | Draft v0.1.0 | FO-DSK-001 Implemented |
-| Code | `src/us_swing/desk/`, `core/desk_contract.py` | Implemented | Morning run code commit e6b72948 on feat/dsk-morning-trigger, not pushed; user check T151. Step B baton commit f0b71973 on feat/dsk-step-done-baton, not pushed; user check T153 |
+| Code | `src/us_swing/desk/`, `core/desk_contract.py`, `core/desk_lessons.py` | Implemented | Morning run code commit e6b72948 on feat/dsk-morning-trigger, not pushed; user check T151. Step B baton commit f0b71973 on feat/dsk-step-done-baton, not pushed; user check T153. Step C memory code commit 5ce78bad on feat/dsk-memory-v1, not pushed; user check T154 |
 
 ---
 
@@ -580,8 +582,8 @@ Previous (Session 87, 2026-10-23): **Accumulation / Distribution screener (Featu
 | MD | `docs/market/MD.md` | Draft v0.4.0 | MD-MKT-001 M01–M05; MD-MKT-002 M01–M05; MD-MKT-003 M01–M07 |
 | UTCD | `docs/market/UTCD.md` | Draft | FO-MKT-001: 28 UT Pass; FO-MKT-002: 22 UT Pass; FO-MKT-003: 35 UT Pass |
 | TRACE | `docs/market/TRACE.md` | Draft v0.1.0 | FO-MKT-001 to FO-MKT-003 Implemented |
-| SRD | `docs/market/SRD.md` | Draft v0.14.0 | SRD-MKT-001.013–.017 Implemented and SRD-MKT-005.015–.016 Implemented (RN-MKT-0.13.0-20261111) |
-| Code | `src/us_swing/market/` | Implemented | P1–P3 code; morning run code (candle check) commit e6b72948 on feat/dsk-morning-trigger, not pushed |
+| SRD | `docs/market/SRD.md` | Draft v0.14.0 | SRD-MKT-001.013–.017 Implemented and SRD-MKT-005.015–.016 Implemented (RN-MKT-0.13.0-20261111); SRD-MKT-012.001–.006 Implemented (RN-MKT-0.14.0-20261111) |
+| Code | `src/us_swing/market/` | Implemented | P1–P3 code; morning run code (candle check) commit e6b72948 on feat/dsk-morning-trigger, not pushed; memory code (lesson reflect, pick makers) commit 5ce78bad on feat/dsk-memory-v1, not pushed |
 
 ---
 

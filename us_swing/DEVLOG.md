@@ -2,6 +2,16 @@
 
 ---
 
+## [20261111] DSK+MKT+GUI — Autonomous AI Desk step C: memory v1, lessons, reflect skill and Memory view (FO-DSK-009, FO-MKT-012, FO-GUI-037)
+
+- Type: Feature
+- FO(s): FO-DSK-009, FO-MKT-012, FO-GUI-037
+- RN: RN-DSK-0.9.0-20261111, RN-MKT-0.14.0-20261111, RN-GUI-1.62.0-20261111
+- Artifacts updated: SRD, DD, MD, UTCD, TRACE, CONTEXT, TODO (T154–T155), Code (core/desk_lessons, desk/process, market/lesson_reflect, market/employees/emp-010, core/desk_steps, market pick-maker steps and pick_results, gui/ai_desk_memory, gui/ai_desk), Tests, RN
+- Decisions: lessons are prompt text only, never read by risk, stop, capital or approval code; active at 5 backing picks; a candidate unproved in 30 days retires (pinned never); active lesson retires after 10 later misses or 90 days unconfirmed; Master edits and pinned text are never overwritten; no flapping for lessons retired in the last 90 days; reflect runs once a day on new closed picks
+
+---
+
 ## [20261111] DSK — Autonomous AI Desk step B: baton with step_done events, retries and partial plan (FO-DSK-003, FO-DSK-007)
 
 - Type: Feature
