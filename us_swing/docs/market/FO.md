@@ -376,7 +376,7 @@ The system shall let the lead skills ask for research as tickets inside their no
 
 ## FO-MKT-015: Setup Tuning Research
 
-**Status:** Approved (approved by user 2026-11-11)
+**Status:** Implemented (approved by user 2026-11-11)
 **Priority:** Must
 **Phase:** Autonomous desk step F (skill 1 of 4)
 **Depends on:** FO-DSK-010 (research queue), FO-MKT-003 (setups), FO-MKT-012 (lessons), FO-BKT-002 (backtest engine)

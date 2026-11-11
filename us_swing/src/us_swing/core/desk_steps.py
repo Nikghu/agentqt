@@ -51,6 +51,7 @@ SKILL_PATHS: dict[str, str] = {
     "lesson_reflect": "us_swing.market.lesson_reflect:LessonReflectSkill",
     "watch_flag": "us_swing.market.watch_flag:WatchFlagSkill",
     "checkin_note": "us_swing.market.checkin_note:CheckinNoteSkill",
+    "setup_tuning": "us_swing.market.setup_tuning:SetupTuningSkill",
 }
 # Packages whose ``employees/`` folder holds default employee files to copy on first run.
 DEFAULT_EMPLOYEE_PACKAGES: tuple[str, ...] = ("us_swing.market",)

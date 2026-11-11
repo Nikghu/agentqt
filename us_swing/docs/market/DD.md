@@ -1207,10 +1207,10 @@ Gain (SRD-MKT-015.007), `gain(rows)`: the best variant by `exp_r − base.exp_r`
 
 Verdict facts: target, the table rows (label, changes, trades, win, R, change), the code's gain line, and the done test. The note is the verdict, so the ticket result holds every step's row plus the verdict.
 
-Lesson (desk-setup gain only): `add_candidate(home, text, {"setup": target, "side": side}, "worse", proof, now)`. Text: "<Setup> <side>s with today's limits did worse than <changes> over 5 years (<base>R vs <best>R)", cut to 200 characters. Proof: one line with the ticket id and both rows. `claim = "worse"` because a lesson may only make the desk stricter: it tells the desk the current setup is weaker, and real pick cases decide whether it goes active (FO-MKT-012). A strategy gain writes no lesson. Nothing writes to the setup limits, the strategies table or employee files.
+Lesson (desk-setup gain only): `add_candidate(home, text, {"setup": target, "side": side}, "worse", proof, now)`. Text: "<Setup> <side>s with today's limits did worse than <changes> in the backtest (<base>R vs <best>R)", cut to 200 characters. Proof: one line with the ticket id and both rows. `claim = "worse"` because a lesson may only make the desk stricter: it tells the desk the current setup is weaker, and real pick cases decide whether it goes active (FO-MKT-012). A strategy gain writes no lesson. Nothing writes to the setup limits, the strategies table or employee files.
 
 ### 7. Employee and wiring (SRD-MKT-015.011, .012)
 
-- `market/employees/emp-013/employee.md`: name "Researcher 1", title "Research analyst", level expert, `reports_to: null`, skill `setup_tuning`, trigger `research_done` (the trigger list may not be empty; `facts()` always says it works research tickets only, so the event only gives one sleep log line).
-- `SKILL_PATHS["setup_tuning"] = "us_swing.market.setup_tuning:SetupTuningSkill"`; the `USSwing.spec` hidden imports gain the four new modules.
+- `market/employees/emp-013/employee.md`: name "Expert 10" (generic Level N rule of UT-MKT-005.017; SRD cell says "Researcher 1"), title "Research analyst", level expert, `reports_to: null`, skill `setup_tuning`, trigger `research_done` (the trigger list may not be empty; `facts()` always says it works research tickets only, so the event only gives one sleep log line).
+- `SKILL_PATHS["setup_tuning"] = "us_swing.market.setup_tuning:SetupTuningSkill"`; the `USSwing.spec` hidden imports gain `us_swing.market.setup_tuning` (it imports the other three).
 - Logs (`[Research]`): "Ticket 12 will test 3 variant(s) of Pullback", "Ticket 12 Pullback v1: 1,180 trades, +0.15R", "Ticket 12 Pullback found a gain: v1 +0.07R" or "found no gain".
