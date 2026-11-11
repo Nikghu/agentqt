@@ -12,6 +12,7 @@ from tests.desk.test_harness import BAD, GOOD, ON, SKILLS, FakeCaller, View, emp
 from us_swing.core import desk_alerts
 from us_swing.core.desk_alerts import classify, open_alerts, raise_alert, send_telegram
 from us_swing.core.desk_contract import StepContext
+from us_swing.core.desk_events import Event, open_events
 from us_swing.desk.employees_step import EmployeesStep
 from us_swing.desk.gateway import Gateway
 from us_swing.desk.recorder import Attempt, Recorder
@@ -193,3 +194,57 @@ def test_whole_run_failed(tmp_path: Path) -> None:
     EmployeesStep(lambda: SKILLS, lambda: [], lambda: ON, lambda: "key", FakeCaller(GOOD),
                   lambda: NOW, send=ok_send)(StepContext(42, "manual", NOW, ok_home))
     assert ok_send.sent == []
+
+
+# ---------------- partial plan alert (step B) ----------------
+
+def _chain_done(home: Path, note: str, handled: datetime) -> None:
+    con = open_events(home)
+    try:
+        with con:
+            con.execute("INSERT INTO events (key, kind, state, handled, note) "
+                        "VALUES (?, 'after_run', 'done', ?, ?)",
+                        (f"k{handled.isoformat()}", handled.isoformat(timespec="seconds"), note))
+    finally:
+        con.close()
+
+
+def test_partial_alert(home: Path) -> None:
+    """UT-DSK-007.008.M21.T01: A step failed 3 times gives one partial alert with the error."""
+    employee(home)
+    hire = load_employee(home / "employees" / "t-1", SKILLS)
+    assert hire is not None
+    rec = Recorder(home)
+    try:
+        rec.add(Attempt(1, "t-1", "Tester A", 1, "2026-11-09", "2026-11-09T16:20:00-05:00",
+                        "openrouter", "m", 1, "p", "", False, "answer was not json", 1, 1, 0.0,
+                        1.0))
+    finally:
+        rec.close()
+    send = FakeSend()
+    step = EmployeesStep(lambda: SKILLS, lambda: [], lambda: ON, lambda: "key", FakeCaller(),
+                         lambda: NOW, send)
+    router, _ = step._router(home, 3)
+    router._alert(hire, Event(1, "after_run", 1, "2026-11-09", "", None, ""))  # type: ignore[misc]
+    alerts = open_alerts(home, NOW)
+    assert [(a.kind, a.source, a.title) for a in alerts] == [
+        ("partial", "t-1", "Desk plan is partial")]
+    assert "Tester A failed 3 times: answer was not json" in alerts[0].text
+    assert len(send.sent) == 1
+
+
+def test_partial_alert_once_a_day(tmp_path: Path) -> None:
+    """UT-DSK-007.008.M21.T02: The same step failing in 2 chains on one day gives one alert."""
+    send = FakeSend()
+    assert raise_alert(tmp_path, "partial", "t-1", 1, "first", NOW, send) is not None
+    assert raise_alert(tmp_path, "partial", "t-1", 2, "second", NOW, send) is None
+    assert len(send.sent) == 1
+
+
+def test_partial_alert_closes(tmp_path: Path) -> None:
+    """UT-DSK-007.008.M21.T03: A later chain with note chain full closes the partial alert."""
+    raise_alert(tmp_path, "partial", "t-1", 1, "failed", NOW, FakeSend())
+    _chain_done(tmp_path, "chain partial", NOW + timedelta(minutes=5))
+    assert [a.kind for a in open_alerts(tmp_path, NOW + timedelta(minutes=6))] == ["partial"]
+    _chain_done(tmp_path, "chain full", NOW + timedelta(minutes=10))
+    assert open_alerts(tmp_path, NOW + timedelta(minutes=11)) == []

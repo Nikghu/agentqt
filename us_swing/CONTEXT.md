@@ -2,12 +2,14 @@
 
 **Document:** CONTEXT.md
 **Project:** us_swing
-**Last Updated:** 2026-11-11 (Session 131)
+**Last Updated:** 2026-11-11 (Session 132)
 **Updated By:** Claude (Opus 5.5)
 
 ---
 
-**Current (Session 131, 2026-11-11):** **Autonomous AI Desk step A, morning run trigger (Feature, DSK + MKT + GUI; FO-DSK-001/003/007, FO-MKT-001/005, FO-GUI-029/034; RN-DSK-0.7.0-20261111, RN-MKT-0.13.0-20261111, RN-GUI-1.61.0-20261111; all reopened and new SRDs user-approved and Implemented).** One morning run per trading day from 04:00 ET replaces the 16:25 evening run. Desk starts and stops with the app; old Windows desk tasks removed. Candle check runs first: fills only missing daily bars from Yahoo into a desk-only copy; stops the run if SPY or more than 2% of stocks are still behind. Start TWS and Start USSwing set 60 min before the 09:30 ET open (read-only). Lead brief is now the morning brief. Branch `feat/dsk-morning-trigger`, code committed e6b72948, not pushed. Tests: 23 DSK, 18 MKT, 9 GUI Pass; full suite 2624 passed, 12 old failures (T112). **Next:** user real-app check T151, then push / PR only when the user says, then step B (baton done events).
+**Current (Session 132, 2026-11-11):** **Autonomous AI Desk step B, baton (Feature, DSK; FO-DSK-003, FO-DSK-007; RN-DSK-0.8.0-20261111; SRD-DSK-003.010–.012, .014–.019 and SRD-DSK-007.008 approved by user and Implemented).** Each AI employee posts `step_done` when its turn ends; the router wakes the next one once its needs are ok or asleep. A failed step gets 2 retries, 5 minutes apart; then its dependants are skipped and the lead runs once with a "Partial plan" first line. One "Desk plan is partial" alert per failed step per day, closed by a later full chain. LangGraph removed from the desk, `pyproject.toml` and `USSwing.spec`, so the installer shrinks. New `steps` table and `parent` / `due` columns on `events`. Tests: 35 UT-DSK step B cases Pass; desk 254 pass; full suite 12 failures (same as TODO T112) plus a collection error in `tests/screener/test_llm_claude_screener.py` (TODO T136). Branch `feat/dsk-step-done-baton`, commits 5975cbff, d936eaee, 0aff7392, 9dddf689, f0b71973; not pushed, no PR yet. **Next:** user app check of step B (TODO T153), then step C (memory v1).
+
+**Previous (Session 131, 2026-11-11):** **Autonomous AI Desk step A, morning run trigger (Feature, DSK + MKT + GUI; FO-DSK-001/003/007, FO-MKT-001/005, FO-GUI-029/034; RN-DSK-0.7.0-20261111, RN-MKT-0.13.0-20261111, RN-GUI-1.61.0-20261111; all reopened and new SRDs user-approved and Implemented).** One morning run per trading day from 04:00 ET replaces the 16:25 evening run. Desk starts and stops with the app; old Windows desk tasks removed. Candle check runs first: fills only missing daily bars from Yahoo into a desk-only copy; stops the run if SPY or more than 2% of stocks are still behind. Start TWS and Start USSwing set 60 min before the 09:30 ET open (read-only). Lead brief is now the morning brief. Branch `feat/dsk-morning-trigger`, code committed e6b72948, not pushed. Tests: 23 DSK, 18 MKT, 9 GUI Pass; full suite 2624 passed, 12 old failures (T112). **Next:** user real-app check T151, then push / PR only when the user says, then step B (baton done events).
 
 **Previous (Session 130b, 2026-11-10):** **AI Desk Team setup and employee.md (Feature, DSK + GUI; FO-DSK-008, FO-GUI-036; RN-DSK-0.6.0-20261110, RN-GUI-1.19.0-20261110; SRD-DSK-008.001–.009 and SRD-GUI-036.001–.008 Implemented; FO-DSK-008 and FO-GUI-036 user-approved).** Each AI employee is one `employee.md` (settings block plus prompt). Old `job.yaml` and `soul.md` move to `history/` once. Saves keep `history/v<N>.md` and raise the version; restore saves an old version as the next one. New Team setup tab in AI Desk lists all 9 employees with Prompt, Profile, Model, Limits and wake, and History tabs; Test on yesterday makes one real AI call in the background. Team at work side pane trimmed. Branch `feat/desk-team-setup`, stacked on `feat/gui-desk-status-bar`, committed, not pushed. User check T147. Phase 2 ideas (T148): temperature, max tokens, timeout, effort, data blocks, tool use, guardrails. Mock-up: https://claude.ai/artifact/CSVvoYH32gNQzivr8L9bbE.
 
@@ -560,12 +562,12 @@ Previous (Session 87, 2026-10-23): **Accumulation / Distribution screener (Featu
 | Artifact | File | Status | Notes |
 |---|---|---|---|
 | FO | `docs/desk/FO.md` | Draft | FO-DSK-001 Approved and Implemented; FO-DSK-002..006 Draft |
-| SRD | `docs/desk/SRD.md` | Draft v0.8.0 | SRD-DSK-001.001–.020 Implemented (RN-DSK-0.1.0-20261105); morning run SRD-DSK-001.013/.015/.018–.020, 003.013, 007.005/.007 Implemented (RN-DSK-0.7.0-20261111) |
+| SRD | `docs/desk/SRD.md` | Draft v0.9.4 | SRD-DSK-001.001–.020 Implemented (RN-DSK-0.1.0-20261105); morning run SRD-DSK-001.013/.015/.018–.020, 003.013, 007.005/.007 Implemented (RN-DSK-0.7.0-20261111); baton SRD-DSK-003.010–.012, .014–.019, 007.008 Implemented (RN-DSK-0.8.0-20261111) |
 | DD | `docs/desk/DD.md` | Draft | §0 locked decisions, desk.db contract, phase plan P0a–P7, open Q1–Q5 |
 | MD | `docs/desk/MD.md` | Draft v0.2.0 | MD-DSK-001 M01–M06 |
 | UTCD | `docs/desk/UTCD.md` | Draft | FO-DSK-001: 62 UT Pass |
 | TRACE | `docs/desk/TRACE.md` | Draft v0.1.0 | FO-DSK-001 Implemented |
-| Code | `src/us_swing/desk/`, `core/desk_contract.py` | Implemented | Morning run code commit e6b72948 on feat/dsk-morning-trigger, not pushed; user check T151 |
+| Code | `src/us_swing/desk/`, `core/desk_contract.py` | Implemented | Morning run code commit e6b72948 on feat/dsk-morning-trigger, not pushed; user check T151. Step B baton commit f0b71973 on feat/dsk-step-done-baton, not pushed; user check T153 |
 
 ---
 

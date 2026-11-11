@@ -482,7 +482,8 @@ def test_event_run_from_loop(home: Path) -> None:
     desk.close()
     assert _rows(home, "SELECT kind FROM runs") == [("event",)]
     assert market.calls == [] and len(th.STATE.seen) == 1
-    assert _rows(home, "SELECT kind, state FROM events") == [("market_close", "done")]
+    assert _rows(home, "SELECT kind, state FROM events WHERE kind != 'step_done'") == [
+        ("market_close", "done")]
 
 
 def test_no_event_run_when_paused(home: Path) -> None:

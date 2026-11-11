@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.8.0: DD-DSK-003.014.D01 added — baton by `step_done` events, retries, partial plan, LangGraph removed (Autonomous desk step B, 2026-11-11).
 > v0.7.0: DD-DSK-001.015.D02 added — morning run, desk lives with the app (Autonomous desk step A, 2026-11-10); §0.1 #3 and §0.5 updated.
 > v0.6.0: DD-DSK-008.001.D01 added — employee.md file, migration, versions, draft test.
 > v0.5.0: DD-DSK-006.001.D01 added — hiring pipeline, shadow and weekly report (P6).
@@ -577,3 +578,91 @@ morning_due(now, runs):          # runs = (kind, started_at, result) of the last
 **App close.** The app sends Stop through `commands` from a short thread and waits at most 2 s; if that fails, the parent watch stops the desk within one poll (2 s). The scheduled close task (`taskkill /IM USSwing.exe /F`) also kills the frozen desk, which runs as `USSwing.exe desk`; its open run is marked interrupted and caught up at the next start.
 
 **Candles alert (`core/desk_alerts.py`).** New kind `candles`: title "Candles not up to date", fix "Open Settings → Candle data and press Update now with TWS connected; the desk tries again in 15 minutes." Raised by the MKT candle check (DD-MKT-001.013.D01) with the run id. `open_alerts` closes a `candles` alert when a later `morning` or `manual` run ended `ok` (compared in UTC: `runs.started_at > utc_text(created)`). Whole-run alert (SRD-DSK-007.005) is unchanged in code; it fires for any run whose employees step ran.
+
+## DD-DSK-003.014.D01 — Baton: `step_done` Events, Retries and Partial Plan (Autonomous desk step B)
+
+**Traces:** SRD-DSK-003.010–.012, .014–.019, SRD-DSK-007.008. Design page §5: https://claude.ai/artifact/J7AexvWdqDNujADoc9dJkJ. Supersedes the "Run order with LangGraph" part of DD-DSK-003.004.D01; the market steps keep their fixed order (user, 2026-11-11: AI employees only).
+
+**Words.** A *trigger* is any event an employee listens to (`after_run`, `market_close`, …). Its *chain* is the employees whose `trigger` holds the trigger's kind. A *step* is one employee's turn in a chain.
+
+**Tables** (`core/desk_events.py`; columns added on open when missing, so old `desk.db` files load):
+
+```
+events  + parent INTEGER NULL   # trigger id, only for step_done
+        + due    TEXT NULL      # not handled before this time (retries); NULL = now
+steps(event_id INTEGER, employee TEXT, tries INTEGER, result TEXT, updated TEXT,
+      PRIMARY KEY (event_id, employee))
+result: 'running' | 'ok' | 'slept' | 'failed' | 'skipped'
+
+post_step_done(con, trigger: Event, employee, tries, result, now, due=None)
+    key = "step_done|<trigger.id>|<employee>|<tries>"   INSERT OR IGNORE
+    priority, data_day, deadline, expires copied from the trigger; state 'waiting'
+```
+
+`step_done` is not in `EVENT_KINDS`: no tool may post it and no job file may listen to it (SRD-DSK-003.014). The router finishes a `step_done` like any event (done, late or expired).
+
+**Wake result.** `Wake = Callable[[Hire, Event, bool, tuple[str, ...]], str]` (employee, trigger, retry, missing names) returns:
+
+| Case in `EmployeesStep._wake` | Result |
+|---|---|
+| Valid answer (`gateway.answered`) or already answered today | `ok` |
+| Facts not fresh, shadow employee, budget or cap refused, 30-minute rule | `slept` |
+| No valid answer, or an exception | `failed` |
+
+`retry` is True when `tries > 1`. The last argument holds the names of failed or skipped steps; when it is not empty, each brief the employee writes gets the first line `Partial plan: no view from <name>, <name>.` (names come from the job files). The lead's facts already say "not available today" for each missing view (`views_text`), so the model knows.
+
+**Router pass** (`desk/router.py`, one thread, no LangGraph):
+
+```
+handle():
+    expire()
+    while (event := next waiting event with due <= now, by priority, created):
+        trigger = event if event.parent is None else load(event.parent)
+        chain = listeners(trigger.kind)
+        if event is the trigger and order(chain) has a loop: finish(event, 'loop in needs'); continue
+        note = advance(trigger, chain)
+        finish(event, done|late, note)          # after the wakes, so a cut pass is redone
+
+advance(trigger, chain):
+    for hire in run_order(chain):               # needs order; same skill never waits
+        row = steps[trigger.id, hire.id]
+        if row is ok/slept/skipped, or failed with tries == 3: continue
+        if row is running: row = failed try (app closed mid-wake, SRD-DSK-003.019)
+        if row is failed and now < row.updated + 5 min: continue      # retry not due
+        needs = ids that hire waits for (as _edges today)
+        bad   = needs whose result is failed (3 tries) or skipped
+        if bad and hire.level != 'lead': write skipped; log once; continue
+        if any need not settled: continue      # settled = ok, slept, skipped, failed x3
+        if not bad and any need not ok/slept: continue
+        tries = (row.tries if row else 0) + 1
+        write running(tries)
+        retry = tries > 1                       # skips 30-min and once-per-day rules
+        if not retry and too_soon(hire, trigger): result = 'slept'
+        else: result = wake(hire, trigger, retry, names of bad)
+        if result == 'failed' and tries < 3:
+            write failed(tries); post_step_done(..., due = now + 5 min)
+        else:
+            write result; post_step_done(..., due = None)
+            if result == 'failed': raise_alert('partial', source = hire.id, ...)
+    if chain settled: set trigger note to 'chain full' or 'chain partial'
+```
+
+A need is settled when its result is `ok`, `slept`, `skipped` or `failed` after 3 tries. An ordinary employee wakes only when all needs are `ok` or `slept` (SRD-DSK-003.015, .011). If any need failed or was skipped, it is skipped too, so skips flow down the chain (SRD-DSK-003.017). The employee at level `lead` waits until all needs are settled, then runs once with the missing names (SRD-DSK-003.018). If the lead itself fails 3 times, no plan is posted.
+
+**Retries.** The 30-minute rule (SRD-DSK-003.009) and the once-per-data-day check are skipped when `tries > 1`. The wait comes from the `due` time on the `step_done` row. Between passes, the morning run may end; the desk loop's `has_work` (waiting events with `due <= now`) then starts an `event` run 5 minutes later. `has_work` treats every due `step_done` as work.
+
+**Resume** (SRD-DSK-003.019). The chain lives only in `events` and `steps`. When the app closes mid-pass, the event being handled stays `waiting`. At the next start, `advance` is run again: finished steps are skipped, and a `running` row counts as a failed try. A chain whose events have expired stops quietly; each expiry is logged as today.
+
+**Alert** (`core/desk_alerts.py`, kind `partial`). Title: "Desk plan is partial". Text: "<name> failed 3 times: <last error>". Fix: "Open AI Desk → Team at work → Event log to see the error; the next run tries again." The same once-a-day-per-source rule and the same Telegram rule apply. `_fixed('partial')` returns True when a later event has the note `chain full`. The last error is the newest `activity.error` of that employee in the run.
+
+**Log lines** (`[AI Desk]`):
+- `<name> failed; trying again in 5 minutes (try 2 of 3)`
+- `<name> failed 3 times; the steps that need it will not run`
+- `<name> will not run: it needs <name>, which failed`
+- `The lead is writing a partial plan without <names>`
+
+**LangGraph removed** (SRD-DSK-003.012). Remove `langgraph` from `pyproject.toml`, and remove `langgraph` and `langchain_core` from `USSwing.spec` `collect_submodules`. Remove the `LANGSMITH_TRACING` line and `_GraphState`. The run order uses `graphlib` from the standard library, as the loop check already does.
+
+**After code review.**
+- A retry whose `step_done` expires (the chain's expiry passed before the next try) is marked failed and raises the `partial` alert, so the user still hears about it.
+- `waiting_count(home, now)` counts only due events, so the desk loop does not rebuild the router every 2 s during a retry wait.

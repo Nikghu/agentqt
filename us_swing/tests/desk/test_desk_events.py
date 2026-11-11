@@ -8,7 +8,16 @@ from typing import Any
 
 import pytest
 
-from us_swing.core.desk_events import EVENT_KINDS, EVENT_RULES, post_event, waiting_count
+from us_swing.core.desk_events import (
+    EVENT_KINDS,
+    EVENT_RULES,
+    STEP_DONE,
+    Event,
+    open_events,
+    post_event,
+    post_step_done,
+    waiting_count,
+)
 from us_swing.desk.recorder import NY
 
 NOW = datetime(2026, 11, 6, 16, 0, tzinfo=NY)
@@ -61,4 +70,64 @@ def test_unknown_kind(home: Path) -> None:
     """UT-DSK-003.005.M15.T02: An unknown kind raises ValueError and stores nothing."""
     with pytest.raises(ValueError, match="lunch"):
         post_event(home, "lunch", "2026-11-06", NOW)
+    assert waiting_count(home) == 0
+
+
+# ---------------- step_done (step B) ----------------
+
+def _trigger(home: Path) -> Event:
+    post_event(home, "after_run", "2026-11-06", NOW, 1)
+    con = open_events(home)
+    try:
+        row = con.execute("SELECT id, kind, priority, data_day, created, deadline, expires "
+                          "FROM events").fetchone()
+    finally:
+        con.close()
+    return Event(*row)
+
+
+def test_step_done_stored(home: Path) -> None:
+    """UT-DSK-003.014.M15.T01: step_done keeps its parent and the trigger's priority and times."""
+    trigger = _trigger(home)
+    con = open_events(home)
+    try:
+        post_step_done(con, trigger, "e-1", 1, "ok", NOW + timedelta(minutes=1))
+    finally:
+        con.close()
+    assert _rows(home, "SELECT kind, priority, data_day, deadline, expires, state, parent, due "
+                       "FROM events WHERE kind = 'step_done'") == [
+        ("step_done", 1, "2026-11-06", trigger.deadline, trigger.expires, "waiting", trigger.id,
+         None)]
+
+
+def test_step_done_repeat_ignored(home: Path) -> None:
+    """UT-DSK-003.014.M15.T02: The same trigger, employee and try is stored once."""
+    trigger = _trigger(home)
+    con = open_events(home)
+    try:
+        post_step_done(con, trigger, "e-1", 1, "failed", NOW, NOW + timedelta(minutes=5))
+        post_step_done(con, trigger, "e-1", 1, "failed", NOW, NOW + timedelta(minutes=5))
+    finally:
+        con.close()
+    assert _rows(home, "SELECT COUNT(*) FROM events WHERE kind = 'step_done'") == [(1,)]
+
+
+def test_old_desk_db(home: Path) -> None:
+    """UT-DSK-003.014.M15.T03: An events table without parent and due gets them; rows load."""
+    home.mkdir(parents=True)
+    con = sqlite3.connect(home / "desk.db")
+    con.executescript("CREATE TABLE events (id INTEGER PRIMARY KEY, key TEXT UNIQUE, kind TEXT, "
+                      "priority INTEGER, data_day TEXT, created TEXT, deadline TEXT, "
+                      "expires TEXT, state TEXT, handled TEXT, note TEXT);"
+                      "INSERT INTO events (key, kind, state) VALUES ('k', 'after_run', 'done');")
+    con.close()
+    open_events(home).close()
+    assert _rows(home, "SELECT kind, parent, due FROM events") == [("after_run", None, None)]
+
+
+def test_tools_cannot_post_step_done(home: Path) -> None:
+    """UT-DSK-003.014.M15.T04: step_done is not a tool event kind."""
+    assert STEP_DONE not in EVENT_KINDS
+    with pytest.raises(ValueError):
+        post_event(home, STEP_DONE, "2026-11-06", NOW)
     assert waiting_count(home) == 0
