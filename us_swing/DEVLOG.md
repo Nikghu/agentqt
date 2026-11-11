@@ -2,6 +2,17 @@
 
 ---
 
+## [20261111] MKT — Autonomous AI Desk step F skill 4: book to strategy research (FO-MKT-018)
+
+- Type: Feature
+- FO(s): FO-MKT-018
+- RN: RN-MKT-0.20.0-20261111
+- Artifacts updated: TRACE, CONTEXT, RN, DEVLOG (SRD and FO in 6b31b2fe; DD, MD, UTCD in a49905aa; Code in e099584f: market/book_strategy, book_text, book_cards, lead_brief, employees/emp-016, SKILL_PATHS, USSwing.spec, pyproject.toml)
+- Decisions: book tickets never auto-approve (approval is the permission); text only from desk books folder or Project Gutenberg plain text, Gutenberg cached once; upload and gutenberg topic forms; txt, md, html, pdf (pypdf>=5.1); one strategy card only; each chapter read once; gain = entry, exit and stop filled and at least one quote found; default employee emp-016 "Expert 13"; code review fixes: 20 MB and 500-page caps, capped gutenberg.org-only download, atomic cache write; live check fixed table-of-contents split (sections under 100 words skipped)
+- Tests: 23 UT-MKT-018 cases Pass (tests/market/test_book_strategy.py); market 509 pass, desk 347, core 276, AI Desk GUI 194
+
+---
+
 ## [20261111] MKT — Autonomous AI Desk step F skill 3: sentiment research (FO-MKT-017)
 
 - Type: Feature
