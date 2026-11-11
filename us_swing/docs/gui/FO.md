@@ -1074,7 +1074,7 @@ The system shall let the Master user see and control what the desk has learned.
 
 ## FO-GUI-038: App Feeds for the Desk Watchers
 
-**Status:** Draft
+**Status:** Approved (user 2026-11-11)
 **Priority:** Must
 **Depends on:** FO-MKT-013 (watchers), FO-EXE-008 (live market data), FO-EXE-016 (trade cycles)
 **Source: User 2026-11-11 (Autonomous desk step D): prices from the app's intraday candles; stop/target watcher covers all open trades; watchers every 5 minutes; an AI note at each check-in. Design §4 and §6: https://claude.ai/artifact/J7AexvWdqDNujADoc9dJkJ.**

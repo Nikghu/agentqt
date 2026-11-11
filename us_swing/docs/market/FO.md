@@ -330,7 +330,7 @@ The system shall turn closed pick results into a few candidate lessons each day 
 
 ## FO-MKT-013: Intraday Watchers and Check-in Notes
 
-**Status:** Draft
+**Status:** Approved (user 2026-11-11)
 **Priority:** Must
 **Phase:** Autonomous desk step D
 **Depends on:** FO-DSK-003 (events), FO-GUI-038 (app feeds), FO-MKT-005 (ideas and picks), FO-MKT-006 (news)

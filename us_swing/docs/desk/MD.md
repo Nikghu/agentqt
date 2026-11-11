@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.12.0: MD-DSK-003.021.M24 added — watch flags and open trades (step D); M03, M04, M06, M07, M15, M21 changed.
 > v0.11.0: MD-DSK-009.001.M23 added — lessons (step C); M04 applies lesson edits.
 > v0.10.0: Autonomous desk step B (2026-11-11): M15 `steps` table, `parent`/`due` columns, `post_step_done()`; M16 baton without LangGraph; M10 wake returns ok/slept/failed, retry flag and partial-plan line; M21 `partial` alert kind.
 > v0.9.0: Autonomous desk step A (2026-11-11): M03 morning due, M04 parent watch, M05 old-task clean-up only, M06 `--parent`, M21 `candles` alert.
@@ -118,3 +119,13 @@ Changed: MD-DSK-001.010.M04 (`desk/process.py`: `tick()` calls `apply_edits()` �
 SRD coverage: 009.001–.007 and .009 by M23; .008 by M23 and M04.
 
 Cross-tool: MKT `market/pick_results.py` calls `review_lessons()`; MKT pick-making skills call `lessons_block()`; GUI `gui/ai_desk_memory.py` calls `lesson_rows()`, `proof_rows()` and `add_edit()`.
+
+## FO-DSK-003 (step D): Check-ins and Watchers
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-DSK-003.021.M24 | SRD-DSK-003.021 | `us_swing/src/us_swing/core/desk_watch.py` | Watch flags with the hourly key, flag events and code feed notes, open trades, desk live symbols | `Flag`, `OpenTrade`, `add_flag()`, `flagged_today()`, `next_flag()`, `answer_flag()`, `flags_since()`, `add_note()`, `write_open_trades()`, `open_trades()`, `desk_live_symbols()` | M15, `sqlite3` | No |
+
+Changed: M03 (`desk/clock.py`: `CHECKINS`, `checkins_due()`, `in_market_hours()`), M04 (`desk/process.py`: posts check-ins, watcher pass every 5 minutes), M06 (`desk/cli.py`: passes `watch=load_watch()`), M07 (`core/desk_steps.py`: `WATCH_PATH`, `load_watch()`, two skill paths), M15 (`core/desk_events.py`: `market_checkin`, `watch_flag`), M21 (`core/desk_alerts.py`: `trade_stop`, `trade_target`, `plan_broken`).
+
+SRD coverage: 003.020 by M03 and M04; .021, .022, .024 by M24 and M15; .023 by M04, M06 and M07; .025 by MKT M01; 007.009 by M21.

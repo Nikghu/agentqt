@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.30.0: Autonomous desk step D (2026-11-11): UT-GUI-038.* added (5 cases).
 > v1.29.1: Step C cases Pass (7 cases, 2026-11-11).
 > v1.29.0: Autonomous desk step C (2026-11-11): UT-GUI-037.* added (7 cases).
 > v1.28.0: Autonomous desk step A (2026-11-11): UT-GUI-029.007–.008 (4) and UT-GUI-034.068–.069 (4) added; UT-GUI-034.065.M34.T01 reworded for the morning run.
@@ -1252,3 +1253,13 @@ Test files:
 | UT-GUI-037.003.M01.T01 | MD-GUI-037.001.M01 | Positive | Pin adds an edit (SRD-GUI-037.003) | choose a lesson, press Pin | one lesson_edits row; status says applies at the next desk tick | Pass |
 | UT-GUI-037.003.M01.T02 | MD-GUI-037.001.M01 | Negative | Delete cancelled (SRD-GUI-037.003) | press Delete, answer No | no row | Pass |
 | UT-GUI-037.004.M01.T01 | MD-GUI-037.001.M01 | Positive | Proof list (SRD-GUI-037.004) | choose a lesson with 5 proof picks | 5 rows with date, side, stock and R | Pass |
+
+## FO-GUI-038: App Feeds for the Desk Watchers
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-038.001.M01.T01 | MD-GUI-038.001.M01 | Positive | Desk stocks in the feed (SRD-GUI-038.001) | 3 held/screened, 4 desk stocks | held first, then new desk stocks, no repeats | Not Run |
+| UT-GUI-038.001.M01.T02 | MD-GUI-038.001.M01 | Negative | Feed cap (SRD-GUI-038.001) | 98 held and 5 desk stocks | 100 symbols; held kept | Not Run |
+| UT-GUI-038.002.M01.T01 | MD-GUI-038.001.M01 | Positive | Trade rows (SRD-GUI-038.002) | long with trailing stop; short with hard stop | side, entry, effective or hard stop, target | Not Run |
+| UT-GUI-038.002.M01.T02 | MD-GUI-038.001.M01 | Negative | Publish error (SRD-GUI-038.002) | desk folder not writable | warning logged; no raise | Not Run |
+| UT-GUI-038.003.M01.T01 | MD-GUI-038.001.M01 | Positive | Live feed log (SRD-GUI-038.003) | 2 desk stocks added | `[Live] Added 2 desk stock(s)` | Not Run |

@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.28.0: MD-GUI-038.001.M01 added — app feeds for the desk (step D).
 > v1.27.0: MD-GUI-037.001.M01 added — AI Desk Memory (step C).
 > v1.26.0: Autonomous desk step A (2026-11-11): M02 (desk_control) start/stop with the app, M34 next morning run, 029.004.M02 start tasks before open; also changed `main_window.py`, `core/desk_team.py`, `ai_desk.py`, `ai_desk_team.py`, `ai_desk_sections3.py`, `ai_desk_pages.py`, `ai_desk_results.py`, `ai_desk_team_pane.py` (labels, SRD-GUI-034.069).
 > v1.25.0: MD-GUI-036.001.M01 added (AI Desk Team setup).
@@ -486,3 +487,11 @@ SRD coverage: .001–.007 by M01; .008 by MD-GUI-035.007.M04 and MD-GUI-034.059.
 | MD-GUI-037.001.M01 | SRD-GUI-037.001 | `us_swing/src/us_swing/gui/ai_desk_memory.py`, `gui/ai_desk.py` | Memory section: filter, lessons table, Pin/Unpin/Edit/Retire/Delete, proof list; wiring in AI Desk | `MemoryView` | `core.desk_lessons` | No |
 
 SRD coverage: 037.001–.004 by M01.
+
+## FO-GUI-038: App Feeds for the Desk Watchers
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-GUI-038.001.M01 | SRD-GUI-038.001 | `us_swing/src/us_swing/gui/app_service.py` | Desk stocks in the live bar feed; open trades published to desk.db | `live_symbols()`, `trade_rows()`, `AppService._publish_open_trades()` | `core.desk_watch` | No |
+
+SRD coverage: 038.001–.003 by M01.

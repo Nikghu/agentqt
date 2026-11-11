@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.10.0: DD-DSK-003.020.D01 added — check-ins and watchers (Autonomous desk step D (2026-11-11)).
 > v0.9.0: DD-DSK-009.001.D01 added — desk memory: lessons, learning loop and Memory view (Autonomous desk step C (2026-11-11)).
 > v0.8.0: DD-DSK-003.014.D01 added — baton by `step_done` events, retries, partial plan, LangGraph removed (Autonomous desk step B, 2026-11-11).
 > v0.7.0: DD-DSK-001.015.D02 added — morning run, desk lives with the app (Autonomous desk step A, 2026-11-10); §0.1 #3 and §0.5 updated.
@@ -751,3 +752,81 @@ The default employee `emp-010` ("Expert 8", title "Learning analyst", level expe
 - A pinned candidate is never retired after 30 days; `lessons.id` uses AUTOINCREMENT so a deleted id is not reused.
 - The reflect prompt lists at most the 50 newest closed picks.
 - Known gap: a pick made before the last confirmation but closed after it does not refresh the confirmation (90-day rule only).
+
+## DD-DSK-003.020.D01 — Check-ins and Watchers (Autonomous desk step D)
+
+**Traces:** SRD-DSK-003.020–.025, SRD-DSK-007.009, SRD-MKT-013.001–.012, SRD-GUI-038.001–.003. Design page §4 and §6: https://claude.ai/artifact/J7AexvWdqDNujADoc9dJkJ. User answers (2026-11-11): prices from the app's intraday candles; the stop/target watcher covers all open trades; watchers every 5 minutes; an AI note at each check-in.
+
+**Data flow.**
+
+```
+app (GUI)  LiveBarWorker ──3m bars──▶ candles.db price_3m      (now also desk plan stocks + SPY)
+           trade cycles  ──every 60 s / on change──▶ desk.db open_trades
+desk loop  every 5 min in market hours ─▶ market.watch.run_watch(home, now)
+               reads price_3m, ideas, lead_picks, open_trades, news_items
+               ─▶ watch_flags row + feed note + watch_flag event (+ alert for stop/target)
+router     watch_flag (P0) ─▶ employee with skill watch_flag  ─▶ verdict row, feed note, alert if broken
+clock      market_checkin 10:00 / 12:30 / 15:30 ET (P2) ─▶ employee with skill checkin_note ─▶ note
+```
+
+**Shared tables** (`core/desk_watch.py`, made on open):
+
+```
+watch_flags(id INTEGER PK AUTOINCREMENT, day, hour, kind, symbol, detail, price REAL, created,
+            verdict NULL, note NULL, answered NULL, UNIQUE (day, hour, kind, symbol))
+open_trades(symbol, side 'long'|'short', entry REAL, stop REAL, target REAL NULL, strategy,
+            updated)                                   # written only by the app
+FLAG_KINDS = trigger_hit, stop_touch, target_touch, volume_spike, gap, regime_move, headline
+add_flag(home, kind, symbol, detail, price, now) -> int | None   # None when the hour key exists
+flagged_today(home, kind, symbol, day) -> bool                    # once-a-day kinds
+next_flag(home, day) -> Flag | None                               # oldest without verdict
+answer_flag(home, flag_id, verdict, note, now); flags_since(home, since) -> list[Flag]
+add_note(home, text, day, now)            # briefs row, author "Watchers", employee_id ""
+write_open_trades(home, rows, now); open_trades(home) -> list[OpenTrade]
+desk_live_symbols(home, day) -> list[str] # listed ideas + lead picks of the newest day <= day, then SPY
+```
+
+The `hour` is the New York hour, so the UNIQUE key gives "once per stock and kind an hour" (SRD-DSK-003.022). `add_flag` posts the `watch_flag` event with the flag id as its per-event id, and adds the code feed note: `"<symbol>: <label> at <price> — <detail>"` (SRD-DSK-003.021, .024).
+
+**Events** (`core/desk_events.py`): `market_checkin` P2, no deadline, 30-minute expiry, keyed per slot (`market_checkin|<day>|1000`). `watch_flag` P0, deadline 5 minutes, expiry 30 minutes, keyed per flag id. Both are added to `_PER_ID`.
+
+**Clock** (`desk/clock.py`): `CHECKINS = (10:00, 12:30, 15:30)`. `checkins_due(now) -> list[(day, slot)]` is due in the 30 minutes after each time on trading days. `in_market_hours(now)` is true from 09:30 to 16:00 ET on trading days.
+
+**Desk loop** (`desk/process.py`, `_event_tick`). It posts the check-ins that are due, with `_posted` keyed by (kind, day, slot). When `in_market_hours(now)` holds and 5 minutes have passed since the last pass, it calls `self._watch(home, now)` in a try/except and logs a failure (SRD-DSK-003.023). The watcher comes from `core/desk_steps.WATCH_PATH = "us_swing.market.watch:run_watch"` through `load_watch()`, so `desk` never imports `market`. The CLI passes `watch=load_watch()`. After the pass, the normal `has_work` check starts an `event` run for the new flags.
+
+**Watchers** (`market/watch.py`, `run_watch(home, now, candles=CANDLE_DB) -> int`):
+
+```
+day = today in ET; plan = listed ideas of the newest ideas day <= day (side, symbol, trigger, stop)
+picks = lead_picks of that day; trades = open_trades(home)
+bars = 3m bars of today (ET) for plan + trade symbols + SPY, read-only from price_3m (UTC text)
+fresh = symbols whose newest bar is at most 15 minutes old          (SRD-MKT-013.001)
+prev_close = last daily close before today (CandleReader + candle_topup)
+trigger_hit   long: max high >= trigger; short: min low <= trigger; once a day   (.002)
+stop_touch    long: last bar low <= stop; short: last bar high >= stop           (.003)
+target_touch  long: last bar high >= target; short: last bar low <= target       (.003)
+volume_spike  last volume >= 3 × mean of the 20 bars before it                   (.004)
+gap           |first open / prev_close − 1| > 3%; once a day                     (.005)
+regime_move   |SPY last close / prev_close − 1| > 1.5%; once per direction a day (.006)
+headline      every 15 min, picks + trade symbols: news.fetch_symbol(); a title not in
+              news_items for that symbol and not flagged today; published after 09:30 ET  (.007)
+stop_touch / target_touch also raise_alert('trade_stop' | 'trade_target', source = symbol)
+returns the number of new flags; logs "[Watch] %d new flag(s): %s"                 (DSK .025)
+```
+
+**Flag skill** (`market/watch_flag.py`, key `watch_flag`, needs `()`). Facts are fresh when `next_flag(home, day)` exists. They hold the flag, its plan (an idea with trigger, stop, setup and reasons, or a trade with entry, stop and target), the last 12 bars, and the rule "AI never places a trade". The answer is `WatchVerdict{verdict: holds | watch | broken, note: str (<= 300)}`. Act stores it with `answer_flag`, returns a feed item `"<symbol> <label>: <verdict> — <note>"`, raises `raise_alert('plan_broken', source = symbol)` when broken, and logs `[Watch] <symbol> <kind>: <verdict>`.
+
+**Check-in skill** (`market/checkin_note.py`, key `checkin_note`). Facts are fresh on a trading day. They hold the plan stocks against their triggers (last price, distance %), the open trades against stop and target, the SPY move against the previous close, and the flags since the last check-in note (or since 09:30). The answer is `CheckinNote{note: str (<= 600)}`, and the feed item is `"Check-in <HH:MM>: <note>"`.
+
+**Defaults** (`market/employees/`):
+- `emp-011` "Expert 9": title Market watcher, level expert, skill `watch_flag`, trigger `watch_flag`, 40 calls a day, USD 3 a month.
+- `emp-012` "Lead 3": title Market lead, level lead, skill `checkin_note`, trigger `market_checkin`, 3 calls a day, USD 2 a month.
+
+Both are added to `SKILL_PATHS` and `USSwing.spec`.
+
+**Alerts** (`core/desk_alerts.py`), each once per kind, stock and day:
+- `trade_stop` "Trade at stop": "Check the trade in Execution; the desk does not close it."
+- `trade_target` "Trade at target": "Check the trade in Execution."
+- `plan_broken` "Plan broken": "Read the desk's note in Market Floor before you act."
+
+**App** (`gui/app_service.py`). `_start_live_bar_worker` uses `list(dict.fromkeys(held + filtered + desk_live_symbols(desk_home(), today)))[:100]`, and logs `[Live] Added %d desk stock(s) to the live feed`. `_publish_open_trades()` turns the `_tc_query.open_cycles()` snapshots into rows: side from direction, stop = `effective_stop or hard_stop_loss`, and the target. It calls `write_open_trades`, and runs at start, in `_on_cycle_symbols_changed` (queued to the GUI thread) and on the 60-second market-status timer. Errors are logged at warning level and never stop the app.

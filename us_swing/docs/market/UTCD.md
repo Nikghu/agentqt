@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.16.0: Autonomous desk step D (2026-11-11): UT-MKT-013.* added (28 cases).
 > v0.15.1: Step C cases Pass (13 cases, 2026-11-11).
 > v0.15.0: Autonomous desk step C (2026-11-11): UT-MKT-012.* added (13 cases).
 > v0.14.0: Autonomous desk step A (2026-11-11): 14 cases for the candle check and desk copy (UT-MKT-001.013–.017); morning brief rows reworded.
@@ -428,3 +429,36 @@
 | UT-MKT-012.005.M03.T01 | MD-MKT-012.005.M03 | Positive | Pick makers get lessons (SRD-MKT-012.005) | one matching active lesson | facts of the four skills end with the block | Pass |
 | UT-MKT-012.005.M03.T02 | MD-MKT-012.005.M03 | Negative | Views get none (SRD-MKT-012.005) | same lesson | regime view and sector view facts have no lessons | Pass |
 | UT-MKT-012.006.M01.T01 | MD-MKT-012.002.M01 | Positive | Log line (SRD-MKT-012.006) | answer with 1 kept, 1 dropped | `[Memory] Kept 1 candidate lesson(s), dropped 1` | Pass |
+
+## FO-MKT-013: Intraday Watchers and Check-in Notes
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-MKT-013.001.M01.T01 | MD-MKT-013.001.M01 | Positive | Today's bars (SRD-MKT-013.001) | UTC bars of today and yesterday | only today's New York bars, oldest first | Not Run |
+| UT-MKT-013.001.M01.T02 | MD-MKT-013.001.M01 | Negative | Stale feed (SRD-MKT-013.001) | newest bar 20 minutes old above trigger | no flag | Not Run |
+| UT-MKT-013.002.M01.T01 | MD-MKT-013.001.M01 | Positive | Trigger hit long (SRD-MKT-013.002) | high above trigger | trigger_hit flag | Not Run |
+| UT-MKT-013.002.M01.T02 | MD-MKT-013.001.M01 | Negative | Below trigger (SRD-MKT-013.002) | high below trigger | no flag | Not Run |
+| UT-MKT-013.002.M01.T03 | MD-MKT-013.001.M01 | Edge | Short and once a day (SRD-MKT-013.002) | short low below trigger; two passes | one flag | Not Run |
+| UT-MKT-013.003.M01.T01 | MD-MKT-013.001.M01 | Positive | Stop touch (SRD-MKT-013.003) | long trade, low under stop | stop_touch flag and Trade at stop alert | Not Run |
+| UT-MKT-013.003.M01.T02 | MD-MKT-013.001.M01 | Positive | Short target touch (SRD-MKT-013.003) | short trade, low under target | target_touch flag and alert | Not Run |
+| UT-MKT-013.003.M01.T03 | MD-MKT-013.001.M01 | Negative | Inside the range (SRD-MKT-013.003) | price between stop and target | no flag | Not Run |
+| UT-MKT-013.004.M01.T01 | MD-MKT-013.001.M01 | Positive | Volume spike (SRD-MKT-013.004) | last volume 4 times the 20-bar mean | volume_spike flag | Not Run |
+| UT-MKT-013.004.M01.T02 | MD-MKT-013.001.M01 | Negative | Too few bars (SRD-MKT-013.004) | 10 bars | no flag | Not Run |
+| UT-MKT-013.005.M01.T01 | MD-MKT-013.001.M01 | Positive | Gap (SRD-MKT-013.005) | first open 4% above previous close | gap flag once | Not Run |
+| UT-MKT-013.005.M01.T02 | MD-MKT-013.001.M01 | Negative | Small gap (SRD-MKT-013.005) | first open 2% above | no flag | Not Run |
+| UT-MKT-013.006.M01.T01 | MD-MKT-013.001.M01 | Positive | SPY move (SRD-MKT-013.006) | SPY 2% down | regime_move flag | Not Run |
+| UT-MKT-013.006.M01.T02 | MD-MKT-013.001.M01 | Edge | Once per direction (SRD-MKT-013.006) | down twice, then up | one down flag, one up flag | Not Run |
+| UT-MKT-013.006.M01.T03 | MD-MKT-013.001.M01 | Negative | Small SPY move (SRD-MKT-013.006) | SPY 1% down | no flag | Not Run |
+| UT-MKT-013.007.M01.T01 | MD-MKT-013.001.M01 | Positive | New headline (SRD-MKT-013.007) | fake fetch returns an unseen title | headline flag | Not Run |
+| UT-MKT-013.007.M01.T02 | MD-MKT-013.001.M01 | Negative | Seen or old headline (SRD-MKT-013.007) | title in news_items; title before the open | no flag | Not Run |
+| UT-MKT-013.007.M01.T03 | MD-MKT-013.001.M01 | Edge | Every 15 minutes (SRD-MKT-013.007) | two passes 5 minutes apart | one fetch | Not Run |
+| UT-MKT-013.008.M02.T01 | MD-MKT-013.008.M02 | Positive | Flag facts (SRD-MKT-013.008) | open trigger_hit flag | fresh; facts hold the flag, the plan and bars | Not Run |
+| UT-MKT-013.008.M02.T02 | MD-MKT-013.008.M02 | Negative | No open flag (SRD-MKT-013.008) | all flags answered | not fresh | Not Run |
+| UT-MKT-013.009.M02.T01 | MD-MKT-013.008.M02 | Positive | Verdict kept (SRD-MKT-013.009) | verdict holds | flag answered; one feed item | Not Run |
+| UT-MKT-013.009.M02.T02 | MD-MKT-013.008.M02 | Negative | Broken plan (SRD-MKT-013.009) | verdict broken | Plan broken alert | Not Run |
+| UT-MKT-013.009.M02.T03 | MD-MKT-013.008.M02 | Negative | Bad form (SRD-MKT-013.009) | verdict maybe; note over 300 | schema rejects | Not Run |
+| UT-MKT-013.010.M03.T01 | MD-MKT-013.010.M03 | Positive | Check-in note (SRD-MKT-013.010) | plan, trade, SPY bars, one flag | facts hold all four; brief starts Check-in | Not Run |
+| UT-MKT-013.010.M03.T02 | MD-MKT-013.010.M03 | Negative | Not a trading day (SRD-MKT-013.010) | Saturday | not fresh | Not Run |
+| UT-MKT-013.011.M04.T01 | MD-MKT-013.011.M04 | Positive | Default employees (SRD-MKT-013.011) | load shipped defaults | emp-011 expert watch_flag; emp-012 lead checkin_note | Not Run |
+| UT-MKT-013.011.M04.T02 | MD-MKT-013.011.M04 | Negative | Unknown skill guard (SRD-MKT-013.011) | skill paths without the two keys | both asleep | Not Run |
+| UT-MKT-013.012.M02.T01 | MD-MKT-013.008.M02 | Positive | Answer log (SRD-MKT-013.012) | verdict watch | `[Watch]` line with stock, kind and verdict | Not Run |
