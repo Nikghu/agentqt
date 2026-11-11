@@ -2,6 +2,17 @@
 
 ---
 
+## [20261111] MKT — Autonomous AI Desk step F skill 1: setup tuning research (FO-MKT-015)
+
+- Type: Feature
+- FO(s): FO-MKT-015
+- RN: RN-MKT-0.17.0-20261111
+- Artifacts updated: SRD, DD, MD, UTCD, TRACE, CONTEXT, Code (market/setup_tuning, setup_knobs, setups, tuning_replay, tuning_strategy, employees/emp-013, SKILL_PATHS, USSwing.spec), Tests, RN, DEVLOG
+- Decisions: desk setup tested by 5-year replay on Backtest Data daily bars; live strategy tested on the backtest engine with renamed copies (not saved as runs, workers 0); gain = +0.05R on 100+ trades, decided by code; desk-setup gain writes one candidate lesson; report only, live setups and strategies never change; strategy stocks = own include list, else up to 30 AI-picked S&P 500 stocks; default employee emp-013 "Expert 10"
+- Tests: 31 UT-MKT-015 cases Pass (tests/market/test_setup_tuning.py); market 442 pass; no new failures (old failures, TODO T112); coverage not measured (TODO T165)
+
+---
+
 ## [20261111] DSK+MKT+GUI — Autonomous AI Desk step E: token split and research queue (FO-DSK-004, FO-DSK-007, FO-DSK-010, FO-MKT-014, FO-GUI-039)
 
 - Type: Feature
