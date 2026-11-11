@@ -3,7 +3,7 @@
 **Document ID:** TRACE-DSK
 **Version:** 0.1.0
 **Status:** Draft
-**Last Updated:** 2026-11-11 (autonomous desk step D: FO-DSK-003 SRD .020–.025 and FO-DSK-007 SRD .009 with RN-DSK-0.10.0-20261111; memory v1, step C: FO-DSK-009 with RN-DSK-0.9.0-20261111)
+**Last Updated:** 2026-11-11 (autonomous desk step E: FO-DSK-004 SRD .006–.010, FO-DSK-007 SRD .010, FO-DSK-010 SRD .001–.014 with RN-DSK-0.11.0-20261111; autonomous desk step D: FO-DSK-003 SRD .020–.025 and FO-DSK-007 SRD .009 with RN-DSK-0.10.0-20261111; memory v1, step C: FO-DSK-009 with RN-DSK-0.9.0-20261111)
 **Project:** US Swing Trading System
 
 > v0.1.0: One row per Draft FO. Columns fill as each phase completes.
@@ -43,3 +43,6 @@
 | FO-DSK-009 | SRD-DSK-009.001–.009 | DD-DSK-009.001.D01 | MD-DSK-009.001.M23, MD-DSK-001.010.M04 | UT-DSK-009.* (26, Pass) | `core/desk_lessons.py`, `desk/process.py` | Implemented | RN-DSK-0.9.0-20261111 |
 | FO-DSK-003 | SRD-DSK-003.020–.025 | DD-DSK-003.020.D01 | MD-DSK-003.021.M24 (new); MD-DSK-001.015.M03, MD-DSK-001.010.M04, MD-DSK-001.020.M06, MD-DSK-001.021.M07, MD-DSK-003.004.M15 (changed) | UT-DSK-003.020–.025 (16, Pass) | `core/desk_watch.py`, `desk/clock.py`, `desk/process.py`, `desk/cli.py`, `core/desk_steps.py`, `core/desk_events.py` | Implemented | RN-DSK-0.10.0-20261111 |
 | FO-DSK-007 | SRD-DSK-007.009 | DD-DSK-003.020.D01 | MD-DSK-007.001.M21 | UT-DSK-007.009.M21.T01–T02 (2, Pass) | `core/desk_alerts.py` | Implemented | RN-DSK-0.10.0-20261111 |
+| FO-DSK-004 | SRD-DSK-004.006–.010 | DD-DSK-010.001.D01 | MD-DSK-008.001.M22, MD-DSK-004.003.M12, MD-DSK-004.001.M11, MD-DSK-005.001.M14, MD-DSK-003.001.M10 | UT-DSK-004.006–.010 (10, Pass) | `core/desk_employee.py`, `desk/budget.py`, `desk/gateway.py`, `desk/recorder.py`, `desk/employees_step.py` | Implemented | RN-DSK-0.11.0-20261111 |
+| FO-DSK-007 | SRD-DSK-007.010 | DD-DSK-010.001.D01 | MD-DSK-007.001.M21 | UT-DSK-007.010.M21.T01–T02 (2, Pass) | `core/desk_alerts.py` | Implemented | RN-DSK-0.11.0-20261111 |
+| FO-DSK-010 | SRD-DSK-010.001–.014 | DD-DSK-010.001.D01 | MD-DSK-010.001.M25 (new), MD-DSK-010.008.M26 (new); MD-DSK-001.010.M04, MD-DSK-001.020.M06, MD-DSK-003.001.M10, MD-DSK-004.001.M11, MD-DSK-004.003.M12, MD-DSK-005.001.M14, MD-DSK-003.004.M15, MD-DSK-007.001.M21, MD-DSK-008.001.M22 (changed) | UT-DSK-010.001–.014 (34, Pass) | `core/desk_research.py`, `desk/research.py`, `desk/process.py`, `desk/cli.py`, `desk/budget.py`, `desk/recorder.py`, `desk/gateway.py`, `desk/employees_step.py`, `core/desk_alerts.py`, `core/desk_events.py`, `core/desk_employee.py` | Implemented | RN-DSK-0.11.0-20261111 |

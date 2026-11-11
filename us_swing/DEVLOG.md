@@ -2,6 +2,17 @@
 
 ---
 
+## [20261111] DSK+MKT+GUI — Autonomous AI Desk step E: token split and research queue (FO-DSK-004, FO-DSK-007, FO-DSK-010, FO-MKT-014, FO-GUI-039)
+
+- Type: Feature
+- FO(s): FO-DSK-004, FO-DSK-007, FO-DSK-010, FO-MKT-014, FO-GUI-039
+- RN: RN-DSK-0.11.0-20261111, RN-MKT-0.16.0-20261111, RN-GUI-1.64.0-20261111
+- Artifacts updated: SRD, DD, MD, UTCD, TRACE, CONTEXT, TODO (T159–T161), Code (core/desk_research, desk/research, desk/budget, desk/recorder, desk/gateway, desk/employees_step, desk/process, desk/cli, core/desk_alerts, core/desk_events, core/desk_employee, market/lead_brief, market/checkin_note, gui/ai_desk_research, gui/ai_desk), Tests, RN
+- Decisions: budget per employee 60,000 a day split 50/20/30 (plan, market, research), unused parts never move; ticket calls paid by the raising lead; tickets up to 10,000 tokens auto-approved, book tickets always wait; one ticket at a time, one AI step per quiet tick; hard token, step and time caps; stuck after 2 empty steps or the same call twice; topic parked after 3 no-gain endings (cap-ended tickets do not count); runner errors back off 15 min; no research skill yet (step F), approved tickets wait with a log line
+- Tests: DSK 46 cases Pass (test_desk_research, test_research, test_budget_split); MKT 12 Pass; GUI 9 Pass; full suite no new failures (12 old failures, TODO T112; screener collection error T136)
+
+---
+
 ## [20261111] DSK+MKT+GUI — Autonomous AI Desk step D: check-ins and intraday watchers (FO-DSK-003, FO-DSK-007, FO-MKT-013, FO-GUI-038)
 
 - Type: Feature

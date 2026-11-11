@@ -3,7 +3,7 @@
 **Document ID:** TRACE-MKT
 **Version:** 0.1.0
 **Status:** Draft
-**Last Updated:** 2026-11-11 (autonomous desk step D: FO-MKT-013 with RN-MKT-0.15.0-20261111; memory v1 step C: FO-MKT-012 with RN-MKT-0.14.0-20261111; morning run step A: FO-MKT-001 SRD .013–.017 and SRD-MKT-005.015–.016 with RN-MKT-0.13.0-20261111; FO-MKT-011 ask the desk for new data)
+**Last Updated:** 2026-11-11 (autonomous desk step E: FO-MKT-014 with RN-MKT-0.16.0-20261111; autonomous desk step D: FO-MKT-013 with RN-MKT-0.15.0-20261111; memory v1 step C: FO-MKT-012 with RN-MKT-0.14.0-20261111; morning run step A: FO-MKT-001 SRD .013–.017 and SRD-MKT-005.015–.016 with RN-MKT-0.13.0-20261111; FO-MKT-011 ask the desk for new data)
 **Project:** US Swing Trading System
 
 > v0.1.0: One row per Draft FO. Columns fill as each phase completes.
@@ -40,3 +40,4 @@
 | FO-MKT-011 | SRD-MKT-011.001–.009 | DD-MKT-011.001.D01 | MD-MKT-011.001.M01, .002.M02, .004.M03, .003.M04, .007.M05, .008.M06 | UT-MKT-011.001.M01.T01–T03, .002.M02.T01–T03, .003.M04.T01–T03, .004.M03.T01–T05, .005.M04.T01–T02, .005.M01.T01, .006.M01.T01–T02, .007.M05.T01–T03, .008.M06.T01–T02, .009.M04.T01 (25, Pass) | `core/desk_recipes.py`, `core/desk_data_asks.py`, `core/desk_events.py`, `market/data_recipe.py`, `market/employees/emp-009/`, `core/desk_steps.py`, `core/desk_floor.py` | Implemented | RN-MKT-0.12.0-20261110 |
 | FO-MKT-012 | SRD-MKT-012.001–.006 | DD-MKT-012.001.D01 | MD-MKT-012.002.M01, MD-MKT-012.004.M02, MD-MKT-012.005.M03, MD-MKT-009.001.M01 (changed) | UT-MKT-012.* (13, Pass) | `market/lesson_reflect.py`, `market/employees/emp-010/`, `core/desk_steps.py`, `market/setup_review.py`, `market/news_review.py`, `market/risk_check.py`, `market/lead_brief.py`, `market/pick_results.py` | Implemented | RN-MKT-0.14.0-20261111 |
 | FO-MKT-013 | SRD-MKT-013.001–.012 | DD-MKT-013.001.D01 | MD-MKT-013.001.M01, MD-MKT-013.008.M02, MD-MKT-013.010.M03, MD-MKT-013.011.M04 | UT-MKT-013.* (31, Pass) | `market/watch.py`, `market/watch_flag.py`, `market/checkin_note.py`, `market/employees/emp-011/`, `emp-012/` | Implemented | RN-MKT-0.15.0-20261111 |
+| FO-MKT-014 | SRD-MKT-014.001–.005 | DD-MKT-014.001.D01 | MD-MKT-014.001.M01, MD-MKT-014.001.M02 | UT-MKT-014.* (12, Pass) | `market/lead_brief.py`, `market/checkin_note.py` | Implemented | RN-MKT-0.16.0-20261111 |
