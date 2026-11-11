@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.31.0: Autonomous desk step E (2026-11-11): UT-GUI-039.001–.005 added (9 cases).
 > v1.30.1: Step D cases Pass (5, 2026-11-11).
 > v1.30.0: Autonomous desk step D (2026-11-11): UT-GUI-038.* added (5 cases).
 > v1.29.1: Step C cases Pass (7 cases, 2026-11-11).
@@ -1264,3 +1265,17 @@ Test files:
 | UT-GUI-038.002.M01.T01 | MD-GUI-038.001.M01 | Positive | Trade rows (SRD-GUI-038.002) | long with trailing stop; short with hard stop | side, entry, effective or hard stop, target | Pass |
 | UT-GUI-038.002.M01.T02 | MD-GUI-038.001.M01 | Negative | Publish error (SRD-GUI-038.002) | desk folder not writable | warning logged; no raise | Pass |
 | UT-GUI-038.003.M01.T01 | MD-GUI-038.001.M01 | Positive | Live feed log (SRD-GUI-038.003) | 2 desk stocks added | `[Live] Added 2 desk stock(s)` | Pass |
+
+## FO-GUI-039: AI Desk Research
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-039.001.M01.T01 | MD-GUI-039.001.M01 | Positive | Ticket list (SRD-GUI-039.001) | waiting, running, approved and ended tickets | columns shown; order waiting, running, approved, ended | Not Run |
+| UT-GUI-039.001.M01.T02 | MD-GUI-039.001.M01 | Edge | Old and none (SRD-GUI-039.001) | ended 8 days ago; no desk.db | old ticket hidden; empty note shown | Not Run |
+| UT-GUI-039.002.M01.T01 | MD-GUI-039.001.M01 | Positive | Approve (SRD-GUI-039.002) | select waiting ticket, Approve | one ticket_edits row; status shows pending | Not Run |
+| UT-GUI-039.002.M01.T02 | MD-GUI-039.001.M01 | Negative | Buttons only for waiting (SRD-GUI-039.002) | select approved ticket | Approve, Reject, Change cap disabled | Not Run |
+| UT-GUI-039.002.M01.T03 | MD-GUI-039.001.M01 | Edge | Cap range (SRD-GUI-039.002) | Change cap to 500 | no row written | Not Run |
+| UT-GUI-039.003.M01.T01 | MD-GUI-039.001.M01 | Positive | Ended detail (SRD-GUI-039.003) | select ended ticket | result and end reason shown | Not Run |
+| UT-GUI-039.004.M01.T01 | MD-GUI-039.001.M01 | Positive | Lead research line (SRD-GUI-039.004) | lead used 5,000 of 18,000 | line shows 5,000 used and 13,000 left | Not Run |
+| UT-GUI-039.005.M01.T01 | MD-GUI-039.001.M01 | Positive | Edit log (SRD-GUI-039.005) | Reject | `[Research]` line with the ticket id | Not Run |
+| UT-GUI-039.003.M01.T02 | MD-GUI-039.001.M01 | Negative | No result while open (SRD-GUI-039.003) | select waiting ticket | done test shown; no result or end reason | Not Run |

@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.17.0: Autonomous desk step E (2026-11-11): UT-MKT-014.001–.005 added (11 cases).
 > v0.16.1: Step D cases Pass (31, 2026-11-11).
 > v0.16.0: Autonomous desk step D (2026-11-11): UT-MKT-013.* added (31 cases).
 > v0.15.1: Step C cases Pass (13 cases, 2026-11-11).
@@ -466,3 +467,19 @@
 | UT-MKT-013.011.M04.T01 | MD-MKT-013.011.M04 | Positive | Default employees (SRD-MKT-013.011) | load shipped defaults | emp-011 expert watch_flag; emp-012 lead checkin_note | Pass |
 | UT-MKT-013.011.M04.T02 | MD-MKT-013.011.M04 | Negative | Unknown skill guard (SRD-MKT-013.011) | skill paths without the two keys | both asleep | Pass |
 | UT-MKT-013.012.M02.T01 | MD-MKT-013.008.M02 | Positive | Answer log (SRD-MKT-013.012) | verdict watch | `[Watch]` line with stock, kind and verdict | Pass |
+
+## FO-MKT-014: Lead Research Tickets
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-MKT-014.001.M01.T01 | MD-MKT-014.001.M01 | Positive | Ticket from the lead plan (SRD-MKT-014.001) | lead brief answer with one ticket | one tickets row; picks and brief kept | Not Run |
+| UT-MKT-014.001.M01.T02 | MD-MKT-014.001.M01 | Negative | At most 3 (SRD-MKT-014.001) | answer with 4 tickets | answer not valid | Not Run |
+| UT-MKT-014.001.M02.T01 | MD-MKT-014.001.M02 | Positive | Ticket from a check-in (SRD-MKT-014.001) | check-in answer with one ticket | one tickets row; note kept | Not Run |
+| UT-MKT-014.002.M01.T01 | MD-MKT-014.001.M01 | Negative | Unknown kind (SRD-MKT-014.002) | ticket kind `guess` | ticket dropped; answer and picks kept | Not Run |
+| UT-MKT-014.003.M01.T01 | MD-MKT-014.001.M01 | Edge | Cap range (SRD-MKT-014.003) | caps 999, 1,000, 100,000, 100,001 | refused, added, added, refused | Not Run |
+| UT-MKT-014.004.M01.T01 | MD-MKT-014.001.M01 | Positive | Research block (SRD-MKT-014.004) | lead with 5,000 research tokens used, one open and one ended ticket | facts show 13,000 left, the open ticket and the result | Not Run |
+| UT-MKT-014.004.M01.T02 | MD-MKT-014.001.M01 | Edge | Block limits (SRD-MKT-014.004) | 40 ended tickets; no roster | block at most 2,400 characters; facts unchanged | Not Run |
+| UT-MKT-014.005.M01.T01 | MD-MKT-014.001.M01 | Negative | Lead never researches (SRD-MKT-014.005) | answer with one approved ticket | one ask call only; ticket stays approved | Not Run |
+| UT-MKT-014.002.M01.T02 | MD-MKT-014.001.M01 | Positive | Known kinds (SRD-MKT-014.002) | one ticket of each of the 6 kinds over 2 days | every one added | Not Run |
+| UT-MKT-014.003.M01.T02 | MD-MKT-014.001.M01 | Positive | Cap inside the range (SRD-MKT-014.003) | cap 5,000 | added with cap 5,000 | Not Run |
+| UT-MKT-014.005.M01.T02 | MD-MKT-014.001.M01 | Positive | Queue decides (SRD-MKT-014.005) | tickets with caps 8,000 and 30,000 | first approved by auto; second waiting | Not Run |

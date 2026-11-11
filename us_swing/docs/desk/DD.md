@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.11.0: DD-DSK-010.001.D01 added — token split and research queue (Autonomous desk step E (2026-11-11)).
 > v0.10.0: DD-DSK-003.020.D01 added — check-ins and watchers (Autonomous desk step D (2026-11-11)).
 > v0.9.0: DD-DSK-009.001.D01 added — desk memory: lessons, learning loop and Memory view (Autonomous desk step C (2026-11-11)).
 > v0.8.0: DD-DSK-003.014.D01 added — baton by `step_done` events, retries, partial plan, LangGraph removed (Autonomous desk step B, 2026-11-11).
@@ -841,3 +842,133 @@ Both are added to `SKILL_PATHS` and `USSwing.spec`.
 - The app writes open trades only when the list changed, on a short background thread, so a busy `desk.db` never blocks the GUI or the trade-cycle thread; held stocks come first in the 100-symbol live feed.
 - Tests point `desk_home()` at a temp folder (root conftest), so no test writes the real `desk.db`.
 
+## DD-DSK-010.001.D01 — Token Split and Research Queue (Autonomous desk step E)
+
+**Traces:** SRD-DSK-004.006–.010, SRD-DSK-007.010, SRD-DSK-010.001–.014, SRD-MKT-014.001–.005, SRD-GUI-039.001–.005. Design page §7 and §9 (stop rules R1–R8): https://claude.ai/artifact/J7AexvWdqDNujADoc9dJkJ. User answers (2026-11-11): per-employee daily tokens split 50/20/30; a ticket of 10,000 tokens or less is approved by itself; the cap is hard and the raising lead's research part pays; waiting tickets show in AI Desk and on Telegram; step E is the queue only — research skills come in step F, so tests use a fake skill.
+
+**Data flow.**
+
+```
+lead skill (lead_brief, checkin_note)   facts += research block (tokens left, open tickets, results)
+      answer.tickets ─▶ core.desk_research.raise_tickets(home, skill_key, asks, now)
+                          rules ─▶ tickets row: approved (auto) | waiting (+ alert) | refused (log)
+app (GUI)  AI Desk → Research ─▶ ticket_edits row (approve | reject | cap)
+desk loop  every tick: apply_ticket_edits, expire_waiting
+           no event work and quiet ─▶ event run with one research step
+              ResearchRunner: pick ticket ─▶ cap checks ─▶ doer skill.step(gateway, ticket)
+              gateway part = research, payer = raiser, ticket = id ─▶ activity row
+              end ─▶ tickets status + research_done event
+```
+
+**Token split** (`desk/budget.py`, `desk/recorder.py`, `desk/gateway.py`).
+
+```
+JobSpec.tokens_per_day: int = 60_000 (ge 1_000)        # core/desk_employee.py, optional field
+SHARES = {"plan": 0.5, "market": 0.2, "research": 0.3}
+MARKET_KINDS = ("market_checkin", "watch_flag")
+Part(name, payer, payer_name, tokens_per_day, ticket=None, ticket_cap=None)   # frozen
+part_cap(part) = int(part.tokens_per_day * SHARES[part.name])
+activity + columns part TEXT, payer TEXT, ticket INTEGER            # added on open (_ADDED)
+Recorder.part_tokens(day, payer, part)   SUM(tokens_in + tokens_out) where COALESCE(payer, employee) = payer
+                                         and COALESCE(part, 'plan') = part, live tries only
+Recorder.ticket_tokens(ticket), Recorder.ticket_seconds(ticket)
+Budget.refusal(..., part) adds, after the old checks:
+    part_tokens(day, payer, part) >= part_cap      -> "<payer_name> <part> tokens for today used up"
+    ticket and ticket_tokens(ticket) >= ticket_cap -> "ticket <id> reached its cap of <n> tokens"
+```
+
+`EmployeesStep._wake` builds `Part("market" if event.kind in MARKET_KINDS else "plan", spec.id, spec.name, spec.tokens_per_day)`. The gateway takes `part` (default: plan of its own employee), passes it to the budget and writes `part`, `payer` and `ticket` on every `Attempt`. A refusal for a used-up part is logged as `[Budget] <name>: <part> tokens for today used up (<used> of <cap>)` (SRD-DSK-004.010); the old caps of SRD-DSK-004.003/.004 are checked first, as now. Old rows without `part` count as plan.
+
+**Tables** (`core/desk_research.py`, made on open):
+
+```
+tickets(id INTEGER PK AUTOINCREMENT, kind, topic, goal, done_test, token_cap INTEGER,
+        step_cap INTEGER DEFAULT 8, time_cap_min INTEGER DEFAULT 60, raised_by, raised_by_name,
+        status, made, approved_by NULL, approved NULL, started NULL, ended NULL,
+        tokens INTEGER DEFAULT 0, steps INTEGER DEFAULT 0, biggest INTEGER DEFAULT 0,
+        quiet_steps INTEGER DEFAULT 0, last_call TEXT DEFAULT '', state TEXT DEFAULT '{}',
+        result TEXT DEFAULT '', end_reason TEXT DEFAULT '', gain INTEGER NULL, updated)
+ticket_edits(id INTEGER PK AUTOINCREMENT, ticket_id, action 'approve'|'reject'|'cap',
+             token_cap INTEGER NULL, made, applied NULL)
+STATUSES = waiting, approved, running, paused, done, failed, stuck, rejected, expired
+KINDS = setup_tuning, post_mortem, stock_study, sentiment, book_to_strategy, strategy_test
+AUTO_CAP = 10_000; CAP_RANGE = 1_000..100_000; PER_DAY = 3; WAIT_DAYS = 3; REPEAT_DAYS = 30
+PARK_AFTER = 3; PARK_DAYS = 30; QUIET = 20 minutes
+```
+
+**Raising** (`raise_tickets(home, skill_key, asks, now) -> list[str]`, one note per ask):
+
+```
+raiser = active employee file with skill = skill_key; none or level != lead -> refuse all
+for ask in asks[:3]:
+    kind not in KINDS                       -> "unknown kind"            (SRD-MKT-014.002)
+    token_cap outside CAP_RANGE             -> "cap out of range"        (SRD-MKT-014.003)
+    tickets made by raiser today (ET) >= 3  -> "3 tickets a day"         (SRD-DSK-010.002)
+    same kind + goal (lower case, spaces squeezed) open, or done in 30 days -> "repeat"  (.006)
+    topic parked: >= 3 tickets on the topic ended done|failed|stuck with gain != 1,
+                  the last of them in the last 30 days                -> "topic parked" (.007)
+    insert; cap <= 10_000 and kind != book_to_strategy -> approved by 'auto'            (.003)
+            else waiting + raise_alert('ticket_waiting', source=str(id), detail=goal + cap)
+    log "[Research] <name> raised ticket <id> (<kind>, <cap> tokens): approved|waiting|refused: <why>"
+```
+
+`TicketAsk` (pydantic, `extra="forbid"`): `kind: str (<= 30)`, `topic: str (3–60)`, `goal: str (10–300)`, `done_test: str (10–300)`, `token_cap: int`. The fields are plain, so a bad kind or cap only drops that ticket and never makes the whole answer invalid.
+
+**Research block** (`with_research(text, home, skill_key, now) -> str`). For the active employee holding `skill_key` (from the employee files), it appends: research tokens used and left today (from `activity` and the holder's `tokens_per_day`), the open tickets (id, kind, goal, status), and the ended tickets of the last 30 days (goal, status, gain, first 150 characters of the result). It closes with the ticket rules: at most 3, kinds, cap range, auto approval up to 10,000, book tickets wait. The block is cut to 2,400 characters (about 600 tokens). It returns `text` unchanged when there is no holder or no `desk.db`.
+
+**Edits and expiry** (desk tick, `desk/process.py`):
+- `apply_ticket_edits(home, now)` applies each unapplied edit to a waiting ticket. `approve` → approved by `master` (a given cap replaces the old one), `reject` → rejected and ended, `cap` → new cap, still waiting. An edit on a ticket that is no longer waiting is marked applied with no change.
+- `expire_waiting(home, now)` sets waiting tickets older than 3 days to expired.
+- `pause_running(home, why, now)` runs once in `DeskProcess.start`, with why "app closed" (SRD-DSK-010.012).
+
+**Alert** (`core/desk_alerts.py`). Kind `ticket_waiting` is titled "Research ticket waiting", with the fix text "Approve or reject it in AI Desk → Research." Its source is the ticket id, so there is one alert per ticket. `_fixed` closes it once that ticket's status is no longer waiting (SRD-DSK-007.010).
+
+**Event** (`core/desk_events.py`): `research_done` is P2, with no deadline and a 1-day expiry, keyed per ticket id (added to `_PER_ID`). Nobody listens to it yet, so the router closes it as "nobody listens". Step F may use it.
+
+**Research skill contract** (`core/desk_research.py`):
+
+```
+class ResearchSkill(Skill, Protocol):
+    kinds: tuple[str, ...]          # ticket kinds it can work
+    step_tokens: int                # tokens one step is expected to use
+    def step(self, ctx: AgentContext, ticket: Ticket) -> StepResult | None: ...
+StepResult(note: str, call: str, outcome: 'go' | 'done' | 'failed', gain: bool | None, state: dict)
+```
+
+`note` is the new finding of the step ("" means nothing new), and `call` is a short text of the tool call the step made. None ship in step E.
+
+**Runner** (`desk/research.py`, `ResearchRunner`, built from the same loaders as `EmployeesStep`).
+
+```
+quiet(home, now):  no waiting event (due or not) and no watch_flags row created in the last 20 min
+has_work(home, now): quiet and a ticket in running | paused | approved whose payer has research
+                     tokens left today; otherwise a running ticket is paused ("market work")
+__call__(ctx):     one step of the next ticket: running, then paused, then approved (oldest)
+    doer = active hire whose skill is a ResearchSkill with ticket.kind in kinds
+        none -> stays approved; "[Research] No employee can work <kind> tickets yet", once a day
+    need = max(skill.step_tokens, ticket.biggest)
+    token_cap - tokens < need       -> end done "token cap"        (R2, SRD-DSK-010.010)
+    steps >= step_cap               -> end done "step cap"
+    ticket_seconds >= time_cap_min  -> end done "time cap"
+    status running (started set on the first step); gateway(part=research, payer=raised_by,
+        ticket=id, ticket_cap=token_cap); result = skill.step(gateway, ticket)
+    gateway.refused                 -> paused, "research tokens used up" or the reason
+    tokens = ticket_tokens(id); biggest = max(biggest, step tokens); steps += 1; state saved
+    result None or note ""          -> quiet_steps += 1, else 0 and note added to result
+    quiet_steps >= 2 or (call and call == last_call) -> end stuck   (R5, SRD-DSK-010.011)
+    outcome done | failed           -> end with that status and gain  (R4)
+end(ticket, status, reason): ended, end_reason, gain; post research_done (ticket id); log
+```
+
+The desk loop (`_event_tick`) runs the runner only when `has_work` from events is false. Market work always comes first, and research runs one step per tick, so a new flag or plan event pauses research after the current step (R7, SRD-DSK-010.012). The research step runs inside a normal `event` run, so run kinds do not change (SRD-DSK-003.013). The runner lives in `desk`, so `desk/cli.py` builds it with the same events loaders and passes `research=` to `DeskProcess`.
+
+**Logs** (`[Research]`): raised (with result), approved (auto or Master), rejected, expired, started, paused (why), ended (status, reason, tokens). Approve, reject and cap from the app are logged by the GUI (SRD-GUI-039.005).
+
+**Lead skills** (`market/lead_brief.py`, `market/checkin_note.py`). Each skill gets `tickets: list[TicketAsk] = Field(default_factory=list, max_length=3)` in its answer. `facts` wraps the text with `with_research(..., KEY, now)` after `with_lessons`. `act` calls `raise_tickets(ctx.home, KEY, answer.tickets, now)` when the list is not empty. The skills never start research work (SRD-MKT-014.005).
+
+**GUI** (`gui/ai_desk_research.py`, `ResearchView`, section "Research" in the TEAM group after "Team at work", and in `_LIVE_SECTIONS`).
+- Top line: each active lead's research tokens used and left today (`lead_research(home, day)`).
+- Table with columns Status, Kind, Goal, Cap, Spent, Raised by, Made, in the order waiting, running and paused, approved, then ended in the last 7 days (`ticket_rows(home, now)`). A ticket with an unapplied edit shows "applies at the next desk tick".
+- Buttons Approve, Reject and Change cap, enabled only for a waiting ticket. Change cap asks for a number from 1,000 to 100,000. Each button writes one `add_ticket_edit()` row and logs `[Research] Ticket <id> approved|rejected|cap set to <n> from the app`.
+- The detail label under the table shows, for the selected ticket, its done test and, once ended, its result and end reason.
+- The GUI reads `desk.db` read-only and writes only `ticket_edits`. The AI Desk is the Master user's view, as for Memory.

@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.10.1: FO-DSK-010 approved by user 2026-11-11.
 > v0.10.0: Autonomous desk step E (user, 2026-11-11): FO-DSK-004 daily token split 50/20/30; FO-DSK-010 added as Draft — research queue; FO-DSK-007 ticket alert.
 > v0.9.0: Autonomous desk step D (user, 2026-11-11): FO-DSK-003 check-ins and watchers; FO-DSK-007 trade and plan alerts.
 > v0.8.0: Autonomous desk step C (user, 2026-11-11): FO-DSK-009 added as Draft — memory v1.

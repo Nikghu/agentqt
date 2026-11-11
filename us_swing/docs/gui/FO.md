@@ -7,6 +7,7 @@
 **Last Updated:** 2026-05-22
 **Project:** US Swing Trading System
 
+> v2.22.1: FO-GUI-039 approved by user 2026-11-11.
 > v2.22.0: Autonomous desk step E (user, 2026-11-11): FO-GUI-039 added as Draft — research queue.
 > v2.21.0: Autonomous desk step D (user, 2026-11-11): FO-GUI-038 added as Draft — check-ins and watchers.
 > v2.20.0: Autonomous desk step C (user, 2026-11-11): FO-GUI-037 added as Draft — memory v1.

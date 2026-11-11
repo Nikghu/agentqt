@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.15.1: FO-MKT-014 approved by user 2026-11-11.
 > v0.15.0: Autonomous desk step E (user, 2026-11-11): FO-MKT-014 added as Draft — lead research tickets.
 > v0.14.0: Autonomous desk step D (user, 2026-11-11): FO-MKT-013 added as Draft — check-ins and watchers.
 > v0.13.0: Autonomous desk step C (user, 2026-11-11): FO-MKT-012 added as Draft — memory v1.

@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.29.0: MD-GUI-039.001.M01 added — AI Desk Research (step E).
 > v1.28.0: MD-GUI-038.001.M01 added — app feeds for the desk (step D).
 > v1.27.0: MD-GUI-037.001.M01 added — AI Desk Memory (step C).
 > v1.26.0: Autonomous desk step A (2026-11-11): M02 (desk_control) start/stop with the app, M34 next morning run, 029.004.M02 start tasks before open; also changed `main_window.py`, `core/desk_team.py`, `ai_desk.py`, `ai_desk_team.py`, `ai_desk_sections3.py`, `ai_desk_pages.py`, `ai_desk_results.py`, `ai_desk_team_pane.py` (labels, SRD-GUI-034.069).
@@ -495,3 +496,13 @@ SRD coverage: 037.001–.004 by M01.
 | MD-GUI-038.001.M01 | SRD-GUI-038.001 | `us_swing/src/us_swing/gui/app_service.py` | Desk stocks in the live bar feed; open trades published to desk.db | `live_symbols()`, `trade_rows()`, `AppService._publish_open_trades()` | `core.desk_watch` | No |
 
 SRD coverage: 038.001–.003 by M01.
+
+## FO-GUI-039: AI Desk Research
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-GUI-039.001.M01 | SRD-GUI-039.001 | `us_swing/src/us_swing/gui/ai_desk_research.py` | Research section: lead research line, ticket table, Approve / Reject / Change cap, detail label, logs | `ResearchView`, `research_frame()` | `core.desk_research` | No |
+
+Changed: MD-GUI-034.009.M08 (`gui/ai_desk.py`: "Research" section in the TEAM group, live refresh).
+
+SRD coverage: 039.001–.005 by M01.
