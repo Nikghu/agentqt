@@ -1,11 +1,13 @@
 # Functional Overview — Market Analytics (MKT)
 
 **Document ID:** FO-MKT
-**Version:** 0.6.1
+**Version:** 0.7.1
 **Status:** Draft
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.17.1: FO-MKT-016 approved by user 2026-11-11.
+> v0.17.0: Autonomous desk step F (user, 2026-11-11): FO-MKT-016 added as Draft — pick post-mortem research.
 > v0.16.1: FO-MKT-015 approved by user 2026-11-11.
 > v0.16.0: Autonomous desk step F (user, 2026-11-11): FO-MKT-015 added as Draft — setup tuning research.
 > v0.15.1: FO-MKT-014 approved by user 2026-11-11.
@@ -396,3 +398,26 @@ The system shall give the desk an employee that works setup tuning tickets: it t
 1. An approved Pullback tuning ticket ends `done` with a result table of the baseline and up to 3 variants.
 2. A variant that beats the baseline by 0.05R on 100 or more trades marks the ticket gain = yes and adds one candidate lesson.
 3. After the ticket, the live setups and the strategy list are unchanged.
+
+## FO-MKT-016: Pick Post-Mortem Research
+
+**Status:** Approved (approved by user 2026-11-11)
+**Priority:** Must
+**Phase:** Autonomous desk step F (skill 2 of 4)
+**Depends on:** FO-DSK-010 (research queue), FO-MKT-009 (pick results), FO-MKT-012 (lessons)
+**Source: User 2026-11-11 (Autonomous desk step F): pick post-mortem studies losers and winners of the last 30 days; bars from Backtest Data, candles.db only for missing days; may write candidate lessons, follow-up tickets and per-pick notes; gain = a lesson saved. Design §7: https://claude.ai/artifact/J7AexvWdqDNujADoc9dJkJ.**
+
+The system shall give the desk an employee that works post-mortem tickets: it studies a chosen set of closed lead picks in depth and says why the losers failed compared with the winners.
+
+- The system shall let the AI choose up to 10 losing and 5 winning closed lead picks of the last 30 days that fit the ticket's goal.
+- The system shall gather, in code, each pick's stored desk facts and its price path after the data day.
+- The system shall read price paths from Backtest Data first and from `candles.db` only for days Backtest Data does not have yet.
+- The system shall let one AI call write a note per pick, up to 3 candidate lessons, up to 2 follow-up tickets and a summary.
+- The system shall keep a lesson only when its proof picks are in the studied set, and count a gain only when a lesson is saved.
+- The system shall ship a default post-mortem employee with a generic name.
+
+### Acceptance Criteria
+
+1. An approved post-mortem ticket on 4 losers and 2 winners ends `done` with one note per pick and a summary in its result.
+2. A lesson that names a studied loser is saved as a candidate and the ticket gain is yes; a lesson naming an unknown pick is dropped.
+3. A follow-up setup tuning ticket appears in the research queue under the lead that raised the post-mortem.

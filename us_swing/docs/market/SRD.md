@@ -1,11 +1,13 @@
 # Software Requirements — Market Analytics (MKT)
 
 **Document ID:** SRD-MKT
-**Version:** 0.10.2
+**Version:** 0.11.1
 **Status:** Draft
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.19.1: SRD-MKT-016.001–.011 approved by user 2026-11-11.
+> v0.19.0: Autonomous desk step F (user, 2026-11-11): SRD-MKT-016.001–.011 added as Draft — pick post-mortem research.
 > v0.18.2: Step F setup tuning rows Implemented (12, 2026-11-11).
 > v0.18.1: SRD-MKT-015.001–.012 approved by user 2026-11-11.
 > v0.18.0: Autonomous desk step F (user, 2026-11-11): SRD-MKT-015.001–.012 added as Draft — setup tuning research.
@@ -273,3 +275,19 @@
 | SRD-MKT-015.010 | FO-MKT-015 | Must | The skill never changes a live setup, a strategy or the strategy list; the result only names the winning values. | — | — | Master user applies changes by hand | Implemented |
 | SRD-MKT-015.011 | FO-MKT-015 | Must | Default employee ships as `emp-013` ("Researcher 1", skill `setup_tuning`) and its skill path is in `SKILL_PATHS` and the app build. | default files | employee | Copied only when missing; generic name | Implemented |
 | SRD-MKT-015.012 | FO-MKT-015 | Should | Each step logs the target, the variant count and the gain. | step | log line | `[Research]` prefix | Implemented |
+
+## FO-MKT-016: Pick Post-Mortem Research
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-MKT-016.001 | FO-MKT-016 | Must | The post-mortem skill (`post_mortem`) works `post_mortem` tickets in three steps: pick, gather and study. | ticket | steps | One AI call in pick and in study; gather is code only | Approved |
+| SRD-MKT-016.002 | FO-MKT-016 | Must | The pick step shows the closed lead picks of the last 30 days and asks for up to 10 losers and 5 winners that fit the ticket goal. | `pick_results`, ticket | chosen picks | At most 120 picks shown, newest first | Approved |
+| SRD-MKT-016.003 | FO-MKT-016 | Must | Code keeps only chosen picks that exist and are closed with the right sign of R; fewer than 2 losers ends the ticket `failed`. | answer | pick set | Loser R below 0, winner R above 0 | Approved |
+| SRD-MKT-016.004 | FO-MKT-016 | Must | The gather step builds one record per pick from stored desk facts: score, setup, levels, idea reasons, grade, risk verdict, lead reason, news tone, regime and result. | `desk.db` | records | No tokens | Approved |
+| SRD-MKT-016.005 | FO-MKT-016 | Must | Code adds each pick's price path from its data day to its exit: entry gap, best and worst move in R, and SPY's move over the hold. | daily bars | path line | Backtest Data first; `candles.db` only for days it lacks | Approved |
+| SRD-MKT-016.006 | FO-MKT-016 | Must | The study step makes one AI call that returns a note per pick, up to 3 candidate lessons, up to 2 follow-up tickets and a summary. | records, active lessons | answer | Note at most 150 characters; summary at most 600 | Approved |
+| SRD-MKT-016.007 | FO-MKT-016 | Must | Each lesson is stored as a candidate only when all its proof picks are in the studied set. | answer | lesson | Goes active only by FO-MKT-012 case rules | Approved |
+| SRD-MKT-016.008 | FO-MKT-016 | Must | Follow-up tickets are handed to the research queue in the name of the lead that raised the post-mortem. | answer | ticket rows | Queue rules of FO-DSK-010 apply | Approved |
+| SRD-MKT-016.009 | FO-MKT-016 | Must | The ticket ends `done` with the notes and summary in its result, and gain is yes only when at least one lesson was saved. | study | result, gain | — | Approved |
+| SRD-MKT-016.010 | FO-MKT-016 | Must | Default employee ships as `emp-014` ("Expert 11", skill `post_mortem`) and its skill path is in `SKILL_PATHS` and the app build. | default files | employee | Copied only when missing; generic name | Approved |
+| SRD-MKT-016.011 | FO-MKT-016 | Should | Each step logs the pick count, lessons kept and follow-up tickets raised. | step | log line | `[Research]` prefix | Approved |
