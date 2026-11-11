@@ -1093,7 +1093,7 @@ The system shall give the desk the live bars and the open trades it watches.
 
 ## FO-GUI-039: AI Desk Research
 
-**Status:** Approved (user, 2026-11-11)
+**Status:** Implemented (approved by user 2026-11-11)
 **Priority:** Must
 **Depends on:** FO-DSK-010 (research queue), FO-DSK-004 (token split), FO-GUI-035 (AI Desk)
 **Source: User 2026-11-11 (Autonomous desk step E): a big ticket waits for approval in the AI Desk and on Telegram. Design §7: https://claude.ai/artifact/J7AexvWdqDNujADoc9dJkJ.**

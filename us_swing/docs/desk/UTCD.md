@@ -6,7 +6,8 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
-> v0.13.0: Autonomous desk step E (2026-11-11): UT-DSK-004.006–.010, 007.010, 010.001–.014 added (45 cases).
+> v0.13.1: Step E cases Pass (46, 2026-11-11).
+> v0.13.0: Autonomous desk step E (2026-11-11): UT-DSK-004.006–.010, 007.010, 010.001–.014 added (46 cases).
 > v0.12.1: Step D cases Pass (18, 2026-11-11).
 > v0.12.0: Autonomous desk step D (2026-11-11): UT-DSK-003.020–.025, 007.009 added (18 cases).
 > v0.11.1: Step C cases Pass (23 cases, 2026-11-11).
@@ -366,48 +367,49 @@
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
 |---|---|---|---|---|---|---|
-| UT-DSK-004.006.M22.T01 | MD-DSK-008.001.M22 | Positive | Default daily tokens (SRD-DSK-004.006) | employee file without `tokens_per_day` | 60,000 | Not Run |
-| UT-DSK-004.006.M22.T02 | MD-DSK-008.001.M22 | Negative | Too small a budget (SRD-DSK-004.006) | `tokens_per_day: 500` | file refused with the field named | Not Run |
-| UT-DSK-004.007.M12.T01 | MD-DSK-004.003.M12 | Positive | Split 50/20/30 (SRD-DSK-004.007) | 60,000 tokens a day | plan 30,000, market 12,000, research 18,000 | Not Run |
-| UT-DSK-004.008.M10.T01 | MD-DSK-003.001.M10 | Positive | Part by event (SRD-DSK-004.008) | wakes by watch_flag, market_checkin, after_run | activity part market, market, plan | Not Run |
-| UT-DSK-004.008.M14.T01 | MD-DSK-005.001.M14 | Edge | Old rows count as plan (SRD-DSK-004.008) | activity rows with no part or payer | summed in the employee's plan part | Not Run |
-| UT-DSK-004.009.M12.T01 | MD-DSK-004.003.M12 | Positive | Used-up part refuses (SRD-DSK-004.009) | market part used 12,000 of 12,000 | watch flag call refused; plan call allowed | Not Run |
-| UT-DSK-004.009.M12.T02 | MD-DSK-004.003.M12 | Negative | Ticket paid by the raiser (SRD-DSK-004.009) | doer's research used up, raiser's not; then raiser's used up | allowed; then refused | Not Run |
-| UT-DSK-004.009.M11.T01 | MD-DSK-004.001.M11 | Edge | Ticket cap between tries (SRD-DSK-004.009) | first try reaches the ticket cap, answer invalid | no second try; refused reason names the ticket | Not Run |
-| UT-DSK-004.010.M11.T01 | MD-DSK-004.001.M11 | Positive | Part refusal log (SRD-DSK-004.010) | plan part used up | `[Budget]` line with name, part and tokens | Not Run |
-| UT-DSK-007.010.M21.T01 | MD-DSK-007.001.M21 | Positive | Waiting ticket alert (SRD-DSK-007.010) | raise a 30,000-token ticket; then approve it | one Research ticket waiting alert with goal and cap; closed after approve | Not Run |
-| UT-DSK-007.010.M21.T02 | MD-DSK-007.001.M21 | Negative | No alert when auto approved (SRD-DSK-007.010) | raise an 8,000-token ticket | no alert | Not Run |
-| UT-DSK-010.001.M25.T01 | MD-DSK-010.001.M25 | Positive | Ticket row (SRD-DSK-010.001) | lead raises one ticket | row with kind, topic, goal, done test, caps, raiser, status, made | Not Run |
-| UT-DSK-010.002.M25.T01 | MD-DSK-010.001.M25 | Negative | Only leads raise (SRD-DSK-010.002) | skill held by an expert | no row; refused note | Not Run |
-| UT-DSK-010.002.M25.T02 | MD-DSK-010.001.M25 | Edge | 3 a day (SRD-DSK-010.002) | 4th ticket by one lead on one day | refused; next day allowed | Not Run |
-| UT-DSK-010.003.M25.T01 | MD-DSK-010.001.M25 | Positive | Auto approval limit (SRD-DSK-010.003) | caps 10,000 and 10,001 | approved by auto; waiting | Not Run |
-| UT-DSK-010.003.M25.T02 | MD-DSK-010.001.M25 | Edge | Book tickets wait (SRD-DSK-010.003) | book_to_strategy, cap 5,000 | waiting | Not Run |
-| UT-DSK-010.004.M25.T01 | MD-DSK-010.001.M25 | Positive | Approve with new cap (SRD-DSK-010.004) | edit approve, cap 20,000 | approved by master, cap 20,000, edit applied | Not Run |
-| UT-DSK-010.004.M25.T02 | MD-DSK-010.001.M25 | Positive | Reject and cap change (SRD-DSK-010.004) | edit reject on one; edit cap on another | rejected; still waiting with new cap | Not Run |
-| UT-DSK-010.004.M25.T03 | MD-DSK-010.001.M25 | Negative | Edit on a ticket not waiting (SRD-DSK-010.004) | approve on an approved ticket | edit applied; ticket unchanged | Not Run |
-| UT-DSK-010.005.M25.T01 | MD-DSK-010.001.M25 | Edge | Expiry after 3 days (SRD-DSK-010.005) | waiting ticket 2 days and 3 days 1 minute old | first still waiting; second expired | Not Run |
-| UT-DSK-010.006.M25.T01 | MD-DSK-010.001.M25 | Negative | Repeat refused (SRD-DSK-010.006) | same kind and goal (other case and spaces) done 10 days ago; then 31 days ago | refused; then added | Not Run |
-| UT-DSK-010.007.M25.T01 | MD-DSK-010.001.M25 | Positive | Topic parked (SRD-DSK-010.007) | 3 ended no-gain tickets on a topic; then one with gain among them | new ticket refused; then allowed | Not Run |
-| UT-DSK-010.008.M26.T01 | MD-DSK-010.008.M26 | Positive | Quiet gap (SRD-DSK-010.008) | waiting event; flag 10 minutes ago; flag 25 minutes ago | not quiet; not quiet; quiet | Not Run |
-| UT-DSK-010.008.M26.T02 | MD-DSK-010.008.M26 | Positive | Ticket order (SRD-DSK-010.008) | running, paused and two approved tickets | running first, then paused, then oldest approved | Not Run |
-| UT-DSK-010.008.M04.T01 | MD-DSK-001.010.M04 | Positive | Market work first (SRD-DSK-010.008) | approved ticket and a waiting watch_flag event | event run handles the flag; no research step that tick | Not Run |
-| UT-DSK-010.009.M26.T01 | MD-DSK-010.008.M26 | Positive | Doer by kind (SRD-DSK-010.009) | fake research skill for setup_tuning, one step | step done by its employee; activity part research, payer raiser, ticket id | Not Run |
-| UT-DSK-010.009.M26.T02 | MD-DSK-010.008.M26 | Negative | No doer (SRD-DSK-010.009) | approved stock_study ticket, no skill for it, two ticks | stays approved; one log line a day | Not Run |
-| UT-DSK-010.010.M26.T01 | MD-DSK-010.008.M26 | Positive | Done test met (SRD-DSK-010.010) | skill outcome done, gain true | status done, gain 1, note in result | Not Run |
-| UT-DSK-010.010.M26.T02 | MD-DSK-010.008.M26 | Edge | Hard token cap (SRD-DSK-010.010) | cap 10,000, spent 7,000, step estimate 4,000 | no call; done with reason token cap | Not Run |
-| UT-DSK-010.010.M26.T03 | MD-DSK-010.008.M26 | Edge | Step and time caps (SRD-DSK-010.010) | 8 steps done; 61 minutes of call time | done with step cap; done with time cap | Not Run |
-| UT-DSK-010.011.M26.T01 | MD-DSK-010.008.M26 | Negative | Stall stops a ticket (SRD-DSK-010.011) | two steps with no note; same call twice | stuck; stuck | Not Run |
-| UT-DSK-010.012.M26.T01 | MD-DSK-010.008.M26 | Positive | Pause and resume (SRD-DSK-010.012) | running ticket, new flag; 20 minutes later | paused after the step; resumed and running | Not Run |
-| UT-DSK-010.012.M26.T02 | MD-DSK-010.008.M26 | Negative | Research part used up (SRD-DSK-010.012) | raiser's research part used up | paused; no call made | Not Run |
-| UT-DSK-010.012.M25.T01 | MD-DSK-010.001.M25 | Positive | Pause on app close (SRD-DSK-010.012) | ticket running when the desk starts | paused with reason app closed | Not Run |
-| UT-DSK-010.013.M26.T01 | MD-DSK-010.008.M26 | Positive | research_done event (SRD-DSK-010.013) | ticket ends | one research_done event for its id; closed as nobody listens | Not Run |
-| UT-DSK-010.014.M26.T01 | MD-DSK-010.008.M26 | Positive | Ticket logs (SRD-DSK-010.014) | raise, start, pause, end | `[Research]` lines with id and status | Not Run |
-| UT-DSK-004.007.M12.T02 | MD-DSK-004.003.M12 | Edge | Split of an odd budget (SRD-DSK-004.007) | 1,001 tokens a day | parts 500, 200, 300; never more than the budget | Not Run |
-| UT-DSK-010.001.M25.T02 | MD-DSK-010.001.M25 | Edge | Tables made twice (SRD-DSK-010.001) | open desk.db twice with tickets in it | rows kept; no error | Not Run |
-| UT-DSK-010.002.M25.T03 | MD-DSK-010.001.M25 | Positive | Lead raises (SRD-DSK-010.002) | active lead holds the skill; 3 tickets in a day | 3 rows raised by that lead's id and name | Not Run |
-| UT-DSK-010.005.M25.T02 | MD-DSK-010.001.M25 | Positive | Approved in time (SRD-DSK-010.005) | waiting ticket approved on day 2, checked on day 4 | approved, not expired | Not Run |
-| UT-DSK-010.006.M25.T02 | MD-DSK-010.001.M25 | Positive | New goal added (SRD-DSK-010.006) | same kind, different goal as a recent done ticket | added | Not Run |
-| UT-DSK-010.007.M25.T02 | MD-DSK-010.001.M25 | Negative | Not parked yet (SRD-DSK-010.007) | 2 no-gain tickets; 3 no-gain, last ended 31 days ago | new ticket allowed; allowed | Not Run |
-| UT-DSK-010.008.M26.T03 | MD-DSK-010.008.M26 | Negative | No work without tickets (SRD-DSK-010.008) | quiet, only waiting and ended tickets | has_work false; no run | Not Run |
-| UT-DSK-010.011.M26.T02 | MD-DSK-010.008.M26 | Positive | Progress keeps it running (SRD-DSK-010.011) | 3 steps each with a new note and a new call | still running; 3 notes in result | Not Run |
-| UT-DSK-010.013.M26.T02 | MD-DSK-010.008.M26 | Negative | No event for rejected or expired (SRD-DSK-010.013) | ticket rejected; ticket expired | no research_done event | Not Run |
+| UT-DSK-004.006.M22.T01 | MD-DSK-008.001.M22 | Positive | Default daily tokens (SRD-DSK-004.006) | employee file without `tokens_per_day` | 60,000 | Pass |
+| UT-DSK-004.006.M22.T02 | MD-DSK-008.001.M22 | Negative | Too small a budget (SRD-DSK-004.006) | `tokens_per_day: 500` | file refused with the field named | Pass |
+| UT-DSK-004.007.M12.T01 | MD-DSK-004.003.M12 | Positive | Split 50/20/30 (SRD-DSK-004.007) | 60,000 tokens a day | plan 30,000, market 12,000, research 18,000 | Pass |
+| UT-DSK-004.008.M10.T01 | MD-DSK-003.001.M10 | Positive | Part by event (SRD-DSK-004.008) | wakes by watch_flag, market_checkin, after_run | activity part market, market, plan | Pass |
+| UT-DSK-004.008.M14.T01 | MD-DSK-005.001.M14 | Edge | Old rows count as plan (SRD-DSK-004.008) | activity rows with no part or payer | summed in the employee's plan part | Pass |
+| UT-DSK-004.009.M12.T01 | MD-DSK-004.003.M12 | Positive | Used-up part refuses (SRD-DSK-004.009) | market part used 12,000 of 12,000 | watch flag call refused; plan call allowed | Pass |
+| UT-DSK-004.009.M12.T02 | MD-DSK-004.003.M12 | Negative | Ticket paid by the raiser (SRD-DSK-004.009) | doer's research used up, raiser's not; then raiser's used up | allowed; then refused | Pass |
+| UT-DSK-004.009.M11.T01 | MD-DSK-004.001.M11 | Edge | Ticket cap between tries (SRD-DSK-004.009) | first try reaches the ticket cap, answer invalid | no second try; refused reason names the ticket | Pass |
+| UT-DSK-004.010.M11.T01 | MD-DSK-004.001.M11 | Positive | Part refusal log (SRD-DSK-004.010) | plan part used up | `[Budget]` line with name, part and tokens | Pass |
+| UT-DSK-007.010.M21.T01 | MD-DSK-007.001.M21 | Positive | Waiting ticket alert (SRD-DSK-007.010) | raise a 30,000-token ticket; then approve it | one Research ticket waiting alert with goal and cap; closed after approve | Pass |
+| UT-DSK-007.010.M21.T02 | MD-DSK-007.001.M21 | Negative | No alert when auto approved (SRD-DSK-007.010) | raise an 8,000-token ticket | no alert | Pass |
+| UT-DSK-010.001.M25.T01 | MD-DSK-010.001.M25 | Positive | Ticket row (SRD-DSK-010.001) | lead raises one ticket | row with kind, topic, goal, done test, caps, raiser, status, made | Pass |
+| UT-DSK-010.002.M25.T01 | MD-DSK-010.001.M25 | Negative | Only leads raise (SRD-DSK-010.002) | skill held by an expert | no row; refused note | Pass |
+| UT-DSK-010.002.M25.T02 | MD-DSK-010.001.M25 | Edge | 3 a day (SRD-DSK-010.002) | 4th ticket by one lead on one day | refused; next day allowed | Pass |
+| UT-DSK-010.003.M25.T01 | MD-DSK-010.001.M25 | Positive | Auto approval limit (SRD-DSK-010.003) | caps 10,000 and 10,001 | approved by auto; waiting | Pass |
+| UT-DSK-010.003.M25.T02 | MD-DSK-010.001.M25 | Edge | Book tickets wait (SRD-DSK-010.003) | book_to_strategy, cap 5,000 | waiting | Pass |
+| UT-DSK-010.004.M25.T01 | MD-DSK-010.001.M25 | Positive | Approve with new cap (SRD-DSK-010.004) | edit approve, cap 20,000 | approved by master, cap 20,000, edit applied | Pass |
+| UT-DSK-010.004.M25.T02 | MD-DSK-010.001.M25 | Positive | Reject and cap change (SRD-DSK-010.004) | edit reject on one; edit cap on another | rejected; still waiting with new cap | Pass |
+| UT-DSK-010.004.M25.T03 | MD-DSK-010.001.M25 | Negative | Edit on a ticket not waiting (SRD-DSK-010.004) | approve on an approved ticket | edit applied; ticket unchanged | Pass |
+| UT-DSK-010.005.M25.T01 | MD-DSK-010.001.M25 | Edge | Expiry after 3 days (SRD-DSK-010.005) | waiting ticket 2 days and 3 days 1 minute old | first still waiting; second expired | Pass |
+| UT-DSK-010.006.M25.T01 | MD-DSK-010.001.M25 | Negative | Repeat refused (SRD-DSK-010.006) | same kind and goal (other case and spaces) done 10 days ago; then 31 days ago | refused; then added | Pass |
+| UT-DSK-010.007.M25.T01 | MD-DSK-010.001.M25 | Positive | Topic parked (SRD-DSK-010.007) | 3 ended no-gain tickets on a topic; then one with gain among them | new ticket refused; then allowed | Pass |
+| UT-DSK-010.008.M26.T01 | MD-DSK-010.008.M26 | Positive | Quiet gap (SRD-DSK-010.008) | waiting event; flag 10 minutes ago; flag 25 minutes ago | not quiet; not quiet; quiet | Pass |
+| UT-DSK-010.008.M26.T02 | MD-DSK-010.008.M26 | Positive | Ticket order (SRD-DSK-010.008) | running, paused and two approved tickets | running first, then paused, then oldest approved | Pass |
+| UT-DSK-010.008.M04.T01 | MD-DSK-001.010.M04 | Positive | Market work first (SRD-DSK-010.008) | approved ticket and a waiting watch_flag event | event run handles the flag; no research step that tick | Pass |
+| UT-DSK-010.009.M26.T01 | MD-DSK-010.008.M26 | Positive | Doer by kind (SRD-DSK-010.009) | fake research skill for setup_tuning, one step | step done by its employee; activity part research, payer raiser, ticket id | Pass |
+| UT-DSK-010.009.M26.T02 | MD-DSK-010.008.M26 | Negative | No doer (SRD-DSK-010.009) | approved stock_study ticket, no skill for it, two ticks | stays approved; one log line a day | Pass |
+| UT-DSK-010.010.M26.T01 | MD-DSK-010.008.M26 | Positive | Done test met (SRD-DSK-010.010) | skill outcome done, gain true | status done, gain 1, note in result | Pass |
+| UT-DSK-010.010.M26.T02 | MD-DSK-010.008.M26 | Edge | Hard token cap (SRD-DSK-010.010) | cap 10,000, spent 7,000, step estimate 4,000 | no call; done with reason token cap | Pass |
+| UT-DSK-010.010.M26.T03 | MD-DSK-010.008.M26 | Edge | Step and time caps (SRD-DSK-010.010) | 8 steps done; 61 minutes of call time | done with step cap; done with time cap | Pass |
+| UT-DSK-010.011.M26.T01 | MD-DSK-010.008.M26 | Negative | Stall stops a ticket (SRD-DSK-010.011) | two steps with no note; same call twice | stuck; stuck | Pass |
+| UT-DSK-010.012.M26.T01 | MD-DSK-010.008.M26 | Positive | Pause and resume (SRD-DSK-010.012) | running ticket, new flag; 20 minutes later | paused after the step; resumed and running | Pass |
+| UT-DSK-010.012.M26.T02 | MD-DSK-010.008.M26 | Negative | Research part used up (SRD-DSK-010.012) | raiser's research part used up | paused; no call made | Pass |
+| UT-DSK-010.012.M25.T01 | MD-DSK-010.001.M25 | Positive | Pause on app close (SRD-DSK-010.012) | ticket running when the desk starts | paused with reason app closed | Pass |
+| UT-DSK-010.013.M26.T01 | MD-DSK-010.008.M26 | Positive | research_done event (SRD-DSK-010.013) | ticket ends | one research_done event for its id; closed as nobody listens | Pass |
+| UT-DSK-010.014.M26.T01 | MD-DSK-010.008.M26 | Positive | Ticket logs (SRD-DSK-010.014) | raise, start, pause, end | `[Research]` lines with id and status | Pass |
+| UT-DSK-004.007.M12.T02 | MD-DSK-004.003.M12 | Edge | Split of an odd budget (SRD-DSK-004.007) | 1,001 tokens a day | parts 500, 200, 300; never more than the budget | Pass |
+| UT-DSK-010.001.M25.T02 | MD-DSK-010.001.M25 | Edge | Tables made twice (SRD-DSK-010.001) | open desk.db twice with tickets in it | rows kept; no error | Pass |
+| UT-DSK-010.002.M25.T03 | MD-DSK-010.001.M25 | Positive | Lead raises (SRD-DSK-010.002) | active lead holds the skill; 3 tickets in a day | 3 rows raised by that lead's id and name | Pass |
+| UT-DSK-010.005.M25.T02 | MD-DSK-010.001.M25 | Positive | Approved in time (SRD-DSK-010.005) | waiting ticket approved on day 2, checked on day 4 | approved, not expired | Pass |
+| UT-DSK-010.006.M25.T02 | MD-DSK-010.001.M25 | Positive | New goal added (SRD-DSK-010.006) | same kind, different goal as a recent done ticket | added | Pass |
+| UT-DSK-010.007.M25.T02 | MD-DSK-010.001.M25 | Negative | Not parked yet (SRD-DSK-010.007) | 2 no-gain tickets; 3 no-gain, last ended 31 days ago | new ticket allowed; allowed | Pass |
+| UT-DSK-010.008.M26.T03 | MD-DSK-010.008.M26 | Negative | No work without tickets (SRD-DSK-010.008) | quiet, only waiting and ended tickets | has_work false; no run | Pass |
+| UT-DSK-010.011.M26.T02 | MD-DSK-010.008.M26 | Positive | Progress keeps it running (SRD-DSK-010.011) | 3 steps each with a new note and a new call | still running; 3 notes in result | Pass |
+| UT-DSK-010.013.M26.T02 | MD-DSK-010.008.M26 | Negative | No event for rejected or expired (SRD-DSK-010.013) | ticket rejected; ticket expired | no research_done event | Pass |
+| UT-DSK-010.012.M26.T03 | MD-DSK-010.008.M26 | Edge | Other refusal backs off (SRD-DSK-010.012) | doer over its calls a day | ticket paused with the reason; no work for 15 minutes | Pass |

@@ -2,7 +2,8 @@
 Module: MD-DSK-005.001.M14 — desk/recorder.py
 Parent SRD: SRD-DSK-005.001
 Also: SRD-DSK-005.002 (append-only), SRD-DSK-005.003 (briefs), SRD-DSK-003.009 (last wake),
-SRD-DSK-005.006 (replay tries are marked), SRD-DSK-006.004 (shadow tries are marked)
+SRD-DSK-005.006 (replay tries are marked), SRD-DSK-006.004 (shadow tries are marked),
+SRD-DSK-004.008 (budget part, payer and ticket of each try)
 
 Append-only records of every AI try (``activity``) and every AI feed brief (``briefs``)
 in ``desk.db``. The database itself refuses updates and deletes on both tables.
@@ -35,7 +36,9 @@ CREATE TABLE IF NOT EXISTS briefs (
 """
 # Columns added after the first P5a tables were created on real desks.
 _ADDED = (("activity", "employee_name", "TEXT"), ("briefs", "employee_id", "TEXT"),
-          ("activity", "replay", "INTEGER DEFAULT 0"), ("activity", "shadow", "INTEGER DEFAULT 0"))
+          ("activity", "replay", "INTEGER DEFAULT 0"), ("activity", "shadow", "INTEGER DEFAULT 0"),
+          ("activity", "part", "TEXT"), ("activity", "payer", "TEXT"),
+          ("activity", "ticket", "INTEGER"))
 _GUARDS = [
     f"CREATE TRIGGER IF NOT EXISTS {table}_no_{op.lower()} BEFORE {op} ON {table} "
     f"BEGIN SELECT RAISE(ABORT, '{table} is append-only'); END"
@@ -69,6 +72,9 @@ class Attempt:
     seconds: float
     replay: int = 0
     shadow: int = 0
+    part: str = "plan"
+    payer: str = ""
+    ticket: int | None = None
 
 
 @dataclass(frozen=True)
@@ -182,3 +188,26 @@ class Recorder:
             "SELECT COALESCE(SUM(tokens_in + tokens_out), 0) FROM activity "
             "WHERE substr(started, 1, 10) = ? AND source = ?", (day, source)).fetchone()
         return int(row[0])
+
+    def part_tokens(self, day: str, payer: str, part: str) -> int:
+        """Tokens ``payer`` spent from one budget part on ``day``; old rows count as plan."""
+        row = self._con.execute(
+            "SELECT COALESCE(SUM(tokens_in + tokens_out), 0) FROM activity "
+            "WHERE substr(started, 1, 10) = ? AND COALESCE(NULLIF(payer, ''), employee) = ? "
+            "AND COALESCE(part, 'plan') = ? AND COALESCE(replay, 0) = 0",
+            (day, payer, part)).fetchone()
+        return int(row[0])
+
+    def ticket_tokens(self, ticket: int) -> int:
+        """Tokens spent on one research ticket so far."""
+        row = self._con.execute(
+            "SELECT COALESCE(SUM(tokens_in + tokens_out), 0) FROM activity WHERE ticket = ?",
+            (ticket,)).fetchone()
+        return int(row[0])
+
+    def ticket_seconds(self, ticket: int) -> float:
+        """Seconds of model calls spent on one research ticket so far."""
+        row = self._con.execute(
+            "SELECT COALESCE(SUM(seconds), 0) FROM activity WHERE ticket = ?",
+            (ticket,)).fetchone()
+        return float(row[0])

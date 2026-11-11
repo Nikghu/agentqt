@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.17.2: Step E rows Implemented (5, 2026-11-11).
 > v0.17.1: SRD-MKT-014.001–.005 approved by user 2026-11-11.
 > v0.17.0: Autonomous desk step E (user, 2026-11-11): SRD-MKT-014.001–.005 added as Draft — lead research tickets.
 > v0.16.2: Step D rows Implemented (12, 2026-11-11).
@@ -247,8 +248,8 @@
 
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
-| SRD-MKT-014.001 | FO-MKT-014 | Must | The lead plan (`lead_brief`) and check-in (`checkin_note`) answers may hold up to 3 tickets, each with kind, topic, goal, done test and token cap. | answer | tickets | Typed form; an empty list is valid | Approved |
-| SRD-MKT-014.002 | FO-MKT-014 | Must | Ticket kinds come from a fixed list: setup tuning, pick post-mortem, stock study, sentiment, book to strategy and strategy test. | kind | checked kind | An unknown kind makes the ticket invalid, not the answer | Approved |
-| SRD-MKT-014.003 | FO-MKT-014 | Must | A ticket's token cap is between 1,000 and 100,000 tokens. | cap | checked cap | — | Approved |
-| SRD-MKT-014.004 | FO-MKT-014 | Must | The lead's prompt shows its research tokens left today, its open tickets and its results from the last 30 days. | `tickets`, `activity` | prompt text | At most 600 tokens | Approved |
-| SRD-MKT-014.005 | FO-MKT-014 | Must | Valid tickets of a kept answer are handed to the research queue. | tickets | `tickets` rows | Queue rules of FO-DSK-010 decide approve, wait or refuse | Approved |
+| SRD-MKT-014.001 | FO-MKT-014 | Must | The lead plan (`lead_brief`) and check-in (`checkin_note`) answers may hold up to 3 tickets, each with kind, topic, goal, done test and token cap. | answer | tickets | Typed form; an empty list is valid | Implemented |
+| SRD-MKT-014.002 | FO-MKT-014 | Must | Ticket kinds come from a fixed list: setup tuning, pick post-mortem, stock study, sentiment, book to strategy and strategy test. | kind | checked kind | An unknown kind makes the ticket invalid, not the answer | Implemented |
+| SRD-MKT-014.003 | FO-MKT-014 | Must | A ticket's token cap is between 1,000 and 100,000 tokens. | cap | checked cap | — | Implemented |
+| SRD-MKT-014.004 | FO-MKT-014 | Must | The lead's prompt shows its research tokens left today, its open tickets and its results from the last 30 days. | `tickets`, `activity` | prompt text | At most 600 tokens | Implemented |
+| SRD-MKT-014.005 | FO-MKT-014 | Must | Valid tickets of a kept answer are handed to the research queue. | tickets | `tickets` rows | Queue rules of FO-DSK-010 decide approve, wait or refuse | Implemented |

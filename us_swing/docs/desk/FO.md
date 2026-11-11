@@ -231,7 +231,7 @@ The system shall keep short lessons learned from pick results, prove them before
 
 ## FO-DSK-010: Research Queue
 
-**Status:** Approved (user, 2026-11-11)
+**Status:** Implemented (approved by user 2026-11-11)
 **Priority:** Must
 **Phase:** Autonomous desk step E
 **Depends on:** FO-DSK-003 (events and quiet gaps), FO-DSK-004 (research share), FO-DSK-007 (alerts)

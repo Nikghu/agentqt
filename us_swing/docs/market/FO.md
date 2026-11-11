@@ -355,7 +355,7 @@ The system shall watch the plan and the open trades during market hours with pla
 
 ## FO-MKT-014: Lead Research Tickets
 
-**Status:** Approved (user, 2026-11-11)
+**Status:** Implemented (approved by user 2026-11-11)
 **Priority:** Must
 **Phase:** Autonomous desk step E
 **Depends on:** FO-DSK-010 (research queue), FO-MKT-005 (lead plan), FO-MKT-013 (check-in notes)

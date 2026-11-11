@@ -3,7 +3,9 @@ Module: MD-DSK-001.010.M04 — desk/process.py
 Parent SRD: SRD-DSK-001.010
 Also: SRD-DSK-003.008 (market clock events and event runs), SRD-DSK-001.015 (morning run),
 SRD-DSK-001.019 (parent watch), SRD-DSK-003.013 (run kinds), SRD-DSK-009.008 (lesson edits),
-SRD-DSK-003.020 (check-in events), SRD-DSK-003.023 (watchers every 5 minutes)
+SRD-DSK-003.020 (check-in events), SRD-DSK-003.023 (watchers every 5 minutes),
+SRD-DSK-010.004, .005 (ticket edits and expiry each tick), SRD-DSK-010.008 (research only when
+no event has work), SRD-DSK-010.012 (running tickets paused at start)
 
 The desk main loop: one copy only, heartbeat, commands, runs, stop and resume. The morning
 run is due by ``morning_due``; between runs the loop posts market clock events and starts a
@@ -26,6 +28,7 @@ from typing import IO, Protocol, runtime_checkable
 from us_swing.core.desk_contract import CommandKind, DeskState, DeskStep, StepContext
 from us_swing.core.desk_events import post_event
 from us_swing.core.desk_lessons import apply_edits
+from us_swing.core.desk_research import apply_ticket_edits, expire_waiting, pause_running
 from us_swing.desk.clock import (
     MANUAL,
     MORNING,
@@ -60,6 +63,16 @@ class EventHandler(Protocol):
     def has_work(self, home: Path) -> bool: ...
 
     def handle_events(self, ctx: StepContext) -> None: ...
+
+
+class ResearchWork(Protocol):
+    """Takes one research step when it is quiet (a desk step of its own)."""
+
+    name: str
+
+    def has_work(self, home: Path) -> bool: ...
+
+    def __call__(self, ctx: StepContext) -> None: ...
 
 
 class _EventStep:
@@ -137,6 +150,7 @@ class DeskProcess:
         events: EventHandler | None = None,
         parent_alive: Callable[[], bool] | None = None,
         watch: Callable[[Path, datetime], int] | None = None,
+        research: ResearchWork | None = None,
     ) -> None:
         """Set up the desk; nothing is opened until :meth:`start`.
 
@@ -144,7 +158,9 @@ class DeskProcess:
         ``events`` handles market clock and other events between runs.
         ``parent_alive`` says whether the app that launched the desk still runs.
         ``watch`` runs the market watchers every 5 minutes in market hours.
+        ``research`` takes one research step when no event has work.
         """
+        self._research = research
         self._events = events
         self._parent_alive = parent_alive
         self._posted: set[tuple[str, str, int]] = set()
@@ -215,6 +231,10 @@ class DeskProcess:
         paused = saved is not None and saved.state is DeskState.PAUSED
         self._set(DeskState.PAUSED if paused else DeskState.SLEEPING, now, pid=os.getpid())
         log.info("[Desk] Desk started")
+        try:
+            pause_running(self._home, "app closed", now)
+        except Exception:  # noqa: BLE001 — a ticket problem must never stop the desk
+            log.exception("[Research] Could not pause the running tickets")
         self._run_daily_check()
         return True
 
@@ -274,6 +294,11 @@ class DeskProcess:
             apply_edits(self._home, now)
         except Exception:  # noqa: BLE001 — a bad edit must never stop the desk
             log.exception("[Memory] Could not apply the lesson edits")
+        try:
+            apply_ticket_edits(self._home, now)
+            expire_waiting(self._home, now)
+        except Exception:  # noqa: BLE001 — a bad ticket edit must never stop the desk
+            log.exception("[Research] Could not apply the ticket edits")
 
     def _apply_commands(self, now: datetime) -> None:
         for cmd in self._db.pending_commands():
@@ -342,6 +367,16 @@ class DeskProcess:
             return
         if work:
             self._do_run(_EVENT, [_EventStep(self._events)])
+        elif self._research is not None and self._research_due():
+            self._do_run(_EVENT, [self._research])
+
+    def _research_due(self) -> bool:
+        assert self._research is not None
+        try:
+            return self._research.has_work(self._home)
+        except Exception:  # noqa: BLE001 — a research problem must never stop the desk
+            log.exception("[Research] Could not check the research queue")
+            return False
 
     def _watch_tick(self, now: datetime) -> None:
         """Run the watchers every 5 minutes in market hours (SRD-DSK-003.023)."""

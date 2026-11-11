@@ -9,11 +9,16 @@ that passed the risk check, then writes the morning brief for the Floor. The har
 are applied again here, so a vetoed idea is never offered even without a risk check.
 Uses only ``core`` types; it never imports the desk harness.
 Also: MD-MKT-012.005.M03 — lessons block at the end of the facts (SRD-MKT-012.005)
+Also: MD-MKT-014.001.M01 — tickets in the answer, research block, tickets to the queue
+(SRD-MKT-014.001, .004, .005)
 """
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 from typing import Annotated, Literal
 
 import pandas as pd
@@ -21,6 +26,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from us_swing.core.desk_agents import AgentContext, Facts, FeedItem
 from us_swing.core.desk_lessons import with_lessons
+from us_swing.core.desk_research import TicketAsk, raise_tickets, with_research
 from us_swing.market.candles import CANDLE_DB
 from us_swing.market.risk_check import views_text
 from us_swing.market.risk_limits import code_vetoes
@@ -58,6 +64,11 @@ class LeadBrief(BaseModel):
 
     picks: list[LeadPick] = Field(default_factory=list, max_length=10)
     morning: str = Field(min_length=40, max_length=1200)
+    tickets: list[TicketAsk] = Field(default_factory=list, max_length=3)
+
+
+def _now() -> datetime:
+    return datetime.now(ZoneInfo("America/New_York"))
 
 
 def passed_frame(store: MarketStore, day: str) -> pd.DataFrame:
@@ -82,9 +93,11 @@ class LeadBriefSkill:
                               "risk_check")
     answer = LeadBrief
 
-    def __init__(self, candles: Path = CANDLE_DB) -> None:
-        """Use ``candles`` to check that the ideas are up to date."""
+    def __init__(self, candles: Path = CANDLE_DB,
+                 clock: Callable[[], datetime] = _now) -> None:
+        """Use ``candles`` to check that the ideas are up to date; ``clock`` is New York time."""
         self._candles = candles
+        self._clock = clock
 
     def facts(self, home: Path) -> Facts:
         """Build the facts: every view of the day and the ideas that passed."""
@@ -115,7 +128,8 @@ class LeadBriefSkill:
                 f"Ideas you may pick (they passed the risk check), at most {PICKS_PER_SIDE} "
                 f"per side:\n{table(shown)}",
             ])
-            return Facts(with_lessons(text, home, KEY, day), day, True)
+            text = with_lessons(text, home, KEY, day)
+            return Facts(with_research(text, home, KEY, self._clock()), day, True)
         finally:
             store.close()
 
@@ -124,6 +138,8 @@ class LeadBriefSkill:
         brief = ctx.ask(facts.text, LeadBrief)
         if brief is None:
             return []
+        if brief.tickets:
+            raise_tickets(ctx.home, KEY, brief.tickets, self._clock())
         store = MarketStore(ctx.home)
         try:
             day = facts.data_day

@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.12.2: Step E rows Implemented (20, 2026-11-11).
 > v0.12.1: SRD-DSK-004.006–.010, 007.010 and 010.001–.014 approved by user 2026-11-11.
 > v0.12.0: Autonomous desk step E (user, 2026-11-11): SRD-DSK-004.006–.010, 007.010 and 010.001–.014 added as Draft — token split and research queue.
 > v0.11.2: Step D rows Implemented (7, 2026-11-11).
@@ -116,11 +117,11 @@
 | SRD-DSK-004.003 | FO-DSK-004 | Must | No call is made once this month's API spend reaches the desk budget or the employee's own monthly cap. | `activity` cost | allow or refuse | Default budget USD 10 per month; only OpenRouter (API) calls carry cost | Implemented |
 | SRD-DSK-004.004 | FO-DSK-004 | Must | Claude Code CLI runs on the user's subscription: it is recorded with tokens and cost 0, and capped by tokens per day; per employee calls per day come from `job.yaml`. | `activity` tokens, count | allow or refuse | Default 200,000 CLI tokens per day | Implemented |
 | SRD-DSK-004.005 | FO-DSK-004 | Must | Desk AI settings (sources on or off, models, budget, CLI token cap) are kept in `desk_ai.json` in the desk folder and the OpenRouter key in the Windows credential store. | settings | file, key | Separate from the AI notes settings | Implemented |
-| SRD-DSK-004.006 | FO-DSK-004 | Must | Each employee has a daily token budget `tokens_per_day` in its employee file. | employee file | budget | Default 60,000 when missing; tokens in + out of all sources; the caps of SRD-DSK-004.003/.004 still apply | Approved |
-| SRD-DSK-004.007 | FO-DSK-004 | Must | The daily budget is split into three parts: plan 50%, market hours 20% and research 30%. | budget | three parts | Fixed split; unused tokens of one part never move to another | Approved |
-| SRD-DSK-004.008 | FO-DSK-004 | Must | A call counts against market hours when woken by a check-in or watcher flag, against research when it works a ticket, and against plan otherwise. | event, ticket | part | The part is kept on each `activity` row | Approved |
-| SRD-DSK-004.009 | FO-DSK-004 | Must | No call is made once its part is used up for the day; a ticket call is paid from the raising lead's research part, not the doer's. | `activity` tokens | allow or refuse | A refusal is handled like other budget refusals (SRD-DSK-003.018) | Approved |
-| SRD-DSK-004.010 | FO-DSK-004 | Should | A call refused for a used-up part logs the employee, the part and the tokens used. | refusal | log line | `[Budget]` prefix | Approved |
+| SRD-DSK-004.006 | FO-DSK-004 | Must | Each employee has a daily token budget `tokens_per_day` in its employee file. | employee file | budget | Default 60,000 when missing; tokens in + out of all sources; the caps of SRD-DSK-004.003/.004 still apply | Implemented |
+| SRD-DSK-004.007 | FO-DSK-004 | Must | The daily budget is split into three parts: plan 50%, market hours 20% and research 30%. | budget | three parts | Fixed split; unused tokens of one part never move to another | Implemented |
+| SRD-DSK-004.008 | FO-DSK-004 | Must | A call counts against market hours when woken by a check-in or watcher flag, against research when it works a ticket, and against plan otherwise. | event, ticket | part | The part is kept on each `activity` row | Implemented |
+| SRD-DSK-004.009 | FO-DSK-004 | Must | No call is made once its part is used up for the day; a ticket call is paid from the raising lead's research part, not the doer's. | `activity` tokens | allow or refuse | A refusal is handled like other budget refusals (SRD-DSK-003.018) | Implemented |
+| SRD-DSK-004.010 | FO-DSK-004 | Should | A call refused for a used-up part logs the employee, the part and the tokens used. | refusal | log line | `[Budget]` prefix | Implemented |
 
 ## FO-DSK-005: Activity Recorder and Replay
 
@@ -162,7 +163,7 @@
 | SRD-DSK-007.007 | FO-DSK-007 | Must | A run stopped by the candle check raises a "Candles not up to date" alert with the number of stocks still behind. | check result | alert | Same once-per-day and Telegram rules; closed by the next run that passes the check | Implemented |
 | SRD-DSK-007.008 | FO-DSK-007 | Must | A chain stopped by a failed step raises one "Desk plan is partial" alert naming the failed step and its last error. | failed step | alert | Same once-per-day and Telegram rules; closed by the next chain that finishes in full | Implemented |
 | SRD-DSK-007.009 | FO-DSK-007 | Must | A stop or target touch on an open trade, or a plan judged broken, raises an alert with the stock and price. | flag, verdict | alert | Kinds `trade_stop`, `trade_target`, `plan_broken`; same once-per-day and Telegram rules | Implemented |
-| SRD-DSK-007.010 | FO-DSK-007 | Must | A ticket that waits for the user's approval raises a "Research ticket waiting" alert with its goal and token cap. | ticket | alert | One alert per ticket; same Telegram rule; closed when the ticket is approved, rejected or expired | Approved |
+| SRD-DSK-007.010 | FO-DSK-007 | Must | A ticket that waits for the user's approval raises a "Research ticket waiting" alert with its goal and token cap. | ticket | alert | One alert per ticket; same Telegram rule; closed when the ticket is approved, rejected or expired | Implemented |
 
 ## FO-DSK-008: Employee File and Versions
 
@@ -196,17 +197,17 @@
 
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
-| SRD-DSK-010.001 | FO-DSK-010 | Must | Each ticket is a `tickets` row with id, kind, topic, goal, done test, token cap, step cap, time cap, raised by, status, made, approved by, tokens spent, steps, result and end reason. | ticket | `tickets` row | Status is waiting, approved, running, paused, done, failed, stuck, rejected or expired | Approved |
-| SRD-DSK-010.002 | FO-DSK-010 | Must | Only lead-level employees may raise tickets, at most 3 a day each. | ticket | row or refusal | Level read from the employee file; no names in code | Approved |
-| SRD-DSK-010.003 | FO-DSK-010 | Must | A ticket with a token cap of 10,000 or less is approved by the desk at once; a bigger one waits for the user. | ticket | status | Approved by `auto` or `master`; book tickets always wait | Approved |
-| SRD-DSK-010.004 | FO-DSK-010 | Must | The Master's approve, reject and change of token cap arrive as new `ticket_edits` rows that the desk applies at its next tick. | `ticket_edits` | `tickets` | Same pattern as SRD-DSK-009.008; an approve may carry a new cap | Approved |
-| SRD-DSK-010.005 | FO-DSK-010 | Must | A waiting ticket not approved within 3 days expires. | `tickets` | status | — | Approved |
-| SRD-DSK-010.006 | FO-DSK-010 | Must | A ticket with the same kind and goal as a ticket done in the last 30 days is not added. | ticket | refusal | The raiser's next prompt shows the old result | Approved |
-| SRD-DSK-010.007 | FO-DSK-010 | Must | A topic with 3 ended tickets that gave no gain is parked for 30 days, and new tickets on it are refused. | `tickets` | parked topic | Gain is the yes/no the skill gives at the end | Approved |
-| SRD-DSK-010.008 | FO-DSK-010 | Must | The desk runs one approved ticket at a time, oldest first, only when no plan run is active and no watcher flag came in the last 20 minutes. | `tickets`, events | ticket run | Outside market hours and on weekends the app-open time counts as quiet | Approved |
-| SRD-DSK-010.009 | FO-DSK-010 | Must | A ticket is worked by the active employee whose skill handles its kind, one AI call per step. | ticket | steps | A kind with no such employee stays approved and is logged once a day | Approved |
-| SRD-DSK-010.010 | FO-DSK-010 | Must | A ticket ends as done or failed when its done test is met or clearly failed, and as done at its token, step or time cap with what it found. | step result | status, result | Token cap is hard: no step starts that may pass it | Approved |
-| SRD-DSK-010.011 | FO-DSK-010 | Must | A ticket ends as stuck after two steps with no new result, or the same tool call twice in a row. | steps | status | — | Approved |
-| SRD-DSK-010.012 | FO-DSK-010 | Must | A watcher flag, a plan run, a used-up research part or the app closing pauses the running ticket after its current step; it resumes at the next quiet gap. | events | status paused | Its state is saved in `tickets` | Approved |
-| SRD-DSK-010.013 | FO-DSK-010 | Must | An ended ticket posts a `research_done` event with its id, status and result. | ticket | event | — | Approved |
-| SRD-DSK-010.014 | FO-DSK-010 | Should | Raise, approve, start, pause and end of each ticket are logged. | ticket | log line | `[Research]` prefix | Approved |
+| SRD-DSK-010.001 | FO-DSK-010 | Must | Each ticket is a `tickets` row with id, kind, topic, goal, done test, token cap, step cap, time cap, raised by, status, made, approved by, tokens spent, steps, result and end reason. | ticket | `tickets` row | Status is waiting, approved, running, paused, done, failed, stuck, rejected or expired | Implemented |
+| SRD-DSK-010.002 | FO-DSK-010 | Must | Only lead-level employees may raise tickets, at most 3 a day each. | ticket | row or refusal | Level read from the employee file; no names in code | Implemented |
+| SRD-DSK-010.003 | FO-DSK-010 | Must | A ticket with a token cap of 10,000 or less is approved by the desk at once; a bigger one waits for the user. | ticket | status | Approved by `auto` or `master`; book tickets always wait | Implemented |
+| SRD-DSK-010.004 | FO-DSK-010 | Must | The Master's approve, reject and change of token cap arrive as new `ticket_edits` rows that the desk applies at its next tick. | `ticket_edits` | `tickets` | Same pattern as SRD-DSK-009.008; an approve may carry a new cap | Implemented |
+| SRD-DSK-010.005 | FO-DSK-010 | Must | A waiting ticket not approved within 3 days expires. | `tickets` | status | — | Implemented |
+| SRD-DSK-010.006 | FO-DSK-010 | Must | A ticket with the same kind and goal as a ticket done in the last 30 days is not added. | ticket | refusal | The raiser's next prompt shows the old result | Implemented |
+| SRD-DSK-010.007 | FO-DSK-010 | Must | A topic with 3 ended tickets that gave no gain is parked for 30 days, and new tickets on it are refused. | `tickets` | parked topic | Gain is the yes/no the skill gives at the end | Implemented |
+| SRD-DSK-010.008 | FO-DSK-010 | Must | The desk runs one approved ticket at a time, oldest first, only when no plan run is active and no watcher flag came in the last 20 minutes. | `tickets`, events | ticket run | Outside market hours and on weekends the app-open time counts as quiet | Implemented |
+| SRD-DSK-010.009 | FO-DSK-010 | Must | A ticket is worked by the active employee whose skill handles its kind, one AI call per step. | ticket | steps | A kind with no such employee stays approved and is logged once a day | Implemented |
+| SRD-DSK-010.010 | FO-DSK-010 | Must | A ticket ends as done or failed when its done test is met or clearly failed, and as done at its token, step or time cap with what it found. | step result | status, result | Token cap is hard: no step starts that may pass it | Implemented |
+| SRD-DSK-010.011 | FO-DSK-010 | Must | A ticket ends as stuck after two steps with no new result, or the same tool call twice in a row. | steps | status | — | Implemented |
+| SRD-DSK-010.012 | FO-DSK-010 | Must | A watcher flag, a plan run, a used-up research part or the app closing pauses the running ticket after its current step; it resumes at the next quiet gap. | events | status paused | Its state is saved in `tickets` | Implemented |
+| SRD-DSK-010.013 | FO-DSK-010 | Must | An ended ticket posts a `research_done` event with its id, status and result. | ticket | event | — | Implemented |
+| SRD-DSK-010.014 | FO-DSK-010 | Should | Raise, approve, start, pause and end of each ticket are logged. | ticket | log line | `[Research]` prefix | Implemented |

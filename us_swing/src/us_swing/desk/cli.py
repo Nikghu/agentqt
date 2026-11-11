@@ -5,7 +5,8 @@ Also: SRD-DSK-001.022 — ``desk proof``; SRD-DSK-005.005 — ``desk replay``;
 SRD-DSK-008.008 — ``desk replay --draft FILE --out FILE``;
 SRD-DSK-003.008 — the desk loop gets the event handler;
 SRD-DSK-001.019 — ``--parent PID`` gives the loop a parent watch;
-SRD-DSK-003.023 — the desk loop gets the market watchers
+SRD-DSK-003.023 — the desk loop gets the market watchers;
+SRD-DSK-010.008 — the desk loop gets the research runner
 
 ``python -m us_swing desk [sub-command]``. With no sub-command the desk process runs.
 """
@@ -32,6 +33,7 @@ from us_swing.core.desk_steps import load_proof, load_steps, load_watch
 from us_swing.desk import task
 from us_swing.desk.process import DeskProcess, EventHandler, pid_alive
 from us_swing.desk.replay import replay, report
+from us_swing.desk.research import ResearchRunner
 
 log = logging.getLogger(__name__)
 
@@ -95,7 +97,7 @@ def main(
         return process(
             home, steps, resume=resume, daily_check=_remove_old_tasks, events=events,
             parent_alive=None if parent is None else partial(pid_alive, parent),
-            watch=watch(),
+            watch=watch(), research=ResearchRunner(),
         ).run()
     name = argv[0]
     if name == "replay":

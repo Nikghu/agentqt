@@ -63,7 +63,8 @@ def test_kind_rules() -> None:
     .021)."""
     assert {k: EVENT_RULES[k].priority for k in EVENT_KINDS} == {
         "regime_change": 0, "after_run": 1, "market_open": 2, "market_close": 2,
-        "chat_question": 0, "data_request": 0, "market_checkin": 2, "watch_flag": 0}
+        "chat_question": 0, "data_request": 0, "market_checkin": 2, "watch_flag": 0,
+            "research_done": 2}
     assert EVENT_RULES["market_open"].expiry == timedelta(minutes=30)
 
 

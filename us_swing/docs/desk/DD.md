@@ -905,7 +905,7 @@ for ask in asks[:3]:
     token_cap outside CAP_RANGE             -> "cap out of range"        (SRD-MKT-014.003)
     tickets made by raiser today (ET) >= 3  -> "3 tickets a day"         (SRD-DSK-010.002)
     same kind + goal (lower case, spaces squeezed) open, or done in 30 days -> "repeat"  (.006)
-    topic parked: >= 3 tickets on the topic ended done|failed|stuck with gain != 1,
+    topic parked: >= 3 tickets on the topic ended done|failed|stuck with gain = 0,
                   the last of them in the last 30 days                -> "topic parked" (.007)
     insert; cap <= 10_000 and kind != book_to_strategy -> approved by 'auto'            (.003)
             else waiting + raise_alert('ticket_waiting', source=str(id), detail=goal + cap)
@@ -914,7 +914,7 @@ for ask in asks[:3]:
 
 `TicketAsk` (pydantic, `extra="forbid"`): `kind: str (<= 30)`, `topic: str (3–60)`, `goal: str (10–300)`, `done_test: str (10–300)`, `token_cap: int`. The fields are plain, so a bad kind or cap only drops that ticket and never makes the whole answer invalid.
 
-**Research block** (`with_research(text, home, skill_key, now) -> str`). For the active employee holding `skill_key` (from the employee files), it appends: research tokens used and left today (from `activity` and the holder's `tokens_per_day`), the open tickets (id, kind, goal, status), and the ended tickets of the last 30 days (goal, status, gain, first 150 characters of the result). It closes with the ticket rules: at most 3, kinds, cap range, auto approval up to 10,000, book tickets wait. The block is cut to 2,400 characters (about 600 tokens). It returns `text` unchanged when there is no holder or no `desk.db`.
+**Research block** (`with_research(text, home, skill_key, now) -> str`). For the active employee holding `skill_key` (from the employee files), it appends: research tokens used and left today (from `activity` and the holder's `tokens_per_day`), the open tickets (id, kind, goal, status), and the worked tickets (done, failed, stuck) of the last 30 days (goal, status, gain yes, no or not known, first 150 characters of the result). It closes with the ticket rules: at most 3, kinds, cap range, auto approval up to 10,000, book tickets wait. The block is cut to 2,400 characters (about 600 tokens). It returns `text` unchanged when there is no holder or no `desk.db`.
 
 **Edits and expiry** (desk tick, `desk/process.py`):
 - `apply_ticket_edits(home, now)` applies each unapplied edit to a waiting ticket. `approve` → approved by `master` (a given cap replaces the old one), `reject` → rejected and ended, `cap` → new cap, still waiting. An edit on a ticket that is no longer waiting is marked applied with no change.
@@ -952,13 +952,16 @@ __call__(ctx):     one step of the next ticket: running, then paused, then appro
     ticket_seconds >= time_cap_min  -> end done "time cap"
     status running (started set on the first step); gateway(part=research, payer=raised_by,
         ticket=id, ticket_cap=token_cap); result = skill.step(gateway, ticket)
-    gateway.refused                 -> paused, "research tokens used up" or the reason
+    gateway.refused                 -> ticket cap: end done "token cap"; else paused with the
+                                       reason and no research for 15 minutes
     tokens = ticket_tokens(id); biggest = max(biggest, step tokens); steps += 1; state saved
     result None or note ""          -> quiet_steps += 1, else 0 and note added to result
     quiet_steps >= 2 or (call and call == last_call) -> end stuck   (R5, SRD-DSK-010.011)
     outcome done | failed           -> end with that status and gain  (R4)
 end(ticket, status, reason): ended, end_reason, gain; post research_done (ticket id); log
 ```
+
+**After code review (step E).** `raise_tickets` and `with_research` catch every error and log it, so a queue problem never loses the lead's answer or facts. The runner's step catches every error, logs it and waits 15 minutes, so the desk never goes to Error for research. A pause for a used-up part pauses only that ticket. A ticket ended at a cap has gain not known and never counts towards parking a topic.
 
 The desk loop (`_event_tick`) runs the runner only when `has_work` from events is false. Market work always comes first, and research runs one step per tick, so a new flag or plan event pauses research after the current step (R7, SRD-DSK-010.012). The research step runs inside a normal `event` run, so run kinds do not change (SRD-DSK-003.013). The runner lives in `desk`, so `desk/cli.py` builds it with the same events loaders and passes `research=` to `DeskProcess`.
 
