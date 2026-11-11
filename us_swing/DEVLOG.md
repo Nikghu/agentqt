@@ -2,6 +2,17 @@
 
 ---
 
+## [20261111] MKT+DSK — Autonomous AI Desk step F skill 2: pick post-mortem research (FO-MKT-016, SRD-DSK-010.015)
+
+- Type: Feature
+- FO(s): FO-MKT-016, FO-DSK-010 (SRD-DSK-010.015)
+- RN: RN-MKT-0.18.0-20261111, RN-DSK-0.12.0-20261111
+- Artifacts updated: SRD, DD, MD, UTCD, TRACE, CONTEXT, Code (market/post_mortem, market/post_mortem_facts, market/employees/emp-014, core/desk_research, SKILL_PATHS, USSwing.spec), Tests, RN, DEVLOG
+- Decisions: AI picks up to 10 losers and 5 winners from closed lead picks of the last 30 days (120 shown at most); bars from Backtest Data first, candles.db only for missing days; gain = at least one lesson saved; follow-ups in the raising lead's name; post_mortem follow-ups dropped (no chains); default employee emp-014 "Expert 11"
+- Tests: 22 UT-MKT-016 and 3 UT-DSK-010.015 cases Pass; market 464, desk 347, core 276 pass; no coverage run
+
+---
+
 ## [20261111] MKT — Autonomous AI Desk step F skill 1: setup tuning research (FO-MKT-015)
 
 - Type: Feature

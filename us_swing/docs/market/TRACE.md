@@ -3,7 +3,7 @@
 **Document ID:** TRACE-MKT
 **Version:** 0.1.0
 **Status:** Draft
-**Last Updated:** 2026-11-11 (autonomous desk step F skill 1: FO-MKT-015 with RN-MKT-0.17.0-20261111; autonomous desk step E: FO-MKT-014 with RN-MKT-0.16.0-20261111; autonomous desk step D: FO-MKT-013 with RN-MKT-0.15.0-20261111; memory v1 step C: FO-MKT-012 with RN-MKT-0.14.0-20261111; morning run step A: FO-MKT-001 SRD .013–.017 and SRD-MKT-005.015–.016 with RN-MKT-0.13.0-20261111; FO-MKT-011 ask the desk for new data)
+**Last Updated:** 2026-11-11 (autonomous desk step F skill 2: FO-MKT-016 with RN-MKT-0.18.0-20261111; autonomous desk step F skill 1: FO-MKT-015 with RN-MKT-0.17.0-20261111; autonomous desk step E: FO-MKT-014 with RN-MKT-0.16.0-20261111; autonomous desk step D: FO-MKT-013 with RN-MKT-0.15.0-20261111; memory v1 step C: FO-MKT-012 with RN-MKT-0.14.0-20261111; morning run step A: FO-MKT-001 SRD .013–.017 and SRD-MKT-005.015–.016 with RN-MKT-0.13.0-20261111; FO-MKT-011 ask the desk for new data)
 **Project:** US Swing Trading System
 
 > v0.1.0: One row per Draft FO. Columns fill as each phase completes.
@@ -42,3 +42,5 @@
 | FO-MKT-013 | SRD-MKT-013.001–.012 | DD-MKT-013.001.D01 | MD-MKT-013.001.M01, MD-MKT-013.008.M02, MD-MKT-013.010.M03, MD-MKT-013.011.M04 | UT-MKT-013.* (31, Pass) | `market/watch.py`, `market/watch_flag.py`, `market/checkin_note.py`, `market/employees/emp-011/`, `emp-012/` | Implemented | RN-MKT-0.15.0-20261111 |
 | FO-MKT-014 | SRD-MKT-014.001–.005 | DD-MKT-014.001.D01 | MD-MKT-014.001.M01, MD-MKT-014.001.M02 | UT-MKT-014.* (12, Pass) | `market/lead_brief.py`, `market/checkin_note.py` | Implemented | RN-MKT-0.16.0-20261111 |
 | FO-MKT-015 | SRD-MKT-015.001–.012 | DD-MKT-015.001.D01 | MD-MKT-015.001.M01, MD-MKT-015.002.M02, MD-MKT-015.004.M03, MD-MKT-015.005.M04 | UT-MKT-015.* (31, Pass) | `market/setup_tuning.py`, `market/setup_knobs.py`, `market/setups.py`, `market/tuning_replay.py`, `market/tuning_strategy.py`, `market/employees/emp-013/` | Implemented | RN-MKT-0.17.0-20261111 |
+| FO-MKT-016 | SRD-MKT-016.001–.003, .006–.011 | DD-MKT-016.001.D01 | MD-MKT-016.001.M01 | UT-MKT-016.001.M01.T01–T02, .002.M01.T01–T02, .003.M01.T01–T02, .006.M01.T01–T02, .007.M01.T01–T02, .008.M01.T01–T02, .009.M01.T01–T02, .010.M01.T01–T02, .011.M01.T01 (17, Pass) | `market/post_mortem.py`, `market/employees/emp-014/`, `SKILL_PATHS`, `USSwing.spec` | Implemented | RN-MKT-0.18.0-20261111 |
+| FO-MKT-016 | SRD-MKT-016.004–.005 | DD-MKT-016.001.D01 | MD-MKT-016.004.M02 | UT-MKT-016.004.M02.T01–T02, UT-MKT-016.005.M02.T01–T03 (5, Pass) | `market/post_mortem_facts.py` | Implemented | RN-MKT-0.18.0-20261111 |
