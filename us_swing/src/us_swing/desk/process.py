@@ -2,7 +2,8 @@
 Module: MD-DSK-001.010.M04 — desk/process.py
 Parent SRD: SRD-DSK-001.010
 Also: SRD-DSK-003.008 (market clock events and event runs), SRD-DSK-001.015 (morning run),
-SRD-DSK-001.019 (parent watch), SRD-DSK-003.013 (run kinds), SRD-DSK-009.008 (lesson edits)
+SRD-DSK-001.019 (parent watch), SRD-DSK-003.013 (run kinds), SRD-DSK-009.008 (lesson edits),
+SRD-DSK-003.020 (check-in events), SRD-DSK-003.023 (watchers every 5 minutes)
 
 The desk main loop: one copy only, heartbeat, commands, runs, stop and resume. The morning
 run is due by ``morning_due``; between runs the loop posts market clock events and starts a
@@ -25,7 +26,14 @@ from typing import IO, Protocol, runtime_checkable
 from us_swing.core.desk_contract import CommandKind, DeskState, DeskStep, StepContext
 from us_swing.core.desk_events import post_event
 from us_swing.core.desk_lessons import apply_edits
-from us_swing.desk.clock import MANUAL, MORNING, market_events_due, morning_due
+from us_swing.desk.clock import (
+    MANUAL,
+    MORNING,
+    checkins_due,
+    in_market_hours,
+    market_events_due,
+    morning_due,
+)
 from us_swing.desk.store import DeskStore
 
 if sys.platform == "win32":
@@ -39,6 +47,7 @@ _MORNING = MORNING
 _MANUAL = MANUAL
 _EVENT = "event"
 _RUN_LOOKBACK = timedelta(days=1)
+WATCH_EVERY = timedelta(minutes=5)
 _SYNCHRONIZE = 0x00100000
 _WAIT_TIMEOUT = 0x00000102
 _ACCESS_DENIED = 5
@@ -127,16 +136,20 @@ class DeskProcess:
         beat_s: float = 10.0,
         events: EventHandler | None = None,
         parent_alive: Callable[[], bool] | None = None,
+        watch: Callable[[Path, datetime], int] | None = None,
     ) -> None:
         """Set up the desk; nothing is opened until :meth:`start`.
 
         ``daily_check`` runs once at start (old desk task clean-up).
         ``events`` handles market clock and other events between runs.
         ``parent_alive`` says whether the app that launched the desk still runs.
+        ``watch`` runs the market watchers every 5 minutes in market hours.
         """
         self._events = events
         self._parent_alive = parent_alive
-        self._posted: set[tuple[str, str]] = set()
+        self._posted: set[tuple[str, str, int]] = set()
+        self._watch = watch
+        self._last_watch: datetime | None = None
         self._home = home
         self._steps = list(steps)
         self._resume = resume
@@ -315,15 +328,32 @@ class DeskProcess:
             return
         try:
             for kind, day in market_events_due(now):
-                if (kind, day) not in self._posted:
+                if (kind, day, 0) not in self._posted:
                     post_event(self._home, kind, day, now)
-                    self._posted.add((kind, day))
+                    self._posted.add((kind, day, 0))
+            for day, slot in checkins_due(now):
+                if ("market_checkin", day, slot) not in self._posted:
+                    post_event(self._home, "market_checkin", day, now, slot)
+                    self._posted.add(("market_checkin", day, slot))
+            self._watch_tick(now)
             work = self._events.has_work(self._home)
         except Exception:  # noqa: BLE001 — a bad event check must never stop the desk
             log.exception("[Desk] Could not check for AI events")
             return
         if work:
             self._do_run(_EVENT, [_EventStep(self._events)])
+
+    def _watch_tick(self, now: datetime) -> None:
+        """Run the watchers every 5 minutes in market hours (SRD-DSK-003.023)."""
+        if self._watch is None or not in_market_hours(now):
+            return
+        if self._last_watch is not None and now - self._last_watch < WATCH_EVERY:
+            return
+        self._last_watch = now
+        try:
+            self._watch(self._home, now)
+        except Exception:  # noqa: BLE001 — a watcher problem must never stop the desk
+            log.exception("[Watch] The market watchers failed; trying again in 5 minutes")
 
     def _do_run(self, kind: str, steps: Sequence[DeskStep] | None = None) -> None:
         self._rerun = self._run_now = False

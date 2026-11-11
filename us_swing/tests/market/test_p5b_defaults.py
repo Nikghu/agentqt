@@ -69,7 +69,7 @@ def test_skill_list() -> None:
     """UT-MKT-005.018.M09.T01: The skill keys (five, news_review in P5c, report_page in P5d, lead_chat in P9, data_recipe in P10, lesson_reflect in step C) load to skills with a matching key."""
     assert set(SKILL_PATHS) == {"regime_view", "sector_flow_view", "setup_review", "risk_check", "news_review",
                                 "lead_brief", "report_page", "lead_chat",
-                                "data_recipe", "lesson_reflect"}
+                                "data_recipe", "lesson_reflect", "watch_flag", "checkin_note"}
     for key, path in SKILL_PATHS.items():
         module, _, cls = path.partition(":")
         skill = getattr(importlib.import_module(module), cls)()

@@ -830,3 +830,14 @@ Both are added to `SKILL_PATHS` and `USSwing.spec`.
 - `plan_broken` "Plan broken": "Read the desk's note in Market Floor before you act."
 
 **App** (`gui/app_service.py`). `_start_live_bar_worker` uses `list(dict.fromkeys(held + filtered + desk_live_symbols(desk_home(), today)))[:100]`, and logs `[Live] Added %d desk stock(s) to the live feed`. `_publish_open_trades()` turns the `_tc_query.open_cycles()` snapshots into rows: side from direction, stop = `effective_stop or hard_stop_loss`, and the target. It calls `write_open_trades`, and runs at start, in `_on_cycle_symbols_changed` (queued to the GUI thread) and on the 60-second market-status timer. Errors are logged at warning level and never stop the app.
+
+**After code review (step D).**
+- Stop and target touches look at the bars of the last 10 minutes (passes run every 5 minutes on 3-minute bars) and are flagged once a day per trade level, so a trade sitting past its stop does not wake the AI every hour.
+- A stop of 0 means the trade has no stop; it is never treated as a level.
+- Once-a-day flags keep their key in a `tag` column, so the stored detail (gap %, SPY %) stays readable in the feed and the prompt.
+- A gap is judged only when the day's 09:30 bar is there (first bar no later than 09:36).
+- Each watcher runs in its own try/except, so one failing watcher never stops the pass.
+- The flag skill answers the flag it showed in its facts; a flag with no valid answer is closed as `none`, so newer flags are not stuck behind it.
+- The app writes open trades only when the list changed, on a short background thread, so a busy `desk.db` never blocks the GUI or the trade-cycle thread; held stocks come first in the 100-symbol live feed.
+- Tests point `desk_home()` at a temp folder (root conftest), so no test writes the real `desk.db`.
+

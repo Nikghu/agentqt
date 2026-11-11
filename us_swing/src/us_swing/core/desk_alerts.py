@@ -4,7 +4,7 @@ Parent SRD: SRD-DSK-007.001
 Also: SRD-DSK-007.002 (once a day), SRD-DSK-007.003 (Telegram), SRD-DSK-007.005 (whole run
 failed), SRD-DSK-007.006 (open alerts close when the source works again), SRD-DSK-007.007
 (candles not up to date, closed by a later ok run), SRD-DSK-007.008 (desk plan is partial,
-closed by a later full chain)
+closed by a later full chain), SRD-DSK-007.009 (trade at stop or target, plan broken)
 
 AI problem alerts: sorts an LLM error into a problem the user must fix (Claude login, OpenRouter
 key or credit), keeps one alert per problem per day in ``desk.db``, sends it to Telegram and
@@ -59,11 +59,15 @@ _FIX = {
                 "Open Settings → Candle data and press Update now with TWS connected. The desk "
                 "tries again after 15 minutes, up to 3 times a day; after that press Run now "
                 "in AI Desk."),
+    "trade_stop": ("Trade at stop", "Check the trade in Execution; the desk does not close it."),
+    "trade_target": ("Trade at target", "Check the trade in Execution."),
+    "plan_broken": ("Plan broken", "Read the desk's note in Market Floor before you act."),
     "partial": ("Desk plan is partial",
                 "Open AI Desk → Team at work → Event log to see the error; the next run tries "
                 "again."),
 }
 DATA_PROBLEMS = ("candles",)
+MARKET_ALERTS = ("trade_stop", "trade_target", "plan_broken")  # open for the day
 USER_PROBLEMS = ("login", "key", "credit")
 
 Sender = Callable[[str], bool]
@@ -113,7 +117,8 @@ def raise_alert(home: Path, kind: str, source: str, run_id: int, detail: str,
 
     Args:
         home: Desk folder.
-        kind: ``login``, ``key``, ``credit``, ``run_failed``, ``candles`` or ``partial``.
+        kind: ``login``, ``key``, ``credit``, ``run_failed``, ``candles``, ``partial``,
+            ``trade_stop``, ``trade_target`` or ``plan_broken``.
         source: The model source (``claude``, ``openrouter``) or empty.
         run_id: Desk run that found the problem.
         detail: What happened, in a line.
@@ -197,6 +202,8 @@ def open_alerts(home: Path, now: datetime) -> list[Alert]:
 
 def _fixed(home: Path, kind: str, source: str, when: datetime) -> bool:
     """True when something after ``when`` shows the alert's problem is gone."""
+    if kind in MARKET_ALERTS:
+        return False
     if kind in DATA_PROBLEMS:
         return bool(_read(home, "SELECT 1 FROM runs WHERE kind IN ('morning', 'manual') AND "
                                 "result = 'ok' AND started_at > ? LIMIT 1", (utc_text(when),)))

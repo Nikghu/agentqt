@@ -1,6 +1,8 @@
 """Module: MD-GUI-000.002 — app_service.py
 Parent SRD: SRD-GUI-000.001, SRD-GUI-008.001–SRD-GUI-008.004,
             SRD-GUI-006.011–SRD-GUI-006.014
+Also: MD-GUI-038.001.M01 — desk plan stocks in the live bar feed and open trades shared with
+      the AI desk (SRD-GUI-038.001–.003)
 
 Application service — single source of truth for GUI state.
 
@@ -65,11 +67,12 @@ import time
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
+from us_swing.core.desk_watch import OpenTrade, desk_live_symbols, write_open_trades
 from us_swing.core.symbols import yahoo_symbol
 
 if TYPE_CHECKING:
@@ -766,6 +769,33 @@ class _CandleDbStatusWorker(QThread):
             ))
         except Exception as exc:
             self.failed.emit(str(exc))
+
+
+LIVE_CAP = 100  # IBKR streaming lines for the live bar feed
+
+
+def live_symbols(current: Sequence[str], desk: Sequence[str], cap: int = LIVE_CAP,
+                 held: Sequence[str] = ()) -> list[str]:
+    """Held stocks, then the app's live symbols, then the desk's new ones, at most ``cap``
+    (SRD-GUI-038.001)."""
+    return list(dict.fromkeys([*sorted(held), *current, *desk]))[:cap]
+
+
+def _write_trades(rows: list[OpenTrade]) -> None:
+    """Write the open trades into desk.db (runs on a short background thread)."""
+    from us_swing.core import desk_contract  # noqa: PLC0415
+    try:
+        write_open_trades(desk_contract.desk_home(), rows, datetime.datetime.now(_ET))
+    except Exception:  # noqa: BLE001 — sharing trades must never stop the app
+        _log.warning("[Desk] Could not share the open trades with the AI desk", exc_info=True)
+
+
+def trade_rows(snaps: Sequence[Any]) -> list[OpenTrade]:
+    """Open trade cycles as desk rows: side, entry, the stop in force and the target."""
+    return [OpenTrade(s.symbol, "short" if str(s.direction).upper() == "SHORT" else "long",
+                      float(s.entry_price), float(s.effective_stop or s.hard_stop_loss),
+                      None if s.target_price is None else float(s.target_price),
+                      str(s.strategy_id or "")) for s in snaps]
 
 
 # ── Background worker: intraday chart read ───────────────────────────────────
@@ -2250,14 +2280,20 @@ class AppService(QObject):
     # ── Live bar worker (market-hours 5s IBKR → 1m candle feed) ─────────────
 
     def _start_live_bar_worker(self) -> None:
-        """Start (or restart) the live bar worker for the current filtered symbols."""
+        """Start (or restart) the live bar worker for the filtered symbols and the desk's
+        plan stocks and SPY (SRD-GUI-038.001)."""
         self._stop_live_bar_worker()
-        if not self._filtered_symbols:
+        desk = self._desk_live_symbols()
+        symbols = live_symbols(self._filtered_symbols, desk, held=self._cycle_symbols)
+        if not symbols:
             return
+        added = len(set(symbols) - set(self._filtered_symbols))
+        if added:
+            _log.info("[Live] Added %d desk stock(s) to the live feed", added)
         from us_swing.execution.live_bar_worker import LiveBarWorker  # noqa: PLC0415
         cfg = self._system_cfg
         worker = LiveBarWorker(
-            symbols=self._filtered_symbols,
+            symbols=symbols,
             ibkr_host=cfg.ibkr_host,
             ibkr_port=cfg.ibkr_port,
             ibkr_client_id=cfg.ibkr_live_client_id,
@@ -2267,7 +2303,37 @@ class AppService(QObject):
         worker.candle_closed.connect(self.live_bar_data_updated)
         self._live_bar_worker = worker
         worker.start()
-        _log.info("[Live] Live bar worker started for %d stock(s)", len(self._filtered_symbols))
+        _log.info("[Live] Live bar worker started for %d stock(s)", len(symbols))
+
+    def _desk_live_symbols(self) -> list[str]:
+        """The AI desk's plan stocks of today and SPY; empty when the desk has no data."""
+        from us_swing.core import desk_contract  # noqa: PLC0415
+        try:
+            return desk_live_symbols(desk_contract.desk_home(),
+                                     datetime.datetime.now(_ET).date().isoformat())
+        except Exception:  # noqa: BLE001 — the live feed still runs without desk stocks
+            _log.warning("[Live] Could not read the AI desk's plan stocks", exc_info=True)
+            return []
+
+    def _publish_open_trades(self) -> None:
+        """Share the open trades with the AI desk watchers (SRD-GUI-038.002).
+
+        Only a changed list is written, on a short background thread, so a busy desk.db never
+        blocks the GUI thread or the trade-cycle thread.
+        """
+        query = getattr(self, "_tc_query", None)  # the first status check runs before it exists
+        if query is None:
+            return
+        try:
+            rows = trade_rows(query.open_cycles())
+        except Exception:  # noqa: BLE001 — sharing trades must never stop the app
+            _log.warning("[Desk] Could not read the open trades for the AI desk", exc_info=True)
+            return
+        if rows == getattr(self, "_shared_trades", None):
+            return
+        self._shared_trades = rows
+        threading.Thread(target=_write_trades, args=(rows,), name="desk-open-trades",
+                         daemon=True).start()
 
     def _stop_live_bar_worker(self) -> None:
         """Stop the running live bar worker (no-op if not running)."""
@@ -3737,6 +3803,7 @@ class AppService(QObject):
         marshalled to the GUI thread because this callback fires on the
         trade-cycle background thread.
         """
+        self._publish_open_trades()
         if symbols == self._cycle_symbols:
             return
         new_syms = symbols - self._cycle_symbols
@@ -3761,7 +3828,9 @@ class AppService(QObject):
         _log.info("[Candles] Arming candle feeds for %d held symbol(s)", len(fresh))
         self._start_intraday_loader(fresh)
         if self._live_bar_worker is not None and self._live_bar_worker.isRunning():
-            self._live_bar_worker.set_symbols(self._filtered_symbols)
+            self._live_bar_worker.set_symbols(
+                live_symbols(self._filtered_symbols, self._desk_live_symbols(),
+                             held=self._cycle_symbols))
 
     def _on_cycle_tick(self, tag: str, price: float) -> None:
         """Forward live ticks to the trade-cycle service for PnL + exit evaluation."""
@@ -3970,6 +4039,7 @@ class AppService(QObject):
             "after_hours": "🟡 After-Hours session started (16:00–20:00 ET)",
             "closed":      "🔴 Market CLOSED",
         }
+        self._publish_open_trades()
         now_et = datetime.datetime.now(_ET)
         status = _get_exchange_status(now_et)
         prev   = self._market_status.get("nyse", "")
@@ -3987,7 +4057,7 @@ class AppService(QObject):
             self.log_message.emit(level, f"[Market] {msg}")
 
         # Live bar worker lifecycle: start on market open, stop on market close.
-        if status == "open" and prev != "open" and self._filtered_symbols:
+        if status == "open" and prev != "open":
             self._start_live_bar_worker()
         elif status != "open" and prev == "open":
             self._stop_live_bar_worker()

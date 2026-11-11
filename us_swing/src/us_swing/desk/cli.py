@@ -4,7 +4,8 @@ Parent SRD: SRD-DSK-001.020
 Also: SRD-DSK-001.022 — ``desk proof``; SRD-DSK-005.005 — ``desk replay``;
 SRD-DSK-008.008 — ``desk replay --draft FILE --out FILE``;
 SRD-DSK-003.008 — the desk loop gets the event handler;
-SRD-DSK-001.019 — ``--parent PID`` gives the loop a parent watch
+SRD-DSK-001.019 — ``--parent PID`` gives the loop a parent watch;
+SRD-DSK-003.023 — the desk loop gets the market watchers
 
 ``python -m us_swing desk [sub-command]``. With no sub-command the desk process runs.
 """
@@ -13,6 +14,7 @@ from __future__ import annotations
 import json
 import logging
 from collections.abc import Callable
+from datetime import datetime
 from functools import partial
 from pathlib import Path
 
@@ -26,7 +28,7 @@ from us_swing.core.desk_contract import (
     send_command,
 )
 from us_swing.core.desk_employee import parse
-from us_swing.core.desk_steps import load_proof, load_steps
+from us_swing.core.desk_steps import load_proof, load_steps, load_watch
 from us_swing.desk import task
 from us_swing.desk.process import DeskProcess, EventHandler, pid_alive
 from us_swing.desk.replay import replay, report
@@ -75,6 +77,7 @@ def main(
     home: Path | None = None,
     proof: Callable[[], Callable[[Path], str | None]] = load_proof,
     process: Callable[..., DeskProcess] = DeskProcess,
+    watch: Callable[[], Callable[[Path, datetime], int]] = load_watch,
 ) -> int:
     """Run a desk sub-command and return the exit code.
 
@@ -92,6 +95,7 @@ def main(
         return process(
             home, steps, resume=resume, daily_check=_remove_old_tasks, events=events,
             parent_alive=None if parent is None else partial(pid_alive, parent),
+            watch=watch(),
         ).run()
     name = argv[0]
     if name == "replay":
