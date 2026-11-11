@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.14.0: Autonomous desk step D (user, 2026-11-11): FO-MKT-013 added as Draft — check-ins and watchers.
 > v0.13.0: Autonomous desk step C (user, 2026-11-11): FO-MKT-012 added as Draft — memory v1.
 > v0.12.0: Autonomous desk step A (user, 2026-11-10): FO-MKT-001 runs in the morning run and adds the candle check with a Yahoo desk-only copy; FO-MKT-005 brief becomes the morning brief. Older acceptance lines that say "evening run" describe the run in place when they were written.
 > v0.11.2: FO-MKT-011 Implemented (RN-MKT-0.12.0-20261110).
@@ -326,3 +327,26 @@ The system shall turn closed pick results into a few candidate lessons each day 
 1. On a day with new closed picks the reflect employee runs once and adds at most 3 candidates.
 2. On a day with no new closed picks it stays asleep and makes no call.
 3. Regime view and sector view prompts hold no lessons.
+
+## FO-MKT-013: Intraday Watchers and Check-in Notes
+
+**Status:** Draft
+**Priority:** Must
+**Phase:** Autonomous desk step D
+**Depends on:** FO-DSK-003 (events), FO-GUI-038 (app feeds), FO-MKT-005 (ideas and picks), FO-MKT-006 (news)
+**Source: User 2026-11-11 (Autonomous desk step D): prices from the app's intraday candles; stop/target watcher covers all open trades; watchers every 5 minutes; an AI note at each check-in. Design §4 and §6: https://claude.ai/artifact/J7AexvWdqDNujADoc9dJkJ.**
+
+The system shall watch the plan and the open trades during market hours with plain code, and ask the AI only when something happens.
+
+- The system shall read the app's 3-minute bars for plan stocks, open-trade stocks and SPY.
+- The system shall flag a trigger reached, a stop or target touched, a volume spike, a gap and a large SPY move.
+- The system shall flag a new headline for a lead pick or an open-trade stock.
+- The system shall ask one AI employee whether the plan still holds for each flag, and alert when it is broken.
+- The system shall write a short AI note at each check-in.
+- The system shall never place, change or close a trade from a flag or a note.
+
+### Acceptance Criteria
+
+1. When a listed idea's price reaches its trigger, a feed note and an AI answer for it appear within about 5 minutes.
+2. A stop touch on any open trade raises a "Trade at stop" alert on the app and Telegram.
+3. Each trading day the feed has three check-in notes when the app is open from 10:00 to 15:30 New York time.

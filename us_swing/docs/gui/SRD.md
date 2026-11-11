@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.107.0: Autonomous desk step D (user, 2026-11-11): SRD-GUI-038.001–.003 added as Draft — check-ins and watchers.
 > v2.106.2: SRD-GUI-037.001–.004 Implemented 2026-11-11.
 > v2.106.1: SRD-GUI-037.001–.004 approved by user 2026-11-11.
 > v2.106.0: Autonomous desk step C (user, 2026-11-11): SRD-GUI-037.001–.004 added as Draft — memory v1.
@@ -816,3 +817,11 @@
 | SRD-GUI-037.002 | FO-GUI-037 | Must | The Memory table lists lessons with status, pinned, text, tags, cases, average R, confidence and last confirmed. | `lessons` | table | Active first; a filter picks active, candidate or retired | Implemented |
 | SRD-GUI-037.003 | FO-GUI-037 | Must | Pin, Unpin, Edit, Retire and Delete add a `lesson_edits` row; the row shows "applies at the next desk tick" until done. | button | `lesson_edits` row | Delete asks first | Implemented |
 | SRD-GUI-037.004 | FO-GUI-037 | Should | Choosing a lesson shows its proof picks with date, side, stock and R. | lesson | proof list | — | Implemented |
+
+## FO-GUI-038: App Feeds for the Desk Watchers
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-038.001 | FO-GUI-038 | Must | The app's live bar feed also covers the desk's plan stocks of the day (listed ideas and lead picks) and SPY. | `desk.db` ideas | live symbols | Held stocks first; within the 100-stock feed cap | Draft |
+| SRD-GUI-038.002 | FO-GUI-038 | Must | The app writes its open trades (stock, side, stop, target, strategy, mode) to `open_trades` in `desk.db` at start and whenever open trades change. | trade cycles | `open_trades` rows | Replaces the whole list; the only GUI-written market table | Draft |
+| SRD-GUI-038.003 | FO-GUI-038 | Should | Adding desk stocks to the live feed logs how many were added. | symbols | log line | `[Live]` prefix | Draft |

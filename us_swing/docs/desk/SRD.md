@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.11.0: Autonomous desk step D (user, 2026-11-11): SRD-DSK-003.020–.025 and 007.009 added as Draft — check-ins and watchers.
 > v0.10.2: SRD-DSK-009.001–.009 Implemented 2026-11-11.
 > v0.10.1: SRD-DSK-009.001–.009 approved by user 2026-11-11.
 > v0.10.0: Autonomous desk step C (user, 2026-11-11): SRD-DSK-009.001–.009 added as Draft — memory v1.
@@ -95,6 +96,12 @@
 | SRD-DSK-003.017 | FO-DSK-003 | Must | When a step has failed, employees that need it, directly or through others, are not woken and the chain stops there. | failed step | skips, log line | Each skipped employee is logged once | Implemented |
 | SRD-DSK-003.018 | FO-DSK-003 | Must | When a chain stops, the employee at level `lead` still runs once and posts a short plan marked partial that lists the missing views. | stopped chain | partial plan | No partial plan when the lead's own step failed | Implemented |
 | SRD-DSK-003.019 | FO-DSK-003 | Should | A chain cut off by closing the app carries on from its `step_done` rows at the next start while its trigger event has not expired. | `events` | resumed chain | Finished employees are not woken again | Implemented |
+| SRD-DSK-003.020 | FO-DSK-003 | Must | On NYSE trading days the market clock posts `market_checkin` at 10:00, 12:30 and 15:30 New York time, once per time. | clock | events | P2; due only in the 30 minutes after each time, like the open and close events | Draft |
+| SRD-DSK-003.021 | FO-DSK-003 | Must | Each watcher flag is a `watch_flags` row and a `watch_flag` event for it. | flag | row, event | P0, deadline 5 min, expiry 30 min; one event per flag | Draft |
+| SRD-DSK-003.022 | FO-DSK-003 | Must | A flag for the same stock and flag kind within an hour of the last one is not stored again. | flag | skip | Once per stock, kind and New York hour | Draft |
+| SRD-DSK-003.023 | FO-DSK-003 | Must | While the desk runs in market hours and is not paused, it runs the watchers every 5 minutes. | clock | watcher pass | A failing watcher is logged; the others still run | Draft |
+| SRD-DSK-003.024 | FO-DSK-003 | Must | Each new flag adds a code-made feed note with the stock, flag kind and price. | flag | brief | Shown even when no AI answers | Draft |
+| SRD-DSK-003.025 | FO-DSK-003 | Should | Each watcher pass that finds flags logs how many and of which kinds. | pass | log line | `[Watch]` prefix | Draft |
 
 ## FO-DSK-004: LLM Gateway and Budget Guard
 
@@ -145,6 +152,7 @@
 | SRD-DSK-007.006 | FO-DSK-007 | Must | An alert stays open for a day until a later valid answer (same source for sign-in problems) closes it. | alerts, activity | open alerts | Read-only for the GUI | Implemented |
 | SRD-DSK-007.007 | FO-DSK-007 | Must | A run stopped by the candle check raises a "Candles not up to date" alert with the number of stocks still behind. | check result | alert | Same once-per-day and Telegram rules; closed by the next run that passes the check | Implemented |
 | SRD-DSK-007.008 | FO-DSK-007 | Must | A chain stopped by a failed step raises one "Desk plan is partial" alert naming the failed step and its last error. | failed step | alert | Same once-per-day and Telegram rules; closed by the next chain that finishes in full | Implemented |
+| SRD-DSK-007.009 | FO-DSK-007 | Must | A stop or target touch on an open trade, or a plan judged broken, raises an alert with the stock and price. | flag, verdict | alert | Kinds `trade_stop`, `trade_target`, `plan_broken`; same once-per-day and Telegram rules | Draft |
 
 ## FO-DSK-008: Employee File and Versions
 
