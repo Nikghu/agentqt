@@ -1,7 +1,8 @@
 """
 Module: MD-MKT-009.001.M01 — market/pick_results.py
 Parent SRD: SRD-MKT-009.001
-Also: SRD-MKT-009.002 (entry), SRD-MKT-009.003 (exit and R), SRD-MKT-009.008 (log line)
+Also: SRD-MKT-009.002 (entry), SRD-MKT-009.003 (exit and R), SRD-MKT-009.008 (log line),
+SRD-DSK-009.002 and .007 (daily lesson review after the results are written)
 
 Desk step "Pick results": the paper result of every lead pick from daily candles, whether
 the Master approved, rejected or let it expire. No AI call. Entry is the trigger and exits
@@ -19,6 +20,7 @@ import pandas as pd
 
 from us_swing.core.desk_ai_settings import load_settings
 from us_swing.core.desk_contract import StepContext, desk_home
+from us_swing.core.desk_lessons import review_lessons
 from us_swing.core.desk_trades import pick_target
 from us_swing.market.candles import CANDLE_DB, CandleReader
 from us_swing.market.store import MarketStore, PickResultRow
@@ -114,8 +116,15 @@ class PickResultsStep:
         self._candles = candles
 
     def __call__(self, ctx: StepContext) -> None:
-        """Run the step inside a desk run."""
+        """Run the step inside a desk run, then check the lessons against the results."""
         home = ctx.home or desk_home()
+        self._results(home)
+        try:
+            review_lessons(home, ctx.started_at)
+        except Exception:  # noqa: BLE001 — a lesson check must never fail the run
+            log.exception("[Memory] Could not check the lessons")
+
+    def _results(self, home: Path) -> None:
         store = MarketStore(home)
         try:
             picks = store.read_frame(

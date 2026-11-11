@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.15.2: SRD-MKT-012.001–.006 Implemented 2026-11-11.
 > v0.15.1: SRD-MKT-012.001–.006 approved by user 2026-11-11.
 > v0.15.0: Autonomous desk step C (user, 2026-11-11): SRD-MKT-012.001–.006 added as Draft — memory v1.
 > v0.14.2: Step A rows Implemented 2026-11-11.
@@ -213,9 +214,9 @@
 
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
-| SRD-MKT-012.001 | FO-MKT-012 | Must | Code builds count, win rate and average R of closed paper picks by side, setup, regime, sector, grade and news tone. | `pick_results`, ideas, reviews | stats table | Closed means stop, target or time | Approved |
-| SRD-MKT-012.002 | FO-MKT-012 | Must | The reflect skill (`lesson_reflect`) asks for at most 3 candidate lessons from the stats, today's closed picks and the active lessons. | stats, picks, lessons | candidates | Fresh only on a data day with new closed picks | Approved |
-| SRD-MKT-012.003 | FO-MKT-012 | Must | The reflect answer is a typed form: text of at most 200 characters, tags from a fixed list, claim better or worse, and 1 to 20 pick keys. | answer | candidates | Checked by the gateway; unknown pick keys are dropped | Approved |
-| SRD-MKT-012.004 | FO-MKT-012 | Must | A default expert-level employee ships as `emp-010` (generic name "Expert 8") with trigger `after_run` and skill `lesson_reflect`. | default files | employee | Copied only when missing; the Master may rename it | Approved |
-| SRD-MKT-012.005 | FO-MKT-012 | Must | Setup review, news review, risk check and lead brief facts end with the lessons block from SRD-DSK-009.004. | lessons | facts text | Regime view and sector view get none | Approved |
-| SRD-MKT-012.006 | FO-MKT-012 | Should | Each reflect run logs how many candidates were kept and dropped. | answer | log line | `[Memory]` prefix | Approved |
+| SRD-MKT-012.001 | FO-MKT-012 | Must | Code builds count, win rate and average R of closed paper picks by side, setup, regime, sector, grade and news tone. | `pick_results`, ideas, reviews | stats table | Closed means stop, target or time | Implemented |
+| SRD-MKT-012.002 | FO-MKT-012 | Must | The reflect skill (`lesson_reflect`) asks for at most 3 candidate lessons from the stats, today's closed picks and the active lessons. | stats, picks, lessons | candidates | Fresh only on a data day with new closed picks | Implemented |
+| SRD-MKT-012.003 | FO-MKT-012 | Must | The reflect answer is a typed form: text of at most 200 characters, tags from a fixed list, claim better or worse, and 1 to 20 pick keys. | answer | candidates | Checked by the gateway; unknown pick keys are dropped | Implemented |
+| SRD-MKT-012.004 | FO-MKT-012 | Must | A default expert-level employee ships as `emp-010` (generic name "Expert 8") with trigger `after_run` and skill `lesson_reflect`. | default files | employee | Copied only when missing; the Master may rename it | Implemented |
+| SRD-MKT-012.005 | FO-MKT-012 | Must | Setup review, news review, risk check and lead brief facts end with the lessons block from SRD-DSK-009.004. | lessons | facts text | Regime view and sector view get none | Implemented |
+| SRD-MKT-012.006 | FO-MKT-012 | Should | Each reflect run logs how many candidates were kept and dropped. | answer | log line | `[Memory]` prefix | Implemented |

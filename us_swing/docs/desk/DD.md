@@ -740,6 +740,14 @@ The default employee `emp-010` ("Expert 8", title "Learning analyst", level expe
 
 **Pick makers** (SRD-MKT-012.005). `setup_review`, `news_review`, `risk_check` and `lead_brief` add `lessons_block(home, KEY, day)` as the last part of `Facts.text`. `regime_view` and `sector_view` do not change.
 
-**Memory view** (`gui/ai_desk_memory.py`, SRD-GUI-037.*). `MemoryView(QWidget)` reads `lesson_rows(home, status)` and `proof_rows(home, lesson_id)` from core on each refresh, through a worker thread like Results. It has a status filter (Active, Candidate, Retired), a table (Status, Pinned, Lesson, Tags, Cases, Avg R, Confidence, Last confirmed), and the buttons Pin/Unpin, Edit, Retire and Delete (Delete asks first). Each button calls `add_edit`. A lesson with a pending edit shows "applies at the next desk tick" in its status cell. The proof list under the table shows date, side, stock and R for the chosen lesson. In `gui/ai_desk.py`, "Memory" joins the review group after "Results" and `_LIVE_SECTIONS`.
+**Memory view** (`gui/ai_desk_memory.py`, SRD-GUI-037.*). `MemoryView(QWidget)` reads `lesson_rows(home, status)`, `pending_edits(home)` and `proof_rows(home, lesson_id)` from core on each refresh, in the GUI thread like Results (small read-only SQLite reads). It has a status filter (Active, Candidate, Retired), a table (Status, Pinned, Lesson, Tags, Cases, Avg R, Confidence, Last confirmed), and the buttons Pin/Unpin, Edit, Retire and Delete (Delete asks first). Each button calls `add_edit`; Edit uses the text box under the table and Save text (no dialog). A lesson with a pending edit shows "applies at the next desk tick" in its status cell. The proof list under the table shows date, side, stock and R for the chosen lesson. In `gui/ai_desk.py`, "Memory" joins the review group after "Results" and `_LIVE_SECTIONS`.
 
 **Log lines** (`[Memory]`): "New candidate lesson L-%d: %s", "Lesson L-%d is active (%d cases)", "Lesson L-%d retired: %s", "Kept %d candidate lesson(s), dropped %d".
+
+**After code review (step C).**
+- `with_lessons` returns the plain facts and logs a warning on any memory error, so a lesson problem never stops a pick maker.
+- A desk candidate never replaces the text of a Master-edited or pinned lesson; only its proof is updated.
+- A candidate like a lesson retired in the last 90 days stays a candidate (no retire and re-activate loop).
+- A pinned candidate is never retired after 30 days; `lessons.id` uses AUTOINCREMENT so a deleted id is not reused.
+- The reflect prompt lists at most the 50 newest closed picks.
+- Known gap: a pick made before the last confirmation but closed after it does not refresh the confirmation (90-day rule only).

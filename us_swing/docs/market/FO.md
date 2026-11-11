@@ -307,7 +307,7 @@ The system shall let the Master user ask the desk for a new Floor panel in plain
 
 ## FO-MKT-012: Learning from Pick Results
 
-**Status:** Approved (user 2026-11-11)
+**Status:** Implemented (approved by user 2026-11-11)
 **Priority:** Must
 **Phase:** Autonomous desk step C
 **Depends on:** FO-MKT-009 (pick results), FO-MKT-005 (pick-making skills), FO-DSK-009 (lessons)

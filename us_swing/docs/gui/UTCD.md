@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.29.1: Step C cases Pass (7 cases, 2026-11-11).
 > v1.29.0: Autonomous desk step C (2026-11-11): UT-GUI-037.* added (7 cases).
 > v1.28.0: Autonomous desk step A (2026-11-11): UT-GUI-029.007–.008 (4) and UT-GUI-034.068–.069 (4) added; UT-GUI-034.065.M34.T01 reworded for the morning run.
 > v1.27.0: UT-GUI-036.001–.008 Pass (15 cases, 2026-11-10).
@@ -1244,10 +1245,10 @@ Test files:
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
 |---|---|---|---|---|---|---|
-| UT-GUI-037.001.M01.T01 | MD-GUI-037.001.M01 | Positive | Memory section (SRD-GUI-037.001) | open AI Desk | Memory after Results in the review group | Not Run |
-| UT-GUI-037.001.M01.T02 | MD-GUI-037.001.M01 | Negative | No lessons yet (SRD-GUI-037.001) | empty lessons table | "No lessons yet" text; buttons off | Not Run |
-| UT-GUI-037.002.M01.T01 | MD-GUI-037.001.M01 | Positive | Lessons table (SRD-GUI-037.002) | active, candidate and retired lessons | active shown; filter shows the others | Not Run |
-| UT-GUI-037.002.M01.T02 | MD-GUI-037.001.M01 | Negative | No desk data (SRD-GUI-037.002) | no desk.db | empty table; no error | Not Run |
-| UT-GUI-037.003.M01.T01 | MD-GUI-037.001.M01 | Positive | Pin adds an edit (SRD-GUI-037.003) | choose a lesson, press Pin | one lesson_edits row; status says applies at the next desk tick | Not Run |
-| UT-GUI-037.003.M01.T02 | MD-GUI-037.001.M01 | Negative | Delete cancelled (SRD-GUI-037.003) | press Delete, answer No | no row | Not Run |
-| UT-GUI-037.004.M01.T01 | MD-GUI-037.001.M01 | Positive | Proof list (SRD-GUI-037.004) | choose a lesson with 5 proof picks | 5 rows with date, side, stock and R | Not Run |
+| UT-GUI-037.001.M01.T01 | MD-GUI-037.001.M01 | Positive | Memory section (SRD-GUI-037.001) | open AI Desk | Memory after Results in the review group | Pass |
+| UT-GUI-037.001.M01.T02 | MD-GUI-037.001.M01 | Negative | No lessons yet (SRD-GUI-037.001) | empty lessons table | "No lessons yet" text; buttons off | Pass |
+| UT-GUI-037.002.M01.T01 | MD-GUI-037.001.M01 | Positive | Lessons table (SRD-GUI-037.002) | active, candidate and retired lessons | active shown; filter shows the others | Pass |
+| UT-GUI-037.002.M01.T02 | MD-GUI-037.001.M01 | Negative | No desk data (SRD-GUI-037.002) | no desk.db | empty table; no error | Pass |
+| UT-GUI-037.003.M01.T01 | MD-GUI-037.001.M01 | Positive | Pin adds an edit (SRD-GUI-037.003) | choose a lesson, press Pin | one lesson_edits row; status says applies at the next desk tick | Pass |
+| UT-GUI-037.003.M01.T02 | MD-GUI-037.001.M01 | Negative | Delete cancelled (SRD-GUI-037.003) | press Delete, answer No | no row | Pass |
+| UT-GUI-037.004.M01.T01 | MD-GUI-037.001.M01 | Positive | Proof list (SRD-GUI-037.004) | choose a lesson with 5 proof picks | 5 rows with date, side, stock and R | Pass |

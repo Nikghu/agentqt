@@ -2,7 +2,7 @@
 Module: MD-DSK-001.010.M04 — desk/process.py
 Parent SRD: SRD-DSK-001.010
 Also: SRD-DSK-003.008 (market clock events and event runs), SRD-DSK-001.015 (morning run),
-SRD-DSK-001.019 (parent watch), SRD-DSK-003.013 (run kinds)
+SRD-DSK-001.019 (parent watch), SRD-DSK-003.013 (run kinds), SRD-DSK-009.008 (lesson edits)
 
 The desk main loop: one copy only, heartbeat, commands, runs, stop and resume. The morning
 run is due by ``morning_due``; between runs the loop posts market clock events and starts a
@@ -24,6 +24,7 @@ from typing import IO, Protocol, runtime_checkable
 
 from us_swing.core.desk_contract import CommandKind, DeskState, DeskStep, StepContext
 from us_swing.core.desk_events import post_event
+from us_swing.core.desk_lessons import apply_edits
 from us_swing.desk.clock import MANUAL, MORNING, market_events_due, morning_due
 from us_swing.desk.store import DeskStore
 
@@ -228,6 +229,7 @@ class DeskProcess:
             self._db.beat(now)
             self._last_beat = now
         self._apply_commands(now)
+        self._apply_lesson_edits(now)
         if not self._stopping() and self._parent_gone():
             self._set(DeskState.STOPPING, now)
         if not self._stopping() and self._state is not DeskState.PAUSED:
@@ -252,6 +254,13 @@ class DeskProcess:
         return True
 
     # ── commands ──────────────────────────────────────────────────────────
+
+    def _apply_lesson_edits(self, now: datetime) -> None:
+        """Apply the Master's lesson edits from the app (SRD-DSK-009.008)."""
+        try:
+            apply_edits(self._home, now)
+        except Exception:  # noqa: BLE001 — a bad edit must never stop the desk
+            log.exception("[Memory] Could not apply the lesson edits")
 
     def _apply_commands(self, now: datetime) -> None:
         for cmd in self._db.pending_commands():

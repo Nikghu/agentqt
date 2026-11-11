@@ -1994,4 +1994,4 @@ Run names: `evening` "Evening run", `manual` "Manual run", other kinds title-cas
 
 ## DD-GUI-037.001.D01 — AI Desk Memory (Autonomous desk step C)
 
-**Traces:** SRD-GUI-037.001–.004. Design in DSK DD-DSK-009.001.D01 ("Memory view"). `gui/ai_desk_memory.py` holds `MemoryView`; it reads lessons and proof picks through `core/desk_lessons.py` on a worker thread and writes only new `lesson_edits` rows. `gui/ai_desk.py` adds "Memory" after "Results" in the review group and to the live sections.
+**Traces:** SRD-GUI-037.001–.004. Design in DSK DD-DSK-009.001.D01 ("Memory view"). `gui/ai_desk_memory.py` holds `MemoryView`; it reads lessons and proof picks through `core/desk_lessons.py` in the GUI thread, as Results does, and writes only new `lesson_edits` rows. `gui/ai_desk.py` adds "Memory" after "Results" in the review group and to the live sections.

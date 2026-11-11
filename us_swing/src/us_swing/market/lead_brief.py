@@ -8,6 +8,7 @@ The lead brief skill: reads the day's views and picks the final ideas, only from
 that passed the risk check, then writes the morning brief for the Floor. The hard limits
 are applied again here, so a vetoed idea is never offered even without a risk check.
 Uses only ``core`` types; it never imports the desk harness.
+Also: MD-MKT-012.005.M03 — lessons block at the end of the facts (SRD-MKT-012.005)
 """
 from __future__ import annotations
 
@@ -19,6 +20,7 @@ import pandas as pd
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from us_swing.core.desk_agents import AgentContext, Facts, FeedItem
+from us_swing.core.desk_lessons import with_lessons
 from us_swing.market.candles import CANDLE_DB
 from us_swing.market.risk_check import views_text
 from us_swing.market.risk_limits import code_vetoes
@@ -113,7 +115,7 @@ class LeadBriefSkill:
                 f"Ideas you may pick (they passed the risk check), at most {PICKS_PER_SIDE} "
                 f"per side:\n{table(shown)}",
             ])
-            return Facts(text, day, True)
+            return Facts(with_lessons(text, home, KEY, day), day, True)
         finally:
             store.close()
 
