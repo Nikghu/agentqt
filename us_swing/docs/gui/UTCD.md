@@ -1289,3 +1289,6 @@ Test files:
 | UT-GUI-039.006.M02.T02 | MD-GUI-039.006.M02 | Negative | Wrong type (SRD-GUI-039.006) | `sheet.xlsx` | refused; no books folder | Pass |
 | UT-GUI-039.006.M02.T03 | MD-GUI-039.006.M02 | Negative | Same name kept (SRD-GUI-039.006) | `guide.txt` already there | refused; old file unchanged | Pass |
 | UT-GUI-039.006.M02.T04 | MD-GUI-039.006.M02 | Negative | Missing file (SRD-GUI-039.006) | path that does not exist | refused | Pass |
+| UT-GUI-039.008.M02.T01 | MD-GUI-039.006.M02 | Positive | Books list (SRD-GUI-039.008) | 2 books, a gutenberg cache file, chapters 3 and 1 read | newest first; cache hidden; chapters (1, 3); added date | Pass |
+| UT-GUI-039.008.M02.T02 | MD-GUI-039.006.M02 | Edge | No books (SRD-GUI-039.008) | no folder, no desk.db | empty list | Pass |
+| UT-GUI-039.008.M01.T01 | MD-GUI-039.001.M01 | Positive | Books table (SRD-GUI-039.008) | empty, then Add book `study.md` | empty note, then one row with none yet | Pass |

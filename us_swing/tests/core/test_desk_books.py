@@ -1,11 +1,15 @@
 """Tests for MD-GUI-039.006.M02 (core/desk_books.py)."""
 from __future__ import annotations
 
+import os
+import sqlite3
+from datetime import date
 from pathlib import Path
 
 import pytest
 
-from us_swing.core.desk_books import BookAddError, add_book, safe_name
+from us_swing.core.desk_books import BookAddError, add_book, list_books, safe_name
+from us_swing.core.desk_contract import DB_NAME
 
 
 def test_add_book_safe_name(tmp_path: Path) -> None:
@@ -44,3 +48,37 @@ def test_add_book_missing_file(tmp_path: Path) -> None:
     """UT-GUI-039.006.M02.T04: A missing file is refused."""
     with pytest.raises(BookAddError, match="could not be found"):
         add_book(tmp_path / "desk", tmp_path / "gone.pdf")
+
+
+def _read(home: Path, *rows: tuple[str, int]) -> None:
+    con = sqlite3.connect(home / DB_NAME)
+    con.execute("CREATE TABLE books_read (source TEXT, chapter INTEGER, card_id INTEGER, "
+                "ticket_id INTEGER, made TEXT, PRIMARY KEY (source, chapter))")
+    con.executemany("INSERT INTO books_read VALUES (?, ?, 1, 1, '2026-11-12')", rows)
+    con.commit()
+    con.close()
+
+
+def test_list_books(tmp_path: Path) -> None:
+    """UT-GUI-039.008.M02.T01: Books newest first, with added date and chapters read."""
+    home = tmp_path / "desk"
+    old = add_book(home, _src(tmp_path, "Old Book.pdf"))
+    os.utime(old, (1_700_000_000, 1_700_000_000))
+    add_book(home, _src(tmp_path, "new.txt"))
+    (home / "books" / "gutenberg-12.txt").write_text("x")
+    _read(home, ("upload:old_book.pdf", 3), ("upload:old_book.pdf", 1))
+    books = list_books(home)
+    assert [b.name for b in books] == ["new.txt", "Old_Book.pdf"]
+    assert books[1].chapters == (1, 3) and books[0].chapters == ()
+    assert books[1].added == date.fromtimestamp(1_700_000_000)
+
+
+def test_list_books_none(tmp_path: Path) -> None:
+    """UT-GUI-039.008.M02.T02: No books folder and no desk.db give an empty list."""
+    assert list_books(tmp_path / "desk") == []
+
+
+def _src(folder: Path, name: str) -> Path:
+    path = folder / name
+    path.write_text("text")
+    return path

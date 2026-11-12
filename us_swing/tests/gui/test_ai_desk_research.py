@@ -182,3 +182,16 @@ def test_add_book_refused_logged(qtbot: QtBot, tmp_path: Path, home: Path,
         view.add_book_button.click()
     assert view.note.text() == "Book not added: notes.docx is not a PDF, TXT, MD or HTML file"
     assert "[Books] Book not added" in caplog.text
+
+
+def test_books_list(qtbot: QtBot, tmp_path: Path, home: Path) -> None:
+    """UT-GUI-039.008.M01.T01: Empty note first; after Add book the list shows the book."""
+    source = tmp_path / "study.md"
+    source.write_text("Chapter 1")
+    view = _book_view(qtbot, home, str(source))
+    assert not view.no_books.isHidden() and view.books.isHidden()
+    view.add_book_button.click()
+    assert view.books.rowCount() == 1
+    assert view.books.item(0, 0).text() == "study.md"  # type: ignore[union-attr]
+    assert view.books.item(0, 2).text() == "none yet"  # type: ignore[union-attr]
+    assert view.no_books.isHidden()

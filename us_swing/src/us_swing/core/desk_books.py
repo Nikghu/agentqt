@@ -1,17 +1,33 @@
 """
 Module: MD-GUI-039.006.M02 — core/desk_books.py
 Parent SRD: SRD-GUI-039.006
+Also: SRD-GUI-039.008 (books list with added date and chapters read)
 
-The desk books folder: the book types the desk can read and adding a book the user chose.
+The desk books folder: the book types the desk can read, adding a book the user chose and
+listing the books with the chapters the desk has read.
 """
 from __future__ import annotations
 
 import re
 import shutil
+import sqlite3
+from dataclasses import dataclass
+from datetime import date, datetime
 from pathlib import Path
+
+from us_swing.core.desk_contract import DB_NAME
 
 BOOK_TYPES: tuple[str, ...] = (".txt", ".md", ".html", ".htm", ".pdf")
 _ODD = re.compile(r"[^A-Za-z0-9._-]+")
+
+
+@dataclass(frozen=True)
+class BookRow:
+    """One book in the books folder."""
+
+    name: str
+    added: date
+    chapters: tuple[int, ...]
 
 
 class BookAddError(Exception):
@@ -48,3 +64,39 @@ def add_book(home: Path, source: Path) -> Path:
     folder.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(source, target)
     return target
+
+
+def _chapters_read(home: Path) -> dict[str, list[int]]:
+    path = home / DB_NAME
+    if not path.exists():
+        return {}
+    con = sqlite3.connect(f"{path.as_uri()}?mode=ro", uri=True, timeout=2)
+    try:
+        if not con.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND "
+                           "name='books_read'").fetchone():
+            return {}
+        read: dict[str, list[int]] = {}
+        for source, chapter in con.execute("SELECT source, chapter FROM books_read "
+                                           "ORDER BY chapter"):
+            read.setdefault(str(source).lower(), []).append(int(chapter))
+        return read
+    finally:
+        con.close()
+
+
+def list_books(home: Path) -> list[BookRow]:
+    """The books in the books folder, newest first, with the chapters already read.
+
+    Raises:
+        OSError: The folder could not be listed.
+        sqlite3.Error: ``desk.db`` could not be read.
+    """
+    folder = books_folder(home)
+    if not folder.is_dir():
+        return []
+    read = _chapters_read(home)
+    files = [p for p in folder.iterdir() if p.is_file() and p.suffix.lower() in BOOK_TYPES
+             and not p.name.startswith("gutenberg-")]
+    files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+    return [BookRow(p.name, datetime.fromtimestamp(p.stat().st_mtime).date(),
+                    tuple(read.get(f"upload:{p.name}".lower(), ()))) for p in files]
