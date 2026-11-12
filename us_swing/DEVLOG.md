@@ -2,6 +2,28 @@
 
 ---
 
+## [20261112] DSK — Autonomous AI Desk v3 design and master plan
+
+- Type: Design (no code)
+- FO(s): planned new FO-DSK-011, FO-DSK-012, FO-DSK-013, FO-MKT-020, FO-GUI-041; reopen FO-DSK-003/-006/-007/-008/-009/-010, FO-MKT-005/-010/-012/-013/-014, FO-GUI-034..039
+- Artifacts: design pages T2cdFhc9cAAgcMm3pQovom (flows), BjxpjycTC6CtGbNPzoX62f (schema), 8QdHMR5XoScLNN9HEtbB3A (explainer); master plan https://claude.ai/artifact/3dr7g92HY5hvVQ9KiyrPvc
+- Decisions: one envelope desk.msg/1 (lean, body by type, A2A state names, refused verdict, goal/done_when); tool registry desk.tool/1 in MCP shape; memory.db SQLite+JSON+FTS5 (no vector DB v1); L6–L9 strong memory, L5 failure log; sessions for Master–HELM only; no-ping-pong guardrails (send back ≤2, 6 per thread, 20 asks/day, ask 10 min, escalate 5 min, 4 code workers, 2 AI slots); memory 3 notes/day, recall 8–10, 30-day expiry; sessions new after 2 h quiet or new day, close after 24 h; tool builder allowed (sandbox, Master review, never auto-enabled); every new behaviour behind a desk setting, off until checked.
+- Next: M0 on a new branch off main (T173).
+
+---
+
+## [20261112] GUI — Team setup reporting tree (FO-GUI-036)
+
+- Type: Feature
+- FO(s): FO-GUI-036
+- RN: none (minimal GUI docs)
+- Artifacts updated: SRD (SRD-GUI-036.009–.010 Implemented), MD (MD-GUI-036.001.M01 text), UTCD (UT-GUI-036.009.M01.T01–T03, UT-GUI-036.010.M01.T01), TRACE, CONTEXT, TODO (T172), Code (gui/ai_desk_setup.py, gui/ai_desk_team_pane.py), Tests. Branch feat/gui-team-tree; not pushed.
+- Decisions: Option A classic tree; tree built only from level and reports_to (no names in code); a boss id that is missing or a loop lands in No lead; number codes keep the full number.
+- Tests: 17 Team setup pass, 96 other AI Desk GUI pass; ruff clean; mypy clean on changed files; pyqt-code-reviewer APPROVE (folder count and docstring fixed).
+- User checks: T172 open.
+
+---
+
 ## [20261112] MKT — Strategy test research skill and AI Desk Cards tab (FO-MKT-019, FO-DSK-010, FO-GUI-040)
 
 - Type: Feature

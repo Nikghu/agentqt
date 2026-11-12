@@ -5,18 +5,22 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QTreeWidgetItem
 from pytestqt.qtbot import QtBot
 
 from tests.gui.team_fixtures import call, hire
 from us_swing.core import desk_employee as de
 from us_swing.core.desk_ai_settings import DeskAiSettings, save_settings
-from us_swing.gui.ai_desk_setup import RULES_TEXT, TeamSetup
+from us_swing.gui.ai_desk_setup import NO_LEAD, RULES_TEXT, TeamSetup
+from us_swing.gui.ai_desk_team_pane import initials
 from us_swing.gui.theme import C
 
 
-def _hire(home: Path, emp_id: str, name: str, prompt: str = "You are {name}.") -> Path:
+def _hire(home: Path, emp_id: str, name: str, prompt: str = "You are {name}.",
+          level: str = "expert", boss: str | None = None) -> Path:
     job: dict[str, Any] = {
-        "id": emp_id, "name": name, "title": "Tester", "level": "expert", "reports_to": None,
+        "id": emp_id, "name": name, "title": "Tester", "level": level, "reports_to": boss,
         "skill": "fake", "version": 1, "trigger": ["after_run"],
         "models": {"primary": {"source": "claude", "model": "default"},
                    "backup": {"source": "openrouter", "model": "default"}},
@@ -38,6 +42,23 @@ def _page(qtbot: QtBot, home: Path, answers: list[bool] | None = None,
     return page
 
 
+def _row(page: TeamSetup, emp_id: str) -> QTreeWidgetItem:
+    found = page.emp_tree.findItems("", Qt.MatchFlag.MatchContains | Qt.MatchFlag.MatchRecursive)
+    return next(i for i in found if i.data(0, Qt.ItemDataRole.UserRole) == emp_id)
+
+
+def _picked(page: TeamSetup) -> str:
+    item = page.emp_tree.currentItem()
+    return str(item.data(0, Qt.ItemDataRole.UserRole)) if item is not None else ""
+
+
+def _boss_of(page: TeamSetup, emp_id: str) -> str:
+    parent = _row(page, emp_id).parent()
+    if parent is None:
+        return "top"
+    return str(parent.data(0, Qt.ItemDataRole.UserRole) or parent.text(0))
+
+
 def test_list_every_employee(qtbot: QtBot, tmp_path: Path) -> None:
     """UT-GUI-036.001.M01.T01: all employees listed again on show; old files move."""
     _hire(tmp_path, "emp-a", "Alpha")
@@ -45,12 +66,12 @@ def test_list_every_employee(qtbot: QtBot, tmp_path: Path) -> None:
     hire(tmp_path, "emp-c", "Gamma", "regime_view", "after_run")
     page = _page(qtbot, tmp_path)
     page.show()
-    assert page.emp_list.count() == 3
+    assert len(page.employee_ids()) == 3
     assert (tmp_path / "employees" / "emp-c" / de.EMPLOYEE_FILE).exists()
     _hire(tmp_path, "emp-d", "Delta")
     page.hide()
     page.show()
-    assert page.emp_list.count() == 4 and page.employee_ids()[-1] == "emp-d"
+    assert len(page.employee_ids()) == 4 and page.employee_ids()[-1] == "emp-d"
 
 
 def test_broken_file(qtbot: QtBot, tmp_path: Path) -> None:
@@ -61,7 +82,7 @@ def test_broken_file(qtbot: QtBot, tmp_path: Path) -> None:
     (bad / de.EMPLOYEE_FILE).write_text("just words\n", encoding="utf-8")
     page = _page(qtbot, tmp_path)
     page.select("emp-b")
-    assert "not valid" in page.emp_list.item(1).text()
+    assert "not valid" in _row(page, "emp-b").text(0)
     assert not page.form.isEnabled() and not page.save_btn.isEnabled()
     assert "settings block" in page.note_label.text()
 
@@ -180,7 +201,7 @@ def test_unsaved_switch(qtbot: QtBot, tmp_path: Path) -> None:
     page = _page(qtbot, tmp_path, [False, True], asked)
     page.name_edit.setText("Changed")
     page.select("emp-b")
-    assert page.current_id() == "emp-a" and page.emp_list.currentRow() == 0
+    assert page.current_id() == "emp-a" and _picked(page) == "emp-a"
     assert page.name_edit.text() == "Changed"
     assert asked == ["Discard unsaved changes to Alpha?"]
     page.select("emp-b")
@@ -233,3 +254,67 @@ def test_test_on_yesterday(qtbot: QtBot, tmp_path: Path) -> None:
     assert f"border-left: 3px solid {C.GREEN}" in page.result_label.styleSheet()
     assert de.parse(seen[0]).prompt == "Draft words."
     assert de.load(tmp_path / "employees" / "emp-a").prompt == "You are {name}."
+
+
+def test_reporting_tree(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-036.009.M01.T01: leads on top with reports nested; no-lead people in a folder."""
+    _hire(tmp_path, "emp-a", "Alpha")
+    _hire(tmp_path, "emp-b", "Boss One", level="lead")
+    _hire(tmp_path, "emp-c", "Gamma", boss="emp-b")
+    _hire(tmp_path, "emp-d", "Delta", boss="emp-b")
+    _hire(tmp_path, "emp-e", "Boss Two", level="lead")
+    page = _page(qtbot, tmp_path)
+    tree = page.emp_tree
+    tops = [tree.topLevelItem(i) for i in range(tree.topLevelItemCount())]
+    assert [t.text(0).splitlines()[0] for t in tops if t is not None] == [
+        "BO  Boss One", "BT  Boss Two", f"{NO_LEAD} · 1"]
+    assert _boss_of(page, "emp-c") == "emp-b" and _boss_of(page, "emp-d") == "emp-b"
+    assert _boss_of(page, "emp-a").startswith(NO_LEAD)
+    assert _row(page, "emp-b").isExpanded() and tops[-1] is not None and tops[-1].isExpanded()
+    assert page.employee_ids() == ["emp-b", "emp-c", "emp-d", "emp-e", "emp-a"]
+    page.select("emp-d")
+    assert page.current_id() == "emp-d" and page.name_edit.text() == "Delta"
+
+
+def test_odd_links(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-036.009.M01.T02: missing boss, two naming each other and a broken file all show."""
+    _hire(tmp_path, "emp-a", "Alpha", boss="emp-gone")
+    _hire(tmp_path, "emp-b", "Beta", boss="emp-c")
+    _hire(tmp_path, "emp-c", "Gamma", boss="emp-b")
+    bad = tmp_path / "employees" / "emp-d"
+    bad.mkdir()
+    (bad / de.EMPLOYEE_FILE).write_text("just words\n", encoding="utf-8")
+    page = _page(qtbot, tmp_path)
+    assert sorted(page.employee_ids()) == ["emp-a", "emp-b", "emp-c", "emp-d"]
+    for emp_id in ("emp-a", "emp-b", "emp-d"):
+        assert _boss_of(page, emp_id).startswith(NO_LEAD)
+    assert _boss_of(page, "emp-c") == "emp-b"
+
+
+def test_folder_row(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-036.009.M01.T03: the folder cannot be picked; a folded lead stays folded."""
+    _hire(tmp_path, "emp-a", "Alpha")
+    _hire(tmp_path, "emp-b", "Boss One", level="lead")
+    _hire(tmp_path, "emp-c", "Gamma", boss="emp-b")
+    page = _page(qtbot, tmp_path)
+    page.select("emp-c")
+    folder = page.emp_tree.topLevelItem(1)
+    assert folder is not None and not folder.flags() & Qt.ItemFlag.ItemIsSelectable
+    page.emp_tree.setCurrentItem(folder)
+    assert page.current_id() == "emp-c" and page.name_edit.text() == "Gamma"
+    page.emp_tree.itemClicked.emit(folder, 0)
+    assert not folder.isExpanded()
+    _row(page, "emp-b").setExpanded(False)
+    page.reload()
+    assert not _row(page, "emp-b").isExpanded()
+    new_folder = page.emp_tree.topLevelItem(1)
+    assert new_folder is not None and not new_folder.isExpanded()
+    assert page.current_id() == "emp-c"
+
+
+def test_number_codes() -> None:
+    """UT-GUI-036.010.M01.T01: a name ending in a number keeps the whole number."""
+    assert initials("Expert 10") == "E10"
+    assert initials("Lead 1") == "L1"
+    assert initials("Ann Lee") == "AL"
+    assert initials("Solo") == "SO"

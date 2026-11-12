@@ -129,8 +129,13 @@ def arrow_button(kind: str, tip: str) -> QPushButton:
 
 
 def initials(name: str) -> str:
-    """Up to two initials from a name (one word gives its first two letters)."""
+    """Up to two initials from a name (one word gives its first two letters).
+
+    A name ending in a number keeps the whole number: "Expert 10" gives "E10".
+    """
     words = [w for w in name.split() if w]
+    if len(words) >= 2 and words[-1].isdigit():
+        return words[0][0].upper() + words[-1]
     if len(words) >= 2:
         return (words[0][0] + words[-1][0]).upper()
     return name[:2].upper() if name else "?"

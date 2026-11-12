@@ -7,6 +7,8 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.34.1: UT-GUI-036.009–.010 Pass (4, 2026-11-12).
+> v1.34.0: UT-GUI-036.009–.010 added (4, Not Run) — Team tree (2026-11-12).
 > v1.33.1: UT-GUI-040.* Pass (6, 2026-11-12).
 > v1.33.0: UT-GUI-040.* added (6, Not Run) — AI Desk strategy cards (2026-11-12).
 > v1.32.1: UT-GUI-039.008 added (3 cases, Pass) — books list (2026-11-12).
@@ -1249,6 +1251,10 @@ Test files:
 | UT-GUI-036.007.M01.T01 | MD-GUI-036.001.M01 | Positive | Test on yesterday (SRD-GUI-036.007) | fake runner valid; no recorded run | answer shown with green bar; button off with a note | Pass |
 | UT-GUI-036.008.M04.T01 | MD-GUI-035.007.M04 | Positive | Trimmed pane and Edit link (SRD-GUI-036.008) | pick a member, press Edit | no KPIs or Daily limit rows; AI Desk shows Team setup with that employee picked | Pass |
 | UT-GUI-036.008.M04.T02 | MD-GUI-035.007.M04 | Negative | No member (SRD-GUI-036.008) | empty team | Edit in Team setup off | Pass |
+| UT-GUI-036.009.M01.T01 | MD-GUI-036.001.M01 | Positive | Reporting tree (SRD-GUI-036.009) | lead with 2 reports, lead with none, expert with no lead | leads at top with reports nested; expert in No lead folder at the end; all open | Pass |
+| UT-GUI-036.009.M01.T02 | MD-GUI-036.001.M01 | Edge | Odd links (SRD-GUI-036.009) | boss id missing; two people naming each other; broken file | each lands in No lead; nobody lost; no crash | Pass |
+| UT-GUI-036.009.M01.T03 | MD-GUI-036.001.M01 | Negative | Folder row (SRD-GUI-036.009) | click No lead folder; reload after folding a lead | form stays on the same person; folded lead stays folded | Pass |
+| UT-GUI-036.010.M01.T01 | MD-GUI-036.001.M01 | Positive | Number codes (SRD-GUI-036.010) | Expert 10, Lead 1, Ann Lee, Solo | E10, L1, AL, SO | Pass |
 
 ## FO-GUI-037: AI Desk Memory
 
