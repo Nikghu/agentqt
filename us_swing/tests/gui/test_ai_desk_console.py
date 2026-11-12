@@ -57,8 +57,7 @@ def test_header_tiles_and_controls(qtbot: QtBot, tmp_path: Path) -> None:
     assert seg is not None
     assert [b.text() for b in seg.findChildren(QPushButton)] == ["Start", "Pause", "Resume",
                                                                  "Stop"]
-    assert page.next_run_label.text().startswith("Mon 04:00 ET")
-    assert "IST" in page.next_run_label.text()
+    assert page.next_run_label.text() == "Mon 09 Nov, 04:00 ET"
 
 
 def test_state_note(qtbot: QtBot, tmp_path: Path) -> None:

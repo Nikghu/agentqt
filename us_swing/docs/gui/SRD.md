@@ -5,6 +5,13 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.110.2: SRD-GUI-039.008 Implemented 2026-11-12.
+> v2.110.1: SRD-GUI-039.008 approved by user 2026-11-12.
+> v2.110.0: SRD-GUI-039.008 added as Draft — Books list on the Research tab (user, 2026-11-12).
+> v2.109.2: SRD-GUI-039.006–.007 Implemented 2026-11-12.
+> v2.109.1: SRD-GUI-039.006–.007 approved by user 2026-11-12.
+> v2.109.0: SRD-GUI-039.006–.007 added as Draft — Add book on the Research tab (user, 2026-11-12).
+> v2.108.3: SRD-GUI-034.065 updated — Last run and Next run show day and date, ET only (user approved, 2026-11-12).
 > v2.108.2: Step E rows Implemented (5, 2026-11-11).
 > v2.108.1: SRD-GUI-039.001–.005 approved by user 2026-11-11.
 > v2.108.0: Autonomous desk step E (user, 2026-11-11): SRD-GUI-039.001–.005 added as Draft — research queue.
@@ -776,7 +783,7 @@
 | SRD-GUI-034.062 | FO-GUI-034 | Must | Command → Approvals waiting uses the feed card for each ask, with a count in the heading. | asks | cards | Same decision rules as SRD-GUI-034.035 | Implemented |
 | SRD-GUI-034.063 | FO-GUI-034 | Must | Command → Today's runs lists today's desk runs (ET time, run name, coloured result); event runs are one summed row. | runs | list | Replaces the sample table; empty note when none | Implemented |
 | SRD-GUI-034.064 | FO-GUI-034 | Should | Command shows a Team now line with the employee count by status. | employees | line | Hidden when there are no employees | Implemented |
-| SRD-GUI-034.065 | FO-GUI-034 | Should | The AI Desk header shows an icon, a state note, a dot state chip, one joined Start / Pause / Resume / Stop group and four tiles: Last run, Next run, AI spend today, Month budget. | desk status, desk.db | header card | Next run in ET and IST; controls work as before | Implemented |
+| SRD-GUI-034.065 | FO-GUI-034 | Should | The AI Desk header shows an icon, a state note, a dot state chip, one joined Start / Pause / Resume / Stop group and four tiles: Last run, Next run, AI spend today, Month budget. | desk status, desk.db | header card | Last run and Next run show day, date and time in ET only (`Thu 12 Nov, 04:02 ET`); controls work as before | Implemented |
 | SRD-GUI-034.066 | FO-GUI-034 | Should | Hiring, Pages, Reports, Results, Cost & budget and Desk settings use stat tiles and titled icon cards. | theme tokens, icons | restyled sections | Look only; data and actions unchanged | Implemented |
 | SRD-GUI-034.067 | FO-GUI-034 | Should | AI Desk shows its eight sections as underline tabs under the header, Command first with its waiting count; the left panel shows no AI Desk menu. | section list | tab row | Replaces the sidebar menu of SRD-GUI-018.012 | Implemented |
 | SRD-GUI-034.068 | FO-GUI-034 | Must | The app starts the desk with its own process id when it opens and sends Stop when it closes. | app start, close | launch, command | Off the GUI thread; never a second desk; close does not wait for the run | Implemented |
@@ -840,3 +847,6 @@
 | SRD-GUI-039.003 | FO-GUI-039 | Must | Selecting an ended ticket shows its result and end reason. | ticket | detail text | — | Implemented |
 | SRD-GUI-039.004 | FO-GUI-039 | Should | The Research tab shows each lead's research tokens used and left today. | `activity` | numbers | — | Implemented |
 | SRD-GUI-039.005 | FO-GUI-039 | Should | Each approve, reject and cap change is logged. | edit | log line | `[Research]` prefix | Implemented |
+| SRD-GUI-039.006 | FO-GUI-039 | Should | An Add book button on the Research tab opens a file browser for PDF, TXT, MD and HTML files and copies the chosen file into the desk books folder. | chosen file | file in `books` | Spaces and odd characters in the name become `_`; a file with the same name is not replaced; a note shows the result | Implemented |
+| SRD-GUI-039.007 | FO-GUI-039 | Should | Each added or refused book is logged. | add | log line | `[Books]` prefix | Implemented |
+| SRD-GUI-039.008 | FO-GUI-039 | Should | The Research tab lists the books in the desk books folder with the date each was added and the chapters already read. | `books` folder, `books_read` | list | Newest first; refreshed after Add book and with the tab; read-only | Implemented |

@@ -2,6 +2,18 @@
 
 ---
 
+## [20261112] GUI — AI Desk header dates (ET) and Research Add book + Books list (FO-GUI-034, FO-GUI-039)
+
+- Type: Feature
+- FO(s): FO-GUI-034, FO-GUI-039
+- RN: RN-GUI-1.65.0-20261112
+- Artifacts updated: SRD (SRD-GUI-034.065 wording in e62441b4; SRD-GUI-039.006–.008 in d2d1c640 and b89b5346/6a16c6e1), DD, MD (MD-GUI-039.006.M02 new), UTCD (UT-GUI-039.006–.008, UT-GUI-034.060.M33.T01, UT-GUI-034.065.M39.T01), TRACE, CONTEXT, Code (ai_desk_console, ai_desk_research, core/desk_books.py; BOOK_TYPES moved from market/book_text to core), Tests, RN, DEVLOG
+- Decisions: header Last run and Next run show day and date in ET only; Add book copies PDF, TXT, MD or HTML into the desk books folder, spaces and odd characters become `_`, same name not replaced; Books list newest first with chapters read, Gutenberg cache hidden; BOOK_TYPES shared from core
+- Tests: 10 new UT-GUI-039.006–.008 cases Pass; UT-GUI-034.060.M33.T01 and .065.M39.T01 Pass; 109 AI Desk GUI tests pass; ruff clean; mypy clean for changed files (93 pre-existing errors in other GUI files)
+- User checks: T151 and T153 Done; T169 and T170 open. Not pushed.
+
+---
+
 ## [20261111] MKT — Autonomous AI Desk step F skill 4: book to strategy research (FO-MKT-018)
 
 - Type: Feature

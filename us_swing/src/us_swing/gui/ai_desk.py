@@ -62,7 +62,6 @@ from us_swing.gui.ai_desk_team_pane import bar_style, tab_style
 from us_swing.gui.theme import C
 
 NY = ZoneInfo("America/New_York")
-IST = ZoneInfo("Asia/Kolkata")
 GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("TALK", ("Command",)),
     ("TEAM", ("Team at work", "Research", "Team setup", "Hiring")),
@@ -319,12 +318,10 @@ class AiDeskWorkspace(QWidget):
         else:
             colour = getattr(C, _RESULT_TONE.get(run.result, "SUBTEXT"))
             self.last_run_title.setText(f"Last run · {run.result}")
-            self.last_run_chip.setText(f"{run.name} · {run.when:%H:%M} ET")
+            self.last_run_chip.setText(f"{run.name} · {run.when:%a %d %b, %H:%M} ET")
             self.last_run_chip.setStyleSheet(f"font-size: 15px; font-weight: bold; {bar_style(colour)}")
         upcoming = next_morning_run(now, folder)
-        day = "" if upcoming.date() == now.astimezone(NY).date() else f"{upcoming:%a} "
-        self.next_run_label.setText(f"{day}{upcoming:%H:%M} ET&nbsp; "
-                                    + _small(f"{upcoming.astimezone(IST):%H:%M} IST"))
+        self.next_run_label.setText(f"{upcoming:%a %d %b, %H:%M} ET")
         used = spend(folder, now)
         budget = used.budget_usd if used else load_settings(folder).monthly_budget_usd
         month = used.month_usd if used else 0.0

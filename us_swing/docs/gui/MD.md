@@ -7,6 +7,8 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.30.1: M01 and M02 gain the books list (SRD-GUI-039.008).
+> v1.30.0: MD-GUI-039.006.M02 added; M01 gains Add book (2026-11-12).
 > v1.29.0: MD-GUI-039.001.M01 added — AI Desk Research (step E).
 > v1.28.0: MD-GUI-038.001.M01 added — app feeds for the desk (step D).
 > v1.27.0: MD-GUI-037.001.M01 added — AI Desk Memory (step C).
@@ -502,7 +504,8 @@ SRD coverage: 038.001–.003 by M01.
 | ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
 |---|---|---|---|---|---|---|
 | MD-GUI-039.001.M01 | SRD-GUI-039.001 | `us_swing/src/us_swing/gui/ai_desk_research.py` | Research section: lead research line, ticket table, Approve / Reject / Change cap, detail label, logs | `ResearchView`, `research_frame()` | `core.desk_research` | No |
+| MD-GUI-039.006.M02 | SRD-GUI-039.006 | `us_swing/src/us_swing/core/desk_books.py` | Book types, adding a chosen book and listing books with chapters read (SRD-GUI-039.008) | `BOOK_TYPES`, `add_book()`, `safe_name()`, `list_books()`, `BookRow`, `BookAddError` | — | No |
 
 Changed: MD-GUI-034.009.M08 (`gui/ai_desk.py`: "Research" section in the TEAM group, live refresh).
 
-SRD coverage: 039.001–.005 by M01.
+SRD coverage: 039.001–.008 by M01; .006 and .008 by M02. Cross-tool note: `market/book_text.py` and `market/book_cards.py` now import `BOOK_TYPES` from `core/desk_books.py`.

@@ -2,7 +2,8 @@
 Module: MD-GUI-039.001.M01 — gui/ai_desk_research.py
 Parent SRD: SRD-GUI-039.001
 Also: SRD-GUI-039.002 (Approve, Reject, Change cap), SRD-GUI-039.003 (ticket detail),
-SRD-GUI-039.004 (lead research tokens), SRD-GUI-039.005 (edit log)
+SRD-GUI-039.004 (lead research tokens), SRD-GUI-039.005 (edit log),
+SRD-GUI-039.006–.007 (Add book and its log), SRD-GUI-039.008 (books list)
 
 The AI Desk "Research" section: the research tickets the leads raised. It reads tickets
 through ``core.desk_research`` and changes nothing itself: each button adds a ticket edit
@@ -20,6 +21,7 @@ from zoneinfo import ZoneInfo
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
     QAbstractItemView,
+    QFileDialog,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -29,6 +31,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from us_swing.core.desk_books import BOOK_TYPES, BookAddError, BookRow, add_book, list_books
 from us_swing.core.desk_contract import desk_home
 from us_swing.core.desk_research import (
     CAP_MAX,
@@ -47,10 +50,13 @@ log = logging.getLogger(__name__)
 
 NY = ZoneInfo("America/New_York")
 COLUMNS = ("Status", "Kind", "Goal", "Cap", "Spent", "Raised by", "Made")
+BOOK_COLUMNS = ("Book", "Added", "Chapters read")
+NO_BOOKS = "No books yet. Use Add book to give the desk a document to study"
 NO_TICKETS = "No research tickets yet. Leads raise them with the morning plan and check-ins"
 PENDING = "applies at the next desk tick"
 ENDED = ("done", "failed", "stuck", "rejected", "expired")
 _DONE_WORDS = {"approve": "approved", "reject": "rejected", "cap": "cap set to"}
+BOOK_FILTER = "Books (" + " ".join(f"*{t}" for t in BOOK_TYPES) + ")"
 
 
 def _cells(ticket: Ticket, pending: bool) -> list[str]:
@@ -78,9 +84,15 @@ def leads_text(rows: list[tuple[str, int, int]]) -> str:
         f"{name} {used:,} used, {left:,} left" for name, used, left in rows)
 
 
-def _table() -> QTableWidget:
-    table = QTableWidget(0, len(COLUMNS))
-    table.setHorizontalHeaderLabels(list(COLUMNS))
+def book_cells(book: BookRow) -> list[str]:
+    """Name, added date and chapters read of one book."""
+    read = ", ".join(str(c) for c in book.chapters) or "none yet"
+    return [book.name, f"{book.added:%d %b %Y}", read]
+
+
+def _table(columns: tuple[str, ...] = COLUMNS) -> QTableWidget:
+    table = QTableWidget(0, len(columns))
+    table.setHorizontalHeaderLabels(list(columns))
     table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
     table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
     table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
@@ -96,11 +108,13 @@ class ResearchView(QWidget):
     """Ticket table, lead research line, approval buttons and the ticket detail."""
 
     def __init__(self, name: str, home: Path,
-                 clock: Callable[[], datetime] | None = None) -> None:
-        """Build the section for the desk folder ``home``."""
+                 clock: Callable[[], datetime] | None = None,
+                 pick_file: Callable[[], str] | None = None) -> None:
+        """Build the section for the desk folder ``home``; ``pick_file`` is for tests."""
         super().__init__()
         self._home = home
         self._clock = clock or (lambda: datetime.now(NY))
+        self._pick_file = pick_file or self._browse
         self._tickets: list[Ticket] = []
         self._pending: set[int] = set()
         frame, body = section_frame(name, sample=False)
@@ -132,18 +146,28 @@ class ResearchView(QWidget):
         buttons.addWidget(change)
         self.buttons["cap"] = change
         buttons.addStretch(1)
+        self.add_book_button = QPushButton("Add book")
+        self.add_book_button.clicked.connect(lambda _=False: self._add_book())
+        buttons.addWidget(self.add_book_button)
         body.addLayout(buttons)
         self.note = muted("")
         body.addWidget(self.note)
         self.detail = QLabel("")
         self.detail.setWordWrap(True)
         body.addWidget(self.detail, 1)
+        body.addWidget(muted("Books"))
+        self.no_books = muted(NO_BOOKS)
+        body.addWidget(self.no_books)
+        self.books = _table(BOOK_COLUMNS)
+        self.books.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+        body.addWidget(self.books, 1)
         # table selection → buttons and detail
         self.table.itemSelectionChanged.connect(self._on_pick)
         self.refresh()
 
     def refresh(self) -> None:
-        """Read the tickets and the leads' research tokens again."""
+        """Read the tickets, the leads' research tokens and the books again."""
+        self._refresh_books()
         now = self._clock()
         try:
             tickets = ticket_rows(self._home, now)
@@ -203,6 +227,38 @@ class ResearchView(QWidget):
         self.refresh()
         if row < self.table.rowCount():
             self.table.selectRow(row)
+
+    def _refresh_books(self) -> None:
+        try:
+            books = list_books(self._home)
+        except (OSError, sqlite3.Error):
+            log.warning("[Books] Could not list the desk books; try again in a moment")
+            return
+        self.books.setRowCount(len(books))
+        for r, book in enumerate(books):
+            for c, text in enumerate(book_cells(book)):
+                self.books.setItem(r, c, QTableWidgetItem(text))
+        self.no_books.setVisible(not books)
+        self.books.setVisible(bool(books))
+
+    def _browse(self) -> str:
+        chosen, _filter = QFileDialog.getOpenFileName(self, "Add book", "", BOOK_FILTER)
+        return chosen
+
+    def _add_book(self) -> None:
+        chosen = self._pick_file()
+        if not chosen:
+            return
+        try:
+            added = add_book(self._home, Path(chosen))
+        except (BookAddError, OSError) as exc:
+            reason = str(exc) if isinstance(exc, BookAddError) else "the file could not be copied"
+            log.warning("[Books] Book not added: %s", reason)
+            self.note.setText(f"Book not added: {reason}")
+            return
+        log.info("[Books] Added %s to the desk books", added.name)
+        self.note.setText(f"Added {added.name}. The lead sees it in the next plan")
+        self._refresh_books()
 
 
 def research_frame(name: str, home: Path | None = None) -> QWidget:

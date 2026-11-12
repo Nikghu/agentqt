@@ -16,8 +16,8 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
+from us_swing.core.desk_books import BOOK_TYPES
 from us_swing.core.desk_contract import DB_NAME
-from us_swing.market.book_text import BOOK_TYPES
 
 log = logging.getLogger(__name__)
 

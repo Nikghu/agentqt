@@ -7,6 +7,8 @@
 **Last Updated:** 2026-05-22
 **Project:** US Swing Trading System
 
+> v2.23.1: Add book bullet approved by user 2026-11-12.
+> v2.23.0: FO-GUI-039 gains the Add book bullet (user, 2026-11-12) — Draft until approved.
 > v2.22.1: FO-GUI-039 approved by user 2026-11-11.
 > v2.22.0: Autonomous desk step E (user, 2026-11-11): FO-GUI-039 added as Draft — research queue.
 > v2.21.0: Autonomous desk step D (user, 2026-11-11): FO-GUI-038 added as Draft — check-ins and watchers.
@@ -1103,6 +1105,7 @@ The system shall show the research queue in the AI Desk and let the Master user 
 - The system shall list research tickets, waiting ones first, with their goal, cap, spent tokens and status.
 - The system shall let the Master user approve, reject or change the cap of a waiting ticket.
 - The system shall show the result and end reason of an ended ticket.
+- The system shall let the user browse for a document and add it to the desk books folder for study.
 
 ### Acceptance Criteria
 
