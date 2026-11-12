@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.32.1: UT-GUI-039.008 added (3 cases, Pass) — books list (2026-11-12).
 > v1.32.0: UT-GUI-039.006–.007 added (7 cases, Pass) — Add book (2026-11-12).
 > v1.31.2: UT-GUI-034.060.M33.T01 and UT-GUI-034.065.M39.T01 updated — header tiles show day and date, ET only; both Pass (2026-11-12).
 > v1.31.1: Step E cases Pass (9, 2026-11-11).

@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.110.2: SRD-GUI-039.008 Implemented 2026-11-12.
 > v2.110.1: SRD-GUI-039.008 approved by user 2026-11-12.
 > v2.110.0: SRD-GUI-039.008 added as Draft — Books list on the Research tab (user, 2026-11-12).
 > v2.109.2: SRD-GUI-039.006–.007 Implemented 2026-11-12.
@@ -848,4 +849,4 @@
 | SRD-GUI-039.005 | FO-GUI-039 | Should | Each approve, reject and cap change is logged. | edit | log line | `[Research]` prefix | Implemented |
 | SRD-GUI-039.006 | FO-GUI-039 | Should | An Add book button on the Research tab opens a file browser for PDF, TXT, MD and HTML files and copies the chosen file into the desk books folder. | chosen file | file in `books` | Spaces and odd characters in the name become `_`; a file with the same name is not replaced; a note shows the result | Implemented |
 | SRD-GUI-039.007 | FO-GUI-039 | Should | Each added or refused book is logged. | add | log line | `[Books]` prefix | Implemented |
-| SRD-GUI-039.008 | FO-GUI-039 | Should | The Research tab lists the books in the desk books folder with the date each was added and the chapters already read. | `books` folder, `books_read` | list | Newest first; refreshed after Add book and with the tab; read-only | Approved |
+| SRD-GUI-039.008 | FO-GUI-039 | Should | The Research tab lists the books in the desk books folder with the date each was added and the chapters already read. | `books` folder, `books_read` | list | Newest first; refreshed after Add book and with the tab; read-only | Implemented |
