@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.14.0: Strategy test (user, 2026-11-12): SRD-DSK-010.016 added as Draft — owner-raised strategy test ticket.
 > v0.13.2: SRD-DSK-010.015 Implemented (2026-11-11).
 > v0.13.1: SRD-DSK-010.015 approved by user 2026-11-11.
 > v0.13.0: Autonomous desk step F (user, 2026-11-11): SRD-DSK-010.015 added as Draft — follow-up tickets from research skills.
@@ -215,3 +216,4 @@
 | SRD-DSK-010.013 | FO-DSK-010 | Must | An ended ticket posts a `research_done` event with its id, status and result. | ticket | event | — | Implemented |
 | SRD-DSK-010.014 | FO-DSK-010 | Should | Raise, approve, start, pause and end of each ticket are logged. | ticket | log line | `[Research]` prefix | Implemented |
 | SRD-DSK-010.015 | FO-DSK-010 | Must | A research skill may hand follow-up tickets to the queue in the name of the lead that raised its own ticket. | asks, ticket | ticket rows | Rules .002–.007 apply to that lead; never in the doer's name | Implemented |
+| SRD-DSK-010.016 | FO-DSK-010 | Must | The Master user can raise a `strategy_test` ticket for one card from the app; it is approved at once and paid by the lead that holds the lead plan skill. | card id | ticket row | Rules .002 and .005–.007 apply; refused when no active lead | Draft |
