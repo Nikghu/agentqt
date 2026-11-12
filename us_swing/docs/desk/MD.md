@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.15.0: MD-DSK-010.001.M25 gains `raise_owner_test` (SRD-DSK-010.016, 2026-11-12).
 > v0.14.0: M25 changed — `raise_follow_ups()` for SRD-DSK-010.015 (step F).
 > v0.13.0: MD-DSK-010.001.M25 and MD-DSK-010.008.M26 added — token split and research queue (step E); M04, M06, M10, M11, M12, M14, M15, M21, M22 changed.
 > v0.12.0: MD-DSK-003.021.M24 added — watch flags and open trades (step D); M03, M04, M06, M07, M15, M21 changed.
@@ -136,7 +137,7 @@ SRD coverage: 003.020 by M03 and M04; .021, .022, .024 by M24 and M15; .023 by M
 
 | ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
 |---|---|---|---|---|---|---|
-| MD-DSK-010.001.M25 | SRD-DSK-010.001 | `us_swing/src/us_swing/core/desk_research.py` | Ticket tables, raise rules, auto approval and alert, research block, edits, expiry, pause, research skill contract, rows for the GUI | `Ticket`, `TicketAsk`, `StepResult`, `ResearchSkill`, `KINDS`, `raise_tickets()`, `with_research()`, `add_ticket_edit()`, `apply_ticket_edits()`, `expire_waiting()`, `pause_running()`, `ticket_rows()`, `pending_ticket_edits()`, `lead_research()` | `sqlite3`, M15, M21, M22 | No |
+| MD-DSK-010.001.M25 | SRD-DSK-010.001 | `us_swing/src/us_swing/core/desk_research.py` | Ticket tables, raise rules, auto approval and alert, research block, edits, expiry, pause, research skill contract, rows for the GUI; owner-raised strategy test ticket (SRD-DSK-010.016) | `Ticket`, `TicketAsk`, `StepResult`, `ResearchSkill`, `KINDS`, `raise_tickets()`, `with_research()`, `add_ticket_edit()`, `apply_ticket_edits()`, `expire_waiting()`, `pause_running()`, `ticket_rows()`, `pending_ticket_edits()`, `lead_research()`, `raise_owner_test` | `sqlite3`, M15, M21, M22 | No |
 | MD-DSK-010.008.M26 | SRD-DSK-010.008 | `us_swing/src/us_swing/desk/research.py` | Quiet test, ticket pick, doer by kind, cap checks, one step, stall and done checks, pause, end and `research_done` event | `ResearchRunner` (`has_work()`, `__call__()`), `quiet()` | M25, M11, M14, M16 | No |
 
 Changed: M12 (`desk/budget.py`: `Part`, `SHARES`, `part_cap()`, part and ticket checks — SRD-DSK-004.007, .009, .010), M14 (`desk/recorder.py`: `part`, `payer`, `ticket` columns, `part_tokens()`, `ticket_tokens()`, `ticket_seconds()` — .008), M11 (`desk/gateway.py`: takes `part`, records it — .008, .009), M10 (`desk/employees_step.py`: market or plan part by event kind — .008), M22 (`core/desk_employee.py`: `tokens_per_day` — .006), M04 (`desk/process.py`: applies ticket edits and expiry each tick, pauses on start, runs research when quiet — 010.004, .005, .008, .012), M06 (`desk/cli.py`: passes the runner), M15 (`core/desk_events.py`: `research_done` — 010.013), M21 (`core/desk_alerts.py`: `ticket_waiting` — 007.010).

@@ -7,6 +7,7 @@
 **Project:** US Swing Trading System
 
 > v0.21.2: Step F book rows Implemented (12, 2026-11-11).
+> v0.22.1: SRD-MKT-019.001–.014 approved by user 2026-11-12.
 > v0.22.0: Strategy test (user, 2026-11-12): SRD-MKT-019.001–.014 added as Draft — strategy test research.
 > v0.21.1: SRD-MKT-018.001–.012 approved by user 2026-11-11.
 > v0.21.0: Autonomous desk step F (user, 2026-11-11): SRD-MKT-018.001–.012 added as Draft — book to strategy research.
@@ -336,17 +337,17 @@
 
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
-| SRD-MKT-019.001 | FO-MKT-019 | Must | The strategy test skill (`strategy_test`) works `strategy_test` tickets in four steps: recipe (one AI call), check (code), replay (code) and verdict (one AI call). | ticket | steps | The runner only gives it approved tickets | Draft |
-| SRD-MKT-019.002 | FO-MKT-019 | Must | The ticket topic names one card as `SC-<n>`; a missing card ends the ticket `failed`. | topic | card | Checked before any AI call | Draft |
-| SRD-MKT-019.003 | FO-MKT-019 | Must | The recipe call returns side, entry blocks with settings, entry type, stop type and the card parts it could not map. | card, block list | recipe | Blocks only from the daily indicator rules and price patterns | Draft |
-| SRD-MKT-019.004 | FO-MKT-019 | Must | Code checks every block and setting against the catalogues and ends the ticket `failed` with "can't test: <part> has no block" when anything is unknown or unmapped. | recipe | checked recipe or refusal | No replay runs on a refused recipe | Draft |
-| SRD-MKT-019.005 | FO-MKT-019 | Must | The replay runs the recipe on all Backtest Data daily bars of S&P 500 members with entry by entry type, the recipe stop, a 2R target and a 10-day exit. | recipe, Backtest Data | trades | One open trade per stock at a time; nothing from `candles.db` | Draft |
-| SRD-MKT-019.006 | FO-MKT-019 | Must | The baseline uses the same entry type, stop, target and exit on a fixed sample of stock-days without the entry blocks. | Backtest Data | baseline R | Same sample every run | Draft |
-| SRD-MKT-019.007 | FO-MKT-019 | Must | Code scores trades, win rate, average R, worst losing run and baseline average R, and passes the card only with at least 30 trades, average R above 0.2 and above the baseline. | trades | score, pass | The AI never changes pass or fail | Draft |
-| SRD-MKT-019.008 | FO-MKT-019 | Must | The verdict call reads the score table and writes 2 to 3 short lines. | table | verdict | Each line at most 200 characters | Draft |
-| SRD-MKT-019.009 | FO-MKT-019 | Must | The test is saved in `card_tests` with card, ticket, data dates, recipe, numbers, pass and verdict, and the ticket ends `done` with the table; gain is yes only on a pass. | score, verdict | row, result | One row per test | Draft |
-| SRD-MKT-019.010 | FO-MKT-019 | Should | A passing card adds one candidate lesson naming the card and its average R. | pass | candidate lesson | Through the lessons store; never active by itself | Draft |
-| SRD-MKT-019.011 | FO-MKT-019 | Must | The lead plan facts list cards not yet tested and the topic form for strategy test tickets. | `strategy_cards`, `card_tests` | prompt text | At most 8 lines | Draft |
-| SRD-MKT-019.012 | FO-MKT-019 | Must | Default employee ships as `emp-017` ("Expert 14", skill `strategy_test`) and its skill path is in `SKILL_PATHS` and the app build. | default files | employee | Copied only when missing; generic name | Draft |
-| SRD-MKT-019.013 | FO-MKT-019 | Must | The skill never changes a live strategy, setting, signal or trade. | — | — | Report only | Draft |
-| SRD-MKT-019.014 | FO-MKT-019 | Should | Each step logs the card, the step and its outcome. | step | log line | `[Research]` prefix | Draft |
+| SRD-MKT-019.001 | FO-MKT-019 | Must | The strategy test skill (`strategy_test`) works `strategy_test` tickets in four steps: recipe (one AI call), check (code), replay (code) and verdict (one AI call). | ticket | steps | The runner only gives it approved tickets | Approved |
+| SRD-MKT-019.002 | FO-MKT-019 | Must | The ticket topic names one card as `SC-<n>`; a missing card ends the ticket `failed`. | topic | card | Checked before any AI call | Approved |
+| SRD-MKT-019.003 | FO-MKT-019 | Must | The recipe call returns side, entry blocks with settings, entry type, stop type and the card parts it could not map. | card, block list | recipe | Blocks only from the daily indicator rules and price patterns | Approved |
+| SRD-MKT-019.004 | FO-MKT-019 | Must | Code checks every block and setting against the catalogues and ends the ticket `failed` with "can't test: <part> has no block" when anything is unknown or unmapped. | recipe | checked recipe or refusal | No replay runs on a refused recipe | Approved |
+| SRD-MKT-019.005 | FO-MKT-019 | Must | The replay runs the recipe on all Backtest Data daily bars of S&P 500 members with entry by entry type, the recipe stop, a 2R target and a 10-day exit. | recipe, Backtest Data | trades | One open trade per stock at a time; nothing from `candles.db` | Approved |
+| SRD-MKT-019.006 | FO-MKT-019 | Must | The baseline uses the same entry type, stop, target and exit on a fixed sample of stock-days without the entry blocks. | Backtest Data | baseline R | Same sample every run | Approved |
+| SRD-MKT-019.007 | FO-MKT-019 | Must | Code scores trades, win rate, average R, worst losing run and baseline average R, and passes the card only with at least 30 trades, average R above 0.2 and above the baseline. | trades | score, pass | The AI never changes pass or fail | Approved |
+| SRD-MKT-019.008 | FO-MKT-019 | Must | The verdict call reads the score table and writes 2 to 3 short lines. | table | verdict | Each line at most 200 characters | Approved |
+| SRD-MKT-019.009 | FO-MKT-019 | Must | The test is saved in `card_tests` with card, ticket, data dates, recipe, numbers, pass and verdict, and the ticket ends `done` with the table; gain is yes only on a pass. | score, verdict | row, result | One row per test | Approved |
+| SRD-MKT-019.010 | FO-MKT-019 | Should | A passing card adds one candidate lesson naming the card and its average R. | pass | candidate lesson | Through the lessons store; never active by itself | Approved |
+| SRD-MKT-019.011 | FO-MKT-019 | Must | The lead plan facts list cards not yet tested and the topic form for strategy test tickets. | `strategy_cards`, `card_tests` | prompt text | At most 8 lines | Approved |
+| SRD-MKT-019.012 | FO-MKT-019 | Must | Default employee ships as `emp-017` ("Expert 14", skill `strategy_test`) and its skill path is in `SKILL_PATHS` and the app build. | default files | employee | Copied only when missing; generic name | Approved |
+| SRD-MKT-019.013 | FO-MKT-019 | Must | The skill never changes a live strategy, setting, signal or trade. | — | — | Report only | Approved |
+| SRD-MKT-019.014 | FO-MKT-019 | Should | Each step logs the card, the step and its outcome. | step | log line | `[Research]` prefix | Approved |

@@ -7,6 +7,7 @@
 **Last Updated:** 2026-05-22
 **Project:** US Swing Trading System
 
+> v2.24.1: FO-GUI-040 approved by user 2026-11-12.
 > v2.24.0: Strategy test (user, 2026-11-12): FO-GUI-040 added as Draft — AI Desk strategy cards.
 > v2.23.1: Add book bullet approved by user 2026-11-12.
 > v2.23.0: FO-GUI-039 gains the Add book bullet (user, 2026-11-12) — Draft until approved.
@@ -1115,7 +1116,7 @@ The system shall show the research queue in the AI Desk and let the Master user 
 
 ## FO-GUI-040: AI Desk Strategy Cards
 
-**Status:** Draft
+**Status:** Approved (approved by user 2026-11-12)
 **Priority:** Should
 **Depends on:** FO-MKT-018 (strategy cards), FO-MKT-019 (strategy test), FO-GUI-035 (AI Desk)
 **Source: User 2026-11-12: a Cards view with all strategy cards and their test results, and a Test button on a card.**

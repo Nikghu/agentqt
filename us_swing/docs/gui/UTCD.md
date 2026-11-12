@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.33.0: UT-GUI-040.* added (6, Not Run) — AI Desk strategy cards (2026-11-12).
 > v1.32.1: UT-GUI-039.008 added (3 cases, Pass) — books list (2026-11-12).
 > v1.32.0: UT-GUI-039.006–.007 added (7 cases, Pass) — Add book (2026-11-12).
 > v1.31.2: UT-GUI-034.060.M33.T01 and UT-GUI-034.065.M39.T01 updated — header tiles show day and date, ET only; both Pass (2026-11-12).
@@ -1293,3 +1294,14 @@ Test files:
 | UT-GUI-039.008.M02.T01 | MD-GUI-039.006.M02 | Positive | Books list (SRD-GUI-039.008) | 2 books, a gutenberg cache file, chapters 3 and 1 read | newest first; cache hidden; chapters (1, 3); added date | Pass |
 | UT-GUI-039.008.M02.T02 | MD-GUI-039.006.M02 | Edge | No books (SRD-GUI-039.008) | no folder, no desk.db | empty list | Pass |
 | UT-GUI-039.008.M01.T01 | MD-GUI-039.001.M01 | Positive | Books table (SRD-GUI-039.008) | empty, then Add book `study.md` | empty note, then one row with none yet | Pass |
+
+## FO-GUI-040: AI Desk Strategy Cards
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-040.001.M01.T01 | MD-GUI-040.001.M01 | Positive | Card list (SRD-GUI-040.001) | cards SC-1 untested, SC-2 pass, SC-3 open ticket, SC-4 cant_test | rows newest first; Not tested, Pass, Testing, Can't test | Not Run |
+| UT-GUI-040.001.M01.T02 | MD-GUI-040.001.M01 | Edge | No cards (SRD-GUI-040.001) | no desk.db | empty note shown | Not Run |
+| UT-GUI-040.002.M01.T01 | MD-GUI-040.001.M01 | Positive | Card detail (SRD-GUI-040.002) | select SC-2 | rules, quotes, test line and verdict | Not Run |
+| UT-GUI-040.003.M01.T01 | MD-GUI-040.001.M01 | Positive | Test button (SRD-GUI-040.003) | select SC-1, Test | one approved ticket SC-1; card shows Testing; button off | Not Run |
+| UT-GUI-040.003.M01.T02 | MD-GUI-040.001.M01 | Negative | Test off while testing (SRD-GUI-040.003) | select SC-3 | Test disabled | Not Run |
+| UT-GUI-040.004.M01.T01 | MD-GUI-040.001.M01 | Positive | Test log (SRD-GUI-040.004) | Test SC-1; Test with no lead | `[Research]` started line; not started line with reason | Not Run |

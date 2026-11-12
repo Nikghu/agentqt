@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.20.1: FO-MKT-019 approved by user 2026-11-12.
 > v0.20.0: Strategy test (user, 2026-11-12): FO-MKT-019 added as Draft — strategy test research.
 > v0.19.1: FO-MKT-018 approved by user 2026-11-11.
 > v0.19.0: Autonomous desk step F (user, 2026-11-11): FO-MKT-018 added as Draft — book to strategy research.
@@ -476,7 +477,7 @@ The system shall give the desk an employee that turns one approved chapter of a 
 
 ## FO-MKT-019: Strategy Test Research
 
-**Status:** Draft
+**Status:** Approved (approved by user 2026-11-12)
 **Priority:** Must
 **Phase:** Research skills (T160, strategy test)
 **Depends on:** FO-MKT-018 (strategy cards), FO-MKT-015 (replay on Backtest Data), FO-DSK-010 (research queue), FO-SCR-013 / FO-SCR-014 (indicator rules, price patterns)
