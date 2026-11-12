@@ -1422,6 +1422,7 @@ Quote check: whitespace collapsed, lower case, typographic quotes made plain, th
    - Each stock: arrays of open/high/low/close/volume. From day 200 to the second-last day, the window is the last 260 bars. A signal day needs every indicator rule (`evaluate_rule` with `RuleContext(benchmark=SPY)`) and every pattern (`evaluate_pattern`) to pass.
    - Trigger: `next_open` → next day's open; `signal_break` → signal high (long) or low (short). Stop from the signal day: `signal_bar` low/high, `n_day` lowest low / highest high of the last n days, `atr` trigger ∓ n × ATR14, `percent` trigger × (1 ∓ n/100). Target = trigger ± 2 × risk.
    - `paper_result(side, trigger, stop, target, bars after the signal day)`; outcomes `stop`, `target`, `time` count; `no_fill` and `open` are skipped. After a filled trade the stock waits until its exit day (one open trade per stock).
+   - Time limit: past 10 minutes the replay stops (`TooSlow`) and the ticket ends `failed` "The test took longer than 10 minutes"; a next-open entry that gaps past the stop is skipped, as a rule-following trader would not enter.
    - Baseline: every 10th stock-day from day 200 (same fixed sample each run), same side, entry type, stop and exit, no entry blocks, no one-trade limit.
 4. **score** — `Score(trades, win_rate, avg_r, worst_run, base_trades, base_r, first_day, last_day, passed)`. `worst_run` = longest run of losing trades in entry-day order. `passed = trades >= 30 and avg_r > 0.2 and avg_r > base_r`.
 5. **verdict** — one AI call reads the score table and returns `verdict` (2–3 lines, each ≤ 200 characters). Code saves the `card_tests` row and ends `done` with the table, the pass line and the verdict; gain = `passed`. No answer → outcome `go` (retry next tick).
@@ -1436,11 +1437,11 @@ CREATE TABLE IF NOT EXISTS card_tests (
   win_rate REAL, avg_r REAL, worst_run INTEGER, base_trades INTEGER, base_r REAL,
   verdict TEXT);
 ```
-API: `cards(home)`, `card(home, card_id)`, `save_test(home, TestRow)`, `latest_tests(home)`, `open_test_cards(home)` (cards with an open `strategy_test` ticket), `untested_block(home)` (≤ 8 lines: header with topic form `SC-<n>`, then untested cards newest first). Reads open `desk.db` read-only and return empty when a table is missing.
+API: `cards(home)`, `card(home, card_id)`, `save_test(home, TestRow)`, `latest_tests(home)`, `open_test_cards(home)` (cards with an open `strategy_test` ticket), `untested_block(home)` (≤ 8 lines: header with topic form `SC-<n>` and a token cap of 20,000 or more, then untested cards newest first). Reads open `desk.db` read-only and return empty when a table is missing.
 
 **Lead plan.** `lead_brief` adds `untested_block()` after the books block.
 
-**Owner ticket (SRD-DSK-010.016).** `core/desk_research.raise_owner_test(home, card_id, now)`: payer = `holder(home, "lead_brief")` (lead level, active) else refused "no active lead"; ask = kind `strategy_test`, topic `SC-<n>`, goal "Test strategy card SC-<n> on all Backtest Data", done test "Pass or fail decided by code on 30+ trades", cap `AUTO_CAP`; `_refusal()` rules apply; row status `approved`, `approved_by = "master"`. Returns the same note text as `raise_tickets`.
+**Owner ticket (SRD-DSK-010.016).** `core/desk_research.raise_owner_test(home, card_id, now)`: payer = `holder(home, "lead_brief")` (lead level, active) else refused "no active lead"; ask = kind `strategy_test`, topic `SC-<n>`, goal "Test strategy card SC-<n> on all Backtest Data", done test "Pass or fail decided by code on 30+ trades", cap `OWNER_TEST_CAP` (20,000; enough for the recipe and verdict calls); `_refusal()` rules apply; row status `approved`, `approved_by = "master"`. Returns the same note text as `raise_tickets`.
 
 **Never live (SRD-MKT-019.013).** The skill reads Backtest Data and `desk.db` and writes only `card_tests`, the ticket and a candidate lesson.
 

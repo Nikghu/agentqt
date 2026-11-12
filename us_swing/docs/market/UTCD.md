@@ -6,7 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
-> v0.22.0: UT-MKT-019.* added (34, Not Run) — strategy test research (2026-11-12).
+> v0.22.0: UT-MKT-019.* added (36, Not Run) — strategy test research (2026-11-12).
 > v0.21.1: Step F book cases Pass (23, 2026-11-11).
 > v0.21.0: UT-MKT-018.* added (23, Not Run) — book to strategy research (step F).
 > v0.20.1: Step F sentiment cases Pass (22, 2026-11-11).
@@ -651,3 +651,5 @@
 | UT-MKT-019.011.M04.T03 | MD-MKT-019.009.M04 | Negative | No cards (SRD-MKT-019.011) | no desk.db; all cards tested | empty block | Not Run |
 | UT-MKT-019.012.M05.T02 | MD-MKT-019.012.M05 | Negative | No hardcoded name (SRD-MKT-019.012) | skill source | no employee name or title in code | Not Run |
 | UT-MKT-019.013.M01.T02 | MD-MKT-019.001.M01 | Positive | Report only (SRD-MKT-019.013) | full ticket run | only card_tests and lessons gain rows | Not Run |
+| UT-MKT-019.005.M03.T05 | MD-MKT-019.005.M03 | Edge | Time limit (SRD-MKT-019.005) | replay with a limit already passed | stops; ticket fails with a plain note | Not Run |
+| UT-MKT-019.011.M04.T04 | MD-MKT-019.009.M04 | Positive | Test cap hint (SRD-MKT-019.011) | untested block header; owner ticket cap | says token cap 20000; owner cap 20,000 | Not Run |

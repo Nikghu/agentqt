@@ -38,6 +38,7 @@ KINDS: tuple[str, ...] = ("setup_tuning", "post_mortem", "stock_study", "sentime
                           "book_to_strategy", "strategy_test")
 BOOK = "book_to_strategy"
 AUTO_CAP = 10_000
+OWNER_TEST_CAP = 20_000
 CAP_MIN, CAP_MAX = 1_000, 100_000
 PER_DAY = 3
 WAIT_DAYS = 3
@@ -276,7 +277,7 @@ def raise_owner_test(home: Path, card_id: int, now: datetime) -> str:
     ask = TicketAsk(kind="strategy_test", topic=f"SC-{card_id}",
                     goal=f"Test strategy card SC-{card_id} on all Backtest Data",
                     done_test="Pass or fail decided by code on 30 or more trades",
-                    token_cap=AUTO_CAP)
+                    token_cap=OWNER_TEST_CAP)
     con = connect(home)
     try:
         why = _refusal(con, spec, ask, now)

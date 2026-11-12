@@ -11,6 +11,7 @@ scores the trades and decides pass or fail.
 from __future__ import annotations
 
 import math
+import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -32,7 +33,12 @@ ATR_DAYS = 14
 TARGET_R = 2.0
 MIN_TRADES = 30
 MIN_AVG_R = 0.2
+TIME_LIMIT_S = 600.0
 _COUNTED = ("stop", "target", "time")
+
+
+class TooSlow(Exception):
+    """The replay ran past its time limit."""
 
 
 @dataclass(frozen=True)
@@ -158,12 +164,20 @@ def _trade(recipe: Recipe, stock: Stock, i: int) -> tuple[Trade, int] | None:
     return Trade(stock.symbol, stock.days[i], float(result.r)), exit_at
 
 
-def replay(recipe: Recipe, data: Sequence[Stock]) -> list[Trade]:
-    """Trades of a checked recipe, one open trade per stock at a time."""
+def replay(recipe: Recipe, data: Sequence[Stock], limit_s: float = TIME_LIMIT_S
+           ) -> list[Trade]:
+    """Trades of a checked recipe, one open trade per stock at a time.
+
+    Raises:
+        TooSlow: The replay ran longer than ``limit_s`` seconds.
+    """
     rules, patterns = _rules(recipe)
     ctx = RuleContext()
     trades: list[Trade] = []
+    deadline = time.monotonic() + limit_s
     for stock in data:
+        if time.monotonic() > deadline:
+            raise TooSlow
         i, last = WARMUP, len(stock.days) - 2
         while i <= last:
             if _signal(stock.symbol, _window(stock.arrays, i), rules, patterns, ctx):

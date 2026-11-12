@@ -23,8 +23,8 @@ KIND = "strategy_test"
 MAX_BLOCK_LINES = 8
 OPEN = ("waiting", "approved", "running", "paused")
 TOPIC = re.compile(r"^SC-(\d{1,6})$", re.IGNORECASE)
-HEADER = ("Strategy cards not yet tested (kind strategy_test; topic SC-<n>; code tests the "
-          "card on all Backtest Data):")
+HEADER = ("Strategy cards not yet tested (kind strategy_test; topic SC-<n>; token cap 20000 "
+          "or more; code tests the card on all Backtest Data):")
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS card_tests (
     id INTEGER PRIMARY KEY AUTOINCREMENT, card_id INTEGER, ticket_id INTEGER, made TEXT,

@@ -27,7 +27,7 @@ from us_swing.core.desk_lessons import add_candidate
 from us_swing.core.desk_research import StepResult, Ticket
 from us_swing.data.market_calendar import ET
 from us_swing.market.card_recipe import Recipe, block_menu, check_recipe, recipe_text
-from us_swing.market.card_replay import Score, Stock, baseline, load_data, replay, score
+from us_swing.market.card_replay import Score, Stock, TooSlow, baseline, load_data, replay, score
 from us_swing.market.card_replay import score_text
 
 log = logging.getLogger(__name__)
@@ -142,7 +142,14 @@ class StrategyTestSkill:
             return StepResult("No S&P 500 daily candles in Backtest Data to test on",
                               "replay", "failed")
         recipe = Recipe.model_validate(state["recipe"])
-        result = score(replay(recipe, data), baseline(recipe, data))
+        try:
+            trades = replay(recipe, data)
+        except TooSlow:
+            log.warning("[Research] Ticket %d card SC-%s test took longer than 10 minutes",
+                        ticket.id, state["card"])
+            return StepResult("The test took longer than 10 minutes; a simpler recipe may run",
+                              "replay", "failed")
+        result = score(trades, baseline(recipe, data))
         log.info("[Research] Ticket %d card SC-%s replay: %s trades, %+.2fR, baseline %+.2fR, %s",
                  ticket.id, state["card"], f"{result.trades:,}", result.avg_r, result.base_r,
                  "pass" if result.passed else "fail")

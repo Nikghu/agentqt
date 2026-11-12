@@ -15,6 +15,7 @@ from pydantic import ValidationError
 
 from tests.market.p5b_support import FakeCtx
 from us_swing.core.desk_cards import (
+    HEADER,
     CardTest,
     card,
     card_id_of,
@@ -25,7 +26,7 @@ from us_swing.core.desk_cards import (
 )
 from us_swing.core.desk_steps import DEFAULT_EMPLOYEE_PACKAGES, SKILL_PATHS
 from us_swing.core.indicator_rules import BarArrays
-from us_swing.core.desk_research import StepResult, Ticket
+from us_swing.core.desk_research import OWNER_TEST_CAP, StepResult, Ticket
 from us_swing.data.market_calendar import ET
 from us_swing.desk.registry import default_folders, load_employee
 from us_swing.market import strategy_test as st_module
@@ -41,6 +42,7 @@ from us_swing.market.card_recipe import (
 from us_swing.market.card_replay import (
     WARMUP,
     Stock,
+    TooSlow,
     Trade,
     baseline,
     levels,
@@ -439,3 +441,14 @@ def test_logs(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
     lines = [r.getMessage() for r in caplog.records if "Ticket 9 card SC-1" in r.getMessage()]
     assert len(lines) >= 3 and all(m.startswith("[Research]") for m in lines)
 
+
+
+def test_time_limit(tmp_path: Path) -> None:
+    """UT-MKT-019.005.M03.T05: A replay past its time limit stops and fails the ticket."""
+    with pytest.raises(TooSlow):
+        replay(_recipe(), [_stock(), _stock()], limit_s=-1)
+
+
+def test_owner_cap() -> None:
+    """UT-MKT-019.011.M04.T04: The lead is told to give strategy tests 20,000 tokens."""
+    assert "token cap 20000" in HEADER and OWNER_TEST_CAP == 20_000
