@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.13.0: DD-DSK-010.016.D01 added — owner-raised strategy test ticket (2026-11-12).
 > v0.12.0: DD-DSK-010.015.D01 added — follow-up tickets from research skills (step F).
 > v0.11.0: DD-DSK-010.001.D01 added — token split and research queue (Autonomous desk step E (2026-11-11)).
 > v0.10.0: DD-DSK-003.020.D01 added — check-ins and watchers (Autonomous desk step D (2026-11-11)).
@@ -980,3 +981,7 @@ The desk loop (`_event_tick`) runs the runner only when `has_work` from events i
 ## DD-DSK-010.015.D01 — Follow-up Tickets from Research Skills (Autonomous desk step F)
 
 **Traces:** SRD-DSK-010.015. `raise_follow_ups(home, lead_id, asks, now, send=None)` in `core/desk_research.py` looks up the employee file whose id is `lead_id` (the `raised_by` of the research ticket). Not an active lead → every ask is refused with "the raising lead is no longer an active lead". Otherwise each ask runs through `_raise_one()` exactly as in `raise_tickets()`, so limits, repeats, parked topics, auto approval and the waiting alert all count against that lead. Errors are logged and every ask is refused; the caller's work is never lost. Full use in DD-MKT-016.001.D01 §5.
+
+## DD-DSK-010.016.D01 — Owner-Raised Strategy Test Ticket
+
+**Traces:** SRD-DSK-010.016. `core/desk_research.raise_owner_test(home, card_id, now)` raises one `strategy_test` ticket for card `SC-<card_id>` in the name of the active lead that holds `lead_brief`, so the test uses that lead's research budget. It runs `_refusal()` (kind, cap, 3 a day, no repeat of an open or recent ticket), inserts the row as `approved` with `approved_by = "master"`, logs `[Research] Master raised ticket N (strategy test): approved` and returns `"ticket N approved"` or `"refused: <why>"`. No lead → `"refused: no active lead holds the lead plan"`. Full design: DD-MKT-019.001.D01.

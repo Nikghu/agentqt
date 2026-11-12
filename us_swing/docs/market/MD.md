@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.22.0: MD-MKT-019.001.M01, .003.M02, .005.M03, .009.M04, .012.M05 added — strategy test research; lead_brief changed (2026-11-12).
 > v0.21.0: MD-MKT-018.001.M01, .002.M02, .006.M03 added — book to strategy research (step F); M08 lead_brief changed.
 > v0.20.0: MD-MKT-017.001.M01, .004.M02, .006.M03 added — sentiment research (step F); M08 lead_brief changed.
 > v0.19.0: MD-MKT-016.001.M01 and .004.M02 added — pick post-mortem research (step F).
@@ -249,3 +250,15 @@ SRD coverage: .001–.003, .005, .008–.010 by M01; .004 by M02; .006 and .007 
 | MD-MKT-018.006.M03 | SRD-MKT-018.006 | `us_swing/src/us_swing/market/book_cards.py` | `strategy_cards` and `books_read` tables, read check, lead books block | `already_read`, `save_card`, `books_block` | `core.desk_contract` | No |
 
 SRD coverage: .001, .007, .009, .011, .012 by M01; .002–.005 by M02; .006, .008, .010 by M03 (quote check in M01). Changed: `market/lead_brief.py` (MD-MKT-005.014.M08) adds `books_block()` — SRD-MKT-018.010.
+
+## FO-MKT-019: Strategy Test Research
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-MKT-019.001.M01 | SRD-MKT-019.001 | `us_swing/src/us_swing/market/strategy_test.py` | Research skill: recipe, check, replay and verdict steps, save, lesson, logs | `StrategyTestSkill`, `CardVerdict` | `core.desk_research`, `core.desk_lessons`, M02, M03, M04 | No |
+| MD-MKT-019.003.M02 | SRD-MKT-019.003 | `us_swing/src/us_swing/market/card_recipe.py` | Recipe answer model, daily block menu and recipe check (SRD-MKT-019.004) | `Recipe`, `block_menu`, `check_recipe` | `core.indicator_rules`, `core.price_patterns` | No |
+| MD-MKT-019.005.M03 | SRD-MKT-019.005 | `us_swing/src/us_swing/market/card_replay.py` | Replay on Backtest Data, baseline and score with the pass rule (SRD-MKT-019.006–.007) | `load_data`, `replay`, `baseline`, `score`, `Score`, `score_text` | `market.proof_data`, `market.pick_results`, `core.indicator_rules`, `core.price_patterns` | No |
+| MD-MKT-019.009.M04 | SRD-MKT-019.009 | `us_swing/src/us_swing/core/desk_cards.py` | Cards and `card_tests` store, open tests, lead untested block (SRD-MKT-019.011); read by the GUI | `CardRow`, `CardTest`, `cards`, `card`, `save_test`, `latest_tests`, `open_test_cards`, `untested_block` | `core.desk_contract` | No |
+| MD-MKT-019.012.M05 | SRD-MKT-019.012 | `us_swing/src/us_swing/market/employees/emp-017/employee.md`, `core/desk_steps.py`, `USSwing.spec` | Default strategy test employee, skill path and app build entry | `SKILL_PATHS["strategy_test"]` | `core.desk_hiring` | No |
+
+SRD coverage: .001, .002, .008, .009 (save), .010, .013, .014 by M01; .003–.004 by M02; .005–.007 by M03; .009, .011 by M04; .012 by M05. Changed: `market/lead_brief.py` (untested cards block, SRD-MKT-019.011).

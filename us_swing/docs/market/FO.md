@@ -6,6 +6,8 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.20.1: FO-MKT-019 approved by user 2026-11-12.
+> v0.20.0: Strategy test (user, 2026-11-12): FO-MKT-019 added as Draft — strategy test research.
 > v0.19.1: FO-MKT-018 approved by user 2026-11-11.
 > v0.19.0: Autonomous desk step F (user, 2026-11-11): FO-MKT-018 added as Draft — book to strategy research.
 > v0.18.1: FO-MKT-017 approved by user 2026-11-11.
@@ -472,3 +474,27 @@ The system shall give the desk an employee that turns one approved chapter of a 
 1. An approved ticket `upload:my_book.txt ch 2` ends `done` with one strategy card in its result and in `strategy_cards`.
 2. A second ticket for the same chapter ends `failed` without reading the file again.
 3. A ticket naming any other website ends `failed` and nothing is downloaded.
+
+## FO-MKT-019: Strategy Test Research
+
+**Status:** Implemented (approved by user 2026-11-12)
+**Priority:** Must
+**Phase:** Research skills (T160, strategy test)
+**Depends on:** FO-MKT-018 (strategy cards), FO-MKT-015 (replay on Backtest Data), FO-DSK-010 (research queue), FO-SCR-013 / FO-SCR-014 (indicator rules, price patterns)
+**Source: User 2026-11-12: test strategy cards on all Backtest Data; pass = at least 30 trades, average R above 0.2 and better than a simple baseline; the lead raises tests after new cards and the owner can raise one from a card; Cards view as a second step.**
+
+The system shall give the desk an employee that tests one strategy card on past data and says plainly whether it worked, without ever touching live trading.
+
+- The system shall turn a card into a test recipe built only from the existing indicator rules and price patterns, with no free code.
+- The system shall end the test as "can't test" and name the part when a card rule has no matching block.
+- The system shall replay the recipe on all Backtest Data daily bars of S&P 500 stocks with a fixed stop, target and time exit.
+- The system shall compare the card with a simple baseline and let code alone decide pass or fail.
+- The system shall keep each test result with its card and turn a pass into a candidate lesson.
+- The system shall let the lead raise a test for a new card and let the owner raise one from the app.
+- The system shall ship a default strategy test employee with a generic name.
+
+### Acceptance Criteria
+
+1. An approved ticket `SC-3` ends `done` with a table of trades, win rate, average R, worst losing run and baseline, and a pass or fail.
+2. A card whose entry needs a block that does not exist ends `failed` with "can't test" and the part named.
+3. No live strategy, setting or trade changes during or after a test.

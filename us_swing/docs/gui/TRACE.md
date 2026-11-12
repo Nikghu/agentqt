@@ -3,7 +3,7 @@
 **Document ID:** TRACE-GUI
 **Version:** 1.16.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-11-12 (Add book and books list: FO-GUI-039 SRD .006–.008; autonomous desk step E: FO-GUI-039 with RN-GUI-1.64.0-20261111; autonomous desk step D: FO-GUI-038 with RN-GUI-1.63.0-20261111; memory v1 step C: FO-GUI-037 with RN-GUI-1.62.0-20261111; morning run step A: FO-GUI-029 SRD .007–.008 and FO-GUI-034 SRD .068–.069 with RN-GUI-1.61.0-20261111; AI Desk Team at work FO-GUI-035 with RN-GUI-1.13.0-20261110; Market Floor and AI Desk frames FO-GUI-034; SRD-GUI-034.011 with RN-MKT-0.1.0-20261106; SRD-GUI-034.012 with RN-MKT-0.2.0-20261106; SRD-GUI-034.013 with RN-MKT-0.3.0-20261106; SRD-GUI-034.014 with RN-MKT-0.4.0-20261106; SRD-GUI-034.015–.017 with RN-DSK-0.2.0-20261106)
+**Last Updated:** 2026-11-12 (AI Desk Cards tab and Test button: FO-GUI-040 with RN-MKT-0.21.0-20261112; Add book and books list: FO-GUI-039 SRD .006–.008; autonomous desk step E: FO-GUI-039 with RN-GUI-1.64.0-20261111; autonomous desk step D: FO-GUI-038 with RN-GUI-1.63.0-20261111; memory v1 step C: FO-GUI-037 with RN-GUI-1.62.0-20261111; morning run step A: FO-GUI-029 SRD .007–.008 and FO-GUI-034 SRD .068–.069 with RN-GUI-1.61.0-20261111; AI Desk Team at work FO-GUI-035 with RN-GUI-1.13.0-20261110; Market Floor and AI Desk frames FO-GUI-034; SRD-GUI-034.011 with RN-MKT-0.1.0-20261106; SRD-GUI-034.012 with RN-MKT-0.2.0-20261106; SRD-GUI-034.013 with RN-MKT-0.3.0-20261106; SRD-GUI-034.014 with RN-MKT-0.4.0-20261106; SRD-GUI-034.015–.017 with RN-DSK-0.2.0-20261106)
 
 ---
 
@@ -151,6 +151,7 @@
 | FO-GUI-038 | SRD-GUI-038.001–.003 | DD-GUI-038.001.D01 | MD-GUI-038.001.M01 | UT-GUI-038.* (5, Pass) | `gui/app_service.py` | Implemented | RN-GUI-1.63.0-20261111 |
 | FO-GUI-039 | SRD-GUI-039.001–.005 | DD-GUI-039.001.D01 | MD-GUI-039.001.M01; MD-GUI-034.009.M08 (changed) | UT-GUI-039.* (9, Pass) | `gui/ai_desk_research.py`, `gui/ai_desk.py` | Implemented | RN-GUI-1.64.0-20261111 |
 | FO-GUI-039 | SRD-GUI-039.006–.008 | DD-GUI-039.006.D01 | MD-GUI-039.001.M01 (changed); MD-GUI-039.006.M02 | UT-GUI-039.006–.008 (10, Pass) | `gui/ai_desk_research.py`, `core/desk_books.py` | Implemented | RN-GUI-1.65.0-20261112 |
+| FO-GUI-040 | SRD-GUI-040.001–.004 | DD-GUI-040.001.D01 | MD-GUI-040.001.M01; MD-GUI-034.009.M08 (changed) | UT-GUI-040.* (6, Pass) | `gui/ai_desk_cards.py`, `gui/ai_desk.py` | Implemented | RN-MKT-0.21.0-20261112 |
 | FO-GUI-034 | SRD-GUI-034.065 (wording: header dates, ET only) | DD-GUI-034.065.D01 | MD-GUI-034.065.M39 (changed) | UT-GUI-034.060.M33.T01, UT-GUI-034.065.M39.T01 (Pass) | `gui/ai_desk_console.py` | Implemented | RN-GUI-1.65.0-20261112 |
 
 ---

@@ -5,6 +5,9 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.111.2: SRD-GUI-040.001–.004 Implemented 2026-11-12.
+> v2.111.1: SRD-GUI-040.001–.004 approved by user 2026-11-12.
+> v2.111.0: Strategy test (user, 2026-11-12): SRD-GUI-040.001–.004 added as Draft — AI Desk strategy cards.
 > v2.110.2: SRD-GUI-039.008 Implemented 2026-11-12.
 > v2.110.1: SRD-GUI-039.008 approved by user 2026-11-12.
 > v2.110.0: SRD-GUI-039.008 added as Draft — Books list on the Research tab (user, 2026-11-12).
@@ -850,3 +853,12 @@
 | SRD-GUI-039.006 | FO-GUI-039 | Should | An Add book button on the Research tab opens a file browser for PDF, TXT, MD and HTML files and copies the chosen file into the desk books folder. | chosen file | file in `books` | Spaces and odd characters in the name become `_`; a file with the same name is not replaced; a note shows the result | Implemented |
 | SRD-GUI-039.007 | FO-GUI-039 | Should | Each added or refused book is logged. | add | log line | `[Books]` prefix | Implemented |
 | SRD-GUI-039.008 | FO-GUI-039 | Should | The Research tab lists the books in the desk books folder with the date each was added and the chapters already read. | `books` folder, `books_read` | list | Newest first; refreshed after Add book and with the tab; read-only | Implemented |
+
+## FO-GUI-040: AI Desk Strategy Cards
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-040.001 | FO-GUI-040 | Should | AI Desk has a Cards tab that lists strategy cards with id, name, book and chapter, made date, latest test result, trades and average R. | `strategy_cards`, `card_tests`, `tickets` | list | Newest first; read-only from `desk.db` | Implemented |
+| SRD-GUI-040.002 | FO-GUI-040 | Should | Selecting a card shows its idea, market, entry, exit, stop, quotes and the latest test table and verdict. | card | detail text | — | Implemented |
+| SRD-GUI-040.003 | FO-GUI-040 | Should | A Test button raises a `strategy_test` ticket for the selected card through SRD-DSK-010.016. | click | ticket row | Off while the card has an open test | Implemented |
+| SRD-GUI-040.004 | FO-GUI-040 | Should | Each Test click and its outcome is logged. | click | log line | `[Research]` prefix | Implemented |

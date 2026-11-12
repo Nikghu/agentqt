@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.21.0: DD-MKT-019.001.D01 added — strategy test research (2026-11-12).
 > v0.20.0: DD-MKT-018.001.D01 added — book to strategy research (Autonomous desk step F (2026-11-11)).
 > v0.19.0: DD-MKT-017.001.D01 added — sentiment research (Autonomous desk step F (2026-11-11)).
 > v0.18.0: DD-MKT-016.001.D01 added — pick post-mortem research (Autonomous desk step F (2026-11-11)).
@@ -1399,3 +1400,51 @@ Quote check: whitespace collapsed, lower case, typographic quotes made plain, th
 - `market/employees/emp-016/employee.md`: "Expert 13", title "Book analyst", level expert, skill `book_to_strategy`, trigger `research_done`; `facts()` never wakes it.
 - `SKILL_PATHS["book_to_strategy"] = "us_swing.market.book_strategy:BookStrategySkill"`; `USSwing.spec` hidden imports `us_swing.market.book_strategy` and `pypdf`; `pyproject.toml` gains `pypdf>=5.1`.
 - Logs: "[Research] Ticket 7 read chapter 2 of upload:my_book.txt (4,812 words)", "[Research] Ticket 7 saved card SC-3, 2 of 3 quotes found".
+
+## DD-MKT-019.001.D01 — Strategy Test Research
+
+**Traces:** SRD-MKT-019.001–.014, SRD-DSK-010.016. Reuses the replay data of DD-MKT-015.001.D01 (`proof_data.read_daily`, S&P 500 members from `candles.member_sectors`) and the pick trade rule of `pick_results.paper_result` (fill within 5 days, 2R target, 10-day exit).
+
+**Files.** `market/strategy_test.py` (skill), `market/card_recipe.py` (recipe model, block menu, check), `market/card_replay.py` (replay, baseline, score), `core/desk_cards.py` (cards and `card_tests` store, lead block; also read by the GUI), `market/employees/emp-017/employee.md`.
+
+**Ticket.** Kind `strategy_test`, topic `SC-<n>`. State phases: `recipe` → `check` → `replay` → `verdict` → `done`.
+
+1. **recipe** — code loads the card (`core.desk_cards.card`); missing → `failed` "Card SC-n not found". One AI call with the card text and the block menu returns `Recipe`:
+   - `side`: `long` | `short`
+   - `indicators`: 0–4 of `{id, condition, value, to, params}` (indicator rules)
+   - `patterns`: 0–3 of `{id, params}` (price patterns)
+   - `entry`: `next_open` | `signal_break` (break of the signal day's high for longs, low for shorts)
+   - `stop`: `{kind, n}` with kind `signal_bar` | `n_day` (n 2–60) | `atr` (n 0.5–5, ATR 14) | `percent` (n 1–20)
+   - `unmapped`: card parts with no block, each at most 100 characters
+   The block menu lists daily blocks only: indicators except `rvol_3m/5m/10m`, `stvol_*`, `market_cap`, `rs_index`; all price patterns.
+2. **check** (code, no AI) — `check_recipe()` returns a list of problems: unmapped parts ("<part> has no block"), unknown ids, a condition the indicator does not take, a value or setting outside its range, a missing `value`/`to`, a stop `n` out of range, no entry block at all. Any problem → save a `cant_test` row and end `failed` "can't test: <first problem>; …".
+3. **replay** (code) — `replay(recipe, data)`:
+   - Each stock: arrays of open/high/low/close/volume. From day 200 to the second-last day, the window is the last 260 bars. A signal day needs every indicator rule (`evaluate_rule` with `RuleContext(benchmark=SPY)`) and every pattern (`evaluate_pattern`) to pass.
+   - Trigger: `next_open` → next day's open; `signal_break` → signal high (long) or low (short). Stop from the signal day: `signal_bar` low/high, `n_day` lowest low / highest high of the last n days, `atr` trigger ∓ n × ATR14, `percent` trigger × (1 ∓ n/100). Target = trigger ± 2 × risk.
+   - `paper_result(side, trigger, stop, target, bars after the signal day)`; outcomes `stop`, `target`, `time` count; `no_fill` and `open` are skipped. After a filled trade the stock waits until its exit day (one open trade per stock).
+   - Time limit: past 10 minutes the replay stops (`TooSlow`) and the ticket ends `failed` "The test took longer than 10 minutes"; a next-open entry that gaps past the stop is skipped, as a rule-following trader would not enter.
+   - Baseline: every 10th stock-day from day 200 (same fixed sample each run), same side, entry type, stop and exit, no entry blocks, no one-trade limit.
+4. **score** — `Score(trades, win_rate, avg_r, worst_run, base_trades, base_r, first_day, last_day, passed)`. `worst_run` = longest run of losing trades in entry-day order. `passed = trades >= 30 and avg_r > 0.2 and avg_r > base_r`.
+5. **verdict** — one AI call reads the score table and returns `verdict` (2–3 lines, each ≤ 200 characters). Code saves the `card_tests` row and ends `done` with the table, the pass line and the verdict; gain = `passed`. No answer → outcome `go` (retry next tick).
+6. **lesson** — on a pass `add_candidate(text, {"setup": "card SC-n", "side": side}, "better", proof)`; a failure to save is logged and never repeats the paid verdict.
+
+**Store (`core/desk_cards.py`).**
+```
+CREATE TABLE IF NOT EXISTS card_tests (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, card_id INTEGER, ticket_id INTEGER, made TEXT,
+  result TEXT,            -- pass | fail | cant_test
+  reason TEXT, recipe TEXT, first_day TEXT, last_day TEXT, trades INTEGER,
+  win_rate REAL, avg_r REAL, worst_run INTEGER, base_trades INTEGER, base_r REAL,
+  verdict TEXT);
+```
+API: `cards(home)`, `card(home, card_id)`, `save_test(home, TestRow)`, `latest_tests(home)`, `open_test_cards(home)` (cards with an open `strategy_test` ticket), `untested_block(home)` (≤ 8 lines: header with topic form `SC-<n>` and a token cap of 20,000 or more, then untested cards newest first). Reads open `desk.db` read-only and return empty when a table is missing.
+
+**Lead plan.** `lead_brief` adds `untested_block()` after the books block.
+
+**Owner ticket (SRD-DSK-010.016).** `core/desk_research.raise_owner_test(home, card_id, now)`: payer = `holder(home, "lead_brief")` (lead level, active) else refused "no active lead"; ask = kind `strategy_test`, topic `SC-<n>`, goal "Test strategy card SC-<n> on all Backtest Data", done test "Pass or fail decided by code on 30+ trades", cap `OWNER_TEST_CAP` (20,000; enough for the recipe and verdict calls); `_refusal()` rules apply; row status `approved`, `approved_by = "master"`. Returns the same note text as `raise_tickets`.
+
+**Never live (SRD-MKT-019.013).** The skill reads Backtest Data and `desk.db` and writes only `card_tests`, the ticket and a candidate lesson.
+
+**Registry.** `SKILL_PATHS["strategy_test"] = "us_swing.market.strategy_test:StrategyTestSkill"`; `USSwing.spec` hidden imports add `us_swing.market.strategy_test`; `emp-017` ("Expert 14", title "Strategy tester", level expert, skill `strategy_test`, trigger `research_done`).
+
+**Logs.** `[Research] Ticket 9 card SC-3 recipe: 2 indicators, 1 pattern, next open, ATR stop` · `[Research] Ticket 9 card SC-3 can't test: rvol_3m has no block` · `[Research] Ticket 9 card SC-3 replay: 214 trades, +0.31R, baseline +0.04R, pass`.

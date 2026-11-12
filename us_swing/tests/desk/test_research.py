@@ -15,6 +15,7 @@ from tests.desk.test_harness import FakeCaller
 from us_swing.core.desk_contract import StepContext
 from us_swing.core.desk_events import post_event
 from us_swing.core.desk_research import (
+    raise_owner_test,
     StepResult,
     add_ticket_edit,
     apply_ticket_edits,
@@ -327,3 +328,27 @@ def test_other_refusal_backs_off(home: Path, clock: FakeClock) -> None:
     assert not runner.has_work(home)
     clock.move(15 * 60)
     assert runner.has_work(home)
+
+
+def test_owner_test_ticket(tmp_path: Path) -> None:
+    """UT-DSK-010.016.M25.T01: The owner's test is approved in the lead plan holder's name."""
+    rs.employee(tmp_path, "l-9", "Lead P", "lead", "lead_brief")
+    assert raise_owner_test(tmp_path, 3, NOW) == "ticket 1 approved"
+    got = rows(tmp_path, "SELECT kind, topic, status, raised_by, approved_by FROM tickets")
+    assert got == [("strategy_test", "SC-3", "approved", "l-9", "master")]
+
+
+def test_owner_test_no_lead(tmp_path: Path) -> None:
+    """UT-DSK-010.016.M25.T02: With no lead plan holder the test is refused."""
+    team(tmp_path)
+    assert raise_owner_test(tmp_path, 3, NOW).startswith("refused: no active lead")
+    assert rows(tmp_path, "SELECT name FROM sqlite_master WHERE name = 'tickets'") == [] or \
+        rows(tmp_path, "SELECT COUNT(*) FROM tickets")[0][0] == 0
+
+
+def test_owner_test_repeat(tmp_path: Path) -> None:
+    """UT-DSK-010.016.M25.T03: A second test of a card with an open test is refused."""
+    rs.employee(tmp_path, "l-9", "Lead P", "lead", "lead_brief")
+    raise_owner_test(tmp_path, 3, NOW)
+    assert raise_owner_test(tmp_path, 3, NOW).startswith("refused")
+    assert rows(tmp_path, "SELECT COUNT(*) FROM tickets")[0][0] == 1

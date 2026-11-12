@@ -7,6 +7,8 @@
 **Last Updated:** 2026-05-22
 **Project:** US Swing Trading System
 
+> v2.24.1: FO-GUI-040 approved by user 2026-11-12.
+> v2.24.0: Strategy test (user, 2026-11-12): FO-GUI-040 added as Draft — AI Desk strategy cards.
 > v2.23.1: Add book bullet approved by user 2026-11-12.
 > v2.23.0: FO-GUI-039 gains the Add book bullet (user, 2026-11-12) — Draft until approved.
 > v2.22.1: FO-GUI-039 approved by user 2026-11-11.
@@ -1111,3 +1113,21 @@ The system shall show the research queue in the AI Desk and let the Master user 
 
 1. A waiting ticket appears at the top of AI Desk → Research; Approve starts it at the next quiet gap.
 2. Reject moves it to the ended list as rejected.
+
+## FO-GUI-040: AI Desk Strategy Cards
+
+**Status:** Implemented (approved by user 2026-11-12)
+**Priority:** Should
+**Depends on:** FO-MKT-018 (strategy cards), FO-MKT-019 (strategy test), FO-GUI-035 (AI Desk)
+**Source: User 2026-11-12: a Cards view with all strategy cards and their test results, and a Test button on a card.**
+
+The system shall show every strategy card with its latest test result and let the owner ask for a test.
+
+- The system shall list strategy cards with their book, date and latest test result.
+- The system shall show a chosen card's rules, quotes, test table and verdict.
+- The system shall let the owner start a test of a card that has no open test.
+
+### Acceptance Criteria
+
+1. AI Desk → Cards lists each card with Not tested, Testing, Pass, Fail or Can't test.
+2. Test on an untested card adds an approved strategy test ticket, and the card shows Testing.

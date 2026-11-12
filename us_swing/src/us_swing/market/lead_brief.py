@@ -12,6 +12,7 @@ Also: MD-MKT-012.005.M03 — lessons block at the end of the facts (SRD-MKT-012.
 Also: MD-MKT-014.001.M01 — tickets in the answer, research block, tickets to the queue
 Also: SRD-MKT-017.007 — sentiment cards block after the ideas table
 Also: SRD-MKT-018.010 — books block (uploaded books, topic form, chapters read)
+Also: SRD-MKT-019.011 — untested strategy cards block after the books block
 (SRD-MKT-014.001, .004, .005)
 """
 from __future__ import annotations
@@ -27,6 +28,7 @@ import pandas as pd
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from us_swing.core.desk_agents import AgentContext, Facts, FeedItem
+from us_swing.core.desk_cards import untested_block
 from us_swing.core.desk_lessons import with_lessons
 from us_swing.core.desk_research import TicketAsk, raise_tickets, with_research
 from us_swing.market.book_cards import books_block
@@ -136,6 +138,8 @@ class LeadBriefSkill:
             text = f"{text}\n\n{cards}" if cards else text
             books = books_block(home, home / "books")
             text = f"{text}\n\n{books}" if books else text
+            untested = untested_block(home)
+            text = f"{text}\n\n{untested}" if untested else text
             text = with_lessons(text, home, KEY, day)
             return Facts(with_research(text, home, KEY, self._clock()), day, True)
         finally:

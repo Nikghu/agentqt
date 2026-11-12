@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.31.0: MD-GUI-040.001.M01 added — AI Desk strategy cards; M08 changed (2026-11-12).
 > v1.30.1: M01 and M02 gain the books list (SRD-GUI-039.008).
 > v1.30.0: MD-GUI-039.006.M02 added; M01 gains Add book (2026-11-12).
 > v1.29.0: MD-GUI-039.001.M01 added — AI Desk Research (step E).
@@ -509,3 +510,11 @@ SRD coverage: 038.001–.003 by M01.
 Changed: MD-GUI-034.009.M08 (`gui/ai_desk.py`: "Research" section in the TEAM group, live refresh).
 
 SRD coverage: 039.001–.008 by M01; .006 and .008 by M02. Cross-tool note: `market/book_text.py` and `market/book_cards.py` now import `BOOK_TYPES` from `core/desk_books.py`.
+
+## FO-GUI-040: AI Desk Strategy Cards
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-GUI-040.001.M01 | SRD-GUI-040.001 | `us_swing/src/us_swing/gui/ai_desk_cards.py` | Cards section: card table with latest test, detail, Test button and its log | `CardsView`, `cards_frame`, `result_label`, `card_detail` | `core.desk_cards`, `core.desk_research`, `gui.ai_desk_sections` | No |
+
+SRD coverage: 040.001–.004 by M01. Changed: MD-GUI-034.009.M08 (`gui/ai_desk.py`: "Cards" section in the REVIEW group, live refresh).

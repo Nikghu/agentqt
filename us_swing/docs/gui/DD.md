@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.24.0: DD-GUI-040.001.D01 added — AI Desk strategy cards (2026-11-12).
 > v1.23.1: DD-GUI-039.006.D01 gains the books list (SRD-GUI-039.008, 2026-11-12).
 > v1.23.0: DD-GUI-039.006.D01 added — Add book on the Research tab (2026-11-12).
 > v1.22.0: DD-GUI-039.001.D01 added — AI Desk Research (Autonomous desk step E (2026-11-11)).
@@ -2014,3 +2015,12 @@ Run names: `evening` "Evening run", `manual` "Manual run", other kinds title-cas
 **Traces:** SRD-GUI-039.006–.007. `ResearchView` gains an **Add book** button at the right of the button row. It opens `QFileDialog.getOpenFileName` filtered to `BOOK_TYPES` (the picker is injectable for tests). `core/desk_books.add_book()` checks the type, makes a safe name (spaces and odd characters → `_`, no leading dot, lower-case suffix), refuses a name that is already in `<desk>/books`, and copies the file. `BOOK_TYPES` moves from `market/book_text.py` to `core/desk_books.py` so the button and the book reader share one list. The note label shows "Added <name>…" or "Book not added: <reason>"; each case logs one `[Books]` line.
 
 **Books list (SRD-GUI-039.008).** Under the ticket detail, a read-only `Books` table (Book, Added, Chapters read) comes from `core/desk_books.list_books()`: book-type files in `<desk>/books` (not the `gutenberg-` cache), newest first by file time, joined to `books_read` on `upload:<name>` (lower case). It is filled in `refresh()` and again after Add book; an empty folder shows a muted note.
+
+## DD-GUI-040.001.D01 — AI Desk Strategy Cards
+
+**Traces:** SRD-GUI-040.001–.004. `gui/ai_desk_cards.py` (`CardsView`) is the "Cards" section in the REVIEW group after Results; `gui/ai_desk.py` adds it to `GROUPS`, `_LIVE_SECTIONS` (rebuilt each time it is shown) and the section factory.
+
+- Table columns: Card (`SC-n`), Name, Book (source and chapter), Made, Test, Trades, Avg R. Test = `Testing` when the card is in `open_test_cards()`, else the latest `card_tests.result` as Pass / Fail / Can't test, else Not tested. Data from `core.desk_cards` only.
+- Detail label: idea, market, entry, exit, stop, quotes, then the latest test line (trades, win rate, avg R, worst run, baseline) and verdict, or the can't-test reason.
+- **Test** button (no fixed height; theme sizing): enabled when a card is selected and not Testing. Click → `raise_owner_test()`; the note shows "Test started as ticket N" or "Test not started: <reason>"; then refresh. A `sqlite3.Error` shows a plain note.
+- Logs: `[Research] Test of card SC-3 started from the app as ticket 9` / `[Research] Test of card SC-3 not started: <reason>`.
