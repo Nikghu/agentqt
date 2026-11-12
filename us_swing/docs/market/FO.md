@@ -477,7 +477,7 @@ The system shall give the desk an employee that turns one approved chapter of a 
 
 ## FO-MKT-019: Strategy Test Research
 
-**Status:** Approved (approved by user 2026-11-12)
+**Status:** Implemented (approved by user 2026-11-12)
 **Priority:** Must
 **Phase:** Research skills (T160, strategy test)
 **Depends on:** FO-MKT-018 (strategy cards), FO-MKT-015 (replay on Backtest Data), FO-DSK-010 (research queue), FO-SCR-013 / FO-SCR-014 (indicator rules, price patterns)

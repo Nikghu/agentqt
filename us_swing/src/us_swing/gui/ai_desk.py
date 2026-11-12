@@ -10,6 +10,7 @@ Also: SRD-GUI-034.067 — sections are underline tabs under the header (not in t
 Also: MD-GUI-036.001.M01 — Team setup tab after Team at work (SRD-GUI-036.001)
 Also: MD-GUI-037.001.M01 — Memory section after Results (SRD-GUI-037.001)
 Also: MD-GUI-039.001.M01 — Research section after Team at work (SRD-GUI-039.001)
+Also: MD-GUI-040.001.M01 — Cards section after Results (SRD-GUI-040.001)
 Also: SRD-GUI-034.065 — console header: icon, state note, desk controls and four tiles
 """
 from __future__ import annotations
@@ -52,6 +53,7 @@ from us_swing.gui.ai_desk_hiring import approvals_box, hiring_frame
 from us_swing.gui.ai_desk_chat import ChatPanel
 from us_swing.gui.ai_desk_console import icon_badge, stat_tile, thin_bar
 from us_swing.gui.ai_desk_memory import memory_frame
+from us_swing.gui.ai_desk_cards import cards_frame
 from us_swing.gui.ai_desk_research import research_frame
 from us_swing.gui.ai_desk_results import results_frame
 from us_swing.gui.ai_desk_pages import pages_frame
@@ -66,7 +68,7 @@ GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("TALK", ("Command",)),
     ("TEAM", ("Team at work", "Research", "Team setup", "Hiring")),
     ("CREATE", ("Pages",)),
-    ("REVIEW", ("Reports", "Results", "Memory", "Cost & budget")),
+    ("REVIEW", ("Reports", "Results", "Cards", "Memory", "Cost & budget")),
     ("SETUP", ("Desk settings",)),
 )
 SECTIONS = tuple(name for _group, names in GROUPS for name in names)
@@ -82,8 +84,8 @@ _STATE_NOTES = {
     DeskState.ERROR: "The desk needs attention",
 }
 
-_LIVE_SECTIONS = ("Command", "Hiring", "Pages", "Reports", "Results", "Memory", "Research",
-                  "Cost & budget")
+_LIVE_SECTIONS = ("Command", "Hiring", "Pages", "Reports", "Results", "Cards", "Memory",
+                  "Research", "Cost & budget")
 
 
 def _nav_style() -> str:
@@ -185,6 +187,8 @@ class AiDeskWorkspace(QWidget):
             return results_frame(name, self._home)
         if name == "Memory":
             return memory_frame(name, self._home)
+        if name == "Cards":
+            return cards_frame(name, self._home)
         if name == "Research":
             return research_frame(name, self._home)
         if name == "Pages":

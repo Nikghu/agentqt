@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.15.1: UT-DSK-010.016.M25.T01–T03 Pass (2026-11-12).
 > v0.15.0: UT-DSK-010.016.M25.T01–T03 added (Not Run) — owner test ticket (2026-11-12).
 > v0.14.1: UT-DSK-010.015.M25.T01–T03 Pass (2026-11-11).
 > v0.14.0: UT-DSK-010.015.M25.T01–T03 added (Not Run) — follow-up tickets (step F).
@@ -419,6 +420,6 @@
 | UT-DSK-010.015.M25.T01 | MD-DSK-010.001.M25 | Positive | Follow-up in the lead's name (SRD-DSK-010.015) | active lead id, ask with cap 8,000 | row raised by that lead, approved by auto | Pass |
 | UT-DSK-010.015.M25.T02 | MD-DSK-010.001.M25 | Negative | Lead gone (SRD-DSK-010.015) | retired lead id; expert id | every ask refused; no rows | Pass |
 | UT-DSK-010.015.M25.T03 | MD-DSK-010.001.M25 | Negative | Lead limits (SRD-DSK-010.015) | lead with 3 tickets today | refused: 3 tickets a day | Pass |
-| UT-DSK-010.016.M25.T01 | MD-DSK-010.001.M25 | Positive | Owner test ticket (SRD-DSK-010.016) | active lead with lead_brief, card 3 | row approved, topic SC-3, raised by the lead, approved_by master | Not Run |
-| UT-DSK-010.016.M25.T02 | MD-DSK-010.001.M25 | Negative | No lead (SRD-DSK-010.016) | no active lead holds lead_brief | refused; no row | Not Run |
-| UT-DSK-010.016.M25.T03 | MD-DSK-010.001.M25 | Negative | Repeat (SRD-DSK-010.016) | open SC-3 test, raise again | refused; one row | Not Run |
+| UT-DSK-010.016.M25.T01 | MD-DSK-010.001.M25 | Positive | Owner test ticket (SRD-DSK-010.016) | active lead with lead_brief, card 3 | row approved, topic SC-3, raised by the lead, approved_by master | Pass |
+| UT-DSK-010.016.M25.T02 | MD-DSK-010.001.M25 | Negative | No lead (SRD-DSK-010.016) | no active lead holds lead_brief | refused; no row | Pass |
+| UT-DSK-010.016.M25.T03 | MD-DSK-010.001.M25 | Negative | Repeat (SRD-DSK-010.016) | open SC-3 test, raise again | refused; one row | Pass |

@@ -515,6 +515,6 @@ SRD coverage: 039.001–.008 by M01; .006 and .008 by M02. Cross-tool note: `mar
 
 | ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
 |---|---|---|---|---|---|---|
-| MD-GUI-040.001.M01 | SRD-GUI-040.001 | `us_swing/src/us_swing/gui/ai_desk_cards.py` | Cards section: card table with latest test, detail, Test button and its log | `CardsView`, `cards_frame`, `test_label`, `card_detail` | `core.desk_cards`, `core.desk_research`, `gui.ai_desk_sections` | No |
+| MD-GUI-040.001.M01 | SRD-GUI-040.001 | `us_swing/src/us_swing/gui/ai_desk_cards.py` | Cards section: card table with latest test, detail, Test button and its log | `CardsView`, `cards_frame`, `result_label`, `card_detail` | `core.desk_cards`, `core.desk_research`, `gui.ai_desk_sections` | No |
 
 SRD coverage: 040.001–.004 by M01. Changed: MD-GUI-034.009.M08 (`gui/ai_desk.py`: "Cards" section in the REVIEW group, live refresh).

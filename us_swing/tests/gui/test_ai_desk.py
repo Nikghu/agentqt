@@ -21,7 +21,7 @@ def test_all_sections_open(qtbot: QtBot, tmp_path: Path) -> None:
     page = AiDeskWorkspace(DeskPoller(tmp_path))
     qtbot.addWidget(page)
     names = page.section_names()
-    assert len(names) == 11
+    assert len(names) == 12
     assert names[0] == "Command"
     assert names[-1] == "Desk settings"
     assert page.current_section() == "Command"
@@ -48,7 +48,7 @@ def test_every_section_shows_sample_tag(qtbot: QtBot, tmp_path: Path) -> None:
     page = AiDeskWorkspace(DeskPoller(tmp_path))
     qtbot.addWidget(page)
     real = ("Desk settings", "Pages", "Hiring", "Results", "Command", "Team at work",
-            "Team setup", "Memory", "Research")
+            "Team setup", "Memory", "Research", "Cards")
     for name in [n for n in page.section_names() if n not in real]:
         page.select_section(name)
         frame = page._stack.currentWidget()

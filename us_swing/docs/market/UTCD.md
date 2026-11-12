@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.22.1: UT-MKT-019.* Pass (36, 2026-11-12).
 > v0.22.0: UT-MKT-019.* added (36, Not Run) — strategy test research (2026-11-12).
 > v0.21.1: Step F book cases Pass (23, 2026-11-11).
 > v0.21.0: UT-MKT-018.* added (23, Not Run) — book to strategy research (step F).
@@ -617,39 +618,39 @@
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
 |---|---|---|---|---|---|---|
-| UT-MKT-019.001.M01.T01 | MD-MKT-019.001.M01 | Positive | Four steps (SRD-MKT-019.001) | card SC-1, fake recipe and verdict answers, small fake data | calls recipe, check, replay, verdict; outcome done | Not Run |
-| UT-MKT-019.001.M01.T02 | MD-MKT-019.001.M01 | Negative | No answer (SRD-MKT-019.001) | ask returns None at recipe | empty note; outcome go | Not Run |
-| UT-MKT-019.002.M01.T01 | MD-MKT-019.001.M01 | Negative | Missing card (SRD-MKT-019.002) | topic SC-99; topic hello | failed before any AI call | Not Run |
-| UT-MKT-019.003.M02.T01 | MD-MKT-019.003.M02 | Positive | Block menu (SRD-MKT-019.003) | block_menu() | lists rsi and bull_flag; no rvol_3m, market_cap or rs_index | Not Run |
-| UT-MKT-019.004.M02.T01 | MD-MKT-019.003.M02 | Positive | Good recipe (SRD-MKT-019.004) | rsi at most 30, hammer, next open, ATR 2 | no problems | Not Run |
-| UT-MKT-019.004.M02.T02 | MD-MKT-019.003.M02 | Negative | Unmapped part (SRD-MKT-019.004) | unmapped ["earnings date"] | earnings date has no block | Not Run |
-| UT-MKT-019.004.M02.T03 | MD-MKT-019.003.M02 | Negative | Unknown or intraday block (SRD-MKT-019.004) | id moon_phase; id rvol_3m | both named as no block | Not Run |
-| UT-MKT-019.004.M02.T04 | MD-MKT-019.003.M02 | Negative | Out of range (SRD-MKT-019.004) | rsi value 150; ATR stop n 9; no entry block | three problems named | Not Run |
-| UT-MKT-019.004.M01.T01 | MD-MKT-019.001.M01 | Negative | Can't test ends the ticket (SRD-MKT-019.004) | recipe with an unmapped part | failed, "can't test" note; cant_test row; no replay | Not Run |
-| UT-MKT-019.005.M03.T01 | MD-MKT-019.005.M03 | Positive | Replay trade (SRD-MKT-019.005) | one stock, a signal then a rise to 2R | one trade with +2R; entry and exit days right | Not Run |
-| UT-MKT-019.005.M03.T02 | MD-MKT-019.005.M03 | Edge | One trade per stock (SRD-MKT-019.005) | signals on 3 days in a row | one trade until its exit | Not Run |
-| UT-MKT-019.005.M03.T03 | MD-MKT-019.005.M03 | Positive | Entry and stop types (SRD-MKT-019.005) | next open vs signal break; signal bar, n-day, ATR, percent stops | triggers and stops as designed | Not Run |
-| UT-MKT-019.006.M03.T01 | MD-MKT-019.005.M03 | Positive | Baseline sample (SRD-MKT-019.006) | same data twice | same baseline trades and R | Not Run |
-| UT-MKT-019.007.M03.T01 | MD-MKT-019.005.M03 | Positive | Pass rule (SRD-MKT-019.007) | 30 trades +0.25R vs base 0.0 | pass | Not Run |
-| UT-MKT-019.007.M03.T02 | MD-MKT-019.005.M03 | Negative | Fail cases (SRD-MKT-019.007) | 29 trades +0.5R; 40 trades +0.2R; 40 trades +0.3R vs base +0.35R | fail each | Not Run |
-| UT-MKT-019.007.M03.T03 | MD-MKT-019.005.M03 | Edge | Worst run (SRD-MKT-019.007) | R -1, -1, +2, -1, -1, -1 | worst run 3; win rate 1 of 6 | Not Run |
-| UT-MKT-019.008.M01.T01 | MD-MKT-019.001.M01 | Positive | Verdict lines (SRD-MKT-019.008) | fake verdict answer | note holds the table, pass line and verdict | Not Run |
-| UT-MKT-019.009.M04.T01 | MD-MKT-019.009.M04 | Positive | Save and latest (SRD-MKT-019.009) | two tests of SC-1 | latest_tests gives the second | Not Run |
-| UT-MKT-019.009.M01.T01 | MD-MKT-019.001.M01 | Positive | Gain on pass (SRD-MKT-019.009) | passing fake score | gain yes; card_tests row pass | Not Run |
-| UT-MKT-019.009.M01.T02 | MD-MKT-019.001.M01 | Negative | No gain on fail (SRD-MKT-019.009) | failing fake score | gain no; row fail; no lesson | Not Run |
-| UT-MKT-019.010.M01.T01 | MD-MKT-019.001.M01 | Positive | Lesson on pass (SRD-MKT-019.010) | passing fake score | one candidate lesson naming SC-1 | Not Run |
-| UT-MKT-019.011.M04.T01 | MD-MKT-019.009.M04 | Positive | Untested block (SRD-MKT-019.011) | 12 cards, 1 tested | at most 8 lines; topic form; tested card left out | Not Run |
-| UT-MKT-019.011.M04.T02 | MD-MKT-019.009.M04 | Edge | Open tests (SRD-MKT-019.011) | approved ticket SC-2; done ticket SC-3 | open_test_cards is {2} | Not Run |
-| UT-MKT-019.012.M05.T01 | MD-MKT-019.012.M05 | Positive | Default employee (SRD-MKT-019.012) | emp-017 file, SKILL_PATHS, USSwing.spec | skill strategy_test; path loads; spec lists the module | Not Run |
-| UT-MKT-019.013.M01.T01 | MD-MKT-019.001.M01 | Negative | Never live (SRD-MKT-019.013) | full ticket run | strategies file and settings unchanged | Not Run |
-| UT-MKT-019.014.M01.T01 | MD-MKT-019.001.M01 | Positive | Logs (SRD-MKT-019.014) | full ticket run | `[Research]` lines with ticket and card | Not Run |
-| UT-MKT-019.002.M04.T01 | MD-MKT-019.009.M04 | Positive | Card from topic (SRD-MKT-019.002) | topic sc-12; card 12 saved | card id 12; card row found | Not Run |
-| UT-MKT-019.003.M02.T02 | MD-MKT-019.003.M02 | Negative | Bad recipe answer (SRD-MKT-019.003) | side both; extra field; 5 indicators | answer refused by the model check | Not Run |
-| UT-MKT-019.005.M03.T04 | MD-MKT-019.005.M03 | Negative | No Backtest Data (SRD-MKT-019.005) | empty data folder | no data; ticket failed with a plain note | Not Run |
-| UT-MKT-019.006.M03.T02 | MD-MKT-019.005.M03 | Negative | Baseline skips bad levels (SRD-MKT-019.006) | percent stop on a day where the stop is past the trigger | that day gives no baseline trade | Not Run |
-| UT-MKT-019.008.M01.T02 | MD-MKT-019.001.M01 | Negative | No verdict answer (SRD-MKT-019.008) | ask returns None at verdict | outcome go; no card_tests row yet | Not Run |
-| UT-MKT-019.011.M04.T03 | MD-MKT-019.009.M04 | Negative | No cards (SRD-MKT-019.011) | no desk.db; all cards tested | empty block | Not Run |
-| UT-MKT-019.012.M05.T02 | MD-MKT-019.012.M05 | Negative | No hardcoded name (SRD-MKT-019.012) | skill source | no employee name or title in code | Not Run |
-| UT-MKT-019.013.M01.T02 | MD-MKT-019.001.M01 | Positive | Report only (SRD-MKT-019.013) | full ticket run | only card_tests and lessons gain rows | Not Run |
-| UT-MKT-019.005.M03.T05 | MD-MKT-019.005.M03 | Edge | Time limit (SRD-MKT-019.005) | replay with a limit already passed | stops; ticket fails with a plain note | Not Run |
-| UT-MKT-019.011.M04.T04 | MD-MKT-019.009.M04 | Positive | Test cap hint (SRD-MKT-019.011) | untested block header; owner ticket cap | says token cap 20000; owner cap 20,000 | Not Run |
+| UT-MKT-019.001.M01.T01 | MD-MKT-019.001.M01 | Positive | Four steps (SRD-MKT-019.001) | card SC-1, fake recipe and verdict answers, small fake data | calls recipe, check, replay, verdict; outcome done | Pass |
+| UT-MKT-019.001.M01.T02 | MD-MKT-019.001.M01 | Negative | No answer (SRD-MKT-019.001) | ask returns None at recipe | empty note; outcome go | Pass |
+| UT-MKT-019.002.M01.T01 | MD-MKT-019.001.M01 | Negative | Missing card (SRD-MKT-019.002) | topic SC-99; topic hello | failed before any AI call | Pass |
+| UT-MKT-019.003.M02.T01 | MD-MKT-019.003.M02 | Positive | Block menu (SRD-MKT-019.003) | block_menu() | lists rsi and bull_flag; no rvol_3m, market_cap or rs_index | Pass |
+| UT-MKT-019.004.M02.T01 | MD-MKT-019.003.M02 | Positive | Good recipe (SRD-MKT-019.004) | rsi at most 30, hammer, next open, ATR 2 | no problems | Pass |
+| UT-MKT-019.004.M02.T02 | MD-MKT-019.003.M02 | Negative | Unmapped part (SRD-MKT-019.004) | unmapped ["earnings date"] | earnings date has no block | Pass |
+| UT-MKT-019.004.M02.T03 | MD-MKT-019.003.M02 | Negative | Unknown or intraday block (SRD-MKT-019.004) | id moon_phase; id rvol_3m | both named as no block | Pass |
+| UT-MKT-019.004.M02.T04 | MD-MKT-019.003.M02 | Negative | Out of range (SRD-MKT-019.004) | rsi value 150; ATR stop n 9; no entry block | three problems named | Pass |
+| UT-MKT-019.004.M01.T01 | MD-MKT-019.001.M01 | Negative | Can't test ends the ticket (SRD-MKT-019.004) | recipe with an unmapped part | failed, "can't test" note; cant_test row; no replay | Pass |
+| UT-MKT-019.005.M03.T01 | MD-MKT-019.005.M03 | Positive | Replay trade (SRD-MKT-019.005) | one stock, a signal then a rise to 2R | one trade with +2R; entry and exit days right | Pass |
+| UT-MKT-019.005.M03.T02 | MD-MKT-019.005.M03 | Edge | One trade per stock (SRD-MKT-019.005) | signals on 3 days in a row | one trade until its exit | Pass |
+| UT-MKT-019.005.M03.T03 | MD-MKT-019.005.M03 | Positive | Entry and stop types (SRD-MKT-019.005) | next open vs signal break; signal bar, n-day, ATR, percent stops | triggers and stops as designed | Pass |
+| UT-MKT-019.006.M03.T01 | MD-MKT-019.005.M03 | Positive | Baseline sample (SRD-MKT-019.006) | same data twice | same baseline trades and R | Pass |
+| UT-MKT-019.007.M03.T01 | MD-MKT-019.005.M03 | Positive | Pass rule (SRD-MKT-019.007) | 30 trades +0.25R vs base 0.0 | pass | Pass |
+| UT-MKT-019.007.M03.T02 | MD-MKT-019.005.M03 | Negative | Fail cases (SRD-MKT-019.007) | 29 trades +0.5R; 40 trades +0.2R; 40 trades +0.3R vs base +0.35R | fail each | Pass |
+| UT-MKT-019.007.M03.T03 | MD-MKT-019.005.M03 | Edge | Worst run (SRD-MKT-019.007) | R -1, -1, +2, -1, -1, -1 | worst run 3; win rate 1 of 6 | Pass |
+| UT-MKT-019.008.M01.T01 | MD-MKT-019.001.M01 | Positive | Verdict lines (SRD-MKT-019.008) | fake verdict answer | note holds the table, pass line and verdict | Pass |
+| UT-MKT-019.009.M04.T01 | MD-MKT-019.009.M04 | Positive | Save and latest (SRD-MKT-019.009) | two tests of SC-1 | latest_tests gives the second | Pass |
+| UT-MKT-019.009.M01.T01 | MD-MKT-019.001.M01 | Positive | Gain on pass (SRD-MKT-019.009) | passing fake score | gain yes; card_tests row pass | Pass |
+| UT-MKT-019.009.M01.T02 | MD-MKT-019.001.M01 | Negative | No gain on fail (SRD-MKT-019.009) | failing fake score | gain no; row fail; no lesson | Pass |
+| UT-MKT-019.010.M01.T01 | MD-MKT-019.001.M01 | Positive | Lesson on pass (SRD-MKT-019.010) | passing fake score | one candidate lesson naming SC-1 | Pass |
+| UT-MKT-019.011.M04.T01 | MD-MKT-019.009.M04 | Positive | Untested block (SRD-MKT-019.011) | 12 cards, 1 tested | at most 8 lines; topic form; tested card left out | Pass |
+| UT-MKT-019.011.M04.T02 | MD-MKT-019.009.M04 | Edge | Open tests (SRD-MKT-019.011) | approved ticket SC-2; done ticket SC-3 | open_test_cards is {2} | Pass |
+| UT-MKT-019.012.M05.T01 | MD-MKT-019.012.M05 | Positive | Default employee (SRD-MKT-019.012) | emp-017 file, SKILL_PATHS, USSwing.spec | skill strategy_test; path loads; spec lists the module | Pass |
+| UT-MKT-019.013.M01.T01 | MD-MKT-019.001.M01 | Negative | Never live (SRD-MKT-019.013) | full ticket run | strategies file and settings unchanged | Pass |
+| UT-MKT-019.014.M01.T01 | MD-MKT-019.001.M01 | Positive | Logs (SRD-MKT-019.014) | full ticket run | `[Research]` lines with ticket and card | Pass |
+| UT-MKT-019.002.M04.T01 | MD-MKT-019.009.M04 | Positive | Card from topic (SRD-MKT-019.002) | topic sc-12; card 12 saved | card id 12; card row found | Pass |
+| UT-MKT-019.003.M02.T02 | MD-MKT-019.003.M02 | Negative | Bad recipe answer (SRD-MKT-019.003) | side both; extra field; 5 indicators | answer refused by the model check | Pass |
+| UT-MKT-019.005.M03.T04 | MD-MKT-019.005.M03 | Negative | No Backtest Data (SRD-MKT-019.005) | empty data folder | no data; ticket failed with a plain note | Pass |
+| UT-MKT-019.006.M03.T02 | MD-MKT-019.005.M03 | Negative | Baseline skips bad levels (SRD-MKT-019.006) | percent stop on a day where the stop is past the trigger | that day gives no baseline trade | Pass |
+| UT-MKT-019.008.M01.T02 | MD-MKT-019.001.M01 | Negative | No verdict answer (SRD-MKT-019.008) | ask returns None at verdict | outcome go; no card_tests row yet | Pass |
+| UT-MKT-019.011.M04.T03 | MD-MKT-019.009.M04 | Negative | No cards (SRD-MKT-019.011) | no desk.db; all cards tested | empty block | Pass |
+| UT-MKT-019.012.M05.T02 | MD-MKT-019.012.M05 | Negative | No hardcoded name (SRD-MKT-019.012) | skill source | no employee name or title in code | Pass |
+| UT-MKT-019.013.M01.T02 | MD-MKT-019.001.M01 | Positive | Report only (SRD-MKT-019.013) | full ticket run | only card_tests and lessons gain rows | Pass |
+| UT-MKT-019.005.M03.T05 | MD-MKT-019.005.M03 | Edge | Time limit (SRD-MKT-019.005) | replay with a limit already passed | stops; ticket fails with a plain note | Pass |
+| UT-MKT-019.011.M04.T04 | MD-MKT-019.009.M04 | Positive | Test cap hint (SRD-MKT-019.011) | untested block header; owner ticket cap | says token cap 20000; owner cap 20,000 | Pass |

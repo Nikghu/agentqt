@@ -1116,7 +1116,7 @@ The system shall show the research queue in the AI Desk and let the Master user 
 
 ## FO-GUI-040: AI Desk Strategy Cards
 
-**Status:** Approved (approved by user 2026-11-12)
+**Status:** Implemented (approved by user 2026-11-12)
 **Priority:** Should
 **Depends on:** FO-MKT-018 (strategy cards), FO-MKT-019 (strategy test), FO-GUI-035 (AI Desk)
 **Source: User 2026-11-12: a Cards view with all strategy cards and their test results, and a Test button on a card.**

@@ -151,6 +151,7 @@
 | FO-GUI-038 | SRD-GUI-038.001–.003 | DD-GUI-038.001.D01 | MD-GUI-038.001.M01 | UT-GUI-038.* (5, Pass) | `gui/app_service.py` | Implemented | RN-GUI-1.63.0-20261111 |
 | FO-GUI-039 | SRD-GUI-039.001–.005 | DD-GUI-039.001.D01 | MD-GUI-039.001.M01; MD-GUI-034.009.M08 (changed) | UT-GUI-039.* (9, Pass) | `gui/ai_desk_research.py`, `gui/ai_desk.py` | Implemented | RN-GUI-1.64.0-20261111 |
 | FO-GUI-039 | SRD-GUI-039.006–.008 | DD-GUI-039.006.D01 | MD-GUI-039.001.M01 (changed); MD-GUI-039.006.M02 | UT-GUI-039.006–.008 (10, Pass) | `gui/ai_desk_research.py`, `core/desk_books.py` | Implemented | RN-GUI-1.65.0-20261112 |
+| FO-GUI-040 | SRD-GUI-040.001–.004 | DD-GUI-040.001.D01 | MD-GUI-040.001.M01; MD-GUI-034.009.M08 (changed) | UT-GUI-040.* (6, Pass) | `gui/ai_desk_cards.py`, `gui/ai_desk.py` | Implemented | RN pending |
 | FO-GUI-034 | SRD-GUI-034.065 (wording: header dates, ET only) | DD-GUI-034.065.D01 | MD-GUI-034.065.M39 (changed) | UT-GUI-034.060.M33.T01, UT-GUI-034.065.M39.T01 (Pass) | `gui/ai_desk_console.py` | Implemented | RN-GUI-1.65.0-20261112 |
 
 ---

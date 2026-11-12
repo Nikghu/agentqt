@@ -48,7 +48,7 @@ def test_grouped_list(qtbot: QtBot, tmp_path: Path) -> None:
     page = _page(qtbot, tmp_path)
     assert page._list.isHidden()
     assert page._list.count() == len(SECTIONS)
-    assert page.section_names() == list(SECTIONS) and len(SECTIONS) == 11
+    assert page.section_names() == list(SECTIONS) and len(SECTIONS) == 12
     page.select_section("Reports")
     assert page.current_section() == "Reports"
     assert page._stack.currentIndex() == SECTIONS.index("Reports")

@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.111.2: SRD-GUI-040.001–.004 Implemented 2026-11-12.
 > v2.111.1: SRD-GUI-040.001–.004 approved by user 2026-11-12.
 > v2.111.0: Strategy test (user, 2026-11-12): SRD-GUI-040.001–.004 added as Draft — AI Desk strategy cards.
 > v2.110.2: SRD-GUI-039.008 Implemented 2026-11-12.
@@ -857,7 +858,7 @@
 
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
-| SRD-GUI-040.001 | FO-GUI-040 | Should | AI Desk has a Cards tab that lists strategy cards with id, name, book and chapter, made date, latest test result, trades and average R. | `strategy_cards`, `card_tests`, `tickets` | list | Newest first; read-only from `desk.db` | Approved |
-| SRD-GUI-040.002 | FO-GUI-040 | Should | Selecting a card shows its idea, market, entry, exit, stop, quotes and the latest test table and verdict. | card | detail text | — | Approved |
-| SRD-GUI-040.003 | FO-GUI-040 | Should | A Test button raises a `strategy_test` ticket for the selected card through SRD-DSK-010.016. | click | ticket row | Off while the card has an open test | Approved |
-| SRD-GUI-040.004 | FO-GUI-040 | Should | Each Test click and its outcome is logged. | click | log line | `[Research]` prefix | Approved |
+| SRD-GUI-040.001 | FO-GUI-040 | Should | AI Desk has a Cards tab that lists strategy cards with id, name, book and chapter, made date, latest test result, trades and average R. | `strategy_cards`, `card_tests`, `tickets` | list | Newest first; read-only from `desk.db` | Implemented |
+| SRD-GUI-040.002 | FO-GUI-040 | Should | Selecting a card shows its idea, market, entry, exit, stop, quotes and the latest test table and verdict. | card | detail text | — | Implemented |
+| SRD-GUI-040.003 | FO-GUI-040 | Should | A Test button raises a `strategy_test` ticket for the selected card through SRD-DSK-010.016. | click | ticket row | Off while the card has an open test | Implemented |
+| SRD-GUI-040.004 | FO-GUI-040 | Should | Each Test click and its outcome is logged. | click | log line | `[Research]` prefix | Implemented |

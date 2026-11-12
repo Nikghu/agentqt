@@ -26,12 +26,12 @@ def _cells(table: QTableWidget) -> list[list[str]]:
 
 
 def test_memory_section(qtbot: QtBot, tmp_path: Path) -> None:
-    """UT-GUI-037.001.M01.T01: Memory comes after Results in the review group and is live."""
+    """UT-GUI-037.001.M01.T01: Memory comes after Cards (after Results) in the review group and is live."""
     from us_swing.gui.ai_desk import _LIVE_SECTIONS, GROUPS, AiDeskWorkspace
     from us_swing.gui.desk_control import DeskPoller as Poller
 
     review = dict(GROUPS)["REVIEW"]
-    assert review.index("Memory") == review.index("Results") + 1 and "Memory" in _LIVE_SECTIONS
+    assert review.index("Memory") == review.index("Cards") + 1 and "Memory" in _LIVE_SECTIONS
     page = AiDeskWorkspace(Poller(tmp_path))
     qtbot.addWidget(page)
     page.select_section("Memory")
