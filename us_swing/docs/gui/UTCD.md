@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.31.2: UT-GUI-034.060.M33.T01 and UT-GUI-034.065.M39.T01 updated — header tiles show day and date, ET only; both Pass (2026-11-12).
 > v1.31.1: Step E cases Pass (9, 2026-11-11).
 > v1.31.0: Autonomous desk step E (2026-11-11): UT-GUI-039.001–.005 added (9 cases).
 > v1.30.1: Step D cases Pass (5, 2026-11-11).
@@ -1180,14 +1181,14 @@ Test files:
 | UT-GUI-034.059.M33.T01 | MD-GUI-034.059.M33 | Positive | Section list (SRD-GUI-034.059, SRD-GUI-018.012) | open AI Desk | 8 sections in group order, no headings; list handed out as hidden `nav`; select by name works | Pass |
 | UT-GUI-034.059.M33.T02 | MD-GUI-034.059.M33 | Positive | Command badge (SRD-GUI-034.059) | 2 waiting picks; then 0 | Command shows 2; then plain Command | Pass |
 | UT-GUI-034.060.M34.T01 | MD-GUI-034.060.M34 | Positive | Runs, last run, spend, team (SRD-GUI-034.060) | desk.db with runs, activity, employees | events summed; last run; today and month spend; counts | Pass |
-| UT-GUI-034.060.M33.T01 | MD-GUI-034.059.M33 | Positive | Header tiles (SRD-GUI-034.060, .065) | desk.db with a finished run and spend | Last run · ok title, run text, $1.00 today, bar and title percent | Pass |
+| UT-GUI-034.060.M33.T01 | MD-GUI-034.059.M33 | Positive | Header tiles (SRD-GUI-034.060, .065) | desk.db with a finished run and spend | Last run · ok title, run text with day and date (Thu 05 Nov, 16:05 ET), $1.00 today, bar and title percent | Pass |
 | UT-GUI-034.060.M33.T02 | MD-GUI-034.059.M33 | Negative | No desk data (SRD-GUI-034.060, .065) | empty folder | No runs yet, $0.00, bar 0 | Pass |
 | UT-GUI-034.061.M35.T01 | MD-GUI-034.061.M35 | Positive | Chat bubbles (SRD-GUI-034.061) | one question and one reply | two bubbles; Master right, lead left; ET time shown | Pass |
 | UT-GUI-034.062.M36.T01 | MD-GUI-034.062.M36 | Positive | Approval cards (SRD-GUI-034.062) | ready hire and 2 picks | heading count 3; pick cards with qty; Open Hiring opens Hiring | Pass |
 | UT-GUI-034.063.M36.T01 | MD-GUI-034.062.M36 | Positive | Today's runs (SRD-GUI-034.063) | runs today | one line per run; events one row with count; no Sample tag | Pass |
 | UT-GUI-034.064.M36.T01 | MD-GUI-034.062.M36 | Positive | Team now (SRD-GUI-034.064) | 2 active, 1 shadow | Team now: 2 active · 1 shadow | Pass |
 | UT-GUI-034.065.M34.T01 | MD-GUI-034.060.M34 | Positive | Next morning run (SRD-GUI-034.065, .069) | Sat 10:00; Wed 03:00; Wed 09:00 with no ok run; Wed 09:00 after an ok run | Mon 04:00; Wed 04:00; Wed 09:00; Thu 04:00 ET | Pass |
-| UT-GUI-034.065.M39.T01 | MD-GUI-034.065.M39 | Positive | Header tiles and controls (SRD-GUI-034.065) | empty folder, Saturday | 4 tile titles; Start, Pause, Resume, Stop in one group; Mon 16:25 ET with IST | Pass |
+| UT-GUI-034.065.M39.T01 | MD-GUI-034.065.M39 | Positive | Header tiles and controls (SRD-GUI-034.065) | empty folder, Saturday | 4 tile titles; Start, Pause, Resume, Stop in one group; Next run Mon 09 Nov, 04:00 ET, no IST | Pass |
 | UT-GUI-034.065.M39.T02 | MD-GUI-034.065.M39 | Edge | State note (SRD-GUI-034.065) | Paused; Error with a message | paused line; the error message | Pass |
 | UT-GUI-034.066.M39.T01 | MD-GUI-034.065.M39 | Positive | Section cards (SRD-GUI-034.066) | empty folder | card titles of Hiring, Cost and Settings | Pass |
 | UT-GUI-034.066.M21.T01 | MD-GUI-034.027.M21 | Positive | Seat tiles (SRD-GUI-034.066) | 1 active expert | 1 of N seats; In shadow tile | Pass |

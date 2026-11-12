@@ -87,7 +87,7 @@ def test_header_chips(qtbot: QtBot, tmp_path: Path) -> None:
     _try(tmp_path, "emp-002", "2026-11-07", {"a": 1}, 0, cost=1.0)
     page = _page(qtbot, tmp_path)
     assert page.last_run_title.text() == "Last run · ok"
-    assert page.last_run_chip.text().endswith("Evening run · 16:05 ET")
+    assert page.last_run_chip.text().endswith("Evening run · Thu 05 Nov, 16:05 ET")
     assert page.spend_label.text() == "$1.00"
     share = round(spend(tmp_path, SAT).month_share * 100)  # type: ignore[union-attr]
     assert page.spend_bar.value() == share
