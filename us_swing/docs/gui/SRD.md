@@ -5,6 +5,9 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.112.2: SRD-GUI-036.009–.010 Implemented 2026-11-12.
+> v2.112.1: SRD-GUI-036.009–.010 approved by user 2026-11-12.
+> v2.112.0: Team tree (user, 2026-11-12): SRD-GUI-036.009–.010 added as Draft — reporting tree and number codes.
 > v2.111.2: SRD-GUI-040.001–.004 Implemented 2026-11-12.
 > v2.111.1: SRD-GUI-040.001–.004 approved by user 2026-11-12.
 > v2.111.0: Strategy test (user, 2026-11-12): SRD-GUI-040.001–.004 added as Draft — AI Desk strategy cards.
@@ -823,6 +826,8 @@
 | SRD-GUI-036.006 | FO-GUI-036 | Should | The History tab lists versions with date, shows a picked version's prompt and restores it. | versions | new version | Restore asks first | Implemented |
 | SRD-GUI-036.007 | FO-GUI-036 | Should | Test on yesterday tries the unsaved prompt on the employee's last recorded run and shows valid or not and the answer. | draft | result | Runs in the background; one real AI call; off when no recorded run | Implemented |
 | SRD-GUI-036.008 | FO-GUI-036 | Must | The Team at work side pane shows name, role, state, model line, month cost, this run, Prompt and Answer, and Edit in Team setup. | member | pane | Edit opens Team setup on that employee | Implemented |
+| SRD-GUI-036.009 | FO-GUI-036 | Should | The Team list is a tree: each lead with the people who report to them nested below, and people with no lead in a No lead folder at the end. | level, reports_to | tree | Folds open on load; folders cannot be picked; no names in code | Implemented |
+| SRD-GUI-036.010 | FO-GUI-036 | Should | A name ending in a number shows its first letter and the full number as its code (Expert 10 → E10). | name | code | Same code in Team setup and Team at work | Implemented |
 
 ## FO-GUI-037: AI Desk Memory
 

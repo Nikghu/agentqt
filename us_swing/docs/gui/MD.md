@@ -478,7 +478,7 @@ SRD coverage: .001, .003–.005, .009 and .010 by M01; .011 by MD-GUI-034.054.M3
 
 | ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
 |---|---|---|---|---|---|---|
-| MD-GUI-036.001.M01 | SRD-GUI-036.001 | `us_swing/src/us_swing/gui/ai_desk_setup.py` | Team setup section: employee list, tabbed form, save, history, test on yesterday | `TeamSetup` | `core.desk_employee`, `gui.ai_desk_team_pane` | No |
+| MD-GUI-036.001.M01 | SRD-GUI-036.001 | `us_swing/src/us_swing/gui/ai_desk_setup.py` | Team setup section: reporting tree (SRD-GUI-036.009–.010), tabbed form, save, history, test on yesterday | `TeamSetup` | `core.desk_employee`, `gui.ai_desk_team_pane` | No |
 
 Changed: MD-GUI-034.059.M33 (`gui/ai_desk.py`: Team setup tab, Edit link wiring), MD-GUI-035.007.M04 (`ai_desk_team_pane.py`: `ProfilePane` trimmed, `edit_requested`), MD-GUI-035.001.M01 (`ai_desk_team.py`: re-emits `edit_requested`).
 

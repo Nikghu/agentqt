@@ -2,6 +2,18 @@
 
 ---
 
+## [20261112] GUI — Team setup reporting tree (FO-GUI-036)
+
+- Type: Feature
+- FO(s): FO-GUI-036
+- RN: none (minimal GUI docs)
+- Artifacts updated: SRD (SRD-GUI-036.009–.010 Implemented), MD (MD-GUI-036.001.M01 text), UTCD (UT-GUI-036.009.M01.T01–T03, UT-GUI-036.010.M01.T01), TRACE, CONTEXT, TODO (T172), Code (gui/ai_desk_setup.py, gui/ai_desk_team_pane.py), Tests. Branch feat/gui-team-tree; not pushed.
+- Decisions: Option A classic tree; tree built only from level and reports_to (no names in code); a boss id that is missing or a loop lands in No lead; number codes keep the full number.
+- Tests: 17 Team setup pass, 96 other AI Desk GUI pass; ruff clean; mypy clean on changed files; pyqt-code-reviewer APPROVE (folder count and docstring fixed).
+- User checks: T172 open.
+
+---
+
 ## [20261112] MKT — Strategy test research skill and AI Desk Cards tab (FO-MKT-019, FO-DSK-010, FO-GUI-040)
 
 - Type: Feature

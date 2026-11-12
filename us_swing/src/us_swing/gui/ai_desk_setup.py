@@ -2,9 +2,10 @@
 Module: MD-GUI-036.001.M01 — gui/ai_desk_setup.py
 Parent SRD: SRD-GUI-036.001
 Also: SRD-GUI-036.002–.007 — form tabs, prompt, model list, save, history and draft test
+Also: SRD-GUI-036.009–.010 — reporting tree and number codes
 
-AI Desk → Team setup: pick an employee, edit its employee.md in a form and save it as the
-next version. All file work goes through ``core.desk_employee``.
+AI Desk → Team setup: pick an employee from the reporting tree, edit its employee.md in a
+form and save it as the next version. All file work goes through ``core.desk_employee``.
 """
 from __future__ import annotations
 
@@ -12,8 +13,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from PyQt6.QtCore import QObject, QRunnable, Qt, QThreadPool, pyqtSignal
-from PyQt6.QtGui import QShowEvent
+from PyQt6.QtCore import QModelIndex, QObject, QRect, QRunnable, Qt, QThreadPool, pyqtSignal
+from PyQt6.QtGui import QBrush, QColor, QPainter, QPen, QShowEvent
 from PyQt6.QtWidgets import (
     QButtonGroup,
     QCheckBox,
@@ -30,6 +31,8 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QSpinBox,
     QStackedWidget,
+    QTreeWidget,
+    QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
 )
@@ -72,6 +75,8 @@ TABS = ("Prompt", "Profile", "Model", "Limits & wake", "History")
 SOURCES = ("claude", "openrouter")
 STATUSES = ("active", "shadow", "retired")
 NO_BOSS = "None"
+NO_LEAD = "No lead"
+_LEAD = "lead"
 _SOURCE_LABELS = {"claude": "Claude", "openrouter": "OpenRouter"}
 
 
@@ -109,6 +114,45 @@ def _list_style() -> str:
             f" QListWidget::item:hover:!selected {{ background: {C.OVERLAY}; }}"
             f" QListWidget::item:selected {{ background: {lift_fill()}; color: {C.TEXT}; }}"
             f" QListWidget::item:focus {{ outline: none; border: none; }}")
+
+
+def _tree_style() -> str:
+    return (f"QTreeWidget {{ background: transparent; border: none; outline: none; }}"
+            f" QTreeWidget::item {{ padding: 5px 6px; border-radius: 6px; }}"
+            f" QTreeWidget::item:hover:!selected {{ background: {C.OVERLAY}; }}"
+            f" QTreeWidget::item:selected {{ background: {lift_fill()}; color: {C.TEXT}; }}"
+            f" QTreeWidget::item:focus {{ outline: none; border: none; }}")
+
+
+class _TeamTree(QTreeWidget):
+    """Team tree that draws thin lines from each person to the people below them."""
+
+    def drawBranches(self, painter: QPainter | None, rect: QRect,  # noqa: N802
+                     index: QModelIndex) -> None:
+        """Draw the joining lines, and a fold arrow on rows that have people below."""
+        if painter is None:
+            return
+        chain = [index]
+        while chain[-1].parent().isValid():
+            chain.append(chain[-1].parent())
+        depth, step, mid = len(chain) - 1, self.indentation(), rect.center().y()
+        painter.save()
+        painter.setPen(QPen(QColor(C.OVERLAY2), 1))
+        for level in range(depth):
+            x = rect.left() + level * step + step // 2
+            owner = chain[depth - level - 1]
+            last = not owner.siblingAtRow(owner.row() + 1).isValid()
+            if level == depth - 1:
+                painter.drawLine(x, rect.top(), x, mid if last else rect.bottom())
+                painter.drawLine(x, mid, x + step // 2, mid)
+            elif not last:
+                painter.drawLine(x, rect.top(), x, rect.bottom())
+        item = self.itemFromIndex(index)
+        if item is not None and item.childCount():
+            painter.setPen(QColor(C.MUTED))
+            painter.drawText(QRect(rect.left() + depth * step, rect.top(), step, rect.height()),
+                             Qt.AlignmentFlag.AlignCenter, "▾" if item.isExpanded() else "▸")
+        painter.restore()
 
 
 class _DraftSignals(QObject):
@@ -156,6 +200,8 @@ class TeamSetup(QWidget):
         self._testing = False
         self._has_run = False
         self._ids: list[str] = []
+        self._items: dict[str, QTreeWidgetItem] = {}
+        self._folder: QTreeWidgetItem | None = None
         self._people: dict[str, str] = {}
         self._models: dict[str, list[str]] = {}
         self._build()
@@ -181,14 +227,18 @@ class TeamSetup(QWidget):
         lines.setSpacing(8)
         self.count_label = QLabel("Team")
         self.count_label.setObjectName("view_head")
-        self.emp_list = QListWidget()
-        self.emp_list.setStyleSheet(_list_style())
+        self.emp_tree = _TeamTree()
+        self.emp_tree.setHeaderHidden(True)
+        self.emp_tree.setIndentation(16)
+        self.emp_tree.setStyleSheet(_tree_style())
         lines.addWidget(self.count_label)
-        lines.addWidget(self.emp_list, 1)
+        lines.addWidget(self.emp_tree, 1)
         frame = panel(box)
         frame.setFixedWidth(260)
-        # list → currentRowChanged → page → _on_row
-        self.emp_list.currentRowChanged.connect(self._on_row)
+        # tree → currentItemChanged → page → _on_item
+        self.emp_tree.currentItemChanged.connect(self._on_item)
+        # tree → itemClicked → page → _on_click (the No lead folder folds on one click)
+        self.emp_tree.itemClicked.connect(self._on_click)
         return frame
 
     def _build_right(self) -> QWidget:
@@ -388,7 +438,7 @@ class TeamSetup(QWidget):
     # ── public ────────────────────────────────────────────────────────────
 
     def employee_ids(self) -> list[str]:
-        """Return every employee id in list order."""
+        """Return every employee id in tree order (top to bottom)."""
         return list(self._ids)
 
     def current_id(self) -> str:
@@ -396,27 +446,28 @@ class TeamSetup(QWidget):
         return self._current
 
     def select(self, emp_id: str) -> None:
-        """Pick ``emp_id`` in the list (asks first when there are unsaved edits)."""
-        if emp_id in self._ids:
-            self.emp_list.setCurrentRow(self._ids.index(emp_id))
+        """Pick ``emp_id`` in the tree (asks first when there are unsaved edits)."""
+        item = self._items.get(emp_id)
+        if item is not None:
+            self.emp_tree.setCurrentItem(item)
 
     def reload(self) -> None:
         """Read the desk folder again and keep the picked employee."""
         keep = self._current
+        shut = self._folded()
         self._models = known_models(self._home)
-        self._ids, self._people = [], {}
-        self.emp_list.blockSignals(True)
-        self.emp_list.clear()
-        for folder in employee_folders(self._home):
-            self._add_row(folder)
-        row = self._ids.index(keep) if keep in self._ids else (0 if self._ids else -1)
-        self.emp_list.setCurrentRow(row)
-        self.emp_list.blockSignals(False)
+        self._ids, self._people, self._items = [], {}, {}
+        self.emp_tree.blockSignals(True)
+        self.emp_tree.clear()
+        self._fill_tree(employee_folders(self._home), shut)
+        target = keep if keep in self._items else (self._ids[0] if self._ids else "")
+        if target:
+            self.emp_tree.setCurrentItem(self._items[target])
+        self.emp_tree.blockSignals(False)
         self.count_label.setText(f"Team · {len(self._ids)}")
-        if row < 0:
+        if not target:
             self._show_empty()
             return
-        target = self._ids[row]
         if target != keep or not (self._dirty or self._testing):
             self._open(target)
         if keep and keep not in self._ids and self._dirty:
@@ -429,34 +480,98 @@ class TeamSetup(QWidget):
         migrate_all(self._home)
         self.reload()
 
-    # ── list ──────────────────────────────────────────────────────────────
+    # ── tree ──────────────────────────────────────────────────────────────
 
-    def _add_row(self, folder: Path) -> None:
+    def _folded(self) -> set[str]:
+        shut = {emp_id for emp_id, item in self._items.items()
+                if item.childCount() and not item.isExpanded()}
+        if self._folder is not None and not self._folder.isExpanded():
+            shut.add(NO_LEAD)
+        return shut
+
+    def _fill_tree(self, folders: list[Path], shut: set[str]) -> None:
+        """Leads (and anyone with people below) at the top; everyone else under No lead."""
+        rows: dict[str, QTreeWidgetItem] = {}
+        bosses: dict[str, str | None] = {}
+        leads: set[str] = set()
+        for folder in folders:
+            item, spec = self._person(folder)
+            rows[folder.name] = item
+            bosses[folder.name] = spec.reports_to if spec else None
+            if spec and spec.level == _LEAD:
+                leads.add(folder.name)
+        kids: dict[str, list[str]] = {emp_id: [] for emp_id in rows}
+        for emp_id, boss in bosses.items():
+            if boss in rows and boss != emp_id:
+                kids[boss].append(emp_id)
+        placed: set[str] = set()
+        tree = (rows, kids, placed)
+        loose: list[str] = []
+        for emp_id, boss in bosses.items():
+            if boss in rows and boss != emp_id:
+                continue
+            if emp_id in leads or kids[emp_id]:
+                self._attach(self.emp_tree.invisibleRootItem(), emp_id, tree)
+            else:
+                loose.append(emp_id)
+        loose += [emp_id for emp_id in rows if emp_id not in placed and emp_id not in loose]
+        self._folder = None
+        if loose:
+            self._folder = QTreeWidgetItem()
+            self._folder.setFlags(Qt.ItemFlag.ItemIsEnabled)
+            self._folder.setForeground(0, QBrush(QColor(C.MUTED)))
+            self.emp_tree.addTopLevelItem(self._folder)
+            before = len(self._ids)
+            for emp_id in loose:
+                self._attach(self._folder, emp_id, tree)
+            self._folder.setText(0, f"{NO_LEAD} · {len(self._ids) - before}")
+            self._folder.setExpanded(NO_LEAD not in shut)
+        for emp_id, item in self._items.items():
+            item.setExpanded(emp_id not in shut)
+
+    def _attach(self, parent: QTreeWidgetItem | None, emp_id: str,
+                tree: tuple[dict[str, QTreeWidgetItem], dict[str, list[str]], set[str]]) -> None:
+        rows, kids, placed = tree
+        if parent is None or emp_id in placed:
+            return
+        placed.add(emp_id)
+        item = rows[emp_id]
+        parent.addChild(item)
+        self._items[emp_id] = item
+        self._ids.append(emp_id)
+        for kid in kids[emp_id]:
+            self._attach(item, kid, tree)
+
+    def _person(self, folder: Path) -> tuple[QTreeWidgetItem, JobSpec | None]:
         emp_id = folder.name
+        spec: JobSpec | None = None
         try:
             emp = load(folder)
         except ValueError as exc:
-            item = QListWidgetItem(f"{emp_id}\nnot valid: {exc}")
-            item.setForeground(Qt.GlobalColor.red)
+            item = QTreeWidgetItem([f"{emp_id}\nnot valid: {exc}"])
+            item.setForeground(0, QBrush(Qt.GlobalColor.red))
         else:
             spec = emp.spec
             self._people[emp_id] = spec.name
-            item = QListWidgetItem(f"{initials(spec.name)}  {spec.name}\n"
-                                   f"{skill_text(spec.skill)} · {_label(spec.status)}")
-        item.setData(_ROLE, emp_id)
-        self.emp_list.addItem(item)
-        self._ids.append(emp_id)
+            item = QTreeWidgetItem([f"{initials(spec.name)}  {spec.name}\n"
+                                    f"{skill_text(spec.skill)} · {_label(spec.status)}"])
+        item.setData(0, _ROLE, emp_id)
+        return item, spec
 
-    def _on_row(self, row: int) -> None:
-        if not 0 <= row < len(self._ids):
-            return
-        emp_id = self._ids[row]
-        if emp_id == self._current:
+    def _on_click(self, item: QTreeWidgetItem | None, _column: int) -> None:
+        if item is not None and item is self._folder:
+            item.setExpanded(not item.isExpanded())
+
+    def _on_item(self, current: QTreeWidgetItem | None, _previous: object) -> None:
+        emp_id = str(current.data(0, _ROLE) or "") if current is not None else ""
+        if not emp_id or emp_id == self._current:
             return
         if self._dirty and not self._ask(f"Discard unsaved changes to {self._name}?"):
-            self.emp_list.blockSignals(True)
-            self.emp_list.setCurrentRow(self._ids.index(self._current))
-            self.emp_list.blockSignals(False)
+            back = self._items.get(self._current)
+            self.emp_tree.blockSignals(True)
+            if back is not None:
+                self.emp_tree.setCurrentItem(back)
+            self.emp_tree.blockSignals(False)
             return
         self.note_label.clear()
         self._open(emp_id)
