@@ -640,7 +640,7 @@
 | UT-MKT-019.010.M01.T01 | MD-MKT-019.001.M01 | Positive | Lesson on pass (SRD-MKT-019.010) | passing fake score | one candidate lesson naming SC-1 | Not Run |
 | UT-MKT-019.011.M04.T01 | MD-MKT-019.009.M04 | Positive | Untested block (SRD-MKT-019.011) | 12 cards, 1 tested | at most 8 lines; topic form; tested card left out | Not Run |
 | UT-MKT-019.011.M04.T02 | MD-MKT-019.009.M04 | Edge | Open tests (SRD-MKT-019.011) | approved ticket SC-2; done ticket SC-3 | open_test_cards is {2} | Not Run |
-| UT-MKT-019.012.M01.T01 | MD-MKT-019.001.M01 | Positive | Default employee (SRD-MKT-019.012) | emp-017 file, SKILL_PATHS, USSwing.spec | skill strategy_test; path loads; spec lists the module | Not Run |
+| UT-MKT-019.012.M05.T01 | MD-MKT-019.012.M05 | Positive | Default employee (SRD-MKT-019.012) | emp-017 file, SKILL_PATHS, USSwing.spec | skill strategy_test; path loads; spec lists the module | Not Run |
 | UT-MKT-019.013.M01.T01 | MD-MKT-019.001.M01 | Negative | Never live (SRD-MKT-019.013) | full ticket run | strategies file and settings unchanged | Not Run |
 | UT-MKT-019.014.M01.T01 | MD-MKT-019.001.M01 | Positive | Logs (SRD-MKT-019.014) | full ticket run | `[Research]` lines with ticket and card | Not Run |
 | UT-MKT-019.002.M04.T01 | MD-MKT-019.009.M04 | Positive | Card from topic (SRD-MKT-019.002) | topic sc-12; card 12 saved | card id 12; card row found | Not Run |
@@ -649,5 +649,5 @@
 | UT-MKT-019.006.M03.T02 | MD-MKT-019.005.M03 | Negative | Baseline skips bad levels (SRD-MKT-019.006) | percent stop on a day where the stop is past the trigger | that day gives no baseline trade | Not Run |
 | UT-MKT-019.008.M01.T02 | MD-MKT-019.001.M01 | Negative | No verdict answer (SRD-MKT-019.008) | ask returns None at verdict | outcome go; no card_tests row yet | Not Run |
 | UT-MKT-019.011.M04.T03 | MD-MKT-019.009.M04 | Negative | No cards (SRD-MKT-019.011) | no desk.db; all cards tested | empty block | Not Run |
-| UT-MKT-019.012.M01.T02 | MD-MKT-019.001.M01 | Negative | No hardcoded name (SRD-MKT-019.012) | skill source | no employee name or title in code | Not Run |
+| UT-MKT-019.012.M05.T02 | MD-MKT-019.012.M05 | Negative | No hardcoded name (SRD-MKT-019.012) | skill source | no employee name or title in code | Not Run |
 | UT-MKT-019.013.M01.T02 | MD-MKT-019.001.M01 | Positive | Report only (SRD-MKT-019.013) | full ticket run | only card_tests and lessons gain rows | Not Run |
