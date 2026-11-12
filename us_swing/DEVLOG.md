@@ -2,6 +2,18 @@
 
 ---
 
+## [20261112] MKT — Strategy test research skill and AI Desk Cards tab (FO-MKT-019, FO-DSK-010, FO-GUI-040)
+
+- Type: Feature
+- FO(s): FO-MKT-019, FO-DSK-010 (SRD-DSK-010.016), FO-GUI-040
+- RN: RN-MKT-0.21.0-20261112
+- Artifacts updated: SRD (SRD-MKT-019.001–.014, SRD-DSK-010.016, SRD-GUI-040.001–.004 Implemented), DD, MD (MD-MKT-019.001–.012 M01–M05, MD-GUI-040.001.M01, MD-GUI-034.009.M08 changed, MD-DSK-010.001.M25 changed), UTCD (UT-MKT-019.*, UT-DSK-010.016.M25.T01–T03, UT-GUI-040.*), TRACE (market, desk, gui), CONTEXT, Code (market/strategy_test, card_recipe, card_replay, lead_brief, employees/emp-017; core/desk_cards, desk_research, desk_steps; gui/ai_desk_cards, ai_desk; USSwing.spec), Tests, RN, DEVLOG. Commits 28a4f912, d425b670, c3c0066a, 2c598de2, e6e633f2, dd5ae9b0 on feat/mkt-strategy-test; not pushed.
+- Decisions: pass rule only in code (30+ trades, average R above 0.2 and above baseline); daily bars only, one open trade per stock; entries gapping past the stop are skipped by design; owner ticket cap 20,000 tokens; replay limit 10 minutes; passing card adds a candidate lesson only; Test button raises an approved ticket.
+- Tests: 36 UT-MKT-019 + 3 UT-DSK-010.016 + 6 UT-GUI-040 Pass; market, desk and core 1177 pass; AI Desk GUI 109 pass; ruff clean; mypy clean on new files. Real data: replay about 15–30 s; RSI ≤ 35 fails (+0.17R), bull flag passes (+0.21R).
+- User checks: T171 open (needs a strategy card first, T168).
+
+---
+
 ## [20261112] GUI — AI Desk header dates (ET) and Research Add book + Books list (FO-GUI-034, FO-GUI-039)
 
 - Type: Feature
