@@ -255,10 +255,10 @@ SRD coverage: .001, .007, .009, .011, .012 by M01; .002–.005 by M02; .006, .00
 
 | ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
 |---|---|---|---|---|---|---|
-| MD-MKT-019.001.M01 | SRD-MKT-019.001 | `us_swing/src/us_swing/market/strategy_test.py` | Research skill: recipe, check, replay and verdict steps, save, lesson, logs | `StrategyTestSkill`, `TestVerdict` | `core.desk_research`, `core.desk_lessons`, M02, M03, M04 | No |
+| MD-MKT-019.001.M01 | SRD-MKT-019.001 | `us_swing/src/us_swing/market/strategy_test.py` | Research skill: recipe, check, replay and verdict steps, save, lesson, logs | `StrategyTestSkill`, `CardVerdict` | `core.desk_research`, `core.desk_lessons`, M02, M03, M04 | No |
 | MD-MKT-019.003.M02 | SRD-MKT-019.003 | `us_swing/src/us_swing/market/card_recipe.py` | Recipe answer model, daily block menu and recipe check (SRD-MKT-019.004) | `Recipe`, `block_menu`, `check_recipe` | `core.indicator_rules`, `core.price_patterns` | No |
 | MD-MKT-019.005.M03 | SRD-MKT-019.005 | `us_swing/src/us_swing/market/card_replay.py` | Replay on Backtest Data, baseline and score with the pass rule (SRD-MKT-019.006–.007) | `load_data`, `replay`, `baseline`, `score`, `Score`, `score_text` | `market.proof_data`, `market.pick_results`, `core.indicator_rules`, `core.price_patterns` | No |
-| MD-MKT-019.009.M04 | SRD-MKT-019.009 | `us_swing/src/us_swing/core/desk_cards.py` | Cards and `card_tests` store, open tests, lead untested block (SRD-MKT-019.011); read by the GUI | `CardRow`, `TestRow`, `cards`, `card`, `save_test`, `latest_tests`, `open_test_cards`, `untested_block` | `core.desk_contract` | No |
+| MD-MKT-019.009.M04 | SRD-MKT-019.009 | `us_swing/src/us_swing/core/desk_cards.py` | Cards and `card_tests` store, open tests, lead untested block (SRD-MKT-019.011); read by the GUI | `CardRow`, `CardTest`, `cards`, `card`, `save_test`, `latest_tests`, `open_test_cards`, `untested_block` | `core.desk_contract` | No |
 | MD-MKT-019.012.M05 | SRD-MKT-019.012 | `us_swing/src/us_swing/market/employees/emp-017/employee.md`, `core/desk_steps.py`, `USSwing.spec` | Default strategy test employee, skill path and app build entry | `SKILL_PATHS["strategy_test"]` | `core.desk_hiring` | No |
 
 SRD coverage: .001, .002, .008, .009 (save), .010, .013, .014 by M01; .003–.004 by M02; .005–.007 by M03; .009, .011 by M04; .012 by M05. Changed: `market/lead_brief.py` (untested cards block, SRD-MKT-019.011).

@@ -4,7 +4,8 @@ Parent SRD: SRD-DSK-010.001
 Also: SRD-DSK-010.002–.007 (who raises, auto approval, Master edits, expiry, repeats, parked
 topics), SRD-DSK-010.012 (pause on app close), SRD-DSK-010.014 (logs), SRD-DSK-007.010
 (waiting alert), SRD-MKT-014.002–.004 (kinds, cap range, research block), SRD-DSK-010.015
-(follow-up tickets in the raising lead's name)
+(follow-up tickets in the raising lead's name), SRD-DSK-010.016 (owner-raised strategy
+test ticket)
 
 The research queue in ``desk.db``. Lead skills raise tickets here, the Master user approves
 or rejects waiting ones from the app through ``ticket_edits``, and the desk's research
@@ -260,6 +261,42 @@ def raise_follow_ups(home: Path, lead_id: str, asks: Sequence[TicketAsk], now: d
     except Exception:  # noqa: BLE001 — a ticket problem must never lose the research result
         log.exception("[Research] Could not add the follow-up tickets")
         return ["refused: the queue could not be written" for _ in asks]
+
+
+def raise_owner_test(home: Path, card_id: int, now: datetime) -> str:
+    """Raise an approved strategy test ticket for card ``SC-<card_id>`` from the app.
+
+    The ticket is raised in the name of the active lead that holds the lead plan skill, so
+    it uses that lead's research budget. Returns ``"ticket N approved"`` or ``"refused: why"``.
+    """
+    spec = holder(home, "lead_brief")
+    if spec is None or spec.level != "lead":
+        log.info("[Research] Master test of card SC-%d refused: no active lead", card_id)
+        return "refused: no active lead holds the lead plan"
+    ask = TicketAsk(kind="strategy_test", topic=f"SC-{card_id}",
+                    goal=f"Test strategy card SC-{card_id} on all Backtest Data",
+                    done_test="Pass or fail decided by code on 30 or more trades",
+                    token_cap=AUTO_CAP)
+    con = connect(home)
+    try:
+        why = _refusal(con, spec, ask, now)
+        if why:
+            log.info("[Research] Master test of card SC-%d refused: %s", card_id, why)
+            return f"refused: {why}"
+        stamp = _stamp(now)
+        with con:
+            cur = con.execute(
+                "INSERT INTO tickets (kind, topic, goal, done_test, token_cap, raised_by, "
+                "raised_by_name, status, made, approved_by, approved, updated) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, 'approved', ?, 'master', ?, ?)",
+                (ask.kind, ask.topic, ask.goal, ask.done_test, ask.token_cap, spec.id,
+                 spec.name, stamp, stamp, stamp))
+        tid = int(cur.lastrowid or 0)
+    finally:
+        con.close()
+    log.info("[Research] Master raised ticket %d (strategy test of card SC-%d): approved",
+             tid, card_id)
+    return f"ticket {tid} approved"
 
 
 def _raise_one(con: sqlite3.Connection, home: Path, spec: JobSpec, ask: TicketAsk,
