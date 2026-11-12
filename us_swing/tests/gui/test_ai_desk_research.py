@@ -142,3 +142,43 @@ def test_edit_log(qtbot: QtBot, home: Path, caplog: pytest.LogCaptureFixture) ->
     with caplog.at_level(logging.INFO):
         view.buttons["reject"].click()
     assert "[Research] Ticket 1 rejected from the app" in caplog.text
+
+
+def _book_view(qtbot: QtBot, home: Path, chosen: str) -> ResearchView:
+    view = ResearchView("Research", home, lambda: NOW, lambda: chosen)
+    qtbot.addWidget(view)
+    _ALIVE.append(view)
+    return view
+
+
+def test_add_book(qtbot: QtBot, tmp_path: Path, home: Path,
+                  caplog: pytest.LogCaptureFixture) -> None:
+    """UT-GUI-039.006.M01.T01: Add book copies the chosen file and shows a note."""
+    source = tmp_path / "My Swing Book.pdf"
+    source.write_bytes(b"%PDF-1.4 test")
+    view = _book_view(qtbot, home, str(source))
+    with caplog.at_level(logging.INFO):
+        view.add_book_button.click()
+    assert (home / "books" / "My_Swing_Book.pdf").read_bytes() == b"%PDF-1.4 test"
+    assert view.note.text().startswith("Added My_Swing_Book.pdf")
+    assert "[Books] Added My_Swing_Book.pdf" in caplog.text
+
+
+def test_add_book_cancelled(qtbot: QtBot, home: Path) -> None:
+    """UT-GUI-039.006.M01.T02: A cancelled file browser adds nothing."""
+    view = _book_view(qtbot, home, "")
+    view.add_book_button.click()
+    assert not (home / "books").exists()
+    assert view.note.text() == ""
+
+
+def test_add_book_refused_logged(qtbot: QtBot, tmp_path: Path, home: Path,
+                                 caplog: pytest.LogCaptureFixture) -> None:
+    """UT-GUI-039.007.M01.T01: A refused book shows why and logs a [Books] warning."""
+    source = tmp_path / "notes.docx"
+    source.write_bytes(b"x")
+    view = _book_view(qtbot, home, str(source))
+    with caplog.at_level(logging.WARNING):
+        view.add_book_button.click()
+    assert view.note.text() == "Book not added: notes.docx is not a PDF, TXT, MD or HTML file"
+    assert "[Books] Book not added" in caplog.text

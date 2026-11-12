@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.23.0: DD-GUI-039.006.D01 added — Add book on the Research tab (2026-11-12).
 > v1.22.0: DD-GUI-039.001.D01 added — AI Desk Research (Autonomous desk step E (2026-11-11)).
 > v1.21.0: DD-GUI-038.001.D01 added — app feeds for the desk watchers (Autonomous desk step D (2026-11-11)).
 > v1.20.0: DD-GUI-037.001.D01 added — AI Desk Memory (Autonomous desk step C (2026-11-11)).
@@ -2005,3 +2006,8 @@ Run names: `evening` "Evening run", `manual` "Manual run", other kinds title-cas
 ## DD-GUI-039.001.D01 — AI Desk Research (Autonomous desk step E)
 
 **Traces:** SRD-GUI-039.001–.005. Design in DSK DD-DSK-010.001.D01 ("GUI"). `gui/ai_desk_research.py` (`ResearchView`) is the "Research" section in the TEAM group: lead research line, ticket table, Approve / Reject / Change cap writing `ticket_edits`, detail label. `gui/ai_desk.py` adds the section and keeps it live.
+
+
+## DD-GUI-039.006.D01 — Add Book on the Research Tab
+
+**Traces:** SRD-GUI-039.006–.007. `ResearchView` gains an **Add book** button at the right of the button row. It opens `QFileDialog.getOpenFileName` filtered to `BOOK_TYPES` (the picker is injectable for tests). `core/desk_books.add_book()` checks the type, makes a safe name (spaces and odd characters → `_`, no leading dot, lower-case suffix), refuses a name that is already in `<desk>/books`, and copies the file. `BOOK_TYPES` moves from `market/book_text.py` to `core/desk_books.py` so the button and the book reader share one list. The note label shows "Added <name>…" or "Book not added: <reason>"; each case logs one `[Books]` line.

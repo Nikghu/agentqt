@@ -19,6 +19,7 @@ from pathlib import Path
 
 import httpx
 
+from us_swing.core.desk_books import BOOK_TYPES
 from us_swing.market.news import Getter
 
 PART_WORDS = 5_000
@@ -28,7 +29,6 @@ MAX_BYTES = 20_000_000
 MAX_PAGES = 500
 TIMEOUT_S = 20.0
 GUTENBERG_URL = "https://www.gutenberg.org/cache/epub/{n}/pg{n}.txt"
-BOOK_TYPES: tuple[str, ...] = (".txt", ".md", ".html", ".htm", ".pdf")
 _UPLOAD = re.compile(r"^upload:([^/\\:]+\.(?:txt|md|html?|pdf)) ch (\d{1,3})$", re.IGNORECASE)
 _GUTENBERG = re.compile(r"^gutenberg:(\d{1,6}) ch (\d{1,3})$", re.IGNORECASE)
 _HEADING = re.compile(r"^[ \t]*(?:chapter|chap\.)[ \t]+(?:\d+|[ivxlcdm]+)\b.*$",

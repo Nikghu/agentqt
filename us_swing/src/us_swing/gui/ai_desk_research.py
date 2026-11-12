@@ -2,7 +2,8 @@
 Module: MD-GUI-039.001.M01 — gui/ai_desk_research.py
 Parent SRD: SRD-GUI-039.001
 Also: SRD-GUI-039.002 (Approve, Reject, Change cap), SRD-GUI-039.003 (ticket detail),
-SRD-GUI-039.004 (lead research tokens), SRD-GUI-039.005 (edit log)
+SRD-GUI-039.004 (lead research tokens), SRD-GUI-039.005 (edit log),
+SRD-GUI-039.006–.007 (Add book and its log)
 
 The AI Desk "Research" section: the research tickets the leads raised. It reads tickets
 through ``core.desk_research`` and changes nothing itself: each button adds a ticket edit
@@ -20,6 +21,7 @@ from zoneinfo import ZoneInfo
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
     QAbstractItemView,
+    QFileDialog,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -29,6 +31,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from us_swing.core.desk_books import BOOK_TYPES, BookAddError, add_book
 from us_swing.core.desk_contract import desk_home
 from us_swing.core.desk_research import (
     CAP_MAX,
@@ -51,6 +54,7 @@ NO_TICKETS = "No research tickets yet. Leads raise them with the morning plan an
 PENDING = "applies at the next desk tick"
 ENDED = ("done", "failed", "stuck", "rejected", "expired")
 _DONE_WORDS = {"approve": "approved", "reject": "rejected", "cap": "cap set to"}
+BOOK_FILTER = "Books (" + " ".join(f"*{t}" for t in BOOK_TYPES) + ")"
 
 
 def _cells(ticket: Ticket, pending: bool) -> list[str]:
@@ -96,11 +100,13 @@ class ResearchView(QWidget):
     """Ticket table, lead research line, approval buttons and the ticket detail."""
 
     def __init__(self, name: str, home: Path,
-                 clock: Callable[[], datetime] | None = None) -> None:
-        """Build the section for the desk folder ``home``."""
+                 clock: Callable[[], datetime] | None = None,
+                 pick_file: Callable[[], str] | None = None) -> None:
+        """Build the section for the desk folder ``home``; ``pick_file`` is for tests."""
         super().__init__()
         self._home = home
         self._clock = clock or (lambda: datetime.now(NY))
+        self._pick_file = pick_file or self._browse
         self._tickets: list[Ticket] = []
         self._pending: set[int] = set()
         frame, body = section_frame(name, sample=False)
@@ -132,6 +138,9 @@ class ResearchView(QWidget):
         buttons.addWidget(change)
         self.buttons["cap"] = change
         buttons.addStretch(1)
+        self.add_book_button = QPushButton("Add book")
+        self.add_book_button.clicked.connect(lambda _=False: self._add_book())
+        buttons.addWidget(self.add_book_button)
         body.addLayout(buttons)
         self.note = muted("")
         body.addWidget(self.note)
@@ -203,6 +212,24 @@ class ResearchView(QWidget):
         self.refresh()
         if row < self.table.rowCount():
             self.table.selectRow(row)
+
+    def _browse(self) -> str:
+        chosen, _filter = QFileDialog.getOpenFileName(self, "Add book", "", BOOK_FILTER)
+        return chosen
+
+    def _add_book(self) -> None:
+        chosen = self._pick_file()
+        if not chosen:
+            return
+        try:
+            added = add_book(self._home, Path(chosen))
+        except (BookAddError, OSError) as exc:
+            reason = str(exc) if isinstance(exc, BookAddError) else "the file could not be copied"
+            log.warning("[Books] Book not added: %s", reason)
+            self.note.setText(f"Book not added: {reason}")
+            return
+        log.info("[Books] Added %s to the desk books", added.name)
+        self.note.setText(f"Added {added.name}. The lead sees it in the next plan")
 
 
 def research_frame(name: str, home: Path | None = None) -> QWidget:

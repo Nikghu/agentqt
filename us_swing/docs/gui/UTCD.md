@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.32.0: UT-GUI-039.006–.007 added (7 cases, Pass) — Add book (2026-11-12).
 > v1.31.2: UT-GUI-034.060.M33.T01 and UT-GUI-034.065.M39.T01 updated — header tiles show day and date, ET only; both Pass (2026-11-12).
 > v1.31.1: Step E cases Pass (9, 2026-11-11).
 > v1.31.0: Autonomous desk step E (2026-11-11): UT-GUI-039.001–.005 added (9 cases).
@@ -1281,3 +1282,10 @@ Test files:
 | UT-GUI-039.004.M01.T01 | MD-GUI-039.001.M01 | Positive | Lead research line (SRD-GUI-039.004) | lead used 5,000 of 18,000 | line shows 5,000 used and 13,000 left | Pass |
 | UT-GUI-039.005.M01.T01 | MD-GUI-039.001.M01 | Positive | Edit log (SRD-GUI-039.005) | Reject | `[Research]` line with the ticket id | Pass |
 | UT-GUI-039.003.M01.T02 | MD-GUI-039.001.M01 | Negative | No result while open (SRD-GUI-039.003) | select waiting ticket | done test shown; no result or end reason | Pass |
+| UT-GUI-039.006.M01.T01 | MD-GUI-039.001.M01 | Positive | Add book (SRD-GUI-039.006) | choose `My Swing Book.pdf` | copied as `My_Swing_Book.pdf`; note Added | Pass |
+| UT-GUI-039.006.M01.T02 | MD-GUI-039.001.M01 | Edge | Cancelled browser (SRD-GUI-039.006) | cancel the file browser | nothing copied; no note | Pass |
+| UT-GUI-039.007.M01.T01 | MD-GUI-039.001.M01 | Negative | Refused book logged (SRD-GUI-039.007) | choose `notes.docx` | Book not added note; `[Books]` warning | Pass |
+| UT-GUI-039.006.M02.T01 | MD-GUI-039.006.M02 | Positive | Safe name (SRD-GUI-039.006) | `The Book (2nd ed).PDF`; `.hidden.txt`; `!!!.md` | `The_Book_2nd_ed.pdf` copied; `hidden.txt`; `book.md` | Pass |
+| UT-GUI-039.006.M02.T02 | MD-GUI-039.006.M02 | Negative | Wrong type (SRD-GUI-039.006) | `sheet.xlsx` | refused; no books folder | Pass |
+| UT-GUI-039.006.M02.T03 | MD-GUI-039.006.M02 | Negative | Same name kept (SRD-GUI-039.006) | `guide.txt` already there | refused; old file unchanged | Pass |
+| UT-GUI-039.006.M02.T04 | MD-GUI-039.006.M02 | Negative | Missing file (SRD-GUI-039.006) | path that does not exist | refused | Pass |
