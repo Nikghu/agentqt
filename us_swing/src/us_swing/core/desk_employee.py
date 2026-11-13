@@ -3,7 +3,7 @@ Module: MD-DSK-008.001.M22 — core/desk_employee.py
 Parent SRD: SRD-DSK-008.001
 Also: SRD-DSK-008.002 (shared rules), SRD-DSK-008.003 (move old files), SRD-DSK-008.005
 (save with history), SRD-DSK-008.006 (restore), SRD-DSK-008.008 (draft test),
-SRD-DSK-008.009 (seat caps), SRD-DSK-004.006 (daily token budget)
+SRD-DSK-008.009 (seat caps), SRD-DSK-004.006 (daily token budget), SRD-DSK-008.010 (deputy)
 
 An AI employee is one ``employee.md`` in ``<desk>/employees/<id>/``: a YAML block between
 two ``---`` lines with the job settings, then the system prompt. The desk and the app both
@@ -79,6 +79,7 @@ class JobSpec(BaseModel):
     title: str = Field(min_length=1)
     level: Level
     reports_to: str | None = None
+    deputy: str | None = None
     skill: str = Field(min_length=1)
     version: int = Field(ge=1)
     trigger: tuple[str, ...] = Field(min_length=1)
@@ -183,7 +184,7 @@ def parse(text: str) -> EmployeeFile:
 
 def render(spec: JobSpec, prompt: str, header: str = "") -> str:
     """Write ``spec`` and ``prompt`` as employee file text; ``header`` is YAML comment lines."""
-    data = spec.model_dump(mode="json")
+    data = spec.model_dump(mode="json", exclude={"deputy"} if spec.deputy is None else None)
     block = yaml.safe_dump(data, sort_keys=False, allow_unicode=True)
     return f"{header}{_FENCE}\n{block}{_FENCE}\n{prompt.strip(chr(10))}\n"
 
@@ -314,6 +315,16 @@ def _seat_refusal(home: Path, old: JobSpec, new: JobSpec) -> str:
     return ""
 
 
+def _deputy_refusal(home: Path, spec: JobSpec) -> str:
+    if spec.deputy is None:
+        return ""
+    if spec.deputy == spec.id:
+        return "the deputy cannot be the employee itself"
+    if not (home / EMPLOYEES_DIR / spec.deputy).is_dir():
+        return f"no employee {spec.deputy} for deputy"
+    return ""
+
+
 def save_employee(home: Path, emp_id: str, fields: Mapping[str, Any], prompt: str) -> str:
     """Check and save a changed employee as the next version; return ``""`` or why not.
 
@@ -338,7 +349,7 @@ def save_employee(home: Path, emp_id: str, fields: Mapping[str, Any], prompt: st
         return str(exc)
     if not prompt.strip():
         return "the prompt is empty"
-    refusal = _seat_refusal(home, old, spec)
+    refusal = _seat_refusal(home, old, spec) or _deputy_refusal(home, spec)
     if refusal:
         return refusal
     history = folder / HISTORY_DIR

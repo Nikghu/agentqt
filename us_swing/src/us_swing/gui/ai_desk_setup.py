@@ -3,6 +3,7 @@ Module: MD-GUI-036.001.M01 — gui/ai_desk_setup.py
 Parent SRD: SRD-GUI-036.001
 Also: SRD-GUI-036.002–.007 — form tabs, prompt, model list, save, history and draft test
 Also: SRD-GUI-036.009–.010 — reporting tree and number codes
+Also: SRD-GUI-036.011 — Deputy picker
 
 AI Desk → Team setup: pick an employee from the reporting tree, edit its employee.md in a
 form and save it as the next version. All file work goes through ``core.desk_employee``.
@@ -319,13 +320,14 @@ class TeamSetup(QWidget):
         self.level_box = QComboBox()
         _fill(self.level_box, tuple(LEVELS))
         self.boss_box = QComboBox()
+        self.deputy_box = QComboBox()
         self.skill_label = QLabel()
         self.kpis_edit = QPlainTextEdit()
         self.kpis_edit.setPlaceholderText("One measure per line")
         self.kpis_edit.setStyleSheet("QPlainTextEdit { outline: none; }")
         for caption, widget in (("Name", self.name_edit), ("Title", self.title_edit),
                                 ("Level", self.level_box), ("Reports to", self.boss_box),
-                                ("Skill", self.skill_label), ("KPIs", self.kpis_edit)):
+                                ("Deputy", self.deputy_box), ("Skill", self.skill_label), ("KPIs", self.kpis_edit)):
             grid.addRow(caption, widget)
         return page
 
@@ -427,7 +429,8 @@ class TeamSetup(QWidget):
             edit.textChanged.connect(self._mark_dirty)
         for text in (self.prompt_edit, self.kpis_edit):
             text.textChanged.connect(self._mark_dirty)
-        for combo in (self.level_box, self.boss_box, self.main_source, self.backup_source,
+        for combo in (self.level_box, self.boss_box, self.deputy_box, self.main_source,
+                      self.backup_source,
                       self.main_model, self.backup_model, self.status_box):
             combo.currentTextChanged.connect(self._mark_dirty)
         self.calls_spin.valueChanged.connect(self._mark_dirty)
@@ -637,7 +640,8 @@ class TeamSetup(QWidget):
             self.name_edit.setText(spec.name)
             self.title_edit.setText(spec.title)
             _pick(self.level_box, spec.level)
-            self._fill_boss(spec)
+            self._fill_people(self.boss_box, spec, spec.reports_to)
+            self._fill_people(self.deputy_box, spec, spec.deputy)
             self.skill_label.setText(skill_text(spec.skill))
             self.kpis_edit.setPlainText("\n".join(spec.kpis))
             for source, model, choice in ((self.main_source, self.main_model,
@@ -655,15 +659,16 @@ class TeamSetup(QWidget):
         finally:
             self._loading = False
 
-    def _fill_boss(self, spec: JobSpec) -> None:
-        self.boss_box.clear()
-        self.boss_box.addItem(NO_BOSS, None)
+    def _fill_people(self, box: QComboBox, spec: JobSpec, current: str | None) -> None:
+        """None, then every other employee by name; ``current`` stays picked."""
+        box.clear()
+        box.addItem(NO_BOSS, None)
         for emp_id, name in self._people.items():
             if emp_id != spec.id:
-                self.boss_box.addItem(name, emp_id)
-        if spec.reports_to and self.boss_box.findData(spec.reports_to) < 0:
-            self.boss_box.addItem(spec.reports_to, spec.reports_to)
-        self.boss_box.setCurrentIndex(max(0, self.boss_box.findData(spec.reports_to)))
+                box.addItem(name, emp_id)
+        if current and box.findData(current) < 0:
+            box.addItem(current, current)
+        box.setCurrentIndex(max(0, box.findData(current)))
 
     def _fill_models(self, source: QComboBox, model: QComboBox) -> None:
         keep = model.currentText()
@@ -675,11 +680,13 @@ class TeamSetup(QWidget):
 
     def _fields(self) -> dict[str, Any]:
         boss = self.boss_box.currentData()
+        deputy = self.deputy_box.currentData()
         return {
             "name": self.name_edit.text(),
             "title": self.title_edit.text(),
             "level": _value(self.level_box),
             "reports_to": boss if boss else None,
+            "deputy": deputy if deputy else None,
             "kpis": [k.strip() for k in self.kpis_edit.toPlainText().splitlines()
                      if k.strip()],
             "models": {

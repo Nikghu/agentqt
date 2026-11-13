@@ -159,7 +159,7 @@ def test_type_not_in_use(home: Path) -> None:
     drafts = [Draft(type="handover", to="emp-b", subject="Done", text="All ideas graded"),
               Draft(type="escalate", to="emp-b", subject="Broken", text="NVDA plan broken")]
     assert accept(home, drafts, "emp-a", ROSTER, NOW, DAY) == [
-        "refused: type handover is not in use yet", "refused: type escalate is not in use yet"]
+        "refused: type handover is not in use yet"]  # escalate dropped while off (011.033)
 
 
 def test_receivers(home: Path) -> None:

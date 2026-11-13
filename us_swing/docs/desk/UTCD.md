@@ -503,7 +503,7 @@
 | UT-DSK-011.014.M29.T01 | MD-DSK-011.015.M29 | Positive | One writer (SRD-DSK-011.014) | all source files | only `core/desk_messages.py` writes the messages and threads tables | Pass |
 | UT-DSK-011.014.M29.T02 | MD-DSK-011.015.M29 | Negative | Nothing stored while off (SRD-DSK-011.014) | full morning run on a desk copy with messages off and drafts in the answers | no messages rows | Pass |
 | UT-DSK-011.017.M29.T01 | MD-DSK-011.015.M29 | Positive | M1 types (SRD-DSK-011.017) | an ask, a reply and a first send_back | all stored | Pass |
-| UT-DSK-011.017.M29.T02 | MD-DSK-011.015.M29 | Negative | Type not in use (SRD-DSK-011.017) | handover; escalate | refused: not in use yet | Pass |
+| UT-DSK-011.017.M29.T02 | MD-DSK-011.015.M29 | Negative | Type not in use (SRD-DSK-011.017) | handover; escalate | handover refused: not in use yet; escalate dropped while escalation is off (M2, SRD-DSK-011.033) | Pass |
 | UT-DSK-011.018.M29.T01 | MD-DSK-011.015.M29 | Positive | Receivers (SRD-DSK-011.018) | to emp-006; to skill:news_review held by emp-007 and emp-006 | emp-006 both times | Pass |
 | UT-DSK-011.018.M29.T02 | MD-DSK-011.015.M29 | Negative | Nobody to take it (SRD-DSK-011.018) | unknown id; retired employee; skill nobody holds; boss | each refused | Pass |
 | UT-DSK-011.019.M29.T01 | MD-DSK-011.015.M29 | Positive | Bad draft refused alone (SRD-DSK-011.019) | 3 drafts, the middle one with an unknown key | first and last stored; one refusal line | Pass |
