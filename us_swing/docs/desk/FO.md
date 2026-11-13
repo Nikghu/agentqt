@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.11.1: FO-DSK-011 and FO-DSK-012 approved by user 2026-11-13; Implemented (M0 code and tests done).
 > v0.11.0: AI Desk v3 M0 (user, 2026-11-12, decisions locked): FO-DSK-011 Agent messages and FO-DSK-012 Tools and task cards added as Draft.
 > v0.10.1: FO-DSK-010 approved by user 2026-11-11.
 > v0.10.0: Autonomous desk step E (user, 2026-11-11): FO-DSK-004 daily token split 50/20/30; FO-DSK-010 added as Draft — research queue; FO-DSK-007 ticket alert.
@@ -257,7 +258,7 @@ The system shall run research only from tickets that leads raise, each with its 
 
 ## FO-DSK-011: Agent Messages
 
-**Status:** Draft
+**Status:** Implemented (approved by user 2026-11-13)
 **Priority:** Must
 **Phase:** AI Desk v3 M0 (schema part); bus, wake and escalation parts come in M1–M2
 **Depends on:** FO-DSK-002 (employee identity), FO-DSK-003 (events)
@@ -282,7 +283,7 @@ The system shall give every agent and layer one checked message format, `desk.ms
 
 ## FO-DSK-012: Tools and Task Cards
 
-**Status:** Draft
+**Status:** Implemented (approved by user 2026-11-13)
 **Priority:** Must
 **Phase:** AI Desk v3 M0 (registry part); task cards and the planner come in M6
 **Depends on:** FO-DSK-011 (data block), FO-MKT-011 (data recipes)
