@@ -2,6 +2,16 @@
 
 ---
 
+## [20261113] DSK — AI Desk v3 M3: memory v2 (FO-DSK-009, FO-MKT-012, FO-GUI-034, FO-GUI-037)
+
+- Type: Feature
+- FO(s): FO-DSK-009, FO-MKT-012, FO-GUI-034, FO-GUI-037
+- RN: RN-DSK-0.16.0-20261113
+- Artifacts updated: SRD (DSK-009.010–.024, MKT-012.007–.008, GUI-034.072, GUI-037.005–.008 Implemented), DD (DD-DSK-009.010.D01 §13 review fixes), MD (MD-DSK-009.010.M30, MD-DSK-009.021.M31, MD-MKT-012.007.M04 new; 7 changed), UTCD (60 M3 cases Pass), Code, Tests (7 old tests updated), RN, TRACE, CONTEXT, TODO. Branch feat/dsk-m3-memory; commits 0012d2a9 (docs), 121a6f58 (code); not pushed.
+- Decisions: lessons move to memory.db (runs whatever the switch); own views checked after 10 trading days at ±1%; under 40% right after 5 checks leaves recall; 3 right checks = proven; top agents = lead and expert levels; failure log to M6; knowledge and preference kinds wait for M4/M7; lesson_reflect stays daily.
+
+---
+
 ## [20261113] DSK — AI Desk v3 M2: escalation and deputies (FO-DSK-011, FO-DSK-007, FO-DSK-008, FO-MKT-013, FO-GUI-034, FO-GUI-035, FO-GUI-036)
 
 - Type: Feature
