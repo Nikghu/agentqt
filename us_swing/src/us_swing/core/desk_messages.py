@@ -165,7 +165,10 @@ def accept(home: Path, drafts: Sequence[Draft], sender: str, roster: Sequence[Pe
 
 def _accept_one(home: Path, con: sqlite3.Connection, draft: Draft, sender: str,
                 roster: Sequence[Person], now: datetime, day: str) -> tuple[int, str]:
-    body = draft.body()
+    parent = _get(con, draft.parent) if draft.parent is not None else None
+    if draft.parent is not None and parent is None:
+        raise _Refused(f"message #{draft.parent} does not exist")
+    body = _with_verdict(draft.body(), parent)
     try:
         Message.model_validate({"id": 1, "thread": 1, "parent": draft.parent, "sender": sender,
                                 "to": draft.to, "at": now, "state": "submitted",
@@ -175,15 +178,22 @@ def _accept_one(home: Path, con: sqlite3.Connection, draft: Draft, sender: str,
         raise _Refused(reason(exc)) from exc
     if draft.type not in M1_TYPES:
         raise _Refused(f"type {draft.type} is not in use yet")
-    parent = _get(con, draft.parent) if draft.parent is not None else None
-    if draft.parent is not None and parent is None:
-        raise _Refused(f"message #{draft.parent} does not exist")
     receiver = parent.sender if parent else _receiver(str(draft.to), roster)
     _guard(con, draft, sender, receiver, parent, now)
     data = body.get("data")
     if data is not None and get_format(home, str(data["schema"])) is None:
         raise _Refused(f"unknown table format {data['schema']}")
     return _store(con, draft.type, body, sender, receiver, parent, now, day), receiver
+
+
+def _with_verdict(body: dict[str, Any], parent: MessageRow | None) -> dict[str, Any]:
+    """Fill a reply's missing verdict: dropped for a send-back answer without data, else done."""
+    if body.get("type") != "reply" or "verdict" in body:
+        return body
+    if parent is not None and parent.type == "send_back" and "data" not in body:
+        return {**body, "verdict": {"result": "dropped",
+                                    "reason": str(body.get("text") or "no new levels")[:200]}}
+    return {**body, "verdict": {"result": "done"}}
 
 
 def _receiver(to: str, roster: Sequence[Person]) -> str:
@@ -266,7 +276,7 @@ def _close_if_done(con: sqlite3.Connection, thread: int, now: datetime) -> None:
 def _code_reply(con: sqlite3.Connection, row: MessageRow, result: str, why: str,
                 parent_state: str, now: datetime) -> None:
     """A reply written by code in the receiver's name; it wakes the asker."""
-    body = {"verdict": {"result": result, "reason": why[:200]}}
+    body = {"verdict": {"result": result, "reason": why[:200]}, "text": why[:600]}
     cur = con.execute(
         "INSERT INTO messages (thread, parent, type, sender, receiver, at, due, state, body, "
         "data_day) VALUES (?, ?, 'reply', ?, ?, ?, NULL, 'completed', ?, ?)",

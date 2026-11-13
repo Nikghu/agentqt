@@ -28,6 +28,7 @@ from us_swing.core.desk_lessons import with_lessons
 from us_swing.market.candles import CANDLE_DB
 from us_swing.market.risk_limits import ListedIdea, code_vetoes
 from us_swing.market.setup_review import (
+    idea_of,
     ideas_day,
     listed_frame,
     listed_ideas,
@@ -211,11 +212,6 @@ def _send_back(side: str, symbol: str, why: str, parent: int | None) -> Draft:
                       "stop) with the stop 1% to 10% from the trigger, or drop the idea.")
 
 
-def _idea_of(text: str) -> tuple[str, str] | None:
-    head = text.split(":", 1)[0].split()
-    return (head[0], head[1].upper()) if len(head) == 2 else None
-
-
 def _check_fixes(home: Path, talk: Talker, facts: Facts) -> None:
     """Check each fix reply in the inbox with the code limits (SRD-MKT-005.022)."""
     store = MarketStore(home)
@@ -230,7 +226,7 @@ def _check_fixes(home: Path, talk: Talker, facts: Facts) -> None:
             asked = read_message(home, reply.parent)
             if asked is None or asked.type != "send_back":
                 continue
-            idea = _idea_of(getattr(asked.body, "text", None) or "")
+            idea = idea_of(getattr(asked.body, "text", None) or "")
             if idea is None:
                 continue
             rounds = sum(1 for m in messages_of(home, reply.thread) if m.type == "send_back")

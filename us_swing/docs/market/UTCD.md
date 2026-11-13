@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.23.1: UT-MKT-005.024.M05.T01–T02 added and Pass; UT-MKT-005.022.M07.T05 Pass (2026-11-13).
 > v0.23.0: UT-MKT-005.019–.023 and 006.013 added (Not Run, 16) — AI Desk v3 M1 (2026-11-13).
 > v0.22.1: UT-MKT-019.* Pass (36, 2026-11-12).
 > v0.22.0: UT-MKT-019.* added (36, Not Run) — strategy test research (2026-11-12).
@@ -676,3 +677,5 @@
 | UT-MKT-005.023.M04.T02 | MD-MKT-001.007.M04 | Negative | Failed or pending fix not used (SRD-MKT-005.023) | fix status fail; pending | old levels everywhere | Pass |
 | UT-MKT-006.013.M04.T01 | MD-MKT-006.005.M04 | Positive | News reply only (SRD-MKT-006.013) | inbox ask about NVDA; model returns one reply | reply draft; news_tags rows and feed unchanged | Pass |
 | UT-MKT-006.013.M04.T02 | MD-MKT-006.005.M04 | Negative | Normal wake unchanged (SRD-MKT-006.013) | wake without inbox | tags stored and market note posted as today | Pass |
+| UT-MKT-005.024.M05.T01 | MD-MKT-005.009.M05 | Positive | Price facts for a send-back (SRD-MKT-005.024) | send-back about a stock with daily bars | facts show last close, ATR(14), 20-day low | Pass |
+| UT-MKT-005.024.M05.T02 | MD-MKT-005.009.M05 | Negative | No send-back, no price facts (SRD-MKT-005.024) | inbox with only an ask | no price facts in the facts | Pass |

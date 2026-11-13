@@ -105,3 +105,9 @@ None
 Reviews: code review 5 MEDIUM fixed (mark seen in finally and refuse on error, non-numeric fix guarded, one send-back per idea per day, inbox skips closed asks, messages-off refuses at once). PyQt review MEDIUM fixed (detail list keeps scroll position) and LOW fixed.
 
 Open: user check in the app with Agent messages switched on (T174). M2 next. Branch `feat/dsk-m1-messages`, not pushed.
+
+---
+
+## Desk-Copy Check (2026-11-13)
+
+Run on a copy of the real desk (data day 2026-11-12) with Agent messages on and real Claude Code calls. Risk check sent back all 11 stop-limit ideas; the setup review fixed 5 from the new price facts (BRK.B, DGX, ADP, COST, KO), all passed the code limits in round 1; the other 6 expired after 10 minutes and stayed vetoed; the lead then ran and picked DGX and KO among others. Found and fixed during the check: a code-written expired reply had no text and crashed risk check on read-back; setup review had no price data to choose stops (new SRD-MKT-005.024, user-approved); model replies without `verdict` are now filled by code. User chose to send back all over-limit ideas in one run.

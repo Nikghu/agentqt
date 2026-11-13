@@ -388,8 +388,8 @@ MsgType = Literal["ask", "task", "reply", "send_back", "handover", "escalate", "
                   "decision", "feedback"]
 _DRAFT_HELP = ("Messages to other employees (optional). Use type ask to ask a question "
                "(to = employee id or skill:<key>), reply to answer a message in your inbox "
-               "(parent = its number, no to), send_back to return work for a fix. Leave the "
-               "list empty when you need nobody.")
+               "(parent = its number, no to, verdict {result: done, or dropped with a reason}), "
+               "send_back to return work for a fix. Leave the list empty when you need nobody.")
 
 
 class Draft(BaseModel):

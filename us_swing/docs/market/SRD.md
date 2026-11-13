@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.22.3: SRD-MKT-005.024 added by user 2026-11-13 (price facts so the setup review can choose new levels) and Implemented.
 > v0.22.2: SRD-MKT-005.019–.023 and 006.013 Implemented 2026-11-13.
 > v0.22.1: SRD-MKT-005.019–.023 and 006.013 approved by user 2026-11-13.
 > v0.22.0: AI Desk v3 M1 (user, 2026-11-13): SRD-MKT-005.019–.023 and 006.013 added as Draft — asks, send-back fixes and news replies.
@@ -157,6 +158,7 @@
 | SRD-MKT-005.021 | FO-MKT-005 | Must | The setup review replies to a send-back with a new trigger and stop for the idea, or drops it with a reason. | send_back | reply | Side and symbol cannot change | Implemented |
 | SRD-MKT-005.022 | FO-MKT-005 | Must | A fix is kept in `idea_fixes` and checked by the same code limits; a pass turns the idea's `risk_check` row to pass with the round, and a fail after round 2 leaves it vetoed. | reply | `idea_fixes` row, `risk_check` row | Limits stay constants in code | Implemented |
 | SRD-MKT-005.023 | FO-MKT-005 | Must | Every reader of the day's listed ideas uses the fixed trigger and stop when a passing fix exists. | `idea_fixes` | levels | Setup, news and risk facts, the lead brief, the watcher and watch flags | Implemented |
+| SRD-MKT-005.024 | FO-MKT-005 | Must | On a send-back wake, the setup review facts add, for each idea sent back, its last close, ATR(14) and 10- and 20-day lows and highs. | `candles.db` daily bars | facts text | Only for ideas named in a send-back; added by user 2026-11-13 after the desk-copy check | Implemented |
 
 ## FO-MKT-006: News, Economic Calendar and Event Risk
 

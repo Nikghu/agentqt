@@ -296,6 +296,7 @@ def test_expiry(home: Path) -> None:
         "emp-b", "emp-a", "failed")
     assert _rows(home, "SELECT target FROM events WHERE key = ?", (f"message|{reply.id}",)) == [
         ("emp-a",)]
+    assert read_message(home, reply.id) is not None  # a code reply reads back as desk.msg/1
 
 
 def test_not_yet_due(home: Path) -> None:
@@ -388,3 +389,17 @@ def test_setting_saved_and_read(home: Path) -> None:
     assert load_settings(home).messages_on is False
     save_settings(DeskAiSettings(messages_on=True), home)
     assert load_settings(home).messages_on is True
+
+
+def test_missing_verdict_filled(home: Path) -> None:
+    """UT-DSK-011.021.M29.T03: A reply without a verdict gets done, or dropped on a send-back."""
+    mid = _ask(home)
+    accept(home, [Draft(type="reply", parent=mid, text="Earnings Thursday")], "emp-b", ROSTER,
+           NOW, DAY)
+    back = Draft(type="send_back", to="emp-a", verdict=Verdict(result="fix", reason="Stop"),
+                 text="long AMD: new stop")
+    sb = _id(accept(home, [back], "emp-c", ROSTER, NOW, DAY)[0])
+    accept(home, [Draft(type="reply", parent=sb, text="AMD dropped: no level fits")], "emp-a",
+           ROSTER, NOW, DAY)
+    states = dict(_rows(home, "SELECT id, state FROM messages"))
+    assert states[mid] == "completed" and states[sb] == "failed"

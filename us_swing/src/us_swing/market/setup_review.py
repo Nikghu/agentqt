@@ -8,7 +8,8 @@ Also holds the readers for the day's listed ideas that the risk check and the le
 Uses only ``core`` types; it never imports the desk harness.
 Also: MD-MKT-012.005.M03 — lessons block at the end of the facts (SRD-MKT-012.005)
 Also: SRD-MKT-005.019 (asks the news review, at most 3 ideas held), .021 (replies to a
-send-back with a fix), .023 (fixed levels in the listed ideas) — AI Desk v3 M1
+send-back with a fix), .023 (fixed levels in the listed ideas), .024 (price facts for a
+sent-back idea) — AI Desk v3 M1
 """
 from __future__ import annotations
 
@@ -21,7 +22,8 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from us_swing.core.desk_agents import AgentContext, Facts, FeedItem, Talker, talker
 from us_swing.core.desk_lessons import with_lessons
-from us_swing.market.candles import CANDLE_DB
+from us_swing.core.desk_messages import read_message
+from us_swing.market.candles import CANDLE_DB, CandleReader
 from us_swing.market.regime_view import latest_spy_day
 from us_swing.market.risk_limits import ListedIdea
 from us_swing.market.store import (
@@ -157,7 +159,10 @@ class SetupReviewSkill:
 
         The count brief also marks the day as done, so the employee is not asked again.
         """
-        review = ctx.ask(facts.text, SetupReview)
+        text = facts.text
+        if facts.inbox:
+            text += _price_facts(self._candles, ctx.home, facts)
+        review = ctx.ask(text, SetupReview)
         if review is None:
             return []
         talk = talker(ctx)
@@ -211,3 +216,49 @@ def _trim_asks(talk: Talker) -> None:
             held |= named
         kept.append(draft)
     talk.drafts[:] = kept
+
+
+def idea_of(text: str) -> tuple[str, str] | None:
+    """``(side, SYMBOL)`` from a send-back text that starts ``<side> <SYMBOL>:``."""
+    head = text.split(":", 1)[0].split()
+    if len(head) != 2 or head[0] not in ("long", "short"):
+        return None
+    return head[0], head[1].upper()
+
+
+def _price_facts(candles: Path, home: Path, facts: Facts) -> str:
+    """Price facts for each idea sent back in the inbox, to choose new levels (SRD-MKT-005.024)."""
+    ideas = []
+    for mid in facts.inbox:
+        msg = read_message(home, mid)
+        if msg is not None and msg.type == "send_back":
+            idea = idea_of(getattr(msg.body, "text", None) or "")
+            if idea is not None:
+                ideas.append(idea)
+    if not ideas:
+        return ""
+    try:
+        bars = CandleReader(candles, topup=home).read({s for _side, s in ideas})
+    except FileNotFoundError:
+        return ""
+    lines = ["", "", "Price facts for the ideas sent back (daily bars up to the data day):"]
+    for side, symbol in ideas:
+        lines.append(_price_line(bars.closes, bars.highs, bars.lows, side, symbol,
+                                 facts.data_day))
+    return "\n".join(lines)
+
+
+def _price_line(closes: pd.DataFrame, highs: pd.DataFrame, lows: pd.DataFrame, side: str,
+                symbol: str, day: str) -> str:
+    if symbol not in closes.columns:
+        return f"  {side} {symbol}: no daily bars"
+    end = pd.Timestamp(day)
+    c, h, lo = (f[symbol].loc[:end].dropna() for f in (closes, highs, lows))
+    if len(c) < 21:
+        return f"  {side} {symbol}: fewer than 21 daily bars"
+    prev = c.shift(1)
+    true_range = pd.concat([h - lo, (h - prev).abs(), (lo - prev).abs()], axis=1).max(axis=1)
+    atr = float(true_range.iloc[-14:].mean())
+    return (f"  {side} {symbol}: last close {c.iloc[-1]:.2f}, ATR(14) {atr:.2f}, "
+            f"10-day low {lo.iloc[-10:].min():.2f}, 10-day high {h.iloc[-10:].max():.2f}, "
+            f"20-day low {lo.iloc[-20:].min():.2f}, 20-day high {h.iloc[-20:].max():.2f}")

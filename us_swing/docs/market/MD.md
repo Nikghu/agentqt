@@ -266,6 +266,6 @@ SRD coverage: .001, .002, .008, .009 (save), .010, .013, .014 by M01; .003–.00
 
 ## FO-MKT-005 / FO-MKT-006 (AI Desk v3 M1): Asks, Send-Back Fixes and News Replies
 
-No new module. Changed: MD-MKT-005.009.M05 (`market/setup_review.py`: `talks`, held ideas with at most 3 asked, merge on an inbox wake, fixed levels in `listed_frame` — SRD-MKT-005.019, .021, .023), MD-MKT-005.012.M07 (`market/risk_check.py`: stop send-back, code-only fix check, round 2 — .020, .022), MD-MKT-006.005.M04 (`market/news_review.py`: inbox reply only — 006.013), MD-MKT-001.007.M04 (`market/store.py`: `idea_fixes` table, `FIXED` join, `put_rows()` — 005.022, .023), MD-MKT-013.001.M01 (`market/watch.py`) and MD-MKT-013.008.M02 (`market/watch_flag.py`): fixed levels — 005.023.
+No new module. Changed: MD-MKT-005.009.M05 (`market/setup_review.py`: `talks`, held ideas with at most 3 asked, merge on an inbox wake, fixed levels in `listed_frame`, price facts for sent-back ideas — SRD-MKT-005.019, .021, .023, .024), MD-MKT-005.012.M07 (`market/risk_check.py`: stop send-back, code-only fix check, round 2 — .020, .022), MD-MKT-006.005.M04 (`market/news_review.py`: inbox reply only — 006.013), MD-MKT-001.007.M04 (`market/store.py`: `idea_fixes` table, `FIXED` join, `put_rows()` — 005.022, .023), MD-MKT-013.001.M01 (`market/watch.py`) and MD-MKT-013.008.M02 (`market/watch_flag.py`): fixed levels — 005.023.
 
 Cross-tool: the skills use DSK `core/desk_msg.py` (`Draft`, `InboxReply`) and `core/desk_agents.talker()`.

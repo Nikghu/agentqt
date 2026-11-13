@@ -344,3 +344,44 @@ def test_fix_dropped(p5b: Env) -> None:
     (reply,) = ctx.drafts
     assert reply.verdict is not None and reply.verdict.result == "dropped"
     assert reply.data is None
+
+
+def _candle_symbol(env: Env) -> str:
+    import sqlite3  # noqa: PLC0415
+
+    con = sqlite3.connect(env.candles)
+    try:
+        return str(con.execute("SELECT symbol FROM price_1d WHERE symbol != 'SPY' "
+                               "GROUP BY symbol HAVING COUNT(*) > 30 LIMIT 1").fetchone()[0])
+    finally:
+        con.close()
+
+
+def test_price_facts_for_send_back(p5b: Env) -> None:
+    """UT-MKT-005.024.M05.T01: A send-back wake shows price facts for the idea sent back."""
+    symbol = _candle_symbol(p5b)
+    set_regime(p5b, "Choppy")
+    set_ideas(p5b, [("long", symbol, "list", 1, "Tech", 100.0, 88.6)])
+    fill_registry(p5b.home, NOW)
+    risk = TalkCtx(p5b.home, RiskVetoes())
+    RiskCheckSkill(p5b.candles).act(risk, RiskCheckSkill(p5b.candles).facts(p5b.home))
+    sb = _sent_back(p5b, risk.drafts[0])
+    skill = SetupReviewSkill(p5b.candles)
+    ctx = TalkCtx(p5b.home, SetupReview.model_validate({"grades": [_grade(symbol, "B")]}))
+    skill.act(ctx, replace(skill.facts(p5b.home), inbox=(sb,)))
+    shown = ctx.asked[0]
+    assert "Price facts for the ideas sent back" in shown
+    assert f"long {symbol}: last close" in shown and "ATR(14)" in shown
+    assert "20-day low" in shown
+
+
+def test_no_price_facts_without_send_back(p5b: Env) -> None:
+    """UT-MKT-005.024.M05.T02: An inbox with only an ask shows no price facts."""
+    fill_registry(p5b.home, NOW)
+    ask = _id(accept(p5b.home, [_ask("LNG01")], "emp-a",
+                     [Person("emp-a", "Ann", "news_review"), *ROSTER[1:]], NOW, p5b.day)[0])
+    set_ideas(p5b, listed("long", "LNG", 2))
+    skill = SetupReviewSkill(p5b.candles)
+    ctx = TalkCtx(p5b.home, SetupReview.model_validate({"grades": [_grade("LNG01")]}))
+    skill.act(ctx, replace(skill.facts(p5b.home), inbox=(ask,)))
+    assert "Price facts" not in ctx.asked[0]

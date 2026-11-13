@@ -511,6 +511,7 @@
 | UT-DSK-011.020.M29.T02 | MD-DSK-011.015.M29 | Negative | Over limits (SRD-DSK-011.020) | 7th message; 3rd send-back; 21st started today | each refused | Pass |
 | UT-DSK-011.021.M29.T01 | MD-DSK-011.015.M29 | Positive | Reply to an open ask (SRD-DSK-011.021) | ask emp-003 to emp-006; reply by emp-006 with parent | stored to emp-003 | Pass |
 | UT-DSK-011.021.M29.T02 | MD-DSK-011.015.M29 | Negative | Bad reply (SRD-DSK-011.021) | second reply; reply by emp-007; reply to a reply | each refused | Pass |
+| UT-DSK-011.021.M29.T03 | MD-DSK-011.015.M29 | Positive | Missing verdict filled (SRD-DSK-011.021) | reply with no verdict to an ask; to a send-back with no data | parent completed; parent failed (dropped) | Pass |
 | UT-DSK-011.022.M29.T01 | MD-DSK-011.015.M29 | Negative | Loop refused (SRD-DSK-011.022) | emp-006 asks emp-003 while emp-003's ask to it is open in the thread | refused | Pass |
 | UT-DSK-011.022.M29.T02 | MD-DSK-011.015.M29 | Positive | Third employee in a thread (SRD-DSK-011.022) | emp-006 asks emp-004 in the same thread | stored | Pass |
 | UT-DSK-011.023.M29.T01 | MD-DSK-011.015.M29 | Positive | Expiry (SRD-DSK-011.023) | open ask, 11 minutes later | parent expired; failed reply in the receiver's name; event for the asker | Pass |
