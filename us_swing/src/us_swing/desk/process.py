@@ -28,6 +28,7 @@ from typing import IO, Protocol, runtime_checkable
 from us_swing.core.desk_contract import CommandKind, DeskState, DeskStep, StepContext
 from us_swing.core.desk_events import post_event
 from us_swing.core.desk_lessons import apply_edits
+from us_swing.core.desk_registry import fill_registry
 from us_swing.core.desk_research import apply_ticket_edits, expire_waiting, pause_running
 from us_swing.desk.clock import (
     MANUAL,
@@ -235,6 +236,10 @@ class DeskProcess:
             pause_running(self._home, "app closed", now)
         except Exception:  # noqa: BLE001 — a ticket problem must never stop the desk
             log.exception("[Research] Could not pause the running tickets")
+        try:
+            fill_registry(self._home, now)
+        except Exception:  # noqa: BLE001 — a registry problem must never stop the desk
+            log.exception("[Tools] Could not fill the tool registry")
         self._run_daily_check()
         return True
 

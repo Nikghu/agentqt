@@ -6,6 +6,8 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.11.1: FO-DSK-011 and FO-DSK-012 approved by user 2026-11-13; Implemented (M0 code and tests done).
+> v0.11.0: AI Desk v3 M0 (user, 2026-11-12, decisions locked): FO-DSK-011 Agent messages and FO-DSK-012 Tools and task cards added as Draft.
 > v0.10.1: FO-DSK-010 approved by user 2026-11-11.
 > v0.10.0: Autonomous desk step E (user, 2026-11-11): FO-DSK-004 daily token split 50/20/30; FO-DSK-010 added as Draft — research queue; FO-DSK-007 ticket alert.
 > v0.9.0: Autonomous desk step D (user, 2026-11-11): FO-DSK-003 check-ins and watchers; FO-DSK-007 trade and plan alerts.
@@ -253,3 +255,52 @@ The system shall run research only from tickets that leads raise, each with its 
 2. A running ticket stops at its token cap and keeps what it found.
 3. A watcher flag pauses the running ticket after its current step, and it resumes 20 minutes after the last flag.
 4. The same goal raised again within 30 days is not added.
+
+## FO-DSK-011: Agent Messages
+
+**Status:** Implemented (approved by user 2026-11-13)
+**Priority:** Must
+**Phase:** AI Desk v3 M0 (schema part); bus, wake and escalation parts come in M1–M2
+**Depends on:** FO-DSK-002 (employee identity), FO-DSK-003 (events)
+**Source: User 2026-11-12 (AI Desk v3, decisions locked): one message envelope for the whole desk. Schema draft 2: https://claude.ai/artifact/BjxpjycTC6CtGbNPzoX62f. Master plan M0: https://claude.ai/artifact/3dr7g92HY5hvVQ9KiyrPvc.**
+
+The system shall give every agent and layer one checked message format, `desk.msg/1`, so agents can later talk both ways. M0 adds the format only; nothing sends or reads messages yet.
+
+- The system shall describe every desk message with one envelope: a thread row, a core header and a body.
+- The system shall allow only the fields of each message type in its body and refuse any other key.
+- The system shall carry tables in a data block that names a versioned format from the schema library.
+- The system shall write meta keys only when they have a value.
+- The system shall use the A2A state names for message states and open or closed for threads.
+- The system shall export the format as JSON Schema so prompts can show it to the AI.
+- The system shall not change today's daily run.
+
+### Acceptance Criteria
+
+1. A message of each of the 9 types, built in code, turns into JSON and back with the same values.
+2. A body with a field of another type, or an unknown key, is refused with a plain reason.
+3. A data block with both rows and a reference, or with more than 200 rows inline, is refused.
+4. The daily run and all existing desk tests work as before.
+
+## FO-DSK-012: Tools and Task Cards
+
+**Status:** Implemented (approved by user 2026-11-13)
+**Priority:** Must
+**Phase:** AI Desk v3 M0 (registry part); task cards and the planner come in M6
+**Depends on:** FO-DSK-011 (data block), FO-MKT-011 (data recipes)
+**Source: User 2026-11-12 (AI Desk v3, decisions locked): a tool registry in MCP shape and a versioned schema library. Schema draft 2: https://claude.ai/artifact/BjxpjycTC6CtGbNPzoX62f. Master plan M0: https://claude.ai/artifact/3dr7g92HY5hvVQ9KiyrPvc.**
+
+The system shall keep one list of every tool the desk can use and one library of table formats, both in `desk.db`. M0 fills them from what exists today; nothing calls tools through them yet.
+
+- The system shall keep each tool as one `desk.tool/1` row in MCP tool shape (input schema and output schema).
+- The system shall name own tools `group.tool` and MCP tools `mcp:server/tool`, each with a version.
+- The system shall keep each table format as one versioned `desk.schema/1` row.
+- The system shall fill the registry from the desk's market steps, research skills, the data recipe and the Backtest MCP tools.
+- The system shall fill it again on every desk start without making copies.
+- The system shall not change today's daily run.
+
+### Acceptance Criteria
+
+1. After a desk start the registry lists every market step, every research skill, the data recipe and all Backtest MCP tools.
+2. A second start leaves the same rows.
+3. Every registry row and schema row turns into JSON and back with the same values.
+4. The daily run and all existing desk tests work as before.
