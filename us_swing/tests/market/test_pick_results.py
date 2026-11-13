@@ -136,10 +136,12 @@ def test_bad_status(tmp_path: Path) -> None:
 
 
 def test_step_order() -> None:
-    """UT-MKT-009.001.M06.T01: Pick results runs after Ideas and News, before AI employees."""
+    """UT-MKT-009.001.M06.T01: Pick results runs after Ideas and News, before AI employees
+    (with the M3 view check between them)."""
     names = [s.name for s in load_steps(STEP_PATHS)]
     assert names.index("Ideas") < names.index("News") < names.index("Pick results")
-    assert names.index("Pick results") + 1 == names.index("AI employees")
+    assert names.index("Pick results") + 2 == names.index("AI employees")
+    assert names.index("View check") == names.index("Pick results") + 1
 
 
 def test_logs(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:

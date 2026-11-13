@@ -34,8 +34,10 @@ STEP_PATHS: tuple[str, ...] = (
     "us_swing.market.idea_step:IdeaStep",
     "us_swing.market.news_step:NewsStep",
     "us_swing.market.pick_results:PickResultsStep",
+    "us_swing.market.view_check:ViewCheckStep",  # SRD-MKT-012.007
     "us_swing.desk.employees_step:EmployeesStep",
     "us_swing.desk.weekly_report:WeeklyReportStep",
+    "us_swing.desk.memory_cleanup:MemoryCleanupStep",  # SRD-DSK-009.021
 )
 # Skills by key (named by what they do, never by who does them).
 SKILL_PATHS: dict[str, str] = {

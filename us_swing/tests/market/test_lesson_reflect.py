@@ -119,7 +119,8 @@ def test_candidates_kept(home: Path) -> None:
         ("Pullback longs fail more often", "active"), ("Breakouts do better", "active")]
     assert len(items) == 1 and "Breakouts do better" in items[0].text
     con = connect(home)
-    seen = con.execute("SELECT value FROM memory_state").fetchone()[0]
+    seen = con.execute("SELECT value FROM memory_state WHERE key = 'reflected_keys'"
+                           ).fetchone()[0]
     con.close()
     assert set(json.loads(seen)) == set(keys)
 

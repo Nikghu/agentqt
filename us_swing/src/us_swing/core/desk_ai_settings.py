@@ -3,6 +3,7 @@ Module: MD-DSK-004.005.M13 — core/desk_ai_settings.py
 Parent SRD: SRD-DSK-004.005
 Also: SRD-DSK-011.031 (``messages_on``, off by default), SRD-DSK-011.042 (``escalation_on``,
 off by default)
+Also: SRD-DSK-009.023 (``memory_v2_on``, off by default)
 Also: SRD-DSK-006.003 — seat caps per level; SRD-MKT-008.002 — trade target R multiple
 
 Desk AI settings, separate from the AI notes settings: which sources may run, their
@@ -43,6 +44,7 @@ class DeskAiSettings:
     trade_target_r: float = 2.0
     messages_on: bool = False
     escalation_on: bool = False
+    memory_v2_on: bool = False
 
     def __post_init__(self) -> None:
         """Refuse a budget, token cap, seat cap or R multiple that is not above 0."""

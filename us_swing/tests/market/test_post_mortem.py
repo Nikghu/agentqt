@@ -102,7 +102,7 @@ def _ask(cap: int = 8_000) -> TicketAsk:
 
 
 def _rows(home: Path, sql: str) -> list[Any]:
-    con = sqlite3.connect(home / "desk.db")
+    con = lessons_connect(home)
     try:
         return con.execute(sql).fetchall()
     finally:

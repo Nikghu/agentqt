@@ -1,7 +1,8 @@
 """
 Module: MD-GUI-034.016.M15 — gui/ai_desk_settings.py
 Parent SRD: SRD-GUI-034.016
-Also: SRD-GUI-034.070 (Agent messages switch), SRD-GUI-034.071 (Escalation switch)
+Also: SRD-GUI-034.070 (Agent messages switch), SRD-GUI-034.071 (Escalation switch),
+SRD-GUI-034.072 (Memory v2 switch)
 Also: MD-GUI-034.033.M23 — seat caps (SRD-GUI-034.033)
 Also: SRD-GUI-034.066 — fields grouped in icon cards (console look)
 
@@ -80,6 +81,11 @@ class DeskAiSettingsForm(QWidget):
         self.escalation_on.setChecked(self._settings.escalation_on)
         self.escalation_on.setEnabled(self.messages_on.isChecked())
         self.messages_on.toggled.connect(self.escalation_on.setEnabled)
+        self.memory_v2_on = QCheckBox("Memory v2: notes, views and track record")
+        self.memory_v2_on.setToolTip("On: leads and experts keep up to 3 notes or views a day, "
+                                     "see their track record and past notes at each wake, "
+                                     "and tidy their notes once a week.")
+        self.memory_v2_on.setChecked(self._settings.memory_v2_on)
         self.caps = {level: self._line(str(self._settings.cap(level)))
                      for level in ("expert", "champion", "junior")}
         grid = QGridLayout()
@@ -93,7 +99,7 @@ class DeskAiSettingsForm(QWidget):
         grid.addWidget(self._card("users", "Seats", tuple(
             (f"{level.capitalize()}s", edit) for level, edit in self.caps.items())), 1, 0)
         grid.addWidget(self._card("message-square", "Agent messages", (
-            ("", self.messages_on), ("", self.escalation_on))), 1, 1)
+            ("", self.messages_on), ("", self.escalation_on), ("", self.memory_v2_on))), 1, 1)
         outer.addLayout(grid)
         row = QHBoxLayout()
         self.save_btn = primary(QPushButton("Save"))
@@ -139,7 +145,8 @@ class DeskAiSettingsForm(QWidget):
                 champion_cap=int(self.caps["champion"].text().strip()),
                 junior_cap=int(self.caps["junior"].text().strip()),
                 messages_on=self.messages_on.isChecked(),
-                escalation_on=self.escalation_on.isChecked())
+                escalation_on=self.escalation_on.isChecked(),
+                memory_v2_on=self.memory_v2_on.isChecked())
             if not math.isfinite(budget):
                 raise ValueError("budget")
         except ValueError:

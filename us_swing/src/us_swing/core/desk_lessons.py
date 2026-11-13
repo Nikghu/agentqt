@@ -4,7 +4,8 @@ Parent SRD: SRD-DSK-009.001
 Also: SRD-DSK-009.002 (active at 5 cases), SRD-DSK-009.003 (same lesson updated),
 SRD-DSK-009.004 (lessons block for pick makers), SRD-DSK-009.005 (prompt text only),
 SRD-DSK-009.006 (lessons shown are kept), SRD-DSK-009.007 (retire), SRD-DSK-009.008 (the
-Master's edits), SRD-DSK-009.009 (log lines)
+Master's edits), SRD-DSK-009.009 (log lines), SRD-DSK-009.011 (lessons live in ``memory.db``,
+moved once from ``desk.db``)
 
 Desk memory: short lessons learned from closed lead picks. A lesson starts as a candidate,
 becomes active once enough closed picks back it, is shown to the pick-making skills as plain
@@ -21,6 +22,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from us_swing.core import desk_memory
 from us_swing.core.desk_contract import DB_NAME
 
 log = logging.getLogger(__name__)
@@ -121,18 +123,42 @@ class ProofRow:
     r: float | None
 
 
+_MOVED = "lessons_moved"
+_MOVE_TABLES = ("lessons", "lesson_uses", "lesson_edits", "memory_state")
+
+
 def connect(home: Path) -> sqlite3.Connection:
-    """Open ``desk.db`` in ``home`` with the lesson tables ready."""
-    home.mkdir(parents=True, exist_ok=True)
-    con = sqlite3.connect(home / DB_NAME, timeout=5)
-    con.execute("PRAGMA busy_timeout=5000")
+    """Open ``memory.db`` in ``home`` (``desk.db`` attached) with the lesson tables ready."""
+    con = desk_memory.connect(home)
     con.executescript(SCHEMA)
+    _move(con)
     return con
 
 
+def _move(con: sqlite3.Connection) -> None:
+    """Copy the lesson tables from ``desk.db`` once; the old tables stay as a backup."""
+    if get_state(con, _MOVED):
+        return
+    found = {str(r[0]) for r in con.execute(
+        "SELECT name FROM desk.sqlite_master WHERE type = 'table'")}
+    moved = 0
+    with con:
+        for table in _MOVE_TABLES:
+            if table not in found:
+                continue
+            cols = ", ".join(str(r[1]) for r in con.execute(f"PRAGMA desk.table_info({table})"))
+            cur = con.execute(f"INSERT OR IGNORE INTO main.{table} ({cols}) "  # noqa: S608
+                              f"SELECT {cols} FROM desk.{table}")
+            if table == "lessons":
+                moved = cur.rowcount
+        con.execute("INSERT OR REPLACE INTO memory_state (key, value) VALUES (?, ?)",
+                    (_MOVED, datetime.now().isoformat(timespec="seconds")))
+    if "lessons" in found:
+        log.info("[Memory] Moved %d lesson(s) to the memory file", moved)
+
+
 def _has(con: sqlite3.Connection, table: str) -> bool:
-    return con.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
-                       (table,)).fetchone() is not None
+    return desk_memory.has_table(con, table)
 
 
 def _stamp(now: datetime) -> str:
@@ -393,7 +419,7 @@ def add_edit(home: Path, lesson_id: int, action: str, now: datetime, text: str =
 
 def apply_edits(home: Path, now: datetime) -> int:
     """Apply the Master's pending edits, oldest first; return how many were applied."""
-    if not (home / DB_NAME).exists():
+    if not ((home / DB_NAME).exists() or (home / desk_memory.MEMORY_DB).exists()):
         return 0
     con = connect(home)
     try:
@@ -429,17 +455,24 @@ def _apply_one(con: sqlite3.Connection, lid: int, action: str, text: str,
 
 
 def _read_only(home: Path) -> sqlite3.Connection | None:
-    path = home / DB_NAME
-    if not path.exists():
-        return None
-    try:
-        con = sqlite3.connect(f"{path.as_uri()}?mode=ro", uri=True, timeout=2)
-    except sqlite3.Error:
+    con = desk_memory.read_only(home) or _old_file(home)
+    if con is None:
         return None
     if not _has(con, "lessons"):
         con.close()
         return None
     return con
+
+
+def _old_file(home: Path) -> sqlite3.Connection | None:
+    """``desk.db`` read-only, for a GUI that opens before the desk has moved the lessons."""
+    path = home / DB_NAME
+    if not path.exists():
+        return None
+    try:
+        return sqlite3.connect(f"{path.as_uri()}?mode=ro", uri=True, timeout=2)
+    except sqlite3.Error:
+        return None
 
 
 def lesson_rows(home: Path, status: str = "active") -> list[Lesson]:

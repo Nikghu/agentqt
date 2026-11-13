@@ -12,8 +12,6 @@ from typing import Any
 import numpy as np
 import pytest
 from pydantic import ValidationError
-
-from tests.market.p5b_support import FakeCtx
 from us_swing.core.desk_cards import (
     HEADER,
     CardTest,
@@ -24,9 +22,10 @@ from us_swing.core.desk_cards import (
     save_test,
     untested_block,
 )
+from us_swing.core.desk_lessons import connect as lessons_connect
+from us_swing.core.desk_research import OWNER_TEST_CAP, StepResult, Ticket
 from us_swing.core.desk_steps import DEFAULT_EMPLOYEE_PACKAGES, SKILL_PATHS
 from us_swing.core.indicator_rules import BarArrays
-from us_swing.core.desk_research import OWNER_TEST_CAP, StepResult, Ticket
 from us_swing.data.market_calendar import ET
 from us_swing.desk.registry import default_folders, load_employee
 from us_swing.market import strategy_test as st_module
@@ -50,7 +49,9 @@ from us_swing.market.card_replay import (
     replay,
     score,
 )
-from us_swing.market.strategy_test import StrategyTestSkill, CardVerdict
+from us_swing.market.strategy_test import CardVerdict, StrategyTestSkill
+
+from tests.market.p5b_support import FakeCtx
 
 NOW = datetime(2026, 11, 12, 12, 0, tzinfo=ET)
 N = WARMUP + 60
@@ -311,7 +312,7 @@ VERDICT = CardVerdict(verdict="The card made money often.\nLosses were small.")
 
 
 def _query(home: Path, sql: str) -> list[Any]:
-    con = sqlite3.connect(home / "desk.db")
+    con = lessons_connect(home)
     try:
         return con.execute(sql).fetchall()
     finally:
@@ -420,15 +421,15 @@ def test_never_live(tmp_path: Path) -> None:
 def test_report_only(tmp_path: Path) -> None:
     """UT-MKT-019.013.M01.T02: A run adds rows only to card_tests and lessons."""
     _card(tmp_path)
-    tables_before = {n for (n,) in _query(tmp_path, "SELECT name FROM sqlite_master "
-                                                    "WHERE type = 'table'")}
+    tables_before = {n for (n,) in _query(tmp_path, "SELECT name FROM sqlite_master WHERE type = 'table' UNION "
+                                                    "SELECT name FROM desk.sqlite_master WHERE type = 'table'")}
     counts = {t: _query(tmp_path, f"SELECT COUNT(*) FROM {t}")[0][0]
-              for t in tables_before - {"sqlite_sequence"}}
+              for t in tables_before - {"sqlite_sequence", "lessons", "memory_state"}}
     _run(tmp_path, _recipe(), VERDICT)
     for t, n in counts.items():
         assert _query(tmp_path, f"SELECT COUNT(*) FROM {t}")[0][0] == n, t
-    new = {n for (n,) in _query(tmp_path, "SELECT name FROM sqlite_master WHERE type = "
-                                          "'table'")} - tables_before
+    new = {n for (n,) in _query(tmp_path, "SELECT name FROM sqlite_master WHERE type = 'table' UNION "
+                                                    "SELECT name FROM desk.sqlite_master WHERE type = 'table'")} - tables_before
     assert new <= {"card_tests", "lessons", "lesson_uses", "lesson_edits", "memory_state",
                    "sqlite_sequence"}
 

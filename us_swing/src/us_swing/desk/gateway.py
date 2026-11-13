@@ -1,7 +1,8 @@
 """
 Module: MD-DSK-004.001.M11 — desk/gateway.py
 Parent SRD: SRD-DSK-004.001
-Also: SRD-DSK-011.016 (talk, drafts, send), SRD-DSK-011.030 (message id on tries)
+Also: SRD-DSK-011.016 (talk, drafts, send), SRD-DSK-011.030 (message id on tries),
+SRD-DSK-009.013 (remember field and notes)
 Also: SRD-DSK-004.002 (schema check, retry, backup), SRD-DSK-002.003 (soul is the prompt,
 job file picks the models), SRD-DSK-005.005 (resend a recorded prompt for a replay),
 SRD-DSK-007.001 (raise an alert for a login, key or credit problem), SRD-DSK-007.004 (skip a
@@ -33,7 +34,7 @@ from pydantic import BaseModel, ValidationError
 from us_swing.core.desk_employee import DEFAULT_MODEL
 from us_swing.core.desk_agents import T
 from us_swing.core.desk_ai_settings import DeskAiSettings
-from us_swing.core.desk_msg import Draft, with_messages
+from us_swing.core.desk_msg import Draft, Remember, with_messages, with_remember
 from us_swing.core.desk_alerts import Sender, classify, raise_alert
 from us_swing.core.notifications._ai_client import OPENROUTER_URL, _run_with_timeout
 from us_swing.desk.budget import Budget, Part
@@ -158,13 +159,15 @@ class Gateway:
                  key: str, run_id: int, data_day: str, caller: Caller = call_model,
                  clock: Callable[[], datetime] = ny_now, replay: bool = False,
                  shadow: bool = False, send: Sender | None = None,
-                 part: Part | None = None, talk: bool = False) -> None:
+                 part: Part | None = None, talk: bool = False, remember: bool = False
+                 ) -> None:
         """Bind the employee, the run and the sources; ``caller`` is injectable for tests.
 
         With ``replay`` every try is recorded as a replay, so it never counts as a wake;
         with ``shadow`` every try is marked as a shadow try (SRD-DSK-006.004).
         ``part`` is the budget part the tries are paid from; by default the employee's plan.
-        With ``talk`` each answer may carry message drafts (SRD-DSK-011.016).
+        With ``talk`` each answer may carry message drafts (SRD-DSK-011.016); with
+        ``remember`` it may carry notes and views (SRD-DSK-009.013).
         """
         spec = hire.spec
         self._part = part or Part("plan", spec.id, spec.name, spec.tokens_per_day)
@@ -185,6 +188,8 @@ class Gateway:
         self.refused: str | None = None
         self.talk = talk
         self.drafts: list[Draft] = []
+        self._remember = remember
+        self._notes: list[Remember] = []
         self.asked = 0
 
     @property
@@ -202,11 +207,15 @@ class Gateway:
         When talking, the schema gains a ``messages`` list and its drafts are kept.
         """
         self.asked += 1
+        if self._remember and "remember" not in schema.model_fields:
+            schema = with_remember(schema)  # type: ignore[assignment]
         if self.talk and "messages" not in schema.model_fields:
             schema = with_messages(schema)  # type: ignore[assignment]
         answer = self._ask(facts, schema)
         if answer is not None and self.talk:
             self.drafts.extend(getattr(answer, "messages", []))
+        if answer is not None and self._remember:
+            self._notes.extend(getattr(answer, "remember", []))
         return answer
 
     def _ask(self, facts: str, schema: type[T]) -> T | None:
@@ -326,3 +335,8 @@ class ReplayGateway(Gateway):
                 return result
             text = f"{user}\n\nYour last answer was not valid: {error}. Answer again."
         return None
+
+
+def kept_notes(gateway: Gateway) -> list[Remember]:
+    """The notes and views of a gateway's answers; for the desk, not for skills."""
+    return list(gateway._notes)  # noqa: SLF001 — kept off the skill's context on purpose

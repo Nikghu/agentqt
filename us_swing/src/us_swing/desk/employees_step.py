@@ -10,7 +10,9 @@ SRD-DSK-003.016 (a retry skips the once-per-day check), SRD-DSK-003.018 (partial
 SRD-DSK-007.008 (partial plan alert), SRD-DSK-004.008 (market or plan budget part by event),
 SRD-DSK-011.026, .028, .030, .031 (message wakes: inbox facts, refusals, the starter pays,
 only while messages are on), SRD-DSK-011.039-.042 (boss reply-only turn, reply as a feed
-note, deputy before refusal, only while escalation is on)
+note, deputy before refusal, only while escalation is on), SRD-DSK-009.013, .014, .016,
+.017, .023 (memory v2 for lead and expert wakes: core block and recall in the facts, notes
+kept after the answer)
 
 Desk step "AI employees": after the market steps, copies any missing default employee
 files into the desk folder, posts an ``after_run`` event and lets the router handle every
@@ -29,6 +31,7 @@ from us_swing.core.desk_ai_settings import DeskAiSettings, load_key, load_settin
 from us_swing.core.desk_alerts import Sender, last_error, raise_alert, run_outcome
 from us_swing.core.desk_contract import StepContext, desk_home
 from us_swing.core.desk_events import Event, post_event, waiting_count
+from us_swing.core.desk_memory import is_top, with_memory, write
 from us_swing.core.desk_agents import FeedItem
 from us_swing.core.desk_messages import (
     MessageRow,
@@ -43,7 +46,7 @@ from us_swing.core.desk_messages import (
 )
 from us_swing.core.desk_msg import Draft, InboxReply
 from us_swing.desk.budget import Part
-from us_swing.desk.gateway import Caller, Gateway, call_model
+from us_swing.desk.gateway import Caller, Gateway, call_model, kept_notes
 from us_swing.desk.recorder import NY, Recorder, ny_now
 from us_swing.desk.registry import (
     Hire,
@@ -173,10 +176,15 @@ class EmployeesStep:
                 return "ok"
             part = Part("market" if event.kind in MARKET_KINDS else "plan", spec.id, spec.name,
                         spec.tokens_per_day)
+            memo = _remembers(hire, settings)
+            if memo:
+                facts = replace(facts, text=with_memory(facts.text, home, spec.id,
+                                                        facts.data_day))
             gateway = Gateway(home, hire, recorder, settings, self._key(), run_id,
                               facts.data_day, self._caller, self._clock, send=self._send,
-                              part=part, talk=_talks(hire, settings))
+                              part=part, talk=_talks(hire, settings), remember=memo)
             items = hire.skill.act(gateway, facts)
+            _keep_notes(home, spec.id, gateway, facts.data_day, self._clock())
             accept(home, gateway.drafts, spec.id, roster, self._clock(), facts.data_day,
                    _escalates(settings), self._send)
             if missing:
@@ -274,6 +282,9 @@ class EmployeesStep:
             return "slept"
         facts = replace(facts, text=facts.text + "\n\n" + inbox_text(rows, roster),
                         inbox=tuple(m.id for m in rows))
+        memo = _remembers(hire, settings)
+        if memo:
+            facts = replace(facts, text=with_memory(facts.text, home, spec.id, facts.data_day))
         starter = thread_starter(home, rows[0].thread) or spec.id
         payer = next((h.spec for h in hires if h.spec.id == starter), spec)
         part = Part("plan", payer.id, payer.name, payer.tokens_per_day, message=rows[0].id)
@@ -281,9 +292,10 @@ class EmployeesStep:
         try:
             gateway = Gateway(home, hire, recorder, settings, self._key(), run_id,
                               facts.data_day, self._caller, self._clock, send=self._send,
-                              part=part, talk=_talks(hire, settings))
+                              part=part, talk=_talks(hire, settings), remember=memo)
             items = hire.skill.act(gateway, facts)
             recorder.add_briefs(items, spec.id, spec.name)
+            _keep_notes(home, spec.id, gateway, facts.data_day, self._clock())
         finally:
             recorder.close()
         accept(home, gateway.drafts, spec.id, roster, self._clock(), facts.data_day,
@@ -309,6 +321,22 @@ def _note(subject: str, draft: Draft) -> str:
 
 def _talks(hire: Hire, settings: DeskAiSettings) -> bool:
     return settings.messages_on and bool(getattr(hire.skill, "talks", False))
+
+
+def _remembers(hire: Hire, settings: DeskAiSettings) -> bool:
+    """Memory v2 is for lead and expert employees while it is on (SRD-DSK-009.023)."""
+    return settings.memory_v2_on and is_top(hire.spec.level)
+
+
+def _keep_notes(home: Path, owner: str, gateway: Gateway, day: str, now: datetime) -> None:
+    """Store the answer's notes and views; a memory problem never fails the wake."""
+    notes = kept_notes(gateway)
+    if not notes:
+        return
+    try:
+        write(home, owner, notes, day, now)
+    except Exception:  # noqa: BLE001 — the answer is kept even when its notes are not
+        log.exception("[Memory] Could not keep the notes of %s", owner)
 
 
 def _escalates(settings: DeskAiSettings) -> bool:

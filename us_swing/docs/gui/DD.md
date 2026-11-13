@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.27.0: DD-GUI-037.005.D01 added — Memory v2 in Memory and Desk settings (AI Desk v3 M3, 2026-11-13).
 > v1.26.0: DD-GUI-034.071.D01 added — escalation switch, escalation lines in Threads, Deputy picker (AI Desk v3 M2, 2026-11-13).
 > v1.25.0: DD-GUI-035.015.D01 added — messages switch, message log and Threads view (AI Desk v3 M1, 2026-11-13).
 > v1.24.0: DD-GUI-040.001.D01 added — AI Desk strategy cards (2026-11-12).
@@ -2047,3 +2048,11 @@ Run names: `evening` "Evening run", `manual` "Manual run", other kinds title-cas
 - `gui/ai_desk_settings.py`: an Escalation check box under Agent messages in the same card, saved as `escalation_on`; disabled while Agent messages is unticked.
 - `gui/ai_desk_threads.py`: in the selected thread's messages, a row with `meta.blocked` shows its reasons as a grey line under the message. `MessageRow` gains `meta`.
 - `gui/ai_desk_setup.py`: Profile tab, a Deputy combo under Boss, filled like the Boss combo (None, then the other employees by name); saved as `deputy` through `save_employee()`.
+
+## DD-GUI-037.005.D01 — Memory v2 in the Memory Section and Desk Settings (AI Desk v3 M3)
+
+**Traces:** SRD-GUI-037.005–.008, SRD-GUI-034.072; data in DD-DSK-009.010.D01.
+
+`gui/ai_desk_memory.py`. Top row: a `Kind` combo (Lessons, Notes, Views) before the status filter, and an `Employee` combo (All + active employees read from the employee files, shown by name, holding the id). Lessons: today's table, buttons and proof list, unchanged; the Employee combo is hidden. Notes and Views: the status filter lists their statuses; table columns Owner, Text, Symbol, Direction, Made, Status, Right, Wrong (+ Due for views); pending edits in yellow. Note buttons: Pin, Unpin, Retire → `desk_memory.add_edit`. Views have no buttons. A read-only `QPlainTextEdit` "Core block" shows `desk_memory.core_block(home, owner, today)` when one employee is chosen, else it is hidden. All reads use `desk_memory.read_only`; no business logic in the GUI.
+
+`gui/ai_desk_settings.py`: a `Memory v2` check box under the Escalation switch, saved as `memory_v2_on` (SRD-GUI-034.072).

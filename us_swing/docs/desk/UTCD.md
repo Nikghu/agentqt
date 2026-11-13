@@ -6,6 +6,8 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.19.1: M3 cases Pass (43, 2026-11-13); 013.M27.T02 changed by the code review (bad items dropped, not refused).
+> v0.19.0: M3 memory v2 cases added (43, Not Run) (2026-11-13).
 > v0.18.1: M2 cases Pass (27 + 3 added from the code review: 011.036.T04, 011.037.T03, 011.041.T03) (2026-11-13).
 > v0.18.0: UT-DSK-011.033–.043, 007.011 and 008.010 M2 cases added (Not Run, 27) (2026-11-13).
 > v0.17.1: UT-DSK-011 M1 cases Pass (47, 2026-11-13).
@@ -575,3 +577,51 @@
 | UT-DSK-007.011.M21.T01 | MD-DSK-007.001.M21 | Positive | Escalation alert (SRD-DSK-007.011) | raise kind escalation twice | one row titled Escalation not answered, open all day | Pass |
 | UT-DSK-008.010.M22.T01 | MD-DSK-008.001.M22 | Positive | Deputy saved (SRD-DSK-008.010) | save deputy emp-009; render a spec without deputy | read back emp-009; no deputy line | Pass |
 | UT-DSK-008.010.M22.T02 | MD-DSK-008.001.M22 | Negative | Bad deputy (SRD-DSK-008.010) | deputy itself; deputy emp-999 | each refused with a plain reason | Pass |
+
+## FO-DSK-009 (AI Desk v3 M3): Memory v2
+
+| ID | Module | Type | Title | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-DSK-009.010.M30.T01 | MD-DSK-009.010.M30 | Positive | File made (SRD-DSK-009.010) | connect a new desk folder | `memory.db` exists in WAL mode; `desk.db` attached | Pass |
+| UT-DSK-009.010.M30.T02 | MD-DSK-009.010.M30 | Negative | Read-only with no file (SRD-DSK-009.010) | read_only on an empty folder | None, no file made | Pass |
+| UT-DSK-009.011.M30.T01 | MD-DSK-009.010.M30 | Positive | Lessons move (SRD-DSK-009.011) | desk.db with 2 lessons, 1 use, 1 edit | memory.db holds the same rows and ids; lessons_moved set | Pass |
+| UT-DSK-009.011.M30.T02 | MD-DSK-009.010.M30 | Negative | Move runs once (SRD-DSK-009.011) | connect twice, then add a lesson to desk.db | second connect copies nothing | Pass |
+| UT-DSK-009.011.M23.T01 | MD-DSK-009.001.M23 | Positive | Lessons read the same (SRD-DSK-009.011) | lesson_rows, proof_rows, lessons_block before and after the move | same results | Pass |
+| UT-DSK-009.011.M23.T02 | MD-DSK-009.001.M23 | Edge | Cases from desk.db (SRD-DSK-009.011) | add_candidate after the move with 5 backing picks in desk.db | lesson becomes active | Pass |
+| UT-DSK-009.012.M30.T01 | MD-DSK-009.010.M30 | Positive | Memory row (SRD-DSK-009.012) | write one note and one view | rows with all fields; FTS finds the view by symbol | Pass |
+| UT-DSK-009.012.M30.T02 | MD-DSK-009.010.M30 | Negative | Bad kind (SRD-DSK-009.012) | write kind lesson through write() | refused, no row | Pass |
+| UT-DSK-009.013.M27.T01 | MD-DSK-011.001.M27 | Positive | Remember field (SRD-DSK-009.013) | with_remember(schema) parse a note and a view | both kept | Pass |
+| UT-DSK-009.013.M27.T02 | MD-DSK-011.001.M27 | Negative | Bad items dropped (SRD-DSK-009.013) | view with symbol only, 300-character note; 4 items | view dropped, note cut to 200, answer kept; 3 kept | Pass |
+| UT-DSK-009.013.M10.T01 | MD-DSK-003.001.M10 | Positive | Lead or expert only (SRD-DSK-009.013) | memory on, an expert and a champion answer with remember | expert schema has remember; champion schema has not | Pass |
+| UT-DSK-009.014.M30.T01 | MD-DSK-009.010.M30 | Positive | 3 a day (SRD-DSK-009.014) | 5 drafts on one day | 3 added, 2 dropped: 3 a day | Pass |
+| UT-DSK-009.014.M30.T02 | MD-DSK-009.010.M30 | Negative | Next day counts again (SRD-DSK-009.014) | 3 on day 1, 1 on day 2 | day 2 draft added | Pass |
+| UT-DSK-009.015.M30.T01 | MD-DSK-009.010.M30 | Positive | Same view (SRD-DSK-009.015) | open NVDA up, write NVDA up | no change | Pass |
+| UT-DSK-009.015.M30.T02 | MD-DSK-009.010.M30 | Positive | Opposite view (SRD-DSK-009.015) | open NVDA up, write NVDA down | old retired why changed view; new open | Pass |
+| UT-DSK-009.015.M30.T03 | MD-DSK-009.010.M30 | Positive | Near note (SRD-DSK-009.015) | active note, then the same words plus one | updated, one row | Pass |
+| UT-DSK-009.015.M30.T04 | MD-DSK-009.010.M30 | Negative | Pinned note (SRD-DSK-009.015) | pinned note, near note written | no change; pinned text kept | Pass |
+| UT-DSK-009.016.M30.T01 | MD-DSK-009.010.M30 | Positive | Core block (SRD-DSK-009.016) | 2 right, 1 wrong view, 1 pinned, 1 open | track record 2 right 1 wrong (67%); pinned, open view and miss lines | Pass |
+| UT-DSK-009.016.M30.T02 | MD-DSK-009.010.M30 | Negative | Empty owner (SRD-DSK-009.016) | owner with no memories | empty text | Pass |
+| UT-DSK-009.016.M30.T03 | MD-DSK-009.010.M30 | Edge | Length cap (SRD-DSK-009.016) | 40 pinned notes | at most 1,200 characters, cut at a line end | Pass |
+| UT-DSK-009.017.M30.T01 | MD-DSK-009.010.M30 | Positive | Recall by symbol (SRD-DSK-009.017) | notes on AAPL, MSFT, TSLA; facts name TSLA | TSLA note first; memory_uses row for each shown note | Pass |
+| UT-DSK-009.017.M30.T02 | MD-DSK-009.010.M30 | Negative | Weak left out (SRD-DSK-009.017) | weak note on TSLA, facts name TSLA | not shown | Pass |
+| UT-DSK-009.017.M30.T03 | MD-DSK-009.010.M30 | Edge | Cap (SRD-DSK-009.017) | 15 active notes | at most 10 and at most 4,000 characters | Pass |
+| UT-DSK-009.017.M10.T01 | MD-DSK-003.001.M10 | Positive | Blocks in the wake (SRD-DSK-009.017) | memory on, expert with notes | facts sent to the model hold core block and recall | Pass |
+| UT-DSK-009.017.M10.T02 | MD-DSK-003.001.M10 | Negative | Shadow wake (SRD-DSK-009.017) | shadow hire with notes | no blocks; nothing written | Pass |
+| UT-DSK-009.018.M30.T01 | MD-DSK-009.010.M30 | Positive | Right view scores notes (SRD-DSK-009.018) | note shown on day d; view of day d scored +2% | note right 1 | Pass |
+| UT-DSK-009.018.M30.T02 | MD-DSK-009.010.M30 | Negative | Neutral view (SRD-DSK-009.018) | view scored +0.5% | no count changes; view neutral | Pass |
+| UT-DSK-009.018.M30.T03 | MD-DSK-009.010.M30 | Negative | Other day (SRD-DSK-009.018) | note shown on d+1, view made on d | note unchanged | Pass |
+| UT-DSK-009.019.M30.T01 | MD-DSK-009.010.M30 | Positive | Weak (SRD-DSK-009.019) | note right 1 wrong 4 | status weak | Pass |
+| UT-DSK-009.019.M30.T02 | MD-DSK-009.010.M30 | Negative | Too few checks (SRD-DSK-009.019) | right 0 wrong 4 | still active | Pass |
+| UT-DSK-009.019.M30.T03 | MD-DSK-009.010.M30 | Edge | Back to active (SRD-DSK-009.019) | weak note becomes right 2 wrong 3 | active | Pass |
+| UT-DSK-009.020.M30.T01 | MD-DSK-009.010.M30 | Positive | Expiry (SRD-DSK-009.020) | note made 31 days ago | retired | Pass |
+| UT-DSK-009.020.M30.T02 | MD-DSK-009.010.M30 | Negative | Proven or pinned (SRD-DSK-009.020) | proven (3 right) and pinned notes 40 days old | both stay | Pass |
+| UT-DSK-009.021.M31.T01 | MD-DSK-009.021.M31 | Positive | Weekly clean-up (SRD-DSK-009.021) | Friday, memory on, expert with 3 notes; answer merge 1 into 2, retire 3 | one call; merge and retire applied; counts added | Pass |
+| UT-DSK-009.021.M31.T02 | MD-DSK-009.021.M31 | Negative | Once a week (SRD-DSK-009.021) | run again the same week | no call | Pass |
+| UT-DSK-009.021.M31.T03 | MD-DSK-009.021.M31 | Negative | Bad actions (SRD-DSK-009.021) | answer names a note of another owner and a pinned note | both ignored | Pass |
+| UT-DSK-009.021.M31.T04 | MD-DSK-009.021.M31 | Edge | No notes (SRD-DSK-009.021) | expert without notes | no call | Pass |
+| UT-DSK-009.022.M30.T01 | MD-DSK-009.010.M30 | Positive | Pin edit (SRD-DSK-009.022) | add_edit pin, apply_edits | note pinned; edit applied | Pass |
+| UT-DSK-009.022.M04.T01 | MD-DSK-001.010.M04 | Positive | Desk applies edits (SRD-DSK-009.022) | pending memory edit, desk tick | applied | Pass |
+| UT-DSK-009.022.M30.T02 | MD-DSK-009.010.M30 | Negative | Retired stays (SRD-DSK-009.022) | pin on a retired note | stays retired; note says why | Pass |
+| UT-DSK-009.023.M13.T01 | MD-DSK-004.005.M13 | Positive | Off by default (SRD-DSK-009.023) | new settings | memory_v2_on false | Pass |
+| UT-DSK-009.023.M10.T01 | MD-DSK-003.001.M10 | Negative | Off means M2 (SRD-DSK-009.023) | memory off, expert with notes | facts and schema as before; no rows written | Pass |
+| UT-DSK-009.024.M30.T01 | MD-DSK-009.010.M30 | Positive | Log lines (SRD-DSK-009.024) | move, drop, weak, retire | each logged with [Memory] | Pass |

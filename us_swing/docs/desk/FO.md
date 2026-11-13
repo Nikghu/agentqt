@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.14.0: AI Desk v3 M3 (user, 2026-11-13): FO-DSK-009 gains the memory v2 bullets as Draft — memory.db, notes and views, core block, recall, scores, weekly clean-up.
 > v0.13.0: AI Desk v3 M2 (user, 2026-11-13): FO-DSK-011 gains the M2 part as Draft — escalation and deputies; FO-DSK-007 and FO-DSK-008 get one bullet each.
 > v0.12.0: AI Desk v3 M1 (user, 2026-11-13): FO-DSK-011 gains the M1 part as Draft — messages and the reply path.
 > v0.11.1: FO-DSK-011 and FO-DSK-012 approved by user 2026-11-13; Implemented (M0 code and tests done).
@@ -228,12 +229,25 @@ The system shall keep short lessons learned from pick results, prove them before
 - The system shall retire a lesson that later picks no longer back, or that nothing backs for 90 days.
 - The system shall apply the Master user's pin, edit, retire and delete from the app.
 
+**Memory v2 (AI Desk v3 M3, user 2026-11-13):** one part; views checked after 10 trading days at ±1%; a note below 40% right after 5 checks leaves recall; a note with 3 right checks is proven. Design: https://claude.ai/artifact/3dr7g92HY5hvVQ9KiyrPvc (M3).
+
+- The system shall keep all desk memory, lessons included, in its own file `memory.db` next to `desk.db`, and move the lessons there once without changing them.
+- The system shall let lead and expert employees write up to 3 notes or views a day, kept clean by code.
+- The system shall give each lead and expert wake a short core block (track record, pinned notes, open views, recent misses) and up to 10 recalled notes.
+- The system shall check each view 10 trading days after it was made and score the notes the employee was shown that day.
+- The system shall leave a note with a poor score out of recall, keep a proven or pinned note, and retire other notes after 30 days.
+- The system shall ask each lead and expert once a week to keep, merge or retire its own notes.
+- The system shall run all memory v2 behaviour only while the Memory v2 desk setting is on, off by default.
+
 ### Acceptance Criteria
 
 1. A new lesson backed by 3 picks stays a candidate; at 5 backing picks it becomes active.
 2. The next morning the setup review prompt holds the active lesson whose tags match the day's ideas.
 3. A pinned lesson is never retired by the desk.
 4. Risk limits and the risk check code are the same with or without lessons.
+5. After the update the lessons, their proof and their edits read the same from `memory.db` as before from `desk.db` (M3).
+6. With Memory v2 on, a lead or expert wake shows its core block and recalled notes; a view that went the wrong way lowers the score of the notes shown that day (M3).
+7. With Memory v2 off, prompts are the same as in M2 (M3).
 
 ## FO-DSK-010: Research Queue
 

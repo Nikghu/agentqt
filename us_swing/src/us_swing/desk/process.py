@@ -5,7 +5,8 @@ Also: SRD-DSK-003.008 (market clock events and event runs), SRD-DSK-001.015 (mor
 SRD-DSK-001.019 (parent watch), SRD-DSK-003.013 (run kinds), SRD-DSK-009.008 (lesson edits),
 SRD-DSK-003.020 (check-in events), SRD-DSK-003.023 (watchers every 5 minutes),
 SRD-DSK-010.004, .005 (ticket edits and expiry each tick), SRD-DSK-010.008 (research only when
-no event has work), SRD-DSK-010.012 (running tickets paused at start)
+no event has work), SRD-DSK-010.012 (running tickets paused at start), SRD-DSK-009.022 (note
+edits each tick)
 
 The desk main loop: one copy only, heartbeat, commands, runs, stop and resume. The morning
 run is due by ``morning_due``; between runs the loop posts market clock events and starts a
@@ -28,6 +29,7 @@ from typing import IO, Protocol, runtime_checkable
 from us_swing.core.desk_contract import CommandKind, DeskState, DeskStep, StepContext
 from us_swing.core.desk_events import post_event
 from us_swing.core.desk_lessons import apply_edits
+from us_swing.core.desk_memory import apply_edits as apply_memory_edits
 from us_swing.core.desk_registry import fill_registry
 from us_swing.core.desk_research import apply_ticket_edits, expire_waiting, pause_running
 from us_swing.desk.clock import (
@@ -297,8 +299,9 @@ class DeskProcess:
         """Apply the Master's lesson edits from the app (SRD-DSK-009.008)."""
         try:
             apply_edits(self._home, now)
+            apply_memory_edits(self._home, now)
         except Exception:  # noqa: BLE001 — a bad edit must never stop the desk
-            log.exception("[Memory] Could not apply the lesson edits")
+            log.exception("[Memory] Could not apply the memory edits")
         try:
             apply_ticket_edits(self._home, now)
             expire_waiting(self._home, now)

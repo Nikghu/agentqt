@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.22.0: AI Desk v3 M3 (user, 2026-11-13): FO-MKT-012 gains the view check bullet as Draft.
 > v0.21.0: AI Desk v3 M1 (user, 2026-11-13): FO-MKT-005 and FO-MKT-006 gain M1 message bullets as Draft (ask news review, send back a stop, fixed levels, news reply).
 > v0.20.1: FO-MKT-019 approved by user 2026-11-12.
 > v0.20.0: Strategy test (user, 2026-11-12): FO-MKT-019 added as Draft — strategy test research.
@@ -338,6 +339,7 @@ The system shall turn closed pick results into a few candidate lessons each day 
 - The system shall check the reflect answer against a fixed form before any lesson is kept.
 - The system shall ship a default expert-level employee that owns the reflect skill.
 - The system shall add the matching active lessons to the facts of setup review, news review, risk check and the lead brief.
+- The system shall check each open employee view against the daily closes 10 trading days after it was made: right at 1% or more its way, wrong at 1% or more the other way, else neutral (AI Desk v3 M3, user 2026-11-13).
 
 ### Acceptance Criteria
 

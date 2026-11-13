@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.24.0: DD-MKT-012.007.D01 added — view check (AI Desk v3 M3, 2026-11-13).
 > v0.23.0: DD-MKT-013.013.D01 added — flag escalation (AI Desk v3 M2, 2026-11-13).
 > v0.22.0: DD-MKT-005.019.D01 added — asks, send-back fixes and news replies (AI Desk v3 M1, 2026-11-13).
 > v0.21.0: DD-MKT-019.001.D01 added — strategy test research (2026-11-12).
@@ -1487,3 +1488,23 @@ Side and symbol of a fix must match the send_back's idea; another idea is ignore
 ## DD-MKT-013.013.D01 — Flag Escalation (AI Desk v3 M2)
 
 **Traces:** SRD-MKT-013.013. In `WatchFlagSkill.act`, after the verdict is stored (or the answer failed), code sends one escalate when the flag kind is `stop_touch` or `target_touch`, or the verdict is `broken`. It uses `ctx.send()` when `ctx` is a `Talker` (the real gateway), so test fakes and replays send nothing. The draft is `Draft(type="escalate", to="boss", subject="<SYM> <kind label>", text="<SYM> <kind label> at <price>: <note>", about=[SYM])`. The employees step drops it while escalation is off (DD-DSK-011.033.D01 §2). The `plan_broken` alert and the watcher's stop and target alerts are raised as before.
+
+## DD-MKT-012.007.D01 — View Check (AI Desk v3 M3)
+
+**Traces:** SRD-MKT-012.007–.008; store and scores in DD-DSK-009.010.D01.
+
+`market/view_check.py`, `ViewCheckStep`, registered after `PickResultsStep` in `core/desk_steps.STEP_PATHS`. Does nothing while `memory_v2_on` is false.
+
+```
+views  = desk_memory.open_views_due(home, last_candle_day)     # due <= last day with closes
+closes = CandleReader(CANDLE_DB) daily closes for their symbols, made .. due
+for view: start = close on made day (or the last close before it), end = the 10th close after it
+          no start or end close -> stays open (checked on a later run); debug log
+          move = (end - start) / start * 100
+          up:   move >= 1 right, move <= -1 wrong, else neutral; down: mirrored
+          desk_memory.score_view(view, move)
+desk_memory.review(home, now)
+log [Memory] Checked N view(s): R right, W wrong
+```
+
+Any error is logged with `log.exception` and the run goes on.
