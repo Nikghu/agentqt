@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.26.1: UT-MKT-010.009–.019 Pass (30, 2026-11-13).
 > v0.26.0: UT-MKT-010.009–.019 added (28, Not Run) (AI Desk v3 M4, 2026-11-13).
 > v0.25.1: UT-MKT-012.007–.008 Pass (7, 2026-11-13).
 > v0.25.0: UT-MKT-012.007–.008 added (7, Not Run) (2026-11-13).
@@ -402,34 +403,36 @@
 | UT-MKT-010.008.M03.T01 | MD-MKT-010.003.M03 | Positive | Logs (SRD-MKT-010.008) | one answer and one failure | [Chat] lines with the question numbers | Pass |
 | UT-MKT-010.002.M02.T03 | MD-MKT-010.002.M02 | Positive | Desk answers end to end (SRD-MKT-010.002) | EmployeesStep events with a fake caller; one question | the chat employee is woken and a reply row is saved | Pass |
 
-| UT-MKT-010.009.M01.T01 | MD-MKT-010.001.M01 | Positive | Sessions off by default (SRD-MKT-010.009) | default DeskAiSettings; ask with no session | sessions_on False; chat row session NULL; no chat_sessions row | Not Run |
-| UT-MKT-010.009.M03.T02 | MD-MKT-010.003.M03 | Negative | Off facts as P9 (SRD-MKT-010.009) | sessions off; 8 earlier turns | facts show the last 6 chat turns and no session summary | Not Run |
-| UT-MKT-010.010.M01.T01 | MD-MKT-010.001.M01 | Positive | Same session within 2 hours (SRD-MKT-010.010) | question at 10:00, then 11:30 the same day | both rows in one session; title from the first question | Not Run |
-| UT-MKT-010.010.M01.T02 | MD-MKT-010.001.M01 | Negative | New session after 2 hours (SRD-MKT-010.010) | question at 10:00, then 12:30 | second question in a new session | Not Run |
-| UT-MKT-010.010.M01.T03 | MD-MKT-010.001.M01 | Negative | New session on a new New York day (SRD-MKT-010.010) | question 23:30 ET, then 00:30 ET next day | new session | Not Run |
-| UT-MKT-010.010.M01.T04 | MD-MKT-010.001.M01 | Positive | Chosen session (SRD-MKT-010.010) | two open sessions; choose the older one | question saved in the chosen one; chat rows never updated | Not Run |
-| UT-MKT-010.011.M01.T01 | MD-MKT-010.001.M01 | Positive | Reopen closed session (SRD-MKT-010.011) | closed session with a summary; ask in it | state open; summary kept | Not Run |
-| UT-MKT-010.011.M01.T02 | MD-MKT-010.001.M01 | Negative | Open stays open (SRD-MKT-010.011) | open session; ask in it | state open; no new session | Not Run |
-| UT-MKT-010.012.M01.T01 | MD-MKT-010.001.M01 | Positive | Quiet 24 hours closes (SRD-MKT-010.012) | session last 25 h ago; save a new question | old session closing | Not Run |
-| UT-MKT-010.012.M01.T02 | MD-MKT-010.001.M01 | Negative | Quiet under 24 hours stays (SRD-MKT-010.012) | session last 23 h ago; save a new question | old session still open | Not Run |
-| UT-MKT-010.012.M01.T03 | MD-MKT-010.001.M01 | Positive | New discussion (SRD-MKT-010.012) | close_session on an open session | state closing | Not Run |
-| UT-MKT-010.013.M03.T01 | MD-MKT-010.003.M03 | Positive | Session facts (SRD-MKT-010.013) | two sessions with turns; question in the one with a summary | facts have its summary and only its own last 6 turns | Not Run |
-| UT-MKT-010.013.M03.T02 | MD-MKT-010.003.M03 | Negative | No summary line (SRD-MKT-010.013) | new session without a summary | no summary line; turns of that session only | Not Run |
-| UT-MKT-010.014.M03.T01 | MD-MKT-010.003.M03 | Positive | Closing summary (SRD-MKT-010.014) | one closing session; fake answer | one AI call; summary saved; state closed | Not Run |
-| UT-MKT-010.014.M03.T02 | MD-MKT-010.003.M03 | Negative | No closing session (SRD-MKT-010.014) | open question only | only the answer call; no summary call | Not Run |
-| UT-MKT-010.014.M03.T03 | MD-MKT-010.003.M03 | Negative | Failed summary (SRD-MKT-010.014) | closing session; no answer | state stays closing; tried at the next wake | Not Run |
-| UT-MKT-010.014.M03.T04 | MD-MKT-010.003.M03 | Edge | Two a wake (SRD-MKT-010.014) | three closing sessions | two summaries; the third stays closing | Not Run |
-| UT-MKT-010.015.M03.T01 | MD-MKT-010.003.M03 | Positive | Notes kept with memory on (SRD-MKT-010.015) | EmployeesStep, Memory v2 on, summary with 2 notes | 2 notes of the chat employee in memory.db | Not Run |
-| UT-MKT-010.015.M03.T02 | MD-MKT-010.003.M03 | Negative | No notes with memory off (SRD-MKT-010.015) | Memory v2 off; same answer | no memory row; summary still saved | Not Run |
-| UT-MKT-010.016.M03.T01 | MD-MKT-010.003.M03 | Positive | One ask kept (SRD-MKT-010.016) | sessions and messages on; answer with an ask | one ask with subject 'Chat question #<id>'; answer saved at once | Not Run |
-| UT-MKT-010.016.M03.T02 | MD-MKT-010.003.M03 | Negative | Extra drafts dropped (SRD-MKT-010.016) | answer with 2 asks and a send_back | only the first ask kept | Not Run |
-| UT-MKT-010.016.M03.T03 | MD-MKT-010.003.M03 | Negative | Sessions off keeps none (SRD-MKT-010.016) | sessions off; answer with an ask | no draft kept | Not Run |
-| UT-MKT-010.017.M03.T01 | MD-MKT-010.003.M03 | Positive | Update from reply (SRD-MKT-010.017) | team reply with text; fake answer | one update row linked to the question | Not Run |
-| UT-MKT-010.017.M03.T02 | MD-MKT-010.003.M03 | Negative | Refused reply (SRD-MKT-010.017) | reply verdict refused | code-written update; no AI call | Not Run |
-| UT-MKT-010.017.M03.T03 | MD-MKT-010.003.M03 | Edge | One update only (SRD-MKT-010.017) | wake again after the update | no second update; no AI call | Not Run |
-| UT-MKT-010.018.M01.T01 | MD-MKT-010.001.M01 | Positive | Waiting for the team (SRD-MKT-010.018) | replied question with an open team ask | note 'Waiting for the team' | Not Run |
-| UT-MKT-010.018.M01.T02 | MD-MKT-010.001.M01 | Negative | Note clears (SRD-MKT-010.018) | same after the update row | empty note | Not Run |
-| UT-MKT-010.019.M03.T01 | MD-MKT-010.003.M03 | Positive | Logs (SRD-MKT-010.019) | one summary and one update | [Chat] lines with the session and question numbers | Not Run |
+| UT-MKT-010.009.M01.T01 | MD-MKT-010.001.M01 | Positive | Sessions off by default (SRD-MKT-010.009) | default DeskAiSettings; ask with no session | sessions_on False; chat row session NULL; no chat_sessions row | Pass |
+| UT-MKT-010.009.M03.T02 | MD-MKT-010.003.M03 | Negative | Off facts as P9 (SRD-MKT-010.009) | sessions off; 8 earlier turns | facts show the last 6 chat turns and no session summary | Pass |
+| UT-MKT-010.009.M03.T03 | MD-MKT-010.003.M03 | Negative | Off: no summary (SRD-MKT-010.009) | sessions off; a closing session | facts not fresh; no AI call; still closing | Pass |
+| UT-MKT-010.010.M01.T01 | MD-MKT-010.001.M01 | Positive | Same session within 2 hours (SRD-MKT-010.010) | question at 10:00, then 11:30 the same day | both rows in one session; title from the first question | Pass |
+| UT-MKT-010.010.M01.T02 | MD-MKT-010.001.M01 | Negative | New session after 2 hours (SRD-MKT-010.010) | question at 10:00, then 12:30 | second question in a new session | Pass |
+| UT-MKT-010.010.M01.T03 | MD-MKT-010.001.M01 | Negative | New session on a new New York day (SRD-MKT-010.010) | question 23:30 ET, then 00:30 ET next day | new session | Pass |
+| UT-MKT-010.010.M01.T04 | MD-MKT-010.001.M01 | Positive | Chosen session (SRD-MKT-010.010) | two open sessions; choose the older one | question saved in the chosen one; chat rows never updated | Pass |
+| UT-MKT-010.010.M01.T05 | MD-MKT-010.001.M01 | Negative | Bad text makes no session (SRD-MKT-010.010) | empty text; 501 characters | ValueError; no session row | Pass |
+| UT-MKT-010.011.M01.T01 | MD-MKT-010.001.M01 | Positive | Reopen closed session (SRD-MKT-010.011) | closed session with a summary; ask in it | state open; summary kept | Pass |
+| UT-MKT-010.011.M01.T02 | MD-MKT-010.001.M01 | Negative | Open stays open (SRD-MKT-010.011) | open session; ask in it | state open; no new session | Pass |
+| UT-MKT-010.012.M01.T01 | MD-MKT-010.001.M01 | Positive | Quiet 24 hours closes (SRD-MKT-010.012) | session last 25 h ago; save a new question | old session closing | Pass |
+| UT-MKT-010.012.M01.T02 | MD-MKT-010.001.M01 | Negative | Quiet under 24 hours stays (SRD-MKT-010.012) | session last 23 h ago; save a new question | old session still open | Pass |
+| UT-MKT-010.012.M01.T03 | MD-MKT-010.001.M01 | Positive | New discussion (SRD-MKT-010.012) | close_session on an open session | state closing | Pass |
+| UT-MKT-010.013.M03.T01 | MD-MKT-010.003.M03 | Positive | Session facts (SRD-MKT-010.013) | two sessions with turns; question in the one with a summary | facts have its summary and only its own last 6 turns | Pass |
+| UT-MKT-010.013.M03.T02 | MD-MKT-010.003.M03 | Negative | No summary line (SRD-MKT-010.013) | new session without a summary | no summary line; turns of that session only | Pass |
+| UT-MKT-010.014.M03.T01 | MD-MKT-010.003.M03 | Positive | Closing summary (SRD-MKT-010.014) | one closing session; fake answer | one AI call; summary saved; state closed | Pass |
+| UT-MKT-010.014.M03.T02 | MD-MKT-010.003.M03 | Negative | No closing session (SRD-MKT-010.014) | open question only | only the answer call; no summary call | Pass |
+| UT-MKT-010.014.M03.T03 | MD-MKT-010.003.M03 | Negative | Failed summary (SRD-MKT-010.014) | closing session; no answer | state stays closing; tried at the next wake | Pass |
+| UT-MKT-010.014.M03.T04 | MD-MKT-010.003.M03 | Edge | Two a wake (SRD-MKT-010.014) | three closing sessions | two summaries; the third stays closing | Pass |
+| UT-MKT-010.015.M03.T01 | MD-MKT-010.003.M03 | Positive | Notes kept with memory on (SRD-MKT-010.015) | EmployeesStep, Memory v2 on, summary with 2 notes | 2 notes of the chat employee in memory.db | Pass |
+| UT-MKT-010.015.M03.T02 | MD-MKT-010.003.M03 | Negative | No notes with memory off (SRD-MKT-010.015) | Memory v2 off; same answer | no memory row; summary still saved | Pass |
+| UT-MKT-010.016.M03.T01 | MD-MKT-010.003.M03 | Positive | One ask kept (SRD-MKT-010.016) | sessions and messages on; answer with an ask | one ask with subject 'Chat question #<id>'; answer saved at once | Pass |
+| UT-MKT-010.016.M03.T02 | MD-MKT-010.003.M03 | Negative | Extra drafts dropped (SRD-MKT-010.016) | answer with 2 asks and a send_back | only the first ask kept | Pass |
+| UT-MKT-010.016.M03.T03 | MD-MKT-010.003.M03 | Negative | Sessions off keeps none (SRD-MKT-010.016) | sessions off; answer with an ask | no draft kept | Pass |
+| UT-MKT-010.017.M03.T01 | MD-MKT-010.003.M03 | Positive | Update from reply (SRD-MKT-010.017) | team reply with text; fake answer | one update row linked to the question | Pass |
+| UT-MKT-010.017.M03.T02 | MD-MKT-010.003.M03 | Negative | Refused reply (SRD-MKT-010.017) | reply verdict refused | code-written update; no AI call | Pass |
+| UT-MKT-010.017.M03.T03 | MD-MKT-010.003.M03 | Edge | One update only (SRD-MKT-010.017) | wake again after the update | no second update; no AI call | Pass |
+| UT-MKT-010.018.M01.T01 | MD-MKT-010.001.M01 | Positive | Waiting for the team (SRD-MKT-010.018) | replied question with an open team ask | note 'Waiting for the team' | Pass |
+| UT-MKT-010.018.M01.T02 | MD-MKT-010.001.M01 | Negative | Note clears (SRD-MKT-010.018) | same after the update row | empty note | Pass |
+| UT-MKT-010.019.M03.T01 | MD-MKT-010.003.M03 | Positive | Logs (SRD-MKT-010.019) | one summary and one update | [Chat] lines with the session and question numbers | Pass |
 ## FO-MKT-011: Ask the Desk for New Data
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |

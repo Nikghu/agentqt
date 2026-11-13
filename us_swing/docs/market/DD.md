@@ -1011,7 +1011,9 @@ act(ctx, facts):
 
 **Waking.** No new event kind and no change to the employee file. A closing session is summarised at the next `chat_question` wake. The team reply wakes the lead through the M1 message path, since the router wakes an addressed employee outside its triggers; `_answer_inbox` then calls `facts()` and `act()` as above. With messages off no ask is kept, so no reply comes.
 
-**Off.** With `sessions_on` off the GUI passes no session, so no `chat_sessions` row is made; facts use the last 6 chat turns (P9); no ask is kept. Rows made while it was on stay, and sessions already closing still get their summary at the next wake.
+**Off.** With `sessions_on` off the GUI passes no session, so no `chat_sessions` row is made; facts use the last 6 chat turns (P9); no ask is kept, and no update or summary is made. Rows made while it was on stay; sessions already closing wait until it is on again.
+
+**Review fixes (2026-11-13).** `session_for` checks the text first, so a bad question makes no empty session; a session with no turns closes with an empty summary and no AI call; a second process adding the `session` column at the same time is not an error; `add_update` returns `False` when the question does not exist; the kept ask loses any `parent` the model set; the chat panel keeps checking 3 more ticks after the answer, since the desk stores the ask just after the reply. Known limit: one wake shares the gateway's refused flag, so a budget refusal on a summary call can also refuse that wake's inbox messages.
 
 ## DD-MKT-011.001.D01 — Ask the Desk for New Data (P10)
 

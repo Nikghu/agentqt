@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.25.2: SRD-MKT-010.006 and .009–.019 Implemented 2026-11-13.
 > v0.25.1: SRD-MKT-010.009–.019 approved and SRD-MKT-010.006 reopened (constraint: one ask with sessions and messages on) by user 2026-11-13.
 > v0.25.0: AI Desk v3 M4 (user, 2026-11-13): SRD-MKT-010.009–.019 added as Draft — chat sessions, summaries, memory notes, one team ask and updates.
 > v0.24.2: SRD-MKT-012.007–.008 Implemented 2026-11-13.
@@ -231,20 +232,20 @@
 | SRD-MKT-010.003 | FO-MKT-010 | Must | A lead chat skill answers the oldest open question from the latest day's facts, the last 10 trading days of picks with paper results, and the last 6 chat turns. | `desk.db` | facts text | No skill needs; a question older than 30 minutes is not answered | Implemented |
 | SRD-MKT-010.004 | FO-MKT-010 | Must | The answer is one text of at most 1500 characters, saved as a lead `chat` row linked to its question. | answer | chat row | Limit also in the JSON schema; `chat` is append-only | Implemented |
 | SRD-MKT-010.005 | FO-MKT-010 | Must | When no valid answer comes, a failed reply row is saved for the question. | no answer | chat row | Plain text says the desk could not answer; no retry | Implemented |
-| SRD-MKT-010.006 | FO-MKT-010 | Must | The chat answer has only text, and no chat code approves, rejects or places a trade. | — | — | No tools; one text field, plus one ask when sessions and agent messages are on (SRD-MKT-010.016) | Approved |
+| SRD-MKT-010.006 | FO-MKT-010 | Must | The chat answer has only text, and no chat code approves, rejects or places a trade. | — | — | No tools; one text field, plus one ask when sessions and agent messages are on (SRD-MKT-010.016) | Implemented |
 | SRD-MKT-010.007 | FO-MKT-010 | Must | A default lead-level chat employee ships as `emp-008` (generic name "Lead 2") with trigger `chat_question`, and the skill is added to the skill list. | — | files, skill path | Calls per day 200 so only the monthly cap USD 3 and the desk budget limit it; `market` never imports `desk` | Implemented |
 | SRD-MKT-010.008 | FO-MKT-010 | Should | Each chat answer or failed reply logs the question number and the seconds it took. | answer | log line | `[Chat]` prefix | Implemented |
-| SRD-MKT-010.009 | FO-MKT-010 | Must | A `sessions_on` desk setting, off by default, turns chat sessions on; when off the chat works as in P9. | setting | — | Off: no session rows and no session facts | Approved |
-| SRD-MKT-010.010 | FO-MKT-010 | Must | With sessions on, each question is saved with a session: the chosen one, else the open session quiet under 2 hours on the same New York day, else a new one. | question | `chat` row, `chat_sessions` row | Session id set at insert, so `chat` stays append-only; a new session is titled from its first question | Approved |
-| SRD-MKT-010.011 | FO-MKT-010 | Must | A question in a closing or closed session opens it again. | question | session state | Its summary stays | Approved |
-| SRD-MKT-010.012 | FO-MKT-010 | Must | A session quiet for 24 hours, or left with New discussion, is marked closing. | session | session state | Quiet sessions are checked each time a question is saved | Approved |
-| SRD-MKT-010.013 | FO-MKT-010 | Must | With a session, the answer facts use the session summary and the last 6 turns of that session in place of the last 6 chat turns. | `desk.db` | facts text | Day facts and picks as in SRD-MKT-010.003 | Approved |
-| SRD-MKT-010.014 | FO-MKT-010 | Must | At a chat wake the lead writes a summary of at most 400 characters for each closing session, one AI call each, and the session becomes closed. | closing session | summary, state | At most 2 a wake; no call when none closes; a failed call leaves it closing | Approved |
-| SRD-MKT-010.015 | FO-MKT-010 | Must | The summary answer carries up to 3 memory notes: the summary and each preference the Master stated. | summary answer | notes | Kept through the memory v2 path, so only while Memory v2 is on and within 3 a day | Approved |
-| SRD-MKT-010.016 | FO-MKT-010 | Must | With sessions and agent messages on, the lead may send one ask per question with its answer; code keeps the first ask only and names the question in its subject. | answer | message draft | Other message types are dropped; with sessions off no draft is kept | Approved |
-| SRD-MKT-010.017 | FO-MKT-010 | Must | When that ask gets its reply, the lead writes one update to the question, saved as an `update` chat row. | reply | `chat` row | At most 1500 characters; a refused or expired reply gets a code-written update with no AI call | Approved |
-| SRD-MKT-010.018 | FO-MKT-010 | Must | The question note says "Waiting for the team" while the question's ask has no reply. | question | note | After the reply the note is empty | Approved |
-| SRD-MKT-010.019 | FO-MKT-010 | Should | Each session summary and each update logs the session or question number. | summary, update | log line | `[Chat]` prefix | Approved |
+| SRD-MKT-010.009 | FO-MKT-010 | Must | A `sessions_on` desk setting, off by default, turns chat sessions on; when off the chat works as in P9. | setting | — | Off: no session rows and no session facts | Implemented |
+| SRD-MKT-010.010 | FO-MKT-010 | Must | With sessions on, each question is saved with a session: the chosen one, else the open session quiet under 2 hours on the same New York day, else a new one. | question | `chat` row, `chat_sessions` row | Session id set at insert, so `chat` stays append-only; a new session is titled from its first question | Implemented |
+| SRD-MKT-010.011 | FO-MKT-010 | Must | A question in a closing or closed session opens it again. | question | session state | Its summary stays | Implemented |
+| SRD-MKT-010.012 | FO-MKT-010 | Must | A session quiet for 24 hours, or left with New discussion, is marked closing. | session | session state | Quiet sessions are checked each time a question is saved | Implemented |
+| SRD-MKT-010.013 | FO-MKT-010 | Must | With a session, the answer facts use the session summary and the last 6 turns of that session in place of the last 6 chat turns. | `desk.db` | facts text | Day facts and picks as in SRD-MKT-010.003 | Implemented |
+| SRD-MKT-010.014 | FO-MKT-010 | Must | At a chat wake the lead writes a summary of at most 400 characters for each closing session, one AI call each, and the session becomes closed. | closing session | summary, state | At most 2 a wake; no call when none closes; a failed call leaves it closing | Implemented |
+| SRD-MKT-010.015 | FO-MKT-010 | Must | The summary answer carries up to 3 memory notes: the summary and each preference the Master stated. | summary answer | notes | Kept through the memory v2 path, so only while Memory v2 is on and within 3 a day | Implemented |
+| SRD-MKT-010.016 | FO-MKT-010 | Must | With sessions and agent messages on, the lead may send one ask per question with its answer; code keeps the first ask only and names the question in its subject. | answer | message draft | Other message types are dropped; with sessions off no draft is kept | Implemented |
+| SRD-MKT-010.017 | FO-MKT-010 | Must | When that ask gets its reply, the lead writes one update to the question, saved as an `update` chat row. | reply | `chat` row | At most 1500 characters; a refused or expired reply gets a code-written update with no AI call | Implemented |
+| SRD-MKT-010.018 | FO-MKT-010 | Must | The question note says "Waiting for the team" while the question's ask has no reply. | question | note | After the reply the note is empty | Implemented |
+| SRD-MKT-010.019 | FO-MKT-010 | Should | Each session summary and each update logs the session or question number. | summary, update | log line | `[Chat]` prefix | Implemented |
 
 ## FO-MKT-011: Ask the Desk for New Data
 

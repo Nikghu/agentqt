@@ -2,7 +2,7 @@
 Module: MD-GUI-034.016.M15 — gui/ai_desk_settings.py
 Parent SRD: SRD-GUI-034.016
 Also: SRD-GUI-034.070 (Agent messages switch), SRD-GUI-034.071 (Escalation switch),
-SRD-GUI-034.072 (Memory v2 switch)
+SRD-GUI-034.072 (Memory v2 switch), SRD-GUI-034.073 (Chat sessions switch)
 Also: MD-GUI-034.033.M23 — seat caps (SRD-GUI-034.033)
 Also: SRD-GUI-034.066 — fields grouped in icon cards (console look)
 
@@ -86,6 +86,10 @@ class DeskAiSettingsForm(QWidget):
                                      "see their track record and past notes at each wake, "
                                      "and tidy their notes once a week.")
         self.memory_v2_on.setChecked(self._settings.memory_v2_on)
+        self.sessions_on = QCheckBox("Chat sessions: one discussion per topic")
+        self.sessions_on.setToolTip("On: the lead chat keeps sessions with a summary, and the "
+                                    "lead may ask one expert per question.")
+        self.sessions_on.setChecked(self._settings.sessions_on)
         self.caps = {level: self._line(str(self._settings.cap(level)))
                      for level in ("expert", "champion", "junior")}
         grid = QGridLayout()
@@ -99,7 +103,8 @@ class DeskAiSettingsForm(QWidget):
         grid.addWidget(self._card("users", "Seats", tuple(
             (f"{level.capitalize()}s", edit) for level, edit in self.caps.items())), 1, 0)
         grid.addWidget(self._card("message-square", "Agent messages", (
-            ("", self.messages_on), ("", self.escalation_on), ("", self.memory_v2_on))), 1, 1)
+            ("", self.messages_on), ("", self.escalation_on), ("", self.memory_v2_on),
+            ("", self.sessions_on))), 1, 1)
         outer.addLayout(grid)
         row = QHBoxLayout()
         self.save_btn = primary(QPushButton("Save"))
@@ -146,7 +151,8 @@ class DeskAiSettingsForm(QWidget):
                 junior_cap=int(self.caps["junior"].text().strip()),
                 messages_on=self.messages_on.isChecked(),
                 escalation_on=self.escalation_on.isChecked(),
-                memory_v2_on=self.memory_v2_on.isChecked())
+                memory_v2_on=self.memory_v2_on.isChecked(),
+                sessions_on=self.sessions_on.isChecked())
             if not math.isfinite(budget):
                 raise ValueError("budget")
         except ValueError:
