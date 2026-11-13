@@ -384,8 +384,8 @@ def refuse_inbox(home: Path, rows: Sequence[MessageRow], why: str, now: datetime
         with con:
             for row in rows:
                 fresh = _get(con, row.id)
-                if fresh is None or fresh.type not in _OPEN or fresh.state != "submitted":
-                    continue
+                if fresh is None or fresh.type not in _ASKING or fresh.state != "submitted":
+                    continue  # an escalation is not refused: it moves up when due (.036)
                 _code_reply(con, fresh, "refused", why, "refused", now)
                 done += 1
     finally:
@@ -433,7 +433,7 @@ def _move_up(con: sqlite3.Connection, row: MessageRow, roster: Sequence[Person],
     _add_blocked(con, row, f"{_name(roster, row.receiver)} did not answer in 5 minutes")
     msgs = con.execute("SELECT msgs FROM threads WHERE id = ?", (row.thread,)).fetchone()[0]
     nxt = _boss(row.receiver, roster)
-    if nxt is None or nxt == row.sender or msgs >= MAX_THREAD_MSGS:
+    if nxt is None or nxt == row.sender or msgs + 1 >= MAX_THREAD_MSGS:  # room for a reply
         con.execute("UPDATE messages SET state = 'input_required', receiver = ?, due = NULL "
                     "WHERE id = ?", (MASTER, row.id))
         _close_if_done(con, row.thread, now)
@@ -479,8 +479,9 @@ def hand_to_deputy(home: Path, rows: Sequence[MessageRow], person: Person,
                     continue
                 _add_blocked(con, fresh, f"{person.name} could not work ({why}); sent to "
                                          f"deputy {_name(roster, deputy)}")
-                con.execute("UPDATE messages SET receiver = ?, handed = ?, seen = NULL "
-                            "WHERE id = ?", (deputy, person.id, fresh.id))
+                window = _window(fresh.type) or REPLY_WINDOW
+                con.execute("UPDATE messages SET receiver = ?, handed = ?, seen = NULL, due = ? "
+                            "WHERE id = ?", (deputy, person.id, _stamp(now + window), fresh.id))
                 post_message(con, fresh.id, deputy, fresh.data_day, now,
                              0 if fresh.type == "escalate" else 1, again=deputy)
                 handed += 1

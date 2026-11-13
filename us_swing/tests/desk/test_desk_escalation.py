@@ -363,3 +363,38 @@ def test_bad_deputy(home: Path) -> None:
         "the deputy cannot be the employee itself")
     assert save_employee(home, "emp-1", {"deputy": "emp-999"}, "x") == (
         "no employee emp-999 for deputy")
+
+
+# ── review fixes ─────────────────────────────────────────────────────────────
+
+
+def test_escalate_not_refused(home: Path) -> None:
+    """UT-DSK-011.036.M29.T04: A boss that cannot answer leaves the escalation to move up."""
+    from us_swing.core.desk_messages import refuse_inbox
+
+    mid = _esc(home)
+    assert refuse_inbox(home, inbox(home, "emp-l"), "out of budget", NOW) == 0
+    assert _msg(home, mid)[:2] == ("emp-l", "submitted")
+    expire_due(home, NOW + timedelta(minutes=6), ROSTER, _send)
+    assert _msg(home, mid)[0] == "emp-c"
+
+
+def test_hand_restarts_deadline(home: Path) -> None:
+    """UT-DSK-011.041.M29.T03: A handed message gets a full new reply window."""
+    mid = _id(accept(home, [_ask("emp-a")], "emp-l", ROSTER, NOW, DAY)[0])
+    late = NOW + timedelta(minutes=9)
+    hand_to_deputy(home, inbox(home, "emp-a"), ROSTER[0], ROSTER, "asleep", late)
+    assert _msg(home, mid)[2] == _ny(late + timedelta(minutes=10))
+    expire_due(home, NOW + timedelta(minutes=11), ROSTER, _send)
+    assert _msg(home, mid)[1] == "submitted"
+
+
+def test_move_leaves_room_for_reply(home: Path) -> None:
+    """UT-DSK-011.037.M29.T03: A thread at 5 messages goes to the Master user, not up."""
+    mid = _esc(home)
+    con = sqlite3.connect(home / "desk.db")
+    with con:
+        con.execute("UPDATE threads SET msgs = 5 WHERE id = ?", (mid,))
+    con.close()
+    expire_due(home, NOW + timedelta(minutes=6), ROSTER, _send)
+    assert _msg(home, mid)[0] == MASTER

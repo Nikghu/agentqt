@@ -327,7 +327,8 @@ class TeamSetup(QWidget):
         self.kpis_edit.setStyleSheet("QPlainTextEdit { outline: none; }")
         for caption, widget in (("Name", self.name_edit), ("Title", self.title_edit),
                                 ("Level", self.level_box), ("Reports to", self.boss_box),
-                                ("Deputy", self.deputy_box), ("Skill", self.skill_label), ("KPIs", self.kpis_edit)):
+                                ("Deputy", self.deputy_box), ("Skill", self.skill_label),
+                                ("KPIs", self.kpis_edit)):
             grid.addRow(caption, widget)
         return page
 
@@ -430,8 +431,7 @@ class TeamSetup(QWidget):
         for text in (self.prompt_edit, self.kpis_edit):
             text.textChanged.connect(self._mark_dirty)
         for combo in (self.level_box, self.boss_box, self.deputy_box, self.main_source,
-                      self.backup_source,
-                      self.main_model, self.backup_model, self.status_box):
+                      self.backup_source, self.main_model, self.backup_model, self.status_box):
             combo.currentTextChanged.connect(self._mark_dirty)
         self.calls_spin.valueChanged.connect(self._mark_dirty)
         self.cap_spin.valueChanged.connect(self._mark_dirty)

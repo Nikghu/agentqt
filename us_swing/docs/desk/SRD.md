@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.17.2: SRD-DSK-011.014, .024, .033–.043, 007.011 and 008.010 Implemented 2026-11-13. 007.011 differs from its constraint: the alert stays open for the day (DD-DSK-011.033.D01 §8).
 > v0.17.1: M2 rows approved by user 2026-11-13; SRD-DSK-011.014 and .024 reopened and reworded with the same approval (M2 rows; priority by type).
 > v0.17.0: AI Desk v3 M2 (user, 2026-11-13): SRD-DSK-011.033–.043, 007.011 and 008.010 added as Draft — escalation and deputies; 011.014 needs the user's Reopen to point to the M2 rows too.
 > v0.16.5: SRD-DSK-002.005, 011.003, .004 and .014–.032 Implemented 2026-11-13.
@@ -181,7 +182,7 @@
 | SRD-DSK-007.008 | FO-DSK-007 | Must | A chain stopped by a failed step raises one "Desk plan is partial" alert naming the failed step and its last error. | failed step | alert | Same once-per-day and Telegram rules; closed by the next chain that finishes in full | Implemented |
 | SRD-DSK-007.009 | FO-DSK-007 | Must | A stop or target touch on an open trade, or a plan judged broken, raises an alert with the stock and price. | flag, verdict | alert | Kinds `trade_stop`, `trade_target`, `plan_broken`; same once-per-day and Telegram rules | Implemented |
 | SRD-DSK-007.010 | FO-DSK-007 | Must | A ticket that waits for the user's approval raises a "Research ticket waiting" alert with its goal and token cap. | ticket | alert | One alert per ticket; same Telegram rule; closed when the ticket is approved, rejected or expired | Implemented |
-| SRD-DSK-007.011 | FO-DSK-007 | Must | An escalation that passes the top boss with no reply raises an "Escalation not answered" alert with the sender, subject and the bosses that did not answer. | thread | alert | Kind `escalation`; same once-per-day and Telegram rules; closed when the thread gets a reply | Approved |
+| SRD-DSK-007.011 | FO-DSK-007 | Must | An escalation that passes the top boss with no reply raises an "Escalation not answered" alert with the sender, subject and the bosses that did not answer. | thread | alert | Kind `escalation`; same once-per-day and Telegram rules; closed when the thread gets a reply | Implemented |
 
 ## FO-DSK-008: Employee File and Versions
 
@@ -196,7 +197,7 @@
 | SRD-DSK-008.007 | FO-DSK-008 | Must | Starting a hire writes `employee.md` from the skill's default employee. | hire | `employee.md` | Status shadow, as today | Implemented |
 | SRD-DSK-008.008 | FO-DSK-008 | Should | `desk replay RUN --employee ID --draft FILE` resends the employee's recorded question with the draft prompt. | draft file | answer, valid | Tries recorded as replay; no views, picks or briefs written | Implemented |
 | SRD-DSK-008.009 | FO-DSK-008 | Must | A level change is refused when the new level's seats are full. | level | reason | Same caps as hiring (SRD-DSK-006.002) | Implemented |
-| SRD-DSK-008.010 | FO-DSK-008 | Must | The employee file has an optional `deputy`: the id of another employee. | deputy | valid or reason | Refused when it is the employee itself or not in the desk folder; a deputy's own deputy is never followed | Approved |
+| SRD-DSK-008.010 | FO-DSK-008 | Must | The employee file has an optional `deputy`: the id of another employee. | deputy | valid or reason | Refused when it is the employee itself or not in the desk folder; a deputy's own deputy is never followed | Implemented |
 
 ## FO-DSK-009: Desk Memory — Lessons
 
@@ -250,7 +251,7 @@
 | SRD-DSK-011.011 | FO-DSK-011 | Must | Meta holds only ai, used, secs, blocked and schema, each written only when it has a value. | meta | JSON | Dump leaves out empty and default keys | Implemented |
 | SRD-DSK-011.012 | FO-DSK-011 | Must | Message states are submitted, working, input_required, completed, failed, canceled, refused and expired. | state | enum | Names follow A2A | Implemented |
 | SRD-DSK-011.013 | FO-DSK-011 | Must | The envelope and each body type export as JSON Schema. | — | JSON Schema | For prompts; matches what the models accept | Implemented |
-| SRD-DSK-011.014 | FO-DSK-011 | Must | Messages are stored and sent only through the M1 and M2 rows SRD-DSK-011.015–.043. | — | — | No other desk step, skill or table writes messages | Approved |
+| SRD-DSK-011.014 | FO-DSK-011 | Must | Messages are stored and sent only through the M1 and M2 rows SRD-DSK-011.015–.043. | — | — | No other desk step, skill or table writes messages | Implemented |
 
 ### FO-DSK-011 (M1): Messages and the Reply Path
 
@@ -265,7 +266,7 @@
 | SRD-DSK-011.021 | FO-DSK-011 | Must | A reply answers exactly one open ask or send-back addressed to its sender, and each such message gets one reply. | reply | pass or reason | The reply goes to the parent's sender | Implemented |
 | SRD-DSK-011.022 | FO-DSK-011 | Must | An employee may not ask or send back to an employee that is waiting on it in the same thread. | draft, thread | pass or reason | Stops A to B to A loops | Implemented |
 | SRD-DSK-011.023 | FO-DSK-011 | Must | An ask or send-back is due 10 minutes after it is stored and expires when no reply came by then. | message | due, state | Expiry is checked on every desk tick; the asker goes on without it | Implemented |
-| SRD-DSK-011.024 | FO-DSK-011 | Must | A stored ask, send-back or reply posts one `message` event addressed to its receiver. | message | event | Key is the message id; priority by type (SRD-DSK-011.035) | Approved |
+| SRD-DSK-011.024 | FO-DSK-011 | Must | A stored ask, send-back or reply posts one `message` event addressed to its receiver. | message | event | Key is the message id; priority by type (SRD-DSK-011.035) | Implemented |
 | SRD-DSK-011.025 | FO-DSK-011 | Must | The router wakes only the addressed employee for a `message` event, even outside its trigger list and run order. | event | wake | The once-a-day rule and the 30-minute gap do not apply to it | Implemented |
 | SRD-DSK-011.026 | FO-DSK-011 | Must | A woken employee's facts end with an inbox block of its open messages, one short block each. | messages | facts text | Written by code from the rows; sender shown by id and current name | Implemented |
 | SRD-DSK-011.027 | FO-DSK-011 | Must | A reply closes its parent as completed, failed or refused by its verdict and wakes the asker in the same run. | reply | parent state, event | — | Implemented |
@@ -279,17 +280,17 @@
 
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
-| SRD-DSK-011.033 | FO-DSK-011 | Must | With escalation on, the desk also accepts the escalate type; handover and the other types stay refused. | draft | message or reason | Setup review, news review, risk check and the flag code may send it | Approved |
-| SRD-DSK-011.034 | FO-DSK-011 | Must | The address `boss` means the sender's `reports_to` employee. | address | employee id | Only on escalate; a sender with no boss goes straight to SRD-DSK-007.011 | Approved |
-| SRD-DSK-011.035 | FO-DSK-011 | Must | A `message` event takes its priority from the message type: escalate 0, every other type 1. | message | event priority | Used by SRD-DSK-011.024 | Approved |
-| SRD-DSK-011.036 | FO-DSK-011 | Must | An escalate is due 5 minutes after it reaches a boss; with no reply by then, code moves it to that boss's own boss. | message | new receiver, due | 5 minutes per level; past the top boss it raises SRD-DSK-007.011 | Approved |
-| SRD-DSK-011.037 | FO-DSK-011 | Must | Each move up writes `meta.blocked` with who did not answer, and counts as one message of the thread. | move | meta, count | The 6-message thread cap still applies | Approved |
-| SRD-DSK-011.038 | FO-DSK-011 | Must | An escalate does not count toward the 20 messages an employee may start in a day. | draft | pass | All other caps of SRD-DSK-011.020 apply | Approved |
-| SRD-DSK-011.039 | FO-DSK-011 | Must | A boss woken only by escalates gets a reply-only turn: its inbox block as facts, one AI call, and an answer of replies only. | inbox | replies | The boss's own skill does not run | Approved |
-| SRD-DSK-011.040 | FO-DSK-011 | Must | A reply to an escalate is shown as an AI feed note from the boss and changes no plan or trade. | reply | feed note | Note holds the subject and the reply text | Approved |
-| SRD-DSK-011.041 | FO-DSK-011 | Must | When the receiver sleeps, is out of budget or fails, the message goes once to the receiver's deputy, with the reason in `meta.blocked`. | wake result, deputy | new receiver | No deputy, or a deputy that cannot work either: SRD-DSK-011.028 refuses as before | Approved |
-| SRD-DSK-011.042 | FO-DSK-011 | Must | Escalation and deputy routing run only while `escalation_on` and `messages_on` are both true; `escalation_on` is false by default. | settings | on or off | Off: the desk runs as in M1 | Approved |
-| SRD-DSK-011.043 | FO-DSK-011 | Should | A move up, a hand to a deputy and an escalation that reaches the Master user are logged. | move | log line | `[Messages]` prefix | Approved |
+| SRD-DSK-011.033 | FO-DSK-011 | Must | With escalation on, the desk also accepts the escalate type; handover and the other types stay refused. | draft | message or reason | Setup review, news review, risk check and the flag code may send it | Implemented |
+| SRD-DSK-011.034 | FO-DSK-011 | Must | The address `boss` means the sender's `reports_to` employee. | address | employee id | Only on escalate; a sender with no boss goes straight to SRD-DSK-007.011 | Implemented |
+| SRD-DSK-011.035 | FO-DSK-011 | Must | A `message` event takes its priority from the message type: escalate 0, every other type 1. | message | event priority | Used by SRD-DSK-011.024 | Implemented |
+| SRD-DSK-011.036 | FO-DSK-011 | Must | An escalate is due 5 minutes after it reaches a boss; with no reply by then, code moves it to that boss's own boss. | message | new receiver, due | 5 minutes per level; past the top boss it raises SRD-DSK-007.011 | Implemented |
+| SRD-DSK-011.037 | FO-DSK-011 | Must | Each move up writes `meta.blocked` with who did not answer, and counts as one message of the thread. | move | meta, count | The 6-message thread cap still applies | Implemented |
+| SRD-DSK-011.038 | FO-DSK-011 | Must | An escalate does not count toward the 20 messages an employee may start in a day. | draft | pass | All other caps of SRD-DSK-011.020 apply | Implemented |
+| SRD-DSK-011.039 | FO-DSK-011 | Must | A boss woken only by escalates gets a reply-only turn: its inbox block as facts, one AI call, and an answer of replies only. | inbox | replies | The boss's own skill does not run | Implemented |
+| SRD-DSK-011.040 | FO-DSK-011 | Must | A reply to an escalate is shown as an AI feed note from the boss and changes no plan or trade. | reply | feed note | Note holds the subject and the reply text | Implemented |
+| SRD-DSK-011.041 | FO-DSK-011 | Must | When the receiver sleeps, is out of budget or fails, the message goes once to the receiver's deputy, with the reason in `meta.blocked`. | wake result, deputy | new receiver | No deputy, or a deputy that cannot work either: SRD-DSK-011.028 refuses as before | Implemented |
+| SRD-DSK-011.042 | FO-DSK-011 | Must | Escalation and deputy routing run only while `escalation_on` and `messages_on` are both true; `escalation_on` is false by default. | settings | on or off | Off: the desk runs as in M1 | Implemented |
+| SRD-DSK-011.043 | FO-DSK-011 | Should | A move up, a hand to a deputy and an escalation that reaches the Master user are logged. | move | log line | `[Messages]` prefix | Implemented |
 
 ## FO-DSK-012: Tools and Task Cards
 

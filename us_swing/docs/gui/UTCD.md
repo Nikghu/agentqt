@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.36.1: UT-GUI-034.071, 035.017 and 036.011 Pass (4, 2026-11-13).
 > v1.36.0: UT-GUI-034.071, 035.017 and 036.011 added (Not Run, 4) — AI Desk v3 M2 (2026-11-13).
 > v1.35.0: UT-GUI-034.070 and 035.015–.016 added (Not Run, 7) — AI Desk v3 M1 (2026-11-13).
 > v1.34.1: UT-GUI-036.009–.010 Pass (4, 2026-11-12).
@@ -1331,7 +1332,7 @@ Test files:
 
 | ID | Module | Type | Title | Input | Expected | Status |
 |---|---|---|---|---|---|---|
-| UT-GUI-034.071.M15.T01 | MD-GUI-034.016.M15 | Positive | Escalation switch (SRD-GUI-034.071) | tick Agent messages and Escalation, save | escalation_on true in desk settings | Not Run |
-| UT-GUI-034.071.M15.T02 | MD-GUI-034.016.M15 | Negative | Greyed while messages off (SRD-GUI-034.071) | Agent messages unticked | Escalation disabled | Not Run |
-| UT-GUI-035.017.M05.T01 | MD-GUI-035.016.M05 | Positive | Moved-up line (SRD-GUI-035.017) | thread with a moved escalate | detail shows the blocked reason under the message | Not Run |
-| UT-GUI-036.011.M01.T01 | MD-GUI-036.001.M01 | Positive | Deputy picker (SRD-GUI-036.011) | open an employee, pick a deputy, save | list holds None and the other employees, not itself; file has the deputy | Not Run |
+| UT-GUI-034.071.M15.T01 | MD-GUI-034.016.M15 | Positive | Escalation switch (SRD-GUI-034.071) | tick Agent messages and Escalation, save | escalation_on true in desk settings | Pass |
+| UT-GUI-034.071.M15.T02 | MD-GUI-034.016.M15 | Negative | Greyed while messages off (SRD-GUI-034.071) | Agent messages unticked | Escalation disabled | Pass |
+| UT-GUI-035.017.M05.T01 | MD-GUI-035.016.M05 | Positive | Moved-up line (SRD-GUI-035.017) | thread with a moved escalate | detail shows the blocked reason under the message | Pass |
+| UT-GUI-036.011.M01.T01 | MD-GUI-036.001.M01 | Positive | Deputy picker (SRD-GUI-036.011) | open an employee, pick a deputy, save | list holds None and the other employees, not itself; file has the deputy | Pass |

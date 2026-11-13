@@ -1276,4 +1276,6 @@ The boss's own skill and its facts are not used.
 
 **9. Employee file** (`core/desk_employee.py`, SRD-DSK-008.010). `JobSpec.deputy: str | None = None`. `render` leaves `deputy` out when it is `None`, so old files stay the same. `save_employee` refuses "the deputy cannot be the employee itself" and "no employee <id> for deputy".
 
+**11. Code review fixes.** `refuse_inbox` never refuses an escalate: a boss that cannot answer (budget, error, no valid answer) leaves it open, so it moves up when due. A hand to a deputy restarts `due` (10 minutes, or 5 for an escalate). A move up needs room for the reply: a thread at 5 or more messages goes to the Master user.
+
 **10. Settings.** `DeskAiSettings.escalation_on: bool = False` (.042). With it off: escalate drafts are dropped, no deputy hand happens, and there are no escalate rows to move, so the run is as in M1.

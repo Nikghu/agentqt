@@ -118,3 +118,44 @@ def test_threads_empty_text(qtbot: QtBot, tmp_path: Path) -> None:
     assert "Desk settings" in view.note.text()
     view.show_threads(tmp_path, DAY, {}, True)
     assert view.note.text() == "No messages today"
+
+
+# ── AI Desk v3 M2 ────────────────────────────────────────────────────────────
+
+
+def test_escalation_switch_saves(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-034.071.M15.T01: Ticking Agent messages and Escalation saves escalation_on."""
+    form = DeskAiSettingsForm(tmp_path)
+    qtbot.addWidget(form)
+    form.messages_on.setChecked(True)
+    form.escalation_on.setChecked(True)
+    assert form.save()
+    assert load_settings(tmp_path).escalation_on is True
+
+
+def test_escalation_greyed_while_messages_off(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-034.071.M15.T02: Escalation is greyed out while Agent messages is unticked."""
+    form = DeskAiSettingsForm(tmp_path)
+    qtbot.addWidget(form)
+    assert not form.messages_on.isChecked() and not form.escalation_on.isEnabled()
+    form.messages_on.setChecked(True)
+    assert form.escalation_on.isEnabled()
+
+
+def test_moved_up_line(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-035.017.M05.T01: A moved escalation shows its reason under the message."""
+    from us_swing.core.desk_messages import expire_due
+
+    roster = [Person("emp-a", "Alpha", "regime_view", boss="emp-b"),
+              Person("emp-b", "Beta", "sector_flow_view", boss="emp-c"),
+              Person("emp-c", "Gamma", "risk_check")]
+    esc = Draft(type="escalate", to="boss", subject="AAPL plan broken", text="Stop touched")
+    (line,) = accept(tmp_path, [esc], "emp-a", roster, NOW, DAY, True, lambda text: True)
+    assert line.startswith("stored #"), line
+    expire_due(tmp_path, NOW + timedelta(minutes=6), roster, lambda text: True)
+    view = ThreadsView()
+    qtbot.addWidget(view)
+    view.show_threads(tmp_path, DAY, NAMES, True)
+    texts = [view.detail.item(i).text() for i in range(view.detail.count())]
+    assert len(texts) == 2 and "escalate" in texts[0] and "Gamma" in texts[0]
+    assert texts[1].strip() == "Beta did not answer in 5 minutes"

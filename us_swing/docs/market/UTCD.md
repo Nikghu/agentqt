@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.24.1: UT-MKT-013.013.M02.T01–T03 Pass (3, 2026-11-13).
 > v0.24.0: UT-MKT-013.013.M02.T01–T03 added (Not Run, 3) — AI Desk v3 M2 (2026-11-13).
 > v0.23.1: UT-MKT-005.024.M05.T01–T02 added and Pass; UT-MKT-005.022.M07.T05 Pass (2026-11-13).
 > v0.23.0: UT-MKT-005.019–.023 and 006.013 added (Not Run, 16) — AI Desk v3 M1 (2026-11-13).
@@ -685,6 +686,6 @@
 
 | ID | Module | Type | Title | Input | Expected | Status |
 |---|---|---|---|---|---|---|
-| UT-MKT-013.013.M02.T01 | MD-MKT-013.008.M02 | Positive | Broken plan escalates (SRD-MKT-013.013) | talking context, verdict broken on AAPL | one escalate to boss about AAPL with the note; alert raised as before | Not Run |
-| UT-MKT-013.013.M02.T02 | MD-MKT-013.008.M02 | Positive | Stop touch escalates (SRD-MKT-013.013) | stop_touch flag, no valid answer | one escalate to boss | Not Run |
-| UT-MKT-013.013.M02.T03 | MD-MKT-013.008.M02 | Negative | No escalate (SRD-MKT-013.013) | trigger_hit with verdict holds; plain fake context | no draft sent | Not Run |
+| UT-MKT-013.013.M02.T01 | MD-MKT-013.008.M02 | Positive | Broken plan escalates (SRD-MKT-013.013) | talking context, verdict broken on AAPL | one escalate to boss about AAPL with the note; alert raised as before | Pass |
+| UT-MKT-013.013.M02.T02 | MD-MKT-013.008.M02 | Positive | Stop touch escalates (SRD-MKT-013.013) | stop_touch flag, no valid answer | one escalate to boss | Pass |
+| UT-MKT-013.013.M02.T03 | MD-MKT-013.008.M02 | Negative | No escalate (SRD-MKT-013.013) | trigger_hit with verdict holds; plain fake context | no draft sent | Pass |

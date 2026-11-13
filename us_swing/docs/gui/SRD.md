@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.114.1: SRD-GUI-034.071, 035.017 and 036.011 Implemented 2026-11-13.
 > v2.114.0: AI Desk v3 M2 (user, 2026-11-13): SRD-GUI-034.071, 035.017 and 036.011 added as Draft — escalation switch, escalation lines in Threads, Deputy picker.
 > v2.113.2: SRD-GUI-034.070 and 035.015–.016 Implemented 2026-11-13.
 > v2.113.1: SRD-GUI-034.070 and 035.015–.016 approved by user 2026-11-13.
@@ -799,7 +800,7 @@
 | SRD-GUI-034.068 | FO-GUI-034 | Must | The app starts the desk with its own process id when it opens and sends Stop when it closes. | app start, close | launch, command | Off the GUI thread; never a second desk; close does not wait for the run | Implemented |
 | SRD-GUI-034.069 | FO-GUI-034 | Should | Desk labels name the morning run: the Next run tile, Desk settings, Team at work trigger, empty notes and the feed card title. | clock, runs | labels | Next run = today from 04:00 ET while due, else the next trading day; old `evening` runs and briefs still show | Implemented |
 | SRD-GUI-034.070 | FO-GUI-034 | Must | Desk settings has an Agent messages switch, off by default, saved as `messages_on`. | switch | desk settings | Applies at the next desk wake | Implemented |
-| SRD-GUI-034.071 | FO-GUI-034 | Must | Desk settings has an Escalation switch under Agent messages, off by default, saved as `escalation_on`. | switch | desk settings | Greyed out while Agent messages is off | Approved |
+| SRD-GUI-034.071 | FO-GUI-034 | Must | Desk settings has an Escalation switch under Agent messages, off by default, saved as `escalation_on`. | switch | desk settings | Greyed out while Agent messages is off | Implemented |
 
 ## FO-GUI-035: AI Desk Team at Work
 
@@ -821,7 +822,7 @@
 | SRD-GUI-035.014 | FO-GUI-035 | Should | The selected pipeline card and the selected Team row show a lighter fill and a grey border instead of the accent border. | selection | restyled card | Working pulse border unchanged | Implemented |
 | SRD-GUI-035.015 | FO-GUI-035 | Must | The event log shows each message event with its type, from and to, subject and state. | `messages`, events | log rows | Names from employee files; ids in the tooltip | Implemented |
 | SRD-GUI-035.016 | FO-GUI-035 | Must | A Threads view lists today's threads with starter, messages, send-back rounds, state and tokens, and shows the messages of the selected thread. | `threads`, `messages`, activity | list and detail | Read-only; newest first | Implemented |
-| SRD-GUI-035.017 | FO-GUI-035 | Should | The Threads view shows an escalate's moves up and a deputy hand with their reason. | `messages` meta | detail lines | Read-only | Approved |
+| SRD-GUI-035.017 | FO-GUI-035 | Should | The Threads view shows an escalate's moves up and a deputy hand with their reason. | `messages` meta | detail lines | Read-only | Implemented |
 
 ## FO-GUI-036: AI Desk Team Setup
 
@@ -837,7 +838,7 @@
 | SRD-GUI-036.008 | FO-GUI-036 | Must | The Team at work side pane shows name, role, state, model line, month cost, this run, Prompt and Answer, and Edit in Team setup. | member | pane | Edit opens Team setup on that employee | Implemented |
 | SRD-GUI-036.009 | FO-GUI-036 | Should | The Team list is a tree: each lead with the people who report to them nested below, and people with no lead in a No lead folder at the end. | level, reports_to | tree | Folds open on load; folders cannot be picked; no names in code | Implemented |
 | SRD-GUI-036.010 | FO-GUI-036 | Should | A name ending in a number shows its first letter and the full number as its code (Expert 10 → E10). | name | code | Same code in Team setup and Team at work | Implemented |
-| SRD-GUI-036.011 | FO-GUI-036 | Must | The Profile tab has a Deputy picker listing the other employees and None. | employees | `deputy` | Saved through core with the same checks | Approved |
+| SRD-GUI-036.011 | FO-GUI-036 | Must | The Profile tab has a Deputy picker listing the other employees and None. | employees | `deputy` | Saved through core with the same checks | Implemented |
 
 ## FO-GUI-037: AI Desk Memory
 

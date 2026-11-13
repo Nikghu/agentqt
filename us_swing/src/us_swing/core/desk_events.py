@@ -180,6 +180,7 @@ def post_message(con: sqlite3.Connection, message_id: int, receiver: str, data_d
     con.execute(
         "INSERT OR IGNORE INTO events (key, kind, priority, data_day, created, deadline, "
         "expires, state, target) VALUES (?, 'message', ?, ?, ?, ?, ?, 'waiting', ?)",
-        (key, rule.priority if priority is None else priority, data_day, now.isoformat(timespec="seconds"),
+        (key, rule.priority if priority is None else priority, data_day,
+         now.isoformat(timespec="seconds"),
          deadline.isoformat(timespec="seconds") if deadline else None,
          (now + rule.expiry).isoformat(timespec="seconds"), receiver))
