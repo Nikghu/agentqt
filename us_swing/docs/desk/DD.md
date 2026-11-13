@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.15.0: DD-DSK-011.015.D01 added — messages and the reply path (AI Desk v3 M1, 2026-11-13).
 > v0.14.0: DD-DSK-011.001.D01 and DD-DSK-012.001.D01 added — message format, tool registry and schema library (AI Desk v3 M0, 2026-11-13).
 > v0.13.0: DD-DSK-010.016.D01 added — owner-raised strategy test ticket (2026-11-12).
 > v0.12.0: DD-DSK-010.015.D01 added — follow-up tickets from research skills (step F).
@@ -1109,3 +1110,95 @@ A second fill gives the same rows (only `updated` moves). Rows are never deleted
 **Read** (SRD-DSK-012.010): `list_tools(home, status=None) -> list[Tool]` ordered by name; `get_tool(home, name, version=None) -> Tool | None` (newest version when none is given); `list_formats(home) -> list[TableFormat]`; `get_format(home, schema_id) -> TableFormat | None`. Read functions on a missing `desk.db` return empty results without making the file.
 
 **Desk start.** `DeskProcess.start()` calls `fill_registry(self._home, now)` after `pause_running`, inside `try/except Exception` with `log.exception("[Tools] Could not fill the tool registry")`, so a registry problem never stops the desk. Nothing else reads the registry in M0.
+
+## DD-DSK-011.015.D01 — Messages and the Reply Path (AI Desk v3 M1)
+
+**Traces:** SRD-DSK-011.003, .004, .014–.032 (DSK); MKT and GUI parts in DD-MKT-005.019.D01 and DD-GUI-035.015.D01. User decisions 2026-11-13: the router stays serial; wake by message, no new run order; send back before the code veto; new rows rather than reopened FO-DSK-003 rows. Design page: https://claude.ai/artifact/8QdHMR5XoScLNN9HEtbB3A.
+
+**1. Format change (M0 rows .003/.004).** In `core/desk_msg.py` the parent rule becomes: reply and decision need a parent; a send_back has either a parent (and no `to`) or a `to` (and no parent, so it starts a thread); `to` is left out only on reply and on a send_back with a parent. New model `Draft` (what an agent writes): `type`, `to?`, `parent?`, `subject?`, `text?`, `about?`, `want?`, `verdict?`, `data?`, `flags?`, all `extra="forbid"`. `with_messages(schema)` returns a cached subclass of `schema` with `messages: list[Draft] = Field(default_factory=list, max_length=5)` and a field description that names the M1 types and the inbox rule. `InboxReply` is a model with only `messages` (1–5), for a wake that only has to answer.
+
+**2. Tables** (`core/desk_messages.py`, made by `_connect(home)` with `CREATE TABLE IF NOT EXISTS`):
+
+```
+messages (id INTEGER PRIMARY KEY, thread INTEGER, parent INTEGER, type TEXT, sender TEXT,
+          receiver TEXT, at TEXT, due TEXT, state TEXT, body TEXT, meta TEXT, seen TEXT,
+          data_day TEXT)
+threads  (id INTEGER PRIMARY KEY, starter TEXT, msgs INTEGER, rounds INTEGER, state TEXT,
+          opened TEXT, closed TEXT)
+```
+
+`body` is the body JSON without `type` (type is the column, written once); `receiver` is the resolved employee id; `seen` is set when the receiver's wake has shown the row in its inbox. A stored row reads back as `desk_msg.Message` (`to` = receiver for ask and a first send_back).
+
+**3. Accept** — `accept(home, drafts, sender, roster, now, data_day) -> list[str]` (one result line per draft), called by the employees step after `skill.act()` when the gateway holds drafts. `roster` is the list of `(id, skill key, level)` of active employees. Each draft, in order, first failure refuses it alone (SRD-DSK-011.019):
+
+```
+1 format     body = draft minus type/to/parent, parse_body({type, **body}); Message model check
+2 type       type not in {ask, reply, send_back}      -> "type <t> is not in use yet"
+3 receiver   ask / first send_back: to = employee id (active) or skill:<key> (active holder,
+             lowest id);  reply / send_back with parent: receiver = parent's sender
+             other forms or nobody                     -> "nobody can take <to>"
+4 guardrails reply: parent open (submitted), addressed to sender, no reply yet   (.021)
+             thread msgs < 6; send_back rounds < 2; sender started < 20 today  (.020)
+             no loop: receiver has an open ask/send_back in this thread to sender (.022)
+5 data       data.schema must be a format in the registry (get_format)         
+6 store      insert row (state submitted, due = now + 10 min for ask/send_back) and thread
+             row/counts; a reply sets the parent state completed | failed | refused by verdict
+             (done/partial -> completed, failed/dropped -> failed, refused -> refused);
+             post_message(con, id, receiver, data_day, now)                  (.024, .027)
+log  [Messages] Emp 3 asked Emp 6 (thread 101)   |   [Messages] A message from Emp 3 was refused: <why>
+```
+
+"Started" means the first message of a thread (`parent IS NULL`) by that sender on that New York day.
+
+**4. Event.** `core/desk_events.py` gets `EVENT_RULES["message"] = EventRule(1, timedelta(minutes=10), timedelta(hours=2))`, a new `target` column (added like `parent` and `due`), `Event.target`, and `post_message(con, message_id, receiver, data_day, now)` with key `message|<id>`.
+
+**5. Router** (`desk/router.py`).
+
+```
+_listeners(event): message -> [hire whose id == event.target]; others as today
+_handle_one(event): message -> result = wake(hire, event, False, ()); then _release(con); note
+_try: a message event skips _too_soon (SRD-DSK-011.025)
+after a chain step ends ok:  open_started(home, emp) -> write step "waiting", no step_done (.029)
+_advance: a "waiting" step is not settled and is not woken again
+handle(): at the start and after every event -> expire_due(home, now) and _release(con)
+_release(con): every "waiting" step whose employee has no open started message ->
+               _end(con, trigger, hire, tries, "ok")  (posts its step_done; the chain goes on)
+```
+
+`Recorder.last_wake` ignores rows with a `message` id, so a message turn never makes the 30-minute gap block the employee's own chain wake.
+
+**6. Wake for a message** (`desk/employees_step.py`, kind `message`):
+
+```
+msgs  = inbox(home, emp)                        # receiver == emp and seen IS NULL
+facts = skill.facts(home); not fresh -> refuse_inbox(home, msgs, why_stale, now); "slept"
+facts = replace(facts, text = facts.text + inbox_text(msgs, names), inbox = ids)   (.026)
+part  = Part("plan" or "market", starter id, starter name, starter tokens_per_day,
+             message=<event message id>)                                       (.030)
+gateway(talk = messages_on and skill.talks); items = skill.act(gateway, facts)
+accept(home, gateway.drafts, emp, ...); mark_seen(msgs)
+asked and nothing answered -> refuse_inbox(msgs, gateway.refused or "no valid answer"); "failed"
+gateway.refused          -> refuse_inbox(msgs, reason); "slept"
+else "ok"     (a code-only turn with no ask is ok)
+```
+
+`refuse_inbox` writes, for each open ask or send_back in `msgs`, a reply row by code in the receiver's name with verdict refused and the reason, and wakes the asker (SRD-DSK-011.028). `expire_due(home, now)` does the same for open rows past `due`, with verdict failed, reason "no reply within 10 minutes" and the parent set to expired (SRD-DSK-011.023). A normal chain wake also runs `accept` after `act`.
+
+**7. Inbox block** (SRD-DSK-011.026), one block per row, ids plus current names from the roster:
+
+```
+INBOX — answer only what is asked here; leave your other work as it is.
+#101 ask from emp-003 (Expert 3, setup review), about NVDA:
+  Any earnings date or big news in the next 5 days?
+  Reply with a message of type reply and parent 101.
+#202 reply from emp-003 to your #201: done
+  data idea_fix.v1: long AMD trigger 158.2 stop 146.0
+```
+
+**8. Gateway and skills.** `Gateway(talk: bool = False)`: `ask()` sends `with_messages(schema)` when talk is on and the schema has no `messages` field yet, and puts the answer's messages into `self.drafts`; `send(draft)` adds a code-written draft. A skill opts in with `talks = True`; `core/desk_agents.talker(ctx)` returns the context when it has `talk` and `drafts` and talk is on, else `None` (test fakes and replays stay as they are). `Facts` gains `inbox: tuple[int, ...] = ()`.
+
+**9. Settings** (SRD-DSK-011.031). `DeskAiSettings.messages_on: bool = False`. Off: no gateway is built with talk, no `messages` field reaches any prompt, the employees step never calls `accept`, and the router never sees a `message` event, so the run is as today.
+
+**10. Reads for the GUI.** `thread_rows(home, day)` (threads of a day, newest first, with tokens summed from `activity.message` of their messages) and `messages_of(home, thread)`; read-only, empty without a database.
+
+**11. Registry.** Format `idea_fix.v1` (side, symbol, trigger, stop) is added to the seed formats, so step 5 accepts a fix reply.

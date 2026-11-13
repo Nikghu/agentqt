@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.21.0: AI Desk v3 M1 (user, 2026-11-13): FO-MKT-005 and FO-MKT-006 gain M1 message bullets as Draft (ask news review, send back a stop, fixed levels, news reply).
 > v0.20.1: FO-MKT-019 approved by user 2026-11-12.
 > v0.20.0: Strategy test (user, 2026-11-12): FO-MKT-019 added as Draft — strategy test research.
 > v0.19.1: FO-MKT-018 approved by user 2026-11-11.
@@ -160,6 +161,9 @@ The system shall add AI experts on top of the funnel. P5a adds the first skill, 
 - The system shall add a risk check skill: hard risk limits kept in code veto ideas first, then the AI may veto more ideas with a reason but never undo a code veto.
 - The system shall add a lead brief skill that picks the final ideas only from ideas that passed the risk check, and writes the morning brief for the Floor (evening until 2026-11-10).
 - The system shall ship default employees for the new skills with generic level names only; the Master user may rename, re-level or re-link them.
+- (M1, messages on) The setup review shall ask the news review about an idea whose news it does not know, and grade that idea with the reply.
+- (M1, messages on) The risk check shall send an idea whose stop breaks the stop limit back to the setup review for a fix, at most twice; the code limit keeps the final say.
+- (M1, messages on) The system shall use a fixed trigger and stop for that idea everywhere for the rest of its data day.
 
 ### Acceptance Criteria
 
@@ -186,6 +190,7 @@ The system shall add news and the economic calendar to the evening funnel. Free 
 - The system shall let the risk check and the lead brief read the news tags and final scores.
 - The system shall show headlines, tags and the coming economic events in the Market Floor "News & Calendar" tab.
 - The system shall ship a default employee for the new skill with a generic level name only.
+- (M1, messages on) The news review shall answer an ask about listed ideas from its facts with one reply.
 
 ### Acceptance Criteria
 

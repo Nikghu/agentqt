@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.12.0: AI Desk v3 M1 (user, 2026-11-13): FO-DSK-011 gains the M1 part as Draft — messages and the reply path.
 > v0.11.1: FO-DSK-011 and FO-DSK-012 approved by user 2026-11-13; Implemented (M0 code and tests done).
 > v0.11.0: AI Desk v3 M0 (user, 2026-11-12, decisions locked): FO-DSK-011 Agent messages and FO-DSK-012 Tools and task cards added as Draft.
 > v0.10.1: FO-DSK-010 approved by user 2026-11-11.
@@ -280,6 +281,27 @@ The system shall give every agent and layer one checked message format, `desk.ms
 2. A body with a field of another type, or an unknown key, is refused with a plain reason.
 3. A data block with both rows and a reference, or with more than 200 rows inline, is refused.
 4. The daily run and all existing desk tests work as before.
+
+### M1 — Messages and the Reply Path
+
+**Status:** Draft
+**Source: User 2026-11-13 (AI Desk v3 M1 decisions): wake by message, no new run order; serial router; send back before the code veto. Design: https://claude.ai/artifact/8QdHMR5XoScLNN9HEtbB3A.**
+
+- The system shall let an employee add ask, reply and send-back messages to its answer when the Master user has turned messages on.
+- The system shall check each message in code, store it in `desk.db`, and wake only the employee it is addressed to, in the same run, even outside that employee's trigger list.
+- The system shall show a woken employee its open messages as a short inbox block in its facts.
+- The system shall hold an employee's turn as not done while its own asks or send-backs wait for a reply, until each is answered or expired.
+- The system shall answer an ask at once with a refusal when the receiver cannot work, so the asker never waits for nothing.
+- The system shall enforce in code: one reply per message, at most 2 send-back rounds and 6 messages per thread, 20 started messages per employee a day, a 10-minute reply deadline, and no loop back to an employee that is waiting.
+- The system shall bill the tokens of every message turn to the employee that started the thread.
+- The system shall run exactly as today while messages are off.
+
+### Acceptance Criteria (M1)
+
+5. On a desk copy with messages on, setup review asks news review about one idea and grades it with the reply in the same run.
+6. An idea with a stop over the limit is fixed in round 1 and passes, or is still over after round 2 and stays vetoed.
+7. A seventh message in a thread, a third send-back and a twenty-first message started in a day are refused with a reason.
+8. With messages off, the daily run and all existing desk tests work as before.
 
 ## FO-DSK-012: Tools and Task Cards
 

@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.32.0: MD-GUI-035.016.M05 added; M15, M02, M03, M01 changed (AI Desk v3 M1, 2026-11-13).
 > v1.31.0: MD-GUI-040.001.M01 added — AI Desk strategy cards; M08 changed (2026-11-12).
 > v1.30.1: M01 and M02 gain the books list (SRD-GUI-039.008).
 > v1.30.0: MD-GUI-039.006.M02 added; M01 gains Add book (2026-11-12).
@@ -518,3 +519,11 @@ SRD coverage: 039.001–.008 by M01; .006 and .008 by M02. Cross-tool note: `mar
 | MD-GUI-040.001.M01 | SRD-GUI-040.001 | `us_swing/src/us_swing/gui/ai_desk_cards.py` | Cards section: card table with latest test, detail, Test button and its log | `CardsView`, `cards_frame`, `result_label`, `card_detail` | `core.desk_cards`, `core.desk_research`, `gui.ai_desk_sections` | No |
 
 SRD coverage: 040.001–.004 by M01. Changed: MD-GUI-034.009.M08 (`gui/ai_desk.py`: "Cards" section in the REVIEW group, live refresh).
+
+## FO-GUI-035 (AI Desk v3 M1): Message Log and Threads View
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-GUI-035.016.M05 | SRD-GUI-035.016 | `us_swing/src/us_swing/gui/ai_desk_threads.py` | Threads tab: today's threads table and the selected thread's messages | `ThreadsView` (`show_threads()`) | DSK `core/desk_messages.py`, theme | No |
+
+Changed: MD-GUI-034.016.M15 (`gui/ai_desk_settings.py`: Agent messages card — SRD-GUI-034.070), MD-GUI-035.002.M02 (`core/desk_team.py`: `DeskEvent.target`, `detail` — 035.015), MD-GUI-035.006.M03 (`gui/ai_desk_team_log.py`: message rows — 035.015), MD-GUI-035.001.M01 (`gui/ai_desk_team.py`: Threads tab — 035.016).

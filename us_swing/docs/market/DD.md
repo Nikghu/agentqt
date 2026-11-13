@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.22.0: DD-MKT-005.019.D01 added — asks, send-back fixes and news replies (AI Desk v3 M1, 2026-11-13).
 > v0.21.0: DD-MKT-019.001.D01 added — strategy test research (2026-11-12).
 > v0.20.0: DD-MKT-018.001.D01 added — book to strategy research (Autonomous desk step F (2026-11-11)).
 > v0.19.0: DD-MKT-017.001.D01 added — sentiment research (Autonomous desk step F (2026-11-11)).
@@ -1448,3 +1449,34 @@ API: `cards(home)`, `card(home, card_id)`, `save_test(home, TestRow)`, `latest_t
 **Registry.** `SKILL_PATHS["strategy_test"] = "us_swing.market.strategy_test:StrategyTestSkill"`; `USSwing.spec` hidden imports add `us_swing.market.strategy_test`; `emp-017` ("Expert 14", title "Strategy tester", level expert, skill `strategy_test`, trigger `research_done`).
 
 **Logs.** `[Research] Ticket 9 card SC-3 recipe: 2 indicators, 1 pattern, next open, ATR stop` · `[Research] Ticket 9 card SC-3 can't test: rvol_3m has no block` · `[Research] Ticket 9 card SC-3 replay: 214 trades, +0.31R, baseline +0.04R, pass`.
+
+## DD-MKT-005.019.D01 — Asks, Send-Back Fixes and News Replies (AI Desk v3 M1)
+
+**Traces:** SRD-MKT-005.019–.023, SRD-MKT-006.013. Desk side: DD-DSK-011.015.D01. Every path below runs only when messages are on (`talker(ctx)` is not `None`); with messages off each skill works exactly as before.
+
+**Setup review** (`market/setup_review.py`, `talks = True`).
+- Normal wake: the answer may hold asks to `skill:news_review`. Code keeps asks until their `about` lists name 3 ideas in all and drops the rest from `gateway.drafts` (logged). Grades for held ideas (named in a kept ask) are not stored now. Rows are replaced for the day as today, so held ideas have no grade yet.
+- Inbox wake (`facts.inbox` set): the same facts plus the inbox. The answer's grades are merged (`put_rows`), never replacing the day. For a send_back about an idea, the answer's reply carries `data` in format `idea_fix.v1` with one row `[side, symbol, trigger, stop]`, or verdict dropped with a reason. No count brief on an inbox wake.
+- An expired or refused ask arrives as a reply, so the held ideas are graded with what is known.
+
+**News review** (`market/news_review.py`, `talks = True`). Inbox wake: asks with `InboxReply`, so only messages come back; `news_tags`, the feed and the brief are not touched (SRD-MKT-006.013). Ideas not in its facts are named as unknown in the reply text. A normal wake is unchanged.
+
+**Risk check** (`market/risk_check.py`, `talks = True`).
+
+```
+normal wake: code vetoes as today; for each veto whose only reason is the stop distance:
+    talker.send(Draft(type=send_back, to="skill:setup_review",
+                      verdict={result: fix, reason: <veto reason>}, text=<what to fix>))
+    the risk_check row stays veto/code with that reason
+inbox wake (code only, no AI call): for each reply to its send_back
+    verdict dropped           -> row stays vetoed; reason "dropped by setup review: <why>"
+    data idea_fix.v1 row      -> idea_fixes row (status pending), check the code limits with
+                                 the fixed trigger and stop against the day's regime
+        pass  -> fix status pass; risk_check row pass/code "fixed in round <n>"
+        fail and rounds < 2   -> send_back round 2 (parent = the reply) with the new reason
+        fail and round 2      -> fix status fail; row stays veto "still over after 2 rounds: ..."
+```
+
+Side and symbol of a fix must match the send_back's idea; another idea is ignored and logged. Round = the thread's send-back count.
+
+**Fixed levels** (`market/store.py`): table `idea_fixes (date, side, symbol, round, trigger, stop, status, made, PRIMARY KEY (date, side, symbol, round))` and `FIXED` SQL text: `LEFT JOIN idea_fixes f ON f.date = i.date AND f.side = i.side AND f.symbol = i.symbol AND f.status = 'pass'` with `COALESCE(f."trigger", i."trigger")` and `COALESCE(f.stop, i.stop)`. Used by `listed_frame` (so setup, news and risk facts and the lead brief see the fix), `market/watch.py` and `market/watch_flag.py` (SRD-MKT-005.023). `MarketStore.put_rows(table, rows)` inserts or replaces rows without clearing the day.

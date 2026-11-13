@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.35.0: UT-GUI-034.070 and 035.015–.016 added (Not Run, 7) — AI Desk v3 M1 (2026-11-13).
 > v1.34.1: UT-GUI-036.009–.010 Pass (4, 2026-11-12).
 > v1.34.0: UT-GUI-036.009–.010 added (4, Not Run) — Team tree (2026-11-12).
 > v1.33.1: UT-GUI-040.* Pass (6, 2026-11-12).
@@ -1312,3 +1313,15 @@ Test files:
 | UT-GUI-040.003.M01.T01 | MD-GUI-040.001.M01 | Positive | Test button (SRD-GUI-040.003) | select SC-1, Test | one approved ticket SC-1; card shows Testing; button off | Pass |
 | UT-GUI-040.003.M01.T02 | MD-GUI-040.001.M01 | Negative | Test off while testing (SRD-GUI-040.003) | select SC-3 | Test disabled | Pass |
 | UT-GUI-040.004.M01.T01 | MD-GUI-040.001.M01 | Positive | Test log (SRD-GUI-040.004) | Test SC-1; Test with no lead | `[Research]` started line; not started line with reason | Pass |
+
+## FO-GUI-034 / FO-GUI-035 (AI Desk v3 M1): Messages Switch, Message Log and Threads View
+
+| ID | Module | Type | Title | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-034.070.M15.T01 | MD-GUI-034.016.M15 | Positive | Switch saves (SRD-GUI-034.070) | tick Agent messages, Save | desk_ai.json messages_on true | Not Run |
+| UT-GUI-034.070.M15.T02 | MD-GUI-034.016.M15 | Negative | Off by default (SRD-GUI-034.070) | new desk folder | box unticked; saving keeps false | Not Run |
+| UT-GUI-035.015.M02.T01 | MD-GUI-035.002.M02 | Positive | Message event detail (SRD-GUI-035.015) | ask event from emp-003 to emp-006 | target emp-006; detail with type, names, subject and state; calls with its message id | Not Run |
+| UT-GUI-035.015.M02.T02 | MD-GUI-035.002.M02 | Negative | Other events unchanged (SRD-GUI-035.015) | after_run event | no target, no detail; calls as today | Not Run |
+| UT-GUI-035.015.M03.T01 | MD-GUI-035.006.M03 | Positive | Log row shows the message (SRD-GUI-035.015) | message event in the log | woke cell shows the receiver's name; why cell shows the detail | Not Run |
+| UT-GUI-035.016.M05.T01 | MD-GUI-035.016.M05 | Positive | Threads table and detail (SRD-GUI-035.016) | 2 threads today | 2 rows newest first; selecting one lists its messages | Not Run |
+| UT-GUI-035.016.M05.T02 | MD-GUI-035.016.M05 | Negative | No threads (SRD-GUI-035.016) | none, messages off; none, on | empty text names the switch; plain empty text | Not Run |
