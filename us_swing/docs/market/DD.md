@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.26.0: DD-MKT-020.001.D01 added — company day (AI Desk v3 M5, 2026-11-13).
 > v0.25.0: DD-MKT-010.009.D01 added — chat sessions, summaries, team ask and updates (AI Desk v3 M4, 2026-11-13).
 > v0.24.0: DD-MKT-012.007.D01 added — view check (AI Desk v3 M3, 2026-11-13).
 > v0.23.0: DD-MKT-013.013.D01 added — flag escalation (AI Desk v3 M2, 2026-11-13).
@@ -1592,3 +1593,141 @@ log [Memory] Checked N view(s): R right, W wrong
 ```
 
 Any error is logged with `log.exception` and the run goes on.
+
+## DD-MKT-020.001.D01 — Company Day (AI Desk v3 M5)
+
+**Traces:** SRD-MKT-020.001–.024, SRD-GUI-034.077–.078, SRD-GUI-035.018. User answers 2026-11-13: code stand-up, clash huddle at most once a day, lead day call checked after 5 trading days, one lead AI call at day-end. Everything below runs only while `company_day_on` is true (`core/desk_ai_settings.py`, default false). With it off no day row is written and every skill works as before.
+
+### 1. Tables — `core/desk_day.py` (SRD-MKT-020.002)
+
+```
+day_brief (day TEXT PRIMARY KEY, standup TEXT DEFAULT '', standup_at TEXT DEFAULT '',
+           clash TEXT DEFAULT '', huddle INTEGER DEFAULT 0, huddle_at TEXT DEFAULT '',
+           plan_at TEXT DEFAULT '', handover TEXT DEFAULT '', feedback TEXT DEFAULT '[]',
+           summary TEXT DEFAULT '', day_end_at TEXT DEFAULT '')
+decisions (day TEXT PRIMARY KEY, market TEXT, favour TEXT, note TEXT, huddle INTEGER,
+           made TEXT, due TEXT, status TEXT, market_result TEXT DEFAULT '',
+           sector_result TEXT DEFAULT '', spy_move REAL, sector_move REAL, checked TEXT)
+decision_votes (day TEXT, skill TEXT, part TEXT, stance TEXT, result TEXT DEFAULT '',
+                PRIMARY KEY (day, skill))
+```
+
+`day` is the data day. `favour` and `feedback` are JSON lists. `status` is `open` or `checked`. Votes are keyed by skill (`regime_view`, `sector_flow_view`), so the record follows the work when the Master moves a skill to another employee. Each writer opens its own connection, writes in one short transaction and closes it (`CREATE TABLE IF NOT EXISTS` on connect). GUI reads use a read-only connection and return empty values when the file or table is missing. `desk_day` never imports `desk_memory` at module level (no cycle); it reuses `desk_memory.add_trading_days` inside functions.
+
+### 2. Stand-up (SRD-MKT-020.003, .004)
+
+`standup_text(home, day)` builds, with no AI call:
+
+```
+Stand-up for <day>
+Handover from <previous day with a handover>: <handover lines joined by " / "> | "No handover note yet."
+Regime view: <regime>, confidence <c%>. <first reason>
+Sector/flow: favour <list>; avoid <list>.
+Setup review: <n> ideas graded: <a> A, <b> B, <c> C.
+News review: <n> tagged; <k> bad news.        (tone = 'bad' count; "no tags" when none)
+Risk check: <p> passed, <v> vetoed (<code> by code).
+```
+
+Each missing view gives `<name>: no view today.` The text is cut at 1,200 characters. `LeadBriefSkill.facts` puts it first when the setting is on, and `act` saves it with `save_standup(home, day, text, now)`. The previous day is the latest `day_brief.day < day` with a non-empty handover.
+
+### 3. Clash and huddle — `market/lead_brief.py` (SRD-MKT-020.005, .006, .010)
+
+```
+clash(regime, favour):  DEFENSIVE = {Utilities, Consumer Staples, Health Care, Real Estate}
+    Downtrend and not (favour & DEFENSIVE)       -> "Regime view says Downtrend but sector/flow favours <list>"
+    Uptrend   and favour and favour <= DEFENSIVE -> "Regime view says Uptrend but sector/flow favours only defensive <list>"
+    else None   (Choppy, a missing view or an empty favour list never clash)
+
+LeadBriefSkill.act(ctx, facts):
+    on = company day on; talk = talker(ctx)
+    if on and talk and not facts.inbox:
+        brief = day_brief(home, day)
+        if brief.huddle == 0 and (why := clash(...)):
+            talk.send(Draft(type="meeting", to=["skill:regime_view", "skill:sector_flow_view"],
+                            subject="Huddle: views clash", text=why + " Reply in one or two lines: "
+                            "what do you see, and should we lean your way today?"))
+            mark_huddle_called(home, day, why, now)       # huddle = 1: never twice a day
+            return []                                     # no AI call; the step waits
+    if on and huddle_open(home, day):  return []          # a reply came but another is open
+    ... normal brief (facts include the huddle block when a huddle ran) ...
+```
+
+The step waits because `open_started` counts an open meeting the employee sent (§4). The huddle's messages are found by `messages.data_day = day AND type = 'meeting'`, so no thread id is linked by hand. `huddle_open(home, day)` is true while one of them is `submitted`. Each reply wakes the lead; the wake that finds none open writes the brief. A refused meeting (only when no employee holds one of the two skills) leaves the step ended with no brief that day; the next morning or manual run writes it, and the huddle is not tried again (flag already set). Fakes and replays are not talkers, so they never huddle.
+
+`huddle_block(home, day)`: `Huddle (one round): <clash>` then one line per meeting row: `<receiver name>: <reply text>` or `<receiver name>: no answer` for an expired one. Shown after the stand-up.
+
+### 4. Meetings in the message check — `core/desk_messages.py` (SRD-MKT-020.007, .008)
+
+- `accept(..., meetings: bool = False)`: types are `M2_TYPES`/`M1_TYPES` plus `meeting` when `meetings` is true. The employees step passes `company_day_on`.
+- A meeting draft with `to` as a list (1 to 3 addresses) is stored as one `meeting` row per receiver: the first row opens the thread, the next rows join it (`thread` = first id, `threads.msgs` + 1). Each row is due in 10 minutes and posts one `message` event to its receiver. A list with a duplicate receiver or the sender is refused.
+- `_OPEN` gains `meeting`, so a reply closes it and `expire_due` answers it with "no reply within 10 minutes". A `send_back` to a meeting is refused (it is not in the allowed parent types for a send_back).
+- `open_started` also counts `type = 'meeting'` rows the employee sent that are still `submitted`.
+- `Draft.to` already allows a list only on a meeting (`desk_msg.Message._header_rules`).
+
+### 5. Experts answer a meeting (SRD-MKT-020.009)
+
+`RegimeViewSkill` and `SectorViewSkill` get `talks = True`. In `act`, when `facts.inbox` is set and `talker(ctx)` is not `None`: `ctx.ask(facts.text, InboxReply)` and return `[]`. The saved view, the feed and the brief stay as they are (same pattern as the news review, SRD-MKT-006.013). With messages off they are never woken by a message.
+
+### 6. Day call and votes (SRD-MKT-020.011–.013)
+
+`DayCall(market: Literal[Uptrend, Choppy, Downtrend], favour: list[str] 1..3, note: str ≤200)`. With the setting on, the lead answer model is `LeadBriefWithCall` (`LeadBrief` + `call: DayCall`); with it off the plain `LeadBrief` is asked, so the old schema and replays are unchanged. Sectors not in today's `sector_daily` list are dropped (logged); with none left the call is not saved.
+
+`save_call(home, day, call, regime, favour_view, huddle, now)` replaces the day's `decisions` row (status `open`, `due = add_trading_days(day, 5)`) and its votes:
+
+```
+regime_view       part=market  agreed if regime_view.regime == call.market
+sector_flow_view  part=sector  agreed if set(sector_view.favour) & set(call.favour)
+```
+
+A missing view gives no vote. `day_brief.plan_at` is set.
+
+### 7. Decision check — `market/decision_check.py` (SRD-MKT-020.014–.017)
+
+`DecisionCheckStep` (`STEP_PATHS`, after `ViewCheckStep`). Does nothing while the setting is off; any error is logged and the run goes on.
+
+```
+for row in open decisions with due <= last SPY candle day:
+    spy = SPY closes; start = close on row.day (or the last before); end = 5th close after
+    no start or end -> stays open
+    m = (end - start) / start * 100
+    market: Uptrend  m >= 1 right, m <= -1 wrong;  Downtrend mirrored;
+            Choppy |m| < 1 right, |m| >= 2 wrong;  else neutral
+    sector: lines from sector_daily for row.favour on row.day and on the 5th trading day after
+            s = mean of each sector's line move %; gap = s - m
+            gap >= 0.5 right, gap <= -0.5 wrong, else neutral; no lines -> neutral
+    vote result: agreed -> part result; disagreed -> flip(right<->wrong); neutral stays
+    store results, moves, status checked, checked = today
+log [Company day] Checked N day call(s): R right, W wrong (market part)
+```
+
+### 8. Track record line (SRD-MKT-020.018)
+
+`day_call_line(home, skill)`: `Day calls you voted on: N checked, R right, W wrong.` from checked votes of that skill; empty when none. The employees step appends it after `with_memory(...)` when memory is on for the employee (both wake paths).
+
+### 9. Day-end (SRD-MKT-020.019–.023)
+
+- Event kind `day_end`: `EventRule(2, None, timedelta(hours=12))`, one per data day (key `day_end|<day>`). Label "Day-end" in `core/desk_team.py`.
+- `desk/clock.py::day_end_day(now) -> str`: today when today is a trading day and it is 16:00 New York time or later, else the last trading day before today.
+- `desk/process.py` clock tick: with the setting on and `has_handover(home, day)` false, `post_event(home, "day_end", day, now)` once per process (kept in `_posted`).
+- `market/day_end.py::DayEndSkill` (`key = "day_end"`, `needs = ()`). The facts data day is the event's day: the newest `day_brief`/`lead_picks` day not after today whose handover is empty. Facts:
+
+```
+Day-end for <day>
+Day call: <market>, favour <list>. <note>  | No day call today.
+Huddle: <clash> - replies ... | No huddle.
+Picks: <side> <symbol>: <pick_results.status or "no result yet">
+Watch flags: <kind> <symbol>: <verdict>  (at most 15)
+Check-in notes: <briefs of kind info by the check-in employee that day> (at most 3, cut to 300 chars)
+Open trades: <count from open_trades>
+Experts you may give feedback to: regime_view, sector_flow_view, setup_review, news_review, risk_check
+```
+
+- Answer `DayEnd(handover: list[str] 1..5 each ≤120, feedback: list[Feedback] ≤5)`, `Feedback(skill, text ≤150)`. Unknown or repeated skills are dropped.
+- `act`: `save_day_end(home, day, handover, feedback, summary, now)`; summary by code: `"<p> picks: <t> triggered, <s> stopped; <f> flags; huddle yes/no; call <market>"`. With Memory v2 on, each feedback line goes to `desk_memory.write(home, owner, [Remember(kind="note", text=...)], day, now)` where `owner` is the first `roster` id with that skill. Returns `[FeedItem("info", "Handover: " + " / ".join(lines), day)]`.
+- Default `market/employees/emp-018/` "Lead 3", level `lead`, reports to nobody, `skill: day_end`, `trigger: [day_end]`, calls per day 2, monthly cap USD 2. `SKILL_PATHS["day_end"]`, and `us_swing.market.day_end` plus `us_swing.market.decision_check` in `USSwing.spec`.
+
+### 10. GUI (SRD-GUI-034.077–.078, SRD-GUI-035.018)
+
+- `gui/ai_desk_settings.py`: a "Company day" check box after Chat sessions, saved as `company_day_on`.
+- Command header: two console tiles, hidden while off. Day call: `<market> · <sectors>`, second line `Agreed: <names> · Disagreed: <names>` (names from the roster), `Huddle` chip when a huddle ran, result chip `right/wrong/neutral` once checked. Handover: the latest handover lines and their day. Data from `day_view(home)` in `core/desk_day.py`, read off the GUI thread with the other header facts.
+- Team at work: a one-line day strip above the view switch for the shown day: Stand-up (`standup_at`), Huddle (`huddle_at`, or skipped when none), Plan (`plan_at`), Market hours (09:30–16:00, done after 16:00), Day-end (`day_end_at`). Each shows the time or `waiting`/`skipped`. Data from `day_phases(home, day, now)`.

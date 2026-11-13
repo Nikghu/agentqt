@@ -6,6 +6,8 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.26.1: SRD-MKT-020.001–.024 approved by user 2026-11-13.
+> v0.26.0: AI Desk v3 M5 (user, 2026-11-13): SRD-MKT-020.001–.024 added as Draft — company day: stand-up, huddle, day call and its check, day-end.
 > v0.25.2: SRD-MKT-010.006 and .009–.019 Implemented 2026-11-13.
 > v0.25.1: SRD-MKT-010.009–.019 approved and SRD-MKT-010.006 reopened (constraint: one ask with sessions and messages on) by user 2026-11-13.
 > v0.25.0: AI Desk v3 M4 (user, 2026-11-13): SRD-MKT-010.009–.019 added as Draft — chat sessions, summaries, memory notes, one team ask and updates.
@@ -385,3 +387,32 @@
 | SRD-MKT-019.012 | FO-MKT-019 | Must | Default employee ships as `emp-017` ("Expert 14", skill `strategy_test`) and its skill path is in `SKILL_PATHS` and the app build. | default files | employee | Copied only when missing; generic name | Implemented |
 | SRD-MKT-019.013 | FO-MKT-019 | Must | The skill never changes a live strategy, setting, signal or trade. | — | — | Report only | Implemented |
 | SRD-MKT-019.014 | FO-MKT-019 | Should | Each step logs the card, the step and its outcome. | step | log line | `[Research]` prefix | Implemented |
+
+## FO-MKT-020: Company Day
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-MKT-020.001 | FO-MKT-020 | Must | A `company_day_on` desk setting, off by default, turns the company day on; when off the morning run, lead brief and desk run work as before. | setting | — | Off: no day rows, no huddle, no day-end wake | Approved |
+| SRD-MKT-020.002 | FO-MKT-020 | Must | `desk.db` keeps one `day_brief` row per data day (stand-up, huddle thread, handover note, feedback, code summary, phase times), one `decisions` row per day call and one `decision_votes` row per voting expert. | — | tables | Created on first use; `core/desk_day.py` is the only writer | Approved |
+| SRD-MKT-020.003 | FO-MKT-020 | Must | Code builds the stand-up from yesterday's handover note and two short lines each from the day's regime view, sector/flow view, setup review, news review and risk check. | `day_brief`, view tables | stand-up text | No AI call; a missing view or note says so in one line | Approved |
+| SRD-MKT-020.004 | FO-MKT-020 | Must | With company day on, the lead brief facts start with the stand-up, and the stand-up is saved in `day_brief`. | stand-up | facts text, row | At most 1,200 characters | Approved |
+| SRD-MKT-020.005 | FO-MKT-020 | Must | A clash is a regime view of Downtrend while sector/flow favours no defensive sector, or Uptrend while it favours only defensive sectors. | `regime_view`, `sector_view` | clash or none | Defensive: Utilities, Consumer Staples, Health Care, Real Estate; Choppy never clashes | Approved |
+| SRD-MKT-020.006 | FO-MKT-020 | Must | On a clash, with messages on and no huddle yet that data day, the lead's wake sends one meeting to the regime view and sector/flow holders and waits, with no AI call. | clash | meeting | At most one huddle per data day; test fakes and replays never huddle | Approved |
+| SRD-MKT-020.007 | FO-MKT-020 | Must | With company day on, the message check takes a meeting to a list of receivers as one meeting row per receiver in one thread, each due in 10 minutes. | meeting draft | message rows | At most 3 receivers; the starter's step waits while a meeting is open | Approved |
+| SRD-MKT-020.008 | FO-MKT-020 | Must | A meeting is closed by one reply from its receiver or by the 10-minute expiry; it never gets a send-back. | reply | closed meeting | Same reply and expiry path as an ask | Approved |
+| SRD-MKT-020.009 | FO-MKT-020 | Must | The regime view and sector/flow skills answer a meeting in their inbox with one reply only and keep their saved view. | inbox | reply | Reply text at most 600 characters | Approved |
+| SRD-MKT-020.010 | FO-MKT-020 | Must | While a huddle meeting is open the lead's wake does nothing; when all are answered or expired the lead brief runs with a huddle block of the clash and each reply. | thread | facts text | An expired reply shows as "no answer" | Approved |
+| SRD-MKT-020.011 | FO-MKT-020 | Must | With company day on, the lead answer also gives a day call: market (Uptrend, Choppy or Downtrend), 1 to 3 favoured sectors and a note of at most 200 characters. | facts | day call | Sectors must be from the saved list; unknown ones are dropped and logged | Approved |
+| SRD-MKT-020.012 | FO-MKT-020 | Must | The day call is kept in `decisions` with the huddle thread and a check day 5 trading days later. | day call | row | A new lead run on the same day replaces it | Approved |
+| SRD-MKT-020.013 | FO-MKT-020 | Must | The regime view agrees when its regime equals the call's market; sector/flow agrees when one of its favoured sectors is in the call; each stance is kept in `decision_votes`. | views, call | vote rows | A missing view gives no vote | Approved |
+| SRD-MKT-020.014 | FO-MKT-020 | Must | A Decision check desk step checks each due day call: the market part by SPY's move and the sector part by the favoured sectors' average move against SPY. | SPY closes, `sector_daily` | results | Runs on each desk run with company day on; a failure never stops the run | Approved |
+| SRD-MKT-020.015 | FO-MKT-020 | Must | Uptrend is right at +1% or more and wrong at −1% or less; Downtrend the other way; Choppy is right under 1% either way and wrong at 2% or more; else neutral. | SPY move | market result | Moves from the call day's close to the 5th close after it | Approved |
+| SRD-MKT-020.016 | FO-MKT-020 | Must | The sector part is right when the favoured sectors beat SPY by 0.5 points or more, wrong when they trail by 0.5 or more, else neutral. | sector lines | sector result | Sector lines from `sector_daily` | Approved |
+| SRD-MKT-020.017 | FO-MKT-020 | Must | An agreeing vote takes its part's result and a disagreeing vote the opposite; regime view votes on the market part and sector/flow on the sector part. | results | vote results | Neutral stays neutral | Approved |
+| SRD-MKT-020.018 | FO-MKT-020 | Must | With Memory v2 on, an employee's core block adds one day-call line: checked, right and wrong. | `decision_votes` | prompt line | Only when the employee has checked votes | Approved |
+| SRD-MKT-020.019 | FO-MKT-020 | Must | A `day_end` event is posted once for the latest closed trading day with no handover note: from 16:00 New York time, or at the next desk start when the app was closed. | clock, `day_brief` | event | Priority 2; only with company day on | Approved |
+| SRD-MKT-020.020 | FO-MKT-020 | Must | Day-end facts are the day call and huddle, each lead pick with its pick result, the day's watch flags with verdicts, the check-in notes and the open trades count. | `desk.db` | facts text | No AI call in the facts | Approved |
+| SRD-MKT-020.021 | FO-MKT-020 | Must | The day-end answer is a handover note of 1 to 5 lines and at most one feedback line per expert skill named in the facts. | facts | answer | Lines at most 120 characters, feedback at most 150 | Approved |
+| SRD-MKT-020.022 | FO-MKT-020 | Must | The handover note, the feedback and a code summary are kept in `day_brief`; each feedback line is a note in that expert's memory while Memory v2 is on; the note goes to the AI feed. | answer | row, notes, feed item | Notes count in 3 a day; feed kind `info` | Approved |
+| SRD-MKT-020.023 | FO-MKT-020 | Must | A default lead-level employee ships as `emp-018` ("Lead 3", skill `day_end`, trigger `day_end`) and its skill path is in `SKILL_PATHS` and the app build. | default files | employee | Copied only when missing; generic name; calls per day 2, monthly cap USD 2 | Approved |
+| SRD-MKT-020.024 | FO-MKT-020 | Should | Stand-up, huddle, day call, decision check and day-end each log one line, and nothing in the company day places, changes or closes a trade. | step | log line | `[Company day]` prefix | Approved |

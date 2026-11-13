@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.39.0: UT-GUI-034.077–.078 and UT-GUI-035.018 added (6, Not Run) (AI Desk v3 M5, 2026-11-13).
 > v1.38.1: UT-GUI-034.073–.076 Pass (9, 2026-11-13).
 > v1.38.0: UT-GUI-034.073–.076 added (9, Not Run) (AI Desk v3 M4, 2026-11-13).
 > v1.37.1: UT-GUI-034.072 and 037.005–.008 Pass (10, 2026-11-13).
@@ -1369,3 +1370,14 @@ Test files:
 | UT-GUI-034.076.M26.T01 | MD-GUI-034.039.M26 | Positive | Update bubble (SRD-GUI-034.076) | question with reply and update rows | update shown as a lead bubble marked Update | Pass |
 | UT-GUI-034.076.M26.T02 | MD-GUI-034.039.M26 | Positive | Team note (SRD-GUI-034.076) | replied question with an open team ask | note 'Waiting for the team'; check keeps running | Pass |
 | UT-GUI-034.076.M26.T03 | MD-GUI-034.039.M26 | Negative | Plain reply (SRD-GUI-034.076) | question with a reply and no team ask | lead bubble without Update; note empty | Pass |
+
+## FO-GUI-034 / 035 (AI Desk v3 M5): Company Day
+
+| UT ID | Module | Type | Title (SRD) | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-034.077.M15.T01 | MD-GUI-034.016.M15 | Positive | Company day switch (SRD-GUI-034.077) | tick Company day and save | company_day_on true in the settings file; off by default | Not Run |
+| UT-GUI-034.078.M40.T01 | MD-GUI-034.078.M40 | Positive | Day call tile (SRD-GUI-034.078) | on; call Uptrend IT, regime view disagreed, huddle, checked right | tile text has market, sectors, agreed and disagreed names, Huddle and right | Not Run |
+| UT-GUI-034.078.M40.T02 | MD-GUI-034.078.M40 | Positive | Handover tile (SRD-GUI-034.078) | on; handover of 2 lines yesterday | tile shows both lines and the day | Not Run |
+| UT-GUI-034.078.M40.T03 | MD-GUI-034.078.M40 | Negative | Tiles hidden (SRD-GUI-034.078) | company day off | no Day call or Handover tile | Not Run |
+| UT-GUI-035.018.M40.T01 | MD-GUI-034.078.M40 | Positive | Day strip (SRD-GUI-035.018) | on; stand-up 08:10, no huddle, plan 08:12, 11:00 NY, no day-end | Stand-up 08:10, Huddle skipped, Plan 08:12, Market hours waiting, Day-end waiting | Not Run |
+| UT-GUI-035.018.M40.T02 | MD-GUI-034.078.M40 | Negative | Strip hidden (SRD-GUI-035.018) | company day off | strip not shown | Not Run |
