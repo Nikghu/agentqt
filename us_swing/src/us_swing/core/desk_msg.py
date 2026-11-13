@@ -1,6 +1,7 @@
 """
 Module: MD-DSK-011.001.M27 — core/desk_msg.py
 Parent SRD: SRD-DSK-011.001
+Also: SRD-DSK-011.003, .004 (send_back parent or to), SRD-DSK-011.016 (``Draft``, ``with_messages``)
 
 The one desk message format, ``desk.msg/1``: a thread row, an envelope with the core header,
 a body chosen by message type and meta keys that appear only when set. Every model refuses
@@ -9,6 +10,7 @@ DD-DSK-011.001.D01.
 """
 from __future__ import annotations
 
+import functools
 from enum import Enum
 from typing import Annotated, Any, Literal
 
@@ -20,6 +22,7 @@ from pydantic import (
     StringConstraints,
     TypeAdapter,
     ValidationError,
+    create_model,
     model_validator,
 )
 
@@ -39,7 +42,7 @@ About = Annotated[list[Annotated[str, StringConstraints(min_length=1, max_length
 
 _STRICT = ConfigDict(extra="forbid")
 _DUE_TYPES = frozenset({"ask", "task", "send_back", "escalate", "meeting"})
-_PARENT_TYPES = frozenset({"reply", "send_back", "decision"})
+_PARENT_TYPES = frozenset({"reply", "decision"})
 _NO_TO_TYPES = frozenset({"reply", "send_back"})
 
 
@@ -332,8 +335,10 @@ class Message(BaseModel):
         kind = self.body.type
         if isinstance(self.to, list) and kind != "meeting":
             raise ValueError("to is a list only on a meeting")
-        if kind in _NO_TO_TYPES and self.to is not None:
-            raise ValueError(f"to is left out on a {kind}; the parent's sender gets it")
+        if kind == "send_back" and (self.parent is None) == (self.to is None):
+            raise ValueError("a send_back has a parent or starts a thread with a to, not both")
+        if kind == "reply" and self.to is not None:
+            raise ValueError("to is left out on a reply; the parent's sender gets it")
         if kind not in _NO_TO_TYPES and self.to is None:
             raise ValueError(f"a {kind} needs to")
         if self.due is not None and kind not in _DUE_TYPES:
@@ -377,3 +382,52 @@ def parse_body(data: dict[str, Any]) -> BaseModel:
     """Pick and check the body model by its ``type`` key."""
     body: BaseModel = TypeAdapter(Body).validate_python(data)
     return body
+
+
+MsgType = Literal["ask", "task", "reply", "send_back", "handover", "escalate", "meeting",
+                  "decision", "feedback"]
+_DRAFT_HELP = ("Messages to other employees (optional). Use type ask to ask a question "
+               "(to = employee id or skill:<key>), reply to answer a message in your inbox "
+               "(parent = its number, no to), send_back to return work for a fix. Leave the "
+               "list empty when you need nobody.")
+
+
+class Draft(BaseModel):
+    """A message as an employee writes it; code adds id, thread, sender, time and state."""
+
+    model_config = _STRICT
+
+    type: MsgType
+    to: str | None = Field(default=None, max_length=60)
+    parent: int | None = Field(default=None, ge=1)
+    subject: str | None = None
+    text: str | None = None
+    about: list[str] | None = None
+    want: Want | None = None
+    verdict: Verdict | None = None
+    data: Data | None = None
+    flags: list[Flag] | None = None
+
+    def body(self) -> dict[str, Any]:
+        """The body fields with the type, ready for ``parse_body``."""
+        data = self.model_dump(mode="json", by_alias=True, exclude_none=True,
+                               exclude={"to", "parent"})
+        return data
+
+
+@functools.cache
+def with_messages(schema: type[BaseModel]) -> type[BaseModel]:
+    """``schema`` plus an optional ``messages`` list of at most 5 drafts (SRD-DSK-011.016)."""
+    model: type[BaseModel] = create_model(
+        schema.__name__, __base__=schema,
+        messages=(list[Draft], Field(default_factory=list, max_length=5,
+                                     description=_DRAFT_HELP)))
+    return model
+
+
+class InboxReply(BaseModel):
+    """Answer of a wake that only has to answer its inbox."""
+
+    model_config = _STRICT
+
+    messages: list[Draft] = Field(min_length=1, max_length=5, description=_DRAFT_HELP)

@@ -1,6 +1,7 @@
 """
 Module: MD-GUI-035.002.M02 — core/desk_team.py
 Parent SRD: SRD-GUI-035.002
+Also: SRD-GUI-035.015 (message events: receiver, detail, calls)
 Also: SRD-GUI-035.004–.009 (run view, events, scorecard and profile data)
 
 Read-only facts for AI Desk → Team at work: the team from the employee job files, desk runs,
@@ -9,6 +10,7 @@ scorecard and a short history per employee. Never imports ``desk``.
 """
 from __future__ import annotations
 
+import json
 import importlib
 import logging
 import sqlite3
@@ -36,6 +38,7 @@ _REAL = "COALESCE(replay, 0) = 0 AND COALESCE(shadow, 0) = 0"
 _EVENT_NAMES = {
     "after_run": "Morning run", "regime_change": "Regime change", "market_open": "Market open",
     "market_close": "Market close", "chat_question": "Chat question", "data_request": "Data ask",
+    "message": "Message",
 }
 _EVENT_WHY = {
     "after_run": "Desk run finished its data steps",
@@ -44,6 +47,7 @@ _EVENT_WHY = {
     "market_close": "NYSE closed",
     "chat_question": "You asked the lead a question",
     "data_request": "You asked the desk for new data",
+    "message": "An employee wrote to another",
 }
 
 
@@ -143,6 +147,8 @@ class DeskEvent:
     state: str
     note: str
     calls: tuple[Call, ...] = ()
+    target: str = ""
+    detail: str = ""
 
     @property
     def name(self) -> str:
@@ -405,6 +411,11 @@ def day_events(home: Path, day: date, members: Sequence[Member],
         if made is None:
             continue
         done = _ny(handled)
+        if kind == "message":
+            out.append(_message_event(home, members, int(eid), str(key), int(prio),
+                                      str(data_day), made, _ny(deadline), done, str(state),
+                                      str(note or "")))
+            continue
         if kind == "after_run":
             run_id = str(key).rsplit("|", 1)[-1]
             calls = run_calls(home, int(run_id)) if run_id.lstrip("-").isdigit() else []
@@ -418,6 +429,27 @@ def day_events(home: Path, day: date, members: Sequence[Member],
         out.append(DeskEvent(int(eid), str(kind), int(prio), str(data_day), made, _ny(deadline),
                              done, str(state), str(note or ""), tuple(calls)))
     return out
+
+
+def _message_event(home: Path, members: Sequence[Member], eid: int, key: str, prio: int,
+                   data_day: str, made: datetime, deadline: datetime | None,
+                   done: datetime | None, state: str, note: str) -> DeskEvent:
+    """A message event with its receiver, a plain detail line and its calls (SRD-GUI-035.015)."""
+    mid = key.rsplit("|", 1)[-1]
+    rows = _rows(home, "SELECT type, sender, receiver, state, body FROM messages WHERE id = ?",
+                 (int(mid),)) if mid.isdigit() else []
+    if not rows:
+        return DeskEvent(eid, "message", prio, data_day, made, deadline, done, state, note)
+    kind, sender, receiver, msg_state, body = rows[0]
+    names = {m.id: m.name for m in members}
+    fields = json.loads(str(body or "{}"))
+    words = str(fields.get("subject") or fields.get("text") or
+                (fields.get("verdict") or {}).get("result") or "")[:60]
+    detail = (f"{str(kind).replace('_', ' ')} from {names.get(str(sender), sender)} to "
+              f"{names.get(str(receiver), receiver)}: {words} ({msg_state})")
+    calls = _calls(home, "message = ?", (int(mid),))
+    return DeskEvent(eid, "message", prio, data_day, made, deadline, done, state, note,
+                     tuple(calls), str(receiver), detail)
 
 
 def scorecard(home: Path, members: Sequence[Member], now: datetime,

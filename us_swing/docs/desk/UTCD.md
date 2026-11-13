@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.17.1: UT-DSK-011 M1 cases Pass (47, 2026-11-13).
 > v0.17.0: UT-DSK-011.003–.032 M1 cases added (Not Run, 47); UT-DSK-011.014.M27.T01–T02 superseded by UT-DSK-011.014.M29.T01–T02 (2026-11-13).
 > v0.16.1: UT-DSK-011.001–.014, 012.001–.011 and 001.010.M04.T32–T33 Pass (52, 2026-11-13).
 > v0.16.0: UT-DSK-011.001–.014 and 012.001–.011 added (Not Run, 52 cases) — AI Desk v3 M0 (2026-11-13).
@@ -129,7 +130,7 @@
 | UT-DSK-002.003.M11.T01 | MD-DSK-004.001.M11 | Positive | Soul is the system prompt (SRD-DSK-002.003) | fake model records its input | system text starts with soul.md; model from job.yaml | Pass |
 | UT-DSK-002.003.M11.T02 | MD-DSK-004.001.M11 | Negative | Soul cannot change rules (SRD-DSK-002.003) | soul.md names another model | job.yaml model still used | Pass |
 | UT-DSK-002.004.M09.T03 | MD-DSK-002.002.M09 | Negative | Bad file not stored (SRD-DSK-002.004) | invalid job.yaml | no roster row | Pass |
-| UT-DSK-002.005.M10.T01 | MD-DSK-003.001.M10 | Positive | Context is ask only (SRD-DSK-002.005) | employee inspects its context | only home and ask | Pass |
+| UT-DSK-002.005.M10.T01 | MD-DSK-003.001.M10 | Positive | Context is ask only (SRD-DSK-002.005) | employee inspects its context | home and ask, plus talk, drafts, send and asked with talk off | Pass |
 | UT-DSK-002.005.M10.T02 | MD-DSK-003.001.M10 | Negative | Job files untouched (SRD-DSK-002.005) | full run | job file hashes unchanged | Pass |
 | UT-DSK-002.006.M09.T01 | MD-DSK-002.002.M09 | Positive | Rename and restructure (SRD-DSK-002.006) | change name, level and reports_to in job.yaml | loaded with the new values; no code change | Pass |
 | UT-DSK-002.006.M09.T02 | MD-DSK-002.002.M09 | Negative | Repeated id (SRD-DSK-002.006) | two folders with one id | second stays asleep; warning | Pass |
@@ -488,50 +489,51 @@
 
 | ID | Module | Type | Title | Input | Expected | Status |
 |---|---|---|---|---|---|---|
-| UT-DSK-011.003.M27.T03 | MD-DSK-011.001.M27 | Positive | First send-back starts a thread (SRD-DSK-011.003) | send_back with to emp-003 and no parent | valid | Not Run |
-| UT-DSK-011.003.M27.T04 | MD-DSK-011.001.M27 | Negative | Send-back needs parent or to (SRD-DSK-011.003) | send_back with both; with neither | each refused | Not Run |
-| UT-DSK-011.004.M27.T03 | MD-DSK-011.001.M27 | Positive | Send-back with a parent has no to (SRD-DSK-011.004) | send_back with parent 5 and no to | valid | Not Run |
-| UT-DSK-011.004.M27.T04 | MD-DSK-011.001.M27 | Negative | To on an answering send-back (SRD-DSK-011.004) | send_back with parent 5 and to emp-003 | refused | Not Run |
-| UT-DSK-011.016.M27.T01 | MD-DSK-011.001.M27 | Positive | Answer with messages (SRD-DSK-011.016) | `with_messages(SetupReview)` twice | subclass with the old fields and a messages list; same class both times | Not Run |
-| UT-DSK-011.016.M27.T02 | MD-DSK-011.001.M27 | Negative | Too many drafts (SRD-DSK-011.016) | answer with 6 drafts | refused | Not Run |
-| UT-DSK-011.016.M11.T01 | MD-DSK-004.001.M11 | Positive | Talking gateway (SRD-DSK-011.016) | talk on, fake model answers with 1 draft | prompt schema has messages; `drafts` holds 1 | Not Run |
-| UT-DSK-011.016.M11.T02 | MD-DSK-004.001.M11 | Negative | Quiet gateway (SRD-DSK-011.016) | talk off | prompt schema has no messages; `drafts` empty | Not Run |
-| UT-DSK-011.015.M29.T01 | MD-DSK-011.015.M29 | Positive | Store and read back (SRD-DSK-011.015) | accept one ask | one messages row and one thread row; reads back as an equal Message | Not Run |
-| UT-DSK-011.015.M29.T02 | MD-DSK-011.015.M29 | Negative | No database (SRD-DSK-011.015) | reads on a home with no desk.db | empty lists; no file made | Not Run |
-| UT-DSK-011.014.M29.T01 | MD-DSK-011.015.M29 | Positive | One writer (SRD-DSK-011.014) | all source files | only `core/desk_messages.py` writes the messages and threads tables | Not Run |
-| UT-DSK-011.014.M29.T02 | MD-DSK-011.015.M29 | Negative | Nothing stored while off (SRD-DSK-011.014) | full morning run on a desk copy with messages off and drafts in the answers | no messages rows | Not Run |
-| UT-DSK-011.017.M29.T01 | MD-DSK-011.015.M29 | Positive | M1 types (SRD-DSK-011.017) | an ask, a reply and a first send_back | all stored | Not Run |
-| UT-DSK-011.017.M29.T02 | MD-DSK-011.015.M29 | Negative | Type not in use (SRD-DSK-011.017) | handover; escalate | refused: not in use yet | Not Run |
-| UT-DSK-011.018.M29.T01 | MD-DSK-011.015.M29 | Positive | Receivers (SRD-DSK-011.018) | to emp-006; to skill:news_review held by emp-007 and emp-006 | emp-006 both times | Not Run |
-| UT-DSK-011.018.M29.T02 | MD-DSK-011.015.M29 | Negative | Nobody to take it (SRD-DSK-011.018) | unknown id; retired employee; skill nobody holds; boss | each refused | Not Run |
-| UT-DSK-011.019.M29.T01 | MD-DSK-011.015.M29 | Positive | Bad draft refused alone (SRD-DSK-011.019) | 3 drafts, the middle one with an unknown key | first and last stored; one refusal line | Not Run |
-| UT-DSK-011.019.M29.T02 | MD-DSK-011.015.M29 | Negative | Unknown data format (SRD-DSK-011.019) | reply with data in format nope.v1 | refused at the data step | Not Run |
-| UT-DSK-011.020.M29.T01 | MD-DSK-011.015.M29 | Positive | Within limits (SRD-DSK-011.020) | 6th message of a thread; 2nd send-back; 20th started today | all stored | Not Run |
-| UT-DSK-011.020.M29.T02 | MD-DSK-011.015.M29 | Negative | Over limits (SRD-DSK-011.020) | 7th message; 3rd send-back; 21st started today | each refused | Not Run |
-| UT-DSK-011.021.M29.T01 | MD-DSK-011.015.M29 | Positive | Reply to an open ask (SRD-DSK-011.021) | ask emp-003 to emp-006; reply by emp-006 with parent | stored to emp-003 | Not Run |
-| UT-DSK-011.021.M29.T02 | MD-DSK-011.015.M29 | Negative | Bad reply (SRD-DSK-011.021) | second reply; reply by emp-007; reply to a reply | each refused | Not Run |
-| UT-DSK-011.022.M29.T01 | MD-DSK-011.015.M29 | Negative | Loop refused (SRD-DSK-011.022) | emp-006 asks emp-003 while emp-003's ask to it is open in the thread | refused | Not Run |
-| UT-DSK-011.022.M29.T02 | MD-DSK-011.015.M29 | Positive | Third employee in a thread (SRD-DSK-011.022) | emp-006 asks emp-004 in the same thread | stored | Not Run |
-| UT-DSK-011.023.M29.T01 | MD-DSK-011.015.M29 | Positive | Expiry (SRD-DSK-011.023) | open ask, 11 minutes later | parent expired; failed reply in the receiver's name; event for the asker | Not Run |
-| UT-DSK-011.023.M29.T02 | MD-DSK-011.015.M29 | Negative | Not yet due (SRD-DSK-011.023) | open ask, 9 minutes later | still submitted; nothing written | Not Run |
-| UT-DSK-011.024.M29.T01 | MD-DSK-011.015.M29 | Positive | Wake event (SRD-DSK-011.024) | stored ask | one waiting message event, key message id, target receiver, priority 1 | Not Run |
-| UT-DSK-011.024.M29.T02 | MD-DSK-011.015.M29 | Negative | No event for a refusal (SRD-DSK-011.024) | refused draft | no event | Not Run |
-| UT-DSK-011.025.M16.T01 | MD-DSK-003.006.M16 | Positive | Addressed wake (SRD-DSK-011.025) | message event to emp-006, which listens only to after_run, plus two other employees | only emp-006 woken | Not Run |
-| UT-DSK-011.025.M16.T02 | MD-DSK-003.006.M16 | Negative | Target not loaded (SRD-DSK-011.025) | message event to an id not in the roster | closed as nobody listens; nobody woken | Not Run |
-| UT-DSK-011.025.M16.T03 | MD-DSK-003.006.M16 | Edge | No rewake gap (SRD-DSK-011.025) | employee woke 5 minutes ago | message wake runs; its after_run wake later is not blocked by the message turn | Not Run |
-| UT-DSK-011.026.M29.T01 | MD-DSK-011.015.M29 | Positive | Inbox block (SRD-DSK-011.026) | one ask and one reply to emp-003 | block with ids, sender id and name, text and the reply hint | Not Run |
-| UT-DSK-011.026.M29.T02 | MD-DSK-011.015.M29 | Negative | Seen rows not shown again (SRD-DSK-011.026) | inbox after `mark_seen` | empty | Not Run |
-| UT-DSK-011.027.M29.T01 | MD-DSK-011.015.M29 | Positive | Reply closes the parent (SRD-DSK-011.027) | replies done, failed and refused | parent completed, failed and refused; asker event each | Not Run |
-| UT-DSK-011.027.M29.T02 | MD-DSK-011.015.M29 | Negative | Closed parent unchanged (SRD-DSK-011.027) | reply to an expired ask | refused; parent stays expired | Not Run |
-| UT-DSK-011.027.M10.T01 | MD-DSK-003.001.M10 | Positive | Ask and reply in one run (SRD-DSK-011.027) | desk copy, messages on; setup review asks news review | in one events pass: ask, reply, setup review woken again; 2 messages | Not Run |
-| UT-DSK-011.028.M10.T01 | MD-DSK-003.001.M10 | Positive | Receiver cannot work (SRD-DSK-011.028) | ask to an employee whose facts are stale | refused reply with the stale reason at once; asker woken | Not Run |
-| UT-DSK-011.028.M10.T02 | MD-DSK-003.001.M10 | Negative | Receiver works (SRD-DSK-011.028) | ask to a fresh employee that answers | no refused reply | Not Run |
-| UT-DSK-011.029.M16.T01 | MD-DSK-003.006.M16 | Positive | Chain waits for the reply (SRD-DSK-011.029) | setup review with an open ask; risk check needs it | risk check not woken; after the reply setup review's step_done comes and risk check runs | Not Run |
-| UT-DSK-011.029.M16.T02 | MD-DSK-003.006.M16 | Negative | Nothing open (SRD-DSK-011.029) | turn with no ask | step_done at once, as today | Not Run |
-| UT-DSK-011.029.M16.T03 | MD-DSK-003.006.M16 | Edge | Expiry releases the chain (SRD-DSK-011.029) | ask never answered, 11 minutes | asker step ok after the failed reply; chain goes on | Not Run |
-| UT-DSK-011.030.M10.T01 | MD-DSK-003.001.M10 | Positive | Starter pays (SRD-DSK-011.030) | news review answers emp-003's ask | activity row of emp-006 with payer emp-003, part plan, message id | Not Run |
-| UT-DSK-011.030.M10.T02 | MD-DSK-003.001.M10 | Negative | Starter out of tokens (SRD-DSK-011.030) | emp-003 plan part used up | no call; refused reply with the budget reason | Not Run |
-| UT-DSK-011.031.M10.T01 | MD-DSK-003.001.M10 | Positive | Messages on (SRD-DSK-011.031) | messages_on true | talking skills get the messages field; drafts stored | Not Run |
-| UT-DSK-011.031.M10.T02 | MD-DSK-003.001.M10 | Negative | Messages off (SRD-DSK-011.031) | messages_on false, fake model returns grades only | no messages field in prompts; no rows; same results as today | Not Run |
-| UT-DSK-011.031.M13.T01 | MD-DSK-004.005.M13 | Positive | Setting saved and read (SRD-DSK-011.031) | old desk_ai.json without the key; then save true | false; then true | Not Run |
-| UT-DSK-011.032.M29.T01 | MD-DSK-011.015.M29 | Positive | Message logs (SRD-DSK-011.032) | store, refuse, expire | `[Messages]` info lines, no class names | Not Run |
+| UT-DSK-011.003.M27.T03 | MD-DSK-011.001.M27 | Positive | First send-back starts a thread (SRD-DSK-011.003) | send_back with to emp-003 and no parent | valid | Pass |
+| UT-DSK-011.003.M27.T04 | MD-DSK-011.001.M27 | Negative | Send-back needs parent or to (SRD-DSK-011.003) | send_back with both; with neither | each refused | Pass |
+| UT-DSK-011.004.M27.T03 | MD-DSK-011.001.M27 | Positive | Send-back with a parent has no to (SRD-DSK-011.004) | send_back with parent 5 and no to | valid | Pass |
+| UT-DSK-011.004.M27.T04 | MD-DSK-011.001.M27 | Negative | To on an answering send-back (SRD-DSK-011.004) | send_back with parent 5 and to emp-003 | refused | Pass |
+| UT-DSK-011.016.M27.T01 | MD-DSK-011.001.M27 | Positive | Answer with messages (SRD-DSK-011.016) | `with_messages(SetupReview)` twice | subclass with the old fields and a messages list; same class both times | Pass |
+| UT-DSK-011.016.M27.T02 | MD-DSK-011.001.M27 | Negative | Too many drafts (SRD-DSK-011.016) | answer with 6 drafts | refused | Pass |
+| UT-DSK-011.016.M11.T01 | MD-DSK-004.001.M11 | Positive | Talking gateway (SRD-DSK-011.016) | talk on, fake model answers with 1 draft | prompt schema has messages; `drafts` holds 1 | Pass |
+| UT-DSK-011.016.M11.T02 | MD-DSK-004.001.M11 | Negative | Quiet gateway (SRD-DSK-011.016) | talk off | prompt schema has no messages; `drafts` empty | Pass |
+| UT-DSK-011.015.M29.T01 | MD-DSK-011.015.M29 | Positive | Store and read back (SRD-DSK-011.015) | accept one ask | one messages row and one thread row; reads back as an equal Message | Pass |
+| UT-DSK-011.015.M29.T02 | MD-DSK-011.015.M29 | Negative | No database (SRD-DSK-011.015) | reads on a home with no desk.db | empty lists; no file made | Pass |
+| UT-DSK-011.014.M29.T01 | MD-DSK-011.015.M29 | Positive | One writer (SRD-DSK-011.014) | all source files | only `core/desk_messages.py` writes the messages and threads tables | Pass |
+| UT-DSK-011.014.M29.T02 | MD-DSK-011.015.M29 | Negative | Nothing stored while off (SRD-DSK-011.014) | full morning run on a desk copy with messages off and drafts in the answers | no messages rows | Pass |
+| UT-DSK-011.017.M29.T01 | MD-DSK-011.015.M29 | Positive | M1 types (SRD-DSK-011.017) | an ask, a reply and a first send_back | all stored | Pass |
+| UT-DSK-011.017.M29.T02 | MD-DSK-011.015.M29 | Negative | Type not in use (SRD-DSK-011.017) | handover; escalate | refused: not in use yet | Pass |
+| UT-DSK-011.018.M29.T01 | MD-DSK-011.015.M29 | Positive | Receivers (SRD-DSK-011.018) | to emp-006; to skill:news_review held by emp-007 and emp-006 | emp-006 both times | Pass |
+| UT-DSK-011.018.M29.T02 | MD-DSK-011.015.M29 | Negative | Nobody to take it (SRD-DSK-011.018) | unknown id; retired employee; skill nobody holds; boss | each refused | Pass |
+| UT-DSK-011.019.M29.T01 | MD-DSK-011.015.M29 | Positive | Bad draft refused alone (SRD-DSK-011.019) | 3 drafts, the middle one with an unknown key | first and last stored; one refusal line | Pass |
+| UT-DSK-011.019.M29.T02 | MD-DSK-011.015.M29 | Negative | Unknown data format (SRD-DSK-011.019) | reply with data in format nope.v1 | refused at the data step | Pass |
+| UT-DSK-011.020.M29.T01 | MD-DSK-011.015.M29 | Positive | Within limits (SRD-DSK-011.020) | 6th message of a thread; 2nd send-back; 20th started today | all stored | Pass |
+| UT-DSK-011.020.M29.T02 | MD-DSK-011.015.M29 | Negative | Over limits (SRD-DSK-011.020) | 7th message; 3rd send-back; 21st started today | each refused | Pass |
+| UT-DSK-011.021.M29.T01 | MD-DSK-011.015.M29 | Positive | Reply to an open ask (SRD-DSK-011.021) | ask emp-003 to emp-006; reply by emp-006 with parent | stored to emp-003 | Pass |
+| UT-DSK-011.021.M29.T02 | MD-DSK-011.015.M29 | Negative | Bad reply (SRD-DSK-011.021) | second reply; reply by emp-007; reply to a reply | each refused | Pass |
+| UT-DSK-011.022.M29.T01 | MD-DSK-011.015.M29 | Negative | Loop refused (SRD-DSK-011.022) | emp-006 asks emp-003 while emp-003's ask to it is open in the thread | refused | Pass |
+| UT-DSK-011.022.M29.T02 | MD-DSK-011.015.M29 | Positive | Third employee in a thread (SRD-DSK-011.022) | emp-006 asks emp-004 in the same thread | stored | Pass |
+| UT-DSK-011.023.M29.T01 | MD-DSK-011.015.M29 | Positive | Expiry (SRD-DSK-011.023) | open ask, 11 minutes later | parent expired; failed reply in the receiver's name; event for the asker | Pass |
+| UT-DSK-011.023.M29.T02 | MD-DSK-011.015.M29 | Negative | Not yet due (SRD-DSK-011.023) | open ask, 9 minutes later | still submitted; nothing written | Pass |
+| UT-DSK-011.024.M29.T01 | MD-DSK-011.015.M29 | Positive | Wake event (SRD-DSK-011.024) | stored ask | one waiting message event, key message id, target receiver, priority 1 | Pass |
+| UT-DSK-011.024.M29.T02 | MD-DSK-011.015.M29 | Negative | No event for a refusal (SRD-DSK-011.024) | refused draft | no event | Pass |
+| UT-DSK-011.025.M16.T01 | MD-DSK-003.006.M16 | Positive | Addressed wake (SRD-DSK-011.025) | message event to emp-006, which listens only to after_run, plus two other employees | only emp-006 woken | Pass |
+| UT-DSK-011.025.M16.T02 | MD-DSK-003.006.M16 | Negative | Target not loaded (SRD-DSK-011.025) | message event to an id not in the roster | closed as nobody listens; nobody woken | Pass |
+| UT-DSK-011.025.M16.T03 | MD-DSK-003.006.M16 | Edge | No rewake gap (SRD-DSK-011.025) | employee woke 5 minutes ago | message wake runs; its after_run wake later is not blocked by the message turn | Pass |
+| UT-DSK-011.026.M29.T01 | MD-DSK-011.015.M29 | Positive | Inbox block (SRD-DSK-011.026) | one ask and one reply to emp-003 | block with ids, sender id and name, text and the reply hint | Pass |
+| UT-DSK-011.026.M29.T02 | MD-DSK-011.015.M29 | Negative | Seen rows not shown again (SRD-DSK-011.026) | inbox after `mark_seen` | empty | Pass |
+| UT-DSK-011.027.M29.T01 | MD-DSK-011.015.M29 | Positive | Reply closes the parent (SRD-DSK-011.027) | replies done, failed and refused | parent completed, failed and refused; asker event each | Pass |
+| UT-DSK-011.027.M29.T02 | MD-DSK-011.015.M29 | Negative | Closed parent unchanged (SRD-DSK-011.027) | reply to an expired ask | refused; parent stays expired | Pass |
+| UT-DSK-011.027.M10.T01 | MD-DSK-003.001.M10 | Positive | Ask and reply in one run (SRD-DSK-011.027) | desk copy, messages on; setup review asks news review | in one events pass: ask, reply, setup review woken again; 2 messages | Pass |
+| UT-DSK-011.028.M10.T01 | MD-DSK-003.001.M10 | Positive | Receiver cannot work (SRD-DSK-011.028) | ask to an employee whose facts are stale | refused reply with the stale reason at once; asker woken | Pass |
+| UT-DSK-011.028.M10.T02 | MD-DSK-003.001.M10 | Negative | Receiver works (SRD-DSK-011.028) | ask to a fresh employee that answers | no refused reply | Pass |
+| UT-DSK-011.029.M16.T01 | MD-DSK-003.006.M16 | Positive | Chain waits for the reply (SRD-DSK-011.029) | setup review with an open ask; risk check needs it | risk check not woken; after the reply setup review's step_done comes and risk check runs | Pass |
+| UT-DSK-011.029.M16.T02 | MD-DSK-003.006.M16 | Negative | Nothing open (SRD-DSK-011.029) | turn with no ask | step_done at once, as today | Pass |
+| UT-DSK-011.029.M16.T03 | MD-DSK-003.006.M16 | Edge | Expiry releases the chain (SRD-DSK-011.029) | ask never answered, 11 minutes | asker step ok after the failed reply; chain goes on | Pass |
+| UT-DSK-011.030.M10.T01 | MD-DSK-003.001.M10 | Positive | Starter pays (SRD-DSK-011.030) | news review answers emp-003's ask | activity row of emp-006 with payer emp-003, part plan, message id | Pass |
+| UT-DSK-011.030.M10.T02 | MD-DSK-003.001.M10 | Negative | Starter out of tokens (SRD-DSK-011.030) | emp-003 plan part used up | no call; refused reply with the budget reason | Pass |
+| UT-DSK-011.031.M10.T01 | MD-DSK-003.001.M10 | Positive | Messages on (SRD-DSK-011.031) | messages_on true | talking skills get the messages field; drafts stored | Pass |
+| UT-DSK-011.031.M10.T02 | MD-DSK-003.001.M10 | Negative | Messages off (SRD-DSK-011.031) | messages_on false, fake model returns grades only | no messages field in prompts; no rows; same results as today | Pass |
+| UT-DSK-011.031.M13.T01 | MD-DSK-004.005.M13 | Positive | Setting saved and read (SRD-DSK-011.031) | old desk_ai.json without the key; then save true | false; then true | Pass |
+| UT-DSK-011.032.M29.T01 | MD-DSK-011.015.M29 | Positive | Message logs (SRD-DSK-011.032) | store, refuse, expire | `[Messages]` info lines, no class names | Pass |
+| UT-DSK-003.014.M10.T02 | MD-DSK-003.001.M10 | Positive | Code-only turn is ok (SRD-DSK-003.014) | skill ends its turn with no model call | step ok after 1 try; no retry, no alert | Pass |

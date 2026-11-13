@@ -1,6 +1,7 @@
 """
 Module: MD-MKT-001.007.M04 — market/store.py
 Parent SRD: SRD-MKT-001.007
+Also: SRD-MKT-005.022, .023 (``idea_fixes``, fixed levels, ``put_rows``) — AI Desk v3 M1
 Also: MD-MKT-002.008.M04 — sector and stock RS tables (SRD-MKT-002.008)
 Also: MD-MKT-003.010.M06 — score, idea and reason tables (SRD-MKT-003.010)
 Also: MD-MKT-004.006.M03 — proof run and stat tables (SRD-MKT-004.006)
@@ -88,6 +89,10 @@ CREATE TABLE IF NOT EXISTS setup_review (
 CREATE TABLE IF NOT EXISTS risk_check (
     date TEXT, side TEXT, symbol TEXT, verdict TEXT, by TEXT, reason TEXT,
     PRIMARY KEY (date, side, symbol)
+);
+CREATE TABLE IF NOT EXISTS idea_fixes (
+    date TEXT, side TEXT, symbol TEXT, round INTEGER, "trigger" REAL, stop REAL, status TEXT,
+    made TEXT, PRIMARY KEY (date, side, symbol, round)
 );
 CREATE TABLE IF NOT EXISTS lead_picks (
     date TEXT, side TEXT, symbol TEXT, rank INTEGER, reason TEXT,
@@ -310,6 +315,27 @@ class SetupReviewRow:
     symbol: str
     grade: str
     note: str
+
+
+@dataclass(frozen=True)
+class IdeaFixRow:
+    """One ``idea_fixes`` row: new levels from a send-back round; status pass or fail."""
+
+    date: str
+    side: str
+    symbol: str
+    round: int
+    trigger: float
+    stop: float
+    status: str
+    made: str
+
+
+# Fixed levels for the readers of the day's ideas (alias ``i`` for ideas, SRD-MKT-005.023).
+FIXED_JOIN = ("LEFT JOIN idea_fixes f ON f.date = i.date AND f.side = i.side "
+              "AND f.symbol = i.symbol AND f.status = 'pass'")
+FIXED_TRIGGER = 'COALESCE(f."trigger", i."trigger")'
+FIXED_STOP = "COALESCE(f.stop, i.stop)"
 
 
 @dataclass(frozen=True)
@@ -550,6 +576,23 @@ class MarketStore:
         with self._con:
             self._con.execute(f"DELETE FROM {table} WHERE date = ?", (day,))  # noqa: S608
             self._put(table, kind, [tuple(vars(r).values()) for r in rows])
+
+    def put_rows(self, table: str, day: str, rows: list[DayRow]) -> None:
+        """Insert or replace some rows of one day of an AI view table, keeping the others.
+
+        Raises:
+            ValueError: When ``table`` is not an AI view table or a row is for another day.
+        """
+        kind = _DAY_TABLES.get(table)
+        if kind is None or not day or any(type(r) is not kind or r.date != day for r in rows):
+            raise ValueError(f"rows do not fit {table} for {day}")
+        with self._con:
+            self._put(table, kind, [tuple(vars(r).values()) for r in rows])
+
+    def add_fix(self, fix: IdeaFixRow) -> None:
+        """Keep one fixed trigger and stop for an idea (SRD-MKT-005.022)."""
+        with self._con:
+            self._put("idea_fixes", IdeaFixRow, [astuple(fix)])
 
     def replace_pick_results(self, rows: list[PickResultRow]) -> None:
         """Replace every paper result in one transaction.

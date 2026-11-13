@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.22.2: SRD-MKT-005.019–.023 and 006.013 Implemented 2026-11-13.
 > v0.22.1: SRD-MKT-005.019–.023 and 006.013 approved by user 2026-11-13.
 > v0.22.0: AI Desk v3 M1 (user, 2026-11-13): SRD-MKT-005.019–.023 and 006.013 added as Draft — asks, send-back fixes and news replies.
 > v0.21.2: Step F book rows Implemented (12, 2026-11-11).
@@ -151,11 +152,11 @@
 | SRD-MKT-005.016 | FO-MKT-005 | Must | Picks are kept in `lead_picks` per data day and the morning brief goes to the AI feed as kind `morning`. | picks, brief | rows, feed item | A new run on the same day replaces the picks; old `evening` briefs stay readable; reopened 2026-11-10 | Implemented |
 | SRD-MKT-005.017 | FO-MKT-005 | Must | Default employees ship as `emp-002` "Expert 2" (sector/flow view), `emp-003` "Expert 3" (setup review), `emp-004` "Expert 4" (risk check) and `emp-005` "Lead 1" (lead brief), all on `after_run`. | — | files | Experts report to `emp-005` as data only; calls per day 3, monthly cap USD 3 each | Implemented |
 | SRD-MKT-005.018 | FO-MKT-005 | Must | The four new skills are added to the skill list in `core/desk_steps.py`. | — | skill paths | `market` never imports `desk` | Implemented |
-| SRD-MKT-005.019 | FO-MKT-005 | Must | With messages on, the setup review may hold back up to 3 ideas and ask the news review about them, then grade them when the reply comes. | ideas, reply | ask, grades | Held ideas get no grade until the reply or its expiry; then they are graded with what is known | Approved |
-| SRD-MKT-005.020 | FO-MKT-005 | Must | With messages on, an idea vetoed only for its stop distance is sent back to the setup review with the reason, round 1 then round 2. | code veto | send_back | Other code vetoes stay final; the veto row stays until a fix passes | Approved |
-| SRD-MKT-005.021 | FO-MKT-005 | Must | The setup review replies to a send-back with a new trigger and stop for the idea, or drops it with a reason. | send_back | reply | Side and symbol cannot change | Approved |
-| SRD-MKT-005.022 | FO-MKT-005 | Must | A fix is kept in `idea_fixes` and checked by the same code limits; a pass turns the idea's `risk_check` row to pass with the round, and a fail after round 2 leaves it vetoed. | reply | `idea_fixes` row, `risk_check` row | Limits stay constants in code | Approved |
-| SRD-MKT-005.023 | FO-MKT-005 | Must | Every reader of the day's listed ideas uses the fixed trigger and stop when a passing fix exists. | `idea_fixes` | levels | Setup, news and risk facts, the lead brief, the watcher and watch flags | Approved |
+| SRD-MKT-005.019 | FO-MKT-005 | Must | With messages on, the setup review may hold back up to 3 ideas and ask the news review about them, then grade them when the reply comes. | ideas, reply | ask, grades | Held ideas get no grade until the reply or its expiry; then they are graded with what is known | Implemented |
+| SRD-MKT-005.020 | FO-MKT-005 | Must | With messages on, an idea vetoed only for its stop distance is sent back to the setup review with the reason, round 1 then round 2. | code veto | send_back | Other code vetoes stay final; the veto row stays until a fix passes | Implemented |
+| SRD-MKT-005.021 | FO-MKT-005 | Must | The setup review replies to a send-back with a new trigger and stop for the idea, or drops it with a reason. | send_back | reply | Side and symbol cannot change | Implemented |
+| SRD-MKT-005.022 | FO-MKT-005 | Must | A fix is kept in `idea_fixes` and checked by the same code limits; a pass turns the idea's `risk_check` row to pass with the round, and a fail after round 2 leaves it vetoed. | reply | `idea_fixes` row, `risk_check` row | Limits stay constants in code | Implemented |
+| SRD-MKT-005.023 | FO-MKT-005 | Must | Every reader of the day's listed ideas uses the fixed trigger and stop when a passing fix exists. | `idea_fixes` | levels | Setup, news and risk facts, the lead brief, the watcher and watch flags | Implemented |
 
 ## FO-MKT-006: News, Economic Calendar and Event Risk
 
@@ -173,7 +174,7 @@
 | SRD-MKT-006.010 | FO-MKT-006 | Must | The risk check and the lead brief also need the news review, and their facts show each idea's tone, reason and final score. | `news_tags` | facts text | A missing news view is noted, as for other views | Implemented |
 | SRD-MKT-006.011 | FO-MKT-006 | Must | A default expert-level employee for the news review ships as `emp-006` (generic name "Expert 5") with trigger `after_run`, and the skill is added to the skill list. | — | files, skill path | Calls per day 3; monthly cap USD 3; `market` never imports `desk` | Implemented |
 | SRD-MKT-006.012 | FO-MKT-006 | Should | The News step logs the stocks fetched, headlines kept, feeds that failed and rows deleted. | step | log lines | `[News]` prefix | Implemented |
-| SRD-MKT-006.013 | FO-MKT-006 | Must | With messages on, the news review answers an ask in its inbox with one reply about the named ideas from its facts. | ask | reply | Ideas not in its facts are named as unknown; its own news_tags rows are unchanged | Approved |
+| SRD-MKT-006.013 | FO-MKT-006 | Must | With messages on, the news review answers an ask in its inbox with one reply about the named ideas from its facts. | ask | reply | Ideas not in its facts are named as unknown; its own news_tags rows are unchanged | Implemented |
 
 ## FO-MKT-007: AI Report Pages
 

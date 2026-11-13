@@ -2034,8 +2034,8 @@ Run names: `evening` "Evening run", `manual` "Manual run", other kinds title-cas
 
 **Message log** (`core/desk_team.py`, `gui/ai_desk_team_log.py`). `DeskEvent` gains `target: str = ""` and `detail: str = ""`. For a `message` event, `day_events` reads its row (key `message|<id>`): `target` is the receiver, `detail` is "<type> from <sender name> to <receiver name>: <subject or first 60 chars of text> (<state>)", and its calls are the activity rows with that message id. `woke_text` shows the target's name for a message event; the "Why" cell shows `detail`; ids are in the tooltip.
 
-**Threads view** (`gui/ai_desk_threads.py`, `ThreadsView`, a fourth Team at work tab "Threads" with icon `messages-square`).
+**Threads view** (`gui/ai_desk_threads.py`, `ThreadsView`, a fourth Team at work tab "Threads" with icon `message-square`).
 - Top: a table with columns Started, Starter, Messages, Rounds, State, Tokens, today's threads newest first (`thread_rows(home, day)`).
 - Below: a read-only list of the selected thread's messages (`messages_of(home, thread)`), one line each: time, type, from → to, subject or text, state.
 - Empty text when there are no threads: "No messages today. Agent messages are off" or "No messages today", by the setting.
-- Refreshed with the other Team at work tabs (same timer and refresh call); no work on the GUI thread beyond the two small reads.
+- Refreshed with the other Team at work tabs (same timer and refresh call); no work on the GUI thread beyond the two small reads. The message list is rebuilt only when the thread or its message count changes, so the scroll place is kept.

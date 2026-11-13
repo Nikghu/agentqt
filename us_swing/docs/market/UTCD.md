@@ -660,19 +660,19 @@
 
 | ID | Module | Type | Title | Input | Expected | Status |
 |---|---|---|---|---|---|---|
-| UT-MKT-005.019.M05.T01 | MD-MKT-005.009.M05 | Positive | Held idea graded after the reply (SRD-MKT-005.019) | grades for 3 ideas and an ask about NVDA; then inbox wake with the reply grading NVDA | 3 rows, no NVDA; then 4 rows, others unchanged | Not Run |
-| UT-MKT-005.019.M05.T02 | MD-MKT-005.009.M05 | Negative | More than 3 asked (SRD-MKT-005.019) | asks naming 5 ideas | asks for the first 3 kept; the rest dropped and logged | Not Run |
-| UT-MKT-005.019.M05.T03 | MD-MKT-005.009.M05 | Negative | Messages off (SRD-MKT-005.019) | fake context without talk | grades stored as today; no drafts | Not Run |
-| UT-MKT-005.020.M07.T01 | MD-MKT-005.012.M07 | Positive | Stop sent back (SRD-MKT-005.020) | AMD long stop 11.4% | send_back to skill:setup_review with the reason; AMD row stays veto by code | Not Run |
-| UT-MKT-005.020.M07.T02 | MD-MKT-005.012.M07 | Negative | Other vetoes final (SRD-MKT-005.020) | long in a Downtrend; trigger $3; fourth in its sector | no send_back | Not Run |
-| UT-MKT-005.021.M05.T01 | MD-MKT-005.009.M05 | Positive | Fix reply (SRD-MKT-005.021) | inbox send_back about AMD; model replies with idea_fix.v1 row | reply draft with the row; grades merged | Not Run |
-| UT-MKT-005.021.M05.T02 | MD-MKT-005.009.M05 | Negative | Dropped idea (SRD-MKT-005.021) | model replies dropped with a reason | reply draft with verdict dropped | Not Run |
-| UT-MKT-005.022.M07.T01 | MD-MKT-005.012.M07 | Positive | Fix passes (SRD-MKT-005.022) | fix reply AMD stop 7.7% | idea_fixes pass; risk_check AMD pass by code, fixed in round 1; no AI call | Not Run |
-| UT-MKT-005.022.M07.T02 | MD-MKT-005.012.M07 | Negative | Still over in round 1 (SRD-MKT-005.022) | fix stop 10.5% | fix fail; round-2 send_back with parent the reply | Not Run |
-| UT-MKT-005.022.M07.T03 | MD-MKT-005.012.M07 | Edge | Still over after round 2 (SRD-MKT-005.022) | round-2 fix still over | stays veto, still over after 2 rounds; no third send_back | Not Run |
-| UT-MKT-005.022.M07.T04 | MD-MKT-005.012.M07 | Negative | Wrong idea in the fix (SRD-MKT-005.022) | fix row for MSFT on AMD's send_back | ignored and logged; AMD stays vetoed | Not Run |
-| UT-MKT-005.022.M07.T05 | MD-MKT-005.012.M07 | Positive | Fix loop in one run (SRD-MKT-005.022) | desk copy, messages on, AMD stop 11.4%, setup review fixes to 7.7% | lead brief runs after; AMD passed with the new levels | Not Run |
-| UT-MKT-005.023.M04.T01 | MD-MKT-001.007.M04 | Positive | Fixed levels used (SRD-MKT-005.023) | passing fix for AMD | listed_frame, watcher ideas and watch flag plan text show the new trigger and stop | Not Run |
-| UT-MKT-005.023.M04.T02 | MD-MKT-001.007.M04 | Negative | Failed or pending fix not used (SRD-MKT-005.023) | fix status fail; pending | old levels everywhere | Not Run |
-| UT-MKT-006.013.M04.T01 | MD-MKT-006.005.M04 | Positive | News reply only (SRD-MKT-006.013) | inbox ask about NVDA; model returns one reply | reply draft; news_tags rows and feed unchanged | Not Run |
-| UT-MKT-006.013.M04.T02 | MD-MKT-006.005.M04 | Negative | Normal wake unchanged (SRD-MKT-006.013) | wake without inbox | tags stored and market note posted as today | Not Run |
+| UT-MKT-005.019.M05.T01 | MD-MKT-005.009.M05 | Positive | Held idea graded after the reply (SRD-MKT-005.019) | grades for 3 ideas and an ask about NVDA; then inbox wake with the reply grading NVDA | 3 rows, no NVDA; then 4 rows, others unchanged | Pass |
+| UT-MKT-005.019.M05.T02 | MD-MKT-005.009.M05 | Negative | More than 3 asked (SRD-MKT-005.019) | asks naming 5 ideas | asks for the first 3 kept; the rest dropped and logged | Pass |
+| UT-MKT-005.019.M05.T03 | MD-MKT-005.009.M05 | Negative | Messages off (SRD-MKT-005.019) | fake context without talk | grades stored as today; no drafts | Pass |
+| UT-MKT-005.020.M07.T01 | MD-MKT-005.012.M07 | Positive | Stop sent back (SRD-MKT-005.020) | AMD long stop 11.4% | send_back to skill:setup_review with the reason; AMD row stays veto by code | Pass |
+| UT-MKT-005.020.M07.T02 | MD-MKT-005.012.M07 | Negative | Other vetoes final (SRD-MKT-005.020) | long in a Downtrend; trigger $3; fourth in its sector | no send_back | Pass |
+| UT-MKT-005.021.M05.T01 | MD-MKT-005.009.M05 | Positive | Fix reply (SRD-MKT-005.021) | inbox send_back about AMD; model replies with idea_fix.v1 row | reply draft with the row; grades merged | Pass |
+| UT-MKT-005.021.M05.T02 | MD-MKT-005.009.M05 | Negative | Dropped idea (SRD-MKT-005.021) | model replies dropped with a reason | reply draft with verdict dropped | Pass |
+| UT-MKT-005.022.M07.T01 | MD-MKT-005.012.M07 | Positive | Fix passes (SRD-MKT-005.022) | fix reply AMD stop 7.7% | idea_fixes pass; risk_check AMD pass by code, fixed in round 1; no AI call | Pass |
+| UT-MKT-005.022.M07.T02 | MD-MKT-005.012.M07 | Negative | Still over in round 1 (SRD-MKT-005.022) | fix stop 10.5% | fix fail; round-2 send_back with parent the reply | Pass |
+| UT-MKT-005.022.M07.T03 | MD-MKT-005.012.M07 | Edge | Still over after round 2 (SRD-MKT-005.022) | round-2 fix still over | stays veto, still over after 2 rounds; no third send_back | Pass |
+| UT-MKT-005.022.M07.T04 | MD-MKT-005.012.M07 | Negative | Wrong idea in the fix (SRD-MKT-005.022) | fix row for MSFT on AMD's send_back | ignored and logged; AMD stays vetoed | Pass |
+| UT-MKT-005.022.M07.T05 | MD-MKT-005.012.M07 | Positive | Fix loop in one run (SRD-MKT-005.022) | desk copy, messages on, AMD stop 11.4%, setup review fixes to 7.7% | lead brief runs after; AMD passed with the new levels | Pass |
+| UT-MKT-005.023.M04.T01 | MD-MKT-001.007.M04 | Positive | Fixed levels used (SRD-MKT-005.023) | passing fix for AMD | listed_frame, watcher ideas and watch flag plan text show the new trigger and stop | Pass |
+| UT-MKT-005.023.M04.T02 | MD-MKT-001.007.M04 | Negative | Failed or pending fix not used (SRD-MKT-005.023) | fix status fail; pending | old levels everywhere | Pass |
+| UT-MKT-006.013.M04.T01 | MD-MKT-006.005.M04 | Positive | News reply only (SRD-MKT-006.013) | inbox ask about NVDA; model returns one reply | reply draft; news_tags rows and feed unchanged | Pass |
+| UT-MKT-006.013.M04.T02 | MD-MKT-006.005.M04 | Negative | Normal wake unchanged (SRD-MKT-006.013) | wake without inbox | tags stored and market note posted as today | Pass |

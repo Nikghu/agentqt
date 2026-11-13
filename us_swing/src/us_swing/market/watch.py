@@ -1,6 +1,7 @@
 """
 Module: MD-MKT-013.001.M01 — market/watch.py
 Parent SRD: SRD-MKT-013.001
+Also: SRD-MKT-005.023 (fixed levels) — AI Desk v3 M1
 Also: SRD-MKT-013.002 (trigger), SRD-MKT-013.003 (stop and target), SRD-MKT-013.004 (volume),
 SRD-MKT-013.005 (gap), SRD-MKT-013.006 (SPY move), SRD-MKT-013.007 (headlines),
 SRD-DSK-003.025 (pass log), SRD-DSK-007.009 (trade alerts)
@@ -31,6 +32,7 @@ from us_swing.core.desk_watch import (
 )
 from us_swing.market.candles import CANDLE_DB, CandleReader
 from us_swing.market.news import Headline, fetch_symbol
+from us_swing.market.store import FIXED_JOIN, FIXED_STOP, FIXED_TRIGGER
 
 log = logging.getLogger(__name__)
 
@@ -101,9 +103,10 @@ def plan_ideas(home: Path, day: str) -> tuple[list[Idea], list[str]]:
         plan = plan_day(con, day)
         if plan is None:
             return [], []
+        join, trig, stop = levels(con)
         ideas = [Idea(str(s), str(y), float(t), float(p)) for s, y, t, p in con.execute(
-            'SELECT side, symbol, "trigger", stop FROM ideas WHERE date = ? AND status = '
-            "'list' AND \"trigger\" IS NOT NULL AND stop IS NOT NULL", (plan,))]
+            f"SELECT i.side, i.symbol, {trig}, {stop} FROM ideas i {join} WHERE i.date = ? "  # noqa: S608
+            f"AND i.status = 'list' AND {trig} IS NOT NULL AND {stop} IS NOT NULL", (plan,))]
         has_picks = con.execute("SELECT 1 FROM sqlite_master WHERE name = 'lead_picks'"
                                 ).fetchone()
         picks = [str(r[0]) for r in con.execute(
@@ -283,3 +286,10 @@ def run_watch(home: Path, now: datetime, candles: Path = CANDLE_DB,
     if p.kinds:
         log.info("[Watch] %d new flag(s): %s", len(p.kinds), ", ".join(sorted(set(p.kinds))))
     return len(p.kinds)
+
+
+def levels(con: sqlite3.Connection) -> tuple[str, str, str]:
+    """Join and columns for the ideas' levels, fixed ones first when the table exists."""
+    if con.execute("SELECT 1 FROM sqlite_master WHERE name = 'idea_fixes'").fetchone():
+        return FIXED_JOIN, FIXED_TRIGGER, FIXED_STOP
+    return "", 'i."trigger"', "i.stop"

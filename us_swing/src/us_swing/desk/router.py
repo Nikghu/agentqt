@@ -5,7 +5,9 @@ Also: SRD-DSK-003.007 (expiry and deadline), SRD-DSK-003.009 (no wake within 30 
 SRD-DSK-003.010 (needs order by events), SRD-DSK-003.011 (a sleeping employee never stops
 the chain), SRD-DSK-002.008 (order from skill needs), SRD-DSK-003.012 (no LangGraph),
 SRD-DSK-003.014–.019 (``step_done`` baton, retries, skips, partial lead plan, resume),
-SRD-DSK-007.008 (one alert when a step fails)
+SRD-DSK-007.008 (one alert when a step fails), SRD-DSK-011.025 (a message wakes only its
+receiver), SRD-DSK-011.029 (a step waits while its own messages are open), SRD-DSK-011.023
+(expiry on every pass)
 
 Handles waiting events by priority. The employees an event wakes form a chain: each one
 wakes when every employee it needs has a ``step_done``, a failed one is tried again at most
@@ -23,6 +25,7 @@ from pathlib import Path
 from typing import NamedTuple
 
 from us_swing.core.desk_events import Event, open_events, post_step_done
+from us_swing.core.desk_messages import expire_due, open_started
 from us_swing.desk.recorder import Recorder, ny_now
 from us_swing.desk.registry import Hire
 
@@ -33,7 +36,8 @@ RETRY_GAP = timedelta(minutes=5)
 MAX_TRIES = 3
 Wake = Callable[[Hire, Event, bool, tuple[str, ...]], str]
 Alert = Callable[[Hire, Event], None]
-_COLUMNS = "id, kind, priority, data_day, created, deadline, expires, parent, due"
+_COLUMNS = ("id, kind, priority, data_day, created, deadline, expires, parent, due, "
+            "target")
 
 
 class _Step(NamedTuple):
@@ -102,6 +106,7 @@ class Router:
 
     def has_work(self) -> bool:
         """True when a due waiting event wakes someone; events nobody listens to are closed."""
+        expire_due(self._home, self._clock())
         con = open_events(self._home)
         try:
             self._expire(con)
@@ -123,7 +128,12 @@ class Router:
         try:
             self._expire(con)
             seen: set[int] = set()
-            while event := next((e for e in self._waiting(con) if e.id not in seen), None):
+            while True:
+                expire_due(self._home, self._clock())
+                self._release(con)
+                event = next((e for e in self._waiting(con) if e.id not in seen), None)
+                if event is None:
+                    break
                 seen.add(event.id)
                 note = self._handle_one(con, event)
                 now = self._clock()
@@ -139,6 +149,8 @@ class Router:
             con.close()
 
     def _handle_one(self, con: sqlite3.Connection, event: Event) -> str:
+        if event.kind == "message":
+            return self._handle_message(event)
         trigger = event if event.parent is None else self._event(con, event.parent)
         if trigger is None:
             return "trigger gone"
@@ -157,6 +169,29 @@ class Router:
             log.exception("[AI Desk] Could not run the employees for %s", _label(trigger.kind))
             return "failed"
 
+    def _handle_message(self, event: Event) -> str:
+        """Wake only the addressed employee, outside its triggers and the rewake gap."""
+        hire = next(iter(self._listeners(event)), None)
+        if hire is None:
+            return "nobody listens"
+        try:
+            return self._wake(hire, event, False, ())
+        except Exception:  # noqa: BLE001 — closed by the caller, so it is not retried
+            log.exception("[AI Desk] %s failed on a message", hire.spec.name)
+            return "failed"
+
+    def _release(self, con: sqlite3.Connection) -> None:
+        """End every waiting step whose employee has no open message of its own any more."""
+        rows = con.execute("SELECT event_id, employee, tries FROM steps "
+                           "WHERE result = 'waiting'").fetchall()
+        by_id = {h.spec.id: h for h in self._hires}
+        for event_id, emp, tries in rows:
+            hire, trigger = by_id.get(str(emp)), self._event(con, int(event_id))
+            if hire is None or trigger is None:
+                continue
+            if not open_started(self._home, hire.spec.id):
+                self._end(con, trigger, hire, int(tries), "ok")
+
     def _advance(self, con: sqlite3.Connection, trigger: Event, chain: Sequence[Hire],
                  edges: dict[str, list[str]], order: Sequence[str]) -> str:
         """Wake every employee of the chain that is ready now; return the chain's note."""
@@ -164,7 +199,7 @@ class Router:
         steps = self._steps(con, trigger.id)
         for emp in order:
             hire, step = by_id[emp], steps.get(emp)
-            if _settled(step):
+            if _settled(step) or (step is not None and step.result == "waiting"):
                 continue
             if step is not None and step.result == "running":
                 steps[emp] = self._cut(con, trigger, hire, step.tries)
@@ -228,8 +263,15 @@ class Router:
 
     def _end(self, con: sqlite3.Connection, trigger: Event, hire: Hire, tries: int,
              result: str) -> _Step:
-        """Record a step's last result, post its ``step_done`` and alert when it failed."""
+        """Record a step's last result, post its ``step_done`` and alert when it failed.
+
+        An ok step whose employee still waits for replies is kept as ``waiting`` instead.
+        """
         now = self._clock()
+        if result == "ok" and open_started(self._home, hire.spec.id):
+            self._write(con, trigger, hire.spec.id, tries, "waiting")
+            log.info("[AI Desk] %s waits for replies before the next step", hire.spec.name)
+            return _Step(tries, "waiting", now)
         self._write(con, trigger, hire.spec.id, tries, result)
         post_step_done(con, trigger, hire.spec.id, tries, result, now)
         if result == "failed":
@@ -257,6 +299,8 @@ class Router:
                 for e, n, r, u in rows}
 
     def _listeners(self, event: Event) -> list[Hire]:
+        if event.kind == "message":
+            return [h for h in self._hires if h.spec.id == event.target]
         return [h for h in self._hires if event.kind in h.spec.trigger]
 
     def _event(self, con: sqlite3.Connection, event_id: int) -> Event | None:

@@ -2,6 +2,16 @@
 
 ---
 
+## [20261113] DSK — AI Desk v3 M1: messages and the reply path (FO-DSK-011, FO-DSK-002, FO-MKT-005, FO-MKT-006, FO-GUI-034, FO-GUI-035)
+
+- Type: Feature
+- FO(s): FO-DSK-011, FO-DSK-002, FO-MKT-005, FO-MKT-006, FO-GUI-034, FO-GUI-035
+- RN: RN-DSK-0.14.0-20261113
+- Artifacts updated: SRD (011.015–.032 new; 011.003/.004/.014 and 002.005 reopened; MKT-005.019–.023, MKT-006.013, GUI-034.070, GUI-035.015–.016 Implemented), DD, MD (MD-DSK-011.015.M29 and MD-GUI-035.016.M05 new), UTCD (47 DSK + 16 MKT + 7 GUI Pass), Code, Tests, RN, TRACE, CONTEXT. Branch feat/dsk-m1-messages; not pushed.
+- Decisions: send back before the code veto (2 rounds max; code limit keeps final say); router stays serial; wake by message, no new run order; new rows under FO-DSK-011 instead of reopening FO-DSK-003; worker counts to M6.
+
+---
+
 ## [20261113] DSK — AI Desk v3 M0: message format and tool registry (FO-DSK-011, FO-DSK-012)
 
 - Type: Feature

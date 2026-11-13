@@ -1,6 +1,7 @@
 """
 Module: MD-DSK-003.004.M15 — core/desk_events.py
 Parent SRD: SRD-DSK-003.004
+Also: SRD-DSK-011.024 (``message`` events with a ``target``)
 Also: SRD-DSK-003.005 (event kinds and priorities); MD-MKT-010.002.M02 — ``chat_question`` (SRD-MKT-010.002)
 Also: MD-MKT-011.002.M02 — ``data_request`` (SRD-MKT-011.002)
 Also: SRD-DSK-003.014 (``step_done`` events and the ``steps`` table for the baton)
@@ -31,7 +32,7 @@ CREATE TABLE IF NOT EXISTS steps (
     PRIMARY KEY (event_id, employee)
 );
 """
-_NEW_COLUMNS = (("parent", "INTEGER"), ("due", "TEXT"))
+_NEW_COLUMNS = (("parent", "INTEGER"), ("due", "TEXT"), ("target", "TEXT"))
 STEP_DONE = "step_done"
 
 
@@ -54,6 +55,7 @@ EVENT_RULES: dict[str, EventRule] = {
     "market_checkin": EventRule(2, None, timedelta(minutes=30)),
     "watch_flag": EventRule(0, timedelta(minutes=5), timedelta(minutes=30)),
     "research_done": EventRule(2, None, timedelta(days=1)),
+    "message": EventRule(1, timedelta(minutes=10), timedelta(hours=2)),
 }
 EVENT_KINDS: tuple[str, ...] = tuple(EVENT_RULES)
 _PER_ID = ("after_run", "chat_question", "data_request", "market_checkin", "watch_flag",
@@ -73,6 +75,7 @@ class Event:
     expires: str
     parent: int | None = None
     due: str | None = None
+    target: str | None = None
 
 
 def open_events(home: Path) -> sqlite3.Connection:
@@ -156,3 +159,24 @@ def post_step_done(con: sqlite3.Connection, trigger: Event, employee: str, tries
              trigger.data_day, now.isoformat(timespec="seconds"), trigger.deadline,
              trigger.expires, trigger.id,
              due.isoformat(timespec="seconds") if due else None, f"{employee} {result}"))
+
+
+def post_message(con: sqlite3.Connection, message_id: int, receiver: str, data_day: str,
+                 now: datetime) -> None:
+    """Post a waiting ``message`` event that wakes only ``receiver`` (SRD-DSK-011.024).
+
+    Args:
+        con: Open ``desk.db`` connection (from ``open_events``); the caller commits.
+        message_id: Stored message id; the event key is ``message|<id>``.
+        receiver: Employee id to wake.
+        data_day: Data day the message is about.
+        now: Time-zone aware time of posting.
+    """
+    rule = EVENT_RULES["message"]
+    deadline = now + rule.deadline if rule.deadline else None
+    con.execute(
+        "INSERT OR IGNORE INTO events (key, kind, priority, data_day, created, deadline, "
+        "expires, state, target) VALUES (?, 'message', ?, ?, ?, ?, ?, 'waiting', ?)",
+        (f"message|{message_id}", rule.priority, data_day, now.isoformat(timespec="seconds"),
+         deadline.isoformat(timespec="seconds") if deadline else None,
+         (now + rule.expiry).isoformat(timespec="seconds"), receiver))

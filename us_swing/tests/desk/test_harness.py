@@ -408,12 +408,13 @@ def test_fresh_data_wakes(home: Path) -> None:
 
 
 def test_context_is_ask_only(home: Path) -> None:
-    """UT-DSK-002.005.M10.T01: The skill sees only its home and ask."""
+    """UT-DSK-002.005.M10.T01: The skill sees its home and ask; talk parts stay off."""
     employee(home)
     _run(_step(FakeCaller(GOOD)), home)
     ctx = STATE.seen[0]
-    assert {n for n in dir(ctx) if not n.startswith("_")} == {"home", "ask", "answered",
-                                                               "refused"}
+    assert {n for n in dir(ctx) if not n.startswith("_")} == {
+        "home", "ask", "answered", "refused", "talk", "drafts", "send", "asked"}
+    assert not ctx.talk and ctx.drafts == []
     assert ctx.home == home
 
 

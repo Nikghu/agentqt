@@ -6,6 +6,8 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.16.5: SRD-DSK-002.005, 011.003, .004 and .014–.032 Implemented 2026-11-13.
+> v0.16.4: SRD-DSK-002.005 reopened by user 2026-11-13, widened for talking skills (send and drafts) and approved with that text.
 > v0.16.3: SRD-DSK-011.003, .004 and .014 approved by user 2026-11-13.
 > v0.16.2: SRD-DSK-011.003, .004 and .014 reopened by user 2026-11-13 (first send_back may start a thread; .014 points to the M1 rows) and edited.
 > v0.16.1: SRD-DSK-011.015–.032 approved by user 2026-11-13.
@@ -85,7 +87,7 @@
 | SRD-DSK-002.002 | FO-DSK-002 | Must | `job.yaml` must match a fixed schema: id, name, title, level, reports_to, skill, version, trigger, primary and backup model, calls per day, monthly cost cap and KPIs. | `job.yaml` | job spec | A bad file keeps that employee asleep and is logged | Implemented |
 | SRD-DSK-002.003 | FO-DSK-002 | Must | Trigger, models and caps come only from `job.yaml`; `soul.md` is used only as the system prompt. | job spec | rules in code | — | Implemented |
 | SRD-DSK-002.004 | FO-DSK-002 | Must | Each loaded id, name, title, level, reporting line, skill, version and file hash is kept in `roster` in `desk.db`. | job spec | `roster` rows | A changed file with the same version is logged as a warning | Implemented |
-| SRD-DSK-002.005 | FO-DSK-002 | Must | Skills get only the desk folder, their facts and an ask function, with no way to write employee files. | — | — | Editing and rollback from AI Desk come in P6 | Implemented |
+| SRD-DSK-002.005 | FO-DSK-002 | Must | Skills get only the desk folder, their facts and an ask function, with no way to write employee files; a talking skill also gets its message drafts and a send function (SRD-DSK-011.016). | — | — | Editing and rollback from AI Desk come in P6 | Implemented |
 | SRD-DSK-002.006 | FO-DSK-002 | Must | Name, title, level (lead, expert, champion, junior) and reporting line are data in `job.yaml`; code, tests and labels use no employee names, and records key on a stable id. | `job.yaml` | identity | Asked by user 2026-11-06; a repeated id keeps the second folder asleep | Implemented |
 | SRD-DSK-002.007 | FO-DSK-002 | Must | Employee files live in `<desk>/employees/<id>/`; shipped defaults with generic level names are copied there only when missing. | default folders | employee folders | Never overwrites the Master user's edits | Implemented |
 | SRD-DSK-002.008 | FO-DSK-002 | Must | Each skill names the skill keys whose views it needs; these are about function, never about employees or reporting lines. | skill | needs list | Empty for P5a skills; an unknown key is logged and left out | Implemented |
@@ -233,8 +235,8 @@
 |---|---|---|---|---|---|---|---|
 | SRD-DSK-011.001 | FO-DSK-011 | Must | Every message is one `desk.msg/1` envelope made of a core header, a body and optional meta, and belongs to one thread. | message | model | Pydantic v2 in `core/desk_msg.py`; the schema name is written only when it is not `desk.msg/1` | Implemented |
 | SRD-DSK-011.002 | FO-DSK-011 | Must | A thread holds id, starter, message count, send-back rounds, state, opened and closed. | thread | model | Id is the first message id; starter is the payer; state is open or closed | Implemented |
-| SRD-DSK-011.003 | FO-DSK-011 | Must | The core header holds id, thread, parent, type, sender, to and at, plus due and state. | header | model | Parent omitted on a first message, required on reply and decision; a send_back has a parent or starts a thread with a to; due only on ask, task, send_back, escalate and meeting | Approved |
-| SRD-DSK-011.004 | FO-DSK-011 | Must | An address is an employee id, `skill:<key>`, `champion:<key>`, `boss` or `master`. | address | valid or reason | Ids only, never names; a list only on meeting; omitted on reply and on a send_back with a parent | Approved |
+| SRD-DSK-011.003 | FO-DSK-011 | Must | The core header holds id, thread, parent, type, sender, to and at, plus due and state. | header | model | Parent omitted on a first message, required on reply and decision; a send_back has a parent or starts a thread with a to; due only on ask, task, send_back, escalate and meeting | Implemented |
+| SRD-DSK-011.004 | FO-DSK-011 | Must | An address is an employee id, `skill:<key>`, `champion:<key>`, `boss` or `master`. | address | valid or reason | Ids only, never names; a list only on meeting; omitted on reply and on a send_back with a parent | Implemented |
 | SRD-DSK-011.005 | FO-DSK-011 | Must | The type is one of ask, task, reply, send_back, handover, escalate, meeting, decision and feedback, and it picks the body model. | type, body | body model | Each body refuses unknown keys | Implemented |
 | SRD-DSK-011.006 | FO-DSK-011 | Must | Each type's body has the required and optional fields of the type table in the DD. | body | valid or reason | A missing required field is refused | Implemented |
 | SRD-DSK-011.007 | FO-DSK-011 | Must | Body fields keep their size limits. | body | valid or reason | Subject 80 chars one line; text 600; about 20; flags 5 with note 120; reason 200 | Implemented |
@@ -244,30 +246,30 @@
 | SRD-DSK-011.011 | FO-DSK-011 | Must | Meta holds only ai, used, secs, blocked and schema, each written only when it has a value. | meta | JSON | Dump leaves out empty and default keys | Implemented |
 | SRD-DSK-011.012 | FO-DSK-011 | Must | Message states are submitted, working, input_required, completed, failed, canceled, refused and expired. | state | enum | Names follow A2A | Implemented |
 | SRD-DSK-011.013 | FO-DSK-011 | Must | The envelope and each body type export as JSON Schema. | — | JSON Schema | For prompts; matches what the models accept | Implemented |
-| SRD-DSK-011.014 | FO-DSK-011 | Must | Messages are stored and sent only through the M1 rows SRD-DSK-011.015–.032. | — | — | No other desk step, skill or table writes messages | Approved |
+| SRD-DSK-011.014 | FO-DSK-011 | Must | Messages are stored and sent only through the M1 rows SRD-DSK-011.015–.032. | — | — | No other desk step, skill or table writes messages | Implemented |
 
 ### FO-DSK-011 (M1): Messages and the Reply Path
 
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
-| SRD-DSK-011.015 | FO-DSK-011 | Must | Messages and threads are kept in `messages` and `threads` tables in `desk.db`, one `desk.msg/1` row each. | message, thread | rows | Header in columns, body and meta as JSON; type kept once in a column | Approved |
-| SRD-DSK-011.016 | FO-DSK-011 | Must | The setup review, news review and risk check answers may carry an optional `messages` list of drafts. | answer | drafts | At most 5 per answer; code fills id, thread, sender, time and state; only shown when messages are on | Approved |
-| SRD-DSK-011.017 | FO-DSK-011 | Must | M1 accepts the types ask, reply and send_back; any other type is refused as not yet in use. | draft | message or reason | — | Approved |
-| SRD-DSK-011.018 | FO-DSK-011 | Must | A receiver is an active employee id or `skill:<key>`, which means the active employee that holds the skill. | address | employee id | Lowest id wins when two hold the skill; other address forms are refused in M1 | Approved |
-| SRD-DSK-011.019 | FO-DSK-011 | Must | Each draft is checked in order (format, type rules, receiver, guardrails, data block, then store and wake), and a failed draft is refused alone. | draft | stored row or reason | Other drafts of the same answer are kept | Approved |
-| SRD-DSK-011.020 | FO-DSK-011 | Must | A thread holds at most 6 messages and 2 send-back rounds, and an employee starts at most 20 messages a New York day. | thread, counts | pass or reason | Locked values from the master plan | Approved |
-| SRD-DSK-011.021 | FO-DSK-011 | Must | A reply answers exactly one open ask or send-back addressed to its sender, and each such message gets one reply. | reply | pass or reason | The reply goes to the parent's sender | Approved |
-| SRD-DSK-011.022 | FO-DSK-011 | Must | An employee may not ask or send back to an employee that is waiting on it in the same thread. | draft, thread | pass or reason | Stops A to B to A loops | Approved |
-| SRD-DSK-011.023 | FO-DSK-011 | Must | An ask or send-back is due 10 minutes after it is stored and expires when no reply came by then. | message | due, state | Expiry is checked on every desk tick; the asker goes on without it | Approved |
-| SRD-DSK-011.024 | FO-DSK-011 | Must | A stored ask, send-back or reply posts one `message` event addressed to its receiver. | message | event | Key is the message id; priority 1 | Approved |
-| SRD-DSK-011.025 | FO-DSK-011 | Must | The router wakes only the addressed employee for a `message` event, even outside its trigger list and run order. | event | wake | The once-a-day rule and the 30-minute gap do not apply to it | Approved |
-| SRD-DSK-011.026 | FO-DSK-011 | Must | A woken employee's facts end with an inbox block of its open messages, one short block each. | messages | facts text | Written by code from the rows; sender shown by id and current name | Approved |
-| SRD-DSK-011.027 | FO-DSK-011 | Must | A reply closes its parent as completed, failed or refused by its verdict and wakes the asker in the same run. | reply | parent state, event | — | Approved |
-| SRD-DSK-011.028 | FO-DSK-011 | Must | When the receiver sleeps, is out of budget or fails, the desk replies refused with the reason at once. | wake result | refused reply | No AI call; the asker is woken with it | Approved |
-| SRD-DSK-011.029 | FO-DSK-011 | Must | An employee's `step_done` waits while an ask or send-back it started is open, and is posted when all are answered or expired. | open messages | step_done | The after_run chain then goes on as today | Approved |
-| SRD-DSK-011.030 | FO-DSK-011 | Must | Tokens of a message turn count against the part and budget of the thread's starter, and each turn is recorded with its message id. | turn | activity row | Same budget checks as SRD-DSK-004.009 | Approved |
-| SRD-DSK-011.031 | FO-DSK-011 | Must | Messages run only while `messages_on` is true in desk settings; it is false by default. | setting | on or off | Off: no `messages` field in any prompt, drafts ignored, run as today | Approved |
-| SRD-DSK-011.032 | FO-DSK-011 | Should | Stored, refused and expired messages are logged. | message | log line | `[Messages]` prefix | Approved |
+| SRD-DSK-011.015 | FO-DSK-011 | Must | Messages and threads are kept in `messages` and `threads` tables in `desk.db`, one `desk.msg/1` row each. | message, thread | rows | Header in columns, body and meta as JSON; type kept once in a column | Implemented |
+| SRD-DSK-011.016 | FO-DSK-011 | Must | The setup review, news review and risk check answers may carry an optional `messages` list of drafts. | answer | drafts | At most 5 per answer; code fills id, thread, sender, time and state; only shown when messages are on | Implemented |
+| SRD-DSK-011.017 | FO-DSK-011 | Must | M1 accepts the types ask, reply and send_back; any other type is refused as not yet in use. | draft | message or reason | — | Implemented |
+| SRD-DSK-011.018 | FO-DSK-011 | Must | A receiver is an active employee id or `skill:<key>`, which means the active employee that holds the skill. | address | employee id | Lowest id wins when two hold the skill; other address forms are refused in M1 | Implemented |
+| SRD-DSK-011.019 | FO-DSK-011 | Must | Each draft is checked in order (format, type rules, receiver, guardrails, data block, then store and wake), and a failed draft is refused alone. | draft | stored row or reason | Other drafts of the same answer are kept | Implemented |
+| SRD-DSK-011.020 | FO-DSK-011 | Must | A thread holds at most 6 messages and 2 send-back rounds, and an employee starts at most 20 messages a New York day. | thread, counts | pass or reason | Locked values from the master plan | Implemented |
+| SRD-DSK-011.021 | FO-DSK-011 | Must | A reply answers exactly one open ask or send-back addressed to its sender, and each such message gets one reply. | reply | pass or reason | The reply goes to the parent's sender | Implemented |
+| SRD-DSK-011.022 | FO-DSK-011 | Must | An employee may not ask or send back to an employee that is waiting on it in the same thread. | draft, thread | pass or reason | Stops A to B to A loops | Implemented |
+| SRD-DSK-011.023 | FO-DSK-011 | Must | An ask or send-back is due 10 minutes after it is stored and expires when no reply came by then. | message | due, state | Expiry is checked on every desk tick; the asker goes on without it | Implemented |
+| SRD-DSK-011.024 | FO-DSK-011 | Must | A stored ask, send-back or reply posts one `message` event addressed to its receiver. | message | event | Key is the message id; priority 1 | Implemented |
+| SRD-DSK-011.025 | FO-DSK-011 | Must | The router wakes only the addressed employee for a `message` event, even outside its trigger list and run order. | event | wake | The once-a-day rule and the 30-minute gap do not apply to it | Implemented |
+| SRD-DSK-011.026 | FO-DSK-011 | Must | A woken employee's facts end with an inbox block of its open messages, one short block each. | messages | facts text | Written by code from the rows; sender shown by id and current name | Implemented |
+| SRD-DSK-011.027 | FO-DSK-011 | Must | A reply closes its parent as completed, failed or refused by its verdict and wakes the asker in the same run. | reply | parent state, event | — | Implemented |
+| SRD-DSK-011.028 | FO-DSK-011 | Must | When the receiver sleeps, is out of budget or fails, the desk replies refused with the reason at once. | wake result | refused reply | No AI call; the asker is woken with it | Implemented |
+| SRD-DSK-011.029 | FO-DSK-011 | Must | An employee's `step_done` waits while an ask or send-back it started is open, and is posted when all are answered or expired. | open messages | step_done | The after_run chain then goes on as today | Implemented |
+| SRD-DSK-011.030 | FO-DSK-011 | Must | Tokens of a message turn count against the part and budget of the thread's starter, and each turn is recorded with its message id. | turn | activity row | Same budget checks as SRD-DSK-004.009 | Implemented |
+| SRD-DSK-011.031 | FO-DSK-011 | Must | Messages run only while `messages_on` is true in desk settings; it is false by default. | setting | on or off | Off: no `messages` field in any prompt, drafts ignored, run as today | Implemented |
+| SRD-DSK-011.032 | FO-DSK-011 | Should | Stored, refused and expired messages are logged. | message | log line | `[Messages]` prefix | Implemented |
 
 ## FO-DSK-012: Tools and Task Cards
 

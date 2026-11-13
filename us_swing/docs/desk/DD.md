@@ -1202,3 +1202,5 @@ INBOX — answer only what is asked here; leave your other work as it is.
 **10. Reads for the GUI.** `thread_rows(home, day)` (threads of a day, newest first, with tokens summed from `activity.message` of their messages) and `messages_of(home, thread)`; read-only, empty without a database.
 
 **11. Registry.** Format `idea_fix.v1` (side, symbol, trigger, stop) is added to the seed formats, so step 5 accepts a fix reply.
+
+**After code review (M1).** A message wake marks its inbox seen in a `finally`, and an error refuses the open asks at once, so no step stays waiting. `inbox()` leaves out asks and send-backs that are no longer open. With messages off, a message wake refuses its open asks with "agent messages are off". `open_started()` is also true while a reply to the employee is not yet read, so its turn ends only after it has seen the reply. Risk check sends one send-back per idea and data day (`sent_on()`), and a fix with levels that are not numbers is recorded as not fixed. A normal wake with no model call now ends `ok` (user, 2026-11-13): an all-vetoed day no longer counts as failed, retries or alerts.

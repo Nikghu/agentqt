@@ -1,6 +1,7 @@
 """
 Module: MD-DSK-004.001.M11 — desk/gateway.py
 Parent SRD: SRD-DSK-004.001
+Also: SRD-DSK-011.016 (talk, drafts, send), SRD-DSK-011.030 (message id on tries)
 Also: SRD-DSK-004.002 (schema check, retry, backup), SRD-DSK-002.003 (soul is the prompt,
 job file picks the models), SRD-DSK-005.005 (resend a recorded prompt for a replay),
 SRD-DSK-007.001 (raise an alert for a login, key or credit problem), SRD-DSK-007.004 (skip a
@@ -32,6 +33,7 @@ from pydantic import BaseModel, ValidationError
 from us_swing.core.desk_employee import DEFAULT_MODEL
 from us_swing.core.desk_agents import T
 from us_swing.core.desk_ai_settings import DeskAiSettings
+from us_swing.core.desk_msg import Draft, with_messages
 from us_swing.core.desk_alerts import Sender, classify, raise_alert
 from us_swing.core.notifications._ai_client import OPENROUTER_URL, _run_with_timeout
 from us_swing.desk.budget import Budget, Part
@@ -156,12 +158,13 @@ class Gateway:
                  key: str, run_id: int, data_day: str, caller: Caller = call_model,
                  clock: Callable[[], datetime] = ny_now, replay: bool = False,
                  shadow: bool = False, send: Sender | None = None,
-                 part: Part | None = None) -> None:
+                 part: Part | None = None, talk: bool = False) -> None:
         """Bind the employee, the run and the sources; ``caller`` is injectable for tests.
 
         With ``replay`` every try is recorded as a replay, so it never counts as a wake;
         with ``shadow`` every try is marked as a shadow try (SRD-DSK-006.004).
         ``part`` is the budget part the tries are paid from; by default the employee's plan.
+        With ``talk`` each answer may carry message drafts (SRD-DSK-011.016).
         """
         spec = hire.spec
         self._part = part or Part("plan", spec.id, spec.name, spec.tokens_per_day)
@@ -180,14 +183,33 @@ class Gateway:
         self._budget = Budget(recorder, settings, clock)
         self.answered: Answered | None = None
         self.refused: str | None = None
+        self.talk = talk
+        self.drafts: list[Draft] = []
+        self.asked = 0
 
     @property
     def home(self) -> Path:
         """The desk folder."""
         return self._home
 
+    def send(self, draft: Draft) -> None:
+        """Add a message draft written by the skill's code."""
+        self.drafts.append(draft)
+
     def ask(self, facts: str, schema: type[T]) -> T | None:
-        """Return a checked answer, or ``None`` after all tries fail or a cap refuses."""
+        """Return a checked answer, or ``None`` after all tries fail or a cap refuses.
+
+        When talking, the schema gains a ``messages`` list and its drafts are kept.
+        """
+        self.asked += 1
+        if self.talk and "messages" not in schema.model_fields:
+            schema = with_messages(schema)  # type: ignore[assignment]
+        answer = self._ask(facts, schema)
+        if answer is not None and self.talk:
+            self.drafts.extend(getattr(answer, "messages", []))
+        return answer
+
+    def _ask(self, facts: str, schema: type[T]) -> T | None:
         system = system_prompt(self._hire.soul, schema)
         spec = self._hire.spec
         attempt = 0
@@ -271,7 +293,8 @@ class Gateway:
             started.isoformat(timespec="seconds"), source, model, attempt,
             f"{system}\n\n---\n\n{user}", reply.text, result is not None, error,
             reply.tokens_in, reply.tokens_out, reply.cost_usd, seconds, int(self._replay),
-            int(self._shadow), self._part.name, self._part.payer, self._part.ticket))
+            int(self._shadow), self._part.name, self._part.payer, self._part.ticket,
+            self._part.message))
         if result is not None:
             self.answered = Answered(model, seconds, reply.tokens_in + reply.tokens_out,
                                      reply.cost_usd)

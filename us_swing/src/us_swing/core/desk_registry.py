@@ -1,6 +1,7 @@
 """
 Module: MD-DSK-012.001.M28 — core/desk_registry.py
 Parent SRD: SRD-DSK-012.001
+Also: SRD-DSK-011.019 (format ``idea_fix.v1`` for fix replies)
 
 Tool registry (``desk.tool/1``) and schema library (``desk.schema/1``) in ``desk.db``. Tool
 rows use the MCP tool shape so code tools and MCP tools look the same. The registry is filled
@@ -180,7 +181,14 @@ def seed_formats() -> list[TableFormat]:
                         columns=[Column(name=col, type="number" if kind == "number" else "text",
                                         meaning=col.replace("_", " "))
                                  for col, (_, kind) in source.columns.items()])
-            for key, source in MENU.items()]
+            for key, source in MENU.items()] + [_IDEA_FIX]
+
+
+_IDEA_FIX = TableFormat(id="idea_fix.v1", title="Idea fix", columns=[
+    Column(name="side", type="text", meaning="long or short"),
+    Column(name="symbol", type="text", meaning="stock"),
+    Column(name="trigger", type="number", meaning="new entry trigger price"),
+    Column(name="stop", type="number", meaning="new stop price")])
 
 
 # ── store ────────────────────────────────────────────────────────────────────
