@@ -5,6 +5,8 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.116.1: SRD-GUI-034.073–.076 approved by user 2026-11-13.
+> v2.116.0: AI Desk v3 M4 (user, 2026-11-13): SRD-GUI-034.073–.076 added as Draft — Chat sessions switch, session list, New discussion, updates.
 > v2.115.2: SRD-GUI-034.072 and 037.005–.008 Implemented 2026-11-13.
 > v2.115.1: SRD-GUI-034.072 and 037.005–.008 approved by user 2026-11-13.
 > v2.115.0: AI Desk v3 M3 (user, 2026-11-13): SRD-GUI-034.072 and 037.005–.008 added as Draft — Memory v2 switch, notes and views, core block, note edits.
@@ -805,6 +807,10 @@
 | SRD-GUI-034.070 | FO-GUI-034 | Must | Desk settings has an Agent messages switch, off by default, saved as `messages_on`. | switch | desk settings | Applies at the next desk wake | Implemented |
 | SRD-GUI-034.071 | FO-GUI-034 | Must | Desk settings has an Escalation switch under Agent messages, off by default, saved as `escalation_on`. | switch | desk settings | Greyed out while Agent messages is off | Implemented |
 | SRD-GUI-034.072 | FO-GUI-034 | Must | Desk settings has a Memory v2 switch, off by default, saved as `memory_v2_on`. | switch | desk settings | Applies at the next desk wake | Implemented |
+| SRD-GUI-034.073 | FO-GUI-034 | Must | Desk settings has a Chat sessions switch, off by default, saved as `sessions_on`. | switch | desk settings | Applies to the next question | Approved |
+| SRD-GUI-034.074 | FO-GUI-034 | Must | With sessions on, the lead chat shows a session list (title, date, open or closed), newest first; choosing one shows its turns and sends the next question into it. | `chat_sessions` | list, turns | Reads through `core/desk_chat.py`; sessions off hides the list | Approved |
+| SRD-GUI-034.075 | FO-GUI-034 | Must | A New discussion button marks the shown session closing; the next question starts a new session. | button | session state | Shown only with sessions on | Approved |
+| SRD-GUI-034.076 | FO-GUI-034 | Must | Update rows show as lead bubbles marked "Update", and the note shows "Waiting for the team" while an ask is open. | `chat` rows | bubbles, note | Same 2-second check as a waiting question | Approved |
 
 ## FO-GUI-035: AI Desk Team at Work
 

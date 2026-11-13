@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.23.0: AI Desk v3 M4 (user, 2026-11-13): FO-MKT-010 gains the sessions bullets as Draft — chat sessions, summary on close, memory notes, one team ask.
 > v0.22.0: AI Desk v3 M3 (user, 2026-11-13): FO-MKT-012 gains the view check bullet as Draft.
 > v0.21.0: AI Desk v3 M1 (user, 2026-11-13): FO-MKT-005 and FO-MKT-006 gain M1 message bullets as Draft (ask news review, send back a stop, fixed levels, news reply).
 > v0.20.1: FO-MKT-019 approved by user 2026-11-12.
@@ -291,6 +292,14 @@ The system shall let the Master user ask the lead questions in AI Desk and get a
 - The system shall limit the chat only by the chat employee's monthly cost cap and the desk budget.
 - The system shall ship a default chat employee with a generic lead-level name only.
 
+**Sessions (AI Desk v3 M4, user 2026-11-13):** one discussion per topic between the Master and the chat lead. AI summary on close; summary and stated preferences go to the lead's memory; the lead may send one ask to the team per question; session list and New discussion in Command. Behind the Chat sessions switch, off by default. Design: https://claude.ai/artifact/3dr7g92HY5hvVQ9KiyrPvc (M4).
+
+- The system shall group chat questions into sessions: a new session after 2 hours of quiet or on a new New York day, unless the Master chose a session (AI Desk v3 M4).
+- The system shall answer a question from its own session's summary and recent turns (AI Desk v3 M4).
+- The system shall close a session after 24 hours of quiet or when the Master starts a new discussion, and write its summary with one AI call (AI Desk v3 M4).
+- The system shall keep the summary and the Master's stated preferences as notes in the lead's memory while Memory v2 is on (AI Desk v3 M4).
+- The system shall let the lead send one question to an expert per Master question and post the reply as an update; the chat still never trades (AI Desk v3 M4).
+
 ### Acceptance Criteria
 
 1. With the desk running, a question sent in Command gets an answer in the chat within about a minute.
@@ -298,6 +307,8 @@ The system shall let the Master user ask the lead questions in AI Desk and get a
 3. With the desk stopped, the chat says to start the desk; the question expires after 30 minutes.
 4. A failed or refused answer shows a failed reply, and the next question still works.
 5. Nothing in the chat changes approvals, signals or orders.
+6. With Chat sessions on, two topics in one day keep separate context, and a session reopened the next day continues from its summary (M4).
+7. With Chat sessions off, the chat works as before (M4).
 
 ## FO-MKT-011: Ask the Desk for New Data
 
