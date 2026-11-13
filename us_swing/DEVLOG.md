@@ -2,6 +2,16 @@
 
 ---
 
+## [20261113] DSK — AI Desk v3 M0: message format and tool registry (FO-DSK-011, FO-DSK-012)
+
+- Type: Feature
+- FO(s): FO-DSK-011, FO-DSK-012
+- RN: RN-DSK-0.13.0-20261113
+- Artifacts updated: SRD (011.001–.014, 012.001–.011 Implemented), DD, MD (MD-DSK-011.001.M27, MD-DSK-012.001.M28, MD-DSK-001.010.M04 changed), UTCD (52 cases Pass), Code (core/desk_msg.py, core/desk_registry.py, desk/process.py), Tests, RN, TRACE, CONTEXT. Branch feat/dsk-m0-schema-registry; not pushed.
+- Decisions: one envelope desk.msg/1; tools in MCP shape (desk.tool/1); removed tools set off, never deleted; M1 takes priority from type, M6 takes tools that make a format.
+
+---
+
 ## [20261112] DSK — Autonomous AI Desk v3 design and master plan
 
 - Type: Design (no code)
