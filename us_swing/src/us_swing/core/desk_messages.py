@@ -3,12 +3,14 @@ Module: MD-DSK-011.015.M29 — core/desk_messages.py
 Parent SRD: SRD-DSK-011.015
 Also: SRD-DSK-011.014 (the only writer of messages), .017–.024 (check, guardrails, store and
 wake), .026 (inbox block), .027 (reply closes the parent), .028 (refused reply), .029 (open
-started messages), .032 (logs)
+started messages), .032 (logs); M2: .033 (escalate), .034 (``boss``), .035 (priority by
+type), .036-.038 (move up, reason, day cap), .040 (replies to escalates wake nobody), .041
+(deputy), .043 (logs), SRD-DSK-007.011 (escalation alert)
 
 Agent messages in ``desk.db``. Employees only write drafts in their answers; this module
 checks each draft, stores it as a ``desk.msg/1`` row, keeps the thread counts and posts the
 ``message`` event that wakes the receiver. Replies written by code (refused, expired) go the
-same way. Design: DD-DSK-011.015.D01.
+same way. Design: DD-DSK-011.015.D01; escalation and deputies: DD-DSK-011.033.D01.
 """
 from __future__ import annotations
 
@@ -16,7 +18,7 @@ import json
 import logging
 import sqlite3
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -24,6 +26,7 @@ from zoneinfo import ZoneInfo
 
 from pydantic import ValidationError
 
+from us_swing.core.desk_alerts import Sender, raise_alert
 from us_swing.core.desk_contract import DB_NAME
 from us_swing.core.desk_events import open_events, post_message
 from us_swing.core.desk_msg import Draft, Message, reason
@@ -33,12 +36,17 @@ log = logging.getLogger(__name__)
 
 NY = ZoneInfo("America/New_York")
 M1_TYPES = frozenset({"ask", "reply", "send_back"})
+M2_TYPES = M1_TYPES | {"escalate"}
 MAX_THREAD_MSGS = 6
 MAX_ROUNDS = 2
 MAX_STARTED_A_DAY = 20
 REPLY_WINDOW = timedelta(minutes=10)
+ESCALATE_WINDOW = timedelta(minutes=5)
+MASTER = "master"
 _ASKING = ("ask", "send_back")
-_KIND_WORDS = {"ask": "a question", "reply": "a reply", "send_back": "work back for a fix"}
+_OPEN = ("ask", "send_back", "escalate")
+_KIND_WORDS = {"ask": "a question", "reply": "a reply", "send_back": "work back for a fix",
+               "escalate": "a problem"}
 _PARENT_STATE = {"done": "completed", "partial": "completed", "failed": "failed",
                  "dropped": "failed", "refused": "refused"}
 
@@ -46,14 +54,15 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS messages (
     id INTEGER PRIMARY KEY, thread INTEGER, parent INTEGER, type TEXT, sender TEXT,
     receiver TEXT, at TEXT, due TEXT, state TEXT, body TEXT, meta TEXT, seen TEXT,
-    data_day TEXT
+    data_day TEXT, handed TEXT
 );
 CREATE TABLE IF NOT EXISTS threads (
     id INTEGER PRIMARY KEY, starter TEXT, msgs INTEGER, rounds INTEGER, state TEXT,
     opened TEXT, closed TEXT
 );
 """
-_COLS = "id, thread, parent, type, sender, receiver, at, due, state, body, data_day"
+_COLS = ("id, thread, parent, type, sender, receiver, at, due, state, body, data_day, meta, "
+         "handed")
 
 
 @dataclass(frozen=True)
@@ -63,6 +72,8 @@ class Person:
     id: str
     name: str
     skill: str
+    boss: str | None = None
+    deputy: str | None = None
 
 
 @dataclass(frozen=True)
@@ -80,6 +91,8 @@ class MessageRow:
     state: str
     body: dict[str, Any]
     data_day: str
+    meta: dict[str, Any] = field(default_factory=dict)
+    handed: str | None = None
 
 
 @dataclass(frozen=True)
@@ -102,6 +115,9 @@ class _Refused(Exception):
 def _connect(home: Path) -> sqlite3.Connection:
     con = open_events(home)
     con.executescript(SCHEMA)
+    if not con.execute("SELECT 1 FROM pragma_table_info('messages') WHERE name = 'handed'"
+                       ).fetchone():
+        con.execute("ALTER TABLE messages ADD COLUMN handed TEXT")
     return con
 
 
@@ -112,7 +128,7 @@ def _stamp(moment: datetime) -> str:
 def _row(r: tuple[Any, ...]) -> MessageRow:
     return MessageRow(int(r[0]), int(r[1]), None if r[2] is None else int(r[2]), str(r[3]),
                       str(r[4]), str(r[5]), str(r[6]), r[7], str(r[8]), json.loads(r[9]),
-                      str(r[10]))
+                      str(r[10]), json.loads(r[11]) if r[11] else {}, r[12])
 
 
 def _get(con: sqlite3.Connection, message_id: int) -> MessageRow | None:
@@ -121,14 +137,33 @@ def _get(con: sqlite3.Connection, message_id: int) -> MessageRow | None:
 
 
 def _name(roster: Sequence[Person], emp: str) -> str:
+    if emp == MASTER:
+        return "the Master user"
     return next((p.name for p in roster if p.id == emp), emp)
+
+
+def _person(roster: Sequence[Person], emp: str) -> Person | None:
+    return next((p for p in roster if p.id == emp), None)
+
+
+def _window(kind: str) -> timedelta | None:
+    if kind == "escalate":
+        return ESCALATE_WINDOW
+    return REPLY_WINDOW if kind in _ASKING else None
+
+
+def _add_blocked(con: sqlite3.Connection, row: MessageRow, why: str) -> None:
+    old = row.meta.get("blocked")
+    meta = {**row.meta, "blocked": f"{old}; {why}" if old else why}
+    con.execute("UPDATE messages SET meta = ? WHERE id = ?", (json.dumps(meta), row.id))
 
 
 # ── accept ───────────────────────────────────────────────────────────────────
 
 
 def accept(home: Path, drafts: Sequence[Draft], sender: str, roster: Sequence[Person],
-           now: datetime, data_day: str) -> list[str]:
+           now: datetime, data_day: str, escalation: bool = False,
+           send: Sender | None = None) -> list[str]:
     """Check, store and wake for each draft; a broken draft is refused alone (SRD-DSK-011.019).
 
     Args:
@@ -138,22 +173,33 @@ def accept(home: Path, drafts: Sequence[Draft], sender: str, roster: Sequence[Pe
         roster: Active employees.
         now: Time-zone aware time.
         data_day: Data day of the turn.
+        escalation: Escalation is on; when off, escalate drafts are dropped (SRD-DSK-011.033).
+        send: Telegram sender for the escalation alert; the default sender when ``None``.
 
     Returns:
         One line per draft: ``stored #<id>`` or ``refused: <why>``.
     """
+    if not escalation:
+        dropped = [d for d in drafts if d.type == "escalate"]
+        if dropped:
+            log.debug("[Messages] %d escalation(s) not sent: escalation is off", len(dropped))
+            drafts = [d for d in drafts if d.type != "escalate"]
     if not drafts:
         return []
+    types = M2_TYPES if escalation else M1_TYPES
     con = _connect(home)
     out: list[str] = []
     try:
         for draft in drafts:
             try:
                 with con:
-                    mid, receiver = _accept_one(home, con, draft, sender, roster, now, data_day)
+                    mid, receiver = _accept_one(home, con, draft, sender, roster, now,
+                                                data_day, types)
                 out.append(f"stored #{mid}")
                 log.info("[Messages] %s sent %s to %s", _name(roster, sender),
                          _KIND_WORDS.get(draft.type, draft.type), _name(roster, receiver))
+                if receiver == MASTER:
+                    _alert_master(home, con, mid, roster, now, send)
             except _Refused as why:
                 out.append(f"refused: {why}")
                 log.info("[Messages] A message from %s was refused: %s",
@@ -164,21 +210,27 @@ def accept(home: Path, drafts: Sequence[Draft], sender: str, roster: Sequence[Pe
 
 
 def _accept_one(home: Path, con: sqlite3.Connection, draft: Draft, sender: str,
-                roster: Sequence[Person], now: datetime, day: str) -> tuple[int, str]:
+                roster: Sequence[Person], now: datetime, day: str,
+                types: frozenset[str] = M1_TYPES) -> tuple[int, str]:
     parent = _get(con, draft.parent) if draft.parent is not None else None
     if draft.parent is not None and parent is None:
         raise _Refused(f"message #{draft.parent} does not exist")
     body = _with_verdict(draft.body(), parent)
+    window = _window(draft.type)
     try:
         Message.model_validate({"id": 1, "thread": 1, "parent": draft.parent, "sender": sender,
                                 "to": draft.to, "at": now, "state": "submitted",
-                                "due": now + REPLY_WINDOW if draft.type in _ASKING else None,
-                                "body": body})
+                                "due": now + window if window else None, "body": body})
     except ValidationError as exc:
         raise _Refused(reason(exc)) from exc
-    if draft.type not in M1_TYPES:
+    if draft.type not in types:
         raise _Refused(f"type {draft.type} is not in use yet")
-    receiver = parent.sender if parent else _receiver(str(draft.to), roster)
+    if parent:
+        receiver = parent.sender
+    elif draft.type == "escalate" and draft.to == "boss":
+        receiver = _boss(sender, roster) or MASTER
+    else:
+        receiver = _receiver(str(draft.to), roster)
     _guard(con, draft, sender, receiver, parent, now)
     data = body.get("data")
     if data is not None and get_format(home, str(data["schema"])) is None:
@@ -196,6 +248,13 @@ def _with_verdict(body: dict[str, Any], parent: MessageRow | None) -> dict[str, 
     return {**body, "verdict": {"result": "done"}}
 
 
+def _boss(emp: str, roster: Sequence[Person]) -> str | None:
+    """The active boss of ``emp`` (SRD-DSK-011.034), or ``None``."""
+    person = _person(roster, emp)
+    boss = person.boss if person else None
+    return boss if boss and boss != emp and _person(roster, boss) else None
+
+
 def _receiver(to: str, roster: Sequence[Person]) -> str:
     if to.startswith("skill:"):
         holders = sorted(p.id for p in roster if p.skill == to[6:])
@@ -211,7 +270,7 @@ def _guard(con: sqlite3.Connection, draft: Draft, sender: str, receiver: str,
     if parent is not None:
         if parent.receiver != sender:
             raise _Refused(f"message #{parent.id} is not addressed to you")
-        wanted = _ASKING if draft.type == "reply" else ("reply",)
+        wanted = _OPEN if draft.type == "reply" else ("reply",)
         if parent.type not in wanted or (draft.type == "reply" and parent.state != "submitted"):
             raise _Refused(f"message #{parent.id} is not open for a {draft.type}")
         msgs, rounds = con.execute("SELECT msgs, rounds FROM threads WHERE id = ?",
@@ -226,10 +285,12 @@ def _guard(con: sqlite3.Connection, draft: Draft, sender: str, receiver: str,
                 (parent.thread, receiver, sender)).fetchone():
             raise _Refused("the receiver is waiting on you in this thread")
         return
+    if draft.type == "escalate":
+        return  # an escalation is never held back by the day cap (SRD-DSK-011.038)
     started = con.execute(
         "SELECT COUNT(*) FROM messages WHERE sender = ? AND parent IS NULL "
-        "AND substr(at, 1, 10) = ?", (sender, now.astimezone(NY).date().isoformat())
-    ).fetchone()[0]
+        "AND type != 'escalate' AND substr(at, 1, 10) = ?",
+        (sender, now.astimezone(NY).date().isoformat())).fetchone()[0]
     if started >= MAX_STARTED_A_DAY:
         raise _Refused(f"{MAX_STARTED_A_DAY} messages already started today")
 
@@ -237,13 +298,16 @@ def _guard(con: sqlite3.Connection, draft: Draft, sender: str, receiver: str,
 def _store(con: sqlite3.Connection, kind: str, body: dict[str, Any], sender: str,
            receiver: str, parent: MessageRow | None, now: datetime, day: str) -> int:
     fields = {k: v for k, v in body.items() if k != "type"}
-    due = _stamp(now + REPLY_WINDOW) if kind in _ASKING else None
-    state = "submitted" if kind in _ASKING else "completed"
+    window = _window(kind)
+    to_master = receiver == MASTER
+    due = _stamp(now + window) if window and not to_master else None
+    state = "input_required" if to_master else "submitted" if kind in _OPEN else "completed"
+    quiet = to_master or (parent is not None and parent.type == "escalate")
     cur = con.execute(
         "INSERT INTO messages (thread, parent, type, sender, receiver, at, due, state, body, "
-        "data_day) VALUES (0, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "data_day, seen) VALUES (0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (parent.id if parent else None, kind, sender, receiver, _stamp(now), due, state,
-         json.dumps(fields), day))
+         json.dumps(fields), day, _stamp(now) if quiet else None))
     mid = int(cur.lastrowid or 0)
     round_up = 1 if kind == "send_back" else 0
     if parent is None:
@@ -259,8 +323,30 @@ def _store(con: sqlite3.Connection, kind: str, body: dict[str, Any], sender: str
             con.execute("UPDATE messages SET state = ? WHERE id = ?",
                         (_PARENT_STATE.get(result, "completed"), parent.id))
         _close_if_done(con, parent.thread, now)
-    post_message(con, mid, receiver, day, now)
+    if to_master:
+        _add_blocked(con, _row_of(con, mid), "nobody above to ask")
+        _close_if_done(con, mid, now)
+    elif not quiet:  # a reply to an escalation wakes nobody (SRD-DSK-011.040)
+        post_message(con, mid, receiver, day, now, 0 if kind == "escalate" else 1)
     return mid
+
+
+def _row_of(con: sqlite3.Connection, message_id: int) -> MessageRow:
+    row = _get(con, message_id)
+    if row is None:
+        raise LookupError(f"message #{message_id} is gone")
+    return row
+
+
+def _alert_master(home: Path, con: sqlite3.Connection, mid: int, roster: Sequence[Person],
+                  now: datetime, send: Sender | None) -> None:
+    """Tell the Master user about an escalation nobody above answered (SRD-DSK-007.011)."""
+    row = _row_of(con, mid)
+    why = str(row.meta.get("blocked", ""))
+    raise_alert(home, "escalation", str(row.thread), 0,
+                f"{_name(roster, row.sender)}: {row.body.get('subject', '')} ({why})", now, send)
+    log.info("[Messages] An escalation from %s reached the Master user",
+             _name(roster, row.sender))
 
 
 def _close_if_done(con: sqlite3.Connection, thread: int, now: datetime) -> None:
@@ -277,15 +363,17 @@ def _code_reply(con: sqlite3.Connection, row: MessageRow, result: str, why: str,
                 parent_state: str, now: datetime) -> None:
     """A reply written by code in the receiver's name; it wakes the asker."""
     body = {"verdict": {"result": result, "reason": why[:200]}, "text": why[:600]}
+    quiet = row.type == "escalate"  # the sender of an escalation is not woken (.040)
     cur = con.execute(
         "INSERT INTO messages (thread, parent, type, sender, receiver, at, due, state, body, "
-        "data_day) VALUES (?, ?, 'reply', ?, ?, ?, NULL, 'completed', ?, ?)",
+        "data_day, seen) VALUES (?, ?, 'reply', ?, ?, ?, NULL, 'completed', ?, ?, ?)",
         (row.thread, row.id, row.receiver, row.sender, _stamp(now), json.dumps(body),
-         row.data_day))
+         row.data_day, _stamp(now) if quiet else None))
     con.execute("UPDATE messages SET state = ? WHERE id = ?", (parent_state, row.id))
     con.execute("UPDATE threads SET msgs = msgs + 1 WHERE id = ?", (row.thread,))
     _close_if_done(con, row.thread, now)
-    post_message(con, int(cur.lastrowid or 0), row.sender, row.data_day, now)
+    if not quiet:
+        post_message(con, int(cur.lastrowid or 0), row.sender, row.data_day, now)
 
 
 def refuse_inbox(home: Path, rows: Sequence[MessageRow], why: str, now: datetime) -> int:
@@ -297,7 +385,7 @@ def refuse_inbox(home: Path, rows: Sequence[MessageRow], why: str, now: datetime
             for row in rows:
                 fresh = _get(con, row.id)
                 if fresh is None or fresh.type not in _ASKING or fresh.state != "submitted":
-                    continue
+                    continue  # an escalation is not refused: it moves up when due (.036)
                 _code_reply(con, fresh, "refused", why, "refused", now)
                 done += 1
     finally:
@@ -307,26 +395,102 @@ def refuse_inbox(home: Path, rows: Sequence[MessageRow], why: str, now: datetime
     return done
 
 
-def expire_due(home: Path, now: datetime) -> int:
-    """Expire open asks and send-backs past their due time (SRD-DSK-011.023)."""
+def expire_due(home: Path, now: datetime, roster: Sequence[Person] = (),
+               send: Sender | None = None) -> int:
+    """Expire open asks and send-backs past their due time (SRD-DSK-011.023), and move each
+    late escalation one boss up, or to the Master user past the top (SRD-DSK-011.036)."""
     if not (home / DB_NAME).exists():
         return 0
     con = _connect(home)
     done = 0
+    to_master: list[int] = []
     try:
         with con:
             rows = [_row(r) for r in con.execute(
                 f"SELECT {_COLS} FROM messages WHERE state = 'submitted' AND due IS NOT NULL")]
             for row in rows:
-                if row.due and datetime.fromisoformat(row.due) <= now:
-                    _code_reply(con, row, "failed", "no reply within 10 minutes", "expired",
-                                now)
-                    done += 1
+                if not row.due or datetime.fromisoformat(row.due) > now:
+                    continue
+                if row.type == "escalate":
+                    if not _move_up(con, row, roster, now):
+                        to_master.append(row.id)
+                    continue
+                _code_reply(con, row, "failed", "no reply within 10 minutes", "expired", now)
+                done += 1
+        for mid in to_master:  # after the commit: the alert writes to the same file
+            _alert_master(home, con, mid, roster, now, send)
     finally:
         con.close()
     if done:
         log.info("[Messages] %d message(s) expired with no reply in 10 minutes", done)
     return done
+
+
+def _move_up(con: sqlite3.Connection, row: MessageRow, roster: Sequence[Person],
+             now: datetime) -> bool:
+    """One level up, 5 minutes per level; ``False`` when it goes to the Master user
+    (SRD-DSK-011.036, .037)."""
+    _add_blocked(con, row, f"{_name(roster, row.receiver)} did not answer in 5 minutes")
+    msgs = con.execute("SELECT msgs FROM threads WHERE id = ?", (row.thread,)).fetchone()[0]
+    nxt = _boss(row.receiver, roster)
+    if nxt is None or nxt == row.sender or msgs + 1 >= MAX_THREAD_MSGS:  # room for a reply
+        con.execute("UPDATE messages SET state = 'input_required', receiver = ?, due = NULL "
+                    "WHERE id = ?", (MASTER, row.id))
+        _close_if_done(con, row.thread, now)
+        return False
+    con.execute("UPDATE messages SET receiver = ?, due = ?, seen = NULL WHERE id = ?",
+                (nxt, _stamp(now + ESCALATE_WINDOW), row.id))
+    con.execute("UPDATE threads SET msgs = msgs + 1 WHERE id = ?", (row.thread,))
+    post_message(con, row.id, nxt, row.data_day, now, 0, again=nxt)
+    log.info("[Messages] An escalation from %s moved up to %s", _name(roster, row.sender),
+             _name(roster, nxt))
+    return True
+
+
+def hand_to_deputy(home: Path, rows: Sequence[MessageRow], person: Person,
+                   roster: Sequence[Person], why: str, now: datetime) -> list[MessageRow]:
+    """Send the open messages of an employee that cannot work to its deputy, once each.
+
+    Args:
+        home: Desk folder.
+        rows: The employee's inbox rows.
+        person: The employee that cannot work.
+        roster: Active employees.
+        why: Why it cannot work.
+        now: Time-zone aware time.
+
+    Returns:
+        The open rows not handed, for the refusal of SRD-DSK-011.028 (SRD-DSK-011.041).
+    """
+    deputy = person.deputy
+    if not deputy or deputy == person.id or _person(roster, deputy) is None:
+        return list(rows)
+    con = _connect(home)
+    left: list[MessageRow] = []
+    handed = 0
+    try:
+        with con:
+            for row in rows:
+                fresh = _get(con, row.id)
+                if fresh is None or fresh.type not in _OPEN or fresh.state != "submitted":
+                    continue
+                if fresh.handed is not None or fresh.sender == deputy:
+                    left.append(fresh)
+                    continue
+                _add_blocked(con, fresh, f"{person.name} could not work ({why}); sent to "
+                                         f"deputy {_name(roster, deputy)}")
+                window = _window(fresh.type) or REPLY_WINDOW
+                con.execute("UPDATE messages SET receiver = ?, handed = ?, seen = NULL, due = ? "
+                            "WHERE id = ?", (deputy, person.id, _stamp(now + window), fresh.id))
+                post_message(con, fresh.id, deputy, fresh.data_day, now,
+                             0 if fresh.type == "escalate" else 1, again=deputy)
+                handed += 1
+    finally:
+        con.close()
+    if handed:
+        log.info("[Messages] %d message(s) for %s went to the deputy %s", handed, person.name,
+                 _name(roster, deputy))
+    return left
 
 
 # ── inbox ────────────────────────────────────────────────────────────────────
@@ -340,21 +504,25 @@ def inbox(home: Path, emp: str) -> list[MessageRow]:
     try:
         return [_row(r) for r in con.execute(
             f"SELECT {_COLS} FROM messages WHERE receiver = ? AND seen IS NULL "
-            "AND (type NOT IN ('ask', 'send_back') OR state = 'submitted') ORDER BY id",
+            "AND (type NOT IN ('ask', 'send_back', 'escalate') OR state = 'submitted') "
+            "ORDER BY id",
             (emp,))]
     finally:
         con.close()
 
 
-def mark_seen(home: Path, ids: Sequence[int], now: datetime) -> None:
-    """Mark messages as shown in their receiver's inbox."""
+def mark_seen(home: Path, ids: Sequence[int], now: datetime,
+              receiver: str | None = None) -> None:
+    """Mark messages as shown in their receiver's inbox; with ``receiver``, only rows still
+    addressed to it, so a row handed to a deputy stays new for the deputy."""
     if not ids:
         return
     con = _connect(home)
     try:
         with con:
-            con.executemany("UPDATE messages SET seen = ? WHERE id = ?",
-                            [(_stamp(now), i) for i in ids])
+            con.executemany("UPDATE messages SET seen = ? WHERE id = ? "
+                            "AND (? IS NULL OR receiver = ?)",
+                            [(_stamp(now), i, receiver, receiver) for i in ids])
     finally:
         con.close()
 
@@ -395,7 +563,7 @@ def inbox_text(rows: Sequence[MessageRow], roster: Sequence[Person]) -> str:
                 lines.append(f"  {m.body[key]}")
         if m.body.get("data"):
             lines.append(_data_line(m.body["data"]))
-        if m.type in _ASKING:
+        if m.type in _OPEN:
             lines.append(f"  Reply with a message of type reply and parent {m.id}.")
     return "\n".join(lines)
 

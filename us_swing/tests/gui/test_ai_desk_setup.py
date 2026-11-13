@@ -318,3 +318,18 @@ def test_number_codes() -> None:
     assert initials("Lead 1") == "L1"
     assert initials("Ann Lee") == "AL"
     assert initials("Solo") == "SO"
+
+
+def test_deputy_picker(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-036.011.M01.T01: Deputy lists None and the others, not itself, and is saved."""
+    folder = _hire(tmp_path, "emp-a", "Alpha")
+    _hire(tmp_path, "emp-b", "Beta")
+    page = _page(qtbot, tmp_path)
+    page.select("emp-a")
+    box = page.deputy_box
+    assert [box.itemData(i) for i in range(box.count())] == [None, "emp-b"]
+    assert box.currentText() == "None"
+    box.setCurrentIndex(box.findData("emp-b"))
+    with qtbot.waitSignal(page.saved):
+        page.save_btn.click()
+    assert de.load(folder).spec.deputy == "emp-b"

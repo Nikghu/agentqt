@@ -3,7 +3,7 @@
 **Document ID:** TRACE-DSK
 **Version:** 0.1.0
 **Status:** Draft
-**Last Updated:** 2026-11-13 (AI Desk v3 M0: FO-DSK-011 SRD .001–.014 and FO-DSK-012 SRD .001–.011 with RN-DSK-0.13.0-20261113; strategy test owner ticket: FO-DSK-010 SRD .016 with RN-MKT-0.21.0-20261112; autonomous desk step F skill 2: FO-DSK-010 SRD .015 with RN-DSK-0.12.0-20261111; autonomous desk step E: FO-DSK-004 SRD .006–.010, FO-DSK-007 SRD .010, FO-DSK-010 SRD .001–.014 with RN-DSK-0.11.0-20261111; autonomous desk step D: FO-DSK-003 SRD .020–.025 and FO-DSK-007 SRD .009 with RN-DSK-0.10.0-20261111; memory v1, step C: FO-DSK-009 with RN-DSK-0.9.0-20261111)
+**Last Updated:** 2026-11-13 (AI Desk v3 M2: escalation and deputies, FO-DSK-011 SRD .033–.043, FO-DSK-007 SRD .011, FO-DSK-008 SRD .010 with RN-DSK-0.15.0-20261113; AI Desk v3 M0: FO-DSK-011 SRD .001–.014 and FO-DSK-012 SRD .001–.011 with RN-DSK-0.13.0-20261113; strategy test owner ticket: FO-DSK-010 SRD .016 with RN-MKT-0.21.0-20261112; autonomous desk step F skill 2: FO-DSK-010 SRD .015 with RN-DSK-0.12.0-20261111; autonomous desk step E: FO-DSK-004 SRD .006–.010, FO-DSK-007 SRD .010, FO-DSK-010 SRD .001–.014 with RN-DSK-0.11.0-20261111; autonomous desk step D: FO-DSK-003 SRD .020–.025 and FO-DSK-007 SRD .009 with RN-DSK-0.10.0-20261111; memory v1, step C: FO-DSK-009 with RN-DSK-0.9.0-20261111)
 **Project:** US Swing Trading System
 
 > v0.1.0: One row per Draft FO. Columns fill as each phase completes.
@@ -54,3 +54,17 @@
 | FO-DSK-011 | SRD-DSK-011.003, .004, .014 (reopened) | DD-DSK-011.001.D01 | MD-DSK-011.015.M29, MD-DSK-011.001.M27 | Shared with UT-DSK-011.* M1 (Pass) | `core/desk_messages.py`, `core/desk_msg.py` | Implemented | RN-DSK-0.14.0-20261113 |
 | FO-DSK-002 | SRD-DSK-002.005 (reopened) | DD-DSK-002.001.D01 | MD-DSK-003.001.M10 | UT-DSK-002.005.M10.T01 (1, Pass) | `core/desk_agents.py`, `desk/employees_step.py` | Implemented | RN-DSK-0.14.0-20261113 |
 | FO-DSK-003 | SRD-DSK-003.014 (extra case) | DD-DSK-003.014.D01 | MD-DSK-003.001.M10 | UT-DSK-003.014.M10.T02 (1, Pass) | `desk/employees_step.py` | Implemented | RN-DSK-0.14.0-20261113 |
+| FO-DSK-011 | SRD-DSK-011.014, .024 (reopened) | DD-DSK-011.033.D01 | MD-DSK-011.015.M29 | Shared with UT-DSK-011.* M1 and M2 (Pass) | `core/desk_messages.py`, `core/desk_events.py` | Implemented | RN-DSK-0.15.0-20261113 |
+| FO-DSK-011 | SRD-DSK-011.033 | DD-DSK-011.033.D01 | MD-DSK-011.015.M29 | UT-DSK-011.033.M29.T01–T02 (2, Pass) | `core/desk_messages.py` | Implemented | RN-DSK-0.15.0-20261113 |
+| FO-DSK-011 | SRD-DSK-011.034 | DD-DSK-011.033.D01 | MD-DSK-011.015.M29 | UT-DSK-011.034.M29.T01–T02 (2, Pass) | `core/desk_messages.py` | Implemented | RN-DSK-0.15.0-20261113 |
+| FO-DSK-011 | SRD-DSK-011.035 | DD-DSK-011.033.D01 | MD-DSK-003.004.M15, MD-DSK-011.015.M29 | UT-DSK-011.035.M15.T01–T02 (2, Pass) | `core/desk_events.py` | Implemented | RN-DSK-0.15.0-20261113 |
+| FO-DSK-011 | SRD-DSK-011.036 | DD-DSK-011.033.D01 | MD-DSK-011.015.M29, MD-DSK-003.006.M16 | UT-DSK-011.036.M29.T01–T04, UT-DSK-011.036.M16.T01 (5, Pass) | `core/desk_messages.py`, `desk/router.py` | Implemented | RN-DSK-0.15.0-20261113 |
+| FO-DSK-011 | SRD-DSK-011.037 | DD-DSK-011.033.D01 | MD-DSK-011.015.M29 | UT-DSK-011.037.M29.T01–T03 (3, Pass) | `core/desk_messages.py` | Implemented | RN-DSK-0.15.0-20261113 |
+| FO-DSK-011 | SRD-DSK-011.038 | DD-DSK-011.033.D01 | MD-DSK-011.015.M29 | UT-DSK-011.038.M29.T01–T02 (2, Pass) | `core/desk_messages.py` | Implemented | RN-DSK-0.15.0-20261113 |
+| FO-DSK-011 | SRD-DSK-011.039 | DD-DSK-011.033.D01 | MD-DSK-003.001.M10 | UT-DSK-011.039.M10.T01–T02 (2, Pass) | `desk/employees_step.py` | Implemented | RN-DSK-0.15.0-20261113 |
+| FO-DSK-011 | SRD-DSK-011.040 | DD-DSK-011.033.D01 | MD-DSK-003.001.M10, MD-DSK-011.015.M29 | UT-DSK-011.040.M10.T01, UT-DSK-011.040.M29.T01 (2, Pass) | `desk/employees_step.py`, `core/desk_messages.py` | Implemented | RN-DSK-0.15.0-20261113 |
+| FO-DSK-011 | SRD-DSK-011.041 | DD-DSK-011.033.D01 | MD-DSK-011.015.M29, MD-DSK-003.001.M10 | UT-DSK-011.041.M29.T01–T03, UT-DSK-011.041.M10.T01 (4, Pass) | `core/desk_messages.py`, `desk/employees_step.py` | Implemented | RN-DSK-0.15.0-20261113 |
+| FO-DSK-011 | SRD-DSK-011.042 | DD-DSK-011.033.D01 | MD-DSK-003.001.M10, MD-DSK-004.005.M13 | UT-DSK-011.042.M10.T01, UT-DSK-011.042.M13.T01 (2, Pass) | `desk/employees_step.py`, `core/desk_ai_settings.py` | Implemented | RN-DSK-0.15.0-20261113 |
+| FO-DSK-011 | SRD-DSK-011.043 | DD-DSK-011.033.D01 | MD-DSK-011.015.M29 | UT-DSK-011.043.M29.T01 (1, Pass) | `core/desk_messages.py` | Implemented | RN-DSK-0.15.0-20261113 |
+| FO-DSK-007 | SRD-DSK-007.011 | DD-DSK-011.033.D01 | MD-DSK-007.001.M21 | UT-DSK-007.011.M21.T01 (1, Pass) | `core/desk_alerts.py` | Implemented | RN-DSK-0.15.0-20261113 |
+| FO-DSK-008 | SRD-DSK-008.010 | DD-DSK-011.033.D01 | MD-DSK-008.001.M22 | UT-DSK-008.010.M22.T01–T02 (2, Pass) | `core/desk_employee.py` | Implemented | RN-DSK-0.15.0-20261113 |

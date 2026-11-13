@@ -9,7 +9,8 @@ no employee of a run gave a valid answer), SRD-DSK-003.014 (wake result ok, slep
 SRD-DSK-003.016 (a retry skips the once-per-day check), SRD-DSK-003.018 (partial plan line),
 SRD-DSK-007.008 (partial plan alert), SRD-DSK-004.008 (market or plan budget part by event),
 SRD-DSK-011.026, .028, .030, .031 (message wakes: inbox facts, refusals, the starter pays,
-only while messages are on)
+only while messages are on), SRD-DSK-011.039-.042 (boss reply-only turn, reply as a feed
+note, deputy before refusal, only while escalation is on)
 
 Desk step "AI employees": after the market steps, copies any missing default employee
 files into the desk folder, posts an ``after_run`` event and lets the router handle every
@@ -28,16 +29,19 @@ from us_swing.core.desk_ai_settings import DeskAiSettings, load_key, load_settin
 from us_swing.core.desk_alerts import Sender, last_error, raise_alert, run_outcome
 from us_swing.core.desk_contract import StepContext, desk_home
 from us_swing.core.desk_events import Event, post_event, waiting_count
+from us_swing.core.desk_agents import FeedItem
 from us_swing.core.desk_messages import (
     MessageRow,
     Person,
     accept,
+    hand_to_deputy,
     inbox,
     inbox_text,
     mark_seen,
     refuse_inbox,
     thread_starter,
 )
+from us_swing.core.desk_msg import Draft, InboxReply
 from us_swing.desk.budget import Part
 from us_swing.desk.gateway import Caller, Gateway, call_model
 from us_swing.desk.recorder import NY, Recorder, ny_now
@@ -130,8 +134,8 @@ class EmployeesStep:
             record_employees(home, hires)
         settings = self._settings() if self._settings else load_settings(home)
 
-        roster = [Person(h.spec.id, h.spec.name, h.skill.key) for h in hires
-                  if h.spec.status == "active"]
+        roster = [Person(h.spec.id, h.spec.name, h.skill.key, h.spec.reports_to,
+                         h.spec.deputy) for h in hires if h.spec.status == "active"]
 
         def wake(hire: Hire, event: Event, retry: bool, missing: tuple[str, ...]) -> str:
             if event.kind == "message":
@@ -143,7 +147,8 @@ class EmployeesStep:
             raise_alert(home, "partial", hire.spec.id, run_id,
                         f"{hire.spec.name} failed 3 times: {error}", self._clock(), self._send)
 
-        return Router(home, hires, wake, set(skills), self._clock, alert), hires
+        return Router(home, hires, wake, set(skills), self._clock, alert, roster,
+                      self._send), hires
 
     def _wake(self, hire: Hire, event: Event, run_id: int, home: Path,
               settings: DeskAiSettings, retry: bool = False,
@@ -172,7 +177,8 @@ class EmployeesStep:
                               facts.data_day, self._caller, self._clock, send=self._send,
                               part=part, talk=_talks(hire, settings))
             items = hire.skill.act(gateway, facts)
-            accept(home, gateway.drafts, spec.id, roster, self._clock(), facts.data_day)
+            accept(home, gateway.drafts, spec.id, roster, self._clock(), facts.data_day,
+                   _escalates(settings), self._send)
             if missing:
                 line = f"Partial plan: no view from {', '.join(missing)}."
                 items = [replace(i, text=f"{line}\n{i.text}") for i in items]
@@ -199,13 +205,60 @@ class EmployeesStep:
         rows = inbox(home, spec.id)
         if not rows:
             return "ok"
+        escalates = [m for m in rows if m.type == "escalate"] if _escalates(settings) else []
+        rest = [m for m in rows if m not in escalates]
         try:
-            return self._answer_inbox(hire, run_id, home, settings, hires, roster, rows)
+            result = "ok"
+            if escalates:
+                result = self._answer_escalations(hire, run_id, home, settings, hires, roster,
+                                                  escalates)
+            if rest:
+                result = self._answer_inbox(hire, run_id, home, settings, hires, roster, rest)
+            return result
         except Exception:
-            refuse_inbox(home, rows, f"{spec.name} hit an error", self._clock())
+            self._refuse(home, rows, f"{spec.name} hit an error", hire, settings, roster)
             raise
         finally:
-            mark_seen(home, [m.id for m in rows], now)
+            mark_seen(home, [m.id for m in rows], now, spec.id)
+
+    def _refuse(self, home: Path, rows: Sequence[MessageRow], why: str, hire: Hire,
+                settings: DeskAiSettings, roster: Sequence[Person]) -> None:
+        """Hand open messages to the deputy first, then refuse the rest (SRD-DSK-011.041)."""
+        now = self._clock()
+        if _escalates(settings):
+            person = next((p for p in roster if p.id == hire.spec.id), None)
+            if person is not None:
+                rows = hand_to_deputy(home, rows, person, roster, why, now)
+        refuse_inbox(home, rows, why, now)
+
+    def _answer_escalations(self, hire: Hire, run_id: int, home: Path,
+                            settings: DeskAiSettings, hires: Sequence[Hire],
+                            roster: Sequence[Person], rows: Sequence[MessageRow]) -> str:
+        """A short reply-only turn for a boss; its own skill does not run (SRD-DSK-011.039)."""
+        spec, day = hire.spec, rows[0].data_day
+        text = _BOSS_HEAD + "\n\n" + inbox_text(rows, roster)
+        starter = thread_starter(home, rows[0].thread) or spec.id
+        payer = next((h.spec for h in hires if h.spec.id == starter), spec)
+        part = Part("market", payer.id, payer.name, payer.tokens_per_day, message=rows[0].id)
+        recorder = Recorder(home)
+        try:
+            gateway = Gateway(home, hire, recorder, settings, self._key(), run_id, day,
+                              self._caller, self._clock, send=self._send, part=part)
+            answer = gateway.ask(text, InboxReply)
+            replies = [d for d in answer.messages if d.type == "reply"] if answer else []
+            results = accept(home, replies, spec.id, roster, self._clock(), day, True,
+                             self._send)
+            subjects = {m.id: str(m.body.get("subject", "")) for m in rows}
+            notes = [FeedItem("info", _note(subjects.get(d.parent or 0, ""), d), day)
+                     for d, r in zip(replies, results, strict=True) if r.startswith("stored")]
+            recorder.add_briefs(notes, spec.id, spec.name)  # SRD-DSK-011.040
+        finally:
+            recorder.close()
+        if not replies:
+            why = gateway.refused or f"{spec.name} gave no valid answer"
+            self._refuse(home, rows, why, hire, settings, roster)
+            return "slept" if gateway.refused else "failed"
+        return "ok"
 
     def _answer_inbox(self, hire: Hire, run_id: int, home: Path, settings: DeskAiSettings,
                       hires: Sequence[Hire], roster: Sequence[Person],
@@ -216,7 +269,8 @@ class EmployeesStep:
             return "slept"
         facts = hire.skill.facts(home)
         if not facts.fresh:
-            refuse_inbox(home, rows, f"{spec.name} cannot work now: {facts.why_stale}", now)
+            self._refuse(home, rows, f"{spec.name} cannot work now: {facts.why_stale}", hire,
+                         settings, roster)
             return "slept"
         facts = replace(facts, text=facts.text + "\n\n" + inbox_text(rows, roster),
                         inbox=tuple(m.id for m in rows))
@@ -232,15 +286,31 @@ class EmployeesStep:
             recorder.add_briefs(items, spec.id, spec.name)
         finally:
             recorder.close()
-        accept(home, gateway.drafts, spec.id, roster, self._clock(), facts.data_day)
+        accept(home, gateway.drafts, spec.id, roster, self._clock(), facts.data_day,
+               _escalates(settings), self._send)
         if gateway.refused:
-            refuse_inbox(home, rows, gateway.refused, self._clock())
+            self._refuse(home, rows, gateway.refused, hire, settings, roster)
             return "slept"
         if gateway.asked and not gateway.answered:
-            refuse_inbox(home, rows, f"{spec.name} gave no valid answer", self._clock())
+            self._refuse(home, rows, f"{spec.name} gave no valid answer", hire, settings,
+                         roster)
             return "failed"
         return "ok"
 
 
+_BOSS_HEAD = ("Problems raised to you by people who report to you. Reply to each one; your "
+              "reply is shown to the Master user as a note. Do not plan anything else now.")
+
+
+def _note(subject: str, draft: Draft) -> str:
+    verdict = draft.verdict.result if draft.verdict else "done"
+    return f"{subject}: {draft.text or verdict}" if subject else (draft.text or verdict)
+
+
 def _talks(hire: Hire, settings: DeskAiSettings) -> bool:
     return settings.messages_on and bool(getattr(hire.skill, "talks", False))
+
+
+def _escalates(settings: DeskAiSettings) -> bool:
+    """Escalation and deputies run only with messages and escalation on (SRD-DSK-011.042)."""
+    return settings.messages_on and settings.escalation_on

@@ -450,3 +450,50 @@ def test_unknown_skill_guard() -> None:
     paths = {k: v for k, v in SKILL_PATHS.items() if k not in ("watch_flag", "checkin_note")}
     assert load_employee(_folders()["emp-011"], paths) is None
     assert load_employee(_folders()["emp-012"], paths) is None
+
+
+# ── AI Desk v3 M2: flag escalation (SRD-MKT-013.013) ─────────────────────────
+
+
+class TalkCtx(FakeCtx):
+    """A fake context that can carry message drafts, like the real gateway."""
+
+    def __init__(self, home: Path, answer: Any) -> None:
+        super().__init__(home, answer)
+        self.talk = True
+        self.drafts: list[Any] = []
+
+    def send(self, draft: Any) -> None:
+        self.drafts.append(draft)
+
+
+def test_broken_plan_escalates(home: Path, candles: Path) -> None:
+    """UT-MKT-013.013.M02.T01: A broken plan goes to the boss and still raises the alert."""
+    add_flag(home, "headline", "AAPL", "Apple cuts guidance", 180.0, NOW)
+    skill, ctx = _skill(candles), TalkCtx(home, WatchVerdict(verdict="broken",
+                                                              note="Guidance cut ends it"))
+    skill.act(ctx, skill.facts(home))
+    assert [(d.type, d.to, d.about) for d in ctx.drafts] == [("escalate", "boss", ["AAPL"])]
+    assert "Guidance cut ends it" in (ctx.drafts[0].text or "")
+    assert _alerts(home) == ["plan_broken"]
+
+
+def test_stop_touch_escalates(home: Path, candles: Path) -> None:
+    """UT-MKT-013.013.M02.T02: A stop touch goes to the boss even with no valid answer."""
+    add_flag(home, "stop_touch", "AAPL", "long stop 175.00", 174.9, NOW)
+    skill, ctx = _skill(candles), TalkCtx(home, None)
+    skill.act(ctx, skill.facts(home))
+    assert [d.type for d in ctx.drafts] == ["escalate"]
+    assert "174.90" in (ctx.drafts[0].text or "")
+
+
+def test_no_escalation(home: Path, candles: Path) -> None:
+    """UT-MKT-013.013.M02.T03: A holding trigger, or a plain fake context, sends nothing."""
+    add_flag(home, "trigger_hit", "AAA", "long trigger 50.00", 50.1, NOW)
+    skill, ctx = _skill(candles), TalkCtx(home, WatchVerdict(verdict="holds", note="Fine"))
+    skill.act(ctx, skill.facts(home))
+    assert ctx.drafts == []
+    add_flag(home, "stop_touch", "BBB", "long stop 20.00", 19.9, NOW)
+    plain = FakeCtx(home, None)
+    skill.act(plain, skill.facts(home))  # no send(): nothing to check but no error
+    assert not hasattr(plain, "drafts")

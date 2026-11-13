@@ -73,7 +73,8 @@ def test_sections_use_icon_cards(qtbot: QtBot, tmp_path: Path) -> None:
     """UT-GUI-034.066.M39.T01: Hiring, Cost and Settings are built from titled icon cards."""
     expected = {"Hiring": ["Hires", "Start hire", "Shadow report"],
                 "Cost": ["Budget used", "By employee", "By model"],
-                "Settings": ["Schedule and rules", "Claude Code CLI", "OpenRouter API", "Seats"]}
+                "Settings": ["Schedule and rules", "Claude Code CLI", "OpenRouter API", "Seats",
+                             "Agent messages"]}
     frames = {"Hiring": hiring_frame("Hiring", tmp_path),
               "Cost": cost_frame("Cost & budget", tmp_path),
               "Settings": settings_frame("Desk settings", tmp_path)}

@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.18.0: No new module; M29, M15, M16, M10, M13, M21, M22 changed (AI Desk v3 M2, 2026-11-13).
 > v0.17.0: MD-DSK-011.015.M29 added; M27, M28, M15, M16, M10, M11, M12, M14, M08, M13 changed (AI Desk v3 M1, 2026-11-13).
 > v0.16.0: MD-DSK-011.001.M27 and MD-DSK-012.001.M28 added; M04 changed (AI Desk v3 M0, 2026-11-13).
 > v0.15.0: MD-DSK-010.001.M25 gains `raise_owner_test` (SRD-DSK-010.016, 2026-11-12).
@@ -170,3 +171,9 @@ SRD coverage: 011.001–.014 by M27; 012.001–.008, .010 and .011 by M28; .009 
 Changed: M27 (`core/desk_msg.py`: send_back parent-or-to rule, `Draft`, `with_messages()`, `InboxReply` — 011.003, .004, .016), M28 (`core/desk_registry.py`: format `idea_fix.v1` — 011.019), M15 (`core/desk_events.py`: `message` rule, `target` column, `post_message()` — .024), M16 (`desk/router.py`: addressed wake, no rewake gap, waiting step and release, expiry each pass — .025, .029, .023), M10 (`desk/employees_step.py`: message wake, inbox facts, payer part, accept drafts, refusals — .026, .028, .030, .031), M11 (`desk/gateway.py`: `talk`, `drafts`, `send()`, message id on tries — .016, .030), M12 (`desk/budget.py`: `Part.message` — .030), M14 (`desk/recorder.py`: `message` column, `last_wake` skips message turns — .025, .030), M08 (`core/desk_agents.py`: `Facts.inbox`, `talker()` — .016, .026), M13 (`core/desk_ai_settings.py`: `messages_on` — .031).
 
 SRD coverage: 011.003, .004 and .016 by M27; .014, .015, .017–.024, .026, .027 and .032 by M29; .025 by M16 and M14; .028 by M10 and M29; .029 by M16 and M29; .030 by M10, M11, M12 and M14; .031 by M13, M10 and M11.
+
+## FO-DSK-011 (AI Desk v3 M2): Escalation and Deputies
+
+No new module. Changed: M29 (`core/desk_messages.py`: `Person.boss` and `.deputy`, escalate accept, `boss` address, 5-minute move up in `expire_due()`, `hand_to_deputy()`, `handed` column, `mark_seen(receiver=)`, replies to escalates wake nobody — 011.014, .033, .034, .036–.038, .040, .041, .043), M15 (`core/desk_events.py`: `post_message(priority=, again=)` — .035), M16 (`desk/router.py`: roster and send passed to `expire_due()` — .036), M10 (`desk/employees_step.py`: roster with boss and deputy, `_answer_escalations()`, `_refuse()` with deputy first, `escalation` passed to `accept()` — .039–.042), M13 (`core/desk_ai_settings.py`: `escalation_on` — .042), M21 (`core/desk_alerts.py`: kind `escalation` — 007.011), M22 (`core/desk_employee.py`: `JobSpec.deputy`, deputy checks, `render` leaves out an empty deputy — 008.010).
+
+SRD coverage: 011.014, .033, .034, .036–.038, .041 and .043 by M29; .035 by M15 and M29; .036 also by M16; .039 and .040 by M10 and M29; .042 by M13 and M10; 007.011 by M21 and M29; 008.010 by M22.

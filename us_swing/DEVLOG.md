@@ -2,6 +2,16 @@
 
 ---
 
+## [20261113] DSK — AI Desk v3 M2: escalation and deputies (FO-DSK-011, FO-DSK-007, FO-DSK-008, FO-MKT-013, FO-GUI-034, FO-GUI-035, FO-GUI-036)
+
+- Type: Feature
+- FO(s): FO-DSK-011, FO-DSK-007, FO-DSK-008, FO-MKT-013, FO-GUI-034, FO-GUI-035, FO-GUI-036
+- RN: RN-DSK-0.15.0-20261113
+- Artifacts updated: SRD (011.033–.043, 007.011, 008.010, MKT-013.013, GUI-034.071, GUI-035.017, GUI-036.011 Implemented; 011.014 and .024 reopened), DD (DD-DSK-011.033.D01, DD-MKT-013.013.D01, DD-GUI-034.071.D01), MD (MD-DSK-011.015.M29 and others changed), UTCD (37 M2 cases Pass), Code, Tests, RN, TRACE, CONTEXT. Branch feat/dsk-m2-escalation; not pushed.
+- Decisions: escalate moves up after 5 minutes, top boss alerts the Master; escalates free of the 20-a-day cap; boss reply-only turn, reply as feed note; deputy tried before refusal; handover type moved to M5; alert stays open all day (needs user OK).
+
+---
+
 ## [20261113] DSK — AI Desk v3 M1: messages and the reply path (FO-DSK-011, FO-DSK-002, FO-MKT-005, FO-MKT-006, FO-GUI-034, FO-GUI-035)
 - Desk-copy check with real AI: 5 of 11 over-limit ideas fixed in round 1, 6 expired, lead picked DGX and KO; fixed: code replies carry text, price facts for sent-back ideas (SRD-MKT-005.024), missing reply verdict filled (commit c09e2cd6).
 

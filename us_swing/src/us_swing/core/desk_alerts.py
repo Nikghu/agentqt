@@ -5,7 +5,7 @@ Also: SRD-DSK-007.002 (once a day), SRD-DSK-007.003 (Telegram), SRD-DSK-007.005 
 failed), SRD-DSK-007.006 (open alerts close when the source works again), SRD-DSK-007.007
 (candles not up to date, closed by a later ok run), SRD-DSK-007.008 (desk plan is partial,
 closed by a later full chain), SRD-DSK-007.009 (trade at stop or target, plan broken), SRD-DSK-007.010 (research ticket waiting,
-closed once the ticket is no longer waiting)
+closed once the ticket is no longer waiting), SRD-DSK-007.011 (escalation not answered)
 
 AI problem alerts: sorts an LLM error into a problem the user must fix (Claude login, OpenRouter
 key or credit), keeps one alert per problem per day in ``desk.db``, sends it to Telegram and
@@ -65,12 +65,14 @@ _FIX = {
     "plan_broken": ("Plan broken", "Read the desk's note in Market Floor before you act."),
     "ticket_waiting": ("Research ticket waiting",
                        "Approve or reject it in AI Desk → Research."),
+    "escalation": ("Escalation not answered",
+                   "Read the thread in AI Desk → Team at work → Threads."),
     "partial": ("Desk plan is partial",
                 "Open AI Desk → Team at work → Event log to see the error; the next run tries "
                 "again."),
 }
 DATA_PROBLEMS = ("candles",)
-MARKET_ALERTS = ("trade_stop", "trade_target", "plan_broken")  # open for the day
+MARKET_ALERTS = ("trade_stop", "trade_target", "plan_broken", "escalation")  # open for the day
 USER_PROBLEMS = ("login", "key", "credit")
 
 Sender = Callable[[str], bool]
@@ -121,7 +123,8 @@ def raise_alert(home: Path, kind: str, source: str, run_id: int, detail: str,
     Args:
         home: Desk folder.
         kind: ``login``, ``key``, ``credit``, ``run_failed``, ``candles``, ``partial``,
-            ``trade_stop``, ``trade_target``, ``plan_broken`` or ``ticket_waiting``.
+            ``trade_stop``, ``trade_target``, ``plan_broken``, ``ticket_waiting`` or
+            ``escalation``.
         source: The model source (``claude``, ``openrouter``) or empty.
         run_id: Desk run that found the problem.
         detail: What happened, in a line.

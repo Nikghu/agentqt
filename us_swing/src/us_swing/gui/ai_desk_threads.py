@@ -1,6 +1,7 @@
 """
 Module: MD-GUI-035.016.M05 — gui/ai_desk_threads.py
 Parent SRD: SRD-GUI-035.016
+Also: SRD-GUI-035.017 (moves up and deputy hands with their reason)
 
 Team at work "Threads" tab: today's message threads in a table and the messages of the
 selected thread below it. Read-only; the data comes from ``core/desk_messages``.
@@ -12,11 +13,13 @@ from datetime import datetime
 from pathlib import Path
 
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QHeaderView,
     QLabel,
     QListWidget,
+    QListWidgetItem,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -25,6 +28,7 @@ from PyQt6.QtWidgets import (
 
 from us_swing.core.desk_messages import MessageRow, ThreadRow, messages_of, thread_rows
 from us_swing.gui.ai_desk_sections import muted
+from us_swing.gui.theme import C
 
 HEADERS = ("Started", "Starter", "Messages", "Rounds", "State", "Tokens")
 _ROLE = Qt.ItemDataRole.UserRole
@@ -61,7 +65,7 @@ class ThreadsView(QWidget):
         super().__init__(parent)
         self._home: Path | None = None
         self._names: dict[str, str] = {}
-        self._shown: tuple[int, int] | None = None
+        self._shown: tuple[int, tuple[tuple[int, str, str], ...]] | None = None
         lines = QVBoxLayout(self)
         lines.setContentsMargins(0, 0, 0, 0)
         lines.setSpacing(8)
@@ -125,10 +129,15 @@ class ThreadsView(QWidget):
             self.detail_title.setText("Messages")
             return
         rows = messages_of(self._home, thread)
-        if self._shown == (thread, len(rows)):
+        shown = (thread, tuple((m.id, m.receiver, m.state) for m in rows))
+        if self._shown == shown:
             return  # same thread, nothing new: keep the scroll place
-        self._shown = (thread, len(rows))
+        self._shown = shown
         self.detail.clear()
         self.detail_title.setText(f"Messages of thread {thread}")
         for m in rows:
             self.detail.addItem(message_line(m, self._names))
+            if m.meta.get("blocked"):
+                item = QListWidgetItem(f"      {m.meta['blocked']}")
+                item.setForeground(QColor(C.MUTED))
+                self.detail.addItem(item)

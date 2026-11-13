@@ -1,7 +1,7 @@
 """
 Module: MD-DSK-003.004.M15 — core/desk_events.py
 Parent SRD: SRD-DSK-003.004
-Also: SRD-DSK-011.024 (``message`` events with a ``target``)
+Also: SRD-DSK-011.024 (``message`` events with a ``target``), SRD-DSK-011.035 (priority by type)
 Also: SRD-DSK-003.005 (event kinds and priorities); MD-MKT-010.002.M02 — ``chat_question`` (SRD-MKT-010.002)
 Also: MD-MKT-011.002.M02 — ``data_request`` (SRD-MKT-011.002)
 Also: SRD-DSK-003.014 (``step_done`` events and the ``steps`` table for the baton)
@@ -162,7 +162,7 @@ def post_step_done(con: sqlite3.Connection, trigger: Event, employee: str, tries
 
 
 def post_message(con: sqlite3.Connection, message_id: int, receiver: str, data_day: str,
-                 now: datetime) -> None:
+                 now: datetime, priority: int | None = None, again: str = "") -> None:
     """Post a waiting ``message`` event that wakes only ``receiver`` (SRD-DSK-011.024).
 
     Args:
@@ -171,12 +171,16 @@ def post_message(con: sqlite3.Connection, message_id: int, receiver: str, data_d
         receiver: Employee id to wake.
         data_day: Data day the message is about.
         now: Time-zone aware time of posting.
+        priority: Priority by message type (SRD-DSK-011.035); the rule's when ``None``.
+        again: Added to the key so a moved or handed message can wake someone new.
     """
     rule = EVENT_RULES["message"]
+    key = f"message|{message_id}|{again}" if again else f"message|{message_id}"
     deadline = now + rule.deadline if rule.deadline else None
     con.execute(
         "INSERT OR IGNORE INTO events (key, kind, priority, data_day, created, deadline, "
         "expires, state, target) VALUES (?, 'message', ?, ?, ?, ?, ?, 'waiting', ?)",
-        (f"message|{message_id}", rule.priority, data_day, now.isoformat(timespec="seconds"),
+        (key, rule.priority if priority is None else priority, data_day,
+         now.isoformat(timespec="seconds"),
          deadline.isoformat(timespec="seconds") if deadline else None,
          (now + rule.expiry).isoformat(timespec="seconds"), receiver))

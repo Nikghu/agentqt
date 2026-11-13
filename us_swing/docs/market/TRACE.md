@@ -58,3 +58,4 @@
 | FO-MKT-005 | SRD-MKT-005.019–.023 | DD-MKT-005.019.D01 | MD-MKT-005.009.M05, MD-MKT-005.012.M07, MD-MKT-006.005.M04, MD-MKT-001.007.M04, MD-MKT-013.001.M01, MD-MKT-013.008.M02 (changed) | UT-MKT-005.019–.023 (16, Pass) | `market/setup_review.py`, `market/risk_check.py`, `market/news_review.py`, `market/store.py`, `market/watch.py`, `market/watch_flag.py` | Implemented | RN-DSK-0.14.0-20261113 |
 | FO-MKT-006 | SRD-MKT-006.013 | DD-MKT-006.001.D01 | MD-MKT-006.005.M04 | UT-MKT-006.013 (2, Pass) | `market/news_review.py` | Implemented | RN-DSK-0.14.0-20261113 |
 | FO-MKT-005 | SRD-MKT-005.024 | DD-MKT-005.019.D01 | MD-MKT-005.009.M05 | UT-MKT-005.024.M05.T01–T02 (2, Pass) | `market/setup_review.py` | Implemented | RN-DSK-0.14.0-20261113 |
+| FO-MKT-013 | SRD-MKT-013.013 | DD-MKT-013.013.D01 | MD-MKT-013.008.M02 | UT-MKT-013.013.M02.T01–T03 (3, Pass) | `market/watch_flag.py` | Implemented | RN-DSK-0.15.0-20261113 |

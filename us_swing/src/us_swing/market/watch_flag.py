@@ -3,6 +3,7 @@ Module: MD-MKT-013.008.M02 — market/watch_flag.py
 Parent SRD: SRD-MKT-013.008
 Also: SRD-MKT-005.023 (fixed levels in the plan text) — AI Desk v3 M1
 Also: SRD-MKT-013.009 (verdict form, feed item, broken alert), SRD-MKT-013.012 (log line)
+Also: SRD-MKT-013.013 (broken plan, stop or target touch go to the boss) — AI Desk v3 M2
 
 The flag skill: for the oldest flag of the day that has no answer yet, shows the model the
 flag, the plan for that stock (an idea or an open trade) and the last bars, and asks whether
@@ -18,9 +19,18 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from us_swing.core.desk_agents import AgentContext, Facts, FeedItem
+from us_swing.core.desk_agents import AgentContext, Facts, FeedItem, Talker
 from us_swing.core.desk_alerts import raise_alert
-from us_swing.core.desk_watch import NY, answer_flag, connect, label, next_flag, open_trades
+from us_swing.core.desk_msg import Draft
+from us_swing.core.desk_watch import (
+    NY,
+    Flag,
+    answer_flag,
+    connect,
+    label,
+    next_flag,
+    open_trades,
+)
 from us_swing.core.desk_watch import plan_day as _plan_day
 from us_swing.market.candles import CANDLE_DB
 from us_swing.market.watch import levels, today_bars
@@ -114,11 +124,31 @@ class WatchFlagSkill:
         now = self._clock()
         if reply is None:
             answer_flag(ctx.home, flag.id, "none", "No valid answer", now)  # never block newer
+            _escalate(ctx, flag, None)
             return []
         answer_flag(ctx.home, flag.id, reply.verdict, reply.note, now)
         log.info("[Watch] %s %s: %s", flag.symbol, label(flag.kind), reply.verdict)
         if reply.verdict == "broken":
             raise_alert(ctx.home, "plan_broken", flag.symbol, 0,
                         f"{flag.symbol}: {reply.note}", now)
+        _escalate(ctx, flag, reply)
         return [FeedItem("info", f"{flag.symbol} {label(flag.kind)}: {reply.verdict} — "
                                  f"{reply.note}", facts.data_day)]
+
+
+_TOUCH = ("stop_touch", "target_touch")
+
+
+def _escalate(ctx: AgentContext, flag: Flag, reply: WatchVerdict | None) -> None:
+    """Send a broken plan or a stop or target touch to the boss (SRD-MKT-013.013).
+
+    Only the real gateway is a ``Talker``; the employees step drops the draft while
+    escalation is off, so test fakes and replays send nothing.
+    """
+    broken = reply is not None and reply.verdict == "broken"
+    if not isinstance(ctx, Talker) or not (broken or flag.kind in _TOUCH):
+        return
+    what = f"{flag.symbol} {label(flag.kind)}"
+    note = reply.note if reply is not None else "no verdict from the flag check"
+    ctx.send(Draft(type="escalate", to="boss", subject=what[:80],
+                   text=f"{what} at {flag.price:.2f}: {note}"[:600], about=[flag.symbol]))

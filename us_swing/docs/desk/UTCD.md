@@ -6,6 +6,8 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.18.1: M2 cases Pass (27 + 3 added from the code review: 011.036.T04, 011.037.T03, 011.041.T03) (2026-11-13).
+> v0.18.0: UT-DSK-011.033–.043, 007.011 and 008.010 M2 cases added (Not Run, 27) (2026-11-13).
 > v0.17.1: UT-DSK-011 M1 cases Pass (47, 2026-11-13).
 > v0.17.0: UT-DSK-011.003–.032 M1 cases added (Not Run, 47); UT-DSK-011.014.M27.T01–T02 superseded by UT-DSK-011.014.M29.T01–T02 (2026-11-13).
 > v0.16.1: UT-DSK-011.001–.014, 012.001–.011 and 001.010.M04.T32–T33 Pass (52, 2026-11-13).
@@ -502,7 +504,7 @@
 | UT-DSK-011.014.M29.T01 | MD-DSK-011.015.M29 | Positive | One writer (SRD-DSK-011.014) | all source files | only `core/desk_messages.py` writes the messages and threads tables | Pass |
 | UT-DSK-011.014.M29.T02 | MD-DSK-011.015.M29 | Negative | Nothing stored while off (SRD-DSK-011.014) | full morning run on a desk copy with messages off and drafts in the answers | no messages rows | Pass |
 | UT-DSK-011.017.M29.T01 | MD-DSK-011.015.M29 | Positive | M1 types (SRD-DSK-011.017) | an ask, a reply and a first send_back | all stored | Pass |
-| UT-DSK-011.017.M29.T02 | MD-DSK-011.015.M29 | Negative | Type not in use (SRD-DSK-011.017) | handover; escalate | refused: not in use yet | Pass |
+| UT-DSK-011.017.M29.T02 | MD-DSK-011.015.M29 | Negative | Type not in use (SRD-DSK-011.017) | handover; escalate | handover refused: not in use yet; escalate dropped while escalation is off (M2, SRD-DSK-011.033) | Pass |
 | UT-DSK-011.018.M29.T01 | MD-DSK-011.015.M29 | Positive | Receivers (SRD-DSK-011.018) | to emp-006; to skill:news_review held by emp-007 and emp-006 | emp-006 both times | Pass |
 | UT-DSK-011.018.M29.T02 | MD-DSK-011.015.M29 | Negative | Nobody to take it (SRD-DSK-011.018) | unknown id; retired employee; skill nobody holds; boss | each refused | Pass |
 | UT-DSK-011.019.M29.T01 | MD-DSK-011.015.M29 | Positive | Bad draft refused alone (SRD-DSK-011.019) | 3 drafts, the middle one with an unknown key | first and last stored; one refusal line | Pass |
@@ -538,3 +540,38 @@
 | UT-DSK-011.031.M13.T01 | MD-DSK-004.005.M13 | Positive | Setting saved and read (SRD-DSK-011.031) | old desk_ai.json without the key; then save true | false; then true | Pass |
 | UT-DSK-011.032.M29.T01 | MD-DSK-011.015.M29 | Positive | Message logs (SRD-DSK-011.032) | store, refuse, expire | `[Messages]` info lines, no class names | Pass |
 | UT-DSK-003.014.M10.T02 | MD-DSK-003.001.M10 | Positive | Code-only turn is ok (SRD-DSK-003.014) | skill ends its turn with no model call | step ok after 1 try; no retry, no alert | Pass |
+
+## FO-DSK-011 (AI Desk v3 M2): Escalation and Deputies
+
+| ID | Module | Type | Title | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-DSK-011.033.M29.T01 | MD-DSK-011.015.M29 | Positive | Escalate accepted (SRD-DSK-011.033) | escalation on, escalate to boss | stored, state submitted, due in 5 minutes | Pass |
+| UT-DSK-011.033.M29.T02 | MD-DSK-011.015.M29 | Negative | Escalate when off (SRD-DSK-011.033) | escalation off: escalate; on: handover | escalate dropped with no row and no refusal line; handover refused | Pass |
+| UT-DSK-011.034.M29.T01 | MD-DSK-011.015.M29 | Positive | Boss address (SRD-DSK-011.034) | sender with boss emp-005 | receiver emp-005 | Pass |
+| UT-DSK-011.034.M29.T02 | MD-DSK-011.015.M29 | Edge | No boss (SRD-DSK-011.034) | sender with no boss | receiver master, state input_required, one escalation alert | Pass |
+| UT-DSK-011.035.M15.T01 | MD-DSK-003.004.M15 | Positive | Priority by type (SRD-DSK-011.035) | store an escalate and an ask | event priority 0 and 1 | Pass |
+| UT-DSK-011.035.M15.T02 | MD-DSK-003.004.M15 | Edge | Repost key (SRD-DSK-011.035) | post_message twice, second with again | two events; same call without again adds none | Pass |
+| UT-DSK-011.036.M29.T01 | MD-DSK-011.015.M29 | Positive | Move up after 5 minutes (SRD-DSK-011.036) | escalate to lead whose boss is chief, 6 minutes later | receiver chief, new due, event for chief | Pass |
+| UT-DSK-011.036.M29.T02 | MD-DSK-011.015.M29 | Negative | No move before due (SRD-DSK-011.036) | 4 minutes later | unchanged | Pass |
+| UT-DSK-011.036.M29.T03 | MD-DSK-011.015.M29 | Edge | Past the top boss (SRD-DSK-011.036) | chief has no boss, 11 minutes | state input_required, receiver master, one alert | Pass |
+| UT-DSK-011.036.M29.T04 | MD-DSK-011.015.M29 | Negative | Boss cannot answer (SRD-DSK-011.036) | refuse the boss's inbox, then 6 minutes | escalate stays open, then moves up | Pass |
+| UT-DSK-011.036.M16.T01 | MD-DSK-003.006.M16 | Positive | Router moves escalates (SRD-DSK-011.036) | router has_work with a due escalate | escalate moved to the next boss | Pass |
+| UT-DSK-011.037.M29.T01 | MD-DSK-011.015.M29 | Positive | Move writes reason (SRD-DSK-011.037) | one move up | meta.blocked names the lead; thread msgs 2 | Pass |
+| UT-DSK-011.037.M29.T02 | MD-DSK-011.015.M29 | Edge | Thread full (SRD-DSK-011.037) | due escalate in a thread with 6 messages | goes to master, no move | Pass |
+| UT-DSK-011.037.M29.T03 | MD-DSK-011.015.M29 | Edge | Room for a reply (SRD-DSK-011.037) | due escalate in a thread with 5 messages | goes to master, no move | Pass |
+| UT-DSK-011.038.M29.T01 | MD-DSK-011.015.M29 | Positive | Escalate free of day cap (SRD-DSK-011.038) | sender started 20 today | escalate stored | Pass |
+| UT-DSK-011.038.M29.T02 | MD-DSK-011.015.M29 | Negative | Escalates not counted (SRD-DSK-011.038) | 19 asks and 3 escalates, then two more asks | first ask stored; the second refused | Pass |
+| UT-DSK-011.039.M10.T01 | MD-DSK-003.001.M10 | Positive | Reply-only turn (SRD-DSK-011.039) | boss woken by an escalate | one call with the InboxReply schema; skill act not run; reply stored | Pass |
+| UT-DSK-011.039.M10.T02 | MD-DSK-003.001.M10 | Negative | Only replies kept (SRD-DSK-011.039) | boss answers with a reply and an ask | reply stored, ask not stored | Pass |
+| UT-DSK-011.040.M10.T01 | MD-DSK-003.001.M10 | Positive | Reply as feed note (SRD-DSK-011.040) | boss reply: take AAPL off today | feed note from the boss with the subject and text | Pass |
+| UT-DSK-011.040.M29.T01 | MD-DSK-011.015.M29 | Negative | Reply wakes nobody (SRD-DSK-011.040) | reply to an escalate | no message event for the sender; open_started false | Pass |
+| UT-DSK-011.041.M29.T01 | MD-DSK-011.015.M29 | Positive | Hand to deputy (SRD-DSK-011.041) | open ask to emp-006 with deputy emp-009 | receiver emp-009, handed emp-006, meta.blocked set, event for emp-009 | Pass |
+| UT-DSK-011.041.M29.T02 | MD-DSK-011.015.M29 | Negative | No deputy or handed once (SRD-DSK-011.041) | no deputy; a row already handed | rows returned for refusal | Pass |
+| UT-DSK-011.041.M29.T03 | MD-DSK-011.015.M29 | Edge | Hand restarts deadline (SRD-DSK-011.041) | ask handed at minute 9 | due 10 minutes after the hand; not expired at minute 11 | Pass |
+| UT-DSK-011.041.M10.T01 | MD-DSK-003.001.M10 | Positive | Sleeping receiver to deputy (SRD-DSK-011.041) | asked employee sleeps, deputy awake | deputy's wake shows the ask and replies | Pass |
+| UT-DSK-011.042.M10.T01 | MD-DSK-003.001.M10 | Negative | Off keeps M1 refusal (SRD-DSK-011.042) | escalation off, sleeping receiver with deputy | refused reply at once, no hand | Pass |
+| UT-DSK-011.042.M13.T01 | MD-DSK-004.005.M13 | Positive | Setting saved and read (SRD-DSK-011.042) | default, then save true | false, then true | Pass |
+| UT-DSK-011.043.M29.T01 | MD-DSK-011.015.M29 | Positive | Escalation logs (SRD-DSK-011.043) | move up, hand, reach master | `[Messages]` info lines with names, no class names | Pass |
+| UT-DSK-007.011.M21.T01 | MD-DSK-007.001.M21 | Positive | Escalation alert (SRD-DSK-007.011) | raise kind escalation twice | one row titled Escalation not answered, open all day | Pass |
+| UT-DSK-008.010.M22.T01 | MD-DSK-008.001.M22 | Positive | Deputy saved (SRD-DSK-008.010) | save deputy emp-009; render a spec without deputy | read back emp-009; no deputy line | Pass |
+| UT-DSK-008.010.M22.T02 | MD-DSK-008.001.M22 | Negative | Bad deputy (SRD-DSK-008.010) | deputy itself; deputy emp-999 | each refused with a plain reason | Pass |

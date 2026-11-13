@@ -1,7 +1,7 @@
 """
 Module: MD-GUI-034.016.M15 — gui/ai_desk_settings.py
 Parent SRD: SRD-GUI-034.016
-Also: SRD-GUI-034.070 (Agent messages switch)
+Also: SRD-GUI-034.070 (Agent messages switch), SRD-GUI-034.071 (Escalation switch)
 Also: MD-GUI-034.033.M23 — seat caps (SRD-GUI-034.033)
 Also: SRD-GUI-034.066 — fields grouped in icon cards (console look)
 
@@ -72,6 +72,14 @@ class DeskAiSettingsForm(QWidget):
         self.messages_on.setToolTip("Off: the desk runs as before. On: experts may ask, reply "
                                     "and send work back.")
         self.messages_on.setChecked(self._settings.messages_on)
+        self.escalation_on = QCheckBox("Send problems up to the boss")
+        self.escalation_on.setToolTip("On: an employee can raise a problem to its boss, who "
+                                      "has 5 minutes to answer before it goes one level up, "
+                                      "then to you. A deputy takes messages when someone "
+                                      "cannot work.")
+        self.escalation_on.setChecked(self._settings.escalation_on)
+        self.escalation_on.setEnabled(self.messages_on.isChecked())
+        self.messages_on.toggled.connect(self.escalation_on.setEnabled)
         self.caps = {level: self._line(str(self._settings.cap(level)))
                      for level in ("expert", "champion", "junior")}
         grid = QGridLayout()
@@ -85,7 +93,7 @@ class DeskAiSettingsForm(QWidget):
         grid.addWidget(self._card("users", "Seats", tuple(
             (f"{level.capitalize()}s", edit) for level, edit in self.caps.items())), 1, 0)
         grid.addWidget(self._card("message-square", "Agent messages", (
-            ("", self.messages_on),)), 1, 1)
+            ("", self.messages_on), ("", self.escalation_on))), 1, 1)
         outer.addLayout(grid)
         row = QHBoxLayout()
         self.save_btn = primary(QPushButton("Save"))
@@ -130,7 +138,8 @@ class DeskAiSettingsForm(QWidget):
                 expert_cap=int(self.caps["expert"].text().strip()),
                 champion_cap=int(self.caps["champion"].text().strip()),
                 junior_cap=int(self.caps["junior"].text().strip()),
-                messages_on=self.messages_on.isChecked())
+                messages_on=self.messages_on.isChecked(),
+                escalation_on=self.escalation_on.isChecked())
             if not math.isfinite(budget):
                 raise ValueError("budget")
         except ValueError:

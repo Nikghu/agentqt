@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.23.0: DD-MKT-013.013.D01 added — flag escalation (AI Desk v3 M2, 2026-11-13).
 > v0.22.0: DD-MKT-005.019.D01 added — asks, send-back fixes and news replies (AI Desk v3 M1, 2026-11-13).
 > v0.21.0: DD-MKT-019.001.D01 added — strategy test research (2026-11-12).
 > v0.20.0: DD-MKT-018.001.D01 added — book to strategy research (Autonomous desk step F (2026-11-11)).
@@ -1482,3 +1483,7 @@ Side and symbol of a fix must match the send_back's idea; another idea is ignore
 **Fixed levels** (`market/store.py`): table `idea_fixes (date, side, symbol, round, trigger, stop, status, made, PRIMARY KEY (date, side, symbol, round))` and `FIXED` SQL text: `LEFT JOIN idea_fixes f ON f.date = i.date AND f.side = i.side AND f.symbol = i.symbol AND f.status = 'pass'` with `COALESCE(f."trigger", i."trigger")` and `COALESCE(f.stop, i.stop)`. Used by `listed_frame` (so setup, news and risk facts and the lead brief see the fix), `market/watch.py` and `market/watch_flag.py` (SRD-MKT-005.023). `MarketStore.put_rows(table, rows)` inserts or replaces rows without clearing the day.
 
 **Price facts (SRD-MKT-005.024, after the desk-copy check 2026-11-13).** On a real desk copy the setup review refused to invent new stops: its facts held no price data. On an inbox wake `act` now appends, for each idea named in a send-back (`idea_of(text)`), one line from `CandleReader(candles, topup=home)`: last close, ATR(14) as the 14-day mean true range, and the 10- and 20-day low and high, all up to the data day. Fewer than 21 bars or no bars gives a short note instead. All stop-limit vetoes are still sent back in one run (user choice); one answer holds at most 5 replies, so the rest expire after 10 minutes.
+
+## DD-MKT-013.013.D01 — Flag Escalation (AI Desk v3 M2)
+
+**Traces:** SRD-MKT-013.013. In `WatchFlagSkill.act`, after the verdict is stored (or the answer failed), code sends one escalate when the flag kind is `stop_touch` or `target_touch`, or the verdict is `broken`. It uses `ctx.send()` when `ctx` is a `Talker` (the real gateway), so test fakes and replays send nothing. The draft is `Draft(type="escalate", to="boss", subject="<SYM> <kind label>", text="<SYM> <kind label> at <price>: <note>", about=[SYM])`. The employees step drops it while escalation is off (DD-DSK-011.033.D01 §2). The `plan_broken` alert and the watcher's stop and target alerts are raised as before.

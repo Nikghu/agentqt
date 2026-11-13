@@ -5,7 +5,8 @@ Also: SRD-DSK-003.007 (expiry and deadline), SRD-DSK-003.009 (no wake within 30 
 SRD-DSK-003.010 (needs order by events), SRD-DSK-003.011 (a sleeping employee never stops
 the chain), SRD-DSK-002.008 (order from skill needs), SRD-DSK-003.012 (no LangGraph),
 SRD-DSK-003.014–.019 (``step_done`` baton, retries, skips, partial lead plan, resume),
-SRD-DSK-007.008 (one alert when a step fails), SRD-DSK-011.025 (a message wakes only its
+SRD-DSK-007.008 (one alert when a step fails), SRD-DSK-011.036 (late escalations move up),
+SRD-DSK-011.025 (a message wakes only its
 receiver), SRD-DSK-011.029 (a step waits while its own messages are open), SRD-DSK-011.023
 (expiry on every pass)
 
@@ -24,8 +25,9 @@ from graphlib import CycleError, TopologicalSorter
 from pathlib import Path
 from typing import NamedTuple
 
+from us_swing.core.desk_alerts import Sender
 from us_swing.core.desk_events import Event, open_events, post_step_done
-from us_swing.core.desk_messages import expire_due, open_started
+from us_swing.core.desk_messages import Person, expire_due, open_started
 from us_swing.desk.recorder import Recorder, ny_now
 from us_swing.desk.registry import Hire
 
@@ -94,10 +96,14 @@ class Router:
 
     def __init__(self, home: Path, hires: Sequence[Hire], wake: Wake,
                  known: Collection[str], clock: Callable[[], datetime] = ny_now,
-                 alert: Alert | None = None) -> None:
-        """Bind the desk folder, employees, wake function, known skill keys, clock and the
-        alert raised when a step fails for good."""
+                 alert: Alert | None = None, roster: Sequence[Person] = (),
+                 send: Sender | None = None) -> None:
+        """Bind the desk folder, employees, wake function, known skill keys, clock, the
+        alert raised when a step fails for good, and the roster and Telegram sender used to
+        move late escalations up."""
         self._home = home
+        self._roster = tuple(roster)
+        self._send = send
         self._hires = list(hires)
         self._wake = wake
         self._known = known
@@ -106,7 +112,7 @@ class Router:
 
     def has_work(self) -> bool:
         """True when a due waiting event wakes someone; events nobody listens to are closed."""
-        expire_due(self._home, self._clock())
+        expire_due(self._home, self._clock(), self._roster, self._send)
         con = open_events(self._home)
         try:
             self._expire(con)
@@ -129,7 +135,7 @@ class Router:
             self._expire(con)
             seen: set[int] = set()
             while True:
-                expire_due(self._home, self._clock())
+                expire_due(self._home, self._clock(), self._roster, self._send)
                 self._release(con)
                 event = next((e for e in self._waiting(con) if e.id not in seen), None)
                 if event is None:

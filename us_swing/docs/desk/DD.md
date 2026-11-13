@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.16.0: DD-DSK-011.033.D01 added — escalation and deputies (AI Desk v3 M2, 2026-11-13).
 > v0.15.0: DD-DSK-011.015.D01 added — messages and the reply path (AI Desk v3 M1, 2026-11-13).
 > v0.14.0: DD-DSK-011.001.D01 and DD-DSK-012.001.D01 added — message format, tool registry and schema library (AI Desk v3 M0, 2026-11-13).
 > v0.13.0: DD-DSK-010.016.D01 added — owner-raised strategy test ticket (2026-11-12).
@@ -1206,3 +1207,75 @@ INBOX — answer only what is asked here; leave your other work as it is.
 **After code review (M1).** A message wake marks its inbox seen in a `finally`, and an error refuses the open asks at once, so no step stays waiting. `inbox()` leaves out asks and send-backs that are no longer open. With messages off, a message wake refuses its open asks with "agent messages are off". `open_started()` is also true while a reply to the employee is not yet read, so its turn ends only after it has seen the reply. Risk check sends one send-back per idea and data day (`sent_on()`), and a fix with levels that are not numbers is recorded as not fixed. A normal wake with no model call now ends `ok` (user, 2026-11-13): an all-vetoed day no longer counts as failed, retries or alerts.
 
 **Desk-copy check (2026-11-13).** On a copy of the real desk with real model calls, the setup review wrote good fix replies but left out `verdict`. `accept()` now fills a missing reply verdict before the checks: a reply to a send-back without data becomes dropped with its text as the reason; any other reply becomes done. A reply written by code (refused or expired) also carries its reason as `text`, so it reads back as a valid `desk.msg/1` reply.
+
+## DD-DSK-011.033.D01 — Escalation and Deputies (AI Desk v3 M2)
+
+**Traces:** SRD-DSK-011.014, .024, .033–.043, SRD-DSK-007.011, SRD-DSK-008.010 (DSK); MKT part in DD-MKT-013.013.D01, GUI part in DD-GUI-034.071.D01. User decisions 2026-11-13: watch flag alerts at once and also escalates; 5 minutes per level; escalate free of the 20-a-day cap; boss answers in a reply-only turn; the reply is a note only; handover waits for M5.
+
+**1. Roster.** `desk_messages.Person` gains `boss: str | None = None` (from `reports_to`) and `deputy: str | None = None`. The employees step builds it from active hires; the router gets the same roster.
+
+**2. Accept** — `accept(..., escalation: bool = False)`. The employees step passes `messages_on and escalation_on`.
+
+```
+type escalate, escalation off -> dropped quietly (debug log), not refused
+type escalate, escalation on  -> allowed (handover and the rest still "not in use yet")
+to "boss"     -> sender's Person.boss when that boss is in the roster          (.034)
+               no boss -> row stored with receiver "master", state input_required,
+                          and the alert of 007.011 is raised after the commit
+guardrails    -> escalate skips the 20-started-a-day count (.038); 6 per thread holds
+store         -> escalate: state submitted, due = now + 5 min                   (.036)
+event         -> post_message(priority = 0 for escalate, else 1)                (.035)
+```
+
+**3. Replies to an escalate** (.040). A reply may answer an open ask, send_back or escalate (`_OPEN`). A reply whose parent is an escalate (by AI or by code) is stored with `seen` set at once and posts no event: the sender is not woken. `open_started` still counts only ask and send_back, so an escalate never holds the sender's step.
+
+**4. Move up** — `expire_due(home, now, roster=(), send=None)` (.036, .037). For each submitted escalate past `due`:
+
+```
+next = boss of the current receiver (Person.boss), in roster, not the sender
+thread msgs < 6 and next  -> receiver = next, due = now + 5 min, seen = NULL,
+                             meta.blocked += "<name> did not answer in 5 minutes",
+                             threads.msgs + 1, post_message(again=next)
+else                      -> state input_required, receiver master, meta.blocked as above,
+                             raise_alert("escalation", source=<thread id>, ...)      (007.011)
+log  [Messages] Escalation from Expert 9 moved up to Lead 2 | ... reached the Master user
+```
+
+Other submitted rows past `due` expire as in M1.
+
+**5. Deputy** — `hand_to_deputy(home, rows, person, roster, why, now) -> list[MessageRow]` (.041). It returns the rows it could not hand:
+
+```
+for each submitted ask / send_back / escalate in rows:
+  person.deputy in roster, != person.id, row.handed is NULL
+      -> receiver = deputy, handed = person.id, seen = NULL,
+         meta.blocked += "<name> could not work: <why>; sent to deputy <deputy name>",
+         post_message(again=deputy)
+  else keep it for refuse_inbox
+```
+
+The new `messages.handed` column (added by `ALTER TABLE` when missing) makes a row move to a deputy only once, so a deputy's own deputy is never followed. `mark_seen(..., receiver=emp)` marks only rows still addressed to `emp`, so a handed row stays unseen for the deputy.
+
+**6. Wake** (`desk/employees_step.py`). `_answer_inbox` splits the inbox. With escalation on, escalates go to `_answer_escalations` and the rest to the M1 path. Each M1 `refuse_inbox` call for sleep, budget, error or no valid answer becomes `_refuse()`: it calls `hand_to_deputy` first when escalation is on, then refuses what is left. "Messages off" still refuses at once.
+
+```
+_answer_escalations(rows):                                            (.039)
+  text  = "Problems raised to you by people who report to you. Reply to each; your
+           reply is shown to the Master user as a note.\n" + inbox_text(rows)
+  gateway(talk off, part of the thread starter)  -> ask(text, InboxReply)
+  drafts = replies only; accept(..., escalation=True)
+  for each stored reply -> FeedItem("info", "<subject>: <reply text or verdict>")  (.040)
+  no answer -> _refuse(rows, why)
+```
+
+The boss's own skill and its facts are not used.
+
+**7. Events** (`core/desk_events.py`). `post_message(..., priority: int | None = None, again: str = "")`: the priority defaults to the rule's 1, and `again` adds `|<again>` to the key so a moved or handed row can post a new event.
+
+**8. Alerts** (`core/desk_alerts.py`). New kind `escalation` ("Escalation not answered"; fix: "Read the thread in AI Desk → Team at work → Threads"). It stays open for the day like the market alerts, because a thread that passed the top boss can take no more replies. This differs from the SRD constraint "closed when the thread gets a reply" and is flagged to the user.
+
+**9. Employee file** (`core/desk_employee.py`, SRD-DSK-008.010). `JobSpec.deputy: str | None = None`. `render` leaves `deputy` out when it is `None`, so old files stay the same. `save_employee` refuses "the deputy cannot be the employee itself" and "no employee <id> for deputy".
+
+**11. Code review fixes.** `refuse_inbox` never refuses an escalate: a boss that cannot answer (budget, error, no valid answer) leaves it open, so it moves up when due. A hand to a deputy restarts `due` (10 minutes, or 5 for an escalate). A move up needs room for the reply: a thread at 5 or more messages goes to the Master user.
+
+**10. Settings.** `DeskAiSettings.escalation_on: bool = False` (.042). With it off: escalate drafts are dropped, no deputy hand happens, and there are no escalate rows to move, so the run is as in M1.

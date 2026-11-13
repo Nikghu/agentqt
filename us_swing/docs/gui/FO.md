@@ -1053,6 +1053,7 @@ The system shall let the Master user set up each AI employee in one place.
 - The system shall show earlier versions and bring one back.
 - The system shall try a changed prompt on yesterday's data before saving.
 - The system shall keep the Team at work side pane to a short summary with a link to Team setup.
+- The system shall let the Master user pick an employee's deputy in the Profile tab (AI Desk v3 M2, user 2026-11-13).
 
 ### Acceptance Criteria
 
