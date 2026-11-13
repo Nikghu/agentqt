@@ -3,6 +3,7 @@
 ---
 
 ## [20261113] DSK — AI Desk v3 M1: messages and the reply path (FO-DSK-011, FO-DSK-002, FO-MKT-005, FO-MKT-006, FO-GUI-034, FO-GUI-035)
+- Desk-copy check with real AI: 5 of 11 over-limit ideas fixed in round 1, 6 expired, lead picked DGX and KO; fixed: code replies carry text, price facts for sent-back ideas (SRD-MKT-005.024), missing reply verdict filled (commit c09e2cd6).
 
 - Type: Feature
 - FO(s): FO-DSK-011, FO-DSK-002, FO-MKT-005, FO-MKT-006, FO-GUI-034, FO-GUI-035
