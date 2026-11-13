@@ -8,6 +8,8 @@ The regime view skill: reads the rule-based market data from ``desk.db``, asks t
 employee's model for a typed view of the market and returns a brief for the AI feed.
 Which employee uses this skill, and under what name, is data in the employee files.
 Uses only ``core`` types; it never imports the desk harness.
+Also: MD-MKT-020.009.M05 — SRD-MKT-020.009 (a huddle meeting in the inbox gets one reply
+only; the saved view stays)
 """
 from __future__ import annotations
 
@@ -19,7 +21,8 @@ from typing import Annotated, Literal
 import pandas as pd
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
-from us_swing.core.desk_agents import AgentContext, Facts, FeedItem
+from us_swing.core.desk_agents import AgentContext, Facts, FeedItem, talker
+from us_swing.core.desk_msg import InboxReply
 from us_swing.market.candles import BENCHMARK, CANDLE_DB
 from us_swing.market.store import MarketStore, RegimeViewRow
 
@@ -65,6 +68,7 @@ class RegimeViewSkill:
 
     key = KEY
     needs: tuple[str, ...] = ()
+    talks = True
     answer = RegimeView
 
     def __init__(self, candles: Path = CANDLE_DB) -> None:
@@ -123,6 +127,9 @@ class RegimeViewSkill:
 
     def act(self, ctx: AgentContext, facts: Facts) -> list[FeedItem]:
         """Ask for the view, keep it in ``regime_view`` and return the feed brief."""
+        if facts.inbox and talker(ctx) is not None:
+            ctx.ask(facts.text, InboxReply)  # SRD-MKT-020.009: only the reply
+            return []
         view = ctx.ask(facts.text, RegimeView)
         if view is None:
             return []

@@ -7,6 +7,7 @@ Also: SRD-GUI-035.004–.009 (run view, events, scorecard and profile data)
 Read-only facts for AI Desk → Team at work: the team from the employee job files, desk runs,
 each run's LLM calls and employee states, the day's events with their calls, a 30-day
 scorecard and a short history per employee. Never imports ``desk``.
+Also: SRD-MKT-020.019 — ``day_end`` event label
 """
 from __future__ import annotations
 
@@ -38,7 +39,7 @@ _REAL = "COALESCE(replay, 0) = 0 AND COALESCE(shadow, 0) = 0"
 _EVENT_NAMES = {
     "after_run": "Morning run", "regime_change": "Regime change", "market_open": "Market open",
     "market_close": "Market close", "chat_question": "Chat question", "data_request": "Data ask",
-    "message": "Message",
+    "message": "Message", "day_end": "Day-end",
 }
 _EVENT_WHY = {
     "after_run": "Desk run finished its data steps",
@@ -48,6 +49,7 @@ _EVENT_WHY = {
     "chat_question": "You asked the lead a question",
     "data_request": "You asked the desk for new data",
     "message": "An employee wrote to another",
+    "day_end": "The trading day closed",
 }
 
 

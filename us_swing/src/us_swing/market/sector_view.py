@@ -6,6 +6,8 @@ Also: SRD-MKT-005.007 (typed view), SRD-MKT-005.008 (kept in ``sector_view``, fe
 The sector/flow view skill: reads sector ranks, rotation and money flow from ``desk.db``
 and asks for the sectors to favour and to avoid. Uses only ``core`` types; it never
 imports the desk harness.
+Also: MD-MKT-020.009.M05 — SRD-MKT-020.009 (a huddle meeting in the inbox gets one reply
+only; the saved view stays)
 """
 from __future__ import annotations
 
@@ -15,7 +17,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, create_model, model_validator
 
-from us_swing.core.desk_agents import AgentContext, Facts, FeedItem
+from us_swing.core.desk_agents import AgentContext, Facts, FeedItem, talker
+from us_swing.core.desk_msg import InboxReply
 from us_swing.market.candles import CANDLE_DB
 from us_swing.market.regime_view import latest_spy_day
 from us_swing.market.setup_review import rule_regime, table
@@ -64,6 +67,7 @@ class SectorViewSkill:
 
     key = KEY
     needs: tuple[str, ...] = ()
+    talks = True
     answer = SectorView
 
     def __init__(self, candles: Path = CANDLE_DB) -> None:
@@ -111,6 +115,9 @@ class SectorViewSkill:
 
     def act(self, ctx: AgentContext, facts: Facts) -> list[FeedItem]:
         """Ask for the view, keep it in ``sector_view`` and return the feed brief."""
+        if facts.inbox and talker(ctx) is not None:
+            ctx.ask(facts.text, InboxReply)  # SRD-MKT-020.009: only the reply
+            return []
         store = MarketStore(ctx.home)
         try:
             sectors = _sectors(store, facts.data_day)

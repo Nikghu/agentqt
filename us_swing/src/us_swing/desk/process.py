@@ -12,6 +12,7 @@ The desk main loop: one copy only, heartbeat, commands, runs, stop and resume. T
 run is due by ``morning_due``; between runs the loop posts market clock events and starts a
 short ``event`` run when one wakes an employee; only the morning and manual runs call the
 market steps. A desk launched by the app stops when the app's process ends.
+Also: MD-MKT-020.019.M07 — posts ``day_end`` once a day with the company day on (SRD-MKT-020.019)
 """
 from __future__ import annotations
 
@@ -26,7 +27,9 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import IO, Protocol, runtime_checkable
 
+from us_swing.core.desk_ai_settings import load_settings
 from us_swing.core.desk_contract import CommandKind, DeskState, DeskStep, StepContext
+from us_swing.core.desk_day import day_end_day, has_handover, plan_day
 from us_swing.core.desk_events import post_event
 from us_swing.core.desk_lessons import apply_edits
 from us_swing.core.desk_memory import apply_edits as apply_memory_edits
@@ -364,6 +367,7 @@ class DeskProcess:
                 if (kind, day, 0) not in self._posted:
                     post_event(self._home, kind, day, now)
                     self._posted.add((kind, day, 0))
+            self._day_end_tick(now)
             for day, slot in checkins_due(now):
                 if ("market_checkin", day, slot) not in self._posted:
                     post_event(self._home, "market_checkin", day, now, slot)
@@ -377,6 +381,16 @@ class DeskProcess:
             self._do_run(_EVENT, [_EventStep(self._events)])
         elif self._research is not None and self._research_due():
             self._do_run(_EVENT, [self._research])
+
+    def _day_end_tick(self, now: datetime) -> None:
+        """Post the day-end of the latest closed trading day once while it has no handover."""
+        day = day_end_day(now)
+        if ("day_end", day, 0) in self._posted or not load_settings(self._home).company_day_on:
+            return
+        plan = plan_day(self._home, day)
+        if plan and not has_handover(self._home, plan):
+            post_event(self._home, "day_end", day, now)
+        self._posted.add(("day_end", day, 0))
 
     def _research_due(self) -> bool:
         assert self._research is not None
