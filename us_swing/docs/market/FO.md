@@ -6,6 +6,8 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.24.1: FO-MKT-020 approved by user 2026-11-13.
+> v0.24.0: AI Desk v3 M5 (user, 2026-11-13): FO-MKT-020 Company day added as Draft — stand-up, huddle, day call and its check, day-end handover and feedback.
 > v0.23.0: AI Desk v3 M4 (user, 2026-11-13): FO-MKT-010 gains the sessions bullets as Draft — chat sessions, summary on close, memory notes, one team ask.
 > v0.22.0: AI Desk v3 M3 (user, 2026-11-13): FO-MKT-012 gains the view check bullet as Draft.
 > v0.21.0: AI Desk v3 M1 (user, 2026-11-13): FO-MKT-005 and FO-MKT-006 gain M1 message bullets as Draft (ask news review, send back a stop, fixed levels, news reply).
@@ -517,3 +519,29 @@ The system shall give the desk an employee that tests one strategy card on past 
 1. An approved ticket `SC-3` ends `done` with a table of trades, win rate, average R, worst losing run and baseline, and a pass or fail.
 2. A card whose entry needs a block that does not exist ends `failed` with "can't test" and the part named.
 3. No live strategy, setting or trade changes during or after a test.
+
+## FO-MKT-020: Company Day
+
+**Status:** Implemented (approved by user 2026-11-13)
+**Priority:** Must
+**Phase:** AI Desk v3 M5
+**Depends on:** FO-MKT-005 (views and lead brief), FO-MKT-013 (watchers and check-ins), FO-DSK-011 (agent messages), FO-DSK-009 (memory v2), FO-DSK-003 (events)
+**Source: User 2026-11-13 (AI Desk v3 M5): stand-up built by code with no AI call; a one-round huddle only when code finds a clash between experts, at most one a day; the lead's day call and the huddle are logged with who agreed and checked after 5 trading days; one lead AI call at day-end writes the handover note and one feedback line per expert. Plan: https://claude.ai/artifact/3dr7g92HY5hvVQ9KiyrPvc (M5).**
+
+The system shall give the desk a daily rhythm: a stand-up before the plan, a short huddle when experts clash, a logged day call that is checked later, and a day-end handover read the next morning. Behind the Company day switch, off by default.
+
+- The system shall build a stand-up before the lead brief from yesterday's handover note and two short lines per expert view, with no AI call.
+- The system shall call a one-round huddle of the regime view and sector/flow experts when their views clash, at most once a day, and let the lead decide after the replies.
+- The system shall keep the lead's day call (market view and favoured sectors) with who agreed and who disagreed.
+- The system shall check each day call after 5 trading days against SPY and sector moves and add the result to each expert's track record.
+- The system shall run a day-end after the close, or at the next start when the app was closed: a code status, one lead AI call for the handover note and one feedback line per expert, kept in the expert's memory.
+- The system shall never place, change or close a trade from the company day.
+
+### Acceptance Criteria
+
+1. With Company day on, the lead brief facts start with the stand-up, and yesterday's handover note is in it.
+2. On a day with a clash and messages on, exactly one huddle runs; both experts reply once; the lead brief runs after the replies and its day call is saved.
+3. A day call 5 trading days old is marked right, wrong or neutral, and each voting expert's core block shows its day-call record.
+4. After the close, one day-end AI call writes a handover note that the next morning's stand-up shows.
+5. With Company day off, the morning run and the lead brief work as before.
+

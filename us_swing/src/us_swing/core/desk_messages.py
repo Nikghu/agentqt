@@ -6,6 +6,8 @@ wake), .026 (inbox block), .027 (reply closes the parent), .028 (refused reply),
 started messages), .032 (logs); M2: .033 (escalate), .034 (``boss``), .035 (priority by
 type), .036-.038 (move up, reason, day cap), .040 (replies to escalates wake nobody), .041
 (deputy), .043 (logs), SRD-DSK-007.011 (escalation alert)
+Also: MD-MKT-020.007.M04 — SRD-MKT-020.007, .008 (meetings: one row per receiver in one
+thread, closed by a reply or the expiry; the starter waits)
 
 Agent messages in ``desk.db``. Employees only write drafts in their answers; this module
 checks each draft, stores it as a ``desk.msg/1`` row, keeps the thread counts and posts the
@@ -37,6 +39,8 @@ log = logging.getLogger(__name__)
 NY = ZoneInfo("America/New_York")
 M1_TYPES = frozenset({"ask", "reply", "send_back"})
 M2_TYPES = M1_TYPES | {"escalate"}
+MEETING = "meeting"
+MAX_MEETING = 3
 MAX_THREAD_MSGS = 6
 MAX_ROUNDS = 2
 MAX_STARTED_A_DAY = 20
@@ -44,9 +48,10 @@ REPLY_WINDOW = timedelta(minutes=10)
 ESCALATE_WINDOW = timedelta(minutes=5)
 MASTER = "master"
 _ASKING = ("ask", "send_back")
-_OPEN = ("ask", "send_back", "escalate")
+_WAITING = ("ask", "send_back", MEETING)
+_OPEN = ("ask", "send_back", "escalate", MEETING)
 _KIND_WORDS = {"ask": "a question", "reply": "a reply", "send_back": "work back for a fix",
-               "escalate": "a problem"}
+               "escalate": "a problem", MEETING: "a huddle question"}
 _PARENT_STATE = {"done": "completed", "partial": "completed", "failed": "failed",
                  "dropped": "failed", "refused": "refused"}
 
@@ -149,7 +154,7 @@ def _person(roster: Sequence[Person], emp: str) -> Person | None:
 def _window(kind: str) -> timedelta | None:
     if kind == "escalate":
         return ESCALATE_WINDOW
-    return REPLY_WINDOW if kind in _ASKING else None
+    return REPLY_WINDOW if kind in _WAITING else None
 
 
 def _add_blocked(con: sqlite3.Connection, row: MessageRow, why: str) -> None:
@@ -163,7 +168,7 @@ def _add_blocked(con: sqlite3.Connection, row: MessageRow, why: str) -> None:
 
 def accept(home: Path, drafts: Sequence[Draft], sender: str, roster: Sequence[Person],
            now: datetime, data_day: str, escalation: bool = False,
-           send: Sender | None = None) -> list[str]:
+           send: Sender | None = None, meetings: bool = False) -> list[str]:
     """Check, store and wake for each draft; a broken draft is refused alone (SRD-DSK-011.019).
 
     Args:
@@ -175,6 +180,7 @@ def accept(home: Path, drafts: Sequence[Draft], sender: str, roster: Sequence[Pe
         data_day: Data day of the turn.
         escalation: Escalation is on; when off, escalate drafts are dropped (SRD-DSK-011.033).
         send: Telegram sender for the escalation alert; the default sender when ``None``.
+        meetings: The company day is on, so meeting drafts are taken (SRD-MKT-020.007).
 
     Returns:
         One line per draft: ``stored #<id>`` or ``refused: <why>``.
@@ -186,18 +192,24 @@ def accept(home: Path, drafts: Sequence[Draft], sender: str, roster: Sequence[Pe
             drafts = [d for d in drafts if d.type != "escalate"]
     if not drafts:
         return []
-    types = M2_TYPES if escalation else M1_TYPES
+    types = (M2_TYPES if escalation else M1_TYPES) | ({MEETING} if meetings else set())
     con = _connect(home)
     out: list[str] = []
     try:
         for draft in drafts:
             try:
                 with con:
-                    mid, receiver = _accept_one(home, con, draft, sender, roster, now,
-                                                data_day, types)
+                    if draft.type == MEETING:
+                        stored = _accept_meeting(con, draft, sender, roster, now, data_day,
+                                                 types)
+                    else:
+                        stored = [_accept_one(home, con, draft, sender, roster, now,
+                                              data_day, types)]
+                mid, receiver = stored[0]
                 out.append(f"stored #{mid}")
                 log.info("[Messages] %s sent %s to %s", _name(roster, sender),
-                         _KIND_WORDS.get(draft.type, draft.type), _name(roster, receiver))
+                         _KIND_WORDS.get(draft.type, draft.type),
+                         ", ".join(_name(roster, r) for _m, r in stored))
                 if receiver == MASTER:
                     _alert_master(home, con, mid, roster, now, send)
             except _Refused as why:
@@ -236,6 +248,39 @@ def _accept_one(home: Path, con: sqlite3.Connection, draft: Draft, sender: str,
     if data is not None and get_format(home, str(data["schema"])) is None:
         raise _Refused(f"unknown table format {data['schema']}")
     return _store(con, draft.type, body, sender, receiver, parent, now, day), receiver
+
+
+def _accept_meeting(con: sqlite3.Connection, draft: Draft, sender: str,
+                    roster: Sequence[Person], now: datetime, day: str,
+                    types: frozenset[str] | set[str]) -> list[tuple[int, str]]:
+    """Store a meeting as one row per receiver in one thread (SRD-MKT-020.007).
+
+    ``to`` names 1 to 3 receivers separated by commas; each must be another employee.
+    """
+    if MEETING not in types:
+        raise _Refused(f"type {MEETING} is not in use yet")
+    if draft.parent is not None:
+        raise _Refused("a meeting starts its own thread")
+    body = draft.body()
+    names = [n.strip() for n in str(draft.to or "").split(",") if n.strip()]
+    if not 1 <= len(names) <= MAX_MEETING:
+        raise _Refused(f"a meeting has 1 to {MAX_MEETING} receivers")
+    try:
+        Message.model_validate({"id": 1, "thread": 1, "sender": sender, "to": names,
+                                "at": now, "state": "submitted", "due": now + REPLY_WINDOW,
+                                "body": body})
+    except ValidationError as exc:
+        raise _Refused(reason(exc)) from exc
+    receivers = [_receiver(n, roster) for n in names]
+    if len(set(receivers)) != len(receivers) or sender in receivers:
+        raise _Refused("a meeting needs different receivers, not its sender")
+    _guard(con, draft, sender, receivers[0], None, now)
+    first = _store(con, MEETING, body, sender, receivers[0], None, now, day)
+    out = [(first, receivers[0])]
+    for receiver in receivers[1:]:
+        out.append((_store(con, MEETING, body, sender, receiver, None, now, day, first),
+                    receiver))
+    return out
 
 
 def _with_verdict(body: dict[str, Any], parent: MessageRow | None) -> dict[str, Any]:
@@ -296,7 +341,8 @@ def _guard(con: sqlite3.Connection, draft: Draft, sender: str, receiver: str,
 
 
 def _store(con: sqlite3.Connection, kind: str, body: dict[str, Any], sender: str,
-           receiver: str, parent: MessageRow | None, now: datetime, day: str) -> int:
+           receiver: str, parent: MessageRow | None, now: datetime, day: str,
+           thread: int | None = None) -> int:
     fields = {k: v for k, v in body.items() if k != "type"}
     window = _window(kind)
     to_master = receiver == MASTER
@@ -310,7 +356,10 @@ def _store(con: sqlite3.Connection, kind: str, body: dict[str, Any], sender: str
          json.dumps(fields), day, _stamp(now) if quiet else None))
     mid = int(cur.lastrowid or 0)
     round_up = 1 if kind == "send_back" else 0
-    if parent is None:
+    if parent is None and thread is not None:  # another receiver of one meeting
+        con.execute("UPDATE messages SET thread = ? WHERE id = ?", (thread, mid))
+        con.execute("UPDATE threads SET msgs = msgs + 1 WHERE id = ?", (thread,))
+    elif parent is None:
         con.execute("UPDATE messages SET thread = id WHERE id = ?", (mid,))
         con.execute("INSERT INTO threads VALUES (?, ?, 1, ?, 'open', ?, NULL)",
                     (mid, sender, round_up, _stamp(now)))
@@ -384,7 +433,7 @@ def refuse_inbox(home: Path, rows: Sequence[MessageRow], why: str, now: datetime
         with con:
             for row in rows:
                 fresh = _get(con, row.id)
-                if fresh is None or fresh.type not in _ASKING or fresh.state != "submitted":
+                if fresh is None or fresh.type not in _WAITING or fresh.state != "submitted":
                     continue  # an escalation is not refused: it moves up when due (.036)
                 _code_reply(con, fresh, "refused", why, "refused", now)
                 done += 1
@@ -504,7 +553,8 @@ def inbox(home: Path, emp: str) -> list[MessageRow]:
     try:
         return [_row(r) for r in con.execute(
             f"SELECT {_COLS} FROM messages WHERE receiver = ? AND seen IS NULL "
-            "AND (type NOT IN ('ask', 'send_back', 'escalate') OR state = 'submitted') "
+            "AND (type NOT IN ('ask', 'send_back', 'escalate', 'meeting') "
+            "OR state = 'submitted') "
             "ORDER BY id",
             (emp,))]
     finally:
@@ -577,7 +627,7 @@ def open_started(home: Path, emp: str) -> bool:
     try:
         return con.execute(
             "SELECT 1 FROM messages WHERE (sender = ? AND state = 'submitted' "
-            "AND type IN ('ask', 'send_back')) OR (receiver = ? AND seen IS NULL "
+            "AND type IN ('ask', 'send_back', 'meeting')) OR (receiver = ? AND seen IS NULL "
             "AND type = 'reply')", (emp, emp)).fetchone() is not None
     finally:
         con.close()

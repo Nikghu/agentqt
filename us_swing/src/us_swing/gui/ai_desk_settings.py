@@ -9,6 +9,7 @@ Also: SRD-GUI-034.066 — fields grouped in icon cards (console look)
 Editable desk AI settings in AI Desk → Desk settings: which sources the desk may use,
 their models, the monthly API budget, the daily Claude Code CLI token cap and the
 OpenRouter key (kept in the OS keychain, never shown).
+Also: SRD-GUI-034.077 — Company day switch (AI Desk v3 M5)
 """
 from __future__ import annotations
 
@@ -90,6 +91,12 @@ class DeskAiSettingsForm(QWidget):
         self.sessions_on.setToolTip("On: the lead chat keeps sessions with a summary, and the "
                                     "lead may ask one expert per question.")
         self.sessions_on.setChecked(self._settings.sessions_on)
+        self.company_day_on = QCheckBox("Company day: stand-up, huddle, day call, day-end")
+        self.company_day_on.setToolTip("On: a stand-up before the plan, a huddle when experts "
+                                       "clash (needs agent messages), a day call checked after "
+                                       "5 days and a day-end handover (feedback notes need "
+                                       "Memory v2).")
+        self.company_day_on.setChecked(self._settings.company_day_on)
         self.caps = {level: self._line(str(self._settings.cap(level)))
                      for level in ("expert", "champion", "junior")}
         grid = QGridLayout()
@@ -104,7 +111,7 @@ class DeskAiSettingsForm(QWidget):
             (f"{level.capitalize()}s", edit) for level, edit in self.caps.items())), 1, 0)
         grid.addWidget(self._card("message-square", "Agent messages", (
             ("", self.messages_on), ("", self.escalation_on), ("", self.memory_v2_on),
-            ("", self.sessions_on))), 1, 1)
+            ("", self.sessions_on), ("", self.company_day_on))), 1, 1)
         outer.addLayout(grid)
         row = QHBoxLayout()
         self.save_btn = primary(QPushButton("Save"))
@@ -152,7 +159,8 @@ class DeskAiSettingsForm(QWidget):
                 messages_on=self.messages_on.isChecked(),
                 escalation_on=self.escalation_on.isChecked(),
                 memory_v2_on=self.memory_v2_on.isChecked(),
-                sessions_on=self.sessions_on.isChecked())
+                sessions_on=self.sessions_on.isChecked(),
+                company_day_on=self.company_day_on.isChecked())
             if not math.isfinite(budget):
                 raise ValueError("budget")
         except ValueError:

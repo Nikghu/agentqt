@@ -1010,6 +1010,7 @@ The system shall add two workspaces, Market Floor and AI Desk, shown on sample d
 - The system shall let the Master user turn Chat sessions on or off in Desk settings, off by default (AI Desk v3 M4, user 2026-11-13).
 - The system shall show the lead chat sessions in Command with a New discussion button, and let the Master open an old session to continue it (AI Desk v3 M4).
 - The system shall show the lead's updates and a "Waiting for the team" note in the chat (AI Desk v3 M4).
+- The system shall let the Master user turn the Company day on or off in Desk settings, and show the day call and the handover note in Command (AI Desk v3 M5, user 2026-11-13).
 
 ### Acceptance Criteria
 
@@ -1035,6 +1036,7 @@ The system shall show how the AI employee team works, from real desk records.
 - The system shall show a Team scorecard with 30-day numbers per employee.
 - The system shall show a rolling team picker and the picked employee's profile in a side pane.
 - (AI Desk v3 M1) The system shall show message events in the event log and a Threads view of who asked whom, the replies, rounds and tokens.
+- The system shall show the company day phases of the shown day in Team at work (AI Desk v3 M5, user 2026-11-13).
 
 ### Acceptance Criteria
 

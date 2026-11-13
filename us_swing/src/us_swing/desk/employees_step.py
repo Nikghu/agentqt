@@ -13,6 +13,8 @@ only while messages are on), SRD-DSK-011.039-.042 (boss reply-only turn, reply a
 note, deputy before refusal, only while escalation is on), SRD-DSK-009.013, .014, .016,
 .017, .023 (memory v2 for lead and expert wakes: core block and recall in the facts, notes
 kept after the answer)
+Also: MD-MKT-020.018.M10 — SRD-MKT-020.018 (day-call line after the memory blocks),
+SRD-MKT-020.007 (meetings taken while the company day is on)
 
 Desk step "AI employees": after the market steps, copies any missing default employee
 files into the desk folder, posts an ``after_run`` event and lets the router handle every
@@ -28,6 +30,7 @@ from datetime import datetime
 from pathlib import Path
 
 from us_swing.core.desk_ai_settings import DeskAiSettings, load_key, load_settings
+from us_swing.core.desk_day import day_call_line
 from us_swing.core.desk_alerts import Sender, last_error, raise_alert, run_outcome
 from us_swing.core.desk_contract import StepContext, desk_home
 from us_swing.core.desk_events import Event, post_event, waiting_count
@@ -178,15 +181,15 @@ class EmployeesStep:
                         spec.tokens_per_day)
             memo = _remembers(hire, settings)
             if memo:
-                facts = replace(facts, text=with_memory(facts.text, home, spec.id,
-                                                        facts.data_day))
+                facts = replace(facts, text=_with_day_calls(
+                    with_memory(facts.text, home, spec.id, facts.data_day), home, hire))
             gateway = Gateway(home, hire, recorder, settings, self._key(), run_id,
                               facts.data_day, self._caller, self._clock, send=self._send,
                               part=part, talk=_talks(hire, settings), remember=memo)
             items = hire.skill.act(gateway, facts)
             _keep_notes(home, spec.id, gateway, facts.data_day, self._clock())
             accept(home, gateway.drafts, spec.id, roster, self._clock(), facts.data_day,
-                   _escalates(settings), self._send)
+                   _escalates(settings), self._send, settings.company_day_on)
             if missing:
                 line = f"Partial plan: no view from {', '.join(missing)}."
                 items = [replace(i, text=f"{line}\n{i.text}") for i in items]
@@ -284,7 +287,8 @@ class EmployeesStep:
                         inbox=tuple(m.id for m in rows))
         memo = _remembers(hire, settings)
         if memo:
-            facts = replace(facts, text=with_memory(facts.text, home, spec.id, facts.data_day))
+            facts = replace(facts, text=_with_day_calls(
+                with_memory(facts.text, home, spec.id, facts.data_day), home, hire))
         starter = thread_starter(home, rows[0].thread) or spec.id
         payer = next((h.spec for h in hires if h.spec.id == starter), spec)
         part = Part("plan", payer.id, payer.name, payer.tokens_per_day, message=rows[0].id)
@@ -299,7 +303,7 @@ class EmployeesStep:
         finally:
             recorder.close()
         accept(home, gateway.drafts, spec.id, roster, self._clock(), facts.data_day,
-               _escalates(settings), self._send)
+               _escalates(settings), self._send, settings.company_day_on)
         if gateway.refused:
             self._refuse(home, rows, gateway.refused, hire, settings, roster)
             return "slept"
@@ -321,6 +325,16 @@ def _note(subject: str, draft: Draft) -> str:
 
 def _talks(hire: Hire, settings: DeskAiSettings) -> bool:
     return settings.messages_on and bool(getattr(hire.skill, "talks", False))
+
+
+def _with_day_calls(text: str, home: Path, hire: Hire) -> str:
+    """``text`` plus the day-call record of the employee's skill (SRD-MKT-020.018)."""
+    try:
+        line = day_call_line(home, hire.skill.key)
+    except Exception:  # noqa: BLE001 — a wake still runs without the line
+        log.warning("[Company day] Could not read the day-call record of %s", hire.spec.name)
+        return text
+    return f"{text}\n{line}" if line else text
 
 
 def _remembers(hire: Hire, settings: DeskAiSettings) -> bool:

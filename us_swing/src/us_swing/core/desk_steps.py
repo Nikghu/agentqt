@@ -14,6 +14,7 @@ skill paths (SRD-MKT-013.011)
 
 The list of steps the desk runs, loaded by import path, so ``desk`` never imports
 the tools (such as ``market``) that provide the steps.
+Also: MD-MKT-020.023.M09 — ``day_end`` skill and the decision check step (SRD-MKT-020.023)
 """
 from __future__ import annotations
 
@@ -35,6 +36,7 @@ STEP_PATHS: tuple[str, ...] = (
     "us_swing.market.news_step:NewsStep",
     "us_swing.market.pick_results:PickResultsStep",
     "us_swing.market.view_check:ViewCheckStep",  # SRD-MKT-012.007
+    "us_swing.market.decision_check:DecisionCheckStep",  # SRD-MKT-020.014
     "us_swing.desk.employees_step:EmployeesStep",
     "us_swing.desk.weekly_report:WeeklyReportStep",
     "us_swing.desk.memory_cleanup:MemoryCleanupStep",  # SRD-DSK-009.021
@@ -58,6 +60,7 @@ SKILL_PATHS: dict[str, str] = {
     "sentiment": "us_swing.market.sentiment:SentimentSkill",
     "book_to_strategy": "us_swing.market.book_strategy:BookStrategySkill",
     "strategy_test": "us_swing.market.strategy_test:StrategyTestSkill",
+    "day_end": "us_swing.market.day_end:DayEndSkill",  # SRD-MKT-020.023
 }
 # Packages whose ``employees/`` folder holds default employee files to copy on first run.
 DEFAULT_EMPLOYEE_PACKAGES: tuple[str, ...] = ("us_swing.market",)

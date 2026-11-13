@@ -5,6 +5,9 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.117.2: SRD-GUI-034.077–.078 and SRD-GUI-035.018 Implemented 2026-11-13.
+> v2.117.1: SRD-GUI-034.077–.078 and SRD-GUI-035.018 approved by user 2026-11-13.
+> v2.117.0: AI Desk v3 M5 (user, 2026-11-13): SRD-GUI-034.077–.078 and SRD-GUI-035.018 added as Draft — Company day switch, day call and handover tiles, day strip.
 > v2.116.2: SRD-GUI-034.073–.076 Implemented 2026-11-13.
 > v2.116.1: SRD-GUI-034.073–.076 approved by user 2026-11-13.
 > v2.116.0: AI Desk v3 M4 (user, 2026-11-13): SRD-GUI-034.073–.076 added as Draft — Chat sessions switch, session list, New discussion, updates.
@@ -812,6 +815,8 @@
 | SRD-GUI-034.074 | FO-GUI-034 | Must | With sessions on, the lead chat shows a session list (title, date, open or closed), newest first; choosing one shows its turns and sends the next question into it. | `chat_sessions` | list, turns | Reads through `core/desk_chat.py`; sessions off hides the list | Implemented |
 | SRD-GUI-034.075 | FO-GUI-034 | Must | A New discussion button marks the shown session closing; the next question starts a new session. | button | session state | Shown only with sessions on | Implemented |
 | SRD-GUI-034.076 | FO-GUI-034 | Must | Update rows show as lead bubbles marked "Update", and the note shows "Waiting for the team" while an ask is open. | `chat` rows | bubbles, note | Same 2-second check as a waiting question | Implemented |
+| SRD-GUI-034.077 | FO-GUI-034 | Must | Desk settings has a Company day check box, off by default, saved as `company_day_on`. | check box | setting | Tooltip says the huddle needs agent messages and feedback notes need Memory v2 | Implemented |
+| SRD-GUI-034.078 | FO-GUI-034 | Must | With company day on, the Command header shows a Day call tile (market, sectors, who agreed, huddle, result once checked) and a Handover tile (the latest handover note). | `decisions`, `day_brief` | tiles | Reads through `core/desk_day.py`; hidden when off | Implemented |
 
 ## FO-GUI-035: AI Desk Team at Work
 
@@ -834,6 +839,7 @@
 | SRD-GUI-035.015 | FO-GUI-035 | Must | The event log shows each message event with its type, from and to, subject and state. | `messages`, events | log rows | Names from employee files; ids in the tooltip | Implemented |
 | SRD-GUI-035.016 | FO-GUI-035 | Must | A Threads view lists today's threads with starter, messages, send-back rounds, state and tokens, and shows the messages of the selected thread. | `threads`, `messages`, activity | list and detail | Read-only; newest first | Implemented |
 | SRD-GUI-035.017 | FO-GUI-035 | Should | The Threads view shows an escalate's moves up and a deputy hand with their reason. | `messages` meta | detail lines | Read-only | Implemented |
+| SRD-GUI-035.018 | FO-GUI-035 | Must | With company day on, Team at work shows a day strip for the shown day: Stand-up, Huddle, Plan, Market hours and Day-end, each with its time and done, skipped or waiting. | `day_brief`, `decisions` | strip | Read-only; hidden when off | Implemented |
 
 ## FO-GUI-036: AI Desk Team Setup
 

@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.27.0: MD-MKT-020.*.M01–M10 added — company day (AI Desk v3 M5, 2026-11-13).
 > v0.26.0: M01 (chat) and M03 (lead chat) changed for AI Desk v3 M4 (2026-11-13).
 > v0.25.0: MD-MKT-012.007.M04 added — view check (AI Desk v3 M3, 2026-11-13).
 > v0.24.0: M02 (watch flag) changed for AI Desk v3 M2 (2026-11-13).
@@ -281,3 +282,18 @@ Cross-tool: the skills use DSK `core/desk_msg.py` (`Draft`, `InboxReply`) and `c
 ## FO-MKT-013 (AI Desk v3 M2): Flag Escalation
 
 No new module. Changed: MD-MKT-013.008.M02 (`market/watch_flag.py`: escalate draft to the boss — SRD-MKT-013.013).
+
+## FO-MKT-020 (AI Desk v3 M5): Company Day
+
+| MD ID | Parent SRD | File | Purpose | Public API | Depends on | MCP |
+|---|---|---|---|---|---|---|
+| MD-MKT-020.002.M01 | SRD-MKT-020.002 | `us_swing/src/us_swing/core/desk_day.py` | Day rows: stand-up, clash, huddle reads, day call and votes, decision results, handover, GUI reads | `standup_text()`, `clash()`, `save_call()`, `due_calls()`, `save_results()`, `day_call_line()`, `day_end_day()`, `plan_day()`, `save_day_end()`, `has_handover()`, `day_view()`, `day_phases()` | `sqlite3`, `core.desk_memory`, `core.desk_messages` | No |
+| MD-MKT-020.001.M02 | SRD-MKT-020.001 | `us_swing/src/us_swing/core/desk_ai_settings.py` | `company_day_on` setting (added to MD-DSK desk settings) | `DeskAiSettings.company_day_on` | — | No |
+| MD-MKT-020.004.M03 | SRD-MKT-020.004 | `us_swing/src/us_swing/market/lead_brief.py` | Stand-up first in the facts, huddle call and wait, huddle block, day call in the answer (changes MD-MKT-005.014.M08) | `LeadBriefSkill`, `LeadBriefWithCall`, `DayCall` | M01, `core.desk_msg` | No |
+| MD-MKT-020.007.M04 | SRD-MKT-020.007 | `us_swing/src/us_swing/core/desk_messages.py` | Meeting to a list of receivers, one row each in one thread; reply, expiry and wait as an ask (changes MD-DSK-011.015.M29) | `accept(meetings=)`, `open_started()` | `core.desk_msg` | No |
+| MD-MKT-020.009.M05 | SRD-MKT-020.009 | `us_swing/src/us_swing/market/regime_view.py`, `market/sector_view.py` | Reply-only answer to a meeting in the inbox | `RegimeViewSkill.talks`, `SectorViewSkill.talks` | `core.desk_msg.InboxReply` | No |
+| MD-MKT-020.014.M06 | SRD-MKT-020.014 | `us_swing/src/us_swing/market/decision_check.py` | Decision check step: SPY and sector moves 5 trading days after each day call, vote results | `DecisionCheckStep`, `market_result()`, `sector_result()`, `vote_result()` | M01, `market.candles` | No |
+| MD-MKT-020.019.M07 | SRD-MKT-020.019 | `us_swing/src/us_swing/core/desk_events.py`, `core/desk_team.py`, `desk/process.py` | `day_end` event kind and label; posting once while the plan has no handover (the day rules are in M01) | `EVENT_RULES`, `DeskProcess._day_end_tick()` | M01 | No |
+| MD-MKT-020.020.M08 | SRD-MKT-020.020 | `us_swing/src/us_swing/market/day_end.py` | Day-end skill: code facts, handover and feedback answer, rows, memory notes, feed item | `DayEndSkill`, `DayEnd`, `Feedback` | M01, `core.desk_memory`, `core.desk_agents` | No |
+| MD-MKT-020.023.M09 | SRD-MKT-020.023 | `us_swing/src/us_swing/market/employees/emp-018/`, `core/desk_steps.py`, `USSwing.spec` | Default day-end employee, skill and step paths, app build modules | `SKILL_PATHS`, `STEP_PATHS` | — | No |
+| MD-MKT-020.018.M10 | SRD-MKT-020.018 | `us_swing/src/us_swing/desk/employees_step.py` | Day-call line after the memory blocks; `meetings` flag to the message check | `EmployeesStep` | M01, M04 | No |

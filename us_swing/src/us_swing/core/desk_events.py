@@ -12,6 +12,7 @@ Wake-up events in ``desk.db``. Any tool may post one (for example the market reg
 posts ``regime_change``); only the desk router changes an event's state. Clock and regime
 events come once per kind and data day; ``after_run`` comes once per desk run.
 ``step_done`` is posted only by the router, when an employee's turn in a chain ends.
+Also: MD-MKT-020.019.M07 — ``day_end`` event kind (SRD-MKT-020.019)
 """
 from __future__ import annotations
 
@@ -56,6 +57,7 @@ EVENT_RULES: dict[str, EventRule] = {
     "watch_flag": EventRule(0, timedelta(minutes=5), timedelta(minutes=30)),
     "research_done": EventRule(2, None, timedelta(days=1)),
     "message": EventRule(1, timedelta(minutes=10), timedelta(hours=2)),
+    "day_end": EventRule(2, None, timedelta(hours=12)),  # SRD-MKT-020.019
 }
 EVENT_KINDS: tuple[str, ...] = tuple(EVENT_RULES)
 _PER_ID = ("after_run", "chat_question", "data_request", "market_checkin", "watch_flag",

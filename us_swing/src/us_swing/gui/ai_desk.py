@@ -12,6 +12,7 @@ Also: MD-GUI-037.001.M01 — Memory section after Results (SRD-GUI-037.001)
 Also: MD-GUI-039.001.M01 — Research section after Team at work (SRD-GUI-039.001)
 Also: MD-GUI-040.001.M01 — Cards section after Results (SRD-GUI-040.001)
 Also: SRD-GUI-034.065 — console header: icon, state note, desk controls and four tiles
+Also: MD-GUI-034.078.M40 — Day call and Handover tiles in the header (SRD-GUI-034.078)
 """
 from __future__ import annotations
 
@@ -52,6 +53,7 @@ from us_swing.gui.ai_desk_sections import command_frame, runs_box, team_line
 from us_swing.gui.ai_desk_hiring import approvals_box, hiring_frame
 from us_swing.gui.ai_desk_chat import ChatPanel
 from us_swing.gui.ai_desk_console import icon_badge, stat_tile, thin_bar
+from us_swing.gui.ai_desk_day import DayTiles
 from us_swing.gui.ai_desk_memory import memory_frame
 from us_swing.gui.ai_desk_cards import cards_frame
 from us_swing.gui.ai_desk_research import research_frame
@@ -281,6 +283,8 @@ class AiDeskWorkspace(QWidget):
         for tile in (run_tile, next_tile, spend_tile, month_tile):
             tiles.addWidget(tile, 1)
         lines.addLayout(tiles)
+        self.day_tiles = DayTiles()
+        lines.addWidget(self.day_tiles)
         lines.addWidget(self._tab_row())
         return box
 
@@ -334,6 +338,7 @@ class AiDeskWorkspace(QWidget):
         self.budget_title.setText(f"Month budget · {share}% used")
         self.budget_label.setText(f"${month:.2f}&nbsp; " + _small(f"of ${budget:.2f}"))
         self.spend_bar.setValue(share)
+        self.day_tiles.refresh(folder)
 
     def _on_status(self, status: DeskStatus) -> None:
         """Refresh the header and badge only when the desk state changed and the page shows."""

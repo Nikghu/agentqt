@@ -8,6 +8,7 @@ SRD-GUI-035.010 (alert banner), SRD-GUI-035.012 (clean look: icons, borders, sta
 One section that shows how the AI employee team works: a run bar, the Live tab (pipeline or
 timeline), the Event log tab, the Team scorecard tab and a side pane with the team wheel and
 the picked employee's profile. Reads desk.db only through ``core.desk_team``.
+Also: MD-GUI-035.018.M06 — day strip above the tabs (SRD-GUI-035.018, AI Desk v3 M5)
 """
 from __future__ import annotations
 
@@ -58,6 +59,7 @@ from us_swing.core.desk_team import (
     scorecard,
     team,
 )
+from us_swing.gui.ai_desk_day import DayStrip
 from us_swing.gui.ai_desk_sections import muted, scroll_of, section_frame
 from us_swing.gui.ai_desk_team_log import EventLogView
 from us_swing.gui.ai_desk_threads import ThreadsView
@@ -532,6 +534,8 @@ class TeamAtWork(QWidget):
         left.setSpacing(10)
         main.addLayout(left, 1)
         left.addLayout(self._run_bar())
+        self.day_strip = DayStrip()
+        left.addWidget(self.day_strip)
         self._tabs = QButtonGroup(self)
         tab_row, _ = _toggle_row(("Live", "Event log", "Team", "Threads"), self._tabs,
                                  ("activity", "scroll-text", "users", "message-square"),
@@ -693,6 +697,7 @@ class TeamAtWork(QWidget):
         run = next((r for r in self._runs if r.id == self._run_id), None)
         self._view = run_view(home, run, self._members) if run else None
         self._show_alerts()
+        self.day_strip.refresh(home, self._clock())
         self._show_run_bar()
         self._show_live()
         self._refresh_tab()
