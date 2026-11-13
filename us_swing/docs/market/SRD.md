@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.24.0: AI Desk v3 M3 (user, 2026-11-13): SRD-MKT-012.007–.008 added as Draft — view check.
 > v0.23.1: SRD-MKT-013.013 Implemented 2026-11-13.
 > v0.23.0: AI Desk v3 M2 (user, 2026-11-13): SRD-MKT-013.013 added as Draft — the flag goes to the boss too.
 > v0.22.3: SRD-MKT-005.024 added by user 2026-11-13 (price facts so the setup review can choose new levels) and Implemented.
@@ -254,6 +255,8 @@
 | SRD-MKT-012.004 | FO-MKT-012 | Must | A default expert-level employee ships as `emp-010` (generic name "Expert 8") with trigger `after_run` and skill `lesson_reflect`. | default files | employee | Copied only when missing; the Master may rename it | Implemented |
 | SRD-MKT-012.005 | FO-MKT-012 | Must | Setup review, news review, risk check and lead brief facts end with the lessons block from SRD-DSK-009.004. | lessons | facts text | Regime view and sector view get none | Implemented |
 | SRD-MKT-012.006 | FO-MKT-012 | Should | Each reflect run logs how many candidates were kept and dropped. | answer | log line | `[Memory]` prefix | Implemented |
+| SRD-MKT-012.007 | FO-MKT-012 | Must | A desk step after pick results checks each open view whose 10th trading day after it was made has a daily close in `candles.db`. | `memories`, candles | view status | Right at +1% or more its way, wrong at 1% or more the other way, else neutral; runs only while `memory_v2_on` | Draft |
+| SRD-MKT-012.008 | FO-MKT-012 | Must | The same step then updates the note scores and statuses of SRD-DSK-009.018–.020. | checked views | `memories` | A failing check never stops the desk run | Draft |
 
 ## FO-MKT-013: Intraday Watchers and Check-in Notes
 

@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.19.0: MD-DSK-009.010.M30 and MD-DSK-009.021.M31 added; M23, M27, M11, M10, M13, M04 changed (AI Desk v3 M3, 2026-11-13).
 > v0.18.0: No new module; M29, M15, M16, M10, M13, M21, M22 changed (AI Desk v3 M2, 2026-11-13).
 > v0.17.0: MD-DSK-011.015.M29 added; M27, M28, M15, M16, M10, M11, M12, M14, M08, M13 changed (AI Desk v3 M1, 2026-11-13).
 > v0.16.0: MD-DSK-011.001.M27 and MD-DSK-012.001.M28 added; M04 changed (AI Desk v3 M0, 2026-11-13).
@@ -177,3 +178,14 @@ SRD coverage: 011.003, .004 and .016 by M27; .014, .015, .017–.024, .026, .027
 No new module. Changed: M29 (`core/desk_messages.py`: `Person.boss` and `.deputy`, escalate accept, `boss` address, 5-minute move up in `expire_due()`, `hand_to_deputy()`, `handed` column, `mark_seen(receiver=)`, replies to escalates wake nobody — 011.014, .033, .034, .036–.038, .040, .041, .043), M15 (`core/desk_events.py`: `post_message(priority=, again=)` — .035), M16 (`desk/router.py`: roster and send passed to `expire_due()` — .036), M10 (`desk/employees_step.py`: roster with boss and deputy, `_answer_escalations()`, `_refuse()` with deputy first, `escalation` passed to `accept()` — .039–.042), M13 (`core/desk_ai_settings.py`: `escalation_on` — .042), M21 (`core/desk_alerts.py`: kind `escalation` — 007.011), M22 (`core/desk_employee.py`: `JobSpec.deputy`, deputy checks, `render` leaves out an empty deputy — 008.010).
 
 SRD coverage: 011.014, .033, .034, .036–.038, .041 and .043 by M29; .035 by M15 and M29; .036 also by M16; .039 and .040 by M10 and M29; .042 by M13 and M10; 007.011 by M21 and M29; 008.010 by M22.
+
+## FO-DSK-009 (AI Desk v3 M3): Memory v2
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-DSK-009.010.M30 | SRD-DSK-009.010 | `us_swing/src/us_swing/core/desk_memory.py` | `memory.db` file and tables, lesson move, clean write, core block, recall, view scores, review, edits, reads for the GUI | `MEMORY_DB`, `connect()`, `read_only()`, `move_lessons()`, `write()`, `core_block()`, `recall()`, `open_views_due()`, `score_view()`, `review()`, `add_edit()`, `apply_edits()`, `memory_rows()`, `Memory` | `sqlite3`, M23, M27 | No |
+| MD-DSK-009.021.M31 | SRD-DSK-009.021 | `us_swing/src/us_swing/desk/memory_cleanup.py` | Weekly clean-up step: one call per lead or expert with notes, actions applied by code | `MemoryCleanupStep`, `Cleanup` | M30, M11, M10, M20 | No |
+
+Changed: M23 (`core/desk_lessons.py`: `connect()` and `_read_only()` open `memory.db` — 009.011), M27 (`core/desk_msg.py`: `Remember`, `with_remember()` — .013), M11 (`desk/gateway.py`: `remember`, `notes` — .013), M10 (`desk/employees_step.py`: core block and recall in facts, write notes after act — .016, .017, .014), M13 (`core/desk_ai_settings.py`: `memory_v2_on` — .023), M04 (`desk/process.py`: applies memory edits — .022). `core/desk_steps.py` adds the view check and clean-up step paths.
+
+SRD coverage: .010–.012, .014–.020, .022 and .024 by M30; .011 also by M23; .013 by M27, M11 and M10; .016 and .017 also by M10; .021 by M31; .022 also by M04; .023 by M13, M10, M31.

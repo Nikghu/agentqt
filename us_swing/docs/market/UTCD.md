@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.25.0: UT-MKT-012.007–.008 added (7, Not Run) (2026-11-13).
 > v0.24.1: UT-MKT-013.013.M02.T01–T03 Pass (3, 2026-11-13).
 > v0.24.0: UT-MKT-013.013.M02.T01–T03 added (Not Run, 3) — AI Desk v3 M2 (2026-11-13).
 > v0.23.1: UT-MKT-005.024.M05.T01–T02 added and Pass; UT-MKT-005.022.M07.T05 Pass (2026-11-13).
@@ -446,6 +447,13 @@
 | UT-MKT-012.005.M03.T01 | MD-MKT-012.005.M03 | Positive | Pick makers get lessons (SRD-MKT-012.005) | one matching active lesson | facts of the four skills end with the block | Pass |
 | UT-MKT-012.005.M03.T02 | MD-MKT-012.005.M03 | Negative | Views get none (SRD-MKT-012.005) | same lesson | regime view and sector view facts have no lessons | Pass |
 | UT-MKT-012.006.M01.T01 | MD-MKT-012.002.M01 | Positive | Log line (SRD-MKT-012.006) | answer with 1 kept, 1 dropped | `[Memory] Kept 1 candidate lesson(s), dropped 1` | Pass |
+| UT-MKT-012.007.M04.T01 | MD-MKT-012.007.M04 | Positive | Up view right (SRD-MKT-012.007) | NVDA up made d, close +1.5% on the 10th day | right, move 1.5 | Not Run |
+| UT-MKT-012.007.M04.T02 | MD-MKT-012.007.M04 | Positive | Down view wrong (SRD-MKT-012.007) | TSLA down, close +2% on due | wrong | Not Run |
+| UT-MKT-012.007.M04.T03 | MD-MKT-012.007.M04 | Negative | Not due yet (SRD-MKT-012.007) | due after the last candle day | stays open | Not Run |
+| UT-MKT-012.007.M04.T04 | MD-MKT-012.007.M04 | Negative | Off (SRD-MKT-012.007) | memory off with a due view | no change | Not Run |
+| UT-MKT-012.007.M04.T05 | MD-MKT-012.007.M04 | Edge | No close (SRD-MKT-012.007) | symbol missing in candles | stays open; run goes on | Not Run |
+| UT-MKT-012.008.M04.T01 | MD-MKT-012.007.M04 | Positive | Scores and review (SRD-MKT-012.008) | right view with a note shown that day | note right 1; review run | Not Run |
+| UT-MKT-012.008.M04.T02 | MD-MKT-012.007.M04 | Negative | Error does not stop (SRD-MKT-012.008) | store raises | logged; step returns | Not Run |
 
 ## FO-MKT-013: Intraday Watchers and Check-in Notes
 

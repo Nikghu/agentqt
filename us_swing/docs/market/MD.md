@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.25.0: MD-MKT-012.007.M04 added — view check (AI Desk v3 M3, 2026-11-13).
 > v0.24.0: M02 (watch flag) changed for AI Desk v3 M2 (2026-11-13).
 > v0.23.0: M05, M07, M04 (news and store), M01 and M02 (watch) changed for AI Desk v3 M1 (2026-11-13).
 > v0.22.0: MD-MKT-019.001.M01, .003.M02, .005.M03, .009.M04, .012.M05 added — strategy test research; lead_brief changed (2026-11-12).
@@ -188,6 +189,9 @@ SRD coverage: .001 by M01; .002 by M02; .003–.006 and .008 by M03; .007 by M04
 | MD-MKT-012.002.M01 | SRD-MKT-012.002 | `us_swing/src/us_swing/market/lesson_reflect.py` | Stats of closed picks by tag, reflect skill, answer form, candidates kept, log | `LessonReflectSkill`, `LessonReflect`, `stats_text()` | `core.desk_lessons` | No |
 | MD-MKT-012.004.M02 | SRD-MKT-012.004 | `us_swing/src/us_swing/market/employees/emp-010/`, `core/desk_steps.py` | Default reflect employee and the `lesson_reflect` skill path | — | M01 | No |
 | MD-MKT-012.005.M03 | SRD-MKT-012.005 | `us_swing/src/us_swing/market/setup_review.py`, `news_review.py`, `risk_check.py`, `lead_brief.py` | Lessons block at the end of the facts of the four pick makers | — | `core.desk_lessons` | No |
+| MD-MKT-012.007.M04 | SRD-MKT-012.007 | `us_swing/src/us_swing/market/view_check.py` | View check step: due views against daily closes, scores and review | `ViewCheckStep`, `move_result()` | `core.desk_memory`, `market.candles` | No |
+
+SRD coverage (M3): 012.007 and .008 by M04.
 
 Changed: MD-MKT-009.001.M01 (`pick_results.py`: calls `review_lessons()` after writing results — SRD-DSK-009.002, .007).
 

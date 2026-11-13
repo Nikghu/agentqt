@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.115.0: AI Desk v3 M3 (user, 2026-11-13): SRD-GUI-034.072 and 037.005–.008 added as Draft — Memory v2 switch, notes and views, core block, note edits.
 > v2.114.1: SRD-GUI-034.071, 035.017 and 036.011 Implemented 2026-11-13.
 > v2.114.0: AI Desk v3 M2 (user, 2026-11-13): SRD-GUI-034.071, 035.017 and 036.011 added as Draft — escalation switch, escalation lines in Threads, Deputy picker.
 > v2.113.2: SRD-GUI-034.070 and 035.015–.016 Implemented 2026-11-13.
@@ -801,6 +802,7 @@
 | SRD-GUI-034.069 | FO-GUI-034 | Should | Desk labels name the morning run: the Next run tile, Desk settings, Team at work trigger, empty notes and the feed card title. | clock, runs | labels | Next run = today from 04:00 ET while due, else the next trading day; old `evening` runs and briefs still show | Implemented |
 | SRD-GUI-034.070 | FO-GUI-034 | Must | Desk settings has an Agent messages switch, off by default, saved as `messages_on`. | switch | desk settings | Applies at the next desk wake | Implemented |
 | SRD-GUI-034.071 | FO-GUI-034 | Must | Desk settings has an Escalation switch under Agent messages, off by default, saved as `escalation_on`. | switch | desk settings | Greyed out while Agent messages is off | Implemented |
+| SRD-GUI-034.072 | FO-GUI-034 | Must | Desk settings has a Memory v2 switch, off by default, saved as `memory_v2_on`. | switch | desk settings | Applies at the next desk wake | Draft |
 
 ## FO-GUI-035: AI Desk Team at Work
 
@@ -848,6 +850,10 @@
 | SRD-GUI-037.002 | FO-GUI-037 | Must | The Memory table lists lessons with status, pinned, text, tags, cases, average R, confidence and last confirmed. | `lessons` | table | Active first; a filter picks active, candidate or retired | Implemented |
 | SRD-GUI-037.003 | FO-GUI-037 | Must | Pin, Unpin, Edit, Retire and Delete add a `lesson_edits` row; the row shows "applies at the next desk tick" until done. | button | `lesson_edits` row | Delete asks first | Implemented |
 | SRD-GUI-037.004 | FO-GUI-037 | Should | Choosing a lesson shows its proof picks with date, side, stock and R. | lesson | proof list | — | Implemented |
+| SRD-GUI-037.005 | FO-GUI-037 | Must | The Memory section has a Kind filter (Lessons, Notes, Views); Notes and Views list owner, text, symbol, direction, made, status, right and wrong. | `memory.db` | table | Lessons view as before | Draft |
+| SRD-GUI-037.006 | FO-GUI-037 | Must | Notes and Views have an Employee filter built from the live employee list. | employees | filter | No names in code; All is the default | Draft |
+| SRD-GUI-037.007 | FO-GUI-037 | Must | Choosing an employee shows the core block it gets at its next wake, read-only. | employee | text | Same function as the desk | Draft |
+| SRD-GUI-037.008 | FO-GUI-037 | Must | Pin, Unpin and Retire on a chosen note write `memory_edits` rows. | button | `memory_edits` row | Views have no buttons; pending change shown in yellow | Draft |
 
 ## FO-GUI-038: App Feeds for the Desk Watchers
 
