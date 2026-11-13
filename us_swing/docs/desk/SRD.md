@@ -6,6 +6,8 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.15.1: SRD-DSK-011.001–.014 and 012.001–.011 approved by user 2026-11-13.
+> v0.15.0: AI Desk v3 M0 (user, 2026-11-13): SRD-DSK-011.001–.014 and 012.001–.011 added as Draft (trimmed by user to rows M0 uses) — message format, tool registry and schema library.
 > v0.14.2: SRD-DSK-010.016 Implemented 2026-11-12.
 > v0.14.1: SRD-DSK-010.016 approved by user 2026-11-12.
 > v0.14.0: Strategy test (user, 2026-11-12): SRD-DSK-010.016 added as Draft — owner-raised strategy test ticket.
@@ -219,3 +221,38 @@
 | SRD-DSK-010.014 | FO-DSK-010 | Should | Raise, approve, start, pause and end of each ticket are logged. | ticket | log line | `[Research]` prefix | Implemented |
 | SRD-DSK-010.015 | FO-DSK-010 | Must | A research skill may hand follow-up tickets to the queue in the name of the lead that raised its own ticket. | asks, ticket | ticket rows | Rules .002–.007 apply to that lead; never in the doer's name | Implemented |
 | SRD-DSK-010.016 | FO-DSK-010 | Must | The Master user can raise a `strategy_test` ticket for one card from the app; it is approved at once and paid by the lead that holds the lead plan skill. | card id | ticket row | Rules .002 and .005–.007 apply; refused when no active lead | Implemented |
+
+## FO-DSK-011: Agent Messages
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-DSK-011.001 | FO-DSK-011 | Must | Every message is one `desk.msg/1` envelope made of a core header, a body and optional meta, and belongs to one thread. | message | model | Pydantic v2 in `core/desk_msg.py`; the schema name is written only when it is not `desk.msg/1` | Approved |
+| SRD-DSK-011.002 | FO-DSK-011 | Must | A thread holds id, starter, message count, send-back rounds, state, opened and closed. | thread | model | Id is the first message id; starter is the payer; state is open or closed | Approved |
+| SRD-DSK-011.003 | FO-DSK-011 | Must | The core header holds id, thread, parent, type, sender, to and at, plus due and state. | header | model | Parent omitted on a first message; due only on ask, task, send_back, escalate and meeting | Approved |
+| SRD-DSK-011.004 | FO-DSK-011 | Must | An address is an employee id, `skill:<key>`, `champion:<key>`, `boss` or `master`. | address | valid or reason | Ids only, never names; a list only on meeting; omitted on reply and send_back | Approved |
+| SRD-DSK-011.005 | FO-DSK-011 | Must | The type is one of ask, task, reply, send_back, handover, escalate, meeting, decision and feedback, and it picks the body model. | type, body | body model | Each body refuses unknown keys | Approved |
+| SRD-DSK-011.006 | FO-DSK-011 | Must | Each type's body has the required and optional fields of the type table in the DD. | body | valid or reason | A missing required field is refused | Approved |
+| SRD-DSK-011.007 | FO-DSK-011 | Must | Body fields keep their size limits. | body | valid or reason | Subject 80 chars one line; text 600; about 20; flags 5 with note 120; reason 200 | Approved |
+| SRD-DSK-011.008 | FO-DSK-011 | Must | A want holds goal, done test, inputs and optional schema, columns, tools and token cap. | want | model | Goal and done test 120 chars each; tools only on task | Approved |
+| SRD-DSK-011.009 | FO-DSK-011 | Must | A verdict result is allowed only for its type. | verdict | valid or reason | reply: done, partial, failed, dropped, refused; send_back: fix, reject; decision: decided with agreed and disagreed | Approved |
+| SRD-DSK-011.010 | FO-DSK-011 | Must | A data block names a schema-library format and holds either rows as lists or a reference with a row count. | data | model | Rows at most 200; both or neither is refused; columns only for a subset | Approved |
+| SRD-DSK-011.011 | FO-DSK-011 | Must | Meta holds only ai, used, secs, blocked and schema, each written only when it has a value. | meta | JSON | Dump leaves out empty and default keys | Approved |
+| SRD-DSK-011.012 | FO-DSK-011 | Must | Message states are submitted, working, input_required, completed, failed, canceled, refused and expired. | state | enum | Names follow A2A | Approved |
+| SRD-DSK-011.013 | FO-DSK-011 | Must | The envelope and each body type export as JSON Schema. | — | JSON Schema | For prompts; matches what the models accept | Approved |
+| SRD-DSK-011.014 | FO-DSK-011 | Must | M0 adds the format only; no desk step, skill or table sends or stores messages. | — | — | Checked by the existing desk tests | Approved |
+
+## FO-DSK-012: Tools and Task Cards
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-DSK-012.001 | FO-DSK-012 | Must | Each tool is a `desk.tool/1` row with name, kind, version, description, input schema, output schema, ai and status. | tool | model | Pydantic v2 in `core/desk_registry.py`; kind is code or mcp; status is active or off | Approved |
+| SRD-DSK-012.002 | FO-DSK-012 | Must | Own tool names are `group.tool` and MCP tool names are `mcp:server/tool`; a versioned reference adds `@<version>`. | name | valid or reason | Lower case letters, digits and underscores only | Approved |
+| SRD-DSK-012.003 | FO-DSK-012 | Must | Each table format is a `desk.schema/1` row with id `<name>.v<N>`, title and columns. | format | model | Each column has a name, type and meaning; a change makes a new version | Approved |
+| SRD-DSK-012.004 | FO-DSK-012 | Must | Tools and formats are kept in `tools` and `schemas` tables in `desk.db`. | rows | tables | Key is name and version; created if missing | Approved |
+| SRD-DSK-012.005 | FO-DSK-012 | Must | Each desk step in the step list is a code tool `step.<key>`. | step list | tool rows | Read from `STEP_PATHS`; key from the class name | Approved |
+| SRD-DSK-012.006 | FO-DSK-012 | Must | Each research skill is an AI tool `research.<kind>`. | skill list | tool rows | Skills whose key is a research kind | Approved |
+| SRD-DSK-012.007 | FO-DSK-012 | Must | The data recipe is a code tool `data.recipe`, and each recipe source is a format `<source>.v1`. | recipe menu | tool and format rows | Input schema from the recipe model; columns from the menu | Approved |
+| SRD-DSK-012.008 | FO-DSK-012 | Must | Each Backtest MCP tool is an MCP tool `mcp:backtest/<tool>`. | MCP tool list | tool rows | Input schema from the MCP server's own tool list | Approved |
+| SRD-DSK-012.009 | FO-DSK-012 | Must | On each desk start the registry is filled from the lists above without copies. | lists | rows | A seeded tool no longer in code is set off, never deleted | Approved |
+| SRD-DSK-012.010 | FO-DSK-012 | Must | Read functions list tools and formats and get one by name. | name | rows | Read-only; used by the registry check and later phases | Approved |
+| SRD-DSK-012.011 | FO-DSK-012 | Should | Filling the registry is logged with the tool and format counts. | counts | log line | `[Tools]` prefix | Approved |

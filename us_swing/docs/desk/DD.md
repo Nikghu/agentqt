@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.14.0: DD-DSK-011.001.D01 and DD-DSK-012.001.D01 added — message format, tool registry and schema library (AI Desk v3 M0, 2026-11-13).
 > v0.13.0: DD-DSK-010.016.D01 added — owner-raised strategy test ticket (2026-11-12).
 > v0.12.0: DD-DSK-010.015.D01 added — follow-up tickets from research skills (step F).
 > v0.11.0: DD-DSK-010.001.D01 added — token split and research queue (Autonomous desk step E (2026-11-11)).
@@ -985,3 +986,126 @@ The desk loop (`_event_tick`) runs the runner only when `has_work` from events i
 ## DD-DSK-010.016.D01 — Owner-Raised Strategy Test Ticket
 
 **Traces:** SRD-DSK-010.016. `core/desk_research.raise_owner_test(home, card_id, now)` raises one `strategy_test` ticket for card `SC-<card_id>` in the name of the active lead that holds `lead_brief`, so the test uses that lead's research budget. It runs `_refusal()` (kind, cap, 3 a day, no repeat of an open or recent ticket), inserts the row as `approved` with `approved_by = "master"`, logs `[Research] Master raised ticket N (strategy test): approved` and returns `"ticket N approved"` or `"refused: <why>"`. No lead → `"refused: no active lead holds the lead plan"`. Full design: DD-MKT-019.001.D01.
+
+## DD-DSK-011.001.D01 — Message Format `desk.msg/1` (AI Desk v3 M0)
+
+**Traces:** SRD-DSK-011.001–.014. Source: schema draft 2, https://claude.ai/artifact/BjxpjycTC6CtGbNPzoX62f. All models live in `core/desk_msg.py` (Pydantic v2, every model `extra="forbid"`). M0 adds models only; storage (`messages`, `threads` tables) and the split into header columns and body JSON come in M1.
+
+**Models.**
+
+```
+SCHEMA = "desk.msg/1"
+State(str, Enum): submitted, working, input_required, completed, failed, canceled, refused, expired
+MsgType = Literal[ask, task, reply, send_back, handover, escalate, meeting, decision, feedback]
+Address = str, pattern  ^(skill:[a-z0-9_]+|champion:[a-z0-9_]+|boss|master|[A-Za-z0-9_-]+)$
+                        (the last branch is the employee id pattern of core/desk_employee.py)
+
+Thread:  id int>=1 · starter Address · msgs int>=1 · rounds int>=0 · state open|closed
+         · opened AwareDatetime · closed AwareDatetime | None
+Want:    goal str<=120 · done_when str<=120 · inputs dict · schema SchemaId? · cols list[str]?
+         · tools list[ToolRef]? · max_tokens int>=0 = 0
+Verdict: result str · reason str<=200? · agreed list[Address]? · disagreed list[Address]?
+Data:    schema SchemaId · cols list[str]? · rows list[list[Any]] (<=200)? · nulls dict[str,str]?
+         · ref str? · n int>=1?        exactly one of rows / ref; n required with ref, only with ref
+Flag:    about str<=40 · note str<=120
+Meta:    ai {tok int>=0, model str}? · used list[ToolRef]? · secs float>0? · blocked str? · schema str?
+         (schema must match ^desk\.msg/\d+$ and differ from SCHEMA)
+```
+
+`SchemaId` and `ToolRef` patterns come from `core/desk_registry.py` (one rule for both modules).
+
+**Body by type** (each a model with `type: Literal[...]`; `Body` is their union with `Field(discriminator="type")`):
+
+| type | Required | Optional | Verdict results |
+|---|---|---|---|
+| ask | subject | text, about, want | — |
+| task | card, want | — | — |
+| reply | verdict; text or data unless refused | text, data, flags | done, partial, failed, dropped, refused (refused needs reason) |
+| send_back | verdict | text | fix, reject |
+| handover | subject; text or data | text, data, about, flags | — |
+| escalate | subject, text | about, flags | — |
+| meeting | subject, text | — | — |
+| decision | subject, verdict | — | decided; agreed and disagreed allowed only here |
+| feedback | subject, text | data | — |
+
+Limits (SRD-DSK-011.007): subject 1–80 chars, no newline; text 1–600; about at most 20 items; flags at most 5. `want.tools` is refused on every body except task (SRD-DSK-011.008): ask's validator checks it.
+
+**Envelope.** `Message`: `id int>=1 · thread int>=1 · parent int? · sender Address · to Address | list[Address] | None · at AwareDatetime · due AwareDatetime? · state State · body Body · meta Meta?`. The header field `type` is `body.type` (property), so type is written once. Envelope checks, first failure wins:
+
+```
+to is a list            -> only when type is meeting
+to missing              -> only when type is reply or send_back (code takes the parent's sender in M1)
+to set                  -> refused on reply and send_back
+due set                 -> only on ask, task, send_back, escalate, meeting
+parent missing          -> refused on reply, send_back and decision
+```
+
+**JSON.** `dump(msg) -> dict` is `model_dump(mode="json", exclude_none=True, exclude_defaults=True)`, then `type` added back on the body (it is the discriminator, so it is never a default). `load(data) -> Message` is `Message.model_validate(data)`. So empty and default keys are never written (SRD-DSK-011.011) and dump → load gives an equal model. A `ValidationError` is turned into one plain line by `reason(exc)`: the first error's field path and message.
+
+**JSON Schema.** `message_schema() -> dict` returns `Message.model_json_schema()`; `body_schema(type) -> dict` returns the schema of one body model, for prompts (SRD-DSK-011.013).
+
+**No behaviour change** (SRD-DSK-011.014): no desk, market or GUI module imports `desk_msg` in M0.
+
+## DD-DSK-012.001.D01 — Tool Registry and Schema Library (AI Desk v3 M0)
+
+**Traces:** SRD-DSK-012.001–.011. `core/desk_registry.py` (Pydantic v2, `extra="forbid"`); no `desk`, `market` or `gui` import at module level. Seed sources are read through import paths, the same way `core/desk_steps.py` loads steps.
+
+**Names** (SRD-DSK-012.002):
+
+```
+TOOL_NAME  ^(?:[a-z0-9_]+\.[a-z0-9_]+|mcp:[a-z0-9_]+/[a-z0-9_]+)$      step.regime · mcp:backtest/bt_run
+TOOL_REF   TOOL_NAME + @<int>                                       step.regime@1
+SCHEMA_ID  ^[a-z0-9_]+\.v[0-9]+$                                    scores.v1
+```
+
+**Models.**
+
+```
+Tool (desk.tool/1):   name TOOL_NAME · kind code|mcp · version int>=1 · description str<=300
+                      · input_schema (alias inputSchema) dict · output_schema (alias outputSchema)
+                        dict | SCHEMA_ID | None · ai bool · status active|off
+                      check: kind mcp <=> name starts "mcp:"
+Column:               name [a-z0-9_]+ · type text|number · meaning str<=120
+TableFormat (desk.schema/1): id SCHEMA_ID · title str · columns list[Column] (>=1, unique names)
+                      properties name, version from id
+```
+
+Models dump with `by_alias=True`, so a tool row has the MCP field names `inputSchema` and `outputSchema`.
+
+**Tables** in `desk.db` (SRD-DSK-012.004), made with `CREATE TABLE IF NOT EXISTS` by `_connect(home)`:
+
+```
+tools   (name TEXT, version INTEGER, kind TEXT, status TEXT, body TEXT, updated TEXT,
+         PRIMARY KEY (name, version))
+schemas (name TEXT, version INTEGER, body TEXT, updated TEXT, PRIMARY KEY (name, version))
+```
+
+`body` is the model's JSON; the other columns are copies for filtering. Times are `utc_text()`.
+
+**Seed** (`seed_tools()` and `seed_formats()`, pure, no database):
+
+| Source | Tool rows | Detail |
+|---|---|---|
+| `STEP_PATHS` | `step.<key>`, code, ai false | key = class name without `Step`, in snake case (`CandleCheckStep` → `candle_check`); description = the class `name` attribute; input `{"type": "object", "properties": {}}`; no output |
+| `SKILL_PATHS` keys that are in research `KINDS` | `research.<kind>`, code kind, ai true | description = first docstring line of the skill class; input = `TicketAsk` JSON Schema |
+| recipe `MENU` | `data.recipe`, code, ai false | input = `DataRecipe` JSON Schema; description from `DataRecipe` |
+| recipe `MENU` | formats `<source>.v1` | title = source label; columns in menu order with their text or number type; meaning = column name in words |
+| `us_swing.mcp.backtest_tools` `TOOL_NAMES` | `mcp:backtest/<tool>`, mcp, ai false | input from `func_metadata(BacktestTools.<tool>, skip_names=["self"]).arg_model.model_json_schema()` (the MCP server's own schema builder); description = first docstring line |
+
+All seed rows are version 1, status active. The short server name `backtest` is used, as in the design page.
+
+**Fill** (SRD-DSK-012.009). `fill_registry(home, now) -> tuple[int, int]` in one transaction:
+
+```
+for each seed tool:   INSERT ... ON CONFLICT(name, version) DO UPDATE kind, status='active', body, updated
+for each seed format: same on schemas
+UPDATE tools SET status='off', body=<body with status off> WHERE status='active' AND (name, version) not in seed
+log.info("[Tools] Registry ready: %d tool(s), %d table format(s)", tools, formats)   (SRD-DSK-012.011)
+return counts
+```
+
+A second fill gives the same rows (only `updated` moves). Rows are never deleted.
+
+**Read** (SRD-DSK-012.010): `list_tools(home, status=None) -> list[Tool]` ordered by name; `get_tool(home, name, version=None) -> Tool | None` (newest version when none is given); `list_formats(home) -> list[TableFormat]`; `get_format(home, schema_id) -> TableFormat | None`. Read functions on a missing `desk.db` return empty results without making the file.
+
+**Desk start.** `DeskProcess.start()` calls `fill_registry(self._home, now)` after `pause_running`, inside `try/except Exception` with `log.exception("[Tools] Could not fill the tool registry")`, so a registry problem never stops the desk. Nothing else reads the registry in M0.

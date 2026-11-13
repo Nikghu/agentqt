@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.16.0: UT-DSK-011.001–.014 and 012.001–.011 added (Not Run, 52 cases) — AI Desk v3 M0 (2026-11-13).
 > v0.15.1: UT-DSK-010.016.M25.T01–T03 Pass (2026-11-12).
 > v0.15.0: UT-DSK-010.016.M25.T01–T03 added (Not Run) — owner test ticket (2026-11-12).
 > v0.14.1: UT-DSK-010.015.M25.T01–T03 Pass (2026-11-11).
@@ -423,3 +424,60 @@
 | UT-DSK-010.016.M25.T01 | MD-DSK-010.001.M25 | Positive | Owner test ticket (SRD-DSK-010.016) | active lead with lead_brief, card 3 | row approved, topic SC-3, raised by the lead, approved_by master | Pass |
 | UT-DSK-010.016.M25.T02 | MD-DSK-010.001.M25 | Negative | No lead (SRD-DSK-010.016) | no active lead holds lead_brief | refused; no row | Pass |
 | UT-DSK-010.016.M25.T03 | MD-DSK-010.001.M25 | Negative | Repeat (SRD-DSK-010.016) | open SC-3 test, raise again | refused; one row | Pass |
+
+## FO-DSK-011 / FO-DSK-012 (AI Desk v3 M0): Message Format and Tool Registry
+
+| ID | Module | Type | Title | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-DSK-011.001.M27.T01 | MD-DSK-011.001.M27 | Positive | Round trip of every type (SRD-DSK-011.001) | one valid message of each of the 9 types | dump then load gives an equal model; dump has no schema key | Not Run |
+| UT-DSK-011.001.M27.T02 | MD-DSK-011.001.M27 | Negative | Broken envelope (SRD-DSK-011.001) | message with no body; with no at; with an extra header key | each refused with a plain reason | Not Run |
+| UT-DSK-011.002.M27.T01 | MD-DSK-011.001.M27 | Positive | Thread row (SRD-DSK-011.002) | thread id 701, starter emp-003, 2 messages, 1 round, open | valid; round trip equal | Not Run |
+| UT-DSK-011.002.M27.T02 | MD-DSK-011.001.M27 | Negative | Bad thread state (SRD-DSK-011.002) | state paused; rounds -1 | refused; refused | Not Run |
+| UT-DSK-011.003.M27.T01 | MD-DSK-011.001.M27 | Positive | Header rules met (SRD-DSK-011.003) | first ask with no parent and a due; reply with parent and no due | both valid | Not Run |
+| UT-DSK-011.003.M27.T02 | MD-DSK-011.001.M27 | Negative | Header rules broken (SRD-DSK-011.003) | handover with due; reply with no parent; time without zone | each refused with a plain reason | Not Run |
+| UT-DSK-011.004.M27.T01 | MD-DSK-011.001.M27 | Positive | Good addresses (SRD-DSK-011.004) | emp-003, skill:news_review, champion:technical, boss, master; meeting to a list | all valid | Not Run |
+| UT-DSK-011.004.M27.T02 | MD-DSK-011.001.M27 | Negative | Bad addresses (SRD-DSK-011.004) | "Expert 3"; skill:News; list on an ask; to on a reply; no to on an ask; meeting to an empty list | each refused | Not Run |
+| UT-DSK-011.005.M27.T01 | MD-DSK-011.001.M27 | Positive | Type picks the body (SRD-DSK-011.005) | body dicts with type ask and decision | AskBody and DecisionBody; message type equals body type | Not Run |
+| UT-DSK-011.005.M27.T02 | MD-DSK-011.001.M27 | Negative | Foreign and unknown keys (SRD-DSK-011.005) | ask with verdict; reply with colour key; type chat | each refused | Not Run |
+| UT-DSK-011.006.M27.T01 | MD-DSK-011.001.M27 | Positive | Refused reply needs only a reason (SRD-DSK-011.006) | reply verdict refused with reason, no text or data | valid | Not Run |
+| UT-DSK-011.006.M27.T02 | MD-DSK-011.001.M27 | Negative | Missing required fields (SRD-DSK-011.006) | ask with no subject; reply done with no text or data; refused with no reason; task with no want | each refused | Not Run |
+| UT-DSK-011.007.M27.T01 | MD-DSK-011.001.M27 | Positive | Limits at the edge (SRD-DSK-011.007) | subject 80 chars, text 600, 20 about, 5 flags | valid | Not Run |
+| UT-DSK-011.007.M27.T02 | MD-DSK-011.001.M27 | Negative | Limits passed (SRD-DSK-011.007) | subject 81; subject with a newline; text 601; 21 about; 6 flags; reason 201 | each refused | Not Run |
+| UT-DSK-011.008.M27.T01 | MD-DSK-011.001.M27 | Positive | Want on a task (SRD-DSK-011.008) | task want with goal, done test, schema, cols, tools step.regime@1 | valid; max_tokens 0 left out of the dump | Not Run |
+| UT-DSK-011.008.M27.T02 | MD-DSK-011.001.M27 | Negative | Bad want (SRD-DSK-011.008) | ask want with tools; goal 121 chars; tool without version | each refused | Not Run |
+| UT-DSK-011.009.M27.T01 | MD-DSK-011.001.M27 | Positive | Verdicts by type (SRD-DSK-011.009) | reply partial; send_back fix; decision decided with agreed and disagreed | all valid | Not Run |
+| UT-DSK-011.009.M27.T02 | MD-DSK-011.001.M27 | Negative | Verdict of another type (SRD-DSK-011.009) | send_back done; reply decided; reply with agreed | each refused | Not Run |
+| UT-DSK-011.010.M27.T01 | MD-DSK-011.001.M27 | Positive | Data block forms (SRD-DSK-011.010) | 200 rows inline; ref with n 480 | both valid | Not Run |
+| UT-DSK-011.010.M27.T02 | MD-DSK-011.001.M27 | Negative | Bad data block (SRD-DSK-011.010) | 201 rows; rows and ref; neither; ref without n; n with rows; schema scores_v1 | each refused | Not Run |
+| UT-DSK-011.011.M27.T01 | MD-DSK-011.001.M27 | Positive | Meta only when set (SRD-DSK-011.011) | message with no meta; with meta used only | no meta key; meta holds only used | Not Run |
+| UT-DSK-011.011.M27.T02 | MD-DSK-011.001.M27 | Negative | Bad meta (SRD-DSK-011.011) | meta schema desk.msg/1; meta cost key | each refused | Not Run |
+| UT-DSK-011.012.M27.T01 | MD-DSK-011.001.M27 | Positive | State names (SRD-DSK-011.012) | `State` | the 8 A2A names in order | Not Run |
+| UT-DSK-011.012.M27.T02 | MD-DSK-011.001.M27 | Negative | Unknown state (SRD-DSK-011.012) | message state open; state blocked | each refused | Not Run |
+| UT-DSK-011.013.M27.T01 | MD-DSK-011.001.M27 | Positive | JSON Schema accepts the dumps (SRD-DSK-011.013) | message schema; one dump of each type | every dump passes the JSON Schema check | Not Run |
+| UT-DSK-011.013.M27.T02 | MD-DSK-011.001.M27 | Negative | JSON Schema refuses what models refuse (SRD-DSK-011.013) | ask body with no subject; ask body with an extra key | JSON Schema check fails for both | Not Run |
+| UT-DSK-011.014.M27.T01 | MD-DSK-011.001.M27 | Positive | Format only (SRD-DSK-011.014) | all source files except desk_msg and desk_registry | none imports `desk_msg` | Not Run |
+| UT-DSK-011.014.M27.T02 | MD-DSK-011.001.M27 | Negative | No message tables (SRD-DSK-011.014) | desk.db after a desk start | no messages or threads table | Not Run |
+| UT-DSK-012.001.M28.T01 | MD-DSK-012.001.M28 | Positive | Tool row in MCP shape (SRD-DSK-012.001) | code tool and mcp tool | dump has inputSchema and outputSchema; round trip equal | Not Run |
+| UT-DSK-012.001.M28.T02 | MD-DSK-012.001.M28 | Negative | Kind and name disagree (SRD-DSK-012.001) | kind mcp named step.x; kind code named mcp:a/b; status paused | each refused | Not Run |
+| UT-DSK-012.002.M28.T01 | MD-DSK-012.001.M28 | Positive | Good names (SRD-DSK-012.002) | step.regime; mcp:backtest/bt_run; step.regime@1 as a reference | names and reference valid | Not Run |
+| UT-DSK-012.002.M28.T02 | MD-DSK-012.001.M28 | Negative | Bad names (SRD-DSK-012.002) | Step.Regime; regime; mcp:backtest; step.regime@x | each refused | Not Run |
+| UT-DSK-012.003.M28.T01 | MD-DSK-012.001.M28 | Positive | Format row (SRD-DSK-012.003) | setup_table.v1 with 3 columns | name setup_table, version 1; round trip equal | Not Run |
+| UT-DSK-012.003.M28.T02 | MD-DSK-012.001.M28 | Negative | Bad format (SRD-DSK-012.003) | id setup_table; no columns; two columns named symbol | each refused | Not Run |
+| UT-DSK-012.004.M28.T01 | MD-DSK-012.001.M28 | Positive | Tables made (SRD-DSK-012.004) | fill on a new home | tools and schemas tables with rows; key is name and version | Not Run |
+| UT-DSK-012.004.M28.T02 | MD-DSK-012.001.M28 | Negative | Same key twice (SRD-DSK-012.004) | plain insert of a tool row with a name and version already kept | refused by the key; one row | Not Run |
+| UT-DSK-012.004.M28.T03 | MD-DSK-012.001.M28 | Edge | Tables made twice (SRD-DSK-012.004) | fill, then open the tables again | rows kept; no error | Not Run |
+| UT-DSK-012.005.M28.T01 | MD-DSK-012.001.M28 | Positive | Steps seeded (SRD-DSK-012.005) | `seed_tools()` | one code tool per `STEP_PATHS` entry, e.g. step.candle_check and step.weekly_report, with the step name as description | Not Run |
+| UT-DSK-012.005.M28.T02 | MD-DSK-012.001.M28 | Negative | Bad step path (SRD-DSK-012.005) | step list with a path to a missing module | seed fails with an error that names the module | Not Run |
+| UT-DSK-012.006.M28.T01 | MD-DSK-012.001.M28 | Positive | Research skills seeded (SRD-DSK-012.006) | `seed_tools()` | research tools equal the skill keys that are research kinds; ai true; input is the ticket ask schema | Not Run |
+| UT-DSK-012.006.M28.T02 | MD-DSK-012.001.M28 | Negative | Kind with no skill (SRD-DSK-012.006) | research kind stock_study has no skill | no research.stock_study row | Not Run |
+| UT-DSK-012.007.M28.T01 | MD-DSK-012.001.M28 | Positive | Recipe and formats seeded (SRD-DSK-012.007) | `seed_tools()`, `seed_formats()` | data.recipe with the recipe schema; one `<source>.v1` format per menu source with its columns | Not Run |
+| UT-DSK-012.007.M28.T02 | MD-DSK-012.001.M28 | Negative | Recipe input refuses unknown source (SRD-DSK-012.007) | data.recipe input schema; recipe with source orders | JSON Schema check fails | Not Run |
+| UT-DSK-012.008.M28.T01 | MD-DSK-012.001.M28 | Positive | Backtest MCP seeded (SRD-DSK-012.008) | `seed_tools()` | one mcp tool per Backtest tool name; bt_status input requires job_id | Not Run |
+| UT-DSK-012.008.M28.T02 | MD-DSK-012.001.M28 | Negative | MCP input refuses missing args (SRD-DSK-012.008) | bt_status input schema; empty arguments | JSON Schema check fails | Not Run |
+| UT-DSK-012.009.M28.T01 | MD-DSK-012.001.M28 | Positive | Fill twice, no copies (SRD-DSK-012.009) | `fill_registry()` twice | same rows and counts both times | Not Run |
+| UT-DSK-012.009.M28.T02 | MD-DSK-012.001.M28 | Edge | Removed tool set off (SRD-DSK-012.009) | active row step.old not in the seed, then fill | step.old kept with status off | Not Run |
+| UT-DSK-001.010.M04.T32 | MD-DSK-001.010.M04 | Positive | Desk start fills the registry (SRD-DSK-012.009) | desk start on a new home | registry lists every seed tool | Not Run |
+| UT-DSK-001.010.M04.T33 | MD-DSK-001.010.M04 | Negative | Registry error does not stop the desk (SRD-DSK-012.009) | fill raises an error on start | desk starts; error logged with `[Tools]` | Not Run |
+| UT-DSK-012.010.M28.T01 | MD-DSK-012.001.M28 | Positive | Read functions (SRD-DSK-012.010) | filled registry; tool x.y in versions 1 and 2 | lists ordered by name; get gives version 2 by default and 1 when asked; get_format scores.v1 | Not Run |
+| UT-DSK-012.010.M28.T02 | MD-DSK-012.001.M28 | Negative | No database yet (SRD-DSK-012.010) | read on a home with no desk.db; unknown name | empty lists and None; no file made | Not Run |
+| UT-DSK-012.011.M28.T01 | MD-DSK-012.001.M28 | Positive | Fill is logged (SRD-DSK-012.011) | `fill_registry()` | one `[Tools]` info line with the tool and format counts | Not Run |

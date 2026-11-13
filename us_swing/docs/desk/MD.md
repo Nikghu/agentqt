@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.16.0: MD-DSK-011.001.M27 and MD-DSK-012.001.M28 added; M04 changed (AI Desk v3 M0, 2026-11-13).
 > v0.15.0: MD-DSK-010.001.M25 gains `raise_owner_test` (SRD-DSK-010.016, 2026-11-12).
 > v0.14.0: M25 changed — `raise_follow_ups()` for SRD-DSK-010.015 (step F).
 > v0.13.0: MD-DSK-010.001.M25 and MD-DSK-010.008.M26 added — token split and research queue (step E); M04, M06, M10, M11, M12, M14, M15, M21, M22 changed.
@@ -147,3 +148,14 @@ SRD coverage: 004.006 by M22; .007 and .010 by M12; .008 by M14, M11 and M10; .0
 Cross-tool: MKT `market/lead_brief.py` and `market/checkin_note.py` call `with_research()` and `raise_tickets()`; GUI `gui/ai_desk_research.py` calls `ticket_rows()`, `pending_ticket_edits()`, `lead_research()` and `add_ticket_edit()`.
 
 Changed (step F): M25 gains `raise_follow_ups()` — SRD-DSK-010.015; MKT `market/post_mortem.py` calls it.
+
+## FO-DSK-011 / FO-DSK-012 (AI Desk v3 M0): Message Format and Tool Registry
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-DSK-011.001.M27 | SRD-DSK-011.001 | `us_swing/src/us_swing/core/desk_msg.py` | `desk.msg/1` models: thread, envelope, body by type, want, verdict, data block, meta, states; JSON dump and load; JSON Schema export | `SCHEMA`, `State`, `Thread`, `Message`, `Body`, `Want`, `Verdict`, `Data`, `Flag`, `Meta`, `dump()`, `load()`, `reason()`, `parse_body()`, `message_schema()`, `body_schema()` | `pydantic`, M28 | No |
+| MD-DSK-012.001.M28 | SRD-DSK-012.001 | `us_swing/src/us_swing/core/desk_registry.py` | `desk.tool/1` and `desk.schema/1` models, name rules, `tools` and `schemas` tables, seed from steps, research skills, recipe menu and Backtest MCP, fill on desk start, read functions | `TOOL_NAME`, `TOOL_REF`, `SCHEMA_ID`, `Tool`, `Column`, `TableFormat`, `seed_tools()`, `seed_formats()`, `fill_registry()`, `list_tools()`, `get_tool()`, `list_formats()`, `get_format()` | `sqlite3`, `pydantic`, M01, M07, M25, MKT `core/desk_recipes.py`, MCP `mcp/backtest_tools.py` (import path only) | No |
+
+Changed: M04 (`desk/process.py`: `start()` calls `fill_registry()` — SRD-DSK-012.009).
+
+SRD coverage: 011.001–.014 by M27; 012.001–.008, .010 and .011 by M28; .009 by M28 and M04.
