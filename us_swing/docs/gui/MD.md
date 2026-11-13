@@ -7,7 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
-> v1.36.0: MD-GUI-034.078.M40 added; M15 (settings) and MD-GUI-035.001.M01 (team) changed (AI Desk v3 M5, 2026-11-13).
+> v1.36.0: MD-GUI-034.078.M40 and MD-GUI-035.018.M06 added; M15 (settings) and MD-GUI-035.001.M01 (team) changed (AI Desk v3 M5, 2026-11-13).
 > v1.35.0: M26, M15 changed (AI Desk v3 M4, 2026-11-13).
 > v1.34.0: M01, M15 changed (AI Desk v3 M3, 2026-11-13).
 > v1.33.0: M15, M05, M01 changed (AI Desk v3 M2, 2026-11-13).
@@ -548,6 +548,7 @@ No new module. Changed: MD-GUI-034.039.M26 (`gui/ai_desk_chat.py`: session list,
 
 | MD ID | Parent SRD | File | Purpose | Public API | Depends on | MCP |
 |---|---|---|---|---|---|---|
-| MD-GUI-034.078.M40 | SRD-GUI-034.078 | `us_swing/src/us_swing/gui/ai_desk_day.py`, `gui/ai_desk.py`, `gui/ai_desk_team.py` | Day call and Handover tiles in the Command header; day strip in Team at work | `day_tiles()`, `DayStrip` | MKT `core/desk_day.py`, `gui/ai_desk_console.py`, theme | No |
+| MD-GUI-034.078.M40 | SRD-GUI-034.078 | `us_swing/src/us_swing/gui/ai_desk_day.py`, `gui/ai_desk.py`, `gui/ai_desk_team.py` | Day call and Handover tiles in the Command header | `day_tiles()` | MKT `core/desk_day.py`, `gui/ai_desk_console.py`, theme | No |
+| MD-GUI-035.018.M06 | SRD-GUI-035.018 | `us_swing/src/us_swing/gui/ai_desk_day.py`, `gui/ai_desk_team.py` | Day strip in Team at work: five phases with time or state | `DayStrip` | MKT `core/desk_day.py`, theme | No |
 
 Changed: MD-GUI-034.016.M15 (`gui/ai_desk_settings.py`: Company day switch — SRD-GUI-034.077), MD-GUI-035.001.M01 (`gui/ai_desk_team.py`: day strip placed above the view switch — SRD-GUI-035.018).

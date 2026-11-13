@@ -1612,7 +1612,9 @@ decision_votes (day TEXT, skill TEXT, part TEXT, stance TEXT, result TEXT DEFAUL
                 PRIMARY KEY (day, skill))
 ```
 
-`day` is the data day. `favour` and `feedback` are JSON lists. `status` is `open` or `checked`. Votes are keyed by skill (`regime_view`, `sector_flow_view`), so the record follows the work when the Master moves a skill to another employee. Each writer opens its own connection, writes in one short transaction and closes it (`CREATE TABLE IF NOT EXISTS` on connect). GUI reads use a read-only connection and return empty values when the file or table is missing. `desk_day` never imports `desk_memory` at module level (no cycle); it reuses `desk_memory.add_trading_days` inside functions.
+`day` is the data day. `favour` and `feedback` are JSON lists. `status` is `open` or `checked`. Votes are keyed by skill (`regime_view`, `sector_flow_view`), so the record follows the work when the Master moves a skill to another employee. Each writer opens its own connection, writes in one short transaction and closes it (`CREATE TABLE IF NOT EXISTS` on connect). GUI reads use a read-only connection and return empty values when the file or table is missing. `desk_day` imports `desk_memory.add_trading_days`; `desk_memory` never imports `desk_day`, so there is no cycle.
+
+**Data day and traded day.** The morning plan uses the last full day of candles, so the plan traded on 2026-11-13 has data day 2026-11-12. All day rows are keyed by the plan's data day. `plan_day(home, traded)` is the newest `day_brief` (with a stand-up or plan) or `lead_picks` day before the traded day.
 
 ### 2. Stand-up (SRD-MKT-020.003, .004)
 
@@ -1659,10 +1661,10 @@ The step waits because `open_started` counts an open meeting the employee sent (
 ### 4. Meetings in the message check — `core/desk_messages.py` (SRD-MKT-020.007, .008)
 
 - `accept(..., meetings: bool = False)`: types are `M2_TYPES`/`M1_TYPES` plus `meeting` when `meetings` is true. The employees step passes `company_day_on`.
-- A meeting draft with `to` as a list (1 to 3 addresses) is stored as one `meeting` row per receiver: the first row opens the thread, the next rows join it (`thread` = first id, `threads.msgs` + 1). Each row is due in 10 minutes and posts one `message` event to its receiver. A list with a duplicate receiver or the sender is refused.
+- A meeting draft names 1 to 3 receivers in `to`, separated by commas (`skill:regime_view,skill:sector_flow_view`), so the AI draft schema does not change. Each is checked as one address. It is stored as one `meeting` row per receiver: the first row opens the thread, the next rows join it (`thread` = first id, `threads.msgs` + 1). Each row is due in 10 minutes and posts one `message` event to its receiver. A list with a duplicate receiver or the sender is refused.
 - `_OPEN` gains `meeting`, so a reply closes it and `expire_due` answers it with "no reply within 10 minutes". A `send_back` to a meeting is refused (it is not in the allowed parent types for a send_back).
 - `open_started` also counts `type = 'meeting'` rows the employee sent that are still `submitted`.
-- `Draft.to` already allows a list only on a meeting (`desk_msg.Message._header_rules`).
+- With meetings off, a meeting draft is refused with "type meeting is not in use yet" before its receivers are read.
 
 ### 5. Experts answer a meeting (SRD-MKT-020.009)
 
@@ -1707,9 +1709,9 @@ log [Company day] Checked N day call(s): R right, W wrong (market part)
 ### 9. Day-end (SRD-MKT-020.019–.023)
 
 - Event kind `day_end`: `EventRule(2, None, timedelta(hours=12))`, one per data day (key `day_end|<day>`). Label "Day-end" in `core/desk_team.py`.
-- `desk/clock.py::day_end_day(now) -> str`: today when today is a trading day and it is 16:00 New York time or later, else the last trading day before today.
-- `desk/process.py` clock tick: with the setting on and `has_handover(home, day)` false, `post_event(home, "day_end", day, now)` once per process (kept in `_posted`).
-- `market/day_end.py::DayEndSkill` (`key = "day_end"`, `needs = ()`). The facts data day is the event's day: the newest `day_brief`/`lead_picks` day not after today whose handover is empty. Facts:
+- `core/desk_day.py::day_end_day(now) -> str` (the traded day): today when today is a trading day and it is 16:00 New York time or later, else the last trading day before today. It lives in `core` so the skill can use it too.
+- `desk/process.py` clock tick: with the setting on, a plan day for the traded day and `has_handover(home, plan)` false, `post_event(home, "day_end", traded, now)` once per process (kept in `_posted`).
+- `market/day_end.py::DayEndSkill` (`key = "day_end"`, `needs = ()`). The facts data day is `plan_day(home, day_end_day(now))`; stale with no plan or when its handover exists. Flags and check-in notes are read for the traded day. Facts:
 
 ```
 Day-end for <day>
@@ -1729,5 +1731,5 @@ Experts you may give feedback to: regime_view, sector_flow_view, setup_review, n
 ### 10. GUI (SRD-GUI-034.077–.078, SRD-GUI-035.018)
 
 - `gui/ai_desk_settings.py`: a "Company day" check box after Chat sessions, saved as `company_day_on`.
-- Command header: two console tiles, hidden while off. Day call: `<market> · <sectors>`, second line `Agreed: <names> · Disagreed: <names>` (names from the roster), `Huddle` chip when a huddle ran, result chip `right/wrong/neutral` once checked. Handover: the latest handover lines and their day. Data from `day_view(home)` in `core/desk_day.py`, read off the GUI thread with the other header facts.
-- Team at work: a one-line day strip above the view switch for the shown day: Stand-up (`standup_at`), Huddle (`huddle_at`, or skipped when none), Plan (`plan_at`), Market hours (09:30–16:00, done after 16:00), Day-end (`day_end_at`). Each shows the time or `waiting`/`skipped`. Data from `day_phases(home, day, now)`.
+- Command header: two console tiles, hidden while off. Day call: `<market> · <sectors>`, second line `Agreed: <names> · Disagreed: <names>` (names from the roster), `Huddle` chip when a huddle ran, result chip `right/wrong/neutral` once checked. Handover: the latest handover lines and their day. Data from `day_view(home)` in `core/desk_day.py`, read in `refresh_header` like the other header facts (small read-only queries).
+- Team at work: a one-line day strip above the view switch for the shown day: Stand-up (`standup_at`), Huddle (`huddle_at`, or skipped when none), Plan (`plan_at`), Market hours (09:30–16:00, done after 16:00), Day-end (`day_end_at`). Each shows the time or `waiting`/`skipped`. Data from `day_phases(home, day, now)`, where `day` is the newest plan day; Market hours are for the next trading day after it.

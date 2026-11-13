@@ -522,7 +522,7 @@ The system shall give the desk an employee that tests one strategy card on past 
 
 ## FO-MKT-020: Company Day
 
-**Status:** Approved (user, 2026-11-13)
+**Status:** Implemented (approved by user 2026-11-13)
 **Priority:** Must
 **Phase:** AI Desk v3 M5
 **Depends on:** FO-MKT-005 (views and lead brief), FO-MKT-013 (watchers and check-ins), FO-DSK-011 (agent messages), FO-DSK-009 (memory v2), FO-DSK-003 (events)

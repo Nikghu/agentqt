@@ -2,6 +2,16 @@
 
 ---
 
+## [20261113] DSK — AI Desk v3 M5: company day (FO-MKT-020, FO-GUI-034, FO-GUI-035)
+
+- Type: Feature
+- FO(s): FO-MKT-020, FO-GUI-034, FO-GUI-035
+- RN: RN-DSK-0.18.0-20261113
+- Artifacts updated: SRD (MKT-020.001–.024, GUI-034.077–.078, GUI-035.018 Implemented), DD (DD-MKT-020.001.D01), MD (MD-MKT-020.001–.023 M01–M10, MD-GUI-034.078.M40, MD-GUI-035.018.M06 new; several changed), UTCD (67 MKT + 7 GUI cases Pass), Code, Tests, RN, TRACE, CONTEXT. Branch feat/dsk-m5-company-day; docs commit aa97a93d; code not committed; not pushed.
+- Decisions: stand-up by code (0 AI calls); huddle only on a regime/sector clash, max 1 a day, only when both view skills are on the roster; day call checked after 5 trading days vs SPY and sectors; one lead AI call at day-end (emp-018 "Lead 3") writes handover and feedback; off by default behind company_day_on.
+
+---
+
 ## [20261113] DSK — AI Desk v3 M4: chat sessions (FO-MKT-010, FO-GUI-034)
 
 - Type: Feature

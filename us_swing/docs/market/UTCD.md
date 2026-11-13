@@ -6,7 +6,8 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
-> v0.27.0: UT-MKT-020.001–.024 added (56, Not Run) (AI Desk v3 M5, 2026-11-13).
+> v0.27.1: UT-MKT-020.001–.024 Pass (67, 2026-11-13).
+> v0.27.0: UT-MKT-020.001–.024 added (67, Not Run) (AI Desk v3 M5, 2026-11-13).
 > v0.26.1: UT-MKT-010.009–.019 Pass (30, 2026-11-13).
 > v0.26.0: UT-MKT-010.009–.019 added (28, Not Run) (AI Desk v3 M4, 2026-11-13).
 > v0.25.1: UT-MKT-012.007–.008 Pass (7, 2026-11-13).
@@ -736,59 +737,70 @@
 
 | UT ID | Module | Type | Title (SRD) | Input | Expected | Status |
 |---|---|---|---|---|---|---|
-| UT-MKT-020.002.M01.T01 | MD-MKT-020.002.M01 | Positive | Tables on first use (SRD-MKT-020.002) | empty desk folder; save a stand-up | day_brief, decisions and decision_votes exist; reads on a missing file give empty values | Not Run |
-| UT-MKT-020.003.M01.T01 | MD-MKT-020.002.M01 | Positive | Stand-up lines (SRD-MKT-020.003) | handover yesterday, all five views today | handover line then one line per view with regime, favour, grade counts, bad news, passed/vetoed | Not Run |
-| UT-MKT-020.003.M01.T02 | MD-MKT-020.002.M01 | Negative | Stand-up with nothing (SRD-MKT-020.003) | no handover, no views | 'No handover note yet.' and 'no view today' per view | Not Run |
-| UT-MKT-020.004.M01.T01 | MD-MKT-020.002.M01 | Edge | Stand-up cut (SRD-MKT-020.004) | long reasons and handover | text at most 1,200 characters | Not Run |
-| UT-MKT-020.005.M01.T01 | MD-MKT-020.002.M01 | Positive | Downtrend clash (SRD-MKT-020.005) | Downtrend; favour Information Technology, Energy | clash text names Downtrend and the sectors | Not Run |
-| UT-MKT-020.005.M01.T02 | MD-MKT-020.002.M01 | Positive | Uptrend clash (SRD-MKT-020.005) | Uptrend; favour Utilities, Health Care | clash text says only defensive | Not Run |
-| UT-MKT-020.005.M01.T03 | MD-MKT-020.002.M01 | Negative | No clash (SRD-MKT-020.005) | Choppy any; Downtrend with Utilities; Uptrend with Energy; empty favour | None each time | Not Run |
-| UT-MKT-020.012.M01.T01 | MD-MKT-020.002.M01 | Positive | Day call saved (SRD-MKT-020.012) | call Uptrend, favour IT on 2026-11-13 | decisions row open, due 2026-11-20, huddle flag kept | Not Run |
-| UT-MKT-020.012.M01.T02 | MD-MKT-020.002.M01 | Positive | Same day replaces (SRD-MKT-020.012) | two calls on one day | one decisions row (the second) and its votes only | Not Run |
-| UT-MKT-020.013.M01.T01 | MD-MKT-020.002.M01 | Positive | Votes (SRD-MKT-020.013) | regime view Choppy, sector favour IT, Energy; call Uptrend, favour IT | regime_view market disagreed; sector_flow_view sector agreed | Not Run |
-| UT-MKT-020.013.M01.T02 | MD-MKT-020.002.M01 | Negative | Missing view gives no vote (SRD-MKT-020.013) | no sector view row | only the regime_view vote | Not Run |
-| UT-MKT-020.018.M01.T01 | MD-MKT-020.002.M01 | Positive | Day-call line (SRD-MKT-020.018) | regime_view votes: 2 right, 1 wrong, 1 neutral checked, 1 open | 'Day calls you voted on: 4 checked, 2 right, 1 wrong.' | Not Run |
-| UT-MKT-020.018.M01.T02 | MD-MKT-020.002.M01 | Negative | No line without checks (SRD-MKT-020.018) | only open votes | empty text | Not Run |
-| UT-MKT-020.022.M01.T01 | MD-MKT-020.002.M01 | Positive | Day-end rows (SRD-MKT-020.022) | save_day_end with 2 lines and 1 feedback | has_handover true; day_view shows the lines and the day | Not Run |
-| UT-MKT-020.001.M02.T01 | MD-MKT-020.001.M02 | Positive | Setting default and save (SRD-MKT-020.001) | no file; then save with company_day_on true | default false; loads true after save | Not Run |
-| UT-MKT-020.004.M03.T01 | MD-MKT-020.004.M03 | Positive | Stand-up in facts (SRD-MKT-020.004) | company day on; views in a desk copy | facts start with 'Stand-up for'; day_brief.standup saved after act | Not Run |
-| UT-MKT-020.001.M03.T01 | MD-MKT-020.004.M03 | Negative | Switch off (SRD-MKT-020.001) | company day off; clash views | facts without stand-up; plain LeadBrief asked; no day rows; no draft | Not Run |
-| UT-MKT-020.006.M03.T01 | MD-MKT-020.004.M03 | Positive | Huddle called (SRD-MKT-020.006) | on; talking context; Downtrend + favour IT | one meeting draft to skill:regime_view and skill:sector_flow_view; no ask; huddle flag set | Not Run |
-| UT-MKT-020.006.M03.T02 | MD-MKT-020.004.M03 | Negative | One huddle a day (SRD-MKT-020.006) | same with huddle flag already set | no draft; brief asked | Not Run |
-| UT-MKT-020.006.M03.T03 | MD-MKT-020.004.M03 | Negative | No huddle for fakes (SRD-MKT-020.006) | plain fake context with a clash | no draft; brief asked as before | Not Run |
-| UT-MKT-020.010.M03.T01 | MD-MKT-020.004.M03 | Positive | Wait while open (SRD-MKT-020.010) | inbox wake; one meeting still submitted | no ask; returns no feed item | Not Run |
-| UT-MKT-020.010.M03.T02 | MD-MKT-020.004.M03 | Positive | Huddle block (SRD-MKT-020.010) | one meeting replied, one expired | facts hold the clash, the reply text and 'no answer'; brief asked | Not Run |
-| UT-MKT-020.011.M03.T01 | MD-MKT-020.004.M03 | Positive | Call in the answer (SRD-MKT-020.011) | on; answer with call Uptrend, favour IT | decisions row saved with votes; picks as before | Not Run |
-| UT-MKT-020.011.M03.T02 | MD-MKT-020.004.M03 | Negative | Unknown sectors (SRD-MKT-020.011) | call favour 'Crypto' only | no decisions row; log line | Not Run |
-| UT-MKT-020.007.M04.T01 | MD-MKT-020.007.M04 | Positive | Meeting rows (SRD-MKT-020.007) | meeting to two employees, meetings on | two meeting rows, one thread, each due in 10 minutes, two message events | Not Run |
-| UT-MKT-020.007.M04.T02 | MD-MKT-020.007.M04 | Negative | Meetings off (SRD-MKT-020.007) | same draft with meetings off | refused: type meeting is not in use yet | Not Run |
-| UT-MKT-020.007.M04.T03 | MD-MKT-020.007.M04 | Negative | Bad receiver list (SRD-MKT-020.007) | list with the sender; a duplicate; four receivers | refused each time; no rows | Not Run |
-| UT-MKT-020.007.M04.T04 | MD-MKT-020.007.M04 | Positive | Starter waits (SRD-MKT-020.007) | open meeting from emp-005 | open_started true; false after both replies are seen | Not Run |
-| UT-MKT-020.008.M04.T01 | MD-MKT-020.007.M04 | Positive | Reply closes (SRD-MKT-020.008) | replies to both meeting rows | meetings completed; thread closed after the second | Not Run |
-| UT-MKT-020.008.M04.T02 | MD-MKT-020.007.M04 | Positive | Meeting expiry (SRD-MKT-020.008) | 11 minutes with no reply | code reply failed 'no reply within 10 minutes'; meeting expired | Not Run |
-| UT-MKT-020.008.M04.T03 | MD-MKT-020.007.M04 | Negative | No send-back to a meeting (SRD-MKT-020.008) | send_back with parent = meeting | refused | Not Run |
-| UT-MKT-020.009.M05.T01 | MD-MKT-020.009.M05 | Positive | Regime view replies only (SRD-MKT-020.009) | talking context with a meeting in the inbox | InboxReply asked; regime_view row unchanged; no feed item | Not Run |
-| UT-MKT-020.009.M05.T02 | MD-MKT-020.009.M05 | Positive | Sector view replies only (SRD-MKT-020.009) | same for sector/flow | InboxReply asked; sector_view row unchanged; no feed item | Not Run |
-| UT-MKT-020.009.M05.T03 | MD-MKT-020.009.M05 | Negative | Normal wake (SRD-MKT-020.009) | plain fake context | view asked and saved as before | Not Run |
-| UT-MKT-020.015.M06.T01 | MD-MKT-020.014.M06 | Positive | Trend calls right (SRD-MKT-020.015) | Uptrend +1.5; Downtrend -1.2; Choppy +0.4 | right each | Not Run |
-| UT-MKT-020.015.M06.T02 | MD-MKT-020.014.M06 | Negative | Trend calls wrong or neutral (SRD-MKT-020.015) | Uptrend -1.0; Choppy -2.5; Uptrend +0.5; Choppy 1.5 | wrong, wrong, neutral, neutral | Not Run |
-| UT-MKT-020.016.M06.T01 | MD-MKT-020.014.M06 | Positive | Sector part (SRD-MKT-020.016) | gap +0.6; -0.7; +0.2; no lines | right, wrong, neutral, neutral | Not Run |
-| UT-MKT-020.017.M06.T01 | MD-MKT-020.014.M06 | Positive | Vote results (SRD-MKT-020.017) | agreed+right, disagreed+right, disagreed+wrong, disagreed+neutral | right, wrong, right, neutral | Not Run |
-| UT-MKT-020.014.M06.T01 | MD-MKT-020.014.M06 | Positive | Step checks a due call (SRD-MKT-020.014) | on; call 5 trading days old; SPY closes and sector lines | results, moves and status checked stored; log line | Not Run |
-| UT-MKT-020.014.M06.T02 | MD-MKT-020.014.M06 | Negative | Not due or off (SRD-MKT-020.014) | only 3 closes after the call; then switch off | row stays open; nothing read when off | Not Run |
-| UT-MKT-020.014.M06.T03 | MD-MKT-020.014.M06 | Negative | Error never stops the run (SRD-MKT-020.014) | broken desk.db table | exception logged; step returns | Not Run |
-| UT-MKT-020.019.M07.T01 | MD-MKT-020.019.M07 | Positive | Day-end day (SRD-MKT-020.019) | Fri 16:05 NY; Mon 15:00 NY; Sat 10:00 NY | Friday; previous Friday; Friday | Not Run |
-| UT-MKT-020.019.M07.T02 | MD-MKT-020.019.M07 | Positive | Event kind (SRD-MKT-020.019) | EVENT_RULES | day_end priority 2, 12-hour expiry, label 'Day-end' | Not Run |
-| UT-MKT-020.019.M07.T03 | MD-MKT-020.019.M07 | Positive | Posted once (SRD-MKT-020.019) | on; no handover; two clock ticks | one day_end event | Not Run |
-| UT-MKT-020.019.M07.T04 | MD-MKT-020.019.M07 | Negative | Not posted (SRD-MKT-020.019) | handover saved; then switch off | no day_end event | Not Run |
-| UT-MKT-020.020.M08.T01 | MD-MKT-020.020.M08 | Positive | Day-end facts (SRD-MKT-020.020) | call, huddle, 2 picks with results, a flag, open trades | each part in the facts with its values; expert skills listed | Not Run |
-| UT-MKT-020.020.M08.T02 | MD-MKT-020.020.M08 | Negative | Empty day (SRD-MKT-020.020) | no call, picks or flags | 'No day call today.', 'No huddle.', no pick lines | Not Run |
-| UT-MKT-020.021.M08.T01 | MD-MKT-020.020.M08 | Negative | Answer limits (SRD-MKT-020.021) | 6 handover lines; a 121-character line; 151-character feedback | schema refuses each | Not Run |
-| UT-MKT-020.022.M08.T01 | MD-MKT-020.020.M08 | Positive | Day-end stored (SRD-MKT-020.022) | valid answer with 2 lines and feedback for setup_review | day_brief handover, feedback and summary saved; feed item 'Handover: ...' | Not Run |
-| UT-MKT-020.022.M08.T02 | MD-MKT-020.020.M08 | Positive | Feedback to memory (SRD-MKT-020.022) | Memory v2 on; roster emp-003 holds setup_review | one note owned by emp-003 in memory.db | Not Run |
-| UT-MKT-020.022.M08.T03 | MD-MKT-020.020.M08 | Negative | Feedback not kept (SRD-MKT-020.022) | unknown skill; then Memory v2 off | unknown dropped; no note when off; handover still saved | Not Run |
-| UT-MKT-020.022.M08.T04 | MD-MKT-020.020.M08 | Negative | No answer (SRD-MKT-020.022) | ask returns None | no rows, no feed item | Not Run |
-| UT-MKT-020.023.M09.T01 | MD-MKT-020.023.M09 | Positive | Default employee (SRD-MKT-020.023) | emp-018 files; SKILL_PATHS; STEP_PATHS | lead level, skill day_end, trigger day_end, 2 calls a day; both paths load | Not Run |
-| UT-MKT-020.024.M08.T01 | MD-MKT-020.020.M08 | Positive | Log lines (SRD-MKT-020.024) | day-end act | one '[Company day]' line | Not Run |
-| UT-MKT-020.018.M10.T01 | MD-MKT-020.018.M10 | Positive | Line after memory (SRD-MKT-020.018) | memory on; checked votes for the skill | wake facts end with the day-call line | Not Run |
-| UT-MKT-020.018.M10.T02 | MD-MKT-020.018.M10 | Negative | No line when memory off (SRD-MKT-020.018) | memory off | facts without the line | Not Run |
+| UT-MKT-020.002.M01.T01 | MD-MKT-020.002.M01 | Positive | Tables on first use (SRD-MKT-020.002) | empty desk folder; save a stand-up | day_brief, decisions and decision_votes exist; reads on a missing file give empty values | Pass |
+| UT-MKT-020.002.M01.T02 | MD-MKT-020.002.M01 | Negative | Reads with no file (SRD-MKT-020.002) | no desk.db | standup_text has 'no view today' lines; day_view empty; has_handover false; no file made by reads | Pass |
+| UT-MKT-020.003.M01.T01 | MD-MKT-020.002.M01 | Positive | Stand-up lines (SRD-MKT-020.003) | handover yesterday, all five views today | handover line then one line per view with regime, favour, grade counts, bad news, passed/vetoed | Pass |
+| UT-MKT-020.003.M01.T02 | MD-MKT-020.002.M01 | Negative | Stand-up with nothing (SRD-MKT-020.003) | no handover, no views | 'No handover note yet.' and 'no view today' per view | Pass |
+| UT-MKT-020.004.M01.T01 | MD-MKT-020.002.M01 | Edge | Stand-up cut (SRD-MKT-020.004) | long reasons and handover | text at most 1,200 characters | Pass |
+| UT-MKT-020.005.M01.T01 | MD-MKT-020.002.M01 | Positive | Downtrend clash (SRD-MKT-020.005) | Downtrend; favour Information Technology, Energy | clash text names Downtrend and the sectors | Pass |
+| UT-MKT-020.005.M01.T02 | MD-MKT-020.002.M01 | Positive | Uptrend clash (SRD-MKT-020.005) | Uptrend; favour Utilities, Health Care | clash text says only defensive | Pass |
+| UT-MKT-020.005.M01.T03 | MD-MKT-020.002.M01 | Negative | No clash (SRD-MKT-020.005) | Choppy any; Downtrend with Utilities; Uptrend with Energy; empty favour | None each time | Pass |
+| UT-MKT-020.012.M01.T01 | MD-MKT-020.002.M01 | Positive | Day call saved (SRD-MKT-020.012) | call Uptrend, favour IT on 2026-11-13 | decisions row open, due 2026-11-20, huddle flag kept | Pass |
+| UT-MKT-020.012.M01.T02 | MD-MKT-020.002.M01 | Positive | Same day replaces (SRD-MKT-020.012) | two calls on one day | one decisions row (the second) and its votes only | Pass |
+| UT-MKT-020.012.M01.T03 | MD-MKT-020.002.M01 | Negative | Not due yet (SRD-MKT-020.012) | open call due 2026-11-20; checked call due earlier; last day 2026-11-19 | due_calls empty | Pass |
+| UT-MKT-020.012.M01.T04 | MD-MKT-020.002.M01 | Negative | Checked call kept (SRD-MKT-020.012) | rerun on a day whose call is checked | call, status and vote results unchanged | Pass |
+| UT-MKT-020.013.M01.T01 | MD-MKT-020.002.M01 | Positive | Votes (SRD-MKT-020.013) | regime view Choppy, sector favour IT, Energy; call Uptrend, favour IT | regime_view market disagreed; sector_flow_view sector agreed | Pass |
+| UT-MKT-020.013.M01.T02 | MD-MKT-020.002.M01 | Negative | Missing view gives no vote (SRD-MKT-020.013) | no sector view row | only the regime_view vote | Pass |
+| UT-MKT-020.018.M01.T01 | MD-MKT-020.002.M01 | Positive | Day-call line (SRD-MKT-020.018) | regime_view votes: 2 right, 1 wrong, 1 neutral checked, 1 open | 'Day calls you voted on: 4 checked, 2 right, 1 wrong.' | Pass |
+| UT-MKT-020.018.M01.T02 | MD-MKT-020.002.M01 | Negative | No line without checks (SRD-MKT-020.018) | only open votes | empty text | Pass |
+| UT-MKT-020.022.M01.T01 | MD-MKT-020.002.M01 | Positive | Day-end rows (SRD-MKT-020.022) | save_day_end with 2 lines and 1 feedback | has_handover true; day_view shows the lines and the day | Pass |
+| UT-MKT-020.001.M02.T01 | MD-MKT-020.001.M02 | Positive | Setting default and save (SRD-MKT-020.001) | no file; then save with company_day_on true | default false; loads true after save | Pass |
+| UT-MKT-020.004.M03.T01 | MD-MKT-020.004.M03 | Positive | Stand-up in facts (SRD-MKT-020.004) | company day on; views in a desk copy | facts start with 'Stand-up for'; day_brief.standup saved after act | Pass |
+| UT-MKT-020.004.M03.T02 | MD-MKT-020.004.M03 | Negative | No stand-up when off (SRD-MKT-020.004) | company day off | facts do not start with 'Stand-up for'; no day_brief row | Pass |
+| UT-MKT-020.001.M03.T01 | MD-MKT-020.004.M03 | Negative | Switch off (SRD-MKT-020.001) | company day off; clash views | facts without stand-up; plain LeadBrief asked; no day rows; no draft | Pass |
+| UT-MKT-020.006.M03.T01 | MD-MKT-020.004.M03 | Positive | Huddle called (SRD-MKT-020.006) | on; talking context; Downtrend + favour IT | one meeting draft to skill:regime_view and skill:sector_flow_view; no ask; huddle flag set | Pass |
+| UT-MKT-020.006.M03.T02 | MD-MKT-020.004.M03 | Negative | One huddle a day (SRD-MKT-020.006) | same with huddle flag already set | no draft; brief asked | Pass |
+| UT-MKT-020.006.M03.T03 | MD-MKT-020.004.M03 | Negative | No huddle for fakes (SRD-MKT-020.006) | plain fake context with a clash | no draft; brief asked as before | Pass |
+| UT-MKT-020.006.M03.T04 | MD-MKT-020.004.M03 | Negative | No huddle without holders (SRD-MKT-020.006) | clash, no roster row for the view skills | no draft; brief asked (review fix: a refused meeting left no plan) | Pass |
+| UT-MKT-020.010.M03.T01 | MD-MKT-020.004.M03 | Positive | Wait while open (SRD-MKT-020.010) | inbox wake; one meeting still submitted | no ask; returns no feed item | Pass |
+| UT-MKT-020.010.M03.T02 | MD-MKT-020.004.M03 | Positive | Huddle block (SRD-MKT-020.010) | one meeting replied, one expired | facts hold the clash, the reply text and 'no answer'; brief asked | Pass |
+| UT-MKT-020.010.M01.T01 | MD-MKT-020.002.M01 | Negative | No huddle block (SRD-MKT-020.010) | no huddle on the day | huddle_block empty; huddle_open false | Pass |
+| UT-MKT-020.011.M03.T01 | MD-MKT-020.004.M03 | Positive | Call in the answer (SRD-MKT-020.011) | on; answer with call Uptrend, favour IT | decisions row saved with votes; picks as before | Pass |
+| UT-MKT-020.011.M03.T02 | MD-MKT-020.004.M03 | Negative | Unknown sectors (SRD-MKT-020.011) | call favour 'Crypto' only | no decisions row; log line | Pass |
+| UT-MKT-020.007.M04.T01 | MD-MKT-020.007.M04 | Positive | Meeting rows (SRD-MKT-020.007) | meeting to two employees, meetings on | two meeting rows, one thread, each due in 10 minutes, two message events | Pass |
+| UT-MKT-020.007.M04.T02 | MD-MKT-020.007.M04 | Negative | Meetings off (SRD-MKT-020.007) | same draft with meetings off | refused: type meeting is not in use yet | Pass |
+| UT-MKT-020.007.M04.T03 | MD-MKT-020.007.M04 | Negative | Bad receiver list (SRD-MKT-020.007) | list with the sender; a duplicate; four receivers | refused each time; no rows | Pass |
+| UT-MKT-020.007.M04.T04 | MD-MKT-020.007.M04 | Positive | Starter waits (SRD-MKT-020.007) | open meeting from emp-005 | open_started true; false after both replies are seen | Pass |
+| UT-MKT-020.008.M04.T01 | MD-MKT-020.007.M04 | Positive | Reply closes (SRD-MKT-020.008) | replies to both meeting rows | meetings completed; thread closed after the second | Pass |
+| UT-MKT-020.008.M04.T02 | MD-MKT-020.007.M04 | Positive | Meeting expiry (SRD-MKT-020.008) | 11 minutes with no reply | code reply failed 'no reply within 10 minutes'; meeting expired | Pass |
+| UT-MKT-020.008.M04.T03 | MD-MKT-020.007.M04 | Negative | No send-back to a meeting (SRD-MKT-020.008) | send_back with parent = meeting | refused | Pass |
+| UT-MKT-020.008.M04.T04 | MD-MKT-020.007.M04 | Negative | Closed meeting not in inbox (SRD-MKT-020.008) | meeting expired, never seen | receiver's inbox empty | Pass |
+| UT-MKT-020.009.M05.T01 | MD-MKT-020.009.M05 | Positive | Regime view replies only (SRD-MKT-020.009) | talking context with a meeting in the inbox | InboxReply asked; regime_view row unchanged; no feed item | Pass |
+| UT-MKT-020.009.M05.T02 | MD-MKT-020.009.M05 | Positive | Sector view replies only (SRD-MKT-020.009) | same for sector/flow | InboxReply asked; sector_view row unchanged; no feed item | Pass |
+| UT-MKT-020.009.M05.T03 | MD-MKT-020.009.M05 | Negative | Normal wake (SRD-MKT-020.009) | plain fake context | view asked and saved as before | Pass |
+| UT-MKT-020.015.M06.T01 | MD-MKT-020.014.M06 | Positive | Trend calls right (SRD-MKT-020.015) | Uptrend +1.5; Downtrend -1.2; Choppy +0.4 | right each | Pass |
+| UT-MKT-020.015.M06.T02 | MD-MKT-020.014.M06 | Negative | Trend calls wrong or neutral (SRD-MKT-020.015) | Uptrend -1.0; Choppy -2.5; Uptrend +0.5; Choppy 1.5 | wrong, wrong, neutral, neutral | Pass |
+| UT-MKT-020.016.M06.T01 | MD-MKT-020.014.M06 | Positive | Sector part (SRD-MKT-020.016) | gap +0.6; -0.7; +0.2; no lines | right, wrong, neutral, neutral | Pass |
+| UT-MKT-020.016.M06.T02 | MD-MKT-020.014.M06 | Negative | Sector with no line (SRD-MKT-020.016) | favour a sector missing on the check day | sector part neutral; market part still checked | Pass |
+| UT-MKT-020.017.M06.T01 | MD-MKT-020.014.M06 | Positive | Vote results (SRD-MKT-020.017) | agreed+right, disagreed+right, disagreed+wrong, disagreed+neutral | right, wrong, right, neutral | Pass |
+| UT-MKT-020.017.M06.T02 | MD-MKT-020.014.M06 | Negative | Neutral part (SRD-MKT-020.017) | both parts neutral; one agreed, one disagreed | both votes neutral | Pass |
+| UT-MKT-020.014.M06.T01 | MD-MKT-020.014.M06 | Positive | Step checks a due call (SRD-MKT-020.014) | on; call 5 trading days old; SPY closes and sector lines | results, moves and status checked stored; log line | Pass |
+| UT-MKT-020.014.M06.T02 | MD-MKT-020.014.M06 | Negative | Not due or off (SRD-MKT-020.014) | only 3 closes after the call; then switch off | row stays open; nothing read when off | Pass |
+| UT-MKT-020.014.M06.T03 | MD-MKT-020.014.M06 | Negative | Error never stops the run (SRD-MKT-020.014) | broken desk.db table | exception logged; step returns | Pass |
+| UT-MKT-020.019.M07.T01 | MD-MKT-020.019.M07 | Positive | Day-end day (SRD-MKT-020.019) | Fri 16:05 NY; Mon 15:00 NY; Sat 10:00 NY | Friday; previous Friday; Friday | Pass |
+| UT-MKT-020.019.M07.T02 | MD-MKT-020.019.M07 | Positive | Event kind (SRD-MKT-020.019) | EVENT_RULES | day_end priority 2, 12-hour expiry, label 'Day-end' | Pass |
+| UT-MKT-020.019.M07.T03 | MD-MKT-020.019.M07 | Positive | Posted once (SRD-MKT-020.019) | on; no handover; two clock ticks | one day_end event | Pass |
+| UT-MKT-020.019.M07.T04 | MD-MKT-020.019.M07 | Negative | Not posted (SRD-MKT-020.019) | handover saved; then switch off | no day_end event | Pass |
+| UT-MKT-020.020.M08.T01 | MD-MKT-020.020.M08 | Positive | Day-end facts (SRD-MKT-020.020) | call, huddle, 2 picks with results, a flag, open trades | each part in the facts with its values; expert skills listed | Pass |
+| UT-MKT-020.020.M08.T02 | MD-MKT-020.020.M08 | Negative | Empty day (SRD-MKT-020.020) | no call, picks or flags | 'No day call today.', 'No huddle.', no pick lines | Pass |
+| UT-MKT-020.021.M08.T01 | MD-MKT-020.020.M08 | Negative | Answer limits (SRD-MKT-020.021) | 6 handover lines; a 121-character line; 151-character feedback | schema refuses each | Pass |
+| UT-MKT-020.021.M08.T02 | MD-MKT-020.020.M08 | Positive | Answer at the limits (SRD-MKT-020.021) | 5 lines of 120 characters; feedback of 150 | schema accepts | Pass |
+| UT-MKT-020.022.M08.T01 | MD-MKT-020.020.M08 | Positive | Day-end stored (SRD-MKT-020.022) | valid answer with 2 lines and feedback for setup_review | day_brief handover, feedback and summary saved; feed item 'Handover: ...' | Pass |
+| UT-MKT-020.022.M08.T02 | MD-MKT-020.020.M08 | Positive | Feedback to memory (SRD-MKT-020.022) | Memory v2 on; roster emp-003 holds setup_review | one note owned by emp-003 in memory.db | Pass |
+| UT-MKT-020.022.M08.T03 | MD-MKT-020.020.M08 | Negative | Feedback not kept (SRD-MKT-020.022) | unknown skill; then Memory v2 off | unknown dropped; no note when off; handover still saved | Pass |
+| UT-MKT-020.022.M08.T04 | MD-MKT-020.020.M08 | Negative | No answer (SRD-MKT-020.022) | ask returns None | no rows, no feed item | Pass |
+| UT-MKT-020.023.M09.T01 | MD-MKT-020.023.M09 | Positive | Default employee (SRD-MKT-020.023) | emp-018 files; SKILL_PATHS; STEP_PATHS | lead level, skill day_end, trigger day_end, 2 calls a day; both paths load | Pass |
+| UT-MKT-020.023.M09.T02 | MD-MKT-020.023.M09 | Negative | User copy kept (SRD-MKT-020.023) | emp-018 already in the desk folder with a changed name | default copy does not overwrite it | Pass |
+| UT-MKT-020.024.M08.T01 | MD-MKT-020.020.M08 | Positive | Log lines (SRD-MKT-020.024) | day-end act | one '[Company day]' line | Pass |
+| UT-MKT-020.018.M10.T01 | MD-MKT-020.018.M10 | Positive | Line after memory (SRD-MKT-020.018) | memory on; checked votes for the skill | wake facts end with the day-call line | Pass |
+| UT-MKT-020.018.M10.T02 | MD-MKT-020.018.M10 | Negative | No line when memory off (SRD-MKT-020.018) | memory off | facts without the line | Pass |
