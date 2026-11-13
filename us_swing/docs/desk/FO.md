@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.13.0: AI Desk v3 M2 (user, 2026-11-13): FO-DSK-011 gains the M2 part as Draft — escalation and deputies; FO-DSK-007 and FO-DSK-008 get one bullet each.
 > v0.12.0: AI Desk v3 M1 (user, 2026-11-13): FO-DSK-011 gains the M1 part as Draft — messages and the reply path.
 > v0.11.1: FO-DSK-011 and FO-DSK-012 approved by user 2026-11-13; Implemented (M0 code and tests done).
 > v0.11.0: AI Desk v3 M0 (user, 2026-11-12, decisions locked): FO-DSK-011 Agent messages and FO-DSK-012 Tools and task cards added as Draft.
@@ -179,6 +180,7 @@ The system shall tell the Master User when the AI desk hits a problem only the u
 - The system shall raise an alert when the morning run stops because the candles are not up to date (user, 2026-11-10).
 - The system shall raise an alert when a research ticket waits for the user's approval (Autonomous desk step E, user 2026-11-11).
 - The system shall close an alert in the app once the problem is fixed.
+- The system shall alert the Master user when an escalation passes the top boss with no reply (AI Desk v3 M2, user 2026-11-13).
 
 ### Acceptance Criteria
 
@@ -201,6 +203,7 @@ The system shall keep each AI employee in one readable file that the Master user
 - The system shall keep every earlier version of an employee file and let the Master user bring one back.
 - The system shall give each new hire its own `employee.md`.
 - The system shall try a changed prompt on the employee's last recorded run without saving it.
+- The system shall let an employee name a deputy who takes its messages when it cannot work (AI Desk v3 M2, user 2026-11-13).
 
 ### Acceptance Criteria
 
@@ -284,7 +287,7 @@ The system shall give every agent and layer one checked message format, `desk.ms
 
 ### M1 — Messages and the Reply Path
 
-**Status:** Draft
+**Status:** Implemented (merged PR #143)
 **Source: User 2026-11-13 (AI Desk v3 M1 decisions): wake by message, no new run order; serial router; send back before the code veto. Design: https://claude.ai/artifact/8QdHMR5XoScLNN9HEtbB3A.**
 
 - The system shall let an employee add ask, reply and send-back messages to its answer when the Master user has turned messages on.
@@ -302,6 +305,23 @@ The system shall give every agent and layer one checked message format, `desk.ms
 6. An idea with a stop over the limit is fixed in round 1 and passes, or is still over after round 2 and stays vetoed.
 7. A seventh message in a thread, a third send-back and a twenty-first message started in a day are refused with a reason.
 8. With messages off, the daily run and all existing desk tests work as before.
+
+### M2 — Escalation and Deputies
+
+**Status:** Draft
+**Source: User 2026-11-13 (AI Desk v3 M2 decisions): watch flag alerts at once and also goes to the boss; 5 minutes per level; escalate free of the daily cap; boss gives a short reply-only turn; the reply is a note only; handover waits for M5.**
+
+- The system shall let an employee escalate a problem to its boss, found through its `reports_to`.
+- The system shall give an escalation a 5-minute deadline per level, move it one level up when nobody replies, and alert the Master user after the top.
+- The system shall let a boss answer an escalation in a short reply-only turn that does not run its own skill.
+- The system shall send a message to the receiver's deputy when the receiver cannot work, before refusing it.
+- The system shall run exactly as in M1 while escalation is off.
+
+### Acceptance Criteria (M2)
+
+9. On a desk copy with escalation on, a broken plan from the flag employee reaches its boss, and the Master user gets an "Escalation not answered" alert only after the boss's 5 minutes pass with no reply.
+10. An ask to a sleeping employee with a deputy is answered by the deputy; without a deputy it is refused as in M1.
+11. With escalation off, the daily run and all existing desk tests work as before.
 
 ## FO-DSK-012: Tools and Task Cards
 

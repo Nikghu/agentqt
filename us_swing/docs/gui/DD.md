@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.26.0: DD-GUI-034.071.D01 added — escalation switch, escalation lines in Threads, Deputy picker (AI Desk v3 M2, 2026-11-13).
 > v1.25.0: DD-GUI-035.015.D01 added — messages switch, message log and Threads view (AI Desk v3 M1, 2026-11-13).
 > v1.24.0: DD-GUI-040.001.D01 added — AI Desk strategy cards (2026-11-12).
 > v1.23.1: DD-GUI-039.006.D01 gains the books list (SRD-GUI-039.008, 2026-11-12).
@@ -2039,3 +2040,10 @@ Run names: `evening` "Evening run", `manual` "Manual run", other kinds title-cas
 - Below: a read-only list of the selected thread's messages (`messages_of(home, thread)`), one line each: time, type, from → to, subject or text, state.
 - Empty text when there are no threads: "No messages today. Agent messages are off" or "No messages today", by the setting.
 - Refreshed with the other Team at work tabs (same timer and refresh call); no work on the GUI thread beyond the two small reads. The message list is rebuilt only when the thread or its message count changes, so the scroll place is kept.
+
+## DD-GUI-034.071.D01 — Escalation Switch, Threads Lines and Deputy Picker (AI Desk v3 M2)
+
+**Traces:** SRD-GUI-034.071, 035.017, 036.011.
+- `gui/ai_desk_settings.py`: an Escalation check box under Agent messages in the same card, saved as `escalation_on`; disabled while Agent messages is unticked.
+- `gui/ai_desk_threads.py`: in the selected thread's messages, a row with `meta.blocked` shows its reasons as a grey line under the message. `MessageRow` gains `meta`.
+- `gui/ai_desk_setup.py`: Profile tab, a Deputy combo under Boss, filled like the Boss combo (None, then the other employees by name); saved as `deputy` through `save_employee()`.

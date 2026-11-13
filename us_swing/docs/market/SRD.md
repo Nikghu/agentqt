@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.23.0: AI Desk v3 M2 (user, 2026-11-13): SRD-MKT-013.013 added as Draft — the flag goes to the boss too.
 > v0.22.3: SRD-MKT-005.024 added by user 2026-11-13 (price facts so the setup review can choose new levels) and Implemented.
 > v0.22.2: SRD-MKT-005.019–.023 and 006.013 Implemented 2026-11-13.
 > v0.22.1: SRD-MKT-005.019–.023 and 006.013 approved by user 2026-11-13.
@@ -269,6 +270,7 @@
 | SRD-MKT-013.010 | FO-MKT-013 | Must | The check-in skill (`checkin_note`) writes a note of at most 600 characters on plan stocks against trigger, open trades against stop and target, SPY and the flags since the last check-in. | bars, trades, flags | brief | One note per check-in time | Implemented |
 | SRD-MKT-013.011 | FO-MKT-013 | Must | Default employees ship as `emp-011` ("Expert 9", skill `watch_flag`, trigger `watch_flag`) and `emp-012` ("Lead 3", skill `checkin_note`, trigger `market_checkin`). | default files | employees | Copied only when missing; generic names | Implemented |
 | SRD-MKT-013.012 | FO-MKT-013 | Should | Each flag answer logs the stock, flag kind and verdict. | answer | log line | `[Watch]` prefix | Implemented |
+| SRD-MKT-013.013 | FO-MKT-013 | Must | With escalation on, a broken verdict or a stop or target touch also sends an escalate from the flag employee to its boss with the stock, price and note. | flag, verdict | escalate | Made by code, not the AI; the alert of SRD-DSK-007.009 still goes at once | Approved |
 
 ## FO-MKT-014: Lead Research Tickets
 

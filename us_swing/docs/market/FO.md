@@ -359,6 +359,7 @@ The system shall watch the plan and the open trades during market hours with pla
 - The system shall flag a trigger reached, a stop or target touched, a volume spike, a gap and a large SPY move.
 - The system shall flag a new headline for a lead pick or an open-trade stock.
 - The system shall ask one AI employee whether the plan still holds for each flag, and alert when it is broken.
+- The system shall also send a broken plan or a stop or target touch to the flag employee's boss when escalation is on (AI Desk v3 M2, user 2026-11-13).
 - The system shall write a short AI note at each check-in.
 - The system shall never place, change or close a trade from a flag or a note.
 

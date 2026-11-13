@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.24.0: UT-MKT-013.013.M02.T01–T03 added (Not Run, 3) — AI Desk v3 M2 (2026-11-13).
 > v0.23.1: UT-MKT-005.024.M05.T01–T02 added and Pass; UT-MKT-005.022.M07.T05 Pass (2026-11-13).
 > v0.23.0: UT-MKT-005.019–.023 and 006.013 added (Not Run, 16) — AI Desk v3 M1 (2026-11-13).
 > v0.22.1: UT-MKT-019.* Pass (36, 2026-11-12).
@@ -679,3 +680,11 @@
 | UT-MKT-006.013.M04.T02 | MD-MKT-006.005.M04 | Negative | Normal wake unchanged (SRD-MKT-006.013) | wake without inbox | tags stored and market note posted as today | Pass |
 | UT-MKT-005.024.M05.T01 | MD-MKT-005.009.M05 | Positive | Price facts for a send-back (SRD-MKT-005.024) | send-back about a stock with daily bars | facts show last close, ATR(14), 20-day low | Pass |
 | UT-MKT-005.024.M05.T02 | MD-MKT-005.009.M05 | Negative | No send-back, no price facts (SRD-MKT-005.024) | inbox with only an ask | no price facts in the facts | Pass |
+
+## FO-MKT-013 (AI Desk v3 M2): Flag Escalation
+
+| ID | Module | Type | Title | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-MKT-013.013.M02.T01 | MD-MKT-013.008.M02 | Positive | Broken plan escalates (SRD-MKT-013.013) | talking context, verdict broken on AAPL | one escalate to boss about AAPL with the note; alert raised as before | Not Run |
+| UT-MKT-013.013.M02.T02 | MD-MKT-013.008.M02 | Positive | Stop touch escalates (SRD-MKT-013.013) | stop_touch flag, no valid answer | one escalate to boss | Not Run |
+| UT-MKT-013.013.M02.T03 | MD-MKT-013.008.M02 | Negative | No escalate (SRD-MKT-013.013) | trigger_hit with verdict holds; plain fake context | no draft sent | Not Run |
