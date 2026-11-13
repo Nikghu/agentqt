@@ -2,6 +2,16 @@
 
 ---
 
+## [20261113] DSK — AI Desk v3 M4: chat sessions (FO-MKT-010, FO-GUI-034)
+
+- Type: Feature
+- FO(s): FO-MKT-010, FO-GUI-034
+- RN: RN-DSK-0.17.0-20261113
+- Artifacts updated: SRD (MKT-010.006 reopened; MKT-010.009–.019 and GUI-034.073–.076 Implemented), DD (DD-MKT-010.009.D01, DD-GUI-034.073.D01), MD (MD-MKT-010.001.M01, MD-MKT-010.003.M03, MD-DSK-004.005.M13, MD-GUI-034.016.M15, MD-GUI-034.039.M26 changed), UTCD (30 market + 9 GUI cases Pass), Code, Tests, RN, TRACE, CONTEXT, TODO. Branch feat/dsk-m4-sessions; commits 2a5b0f96 (docs), f97f36fa (code); not pushed.
+- Decisions: AI writes session summaries at the next chat wake (max 400 characters, max 2 a wake); one team ask per question, first kept; summary and preferences to memory only while Memory v2 is on; session list and New discussion in Command; new session after 2 h quiet or new NY day; closing after 24 h quiet; no new event kind.
+
+---
+
 ## [20261113] DSK — AI Desk v3 M3: memory v2 (FO-DSK-009, FO-MKT-012, FO-GUI-034, FO-GUI-037)
 
 - Type: Feature

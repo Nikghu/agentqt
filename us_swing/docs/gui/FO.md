@@ -7,6 +7,7 @@
 **Last Updated:** 2026-05-22
 **Project:** US Swing Trading System
 
+> v2.27.0: AI Desk v3 M4 (user, 2026-11-13): FO-GUI-034 chat sessions bullets added as Draft.
 > v2.26.0: AI Desk v3 M3 (user, 2026-11-13): FO-GUI-037 memory v2 bullets and FO-GUI-034 Memory v2 switch added as Draft.
 > v2.25.0: AI Desk v3 M1 (user, 2026-11-13): FO-GUI-034 messages switch and FO-GUI-035 message log and Threads view bullets added as Draft.
 > v2.24.1: FO-GUI-040 approved by user 2026-11-12.
@@ -1006,6 +1007,9 @@ The system shall add two workspaces, Market Floor and AI Desk, shown on sample d
 - The system shall start the desk when the app opens and stop it when the app closes, and name the desk's daily run the morning run (Autonomous desk step A, user 2026-11-10).
 - (AI Desk v3 M1) The system shall let the Master user turn agent messages on or off in Desk settings, off by default.
 - The system shall let the Master user turn Memory v2 on or off in Desk settings, off by default (AI Desk v3 M3, user 2026-11-13).
+- The system shall let the Master user turn Chat sessions on or off in Desk settings, off by default (AI Desk v3 M4, user 2026-11-13).
+- The system shall show the lead chat sessions in Command with a New discussion button, and let the Master open an old session to continue it (AI Desk v3 M4).
+- The system shall show the lead's updates and a "Waiting for the team" note in the chat (AI Desk v3 M4).
 
 ### Acceptance Criteria
 

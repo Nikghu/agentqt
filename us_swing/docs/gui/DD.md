@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.28.0: DD-GUI-034.073.D01 added — chat sessions in Command and Desk settings (AI Desk v3 M4, 2026-11-13).
 > v1.27.0: DD-GUI-037.005.D01 added — Memory v2 in Memory and Desk settings (AI Desk v3 M3, 2026-11-13).
 > v1.26.0: DD-GUI-034.071.D01 added — escalation switch, escalation lines in Threads, Deputy picker (AI Desk v3 M2, 2026-11-13).
 > v1.25.0: DD-GUI-035.015.D01 added — messages switch, message log and Threads view (AI Desk v3 M1, 2026-11-13).
@@ -2056,3 +2057,13 @@ Run names: `evening` "Evening run", `manual` "Manual run", other kinds title-cas
 `gui/ai_desk_memory.py`. Top row: a `Kind` combo (Lessons, Notes, Views) before the status filter, and an `Employee` combo (All + active employees read from the employee files, shown by name, holding the id). Lessons: today's table, buttons and proof list, unchanged; the Employee combo is hidden. Notes and Views: the status filter lists their statuses; table columns Owner, Text, Symbol, Direction, Made, Status, Right, Wrong (+ Due for views); pending edits in yellow. Note buttons: Pin, Unpin, Retire → `desk_memory.add_edit`. Views have no buttons. A read-only `QPlainTextEdit` "Core block" shows `desk_memory.core_block(home, owner, today)` when one employee is chosen, else it is hidden. All reads use `desk_memory.read_only`; no business logic in the GUI.
 
 `gui/ai_desk_settings.py`: a `Memory v2` check box under the Escalation switch, saved as `memory_v2_on` (SRD-GUI-034.072).
+
+## DD-GUI-034.073.D01 — Chat Sessions in Command and Desk Settings (AI Desk v3 M4)
+
+**Traces:** SRD-GUI-034.073–.076. Data and rules: DD-MKT-010.009.D01.
+
+- `gui/ai_desk_settings.py`: a "Chat sessions" switch card after Memory v2, saved as `sessions_on`.
+- `gui/ai_desk_chat.py` (`ChatPanel`) reads `load_settings(home).sessions_on` when it refreshes.
+  - On: a narrow session list on the left of the bubbles, rows "<title> · <MM-DD> · open|closed", newest first, with a "New discussion" button over it. `_chosen` is `None` (automatic) or a clicked session id; `_new` is set by New discussion. Clicking a row sets `_chosen` and shows `session_turns()`. New discussion calls `close_session()` for the shown session, clears `_chosen` and sets `_new`. Ask calls `session_for(home, now, chosen, text, new)` and then `ask_question(..., session=...)`; the panel then shows that session.
+  - Off: list and button hidden, turns from `chat_turns()` as before.
+  - `update` rows show as lead bubbles with "Update" after the name; the note under the chat shows `question_note()`, which can say "Waiting for the team"; the 2-second check keeps running while the note waits.

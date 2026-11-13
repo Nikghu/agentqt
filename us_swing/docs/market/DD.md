@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.25.0: DD-MKT-010.009.D01 added — chat sessions, summaries, team ask and updates (AI Desk v3 M4, 2026-11-13).
 > v0.24.0: DD-MKT-012.007.D01 added — view check (AI Desk v3 M3, 2026-11-13).
 > v0.23.0: DD-MKT-013.013.D01 added — flag escalation (AI Desk v3 M2, 2026-11-13).
 > v0.22.0: DD-MKT-005.019.D01 added — asks, send-back fixes and news replies (AI Desk v3 M1, 2026-11-13).
@@ -930,6 +931,89 @@ tick: rebuild turns; note = question_note(..., desk_up = poller state Running or
 ```
 
 The panel reads `desk.db` on the GUI thread (small reads, as the other live sections) and only adds `chat` rows and one event through `core`.
+
+## DD-MKT-010.009.D01 — Chat Sessions, Summaries and the Team Ask (AI Desk v3 M4)
+
+**Traces:** SRD-MKT-010.009–.019; GUI SRD-GUI-034.073–.076
+
+**User answers (2026-11-13):** AI summary at close; the lead may send one ask per question; summary and preferences go to the lead's memory; session list with New discussion. Defaults chosen: the "new day" rule uses the New York date; the plan's day brief waits for M5 (its table comes in M5).
+
+**Files.**
+
+| File | What |
+|---|---|
+| `core/desk_ai_settings.py` | `sessions_on: bool = False` |
+| `core/desk_chat.py` | `chat_sessions` table, `chat.session` column, session functions, `update` rows, team note |
+| `market/lead_chat.py` | Session facts, closing summaries, the one ask, updates; `LeadChatSummary` |
+| `gui/ai_desk_chat.py` | Session list, New discussion, Update bubbles, team note |
+| `gui/ai_desk_settings.py` | Chat sessions switch |
+
+**Tables** (`desk.db`):
+
+```
+chat_sessions(id INTEGER PK, title TEXT, opened TEXT, last TEXT, state TEXT, summary TEXT DEFAULT '')
+  state: open | closing | closed          (this table is not append-only)
+chat + column session INTEGER             ALTER TABLE when missing; NULL for P9 rows; set at insert only
+chat role 'update': the lead's update to question reply_to (state 'answered')
+  the unique index chat_one_reply is on role 'lead' only, so a second index chat_one_update
+  keeps one update per question
+```
+
+**Core functions** (`core/desk_chat.py`, times are ISO text as in P9):
+
+```
+QUIET_NEW = 2 h; QUIET_CLOSE = 24 h; TITLE_CHARS = 40
+session_for(home, now, chosen: int | None, text, new=False) -> int:
+    mark_quiet(home, now)                                          SRD .012
+    chosen found -> state open if not open (summary kept)          SRD .011 -> chosen
+    not new: s = newest open session; s.last within 2 h and the same New York date -> s.id
+    else INSERT (title = first 40 chars of text, opened = last = now, state open) -> new id
+mark_quiet(home, now): open sessions whose last is older than 24 h -> closing
+close_session(home, sid): open -> closing                          (New discussion)
+ask_question(home, text, now, session=None): as P9, plus the session column and last = now
+sessions(home) -> list[ChatSession]                    newest first (GUI list)
+session_turns(home, sid, limit=50) -> list[ChatTurn]   oldest first
+closing_sessions(home) -> list[ChatSession]            oldest first
+save_summary(home, sid, text): state closed, summary = text[:400]
+add_update(home, question_id, text, now): INSERT role 'update'; a second one is ignored
+team_ask(home, question_id) -> MessageRow | None:   the ask whose subject is "Chat question #<id>"
+team_reply(home, question_id) -> MessageRow | None: the reply whose parent is that ask
+question_note(): TEAM = "Waiting for the team" when the question is replied, has a team ask with
+    no reply and no update                                         SRD .018
+```
+
+`team_ask` and `team_reply` read the `messages` table through `core/desk_messages.py` read-only helpers (no import of `desk`).
+
+**Skill** (`LeadChatSkill`):
+
+```
+facts(home):
+    q = open_question(home, now)
+    none, and no question waiting for an update, and no closing session -> fresh False
+    q text as P9, but when q.session: "Session summary:" (when it has one) + last 6 turns of
+    q.session (update rows read as "Lead (update): ...")             SRD .013
+act(ctx, facts):
+    on = load_settings(ctx.home).sessions_on
+    1. open question -> answer as P9. With on and a talker the prompt adds: "You may ask one
+       expert one question (messages, type ask); answer now with what you know."
+       keep_one_ask(talk, q.id, on): first ask only, subject "Chat question #<id>",
+       other drafts dropped; on False -> drafts cleared              SRD .016
+    2. each question of the last day with a team reply and no update:
+       verdict refused or expired -> add_update(code text "The team could not answer: <why>")
+       else ctx.ask(question + first answer + reply text, LeadChatAnswer) -> add_update
+       no answer -> no update (tried again at the next wake)         SRD .017
+    3. up to 2 closing sessions: turns text (last 6000 chars) -> ctx.ask(..., LeadChatSummary)
+       -> save_summary; no answer -> stays closing                   SRD .014
+    logs "[Chat] Session %d summary saved", "[Chat] Update for question %d saved"   SRD .019
+```
+
+`LeadChatSummary(summary: str 1..400, remember: list[Remember] max 3)`. The field is named `remember`, so the gateway keeps the notes through the memory v2 path only when Memory v2 is on and the employee is a lead or expert (SRD-DSK-009.013, .023), within 3 a day (SRD .015). The prompt asks for the summary as one note and each stated preference as one note that starts "Master prefers". With memory off the notes are dropped.
+
+**Waking.** No new event kind and no change to the employee file. A closing session is summarised at the next `chat_question` wake. The team reply wakes the lead through the M1 message path, since the router wakes an addressed employee outside its triggers; `_answer_inbox` then calls `facts()` and `act()` as above. With messages off no ask is kept, so no reply comes.
+
+**Off.** With `sessions_on` off the GUI passes no session, so no `chat_sessions` row is made; facts use the last 6 chat turns (P9); no ask is kept, and no update or summary is made. Rows made while it was on stay; sessions already closing wait until it is on again.
+
+**Review fixes (2026-11-13).** `session_for` checks the text first, so a bad question makes no empty session; a session with no turns closes with an empty summary and no AI call; a second process adding the `session` column at the same time is not an error; `add_update` returns `False` when the question does not exist; the kept ask loses any `parent` the model set; the chat panel keeps checking 3 more ticks after the answer, since the desk stores the ask just after the reply. Known limit: one wake shares the gateway's refused flag, so a budget refusal on a summary call can also refuse that wake's inbox messages.
 
 ## DD-MKT-011.001.D01 — Ask the Desk for New Data (P10)
 

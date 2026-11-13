@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.35.0: M26, M15 changed (AI Desk v3 M4, 2026-11-13).
 > v1.34.0: M01, M15 changed (AI Desk v3 M3, 2026-11-13).
 > v1.33.0: M15, M05, M01 changed (AI Desk v3 M2, 2026-11-13).
 > v1.32.0: MD-GUI-035.016.M05 added; M15, M02, M03, M01 changed (AI Desk v3 M1, 2026-11-13).
@@ -537,3 +538,7 @@ No new module. Changed: MD-GUI-034.016.M15 (`gui/ai_desk_settings.py`: Escalatio
 ## FO-GUI-034 / 037 (AI Desk v3 M3): Memory v2 Switch, Notes and Views
 
 No new module. Changed: MD-GUI-037.001.M01 (`gui/ai_desk_memory.py`: Kind and Employee filters, notes and views table, core block box, note Pin/Unpin/Retire — SRD-GUI-037.005–.008), MD-GUI-034.016.M15 (`gui/ai_desk_settings.py`: Memory v2 switch — SRD-GUI-034.072).
+
+## FO-GUI-034 (AI Desk v3 M4): Chat Sessions
+
+No new module. Changed: MD-GUI-034.039.M26 (`gui/ai_desk_chat.py`: session list, New discussion, Update bubbles, team note — SRD-GUI-034.074–.076), MD-GUI-034.016.M15 (`gui/ai_desk_settings.py`: Chat sessions switch — SRD-GUI-034.073).

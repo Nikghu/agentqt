@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.26.0: M01 (chat) and M03 (lead chat) changed for AI Desk v3 M4 (2026-11-13).
 > v0.25.0: MD-MKT-012.007.M04 added — view check (AI Desk v3 M3, 2026-11-13).
 > v0.24.0: M02 (watch flag) changed for AI Desk v3 M2 (2026-11-13).
 > v0.23.0: M05, M07, M04 (news and store), M01 and M02 (watch) changed for AI Desk v3 M1 (2026-11-13).
@@ -170,6 +171,8 @@ SRD coverage: .001–.003 and .008 by M01 and M06; .004 by M02; .005 by M03 and 
 | MD-MKT-010.007.M04 | SRD-MKT-010.007 | `us_swing/src/us_swing/market/employees/emp-008/`, `core/desk_steps.py` | Default chat employee files and the skill path | `SKILL_PATHS` | — | No |
 
 SRD coverage: .001 by M01; .002 by M02; .003–.006 and .008 by M03; .007 by M04.
+
+AI Desk v3 M4 (no new module): M01 `core/desk_chat.py` gains `ChatSession`, `session_for()`, `mark_quiet()`, `close_session()`, `sessions()`, `session_turns()`, `closing_sessions()`, `save_summary()`, `add_update()`, `team_ask()`, `team_reply()` (SRD .010–.012, .017–.018); M03 `market/lead_chat.py` gains `LeadChatSummary` and the session facts, summaries, one ask and updates (SRD .013–.017, .019). Cross-tool: `core/desk_ai_settings.py` (MD-DSK-004.005.M13) gains `sessions_on` (SRD .009).
 
 ## FO-MKT-011: Ask the Desk for New Data
 

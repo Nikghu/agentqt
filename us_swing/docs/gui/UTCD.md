@@ -7,6 +7,8 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.38.1: UT-GUI-034.073–.076 Pass (9, 2026-11-13).
+> v1.38.0: UT-GUI-034.073–.076 added (9, Not Run) (AI Desk v3 M4, 2026-11-13).
 > v1.37.1: UT-GUI-034.072 and 037.005–.008 Pass (10, 2026-11-13).
 > v1.37.0: UT-GUI-034.072 and 037.005–.008 added (10, Not Run) (2026-11-13).
 > v1.36.1: UT-GUI-034.071, 035.017 and 036.011 Pass (4, 2026-11-13).
@@ -1353,3 +1355,17 @@ Test files:
 | UT-GUI-037.008.M01.T02 | MD-GUI-037.001.M01 | Negative | No buttons on views (SRD-GUI-037.008) | Kind Views | buttons hidden | Pass |
 | UT-GUI-034.072.M15.T01 | MD-GUI-034.016.M15 | Positive | Memory v2 switch (SRD-GUI-034.072) | tick Memory v2, save | memory_v2_on true | Pass |
 | UT-GUI-034.072.M15.T02 | MD-GUI-034.016.M15 | Negative | Off by default (SRD-GUI-034.072) | new desk folder | box unticked | Pass |
+
+## FO-GUI-034 (AI Desk v3 M4): Chat Sessions
+
+| ID | Module | Type | Title | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-034.073.M15.T01 | MD-GUI-034.016.M15 | Positive | Sessions switch (SRD-GUI-034.073) | turn Chat sessions on, save | sessions_on True in the settings file | Pass |
+| UT-GUI-034.073.M15.T02 | MD-GUI-034.016.M15 | Negative | Off by default (SRD-GUI-034.073) | no settings file | switch off | Pass |
+| UT-GUI-034.074.M26.T01 | MD-GUI-034.039.M26 | Positive | Session list (SRD-GUI-034.074) | sessions on; two sessions; click the older | two rows newest first; its turns shown; next question saved in it | Pass |
+| UT-GUI-034.074.M26.T02 | MD-GUI-034.039.M26 | Negative | List hidden when off (SRD-GUI-034.074) | sessions off | no list, no New discussion; all turns as before | Pass |
+| UT-GUI-034.075.M26.T01 | MD-GUI-034.039.M26 | Positive | New discussion (SRD-GUI-034.075) | shown session open; click New discussion; ask | old session closing; question in a new session | Pass |
+| UT-GUI-034.075.M26.T02 | MD-GUI-034.039.M26 | Negative | No button when off (SRD-GUI-034.075) | sessions off | no New discussion button; no session closed | Pass |
+| UT-GUI-034.076.M26.T01 | MD-GUI-034.039.M26 | Positive | Update bubble (SRD-GUI-034.076) | question with reply and update rows | update shown as a lead bubble marked Update | Pass |
+| UT-GUI-034.076.M26.T02 | MD-GUI-034.039.M26 | Positive | Team note (SRD-GUI-034.076) | replied question with an open team ask | note 'Waiting for the team'; check keeps running | Pass |
+| UT-GUI-034.076.M26.T03 | MD-GUI-034.039.M26 | Negative | Plain reply (SRD-GUI-034.076) | question with a reply and no team ask | lead bubble without Update; note empty | Pass |
