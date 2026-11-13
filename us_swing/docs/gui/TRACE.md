@@ -153,6 +153,8 @@
 | FO-GUI-039 | SRD-GUI-039.006–.008 | DD-GUI-039.006.D01 | MD-GUI-039.001.M01 (changed); MD-GUI-039.006.M02 | UT-GUI-039.006–.008 (10, Pass) | `gui/ai_desk_research.py`, `core/desk_books.py` | Implemented | RN-GUI-1.65.0-20261112 |
 | FO-GUI-040 | SRD-GUI-040.001–.004 | DD-GUI-040.001.D01 | MD-GUI-040.001.M01; MD-GUI-034.009.M08 (changed) | UT-GUI-040.* (6, Pass) | `gui/ai_desk_cards.py`, `gui/ai_desk.py` | Implemented | RN-MKT-0.21.0-20261112 |
 | FO-GUI-034 | SRD-GUI-034.065 (wording: header dates, ET only) | DD-GUI-034.065.D01 | MD-GUI-034.065.M39 (changed) | UT-GUI-034.060.M33.T01, UT-GUI-034.065.M39.T01 (Pass) | `gui/ai_desk_console.py` | Implemented | RN-GUI-1.65.0-20261112 |
+| FO-GUI-034 | SRD-GUI-034.070 | DD-GUI-035.015.D01 | MD-GUI-034.016.M15 (changed) | UT-GUI-034.070 (Pass) | `gui/ai_desk_settings.py` | Implemented | RN-DSK-0.14.0-20261113 |
+| FO-GUI-035 | SRD-GUI-035.015–.016 | DD-GUI-035.015.D01 | MD-GUI-035.016.M05 (new); MD-GUI-035.001.M01, MD-GUI-035.002.M02, MD-GUI-035.006.M03 (changed) | UT-GUI-035.015–.016 (Pass; 7 cases with 034.070) | `gui/ai_desk_threads.py`, `gui/ai_desk_team.py`, `gui/ai_desk_team_log.py`, `core/desk_team.py` | Implemented | RN-DSK-0.14.0-20261113 |
 
 ---
 

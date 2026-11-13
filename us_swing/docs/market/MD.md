@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.23.0: M05, M07, M04 (news and store), M01 and M02 (watch) changed for AI Desk v3 M1 (2026-11-13).
 > v0.22.0: MD-MKT-019.001.M01, .003.M02, .005.M03, .009.M04, .012.M05 added — strategy test research; lead_brief changed (2026-11-12).
 > v0.21.0: MD-MKT-018.001.M01, .002.M02, .006.M03 added — book to strategy research (step F); M08 lead_brief changed.
 > v0.20.0: MD-MKT-017.001.M01, .004.M02, .006.M03 added — sentiment research (step F); M08 lead_brief changed.
@@ -262,3 +263,9 @@ SRD coverage: .001, .007, .009, .011, .012 by M01; .002–.005 by M02; .006, .00
 | MD-MKT-019.012.M05 | SRD-MKT-019.012 | `us_swing/src/us_swing/market/employees/emp-017/employee.md`, `core/desk_steps.py`, `USSwing.spec` | Default strategy test employee, skill path and app build entry | `SKILL_PATHS["strategy_test"]` | `core.desk_hiring` | No |
 
 SRD coverage: .001, .002, .008, .009 (save), .010, .013, .014 by M01; .003–.004 by M02; .005–.007 by M03; .009, .011 by M04; .012 by M05. Changed: `market/lead_brief.py` (untested cards block, SRD-MKT-019.011).
+
+## FO-MKT-005 / FO-MKT-006 (AI Desk v3 M1): Asks, Send-Back Fixes and News Replies
+
+No new module. Changed: MD-MKT-005.009.M05 (`market/setup_review.py`: `talks`, held ideas with at most 3 asked, merge on an inbox wake, fixed levels in `listed_frame`, price facts for sent-back ideas — SRD-MKT-005.019, .021, .023, .024), MD-MKT-005.012.M07 (`market/risk_check.py`: stop send-back, code-only fix check, round 2 — .020, .022), MD-MKT-006.005.M04 (`market/news_review.py`: inbox reply only — 006.013), MD-MKT-001.007.M04 (`market/store.py`: `idea_fixes` table, `FIXED` join, `put_rows()` — 005.022, .023), MD-MKT-013.001.M01 (`market/watch.py`) and MD-MKT-013.008.M02 (`market/watch_flag.py`): fixed levels — 005.023.
+
+Cross-tool: the skills use DSK `core/desk_msg.py` (`Draft`, `InboxReply`) and `core/desk_agents.talker()`.

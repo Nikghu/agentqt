@@ -1,6 +1,7 @@
 """
 Module: MD-GUI-034.016.M15 — gui/ai_desk_settings.py
 Parent SRD: SRD-GUI-034.016
+Also: SRD-GUI-034.070 (Agent messages switch)
 Also: MD-GUI-034.033.M23 — seat caps (SRD-GUI-034.033)
 Also: SRD-GUI-034.066 — fields grouped in icon cards (console look)
 
@@ -67,6 +68,10 @@ class DeskAiSettingsForm(QWidget):
         self.budget = self._line(f"{self._settings.monthly_budget_usd:.2f}")
         self.claude_on.setChecked(self._settings.claude_on)
         self.openrouter_on.setChecked(self._settings.openrouter_on)
+        self.messages_on = QCheckBox("Let employees message each other")
+        self.messages_on.setToolTip("Off: the desk runs as before. On: experts may ask, reply "
+                                    "and send work back.")
+        self.messages_on.setChecked(self._settings.messages_on)
         self.caps = {level: self._line(str(self._settings.cap(level)))
                      for level in ("expert", "champion", "junior")}
         grid = QGridLayout()
@@ -79,6 +84,8 @@ class DeskAiSettingsForm(QWidget):
             ("Monthly budget (USD)", self.budget))), 0, 1)
         grid.addWidget(self._card("users", "Seats", tuple(
             (f"{level.capitalize()}s", edit) for level, edit in self.caps.items())), 1, 0)
+        grid.addWidget(self._card("message-square", "Agent messages", (
+            ("", self.messages_on),)), 1, 1)
         outer.addLayout(grid)
         row = QHBoxLayout()
         self.save_btn = primary(QPushButton("Save"))
@@ -122,7 +129,8 @@ class DeskAiSettingsForm(QWidget):
                 monthly_budget_usd=budget, claude_tokens_per_day=tokens,
                 expert_cap=int(self.caps["expert"].text().strip()),
                 champion_cap=int(self.caps["champion"].text().strip()),
-                junior_cap=int(self.caps["junior"].text().strip()))
+                junior_cap=int(self.caps["junior"].text().strip()),
+                messages_on=self.messages_on.isChecked())
             if not math.isfinite(budget):
                 raise ValueError("budget")
         except ValueError:

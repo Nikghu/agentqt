@@ -1,6 +1,7 @@
 """
 Module: MD-GUI-035.001.M01 — AI Desk Team at work section
 Parent SRD: SRD-GUI-035.001
+Also: SRD-GUI-035.016 (Threads tab)
 Also: SRD-GUI-035.002–.005 (run bar, Live tab, pipeline, timeline), SRD-GUI-035.009 (refresh),
 SRD-GUI-035.010 (alert banner), SRD-GUI-035.012 (clean look: icons, borders, stat tiles, tabs)
 
@@ -38,6 +39,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from us_swing.core.desk_ai_settings import load_settings
 from us_swing.core.desk_alerts import open_alerts
 from us_swing.core.desk_contract import desk_home
 from us_swing.core.desk_overview import run_name
@@ -58,6 +60,7 @@ from us_swing.core.desk_team import (
 )
 from us_swing.gui.ai_desk_sections import muted, scroll_of, section_frame
 from us_swing.gui.ai_desk_team_log import EventLogView
+from us_swing.gui.ai_desk_threads import ThreadsView
 from us_swing.gui.ai_desk_team_pane import (
     ProfilePane,
     ScoreTable,
@@ -530,8 +533,9 @@ class TeamAtWork(QWidget):
         main.addLayout(left, 1)
         left.addLayout(self._run_bar())
         self._tabs = QButtonGroup(self)
-        tab_row, _ = _toggle_row(("Live", "Event log", "Team"), self._tabs,
-                                 ("activity", "scroll-text", "users"), tab_style())
+        tab_row, _ = _toggle_row(("Live", "Event log", "Team", "Threads"), self._tabs,
+                                 ("activity", "scroll-text", "users", "message-square"),
+                                 tab_style())
         tab_row.setSpacing(18)
         tab_row.setContentsMargins(0, 0, 0, 0)
         tab_row.addStretch(1)
@@ -553,6 +557,8 @@ class TeamAtWork(QWidget):
         self.scores = ScoreTable()
         team_lines.addWidget(self.scores, 1)
         self.pages.addWidget(team_page)
+        self.threads = ThreadsView()
+        self.pages.addWidget(self.threads)
         left.addWidget(self.pages, 1)
         main.addWidget(self._side_pane())
         self._timer = QTimer(self)
@@ -707,6 +713,10 @@ class TeamAtWork(QWidget):
                                 now.astimezone(NY).date())
         elif self.pages.currentIndex() == 2:
             self.scores.fill(scorecard(home, self._members, now), self._members)
+        elif self.pages.currentIndex() == 3:
+            self.threads.show_threads(home, now.astimezone(NY).date().isoformat(),
+                                      {m.id: m.name for m in self._members},
+                                      load_settings(home).messages_on)
 
     def _show_run_bar(self) -> None:
         view, now = self._view, self._clock()

@@ -7,6 +7,7 @@
 **Last Updated:** 2026-05-22
 **Project:** US Swing Trading System
 
+> v2.25.0: AI Desk v3 M1 (user, 2026-11-13): FO-GUI-034 messages switch and FO-GUI-035 message log and Threads view bullets added as Draft.
 > v2.24.1: FO-GUI-040 approved by user 2026-11-12.
 > v2.24.0: Strategy test (user, 2026-11-12): FO-GUI-040 added as Draft — AI Desk strategy cards.
 > v2.23.1: Add book bullet approved by user 2026-11-12.
@@ -1002,6 +1003,7 @@ The system shall add two workspaces, Market Floor and AI Desk, shown on sample d
 - The system shall give the AI Desk header and the Hiring, Pages, Reports, Results, Cost & budget and Desk settings sections the console card look of design Option A (design phase 4, 2026-11-10).
 - The system shall switch AI Desk sections with a tab row under the header instead of a menu in the left panel (2026-11-10).
 - The system shall start the desk when the app opens and stop it when the app closes, and name the desk's daily run the morning run (Autonomous desk step A, user 2026-11-10).
+- (AI Desk v3 M1) The system shall let the Master user turn agent messages on or off in Desk settings, off by default.
 
 ### Acceptance Criteria
 
@@ -1026,6 +1028,7 @@ The system shall show how the AI employee team works, from real desk records.
 - The system shall give the event log its own tab: what woke the team, who it woke, the result, time and cost, and every LLM call.
 - The system shall show a Team scorecard with 30-day numbers per employee.
 - The system shall show a rolling team picker and the picked employee's profile in a side pane.
+- (AI Desk v3 M1) The system shall show message events in the event log and a Threads view of who asked whom, the replies, rounds and tokens.
 
 ### Acceptance Criteria
 

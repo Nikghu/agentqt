@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.25.0: DD-GUI-035.015.D01 added — messages switch, message log and Threads view (AI Desk v3 M1, 2026-11-13).
 > v1.24.0: DD-GUI-040.001.D01 added — AI Desk strategy cards (2026-11-12).
 > v1.23.1: DD-GUI-039.006.D01 gains the books list (SRD-GUI-039.008, 2026-11-12).
 > v1.23.0: DD-GUI-039.006.D01 added — Add book on the Research tab (2026-11-12).
@@ -2024,3 +2025,17 @@ Run names: `evening` "Evening run", `manual` "Manual run", other kinds title-cas
 - Detail label: idea, market, entry, exit, stop, quotes, then the latest test line (trades, win rate, avg R, worst run, baseline) and verdict, or the can't-test reason.
 - **Test** button (no fixed height; theme sizing): enabled when a card is selected and not Testing. Click → `raise_owner_test()`; the note shows "Test started as ticket N" or "Test not started: <reason>"; then refresh. A `sqlite3.Error` shows a plain note.
 - Logs: `[Research] Test of card SC-3 started from the app as ticket 9` / `[Research] Test of card SC-3 not started: <reason>`.
+
+## DD-GUI-035.015.D01 — Messages Switch, Message Log and Threads View (AI Desk v3 M1)
+
+**Traces:** SRD-GUI-034.070, SRD-GUI-035.015–.016. Data: DD-DSK-011.015.D01 §10. The GUI only reads `desk.db`; the switch is the one write, through `save_settings`.
+
+**Switch** (`gui/ai_desk_settings.py`, `DeskAiSettingsForm`). New icon card "Agent messages" (icon `message-square`) at grid row 1, column 1, with one `QCheckBox("Let employees message each other")`, tooltip "Off: the desk runs as before. On: experts may ask, reply and send work back." Loaded from and saved to `messages_on`; the desk reads it at its next wake.
+
+**Message log** (`core/desk_team.py`, `gui/ai_desk_team_log.py`). `DeskEvent` gains `target: str = ""` and `detail: str = ""`. For a `message` event, `day_events` reads its row (key `message|<id>`): `target` is the receiver, `detail` is "<type> from <sender name> to <receiver name>: <subject or first 60 chars of text> (<state>)", and its calls are the activity rows with that message id. `woke_text` shows the target's name for a message event; the "Why" cell shows `detail`; ids are in the tooltip.
+
+**Threads view** (`gui/ai_desk_threads.py`, `ThreadsView`, a fourth Team at work tab "Threads" with icon `message-square`).
+- Top: a table with columns Started, Starter, Messages, Rounds, State, Tokens, today's threads newest first (`thread_rows(home, day)`).
+- Below: a read-only list of the selected thread's messages (`messages_of(home, thread)`), one line each: time, type, from → to, subject or text, state.
+- Empty text when there are no threads: "No messages today. Agent messages are off" or "No messages today", by the setting.
+- Refreshed with the other Team at work tabs (same timer and refresh call); no work on the GUI thread beyond the two small reads. The message list is rebuilt only when the thread or its message count changes, so the scroll place is kept.

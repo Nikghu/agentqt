@@ -1,6 +1,7 @@
 """
 Module: MD-DSK-002.001.M08 — core/desk_agents.py
 Parent SRD: SRD-DSK-002.001
+Also: SRD-DSK-011.016 (``Talker``, ``talker``), SRD-DSK-011.026 (``Facts.inbox``)
 Also: SRD-DSK-002.005 (skills get only their folder, facts and an ask function),
 SRD-DSK-002.006 (generic levels), SRD-DSK-002.008 (skill needs)
 
@@ -13,9 +14,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal, Protocol, TypeVar
+from typing import TYPE_CHECKING, Literal, Protocol, TypeVar, runtime_checkable
 
 from pydantic import BaseModel
+
+if TYPE_CHECKING:
+    from us_swing.core.desk_msg import Draft
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -32,6 +36,7 @@ class Facts:
     data_day: str
     fresh: bool
     why_stale: str = ""
+    inbox: tuple[int, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -74,3 +79,21 @@ class Skill(Protocol):
     def facts(self, home: Path) -> Facts: ...
 
     def act(self, ctx: AgentContext, facts: Facts) -> list[FeedItem]: ...
+
+
+@runtime_checkable
+class Talker(Protocol):
+    """A context that can carry messages: the gateway of a skill that talks."""
+
+    talk: bool
+    drafts: list[Draft]
+
+    def send(self, draft: Draft) -> None: ...
+
+
+def talker(ctx: AgentContext) -> Talker | None:
+    """The context as a ``Talker`` when messages are on for it, else ``None`` (SRD-DSK-011.016).
+
+    Test fakes and replays are not talkers, so skills behave as before with them.
+    """
+    return ctx if isinstance(ctx, Talker) and ctx.talk else None

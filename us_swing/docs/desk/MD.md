@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.17.0: MD-DSK-011.015.M29 added; M27, M28, M15, M16, M10, M11, M12, M14, M08, M13 changed (AI Desk v3 M1, 2026-11-13).
 > v0.16.0: MD-DSK-011.001.M27 and MD-DSK-012.001.M28 added; M04 changed (AI Desk v3 M0, 2026-11-13).
 > v0.15.0: MD-DSK-010.001.M25 gains `raise_owner_test` (SRD-DSK-010.016, 2026-11-12).
 > v0.14.0: M25 changed — `raise_follow_ups()` for SRD-DSK-010.015 (step F).
@@ -159,3 +160,13 @@ Changed (step F): M25 gains `raise_follow_ups()` — SRD-DSK-010.015; MKT `marke
 Changed: M04 (`desk/process.py`: `start()` calls `fill_registry()` — SRD-DSK-012.009).
 
 SRD coverage: 011.001–.014 by M27; 012.001–.008, .010 and .011 by M28; .009 by M28 and M04.
+
+## FO-DSK-011 (AI Desk v3 M1): Messages and the Reply Path
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-DSK-011.015.M29 | SRD-DSK-011.015 | `us_swing/src/us_swing/core/desk_messages.py` | `messages` and `threads` tables, the 6-step check, receivers, guardrails, store and wake, refusals, expiry, inbox block, open-started check, reads for the GUI | `accept()`, `inbox()`, `inbox_text()`, `mark_seen()`, `refuse_inbox()`, `expire_due()`, `open_started()`, `read_message()`, `thread_rows()`, `messages_of()`, `Roster`, `ThreadRow`, `MessageRow` | `sqlite3`, M27, M28, M15 | No |
+
+Changed: M27 (`core/desk_msg.py`: send_back parent-or-to rule, `Draft`, `with_messages()`, `InboxReply` — 011.003, .004, .016), M28 (`core/desk_registry.py`: format `idea_fix.v1` — 011.019), M15 (`core/desk_events.py`: `message` rule, `target` column, `post_message()` — .024), M16 (`desk/router.py`: addressed wake, no rewake gap, waiting step and release, expiry each pass — .025, .029, .023), M10 (`desk/employees_step.py`: message wake, inbox facts, payer part, accept drafts, refusals — .026, .028, .030, .031), M11 (`desk/gateway.py`: `talk`, `drafts`, `send()`, message id on tries — .016, .030), M12 (`desk/budget.py`: `Part.message` — .030), M14 (`desk/recorder.py`: `message` column, `last_wake` skips message turns — .025, .030), M08 (`core/desk_agents.py`: `Facts.inbox`, `talker()` — .016, .026), M13 (`core/desk_ai_settings.py`: `messages_on` — .031).
+
+SRD coverage: 011.003, .004 and .016 by M27; .014, .015, .017–.024, .026, .027 and .032 by M29; .025 by M16 and M14; .028 by M10 and M29; .029 by M16 and M29; .030 by M10, M11, M12 and M14; .031 by M13, M10 and M11.

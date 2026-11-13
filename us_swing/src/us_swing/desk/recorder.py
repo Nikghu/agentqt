@@ -1,6 +1,7 @@
 """
 Module: MD-DSK-005.001.M14 — desk/recorder.py
 Parent SRD: SRD-DSK-005.001
+Also: SRD-DSK-011.030 (``message`` column), SRD-DSK-011.025 (message turns skip the rewake gap)
 Also: SRD-DSK-005.002 (append-only), SRD-DSK-005.003 (briefs), SRD-DSK-003.009 (last wake),
 SRD-DSK-005.006 (replay tries are marked), SRD-DSK-006.004 (shadow tries are marked),
 SRD-DSK-004.008 (budget part, payer and ticket of each try)
@@ -38,7 +39,7 @@ CREATE TABLE IF NOT EXISTS briefs (
 _ADDED = (("activity", "employee_name", "TEXT"), ("briefs", "employee_id", "TEXT"),
           ("activity", "replay", "INTEGER DEFAULT 0"), ("activity", "shadow", "INTEGER DEFAULT 0"),
           ("activity", "part", "TEXT"), ("activity", "payer", "TEXT"),
-          ("activity", "ticket", "INTEGER"))
+          ("activity", "ticket", "INTEGER"), ("activity", "message", "INTEGER"))
 _GUARDS = [
     f"CREATE TRIGGER IF NOT EXISTS {table}_no_{op.lower()} BEFORE {op} ON {table} "
     f"BEGIN SELECT RAISE(ABORT, '{table} is append-only'); END"
@@ -75,6 +76,7 @@ class Attempt:
     part: str = "plan"
     payer: str = ""
     ticket: int | None = None
+    message: int | None = None
 
 
 @dataclass(frozen=True)
@@ -169,7 +171,8 @@ class Recorder:
     def last_wake(self, employee: str) -> datetime | None:
         """Start of the employee's latest try that was not a replay, or ``None``."""
         row = self._con.execute(
-            "SELECT MAX(started) FROM activity WHERE employee = ? AND COALESCE(replay, 0) = 0",
+            "SELECT MAX(started) FROM activity WHERE employee = ? AND COALESCE(replay, 0) = 0 "
+            "AND message IS NULL",
             (employee,)).fetchone()
         return datetime.fromisoformat(row[0]) if row and row[0] else None
 

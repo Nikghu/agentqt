@@ -5,6 +5,9 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.113.2: SRD-GUI-034.070 and 035.015–.016 Implemented 2026-11-13.
+> v2.113.1: SRD-GUI-034.070 and 035.015–.016 approved by user 2026-11-13.
+> v2.113.0: AI Desk v3 M1 (user, 2026-11-13): SRD-GUI-034.070 and 035.015–.016 added as Draft — messages switch, message log and Threads view.
 > v2.112.2: SRD-GUI-036.009–.010 Implemented 2026-11-12.
 > v2.112.1: SRD-GUI-036.009–.010 approved by user 2026-11-12.
 > v2.112.0: Team tree (user, 2026-11-12): SRD-GUI-036.009–.010 added as Draft — reporting tree and number codes.
@@ -794,6 +797,7 @@
 | SRD-GUI-034.067 | FO-GUI-034 | Should | AI Desk shows its eight sections as underline tabs under the header, Command first with its waiting count; the left panel shows no AI Desk menu. | section list | tab row | Replaces the sidebar menu of SRD-GUI-018.012 | Implemented |
 | SRD-GUI-034.068 | FO-GUI-034 | Must | The app starts the desk with its own process id when it opens and sends Stop when it closes. | app start, close | launch, command | Off the GUI thread; never a second desk; close does not wait for the run | Implemented |
 | SRD-GUI-034.069 | FO-GUI-034 | Should | Desk labels name the morning run: the Next run tile, Desk settings, Team at work trigger, empty notes and the feed card title. | clock, runs | labels | Next run = today from 04:00 ET while due, else the next trading day; old `evening` runs and briefs still show | Implemented |
+| SRD-GUI-034.070 | FO-GUI-034 | Must | Desk settings has an Agent messages switch, off by default, saved as `messages_on`. | switch | desk settings | Applies at the next desk wake | Implemented |
 
 ## FO-GUI-035: AI Desk Team at Work
 
@@ -813,6 +817,8 @@
 | SRD-GUI-035.012 | FO-GUI-035 | Should | Team at work matches the design look: icon cards with clear borders, dot chips, drawn arrows, stat tiles, underline tabs and bordered panels. | theme tokens, icons | restyled section | Look only; data and actions unchanged | Implemented |
 | SRD-GUI-035.013 | FO-GUI-035 | Should | AI Desk status pills, Right now, Last run, the desk state chip and This run lines show a 3 px left bar in the status colour instead of a dot. | state key | restyled status | Look only; Floor, timeline and backtest dots unchanged | Implemented |
 | SRD-GUI-035.014 | FO-GUI-035 | Should | The selected pipeline card and the selected Team row show a lighter fill and a grey border instead of the accent border. | selection | restyled card | Working pulse border unchanged | Implemented |
+| SRD-GUI-035.015 | FO-GUI-035 | Must | The event log shows each message event with its type, from and to, subject and state. | `messages`, events | log rows | Names from employee files; ids in the tooltip | Implemented |
+| SRD-GUI-035.016 | FO-GUI-035 | Must | A Threads view lists today's threads with starter, messages, send-back rounds, state and tokens, and shows the messages of the selected thread. | `threads`, `messages`, activity | list and detail | Read-only; newest first | Implemented |
 
 ## FO-GUI-036: AI Desk Team Setup
 

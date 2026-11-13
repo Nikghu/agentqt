@@ -1,6 +1,7 @@
 """
 Module: MD-MKT-006.005.M04 — market/news_review.py
 Parent SRD: SRD-MKT-006.005
+Also: SRD-MKT-006.013 (inbox reply only) — AI Desk v3 M1
 Also: SRD-MKT-006.006 (typed tags), SRD-MKT-006.007 (news points), SRD-MKT-006.008 (final
 score in ``news_tags``), SRD-MKT-006.009 (market note in the feed)
 
@@ -20,9 +21,10 @@ from typing import Annotated, Literal
 import pandas as pd
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
-from us_swing.core.desk_agents import AgentContext, Facts, FeedItem
+from us_swing.core.desk_agents import AgentContext, Facts, FeedItem, talker
 from us_swing.core.econ_calendar import events_between, next_trading_day, trading_days_after
 from us_swing.core.desk_lessons import with_lessons
+from us_swing.core.desk_msg import InboxReply
 from us_swing.market.candles import CANDLE_DB
 from us_swing.market.setup_review import ideas_day, listed_frame, rule_regime, table
 from us_swing.market.store import MarketStore, NewsTagRow
@@ -97,6 +99,7 @@ class NewsReviewSkill:
     key = KEY
     needs: tuple[str, ...] = ()
     answer = NewsReview
+    talks = True
 
     def __init__(self, candles: Path = CANDLE_DB) -> None:
         """Use ``candles`` to check that the ideas are up to date."""
@@ -158,6 +161,9 @@ class NewsReviewSkill:
         Without a valid answer the code rows (event points) stay and no brief is posted,
         so a later run on the same data day asks again.
         """
+        if facts.inbox and talker(ctx) is not None:
+            ctx.ask(facts.text, InboxReply)  # SRD-MKT-006.013: only the reply; tags unchanged
+            return []
         day = facts.data_day
         first = date.fromisoformat(day)
         store = MarketStore(ctx.home)

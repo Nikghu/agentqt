@@ -1,6 +1,7 @@
 """
 Module: MD-GUI-035.006.M03 — AI Desk Team at work: Event log
 Parent SRD: SRD-GUI-035.006
+Also: SRD-GUI-035.015 (message rows)
 
 A day of desk events: a clickable day strip, filters and a tree whose event rows open to
 the LLM calls each event caused.
@@ -59,7 +60,9 @@ def is_problem(event: DeskEvent) -> bool:
 
 
 def woke_text(event: DeskEvent, members: Sequence[Member]) -> str:
-    """Who an event wakes, in plain words."""
+    """Who an event wakes, in plain words; a message wakes only its receiver."""
+    if event.kind == "message":
+        return next((m.name for m in members if m.id == event.target), event.target or "nobody")
     names = [m.name for m in members if event.kind in m.triggers]
     if not names:
         return "nobody"
@@ -273,10 +276,13 @@ class EventLogView(QWidget):
             text, tone = result_of(ev)
             cost = sum(c.cost_usd for c in ev.calls)
             item = QTreeWidgetItem([
-                f"{ev.created:%H:%M:%S}", ev.name, ev.why, _URGENCY.get(ev.priority, "Low"),
+                f"{ev.created:%H:%M:%S}", ev.name, ev.detail or ev.why,
+                _URGENCY.get(ev.priority, "Low"),
                 woke_text(ev, self._members), text, _took(ev),
                 f"${cost:.3f}" if ev.calls else "—"])
             item.setData(0, _ROLE, ev.id)
+            if ev.target:
+                item.setToolTip(2, f"Message event {ev.id} to {ev.target}")
             item.setForeground(5, QColor(getattr(C, tone)))
             font = item.font(1)
             font.setBold(True)

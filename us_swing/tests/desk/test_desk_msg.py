@@ -1,16 +1,13 @@
 """Tests for MD-DSK-011.001.M27 — core/desk_msg.py."""
 from __future__ import annotations
 
-import sqlite3
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import Any
 
 import jsonschema
 import pytest
 from pydantic import ValidationError
 
-from tests.desk.conftest import FakeClock
 from us_swing.core.desk_msg import (
     AskBody,
     DecisionBody,
@@ -23,7 +20,6 @@ from us_swing.core.desk_msg import (
     parse_body,
     reason,
 )
-from us_swing.desk.process import DeskProcess
 
 AT = "2026-11-12T08:20:04-05:00"
 DUE = "2026-11-12T08:45:00-05:00"
@@ -288,23 +284,3 @@ def test_json_schema_refuses() -> None:
     with pytest.raises(jsonschema.ValidationError):
         jsonschema.validate({"type": "ask", "subject": "s", "extra": 1}, schema)
 
-
-def test_format_only() -> None:
-    """UT-DSK-011.014.M27.T01: Format only."""
-    src = Path(__file__).parents[2] / "src" / "us_swing"
-    users = [p.name for p in src.rglob("*.py")
-             if p.name not in ("desk_msg.py", "desk_registry.py")
-             and "desk_msg" in p.read_text(encoding="utf-8")]
-    assert users == []
-
-
-def test_no_message_tables(home: Path, clock: FakeClock) -> None:
-    """UT-DSK-011.014.M27.T02: No message tables."""
-    proc = DeskProcess(home, clock=clock, sleep=lambda _s: None)
-    assert proc.start()
-    proc.close()
-    con = sqlite3.connect(home / "desk.db")
-    names = {r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
-    con.close()
-    assert "tools" in names
-    assert not {"messages", "threads"} & names

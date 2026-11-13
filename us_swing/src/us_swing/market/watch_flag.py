@@ -1,6 +1,7 @@
 """
 Module: MD-MKT-013.008.M02 — market/watch_flag.py
 Parent SRD: SRD-MKT-013.008
+Also: SRD-MKT-005.023 (fixed levels in the plan text) — AI Desk v3 M1
 Also: SRD-MKT-013.009 (verdict form, feed item, broken alert), SRD-MKT-013.012 (log line)
 
 The flag skill: for the oldest flag of the day that has no answer yet, shows the model the
@@ -22,7 +23,7 @@ from us_swing.core.desk_alerts import raise_alert
 from us_swing.core.desk_watch import NY, answer_flag, connect, label, next_flag, open_trades
 from us_swing.core.desk_watch import plan_day as _plan_day
 from us_swing.market.candles import CANDLE_DB
-from us_swing.market.watch import today_bars
+from us_swing.market.watch import levels, today_bars
 
 log = logging.getLogger(__name__)
 
@@ -55,9 +56,10 @@ def _plan_text(home: Path, symbol: str, day: str) -> str:
     try:
         plan = _plan_day(con, day)
         if plan is not None:
+            join, trig_col, stop_col = levels(con)
             for side, trig, stop, setup in con.execute(
-                    'SELECT side, "trigger", stop, setup FROM ideas WHERE date = ? AND '
-                    "symbol = ?", (plan, symbol)):
+                    f"SELECT i.side, {trig_col}, {stop_col}, i.setup FROM ideas i {join} "  # noqa: S608
+                    "WHERE i.date = ? AND i.symbol = ?", (plan, symbol)):
                 lines.append(f"Idea: {side}, trigger {trig}, stop {stop}, setup {setup}")
     finally:
         con.close()

@@ -1,6 +1,7 @@
 """
 Module: MD-DSK-004.003.M12 — desk/budget.py
 Parent SRD: SRD-DSK-004.003
+Also: SRD-DSK-011.030 (``Part.message``: the thread starter pays)
 Also: SRD-DSK-004.004 — Claude CLI token cap and calls per day
 Also: SRD-DSK-004.007 (50/20/30 split), SRD-DSK-004.009 (part and ticket caps, the raiser
 pays for a ticket), SRD-DSK-004.010 (refusal log)
@@ -39,6 +40,7 @@ class Part:
     tokens_per_day: int
     ticket: int | None = None
     ticket_cap: int | None = None
+    message: int | None = None
 
 
 def part_cap(part: Part) -> int:
