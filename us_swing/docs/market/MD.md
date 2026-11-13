@@ -189,7 +189,7 @@ SRD coverage: .001 by M01; .002 by M02; .003–.006 and .008 by M03; .007 by M04
 | MD-MKT-012.002.M01 | SRD-MKT-012.002 | `us_swing/src/us_swing/market/lesson_reflect.py` | Stats of closed picks by tag, reflect skill, answer form, candidates kept, log | `LessonReflectSkill`, `LessonReflect`, `stats_text()` | `core.desk_lessons` | No |
 | MD-MKT-012.004.M02 | SRD-MKT-012.004 | `us_swing/src/us_swing/market/employees/emp-010/`, `core/desk_steps.py` | Default reflect employee and the `lesson_reflect` skill path | — | M01 | No |
 | MD-MKT-012.005.M03 | SRD-MKT-012.005 | `us_swing/src/us_swing/market/setup_review.py`, `news_review.py`, `risk_check.py`, `lead_brief.py` | Lessons block at the end of the facts of the four pick makers | — | `core.desk_lessons` | No |
-| MD-MKT-012.007.M04 | SRD-MKT-012.007 | `us_swing/src/us_swing/market/view_check.py` | View check step: due views against daily closes, scores and review | `ViewCheckStep`, `move_result()` | `core.desk_memory`, `market.candles` | No |
+| MD-MKT-012.007.M04 | SRD-MKT-012.007 | `us_swing/src/us_swing/market/view_check.py` | View check step: due views against daily closes, scores and review | `ViewCheckStep`, `view_move()` | `core.desk_memory`, `market.candles` | No |
 
 SRD coverage (M3): 012.007 and .008 by M04.
 

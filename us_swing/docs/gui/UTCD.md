@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.37.1: UT-GUI-034.072 and 037.005–.008 Pass (10, 2026-11-13).
 > v1.37.0: UT-GUI-034.072 and 037.005–.008 added (10, Not Run) (2026-11-13).
 > v1.36.1: UT-GUI-034.071, 035.017 and 036.011 Pass (4, 2026-11-13).
 > v1.36.0: UT-GUI-034.071, 035.017 and 036.011 added (Not Run, 4) — AI Desk v3 M2 (2026-11-13).
@@ -1342,13 +1343,13 @@ Test files:
 
 | ID | Module | Type | Title | Input | Expected | Status |
 |---|---|---|---|---|---|---|
-| UT-GUI-037.005.M01.T01 | MD-GUI-037.001.M01 | Positive | Kind filter (SRD-GUI-037.005) | choose Notes with 2 notes | 2 rows with owner, text, symbol, direction, made, status, right, wrong | Not Run |
-| UT-GUI-037.005.M01.T02 | MD-GUI-037.001.M01 | Negative | Lessons as before (SRD-GUI-037.005) | choose Lessons | lesson table, buttons and proof list as before; Employee combo hidden | Not Run |
-| UT-GUI-037.006.M01.T01 | MD-GUI-037.001.M01 | Positive | Employee filter (SRD-GUI-037.006) | two employees with notes; choose one | only the notes of that employee | Not Run |
-| UT-GUI-037.006.M01.T02 | MD-GUI-037.001.M01 | Negative | All (SRD-GUI-037.006) | Employee All | notes of every owner | Not Run |
-| UT-GUI-037.007.M01.T01 | MD-GUI-037.001.M01 | Positive | Core block box (SRD-GUI-037.007) | choose an employee with a view | box shows the same text as core_block() | Not Run |
-| UT-GUI-037.007.M01.T02 | MD-GUI-037.001.M01 | Negative | Hidden for All (SRD-GUI-037.007) | Employee All | box hidden | Not Run |
-| UT-GUI-037.008.M01.T01 | MD-GUI-037.001.M01 | Positive | Pin note (SRD-GUI-037.008) | choose a note, Pin | memory_edits row pin; row yellow | Not Run |
-| UT-GUI-037.008.M01.T02 | MD-GUI-037.001.M01 | Negative | No buttons on views (SRD-GUI-037.008) | Kind Views | buttons hidden | Not Run |
-| UT-GUI-034.072.M15.T01 | MD-GUI-034.016.M15 | Positive | Memory v2 switch (SRD-GUI-034.072) | tick Memory v2, save | memory_v2_on true | Not Run |
-| UT-GUI-034.072.M15.T02 | MD-GUI-034.016.M15 | Negative | Off by default (SRD-GUI-034.072) | new desk folder | box unticked | Not Run |
+| UT-GUI-037.005.M01.T01 | MD-GUI-037.001.M01 | Positive | Kind filter (SRD-GUI-037.005) | choose Notes with 2 notes | 2 rows with owner, text, symbol, direction, made, status, right, wrong | Pass |
+| UT-GUI-037.005.M01.T02 | MD-GUI-037.001.M01 | Negative | Lessons as before (SRD-GUI-037.005) | choose Lessons | lesson table, buttons and proof list as before; Employee combo hidden | Pass |
+| UT-GUI-037.006.M01.T01 | MD-GUI-037.001.M01 | Positive | Employee filter (SRD-GUI-037.006) | two employees with notes; choose one | only the notes of that employee | Pass |
+| UT-GUI-037.006.M01.T02 | MD-GUI-037.001.M01 | Negative | All (SRD-GUI-037.006) | Employee All | notes of every owner | Pass |
+| UT-GUI-037.007.M01.T01 | MD-GUI-037.001.M01 | Positive | Core block box (SRD-GUI-037.007) | choose an employee with a view | box shows the same text as core_block() | Pass |
+| UT-GUI-037.007.M01.T02 | MD-GUI-037.001.M01 | Negative | Hidden for All (SRD-GUI-037.007) | Employee All | box hidden | Pass |
+| UT-GUI-037.008.M01.T01 | MD-GUI-037.001.M01 | Positive | Pin note (SRD-GUI-037.008) | choose a note, Pin | memory_edits row pin; row yellow | Pass |
+| UT-GUI-037.008.M01.T02 | MD-GUI-037.001.M01 | Negative | No buttons on views (SRD-GUI-037.008) | Kind Views | buttons hidden | Pass |
+| UT-GUI-034.072.M15.T01 | MD-GUI-034.016.M15 | Positive | Memory v2 switch (SRD-GUI-034.072) | tick Memory v2, save | memory_v2_on true | Pass |
+| UT-GUI-034.072.M15.T02 | MD-GUI-034.016.M15 | Negative | Off by default (SRD-GUI-034.072) | new desk folder | box unticked | Pass |

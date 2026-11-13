@@ -1498,7 +1498,7 @@ Side and symbol of a fix must match the send_back's idea; another idea is ignore
 ```
 views  = desk_memory.open_views_due(home, last_candle_day)     # due <= last day with closes
 closes = CandleReader(CANDLE_DB) daily closes for their symbols, made .. due
-for view: start = close on made day (or the last close before it), end = close on due
+for view: start = close on made day (or the last close before it), end = the 10th close after it
           no start or end close -> stays open (checked on a later run); debug log
           move = (end - start) / start * 100
           up:   move >= 1 right, move <= -1 wrong, else neutral; down: mirrored

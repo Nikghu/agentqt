@@ -1289,14 +1289,13 @@ The boss's own skill and its facts are not used.
 
 ```
 connect(home)    -> sqlite3 on memory.db, WAL, busy_timeout 5000,
-                    ATTACH desk.db AS desk, executescript(SCHEMA + desk_lessons.SCHEMA),
-                    move_lessons() once
+                    ATTACH desk.db AS desk, executescript(SCHEMA)
 read_only(home)  -> memory.db?mode=ro + ATTACH desk.db?mode=ro; None when memory.db is missing
 ```
 
 Unqualified names resolve to `main` (memory.db) first, then `desk`, so `desk_lessons._CASES_SQL` (pick_results, ideas, regime_snapshot, setup_review, news_tags) runs unchanged.
 
-**2. Lesson move** (.011). `move_lessons(con)`: when `memory_state.lessons_moved` is empty and `desk.lessons` exists, copy `lessons`, `lesson_uses`, `lesson_edits` and `memory_state` rows (ids kept) inside one transaction, then set `lessons_moved = <now>` and log `[Memory] Moved N lesson(s) to the memory file`. The `desk.db` tables are left as they are (backup). `desk_lessons.connect()` and `_read_only()` call `desk_memory.connect()` / `read_only()`; no other lesson code changes. The GUI and the desk use the same two functions, so whoever opens first does the move.
+**2. Lesson move** (.011). `desk_lessons._move(con)`, called by `desk_lessons.connect()` after its own schema: when `memory_state.lessons_moved` is empty and `desk.lessons` exists, copy `lessons`, `lesson_uses`, `lesson_edits` and `memory_state` rows (ids kept) inside one transaction, then set `lessons_moved = <now>` and log `[Memory] Moved N lesson(s) to the memory file`. The `desk.db` tables are left as they are (backup). `desk_lessons.connect()` and `_read_only()` call `desk_memory.connect()` / `read_only()`, and `_has()` uses `desk_memory.has_table()` (`pragma_table_info`, which also finds the attached `desk.db` tables); no other lesson code changes. The GUI and the desk use the same two functions, so whoever opens first does the move.
 
 **3. Tables** (.012, .017, .022).
 
@@ -1311,7 +1310,7 @@ memory_edits(id PK, memory_id, action pin|unpin|retire, created, applied, note)
 
 Note status: `active`, `weak`, `retired`. View status: `open`, `right`, `wrong`, `neutral`, `retired`.
 
-**4. Remember field** (.013). `core/desk_msg.py` gets `Remember(kind: note|view, text ≤200, symbol: str|None ≤10, direction: up|down|None)` with a validator (a view needs symbol and direction) and `with_remember(schema)` that adds `remember: list[Remember] = []` (max 3), like `with_messages`. `Gateway(..., remember=False)`: when on, `ask()` widens the schema and keeps `gateway.notes`. The employees step passes `remember = memory_v2_on and spec.level in ("lead", "expert")` for the normal wake and the inbox wake; the boss reply-only turn has no remember field.
+**4. Remember field** (.013). `core/desk_msg.py` gets `Remember(kind: note|view, text ≤200, symbol: str|None ≤10, direction: up|down|None)` with a validator (a view needs symbol and direction) and `with_remember(schema)` that adds `remember: list[Remember] = []` (max 3), like `with_messages`. `Gateway(..., remember=False)`: when on, `ask()` widens the schema and keeps the items in a private list that the desk reads with the module function `kept_notes(gateway)`, so the skill's context stays as SRD-DSK-002.005 says. The employees step passes `remember = memory_v2_on and spec.level in ("lead", "expert")` for the normal wake and the inbox wake; the boss reply-only turn has no remember field.
 
 **5. Clean write** (.014, .015). `write(home, owner, drafts, day, now) -> list[str]` (one result per draft):
 
@@ -1340,7 +1339,7 @@ Cut to 1,200 characters at a line end.
 
 **7. Recall** (.017). `recall(home, owner, facts_text, day) -> str`. Terms = distinct upper-case words of 1–5 letters in the facts that are a `memories.symbol` of the owner (at most 30). With terms: `memories_fts MATCH 'symbol:(A OR B ...)'` joined to active unpinned notes of the owner, order by bm25, then `right - wrong` desc, then `updated` desc. Fill up to 10 with the owner's newest other active unpinned notes. Pinned notes are in the core block, not recall. Cut at 4,000 characters. Each shown note gets a `memory_uses(day, owner, id)` row.
 
-**8. Wake** (`desk/employees_step.py`). In `_wake` and `_answer_inbox`, when memory is on for the hire (§4 rule), `facts.text += "\n\n" + core_block + "\n\n" + recall` (only non-empty parts) before `act`. After `act`, `write(home, spec.id, gateway.notes, facts.data_day, now)`. A shadow wake gets neither.
+**8. Wake** (`desk/employees_step.py`). In `_wake` and `_answer_inbox`, when memory is on for the hire (§4 rule), `facts.text += "\n\n" + core_block + "\n\n" + recall` (only non-empty parts) before `act`. After `act`, `write(home, spec.id, kept_notes(gateway), facts.data_day, now)`; a write error is logged and the wake still counts. A shadow wake gets neither.
 
 **9. Scores** (.018–.020). `score_view(con, view_id, move_pct)` sets the view status by the ±1% rule and, for right or wrong, adds 1 to `right` or `wrong` of every note in `memory_uses` with the view's `made` day and owner. `review(home, now)`:
 
@@ -1363,3 +1362,5 @@ code: id must be the owner's active/weak, unpinned note; merge needs `into` of t
 **11. Edits** (.022). `add_edit(home, memory_id, action, now)` writes a `memory_edits` row; `apply_edits(home, now)` runs in the desk process next to the lesson edits; a retired note stays retired on pin.
 
 **12. Settings** (.023). `DeskAiSettings.memory_v2_on: bool = False`. Off: no remember field, no blocks, no clean-up, no view check (DD-MKT-012.007.D01). The lesson move always runs.
+
+**13. Code review fixes.** A bad `remember` item (view without symbol or direction, unknown kind) is dropped and a long text is cut to 200, so the rest of the answer is still used; extra items past 3 are dropped. Recall matches only the `symbol` column, with terms limited to the owner's note symbols, so headings in the facts do not crowd out tickers. Before `memory.db` exists, lesson reads fall back to `desk.db` read-only, so the GUI shows lessons before the desk's first tick. The clean-up re-reads the owner's unpinned notes before each action, so a note pinned meanwhile is never retired and merge counts are current. The week key is set after the clean-up loop, so a crash retries next run. A view still open 30 days after its check day (no prices) retires with "no prices to check".

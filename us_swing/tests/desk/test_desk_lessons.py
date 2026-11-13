@@ -31,7 +31,7 @@ PULL = {"setup": "pullback"}
 
 
 def _rows(home: Path, sql: str, params: tuple[Any, ...] = ()) -> list[Any]:
-    con = sqlite3.connect(home / "desk.db")
+    con = desk_lessons.connect(home)
     try:
         return con.execute(sql, params).fetchall()
     finally:

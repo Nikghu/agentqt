@@ -13,8 +13,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from pydantic import ValidationError
-
-from tests.market.p5b_support import FakeCtx
+from us_swing.core.desk_lessons import connect as lessons_connect
 from us_swing.core.desk_research import KINDS, StepResult, Ticket
 from us_swing.core.desk_steps import DEFAULT_EMPLOYEE_PACKAGES, SKILL_PATHS
 from us_swing.desk.registry import default_folders, load_employee
@@ -38,6 +37,8 @@ from us_swing.market.tuning_strategy import (
     strategy_knobs,
     trade_r,
 )
+
+from tests.market.p5b_support import FakeCtx
 
 NOW = datetime(2026, 11, 11, 11, 0)
 
@@ -123,13 +124,10 @@ def _run(skill: SetupTuningSkill, ctx: Any, ticket: Ticket) -> list[StepResult]:
 
 
 def _lessons(home: Path) -> list[Any]:
-    path = home / "desk.db"
-    if not path.exists():
+    if not (home / "desk.db").exists():
         return []
-    con = sqlite3.connect(path)
+    con = lessons_connect(home)
     try:
-        if not con.execute("SELECT name FROM sqlite_master WHERE name='lessons'").fetchall():
-            return []
         return con.execute("SELECT text, tags, claim, status FROM lessons").fetchall()
     finally:
         con.close()

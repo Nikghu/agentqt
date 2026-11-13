@@ -2,6 +2,7 @@
 Module: MD-DSK-011.001.M27 — core/desk_msg.py
 Parent SRD: SRD-DSK-011.001
 Also: SRD-DSK-011.003, .004 (send_back parent or to), SRD-DSK-011.016 (``Draft``, ``with_messages``)
+Also: SRD-DSK-009.013 (``Remember``, ``with_remember``)
 
 The one desk message format, ``desk.msg/1``: a thread row, an envelope with the core header,
 a body chosen by message type and meta keys that appear only when set. Every model refuses
@@ -17,6 +18,7 @@ from typing import Annotated, Any, Literal
 from pydantic import (
     AwareDatetime,
     BaseModel,
+    BeforeValidator,
     ConfigDict,
     Field,
     StringConstraints,
@@ -431,3 +433,53 @@ class InboxReply(BaseModel):
     model_config = _STRICT
 
     messages: list[Draft] = Field(min_length=1, max_length=5, description=_DRAFT_HELP)
+
+
+_REMEMBER_HELP = ("Things to remember (optional, at most 3). kind note: a short lesson or fact "
+                  "for later. kind view: your call on one stock, with symbol and direction up "
+                  "or down; it is checked against the price 10 trading days later.")
+
+
+class Remember(BaseModel):
+    """One note or view an employee wants to keep (SRD-DSK-009.013)."""
+
+    model_config = _STRICT
+
+    kind: Literal["note", "view"]
+    text: str = Field(min_length=1, max_length=200)
+    symbol: str | None = Field(default=None, max_length=10)
+    direction: Literal["up", "down"] | None = None
+
+    @model_validator(mode="after")
+    def _view_needs_call(self) -> Remember:
+        if self.kind == "view" and not (self.symbol and self.direction):
+            raise ValueError("a view needs a symbol and a direction")
+        return self
+
+
+def _good_items(value: Any) -> list[Remember]:
+    """The valid items of a remember list, at most 3; a bad item never fails the answer."""
+    if not isinstance(value, list):
+        return []
+    out: list[Remember] = []
+    for item in value:
+        if isinstance(item, dict) and isinstance(item.get("text"), str):
+            item = {**item, "text": item["text"][:200]}
+        try:
+            out.append(Remember.model_validate(item))
+        except ValidationError:
+            continue
+    return out[:3]
+
+
+@functools.cache
+def with_remember(schema: type[BaseModel]) -> type[BaseModel]:
+    """``schema`` plus an optional ``remember`` list of at most 3 items (SRD-DSK-009.013).
+
+    Bad or extra items are dropped, so the rest of the answer is still used.
+    """
+    model: type[BaseModel] = create_model(
+        schema.__name__, __base__=schema,
+        remember=(Annotated[list[Remember], BeforeValidator(_good_items)],
+                  Field(default_factory=list, description=_REMEMBER_HELP)))
+    return model
