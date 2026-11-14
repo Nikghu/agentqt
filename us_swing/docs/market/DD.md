@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.27.0: DD-MKT-021.001.D01 (table tools) and DD-MKT-010.020.D01 (table asks in the lead chat) added (AI Desk v3 M6, 2026-11-14).
 > v0.26.0: DD-MKT-020.001.D01 added — company day (AI Desk v3 M5, 2026-11-13).
 > v0.25.0: DD-MKT-010.009.D01 added — chat sessions, summaries, team ask and updates (AI Desk v3 M4, 2026-11-13).
 > v0.24.0: DD-MKT-012.007.D01 added — view check (AI Desk v3 M3, 2026-11-13).
@@ -1733,3 +1734,54 @@ Experts you may give feedback to: regime_view, sector_flow_view, setup_review, n
 - `gui/ai_desk_settings.py`: a "Company day" check box after Chat sessions, saved as `company_day_on`.
 - Command header: two console tiles, hidden while off. Day call: `<market> · <sectors>`, second line `Agreed: <names> · Disagreed: <names>` (names from the roster), `Huddle` chip when a huddle ran, result chip `right/wrong/neutral` once checked. Handover: the latest handover lines and their day. Data from `day_view(home)` in `core/desk_day.py`, read in `refresh_header` like the other header facts (small read-only queries).
 - Team at work: a one-line day strip above the view switch for the shown day: Stand-up (`standup_at`), Huddle (`huddle_at`, or skipped when none), Plan (`plan_at`), Market hours (09:30–16:00, done after 16:00), Day-end (`day_end_at`). Each shows the time or `waiting`/`skipped`. Data from `day_phases(home, day, now)`, where `day` is the newest plan day; Market hours are for the next trading day after it.
+
+## DD-MKT-021.001.D01 — Table Tools (AI Desk v3 M6)
+
+**Traces:** SRD-MKT-021.001–.006. `market/table_tools.py`; the registry, the plan and the caller are in DD-DSK-012.012.D01. Each tool is a plain function `tool(home: Path, symbols: Sequence[str]) -> ToolResult` (`core/desk_registry.ToolResult`). It only reads, takes no gateway (so it cannot call a model), and lets a read error rise to its tool group, which retries once.
+
+```
+rows     one dict per symbol that has a value: {"symbol": ..., <the tool's columns>}
+missing  "<symbol>" -> reason (no row at all)   or   "<symbol>.<col>" -> reason (one empty value)
+flags    symbol -> short fact
+```
+
+The latest data day is `MAX(date)` of `stock_rs` in `desk.db`, read-only. Daily bars come from `CandleReader(CANDLE_DB, topup=home)`, the reader the daily views use, so the table matches the day's RS and setups.
+
+| Tool | Columns | How | Missing |
+|---|---|---|---|
+| `data.daily_close` (.001) | close | last non-empty close of each symbol, 2 decimals | "no daily bars" |
+| `technical.rs_rank` (.002) | rs_rank | `stock_rs.rs_rating` of the latest day | "no RS rating for the latest day" |
+| `technical.atr_pct` (.003) | atr_pct | `setups.atr(bars, 14)` last value ÷ last close × 100, 2 decimals | "fewer than 15 daily bars" |
+| `technical.setup` (.004) | side, setup, trigger, stop | the `stock_score` row of the latest day with the higher score (long on a tie); `No setup` becomes setup `none` with `"<symbol>.trigger"` and `"<symbol>.stop"` missing as "no setup" | "not scored on the latest day" |
+| `calendar.earnings` (.005) | earn_days | `next_earnings(symbols)`; trading days after the latest data day up to the date (`core.econ_calendar.is_trading_day`) | "no earnings date found" (also for a date before the data day) |
+
+`calendar.earnings` adds the flag "earnings in <n> trading day(s)" when `earn_days` is 5 or less. With no `stock_rs` row at all the data day is today in New York. An empty symbol list gives an empty result. No tool writes to `desk.db`, `candles.db` or a file (.006).
+
+## DD-MKT-010.020.D01 — Table Asks in the Lead Chat (AI Desk v3 M6)
+
+**Traces:** SRD-MKT-010.020–.021. Builds on DD-MKT-010.009.D01 (one team ask and its update).
+
+**Hint** (`market/lead_chat.py`, .020). `_answer()` already adds `ASK_HINT` when sessions and agent messages are on. With `task_cards_on` and at least one ready format (`core.desk_tasks.ready_formats(home)`), it also adds:
+
+```
+For a table of facts about named stocks, send that ask to "skill:task_planner" with
+want = {"goal": "...", "done_when": "...", "inputs": {"symbols": ["AVGO", "MU"]},
+"schema": "<format id>"} (up to 30 symbols; add "cols" to get only some columns).
+The table is posted to the Master as your update.
+Ready formats:
+- setup_table.v1: symbol, close, rs_rank, atr_pct, side, setup, trigger, stop, earn_days
+```
+
+`keep_one_ask()` is unchanged: it keeps the first ask and its `want`.
+
+**Update** (`core/desk_chat.py`, `market/lead_chat.py`, .021). `TeamReply` gains `table: str = ""`. `team_reply()` fills it with `table_text(home, body)` when the reply body holds `data.rows`:
+
+```
+"Partial: <reason>"                     first line, only for a partial verdict
+header   the columns joined by " | "    (data.cols, or the format's columns)
+rows     one line each, cells joined by " | "; an empty value shows "-"
+"Missing: <key or column>: <reason>"    one line per nulls entry, at most 10, then "... and <n> more"
+"Note: <about>: <note>"                 one line per flag
+```
+
+`LeadChatSkill._update()`: when `team.table` is set, it saves that text with `add_update()` and makes no AI call. A refused or failed reply with no table keeps the M4 text "The team could not answer: <reason>".

@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.30.0: DD-GUI-041.001.D01 added — AI Desk Tools, chat table and Task cards switch (AI Desk v3 M6, 2026-11-14).
 > v1.28.0: DD-GUI-034.073.D01 added — chat sessions in Command and Desk settings (AI Desk v3 M4, 2026-11-13).
 > v1.27.0: DD-GUI-037.005.D01 added — Memory v2 in Memory and Desk settings (AI Desk v3 M3, 2026-11-13).
 > v1.26.0: DD-GUI-034.071.D01 added — escalation switch, escalation lines in Threads, Deputy picker (AI Desk v3 M2, 2026-11-13).
@@ -2067,3 +2068,16 @@ Run names: `evening` "Evening run", `manual` "Manual run", other kinds title-cas
   - On: a narrow session list on the left of the bubbles, rows "<title> · <MM-DD> · open|closed", newest first, with a "New discussion" button over it. `_chosen` is `None` (automatic) or a clicked session id; `_new` is set by New discussion. Clicking a row sets `_chosen` and shows `session_turns()`. New discussion calls `close_session()` for the shown session, clears `_chosen` and sets `_new`. Ask calls `session_for(home, now, chosen, text, new)` and then `ask_question(..., session=...)`; the panel then shows that session.
   - Off: list and button hidden, turns from `chat_turns()` as before.
   - `update` rows show as lead bubbles with "Update" after the name; the note under the chat shows `question_note()`, which can say "Waiting for the team"; the 2-second check keeps running while the note waits.
+
+## DD-GUI-041.001.D01 — AI Desk Tools, Chat Table and Task Cards Switch (AI Desk v3 M6)
+
+**Traces:** SRD-GUI-041.001–.005, SRD-GUI-034.079–.080. Data: DD-DSK-012.012.D01. The GUI only reads `desk.db` and `memory.db` through `core`; the switch is the one write, through `save_settings`.
+
+- **Tools section** (`gui/ai_desk_tools.py`, `ToolsView`, `tools_frame(name, home)`): "Tools" in the SETUP group before Desk settings; `gui/ai_desk.py` adds it to `GROUPS`, `_LIVE_SECTIONS` (rebuilt each time it is shown) and the section factory. Four blocks, top to bottom, in one scroll area:
+  - Tools: Name, Group, Kind, AI, Time limit, Status, from `list_tools()`; the group is `group_label(group_of(name))` for code tools and "MCP" for MCP tools.
+  - Table formats: Format, Columns (each as `name` or `name ← tool`), Plan (Active, Retired with its reason, or No plan), from `list_formats()` and `plan_rows()`.
+  - Task cards: Card (`TC-n`), Time (ET), Asked by (current name), Format, Rows, Result, Seconds, from `card_rows()`, newest first; a label under the table shows the picked card's parts, one line each: "<part> · <group label> · <tools> · <columns> · <rows> rows · <status> · <secs> s · <reason>".
+  - Failure log: Day and Text, from `failure_rows()`.
+  - Each block shows a short empty note when it has no rows. No timer; nothing runs on a worker thread because the four reads are small.
+- **Chat table** (`gui/ai_desk_chat.py`, .079): `table_html(text)` escapes the text and turns each run of lines that hold " | " into an HTML table (first line as the header row); `_bubble()` uses it in place of the plain escape. Other lines keep their line breaks.
+- **Switch** (`gui/ai_desk_settings.py`, .080): a "Task cards" check box after Company day, tooltip "Let the lead ask the planner for tables. Needs Agent messages.", saved as `task_cards_on`; disabled while Agent messages is unticked, like the Escalation box.

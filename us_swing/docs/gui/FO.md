@@ -7,6 +7,7 @@
 **Last Updated:** 2026-05-22
 **Project:** US Swing Trading System
 
+> v2.28.0: AI Desk v3 M6 (user, 2026-11-14): FO-GUI-041 AI Desk Tools added as Draft; FO-GUI-034 gains the Task cards switch and chat table bullet as Draft.
 > v2.27.0: AI Desk v3 M4 (user, 2026-11-13): FO-GUI-034 chat sessions bullets added as Draft.
 > v2.26.0: AI Desk v3 M3 (user, 2026-11-13): FO-GUI-037 memory v2 bullets and FO-GUI-034 Memory v2 switch added as Draft.
 > v2.25.0: AI Desk v3 M1 (user, 2026-11-13): FO-GUI-034 messages switch and FO-GUI-035 message log and Threads view bullets added as Draft.
@@ -1011,6 +1012,7 @@ The system shall add two workspaces, Market Floor and AI Desk, shown on sample d
 - The system shall show the lead chat sessions in Command with a New discussion button, and let the Master open an old session to continue it (AI Desk v3 M4).
 - The system shall show the lead's updates and a "Waiting for the team" note in the chat (AI Desk v3 M4).
 - The system shall let the Master user turn the Company day on or off in Desk settings, and show the day call and the handover note in Command (AI Desk v3 M5, user 2026-11-13).
+- The system shall let the Master user turn Task cards on or off in Desk settings, off by default, and show a table reply as a table in the chat (AI Desk v3 M6, user 2026-11-14; Draft).
 
 ### Acceptance Criteria
 
@@ -1146,3 +1148,22 @@ The system shall show every strategy card with its latest test result and let th
 
 1. AI Desk → Cards lists each card with Not tested, Testing, Pass, Fail or Can't test.
 2. Test on an untested card adds an approved strategy test ticket, and the card shows Testing.
+
+## FO-GUI-041: AI Desk Tools
+
+**Status:** Draft
+**Priority:** Should
+**Depends on:** FO-DSK-012 (tool registry, plans and task cards), FO-GUI-034 (AI Desk)
+**Source: User 2026-11-14 (AI Desk v3 M6): a read-only Tools view with the registry, the table formats and the task cards with their parts; the tool on/off switch comes in M7. Plan: https://claude.ai/artifact/3dr7g92HY5hvVQ9KiyrPvc (M6).**
+
+The system shall show the desk's tools, table formats and task cards in the AI Desk, read-only.
+
+- The system shall list every registry tool with its group, kind and status.
+- The system shall list every table format with its columns, the tool that makes each column and the state of its plan.
+- The system shall list the latest task cards and show the parts of a chosen card.
+- The system shall list the latest failure log rows.
+
+### Acceptance Criteria
+
+1. AI Desk → Tools lists the tools and the table formats after a desk start.
+2. After a table ask, its card shows one line per part with tool group, rows, result, seconds and reason.

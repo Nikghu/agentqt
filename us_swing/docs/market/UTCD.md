@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.28.0: UT-MKT-021.001–.006 and UT-MKT-010.020–.021 added (23, Not Run) (AI Desk v3 M6, 2026-11-14).
 > v0.27.1: UT-MKT-020.001–.024 Pass (67, 2026-11-13).
 > v0.27.0: UT-MKT-020.001–.024 added (67, Not Run) (AI Desk v3 M5, 2026-11-13).
 > v0.26.1: UT-MKT-010.009–.019 Pass (30, 2026-11-13).
@@ -804,3 +805,31 @@
 | UT-MKT-020.024.M08.T01 | MD-MKT-020.020.M08 | Positive | Log lines (SRD-MKT-020.024) | day-end act | one '[Company day]' line | Pass |
 | UT-MKT-020.018.M10.T01 | MD-MKT-020.018.M10 | Positive | Line after memory (SRD-MKT-020.018) | memory on; checked votes for the skill | wake facts end with the day-call line | Pass |
 | UT-MKT-020.018.M10.T02 | MD-MKT-020.018.M10 | Negative | No line when memory off (SRD-MKT-020.018) | memory off | facts without the line | Pass |
+
+## FO-MKT-021 / FO-MKT-010 (AI Desk v3 M6): Table Tools and Table Asks
+
+| ID | Module | Type | Title | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-MKT-021.001.M01.T01 | MD-MKT-021.001.M01 | Positive | Last close (SRD-MKT-021.001) | daily bars for 2 symbols | one row each with the last close, 2 decimals | Not Run |
+| UT-MKT-021.001.M01.T02 | MD-MKT-021.001.M01 | Negative | No daily bars (SRD-MKT-021.001) | a symbol with no bars | no row; missing "no daily bars" | Not Run |
+| UT-MKT-021.001.M01.T03 | MD-MKT-021.001.M01 | Edge | Desk top-up day used (SRD-MKT-021.001) | a newer bar only in `candle_topup` | close is the top-up close | Not Run |
+| UT-MKT-021.002.M01.T01 | MD-MKT-021.001.M01 | Positive | RS rank (SRD-MKT-021.002) | `stock_rs` rows of two days | rs_rank of the latest day | Not Run |
+| UT-MKT-021.002.M01.T02 | MD-MKT-021.001.M01 | Negative | No RS row (SRD-MKT-021.002) | a symbol not in `stock_rs` | missing with a reason | Not Run |
+| UT-MKT-021.003.M01.T01 | MD-MKT-021.001.M01 | Positive | ATR percent (SRD-MKT-021.003) | 20 bars with a fixed 2.00 range and close 100 | atr_pct 2.0 | Not Run |
+| UT-MKT-021.003.M01.T02 | MD-MKT-021.001.M01 | Negative | Too few bars (SRD-MKT-021.003) | 10 bars | missing "fewer than 15 daily bars" | Not Run |
+| UT-MKT-021.004.M01.T01 | MD-MKT-021.001.M01 | Positive | Better side (SRD-MKT-021.004) | long score 70, short score 40 | side long with its setup, trigger and stop | Not Run |
+| UT-MKT-021.004.M01.T02 | MD-MKT-021.001.M01 | Edge | No setup (SRD-MKT-021.004) | best row has `No setup` | setup none; trigger and stop missing as "no setup" | Not Run |
+| UT-MKT-021.004.M01.T03 | MD-MKT-021.001.M01 | Negative | Not scored (SRD-MKT-021.004) | a symbol with no score row | missing with a reason | Not Run |
+| UT-MKT-021.005.M01.T01 | MD-MKT-021.001.M01 | Positive | Trading days to earnings (SRD-MKT-021.005) | data day Friday, earnings next Tuesday | earn_days 2 | Not Run |
+| UT-MKT-021.005.M01.T02 | MD-MKT-021.001.M01 | Negative | No date (SRD-MKT-021.005) | no earnings date; a date before the data day | missing "no earnings date found" | Not Run |
+| UT-MKT-021.005.M01.T03 | MD-MKT-021.001.M01 | Positive | Near earnings flag (SRD-MKT-021.005) | earnings in 2 and in 9 trading days | a flag only for the first | Not Run |
+| UT-MKT-021.006.M01.T01 | MD-MKT-021.001.M01 | Positive | Read-only tools (SRD-MKT-021.006) | run the five tools | each gives a tool result; `desk.db` and the candle file are unchanged | Not Run |
+| UT-MKT-021.006.M01.T02 | MD-MKT-021.001.M01 | Edge | No symbols (SRD-MKT-021.006) | an empty symbol list | empty result with no error | Not Run |
+| UT-MKT-021.006.M01.T03 | MD-MKT-021.001.M01 | Negative | Read error rises (SRD-MKT-021.006) | the candle file is missing | the close tool raises; no made-up row | Not Run |
+| UT-MKT-010.020.M03.T01 | MD-MKT-010.003.M03 | Positive | Table hint (SRD-MKT-010.020) | sessions, messages and task cards on; one ready format | facts hold the planner address and the format with its columns | Not Run |
+| UT-MKT-010.020.M03.T02 | MD-MKT-010.003.M03 | Negative | No hint when off (SRD-MKT-010.020) | task cards off; task cards on with no ready format | no table hint in either | Not Run |
+| UT-MKT-010.021.M01.T01 | MD-MKT-010.001.M01 | Positive | Table text (SRD-MKT-010.021) | reply with 2 rows, one empty value, a nulls entry and a flag | header and rows joined by " \| "; "-" for the empty value; Missing and Note lines | Not Run |
+| UT-MKT-010.021.M01.T02 | MD-MKT-010.001.M01 | Edge | Partial and many reasons (SRD-MKT-010.021) | partial verdict with 12 nulls entries | first line "Partial:"; 10 Missing lines, then "... and 2 more" | Not Run |
+| UT-MKT-010.021.M01.T03 | MD-MKT-010.001.M01 | Negative | Text reply has no table (SRD-MKT-010.021) | reply with text only; refused reply | table text empty for both | Not Run |
+| UT-MKT-010.021.M03.T01 | MD-MKT-010.003.M03 | Positive | Update by code (SRD-MKT-010.021) | a table reply to the lead's ask | one update row with the table text; the model is not asked | Not Run |
+| UT-MKT-010.021.M03.T02 | MD-MKT-010.003.M03 | Positive | Chat question to table (SRD-MKT-010.021) | desk copy, all three switches on; question; lead answers with a table ask | answer row, then an update row with the table; only the lead's answer used tokens | Not Run |

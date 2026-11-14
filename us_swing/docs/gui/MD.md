@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.37.0: MD-GUI-041.001.M01 added — AI Desk Tools; M08 (workspace), M26 (chat) and M15 (settings) changed (AI Desk v3 M6, 2026-11-14).
 > v1.36.0: MD-GUI-034.078.M40 and MD-GUI-035.018.M06 added; M15 (settings) and MD-GUI-035.001.M01 (team) changed (AI Desk v3 M5, 2026-11-13).
 > v1.35.0: M26, M15 changed (AI Desk v3 M4, 2026-11-13).
 > v1.34.0: M01, M15 changed (AI Desk v3 M3, 2026-11-13).
@@ -552,3 +553,13 @@ No new module. Changed: MD-GUI-034.039.M26 (`gui/ai_desk_chat.py`: session list,
 | MD-GUI-035.018.M06 | SRD-GUI-035.018 | `us_swing/src/us_swing/gui/ai_desk_day.py`, `gui/ai_desk_team.py` | Day strip in Team at work: five phases with time or state | `DayStrip` | MKT `core/desk_day.py`, theme | No |
 
 Changed: MD-GUI-034.016.M15 (`gui/ai_desk_settings.py`: Company day switch — SRD-GUI-034.077), MD-GUI-035.001.M01 (`gui/ai_desk_team.py`: day strip placed above the view switch — SRD-GUI-035.018).
+
+## FO-GUI-041 / 034 (AI Desk v3 M6): Tools, Chat Table, Task Cards Switch
+
+| MD ID | Parent SRD | File | Purpose | Public API | Depends on | MCP |
+|---|---|---|---|---|---|---|
+| MD-GUI-041.001.M01 | SRD-GUI-041.001 | `us_swing/src/us_swing/gui/ai_desk_tools.py` | Tools section: tools, table formats with plan state, task cards with part detail, failure log | `ToolsView`, `tools_frame` | DSK `core/desk_registry.py`, `core/desk_tasks.py`, `core/desk_memory.py`, `gui.ai_desk_sections` | No |
+
+Changed: MD-GUI-034.009.M08 (`gui/ai_desk.py`: Tools section in the SETUP group — SRD-GUI-041.001), MD-GUI-034.039.M26 (`gui/ai_desk_chat.py`: `table_html()` — SRD-GUI-034.079), MD-GUI-034.016.M15 (`gui/ai_desk_settings.py`: Task cards switch — SRD-GUI-034.080).
+
+SRD coverage: SRD-GUI-041.001–.005 by MD-GUI-041.001.M01 (.001 also by MD-GUI-034.009.M08); SRD-GUI-034.079 by MD-GUI-034.039.M26; SRD-GUI-034.080 by MD-GUI-034.016.M15.

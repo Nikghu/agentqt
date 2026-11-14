@@ -6,6 +6,7 @@
 **Status:** Draft
 **Last Updated:** 2026-11-06
 > v2.117.2: SRD-GUI-034.077–.078 and SRD-GUI-035.018 Implemented 2026-11-13.
+> v2.118.0: AI Desk v3 M6 (user, 2026-11-14): SRD-GUI-041.001–.005 (Tools tab) and SRD-GUI-034.079–.080 (chat table, Task cards switch) added as Draft.
 > v2.117.1: SRD-GUI-034.077–.078 and SRD-GUI-035.018 approved by user 2026-11-13.
 > v2.117.0: AI Desk v3 M5 (user, 2026-11-13): SRD-GUI-034.077–.078 and SRD-GUI-035.018 added as Draft — Company day switch, day call and handover tiles, day strip.
 > v2.116.2: SRD-GUI-034.073–.076 Implemented 2026-11-13.
@@ -817,6 +818,8 @@
 | SRD-GUI-034.076 | FO-GUI-034 | Must | Update rows show as lead bubbles marked "Update", and the note shows "Waiting for the team" while an ask is open. | `chat` rows | bubbles, note | Same 2-second check as a waiting question | Implemented |
 | SRD-GUI-034.077 | FO-GUI-034 | Must | Desk settings has a Company day check box, off by default, saved as `company_day_on`. | check box | setting | Tooltip says the huddle needs agent messages and feedback notes need Memory v2 | Implemented |
 | SRD-GUI-034.078 | FO-GUI-034 | Must | With company day on, the Command header shows a Day call tile (market, sectors, who agreed, huddle, result once checked) and a Handover tile (the latest handover note). | `decisions`, `day_brief` | tiles | Reads through `core/desk_day.py`; hidden when off | Implemented |
+| SRD-GUI-034.079 | FO-GUI-034 | Must | In a chat bubble, lines whose cells are joined by " \| " show as a table. | chat text | table | Other lines show as before | Draft |
+| SRD-GUI-034.080 | FO-GUI-034 | Must | Desk settings has a Task cards check box, off by default, saved as `task_cards_on`. | check box | setting | Disabled while Agent messages is unticked | Draft |
 
 ## FO-GUI-035: AI Desk Team at Work
 
@@ -899,3 +902,13 @@
 | SRD-GUI-040.002 | FO-GUI-040 | Should | Selecting a card shows its idea, market, entry, exit, stop, quotes and the latest test table and verdict. | card | detail text | — | Implemented |
 | SRD-GUI-040.003 | FO-GUI-040 | Should | A Test button raises a `strategy_test` ticket for the selected card through SRD-DSK-010.016. | click | ticket row | Off while the card has an open test | Implemented |
 | SRD-GUI-040.004 | FO-GUI-040 | Should | Each Test click and its outcome is logged. | click | log line | `[Research]` prefix | Implemented |
+
+## FO-GUI-041: AI Desk Tools
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-041.001 | FO-GUI-041 | Should | AI Desk has a Tools tab that lists the registry tools with name, group, kind, AI, time limit and status. | `tools` | list | In the SETUP group before Desk settings; read-only; rebuilt each time it is shown | Draft |
+| SRD-GUI-041.002 | FO-GUI-041 | Should | The tab lists the table formats with their columns, the tool that makes each column and the plan state. | `schemas`, `task_plans` | list | Plan state is active, retired or no plan | Draft |
+| SRD-GUI-041.003 | FO-GUI-041 | Should | The tab lists the latest 50 task cards with time, asker, format, rows, result and seconds. | `task_cards` | list | Newest first | Draft |
+| SRD-GUI-041.004 | FO-GUI-041 | Should | Selecting a card shows one line per part: tool group, tools, columns, rows, result, seconds and reason. | card | detail text | — | Draft |
+| SRD-GUI-041.005 | FO-GUI-041 | Should | The tab lists the latest 50 failure log rows with day and text. | `memory.db` | list | Newest first | Draft |
