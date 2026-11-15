@@ -133,3 +133,25 @@ def test_strip_hidden(qtbot: QtBot, tmp_path: Path) -> None:
     qtbot.addWidget(strip)
     strip.refresh(tmp_path, NOW)
     assert strip.isHidden()
+
+
+def test_task_cards_switch(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-034.080.M15.T01: Ticking Task cards saves task_cards_on."""
+    form = DeskAiSettingsForm(tmp_path)
+    qtbot.addWidget(form)
+    assert not form.task_cards_on.isChecked()
+    form.messages_on.setChecked(True)
+    form.task_cards_on.setChecked(True)
+    assert form.save()
+    assert load_settings(tmp_path).task_cards_on is True
+
+
+def test_task_cards_needs_messages(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-034.080.M15.T02: Task cards box is greyed while agent messages are off."""
+    form = DeskAiSettingsForm(tmp_path)
+    qtbot.addWidget(form)
+    assert not form.task_cards_on.isEnabled()
+    form.messages_on.setChecked(True)
+    assert form.task_cards_on.isEnabled()
+    form.messages_on.setChecked(False)
+    assert not form.task_cards_on.isEnabled()

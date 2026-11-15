@@ -6,6 +6,7 @@ failed), SRD-DSK-007.006 (open alerts close when the source works again), SRD-DS
 (candles not up to date, closed by a later ok run), SRD-DSK-007.008 (desk plan is partial,
 closed by a later full chain), SRD-DSK-007.009 (trade at stop or target, plan broken), SRD-DSK-007.010 (research ticket waiting,
 closed once the ticket is no longer waiting), SRD-DSK-007.011 (escalation not answered)
+Also: SRD-DSK-012.027 (table plan retired, closed once the plan is active again)
 
 AI problem alerts: sorts an LLM error into a problem the user must fix (Claude login, OpenRouter
 key or credit), keeps one alert per problem per day in ``desk.db``, sends it to Telegram and
@@ -70,6 +71,9 @@ _FIX = {
     "partial": ("Desk plan is partial",
                 "Open AI Desk → Team at work → Event log to see the error; the next run tries "
                 "again."),
+    "plan_retired": ("Table plan retired",
+                     "Restart the desk to try the plan again; AI Desk → Tools shows the failed "
+                     "parts."),
 }
 DATA_PROBLEMS = ("candles",)
 MARKET_ALERTS = ("trade_stop", "trade_target", "plan_broken", "escalation")  # open for the day
@@ -123,8 +127,8 @@ def raise_alert(home: Path, kind: str, source: str, run_id: int, detail: str,
     Args:
         home: Desk folder.
         kind: ``login``, ``key``, ``credit``, ``run_failed``, ``candles``, ``partial``,
-            ``trade_stop``, ``trade_target``, ``plan_broken``, ``ticket_waiting`` or
-            ``escalation``.
+            ``trade_stop``, ``trade_target``, ``plan_broken``, ``ticket_waiting``,
+            ``escalation`` or ``plan_retired``.
         source: The model source (``claude``, ``openrouter``) or empty.
         run_id: Desk run that found the problem.
         detail: What happened, in a line.
@@ -192,7 +196,8 @@ def open_alerts(home: Path, now: datetime) -> list[Alert]:
 
     A login, key or credit alert closes once its source gives a valid answer later; a whole-run
     alert closes once any valid answer comes later; a candles alert closes once a later morning
-    or manual run ends ok; a partial alert closes once a later chain finishes in full.
+    or manual run ends ok; a partial alert closes once a later chain finishes in full; a
+    retired table plan alert closes once the plan is active again.
     """
     since = (now - timedelta(hours=OPEN_HOURS)).astimezone(NY).isoformat(timespec="seconds")
     rows = _read(home, "SELECT id, created, kind, source, run_id, title, text, fix, sent "
@@ -216,6 +221,9 @@ def _fixed(home: Path, kind: str, source: str, when: datetime) -> bool:
     if kind == "ticket_waiting":
         rows = _read(home, "SELECT status FROM tickets WHERE id = ?", (int(source or 0),))
         return not rows or str(rows[0][0]) != "waiting"
+    if kind == "plan_retired":
+        rows = _read(home, "SELECT status FROM task_plans WHERE format = ?", (source,))
+        return not rows or str(rows[0][0]) != "retired"
     if kind == "partial":
         return bool(_read(home, "SELECT 1 FROM events WHERE note = 'chain full' AND handled > ? "
                                 "LIMIT 1", (when.isoformat(timespec="seconds"),)))

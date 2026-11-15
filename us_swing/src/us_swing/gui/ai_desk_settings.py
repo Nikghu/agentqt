@@ -10,6 +10,7 @@ Editable desk AI settings in AI Desk → Desk settings: which sources the desk m
 their models, the monthly API budget, the daily Claude Code CLI token cap and the
 OpenRouter key (kept in the OS keychain, never shown).
 Also: SRD-GUI-034.077 — Company day switch (AI Desk v3 M5)
+Also: SRD-GUI-034.080 — Task cards switch (AI Desk v3 M6)
 """
 from __future__ import annotations
 
@@ -97,6 +98,14 @@ class DeskAiSettingsForm(QWidget):
                                        "5 days and a day-end handover (feedback notes need "
                                        "Memory v2).")
         self.company_day_on.setChecked(self._settings.company_day_on)
+        self.task_cards_on = QCheckBox("Task cards: tables built by the planner")
+        self.task_cards_on.setToolTip("Let the lead ask the planner for tables. Needs Agent "
+                                      "messages; the chat ask also needs Chat sessions. Code "
+                                      "builds each table from tools, with no AI call.")
+        self.task_cards_on.setChecked(self._settings.task_cards_on)
+        self.task_cards_on.setEnabled(self.messages_on.isChecked())
+        # agent messages box → toggled → Task cards box → setEnabled
+        self.messages_on.toggled.connect(self.task_cards_on.setEnabled)
         self.caps = {level: self._line(str(self._settings.cap(level)))
                      for level in ("expert", "champion", "junior")}
         grid = QGridLayout()
@@ -111,7 +120,8 @@ class DeskAiSettingsForm(QWidget):
             (f"{level.capitalize()}s", edit) for level, edit in self.caps.items())), 1, 0)
         grid.addWidget(self._card("message-square", "Agent messages", (
             ("", self.messages_on), ("", self.escalation_on), ("", self.memory_v2_on),
-            ("", self.sessions_on), ("", self.company_day_on))), 1, 1)
+            ("", self.sessions_on), ("", self.company_day_on),
+            ("", self.task_cards_on))), 1, 1)
         outer.addLayout(grid)
         row = QHBoxLayout()
         self.save_btn = primary(QPushButton("Save"))
@@ -160,7 +170,8 @@ class DeskAiSettingsForm(QWidget):
                 escalation_on=self.escalation_on.isChecked(),
                 memory_v2_on=self.memory_v2_on.isChecked(),
                 sessions_on=self.sessions_on.isChecked(),
-                company_day_on=self.company_day_on.isChecked())
+                company_day_on=self.company_day_on.isChecked(),
+                task_cards_on=self.task_cards_on.isChecked())
             if not math.isfinite(budget):
                 raise ValueError("budget")
         except ValueError:

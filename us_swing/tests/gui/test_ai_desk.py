@@ -15,13 +15,13 @@ def _titles(frame: QWidget) -> list[str]:
 
 
 def test_all_sections_open(qtbot: QtBot, tmp_path: Path) -> None:
-    """UT-GUI-034.009.M08.T01: 11 sections in order (five sample team sections became Team at
-    work, SRD-GUI-035.001; Memory added, SRD-GUI-037.001; Research added, SRD-GUI-039.001);
-    each shows its own filled frame."""
+    """UT-GUI-034.009.M08.T01: 13 sections in order (five sample team sections became Team at
+    work, SRD-GUI-035.001; Memory added, SRD-GUI-037.001; Research added, SRD-GUI-039.001;
+    Tools added, SRD-GUI-041.001); each shows its own filled frame."""
     page = AiDeskWorkspace(DeskPoller(tmp_path))
     qtbot.addWidget(page)
     names = page.section_names()
-    assert len(names) == 12
+    assert len(names) == 13
     assert names[0] == "Command"
     assert names[-1] == "Desk settings"
     assert page.current_section() == "Command"
@@ -43,12 +43,12 @@ def test_every_section_shows_sample_tag(qtbot: QtBot, tmp_path: Path) -> None:
     Pages is real from P5d (SRD-GUI-034.022); Hiring is real from P6 (SRD-GUI-034.027);
     Results is real from P8 (SRD-GUI-034.037); Command is real from design phase 3
     (SRD-GUI-034.063); Team at work is real (SRD-GUI-035.001); Memory is real
-    (SRD-GUI-037.001); Research is real (SRD-GUI-039.001).
+    (SRD-GUI-037.001); Research is real (SRD-GUI-039.001); Tools is real (SRD-GUI-041.001).
     """
     page = AiDeskWorkspace(DeskPoller(tmp_path))
     qtbot.addWidget(page)
     real = ("Desk settings", "Pages", "Hiring", "Results", "Command", "Team at work",
-            "Team setup", "Memory", "Research", "Cards")
+            "Team setup", "Memory", "Research", "Cards", "Tools")
     for name in [n for n in page.section_names() if n not in real]:
         page.select_section(name)
         frame = page._stack.currentWidget()
