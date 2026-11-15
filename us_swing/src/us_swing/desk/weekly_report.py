@@ -2,6 +2,7 @@
 Module: MD-DSK-006.009.M20 — desk/weekly_report.py
 Parent SRD: SRD-DSK-006.009
 Also: SRD-DSK-006.010 (log line); MD-MKT-009.007.M05 — pick results section (SRD-MKT-009.007)
+Also: SRD-DSK-006.011 (``weekly_report`` event after a new report while hire proposals are on)
 
 Desk step "Weekly report": the first desk run on or after each Friday (New York) writes
 one process and cost report by code, from the recorded tries and the hires. No AI call.
@@ -14,7 +15,9 @@ from collections.abc import Callable
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
+from us_swing.core.desk_ai_settings import load_settings
 from us_swing.core.desk_contract import DB_NAME, StepContext, desk_home
+from us_swing.core.desk_events import post_event
 from us_swing.core.desk_hiring import SHADOW_DAYS, employees, list_hires
 from us_swing.core.desk_results import results_lines, results_view
 from us_swing.desk.recorder import NY, ny_now
@@ -99,11 +102,15 @@ class WeeklyReportStep:
         con = sqlite3.connect(home / DB_NAME, timeout=5)
         try:
             with con:
-                con.execute("INSERT OR IGNORE INTO desk_reports (week, created, title, text) "
-                            "VALUES (?, ?, ?, ?)",
-                            (friday.isoformat(), self._clock().isoformat(timespec="seconds"),
-                             f"Weekly report {friday.isoformat()}", text))
+                added = con.execute(
+                    "INSERT OR IGNORE INTO desk_reports (week, created, title, text) "
+                    "VALUES (?, ?, ?, ?)",
+                    (friday.isoformat(), self._clock().isoformat(timespec="seconds"),
+                     f"Weekly report {friday.isoformat()}", text)).rowcount
         finally:
             con.close()
         log.info("[Report] Weekly report for %s written: %d employee(s), cost USD %.2f",
                  friday.isoformat(), count, cost)
+        settings = load_settings(home)
+        if added and settings.hire_proposals_on and settings.messages_on:
+            post_event(home, "weekly_report", friday.isoformat(), self._clock())  # .011

@@ -6,6 +6,7 @@ Also: MD-GUI-034.062.M36 — quantity on pick cards (SRD-GUI-034.034)
 Also: MD-GUI-034.053.M31 — typed cards, filter tabs, live dot, footer, actions
 (SRD-GUI-034.053, .055–.057)
 Also: MD-GUI-034.043.M38 — Approve and Reject on asked panel cards (SRD-GUI-034.043)
+Also: SRD-GUI-034.082 — Approve and Reject on hire proposal cards; a refusal keeps the buttons
 """
 from __future__ import annotations
 
@@ -29,6 +30,7 @@ from PyQt6.QtWidgets import (
 
 from us_swing.core.desk_data_asks import decide_product
 from us_swing.core.desk_feed import FeedCard, approve_pick, reject_pick
+from us_swing.core.desk_proposals import DECIDED, decide_proposal
 from us_swing.core.desk_trades import DeskTradeSink
 from us_swing.gui.floor_sample import SAMPLE_TAG, sample_feed_cards
 from us_swing.gui.icons import icon_button, set_icon
@@ -158,14 +160,14 @@ class FeedCardWidget(QFrame):
         card = self.card
         self.approve_btn: QPushButton | None = None
         self.reject_btn: QPushButton | None = None
-        if card.ref in ("pick", "data"):
+        if card.ref in ("pick", "data", "proposal"):
             self.approve_btn = self._button("Approve", self._approve)
             self.reject_btn = self._button("Reject", self._reject)
             set_icon(self.approve_btn, "check", "add")
             set_icon(self.reject_btn, "x", "danger")
-            is_data = card.ref == "data"
-            can_decide = (is_data or card.pick is not None) and self._context.home is not None
-            self.approve_btn.setEnabled(can_decide and (is_data or self._context.sink is not None))
+            by_core = card.ref in ("data", "proposal")
+            can_decide = (by_core or card.pick is not None) and self._context.home is not None
+            self.approve_btn.setEnabled(can_decide and (by_core or self._context.sink is not None))
             self.reject_btn.setEnabled(can_decide)
         if card.symbol:
             self._button("Open in Charts", lambda: self.chart_requested.emit(card.symbol))
@@ -202,10 +204,20 @@ class FeedCardWidget(QFrame):
         if ctx.home is not None:
             self._result((decide_product(ctx.home, self.card.item, decision, ctx.clock()), True))
 
+    def _decide_proposal(self, decision: str) -> None:
+        """Gate 1 for a hire proposal; a refusal shows its reason and keeps the buttons, except
+        when the proposal was already decided elsewhere."""
+        ctx = self._context
+        if ctx.home is not None:
+            why = decide_proposal(ctx.home, self.card.item, decision, ctx.clock())
+            self._result((why, not why or why == DECIDED))
+
     def _approve(self) -> None:
         ctx, pick = self._context, self.card.pick
         if self.card.ref == "data":
             self._decide_data("approve")
+        elif self.card.ref == "proposal":
+            self._decide_proposal("approve")
         elif ctx.home is not None and ctx.sink is not None and pick is not None:
             self._result(approve_pick(ctx.home, pick, ctx.sink, ctx.clock()))
 
@@ -213,6 +225,8 @@ class FeedCardWidget(QFrame):
         ctx, pick = self._context, self.card.pick
         if self.card.ref == "data":
             self._decide_data("reject")
+        elif self.card.ref == "proposal":
+            self._decide_proposal("reject")
         elif ctx.home is not None and pick is not None:
             self._result(reject_pick(ctx.home, pick, ctx.clock()))
 

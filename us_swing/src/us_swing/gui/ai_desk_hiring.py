@@ -7,6 +7,7 @@ Also: MD-GUI-034.034.M24 — SRD-GUI-034.034–.036 (trade picks in Approvals wa
 Also: MD-GUI-034.062.M36 — approval cards (SRD-GUI-034.062)
 Also: MD-GUI-034.043.M38 — asked panel cards and failed requests (SRD-GUI-034.043, .044)
 Also: SRD-GUI-034.066 — seat tiles and icon cards (console look)
+Also: SRD-GUI-034.083 — Proposals list with the chosen proposal's text (AI Desk v3 M7a)
 
 The AI Desk Hiring section: hires made through the pipeline, the Start hire form, the
 chosen hire's shadow report and the Replace / Add / Reject decision. All rules live in
@@ -19,7 +20,7 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from PyQt6.QtCore import QTimer, pyqtSignal
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtWidgets import (
     QComboBox,
     QFormLayout,
@@ -48,6 +49,7 @@ from us_swing.core.desk_hiring import (
     start_hire,
 )
 from us_swing.core.desk_feed import ask_cards, failed_cards
+from us_swing.core.desk_proposals import Proposal, proposal_rows, proposal_text
 from us_swing.core.desk_steps import SKILL_PATHS
 from us_swing.core.desk_trades import DeskTradeSink
 from us_swing.gui.ai_desk_console import (
@@ -67,6 +69,8 @@ HIRE_COLUMNS = ("Name", "Skill", "Level", "Model", "Started", "Shadow days", "St
 REPORT_COLUMNS = ("Who", "Days", "Valid", "Tokens", "Cost")
 NO_HIRES = "No hires yet. Start one below; it runs in shadow for 14 data days"
 NO_APPROVALS = "Nothing waits for your approval"
+PROPOSAL_COLUMNS = ("Made", "Skill", "Need", "Model", "View", "State")
+NO_PROPOSALS = "No proposals yet"
 SEAT_LEVELS = (("expert", "Experts"), ("champion", "Champions"), ("junior", "Juniors"))
 
 
@@ -95,6 +99,7 @@ class HiringPanel(QWidget):
         self._home = home
         self._hires: list[HireInfo] = []
         self._chosen: HireInfo | None = None
+        self._proposals: list[Proposal] = []
         body = QVBoxLayout(self)
         body.setContentsMargins(0, 0, 0, 0)
         body.setSpacing(12)
@@ -108,6 +113,8 @@ class HiringPanel(QWidget):
         hires_body.addWidget(self.table, 1)
         self._hires_card = hires
         body.addWidget(hires, 2)
+        self._proposals_card = self._proposals_box()
+        body.addWidget(self._proposals_card, 0)
         row = QHBoxLayout()
         row.setSpacing(12)
         row.addWidget(self._form(), 2)
@@ -201,6 +208,44 @@ class HiringPanel(QWidget):
         box.addWidget(self.decision_status)
         return card
 
+    def _proposals_box(self) -> QWidget:
+        card, box = icon_card("scroll-text", "Proposals")
+        self.no_proposals = muted(NO_PROPOSALS)
+        self.proposals: QTableWidget = make_table(PROPOSAL_COLUMNS, [])
+        self.proposals.setObjectName("proposals_table")
+        self.proposal_detail = QLabel("")
+        self.proposal_detail.setTextFormat(Qt.TextFormat.PlainText)
+        self.proposal_detail.setWordWrap(True)
+        box.addWidget(self.no_proposals)
+        box.addWidget(self.proposals, 1)
+        box.addWidget(self.proposal_detail)
+        # proposals table → currentCellChanged → panel → _show_proposal
+        self.proposals.currentCellChanged.connect(self._show_proposal)
+        return card
+
+    def _fill_proposals(self) -> None:
+        """Latest proposals, newest first; the chosen one stays chosen (SRD-GUI-034.083)."""
+        row = self.proposals.currentRow()
+        chosen = self._proposals[row].id if 0 <= row < len(self._proposals) else None
+        self._proposals = proposal_rows(self._home)
+        rows = [(p.made[:16].replace("T", " "), _skill(p.skill), p.need,
+                 f"{p.source}/{p.model}", p.view, p.state) for p in self._proposals]
+        index = next((i for i, p in enumerate(self._proposals) if p.id == chosen), 0)
+        self.proposals.blockSignals(True)
+        _fill(self.proposals, rows)
+        if rows:
+            self.proposals.setCurrentCell(index, 0)
+        self.proposals.blockSignals(False)
+        self.no_proposals.setVisible(not rows)
+        self.proposals.setVisible(bool(rows))
+        self.proposal_detail.setVisible(bool(rows))
+        self._body.setStretchFactor(self._proposals_card, 1 if rows else 0)
+        self._show_proposal(index if rows else -1)
+
+    def _show_proposal(self, row: int, *_: int) -> None:
+        found = self._proposals[row] if 0 <= row < len(self._proposals) else None
+        self.proposal_detail.setText(proposal_text(self._home, found) if found else "")
+
     def reload(self) -> None:
         """Read the hires again and refill the list; keep the chosen hire when it is still there."""
         chosen = self._chosen.employee.id if self._chosen else ""
@@ -214,6 +259,7 @@ class HiringPanel(QWidget):
         self.empty.setVisible(not rows)
         self.table.setVisible(bool(rows))
         self._body.setStretchFactor(self._hires_card, 2 if rows else 0)
+        self._fill_proposals()
         self._show_seats()
         index = next((i for i, h in enumerate(self._hires) if h.employee.id == chosen), 0)
         if rows:

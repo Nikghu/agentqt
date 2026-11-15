@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.41.1: UT-GUI-034.081–.084 Pass (10: 8 + 2 added from the GUI review: 082.M31.T03, 083.M21.T03) (2026-11-15).
 > v1.41.0: UT-GUI-034.081–.084 added (8, Not Run) (AI Desk v3 M7a, 2026-11-15).
 > v1.40.1: UT-GUI-041.001–.005 and UT-GUI-034.079–.080 Pass (11, 2026-11-15); 3 older AI Desk section-count tests updated for the Tools tab.
 > v1.40.0: UT-GUI-041.001–.005 and UT-GUI-034.079–.080 added (11, Not Run) (AI Desk v3 M6, 2026-11-14).
@@ -1407,11 +1408,13 @@ Test files:
 
 | ID | Module | Type | Title | Input | Expected | Status |
 |---|---|---|---|---|---|---|
-| UT-GUI-034.081.M32.T01 | MD-GUI-034.054.M32 | Positive | Proposal card (SRD-GUI-034.081) | one waiting proposal with view agree | one Ask card "Hire proposal · setup review" with need, evidence, why, model and view lines, ref proposal | Not Run |
-| UT-GUI-034.081.M32.T02 | MD-GUI-034.054.M32 | Negative | Decided proposals (SRD-GUI-034.081) | only approved and rejected proposals | no proposal card | Not Run |
-| UT-GUI-034.082.M31.T01 | MD-GUI-034.053.M31 | Positive | Approve and Reject (SRD-GUI-034.082) | click Approve on a proposal card with free seats; Reject on another | a shadow hire is made; both cards gone after the reload | Not Run |
-| UT-GUI-034.082.M31.T02 | MD-GUI-034.053.M31 | Negative | Refused approve (SRD-GUI-034.082) | expert seats full | the card shows "all 8 expert seats are taken" and keeps its buttons | Not Run |
-| UT-GUI-034.083.M21.T01 | MD-GUI-034.027.M21 | Positive | Proposals list (SRD-GUI-034.083) | 2 proposals | Hiring shows 2 rows newest first; choosing one shows its evidence, why and view | Not Run |
-| UT-GUI-034.083.M21.T02 | MD-GUI-034.027.M21 | Edge | No proposals (SRD-GUI-034.083) | none | the note "No proposals yet" | Not Run |
-| UT-GUI-034.084.M15.T01 | MD-GUI-034.016.M15 | Positive | Hire proposals switch (SRD-GUI-034.084) | tick Agent messages and Hire proposals, save | hire_proposals_on true in the settings file; off by default | Not Run |
-| UT-GUI-034.084.M15.T02 | MD-GUI-034.016.M15 | Negative | Needs agent messages (SRD-GUI-034.084) | Agent messages unticked | Hire proposals box disabled | Not Run |
+| UT-GUI-034.081.M32.T01 | MD-GUI-034.054.M32 | Positive | Proposal card (SRD-GUI-034.081) | one waiting proposal with view agree | one Ask card "Hire proposal · setup review" with need, evidence, why, model and view lines, ref proposal | Pass |
+| UT-GUI-034.081.M32.T02 | MD-GUI-034.054.M32 | Negative | Decided proposals (SRD-GUI-034.081) | only approved and rejected proposals | no proposal card | Pass |
+| UT-GUI-034.082.M31.T01 | MD-GUI-034.053.M31 | Positive | Approve and Reject (SRD-GUI-034.082) | click Approve on a proposal card with free seats; Reject on another | a shadow hire is made; both cards gone after the reload | Pass |
+| UT-GUI-034.082.M31.T02 | MD-GUI-034.053.M31 | Negative | Refused approve (SRD-GUI-034.082) | expert seats full | the card shows "all 8 expert seats are taken" and keeps its buttons | Pass |
+| UT-GUI-034.082.M31.T03 | MD-GUI-034.053.M31 | Negative | Decided elsewhere (SRD-GUI-034.082) | the same proposal on two cards; Reject on one, then Approve on the other | "this proposal is already decided"; both buttons off | Pass |
+| UT-GUI-034.083.M21.T01 | MD-GUI-034.027.M21 | Positive | Proposals list (SRD-GUI-034.083) | 2 proposals | Hiring shows 2 rows newest first; choosing one shows its evidence, why and view | Pass |
+| UT-GUI-034.083.M21.T02 | MD-GUI-034.027.M21 | Edge | No proposals (SRD-GUI-034.083) | none | the note "No proposals yet" | Pass |
+| UT-GUI-034.083.M21.T03 | MD-GUI-034.027.M21 | Edge | Chosen proposal kept (SRD-GUI-034.083) | choose the second row, add a proposal, reload | the same proposal stays chosen | Pass |
+| UT-GUI-034.084.M15.T01 | MD-GUI-034.016.M15 | Positive | Hire proposals switch (SRD-GUI-034.084) | tick Agent messages and Hire proposals, save | hire_proposals_on true in the settings file; off by default | Pass |
+| UT-GUI-034.084.M15.T02 | MD-GUI-034.016.M15 | Negative | Needs agent messages (SRD-GUI-034.084) | Agent messages unticked | Hire proposals box disabled | Pass |

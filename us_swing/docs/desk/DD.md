@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.19.1: DD-DSK-006.011.D01 updated — the proposal row rides in the ask's want; §12 code review fixes (2026-11-15).
 > v0.19.0: DD-DSK-006.011.D01 added — hire proposals (AI Desk v3 M7a, 2026-11-15).
 > v0.18.0: DD-DSK-012.012.D01 added — planner, task cards and tool groups (AI Desk v3 M6, 2026-11-14).
 > v0.17.0: DD-DSK-009.010.D01 added — memory v2 (AI Desk v3 M3, 2026-11-13).
@@ -1574,34 +1575,39 @@ HireReviewAnswer  picks: list[HirePick] (0-2), note (why no pick, up to 300)
 - Each kept pick: `save_proposal()` makes a `waiting` row. The boss is the secretary's active boss from `reports_to`. With a boss: view `pending` and one ask draft through `talker(ctx).send()`. With no active boss: view `none`, note "no boss to ask", no ask.
 
 ```
-ask   to <boss id>, subject "Hire proposal: {skill}", text = evidence, why and model lines
+ask   to <boss id>, subject "Hire proposal: {skill}", text = evidence, why and model lines (up to 600 characters)
 want  goal "Say if you agree with this hire proposal"
       done_when "One reply: done if you agree, refused if not, with one short reason"
-data  schema hire_proposal.v1, cols [proposal, need, skill, holder, evidence, model, why],
-      rows [[<id>, <kind>, <skill>, <holder name or "">, <evidence joined by " / ">, "<source>/<model>", <why>]]
+      schema hire_proposal.v1
+      inputs {proposal: <id>, need: <kind>, skill: <skill>, holder: <holder name or "">,
+              evidence: <lines joined by " / ">, model: "<source>/<model>", why: <why>}
 ```
+
+An ask has no data block in `desk.msg/1` (only replies, handovers and feedback do), so the `hire_proposal.v1` row rides in `want`: `want.schema` names the format and `want.inputs` holds the row keyed by its columns. The boss reads the subject and the text; code reads the row.
 
 **5. Schema row** (`core/desk_registry.py`, .019). `seed_formats()` adds `hire_proposal.v1`: proposal (number, the key), need, skill, holder, evidence, model, why (text). No column has `by`, so `fill_plans()` makes no plan and the lead chat never offers it.
 
 **6. Boss turn and views** (`desk/employees_step.py`, `core/desk_proposals.py`; .020, .021)
 
-- `_wake_message()` splits the inbox: escalations (as M2), proposal asks (type `ask` with `data.schema == "hire_proposal.v1"`), and the rest (as M1).
+- `_wake_message()` splits the inbox: escalations (as M2), proposal asks (type `ask` whose `want.schema` is `hire_proposal.v1` and whose `want.inputs.proposal` is a number), and the rest (as M1).
 - Escalations and proposal asks share one short reply-only helper: one `InboxReply` ask with a head text, replies accepted, the receiver's skill does not run, the thread starter pays.
 - Escalation head as in M2, and each reply is added as a feed note (as M2). Proposal head: "Hire proposals from people who report to you. For each, reply done if you agree or refused if you do not, with one short reason. The Master user sees your reply with the proposal. Do not plan anything else now." No feed note.
-- For each stored proposal reply: `note_view(home, <proposal id from the parent ask's data row>, view, by=<boss id>, note=<reason or text>, now)`, with `done` → agree, `refused` → disagree, any other result → none.
-- No valid reply: refused as today (deputy first).
-- A reply written by code (refused by code, or "no reply within 10 minutes") wakes the secretary like any reply. Its `act()` reads each reply in `facts.inbox`; when the parent ask holds a `hire_proposal.v1` row and that proposal's view is still `pending`, it sets view `none` with the reply's reason. No AI call. AI replies were already noted in the boss turn, so they are skipped here.
+- For each stored proposal reply: `note_view(home, <proposal id from the ask's want>, view, by=<boss id>, note=<reason or text>, now)`, with `done` → agree, `refused` → disagree, any other result → none.
+- No valid reply: refused as today (deputy first). While Agent messages or Hire proposals is off, proposal asks are refused by code and no AI turn runs.
+- A reply written by code (refused by code, or "no reply within 10 minutes") wakes the secretary like any reply. Its `act()` reads each reply in `facts.inbox`; when the parent ask's want holds a `hire_proposal.v1` row and that proposal's view is still `pending`, it sets view `none` with the reply's reason. No AI call. AI replies were already noted in the boss turn, so they are skipped here.
 
 **7. Gate 1** (.022, .023). `decide_proposal(home, id, decision, now) -> str` returns "" or why it was refused.
 
 ```
 unknown or not waiting   "this proposal is already decided"
-approve   name = next_name(home, level)   level title + (highest number in use for that title + 1), e.g. "Expert 16"
+approve   claim: state approved, decided = now, only WHERE state = waiting (else "already decided")
+          name = next_name(home, level)   level title + (highest number in use for that title + 1), e.g. "Expert 16"
           start_hire(home, skill, level, name, source, model, now.date())
-          refused -> return its reason; the proposal stays waiting
-          else    -> state approved, hire = new id, decided = now;
-                     approvals row (kind proposal, subject skill, decision approve, detail "proposal #<id>: <hire id>")
-reject    state rejected, decided = now; approvals row (decision reject)
+          refused or a file error -> state back to waiting; return the reason
+          else -> hire = new id and the approvals row (kind proposal, subject skill,
+                  decision approve, detail "proposal #<id>: <hire id>") in one transaction
+reject    state rejected WHERE state = waiting, and the approvals row (decision reject), in one transaction
+db error  "the decision could not be saved; see the desk log" (logged)
 ```
 
 **8. Table** (`hire_proposals` in `desk.db`, created on first use)
@@ -1633,3 +1639,13 @@ none      "No view: {note}"
 [Hiring] Proposal #<id> rejected
 [Hiring] No hire need found for the week
 ```
+
+**12. Code review fixes** (2026-11-15)
+
+- Approve claims the proposal before the hire starts, so one proposal never starts two hires; a refused hire or a file error puts it back to waiting; a database error returns "the decision could not be saved".
+- `_get()` and `candidates()` read strictly: a lock or a broken file raises instead of looking like "no proposal"; the screen reads stay soft and show nothing.
+- The weekly turn first gives view none ("no answer from the boss") to a view still pending after a day, such as an ask that was never stored.
+- The model sends no messages of its own: drafts it adds are dropped and a rule line says so; code sends each proposal.
+- The boss's short turn runs only while Agent messages and Hire proposals are on; otherwise a proposal ask is refused by code with "hire proposals are off".
+- An ask in the secretary's inbox gets a refused reply by code ("I only propose hires, once a week").
+- Kept as designed: in one message wake a later turn's result hides an earlier one, as before M7a.

@@ -3,7 +3,7 @@
 **Document ID:** TRACE-GUI
 **Version:** 1.16.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-11-15 (AI Desk v3 M7a: FO-GUI-034 SRD .081–.084 Draft; AI Desk v3 M6: FO-GUI-041 Tools and FO-GUI-034 SRD .079–.080 with RN-DSK-0.19.0-20261115; AI Desk v3 M5 company day: FO-GUI-034 SRD .077–.078 and FO-GUI-035 SRD .018 with RN-DSK-0.18.0-20261113; AI Desk v3 M3: FO-GUI-034 SRD .072, FO-GUI-037 SRD .005–.008 with RN-DSK-0.16.0-20261113; AI Desk v3 M2: FO-GUI-034 SRD .071, FO-GUI-035 SRD .017, FO-GUI-036 SRD .011 with RN-DSK-0.15.0-20261113; AI Desk Cards tab and Test button: FO-GUI-040 with RN-MKT-0.21.0-20261112; Add book and books list: FO-GUI-039 SRD .006–.008; autonomous desk step E: FO-GUI-039 with RN-GUI-1.64.0-20261111; autonomous desk step D: FO-GUI-038 with RN-GUI-1.63.0-20261111; memory v1 step C: FO-GUI-037 with RN-GUI-1.62.0-20261111; morning run step A: FO-GUI-029 SRD .007–.008 and FO-GUI-034 SRD .068–.069 with RN-GUI-1.61.0-20261111; AI Desk Team at work FO-GUI-035 with RN-GUI-1.13.0-20261110; Market Floor and AI Desk frames FO-GUI-034; SRD-GUI-034.011 with RN-MKT-0.1.0-20261106; SRD-GUI-034.012 with RN-MKT-0.2.0-20261106; SRD-GUI-034.013 with RN-MKT-0.3.0-20261106; SRD-GUI-034.014 with RN-MKT-0.4.0-20261106; SRD-GUI-034.015–.017 with RN-DSK-0.2.0-20261106)
+**Last Updated:** 2026-11-15 (AI Desk v3 M7a: FO-GUI-034 SRD .081–.084 with RN-DSK-0.20.0-20261115; AI Desk v3 M6: FO-GUI-041 Tools and FO-GUI-034 SRD .079–.080 with RN-DSK-0.19.0-20261115; AI Desk v3 M5 company day: FO-GUI-034 SRD .077–.078 and FO-GUI-035 SRD .018 with RN-DSK-0.18.0-20261113; AI Desk v3 M3: FO-GUI-034 SRD .072, FO-GUI-037 SRD .005–.008 with RN-DSK-0.16.0-20261113; AI Desk v3 M2: FO-GUI-034 SRD .071, FO-GUI-035 SRD .017, FO-GUI-036 SRD .011 with RN-DSK-0.15.0-20261113; AI Desk Cards tab and Test button: FO-GUI-040 with RN-MKT-0.21.0-20261112; Add book and books list: FO-GUI-039 SRD .006–.008; autonomous desk step E: FO-GUI-039 with RN-GUI-1.64.0-20261111; autonomous desk step D: FO-GUI-038 with RN-GUI-1.63.0-20261111; memory v1 step C: FO-GUI-037 with RN-GUI-1.62.0-20261111; morning run step A: FO-GUI-029 SRD .007–.008 and FO-GUI-034 SRD .068–.069 with RN-GUI-1.61.0-20261111; AI Desk Team at work FO-GUI-035 with RN-GUI-1.13.0-20261110; Market Floor and AI Desk frames FO-GUI-034; SRD-GUI-034.011 with RN-MKT-0.1.0-20261106; SRD-GUI-034.012 with RN-MKT-0.2.0-20261106; SRD-GUI-034.013 with RN-MKT-0.3.0-20261106; SRD-GUI-034.014 with RN-MKT-0.4.0-20261106; SRD-GUI-034.015–.017 with RN-DSK-0.2.0-20261106)
 
 ---
 
@@ -168,10 +168,10 @@
 | FO-GUI-041 | SRD-GUI-041.001–.005 | DD-GUI-041.001.D01 | MD-GUI-041.001.M01; MD-GUI-034.009.M08 (changed) | UT-GUI-041.* (7, Pass) | `gui/ai_desk_tools.py`, `gui/ai_desk.py` | Implemented | RN-DSK-0.19.0-20261115 |
 | FO-GUI-034 | SRD-GUI-034.079 | DD-GUI-041.001.D01 | MD-GUI-034.039.M26 (changed) | UT-GUI-034.079.M26.T01–T02 (2, Pass) | `gui/ai_desk_chat.py` | Implemented | RN-DSK-0.19.0-20261115 |
 | FO-GUI-034 | SRD-GUI-034.080 | DD-GUI-041.001.D01 | MD-GUI-034.016.M15 (changed) | UT-GUI-034.080.M15.T01–T02 (2, Pass) | `gui/ai_desk_settings.py` | Implemented | RN-DSK-0.19.0-20261115 |
-| FO-GUI-034 | SRD-GUI-034.081 | DD-GUI-034.081.D01 | MD-GUI-034.054.M32 (changed) | UT-GUI-034.081.M32.T01–T02 (2, Not Run) | `core/desk_feed.py` | Draft | — |
-| FO-GUI-034 | SRD-GUI-034.082 | DD-GUI-034.081.D01 | MD-GUI-034.053.M31 (changed) | UT-GUI-034.082.M31.T01–T02 (2, Not Run) | `gui/floor_feed.py` | Draft | — |
-| FO-GUI-034 | SRD-GUI-034.083 | DD-GUI-034.081.D01 | MD-GUI-034.027.M21 (changed) | UT-GUI-034.083.M21.T01–T02 (2, Not Run) | `gui/ai_desk_hiring.py` | Draft | — |
-| FO-GUI-034 | SRD-GUI-034.084 | DD-GUI-034.081.D01 | MD-GUI-034.016.M15 (changed) | UT-GUI-034.084.M15.T01–T02 (2, Not Run) | `gui/ai_desk_settings.py` | Draft | — |
+| FO-GUI-034 | SRD-GUI-034.081 | DD-GUI-034.081.D01 | MD-GUI-034.054.M32 (changed) | UT-GUI-034.081.M32.T01–T02 (2, Pass) | `core/desk_feed.py` | Implemented | RN-DSK-0.20.0-20261115 |
+| FO-GUI-034 | SRD-GUI-034.082 | DD-GUI-034.081.D01 | MD-GUI-034.053.M31 (changed) | UT-GUI-034.082.M31.T01–T03 (3, Pass) | `gui/floor_feed.py` | Implemented | RN-DSK-0.20.0-20261115 |
+| FO-GUI-034 | SRD-GUI-034.083 | DD-GUI-034.081.D01 | MD-GUI-034.027.M21 (changed) | UT-GUI-034.083.M21.T01–T03 (3, Pass) | `gui/ai_desk_hiring.py` | Implemented | RN-DSK-0.20.0-20261115 |
+| FO-GUI-034 | SRD-GUI-034.084 | DD-GUI-034.081.D01 | MD-GUI-034.016.M15 (changed) | UT-GUI-034.084.M15.T01–T02 (2, Pass) | `gui/ai_desk_settings.py` | Implemented | RN-DSK-0.20.0-20261115 |
 
 ---
 

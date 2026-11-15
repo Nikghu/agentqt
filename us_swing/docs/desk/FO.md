@@ -6,6 +6,8 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.16.2: FO-DSK-006 M7a part Implemented 2026-11-15.
+> v0.16.1: FO-DSK-006 M7a part approved by user 2026-11-15.
 > v0.16.0: AI Desk v3 M7a (user, 2026-11-15): FO-DSK-006 gains the M7a part as Draft — hire proposals; its text now says 14 data days instead of 14 evenings, and that no AI starts a hire.
 > v0.15.1: FO-DSK-012 M6 part approved by user 2026-11-14; Implemented 2026-11-15.
 > v0.15.0: AI Desk v3 M6 (user, 2026-11-14): FO-DSK-012 gains the M6 part as Draft — planner and task cards; the FO-DSK-011 M2 block status is corrected to Implemented.
@@ -170,7 +172,7 @@ The system shall let the Master User try a new employee safely before it does re
 
 ### M7a — Hire Proposals
 
-**Status:** Draft
+**Status:** Implemented (approved by user 2026-11-15; RN-DSK-0.20.0-20261115)
 **Source: User 2026-11-15 (AI Desk v3 M7 decisions): M7 in two steps, hire proposals first and the tool builder after; an AI secretary writes the proposals and its boss gives a one-line view; needs from failing employees, costly employees and needed skills nobody holds. Plan: https://claude.ai/artifact/3dr7g92HY5hvVQ9KiyrPvc (M7).**
 
 - The system shall find hire needs by code once a week: failing employees, costly employees and needed skills that nobody holds.

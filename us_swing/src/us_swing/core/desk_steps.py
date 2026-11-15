@@ -16,6 +16,7 @@ The list of steps the desk runs, loaded by import path, so ``desk`` never import
 the tools (such as ``market``) that provide the steps.
 Also: MD-MKT-020.023.M09 — ``day_end`` skill and the decision check step (SRD-MKT-020.023)
 Also: SRD-DSK-012.015, .029 — table tool paths with their time limits; ``task_planner`` skill path
+Also: SRD-DSK-006.025 — ``hire_review`` skill path (the desk secretary)
 """
 from __future__ import annotations
 
@@ -63,6 +64,7 @@ SKILL_PATHS: dict[str, str] = {
     "strategy_test": "us_swing.market.strategy_test:StrategyTestSkill",
     "day_end": "us_swing.market.day_end:DayEndSkill",  # SRD-MKT-020.023
     "task_planner": "us_swing.desk.planner:TaskPlannerSkill",  # SRD-DSK-012.029
+    "hire_review": "us_swing.desk.secretary:HireReviewSkill",  # SRD-DSK-006.025
 }
 # Table tools by registry name: import path and time limit in seconds (SRD-DSK-012.015).
 TOOL_PATHS: dict[str, tuple[str, int]] = {

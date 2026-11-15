@@ -13,6 +13,7 @@ posts ``regime_change``); only the desk router changes an event's state. Clock a
 events come once per kind and data day; ``after_run`` comes once per desk run.
 ``step_done`` is posted only by the router, when an employee's turn in a chain ends.
 Also: MD-MKT-020.019.M07 — ``day_end`` event kind (SRD-MKT-020.019)
+Also: SRD-DSK-006.011 (``weekly_report`` event kind, once per report week)
 """
 from __future__ import annotations
 
@@ -58,6 +59,7 @@ EVENT_RULES: dict[str, EventRule] = {
     "research_done": EventRule(2, None, timedelta(days=1)),
     "message": EventRule(1, timedelta(minutes=10), timedelta(hours=2)),
     "day_end": EventRule(2, None, timedelta(hours=12)),  # SRD-MKT-020.019
+    "weekly_report": EventRule(2, None, timedelta(days=1)),  # SRD-DSK-006.011
 }
 EVENT_KINDS: tuple[str, ...] = tuple(EVENT_RULES)
 _PER_ID = ("after_run", "chat_question", "data_request", "market_checkin", "watch_flag",

@@ -622,7 +622,8 @@ def log_failure(home: Path, owner: str, text: str, day: str, now: datetime) -> N
     """Keep one failure row for ``owner``: a refused table ask or a failed card part.
 
     Failure rows have kind ``failure``; the note, view, core block, recall and clean-up
-    queries all filter on kind note or view, so a failure row never reaches a prompt.
+    queries all filter on kind note or view, so a failure row never reaches those prompts.
+    Only the desk secretary reads the week's rows as facts (SRD-DSK-006.016).
     """
     con = connect(home)
     try:

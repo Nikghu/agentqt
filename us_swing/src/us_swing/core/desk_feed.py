@@ -5,6 +5,7 @@ Also: SRD-GUI-034.056 — shared approve and reject of a trade pick
 Also: MD-GUI-034.062.M36 — ask cards for Command (SRD-GUI-034.062)
 Also: MD-GUI-034.043.M38 — asked panel cards and failed requests (SRD-GUI-034.043, .044)
 Also: SRD-GUI-034.069 — the morning brief card is titled "Morning plan"
+Also: SRD-GUI-034.081 — one Ask card per waiting hire proposal (AI Desk v3 M7a)
 
 AI feed cards for Market Floor, read from ``desk.db`` read-only: briefs, waiting trade picks,
 ready hires, lead chat replies and failed runs. Never imports ``desk``, ``market`` or ``gui``.
@@ -22,6 +23,7 @@ from us_swing.core.desk_ai_settings import load_settings
 from us_swing.core.desk_contract import DB_NAME
 from us_swing.core.desk_data_asks import AskedProduct, failed_products, waiting_products
 from us_swing.core.desk_hiring import list_hires
+from us_swing.core.desk_proposals import proposal_text, waiting_proposals
 from us_swing.core.desk_recipes import recipe_words, run_recipe
 from us_swing.core.desk_trades import (
     DeskTradeSink,
@@ -43,7 +45,8 @@ NO_ROWS = "No rows on the latest day"
 @dataclass(frozen=True)
 class FeedCard:
     """One AI feed card; ``pick`` is set on a trade pick Ask, ``ref`` names the Ask kind and
-    ``item`` is the asked product id of a ``data`` Ask."""
+    ``item`` is the asked product id of a ``data`` Ask or the proposal id of a ``proposal``
+    Ask."""
 
     kind: CardKind
     sender: str
@@ -93,6 +96,9 @@ def ask_cards(home: Path, now: datetime) -> list[FeedCard]:
                  ref="hire")
         for h in list_hires(home) if h.ready
     ]
+    cards += [FeedCard("ask", "Hiring", f"Hire proposal · {p.skill.replace('_', ' ')}",
+                       _when(p.made), proposal_text(home, p), ref="proposal", item=p.id)
+              for p in waiting_proposals(home)]  # SRD-GUI-034.081
     cards += [FeedCard("ask", "Data", f"New panel · {p.title}", _when(p.created),
                        _product_text(home, p), ref="data", item=p.id)
               for p in waiting_products(home)]

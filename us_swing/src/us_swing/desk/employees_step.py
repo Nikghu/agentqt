@@ -15,6 +15,8 @@ note, deputy before refusal, only while escalation is on), SRD-DSK-009.013, .014
 kept after the answer)
 Also: MD-MKT-020.018.M10 — SRD-MKT-020.018 (day-call line after the memory blocks),
 SRD-MKT-020.007 (meetings taken while the company day is on)
+Also: SRD-DSK-006.020, .021, .024 (hire proposal asks in the short reply-only turn; each reply
+sets the proposal's view; refused by code while the switch is off) — AI Desk v3 M7a
 
 Desk step "AI employees": after the market steps, copies any missing default employee
 files into the desk folder, posts an ``after_run`` event and lets the router handle every
@@ -48,6 +50,8 @@ from us_swing.core.desk_messages import (
     thread_starter,
 )
 from us_swing.core.desk_msg import Draft, InboxReply
+from us_swing.core.desk_proposals import AGREE, DISAGREE, NO_VIEW, note_view, proposal_of_ask
+from us_swing.core.desk_proposals import OFF as PROPOSALS_OFF
 from us_swing.desk.budget import Part
 from us_swing.desk.gateway import Caller, Gateway, call_model, kept_notes
 from us_swing.desk.recorder import NY, Recorder, ny_now
@@ -217,12 +221,18 @@ class EmployeesStep:
         if not rows:
             return "ok"
         escalates = [m for m in rows if m.type == "escalate"] if _escalates(settings) else []
-        rest = [m for m in rows if m not in escalates]
+        proposals = [m for m in rows if _proposal_id(m) is not None]
+        rest = [m for m in rows if m not in escalates and m not in proposals]
         try:
             result = "ok"
             if escalates:
                 result = self._answer_escalations(hire, run_id, home, settings, hires, roster,
                                                   escalates)
+            if proposals and settings.messages_on and settings.hire_proposals_on:
+                result = self._answer_proposals(hire, run_id, home, settings, hires, roster,
+                                                proposals)
+            elif proposals:  # SRD-DSK-006.024: no AI turn while the switch is off
+                refuse_inbox(home, proposals, PROPOSALS_OFF, now)
             if rest:
                 result = self._answer_inbox(hire, run_id, home, settings, hires, roster, rest)
             return result
@@ -242,12 +252,15 @@ class EmployeesStep:
                 rows = hand_to_deputy(home, rows, person, roster, why, now)
         refuse_inbox(home, rows, why, now)
 
-    def _answer_escalations(self, hire: Hire, run_id: int, home: Path,
-                            settings: DeskAiSettings, hires: Sequence[Hire],
-                            roster: Sequence[Person], rows: Sequence[MessageRow]) -> str:
-        """A short reply-only turn for a boss; its own skill does not run (SRD-DSK-011.039)."""
+    def _answer_short(self, hire: Hire, run_id: int, home: Path, settings: DeskAiSettings,
+                      hires: Sequence[Hire], roster: Sequence[Person],
+                      rows: Sequence[MessageRow], head: str,
+                      notes: bool) -> tuple[str, list[Draft]]:
+        """One short reply-only turn: ``head`` and the inbox, the receiver's own skill does not
+        run (SRD-DSK-011.039, SRD-DSK-006.020). Returns the wake result and the stored replies.
+        """
         spec, day = hire.spec, rows[0].data_day
-        text = _BOSS_HEAD + "\n\n" + inbox_text(rows, roster)
+        text = head + "\n\n" + inbox_text(rows, roster)
         starter = thread_starter(home, rows[0].thread) or spec.id
         payer = next((h.spec for h in hires if h.spec.id == starter), spec)
         part = Part("market", payer.id, payer.name, payer.tokens_per_day, message=rows[0].id)
@@ -259,17 +272,44 @@ class EmployeesStep:
             replies = [d for d in answer.messages if d.type == "reply"] if answer else []
             results = accept(home, replies, spec.id, roster, self._clock(), day, True,
                              self._send)
-            subjects = {m.id: str(m.body.get("subject", "")) for m in rows}
-            notes = [FeedItem("info", _note(subjects.get(d.parent or 0, ""), d), day)
-                     for d, r in zip(replies, results, strict=True) if r.startswith("stored")]
-            recorder.add_briefs(notes, spec.id, spec.name)  # SRD-DSK-011.040
+            stored = [d for d, r in zip(replies, results, strict=True) if r.startswith("stored")]
+            if notes:
+                subjects = {m.id: str(m.body.get("subject", "")) for m in rows}
+                items = [FeedItem("info", _note(subjects.get(d.parent or 0, ""), d), day)
+                         for d in stored]
+                recorder.add_briefs(items, spec.id, spec.name)  # SRD-DSK-011.040
         finally:
             recorder.close()
         if not replies:
             why = gateway.refused or f"{spec.name} gave no valid answer"
             self._refuse(home, rows, why, hire, settings, roster)
-            return "slept" if gateway.refused else "failed"
-        return "ok"
+            return ("slept" if gateway.refused else "failed"), []
+        return "ok", stored
+
+    def _answer_escalations(self, hire: Hire, run_id: int, home: Path,
+                            settings: DeskAiSettings, hires: Sequence[Hire],
+                            roster: Sequence[Person], rows: Sequence[MessageRow]) -> str:
+        """A short reply-only turn for a boss; its own skill does not run (SRD-DSK-011.039)."""
+        return self._answer_short(hire, run_id, home, settings, hires, roster, rows,
+                                  _BOSS_HEAD, notes=True)[0]
+
+    def _answer_proposals(self, hire: Hire, run_id: int, home: Path,
+                          settings: DeskAiSettings, hires: Sequence[Hire],
+                          roster: Sequence[Person], rows: Sequence[MessageRow]) -> str:
+        """Hire proposal asks in a short reply-only turn with no feed note; each stored reply
+        sets its proposal's view: done agrees, refused does not (SRD-DSK-006.020, .021)."""
+        result, stored = self._answer_short(hire, run_id, home, settings, hires, roster, rows,
+                                            _PROPOSAL_HEAD, notes=False)
+        asked = {m.id: _proposal_id(m) for m in rows}
+        for draft in stored:
+            pid = asked.get(draft.parent or 0)
+            if pid is None:
+                continue
+            verdict = draft.verdict.result if draft.verdict else "done"
+            view = {"done": AGREE, "refused": DISAGREE}.get(verdict, NO_VIEW)
+            note = (draft.verdict.reason if draft.verdict else None) or draft.text or ""
+            note_view(home, pid, view, hire.spec.id, note, self._clock())
+        return result
 
     def _answer_inbox(self, hire: Hire, run_id: int, home: Path, settings: DeskAiSettings,
                       hires: Sequence[Hire], roster: Sequence[Person],
@@ -312,6 +352,20 @@ class EmployeesStep:
                          roster)
             return "failed"
         return "ok"
+
+
+_PROPOSAL_HEAD = ("Hire proposals from people who report to you. Reply to each one: done with "
+                  "one short line if you agree, or refused with one short reason if you do not. "
+                  "The Master user sees your reply with the proposal. Do not plan anything else "
+                  "now.")
+
+
+def _proposal_id(row: MessageRow) -> int | None:
+    """The hire proposal an ask carries in its ``want`` (SRD-DSK-006.020), else ``None``."""
+    want = row.body.get("want") if row.type == "ask" else None
+    if not isinstance(want, dict):
+        return None
+    return proposal_of_ask(want.get("schema"), want.get("inputs"))
 
 
 _BOSS_HEAD = ("Problems raised to you by people who report to you. Reply to each one; your "

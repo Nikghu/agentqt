@@ -7,6 +7,7 @@
 **Last Updated:** 2026-05-22
 **Project:** US Swing Trading System
 
+> v2.29.1: FO-GUI-034 hire proposals bullet approved by user 2026-11-15; Implemented 2026-11-15.
 > v2.29.0: AI Desk v3 M7a (user, 2026-11-15): FO-GUI-034 gains the hire proposals bullet as Draft.
 > v2.28.1: FO-GUI-041 and the FO-GUI-034 M6 bullet approved by user 2026-11-14; Implemented 2026-11-15.
 > v2.28.0: AI Desk v3 M6 (user, 2026-11-14): FO-GUI-041 AI Desk Tools added as Draft; FO-GUI-034 gains the Task cards switch and chat table bullet as Draft.

@@ -4,7 +4,7 @@ Parent SRD: SRD-DSK-006.001
 Also: SRD-DSK-006.002 (refused hires), SRD-DSK-006.003 (seat count), SRD-DSK-006.005 (ready
 after 14 data days), SRD-DSK-006.006 (shadow report and agreement), SRD-DSK-006.007
 (decisions and ``approvals``), SRD-DSK-006.010 (log lines), SRD-DSK-008.007 (a hire
-writes ``employee.md``)
+writes ``employee.md``), SRD-DSK-006.014 (level of a skill's default file)
 
 The hiring pipeline, shared by the GUI (which starts hires and records decisions) and
 the desk. Employees are folders of data in ``<desk>/employees/<id>/``; a hire always uses
@@ -119,6 +119,13 @@ def _default_folder(skill: str) -> Path | None:
             if found is not None and found.skill == skill:
                 return folder
     return None
+
+
+def default_level(skill: str) -> str | None:
+    """Level of the shipped default employee holding ``skill``; ``None`` when there is none."""
+    folder = _default_folder(skill)
+    found = _employee(folder) if folder is not None else None
+    return found.level if found is not None else None
 
 
 def _next_id(home: Path) -> str:
