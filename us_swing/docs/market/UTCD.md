@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.29.0: UT-MKT-021.007–.010 and UT-MKT-010.022 added (10, Not Run) (AI Desk v3 M7b, 2026-11-15).
 > v0.28.1: UT-MKT-021.001–.006 and UT-MKT-010.020–.021 Pass (24: 23 + 021.004.M01.T04 added from the code review) (2026-11-15).
 > v0.28.0: UT-MKT-021.001–.006 and UT-MKT-010.020–.021 added (23, Not Run) (AI Desk v3 M6, 2026-11-14).
 > v0.27.1: UT-MKT-020.001–.024 Pass (67, 2026-11-13).
@@ -835,3 +836,18 @@
 | UT-MKT-010.021.M01.T03 | MD-MKT-010.001.M01 | Negative | Text reply has no table (SRD-MKT-010.021) | reply with text only; refused reply | table text empty for both | Pass |
 | UT-MKT-010.021.M03.T01 | MD-MKT-010.003.M03 | Positive | Update by code (SRD-MKT-010.021) | a table reply to the lead's ask | one update row with the table text; the model is not asked | Pass |
 | UT-MKT-010.021.M03.T02 | MD-MKT-010.003.M03 | Positive | Chat question to table (SRD-MKT-010.021) | desk copy, all three switches on; question; lead answers with a table ask | answer row, then an update row with the table; only the lead's answer used tokens | Pass |
+
+## FO-MKT-021 / FO-MKT-010 (AI Desk v3 M7b): Read Functions and Tool Requests
+
+| ID | Module | Type | Title | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-MKT-021.007.M02.T01 | MD-MKT-021.007.M02 | Positive | Daily bars (SRD-MKT-021.007) | a daily file with 300 bars | `daily_bars(sym, 260)` gives 260 bars, oldest first, with day, open, high, low, close and volume | Not Run |
+| UT-MKT-021.007.M02.T02 | MD-MKT-021.007.M02 | Negative | No daily file (SRD-MKT-021.007) | a stock with no file | an empty list | Not Run |
+| UT-MKT-021.008.M02.T01 | MD-MKT-021.007.M02 | Positive | Intraday bars (SRD-MKT-021.008) | 30-minute files for two years; the last bars on 2 days after a year end | `intraday_bars(sym, 30, 2)` gives both days' bars with New York times, oldest first | Not Run |
+| UT-MKT-021.008.M02.T02 | MD-MKT-021.007.M02 | Negative | Bad minutes or days (SRD-MKT-021.008) | minutes 5; days 0 and 61 | ValueError with the reason | Not Run |
+| UT-MKT-021.009.M02.T01 | MD-MKT-021.007.M02 | Positive | Desk rows (SRD-MKT-021.009) | `stock_rs` rows on 3 days | `desk_rows("stock_rs", sym, 2)` gives the last 2 days with date and the menu columns | Not Run |
+| UT-MKT-021.009.M02.T02 | MD-MKT-021.007.M02 | Negative | Bad source use (SRD-MKT-021.009) | an unknown source; sectors with a symbol; scores with none; no `desk.db` | ValueError for the first three; an empty list for the last | Not Run |
+| UT-MKT-021.010.M02.T01 | MD-MKT-021.007.M02 | Positive | Plain data, read-only (SRD-MKT-021.010) | call all three; a lower-case symbol | only str, int, float or None values; the files and `desk.db` unchanged; the symbol upper-cased | Not Run |
+| UT-MKT-021.010.M02.T02 | MD-MKT-021.007.M02 | Negative | Bad stock names (SRD-MKT-021.010) | "../x", an empty name, an 11-character name | ValueError "bad symbol"; no file read | Not Run |
+| UT-MKT-010.022.M03.T01 | MD-MKT-010.003.M03 | Positive | Tool hint (SRD-MKT-010.022) | sessions, messages and tool builder on; an active `tool_builder` holder | the facts hold the `skill:tool_builder` hint | Not Run |
+| UT-MKT-010.022.M03.T02 | MD-MKT-010.003.M03 | Negative | No tool hint (SRD-MKT-010.022) | tool builder off; on with no holder | no tool hint in either | Not Run |

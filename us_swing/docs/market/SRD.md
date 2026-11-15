@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.28.0: AI Desk v3 M7b (user, 2026-11-15): SRD-MKT-021.007–.010 (read functions for built tools) and SRD-MKT-010.022 (tool request hint) added as Draft.
 > v0.27.2: SRD-MKT-021.001–.006 and SRD-MKT-010.020–.021 Implemented 2026-11-15.
 > v0.27.1: SRD-MKT-021.001–.006 and SRD-MKT-010.020–.021 approved by user 2026-11-14.
 > v0.27.0: AI Desk v3 M6 (user, 2026-11-14): SRD-MKT-021.001–.006 (table tools) and SRD-MKT-010.020–.021 (table asks in the lead chat) added as Draft.
@@ -254,6 +255,7 @@
 | SRD-MKT-010.019 | FO-MKT-010 | Should | Each session summary and each update logs the session or question number. | summary, update | log line | `[Chat]` prefix | Implemented |
 | SRD-MKT-010.020 | FO-MKT-010 | Must | With task cards on, the ask hint also lists the ready table formats with their columns and tells the lead to send a table ask to `skill:task_planner` with the format and the symbols. | settings, ready formats | facts text | Only with sessions and agent messages on; no ready format: no table hint | Implemented |
 | SRD-MKT-010.021 | FO-MKT-010 | Must | A reply that holds a table becomes the update as text written by code: a header line, one line per row, then the missing reasons and the flags. | reply | `chat` row | No AI call; cells joined by " \| " | Implemented |
+| SRD-MKT-010.022 | FO-MKT-010 | Must | With the tool builder on, the ask hint also tells the lead to send the Master's request for a new tool to `skill:tool_builder`. | settings | facts text | Only while an active employee holds `tool_builder`; only for a request for a new tool | Draft |
 
 ## FO-MKT-011: Ask the Desk for New Data
 
@@ -433,3 +435,7 @@
 | SRD-MKT-021.004 | FO-MKT-021 | Must | The tool `technical.setup` gives the better-scored side of the latest data day with its setup, trigger and stop. | symbols | tool result | From `stock_score`; "No setup" gives setup `none` with empty trigger and stop | Implemented |
 | SRD-MKT-021.005 | FO-MKT-021 | Must | The tool `calendar.earnings` gives the trading days from the latest data day to the next earnings date as `earn_days`. | symbols | tool result | No date found: missing with a reason; 5 days or fewer adds a flag | Implemented |
 | SRD-MKT-021.006 | FO-MKT-021 | Must | Every table tool only reads data, makes no AI call and returns a tool result (SRD-DSK-012.013). | — | — | Called only through its tool group (SRD-DSK-012.021) | Implemented |
+| SRD-MKT-021.007 | FO-MKT-021 | Must | `daily_bars(symbol, days)` gives the last `days` daily bars of a stock from Backtest Data, oldest first. | symbol, days | list of bars | days 1–1300, default 260; a bar holds day, open, high, low, close and volume; no file gives an empty list | Draft |
+| SRD-MKT-021.008 | FO-MKT-021 | Must | `intraday_bars(symbol, minutes, days)` gives the 15- or 30-minute bars of a stock's last `days` trading days with New York times. | symbol, minutes, days | list of bars | minutes 15 or 30, default 30; days 1–60, default 10; no file gives an empty list | Draft |
+| SRD-MKT-021.009 | FO-MKT-021 | Must | `desk_rows(source, symbol, days)` gives the date and menu columns of one data recipe menu source for the last `days` data days, oldest first. | source, symbol, days | list of rows | days 1–60, default 1; a stock is needed except for sectors, which takes none; read-only with bound values | Draft |
+| SRD-MKT-021.010 | FO-MKT-021 | Must | The read functions return only plain lists and dicts, raise a ValueError with a short reason for bad input, and never write data or call a model. | input | values or reason | A stock name is upper-cased and must be letters, digits, dot, dash or space, up to 10 characters; made only through `reads(home, backtest)` | Draft |

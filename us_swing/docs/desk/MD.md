@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.22.0: MD-DSK-013.001.M37, MD-DSK-013.010.M38, MD-DSK-013.011.M39 and MD-DSK-013.003.M40 added; M28, M32, M33, M34, M13, M15, M07 and M18 changed (AI Desk v3 M7b, 2026-11-15).
 > v0.21.1: M35, M36 and M10 rows updated after the code review; M30 changed (2026-11-15).
 > v0.21.0: MD-DSK-006.012.M35 and MD-DSK-006.016.M36 added; M20, M15, M10, M28, M07, M13, M18 changed (AI Desk v3 M7a, 2026-11-15).
 > v0.20.0: MD-DSK-012.016.M32, MD-DSK-012.021.M33 and MD-DSK-012.018.M34 added; M28, M07, M13, M30, M21, M04 changed (AI Desk v3 M6, 2026-11-14).
@@ -215,3 +216,16 @@ SRD coverage: .012–.014 by M28; .015 by M28 and M07; .016 by M32 and M04; .017
 Changed: M20 (`desk/weekly_report.py`: posts `weekly_report` — .011), M15 (`core/desk_events.py`: event kind `weekly_report` — .011), M10 (`desk/employees_step.py`: proposal asks in the short reply-only turn shared with escalations, views noted, refused by code while off — .020, .021, .024), M28 (`core/desk_registry.py`: `hire_proposal.v1` seed — .019), M07 (`core/desk_steps.py`: `hire_review` skill path — .025), M13 (`core/desk_ai_settings.py`: `hire_proposals_on` — .024), M18 (`core/desk_hiring.py`: `default_level()` — .014), M30 (`core/desk_memory.py`: docstring only — .016). The default employee `market/employees/emp-020/` and the `USSwing.spec` hidden import go with M07 (.025).
 
 SRD coverage: .011 by M20 and M15; .012, .013, .015, .022, .023 and .026 by M35; .014 by M35 and M18; .016–.018 and .027 by M36; .019 by M28; .020 by M10; .021 by M10 and M36; .024 by M13, M10 and M36; .025 by M07.
+
+## FO-DSK-013 (AI Desk v3 M7b): Tool Builder
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-DSK-013.001.M37 | SRD-DSK-013.001 | `us_swing/src/us_swing/core/desk_built_tools.py` | `tool_requests` and `built_tools` tables, request save and states, the answer model and its checks, the code rules, versions with SHA-256, sample stocks, Enable and Disable, reads | `ToolColumn`, `ToolAnswer`, `ToolRequest`, `BuiltTool`, `Check`, `ALLOWED_NAMES`, `ALLOWED_ATTRS`, `ask_tool()`, `add_request()`, `new_requests()`, `set_request()`, `expire_requests()`, `check_answer()`, `check_code()`, `save_version()`, `set_checks()`, `changed()`, `code_of()`, `sample_symbols()`, `enable_tool()`, `disable_tool()`, `enabled_tools()`, `tool_requests()`, `built_tool_rows()`, `OFF`, `CHANGED` | `ast`, `hashlib`, `sqlite3`, `pydantic`, M13, M15, M28, M32 | No |
+| MD-DSK-013.010.M38 | SRD-DSK-013.010 | `us_swing/src/us_swing/desk/sandbox.py` | Run a version in a spawned child with time and memory limits and JSON back only; tool functions of the enabled built tools for the planner | `RunResult`, `run_code()`, `built_fns()`, `SECS`, `MAX_OUT` | `multiprocessing`, M28, M37, M39 | No |
+| MD-DSK-013.011.M39 | SRD-DSK-013.011 | `us_swing/src/us_swing/desk/sandbox_child.py` | Child entry: memory cap, watchdog, rules checked again, safe names and read functions, `tool(symbol)` per stock, value checks, JSON out | `child_main()`, `child_env()`, `MEMORY_MB` | `ctypes`, `json`, `math`, `statistics`, M07, M37 | No |
+| MD-DSK-013.003.M40 | SRD-DSK-013.003 | `us_swing/src/us_swing/desk/tool_builder.py` | Builder skill: chat asks to requests, facts, AI answer with one fix round, save, sandbox checks, request result, reply, logs | `ToolBuilderSkill`, `facts_text()`, `run_checks()` | M08, M13, M27, M29, M37, M38 | No |
+
+Changed: M28 (`core/desk_registry.py`: `built.*` rows kept on a desk start; `save_tool()`, `set_tool_status()`, `save_format()`, `drop_format()` — .017–.019), M32 (`core/desk_tasks.py`: `save_plan()`, `drop_plan()` — .017, .018), M33 (`desk/champions.py`: a tool may be a function — .020), M34 (`desk/planner.py`: enabled built tools join the tool paths — .020), M13 (`core/desk_ai_settings.py`: `tool_builder_on` — .021), M15 (`core/desk_events.py`: event kind `tool_request` — .001), M07 (`core/desk_steps.py`: `SKILL_PATHS["tool_builder"]`, `TOOL_READS_PATH` — .022), M18 (`core/desk_hiring.py`: `_next_id()` above the shipped ids — SRD-DSK-006.028).
+
+SRD coverage: .001 by M37 and M15; .002–.004, .008 and .016 by M40; .005 and .006 by M37 and M40; .007, .009, .015 and .023 by M37; .010 by M38; .011 and .012 by M39; .013 by M37 and M38; .014 by M40 and M37; .017 and .018 by M37, M28 and M32; .019 by M28; .020 by M33, M34 and M38; .021 by M13, M37 and M40; .022 by M07; .024 by M37, M38 and M40; SRD-DSK-006.028 by M18.

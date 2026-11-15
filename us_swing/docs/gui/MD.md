@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.39.0: M01 (Tools) and M15 (settings) changed (AI Desk v3 M7b, 2026-11-15).
 > v1.38.0: M32 (feed), M31 (feed cards), M21 (hiring) and M15 (settings) changed (AI Desk v3 M7a, 2026-11-15).
 > v1.37.0: MD-GUI-041.001.M01 added — AI Desk Tools; M08 (workspace), M26 (chat) and M15 (settings) changed (AI Desk v3 M6, 2026-11-14).
 > v1.36.0: MD-GUI-034.078.M40 and MD-GUI-035.018.M06 added; M15 (settings) and MD-GUI-035.001.M01 (team) changed (AI Desk v3 M5, 2026-11-13).
@@ -572,3 +573,11 @@ No new module.
 Changed: MD-GUI-034.054.M32 (`core/desk_feed.py`: proposal Ask cards — SRD-GUI-034.081), MD-GUI-034.053.M31 (`gui/floor_feed.py`: Approve and Reject on proposal cards — .082), MD-GUI-034.027.M21 (`gui/ai_desk_hiring.py`: Proposals list — .083), MD-GUI-034.016.M15 (`gui/ai_desk_settings.py`: Hire proposals switch — .084).
 
 SRD coverage: SRD-GUI-034.081 by MD-GUI-034.054.M32; .082 by MD-GUI-034.053.M31; .083 by MD-GUI-034.027.M21; .084 by MD-GUI-034.016.M15.
+
+## FO-GUI-041 / 034 (AI Desk v3 M7b): Tool Requests, Built Tools Review, Tool Builder Switch
+
+No new module.
+
+Changed: MD-GUI-041.001.M01 (`gui/ai_desk_tools.py`: request box, requests list, built tools list, review detail with the code, Enable and Disable — SRD-GUI-041.006–.010), MD-GUI-034.016.M15 (`gui/ai_desk_settings.py`: Tool builder switch — SRD-GUI-034.085).
+
+SRD coverage: SRD-GUI-041.006–.010 by MD-GUI-041.001.M01; SRD-GUI-034.085 by MD-GUI-034.016.M15.

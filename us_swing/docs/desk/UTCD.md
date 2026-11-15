@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.22.0: UT-DSK-013.001–.024 and UT-DSK-006.028 M7b cases added (67, Not Run) (2026-11-15).
 > v0.21.1: UT-DSK-006.011–.027 M7a cases Pass (48: 41 + 7 added during coding and review: 016.M36.T03, 017.M36.T04, 021.M36.T02, 021.M36.T03, 022.M35.T03, 024.M10.T01, 026.M35.T03) (2026-11-15).
 > v0.21.0: UT-DSK-006.011–.027 M7a cases added (41, Not Run) (2026-11-15).
 > v0.20.1: UT-DSK-012.012–.031 M6 cases Pass (72: 66 + 6 added from the code review: 016.M04.T02, 017.M32.T04, 017.M04.T01, 018.M34.T05, 021.M33.T03, 027.M21.T02) (2026-11-15).
@@ -759,3 +760,75 @@
 | UT-DSK-006.026.M35.T02 | MD-DSK-006.012.M35 | Edge | No data (SRD-DSK-006.026) | home with no desk.db | empty lists | Pass |
 | UT-DSK-006.026.M35.T03 | MD-DSK-006.012.M35 | Edge | Broken database (SRD-DSK-006.026) | a desk.db that is not a database | screen reads empty; the decision says it was not saved; candidates raise | Pass |
 | UT-DSK-006.027.M36.T01 | MD-DSK-006.016.M36 | Positive | Log lines (SRD-DSK-006.027) | a sent proposal, a view, an approve and a turn with no candidate | one `[Hiring]` line for each | Pass |
+
+## FO-DSK-013 (AI Desk v3 M7b): Tool Builder
+
+| ID | Module | Type | Title | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-DSK-013.001.M37.T01 | MD-DSK-013.001.M37 | Positive | Save a request (SRD-DSK-013.001) | tool builder on; "Percent below the 52-week high" | one request row: source tools, asker master, state new; one `tool_request` event | Not Run |
+| UT-DSK-013.001.M37.T02 | MD-DSK-013.001.M37 | Negative | Request refused (SRD-DSK-013.001) | empty text; 301 characters; tool builder off | ValueError with the reason each time; no row and no event | Not Run |
+| UT-DSK-013.001.M15.T01 | MD-DSK-003.004.M15 | Positive | Event rule (SRD-DSK-013.001) | `EVENT_RULES["tool_request"]` | priority 1, no deadline, expiry 1 day | Not Run |
+| UT-DSK-013.002.M40.T01 | MD-DSK-013.003.M40 | Positive | Chat ask to request (SRD-DSK-013.002) | ask with want.inputs request and symbols ["avgo", "MU"] | one request row: source chat, the ask id, the asker, the text, symbols AVGO and MU | Not Run |
+| UT-DSK-013.002.M40.T02 | MD-DSK-013.003.M40 | Edge | Request text fallback (SRD-DSK-013.002) | an ask with only want.goal; an ask with only text | request text from the goal; from the ask text | Not Run |
+| UT-DSK-013.002.M40.T03 | MD-DSK-013.003.M40 | Negative | Not an ask (SRD-DSK-013.002) | a reply in the builder's inbox | no request row; no reply sent | Not Run |
+| UT-DSK-013.003.M40.T01 | MD-DSK-013.003.M40 | Positive | All new requests (SRD-DSK-013.003) | 2 new requests; the fake model gives good code | both built in one wake, oldest first; 2 AI calls | Not Run |
+| UT-DSK-013.003.M40.T02 | MD-DSK-013.003.M40 | Negative | Nothing to do (SRD-DSK-013.003) | no request and an empty inbox | facts not fresh; 0 AI calls | Not Run |
+| UT-DSK-013.003.M40.T03 | MD-DSK-013.003.M40 | Edge | Old request expires (SRD-DSK-013.003) | a new request made 25 hours ago | state expired with its reason; no AI call | Not Run |
+| UT-DSK-013.004.M40.T01 | MD-DSK-013.003.M40 | Positive | Facts text (SRD-DSK-013.004) | a request with symbols; one built tool | the request, the sample stocks, the 3 read functions, the rule lines, the built tool line and the taken format names | Not Run |
+| UT-DSK-013.004.M40.T02 | MD-DSK-013.003.M40 | Negative | No code or paths in facts (SRD-DSK-013.004) | a built tool with its code file | the facts name the tool, its title and columns, but hold none of its code and no file path | Not Run |
+| UT-DSK-013.004.M40.T03 | MD-DSK-013.003.M40 | Edge | First tool (SRD-DSK-013.004) | no built tool; a request with no symbols | "Built tools: none"; no sample line | Not Run |
+| UT-DSK-013.005.M37.T01 | MD-DSK-013.001.M37 | Positive | Answer model (SRD-DSK-013.005) | JSON with name, title, about, 2 columns and code | parses to `ToolAnswer` | Not Run |
+| UT-DSK-013.005.M37.T02 | MD-DSK-013.001.M37 | Negative | Answer limits (SRD-DSK-013.005) | 6 columns; 6001 characters of code; column type "date"; an extra key | validation error each time | Not Run |
+| UT-DSK-013.005.M40.T01 | MD-DSK-013.003.M40 | Positive | Refusal (SRD-DSK-013.005) | the answer holds only refuse "needs news" | request refused with that reason; no version; 1 AI call | Not Run |
+| UT-DSK-013.006.M37.T01 | MD-DSK-013.001.M37 | Positive | Good answer (SRD-DSK-013.006) | a new name; the name of a built tool | no problems; versions 1 and 2 | Not Run |
+| UT-DSK-013.006.M37.T02 | MD-DSK-013.001.M37 | Negative | Bad answer (SRD-DSK-013.006) | name "setup_table"; name "x"; empty title; a column named symbol; the same column twice | one problem each | Not Run |
+| UT-DSK-013.007.M37.T01 | MD-DSK-013.001.M37 | Positive | Good code (SRD-DSK-013.007) | tool with a helper, a constant, loops, a comprehension, try and except ValueError, math.sqrt, mean and daily_bars | no problems | Not Run |
+| UT-DSK-013.007.M37.T02 | MD-DSK-013.001.M37 | Negative | Banned statements (SRD-DSK-013.007) | import; from-import; class; with; yield; global; a decorator; async def | one problem each, with its line | Not Run |
+| UT-DSK-013.007.M37.T03 | MD-DSK-013.001.M37 | Negative | Banned names and attributes (SRD-DSK-013.007) | open(); `__import__`; `x.__class__`; `g.gi_frame`; "a__b"; eval; getattr; an unknown name | one problem each | Not Run |
+| UT-DSK-013.007.M37.T04 | MD-DSK-013.001.M37 | Negative | Shape (SRD-DSK-013.007) | no tool; tool(a, b); tool(symbol=1); a top-level call; 6001 characters; a syntax error | one problem each | Not Run |
+| UT-DSK-013.008.M40.T01 | MD-DSK-013.003.M40 | Positive | Fix round (SRD-DSK-013.008) | the first answer imports os, the second is good | v1 failed with the rules note, v2 in review; 2 AI calls; the second facts list the problem | Not Run |
+| UT-DSK-013.008.M40.T02 | MD-DSK-013.003.M40 | Negative | Still bad (SRD-DSK-013.008) | both answers import os | both versions failed; request failed; exactly 2 AI calls; no sandbox run | Not Run |
+| UT-DSK-013.008.M40.T03 | MD-DSK-013.003.M40 | Positive | Fix after failed checks (SRD-DSK-013.008) | the first code fails on the made-up stock, the second handles it | v1 failed, v2 in review; 2 AI calls | Not Run |
+| UT-DSK-013.008.M40.T04 | MD-DSK-013.003.M40 | Edge | Model messages dropped (SRD-DSK-013.008) | the answer carries a message draft | no message sent except the reply | Not Run |
+| UT-DSK-013.009.M37.T01 | MD-DSK-013.001.M37 | Positive | Save versions (SRD-DSK-013.009) | save the same name twice | `v1.py` and `v2.py` with their code; rows with their SHA-256; v1 unchanged | Not Run |
+| UT-DSK-013.009.M37.T02 | MD-DSK-013.001.M37 | Negative | File left by a crash (SRD-DSK-013.009) | `v1.py` on disk with no row | the new version is v2; `v1.py` unchanged | Not Run |
+| UT-DSK-013.010.M38.T01 | MD-DSK-013.010.M38 | Positive | Child run (SRD-DSK-013.010) | code giving a length column for 2 stocks | 2 rows; the run's process id is not the test's | Not Run |
+| UT-DSK-013.010.M38.T02 | MD-DSK-013.010.M38 | Negative | Time limit (SRD-DSK-013.010) | `while True: pass`, limit 3 s | error "took longer than 3 s"; the child is gone | Not Run |
+| UT-DSK-013.010.M38.T03 | MD-DSK-013.010.M38 | Negative | Memory cap (SRD-DSK-013.010) | a list of 100 million items (Windows) | the stock's reason "the tool ran out of memory"; the run ends | Not Run |
+| UT-DSK-013.010.M38.T04 | MD-DSK-013.010.M38 | Negative | Bad child answers (SRD-DSK-013.010) | a test child that sends 2 MB; one that ends without sending; one that sends a pickle | "too much output"; "ended without an answer"; "broken answer" | Not Run |
+| UT-DSK-013.011.M39.T01 | MD-DSK-013.011.M39 | Positive | Safe names (SRD-DSK-013.011) | code using len, sorted, math.sqrt, mean and daily_bars on a small daily file | the expected values | Not Run |
+| UT-DSK-013.011.M39.T02 | MD-DSK-013.011.M39 | Negative | Rules again in the child (SRD-DSK-013.011) | a job whose code imports os | error "code rules: …"; `tool` never called | Not Run |
+| UT-DSK-013.011.M39.T03 | MD-DSK-013.011.M39 | Negative | Only listed built-ins (SRD-DSK-013.011) | `child_env()` | no `open`, `__import__`, `getattr`, `eval` or `exec` in its built-ins; only the listed names | Not Run |
+| UT-DSK-013.012.M39.T01 | MD-DSK-013.011.M39 | Positive | Rows and reasons (SRD-DSK-013.012) | ValueError "fewer than 252 bars" for one stock, values for another | one row; the first stock's reason | Not Run |
+| UT-DSK-013.012.M39.T02 | MD-DSK-013.011.M39 | Negative | Errors and wrong values (SRD-DSK-013.012) | IndexError; a list for a number column; NaN; a 300-character text; a non-dict | a reason for each; the run still ends | Not Run |
+| UT-DSK-013.013.M38.T01 | MD-DSK-013.010.M38 | Negative | Changed file (SRD-DSK-013.013) | an enabled tool whose file was edited | the tool function gives isError "the code changed after review"; no child starts | Not Run |
+| UT-DSK-013.013.M38.T02 | MD-DSK-013.010.M38 | Positive | Unchanged file (SRD-DSK-013.013) | the same tool, file as saved | rows from the child | Not Run |
+| UT-DSK-013.014.M40.T01 | MD-DSK-013.003.M40 | Positive | All checks pass (SRD-DSK-013.014) | a good tool, 2 sample stocks with daily files | 5 checks passed; 3 sample lines with ZZZZZ's reason | Not Run |
+| UT-DSK-013.014.M40.T02 | MD-DSK-013.003.M40 | Negative | Checks fail (SRD-DSK-013.014) | text for a number column; no full row; IndexError for ZZZZZ | Value types, Full row and No data fail with notes | Not Run |
+| UT-DSK-013.014.M37.T01 | MD-DSK-013.001.M37 | Edge | Sample stocks (SRD-DSK-013.014) | request symbols; else ideas; else stock_rs; else nothing | the request's; the top 5 ideas by rank; the top 5 by RS; an empty list | Not Run |
+| UT-DSK-013.015.M40.T01 | MD-DSK-013.003.M40 | Positive | Review state (SRD-DSK-013.015) | all checks pass | state review; no `built.*` registry row, format or plan | Not Run |
+| UT-DSK-013.015.M40.T02 | MD-DSK-013.003.M40 | Negative | Failed state (SRD-DSK-013.015) | one check fails | state failed | Not Run |
+| UT-DSK-013.016.M40.T01 | MD-DSK-013.003.M40 | Positive | Done reply (SRD-DSK-013.016) | a chat request built | one reply done naming the tool and "5 of 5 checks passed"; request done | Not Run |
+| UT-DSK-013.016.M40.T02 | MD-DSK-013.003.M40 | Negative | Failed and refused replies (SRD-DSK-013.016) | a refused answer; two bad answers; no answer | one reply each: refused with the reason; failed; failed "the model gave no answer" | Not Run |
+| UT-DSK-013.017.M37.T01 | MD-DSK-013.001.M37 | Positive | Enable (SRD-DSK-013.017) | a version in review | registry `built.<name>` v1 active with 60 s; format `<name>.v1` with symbol first, all made by the tool; an active plan; state enabled | Not Run |
+| UT-DSK-013.017.M37.T02 | MD-DSK-013.001.M37 | Positive | New version replaces (SRD-DSK-013.017) | v1 enabled, then Enable v2 | v1 disabled, its registry row off and its format gone; v2 active | Not Run |
+| UT-DSK-013.017.M37.T03 | MD-DSK-013.001.M37 | Negative | Enable refused (SRD-DSK-013.017) | a failed version; a changed file; an unknown id; an enabled one | the reason each time; nothing written | Not Run |
+| UT-DSK-013.017.M32.T01 | MD-DSK-012.016.M32 | Edge | One plan only (SRD-DSK-013.017) | a retired plan of another format, then Enable | the other plan stays retired | Not Run |
+| UT-DSK-013.018.M37.T01 | MD-DSK-013.001.M37 | Positive | Disable (SRD-DSK-013.018) | an enabled version | state disabled; registry row off; format and plan gone; Enable works again | Not Run |
+| UT-DSK-013.018.M37.T02 | MD-DSK-013.001.M37 | Negative | Not enabled (SRD-DSK-013.018) | a version in review | "only an enabled tool can be disabled" | Not Run |
+| UT-DSK-013.019.M28.T01 | MD-DSK-012.001.M28 | Positive | Built rows kept (SRD-DSK-013.019) | an enabled `built.*` row, then `fill_registry()` | the row stays active | Not Run |
+| UT-DSK-013.019.M28.T02 | MD-DSK-012.001.M28 | Negative | Other gone tools off (SRD-DSK-013.019) | a code tool row not in the seed, then `fill_registry()` | set off as before | Not Run |
+| UT-DSK-013.020.M33.T01 | MD-DSK-012.021.M33 | Positive | Function tools (SRD-DSK-013.020) | a part with one tool given as a function and one as a path | both tools' columns filled | Not Run |
+| UT-DSK-013.020.M34.T01 | MD-DSK-012.018.M34 | Positive | Planner runs a built tool (SRD-DSK-013.020) | an enabled built tool; a table ask for its format and 2 stocks | reply done with 2 rows; the card part's group is built | Not Run |
+| UT-DSK-013.020.M34.T02 | MD-DSK-012.018.M34 | Negative | Run error fails its part (SRD-DSK-013.020) | the tool's file changed after Enable | the part failed "the code changed after review"; reply failed; one tool call | Not Run |
+| UT-DSK-013.021.M13.T01 | MD-DSK-004.005.M13 | Positive | Setting (SRD-DSK-013.021) | defaults; save true | false by default; true read back | Not Run |
+| UT-DSK-013.021.M40.T01 | MD-DSK-013.003.M40 | Negative | Builder off (SRD-DSK-013.021) | tool builder off; an ask in the inbox | refused reply "the tool builder is off"; no request row; no AI call | Not Run |
+| UT-DSK-013.021.M34.T01 | MD-DSK-012.018.M34 | Positive | Enabled tools keep working (SRD-DSK-013.021) | an enabled tool, then the switch off | a table ask still gets its rows | Not Run |
+| UT-DSK-013.022.M07.T01 | MD-DSK-001.021.M07 | Positive | Default builder (SRD-DSK-013.022) | the shipped emp-021 | skill tool_builder, level champion, reports_to emp-019, triggers tool_request and message, a generic name; skill path and spec imports set | Not Run |
+| UT-DSK-013.022.M07.T02 | MD-DSK-001.021.M07 | Negative | Added once (SRD-DSK-013.022) | a desk without emp-021, seeded twice | copied once; the second seed adds nothing | Not Run |
+| UT-DSK-013.023.M37.T01 | MD-DSK-013.001.M37 | Positive | Reads (SRD-DSK-013.023) | 3 requests and 2 versions | newest first; `code_of()` gives the file text | Not Run |
+| UT-DSK-013.023.M37.T02 | MD-DSK-013.001.M37 | Edge | No database (SRD-DSK-013.023) | no `desk.db`; a missing file | empty lists; "" for the code | Not Run |
+| UT-DSK-013.024.M40.T01 | MD-DSK-013.003.M40 | Positive | Log lines (SRD-DSK-013.024) | a build, an Enable, a Disable and a stopped run | `[Tool builder]` lines; no code text and no file path | Not Run |
+| UT-DSK-006.028.M18.T01 | MD-DSK-006.001.M18 | Positive | Hire id above shipped ids (SRD-DSK-006.028) | desk folders emp-001 to emp-003; shipped defaults up to emp-021 | the hire gets emp-022 | Not Run |
+| UT-DSK-006.028.M18.T02 | MD-DSK-006.001.M18 | Edge | Desk id higher (SRD-DSK-006.028) | a desk folder emp-030 | the hire gets emp-031 | Not Run |
+| UT-DSK-006.028.M18.T03 | MD-DSK-006.001.M18 | Negative | Other folders ignored (SRD-DSK-006.028) | folders emp-x1 and backup and a file emp-099.txt in the desk's employees folder | none of them counts; the hire still gets emp-022 | Not Run |

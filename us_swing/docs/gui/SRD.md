@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.120.0: AI Desk v3 M7b (user, 2026-11-15): SRD-GUI-041.006–.010 (tool requests, built tools, review, Enable and Disable) and SRD-GUI-034.085 (Tool builder switch) added as Draft.
 > v2.117.2: SRD-GUI-034.077–.078 and SRD-GUI-035.018 Implemented 2026-11-13.
 > v2.119.2: SRD-GUI-034.081–.084 Implemented 2026-11-15.
 > v2.119.1: SRD-GUI-034.081–.084 approved by user 2026-11-15.
@@ -829,6 +830,7 @@
 | SRD-GUI-034.082 | FO-GUI-034 | Must | A proposal card has Approve and Reject; a refused Approve shows its reason on the card and keeps the buttons. | click | decision, reason | Decisions go through `core.desk_proposals` | Implemented |
 | SRD-GUI-034.083 | FO-GUI-034 | Should | Hiring lists the latest 50 proposals with made, skill, need, model, view and state; choosing one shows its evidence and why. | `hire_proposals` | list, detail | Read-only; an empty note when there is none | Implemented |
 | SRD-GUI-034.084 | FO-GUI-034 | Must | Desk settings has a Hire proposals check box, off by default, saved as `hire_proposals_on`. | check box | setting | Disabled while Agent messages is unticked | Implemented |
+| SRD-GUI-034.085 | FO-GUI-034 | Must | Desk settings has a Tool builder check box, off by default, saved as `tool_builder_on`. | check box | setting | Enabled without Agent messages; the chat path also needs Agent messages and Chat sessions | Draft |
 
 ## FO-GUI-035: AI Desk Team at Work
 
@@ -921,3 +923,8 @@
 | SRD-GUI-041.003 | FO-GUI-041 | Should | The tab lists the latest 50 task cards with time, asker, format, rows, result and seconds. | `task_cards` | list | Newest first | Implemented |
 | SRD-GUI-041.004 | FO-GUI-041 | Should | Selecting a card shows one line per part: tool group, tools, columns, rows, result, seconds and reason. | card | detail text | — | Implemented |
 | SRD-GUI-041.005 | FO-GUI-041 | Should | The tab lists the latest 50 failure log rows with day and text. | `memory.db` | list | Newest first | Implemented |
+| SRD-GUI-041.006 | FO-GUI-041 | Must | Tools has a "Request a tool" box and a Request button that save the text as a tool request through core. | text | request row | 1–300 characters; a refusal shows its reason; while Tool builder is off the button is disabled and a note says where to turn it on | Draft |
+| SRD-GUI-041.007 | FO-GUI-041 | Should | The tab lists the latest 20 tool requests with number, time, from, text, state and reason. | `tool_requests` | list | Newest first; "You" for the Master user, else the asker's current name | Draft |
+| SRD-GUI-041.008 | FO-GUI-041 | Must | The tab lists the built tool versions with tool, version, state, made, checks passed and title. | `built_tools` | list | Newest first; an empty note when there is none | Draft |
+| SRD-GUI-041.009 | FO-GUI-041 | Must | Choosing a built version shows its request, about, columns, each check with its note, the sample rows and its code, read-only. | version | detail | The code is read from its file; a missing or changed file is named | Draft |
+| SRD-GUI-041.010 | FO-GUI-041 | Must | Enable and Disable switch the chosen version through core, and the tab reloads with the same version chosen. | click | version state | Enable only for review or disabled with all checks passed; Disable only for enabled; a refusal shows its reason | Draft |
