@@ -2,6 +2,16 @@
 
 ---
 
+## [20261115] DSK — AI Desk v3 M7a: hire proposals (FO-DSK-006, FO-GUI-034)
+
+- Type: Feature
+- FO(s): FO-DSK-006 (M7a part), FO-GUI-034
+- RN: RN-DSK-0.20.0-20261115
+- Artifacts updated: FO (M7a block; 14 evenings corrected to 14 data days), SRD (DSK-006.011–.027, GUI-034.081–.084 Implemented), DD (DD-DSK-006.011.D01 with §12 review fixes, DD-GUI-034.081.D01), MD (MD-DSK-006.012.M35, MD-DSK-006.016.M36 new; several changed), UTCD (48 DSK + 10 GUI cases Pass), Code, Tests (4 old tests updated), RN, TRACE, CONTEXT. Branch feat/dsk-m7a-hire-proposals; docs commit 07c6befc; not pushed.
+- Decisions: M7 split (M7a hire proposals, then M7b tool builder); AI secretary emp-020 proposes from code-made evidence (failing, costly, empty needed skill); its boss gives a view in the short reply-only turn; proposal row carried in the ask's want; card shows at once with a pending view; Approve claims the proposal then calls start_hire(); off by default behind hire_proposals_on.
+
+---
+
 ## [20261115] DSK — AI Desk v3 M6: planner and task cards (FO-DSK-012, FO-MKT-021, FO-MKT-010, FO-GUI-041, FO-GUI-034)
 
 - Type: Feature
