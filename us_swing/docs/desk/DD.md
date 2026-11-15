@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.19.0: DD-DSK-006.011.D01 added — hire proposals (AI Desk v3 M7a, 2026-11-15).
 > v0.18.0: DD-DSK-012.012.D01 added — planner, task cards and tool groups (AI Desk v3 M6, 2026-11-14).
 > v0.17.0: DD-DSK-009.010.D01 added — memory v2 (AI Desk v3 M3, 2026-11-13).
 > v0.16.0: DD-DSK-011.033.D01 added — escalation and deputies (AI Desk v3 M2, 2026-11-13).
@@ -1518,3 +1519,117 @@ An empty value that the tool explained (no earnings date) keeps the verdict done
 - After the reply is built, `_record()` keeps the failure rows, counts the card for its plan and raises the retire alert; a problem there is logged and the reply still goes out.
 - Flags with an empty note are left out.
 - Kept as designed: one tool that fails fails its whole part (its other tools' columns are empty with that reason); a timed-out worker thread is left to end by itself; failure rows are kept with no clean-up, for M7 to read.
+
+## DD-DSK-006.011.D01 — Hire Proposals (AI Desk v3 M7a)
+
+**Traces:** SRD-DSK-006.011–.027 (DSK); GUI in DD-GUI-034.081.D01. User decisions 2026-11-15: M7 in two steps, hire proposals first and the tool builder after; an AI secretary writes the proposals and its boss gives a one-line view; needs from failing employees, costly employees and needed skills nobody holds. Plan: https://claude.ai/artifact/3dr7g92HY5hvVQ9KiyrPvc (M7).
+
+**1. Switch and event** (`core/desk_ai_settings.py`, `core/desk_events.py`, `desk/weekly_report.py`; .011, .024)
+
+```
+DeskAiSettings + hire_proposals_on: bool = False
+EVENT_RULES["weekly_report"] = EventRule(2, None, timedelta(days=1))
+```
+
+`WeeklyReportStep` posts one `weekly_report` event right after it inserts a new `desk_reports` row, only when `hire_proposals_on` and `messages_on` are both on. A week whose report already exists posts nothing, so the secretary wakes at most once a week.
+
+**2. Need rules** (`core/desk_proposals.py`, .012–.014)
+
+```
+window   the 10 newest distinct data_day values of live activity rows
+         (COALESCE(replay, 0) = 0 AND COALESCE(shadow, 0) = 0)
+per active employee in the window: tries = rows, valid = SUM(valid), cost = SUM(cost_usd)
+
+failing  tries >= 5 and valid / tries < 0.70
+costly   among employees with valid >= 3 and cost > 0: cpv = cost / valid;
+         middle = median cpv (needs at least 3 such employees); costly when cpv > 3 x middle
+empty    each skill in the `needs` of an active employee's skill class with no active holder;
+         level = level of that skill's default employee file (`desk_hiring.default_level()`)
+```
+
+Only AI tries are `activity` rows, so a code-only skill (the planner) is never failing. Shadow employees are not holders. An employee keeps its current file's skill and level.
+
+**3. Candidates** (.015). Order: failing, costly, empty; then by employee id; ids `C1`, `C2`, … Each candidate has kind, skill, level, holder (employee id, or empty for an empty need) and evidence lines written by code:
+
+```
+failing  "{name} ({skill}): {valid} valid answers in {tries} tries over the last {days} data days ({pct}%)."
+costly   "{name} ({skill}): USD {cpv:.2f} per valid answer over the last {days} data days; the desk middle is USD {middle:.2f}."
+empty    "Nobody holds {skill}; {names} need it."
+seats    "Seats: {used} of {cap} {level} seats are taken; raise the cap in Desk settings before you approve."   (only when full)
+```
+
+A candidate is dropped when its level is not a hire level (a lead), the skill has a waiting proposal, an employee with status shadow holds the skill, or a proposal for the same skill and need was rejected in the last 30 days.
+
+**4. Secretary turn** (`desk/secretary.py`, `HireReviewSkill`, key `hire_review`, `talks = True`; .016–.018)
+
+- `facts()`: not fresh with "hire proposals are off" unless both switches are on. Fresh facts hold: Candidates (id, kind, skill, level, evidence), Seats (used and cap per hire level), Failure log this week (up to 10 lines: day and text, from `failure_rows()`), Models you can pick (`known_models()` per source), Rules (pick up to 2; no pick when the evidence is weak; the reason in one or two short sentences).
+- `act()`: an inbox wake goes to §6 with no AI call. With no candidate: log and return, no AI call. Else one gateway ask:
+
+```
+HirePick          candidate "C<n>", source claude | openrouter, model (1-80), why (1-300)
+HireReviewAnswer  picks: list[HirePick] (0-2), note (why no pick, up to 300)
+```
+
+- Checks: the candidate is known; the model is in `known_models(home)[source]`; only the first pick per candidate and per skill is kept; others are dropped with a debug log.
+- Each kept pick: `save_proposal()` makes a `waiting` row. The boss is the secretary's active boss from `reports_to`. With a boss: view `pending` and one ask draft through `talker(ctx).send()`. With no active boss: view `none`, note "no boss to ask", no ask.
+
+```
+ask   to <boss id>, subject "Hire proposal: {skill}", text = evidence, why and model lines
+want  goal "Say if you agree with this hire proposal"
+      done_when "One reply: done if you agree, refused if not, with one short reason"
+data  schema hire_proposal.v1, cols [proposal, need, skill, holder, evidence, model, why],
+      rows [[<id>, <kind>, <skill>, <holder name or "">, <evidence joined by " / ">, "<source>/<model>", <why>]]
+```
+
+**5. Schema row** (`core/desk_registry.py`, .019). `seed_formats()` adds `hire_proposal.v1`: proposal (number, the key), need, skill, holder, evidence, model, why (text). No column has `by`, so `fill_plans()` makes no plan and the lead chat never offers it.
+
+**6. Boss turn and views** (`desk/employees_step.py`, `core/desk_proposals.py`; .020, .021)
+
+- `_wake_message()` splits the inbox: escalations (as M2), proposal asks (type `ask` with `data.schema == "hire_proposal.v1"`), and the rest (as M1).
+- Escalations and proposal asks share one short reply-only helper: one `InboxReply` ask with a head text, replies accepted, the receiver's skill does not run, the thread starter pays.
+- Escalation head as in M2, and each reply is added as a feed note (as M2). Proposal head: "Hire proposals from people who report to you. For each, reply done if you agree or refused if you do not, with one short reason. The Master user sees your reply with the proposal. Do not plan anything else now." No feed note.
+- For each stored proposal reply: `note_view(home, <proposal id from the parent ask's data row>, view, by=<boss id>, note=<reason or text>, now)`, with `done` → agree, `refused` → disagree, any other result → none.
+- No valid reply: refused as today (deputy first).
+- A reply written by code (refused by code, or "no reply within 10 minutes") wakes the secretary like any reply. Its `act()` reads each reply in `facts.inbox`; when the parent ask holds a `hire_proposal.v1` row and that proposal's view is still `pending`, it sets view `none` with the reply's reason. No AI call. AI replies were already noted in the boss turn, so they are skipped here.
+
+**7. Gate 1** (.022, .023). `decide_proposal(home, id, decision, now) -> str` returns "" or why it was refused.
+
+```
+unknown or not waiting   "this proposal is already decided"
+approve   name = next_name(home, level)   level title + (highest number in use for that title + 1), e.g. "Expert 16"
+          start_hire(home, skill, level, name, source, model, now.date())
+          refused -> return its reason; the proposal stays waiting
+          else    -> state approved, hire = new id, decided = now;
+                     approvals row (kind proposal, subject skill, decision approve, detail "proposal #<id>: <hire id>")
+reject    state rejected, decided = now; approvals row (decision reject)
+```
+
+**8. Table** (`hire_proposals` in `desk.db`, created on first use)
+
+```
+id INTEGER PRIMARY KEY, made TEXT, author TEXT, need TEXT, skill TEXT, level TEXT, holder TEXT,
+evidence TEXT (JSON list), why TEXT, source TEXT, model TEXT,
+view TEXT (pending | agree | disagree | none), view_by TEXT, view_note TEXT,
+state TEXT (waiting | approved | rejected), hire TEXT, decided TEXT
+```
+
+**9. Reads and card text** (.026). `proposal_rows(home, limit=50)` newest first; `waiting_proposals(home)`; `proposal_text(home, p)`: the need line, the evidence lines, "Why: …", "Model: <source>/<model>" and the view line, with names read from the employee files (renames show at once):
+
+```
+pending   "Waiting for {boss}'s view."
+agree     "{boss} agrees: {note}"
+disagree  "{boss} does not agree: {note}"
+none      "No view: {note}"
+```
+
+**10. Default employee** (.025). `market/employees/emp-020/employee.md`: name Expert 15, title Desk secretary, level expert, skill `hire_review`, reports_to emp-005, trigger `[weekly_report]`, calls_per_day 1, model default, and a short soul. `SKILL_PATHS["hire_review"] = "us_swing.desk.secretary:HireReviewSkill"`; `USSwing.spec` gets the hidden import `us_swing.desk.secretary`. `seed_employees()` copies the folder into an existing desk at the next start.
+
+**11. Logs** (.027)
+
+```
+[Hiring] Proposal #<id> sent to <boss>: trial for <skill>
+[Hiring] <boss> agrees with proposal #<id>      /  does not agree with proposal #<id>
+[Hiring] Proposal #<id> approved: trial hire <name> started
+[Hiring] Proposal #<id> rejected
+[Hiring] No hire need found for the week
+```

@@ -6,6 +6,7 @@
 **Status:** Draft
 **Last Updated:** 2026-11-06
 > v2.117.2: SRD-GUI-034.077–.078 and SRD-GUI-035.018 Implemented 2026-11-13.
+> v2.119.0: AI Desk v3 M7a (user, 2026-11-15): SRD-GUI-034.081–.084 (hire proposal card, Approve and Reject, Proposals list, Hire proposals switch) added as Draft.
 > v2.118.2: SRD-GUI-041.001–.005 and SRD-GUI-034.079–.080 Implemented 2026-11-15.
 > v2.118.1: SRD-GUI-041.001–.005 and SRD-GUI-034.079–.080 approved by user 2026-11-14.
 > v2.118.0: AI Desk v3 M6 (user, 2026-11-14): SRD-GUI-041.001–.005 (Tools tab) and SRD-GUI-034.079–.080 (chat table, Task cards switch) added as Draft.
@@ -822,6 +823,10 @@
 | SRD-GUI-034.078 | FO-GUI-034 | Must | With company day on, the Command header shows a Day call tile (market, sectors, who agreed, huddle, result once checked) and a Handover tile (the latest handover note). | `decisions`, `day_brief` | tiles | Reads through `core/desk_day.py`; hidden when off | Implemented |
 | SRD-GUI-034.079 | FO-GUI-034 | Must | In a chat bubble, lines whose cells are joined by " \| " show as a table. | chat text | table | Other lines show as before | Implemented |
 | SRD-GUI-034.080 | FO-GUI-034 | Must | Desk settings has a Task cards check box, off by default, saved as `task_cards_on`. | check box | setting | Disabled while Agent messages is unticked | Implemented |
+| SRD-GUI-034.081 | FO-GUI-034 | Must | Approvals waiting and the Market Floor feed show each waiting hire proposal as an Ask card with its need, evidence, why, model and the boss's view. | `hire_proposals` | card | Same feed card as other asks | Draft |
+| SRD-GUI-034.082 | FO-GUI-034 | Must | A proposal card has Approve and Reject; a refused Approve shows its reason on the card and keeps the buttons. | click | decision, reason | Decisions go through `core.desk_proposals` | Draft |
+| SRD-GUI-034.083 | FO-GUI-034 | Should | Hiring lists the latest 50 proposals with made, skill, need, model, view and state; choosing one shows its evidence and why. | `hire_proposals` | list, detail | Read-only; an empty note when there is none | Draft |
+| SRD-GUI-034.084 | FO-GUI-034 | Must | Desk settings has a Hire proposals check box, off by default, saved as `hire_proposals_on`. | check box | setting | Disabled while Agent messages is unticked | Draft |
 
 ## FO-GUI-035: AI Desk Team at Work
 

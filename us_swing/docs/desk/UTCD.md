@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.21.0: UT-DSK-006.011–.027 M7a cases added (41, Not Run) (2026-11-15).
 > v0.20.1: UT-DSK-012.012–.031 M6 cases Pass (72: 66 + 6 added from the code review: 016.M04.T02, 017.M32.T04, 017.M04.T01, 018.M34.T05, 021.M33.T03, 027.M21.T02) (2026-11-15).
 > v0.20.0: UT-DSK-012.012–.031 M6 cases added (66, Not Run) (2026-11-14).
 > v0.19.1: M3 cases Pass (43, 2026-11-13); 013.M27.T02 changed by the code review (bad items dropped, not refused).
@@ -704,3 +705,49 @@
 | UT-DSK-012.030.M32.T02 | MD-DSK-012.016.M32 | Negative | Retired plan is not ready (SRD-DSK-012.030) | one active and one retired plan | ready formats holds only the active one | Pass |
 | UT-DSK-012.030.M32.T03 | MD-DSK-012.016.M32 | Edge | No data (SRD-DSK-012.030) | home with no `desk.db` | every read gives an empty list | Pass |
 | UT-DSK-012.031.M34.T01 | MD-DSK-012.018.M34 | Positive | Log lines (SRD-DSK-012.031) | a done card, a partial card, a refused ask, a retired plan | each logged with [Task cards] and the asker's name | Pass |
+
+## FO-DSK-006 (AI Desk v3 M7a): Hire Proposals
+
+| ID | Module | Type | Title | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-DSK-006.011.M20.T01 | MD-DSK-006.009.M20 | Positive | Weekly event (SRD-DSK-006.011) | proposals and messages on; a Friday run writes the week's report | one `weekly_report` event | Not Run |
+| UT-DSK-006.011.M20.T02 | MD-DSK-006.009.M20 | Negative | No weekly event (SRD-DSK-006.011) | proposals off; or the week's report already written | no `weekly_report` event | Not Run |
+| UT-DSK-006.011.M15.T01 | MD-DSK-003.004.M15 | Positive | Event rule (SRD-DSK-006.011) | `EVENT_RULES["weekly_report"]` | priority 2, no deadline, expiry 1 day | Not Run |
+| UT-DSK-006.012.M35.T01 | MD-DSK-006.012.M35 | Positive | Failing need (SRD-DSK-006.012) | made-up employee with 9 valid of 15 tries in 10 data days | one failing need with 60% | Not Run |
+| UT-DSK-006.012.M35.T02 | MD-DSK-006.012.M35 | Negative | Not failing (SRD-DSK-006.012) | 4 tries with 0 valid; 7 valid of 10 | no need | Not Run |
+| UT-DSK-006.012.M35.T03 | MD-DSK-006.012.M35 | Edge | Window and row kinds (SRD-DSK-006.012) | bad tries on an 11th older data day, in shadow and in replay | not counted | Not Run |
+| UT-DSK-006.013.M35.T01 | MD-DSK-006.012.M35 | Positive | Costly need (SRD-DSK-006.013) | 4 employees at USD 0.05, 0.08, 0.10 and 0.40 per valid answer | the 0.40 employee is costly; middle 0.09 | Not Run |
+| UT-DSK-006.013.M35.T02 | MD-DSK-006.012.M35 | Negative | No middle (SRD-DSK-006.013) | only 2 employees with a cost; all costs 0 | no costly need | Not Run |
+| UT-DSK-006.014.M35.T01 | MD-DSK-006.012.M35 | Positive | Empty needed skill (SRD-DSK-006.014) | active lead brief holder; the news review holder retired | one empty need for news review at its default file's level | Not Run |
+| UT-DSK-006.014.M35.T02 | MD-DSK-006.012.M35 | Negative | All held (SRD-DSK-006.014) | every needed skill has an active holder | no empty need | Not Run |
+| UT-DSK-006.014.M35.T03 | MD-DSK-006.012.M35 | Edge | Shadow is not a holder (SRD-DSK-006.014) | a needed skill held only by a shadow hire | one empty need | Not Run |
+| UT-DSK-006.015.M35.T01 | MD-DSK-006.012.M35 | Positive | Candidates (SRD-DSK-006.015) | one failing, one costly and one empty need; expert seats full | C1 failing, C2 costly, C3 empty, each with level, holder and evidence; a seat line on each expert one | Not Run |
+| UT-DSK-006.015.M35.T02 | MD-DSK-006.012.M35 | Negative | Dropped candidates (SRD-DSK-006.015) | a failing lead; a skill with a waiting proposal; a skill with a shadow hire; same skill and need rejected 10 days ago | no candidate | Not Run |
+| UT-DSK-006.015.M35.T03 | MD-DSK-006.012.M35 | Edge | Reject block ends (SRD-DSK-006.015) | same skill and need rejected 31 days ago | the candidate is back | Not Run |
+| UT-DSK-006.016.M36.T01 | MD-DSK-006.016.M36 | Positive | Secretary facts (SRD-DSK-006.016) | proposals on; 2 candidates; 3 failure rows this week | fresh facts list the candidates, seats, failure rows and models | Not Run |
+| UT-DSK-006.016.M36.T02 | MD-DSK-006.016.M36 | Negative | No candidate (SRD-DSK-006.016) | no candidate | no AI call; one log line | Not Run |
+| UT-DSK-006.017.M36.T01 | MD-DSK-006.016.M36 | Positive | Picks kept (SRD-DSK-006.017) | answer with 2 good picks | 2 proposals | Not Run |
+| UT-DSK-006.017.M36.T02 | MD-DSK-006.016.M36 | Negative | Bad picks dropped (SRD-DSK-006.017) | picks with an unknown candidate, an unknown model and a second pick for one skill | only the first good pick is kept | Not Run |
+| UT-DSK-006.017.M36.T03 | MD-DSK-006.016.M36 | Negative | Answer limits (SRD-DSK-006.017) | answer with 3 picks; a why of 301 characters | refused by the answer schema | Not Run |
+| UT-DSK-006.018.M36.T01 | MD-DSK-006.016.M36 | Positive | Proposal saved and asked (SRD-DSK-006.018) | one kept pick; the secretary reports to a made-up boss | one waiting row with view pending; one ask to the boss whose `hire_proposal.v1` row holds the proposal id | Not Run |
+| UT-DSK-006.018.M36.T02 | MD-DSK-006.016.M36 | Negative | No boss (SRD-DSK-006.018) | secretary with no active boss | waiting row with view none and note "no boss to ask"; no ask | Not Run |
+| UT-DSK-006.018.M36.T03 | MD-DSK-006.016.M36 | Positive | Flow on a desk copy (SRD-DSK-006.018) | failing holder; Friday run with proposals on; fake secretary and boss answers | one proposal with view agree after 2 AI calls; Approve gives a shadow hire | Not Run |
+| UT-DSK-006.019.M28.T01 | MD-DSK-012.001.M28 | Positive | Proposal format seeded (SRD-DSK-006.019) | `seed_formats()` | `hire_proposal.v1` with 7 columns, key `proposal` | Not Run |
+| UT-DSK-006.019.M28.T02 | MD-DSK-012.001.M28 | Negative | No plan (SRD-DSK-006.019) | fill the plans | no plan row for `hire_proposal.v1` | Not Run |
+| UT-DSK-006.020.M10.T01 | MD-DSK-003.001.M10 | Positive | Short turn for proposals (SRD-DSK-006.020) | boss inbox with 2 proposal asks; fake model reply | one AI call; the boss's skill does not act; 2 replies stored; no feed note | Not Run |
+| UT-DSK-006.020.M10.T02 | MD-DSK-003.001.M10 | Negative | Other messages as before (SRD-DSK-006.020) | inbox with an escalation and a plain ask | the escalation reply gets a feed note; the plain ask runs the skill turn | Not Run |
+| UT-DSK-006.021.M10.T01 | MD-DSK-003.001.M10 | Positive | View recorded (SRD-DSK-006.021) | boss replies done with "fits the plan" and refused with "costs too much" | views agree and disagree with their notes | Not Run |
+| UT-DSK-006.021.M36.T01 | MD-DSK-006.016.M36 | Negative | Code reply gives no view (SRD-DSK-006.021) | a proposal ask expired after 10 minutes; one refused by code | view none with the reason, set by the secretary with no AI call | Not Run |
+| UT-DSK-006.022.M35.T01 | MD-DSK-006.012.M35 | Positive | Approve starts the trial (SRD-DSK-006.022) | waiting proposal; seats free; made-up employees Expert 1 to 3 | shadow employee "Expert 4" with the skill, source and model; proposal approved with the hire id; one approvals row | Not Run |
+| UT-DSK-006.022.M35.T02 | MD-DSK-006.012.M35 | Negative | Refused hire (SRD-DSK-006.022) | the level's seats full | returns "all 8 expert seats are taken"; proposal still waiting; no new employee | Not Run |
+| UT-DSK-006.023.M35.T01 | MD-DSK-006.012.M35 | Positive | Reject (SRD-DSK-006.023) | waiting proposal | rejected; one approvals row | Not Run |
+| UT-DSK-006.023.M35.T02 | MD-DSK-006.012.M35 | Negative | Decided proposal (SRD-DSK-006.023) | approve or reject an approved proposal; an unknown id | refused with a reason; nothing changes | Not Run |
+| UT-DSK-006.024.M13.T01 | MD-DSK-004.005.M13 | Positive | Switch (SRD-DSK-006.024) | settings file without the field; with it true | off by default; true kept | Not Run |
+| UT-DSK-006.024.M36.T01 | MD-DSK-006.016.M36 | Negative | Messages off (SRD-DSK-006.024) | proposals on, messages off | facts not fresh; no AI call | Not Run |
+| UT-DSK-006.024.M36.T02 | MD-DSK-006.016.M36 | Negative | Off flow (SRD-DSK-006.024) | the flow desk with proposals off | no event, no proposal, 0 AI calls | Not Run |
+| UT-DSK-006.025.M07.T01 | MD-DSK-001.021.M07 | Positive | Default secretary (SRD-DSK-006.025) | shipped employee files | emp-020 holds hire_review at level expert, reports to emp-005, trigger weekly_report, name Expert 15; its skill path loads | Not Run |
+| UT-DSK-006.025.M07.T02 | MD-DSK-001.021.M07 | Positive | App build list (SRD-DSK-006.025) | `USSwing.spec` | lists `us_swing.desk.secretary` | Not Run |
+| UT-DSK-006.025.M07.T03 | MD-DSK-001.021.M07 | Negative | Own file kept (SRD-DSK-006.025) | desk folder whose emp-020 was renamed by the Master user; a desk folder without emp-020 | the start leaves the renamed file as it is; the other desk gets the default copied | Not Run |
+| UT-DSK-006.026.M35.T01 | MD-DSK-006.012.M35 | Positive | Reads and card text (SRD-DSK-006.026) | 3 proposals: waiting, approved, rejected | all newest first; only the waiting one in the waiting list; card text with evidence and the view line | Not Run |
+| UT-DSK-006.026.M35.T02 | MD-DSK-006.012.M35 | Edge | No data (SRD-DSK-006.026) | home with no desk.db | empty lists | Not Run |
+| UT-DSK-006.027.M36.T01 | MD-DSK-006.016.M36 | Positive | Log lines (SRD-DSK-006.027) | a sent proposal, a view, an approve and a turn with no candidate | one `[Hiring]` line for each | Not Run |

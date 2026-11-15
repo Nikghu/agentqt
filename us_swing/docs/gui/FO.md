@@ -7,6 +7,7 @@
 **Last Updated:** 2026-05-22
 **Project:** US Swing Trading System
 
+> v2.29.0: AI Desk v3 M7a (user, 2026-11-15): FO-GUI-034 gains the hire proposals bullet as Draft.
 > v2.28.1: FO-GUI-041 and the FO-GUI-034 M6 bullet approved by user 2026-11-14; Implemented 2026-11-15.
 > v2.28.0: AI Desk v3 M6 (user, 2026-11-14): FO-GUI-041 AI Desk Tools added as Draft; FO-GUI-034 gains the Task cards switch and chat table bullet as Draft.
 > v2.27.0: AI Desk v3 M4 (user, 2026-11-13): FO-GUI-034 chat sessions bullets added as Draft.
@@ -1014,6 +1015,7 @@ The system shall add two workspaces, Market Floor and AI Desk, shown on sample d
 - The system shall show the lead's updates and a "Waiting for the team" note in the chat (AI Desk v3 M4).
 - The system shall let the Master user turn the Company day on or off in Desk settings, and show the day call and the handover note in Command (AI Desk v3 M5, user 2026-11-13).
 - The system shall let the Master user turn Task cards on or off in Desk settings, off by default, and show a table reply as a table in the chat (AI Desk v3 M6, user 2026-11-14).
+- The system shall show each hire proposal with its evidence and the boss's view in Approvals waiting, the Market Floor feed and Hiring, with Approve and Reject, and let the Master user turn Hire proposals on or off in Desk settings (AI Desk v3 M7a, user 2026-11-15).
 
 ### Acceptance Criteria
 

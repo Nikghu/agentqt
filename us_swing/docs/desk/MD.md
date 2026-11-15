@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.21.0: MD-DSK-006.012.M35 and MD-DSK-006.016.M36 added; M20, M15, M10, M28, M07, M13, M18 changed (AI Desk v3 M7a, 2026-11-15).
 > v0.20.0: MD-DSK-012.016.M32, MD-DSK-012.021.M33 and MD-DSK-012.018.M34 added; M28, M07, M13, M30, M21, M04 changed (AI Desk v3 M6, 2026-11-14).
 > v0.19.0: MD-DSK-009.010.M30 and MD-DSK-009.021.M31 added; M23, M27, M11, M10, M13, M04 changed (AI Desk v3 M3, 2026-11-13).
 > v0.18.0: No new module; M29, M15, M16, M10, M13, M21, M22 changed (AI Desk v3 M2, 2026-11-13).
@@ -202,3 +203,14 @@ SRD coverage: .010–.012, .014–.020, .022 and .024 by M30; .011 also by M23; 
 Changed: M28 (`core/desk_registry.py`: `Tool.secs`, `Column.by`, `TableFormat.key`, `ToolResult`, table tool and `setup_table.v1` seed — 012.012–.015), M07 (`core/desk_steps.py`: `TOOL_PATHS`, `task_planner` skill path — .015, .029), M13 (`core/desk_ai_settings.py`: `task_cards_on` — .028), M30 (`core/desk_memory.py`: `log_failure()`, `failure_rows()` — .026, .030), M21 (`core/desk_alerts.py`: kind `plan_retired` — .027), M04 (`desk/process.py`: `start()` calls `close_open_cards()` and `fill_plans()` — .016, .017). The default employee `market/employees/emp-019/` and the `USSwing.spec` module list (.029) have no module row.
 
 SRD coverage: .012–.014 by M28; .015 by M28 and M07; .016 by M32 and M04; .017 by M32 and M04; .018, .019, .024, .025 and .031 by M34; .020 by M32 and M34; .021 and .023 by M33; .022 by M33 and M34; .026 by M30 and M34; .027 by M32, M34 and M21; .028 by M13 and M34; .029 by M07; .030 by M32 and M30.
+
+## FO-DSK-006 (AI Desk v3 M7a): Hire Proposals
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-DSK-006.012.M35 | SRD-DSK-006.012 | `us_swing/src/us_swing/core/desk_proposals.py` | `hire_proposals` table, the three need rules and candidates, save and view, gate 1 decision, reads and card text | `Need`, `Candidate`, `Proposal`, `find_needs()`, `candidates()`, `save_proposal()`, `note_view()`, `proposal_of_ask()`, `decide_proposal()`, `next_name()`, `proposal_rows()`, `waiting_proposals()`, `proposal_text()` | `sqlite3`, M18, M13, M07, M30 | No |
+| MD-DSK-006.016.M36 | SRD-DSK-006.016 | `us_swing/src/us_swing/desk/secretary.py` | Secretary skill: facts, one AI pick, checks, save and ask, code-only reply handling, logs | `HireReviewSkill`, `HirePick`, `HireReviewAnswer` | M08, M13, M27, M29, M30, M35 | No |
+
+Changed: M20 (`desk/weekly_report.py`: posts `weekly_report` — .011), M15 (`core/desk_events.py`: event kind `weekly_report` — .011), M10 (`desk/employees_step.py`: proposal asks in the short reply-only turn, views noted — .020, .021), M28 (`core/desk_registry.py`: `hire_proposal.v1` seed — .019), M07 (`core/desk_steps.py`: `hire_review` skill path — .025), M13 (`core/desk_ai_settings.py`: `hire_proposals_on` — .024), M18 (`core/desk_hiring.py`: `default_level()` — .014). The default employee `market/employees/emp-020/` and the `USSwing.spec` hidden import go with M07 (.025).
+
+SRD coverage: .011 by M20 and M15; .012, .013, .015, .022, .023 and .026 by M35; .014 by M35 and M18; .016–.018 and .027 by M36; .019 by M28; .020 by M10; .021 by M10 and M36; .024 by M13 and M36; .025 by M07.

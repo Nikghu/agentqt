@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.31.0: DD-GUI-034.081.D01 added — hire proposal cards, Proposals list and Hire proposals switch (AI Desk v3 M7a, 2026-11-15).
 > v1.30.0: DD-GUI-041.001.D01 added — AI Desk Tools, chat table and Task cards switch (AI Desk v3 M6, 2026-11-14).
 > v1.28.0: DD-GUI-034.073.D01 added — chat sessions in Command and Desk settings (AI Desk v3 M4, 2026-11-13).
 > v1.27.0: DD-GUI-037.005.D01 added — Memory v2 in Memory and Desk settings (AI Desk v3 M3, 2026-11-13).
@@ -2081,3 +2082,12 @@ Run names: `evening` "Evening run", `manual` "Manual run", other kinds title-cas
   - Each block shows a short empty note when it has no rows. No timer; nothing runs on a worker thread because the four reads are small.
 - **Chat table** (`gui/ai_desk_chat.py`, .079): `table_html(text)` escapes the text and turns each run of lines that hold " | " into an HTML table (first line as the header row); `_bubble()` uses it in place of the plain escape. Other lines keep their line breaks, and a blank line between two tables stays as one line break.
 - **Switch** (`gui/ai_desk_settings.py`, .080): a "Task cards" check box after Company day, tooltip "Let the lead ask the planner for tables. Needs Agent messages.", saved as `task_cards_on`; disabled while Agent messages is unticked, like the Escalation box.
+
+## DD-GUI-034.081.D01 — Hire Proposal Cards, Proposals List and Switch (AI Desk v3 M7a)
+
+**Traces:** SRD-GUI-034.081–.084. Data and rules: DD-DSK-006.011.D01. The GUI reads proposals through `core.desk_proposals` and decides through `decide_proposal()`; the switch is saved with `save_settings`.
+
+- **Card** (`core/desk_feed.ask_cards()`, .081): one `FeedCard("ask", "Hiring", "Hire proposal · <skill>", made, proposal_text(...), ref="proposal", item=<id>)` per waiting proposal, after the ready-hire cards. Approvals waiting and the Market Floor feed both build from `ask_cards()`, so both show it.
+- **Buttons** (`gui/floor_feed.FeedCardWidget`, .082): `ref == "proposal"` gets Approve and Reject like a data card. A click calls `decide_proposal(home, item, decision, clock())`. An empty result emits `decided`, so the box reloads and the card goes; a reason shows in the card's result line in the danger colour and the buttons stay.
+- **Proposals list** (`gui/ai_desk_hiring.HiringPanel`, .083): a titled card "Proposals" under the hires list: table Made | Skill | Need | Model | View | State (latest 50, newest first) and a detail label under it with the `proposal_text()` of the chosen row; "No proposals yet" when empty; filled in `reload()`.
+- **Switch** (`gui/ai_desk_settings.py`, .084): a "Hire proposals" check box after Task cards, tooltip "The desk secretary proposes trial hires after the Friday report; needs Agent messages", disabled while Agent messages is unticked, saved as `hire_proposals_on`.
