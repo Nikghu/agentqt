@@ -2,6 +2,7 @@
 Module: MD-DSK-012.021.M33 — desk/champions.py
 Parent SRD: SRD-DSK-012.021
 Also: SRD-DSK-012.022 (a wave on up to 4 code workers), .023 (one retry, time limit)
+Also: SRD-DSK-013.020 (a tool may be given as a function, such as a built tool's sandbox run)
 
 Tool groups (AI Desk v3 M6). A tool group runs the registered tools of one task-card part
 and keeps only that part's columns. This module is the only caller of tool functions; they
@@ -32,6 +33,7 @@ OK: Final = "ok"
 FAILED: Final = "failed"
 SKIPPED: Final = "skipped"
 ToolFn = Callable[[Path, Sequence[str]], ToolResult]
+ToolRef = str | ToolFn
 
 
 @dataclass(frozen=True)
@@ -52,7 +54,9 @@ class PartResult:
     reason: str = ""
 
 
-def _load(path: str) -> ToolFn:
+def _load(path: ToolRef) -> ToolFn:
+    if callable(path):
+        return path
     module, _, name = path.partition(":")
     fn: ToolFn = getattr(importlib.import_module(module), name)
     return fn
@@ -71,7 +75,7 @@ def _failed(part: PlanPart, started: float, reason: str) -> PartResult:
     return PartResult(part.id, FAILED, secs=time.monotonic() - started, reason=reason[:150])
 
 
-def run_part(home: Path, part: PlanPart, keys: Sequence[str], paths: Mapping[str, str],
+def run_part(home: Path, part: PlanPart, keys: Sequence[str], paths: Mapping[str, ToolRef],
              key: str) -> PartResult:
     """Run the tools of one part for ``keys`` and keep only the part's columns.
 
@@ -79,7 +83,7 @@ def run_part(home: Path, part: PlanPart, keys: Sequence[str], paths: Mapping[str
         home: Desk folder.
         part: The part: its tools and the columns each one fills.
         keys: Key values (symbols) to work.
-        paths: Import path of each tool function by tool name.
+        paths: Import path, or the function itself, of each tool by tool name.
         key: Name of the key column in the tool rows.
 
     Returns:
@@ -118,7 +122,8 @@ def run_part(home: Path, part: PlanPart, keys: Sequence[str], paths: Mapping[str
 
 
 def run_wave(home: Path, parts: Sequence[PlanPart], keys: Sequence[str],
-             paths: Mapping[str, str], limits: Mapping[str, int], key: str) -> list[PartResult]:
+             paths: Mapping[str, ToolRef], limits: Mapping[str, int],
+             key: str) -> list[PartResult]:
     """Run the parts of one wave together on at most 4 workers (SRD-DSK-012.022).
 
     Each part may take the sum of its tools' time limits, counted from the start of the

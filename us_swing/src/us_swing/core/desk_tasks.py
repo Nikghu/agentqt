@@ -3,6 +3,7 @@ Module: MD-DSK-012.016.M32 — core/desk_tasks.py
 Parent SRD: SRD-DSK-012.016
 Also: SRD-DSK-012.017 (task cards), .020 (unmade columns), .021 (tool group names), .027 (fail
 count and retire), .030 (reads for the lead chat and the Tools view)
+Also: SRD-DSK-013.017, .018 (make or drop the plan of one format) — AI Desk v3 M7b
 
 Saved table plans and task cards in ``desk.db`` (AI Desk v3 M6). A plan says which tool group
 fills which columns of a table format, in two waves; it is made from the tools the format's
@@ -191,6 +192,15 @@ def _card(row: Sequence[Any]) -> Card:
                 int(row[9] or 0), str(row[10] or ""), str(row[11]), row[12], row[13])
 
 
+def _put_plan(con: sqlite3.Connection, plan: Plan, stamp: str) -> None:
+    con.execute(
+        "INSERT INTO task_plans VALUES (?, ?, ?, ?, 0, '', ?) ON CONFLICT(format) DO "
+        "UPDATE SET parts = excluded.parts, unmade = excluded.unmade, "
+        "status = excluded.status, fails = 0, why = '', updated = excluded.updated",
+        (plan.format, json.dumps([p.model_dump() for p in plan.parts]),
+         json.dumps(list(plan.unmade)), ACTIVE, stamp))
+
+
 def fill_plans(home: Path, now: datetime) -> int:
     """Make the plan of every table format again; each starts active with no fails.
 
@@ -206,12 +216,7 @@ def fill_plans(home: Path, now: datetime) -> int:
     try:
         with con:
             for plan in plans:
-                con.execute(
-                    "INSERT INTO task_plans VALUES (?, ?, ?, ?, 0, '', ?) ON CONFLICT(format) DO "
-                    "UPDATE SET parts = excluded.parts, unmade = excluded.unmade, "
-                    "status = excluded.status, fails = 0, why = '', updated = excluded.updated",
-                    (plan.format, json.dumps([p.model_dump() for p in plan.parts]),
-                     json.dumps(list(plan.unmade)), ACTIVE, stamp))
+                _put_plan(con, plan, stamp)
             marks = ",".join("?" * len(plans))
             con.execute(f"DELETE FROM task_plans WHERE format NOT IN ({marks})",  # noqa: S608
                         [p.format for p in plans])
@@ -219,6 +224,31 @@ def fill_plans(home: Path, now: datetime) -> int:
         con.close()
     log.info("[Task cards] %d table plan(s) ready", len(plans))
     return len(plans)
+
+
+def save_plan(home: Path, fmt: TableFormat, now: datetime) -> bool:
+    """Make and keep the plan of one format from the active tools, leaving every other plan as
+    it is; ``False`` when the format has no plan (SRD-DSK-013.017)."""
+    plan = make_plan(fmt, list_tools(home, ACTIVE))
+    if plan is None:
+        return False
+    con = _connect(home)
+    try:
+        with con:
+            _put_plan(con, plan, _stamp(now))
+    finally:
+        con.close()
+    return True
+
+
+def drop_plan(home: Path, format_id: str) -> None:
+    """Remove the plan of one format (SRD-DSK-013.018)."""
+    con = _connect(home)
+    try:
+        with con:
+            con.execute("DELETE FROM task_plans WHERE format = ?", (format_id,))
+    finally:
+        con.close()
 
 
 def get_plan(home: Path, format_id: str) -> Plan | None:

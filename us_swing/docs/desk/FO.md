@@ -6,6 +6,9 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.17.2: FO-DSK-013 Implemented 2026-11-16.
+> v0.17.1: FO-DSK-013 approved by user 2026-11-15.
+> v0.17.0: AI Desk v3 M7b (user, 2026-11-15): FO-DSK-013 Tool Builder added as Draft.
 > v0.16.2: FO-DSK-006 M7a part Implemented 2026-11-15.
 > v0.16.1: FO-DSK-006 M7a part approved by user 2026-11-15.
 > v0.16.0: AI Desk v3 M7a (user, 2026-11-15): FO-DSK-006 gains the M7a part as Draft — hire proposals; its text now says 14 data days instead of 14 evenings, and that no AI starts a hire.
@@ -408,3 +411,31 @@ The system shall keep one list of every tool the desk can use and one library of
 7. An ask with an unknown format is refused with a reason and adds one failure row.
 8. After 3 cards in a row with a failed part the plan is retired, one alert is raised, and the next ask for that format is refused.
 9. With task cards off, the daily run and all existing desk tests work as before.
+
+## FO-DSK-013: Tool Builder
+
+**Status:** Implemented (approved by user 2026-11-15; RN-DSK-0.21.0-20261116)
+**Priority:** Should
+**Phase:** AI Desk v3 M7b
+**Depends on:** FO-DSK-012 (tool registry, table formats, planner), FO-MKT-021 (read functions), FO-MKT-010 (lead chat), FO-GUI-041 (Tools view)
+**Source: User 2026-11-15 (AI Desk v3 M7b decisions): the Master user asks for tools in AI Desk → Tools and in Command chat; a tool's code may call the desk's read-only functions; an enabled tool becomes a table format the chat lead can ask for. Locked in the master plan: code runs in a sandbox, the Master user reviews it, and no tool is switched on by itself. Plan: https://claude.ai/artifact/3dr7g92HY5hvVQ9KiyrPvc (M7).**
+
+The system shall let the Master user ask the desk for a small new tool, have an AI employee write it as Python code, test it in a sandbox, and keep it off until the Master user has read the code and the test results and switched it on.
+
+- The system shall take tool requests from the Master user in AI Desk → Tools and, through the chat lead, from Command chat.
+- The system shall let a builder employee write each tool as one small Python function, with at most 2 AI calls per request.
+- The system shall check the code against fixed rules and never run code that breaks them.
+- The system shall run tool code only in a separate process with time and memory limits, where it can use only the desk's read-only functions and a few safe built-ins.
+- The system shall test each tool on sample stocks and keep its code, versions and test results.
+- The system shall never switch a tool on by itself: the Master user enables or disables each version, and code changed after the review does not run.
+- The system shall turn an enabled tool into a table format that the chat lead can ask the planner for.
+- The system shall run exactly as in M7a while the tool builder is off.
+
+### Acceptance Criteria
+
+1. A request typed in AI Desk → Tools gives a built tool with its code, 5 check results and sample rows, and the tool stays off.
+2. Code with an import, a file open or a name that starts with "_" never runs; the builder gets one more try, else the version is failed with the reasons.
+3. A tool that loops for ever is stopped at its time limit and a tool that uses too much memory is stopped; the desk keeps running.
+4. After Enable, the chat lead lists the tool's table format, and a chat question for two named stocks gets a table filled by the tool.
+5. After Disable, or after its code file is changed, the tool does not run.
+6. With the tool builder off, the daily run and all existing desk tests work as before.

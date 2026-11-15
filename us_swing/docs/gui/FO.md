@@ -7,6 +7,9 @@
 **Last Updated:** 2026-05-22
 **Project:** US Swing Trading System
 
+> v2.30.2: The FO-GUI-041 M7b part and the FO-GUI-034 Tool builder bullet Implemented 2026-11-16.
+> v2.30.1: The FO-GUI-041 M7b part and the FO-GUI-034 Tool builder bullet approved by user 2026-11-15.
+> v2.30.0: AI Desk v3 M7b (user, 2026-11-15): FO-GUI-041 gains the tool builder part and FO-GUI-034 the Tool builder switch bullet, as Draft.
 > v2.29.1: FO-GUI-034 hire proposals bullet approved by user 2026-11-15; Implemented 2026-11-15.
 > v2.29.0: AI Desk v3 M7a (user, 2026-11-15): FO-GUI-034 gains the hire proposals bullet as Draft.
 > v2.28.1: FO-GUI-041 and the FO-GUI-034 M6 bullet approved by user 2026-11-14; Implemented 2026-11-15.
@@ -1017,6 +1020,7 @@ The system shall add two workspaces, Market Floor and AI Desk, shown on sample d
 - The system shall let the Master user turn the Company day on or off in Desk settings, and show the day call and the handover note in Command (AI Desk v3 M5, user 2026-11-13).
 - The system shall let the Master user turn Task cards on or off in Desk settings, off by default, and show a table reply as a table in the chat (AI Desk v3 M6, user 2026-11-14).
 - The system shall show each hire proposal with its evidence and the boss's view in Approvals waiting, the Market Floor feed and Hiring, with Approve and Reject, and let the Master user turn Hire proposals on or off in Desk settings (AI Desk v3 M7a, user 2026-11-15).
+- The system shall let the Master user turn the Tool builder on or off in Desk settings, off by default (AI Desk v3 M7b, user 2026-11-15).
 
 ### Acceptance Criteria
 
@@ -1171,3 +1175,17 @@ The system shall show the desk's tools, table formats and task cards in the AI D
 
 1. AI Desk → Tools lists the tools and the table formats after a desk start.
 2. After a table ask, its card shows one line per part with tool group, rows, result, seconds and reason.
+
+### M7b — Tool Builder
+
+**Status:** Implemented (approved by user 2026-11-15; RN-DSK-0.21.0-20261116)
+**Source: User 2026-11-15 (AI Desk v3 M7b): the Master user requests tools in AI Desk → Tools, reads each built tool's code and test results there, and switches each version on or off (FO-DSK-013).**
+
+- The system shall let the Master user request a tool in AI Desk → Tools and see the state of each request.
+- The system shall list the built tools and show a chosen tool's code, check results and sample rows, read-only.
+- The system shall let the Master user enable or disable each built tool version; nothing else enables a tool.
+
+### Acceptance Criteria (M7b)
+
+3. A request typed in Tools shows in the request list and, once built, in Built tools with its code and checks.
+4. Enable makes the tool's table format show in Table formats with an active plan; Disable removes it.

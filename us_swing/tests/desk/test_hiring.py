@@ -5,8 +5,10 @@ Employee names here are made up: the code must never depend on who an employee i
 """
 from __future__ import annotations
 
+import importlib
 import json
 import logging
+import re
 import sqlite3
 from collections.abc import Iterator
 from datetime import date, datetime, timedelta
@@ -27,6 +29,7 @@ from us_swing.core.desk_hiring import (
     shadow_report,
     start_hire,
 )
+from us_swing.core.desk_steps import DEFAULT_EMPLOYEE_PACKAGES
 from us_swing.desk.recorder import NY, Attempt, Recorder
 from us_swing.desk.registry import load_employees
 from us_swing.desk.shadow import SHADOW_DAYS, run_shadow
@@ -75,30 +78,72 @@ def _status(folder: Path) -> tuple[str, str]:
     return spec.status, str(spec.version)
 
 
+def _shipped_top() -> int:
+    """The highest ``emp-<n>`` among the shipped default employee folders."""
+    numbers = []
+    for package in DEFAULT_EMPLOYEE_PACKAGES:
+        root = Path(str(importlib.import_module(package).__file__)).parent / "employees"
+        numbers += [int(m.group(1)) for p in root.iterdir()
+                    if (m := re.fullmatch(r"emp-(\d+)", p.name))]
+    return max(numbers)
+
+
 # ---------------- start a hire ----------------
 
 def test_start_hire(home: Path) -> None:
-    """UT-DSK-006.001.M18.T01: a hire gets a shadow folder with the chosen name and model."""
+    """UT-DSK-006.001.M18.T01: a hire gets a shadow folder with the chosen name and model; its
+    id is above the shipped default ids (SRD-DSK-006.028)."""
     new_id, reason = start_hire(home, "setup_review", "expert", "Made Up One", "claude",
                                 "default", TODAY)
-    assert (new_id, reason) == ("emp-001", "")
+    assert (new_id, reason) == (f"emp-{_shipped_top() + 1:03d}", "")
     hires = list_hires(home)
     assert len(hires) == 1
     e = hires[0].employee
     assert (e.name, e.level, e.skill, e.status, e.hired_on, e.model) == (
         "Made Up One", "expert", "setup_review", "shadow", "2026-11-06", "claude / default")
-    soul = load(home / "employees" / "emp-001").prompt
+    soul = load(home / "employees" / new_id).prompt
     assert "{name}" in soul and "setup" in soul.lower()
     loaded = load_employees(home, {"setup_review": "us_swing.market.setup_review:SetupReviewSkill"})
     assert loaded[0].spec.status == "shadow" and loaded[0].spec.version == 1
 
 
 def test_next_id(home: Path) -> None:
-    """UT-DSK-006.001.M18.T02: the new id is one above the highest emp number."""
+    """UT-DSK-006.001.M18.T02: the new id is one above the highest emp number (the desk's or
+    a shipped default's, SRD-DSK-006.028)."""
     for folder in ("emp-001", "emp-003", "emp-010"):
         _emp(home, folder, f"Person {folder}", level="junior")
     assert start_hire(home, "setup_review", "expert", "New Person", "claude", "default",
-                      TODAY)[0] == "emp-011"
+                      TODAY)[0] == f"emp-{max(10, _shipped_top()) + 1:03d}"
+
+
+def test_hire_id_above_shipped(home: Path) -> None:
+    """UT-DSK-006.028.M18.T01: with desk folders emp-001 to emp-003 only, a hire takes the id
+    after the highest shipped default, never a shipped one."""
+    for folder in ("emp-001", "emp-002", "emp-003"):
+        _emp(home, folder, f"Person {folder}", level="junior")
+    top = _shipped_top()
+    assert top >= 21
+    new_id = start_hire(home, "setup_review", "expert", "New Person", "claude", "default",
+                        TODAY)[0]
+    assert new_id == f"emp-{top + 1:03d}"
+
+
+def test_hire_id_desk_higher(home: Path) -> None:
+    """UT-DSK-006.028.M18.T02: a desk folder above every shipped id still sets the next id."""
+    assert _shipped_top() < 30
+    _emp(home, "emp-030", "Person Thirty", level="junior")
+    assert start_hire(home, "setup_review", "expert", "New Person", "claude", "default",
+                      TODAY)[0] == "emp-031"
+
+
+def test_hire_id_other_folders(home: Path) -> None:
+    """UT-DSK-006.028.M18.T03: folders and files not named emp-<number> are not counted."""
+    _emp(home, "emp-001", "Person One", level="junior")
+    (home / "employees" / "emp-x1").mkdir()
+    (home / "employees" / "backup").mkdir()
+    (home / "employees" / "emp-099.txt").write_text("not an employee", encoding="utf-8")
+    assert start_hire(home, "setup_review", "expert", "New Person", "claude", "default",
+                      TODAY)[0] == f"emp-{_shipped_top() + 1:03d}"
 
 
 @pytest.mark.parametrize(("skill", "level", "name", "why"), [

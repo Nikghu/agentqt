@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.28.0: DD-MKT-021.007.D01 (read functions for built tools) and DD-MKT-010.022.D01 (tool requests in the lead chat) added (AI Desk v3 M7b, 2026-11-15).
 > v0.27.0: DD-MKT-021.001.D01 (table tools) and DD-MKT-010.020.D01 (table asks in the lead chat) added (AI Desk v3 M6, 2026-11-14).
 > v0.26.0: DD-MKT-020.001.D01 added — company day (AI Desk v3 M5, 2026-11-13).
 > v0.25.0: DD-MKT-010.009.D01 added — chat sessions, summaries, team ask and updates (AI Desk v3 M4, 2026-11-13).
@@ -1789,3 +1790,38 @@ rows     one line each, cells joined by " | "; an empty value shows "-"
 ```
 
 `LeadChatSkill._update()`: when `team.table` is set, it saves that text with `add_update()` and makes no AI call. A refused or failed reply with no table keeps the M4 text "The team could not answer: <reason>".
+
+## DD-MKT-021.007.D01 — Read Functions for Built Tools (AI Desk v3 M7b)
+
+**Traces:** SRD-MKT-021.007–.010. `market/tool_reads.py`; the sandbox that calls them is in DD-DSK-013.001.D01 §8. The functions run only inside the sandbox child, which loads `reads()` by import path.
+
+```
+reads(home: Path, backtest: Path | None = None) -> dict[str, Callable[..., list[dict[str, Any]]]]
+    {"daily_bars": ..., "intraday_bars": ..., "desk_rows": ...}, bound to the desk folder and the
+    Backtest Data folder (default ~/.usswing/backtest, the same as market/proof_data.py)
+```
+
+| Function | Reads | Gives | Limits |
+|---|---|---|---|
+| `daily_bars(symbol, days=260)` (.007) | `<backtest>/1d/<SYM>.parquet` (ts, open, high, low, close, volume) | the last `days` bars, oldest first: `{"day": "YYYY-MM-DD", "open", "high", "low", "close", "volume"}` as floats | days 1–1300 |
+| `intraday_bars(symbol, minutes=30, days=10)` (.008) | `<backtest>/15m` or `30m/<SYM>/<YYYY>.parquet`, the two newest year files | the bars of the last `days` New York dates, oldest first: `{"time": "YYYY-MM-DD HH:MM", ...}` | minutes 15 or 30; days 1–60 |
+| `desk_rows(source, symbol=None, days=1)` (.009) | `desk.db` read-only (`mode=ro`); the source's FROM text, day column and columns from `core/desk_recipes.MENU` | the rows of the source's last `days` distinct dates, oldest first: `{"date", <menu columns>}`; floats rounded to 4 places | days 1–60; scores, ideas, stock_rs and pick_results need a symbol; sectors takes none |
+
+- Bad input raises `ValueError` with a short reason the tool may pass on (.010): "bad symbol" (after upper-casing, not `^[A-Z0-9][A-Z0-9. -]{0,9}$`), "days must be 1 to <max>", "minutes must be 15 or 30", "unknown source <name>", "<source> needs a symbol", "sectors takes no symbol".
+- No file or no table gives `[]`. Values are plain `str`, `int`, `float` or `None`: no pandas object leaves a function, because a frame's methods can write files.
+- SQL names come only from the menu; the symbol and the day count are bound values. Nothing is written and no model is called.
+
+## DD-MKT-010.022.D01 — Tool Requests in the Lead Chat (AI Desk v3 M7b)
+
+**Traces:** SRD-MKT-010.022. Builds on DD-MKT-010.020.D01 (table hint) and the M4 team ask.
+
+`tool_hint(home)` (`market/lead_chat.py`) returns the text below when `tool_builder_on` is on and an active employee holds `tool_builder` (`core.desk_research.holder`); else "". `_answer()` adds it after the table hint, in the same sessions-and-messages branch, so the lead still sends at most one ask (`keep_one_ask()` unchanged).
+
+```
+Only when the Master asks the desk to build a new tool, send that ask to "skill:tool_builder"
+with want = {"goal": "<what the tool gives for one stock>", "done_when": "the tool waits for the
+Master's review", "inputs": {"request": "<the Master's words>", "symbols": ["AVGO"]}}.
+The Master reads the code and switches each tool on in AI Desk > Tools.
+```
+
+The builder's reply comes back as the update by the M4 path: a done reply is written up by the lead with one AI call; a failed or refused one gives "The team could not answer: <reason>".

@@ -6,6 +6,8 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.20.1: DD-DSK-013.001.D01 updated — off path, stale requests, §17 code review fixes (2026-11-16).
+> v0.20.0: DD-DSK-013.001.D01 added — tool builder; its §14 covers the hire id fix (SRD-DSK-006.028) (AI Desk v3 M7b, 2026-11-15).
 > v0.19.1: DD-DSK-006.011.D01 updated — the proposal row rides in the ask's want; §12 code review fixes (2026-11-15).
 > v0.19.0: DD-DSK-006.011.D01 added — hire proposals (AI Desk v3 M7a, 2026-11-15).
 > v0.18.0: DD-DSK-012.012.D01 added — planner, task cards and tool groups (AI Desk v3 M6, 2026-11-14).
@@ -1649,3 +1651,254 @@ none      "No view: {note}"
 - The boss's short turn runs only while Agent messages and Hire proposals are on; otherwise a proposal ask is refused by code with "hire proposals are off".
 - An ask in the secretary's inbox gets a refused reply by code ("I only propose hires, once a week").
 - Kept as designed: in one message wake a later turn's result hides an earlier one, as before M7a.
+
+## DD-DSK-013.001.D01 — Tool Builder (AI Desk v3 M7b)
+
+**Traces:** SRD-DSK-013.001–.024 and SRD-DSK-006.028 (DSK); read functions in DD-MKT-021.007.D01; lead chat hint in DD-MKT-010.022.D01; GUI in DD-GUI-041.006.D01. User decisions 2026-11-15: requests from the Master user in AI Desk → Tools and in Command chat; a tool's code may call the desk's read-only functions; an enabled tool becomes a table format the chat lead can ask for. Locked: sandbox, Master code review, never switched on by itself. Plan: https://claude.ai/artifact/3dr7g92HY5hvVQ9KiyrPvc (M7).
+
+**1. Flow**
+
+```
+Tools tab: ask_tool(home, text, now) ─▶ tool_requests row (source tools) + event tool_request
+Command chat: the lead's one ask to "skill:tool_builder" ─▶ message event (M1)
+      ▼
+ToolBuilderSkill (emp-021) wakes: inbox asks → request rows (source chat)
+      ▼  each new request of the last day, oldest first
+facts → AI answer (ToolAnswer) → check_answer → save_version → check_code → run_checks (sandbox)
+      │  a problem and only 1 AI call so far → 1 more AI call with the problems
+      ▼
+version review or failed · request done, failed or refused · chat: one reply
+      ▼
+Master: Tools → Enable → registry built.<name> v<N> active + format <name>.v<N> + its plan
+      ▼
+lead chat lists the format → table ask → planner → tool group → sandbox run → table
+```
+
+**2. Switch, event and request** (`core/desk_ai_settings.py`, `core/desk_events.py`, `core/desk_built_tools.py`; .001, .021)
+
+```
+DeskAiSettings + tool_builder_on: bool = False
+EVENT_RULES["tool_request"] = EventRule(1, None, timedelta(days=1))
+ask_tool(home, text, now) -> int
+   text stripped; empty or over 300 characters -> ValueError("a request needs 1 to 300 characters")
+   tool_builder_on off                         -> ValueError("the tool builder is off")
+   INSERT tool_requests (made, source 'tools', message NULL, asker 'master', text, symbols '[]', state 'new')
+   post_event(home, "tool_request", now.date().isoformat(), now, run_id=<request id>)
+```
+
+The switch does not need Agent messages: the Tools path is an event, like P10 data asks. The chat path also needs Agent messages and Chat sessions, because the lead's ask is the M4 team ask.
+
+**3. Tables** (`desk.db`, created on first use; times are New York ISO text)
+
+```
+tool_requests  id INTEGER PRIMARY KEY, made TEXT, source TEXT (tools | chat), message INTEGER,
+               asker TEXT ('master' or an employee id), text TEXT, symbols TEXT (JSON list),
+               state TEXT (new | building | done | failed | refused | expired), reason TEXT,
+               tool INTEGER (built_tools id), ended TEXT
+built_tools    id INTEGER PRIMARY KEY, name TEXT, version INTEGER, request INTEGER, title TEXT,
+               about TEXT, columns TEXT (JSON [{name, type, meaning}]), file TEXT (relative to the
+               desk folder), sha256 TEXT, state TEXT (review | failed | enabled | disabled),
+               checks TEXT (JSON [{check, ok, note}]), sample TEXT (JSON lines), made TEXT,
+               decided TEXT, UNIQUE (name, version)
+```
+
+**4. Builder turn** (`desk/tool_builder.py`, `ToolBuilderSkill`, key `tool_builder`, `talks = True`; .002–.004, .021)
+
+- `facts()`: off → not fresh with "the tool builder is off", so the desk refuses each ask with "<name> cannot work now: the tool builder is off" and `act()` does not run. On → fresh when a new request of the last day, an unread message in the builder's inbox or a stale request exists; else not fresh with "no tool request". The desk calls `facts()` before it attaches the inbox, so `facts()` reads the builder's inbox itself.
+- `act()`, inbox first: each ask → `add_request(source chat, message id, asker = sender, text, symbols)`. Text = `want.inputs["request"]` when it is a string, else `want.goal`, else the ask text (up to 300 characters); symbols = `want.inputs["symbols"]` upper-cased, at most 5. Other message types are skipped with no reply.
+- Then `expire_requests(home, now)`: a request still new a day after it was made → expired ("not picked up within a day"); one still building a day after it was made → failed ("the desk stopped while it was building"). Then each new request, oldest first: state building, then §5–§10. An error in one request ends it failed ("the builder hit an error") with the stack logged; the next request still runs.
+- Facts text for one request:
+
+```
+Tool request #<id> from <You | name>: <text>
+Sample stocks: <symbols>                                  (only when given)
+
+Write one small Python tool. The desk calls tool(symbol) once per stock; it returns
+{<column>: <value>, ...}: a number or a short text for each of your columns.
+Read functions (read-only; they return plain lists and dicts):
+- daily_bars(symbol, days=260) -> [{"day", "open", "high", "low", "close", "volume"}], oldest first, up to 1300 days
+- intraday_bars(symbol, minutes=30, days=10) -> [{"time", "open", "high", "low", "close", "volume"}], minutes 15 or 30, up to 60 days, New York times
+- desk_rows(source, symbol=None, days=1) -> [{"date", <columns>}], oldest first, up to 60 data days:
+  - <source>: <menu columns>                              (one line per data recipe menu source)
+Rules:
+- <the rules of §6, one line each>
+- raise ValueError("short reason") when a stock lacks data; return None for one value you cannot work out
+Built tools: <name> v<N> (<state>): <title>: <columns>    (or "none")
+Taken format names: <names>
+If it cannot be built with these functions (for example it needs news or the internet), leave code empty and give the reason in refuse.
+```
+
+**5. Answer, checks and the fix round** (.005, .006, .008)
+
+```
+ToolColumn  name ^[a-z][a-z0-9_]{0,29}$, type number | text, meaning 1-120
+ToolAnswer  name (0-30), title (0-60), about (0-300), columns: list[ToolColumn] (0-5),
+            code (0-6000), refuse (0-200)          all with defaults; extra keys refused
+```
+
+- `refuse` set → the request is refused with that reason; no version; no second call.
+- `check_answer(home, answer) -> list[str]` (shape): name matches `^[a-z][a-z0-9_]{2,29}$`; no format in the library has that name, except this tool's own `<name>.v<N>` formats; title and about not empty; 1–5 columns; column names unique and not `symbol`. A shape problem saves no version.
+- Else `save_version()` (§7); then `check_code()` (§6): a rules problem makes the version failed, with the problem as its "Code rules" check, and it never runs; else `run_checks()` (§9).
+- A shape problem, a rules problem or a failed check while only one AI call was made → one more `ctx.ask()` with the same facts plus "Your last answer had these problems:", one line per problem, and the last code. The second answer goes the same way. The request ends with the last version: review → done; failed → failed ("the tool failed its checks: <first note>"); a shape problem again → failed ("<first problem>").
+- `ctx.ask()` giving None → the request is failed with "the model gave no answer".
+- Drafts the model adds through its answer's `messages` field are dropped: the drafts list is cut back to its length before the call.
+
+**6. Code rules** (`check_code(code) -> list[str]`, .007; each problem reads "line <n>: <what>")
+
+```
+size        at most 6000 characters and 200 lines; it must parse ("line <n>: <syntax error>")
+top level   only def statements, NAME = <constant, or a list, tuple, dict or set of constants>,
+            and a docstring
+tool        a top-level def tool(symbol) with exactly one plain parameter (no default, * or **)
+banned      import, from-import, class, async def, await, async for, async with, with, yield,
+            yield from, global, nonlocal, match, decorators
+names       no name, parameter, def or attribute that starts with "_"; no string that holds "__";
+            every name that is read is bound in the code or is in ALLOWED_NAMES
+attributes  only ALLOWED_ATTRS
+
+ALLOWED_NAMES  abs all any bool dict divmod enumerate filter float int isinstance len list map
+               max min pow range reversed round set sorted str sum tuple zip
+               ValueError ZeroDivisionError KeyError IndexError TypeError Exception
+               math mean median stdev pstdev fmean daily_bars intraday_bars desk_rows
+ALLOWED_ATTRS  get items keys values append extend insert pop index count sort reverse copy
+               update setdefault lower upper strip lstrip rstrip split join replace startswith
+               endswith isdigit add discard
+               sqrt log log10 exp floor ceil fabs isnan isfinite inf nan pi hypot copysign
+```
+
+The lists close the known ways out of a Python sandbox: no `__class__`, `__globals__` or `__builtins__` chains, no frame or generator attributes (`gi_frame`, `f_back`, `tb_frame`), no `format` or `format_map` tricks, and no `getattr`, `type`, `open`, `eval`, `exec`, `compile` or `__import__`. A `while` loop is allowed; the time limit stops it.
+
+**7. Versions** (`save_version()`, `changed()`; .009, .013)
+
+- Version = 1 + the highest version of that name among the rows and the `v<N>.py` files in `<desk>/tools/<name>/`, so a file left by a crash is never overwritten.
+- The file is written once with mode "x" (it fails if the file exists), UTF-8; `sha256` = hex digest of the code's UTF-8 bytes; `file` = `tools/<name>/v<N>.py`.
+- `code_of(home, tool) -> str`: the file text, or "" when it is missing. `changed(home, tool) -> bool`: the file is missing or its digest differs from the row. A changed version never runs: its tool function returns "the code changed after review" without starting a process, and Enable refuses it.
+
+**8. Sandbox** (`desk/sandbox.py`, `desk/sandbox_child.py`; .010–.012)
+
+```
+run_code(home, code, columns, symbols, secs=60, backtest=None, target=child_main) -> RunResult
+RunResult  rows: list[dict] (symbol and columns), missing: dict[str, str], secs: float,
+           error: str ("" when the run ended), pid: int
+```
+
+- Start: `multiprocessing.get_context("spawn")`, `Pipe(duplex=False)`, `Process(target=child_main, args=(send_end, job_bytes), daemon=True)`. Spawn is how the backtest workers start; in the built app `run_gui.py` calls `freeze_support()` first, so the child is the app's own exe. The desk runs with no console window, so the child has none.
+- Job (JSON bytes): `{"code", "columns": [{"name", "type"}], "symbols", "home", "backtest", "secs"}`.
+- The parent waits with `recv_end.poll(secs)`, reads `recv_bytes(maxlength=1_000_000)` and `json.loads`; it never unpickles child data, and checks the shape (rows: a list of dicts with a `symbol`; missing: text to text) before use. Then `join(2)`; still alive → `kill()`.
+
+```
+no data within secs     kill; error "took longer than <secs> s"
+pipe closed, no data    error "the tool process ended without an answer (exit code <n>)"
+over 1 MB               error "the tool gave too much output"
+bad JSON or shape       error "the tool gave a broken answer"
+child error             error as sent (a rules problem, or "the tool could not start: ...")
+```
+
+- Child (`child_main(conn, job)`), in order:
+  1. Memory cap: on Windows a job object with `JOB_OBJECT_LIMIT_PROCESS_MEMORY` = 512 MB (`ctypes`: `CreateJobObjectW`, `SetInformationJobObject`, `AssignProcessToJobObject` on the current process); elsewhere none (debug log).
+  2. Watchdog thread: after `secs + 5` seconds `os._exit(3)`, so a child never outlives a stopped desk.
+  3. `check_code(code)` again; a problem → send `{"error": "code rules: <first problem>"}` and end.
+  4. Read functions from `TOOL_READS_PATH` (`"us_swing.market.tool_reads:reads"`, by import path; `desk` imports no `market` code): `reads(home, backtest)` gives the three bound functions.
+  5. `child_env(reads)`: `{"__builtins__": <only the built-ins in ALLOWED_NAMES>, "math": math, "mean"…"fmean": the statistics functions, **reads}`; `exec(compile(code, "<tool>", "exec"), env)`; `tool = env["tool"]`.
+  6. Per symbol (.012), `out = tool(symbol)`:
+
+```
+ValueError e       missing[symbol] = str(e)[:120] or "no data"
+MemoryError        missing[symbol] = "the tool ran out of memory"
+RecursionError     missing[symbol] = "the tool went too deep"
+other Exception    missing[symbol] = "error: <type name>: <text>"[:120]
+not a dict         missing[symbol] = "the tool gave no row"
+each column        None -> missing["<symbol>.<col>"] = "no value"
+                   number: int or float, not bool, finite; text: str up to 200 characters;
+                   else missing["<symbol>.<col>"] = "wrong value"
+row                {"symbol": symbol, <columns>} when at least one value is kept
+```
+
+  7. Send `{"rows", "missing", "crashed", "wrong", "cut", "capped", "secs", "pid"}` as JSON bytes.
+
+**9. Checks and states** (`run_checks()` in `desk/tool_builder.py`, `sample_symbols()` in `core/desk_built_tools.py`; .014, .015)
+
+- Samples: the request's symbols (up to 5); else the 5 best-ranked `ideas` of the latest date; else the 5 highest `rs_rating` of the latest `stock_rs` day; else none. Plus "ZZZZZ", a made-up stock with no data.
+- One sandbox run for all of them; 5 checks, each `{check, ok, note}`:
+
+```
+Code rules       the code passed §6                                     note: first problem
+Time and memory  the run ended with no run error, no stock was cut and   note: the run error,
+                 none ran out of memory                                  the cut count or the stock
+Full row         at least one sample stock got every column              note: "no sample stocks" or "no stock got every column"
+Value types      no "wrong value" reason                                 note: first such stock and column
+No data          "ZZZZZ" got a row, a ValueError reason or "no value"    note: its reason
+```
+
+- Sample lines: one per stock, "<symbol>: <col> <value>, …" or "<symbol>: <reason>". All 5 pass → state review; else failed. The builder writes no registry row, format or plan: only Enable does (.015).
+
+**10. Request result and reply** (.016)
+
+```
+review     request done, tool = id;  chat reply done:   "Tool <title> (<name> v<N>) is built and waits for the Master's review in AI Desk → Tools: 5 of 5 checks passed."
+failed     request failed;           chat reply failed: "the tool failed its checks: <first note>"
+refused    request refused;          chat reply refused: <reason>
+no answer  request failed;           chat reply failed: "the model gave no answer"
+```
+
+One reply per chat request, through `talker(ctx).send()`. The lead's update follows the M4 path: a done reply is written up by the lead; a failed or refused one gives "The team could not answer: …".
+
+**11. Enable and Disable** (`core/desk_built_tools.py`, `core/desk_registry.py`, `core/desk_tasks.py`; .017, .018)
+
+```
+enable_tool(home, tool_id, now) -> str       "" when done, else the reason
+  unknown id                      "no such tool"
+  state not review or disabled    "only a tool in review or disabled can be enabled"
+  a check not passed              "this version failed its checks"
+  changed(home, tool)             "the code changed after review"
+  each other enabled version of the name: state disabled; its plan and format dropped;
+       its registry row off
+  save_tool(Tool(name="built.<name>", kind="code", version=N, description=title,
+                 inputSchema={"symbols": list of text}, outputSchema="<name>.v<N>", secs=60))
+  save_format(TableFormat(id="<name>.v<N>", title=title, columns=
+              [symbol (text, "stock", by built.<name>)] + the tool's columns (by built.<name>)))
+  save_plan(home, fmt, now)          make_plan() with the active tools; one task_plans row
+  state enabled, decided = now
+disable_tool(home, tool_id, now) -> str
+  state not enabled               "only an enabled tool can be disabled"
+  state disabled, decided = now; drop_plan, drop_format, set_tool_status(..., "off")
+database error                    "the change could not be saved; see the desk log" (logged)
+```
+
+The writes run in an order that leaves no half state in use: Enable writes the tool, format and plan before the row turns enabled; Disable turns the row disabled before it drops them; running Enable again repairs a half-written one. `save_plan()` and `drop_plan()` touch only that format's plan, so a retired plan of another format stays retired until the next desk start (`fill_plans()` is not called).
+
+**12. Registry and planner** (.019, .020)
+
+- `fill_registry()`: the loop that sets gone tools off skips names that start with `built.`.
+- `desk/champions.py`: `paths: Mapping[str, str | ToolFn]`; a callable value is the tool function as is; a text value is loaded by import path as before.
+- `desk/planner.py` `_run_parts()`: `paths.update(built_fns(home))`. `built_fns()` (`desk/sandbox.py`) maps each enabled `built.<name>` to a function `(home, symbols) -> ToolResult`: a changed file gives `ToolResult(isError=True, error="the code changed after review")`; else `run_code()` gives its rows and missing, or `isError` with the run error. It never raises, so the tool group does not run it a second time. The part's limit is the registry row's `secs` (60).
+- The tool group of a built tool shows as "Built tools" (`group_label("built")`).
+
+**13. Default employee** (.022). `market/employees/emp-021/employee.md`: name Champion 2, title Tool builder, level champion, skill `tool_builder`, reports_to emp-019, trigger `[tool_request, message]`, calls_per_day 6, monthly_cost_usd 2.0, model default, and a short soul. `SKILL_PATHS["tool_builder"] = "us_swing.desk.tool_builder:ToolBuilderSkill"` and `TOOL_READS_PATH = "us_swing.market.tool_reads:reads"` in `core/desk_steps.py`; `USSwing.spec` gets the hidden imports `us_swing.desk.tool_builder`, `us_swing.desk.sandbox`, `us_swing.desk.sandbox_child` and `us_swing.market.tool_reads`. `seed_employees()` copies the folder into an existing desk at the next start.
+
+**14. Hire id** (`core/desk_hiring._next_id()`, SRD-DSK-006.028). The next id is one above the highest `emp-<n>` among the desk's employee folders and the shipped default employee folders (`DEFAULT_EMPLOYEE_PACKAGES`). A hire made before the desk adds a new default (here emp-021) can no longer take its id.
+
+**15. Reads** (.023). `tool_requests(home, limit=20)` and `built_tool_rows(home, limit=50)`, newest first; `enabled_tools(home)`; `code_of(home, tool)`; read-only, empty without `desk.db`.
+
+**16. Logs** (.024)
+
+```
+[Tool builder] Request #<id> saved
+[Tool builder] Tool <name> v<N> waits for review: 5 of 5 checks passed
+[Tool builder] Tool <name> v<N> failed its checks: <first note>
+[Tool builder] Request #<id> refused: <reason>     /  failed: <reason>  /  expired
+[Tool builder] Tool <name> v<N> enabled            /  disabled
+[Tool builder] A tool run was stopped: took longer than <secs> s
+```
+
+**17. Code review fixes (2026-11-16)**
+
+- The rule check never raises: the constant check walks without recursion, and code too deep to parse gives "line 1: the code is too deeply nested". Problems come sorted by line; a statement banned at the top is named by its own rule. `match` is banned too (a class pattern reads attributes without an attribute node).
+- The child checks a number as a finite float or an int a float holds exactly (|value| ≤ 2^53), so a huge int is one wrong value, not a failed run; all checks of one stock sit inside that stock's guard.
+- The child starts no new stock after `max(secs - 10, secs / 2)` seconds counted from the first stock; the rest get "not run: the time limit was reached" (`cut`), so the rows made so far reach the desk; "Time and memory" then fails with the count.
+- The child reports whether its memory cap was set (`capped`); the desk logs "[Tool builder] A tool ran without a memory cap" when it was not.
+- Only a message over 1 MB is "too much output"; any other pipe error ends the run as "the tool process ended without an answer".
+- Enable takes back its writes when one fails (no active registry row, format or plan stays for a version that is not enabled); `may_enable()` and `may_disable()` hold the rule the GUI uses for its buttons, and a failed version is refused with "this version failed its checks" first.
+- A request still new or still building a day after it was made wakes the builder and is ended (expired, or failed with "the desk stopped while it was building").
+- Reads skip a row that cannot be read, with a warning; `built_fns()` gives no built tools on a read error, so the other tools of a table still run.
+- Kept as designed: a single stock that never ends is stopped by the desk's 60-second limit with the whole run; `fill_registry()` still leaves every `built.*` row as it is (SRD-DSK-013.019), so Enable's rollback is what keeps the registry clean.

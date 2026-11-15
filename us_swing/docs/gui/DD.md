@@ -7,6 +7,8 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.32.1: DD-GUI-041.006.D01 updated after the GUI review (2026-11-16).
+> v1.32.0: DD-GUI-041.006.D01 added — tool requests, built tools review, Enable and Disable, Tool builder switch (AI Desk v3 M7b, 2026-11-15).
 > v1.31.1: DD-GUI-034.081.D01 updated after the GUI review (2026-11-15).
 > v1.31.0: DD-GUI-034.081.D01 added — hire proposal cards, Proposals list and Hire proposals switch (AI Desk v3 M7a, 2026-11-15).
 > v1.30.0: DD-GUI-041.001.D01 added — AI Desk Tools, chat table and Task cards switch (AI Desk v3 M6, 2026-11-14).
@@ -2092,3 +2094,17 @@ Run names: `evening` "Evening run", `manual` "Manual run", other kinds title-cas
 - **Buttons** (`gui/floor_feed.FeedCardWidget`, .082): `ref == "proposal"` gets Approve and Reject like a data card. A click calls `decide_proposal(home, item, decision, clock())`. An empty result emits `decided`, so the box reloads and the card goes; a reason shows in the card's note line and the buttons stay, except "this proposal is already decided" (decided on another card), which turns them off.
 - **Proposals list** (`gui/ai_desk_hiring.HiringPanel`, .083): a titled card "Proposals" under the hires list: table Made | Skill | Need | Model | View | State (latest 50, newest first) and a detail label under it with the `proposal_text()` of the chosen row; "No proposals yet" when empty; filled in `reload()`, and the chosen proposal stays chosen.
 - **Switch** (`gui/ai_desk_settings.py`, .084): a "Hire proposals" check box after Task cards, tooltip "The desk secretary proposes trial hires after the Friday report; needs Agent messages", disabled while Agent messages is unticked, saved as `hire_proposals_on`.
+
+## DD-GUI-041.006.D01 — Tool Requests, Built Tools Review and Switch (AI Desk v3 M7b)
+
+**Traces:** SRD-GUI-041.006–.010, SRD-GUI-034.085. Data and rules: DD-DSK-013.001.D01. The GUI reads through `core.desk_built_tools` and writes only through `ask_tool()`, `enable_tool()` and `disable_tool()`; the switch is saved with `save_settings`.
+
+- **Blocks** (`gui/ai_desk_tools.py`, `ToolsView`): three new blocks above Tools, in the same scroll area, top to bottom:
+  - Request a tool (.006): a `QLineEdit` (at most 300 characters; placeholder "What should the tool give for one stock? For example: percent below the 52-week high") and a "Request" `QPushButton` in one row, and a muted note line under them. A click calls `ask_tool(home, text, now)`: success clears the box and the note says "Request #<id> saved. The builder starts at its next turn."; a `ValueError` shows its text in the note. With `tool_builder_on` off the button is disabled and the note says "Turn on Tool builder in Desk settings to request a tool."
+  - Tool requests (.007): table Request | Time | From | State | Reason | Text from `tool_requests(home, 20)`: Request as `#<id>`, Time in ET as `%d-%m-%Y %H:%M`, From "You" or the asker's current name, State capitalised; the long Text cell is last, so it stretches.
+  - Built tools (.008–.010): table Tool | Version | State | Made | Checks | Title from `built_tool_rows(home)`: Version `v<N>`, Checks "<k> of 5"; empty note "No built tools yet. Request one above". Under the table: a detail label (.009), a read-only `QPlainTextEdit` with the code (the theme's monospace font, no line wrap, about 220 px high), and a row of Enable and Disable buttons with a muted note label.
+- **Detail** (.009) of the chosen version, one line each: "Request #<id>: <text>", "About: <about>", "Columns: <name> (<type>): <meaning>; …", then "✓ <check>: <note>" or "✗ <check>: <note>" per check, then "Sample rows:" and its lines. The code box shows `code_of()`; a missing file shows "The code file is missing.", and a changed file adds the line "The code changed after review; it will not run."
+- **Buttons** (.010): Enable is enabled for state review or disabled with all checks passed; Disable for state enabled. A click calls `enable_tool()` or `disable_tool()` with the version id: "" → `refresh()` with the same version chosen (by id); a reason shows in the note line, and the buttons follow the state read again.
+- The view is still rebuilt each time it is shown (M6); no timer and no worker thread, as the reads are small.
+- **Switch** (`gui/ai_desk_settings.py`, SRD-GUI-034.085): a "Tool builder" check box after Hire proposals, tooltip "The desk builds small read-only tools you ask for; you review and switch on each one", saved as `tool_builder_on`; not tied to Agent messages.
+- **GUI review fixes (2026-11-16)**: the detail, parts and note labels show plain text (model-written text is never read as HTML); a request that cannot be saved shows "Could not save the request; try again in a moment."; core reasons show as sentences; Enable and Disable confirm with "Enabled <name> v<N>." or "Disabled <name> v<N>."; the note clears when another version is chosen; Enter does nothing while the Request button is off; a failed first read hides the review widgets; the buttons follow core `may_enable()` and `may_disable()`. Kept: after a reload the detail is shown again even when the selection did not change.

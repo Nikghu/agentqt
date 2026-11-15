@@ -4,6 +4,7 @@ Parent SRD: SRD-DSK-012.018
 Also: SRD-DSK-012.019 (refusals), .020 (unmade columns), .022 (wave 2 gets wave 1 keys),
 .024 (merge and check), .025 (reply), .026 (failure rows), .027 (retire alert),
 .028 (``task_cards_on``), .031 (log lines)
+Also: SRD-DSK-013.020 (enabled built tools run through the sandbox) — AI Desk v3 M7b
 
 The task planner skill (AI Desk v3 M6). It answers each table ask in its inbox with exactly
 one reply and never calls a model: it finds the saved plan of the asked format, writes a
@@ -45,8 +46,17 @@ from us_swing.core.desk_tasks import (
     open_card,
     ready_formats,
 )
-from us_swing.desk.champions import DEFAULT_SECS, FAILED, OK, SKIPPED, PartResult, run_wave
+from us_swing.desk.champions import (
+    DEFAULT_SECS,
+    FAILED,
+    OK,
+    SKIPPED,
+    PartResult,
+    ToolRef,
+    run_wave,
+)
 from us_swing.desk.recorder import ny_now
+from us_swing.desk.sandbox import built_fns
 
 log = logging.getLogger(__name__)
 
@@ -120,8 +130,11 @@ def _trim(part: PlanPart, cols: Sequence[str]) -> PlanPart | None:
 
 
 def _run_parts(home: Path, ask: _Ask) -> list[tuple[PlanPart, PartResult]]:
-    """Wave 1 alone, then wave 2 together on the keys wave 1 returned (SRD-DSK-012.022)."""
-    paths = {name: path for name, (path, _secs) in desk_steps.TOOL_PATHS.items()}
+    """Wave 1 alone, then wave 2 together on the keys wave 1 returned (SRD-DSK-012.022); an
+    enabled built tool runs through the sandbox (SRD-DSK-013.020)."""
+    paths: dict[str, ToolRef] = {name: path for name, (path, _secs)
+                                 in desk_steps.TOOL_PATHS.items()}
+    paths.update(built_fns(home))
     limits = {t.name: t.secs or DEFAULT_SECS for t in list_tools(home, "active")}
     parts = [p for p in (_trim(part, ask.cols) for part in ask.plan.parts) if p is not None]
     first = [p for p in parts if p.wave == 1]

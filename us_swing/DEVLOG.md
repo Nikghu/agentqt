@@ -2,6 +2,18 @@
 
 ---
 
+## [20261116] DSK — AI Desk v3 M7b: tool builder (FO-DSK-013, FO-MKT-021, FO-MKT-010, FO-GUI-041, FO-GUI-034)
+
+- Type: Feature
+- FO(s): FO-DSK-013 (new), FO-DSK-006 (SRD .028), FO-MKT-021 (M7b block), FO-MKT-010, FO-GUI-041 (M7b block), FO-GUI-034
+- RN: RN-DSK-0.21.0-20261116
+- Artifacts updated: FO (FO-DSK-013 new; M7b blocks and bullets), SRD (DSK-013.001–.024, DSK-006.028, MKT-021.007–.010, MKT-010.022, GUI-041.006–.010, GUI-034.085 Implemented), DD (DD-DSK-013.001.D01 with §17 review fixes, DD-MKT-021.007.D01, DD-MKT-010.022.D01, DD-GUI-041.006.D01), MD (MD-DSK-013.001.M37, .010.M38, .011.M39, .003.M40 and MD-MKT-021.007.M02 new; several changed), UTCD (76 DSK + 10 MKT + 13 GUI cases Pass), Code, Tests, RN, TRACE, CONTEXT, TODO. Branch feat/dsk-m7b-tool-builder (docs 5ed18498), not pushed.
+- Decisions: requests from the Master user in Tools and Command chat; tool code calls read-only functions inside a sandbox child; an enabled tool becomes a table format for the chat lead; builder emp-021 "Champion 2" reports to the planner; recipe first dropped; max 2 AI calls per request; AST allow-lists of names and attributes; spawn child with 60 s and a 512 MB job object, JSON back only; SHA-256 binds the reviewed code; never enabled by itself; off by default behind tool_builder_on. Hire ids now stay above the shipped default ids.
+- Review: code-reviewer found no sandbox escape; fixed 2 HIGH (deep constant recursion in the rule check, huge int in the value check) and 5 MEDIUM (memory cap flag, Enable roll back, stale requests, deadline with partial rows, pipe error text); pyqt-code-reviewer approved, fixes for plain-text labels, notes and the core button rule.
+- Tests: desk + core + market + integration 1761 pass / 2 skipped after the review fixes, GUI in chunks 999 pass with one old failure (sidebar main-window test).
+
+---
+
 ## [20261115] DSK — AI Desk v3 M7a: hire proposals (FO-DSK-006, FO-GUI-034)
 
 - Type: Feature

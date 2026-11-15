@@ -4,7 +4,8 @@ Parent SRD: SRD-DSK-006.001
 Also: SRD-DSK-006.002 (refused hires), SRD-DSK-006.003 (seat count), SRD-DSK-006.005 (ready
 after 14 data days), SRD-DSK-006.006 (shadow report and agreement), SRD-DSK-006.007
 (decisions and ``approvals``), SRD-DSK-006.010 (log lines), SRD-DSK-008.007 (a hire
-writes ``employee.md``), SRD-DSK-006.014 (level of a skill's default file)
+writes ``employee.md``), SRD-DSK-006.014 (level of a skill's default file),
+SRD-DSK-006.028 (a new id stays above the shipped default ids)
 
 The hiring pipeline, shared by the GUI (which starts hires and records decisions) and
 the desk. Employees are folders of data in ``<desk>/employees/<id>/``; a hire always uses
@@ -111,9 +112,14 @@ def seat_counts(home: Path) -> dict[str, int]:
     return _seats(home)
 
 
+def _default_roots() -> list[Path]:
+    """The ``employees`` folders of the packages that ship default employee files."""
+    return [Path(str(importlib.import_module(package).__file__)).parent / "employees"
+            for package in DEFAULT_EMPLOYEE_PACKAGES]
+
+
 def _default_folder(skill: str) -> Path | None:
-    for package in DEFAULT_EMPLOYEE_PACKAGES:
-        root = Path(str(importlib.import_module(package).__file__)).parent / "employees"
+    for root in _default_roots():
         for folder in sorted(root.iterdir()) if root.is_dir() else []:
             found = _employee(folder)
             if found is not None and found.skill == skill:
@@ -128,10 +134,17 @@ def default_level(skill: str) -> str | None:
     return found.level if found is not None else None
 
 
+def _id_numbers(root: Path) -> list[int]:
+    return [int(m.group(1)) for p in (root.iterdir() if root.is_dir() else [])
+            if (m := re.fullmatch(r"emp-(\d+)", p.name))]
+
+
 def _next_id(home: Path) -> str:
-    root = home / "employees"
-    numbers = [int(m.group(1)) for p in (root.iterdir() if root.is_dir() else [])
-               if (m := re.fullmatch(r"emp-(\d+)", p.name))]
+    """One above the highest ``emp-<n>`` in the desk and in the shipped defaults, so a default
+    added to the desk later never finds its id taken (SRD-DSK-006.028)."""
+    numbers = _id_numbers(home / "employees")
+    for root in _default_roots():
+        numbers += _id_numbers(root)
     return f"emp-{max(numbers, default=0) + 1:03d}"
 
 

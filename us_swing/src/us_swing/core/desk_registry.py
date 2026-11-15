@@ -5,6 +5,8 @@ Also: SRD-DSK-011.019 (format ``idea_fix.v1`` for fix replies)
 Also: SRD-DSK-012.012 (``Tool.secs``), .013 (``ToolResult``), .014 (``Column.by``, the key
 column), .015 (table tools and ``setup_table.v1`` seeded) — AI Desk v3 M6
 Also: SRD-DSK-006.019 (format ``hire_proposal.v1`` for hire proposal asks) — AI Desk v3 M7a
+Also: SRD-DSK-013.017, .018 (write one tool or format row; drop a format), .019 (a desk start
+keeps the ``built.*`` rows) — AI Desk v3 M7b
 
 Tool registry (``desk.tool/1``) and schema library (``desk.schema/1``) in ``desk.db``. Tool
 rows use the MCP tool shape so code tools and MCP tools look the same. The registry is filled
@@ -38,6 +40,7 @@ TOOL_NAME = r"^(?:[a-z0-9_]+\.[a-z0-9_]+|mcp:[a-z0-9_]+/[a-z0-9_]+)$"
 TOOL_REF = TOOL_NAME[:-1] + r"@[0-9]+$"
 SCHEMA_ID = r"^[a-z0-9_]+\.v[0-9]+$"
 BACKTEST_MCP = "us_swing.mcp.backtest_tools"
+BUILT = "built."  # name prefix of the tools the Master user enabled (SRD-DSK-013.019)
 _EMPTY_INPUT: dict[str, Any] = {"type": "object", "properties": {}}
 _SYMBOLS_INPUT: dict[str, Any] = {
     "type": "object", "required": ["symbols"],
@@ -299,7 +302,7 @@ def fill_registry(home: Path, now: datetime) -> tuple[int, int]:
             seeded = {(t.name, t.version) for t in tools}
             for name, version, body in con.execute(
                     "SELECT name, version, body FROM tools WHERE status = 'active'").fetchall():
-                if (name, version) not in seeded:
+                if (name, version) not in seeded and not str(name).startswith(BUILT):
                     gone = {**json.loads(body), "status": "off"}
                     con.execute("UPDATE tools SET status = 'off', body = ?, updated = ? "
                                 "WHERE name = ? AND version = ?",
@@ -308,6 +311,63 @@ def fill_registry(home: Path, now: datetime) -> tuple[int, int]:
         con.close()
     log.info("[Tools] Registry ready: %d tool(s), %d table format(s)", len(tools), len(formats))
     return len(tools), len(formats)
+
+
+def save_tool(home: Path, tool: Tool, now: datetime) -> None:
+    """Write one tool row, replacing the same name and version (SRD-DSK-013.017)."""
+    con = _connect(home)
+    try:
+        with con:
+            con.execute(
+                "INSERT INTO tools VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(name, version) DO "
+                "UPDATE SET kind = excluded.kind, status = excluded.status, body = excluded.body, "
+                "updated = excluded.updated",
+                (tool.name, tool.version, tool.kind, tool.status, _tool_json(tool), utc_text(now)))
+    finally:
+        con.close()
+
+
+def set_tool_status(home: Path, name: str, version: int, status: str, now: datetime) -> bool:
+    """Set one tool's status in its row and its body; ``False`` when there is no such row."""
+    con = _connect(home)
+    try:
+        with con:
+            row = con.execute("SELECT body FROM tools WHERE name = ? AND version = ?",
+                              (name, version)).fetchone()
+            if row is None:
+                return False
+            body = {**json.loads(row[0]), "status": status}
+            con.execute("UPDATE tools SET status = ?, body = ?, updated = ? "
+                        "WHERE name = ? AND version = ?",
+                        (status, json.dumps(body), utc_text(now), name, version))
+        return True
+    finally:
+        con.close()
+
+
+def save_format(home: Path, fmt: TableFormat, now: datetime) -> None:
+    """Write one table format, replacing the same name and version (SRD-DSK-013.017)."""
+    con = _connect(home)
+    try:
+        with con:
+            con.execute("INSERT INTO schemas VALUES (?, ?, ?, ?) ON CONFLICT(name, version) DO "
+                        "UPDATE SET body = excluded.body, updated = excluded.updated",
+                        (fmt.name, fmt.version, fmt.model_dump_json(), utc_text(now)))
+    finally:
+        con.close()
+
+
+def drop_format(home: Path, format_id: str) -> None:
+    """Remove one table format by id such as ``gap.v2`` (SRD-DSK-013.018)."""
+    if not re.match(SCHEMA_ID, format_id):
+        return
+    name, version = format_id.rsplit(".v", 1)
+    con = _connect(home)
+    try:
+        with con:
+            con.execute("DELETE FROM schemas WHERE name = ? AND version = ?", (name, int(version)))
+    finally:
+        con.close()
 
 
 def _read(home: Path, sql: str, args: tuple[object, ...] = ()) -> list[tuple[Any, ...]]:

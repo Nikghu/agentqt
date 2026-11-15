@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.29.0: MD-MKT-021.007.M02 added — read functions for built tools; M03 (lead chat) changed (AI Desk v3 M7b, 2026-11-15).
 > v0.28.0: MD-MKT-021.001.M01 added — table tools; M01 (chat) and M03 (lead chat) of FO-MKT-010 changed (AI Desk v3 M6, 2026-11-14).
 > v0.27.0: MD-MKT-020.*.M01–M10 added — company day (AI Desk v3 M5, 2026-11-13).
 > v0.26.0: M01 (chat) and M03 (lead chat) changed for AI Desk v3 M4 (2026-11-13).
@@ -308,3 +309,13 @@ No new module. Changed: MD-MKT-013.008.M02 (`market/watch_flag.py`: escalate dra
 | MD-MKT-021.001.M01 | SRD-MKT-021.001 | `us_swing/src/us_swing/market/table_tools.py` | Five read-only table tools: last close, RS rank, ATR percent, setup of the better side, trading days to earnings | `daily_close()`, `rs_rank()`, `atr_pct()`, `setup()`, `earnings()` | `market.candles`, `market.setups`, `market.earnings`, `core.desk_registry`, `core.econ_calendar` | No |
 
 SRD coverage: .001–.006 by M01. The tool paths are in `core/desk_steps.py` (MD-DSK-001.021.M07) and the tools are called only by `desk/champions.py` (MD-DSK-012.021.M33).
+
+## FO-MKT-021 / FO-MKT-010 (AI Desk v3 M7b): Read Functions and Tool Requests
+
+| MD ID | Parent SRD | File | Purpose | Public API | Depends on | MCP |
+|---|---|---|---|---|---|---|
+| MD-MKT-021.007.M02 | SRD-MKT-021.007 | `us_swing/src/us_swing/market/tool_reads.py` | Three read-only functions for built tools: daily bars, intraday bars and desk rows, with checks on stock names and limits | `reads()` | `pandas`, `sqlite3`, `core.desk_recipes`, `core.desk_contract`, `market.proof_data` | No |
+
+Changed: MD-MKT-010.003.M03 (`market/lead_chat.py`: `tool_hint()` — SRD-MKT-010.022).
+
+SRD coverage: .007–.010 by M02; SRD-MKT-010.022 by M03. `reads()` is loaded by import path in the sandbox child (`desk/sandbox_child.py`, MD-DSK-013.011.M39).

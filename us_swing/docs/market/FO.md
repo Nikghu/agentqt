@@ -6,6 +6,9 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.26.2: The FO-MKT-021 M7b block and the FO-MKT-010 tool request bullet Implemented 2026-11-16.
+> v0.26.1: The FO-MKT-021 M7b block and the FO-MKT-010 tool request bullet approved by user 2026-11-15.
+> v0.26.0: AI Desk v3 M7b (user, 2026-11-15): FO-MKT-021 gains the read functions for built tools and FO-MKT-010 the tool request bullet, as Draft.
 > v0.25.1: FO-MKT-021 and the FO-MKT-010 table ask bullets approved by user 2026-11-14; Implemented 2026-11-15.
 > v0.25.0: AI Desk v3 M6 (user, 2026-11-14): FO-MKT-021 Table tools added as Draft; FO-MKT-010 gains the table ask bullets as Draft.
 > v0.24.1: FO-MKT-020 approved by user 2026-11-13.
@@ -309,6 +312,10 @@ The system shall let the Master user ask the lead questions in AI Desk and get a
 - The system shall tell the lead which table formats are ready and how to ask the planner for one (AI Desk v3 M6).
 - The system shall post a table reply as the update with no AI call (AI Desk v3 M6).
 
+**Tool requests (AI Desk v3 M7b, user 2026-11-15):** with the tool builder on, the lead's one ask may go to the tool builder when the Master asks for a new tool (FO-DSK-013). The builder's reply comes back as the update. Status of this bullet: Implemented (approved by user 2026-11-15; RN-DSK-0.21.0-20261116).
+
+- The system shall tell the lead how to pass the Master's request for a new tool to the tool builder (AI Desk v3 M7b).
+
 ### Acceptance Criteria
 
 1. With the desk running, a question sent in Command gets an answer in the chat within about a minute.
@@ -319,6 +326,7 @@ The system shall let the Master user ask the lead questions in AI Desk and get a
 6. With Chat sessions on, two topics in one day keep separate context, and a session reopened the next day continues from its summary (M4).
 7. With Chat sessions off, the chat works as before (M4).
 8. With Task cards on, a question about named stocks gets an update that shows the table, and that update uses no AI call (M6).
+9. With the tool builder on, a question that asks for a new tool sends one ask to the builder, and its reply comes back as an update (M7b).
 
 ## FO-MKT-011: Ask the Desk for New Data
 
@@ -576,3 +584,17 @@ The system shall give the desk small read-only tools that each fill some columns
 2. A stock with no daily bars is named as missing, with a reason, by the close tool.
 3. A stock with no earnings date gets an empty value with a reason.
 
+### M7b — Read Functions for Built Tools
+
+**Status:** Implemented (approved by user 2026-11-15; RN-DSK-0.21.0-20261116)
+**Source: User 2026-11-15 (AI Desk v3 M7b): a built tool's code may call the desk's read-only functions (FO-DSK-013).**
+
+- The system shall give a built tool the daily bars of a stock from Backtest Data, oldest first, for up to 1300 days.
+- The system shall give a built tool the 15- or 30-minute bars of a stock for up to the last 60 trading days, with New York times.
+- The system shall give a built tool the rows of one data recipe menu source for a stock, for up to the last 60 data days.
+- The system shall return only plain lists and dicts, refuse a bad stock name or limit with a short reason, and never write data or call a model.
+
+### Acceptance Criteria (M7b)
+
+4. For a stock with Backtest Data, a built tool gets its last 260 daily bars and its last 10 days of 30-minute bars.
+5. A stock with no data gives an empty list; a bad stock name or limit gives a short reason.
