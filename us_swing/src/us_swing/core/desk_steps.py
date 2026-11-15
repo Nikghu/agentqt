@@ -15,6 +15,7 @@ skill paths (SRD-MKT-013.011)
 The list of steps the desk runs, loaded by import path, so ``desk`` never imports
 the tools (such as ``market``) that provide the steps.
 Also: MD-MKT-020.023.M09 — ``day_end`` skill and the decision check step (SRD-MKT-020.023)
+Also: SRD-DSK-012.015, .029 — table tool paths with their time limits; ``task_planner`` skill path
 """
 from __future__ import annotations
 
@@ -61,6 +62,15 @@ SKILL_PATHS: dict[str, str] = {
     "book_to_strategy": "us_swing.market.book_strategy:BookStrategySkill",
     "strategy_test": "us_swing.market.strategy_test:StrategyTestSkill",
     "day_end": "us_swing.market.day_end:DayEndSkill",  # SRD-MKT-020.023
+    "task_planner": "us_swing.desk.planner:TaskPlannerSkill",  # SRD-DSK-012.029
+}
+# Table tools by registry name: import path and time limit in seconds (SRD-DSK-012.015).
+TOOL_PATHS: dict[str, tuple[str, int]] = {
+    "data.daily_close": ("us_swing.market.table_tools:daily_close", 20),
+    "technical.rs_rank": ("us_swing.market.table_tools:rs_rank", 10),
+    "technical.atr_pct": ("us_swing.market.table_tools:atr_pct", 20),
+    "technical.setup": ("us_swing.market.table_tools:setup", 10),
+    "calendar.earnings": ("us_swing.market.table_tools:earnings", 30),
 }
 # Packages whose ``employees/`` folder holds default employee files to copy on first run.
 DEFAULT_EMPLOYEE_PACKAGES: tuple[str, ...] = ("us_swing.market",)

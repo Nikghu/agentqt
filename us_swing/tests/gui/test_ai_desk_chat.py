@@ -1,6 +1,7 @@
 """Tests for MD-GUI-034.039.M26 (real lead chat in Command). Employee names here are made up."""
 from __future__ import annotations
 
+import html
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -11,7 +12,7 @@ from tests.desk.test_hiring import _emp
 from us_swing.core import desk_chat as dc
 from us_swing.core.desk_contract import DeskState
 from us_swing.data.market_calendar import ET
-from us_swing.gui.ai_desk_chat import NO_TURNS, ChatPanel
+from us_swing.gui.ai_desk_chat import NO_TURNS, ChatPanel, _bubble, table_html
 
 NOW = datetime(2026, 11, 7, 12, 0, tzinfo=ET)
 _ALIVE: list[QWidget] = []
@@ -97,3 +98,28 @@ def test_resume_after_rebuild(qtbot: QtBot, tmp_path: Path) -> None:
     panel = _panel(qtbot, tmp_path, [DeskState.RUNNING], [NOW])
     assert panel.note.text() == dc.WAITING and panel._timer.isActive()
     assert not panel.ask_btn.isEnabled()
+
+
+def test_table_in_bubble() -> None:
+    """UT-GUI-034.079.M26.T01: Table in a bubble."""
+    text = ("Partial: x\nsymbol | close\nAAA | 10.5\nBBB | -\n"
+            "Note: AAA: earnings in 2 trading days")
+    out = table_html(text)
+    assert out.count("<table") == 1
+    assert out.count("<tr>") == 3
+    assert out.count("<th") == 2 and out.count("<td") == 4
+    assert out.index("Partial: x") < out.index("<table")
+    assert out.index("</table>") < out.index("Note: AAA")
+    holder = _bubble(False, "Lead", text, "2026-11-07T12:00:00-05:00", False)
+    label = holder.findChild(QLabel)
+    assert label is not None and "<table" in label.text()
+
+
+def test_plain_text_as_before() -> None:
+    """UT-GUI-034.079.M26.T02: Plain text as before."""
+    text = "a <b>bold</b>\nline two"
+    out = table_html(text)
+    assert out == html.escape(text).replace("\n", "<br>")
+    assert "<table" not in out
+    spaced = table_html("a | b\n\nc | d")
+    assert spaced.count("<table") == 2 and "</table><br><table" in spaced

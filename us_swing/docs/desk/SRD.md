@@ -6,6 +6,9 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.19.2: SRD-DSK-012.012–.031 Implemented 2026-11-15.
+> v0.19.1: SRD-DSK-012.012–.031 approved by user 2026-11-14.
+> v0.19.0: AI Desk v3 M6 (user, 2026-11-14): SRD-DSK-012.012–.031 added as Draft — planner, task cards, tool groups, failure log, plan retire.
 > v0.18.2: SRD-DSK-009.010–.024 Implemented 2026-11-13.
 > v0.18.1: SRD-DSK-009.010–.024 approved by user 2026-11-13.
 > v0.18.0: AI Desk v3 M3 (user, 2026-11-13): SRD-DSK-009.010–.024 added as Draft — memory v2.
@@ -325,3 +328,28 @@
 | SRD-DSK-012.009 | FO-DSK-012 | Must | On each desk start the registry is filled from the lists above without copies. | lists | rows | A seeded tool no longer in code is set off, never deleted | Implemented |
 | SRD-DSK-012.010 | FO-DSK-012 | Must | Read functions list tools and formats and get one by name. | name | rows | Read-only; used by the registry check and later phases | Implemented |
 | SRD-DSK-012.011 | FO-DSK-012 | Should | Filling the registry is logged with the tool and format counts. | counts | log line | `[Tools]` prefix | Implemented |
+
+### FO-DSK-012 (M6): Planner and Task Cards
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-DSK-012.012 | FO-DSK-012 | Must | A tool row may hold `secs`, the time limit of one call in seconds. | tool | model | Optional; set on table tools only | Implemented |
+| SRD-DSK-012.013 | FO-DSK-012 | Must | A table tool returns a tool result: rows, missing reasons by key, flags by key, and an error flag with its text. | call | result | Pydantic model in `core/desk_registry.py`; the error flag is named `isError` as in MCP | Implemented |
+| SRD-DSK-012.014 | FO-DSK-012 | Must | A format column may name the tool that makes it, and the first column of a format is its key. | format | model | Optional `by`; a column with no tool is never filled | Implemented |
+| SRD-DSK-012.015 | FO-DSK-012 | Must | Each table tool in the tool path list is a code tool with its time limit, and `setup_table.v1` is a seeded format. | path list | tool and format rows | Columns: symbol, close, rs_rank, atr_pct, side, setup, trigger, stop, earn_days | Implemented |
+| SRD-DSK-012.016 | FO-DSK-012 | Must | Each format whose key column has an active tool gets one saved plan: the key tool's group as wave 1, then one part per tool group of the other columns as wave 2. | formats, tools | `task_plans` row | Made again on each desk start, which sets it active with 0 fails | Implemented |
+| SRD-DSK-012.017 | FO-DSK-012 | Must | Each ask the planner works is kept as one `task_cards` row with asker, message, format, columns, keys, status, parts, row count, reason, times and seconds. | ask | row | In `desk.db`; parts as JSON | Implemented |
+| SRD-DSK-012.018 | FO-DSK-012 | Must | The skill `task_planner` answers each ask in its inbox with exactly one reply and makes no AI call. | inbox | reply drafts | Woken by message only (SRD-DSK-011.025) | Implemented |
+| SRD-DSK-012.019 | FO-DSK-012 | Must | An ask with no format, a format with no active plan, an unknown column, or not 1 to 30 symbols is refused with the reason. | ask | refused reply | No card is made | Implemented |
+| SRD-DSK-012.020 | FO-DSK-012 | Must | A wanted column whose tool is missing or off is left empty with the reason "not available". | plan | empty column, reason | Never guessed | Implemented |
+| SRD-DSK-012.021 | FO-DSK-012 | Must | A tool is called only by its tool group, named by the prefix of the tool name, and a group runs only the tools and columns of its part. | part, keys | part result | `desk/champions.py` is the only caller | Implemented |
+| SRD-DSK-012.022 | FO-DSK-012 | Must | Wave 1 runs first; the parts of wave 2 run together on at most 4 code workers and get only the keys wave 1 returned. | plan, keys | part results | Threads; no AI call; the router stays serial | Implemented |
+| SRD-DSK-012.023 | FO-DSK-012 | Must | A tool call that raises is tried once more; a part that still fails or passes its time limit ends failed with the reason. | part | status, reason | The limit is the sum of its tools' `secs` | Implemented |
+| SRD-DSK-012.024 | FO-DSK-012 | Must | Part rows are merged on the key in the asked order, and each value is checked against its column type. | parts | table | A wrong value is emptied with a reason; a key with no wave 1 row gets no row and a reason | Implemented |
+| SRD-DSK-012.025 | FO-DSK-012 | Must | The reply holds the table as a data block with a reason for every empty value, up to 5 flags, and the verdict done, partial or failed. | table | reply draft | Partial when a part failed, a key is missing or a value was wrong; failed when there is no row | Implemented |
+| SRD-DSK-012.026 | FO-DSK-012 | Must | Each refused ask and each failed part adds one `failure` row in `memory.db` in the planner's name. | refusal, failed part | memory row | Text names the format, the tool group and the reason; none while task cards are off | Implemented |
+| SRD-DSK-012.027 | FO-DSK-012 | Must | A plan whose last 3 cards each had a failed part is retired with one alert to the Master user; a card with no failed part sets the count back to 0. | card results | plan status, alert | A retired plan refuses asks until the next desk start | Implemented |
+| SRD-DSK-012.028 | FO-DSK-012 | Must | Task cards run only while `task_cards_on` and `messages_on` are both true; `task_cards_on` is false by default. | settings | on or off | Off: the planner refuses with "task cards are off" and the desk runs as in M5 | Implemented |
+| SRD-DSK-012.029 | FO-DSK-012 | Must | A default employee file holds the `task_planner` skill at champion level with `message` as its only trigger. | employee file | employee | Generic name; the Master user may rename or move it; the skill and tool paths are in the app build | Implemented |
+| SRD-DSK-012.030 | FO-DSK-012 | Must | Read functions list the plans, the latest cards, the ready formats and the latest failure rows. | — | rows | Read-only; used by the lead chat hint and the Tools view | Implemented |
+| SRD-DSK-012.031 | FO-DSK-012 | Should | A done, partial, failed and refused card and a retired plan are logged. | card | log line | `[Task cards]` prefix | Implemented |

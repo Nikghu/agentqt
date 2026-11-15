@@ -43,12 +43,12 @@ def _page(qtbot: QtBot, home: Path, sink: _Sink | None = None) -> AiDeskWorkspac
 
 
 def test_grouped_list(qtbot: QtBot, tmp_path: Path) -> None:
-    """UT-GUI-034.059.M33.T01: eleven sections in group order (Memory in step C, Research in step E), no
+    """UT-GUI-034.059.M33.T01: 13 sections in group order (Memory in step C, Research in step E, Tools in M6), no
     headings; the list stays hidden (sections are tabs, SRD-GUI-034.067)."""
     page = _page(qtbot, tmp_path)
     assert page._list.isHidden()
     assert page._list.count() == len(SECTIONS)
-    assert page.section_names() == list(SECTIONS) and len(SECTIONS) == 12
+    assert page.section_names() == list(SECTIONS) and len(SECTIONS) == 13
     page.select_section("Reports")
     assert page.current_section() == "Reports"
     assert page._stack.currentIndex() == SECTIONS.index("Reports")

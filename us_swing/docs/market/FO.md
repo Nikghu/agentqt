@@ -6,6 +6,8 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.25.1: FO-MKT-021 and the FO-MKT-010 table ask bullets approved by user 2026-11-14; Implemented 2026-11-15.
+> v0.25.0: AI Desk v3 M6 (user, 2026-11-14): FO-MKT-021 Table tools added as Draft; FO-MKT-010 gains the table ask bullets as Draft.
 > v0.24.1: FO-MKT-020 approved by user 2026-11-13.
 > v0.24.0: AI Desk v3 M5 (user, 2026-11-13): FO-MKT-020 Company day added as Draft — stand-up, huddle, day call and its check, day-end handover and feedback.
 > v0.23.0: AI Desk v3 M4 (user, 2026-11-13): FO-MKT-010 gains the sessions bullets as Draft — chat sessions, summary on close, memory notes, one team ask.
@@ -302,6 +304,11 @@ The system shall let the Master user ask the lead questions in AI Desk and get a
 - The system shall keep the summary and the Master's stated preferences as notes in the lead's memory while Memory v2 is on (AI Desk v3 M4).
 - The system shall let the lead send one question to an expert per Master question and post the reply as an update; the chat still never trades (AI Desk v3 M4).
 
+**Table asks (AI Desk v3 M6, user 2026-11-14):** with Task cards on, the lead's one ask may go to the planner for a table in a ready format (FO-DSK-012 M6). The table comes back as the update, written by code. Status of these two bullets: Implemented (approved by user 2026-11-14).
+
+- The system shall tell the lead which table formats are ready and how to ask the planner for one (AI Desk v3 M6).
+- The system shall post a table reply as the update with no AI call (AI Desk v3 M6).
+
 ### Acceptance Criteria
 
 1. With the desk running, a question sent in Command gets an answer in the chat within about a minute.
@@ -311,6 +318,7 @@ The system shall let the Master user ask the lead questions in AI Desk and get a
 5. Nothing in the chat changes approvals, signals or orders.
 6. With Chat sessions on, two topics in one day keep separate context, and a session reopened the next day continues from its summary (M4).
 7. With Chat sessions off, the chat works as before (M4).
+8. With Task cards on, a question about named stocks gets an update that shows the table, and that update uses no AI call (M6).
 
 ## FO-MKT-011: Ask the Desk for New Data
 
@@ -544,4 +552,27 @@ The system shall give the desk a daily rhythm: a stand-up before the plan, a sho
 3. A day call 5 trading days old is marked right, wrong or neutral, and each voting expert's core block shows its day-call record.
 4. After the close, one day-end AI call writes a handover note that the next morning's stand-up shows.
 5. With Company day off, the morning run and the lead brief work as before.
+
+## FO-MKT-021: Table Tools
+
+**Status:** Implemented (approved by user 2026-11-14; RN-DSK-0.19.0-20261115)
+**Priority:** Must
+**Phase:** AI Desk v3 M6
+**Depends on:** FO-DSK-012 (tool registry and task cards), FO-MKT-001 (daily bars), FO-MKT-002 (stock RS), FO-MKT-003 (scores, setups, earnings dates)
+**Source: User 2026-11-14 (AI Desk v3 M6): the first table format is `setup_table.v1` (symbol, close, rs_rank, atr_pct, side, setup, trigger, stop, earn_days), built by code tools with no AI call. Flow "Task card in detail": https://claude.ai/artifact/T2cdFhc9cAAgcMm3pQovom.**
+
+The system shall give the desk small read-only tools that each fill some columns of a table for a list of stocks, so the planner can build `setup_table.v1` with no AI call.
+
+- The system shall give the last daily close of each asked stock and name the asked stocks that have no daily bars.
+- The system shall give each stock's RS rating of the latest data day.
+- The system shall give each stock's 14-day average true range as a percent of its close.
+- The system shall give each stock's better-scored side of the latest data day with its setup, trigger and stop.
+- The system shall give the trading days to each stock's next earnings date and flag a date 5 or fewer trading days away.
+- The system shall never write market data or call an AI model from a table tool.
+
+### Acceptance Criteria
+
+1. For 3 stocks with data, the five tools together fill every column of `setup_table.v1`.
+2. A stock with no daily bars is named as missing, with a reason, by the close tool.
+3. A stock with no earnings date gets an empty value with a reason.
 

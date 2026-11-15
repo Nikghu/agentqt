@@ -2,6 +2,16 @@
 
 ---
 
+## [20261115] DSK — AI Desk v3 M6: planner and task cards (FO-DSK-012, FO-MKT-021, FO-MKT-010, FO-GUI-041, FO-GUI-034)
+
+- Type: Feature
+- FO(s): FO-DSK-012 (M6 part), FO-MKT-021, FO-MKT-010, FO-GUI-041, FO-GUI-034
+- RN: RN-DSK-0.19.0-20261115
+- Artifacts updated: SRD (DSK-012.012–.031, MKT-021.001–.006, MKT-010.020–.021, GUI-041.001–.005, GUI-034.079–.080 Implemented), DD (DD-DSK-012.012.D01 with §13 review fixes, DD-MKT-021.001.D01, DD-MKT-010.020.D01, DD-GUI-041.001.D01), MD (MD-DSK-012.016.M32, .021.M33, .018.M34, MD-MKT-021.001.M01, MD-GUI-041.001.M01 new; several changed), UTCD (72 DSK + 24 MKT + 11 GUI cases Pass), Code, Tests (5 old tests updated), RN, TRACE, CONTEXT. Branch feat/dsk-m6-task-cards; docs commit e0657820; not pushed.
+- Decisions: planner = one employee (emp-019 "Champion 1", trigger message) + code tool groups; lead chat asks first; unknown formats refused and logged, no AI planning; only the parts of one card run in parallel (4 workers), router stays serial; plan retired after 3 cards with a failed part until the next desk start; off by default behind task_cards_on.
+
+---
+
 ## [20261113] DSK — AI Desk v3 M5: company day (FO-MKT-020, FO-GUI-034, FO-GUI-035)
 
 - Type: Feature

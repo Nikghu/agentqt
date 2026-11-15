@@ -7,6 +7,8 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.40.1: UT-GUI-041.001–.005 and UT-GUI-034.079–.080 Pass (11, 2026-11-15); 3 older AI Desk section-count tests updated for the Tools tab.
+> v1.40.0: UT-GUI-041.001–.005 and UT-GUI-034.079–.080 added (11, Not Run) (AI Desk v3 M6, 2026-11-14).
 > v1.39.1: UT-GUI-034.077–.078 and UT-GUI-035.018 Pass (7, 2026-11-13).
 > v1.39.0: UT-GUI-034.077–.078 and UT-GUI-035.018 added (7, Not Run) (AI Desk v3 M5, 2026-11-13).
 > v1.38.1: UT-GUI-034.073–.076 Pass (9, 2026-11-13).
@@ -1383,3 +1385,19 @@ Test files:
 | UT-GUI-034.078.M40.T03 | MD-GUI-034.078.M40 | Negative | Tiles hidden (SRD-GUI-034.078) | company day off | no Day call or Handover tile | Pass |
 | UT-GUI-035.018.M06.T01 | MD-GUI-035.018.M06 | Positive | Day strip (SRD-GUI-035.018) | on; stand-up 08:10, no huddle, plan 08:12, 11:00 NY, no day-end | Stand-up 08:10, Huddle skipped, Plan 08:12, Market hours waiting, Day-end waiting | Pass |
 | UT-GUI-035.018.M06.T02 | MD-GUI-035.018.M06 | Negative | Strip hidden (SRD-GUI-035.018) | company day off | strip not shown | Pass |
+
+## FO-GUI-041 / FO-GUI-034 (AI Desk v3 M6): Tools, Chat Table, Task Cards Switch
+
+| ID | Module | Type | Title | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-041.001.M01.T01 | MD-GUI-041.001.M01 | Positive | Tools list (SRD-GUI-041.001) | filled registry | one row per tool with group, kind, AI, time limit and status | Pass |
+| UT-GUI-041.001.M01.T02 | MD-GUI-041.001.M01 | Edge | No data (SRD-GUI-041.001) | no `desk.db` | empty notes shown; no error | Pass |
+| UT-GUI-041.001.M08.T01 | MD-GUI-034.009.M08 | Positive | Tools section (SRD-GUI-041.001) | AI Desk page | "Tools" is a section just before Desk settings and builds the Tools view | Pass |
+| UT-GUI-041.002.M01.T01 | MD-GUI-041.001.M01 | Positive | Formats list (SRD-GUI-041.002) | `setup_table.v1` with an active plan, `scores.v1` with none, one retired plan | columns show their tool; plan shows Active, No plan and Retired with the reason | Pass |
+| UT-GUI-041.003.M01.T01 | MD-GUI-041.001.M01 | Positive | Cards list (SRD-GUI-041.003) | 3 cards | newest first with asker name, format, rows, result and seconds | Pass |
+| UT-GUI-041.004.M01.T01 | MD-GUI-041.001.M01 | Positive | Card parts (SRD-GUI-041.004) | select a partial card with 3 parts | one line per part with group label, rows, status, seconds and reason | Pass |
+| UT-GUI-041.005.M01.T01 | MD-GUI-041.001.M01 | Positive | Failure log (SRD-GUI-041.005) | 2 failure rows | both listed, newest first | Pass |
+| UT-GUI-034.079.M26.T01 | MD-GUI-034.039.M26 | Positive | Table in a bubble (SRD-GUI-034.079) | text with 3 lines joined by " \| " and one plain line | an HTML table with 3 rows; the plain line outside it | Pass |
+| UT-GUI-034.079.M26.T02 | MD-GUI-034.039.M26 | Negative | Plain text as before (SRD-GUI-034.079) | text with no " \| " and a `<b>` in it | escaped text with line breaks; no table; a blank line between two tables stays one line break | Pass |
+| UT-GUI-034.080.M15.T01 | MD-GUI-034.016.M15 | Positive | Task cards switch (SRD-GUI-034.080) | tick Agent messages and Task cards, save | task_cards_on true in the settings file; off by default | Pass |
+| UT-GUI-034.080.M15.T02 | MD-GUI-034.016.M15 | Negative | Needs agent messages (SRD-GUI-034.080) | Agent messages unticked | Task cards box disabled | Pass |

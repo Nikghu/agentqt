@@ -6,6 +6,8 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.15.1: FO-DSK-012 M6 part approved by user 2026-11-14; Implemented 2026-11-15.
+> v0.15.0: AI Desk v3 M6 (user, 2026-11-14): FO-DSK-012 gains the M6 part as Draft — planner and task cards; the FO-DSK-011 M2 block status is corrected to Implemented.
 > v0.14.0: AI Desk v3 M3 (user, 2026-11-13): FO-DSK-009 gains the memory v2 bullets as Draft — memory.db, notes and views, core block, recall, scores, weekly clean-up.
 > v0.13.0: AI Desk v3 M2 (user, 2026-11-13): FO-DSK-011 gains the M2 part as Draft — escalation and deputies; FO-DSK-007 and FO-DSK-008 get one bullet each.
 > v0.12.0: AI Desk v3 M1 (user, 2026-11-13): FO-DSK-011 gains the M1 part as Draft — messages and the reply path.
@@ -322,7 +324,7 @@ The system shall give every agent and layer one checked message format, `desk.ms
 
 ### M2 — Escalation and Deputies
 
-**Status:** Draft
+**Status:** Implemented (merged PR #144)
 **Source: User 2026-11-13 (AI Desk v3 M2 decisions): watch flag alerts at once and also goes to the boss; 5 minutes per level; escalate free of the daily cap; boss gives a short reply-only turn; the reply is a note only; handover waits for M5.**
 
 - The system shall let an employee escalate a problem to its boss, found through its `reports_to`.
@@ -360,3 +362,25 @@ The system shall keep one list of every tool the desk can use and one library of
 2. A second start leaves the same rows.
 3. Every registry row and schema row turns into JSON and back with the same values.
 4. The daily run and all existing desk tests work as before.
+
+### M6 — Planner and Task Cards
+
+**Status:** Implemented (approved by user 2026-11-14; RN-DSK-0.19.0-20261115)
+**Source: User 2026-11-14 (AI Desk v3 M6 decisions): the planner is one employee and the tool runners are code tool groups; the lead chat asks first; an ask with no ready format is refused and logged, with no AI planning; only the parts of one card run in parallel. Flow "Task card in detail": https://claude.ai/artifact/T2cdFhc9cAAgcMm3pQovom. Plan: https://claude.ai/artifact/3dr7g92HY5hvVQ9KiyrPvc (M6).**
+
+- The system shall let an employee ask the planner for a table in a named format for a list of stocks.
+- The system shall build that table in code from registered tools, with no AI call.
+- The system shall split each ask into parts by tool group, keep them on one task card, and run the parts of one wave together on up to 4 code workers.
+- The system shall call a tool only through its tool group.
+- The system shall check the merged table against its format and give a reason for every missing value, never a guess.
+- The system shall refuse an ask that has no ready plan, with a reason, and keep each refusal and each failed part in a failure log.
+- The system shall retire a plan after 3 cards in a row with a failed part and alert the Master user.
+- The system shall run exactly as in M5 while task cards are off.
+
+### Acceptance Criteria (M6)
+
+5. On a desk copy with task cards on, an ask for `setup_table.v1` for 6 stocks gets one reply with 6 rows, and the planner's turn uses 0 AI tokens.
+6. When the earnings tool fails, the reply is partial: the other columns are filled and the earnings column has a reason.
+7. An ask with an unknown format is refused with a reason and adds one failure row.
+8. After 3 cards in a row with a failed part the plan is retired, one alert is raised, and the next ask for that format is refused.
+9. With task cards off, the daily run and all existing desk tests work as before.

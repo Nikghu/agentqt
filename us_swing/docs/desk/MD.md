@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.20.0: MD-DSK-012.016.M32, MD-DSK-012.021.M33 and MD-DSK-012.018.M34 added; M28, M07, M13, M30, M21, M04 changed (AI Desk v3 M6, 2026-11-14).
 > v0.19.0: MD-DSK-009.010.M30 and MD-DSK-009.021.M31 added; M23, M27, M11, M10, M13, M04 changed (AI Desk v3 M3, 2026-11-13).
 > v0.18.0: No new module; M29, M15, M16, M10, M13, M21, M22 changed (AI Desk v3 M2, 2026-11-13).
 > v0.17.0: MD-DSK-011.015.M29 added; M27, M28, M15, M16, M10, M11, M12, M14, M08, M13 changed (AI Desk v3 M1, 2026-11-13).
@@ -189,3 +190,15 @@ SRD coverage: 011.014, .033, .034, .036–.038, .041 and .043 by M29; .035 by M1
 Changed: M23 (`core/desk_lessons.py`: `connect()` and `_read_only()` open `memory.db`, one-time `_move()` — 009.011), M27 (`core/desk_msg.py`: `Remember`, `with_remember()` — .013), M11 (`desk/gateway.py`: `remember`, `kept_notes()` — .013), M10 (`desk/employees_step.py`: core block and recall in facts, write notes after act — .016, .017, .014), M13 (`core/desk_ai_settings.py`: `memory_v2_on` — .023), M04 (`desk/process.py`: applies memory edits — .022). `core/desk_steps.py` adds the view check and clean-up step paths.
 
 SRD coverage: .010–.012, .014–.020, .022 and .024 by M30; .011 also by M23; .013 by M27, M11 and M10; .016 and .017 also by M10; .021 by M31; .022 also by M04; .023 by M13, M10, M31.
+
+## FO-DSK-012 (AI Desk v3 M6): Planner and Task Cards
+
+| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
+|---|---|---|---|---|---|---|
+| MD-DSK-012.016.M32 | SRD-DSK-012.016 | `us_swing/src/us_swing/core/desk_tasks.py` | `task_plans` and `task_cards` tables, plan from the made-by tools, fill on desk start, card open and close, fail count and retire, reads for the lead chat and the GUI | `Plan`, `PlanPart`, `Card`, `CardPart`, `STOPPED`, `group_of()`, `group_label()`, `make_plan()`, `fill_plans()`, `get_plan()`, `open_card()`, `close_card()`, `close_open_cards()`, `note_result()`, `plan_rows()`, `card_rows()`, `ready_formats()` | `sqlite3`, `pydantic`, M28 | No |
+| MD-DSK-012.021.M33 | SRD-DSK-012.021 | `us_swing/src/us_swing/desk/champions.py` | Tool groups: load tool functions by path, run one part with one retry, run a wave on up to 4 workers with time limits | `PartResult`, `run_part()`, `run_wave()` | `concurrent.futures`, M28, M32 | No |
+| MD-DSK-012.018.M34 | SRD-DSK-012.018 | `us_swing/src/us_swing/desk/planner.py` | Planner skill: checks and refusals, card, waves, merge and check, reply draft, failure rows, retire alert, logs | `TaskPlannerSkill` | M08, M13, M21, M27, M29, M30, M32, M33 | No |
+
+Changed: M28 (`core/desk_registry.py`: `Tool.secs`, `Column.by`, `TableFormat.key`, `ToolResult`, table tool and `setup_table.v1` seed — 012.012–.015), M07 (`core/desk_steps.py`: `TOOL_PATHS`, `task_planner` skill path — .015, .029), M13 (`core/desk_ai_settings.py`: `task_cards_on` — .028), M30 (`core/desk_memory.py`: `log_failure()`, `failure_rows()` — .026, .030), M21 (`core/desk_alerts.py`: kind `plan_retired` — .027), M04 (`desk/process.py`: `start()` calls `close_open_cards()` and `fill_plans()` — .016, .017). The default employee `market/employees/emp-019/` and the `USSwing.spec` module list (.029) have no module row.
+
+SRD coverage: .012–.014 by M28; .015 by M28 and M07; .016 by M32 and M04; .017 by M32 and M04; .018, .019, .024, .025 and .031 by M34; .020 by M32 and M34; .021 and .023 by M33; .022 by M33 and M34; .026 by M30 and M34; .027 by M32, M34 and M21; .028 by M13 and M34; .029 by M07; .030 by M32 and M30.

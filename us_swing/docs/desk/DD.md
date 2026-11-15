@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.18.0: DD-DSK-012.012.D01 added — planner, task cards and tool groups (AI Desk v3 M6, 2026-11-14).
 > v0.17.0: DD-DSK-009.010.D01 added — memory v2 (AI Desk v3 M3, 2026-11-13).
 > v0.16.0: DD-DSK-011.033.D01 added — escalation and deputies (AI Desk v3 M2, 2026-11-13).
 > v0.15.0: DD-DSK-011.015.D01 added — messages and the reply path (AI Desk v3 M1, 2026-11-13).
@@ -1364,3 +1365,156 @@ code: id must be the owner's active/weak, unpinned note; merge needs `into` of t
 **12. Settings** (.023). `DeskAiSettings.memory_v2_on: bool = False`. Off: no remember field, no blocks, no clean-up, no view check (DD-MKT-012.007.D01). The lesson move always runs.
 
 **13. Code review fixes.** A bad `remember` item (view without symbol or direction, unknown kind) is dropped and a long text is cut to 200, so the rest of the answer is still used; extra items past 3 are dropped. Recall matches only the `symbol` column, with terms limited to the owner's note symbols, so headings in the facts do not crowd out tickers. Before `memory.db` exists, lesson reads fall back to `desk.db` read-only, so the GUI shows lessons before the desk's first tick. The clean-up re-reads the owner's unpinned notes before each action, so a note pinned meanwhile is never retired and merge counts are current. The week key is set after the clean-up loop, so a crash retries next run. A view still open 30 days after its check day (no prices) retires with "no prices to check".
+
+## DD-DSK-012.012.D01 — Planner, Task Cards and Tool Groups (AI Desk v3 M6)
+
+**Traces:** SRD-DSK-012.012–.031 (DSK); table tools and the lead chat in DD-MKT-021.001.D01; GUI in DD-GUI-041.001.D01. User decisions 2026-11-14: the planner is one employee and the tool runners are code tool groups; the lead chat asks first; an ask with no ready format is refused and logged (no AI planning); only the parts of one card run in parallel. Not in M6: research tickets, the `task` message type and the `champion:` address (parts are code calls inside the planner's turn and live on the card).
+
+**1. Registry additions** (`core/desk_registry.py`, .012–.015). Both new fields are optional, so stored rows load as before.
+
+```
+Tool        + secs int >= 1 | None          time limit of one call, table tools only     (.012)
+Column      + by   TOOL_NAME | None         the tool that makes the column                (.014)
+TableFormat + key  (property)               name of the first column
+ToolResult    rows     list[dict]           one dict per key: the key column and the tool's columns
+              missing  dict[str, str]       "<key>" or "<key>.<col>" -> reason
+              flags    dict[str, str]       key -> short fact
+              is_error bool (alias isError), error str                                   (.013)
+```
+
+Seed (.015). `core/desk_steps.TOOL_PATHS: dict[str, tuple[str, int]]` maps a tool name to its import path and time limit:
+
+```
+data.daily_close     us_swing.market.table_tools:daily_close    20 s
+technical.rs_rank    us_swing.market.table_tools:rs_rank        10 s
+technical.atr_pct    us_swing.market.table_tools:atr_pct        20 s
+technical.setup      us_swing.market.table_tools:setup          10 s
+calendar.earnings    us_swing.market.table_tools:earnings       30 s
+```
+
+`seed_tools()` adds one code tool per entry (description = first docstring line of the function; input schema = an object with `symbols`, a list of strings). `seed_formats()` adds `setup_table.v1`:
+
+```
+symbol   text    by data.daily_close   (key)      side     text    by technical.setup
+close    number  by data.daily_close              setup    text    by technical.setup
+rs_rank  number  by technical.rs_rank             trigger  number  by technical.setup
+atr_pct  number  by technical.atr_pct             stop     number  by technical.setup
+                                                  earn_days number by calendar.earnings
+```
+
+**2. Plans** (`core/desk_tasks.py`, .016, .020). `group_of(tool)` is the name before the dot; `group_label(group)` is "<Group> tools" (for logs and the GUI). Pure `make_plan(fmt, tools) -> Plan | None`:
+
+```
+key tool = fmt.columns[0].by           missing, or not an active registry tool -> no plan
+wave 1   part "A": the key tool's group, {key tool: its columns of fmt}
+wave 2   the other columns whose tool is active, grouped by tool group in name order:
+         part "B", "C", ...  {tool: [columns]}
+unmade   columns with no `by`, or whose tool is missing or off
+```
+
+Table `task_plans (format TEXT PRIMARY KEY, parts TEXT, unmade TEXT, status TEXT, fails INTEGER, why TEXT, updated TEXT)`. `fill_plans(home, now)` writes one row per format that has a plan (status active, fails 0) and deletes the rows of formats that have none. `DeskProcess.start()` calls it after `fill_registry()`, in its own `try/except Exception` with `log.exception("[Task cards] Could not make the table plans")`. `get_plan(home, format) -> Plan | None`.
+
+**3. Cards** (.017).
+
+```
+task_cards (id INTEGER PRIMARY KEY, message INTEGER, asker TEXT, planner TEXT, format TEXT,
+            cols TEXT, keys TEXT, status TEXT, parts TEXT, rows INTEGER, reason TEXT,
+            made TEXT, ended TEXT, secs REAL)
+```
+
+`status` is working, then done, partial or failed. `parts` is a JSON list of `{id, wave, group, tools, cols, rows, status, secs, reason}` with part status ok, failed or skipped. `open_card()` inserts the working row and returns its id; `close_card()` writes the end values. Times are New York ISO text, as in `messages`.
+
+**4. Planner turn** (`desk/planner.py`, `TaskPlannerSkill`, .018). `key = "task_planner"`, `needs = ()`, `talks = True`, `answer = InboxReply` (never asked). `facts(home)` returns `Facts("Table asks", <New York today>, True)`.
+
+```
+act(ctx, facts):
+    talk = talker(ctx)                  none -> return []   (messages off: the M1 path refuses)
+    for id in facts.inbox:
+        msg = read_message(home, id)    not an ask -> skip
+        talk.send(self._work(home, msg))            exactly one reply per ask
+    return []                           no ctx.ask(): 0 tokens, the turn ends ok
+```
+
+The M1 path (`_answer_inbox` then `accept`) stores each reply and wakes the asker. `_work` checks in this order (.019, .028); the first that fails gives a refused reply with the reason, and no card:
+
+```
+task cards off                          "task cards are off"                    (no failure row)
+no want, or no want.schema              "no table format named; ready formats: <ids>"
+no plan row for the format              "no ready plan for <format>"
+plan retired                            "the plan for <format> is retired: <why>"
+a wanted column not in the format       "unknown column <c> in <format>"
+inputs.symbols not a list of 1 to 30    "give 1 to 30 symbols in inputs.symbols"
+```
+
+Symbols are upper-cased; blanks and repeats are dropped and the order is kept. Wanted columns are `want.cols`, or all columns; the key column always comes first.
+
+**5. Tool groups and waves** (`desk/champions.py`, .021–.023). This module is the only caller of tool functions.
+
+```
+run_part(home, part, keys, paths) -> PartResult
+    for each tool of the part, in name order:
+        fn = load(paths[tool])                 no path -> part failed "no code for <tool>"
+        result = fn(home, keys)                raises -> once more; raises again -> part failed
+        result.is_error                        -> part failed with result.error (no second try)
+        keep only the part's columns of each row; collect missing and flags
+    -> PartResult(id, rows {key: {col: value}}, missing, flags, status, secs, reason)
+
+run_wave(home, parts, keys, paths, limits) -> list[PartResult]
+    ThreadPoolExecutor(max_workers = min(4, len(parts)))
+    each part: future.result(timeout = sum of its tools' secs)
+    time-out -> failed "took longer than <n> s"; its thread is left to end by itself
+```
+
+The planner runs wave 1 alone and takes `keys_ok`, the keys with a wave 1 row. Wave 2 parts that hold no wanted column are left out. Wave 2 runs on `keys_ok` only. When wave 1 fails or `keys_ok` is empty, wave 2 parts are marked skipped.
+
+**6. Merge and check** (.024, .020).
+
+```
+for key in the asked order:
+    no wave 1 row                  -> no row; nulls[key] = the wave 1 reason, or "no data"
+    row = [key] + the value of each wanted column
+    column of a failed part        -> None; nulls[col] = the part's reason     (once per column)
+    unmade column                  -> None; nulls[col] = "not available"
+    no value for this key          -> None; nulls["<key>.<col>"] = the tool's reason, or "no value"
+    number column must be int or float (not bool), text column must be str:
+    else                           -> None; nulls["<key>.<col>"] = "wrong value from <tool>"
+```
+
+**7. Reply** (.025).
+
+```
+no row                                          -> verdict failed, text = the reason, no data
+a failed part, a missing key or a wrong value   -> verdict partial, reason = one short line
+else                                            -> verdict done
+data  = {schema: <format>, cols: the wanted columns when a subset, rows, nulls when any}
+flags = the first 5 tool flags as {about: key, note}   (only for keys that have a row)
+```
+
+An empty value that the tool explained (no earnings date) keeps the verdict done.
+
+**8. Failure log** (`core/desk_memory.py`, .026). `log_failure(home, owner, text, day, now)` inserts one `memories` row with `kind = 'failure'`, `status = 'active'`; `failure_rows(home, limit=50)` reads them newest first. Text: "<format>: <group label> failed: <reason>" for a part, "Ask refused: <reason>" for an ask. The owner is the planner's employee id (the receiver of the ask). The note, view, core block, recall and clean-up queries all filter on kind note or view, so a failure row never reaches a prompt.
+
+**9. Retire** (.027). `note_result(home, format, failed_part, why, now) -> bool`, in one transaction: a card with a failed part sets `fails + 1`, and at 3 sets `status = 'retired'` and `why`; a card with none sets `fails = 0`. It returns True only on the change to retired. The planner then raises the new alert kind `plan_retired` ("Table plan retired"; fix: "Restart the desk to try the plan again; AI Desk → Tools shows the failed parts"), source = the format. A failed part is a part with status failed (error or time-out), never a missing key or an empty value. `fill_plans()` at the next desk start sets the plan active again, and the alert then counts as fixed (`core/desk_alerts._fixed` reads the plan's status), so it leaves the open alerts.
+
+**10. Settings, employee, paths.** `DeskAiSettings.task_cards_on: bool = False` (.028). `SKILL_PATHS["task_planner"] = "us_swing.desk.planner:TaskPlannerSkill"`. Default file `market/employees/emp-019/employee.md` (.029): name "Champion 1" (the generic level name every shipped default must have, SRD-MKT-005.017), title "Task planner", level champion, reports_to emp-005, trigger `message` (an employee file needs at least one trigger; a message event wakes only the addressed employee), calls_per_day 1 (it makes no call). `USSwing.spec` gains `us_swing.desk.planner` and `us_swing.market.table_tools`.
+
+**11. Reads** (.030). `plan_rows(home)`, `card_rows(home, limit=50)` (newest first), `ready_formats(home)` (formats with an active plan) and `failure_rows()`. A missing `desk.db` or table gives an empty list.
+
+**12. Logs** (.031). Names are the employees' current names.
+
+```
+[Task cards] Card 12 for Lead 2: setup_table.v1, 6 stock(s), done in 3.1 s
+[Task cards] Card 13 for Lead 2 is partial: Calendar tools failed: connection timed out
+[Task cards] Ask from Lead 2 refused: no ready plan for scores.v1
+[Task cards] Plan for setup_table.v1 retired after 3 failed cards
+```
+
+**13. Code review fixes** (2026-11-15).
+
+- An ask whose work raises gets a `failed` reply "the planner hit an error" (logged with its trace); the other asks of the same wake are still answered. A card whose work raised is closed as failed, never left `working`.
+- `close_open_cards(home, now)` runs at each desk start before `fill_plans()`: cards a stopped desk left `working` become failed with "the desk stopped before the card ended".
+- `run_part` copies a tool's reason for a whole key to each of that tool's own columns (`<key>.<col>`), so two tools of one part never overwrite each other's reasons; a tool's reason for one exact cell wins over its reason for the whole key. `_merge` reads only `<key>.<col>` reasons; for a missing key it reads the key tool's `<key>.<key column>` reason.
+- A failed reply with no row carries the first reason, such as "no asked symbol has data: no daily bars"; its text and verdict reason are the same line.
+- After the reply is built, `_record()` keeps the failure rows, counts the card for its plan and raises the retire alert; a problem there is logged and the reply still goes out.
+- Flags with an empty note are left out.
+- Kept as designed: one tool that fails fails its whole part (its other tools' columns are empty with that reason); a timed-out worker thread is left to end by itself; failure rows are kept with no clean-up, for M7 to read.

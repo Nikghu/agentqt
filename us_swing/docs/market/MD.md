@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.28.0: MD-MKT-021.001.M01 added — table tools; M01 (chat) and M03 (lead chat) of FO-MKT-010 changed (AI Desk v3 M6, 2026-11-14).
 > v0.27.0: MD-MKT-020.*.M01–M10 added — company day (AI Desk v3 M5, 2026-11-13).
 > v0.26.0: M01 (chat) and M03 (lead chat) changed for AI Desk v3 M4 (2026-11-13).
 > v0.25.0: MD-MKT-012.007.M04 added — view check (AI Desk v3 M3, 2026-11-13).
@@ -175,6 +176,8 @@ SRD coverage: .001 by M01; .002 by M02; .003–.006 and .008 by M03; .007 by M04
 
 AI Desk v3 M4 (no new module): M01 `core/desk_chat.py` gains `ChatSession`, `session_for()`, `mark_quiet()`, `close_session()`, `sessions()`, `session_turns()`, `closing_sessions()`, `save_summary()`, `add_update()`, `team_ask()`, `team_reply()` (SRD .010–.012, .017–.018); M03 `market/lead_chat.py` gains `LeadChatSummary` and the session facts, summaries, one ask and updates (SRD .013–.017, .019). Cross-tool: `core/desk_ai_settings.py` (MD-DSK-004.005.M13) gains `sessions_on` (SRD .009).
 
+AI Desk v3 M6 (no new module): M01 `core/desk_chat.py` gains `TeamReply.table` and `table_text()` (SRD .021); M03 `market/lead_chat.py` gains the table hint and the code-written table update (SRD .020–.021).
+
 ## FO-MKT-011: Ask the Desk for New Data
 
 | ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
@@ -297,3 +300,11 @@ No new module. Changed: MD-MKT-013.008.M02 (`market/watch_flag.py`: escalate dra
 | MD-MKT-020.020.M08 | SRD-MKT-020.020 | `us_swing/src/us_swing/market/day_end.py` | Day-end skill: code facts, handover and feedback answer, rows, memory notes, feed item | `DayEndSkill`, `DayEnd`, `Feedback` | M01, `core.desk_memory`, `core.desk_agents` | No |
 | MD-MKT-020.023.M09 | SRD-MKT-020.023 | `us_swing/src/us_swing/market/employees/emp-018/`, `core/desk_steps.py`, `USSwing.spec` | Default day-end employee, skill and step paths, app build modules | `SKILL_PATHS`, `STEP_PATHS` | — | No |
 | MD-MKT-020.018.M10 | SRD-MKT-020.018 | `us_swing/src/us_swing/desk/employees_step.py` | Day-call line after the memory blocks; `meetings` flag to the message check | `EmployeesStep` | M01, M04 | No |
+
+## FO-MKT-021 (AI Desk v3 M6): Table Tools
+
+| MD ID | Parent SRD | File | Purpose | Public API | Depends on | MCP |
+|---|---|---|---|---|---|---|
+| MD-MKT-021.001.M01 | SRD-MKT-021.001 | `us_swing/src/us_swing/market/table_tools.py` | Five read-only table tools: last close, RS rank, ATR percent, setup of the better side, trading days to earnings | `daily_close()`, `rs_rank()`, `atr_pct()`, `setup()`, `earnings()` | `market.candles`, `market.setups`, `market.earnings`, `core.desk_registry`, `core.econ_calendar` | No |
+
+SRD coverage: .001–.006 by M01. The tool paths are in `core/desk_steps.py` (MD-DSK-001.021.M07) and the tools are called only by `desk/champions.py` (MD-DSK-012.021.M33).

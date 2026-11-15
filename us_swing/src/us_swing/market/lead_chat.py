@@ -4,7 +4,8 @@ Parent SRD: SRD-MKT-010.003
 Also: SRD-MKT-010.004 (answer), SRD-MKT-010.005 (failed reply), SRD-MKT-010.006 (answers
 only), SRD-MKT-010.008 (log lines), SRD-MKT-010.013 (session facts), SRD-MKT-010.014–.015
 (session summaries and notes), SRD-MKT-010.016–.017 (one team ask and its update),
-SRD-MKT-010.019 (log lines)
+SRD-MKT-010.019 (log lines), SRD-MKT-010.020 (table hint), SRD-MKT-010.021 (table update
+written by code) — AI Desk v3 M6
 
 The lead chat skill: answers the Master's oldest open question from the day's facts, the
 recent picks with their paper results and the last chat turns (of the question's session when
@@ -41,7 +42,9 @@ from us_swing.core.desk_chat import (
     waiting_updates,
 )
 from us_swing.core.desk_msg import Remember
+from us_swing.core.desk_research import holder
 from us_swing.core.desk_results import results_view
+from us_swing.core.desk_tasks import ready_formats
 from us_swing.core.econ_calendar import is_trading_day
 from us_swing.data.market_calendar import ET
 from us_swing.market.candles import CANDLE_DB
@@ -60,6 +63,12 @@ NO_TEAM = ("refused", "failed")
 ASK_HINT = ("You may also send one message of type ask to one expert about this question. "
             "Answer the Master now with what you know; the expert's reply comes back to you "
             "and you will post it as an update.")
+PLANNER_SKILL = "task_planner"
+TABLE_HINT = ('For a table of facts about named stocks, send that ask to "skill:task_planner" '
+              'with want = {"goal": "...", "done_when": "...", "inputs": {"symbols": '
+              '["AVGO", "MU"]}, "schema": "<format id>"} (up to 30 symbols; add "cols" to get '
+              "only some columns). The table is posted to the Master as your update.\n"
+              "Ready formats:")
 SUMMARY_HEAD = ("Summarise this chat session between the Master and you in at most 400 "
                 "characters: the topics, what was agreed and what is still open. In remember, "
                 "keep the summary as one note, and each preference the Master stated as one "
@@ -126,6 +135,18 @@ def keep_one_ask(talk: Talker, start: int, question_id: int, on: bool) -> None:
     talk.drafts[start:] = kept
 
 
+def table_hint(home: Path) -> str:
+    """How to ask the planner for a table, with the ready formats; empty when Task cards is
+    off, nobody holds the planner skill or no format is ready (SRD-MKT-010.020)."""
+    if not load_settings(home).task_cards_on or holder(home, PLANNER_SKILL) is None:
+        return ""
+    formats = ready_formats(home)
+    if not formats:
+        return ""
+    lines = [f"- {f.id}: {', '.join(c.name for c in f.columns)}" for f in formats]
+    return "\n".join([TABLE_HINT, *lines])
+
+
 def _drop_new(talk: Talker | None, start: int) -> None:
     if talk is not None:
         del talk.drafts[start:]
@@ -187,7 +208,10 @@ class LeadChatSkill:
                 talk: Talker | None, on: bool) -> None:
         started = time.monotonic()
         start = len(talk.drafts) if talk else 0
-        text = f"{facts.text}\n\n{ASK_HINT}" if talk is not None and on else facts.text
+        text = facts.text
+        if talk is not None and on:
+            hint = table_hint(ctx.home)
+            text = f"{text}\n\n{ASK_HINT}" + (f"\n{hint}" if hint else "")
         reply = ctx.ask(text, LeadChatAnswer)
         if talk is not None:
             keep_one_ask(talk, start, question.id, on)
@@ -203,7 +227,9 @@ class LeadChatSkill:
         team = team_reply(ctx.home, asked.id)
         if team is None:
             return
-        if team.result in NO_TEAM:
+        if team.table:
+            text = team.table
+        elif team.result in NO_TEAM:
             text = f"The team could not answer: {team.text or team.result}"[:MAX_ANSWER]
         else:
             first = next((t.text for t in chat_turns(ctx.home, 200)

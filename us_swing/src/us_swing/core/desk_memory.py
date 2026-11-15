@@ -6,6 +6,8 @@ SRD-DSK-009.015 (clean write), SRD-DSK-009.016 (core block), SRD-DSK-009.017 (re
 SRD-DSK-009.018 (view scores notes), SRD-DSK-009.019 (weak and proven), SRD-DSK-009.020
 (expiry; a view with no prices 30 days after its check day retires too), SRD-DSK-009.021 (clean-up actions), SRD-DSK-009.022 (the Master's edits),
 SRD-DSK-009.024 (log lines)
+Also: SRD-DSK-012.026, .030 (failure rows of the task planner: ``log_failure``,
+``failure_rows``) — AI Desk v3 M6
 
 Desk memory v2 (AI Desk v3 M3): the ``memory.db`` file next to ``desk.db``. Lead and expert
 employees keep short notes and views here; code keeps them clean, shows a core block and a
@@ -37,6 +39,7 @@ NY = ZoneInfo("America/New_York")
 MEMORY_DB = "memory.db"
 TOP_LEVELS: tuple[str, ...] = ("lead", "expert")
 KINDS: tuple[str, ...] = ("note", "view")
+FAILURE = "failure"
 NOTE_STATUSES: tuple[str, ...] = ("active", "weak", "retired")
 VIEW_STATUSES: tuple[str, ...] = ("open", "right", "wrong", "neutral", "retired")
 EDIT_ACTIONS: tuple[str, ...] = ("pin", "unpin", "retire")
@@ -610,6 +613,40 @@ def memory_rows(home: Path, kind: str, status: str, owner: str | None = None
     finally:
         con.close()
     return sorted(rows, key=lambda m: (not m.pinned, -m.id))
+
+
+# ── failure log (SRD-DSK-012.026) ─────────────────────────────────────────
+
+
+def log_failure(home: Path, owner: str, text: str, day: str, now: datetime) -> None:
+    """Keep one failure row for ``owner``: a refused table ask or a failed card part.
+
+    Failure rows have kind ``failure``; the note, view, core block, recall and clean-up
+    queries all filter on kind note or view, so a failure row never reaches a prompt.
+    """
+    con = connect(home)
+    try:
+        with con:
+            con.execute("INSERT INTO memories (owner, kind, text, made, updated, status) "
+                        "VALUES (?, ?, ?, ?, ?, 'active')",
+                        (owner, FAILURE, text.strip()[:300], day, _stamp(now)))
+    finally:
+        con.close()
+
+
+def failure_rows(home: Path, limit: int = 50) -> list[Memory]:
+    """The latest ``limit`` failure rows, newest first; empty with no memory file."""
+    con = read_only(home)
+    if con is None:
+        return []
+    try:
+        if not has_table(con, "memories"):
+            return []
+        return _memories(con, "WHERE kind = ? ORDER BY id DESC LIMIT ?", (FAILURE, limit))
+    except sqlite3.Error:
+        return []
+    finally:
+        con.close()
 
 
 def pending_edits(home: Path) -> set[int]:

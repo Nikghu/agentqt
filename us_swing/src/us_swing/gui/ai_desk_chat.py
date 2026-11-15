@@ -4,7 +4,7 @@ Parent SRD: SRD-GUI-034.039
 Also: SRD-GUI-034.040 (Ask box), SRD-GUI-034.041 (waiting check)
 Also: MD-GUI-034.061.M35 — chat bubbles (SRD-GUI-034.061)
 Also: SRD-GUI-034.074 (session list), SRD-GUI-034.075 (New discussion), SRD-GUI-034.076
-(updates and the team note)
+(updates and the team note), SRD-GUI-034.079 (a table reply shown as a table)
 
 The real lead chat in AI Desk → Command. Questions go to ``desk.db`` through
 ``core.desk_chat``; the desk process answers. This panel only shows the turns and asks.
@@ -14,6 +14,7 @@ from __future__ import annotations
 import html
 from collections.abc import Callable
 from datetime import datetime
+from itertools import groupby
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -33,6 +34,7 @@ from PyQt6.QtWidgets import (
 
 from us_swing.core.desk_ai_settings import load_settings
 from us_swing.core.desk_chat import (
+    CELL_GAP,
     EXPIRED,
     MAX_QUESTION,
     TEAM,
@@ -85,10 +87,30 @@ def session_label(session: ChatSession) -> str:
     return f"{session.title} · {day} · {state}"
 
 
+def table_html(text: str) -> str:
+    """Chat text as HTML; each run of lines whose cells are joined by `` | `` becomes a table
+    with the first line as its header (SRD-GUI-034.079). Other lines keep their line breaks."""
+    out: list[str] = []
+    for is_table, group in groupby(text.split("\n"), key=lambda line: CELL_GAP in line):
+        lines = list(group)
+        if not is_table:
+            plain = "<br>".join(html.escape(line) for line in lines)
+            out.append(plain if plain or not out else "<br>")
+            continue
+        rows = []
+        for number, line in enumerate(lines):
+            tag = "td" if number else "th"
+            cells = "".join(f"<{tag} align='left'>{html.escape(cell)}</{tag}>"
+                            for cell in line.split(CELL_GAP))
+            rows.append(f"<tr>{cells}</tr>")
+        out.append(f"<table cellspacing='0' cellpadding='3'>{''.join(rows)}</table>")
+    return "".join(out)
+
+
 def _bubble(mine: bool, who: str, text: str, created: str, failed: bool) -> QWidget:
     """One chat turn as a bubble: the Master on the right in green, the lead on the left."""
     colour = C.GREEN if mine else C.BLUE
-    body = html.escape(text).replace("\n", "<br>")
+    body = table_html(text)
     if failed:
         body = f"<span style='color:{C.MUTED}'>{body}</span>"
     label = QLabel(f"<b style='color:{colour}'>{html.escape(who)}</b>"

@@ -13,6 +13,8 @@ run is due by ``morning_due``; between runs the loop posts market clock events a
 short ``event`` run when one wakes an employee; only the morning and manual runs call the
 market steps. A desk launched by the app stops when the app's process ends.
 Also: MD-MKT-020.019.M07 — posts ``day_end`` once a day with the company day on (SRD-MKT-020.019)
+Also: SRD-DSK-012.016, .017 — at each desk start the table plans are made again and cards
+left working by a stopped desk are closed as failed
 """
 from __future__ import annotations
 
@@ -34,6 +36,7 @@ from us_swing.core.desk_events import post_event
 from us_swing.core.desk_lessons import apply_edits
 from us_swing.core.desk_memory import apply_edits as apply_memory_edits
 from us_swing.core.desk_registry import fill_registry
+from us_swing.core.desk_tasks import close_open_cards, fill_plans
 from us_swing.core.desk_research import apply_ticket_edits, expire_waiting, pause_running
 from us_swing.desk.clock import (
     MANUAL,
@@ -245,6 +248,11 @@ class DeskProcess:
             fill_registry(self._home, now)
         except Exception:  # noqa: BLE001 — a registry problem must never stop the desk
             log.exception("[Tools] Could not fill the tool registry")
+        try:
+            close_open_cards(self._home, now)
+            fill_plans(self._home, now)
+        except Exception:  # noqa: BLE001 — a plan problem must never stop the desk
+            log.exception("[Task cards] Could not make the table plans")
         self._run_daily_check()
         return True
 

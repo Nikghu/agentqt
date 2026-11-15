@@ -12,7 +12,7 @@ import pytest
 from pydantic import ValidationError
 
 from tests.desk.conftest import THU_1500_ET, FakeClock
-from us_swing.core import desk_registry
+from us_swing.core import desk_registry, desk_steps
 from us_swing.core.desk_recipes import MENU
 from us_swing.core.desk_registry import (
     SCHEMA_ID,
@@ -21,6 +21,7 @@ from us_swing.core.desk_registry import (
     Column,
     TableFormat,
     Tool,
+    ToolResult,
     fill_registry,
     get_format,
     get_tool,
@@ -30,7 +31,7 @@ from us_swing.core.desk_registry import (
     seed_tools,
 )
 from us_swing.core.desk_research import KINDS, TicketAsk
-from us_swing.core.desk_steps import SKILL_PATHS, STEP_PATHS
+from us_swing.core.desk_steps import SKILL_PATHS, STEP_PATHS, TOOL_PATHS
 from us_swing.desk.process import DeskProcess
 
 NOW = THU_1500_ET
@@ -171,7 +172,7 @@ def test_recipe_and_formats_seeded(seeds: list[Tool]) -> None:
     recipe = next(t for t in seeds if t.name == "data.recipe")
     assert "source" in recipe.input_schema["properties"]
     formats = {f.id: f for f in seed_formats()}
-    assert set(formats) == {f"{k}.v1" for k in MENU} | {"idea_fix.v1"}
+    assert set(formats) == {f"{k}.v1" for k in MENU} | {"idea_fix.v1", "setup_table.v1"}
     for key, source in MENU.items():
         assert [c.name for c in formats[f"{key}.v1"].columns] == list(source.columns)
 
@@ -282,3 +283,80 @@ def test_fill_is_logged(home: Path, caplog: pytest.LogCaptureFixture) -> None:
         tools, formats = fill_registry(home, NOW)
     lines = [r.getMessage() for r in caplog.records if r.getMessage().startswith("[Tools]")]
     assert lines == [f"[Tools] Registry ready: {tools} tool(s), {formats} table format(s)"]
+
+
+# ── AI Desk v3 M6: time limit, tool result, made-by column, table tools ──────
+
+
+def test_tool_with_a_time_limit() -> None:
+    """UT-DSK-012.012.M28.T01: Tool with a time limit."""
+    timed = _tool(name="technical.rs_rank", secs=20)
+    assert Tool.model_validate_json(timed.model_dump_json(by_alias=True)) == timed
+    assert timed.secs == 20 and _tool().secs is None
+
+
+def test_bad_time_limit() -> None:
+    """UT-DSK-012.012.M28.T02: Bad time limit."""
+    with pytest.raises(ValidationError):
+        _tool(secs=0)
+
+
+def test_tool_result_shape() -> None:
+    """UT-DSK-012.013.M28.T01: Tool result shape."""
+    result = ToolResult(rows=[{"symbol": "AAA", "close": 10.5}], missing={"BBB": "no daily bars"},
+                        flags={"AAA": "earnings in 2 trading days"})
+    dumped = result.model_dump(by_alias=True)
+    assert dumped["isError"] is False and "is_error" not in dumped
+    assert ToolResult.model_validate(dumped) == result
+    failed = ToolResult(isError=True, error="feed is down")
+    assert failed.is_error and failed.rows == []
+
+
+def test_unknown_key_in_a_result() -> None:
+    """UT-DSK-012.013.M28.T02: Unknown key in a result."""
+    with pytest.raises(ValidationError):
+        ToolResult.model_validate({"rows": [], "extra": 1})
+
+
+def test_made_by_column_and_key() -> None:
+    """UT-DSK-012.014.M28.T01: Made-by column and key."""
+    fmt = TableFormat(id="mix.v1", title="Mix", columns=[
+        Column(name="symbol", type="text", meaning="stock", by="data.daily_close"),
+        Column(name="note", type="text", meaning="free note")])
+    assert fmt.key == "symbol"
+    assert [c.by for c in fmt.columns] == ["data.daily_close", None]
+    assert TableFormat.model_validate_json(fmt.model_dump_json()) == fmt
+
+
+def test_bad_made_by_name() -> None:
+    """UT-DSK-012.014.M28.T02: Bad made-by name."""
+    with pytest.raises(ValidationError):
+        Column(name="rs_rank", type="number", meaning="rank", by="Rs Rank")
+
+
+def test_old_column_row() -> None:
+    """UT-DSK-012.014.M28.T03: Old column row."""
+    old = '{"name": "score", "type": "number", "meaning": "score"}'
+    assert Column.model_validate_json(old).by is None
+
+
+def test_table_tools_and_format_seeded(seeds: list[Tool]) -> None:
+    """UT-DSK-012.015.M28.T01: Table tools and format seeded."""
+    by_name = {t.name: t for t in seeds}
+    assert {name: by_name[name].secs for name in TOOL_PATHS} == {
+        name: secs for name, (_path, secs) in TOOL_PATHS.items()}
+    assert len(TOOL_PATHS) == 5
+    assert all(by_name[n].kind == "code" and not by_name[n].ai and by_name[n].description
+               and "symbols" in by_name[n].input_schema["properties"] for n in TOOL_PATHS)
+    fmt = next(f for f in seed_formats() if f.id == "setup_table.v1")
+    assert [c.name for c in fmt.columns] == ["symbol", "close", "rs_rank", "atr_pct", "side",
+                                             "setup", "trigger", "stop", "earn_days"]
+    assert all(c.by in TOOL_PATHS for c in fmt.columns)
+
+
+def test_bad_tool_path(monkeypatch: pytest.MonkeyPatch) -> None:
+    """UT-DSK-012.015.M28.T02: Bad tool path."""
+    monkeypatch.setattr(desk_steps, "TOOL_PATHS",
+                        {"data.nothing": ("us_swing.market.no_such:tool", 5)})
+    with pytest.raises(ModuleNotFoundError, match="no_such"):
+        seed_tools()

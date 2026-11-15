@@ -13,6 +13,7 @@ Also: MD-GUI-039.001.M01 — Research section after Team at work (SRD-GUI-039.00
 Also: MD-GUI-040.001.M01 — Cards section after Results (SRD-GUI-040.001)
 Also: SRD-GUI-034.065 — console header: icon, state note, desk controls and four tiles
 Also: MD-GUI-034.078.M40 — Day call and Handover tiles in the header (SRD-GUI-034.078)
+Also: MD-GUI-041.001.M01 — Tools section in the SETUP group before Desk settings (SRD-GUI-041.001)
 """
 from __future__ import annotations
 
@@ -63,6 +64,7 @@ from us_swing.gui.ai_desk_sections3 import cost_frame, reports_frame, settings_f
 from us_swing.gui.ai_desk_setup import TeamSetup
 from us_swing.gui.ai_desk_team import TeamAtWork
 from us_swing.gui.ai_desk_team_pane import bar_style, tab_style
+from us_swing.gui.ai_desk_tools import tools_frame
 from us_swing.gui.theme import C
 
 NY = ZoneInfo("America/New_York")
@@ -71,7 +73,7 @@ GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("TEAM", ("Team at work", "Research", "Team setup", "Hiring")),
     ("CREATE", ("Pages",)),
     ("REVIEW", ("Reports", "Results", "Cards", "Memory", "Cost & budget")),
-    ("SETUP", ("Desk settings",)),
+    ("SETUP", ("Tools", "Desk settings")),
 )
 SECTIONS = tuple(name for _group, names in GROUPS for name in names)
 _ROLE = Qt.ItemDataRole.UserRole
@@ -87,7 +89,7 @@ _STATE_NOTES = {
 }
 
 _LIVE_SECTIONS = ("Command", "Hiring", "Pages", "Reports", "Results", "Cards", "Memory",
-                  "Research", "Cost & budget")
+                  "Research", "Cost & budget", "Tools")
 
 
 def _nav_style() -> str:
@@ -197,6 +199,8 @@ class AiDeskWorkspace(QWidget):
             return pages_frame(name, self._home)
         if name == "Cost & budget":
             return cost_frame(name, self._home)
+        if name == "Tools":
+            return tools_frame(name, self._home)
         if name == "Team at work":
             team = TeamAtWork(self._home, self._clock)
             # team at work → edit_requested → page → _open_setup

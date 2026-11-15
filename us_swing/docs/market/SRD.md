@@ -6,6 +6,9 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.27.2: SRD-MKT-021.001–.006 and SRD-MKT-010.020–.021 Implemented 2026-11-15.
+> v0.27.1: SRD-MKT-021.001–.006 and SRD-MKT-010.020–.021 approved by user 2026-11-14.
+> v0.27.0: AI Desk v3 M6 (user, 2026-11-14): SRD-MKT-021.001–.006 (table tools) and SRD-MKT-010.020–.021 (table asks in the lead chat) added as Draft.
 > v0.26.2: SRD-MKT-020.001–.024 Implemented 2026-11-13.
 > v0.26.1: SRD-MKT-020.001–.024 approved by user 2026-11-13.
 > v0.26.0: AI Desk v3 M5 (user, 2026-11-13): SRD-MKT-020.001–.024 added as Draft — company day: stand-up, huddle, day call and its check, day-end.
@@ -249,6 +252,8 @@
 | SRD-MKT-010.017 | FO-MKT-010 | Must | When that ask gets its reply, the lead writes one update to the question, saved as an `update` chat row. | reply | `chat` row | At most 1500 characters; a refused or expired reply gets a code-written update with no AI call | Implemented |
 | SRD-MKT-010.018 | FO-MKT-010 | Must | The question note says "Waiting for the team" while the question's ask has no reply. | question | note | After the reply the note is empty | Implemented |
 | SRD-MKT-010.019 | FO-MKT-010 | Should | Each session summary and each update logs the session or question number. | summary, update | log line | `[Chat]` prefix | Implemented |
+| SRD-MKT-010.020 | FO-MKT-010 | Must | With task cards on, the ask hint also lists the ready table formats with their columns and tells the lead to send a table ask to `skill:task_planner` with the format and the symbols. | settings, ready formats | facts text | Only with sessions and agent messages on; no ready format: no table hint | Implemented |
+| SRD-MKT-010.021 | FO-MKT-010 | Must | A reply that holds a table becomes the update as text written by code: a header line, one line per row, then the missing reasons and the flags. | reply | `chat` row | No AI call; cells joined by " \| " | Implemented |
 
 ## FO-MKT-011: Ask the Desk for New Data
 
@@ -417,3 +422,14 @@
 | SRD-MKT-020.022 | FO-MKT-020 | Must | The handover note, the feedback and a code summary are kept in `day_brief`; each feedback line is a note in that expert's memory while Memory v2 is on; the note goes to the AI feed. | answer | row, notes, feed item | Notes count in 3 a day; feed kind `info` | Implemented |
 | SRD-MKT-020.023 | FO-MKT-020 | Must | A default lead-level employee ships as `emp-018` ("Lead 3", skill `day_end`, trigger `day_end`) and its skill path is in `SKILL_PATHS` and the app build. | default files | employee | Copied only when missing; generic name; calls per day 2, monthly cap USD 2 | Implemented |
 | SRD-MKT-020.024 | FO-MKT-020 | Should | Stand-up, huddle, day call, decision check and day-end each log one line, and nothing in the company day places, changes or closes a trade. | step | log line | `[Company day]` prefix | Implemented |
+
+## FO-MKT-021: Table Tools
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-MKT-021.001 | FO-MKT-021 | Must | The tool `data.daily_close` gives the last daily close of each asked symbol as `close`. | symbols | tool result | Bars from `candles.db` plus the desk top-up; a symbol with no daily bars is missing with a reason | Implemented |
+| SRD-MKT-021.002 | FO-MKT-021 | Must | The tool `technical.rs_rank` gives each symbol's RS rating of the latest data day as `rs_rank`. | symbols | tool result | From `stock_rs`; a symbol with no row is missing with a reason | Implemented |
+| SRD-MKT-021.003 | FO-MKT-021 | Must | The tool `technical.atr_pct` gives the 14-day average true range as a percent of the last close. | symbols | tool result | Two decimals; fewer than 15 daily bars: missing with a reason | Implemented |
+| SRD-MKT-021.004 | FO-MKT-021 | Must | The tool `technical.setup` gives the better-scored side of the latest data day with its setup, trigger and stop. | symbols | tool result | From `stock_score`; "No setup" gives setup `none` with empty trigger and stop | Implemented |
+| SRD-MKT-021.005 | FO-MKT-021 | Must | The tool `calendar.earnings` gives the trading days from the latest data day to the next earnings date as `earn_days`. | symbols | tool result | No date found: missing with a reason; 5 days or fewer adds a flag | Implemented |
+| SRD-MKT-021.006 | FO-MKT-021 | Must | Every table tool only reads data, makes no AI call and returns a tool result (SRD-DSK-012.013). | — | — | Called only through its tool group (SRD-DSK-012.021) | Implemented |

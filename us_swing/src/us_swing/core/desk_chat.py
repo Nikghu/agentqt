@@ -2,6 +2,7 @@
 Module: MD-MKT-010.001.M01 — core/desk_chat.py
 Parent SRD: SRD-MKT-010.001
 Also: SRD-MKT-010.010–.012 (sessions), SRD-MKT-010.017 (update rows), SRD-MKT-010.018 (team note)
+Also: SRD-MKT-010.021 (``table_text``: a table reply as chat lines) — AI Desk v3 M6
 
 The lead chat in ``desk.db``. The GUI adds the Master's questions (and posts one
 ``chat_question`` event each); the desk adds the replies and updates. The ``chat`` table is
@@ -12,13 +13,16 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any
 from zoneinfo import ZoneInfo
 
 from us_swing.core.desk_contract import DB_NAME
 from us_swing.core.desk_events import post_event
+from us_swing.core.desk_registry import get_format
 
 NY = ZoneInfo("America/New_York")
 MAX_QUESTION = 500
@@ -32,6 +36,8 @@ WAITING = "Waiting for the answer"
 START_DESK = "Start the desk to get an answer"
 EXPIRED = "No answer: the question expired"
 TEAM = "Waiting for the team"
+CELL_GAP = " | "
+MAX_MISSING = 10
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS chat (
@@ -80,10 +86,14 @@ class ChatSession:
 
 @dataclass(frozen=True)
 class TeamReply:
-    """The answer the team gave to the lead's ask about a question."""
+    """The answer the team gave to the lead's ask about a question.
+
+    ``table`` holds the reply's table as chat lines, or is empty when the reply has none.
+    """
 
     text: str
     result: str
+    table: str = ""
 
 
 def _open(home: Path) -> sqlite3.Connection:
@@ -381,7 +391,49 @@ def team_reply(home: Path, question_id: int) -> TeamReply | None:
     body = json.loads(row[0])
     verdict = body.get("verdict") or {}
     return TeamReply(str(body.get("text") or verdict.get("reason") or ""),
-                     str(verdict.get("result", "done")))
+                     str(verdict.get("result", "done")), table_text(home, body))
+
+
+def _cell(value: object) -> str:
+    if value is None:
+        return "-"
+    if isinstance(value, float):
+        return f"{value:.2f}".rstrip("0").rstrip(".")
+    return str(value)
+
+
+def table_text(home: Path, body: Mapping[str, Any]) -> str:
+    """The table of a reply body as plain chat lines; empty when it holds no rows.
+
+    A header line and one line per row, cells joined by `` | `` and an empty value shown as
+    ``-``; then one ``Missing`` line per reason and one ``Note`` line per flag
+    (SRD-MKT-010.021). A partial reply starts with a ``Partial`` line.
+    """
+    data = body.get("data") or {}
+    rows = data.get("rows")
+    if not rows:
+        return ""
+    cols = data.get("cols")
+    if not cols:
+        fmt = get_format(home, str(data.get("schema", "")))
+        cols = [c.name for c in fmt.columns] if fmt else []
+    verdict = body.get("verdict") or {}
+    lines: list[str] = []
+    if verdict.get("result") == "partial":
+        lines.append(f"Partial: {verdict.get('reason') or 'some values are missing'}")
+    if cols:
+        lines.append(CELL_GAP.join(str(c) for c in cols))
+    lines.extend(CELL_GAP.join(_cell(v) for v in row) for row in rows)
+    by_reason: dict[str, list[str]] = {}
+    for where, why in (data.get("nulls") or {}).items():
+        by_reason.setdefault(str(why), []).append(" ".join(str(where).rsplit(".", 1)))
+    reasons = list(by_reason.items())
+    lines.extend(f"Missing ({why}): {', '.join(where)}" for why, where in reasons[:MAX_MISSING])
+    if len(reasons) > MAX_MISSING:
+        lines.append(f"... and {len(reasons) - MAX_MISSING} more")
+    lines.extend(f"Note: {flag.get('about')}: {flag.get('note')}"
+                 for flag in body.get("flags") or [])
+    return "\n".join(lines)
 
 
 def waiting_updates(home: Path, now: datetime) -> list[ChatTurn]:
