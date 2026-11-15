@@ -7,6 +7,7 @@
 **Last Updated:** 2026-05-22
 **Project:** US Swing Trading System
 
+> v2.28.1: FO-GUI-041 and the FO-GUI-034 M6 bullet approved by user 2026-11-14; Implemented 2026-11-15.
 > v2.28.0: AI Desk v3 M6 (user, 2026-11-14): FO-GUI-041 AI Desk Tools added as Draft; FO-GUI-034 gains the Task cards switch and chat table bullet as Draft.
 > v2.27.0: AI Desk v3 M4 (user, 2026-11-13): FO-GUI-034 chat sessions bullets added as Draft.
 > v2.26.0: AI Desk v3 M3 (user, 2026-11-13): FO-GUI-037 memory v2 bullets and FO-GUI-034 Memory v2 switch added as Draft.
@@ -1012,7 +1013,7 @@ The system shall add two workspaces, Market Floor and AI Desk, shown on sample d
 - The system shall show the lead chat sessions in Command with a New discussion button, and let the Master open an old session to continue it (AI Desk v3 M4).
 - The system shall show the lead's updates and a "Waiting for the team" note in the chat (AI Desk v3 M4).
 - The system shall let the Master user turn the Company day on or off in Desk settings, and show the day call and the handover note in Command (AI Desk v3 M5, user 2026-11-13).
-- The system shall let the Master user turn Task cards on or off in Desk settings, off by default, and show a table reply as a table in the chat (AI Desk v3 M6, user 2026-11-14; Draft).
+- The system shall let the Master user turn Task cards on or off in Desk settings, off by default, and show a table reply as a table in the chat (AI Desk v3 M6, user 2026-11-14).
 
 ### Acceptance Criteria
 
@@ -1151,7 +1152,7 @@ The system shall show every strategy card with its latest test result and let th
 
 ## FO-GUI-041: AI Desk Tools
 
-**Status:** Draft
+**Status:** Implemented (approved by user 2026-11-14; RN-DSK-0.19.0-20261115)
 **Priority:** Should
 **Depends on:** FO-DSK-012 (tool registry, plans and task cards), FO-GUI-034 (AI Desk)
 **Source: User 2026-11-14 (AI Desk v3 M6): a read-only Tools view with the registry, the table formats and the task cards with their parts; the tool on/off switch comes in M7. Plan: https://claude.ai/artifact/3dr7g92HY5hvVQ9KiyrPvc (M6).**

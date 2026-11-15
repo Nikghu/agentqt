@@ -2075,9 +2075,9 @@ Run names: `evening` "Evening run", `manual` "Manual run", other kinds title-cas
 
 - **Tools section** (`gui/ai_desk_tools.py`, `ToolsView`, `tools_frame(name, home)`): "Tools" in the SETUP group before Desk settings; `gui/ai_desk.py` adds it to `GROUPS`, `_LIVE_SECTIONS` (rebuilt each time it is shown) and the section factory. Four blocks, top to bottom, in one scroll area:
   - Tools: Name, Group, Kind, AI, Time limit, Status, from `list_tools()`; the group is `group_label(group_of(name))` for code tools and "MCP" for MCP tools.
-  - Table formats: Format, Columns (each as `name` or `name ← tool`), Plan (Active, Retired with its reason, or No plan), from `list_formats()` and `plan_rows()`.
+  - Table formats: Format, Plan (Active, Retired with its reason, or No plan), Columns (each as `name` or `name ← tool`), from `list_formats()` and `plan_rows()`. The long Columns cell is last, so it takes the stretched last column and Plan stays in view.
   - Task cards: Card (`TC-n`), Time (ET), Asked by (current name), Format, Rows, Result, Seconds, from `card_rows()`, newest first; a label under the table shows the picked card's parts, one line each: "<part> · <group label> · <tools> · <columns> · <rows> rows · <status> · <secs> s · <reason>".
   - Failure log: Day and Text, from `failure_rows()`.
   - Each block shows a short empty note when it has no rows. No timer; nothing runs on a worker thread because the four reads are small.
-- **Chat table** (`gui/ai_desk_chat.py`, .079): `table_html(text)` escapes the text and turns each run of lines that hold " | " into an HTML table (first line as the header row); `_bubble()` uses it in place of the plain escape. Other lines keep their line breaks.
+- **Chat table** (`gui/ai_desk_chat.py`, .079): `table_html(text)` escapes the text and turns each run of lines that hold " | " into an HTML table (first line as the header row); `_bubble()` uses it in place of the plain escape. Other lines keep their line breaks, and a blank line between two tables stays as one line break.
 - **Switch** (`gui/ai_desk_settings.py`, .080): a "Task cards" check box after Company day, tooltip "Let the lead ask the planner for tables. Needs Agent messages.", saved as `task_cards_on`; disabled while Agent messages is unticked, like the Escalation box.

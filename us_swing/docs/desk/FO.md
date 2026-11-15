@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.15.1: FO-DSK-012 M6 part approved by user 2026-11-14; Implemented 2026-11-15.
 > v0.15.0: AI Desk v3 M6 (user, 2026-11-14): FO-DSK-012 gains the M6 part as Draft — planner and task cards; the FO-DSK-011 M2 block status is corrected to Implemented.
 > v0.14.0: AI Desk v3 M3 (user, 2026-11-13): FO-DSK-009 gains the memory v2 bullets as Draft — memory.db, notes and views, core block, recall, scores, weekly clean-up.
 > v0.13.0: AI Desk v3 M2 (user, 2026-11-13): FO-DSK-011 gains the M2 part as Draft — escalation and deputies; FO-DSK-007 and FO-DSK-008 get one bullet each.
@@ -364,7 +365,7 @@ The system shall keep one list of every tool the desk can use and one library of
 
 ### M6 — Planner and Task Cards
 
-**Status:** Draft
+**Status:** Implemented (approved by user 2026-11-14; RN-DSK-0.19.0-20261115)
 **Source: User 2026-11-14 (AI Desk v3 M6 decisions): the planner is one employee and the tool runners are code tool groups; the lead chat asks first; an ask with no ready format is refused and logged, with no AI planning; only the parts of one card run in parallel. Flow "Task card in detail": https://claude.ai/artifact/T2cdFhc9cAAgcMm3pQovom. Plan: https://claude.ai/artifact/3dr7g92HY5hvVQ9KiyrPvc (M6).**
 
 - The system shall let an employee ask the planner for a table in a named format for a list of stocks.

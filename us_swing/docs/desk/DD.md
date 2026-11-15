@@ -1487,16 +1487,16 @@ no row                                          -> verdict failed, text = the re
 a failed part, a missing key or a wrong value   -> verdict partial, reason = one short line
 else                                            -> verdict done
 data  = {schema: <format>, cols: the wanted columns when a subset, rows, nulls when any}
-flags = the first 5 tool flags as {about: key, note}
+flags = the first 5 tool flags as {about: key, note}   (only for keys that have a row)
 ```
 
 An empty value that the tool explained (no earnings date) keeps the verdict done.
 
 **8. Failure log** (`core/desk_memory.py`, .026). `log_failure(home, owner, text, day, now)` inserts one `memories` row with `kind = 'failure'`, `status = 'active'`; `failure_rows(home, limit=50)` reads them newest first. Text: "<format>: <group label> failed: <reason>" for a part, "Ask refused: <reason>" for an ask. The owner is the planner's employee id (the receiver of the ask). The note, view, core block, recall and clean-up queries all filter on kind note or view, so a failure row never reaches a prompt.
 
-**9. Retire** (.027). `note_result(home, format, failed_part, why, now) -> bool`, in one transaction: a card with a failed part sets `fails + 1`, and at 3 sets `status = 'retired'` and `why`; a card with none sets `fails = 0`. It returns True only on the change to retired. The planner then raises the new alert kind `plan_retired` ("Table plan retired"; fix: "Restart the desk to try the plan again; AI Desk → Tools shows the failed parts"), source = the format. A failed part is a part with status failed (error or time-out), never a missing key or an empty value. `fill_plans()` at the next desk start sets the plan active again.
+**9. Retire** (.027). `note_result(home, format, failed_part, why, now) -> bool`, in one transaction: a card with a failed part sets `fails + 1`, and at 3 sets `status = 'retired'` and `why`; a card with none sets `fails = 0`. It returns True only on the change to retired. The planner then raises the new alert kind `plan_retired` ("Table plan retired"; fix: "Restart the desk to try the plan again; AI Desk → Tools shows the failed parts"), source = the format. A failed part is a part with status failed (error or time-out), never a missing key or an empty value. `fill_plans()` at the next desk start sets the plan active again, and the alert then counts as fixed (`core/desk_alerts._fixed` reads the plan's status), so it leaves the open alerts.
 
-**10. Settings, employee, paths.** `DeskAiSettings.task_cards_on: bool = False` (.028). `SKILL_PATHS["task_planner"] = "us_swing.desk.planner:TaskPlannerSkill"`. Default file `market/employees/emp-019/employee.md` (.029): name "Planner 1", title "Task planner", level champion, reports_to emp-005, trigger `message`, calls_per_day 1 (it makes no call). `USSwing.spec` gains `us_swing.desk.planner` and `us_swing.market.table_tools`.
+**10. Settings, employee, paths.** `DeskAiSettings.task_cards_on: bool = False` (.028). `SKILL_PATHS["task_planner"] = "us_swing.desk.planner:TaskPlannerSkill"`. Default file `market/employees/emp-019/employee.md` (.029): name "Champion 1" (the generic level name every shipped default must have, SRD-MKT-005.017), title "Task planner", level champion, reports_to emp-005, trigger `message` (an employee file needs at least one trigger; a message event wakes only the addressed employee), calls_per_day 1 (it makes no call). `USSwing.spec` gains `us_swing.desk.planner` and `us_swing.market.table_tools`.
 
 **11. Reads** (.030). `plan_rows(home)`, `card_rows(home, limit=50)` (newest first), `ready_formats(home)` (formats with an active plan) and `failure_rows()`. A missing `desk.db` or table gives an empty list.
 
@@ -1508,3 +1508,13 @@ An empty value that the tool explained (no earnings date) keeps the verdict done
 [Task cards] Ask from Lead 2 refused: no ready plan for scores.v1
 [Task cards] Plan for setup_table.v1 retired after 3 failed cards
 ```
+
+**13. Code review fixes** (2026-11-15).
+
+- An ask whose work raises gets a `failed` reply "the planner hit an error" (logged with its trace); the other asks of the same wake are still answered. A card whose work raised is closed as failed, never left `working`.
+- `close_open_cards(home, now)` runs at each desk start before `fill_plans()`: cards a stopped desk left `working` become failed with "the desk stopped before the card ended".
+- `run_part` copies a tool's reason for a whole key to each of that tool's own columns (`<key>.<col>`), so two tools of one part never overwrite each other's reasons; a tool's reason for one exact cell wins over its reason for the whole key. `_merge` reads only `<key>.<col>` reasons; for a missing key it reads the key tool's `<key>.<key column>` reason.
+- A failed reply with no row carries the first reason, such as "no asked symbol has data: no daily bars"; its text and verdict reason are the same line.
+- After the reply is built, `_record()` keeps the failure rows, counts the card for its plan and raises the retire alert; a problem there is logged and the reply still goes out.
+- Flags with an empty note are left out.
+- Kept as designed: one tool that fails fails its whole part (its other tools' columns are empty with that reason); a timed-out worker thread is left to end by itself; failure rows are kept with no clean-up, for M7 to read.

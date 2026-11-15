@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.20.1: UT-DSK-012.012–.031 M6 cases Pass (72: 66 + 6 added from the code review: 016.M04.T02, 017.M32.T04, 017.M04.T01, 018.M34.T05, 021.M33.T03, 027.M21.T02) (2026-11-15).
 > v0.20.0: UT-DSK-012.012–.031 M6 cases added (66, Not Run) (2026-11-14).
 > v0.19.1: M3 cases Pass (43, 2026-11-13); 013.M27.T02 changed by the code review (bad items dropped, not refused).
 > v0.19.0: M3 memory v2 cases added (43, Not Run) (2026-11-13).
@@ -631,69 +632,75 @@
 
 | ID | Module | Type | Title | Input | Expected | Status |
 |---|---|---|---|---|---|---|
-| UT-DSK-012.012.M28.T01 | MD-DSK-012.001.M28 | Positive | Tool with a time limit (SRD-DSK-012.012) | code tool with secs 20; tool with no secs | round trip equal; secs None by default | Not Run |
-| UT-DSK-012.012.M28.T02 | MD-DSK-012.001.M28 | Negative | Bad time limit (SRD-DSK-012.012) | secs 0 | refused | Not Run |
-| UT-DSK-012.013.M28.T01 | MD-DSK-012.001.M28 | Positive | Tool result shape (SRD-DSK-012.013) | result with rows, missing and flags | dump has isError false; round trip equal | Not Run |
-| UT-DSK-012.013.M28.T02 | MD-DSK-012.001.M28 | Negative | Unknown key in a result (SRD-DSK-012.013) | result with a key `extra` | refused | Not Run |
-| UT-DSK-012.014.M28.T01 | MD-DSK-012.001.M28 | Positive | Made-by column and key (SRD-DSK-012.014) | format whose columns name tools | `by` kept; key is the first column | Not Run |
-| UT-DSK-012.014.M28.T02 | MD-DSK-012.001.M28 | Negative | Bad made-by name (SRD-DSK-012.014) | column with by `Rs Rank` | refused | Not Run |
-| UT-DSK-012.014.M28.T03 | MD-DSK-012.001.M28 | Edge | Old column row (SRD-DSK-012.014) | stored column JSON with no `by` | loads with by None | Not Run |
-| UT-DSK-012.015.M28.T01 | MD-DSK-012.001.M28 | Positive | Table tools and format seeded (SRD-DSK-012.015) | `seed_tools()`, `seed_formats()` | 5 table tools with their secs; `setup_table.v1` with 9 columns, each made by a seeded tool | Not Run |
-| UT-DSK-012.015.M28.T02 | MD-DSK-012.001.M28 | Negative | Bad tool path (SRD-DSK-012.015) | path list with a missing module | seed fails with an error that names the module | Not Run |
-| UT-DSK-012.016.M32.T01 | MD-DSK-012.016.M32 | Positive | Plan of the setup table (SRD-DSK-012.016) | `setup_table.v1` and the seeded tools | wave 1: data part with symbol and close; wave 2: one technical part and one calendar part | Not Run |
-| UT-DSK-012.016.M32.T02 | MD-DSK-012.016.M32 | Negative | No key tool, no plan (SRD-DSK-012.016) | `scores.v1`; a format whose key tool is off | no plan for either | Not Run |
-| UT-DSK-012.016.M32.T03 | MD-DSK-012.016.M32 | Positive | Plans filled (SRD-DSK-012.016) | fill the registry, fill the plans twice | one active row for `setup_table.v1` with 0 fails; no row for `scores.v1` | Not Run |
-| UT-DSK-012.016.M32.T04 | MD-DSK-012.016.M32 | Edge | Fill wakes a retired plan (SRD-DSK-012.016) | retired plan, then fill | active again with 0 fails | Not Run |
-| UT-DSK-012.016.M04.T01 | MD-DSK-001.010.M04 | Positive | Desk start makes the plans (SRD-DSK-012.016) | desk start on a new home | `task_plans` holds the `setup_table.v1` row | Not Run |
-| UT-DSK-012.017.M32.T01 | MD-DSK-012.016.M32 | Positive | Card row (SRD-DSK-012.017) | open a card, then close it as partial with 2 parts | row holds asker, message, format, columns, keys, parts, rows, reason, times and seconds | Not Run |
-| UT-DSK-012.017.M32.T02 | MD-DSK-012.016.M32 | Edge | Card left open (SRD-DSK-012.017) | open a card and do not close it | status working, no end time | Not Run |
-| UT-DSK-012.017.M32.T03 | MD-DSK-012.016.M32 | Negative | Unknown card (SRD-DSK-012.017) | close card 99 that was never opened | returns False; no row made | Not Run |
-| UT-DSK-012.018.M34.T01 | MD-DSK-012.018.M34 | Positive | One reply per ask (SRD-DSK-012.018) | inbox with one table ask | one reply draft with the ask as parent; the model is never asked | Not Run |
-| UT-DSK-012.018.M34.T02 | MD-DSK-012.018.M34 | Negative | Not an ask (SRD-DSK-012.018) | inbox id of a reply row | no draft | Not Run |
-| UT-DSK-012.018.M34.T03 | MD-DSK-012.018.M34 | Edge | Two asks (SRD-DSK-012.018) | inbox with two asks | two replies, one per ask | Not Run |
-| UT-DSK-012.018.M34.T04 | MD-DSK-012.018.M34 | Positive | Ask to reply through the desk (SRD-DSK-012.018) | desk copy, task cards on; a stored ask to `skill:task_planner` for 6 stocks; handle events | reply with 6 rows stored and the asker woken; no activity tokens for the planner | Not Run |
-| UT-DSK-012.019.M34.T01 | MD-DSK-012.018.M34 | Negative | No format named (SRD-DSK-012.019) | ask with no want; ask with a want and no schema | refused; the reason lists the ready formats | Not Run |
-| UT-DSK-012.019.M34.T02 | MD-DSK-012.018.M34 | Negative | No plan (SRD-DSK-012.019) | ask for `scores.v1` | refused "no ready plan for scores.v1" | Not Run |
-| UT-DSK-012.019.M34.T03 | MD-DSK-012.018.M34 | Negative | Unknown column (SRD-DSK-012.019) | cols with `volume` | refused "unknown column volume" | Not Run |
-| UT-DSK-012.019.M34.T04 | MD-DSK-012.018.M34 | Negative | Bad symbols (SRD-DSK-012.019) | no symbols; a text in place of a list; 31 symbols | each refused "give 1 to 30 symbols" | Not Run |
-| UT-DSK-012.019.M34.T05 | MD-DSK-012.018.M34 | Positive | Symbols cleaned (SRD-DSK-012.019) | `["mu", "MU", " avgo "]` | keys MU, AVGO in that order | Not Run |
-| UT-DSK-012.019.M34.T06 | MD-DSK-012.018.M34 | Negative | Refusal makes no card (SRD-DSK-012.019) | a refused ask | `task_cards` stays empty | Not Run |
-| UT-DSK-012.020.M32.T01 | MD-DSK-012.016.M32 | Negative | Unmade column in the plan (SRD-DSK-012.020) | format with a column whose tool is off, and one with no tool | both listed as unmade; no part for them | Not Run |
-| UT-DSK-012.020.M34.T01 | MD-DSK-012.018.M34 | Positive | Unmade column in the reply (SRD-DSK-012.020) | ask for a format with an unmade column | column empty in every row with the reason "not available" | Not Run |
-| UT-DSK-012.021.M32.T01 | MD-DSK-012.016.M32 | Positive | Group of a tool (SRD-DSK-012.021) | `technical.rs_rank`; group `calendar` | group technical; label "Calendar tools" | Not Run |
-| UT-DSK-012.021.M33.T01 | MD-DSK-012.021.M33 | Positive | Part runs only its tools and columns (SRD-DSK-012.021) | part with one tool and one of its two columns | only that tool called; only that column kept | Not Run |
-| UT-DSK-012.021.M33.T02 | MD-DSK-012.021.M33 | Negative | Tool with no code (SRD-DSK-012.021) | part with a tool that has no path | part failed "no code for" the tool | Not Run |
-| UT-DSK-012.022.M33.T01 | MD-DSK-012.021.M33 | Positive | Parts run together (SRD-DSK-012.022) | two parts whose tools each wait for the other to start | both end ok | Not Run |
-| UT-DSK-012.022.M33.T02 | MD-DSK-012.021.M33 | Edge | At most 4 at once (SRD-DSK-012.022) | six slow parts | never more than 4 running together | Not Run |
-| UT-DSK-012.022.M34.T01 | MD-DSK-012.018.M34 | Positive | Wave 2 gets wave 1 keys (SRD-DSK-012.022) | 3 symbols, one unknown to the key tool | wave 2 tools get the 2 known symbols only | Not Run |
-| UT-DSK-012.022.M34.T02 | MD-DSK-012.018.M34 | Negative | No key, no wave 2 (SRD-DSK-012.022) | every symbol unknown | wave 2 tools not called; parts marked skipped | Not Run |
-| UT-DSK-012.023.M33.T01 | MD-DSK-012.021.M33 | Positive | One retry (SRD-DSK-012.023) | tool raises once, then works | part ok; tool called twice | Not Run |
-| UT-DSK-012.023.M33.T02 | MD-DSK-012.021.M33 | Negative | Fails twice (SRD-DSK-012.023) | tool raises twice | part failed with the error text | Not Run |
-| UT-DSK-012.023.M33.T03 | MD-DSK-012.021.M33 | Negative | Time limit (SRD-DSK-012.023) | tool slower than its limit | part failed "took longer than" | Not Run |
-| UT-DSK-012.023.M33.T04 | MD-DSK-012.021.M33 | Negative | Error result (SRD-DSK-012.023) | tool returns isError with a text | part failed with that text; called once | Not Run |
-| UT-DSK-012.024.M34.T01 | MD-DSK-012.018.M34 | Positive | Merge in asked order (SRD-DSK-012.024) | symbols NVDA, AVGO, MU; parts in any order | rows in the asked order with the format's column order | Not Run |
-| UT-DSK-012.024.M34.T02 | MD-DSK-012.018.M34 | Negative | Wrong value (SRD-DSK-012.024) | a text in a number column | value emptied; reason "wrong value from" the tool | Not Run |
-| UT-DSK-012.024.M34.T03 | MD-DSK-012.018.M34 | Negative | Missing key (SRD-DSK-012.024) | one symbol with no wave 1 row | no row for it; its reason is in nulls | Not Run |
-| UT-DSK-012.024.M34.T04 | MD-DSK-012.018.M34 | Edge | Some columns only (SRD-DSK-012.024) | cols rs_rank and earn_days | columns symbol, rs_rank, earn_days; the setup tool is not called | Not Run |
-| UT-DSK-012.025.M34.T01 | MD-DSK-012.018.M34 | Positive | Done reply (SRD-DSK-012.025) | all parts ok, 6 flags from the tools | verdict done; data block valid; 5 flags | Not Run |
-| UT-DSK-012.025.M34.T02 | MD-DSK-012.018.M34 | Negative | Partial reply (SRD-DSK-012.025) | the calendar tool raises twice | verdict partial; other columns filled; earn_days empty with the reason | Not Run |
-| UT-DSK-012.025.M34.T03 | MD-DSK-012.018.M34 | Negative | Failed reply (SRD-DSK-012.025) | the key tool raises twice | verdict failed with a text and no data | Not Run |
-| UT-DSK-012.025.M34.T04 | MD-DSK-012.018.M34 | Edge | Explained empty value (SRD-DSK-012.025) | one symbol with no earnings date and a reason | verdict done; the reason is in nulls | Not Run |
-| UT-DSK-012.026.M30.T01 | MD-DSK-009.010.M30 | Positive | Failure row (SRD-DSK-012.026) | log two failures | two rows of kind failure, newest first | Not Run |
-| UT-DSK-012.026.M30.T02 | MD-DSK-009.010.M30 | Negative | Failure rows stay out of prompts (SRD-DSK-012.026) | owner with a failure row | core block and note rows do not hold it | Not Run |
-| UT-DSK-012.026.M34.T01 | MD-DSK-012.018.M34 | Positive | Refusal and failed part logged (SRD-DSK-012.026) | one refused ask; one card with a failed part | one failure row each, in the planner's name | Not Run |
-| UT-DSK-012.026.M34.T02 | MD-DSK-012.018.M34 | Negative | Off logs nothing (SRD-DSK-012.026) | task cards off, one ask | no failure row | Not Run |
-| UT-DSK-012.027.M32.T01 | MD-DSK-012.016.M32 | Positive | Retire at 3 (SRD-DSK-012.027) | three results with a failed part | third call returns True; plan retired with the reason | Not Run |
-| UT-DSK-012.027.M32.T02 | MD-DSK-012.016.M32 | Negative | Clean card resets (SRD-DSK-012.027) | two failed, one clean, one failed | plan active with 1 fail | Not Run |
-| UT-DSK-012.027.M34.T01 | MD-DSK-012.018.M34 | Positive | Alert and refusal after retire (SRD-DSK-012.027) | three cards with a failed part, then one more ask | one `plan_retired` alert; the fourth ask is refused "retired" | Not Run |
-| UT-DSK-012.027.M34.T02 | MD-DSK-012.018.M34 | Edge | Missing key is no failure (SRD-DSK-012.027) | three cards that each miss one symbol | plan stays active with 0 fails | Not Run |
-| UT-DSK-012.027.M21.T01 | MD-DSK-007.001.M21 | Positive | Alert kind (SRD-DSK-012.027) | raise `plan_retired` | title "Table plan retired" and its fix text | Not Run |
-| UT-DSK-012.028.M13.T01 | MD-DSK-004.005.M13 | Positive | Setting (SRD-DSK-012.028) | no file; file with `task_cards_on` true | false by default; true when saved | Not Run |
-| UT-DSK-012.028.M34.T01 | MD-DSK-012.018.M34 | Negative | Off refuses (SRD-DSK-012.028) | task cards off, a good ask | refused "task cards are off"; no card | Not Run |
-| UT-DSK-012.029.M07.T01 | MD-DSK-001.021.M07 | Positive | Default planner employee (SRD-DSK-012.029) | emp-019 file; `SKILL_PATHS`; `TOOL_PATHS` | champion level, skill task_planner, trigger message; the skill and tool paths load | Not Run |
-| UT-DSK-012.029.M07.T02 | MD-DSK-001.021.M07 | Negative | User copy kept (SRD-DSK-012.029) | emp-019 already in the desk folder with a changed name | the default copy does not overwrite it | Not Run |
-| UT-DSK-012.029.M07.T03 | MD-DSK-001.021.M07 | Positive | App build holds the modules (SRD-DSK-012.029) | `USSwing.spec` | it names the planner and the table tools modules | Not Run |
-| UT-DSK-012.030.M32.T01 | MD-DSK-012.016.M32 | Positive | Reads (SRD-DSK-012.030) | 2 plans, 3 cards | both plan rows; cards newest first | Not Run |
-| UT-DSK-012.030.M32.T02 | MD-DSK-012.016.M32 | Negative | Retired plan is not ready (SRD-DSK-012.030) | one active and one retired plan | ready formats holds only the active one | Not Run |
-| UT-DSK-012.030.M32.T03 | MD-DSK-012.016.M32 | Edge | No data (SRD-DSK-012.030) | home with no `desk.db` | every read gives an empty list | Not Run |
-| UT-DSK-012.031.M34.T01 | MD-DSK-012.018.M34 | Positive | Log lines (SRD-DSK-012.031) | a done card, a partial card, a refused ask, a retired plan | each logged with [Task cards] and the asker's name | Not Run |
+| UT-DSK-012.012.M28.T01 | MD-DSK-012.001.M28 | Positive | Tool with a time limit (SRD-DSK-012.012) | code tool with secs 20; tool with no secs | round trip equal; secs None by default | Pass |
+| UT-DSK-012.012.M28.T02 | MD-DSK-012.001.M28 | Negative | Bad time limit (SRD-DSK-012.012) | secs 0 | refused | Pass |
+| UT-DSK-012.013.M28.T01 | MD-DSK-012.001.M28 | Positive | Tool result shape (SRD-DSK-012.013) | result with rows, missing and flags | dump has isError false; round trip equal | Pass |
+| UT-DSK-012.013.M28.T02 | MD-DSK-012.001.M28 | Negative | Unknown key in a result (SRD-DSK-012.013) | result with a key `extra` | refused | Pass |
+| UT-DSK-012.014.M28.T01 | MD-DSK-012.001.M28 | Positive | Made-by column and key (SRD-DSK-012.014) | format whose columns name tools | `by` kept; key is the first column | Pass |
+| UT-DSK-012.014.M28.T02 | MD-DSK-012.001.M28 | Negative | Bad made-by name (SRD-DSK-012.014) | column with by `Rs Rank` | refused | Pass |
+| UT-DSK-012.014.M28.T03 | MD-DSK-012.001.M28 | Edge | Old column row (SRD-DSK-012.014) | stored column JSON with no `by` | loads with by None | Pass |
+| UT-DSK-012.015.M28.T01 | MD-DSK-012.001.M28 | Positive | Table tools and format seeded (SRD-DSK-012.015) | `seed_tools()`, `seed_formats()` | 5 table tools with their secs; `setup_table.v1` with 9 columns, each made by a seeded tool | Pass |
+| UT-DSK-012.015.M28.T02 | MD-DSK-012.001.M28 | Negative | Bad tool path (SRD-DSK-012.015) | path list with a missing module | seed fails with an error that names the module | Pass |
+| UT-DSK-012.016.M32.T01 | MD-DSK-012.016.M32 | Positive | Plan of the setup table (SRD-DSK-012.016) | `setup_table.v1` and the seeded tools | wave 1: data part with symbol and close; wave 2: one technical part and one calendar part | Pass |
+| UT-DSK-012.016.M32.T02 | MD-DSK-012.016.M32 | Negative | No key tool, no plan (SRD-DSK-012.016) | `scores.v1`; a format whose key tool is off | no plan for either | Pass |
+| UT-DSK-012.016.M32.T03 | MD-DSK-012.016.M32 | Positive | Plans filled (SRD-DSK-012.016) | fill the registry, fill the plans twice | one active row for `setup_table.v1` with 0 fails; no row for `scores.v1` | Pass |
+| UT-DSK-012.016.M32.T04 | MD-DSK-012.016.M32 | Edge | Fill wakes a retired plan (SRD-DSK-012.016) | retired plan, then fill | active again with 0 fails | Pass |
+| UT-DSK-012.016.M04.T01 | MD-DSK-001.010.M04 | Positive | Desk start makes the plans (SRD-DSK-012.016) | desk start on a new home | `task_plans` holds the `setup_table.v1` row | Pass |
+| UT-DSK-012.016.M04.T02 | MD-DSK-001.010.M04 | Negative | Plan error does not stop the desk (SRD-DSK-012.016) | making the plans raises at desk start | the desk starts; one `[Task cards]` error line | Pass |
+| UT-DSK-012.017.M32.T01 | MD-DSK-012.016.M32 | Positive | Card row (SRD-DSK-012.017) | open a card, then close it as partial with 2 parts | row holds asker, message, format, columns, keys, parts, rows, reason, times and seconds | Pass |
+| UT-DSK-012.017.M32.T02 | MD-DSK-012.016.M32 | Edge | Card left open (SRD-DSK-012.017) | open a card and do not close it | status working, no end time | Pass |
+| UT-DSK-012.017.M32.T03 | MD-DSK-012.016.M32 | Negative | Unknown card (SRD-DSK-012.017) | close card 99 that was never opened | returns False; no row made | Pass |
+| UT-DSK-012.017.M32.T04 | MD-DSK-012.016.M32 | Edge | Cards left working (SRD-DSK-012.017) | one working and one done card; close the open cards twice | the working card is failed with "the desk stopped before the card ended"; the done card is unchanged; the second call changes nothing | Pass |
+| UT-DSK-012.017.M04.T01 | MD-DSK-001.010.M04 | Positive | Desk start closes cards left working (SRD-DSK-012.017) | a working card, then a desk start | the card is failed | Pass |
+| UT-DSK-012.018.M34.T01 | MD-DSK-012.018.M34 | Positive | One reply per ask (SRD-DSK-012.018) | inbox with one table ask | one reply draft with the ask as parent; the model is never asked | Pass |
+| UT-DSK-012.018.M34.T02 | MD-DSK-012.018.M34 | Negative | Not an ask (SRD-DSK-012.018) | inbox id of a reply row | no draft | Pass |
+| UT-DSK-012.018.M34.T03 | MD-DSK-012.018.M34 | Edge | Two asks (SRD-DSK-012.018) | inbox with two asks | two replies, one per ask | Pass |
+| UT-DSK-012.018.M34.T04 | MD-DSK-012.018.M34 | Positive | Ask to reply through the desk (SRD-DSK-012.018) | desk copy, task cards on; a stored ask to `skill:task_planner` for 6 stocks; handle events | reply with 6 rows stored and the asker woken; no activity tokens for the planner | Pass |
+| UT-DSK-012.018.M34.T05 | MD-DSK-012.018.M34 | Negative | Work error (SRD-DSK-012.018) | two asks; the merge raises on the first | first reply failed "the planner hit an error" and its card failed; the second ask answered done; both replies stored | Pass |
+| UT-DSK-012.019.M34.T01 | MD-DSK-012.018.M34 | Negative | No format named (SRD-DSK-012.019) | ask with no want; ask with a want and no schema | refused; the reason lists the ready formats | Pass |
+| UT-DSK-012.019.M34.T02 | MD-DSK-012.018.M34 | Negative | No plan (SRD-DSK-012.019) | ask for `scores.v1` | refused "no ready plan for scores.v1" | Pass |
+| UT-DSK-012.019.M34.T03 | MD-DSK-012.018.M34 | Negative | Unknown column (SRD-DSK-012.019) | cols with `volume` | refused "unknown column volume" | Pass |
+| UT-DSK-012.019.M34.T04 | MD-DSK-012.018.M34 | Negative | Bad symbols (SRD-DSK-012.019) | no symbols; a text in place of a list; 31 symbols | each refused "give 1 to 30 symbols" | Pass |
+| UT-DSK-012.019.M34.T05 | MD-DSK-012.018.M34 | Positive | Symbols cleaned (SRD-DSK-012.019) | `["mu", "MU", " avgo "]` | keys MU, AVGO in that order | Pass |
+| UT-DSK-012.019.M34.T06 | MD-DSK-012.018.M34 | Negative | Refusal makes no card (SRD-DSK-012.019) | a refused ask | `task_cards` stays empty | Pass |
+| UT-DSK-012.020.M32.T01 | MD-DSK-012.016.M32 | Negative | Unmade column in the plan (SRD-DSK-012.020) | format with a column whose tool is off, and one with no tool | both listed as unmade; no part for them | Pass |
+| UT-DSK-012.020.M34.T01 | MD-DSK-012.018.M34 | Positive | Unmade column in the reply (SRD-DSK-012.020) | ask for a format with an unmade column | column empty in every row with the reason "not available" | Pass |
+| UT-DSK-012.021.M32.T01 | MD-DSK-012.016.M32 | Positive | Group of a tool (SRD-DSK-012.021) | `technical.rs_rank`; group `calendar` | group technical; label "Calendar tools" | Pass |
+| UT-DSK-012.021.M33.T01 | MD-DSK-012.021.M33 | Positive | Part runs only its tools and columns (SRD-DSK-012.021) | part with one tool and one of its two columns | only that tool called; only that column kept | Pass |
+| UT-DSK-012.021.M33.T02 | MD-DSK-012.021.M33 | Negative | Tool with no code (SRD-DSK-012.021) | part with a tool that has no path | part failed "no code for" the tool | Pass |
+| UT-DSK-012.021.M33.T03 | MD-DSK-012.021.M33 | Positive | Each tool keeps its reasons (SRD-DSK-012.021) | a part with two tools that both miss the same keys; one exact-cell reason | each column has its own tool's reason; the exact-cell reason wins | Pass |
+| UT-DSK-012.022.M33.T01 | MD-DSK-012.021.M33 | Positive | Parts run together (SRD-DSK-012.022) | two parts whose tools each wait for the other to start | both end ok | Pass |
+| UT-DSK-012.022.M33.T02 | MD-DSK-012.021.M33 | Edge | At most 4 at once (SRD-DSK-012.022) | six slow parts | never more than 4 running together | Pass |
+| UT-DSK-012.022.M34.T01 | MD-DSK-012.018.M34 | Positive | Wave 2 gets wave 1 keys (SRD-DSK-012.022) | 3 symbols, one unknown to the key tool | wave 2 tools get the 2 known symbols only | Pass |
+| UT-DSK-012.022.M34.T02 | MD-DSK-012.018.M34 | Negative | No key, no wave 2 (SRD-DSK-012.022) | every symbol unknown | wave 2 tools not called; parts marked skipped; failed reply "no asked symbol has data: no daily bars" | Pass |
+| UT-DSK-012.023.M33.T01 | MD-DSK-012.021.M33 | Positive | One retry (SRD-DSK-012.023) | tool raises once, then works | part ok; tool called twice | Pass |
+| UT-DSK-012.023.M33.T02 | MD-DSK-012.021.M33 | Negative | Fails twice (SRD-DSK-012.023) | tool raises twice | part failed with the error text | Pass |
+| UT-DSK-012.023.M33.T03 | MD-DSK-012.021.M33 | Negative | Time limit (SRD-DSK-012.023) | tool slower than its limit | part failed "took longer than" | Pass |
+| UT-DSK-012.023.M33.T04 | MD-DSK-012.021.M33 | Negative | Error result (SRD-DSK-012.023) | tool returns isError with a text | part failed with that text; called once | Pass |
+| UT-DSK-012.024.M34.T01 | MD-DSK-012.018.M34 | Positive | Merge in asked order (SRD-DSK-012.024) | symbols NVDA, AVGO, MU; parts in any order | rows in the asked order with the format's column order | Pass |
+| UT-DSK-012.024.M34.T02 | MD-DSK-012.018.M34 | Negative | Wrong value (SRD-DSK-012.024) | a text in a number column | value emptied; reason "wrong value from" the tool | Pass |
+| UT-DSK-012.024.M34.T03 | MD-DSK-012.018.M34 | Negative | Missing key (SRD-DSK-012.024) | one symbol with no wave 1 row | no row for it; its reason is in nulls | Pass |
+| UT-DSK-012.024.M34.T04 | MD-DSK-012.018.M34 | Edge | Some columns only (SRD-DSK-012.024) | cols rs_rank and earn_days | columns symbol, rs_rank, earn_days; the setup tool is not called | Pass |
+| UT-DSK-012.025.M34.T01 | MD-DSK-012.018.M34 | Positive | Done reply (SRD-DSK-012.025) | all parts ok, 6 flags from the tools | verdict done; data block valid; 5 flags | Pass |
+| UT-DSK-012.025.M34.T02 | MD-DSK-012.018.M34 | Negative | Partial reply (SRD-DSK-012.025) | the calendar tool raises twice | verdict partial; other columns filled; earn_days empty with the reason | Pass |
+| UT-DSK-012.025.M34.T03 | MD-DSK-012.018.M34 | Negative | Failed reply (SRD-DSK-012.025) | the key tool raises twice | verdict failed with a text and no data | Pass |
+| UT-DSK-012.025.M34.T04 | MD-DSK-012.018.M34 | Edge | Explained empty value (SRD-DSK-012.025) | one symbol with no earnings date and a reason | verdict done; the reason is in nulls | Pass |
+| UT-DSK-012.026.M30.T01 | MD-DSK-009.010.M30 | Positive | Failure row (SRD-DSK-012.026) | log two failures | two rows of kind failure, newest first | Pass |
+| UT-DSK-012.026.M30.T02 | MD-DSK-009.010.M30 | Negative | Failure rows stay out of prompts (SRD-DSK-012.026) | owner with a failure row | core block and note rows do not hold it | Pass |
+| UT-DSK-012.026.M34.T01 | MD-DSK-012.018.M34 | Positive | Refusal and failed part logged (SRD-DSK-012.026) | one refused ask; one card with a failed part | one failure row each, in the planner's name | Pass |
+| UT-DSK-012.026.M34.T02 | MD-DSK-012.018.M34 | Negative | Off logs nothing (SRD-DSK-012.026) | task cards off, one ask | no failure row | Pass |
+| UT-DSK-012.027.M32.T01 | MD-DSK-012.016.M32 | Positive | Retire at 3 (SRD-DSK-012.027) | three results with a failed part | third call returns True; plan retired with the reason | Pass |
+| UT-DSK-012.027.M32.T02 | MD-DSK-012.016.M32 | Negative | Clean card resets (SRD-DSK-012.027) | two failed, one clean, one failed | plan active with 1 fail | Pass |
+| UT-DSK-012.027.M34.T01 | MD-DSK-012.018.M34 | Positive | Alert and refusal after retire (SRD-DSK-012.027) | three cards with a failed part, then one more ask | one `plan_retired` alert; the fourth ask is refused "retired" | Pass |
+| UT-DSK-012.027.M34.T02 | MD-DSK-012.018.M34 | Edge | Missing key is no failure (SRD-DSK-012.027) | three cards that each miss one symbol | plan stays active with 0 fails | Pass |
+| UT-DSK-012.027.M21.T01 | MD-DSK-007.001.M21 | Positive | Alert kind (SRD-DSK-012.027) | raise `plan_retired` | title "Table plan retired" and its fix text | Pass |
+| UT-DSK-012.027.M21.T02 | MD-DSK-007.001.M21 | Positive | Alert closes when the plan is active again (SRD-DSK-012.027) | retired plan with its alert; plans made again | the alert is no longer open | Pass |
+| UT-DSK-012.028.M13.T01 | MD-DSK-004.005.M13 | Positive | Setting (SRD-DSK-012.028) | no file; file with `task_cards_on` true | false by default; true when saved | Pass |
+| UT-DSK-012.028.M34.T01 | MD-DSK-012.018.M34 | Negative | Off refuses (SRD-DSK-012.028) | task cards off, a good ask | refused "task cards are off"; no card | Pass |
+| UT-DSK-012.029.M07.T01 | MD-DSK-001.021.M07 | Positive | Default planner employee (SRD-DSK-012.029) | emp-019 file; `SKILL_PATHS`; `TOOL_PATHS` | champion level, skill task_planner, trigger message; the skill and tool paths load | Pass |
+| UT-DSK-012.029.M07.T02 | MD-DSK-001.021.M07 | Negative | User copy kept (SRD-DSK-012.029) | emp-019 already in the desk folder with a changed name | the default copy does not overwrite it | Pass |
+| UT-DSK-012.029.M07.T03 | MD-DSK-001.021.M07 | Positive | App build holds the modules (SRD-DSK-012.029) | `USSwing.spec` | it names the planner and the table tools modules | Pass |
+| UT-DSK-012.030.M32.T01 | MD-DSK-012.016.M32 | Positive | Reads (SRD-DSK-012.030) | 2 plans, 3 cards | both plan rows; cards newest first | Pass |
+| UT-DSK-012.030.M32.T02 | MD-DSK-012.016.M32 | Negative | Retired plan is not ready (SRD-DSK-012.030) | one active and one retired plan | ready formats holds only the active one | Pass |
+| UT-DSK-012.030.M32.T03 | MD-DSK-012.016.M32 | Edge | No data (SRD-DSK-012.030) | home with no `desk.db` | every read gives an empty list | Pass |
+| UT-DSK-012.031.M34.T01 | MD-DSK-012.018.M34 | Positive | Log lines (SRD-DSK-012.031) | a done card, a partial card, a refused ask, a retired plan | each logged with [Task cards] and the asker's name | Pass |

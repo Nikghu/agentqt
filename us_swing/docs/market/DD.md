@@ -1757,11 +1757,13 @@ The latest data day is `MAX(date)` of `stock_rs` in `desk.db`, read-only. Daily 
 
 `calendar.earnings` adds the flag "earnings in <n> trading day(s)" when `earn_days` is 5 or less. With no `stock_rs` row at all the data day is today in New York. An empty symbol list gives an empty result. No tool writes to `desk.db`, `candles.db` or a file (.006).
 
+Code review fixes (2026-11-15): a missing candle file raises `FileNotFoundError("the candle database was not found")`, so the reply shows a plain reason, not a file path; a `stock_score` row with no score counts as the lowest score, so it never wins and never fails the tool.
+
 ## DD-MKT-010.020.D01 — Table Asks in the Lead Chat (AI Desk v3 M6)
 
 **Traces:** SRD-MKT-010.020–.021. Builds on DD-MKT-010.009.D01 (one team ask and its update).
 
-**Hint** (`market/lead_chat.py`, .020). `_answer()` already adds `ASK_HINT` when sessions and agent messages are on. With `task_cards_on` and at least one ready format (`core.desk_tasks.ready_formats(home)`), it also adds:
+**Hint** (`market/lead_chat.py`, .020). `_answer()` already adds `ASK_HINT` when sessions and agent messages are on. With `task_cards_on`, an active employee that holds the `task_planner` skill (`core.desk_research.holder`) and at least one ready format (`core.desk_tasks.ready_formats(home)`), `table_hint(home)` also adds:
 
 ```
 For a table of facts about named stocks, send that ask to "skill:task_planner" with
@@ -1780,7 +1782,9 @@ Ready formats:
 "Partial: <reason>"                     first line, only for a partial verdict
 header   the columns joined by " | "    (data.cols, or the format's columns)
 rows     one line each, cells joined by " | "; an empty value shows "-"
-"Missing: <key or column>: <reason>"    one line per nulls entry, at most 10, then "... and <n> more"
+"Missing (<reason>): <where>, <where>"  one line per reason (entries with the same reason share a
+                                        line; "<key>.<col>" is shown as "<key> <col>"), at most 10
+                                        lines, then "... and <n> more"
 "Note: <about>: <note>"                 one line per flag
 ```
 

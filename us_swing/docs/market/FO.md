@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.25.1: FO-MKT-021 and the FO-MKT-010 table ask bullets approved by user 2026-11-14; Implemented 2026-11-15.
 > v0.25.0: AI Desk v3 M6 (user, 2026-11-14): FO-MKT-021 Table tools added as Draft; FO-MKT-010 gains the table ask bullets as Draft.
 > v0.24.1: FO-MKT-020 approved by user 2026-11-13.
 > v0.24.0: AI Desk v3 M5 (user, 2026-11-13): FO-MKT-020 Company day added as Draft — stand-up, huddle, day call and its check, day-end handover and feedback.
@@ -303,7 +304,7 @@ The system shall let the Master user ask the lead questions in AI Desk and get a
 - The system shall keep the summary and the Master's stated preferences as notes in the lead's memory while Memory v2 is on (AI Desk v3 M4).
 - The system shall let the lead send one question to an expert per Master question and post the reply as an update; the chat still never trades (AI Desk v3 M4).
 
-**Table asks (AI Desk v3 M6, user 2026-11-14):** with Task cards on, the lead's one ask may go to the planner for a table in a ready format (FO-DSK-012 M6). The table comes back as the update, written by code. Status of these two bullets: Draft.
+**Table asks (AI Desk v3 M6, user 2026-11-14):** with Task cards on, the lead's one ask may go to the planner for a table in a ready format (FO-DSK-012 M6). The table comes back as the update, written by code. Status of these two bullets: Implemented (approved by user 2026-11-14).
 
 - The system shall tell the lead which table formats are ready and how to ask the planner for one (AI Desk v3 M6).
 - The system shall post a table reply as the update with no AI call (AI Desk v3 M6).
@@ -554,7 +555,7 @@ The system shall give the desk a daily rhythm: a stand-up before the plan, a sho
 
 ## FO-MKT-021: Table Tools
 
-**Status:** Draft
+**Status:** Implemented (approved by user 2026-11-14; RN-DSK-0.19.0-20261115)
 **Priority:** Must
 **Phase:** AI Desk v3 M6
 **Depends on:** FO-DSK-012 (tool registry and task cards), FO-MKT-001 (daily bars), FO-MKT-002 (stock RS), FO-MKT-003 (scores, setups, earnings dates)
