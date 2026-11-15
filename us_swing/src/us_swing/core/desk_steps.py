@@ -17,6 +17,7 @@ the tools (such as ``market``) that provide the steps.
 Also: MD-MKT-020.023.M09 — ``day_end`` skill and the decision check step (SRD-MKT-020.023)
 Also: SRD-DSK-012.015, .029 — table tool paths with their time limits; ``task_planner`` skill path
 Also: SRD-DSK-006.025 — ``hire_review`` skill path (the desk secretary)
+Also: SRD-DSK-013.022 — ``tool_builder`` skill path and the read functions path of built tools
 """
 from __future__ import annotations
 
@@ -65,7 +66,10 @@ SKILL_PATHS: dict[str, str] = {
     "day_end": "us_swing.market.day_end:DayEndSkill",  # SRD-MKT-020.023
     "task_planner": "us_swing.desk.planner:TaskPlannerSkill",  # SRD-DSK-012.029
     "hire_review": "us_swing.desk.secretary:HireReviewSkill",  # SRD-DSK-006.025
+    "tool_builder": "us_swing.desk.tool_builder:ToolBuilderSkill",  # SRD-DSK-013.022
 }
+# The read functions a built tool may call inside its sandbox (SRD-DSK-013.011).
+TOOL_READS_PATH = "us_swing.market.tool_reads:reads"
 # Table tools by registry name: import path and time limit in seconds (SRD-DSK-012.015).
 TOOL_PATHS: dict[str, tuple[str, int]] = {
     "data.daily_close": ("us_swing.market.table_tools:daily_close", 20),

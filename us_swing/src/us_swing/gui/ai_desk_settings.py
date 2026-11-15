@@ -12,6 +12,7 @@ OpenRouter key (kept in the OS keychain, never shown).
 Also: SRD-GUI-034.077 — Company day switch (AI Desk v3 M5)
 Also: SRD-GUI-034.080 — Task cards switch (AI Desk v3 M6)
 Also: SRD-GUI-034.084 — Hire proposals switch (AI Desk v3 M7a)
+Also: SRD-GUI-034.085 — Tool builder switch (AI Desk v3 M7b)
 """
 from __future__ import annotations
 
@@ -115,6 +116,10 @@ class DeskAiSettingsForm(QWidget):
         self.hire_proposals_on.setEnabled(self.messages_on.isChecked())
         # agent messages box → toggled → Hire proposals box → setEnabled
         self.messages_on.toggled.connect(self.hire_proposals_on.setEnabled)
+        self.tool_builder_on = QCheckBox("Tool builder: small tools you ask for")
+        self.tool_builder_on.setToolTip("The desk builds small read-only tools you ask for; "
+                                        "you review and switch on each one")
+        self.tool_builder_on.setChecked(self._settings.tool_builder_on)
         self.caps = {level: self._line(str(self._settings.cap(level)))
                      for level in ("expert", "champion", "junior")}
         grid = QGridLayout()
@@ -130,7 +135,8 @@ class DeskAiSettingsForm(QWidget):
         grid.addWidget(self._card("message-square", "Agent messages", (
             ("", self.messages_on), ("", self.escalation_on), ("", self.memory_v2_on),
             ("", self.sessions_on), ("", self.company_day_on),
-            ("", self.task_cards_on), ("", self.hire_proposals_on))), 1, 1)
+            ("", self.task_cards_on), ("", self.hire_proposals_on),
+            ("", self.tool_builder_on))), 1, 1)
         outer.addLayout(grid)
         row = QHBoxLayout()
         self.save_btn = primary(QPushButton("Save"))
@@ -181,7 +187,8 @@ class DeskAiSettingsForm(QWidget):
                 sessions_on=self.sessions_on.isChecked(),
                 company_day_on=self.company_day_on.isChecked(),
                 task_cards_on=self.task_cards_on.isChecked(),
-                hire_proposals_on=self.hire_proposals_on.isChecked())
+                hire_proposals_on=self.hire_proposals_on.isChecked(),
+                tool_builder_on=self.tool_builder_on.isChecked())
             if not math.isfinite(budget):
                 raise ValueError("budget")
         except ValueError:

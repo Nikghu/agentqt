@@ -6,6 +6,8 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.26.2: The FO-MKT-021 M7b block and the FO-MKT-010 tool request bullet Implemented 2026-11-16.
+> v0.26.1: The FO-MKT-021 M7b block and the FO-MKT-010 tool request bullet approved by user 2026-11-15.
 > v0.26.0: AI Desk v3 M7b (user, 2026-11-15): FO-MKT-021 gains the read functions for built tools and FO-MKT-010 the tool request bullet, as Draft.
 > v0.25.1: FO-MKT-021 and the FO-MKT-010 table ask bullets approved by user 2026-11-14; Implemented 2026-11-15.
 > v0.25.0: AI Desk v3 M6 (user, 2026-11-14): FO-MKT-021 Table tools added as Draft; FO-MKT-010 gains the table ask bullets as Draft.
@@ -310,7 +312,7 @@ The system shall let the Master user ask the lead questions in AI Desk and get a
 - The system shall tell the lead which table formats are ready and how to ask the planner for one (AI Desk v3 M6).
 - The system shall post a table reply as the update with no AI call (AI Desk v3 M6).
 
-**Tool requests (AI Desk v3 M7b, user 2026-11-15):** with the tool builder on, the lead's one ask may go to the tool builder when the Master asks for a new tool (FO-DSK-013). The builder's reply comes back as the update. Status of this bullet: Draft.
+**Tool requests (AI Desk v3 M7b, user 2026-11-15):** with the tool builder on, the lead's one ask may go to the tool builder when the Master asks for a new tool (FO-DSK-013). The builder's reply comes back as the update. Status of this bullet: Implemented (approved by user 2026-11-15; RN-DSK-0.21.0-20261116).
 
 - The system shall tell the lead how to pass the Master's request for a new tool to the tool builder (AI Desk v3 M7b).
 
@@ -584,7 +586,7 @@ The system shall give the desk small read-only tools that each fill some columns
 
 ### M7b — Read Functions for Built Tools
 
-**Status:** Draft
+**Status:** Implemented (approved by user 2026-11-15; RN-DSK-0.21.0-20261116)
 **Source: User 2026-11-15 (AI Desk v3 M7b): a built tool's code may call the desk's read-only functions (FO-DSK-013).**
 
 - The system shall give a built tool the daily bars of a stock from Backtest Data, oldest first, for up to 1300 days.

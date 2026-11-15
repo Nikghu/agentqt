@@ -7,6 +7,7 @@
 **Last Updated:** 2026-10-16
 **Project:** US Swing Trading System
 
+> v1.42.1: UT-GUI-041.006–.010 and UT-GUI-034.085 Pass (13) (2026-11-16).
 > v1.42.0: UT-GUI-041.006–.010 and UT-GUI-034.085 added (13, Not Run) (AI Desk v3 M7b, 2026-11-15).
 > v1.41.1: UT-GUI-034.081–.084 Pass (10: 8 + 2 added from the GUI review: 082.M31.T03, 083.M21.T03) (2026-11-15).
 > v1.41.0: UT-GUI-034.081–.084 added (8, Not Run) (AI Desk v3 M7a, 2026-11-15).
@@ -1424,16 +1425,16 @@ Test files:
 
 | ID | Module | Type | Title | Input | Expected | Status |
 |---|---|---|---|---|---|---|
-| UT-GUI-041.006.M01.T01 | MD-GUI-041.001.M01 | Positive | Request a tool (SRD-GUI-041.006) | tool builder on; type a request, click Request | one request row; the box clears; the note names the request number | Not Run |
-| UT-GUI-041.006.M01.T02 | MD-GUI-041.001.M01 | Negative | Off or empty (SRD-GUI-041.006) | tool builder off; on with an empty box | off: the button disabled with the note; empty: the reason in the note; no row | Not Run |
-| UT-GUI-041.007.M01.T01 | MD-GUI-041.001.M01 | Positive | Requests list (SRD-GUI-041.007) | a Master request and a chat request | newest first; From "You" and the asker's name; state and reason | Not Run |
-| UT-GUI-041.008.M01.T01 | MD-GUI-041.001.M01 | Positive | Built tools list (SRD-GUI-041.008) | a review version and a failed one | 2 rows, newest first, with version, state and "5 of 5" or fewer | Not Run |
-| UT-GUI-041.008.M01.T02 | MD-GUI-041.001.M01 | Edge | No built tools (SRD-GUI-041.008) | none | the empty note | Not Run |
-| UT-GUI-041.008.M01.T03 | MD-GUI-041.001.M01 | Negative | Read error (SRD-GUI-041.008) | the desk database cannot be read | the note "Could not read the tools; try again in a moment"; no error rises | Not Run |
-| UT-GUI-041.009.M01.T01 | MD-GUI-041.001.M01 | Positive | Review detail (SRD-GUI-041.009) | choose a review version | request, about, columns, 5 check lines and sample rows; the code box holds the file text and is read-only | Not Run |
-| UT-GUI-041.009.M01.T02 | MD-GUI-041.001.M01 | Negative | Missing or changed file (SRD-GUI-041.009) | the file deleted; the file edited | "The code file is missing."; the changed line | Not Run |
-| UT-GUI-041.010.M01.T01 | MD-GUI-041.001.M01 | Positive | Enable and Disable (SRD-GUI-041.010) | click Enable on a review version, then Disable | enabled, with its format Active in Table formats; then disabled, with the format gone; the version stays chosen | Not Run |
-| UT-GUI-041.010.M01.T02 | MD-GUI-041.001.M01 | Negative | Buttons follow the state (SRD-GUI-041.010) | a failed version; a review version whose file changed after the view was built | Enable off for the failed one; the refusal reason in the note for the other | Not Run |
-| UT-GUI-034.085.M15.T01 | MD-GUI-034.016.M15 | Positive | Tool builder switch (SRD-GUI-034.085) | tick Tool builder, save | tool_builder_on true in the settings file; off by default | Not Run |
-| UT-GUI-034.085.M15.T02 | MD-GUI-034.016.M15 | Edge | Not tied to Agent messages (SRD-GUI-034.085) | Agent messages unticked | the Tool builder box is enabled | Not Run |
-| UT-GUI-034.085.M15.T03 | MD-GUI-034.016.M15 | Negative | Old settings file (SRD-GUI-034.085) | a settings file with no tool_builder_on | loads as off; the box is unticked; saving keeps it false | Not Run |
+| UT-GUI-041.006.M01.T01 | MD-GUI-041.001.M01 | Positive | Request a tool (SRD-GUI-041.006) | tool builder on; type a request, click Request | one request row; the box clears; the note names the request number | Pass |
+| UT-GUI-041.006.M01.T02 | MD-GUI-041.001.M01 | Negative | Off or empty (SRD-GUI-041.006) | tool builder off; on with an empty box | off: the button disabled with the note; empty: the reason in the note; no row | Pass |
+| UT-GUI-041.007.M01.T01 | MD-GUI-041.001.M01 | Positive | Requests list (SRD-GUI-041.007) | a Master request and a chat request | newest first; From "You" and the asker's name; state and reason | Pass |
+| UT-GUI-041.008.M01.T01 | MD-GUI-041.001.M01 | Positive | Built tools list (SRD-GUI-041.008) | a review version and a failed one | 2 rows, newest first, with version, state and "5 of 5" or fewer | Pass |
+| UT-GUI-041.008.M01.T02 | MD-GUI-041.001.M01 | Edge | No built tools (SRD-GUI-041.008) | none | the empty note | Pass |
+| UT-GUI-041.008.M01.T03 | MD-GUI-041.001.M01 | Negative | Read error (SRD-GUI-041.008) | the desk database cannot be read | the note "Could not read the tools; try again in a moment"; no error rises | Pass |
+| UT-GUI-041.009.M01.T01 | MD-GUI-041.001.M01 | Positive | Review detail (SRD-GUI-041.009) | choose a review version | request, about, columns, 5 check lines and sample rows; the code box holds the file text and is read-only | Pass |
+| UT-GUI-041.009.M01.T02 | MD-GUI-041.001.M01 | Negative | Missing or changed file (SRD-GUI-041.009) | the file deleted; the file edited | "The code file is missing."; the changed line | Pass |
+| UT-GUI-041.010.M01.T01 | MD-GUI-041.001.M01 | Positive | Enable and Disable (SRD-GUI-041.010) | click Enable on a review version, then Disable | enabled, with its format Active in Table formats; then disabled, with the format gone; the version stays chosen | Pass |
+| UT-GUI-041.010.M01.T02 | MD-GUI-041.001.M01 | Negative | Buttons follow the state (SRD-GUI-041.010) | a failed version; a review version whose file changed after the view was built | Enable off for the failed one; the refusal reason in the note for the other | Pass |
+| UT-GUI-034.085.M15.T01 | MD-GUI-034.016.M15 | Positive | Tool builder switch (SRD-GUI-034.085) | tick Tool builder, save | tool_builder_on true in the settings file; off by default | Pass |
+| UT-GUI-034.085.M15.T02 | MD-GUI-034.016.M15 | Edge | Not tied to Agent messages (SRD-GUI-034.085) | Agent messages unticked | the Tool builder box is enabled | Pass |
+| UT-GUI-034.085.M15.T03 | MD-GUI-034.016.M15 | Negative | Old settings file (SRD-GUI-034.085) | a settings file with no tool_builder_on | loads as off; the box is unticked; saving keeps it false | Pass |

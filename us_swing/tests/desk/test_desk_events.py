@@ -61,12 +61,25 @@ def test_kind_rules() -> None:
     P0 chat_question added in P9 (SRD-MKT-010.002); P0 data_request added in P10
     (SRD-MKT-011.002); P2 market_checkin and P0 watch_flag added in step D (SRD-DSK-003.020,
     .021); P1 message added in M1 (SRD-DSK-011.024); P2 day_end added in M5 (SRD-MKT-020.019);
-    P2 weekly_report added in M7a (SRD-DSK-006.011)."""
+    P2 weekly_report added in M7a (SRD-DSK-006.011); P1 tool_request added in M7b
+    (SRD-DSK-013.001)."""
     assert {k: EVENT_RULES[k].priority for k in EVENT_KINDS} == {
         "regime_change": 0, "after_run": 1, "market_open": 2, "market_close": 2,
         "chat_question": 0, "data_request": 0, "market_checkin": 2, "watch_flag": 0,
-            "research_done": 2, "message": 1, "day_end": 2, "weekly_report": 2}
+            "research_done": 2, "message": 1, "day_end": 2, "weekly_report": 2,
+            "tool_request": 1}
     assert EVENT_RULES["market_open"].expiry == timedelta(minutes=30)
+
+
+def test_tool_request_rule(tmp_path: Path) -> None:
+    """UT-DSK-013.001.M15.T01: tool_request is priority 1 with no deadline and a 1-day expiry,
+    and two requests on one day post two events."""
+    rule = EVENT_RULES["tool_request"]
+    assert (rule.priority, rule.deadline, rule.expiry) == (1, None, timedelta(days=1))
+    now = datetime(2026, 11, 16, 9, 0, tzinfo=NY)
+    assert post_event(tmp_path, "tool_request", "2026-11-16", now, run_id=1)
+    assert post_event(tmp_path, "tool_request", "2026-11-16", now, run_id=2)
+    assert not post_event(tmp_path, "tool_request", "2026-11-16", now, run_id=2)
 
 
 def test_unknown_kind(home: Path) -> None:

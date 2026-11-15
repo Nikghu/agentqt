@@ -7,6 +7,7 @@
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.32.1: DD-GUI-041.006.D01 updated after the GUI review (2026-11-16).
 > v1.32.0: DD-GUI-041.006.D01 added — tool requests, built tools review, Enable and Disable, Tool builder switch (AI Desk v3 M7b, 2026-11-15).
 > v1.31.1: DD-GUI-034.081.D01 updated after the GUI review (2026-11-15).
 > v1.31.0: DD-GUI-034.081.D01 added — hire proposal cards, Proposals list and Hire proposals switch (AI Desk v3 M7a, 2026-11-15).
@@ -2106,3 +2107,4 @@ Run names: `evening` "Evening run", `manual` "Manual run", other kinds title-cas
 - **Buttons** (.010): Enable is enabled for state review or disabled with all checks passed; Disable for state enabled. A click calls `enable_tool()` or `disable_tool()` with the version id: "" → `refresh()` with the same version chosen (by id); a reason shows in the note line, and the buttons follow the state read again.
 - The view is still rebuilt each time it is shown (M6); no timer and no worker thread, as the reads are small.
 - **Switch** (`gui/ai_desk_settings.py`, SRD-GUI-034.085): a "Tool builder" check box after Hire proposals, tooltip "The desk builds small read-only tools you ask for; you review and switch on each one", saved as `tool_builder_on`; not tied to Agent messages.
+- **GUI review fixes (2026-11-16)**: the detail, parts and note labels show plain text (model-written text is never read as HTML); a request that cannot be saved shows "Could not save the request; try again in a moment."; core reasons show as sentences; Enable and Disable confirm with "Enabled <name> v<N>." or "Disabled <name> v<N>."; the note clears when another version is chosen; Enter does nothing while the Request button is off; a failed first read hides the review widgets; the buttons follow core `may_enable()` and `may_disable()`. Kept: after a reload the detail is shown again even when the selection did not change.

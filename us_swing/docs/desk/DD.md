@@ -6,6 +6,7 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.20.1: DD-DSK-013.001.D01 updated — off path, stale requests, §17 code review fixes (2026-11-16).
 > v0.20.0: DD-DSK-013.001.D01 added — tool builder; its §14 covers the hire id fix (SRD-DSK-006.028) (AI Desk v3 M7b, 2026-11-15).
 > v0.19.1: DD-DSK-006.011.D01 updated — the proposal row rides in the ask's want; §12 code review fixes (2026-11-15).
 > v0.19.0: DD-DSK-006.011.D01 added — hire proposals (AI Desk v3 M7a, 2026-11-15).
@@ -1703,9 +1704,9 @@ built_tools    id INTEGER PRIMARY KEY, name TEXT, version INTEGER, request INTEG
 
 **4. Builder turn** (`desk/tool_builder.py`, `ToolBuilderSkill`, key `tool_builder`, `talks = True`; .002–.004, .021)
 
-- `facts()`: fresh when the inbox holds a message, or when `tool_builder_on` is on and a new request of the last day exists; else not fresh with "no tool request" or "the tool builder is off".
-- `act()`, inbox first: each ask → off: a refused reply "the tool builder is off"; on: `add_request(source chat, message id, asker = sender, text, symbols)`. Text = `want.inputs["request"]` when it is a string, else `want.goal`, else the ask text (up to 300 characters); symbols = `want.inputs["symbols"]` upper-cased, at most 5. Other message types are skipped with no reply.
-- Then, while on: `expire_requests(home, now)` sets new requests older than 1 day to expired ("not picked up within a day"); each new request, oldest first: state building, then §5–§10. An error in one request ends it failed ("the builder hit an error") with the stack logged; the next request still runs.
+- `facts()`: off → not fresh with "the tool builder is off", so the desk refuses each ask with "<name> cannot work now: the tool builder is off" and `act()` does not run. On → fresh when a new request of the last day, an unread message in the builder's inbox or a stale request exists; else not fresh with "no tool request". The desk calls `facts()` before it attaches the inbox, so `facts()` reads the builder's inbox itself.
+- `act()`, inbox first: each ask → `add_request(source chat, message id, asker = sender, text, symbols)`. Text = `want.inputs["request"]` when it is a string, else `want.goal`, else the ask text (up to 300 characters); symbols = `want.inputs["symbols"]` upper-cased, at most 5. Other message types are skipped with no reply.
+- Then `expire_requests(home, now)`: a request still new a day after it was made → expired ("not picked up within a day"); one still building a day after it was made → failed ("the desk stopped while it was building"). Then each new request, oldest first: state building, then §5–§10. An error in one request ends it failed ("the builder hit an error") with the stack logged; the next request still runs.
 - Facts text for one request:
 
 ```
@@ -1750,7 +1751,7 @@ top level   only def statements, NAME = <constant, or a list, tuple, dict or set
             and a docstring
 tool        a top-level def tool(symbol) with exactly one plain parameter (no default, * or **)
 banned      import, from-import, class, async def, await, async for, async with, with, yield,
-            yield from, global, nonlocal, decorators
+            yield from, global, nonlocal, match, decorators
 names       no name, parameter, def or attribute that starts with "_"; no string that holds "__";
             every name that is read is bound in the code or is in ALLOWED_NAMES
 attributes  only ALLOWED_ATTRS
@@ -1813,7 +1814,7 @@ each column        None -> missing["<symbol>.<col>"] = "no value"
 row                {"symbol": symbol, <columns>} when at least one value is kept
 ```
 
-  7. Send `{"rows", "missing", "secs", "pid"}` as JSON bytes.
+  7. Send `{"rows", "missing", "crashed", "wrong", "cut", "capped", "secs", "pid"}` as JSON bytes.
 
 **9. Checks and states** (`run_checks()` in `desk/tool_builder.py`, `sample_symbols()` in `core/desk_built_tools.py`; .014, .015)
 
@@ -1822,7 +1823,8 @@ row                {"symbol": symbol, <columns>} when at least one value is kept
 
 ```
 Code rules       the code passed §6                                     note: first problem
-Time and memory  the run ended with no run error                         note: the run error
+Time and memory  the run ended with no run error, no stock was cut and   note: the run error,
+                 none ran out of memory                                  the cut count or the stock
 Full row         at least one sample stock got every column              note: "no sample stocks" or "no stock got every column"
 Value types      no "wrong value" reason                                 note: first such stock and column
 No data          "ZZZZZ" got a row, a ValueError reason or "no value"    note: its reason
@@ -1888,3 +1890,15 @@ The writes run in an order that leaves no half state in use: Enable writes the t
 [Tool builder] Tool <name> v<N> enabled            /  disabled
 [Tool builder] A tool run was stopped: took longer than <secs> s
 ```
+
+**17. Code review fixes (2026-11-16)**
+
+- The rule check never raises: the constant check walks without recursion, and code too deep to parse gives "line 1: the code is too deeply nested". Problems come sorted by line; a statement banned at the top is named by its own rule. `match` is banned too (a class pattern reads attributes without an attribute node).
+- The child checks a number as a finite float or an int a float holds exactly (|value| ≤ 2^53), so a huge int is one wrong value, not a failed run; all checks of one stock sit inside that stock's guard.
+- The child starts no new stock after `max(secs - 10, secs / 2)` seconds counted from the first stock; the rest get "not run: the time limit was reached" (`cut`), so the rows made so far reach the desk; "Time and memory" then fails with the count.
+- The child reports whether its memory cap was set (`capped`); the desk logs "[Tool builder] A tool ran without a memory cap" when it was not.
+- Only a message over 1 MB is "too much output"; any other pipe error ends the run as "the tool process ended without an answer".
+- Enable takes back its writes when one fails (no active registry row, format or plan stays for a version that is not enabled); `may_enable()` and `may_disable()` hold the rule the GUI uses for its buttons, and a failed version is refused with "this version failed its checks" first.
+- A request still new or still building a day after it was made wakes the builder and is ended (expired, or failed with "the desk stopped while it was building").
+- Reads skip a row that cannot be read, with a warning; `built_fns()` gives no built tools on a read error, so the other tools of a table still run.
+- Kept as designed: a single stock that never ends is stopped by the desk's 60-second limit with the whole run; `fill_registry()` still leaves every `built.*` row as it is (SRD-DSK-013.019), so Enable's rollback is what keeps the registry clean.

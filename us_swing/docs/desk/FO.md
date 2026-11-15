@@ -6,6 +6,8 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.17.2: FO-DSK-013 Implemented 2026-11-16.
+> v0.17.1: FO-DSK-013 approved by user 2026-11-15.
 > v0.17.0: AI Desk v3 M7b (user, 2026-11-15): FO-DSK-013 Tool Builder added as Draft.
 > v0.16.2: FO-DSK-006 M7a part Implemented 2026-11-15.
 > v0.16.1: FO-DSK-006 M7a part approved by user 2026-11-15.
@@ -412,7 +414,7 @@ The system shall keep one list of every tool the desk can use and one library of
 
 ## FO-DSK-013: Tool Builder
 
-**Status:** Draft
+**Status:** Implemented (approved by user 2026-11-15; RN-DSK-0.21.0-20261116)
 **Priority:** Should
 **Phase:** AI Desk v3 M7b
 **Depends on:** FO-DSK-012 (tool registry, table formats, planner), FO-MKT-021 (read functions), FO-MKT-010 (lead chat), FO-GUI-041 (Tools view)

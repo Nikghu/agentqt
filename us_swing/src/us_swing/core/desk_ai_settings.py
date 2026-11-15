@@ -8,6 +8,7 @@ Also: SRD-MKT-010.009 (``sessions_on``, off by default)
 Also: MD-MKT-020.001.M02 — SRD-MKT-020.001 (``company_day_on``, off by default)
 Also: SRD-DSK-012.028 (``task_cards_on``, off by default)
 Also: SRD-DSK-006.024 (``hire_proposals_on``, off by default)
+Also: SRD-DSK-013.021 (``tool_builder_on``, off by default)
 Also: SRD-DSK-006.003 — seat caps per level; SRD-MKT-008.002 — trade target R multiple
 
 Desk AI settings, separate from the AI notes settings: which sources may run, their
@@ -53,6 +54,7 @@ class DeskAiSettings:
     company_day_on: bool = False
     task_cards_on: bool = False
     hire_proposals_on: bool = False
+    tool_builder_on: bool = False
 
     def __post_init__(self) -> None:
         """Refuse a budget, token cap, seat cap or R multiple that is not above 0."""

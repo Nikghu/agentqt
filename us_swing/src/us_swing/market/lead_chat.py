@@ -6,6 +6,7 @@ only), SRD-MKT-010.008 (log lines), SRD-MKT-010.013 (session facts), SRD-MKT-010
 (session summaries and notes), SRD-MKT-010.016–.017 (one team ask and its update),
 SRD-MKT-010.019 (log lines), SRD-MKT-010.020 (table hint), SRD-MKT-010.021 (table update
 written by code) — AI Desk v3 M6
+Also: SRD-MKT-010.022 (tool request hint) — AI Desk v3 M7b
 
 The lead chat skill: answers the Master's oldest open question from the day's facts, the
 recent picks with their paper results and the last chat turns (of the question's session when
@@ -69,6 +70,12 @@ TABLE_HINT = ('For a table of facts about named stocks, send that ask to "skill:
               '["AVGO", "MU"]}, "schema": "<format id>"} (up to 30 symbols; add "cols" to get '
               "only some columns). The table is posted to the Master as your update.\n"
               "Ready formats:")
+BUILDER_SKILL = "tool_builder"
+TOOL_HINT = ('Only when the Master asks the desk to build a new tool, send that ask to '
+             '"skill:tool_builder" with want = {"goal": "<what the tool gives for one stock>", '
+             '"done_when": "the tool waits for the Master\'s review", "inputs": {"request": '
+             '"<the Master\'s words>", "symbols": ["AVGO"]}}. The Master reads the code and '
+             "switches each tool on in AI Desk > Tools.")
 SUMMARY_HEAD = ("Summarise this chat session between the Master and you in at most 400 "
                 "characters: the topics, what was agreed and what is still open. In remember, "
                 "keep the summary as one note, and each preference the Master stated as one "
@@ -147,6 +154,14 @@ def table_hint(home: Path) -> str:
     return "\n".join([TABLE_HINT, *lines])
 
 
+def tool_hint(home: Path) -> str:
+    """How to pass the Master's request for a new tool to the builder; empty while the tool
+    builder is off or nobody holds the builder skill (SRD-MKT-010.022)."""
+    if not load_settings(home).tool_builder_on or holder(home, BUILDER_SKILL) is None:
+        return ""
+    return TOOL_HINT
+
+
 def _drop_new(talk: Talker | None, start: int) -> None:
     if talk is not None:
         del talk.drafts[start:]
@@ -210,8 +225,8 @@ class LeadChatSkill:
         start = len(talk.drafts) if talk else 0
         text = facts.text
         if talk is not None and on:
-            hint = table_hint(ctx.home)
-            text = f"{text}\n\n{ASK_HINT}" + (f"\n{hint}" if hint else "")
+            hints = [h for h in (table_hint(ctx.home), tool_hint(ctx.home)) if h]
+            text = "\n".join([f"{text}\n\n{ASK_HINT}", *hints])
         reply = ctx.ask(text, LeadChatAnswer)
         if talk is not None:
             keep_one_ask(talk, start, question.id, on)

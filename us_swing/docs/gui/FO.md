@@ -7,6 +7,8 @@
 **Last Updated:** 2026-05-22
 **Project:** US Swing Trading System
 
+> v2.30.2: The FO-GUI-041 M7b part and the FO-GUI-034 Tool builder bullet Implemented 2026-11-16.
+> v2.30.1: The FO-GUI-041 M7b part and the FO-GUI-034 Tool builder bullet approved by user 2026-11-15.
 > v2.30.0: AI Desk v3 M7b (user, 2026-11-15): FO-GUI-041 gains the tool builder part and FO-GUI-034 the Tool builder switch bullet, as Draft.
 > v2.29.1: FO-GUI-034 hire proposals bullet approved by user 2026-11-15; Implemented 2026-11-15.
 > v2.29.0: AI Desk v3 M7a (user, 2026-11-15): FO-GUI-034 gains the hire proposals bullet as Draft.
@@ -1176,7 +1178,7 @@ The system shall show the desk's tools, table formats and task cards in the AI D
 
 ### M7b — Tool Builder
 
-**Status:** Draft
+**Status:** Implemented (approved by user 2026-11-15; RN-DSK-0.21.0-20261116)
 **Source: User 2026-11-15 (AI Desk v3 M7b): the Master user requests tools in AI Desk → Tools, reads each built tool's code and test results there, and switches each version on or off (FO-DSK-013).**
 
 - The system shall let the Master user request a tool in AI Desk → Tools and see the state of each request.
