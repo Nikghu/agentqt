@@ -70,8 +70,9 @@ def test_state_note(qtbot: QtBot, tmp_path: Path) -> None:
 
 
 def test_sections_use_icon_cards(qtbot: QtBot, tmp_path: Path) -> None:
-    """UT-GUI-034.066.M39.T01: Hiring, Cost and Settings are built from titled icon cards."""
-    expected = {"Hiring": ["Hires", "Start hire", "Shadow report"],
+    """UT-GUI-034.066.M39.T01: Hiring, Cost and Settings are built from titled icon cards
+    (Proposals added in M7a, SRD-GUI-034.083)."""
+    expected = {"Hiring": ["Hires", "Proposals", "Start hire", "Shadow report"],
                 "Cost": ["Budget used", "By employee", "By model"],
                 "Settings": ["Schedule and rules", "Claude Code CLI", "OpenRouter API", "Seats",
                              "Agent messages"]}

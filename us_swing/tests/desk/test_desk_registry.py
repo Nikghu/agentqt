@@ -168,11 +168,13 @@ def test_kind_with_no_skill(seeds: list[Tool]) -> None:
 
 
 def test_recipe_and_formats_seeded(seeds: list[Tool]) -> None:
-    """UT-DSK-012.007.M28.T01: Recipe and formats seeded."""
+    """UT-DSK-012.007.M28.T01: Recipe and formats seeded (``hire_proposal.v1`` added in M7a,
+    SRD-DSK-006.019)."""
     recipe = next(t for t in seeds if t.name == "data.recipe")
     assert "source" in recipe.input_schema["properties"]
     formats = {f.id: f for f in seed_formats()}
-    assert set(formats) == {f"{k}.v1" for k in MENU} | {"idea_fix.v1", "setup_table.v1"}
+    assert set(formats) == {f"{k}.v1" for k in MENU} | {"idea_fix.v1", "setup_table.v1",
+                                                         "hire_proposal.v1"}
     for key, source in MENU.items():
         assert [c.name for c in formats[f"{key}.v1"].columns] == list(source.columns)
 

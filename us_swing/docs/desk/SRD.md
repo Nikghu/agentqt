@@ -6,6 +6,9 @@
 **Last Updated:** 2026-11-11
 **Project:** US Swing Trading System
 
+> v0.20.2: SRD-DSK-006.011–.027 Implemented 2026-11-15.
+> v0.20.1: SRD-DSK-006.011–.027 approved by user 2026-11-15.
+> v0.20.0: SRD-DSK-006.011–.027 added as Draft — hire proposals (AI Desk v3 M7a, 2026-11-15).
 > v0.19.2: SRD-DSK-012.012–.031 Implemented 2026-11-15.
 > v0.19.1: SRD-DSK-012.012–.031 approved by user 2026-11-14.
 > v0.19.0: AI Desk v3 M6 (user, 2026-11-14): SRD-DSK-012.012–.031 added as Draft — planner, task cards, tool groups, failure log, plan retire.
@@ -173,6 +176,28 @@
 | SRD-DSK-006.008 | FO-DSK-006 | Must | A retired employee never wakes, and its records stay. | status | — | Status `active` is the default for files without one | Implemented |
 | SRD-DSK-006.009 | FO-DSK-006 | Must | The first desk run on or after each Friday (New York) writes one weekly report by code: calls, valid share, tokens, cost and failures per employee, and shadow progress. | `activity`, employees | `desk_reports` row | No AI call; one report per week | Implemented |
 | SRD-DSK-006.010 | FO-DSK-006 | Should | Starting a hire, the end of a shadow, each decision and each weekly report are logged. | event | log line | `[Hiring]` and `[Report]` prefixes | Implemented |
+
+### FO-DSK-006 (M7a): Hire Proposals
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-DSK-006.011 | FO-DSK-006 | Must | After a new weekly report, code posts one `weekly_report` event when hire proposals are on. | weekly report | event | Priority 2, no deadline, expires after 1 day; a week whose report exists posts nothing | Implemented |
+| SRD-DSK-006.012 | FO-DSK-006 | Must | An active employee with at least 5 AI tries and under 70% valid answers in the last 10 data days is a failing need. | `activity` | need | Live tries only: shadow and replay rows are left out | Implemented |
+| SRD-DSK-006.013 | FO-DSK-006 | Must | An active employee whose cost per valid answer in the last 10 data days is over 3 times the desk's middle value is a costly need. | `activity` | need | Needs at least 3 valid answers, and at least 3 employees with a cost above 0 | Implemented |
+| SRD-DSK-006.014 | FO-DSK-006 | Must | A skill in the `needs` of an active employee's skill that no active employee holds is an empty need. | employee files, skills | need | A shadow employee is not a holder; level from the skill's default employee file | Implemented |
+| SRD-DSK-006.015 | FO-DSK-006 | Must | Each need becomes one candidate with an id, kind, skill, level, holder and evidence lines written by code. | needs | candidates | Dropped for a level that cannot be hired, a skill with a waiting proposal or a shadow hire, or the same skill and need rejected in the last 30 days | Implemented |
+| SRD-DSK-006.016 | FO-DSK-006 | Must | The `hire_review` skill gives the model the candidates, seats, the week's failure log rows and the known models, and makes no AI call without a candidate. | candidates | facts | Not fresh while hire proposals are off; at most one AI call per wake | Implemented |
+| SRD-DSK-006.017 | FO-DSK-006 | Must | The secretary picks up to 2 candidates by id, each with a known source and model and a short reason; code drops any other pick. | answer | picks | Reason up to 300 characters; one pick per candidate and per skill | Implemented |
+| SRD-DSK-006.018 | FO-DSK-006 | Must | Each kept pick is saved as one waiting `hire_proposals` row and sent as one ask with a `hire_proposal.v1` row to the secretary's boss. | pick | proposal row, ask | Boss from `reports_to`; with no active boss the row gets view `none` and no ask is sent | Implemented |
+| SRD-DSK-006.019 | FO-DSK-006 | Must | The schema library holds `hire_proposal.v1` with columns proposal, need, skill, holder, evidence, model and why. | — | format row | No made-by tools, so it never has a plan | Implemented |
+| SRD-DSK-006.020 | FO-DSK-006 | Must | Asks with a `hire_proposal.v1` row are answered in a short reply-only turn; the receiver's own skill does not run. | inbox | replies | One AI call for all such asks; no feed note | Implemented |
+| SRD-DSK-006.021 | FO-DSK-006 | Must | The boss's reply sets the proposal's view: `done` is agree and `refused` is disagree, with its reason. | reply | proposal row | A reply written by code (refused or expired) gives view `none`, set by the secretary with no AI call | Implemented |
+| SRD-DSK-006.022 | FO-DSK-006 | Must | Approving a waiting proposal starts the trial hire with its skill, level, source, model and the next free generic name. | decision | shadow employee, proposal row, `approvals` row | A refused hire keeps the proposal waiting and returns the reason | Implemented |
+| SRD-DSK-006.023 | FO-DSK-006 | Must | Rejecting a waiting proposal closes it and adds an `approvals` row. | decision | proposal row, `approvals` row | Only waiting proposals can be decided | Implemented |
+| SRD-DSK-006.024 | FO-DSK-006 | Must | Hire proposals run only with `hire_proposals_on` and `messages_on`; both are off by default. | settings | — | Off: no event and no secretary turn | Implemented |
+| SRD-DSK-006.025 | FO-DSK-006 | Must | The default secretary `emp-020` holds `hire_review` at level expert, reports to emp-005 and wakes on `weekly_report`. | — | employee files | Generic name "Expert 15", title Desk secretary; skill path and app build module set | Implemented |
+| SRD-DSK-006.026 | FO-DSK-006 | Should | Reads return the proposals newest first and the waiting ones, each with its card text. | `hire_proposals` | rows, text | Read-only; empty without a desk database | Implemented |
+| SRD-DSK-006.027 | FO-DSK-006 | Should | A sent proposal, a recorded view, each decision and a turn with no candidate are logged. | events | log lines | `[Hiring]` prefix | Implemented |
 
 ## FO-DSK-007: AI Problem Alerts
 

@@ -4,6 +4,7 @@ Parent SRD: SRD-DSK-012.001
 Also: SRD-DSK-011.019 (format ``idea_fix.v1`` for fix replies)
 Also: SRD-DSK-012.012 (``Tool.secs``), .013 (``ToolResult``), .014 (``Column.by``, the key
 column), .015 (table tools and ``setup_table.v1`` seeded) — AI Desk v3 M6
+Also: SRD-DSK-006.019 (format ``hire_proposal.v1`` for hire proposal asks) — AI Desk v3 M7a
 
 Tool registry (``desk.tool/1``) and schema library (``desk.schema/1``) in ``desk.db``. Tool
 rows use the MCP tool shape so code tools and MCP tools look the same. The registry is filled
@@ -211,14 +212,15 @@ def seed_tools() -> list[Tool]:
 
 
 def seed_formats() -> list[TableFormat]:
-    """One ``<source>.v1`` format per data recipe menu source (SRD-DSK-012.007)."""
+    """One ``<source>.v1`` format per data recipe menu source (SRD-DSK-012.007), plus the fixed
+    formats: idea fix, setup table and hire proposal."""
     from us_swing.core.desk_recipes import MENU  # noqa: PLC0415 — avoids a cycle
 
     return [TableFormat(id=f"{key}.v1", title=source.label,
                         columns=[Column(name=col, type="number" if kind == "number" else "text",
                                         meaning=col.replace("_", " "))
                                  for col, (_, kind) in source.columns.items()])
-            for key, source in MENU.items()] + [_IDEA_FIX, _SETUP_TABLE]
+            for key, source in MENU.items()] + [_IDEA_FIX, _SETUP_TABLE, HIRE_PROPOSAL]
 
 
 _IDEA_FIX = TableFormat(id="idea_fix.v1", title="Idea fix", columns=[
@@ -242,6 +244,15 @@ _SETUP_TABLE = TableFormat(id="setup_table.v1", title="Setup table", columns=[
            by="technical.setup"),
     Column(name="earn_days", type="number", meaning="trading days to the next earnings date",
            by="calendar.earnings")])
+# SRD-DSK-006.019: no column has a made-by tool, so this format never gets a plan.
+HIRE_PROPOSAL = TableFormat(id="hire_proposal.v1", title="Hire proposal", columns=[
+    Column(name="proposal", type="number", meaning="proposal number"),
+    Column(name="need", type="text", meaning="failing, costly or empty"),
+    Column(name="skill", type="text", meaning="skill of the trial hire"),
+    Column(name="holder", type="text", meaning="current holder, or empty"),
+    Column(name="evidence", type="text", meaning="facts found by code"),
+    Column(name="model", type="text", meaning="source and model of the trial hire"),
+    Column(name="why", type="text", meaning="the secretary's reason")])
 
 
 # ── store ────────────────────────────────────────────────────────────────────

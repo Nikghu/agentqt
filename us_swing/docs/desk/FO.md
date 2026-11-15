@@ -6,6 +6,9 @@
 **Last Updated:** 2026-11-06
 **Project:** US Swing Trading System
 
+> v0.16.2: FO-DSK-006 M7a part Implemented 2026-11-15.
+> v0.16.1: FO-DSK-006 M7a part approved by user 2026-11-15.
+> v0.16.0: AI Desk v3 M7a (user, 2026-11-15): FO-DSK-006 gains the M7a part as Draft — hire proposals; its text now says 14 data days instead of 14 evenings, and that no AI starts a hire.
 > v0.15.1: FO-DSK-012 M6 part approved by user 2026-11-14; Implemented 2026-11-15.
 > v0.15.0: AI Desk v3 M6 (user, 2026-11-14): FO-DSK-012 gains the M6 part as Draft — planner and task cards; the FO-DSK-011 M2 block status is corrected to Implemented.
 > v0.14.0: AI Desk v3 M3 (user, 2026-11-13): FO-DSK-009 gains the memory v2 bullets as Draft — memory.db, notes and views, core block, recall, scores, weekly clean-up.
@@ -150,11 +153,11 @@ The system shall record every agent step so any answer can be traced and checked
 **Phase:** P6
 **Depends on:** FO-DSK-002–005, FO-GUI-034
 
-The system shall let the Master User try a new employee safely before it does real work, and show each week how the desk works and what it costs. A new hire always uses a skill the code already knows; its name, level, model and soul are data the Master User controls. No AI proposes hires, and the weekly report is made by code with no AI cost.
+The system shall let the Master User try a new employee safely before it does real work, and show each week how the desk works and what it costs. A new hire always uses a skill the code already knows; its name, level, model and soul are data the Master User controls. No AI starts a hire (from M7a an AI secretary may propose one, see below), and the weekly report is made by code with no AI cost.
 
 - The system shall let the Master User start a hire by choosing an existing skill, a level, a name and a model.
 - The system shall cap seats at 8 experts, 5 champions and 30 juniors, counting shadow hires; the Master User can change a cap in Desk settings.
-- The system shall run a new hire in shadow for 14 evenings: it answers the same facts as the skill's current holder, but its answers never reach the views, picks or AI feed.
+- The system shall run a new hire in shadow for 14 data days: it answers the same facts as the skill's current holder, but its answers never reach the views, picks or AI feed.
 - The system shall compare each shadow hire with the current holder by valid answers, tokens, cost and agreement.
 - The system shall let the Master User replace the holder, add the hire, or reject it once the shadow ends, and keep a record of every decision.
 - The system shall make a weekly process and cost report by code (workload, cost, failures and shadow results) and show it in AI Desk.
@@ -163,9 +166,30 @@ The system shall let the Master User try a new employee safely before it does re
 
 1. A hire started in AI Desk → Hiring is refused when its level's seat cap is full.
 2. During shadow, the hire's answers are recorded but the views, picks and AI feed show only the holder's work.
-3. After 14 evenings the shadow report shows valid answers, tokens, cost and agreement for the hire and the holder.
-4. One shadow hire goes end to end: started, 14 evenings, approved as Replace; from the next evening only the new hire does the work.
+3. After 14 data days the shadow report shows valid answers, tokens, cost and agreement for the hire and the holder.
+4. One shadow hire goes end to end: started, 14 data days, approved as Replace; from the next data day only the new hire does the work.
 5. Every Friday a weekly report appears in AI Desk → Reports with no AI call.
+
+### M7a — Hire Proposals
+
+**Status:** Implemented (approved by user 2026-11-15; RN-DSK-0.20.0-20261115)
+**Source: User 2026-11-15 (AI Desk v3 M7 decisions): M7 in two steps, hire proposals first and the tool builder after; an AI secretary writes the proposals and its boss gives a one-line view; needs from failing employees, costly employees and needed skills nobody holds. Plan: https://claude.ai/artifact/3dr7g92HY5hvVQ9KiyrPvc (M7).**
+
+- The system shall find hire needs by code once a week: failing employees, costly employees and needed skills that nobody holds.
+- The system shall let a secretary employee pick up to 2 needs a week and propose a trial hire for each, with the evidence written by code.
+- The system shall send each proposal to the secretary's boss for a one-line view, answered in a short reply-only turn.
+- The system shall show each proposal with its evidence and the boss's view to the Master user, who approves it (the trial hire starts in shadow) or rejects it.
+- The system shall decide each proposed trial after its shadow with the existing report and Replace, Add or Reject.
+- The system shall not propose a skill again while it has a waiting proposal or a shadow hire, or for 30 days after a reject of the same need.
+- The system shall run exactly as in M6 while hire proposals are off.
+
+### Acceptance Criteria (M7a)
+
+6. On a desk copy with hire proposals on and one employee under 70% valid answers, the Friday run makes one proposal with evidence written by code, and its boss's view is recorded, with 2 AI calls in all.
+7. The boss answers in a short turn: its own skill does not run and no feed note is added.
+8. Approve starts a shadow hire with the next free generic name; with the level's seats full, Approve shows the reason and the proposal keeps waiting.
+9. After a Reject, the same skill and need are not proposed again for 30 days.
+10. With hire proposals off, the daily run and all existing desk tests work as before.
 
 ## FO-DSK-007: AI Problem Alerts
 
