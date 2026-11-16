@@ -1126,6 +1126,7 @@ Test files:
 | UT-GUI-034.015.M14.T02 | MD-GUI-034.015.M14 | Negative | No briefs yet (SRD-GUI-034.015) | desk.db without briefs | sample items with Sample tag | Pass |
 | UT-GUI-034.016.M15.T01 | MD-GUI-034.016.M15 | Positive | Settings saved (SRD-GUI-034.016) | change model, budget, CLI token cap, key; Save | desk_ai.json and key updated | Pass |
 | UT-GUI-034.016.M15.T02 | MD-GUI-034.016.M15 | Negative | Bad budget (SRD-GUI-034.016) | budget 0 or text | not saved; message shown | Pass |
+| UT-GUI-034.016.M15.T03 | MD-GUI-034.016.M15 | Positive | Saved key hint (SRD-GUI-034.016) | open form with and without a stored key | box says Saved, or asks for a key; key never shown | Pass |
 | UT-GUI-034.017.M16.T01 | MD-GUI-034.017.M16 | Positive | Real cost (SRD-GUI-034.017) | activity rows this and last month | this month only; by employee and by model | Pass |
 | UT-GUI-034.018.M17.T01 | MD-GUI-034.018.M17 | Positive | Real headlines (SRD-GUI-034.018) | news_items and news_tags | newest first; symbol or market; tone from tags; not sample | Pass |
 | UT-GUI-034.018.M17.T02 | MD-GUI-034.018.M17 | Negative | No headlines (SRD-GUI-034.018) | empty news_items | sample rows; sample tag kept | Pass |

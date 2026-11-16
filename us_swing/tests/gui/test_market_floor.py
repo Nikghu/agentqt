@@ -512,6 +512,20 @@ def test_desk_ai_settings_saved(qtbot: QtBot, tmp_path: Path,
     assert keys == ["sk-test"] and form.key.text() == ""
 
 
+@pytest.mark.parametrize(("stored", "hint"), [("sk-or-x", "Saved — type to replace"),
+                                              ("", "Paste a key to save or replace it")])
+def test_desk_ai_settings_key_hint(qtbot: QtBot, tmp_path: Path,
+                                   monkeypatch: pytest.MonkeyPatch, stored: str,
+                                   hint: str) -> None:
+    """UT-GUI-034.016.M15.T03: the key box says Saved when a key is already stored."""
+    from us_swing.gui import ai_desk_settings as form_mod
+
+    monkeypatch.setattr(form_mod, "load_key", lambda: stored)
+    form = form_mod.DeskAiSettingsForm(tmp_path)
+    qtbot.addWidget(form)
+    assert form.key.placeholderText() == hint and form.key.text() == ""
+
+
 @pytest.mark.parametrize("budget", ["0", "ten", "nan"])
 def test_desk_ai_settings_bad_budget(qtbot: QtBot, tmp_path: Path,
                                      monkeypatch: pytest.MonkeyPatch, budget: str) -> None:

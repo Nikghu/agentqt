@@ -34,6 +34,7 @@ from PyQt6.QtWidgets import (
 )
 
 from us_swing.core.desk_ai_settings import (
+    load_key,
     load_settings,
     save_key,
     save_settings,
@@ -69,7 +70,7 @@ class DeskAiSettingsForm(QWidget):
         self.openrouter_model = self._line(self._settings.openrouter_model)
         self.key = self._line("")
         self.key.setEchoMode(QLineEdit.EchoMode.Password)
-        self.key.setPlaceholderText(_KEY_HINT)
+        self.key.setPlaceholderText(_KEY_SAVED if load_key() else _KEY_HINT)
         self.budget = self._line(f"{self._settings.monthly_budget_usd:.2f}")
         self.claude_on.setChecked(self._settings.claude_on)
         self.openrouter_on.setChecked(self._settings.openrouter_on)
