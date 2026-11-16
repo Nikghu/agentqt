@@ -43,7 +43,7 @@ def _closes(n: int, seed: int) -> list[float]:
 
 
 def _series(n: int = N) -> dict[str, Sequence[float]]:
-    out: dict[str, Sequence[float]] = {"SPY": _closes(n, 0)}
+    out: dict[str, Sequence[float]] = {"SPY": _closes(n, 0), "RSP": _closes(n, 99)}
     for i, sym in enumerate(SECTORS):
         out[sym] = _closes(n, i + 1)
     return out
@@ -65,7 +65,7 @@ def write_daily(root: Path, series: dict[str, Sequence[float]], volume: float = 
 
 
 def _replayed(root: Path) -> pd.DataFrame:
-    pb = read_daily([*SECTORS, "SPY"], root)
+    pb = read_daily([*SECTORS, "SPY", "RSP"], root)
     assert pb is not None
     inp, _ = proof._inputs(pb, dict(SECTORS))
     return replay(inp, proof._ready_days(inp, len(SECTORS)))

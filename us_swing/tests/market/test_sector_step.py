@@ -9,6 +9,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from tests.market.conftest import bdays, write_candles
 from us_swing.core.desk_contract import CommandKind, StepContext, send_command
@@ -28,7 +29,7 @@ def _closes(n: int, seed: int) -> list[float]:
 
 
 def _make(path: Path, n: int = N, drop_last: Sequence[str] = ()) -> None:
-    series: dict[str, Sequence[float]] = {"SPY": _closes(n, 0)}
+    series: dict[str, Sequence[float]] = {"SPY": _closes(n, 0), "RSP": _closes(n, 99)}
     for i, sym in enumerate(SECTORS):
         series[sym] = _closes(n - 1 if sym in drop_last else n, i + 1)
     if path.exists():
@@ -120,3 +121,37 @@ def test_runs_after_regime_in_desk_run(tmp_path: Path) -> None:
     assert _rows(home, "SELECT result FROM runs") == [("ok",)]
     assert _rows(home, "SELECT COUNT(*) FROM regime_snapshot")[0][0] > 0
     assert _rows(home, "SELECT COUNT(DISTINCT date) FROM sector_daily")[0][0] == N - FIRST_READY
+
+
+def test_no_rsp_no_sectors(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    """UT-MKT-002.011.M05.T01: without RSP candles nothing is computed and the log says how
+    to get them."""
+    candles = tmp_path / "candles.db"
+    series: dict[str, Sequence[float]] = {"SPY": _closes(N, 0)}
+    series.update({sym: _closes(N, i + 1) for i, sym in enumerate(SECTORS)})
+    write_candles(candles, series)
+    _run(candles, tmp_path / "desk")
+    assert _rows(tmp_path / "desk", "SELECT COUNT(*) FROM sector_daily") == [(0,)]
+    assert "No daily candles for RSP" in caplog.text
+
+
+def test_benchmark_change_recomputes_all(tmp_path: Path) -> None:
+    """UT-MKT-002.012.M05.T01: rows from before the switch to RSP are all replaced once; the
+    next run keeps the new rows and only adds days."""
+    from us_swing.market.store import MarketStore, SectorRow
+
+    candles, home = tmp_path / "candles.db", tmp_path / "desk"
+    _make(candles)
+    store = MarketStore(home)
+    store.write_sector_days([SectorRow("2000-01-03", "Tech", 1.0, 0.0, 0.0, 0.0, 1, 50.0, 50.0,
+                                       "Lagging", 3)], [])
+    assert store.meta("sector_benchmark") is None
+    store.close()
+    _run(candles, home)
+    assert _rows(home, "SELECT COUNT(*) FROM sector_daily WHERE date = '2000-01-03'") == [(0,)]
+    first = _rows(home, "SELECT COUNT(DISTINCT date) FROM sector_daily")[0][0]
+    assert first == N - FIRST_READY
+    assert _rows(home, "SELECT value FROM market_meta WHERE key = 'sector_benchmark'") == [
+        ("RSP",)]
+    _run(candles, home)
+    assert _rows(home, "SELECT COUNT(DISTINCT date) FROM sector_daily")[0][0] == first

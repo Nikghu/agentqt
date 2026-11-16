@@ -1126,6 +1126,7 @@ Test files:
 | UT-GUI-034.015.M14.T02 | MD-GUI-034.015.M14 | Negative | No briefs yet (SRD-GUI-034.015) | desk.db without briefs | sample items with Sample tag | Pass |
 | UT-GUI-034.016.M15.T01 | MD-GUI-034.016.M15 | Positive | Settings saved (SRD-GUI-034.016) | change model, budget, CLI token cap, key; Save | desk_ai.json and key updated | Pass |
 | UT-GUI-034.016.M15.T02 | MD-GUI-034.016.M15 | Negative | Bad budget (SRD-GUI-034.016) | budget 0 or text | not saved; message shown | Pass |
+| UT-GUI-034.016.M15.T03 | MD-GUI-034.016.M15 | Positive | Saved key hint (SRD-GUI-034.016) | open form with and without a stored key | box says Saved, or asks for a key; key never shown | Pass |
 | UT-GUI-034.017.M16.T01 | MD-GUI-034.017.M16 | Positive | Real cost (SRD-GUI-034.017) | activity rows this and last month | this month only; by employee and by model | Pass |
 | UT-GUI-034.018.M17.T01 | MD-GUI-034.018.M17 | Positive | Real headlines (SRD-GUI-034.018) | news_items and news_tags | newest first; symbol or market; tone from tags; not sample | Pass |
 | UT-GUI-034.018.M17.T02 | MD-GUI-034.018.M17 | Negative | No headlines (SRD-GUI-034.018) | empty news_items | sample rows; sample tag kept | Pass |
@@ -1205,6 +1206,15 @@ Test files:
 | UT-GUI-034.060.M33.T01 | MD-GUI-034.059.M33 | Positive | Header tiles (SRD-GUI-034.060, .065) | desk.db with a finished run and spend | Last run · ok title, run text with day and date (Thu 05 Nov, 16:05 ET), $1.00 today, bar and title percent | Pass |
 | UT-GUI-034.060.M33.T02 | MD-GUI-034.059.M33 | Negative | No desk data (SRD-GUI-034.060, .065) | empty folder | No runs yet, $0.00, bar 0 | Pass |
 | UT-GUI-034.061.M35.T01 | MD-GUI-034.061.M35 | Positive | Chat bubbles (SRD-GUI-034.061) | one question and one reply | two bubbles; Master right, lead left; ET time shown | Pass |
+| UT-GUI-034.086.M26.T01 | MD-GUI-034.039.M26 | Positive | Clear Command look (SRD-GUI-034.086) | one answered and one failed question | failed reply says Not answered; Command has 3 panels; Ask is the filled button | Pass |
+| UT-GUI-034.087.M24.T01 | MD-GUI-034.034.M24 | Positive | Refresh approvals (SRD-GUI-034.087) | no picks, then 2 picks added, Refresh clicked | heading count 0 then 2; cards shown | Pass |
+| UT-GUI-034.088.M26.T01 | MD-GUI-034.039.M26 | Positive | Discussions by day (SRD-GUI-034.088) | sessions today, yesterday and 4 days ago | groups Today, Yesterday, date; only the first two open; click opens the old day | Pass |
+| UT-GUI-034.088.M26.T02 | MD-GUI-034.039.M26 | Positive | Menu toggles list (SRD-GUI-034.088) | click menu twice | list hidden then shown; + stays | Pass |
+| UT-GUI-034.089.M04.T01 | MD-GUI-034.004.M04 | Positive | AI feed button in strip (SRD-GUI-034.089) | open floor, fold feed; hide and show strip button | width 400; card hidden when folded; button hidden then shown | Pass |
+| UT-GUI-034.090.M11.T01 | MD-GUI-034.012.M11 | Positive | Rotation tail (SRD-GUI-034.090) | 7 days, then 2 days of sector rows | tail = 5 days back; none with 2 days | Pass |
+| UT-GUI-034.090.M27.T01 | MD-GUI-034.047.M27 | Positive | Rotation names and colours (SRD-GUI-034.090) | 4 sectors, 2 almost on one spot | short names, quadrant colours, names do not overlap, hover finds the sector | Pass |
+| UT-GUI-034.090.M27.T02 | MD-GUI-034.047.M27 | Positive | Map / List switch (SRD-GUI-034.090) | click List, new panel, click Map | bars strongest first; choice kept; Map returns | Pass |
+| UT-GUI-034.091.M27.T01 | MD-GUI-034.047.M27 | Positive | Rotation units (SRD-GUI-034.091) | open map, switch to List, read hover text | right note per view; % values; no fund code | Pass |
 | UT-GUI-034.062.M36.T01 | MD-GUI-034.062.M36 | Positive | Approval cards (SRD-GUI-034.062) | ready hire and 2 picks | heading count 3; pick cards with qty; Open Hiring opens Hiring | Pass |
 | UT-GUI-034.063.M36.T01 | MD-GUI-034.062.M36 | Positive | Today's runs (SRD-GUI-034.063) | runs today | one line per run; events one row with count; no Sample tag | Pass |
 | UT-GUI-034.064.M36.T01 | MD-GUI-034.062.M36 | Positive | Team now (SRD-GUI-034.064) | 2 active, 1 shadow | Team now: 2 active · 1 shadow | Pass |

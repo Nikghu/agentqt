@@ -182,6 +182,74 @@ def test_rotation_mapping(qtbot: QtBot) -> None:
     assert weak.x() < centre.x() and weak.y() > centre.y()
 
 
+_ROWS = [
+    {"sector": "Health Care", "rs_ratio": "106", "rs_momentum": "101",
+     "tail_ratio": 108, "tail_momentum": 103},
+    {"sector": "Consumer Staples", "rs_ratio": "105.8", "rs_momentum": "101.1"},
+    {"sector": "Information Technology", "rs_ratio": "95", "rs_momentum": "98.5"},
+    {"sector": "Energy", "rs_ratio": "100.2", "rs_momentum": "97"},
+]
+
+
+def test_rotation_names_colours_labels(qtbot: QtBot) -> None:
+    """UT-GUI-034.090.M27.T01: short names, a colour per quadrant and names that do not cover
+    each other, even for two sectors almost on the same spot."""
+    from PyQt6.QtGui import QPainter
+
+    from us_swing.gui.floor_charts import quadrant_colour, sector_name
+
+    assert sector_name("Consumer Staples") == "Staples" and sector_name("Energy") == "Energy"
+    assert quadrant_colour(105, 101) == QColor(C.GREEN)
+    assert quadrant_colour(100.2, 97) == QColor(C.YELLOW)
+    assert quadrant_colour(95, 98.5) == QColor(C.RED)
+    view = RotationView(_ROWS)
+    qtbot.addWidget(view)
+    view.resize(500, 260)
+    painter = QPainter(view.grab())
+    rects = [rect for _p, _s, rect in view.label_rects(painter)]
+    painter.end()
+    assert all(not a.intersects(b) for i, a in enumerate(rects) for b in rects[i + 1:])
+    spot = view.to_screen(106, 101)
+    hit = view.point_at(spot)
+    assert hit is not None and hit.sector == "Health Care" and hit.tail == (108.0, 103.0)
+
+
+def test_rotation_list_switch(qtbot: QtBot) -> None:
+    """UT-GUI-034.090.M27.T02: List shows strength bars strongest first and the choice is kept
+    for the next panel; Map goes back."""
+    from us_swing.gui.floor_charts import RotationPanel
+
+    panel = RotationPanel(_ROWS)
+    qtbot.addWidget(panel)
+    assert panel._stack.currentWidget() is panel.map
+    panel.list_btn.click()
+    assert panel._stack.currentWidget() is panel.list and panel.list_btn.isChecked()
+    assert [(p.sector, round(v, 1)) for p, v in panel.list.bars()] == [
+        ("Health Care", 6.0), ("Consumer Staples", 5.8), ("Energy", 0.2),
+        ("Information Technology", -5.0)]
+    again = RotationPanel(_ROWS)
+    qtbot.addWidget(again)
+    assert again._stack.currentWidget() is again.list
+    again.map_btn.click()
+    assert again._stack.currentWidget() is again.map and not RotationPanel.list_mode
+
+
+def test_rotation_units(qtbot: QtBot) -> None:
+    """UT-GUI-034.091.M27.T01: the note says what the numbers mean in each view and the
+    hover text gives % values with no fund codes."""
+    from us_swing.gui.floor_charts import LIST_NOTE, MAP_NOTE, RotationPanel, _tip
+
+    panel = RotationPanel(_ROWS)
+    qtbot.addWidget(panel)
+    assert panel.note.text() == MAP_NOTE and "50-day" in MAP_NOTE
+    panel.list_btn.click()
+    assert panel.note.text() == LIST_NOTE and "%" in LIST_NOTE
+    panel.map_btn.click()
+    tip = _tip(panel.map.points()[0])
+    assert "Strength +6.0% against its 50-day average" in tip
+    assert "5 days ago: strength +8.0%, momentum +3.0%" in tip and "XLV" not in tip
+
+
 def test_idea_delegates(qtbot: QtBot) -> None:
     """UT-GUI-034.051.M27.T01: score and side delegates are set on idea tables only."""
     data = SampleFloorData()

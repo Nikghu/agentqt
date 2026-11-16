@@ -19,7 +19,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from us_swing.core.desk_contract import DB_NAME
+from us_swing.core.desk_contract import DB_NAME, SECTOR_BENCHMARK
 
 log = logging.getLogger(__name__)
 
@@ -127,7 +127,7 @@ def member_symbols(
         pairs = (universe or _saved_universe)()
     except Exception as exc:  # noqa: BLE001 — fall back to the candles on any list failure
         log.warning("[Regime] S&P 500 list not available, using all stocks with candles: %s", exc)
-        found = sorted(available - {BENCHMARK})
+        found = sorted(available - {BENCHMARK, SECTOR_BENCHMARK})
         return Members(found, len(found), "all stocks with candles")
     pairs = [p for p in pairs if BENCHMARK not in p]
     found = sorted({next((s for s in pair if s in available), "") for pair in pairs} - {""})

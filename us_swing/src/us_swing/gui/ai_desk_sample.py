@@ -7,7 +7,6 @@ replaces this later without any GUI change.
 """
 from __future__ import annotations
 
-SEAT_CAPS = {"Experts": 3, "Champions": 5, "Juniors": 30}
 MONTHLY_BUDGET = 10.0
 DATA_FOLDER = "~/.usswing/desk/"
 LLM_SOURCES = (

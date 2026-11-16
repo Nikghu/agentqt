@@ -180,7 +180,7 @@ def test_seat_caps_saved(qtbot: QtBot, tmp_path: Path) -> None:
     """UT-GUI-034.033.M23.T01: a changed expert cap is saved."""
     form = DeskAiSettingsForm(tmp_path)
     qtbot.addWidget(form)
-    assert form.caps["expert"].text() == "8"
+    assert form.caps["expert"].text() == "50"
     form.caps["expert"].setText("9")
     assert form.save()
     assert load_settings(tmp_path).expert_cap == 9

@@ -11,6 +11,7 @@ Also: MD-MKT-006.008.M05 — news tables (SRD-MKT-006.001, .003, .008)
 Also: MD-MKT-007.004.M03 — append-only ``canvas_pages`` report page versions (SRD-MKT-007.004)
 Also: MD-MKT-009.004.M02 — ``pick_results`` paper results (SRD-MKT-009.004)
 Also: ``candle_topup`` desk copy of daily bars (SRD-MKT-001.014, .015)
+Also: ``market_meta`` key/value table; sector benchmark kept there (SRD-MKT-002.012)
 
 Market tables in ``desk.db``: ``regime_snapshot``, ``breadth_daily``, ``vix_daily``,
 ``sector_daily``, ``stock_rs``, ``stock_score``, ``ideas``, ``idea_reasons``,
@@ -122,6 +123,7 @@ CREATE TABLE IF NOT EXISTS candle_topup (
     symbol TEXT, date TEXT, open REAL, high REAL, low REAL, close REAL, volume INTEGER,
     fetched TEXT, PRIMARY KEY (symbol, date)
 );
+CREATE TABLE IF NOT EXISTS market_meta (key TEXT PRIMARY KEY, value TEXT);
 """
 
 
@@ -480,6 +482,21 @@ class MarketStore:
         with self._con:
             self._put("regime_snapshot", RegimeRow, [astuple(r) for r in regimes])
             self._put("breadth_daily", BreadthRow, [astuple(r) for r in breadths])
+
+    def meta(self, key: str) -> str | None:
+        """Return a stored ``market_meta`` value, or ``None``."""
+        row = self._con.execute("SELECT value FROM market_meta WHERE key = ?", (key,)).fetchone()
+        return None if row is None else str(row[0])
+
+    def set_meta(self, key: str, value: str) -> None:
+        """Store a ``market_meta`` value."""
+        with self._con:
+            self._con.execute("INSERT OR REPLACE INTO market_meta VALUES (?, ?)", (key, value))
+
+    def clear_sector_days(self) -> None:
+        """Delete every ``sector_daily`` row, so all days are computed again."""
+        with self._con:
+            self._con.execute("DELETE FROM sector_daily")
 
     def stored_sector_dates(self) -> set[str]:
         """Return every ISO date already in ``sector_daily``."""

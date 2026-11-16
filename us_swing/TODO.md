@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-11-11 (Session 134)
+**Last Updated:** 2026-11-16 (Session 152)
 
 ---
 
@@ -191,3 +191,10 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T168 | MKT step F book to strategy — app check: put a book in ~/.usswing/desk/books, see it in the lead's plan prompt, approve a book ticket (`upload:<file> ch <n>`), get a strategy card; a repeat ticket for that chapter fails. | `market/book_strategy.py` | High | Open |
 | T169 | AI Desk header: Last run and Next run tiles show day and date, ET only (SRD-GUI-034.065 updated). Merged PR #139; user checked 2026-11-12. | `gui/ai_desk.py` | Low | Done |
 | T170 | AI Desk Research: Add book button copies a chosen PDF/TXT/MD/HTML into the desk books folder, and a Books list shows added date and chapters read (SRD-GUI-039.006–.008). Merged PR #139; user checked 2026-11-12. | `gui/ai_desk_research.py`, `core/desk_books.py` | Medium | Done |
+| T182 | GUI — App check of the AI Desk Command view (SRD-GUI-034.086–.088): 3 panels, coloured lead cards, red Not answered, + and menu buttons, discussions by day; Refresh on Approvals waiting (SRD-GUI-034.087). | `gui/ai_desk_chat.py`, `gui/ai_desk_hiring.py` | Medium | Open |
+| T183 | GUI — App check: the AI feed button in the right strip shows only on Market Floor; feed is 400 px and folding hides the card (SRD-GUI-034.089). Decide whether to remove the old Fold feed header button. | `gui/market_floor.py`, `gui/floor_feed.py` | Low | Open |
+| T184 | GUI — App check of the sector rotation panel (SRD-GUI-034.090–.091): names and quadrant colours, 5-day tails, Map / List switch with strength bars, % values with a note under each view, hover text. | `gui/floor_charts.py`, `core/desk_floor.py` | Medium | Open |
+| T185 | MKT — RSP for sectors (SRD-MKT-002.011–.013). With TWS on: Settings → Update now to download RSP; run one desk run to recompute sectors; then a Backtest Data download so the score proof has RSP. | `market/sectors.py`, `market/sector_step.py`, `gui/app_service.py` | High | Open |
+| T186 | DSK — The Claude CLI subscription-limit wording is unknown. When it happens, confirm the regex (SRD-DSK-004.012) catches the real message and the run falls back to the backup source with a plain reason. | `desk/gateway.py` | Low | Open |
+| T187 | GUI — Fix the out-of-date test test_main_window_lists_screens: it expects no Market Floor or AI Desk in the sidebar. Same test as T141; close both when fixed. | `tests/gui/test_sidebar_shell.py` | Low | Open |
+| T188 | GUI — Optional: remember whether the discussions list is open or closed across app restarts (SRD-GUI-034.088). Not needed for the feature; decide later. | `gui/ai_desk_chat.py` | Low | Open |

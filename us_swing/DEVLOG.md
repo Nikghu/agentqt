@@ -2,6 +2,17 @@
 
 ---
 
+## [20261116] DSK — AI Desk review fixes, Command redesign, AI feed button, rotation map, sectors vs RSP (FO-DSK-004, FO-GUI-034, FO-MKT-002, FO-MKT-010)
+
+- Type: Feature
+- FO(s): FO-DSK-004, FO-GUI-034, FO-MKT-002, FO-MKT-010
+- RN: RN-DSK-0.22.0-20261116
+- Artifacts updated: SRD (DSK-004.011–.012, MKT-002.011–.013, MKT-010.023, GUI-034.086–.091 Implemented), DD (existing: DD-DSK-002.001.D01, DD-MKT-002.001.D01, DD-MKT-010.009.D01, DD-GUI-034.001.D01), MD (listed in RN), UTCD (17 new cases Pass: DSK 3, MKT 4, GUI 10), Code, Tests, RN, TRACE (desk, market, gui), CONTEXT, TODO (T182–T188). Branch fix/dsk-v3-review-part1, 10 commits incl. 30e9e8c9 (from before this session), not pushed, PR pending. Close-out docs not committed.
+- Decisions: Claude CLI calls have no per-employee token limit (desk-wide CLI tokens per day, 0 = no limit); a CLI usage-limit or busy error skips CLI for the run and tries the backup; failed chat reply names the reason; sectors measured against RSP, regime stays on SPY, one full recompute via market_meta; expert cap default 8 to 50 (30e9e8c9, context only); Command view and AI feed button layout not yet checked in the app (T182, T183).
+- Known: pre-existing failing test test_main_window_lists_screens (T141/T187); RSP needs a TWS download and a desk run (T185).
+
+---
+
 ## [20261116] DSK — AI Desk v3 M7b: tool builder (FO-DSK-013, FO-MKT-021, FO-MKT-010, FO-GUI-041, FO-GUI-034)
 
 - Type: Feature

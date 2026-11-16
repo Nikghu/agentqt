@@ -257,6 +257,7 @@ def test_approve_starts_the_trial(home: Path) -> None:
 def test_refused_hire(home: Path) -> None:
     """UT-DSK-006.022.M35.T02: With the 8 expert seats taken, Approve returns the reason and the
     proposal keeps waiting."""
+    save_settings(DeskAiSettings(expert_cap=8), home)
     for n in range(8):
         ps.hire(home, f"emp-0{n}", f"Seat {n}", f"skill_{n}")
     pid = save_proposal(home, ps.SEC, ps.need(), "why", "openrouter", "m", None, ps.NOW)

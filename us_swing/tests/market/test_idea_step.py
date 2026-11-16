@@ -28,7 +28,7 @@ def _closes(n: int, seed: int) -> list[float]:
 
 
 def _make(path: Path, n: int = N) -> None:
-    series: dict[str, Sequence[float]] = {"SPY": _closes(n, 0)}
+    series: dict[str, Sequence[float]] = {"SPY": _closes(n, 0), "RSP": _closes(n, 99)}
     for i, sym in enumerate(SECTORS):
         series[sym] = _closes(n, i + 1)
     if path.exists():

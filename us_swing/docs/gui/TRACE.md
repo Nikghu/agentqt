@@ -174,6 +174,12 @@
 | FO-GUI-034 | SRD-GUI-034.084 | DD-GUI-034.081.D01 | MD-GUI-034.016.M15 (changed) | UT-GUI-034.084.M15.T01–T02 (2, Pass) | `gui/ai_desk_settings.py` | Implemented | RN-DSK-0.20.0-20261115 |
 | FO-GUI-041 | SRD-GUI-041.006–.010 | DD-GUI-041.006.D01 | MD-GUI-041.001.M01 (changed) | UT-GUI-041.006–.010 (10, Pass) | `gui/ai_desk_tools.py` | Implemented | RN-DSK-0.21.0-20261116 |
 | FO-GUI-034 | SRD-GUI-034.085 | DD-GUI-041.006.D01 | MD-GUI-034.016.M15 (changed) | UT-GUI-034.085.M15.T01–T03 (3, Pass) | `gui/ai_desk_settings.py` | Implemented | RN-DSK-0.21.0-20261116 |
+| FO-GUI-034 | SRD-GUI-034.086 | DD-GUI-034.001.D01 | MD-GUI-034.039.M26 | UT-GUI-034.086.M26.T01 (1, Pass) | `gui/ai_desk_chat.py` | Implemented | RN-DSK-0.22.0-20261116 |
+| FO-GUI-034 | SRD-GUI-034.087 | DD-GUI-034.001.D01 | MD-GUI-034.034.M24 | UT-GUI-034.087.M24.T01 (1, Pass) | `gui/ai_desk_hiring.py` | Implemented | RN-DSK-0.22.0-20261116 |
+| FO-GUI-034 | SRD-GUI-034.088 | DD-GUI-034.001.D01 | MD-GUI-034.039.M26 | UT-GUI-034.088.M26.T01–T02 (2, Pass) | `gui/ai_desk_chat.py`, `assets/icons/menu.svg` | Implemented | RN-DSK-0.22.0-20261116 |
+| FO-GUI-034 | SRD-GUI-034.089 | DD-GUI-034.001.D01 | MD-GUI-034.004.M04 | UT-GUI-034.089.M04.T01 (1, Pass) | `gui/market_floor.py`, `gui/floor_feed.py` | Implemented | RN-DSK-0.22.0-20261116 |
+| FO-GUI-034 | SRD-GUI-034.090 | DD-GUI-034.001.D01 | MD-GUI-034.012.M11, MD-GUI-034.047.M27 | UT-GUI-034.090.M11.T01, .090.M27.T01–T02 (3, Pass) | `core/desk_floor.py`, `gui/floor_charts.py` | Implemented | RN-DSK-0.22.0-20261116 |
+| FO-GUI-034 | SRD-GUI-034.091 | DD-GUI-034.001.D01 | MD-GUI-034.047.M27 | UT-GUI-034.091.M27.T01 (1, Pass) | `gui/floor_charts.py` | Implemented | RN-DSK-0.22.0-20261116 |
 
 ---
 

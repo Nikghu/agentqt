@@ -1,6 +1,7 @@
 """
 Module: MD-MKT-004.002.M02 — market/proof.py
 Parent SRD: SRD-MKT-004.002
+Also: SRD-MKT-002.011 — sectors measured against RSP, the same as the live desk
 
 Score proof on past data: replays the P1–P3 rules on the Backtest Data daily candles,
 measures 5, 10 and 20-day forward returns per side, groups them by score band, setup and
@@ -18,6 +19,7 @@ import numpy as np
 import pandas as pd
 
 from us_swing.core.desk_contract import desk_home
+from us_swing.core.desk_contract import SECTOR_BENCHMARK
 from us_swing.market.candles import BENCHMARK, member_sectors
 from us_swing.market.proof_data import (
     BACKTEST_ROOT,
@@ -64,7 +66,8 @@ def _inputs(pb: ProofBars, sector_of: dict[str, str]) -> tuple[MarketInputs, pd.
                         averages(spy)], axis=1).dropna(subset=["regime", "volatility",
                                                                "sma200"])
     lines, _ = sector_lines(closes, members)
-    sectors = sector_table(lines, spy).dropna(subset=_READY_COLUMNS)
+    bench = pb.bars.closes[SECTOR_BENCHMARK].reindex(spy.index)
+    sectors = sector_table(lines, bench).dropna(subset=_READY_COLUMNS)
     ratings = rs_table(rs_scores(closes), members)["rs_rating"].unstack("symbol")
     inp = MarketInputs(
         Bars(closes, align(pb.bars.highs), align(pb.bars.lows), align(pb.bars.volumes)),
@@ -242,7 +245,11 @@ def run_proof(
     if BENCHMARK not in available or not members.sectors:
         log.warning("[Proof] No SPY or S&P 500 daily candles in Backtest Data; nothing tested")
         return None
-    pb = read_daily([*members.sectors, BENCHMARK], root)
+    if SECTOR_BENCHMARK not in available:
+        log.warning("[Proof] No RSP (equal-weight S&P 500) daily candles in Backtest Data; "
+                    "run a Backtest Data download first; nothing tested")
+        return None
+    pb = read_daily([*members.sectors, BENCHMARK, SECTOR_BENCHMARK], root)
     if pb is None:
         return None
     inp, spy_bars = _inputs(pb, members.sectors)

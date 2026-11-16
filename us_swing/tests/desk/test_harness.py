@@ -414,7 +414,8 @@ def test_context_is_ask_only(home: Path) -> None:
     _run(_step(FakeCaller(GOOD)), home)
     ctx = STATE.seen[0]
     assert {n for n in dir(ctx) if not n.startswith("_")} == {
-        "home", "ask", "answered", "refused", "talk", "drafts", "send", "asked"}
+        "home", "ask", "answered", "refused", "limit_hit", "why_no_answer", "talk", "drafts",
+        "send", "asked"}
     assert not ctx.talk and ctx.drafts == []
     assert ctx.home == home
 

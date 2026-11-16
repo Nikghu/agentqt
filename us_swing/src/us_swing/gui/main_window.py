@@ -598,6 +598,11 @@ class MainWindow(QMainWindow):
         self._sidebar.hover_changed.connect(self._on_sidebar_hover)
         # strip → panel_toggled → MainWindow → RevealController
         self._strip.panel_toggled.connect(self._on_panel_toggled)
+        # floor feed → folded_changed → strip → AI feed button state
+        feed = self._floor_panel.feed
+        feed.folded_changed.connect(lambda folded: self._strip.set_checked("feed", not folded))
+        self._strip.set_checked("feed", not feed.is_folded())
+        self._strip.set_feed_shown(self._stack.currentWidget() is self._floor_panel)
         # reveal → revealed → MainWindow → strip buttons + sidebar room
         self._reveal.revealed.connect(self._on_panel_revealed)
         # svc → log_message → strip → warning badge while the log is closed
@@ -668,6 +673,7 @@ class MainWindow(QMainWindow):
         self._stack.setCurrentIndex(index)
         self._slide_in(self._stack.currentWidget())
         self._mini_state.set_page(index)
+        self._strip.set_feed_shown(self._stack.currentWidget() is self._floor_panel)
         if index in _NO_PANEL_PAGES:
             for name in ("right", "log"):
                 if self._reveal.is_open(name):
@@ -683,6 +689,9 @@ class MainWindow(QMainWindow):
         self._on_page_requested(index)
 
     def _on_panel_toggled(self, name: str, show: bool) -> None:
+        if name == "feed":
+            self._floor_panel.feed.set_folded(not show)
+            return
         if name == "log":
             self._reveal.reveal_requested.emit("log", show)
             return

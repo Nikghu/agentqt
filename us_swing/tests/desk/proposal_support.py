@@ -24,7 +24,8 @@ NOW = datetime(2026, 11, 13, 9, 0, tzinfo=NY)  # a Friday
 DAY = "2026-11-13"
 BOSS, SEC, FAIL = "emp-b", "emp-s", "emp-f"
 SETTINGS = DeskAiSettings(openrouter_on=True, openrouter_model="m", claude_on=True,
-                          claude_model="c", messages_on=True, hire_proposals_on=True)
+                          claude_model="c", messages_on=True, hire_proposals_on=True,
+                          expert_cap=8)
 SOUL = "You are {name}, {title}."
 
 

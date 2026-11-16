@@ -249,3 +249,15 @@ def test_unsettled_copy_fetched_again(tmp_path: Path) -> None:
     _step(candles, fetch)(_ctx(home))
     assert fetch.calls == [["S000"]]
     assert _copy(home) == [("S000", TUE, 1000)]
+
+
+def test_rsp_kept_fresh(tmp_path: Path) -> None:
+    """UT-MKT-002.013.M06.T01: RSP behind is filled from Yahoo like SPY; with no RSP candles at
+    all it is not asked for and the run is not stopped."""
+    fetch = FakeFetch()
+    candles = _candles(tmp_path / "candles.db", {"RSP": MON}, (*MEMBERS, "SPY", "RSP"))
+    _step(candles, fetch)(_ctx(tmp_path / "desk"))
+    assert fetch.calls == [["RSP"]]
+    none = FakeFetch()
+    _step(_candles(tmp_path / "plain.db"), none)(_ctx(tmp_path / "desk2"))
+    assert none.calls == []

@@ -152,6 +152,8 @@
 | SRD-DSK-004.008 | FO-DSK-004 | Must | A call counts against market hours when woken by a check-in or watcher flag, against research when it works a ticket, and against plan otherwise. | event, ticket | part | The part is kept on each `activity` row | Implemented |
 | SRD-DSK-004.009 | FO-DSK-004 | Must | No call is made once its part is used up for the day; a ticket call is paid from the raising lead's research part, not the doer's. | `activity` tokens | allow or refuse | A refusal is handled like other budget refusals (SRD-DSK-003.018) | Implemented |
 | SRD-DSK-004.010 | FO-DSK-004 | Should | A call refused for a used-up part logs the employee, the part and the tokens used. | refusal | log line | `[Budget]` prefix | Implemented |
+| SRD-DSK-004.011 | FO-DSK-004 | Must | Claude Code CLI calls skip the per-employee day parts; only the desk-wide CLI tokens per day applies, and 0 means no limit. | source, `activity` tokens | allow or refuse | OpenRouter calls keep the parts; ticket caps still apply | Implemented |
+| SRD-DSK-004.012 | FO-DSK-004 | Must | A CLI usage-limit or busy error stops CLI use for the run, tries the backup source and keeps a plain reason for the user. | CLI error | reason, backup try | `[AI Desk]` warning line; no alert | Implemented |
 
 ## FO-DSK-005: Activity Recorder and Replay
 
@@ -171,7 +173,7 @@
 |---|---|---|---|---|---|---|---|
 | SRD-DSK-006.001 | FO-DSK-006 | Must | Starting a hire creates a new employee folder with the next free id, the chosen skill, level, name and model, and status `shadow`. | skill, level, name, model | employee folder | Soul copied from the skill's shipped default; the Master User may edit it later | Implemented |
 | SRD-DSK-006.002 | FO-DSK-006 | Must | A hire is refused when the skill is unknown, the name is already used, or the level's seat cap is full. | request | reason | Active and shadow employees count against the cap | Implemented |
-| SRD-DSK-006.003 | FO-DSK-006 | Must | Seat caps default to 8 experts, 5 champions and 30 juniors and are kept in the desk settings. | settings | caps | The lead level has no cap | Implemented |
+| SRD-DSK-006.003 | FO-DSK-006 | Must | Seat caps default to 50 experts, 5 champions and 30 juniors and are kept in the desk settings. | settings | caps | The lead level has no cap | Implemented |
 | SRD-DSK-006.004 | FO-DSK-006 | Must | A shadow employee wakes with its skill's holder and gets the same facts, but its answer is only checked and recorded. | event, facts | `activity` rows marked shadow | The skill's act is never called, so no views, picks, briefs or events are written | Implemented |
 | SRD-DSK-006.005 | FO-DSK-006 | Must | A shadow ends after 14 data days with a recorded shadow answer, and the hire becomes ready for a decision. | `activity` | hire state | A failed or missing answer still counts as a day only when the facts were fresh | Implemented |
 | SRD-DSK-006.006 | FO-DSK-006 | Must | The shadow report gives, for the hire and the holder over the same days, the share of valid answers, tokens, cost and agreement. | `activity` | report rows | Agreement compares the short typed values of both valid answers on the same day; free text is left out | Implemented |

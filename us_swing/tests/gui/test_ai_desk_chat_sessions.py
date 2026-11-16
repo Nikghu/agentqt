@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from PyQt6.QtWidgets import QLabel, QWidget
+from PyQt6.QtWidgets import QLabel, QTreeWidgetItem, QWidget
 from pytestqt.qtbot import QtBot
 
 from tests.desk.test_hiring import _emp
@@ -45,6 +45,13 @@ def _session(home: Path, title: str, when: datetime) -> int:
     return sid
 
 
+def _leaves(panel: ChatPanel) -> list[QTreeWidgetItem]:
+    tree = panel.session_tree
+    return [tree.topLevelItem(g).child(c)  # type: ignore[union-attr]
+            for g in range(tree.topLevelItemCount())
+            for c in range(tree.topLevelItem(g).childCount())]  # type: ignore[union-attr]
+
+
 def _replied(home: Path) -> int:
     qid = dc.ask_question(home, "Why?", NOW)
     dc.add_reply(home, qid, "First answer.", True, NOW)
@@ -73,9 +80,9 @@ def test_session_list(qtbot: QtBot, tmp_path: Path) -> None:
     old = _session(tmp_path, "Old topic", NOW - timedelta(hours=3))
     new = _session(tmp_path, "New topic", NOW - timedelta(hours=1))
     panel = _panel(qtbot, tmp_path)
-    ids = [panel.session_list.item(i).data(0x100) for i in range(panel.session_list.count())]
-    assert ids == [new, old]
-    panel.session_list.itemClicked.emit(panel.session_list.item(1))
+    items = _leaves(panel)
+    assert [i.data(0, 0x100) for i in items] == [new, old]
+    panel.session_tree.itemClicked.emit(items[1], 0)
     qtbot.wait(50)
     texts = " ".join(_texts(panel))
     assert "Answer to Old topic" in texts and "Answer to New topic" not in texts
@@ -91,7 +98,7 @@ def test_list_hidden_when_off(qtbot: QtBot, tmp_path: Path) -> None:
     _replied(tmp_path)
     dc.add_reply(tmp_path, dc.ask_question(tmp_path, "Second?", NOW), "Second answer.", True, NOW)
     panel = _panel(qtbot, tmp_path)
-    assert panel.side.isHidden() and panel.session_list.count() == 0
+    assert panel.side.isHidden() and panel.session_tree.topLevelItemCount() == 0
     texts = " ".join(_texts(panel))
     assert "First answer." in texts and "Second answer." in texts
 
@@ -144,3 +151,31 @@ def test_plain_reply(qtbot: QtBot, tmp_path: Path) -> None:
     reply = [t for t in _texts(panel) if "First answer." in t]
     assert len(reply) == 1 and "Update" not in reply[0]
     assert panel.note.text() == ""
+
+
+def test_sessions_by_day(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-034.088.M26.T01: sessions grouped by day; only Today and Yesterday start open."""
+    _on(tmp_path)
+    _session(tmp_path, "Today topic", NOW - timedelta(hours=1))
+    _session(tmp_path, "Yesterday topic", NOW - timedelta(days=1))
+    _session(tmp_path, "Old topic", NOW - timedelta(days=4))
+    panel = _panel(qtbot, tmp_path)
+    tree = panel.session_tree
+    groups = [tree.topLevelItem(i) for i in range(tree.topLevelItemCount())]
+    assert [g.text(0) for g in groups] == ["Today", "Yesterday", "Tue 3 Nov"]  # type: ignore[union-attr]
+    assert [g.isExpanded() for g in groups] == [True, True, False]  # type: ignore[union-attr]
+    assert groups[2].child(0).text(0).startswith("Old topic · ")  # type: ignore[union-attr]
+    panel.session_tree.itemClicked.emit(groups[2], 0)
+    assert groups[2].isExpanded()  # type: ignore[union-attr]
+
+
+def test_menu_toggles_list(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-034.088.M26.T02: the menu button hides the discussions list and shows it again."""
+    _on(tmp_path)
+    _session(tmp_path, "Topic", NOW - timedelta(hours=1))
+    panel = _panel(qtbot, tmp_path)
+    assert panel.side.isVisibleTo(panel) and panel.menu_btn.isVisibleTo(panel)
+    panel.menu_btn.click()
+    assert not panel.side.isVisibleTo(panel) and panel.new_btn.isVisibleTo(panel)
+    panel.menu_btn.click()
+    assert panel.side.isVisibleTo(panel)

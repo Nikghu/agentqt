@@ -4,6 +4,7 @@ Parent SRD: SRD-GUI-019.001
 
 Right-edge icon strip that opens the side panels, and the Position Details
 panel shown in the right panel (SRD-GUI-019.003).
+Also: SRD-GUI-034.089 — AI feed button, shown only while Market Floor is open
 """
 from __future__ import annotations
 
@@ -27,7 +28,8 @@ from us_swing.gui.theme import active_palette
 
 _STRIP_ITEMS = (("details", "clipboard-list", "Position Details"),
                 ("watch", "eye", "Watchlist"),
-                ("log", "scroll-text", "Live Log"))
+                ("log", "scroll-text", "Live Log"),
+                ("feed", "message-square", "AI feed"))
 _ALERT_LEVELS = frozenset({"WARNING", "ERROR", "CRITICAL"})
 
 
@@ -86,6 +88,10 @@ class IconStrip(QFrame):
         self._unseen += 1
         self._badge.setText(str(self._unseen) if self._unseen < 100 else "99+")
         self._badge.show()
+
+    def set_feed_shown(self, shown: bool) -> None:
+        """Show the AI feed button only while Market Floor is the open page."""
+        self._buttons["feed"].setVisible(shown)
 
     @property
     def unseen(self) -> int:

@@ -7,6 +7,7 @@ only), SRD-MKT-010.008 (log lines), SRD-MKT-010.013 (session facts), SRD-MKT-010
 SRD-MKT-010.019 (log lines), SRD-MKT-010.020 (table hint), SRD-MKT-010.021 (table update
 written by code) — AI Desk v3 M6
 Also: SRD-MKT-010.022 (tool request hint) — AI Desk v3 M7b
+Also: SRD-MKT-010.023 (the failed reply says why, when the desk knows)
 
 The lead chat skill: answers the Master's oldest open question from the day's facts, the
 recent picks with their paper results and the last chat turns (of the question's session when
@@ -162,6 +163,14 @@ def tool_hint(home: Path) -> str:
     return TOOL_HINT
 
 
+def failed_text(ctx: AgentContext) -> str:
+    """The failed reply, with the reason when the gateway knows one."""
+    why = getattr(ctx, "why_no_answer", None)
+    if not why:
+        return FAILED_TEXT
+    return f"The desk could not answer this question: {why}. Please ask again later."
+
+
 def _drop_new(talk: Talker | None, start: int) -> None:
     if talk is not None:
         del talk.drafts[start:]
@@ -230,7 +239,7 @@ class LeadChatSkill:
         reply = ctx.ask(text, LeadChatAnswer)
         if talk is not None:
             keep_one_ask(talk, start, question.id, on)
-        add_reply(ctx.home, question.id, reply.answer if reply else FAILED_TEXT,
+        add_reply(ctx.home, question.id, reply.answer if reply else failed_text(ctx),
                   reply is not None, self._clock())
         if reply is None:
             log.warning("[Chat] Question %d got no answer", question.id)

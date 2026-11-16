@@ -2,7 +2,7 @@
 Module: MD-MKT-002.002.M02 — market/sectors.py
 Parent SRD: SRD-MKT-002.002
 
-Pure sector rules: equal-weight sector lines, moves against SPY, rank, RS-ratio,
+Pure sector rules: equal-weight sector lines, moves against the benchmark, rank, RS-ratio,
 RS-momentum and rotation quadrant (DD-MKT-002.001.D01).
 """
 from __future__ import annotations
@@ -23,7 +23,7 @@ def sector_lines(
     """Return each sector's line (starts at 100) and its member count per day.
 
     Args:
-        closes: Member closes, one column per symbol, aligned to SPY's days.
+        closes: Member closes, one column per symbol, aligned to the benchmark's days.
         sector_of: Symbol to sector; symbols not in ``closes`` are left out.
     """
     ret = closes / closes.shift(1) - 1
@@ -48,20 +48,21 @@ def quadrant(ratio: float | None, momentum: float | None) -> str | None:
     return "Improving" if momentum >= 100 else "Lagging"
 
 
-def sector_table(lines: pd.DataFrame, spy: pd.Series) -> pd.DataFrame:
-    """Return one row per (date, sector) with moves against SPY, rank, ratio and quadrant.
+def sector_table(lines: pd.DataFrame, bench: pd.Series) -> pd.DataFrame:
+    """Return one row per (date, sector) with moves against the benchmark, rank, ratio and
+    quadrant.
 
     Args:
         lines: Sector lines from ``sector_lines``.
-        spy: SPY closes on the same days.
+        bench: Benchmark closes on the same days (RSP, the equal-weight S&P 500).
     """
-    spy = spy.reindex(lines.index)
+    bench = bench.reindex(lines.index)
     parts: dict[str, pd.DataFrame] = {"line": lines}
     for name, n in WINDOWS.items():
-        parts[name] = (lines / lines.shift(n) - 1).sub(spy / spy.shift(n) - 1, axis=0)
+        parts[name] = (lines / lines.shift(n) - 1).sub(bench / bench.shift(n) - 1, axis=0)
     mean_rel = (parts["rel_1m"] + parts["rel_3m"] + parts["rel_6m"]) / 3
     parts["rank"] = mean_rel.rank(axis=1, ascending=False, method="min")
-    rs = lines.div(spy, axis=0)
+    rs = lines.div(bench, axis=0)
     ratio = 100 * rs / rs.rolling(RATIO_DAYS).mean()
     parts["rs_ratio"] = ratio
     parts["rs_momentum"] = 100 * ratio / ratio.shift(MOMENTUM_DAYS)

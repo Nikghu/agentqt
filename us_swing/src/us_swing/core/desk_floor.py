@@ -39,6 +39,7 @@ _REGIME_COLUMNS = ("regime", "volatility", "fear", "vix", "data_date", "note")
 _BREADTH_COLUMNS = ("measure", "value", "reading")
 SECTORS_ID = "sectors.rank"
 RRG_ID = "sectors.rrg"
+TAIL_DAYS = 5
 TILES_ID = "market.tiles"
 HISTORY_ID = "breadth.history"
 HISTORY_DAYS = 60
@@ -159,6 +160,14 @@ class DeskFloorData:
             "ORDER BY rank IS NULL, rank, sector"
         )
 
+    def _rrg_tails(self) -> dict[str, tuple[float, float]]:
+        """RS ratio and momentum per sector 5 trading days before the latest day."""
+        rows = self._query_all(
+            "SELECT sector, rs_ratio, rs_momentum FROM sector_daily WHERE date = ("
+            "SELECT date FROM sector_daily GROUP BY date ORDER BY date DESC LIMIT 1 OFFSET ?) "
+            "AND rs_ratio IS NOT NULL AND rs_momentum IS NOT NULL", (TAIL_DAYS,))
+        return {str(s): (float(x), float(y)) for s, x, y in rows}
+
     def _leaders_day(self) -> str | None:
         row = self._query("SELECT MAX(date) FROM stock_rs")
         return row[0] if row and row[0] else None
@@ -264,6 +273,12 @@ class DeskFloorData:
             ]
         if product_id in (SECTORS_ID, RRG_ID) and (sectors := self._latest_sectors()):
             rows = [_sector_row(product_id, r) for r in sectors]
+            if product_id == RRG_ID:
+                tails = self._rrg_tails()
+                for item in rows:
+                    tail = tails.get(item["sector"])
+                    if tail is not None:
+                        item["tail_ratio"], item["tail_momentum"] = tail
             return [r for r in rows if _matches(r, filters)]
         if product_id == LEADERS_ID:
             return self._leaders(filters.get("sector"))
@@ -312,7 +327,7 @@ class DeskFloorData:
         if sectors := self._latest_sectors():
             _day, _rank, sector, rel_1m, *_rest = sectors[0]
             tiles.append({"title": "Leading sector", "value": sector,
-                          "note": f"{_signed_pct(rel_1m)} vs SPY 1M"})
+                          "note": f"{_signed_pct(rel_1m)} vs equal-weight S&P 1M"})
         return tiles
 
     def _history(self) -> list[dict[str, Any]]:

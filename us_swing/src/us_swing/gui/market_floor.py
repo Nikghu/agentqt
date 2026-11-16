@@ -108,9 +108,10 @@ class MarketFloorWorkspace(QWidget):
         # feed → decided → this page → _reload_feed
         self.feed.decided.connect(self._reload_feed)
         self.feed.set_live(poller.status.state in LIVE_STATES)
-        self._on_feed_folded(self.feed.is_folded())
         self._reload_feed()
-        main.addWidget(card(self.feed))
+        self._feed_card = card(self.feed)
+        main.addWidget(self._feed_card)
+        self._on_feed_folded(self.feed.is_folded())
         self.set_edit(False)
 
     def _on_desk_status(self, status: DeskStatus) -> None:
@@ -235,6 +236,7 @@ class MarketFloorWorkspace(QWidget):
 
     def _on_feed_folded(self, folded: bool) -> None:
         self.fold_btn.setText("Show feed" if folded else "Fold feed")
+        self._feed_card.setVisible(not folded)
 
     def reset_tab(self) -> None:
         """Put the default panels back on the current tab and save."""

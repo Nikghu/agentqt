@@ -4,6 +4,7 @@ Parent SRD: SRD-MKT-001.013
 Also: SRD-MKT-001.014 (Yahoo desk copy), SRD-MKT-001.015 (copy trimmed once IBKR has the day),
 SRD-MKT-001.016 (stop the run when still behind), SRD-MKT-001.017 (log),
 SRD-DSK-007.007 (candles alert)
+Also: SRD-MKT-002.013 (RSP kept up to date like SPY once it has candles)
 
 Desk step "Candle check", the first step of every morning and manual run. It finds SPY and the
 S&P 500 members whose daily candles stop before the last closed trading day, fills only those
@@ -21,7 +22,7 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 
 from us_swing.core.desk_alerts import Sender, raise_alert
-from us_swing.core.desk_contract import StepContext, desk_home
+from us_swing.core.desk_contract import SECTOR_BENCHMARK, StepContext, desk_home
 from us_swing.core.symbols import yahoo_symbol
 from us_swing.data.market_calendar import get_exchange_status
 from us_swing.market.candles import BENCHMARK, CANDLE_DB, CandleReader, member_symbols
@@ -176,8 +177,9 @@ class CandleCheckStep:
         except FileNotFoundError as exc:
             raise CandleCheckError("No candle file yet; download candles in Settings") from exc
         members = member_symbols(reader.symbols(), self._universe).symbols
-        wanted = [*members, BENCHMARK]
         db_last = reader.last_days()
+        extra = [SECTOR_BENCHMARK] if SECTOR_BENCHMARK in db_last else []
+        wanted = [*members, BENCHMARK, *extra]
         store = MarketStore(home)
         try:
             store.trim_topup({s: d for s, d in db_last.items() if s in wanted})

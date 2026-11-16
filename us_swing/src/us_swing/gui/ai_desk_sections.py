@@ -2,6 +2,7 @@
 Module: MD-GUI-034.009.M08 — AI Desk sections (Command to Hiring)
 Parent SRD: SRD-GUI-034.009
 Also: MD-GUI-034.062.M36 — real Today's runs and Team now in Command (SRD-GUI-034.063–.064)
+Also: SRD-GUI-034.086 — Command parts in their own panels
 
 Frames only: sample content, no real data and no actions. Shared helpers live here too.
 """
@@ -198,13 +199,30 @@ def command_frame(name: str, approvals: QWidget | None = None, chat: QWidget | N
     frame, body = section_frame(name, sample=runs is None)
     row = QHBoxLayout()
     row.setSpacing(12)
-    row.addWidget(chat or _chat_frame(), 3)
+    row.addWidget(_panel(chat or _chat_frame()), 3)
     right = QVBoxLayout()
-    right.addWidget(scroll_of(approvals or muted("No approvals")), 3)
-    right.addWidget(heading("Today's runs"))
-    right.addWidget(runs or make_table(S.RUN_COLUMNS, S.RUNS), 2)
+    right.setSpacing(12)
+    right.addWidget(_panel(scroll_of(approvals or muted("No approvals"))), 3)
+    today = QWidget()
+    lines = QVBoxLayout(today)
+    lines.setContentsMargins(0, 0, 0, 0)
+    lines.addWidget(heading("Today's runs"))
+    lines.addWidget(runs or make_table(S.RUN_COLUMNS, S.RUNS), 1)
     if team is not None:
-        right.addWidget(team)
+        lines.addWidget(team)
+    right.addWidget(_panel(today), 1)
     row.addLayout(right, 2)
     body.addLayout(row, 1)
+    return frame
+
+
+def _panel(content: QWidget) -> QFrame:
+    """Wrap ``content`` in a bordered panel so each Command part reads as one block."""
+    frame = QFrame()
+    frame.setObjectName("command_panel")
+    frame.setStyleSheet(f"QFrame#command_panel {{ background: {C.BG};"
+                        f" border: 1px solid {C.OVERLAY}; border-radius: 10px; }}")
+    lines = QVBoxLayout(frame)
+    lines.setContentsMargins(12, 10, 12, 10)
+    lines.addWidget(content)
     return frame

@@ -106,7 +106,8 @@ class SectorViewSkill:
         text = "\n\n".join([
             f"Data day: {day}",
             f"Regime by the rules: {rule_regime(store, day) or 'unknown'}",
-            f"Sectors against SPY, last {len(days)} days (newest first):\n{table(history)}",
+            f"Sectors against RSP (equal-weight S&P 500), last {len(days)} days "
+            f"(newest first):\n{table(history)}",
             f"Money flow today, average flow points (0 to 20) per sector and side:\n"
             f"{table(flow)}",
             f"Sector names you may use: {', '.join(_sectors(store, day))}",

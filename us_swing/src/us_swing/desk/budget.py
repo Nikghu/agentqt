@@ -5,11 +5,13 @@ Also: SRD-DSK-011.030 (``Part.message``: the thread starter pays)
 Also: SRD-DSK-004.004 — Claude CLI token cap and calls per day
 Also: SRD-DSK-004.007 (50/20/30 split), SRD-DSK-004.009 (part and ticket caps, the raiser
 pays for a ticket), SRD-DSK-004.010 (refusal log)
+Also: SRD-DSK-004.011 (Claude CLI calls skip the day parts; CLI cap 0 = no limit)
 
 Decides, from the activity records, whether one more model call is allowed.
 Only OpenRouter (API) calls carry cost; Claude Code CLI runs on the user's
-subscription, so it counts only tokens against a daily cap. On top, each employee's daily
-tokens are split into a plan, a market-hours and a research part.
+subscription, so it counts only tokens against one desk-wide daily cap (0 = no cap). On top,
+each employee's daily tokens for OpenRouter are split into a plan, a market-hours and a
+research part.
 """
 from __future__ import annotations
 
@@ -74,13 +76,14 @@ class Budget:
         if self._rec.day_tries(day, employee_id) >= calls_per_day * TRIES_PER_CALL:
             return f"{name} reached {calls_per_day} call(s) for today"
         tokens_cap = self._settings.claude_tokens_per_day
-        if source == "claude" and self._rec.day_tokens(day, "claude") >= tokens_cap:
+        if (source == "claude" and tokens_cap
+                and self._rec.day_tokens(day, "claude") >= tokens_cap):
             return f"Claude Code CLI reached {tokens_cap:,} tokens for today"
-        return None if part is None else self._part_refusal(part, day)
+        return None if part is None else self._part_refusal(part, day, source)
 
-    def _part_refusal(self, part: Part, day: str) -> str | None:
+    def _part_refusal(self, part: Part, day: str, source: str) -> str | None:
         used, cap = self._rec.part_tokens(day, part.payer, part.name), part_cap(part)
-        if used >= cap:
+        if source != "claude" and used >= cap:
             label = _PART_LABELS[part.name]
             log.warning("[Budget] %s: %s tokens for today used up (%s of %s)", part.payer_name,
                         label, f"{used:,}", f"{cap:,}")
