@@ -117,6 +117,11 @@ class TelegramPoller:
                 updates = await self._get_updates(offset)
             except asyncio.CancelledError:
                 raise
+            except httpx.TransportError:
+                log.warning("[Notify] Telegram connection dropped; retrying in %d seconds",
+                            self._poll_timeout_s)
+                await asyncio.sleep(self._poll_timeout_s)
+                continue
             except Exception:
                 log.exception("[Notify] Inbound command polling failed; will retry")
                 await asyncio.sleep(self._poll_timeout_s)

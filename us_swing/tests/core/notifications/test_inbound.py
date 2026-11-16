@@ -1,9 +1,11 @@
 """Unit tests for inbound Telegram commands (MD-INF-010.001.M10)."""
 from __future__ import annotations
 
+import asyncio
 import json
 
 import httpx
+import pytest
 
 from us_swing.core.notifications import CommandRouter, TelegramPoller
 
@@ -140,3 +142,25 @@ async def test_unauthorized_chat_ignored(caplog):
     assert next_offset == 8
     assert sent == []
     assert any("[Notify]" in r.message for r in caplog.records)
+
+
+async def test_network_drop_logs_plain_warning_and_retries(caplog):
+    """UT-INF-010.001.M10.T10: a network drop logs one plain warning and polling goes on."""
+    polls: list[httpx.Request] = []
+
+    def _handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/getUpdates"):
+            polls.append(request)
+            if len(polls) == 1:
+                raise httpx.ReadError("connection dropped", request=request)
+            raise asyncio.CancelledError
+        return httpx.Response(200, json={"ok": True})
+
+    client = httpx.AsyncClient(transport=httpx.MockTransport(_handler))
+    poller = TelegramPoller("token", "999", client, CommandRouter(_FakePort()), poll_timeout_s=0)
+    with caplog.at_level("WARNING"), pytest.raises(asyncio.CancelledError):
+        await poller.run()
+    assert len(polls) == 2
+    notify = [r for r in caplog.records if "[Notify]" in r.message]
+    assert [r.levelname for r in notify] == ["WARNING"]
+    assert notify[0].exc_info is None

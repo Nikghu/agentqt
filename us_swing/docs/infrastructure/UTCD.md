@@ -277,6 +277,7 @@
 | UT-INF-010.001.M10.T07 | MD-INF-010.001.M10 | Positive | Poller handles an authorized update, replies, and advances the offset | Fake transport returns one `/help` update from the configured chat | Reply sent via `sendMessage`; next `getUpdates` uses `offset = update_id + 1` | Pass |
 | UT-INF-010.001.M10.T08 | MD-INF-010.001.M10 | Negative | A message from an unauthorized chat is ignored and unanswered | Update whose chat id differs from the configured one | No `sendMessage`; offset still advances | Pass |
 | UT-INF-010.001.M10.T09 | MD-INF-010.001.M10 | Positive | Poller registers its command menu with Telegram on start | `_register_commands()` against a fake transport | One `setMyCommands` POST carrying the 7 commands with descriptions | Pass |
+| UT-INF-010.001.M10.T10 | MD-INF-010.001.M10 | Negative | A network drop in the poll loop logs one plain warning and polling goes on | Fake transport raises `httpx.ReadError` on the first `getUpdates` | One WARNING without traceback; no ERROR; `getUpdates` called again | Pass |
 
 ---
 
