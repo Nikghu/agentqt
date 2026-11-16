@@ -833,6 +833,7 @@
 | SRD-GUI-034.083 | FO-GUI-034 | Should | Hiring lists the latest 50 proposals with made, skill, need, model, view and state; choosing one shows its evidence and why. | `hire_proposals` | list, detail | Read-only; an empty note when there is none | Implemented |
 | SRD-GUI-034.084 | FO-GUI-034 | Must | Desk settings has a Hire proposals check box, off by default, saved as `hire_proposals_on`. | check box | setting | Disabled while Agent messages is unticked | Implemented |
 | SRD-GUI-034.085 | FO-GUI-034 | Must | Desk settings has a Tool builder check box, off by default, saved as `tool_builder_on`. | check box | setting | Enabled without Agent messages; the chat path also needs Agent messages and Chat sessions | Implemented |
+| SRD-GUI-034.086 | FO-GUI-034 | Should | Command shows the chat, approvals and today's runs in their own panels; lead replies are plain cards with a coloured edge, a reply with no answer is marked Not answered in red, and the question box is one bar with the Ask button. | chat turns | Command view | Same widgets and actions as before; text can be selected | Implemented |
 
 ## FO-GUI-035: AI Desk Team at Work
 

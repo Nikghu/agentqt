@@ -115,6 +115,23 @@ def test_chat_bubbles(qtbot: QtBot, tmp_path: Path) -> None:
     assert panel.entry.placeholderText() == "Message the lead"
 
 
+def test_command_clear_look(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-034.086.M26.T01: failed reply marked Not answered; 3 panels; filled Ask button."""
+    qid = dc.ask_question(tmp_path, "Why AAA?", SAT_UTC)
+    dc.add_reply(tmp_path, qid, "Strong sector.", True, SAT_UTC)
+    qid = dc.ask_question(tmp_path, "Why BBB?", SAT_UTC)
+    dc.add_reply(tmp_path, qid, "No answer.", False, SAT_UTC)
+    panel = ChatPanel(tmp_path, lambda: DeskState.RUNNING, lambda: SAT)
+    qtbot.addWidget(panel)
+    texts = [b.findChild(QLabel).text()  # type: ignore[union-attr]
+             for b in panel.findChildren(QFrame, "chat_bubble")]
+    assert ["Not answered" in t for t in texts] == [False, False, False, True]
+    assert panel.ask_btn.objectName() == "primary_btn"
+    page = _page(qtbot, tmp_path)
+    frame = page._stack.currentWidget()
+    assert frame is not None and len(frame.findChildren(QFrame, "command_panel")) == 3
+
+
 def test_approval_cards(qtbot: QtBot, tmp_path: Path) -> None:
     """UT-GUI-034.062.M36.T01: heading count, pick cards with qty, Open Hiring opens Hiring."""
     _ready(tmp_path)

@@ -1206,6 +1206,7 @@ Test files:
 | UT-GUI-034.060.M33.T01 | MD-GUI-034.059.M33 | Positive | Header tiles (SRD-GUI-034.060, .065) | desk.db with a finished run and spend | Last run · ok title, run text with day and date (Thu 05 Nov, 16:05 ET), $1.00 today, bar and title percent | Pass |
 | UT-GUI-034.060.M33.T02 | MD-GUI-034.059.M33 | Negative | No desk data (SRD-GUI-034.060, .065) | empty folder | No runs yet, $0.00, bar 0 | Pass |
 | UT-GUI-034.061.M35.T01 | MD-GUI-034.061.M35 | Positive | Chat bubbles (SRD-GUI-034.061) | one question and one reply | two bubbles; Master right, lead left; ET time shown | Pass |
+| UT-GUI-034.086.M26.T01 | MD-GUI-034.039.M26 | Positive | Clear Command look (SRD-GUI-034.086) | one answered and one failed question | failed reply says Not answered; Command has 3 panels; Ask is the filled button | Pass |
 | UT-GUI-034.062.M36.T01 | MD-GUI-034.062.M36 | Positive | Approval cards (SRD-GUI-034.062) | ready hire and 2 picks | heading count 3; pick cards with qty; Open Hiring opens Hiring | Pass |
 | UT-GUI-034.063.M36.T01 | MD-GUI-034.062.M36 | Positive | Today's runs (SRD-GUI-034.063) | runs today | one line per run; events one row with count; no Sample tag | Pass |
 | UT-GUI-034.064.M36.T01 | MD-GUI-034.062.M36 | Positive | Team now (SRD-GUI-034.064) | 2 active, 1 shadow | Team now: 2 active · 1 shadow | Pass |
