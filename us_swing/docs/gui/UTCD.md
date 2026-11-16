@@ -1214,6 +1214,7 @@ Test files:
 | UT-GUI-034.090.M11.T01 | MD-GUI-034.012.M11 | Positive | Rotation tail (SRD-GUI-034.090) | 7 days, then 2 days of sector rows | tail = 5 days back; none with 2 days | Pass |
 | UT-GUI-034.090.M27.T01 | MD-GUI-034.047.M27 | Positive | Rotation names and colours (SRD-GUI-034.090) | 4 sectors, 2 almost on one spot | short names, quadrant colours, names do not overlap, hover finds the sector | Pass |
 | UT-GUI-034.090.M27.T02 | MD-GUI-034.047.M27 | Positive | Map / List switch (SRD-GUI-034.090) | click List, new panel, click Map | bars strongest first; choice kept; Map returns | Pass |
+| UT-GUI-034.091.M27.T01 | MD-GUI-034.047.M27 | Positive | Rotation units (SRD-GUI-034.091) | open map, switch to List, read hover text | right note per view; % values; no fund code | Pass |
 | UT-GUI-034.062.M36.T01 | MD-GUI-034.062.M36 | Positive | Approval cards (SRD-GUI-034.062) | ready hire and 2 picks | heading count 3; pick cards with qty; Open Hiring opens Hiring | Pass |
 | UT-GUI-034.063.M36.T01 | MD-GUI-034.062.M36 | Positive | Today's runs (SRD-GUI-034.063) | runs today | one line per run; events one row with count; no Sample tag | Pass |
 | UT-GUI-034.064.M36.T01 | MD-GUI-034.062.M36 | Positive | Team now (SRD-GUI-034.064) | 2 active, 1 shadow | Team now: 2 active · 1 shadow | Pass |

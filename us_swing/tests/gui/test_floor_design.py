@@ -234,6 +234,22 @@ def test_rotation_list_switch(qtbot: QtBot) -> None:
     assert again._stack.currentWidget() is again.map and not RotationPanel.list_mode
 
 
+def test_rotation_units(qtbot: QtBot) -> None:
+    """UT-GUI-034.091.M27.T01: the note says what the numbers mean in each view and the
+    hover text gives % values with no fund codes."""
+    from us_swing.gui.floor_charts import LIST_NOTE, MAP_NOTE, RotationPanel, _tip
+
+    panel = RotationPanel(_ROWS)
+    qtbot.addWidget(panel)
+    assert panel.note.text() == MAP_NOTE and "50-day" in MAP_NOTE
+    panel.list_btn.click()
+    assert panel.note.text() == LIST_NOTE and "%" in LIST_NOTE
+    panel.map_btn.click()
+    tip = _tip(panel.map.points()[0])
+    assert "Strength +6.0% against its 50-day average" in tip
+    assert "5 days ago: strength +8.0%, momentum +3.0%" in tip and "XLV" not in tip
+
+
 def test_idea_delegates(qtbot: QtBot) -> None:
     """UT-GUI-034.051.M27.T01: score and side delegates are set on idea tables only."""
     data = SampleFloorData()

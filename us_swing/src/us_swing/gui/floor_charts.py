@@ -4,6 +4,7 @@ Parent SRD: SRD-GUI-034.047
 Also: SRD-GUI-034.048–.051 — heat map, line, rotation views and idea cell delegates
 Also: SRD-GUI-034.090 — readable rotation map (names, colours, tails, hover) and a Map /
 List switch whose List shows strength bars
+Also: SRD-GUI-034.091 — values shown as % with a line that says what they mean
 
 Painted Market Floor panel views. Each view takes product rows (dicts) and draws them with
 ``QPainter`` in theme colours; no web view is used.
@@ -232,6 +233,10 @@ _QUADRANTS = (("Improving", "TEAL", 0, 0), ("Leading", "GREEN", 1, 0),
               ("Lagging", "RED", 0, 1), ("Weakening", "YELLOW", 1, 1))
 _QUAD_COLOUR = {name: colour for name, colour, _col, _row in _QUADRANTS}
 _LABEL_STEPS = (0, -1, 1, -2, 2, -3, 3)
+MAP_NOTE = ("Right: stronger against the S&P 500 than its own 50-day average · Up: that "
+            "strength is rising (last 10 days) · Dashed tail: 5 trading days ago")
+LIST_NOTE = ("% above or below its own 50-day average strength against the S&P 500 · each "
+             "sector is an equal-weight mix of its S&P 500 stocks, from daily closes")
 
 
 def sector_name(sector: str) -> str:
@@ -275,12 +280,12 @@ def rotation_points(rows: Rows) -> list[RotationPoint]:
 
 
 def _tip(point: RotationPoint) -> str:
-    ticker = SECTOR_TICKERS.get(point.sector, "")
-    head = f"{point.sector} ({ticker})" if ticker else point.sector
-    lines = [head, f"{quadrant_of(point.ratio, point.momentum)} · strength {point.ratio:.1f}"
-             f" · momentum {point.momentum:.1f}"]
+    lines = [f"{point.sector} · {quadrant_of(point.ratio, point.momentum)}",
+             f"Strength {point.ratio - 100:+.1f}% against its 50-day average",
+             f"Momentum {point.momentum - 100:+.1f}% over 10 days"]
     if point.tail is not None:
-        lines.append(f"5 days ago: strength {point.tail[0]:.1f} · momentum {point.tail[1]:.1f}")
+        lines.append(f"5 days ago: strength {point.tail[0] - 100:+.1f}%, "
+                     f"momentum {point.tail[1] - 100:+.1f}%")
     return "\n".join(lines)
 
 
@@ -422,7 +427,7 @@ class StrengthBars(_Painted):
         painter = self._painter()
         metrics = painter.fontMetrics()
         name_w = max(metrics.horizontalAdvance(sector_name(p.sector)) for p, _v in bars) + 12
-        value_w = metrics.horizontalAdvance("+00.0") + 12
+        value_w = metrics.horizontalAdvance("+00.0%") + 12
         stage_w = metrics.horizontalAdvance("Weakening") + 8
         left, right = _PAD + name_w, self.width() - _PAD - value_w - stage_w
         row_h = min(26.0, (self.height() - 2 * _PAD) / len(bars))
@@ -447,7 +452,7 @@ class StrengthBars(_Painted):
             painter.setPen(QColor(C.SUBTEXT))
             painter.drawText(QRectF(right + 6, top, value_w, row_h),
                              Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
-                             f"{value:+.1f}")
+                             f"{value:+.1f}%")
             painter.setPen(colour)
             painter.drawText(QRectF(right + value_w, top, stage_w, row_h),
                              Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
@@ -494,6 +499,10 @@ class RotationPanel(QWidget):
         self._stack.addWidget(self.map)
         self._stack.addWidget(self.list)
         lines.addWidget(self._stack, 1)
+        self.note = QLabel()
+        self.note.setWordWrap(True)
+        self.note.setStyleSheet(f"color: {C.MUTED};")
+        lines.addWidget(self.note)
         # Map / List buttons → clicked → panel → show that view
         self.map_btn.clicked.connect(lambda: self.show_list(False))
         self.list_btn.clicked.connect(lambda: self.show_list(True))
@@ -503,6 +512,7 @@ class RotationPanel(QWidget):
         """Show the strength bars (``on``) or the map, and remember the choice."""
         RotationPanel.list_mode = on
         self._stack.setCurrentWidget(self.list if on else self.map)
+        self.note.setText(LIST_NOTE if on else MAP_NOTE)
         self.list_btn.setChecked(on)
         self.map_btn.setChecked(not on)
 

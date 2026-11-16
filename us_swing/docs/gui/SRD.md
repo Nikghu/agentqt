@@ -838,6 +838,7 @@
 | SRD-GUI-034.088 | FO-GUI-034 | Should | The lead chat has a + button for a new discussion and a menu button that shows or hides the discussions list; discussions are grouped under their day, with Today and Yesterday open and older days closed. | sessions, clicks | day tree | Clicking a day opens or closes it | Implemented |
 | SRD-GUI-034.089 | FO-GUI-034 | Should | The AI feed is 400 px wide and is shown or hidden by an AI feed button in the right icon strip, which shows only while Market Floor is open. | click, page | feed shown or hidden | Folded state is kept as before | Implemented |
 | SRD-GUI-034.090 | FO-GUI-034 | Should | The sector rotation panel shows sector names with a colour per quadrant, names moved apart, a dashed tail from 5 trading days ago and numbers on hover; a Map / List switch shows strength bars instead. | rotation rows | map or bars | Switch choice kept while the app runs | Implemented |
+| SRD-GUI-034.091 | FO-GUI-034 | Should | The rotation panel shows strength as a % and a line under each view says what the numbers mean; hover text gives % values without fund codes. | rotation rows | note, % values | Sector lines are equal-weight S&P 500 stocks, not funds | Implemented |
 
 ## FO-GUI-035: AI Desk Team at Work
 
