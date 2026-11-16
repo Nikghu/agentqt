@@ -181,6 +181,7 @@
 | FO-GUI-034 | SRD-GUI-034.089 | DD-GUI-034.001.D01 | MD-GUI-034.004.M04 | UT-GUI-034.089.M04.T01 (1, Pass) | `gui/market_floor.py`, `gui/floor_feed.py` | Implemented | RN-DSK-0.22.0-20261116 |
 | FO-GUI-034 | SRD-GUI-034.090 | DD-GUI-034.001.D01 | MD-GUI-034.012.M11, MD-GUI-034.047.M27 | UT-GUI-034.090.M11.T01, .090.M27.T01–T02 (3, Pass) | `core/desk_floor.py`, `gui/floor_charts.py` | Implemented | RN-DSK-0.22.0-20261116 |
 | FO-GUI-034 | SRD-GUI-034.091 | DD-GUI-034.001.D01 | MD-GUI-034.047.M27 | UT-GUI-034.091.M27.T01 (1, Pass) | `gui/floor_charts.py` | Implemented | RN-DSK-0.22.0-20261116 |
+| FO-GUI-034 | SRD-GUI-034.092 | — | MD-GUI-034.092.M41 | UT-GUI-034.092.M41.T01–T02 (2, Pass) | `gui/ai_desk_day.py`, `gui/floor_feed.py`, `gui/market_floor.py`, `gui/ai_desk.py` | Draft | — |
 
 ---
 

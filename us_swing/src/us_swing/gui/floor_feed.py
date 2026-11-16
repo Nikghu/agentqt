@@ -6,6 +6,7 @@ Also: MD-GUI-034.062.M36 — quantity on pick cards (SRD-GUI-034.034)
 Also: MD-GUI-034.053.M31 — typed cards, filter tabs, live dot, footer, actions
 (SRD-GUI-034.053, .055–.057)
 Also: MD-GUI-034.043.M38 — Approve and Reject on asked panel cards (SRD-GUI-034.043)
+Also: MD-GUI-034.092.M41 — Today block (Day call, Handover) on top (SRD-GUI-034.092)
 Also: SRD-GUI-034.082 — Approve and Reject on hire proposal cards; a refusal keeps the buttons
 """
 from __future__ import annotations
@@ -32,6 +33,7 @@ from us_swing.core.desk_data_asks import decide_product
 from us_swing.core.desk_feed import FeedCard, approve_pick, reject_pick
 from us_swing.core.desk_proposals import DECIDED, decide_proposal
 from us_swing.core.desk_trades import DeskTradeSink
+from us_swing.gui.ai_desk_day import DayTiles
 from us_swing.gui.floor_sample import SAMPLE_TAG, sample_feed_cards
 from us_swing.gui.icons import set_icon
 from us_swing.gui.theme import C
@@ -250,6 +252,8 @@ class AiFeedColumn(QWidget):
         outer.setContentsMargins(8, 8, 8, 8)
         outer.setSpacing(8)
         outer.addLayout(self._build_head())
+        self.day_block = DayTiles()
+        outer.addWidget(self.day_block)
         self._tabs_box = QWidget()
         tabs = QHBoxLayout(self._tabs_box)
         tabs.setContentsMargins(0, 0, 0, 0)

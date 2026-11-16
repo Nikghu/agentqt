@@ -1398,6 +1398,8 @@ Test files:
 | UT-GUI-034.078.M40.T01 | MD-GUI-034.078.M40 | Positive | Day call tile (SRD-GUI-034.078) | on; call Uptrend IT, regime view disagreed, huddle, checked right | tile text has market, sectors, agreed and disagreed names, Huddle and right | Pass |
 | UT-GUI-034.078.M40.T02 | MD-GUI-034.078.M40 | Positive | Handover tile (SRD-GUI-034.078) | on; handover of 2 lines yesterday | tile shows both lines and the day | Pass |
 | UT-GUI-034.078.M40.T03 | MD-GUI-034.078.M40 | Negative | Tiles hidden (SRD-GUI-034.078) | company day off | no Day call or Handover tile | Pass |
+| UT-GUI-034.092.M41.T01 | MD-GUI-034.092.M41 | Positive | Long handover folds (SRD-GUI-034.092) | on; handover of 4 lines | 2 lines and More; More shows all, Less folds again | Pass |
+| UT-GUI-034.092.M41.T02 | MD-GUI-034.092.M41 | Negative | Block moved out of the AI Desk header (SRD-GUI-034.092) | AI feed and AI Desk page | feed has the block; AI Desk page has none | Pass |
 | UT-GUI-035.018.M06.T01 | MD-GUI-035.018.M06 | Positive | Day strip (SRD-GUI-035.018) | on; stand-up 08:10, no huddle, plan 08:12, 11:00 NY, no day-end | Stand-up 08:10, Huddle skipped, Plan 08:12, Market hours waiting, Day-end waiting | Pass |
 | UT-GUI-035.018.M06.T02 | MD-GUI-035.018.M06 | Negative | Strip hidden (SRD-GUI-035.018) | company day off | strip not shown | Pass |
 

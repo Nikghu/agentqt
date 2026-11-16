@@ -553,6 +553,7 @@ No new module. Changed: MD-GUI-034.039.M26 (`gui/ai_desk_chat.py`: session list,
 | MD ID | Parent SRD | File | Purpose | Public API | Depends on | MCP |
 |---|---|---|---|---|---|---|
 | MD-GUI-034.078.M40 | SRD-GUI-034.078 | `us_swing/src/us_swing/gui/ai_desk_day.py`, `gui/ai_desk.py`, `gui/ai_desk_team.py` | Day call and Handover tiles in the Command header | `day_tiles()` | MKT `core/desk_day.py`, `gui/ai_desk_console.py`, theme | No |
+| MD-GUI-034.092.M41 | SRD-GUI-034.092 | `us_swing/src/us_swing/gui/ai_desk_day.py`, `gui/floor_feed.py`, `gui/market_floor.py`, `gui/ai_desk.py` | Today block at the top of the AI feed | `DayTiles`, `AiFeedColumn.day_block` | MKT `core/desk_day.py` | No |
 | MD-GUI-035.018.M06 | SRD-GUI-035.018 | `us_swing/src/us_swing/gui/ai_desk_day.py`, `gui/ai_desk_team.py` | Day strip in Team at work: five phases with time or state | `DayStrip` | MKT `core/desk_day.py`, theme | No |
 
 Changed: MD-GUI-034.016.M15 (`gui/ai_desk_settings.py`: Company day switch — SRD-GUI-034.077), MD-GUI-035.001.M01 (`gui/ai_desk_team.py`: day strip placed above the view switch — SRD-GUI-035.018).
