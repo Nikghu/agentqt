@@ -835,6 +835,7 @@
 | SRD-GUI-034.085 | FO-GUI-034 | Must | Desk settings has a Tool builder check box, off by default, saved as `tool_builder_on`. | check box | setting | Enabled without Agent messages; the chat path also needs Agent messages and Chat sessions | Implemented |
 | SRD-GUI-034.086 | FO-GUI-034 | Should | Command shows the chat, approvals and today's runs in their own panels; lead replies are plain cards with a coloured edge, a reply with no answer is marked Not answered in red, and the question box is one bar with the Ask button. | chat turns | Command view | Same widgets and actions as before; text can be selected | Implemented |
 | SRD-GUI-034.087 | FO-GUI-034 | Should | Approvals waiting has a Refresh button that reads the waiting approvals again at once. | click | cards and count | Same cards as the automatic reload | Implemented |
+| SRD-GUI-034.088 | FO-GUI-034 | Should | The lead chat has a + button for a new discussion and a menu button that shows or hides the discussions list; discussions are grouped under their day, with Today and Yesterday open and older days closed. | sessions, clicks | day tree | Clicking a day opens or closes it | Implemented |
 
 ## FO-GUI-035: AI Desk Team at Work
 
