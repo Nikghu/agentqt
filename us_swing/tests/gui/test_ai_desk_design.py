@@ -149,6 +149,17 @@ def test_approval_cards(qtbot: QtBot, tmp_path: Path) -> None:
     assert all(FRI in p.subject for p in picks) and len(picks) == 2
 
 
+def test_approvals_refresh(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-034.087.M24.T01: Refresh reads new waiting picks at once."""
+    box = approvals_box(tmp_path, lambda: None, _Sink(), lambda: SAT)
+    qtbot.addWidget(box)
+    assert box.count == 0 and box.head.text() == "Approvals waiting"
+    _two(tmp_path)
+    box.refresh_btn.click()
+    assert box.count == 2 and box.head.text() == "Approvals waiting · 2"
+    assert len([c for c in box.cards() if c.card.ref == "pick"]) == 2
+
+
 def test_todays_runs_box(qtbot: QtBot, tmp_path: Path) -> None:
     """UT-GUI-034.063.M36.T01: one line per run, events summed, no Sample tag on Command."""
     _runs(tmp_path)

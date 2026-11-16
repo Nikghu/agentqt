@@ -8,6 +8,7 @@ Also: MD-GUI-034.062.M36 — approval cards (SRD-GUI-034.062)
 Also: MD-GUI-034.043.M38 — asked panel cards and failed requests (SRD-GUI-034.043, .044)
 Also: SRD-GUI-034.066 — seat tiles and icon cards (console look)
 Also: SRD-GUI-034.083 — Proposals list with the chosen proposal's text (AI Desk v3 M7a)
+Also: SRD-GUI-034.087 — Refresh button on Approvals waiting
 
 The AI Desk Hiring section: hires made through the pipeline, the Start hire form, the
 chosen hire's shadow report and the Replace / Add / Reject decision. All rules live in
@@ -327,9 +328,22 @@ class WaitingBox(QWidget):
         super().__init__(parent)
         self._home, self._open_hiring = home, open_hiring
         self._context = FeedContext(home, sink, clock)
-        self._lines = QVBoxLayout(self)
-        self._lines.setContentsMargins(0, 0, 0, 0)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(6)
+        head = QHBoxLayout()
+        self.head = heading("Approvals waiting")
+        self.refresh_btn = QPushButton("Refresh")
+        self.refresh_btn.setToolTip("Read the waiting approvals again now")
+        # Refresh button → clicked → box → reload
+        self.refresh_btn.clicked.connect(self.reload)
+        head.addWidget(self.head)
+        head.addStretch(1)
+        head.addWidget(self.refresh_btn)
+        outer.addLayout(head)
+        self._lines = QVBoxLayout()
         self._lines.setSpacing(6)
+        outer.addLayout(self._lines, 1)
         self.count = 0
         self.reload()
 
@@ -348,8 +362,7 @@ class WaitingBox(QWidget):
         now = self._context.clock()
         asks = ask_cards(self._home, now)
         self.count = len(asks)
-        self._lines.addWidget(heading(f"Approvals waiting · {self.count}" if asks
-                                      else "Approvals waiting"))
+        self.head.setText(f"Approvals waiting · {self.count}" if asks else "Approvals waiting")
         if not asks:
             self._lines.addWidget(muted(NO_APPROVALS))
         for ask in asks + failed_cards(self._home, now):
