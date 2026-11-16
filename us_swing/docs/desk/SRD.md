@@ -152,6 +152,8 @@
 | SRD-DSK-004.008 | FO-DSK-004 | Must | A call counts against market hours when woken by a check-in or watcher flag, against research when it works a ticket, and against plan otherwise. | event, ticket | part | The part is kept on each `activity` row | Implemented |
 | SRD-DSK-004.009 | FO-DSK-004 | Must | No call is made once its part is used up for the day; a ticket call is paid from the raising lead's research part, not the doer's. | `activity` tokens | allow or refuse | A refusal is handled like other budget refusals (SRD-DSK-003.018) | Implemented |
 | SRD-DSK-004.010 | FO-DSK-004 | Should | A call refused for a used-up part logs the employee, the part and the tokens used. | refusal | log line | `[Budget]` prefix | Implemented |
+| SRD-DSK-004.011 | FO-DSK-004 | Must | Claude Code CLI calls skip the per-employee day parts; only the desk-wide CLI tokens per day applies, and 0 means no limit. | source, `activity` tokens | allow or refuse | OpenRouter calls keep the parts; ticket caps still apply | Implemented |
+| SRD-DSK-004.012 | FO-DSK-004 | Must | A CLI usage-limit or busy error stops CLI use for the run, tries the backup source and keeps a plain reason for the user. | CLI error | reason, backup try | `[AI Desk]` warning line; no alert | Implemented |
 
 ## FO-DSK-005: Activity Recorder and Replay
 

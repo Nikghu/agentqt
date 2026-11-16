@@ -403,6 +403,7 @@
 | UT-MKT-010.004.M03.T01 | MD-MKT-010.003.M03 | Positive | Answer saved (SRD-MKT-010.004) | fake gateway answers 'Because ...' | lead row answered, reply_to the question | Pass |
 | UT-MKT-010.004.M03.T02 | MD-MKT-010.003.M03 | Negative | Answer too long (SRD-MKT-010.004) | 1501 characters; extra field | refused by the schema | Pass |
 | UT-MKT-010.005.M03.T01 | MD-MKT-010.003.M03 | Negative | No answer (SRD-MKT-010.005) | fake gateway returns None | lead row failed with the failed text | Pass |
+| UT-MKT-010.023.M03.T01 | MD-MKT-010.003.M03 | Negative | Failed reply reason (SRD-MKT-010.023) | gateway gives a reason, no answer | lead row names the reason | Pass |
 | UT-MKT-010.006.M03.T01 | MD-MKT-010.003.M03 | Positive | Answers only (SRD-MKT-010.006) | answer schema fields; skill source | only 'answer'; no approvals, signal or order code | Pass |
 | UT-MKT-010.007.M04.T01 | MD-MKT-010.007.M04 | Positive | Default chat employee (SRD-MKT-010.007) | emp-008 job.yaml; SKILL_PATHS | level lead, skill lead_chat, trigger chat_question, 200 calls; skill loads | Pass |
 | UT-MKT-010.007.M04.T02 | MD-MKT-010.007.M04 | Negative | No real names (SRD-MKT-010.007) | emp-008 files | generic name only; market does not import desk | Pass |

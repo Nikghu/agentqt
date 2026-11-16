@@ -77,3 +77,4 @@
 
 | FO-MKT-021 | SRD-MKT-021.007–.010 | DD-MKT-021.007.D01 | MD-MKT-021.007.M02 (new) | UT-MKT-021.007–.010 (8, Pass) | `market/tool_reads.py` | Implemented | RN-DSK-0.21.0-20261116 |
 | FO-MKT-010 | SRD-MKT-010.022 | DD-MKT-010.022.D01 | MD-MKT-010.003.M03 (changed) | UT-MKT-010.022 (2, Pass) | `market/lead_chat.py` | Implemented | RN-DSK-0.21.0-20261116 |
+| FO-MKT-010 | SRD-MKT-010.023 | DD-MKT-010.009.D01 | MD-MKT-010.003.M03 (changed) | UT-MKT-010.023 (1, Pass) | `market/lead_chat.py` | Implemented | pending |

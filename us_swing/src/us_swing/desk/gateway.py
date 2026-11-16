@@ -8,6 +8,8 @@ job file picks the models), SRD-DSK-005.005 (resend a recorded prompt for a repl
 SRD-DSK-007.001 (raise an alert for a login, key or credit problem), SRD-DSK-007.004 (skip a
 source that failed to sign in for the rest of the run), SRD-DSK-004.008, .009 (each try is paid
 from a budget part; a ticket try is paid by the raiser and stops at the ticket cap)
+Also: SRD-DSK-004.012 (Claude subscription limit or outage: skip the CLI for the run and
+keep a plain reason)
 
 The one way AI employees reach a model. Sources: OpenRouter (API, has cost) and Claude
 Code CLI (subscription: tokens only, cost 0). Every answer must be JSON matching the
@@ -19,6 +21,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import shutil
 import tempfile
 import time
@@ -47,6 +50,9 @@ TIMEOUT_S = 90.0
 _SOURCE_NAMES = {"openrouter": "OpenRouter", "claude": "Claude Code CLI"}
 # (desk folder, run id) → sources that failed to sign in during that run
 _BROKEN: dict[tuple[str, int], set[str]] = {}
+_CLI_LIMIT = re.compile(r"usage limit|hit your limit|limit reached|429|rate.?limit|"
+                        r"529|overloaded", re.IGNORECASE)
+CLI_LIMIT_TEXT = "the Claude subscription limit is reached or Claude is not available now"
 
 
 @dataclass(frozen=True)
@@ -186,11 +192,17 @@ class Gateway:
         self._budget = Budget(recorder, settings, clock)
         self.answered: Answered | None = None
         self.refused: str | None = None
+        self.limit_hit: str | None = None
         self.talk = talk
         self.drafts: list[Draft] = []
         self._remember = remember
         self._notes: list[Remember] = []
         self.asked = 0
+
+    @property
+    def why_no_answer(self) -> str | None:
+        """Plain reason for no answer: a refusal or the Claude subscription limit."""
+        return self.refused or self.limit_hit
 
     @property
     def home(self) -> Path:
@@ -262,6 +274,14 @@ class Gateway:
         raise_alert(self._home, kind, source, self._run_id,
                     f"{self._hire.spec.name}: {error}", self._clock(), self._send)
 
+    def _cli_limit(self, error: str) -> None:
+        """Stop using the CLI this run; the backup source may still answer."""
+        self.limit_hit = CLI_LIMIT_TEXT
+        if not self._replay:
+            self._broken().add("claude")
+        log.warning("[AI Desk] Claude subscription limit reached or not available: %s",
+                    error[:200])
+
     def _model(self, choice: ModelChoice) -> str | None:
         s = self._settings
         on = s.openrouter_on if choice.source == "openrouter" else s.claude_on
@@ -310,7 +330,9 @@ class Gateway:
         else:
             log.warning("[AI Desk] %s answer %d from %s was not valid: %s", spec.name, attempt,
                         model, error)
-            if call_failed:
+            if call_failed and source == "claude" and _CLI_LIMIT.search(error):
+                self._cli_limit(error)
+            elif call_failed:
                 self._report(source, error)
         return result, error
 

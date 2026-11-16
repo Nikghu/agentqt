@@ -258,6 +258,7 @@
 | SRD-MKT-010.020 | FO-MKT-010 | Must | With task cards on, the ask hint also lists the ready table formats with their columns and tells the lead to send a table ask to `skill:task_planner` with the format and the symbols. | settings, ready formats | facts text | Only with sessions and agent messages on; no ready format: no table hint | Implemented |
 | SRD-MKT-010.021 | FO-MKT-010 | Must | A reply that holds a table becomes the update as text written by code: a header line, one line per row, then the missing reasons and the flags. | reply | `chat` row | No AI call; cells joined by " \| " | Implemented |
 | SRD-MKT-010.022 | FO-MKT-010 | Must | With the tool builder on, the ask hint also tells the lead to send the Master's request for a new tool to `skill:tool_builder`. | settings | facts text | Only while an active employee holds `tool_builder`; only for a request for a new tool | Implemented |
+| SRD-MKT-010.023 | FO-MKT-010 | Should | A failed chat reply says why when the desk knows the reason (limit used up or Claude not available). | gateway reason | lead row text | Falls back to the plain failed text | Implemented |
 
 ## FO-MKT-011: Ask the Desk for New Data
 

@@ -8,12 +8,13 @@ from pathlib import Path
 import pytest
 import yaml  # type: ignore[import-untyped]
 
-from us_swing.core.desk_employee import check
+from us_swing.core.desk_ai_settings import DeskAiSettings
+from us_swing.core.desk_employee import check, migrate_all
 from us_swing.core.desk_events import Event
 from us_swing.desk.budget import Budget, Part, part_cap
 from us_swing.desk.employees_step import EmployeesStep
-from us_swing.desk.gateway import Gateway, Reply
-from us_swing.desk.recorder import Recorder
+from us_swing.desk.gateway import CLI_LIMIT_TEXT, Gateway, Reply
+from us_swing.desk.recorder import Attempt, Recorder
 from us_swing.desk.registry import load_employees
 from tests.desk.research_support import DAY, NOW, ON, SKILLS, add_try, employee, execute, job
 from tests.desk.test_harness import FakeCaller
@@ -35,8 +36,8 @@ def _budget(rec: Recorder) -> Budget:
     return Budget(rec, ON, lambda: NOW)
 
 
-def _refusal(rec: Recorder, part: Part) -> str | None:
-    return _budget(rec).refusal("t-1", "Tester", 50.0, 40, "claude", part)
+def _refusal(rec: Recorder, part: Part, source: str = "openrouter") -> str | None:
+    return _budget(rec).refusal("t-1", "Tester", 50.0, 40, source, part)
 
 
 def test_default_daily_tokens() -> None:
@@ -126,3 +127,44 @@ def test_part_refusal_log(home: Path, rec: Recorder, caplog: pytest.LogCaptureFi
     add_try(home, "t-1", 30_000)
     _refusal(rec, Part("plan", "t-1", "Tester", 60_000))
     assert "[Budget] Tester: plan tokens for today used up (30,000 of 30,000)" in caplog.text
+
+
+def test_cli_skips_day_parts(home: Path, rec: Recorder) -> None:
+    """UT-DSK-004.011.M12.T01: A used-up part refuses OpenRouter calls but not Claude CLI calls."""
+    add_try(home, "t-1", 30_000)
+    part = Part("plan", "t-1", "Tester", 60_000)
+    assert _refusal(rec, part) == "Tester plan tokens for today used up"
+    assert _refusal(rec, part, "claude") is None
+
+
+def test_cli_cap_zero_is_no_limit(home: Path, rec: Recorder) -> None:
+    """UT-DSK-004.011.M12.T02: A desk CLI cap of 0 never refuses; a cap of 1,000 does."""
+    rec.add(Attempt(1, "t-1", "t-1", 1, DAY, f"{DAY}T10:00:00-05:00", "claude", "m", 1, "p",
+                    "a", True, "", 5_000, 0, 0.0, 1.0, 0, 0, "plan", "", None))
+    for cap, why in ((0, None), (1_000, "Claude Code CLI reached 1,000 tokens for today")):
+        settings = DeskAiSettings(claude_on=True, claude_tokens_per_day=cap)
+        assert Budget(rec, settings, lambda: NOW).refusal(
+            "t-1", "Tester", 50.0, 40, "claude") == why
+    with pytest.raises(ValueError):
+        DeskAiSettings(claude_tokens_per_day=-1)
+
+
+def test_cli_limit_tries_backup(home: Path, rec: Recorder) -> None:
+    """UT-DSK-004.012.M11.T01: A CLI usage limit skips the CLI and asks the backup source."""
+    path = home / "employees" / "t-1"
+    path.mkdir(parents=True)
+    text = job("t-1", "Tester", "junior", "fake_lead").replace(
+        "primary: {source: openrouter, model: or-model}", "primary: {source: claude, model: x}"
+    ).replace("backup: {source: claude, model: default}", "backup: {source: openrouter, model: y}")
+    (path / "job.yaml").write_text(text, encoding="utf-8")
+    (path / "soul.md").write_text("You are Tester.", encoding="utf-8")
+    migrate_all(home)
+    (hire,) = load_employees(home, SKILLS)
+    from tests.desk.research_support import View
+
+    caller = FakeCaller(RuntimeError("Claude AI usage limit reached|1763300000"),
+                        RuntimeError("upstream down"), RuntimeError("upstream down"))
+    gateway = Gateway(home, hire, rec, ON, "key", 7, DAY, caller, lambda: NOW)
+    assert gateway.ask("facts", View) is None
+    assert [c[0] for c in caller.calls] == ["claude", "openrouter", "openrouter"]
+    assert gateway.why_no_answer == CLI_LIMIT_TEXT

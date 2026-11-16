@@ -10,6 +10,7 @@ Also: SRD-DSK-012.028 (``task_cards_on``, off by default)
 Also: SRD-DSK-006.024 (``hire_proposals_on``, off by default)
 Also: SRD-DSK-013.021 (``tool_builder_on``, off by default)
 Also: SRD-DSK-006.003 — seat caps per level; SRD-MKT-008.002 — trade target R multiple
+Also: SRD-DSK-004.011 (``claude_tokens_per_day`` 0 = no desk limit)
 
 Desk AI settings, separate from the AI notes settings: which sources may run, their
 models, the monthly API budget and the daily Claude Code CLI token cap. Kept in
@@ -57,9 +58,9 @@ class DeskAiSettings:
     tool_builder_on: bool = False
 
     def __post_init__(self) -> None:
-        """Refuse a budget, token cap, seat cap or R multiple that is not above 0."""
-        if self.monthly_budget_usd <= 0 or self.claude_tokens_per_day <= 0:
-            raise ValueError("budget and token cap must be above 0")
+        """Refuse a budget, seat cap or R multiple not above 0, or a token cap below 0."""
+        if self.monthly_budget_usd <= 0 or self.claude_tokens_per_day < 0:
+            raise ValueError("budget must be above 0 and token cap 0 or more")
         if min(self.expert_cap, self.champion_cap, self.junior_cap) < 1:
             raise ValueError("seat caps must be at least 1")
         if self.trade_target_r <= 0:

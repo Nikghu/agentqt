@@ -13,6 +13,7 @@ Also: SRD-GUI-034.077 — Company day switch (AI Desk v3 M5)
 Also: SRD-GUI-034.080 — Task cards switch (AI Desk v3 M6)
 Also: SRD-GUI-034.084 — Hire proposals switch (AI Desk v3 M7a)
 Also: SRD-GUI-034.085 — Tool builder switch (AI Desk v3 M7b)
+Also: SRD-DSK-004.011 — CLI tokens per day 0 means no limit
 """
 from __future__ import annotations
 
@@ -65,6 +66,8 @@ class DeskAiSettingsForm(QWidget):
         self.claude_on.setToolTip("Subscription: uses tokens, no cost")
         self.claude_model = self._line(self._settings.claude_model)
         self.claude_tokens = self._line(str(self._settings.claude_tokens_per_day))
+        self.claude_tokens.setToolTip("Whole desk, all employees. 0 = no limit; the "
+                                      "subscription limit still applies")
         self.openrouter_on = QCheckBox("Use OpenRouter")
         self.openrouter_on.setToolTip("Paid API: counts against the monthly budget")
         self.openrouter_model = self._line(self._settings.openrouter_model)
@@ -193,7 +196,8 @@ class DeskAiSettingsForm(QWidget):
             if not math.isfinite(budget):
                 raise ValueError("budget")
         except ValueError:
-            self.status.setText("Budget, tokens per day and seats must be numbers above 0")
+            self.status.setText("Budget and seats must be numbers above 0, tokens per day 0 "
+                                "or more")
             return False
         used = seat_counts(self._home or desk_home())
         low = [level for level in self.caps if (settings.cap(level) or 0) < used.get(level, 0)]

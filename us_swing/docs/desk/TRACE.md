@@ -95,3 +95,4 @@
 | FO-DSK-013 | SRD-DSK-013.022 | DD-DSK-013.001.D01 | MD-DSK-001.021.M07 (changed) | UT-DSK-013.022 (2, Pass) | `core/desk_steps.py`, `market/employees/emp-021/`, `USSwing.spec` | Implemented | RN-DSK-0.21.0-20261116 |
 | FO-DSK-013 | SRD-DSK-013.023, .024 | DD-DSK-013.001.D01 | MD-DSK-013.001.M37; MD-DSK-013.003.M40 | UT-DSK-013.023, .024 (4, Pass) | `core/desk_built_tools.py`, `desk/tool_builder.py` | Implemented | RN-DSK-0.21.0-20261116 |
 | FO-DSK-006 | SRD-DSK-006.028 | DD-DSK-013.001.D01 | MD-DSK-006.001.M18 (changed) | UT-DSK-006.028 (3, Pass) | `core/desk_hiring.py` | Implemented | RN-DSK-0.21.0-20261116 |
+| FO-DSK-004 | SRD-DSK-004.011, .012 | DD-DSK-002.001.D01 | MD-DSK-004.003.M12, MD-DSK-004.001.M11, MD-DSK-004.005.M13 (changed) | UT-DSK-004.011, .012 (3, Pass) | `desk/budget.py`, `desk/gateway.py`, `core/desk_ai_settings.py` | Implemented | pending |

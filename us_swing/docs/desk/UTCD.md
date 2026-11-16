@@ -394,6 +394,9 @@
 | UT-DSK-004.009.M12.T02 | MD-DSK-004.003.M12 | Negative | Ticket paid by the raiser (SRD-DSK-004.009) | doer's research used up, raiser's not; then raiser's used up | allowed; then refused | Pass |
 | UT-DSK-004.009.M11.T01 | MD-DSK-004.001.M11 | Edge | Ticket cap between tries (SRD-DSK-004.009) | first try reaches the ticket cap, answer invalid | no second try; refused reason names the ticket | Pass |
 | UT-DSK-004.010.M11.T01 | MD-DSK-004.001.M11 | Positive | Part refusal log (SRD-DSK-004.010) | plan part used up | `[Budget]` line with name, part and tokens | Pass |
+| UT-DSK-004.011.M12.T01 | MD-DSK-004.003.M12 | Positive | CLI skips day parts (SRD-DSK-004.011) | plan part used up | OpenRouter refused; Claude CLI allowed | Pass |
+| UT-DSK-004.011.M12.T02 | MD-DSK-004.003.M12 | Edge | CLI cap 0 (SRD-DSK-004.011) | 5,000 CLI tokens; cap 0, then 1,000; cap -1 | allowed; refused; -1 not valid | Pass |
+| UT-DSK-004.012.M11.T01 | MD-DSK-004.001.M11 | Negative | CLI usage limit (SRD-DSK-004.012) | CLI says usage limit reached | CLI not retried; backup asked; reason kept | Pass |
 | UT-DSK-007.010.M21.T01 | MD-DSK-007.001.M21 | Positive | Waiting ticket alert (SRD-DSK-007.010) | raise a 30,000-token ticket; then approve it | one Research ticket waiting alert with goal and cap; closed after approve | Pass |
 | UT-DSK-007.010.M21.T02 | MD-DSK-007.001.M21 | Negative | No alert when auto approved (SRD-DSK-007.010) | raise an 8,000-token ticket | no alert | Pass |
 | UT-DSK-010.001.M25.T01 | MD-DSK-010.001.M25 | Positive | Ticket row (SRD-DSK-010.001) | lead raises one ticket | row with kind, topic, goal, done test, caps, raiser, status, made | Pass |

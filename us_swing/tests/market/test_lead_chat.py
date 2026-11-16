@@ -184,6 +184,18 @@ def test_no_answer(tmp_path: Path) -> None:
         (lc.FAILED_TEXT, "failed")]
 
 
+def test_no_answer_reason(tmp_path: Path) -> None:
+    """UT-MKT-010.023.M03.T01: the failed reply names the reason the gateway gives."""
+    dc.ask_question(tmp_path, "Why?", NOW)
+    ctx = _Ctx(tmp_path, None)
+    ctx.why_no_answer = "Lead 2 reached 200 call(s) for today"  # type: ignore[attr-defined]
+    skill = _skill()
+    skill.act(ctx, skill.facts(tmp_path))
+    assert _q(tmp_path, "SELECT text FROM chat WHERE role = 'lead'") == [(
+        "The desk could not answer this question: Lead 2 reached 200 call(s) for today. "
+        "Please ask again later.",)]
+
+
 def test_answers_only() -> None:
     """UT-MKT-010.006.M03.T01: the answer has one text field and the skill has no trade code."""
     assert list(lc.LeadChatAnswer.model_fields) == ["answer"]
