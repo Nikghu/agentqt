@@ -89,6 +89,14 @@ All interactive widgets must use the standard heights defined in `theme.C`:
 - Never add `setStyleSheet("padding: ...")` to individual buttons to fix alignment — fix the root cause in `theme.QSS` instead.
 - `QPushButton#tab_btn` (title bar navigation) is the only exception: its height is `38 px` and is set in QSS.
 
+## GUI User Text — No Developer Text (PyQt6)
+
+Every label, hint, tooltip, status line and placeholder is read by the user. Use plain product words only.
+
+- Never show phase or plan names (`P6`, `M7b`, `step F`), artifact IDs (`SRD-…`, `FO-…`, `T123`), class/method names, `snake_case` keys, file paths of code, or "coming in a later phase" notes.
+- Sample or not-yet-built data must not look real; if a value is not wired to saved data, do not show it.
+- Same language rules as `logging.md` → User-Facing Language.
+
 ## GUI Inline Stylesheet — Focus Outline Rule (PyQt6)
 
 Any `setStyleSheet()` call on a focusable widget (`QComboBox`, `QSpinBox`, `QDoubleSpinBox`, `QLineEdit`, `QPushButton`, `QRadioButton`) **must** include `outline: none` in both the base selector and the `:focus` pseudo-state. If no `:focus` override is needed, add it to the base rule only. Suppresses OS-drawn focus rectangle that clashes with custom border styling.

@@ -237,7 +237,7 @@
 | UT-DSK-006.001.M18.T01 | MD-DSK-006.001.M18 | Positive | Start a hire (SRD-DSK-006.001) | skill setup_review, expert, made-up name, claude default | new folder with status shadow, hired_on, version 1, chosen model; soul from the default | Pass |
 | UT-DSK-006.001.M18.T02 | MD-DSK-006.001.M18 | Edge | Next id (SRD-DSK-006.001) | folders emp-001, emp-003, emp-010 | new id emp-011 | Pass |
 | UT-DSK-006.002.M18.T01 | MD-DSK-006.001.M18 | Negative | Refused hires (SRD-DSK-006.002) | unknown skill; lead level; name used (other case); expert cap full | each refused with a reason; no folder made | Pass |
-| UT-DSK-006.003.M13.T01 | MD-DSK-004.005.M13 | Positive | Cap defaults and save (SRD-DSK-006.003) | no file; save caps 9/6/31 | 8/5/30; then 9/6/31 after load | Pass |
+| UT-DSK-006.003.M13.T01 | MD-DSK-004.005.M13 | Positive | Cap defaults and save (SRD-DSK-006.003) | no file; save caps 9/6/31 | 50/5/30; then 9/6/31 after load | Pass |
 | UT-DSK-006.003.M13.T02 | MD-DSK-004.005.M13 | Negative | Bad cap (SRD-DSK-006.003) | cap 0 | refused | Pass |
 | UT-DSK-006.003.M18.T01 | MD-DSK-006.001.M18 | Positive | Seat count (SRD-DSK-006.003) | 2 active, 1 shadow, 1 retired experts | expert count 3 | Pass |
 | UT-DSK-006.004.M19.T01 | MD-DSK-006.004.M19 | Positive | Shadow answer recorded only (SRD-DSK-006.004) | shadow hire, fresh facts, valid answer | activity rows with shadow 1; act not called; no briefs | Pass |

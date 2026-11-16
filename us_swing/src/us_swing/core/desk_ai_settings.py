@@ -43,7 +43,7 @@ class DeskAiSettings:
     claude_model: str = "claude-haiku-5-5"
     monthly_budget_usd: float = 10.0
     claude_tokens_per_day: int = 200_000
-    expert_cap: int = 8
+    expert_cap: int = 50
     champion_cap: int = 5
     junior_cap: int = 30
     trade_target_r: float = 2.0

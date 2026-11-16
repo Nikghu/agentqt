@@ -165,9 +165,9 @@ def test_refused_hires(home: Path, skill: str, level: str, name: str, why: str) 
 # ---------------- seat caps ----------------
 
 def test_cap_defaults_and_save(home: Path) -> None:
-    """UT-DSK-006.003.M13.T01: caps default to 8/5/30 and are saved."""
+    """UT-DSK-006.003.M13.T01: caps default to 50/5/30 and are saved."""
     caps = load_settings(home)
-    assert (caps.expert_cap, caps.champion_cap, caps.junior_cap) == (8, 5, 30)
+    assert (caps.expert_cap, caps.champion_cap, caps.junior_cap) == (50, 5, 30)
     assert caps.cap("lead") is None
     save_settings(DeskAiSettings(expert_cap=9, champion_cap=6, junior_cap=31), home)
     caps = load_settings(home)

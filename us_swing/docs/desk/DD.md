@@ -431,7 +431,7 @@ for employee:
 | `desk/registry.py` | `JobSpec` gets `status` (`active` default, `shadow`, `retired`) and `hired_on`; retired employees are not loaded |
 | `desk/recorder.py`, `desk/gateway.py` | `activity.shadow` column (added on open, default 0); `Gateway(shadow=True)` marks tries |
 | `desk/employees_step.py` | `_wake` sends shadow employees to `run_shadow()` |
-| `core/desk_ai_settings.py` | `expert_cap` 8, `champion_cap` 5, `junior_cap` 30 |
+| `core/desk_ai_settings.py` | `expert_cap` 50, `champion_cap` 5, `junior_cap` 30 |
 | `gui/ai_desk_hiring.py` | Hiring section and the Command approvals box |
 | `gui/ai_desk_sections3.py`, `core/desk_floor.py` | Reports section from `desk_reports` |
 | `gui/ai_desk_settings.py` | Seat cap fields |
