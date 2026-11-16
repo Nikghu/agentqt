@@ -1210,6 +1210,7 @@ Test files:
 | UT-GUI-034.087.M24.T01 | MD-GUI-034.034.M24 | Positive | Refresh approvals (SRD-GUI-034.087) | no picks, then 2 picks added, Refresh clicked | heading count 0 then 2; cards shown | Pass |
 | UT-GUI-034.088.M26.T01 | MD-GUI-034.039.M26 | Positive | Discussions by day (SRD-GUI-034.088) | sessions today, yesterday and 4 days ago | groups Today, Yesterday, date; only the first two open; click opens the old day | Pass |
 | UT-GUI-034.088.M26.T02 | MD-GUI-034.039.M26 | Positive | Menu toggles list (SRD-GUI-034.088) | click menu twice | list hidden then shown; + stays | Pass |
+| UT-GUI-034.089.M04.T01 | MD-GUI-034.004.M04 | Positive | AI feed button in strip (SRD-GUI-034.089) | open floor, fold feed; hide and show strip button | width 400; card hidden when folded; button hidden then shown | Pass |
 | UT-GUI-034.062.M36.T01 | MD-GUI-034.062.M36 | Positive | Approval cards (SRD-GUI-034.062) | ready hire and 2 picks | heading count 3; pick cards with qty; Open Hiring opens Hiring | Pass |
 | UT-GUI-034.063.M36.T01 | MD-GUI-034.062.M36 | Positive | Today's runs (SRD-GUI-034.063) | runs today | one line per run; events one row with count; no Sample tag | Pass |
 | UT-GUI-034.064.M36.T01 | MD-GUI-034.062.M36 | Positive | Team now (SRD-GUI-034.064) | 2 active, 1 shadow | Team now: 2 active · 1 shadow | Pass |

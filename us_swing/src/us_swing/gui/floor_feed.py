@@ -33,11 +33,10 @@ from us_swing.core.desk_feed import FeedCard, approve_pick, reject_pick
 from us_swing.core.desk_proposals import DECIDED, decide_proposal
 from us_swing.core.desk_trades import DeskTradeSink
 from us_swing.gui.floor_sample import SAMPLE_TAG, sample_feed_cards
-from us_swing.gui.icons import icon_button, set_icon
+from us_swing.gui.icons import set_icon
 from us_swing.gui.theme import C
 
-_OPEN_WIDTH = 300
-_FOLDED_WIDTH = 40
+_OPEN_WIDTH = 400
 CUT_CHARS = 220
 NY = ZoneInfo("America/New_York")
 IST = ZoneInfo("Asia/Kolkata")
@@ -289,13 +288,10 @@ class AiFeedColumn(QWidget):
         self.live_dot = QLabel("●")
         self.live_dot.setObjectName("feed_live")
         self.set_live(False)
-        self._fold_btn = icon_button("panel-left-open", "neutral", "Fold the AI feed")
-        self._fold_btn.clicked.connect(self._toggle)  # button → clicked → column → _toggle
         head.addWidget(self._title)
         head.addWidget(self._tag)
         head.addStretch(1)
         head.addWidget(self.live_dot)
-        head.addWidget(self._fold_btn)
         return head
 
     def set_live(self, live: bool) -> None:
@@ -352,23 +348,15 @@ class AiFeedColumn(QWidget):
             old.deleteLater()  # a card may still be inside its own click handler
 
     def is_folded(self) -> bool:
-        """Return True when only the unfold button shows."""
+        """Return True when the feed is folded away."""
         return self._folded
 
     def set_folded(self, folded: bool) -> None:
-        """Fold or unfold the column; emits ``folded_changed`` when the state changes."""
+        """Fold or unfold the column (the page hides its card); emits ``folded_changed``
+        when the state changes. The fold button lives in the window's right icon strip."""
         changed = folded != self._folded
         self._folded = folded
-        for widget in (self._title, self._body, self._tabs_box, self.talk_btn, self.live_dot):
-            widget.setVisible(not folded)
-        self._tag.setVisible(self._sample and not folded)
-        set_icon(self._fold_btn, "panel-left-open" if folded else "panel-left-close")
-        tip = "Show the AI feed" if folded else "Fold the AI feed"
-        self._fold_btn.setToolTip(tip)
-        self._fold_btn.setAccessibleName(tip)
-        self.setFixedWidth(_FOLDED_WIDTH if folded else _OPEN_WIDTH)
+        self._tag.setVisible(self._sample)
+        self.setFixedWidth(_OPEN_WIDTH)
         if changed:
             self.folded_changed.emit(folded)
-
-    def _toggle(self) -> None:
-        self.set_folded(not self._folded)

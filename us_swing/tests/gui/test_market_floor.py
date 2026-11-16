@@ -706,3 +706,23 @@ def test_saved_news_layout_kept(tmp_path: Path) -> None:
     tabs["News & Calendar"] = tabs["News & Calendar"][:2]
     store.save("Default", tabs)
     assert len(LayoutStore(tmp_path / "layouts.json").load("Default")["News & Calendar"]) == 2
+
+
+def test_feed_button_in_strip(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-034.089.M04.T01: the feed is 400 px wide and folding hides its whole card;
+    the strip's AI feed button can be hidden off the Market Floor."""
+    from us_swing.gui.side_panels import IconStrip
+
+    page = MarketFloorWorkspace(DeskPoller(tmp_path), store=LayoutStore(tmp_path / "l.json"))
+    qtbot.addWidget(page)
+    page.show()
+    assert page.feed.width() == 400 and page._feed_card.isVisible()
+    page.feed.set_folded(True)
+    assert not page._feed_card.isVisible() and page.fold_btn.text() == "Show feed"
+    strip = IconStrip()
+    qtbot.addWidget(strip)
+    strip.show()
+    strip.set_feed_shown(False)
+    assert not strip._buttons["feed"].isVisible()
+    strip.set_feed_shown(True)
+    assert strip._buttons["feed"].isVisible()

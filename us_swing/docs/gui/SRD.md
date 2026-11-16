@@ -836,6 +836,7 @@
 | SRD-GUI-034.086 | FO-GUI-034 | Should | Command shows the chat, approvals and today's runs in their own panels; lead replies are plain cards with a coloured edge, a reply with no answer is marked Not answered in red, and the question box is one bar with the Ask button. | chat turns | Command view | Same widgets and actions as before; text can be selected | Implemented |
 | SRD-GUI-034.087 | FO-GUI-034 | Should | Approvals waiting has a Refresh button that reads the waiting approvals again at once. | click | cards and count | Same cards as the automatic reload | Implemented |
 | SRD-GUI-034.088 | FO-GUI-034 | Should | The lead chat has a + button for a new discussion and a menu button that shows or hides the discussions list; discussions are grouped under their day, with Today and Yesterday open and older days closed. | sessions, clicks | day tree | Clicking a day opens or closes it | Implemented |
+| SRD-GUI-034.089 | FO-GUI-034 | Should | The AI feed is 400 px wide and is shown or hidden by an AI feed button in the right icon strip, which shows only while Market Floor is open. | click, page | feed shown or hidden | Folded state is kept as before | Implemented |
 
 ## FO-GUI-035: AI Desk Team at Work
 
